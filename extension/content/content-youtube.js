@@ -16,12 +16,14 @@ var YouTubeTranslator = (() => {
   let bodyObserver = null;
   let pollTimer = null;
   let lastText = '';
-  let overlay = null;
+  let lastTranslated = '';
 
-  // ─── Bilingual overlay ────────────────────────────────────────────────
-  // The translation lives in our OWN element, not inside YouTube's
-  // `.ytp-caption-segment` — YouTube re-renders that node every frame and
-  // would wipe anything we append into it.
+  // ─── Bilingual line ───────────────────────────────────────────────────
+  // The translation is appended as a real line INSIDE YouTube's caption box
+  // (`.caption-window`), in normal document flow. It sits under the original
+  // text and follows it automatically when YouTube moves the captions (mouse
+  // over → controls show) or the window resizes — no coordinate math, so it
+  // never jitters.
 
   function currentCaptionText() {
     const segs = document.querySelectorAll(CAPTION_SEGMENT);
@@ -33,75 +35,53 @@ var YouTubeTranslator = (() => {
       .trim();
   }
 
-  function ensureOverlay() {
-    if (overlay && overlay.isConnected) return overlay;
-    const player = document.querySelector('#movie_player') || document.body;
-    overlay = document.createElement('div');
-    overlay.className = DUAL_CLASS;
-    overlay.style.cssText = `
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 12%;
-      max-width: 92%;
-      width: max-content;
-      text-align: center;
-      z-index: 60;
-      pointer-events: none;
-      color: ${settings.ytTextColor || '#ffffff'};
-      background: rgba(8, 8, 8, 0.75);
-      padding: 1px 8px;
-      border-radius: 2px;
-      line-height: 1.3;
-      font-weight: 400;
-      white-space: pre-wrap;
-      display: none;
-    `;
-    player.appendChild(overlay);
-    return overlay;
-  }
-
-  function positionOverlay(el) {
-    // Anchor to the REAL caption box (`.caption-window`), not the full-size
-    // `.ytp-caption-window-container` wrapper — the wrapper spans the whole
-    // player, which previously pushed the translation to the very top.
-    const player = document.querySelector('#movie_player');
+  function renderDualLine(translated) {
     const win = document.querySelector(CAPTION_WINDOW) ||
                 document.querySelector(CAPTION_CONTAINER);
-    const seg = document.querySelector(CAPTION_SEGMENT);
-    const anchor = win || seg;
-    if (player && anchor) {
-      const ar = anchor.getBoundingClientRect();
-      const pr = player.getBoundingClientRect();
-      if (ar.width && pr.height) {
-        // Match the original caption's font size.
-        if (seg) {
-          const fs = getComputedStyle(seg).fontSize;
-          if (fs) el.style.fontSize = fs;
-        }
-        // Directly below the original line, horizontally centered on it.
-        el.style.top = (ar.bottom - pr.top + 2) + 'px';
-        el.style.left = (ar.left - pr.left + ar.width / 2) + 'px';
-        el.style.transform = 'translateX(-50%)';
-        el.style.bottom = 'auto';
-        return;
-      }
+    if (!win) return;
+    // Drop any dual line stranded outside the current caption box.
+    document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => {
+      if (el.parentElement !== win) el.remove();
+    });
+    let line = Array.from(win.children).find(
+      c => c.classList && c.classList.contains(DUAL_CLASS)
+    );
+    if (!line) {
+      line = document.createElement('div');
+      line.className = DUAL_CLASS;
+      win.appendChild(line); // after the original text → renders on the line below
     }
-    el.style.top = 'auto';
-    el.style.left = '50%';
-    el.style.transform = 'translateX(-50%)';
-    el.style.bottom = '12%';
+    const seg = document.querySelector(CAPTION_SEGMENT);
+    line.style.cssText = `
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      color: ${settings.ytTextColor || '#ffffff'};
+      font-size: ${seg ? getComputedStyle(seg).fontSize : '1em'};
+      line-height: 1.3;
+      margin-top: 2px;
+      background: rgba(8, 8, 8, 0.75);
+      padding: 1px 6px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
+      white-space: pre-wrap;
+      pointer-events: none;
+    `;
+    line.textContent = translated;
   }
 
-  function hideOverlay() {
-    if (overlay) { overlay.style.display = 'none'; overlay.textContent = ''; }
+  function removeDualLine() {
+    document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => el.remove());
   }
 
   async function refreshCaption() {
     if (!active) return;
     const text = currentCaptionText();
-    if (!text || text.length < 2) { hideOverlay(); lastText = ''; return; }
-    if (text === lastText) return; // unchanged caption line
+    if (!text || text.length < 2) { removeDualLine(); lastText = ''; return; }
+
+    // Same caption as before: just make sure our line is still present
+    // (YouTube may have rebuilt the caption box and wiped it).
+    if (text === lastText) { if (lastTranslated) renderDualLine(lastTranslated); return; }
 
     lastText = text;
     try {
@@ -115,10 +95,8 @@ var YouTubeTranslator = (() => {
       if (!translated || translated === text) return;
       // Caption may have advanced while we were translating — drop stale result.
       if (currentCaptionText() !== text) return;
-      const el = ensureOverlay();
-      el.textContent = translated;
-      el.style.display = 'block';
-      positionOverlay(el);
+      lastTranslated = translated;
+      renderDualLine(translated);
     } catch (e) {
       console.warn('[MT] YouTube subtitle translate failed:', e.message);
     }
@@ -189,7 +167,7 @@ var YouTubeTranslator = (() => {
 
   function removeDualSubtitles() {
     document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => el.remove());
-    overlay = null;
+    lastTranslated = '';
   }
 
   // ─── Public API ───────────────────────────────────────────────────────
