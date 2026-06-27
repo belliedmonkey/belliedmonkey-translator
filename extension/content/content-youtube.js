@@ -11,12 +11,10 @@ var YouTubeTranslator = (() => {
 
   let settings = {};
   let active = false;
-  let captionObserver = null;
-  let captionRoot = null;
-  let bodyObserver = null;
   let pollTimer = null;
   let lastText = '';
   let lastTranslated = '';
+  let lastUrl = '';
 
   // ─── Bilingual line ───────────────────────────────────────────────────
   // The translation is appended as a real line INSIDE YouTube's caption box
@@ -79,9 +77,12 @@ var YouTubeTranslator = (() => {
     const text = currentCaptionText();
     if (!text || text.length < 2) { removeDualLine(); lastText = ''; return; }
 
-    // Same caption as before: just make sure our line is still present
-    // (YouTube may have rebuilt the caption box and wiped it).
-    if (text === lastText) { if (lastTranslated) renderDualLine(lastTranslated); return; }
+    // Same caption as before: only re-assert if YouTube wiped our line
+    // (avoid redundant writes every poll tick).
+    if (text === lastText) {
+      if (lastTranslated && !document.querySelector(`.${DUAL_CLASS}`)) renderDualLine(lastTranslated);
+      return;
+    }
 
     lastText = text;
     try {
@@ -93,8 +94,11 @@ var YouTubeTranslator = (() => {
         settings.apiBaseUrl || ''
       );
       if (!translated || translated === text) return;
-      // Caption may have advanced while we were translating — drop stale result.
-      if (currentCaptionText() !== text) return;
+      // Don't drop just because the live caption changed: rollup captions
+      // (YouTube mobile, ytp-rollup-mode) change every frame, which would
+      // discard every translation. Only skip if a NEWER caption was already
+      // requested while we were translating (out-of-order completion).
+      if (text !== lastText) return;
       lastTranslated = translated;
       renderDualLine(translated);
     } catch (e) {
@@ -106,62 +110,27 @@ var YouTubeTranslator = (() => {
 
   function scanCaptions() {
     if (!active) return;
+    // SPA navigation (YouTube swaps the video without a full reload): reset.
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      lastText = '';
+      lastTranslated = '';
+      removeDualLine();
+    }
     refreshCaption();
   }
 
-  // Attach the caption observer to the (stable) player root. Cheap no-op when
-  // already attached to the same root.
-  function attachCaptionObserver() {
-    const root = document.querySelector(PLAYER_ROOT) || document.body;
-    if (captionObserver && captionRoot === root) { scanCaptions(); return; }
-    if (captionObserver) captionObserver.disconnect();
-    captionRoot = root;
-    captionObserver = new MutationObserver(() => { if (active) scanCaptions(); });
-    captionObserver.observe(root, { childList: true, subtree: true, characterData: true });
-    scanCaptions();
-  }
-
   function startCaptionWatch() {
-    attachCaptionObserver();
-
-    // The player may mount late (pre-roll ad / slow load) or get swapped out.
-    // Keep watching the document and re-attach whenever the player root changes.
-    if (bodyObserver) bodyObserver.disconnect();
-    bodyObserver = new MutationObserver(() => {
-      if (!active) return;
-      const root = document.querySelector(PLAYER_ROOT);
-      if (root && root !== captionRoot) attachCaptionObserver();
-    });
-    bodyObserver.observe(document.documentElement, { childList: true, subtree: true });
-
-    // Polling fallback: catches captions that appeared before the observer
-    // attached, and any mutations the observer misses.
+    // Poll-only. Streaming captions are best handled by polling. A
+    // MutationObserver on the player subtree caused a feedback loop — our own
+    // renderDualLine writes re-triggered it — which froze heavy YouTube pages
+    // (and produced no output). Polling every 500ms is responsive and safe.
     if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(scanCaptions, 1000);
+    lastUrl = location.href;
+    pollTimer = setInterval(scanCaptions, 500);
   }
 
   // ─── Handle YouTube SPA navigation ────────────────────────────────────
-
-  function watchNavigation() {
-    // YouTube dispatches 'yt-navigate-finish' on SPA page changes
-    document.addEventListener('yt-navigate-finish', () => {
-      if (!active) return;
-      lastText = '';
-      // Small delay to let YouTube rebuild DOM
-      setTimeout(startCaptionWatch, 1000);
-    });
-
-    // Fallback: watch URL changes
-    let lastUrl = location.href;
-    new MutationObserver(() => {
-      if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        if (!active) return;
-        lastText = '';
-        setTimeout(startCaptionWatch, 1000);
-      }
-    }).observe(document, { subtree: true, childList: true });
-  }
 
   // ─── Remove dual subtitles ────────────────────────────────────────────
 
@@ -174,7 +143,6 @@ var YouTubeTranslator = (() => {
 
   function init(cfg) {
     settings = cfg;
-    watchNavigation();
     if (cfg.enabled) enable(cfg);
   }
 
@@ -186,12 +154,10 @@ var YouTubeTranslator = (() => {
 
   function disable() {
     active = false;
-    if (captionObserver) { captionObserver.disconnect(); captionObserver = null; }
-    if (bodyObserver) { bodyObserver.disconnect(); bodyObserver = null; }
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    captionRoot = null;
     removeDualSubtitles();
     lastText = '';
+    lastTranslated = '';
   }
 
   function updateSettings(cfg) {
