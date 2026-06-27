@@ -146,9 +146,21 @@ var YouTubeTranslator = (() => {
     if (cfg.enabled) enable(cfg);
   }
 
+  // YouTube's .caption-window has overflow:hidden and a fixed height (it clips
+  // to the visible caption lines for the rollup animation). Our translation line
+  // is appended inside it, so without this it gets clipped and never shows.
+  function injectCaptionStyle() {
+    if (document.getElementById('mt-yt-style')) return;
+    const st = document.createElement('style');
+    st.id = 'mt-yt-style';
+    st.textContent = '.caption-window, .ytp-caption-window-container { overflow: visible !important; }';
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   function enable(cfg) {
     settings = cfg;
     active = true;
+    injectCaptionStyle();
     startCaptionWatch();
   }
 
