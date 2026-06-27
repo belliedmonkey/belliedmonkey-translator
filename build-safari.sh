@@ -18,9 +18,19 @@ if ! command -v node &>/dev/null; then
   exit 1
 fi
 
-if ! command -v xcrun &>/dev/null; then
-  echo "❌ 未找到 xcrun，请先安装 Xcode Command Line Tools："
-  echo "   xcode-select --install"
+# safari-web-extension-converter 只随【完整版 Xcode】提供，Command Line Tools 没有。
+# 注意：CLT 也带 xcrun，所以光检查 xcrun 会误判通过、然后在转换那步莫名失败。
+if ! xcrun --find safari-web-extension-converter &>/dev/null; then
+  echo "❌ 找不到 safari-web-extension-converter（它只随完整版 Xcode 提供，CLT 没有）。"
+  echo ""
+  echo "   当前活动开发者目录： $(xcode-select -p 2>/dev/null)"
+  echo ""
+  echo "   修复步骤："
+  echo "   1) 从 App Store 安装完整 Xcode（约 15GB）"
+  echo "   2) 把活动开发者目录指向完整 Xcode："
+  echo "      sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+  echo "   3) 首次需同意许可： sudo xcodebuild -license accept"
+  echo "   4) 重新运行： bash build-safari.sh"
   exit 1
 fi
 
