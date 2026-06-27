@@ -1,4 +1,4 @@
-// dom-processor.js — DOM paragraph detection (大肚猴翻译 style)
+// dom-processor.js — DOM paragraph detection (bilingual webpage)
 
 var DOMProcessor = (() => {
   const SKIP_TAGS = new Set([

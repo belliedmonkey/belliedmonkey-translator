@@ -1,6 +1,6 @@
 # 大肚猴翻译 · Mobile Translator
 
-Safari iOS 浏览器翻译插件，支持网页双语对照翻译和 YouTube 双语字幕，交互风格模仿[大肚猴翻译](https://BelliedMonkey Translator.com/)插件。
+Safari iOS 浏览器翻译插件，支持网页双语对照翻译和 YouTube 双语字幕。完全开源免费，可自由配置任意 LLM API。
 
 ## 功能
 

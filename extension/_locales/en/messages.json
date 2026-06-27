@@ -1,11 +1,11 @@
 {
   "extension_name": {
-    "message": "Immersive Translator"
+    "message": "BelliedMonkey Translator"
   },
   "extension_description": {
     "message": "Bilingual webpage translation + YouTube dual subtitles. Supports ChatGPT, Claude, DeepSeek, GLM and more."
   },
   "action_title": {
-    "message": "Immersive Translator"
+    "message": "BelliedMonkey Translator"
   }
 }

@@ -1,4 +1,4 @@
-// content-webpage.js — Bilingual webpage translation (大肚猴翻译 style)
+// content-webpage.js — Bilingual webpage translation
 
 var WebpageTranslator = (() => {
   let settings = {};

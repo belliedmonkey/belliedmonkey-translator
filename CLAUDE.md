@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Safari iOS browser extension for bilingual translation, mimicking 大肚猴翻译 (Immersive Translation). Supports:
+Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:
 - **Webpage translation**: bilingual display — original paragraph + translated text below, in green
 - **YouTube dual subtitles**: original subtitle on top, translation appended below in yellow
 - **Multi-provider LLM**: Google (free), OpenAI, Claude, DeepSeek, GLM (智谱)
