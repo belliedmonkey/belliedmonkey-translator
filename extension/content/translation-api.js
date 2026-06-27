@@ -124,7 +124,7 @@ var TranslationAPI = (() => {
   }
 
   async function translateGLM(text, targetLang, apiKey, baseUrl) {
-    const url = (baseUrl || 'https://open.bigmodel.cn') + '/api/paai/v4/chat/completions';
+    const url = (baseUrl || 'https://open.bigmodel.cn') + '/api/paas/v4/chat/completions';
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
