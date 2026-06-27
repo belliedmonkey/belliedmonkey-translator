@@ -15,8 +15,11 @@ const DEFAULT_SETTINGS = {
   bilingualMode: 'below'
 };
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+// Service worker lifecycle (Chrome/Safari only — Firefox uses background scripts)
+if (typeof self !== 'undefined' && self.addEventListener) {
+  self.addEventListener('install', () => self.skipWaiting?.());
+  self.addEventListener('activate', (e) => e.waitUntil?.(self.clients?.claim()));
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (existing) => {

@@ -64,5 +64,15 @@
       "resources": ["content/content-injected.js"],
       "matches": ["*://*.youtube.com/*"]
     }
-  ]
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mobiletranslator@belliedmonkey",
+      "strict_min_version": "109.0"
+    },
+    "gecko_android": {
+      "strict_min_version": "113.0"
+    }
+  }
 }
