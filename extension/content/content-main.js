@@ -13,6 +13,7 @@
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
     textColor: settings.textColor || '#0a7a3c',
+    ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '0.9em',
     showFab: settings.showFab !== false
   };

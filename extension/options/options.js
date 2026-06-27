@@ -38,6 +38,7 @@ async function saveAll() {
     apiBaseUrl:  $('api-base-url').value.trim(),
     targetLang:  $('target-lang').value,
     textColor:   $('text-color').value,
+    ytTextColor: $('yt-text-color').value,
     fontSize:    $('font-size').value,
     showFab:     $('show-fab').checked
   };
@@ -52,11 +53,13 @@ async function init() {
   $('api-base-url').value   = s.apiBaseUrl  || '';
   $('target-lang').value    = s.targetLang  || 'zh-CN';
   $('text-color').value     = s.textColor   || '#0a7a3c';
+  $('yt-text-color').value  = s.ytTextColor || '#ffffff';
   $('font-size').value      = s.fontSize    || '0.9em';
   $('show-fab').checked     = s.showFab !== false;
 
   updateProviderUI(s.provider || 'google');
   updateColorPreview(s.textColor || '#0a7a3c');
+  $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
 
   // ─── Listeners ──────────────────────────────────────────────────────
 
@@ -76,6 +79,11 @@ async function init() {
     updateColorPreview(e.target.value);
   });
   $('text-color').addEventListener('change', async () => { await saveAll(); showToast('颜色已保存'); });
+
+  $('yt-text-color').addEventListener('input', (e) => {
+    $('yt-color-preview').style.color = e.target.value;
+  });
+  $('yt-text-color').addEventListener('change', async () => { await saveAll(); showToast('YouTube 字幕颜色已保存'); });
 
   $('toggle-eye').addEventListener('click', () => {
     const input = $('api-key');
