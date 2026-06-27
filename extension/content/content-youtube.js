@@ -153,8 +153,17 @@ var YouTubeTranslator = (() => {
     if (document.getElementById('mt-yt-style')) return;
     const st = document.createElement('style');
     st.id = 'mt-yt-style';
-    st.textContent = '.caption-window, .ytp-caption-window-container { overflow: visible !important; }';
+    // overflow:visible + height:auto so the appended translation line isn't
+    // clipped; bottom bump so the (now taller) bilingual block clears the
+    // control bar and the translation line stays on-screen.
+    st.textContent =
+      '.caption-window{overflow:visible!important;height:auto!important;max-height:none!important;bottom:11%!important;}' +
+      '.ytp-caption-window-container{overflow:visible!important;}';
     (document.head || document.documentElement).appendChild(st);
+  }
+
+  function removeCaptionStyle() {
+    document.getElementById('mt-yt-style')?.remove();
   }
 
   function enable(cfg) {
@@ -168,6 +177,7 @@ var YouTubeTranslator = (() => {
     active = false;
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     removeDualSubtitles();
+    removeCaptionStyle();
     lastText = '';
     lastTranslated = '';
   }
