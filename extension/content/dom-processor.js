@@ -68,9 +68,16 @@ var DOMProcessor = (() => {
   function isInsideSkipZone(el) {
     let parent = el.parentElement;
     while (parent && parent !== document.body) {
-      if (shouldSkipElement(parent)) return true;
       const tag = parent.tagName.toLowerCase();
+      // Semantic non-content regions only. We deliberately do NOT skip based on
+      // an ancestor's className: layout wrappers such as "main-content-and-sidebar"
+      // legitimately contain the whole article, and a substring match (e.g.
+      // "sidebar") would wrongly exclude every paragraph inside them.
       if (['nav', 'header', 'footer', 'aside'].includes(tag)) return true;
+      if (SKIP_TAGS.has(tag)) return true;
+      if (parent.isContentEditable) return true;
+      const role = parent.getAttribute('role');
+      if (role && SKIP_ROLES.has(role)) return true;
       parent = parent.parentElement;
     }
     return false;
@@ -97,6 +104,7 @@ var DOMProcessor = (() => {
     while ((el = walker.nextNode())) {
       if (!isBlockElement(el)) continue;
       if (hasBlockChild(el)) continue;
+      if (shouldSkipElement(el)) continue;
       if (isInsideSkipZone(el)) continue;
 
       const text = getTextContent(el);
