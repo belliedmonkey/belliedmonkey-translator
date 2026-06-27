@@ -1,6 +1,12 @@
 // content-main.js — Entry point; orchestrates all content scripts
 
 (async () => {
+  // Re-entry guard: Safari can inject the content scripts into the same frame
+  // more than once. Without this, two translator instances race and every
+  // paragraph gets translated (and appended) twice. Bail on the second run.
+  if (window.__mtMainLoaded) return;
+  window.__mtMainLoaded = true;
+
   // Read settings directly from storage (never ask service worker — Safari iOS bug)
   const settings = await new Promise(resolve => {
     chrome.storage.local.get(null, (s) => resolve(s || {}));

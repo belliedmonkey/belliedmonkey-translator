@@ -119,6 +119,14 @@ var DOMProcessor = (() => {
   }
 
   function markProcessed(el, translatedText) {
+    // Idempotent guard: if a concurrent translate pass (e.g. the content
+    // script injected twice) already appended a translation, don't add another.
+    // markProcessed runs synchronously, so the second caller sees the first's
+    // node and bails — preventing the duplicated translation line.
+    if (el.querySelector(`:scope > .${TRANSLATION_CLASS}`)) {
+      el.setAttribute(PROCESSED_ATTR, '1');
+      return;
+    }
     el.setAttribute(PROCESSED_ATTR, '1');
 
     const div = document.createElement('div');
