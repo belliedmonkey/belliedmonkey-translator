@@ -1,0 +1,12 @@
+{
+  "name": "mobile-translator",
+  "version": "1.0.0",
+  "description": "Safari iOS browser extension for bilingual translation (大肚猴翻译风格)",
+  "scripts": {
+    "build": "node build.js",
+    "clean": "rm -rf dist mobile-translator.zip"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

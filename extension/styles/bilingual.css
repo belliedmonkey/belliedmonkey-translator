@@ -1,0 +1,78 @@
+/* bilingual.css — 大肚猴翻译风格双语显示样式 */
+
+.mt-translation {
+  display: block;
+  margin-top: 4px;
+  padding: 3px 0 2px;
+  border-top: 1px solid rgba(10, 122, 60, 0.18);
+  color: #0a7a3c;
+  font-size: 0.9em;
+  font-family: inherit;
+  line-height: 1.65;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+  font-style: normal;
+  font-weight: normal;
+  text-decoration: none;
+}
+
+/* Subtle source indicator */
+.mt-translation::before {
+  display: none;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .mt-translation {
+    color: #4ade80;
+    border-top-color: rgba(74, 222, 128, 0.2);
+  }
+}
+
+/* Progress bar */
+.mt-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #0a7a3c, #16a34a);
+  z-index: 2147483647;
+  pointer-events: none;
+  transition: width 0.25s ease, opacity 0.5s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Tap-to-translate chip */
+.mt-translate-chip {
+  position: fixed;
+  background: #0a7a3c;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: -apple-system, system-ui, sans-serif;
+  z-index: 2147483646;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  animation: mt-chip-in 0.15s ease;
+}
+
+@keyframes mt-chip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* YouTube dual subtitle */
+.mt-yt-dual {
+  display: block !important;
+  margin-top: 3px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9), -1px -1px 3px rgba(0, 0, 0, 0.9);
+  line-height: 1.4;
+}

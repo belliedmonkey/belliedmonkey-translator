@@ -1,0 +1,55 @@
+/* floating-button.css — 悬浮翻译按钮 */
+
+#mt-fab {
+  position: fixed;
+  bottom: 88px; /* Above Safari bottom bar */
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  background: #0a7a3c;
+  color: #fff;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483645;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.15);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#mt-fab:active {
+  transform: scale(0.91);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#mt-fab.mt-fab-active {
+  background: #065f46;
+  box-shadow: 0 4px 16px rgba(6, 95, 70, 0.4), 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+#mt-fab svg {
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Status dot when active */
+#mt-fab.mt-fab-active::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #86efac;
+  border-radius: 50%;
+  border: 2px solid #065f46;
+}
