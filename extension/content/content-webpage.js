@@ -22,9 +22,11 @@ var WebpageTranslator = (() => {
   const YT_TARGETS = [
     'ytd-watch-metadata #title h1',                           // video title
     '#description-inline-expander #attributed-snippet-text',  // collapsed description snippet
-    '#description-inline-expander #expanded',                 // expanded full description
     'ytd-comment-view-model #content-text',                   // each comment
   ].join(', ');
+  // The expanded description (#expanded) is one text blob; it gets a dedicated
+  // interleaved re-render (ytRenderDescription) so each paragraph is followed by
+  // its translation, with clickable URLs and seekable chapter timestamps.
 
   function ytTranslateText(el) {
     const next = el.nextElementSibling;
@@ -68,14 +70,101 @@ var WebpageTranslator = (() => {
     }).catch(() => { node.dataset.src = ''; }); // clear so the next poll retries
   }
 
+  // Render text into el with clickable URLs and seekable timestamps (Trusted
+  // Types safe — only createElement/textContent, no innerHTML). Used for both the
+  // original and translated description paragraphs.
+  function tsToSeconds(ts) {
+    const p = ts.split(':').map(Number);
+    return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1];
+  }
+  function buildRichText(text, el) {
+    el.textContent = '';
+    text.split(/(https?:\/\/[^\s]+)/g).forEach((part) => {
+      if (/^https?:\/\//.test(part)) {
+        const a = document.createElement('a');
+        a.href = part; a.target = '_blank'; a.rel = 'noopener'; a.textContent = part;
+        a.style.color = '#3ea6ff';
+        el.appendChild(a);
+        return;
+      }
+      let last = 0;
+      const re = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g;
+      let m;
+      while ((m = re.exec(part))) {
+        if (m.index > last) el.appendChild(document.createTextNode(part.slice(last, m.index)));
+        const ts = m[0];
+        const a = document.createElement('a');
+        a.textContent = ts; a.style.cssText = 'color:#3ea6ff;cursor:pointer;';
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const v = document.querySelector('video'); if (v) v.currentTime = tsToSeconds(ts);
+        });
+        el.appendChild(a);
+        last = m.index + ts.length;
+      }
+      if (last < part.length) el.appendChild(document.createTextNode(part.slice(last)));
+    });
+  }
+
+  // Interleaved render for the expanded description: each original paragraph is
+  // followed by its translation. Hides YouTube's own #expanded and draws our own.
+  function ytRenderDescription() {
+    const exp = document.querySelector('#description-inline-expander #expanded');
+    let holder = document.getElementById('mt-yt-desc');
+    if (!exp || exp.offsetParent === null) {     // expanded not visible (collapsed)
+      if (holder) holder.remove();
+      if (exp) exp.style.display = '';
+      return;
+    }
+    const src = (exp.textContent || '').replace(/\r/g, '').split('\n').map((l) => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (src.length < 2) return;
+    if (holder && holder.dataset.src === src) return; // unchanged
+    exp.style.display = 'none';
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.id = 'mt-yt-desc';
+      exp.insertAdjacentElement('afterend', holder);
+    }
+    holder.dataset.src = src;
+    holder.textContent = '';
+    src.split(/\n{2,}/).forEach((para) => {
+      const p = para.trim();
+      if (!p) return;
+      const o = document.createElement('div');
+      o.style.cssText = 'white-space:pre-wrap;line-height:1.4;';
+      buildRichText(p, o);
+      holder.appendChild(o);
+      const t = document.createElement('div');
+      t.className = 'mt-yt-pagetrans';
+      t.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin:2px 0 12px;white-space:pre-wrap;line-height:1.4;font-style:italic;`;
+      t.textContent = '⏳ 翻译中…';
+      holder.appendChild(t);
+      const lines = p.split('\n');
+      Promise.all(lines.map((line) => {
+        const x = line.trim();
+        if (x.length < 2) return Promise.resolve(line);
+        return TranslationAPI.translate(x, settings.targetLang || 'zh-CN', settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '')
+          .then((zh) => (zh && zh !== x ? zh : line)).catch(() => line);
+      })).then((zhLines) => {
+        if (holder.dataset.src !== src) return;
+        t.style.fontStyle = 'normal';
+        buildRichText(zhLines.join('\n'), t);
+      });
+    });
+  }
+
   function ytScan() {
     if (!active) return;
     document.querySelectorAll(YT_TARGETS).forEach(ytTranslateText);
+    ytRenderDescription();
   }
   function startYtPoll() { ytScan(); if (!ytPoll) ytPoll = setInterval(ytScan, 1500); }
   function stopYtPoll() {
     if (ytPoll) { clearInterval(ytPoll); ytPoll = null; }
     document.querySelectorAll('.mt-yt-pagetrans').forEach((e) => e.remove());
+    document.getElementById('mt-yt-desc')?.remove();
+    const exp = document.querySelector('#description-inline-expander #expanded');
+    if (exp) exp.style.display = '';
   }
 
   // ─── Progress bar ─────────────────────────────────────────────────────

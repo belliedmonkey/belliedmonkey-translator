@@ -97,6 +97,18 @@ element existing is not proof the user sees it (see AGENTS.md).
 
 ---
 
+## Text translation — universal rules (ALL devices, ALL pages)
+These apply to every webpage text translation, on every platform:
+- **Interleaved, paragraph by paragraph.** Each original paragraph is **immediately
+  followed by its own translation** (original above, translation below) — never a
+  whole block of originals followed by a whole block of translations. If the
+  platform renders text as one blob with no per-paragraph nodes (e.g. the YouTube
+  description), re-render it ourselves to achieve the interleave.
+- **Translation style matches the original.** The translated paragraph mirrors the
+  original's formatting: line breaks / blank lines preserved (`white-space:
+  pre-wrap`), and inline elements kept functional — URLs stay clickable links and
+  timestamps stay seekable.
+
 ## General
 - **Screenshot-verify** every visual change against the built/loaded extension.
 - Don't cover more of the frame/page than necessary.
