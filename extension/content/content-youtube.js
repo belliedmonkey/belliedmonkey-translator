@@ -226,8 +226,8 @@ var YouTubeTranslator = (() => {
     if (!s._pg || s._pg.w !== width || s._pg.fp !== fp || s._pg.zhText !== (s.zh || '')) {
       s._pg = {
         w: width, fp, zhText: s.zh || '',
-        en: pageize(s.text, 2, fp, width),
-        zh: s.zh ? pageize(s.zh, 2, Math.round(fp * 0.95), width) : null,
+        en: pageize(s.text, 1, fp, width),
+        zh: s.zh ? pageize(s.zh, 1, Math.round(fp * 0.95), width) : null,
       };
     }
     return s._pg;
@@ -296,7 +296,7 @@ var YouTubeTranslator = (() => {
     if (!text || text.length < 2) { clearOverlay(); lastText = ''; return; }
     const fp = fontPx();
     const width = overlayTextWidth();
-    const enPages = pageize(text, 2, fp, width);
+    const enPages = pageize(text, 1, fp, width);
     const en = enPages[enPages.length - 1]; // newest 2 lines of the rolling caption
     if (text !== lastText) {
       lastText = text; lastTranslated = '';
@@ -306,7 +306,7 @@ var YouTubeTranslator = (() => {
       ).then((zh) => { if (text === lastText && zh && zh !== text) lastTranslated = zh; }).catch(() => {});
     }
     let zh, pending = false;
-    if (lastTranslated) { const zp = pageize(lastTranslated, 2, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
+    if (lastTranslated) { const zp = pageize(lastTranslated, 1, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
     else { zh = '⏳ 译文准备中…'; pending = true; }
     renderOverlay(en, zh, pending);
   }
