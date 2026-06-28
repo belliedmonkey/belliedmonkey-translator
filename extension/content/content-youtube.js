@@ -313,8 +313,8 @@ var YouTubeTranslator = (() => {
 
   // ─── Display loop ─────────────────────────────────────────────────────
   function tick() {
-    if (!active) return;
-    ensureControlButton();
+    ensureControlButton(); // always present on watch pages, even when subtitles are off
+    if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     ensureOverlay();
 
     if (location.href !== lastUrl) {
@@ -397,6 +397,11 @@ var YouTubeTranslator = (() => {
     };
     const sep = () => { const s = document.createElement('div'); s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;'; return s; };
 
+    // Video subtitle on/off (this button controls the VIDEO; the page FAB
+    // controls the rest of the page — title / description / comments).
+    menu.appendChild(row(active ? '关闭视频字幕翻译' : '开启视频字幕翻译', { checked: active, onClick: () => setSubActive(!active) }));
+    menu.appendChild(sep());
+
     const head = document.createElement('div');
     head.textContent = '字幕显示类型';
     head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';
@@ -462,37 +467,44 @@ var YouTubeTranslator = (() => {
   function removeControlUI() { document.getElementById(BTN_ID)?.remove(); closeMenu(); }
 
   // ─── Public API ───────────────────────────────────────────────────────
-  function enable(cfg) {
-    settings = cfg;
-    active = true;
-    injectCaptionStyle();
-    ensureCaptionsOn();
-    if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
-    startLoop();
+  // Video subtitles are controlled here (by the in-player 译 button), independent
+  // of the page FAB (which controls webpage text). Default ON, persisted as
+  // `ytSubEnabled`.
+  function applySubtitleState() {
+    if (active) {
+      injectCaptionStyle();
+      ensureCaptionsOn();
+      if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
+    } else {
+      removeCaptionStyle();
+      clearOverlay();
+    }
   }
 
-  function disable() {
-    active = false;
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    removeOverlay();
-    removeCaptionStyle();
-    removeControlUI();
-    lastText = ''; lastTranslated = ''; lastShownKey = '';
+  function setSubActive(on) {
+    active = on;
+    try { chrome.storage.local.set({ ytSubEnabled: on }); } catch (_) {}
+    applySubtitleState();
+    closeMenu();
+    tick();
   }
 
   function init(cfg) {
     settings = cfg;
-    if (cfg.enabled) enable(cfg);
+    active = cfg.ytSubEnabled !== false; // subtitles on by default
+    startLoop();                         // always running → keeps the 译 button present
+    applySubtitleState();
   }
 
+  // thin wrappers kept for API compatibility
+  function enable(cfg) { if (cfg) settings = cfg; setSubActive(true); }
+  function disable() { setSubActive(false); }
+
   function updateSettings(cfg) {
-    const wasActive = active;
     settings = cfg;
-    if (wasActive) {
-      sentences.forEach((s) => { s.zh = ''; });
-      clearOverlay();
-      if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
-    }
+    sentences.forEach((s) => { s.zh = ''; s._pg = null; });
+    clearOverlay();
+    if (active && sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
   }
 
   return { init, enable, disable, updateSettings };

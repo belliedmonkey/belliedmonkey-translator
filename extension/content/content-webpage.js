@@ -9,6 +9,27 @@ var WebpageTranslator = (() => {
   let doneNodes = 0;
   let active = false;
 
+  // ─── Node collection (YouTube uses custom elements, not block tags) ───
+  const IS_YOUTUBE = /youtube\.com/.test(location.hostname);
+  const YT_SELECTORS = [
+    'ytd-watch-metadata h1 yt-formatted-string', // video title
+    '#description-inline-expander yt-attributed-string', // description
+    '#content-text', // comment text
+  ].join(', ');
+
+  function collectNodes(root) {
+    if (IS_YOUTUBE) {
+      const scope = root && root.querySelectorAll ? root : document.body;
+      const set = new Set();
+      if (root && root.matches && root.matches(YT_SELECTORS)) set.add(root);
+      scope.querySelectorAll(YT_SELECTORS).forEach((el) => set.add(el));
+      return Array.from(set).filter(
+        (el) => !DOMProcessor.isAlreadyTranslated(el) && DOMProcessor.getTextContent(el).length >= 2
+      );
+    }
+    return DOMProcessor.collectParagraphs(root);
+  }
+
   // ─── Progress bar ─────────────────────────────────────────────────────
 
   function showProgress() {
@@ -62,7 +83,7 @@ var WebpageTranslator = (() => {
 
   async function translateAll() {
     if (!active) return;
-    const nodes = DOMProcessor.collectParagraphs();
+    const nodes = collectNodes();
     if (!nodes.length) return;
 
     totalNodes = nodes.length;
@@ -117,7 +138,7 @@ var WebpageTranslator = (() => {
       clearTimeout(mutationObserver._timer);
       mutationObserver._timer = setTimeout(() => {
         addedNodes.forEach(root => {
-          const nodes = DOMProcessor.collectParagraphs(root);
+          const nodes = collectNodes(root);
           nodes.forEach(translateNode);
           totalNodes += nodes.length;
         });

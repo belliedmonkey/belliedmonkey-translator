@@ -21,38 +21,32 @@
     textColor: settings.textColor || '#0a7a3c',
     ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '0.9em',
-    showFab: settings.showFab !== false
+    showFab: settings.showFab !== false,
+    ytSubEnabled: settings.ytSubEnabled !== false // YouTube video subtitles, default on
   };
 
   const isYouTube = /youtube\.com/.test(location.hostname);
 
-  // ─── Floating action button ────────────────────────────────────────────
+  // ─── Two independent controls ──────────────────────────────────────────
+  // FAB → webpage text translation (on every site, incl. YouTube title /
+  //       description / comments).
+  // In-player 译 button (YouTubeTranslator) → video subtitles, self-controlled.
 
   if (cfg.showFab) {
     FloatingButton.create(cfg.enabled, async (enabled) => {
       cfg.enabled = enabled;
       chrome.storage.local.set({ enabled });
-
-      if (isYouTube) {
-        if (enabled) YouTubeTranslator.enable(cfg);
-        else YouTubeTranslator.disable();
-      } else {
-        if (enabled) await WebpageTranslator.enable(cfg);
-        else WebpageTranslator.disable();
-      }
+      if (enabled) await WebpageTranslator.enable(cfg);
+      else WebpageTranslator.disable();
     });
   }
 
-  // ─── Initialize appropriate translator ────────────────────────────────
+  // Webpage text everywhere (YouTube too — title / description / comments)
+  WebpageTranslator.init(cfg);
 
-  if (isYouTube) {
-    // The /api/timedtext interceptor now lives in content/yt-hook.js, injected
-    // as a world:"MAIN" content script (see manifest). That bypasses YouTube's
-    // strict-dynamic CSP, which blocked the old <script src> injection here.
-    YouTubeTranslator.init(cfg);
-  } else {
-    WebpageTranslator.init(cfg);
-  }
+  // YouTube video subtitles: independent, controlled by the in-player 译 button.
+  // The /api/timedtext interceptor lives in content/yt-hook.js (world:"MAIN").
+  if (isYouTube) YouTubeTranslator.init(cfg);
 
   // ─── Listen for settings changes from popup ────────────────────────────
 
@@ -65,12 +59,13 @@
 
     FloatingButton.setEnabled(cfg.enabled);
 
-    if (isYouTube) {
-      if (cfg.enabled) YouTubeTranslator.enable(cfg);
-      else YouTubeTranslator.disable();
-    } else {
+    if ('enabled' in changes) {
       if (cfg.enabled) WebpageTranslator.enable(cfg);
       else WebpageTranslator.disable();
+    } else {
+      // provider / language / color change → re-translate what's active
+      WebpageTranslator.updateSettings(cfg);
+      if (isYouTube) YouTubeTranslator.updateSettings(cfg);
     }
   });
 
@@ -81,8 +76,7 @@
       cfg.enabled = true;
       chrome.storage.local.set({ enabled: true });
       FloatingButton.setEnabled(true);
-      if (isYouTube) YouTubeTranslator.enable(cfg);
-      else WebpageTranslator.enable(cfg);
+      WebpageTranslator.enable(cfg);
       sendResponse({ ok: true });
     }
 
@@ -90,8 +84,7 @@
       cfg.enabled = false;
       chrome.storage.local.set({ enabled: false });
       FloatingButton.setEnabled(false);
-      if (isYouTube) YouTubeTranslator.disable();
-      else WebpageTranslator.disable();
+      WebpageTranslator.disable();
       sendResponse({ ok: true });
     }
 
