@@ -65,8 +65,9 @@ var YouTubeTranslator = (() => {
     if (!cues.length) return;
     sentences = mergeSentences(cues);
     transcriptVideoId = videoIdFromUrl(url) || currentVideoId();
-    const gen = ++preloadGen;
-    if (active) preTranslate(gen);
+    // Translation happens on demand in the display loop (translateAhead), limited
+    // to a window ahead of playback — so a long video doesn't fire thousands of
+    // LLM calls at once (which rate-limits and leaves sentences stuck "preparing").
   }
 
   function parseJson3(body) {
@@ -109,23 +110,28 @@ var YouTubeTranslator = (() => {
     return out;
   }
 
-  async function preTranslate(gen) {
-    const CHUNK = 10;
-    for (let i = 0; i < sentences.length; i += CHUNK) {
-      if (!active || gen !== preloadGen) return;
-      const chunk = sentences.slice(i, i + CHUNK).filter((s) => !s.zh);
-      if (!chunk.length) continue;
-      try {
-        const zhs = await TranslationAPI.translateBatch(
-          chunk.map((s) => s.text),
-          settings.targetLang || 'zh-CN',
-          settings.provider || 'google',
-          settings.apiKey || '',
-          settings.apiBaseUrl || ''
-        );
-        if (gen !== preloadGen) return;
-        chunk.forEach((s, j) => { if (zhs[j] && zhs[j] !== s.text) s.zh = zhs[j]; });
-      } catch (e) { /* keep going */ }
+  // Translate a sliding window of upcoming sentences (not the whole transcript).
+  // Driven by the display loop. Caps how many we kick off per tick; failed ones
+  // reset after a short delay so they retry (handles transient LLM rate limits).
+  const AHEAD_MS = 60000;       // translate up to 60s ahead of playback
+  const MAX_PER_TICK = 6;       // new translations started per loop tick
+  function translateAhead() {
+    const v = document.querySelector('video');
+    if (!v || !sentences.length) return;
+    const tMs = v.currentTime * 1000;
+    let started = 0;
+    for (let i = 0; i < sentences.length && started < MAX_PER_TICK; i++) {
+      const s = sentences[i];
+      if (s.zh || s._fetching) continue;
+      if (s.end < tMs || s.start > tMs + AHEAD_MS) continue; // outside the window
+      s._fetching = true;
+      started++;
+      TranslationAPI.translate(
+        s.text, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        settings.apiKey || '', settings.apiBaseUrl || ''
+      ).then((t) => { if (t && t !== s.text) s.zh = t; })
+        .catch(() => {})
+        .finally(() => { setTimeout(() => { s._fetching = false; }, 1200); }); // allow retry
     }
   }
 
@@ -322,7 +328,6 @@ var YouTubeTranslator = (() => {
       lastUrl = location.href;
       lastText = ''; lastTranslated = '';
       clearOverlay();
-      ensureCaptionsOn();
     }
 
     const haveTranscript = sentences.length && transcriptVideoId === currentVideoId();
@@ -330,6 +335,7 @@ var YouTubeTranslator = (() => {
       const v = document.querySelector('video');
       if (!v) return;
       const tMs = v.currentTime * 1000;
+      translateAhead(); // keep a window of upcoming sentences translated
       const s = activeSentence(tMs);
       if (!s) { if (lastShownKey) clearOverlay(); return; }
       const fp = fontPx();
@@ -496,7 +502,7 @@ var YouTubeTranslator = (() => {
       injectCaptionStyle();
       // (We do NOT auto-enable YouTube's CC. The transcript is captured whenever
       // YouTube itself fetches /api/timedtext — i.e. when captions are on.)
-      if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
+      // Translation is driven by translateAhead() in the display loop.
     } else {
       removeCaptionStyle();
       clearOverlay();
@@ -526,9 +532,9 @@ var YouTubeTranslator = (() => {
 
   function updateSettings(cfg) {
     settings = cfg;
-    sentences.forEach((s) => { s.zh = ''; s._pg = null; });
+    sentences.forEach((s) => { s.zh = ''; s._pg = null; s._fetching = false; });
     clearOverlay();
-    if (active && sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
+    // translateAhead() in the display loop re-translates the window with the new engine
   }
 
   return { init, enable, disable, updateSettings };
