@@ -29,6 +29,7 @@ extension/
 ├── manifest.json              # Manifest v3
 ├── background.js              # Service worker — state only (see Critical Safari Bug below)
 ├── content/
+│   ├── translation-core.js    # Platform-agnostic engine: subtitle state machine, sliding-window preload, pager, cue merge, language helpers, i18n
 │   ├── translation-api.js     # All fetch() calls to LLM APIs — runs in content script
 │   ├── dom-processor.js       # Leaf-block paragraph detection, bilingual injection
 │   ├── floating-button.js     # Mobile FAB (draggable)
@@ -68,12 +69,31 @@ Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `t
 ## Content Script Load Order
 
 Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
-1. `translation-api.js` → exposes `window.TranslationAPI`
-2. `dom-processor.js` → exposes `window.DOMProcessor`
-3. `floating-button.js` → exposes `window.FloatingButton`
-4. `content-webpage.js` → exposes `window.WebpageTranslator`
-5. `content-youtube.js` → exposes `window.YouTubeTranslator`
-6. `content-main.js` → reads settings, initializes everything
+1. `translation-core.js` → exposes `window.TranslationCore` (platform-agnostic engine:
+   subtitle state machine + sliding-window preload, pager, cue merge, language-aware
+   helpers, i18n `t()`, MSG). Must load first — others depend on it.
+2. `translation-api.js` → exposes `window.TranslationAPI`
+3. `dom-processor.js` → exposes `window.DOMProcessor`
+4. `floating-button.js` → exposes `window.FloatingButton`
+5. `content-webpage.js` → exposes `window.WebpageTranslator`
+6. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
+7. `content-main.js` → reads settings, initializes everything
+
+## Internationalization (i18n)
+
+UI strings follow the browser language via `chrome.i18n`, with keys in
+`_locales/<locale>/messages.json` (en, zh_CN, zh_TW, ja, ko, fr, de, es, ar, pt, ru;
+`default_locale` zh_CN). Content scripts read them through `TranslationCore.t(key,
+fallback)`; popup/options use a local `t()` + `applyI18n()` over `data-i18n` /
+`data-i18n-placeholder` / `data-i18n-title` / `data-i18n-aria` attributes. Always
+pass a Chinese fallback so a missing key never blanks the UI. To add a UI string,
+add the key to every `_locales` file (the generator lives in the session scratchpad).
+
+Translation logic is language-agnostic: no hardcoded `zh-CN` (use
+`TranslationCore.DEFAULT_TARGET_LANG`), the LLM system prompt is English, success is
+`TranslationCore.isTranslated()` (non-empty, NOT `!== input`), and cue join / word
+break / sentence-end use script-aware helpers (`joinCue`, `wordBreakIndex`,
+`endsSentence` via `\p{Sentence_Terminal}`).
 
 ## YouTube Subtitle Strategy
 
