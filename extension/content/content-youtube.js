@@ -397,7 +397,9 @@ var YouTubeTranslator = (() => {
     const menu = document.createElement('div');
     menu.id = MENU_ID;
     menu.style.cssText =
-      (floating ? 'position:fixed;right:16px;bottom:206px;' : 'position:absolute;right:12px;bottom:60px;') +
+      (floating
+        ? 'position:fixed;right:10px;bottom:58px;max-height:calc(100vh - 72px);overflow-y:auto;'
+        : 'position:absolute;right:12px;bottom:60px;') +
       'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
       'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
 
