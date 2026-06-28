@@ -27,10 +27,18 @@
     ytSubEnabled: false // video subtitles also start off until the 译 button is turned on
   };
 
-  const isYouTube = /youtube\.com/.test(location.hostname);
+  const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
   // Mobile YouTube (m.youtube.com) has no player control bar for the in-player 译
   // button, so the FAB drives BOTH subtitles and page text there.
   const isMobileYouTube = /m\.youtube\.com/.test(location.hostname);
+  // Embedded player on another site (youtube.com/embed or youtube-nocookie.com/embed
+  // inside an iframe): translate ONLY the video subtitles — no FAB, no page text.
+  const isEmbed = window.top !== window.self;
+
+  if (isEmbed) {
+    if (isYouTube) YouTubeTranslator.init(cfg);
+    return;
+  }
 
   // ─── Controls ──────────────────────────────────────────────────────────
   // Desktop: FAB → page text; in-player 译 button → video subtitles (separate).

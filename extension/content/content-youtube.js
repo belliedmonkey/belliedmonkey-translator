@@ -23,6 +23,7 @@ var YouTubeTranslator = (() => {
   const OVERLAY_ID = 'mt-yt-overlay';
   const ORIG_CLASS = 'mt-yt-orig';
   const TRANS_CLASS = 'mt-yt-trans';
+  const IS_EMBED = window.top !== window.self; // embedded player inside an iframe
 
   let settings = {};
   let active = false;
@@ -365,15 +366,24 @@ var YouTubeTranslator = (() => {
   function ensureControlButton() {
     if (document.getElementById(BTN_ID)) return;
     const bar = document.querySelector(RIGHT_CONTROLS);
-    // Mobile (m.youtube.com) has no player control bar → no in-player button;
-    // subtitles are controlled by the page FAB instead (see content-main.js).
-    if (!bar) return;
+    if (bar) { // desktop / control bar present: a real button in the bar
+      const btn = makeTranslateBtn();
+      btn.className = 'ytp-button';
+      btn.style.cssText =
+        'position:relative;width:48px;height:100%;vertical-align:top;border:none;background:none;' +
+        'cursor:pointer;font-size:15px;font-weight:700;color:#fff;opacity:.9;';
+      bar.insertBefore(btn, bar.firstChild);
+      return;
+    }
+    // No control bar. In an EMBED (no page FAB) use a small floating button.
+    // On mobile m.youtube.com (top frame) the page FAB drives subtitles → no button.
+    if (!IS_EMBED || !document.querySelector(PLAYER)) return;
     const btn = makeTranslateBtn();
-    btn.className = 'ytp-button';
     btn.style.cssText =
-      'position:relative;width:48px;height:100%;vertical-align:top;border:none;background:none;' +
-      'cursor:pointer;font-size:15px;font-weight:700;color:#fff;opacity:.9;';
-    bar.insertBefore(btn, bar.firstChild);
+      'position:fixed;right:10px;bottom:10px;width:40px;height:40px;border-radius:50%;border:none;' +
+      'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
+      'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
+    document.body.appendChild(btn);
   }
 
   function closeMenu() { document.getElementById(MENU_ID)?.remove(); }
