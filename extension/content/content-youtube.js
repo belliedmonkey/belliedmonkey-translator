@@ -1,60 +1,128 @@
-// content-youtube.js — YouTube dual subtitle overlay
+// content-youtube.js — YouTube bilingual subtitles
+//
+// Strategy: PRELOAD + translate-ahead. yt-hook.js (world:MAIN) captures
+// YouTube's own /api/timedtext response and posts the full transcript here. We
+// parse it into timed cues, batch-translate them in the background, and display
+// the pre-translated line by matching the video's currentTime — so there is no
+// per-caption translation lag (a slow LLM like DeepSeek no longer matters; the
+// work is done ahead of playback). If no transcript is captured (e.g. captions
+// off, or the hook is unavailable), we fall back to live DOM translation.
 
 var YouTubeTranslator = (() => {
   const DUAL_CLASS = 'mt-yt-dual';
-  // A stable root that lives for the whole player session — survives the
-  // pre-roll ad ending and YouTube rebuilding the caption window per cue.
-  const PLAYER_ROOT = '#movie_player, .html5-video-player';
-  const CAPTION_CONTAINER = '.ytp-caption-window-container'; // full-size wrapper
-  const CAPTION_WINDOW = '.caption-window';                  // the actual positioned caption box
+  const CAPTION_CONTAINER = '.ytp-caption-window-container';
+  const CAPTION_WINDOW = '.caption-window';
   const CAPTION_SEGMENT = '.ytp-caption-segment';
+  const CC_BUTTON = '.ytp-subtitles-button';
 
   let settings = {};
   let active = false;
   let pollTimer = null;
-  let lastText = '';
-  let lastTranslated = '';
   let lastUrl = '';
 
-  // ─── Bilingual line ───────────────────────────────────────────────────
-  // The translation is appended as a real line INSIDE YouTube's caption box
-  // (`.caption-window`), in normal document flow. It sits under the original
-  // text and follows it automatically when YouTube moves the captions (mouse
-  // over → controls show) or the window resizes — no coordinate math, so it
-  // never jitters.
+  // preload state
+  let cues = [];                // [{start, end, text, zh}] sorted by start (ms)
+  let transcriptVideoId = '';   // which video the cues belong to
+  let preloadGen = 0;           // bumped on new transcript / video → cancels stale pre-translation
+  let lastShownZh = '';
 
-  function currentCaptionText() {
-    const segs = document.querySelectorAll(CAPTION_SEGMENT);
-    if (!segs.length) return '';
-    return Array.from(segs)
-      .map(s => s.textContent)
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+  // live-fallback state
+  let lastText = '';
+  let lastTranslated = '';
+
+  // ─── Video id helpers ─────────────────────────────────────────────────
+  function currentVideoId() {
+    try { return new URLSearchParams(location.search).get('v') || ''; } catch (_) { return ''; }
+  }
+  function videoIdFromUrl(u) {
+    try { return new URL(u, location.href).searchParams.get('v') || ''; } catch (_) { return ''; }
   }
 
+  // ─── Transcript capture (from world:MAIN yt-hook.js) ──────────────────
+  window.addEventListener('message', (e) => {
+    if (e.source !== window) return;
+    const d = e.data;
+    if (!d || d.__mtYtHook !== true || d.type !== 'timedtext') return;
+    handleTimedText(d.url, d.body);
+  });
+
+  function handleTimedText(url, body) {
+    let parsed;
+    try { parsed = parseJson3(body); } catch (_) { return; }
+    if (!parsed.length) return;
+    cues = parsed;
+    transcriptVideoId = videoIdFromUrl(url) || currentVideoId();
+    const gen = ++preloadGen;
+    if (active) preTranslate(gen);
+  }
+
+  function parseJson3(body) {
+    const data = JSON.parse(body);
+    const events = data.events || [];
+    const out = [];
+    for (const ev of events) {
+      if (!ev.segs) continue;
+      const text = ev.segs.map((s) => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
+      if (!text) continue;
+      const start = ev.tStartMs || 0;
+      const end = ev.dDurationMs ? start + ev.dDurationMs : 0;
+      out.push({ start, end, text, zh: '' });
+    }
+    out.sort((a, b) => a.start - b.start);
+    for (let i = 0; i < out.length; i++) {
+      if (!out[i].end || out[i].end <= out[i].start) {
+        out[i].end = i + 1 < out.length ? out[i + 1].start : out[i].start + 4000;
+      }
+    }
+    return out;
+  }
+
+  // Background batch translation, in playback order, filling cue.zh as it goes.
+  async function preTranslate(gen) {
+    const CHUNK = 20;
+    for (let i = 0; i < cues.length; i += CHUNK) {
+      if (!active || gen !== preloadGen) return;
+      const chunk = cues.slice(i, i + CHUNK).filter((c) => !c.zh);
+      if (!chunk.length) continue;
+      try {
+        const zhs = await TranslationAPI.translateBatch(
+          chunk.map((c) => c.text),
+          settings.targetLang || 'zh-CN',
+          settings.provider || 'google',
+          settings.apiKey || '',
+          settings.apiBaseUrl || ''
+        );
+        if (gen !== preloadGen) return;
+        chunk.forEach((c, j) => { if (zhs[j] && zhs[j] !== c.text) c.zh = zhs[j]; });
+      } catch (e) {
+        // keep going — later chunks may still succeed
+      }
+    }
+  }
+
+  function activeCue(tMs) {
+    for (let i = cues.length - 1; i >= 0; i--) {
+      if (cues[i].start <= tMs) return tMs < cues[i].end ? cues[i] : null;
+    }
+    return null;
+  }
+
+  // ─── Bilingual line (visual) ──────────────────────────────────────────
   function renderDualLine(translated) {
-    const win = document.querySelector(CAPTION_WINDOW) ||
-                document.querySelector(CAPTION_CONTAINER);
+    const win = document.querySelector(CAPTION_WINDOW) || document.querySelector(CAPTION_CONTAINER);
     if (!win) return;
-    // Drop any dual line stranded outside the current caption box.
-    document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => {
+    document.querySelectorAll(`.${DUAL_CLASS}`).forEach((el) => {
       if (el.parentElement !== win) el.remove();
     });
     let line = Array.from(win.children).find(
-      c => c.classList && c.classList.contains(DUAL_CLASS)
+      (c) => c.classList && c.classList.contains(DUAL_CLASS)
     );
     if (!line) {
       line = document.createElement('div');
       line.className = DUAL_CLASS;
-      win.appendChild(line); // after the original text → renders on the line below
+      win.appendChild(line);
     }
     const seg = document.querySelector(CAPTION_SEGMENT);
-    // width:fit-content + max-width:88vw + margin auto → the line shrinks to its
-    // text but never exceeds 88% of the viewport, and stays centered. This keeps
-    // long Chinese off the screen edges (YouTube's caption box itself can be
-    // full-width / overflow the right edge on mobile). overflow-wrap lets long
-    // CJK+Latin runs break instead of overflowing.
     line.style.cssText = `
       display: block;
       width: fit-content;
@@ -76,124 +144,131 @@ var YouTubeTranslator = (() => {
   }
 
   function removeDualLine() {
-    document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => el.remove());
+    document.querySelectorAll(`.${DUAL_CLASS}`).forEach((el) => el.remove());
   }
 
-  async function refreshCaption() {
-    if (!active) return;
-    const text = currentCaptionText();
-    if (!text || text.length < 2) { removeDualLine(); lastText = ''; return; }
+  // YouTube's .caption-window has overflow:hidden + fixed height (rollup clip).
+  // Un-clip it and lift it above the control bar so our appended line shows and
+  // stays put when the controls toggle.
+  function injectCaptionStyle() {
+    if (document.getElementById('mt-yt-style')) return;
+    const st = document.createElement('style');
+    st.id = 'mt-yt-style';
+    st.textContent =
+      '.caption-window{overflow:visible!important;height:auto!important;max-height:none!important;bottom:11%!important;}' +
+      '.ytp-caption-window-container{overflow:visible!important;}';
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function removeCaptionStyle() {
+    document.getElementById('mt-yt-style')?.remove();
+  }
 
-    // Same caption as before: only re-assert if YouTube wiped our line
-    // (avoid redundant writes every poll tick).
+  function ensureCaptionsOn() {
+    const cc = document.querySelector(CC_BUTTON);
+    if (cc && cc.getAttribute('aria-pressed') === 'false') cc.click();
+  }
+
+  // ─── Live fallback (used when no transcript was captured) ─────────────
+  function currentCaptionText() {
+    const segs = document.querySelectorAll(CAPTION_SEGMENT);
+    if (!segs.length) return '';
+    return Array.from(segs).map((s) => s.textContent).join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  async function liveRefresh() {
+    const text = currentCaptionText();
+    if (!text || text.length < 2) {
+      if (lastShownZh) { removeDualLine(); lastShownZh = ''; }
+      lastText = '';
+      return;
+    }
     if (text === lastText) {
       if (lastTranslated && !document.querySelector(`.${DUAL_CLASS}`)) renderDualLine(lastTranslated);
       return;
     }
-
     lastText = text;
     try {
-      const translated = await TranslationAPI.translate(
-        text,
-        settings.targetLang || 'zh-CN',
-        settings.provider || 'google',
-        settings.apiKey || '',
-        settings.apiBaseUrl || ''
+      const zh = await TranslationAPI.translate(
+        text, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        settings.apiKey || '', settings.apiBaseUrl || ''
       );
-      if (!translated || translated === text) return;
-      // Don't drop just because the live caption changed: rollup captions
-      // (YouTube mobile, ytp-rollup-mode) change every frame, which would
-      // discard every translation. Only skip if a NEWER caption was already
-      // requested while we were translating (out-of-order completion).
-      if (text !== lastText) return;
-      lastTranslated = translated;
-      renderDualLine(translated);
+      if (!zh || zh === text || text !== lastText) return;
+      lastTranslated = zh;
+      renderDualLine(zh);
     } catch (e) {
-      console.warn('[MT] YouTube subtitle translate failed:', e.message);
+      console.warn('[MT] YouTube live translate failed:', e.message);
     }
   }
 
-  // ─── Caption watching (robust to ads / late mount / player rebuild) ───
-
-  function scanCaptions() {
+  // ─── Display loop ─────────────────────────────────────────────────────
+  function tick() {
     if (!active) return;
-    // SPA navigation (YouTube swaps the video without a full reload): reset.
+
+    // SPA navigation: YouTube swaps the video without a full reload.
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      lastText = '';
-      lastTranslated = '';
+      lastShownZh = ''; lastText = ''; lastTranslated = '';
       removeDualLine();
+      ensureCaptionsOn(); // make the new video fetch its timedtext → hook captures it
     }
-    refreshCaption();
+
+    const haveTranscript = cues.length && transcriptVideoId === currentVideoId();
+    if (haveTranscript) {
+      const v = document.querySelector('video');
+      if (!v) return;
+      const cue = activeCue(v.currentTime * 1000);
+      if (cue && cue.zh) {
+        if (cue.zh !== lastShownZh || !document.querySelector(`.${DUAL_CLASS}`)) {
+          renderDualLine(cue.zh);
+          lastShownZh = cue.zh;
+        }
+      } else if (lastShownZh) {
+        removeDualLine();
+        lastShownZh = '';
+      }
+    } else {
+      liveRefresh(); // fallback: translate the live DOM caption
+    }
   }
 
-  function startCaptionWatch() {
-    // Poll-only. Streaming captions are best handled by polling. A
-    // MutationObserver on the player subtree caused a feedback loop — our own
-    // renderDualLine writes re-triggered it — which froze heavy YouTube pages
-    // (and produced no output). Polling every 500ms is responsive and safe.
+  function startLoop() {
     if (pollTimer) clearInterval(pollTimer);
     lastUrl = location.href;
-    pollTimer = setInterval(scanCaptions, 500);
-  }
-
-  // ─── Handle YouTube SPA navigation ────────────────────────────────────
-
-  // ─── Remove dual subtitles ────────────────────────────────────────────
-
-  function removeDualSubtitles() {
-    document.querySelectorAll(`.${DUAL_CLASS}`).forEach(el => el.remove());
-    lastTranslated = '';
+    pollTimer = setInterval(tick, 250);
   }
 
   // ─── Public API ───────────────────────────────────────────────────────
+  function enable(cfg) {
+    settings = cfg;
+    active = true;
+    injectCaptionStyle();
+    ensureCaptionsOn();
+    if (cues.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
+    startLoop();
+  }
+
+  function disable() {
+    active = false;
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    removeDualLine();
+    removeCaptionStyle();
+    lastShownZh = ''; lastText = ''; lastTranslated = '';
+  }
 
   function init(cfg) {
     settings = cfg;
     if (cfg.enabled) enable(cfg);
   }
 
-  // YouTube's .caption-window has overflow:hidden and a fixed height (it clips
-  // to the visible caption lines for the rollup animation). Our translation line
-  // is appended inside it, so without this it gets clipped and never shows.
-  function injectCaptionStyle() {
-    if (document.getElementById('mt-yt-style')) return;
-    const st = document.createElement('style');
-    st.id = 'mt-yt-style';
-    // overflow:visible + height:auto so the appended translation line isn't
-    // clipped; bottom bump so the (now taller) bilingual block clears the
-    // control bar and the translation line stays on-screen.
-    st.textContent =
-      '.caption-window{overflow:visible!important;height:auto!important;max-height:none!important;bottom:11%!important;}' +
-      '.ytp-caption-window-container{overflow:visible!important;}';
-    (document.head || document.documentElement).appendChild(st);
-  }
-
-  function removeCaptionStyle() {
-    document.getElementById('mt-yt-style')?.remove();
-  }
-
-  function enable(cfg) {
-    settings = cfg;
-    active = true;
-    injectCaptionStyle();
-    startCaptionWatch();
-  }
-
-  function disable() {
-    active = false;
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    removeDualSubtitles();
-    removeCaptionStyle();
-    lastText = '';
-    lastTranslated = '';
-  }
-
   function updateSettings(cfg) {
+    const wasActive = active;
     settings = cfg;
-    if (active) {
-      removeDualSubtitles();
-      startCaptionWatch();
+    if (wasActive) {
+      // re-translate the transcript with the new engine/lang
+      cues.forEach((c) => { c.zh = ''; });
+      removeDualLine();
+      lastShownZh = '';
+      if (cues.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
     }
   }
 
