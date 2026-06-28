@@ -60,11 +60,11 @@ var YouTubeTranslator = (() => {
       width: fit-content;
       max-width: 88vw;
       box-sizing: border-box;
-      text-align: center;
+      text-align: left;
       color: ${settings.ytTextColor || '#ffffff'};
       font-size: ${seg ? getComputedStyle(seg).fontSize : '1em'};
       line-height: 1.3;
-      margin: 2px auto 0;
+      margin: 2px auto 0 0;
       background: rgba(8, 8, 8, 0.75);
       padding: 1px 8px;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
