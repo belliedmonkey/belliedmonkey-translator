@@ -109,9 +109,13 @@ var WebpageTranslator = (() => {
   // Interleaved render for the expanded description: each original paragraph is
   // followed by its translation. Hides YouTube's own #expanded and draws our own.
   function ytRenderDescription() {
+    const expander = document.querySelector('ytd-text-inline-expander');
     const exp = document.querySelector('#description-inline-expander #expanded');
     let holder = document.getElementById('mt-yt-desc');
-    if (!exp || exp.offsetParent === null) {     // expanded not visible (collapsed)
+    // Use YouTube's own is-expanded attribute (NOT offsetParent) — we set
+    // #expanded to display:none ourselves, which would make offsetParent null and
+    // cause an add/remove flicker every poll tick.
+    if (!exp || !(expander && expander.hasAttribute('is-expanded'))) { // collapsed
       if (holder) holder.remove();
       if (exp) exp.style.display = '';
       return;
