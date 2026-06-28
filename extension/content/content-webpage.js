@@ -118,18 +118,29 @@ var WebpageTranslator = (() => {
   // Interleaved render for the expanded description: each original paragraph is
   // followed by its translation. Hides YouTube's own #expanded and draws our own.
   function ytRenderDescription() {
-    if (IS_MOBILE_YT) return; // mobile description handled separately (pending real DOM)
-    const expander = document.querySelector('ytd-text-inline-expander');
-    const exp = document.querySelector('#description-inline-expander #expanded');
-    let holder = document.getElementById('mt-yt-desc');
-    // Use YouTube's own is-expanded attribute (NOT offsetParent) — we set
-    // #expanded to display:none ourselves, which would make offsetParent null and
-    // cause an add/remove flicker every poll tick.
-    if (!exp || !(expander && expander.hasAttribute('is-expanded'))) { // collapsed
-      if (holder) holder.remove();
-      if (exp) exp.style.display = '';
-      return;
+    let exp, visible;
+    if (IS_MOBILE_YT) {
+      // Mobile description lives in an engagement panel. Gate on the PANEL's
+      // visibility (not exp's) — we set exp to display:none, which would null its
+      // offsetParent and cause a flicker.
+      const panel = document.querySelector('ytm-structured-description-content-renderer');
+      exp = document.querySelector('.expandable-video-description-container');
+      visible = !!(panel && panel.offsetParent !== null && exp);
+    } else {
+      const expander = document.querySelector('ytd-text-inline-expander');
+      exp = document.querySelector('#description-inline-expander #expanded');
+      visible = !!(exp && expander && expander.hasAttribute('is-expanded'));
     }
+    const holderEl = document.getElementById('mt-yt-desc');
+    if (!visible) { if (holderEl) holderEl.remove(); if (exp) exp.style.display = ''; return; }
+    buildDescHolder(exp);
+  }
+
+  // Interleaved render of a single-blob description (desktop #expanded or mobile
+  // .expandable-video-description-container): hide the original, draw paragraphs
+  // each followed by its translation.
+  function buildDescHolder(exp) {
+    let holder = document.getElementById('mt-yt-desc');
     const src = (exp.textContent || '').replace(/\r/g, '').split('\n').map((l) => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
     if (src.length < 2) return;
     if (holder && holder.dataset.src === src) return; // unchanged
