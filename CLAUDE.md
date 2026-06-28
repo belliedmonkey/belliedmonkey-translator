@@ -12,14 +12,14 @@ Safari iOS browser extension for bilingual translation — fully open source and
 ## Build
 
 ```bash
-node build.js        # Copies extension/ → dist/ and creates mobile-translator.zip
+node build.js        # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.
 
 To convert for Safari iOS (macOS + Xcode required):
 ```bash
-xcrun safari-web-extension-converter dist/ --project-location ./safari-project --app-name MobileTranslator
+xcrun safari-web-extension-converter dist/ --project-location ./safari-project --app-name "BelliedMonkey Translator"
 ```
 
 ## Architecture

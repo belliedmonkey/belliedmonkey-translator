@@ -21,7 +21,7 @@ in code comments.
 ## Build & run
 
 ```bash
-node build.js              # Chrome/Safari build → dist/ (+ mobile-translator.zip)
+node build.js              # Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
 node build.js firefox      # Firefox build → dist-firefox/ + .xpi
 bash build-safari.sh       # build + generate the Safari Xcode project (needs FULL Xcode)
 ```

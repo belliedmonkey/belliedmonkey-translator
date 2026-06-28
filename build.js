@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // build.js — Build and package the extension
 // Usage:
-//   node build.js           → Chrome/Safari build (dist/ + mobile-translator.zip)
-//   node build.js firefox   → Firefox build (dist-firefox/ + mobile-translator-firefox.xpi)
+//   node build.js           → Chrome/Safari build (dist/ + belliedmonkeytranslator.zip)
+//   node build.js firefox   → Firefox build (dist-firefox/ + belliedmonkeytranslator-firefox.xpi)
 
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +12,7 @@ const TARGET = process.argv[2] === 'firefox' ? 'firefox' : 'chrome';
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'extension');
 const DIST = path.join(ROOT, TARGET === 'firefox' ? 'dist-firefox' : 'dist');
-const ZIP = path.join(ROOT, TARGET === 'firefox' ? 'mobile-translator-firefox.xpi' : 'mobile-translator.zip');
+const ZIP = path.join(ROOT, TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi' : 'belliedmonkeytranslator.zip');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -139,6 +139,6 @@ Firefox Android 安装（已上架后）:
   chrome://extensions/ → 开发者模式 → 加载已解压 → \x1b[36m${DIST}\x1b[0m
 
 转换为 Safari（需 macOS + Xcode）:
-  xcrun safari-web-extension-converter ${DIST} --project-location ./safari-project --app-name MobileTranslator
+  xcrun safari-web-extension-converter ${DIST} --project-location ./safari-project --app-name "BelliedMonkey Translator"
 `);
 }
