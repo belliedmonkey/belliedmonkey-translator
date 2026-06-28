@@ -12,6 +12,13 @@ element existing is not proof the user sees it (see AGENTS.md).
 
 ## YouTube bilingual subtitles
 
+### Controls & activation
+- **Default OFF on every page load.** Nothing is translated until the user turns it
+  on. No persisted auto-start — a refresh always starts off.
+- **Two independent controls:** the in-player **译 button** controls VIDEO SUBTITLES
+  (menu: 开启/关闭, plus 双语/仅译文/仅原文, .srt, settings); the page **FAB** controls
+  WEBPAGE TEXT (title / description / comments). They never affect each other.
+
 ### Source & timing
 - **Preload + translate-ahead.** Capture YouTube's own `/api/timedtext` transcript
   (via the `world:MAIN` hook), translate ahead of playback, and display by matching
@@ -66,10 +73,27 @@ element existing is not proof the user sees it (see AGENTS.md).
 ---
 
 ## Webpage bilingual translation
+- **Off by default**; starts only when the FAB is turned on (per page load).
 - Translation is injected **under each original paragraph** (original kept above,
   translation below), in the configured text color.
-- Skip non-content regions (nav/header/footer/aside, buttons, code). Never duplicate a
-  translation if the content script runs twice (idempotent injection).
+- **Paragraph by paragraph.** Each paragraph shows a **`⏳ 翻译中…`** placeholder until
+  its translation arrives, so the page fills in incrementally as it loads.
+- **At most 5 paragraphs translate in parallel** (`TranslationAPI` concurrency cap).
+- Skip non-content regions (nav/header/footer/aside, buttons, code). Idempotent
+  injection (never duplicate if the content script runs twice).
+
+### On YouTube (title / description / comments)
+- These live in Polymer custom elements that re-render and strip injected children,
+  so the translation is inserted as a **SIBLING** right after the original (original
+  above, translation below — same style) and re-applied on a ~1.5s poll (idempotent
+  via `data-src`).
+- **Translate only what's visible.** The description keeps both a collapsed snippet
+  and the expanded full text in the DOM; translate only the visible one
+  (`offsetParent !== null`) and drop the hidden one's translation. Never translate
+  text the user hasn't expanded.
+- **Preserve structure.** Multi-line text (description, multi-line comments) is
+  translated **line by line** and rendered with `white-space: pre-wrap`, keeping the
+  original line breaks / blank lines (URLs and timestamps stay intact).
 
 ---
 
