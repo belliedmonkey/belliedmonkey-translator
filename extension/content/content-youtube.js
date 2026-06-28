@@ -50,19 +50,26 @@ var YouTubeTranslator = (() => {
       win.appendChild(line); // after the original text → renders on the line below
     }
     const seg = document.querySelector(CAPTION_SEGMENT);
+    // width:fit-content + max-width:88vw + margin auto → the line shrinks to its
+    // text but never exceeds 88% of the viewport, and stays centered. This keeps
+    // long Chinese off the screen edges (YouTube's caption box itself can be
+    // full-width / overflow the right edge on mobile). overflow-wrap lets long
+    // CJK+Latin runs break instead of overflowing.
     line.style.cssText = `
       display: block;
-      width: 100%;
+      width: fit-content;
+      max-width: 88vw;
       box-sizing: border-box;
       text-align: center;
       color: ${settings.ytTextColor || '#ffffff'};
       font-size: ${seg ? getComputedStyle(seg).fontSize : '1em'};
       line-height: 1.3;
-      margin-top: 2px;
+      margin: 2px auto 0;
       background: rgba(8, 8, 8, 0.75);
-      padding: 1px 6px;
+      padding: 1px 8px;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       pointer-events: none;
     `;
     line.textContent = translated;
