@@ -10,6 +10,14 @@ Webpage mode shows the translation under each paragraph; YouTube mode shows a
 bilingual subtitle line under the original caption. Multi-provider: Google
 (free), OpenAI, Claude, DeepSeek, Zhipu GLM. Fully configurable LLM APIs.
 
+## Interaction / UX constraints
+
+**All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
+— the single source of truth (YouTube subtitle layout, line/paging rules, loading
+state, control menu, webpage injection). When you change how translations look or
+behave, update that file in the same commit. Don't scatter interaction rules here or
+in code comments.
+
 ## Build & run
 
 ```bash
@@ -57,16 +65,19 @@ Rules:
 ## Gotchas (hard-won)
 
 ### YouTube subtitles
-- **Poll, don't observe.** A `MutationObserver` on the player subtree +
-  `renderDualLine` writing into that subtree = feedback loop that freezes the
-  page. Use a simple `setInterval` poll (~500ms).
-- **Rollup captions** (`ytp-caption-window-rollup`, the mobile default) change
-  text every frame. Do NOT drop a translation because the live caption changed
-  during translation — only skip out-of-order results.
-- `.caption-window` has `overflow:hidden` + fixed height. An appended line is
-  clipped; inject `.caption-window{overflow:visible!important}` so it shows.
-- Mobile (`m.youtube.com`) uses the SAME caption DOM as desktop
-  (`#movie_player`, `.caption-window`, `.ytp-caption-segment`).
+(Layout/interaction rules → `docs/interaction-spec.md`. Technical gotchas below.)
+- **Transcript via `/api/timedtext` is pot-gated.** Fetching the caption track URL
+  directly returns empty (HTTP 200, 0 bytes) — YouTube requires a pot/anti-bot token.
+  Don't forge it. Instead **capture YouTube's OWN request**: `yt-hook.js` hooks
+  `fetch`/`XHR` and reuses the response YouTube's player already fetched (valid token).
+- **Inject the hook as `world:"MAIN"`** (manifest content_scripts). A `<script src>`
+  injection is blocked by YouTube's strict-dynamic CSP. `world:MAIN` is browser-injected
+  and bypasses page CSP (Chrome 111+ / Safari 16.4+).
+- **CC must be on** for YouTube to fetch the transcript; `enable()` clicks it on.
+- **Poll, don't observe.** Drive the display with a `setInterval` (~250ms) reading
+  `video.currentTime`; a `MutationObserver` on the player subtree + our own writes
+  caused a feedback loop that froze the page.
+- Mobile (`m.youtube.com`) uses the SAME caption DOM/player as desktop.
 - YouTube enforces **Trusted Types**: no `innerHTML`/`insertAdjacentHTML`; use
   `textContent` + `createElement`.
 
