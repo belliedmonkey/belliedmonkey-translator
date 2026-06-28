@@ -1,6 +1,6 @@
 dist/
 dist-firefox/
 safari-project/
-mobile-translator.zip
-mobile-translator-firefox.xpi
+*.zip
+*.xpi
 node_modules/
