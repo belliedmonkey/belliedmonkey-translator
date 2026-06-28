@@ -10,6 +10,7 @@ var WebpageTranslator = (() => {
   let active = false;
 
   const IS_YOUTUBE = /youtube\.com/.test(location.hostname);
+  const IS_MOBILE_YT = /m\.youtube\.com/.test(location.hostname);
   function collectNodes(root) { return DOMProcessor.collectParagraphs(root); }
 
   // ─── YouTube page text (title / description / comments) ───────────────
@@ -19,13 +20,16 @@ var WebpageTranslator = (() => {
   // above, translation below — same bilingual style) and re-apply on a poll.
   // Idempotent via data-src so unchanged text isn't re-translated.
   let ytPoll = null;
-  const YT_TARGETS = [
-    'ytd-watch-metadata #title h1',                           // desktop video title
-    '.slim-video-information-title .yt-core-attributed-string', // mobile video title
-    '#description-inline-expander #attributed-snippet-text',  // desktop collapsed description
-    'ytd-comment-view-model #content-text',                   // desktop comment
-    'ytm-comment-renderer #content-text, .comment-text',     // mobile comment (best-effort)
-  ].join(', ');
+  // Desktop and mobile (m.youtube.com) have different DOMs. Mobile comment /
+  // description selectors aren't confirmed yet, so mobile only translates the
+  // title for now (avoids breaking the mobile layout with wrong injections).
+  const YT_TARGETS = IS_MOBILE_YT
+    ? '.slim-video-information-title'
+    : [
+        'ytd-watch-metadata #title h1',                          // desktop video title
+        '#description-inline-expander #attributed-snippet-text', // desktop description snippet
+        '#content-text',                                         // desktop comment text
+      ].join(', ');
   // The expanded description (#expanded) is one text blob; it gets a dedicated
   // interleaved re-render (ytRenderDescription) so each paragraph is followed by
   // its translation, with clickable URLs and seekable chapter timestamps.
@@ -111,6 +115,7 @@ var WebpageTranslator = (() => {
   // Interleaved render for the expanded description: each original paragraph is
   // followed by its translation. Hides YouTube's own #expanded and draws our own.
   function ytRenderDescription() {
+    if (IS_MOBILE_YT) return; // mobile description handled separately (pending real DOM)
     const expander = document.querySelector('ytd-text-inline-expander');
     const exp = document.querySelector('#description-inline-expander #expanded');
     let holder = document.getElementById('mt-yt-desc');
