@@ -27,6 +27,7 @@
     {
       "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
+        "content/translation-core.js",
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
@@ -45,6 +46,7 @@
       "matches": ["<all_urls>"],
       "exclude_matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
+        "content/translation-core.js",
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
