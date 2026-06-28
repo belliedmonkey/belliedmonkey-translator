@@ -115,6 +115,7 @@ var YouTubeTranslator = (() => {
   // reset after a short delay so they retry (handles transient LLM rate limits).
   const AHEAD_MS = 60000;       // translate up to 60s ahead of playback
   const MAX_PER_TICK = 6;       // new translations started per loop tick
+  const MAX_RETRIES = 3;        // give up after this many failures → show error + retry
   function translateAhead() {
     const v = document.querySelector('video');
     if (!v || !sentences.length) return;
@@ -122,16 +123,21 @@ var YouTubeTranslator = (() => {
     let started = 0;
     for (let i = 0; i < sentences.length && started < MAX_PER_TICK; i++) {
       const s = sentences[i];
-      if (s.zh || s._fetching) continue;
+      if (s.zh || s._done || s._err || s._fetching) continue;
       if (s.end < tMs || s.start > tMs + AHEAD_MS) continue; // outside the window
       s._fetching = true;
       started++;
       TranslationAPI.translate(
         s.text, settings.targetLang || 'zh-CN', settings.provider || 'google',
         settings.apiKey || '', settings.apiBaseUrl || ''
-      ).then((t) => { if (t && t !== s.text) s.zh = t; })
-        .catch(() => {})
-        .finally(() => { setTimeout(() => { s._fetching = false; }, 1200); }); // allow retry
+      ).then((t) => {
+        if (t && t !== s.text) s.zh = t;
+        else s._done = true; // nothing translatable (music/number) → no retry, no "preparing"
+        s._tries = 0;
+      }).catch(() => {
+        s._tries = (s._tries || 0) + 1;
+        if (s._tries >= MAX_RETRIES) s._err = true; // exhausted → error UI with retry
+      }).finally(() => { setTimeout(() => { s._fetching = false; }, 800); }); // brief gap before retry
     }
   }
 
@@ -245,7 +251,9 @@ var YouTubeTranslator = (() => {
     return Math.max(200, Math.round((player ? player.clientWidth : 800) * 0.82) - 24);
   }
 
-  function renderOverlay(en, zh, pending) {
+  // state: '' (nothing) | 'pending' (translating, behind playback) | 'error'.
+  // `sentence` is passed for the error case so the retry button can reset it.
+  function renderOverlay(en, zh, state, sentence) {
     const ov = ensureOverlay();
     if (!ov) return;
     const enEl = ov.querySelector('.' + ORIG_CLASS);
@@ -257,14 +265,21 @@ var YouTubeTranslator = (() => {
       enEl.style.cssText = lineCss(fp, '#fff');
       enEl.textContent = en;
     }
-    if (displayMode === 'orig' || (!zh && !pending)) {
+    zhEl.onclick = null;
+    if (displayMode === 'orig') {
       zhEl.style.display = 'none'; zhEl.textContent = '';
-    } else if (pending) {
-      zhEl.style.cssText = lineCss(Math.round(fp * 0.82), '#d6d6d6') + 'opacity:.85;font-style:italic;';
-      zhEl.textContent = zh;
-    } else {
+    } else if (zh) {
       zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || '#fff');
       zhEl.textContent = zh;
+    } else if (state === 'error') {
+      zhEl.style.cssText = lineCss(Math.round(fp * 0.8), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
+      zhEl.textContent = '⚠️ 翻译失败,点此重试';
+      zhEl.onclick = () => { if (sentence) { sentence._err = false; sentence._tries = 0; } lastShownKey = ''; };
+    } else if (state === 'pending') {
+      zhEl.style.cssText = lineCss(Math.round(fp * 0.82), '#d6d6d6') + 'opacity:.85;font-style:italic;';
+      zhEl.textContent = '⏳ 译文准备中…';
+    } else {
+      zhEl.style.display = 'none'; zhEl.textContent = '';
     }
   }
 
@@ -312,10 +327,10 @@ var YouTubeTranslator = (() => {
         settings.apiKey || '', settings.apiBaseUrl || ''
       ).then((zh) => { if (text === lastText && zh && zh !== text) lastTranslated = zh; }).catch(() => {});
     }
-    let zh, pending = false;
+    let zh = null, state = '';
     if (lastTranslated) { const zp = pageize(lastTranslated, 1, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
-    else { zh = '⏳ 译文准备中…'; pending = true; }
-    renderOverlay(en, zh, pending);
+    else { state = 'pending'; }
+    renderOverlay(en, zh, state);
   }
 
   // ─── Display loop ─────────────────────────────────────────────────────
@@ -343,11 +358,16 @@ var YouTubeTranslator = (() => {
       const frac = Math.min(0.999, Math.max(0, (tMs - s.start) / Math.max(1, s.end - s.start)));
       const pg = pagesFor(s, fp, width);
       const en = pg.en[Math.min(pg.en.length - 1, Math.floor(frac * pg.en.length))];
-      let zh, pending = false;
-      if (s.zh && pg.zh) zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
-      else { zh = '⏳ 译文准备中…'; pending = true; }
-      const key = s.start + '|' + en + '|' + zh;
-      if (key !== lastShownKey) { renderOverlay(en, zh, pending); lastShownKey = key; }
+      let zh = null, state = '';
+      if (s.zh && pg.zh) {
+        zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
+      } else if (s._err) {
+        state = 'error';
+      } else if (!s._done && tMs - s.start > 700) {
+        state = 'pending'; // only show "preparing" once we're genuinely behind (>0.7s in)
+      } // else: within grace, or nothing to translate → show the original only (no flicker)
+      const key = s.start + '|' + en + '|' + (zh || state);
+      if (key !== lastShownKey) { renderOverlay(en, zh, state, s); lastShownKey = key; }
     } else {
       liveFallback();
     }
@@ -532,7 +552,7 @@ var YouTubeTranslator = (() => {
 
   function updateSettings(cfg) {
     settings = cfg;
-    sentences.forEach((s) => { s.zh = ''; s._pg = null; s._fetching = false; });
+    sentences.forEach((s) => { s.zh = ''; s._pg = null; s._fetching = false; s._done = false; s._err = false; s._tries = 0; });
     clearOverlay();
     // translateAhead() in the display loop re-translates the window with the new engine
   }
