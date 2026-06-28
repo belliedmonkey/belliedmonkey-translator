@@ -24,7 +24,10 @@ var WebpageTranslator = (() => {
   // description selectors aren't confirmed yet, so mobile only translates the
   // title for now (avoids breaking the mobile layout with wrong injections).
   const YT_TARGETS = IS_MOBILE_YT
-    ? '.slim-video-information-title'
+    ? [
+        '.slim-video-information-title',  // mobile video title (h2)
+        '.YtmCommentRendererText',        // mobile comment text (<p> inside ytm-comment-renderer)
+      ].join(', ')
     : [
         'ytd-watch-metadata #title h1',                          // desktop video title
         '#description-inline-expander #attributed-snippet-text', // desktop description snippet
