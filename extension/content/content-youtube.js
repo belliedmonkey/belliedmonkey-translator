@@ -1,23 +1,28 @@
 // content-youtube.js — YouTube bilingual subtitles
 //
-// Strategy: PRELOAD + translate-ahead. yt-hook.js (world:MAIN) captures
-// YouTube's own /api/timedtext response and posts the full transcript here. We
-// parse it into cues, MERGE cues into sentences (better context → fluent
-// translation), batch-translate the sentences ahead of playback, and display
-// the pre-translated line by matching video.currentTime to the active sentence
-// — no per-caption translation lag. An in-player control button offers display
-// modes (bilingual / translation-only / original-only), .srt download, and
-// settings. Falls back to live DOM translation if no transcript is captured.
+// Strategy: PRELOAD + translate-ahead, rendered in our OWN overlay.
+// 1. yt-hook.js (world:MAIN) captures YouTube's /api/timedtext response and
+//    posts the full transcript here.
+// 2. We parse it into cues, MERGE cues into sentences (context → fluent
+//    translation), and batch-translate the sentences ahead of playback.
+// 3. We HIDE YouTube's own caption rendering and draw our own fixed, centered
+//    overlay showing the current sentence's ORIGINAL line + TRANSLATION, matched
+//    by video.currentTime. This means: the English shows as a whole sentence
+//    (not word-by-word rollup), it doesn't jump when the controls/cursor toggle
+//    (it's our element at a fixed position), and it's centered with a capped
+//    width so it never covers too much of the frame.
+// Falls back to translating the live caption text if no transcript is captured.
 
 var YouTubeTranslator = (() => {
-  const DUAL_CLASS = 'mt-yt-dual';
-  const CAPTION_CONTAINER = '.ytp-caption-window-container';
-  const CAPTION_WINDOW = '.caption-window';
   const CAPTION_SEGMENT = '.ytp-caption-segment';
   const CC_BUTTON = '.ytp-subtitles-button';
   const RIGHT_CONTROLS = '.ytp-right-controls';
+  const PLAYER = '#movie_player, .html5-video-player';
   const BTN_ID = 'mt-yt-btn';
   const MENU_ID = 'mt-yt-menu';
+  const OVERLAY_ID = 'mt-yt-overlay';
+  const ORIG_CLASS = 'mt-yt-orig';
+  const TRANS_CLASS = 'mt-yt-trans';
 
   let settings = {};
   let active = false;
@@ -28,7 +33,7 @@ var YouTubeTranslator = (() => {
   let sentences = [];           // [{start, end, text, zh}] sorted by start (ms)
   let transcriptVideoId = '';
   let preloadGen = 0;
-  let lastShownZh = '';
+  let lastShownKey = '';
 
   // display: 'both' | 'trans' | 'orig'
   let displayMode = 'both';
@@ -84,13 +89,13 @@ var YouTubeTranslator = (() => {
     return out;
   }
 
-  // Merge consecutive cues into sentences: break on sentence-ending punctuation
-  // or a long pause. Translating a whole sentence gives the engine context, so
-  // the output reads naturally instead of choppy fragment-by-fragment.
+  // Merge cues into sentences: break on sentence-ending punctuation or a long
+  // pause. Cap length so a punctuation-less run still breaks (keeps lines short
+  // enough not to cover the frame).
   function mergeSentences(cues) {
     const SENT_END = /[.!?。！？…]["')\]]?$/;
-    const GAP = 1200; // ms silence → sentence boundary
-    const MAX_LEN = 220; // safety: don't let a punctuation-less run grow forever
+    const GAP = 1200;     // ms silence → sentence boundary
+    const MAX_LEN = 160;  // chars → force a break
     const out = [];
     let cur = null;
     for (const c of cues) {
@@ -103,7 +108,6 @@ var YouTubeTranslator = (() => {
     return out;
   }
 
-  // Background batch translation, in playback order, filling sentence.zh.
   async function preTranslate(gen) {
     const CHUNK = 10;
     for (let i = 0; i < sentences.length; i += CHUNK) {
@@ -120,9 +124,7 @@ var YouTubeTranslator = (() => {
         );
         if (gen !== preloadGen) return;
         chunk.forEach((s, j) => { if (zhs[j] && zhs[j] !== s.text) s.zh = zhs[j]; });
-      } catch (e) {
-        // keep going — later chunks may still succeed
-      }
+      } catch (e) { /* keep going */ }
     }
   }
 
@@ -133,132 +135,136 @@ var YouTubeTranslator = (() => {
     return null;
   }
 
-  // ─── Bilingual line (visual) ──────────────────────────────────────────
-  function renderDualLine(translated) {
-    const win = document.querySelector(CAPTION_WINDOW) || document.querySelector(CAPTION_CONTAINER);
-    if (!win) return;
-    document.querySelectorAll(`.${DUAL_CLASS}`).forEach((el) => {
-      if (el.parentElement !== win) el.remove();
-    });
-    let line = Array.from(win.children).find(
-      (c) => c.classList && c.classList.contains(DUAL_CLASS)
-    );
-    if (!line) {
-      line = document.createElement('div');
-      line.className = DUAL_CLASS;
-      win.appendChild(line);
+  // ─── Our own subtitle overlay (centered, fixed position) ───────────────
+  function ensureOverlay() {
+    const player = document.querySelector(PLAYER);
+    if (!player) return null;
+    let ov = document.getElementById(OVERLAY_ID);
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = OVERLAY_ID;
+      // Fixed to the player, centered, above the control bar. Because it's OUR
+      // element at a constant bottom %, it does not jump when the controls show.
+      ov.style.cssText =
+        'position:absolute;left:50%;bottom:11%;transform:translateX(-50%);' +
+        'width:max-content;max-width:82%;z-index:25;pointer-events:none;' +
+        'display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;';
+      const en = document.createElement('div'); en.className = ORIG_CLASS;
+      const zh = document.createElement('div'); zh.className = TRANS_CLASS;
+      ov.appendChild(en); ov.appendChild(zh);
+      player.appendChild(ov);
+    } else if (ov.parentElement !== player) {
+      player.appendChild(ov);
     }
-    const seg = document.querySelector(CAPTION_SEGMENT);
-    line.style.cssText = `
-      display: block;
-      width: fit-content;
-      max-width: 88vw;
-      box-sizing: border-box;
-      text-align: left;
-      color: ${settings.ytTextColor || '#ffffff'};
-      font-size: ${seg ? getComputedStyle(seg).fontSize : '1em'};
-      line-height: 1.3;
-      margin: 2px auto 0 0;
-      background: rgba(8, 8, 8, 0.75);
-      padding: 1px 8px;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      pointer-events: none;
-    `;
-    line.textContent = translated;
+    return ov;
   }
 
-  function removeDualLine() {
-    document.querySelectorAll(`.${DUAL_CLASS}`).forEach((el) => el.remove());
+  function lineCss(fontPx, color) {
+    return 'display:inline-block;max-width:100%;box-sizing:border-box;' +
+      `color:${color};font-size:${fontPx}px;line-height:1.3;` +
+      'padding:2px 10px;background:rgba(8,8,8,0.78);border-radius:3px;' +
+      'text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;' +
+      'text-shadow:1px 1px 2px rgba(0,0,0,0.85);';
   }
 
+  function fontPx() {
+    const v = document.querySelector('video');
+    const h = (v && v.clientHeight) || 400;
+    return Math.max(16, Math.min(40, Math.round(h * 0.042)));
+  }
+
+  function renderOverlay(en, zh) {
+    const ov = ensureOverlay();
+    if (!ov) return;
+    const enEl = ov.querySelector('.' + ORIG_CLASS);
+    const zhEl = ov.querySelector('.' + TRANS_CLASS);
+    const fp = fontPx();
+    if (displayMode === 'trans' || !en) {
+      enEl.style.display = 'none'; enEl.textContent = '';
+    } else {
+      enEl.style.cssText = lineCss(fp, '#fff');
+      enEl.textContent = en;
+    }
+    if (displayMode === 'orig' || !zh) {
+      zhEl.style.display = 'none'; zhEl.textContent = '';
+    } else {
+      zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || '#fff');
+      zhEl.textContent = zh;
+    }
+  }
+
+  function clearOverlay() {
+    const ov = document.getElementById(OVERLAY_ID);
+    if (ov) { ov.querySelector('.' + ORIG_CLASS).textContent = ''; ov.querySelector('.' + TRANS_CLASS).textContent = ''; }
+    lastShownKey = '';
+  }
+  function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); }
+
+  // Hide YouTube's own caption rendering (we draw our own). opacity:0 keeps the
+  // nodes updating + readable (for the live fallback) while invisible.
   function injectCaptionStyle() {
     if (document.getElementById('mt-yt-style')) return;
     const st = document.createElement('style');
     st.id = 'mt-yt-style';
-    st.textContent =
-      '.caption-window{overflow:visible!important;height:auto!important;max-height:none!important;bottom:11%!important;}' +
-      '.ytp-caption-window-container{overflow:visible!important;}' +
-      // translation-only mode: hide YouTube's own caption text, keep our line
-      `body.mt-yt-only-trans .caption-window ${CAPTION_SEGMENT}{display:none!important;}`;
+    st.textContent = '.ytp-caption-window-container{opacity:0!important;pointer-events:none!important;}';
     (document.head || document.documentElement).appendChild(st);
   }
-  function removeCaptionStyle() {
-    document.getElementById('mt-yt-style')?.remove();
-  }
+  function removeCaptionStyle() { document.getElementById('mt-yt-style')?.remove(); }
 
   function ensureCaptionsOn() {
     const cc = document.querySelector(CC_BUTTON);
     if (cc && cc.getAttribute('aria-pressed') === 'false') cc.click();
   }
 
-  function applyModeClass() {
-    document.body.classList.toggle('mt-yt-only-trans', displayMode === 'trans');
-  }
-
-  // ─── Live fallback (used when no transcript was captured) ─────────────
+  // ─── Live fallback (no transcript captured) ───────────────────────────
   function currentCaptionText() {
     const segs = document.querySelectorAll(CAPTION_SEGMENT);
     if (!segs.length) return '';
     return Array.from(segs).map((s) => s.textContent).join(' ').replace(/\s+/g, ' ').trim();
   }
 
-  async function liveRefresh() {
-    if (displayMode === 'orig') { if (lastShownZh) { removeDualLine(); lastShownZh = ''; } return; }
+  function liveFallback() {
     const text = currentCaptionText();
-    if (!text || text.length < 2) {
-      if (lastShownZh) { removeDualLine(); lastShownZh = ''; }
-      lastText = '';
-      return;
-    }
-    if (text === lastText) {
-      if (lastTranslated && !document.querySelector(`.${DUAL_CLASS}`)) renderDualLine(lastTranslated);
-      return;
-    }
+    if (!text || text.length < 2) { clearOverlay(); lastText = ''; return; }
+    if (text === lastText) { renderOverlay(text, lastTranslated); return; }
     lastText = text;
-    try {
-      const zh = await TranslationAPI.translate(
-        text, settings.targetLang || 'zh-CN', settings.provider || 'google',
-        settings.apiKey || '', settings.apiBaseUrl || ''
-      );
-      if (!zh || zh === text || text !== lastText) return;
-      lastTranslated = zh; lastShownZh = zh;
-      renderDualLine(zh);
-    } catch (e) {
-      console.warn('[MT] YouTube live translate failed:', e.message);
-    }
+    renderOverlay(text, lastTranslated && text === lastText ? lastTranslated : '');
+    TranslationAPI.translate(
+      text, settings.targetLang || 'zh-CN', settings.provider || 'google',
+      settings.apiKey || '', settings.apiBaseUrl || ''
+    ).then((zh) => {
+      if (text !== lastText || !zh || zh === text) return;
+      lastTranslated = zh;
+      renderOverlay(text, zh);
+    }).catch(() => {});
   }
 
   // ─── Display loop ─────────────────────────────────────────────────────
   function tick() {
     if (!active) return;
     ensureControlButton();
+    ensureOverlay();
 
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      lastShownZh = ''; lastText = ''; lastTranslated = '';
-      removeDualLine();
+      lastText = ''; lastTranslated = '';
+      clearOverlay();
       ensureCaptionsOn();
     }
 
     const haveTranscript = sentences.length && transcriptVideoId === currentVideoId();
     if (haveTranscript) {
-      if (displayMode === 'orig') { if (lastShownZh) { removeDualLine(); lastShownZh = ''; } return; }
       const v = document.querySelector('video');
       if (!v) return;
       const s = activeSentence(v.currentTime * 1000);
-      if (s && s.zh) {
-        if (s.zh !== lastShownZh || !document.querySelector(`.${DUAL_CLASS}`)) {
-          renderDualLine(s.zh);
-          lastShownZh = s.zh;
-        }
-      } else if (lastShownZh) {
-        removeDualLine();
-        lastShownZh = '';
+      if (s) {
+        const key = s.start + '|' + (s.zh || '');
+        if (key !== lastShownKey) { renderOverlay(s.text, s.zh || ''); lastShownKey = key; }
+      } else if (lastShownKey) {
+        clearOverlay();
       }
     } else {
-      liveRefresh();
+      liveFallback();
     }
   }
 
@@ -303,21 +309,15 @@ var YouTubeTranslator = (() => {
       r.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;';
       r.addEventListener('mouseenter', () => (r.style.background = 'rgba(255,255,255,.1)'));
       r.addEventListener('mouseleave', () => (r.style.background = 'none'));
-      const tick = document.createElement('span');
-      tick.textContent = opts.checked ? '✓' : '';
-      tick.style.cssText = 'width:12px;display:inline-block;color:#4caf50;';
-      const t = document.createElement('span');
-      t.textContent = label;
-      t.style.flex = '1';
-      r.appendChild(tick); r.appendChild(t);
+      const tk = document.createElement('span');
+      tk.textContent = opts.checked ? '✓' : '';
+      tk.style.cssText = 'width:12px;display:inline-block;color:#4caf50;';
+      const t = document.createElement('span'); t.textContent = label; t.style.flex = '1';
+      r.appendChild(tk); r.appendChild(t);
       if (opts.onClick) r.addEventListener('click', (e) => { e.stopPropagation(); opts.onClick(); });
       return r;
     };
-    const sep = () => {
-      const s = document.createElement('div');
-      s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;';
-      return s;
-    };
+    const sep = () => { const s = document.createElement('div'); s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;'; return s; };
 
     const head = document.createElement('div');
     head.textContent = '字幕显示类型';
@@ -331,7 +331,6 @@ var YouTubeTranslator = (() => {
     menu.appendChild(row('设置', { onClick: () => { openSettings(); closeMenu(); } }));
 
     player.appendChild(menu);
-    // close on outside click
     setTimeout(() => {
       const off = (e) => {
         if (!menu.contains(e.target) && e.target.id !== BTN_ID) { closeMenu(); document.removeEventListener('click', off); }
@@ -342,19 +341,15 @@ var YouTubeTranslator = (() => {
 
   function setMode(mode) {
     displayMode = mode;
-    applyModeClass();
-    removeDualLine();
-    lastShownZh = '';
+    clearOverlay();
     closeMenu();
     tick();
   }
 
   // ─── .srt export ──────────────────────────────────────────────────────
   function msToSrt(ms) {
-    const h = Math.floor(ms / 3600000);
-    const m = Math.floor((ms % 3600000) / 60000);
-    const s = Math.floor((ms % 60000) / 1000);
-    const z = ms % 1000;
+    const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000),
+          s = Math.floor((ms % 60000) / 1000), z = ms % 1000;
     const p = (n, w = 2) => String(n).padStart(w, '0');
     return `${p(h)}:${p(m)}:${p(s)},${p(z, 3)}`;
   }
@@ -365,7 +360,7 @@ var YouTubeTranslator = (() => {
     sentences.forEach((s, i) => {
       const body = displayMode === 'orig' ? s.text
         : displayMode === 'trans' ? (s.zh || s.text)
-        : s.text + (s.zh ? '\n' + s.zh : ''); // bilingual
+        : s.text + (s.zh ? '\n' + s.zh : '');
       srt += `${i + 1}\n${msToSrt(s.start)} --> ${msToSrt(s.end)}\n${body}\n\n`;
     });
     const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
@@ -386,17 +381,13 @@ var YouTubeTranslator = (() => {
     }
   }
 
-  function removeControlUI() {
-    document.getElementById(BTN_ID)?.remove();
-    closeMenu();
-  }
+  function removeControlUI() { document.getElementById(BTN_ID)?.remove(); closeMenu(); }
 
   // ─── Public API ───────────────────────────────────────────────────────
   function enable(cfg) {
     settings = cfg;
     active = true;
     injectCaptionStyle();
-    applyModeClass();
     ensureCaptionsOn();
     if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
     startLoop();
@@ -405,11 +396,10 @@ var YouTubeTranslator = (() => {
   function disable() {
     active = false;
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    removeDualLine();
+    removeOverlay();
     removeCaptionStyle();
     removeControlUI();
-    document.body.classList.remove('mt-yt-only-trans');
-    lastShownZh = ''; lastText = ''; lastTranslated = '';
+    lastText = ''; lastTranslated = ''; lastShownKey = '';
   }
 
   function init(cfg) {
@@ -422,8 +412,7 @@ var YouTubeTranslator = (() => {
     settings = cfg;
     if (wasActive) {
       sentences.forEach((s) => { s.zh = ''; });
-      removeDualLine();
-      lastShownZh = '';
+      clearOverlay();
       if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
     }
   }
