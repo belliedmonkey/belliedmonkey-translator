@@ -33,7 +33,9 @@ var WebpageTranslator = (() => {
     // the DOM). Only translate the visible one; drop the hidden one's translation
     // so we never translate text the user can't see and never leave a stray line.
     if (el.offsetParent === null) { if (existing) existing.remove(); return; }
-    const src = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    // Keep the original line breaks (don't collapse \n to spaces) so multi-line
+    // descriptions can be translated line by line and rendered with structure.
+    const src = (el.textContent || '').replace(/\r/g, '').split('\n').map((l) => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
     if (src.length < 2) return;
     let node = existing;
     if (!node) {
@@ -43,20 +45,26 @@ var WebpageTranslator = (() => {
     }
     if (node.dataset.src === src) return; // already handled for this exact text
     node.dataset.src = src;
-    // loading state
-    node.style.cssText = 'color:#888;margin-top:3px;font-size:.9em;line-height:1.4;display:block;font-style:italic;';
+    // loading state (pre-wrap so the translated structure shows)
+    node.style.cssText = 'color:#888;margin-top:3px;font-size:.9em;line-height:1.4;display:block;font-style:italic;white-space:pre-wrap;';
     node.textContent = '⏳ 翻译中…';
-    TranslationAPI.translate(
-      src, settings.targetLang || 'zh-CN', settings.provider || 'google',
-      settings.apiKey || '', settings.apiBaseUrl || ''
-    ).then((zh) => {
+    // Translate line by line, preserving blank lines / line breaks → a
+    // multi-paragraph description keeps its structure instead of one blob.
+    const lines = src.split('\n');
+    Promise.all(lines.map((line) => {
+      const t = line.trim();
+      if (t.length < 2) return Promise.resolve(line); // keep blank/short lines
+      return TranslationAPI.translate(
+        t, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        settings.apiKey || '', settings.apiBaseUrl || ''
+      ).then((zh) => (zh && zh !== t ? zh : line)).catch(() => line);
+    })).then((zhLines) => {
       if (node.dataset.src !== src) return;
-      if (zh && zh !== src) {
-        node.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;`;
-        node.textContent = zh;
-      } else {
-        node.style.display = 'none'; node.textContent = '';
-      }
+      const out = zhLines.join('\n').trim();
+      if (out && out !== src) {
+        node.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;white-space:pre-wrap;`;
+        node.textContent = out;
+      } else { node.style.display = 'none'; node.textContent = ''; }
     }).catch(() => { node.dataset.src = ''; }); // clear so the next poll retries
   }
 
