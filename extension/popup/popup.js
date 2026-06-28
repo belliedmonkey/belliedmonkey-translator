@@ -33,48 +33,46 @@ function updateApiKeySection(provider) {
   }
 }
 
-function updateBadge(enabled) {
+let pageTranslated = false; // whether the current page is currently translated
+
+function updateTranslateUI() {
+  $('btn-translate').textContent = pageTranslated ? '查看原文' : '翻译本页';
   const badge = $('status-badge');
-  if (enabled) {
-    badge.textContent = '已开启';
-    badge.classList.add('on');
-  } else {
-    badge.textContent = '已关闭';
-    badge.classList.remove('on');
-  }
+  badge.textContent = pageTranslated ? '已翻译' : '未翻译';
+  badge.classList.toggle('on', pageTranslated);
 }
 
 async function sendToPage(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
+  if (!tab?.id) return null;
   try {
-    await chrome.tabs.sendMessage(tab.id, { action });
+    return await chrome.tabs.sendMessage(tab.id, { action });
   } catch (_) {
-    // Content script may not be loaded on this page
+    return null; // content script not loaded on this page (e.g. chrome://)
   }
+}
+
+async function queryPageTranslated() {
+  const resp = await sendToPage('getPageStatus');
+  return !!(resp && resp.enabled);
 }
 
 async function init() {
   const s = await getSettings();
 
   // Populate UI
-  $('toggle-enabled').checked = !!s.enabled;
   $('target-lang').value = s.targetLang || 'zh-CN';
   $('provider').value = s.provider || 'google';
   $('api-key').value = s.apiKey || '';
   $('api-base-url').value = s.apiBaseUrl || '';
 
-  updateBadge(!!s.enabled);
   updateApiKeySection(s.provider || 'google');
 
-  // ─── Event listeners ────────────────────────────────────────────────
+  // Reflect the CURRENT page's translation state (not a stored default).
+  pageTranslated = await queryPageTranslated();
+  updateTranslateUI();
 
-  $('toggle-enabled').addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await saveSettings({ enabled });
-    updateBadge(enabled);
-    await sendToPage(enabled ? 'translatePage' : 'disablePage');
-  });
+  // ─── Event listeners ────────────────────────────────────────────────
 
   $('target-lang').addEventListener('change', async (e) => {
     await saveSettings({ targetLang: e.target.value });
@@ -102,13 +100,19 @@ async function init() {
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 
+  // Toggle: 翻译本页 ↔ 查看原文. Re-translating is cache-first (TranslationAPI cache).
   $('btn-translate').addEventListener('click', async () => {
-    const enabled = true;
-    $('toggle-enabled').checked = true;
-    await saveSettings({ enabled });
-    updateBadge(true);
-    await sendToPage('translatePage');
-    showToast('正在翻译…');
+    if (pageTranslated) {
+      await sendToPage('disablePage');
+      pageTranslated = false;
+      updateTranslateUI();
+      showToast('已恢复原文');
+    } else {
+      await sendToPage('translatePage');
+      pageTranslated = true;
+      updateTranslateUI();
+      showToast('正在翻译…');
+    }
   });
 
   $('btn-settings').addEventListener('click', () => {
