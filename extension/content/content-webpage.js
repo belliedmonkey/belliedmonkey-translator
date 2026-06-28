@@ -20,9 +20,11 @@ var WebpageTranslator = (() => {
   // Idempotent via data-src so unchanged text isn't re-translated.
   let ytPoll = null;
   const YT_TARGETS = [
-    'ytd-watch-metadata #title h1',                           // video title
-    '#description-inline-expander #attributed-snippet-text',  // collapsed description snippet
-    'ytd-comment-view-model #content-text',                   // each comment
+    'ytd-watch-metadata #title h1',                           // desktop video title
+    '.slim-video-information-title .yt-core-attributed-string', // mobile video title
+    '#description-inline-expander #attributed-snippet-text',  // desktop collapsed description
+    'ytd-comment-view-model #content-text',                   // desktop comment
+    'ytm-comment-renderer #content-text, .comment-text',     // mobile comment (best-effort)
   ].join(', ');
   // The expanded description (#expanded) is one text blob; it gets a dedicated
   // interleaved re-render (ytRenderDescription) so each paragraph is followed by

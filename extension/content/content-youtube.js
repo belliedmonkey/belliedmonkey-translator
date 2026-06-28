@@ -353,18 +353,26 @@ var YouTubeTranslator = (() => {
   }
 
   // ─── In-player control button + menu ──────────────────────────────────
-  function ensureControlButton() {
-    const bar = document.querySelector(RIGHT_CONTROLS);
-    if (!bar || document.getElementById(BTN_ID)) return;
+  function makeTranslateBtn() {
     const btn = document.createElement('button');
     btn.id = BTN_ID;
+    btn.title = '大肚猴翻译 · 视频字幕';
+    btn.textContent = '译';
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
+    return btn;
+  }
+
+  function ensureControlButton() {
+    if (document.getElementById(BTN_ID)) return;
+    const bar = document.querySelector(RIGHT_CONTROLS);
+    // Mobile (m.youtube.com) has no player control bar → no in-player button;
+    // subtitles are controlled by the page FAB instead (see content-main.js).
+    if (!bar) return;
+    const btn = makeTranslateBtn();
     btn.className = 'ytp-button';
-    btn.title = '大肚猴翻译';
     btn.style.cssText =
       'position:relative;width:48px;height:100%;vertical-align:top;border:none;background:none;' +
       'cursor:pointer;font-size:15px;font-weight:700;color:#fff;opacity:.9;';
-    btn.textContent = '译';
-    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
     bar.insertBefore(btn, bar.firstChild);
   }
 
@@ -372,15 +380,16 @@ var YouTubeTranslator = (() => {
 
   function toggleMenu(btn) {
     if (document.getElementById(MENU_ID)) { closeMenu(); return; }
+    const floating = getComputedStyle(btn).position === 'fixed'; // mobile floating button
     const player = btn.closest('.html5-video-player') || document.querySelector('#movie_player');
-    if (!player) return;
+    if (!floating && !player) return;
 
     const menu = document.createElement('div');
     menu.id = MENU_ID;
     menu.style.cssText =
-      'position:absolute;right:12px;bottom:60px;z-index:9999;min-width:200px;' +
-      'background:rgba(28,28,28,.95);border-radius:10px;padding:6px 0;' +
-      'font-size:13px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
+      (floating ? 'position:fixed;right:16px;bottom:206px;' : 'position:absolute;right:12px;bottom:60px;') +
+      'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
+      'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
 
     const row = (label, opts = {}) => {
       const r = document.createElement('div');
@@ -413,7 +422,7 @@ var YouTubeTranslator = (() => {
     menu.appendChild(row('下载字幕 (.srt)', { onClick: () => { downloadSrt(); closeMenu(); } }));
     menu.appendChild(row('设置', { onClick: () => { openSettings(); closeMenu(); } }));
 
-    player.appendChild(menu);
+    (floating ? document.body : player).appendChild(menu);
     setTimeout(() => {
       const off = (e) => {
         if (!menu.contains(e.target) && e.target.id !== BTN_ID) { closeMenu(); document.removeEventListener('click', off); }
@@ -473,7 +482,8 @@ var YouTubeTranslator = (() => {
   function applySubtitleState() {
     if (active) {
       injectCaptionStyle();
-      ensureCaptionsOn();
+      // (We do NOT auto-enable YouTube's CC. The transcript is captured whenever
+      // YouTube itself fetches /api/timedtext — i.e. when captions are on.)
       if (sentences.length && transcriptVideoId === currentVideoId()) preTranslate(++preloadGen);
     } else {
       removeCaptionStyle();

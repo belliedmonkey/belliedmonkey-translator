@@ -28,11 +28,13 @@
   };
 
   const isYouTube = /youtube\.com/.test(location.hostname);
+  // Mobile YouTube (m.youtube.com) has no player control bar for the in-player 译
+  // button, so the FAB drives BOTH subtitles and page text there.
+  const isMobileYouTube = /m\.youtube\.com/.test(location.hostname);
 
-  // ─── Two independent controls ──────────────────────────────────────────
-  // FAB → webpage text translation (on every site, incl. YouTube title /
-  //       description / comments).
-  // In-player 译 button (YouTubeTranslator) → video subtitles, self-controlled.
+  // ─── Controls ──────────────────────────────────────────────────────────
+  // Desktop: FAB → page text; in-player 译 button → video subtitles (separate).
+  // Mobile YouTube: FAB → both (no in-player button).
 
   if (cfg.showFab) {
     FloatingButton.create(cfg.enabled, async (enabled) => {
@@ -40,6 +42,10 @@
       chrome.storage.local.set({ enabled });
       if (enabled) await WebpageTranslator.enable(cfg);
       else WebpageTranslator.disable();
+      if (isMobileYouTube) {
+        if (enabled) YouTubeTranslator.enable(cfg);
+        else YouTubeTranslator.disable();
+      }
     });
   }
 
@@ -79,6 +85,7 @@
       chrome.storage.local.set({ enabled: true });
       FloatingButton.setEnabled(true);
       WebpageTranslator.enable(cfg);
+      if (isMobileYouTube) YouTubeTranslator.enable(cfg);
       sendResponse({ ok: true });
     }
 
@@ -87,6 +94,7 @@
       chrome.storage.local.set({ enabled: false });
       FloatingButton.setEnabled(false);
       WebpageTranslator.disable();
+      if (isMobileYouTube) YouTubeTranslator.disable();
       sendResponse({ ok: true });
     }
 
