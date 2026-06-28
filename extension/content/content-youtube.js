@@ -198,12 +198,19 @@ var YouTubeTranslator = (() => {
     const lh = fp * 1.3;
     const fits = (str) => { m.textContent = str; return m.scrollHeight <= lh * maxLines + 2; };
     if (fits(text)) return [text];
+    // Even paging: figure out how many pages we need, then aim for equal-length
+    // pages (capped by what fits) so we don't leave a tiny trailing scrap.
+    m.textContent = text;
+    const fullLines = Math.max(1, Math.round(m.scrollHeight / lh));
+    const N = Math.max(1, Math.ceil(fullLines / maxLines));
+    const target = Math.ceil(text.trim().length / N);
     const pages = [];
     let rest = text.trim();
     while (rest) {
       if (fits(rest)) { pages.push(rest); break; }
-      let lo = 1, hi = rest.length, cut = 1;
-      while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(rest.slice(0, mid))) { cut = mid; lo = mid + 1; } else hi = mid - 1; }
+      let lo = 1, hi = rest.length, fitMax = 1;
+      while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(rest.slice(0, mid))) { fitMax = mid; lo = mid + 1; } else hi = mid - 1; }
+      let cut = Math.min(fitMax, Math.max(target, Math.ceil(fitMax * 0.5)));
       let bp = cut;
       const sp = rest.lastIndexOf(' ', cut); // prefer a word boundary if reasonably close
       if (sp > cut * 0.6) bp = sp;
