@@ -173,7 +173,65 @@ var YouTubeTranslator = (() => {
     return Math.max(16, Math.min(40, Math.round(h * 0.042)));
   }
 
-  function renderOverlay(en, zh) {
+  // ─── 2-line paging (measure the real wrapped height) ──────────────────
+  // A long sentence is split into pages that each fit within maxLines at the
+  // current width, so we never show 3+ lines. Pages are shown in sequence over
+  // the sentence's time span. Measurement makes this work on any screen size.
+  function measurer() {
+    let m = document.getElementById('mt-yt-meas');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'mt-yt-meas';
+      m.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;' +
+        'white-space:pre-wrap;overflow-wrap:anywhere;padding:0 10px;box-sizing:border-box;';
+      (document.body || document.documentElement).appendChild(m);
+    }
+    return m;
+  }
+
+  function pageize(text, maxLines, fp, width) {
+    if (!text) return [''];
+    const m = measurer();
+    m.style.fontSize = fp + 'px';
+    m.style.lineHeight = '1.3';
+    m.style.width = width + 'px';
+    const lh = fp * 1.3;
+    const fits = (str) => { m.textContent = str; return m.scrollHeight <= lh * maxLines + 2; };
+    if (fits(text)) return [text];
+    const pages = [];
+    let rest = text.trim();
+    while (rest) {
+      if (fits(rest)) { pages.push(rest); break; }
+      let lo = 1, hi = rest.length, cut = 1;
+      while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(rest.slice(0, mid))) { cut = mid; lo = mid + 1; } else hi = mid - 1; }
+      let bp = cut;
+      const sp = rest.lastIndexOf(' ', cut); // prefer a word boundary if reasonably close
+      if (sp > cut * 0.6) bp = sp;
+      pages.push(rest.slice(0, bp).trim());
+      rest = rest.slice(bp).trim();
+      if (pages.length > 30) { pages.push(rest); break; }
+    }
+    return pages.length ? pages : [text];
+  }
+
+  // Cache pages on the sentence; recompute when width / font / translation change.
+  function pagesFor(s, fp, width) {
+    if (!s._pg || s._pg.w !== width || s._pg.fp !== fp || s._pg.zhText !== (s.zh || '')) {
+      s._pg = {
+        w: width, fp, zhText: s.zh || '',
+        en: pageize(s.text, 2, fp, width),
+        zh: s.zh ? pageize(s.zh, 2, Math.round(fp * 0.95), width) : null,
+      };
+    }
+    return s._pg;
+  }
+
+  function overlayTextWidth() {
+    const player = document.querySelector(PLAYER);
+    return Math.max(200, Math.round((player ? player.clientWidth : 800) * 0.82) - 24);
+  }
+
+  function renderOverlay(en, zh, pending) {
     const ov = ensureOverlay();
     if (!ov) return;
     const enEl = ov.querySelector('.' + ORIG_CLASS);
@@ -185,8 +243,11 @@ var YouTubeTranslator = (() => {
       enEl.style.cssText = lineCss(fp, '#fff');
       enEl.textContent = en;
     }
-    if (displayMode === 'orig' || !zh) {
+    if (displayMode === 'orig' || (!zh && !pending)) {
       zhEl.style.display = 'none'; zhEl.textContent = '';
+    } else if (pending) {
+      zhEl.style.cssText = lineCss(Math.round(fp * 0.82), '#d6d6d6') + 'opacity:.85;font-style:italic;';
+      zhEl.textContent = zh;
     } else {
       zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || '#fff');
       zhEl.textContent = zh;
@@ -198,7 +259,7 @@ var YouTubeTranslator = (() => {
     if (ov) { ov.querySelector('.' + ORIG_CLASS).textContent = ''; ov.querySelector('.' + TRANS_CLASS).textContent = ''; }
     lastShownKey = '';
   }
-  function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); }
+  function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); document.getElementById('mt-yt-meas')?.remove(); }
 
   // Hide YouTube's own caption rendering (we draw our own). opacity:0 keeps the
   // nodes updating + readable (for the live fallback) while invisible.
@@ -226,17 +287,21 @@ var YouTubeTranslator = (() => {
   function liveFallback() {
     const text = currentCaptionText();
     if (!text || text.length < 2) { clearOverlay(); lastText = ''; return; }
-    if (text === lastText) { renderOverlay(text, lastTranslated); return; }
-    lastText = text;
-    renderOverlay(text, lastTranslated && text === lastText ? lastTranslated : '');
-    TranslationAPI.translate(
-      text, settings.targetLang || 'zh-CN', settings.provider || 'google',
-      settings.apiKey || '', settings.apiBaseUrl || ''
-    ).then((zh) => {
-      if (text !== lastText || !zh || zh === text) return;
-      lastTranslated = zh;
-      renderOverlay(text, zh);
-    }).catch(() => {});
+    const fp = fontPx();
+    const width = overlayTextWidth();
+    const enPages = pageize(text, 2, fp, width);
+    const en = enPages[enPages.length - 1]; // newest 2 lines of the rolling caption
+    if (text !== lastText) {
+      lastText = text; lastTranslated = '';
+      TranslationAPI.translate(
+        text, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        settings.apiKey || '', settings.apiBaseUrl || ''
+      ).then((zh) => { if (text === lastText && zh && zh !== text) lastTranslated = zh; }).catch(() => {});
+    }
+    let zh, pending = false;
+    if (lastTranslated) { const zp = pageize(lastTranslated, 2, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
+    else { zh = '⏳ 译文准备中…'; pending = true; }
+    renderOverlay(en, zh, pending);
   }
 
   // ─── Display loop ─────────────────────────────────────────────────────
@@ -256,13 +321,19 @@ var YouTubeTranslator = (() => {
     if (haveTranscript) {
       const v = document.querySelector('video');
       if (!v) return;
-      const s = activeSentence(v.currentTime * 1000);
-      if (s) {
-        const key = s.start + '|' + (s.zh || '');
-        if (key !== lastShownKey) { renderOverlay(s.text, s.zh || ''); lastShownKey = key; }
-      } else if (lastShownKey) {
-        clearOverlay();
-      }
+      const tMs = v.currentTime * 1000;
+      const s = activeSentence(tMs);
+      if (!s) { if (lastShownKey) clearOverlay(); return; }
+      const fp = fontPx();
+      const width = overlayTextWidth();
+      const frac = Math.min(0.999, Math.max(0, (tMs - s.start) / Math.max(1, s.end - s.start)));
+      const pg = pagesFor(s, fp, width);
+      const en = pg.en[Math.min(pg.en.length - 1, Math.floor(frac * pg.en.length))];
+      let zh, pending = false;
+      if (s.zh && pg.zh) zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
+      else { zh = '⏳ 译文准备中…'; pending = true; }
+      const key = s.start + '|' + en + '|' + zh;
+      if (key !== lastShownKey) { renderOverlay(en, zh, pending); lastShownKey = key; }
     } else {
       liveFallback();
     }
