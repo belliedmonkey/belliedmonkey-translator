@@ -20,16 +20,23 @@ var WebpageTranslator = (() => {
   // Idempotent via data-src so unchanged text isn't re-translated.
   let ytPoll = null;
   const YT_TARGETS = [
-    'ytd-watch-metadata #title h1',          // video title
-    '#description-inline-expander',          // description (whole block; survives expand)
-    'ytd-comment-view-model #content-text',  // each comment
+    'ytd-watch-metadata #title h1',                           // video title
+    '#description-inline-expander #attributed-snippet-text',  // collapsed description snippet
+    '#description-inline-expander #expanded',                 // expanded full description
+    'ytd-comment-view-model #content-text',                   // each comment
   ].join(', ');
 
   function ytTranslateText(el) {
+    const next = el.nextElementSibling;
+    const existing = next && next.classList && next.classList.contains('mt-yt-pagetrans') ? next : null;
+    // Skip hidden elements (the collapsed/expanded description swap keeps both in
+    // the DOM). Only translate the visible one; drop the hidden one's translation
+    // so we never translate text the user can't see and never leave a stray line.
+    if (el.offsetParent === null) { if (existing) existing.remove(); return; }
     const src = (el.textContent || '').replace(/\s+/g, ' ').trim();
     if (src.length < 2) return;
-    let node = el.nextElementSibling;
-    if (!node || !node.classList || !node.classList.contains('mt-yt-pagetrans')) {
+    let node = existing;
+    if (!node) {
       node = document.createElement('div');
       node.className = 'mt-yt-pagetrans';
       el.insertAdjacentElement('afterend', node);
