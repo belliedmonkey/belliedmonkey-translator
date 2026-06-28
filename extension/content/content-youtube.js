@@ -30,10 +30,16 @@ var YouTubeTranslator = (() => {
   let pollTimer = null;
   let lastUrl = '';
 
-  // preload state
-  let sentences = [];           // [{start, end, text, zh}] sorted by start (ms)
+  // preload state — the generic engine (TranslationCore) owns per-sentence
+  // translation state (tr / pending / error) + the sliding-window preload.
+  const pager = TranslationCore.createPager({ measurerId: 'mt-yt-meas' });
+  const engine = TranslationCore.createSubtitleEngine({
+    getCurrentTime: () => (document.querySelector('video')?.currentTime || 0) * 1000,
+    translate: (text) => TranslationAPI.translate(
+      text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || ''),
+  });
   let transcriptVideoId = '';
-  let preloadGen = 0;
   let lastShownKey = '';
 
   // display: 'both' | 'trans' | 'orig'
@@ -63,11 +69,10 @@ var YouTubeTranslator = (() => {
     let cues;
     try { cues = parseJson3(body); } catch (_) { return; }
     if (!cues.length) return;
-    sentences = mergeSentences(cues);
+    // The engine merges cues into sentences and drives the sliding-window
+    // translate-ahead from the display loop (engine.pump in tick).
+    engine.setItems(TranslationCore.mergeSentences(cues));
     transcriptVideoId = videoIdFromUrl(url) || currentVideoId();
-    // Translation happens on demand in the display loop (translateAhead), limited
-    // to a window ahead of playback — so a long video doesn't fire thousands of
-    // LLM calls at once (which rate-limits and leaves sentences stuck "preparing").
   }
 
   function parseJson3(body) {
@@ -76,7 +81,9 @@ var YouTubeTranslator = (() => {
     const out = [];
     for (const ev of events) {
       if (!ev.segs) continue;
-      const text = ev.segs.map((s) => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
+      // Collapse horizontal whitespace only (keep \n; never force a space into a
+      // no-space script — the engine's joinCue handles cross-cue CJK spacing).
+      const text = ev.segs.map((s) => s.utf8 || '').join('').replace(/[^\S\n]+/g, ' ').trim();
       if (!text) continue;
       const start = ev.tStartMs || 0;
       const end = ev.dDurationMs ? start + ev.dDurationMs : 0;
@@ -89,63 +96,6 @@ var YouTubeTranslator = (() => {
       }
     }
     return out;
-  }
-
-  // Merge cues into sentences: break on sentence-ending punctuation or a long
-  // pause. Cap length so a punctuation-less run still breaks (keeps lines short
-  // enough not to cover the frame).
-  function mergeSentences(cues) {
-    const SENT_END = /[.!?。！？…]["')\]]?$/;
-    const GAP = 1200;     // ms silence → sentence boundary
-    const MAX_LEN = 160;  // chars → force a break
-    const out = [];
-    let cur = null;
-    for (const c of cues) {
-      if (cur && c.start - cur.end > GAP) { out.push(cur); cur = null; }
-      if (!cur) cur = { start: c.start, end: c.end, text: c.text, zh: '' };
-      else { cur.text = (cur.text + ' ' + c.text).replace(/\s+/g, ' ').trim(); cur.end = c.end; }
-      if (SENT_END.test(cur.text) || cur.text.length > MAX_LEN) { out.push(cur); cur = null; }
-    }
-    if (cur) out.push(cur);
-    return out;
-  }
-
-  // Translate a sliding window of upcoming sentences (not the whole transcript).
-  // Driven by the display loop. Caps how many we kick off per tick; failed ones
-  // reset after a short delay so they retry (handles transient LLM rate limits).
-  const AHEAD_MS = 60000;       // translate up to 60s ahead of playback
-  const MAX_PER_TICK = 6;       // new translations started per loop tick
-  const MAX_RETRIES = 3;        // give up after this many failures → show error + retry
-  function translateAhead() {
-    const v = document.querySelector('video');
-    if (!v || !sentences.length) return;
-    const tMs = v.currentTime * 1000;
-    let started = 0;
-    for (let i = 0; i < sentences.length && started < MAX_PER_TICK; i++) {
-      const s = sentences[i];
-      if (s.zh || s._done || s._err || s._fetching) continue;
-      if (s.end < tMs || s.start > tMs + AHEAD_MS) continue; // outside the window
-      s._fetching = true;
-      started++;
-      TranslationAPI.translate(
-        s.text, settings.targetLang || 'zh-CN', settings.provider || 'google',
-        settings.apiKey || '', settings.apiBaseUrl || ''
-      ).then((t) => {
-        if (t && t !== s.text) s.zh = t;
-        else s._done = true; // nothing translatable (music/number) → no retry, no "preparing"
-        s._tries = 0;
-      }).catch(() => {
-        s._tries = (s._tries || 0) + 1;
-        if (s._tries >= MAX_RETRIES) s._err = true; // exhausted → error UI with retry
-      }).finally(() => { setTimeout(() => { s._fetching = false; }, 800); }); // brief gap before retry
-    }
-  }
-
-  function activeSentence(tMs) {
-    for (let i = sentences.length - 1; i >= 0; i--) {
-      if (sentences[i].start <= tMs) return tMs < sentences[i].end ? sentences[i] : null;
-    }
-    return null;
   }
 
   // ─── Our own subtitle overlay (centered, fixed position) ───────────────
@@ -186,61 +136,14 @@ var YouTubeTranslator = (() => {
     return Math.max(16, Math.min(40, Math.round(h * 0.042)));
   }
 
-  // ─── 2-line paging (measure the real wrapped height) ──────────────────
-  // A long sentence is split into pages that each fit within maxLines at the
-  // current width, so we never show 3+ lines. Pages are shown in sequence over
-  // the sentence's time span. Measurement makes this work on any screen size.
-  function measurer() {
-    let m = document.getElementById('mt-yt-meas');
-    if (!m) {
-      m = document.createElement('div');
-      m.id = 'mt-yt-meas';
-      m.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;' +
-        'white-space:pre-wrap;overflow-wrap:anywhere;padding:0 10px;box-sizing:border-box;';
-      (document.body || document.documentElement).appendChild(m);
-    }
-    return m;
-  }
-
-  function pageize(text, maxLines, fp, width) {
-    if (!text) return [''];
-    const m = measurer();
-    m.style.fontSize = fp + 'px';
-    m.style.lineHeight = '1.3';
-    m.style.width = width + 'px';
-    const lh = fp * 1.3;
-    const fits = (str) => { m.textContent = str; return m.scrollHeight <= lh * maxLines + 2; };
-    if (fits(text)) return [text];
-    // Even paging: figure out how many pages we need, then aim for equal-length
-    // pages (capped by what fits) so we don't leave a tiny trailing scrap.
-    m.textContent = text;
-    const fullLines = Math.max(1, Math.round(m.scrollHeight / lh));
-    const N = Math.max(1, Math.ceil(fullLines / maxLines));
-    const target = Math.ceil(text.trim().length / N);
-    const pages = [];
-    let rest = text.trim();
-    while (rest) {
-      if (fits(rest)) { pages.push(rest); break; }
-      let lo = 1, hi = rest.length, fitMax = 1;
-      while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(rest.slice(0, mid))) { fitMax = mid; lo = mid + 1; } else hi = mid - 1; }
-      let cut = Math.min(fitMax, Math.max(target, Math.ceil(fitMax * 0.5)));
-      let bp = cut;
-      const sp = rest.lastIndexOf(' ', cut); // prefer a word boundary if reasonably close
-      if (sp > cut * 0.6) bp = sp;
-      pages.push(rest.slice(0, bp).trim());
-      rest = rest.slice(bp).trim();
-      if (pages.length > 30) { pages.push(rest); break; }
-    }
-    return pages.length ? pages : [text];
-  }
-
+  // ─── 1-line paging (the measure-based pager lives in TranslationCore) ──
   // Cache pages on the sentence; recompute when width / font / translation change.
   function pagesFor(s, fp, width) {
-    if (!s._pg || s._pg.w !== width || s._pg.fp !== fp || s._pg.zhText !== (s.zh || '')) {
+    if (!s._pg || s._pg.w !== width || s._pg.fp !== fp || s._pg.trText !== (s.tr || '')) {
       s._pg = {
-        w: width, fp, zhText: s.zh || '',
-        en: pageize(s.text, 1, fp, width),
-        zh: s.zh ? pageize(s.zh, 1, Math.round(fp * 0.95), width) : null,
+        w: width, fp, trText: s.tr || '',
+        en: pager.pageize(s.text, 1, fp, width),
+        zh: s.tr ? pager.pageize(s.tr, 1, Math.round(fp * 0.95), width) : null,
       };
     }
     return s._pg;
@@ -273,11 +176,11 @@ var YouTubeTranslator = (() => {
       zhEl.textContent = zh;
     } else if (state === 'error') {
       zhEl.style.cssText = lineCss(Math.round(fp * 0.8), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
-      zhEl.textContent = '⚠️ 翻译失败,点此重试';
-      zhEl.onclick = () => { if (sentence) { sentence._err = false; sentence._tries = 0; } lastShownKey = ''; };
+      zhEl.textContent = TranslationCore.MSG.error;
+      zhEl.onclick = () => { engine.retry(sentence); lastShownKey = ''; };
     } else if (state === 'pending') {
       zhEl.style.cssText = lineCss(Math.round(fp * 0.82), '#d6d6d6') + 'opacity:.85;font-style:italic;';
-      zhEl.textContent = '⏳ 译文准备中…';
+      zhEl.textContent = TranslationCore.MSG.preparing;
     } else {
       zhEl.style.display = 'none'; zhEl.textContent = '';
     }
@@ -310,7 +213,7 @@ var YouTubeTranslator = (() => {
   function currentCaptionText() {
     const segs = document.querySelectorAll(CAPTION_SEGMENT);
     if (!segs.length) return '';
-    return Array.from(segs).map((s) => s.textContent).join(' ').replace(/\s+/g, ' ').trim();
+    return Array.from(segs).map((s) => s.textContent).join(' ').replace(/[^\S\n]+/g, ' ').trim();
   }
 
   function liveFallback() {
@@ -318,17 +221,17 @@ var YouTubeTranslator = (() => {
     if (!text || text.length < 2) { clearOverlay(); lastText = ''; return; }
     const fp = fontPx();
     const width = overlayTextWidth();
-    const enPages = pageize(text, 1, fp, width);
+    const enPages = pager.pageize(text, 1, fp, width);
     const en = enPages[enPages.length - 1]; // newest 2 lines of the rolling caption
     if (text !== lastText) {
       lastText = text; lastTranslated = '';
       TranslationAPI.translate(
-        text, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG, settings.provider || 'google',
         settings.apiKey || '', settings.apiBaseUrl || ''
-      ).then((zh) => { if (text === lastText && zh && zh !== text) lastTranslated = zh; }).catch(() => {});
+      ).then((zh) => { if (text === lastText && TranslationCore.isTranslated(text, zh)) lastTranslated = zh; }).catch(() => {});
     }
     let zh = null, state = '';
-    if (lastTranslated) { const zp = pageize(lastTranslated, 1, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
+    if (lastTranslated) { const zp = pager.pageize(lastTranslated, 1, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
     else { state = 'pending'; }
     renderOverlay(en, zh, state);
   }
@@ -345,29 +248,26 @@ var YouTubeTranslator = (() => {
       clearOverlay();
     }
 
-    const haveTranscript = sentences.length && transcriptVideoId === currentVideoId();
+    const haveTranscript = engine.items.length && transcriptVideoId === currentVideoId();
     if (haveTranscript) {
       const v = document.querySelector('video');
       if (!v) return;
       const tMs = v.currentTime * 1000;
-      translateAhead(); // keep a window of upcoming sentences translated
-      const s = activeSentence(tMs);
+      engine.pump(); // keep a window of upcoming sentences translated
+      const s = engine.activeAt(tMs);
       if (!s) { if (lastShownKey) clearOverlay(); return; }
       const fp = fontPx();
       const width = overlayTextWidth();
       const frac = Math.min(0.999, Math.max(0, (tMs - s.start) / Math.max(1, s.end - s.start)));
       const pg = pagesFor(s, fp, width);
       const en = pg.en[Math.min(pg.en.length - 1, Math.floor(frac * pg.en.length))];
-      let zh = null, state = '';
-      if (s.zh && pg.zh) {
-        zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
-      } else if (s._err) {
-        state = 'error';
-      } else if (!s._done && tMs - s.start > 700) {
-        state = 'pending'; // only show "preparing" once we're genuinely behind (>0.7s in)
-      } // else: within grace, or nothing to translate → show the original only (no flicker)
-      const key = s.start + '|' + en + '|' + (zh || state);
-      if (key !== lastShownKey) { renderOverlay(en, zh, state, s); lastShownKey = key; }
+      // The engine decides the state (translation ready / pending+behind / error);
+      // the adapter only pages the translation for the current time fraction.
+      const st = engine.stateOf(s, tMs);
+      let zh = null;
+      if (st.translation && pg.zh) zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
+      const key = s.start + '|' + en + '|' + (zh || st.state);
+      if (key !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = key; }
     } else {
       liveFallback();
     }
@@ -485,12 +385,13 @@ var YouTubeTranslator = (() => {
   }
 
   function downloadSrt() {
-    if (!sentences.length) { alert('字幕还没准备好,等翻译加载后再试'); return; }
+    const items = engine.items;
+    if (!items.length) { alert('字幕还没准备好,等翻译加载后再试'); return; }
     let srt = '';
-    sentences.forEach((s, i) => {
+    items.forEach((s, i) => {
       const body = displayMode === 'orig' ? s.text
-        : displayMode === 'trans' ? (s.zh || s.text)
-        : s.text + (s.zh ? '\n' + s.zh : '');
+        : displayMode === 'trans' ? (s.tr || s.text)
+        : s.text + (s.tr ? '\n' + s.tr : '');
       srt += `${i + 1}\n${msToSrt(s.start)} --> ${msToSrt(s.end)}\n${body}\n\n`;
     });
     const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
@@ -522,7 +423,7 @@ var YouTubeTranslator = (() => {
       injectCaptionStyle();
       // (We do NOT auto-enable YouTube's CC. The transcript is captured whenever
       // YouTube itself fetches /api/timedtext — i.e. when captions are on.)
-      // Translation is driven by translateAhead() in the display loop.
+      // Translation is driven by engine.pump() in the display loop.
     } else {
       removeCaptionStyle();
       clearOverlay();
@@ -552,9 +453,8 @@ var YouTubeTranslator = (() => {
 
   function updateSettings(cfg) {
     settings = cfg;
-    sentences.forEach((s) => { s.zh = ''; s._pg = null; s._fetching = false; s._done = false; s._err = false; s._tries = 0; });
+    engine.reset(); // clear translations/state → engine.pump re-translates with the new engine
     clearOverlay();
-    // translateAhead() in the display loop re-translates the window with the new engine
   }
 
   return { init, enable, disable, updateSettings };
