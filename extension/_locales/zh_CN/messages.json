@@ -7,5 +7,218 @@
   },
   "action_title": {
     "message": "大肚猴翻译"
+  },
+  "msg_loading": {
+    "message": "⏳ 翻译中…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 译文准备中…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 翻译失败,点此重试"
+  },
+  "fab_translate": {
+    "message": "翻译"
+  },
+  "fab_toggle": {
+    "message": "切换翻译"
+  },
+  "fab_enable": {
+    "message": "开启翻译"
+  },
+  "fab_disable": {
+    "message": "关闭翻译"
+  },
+  "yt_btn_title": {
+    "message": "大肚猴翻译 · 视频字幕"
+  },
+  "yt_sub_on": {
+    "message": "开启视频字幕翻译"
+  },
+  "yt_sub_off": {
+    "message": "关闭视频字幕翻译"
+  },
+  "yt_display_type": {
+    "message": "字幕显示类型"
+  },
+  "yt_mode_both": {
+    "message": "双语字幕"
+  },
+  "yt_mode_trans": {
+    "message": "仅译文"
+  },
+  "yt_mode_orig": {
+    "message": "仅原文"
+  },
+  "yt_download_srt": {
+    "message": "下载字幕 (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "字幕还没准备好,等翻译加载后再试"
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "popup_status_off": {
+    "message": "已关闭"
+  },
+  "popup_target_lang": {
+    "message": "目标语言"
+  },
+  "popup_provider": {
+    "message": "翻译引擎"
+  },
+  "provider_google_free": {
+    "message": "Google 翻译（免费）"
+  },
+  "placeholder_api_key": {
+    "message": "输入 API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "显示/隐藏"
+  },
+  "label_custom_api": {
+    "message": "自定义 API 地址"
+  },
+  "label_optional": {
+    "message": "（可选）"
+  },
+  "btn_translate_page": {
+    "message": "翻译本页"
+  },
+  "btn_view_original": {
+    "message": "查看原文"
+  },
+  "btn_more_settings": {
+    "message": "更多设置"
+  },
+  "status_translated": {
+    "message": "已翻译"
+  },
+  "status_untranslated": {
+    "message": "未翻译"
+  },
+  "toast_lang_switched": {
+    "message": "语言已切换"
+  },
+  "toast_provider_switched": {
+    "message": "翻译引擎已切换"
+  },
+  "toast_restored_original": {
+    "message": "已恢复原文"
+  },
+  "toast_translating": {
+    "message": "正在翻译…"
+  },
+  "options_title": {
+    "message": "大肚猴翻译 — 设置"
+  },
+  "options_engine_section": {
+    "message": "翻译引擎"
+  },
+  "options_engine_label": {
+    "message": "引擎"
+  },
+  "provider_google_free_long": {
+    "message": "Google 翻译（免费，无需 API Key）"
+  },
+  "options_custom_api_hint": {
+    "message": "留空则使用默认地址。适用于中转代理或自建服务。"
+  },
+  "options_lang_section": {
+    "message": "语言"
+  },
+  "options_style_section": {
+    "message": "显示样式"
+  },
+  "options_webpage_color": {
+    "message": "网页译文颜色"
+  },
+  "options_color_preview": {
+    "message": "这是译文的样式预览"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕颜色"
+  },
+  "options_yt_preview": {
+    "message": "双语字幕预览"
+  },
+  "options_font_size": {
+    "message": "译文字号"
+  },
+  "options_font_s": {
+    "message": "小（80%）"
+  },
+  "options_font_m": {
+    "message": "中（90%）"
+  },
+  "options_font_body": {
+    "message": "同正文（100%）"
+  },
+  "options_font_l": {
+    "message": "大（110%）"
+  },
+  "options_show_fab": {
+    "message": "显示悬浮按钮"
+  },
+  "options_cache_section": {
+    "message": "缓存管理"
+  },
+  "options_cache_hint": {
+    "message": "翻译结果会缓存 12 小时以减少 API 请求。"
+  },
+  "options_clear_cache": {
+    "message": "清除翻译缓存"
+  },
+  "options_about_section": {
+    "message": "关于"
+  },
+  "options_about_desc": {
+    "message": "支持网页全文双语对照翻译 + YouTube 双语字幕。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：在设置 → Safari → 扩展 中启用。"
+  },
+  "toast_provider_saved": {
+    "message": "翻译引擎已保存"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key 已保存"
+  },
+  "toast_apiurl_saved": {
+    "message": "API 地址已保存"
+  },
+  "toast_lang_saved": {
+    "message": "语言已保存"
+  },
+  "toast_fontsize_saved": {
+    "message": "字号已保存"
+  },
+  "toast_color_saved": {
+    "message": "颜色已保存"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕颜色已保存"
+  },
+  "toast_clearing": {
+    "message": "清除中…"
+  },
+  "toast_cache_empty": {
+    "message": "缓存为空"
+  },
+  "toast_cache_cleared": {
+    "message": "缓存已清除"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key（sk-…）。模型：gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key（sk-ant-…）。模型：claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key。模型：deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "智谱 AI API Key。模型：glm-4-flash（有免费额度）"
   }
 }

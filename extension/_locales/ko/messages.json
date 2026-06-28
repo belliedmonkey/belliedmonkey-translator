@@ -1,0 +1,224 @@
+{
+  "extension_name": {
+    "message": "대두원숭이 번역"
+  },
+  "extension_description": {
+    "message": "웹페이지 이중 번역 + YouTube 이중 자막. OpenAI/Claude/DeepSeek/GLM 등 지원"
+  },
+  "action_title": {
+    "message": "대두원숭이 번역"
+  },
+  "msg_loading": {
+    "message": "⏳ 번역 중…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 번역 준비 중…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 번역 실패 — 눌러서 재시도"
+  },
+  "fab_translate": {
+    "message": "번역"
+  },
+  "fab_toggle": {
+    "message": "번역 전환"
+  },
+  "fab_enable": {
+    "message": "번역 켜기"
+  },
+  "fab_disable": {
+    "message": "번역 끄기"
+  },
+  "yt_btn_title": {
+    "message": "대두원숭이 번역 · 동영상 자막"
+  },
+  "yt_sub_on": {
+    "message": "자막 번역 켜기"
+  },
+  "yt_sub_off": {
+    "message": "자막 번역 끄기"
+  },
+  "yt_display_type": {
+    "message": "자막 표시 방식"
+  },
+  "yt_mode_both": {
+    "message": "이중 자막"
+  },
+  "yt_mode_trans": {
+    "message": "번역만"
+  },
+  "yt_mode_orig": {
+    "message": "원문만"
+  },
+  "yt_download_srt": {
+    "message": "자막 다운로드 (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "자막이 아직 준비되지 않았습니다. 번역이 로드된 후 다시 시도하세요"
+  },
+  "settings": {
+    "message": "설정"
+  },
+  "popup_status_off": {
+    "message": "꺼짐"
+  },
+  "popup_target_lang": {
+    "message": "번역 언어"
+  },
+  "popup_provider": {
+    "message": "번역 엔진"
+  },
+  "provider_google_free": {
+    "message": "Google 번역(무료)"
+  },
+  "placeholder_api_key": {
+    "message": "API 키 입력…"
+  },
+  "toggle_show_hide": {
+    "message": "표시/숨기기"
+  },
+  "label_custom_api": {
+    "message": "사용자 지정 API 주소"
+  },
+  "label_optional": {
+    "message": "(선택)"
+  },
+  "btn_translate_page": {
+    "message": "이 페이지 번역"
+  },
+  "btn_view_original": {
+    "message": "원문 보기"
+  },
+  "btn_more_settings": {
+    "message": "추가 설정"
+  },
+  "status_translated": {
+    "message": "번역됨"
+  },
+  "status_untranslated": {
+    "message": "번역 안 됨"
+  },
+  "toast_lang_switched": {
+    "message": "언어가 전환됨"
+  },
+  "toast_provider_switched": {
+    "message": "엔진이 전환됨"
+  },
+  "toast_restored_original": {
+    "message": "원문 복원됨"
+  },
+  "toast_translating": {
+    "message": "번역 중…"
+  },
+  "options_title": {
+    "message": "대두원숭이 번역 — 설정"
+  },
+  "options_engine_section": {
+    "message": "번역 엔진"
+  },
+  "options_engine_label": {
+    "message": "엔진"
+  },
+  "provider_google_free_long": {
+    "message": "Google 번역(무료, API 키 불필요)"
+  },
+  "options_custom_api_hint": {
+    "message": "비워 두면 기본 주소 사용. 프록시나 자체 호스팅에 유용."
+  },
+  "options_lang_section": {
+    "message": "언어"
+  },
+  "options_style_section": {
+    "message": "표시 스타일"
+  },
+  "options_webpage_color": {
+    "message": "웹 번역 색상"
+  },
+  "options_color_preview": {
+    "message": "번역 스타일 미리보기입니다"
+  },
+  "options_yt_color": {
+    "message": "YouTube 자막 색상"
+  },
+  "options_yt_preview": {
+    "message": "이중 자막 미리보기"
+  },
+  "options_font_size": {
+    "message": "번역 글자 크기"
+  },
+  "options_font_s": {
+    "message": "작게(80%)"
+  },
+  "options_font_m": {
+    "message": "보통(90%)"
+  },
+  "options_font_body": {
+    "message": "본문과 동일(100%)"
+  },
+  "options_font_l": {
+    "message": "크게(110%)"
+  },
+  "options_show_fab": {
+    "message": "플로팅 버튼 표시"
+  },
+  "options_cache_section": {
+    "message": "캐시"
+  },
+  "options_cache_hint": {
+    "message": "번역 결과는 API 요청을 줄이기 위해 12시간 캐시됩니다."
+  },
+  "options_clear_cache": {
+    "message": "번역 캐시 지우기"
+  },
+  "options_about_section": {
+    "message": "정보"
+  },
+  "options_about_desc": {
+    "message": "웹페이지 전체 이중 번역 + YouTube 이중 자막 지원."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: 설정 → Safari → 확장 프로그램에서 활성화하세요."
+  },
+  "toast_provider_saved": {
+    "message": "엔진 저장됨"
+  },
+  "toast_apikey_saved": {
+    "message": "API 키 저장됨"
+  },
+  "toast_apiurl_saved": {
+    "message": "API 주소 저장됨"
+  },
+  "toast_lang_saved": {
+    "message": "언어 저장됨"
+  },
+  "toast_fontsize_saved": {
+    "message": "글자 크기 저장됨"
+  },
+  "toast_color_saved": {
+    "message": "색상 저장됨"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 자막 색상 저장됨"
+  },
+  "toast_clearing": {
+    "message": "지우는 중…"
+  },
+  "toast_cache_empty": {
+    "message": "캐시가 비어 있음"
+  },
+  "toast_cache_cleared": {
+    "message": "캐시 지움"
+  },
+  "hint_openai": {
+    "message": "OpenAI API 키(sk-…). 모델: gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Anthropic API 키(sk-ant-…). 모델: claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API 키. 모델: deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "GLM(Zhipu AI) API 키. 모델: glm-4-flash(무료 제공량 있음)"
+  }
+}

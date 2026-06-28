@@ -1,0 +1,224 @@
+{
+  "extension_name": {
+    "message": "大肚猴翻訳"
+  },
+  "extension_description": {
+    "message": "ウェブページの対訳翻訳 + YouTube バイリンガル字幕。OpenAI/Claude/DeepSeek/GLM などに対応"
+  },
+  "action_title": {
+    "message": "大肚猴翻訳"
+  },
+  "msg_loading": {
+    "message": "⏳ 翻訳中…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 翻訳を準備中…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 翻訳に失敗 — タップで再試行"
+  },
+  "fab_translate": {
+    "message": "翻訳"
+  },
+  "fab_toggle": {
+    "message": "翻訳を切り替え"
+  },
+  "fab_enable": {
+    "message": "翻訳をオン"
+  },
+  "fab_disable": {
+    "message": "翻訳をオフ"
+  },
+  "yt_btn_title": {
+    "message": "大肚猴翻訳 · 動画字幕"
+  },
+  "yt_sub_on": {
+    "message": "字幕翻訳をオン"
+  },
+  "yt_sub_off": {
+    "message": "字幕翻訳をオフ"
+  },
+  "yt_display_type": {
+    "message": "字幕の表示"
+  },
+  "yt_mode_both": {
+    "message": "バイリンガル"
+  },
+  "yt_mode_trans": {
+    "message": "訳文のみ"
+  },
+  "yt_mode_orig": {
+    "message": "原文のみ"
+  },
+  "yt_download_srt": {
+    "message": "字幕をダウンロード (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "字幕がまだ準備できていません。翻訳の読み込み後にお試しください"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "popup_status_off": {
+    "message": "オフ"
+  },
+  "popup_target_lang": {
+    "message": "翻訳先の言語"
+  },
+  "popup_provider": {
+    "message": "翻訳エンジン"
+  },
+  "provider_google_free": {
+    "message": "Google 翻訳（無料）"
+  },
+  "placeholder_api_key": {
+    "message": "API キーを入力…"
+  },
+  "toggle_show_hide": {
+    "message": "表示/非表示"
+  },
+  "label_custom_api": {
+    "message": "カスタム API URL"
+  },
+  "label_optional": {
+    "message": "（任意）"
+  },
+  "btn_translate_page": {
+    "message": "このページを翻訳"
+  },
+  "btn_view_original": {
+    "message": "原文を表示"
+  },
+  "btn_more_settings": {
+    "message": "詳細設定"
+  },
+  "status_translated": {
+    "message": "翻訳済み"
+  },
+  "status_untranslated": {
+    "message": "未翻訳"
+  },
+  "toast_lang_switched": {
+    "message": "言語を切り替えました"
+  },
+  "toast_provider_switched": {
+    "message": "エンジンを切り替えました"
+  },
+  "toast_restored_original": {
+    "message": "原文に戻しました"
+  },
+  "toast_translating": {
+    "message": "翻訳中…"
+  },
+  "options_title": {
+    "message": "大肚猴翻訳 — 設定"
+  },
+  "options_engine_section": {
+    "message": "翻訳エンジン"
+  },
+  "options_engine_label": {
+    "message": "エンジン"
+  },
+  "provider_google_free_long": {
+    "message": "Google 翻訳（無料・API キー不要）"
+  },
+  "options_custom_api_hint": {
+    "message": "空欄でデフォルトの URL を使用。プロキシや自前のサービスに便利。"
+  },
+  "options_lang_section": {
+    "message": "言語"
+  },
+  "options_style_section": {
+    "message": "表示スタイル"
+  },
+  "options_webpage_color": {
+    "message": "ウェブ訳文の色"
+  },
+  "options_color_preview": {
+    "message": "これは訳文スタイルのプレビューです"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕の色"
+  },
+  "options_yt_preview": {
+    "message": "バイリンガル字幕プレビュー"
+  },
+  "options_font_size": {
+    "message": "訳文の文字サイズ"
+  },
+  "options_font_s": {
+    "message": "小（80%）"
+  },
+  "options_font_m": {
+    "message": "中（90%）"
+  },
+  "options_font_body": {
+    "message": "本文と同じ（100%）"
+  },
+  "options_font_l": {
+    "message": "大（110%）"
+  },
+  "options_show_fab": {
+    "message": "フローティングボタンを表示"
+  },
+  "options_cache_section": {
+    "message": "キャッシュ"
+  },
+  "options_cache_hint": {
+    "message": "翻訳結果は API リクエストを減らすため 12 時間キャッシュされます。"
+  },
+  "options_clear_cache": {
+    "message": "翻訳キャッシュを消去"
+  },
+  "options_about_section": {
+    "message": "このアプリについて"
+  },
+  "options_about_desc": {
+    "message": "ウェブページ全文の対訳翻訳 + YouTube バイリンガル字幕に対応。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：設定 → Safari → 機能拡張 で有効化。"
+  },
+  "toast_provider_saved": {
+    "message": "エンジンを保存しました"
+  },
+  "toast_apikey_saved": {
+    "message": "API キーを保存しました"
+  },
+  "toast_apiurl_saved": {
+    "message": "API URL を保存しました"
+  },
+  "toast_lang_saved": {
+    "message": "言語を保存しました"
+  },
+  "toast_fontsize_saved": {
+    "message": "文字サイズを保存しました"
+  },
+  "toast_color_saved": {
+    "message": "色を保存しました"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕の色を保存しました"
+  },
+  "toast_clearing": {
+    "message": "消去中…"
+  },
+  "toast_cache_empty": {
+    "message": "キャッシュは空です"
+  },
+  "toast_cache_cleared": {
+    "message": "キャッシュを消去しました"
+  },
+  "hint_openai": {
+    "message": "OpenAI API キー（sk-…）。モデル：gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Anthropic API キー（sk-ant-…）。モデル：claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API キー。モデル：deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "GLM（智譜 AI）API キー。モデル：glm-4-flash（無料枠あり）"
+  }
+}

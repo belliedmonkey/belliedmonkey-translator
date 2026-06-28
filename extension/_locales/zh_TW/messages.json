@@ -1,0 +1,224 @@
+{
+  "extension_name": {
+    "message": "大肚猴翻譯"
+  },
+  "extension_description": {
+    "message": "網頁雙語對照翻譯 + YouTube 雙語字幕，支援 ChatGPT、Claude、DeepSeek、GLM 等多種翻譯引擎"
+  },
+  "action_title": {
+    "message": "大肚猴翻譯"
+  },
+  "msg_loading": {
+    "message": "⏳ 翻譯中…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 譯文準備中…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 翻譯失敗,點此重試"
+  },
+  "fab_translate": {
+    "message": "翻譯"
+  },
+  "fab_toggle": {
+    "message": "切換翻譯"
+  },
+  "fab_enable": {
+    "message": "開啟翻譯"
+  },
+  "fab_disable": {
+    "message": "關閉翻譯"
+  },
+  "yt_btn_title": {
+    "message": "大肚猴翻譯 · 影片字幕"
+  },
+  "yt_sub_on": {
+    "message": "開啟影片字幕翻譯"
+  },
+  "yt_sub_off": {
+    "message": "關閉影片字幕翻譯"
+  },
+  "yt_display_type": {
+    "message": "字幕顯示類型"
+  },
+  "yt_mode_both": {
+    "message": "雙語字幕"
+  },
+  "yt_mode_trans": {
+    "message": "僅譯文"
+  },
+  "yt_mode_orig": {
+    "message": "僅原文"
+  },
+  "yt_download_srt": {
+    "message": "下載字幕 (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "字幕還沒準備好,等翻譯載入後再試"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "popup_status_off": {
+    "message": "已關閉"
+  },
+  "popup_target_lang": {
+    "message": "目標語言"
+  },
+  "popup_provider": {
+    "message": "翻譯引擎"
+  },
+  "provider_google_free": {
+    "message": "Google 翻譯（免費）"
+  },
+  "placeholder_api_key": {
+    "message": "輸入 API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "顯示/隱藏"
+  },
+  "label_custom_api": {
+    "message": "自訂 API 地址"
+  },
+  "label_optional": {
+    "message": "（可選）"
+  },
+  "btn_translate_page": {
+    "message": "翻譯本頁"
+  },
+  "btn_view_original": {
+    "message": "查看原文"
+  },
+  "btn_more_settings": {
+    "message": "更多設定"
+  },
+  "status_translated": {
+    "message": "已翻譯"
+  },
+  "status_untranslated": {
+    "message": "未翻譯"
+  },
+  "toast_lang_switched": {
+    "message": "語言已切換"
+  },
+  "toast_provider_switched": {
+    "message": "翻譯引擎已切換"
+  },
+  "toast_restored_original": {
+    "message": "已恢復原文"
+  },
+  "toast_translating": {
+    "message": "正在翻譯…"
+  },
+  "options_title": {
+    "message": "大肚猴翻譯 — 設定"
+  },
+  "options_engine_section": {
+    "message": "翻譯引擎"
+  },
+  "options_engine_label": {
+    "message": "引擎"
+  },
+  "provider_google_free_long": {
+    "message": "Google 翻譯（免費，無需 API Key）"
+  },
+  "options_custom_api_hint": {
+    "message": "留空則使用預設地址。適用於中轉代理或自建服務。"
+  },
+  "options_lang_section": {
+    "message": "語言"
+  },
+  "options_style_section": {
+    "message": "顯示樣式"
+  },
+  "options_webpage_color": {
+    "message": "網頁譯文顏色"
+  },
+  "options_color_preview": {
+    "message": "這是譯文的樣式預覽"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕顏色"
+  },
+  "options_yt_preview": {
+    "message": "雙語字幕預覽"
+  },
+  "options_font_size": {
+    "message": "譯文字號"
+  },
+  "options_font_s": {
+    "message": "小（80%）"
+  },
+  "options_font_m": {
+    "message": "中（90%）"
+  },
+  "options_font_body": {
+    "message": "同內文（100%）"
+  },
+  "options_font_l": {
+    "message": "大（110%）"
+  },
+  "options_show_fab": {
+    "message": "顯示懸浮按鈕"
+  },
+  "options_cache_section": {
+    "message": "快取管理"
+  },
+  "options_cache_hint": {
+    "message": "翻譯結果會快取 12 小時以減少 API 請求。"
+  },
+  "options_clear_cache": {
+    "message": "清除翻譯快取"
+  },
+  "options_about_section": {
+    "message": "關於"
+  },
+  "options_about_desc": {
+    "message": "支援網頁全文雙語對照翻譯 + YouTube 雙語字幕。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：在設定 → Safari → 擴充功能 中啟用。"
+  },
+  "toast_provider_saved": {
+    "message": "翻譯引擎已儲存"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key 已儲存"
+  },
+  "toast_apiurl_saved": {
+    "message": "API 地址已儲存"
+  },
+  "toast_lang_saved": {
+    "message": "語言已儲存"
+  },
+  "toast_fontsize_saved": {
+    "message": "字號已儲存"
+  },
+  "toast_color_saved": {
+    "message": "顏色已儲存"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕顏色已儲存"
+  },
+  "toast_clearing": {
+    "message": "清除中…"
+  },
+  "toast_cache_empty": {
+    "message": "快取為空"
+  },
+  "toast_cache_cleared": {
+    "message": "快取已清除"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key（sk-…）。模型：gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key（sk-ant-…）。模型：claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key。模型：deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "智譜 AI API Key。模型：glm-4-flash（有免費額度）"
+  }
+}

@@ -16,7 +16,7 @@
     // Always start OFF on page load. Translation begins only after the user
     // turns it on (FAB for page text, in-player 译 button for video subtitles).
     enabled: false,
-    targetLang: settings.targetLang || 'zh-CN',
+    targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
     provider: settings.provider || 'google',
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',

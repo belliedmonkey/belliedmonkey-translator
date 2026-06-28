@@ -283,7 +283,7 @@ var YouTubeTranslator = (() => {
   function makeTranslateBtn() {
     const btn = document.createElement('button');
     btn.id = BTN_ID;
-    btn.title = '大肚猴翻译 · 视频字幕';
+    btn.title = TranslationCore.t('yt_btn_title', '大肚猴翻译 · 视频字幕');
     btn.textContent = '译';
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
     return btn;
@@ -346,19 +346,20 @@ var YouTubeTranslator = (() => {
 
     // Video subtitle on/off (this button controls the VIDEO; the page FAB
     // controls the rest of the page — title / description / comments).
-    menu.appendChild(row(active ? '关闭视频字幕翻译' : '开启视频字幕翻译', { checked: active, onClick: () => setSubActive(!active) }));
+    const T = TranslationCore.t;
+    menu.appendChild(row(active ? T('yt_sub_off', '关闭视频字幕翻译') : T('yt_sub_on', '开启视频字幕翻译'), { checked: active, onClick: () => setSubActive(!active) }));
     menu.appendChild(sep());
 
     const head = document.createElement('div');
-    head.textContent = '字幕显示类型';
+    head.textContent = T('yt_display_type', '字幕显示类型');
     head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';
     menu.appendChild(head);
-    menu.appendChild(row('双语字幕', { checked: displayMode === 'both', onClick: () => setMode('both') }));
-    menu.appendChild(row('仅译文', { checked: displayMode === 'trans', onClick: () => setMode('trans') }));
-    menu.appendChild(row('仅原文', { checked: displayMode === 'orig', onClick: () => setMode('orig') }));
+    menu.appendChild(row(T('yt_mode_both', '双语字幕'), { checked: displayMode === 'both', onClick: () => setMode('both') }));
+    menu.appendChild(row(T('yt_mode_trans', '仅译文'), { checked: displayMode === 'trans', onClick: () => setMode('trans') }));
+    menu.appendChild(row(T('yt_mode_orig', '仅原文'), { checked: displayMode === 'orig', onClick: () => setMode('orig') }));
     menu.appendChild(sep());
-    menu.appendChild(row('下载字幕 (.srt)', { onClick: () => { downloadSrt(); closeMenu(); } }));
-    menu.appendChild(row('设置', { onClick: () => { openSettings(); closeMenu(); } }));
+    menu.appendChild(row(T('yt_download_srt', '下载字幕 (.srt)'), { onClick: () => { downloadSrt(); closeMenu(); } }));
+    menu.appendChild(row(T('settings', '设置'), { onClick: () => { openSettings(); closeMenu(); } }));
 
     (floating ? document.body : player).appendChild(menu);
     setTimeout(() => {
@@ -386,7 +387,7 @@ var YouTubeTranslator = (() => {
 
   function downloadSrt() {
     const items = engine.items;
-    if (!items.length) { alert('字幕还没准备好,等翻译加载后再试'); return; }
+    if (!items.length) { alert(TranslationCore.t('yt_subtitle_not_ready', '字幕还没准备好,等翻译加载后再试')); return; }
     let srt = '';
     items.forEach((s, i) => {
       const body = displayMode === 'orig' ? s.text

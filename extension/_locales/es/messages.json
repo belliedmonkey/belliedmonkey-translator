@@ -1,0 +1,224 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey Translator"
+  },
+  "extension_description": {
+    "message": "Traducción bilingüe de páginas web + subtítulos de YouTube, con OpenAI/Claude/DeepSeek/GLM"
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Traduciendo…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Preparando…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Error — toca para reintentar"
+  },
+  "fab_translate": {
+    "message": "Traducir"
+  },
+  "fab_toggle": {
+    "message": "Alternar traducción"
+  },
+  "fab_enable": {
+    "message": "Activar traducción"
+  },
+  "fab_disable": {
+    "message": "Desactivar traducción"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey · Subtítulos de vídeo"
+  },
+  "yt_sub_on": {
+    "message": "Activar traducción de subtítulos"
+  },
+  "yt_sub_off": {
+    "message": "Desactivar traducción de subtítulos"
+  },
+  "yt_display_type": {
+    "message": "Visualización de subtítulos"
+  },
+  "yt_mode_both": {
+    "message": "Bilingüe"
+  },
+  "yt_mode_trans": {
+    "message": "Solo traducción"
+  },
+  "yt_mode_orig": {
+    "message": "Solo original"
+  },
+  "yt_download_srt": {
+    "message": "Descargar subtítulos (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Subtítulos aún no listos — inténtalo tras cargar la traducción"
+  },
+  "settings": {
+    "message": "Ajustes"
+  },
+  "popup_status_off": {
+    "message": "Desactivado"
+  },
+  "popup_target_lang": {
+    "message": "Idioma de destino"
+  },
+  "popup_provider": {
+    "message": "Motor de traducción"
+  },
+  "provider_google_free": {
+    "message": "Google Traductor (gratis)"
+  },
+  "placeholder_api_key": {
+    "message": "Introduce la API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "Mostrar/Ocultar"
+  },
+  "label_custom_api": {
+    "message": "URL de API personalizada"
+  },
+  "label_optional": {
+    "message": "(opcional)"
+  },
+  "btn_translate_page": {
+    "message": "Traducir página"
+  },
+  "btn_view_original": {
+    "message": "Ver original"
+  },
+  "btn_more_settings": {
+    "message": "Más ajustes"
+  },
+  "status_translated": {
+    "message": "Traducido"
+  },
+  "status_untranslated": {
+    "message": "Sin traducir"
+  },
+  "toast_lang_switched": {
+    "message": "Idioma cambiado"
+  },
+  "toast_provider_switched": {
+    "message": "Motor cambiado"
+  },
+  "toast_restored_original": {
+    "message": "Original restaurado"
+  },
+  "toast_translating": {
+    "message": "Traduciendo…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Ajustes"
+  },
+  "options_engine_section": {
+    "message": "Motor de traducción"
+  },
+  "options_engine_label": {
+    "message": "Motor"
+  },
+  "provider_google_free_long": {
+    "message": "Google Traductor (gratis, sin API Key)"
+  },
+  "options_custom_api_hint": {
+    "message": "Déjalo en blanco para la dirección predeterminada. Útil para proxies o servicios propios."
+  },
+  "options_lang_section": {
+    "message": "Idioma"
+  },
+  "options_style_section": {
+    "message": "Estilo de visualización"
+  },
+  "options_webpage_color": {
+    "message": "Color de traducción (web)"
+  },
+  "options_color_preview": {
+    "message": "Vista previa del estilo de traducción"
+  },
+  "options_yt_color": {
+    "message": "Color de subtítulos de YouTube"
+  },
+  "options_yt_preview": {
+    "message": "Vista previa de subtítulos bilingües"
+  },
+  "options_font_size": {
+    "message": "Tamaño de fuente de traducción"
+  },
+  "options_font_s": {
+    "message": "Pequeño (80 %)"
+  },
+  "options_font_m": {
+    "message": "Mediano (90 %)"
+  },
+  "options_font_body": {
+    "message": "Igual al texto (100 %)"
+  },
+  "options_font_l": {
+    "message": "Grande (110 %)"
+  },
+  "options_show_fab": {
+    "message": "Mostrar botón flotante"
+  },
+  "options_cache_section": {
+    "message": "Caché"
+  },
+  "options_cache_hint": {
+    "message": "Las traducciones se almacenan 12 h para reducir solicitudes a la API."
+  },
+  "options_clear_cache": {
+    "message": "Borrar caché de traducción"
+  },
+  "options_about_section": {
+    "message": "Acerca de"
+  },
+  "options_about_desc": {
+    "message": "Traducción bilingüe de página completa + subtítulos de YouTube."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: actívalo en Ajustes → Safari → Extensiones."
+  },
+  "toast_provider_saved": {
+    "message": "Motor guardado"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key guardada"
+  },
+  "toast_apiurl_saved": {
+    "message": "URL de API guardada"
+  },
+  "toast_lang_saved": {
+    "message": "Idioma guardado"
+  },
+  "toast_fontsize_saved": {
+    "message": "Tamaño guardado"
+  },
+  "toast_color_saved": {
+    "message": "Color guardado"
+  },
+  "toast_yt_color_saved": {
+    "message": "Color de subtítulos de YouTube guardado"
+  },
+  "toast_clearing": {
+    "message": "Borrando…"
+  },
+  "toast_cache_empty": {
+    "message": "Caché vacía"
+  },
+  "toast_cache_cleared": {
+    "message": "Caché borrada"
+  },
+  "hint_openai": {
+    "message": "API Key de OpenAI (sk-…). Modelo: gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "API Key de Anthropic (sk-ant-…). Modelo: claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "API Key de DeepSeek. Modelo: deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "API Key de GLM (Zhipu AI). Modelo: glm-4-flash (con cuota gratuita)"
+  }
+}

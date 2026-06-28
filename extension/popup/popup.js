@@ -5,6 +5,14 @@ const OPENAI_COMPAT = new Set(['openai', 'deepseek', 'glm']); // support custom 
 
 const $ = id => document.getElementById(id);
 
+// i18n: localized string by browser UI language, with the in-markup text as fallback.
+const t = (key, fb) => { try { return chrome.i18n.getMessage(key) || fb; } catch (_) { return fb; } };
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => { const m = t(el.dataset.i18n, ''); if (m) el.textContent = m; });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { const m = t(el.dataset.i18nPlaceholder, ''); if (m) el.placeholder = m; });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => { const m = t(el.dataset.i18nAria, ''); if (m) el.setAttribute('aria-label', m); });
+}
+
 async function getSettings() {
   return new Promise(resolve => {
     chrome.storage.local.get(null, s => resolve(s || {}));
@@ -36,9 +44,9 @@ function updateApiKeySection(provider) {
 let pageTranslated = false; // whether the current page is currently translated
 
 function updateTranslateUI() {
-  $('btn-translate').textContent = pageTranslated ? '查看原文' : '翻译本页';
+  $('btn-translate').textContent = pageTranslated ? t('btn_view_original', '查看原文') : t('btn_translate_page', '翻译本页');
   const badge = $('status-badge');
-  badge.textContent = pageTranslated ? '已翻译' : '未翻译';
+  badge.textContent = pageTranslated ? t('status_translated', '已翻译') : t('status_untranslated', '未翻译');
   badge.classList.toggle('on', pageTranslated);
 }
 
@@ -58,6 +66,7 @@ async function queryPageTranslated() {
 }
 
 async function init() {
+  applyI18n();
   const s = await getSettings();
 
   // Populate UI
@@ -76,14 +85,14 @@ async function init() {
 
   $('target-lang').addEventListener('change', async (e) => {
     await saveSettings({ targetLang: e.target.value });
-    showToast('语言已切换');
+    showToast(t('toast_lang_switched', '语言已切换'));
   });
 
   $('provider').addEventListener('change', async (e) => {
     const provider = e.target.value;
     await saveSettings({ provider });
     updateApiKeySection(provider);
-    showToast('翻译引擎已切换');
+    showToast(t('toast_provider_switched', '翻译引擎已切换'));
   });
 
   $('api-key').addEventListener('change', async (e) => {
@@ -106,12 +115,12 @@ async function init() {
       await sendToPage('disablePage');
       pageTranslated = false;
       updateTranslateUI();
-      showToast('已恢复原文');
+      showToast(t('toast_restored_original', '已恢复原文'));
     } else {
       await sendToPage('translatePage');
       pageTranslated = true;
       updateTranslateUI();
-      showToast('正在翻译…');
+      showToast(t('toast_translating', '正在翻译…'));
     }
   });
 

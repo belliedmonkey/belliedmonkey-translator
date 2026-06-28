@@ -11,12 +11,21 @@ var TranslationCore = (() => {
   const DEFAULT_TARGET_LANG = 'zh-CN';
   const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
-  // UI-chrome strings. (Step F wires these to chrome.i18n; kept as constants for
-  // now so behavior is identical. Centralized so i18n touches one place.)
+
+  // i18n: read a localized UI string (chrome.i18n, by browser UI language) with a
+  // Chinese fallback so a missing key never blanks the UI. Shared by all adapters.
+  function i18n(key, fallback) {
+    try {
+      const m = (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage(key));
+      return m || fallback;
+    } catch (_) { return fallback; }
+  }
+
+  // UI-chrome strings (getters so they reflect the active locale).
   const MSG = {
-    loading: '⏳ 翻译中…',
-    preparing: '⏳ 译文准备中…',
-    error: '⚠️ 翻译失败,点此重试',
+    get loading() { return i18n('msg_loading', '⏳ 翻译中…'); },
+    get preparing() { return i18n('msg_preparing', '⏳ 译文准备中…'); },
+    get error() { return i18n('msg_translate_failed_retry', '⚠️ 翻译失败,点此重试'); },
   };
 
   // ─── Language helpers (script-aware; work for every target language) ───
@@ -170,7 +179,7 @@ var TranslationCore = (() => {
   }
 
   return {
-    DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG,
+    DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, endsSentence, joinCue, wordBreakIndex,
     mergeSentences, createPager, createSubtitleEngine,
   };
