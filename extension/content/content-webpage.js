@@ -9,25 +9,51 @@ var WebpageTranslator = (() => {
   let doneNodes = 0;
   let active = false;
 
-  // ─── Node collection (YouTube uses custom elements, not block tags) ───
   const IS_YOUTUBE = /youtube\.com/.test(location.hostname);
-  const YT_SELECTORS = [
-    'ytd-watch-metadata h1 yt-formatted-string', // video title
-    '#description-inline-expander yt-attributed-string', // description
-    '#content-text', // comment text
+  function collectNodes(root) { return DOMProcessor.collectParagraphs(root); }
+
+  // ─── YouTube page text (title / description / comments) ───────────────
+  // YouTube renders these in Polymer custom elements that re-render and STRIP
+  // any children we inject (and the description re-renders on expand). So we
+  // insert the translation as a SIBLING right after the original (original
+  // above, translation below — same bilingual style) and re-apply on a poll.
+  // Idempotent via data-src so unchanged text isn't re-translated.
+  let ytPoll = null;
+  const YT_TARGETS = [
+    'ytd-watch-metadata #title h1',          // video title
+    '#description-inline-expander',          // description (whole block; survives expand)
+    'ytd-comment-view-model #content-text',  // each comment
   ].join(', ');
 
-  function collectNodes(root) {
-    if (IS_YOUTUBE) {
-      const scope = root && root.querySelectorAll ? root : document.body;
-      const set = new Set();
-      if (root && root.matches && root.matches(YT_SELECTORS)) set.add(root);
-      scope.querySelectorAll(YT_SELECTORS).forEach((el) => set.add(el));
-      return Array.from(set).filter(
-        (el) => !DOMProcessor.isAlreadyTranslated(el) && DOMProcessor.getTextContent(el).length >= 2
-      );
+  function ytTranslateText(el) {
+    const src = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (src.length < 2) return;
+    let node = el.nextElementSibling;
+    if (!node || !node.classList || !node.classList.contains('mt-yt-pagetrans')) {
+      node = document.createElement('div');
+      node.className = 'mt-yt-pagetrans';
+      el.insertAdjacentElement('afterend', node);
     }
-    return DOMProcessor.collectParagraphs(root);
+    if (node.dataset.src === src) return; // already handled for this exact text
+    node.dataset.src = src;
+    node.style.cssText =
+      `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;`;
+    node.textContent = '…';
+    TranslationAPI.translate(
+      src, settings.targetLang || 'zh-CN', settings.provider || 'google',
+      settings.apiKey || '', settings.apiBaseUrl || ''
+    ).then((zh) => { if (node.dataset.src === src && zh && zh !== src) node.textContent = zh; })
+     .catch(() => {});
+  }
+
+  function ytScan() {
+    if (!active) return;
+    document.querySelectorAll(YT_TARGETS).forEach(ytTranslateText);
+  }
+  function startYtPoll() { ytScan(); if (!ytPoll) ytPoll = setInterval(ytScan, 1500); }
+  function stopYtPoll() {
+    if (ytPoll) { clearInterval(ytPoll); ytPoll = null; }
+    document.querySelectorAll('.mt-yt-pagetrans').forEach((e) => e.remove());
   }
 
   // ─── Progress bar ─────────────────────────────────────────────────────
@@ -176,6 +202,7 @@ var WebpageTranslator = (() => {
   async function enable(cfg) {
     settings = cfg;
     active = true;
+    if (IS_YOUTUBE) { startYtPoll(); return; } // YouTube page text via sibling-injection poll
     startObserver();
     await translateAll();
   }
@@ -183,6 +210,7 @@ var WebpageTranslator = (() => {
   function disable() {
     active = false;
     stopObserver();
+    stopYtPoll();
     DOMProcessor.removeTranslations();
     if (progressBar) { progressBar.remove(); progressBar = null; }
     doneNodes = 0;
