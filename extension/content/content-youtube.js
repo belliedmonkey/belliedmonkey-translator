@@ -513,7 +513,11 @@ var YouTubeTranslator = (() => {
   function init(cfg) {
     settings = cfg;
     active = false; // subtitles start OFF; user enables via the 译 button menu
-    startLoop();    // always running → keeps the 译 button present on watch pages
+    // Don't poll in a youtube sub-iframe that can't host a player (e.g.
+    // youtube.com's RotateCookiesPage). Real embed players have /embed/ in the
+    // path; the top frame may SPA-navigate to a watch page, so always run there.
+    if (IS_EMBED && !/\/embed\//.test(location.pathname)) return;
+    startLoop();    // keeps the 译 button present + drives the display loop
   }
 
   // thin wrappers kept for API compatibility
