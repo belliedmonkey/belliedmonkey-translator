@@ -33,8 +33,8 @@ extension/
 │   ├── dom-processor.js       # Leaf-block paragraph detection, bilingual injection
 │   ├── floating-button.js     # Mobile FAB (draggable)
 │   ├── content-webpage.js     # Full-page bilingual translation with IntersectionObserver
-│   ├── content-youtube.js     # YouTube dual subtitles via MutationObserver
-│   ├── content-injected.js    # Injected into page world for XHR interception (secondary)
+│   ├── content-youtube.js     # YouTube dual subtitles: preload transcript + translate-ahead
+│   ├── yt-hook.js             # world:MAIN hook — captures YouTube's /api/timedtext response
 │   └── content-main.js        # Entry point: reads settings, routes to webpage/YouTube
 ├── styles/
 │   ├── bilingual.css          # .mt-translation, .mt-progress-bar, .mt-translate-chip
@@ -77,9 +77,20 @@ Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
 
 ## YouTube Subtitle Strategy
 
-Primary: `MutationObserver` on `.ytp-caption-window-container`. When `.ytp-caption-segment` elements appear, translate their text and append a `.mt-yt-dual` span below. Cached so repeat captions are instant.
+**Preload + translate-ahead** (no per-caption lag, so a slow LLM like DeepSeek works):
 
-Secondary (progressive enhancement): `content-injected.js` injects into page main world to intercept XHR calls to YouTube's `timedtext` API, notifying the content script via `postMessage`.
+1. `content/yt-hook.js` runs as a `world:"MAIN"` content script (manifest), hooking
+   `fetch` + `XMLHttpRequest` to capture YouTube's OWN `/api/timedtext` response —
+   the full timed transcript, carrying the valid pot/signature token YouTube
+   generated. It forwards the body to the content script via `postMessage`.
+   `world:"MAIN"` is required: a `<script src>` injection is blocked by YouTube's
+   strict-dynamic CSP.
+2. `content-youtube.js` parses the json3 transcript into timed cues, batch-translates
+   them ahead of playback (`TranslationAPI.translateBatch`, in playback order), and
+   displays the pre-translated `.mt-yt-dual` line by matching `video.currentTime` to
+   the active cue — instant, no translation latency.
+3. **Fallback**: if no transcript is captured (captions off, hook unavailable), it
+   falls back to live DOM translation (poll `.ytp-caption-segment`, translate, append).
 
 ## Key DOM Markers
 

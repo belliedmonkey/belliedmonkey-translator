@@ -46,14 +46,10 @@
   // ─── Initialize appropriate translator ────────────────────────────────
 
   if (isYouTube) {
+    // The /api/timedtext interceptor now lives in content/yt-hook.js, injected
+    // as a world:"MAIN" content script (see manifest). That bypasses YouTube's
+    // strict-dynamic CSP, which blocked the old <script src> injection here.
     YouTubeTranslator.init(cfg);
-    // Also inject XHR interceptor for YouTube subtitle URL detection
-    try {
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('content/content-injected.js');
-      script.onload = () => script.remove();
-      (document.head || document.documentElement).appendChild(script);
-    } catch (_) {}
   } else {
     WebpageTranslator.init(cfg);
   }
