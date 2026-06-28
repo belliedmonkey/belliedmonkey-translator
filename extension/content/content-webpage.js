@@ -58,7 +58,7 @@ var WebpageTranslator = (() => {
     node.dataset.src = src;
     // loading state (pre-wrap so the translated structure shows)
     node.style.cssText = 'color:#888;margin-top:3px;font-size:.9em;line-height:1.4;display:block;font-style:italic;white-space:pre-wrap;';
-    node.textContent = '⏳ 翻译中…';
+    node.textContent = TranslationCore.MSG.loading;
     // Translate line by line, preserving blank lines / line breaks → a
     // multi-paragraph description keeps its structure instead of one blob.
     const lines = src.split('\n');
@@ -66,13 +66,13 @@ var WebpageTranslator = (() => {
       const t = line.trim();
       if (t.length < 2) return Promise.resolve(line); // keep blank/short lines
       return TranslationAPI.translate(
-        t, settings.targetLang || 'zh-CN', settings.provider || 'google',
+        t, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG, settings.provider || 'google',
         settings.apiKey || '', settings.apiBaseUrl || ''
-      ).then((zh) => (zh && zh !== t ? zh : line)).catch(() => line);
+      ).then((zh) => (TranslationCore.isTranslated(t, zh) ? zh : line)).catch(() => line);
     })).then((zhLines) => {
       if (node.dataset.src !== src) return;
       const out = zhLines.join('\n').trim();
-      if (out && out !== src) {
+      if (TranslationCore.isTranslated(src, out)) {
         node.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;white-space:pre-wrap;`;
         node.textContent = out;
       } else { node.style.display = 'none'; node.textContent = ''; }
@@ -162,14 +162,14 @@ var WebpageTranslator = (() => {
       const t = document.createElement('div');
       t.className = 'mt-yt-pagetrans';
       t.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin:2px 0 12px;white-space:pre-wrap;line-height:1.4;font-style:italic;`;
-      t.textContent = '⏳ 翻译中…';
+      t.textContent = TranslationCore.MSG.loading;
       holder.appendChild(t);
       const lines = p.split('\n');
       Promise.all(lines.map((line) => {
         const x = line.trim();
         if (x.length < 2) return Promise.resolve(line);
-        return TranslationAPI.translate(x, settings.targetLang || 'zh-CN', settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '')
-          .then((zh) => (zh && zh !== x ? zh : line)).catch(() => line);
+        return TranslationAPI.translate(x, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG, settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '')
+          .then((zh) => (TranslationCore.isTranslated(x, zh) ? zh : line)).catch(() => line);
       })).then((zhLines) => {
         if (holder.dataset.src !== src) return;
         t.style.fontStyle = 'normal';
@@ -224,17 +224,17 @@ var WebpageTranslator = (() => {
 
     // Show a loading placeholder immediately, then fill it in when ready (so the
     // page translates paragraph by paragraph and shows progress per paragraph).
-    DOMProcessor.markProcessed(node, '⏳ 翻译中…');
+    DOMProcessor.markProcessed(node, TranslationCore.MSG.loading);
     const div = node.querySelector(`:scope > .${DOMProcessor.TRANSLATION_CLASS}`);
     try {
       const translated = await TranslationAPI.translate(
         text,
-        settings.targetLang || 'zh-CN',
+        settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         settings.provider || 'google',
         settings.apiKey || '',
         settings.apiBaseUrl || ''
       );
-      if (translated && translated !== text) { if (div) div.textContent = translated; }
+      if (TranslationCore.isTranslated(text, translated)) { if (div) div.textContent = translated; }
       else if (div) div.remove();
     } catch (e) {
       if (div) div.remove();
