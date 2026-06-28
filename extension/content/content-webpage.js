@@ -36,14 +36,21 @@ var WebpageTranslator = (() => {
     }
     if (node.dataset.src === src) return; // already handled for this exact text
     node.dataset.src = src;
-    node.style.cssText =
-      `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;`;
-    node.textContent = '…';
+    // loading state
+    node.style.cssText = 'color:#888;margin-top:3px;font-size:.9em;line-height:1.4;display:block;font-style:italic;';
+    node.textContent = '⏳ 翻译中…';
     TranslationAPI.translate(
       src, settings.targetLang || 'zh-CN', settings.provider || 'google',
       settings.apiKey || '', settings.apiBaseUrl || ''
-    ).then((zh) => { if (node.dataset.src === src && zh && zh !== src) node.textContent = zh; })
-     .catch(() => {});
+    ).then((zh) => {
+      if (node.dataset.src !== src) return;
+      if (zh && zh !== src) {
+        node.style.cssText = `color:${settings.textColor || '#0a7a3c'};margin-top:3px;font-size:.95em;line-height:1.4;display:block;`;
+        node.textContent = zh;
+      } else {
+        node.style.display = 'none'; node.textContent = '';
+      }
+    }).catch(() => { node.dataset.src = ''; }); // clear so the next poll retries
   }
 
   function ytScan() {
@@ -86,6 +93,10 @@ var WebpageTranslator = (() => {
     const text = DOMProcessor.getTextContent(node);
     if (!text || text.length < 10) return;
 
+    // Show a loading placeholder immediately, then fill it in when ready (so the
+    // page translates paragraph by paragraph and shows progress per paragraph).
+    DOMProcessor.markProcessed(node, '⏳ 翻译中…');
+    const div = node.querySelector(`:scope > .${DOMProcessor.TRANSLATION_CLASS}`);
     try {
       const translated = await TranslationAPI.translate(
         text,
@@ -94,10 +105,10 @@ var WebpageTranslator = (() => {
         settings.apiKey || '',
         settings.apiBaseUrl || ''
       );
-      if (translated && translated !== text) {
-        DOMProcessor.markProcessed(node, translated);
-      }
+      if (translated && translated !== text) { if (div) div.textContent = translated; }
+      else if (div) div.remove();
     } catch (e) {
+      if (div) div.remove();
       console.warn('[MT] translate node failed:', e.message);
     }
 

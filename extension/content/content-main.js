@@ -13,7 +13,9 @@
   });
 
   const cfg = {
-    enabled: settings.enabled || false,
+    // Always start OFF on page load. Translation begins only after the user
+    // turns it on (FAB for page text, in-player 译 button for video subtitles).
+    enabled: false,
     targetLang: settings.targetLang || 'zh-CN',
     provider: settings.provider || 'google',
     apiKey: settings.apiKey || '',
@@ -22,7 +24,7 @@
     ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '0.9em',
     showFab: settings.showFab !== false,
-    ytSubEnabled: settings.ytSubEnabled !== false // YouTube video subtitles, default on
+    ytSubEnabled: false // video subtitles also start off until the 译 button is turned on
   };
 
   const isYouTube = /youtube\.com/.test(location.hostname);

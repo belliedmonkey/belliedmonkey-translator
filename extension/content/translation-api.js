@@ -182,7 +182,7 @@ var TranslationAPI = (() => {
   // ─── Rate limiting ────────────────────────────────────────────────────
 
   let inFlight = 0;
-  const MAX_CONCURRENT = 3;
+  const MAX_CONCURRENT = 5; // cap parallel paragraph/segment translations at 5
   const queue = [];
 
   function enqueue(fn) {

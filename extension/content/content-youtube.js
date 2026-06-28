@@ -482,8 +482,7 @@ var YouTubeTranslator = (() => {
   }
 
   function setSubActive(on) {
-    active = on;
-    try { chrome.storage.local.set({ ytSubEnabled: on }); } catch (_) {}
+    active = on; // session-only; subtitles always start off on a fresh page load
     applySubtitleState();
     closeMenu();
     tick();
@@ -491,9 +490,8 @@ var YouTubeTranslator = (() => {
 
   function init(cfg) {
     settings = cfg;
-    active = cfg.ytSubEnabled !== false; // subtitles on by default
-    startLoop();                         // always running → keeps the 译 button present
-    applySubtitleState();
+    active = false; // subtitles start OFF; user enables via the 译 button menu
+    startLoop();    // always running → keeps the 译 button present on watch pages
   }
 
   // thin wrappers kept for API compatibility
