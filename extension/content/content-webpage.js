@@ -173,6 +173,16 @@ var WebpageTranslator = (() => {
   function disable() {
     active = false;
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+    // Per-unit cleanup first — reaches translations injected inside shadow roots
+    // (document.querySelectorAll cannot cross shadow boundaries).
+    for (const u of units) {
+      const node = u.node;
+      if (!node || !node.removeAttribute) continue;
+      const sib = siblingOf(node); if (sib) sib.remove();
+      node.removeAttribute(PROCESSED);
+      node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
+      if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); }
+    }
     document.querySelectorAll('.' + CLASS).forEach((e) => e.remove());
     document.querySelectorAll('[' + PROCESSED + ']').forEach((e) => e.removeAttribute(PROCESSED));
     document.querySelectorAll('[data-mt-hidden]').forEach((e) => { e.style.display = ''; e.removeAttribute('data-mt-hidden'); });

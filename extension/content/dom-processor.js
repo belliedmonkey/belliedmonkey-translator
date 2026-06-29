@@ -185,11 +185,20 @@ var DOMProcessor = (() => {
   // ─── Collect translatable leaf-block units ────────────────────────────
   function collectUnits(root = document.body) {
     const nodes = [];
+    walkRoot(root, nodes);
+    return nodes;
+  }
+
+  // Walk one tree (document or a shadowRoot). Recurses into every OPEN shadow
+  // root — web components (reddit's <shreddit-*> nav / sidebar / description) keep
+  // their content in shadow DOM, which a plain document.body walk never enters.
+  function walkRoot(root, nodes) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
       acceptNode(el) { return hardSkip(el) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
     });
     let el;
     while ((el = walker.nextNode())) {
+      if (el.shadowRoot && el.shadowRoot.mode === 'open') walkRoot(el.shadowRoot, nodes);
       if (!isBlock(el)) continue;
       if (hasBlockChild(el)) continue;     // container → descend, don't collect
       if (softSkip(el)) continue;
@@ -200,7 +209,6 @@ var DOMProcessor = (() => {
       el.setAttribute(TRANSLATABLE_ATTR, '1');
       nodes.push(el);
     }
-    return nodes;
   }
 
   function markProcessed(el, translatedText) {

@@ -50,9 +50,15 @@ middle is generic and lives in `TranslationCore`.
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
-`DomSegmenter` relies on: block/inline classification, `getComputedStyle`
-visibility, standard attributes (`translate="no"`, `.notranslate`,
-`aria-hidden`, `contenteditable`), and text heuristics (URL/email/@/#/pure-symbol/
+`DomSegmenter` relies on: block/inline classification (by computed `display` —
+`inline`/`contents` are inline, `inline-block`/`inline-flex`/… are blocks),
+`getComputedStyle` visibility, **open Shadow DOM traversal** (web components like
+reddit's `<shreddit-*>` keep the nav / sidebar / description in shadow roots — a
+plain TreeWalker on `document.body` never enters them, so we recurse into every
+open `shadowRoot`), standard attributes (`translate="no"`, `.notranslate`,
+`aria-hidden`, `contenteditable`), **script-aware minimum length** (CJK/Hangul/Thai
+floor 2, Latin/Cyrillic floor 10 — a flat char count is biased against dense
+scripts), and text heuristics (Unicode `\p{L}` "has a letter" + URL/email/@/#/
 `looksLikeCode`). **Zero site selectors.** Reddit's inline `SML.load([[…]])` is not
 translated because it lives in a non-rendered / hidden node and looks like code —
 a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
