@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "Субтитры недоступны"
   },
+  "podcast_sub_on": {
+    "message": "Включить субтитры подкаста"
+  },
+  "podcast_sub_off": {
+    "message": "Выключить субтитры подкаста"
+  },
   "settings": {
     "message": "Настройки"
   },

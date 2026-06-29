@@ -82,6 +82,47 @@ element existing is not proof the user sees it (see AGENTS.md).
 
 ---
 
+## Podcast bilingual subtitles
+
+The audio analogue of YouTube subtitles (see [`domain-design.md`](domain-design.md)
+§2.2). Same engine, same 60s translate-ahead, same display modes and loading/fallback
+states. Differences from YouTube are noted below.
+
+### Source & timing
+- **Use an existing timed transcript, fetched whole up front.** In-page WebVTT/SRT
+  (e.g. Substack's signed `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`, or a
+  `<track src>`), or a Podcasting 2.0 `<podcast:transcript>` from the feed, or
+  (Phase B) Spotify's synced "Read along" cues. Parse → merge into sentences →
+  translate ahead in the 60-second window. **No word-by-word; no ASR.**
+- **Synced to the `<audio>` element's `currentTime`.** Original + translation appear
+  together as whole sentences.
+
+### Layout (differs from YouTube)
+- **Self-rendered overlay anchored to the VIEWPORT** (audio pages have no video
+  frame): `position:fixed`, bottom-center (≈`bottom: 8%`), horizontally centered,
+  `pointer-events:none`, capped width. It must not overlap the site's own player
+  controls more than necessary.
+- **Max 1 line per language**, measured paging — same as YouTube.
+- Translation line color follows the `ytTextColor` setting (shared subtitle color).
+
+### Controls & activation
+- **Off by default.** The **FAB** turns podcast subtitles on/off (there is no
+  in-player button on an audio page) — the same FAB that turns on page-text
+  translation, mirroring mobile YouTube.
+- A small **floating 译 control** (shown only while subtitles are active) opens the
+  same menu as YouTube: **双语字幕 / 仅译文 / 仅原文**, **下载字幕 (.srt)**, **设置**.
+
+### Loading / fallback
+- While fetching/parsing the transcript, show **`⏳ 字幕加载中…`** (dimmed) — auto-swaps
+  to the bilingual pair when ready; never a stuck line.
+- If no timed transcript exists, show **`字幕不可用`** and do **not** synthesize one.
+  The page's show-notes / text transcript still translates via the webpage text path
+  (the floor) when the FAB is on.
+- **Apple Podcasts web** and **小宇宙** expose no timed transcript → text-only (no
+  subtitle overlay).
+
+---
+
 ## Webpage bilingual translation
 - **Off by default**; starts only when the FAB is turned on (per page load).
 - Translation is injected **under each original paragraph** (original kept above,

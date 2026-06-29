@@ -113,3 +113,35 @@ features run in the real extension.
 - **Note (reinstall gotcha, again):** reinstalling the app kept the Safari extension
   toggle + per-site grant for `wikipedia.org` this time (the FAB injected without a
   re-grant) — unlike some prior runs. Environment-dependent, not a code issue.
+
+### Podcast bilingual subtitles (2026-06-30, desktop Chrome)
+Verified end-to-end on desktop Chrome (unpacked `dist/`) against the Substack
+podcast page `lennysnewsletter.com/p/openai-codex-lead-on-the-new-shape` (in-page
+CloudFront-signed `en.vtt`). The iOS-Simulator pass was blocked by Safari's per-site
+extension-permission grant (resets on each reinstall; not reliably automatable via
+AX) — Chrome is the equivalent content-script surface and the cue logic is shared.
+
+Confirmed: FAB enables podcast subtitles → the signed VTT resolves (HTTP 200, **1369
+cues** parsed → merged sentences), and the viewport-anchored overlay shows matched
+whole-sentence pairs synced to `audio.currentTime` — e.g. at 4s
+"Not 90% of engineers, that's…" / "不是90%的工程师，而是整个公司90%的人。", at 30s
+"A lot of people seem to like the app." / "很多人似乎都喜欢这个应用。" — advancing with
+the clock, never word-by-word. The 译 control menu (双语/仅译文/仅原文, 下载.srt, 设置)
+renders. Two bugs found ONLY by running it on a real page (invisible to code review):
+
+- **(c) FIXED — credentialed CDN fetch → 503 → `字幕不可用`.** `fetchTimedText`/RSS
+  fetch used `{credentials:'include'}`; a CloudFront-signed transcript URL returns
+  **HTTP 503** for cookie-bearing requests (the signature already authorizes it).
+  Plain `fetch(url)` returns 200. Fix (`content-podcast.js`): drop credentials — the
+  default `'same-origin'` still sends cookies for a same-origin `<track>` but never
+  to a cross-origin CDN. Confirmed via the network panel (503 vs 200, same URL).
+- **(d) FIXED — pager emitted 1-char pages on serif-font pages.** `pageize`
+  (`translation-core.js`, shared with YouTube) used a hardcoded `fp*1.3` line-height
+  threshold; Substack inherits the serif face **"Spectral"**, whose line box renders
+  ~43px vs the 41px threshold, so EVERY line measured "too tall" → binary search
+  collapsed to one character per page. Fix: measure an actual one-line height (`'Mg'`)
+  in the element's real font and use it as the basis (font-independent; also hardens
+  the YouTube overlay).
+- **Hardened**: `resolveCues` was one-shot (`resolveTried` latched) — a slow embed or
+  transient failure stuck `字幕不可用` forever. Now retries up to 6× every 2.5s before
+  giving up.

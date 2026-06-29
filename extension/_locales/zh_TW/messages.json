@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "字幕不可用"
   },
+  "podcast_sub_on": {
+    "message": "開啟播客字幕翻譯"
+  },
+  "podcast_sub_off": {
+    "message": "關閉播客字幕翻譯"
+  },
   "settings": {
     "message": "設定"
   },

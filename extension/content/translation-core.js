@@ -143,8 +143,15 @@ var TranslationCore = (() => {
       m.style.fontSize = fp + 'px';
       m.style.lineHeight = '1.3';
       m.style.width = width + 'px';
-      const lh = fp * 1.3;
-      const fits = (str) => { m.textContent = str; return m.scrollHeight <= lh * maxLines + 2; };
+      // Reference height of ONE real line in THIS element's font. The page's font is
+      // inherited (e.g. Substack's serif "Spectral"), and a serif line box can be
+      // several px taller than font-size×line-height — a hardcoded fp*1.3 threshold
+      // then mis-measures EVERY line as "too tall", collapsing pages to 1 char each.
+      // Measuring an actual single line makes paging font-independent.
+      m.textContent = 'Mg';
+      const lh = m.scrollHeight || (fp * 1.3);
+      const tol = Math.round(lh * 0.3);
+      const fits = (str) => { m.textContent = str; return m.scrollHeight <= lh * maxLines + tol; };
       if (fits(text)) return [text];
       m.textContent = text;
       const fullLines = Math.max(1, Math.round(m.scrollHeight / lh));
