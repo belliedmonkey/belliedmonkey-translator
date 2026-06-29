@@ -44,6 +44,18 @@ issue updated as related work lands, and reference it from commits/PRs. The goal
 is a durable record of not just *what* changed but *why* — so the thinking behind
 each fix is preserved, not just the diff.
 
+## Device verification (mobile / real surfaces)
+
+**Verify on real device surfaces by DRIVING the UI, not by reasoning.** The
+standard harness + workflow is in [`docs/device-verification.md`](docs/device-verification.md):
+the **cua-driver** computer-use MCP drives macOS + the **iOS Simulator** (Safari),
+and there is a verified pipeline to build → install → enable → test this extension
+in real iOS Safari (`m.youtube.com`). Use it for any "test on a device" /
+mobile-regression / iOS-Safari task. `claude-in-chrome` only covers desktop Chrome.
+Key gotchas live in that doc (cua-driver permissions + user-scope MCP + clean-stdout
+handshake; iOS UI is AX-clickable by element_token but web content needs pixel
+clicks; dump big AX trees to a file and jq/python the token out).
+
 ## Build & run
 
 ```bash

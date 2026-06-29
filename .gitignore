@@ -4,3 +4,4 @@ safari-project/
 *.zip
 *.xpi
 node_modules/
+.gstack/
