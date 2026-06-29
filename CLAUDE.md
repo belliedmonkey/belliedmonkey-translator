@@ -37,9 +37,9 @@ extension/
 ├── content/
 │   ├── translation-core.js    # Platform-agnostic engine: subtitle state machine, sliding-window preload, pager, cue merge, language helpers, i18n
 │   ├── translation-api.js     # All fetch() calls to LLM APIs — runs in content script
-│   ├── dom-processor.js       # Leaf-block paragraph detection, bilingual injection
+│   ├── dom-processor.js       # DomSegmenter: general standard-HTML segmentation (computed visibility, block/inline, code heuristics)
 │   ├── floating-button.js     # Mobile FAB (draggable)
-│   ├── content-webpage.js     # Full-page bilingual translation with IntersectionObserver
+│   ├── content-webpage.js     # All DOM (normal + YouTube page text): DomSegmenter → engine (viewport sched) → sibling renderer
 │   ├── content-youtube.js     # YouTube dual subtitles: preload transcript + translate-ahead
 │   ├── yt-hook.js             # world:MAIN hook — captures YouTube's /api/timedtext response
 │   └── content-main.js        # Entry point: reads settings, routes to webpage/YouTube

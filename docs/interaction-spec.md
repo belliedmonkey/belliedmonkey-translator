@@ -76,24 +76,28 @@ element existing is not proof the user sees it (see AGENTS.md).
 - **Off by default**; starts only when the FAB is turned on (per page load).
 - Translation is injected **under each original paragraph** (original kept above,
   translation below), in the configured text color.
-- **Paragraph by paragraph.** Each paragraph shows a **`⏳ 翻译中…`** placeholder until
-  its translation arrives, so the page fills in incrementally as it loads.
+- **Paragraph by paragraph.** Each paragraph in the viewport shows a **`⏳ 翻译中…`**
+  placeholder until its translation arrives, so the page fills in incrementally
+  (viewport-first, lazy for the rest).
 - **At most 5 paragraphs translate in parallel** (`TranslationAPI` concurrency cap).
-- Skip non-content regions (nav/header/footer/aside, buttons, code). Idempotent
-  injection (never duplicate if the content script runs twice).
+- **Error + retry.** If a paragraph's translation fails after retries, it shows a
+  clickable **`⚠️ 翻译失败,点此重试`** (same state machine as subtitles).
+- Skip non-content regions and non-text (nav/header/footer/aside, buttons, code,
+  scripts, hidden elements). Idempotent (never duplicate if injected twice).
 
-### On YouTube (title / description / comments)
-- These live in Polymer custom elements that re-render and strip injected children,
-  so the translation is inserted as a **SIBLING** right after the original (original
-  above, translation below — same style) and re-applied on a ~1.5s poll (idempotent
-  via `data-src`).
-- **Translate only what's visible.** The description keeps both a collapsed snippet
-  and the expanded full text in the DOM; translate only the visible one
-  (`offsetParent !== null`) and drop the hidden one's translation. Never translate
-  text the user hasn't expanded.
-- **Preserve structure.** Multi-line text (description, multi-line comments) is
-  translated **line by line** and rendered with `white-space: pre-wrap`, keeping the
-  original line breaks / blank lines (URLs and timestamps stay intact).
+### One unified path (incl. YouTube) — see [`domain-design.md`](domain-design.md)
+- All DOM — normal pages **and** YouTube title/description/comments — goes through
+  the **single general `DomSegmenter`** (standard-HTML semantics, **no per-site
+  selectors**). Translation is inserted as a **SIBLING** after the original
+  (resists YouTube Polymer re-render; works on normal pages too) and re-applied by
+  a ~1s recollect poll.
+- **Translate only what's visible.** Hidden text (e.g. the collapsed-vs-expanded
+  description, `display:none` nodes) is excluded via computed-style visibility —
+  never translate text the user can't see.
+- **Preserve structure.** Multi-line / single-blob text (description, multi-line
+  comments) is rendered with `white-space: pre-wrap`, keeping line breaks; a
+  single blob with multiple paragraphs is re-rendered interleaved (see universal
+  rules below).
 
 ---
 
