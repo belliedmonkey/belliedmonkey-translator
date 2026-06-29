@@ -38,8 +38,11 @@ var DOMProcessor = (() => {
   // Control roles only — NOT 'navigation' (a nav region can hold translatable
   // labels/links; SPAs like reddit also put content in nav/aside).
   const SKIP_ROLES = new Set(['button', 'menu', 'menuitem', 'menubar', 'tab', 'tablist', 'toolbar']);
-  // Class/id hints for non-content chrome (soft skip: not a unit, but still descend).
-  const SKIP_CLASS_PATTERNS = /\b(nav|menu|btn|button|toolbar|breadcrumb|pagination|ad|advertisement|banner|cookie|social|share|comment-form|captcha)\b/i;
+  // Only the clearest non-content chrome (consent banners / captcha). We do NOT
+  // skip nav/menu/ad/social classes — that wrongly dropped nav links (whose text
+  // sits in an inline <span>) and the user wants broad coverage (ads already
+  // translate). Controls are still handled by SKIP_ROLES + <button> exclusion.
+  const SKIP_CLASS_PATTERNS = /\b(captcha|cookie-consent|cookie-banner|gdpr)\b/i;
 
   const TRANSLATION_CLASS = 'mt-translation';
   const PROCESSED_ATTR = 'data-mt-processed';
@@ -64,10 +67,14 @@ var DOMProcessor = (() => {
   // styled display:flex/block is treated as a block, and a <div> styled
   // display:inline as inline). Tag tables are only a fallback when no computed
   // style is available (detached nodes).
+  // Only `display:inline` (pure inline text flow) is inline. inline-block /
+  // inline-flex / inline-grid generate a BOX (nav items, buttons, badges) and
+  // must each be their OWN unit — otherwise a horizontal nav menu collapses into
+  // one concatenated blob that never translates cleanly.
   function isInline(el) {
     if (!(el instanceof Element)) return false;
     const cs = computed(el);
-    if (cs && cs.display) return /^inline/.test(cs.display) || cs.display === 'contents';
+    if (cs && cs.display) return cs.display === 'inline' || cs.display === 'contents';
     return INLINE_TAGS.has(el.tagName.toLowerCase());
   }
 
@@ -76,8 +83,8 @@ var DOMProcessor = (() => {
     const cs = computed(el);
     if (cs && cs.display) {
       const d = cs.display;
-      if (d === 'none' || d === 'contents' || /^inline/.test(d)) return false;
-      return true; // block / flex / grid / list-item / table / flow-root / …
+      if (d === 'none' || d === 'contents' || d === 'inline') return false;
+      return true; // block / flex / grid / list-item / table / inline-block / inline-flex / …
     }
     return BLOCK_TAGS.has(el.tagName.toLowerCase());
   }
