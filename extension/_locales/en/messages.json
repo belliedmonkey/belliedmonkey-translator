@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "Subtitles not ready yet — try again after the translation loads"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ Loading subtitles…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Subtitles unavailable"
+  },
   "settings": {
     "message": "Settings"
   },

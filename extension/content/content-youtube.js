@@ -29,6 +29,7 @@ var YouTubeTranslator = (() => {
   let active = false;
   let pollTimer = null;
   let lastUrl = '';
+  let ccTried = false; // one-shot guard: don't re-toggle CC every tick
 
   // preload state — the generic engine (TranslationCore) owns per-sentence
   // translation state (tr / pending / error) + the sliding-window preload.
@@ -45,9 +46,14 @@ var YouTubeTranslator = (() => {
   // display: 'both' | 'trans' | 'orig'
   let displayMode = 'both';
 
-  // live-fallback state
-  let lastText = '';
-  let lastTranslated = '';
+  // transcript acquisition state (see domain-design §2.1 — one-shot full
+  // transcript, NO per-caption / word-by-word translation).
+  let transcriptStatus = '';   // '' | 'loading' | 'ready' | 'unavailable'
+  let ttFetchedUrl = '';       // the /api/timedtext URL we last re-fetched (dedupe)
+  let ttAttempts = 0;          // re-fetch attempts for the current video (capped)
+  let subActiveSince = 0;      // when subtitles were turned on (for the unavailable timeout)
+  const TT_MAX_ATTEMPTS = 8;   // stop re-fetching after this many empty/failed tries
+  const TT_UNAVAILABLE_MS = 14000; // no transcript this long after enabling → notice
 
   // ─── Video id helpers ─────────────────────────────────────────────────
   function currentVideoId() {
@@ -57,7 +63,11 @@ var YouTubeTranslator = (() => {
     try { return new URL(u, location.href).searchParams.get('v') || ''; } catch (_) { return ''; }
   }
 
-  // ─── Transcript capture (from world:MAIN yt-hook.js) ──────────────────
+  // ─── Transcript capture ───────────────────────────────────────────────
+  // OPPORTUNISTIC (Chrome): yt-hook.js runs in world:MAIN, hooks fetch/XHR, and
+  // posts us YouTube's own /api/timedtext BODY directly. Safari does NOT support
+  // world:MAIN, so this never fires there — the Resource Timing path below is the
+  // cross-platform source.
   window.addEventListener('message', (e) => {
     if (e.source !== window) return;
     const d = e.data;
@@ -73,6 +83,97 @@ var YouTubeTranslator = (() => {
     // translate-ahead from the display loop (engine.pump in tick).
     engine.setItems(TranslationCore.mergeSentences(cues));
     transcriptVideoId = videoIdFromUrl(url) || currentVideoId();
+    transcriptStatus = 'ready';
+  }
+
+  // CROSS-PLATFORM (incl. Safari): a direct fetch of the caption-track baseUrl is
+  // pot-blocked (HTTP 200, empty body). So once captions are on, YouTube's OWN
+  // /api/timedtext request — carrying a valid pot/signature — appears in the
+  // Resource Timing API. We read that exact URL (readable from the isolated
+  // content script) and re-fetch it ourselves for the full json3 transcript.
+  //
+  // The Resource Timing BUFFER evicts old entries (default 250) — on a heavy page
+  // like YouTube the timedtext request (fetched during initial load when CC was
+  // already on) can rotate out before a one-shot scan runs. So we ALSO register a
+  // PerformanceObserver at load that records the URL the moment it happens (immune
+  // to eviction). If neither sees it, we toggle CC off→on to force a fresh fetch.
+  let ttObservedUrl = '';      // latest /api/timedtext URL seen by the observer
+  let ccForceToggled = false;  // one-shot: forced a CC off→on to refetch this video
+  try {
+    performance.setResourceTimingBufferSize(5000);
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) {
+        if (e.name && e.name.indexOf('/api/timedtext') !== -1) ttObservedUrl = e.name;
+      }
+    }).observe({ type: 'resource', buffered: true });
+  } catch (_) {}
+
+  function normalizeTimedTextUrl(u) {
+    try {
+      const url = new URL(u, location.href);
+      url.searchParams.set('fmt', 'json3'); // we parse json3
+      url.searchParams.delete('tlang');     // want the ORIGINAL track, not YouTube's translation
+      return url.toString();
+    } catch (_) { return u; }
+  }
+
+  // Force YouTube to (re)fetch /api/timedtext so the observer catches the URL.
+  // Only safe when captions are confirmed ON (segments present) — then off→on
+  // ends ON. (If CC were off, a blind off→on would end OFF.)
+  function forceCcRefetch() {
+    if (!document.querySelector(CAPTION_SEGMENT)) return;
+    const btn = document.querySelector(CC_BUTTON) || document.querySelector('.ytmClosedCaptioningButtonButton');
+    if (!btn) return;
+    try { btn.click(); setTimeout(() => { try { btn.click(); } catch (_) {} }, 400); } catch (_) {}
+  }
+
+  function timedTextUrlForCurrentVideo() {
+    const vid = currentVideoId();
+    const matchesVid = (u) => { try { return !vid || new URL(u).searchParams.get('v') === vid; } catch (_) { return true; } };
+    // 1) the document_start observer's list (most reliable — registered before
+    //    YouTube fetches, so never lost to buffer eviction). Newest match wins.
+    const early = window.__mtTimedTextUrls || [];
+    for (let i = early.length - 1; i >= 0; i--) { if (matchesVid(early[i])) return early[i]; }
+    // 2) our in-file observer (document_idle)
+    if (ttObservedUrl && matchesVid(ttObservedUrl)) return ttObservedUrl;
+    // 3) one-shot buffer scan (last matching request = active track)
+    let entries; try { entries = performance.getEntriesByType('resource'); } catch (_) { entries = []; }
+    let best = '';
+    for (const e of entries) {
+      if (!e.name || e.name.indexOf('/api/timedtext') === -1) continue;
+      if (!matchesVid(e.name)) continue;
+      best = e.name;
+    }
+    return best;
+  }
+
+  function captureTranscript() {
+    if (engine.items.length && transcriptVideoId === currentVideoId()) return;
+    if (ttAttempts >= TT_MAX_ATTEMPTS) return;
+    const vid = currentVideoId();
+    const best = timedTextUrlForCurrentVideo();
+    if (!best) {
+      // Nothing seen yet — after a short grace, force a fresh fetch (handles CC
+      // already-on-at-load whose request was evicted before we could observe it).
+      if (!ccForceToggled && (Date.now() - subActiveSince) > 3000) { ccForceToggled = true; forceCcRefetch(); }
+      return;
+    }
+    const url = normalizeTimedTextUrl(best);
+    if (url === ttFetchedUrl) return; // already (re)fetched this exact URL
+    ttFetchedUrl = url;
+    ttAttempts++;
+    transcriptStatus = transcriptStatus === 'ready' ? 'ready' : 'loading';
+    fetch(url, { credentials: 'include' })
+      .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+      .then((body) => {
+        let cues;
+        try { cues = parseJson3(body); } catch (_) { cues = []; }
+        if (!cues.length) { ttFetchedUrl = ''; return; } // empty (pot?) — let a fresh URL retry
+        engine.setItems(TranslationCore.mergeSentences(cues));
+        transcriptVideoId = vid;
+        transcriptStatus = 'ready';
+      })
+      .catch(() => { ttFetchedUrl = ''; });
   }
 
   function parseJson3(body) {
@@ -204,36 +305,78 @@ var YouTubeTranslator = (() => {
   }
   function removeCaptionStyle() { document.getElementById('mt-yt-style')?.remove(); }
 
-  function ensureCaptionsOn() {
-    const cc = document.querySelector(CC_BUTTON);
-    if (cc && cc.getAttribute('aria-pressed') === 'false') cc.click();
-  }
-
-  // ─── Live fallback (no transcript captured) ───────────────────────────
-  function currentCaptionText() {
-    const segs = document.querySelectorAll(CAPTION_SEGMENT);
-    if (!segs.length) return '';
-    return Array.from(segs).map((s) => s.textContent).join(' ').replace(/[^\S\n]+/g, ' ').trim();
-  }
-
-  function liveFallback() {
-    const text = currentCaptionText();
-    if (!text || text.length < 2) { clearOverlay(); lastText = ''; return; }
-    const fp = fontPx();
-    const width = overlayTextWidth();
-    const enPages = pager.pageize(text, 1, fp, width);
-    const en = enPages[enPages.length - 1]; // newest 2 lines of the rolling caption
-    if (text !== lastText) {
-      lastText = text; lastTranslated = '';
-      TranslationAPI.translate(
-        text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG, settings.provider || 'google',
-        settings.apiKey || '', settings.apiBaseUrl || ''
-      ).then((zh) => { if (text === lastText && TranslationCore.isTranslated(text, zh)) lastTranslated = zh; }).catch(() => {});
+  // Reveal the player controls so the (mobile) CC button mounts. On the mobile ytm
+  // player a single tap on the video toggles the CONTROLS CHROME (it does NOT
+  // play/pause — that's a separate center button), so a synthetic tap at an
+  // off-center point (30% from the top, away from the center play button) surfaces
+  // the controls without pausing. Desktop also reveals on mousemove. We only do
+  // this while looking to enable CC (controls not up yet).
+  function surfacePlayerControls() {
+    const p = document.querySelector(PLAYER);
+    if (!p) return;
+    const r = p.getBoundingClientRect();
+    if (!r.width) return;
+    const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height * 0.3);
+    const target = document.elementFromPoint(x, y) || p;
+    const base = { bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, view: window };
+    // desktop hover reveal
+    try { p.dispatchEvent(new MouseEvent('mousemove', base)); } catch (_) {}
+    // mobile touch tap reveal
+    try {
+      const t = new Touch({ identifier: 1, target, clientX: x, clientY: y, pageX: x, pageY: y, radiusX: 1, radiusY: 1 });
+      const te = (type, touches) => new TouchEvent(type, { bubbles: true, cancelable: true, composed: true, touches, targetTouches: touches, changedTouches: [t] });
+      target.dispatchEvent(te('touchstart', [t]));
+      target.dispatchEvent(te('touchend', []));
+    } catch (_) {
+      // Fallback for engines without constructable TouchEvent: pointer tap.
+      try {
+        target.dispatchEvent(new PointerEvent('pointerdown', Object.assign({ pointerType: 'touch', isPrimary: true }, base)));
+        target.dispatchEvent(new PointerEvent('pointerup', Object.assign({ pointerType: 'touch', isPrimary: true }, base)));
+        target.dispatchEvent(new MouseEvent('click', base));
+      } catch (_) {}
     }
-    let zh = null, state = '';
-    if (lastTranslated) { const zp = pager.pageize(lastTranslated, 1, Math.round(fp * 0.95), width); zh = zp[zp.length - 1]; }
-    else { state = 'pending'; }
-    renderOverlay(en, zh, state);
+  }
+
+  // Turn YouTube's own CC on so it fetches /api/timedtext (which mints a valid
+  // pot we capture via the Resource Timing observer). Cross-platform: desktop uses
+  // `.ytp-subtitles-button` (in the DOM even when controls are hidden); mobile
+  // m.youtube.com uses `.ytmClosedCaptioningButtonButton`, which only mounts while
+  // controls are visible — so we surface the controls first. We click once
+  // (ccTried guard) only when no captions are active yet, never toggling a user's
+  // CC back off.
+  function ensureCaptionsOn() {
+    if (ccTried) return;
+    // Already have captions? Nothing to do (and mark tried so we don't fight it).
+    if (engine.items.length || document.querySelector(CAPTION_SEGMENT)) { ccTried = true; return; }
+    const cc = document.querySelector(CC_BUTTON);
+    if (cc) {
+      if (cc.getAttribute('aria-pressed') === 'false') cc.click();
+      ccTried = true;
+      return;
+    }
+    let mcc = document.querySelector('.ytmClosedCaptioningButtonButton');
+    if (!mcc) { surfacePlayerControls(); mcc = document.querySelector('.ytmClosedCaptioningButtonButton'); }
+    if (mcc) {
+      // Mobile button exposes no aria-pressed; click once to turn captions on.
+      if (mcc.getAttribute('aria-pressed') !== 'true') mcc.click();
+      ccTried = true;
+    }
+    // else: controls not up yet — leave ccTried false so the next tick retries.
+  }
+
+  // ─── Acquisition notice (NO word-by-word fallback — see domain-design §2.1) ──
+  // While the one-shot transcript is being acquired we show a single dimmed line;
+  // if it truly can't be obtained we say so. We never translate the rolling live
+  // caption DOM word-by-word.
+  function renderNotice(msg) {
+    const ov = ensureOverlay();
+    if (!ov) return;
+    const enEl = ov.querySelector('.' + ORIG_CLASS);
+    const zhEl = ov.querySelector('.' + TRANS_CLASS);
+    enEl.style.display = 'none'; enEl.textContent = '';
+    zhEl.onclick = null;
+    zhEl.style.cssText = lineCss(Math.round(fontPx() * 0.82), '#d6d6d6') + 'opacity:.85;font-style:italic;';
+    zhEl.textContent = msg;
   }
 
   // ─── Display loop ─────────────────────────────────────────────────────
@@ -241,12 +384,22 @@ var YouTubeTranslator = (() => {
     ensureControlButton(); // always present on watch pages, even when subtitles are off
     if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     ensureOverlay();
+    ensureCaptionsOn(); // make YouTube fetch captions once (so it mints a pot)
 
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      lastText = ''; lastTranslated = '';
+      ccTried = false;            // new video → ensure CC again
+      ttFetchedUrl = ''; ttAttempts = 0; transcriptStatus = ''; ccForceToggled = false;
+      subActiveSince = Date.now();
       clearOverlay();
     }
+
+    // During an ad the player's currentTime is the AD timeline — don't map it onto
+    // the main-video transcript (it would show a mismatched subtitle over the ad).
+    const pl = document.querySelector(PLAYER);
+    const adShowing = (pl && (pl.classList.contains('ad-showing') || pl.classList.contains('ad-interrupting'))) ||
+      !!document.querySelector('.ytp-ad-player-overlay, .ytp-ad-player-overlay-layout, .ad-showing, .ad-interrupting');
+    if (adShowing) { if (lastShownKey) clearOverlay(); return; }
 
     const haveTranscript = engine.items.length && transcriptVideoId === currentVideoId();
     if (haveTranscript) {
@@ -269,7 +422,16 @@ var YouTubeTranslator = (() => {
       const key = s.start + '|' + en + '|' + (zh || st.state);
       if (key !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = key; }
     } else {
-      liveFallback();
+      // No transcript yet — try to capture YouTube's own pot-bearing timedtext URL
+      // and re-fetch the full transcript. Show a notice, never word-by-word.
+      captureTranscript();
+      lastShownKey = '';
+      const waited = Date.now() - subActiveSince;
+      if (transcriptStatus !== 'ready' && (ttAttempts >= TT_MAX_ATTEMPTS || waited > TT_UNAVAILABLE_MS)) {
+        renderNotice(TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'));
+      } else {
+        renderNotice(TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
+      }
     }
   }
 
@@ -422,9 +584,10 @@ var YouTubeTranslator = (() => {
   function applySubtitleState() {
     if (active) {
       injectCaptionStyle();
-      // (We do NOT auto-enable YouTube's CC. The transcript is captured whenever
-      // YouTube itself fetches /api/timedtext — i.e. when captions are on.)
-      // Translation is driven by engine.pump() in the display loop.
+      // We auto-enable YouTube's CC (ensureCaptionsOn) so YouTube fetches
+      // /api/timedtext and mints a valid pot; we then capture that URL from the
+      // Resource Timing API and re-fetch the full transcript. Translation is
+      // driven by engine.pump() (60s translate-ahead) in the display loop.
     } else {
       removeCaptionStyle();
       clearOverlay();
@@ -433,6 +596,11 @@ var YouTubeTranslator = (() => {
 
   function setSubActive(on) {
     active = on; // session-only; subtitles always start off on a fresh page load
+    if (on) {
+      ccTried = false; // re-try enabling CC each time we turn subtitles on
+      ttFetchedUrl = ''; ttAttempts = 0; transcriptStatus = ''; ccForceToggled = false;
+      subActiveSince = Date.now();
+    }
     applySubtitleState();
     closeMenu();
     tick();

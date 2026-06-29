@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "Untertitel noch nicht bereit — nach dem Laden erneut versuchen"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ Untertitel werden geladen…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Untertitel nicht verfügbar"
+  },
   "settings": {
     "message": "Einstellungen"
   },

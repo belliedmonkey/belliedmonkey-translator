@@ -56,9 +56,9 @@ agent the whole screen + apps.
 5. **Test**: `xcrun simctl openurl booted "https://m.youtube.com/watch?v=…"` →
    screenshot → pixel-click the FAB → observe.
 
-## Status / findings (2026-06-29)
+## Status / findings (2026-06-30)
 Harness verified end-to-end: the extension runs + translates on real iOS Safari
-(`m.youtube.com`).
+(`m.youtube.com`), **including video subtitles**.
 
 - **(a) FIXED — flex/grid-row overlap.** A sibling `.mt-translation` injected into a
   flex/grid row became a flex/grid *item* placed inline next to the original (mobile
@@ -67,7 +67,21 @@ Harness verified end-to-end: the extension runs + translates on real iOS Safari
   own full-width line (flex → `flex-basis:100%` + make the row wrap, recording
   nowrap→wrap for clean revert; grid → `grid-column:1 / -1`). Verified on the sim:
   metadata translations now stack cleanly below each item, no overlap.
-- **(b) OPEN — video-subtitle CC-on pass.** Still pending. Hard to drive on the sim:
-  autoplay is muted, the player controls auto-hide, and `&cc_load_policy=1` does not
-  reliably auto-enable captions on the mobile web player. Needs captions actually
-  rendering before `.mt-yt-dual` can be observed.
+- **(b) FIXED — video-subtitle dual rendering on mobile.** Root causes were
+  two-fold: (1) the transcript was never acquired on Safari — `yt-hook.js` needs
+  `world:"MAIN"` (the converter warns it's unsupported on Safari), so YouTube's
+  `/api/timedtext` was never captured; and a direct fetch of the caption-track
+  `baseUrl` is **pot-blocked** (HTTP 200, empty body). (2) With no transcript it
+  fell back to translating the rolling live caption word-by-word → perpetual
+  `译文准备中…`. Fix (see `domain-design.md` §2.1): auto-enable captions so YouTube
+  mints a valid pot, read YouTube's own `/api/timedtext` URL from the **Resource
+  Timing API** (`performance.getEntriesByType('resource')`, readable from the
+  isolated content script), re-fetch the full json3 transcript ourselves, and feed
+  the existing 60s translate-ahead engine; the word-by-word fallback was removed.
+  Verified on the sim: tapping the FAB auto-enabled CC (YouTube toast
+  「已启用字幕（英语 - Default）」) and the overlay showed matched whole-sentence
+  pairs that advanced with playback (e.g. "companies and built a lot of products."
+  / "您创办了很多公司并开发了很多产品。"), never word-by-word, never a stuck
+  「译文准备中…」. Also added: during ads the player's `currentTime` is the ad
+  timeline, so the overlay is suppressed while `#movie_player` has
+  `ad-showing`/`ad-interrupting` (avoids a mismatched subtitle over the ad).

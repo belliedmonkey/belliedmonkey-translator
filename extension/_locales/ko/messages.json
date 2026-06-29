@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "자막이 아직 준비되지 않았습니다. 번역이 로드된 후 다시 시도하세요"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ 자막 불러오는 중…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "자막을 사용할 수 없습니다"
+  },
   "settings": {
     "message": "설정"
   },

@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "Legendas ainda não prontas — tente após carregar a tradução"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ Carregando legendas…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Legendas indisponíveis"
+  },
   "settings": {
     "message": "Configurações"
   },

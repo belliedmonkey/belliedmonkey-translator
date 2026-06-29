@@ -41,7 +41,8 @@ extension/
 │   ├── floating-button.js     # Mobile FAB (draggable)
 │   ├── content-webpage.js     # All DOM (normal + YouTube page text): DomSegmenter → engine (viewport sched) → sibling renderer
 │   ├── content-youtube.js     # YouTube dual subtitles: preload transcript + translate-ahead
-│   ├── yt-hook.js             # world:MAIN hook — captures YouTube's /api/timedtext response
+│   ├── yt-timedtext-observer.js # isolated document_start: records /api/timedtext URLs (Resource Timing) for Safari
+│   ├── yt-hook.js             # world:MAIN hook (Chrome only) — opportunistic /api/timedtext body capture
 │   └── content-main.js        # Entry point: reads settings, routes to webpage/YouTube
 ├── styles/
 │   ├── bilingual.css          # .mt-translation, .mt-progress-bar, .mt-translate-chip
@@ -103,25 +104,36 @@ break / sentence-end use script-aware helpers (`joinCue`, `wordBreakIndex`,
 
 ## YouTube Subtitle Strategy
 
-**Preload + translate-ahead** (no per-caption lag, so a slow LLM like DeepSeek works):
+**Core constraint (do not break) — see [`docs/domain-design.md`](docs/domain-design.md) §2.1:**
+fetch the COMPLETE transcript up front, translate ahead in a **60-second sliding
+window** (`TranslationCore.WINDOW.AHEAD_MS`), display matched whole-sentence pairs.
+**No word-by-word / per-caption translation**, and once loaded the `译文准备中…`
+state must not recur during steady playback.
 
-1. `content/yt-hook.js` runs as a `world:"MAIN"` content script (manifest), hooking
-   `fetch` + `XMLHttpRequest` to capture YouTube's OWN `/api/timedtext` response —
-   the full timed transcript, carrying the valid pot/signature token YouTube
-   generated. It forwards the body to the content script via `postMessage`.
-   `world:"MAIN"` is required: a `<script src>` injection is blocked by YouTube's
-   strict-dynamic CSP.
-2. `content-youtube.js` parses the json3 transcript into timed cues, batch-translates
-   them ahead of playback (`TranslationAPI.translateBatch`, in playback order), and
-   displays the pre-translated `.mt-yt-dual` line by matching `video.currentTime` to
-   the active cue — instant, no translation latency.
-3. **Fallback**: if no transcript is captured (captions off, hook unavailable), it
-   falls back to live DOM translation (poll `.ytp-caption-segment`, translate, append).
+Acquisition (must work on Safari iOS, where `world:"MAIN"` is unsupported):
+
+1. A direct fetch of the caption-track `baseUrl` (from `ytInitialPlayerResponse`) is
+   **pot-blocked** — YouTube returns HTTP 200 with an empty body. So we let YouTube
+   fetch `/api/timedtext` itself (auto-enable CC; on mobile m.youtube.com the CC
+   button only mounts when controls are visible, so `ensureCaptionsOn` synthesizes a
+   non-pausing touch tap to surface them), which mints a valid pot.
+2. `content/yt-timedtext-observer.js` (isolated world, `run_at: document_start`)
+   records YouTube's own pot-bearing `/api/timedtext` URLs from the **Resource
+   Timing API** onto `window.__mtTimedTextUrls` — registered before YouTube fetches,
+   so the URL is never lost to buffer eviction.
+3. `content-youtube.js` re-fetches that exact URL (`&fmt=json3`) → `parseJson3` →
+   `mergeSentences` → engine (60s translate-ahead) → fixed centered overlay matched
+   by `video.currentTime` (classes `mt-yt-orig` / `mt-yt-trans`). Ad playback is
+   detected and the overlay suppressed (the ad's `currentTime` ≠ the transcript).
+4. `content/yt-hook.js` (`world:"MAIN"`) is an **opportunistic** body-capture that
+   only works on Chrome (forwards the body via `postMessage`); never the sole source.
+5. If no transcript can be obtained, show a one-line notice (`字幕不可用`) — never a
+   word-by-word fallback.
 
 ## Key DOM Markers
 
 - `.mt-translation` — injected bilingual translation div
 - `data-mt-processed` — marks a node as already translated (skip on re-run)
 - `data-mt-translatable` — marks detected paragraph nodes (for tap-to-translate)
-- `.mt-yt-dual` — YouTube dual subtitle span
+- `#mt-yt-overlay` — YouTube subtitle overlay; `.mt-yt-orig` (original) / `.mt-yt-trans` (translation) lines inside it
 - `#mt-fab` — floating action button

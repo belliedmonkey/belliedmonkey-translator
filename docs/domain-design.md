@@ -43,10 +43,46 @@ middle is generic and lives in `TranslationCore`.
 - **Anything that IS DOM** (normal pages **and** YouTube's title/description/
   comments) → the single general **`DomSegmenter`**. No per-site selectors; in
   particular **no `YT_TARGETS`**.
-- **Video subtitles are NOT DOM** — they are a timed JSON transcript captured from
-  the network (`/api/timedtext` via `yt-hook.js`). There is no DOM to segment, so
+- **Video subtitles are NOT DOM** — they are a timed JSON transcript fetched
+  whole from the network (`/api/timedtext`, json3). There is no DOM to segment, so
   they use a different **kind** of extractor (`SubtitleSource`), but feed the **same
   Engine**. This is a *source-kind* difference, not a site difference.
+
+### 2.1 YouTube subtitle core constraint (核心约束 — do not break)
+
+The YouTube subtitle path follows **one** logic, identical on every platform
+(Safari iOS, Chrome) and identical to the Chrome-extension logic:
+
+1. **Fetch the COMPLETE transcript up front, in one shot.** Acquire every cue for
+   the current video as a single transcript before/at playback start — never
+   caption-by-caption off the live player DOM.
+2. **Translate ahead in a 60-second sliding window, in batches** (`engine.pump`
+   over `WINDOW.AHEAD_MS = 60000`). Whole merged sentences, with context.
+3. **No word-by-word / per-caption translation.** We never translate YouTube's
+   rolling live-caption text as the steady-state path. As long as translation
+   throughput ≥ playback speed (the normal case, because work runs ahead), the
+   **`⏳ 译文准备中…` state must not recur** during steady playback.
+4. **Acquisition must not depend on `world:"MAIN"`.** Safari iOS does not support
+   `world:"MAIN"` content scripts, so the page-world `fetch` hook in `yt-hook.js`
+   can never capture the transcript there. And the caption-track `baseUrl` from
+   `ytInitialPlayerResponse` **cannot be fetched directly** — `/api/timedtext`
+   enforces a `pot` (proof-of-origin) token that only YouTube's own player mints,
+   so a forged request returns `HTTP 200` with an **empty body** (verified).
+   Therefore the transcript is acquired by the **isolated content script** like so:
+   - Enable the player's captions once (so YouTube itself fetches the transcript,
+     minting a valid `pot`) — cross-platform CC auto-enable.
+   - Read YouTube's **own** `/api/timedtext` request URL (which carries the live
+     `pot`/signature) from the **Resource Timing API**
+     (`performance.getEntriesByType('resource')`, readable from the isolated world).
+   - **Re-fetch that exact URL** ourselves (forcing `&fmt=json3`) to get the full
+     transcript body, then `parseJson3 → mergeSentences → engine`.
+
+   A `world:"MAIN"` fetch hook (`yt-hook.js`) remains only as an **opportunistic**
+   capture that hands us the body directly on platforms that support it (Chrome) —
+   never the sole source.
+
+If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
+show a one-line notice — **do not** silently regress to per-caption translation.
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
@@ -116,7 +152,7 @@ differences live only in a thin control/render adapter.**
 |---|---|---|
 | `TranslationCore` | `content/translation-core.js` | generic: `createEngine` (state machine + retry, `selectActive`), `createSubtitleEngine` (time-window specialization), helpers (`isTranslated`, `looksLikeCode`, language, pager, i18n) |
 | `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits` |
-| `SubtitleSource` | `content/yt-hook.js` + `content-youtube.js` | timed-text extractor (network transcript → cues → `mergeSentences`) |
+| `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue) |

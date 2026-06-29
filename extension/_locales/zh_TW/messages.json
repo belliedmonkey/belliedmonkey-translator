@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "字幕還沒準備好,等翻譯載入後再試"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ 字幕載入中…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "字幕不可用"
+  },
   "settings": {
     "message": "設定"
   },

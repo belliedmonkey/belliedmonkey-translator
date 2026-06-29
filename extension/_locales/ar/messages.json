@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "الترجمة غير جاهزة بعد — حاول بعد تحميل الترجمة"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ جارٍ تحميل الترجمة…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "الترجمة غير متوفرة"
+  },
   "settings": {
     "message": "الإعدادات"
   },

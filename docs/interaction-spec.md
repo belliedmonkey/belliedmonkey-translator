@@ -20,10 +20,17 @@ element existing is not proof the user sees it (see AGENTS.md).
   WEBPAGE TEXT (title / description / comments). They never affect each other.
 
 ### Source & timing
-- **Preload + translate-ahead.** Capture YouTube's own `/api/timedtext` transcript
-  (via the `world:MAIN` hook), translate ahead of playback, and display by matching
-  `video.currentTime`. There must be **no per-caption translation lag** — a slow LLM
-  (e.g. DeepSeek) must not delay display, because the work is done in advance.
+- **Fetch the whole transcript up front, then translate-ahead.** Acquire the
+  COMPLETE `/api/timedtext` (json3) transcript for the video in one shot — the
+  isolated content script enables captions, reads YouTube's own pot-bearing
+  `/api/timedtext` URL from the Resource Timing API, and re-fetches the full
+  transcript itself, so it works on Safari iOS where `world:MAIN` is unavailable
+  (a direct caption `baseUrl` fetch is pot-blocked). Translate ahead in a
+  **60-second sliding window** and display by
+  matching `video.currentTime`. There must be **no per-caption translation lag** —
+  a slow LLM (e.g. DeepSeek) must not delay display, because the work is done in
+  advance. **Never** translate the live caption text word-by-word. (Core constraint
+  — see [`domain-design.md`](domain-design.md) §2.1.)
 - **Whole sentences, together.** Show the **original as a complete sentence** (merged
   from cues), not YouTube's word-by-word rollup. Original line + translation line
   appear **at the same time**, both driven by the current sentence.
@@ -60,10 +67,13 @@ element existing is not proof the user sees it (see AGENTS.md).
 - 仅译文 hides the original line; 仅原文 hides the translation line.
 
 ### Requirements / fallback
-- **Captions (CC) must be on** so YouTube fetches `/api/timedtext` for the hook to
-  capture. `enable()` turns CC on automatically.
-- If no transcript is captured (CC unavailable / hook blocked), **fall back** to
-  translating the live caption text into the same overlay (still 1-line paged + hint).
+- **A caption track must exist** for the video (auto or manual). We auto-enable
+  the player's captions so YouTube fetches `/api/timedtext` (minting a valid pot),
+  capture that URL, and re-fetch the full transcript ourselves — we do **not** rely
+  on a `world:MAIN` hook, and we do **not** translate the rendered live caption DOM.
+- If no transcript can be obtained (no caption track, or the fetch is blocked),
+  show a **one-line notice** in the overlay (`字幕不可用`). Do **not** silently
+  regress to per-caption / word-by-word translation of the live caption DOM.
 
 ### Known tradeoff
 - A 1-line cap is tight, so pages can break mid-phrase (a page may end on a stray

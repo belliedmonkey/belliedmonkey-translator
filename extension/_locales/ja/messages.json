@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "字幕がまだ準備できていません。翻訳の読み込み後にお試しください"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ 字幕を読み込み中…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "字幕は利用できません"
+  },
   "settings": {
     "message": "設定"
   },

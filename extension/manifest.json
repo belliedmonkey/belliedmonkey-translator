@@ -26,6 +26,12 @@
     },
     {
       "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "js": ["content/yt-timedtext-observer.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
         "content/translation-core.js",
         "content/translation-api.js",

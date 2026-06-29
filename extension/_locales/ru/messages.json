@@ -56,6 +56,12 @@
   "yt_subtitle_not_ready": {
     "message": "Субтитры ещё не готовы — повторите после загрузки перевода"
   },
+  "yt_subtitle_loading": {
+    "message": "⏳ Загрузка субтитров…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Субтитры недоступны"
+  },
   "settings": {
     "message": "Настройки"
   },
