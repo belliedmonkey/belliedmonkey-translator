@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // build.js — Build and package the extension
 // Usage:
-//   node build.js           → Chrome/Safari build (dist/ + mobile-translator.zip)
-//   node build.js firefox   → Firefox build (dist-firefox/ + mobile-translator-firefox.xpi)
+//   node build.js           → Chrome/Safari build (dist/ + belliedmonkeytranslator.zip)
+//   node build.js firefox   → Firefox build (dist-firefox/ + belliedmonkeytranslator-firefox.xpi)
 
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +12,7 @@ const TARGET = process.argv[2] === 'firefox' ? 'firefox' : 'chrome';
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'extension');
 const DIST = path.join(ROOT, TARGET === 'firefox' ? 'dist-firefox' : 'dist');
-const ZIP = path.join(ROOT, TARGET === 'firefox' ? 'mobile-translator-firefox.xpi' : 'mobile-translator.zip');
+const ZIP = path.join(ROOT, TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi' : 'belliedmonkeytranslator.zip');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -46,18 +46,29 @@ function patchManifestForFirefox() {
 // ─── Generate icons ────────────────────────────────────────────────────────
 
 function generateIcons(distDir) {
+  // Real PNG icons live in extension/icons/ and are copied into dist/ by
+  // copyDir(). Here we just validate they are genuine PNGs (not SVG renamed),
+  // since Safari/Xcode and the Chrome Web Store reject non-raster icons.
   const iconDir = path.join(distDir, 'icons');
-  fs.mkdirSync(iconDir, { recursive: true });
+  const isPng = (p) => {
+    if (!fs.existsSync(p)) return false;
+    const fd = fs.openSync(p, 'r');
+    const buf = Buffer.alloc(8);
+    fs.readSync(fd, buf, 0, 8, 0);
+    fs.closeSync(fd);
+    // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  };
 
-  const svg = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="28" fill="#0a7a3c"/>
-  <path d="M68.87 75.07l-2.54-2.51.03-.03A17.52 17.52 0 0070.07 56H76V52H56V48H52v4H38v4h20.17C57.5 57.92 56.44 59.75 55 61.35c-.93-1.03-1.7-2.16-2.31-3.35h-2c.73 1.63 1.73 3.17 2.98 4.56L48.58 67.58 50 69l5-5 3.11 3.11.76-2.04zM74.5 50h-2L68 62h2l1.12-3h4.75L77 62h2l-4.5-12zm-2.62 7l1.62-4.33 1.62 4.33h-3.24z" fill="white" transform="translate(0,10)"/>
-</svg>`;
+  const missing = [16, 48, 128]
+    .filter((s) => !isPng(path.join(iconDir, `icon${s}.png`)))
+    .map((s) => `icon${s}.png`);
 
-  for (const size of [16, 48, 128]) {
-    fs.writeFileSync(path.join(iconDir, `icon${size}.png`), svg(size));
+  if (missing.length) {
+    err(`Missing or non-PNG icons: ${missing.join(', ')} — regenerate from extension/icons/icon.svg`);
+    process.exit(1);
   }
-  log('Icons generated (SVG format — replace with real PNGs before store submission)');
+  log('Icons OK (real PNG)');
 }
 
 // ─── Validate manifest ─────────────────────────────────────────────────────
@@ -128,6 +139,6 @@ Firefox Android 安装（已上架后）:
   chrome://extensions/ → 开发者模式 → 加载已解压 → \x1b[36m${DIST}\x1b[0m
 
 转换为 Safari（需 macOS + Xcode）:
-  xcrun safari-web-extension-converter ${DIST} --project-location ./safari-project --app-name MobileTranslator
+  xcrun safari-web-extension-converter ${DIST} --project-location ./safari-project --app-name "BelliedMonkey Translator"
 `);
 }

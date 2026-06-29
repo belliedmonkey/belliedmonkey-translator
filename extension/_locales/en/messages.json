@@ -3,9 +3,228 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Bilingual webpage translation + YouTube dual subtitles. Supports ChatGPT, Claude, DeepSeek, GLM and more."
+    "message": "Bilingual webpage translation + YouTube dual subtitles, with OpenAI/Claude/DeepSeek/GLM and more"
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Translating…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Preparing translation…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Translation failed — tap to retry"
+  },
+  "fab_translate": {
+    "message": "Translate"
+  },
+  "fab_toggle": {
+    "message": "Toggle translation"
+  },
+  "fab_enable": {
+    "message": "Turn on translation"
+  },
+  "fab_disable": {
+    "message": "Turn off translation"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey Translator · Video subtitles"
+  },
+  "yt_sub_on": {
+    "message": "Turn on subtitle translation"
+  },
+  "yt_sub_off": {
+    "message": "Turn off subtitle translation"
+  },
+  "yt_display_type": {
+    "message": "Subtitle display"
+  },
+  "yt_mode_both": {
+    "message": "Bilingual"
+  },
+  "yt_mode_trans": {
+    "message": "Translation only"
+  },
+  "yt_mode_orig": {
+    "message": "Original only"
+  },
+  "yt_download_srt": {
+    "message": "Download subtitles (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Subtitles not ready yet — try again after the translation loads"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ Loading subtitles…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Subtitles unavailable"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "popup_status_off": {
+    "message": "Off"
+  },
+  "popup_target_lang": {
+    "message": "Target language"
+  },
+  "popup_provider": {
+    "message": "Translation engine"
+  },
+  "provider_google_free": {
+    "message": "Google Translate (free)"
+  },
+  "placeholder_api_key": {
+    "message": "Enter API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "Show/Hide"
+  },
+  "label_custom_api": {
+    "message": "Custom API URL"
+  },
+  "label_optional": {
+    "message": "(optional)"
+  },
+  "btn_translate_page": {
+    "message": "Translate page"
+  },
+  "btn_view_original": {
+    "message": "View original"
+  },
+  "btn_more_settings": {
+    "message": "More settings"
+  },
+  "status_translated": {
+    "message": "Translated"
+  },
+  "status_untranslated": {
+    "message": "Not translated"
+  },
+  "toast_lang_switched": {
+    "message": "Language switched"
+  },
+  "toast_provider_switched": {
+    "message": "Engine switched"
+  },
+  "toast_restored_original": {
+    "message": "Original restored"
+  },
+  "toast_translating": {
+    "message": "Translating…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Settings"
+  },
+  "options_engine_section": {
+    "message": "Translation engine"
+  },
+  "options_engine_label": {
+    "message": "Engine"
+  },
+  "provider_google_free_long": {
+    "message": "Google Translate (free, no API Key)"
+  },
+  "options_custom_api_hint": {
+    "message": "Leave blank to use the default endpoint. Useful for proxies or self-hosted services."
+  },
+  "options_lang_section": {
+    "message": "Language"
+  },
+  "options_style_section": {
+    "message": "Display style"
+  },
+  "options_webpage_color": {
+    "message": "Webpage translation color"
+  },
+  "options_color_preview": {
+    "message": "This is a preview of the translation style"
+  },
+  "options_yt_color": {
+    "message": "YouTube subtitle color"
+  },
+  "options_yt_preview": {
+    "message": "Bilingual subtitle preview"
+  },
+  "options_font_size": {
+    "message": "Translation font size"
+  },
+  "options_font_s": {
+    "message": "Small (80%)"
+  },
+  "options_font_m": {
+    "message": "Medium (90%)"
+  },
+  "options_font_body": {
+    "message": "Same as text (100%)"
+  },
+  "options_font_l": {
+    "message": "Large (110%)"
+  },
+  "options_show_fab": {
+    "message": "Show floating button"
+  },
+  "options_cache_section": {
+    "message": "Cache"
+  },
+  "options_cache_hint": {
+    "message": "Translations are cached for 12 hours to reduce API requests."
+  },
+  "options_clear_cache": {
+    "message": "Clear translation cache"
+  },
+  "options_about_section": {
+    "message": "About"
+  },
+  "options_about_desc": {
+    "message": "Bilingual full-page translation + YouTube dual subtitles."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: enable it in Settings → Safari → Extensions."
+  },
+  "toast_provider_saved": {
+    "message": "Engine saved"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key saved"
+  },
+  "toast_apiurl_saved": {
+    "message": "API URL saved"
+  },
+  "toast_lang_saved": {
+    "message": "Language saved"
+  },
+  "toast_fontsize_saved": {
+    "message": "Font size saved"
+  },
+  "toast_color_saved": {
+    "message": "Color saved"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube subtitle color saved"
+  },
+  "toast_clearing": {
+    "message": "Clearing…"
+  },
+  "toast_cache_empty": {
+    "message": "Cache is empty"
+  },
+  "toast_cache_cleared": {
+    "message": "Cache cleared"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key (sk-…). Model: gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key (sk-ant-…). Model: claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key. Model: deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "GLM (Zhipu AI) API Key. Model: glm-4-flash (free tier available)"
   }
 }

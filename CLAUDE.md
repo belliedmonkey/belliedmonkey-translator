@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Domain design & governance:** the translation architecture (domain model,
+> extractor/engine/renderer boundary, device principle) is maintained in
+> [`docs/domain-design.md`](docs/domain-design.md). Per [`AGENTS.md`](AGENTS.md),
+> any change touching the domain design must update that doc first and pass human
+> domain-design review before the code changes.
+
 ## Project Overview
 
 Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:
@@ -12,14 +18,14 @@ Safari iOS browser extension for bilingual translation — fully open source and
 ## Build
 
 ```bash
-node build.js        # Copies extension/ → dist/ and creates mobile-translator.zip
+node build.js        # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.
 
 To convert for Safari iOS (macOS + Xcode required):
 ```bash
-xcrun safari-web-extension-converter dist/ --project-location ./safari-project --app-name MobileTranslator
+xcrun safari-web-extension-converter dist/ --project-location ./safari-project --app-name "BelliedMonkey Translator"
 ```
 
 ## Architecture
@@ -29,12 +35,14 @@ extension/
 ├── manifest.json              # Manifest v3
 ├── background.js              # Service worker — state only (see Critical Safari Bug below)
 ├── content/
+│   ├── translation-core.js    # Platform-agnostic engine: subtitle state machine, sliding-window preload, pager, cue merge, language helpers, i18n
 │   ├── translation-api.js     # All fetch() calls to LLM APIs — runs in content script
-│   ├── dom-processor.js       # Leaf-block paragraph detection, bilingual injection
+│   ├── dom-processor.js       # DomSegmenter: general standard-HTML segmentation (computed visibility, block/inline, code heuristics)
 │   ├── floating-button.js     # Mobile FAB (draggable)
-│   ├── content-webpage.js     # Full-page bilingual translation with IntersectionObserver
-│   ├── content-youtube.js     # YouTube dual subtitles via MutationObserver
-│   ├── content-injected.js    # Injected into page world for XHR interception (secondary)
+│   ├── content-webpage.js     # All DOM (normal + YouTube page text): DomSegmenter → engine (viewport sched) → sibling renderer
+│   ├── content-youtube.js     # YouTube dual subtitles: preload transcript + translate-ahead
+│   ├── yt-timedtext-observer.js # isolated document_start: records /api/timedtext URLs (Resource Timing) for Safari
+│   ├── yt-hook.js             # world:MAIN hook (Chrome only) — opportunistic /api/timedtext body capture
 │   └── content-main.js        # Entry point: reads settings, routes to webpage/YouTube
 ├── styles/
 │   ├── bilingual.css          # .mt-translation, .mt-progress-bar, .mt-translate-chip
@@ -68,23 +76,64 @@ Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `t
 ## Content Script Load Order
 
 Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
-1. `translation-api.js` → exposes `window.TranslationAPI`
-2. `dom-processor.js` → exposes `window.DOMProcessor`
-3. `floating-button.js` → exposes `window.FloatingButton`
-4. `content-webpage.js` → exposes `window.WebpageTranslator`
-5. `content-youtube.js` → exposes `window.YouTubeTranslator`
-6. `content-main.js` → reads settings, initializes everything
+1. `translation-core.js` → exposes `window.TranslationCore` (platform-agnostic engine:
+   subtitle state machine + sliding-window preload, pager, cue merge, language-aware
+   helpers, i18n `t()`, MSG). Must load first — others depend on it.
+2. `translation-api.js` → exposes `window.TranslationAPI`
+3. `dom-processor.js` → exposes `window.DOMProcessor`
+4. `floating-button.js` → exposes `window.FloatingButton`
+5. `content-webpage.js` → exposes `window.WebpageTranslator`
+6. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
+7. `content-main.js` → reads settings, initializes everything
+
+## Internationalization (i18n)
+
+UI strings follow the browser language via `chrome.i18n`, with keys in
+`_locales/<locale>/messages.json` (en, zh_CN, zh_TW, ja, ko, fr, de, es, ar, pt, ru;
+`default_locale` zh_CN). Content scripts read them through `TranslationCore.t(key,
+fallback)`; popup/options use a local `t()` + `applyI18n()` over `data-i18n` /
+`data-i18n-placeholder` / `data-i18n-title` / `data-i18n-aria` attributes. Always
+pass a Chinese fallback so a missing key never blanks the UI. To add a UI string,
+add the key to every `_locales` file (the generator lives in the session scratchpad).
+
+Translation logic is language-agnostic: no hardcoded `zh-CN` (use
+`TranslationCore.DEFAULT_TARGET_LANG`), the LLM system prompt is English, success is
+`TranslationCore.isTranslated()` (non-empty, NOT `!== input`), and cue join / word
+break / sentence-end use script-aware helpers (`joinCue`, `wordBreakIndex`,
+`endsSentence` via `\p{Sentence_Terminal}`).
 
 ## YouTube Subtitle Strategy
 
-Primary: `MutationObserver` on `.ytp-caption-window-container`. When `.ytp-caption-segment` elements appear, translate their text and append a `.mt-yt-dual` span below. Cached so repeat captions are instant.
+**Core constraint (do not break) — see [`docs/domain-design.md`](docs/domain-design.md) §2.1:**
+fetch the COMPLETE transcript up front, translate ahead in a **60-second sliding
+window** (`TranslationCore.WINDOW.AHEAD_MS`), display matched whole-sentence pairs.
+**No word-by-word / per-caption translation**, and once loaded the `译文准备中…`
+state must not recur during steady playback.
 
-Secondary (progressive enhancement): `content-injected.js` injects into page main world to intercept XHR calls to YouTube's `timedtext` API, notifying the content script via `postMessage`.
+Acquisition (must work on Safari iOS, where `world:"MAIN"` is unsupported):
+
+1. A direct fetch of the caption-track `baseUrl` (from `ytInitialPlayerResponse`) is
+   **pot-blocked** — YouTube returns HTTP 200 with an empty body. So we let YouTube
+   fetch `/api/timedtext` itself (auto-enable CC; on mobile m.youtube.com the CC
+   button only mounts when controls are visible, so `ensureCaptionsOn` synthesizes a
+   non-pausing touch tap to surface them), which mints a valid pot.
+2. `content/yt-timedtext-observer.js` (isolated world, `run_at: document_start`)
+   records YouTube's own pot-bearing `/api/timedtext` URLs from the **Resource
+   Timing API** onto `window.__mtTimedTextUrls` — registered before YouTube fetches,
+   so the URL is never lost to buffer eviction.
+3. `content-youtube.js` re-fetches that exact URL (`&fmt=json3`) → `parseJson3` →
+   `mergeSentences` → engine (60s translate-ahead) → fixed centered overlay matched
+   by `video.currentTime` (classes `mt-yt-orig` / `mt-yt-trans`). Ad playback is
+   detected and the overlay suppressed (the ad's `currentTime` ≠ the transcript).
+4. `content/yt-hook.js` (`world:"MAIN"`) is an **opportunistic** body-capture that
+   only works on Chrome (forwards the body via `postMessage`); never the sole source.
+5. If no transcript can be obtained, show a one-line notice (`字幕不可用`) — never a
+   word-by-word fallback.
 
 ## Key DOM Markers
 
 - `.mt-translation` — injected bilingual translation div
 - `data-mt-processed` — marks a node as already translated (skip on re-run)
 - `data-mt-translatable` — marks detected paragraph nodes (for tap-to-translate)
-- `.mt-yt-dual` — YouTube dual subtitle span
+- `#mt-yt-overlay` — YouTube subtitle overlay; `.mt-yt-orig` (original) / `.mt-yt-trans` (translation) lines inside it
 - `#mt-fab` — floating action button

@@ -38,11 +38,11 @@ bash build-safari.sh
 脚本自动完成：`node build.js` → `xcrun safari-web-extension-converter` → 提示打开 Xcode
 
 在 Xcode 中完成最后步骤：
-1. 点击左侧 `MobileTranslator` → `Signing & Capabilities` → **Team 选你的 Apple ID**
-2. 同样设置 `MobileTranslator Extension`（两个 Target 都要）
+1. 点击左侧 `BelliedMonkey Translator` → `Signing & Capabilities` → **Team 选你的 Apple ID**
+2. 同样设置 `BelliedMonkey Translator Extension`（两个 Target 都要）
 3. 用数据线连接 iPhone，顶部选择你的设备
 4. 点击 ▶ **Run**（或 `⌘R`）
-5. 手机上：**设置 → Safari → 扩展 → MobileTranslator → 打开 → 允许访问所有网站**
+5. 手机上：**设置 → Safari → 扩展 → 大肚猴翻译 → 打开 → 允许访问所有网站**
 
 > **注意**：免费 Apple ID 安装的 App 有效期 7 天，到期后重新用 Xcode Run 一次即可续期，无需重新设置。
 
@@ -57,7 +57,7 @@ node build.js
 ## 发布到 Firefox（覆盖桌面 + Android 用户）
 
 ```bash
-node build.js firefox   # → 生成 dist-firefox/ 和 mobile-translator-firefox.xpi
+node build.js firefox   # → 生成 dist-firefox/ 和 belliedmonkeytranslator-firefox.xpi
 ```
 
 本地测试：Firefox → `about:debugging` → 此 Firefox → 临时载入附加组件 → 选 `.xpi`
@@ -83,8 +83,8 @@ node build.js firefox   # → 生成 dist-firefox/ 和 mobile-translator-firefox
 ## 构建命令速查
 
 ```bash
-node build.js              # Chrome / Safari 构建 → dist/ + mobile-translator.zip
-node build.js firefox      # Firefox 构建 → dist-firefox/ + mobile-translator-firefox.xpi
+node build.js              # Chrome / Safari 构建 → dist/ + belliedmonkeytranslator.zip
+node build.js firefox      # Firefox 构建 → dist-firefox/ + belliedmonkeytranslator-firefox.xpi
 bash build-safari.sh       # 生成 Safari iOS Xcode 项目（需 Mac）
 ```
 

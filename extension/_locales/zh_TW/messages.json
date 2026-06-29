@@ -1,156 +1,156 @@
 {
   "extension_name": {
-    "message": "大肚猴翻译"
+    "message": "大肚猴翻譯"
   },
   "extension_description": {
-    "message": "网页双语对照翻译 + YouTube 双语字幕，支持 ChatGPT、Claude、DeepSeek、GLM 等多种翻译引擎"
+    "message": "網頁雙語對照翻譯 + YouTube 雙語字幕，支援 ChatGPT、Claude、DeepSeek、GLM 等多種翻譯引擎"
   },
   "action_title": {
-    "message": "大肚猴翻译"
+    "message": "大肚猴翻譯"
   },
   "msg_loading": {
-    "message": "⏳ 翻译中…"
+    "message": "⏳ 翻譯中…"
   },
   "msg_preparing": {
-    "message": "⏳ 译文准备中…"
+    "message": "⏳ 譯文準備中…"
   },
   "msg_translate_failed_retry": {
-    "message": "⚠️ 翻译失败,点此重试"
+    "message": "⚠️ 翻譯失敗,點此重試"
   },
   "fab_translate": {
-    "message": "翻译"
+    "message": "翻譯"
   },
   "fab_toggle": {
-    "message": "切换翻译"
+    "message": "切換翻譯"
   },
   "fab_enable": {
-    "message": "开启翻译"
+    "message": "開啟翻譯"
   },
   "fab_disable": {
-    "message": "关闭翻译"
+    "message": "關閉翻譯"
   },
   "yt_btn_title": {
-    "message": "大肚猴翻译 · 视频字幕"
+    "message": "大肚猴翻譯 · 影片字幕"
   },
   "yt_sub_on": {
-    "message": "开启视频字幕翻译"
+    "message": "開啟影片字幕翻譯"
   },
   "yt_sub_off": {
-    "message": "关闭视频字幕翻译"
+    "message": "關閉影片字幕翻譯"
   },
   "yt_display_type": {
-    "message": "字幕显示类型"
+    "message": "字幕顯示類型"
   },
   "yt_mode_both": {
-    "message": "双语字幕"
+    "message": "雙語字幕"
   },
   "yt_mode_trans": {
-    "message": "仅译文"
+    "message": "僅譯文"
   },
   "yt_mode_orig": {
-    "message": "仅原文"
+    "message": "僅原文"
   },
   "yt_download_srt": {
-    "message": "下载字幕 (.srt)"
+    "message": "下載字幕 (.srt)"
   },
   "yt_subtitle_not_ready": {
-    "message": "字幕还没准备好,等翻译加载后再试"
+    "message": "字幕還沒準備好,等翻譯載入後再試"
   },
   "yt_subtitle_loading": {
-    "message": "⏳ 字幕加载中…"
+    "message": "⏳ 字幕載入中…"
   },
   "yt_subtitle_unavailable": {
     "message": "字幕不可用"
   },
   "settings": {
-    "message": "设置"
+    "message": "設定"
   },
   "popup_status_off": {
-    "message": "已关闭"
+    "message": "已關閉"
   },
   "popup_target_lang": {
-    "message": "目标语言"
+    "message": "目標語言"
   },
   "popup_provider": {
-    "message": "翻译引擎"
+    "message": "翻譯引擎"
   },
   "provider_google_free": {
-    "message": "Google 翻译（免费）"
+    "message": "Google 翻譯（免費）"
   },
   "placeholder_api_key": {
-    "message": "输入 API Key…"
+    "message": "輸入 API Key…"
   },
   "toggle_show_hide": {
-    "message": "显示/隐藏"
+    "message": "顯示/隱藏"
   },
   "label_custom_api": {
-    "message": "自定义 API 地址"
+    "message": "自訂 API 地址"
   },
   "label_optional": {
-    "message": "（可选）"
+    "message": "（可選）"
   },
   "btn_translate_page": {
-    "message": "翻译本页"
+    "message": "翻譯本頁"
   },
   "btn_view_original": {
     "message": "查看原文"
   },
   "btn_more_settings": {
-    "message": "更多设置"
+    "message": "更多設定"
   },
   "status_translated": {
-    "message": "已翻译"
+    "message": "已翻譯"
   },
   "status_untranslated": {
-    "message": "未翻译"
+    "message": "未翻譯"
   },
   "toast_lang_switched": {
-    "message": "语言已切换"
+    "message": "語言已切換"
   },
   "toast_provider_switched": {
-    "message": "翻译引擎已切换"
+    "message": "翻譯引擎已切換"
   },
   "toast_restored_original": {
-    "message": "已恢复原文"
+    "message": "已恢復原文"
   },
   "toast_translating": {
-    "message": "正在翻译…"
+    "message": "正在翻譯…"
   },
   "options_title": {
-    "message": "大肚猴翻译 — 设置"
+    "message": "大肚猴翻譯 — 設定"
   },
   "options_engine_section": {
-    "message": "翻译引擎"
+    "message": "翻譯引擎"
   },
   "options_engine_label": {
     "message": "引擎"
   },
   "provider_google_free_long": {
-    "message": "Google 翻译（免费，无需 API Key）"
+    "message": "Google 翻譯（免費，無需 API Key）"
   },
   "options_custom_api_hint": {
-    "message": "留空则使用默认地址。适用于中转代理或自建服务。"
+    "message": "留空則使用預設地址。適用於中轉代理或自建服務。"
   },
   "options_lang_section": {
-    "message": "语言"
+    "message": "語言"
   },
   "options_style_section": {
-    "message": "显示样式"
+    "message": "顯示樣式"
   },
   "options_webpage_color": {
-    "message": "网页译文颜色"
+    "message": "網頁譯文顏色"
   },
   "options_color_preview": {
-    "message": "这是译文的样式预览"
+    "message": "這是譯文的樣式預覽"
   },
   "options_yt_color": {
-    "message": "YouTube 字幕颜色"
+    "message": "YouTube 字幕顏色"
   },
   "options_yt_preview": {
-    "message": "双语字幕预览"
+    "message": "雙語字幕預覽"
   },
   "options_font_size": {
-    "message": "译文字号"
+    "message": "譯文字號"
   },
   "options_font_s": {
     "message": "小（80%）"
@@ -159,61 +159,61 @@
     "message": "中（90%）"
   },
   "options_font_body": {
-    "message": "同正文（100%）"
+    "message": "同內文（100%）"
   },
   "options_font_l": {
     "message": "大（110%）"
   },
   "options_show_fab": {
-    "message": "显示悬浮按钮"
+    "message": "顯示懸浮按鈕"
   },
   "options_cache_section": {
-    "message": "缓存管理"
+    "message": "快取管理"
   },
   "options_cache_hint": {
-    "message": "翻译结果会缓存 12 小时以减少 API 请求。"
+    "message": "翻譯結果會快取 12 小時以減少 API 請求。"
   },
   "options_clear_cache": {
-    "message": "清除翻译缓存"
+    "message": "清除翻譯快取"
   },
   "options_about_section": {
-    "message": "关于"
+    "message": "關於"
   },
   "options_about_desc": {
-    "message": "支持网页全文双语对照翻译 + YouTube 双语字幕。"
+    "message": "支援網頁全文雙語對照翻譯 + YouTube 雙語字幕。"
   },
   "options_about_safari": {
-    "message": "Safari iOS：在设置 → Safari → 扩展 中启用。"
+    "message": "Safari iOS：在設定 → Safari → 擴充功能 中啟用。"
   },
   "toast_provider_saved": {
-    "message": "翻译引擎已保存"
+    "message": "翻譯引擎已儲存"
   },
   "toast_apikey_saved": {
-    "message": "API Key 已保存"
+    "message": "API Key 已儲存"
   },
   "toast_apiurl_saved": {
-    "message": "API 地址已保存"
+    "message": "API 地址已儲存"
   },
   "toast_lang_saved": {
-    "message": "语言已保存"
+    "message": "語言已儲存"
   },
   "toast_fontsize_saved": {
-    "message": "字号已保存"
+    "message": "字號已儲存"
   },
   "toast_color_saved": {
-    "message": "颜色已保存"
+    "message": "顏色已儲存"
   },
   "toast_yt_color_saved": {
-    "message": "YouTube 字幕颜色已保存"
+    "message": "YouTube 字幕顏色已儲存"
   },
   "toast_clearing": {
     "message": "清除中…"
   },
   "toast_cache_empty": {
-    "message": "缓存为空"
+    "message": "快取為空"
   },
   "toast_cache_cleared": {
-    "message": "缓存已清除"
+    "message": "快取已清除"
   },
   "hint_openai": {
     "message": "OpenAI API Key（sk-…）。模型：gpt-4o-mini"
@@ -225,6 +225,6 @@
     "message": "DeepSeek API Key。模型：deepseek-chat"
   },
   "hint_glm": {
-    "message": "智谱 AI API Key。模型：glm-4-flash（有免费额度）"
+    "message": "智譜 AI API Key。模型：glm-4-flash（有免費額度）"
   }
 }

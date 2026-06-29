@@ -1,0 +1,230 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey Translator"
+  },
+  "extension_description": {
+    "message": "Двуязычный перевод страниц + субтитры YouTube, с OpenAI/Claude/DeepSeek/GLM"
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Перевод…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Подготовка…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Ошибка — нажмите, чтобы повторить"
+  },
+  "fab_translate": {
+    "message": "Перевод"
+  },
+  "fab_toggle": {
+    "message": "Переключить перевод"
+  },
+  "fab_enable": {
+    "message": "Включить перевод"
+  },
+  "fab_disable": {
+    "message": "Выключить перевод"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey · Субтитры видео"
+  },
+  "yt_sub_on": {
+    "message": "Включить перевод субтитров"
+  },
+  "yt_sub_off": {
+    "message": "Выключить перевод субтитров"
+  },
+  "yt_display_type": {
+    "message": "Отображение субтитров"
+  },
+  "yt_mode_both": {
+    "message": "Двуязычные"
+  },
+  "yt_mode_trans": {
+    "message": "Только перевод"
+  },
+  "yt_mode_orig": {
+    "message": "Только оригинал"
+  },
+  "yt_download_srt": {
+    "message": "Скачать субтитры (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Субтитры ещё не готовы — повторите после загрузки перевода"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ Загрузка субтитров…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Субтитры недоступны"
+  },
+  "settings": {
+    "message": "Настройки"
+  },
+  "popup_status_off": {
+    "message": "Выключено"
+  },
+  "popup_target_lang": {
+    "message": "Целевой язык"
+  },
+  "popup_provider": {
+    "message": "Движок перевода"
+  },
+  "provider_google_free": {
+    "message": "Google Переводчик (бесплатно)"
+  },
+  "placeholder_api_key": {
+    "message": "Введите API-ключ…"
+  },
+  "toggle_show_hide": {
+    "message": "Показать/Скрыть"
+  },
+  "label_custom_api": {
+    "message": "Свой URL API"
+  },
+  "label_optional": {
+    "message": "(необязательно)"
+  },
+  "btn_translate_page": {
+    "message": "Перевести страницу"
+  },
+  "btn_view_original": {
+    "message": "Показать оригинал"
+  },
+  "btn_more_settings": {
+    "message": "Дополнительно"
+  },
+  "status_translated": {
+    "message": "Переведено"
+  },
+  "status_untranslated": {
+    "message": "Не переведено"
+  },
+  "toast_lang_switched": {
+    "message": "Язык изменён"
+  },
+  "toast_provider_switched": {
+    "message": "Движок изменён"
+  },
+  "toast_restored_original": {
+    "message": "Оригинал восстановлен"
+  },
+  "toast_translating": {
+    "message": "Перевод…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Настройки"
+  },
+  "options_engine_section": {
+    "message": "Движок перевода"
+  },
+  "options_engine_label": {
+    "message": "Движок"
+  },
+  "provider_google_free_long": {
+    "message": "Google Переводчик (бесплатно, без ключа)"
+  },
+  "options_custom_api_hint": {
+    "message": "Оставьте пустым для адреса по умолчанию. Полезно для прокси или своих сервисов."
+  },
+  "options_lang_section": {
+    "message": "Язык"
+  },
+  "options_style_section": {
+    "message": "Стиль отображения"
+  },
+  "options_webpage_color": {
+    "message": "Цвет перевода (веб)"
+  },
+  "options_color_preview": {
+    "message": "Это предпросмотр стиля перевода"
+  },
+  "options_yt_color": {
+    "message": "Цвет субтитров YouTube"
+  },
+  "options_yt_preview": {
+    "message": "Предпросмотр двуязычных субтитров"
+  },
+  "options_font_size": {
+    "message": "Размер шрифта перевода"
+  },
+  "options_font_s": {
+    "message": "Маленький (80%)"
+  },
+  "options_font_m": {
+    "message": "Средний (90%)"
+  },
+  "options_font_body": {
+    "message": "Как текст (100%)"
+  },
+  "options_font_l": {
+    "message": "Большой (110%)"
+  },
+  "options_show_fab": {
+    "message": "Показать плавающую кнопку"
+  },
+  "options_cache_section": {
+    "message": "Кэш"
+  },
+  "options_cache_hint": {
+    "message": "Переводы кэшируются на 12 часов для снижения числа запросов к API."
+  },
+  "options_clear_cache": {
+    "message": "Очистить кэш перевода"
+  },
+  "options_about_section": {
+    "message": "О программе"
+  },
+  "options_about_desc": {
+    "message": "Двуязычный перевод всей страницы + субтитры YouTube."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: включите в Настройки → Safari → Расширения."
+  },
+  "toast_provider_saved": {
+    "message": "Движок сохранён"
+  },
+  "toast_apikey_saved": {
+    "message": "API-ключ сохранён"
+  },
+  "toast_apiurl_saved": {
+    "message": "URL API сохранён"
+  },
+  "toast_lang_saved": {
+    "message": "Язык сохранён"
+  },
+  "toast_fontsize_saved": {
+    "message": "Размер сохранён"
+  },
+  "toast_color_saved": {
+    "message": "Цвет сохранён"
+  },
+  "toast_yt_color_saved": {
+    "message": "Цвет субтитров YouTube сохранён"
+  },
+  "toast_clearing": {
+    "message": "Очистка…"
+  },
+  "toast_cache_empty": {
+    "message": "Кэш пуст"
+  },
+  "toast_cache_cleared": {
+    "message": "Кэш очищен"
+  },
+  "hint_openai": {
+    "message": "Ключ OpenAI API (sk-…). Модель: gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "Ключ Anthropic API (sk-ant-…). Модель: claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "Ключ DeepSeek API. Модель: deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "Ключ GLM (Zhipu AI) API. Модель: glm-4-flash (есть бесплатный лимит)"
+  }
+}

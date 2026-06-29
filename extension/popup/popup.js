@@ -5,6 +5,14 @@ const OPENAI_COMPAT = new Set(['openai', 'deepseek', 'glm']); // support custom 
 
 const $ = id => document.getElementById(id);
 
+// i18n: localized string by browser UI language, with the in-markup text as fallback.
+const t = (key, fb) => { try { return chrome.i18n.getMessage(key) || fb; } catch (_) { return fb; } };
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => { const m = t(el.dataset.i18n, ''); if (m) el.textContent = m; });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { const m = t(el.dataset.i18nPlaceholder, ''); if (m) el.placeholder = m; });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => { const m = t(el.dataset.i18nAria, ''); if (m) el.setAttribute('aria-label', m); });
+}
+
 async function getSettings() {
   return new Promise(resolve => {
     chrome.storage.local.get(null, s => resolve(s || {}));
@@ -33,59 +41,58 @@ function updateApiKeySection(provider) {
   }
 }
 
-function updateBadge(enabled) {
+let pageTranslated = false; // whether the current page is currently translated
+
+function updateTranslateUI() {
+  $('btn-translate').textContent = pageTranslated ? t('btn_view_original', '查看原文') : t('btn_translate_page', '翻译本页');
   const badge = $('status-badge');
-  if (enabled) {
-    badge.textContent = '已开启';
-    badge.classList.add('on');
-  } else {
-    badge.textContent = '已关闭';
-    badge.classList.remove('on');
-  }
+  badge.textContent = pageTranslated ? t('status_translated', '已翻译') : t('status_untranslated', '未翻译');
+  badge.classList.toggle('on', pageTranslated);
 }
 
 async function sendToPage(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
+  if (!tab?.id) return null;
   try {
-    await chrome.tabs.sendMessage(tab.id, { action });
+    return await chrome.tabs.sendMessage(tab.id, { action });
   } catch (_) {
-    // Content script may not be loaded on this page
+    return null; // content script not loaded on this page (e.g. chrome://)
   }
 }
 
+async function queryPageTranslated() {
+  const resp = await sendToPage('getPageStatus');
+  return !!(resp && resp.enabled);
+}
+
 async function init() {
+  applyI18n();
   const s = await getSettings();
 
   // Populate UI
-  $('toggle-enabled').checked = !!s.enabled;
   $('target-lang').value = s.targetLang || 'zh-CN';
   $('provider').value = s.provider || 'google';
   $('api-key').value = s.apiKey || '';
   $('api-base-url').value = s.apiBaseUrl || '';
 
-  updateBadge(!!s.enabled);
   updateApiKeySection(s.provider || 'google');
+
+  // Reflect the CURRENT page's translation state (not a stored default).
+  pageTranslated = await queryPageTranslated();
+  updateTranslateUI();
 
   // ─── Event listeners ────────────────────────────────────────────────
 
-  $('toggle-enabled').addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await saveSettings({ enabled });
-    updateBadge(enabled);
-    await sendToPage(enabled ? 'translatePage' : 'disablePage');
-  });
-
   $('target-lang').addEventListener('change', async (e) => {
     await saveSettings({ targetLang: e.target.value });
-    showToast('语言已切换');
+    showToast(t('toast_lang_switched', '语言已切换'));
   });
 
   $('provider').addEventListener('change', async (e) => {
     const provider = e.target.value;
     await saveSettings({ provider });
     updateApiKeySection(provider);
-    showToast('翻译引擎已切换');
+    showToast(t('toast_provider_switched', '翻译引擎已切换'));
   });
 
   $('api-key').addEventListener('change', async (e) => {
@@ -102,13 +109,19 @@ async function init() {
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 
+  // Toggle: 翻译本页 ↔ 查看原文. Re-translating is cache-first (TranslationAPI cache).
   $('btn-translate').addEventListener('click', async () => {
-    const enabled = true;
-    $('toggle-enabled').checked = true;
-    await saveSettings({ enabled });
-    updateBadge(true);
-    await sendToPage('translatePage');
-    showToast('正在翻译…');
+    if (pageTranslated) {
+      await sendToPage('disablePage');
+      pageTranslated = false;
+      updateTranslateUI();
+      showToast(t('toast_restored_original', '已恢复原文'));
+    } else {
+      await sendToPage('translatePage');
+      pageTranslated = true;
+      updateTranslateUI();
+      showToast(t('toast_translating', '正在翻译…'));
+    }
   });
 
   $('btn-settings').addEventListener('click', () => {

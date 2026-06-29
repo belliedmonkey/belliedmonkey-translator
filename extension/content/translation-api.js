@@ -1,4 +1,4 @@
-// translation-api.js — Unified translation API with multi-provider support
+// translation-api.js — Unified, provider-agnostic translation transport.
 // Runs in content script context. All fetch() calls are made here directly
 // to avoid the Safari iOS service worker lifecycle bug.
 
@@ -8,6 +8,11 @@ var TranslationAPI = (() => {
   const MAX_MEM_CACHE = 1000;
   const CACHE_KEY_PREFIX = 'tr:';
 
+  const REQUEST_TIMEOUT_MS = 20000;
+  const BASE_BACKOFF_MS = 500;
+  const JITTER_MS = 400;
+  const MAX_RETRIES = 3;
+
   // ─── Language display names ───────────────────────────────────────────
   const LANG_NAMES = {
     'zh-CN': '简体中文', 'zh-TW': '繁體中文', 'en': 'English',
@@ -16,23 +21,59 @@ var TranslationAPI = (() => {
     'pt': 'Português', 'ru': 'Русский', 'it': 'Italiano'
   };
 
-  // ─── LLM system prompt ────────────────────────────────────────────────
+  // ─── LLM system prompt (English — the lingua franca for LLM instructions,
+  // works regardless of the target language). ───────────────────────────
   function buildSystemPrompt(targetLang) {
     const name = LANG_NAMES[targetLang] || targetLang;
-    return `你是一位专业翻译。将用户提供的文本翻译成${name}。
-规则：
-1. 只输出译文，不添加任何解释、标注或额外内容
-2. 保留原文的格式和换行
-3. 专有名词、品牌名、代码保持原样
-4. 译文要自然流畅，符合目标语言习惯`;
+    return `You are a professional translator. Translate the user's text into ${name}.
+Rules:
+1. Output ONLY the translation — no explanations, notes, or extra content.
+2. Preserve the original formatting and line breaks.
+3. Keep code, URLs, and well-known brand / product / company names unchanged, but
+   DO translate ordinary words, place names, and loanwords (including katakana) —
+   never leave foreign-script text untranslated.
+4. Make the translation natural and fluent in the target language.`;
   }
 
-  // ─── Provider adapters ────────────────────────────────────────────────
+  // ─── Shared transport: timeout + uniform error (status + Retry-After) ──
+  function parseRetryAfter(h) {
+    if (!h) return null;
+    const n = Number(h);
+    if (!isNaN(n)) return n * 1000;
+    const t = Date.parse(h);
+    return isNaN(t) ? null : Math.max(0, t - Date.now());
+  }
 
+  async function apiFetch(url, opts, label) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    let resp;
+    try {
+      resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const e = new Error(`${label} ${resp.status}: ${(err.error && err.error.message) || resp.statusText}`);
+      e.status = resp.status;
+      e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
+      throw e;
+    }
+    return resp;
+  }
+
+  async function callChatAPI(o) {
+    const resp = await apiFetch(o.url, {
+      method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
+    }, o.label);
+    return o.extract(await resp.json()).trim();
+  }
+
+  // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
   async function translateGoogle(text, targetLang) {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Google Translate HTTP ${resp.status}`);
+    const resp = await apiFetch(url, {}, 'Google');
     const data = await resp.json();
     return data[0].map(c => c[0]).join('');
   }
@@ -40,117 +81,63 @@ var TranslationAPI = (() => {
   async function translateGoogleBatch(texts, targetLang) {
     const params = new URLSearchParams({ client: 'gtx', sl: 'auto', tl: targetLang });
     texts.forEach(t => params.append('q', t));
-    const resp = await fetch(`https://translate.googleapis.com/translate_a/t?${params}`);
-    if (!resp.ok) throw new Error(`Google Translate batch HTTP ${resp.status}`);
+    const resp = await apiFetch(`https://translate.googleapis.com/translate_a/t?${params}`, {}, 'Google batch');
     const data = await resp.json();
     return data.map(item => Array.isArray(item) ? item[0] : item);
   }
 
-  async function translateOpenAI(text, targetLang, apiKey, baseUrl) {
-    const url = (baseUrl || 'https://api.openai.com') + '/v1/chat/completions';
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
+  // OpenAI-compatible chat API (OpenAI, DeepSeek, GLM) — one code path.
+  function translateOpenAICompat(text, targetLang, apiKey, baseUrl, cfg) {
+    return callChatAPI({
+      url: (baseUrl || cfg.defaultBase) + cfg.path,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: {
+        model: cfg.model,
         messages: [
           { role: 'system', content: buildSystemPrompt(targetLang) },
           { role: 'user', content: text }
         ],
         temperature: 0.3,
         max_tokens: 2000
-      })
+      },
+      label: cfg.label,
+      extract: (d) => d.choices[0].message.content
     });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(`OpenAI ${resp.status}: ${err.error?.message || resp.statusText}`);
-    }
-    const data = await resp.json();
-    return data.choices[0].message.content.trim();
   }
 
-  async function translateClaude(text, targetLang, apiKey, baseUrl) {
-    const url = (baseUrl || 'https://api.anthropic.com') + '/v1/messages';
-    const resp = await fetch(url, {
-      method: 'POST',
+  function translateClaude(text, targetLang, apiKey, baseUrl) {
+    return callChatAPI({
+      url: (baseUrl || 'https://api.anthropic.com') + '/v1/messages',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({
+      body: {
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
         system: buildSystemPrompt(targetLang),
         messages: [{ role: 'user', content: text }]
-      })
+      },
+      label: 'Claude',
+      extract: (d) => d.content[0].text
     });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(`Claude ${resp.status}: ${err.error?.message || resp.statusText}`);
-    }
-    const data = await resp.json();
-    return data.content[0].text.trim();
   }
 
-  async function translateDeepSeek(text, targetLang, apiKey, baseUrl) {
-    const url = (baseUrl || 'https://api.deepseek.com') + '/v1/chat/completions';
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: buildSystemPrompt(targetLang) },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000
-      })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(`DeepSeek ${resp.status}: ${err.error?.message || resp.statusText}`);
-    }
-    const data = await resp.json();
-    return data.choices[0].message.content.trim();
-  }
+  const OPENAI_COMPAT = {
+    openai:   { defaultBase: 'https://api.openai.com',   path: '/v1/chat/completions',          model: 'gpt-4o-mini',   label: 'OpenAI' },
+    deepseek: { defaultBase: 'https://api.deepseek.com', path: '/v1/chat/completions',          model: 'deepseek-chat', label: 'DeepSeek' },
+    glm:      { defaultBase: 'https://open.bigmodel.cn', path: '/api/paas/v4/chat/completions', model: 'glm-4-flash',   label: 'GLM' }
+  };
 
-  async function translateGLM(text, targetLang, apiKey, baseUrl) {
-    const url = (baseUrl || 'https://open.bigmodel.cn') + '/api/paai/v4/chat/completions';
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'glm-4-flash',
-        messages: [
-          { role: 'system', content: buildSystemPrompt(targetLang) },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000
-      })
-    });
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(`GLM ${resp.status}: ${err.error?.message || resp.statusText}`);
-    }
-    const data = await resp.json();
-    return data.choices[0].message.content.trim();
+  function callProvider(provider, text, targetLang, apiKey, baseUrl) {
+    if (provider === 'claude') return translateClaude(text, targetLang, apiKey, baseUrl);
+    if (OPENAI_COMPAT[provider]) return translateOpenAICompat(text, targetLang, apiKey, baseUrl, OPENAI_COMPAT[provider]);
+    return translateGoogle(text, targetLang);
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
-
   function cacheGet(key) {
     const m = memCache.get(key);
     if (m && Date.now() - m.ts < CACHE_TTL) return m.v;
@@ -158,13 +145,9 @@ var TranslationAPI = (() => {
   }
 
   function cacheSet(key, value) {
-    if (memCache.size >= MAX_MEM_CACHE) {
-      memCache.delete(memCache.keys().next().value);
-    }
+    if (memCache.size >= MAX_MEM_CACHE) memCache.delete(memCache.keys().next().value);
     memCache.set(key, { v: value, ts: Date.now() });
-    try {
-      chrome.storage.local.set({ [CACHE_KEY_PREFIX + key]: { v: value, ts: Date.now() } });
-    } catch (_) {}
+    try { chrome.storage.local.set({ [CACHE_KEY_PREFIX + key]: { v: value, ts: Date.now() } }); } catch (_) {}
   }
 
   async function cacheGetStorage(key) {
@@ -179,19 +162,14 @@ var TranslationAPI = (() => {
     });
   }
 
-  // ─── Rate limiting ────────────────────────────────────────────────────
-
+  // ─── Concurrency queue ────────────────────────────────────────────────
   let inFlight = 0;
-  const MAX_CONCURRENT = 3;
+  const MAX_CONCURRENT = 5;
   const queue = [];
 
   function enqueue(fn) {
-    return new Promise((resolve, reject) => {
-      queue.push({ fn, resolve, reject });
-      drain();
-    });
+    return new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); drain(); });
   }
-
   function drain() {
     while (inFlight < MAX_CONCURRENT && queue.length > 0) {
       const { fn, resolve, reject } = queue.shift();
@@ -200,41 +178,30 @@ var TranslationAPI = (() => {
     }
   }
 
-  // ─── Main translate function ───────────────────────────────────────────
-
+  // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
+  // final fallback to Google for non-google providers). Applies to ALL providers. ─
   async function translate(text, targetLang, provider, apiKey, baseUrl) {
     if (!text || text.trim().length < 2) return text;
     const key = `${provider}:${targetLang}:${text}`;
 
     const mem = cacheGet(key);
     if (mem) return mem;
-
     const stored = await cacheGetStorage(key);
     if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
 
     const result = await enqueue(async () => {
       let retries = 0;
-      while (retries < 3) {
+      while (retries < MAX_RETRIES) {
         try {
-          let translated;
-          switch (provider) {
-            case 'openai':   translated = await translateOpenAI(text, targetLang, apiKey, baseUrl); break;
-            case 'claude':   translated = await translateClaude(text, targetLang, apiKey, baseUrl); break;
-            case 'deepseek': translated = await translateDeepSeek(text, targetLang, apiKey, baseUrl); break;
-            case 'glm':      translated = await translateGLM(text, targetLang, apiKey, baseUrl); break;
-            default:         translated = await translateGoogle(text, targetLang); break;
-          }
-          return translated;
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl);
         } catch (err) {
           retries++;
-          if (retries >= 3) {
-            // Final fallback: Google
-            if (provider !== 'google') {
-              return await translateGoogle(text, targetLang);
-            }
+          if (retries >= MAX_RETRIES) {
+            if (provider !== 'google') return await translateGoogle(text, targetLang);
             throw err;
           }
-          await new Promise(r => setTimeout(r, Math.pow(2, retries) * 500));
+          const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
+          await new Promise(r => setTimeout(r, backoff + Math.random() * JITTER_MS));
         }
       }
     });
@@ -243,34 +210,24 @@ var TranslationAPI = (() => {
     return result;
   }
 
-  // ─── Batch translate ───────────────────────────────────────────────────
-
+  // ─── Batch translate ──────────────────────────────────────────────────
   async function translateBatch(texts, targetLang, provider, apiKey, baseUrl) {
     if (!texts.length) return [];
 
-    // For Google, use batch API for efficiency
     if (provider === 'google') {
       const CHUNK = 20;
       const results = [];
       for (let i = 0; i < texts.length; i += CHUNK) {
         const chunk = texts.slice(i, i + CHUNK);
-        // Check cache first
         const cached = chunk.map(t => cacheGet(`google:${targetLang}:${t}`));
-        const missingIdx = cached.map((v, i) => v === null ? i : -1).filter(i => i >= 0);
-
+        const missingIdx = cached.map((v, idx) => v === null ? idx : -1).filter(idx => idx >= 0);
         if (missingIdx.length > 0) {
           try {
-            const missing = missingIdx.map(i => chunk[i]);
+            const missing = missingIdx.map(idx => chunk[idx]);
             const translated = await translateGoogleBatch(missing, targetLang);
-            missingIdx.forEach((idx, j) => {
-              cacheSet(`google:${targetLang}:${chunk[idx]}`, translated[j]);
-              cached[idx] = translated[j];
-            });
+            missingIdx.forEach((idx, j) => { cacheSet(`google:${targetLang}:${chunk[idx]}`, translated[j]); cached[idx] = translated[j]; });
           } catch (_) {
-            // Fallback to individual
-            for (const idx of missingIdx) {
-              cached[idx] = await translate(chunk[idx], targetLang, 'google', '', '');
-            }
+            for (const idx of missingIdx) cached[idx] = await translate(chunk[idx], targetLang, 'google', '', '');
           }
         }
         results.push(...cached);
@@ -278,7 +235,6 @@ var TranslationAPI = (() => {
       return results;
     }
 
-    // For LLM providers, translate in parallel with concurrency limit
     return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl)));
   }
 

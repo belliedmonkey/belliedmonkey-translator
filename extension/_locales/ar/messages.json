@@ -1,0 +1,230 @@
+{
+  "extension_name": {
+    "message": "مترجم القرد البدين"
+  },
+  "extension_description": {
+    "message": "ترجمة ثنائية اللغة لصفحات الويب + ترجمة يوتيوب، مع OpenAI/Claude/DeepSeek/GLM"
+  },
+  "action_title": {
+    "message": "مترجم القرد البدين"
+  },
+  "msg_loading": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "msg_preparing": {
+    "message": "⏳ يجري التحضير…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ فشلت الترجمة — اضغط لإعادة المحاولة"
+  },
+  "fab_translate": {
+    "message": "ترجمة"
+  },
+  "fab_toggle": {
+    "message": "تبديل الترجمة"
+  },
+  "fab_enable": {
+    "message": "تشغيل الترجمة"
+  },
+  "fab_disable": {
+    "message": "إيقاف الترجمة"
+  },
+  "yt_btn_title": {
+    "message": "مترجم القرد البدين · ترجمة الفيديو"
+  },
+  "yt_sub_on": {
+    "message": "تشغيل ترجمة الترجمة"
+  },
+  "yt_sub_off": {
+    "message": "إيقاف ترجمة الترجمة"
+  },
+  "yt_display_type": {
+    "message": "عرض الترجمة"
+  },
+  "yt_mode_both": {
+    "message": "ثنائي اللغة"
+  },
+  "yt_mode_trans": {
+    "message": "الترجمة فقط"
+  },
+  "yt_mode_orig": {
+    "message": "الأصل فقط"
+  },
+  "yt_download_srt": {
+    "message": "تنزيل الترجمة (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "الترجمة غير جاهزة بعد — حاول بعد تحميل الترجمة"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ جارٍ تحميل الترجمة…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "الترجمة غير متوفرة"
+  },
+  "settings": {
+    "message": "الإعدادات"
+  },
+  "popup_status_off": {
+    "message": "مُعطّل"
+  },
+  "popup_target_lang": {
+    "message": "اللغة الهدف"
+  },
+  "popup_provider": {
+    "message": "محرك الترجمة"
+  },
+  "provider_google_free": {
+    "message": "ترجمة Google (مجانية)"
+  },
+  "placeholder_api_key": {
+    "message": "أدخل مفتاح API…"
+  },
+  "toggle_show_hide": {
+    "message": "إظهار/إخفاء"
+  },
+  "label_custom_api": {
+    "message": "عنوان API مخصص"
+  },
+  "label_optional": {
+    "message": "(اختياري)"
+  },
+  "btn_translate_page": {
+    "message": "ترجمة الصفحة"
+  },
+  "btn_view_original": {
+    "message": "عرض الأصل"
+  },
+  "btn_more_settings": {
+    "message": "مزيد من الإعدادات"
+  },
+  "status_translated": {
+    "message": "مُترجَم"
+  },
+  "status_untranslated": {
+    "message": "غير مُترجَم"
+  },
+  "toast_lang_switched": {
+    "message": "تم تغيير اللغة"
+  },
+  "toast_provider_switched": {
+    "message": "تم تغيير المحرك"
+  },
+  "toast_restored_original": {
+    "message": "تمت استعادة الأصل"
+  },
+  "toast_translating": {
+    "message": "جارٍ الترجمة…"
+  },
+  "options_title": {
+    "message": "مترجم القرد البدين — الإعدادات"
+  },
+  "options_engine_section": {
+    "message": "محرك الترجمة"
+  },
+  "options_engine_label": {
+    "message": "المحرك"
+  },
+  "provider_google_free_long": {
+    "message": "ترجمة Google (مجانية، بدون مفتاح API)"
+  },
+  "options_custom_api_hint": {
+    "message": "اتركه فارغًا لاستخدام العنوان الافتراضي. مفيد للوكلاء أو الخدمات الذاتية."
+  },
+  "options_lang_section": {
+    "message": "اللغة"
+  },
+  "options_style_section": {
+    "message": "نمط العرض"
+  },
+  "options_webpage_color": {
+    "message": "لون ترجمة الويب"
+  },
+  "options_color_preview": {
+    "message": "هذه معاينة لنمط الترجمة"
+  },
+  "options_yt_color": {
+    "message": "لون ترجمة YouTube"
+  },
+  "options_yt_preview": {
+    "message": "معاينة الترجمة الثنائية"
+  },
+  "options_font_size": {
+    "message": "حجم خط الترجمة"
+  },
+  "options_font_s": {
+    "message": "صغير (80%)"
+  },
+  "options_font_m": {
+    "message": "متوسط (90%)"
+  },
+  "options_font_body": {
+    "message": "مثل النص (100%)"
+  },
+  "options_font_l": {
+    "message": "كبير (110%)"
+  },
+  "options_show_fab": {
+    "message": "إظهار الزر العائم"
+  },
+  "options_cache_section": {
+    "message": "التخزين المؤقت"
+  },
+  "options_cache_hint": {
+    "message": "تُخزَّن الترجمات مؤقتًا 12 ساعة لتقليل طلبات API."
+  },
+  "options_clear_cache": {
+    "message": "مسح ذاكرة الترجمة"
+  },
+  "options_about_section": {
+    "message": "حول"
+  },
+  "options_about_desc": {
+    "message": "ترجمة ثنائية اللغة للصفحة كاملة + ترجمة يوتيوب."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: فعّله من الإعدادات → Safari → الإضافات."
+  },
+  "toast_provider_saved": {
+    "message": "تم حفظ المحرك"
+  },
+  "toast_apikey_saved": {
+    "message": "تم حفظ مفتاح API"
+  },
+  "toast_apiurl_saved": {
+    "message": "تم حفظ عنوان API"
+  },
+  "toast_lang_saved": {
+    "message": "تم حفظ اللغة"
+  },
+  "toast_fontsize_saved": {
+    "message": "تم حفظ الحجم"
+  },
+  "toast_color_saved": {
+    "message": "تم حفظ اللون"
+  },
+  "toast_yt_color_saved": {
+    "message": "تم حفظ لون ترجمة YouTube"
+  },
+  "toast_clearing": {
+    "message": "جارٍ المسح…"
+  },
+  "toast_cache_empty": {
+    "message": "الذاكرة فارغة"
+  },
+  "toast_cache_cleared": {
+    "message": "تم مسح الذاكرة"
+  },
+  "hint_openai": {
+    "message": "مفتاح OpenAI API (sk-…). النموذج: gpt-4o-mini"
+  },
+  "hint_claude": {
+    "message": "مفتاح Anthropic API (sk-ant-…). النموذج: claude-haiku-4-5"
+  },
+  "hint_deepseek": {
+    "message": "مفتاح DeepSeek API. النموذج: deepseek-chat"
+  },
+  "hint_glm": {
+    "message": "مفتاح GLM (Zhipu AI) API. النموذج: glm-4-flash (يوجد حد مجاني)"
+  }
+}

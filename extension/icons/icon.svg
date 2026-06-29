@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#0a7a3c"/>
+  <!-- translate glyph: CJK 文 (left) + Latin A (right), drawn as paths (font-free) -->
+  <g fill="#ffffff">
+    <!-- 文 -->
+    <rect x="28" y="34" width="34" height="7" rx="2"/>
+    <rect x="41.5" y="26" width="7" height="11" rx="2"/>
+    <path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"/>
+    <!-- A -->
+    <path d="M84 96l11-30h8l11 30h-8l-2.1-6h-9.8l-2.1 6zm12.3-12h6.4L99.5 74z"/>
+  </g>
+</svg>

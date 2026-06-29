@@ -11,19 +11,19 @@
     <header class="page-header">
       <h1>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="#0a7a3c"/></svg>
-        大肚猴翻译 · 设置
+        <span data-i18n="options_title">大肚猴翻译 · 设置</span>
       </h1>
     </header>
 
     <main>
       <!-- 翻译引擎 -->
       <section class="card">
-        <h2>翻译引擎</h2>
+        <h2 data-i18n="options_engine_section">翻译引擎</h2>
 
         <div class="field">
-          <label for="provider">引擎</label>
+          <label for="provider" data-i18n="options_engine_label">引擎</label>
           <select id="provider">
-            <option value="google">Google 翻译（免费，无需 API Key）</option>
+            <option value="google" data-i18n="provider_google_free_long">Google 翻译（免费，无需 API Key）</option>
             <option value="openai">ChatGPT (OpenAI)</option>
             <option value="claude">Claude (Anthropic)</option>
             <option value="deepseek">DeepSeek</option>
@@ -35,8 +35,8 @@
           <div class="field">
             <label for="api-key">API Key</label>
             <div class="input-row">
-              <input type="password" id="api-key" placeholder="输入 API Key…" autocomplete="off">
-              <button class="icon-btn" id="toggle-eye" title="显示/隐藏">
+              <input type="password" id="api-key" placeholder="输入 API Key…" data-i18n-placeholder="placeholder_api_key" autocomplete="off">
+              <button class="icon-btn" id="toggle-eye" title="显示/隐藏" data-i18n-title="toggle_show_hide">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
@@ -44,18 +44,18 @@
           </div>
 
           <div class="field" id="baseurl-field">
-            <label for="api-base-url">自定义 API 地址 <span class="optional">（可选）</span></label>
+            <label for="api-base-url"><span data-i18n="label_custom_api">自定义 API 地址</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
             <input type="text" id="api-base-url" placeholder="https://api.openai.com">
-            <p class="hint">留空则使用默认地址。适用于中转代理或自建服务。</p>
+            <p class="hint" data-i18n="options_custom_api_hint">留空则使用默认地址。适用于中转代理或自建服务。</p>
           </div>
         </div>
       </section>
 
       <!-- 翻译语言 -->
       <section class="card">
-        <h2>语言</h2>
+        <h2 data-i18n="options_lang_section">语言</h2>
         <div class="field">
-          <label for="target-lang">目标语言</label>
+          <label for="target-lang" data-i18n="popup_target_lang">目标语言</label>
           <select id="target-lang">
             <option value="zh-CN">简体中文</option>
             <option value="zh-TW">繁體中文</option>
@@ -75,28 +75,36 @@
 
       <!-- 显示样式 -->
       <section class="card">
-        <h2>显示样式</h2>
+        <h2 data-i18n="options_style_section">显示样式</h2>
 
         <div class="field">
-          <label for="text-color">译文颜色</label>
+          <label for="text-color" data-i18n="options_webpage_color">网页译文颜色</label>
           <div class="color-row">
             <input type="color" id="text-color" value="#0a7a3c">
-            <span id="color-preview" class="color-preview">这是译文的样式预览</span>
+            <span id="color-preview" class="color-preview" data-i18n="options_color_preview">这是译文的样式预览</span>
           </div>
         </div>
 
         <div class="field">
-          <label for="font-size">译文字号</label>
+          <label for="yt-text-color" data-i18n="options_yt_color">YouTube 字幕颜色</label>
+          <div class="color-row">
+            <input type="color" id="yt-text-color" value="#ffffff">
+            <span id="yt-color-preview" class="color-preview" style="background:#000;padding:2px 6px;border-radius:2px" data-i18n="options_yt_preview">双语字幕预览</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="font-size" data-i18n="options_font_size">译文字号</label>
           <select id="font-size">
-            <option value="0.8em">小（80%）</option>
-            <option value="0.9em" selected>中（90%）</option>
-            <option value="1em">同正文（100%）</option>
-            <option value="1.1em">大（110%）</option>
+            <option value="0.8em" data-i18n="options_font_s">小（80%）</option>
+            <option value="0.9em" selected data-i18n="options_font_m">中（90%）</option>
+            <option value="1em" data-i18n="options_font_body">同正文（100%）</option>
+            <option value="1.1em" data-i18n="options_font_l">大（110%）</option>
           </select>
         </div>
 
         <div class="field row">
-          <label for="show-fab">显示悬浮按钮</label>
+          <label for="show-fab" data-i18n="options_show_fab">显示悬浮按钮</label>
           <label class="switch">
             <input type="checkbox" id="show-fab" checked>
             <span class="slider"></span>
@@ -106,18 +114,18 @@
 
       <!-- 缓存 -->
       <section class="card">
-        <h2>缓存管理</h2>
-        <p class="hint">翻译结果会缓存 12 小时以减少 API 请求。</p>
-        <button class="btn-danger" id="btn-clear-cache">清除翻译缓存</button>
+        <h2 data-i18n="options_cache_section">缓存管理</h2>
+        <p class="hint" data-i18n="options_cache_hint">翻译结果会缓存 12 小时以减少 API 请求。</p>
+        <button class="btn-danger" id="btn-clear-cache" data-i18n="options_clear_cache">清除翻译缓存</button>
         <div id="cache-status" class="cache-status"></div>
       </section>
 
       <!-- 关于 -->
       <section class="card about">
-        <h2>关于</h2>
+        <h2 data-i18n="options_about_section">关于</h2>
         <p>大肚猴翻译 · Mobile Translator v1.0.0</p>
-        <p>支持网页全文双语对照翻译 + YouTube 双语字幕。</p>
-        <p>Safari iOS：在设置 → Safari → 扩展 中启用。</p>
+        <p data-i18n="options_about_desc">支持网页全文双语对照翻译 + YouTube 双语字幕。</p>
+        <p data-i18n="options_about_safari">Safari iOS：在设置 → Safari → 扩展 中启用。</p>
       </section>
     </main>
 

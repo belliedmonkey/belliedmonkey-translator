@@ -18,8 +18,41 @@
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "js": ["content/yt-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "js": ["content/yt-timedtext-observer.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
+        "content/translation-core.js",
+        "content/translation-api.js",
+        "content/dom-processor.js",
+        "content/floating-button.js",
+        "content/content-webpage.js",
+        "content/content-youtube.js",
+        "content/content-main.js"
+      ],
+      "css": [
+        "styles/bilingual.css",
+        "styles/floating-button.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "js": [
+        "content/translation-core.js",
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",

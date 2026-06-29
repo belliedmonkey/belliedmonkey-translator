@@ -1,55 +1,68 @@
 // content-main.js — Entry point; orchestrates all content scripts
 
 (async () => {
+  // Re-entry guard: Safari can inject the content scripts into the same frame
+  // more than once. Without this, two translator instances race and every
+  // paragraph gets translated (and appended) twice. Bail on the second run.
+  if (window.__mtMainLoaded) return;
+  window.__mtMainLoaded = true;
+
   // Read settings directly from storage (never ask service worker — Safari iOS bug)
   const settings = await new Promise(resolve => {
     chrome.storage.local.get(null, (s) => resolve(s || {}));
   });
 
   const cfg = {
-    enabled: settings.enabled || false,
-    targetLang: settings.targetLang || 'zh-CN',
+    // Always start OFF on page load. Translation begins only after the user
+    // turns it on (FAB for page text, in-player 译 button for video subtitles).
+    enabled: false,
+    targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
     provider: settings.provider || 'google',
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
     textColor: settings.textColor || '#0a7a3c',
+    ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '0.9em',
-    showFab: settings.showFab !== false
+    showFab: settings.showFab !== false,
+    ytSubEnabled: false // video subtitles also start off until the 译 button is turned on
   };
 
-  const isYouTube = /youtube\.com/.test(location.hostname);
+  const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
+  // Mobile YouTube (m.youtube.com) has no player control bar for the in-player 译
+  // button, so the FAB drives BOTH subtitles and page text there.
+  const isMobileYouTube = /m\.youtube\.com/.test(location.hostname);
+  // Embedded player on another site (youtube.com/embed or youtube-nocookie.com/embed
+  // inside an iframe): translate ONLY the video subtitles — no FAB, no page text.
+  const isEmbed = window.top !== window.self;
 
-  // ─── Floating action button ────────────────────────────────────────────
+  if (isEmbed) {
+    if (isYouTube) YouTubeTranslator.init(cfg);
+    return;
+  }
+
+  // ─── Controls ──────────────────────────────────────────────────────────
+  // Desktop: FAB → page text; in-player 译 button → video subtitles (separate).
+  // Mobile YouTube: FAB → both (no in-player button).
 
   if (cfg.showFab) {
     FloatingButton.create(cfg.enabled, async (enabled) => {
       cfg.enabled = enabled;
       chrome.storage.local.set({ enabled });
-
-      if (isYouTube) {
+      if (enabled) await WebpageTranslator.enable(cfg);
+      else WebpageTranslator.disable();
+      if (isMobileYouTube) {
         if (enabled) YouTubeTranslator.enable(cfg);
         else YouTubeTranslator.disable();
-      } else {
-        if (enabled) await WebpageTranslator.enable(cfg);
-        else WebpageTranslator.disable();
       }
     });
   }
 
-  // ─── Initialize appropriate translator ────────────────────────────────
+  // Webpage text everywhere (YouTube too — title / description / comments)
+  WebpageTranslator.init(cfg);
 
-  if (isYouTube) {
-    YouTubeTranslator.init(cfg);
-    // Also inject XHR interceptor for YouTube subtitle URL detection
-    try {
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('content/content-injected.js');
-      script.onload = () => script.remove();
-      (document.head || document.documentElement).appendChild(script);
-    } catch (_) {}
-  } else {
-    WebpageTranslator.init(cfg);
-  }
+  // YouTube video subtitles: independent, controlled by the in-player 译 button.
+  // The /api/timedtext interceptor lives in content/yt-hook.js (world:"MAIN").
+  if (isYouTube) YouTubeTranslator.init(cfg);
 
   // ─── Listen for settings changes from popup ────────────────────────────
 
@@ -62,12 +75,13 @@
 
     FloatingButton.setEnabled(cfg.enabled);
 
-    if (isYouTube) {
-      if (cfg.enabled) YouTubeTranslator.enable(cfg);
-      else YouTubeTranslator.disable();
-    } else {
+    if ('enabled' in changes) {
       if (cfg.enabled) WebpageTranslator.enable(cfg);
       else WebpageTranslator.disable();
+    } else {
+      // provider / language / color change → re-translate what's active
+      WebpageTranslator.updateSettings(cfg);
+      if (isYouTube) YouTubeTranslator.updateSettings(cfg);
     }
   });
 
@@ -78,8 +92,8 @@
       cfg.enabled = true;
       chrome.storage.local.set({ enabled: true });
       FloatingButton.setEnabled(true);
-      if (isYouTube) YouTubeTranslator.enable(cfg);
-      else WebpageTranslator.enable(cfg);
+      WebpageTranslator.enable(cfg);
+      if (isMobileYouTube) YouTubeTranslator.enable(cfg);
       sendResponse({ ok: true });
     }
 
@@ -87,8 +101,8 @@
       cfg.enabled = false;
       chrome.storage.local.set({ enabled: false });
       FloatingButton.setEnabled(false);
-      if (isYouTube) YouTubeTranslator.disable();
-      else WebpageTranslator.disable();
+      WebpageTranslator.disable();
+      if (isMobileYouTube) YouTubeTranslator.disable();
       sendResponse({ ok: true });
     }
 
