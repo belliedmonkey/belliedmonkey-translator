@@ -63,6 +63,13 @@ scripts), and text heuristics (Unicode `\p{L}` "has a letter" + URL/email/@/#/
 translated because it lives in a non-rendered / hidden node and looks like code —
 a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
 
+**Don't translate the media-player region.** The video player's chrome (live
+captions, controls) and our own subtitle overlay belong to the **subtitle/player
+path**, not the webpage extractor — so `DomSegmenter` skips any subtree inside a
+video player (`<video>`'s player container) and our `#mt-yt-overlay`. Otherwise
+the webpage path collects the live caption text and injects a "translating…"
+placeholder under it (the duplicated-caption bug).
+
 **Skip by content, not by semantic region.** We do NOT blanket-skip
 `<nav>/<header>/<footer>/<aside>` — SPAs (e.g. reddit) put real content (sidebar
 descriptions, rules, nav labels) inside them, and the reference translates those.

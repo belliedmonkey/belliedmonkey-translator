@@ -93,6 +93,21 @@ var DOMProcessor = (() => {
     return BLOCK_TAGS.has(el.tagName.toLowerCase());
   }
 
+  // Video-player regions (captions/controls + our subtitle overlay) are owned by
+  // the subtitle path — recomputed once per collect pass.
+  let playerRegions = [];
+  function computePlayerRegions() {
+    playerRegions = Array.from(document.querySelectorAll('video'))
+      .map((v) => v.closest('[class*="player" i],[id*="player" i]') || v.parentElement)
+      .filter(Boolean);
+    const ov = document.getElementById('mt-yt-overlay');
+    if (ov) playerRegions.push(ov);
+  }
+  function inPlayerRegion(el) {
+    for (let i = 0; i < playerRegions.length; i++) if (playerRegions[i].contains(el)) return true;
+    return false;
+  }
+
   // Hard skip: reject this element AND its subtree from the walk entirely.
   function hardSkip(el) {
     const tag = el.tagName.toLowerCase();
@@ -100,6 +115,8 @@ var DOMProcessor = (() => {
     // Never re-collect our OWN injected translation (else a sibling translation
     // div gets translated again → an endless cascade of translated translations).
     if (el.classList && el.classList.contains(TRANSLATION_CLASS)) return true;
+    // Video captions/controls + our subtitle overlay are the subtitle path's job.
+    if (inPlayerRegion(el)) return true;
     if (el.hasAttribute(PROCESSED_ATTR)) return true;
     if (el.getAttribute('translate') === 'no') return true;
     if (el.getAttribute('aria-hidden') === 'true') return true;
@@ -189,6 +206,7 @@ var DOMProcessor = (() => {
   // ─── Collect translatable leaf-block units ────────────────────────────
   function collectUnits(root = document.body) {
     const nodes = [];
+    computePlayerRegions();
     walkRoot(root, nodes);
     return nodes;
   }
