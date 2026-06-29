@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Domain design & governance:** the translation architecture (domain model,
+> extractor/engine/renderer boundary, device principle) is maintained in
+> [`docs/domain-design.md`](docs/domain-design.md). Per [`AGENTS.md`](AGENTS.md),
+> any change touching the domain design must update that doc first and pass human
+> domain-design review before the code changes.
+
 ## Project Overview
 
 Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:

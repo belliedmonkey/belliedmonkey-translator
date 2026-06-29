@@ -18,6 +18,22 @@ state, control menu, webpage injection). When you change how translations look o
 behave, update that file in the same commit. Don't scatter interaction rules here or
 in code comments.
 
+## Domain design (architecture) — REQUIRES HUMAN REVIEW
+
+**The translation domain model is the single source of truth in
+[`docs/domain-design.md`](docs/domain-design.md)** — the pipeline `source →
+Extractor → units → Engine (state machine + scheduling + retry) → Renderer`, the
+`DomSegmenter` / `SubtitleSource` / `TranslationCore` boundary, the
+"split-by-source-kind-not-site" rule, and the "parsing is device-agnostic; device
+differences only in a thin control/render adapter" principle.
+
+**Governance rule (mandatory):** any change that touches the domain design — the
+model, the extractor/engine/renderer boundary, the device principle, or the
+`DomSegmenter` rules — **must first update `docs/domain-design.md` and pass human
+domain-design review before the code changes.** Do not refactor the architecture
+or add per-site / per-device branches to the segmenter without that review.
+Routine bug fixes that conform to the existing model do not require it.
+
 ## Build & run
 
 ```bash
