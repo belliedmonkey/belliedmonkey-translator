@@ -56,6 +56,10 @@ var DOMProcessor = (() => {
     if (!(el instanceof Element)) return true;
     const cs = computed(el);
     if (cs && (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse' || cs.opacity === '0')) return false;
+    // display:contents generates NO box (getBoundingClientRect → 0×0) but its
+    // children DO render — so skip the size check, or we'd wrongly prune the whole
+    // subtree (this is exactly what hid reddit's left nav, wrapped in display:contents).
+    if (cs && cs.display === 'contents') return true;
     if (!el.closest('pre')) {
       const r = el.getBoundingClientRect();
       if (r.width < 4 && r.height < 4) return false;
