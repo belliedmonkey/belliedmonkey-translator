@@ -78,6 +78,9 @@ var DOMProcessor = (() => {
   function hardSkip(el) {
     const tag = el.tagName.toLowerCase();
     if (EXCLUDE_TAGS.has(tag)) return true;
+    // Never re-collect our OWN injected translation (else a sibling translation
+    // div gets translated again → an endless cascade of translated translations).
+    if (el.classList && el.classList.contains(TRANSLATION_CLASS)) return true;
     if (el.hasAttribute(PROCESSED_ATTR)) return true;
     if (el.getAttribute('translate') === 'no') return true;
     if (el.getAttribute('aria-hidden') === 'true') return true;
