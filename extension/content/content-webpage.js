@@ -158,7 +158,10 @@ var WebpageTranslator = (() => {
 
   // ─── Public API ───────────────────────────────────────────────────────
   function enable(cfg) {
-    settings = cfg; active = true;
+    settings = cfg;
+    if (active) return; // idempotent: ignore a double-enable (message + storage.onChanged
+                        // both fire on the first translate; the 2nd must not wipe the engine)
+    active = true;
     engine = makeEngine();
     units = []; known = new WeakSet();
     recollect(document.body);

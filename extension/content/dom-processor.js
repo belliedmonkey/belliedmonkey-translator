@@ -35,7 +35,9 @@ var DOMProcessor = (() => {
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'address', 'legend', 'caption'
   ]);
 
-  const SKIP_ROLES = new Set(['button', 'menu', 'menuitem', 'menubar', 'tab', 'tablist', 'toolbar', 'navigation']);
+  // Control roles only — NOT 'navigation' (a nav region can hold translatable
+  // labels/links; SPAs like reddit also put content in nav/aside).
+  const SKIP_ROLES = new Set(['button', 'menu', 'menuitem', 'menubar', 'tab', 'tablist', 'toolbar']);
   // Class/id hints for non-content chrome (soft skip: not a unit, but still descend).
   const SKIP_CLASS_PATTERNS = /\b(nav|menu|btn|button|toolbar|breadcrumb|pagination|ad|advertisement|banner|cookie|social|share|comment-form|captcha)\b/i;
 
@@ -98,14 +100,14 @@ var DOMProcessor = (() => {
     return false;
   }
 
+  // Skip by CONTENT, not by semantic region: do NOT blanket-skip
+  // nav/header/footer/aside — SPAs (reddit) put real content (sidebar
+  // descriptions, rules, nav labels) there, and we want to translate it. Only
+  // skip when an ancestor is a control region (role) or contenteditable. (Hidden
+  // / excluded subtrees are already pruned by hardSkip in the walker.)
   function isInsideSkipZone(el) {
     let parent = el.parentElement;
     while (parent && parent !== document.body) {
-      const tag = parent.tagName.toLowerCase();
-      // Semantic non-content regions only (NOT className — layout wrappers like
-      // "main-content-and-sidebar" legitimately wrap the whole article).
-      if (['nav', 'header', 'footer', 'aside'].includes(tag)) return true;
-      if (EXCLUDE_TAGS.has(tag)) return true;
       if (parent.isContentEditable) return true;
       const role = parent.getAttribute('role');
       if (role && SKIP_ROLES.has(role)) return true;

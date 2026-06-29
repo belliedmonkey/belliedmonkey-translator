@@ -57,6 +57,15 @@ visibility, standard attributes (`translate="no"`, `.notranslate`,
 translated because it lives in a non-rendered / hidden node and looks like code —
 a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
 
+**Skip by content, not by semantic region.** We do NOT blanket-skip
+`<nav>/<header>/<footer>/<aside>` — SPAs (e.g. reddit) put real content (sidebar
+descriptions, rules, nav labels) inside them, and the reference translates those.
+A unit is dropped only by: excluded/hidden/attribute (hard, prunes subtree),
+control roles (`button/menu/menuitem/tab/…`) or ad/chrome class patterns
+(`ad/banner/cookie/…`, soft — skip the unit, keep descending), `looksLikeCode`/
+URL/symbol text, or `< 10` chars. Short UI labels ("Home", "Wiki") fall out via
+the length filter; long content (descriptions, rules) translates.
+
 ## 4. Consistency — webpage and subtitle paths are isomorphic
 
 Both are `source → Extractor → units → same Engine (state machine + retry) →
