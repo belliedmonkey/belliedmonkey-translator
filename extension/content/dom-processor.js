@@ -160,6 +160,15 @@ var DOMProcessor = (() => {
     return out.join('').replace(/[^\S\n]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  // Minimum length to bother translating — SCRIPT-AWARE. CJK / Hangul / Thai are
+  // space-less and information-dense: an 8-char run is a full phrase
+  // ("シャンパン最新情報"), so a low floor. Latin/Cyrillic need more chars to be
+  // meaningful (avoid translating "Home"/"News"). A fixed char count is biased
+  // against CJK — this is why short Japanese nav labels were being skipped.
+  function minLen(text) {
+    return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(text) ? 2 : 10;
+  }
+
   // Non-translatable text: pure symbols/numbers, a bare URL/email/@/#, or code.
   function isUntranslatable(text) {
     // Unicode-aware "no letters at all" check. (Must use \p{L}, NOT [\W] — JS \w
@@ -186,7 +195,7 @@ var DOMProcessor = (() => {
       if (softSkip(el)) continue;
       if (isInsideSkipZone(el)) continue;
       const text = getTextContent(el);
-      if (text.length < 10) continue;
+      if (text.length < minLen(text)) continue;
       if (isUntranslatable(text)) continue;
       el.setAttribute(TRANSLATABLE_ATTR, '1');
       nodes.push(el);
