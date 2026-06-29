@@ -58,8 +58,16 @@ agent the whole screen + apps.
 
 ## Status / findings (2026-06-29)
 Harness verified end-to-end: the extension runs + translates on real iOS Safari
-(`m.youtube.com`). Two open items found, needing the mobile DOM (Web Inspector):
-(a) page-text translations mis-position/overlap inside mobile **flex rows** (video
-metadata: 次点赞/观看/年前) — the hard part is that horizontal nav items want to stay
-separate while a horizontal metadata row wants to merge; (b) the video-subtitle
-behavior still needs a CC-on pass.
+(`m.youtube.com`).
+
+- **(a) FIXED — flex/grid-row overlap.** A sibling `.mt-translation` injected into a
+  flex/grid row became a flex/grid *item* placed inline next to the original (mobile
+  YouTube metadata `次点赞/观看/年前`, header, comment counts) → overlap + horizontal
+  spill. Fix: `flowFixCss()` in `content-webpage.js` forces the translation onto its
+  own full-width line (flex → `flex-basis:100%` + make the row wrap, recording
+  nowrap→wrap for clean revert; grid → `grid-column:1 / -1`). Verified on the sim:
+  metadata translations now stack cleanly below each item, no overlap.
+- **(b) OPEN — video-subtitle CC-on pass.** Still pending. Hard to drive on the sim:
+  autoplay is muted, the player controls auto-hide, and `&cc_load_policy=1` does not
+  reliably auto-enable captions on the mobile web player. Needs captions actually
+  rendering before `.mt-yt-dual` can be observed.

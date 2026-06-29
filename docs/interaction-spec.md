@@ -91,6 +91,13 @@ element existing is not proof the user sees it (see AGENTS.md).
   selectors**). Translation is inserted as a **SIBLING** after the original
   (resists YouTube Polymer re-render; works on normal pages too) and re-applied by
   a ~1s recollect poll.
+- **Flex / grid rows: translation takes its own full-width line.** When the
+  original's parent is a flex or grid container (mobile YouTube video metadata
+  `次点赞/观看/年前`, the top nav, comment counts), the sibling translation would
+  otherwise become a flex/grid *item* placed inline next to the original and
+  overlap/spill off the row. So the translation is forced onto its own line below:
+  flex → `flex-basis:100%` + the row is made to wrap; grid → spans all columns.
+  The row's `flex-wrap` is restored on disable.
 - **Translate only what's visible.** Hidden text (e.g. the collapsed-vs-expanded
   description, `display:none` nodes) is excluded via computed-style visibility —
   never translate text the user can't see.

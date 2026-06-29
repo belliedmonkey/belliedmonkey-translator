@@ -77,6 +77,27 @@ var WebpageTranslator = (() => {
 
   function transStyle() { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;font-size:${settings.fontSize || '0.95em'};line-height:1.4;display:block;white-space:pre-wrap;`; }
 
+  // A sibling translation injected into a flex/grid row becomes a flex/grid ITEM
+  // placed inline next to the original (mobile YouTube metadata "4946次点赞 ·
+  // 29万次观看 · 1年前", header, comment counts) — it overlaps and spills off the
+  // row. Force it onto its own full-width line: in flex, flex-basis:100% + make the
+  // row wrap (record nowrap→wrap for clean revert); in grid, span every column.
+  function flowFixCss(node) {
+    const p = node.parentElement;
+    if (!p) return '';
+    let cs; try { cs = getComputedStyle(p); } catch (_) { return ''; }
+    const disp = cs.display;
+    if (disp === 'flex' || disp === 'inline-flex') {
+      if (cs.flexWrap === 'nowrap' && !p.hasAttribute('data-mt-flow-fix')) {
+        p.style.flexWrap = 'wrap';
+        p.setAttribute('data-mt-flow-fix', '1');
+      }
+      return 'flex-basis:100%;width:100%;';
+    }
+    if (disp === 'grid' || disp === 'inline-grid') return 'grid-column:1 / -1;';
+    return '';
+  }
+
   // ─── Sibling renderer ─────────────────────────────────────────────────
   function siblingOf(node) { const s = node.nextElementSibling; return (s && s.classList && s.classList.contains(CLASS)) ? s : null; }
   function ensureSibling(node) {
@@ -92,14 +113,14 @@ var WebpageTranslator = (() => {
     if (st.state === 'pending') {
       restoreOriginal(node);
       const d = ensureSibling(node); d.onclick = null;
-      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;';
+      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + flowFixCss(node);
       d.textContent = TranslationCore.MSG.loading;
       return;
     }
     if (st.state === 'error') {
       restoreOriginal(node);
       const d = ensureSibling(node);
-      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;';
+      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + flowFixCss(node);
       d.textContent = TranslationCore.MSG.error;
       d.onclick = () => { engine.retry(u); u._shownKey = ''; };
       return;
@@ -112,7 +133,7 @@ var WebpageTranslator = (() => {
       } else {
         restoreOriginal(node);
         const d = ensureSibling(node); d.onclick = null;
-        d.style.cssText = transStyle();
+        d.style.cssText = transStyle() + flowFixCss(node);
         buildRichText(st.translation, d);
       }
       return;
@@ -128,7 +149,7 @@ var WebpageTranslator = (() => {
     let holder = siblingOf(node);
     if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
     if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; node.insertAdjacentElement('afterend', holder); }
-    holder.style.cssText = 'display:block;margin:2px 0;';
+    holder.style.cssText = 'display:block;margin:2px 0;' + flowFixCss(node);
     holder.textContent = '';
     for (let i = 0; i < oParas.length; i++) {
       const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;line-height:1.4;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
@@ -182,11 +203,14 @@ var WebpageTranslator = (() => {
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
       if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); }
+      const p = node.parentElement; // undo the flex-row wrap fix (see flowFixCss)
+      if (p && p.hasAttribute('data-mt-flow-fix')) { p.style.flexWrap = ''; p.removeAttribute('data-mt-flow-fix'); }
     }
     document.querySelectorAll('.' + CLASS).forEach((e) => e.remove());
     document.querySelectorAll('[' + PROCESSED + ']').forEach((e) => e.removeAttribute(PROCESSED));
     document.querySelectorAll('[data-mt-hidden]').forEach((e) => { e.style.display = ''; e.removeAttribute('data-mt-hidden'); });
     document.querySelectorAll('[' + DOMProcessor.TRANSLATABLE_ATTR + ']').forEach((e) => e.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR));
+    document.querySelectorAll('[data-mt-flow-fix]').forEach((e) => { e.style.flexWrap = ''; e.removeAttribute('data-mt-flow-fix'); });
     units = [];
     engine = null;
   }
