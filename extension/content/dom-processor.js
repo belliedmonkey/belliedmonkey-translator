@@ -60,20 +60,26 @@ var DOMProcessor = (() => {
     return true;
   }
 
+  // Classify by COMPUTED display first (so a custom element or an <a>/<span>
+  // styled display:flex/block is treated as a block, and a <div> styled
+  // display:inline as inline). Tag tables are only a fallback when no computed
+  // style is available (detached nodes).
   function isInline(el) {
     if (!(el instanceof Element)) return false;
-    if (INLINE_TAGS.has(el.tagName.toLowerCase())) return true;
     const cs = computed(el);
-    return !!(cs && /^inline/.test(cs.display));
+    if (cs && cs.display) return /^inline/.test(cs.display) || cs.display === 'contents';
+    return INLINE_TAGS.has(el.tagName.toLowerCase());
   }
 
   function isBlock(el) {
     if (!(el instanceof Element)) return false;
-    if (isInline(el)) return false;
-    const tag = el.tagName.toLowerCase();
-    if (BLOCK_TAGS.has(tag)) return true;
     const cs = computed(el);
-    return !!(cs && /^(block|flex|grid|list-item|table|flow-root)/.test(cs.display));
+    if (cs && cs.display) {
+      const d = cs.display;
+      if (d === 'none' || d === 'contents' || /^inline/.test(d)) return false;
+      return true; // block / flex / grid / list-item / table / flow-root / …
+    }
+    return BLOCK_TAGS.has(el.tagName.toLowerCase());
   }
 
   // Hard skip: reject this element AND its subtree from the walk entirely.
