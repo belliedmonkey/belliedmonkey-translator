@@ -29,7 +29,9 @@ var TranslationAPI = (() => {
 Rules:
 1. Output ONLY the translation — no explanations, notes, or extra content.
 2. Preserve the original formatting and line breaks.
-3. Keep proper nouns, brand names, and code unchanged.
+3. Keep code, URLs, and well-known brand / product / company names unchanged, but
+   DO translate ordinary words, place names, and loanwords (including katakana) —
+   never leave foreign-script text untranslated.
 4. Make the translation natural and fluent in the target language.`;
   }
 
