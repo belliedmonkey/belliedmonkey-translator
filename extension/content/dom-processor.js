@@ -155,7 +155,10 @@ var DOMProcessor = (() => {
 
   // Non-translatable text: pure symbols/numbers, a bare URL/email/@/#, or code.
   function isUntranslatable(text) {
-    if (/^[\d\s\W]+$/.test(text)) return true;
+    // Unicode-aware "no letters at all" check. (Must use \p{L}, NOT [\W] — JS \w
+    // is ASCII-only, so [\W] would wrongly flag ALL non-Latin scripts — Japanese,
+    // Chinese, Korean, Arabic — as pure symbols and skip them.)
+    if (!/\p{L}/u.test(text)) return true;
     if (/^https?:\/\/\S+$/.test(text)) return true;
     if (/^[\w.+-]+@[\w.-]+\.\w+$/.test(text)) return true;
     if (/^[@#]\S+$/.test(text)) return true;
