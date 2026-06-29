@@ -114,20 +114,34 @@ features run in the real extension.
   toggle + per-site grant for `wikipedia.org` this time (the FAB injected without a
   re-grant) — unlike some prior runs. Environment-dependent, not a code issue.
 
-### Podcast bilingual subtitles (2026-06-30, desktop Chrome)
-Verified end-to-end on desktop Chrome (unpacked `dist/`) against the Substack
-podcast page `lennysnewsletter.com/p/openai-codex-lead-on-the-new-shape` (in-page
-CloudFront-signed `en.vtt`). The iOS-Simulator pass was blocked by Safari's per-site
-extension-permission grant (resets on each reinstall; not reliably automatable via
-AX) — Chrome is the equivalent content-script surface and the cue logic is shared.
+### Podcast bilingual subtitles (2026-06-30 — desktop Chrome AND iOS Safari sim)
+Verified end-to-end on BOTH surfaces against the Substack podcast page
+`lennysnewsletter.com/p/openai-codex-lead-on-the-new-shape` (in-page CloudFront-signed
+`en.vtt`).
 
-Confirmed: FAB enables podcast subtitles → the signed VTT resolves (HTTP 200, **1369
-cues** parsed → merged sentences), and the viewport-anchored overlay shows matched
-whole-sentence pairs synced to `audio.currentTime` — e.g. at 4s
+**Desktop Chrome** (unpacked `dist/`): FAB enables podcast subtitles → the signed VTT
+resolves (HTTP 200, **1369 cues** parsed → merged sentences), and the viewport-anchored
+overlay shows matched whole-sentence pairs synced to `audio.currentTime` — e.g. at 4s
 "Not 90% of engineers, that's…" / "不是90%的工程师，而是整个公司90%的人。", at 30s
 "A lot of people seem to like the app." / "很多人似乎都喜欢这个应用。" — advancing with
 the clock, never word-by-word. The 译 control menu (双语/仅译文/仅原文, 下载.srt, 设置)
-renders. Two bugs found ONLY by running it on a real page (invisible to code review):
+renders.
+
+**iOS Safari (iPhone 15 sim)**: confirmed the SAME flow on-device — FAB activates, the
+floating 译 control appears, page text translates (green interlinear), and on playback
+the overlay renders the transcript original synced to `audio.currentTime` (e.g. ~1:37 in:
+"data analysis, reading your emails, and a…"). Crucially this proves the **cross-origin
+content-script fetch of the signed VTT works on Safari** (same host-permission path as
+the YouTube timedtext re-fetch) — the credentials fix below was load-bearing here too.
+- **Gotcha — Safari per-site permission must be granted as "始终允许在此网站上".** A fresh
+  install (or app upgrade) resets the `<all_urls>` per-site grant to *ask*. The auto
+  prompt's **允许1天 / 始终允许…** only stick reliably once you complete **始终允许… →
+  在此网站上始终允许** and then RESTART Safari (terminate + reopen). Until then content
+  scripts silently don't inject (no FAB) — which masquerades as a code bug. Confirmed via
+  Settings → Safari → 扩展 → 大肚猴翻译 (允许扩展 ON; site = 允许) and an on-page diagnostic
+  banner showing every module loaded (`TC/API/DOM/FB/WP/YT/POD = object`, no error).
+
+Two bugs found ONLY by running it on a real page (invisible to code review):
 
 - **(c) FIXED — credentialed CDN fetch → 503 → `字幕不可用`.** `fetchTimedText`/RSS
   fetch used `{credentials:'include'}`; a CloudFront-signed transcript URL returns
