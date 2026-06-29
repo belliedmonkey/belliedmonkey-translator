@@ -59,6 +59,20 @@ var TranslationCore = (() => {
     return sp > cut * 0.6 ? sp : cut;
   }
 
+  // Heuristic: does this text look like source code / a data blob (not prose)?
+  // Catches e.g. reddit's inline `SML.load([["id",332],…],'en-US/','auto')` so it
+  // never gets translated. Language-agnostic (does not look at the target lang).
+  function looksLikeCode(text) {
+    if (!text) return false;
+    const t = text.trim();
+    if (/[\w$]\s*\.\s*\w+\s*\(\s*\[\[/.test(t)) return true;   // ident.method([[ …
+    if (/\[\[\s*"[^"]*"\s*,\s*-?\d/.test(t)) return true;       // [["abc", 123] tuple arrays
+    if (/\bfunction\s*\(|=>\s*\{|;\s*[\w$]+\s*\.\s*\w+\s*\(/.test(t)) return true; // JS fragments
+    const punct = (t.match(/[\[\]{}();"'`<>=]/g) || []).length; // bracket/quote density
+    if (t.length > 40 && punct / t.length > 0.2) return true;
+    return false;
+  }
+
   // ─── Cue merge: [{start,end,text}] → merged sentences ─────────────────
   function mergeSentences(cues, opt) {
     const o = opt || MERGE;
@@ -119,26 +133,29 @@ var TranslationCore = (() => {
     return { pageize, destroy };
   }
 
-  // ─── Subtitle engine: state machine + sliding-window preload + grace ───
-  // items: [{start, end, text}]. The engine adds state: tr (translation),
-  // _fetching, _done, _err, _tries. Rendering/paging stays in the adapter.
-  function createSubtitleEngine(cfg) {
-    const getCurrentTime = cfg.getCurrentTime;     // () => ms
-    const translate = cfg.translate;               // (text) => Promise<string>
+  // ─── Generic translation engine: per-unit state machine + retry ───────
+  // units: [{text, ...payload}]. The engine adds state: tr (translation),
+  // _fetching, _done, _err, _tries. The caller injects:
+  //   translate(text) → Promise<string>
+  //   selectActive(units) → units[]   (the scheduler: which units to translate now —
+  //                                     time-window for subtitles, viewport for pages)
+  // Rendering stays in the adapter. This is the shared core for BOTH the webpage
+  // path and the subtitle path (see docs/domain-design.md).
+  function createEngine(cfg) {
+    const translate = cfg.translate;
+    const selectActive = cfg.selectActive || ((u) => u);
     const win = cfg.window || WINDOW;
-    let items = [];
+    let units = [];
 
-    function setItems(list) { items = list || []; }
+    function setUnits(list) { units = list || []; }
 
-    // One tick of the sliding-window preloader.
     function pump() {
-      if (!items.length) return;
-      const tMs = getCurrentTime();
+      if (!units.length) return;
+      const active = selectActive(units) || [];
       let started = 0;
-      for (let i = 0; i < items.length && started < win.MAX_PER_TICK; i++) {
-        const it = items[i];
+      for (let i = 0; i < active.length && started < win.MAX_PER_TICK; i++) {
+        const it = active[i];
         if (it.tr || it._done || it._err || it._fetching) continue;
-        if (it.end < tMs || it.start > tMs + win.AHEAD_MS) continue; // outside window
         it._fetching = true;
         started++;
         translate(it.text).then((t) => {
@@ -152,35 +169,64 @@ var TranslationCore = (() => {
       }
     }
 
+    // Default display state: '' ready/nothing, 'pending' translating, 'error' gave up.
+    function stateOf(it) {
+      if (it.tr) return { state: '', translation: it.tr };
+      if (it._err) return { state: 'error', translation: '' };
+      if (!it._done) return { state: 'pending', translation: '' };
+      return { state: '', translation: '' };
+    }
+
+    function retry(it) { if (it) { it._err = false; it._tries = 0; } }
+    function reset() {
+      units.forEach((it) => {
+        it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
+      });
+    }
+
+    return { setUnits, pump, stateOf, retry, reset, get units() { return units; } };
+  }
+
+  // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
+  // items: [{start, end, text}]. Keeps the existing YouTube-adapter API
+  // (setItems/activeAt/stateOf(it,tMs)/items) so content-youtube is unaffected.
+  function createSubtitleEngine(cfg) {
+    const getCurrentTime = cfg.getCurrentTime;     // () => ms
+    const win = cfg.window || WINDOW;
+    const engine = createEngine({
+      translate: cfg.translate,
+      window: win,
+      // sliding window: only sentences from now to +AHEAD_MS
+      selectActive: (units) => {
+        const tMs = getCurrentTime();
+        return units.filter((u) => !(u.end < tMs || u.start > tMs + win.AHEAD_MS));
+      },
+    });
+
     function activeAt(tMs) {
+      const items = engine.units;
       for (let i = items.length - 1; i >= 0; i--) {
         if (items[i].start <= tMs) return tMs < items[i].end ? items[i] : null;
       }
       return null;
     }
-
-    // The display state for an item at time tMs.
-    // '' = ready/nothing, 'pending' = translating & behind, 'error' = gave up.
+    // Subtitle stateOf adds the anti-flicker GRACE (only show "pending" once we are
+    // genuinely behind playback) on top of the generic state.
     function stateOf(it, tMs) {
       if (it.tr) return { state: '', translation: it.tr };
       if (it._err) return { state: 'error', translation: '' };
       if (!it._done && tMs - it.start > win.GRACE_MS) return { state: 'pending', translation: '' };
       return { state: '', translation: '' };
     }
-
-    function retry(it) { if (it) { it._err = false; it._tries = 0; } }
-    function reset() {
-      items.forEach((it) => {
-        it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
-      });
-    }
-
-    return { setItems, pump, activeAt, stateOf, retry, reset, get items() { return items; } };
+    return {
+      setItems: engine.setUnits, pump: engine.pump, activeAt, stateOf,
+      retry: engine.retry, reset: engine.reset, get items() { return engine.units; },
+    };
   }
 
   return {
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
-    isTranslated, endsSentence, joinCue, wordBreakIndex,
-    mergeSentences, createPager, createSubtitleEngine,
+    isTranslated, looksLikeCode, endsSentence, joinCue, wordBreakIndex,
+    mergeSentences, createPager, createEngine, createSubtitleEngine,
   };
 })();
