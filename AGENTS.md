@@ -34,6 +34,16 @@ domain-design review before the code changes.** Do not refactor the architecture
 or add per-site / per-device branches to the segmenter without that review.
 Routine bug fixes that conform to the existing model do not require it.
 
+## Change documentation — every change gets a GitHub issue
+
+**All changes must be recorded in a GitHub issue** (`gh issue create`) that
+captures, for each problem addressed: the **problem** (what was wrong + how it was
+observed), the **solution** (what changed and where), and the **reasoning behind
+it** (root cause, why this approach, trade-offs/alternatives considered). Keep the
+issue updated as related work lands, and reference it from commits/PRs. The goal
+is a durable record of not just *what* changed but *why* — so the thinking behind
+each fix is preserved, not just the diff.
+
 ## Build & run
 
 ```bash
