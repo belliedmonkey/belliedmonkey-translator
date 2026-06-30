@@ -85,3 +85,31 @@ Harness verified end-to-end: the extension runs + translates on real iOS Safari
   「译文准备中…」. Also added: during ads the player's `currentTime` is the ad
   timeline, so the overlay is suppressed while `#movie_player` has
   `ad-showing`/`ad-interrupting` (avoids a mismatched subtitle over the ad).
+
+### User-selectable UI language + webpage font-matching (iPhone 15 sim, iOS 17.2) (2026-06-30)
+Verified on the **iPhone 15 sim** via cua-driver after the standard build pipeline
+(`node build.js` → safari-converter → `xcodebuild … (iOS)` → `simctl install`). Both
+features run in the real extension.
+
+- **PASS — webpage translation font matches the original.** On
+  `en.wikipedia.org/wiki/Giant_panda`, FAB on: the large serif heading **Giant panda**
+  → **大熊猫** in matching large serif green; the *italic hatnote* → an *italic* green
+  translation at the same size; the body lead paragraph → body-sized green text; the
+  infobox caption **Giant panda** → a bold green **大熊猫** matching that caption. Font
+  family / size / weight / style are copied from the original (`getComputedStyle`);
+  only the color stays distinct (green). The 「字号」 setting is now a relative scale
+  (default 1.0×). See `interaction-spec.md` "Font matches the original exactly".
+- **PASS — user-selectable UI language, live.** The extension popup now shows a
+  **「界面语言」** selector next to 「目标语言」, defaulting to **跟随系统** (OS locale).
+  The picker lists 跟随系统 + all 11 shipped locales. Selecting **English** re-localized
+  the popup **immediately, no reload** — Target language / Interface language /
+  Translation engine / View original / More settings / Translated all switched to
+  English. Implementation: `chrome.i18n.getMessage` can't be switched at runtime, so
+  `t()` consults a bundled `MT_I18N_MESSAGES` table (generated from `_locales/` by
+  `build.js`) keyed by the effective locale (stored `uiLang`, or normalized
+  `getUILanguage()` when `auto`), then falls back to `chrome.i18n`, then the literal.
+  Content-script notices (`译文准备中…` etc.) use the same resolver and follow the same
+  setting. See `interaction-spec.md` "Interface language".
+- **Note (reinstall gotcha, again):** reinstalling the app kept the Safari extension
+  toggle + per-site grant for `wikipedia.org` this time (the FAB injected without a
+  re-grant) — unlike some prior runs. Environment-dependent, not a code issue.

@@ -75,7 +75,25 @@ var WebpageTranslator = (() => {
     });
   }
 
-  function transStyle() { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;font-size:${settings.fontSize || '0.95em'};line-height:1.4;display:block;white-space:pre-wrap;`; }
+  // The translation should match the ORIGINAL element's font exactly (family / size /
+  // weight / style / line-height / letter-spacing) so a bold heading gets a bold
+  // heading translation, body text gets body text, etc. Only the COLOR stays distinct
+  // (settings.textColor) so the bilingual pair is still tellable apart. `fontSize` is a
+  // relative SCALE (1.0 = identical to the original); legacy unit values fall back to 1.
+  function parseScale(v) {
+    if (typeof v === 'string' && /(em|px|%)/.test(v)) return 1.0; // legacy '0.9em'/'14px'
+    const n = parseFloat(v);
+    return (isFinite(n) && n > 0) ? n : 1.0;
+  }
+  function fontCss(node) {
+    let cs = null; try { cs = node && getComputedStyle(node); } catch (_) { cs = null; }
+    if (!cs) return 'font-size:1em;line-height:1.4;';
+    const px = (parseFloat(cs.fontSize) || 16) * parseScale(settings.fontSize);
+    const lh = (cs.lineHeight && cs.lineHeight !== 'normal') ? cs.lineHeight : '1.4';
+    const ls = (cs.letterSpacing && cs.letterSpacing !== 'normal') ? `letter-spacing:${cs.letterSpacing};` : '';
+    return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}`;
+  }
+  function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
 
   // A sibling translation injected into a flex/grid row becomes a flex/grid ITEM
   // placed inline next to the original (mobile YouTube metadata "4946次点赞 ·
@@ -133,7 +151,7 @@ var WebpageTranslator = (() => {
       } else {
         restoreOriginal(node);
         const d = ensureSibling(node); d.onclick = null;
-        d.style.cssText = transStyle() + flowFixCss(node);
+        d.style.cssText = transStyle(node) + flowFixCss(node);
         buildRichText(st.translation, d);
       }
       return;
@@ -149,11 +167,13 @@ var WebpageTranslator = (() => {
     let holder = siblingOf(node);
     if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
     if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; node.insertAdjacentElement('afterend', holder); }
-    holder.style.cssText = 'display:block;margin:2px 0;' + flowFixCss(node);
+    // Copy the original's font onto the holder so the re-rendered original rows match
+    // the source; translation rows additionally take the distinct color via transStyle.
+    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node);
     holder.textContent = '';
     for (let i = 0; i < oParas.length; i++) {
-      const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;line-height:1.4;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
-      const t = document.createElement('div'); t.style.cssText = transStyle(); buildRichText(tParas[i], t); holder.appendChild(t);
+      const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
+      const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(tParas[i], t); holder.appendChild(t);
     }
     node.setAttribute('data-mt-hidden', '1');
     node.style.display = 'none';

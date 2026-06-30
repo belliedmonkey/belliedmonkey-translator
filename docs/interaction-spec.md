@@ -129,6 +129,39 @@ These apply to every webpage text translation, on every platform:
   original's formatting: line breaks / blank lines preserved (`white-space:
   pre-wrap`), and inline elements kept functional — URLs stay clickable links and
   timestamps stay seekable.
+- **Font matches the original exactly.** The translation copies the original
+  element's **computed font** — `font-family`, `font-size`, `font-weight`,
+  `font-style`, `line-height`, `letter-spacing` — read via `getComputedStyle(original)`
+  at render time. So a bold heading gets a bold heading-sized translation, body text
+  gets body text, a caption gets a caption. The **only** font-related property that
+  stays distinct is the **color** (configurable, default green `#0a7a3c` / dark-mode
+  `#4ade80`) so the bilingual pair is still tellable apart. The 「字号」 setting is a
+  **relative scale** applied on top (default `1.0×` = identical to the original;
+  `0.8×`–`1.25×` to tune all translations up/down; legacy unit values migrate to
+  `1.0×`). Applies to the sibling translation and to the re-rendered originals +
+  translations in the single-blob interleave path. Subtitle overlays are a separate
+  path (`lineCss`, keyed off `ytTextColor`) and are unaffected.
+
+---
+
+## Interface language (界面语言)
+The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
+menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此
+重试`, `⏳ 字幕加载中…`, `字幕不可用`, …) — is shown in the **UI language**.
+- **Default = follow the OS/system locale** (`uiLang: 'auto'`). The user can
+  **explicitly override** it from a 「界面语言」 selector in **both** the popup and the
+  options page (mirroring the 「目标语言」 selector), choosing any of the shipped locales.
+- **UI language ≠ target language.** `targetLang` is what pages get *translated into*;
+  `uiLang` is the language of the extension's chrome. They are independent.
+- Switching applies **live** (no reload): the popup/options re-localize immediately,
+  and content-script notices pick up the new language on the next render.
+- Implementation note: `chrome.i18n.getMessage` is locked to the browser/OS locale and
+  can't be switched at runtime, so `t()` consults a bundled message table
+  (`MT_I18N_MESSAGES`, generated from `_locales/`) keyed by the effective locale, then
+  falls back to `chrome.i18n`, then the literal Chinese fallback.
+- **All user-visible strings are localized**, with two **deliberate exceptions shown
+  verbatim**: language-picker **endonyms** (简体中文 / English / 日本語 …) and third-party
+  **brand names** (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM).
 
 ## General
 - **Screenshot-verify** every visual change against the built/loaded extension.

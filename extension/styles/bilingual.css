@@ -1,20 +1,18 @@
 /* bilingual.css — 双语对照显示样式 */
 
+/* The font (family/size/weight/style/line-height) is copied from the ORIGINAL element
+   inline by content-webpage.js so the translation matches the source — so it is NOT set
+   here. Only the distinguishing color + structural separators live in CSS. */
 .mt-translation {
   display: block;
   margin-top: 4px;
   padding: 3px 0 2px;
   border-top: 1px solid rgba(10, 122, 60, 0.18);
   color: #0a7a3c;
-  font-size: 0.9em;
-  font-family: inherit;
-  line-height: 1.65;
   word-break: break-word;
   overflow-wrap: anywhere;
   -webkit-user-select: text;
   user-select: text;
-  font-style: normal;
-  font-weight: normal;
   text-decoration: none;
 }
 

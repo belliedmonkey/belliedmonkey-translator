@@ -150,19 +150,19 @@
     "message": "معاينة الترجمة الثنائية"
   },
   "options_font_size": {
-    "message": "حجم خط الترجمة"
+    "message": "حجم الترجمة (نسبةً للأصل)"
   },
   "options_font_s": {
-    "message": "صغير (80%)"
+    "message": "أصغر (0.8×)"
   },
   "options_font_m": {
-    "message": "متوسط (90%)"
+    "message": "صغير (0.9×)"
   },
   "options_font_body": {
-    "message": "مثل النص (100%)"
+    "message": "مطابق للأصل (1.0×)"
   },
   "options_font_l": {
-    "message": "كبير (110%)"
+    "message": "أكبر (1.1×)"
   },
   "options_show_fab": {
     "message": "إظهار الزر العائم"
@@ -226,5 +226,17 @@
   },
   "hint_glm": {
     "message": "مفتاح GLM (Zhipu AI) API. النموذج: glm-4-flash (يوجد حد مجاني)"
+  },
+  "ui_lang_label": {
+    "message": "لغة الواجهة"
+  },
+  "ui_lang_auto": {
+    "message": "اتّباع النظام"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator · v1.0.0"
+  },
+  "options_font_xl": {
+    "message": "الأكبر (1.25×)"
   }
 }

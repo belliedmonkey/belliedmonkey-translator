@@ -12,14 +12,49 @@ var TranslationCore = (() => {
   const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
-  // i18n: read a localized UI string (chrome.i18n, by browser UI language) with a
-  // Chinese fallback so a missing key never blanks the UI. Shared by all adapters.
+  // i18n: read a localized UI string with a Chinese fallback so a missing key never
+  // blanks the UI. Shared by all adapters.
+  //
+  // The UI language defaults to the OS/browser locale but is user-overridable via the
+  // `uiLang` setting. chrome.i18n.getMessage is locked to the browser locale and can't
+  // be switched at runtime, so we consult the bundled `MT_I18N_MESSAGES` table (from
+  // _locales/, loaded as a content script before this file) keyed by the effective
+  // locale, then fall back to chrome.i18n, then the literal fallback.
+  let _uiLang = 'auto'; // hydrated from storage below; 'auto' = follow the OS
+
+  function normalizeLocale(tag) {
+    const T = (typeof window !== 'undefined' && window.MT_I18N_MESSAGES) || {};
+    if (!tag) return '';
+    const s = String(tag).replace(/-/g, '_');
+    if (T[s]) return s;                                   // exact, e.g. zh_CN
+    const base = s.split('_')[0];
+    if (base === 'zh') return T.zh_CN ? 'zh_CN' : (T.zh_TW ? 'zh_TW' : '');
+    if (T[base]) return base;                             // en_US → en
+    for (const k of Object.keys(T)) if (k.split('_')[0] === base) return k;
+    return '';
+  }
+
+  function effectiveLocale() {
+    if (_uiLang && _uiLang !== 'auto') { const n = normalizeLocale(_uiLang); if (n) return n; }
+    try { const u = chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage(); const n = normalizeLocale(u); if (n) return n; } catch (_) {}
+    return 'zh_CN';
+  }
+
   function i18n(key, fallback) {
     try {
-      const m = (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage(key));
-      return m || fallback;
-    } catch (_) { return fallback; }
+      const T = (typeof window !== 'undefined' && window.MT_I18N_MESSAGES);
+      if (T) { const loc = effectiveLocale(); const m = T[loc] && T[loc][key]; if (m) return m; }
+      const cm = (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage(key));
+      if (cm) return cm;
+    } catch (_) {}
+    return fallback;
   }
+
+  // Hydrate the UI-language preference and keep it live (MSG getters re-read per use).
+  try {
+    chrome.storage.local.get('uiLang', (s) => { if (s && s.uiLang) _uiLang = s.uiLang; });
+    chrome.storage.onChanged.addListener((ch) => { if (ch.uiLang) _uiLang = ch.uiLang.newValue || 'auto'; });
+  } catch (_) {}
 
   // UI-chrome strings (getters so they reflect the active locale).
   const MSG = {

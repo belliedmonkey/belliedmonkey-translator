@@ -5,8 +5,34 @@ const OPENAI_COMPAT = new Set(['openai', 'deepseek', 'glm']); // support custom 
 
 const $ = id => document.getElementById(id);
 
-// i18n: localized string by browser UI language, with the in-markup text as fallback.
-const t = (key, fb) => { try { return chrome.i18n.getMessage(key) || fb; } catch (_) { return fb; } };
+// i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
+// locale), consulting the bundled MT_I18N_MESSAGES table, then chrome.i18n, then the
+// in-markup fallback. chrome.i18n.getMessage alone can't be switched at runtime.
+let _uiLang = 'auto';
+function normalizeLocale(tag) {
+  const T = window.MT_I18N_MESSAGES || {};
+  if (!tag) return '';
+  const s = String(tag).replace(/-/g, '_');
+  if (T[s]) return s;
+  const base = s.split('_')[0];
+  if (base === 'zh') return T.zh_CN ? 'zh_CN' : (T.zh_TW ? 'zh_TW' : '');
+  if (T[base]) return base;
+  for (const k of Object.keys(T)) if (k.split('_')[0] === base) return k;
+  return '';
+}
+function effectiveLocale() {
+  if (_uiLang && _uiLang !== 'auto') { const n = normalizeLocale(_uiLang); if (n) return n; }
+  try { const n = normalizeLocale(chrome.i18n.getUILanguage()); if (n) return n; } catch (_) {}
+  return 'zh_CN';
+}
+const t = (key, fb) => {
+  try {
+    const T = window.MT_I18N_MESSAGES;
+    if (T) { const loc = effectiveLocale(); const m = T[loc] && T[loc][key]; if (m) return m; }
+    const cm = chrome.i18n.getMessage(key); if (cm) return cm;
+  } catch (_) {}
+  return fb;
+};
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach((el) => { const m = t(el.dataset.i18n, ''); if (m) el.textContent = m; });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { const m = t(el.dataset.i18nPlaceholder, ''); if (m) el.placeholder = m; });
@@ -66,11 +92,13 @@ async function queryPageTranslated() {
 }
 
 async function init() {
-  applyI18n();
   const s = await getSettings();
+  _uiLang = s.uiLang || 'auto';
+  applyI18n();
 
   // Populate UI
   $('target-lang').value = s.targetLang || 'zh-CN';
+  $('ui-lang').value = s.uiLang || 'auto';
   $('provider').value = s.provider || 'google';
   $('api-key').value = s.apiKey || '';
   $('api-base-url').value = s.apiBaseUrl || '';
@@ -85,6 +113,14 @@ async function init() {
 
   $('target-lang').addEventListener('change', async (e) => {
     await saveSettings({ targetLang: e.target.value });
+    showToast(t('toast_lang_switched', '语言已切换'));
+  });
+
+  $('ui-lang').addEventListener('change', async (e) => {
+    _uiLang = e.target.value || 'auto';
+    await saveSettings({ uiLang: e.target.value });
+    applyI18n();
+    updateTranslateUI(); // re-localize the button/badge text
     showToast(t('toast_lang_switched', '语言已切换'));
   });
 

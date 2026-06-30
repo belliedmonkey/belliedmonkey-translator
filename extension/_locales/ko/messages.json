@@ -150,19 +150,19 @@
     "message": "이중 자막 미리보기"
   },
   "options_font_size": {
-    "message": "번역 글자 크기"
+    "message": "번역문 크기(원문 대비)"
   },
   "options_font_s": {
-    "message": "작게(80%)"
+    "message": "작게 (0.8×)"
   },
   "options_font_m": {
-    "message": "보통(90%)"
+    "message": "조금 작게 (0.9×)"
   },
   "options_font_body": {
-    "message": "본문과 동일(100%)"
+    "message": "원문과 동일 (1.0×)"
   },
   "options_font_l": {
-    "message": "크게(110%)"
+    "message": "조금 크게 (1.1×)"
   },
   "options_show_fab": {
     "message": "플로팅 버튼 표시"
@@ -226,5 +226,17 @@
   },
   "hint_glm": {
     "message": "GLM(Zhipu AI) API 키. 모델: glm-4-flash(무료 제공량 있음)"
+  },
+  "ui_lang_label": {
+    "message": "인터페이스 언어"
+  },
+  "ui_lang_auto": {
+    "message": "시스템 설정 따름"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator · v1.0.0"
+  },
+  "options_font_xl": {
+    "message": "크게 (1.25×)"
   }
 }
