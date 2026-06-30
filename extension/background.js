@@ -6,11 +6,12 @@
 const DEFAULT_SETTINGS = {
   enabled: false,
   targetLang: 'zh-CN',
+  uiLang: 'auto',        // UI-chrome language; 'auto' = follow the OS/browser locale
   provider: 'google',
   apiKey: '',
   apiBaseUrl: '',
   textColor: '#0a7a3c',
-  fontSize: '0.9em',
+  fontSize: '1.0',       // translation font size as a scale relative to the original
   showFab: true,
   bilingualMode: 'below'
 };

@@ -150,19 +150,19 @@
     "message": "Aperçu des sous-titres bilingues"
   },
   "options_font_size": {
-    "message": "Taille de police de traduction"
+    "message": "Taille du texte traduit (relative)"
   },
   "options_font_s": {
-    "message": "Petit (80 %)"
+    "message": "Plus petit (0,8×)"
   },
   "options_font_m": {
-    "message": "Moyen (90 %)"
+    "message": "Petit (0,9×)"
   },
   "options_font_body": {
-    "message": "Comme le texte (100 %)"
+    "message": "Comme l'original (1,0×)"
   },
   "options_font_l": {
-    "message": "Grand (110 %)"
+    "message": "Plus grand (1,1×)"
   },
   "options_show_fab": {
     "message": "Afficher le bouton flottant"
@@ -226,5 +226,17 @@
   },
   "hint_glm": {
     "message": "Clé API GLM (Zhipu AI). Modèle : glm-4-flash (offre gratuite)"
+  },
+  "ui_lang_label": {
+    "message": "Langue de l'interface"
+  },
+  "ui_lang_auto": {
+    "message": "Suivre le système"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator · v1.0.0"
+  },
+  "options_font_xl": {
+    "message": "Très grand (1,25×)"
   }
 }

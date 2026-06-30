@@ -33,6 +33,7 @@
     {
       "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
+        "content/i18n-messages.js",
         "content/translation-core.js",
         "content/translation-api.js",
         "content/dom-processor.js",
@@ -52,6 +53,7 @@
       "matches": ["<all_urls>"],
       "exclude_matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
+        "content/i18n-messages.js",
         "content/translation-core.js",
         "content/translation-api.js",
         "content/dom-processor.js",

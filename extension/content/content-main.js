@@ -22,7 +22,7 @@
     apiBaseUrl: settings.apiBaseUrl || '',
     textColor: settings.textColor || '#0a7a3c',
     ytTextColor: settings.ytTextColor || '#ffffff',
-    fontSize: settings.fontSize || '0.9em',
+    fontSize: settings.fontSize || '1.0',
     showFab: settings.showFab !== false,
     ytSubEnabled: false // video subtitles also start off until the 译 button is turned on
   };
