@@ -159,3 +159,26 @@ Two bugs found ONLY by running it on a real page (invisible to code review):
 - **Hardened**: `resolveCues` was one-shot (`resolveTried` latched) — a slow embed or
   transient failure stuck `字幕不可用` forever. Now retries up to 6× every 2.5s before
   giving up.
+
+### Podcast text-only floor — Apple Podcasts + Spotify (iPhone 15 sim) (2026-07-02)
+Verified on the **iPhone 15 sim** (podcast branch build) via cua-driver + `simctl
+openurl`/`screenshot`. Confirms the `isTextOnlyPodcast` routing (`content-main.js`) and
+the webpage-text floor on the two hosts that have no login-free timed transcript.
+
+- **PASS — no subtitle overlay on these hosts.** On both `podcasts.apple.com` and
+  `open.spotify.com` only the green **文A** page-text FAB appears — **no** 译 subtitle
+  control and **no** `字幕不可用` bar (previously the podcast path resolved to an
+  intrusive `字幕不可用`). This matches the spec: Apple / 小宇宙 / (for now) Spotify are
+  text-only.
+- **PASS — text floor translates (Spotify).** FAB on → title **Lex Fridman Podcast** →
+  green **莱克斯·弗里德曼播客**, author → **莱克斯·弗里德曼**, and the full description
+  ("Conversations that explore technology, history, philosophy…") → a full green
+  translation ("探讨技术、历史、哲学、物理、数学…"), each on its own line, font-matched.
+- **PASS — text floor translates (Apple Podcasts).** FAB on → the show title translates
+  (green, font-matched). Known cosmetic follow-up: on Apple's specific flex header the
+  title's sibling translation renders inline and overflows to the right instead of
+  wrapping to its own line (Spotify wraps correctly). Pre-existing WebpageTranslator
+  flex-row behavior, not introduced here; tracked as a follow-up.
+- **Minor:** Spotify localizes its own chrome to the OS locale (zh), so an already-zh
+  heading like 所有单集 gets a redundant same-language "translation". Expected (we don't
+  language-detect per paragraph); harmless.
