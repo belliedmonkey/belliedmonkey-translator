@@ -451,26 +451,25 @@ var YouTubeTranslator = (() => {
     return btn;
   }
 
-  function ensureControlButton() {
-    if (document.getElementById(BTN_ID)) return;
-    const bar = document.querySelector(RIGHT_CONTROLS);
-    if (bar) { // desktop / control bar present: a real button in the bar
-      const btn = makeTranslateBtn();
-      btn.className = 'ytp-button';
-      btn.style.cssText =
-        'position:relative;width:48px;height:100%;vertical-align:top;border:none;background:none;' +
-        'cursor:pointer;font-size:15px;font-weight:700;color:#fff;opacity:.9;';
-      bar.insertBefore(btn, bar.firstChild);
-      return;
-    }
-    // No control bar. In an EMBED (no page FAB) use a small floating button.
-    // On mobile m.youtube.com (top frame) the page FAB drives subtitles → no button.
-    if (!IS_EMBED || !document.querySelector(PLAYER)) return;
-    const btn = makeTranslateBtn();
-    btn.style.cssText =
-      'position:fixed;right:10px;bottom:10px;width:40px;height:40px;border-radius:50%;border:none;' +
+  // The in-player 译 button is ALWAYS an always-visible green circular floating button,
+  // identical across youtube.com (desktop + touch) and third-party embeds — one widget,
+  // one code path. On youtube.com it sits above the page FAB (bottom:150px); in an embed
+  // there is no page FAB so it sits at the corner (bottom:10px).
+  function floatingBtnCss(bottomPx) {
+    return `position:fixed;right:18px;bottom:${bottomPx}px;width:40px;height:40px;border-radius:50%;border:none;` +
       'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
       'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
+  }
+
+  function ensureControlButton() {
+    if (document.getElementById(BTN_ID)) return;
+    const hasBar = !!document.querySelector(RIGHT_CONTROLS); // desktop-layout player
+    // Mobile m.youtube.com (no control bar, not an embed): the page FAB drives the
+    // video subtitles → no in-player button.
+    if (!hasBar && !IS_EMBED) return;
+    if (!document.querySelector(PLAYER)) return;
+    const btn = makeTranslateBtn();
+    btn.style.cssText = floatingBtnCss(IS_EMBED ? 10 : 150);
     document.body.appendChild(btn);
   }
 
@@ -484,10 +483,18 @@ var YouTubeTranslator = (() => {
 
     const menu = document.createElement('div');
     menu.id = MENU_ID;
-    menu.style.cssText =
-      (floating
-        ? 'position:fixed;right:10px;bottom:58px;max-height:calc(100vh - 72px);overflow-y:auto;'
-        : 'position:absolute;right:12px;bottom:60px;') +
+    // Anchor the menu just above the floating button wherever it sits (embed bottom:10,
+    // youtube.com bottom:150), computed from the button's actual rect.
+    let posCss;
+    if (floating) {
+      const r = btn.getBoundingClientRect();
+      const right = Math.max(10, Math.round(window.innerWidth - r.right));
+      const bottom = Math.max(10, Math.round(window.innerHeight - r.top + 8));
+      posCss = `position:fixed;right:${right}px;bottom:${bottom}px;max-height:calc(100vh - 72px);overflow-y:auto;`;
+    } else {
+      posCss = 'position:absolute;right:12px;bottom:60px;';
+    }
+    menu.style.cssText = posCss +
       'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
       'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
 
