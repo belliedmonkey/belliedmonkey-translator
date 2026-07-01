@@ -115,11 +115,14 @@ states. Differences from YouTube are noted below.
 ### Loading / fallback
 - While fetching/parsing the transcript, show **`⏳ 字幕加载中…`** (dimmed) — auto-swaps
   to the bilingual pair when ready; never a stuck line.
-- If no timed transcript exists, show **`字幕不可用`** and do **not** synthesize one.
-  The page's show-notes / text transcript still translates via the webpage text path
-  (the floor) when the FAB is on.
-- **Apple Podcasts web** and **小宇宙** expose no timed transcript → text-only (no
-  subtitle overlay).
+- If no timed transcript exists on a host that MIGHT have one (generic audio pages),
+  show **`字幕不可用`** and do **not** synthesize one. The page's show-notes / text
+  transcript still translates via the webpage text path (the floor) when the FAB is on.
+- **Known text-only hosts → no subtitle overlay at all** (not even `字幕不可用`): the FAB
+  simply translates the page text. This is **`podcasts.apple.com`** and **`小宇宙`** (no
+  timed transcript exists), and — for now — **`open.spotify.com`** (its synced "Read
+  along" is Phase B, a logged-in DOM scrape; Spotify drops out of this list once
+  implemented). Routing gate: `isTextOnlyPodcast` in `content-main.js`.
 
 ---
 

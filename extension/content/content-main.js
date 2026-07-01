@@ -39,7 +39,13 @@
   // drives PodcastTranslator whenever the page has a media element (it stays fully
   // dormant otherwise). Never on YouTube (that has its own subtitle path).
   const isPodcastHost = /(open\.spotify\.com|podcasts\.apple\.com|xiaoyuzhoufm\.com)/.test(location.hostname);
-  const drivesPodcast = () => !isYouTube && (isPodcastHost || !!document.querySelector('audio'));
+  // Hosts with NO obtainable timed transcript in the login-free path → TEXT-ONLY:
+  // the FAB translates the page text, and we do NOT drive the subtitle overlay (so no
+  // intrusive 字幕不可用 bar). Apple Podcasts web / 小宇宙 expose no timed transcript at
+  // all; Spotify's synced "Read along" is Phase B (a logged-in DOM scrape) and will
+  // drop out of this list once implemented.
+  const isTextOnlyPodcast = /(open\.spotify\.com|podcasts\.apple\.com|xiaoyuzhoufm\.com)/.test(location.hostname);
+  const drivesPodcast = () => !isYouTube && !isTextOnlyPodcast && (isPodcastHost || !!document.querySelector('audio'));
 
   if (isEmbed) {
     if (isYouTube) YouTubeTranslator.init(cfg);
