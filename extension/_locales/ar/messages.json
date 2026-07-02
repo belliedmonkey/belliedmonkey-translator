@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "الترجمة غير متوفرة"
   },
+  "podcast_sub_on": {
+    "message": "تشغيل ترجمة البودكاست"
+  },
+  "podcast_sub_off": {
+    "message": "إيقاف ترجمة البودكاست"
+  },
   "settings": {
     "message": "الإعدادات"
   },

@@ -35,6 +35,17 @@
   // inside an iframe): translate ONLY the video subtitles — no FAB, no page text.
   const isEmbed = window.top !== window.self;
 
+  // Podcast hosts (audio subtitles). Generic audio pages are handled too — the FAB
+  // drives PodcastTranslator whenever the page has a media element (it stays fully
+  // dormant otherwise). Never on YouTube (that has its own subtitle path).
+  const isPodcastHost = /(open\.spotify\.com|podcasts\.apple\.com|xiaoyuzhoufm\.com)/.test(location.hostname);
+  // Hosts with NO obtainable timed transcript at all → TEXT-ONLY: the FAB translates
+  // the page text, and we do NOT drive the subtitle overlay (so no intrusive 字幕不可用
+  // bar). Apple Podcasts web / 小宇宙 expose no timed transcript. (Spotify is NOT here —
+  // its synced "Read along" transcript is scraped by PodcastTranslator.resolveSpotifyDom.)
+  const isTextOnlyPodcast = /(podcasts\.apple\.com|xiaoyuzhoufm\.com)/.test(location.hostname);
+  const drivesPodcast = () => !isYouTube && !isTextOnlyPodcast && (isPodcastHost || !!document.querySelector('audio'));
+
   if (isEmbed) {
     if (isYouTube) YouTubeTranslator.init(cfg);
     return;
@@ -54,6 +65,10 @@
         if (enabled) YouTubeTranslator.enable(cfg);
         else YouTubeTranslator.disable();
       }
+      if (drivesPodcast()) {
+        if (enabled) PodcastTranslator.enable(cfg);
+        else PodcastTranslator.disable();
+      }
     });
   }
 
@@ -63,6 +78,10 @@
   // YouTube video subtitles: independent, controlled by the in-player 译 button.
   // The /api/timedtext interceptor lives in content/yt-hook.js (world:"MAIN").
   if (isYouTube) YouTubeTranslator.init(cfg);
+
+  // Podcast audio subtitles (non-YouTube): dormant until the FAB turns it on and
+  // the page has a media element + a timed transcript.
+  if (!isYouTube) PodcastTranslator.init(cfg);
 
   // ─── Listen for settings changes from popup ────────────────────────────
 
@@ -78,10 +97,12 @@
     if ('enabled' in changes) {
       if (cfg.enabled) WebpageTranslator.enable(cfg);
       else WebpageTranslator.disable();
+      if (drivesPodcast()) { if (cfg.enabled) PodcastTranslator.enable(cfg); else PodcastTranslator.disable(); }
     } else {
       // provider / language / color change → re-translate what's active
       WebpageTranslator.updateSettings(cfg);
       if (isYouTube) YouTubeTranslator.updateSettings(cfg);
+      if (!isYouTube) PodcastTranslator.updateSettings(cfg);
     }
   });
 
@@ -94,6 +115,7 @@
       FloatingButton.setEnabled(true);
       WebpageTranslator.enable(cfg);
       if (isMobileYouTube) YouTubeTranslator.enable(cfg);
+      if (drivesPodcast()) PodcastTranslator.enable(cfg);
       sendResponse({ ok: true });
     }
 
@@ -103,6 +125,7 @@
       FloatingButton.setEnabled(false);
       WebpageTranslator.disable();
       if (isMobileYouTube) YouTubeTranslator.disable();
+      if (drivesPodcast()) PodcastTranslator.disable();
       sendResponse({ ok: true });
     }
 

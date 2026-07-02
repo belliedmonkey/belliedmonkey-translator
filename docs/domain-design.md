@@ -43,10 +43,14 @@ middle is generic and lives in `TranslationCore`.
 - **Anything that IS DOM** (normal pages **and** YouTube's title/description/
   comments) → the single general **`DomSegmenter`**. No per-site selectors; in
   particular **no `YT_TARGETS`**.
-- **Video subtitles are NOT DOM** — they are a timed JSON transcript fetched
-  whole from the network (`/api/timedtext`, json3). There is no DOM to segment, so
-  they use a different **kind** of extractor (`SubtitleSource`), but feed the **same
-  Engine**. This is a *source-kind* difference, not a site difference.
+- **Video/audio subtitles are NOT DOM** — they are a timed transcript fetched
+  whole (YouTube `/api/timedtext` json3; podcast WebVTT/SRT). There is no DOM to
+  segment, so they use a different **kind** of extractor (`SubtitleSource` /
+  `PodcastSource`), but feed the **same Engine**. This is a *source-kind* difference,
+  not a site difference.
+- **Podcast bilingual subtitles** are the audio analogue of video subtitles — see
+  **§2.2**. Where a podcast has no timed transcript, it is just a **page** (show
+  notes / a text transcript) and falls to the normal `DomSegmenter` text path.
 
 ### 2.1 YouTube subtitle core constraint (核心约束 — do not break)
 
@@ -83,6 +87,41 @@ The YouTube subtitle path follows **one** logic, identical on every platform
 
 If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
 show a one-line notice — **do not** silently regress to per-caption translation.
+
+### 2.2 Podcast subtitle core constraint (核心约束 — do not break)
+
+Podcast bilingual subtitles are the **audio analogue of §2.1** and follow the same
+one logic, reusing the same Engine (`createSubtitleEngine`, 60s translate-ahead) and
+overlay renderer. The only podcast-specific parts are the **source** (where the
+timed cues come from) and the **renderer anchor** (no video frame → fixed to the
+viewport, not a player element).
+
+1. **Use an EXISTING timestamped transcript — never generate one.** Acquire the
+   COMPLETE timed transcript up front from a source that already carries timestamps:
+   - **In-page caption file** — a WebVTT/SRT URL embedded in the page (e.g. Substack
+     embeds a CloudFront-**signed** `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`;
+     also `<track src>`). Use the *signed* URL; the bare URL is rejected. Fetch it
+     from the isolated content script (cross-origin allowed via `<all_urls>` host
+     permission, like the YouTube timedtext re-fetch) and `parseVtt/parseSrt → cues`.
+   - **Podcasting 2.0 `<podcast:transcript>`** — discover the feed
+     (`<link rel="alternate" type="application/rss+xml">`), match the current episode
+     by its audio enclosure URL, read the `url`/`type` (prefer `text/vtt` /
+     `application/x-subrip`), fetch + parse.
+   - **Spotify synced transcript** (Phase B) — scrape the "Read along" cue nodes
+     from the Now Playing DOM (audio is DRM/EME, but `currentTime` is still readable).
+2. **Translate ahead in the 60-second sliding window, in batches**; whole merged
+   sentences (`mergeSentences`), with context — identical to §2.1.
+3. **No word-by-word.** The `⏳ 字幕加载中…` / steady-state must not flap; once loaded,
+   never regress to per-line live translation.
+4. **Sync to the `<audio>` element's `currentTime`** (`getCurrentTime` reads the page
+   media element). DRM (Spotify/EME) hides the samples, **not** the playback clock.
+5. **No ASR / no self-generated transcripts** (no-backend; infeasible on Safari iOS).
+   If no timed transcript exists, show `字幕不可用` and let the existing webpage text
+   path translate the show-notes / transcript **page** as the floor.
+
+Platforms: **generic in-page VTT/SRT + RSS `podcast:transcript`** (incl. Substack)
+are Phase A; **Spotify** synced-DOM is Phase B. **Apple Podcasts web** and **小宇宙**
+expose no timed transcript on web → **text-only** (page path), no subtitle overlay.
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
@@ -155,6 +194,7 @@ differences live only in a thin control/render adapter.**
 | `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
+| `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue) |
 
 ## 7. Out of scope
@@ -162,3 +202,7 @@ differences live only in a thin control/render adapter.**
 No Readability-style full-article extraction fallback (the reference extension
 uses one for unstructured pages); rule-based semantic segmentation is sufficient
 for bilingual injection. Revisit only if unstructured pages prove inadequate.
+
+**ASR / self-generated podcast transcripts are out of scope** (§2.2): no-backend
+principle + in-browser ASR is infeasible on Safari iOS. Podcasts with neither a
+timed transcript nor a text transcript page get no translation.

@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "Subtitles unavailable"
   },
+  "podcast_sub_on": {
+    "message": "Turn on podcast subtitles"
+  },
+  "podcast_sub_off": {
+    "message": "Turn off podcast subtitles"
+  },
   "settings": {
     "message": "Settings"
   },

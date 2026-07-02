@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "Subtítulos no disponibles"
   },
+  "podcast_sub_on": {
+    "message": "Activar subtítulos del podcast"
+  },
+  "podcast_sub_off": {
+    "message": "Desactivar subtítulos del podcast"
+  },
   "settings": {
     "message": "Ajustes"
   },

@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "Legendas indisponíveis"
   },
+  "podcast_sub_on": {
+    "message": "Ativar legendas do podcast"
+  },
+  "podcast_sub_off": {
+    "message": "Desativar legendas do podcast"
+  },
   "settings": {
     "message": "Configurações"
   },

@@ -62,6 +62,12 @@
   "yt_subtitle_unavailable": {
     "message": "자막을 사용할 수 없습니다"
   },
+  "podcast_sub_on": {
+    "message": "팟캐스트 자막 켜기"
+  },
+  "podcast_sub_off": {
+    "message": "팟캐스트 자막 끄기"
+  },
   "settings": {
     "message": "설정"
   },

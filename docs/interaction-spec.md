@@ -18,6 +18,14 @@ element existing is not proof the user sees it (see AGENTS.md).
 - **Two independent controls:** the in-player **译 button** controls VIDEO SUBTITLES
   (menu: 开启/关闭, plus 双语/仅译文/仅原文, .srt, settings); the page **FAB** controls
   WEBPAGE TEXT (title / description / comments). They never affect each other.
+- **The 译 button is one consistent widget everywhere:** an **always-visible green
+  circular floating button**, identical on `youtube.com` (desktop *and* touch / Request
+  Desktop) and on third-party **embeds**. It is NOT mounted inside YouTube's control bar
+  (that auto-hides and looked different from the embed button). On `youtube.com` it sits
+  **above the page FAB** (`bottom:150px`); in an embed (no page FAB) it sits at the
+  corner (`bottom:10px`). On `m.youtube.com` (no control bar) the page FAB drives the
+  video subtitles, so there is no separate in-player button. The menu anchors just above
+  the button wherever it is.
 
 ### Source & timing
 - **Fetch the whole transcript up front, then translate-ahead.** Acquire the
@@ -58,7 +66,9 @@ element existing is not proof the user sees it (see AGENTS.md).
   arrives, the next tick **auto-swaps** it in. Never show a blank or stuck line.
 
 ### In-player control button + menu
-- A **`译` button** sits in the player control bar (`.ytp-right-controls`).
+- A **`译` button** is an always-visible **green circular floating button** (same widget
+  on youtube.com desktop/touch and on embeds — see Controls & activation above), not an
+  in-control-bar button.
 - Clicking opens a menu with:
   - **字幕显示类型**: 双语字幕 / 仅译文 / 仅原文 (current mode checked)
   - **下载字幕 (.srt)** — exports the transcript + translation as `.srt`
@@ -79,6 +89,71 @@ element existing is not proof the user sees it (see AGENTS.md).
 - A 1-line cap is tight, so pages can break mid-phrase (a page may end on a stray
   word or start with punctuation). This is the accepted cost of "max 1 line". If it
   reads too choppy, the line cap can be raised to 2 (more coverage, more natural breaks).
+
+---
+
+## Podcast bilingual subtitles
+
+The audio analogue of YouTube subtitles (see [`domain-design.md`](domain-design.md)
+§2.2). Same engine, same 60s translate-ahead, same display modes and loading/fallback
+states. Differences from YouTube are noted below.
+
+### Source & timing
+- **Use an existing timed transcript, fetched whole up front.** In-page WebVTT/SRT
+  (e.g. Substack's signed `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`, or a
+  `<track src>`), or a Podcasting 2.0 `<podcast:transcript>` from the feed, or
+  Spotify's synced "Read along" transcript (scraped from the episode page — see below).
+  Parse → merge into sentences → translate ahead in the 60-second window.
+  **No word-by-word; no ASR.**
+- **Synced to the `<audio>` element's `currentTime`.** Original + translation appear
+  together as whole sentences.
+
+### Layout (differs from YouTube)
+- **Self-rendered overlay anchored to the VIEWPORT** (audio pages have no video
+  frame): `position:fixed`, bottom-center (≈`bottom: 8%`), horizontally centered,
+  `pointer-events:none`, capped width. It must not overlap the site's own player
+  controls more than necessary.
+- **Max 1 line per language**, measured paging — same as YouTube.
+- Translation line color follows the `ytTextColor` setting (shared subtitle color).
+
+### Controls & activation
+- **Off by default.** The **FAB** turns podcast subtitles on/off (there is no
+  in-player button on an audio page) — the same FAB that turns on page-text
+  translation, mirroring mobile YouTube.
+- A small **floating 译 control** (shown only while subtitles are active) opens the
+  same menu as YouTube: **双语字幕 / 仅译文 / 仅原文**, **下载字幕 (.srt)**, **设置**.
+
+### Loading / fallback
+- While fetching/parsing the transcript, show **`⏳ 字幕加载中…`** (dimmed) — auto-swaps
+  to the bilingual pair when ready; never a stuck line.
+- If no timed transcript exists on a host that MIGHT have one (generic audio pages),
+  show **`字幕不可用`** and do **not** synthesize one. The page's show-notes / text
+  transcript still translates via the webpage text path (the floor) when the FAB is on.
+- **Known text-only hosts → no subtitle overlay at all** (not even `字幕不可用`): the FAB
+  simply translates the page text. This is **`podcasts.apple.com`** and **`小宇宙`** — the
+  web pages expose **no timed transcript at all** (transcripts are App-only), so it's a
+  permanent text-only floor, independent of login. Routing gate: `isTextOnlyPodcast` in
+  `content-main.js`.
+- **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
+  page (only), when the episode has Spotify's auto-generated transcript, we scrape it
+  into timed cues and show the bilingual overlay like any other podcast. Details:
+  - The transcript only mounts when the episode's **转录 / Transcript** tab is active, so
+    we activate that tab once, then read the cue list. Each cue is a header row (a seek
+    `<button>` whose text starts with a `m:ss` timestamp, optionally `Speaker N`) followed
+    by its spoken-text rows. Cue classes are hashed → we anchor structurally on the
+    button + timestamp pattern, not on class names (fragile; re-verify periodically).
+  - **Position comes from the player's progress-bar slider** (`aria-valuenow`, in ms),
+    NOT the media element — Spotify streams via MSE so the `<video>`'s `currentTime` is a
+    buffer position, not the episode position. (`resolveSpotifyDom` / `positionMs` in
+    `content-podcast.js`.)
+  - Music / playlist pages, and episodes with no transcript, stay text-only (episodes
+    with no transcript show `字幕不可用` after the resolve retries).
+  - **While translation is on, Spotify's own transcript panel is hidden.** Otherwise the
+    native cue list and our bilingual overlay would show every English line twice. Once
+    the cues are scraped we hide *only* the transcript cue-list div — the 简介 / 转录 / 章节
+    tab bar stays usable — and restore it the moment translation is turned off. (The
+    creator's burned-in captions on a video podcast are part of the video, not Spotify
+    UI, so they are left untouched.)
 
 ---
 
