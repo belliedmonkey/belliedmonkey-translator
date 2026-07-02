@@ -138,6 +138,12 @@ states. Differences from YouTube are noted below.
     `content-podcast.js`.)
   - Music / playlist pages, and episodes with no transcript, stay text-only (episodes
     with no transcript show `字幕不可用` after the resolve retries).
+  - **While translation is on, Spotify's own transcript panel is hidden.** Otherwise the
+    native cue list and our bilingual overlay would show every English line twice. Once
+    the cues are scraped we hide *only* the transcript cue-list div — the 简介 / 转录 / 章节
+    tab bar stays usable — and restore it the moment translation is turned off. (The
+    creator's burned-in captions on a video podcast are part of the video, not Spotify
+    UI, so they are left untouched.)
 
 ---
 

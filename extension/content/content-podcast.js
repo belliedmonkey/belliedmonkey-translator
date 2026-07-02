@@ -303,9 +303,33 @@ var PodcastTranslator = (() => {
   }
   function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); document.getElementById('mt-pod-meas')?.remove(); }
 
+  // ─── Hide Spotify's own Read-Along transcript while our overlay is on ───
+  // Spotify keeps its native cue list rendered in the 转录 panel; with our bilingual
+  // overlay drawn on top, every English line shows twice. Once we've scraped the list
+  // into the engine, hide JUST that cue-list div — never its sibling 简介/转录/章节 tab
+  // bar (the list is one child of the tab section, so we hide the list, not the
+  // section). Fully reversible: restored the moment translation is off. Re-applied each
+  // tick because Spotify re-renders (a fresh visible list node just gets re-hidden).
+  function syncSpotifyNativeUI() {
+    if (!IS_SPOTIFY) return;
+    if (active && engine.items.length) {
+      const { list } = spotifyTranscriptList();
+      if (list && list.getAttribute('data-mt-native-hidden') !== '1') {
+        list.setAttribute('data-mt-native-hidden', '1');
+        list.style.setProperty('display', 'none', 'important');
+      }
+    } else {
+      document.querySelectorAll('[data-mt-native-hidden]').forEach((el) => {
+        el.removeAttribute('data-mt-native-hidden');
+        el.style.removeProperty('display');
+      });
+    }
+  }
+
   // ─── Display loop ──────────────────────────────────────────────────────
   function tick() {
     ensureControlButton();
+    syncSpotifyNativeUI(); // hide/restore Spotify's native transcript (runs on every path)
     if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     // Dormant on non-media pages (the FAB also turns us on for plain articles).
     if (!hasMedia()) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
