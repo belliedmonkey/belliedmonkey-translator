@@ -210,3 +210,27 @@ Implemented `resolveSpotifyDom()` (auto-activates the transcript tab once, scrap
 **episode pages only**. All three components (cue scrape, position read, active-cue
 match) verified against the live page. **Pending:** the full overlay visual while the
 episode plays (needs the new build loaded in the logged-in session).
+
+### Spotify "Read along" — full overlay visual while playing (desktop Chrome) (2026-07-02)
+Closes the "Pending" item above. Reloaded the new build into the **logged-in desktop
+Chrome** session and drove the episode end-to-end via cua-driver (`page` /
+`execute_javascript`; user re-logged-in after a session drop, then approved reload +
+play). Episode: "Angus Tries a Portuguese Pinot Noir…" (Got Somme). Screenshot captured.
+
+- **PASS — overlay mounts + plays.** FAB → 开启翻译 flips the FAB title to `关闭翻译`;
+  `#mt-pod-overlay` mounts and the transcript scrapes. Playing the episode advances the
+  progress bar and the overlay tracks it live (250 ms `tick`).
+- **PASS — synced bilingual pairs** (sampled while playing):
+  `"I think here it's more about something new,"` → `我觉得这里更多的是关于新鲜事物…`;
+  `"even have to make bookings, you just drive,"` → `车过去，停在路边，进去吃午饭就行。当然，那…`.
+- **Not a bug — fraction-paged long sentences.** A long merged sentence pages by
+  playback time-fraction (`floor(frac × pageCount)`), and EN/ZH paginate at different
+  granularities, so a short English tail-page (e.g. `"few drinks."`) lines up with a
+  denser Chinese page of the *same* sentence. Matched at the sentence level per spec.
+- **Not a bug — white translation line.** Renders `settings.ytTextColor || '#fff'`,
+  identical to the YouTube overlay (`lineCss`); default white, user-configurable via
+  字幕颜色. Consistent, not podcast-specific.
+- **Cosmetic follow-up (tracked, not a regression):** Spotify's *own* Read-Along
+  transcript (the karaoke line + 转录 panel) stays on the page while our overlay draws at
+  the bottom → overlapping English texts. Inherent to scraping Spotify's transcript
+  panel; the feature works, just visually busier than YouTube/Apple.
