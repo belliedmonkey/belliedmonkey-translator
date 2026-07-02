@@ -15,6 +15,7 @@ var PodcastTranslator = (() => {
   const TRANS_CLASS = 'mt-pod-trans';
   const BTN_ID = 'mt-pod-btn';
   const MENU_ID = 'mt-pod-menu';
+  const IS_SPOTIFY = /(^|\.)spotify\.com$/.test(location.hostname);
 
   let settings = {};
   let active = false;
@@ -35,7 +36,7 @@ var PodcastTranslator = (() => {
 
   const pager = TranslationCore.createPager({ measurerId: 'mt-pod-meas' });
   const engine = TranslationCore.createSubtitleEngine({
-    getCurrentTime: () => (mediaEl()?.currentTime || 0) * 1000,
+    getCurrentTime: () => positionMs(),
     translate: (text) => TranslationAPI.translate(
       text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
       settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || ''),
@@ -52,8 +53,31 @@ var PodcastTranslator = (() => {
       || els.find((e) => e.tagName === 'AUDIO')
       || els[0];
   }
-  function hasMedia() { return !!document.querySelector('audio, video'); }
-  function episodeKey() { const m = mediaEl(); return location.href + '|' + (m ? (m.currentSrc || m.src || '') : ''); }
+  // On Spotify only ENGAGE on an episode page (so music/playlist pages stay dormant →
+  // text-only, no 字幕不可用). Elsewhere, any media element means a podcast may be present.
+  function isSpotifyEpisode() { return /\/episode\//.test(location.pathname) || !!document.querySelector('[data-testid="transcript-tab"]'); }
+  function hasMedia() { return IS_SPOTIFY ? isSpotifyEpisode() : !!document.querySelector('audio, video'); }
+  function episodeKey() {
+    if (IS_SPOTIFY) return location.href; // media is a muted blob <video>; identity is the episode URL
+    const m = mediaEl(); return location.href + '|' + (m ? (m.currentSrc || m.src || '') : '');
+  }
+
+  // Playback position in ms. Spotify streams via MSE — the <video> element's
+  // currentTime is a buffer position, NOT the episode position — so read the real
+  // position (ms) off the player's progress-bar slider (aria-valuenow). Elsewhere the
+  // media element's currentTime is authoritative.
+  function spotifyProgressEl() {
+    return document.querySelector('[data-testid="playback-progressbar"] input[type="range"], [data-testid="progress-bar"] input[type="range"]')
+      || [...document.querySelectorAll('[role="slider"][aria-valuenow]')].find((s) => +s.getAttribute('aria-valuemax') > 60000);
+  }
+  function positionMs() {
+    if (IS_SPOTIFY) {
+      const el = spotifyProgressEl();
+      if (el) { const v = +(el.value || el.getAttribute('aria-valuenow')); if (isFinite(v)) return v; }
+      return 0;
+    }
+    return (mediaEl()?.currentTime || 0) * 1000;
+  }
 
   // ─── Timed-text parsing (WebVTT / SRT) ─────────────────────────────────
   function tcToMs(tc) {
@@ -143,13 +167,55 @@ var PodcastTranslator = (() => {
     return fetchTimedText(url);
   }
 
-  // 3) Spotify synced "Read along" transcript — PHASE B.
-  // The cue DOM is undocumented + fragile; selectors must be confirmed against a
-  // live episode (see docs/domain-design.md §2.2). Returns null until then, so
-  // Spotify gracefully falls to 字幕不可用 + the webpage text floor.
+  // 3) Spotify synced "Read along" transcript (open.spotify.com).
+  // The transcript only mounts when the episode page's 转录/Transcript tab is active,
+  // so we activate it once, then scrape the cue list. The cue DOM uses hashed class
+  // names (fragile), so we anchor structurally: the list is the div whose direct
+  // children are the cue rows — header rows carry a seek <button> whose text starts
+  // with a m:ss timestamp; the following non-button rows are that cue's spoken text.
+  // Timestamps are second-granularity; position comes from positionMs() (progress bar).
+  let spotifyTabActivated = false;
+  function spotifyTranscriptList() {
+    const isHeader = (el) => {
+      const b = el.querySelector && el.querySelector('button');
+      return !!(b && /^\d{1,2}:\d{2}(:\d{2})?/.test((el.textContent || '').trim()));
+    };
+    const list = [...document.querySelectorAll('div')].find(
+      (d) => d.children.length > 20 && [...d.children].filter(isHeader).length > 4);
+    return { list, isHeader };
+  }
   function resolveSpotifyDom() {
-    if (!/(^|\.)spotify\.com$/.test(location.hostname)) return null;
-    return null; // TODO(phase-b): scrape Now-Playing transcript cues once selectors are pinned
+    if (!IS_SPOTIFY) return null;
+    const { list, isHeader } = spotifyTranscriptList();
+    if (!list) {
+      // Not mounted yet — activate the Transcript tab once so it renders, then let the
+      // resolve retry loop pick it up next tick. Only auto-click once per episode.
+      const tab = document.querySelector('[data-testid="transcript-tab"]');
+      if (tab && !spotifyTabActivated) { spotifyTabActivated = true; try { tab.click(); } catch (_) {} }
+      return null; // no transcript tab at all → this episode has none → text floor
+    }
+    const parseTs = (t) => {
+      const p = t.split(':').map(Number);
+      const s = p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : p[0];
+      return Math.round((s || 0) * 1000);
+    };
+    const cues = [];
+    let cur = null;
+    for (const row of list.children) {
+      const txt = (row.textContent || '').replace(/\s+/g, ' ').trim();
+      if (isHeader(row)) {
+        const m = txt.match(/^(\d{1,2}:\d{2}(?::\d{2})?)/);
+        if (cur && cur.text) cues.push(cur);
+        cur = { start: parseTs(m[1]), end: 0, text: '' };
+      } else if (cur && txt) {
+        if (/自动生成|automatically generated|accuracy/i.test(txt)) continue; // skip the disclaimer
+        cur.text = (cur.text ? cur.text + ' ' : '') + txt;
+      }
+    }
+    if (cur && cur.text) cues.push(cur);
+    for (let i = 0; i < cues.length - 1; i++) cues[i].end = cues[i + 1].start;
+    if (cues.length) cues[cues.length - 1].end = cues[cues.length - 1].start + 6000;
+    return cues.length ? cues : null;
   }
 
   async function resolveCues() {
@@ -248,6 +314,7 @@ var PodcastTranslator = (() => {
       lastKey = episodeKey();
       engine.setItems([]); engine.reset();
       resolveInFlight = false; resolveAttempts = 0; resolveNextAt = 0;
+      spotifyTabActivated = false;
       transcriptStatus = ''; clearOverlay();
     }
 

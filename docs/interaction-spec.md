@@ -92,8 +92,9 @@ states. Differences from YouTube are noted below.
 - **Use an existing timed transcript, fetched whole up front.** In-page WebVTT/SRT
   (e.g. Substack's signed `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`, or a
   `<track src>`), or a Podcasting 2.0 `<podcast:transcript>` from the feed, or
-  (Phase B) Spotify's synced "Read along" cues. Parse → merge into sentences →
-  translate ahead in the 60-second window. **No word-by-word; no ASR.**
+  Spotify's synced "Read along" transcript (scraped from the episode page — see below).
+  Parse → merge into sentences → translate ahead in the 60-second window.
+  **No word-by-word; no ASR.**
 - **Synced to the `<audio>` element's `currentTime`.** Original + translation appear
   together as whole sentences.
 
@@ -119,10 +120,24 @@ states. Differences from YouTube are noted below.
   show **`字幕不可用`** and do **not** synthesize one. The page's show-notes / text
   transcript still translates via the webpage text path (the floor) when the FAB is on.
 - **Known text-only hosts → no subtitle overlay at all** (not even `字幕不可用`): the FAB
-  simply translates the page text. This is **`podcasts.apple.com`** and **`小宇宙`** (no
-  timed transcript exists), and — for now — **`open.spotify.com`** (its synced "Read
-  along" is Phase B, a logged-in DOM scrape; Spotify drops out of this list once
-  implemented). Routing gate: `isTextOnlyPodcast` in `content-main.js`.
+  simply translates the page text. This is **`podcasts.apple.com`** and **`小宇宙`** — the
+  web pages expose **no timed transcript at all** (transcripts are App-only), so it's a
+  permanent text-only floor, independent of login. Routing gate: `isTextOnlyPodcast` in
+  `content-main.js`.
+- **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
+  page (only), when the episode has Spotify's auto-generated transcript, we scrape it
+  into timed cues and show the bilingual overlay like any other podcast. Details:
+  - The transcript only mounts when the episode's **转录 / Transcript** tab is active, so
+    we activate that tab once, then read the cue list. Each cue is a header row (a seek
+    `<button>` whose text starts with a `m:ss` timestamp, optionally `Speaker N`) followed
+    by its spoken-text rows. Cue classes are hashed → we anchor structurally on the
+    button + timestamp pattern, not on class names (fragile; re-verify periodically).
+  - **Position comes from the player's progress-bar slider** (`aria-valuenow`, in ms),
+    NOT the media element — Spotify streams via MSE so the `<video>`'s `currentTime` is a
+    buffer position, not the episode position. (`resolveSpotifyDom` / `positionMs` in
+    `content-podcast.js`.)
+  - Music / playlist pages, and episodes with no transcript, stay text-only (episodes
+    with no transcript show `字幕不可用` after the resolve retries).
 
 ---
 

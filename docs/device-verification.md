@@ -182,3 +182,31 @@ the webpage-text floor on the two hosts that have no login-free timed transcript
 - **Minor:** Spotify localizes its own chrome to the OS locale (zh), so an already-zh
   heading like 所有单集 gets a redundant same-language "translation". Expected (we don't
   language-detect per paragraph); harmless.
+
+### Spotify "Read along" synced subtitles — live DOM recon + logic validation (2026-07-02)
+Done against a **logged-in desktop Chrome** Spotify session (user logged in; agent
+operated read-only via the cua-driver `page` tool / CDP `execute_javascript` — no
+playback or settings changes). Episode: "Got Somme" wine podcast, which has Spotify's
+auto-generated transcript (转录 tab).
+
+Findings (drove `resolveSpotifyDom` / `positionMs` design):
+- **Transcript DOM**: only mounts when the episode's **转录/Transcript** tab is active. The
+  cue list is a flat `<div>` of ~387 rows: a disclaimer, chapter headers, and per-cue
+  **header rows** (a seek `<button>` whose text is `m:ss` + optional `Speaker N`) each
+  followed by its **spoken-text rows**. Classes are hashed (fragile) → anchor on the
+  button + timestamp pattern. Timestamps are second-granularity.
+- **Scraper validated live**: produced **118 clean `{start,end,text}` cues** (multi-line
+  segments merged, disclaimer skipped), first at 0 ms, last ≈ 14:41 (matches the ~14:43
+  episode length).
+- **Position source**: the only media element is a muted, paused blob `<video>`
+  (`duration 6.75s`) — MSE, so its `currentTime` is a buffer position, useless. The real
+  position is on the **progress-bar slider**: `aria-valuenow` in **ms**
+  (`95000` = 1:35, `aria-valuemax = 213929` = 3:33). `positionMs()` reads that on Spotify.
+- **Active-cue lookup validated**: at `posMs=95000` the lookup returned the correct cue
+  `{93000–128000, "There was a comment on our Instagram…"}`.
+
+Implemented `resolveSpotifyDom()` (auto-activates the transcript tab once, scrapes cues)
++ Spotify `positionMs()`; Spotify removed from `isTextOnlyPodcast` and scoped to
+**episode pages only**. All three components (cue scrape, position read, active-cue
+match) verified against the live page. **Pending:** the full overlay visual while the
+episode plays (needs the new build loaded in the logged-in session).
