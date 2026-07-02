@@ -18,6 +18,14 @@ element existing is not proof the user sees it (see AGENTS.md).
 - **Two independent controls:** the in-player **译 button** controls VIDEO SUBTITLES
   (menu: 开启/关闭, plus 双语/仅译文/仅原文, .srt, settings); the page **FAB** controls
   WEBPAGE TEXT (title / description / comments). They never affect each other.
+- **The 译 button is one consistent widget everywhere:** an **always-visible green
+  circular floating button**, identical on `youtube.com` (desktop *and* touch / Request
+  Desktop) and on third-party **embeds**. It is NOT mounted inside YouTube's control bar
+  (that auto-hides and looked different from the embed button). On `youtube.com` it sits
+  **above the page FAB** (`bottom:150px`); in an embed (no page FAB) it sits at the
+  corner (`bottom:10px`). On `m.youtube.com` (no control bar) the page FAB drives the
+  video subtitles, so there is no separate in-player button. The menu anchors just above
+  the button wherever it is.
 
 ### Source & timing
 - **Fetch the whole transcript up front, then translate-ahead.** Acquire the
@@ -58,7 +66,9 @@ element existing is not proof the user sees it (see AGENTS.md).
   arrives, the next tick **auto-swaps** it in. Never show a blank or stuck line.
 
 ### In-player control button + menu
-- A **`译` button** sits in the player control bar (`.ytp-right-controls`).
+- A **`译` button** is an always-visible **green circular floating button** (same widget
+  on youtube.com desktop/touch and on embeds — see Controls & activation above), not an
+  in-control-bar button.
 - Clicking opens a menu with:
   - **字幕显示类型**: 双语字幕 / 仅译文 / 仅原文 (current mode checked)
   - **下载字幕 (.srt)** — exports the transcript + translation as `.srt`
