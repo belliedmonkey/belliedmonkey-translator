@@ -233,4 +233,21 @@ play). Episode: "Angus Tries a Portuguese Pinot Noir…" (Got Somme). Screenshot
 - **Cosmetic follow-up (tracked, not a regression):** Spotify's *own* Read-Along
   transcript (the karaoke line + 转录 panel) stays on the page while our overlay draws at
   the bottom → overlapping English texts. Inherent to scraping Spotify's transcript
-  panel; the feature works, just visually busier than YouTube/Apple.
+  panel; the feature works, just visually busier than YouTube/Apple. **→ Resolved below.**
+
+### Spotify — hide native transcript while translating (desktop Chrome) (2026-07-02)
+Closes the cosmetic follow-up above (`syncSpotifyNativeUI`). Verified live in the
+logged-in Chrome session (reload picks up the content-script edit from `dist/`), driven
+via cua-driver `execute_javascript` + screenshot.
+
+- **PASS — native transcript hidden while ON.** FAB → 开启翻译, episode playing: the
+  scraped cue-list div goes `display:none` (`data-mt-native-hidden="1"`, `offsetParent
+  null`) while our `#mt-pod-overlay` shows the synced bilingual pair. Screenshot confirms
+  the cue list is gone and the following "更多同类单曲/单集" section fills the space.
+- **PASS — tab bar preserved.** The 简介 / 转录 / 章节 tabs stay visible and usable (we hide
+  the list div, which is a *sibling* of the tab bar, never the wrapping section).
+- **PASS — restore on OFF.** FAB → 关闭翻译: `data-mt-native-hidden` cleared, the list is
+  `display:block` / visible again, overlay removed. Fully reversible.
+- **Left untouched (correct):** the creator's burned-in on-video captions ("I'm gonna
+  throw the glass on you…") — part of the video, not Spotify UI; a `data-testid` scan
+  found no separate Spotify lyric/synced-transcript element.
