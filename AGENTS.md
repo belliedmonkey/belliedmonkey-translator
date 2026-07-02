@@ -132,6 +132,26 @@ Rules:
 - Don't pipe the converter through `grep|tail` — a closed pipe (SIGPIPE) can cut
   off its resource step.
 
+## Regression testing — run BEFORE every push (mandatory)
+
+**Every change must pass regression tests before it is pushed.** No exceptions —
+this is a hard gate, not a suggestion.
+
+1. **Automated logic suite — `npm test`** (zero-dep, `node test/run.js`). Covers the
+   pure-logic core: the translate-ahead subtitle engine + state machine, cue→sentence
+   merge, i18n / UI-language resolution, and every provider's request-building /
+   caching / retry-fallback. **It must be green** before you push. When you change or
+   add logic, **add/update tests in the same commit** so the suite keeps covering it.
+2. **Manual / device checklist — [`docs/regression-tests.md`](docs/regression-tests.md).**
+   For any change touching UI, DOM, layout, a platform surface, or a provider, **work
+   through the relevant sections** on the built + loaded extension and **screenshot
+   every visual item** (a DOM element existing is not proof the user sees it — see the
+   Verification section above). Drive surfaces via **cua-driver only**.
+
+The suite has **no dependencies** — `npm test` runs on a bare Node (≥16). If you add a
+feature that isn't headlessly testable (needs a real DOM/browser), cover it in the
+manual checklist instead and say so in the PR. Never push on a red suite.
+
 ## Conventions
 
 - **Never** reintroduce the words「大肚猴翻译」/「大肚猴翻译」/ "Immersive
