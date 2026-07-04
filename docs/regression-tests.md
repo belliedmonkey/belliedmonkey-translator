@@ -100,6 +100,18 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   not translated / appended twice (idempotent). *(Spec: Webpage "Idempotent (never
   duplicate if injected twice)".)*
 
+- [ ] **SPA re-renders don't cluster / duplicate translations.** On a
+  React/Vue-driven feed that re-renders its article container in place
+  (`latent.space` and other Substack posts; scroll the whole article, wait a few
+  seconds). **Expected:** every translation stays glued **immediately below its own
+  paragraph** (interleaved 中/英), never drifting into an English block followed by a
+  Chinese block at the container end, and no paragraph gets **two** translations.
+  Verify in DevTools: `document.querySelectorAll('.mt-translation').length` equals the
+  translated-paragraph count (no duplicates), and no run of adjacent `.mt-translation`
+  siblings with no original between them. *(Fix: translations are tracked on
+  `node.__mtTrans`, re-anchored after their node each tick, and orphans removed when the
+  SPA replaces a node — content-webpage `ensureSibling` / `tick` re-anchor / `recollect`.)*
+
 - [ ] **Mobile flex/grid rows don't overlap.** On `m.youtube.com` metadata
   (`次点赞 / 观看 / 年前`), the top nav, comment counts. **Expected:** each translation
   takes its **own full-width line** below the item (flex → `flex-basis:100%` + row
