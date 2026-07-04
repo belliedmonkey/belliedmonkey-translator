@@ -41,7 +41,14 @@ var WebpageTranslator = (() => {
   // Re-collect translatable units (prune detached, append new, dedupe). Acts as
   // the SPA poll too — picks up lazily-loaded comments and YouTube re-renders.
   function recollect(root) {
-    units = units.filter((u) => u.node.isConnected);
+    units = units.filter((u) => {
+      if (u.node.isConnected) return true;
+      // Node was removed by an SPA re-render — delete its now-orphaned translation so it
+      // doesn't pile up at the container end (the "中英文分开" clustering bug).
+      const t = u.node.__mtTrans;
+      if (t && t.remove) t.remove();
+      return false;
+    });
     const fresh = DOMProcessor.collectUnits(root || document.body)
       .filter((n) => !known.has(n))
       .map((n) => {
@@ -118,10 +125,24 @@ var WebpageTranslator = (() => {
 
   // ─── Sibling renderer ─────────────────────────────────────────────────
   function siblingOf(node) { const s = node.nextElementSibling; return (s && s.classList && s.classList.contains(CLASS)) ? s : null; }
+  // Anchor ONE translation div immediately after `node`. SPA frameworks (React on
+  // Substack, etc.) re-render their container and DISPLACE our injected sibling to the
+  // end of the container — so we track the translation on the node itself
+  // (`node.__mtTrans`) rather than trusting `nextElementSibling`. That lets us reuse it
+  // (never create a duplicate) and always re-anchor it right after the node. Without this
+  // the translations pile up at the container end and the page reads as "英文一块 / 中文
+  // 一块" instead of interleaved.
   function ensureSibling(node) {
-    let d = siblingOf(node);
-    if (d && d.dataset.interleave === '1') { d.remove(); d = null; } // was an interleave holder
-    if (!d) { d = document.createElement('div'); d.className = CLASS; node.insertAdjacentElement('afterend', d); }
+    let d = node.__mtTrans;
+    if (d && !d.isConnected) d = null;                                // was removed
+    if (d && d.dataset.interleave === '1') { d.remove(); d = null; }  // was an interleave holder
+    if (!d) {
+      d = siblingOf(node);                                            // adopt an adjacent one if present
+      if (d && d.dataset.interleave === '1') { d.remove(); d = null; }
+      if (!d) { d = document.createElement('div'); d.className = CLASS; }
+      node.__mtTrans = d;
+    }
+    if (node.nextElementSibling !== d) node.insertAdjacentElement('afterend', d); // (re)anchor
     return d;
   }
   function restoreOriginal(node) { if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); } }
@@ -158,15 +179,23 @@ var WebpageTranslator = (() => {
     }
     // nothing to translate → no sibling
     restoreOriginal(node);
-    const d = siblingOf(node); if (d) d.remove();
+    if (node.__mtTrans) { node.__mtTrans.remove(); node.__mtTrans = null; }
+    else { const d = siblingOf(node); if (d) d.remove(); }
   }
 
   // Single-blob text with internal paragraphs: hide the original, draw our own
   // holder with each original paragraph followed by its translation (interleave).
   function renderInterleaved(node, oParas, tParas) {
-    let holder = siblingOf(node);
-    if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
-    if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; node.insertAdjacentElement('afterend', holder); }
+    let holder = node.__mtTrans;
+    if (holder && !holder.isConnected) holder = null;
+    if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; } // was a plain sibling
+    if (!holder) {
+      holder = siblingOf(node);
+      if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
+      if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; }
+      node.__mtTrans = holder;
+    }
+    if (node.nextElementSibling !== holder) node.insertAdjacentElement('afterend', holder); // (re)anchor
     // Copy the original's font onto the holder so the re-rendered original rows match
     // the source; translation rows additionally take the distinct color via transStyle.
     holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node);
@@ -187,6 +216,12 @@ var WebpageTranslator = (() => {
     engine.pump();
     for (const u of engine.units) {
       if (!u.node.isConnected) continue;
+      // SPA re-anchor: frameworks (React on Substack, etc.) re-render the container and
+      // displace our translation away from its origin — it drifts to the container end and
+      // the page reads as "英文一块/中文一块". Keep it glued right after the node every tick,
+      // even when this unit's render state hasn't changed.
+      const t = u.node.__mtTrans;
+      if (t && t.isConnected && u.node.nextElementSibling !== t) u.node.insertAdjacentElement('afterend', t);
       const near = inViewport(u.node);
       const st = engine.stateOf(u);
       const key = st.state + '|' + (st.translation ? 'T' : '');
@@ -219,7 +254,8 @@ var WebpageTranslator = (() => {
     for (const u of units) {
       const node = u.node;
       if (!node || !node.removeAttribute) continue;
-      const sib = siblingOf(node); if (sib) sib.remove();
+      const sib = node.__mtTrans || siblingOf(node); if (sib) sib.remove();
+      node.__mtTrans = null;
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
       if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); }
