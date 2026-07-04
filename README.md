@@ -1,11 +1,12 @@
 # 大肚猴翻译 · Mobile Translator
 
-Safari iOS 浏览器翻译插件，支持网页双语对照翻译和 YouTube 双语字幕。完全开源免费，可自由配置任意 LLM API。
+Safari iOS 浏览器翻译插件，支持网页双语对照翻译、YouTube 与播客双语字幕。完全开源免费，可自由配置任意 LLM API，数据不上传。
 
 ## 功能
 
 - **网页双语翻译**：原文保留，译文以绿色显示在每个段落下方
-- **YouTube 双语字幕**：原字幕保留，译文自动追加在字幕下方（黄色）
+- **YouTube 双语字幕**：整段字幕预取 + 60 秒预译，整句原文 + 译文同步显示（自绘固定叠加层）
+- **播客/音频双语字幕**：有时轴字幕的播客（Substack、Spotify「跟随文字」等）显示双语字幕；无字幕站点自动回退为页面文本翻译
 - **多引擎切换**：Google 翻译（免费无需 Key）/ ChatGPT / Claude / DeepSeek / 智谱 GLM
 - **移动端交互**：可拖拽悬浮按钮、点击段落弹出翻译 chip、深色模式适配
 - **翻译缓存**：内存 + 本地存储双层缓存（TTL 12 小时），重复内容秒出
@@ -26,10 +27,9 @@ Safari iOS 浏览器翻译插件，支持网页双语对照翻译和 YouTube 双
 **前提**：Mac + Xcode 14+ + Apple ID（免费账号即可，无需付费开发者计划）
 
 ```bash
-# 1. 克隆项目并切换分支
-git clone https://github.com/belliedmonkey/mobiletranslator
-cd mobiletranslator
-git checkout claude/safari-mobile-translation-5p7tt9
+# 1. 克隆项目
+git clone https://github.com/belliedmonkey/belliedmonkey-translator
+cd belliedmonkey-translator
 
 # 2. 一键构建 + 生成 Xcode 项目
 bash build-safari.sh
@@ -97,13 +97,16 @@ extension/
 ├── manifest.json              # Manifest v3（Chrome / Safari / Firefox 通用）
 ├── background.js              # Service worker — 仅管理状态，不做翻译请求
 ├── content/
+│   ├── translation-core.js    # 平台无关引擎：字幕状态机、60s 预译窗口、分页、句子合并、i18n
 │   ├── translation-api.js     # 所有 LLM API fetch() 调用（在 content script 中执行）
 │   ├── dom-processor.js       # 段落检测、双语注入
 │   ├── floating-button.js     # 悬浮按钮（可拖拽）
 │   ├── content-webpage.js     # 网页全文双语翻译
-│   ├── content-youtube.js     # YouTube 双语字幕（MutationObserver）
-│   ├── content-injected.js    # 注入页面主世界拦截 XHR（辅助方案）
-│   └── content-main.js        # 入口：读取设置，路由到网页/YouTube 翻译器
+│   ├── content-youtube.js     # YouTube 双语字幕：整段预取 + 60s 预译
+│   ├── content-podcast.js     # 播客/音频双语字幕（Substack VTT / Spotify「跟随文字」等）
+│   ├── yt-timedtext-observer.js # Safari：用 Resource Timing 记录 YouTube 自己的 /api/timedtext URL
+│   ├── yt-hook.js             # world:MAIN 钩子（仅 Chrome）— 机会性抓取字幕
+│   └── content-main.js        # 入口：读取设置，路由到网页/YouTube/播客翻译器
 ├── styles/
 │   ├── bilingual.css          # 双语样式（.mt-translation、进度条、翻译 chip）
 │   └── floating-button.css    # 悬浮按钮（#mt-fab）
@@ -115,7 +118,7 @@ extension/
 
 **Safari iOS Service Worker Bug**：设备锁屏后 Safari 的 background service worker 会永久失效（直到强退 Safari）。因此所有翻译 API 的 `fetch()` 调用都在 `content/translation-api.js`（content script 中）直接发出，`background.js` 只负责存储初始化和图标状态，从不参与翻译。
 
-**YouTube 字幕方案**：使用 MutationObserver 监听 `.ytp-caption-segment` 元素出现，翻译后在其下方追加 `.mt-yt-dual` span。缓存命中时无延迟，首次出现约 300-600ms 后显示译文。
+**YouTube / 播客字幕方案**：不做逐字翻译。一次性预取完整字幕（YouTube 用 `/api/timedtext`；Safari 上通过 Resource Timing 观察器拿到 YouTube 自己带 pot 的 URL 再 refetch，绕开 `world:MAIN` 限制），按 **60 秒滑动窗口预译**，合并成整句后由 `video.currentTime` / `audio.currentTime` 匹配，显示在自绘的固定叠加层里。因此即使 LLM 较慢也不会逐条卡顿。播客侧支持站内 VTT/SRT、Podcasting 2.0 `<podcast:transcript>`、以及 Spotify「跟随文字」的 DOM 抓取。
 
 ## 隐私 Privacy
 
