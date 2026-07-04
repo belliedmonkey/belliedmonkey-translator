@@ -266,9 +266,24 @@ var TranslationCore = (() => {
     };
   }
 
+  // ─── Device layout (control-adapter signal) ────────────────────────────
+  // "Mobile" = a touch device (phone / iPad) or a mobile UA. This is the SINGLE
+  // source of truth used by the control adapters (content-main routing +
+  // content-youtube button gating) to decide whether the page FAB drives everything
+  // and NO separate in-player 译 button is shown. It is deliberately NOT keyed off the
+  // m.youtube.com host, so a phone on the desktop-layout www.youtube.com is still
+  // treated as mobile — otherwise the 译 button and the FAB collide as two near-
+  // identical green circles.
+  function isMobileLayout() {
+    try {
+      return (navigator.maxTouchPoints || 0) > 0
+        || /iPhone|iPod|iPad|Android/i.test(navigator.userAgent || '');
+    } catch (_) { return false; }
+  }
+
   return {
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, looksLikeCode, endsSentence, joinCue, wordBreakIndex,
-    mergeSentences, createPager, createEngine, createSubtitleEngine,
+    mergeSentences, createPager, createEngine, createSubtitleEngine, isMobileLayout,
   };
 })();

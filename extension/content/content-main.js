@@ -30,7 +30,10 @@
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
   // Mobile YouTube (m.youtube.com) has no player control bar for the in-player 译
   // button, so the FAB drives BOTH subtitles and page text there.
-  const isMobileYouTube = /m\.youtube\.com/.test(location.hostname);
+  // Mobile = m.youtube.com OR any touch device (incl. a phone/iPad on the desktop-layout
+  // www.youtube.com). On mobile the FAB drives BOTH page text and video subtitles, and
+  // content-youtube suppresses its in-player 译 button — one button, no collision.
+  const isMobileYouTube = isYouTube && (/m\.youtube\.com/.test(location.hostname) || TranslationCore.isMobileLayout());
   // Embedded player on another site (youtube.com/embed or youtube-nocookie.com/embed
   // inside an iframe): translate ONLY the video subtitles — no FAB, no page text.
   const isEmbed = window.top !== window.self;

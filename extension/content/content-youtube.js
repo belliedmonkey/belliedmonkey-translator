@@ -464,9 +464,12 @@ var YouTubeTranslator = (() => {
   function ensureControlButton() {
     if (document.getElementById(BTN_ID)) return;
     const hasBar = !!document.querySelector(RIGHT_CONTROLS); // desktop-layout player
-    // Mobile m.youtube.com (no control bar, not an embed): the page FAB drives the
-    // video subtitles → no in-player button.
-    if (!hasBar && !IS_EMBED) return;
+    // No separate in-player 译 button on mobile — the page FAB drives the video
+    // subtitles. This covers both m.youtube.com (no control bar) AND a phone/iPad on the
+    // desktop-layout www.youtube.com (which HAS the control bar but is still a touch
+    // device). Same TranslationCore.isMobileLayout() signal that content-main uses to
+    // route the FAB, so the two never disagree (two-button collision). Embeds still get it.
+    if (!IS_EMBED && (!hasBar || TranslationCore.isMobileLayout())) return;
     if (!document.querySelector(PLAYER)) return;
     const btn = makeTranslateBtn();
     btn.style.cssText = floatingBtnCss(IS_EMBED ? 10 : 150);

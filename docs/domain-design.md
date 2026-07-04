@@ -180,8 +180,16 @@ differences live only in a thin control/render adapter.**
   viewport size is read at runtime (`innerHeight`), not branched in code.
 - **YouTube video module** is unified; the desktop/mobile/embed differences are
   isolated in a `PlayerContext` adapter (the only variation point):
-  - desktop: player `.html5-video-player`, control-bar button in `.ytp-right-controls`, menu absolute-in-player
-  - mobile `m.youtube.com`: no control bar → FAB drives on/off; overlay anchored to player
+  - **desktop (non-touch)**: floating 译 button controls video subtitles; the page FAB
+    controls page text separately (two independent controls).
+  - **mobile (any touch device)**: **no separate 译 button** — the page FAB drives BOTH
+    video subtitles and page text. This is `m.youtube.com` (no control bar) AND a
+    phone / iPad on the desktop-layout `www.youtube.com` (which DOES have a control bar).
+    The device is detected by a **single shared signal**, `TranslationCore.isMobileLayout()`
+    (`navigator.maxTouchPoints > 0` or a mobile UA) — used by BOTH `content-main` (which
+    control drives YouTube) and `content-youtube` (whether to mount the 译 button), so the
+    two can never disagree. (Keying "mobile" off the `m.youtube.com` host in one place and
+    the `.ytp-right-controls` DOM in the other is what produced the two-button bug.)
   - embed (iframe): floating 译 button; menu fixed
   The subtitle core (SubtitleSource + Engine + OverlayRenderer) is shared across all three.
 

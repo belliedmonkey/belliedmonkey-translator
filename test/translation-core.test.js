@@ -18,7 +18,7 @@ function loadCore(opts = {}) {
     messages: opts.chromeMessages || {},
   });
   const window = { MT_I18N_MESSAGES: opts.messages || MSGS };
-  const ctx = loadModule('translation-core.js', { window, chrome, document: makeFakeDocument() });
+  const ctx = loadModule('translation-core.js', { window, chrome, document: makeFakeDocument(), navigator: opts.navigator });
   return { TC: ctx.TranslationCore, chrome, window };
 }
 
@@ -316,5 +316,23 @@ describe('TranslationCore — createPager (deterministic fake measurer)', () => 
     const pages = pager.pageize(text, 1, 20, 120);
     ok(pages.length > 1);
     eq(pages.join(''), text, 'CJK breaks at any grapheme, nothing dropped');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+describe('TranslationCore — isMobileLayout (single control-adapter device signal)', () => {
+  const load = (nav) => loadCore({ navigator: nav }).TC;
+
+  test('no navigator (headless) → false', () => {
+    eq(load(undefined).isMobileLayout(), false);
+  });
+  test('touch device (maxTouchPoints > 0) → true (even with a desktop UA)', () => {
+    eq(load({ maxTouchPoints: 5, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari' }).isMobileLayout(), true);
+  });
+  test('mobile UA with no touch points → true', () => {
+    eq(load({ maxTouchPoints: 0, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) Safari' }).isMobileLayout(), true);
+  });
+  test('desktop (no touch, desktop UA) → false', () => {
+    eq(load({ maxTouchPoints: 0, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/120' }).isMobileLayout(), false);
   });
 });
