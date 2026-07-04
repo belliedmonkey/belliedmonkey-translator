@@ -15,17 +15,22 @@ element existing is not proof the user sees it (see AGENTS.md).
 ### Controls & activation
 - **Default OFF on every page load.** Nothing is translated until the user turns it
   on. No persisted auto-start — a refresh always starts off.
-- **Two independent controls:** the in-player **译 button** controls VIDEO SUBTITLES
-  (menu: 开启/关闭, plus 双语/仅译文/仅原文, .srt, settings); the page **FAB** controls
-  WEBPAGE TEXT (title / description / comments). They never affect each other.
-- **The 译 button is one consistent widget everywhere:** an **always-visible green
-  circular floating button**, identical on `youtube.com` (desktop *and* touch / Request
-  Desktop) and on third-party **embeds**. It is NOT mounted inside YouTube's control bar
-  (that auto-hides and looked different from the embed button). On `youtube.com` it sits
-  **above the page FAB** (`bottom:150px`); in an embed (no page FAB) it sits at the
-  corner (`bottom:10px`). On `m.youtube.com` (no control bar) the page FAB drives the
-  video subtitles, so there is no separate in-player button. The menu anchors just above
-  the button wherever it is.
+- **Desktop — two independent controls.** On a **desktop (non-touch)** `youtube.com`,
+  the in-player **译 button** controls VIDEO SUBTITLES (menu: 开启/关闭, plus
+  双语/仅译文/仅原文, .srt, settings); the page **FAB** controls WEBPAGE TEXT (title /
+  description / comments). They never affect each other.
+- **Mobile — ONE button drives everything.** On **any touch device** — both
+  `m.youtube.com` *and* a phone / iPad on the desktop-layout `www.youtube.com` — there is
+  **no separate 译 button**; the page **FAB** drives BOTH the video subtitles and the page
+  text. This prevents two near-identical green circles colliding on a small screen.
+  "Mobile" is a single shared signal, `TranslationCore.isMobileLayout()`
+  (`navigator.maxTouchPoints > 0` or a mobile UA), used by both the router
+  (`content-main`) and the button gate (`content-youtube`) so they can never disagree.
+- **The 译 button widget (desktop + embed only).** Where it IS shown it is an
+  **always-visible green circular floating button**, identical on desktop `youtube.com`
+  and third-party **embeds** — NOT mounted inside YouTube's auto-hiding control bar. On
+  desktop `youtube.com` it sits **above the page FAB** (`bottom:150px`); in an embed (no
+  page FAB) it sits at the corner (`bottom:10px`). The menu anchors just above it.
 
 ### Source & timing
 - **Fetch the whole transcript up front, then translate-ahead.** Acquire the
