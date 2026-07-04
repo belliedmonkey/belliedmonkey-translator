@@ -154,8 +154,9 @@ manual checklist instead and say so in the PR. Never push on a red suite.
 
 ## Conventions
 
-- **Never** reintroduce the words「大肚猴翻译」/「大肚猴翻译」/ "Immersive
-  Translate" anywhere in code, docs, or UI.
+- **Never brand or describe this product with another product's name.** Use our
+  own naming for the product and its features (no other product's brand in code,
+  docs, or UI).
 - Commit messages: conventional style (`fix(youtube): …`), and end with
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 - Don't commit to `main` directly; use a feature branch.

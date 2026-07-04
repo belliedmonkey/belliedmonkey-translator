@@ -2,6 +2,7 @@
   "name": "belliedmonkeytranslator",
   "version": "1.0.0",
   "description": "Safari iOS browser extension for bilingual translation — fully open source, free, configurable LLM APIs",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node test/run.js",
     "build": "node build.js",

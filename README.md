@@ -116,3 +116,18 @@ extension/
 **Safari iOS Service Worker Bug**：设备锁屏后 Safari 的 background service worker 会永久失效（直到强退 Safari）。因此所有翻译 API 的 `fetch()` 调用都在 `content/translation-api.js`（content script 中）直接发出，`background.js` 只负责存储初始化和图标状态，从不参与翻译。
 
 **YouTube 字幕方案**：使用 MutationObserver 监听 `.ytp-caption-segment` 元素出现，翻译后在其下方追加 `.mt-yt-dual` span。缓存命中时无延迟，首次出现约 300-600ms 后显示译文。
+
+## 隐私 Privacy
+
+- **无自建服务器**：翻译请求直接从你的浏览器发往你选择的翻译引擎，我们不经手、不存储、不上传你的任何数据。
+- **API Key 只存在本地**：你的 key 保存在浏览器本地存储（`chrome.storage.local`），从不离开你的设备。
+- **自带 Key（BYO-key）**：用哪个引擎、花多少钱由你自己控制。用 Google 免费引擎则无需任何 Key。
+- **完全开源，可自行审计**：以上每一条都能在源码里逐行验证——这正是开源的意义。
+
+## 许可证 License
+
+本项目采用 **GNU General Public License v3.0 (GPL-3.0-or-later)**，完整条款见 [`LICENSE`](LICENSE)。
+
+你可以自由使用、研究、修改和分发本项目；但基于本项目的衍生作品必须同样以 GPL-3.0 开源。
+
+Copyright (C) 2026 belliedmonkey and contributors.
