@@ -20,6 +20,7 @@
     provider: settings.provider || 'google',
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
+    apiModel: settings.apiModel || '',
     textColor: settings.textColor || '#0a7a3c',
     ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '1.0',

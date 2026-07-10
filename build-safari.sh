@@ -1,17 +1,37 @@
 #!/bin/bash
 # build-safari.sh — 一键构建并生成 Safari iOS Xcode 项目
-# 在 Mac 上运行：bash build-safari.sh
+# 在 Mac 上运行：
+#   bash build-safari.sh          # 海外版(global) → com.belliedmonkeytranslator
+#   bash build-safari.sh china    # 中国版(china)  → com.belliedmonkeytranslator.cn
+#
+# 两个 flavor 生成两个独立的 Xcode 项目 / bundle id —— 对应两个 App Store app 记录
+# (App Store 一个 app 记录只能对所有区发同一个二进制,合规隔离必须双分发)。
 
 set -e
 
-APP_NAME="BelliedMonkey Translator"   # English brand name (Xcode app/target)
-DISPLAY_NAME="大肚猴翻译"              # what shows on the iOS home screen
-BUNDLE_ID="com.belliedmonkeytranslator"
-DIST="$(pwd)/dist"
-SAFARI_PROJECT="$(pwd)/safari-project"
+FLAVOR="${1:-global}"
+if [ "$FLAVOR" != "global" ] && [ "$FLAVOR" != "china" ]; then
+  echo "❌ 未知 flavor：$FLAVOR（可选 global | china）"
+  exit 1
+fi
+
+DISPLAY_NAME="大肚猴翻译"              # what shows on the iOS home screen (both flavors)
+if [ "$FLAVOR" = "china" ]; then
+  APP_NAME="BelliedMonkey Translator CN"        # Xcode app/target (distinct DerivedData)
+  BUNDLE_ID="com.belliedmonkeytranslator.cn"
+  DIST="$(pwd)/dist-china"
+  SAFARI_PROJECT="$(pwd)/safari-project-china"
+  BUILD_CMD="node build.js --flavor china"
+else
+  APP_NAME="BelliedMonkey Translator"           # English brand name (Xcode app/target)
+  BUNDLE_ID="com.belliedmonkeytranslator"
+  DIST="$(pwd)/dist"
+  SAFARI_PROJECT="$(pwd)/safari-project"
+  BUILD_CMD="node build.js"
+fi
 
 echo ""
-echo "🌿 构建 Safari iOS 翻译插件"
+echo "🌿 构建 Safari iOS 翻译插件（flavor: $FLAVOR → $BUNDLE_ID）"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # 检查依赖
@@ -39,7 +59,7 @@ fi
 # Step 1: 构建 web extension
 echo ""
 echo "▶ Step 1/3  构建扩展文件…"
-node build.js
+$BUILD_CMD
 echo ""
 
 # Step 2: 转换为 Xcode 项目
@@ -80,9 +100,9 @@ echo " 1. 用 Xcode 打开项目："
 echo "    open \"$XCODEPROJ\""
 echo ""
 echo " 2. 设置签名（每个 Target 都要设置）："
-echo "    左侧选 BelliedMonkey Translator → Signing & Capabilities"
+echo "    左侧选 $APP_NAME → Signing & Capabilities"
 echo "    Team → 选你的 Apple ID（Personal Team）"
-echo "    同样设置 BelliedMonkey Translator Extension"
+echo "    同样设置 $APP_NAME Extension"
 echo ""
 echo " 3. 用数据线连接 iPhone，在顶部选择你的设备"
 echo ""

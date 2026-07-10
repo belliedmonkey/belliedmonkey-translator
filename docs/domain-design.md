@@ -203,9 +203,69 @@ differences live only in a thin control/render adapter.**
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
 | `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
-| `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue) |
+| `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
+| Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
 
-## 7. Out of scope
+## 7. Provider transport & region flavors (合规双分发)
+
+The transport is **provider-agnostic and format-keyed**, and the provider *list*
+is a build-time concern, not a runtime one.
+
+- **Single source of truth.** `build/providers.config.js` is the one registry of
+  translation providers. Each entry declares `{ id, type, flavors, needsKey,
+  supportsBaseUrl, supportsModel, requiresBaseUrl, defaultBase, path, defaultModel,
+  label, labelKey, hintKey }`. It replaces the four previously-duplicated lists
+  (the two HTML `<select>`s, the two settings scripts, and the transport's own
+  provider table). The build generates `content/providers.gen.js`
+  (`window.MT_FLAVOR` + `window.MT_PROVIDERS`), which every runtime surface reads —
+  `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), so they can never
+  drift.
+
+- **Transport is keyed by request FORMAT, not vendor.** `type` is one of
+  `google`, `chat-compat` (OpenAI Chat-Completions request shape), or
+  `messages-compat` (Anthropic Messages request shape). No adapter names a vendor;
+  a self-hosted or third-party endpoint is reached by picking the matching format +
+  a custom `baseUrl`/`model`. `anthropic-version` is sent for `messages-compat` as a
+  required *protocol* header, not a brand reference.
+
+- **Region flavor is a build/distribution concern, decided at build time — never a
+  runtime per-request branch.** `node build.js --flavor global|china` filters the
+  registry by each entry's `flavors` and resolves flavor-varying `defaultBase` /
+  `label` to a single value:
+  - **global** (`dist/`, `com.belliedmonkeytranslator`): Google, OpenAI, Claude,
+    DeepSeek, GLM, Qwen, Kimi + custom (Chat / Messages). International endpoints
+    (`api.z.ai`, `dashscope-intl…`, `api.moonshot.ai`). **Not available in China.**
+  - **china** (`dist-china/`, `com.belliedmonkeytranslator.cn`): DeepSeek, GLM
+    (智谱), Qwen (通义千问), Kimi + two brand-free custom endpoints (Chat / Messages
+    format, user-supplied base URL). Domestic endpoints (`open.bigmodel.cn`,
+    `dashscope.aliyuncs.com`, `api.moonshot.cn`). **No Google/OpenAI/Claude, and no
+    vendor brand strings anywhere in UI or metadata.**
+
+- **Why two binaries (not runtime storefront gating).** An App Store app record
+  serves one binary to every storefront, so China-mainland legal isolation
+  (Guideline 5 — generative-AI services need MIIT permits; OpenAI/ChatGPT
+  references are disallowed) requires **two app records / two bundle ids**, driven
+  by the same codebase via flavor. `build-safari.sh [china]` produces the matching
+  Xcode project + bundle id.
+
+- **Compliance gate (build-enforced).** After a `--flavor china` build, `build.js`
+  greps `dist-china/` for `/ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i`
+  and **fails the build on any hit**. Brand-free labels + no default global
+  endpoints + description substitution together keep this at zero.
+
+- **China has no free/no-key default.** Google is absent (blocked in China), so the
+  china build defaults to a keyed domestic provider (GLM has a free tier); the
+  China onboarding must include a "get a free GLM key" step. Fallback differs too:
+  global builds fall back to Google on total provider failure; **china builds must
+  not** — they surface the error instead (no reachable Google).
+
+- **Residual risk.** A user-supplied custom endpoint in the china build is a generic
+  BYO-endpoint; a reviewer could read it as indirect access to a disallowed service.
+  Mitigated by brand-free labels + no default endpoint + Review Notes; the fallback
+  if rejected is to drop the custom endpoints from the china flavor and keep only
+  pure domestic-brand providers.
+
+## 8. Out of scope
 
 No Readability-style full-article extraction fallback (the reference extension
 uses one for unstructured pages); rule-based semantic segmentation is sufficient

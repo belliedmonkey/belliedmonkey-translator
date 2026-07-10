@@ -7,8 +7,10 @@ Guidance for AI agents working on this repo. (Format follows https://agents.md/.
 「大肚猴翻译 / BelliedMonkey Translator」— an open-source browser extension for
 bilingual translation. Targets **Safari iOS** (primary) and **Chrome/Firefox**.
 Webpage mode shows the translation under each paragraph; YouTube mode shows a
-bilingual subtitle line under the original caption. Multi-provider: Google
-(free), OpenAI, Claude, DeepSeek, Zhipu GLM. Fully configurable LLM APIs.
+bilingual subtitle line under the original caption. Multi-provider, fully
+configurable LLM APIs. The provider list is a **build-time region flavor**
+(`global` / `china`) resolved from a single registry — see "Provider registry &
+region flavors" below and `docs/domain-design.md` §7.
 
 ## Interaction / UX constraints
 
@@ -33,6 +35,28 @@ model, the extractor/engine/renderer boundary, the device principle, or the
 domain-design review before the code changes.** Do not refactor the architecture
 or add per-site / per-device branches to the segmenter without that review.
 Routine bug fixes that conform to the existing model do not require it.
+
+## Provider registry & region flavors (合规双分发) — domain design
+
+**The provider transport model lives in [`docs/domain-design.md`](docs/domain-design.md) §7** and is
+governed by the same human-review rule above. Key invariants:
+
+- **One registry, four consumers.** `build/providers.config.js` is the single
+  source of truth for providers; the build emits `content/providers.gen.js`
+  (`window.MT_FLAVOR` + `window.MT_PROVIDERS`) read by the transport, options, and
+  popup. Do **not** re-introduce a hardcoded provider list anywhere.
+- **Transport is format-keyed, not vendor-keyed** (`google` / `chat-compat` /
+  `messages-compat`). Never hardcode a vendor endpoint in `translation-api.js`.
+- **Region flavor is decided at build time, never at runtime.**
+  `node build.js --flavor global|china` and `bash build-safari.sh [china]` produce
+  two independent binaries / bundle ids (`com.belliedmonkeytranslator` vs
+  `com.belliedmonkeytranslator.cn`) → two App Store app records. Rationale: China
+  mainland legal isolation (App Store Guideline 5 / MIIT) forbids OpenAI/ChatGPT
+  references, and one app record serves one binary to all storefronts.
+- **China build is brand-free and gated.** The china flavor carries no
+  Google/OpenAI/Claude and no vendor brand strings; `build.js` runs a **compliance
+  gate** over `dist-china/` (fails on `/ChatGPT|OpenAI|Claude|api.openai|api.anthropic/i`).
+  Any change to china-flavor providers/labels must keep that gate green.
 
 ## Change documentation — every change gets a GitHub issue
 
@@ -59,9 +83,11 @@ clicks; dump big AX trees to a file and jq/python the token out).
 ## Build & run
 
 ```bash
-node build.js              # Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
-node build.js firefox      # Firefox build → dist-firefox/ + .xpi
-bash build-safari.sh       # build + generate the Safari Xcode project (needs FULL Xcode)
+node build.js                     # global Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
+node build.js --flavor china      # china build → dist-china/ (+ -china.zip); runs the compliance gate
+node build.js firefox             # Firefox build → dist-firefox/ + .xpi
+bash build-safari.sh              # global Safari Xcode project (needs FULL Xcode)
+bash build-safari.sh china        # china Safari Xcode project (bundle id …​.cn)
 ```
 
 - Source lives in `extension/`; `build.js` copies it to `dist/` and validates.

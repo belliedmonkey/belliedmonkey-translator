@@ -25,7 +25,7 @@ var WebpageTranslator = (() => {
     return TranslationCore.createEngine({
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-        settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || ''),
+        settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
       // viewport priority + lazy: only translate units in/near the viewport.
       selectActive: (us) => us.filter((u) => u.node.isConnected && inViewport(u.node)),
       window: { AHEAD_MS: 0, MAX_PER_TICK: 5, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 0 },

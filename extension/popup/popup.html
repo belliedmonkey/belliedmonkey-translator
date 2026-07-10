@@ -55,13 +55,7 @@
 
     <div class="row">
       <span class="row-label" data-i18n="popup_provider">翻译引擎</span>
-      <select id="provider" class="select">
-        <option value="google" data-i18n="provider_google_free">Google 翻译（免费）</option>
-        <option value="openai">ChatGPT (OpenAI)</option>
-        <option value="claude">Claude (Anthropic)</option>
-        <option value="deepseek">DeepSeek</option>
-        <option value="glm">智谱 GLM</option>
-      </select>
+      <select id="provider" class="select"><!-- populated from window.MT_PROVIDERS by popup.js --></select>
     </div>
   </div>
 
@@ -79,7 +73,11 @@
     </div>
     <div class="row col" id="baseurl-row" style="display:none">
       <span class="row-label"><span data-i18n="label_custom_api">自定义 API 地址</span> <span class="hint" data-i18n="label_optional">（可选）</span></span>
-      <input type="text" id="api-base-url" class="input" placeholder="https://api.openai.com">
+      <input type="text" id="api-base-url" class="input" placeholder="https://…">
+    </div>
+    <div class="row col" id="model-row" style="display:none">
+      <span class="row-label"><span data-i18n="label_custom_model">模型</span> <span class="hint" data-i18n="label_optional">（可选）</span></span>
+      <input type="text" id="api-model" class="input" placeholder="" autocomplete="off">
     </div>
   </div>
 
@@ -91,6 +89,7 @@
   <div id="toast" class="toast"></div>
 
   <script src="../content/i18n-messages.js"></script>
+  <script src="../content/providers.gen.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,7 +1,10 @@
 // options.js
 
-const LLM_PROVIDERS = new Set(['openai', 'claude', 'deepseek', 'glm']);
-const OPENAI_COMPAT = new Set(['openai', 'deepseek', 'glm']);
+// Provider list is the build-time registry (window.MT_PROVIDERS, generated per
+// flavor from build/providers.config.js). No hardcoded provider list here.
+const PROVIDERS = (window.MT_PROVIDERS || []);
+const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
+const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
 const $ = id => document.getElementById(id);
 
@@ -40,28 +43,42 @@ function applyI18n() {
   const dt = t('options_title', ''); if (dt) document.title = dt;
 }
 
+// Provider <select> is populated from the registry; label comes from labelKey
+// (localizable) or the flavor-resolved literal label.
+function providerLabel(p) { return p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id); }
+function populateProviders() {
+  const sel = $('provider');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  for (const p of PROVIDERS) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = providerLabel(p);
+    sel.appendChild(opt);
+  }
+  if (prev && providerById(prev)) sel.value = prev;
+}
+
 function apiHint(provider) {
-  return ({
-    openai:   () => t('hint_openai',   'OpenAI API Key（sk-…）。模型：gpt-4o-mini'),
-    claude:   () => t('hint_claude',   'Anthropic API Key（sk-ant-…）。模型：claude-haiku-4-5'),
-    deepseek: () => t('hint_deepseek', 'DeepSeek API Key。模型：deepseek-chat'),
-    glm:      () => t('hint_glm',      '智谱 AI API Key。模型：glm-4-flash（有免费额度）'),
-  }[provider] || (() => ''))();
+  const p = providerById(provider);
+  return (p && p.hintKey) ? t(p.hintKey, '') : '';
 }
 
 function showToast(msg, duration = 2500) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
 }
 
 function updateProviderUI(provider) {
-  const hasApiKey = LLM_PROVIDERS.has(provider);
-  $('apikey-fields').style.display = hasApiKey ? 'block' : 'none';
-  $('baseurl-field').style.display = OPENAI_COMPAT.has(provider) ? 'block' : 'none';
-  const hint = $('api-hint');
-  hint.textContent = apiHint(provider);
+  const p = providerById(provider) || {};
+  $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
+  $('baseurl-field').style.display = p.supportsBaseUrl ? 'block' : 'none';
+  $('model-field').style.display = p.supportsModel ? 'block' : 'none';
+  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  $('api-model').placeholder = p.defaultModel || '';
+  $('api-hint').textContent = apiHint(provider);
 }
 
 function updateColorPreview(color) {
@@ -73,6 +90,7 @@ async function saveAll() {
     provider:    $('provider').value,
     apiKey:      $('api-key').value.trim(),
     apiBaseUrl:  $('api-base-url').value.trim(),
+    apiModel:    $('api-model').value.trim(),
     targetLang:  $('target-lang').value,
     uiLang:      $('ui-lang').value,
     textColor:   $('text-color').value,
@@ -94,9 +112,14 @@ async function init() {
   applyI18n();
   const s = s0;
 
-  $('provider').value       = s.provider    || 'google';
+  populateProviders();
+  // A stored provider from another flavor may not exist in this build → fall
+  // back to the first registry provider available here.
+  const prov = providerById(s.provider) ? s.provider : defaultProviderId();
+  $('provider').value       = prov;
   $('api-key').value        = s.apiKey      || '';
   $('api-base-url').value   = s.apiBaseUrl  || '';
+  $('api-model').value      = s.apiModel    || '';
   $('target-lang').value    = s.targetLang  || 'zh-CN';
   $('ui-lang').value        = s.uiLang      || 'auto';
   $('text-color').value     = s.textColor   || '#0a7a3c';
@@ -104,9 +127,10 @@ async function init() {
   $('font-size').value      = scaleValue(s.fontSize);
   $('show-fab').checked     = s.showFab !== false;
 
-  updateProviderUI(s.provider || 'google');
+  updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
   $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
+  if (prov !== s.provider) await saveAll(); // migrate an out-of-flavor provider
 
   // ─── Listeners ──────────────────────────────────────────────────────
 
@@ -118,12 +142,14 @@ async function init() {
 
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });
   $('api-base-url').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apiurl_saved', 'API 地址已保存')); });
+  $('api-model').addEventListener('change', async () => { await saveAll(); showToast(t('toast_model_saved', '模型已保存')); });
   $('target-lang').addEventListener('change', async () => { await saveAll(); showToast(t('toast_lang_saved', '语言已保存')); });
   $('ui-lang').addEventListener('change', async (e) => {
     _uiLang = e.target.value || 'auto';
     await saveAll();
     applyI18n();
-    updateProviderUI($('provider').value); // re-localize the API hint
+    populateProviders();                     // re-localize option labels
+    updateProviderUI($('provider').value);   // re-localize the API hint
     showToast(t('toast_lang_saved', '语言已保存'));
   });
   $('font-size').addEventListener('change', async () => { await saveAll(); showToast(t('toast_fontsize_saved', '字号已保存')); });

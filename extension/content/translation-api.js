@@ -86,13 +86,23 @@ Rules:
     return data.map(item => Array.isArray(item) ? item[0] : item);
   }
 
-  // OpenAI-compatible chat API (OpenAI, DeepSeek, GLM) — one code path.
-  function translateOpenAICompat(text, targetLang, apiKey, baseUrl, cfg) {
+  // Provider config comes from the build-time registry (window.MT_PROVIDERS,
+  // generated per flavor from build/providers.config.js). Transport is keyed by
+  // request FORMAT, not by vendor: 'chat-compat' = the Chat Completions request
+  // shape; 'messages-compat' = the Messages request shape. Brand-free on purpose so
+  // a China build carries no vendor brand strings (App Store Guideline 5).
+  function providerById(id) {
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    return list.find((p) => p.id === id) || null;
+  }
+
+  // Chat Completions request format (DeepSeek / GLM / Qwen / Kimi / custom / etc.).
+  function translateChatCompat(text, targetLang, apiKey, cfg, model) {
     return callChatAPI({
-      url: (baseUrl || cfg.defaultBase) + cfg.path,
+      url: cfg.base + cfg.path,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: {
-        model: cfg.model,
+        model: model || cfg.defaultModel,
         messages: [
           { role: 'system', content: buildSystemPrompt(targetLang) },
           { role: 'user', content: text }
@@ -105,9 +115,12 @@ Rules:
     });
   }
 
-  function translateClaude(text, targetLang, apiKey, baseUrl) {
+  // Messages request format (custom / self-hosted). `anthropic-version` is a
+  // required protocol header for ANY Messages-compatible endpoint — a technical
+  // API-format requirement, not a vendor brand reference.
+  function translateMessagesFormat(text, targetLang, apiKey, cfg, model) {
     return callChatAPI({
-      url: (baseUrl || 'https://api.anthropic.com') + '/v1/messages',
+      url: cfg.base + cfg.path,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
@@ -115,26 +128,25 @@ Rules:
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: {
-        model: 'claude-haiku-4-5-20251001',
+        model: model || cfg.defaultModel,
         max_tokens: 2000,
         system: buildSystemPrompt(targetLang),
         messages: [{ role: 'user', content: text }]
       },
-      label: 'Claude',
+      label: cfg.label,
       extract: (d) => d.content[0].text
     });
   }
 
-  const OPENAI_COMPAT = {
-    openai:   { defaultBase: 'https://api.openai.com',   path: '/v1/chat/completions',          model: 'gpt-4o-mini',   label: 'OpenAI' },
-    deepseek: { defaultBase: 'https://api.deepseek.com', path: '/v1/chat/completions',          model: 'deepseek-chat', label: 'DeepSeek' },
-    glm:      { defaultBase: 'https://open.bigmodel.cn', path: '/api/paas/v4/chat/completions', model: 'glm-4-flash',   label: 'GLM' }
-  };
-
-  function callProvider(provider, text, targetLang, apiKey, baseUrl) {
-    if (provider === 'claude') return translateClaude(text, targetLang, apiKey, baseUrl);
-    if (OPENAI_COMPAT[provider]) return translateOpenAICompat(text, targetLang, apiKey, baseUrl, OPENAI_COMPAT[provider]);
-    return translateGoogle(text, targetLang);
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model) {
+    const p = providerById(provider);
+    if (!p || p.type === 'google') return translateGoogle(text, targetLang);
+    const base = baseUrl || p.defaultBase;
+    if (!base) { const e = new Error(`${p.label || provider}: missing base URL`); e.status = 0; throw e; }
+    const cfg = { base, path: p.path, defaultModel: p.defaultModel, label: p.label || provider };
+    return p.type === 'messages-compat'
+      ? translateMessagesFormat(text, targetLang, apiKey, cfg, model)
+      : translateChatCompat(text, targetLang, apiKey, cfg, model);
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -180,7 +192,7 @@ Rules:
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
   // final fallback to Google for non-google providers). Applies to ALL providers. ─
-  async function translate(text, targetLang, provider, apiKey, baseUrl) {
+  async function translate(text, targetLang, provider, apiKey, baseUrl, model) {
     if (!text || text.trim().length < 2) return text;
     const key = `${provider}:${targetLang}:${text}`;
 
@@ -193,11 +205,14 @@ Rules:
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model);
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
-            if (provider !== 'google') return await translateGoogle(text, targetLang);
+            // Global builds fall back to Google on total failure; China builds have
+            // no Google (blocked in China) — surface the error instead.
+            const chinaFlavor = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china');
+            if (provider !== 'google' && !chinaFlavor) return await translateGoogle(text, targetLang);
             throw err;
           }
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
@@ -211,7 +226,7 @@ Rules:
   }
 
   // ─── Batch translate ──────────────────────────────────────────────────
-  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl) {
+  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model) {
     if (!texts.length) return [];
 
     if (provider === 'google') {
@@ -235,7 +250,7 @@ Rules:
       return results;
     }
 
-    return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl)));
+    return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl, model)));
   }
 
   return { translate, translateBatch, LANG_NAMES };

@@ -244,5 +244,26 @@
   },
   "options_font_xl": {
     "message": "較大 (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "通義千問（DashScope）API Key。預設模型 qwen-plus。"
+  },
+  "hint_kimi": {
+    "message": "Kimi（Moonshot）API Key，請在對應區域平台申請（國內 moonshot.cn / 國際 moonshot.ai）。預設模型 moonshot-v1-8k。"
+  },
+  "hint_custom_chat": {
+    "message": "任意 Chat Completions 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+  },
+  "hint_custom_msg": {
+    "message": "任意 Messages 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+  },
+  "label_custom_model": {
+    "message": "模型"
+  },
+  "options_custom_model_hint": {
+    "message": "留空則使用該引擎的預設模型。"
+  },
+  "toast_model_saved": {
+    "message": "模型已儲存"
   }
 }

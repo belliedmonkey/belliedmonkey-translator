@@ -244,5 +244,26 @@
   },
   "options_font_xl": {
     "message": "Largest (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+  },
+  "hint_custom_chat": {
+    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+  },
+  "hint_custom_msg": {
+    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+  },
+  "label_custom_model": {
+    "message": "Model"
+  },
+  "options_custom_model_hint": {
+    "message": "Leave blank to use the engine's default model."
+  },
+  "toast_model_saved": {
+    "message": "Model saved"
   }
 }

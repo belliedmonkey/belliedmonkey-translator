@@ -38,7 +38,7 @@ var YouTubeTranslator = (() => {
     getCurrentTime: () => (document.querySelector('video')?.currentTime || 0) * 1000,
     translate: (text) => TranslationAPI.translate(
       text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || ''),
+      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
   });
   let transcriptVideoId = '';
   let lastShownKey = '';
