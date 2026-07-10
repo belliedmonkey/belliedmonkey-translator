@@ -1,7 +1,10 @@
 // popup.js
 
-const LLM_PROVIDERS = new Set(['openai', 'claude', 'deepseek', 'glm']);
-const OPENAI_COMPAT = new Set(['openai', 'deepseek', 'glm']); // support custom base URL
+// Provider list is the build-time registry (window.MT_PROVIDERS, generated per
+// flavor from build/providers.config.js).
+const PROVIDERS = (window.MT_PROVIDERS || []);
+const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
+const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
 const $ = id => document.getElementById(id);
 
@@ -39,6 +42,20 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { const m = t(el.dataset.i18nAria, ''); if (m) el.setAttribute('aria-label', m); });
 }
 
+function providerLabel(p) { return p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id); }
+function populateProviders() {
+  const sel = $('provider');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  for (const p of PROVIDERS) {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = providerLabel(p);
+    sel.appendChild(o);
+  }
+  if (prev && providerById(prev)) sel.value = prev;
+}
+
 async function getSettings() {
   return new Promise(resolve => {
     chrome.storage.local.get(null, s => resolve(s || {}));
@@ -46,10 +63,10 @@ async function getSettings() {
 }
 
 function showToast(msg, duration = 2000) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
 }
 
 async function saveSettings(patch) {
@@ -57,14 +74,12 @@ async function saveSettings(patch) {
 }
 
 function updateApiKeySection(provider) {
-  const section = $('apikey-section');
-  const baseUrlRow = $('baseurl-row');
-  if (LLM_PROVIDERS.has(provider)) {
-    section.style.display = 'block';
-    baseUrlRow.style.display = OPENAI_COMPAT.has(provider) ? 'flex' : 'none';
-  } else {
-    section.style.display = 'none';
-  }
+  const p = providerById(provider) || {};
+  $('apikey-section').style.display = p.needsKey ? 'block' : 'none';
+  $('baseurl-row').style.display = p.supportsBaseUrl ? 'flex' : 'none';
+  $('model-row').style.display = p.supportsModel ? 'flex' : 'none';
+  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  $('api-model').placeholder = p.defaultModel || '';
 }
 
 let pageTranslated = false; // whether the current page is currently translated
@@ -99,11 +114,15 @@ async function init() {
   // Populate UI
   $('target-lang').value = s.targetLang || 'zh-CN';
   $('ui-lang').value = s.uiLang || 'auto';
-  $('provider').value = s.provider || 'google';
+  populateProviders();
+  const prov = providerById(s.provider) ? s.provider : defaultProviderId();
+  $('provider').value = prov;
   $('api-key').value = s.apiKey || '';
   $('api-base-url').value = s.apiBaseUrl || '';
+  $('api-model').value = s.apiModel || '';
 
-  updateApiKeySection(s.provider || 'google');
+  updateApiKeySection(prov);
+  if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
 
   // Reflect the CURRENT page's translation state (not a stored default).
   pageTranslated = await queryPageTranslated();
@@ -120,7 +139,8 @@ async function init() {
     _uiLang = e.target.value || 'auto';
     await saveSettings({ uiLang: e.target.value });
     applyI18n();
-    updateTranslateUI(); // re-localize the button/badge text
+    populateProviders();  // re-localize provider option labels
+    updateTranslateUI();  // re-localize the button/badge text
     showToast(t('toast_lang_switched', '语言已切换'));
   });
 
@@ -137,6 +157,10 @@ async function init() {
 
   $('api-base-url').addEventListener('change', async (e) => {
     await saveSettings({ apiBaseUrl: e.target.value.trim() });
+  });
+
+  $('api-model').addEventListener('change', async (e) => {
+    await saveSettings({ apiModel: e.target.value.trim() });
   });
 
   // Toggle password visibility

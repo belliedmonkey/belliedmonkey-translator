@@ -22,13 +22,7 @@
 
         <div class="field">
           <label for="provider" data-i18n="options_engine_label">引擎</label>
-          <select id="provider">
-            <option value="google" data-i18n="provider_google_free_long">Google 翻译（免费，无需 API Key）</option>
-            <option value="openai">ChatGPT (OpenAI)</option>
-            <option value="claude">Claude (Anthropic)</option>
-            <option value="deepseek">DeepSeek</option>
-            <option value="glm">智谱 GLM</option>
-          </select>
+          <select id="provider"><!-- populated from window.MT_PROVIDERS by options.js --></select>
         </div>
 
         <div id="apikey-fields" style="display:none">
@@ -45,8 +39,14 @@
 
           <div class="field" id="baseurl-field">
             <label for="api-base-url"><span data-i18n="label_custom_api">自定义 API 地址</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
-            <input type="text" id="api-base-url" placeholder="https://api.openai.com">
+            <input type="text" id="api-base-url" placeholder="https://…">
             <p class="hint" data-i18n="options_custom_api_hint">留空则使用默认地址。适用于中转代理或自建服务。</p>
+          </div>
+
+          <div class="field" id="model-field">
+            <label for="api-model"><span data-i18n="label_custom_model">模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="text" id="api-model" placeholder="" autocomplete="off">
+            <p class="hint" data-i18n="options_custom_model_hint">留空则使用该引擎的默认模型。</p>
           </div>
         </div>
       </section>
@@ -152,6 +152,7 @@
   </div>
 
   <script src="../content/i18n-messages.js"></script>
+  <script src="../content/providers.gen.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

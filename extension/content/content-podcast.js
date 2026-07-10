@@ -39,7 +39,7 @@ var PodcastTranslator = (() => {
     getCurrentTime: () => positionMs(),
     translate: (text) => TranslationAPI.translate(
       text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || ''),
+      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
   });
 
   // ─── Media element ─────────────────────────────────────────────────────

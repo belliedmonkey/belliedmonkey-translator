@@ -5,10 +5,23 @@ const { describe, test, ok, eq, deepEq, match, rejects } = require('./harness');
 const { loadModule } = require('./harness');
 const { makeChrome, makeFetch } = require('./stubs');
 
-function loadAPI(program, chromeOpts = {}) {
+// The transport reads the provider registry off `window.MT_PROVIDERS`, which the
+// build generates per flavor into providers.gen.js. Load that real (global-flavor)
+// registry into a shared `window` so tests exercise the exact production config,
+// then hand the same object to translation-api.js. `flavor` overrides
+// window.MT_FLAVOR (e.g. 'china') to exercise the no-Google-fallback branch.
+function loadRegistry() {
+  const window = {};
+  loadModule('providers.gen.js', { window });
+  return window;
+}
+
+function loadAPI(program, chromeOpts = {}, flavor) {
   const chrome = makeChrome(chromeOpts);
   const fetch = makeFetch(program);
-  const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams });
+  const window = loadRegistry();
+  if (flavor) window.MT_FLAVOR = flavor;
+  const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window });
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
 
@@ -35,10 +48,12 @@ describe('TranslationAPI — guards & Google', () => {
 
 // ─────────────────────────────────────────────────────────────────────────
 describe('TranslationAPI — OpenAI-compatible providers', () => {
+  // URLs/models mirror the global-flavor registry (build/providers.config.js):
+  // GLM's global endpoint is Z.ai; DeepSeek's default model is deepseek-v4-flash.
   const cases = [
-    { provider: 'openai',   url: 'https://api.openai.com/v1/chat/completions',              model: 'gpt-4o-mini' },
-    { provider: 'deepseek', url: 'https://api.deepseek.com/v1/chat/completions',            model: 'deepseek-chat' },
-    { provider: 'glm',      url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',   model: 'glm-4-flash' },
+    { provider: 'openai',   url: 'https://api.openai.com/v1/chat/completions',            model: 'gpt-4o-mini' },
+    { provider: 'deepseek', url: 'https://api.deepseek.com/v1/chat/completions',          model: 'deepseek-v4-flash' },
+    { provider: 'glm',      url: 'https://api.z.ai/api/paas/v4/chat/completions',         model: 'glm-4-flash' },
   ];
   for (const c of cases) {
     test(`${c.provider}: url ${c.url}, model ${c.model}, Bearer auth`, async () => {
@@ -114,6 +129,14 @@ describe('TranslationAPI — retry & fallback', () => {
   test('Google failing on all retries rejects (no fallback loop)', async () => {
     const { API } = loadAPI([errJson(500), errJson(500), errJson(500)]);
     await rejects(API.translate('hello', 'zh-CN', 'google', '', ''));
+  });
+
+  test('China flavor: a failing provider rejects (no Google fallback — Google is blocked in China)', async () => {
+    // 3 failures and NO Google success programmed: the china build must surface
+    // the error rather than silently reaching for translate.googleapis.com.
+    const { API, fetch } = loadAPI([errJson(500), errJson(500), errJson(500)], {}, 'china');
+    await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'KEY', ''));
+    eq(fetch.calls.length, 3, 'exactly the 3 provider retries, no 4th Google attempt');
   });
 });
 

@@ -1,7 +1,10 @@
 dist/
+dist-china/
 dist-firefox/
 safari-project/
+safari-project-china/
 *.zip
 *.xpi
 node_modules/
 .gstack/
+pnpm-lock.yaml
