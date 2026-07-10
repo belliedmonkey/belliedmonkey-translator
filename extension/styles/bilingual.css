@@ -14,6 +14,11 @@
   -webkit-user-select: text;
   user-select: text;
   text-decoration: none;
+  /* Never let our injected translations be chosen as the browser's scroll anchor.
+     On SPA re-renders (e.g. Substack re-rendering the article on a click) our nodes
+     are added/removed; if the anchor lands on one, the page jumps. Anchor on the
+     stable original content instead. */
+  overflow-anchor: none;
 }
 
 /* Subtle source indicator */

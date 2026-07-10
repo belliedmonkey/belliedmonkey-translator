@@ -138,6 +138,20 @@ scripts), and text heuristics (Unicode `\p{L}` "has a letter" + URL/email/@/#/
 translated because it lives in a non-rendered / hidden node and looks like code —
 a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
 
+**Leaf-block detection must see through `display:contents`.** A unit is a *leaf
+block* (collected whole) only when it has no block-level child; otherwise we
+descend. `display:contents` generates **no box** (so it is neither block nor
+inline for layout), but its children DO render as blocks. So `hasBlockChild` must
+treat a `display:contents` child as **transparent and recurse into it** — a
+container whose only child is a `display:contents` wrapper (e.g. Substack's
+`.single-post` → `div.pencraft[display:contents]` → the real paragraphs) would
+otherwise be mis-seen as a leaf and its **entire subtree collected as ONE giant
+unit**. That produces a single multi-thousand-px blob translation (duplicating the
+real per-paragraph translations nested inside it), and when that blob re-renders
+above the viewport the browser's scroll anchoring jumps the page far down. The rule
+is symmetric with the visibility rule above, which already treats `display:contents`
+as "render its children."
+
 **Don't translate the media-player region.** The video player's chrome (live
 captions, controls) and our own subtitle overlay belong to the **subtitle/player
 path**, not the webpage extractor — so `DomSegmenter` skips any subtree inside a

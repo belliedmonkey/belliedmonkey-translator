@@ -150,14 +150,24 @@ var DOMProcessor = (() => {
     return false;
   }
 
+  function isContents(el) { const cs = computed(el); return !!(cs && cs.display === 'contents'); }
+
   // A leaf block has no visible block-level element child (so it holds its own
   // text); otherwise we descend into it. Uses computed display so custom-element
   // containers (display:block) are descended, inline ones merged.
+  // `display:contents` generates NO box (neither block nor inline for layout) but
+  // its children DO render as blocks — so it must be treated as TRANSPARENT and
+  // recursed into. Otherwise a container whose only child is a display:contents
+  // wrapper (Substack's `.single-post` → `div.pencraft[display:contents]` → the
+  // real paragraphs) is mis-seen as a leaf and its ENTIRE subtree is collected as
+  // one giant multi-thousand-px unit (see docs/domain-design.md §3).
   function hasBlockChild(el) {
     for (const child of el.children) {
       if (EXCLUDE_TAGS.has(child.tagName.toLowerCase())) continue;
+      if (child.classList && child.classList.contains(TRANSLATION_CLASS)) continue;
       if (!isVisible(child)) continue;
       if (isBlock(child)) return true;
+      if (isContents(child) && hasBlockChild(child)) return true; // see-through wrapper
     }
     return false;
   }
