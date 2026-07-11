@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',system-ui,sans-serif;
+    background:linear-gradient(160deg,#0a7a3c 0%,#0e8a45 45%,#12a152 100%);
+    display:flex;flex-direction:column;align-items:center;overflow:hidden;
+  }
+  .caption{text-align:center;color:#fff;padding:6.5vh 8vw 0;flex:0 0 auto;}
+  .caption h1{font-size:6.4vw;font-weight:800;line-height:1.18;letter-spacing:-0.01em;text-shadow:0 2px 10px rgba(0,0,0,.12);}
+  .caption p{font-size:3.2vw;font-weight:500;margin-top:2.4vh;color:rgba(255,255,255,.92);line-height:1.5;}
+  .stage{flex:1 1 auto;display:flex;align-items:flex-end;justify-content:center;width:100%;}
+  .phone{
+    width:80%;height:88%;background:#fff;
+    border-radius:9% 9% 0 0 / 4.2% 4.2% 0 0;
+    box-shadow:0 -8px 60px rgba(0,0,0,.28);
+    border:1.1vw solid #1a1a1a;border-bottom:none;
+    overflow:hidden;display:flex;flex-direction:column;
+  }
+  .pop{--green:#0a7a3c;--green-dark:#065f46;--green-light:#dcfce7;--text:#1a1a1a;
+    --text-secondary:#6b7280;--border:#e5e7eb;--section-bg:#f9fafb;
+    flex:1;display:flex;flex-direction:column;}
+  .phead{display:flex;align-items:center;gap:2.6%;padding:4vh 5.5% 3.4vh;border-bottom:1px solid var(--border);}
+  .logo{flex-shrink:0;width:11vw;height:11vw;background:var(--green-light);border-radius:2.6vw;display:flex;align-items:center;justify-content:center;}
+  .logo svg{width:7vw;height:7vw;}
+  .phead h1{font-size:4.4vw;font-weight:600;color:var(--text);flex:1;}
+  .badge{font-size:2.7vw;font-weight:600;padding:0.9vh 3vw;border-radius:5vw;background:var(--green-light);color:var(--green-dark);}
+  .section{padding:1.2vh 5.5%;border-bottom:1px solid var(--border);}
+  .row{display:flex;align-items:center;justify-content:space-between;min-height:6.2vh;gap:4%;}
+  .row-label{font-size:3.5vw;color:var(--text);flex-shrink:0;}
+  .select{font-size:3.4vw;color:var(--text);background:var(--section-bg);border:1px solid var(--border);border-radius:2.2vw;padding:1.2vh 3.6vw;display:flex;align-items:center;gap:2vw;}
+  .select.active{border-color:var(--green);color:var(--green);font-weight:600;background:#fff;box-shadow:0 0 0 3px rgba(10,122,60,.12);}
+  .caret{font-size:2.6vw;opacity:.6;}
+  /* open dropdown */
+  .menu-wrap{padding:0 5.5% 1.6vh;}
+  .menu-label{font-size:3.1vw;color:var(--text-secondary);margin:1.6vh 0 1.1vh;font-weight:500;}
+  .menu{border:1px solid var(--border);border-radius:3vw;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.08);}
+  .opt{display:flex;align-items:center;gap:3vw;padding:2.15vh 4.5vw;font-size:3.5vw;color:var(--text);border-bottom:1px solid #f0f1f3;}
+  .opt:last-child{border-bottom:none;}
+  .opt .dot{width:2.6vw;height:2.6vw;border-radius:50%;background:#12a152;flex-shrink:0;}
+  .opt.sel{background:var(--green-light);font-weight:600;color:var(--green-dark);}
+  .opt.sel .check{margin-left:auto;color:var(--green);font-size:3.8vw;font-weight:700;}
+  .opt .sub{margin-left:auto;font-size:2.7vw;color:var(--text-secondary);}
+  .actions{padding:2.6vh 5.5% 3vh;margin-top:auto;}
+  .btn{width:100%;background:var(--green);color:#fff;border:none;border-radius:3vw;padding:2.4vh 0;font-size:4vw;font-weight:600;text-align:center;box-shadow:0 4px 16px rgba(10,122,60,.28);}
+</style>
+</head>
+<body>
+  <div class="caption">
+    <h1>多种国内大模型引擎</h1>
+    <p>DeepSeek · 智谱GLM · 通义千问 · Kimi，也可自定义接口</p>
+  </div>
+  <div class="stage">
+    <div class="phone">
+      <div class="pop">
+        <div class="phead">
+          <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="#0a7a3c"/></svg>
+          </div>
+          <h1>大肚猴翻译</h1>
+          <span class="badge">已开启</span>
+        </div>
+        <div class="section">
+          <div class="row"><span class="row-label">目标语言</span><span class="select">简体中文 <span class="caret">▾</span></span></div>
+        </div>
+        <div class="section" style="border-bottom:none;">
+          <div class="row"><span class="row-label">翻译引擎</span><span class="select active">智谱 GLM <span class="caret">▴</span></span></div>
+        </div>
+        <div class="menu-wrap">
+          <div class="menu">
+            <div class="opt"><span class="dot"></span>DeepSeek</div>
+            <div class="opt sel"><span class="dot" style="background:#065f46;"></span>智谱 GLM<span class="check">✓</span></div>
+            <div class="opt"><span class="dot"></span>通义千问</div>
+            <div class="opt"><span class="dot"></span>Kimi</div>
+            <div class="opt"><span class="dot" style="background:#9aa0a6;"></span>自定义接口<span class="sub">Chat / Messages</span></div>
+          </div>
+        </div>
+        <div class="actions"><div class="btn">翻译本页</div></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

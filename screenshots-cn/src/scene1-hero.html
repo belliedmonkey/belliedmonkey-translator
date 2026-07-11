@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',system-ui,sans-serif;
+    background:linear-gradient(160deg,#0a7a3c 0%,#0e8a45 45%,#12a152 100%);
+    display:flex;flex-direction:column;align-items:center;
+    overflow:hidden;
+  }
+  .caption{
+    text-align:center;color:#fff;padding:6.5vh 8vw 0;
+    flex:0 0 auto;
+  }
+  .caption h1{
+    font-size:6.4vw;font-weight:800;line-height:1.18;letter-spacing:-0.01em;
+    text-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  .caption p{
+    font-size:3.2vw;font-weight:500;margin-top:2.4vh;color:rgba(255,255,255,.92);
+    line-height:1.5;
+  }
+  .stage{flex:1 1 auto;display:flex;align-items:flex-end;justify-content:center;width:100%;}
+  .phone{
+    width:80%;height:88%;
+    background:#fff;
+    border-radius:9% 9% 0 0 / 4.2% 4.2% 0 0;
+    box-shadow:0 -8px 60px rgba(0,0,0,.28);
+    border:1.1vw solid #1a1a1a;border-bottom:none;
+    overflow:hidden;display:flex;flex-direction:column;
+  }
+  /* browser chrome */
+  .bar{
+    background:#f2f3f5;border-bottom:1px solid #e3e5e8;
+    padding:2.4vh 4.5% 2vh;display:flex;align-items:center;gap:2.5%;
+    flex:0 0 auto;
+  }
+  .bar .url{
+    flex:1;background:#fff;border:1px solid #dfe1e5;border-radius:3vw;
+    font-size:2.5vw;color:#5f6368;padding:1.3vh 3.5%;text-align:center;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .bar .lock{font-size:2.6vw;color:#9aa0a6;}
+  /* article */
+  .doc{flex:1;overflow:hidden;padding:3.4vh 6.5% 0;}
+  .doc h2{font-size:4.5vw;font-weight:700;color:#111;line-height:1.3;margin-bottom:2.6vh;}
+  .p{margin-bottom:3.1vh;}
+  .orig{font-size:3.15vw;line-height:1.62;color:#20242a;}
+  .trans{
+    display:block;margin-top:1.0vh;padding-top:1.0vh;
+    border-top:1px solid rgba(10,122,60,.18);
+    font-size:3.15vw;line-height:1.62;color:#0a7a3c;font-weight:500;
+  }
+  .chip{
+    position:absolute;
+  }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <h1>网页秒变双语对照</h1>
+    <p>原文保留，译文逐段显示在下方，边读边学不打断</p>
+  </div>
+  <div class="stage">
+    <div class="phone">
+      <div class="bar">
+        <span class="lock">🔒</span>
+        <span class="url">en.example.com/article</span>
+        <span class="lock">⋯</span>
+      </div>
+      <div class="doc">
+        <h2>The Quiet Rise of On-Device AI</h2>
+        <div class="p">
+          <span class="orig">Modern phones now run capable language models entirely on-device, without sending data to the cloud.</span>
+          <span class="trans">如今的手机已能完全在本地运行强大的语言模型，无需将数据发送到云端。</span>
+        </div>
+        <div class="p">
+          <span class="orig">This shift means faster responses, better privacy, and translation that keeps working even when you are offline.</span>
+          <span class="trans">这一转变带来了更快的响应、更好的隐私保护，以及即使离线也能持续工作的翻译能力。</span>
+        </div>
+        <div class="p">
+          <span class="orig">For language learners, reading foreign articles side by side with a translation is a powerful way to build vocabulary.</span>
+          <span class="trans">对语言学习者而言，将外文文章与译文并排阅读，是积累词汇的有力方式。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
