@@ -80,6 +80,21 @@ Key gotchas live in that doc (cua-driver permissions + user-scope MCP + clean-st
 handshake; iOS UI is AX-clickable by element_token but web content needs pixel
 clicks; dump big AX trees to a file and jq/python the token out).
 
+**Canonical surface = the corresponding device's Xcode simulator.** Since this
+ships as a Safari iOS extension, the source of truth for ANY bug reproduction or
+fix verification is the built extension running in the **Xcode iOS Simulator**
+(Safari), driven via cua-driver — NOT desktop Chrome and NOT the unbuilt source.
+Chrome / instrumented harnesses are fine as fast first-pass evidence, but a bug
+is not "reproduced" or a fix "verified" until it is seen on the simulator.
+
+**Interaction / visual bugs MUST be verified with a screen RECORDING, not a
+screenshot.** For anything about *behavior over time* — a click/selection causing
+a flash, a layout that shifts then reverts, subtitle timing, scroll jank — a
+still screenshot cannot capture the transient. Record the simulator screen while
+performing the interaction (`xcrun simctl io <udid> recordVideo out.mov`, or
+cua-driver `start_recording`/`stop_recording`) and review the video. Keep the
+before (repro) and after (fix) clips.
+
 ## Build & run
 
 ```bash

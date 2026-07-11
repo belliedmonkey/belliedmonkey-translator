@@ -41,21 +41,41 @@ var WebpageTranslator = (() => {
   // Re-collect translatable units (prune detached, append new, dedupe). Acts as
   // the SPA poll too — picks up lazily-loaded comments and YouTube re-renders.
   function recollect(root) {
-    units = units.filter((u) => {
-      if (u.node.isConnected) return true;
-      // Node was removed by an SPA re-render — delete its now-orphaned translation so it
-      // doesn't pile up at the container end (the "中英文分开" clustering bug).
-      const t = u.node.__mtTrans;
-      if (t && t.remove) t.remove();
-      return false;
-    });
+    // A mere click/selection makes SPA frameworks (React on Substack) re-render the
+    // article and REPLACE paragraph nodes with fresh, identical ones. The naive
+    // response — drop the old node's translation, then re-translate + re-insert for the
+    // new node — flickers the page (remove→re-add) and briefly shifts layout, even
+    // though the text never changed. So when a detached node's translation is still
+    // usable, stash it by text and let an identical re-rendered node ADOPT it: the same
+    // div just re-anchors under the new node — no removal, no re-translate, no flash.
+    const orphans = new Map(); // text -> { div, tr }
+    const kept = [];
+    for (const u of units) {
+      if (u.node.isConnected) { kept.push(u); continue; }
+      const div = u.node.__mtTrans;
+      const reusable = div && div.isConnected && div.dataset.interleave !== '1'
+        && !u.node.hasAttribute('data-mt-hidden') && u.tr;
+      if (reusable && !orphans.has(u.text)) orphans.set(u.text, { div, tr: u.tr });
+      else if (div && div.remove) div.remove(); // real removal / dup / interleave → prune now
+    }
+    units = kept;
     const fresh = DOMProcessor.collectUnits(root || document.body)
       .filter((n) => !known.has(n))
       .map((n) => {
         known.add(n);
         n.setAttribute(PROCESSED, '1'); // future walks prune this subtree (perf)
-        return { node: n, text: DOMProcessor.getTextContent(n) };
+        const u = { node: n, text: DOMProcessor.getTextContent(n) };
+        const orphan = orphans.get(u.text);
+        if (orphan) {                            // identical re-render → adopt, don't recreate
+          orphans.delete(u.text);
+          n.__mtTrans = orphan.div;
+          u.tr = orphan.tr;                      // seed engine state: stateOf()=done, pump() skips
+          if (n.nextElementSibling !== orphan.div) n.insertAdjacentElement('afterend', orphan.div);
+        }
+        return u;
       });
+    // Any stash not re-adopted was a genuine removal → drop its now-stale translation.
+    for (const o of orphans.values()) if (o.div && o.div.remove) o.div.remove();
     if (fresh.length) units = units.concat(fresh);
     if (engine) engine.setUnits(units);
   }
