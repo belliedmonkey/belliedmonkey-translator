@@ -8,3 +8,6 @@ safari-project-china/
 node_modules/
 .gstack/
 pnpm-lock.yaml
+
+# macOS
+.DS_Store
