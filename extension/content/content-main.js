@@ -48,7 +48,14 @@
   // bar). Apple Podcasts web / 小宇宙 expose no timed transcript. (Spotify is NOT here —
   // its synced "Read along" transcript is scraped by PodcastTranslator.resolveSpotifyDom.)
   const isTextOnlyPodcast = /(podcasts\.apple\.com|xiaoyuzhoufm\.com)/.test(location.hostname);
-  const drivesPodcast = () => !isYouTube && !isTextOnlyPodcast && (isPodcastHost || !!document.querySelector('audio'));
+  // Gate symmetry with the feature itself (hasMedia/mediaEl support audio AND
+  // video): an <audio> always engages; a VIDEO-only page (Substack video posts —
+  // no <audio> companion) engages only when a timed-transcript source is
+  // discoverable, so decorative/hero videos never surface subtitle UI or a
+  // 字幕不可用 notice.
+  const drivesPodcast = () => !isYouTube && !isTextOnlyPodcast && (
+    isPodcastHost || !!document.querySelector('audio')
+    || (!!document.querySelector('video') && PodcastTranslator.hasTranscriptHint()));
 
   if (isEmbed) {
     if (isYouTube) YouTubeTranslator.init(cfg);

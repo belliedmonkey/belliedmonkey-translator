@@ -137,11 +137,33 @@ var PodcastTranslator = (() => {
     }
     let html = document.documentElement.innerHTML;
     html = html.replace(/\\u0026/g, '&').replace(/&amp;/g, '&').replace(/\\\//g, '/');
-    const signed = html.match(/https?:\/\/[^"'\\\s]+\.(?:vtt|srt)\?[^"'\\\s]*(?:Key-Pair-Id|Signature|token|Expires)=[^"'\\\s]+/i);
-    if (signed) return signed[0];
+    const signed = [...html.matchAll(/https?:\/\/[^"'\\\s]+\.(?:vtt|srt)\?[^"'\\\s]*(?:Key-Pair-Id|Signature|token|Expires)=[^"'\\\s]+/gi)].map((m) => m[0]);
+    if (signed.length) return pickCaptionForMedia(signed);
     const any = html.match(/https?:\/\/[^"'\\\s]+\.(?:vtt|srt)(?:\?[^"'\\\s]*)?/i);
     return any ? any[0] : null;
   }
+  // A page can embed MANY transcript URLs (the post's own + sidebar/recommended
+  // episodes — Substack pages carry ~8). Prefer the candidate that shares a long
+  // path segment (upload id / post id) with the playing media's own src; fall
+  // back to first-in-document-order (the main post body precedes the sidebar —
+  // verified on Substack, where this fallback is also the NORM: their players use
+  // MSE blob: srcs that carry no matchable path tokens, so the token match only
+  // helps platforms with real media URLs).
+  function pickCaptionForMedia(candidates) {
+    const m = mediaEl();
+    const src = m && (m.currentSrc || m.src) || '';
+    if (src) {
+      const tokens = src.split(/[/?#&]/).filter((t) => t.length >= 8 && /^[\w-]+$/.test(t));
+      const hit = candidates.find((u) => tokens.some((t) => u.indexOf(t) !== -1));
+      if (hit) return hit;
+    }
+    return candidates[0];
+  }
+  // Cheap top-frame probe used by content-main's drivesPodcast() gate: a VIDEO
+  // page only engages the subtitle path when a timed-transcript source is
+  // discoverable (a caption <track> or an embedded .vtt/.srt URL) — so pages
+  // with decorative/hero videos never grow a 译 button or a 字幕不可用 notice.
+  function hasTranscriptHint() { return !!findCaptionUrlInPage(); }
 
   // 2) Podcasting 2.0 <podcast:transcript> from the page's RSS feed.
   async function resolveViaRss() {
@@ -491,5 +513,5 @@ var PodcastTranslator = (() => {
   function disable() { setActive(false); }
   function updateSettings(cfg) { settings = cfg; engine.reset(); clearOverlay(); }
 
-  return { init, enable, disable, updateSettings };
+  return { init, enable, disable, updateSettings, hasTranscriptHint };
 })();

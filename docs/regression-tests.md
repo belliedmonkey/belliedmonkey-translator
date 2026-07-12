@@ -211,6 +211,20 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   floating 译 control menu (双语/仅译文/仅原文, 下载.srt, 设置) renders. *(Spec: Podcast
   Source & timing + Layout + Controls.)*
 
+- [ ] **Video-only Substack post with transcript translates.** Load a Substack VIDEO
+  post that has NO `<audio>` element but a transcription (e.g.
+  `terroirchampagne.substack.com/p/marissa-ocasio-on-the-us-champagne`), FAB on, play
+  ≥30s. **Expected:** the 译 button mounts, `#mt-pod-overlay` shows a single advancing
+  bilingual pair, and the resolved `.vtt` belongs to the MAIN video (its URL shares the
+  upload-id path segment with the `<video>` src — not a sidebar recommendation's vtt).
+  *(Spec: Podcast "Video posts are peers of audio"; gate `drivesPodcast()` +
+  `hasTranscriptHint()`.)*
+
+- [ ] **Decorative videos never surface subtitle UI.** On an ordinary page with a
+  hero/background/autoplaying `<video>` and no transcript source, FAB on. **Expected:**
+  page text translates; **no** 译 button, **no** `字幕不可用` bar, no `#mt-pod-overlay` —
+  ever. *(Spec: Podcast "Video posts are peers of audio" — transcript-hint gating.)*
+
 - [ ] **`⏳ 字幕加载中…` while fetching.** **Expected:** shown dimmed while
   fetching/parsing, then auto-swaps to the bilingual pair — never a stuck line.
   *(Spec: Podcast Loading / fallback.)*
