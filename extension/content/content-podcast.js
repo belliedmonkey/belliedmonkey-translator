@@ -325,7 +325,15 @@ var PodcastTranslator = (() => {
 
   function clearOverlay() {
     const ov = document.getElementById(OVERLAY_ID);
-    if (ov) { ov.querySelector('.' + ORIG_CLASS).textContent = ''; ov.querySelector('.' + TRANS_CLASS).textContent = ''; }
+    if (ov) {
+      // display:none too — an emptied inline-block pill (padding + dark bg)
+      // would otherwise linger as a small dark dot. renderOverlay/renderNotice
+      // re-set the full cssText on next render, so this is safely reversible.
+      for (const cls of [ORIG_CLASS, TRANS_CLASS]) {
+        const el = ov.querySelector('.' + cls);
+        el.textContent = ''; el.style.display = 'none';
+      }
+    }
     lastShownKey = '';
   }
   function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); document.getElementById('mt-pod-meas')?.remove(); }
@@ -492,6 +500,11 @@ var PodcastTranslator = (() => {
       if (key !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = key; }
     } else {
       lastShownKey = '';
+      // Notice states require PLAYBACK (interaction-spec "Loading / fallback"):
+      // a paused / never-started video must not pin a ⏳ 字幕加载中 / 字幕不可用
+      // pill on the page. (A visible bilingual PAIR may persist through a pause —
+      // that's the branch above; only the notices are playback-gated.)
+      if (!m || m.paused) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
       if (transcriptStatus === 'unavailable') {
         renderNotice(TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'));
       } else {

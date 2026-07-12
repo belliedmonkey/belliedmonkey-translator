@@ -131,6 +131,13 @@ states. Differences from YouTube are noted below.
 ### Loading / fallback
 - While fetching/parsing the transcript, show **`⏳ 字幕加载中…`** (dimmed) — auto-swaps
   to the bilingual pair when ready; never a stuck line.
+- **Notice states require playback.** A paused / never-started video must show NO
+  `⏳ 字幕加载中…` and no `字幕不可用` — a never-played video would otherwise pin a
+  loading box on the page indefinitely (the 译 control button itself stays). The
+  bilingual PAIR is different: it follows the active cue at `currentTime` regardless
+  of play/pause — pausing mid-sentence keeps the pair on screen (reading is a
+  feature), and enabling translation while paused inside a sentence shows that
+  sentence's pair. At a never-played 0:00 no cue is active, so nothing renders.
 - If no timed transcript exists on a host that MIGHT have one (generic audio pages),
   show **`字幕不可用`** and do **not** synthesize one. The page's show-notes / text
   transcript still translates via the webpage text path (the floor) when the FAB is on.
