@@ -13,6 +13,7 @@ var FloatingButton = (() => {
 
     fab = document.createElement('button');
     fab.id = FAB_ID;
+    fab.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     fab.title = TranslationCore.t('fab_translate', '翻译');
     fab.setAttribute('aria-label', TranslationCore.t('fab_toggle', '切换翻译'));
     fab.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -95,6 +96,7 @@ var FloatingButton = (() => {
     document.querySelector('.mt-translate-chip')?.remove();
     const chip = document.createElement('button');
     chip.className = 'mt-translate-chip';
+    chip.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     chip.textContent = TranslationCore.t('fab_translate', '翻译');
     chip.style.left = `${Math.min(touch.clientX, window.innerWidth - 80)}px`;
     chip.style.top = `${touch.clientY - 44}px`;

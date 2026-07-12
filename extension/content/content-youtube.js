@@ -207,6 +207,7 @@ var YouTubeTranslator = (() => {
     if (!ov) {
       ov = document.createElement('div');
       ov.id = OVERLAY_ID;
+      ov.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
       // Fixed to the player, centered, above the control bar. Because it's OUR
       // element at a constant bottom %, it does not jump when the controls show.
       ov.style.cssText =
@@ -445,6 +446,7 @@ var YouTubeTranslator = (() => {
   function makeTranslateBtn() {
     const btn = document.createElement('button');
     btn.id = BTN_ID;
+    btn.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     btn.title = TranslationCore.t('yt_btn_title', '大肚猴翻译 · 视频字幕');
     btn.textContent = '译';
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
@@ -486,6 +488,7 @@ var YouTubeTranslator = (() => {
 
     const menu = document.createElement('div');
     menu.id = MENU_ID;
+    menu.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     // Anchor the menu just above the floating button wherever it sits (embed bottom:10,
     // youtube.com bottom:150), computed from the button's actual rect.
     let posCss;
@@ -569,6 +572,7 @@ var YouTubeTranslator = (() => {
     });
     const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
+    a.setAttribute('translate', 'no'); // own UI — keeps the SPA observer quiet
     a.href = URL.createObjectURL(blob);
     a.download = (document.title.replace(/ - YouTube$/, '').replace(/[\\/:*?"<>|]/g, '_') || 'subtitle') + '.srt';
     document.body.appendChild(a);

@@ -232,6 +232,11 @@ var PodcastTranslator = (() => {
     if (!ov) {
       ov = document.createElement('div');
       ov.id = OVERLAY_ID;
+      // Own UI — never re-translated by the webpage path (dom-processor hardSkip
+      // honors translate=no; without this the segmenter injects stale
+      // .mt-translation siblings INSIDE the overlay → scattered fragments +
+      // duplicate loader chips).
+      ov.setAttribute('translate', 'no');
       ov.style.cssText =
         'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);' +
         'width:max-content;max-width:90%;z-index:2147482000;pointer-events:none;' +
@@ -389,6 +394,7 @@ var PodcastTranslator = (() => {
     if (document.getElementById(BTN_ID) || !hasMedia()) return;
     const btn = document.createElement('button');
     btn.id = BTN_ID;
+    btn.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     btn.title = TranslationCore.t('podcast_sub_off', '关闭播客字幕翻译');
     btn.textContent = '译';
     // Sit ABOVE the page-text FAB (bottom:88px, 52px tall → tops at 140px) so the
@@ -407,6 +413,7 @@ var PodcastTranslator = (() => {
     if (document.getElementById(MENU_ID)) { closeMenu(); return; }
     const menu = document.createElement('div');
     menu.id = MENU_ID;
+    menu.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     menu.style.cssText =
       'position:fixed;right:18px;bottom:196px;max-height:calc(100vh - 220px);overflow-y:auto;' +
       'z-index:2147483000;min-width:200px;background:rgba(28,28,28,.97);border-radius:10px;' +
@@ -458,6 +465,7 @@ var PodcastTranslator = (() => {
     });
     const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');
+    a.setAttribute('translate', 'no'); // own UI — keeps the SPA observer quiet
     a.href = URL.createObjectURL(blob);
     a.download = (document.title.replace(/[\\/:*?"<>|]/g, '_') || 'podcast') + '.srt';
     document.body.appendChild(a); a.click();
