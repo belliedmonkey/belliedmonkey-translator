@@ -10,20 +10,14 @@ suite (`npm test`, files under `test/`) covers **pure logic** — the subtitle s
 machine / translate-ahead engine, cue merge into sentences, i18n locale resolution,
 and provider request-building. Pure functions are **not** re-covered here.
 
-**Dev norm (per [`AGENTS.md`](../AGENTS.md)): run BOTH before every push.**
-`npm test` (logic) **and** the relevant manual sections below (behavior on the
-built + loaded extension).
-
-> **Screenshot rule (per [`AGENTS.md`](../AGENTS.md) and
-> [`interaction-spec.md`](interaction-spec.md)):** every UI / visual item below MUST
-> be verified with a **screenshot of the built + loaded extension** showing the
-> actual rendered result. **A DOM element existing is NOT proof the user sees it**
-> (the `.mt-yt-dual` element was once present but clipped invisible by an ancestor's
-> `overflow:hidden`). Real captions only render in a **foreground** tab. Drive real
-> device surfaces per [`docs/device-verification.md`](device-verification.md). **Dev
-> norm: drive any browser / simulator / computer via cua-driver only — never
-> claude-in-chrome or other browser/computer-use tools** (both desktop Chrome and the
-> iOS Simulator).
+> **How to run these scenarios is governed by
+> [`verification-spec.md`](verification-spec.md)** — the single source of truth. In
+> short: run `npm test` (logic) **and** the relevant sections below on **every adapted
+> surface** (iPhone + iPad Simulator; macOS Safari/Chrome/Firefox on the real Mac,
+> sandboxed) before every push. Every UI/visual item MUST be verified with a
+> **screenshot of the built + loaded extension** (a DOM element existing is NOT proof
+> the user sees it — the `.mt-yt-dual` element was once present but clipped invisible);
+> behavior-over-time bugs need a **recording**. Drive surfaces via **cua-driver only**.
 
 Every item cites the [`interaction-spec.md`](interaction-spec.md) rule it enforces.
 Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
@@ -111,6 +105,15 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   siblings with no original between them. *(Fix: translations are tracked on
   `node.__mtTrans`, re-anchored after their node each tick, and orphans removed when the
   SPA replaces a node — content-webpage `ensureSibling` / `tick` re-anchor / `recollect`.)*
+
+- [ ] **Clicking body text produces NO visible action — RECORDING required.** On a
+  Substack article (`lennysnewsletter.com/p/…`) with page translation on and settled,
+  click article paragraphs several times while **recording the screen**. **Expected:**
+  zero visible flash, layout jump, or remove→re-add blink — frame-by-frame, no frame
+  differs around the click (Substack's React MOVES article nodes on click; the
+  MutationObserver re-anchor pass must fix ordering pre-paint). *(Spec: Webpage "SPA
+  re-renders never visibly disturb the page"; content-webpage `reanchorAll` +
+  `onDomMutations`.)*
 
 - [ ] **Mobile flex/grid rows don't overlap.** On `m.youtube.com` metadata
   (`次点赞 / 观看 / 年前`), the top nav, comment counts. **Expected:** each translation
@@ -211,6 +214,20 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 - [ ] **`⏳ 字幕加载中…` while fetching.** **Expected:** shown dimmed while
   fetching/parsing, then auto-swaps to the bilingual pair — never a stuck line.
   *(Spec: Podcast Loading / fallback.)*
+
+- [ ] **Own UI is never re-translated by the webpage path.** With BOTH page text and
+  podcast subtitles on, play ≥30s. **Expected:** `#mt-pod-overlay` contains exactly its
+  two line divs — `document.querySelectorAll('#mt-pod-overlay .mt-translation').length
+  === 0`, no `data-mt-processed` inside the overlay, no duplicate `字幕加载中` chip, no
+  stale old-cue fragments stacking above the current pair. Repeat on a YouTube watch
+  page with video subtitles + page text both on:
+  `document.querySelectorAll('#mt-yt-overlay .mt-translation').length === 0` and no
+  `data-mt-processed` inside `#mt-yt-overlay`. Same for `#mt-fab`, 译 buttons/menus.
+  **Idle check:** after everything settles, stay hands-off ~10s — the tab's CPU stays
+  flat and translations don't twitch (the SPA observer must not self-trigger on our own
+  renders). *(Fix: every injected UI root sets `translate="no"`, honored by dom-processor
+  `hardSkip` — without it the segmenter injects font-matched translation siblings INSIDE
+  the fixed overlay, which grows upward from bottom:8% into the article.)*
 
 - [ ] **Apple Podcasts + 小宇宙 = text-only floor, NO `字幕不可用` bar.** Load
   `podcasts.apple.com` and a `xiaoyuzhoufm.com` episode, FAB on. **Expected:** only
@@ -336,12 +353,12 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 
 - **Automated (logic):** `npm test` — runs the pure-function suite under `test/`
   (engine, cue merge, i18n resolution, provider request-building).
-- **Manual (this file):** work through the relevant sections on **desktop Chrome**
-  (unpacked `dist/`) **and** the **iOS Simulator (Safari)** — both driven via
-  **cua-driver only** (never claude-in-chrome), per the standing dev norm and
-  [`docs/device-verification.md`](device-verification.md) — build → converter →
-  `xcodebuild … (iOS)` → `simctl install` → enable → test. **Screenshot every visual
-  item** on the built + loaded extension (a DOM element existing is not proof the
-  user sees it).
+- **Manual (this file):** work through the relevant sections on **every adapted surface**
+  — **iPhone + iPad** in the Xcode Simulator, and **macOS Safari / macOS Chrome / Firefox**
+  on the real Mac (sandboxed) — all driven via **cua-driver only** (never claude-in-chrome).
+  The exact per-surface build → install → enable → drive commands and the sandboxing rules
+  are in [`verification-spec.md`](verification-spec.md). **Screenshot every visual item**
+  on the built + loaded extension (a DOM element existing is not proof the user sees it).
 
-Per [`AGENTS.md`](../AGENTS.md), run **both** before every push.
+Per [`verification-spec.md`](verification-spec.md), run **both** — and the **full surface
+matrix** — before every push.
