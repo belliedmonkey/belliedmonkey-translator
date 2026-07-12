@@ -159,6 +159,22 @@ video player (`<video>`'s player container) and our `#mt-yt-overlay`. Otherwise
 the webpage path collects the live caption text and injects a "translating…"
 placeholder under it (the duplicated-caption bug).
 
+Real players nest several wrappers, and caption/transcript layers can live in
+an OUTER shell as *siblings* of the inner video wrapper the generic
+`closest('[class*="player"]')` finds (Substack: `playerShell > stage >
+{video-player > VIDEO, captions, transcript scroller}` — the live caption rows
+end up inside the collected page text, churn per word, and get translation
+placeholders injected). Per domain review (2026-07-12): widening is
+**site-specific knowledge and belongs to the platform adapters**, exactly like
+the YouTube and Spotify adapters — the segmenter itself stays free of per-site
+branches. Mechanism: an adapter marks the player shell it knows with
+**`data-mt-player-region`**, and `DomSegmenter.computePlayerRegions` honors
+that marker generically (marked subtree = player region, excluded from the
+webpage path). The Substack adapter (in the podcast path, which already owns
+Substack transcript acquisition) feature-detects the player shell by its
+stable class prefix (`[class*="playerShell"]` containing a media element) and
+re-asserts the marker each tick, so SPA re-renders can't shed it.
+
 **Skip by content, not by semantic region.** We do NOT blanket-skip
 `<nav>/<header>/<footer>/<aside>` — SPAs (e.g. reddit) put real content (sidebar
 descriptions, rules, nav labels) inside them, and the reference translates those.
