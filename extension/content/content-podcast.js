@@ -353,10 +353,37 @@ var PodcastTranslator = (() => {
     }
   }
 
+  // ─── Suppress the platform's native <track> captions while ours drive ───
+  // WebKit (Safari / iOS / iPadOS) auto-enables a media element's subtitle
+  // <track> per the SYSTEM caption preference — the player then renders its own
+  // caption line (and players like Substack's sync their custom caption UI to
+  // the track mode), duplicating our bilingual overlay. While our overlay has a
+  // transcript to show, force every text track to 'disabled' (we never read
+  // track.cues — cue text is fetched from the track/page URL, so this costs
+  // nothing); restore the original modes the moment translation is off. Same
+  // re-assert-each-tick pattern as syncSpotifyNativeUI: players and browsers
+  // re-enable tracks at will (episode swap, quality change, fullscreen).
+  const savedTrackModes = new Map();
+  function syncNativeTextTracks() {
+    const m = mediaEl();
+    if (active && engine.items.length && m && m.textTracks) {
+      for (const t of m.textTracks) {
+        if (t.mode !== 'disabled') {
+          if (!savedTrackModes.has(t)) savedTrackModes.set(t, t.mode);
+          t.mode = 'disabled';
+        }
+      }
+    } else if (savedTrackModes.size) {
+      savedTrackModes.forEach((mode, t) => { try { t.mode = mode; } catch (_) {} });
+      savedTrackModes.clear();
+    }
+  }
+
   // ─── Display loop ──────────────────────────────────────────────────────
   function tick() {
     ensureControlButton();
     syncSpotifyNativeUI(); // hide/restore Spotify's native transcript (runs on every path)
+    syncNativeTextTracks(); // suppress/restore native <track> captions (runs on every path)
     if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     // Dormant on non-media pages (the FAB also turns us on for plain articles).
     if (!hasMedia()) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }

@@ -225,6 +225,15 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   page text translates; **no** 译 button, **no** `字幕不可用` bar, no `#mt-pod-overlay` —
   ever. *(Spec: Podcast "Video posts are peers of audio" — transcript-hint gating.)*
 
+- [ ] **Native `<track>` captions suppressed while our overlay drives.** On a video
+  post whose media has a subtitle `<track>`, force it on before enabling us (WebKit
+  does this automatically per system caption prefs; on Chrome simulate with
+  `video.textTracks[0].mode='showing'` — the native caption line appears). FAB on,
+  play. **Expected:** within a tick (≤250ms) the native caption line disappears —
+  ONLY `#mt-pod-overlay` shows subtitles (one display at a time). Turn translation
+  off → the native captions come back (original track mode restored). *(Spec:
+  Podcast "One subtitle display at a time".)*
+
 - [ ] **`⏳ 字幕加载中…` while fetching.** **Expected:** shown dimmed while
   fetching/parsing, then auto-swaps to the bilingual pair — never a stuck line.
   *(Spec: Podcast Loading / fallback.)*

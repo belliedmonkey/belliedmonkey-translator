@@ -148,6 +148,15 @@ states. Differences from YouTube are noted below.
   When a page embeds several transcript URLs (the post's own + sidebar recommendations),
   the one sharing a path segment (upload id) with the playing media's `src` wins.
   Routing gate: `drivesPodcast()` + `PodcastTranslator.hasTranscriptHint()`.
+- **One subtitle display at a time — native `<track>` captions are suppressed while
+  ours drive.** WebKit (Safari / iOS / iPadOS) auto-enables a media element's subtitle
+  `<track>` per the system caption preference, and players (e.g. Substack's) sync their
+  own caption UI to the track mode — the user would see the native caption line AND our
+  bilingual overlay. While our overlay has a transcript to show, every text track on the
+  media element is forced to `disabled` (re-asserted each tick, like the Spotify
+  native-transcript hide); the original modes are restored the moment translation is
+  turned off. Our cue acquisition never reads `track.cues` (it fetches the track/page
+  URL), so suppression costs nothing.
 - **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
   page (only), when the episode has Spotify's auto-generated transcript, we scrape it
   into timed cues and show the bilingual overlay like any other podcast. Details:
