@@ -111,13 +111,23 @@ var PodcastTranslator = (() => {
     return out;
   }
 
+  // 10s abort on every transcript-acquisition fetch: a HANGING fetch (observed
+  // on macOS Safari) would otherwise pin resolveInFlight=true forever — the
+  // ⏳ 字幕加载中 notice then never resolves to retry / 字幕不可用 ("never a
+  // stuck line", interaction-spec).
+  function fetchWithTimeout(url) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    return fetch(url, { signal: ctl.signal }).finally(() => clearTimeout(timer));
+  }
+
   async function fetchTimedText(url) {
     try {
       // NO credentials: a CloudFront-signed transcript URL (e.g. Substack's
       // substackcdn.com en.vtt) returns 503 for cookie-bearing requests — the
       // signature already authorizes it. Default 'same-origin' still sends cookies
       // for a same-origin <track src> but never to a cross-origin CDN.
-      const r = await fetch(url);
+      const r = await fetchWithTimeout(url);
       if (!r.ok) return null;
       const txt = await r.text();
       if (/^\s*<\?xml|<Error>|MissingKey/i.test(txt.slice(0, 120))) return null; // signed-URL error etc.
@@ -170,7 +180,7 @@ var PodcastTranslator = (() => {
     const link = document.querySelector('link[rel="alternate"][type="application/rss+xml"]');
     if (!link) return null;
     let feedUrl; try { feedUrl = new URL(link.getAttribute('href'), location.href).toString(); } catch (_) { return null; }
-    let xml; try { const r = await fetch(feedUrl); if (!r.ok) return null; xml = await r.text(); } catch (_) { return null; }
+    let xml; try { const r = await fetchWithTimeout(feedUrl); if (!r.ok) return null; xml = await r.text(); } catch (_) { return null; }
     let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml'); } catch (_) { return null; }
     const items = Array.from(doc.querySelectorAll('item'));
     if (!items.length) return null;
@@ -325,7 +335,15 @@ var PodcastTranslator = (() => {
 
   function clearOverlay() {
     const ov = document.getElementById(OVERLAY_ID);
-    if (ov) { ov.querySelector('.' + ORIG_CLASS).textContent = ''; ov.querySelector('.' + TRANS_CLASS).textContent = ''; }
+    if (ov) {
+      // display:none too — an emptied inline-block pill (padding + dark bg)
+      // would otherwise linger as a small dark dot. renderOverlay/renderNotice
+      // re-set the full cssText on next render, so this is safely reversible.
+      for (const cls of [ORIG_CLASS, TRANS_CLASS]) {
+        const el = ov.querySelector('.' + cls);
+        el.textContent = ''; el.style.display = 'none';
+      }
+    }
     lastShownKey = '';
   }
   function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); document.getElementById('mt-pod-meas')?.remove(); }
@@ -338,18 +356,81 @@ var PodcastTranslator = (() => {
   // section). Fully reversible: restored the moment translation is off. Re-applied each
   // tick because Spotify re-renders (a fresh visible list node just gets re-hidden).
   function syncSpotifyNativeUI() {
-    if (!IS_SPOTIFY) return;
     if (active && engine.items.length) {
+      if (!IS_SPOTIFY) return;
       const { list } = spotifyTranscriptList();
       if (list && list.getAttribute('data-mt-native-hidden') !== '1') {
         list.setAttribute('data-mt-native-hidden', '1');
         list.style.setProperty('display', 'none', 'important');
       }
     } else {
+      // Shared restore sweep for EVERY data-mt-native-hidden marker (Spotify
+      // transcript list AND the third-party caption layers hidden above).
       document.querySelectorAll('[data-mt-native-hidden]').forEach((el) => {
         el.removeAttribute('data-mt-native-hidden');
         el.style.removeProperty('display');
       });
+    }
+  }
+
+  // ─── Substack adapter: mark the player SHELL as a player region ─────────
+  // Substack nests its player (playerShell > stage > {video-player > VIDEO,
+  // caption box, transcript scroller}) — the generic closest('[class*="player"]')
+  // in DomSegmenter finds only the inner video-player, leaving the per-word
+  // caption rows / transcript panel in the collected page text (churn +
+  // translation placeholders — #21). Per domain review, site knowledge lives in
+  // the adapter: WE mark the shell with data-mt-player-region and the segmenter
+  // honors the marker generically. Feature-detected by Substack's stable class
+  // prefix (works on custom-domain Substacks too); re-asserted each tick because
+  // the SPA re-renders. Marking is unconditional (not gated on `active`): the
+  // pollution happens whenever the WEBPAGE path runs, even with subtitles off.
+  function markSubstackPlayerShells() {
+    for (const shell of document.querySelectorAll('[class*="playerShell"]')) {
+      if (shell.querySelector('audio, video') && !shell.hasAttribute('data-mt-player-region')) {
+        shell.setAttribute('data-mt-player-region', '1');
+      }
+    }
+  }
+
+  // ─── Hide third-party caption layers that duplicate our overlay ─────────
+  // "One subtitle display at a time" (interaction-spec): while our overlay has a
+  // transcript, a player-drawn caption layer (e.g. Substack's self-drawn caption
+  // box — driven by ITS OWN UI state, not by track mode, so the <track>
+  // suppression below can't turn it off) duplicates every line. Generic,
+  // site-free detection: an element whose box overlaps the video's rect AND
+  // whose text matches the currently-active cue text is a caption display →
+  // hide it (same data-mt-native-hidden + restore contract as the Spotify
+  // transcript hide). A desktop transcript SIDEBAR does not overlap the video
+  // and stays visible.
+  function normText(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function syncThirdPartyCaptionLayers() {
+    if (!active || !engine.items.length) return; // restore handled by the shared sweep
+    const m = mediaEl();
+    if (!m || m.tagName !== 'VIDEO') return;
+    const s = engine.activeAt(m.currentTime * 1000);
+    if (!s) return;
+    const cur = normText(s.text);
+    if (cur.length < 8) return;
+    const vr = m.getBoundingClientRect();
+    if (!vr.width || !vr.height) return;
+    for (const el of document.querySelectorAll('[data-mt-player-region] div, [data-mt-player-region] span')) {
+      if (el.getAttribute('data-mt-native-hidden') === '1' || el.contains(m)) continue;
+      const t = normText(el.textContent);
+      if (t.length < 8 || t.length > 300 || cur.indexOf(t) === -1) continue;
+      const r = el.getBoundingClientRect();
+      const overV = r.width > 0 && !(r.right < vr.left || r.left > vr.right || r.bottom < vr.top || r.top > vr.bottom);
+      if (!overV) continue;
+      // Hide the outermost ancestor that is still over the video and free of the
+      // video itself — the whole caption box, not just one word span.
+      let top = el;
+      let p = el.parentElement;
+      while (p && !p.contains(m) && p.getAttribute('data-mt-player-region') !== '1') {
+        const pr = p.getBoundingClientRect();
+        if (pr.right < vr.left || pr.left > vr.right || pr.bottom < vr.top || pr.top > vr.bottom) break;
+        top = p; p = p.parentElement;
+      }
+      top.setAttribute('data-mt-native-hidden', '1');
+      top.style.setProperty('display', 'none', 'important');
     }
   }
 
@@ -382,7 +463,9 @@ var PodcastTranslator = (() => {
   // ─── Display loop ──────────────────────────────────────────────────────
   function tick() {
     ensureControlButton();
+    markSubstackPlayerShells(); // adapter-marked player regions for DomSegmenter (#21)
     syncSpotifyNativeUI(); // hide/restore Spotify's native transcript (runs on every path)
+    syncThirdPartyCaptionLayers(); // hide player-drawn caption layers duplicating our overlay
     syncNativeTextTracks(); // suppress/restore native <track> captions (runs on every path)
     if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     // Dormant on non-media pages (the FAB also turns us on for plain articles).
@@ -427,6 +510,11 @@ var PodcastTranslator = (() => {
       if (key !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = key; }
     } else {
       lastShownKey = '';
+      // Notice states require PLAYBACK (interaction-spec "Loading / fallback"):
+      // a paused / never-started video must not pin a ⏳ 字幕加载中 / 字幕不可用
+      // pill on the page. (A visible bilingual PAIR may persist through a pause —
+      // that's the branch above; only the notices are playback-gated.)
+      if (!m || m.paused) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
       if (transcriptStatus === 'unavailable') {
         renderNotice(TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'));
       } else {
