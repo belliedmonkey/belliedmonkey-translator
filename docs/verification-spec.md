@@ -49,7 +49,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified pipeline |
 | 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
-| 5 | **Firefox (desktop)** | Real Mac, throwaway `-profile` + temporary add-on from `dist-firefox/` | ⚠️ adaptation status to confirm (build flavor exists, never verification-run) |
+| 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
@@ -245,16 +245,36 @@ don't mistake it for the extension.
 > loaders floating over the article). Cleanup: `pkill -f "$PROF"; rm -rf "$PROF"` + remove any
 > staged `dist/` copy.
 
-### E. Firefox desktop (real Mac, throwaway profile) — ⚠️ to confirm
+### E. Firefox desktop (real Mac, throwaway profile) — ✅ verified
 
 ```bash
-node build.js firefox        # → dist-firefox/
-/Applications/Firefox.app/Contents/MacOS/firefox -profile "$(mktemp -d)" -no-remote
-# about:debugging#/runtime/this-firefox → Load Temporary Add-on → dist-firefox/manifest.json
+node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
+npx --yes web-ext run --source-dir dist-firefox \
+  --firefox /Applications/Firefox.app/Contents/MacOS/firefox \
+  --start-url "<test-url>" \
+  --args=--remote-debugging-port=9251 --no-config-discovery
 ```
 
-Firefox is a build flavor but has **never been verification-run**; record whatever
-actually works and update this row honestly (it may reveal Firefox isn't fully adapted).
+`web-ext run` (Mozilla's official tool, npx-fetched — not a repo dependency) launches a
+**fresh throwaway profile** with the add-on temporarily installed (auto-clears on quit;
+it live-references `dist-firefox/`, and about:debugging has a per-extension **Reload**
+button — friendlier than Safari's snapshot semantics). Manual alternative:
+`about:debugging#/runtime/this-firefox` → 临时载入附加组件 → `dist-firefox/manifest.json`.
+
+Drive/verify over **WebDriver BiDi** (Firefox ≥129 removed CDP): raw WebSocket at
+`ws://127.0.0.1:<port>/session` → `session.new` → `browsingContext.getTree` →
+`script.evaluate` for DOM assertions, `input.performActions` for TRUSTED clicks,
+`browsingContext.captureScreenshot` for pixel-diff evidence.
+**Gotcha: Firefox allows exactly ONE BiDi session and does not reap it promptly when the
+socket closes** — "Maximum number of active sessions" on reconnect. Do the ENTIRE
+verification in one connection, or restart web-ext between attempts.
+
+> **Verified 2026-07-12 (Firefox 152.0.5) ✅:** FAB injects; FAB on → page bilingual (8
+> units incl. sidebar); podcast playback (spec §4 playback rule) → overlay exactly 2
+> clean pilled lines, 0 `.mt-translation` / 0 `data-mt-processed` inside, live pair
+> advancing ("That this was your natural choice." / "这是你自然的选择。"); trusted click
+> on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
+> band masked). Screenshot captured. Firefox is fully adapted.
 
 ---
 
