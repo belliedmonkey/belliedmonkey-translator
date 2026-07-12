@@ -207,3 +207,24 @@ via cua-driver `execute_javascript` + screenshot.
 - **Left untouched (correct):** the creator's burned-in on-video captions ("I'm gonna
   throw the glass on you…") — part of the video, not Spotify UI; a `data-testid` scan
   found no separate Spotify lyric/synced-transcript element.
+
+### Mobile YouTube — single button on www.youtube.com (iPhone 15 sim + real device) (2026-07-04)
+Verifies the fix for the two-green-circle bug (issue #2 / PR #3): on a phone at the
+**desktop-layout `www.youtube.com`** the in-player 译 button and the page FAB both
+appeared. Fix unifies "mobile" on `TranslationCore.isMobileLayout()` (`maxTouchPoints > 0`
+or a mobile UA); on any mobile device the FAB drives everything and the 译 button is
+suppressed.
+
+- **PASS — one button (iPhone 15 sim).** `simctl openurl` to `https://www.youtube.com/watch?v=…`
+  stayed on `www` (desktop layout, has `.ytp-right-controls`). Screenshot shows **only the
+  green 文A FAB — no separate 译 button** (compare the reporter's screenshot with two
+  stacked green circles).
+- **PASS — FAB drives BOTH.** Tapping the single FAB produced the video dual-subtitle
+  overlay (`But then those middle` / `但是中间的几个月`, synced to playback) **and** the
+  page-text translation (title → 拖延症大师的内心世界…, comment → green) at once — proving
+  `isMobileYouTube` now routes YouTube on `www` mobile.
+- **PASS — real device (TestFlight build 2).** User confirmed the single-button behavior
+  on a physical iPhone at `www.youtube.com` after installing the rebuilt TestFlight build.
+- **Desktop unchanged (by logic + unit test):** non-touch → `isMobileLayout()` false →
+  `ensureControlButton` still mounts the 译 button; covered by
+  `test/translation-core.test.js` (`isMobileLayout` cases).
