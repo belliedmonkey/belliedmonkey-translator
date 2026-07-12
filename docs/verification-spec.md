@@ -312,8 +312,36 @@ by an ancestor's `overflow:hidden`.
 - **Interaction / visual bugs (behavior over time) MUST be verified with a screen
   RECORDING, not a screenshot** — a flash on click, a layout that shifts then reverts,
   subtitle timing, scroll jank. A still cannot capture the transient. Keep the **before
-  (repro)** and **after (fix)** clips (`xcrun simctl io <UDID> recordVideo`, or cua-driver
-  `start_recording`/`stop_recording`).
+  (repro)** and **after (fix)** clips. Simulators: `xcrun simctl io <UDID> recordVideo`.
+  **Desktop Chrome and desktop Safari: record with the `cap` CLI** (Cap.app's bundled
+  CLI, `~/.cap/bin/cap` — agent-oriented, `--json` everywhere). Not installed? One-liner
+  (also works for contributors on a fresh machine):
+
+  ```bash
+  curl -fsSL https://cap.so/install-cli.sh | sh
+  ```
+
+  Proven pipeline:
+
+  ```bash
+  export PATH="$HOME/.cap/bin:$PATH"
+  cap doctor --json                    # permissions.screenRecording must be "granted"
+  cap record windows --json            # window list; ids match CGWindowIDs (list_windows)
+  cap record start --window <id> --duration <N> --fps 15 --path out.cap --json
+  cap export out.cap --output out.mp4 --json
+  ffmpeg -y -i out.mp4 -vframes 1 frame0.png   # then per-frame extraction as needed
+  ```
+
+  Gotchas (all hit live):
+  - **The target window must be FRONTMOST while recording.** `--window` capture is
+    region-style: an occluding window (e.g. the terminal running the command) is what
+    gets recorded. Activate the target app once (`osascript -e 'tell application
+    "Safari" to activate'`), then drive it with **background** cua-driver clicks only —
+    a foreground-delivery click restores the prior frontmost app and ruins the clip.
+  - **Frame-0 honesty check is mandatory**: extract the first frame and confirm it shows
+    the target window (not the terminal) before trusting anything in the clip.
+  - `--duration N` self-stops (no detach/stop dance needed for short clips); the `.cap`
+    project dir and exported `.mp4` land in `--path`/`--output` (use the scratchpad).
 - Don't trust your own injected test hacks as proof of the shipped code — verify the
   **built/loaded** extension.
 - **Be honest about what was vs wasn't verified** (static check vs runtime vs screenshot
