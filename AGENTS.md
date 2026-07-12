@@ -68,32 +68,26 @@ issue updated as related work lands, and reference it from commits/PRs. The goal
 is a durable record of not just *what* changed but *why* — so the thinking behind
 each fix is preserved, not just the diff.
 
-## Device verification (mobile / real surfaces)
+## Verification — governed by the verification spec
 
-**Verify on real device surfaces by DRIVING the UI, not by reasoning.** The
-standard harness + workflow is in [`docs/device-verification.md`](docs/device-verification.md):
-the **cua-driver** computer-use MCP drives macOS + the **iOS Simulator** (Safari),
-and there is a verified pipeline to build → install → enable → test this extension
-in real iOS Safari (`m.youtube.com`). Use it for any "test on a device" /
-mobile-regression / iOS-Safari task. `claude-in-chrome` only covers desktop Chrome.
-Key gotchas live in that doc (cua-driver permissions + user-scope MCP + clean-stdout
-handshake; iOS UI is AX-clickable by element_token but web content needs pixel
-clicks; dump big AX trees to a file and jq/python the token out).
+**All verification / testing is governed by the single source of truth,
+[`docs/verification-spec.md`](docs/verification-spec.md). Every verification/testing
+task MUST follow it exactly.** The load-bearing rule:
 
-**Canonical surface = the corresponding device's Xcode simulator.** Since this
-ships as a Safari iOS extension, the source of truth for ANY bug reproduction or
-fix verification is the built extension running in the **Xcode iOS Simulator**
-(Safari), driven via cua-driver — NOT desktop Chrome and NOT the unbuilt source.
-Chrome / instrumented harnesses are fine as fast first-pass evidence, but a bug
-is not "reproduced" or a fix "verified" until it is seen on the simulator.
+> **Every verification runs the FULL MATRIX of every surface the product has been
+> adapted to — a full regression, every time.** Current matrix: **iPhone Safari** &
+> **iPad Safari** (Xcode Simulator) + **macOS Safari**, **macOS Chrome/Edge**, and
+> **Firefox desktop** (real Mac, sandboxed). Once a device/browser is adapted, it is
+> permanently added to the matrix. Verifying on one surface is **not** verification.
 
-**Interaction / visual bugs MUST be verified with a screen RECORDING, not a
-screenshot.** For anything about *behavior over time* — a click/selection causing
-a flash, a layout that shifts then reverts, subtitle timing, scroll jank — a
-still screenshot cannot capture the transient. Record the simulator screen while
-performing the interaction (`xcrun simctl io <udid> recordVideo out.mov`, or
-cua-driver `start_recording`/`stop_recording`) and review the video. Keep the
-before (repro) and after (fix) clips.
+The spec also carries: the per-surface build→install→enable→open-URL→drive commands,
+the `npm test` automated gate (green before every push), the verification-honesty
+rules (a DOM element existing is NOT proof; screenshot the built+loaded extension;
+**screen-RECORDING** for behavior-over-time bugs; state what was vs wasn't verified),
+the **cua-driver-only** dev norm (never `claude-in-chrome`), and the cua-driver
+tooling reference. The itemized manual scenarios remain in
+[`docs/regression-tests.md`](docs/regression-tests.md); the historical device-run log
+is in [`docs/device-verification.md`](docs/device-verification.md).
 
 ## Build & run
 
@@ -108,25 +102,6 @@ bash build-safari.sh china        # china Safari Xcode project (bundle id …​
 - Source lives in `extension/`; `build.js` copies it to `dist/` and validates.
 - Icons: real PNGs in `extension/icons/` (source `icon.svg`). The build FAILS if
   they aren't genuine PNGs — don't emit SVG renamed to `.png`.
-
-## ⚠️ Verification — ALWAYS screenshot visual/UI features
-
-**A DOM element existing is NOT proof the user sees it.** This burned us: the
-YouTube translation `.mt-yt-dual` was present in the DOM (`querySelectorAll`
-found it) but invisible — clipped by an ancestor's `overflow:hidden`. We wrongly
-reported "working" based on the DOM check.
-
-Rules:
-- For anything the user looks at (translations, subtitles, layout), **verify
-  with a screenshot** showing the actual rendered result — not just DOM/console
-  checks. Confirm the text is really visible and correctly placed.
-- Don't trust your own injected test hacks as proof of the shipped code. Verify
-  the **built/loaded extension's** behavior, screenshot it.
-- Be honest about what was vs wasn't verified (static check vs runtime vs
-  screenshot). State it.
-- Real YouTube/page captions only render in a **foreground** tab — background
-  tabs throttle `requestAnimationFrame`, so automated screenshots of a
-  backgrounded tab may not show captions.
 
 ## Architecture
 
@@ -175,23 +150,17 @@ Rules:
 
 ## Regression testing — run BEFORE every push (mandatory)
 
-**Every change must pass regression tests before it is pushed.** No exceptions —
-this is a hard gate, not a suggestion.
+**Every change must pass regression tests before it is pushed — a hard gate.** The
+full procedure is in [`docs/verification-spec.md`](docs/verification-spec.md); in short:
 
-1. **Automated logic suite — `npm test`** (zero-dep, `node test/run.js`). Covers the
-   pure-logic core: the translate-ahead subtitle engine + state machine, cue→sentence
-   merge, i18n / UI-language resolution, and every provider's request-building /
-   caching / retry-fallback. **It must be green** before you push. When you change or
-   add logic, **add/update tests in the same commit** so the suite keeps covering it.
-2. **Manual / device checklist — [`docs/regression-tests.md`](docs/regression-tests.md).**
-   For any change touching UI, DOM, layout, a platform surface, or a provider, **work
-   through the relevant sections** on the built + loaded extension and **screenshot
-   every visual item** (a DOM element existing is not proof the user sees it — see the
-   Verification section above). Drive surfaces via **cua-driver only**.
+1. **Automated logic suite — `npm test`** (zero-dep, `node test/run.js`) **must be green**
+   before you push; add/update tests in the same commit when you change logic.
+2. **Full-matrix manual/device verification** — for any change with a runtime surface,
+   work the relevant [`docs/regression-tests.md`](docs/regression-tests.md) scenarios on
+   **every adapted surface** (iPhone + iPad Simulator; macOS Safari/Chrome/Firefox on the
+   real Mac, sandboxed), driven via **cua-driver only**, screenshotting every visual item.
 
-The suite has **no dependencies** — `npm test` runs on a bare Node (≥16). If you add a
-feature that isn't headlessly testable (needs a real DOM/browser), cover it in the
-manual checklist instead and say so in the PR. Never push on a red suite.
+Never push on a red suite; never claim coverage of a matrix surface you didn't run.
 
 ## Conventions
 

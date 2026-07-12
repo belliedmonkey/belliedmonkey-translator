@@ -102,6 +102,8 @@ var DOMProcessor = (() => {
       .filter(Boolean);
     const ov = document.getElementById('mt-yt-overlay');
     if (ov) playerRegions.push(ov);
+    const pov = document.getElementById('mt-pod-overlay'); // parity with the yt overlay:
+    if (pov) playerRegions.push(pov);                      // belt for translate=no (subtitle path owns it)
   }
   function inPlayerRegion(el) {
     for (let i = 0; i < playerRegions.length; i++) if (playerRegions[i].contains(el)) return true;

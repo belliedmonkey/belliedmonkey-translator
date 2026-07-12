@@ -317,6 +317,21 @@ describe('TranslationCore — createPager (deterministic fake measurer)', () => 
     ok(pages.length > 1);
     eq(pages.join(''), text, 'CJK breaks at any grapheme, nothing dropped');
   });
+
+  test('measurer element carries translate="no" (dom-processor hardSkip contract)', () => {
+    // The hidden measurer is our own UI: dom-processor hardSkip honors
+    // translate="no", so losing this attribute would let the webpage path
+    // segment/translate the measurer itself. Assert the contract headlessly.
+    const doc = makeFakeDocument();
+    const ctx = loadModule('translation-core.js', {
+      window: { MT_I18N_MESSAGES: MSGS }, chrome: makeChrome({}), document: doc,
+    });
+    const p = ctx.TranslationCore.createPager({ measurerId: 'mt-test-meas-attr' });
+    p.pageize('measured once to lazily create the element', 1, 20, 300);
+    const m = doc.getElementById('mt-test-meas-attr');
+    ok(m, 'measurer created and reachable by id');
+    eq(m.getAttribute('translate'), 'no', 'own UI opted out of re-translation');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────

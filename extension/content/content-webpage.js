@@ -16,6 +16,7 @@ var WebpageTranslator = (() => {
   let engine = null;
   let tickTimer = null;
   let tickCount = 0;
+  let domObs = null;              // SPA re-render fix-up (see installDomObserver)
 
   const CLASS = DOMProcessor.TRANSLATION_CLASS;
   const PROCESSED = DOMProcessor.PROCESSED_ATTR;
@@ -57,6 +58,14 @@ var WebpageTranslator = (() => {
         && !u.node.hasAttribute('data-mt-hidden') && u.tr;
       if (reusable && !orphans.has(u.text)) orphans.set(u.text, { div, tr: u.tr });
       else if (div && div.remove) div.remove(); // real removal / dup / interleave → prune now
+      // A time-sliced SPA (React 18, virtualized feeds) can detach a node in one
+      // task and re-insert the SAME node a task later. Without this cleanup the
+      // returning node is blocked forever (known + data-mt-processed) and its
+      // translation is permanently lost; with it, the next poll re-collects it
+      // (cache-first, so the re-translate is cheap).
+      known.delete(u.node);
+      u.node.__mtTrans = null;
+      if (u.node.removeAttribute) u.node.removeAttribute(PROCESSED);
     }
     units = kept;
     const fresh = DOMProcessor.collectUnits(root || document.body)
@@ -228,20 +237,107 @@ var WebpageTranslator = (() => {
     node.style.display = 'none';
   }
 
+  // ─── SPA re-render fix-up (paint-safe) ─────────────────────────────────
+  // A click on a Substack article makes React re-render the article — and (verified
+  // live with in-page instrumentation) it MOVES the existing nodes (remove+insert of
+  // the SAME objects), it does not replace them. A moved paragraph gets re-inserted
+  // relative to React's own children, leaving our sibling translation div ORDER-
+  // DISPLACED (e.g. the div ends up before its paragraph). Units stay connected, so
+  // orphan adoption has nothing to do; the repair that matters is the cheap
+  // RE-ANCHOR pass (fix `nextElementSibling` ordering). Waiting for the next tick
+  // (350ms cadence) let the displaced order PAINT — the visible "click flash"
+  // (content below the click shifted for ~140-300ms, then snapped back).
+  //
+  // A MutationObserver callback runs at the microtask checkpoint of the SAME task
+  // that mutated — BEFORE the browser paints — so re-anchoring here means the
+  // displaced state never reaches the screen. Adoption for genuinely REPLACED
+  // nodes stays on the ~1s recollect poll — NEVER in the observer: a full-DOM
+  // walk on attacker/feed-controlled mutation cadence is a freeze vector.
+  //
+  // Loop safety (the YouTube "Poll, don't observe" freeze gotcha — AGENTS.md): this
+  // observer never drives the display (tick still does), watches childList ONLY
+  // (our style/attribute writes are invisible to it), and IGNORES mutation batches
+  // where every added/removed Element is our own (mt-translation divs / mt-* ids) —
+  // so our own div moves can never re-trigger it. The ~1s poll remains the backstop.
+  function isOwnEl(n) {
+    return n.nodeType === 1 && (
+      (n.classList && (n.classList.contains(CLASS) || n.classList.contains('mt-translate-chip'))) ||
+      (n.id && n.id.indexOf('mt-') === 0) ||
+      (n.getAttribute && n.getAttribute('translate') === 'no')); // every own-UI root carries this (hardSkip contract)
+  }
+  // A record is ours when its TARGET lives inside our UI too — our own renders
+  // (rich-text <a> children inside a translation div, interleave rows, overlay
+  // line swaps) add classless elements whose parent is ours; without this check
+  // they'd mark the batch "real" and self-trigger reanchor+recollect churn.
+  function isOwnRecord(r) {
+    const t = r.target;
+    if (!t || t.nodeType !== 1) return false;
+    return isOwnEl(t) || !!(t.closest && t.closest('.' + CLASS + ',[id^="mt-"]'));
+  }
+  // Keep every connected unit's translation glued right after its node (same rule
+  // tick applies; shared here so the observer can run it pre-paint).
+  function reanchorAll() {
+    for (const u of units) {
+      if (!u.node.isConnected) continue;
+      const t = u.node.__mtTrans;
+      if (t && t.isConnected && u.node.nextElementSibling !== t) u.node.insertAdjacentElement('afterend', t);
+    }
+  }
+  let obsScheduled = false;
+  let obsFixupsThisFrame = 0;
+  let obsFrameReset = false;
+  function onDomMutations(records) {
+    if (!active) return;
+    let real = false;
+    for (const r of records) {
+      if (isOwnRecord(r)) continue; // mutations INSIDE our UI (rich-text <a>, overlay swaps)
+      for (const n of r.addedNodes) if (!real && !isOwnEl(n) && n.nodeType === 1) real = true;
+      for (const n of r.removedNodes) if (!real && !isOwnEl(n) && n.nodeType === 1) real = true;
+      if (real) break;
+    }
+    if (!real) return;
+    // Coalesce all callbacks of the current task into ONE trailing fix-up via
+    // queueMicrotask — still ahead of the paint. ONLY the cheap O(units)
+    // re-anchor runs here: no DOM walk, no computed styles, so a mutation-chatty
+    // (or hostile) page can at worst make us loop over our own divs once per
+    // task — never force a full-document recollect (that stays on the ~1s poll,
+    // which also owns orphan adoption for genuinely REPLACED nodes; the verified
+    // zero-flash repro needed only the re-anchor: React MOVES nodes, it doesn't
+    // replace them).
+    if (obsScheduled) return;
+    obsScheduled = true;
+    queueMicrotask(() => {
+      obsScheduled = false;
+      if (!active) return;
+      // Circuit breaker: a page-side MutationObserver that re-displaces our divs
+      // in response to our re-anchor would ping-pong with us entirely in
+      // microtasks — never yielding to paint (the AGENTS.md observer-freeze
+      // class). Cap fix-ups per frame; past the cap, the 350ms tick backstops.
+      if (obsFixupsThisFrame >= 8) return;
+      obsFixupsThisFrame++;
+      if (!obsFrameReset) {
+        obsFrameReset = true;
+        requestAnimationFrame(() => { obsFrameReset = false; obsFixupsThisFrame = 0; });
+      }
+      reanchorAll(); // the anti-flash repair — bounded, loop-proof
+    });
+  }
+  function installDomObserver() {
+    if (domObs) return;
+    domObs = new MutationObserver(onDomMutations);
+    domObs.observe(document.body, { childList: true, subtree: true });
+  }
+  function removeDomObserver() { if (domObs) { domObs.disconnect(); domObs = null; } }
+
   // ─── Display loop ─────────────────────────────────────────────────────
   function tick() {
     if (!active || !engine) return;
     tickCount++;
     if (tickCount % 3 === 1) recollect(document.body); // SPA poll ~every 3rd tick
     engine.pump();
+    reanchorAll(); // SPA re-anchor backstop (the observer already fixed order pre-paint)
     for (const u of engine.units) {
       if (!u.node.isConnected) continue;
-      // SPA re-anchor: frameworks (React on Substack, etc.) re-render the container and
-      // displace our translation away from its origin — it drifts to the container end and
-      // the page reads as "英文一块/中文一块". Keep it glued right after the node every tick,
-      // even when this unit's render state hasn't changed.
-      const t = u.node.__mtTrans;
-      if (t && t.isConnected && u.node.nextElementSibling !== t) u.node.insertAdjacentElement('afterend', t);
       const near = inViewport(u.node);
       const st = engine.stateOf(u);
       const key = st.state + '|' + (st.translation ? 'T' : '');
@@ -261,6 +357,7 @@ var WebpageTranslator = (() => {
     engine = makeEngine();
     units = []; known = new WeakSet();
     recollect(document.body);
+    installDomObserver();
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(tick, 350);
     tick();
@@ -268,6 +365,7 @@ var WebpageTranslator = (() => {
 
   function disable() {
     active = false;
+    removeDomObserver();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     // Per-unit cleanup first — reaches translations injected inside shadow roots
     // (document.querySelectorAll cannot cross shadow boundaries).

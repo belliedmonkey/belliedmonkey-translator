@@ -7,6 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > [`docs/domain-design.md`](docs/domain-design.md). Per [`AGENTS.md`](AGENTS.md),
 > any change touching the domain design must update that doc first and pass human
 > domain-design review before the code changes.
+>
+> **Verification & testing:** governed by
+> [`docs/verification-spec.md`](docs/verification-spec.md) (the single source of truth).
+> Every verification runs the **full matrix of adapted surfaces** — iPhone + iPad
+> (Xcode Simulator), macOS Safari/Chrome/Firefox (real Mac, sandboxed) — via cua-driver
+> only. Follow it for any test/QA/bug-repro task.
 
 ## Project Overview
 

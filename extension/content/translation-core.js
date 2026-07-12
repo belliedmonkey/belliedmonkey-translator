@@ -131,6 +131,7 @@ var TranslationCore = (() => {
       if (!m) {
         m = document.createElement('div');
         m.id = measurerId;
+        m.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
         m.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;' +
           'white-space:pre-wrap;overflow-wrap:anywhere;padding:0 10px;box-sizing:border-box;';
         (document.body || document.documentElement).appendChild(m);

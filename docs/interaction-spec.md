@@ -181,6 +181,16 @@ states. Differences from YouTube are noted below.
   selectors**). Translation is inserted as a **SIBLING** after the original
   (resists YouTube Polymer re-render; works on normal pages too) and re-applied by
   a ~1s recollect poll.
+- **SPA re-renders never visibly disturb the page.** A mere click/selection makes
+  SPA frameworks (React on Substack) re-render the article — MOVING existing nodes,
+  which order-displaces our sibling translations. Translations must stay glued to
+  their paragraphs with **no visible flash, layout jump, or remove→re-add blink** —
+  clicking body text produces **no perceptible action**. (A childList
+  MutationObserver runs the cheap re-anchor pass in the same microtask — before the
+  browser paints — so displaced order never renders; orphan adoption + the ~1s poll
+  remain the backstop for genuinely replaced nodes. The observer ignores mutations
+  involving only our own `mt-` nodes to avoid the YouTube observer-feedback-loop
+  gotcha.)
 - **Flex / grid rows: translation takes its own full-width line.** When the
   original's parent is a flex or grid container (mobile YouTube video metadata
   `次点赞/观看/年前`, the top nav, comment counts), the sibling translation would

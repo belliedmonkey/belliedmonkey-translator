@@ -53,6 +53,14 @@ function makeFakeDocument() {
         const lines = Math.max(1, Math.ceil(_text.length / perLine));
         return Math.round(lines * fontSize * 1.3);
       },
+      setAttribute(name, value) {
+        if (name === 'id') { el.id = String(value); byId[el.id] = el; return; } // reflect like real DOM
+        el['_attr_' + name] = String(value);
+      },
+      getAttribute(name) {
+        if (name === 'id') return el.id || null;
+        const v = el['_attr_' + name]; return v == null ? null : v;
+      },
       remove() { if (el.id) delete byId[el.id]; },
       appendChild(child) { if (child.id) byId[child.id] = child; return child; },
     };
