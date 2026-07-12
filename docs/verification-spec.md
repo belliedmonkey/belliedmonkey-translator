@@ -237,6 +237,18 @@ Alternatives if you prefer: `chrome://extensions` → Developer mode → **Load 
 `--load-extension`. A fresh Chrome may show its *own* Google-Translate bubble — unrelated;
 don't mistake it for the extension.
 
+**⚠️ Chrome unpacked extensions CACHE the loaded build (burned 2026-07-12).** Same trap
+class as the Safari temp-extension snapshot: rebuilding `dist/` on disk does NOT update an
+already-loaded unpacked extension in a long-running Chrome (the daily browser, not a
+throwaway). **After every `node build.js`: `chrome://extensions` → click the extension
+card's reload (⟳) → then RELOAD the test page** (existing tabs keep the previous
+injection's scripts). A stale cached build reproduces already-fixed bugs and reads exactly
+as "the fix doesn't work" — verified live: on the user's real Chrome, the pre-reload build
+flashed on 3/3 body clicks (whole-page translations vanish/return, ~194k px A→B→A on the
+display recording); after ⟳ + page reload, the same tab showed 0/3. Before trusting a
+result from a persistent Chrome profile, confirm the loaded code is current (reload ⟳ is
+cheap — just do it).
+
 > **Verified 2026-07-11 (Chrome 150) ✅:** loaded `dist/` via `Extensions.loadUnpacked`,
 > opened `latent.space/p/modal2026` → FAB present (`title:开启翻译`); clicking it → `关闭翻译`
 > and **11 `.mt-translation` lines** rendered (e.g. "潜在空间：人工智能工程师播客", title →
