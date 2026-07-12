@@ -139,6 +139,24 @@ states. Differences from YouTube are noted below.
   web pages expose **no timed transcript at all** (transcripts are App-only), so it's a
   permanent text-only floor, independent of login. Routing gate: `isTextOnlyPodcast` in
   `content-main.js`.
+- **Video posts are peers of audio — gated on a discoverable transcript.** An `<audio>`
+  element always engages the subtitle path. A **video-only** page (e.g. a Substack video
+  post with no audio companion) engages **only when a timed-transcript source is
+  discoverable** (a caption `<track>` or an embedded signed `.vtt`/`.srt` URL in the
+  page). Pages with decorative / hero / autoplaying background videos therefore never
+  grow a 译 button or a `字幕不可用` notice — same philosophy as the text-only floor.
+  When a page embeds several transcript URLs (the post's own + sidebar recommendations),
+  the one sharing a path segment (upload id) with the playing media's `src` wins.
+  Routing gate: `drivesPodcast()` + `PodcastTranslator.hasTranscriptHint()`.
+- **One subtitle display at a time — native `<track>` captions are suppressed while
+  ours drive.** WebKit (Safari / iOS / iPadOS) auto-enables a media element's subtitle
+  `<track>` per the system caption preference, and players (e.g. Substack's) sync their
+  own caption UI to the track mode — the user would see the native caption line AND our
+  bilingual overlay. While our overlay has a transcript to show, every text track on the
+  media element is forced to `disabled` (re-asserted each tick, like the Spotify
+  native-transcript hide); the original modes are restored the moment translation is
+  turned off. Our cue acquisition never reads `track.cues` (it fetches the track/page
+  URL), so suppression costs nothing.
 - **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
   page (only), when the episode has Spotify's auto-generated transcript, we scrape it
   into timed cues and show the bilingual overlay like any other podcast. Details:
