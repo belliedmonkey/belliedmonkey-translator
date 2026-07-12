@@ -111,13 +111,23 @@ var PodcastTranslator = (() => {
     return out;
   }
 
+  // 10s abort on every transcript-acquisition fetch: a HANGING fetch (observed
+  // on macOS Safari) would otherwise pin resolveInFlight=true forever — the
+  // ⏳ 字幕加载中 notice then never resolves to retry / 字幕不可用 ("never a
+  // stuck line", interaction-spec).
+  function fetchWithTimeout(url) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    return fetch(url, { signal: ctl.signal }).finally(() => clearTimeout(timer));
+  }
+
   async function fetchTimedText(url) {
     try {
       // NO credentials: a CloudFront-signed transcript URL (e.g. Substack's
       // substackcdn.com en.vtt) returns 503 for cookie-bearing requests — the
       // signature already authorizes it. Default 'same-origin' still sends cookies
       // for a same-origin <track src> but never to a cross-origin CDN.
-      const r = await fetch(url);
+      const r = await fetchWithTimeout(url);
       if (!r.ok) return null;
       const txt = await r.text();
       if (/^\s*<\?xml|<Error>|MissingKey/i.test(txt.slice(0, 120))) return null; // signed-URL error etc.
@@ -170,7 +180,7 @@ var PodcastTranslator = (() => {
     const link = document.querySelector('link[rel="alternate"][type="application/rss+xml"]');
     if (!link) return null;
     let feedUrl; try { feedUrl = new URL(link.getAttribute('href'), location.href).toString(); } catch (_) { return null; }
-    let xml; try { const r = await fetch(feedUrl); if (!r.ok) return null; xml = await r.text(); } catch (_) { return null; }
+    let xml; try { const r = await fetchWithTimeout(feedUrl); if (!r.ok) return null; xml = await r.text(); } catch (_) { return null; }
     let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml'); } catch (_) { return null; }
     const items = Array.from(doc.querySelectorAll('item'));
     if (!items.length) return null;
