@@ -157,6 +157,23 @@ states. Differences from YouTube are noted below.
   native-transcript hide); the original modes are restored the moment translation is
   turned off. Our cue acquisition never reads `track.cues` (it fetches the track/page
   URL), so suppression costs nothing.
+- **…and so are player-DRAWN caption layers that duplicate our overlay.** Some players
+  render captions as their own DOM (Substack's caption box), driven by their private UI
+  state — the `<track>` suppression can't reach it. While our overlay has a transcript:
+  an element inside an adapter-marked player region whose box overlaps the video and
+  whose text matches the currently-active cue is a caption display → hidden
+  (`data-mt-native-hidden`, restored the moment translation is off; re-asserted each
+  tick). A transcript **sidebar** that doesn't overlap the video stays visible.
+- **Adapter-marked player regions (Substack).** The Substack player nests
+  `playerShell > stage > {video-player > VIDEO, caption box, transcript scroller}` —
+  the segmenter's generic `closest('[class*="player"]')` finds only the inner wrapper,
+  so the per-word caption rows / transcript panel would be collected as page text and
+  polluted with translations. Per domain review, the **podcast adapter** (site
+  knowledge lives in adapters) feature-detects the shell (`[class*="playerShell"]`
+  containing a media element — works on custom-domain Substacks) and marks it
+  `data-mt-player-region`, re-asserted each tick, unconditionally (the pollution
+  happens whenever the webpage path runs, even with subtitles off). `DomSegmenter`
+  honors the marker generically (domain-design §3).
 - **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
   page (only), when the episode has Spotify's auto-generated transcript, we scrape it
   into timed cues and show the bilingual overlay like any other podcast. Details:

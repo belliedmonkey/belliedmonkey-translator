@@ -234,6 +234,19 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   off → the native captions come back (original track mode restored). *(Spec:
   Podcast "One subtitle display at a time".)*
 
+- [ ] **Substack caption rows / transcript panel are never webpage-translated.** On a
+  Substack video post with the player's Subtitles ON (Substack settings menu →
+  Subtitles → English; auto-on on WebKit), FAB on. **Expected:** 0 `.mt-translation`
+  and 0 `data-mt-processed` inside the marked shell (`[data-mt-player-region]`) — no
+  green lines inside the caption box or transcript scroller, no `⏳翻译中…` churn.
+  *(Spec: Podcast "Adapter-marked player regions"; domain-design §3.)*
+
+- [ ] **Player-drawn caption box hidden while our overlay drives.** Same setup, play.
+  **Expected:** Substack's own caption box (text = current cue, overlapping the video)
+  disappears while our overlay shows the pair; a desktop transcript SIDEBAR (not
+  overlapping the video) stays visible. Turn translation off → the box returns.
+  *(Spec: Podcast "player-DRAWN caption layers".)*
+
 - [ ] **`⏳ 字幕加载中…` while fetching.** **Expected:** shown dimmed while
   fetching/parsing, then auto-swaps to the bilingual pair — never a stuck line.
   *(Spec: Podcast Loading / fallback.)*

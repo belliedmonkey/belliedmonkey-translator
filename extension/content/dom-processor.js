@@ -100,6 +100,12 @@ var DOMProcessor = (() => {
     playerRegions = Array.from(document.querySelectorAll('video'))
       .map((v) => v.closest('[class*="player" i],[id*="player" i]') || v.parentElement)
       .filter(Boolean);
+    // Adapter-marked player shells (domain-design §3): a platform adapter that
+    // KNOWS its player's outer shell (e.g. Substack's playerShell, whose caption
+    // rows / transcript scroller live OUTSIDE the closest() match above) marks
+    // it with data-mt-player-region; honored generically — the segmenter itself
+    // stays free of per-site branches.
+    for (const el of document.querySelectorAll('[data-mt-player-region]')) playerRegions.push(el);
     const ov = document.getElementById('mt-yt-overlay');
     if (ov) playerRegions.push(ov);
     const pov = document.getElementById('mt-pod-overlay'); // parity with the yt overlay:

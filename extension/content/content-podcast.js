@@ -338,18 +338,81 @@ var PodcastTranslator = (() => {
   // section). Fully reversible: restored the moment translation is off. Re-applied each
   // tick because Spotify re-renders (a fresh visible list node just gets re-hidden).
   function syncSpotifyNativeUI() {
-    if (!IS_SPOTIFY) return;
     if (active && engine.items.length) {
+      if (!IS_SPOTIFY) return;
       const { list } = spotifyTranscriptList();
       if (list && list.getAttribute('data-mt-native-hidden') !== '1') {
         list.setAttribute('data-mt-native-hidden', '1');
         list.style.setProperty('display', 'none', 'important');
       }
     } else {
+      // Shared restore sweep for EVERY data-mt-native-hidden marker (Spotify
+      // transcript list AND the third-party caption layers hidden above).
       document.querySelectorAll('[data-mt-native-hidden]').forEach((el) => {
         el.removeAttribute('data-mt-native-hidden');
         el.style.removeProperty('display');
       });
+    }
+  }
+
+  // ─── Substack adapter: mark the player SHELL as a player region ─────────
+  // Substack nests its player (playerShell > stage > {video-player > VIDEO,
+  // caption box, transcript scroller}) — the generic closest('[class*="player"]')
+  // in DomSegmenter finds only the inner video-player, leaving the per-word
+  // caption rows / transcript panel in the collected page text (churn +
+  // translation placeholders — #21). Per domain review, site knowledge lives in
+  // the adapter: WE mark the shell with data-mt-player-region and the segmenter
+  // honors the marker generically. Feature-detected by Substack's stable class
+  // prefix (works on custom-domain Substacks too); re-asserted each tick because
+  // the SPA re-renders. Marking is unconditional (not gated on `active`): the
+  // pollution happens whenever the WEBPAGE path runs, even with subtitles off.
+  function markSubstackPlayerShells() {
+    for (const shell of document.querySelectorAll('[class*="playerShell"]')) {
+      if (shell.querySelector('audio, video') && !shell.hasAttribute('data-mt-player-region')) {
+        shell.setAttribute('data-mt-player-region', '1');
+      }
+    }
+  }
+
+  // ─── Hide third-party caption layers that duplicate our overlay ─────────
+  // "One subtitle display at a time" (interaction-spec): while our overlay has a
+  // transcript, a player-drawn caption layer (e.g. Substack's self-drawn caption
+  // box — driven by ITS OWN UI state, not by track mode, so the <track>
+  // suppression below can't turn it off) duplicates every line. Generic,
+  // site-free detection: an element whose box overlaps the video's rect AND
+  // whose text matches the currently-active cue text is a caption display →
+  // hide it (same data-mt-native-hidden + restore contract as the Spotify
+  // transcript hide). A desktop transcript SIDEBAR does not overlap the video
+  // and stays visible.
+  function normText(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function syncThirdPartyCaptionLayers() {
+    if (!active || !engine.items.length) return; // restore handled by the shared sweep
+    const m = mediaEl();
+    if (!m || m.tagName !== 'VIDEO') return;
+    const s = engine.activeAt(m.currentTime * 1000);
+    if (!s) return;
+    const cur = normText(s.text);
+    if (cur.length < 8) return;
+    const vr = m.getBoundingClientRect();
+    if (!vr.width || !vr.height) return;
+    for (const el of document.querySelectorAll('[data-mt-player-region] div, [data-mt-player-region] span')) {
+      if (el.getAttribute('data-mt-native-hidden') === '1' || el.contains(m)) continue;
+      const t = normText(el.textContent);
+      if (t.length < 8 || t.length > 300 || cur.indexOf(t) === -1) continue;
+      const r = el.getBoundingClientRect();
+      const overV = r.width > 0 && !(r.right < vr.left || r.left > vr.right || r.bottom < vr.top || r.top > vr.bottom);
+      if (!overV) continue;
+      // Hide the outermost ancestor that is still over the video and free of the
+      // video itself — the whole caption box, not just one word span.
+      let top = el;
+      let p = el.parentElement;
+      while (p && !p.contains(m) && p.getAttribute('data-mt-player-region') !== '1') {
+        const pr = p.getBoundingClientRect();
+        if (pr.right < vr.left || pr.left > vr.right || pr.bottom < vr.top || pr.top > vr.bottom) break;
+        top = p; p = p.parentElement;
+      }
+      top.setAttribute('data-mt-native-hidden', '1');
+      top.style.setProperty('display', 'none', 'important');
     }
   }
 
@@ -382,7 +445,9 @@ var PodcastTranslator = (() => {
   // ─── Display loop ──────────────────────────────────────────────────────
   function tick() {
     ensureControlButton();
+    markSubstackPlayerShells(); // adapter-marked player regions for DomSegmenter (#21)
     syncSpotifyNativeUI(); // hide/restore Spotify's native transcript (runs on every path)
+    syncThirdPartyCaptionLayers(); // hide player-drawn caption layers duplicating our overlay
     syncNativeTextTracks(); // suppress/restore native <track> captions (runs on every path)
     if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
     // Dormant on non-media pages (the FAB also turns us on for plain articles).
