@@ -5,6 +5,7 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node test/run.js",
+    "test:layout": "node test/layout/run-layout.js",
     "build": "node build.js",
     "clean": "rm -rf dist belliedmonkeytranslator.zip"
   },

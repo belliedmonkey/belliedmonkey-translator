@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>scroll snap carousel</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .viewport { max-width: 800px; margin: 24px auto; }
+  .carousel { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .card { flex: none; width: 360px; display: flex; flex-direction: column; scroll-snap-align: start;
+          padding: 20px; background: #f0efe9; border-radius: 12px; }
+  .quote { flex: 1; margin-bottom: 16px; line-height: 1.5; }
+  .who { color: #555; }
+</style>
+<body>
+<div class="viewport">
+  <div class="carousel">
+    <div class="card"><div class="quote">This model finishes complex tasks where previous versions would stop short.</div><div class="who">A senior engineer at a large company.</div></div>
+    <div class="card"><div class="quote">It checks its own output carefully without ever being asked to do so.</div><div class="who">A researcher who tests language models.</div></div>
+    <div class="card"><div class="quote">The price and the quality together make it an easy recommendation.</div><div class="who">An independent software consultant.</div></div>
+  </div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "scroll-snap-carousel",
+  "unitCount": 6,
+  "targets": [
+    {
+      "sel": ".quote",
+      "card": ".card",
+      "assert": [
+        "parentNotMutated",
+        "withinCardBounds:2",
+        "sameWidth:4"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>flex row metadata</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .meta { display: flex; flex-wrap: nowrap; gap: 12px; padding: 20px; align-items: baseline; }
+  .meta div { white-space: nowrap; }
+</style>
+<body>
+<div class="meta">
+  <div>Nearly five thousand people liked this video.</div>
+  <div>Around 290 thousand views so far.</div>
+  <div>Uploaded about one year ago.</div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "flex-row-metadata",
+  "unitCount": 3,
+  "rerender": true,
+  "mutations": [
+    {
+      "sel": ".meta",
+      "prop": "flexWrap",
+      "to": "wrap",
+      "marker": "data-mt-flow-fix"
+    }
+  ],
+  "targets": [
+    {
+      "sel": ".meta > div:not(.mt-translation)",
+      "assert": [
+        "ownRow",
+        "fullRowWidth:6",
+        "noOverlapWithSiblings"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

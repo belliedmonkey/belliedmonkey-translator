@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<title>rtl indented narrow block</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; }
+  .note { width: 50%; margin-right: 120px; margin-top: 16px; line-height: 1.8; }
+</style>
+<body>
+<main>
+  <div class="note">النص المزاح عن الحافة اليمنى يجب أن تحاذيه الترجمة تماما في التخطيط من اليمين إلى اليسار.</div>
+  <div class="note">لا يجوز لأداة الترجمة أن تكسر المسافة البادئة الأصلية للفقرة العربية أبدا.</div>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "rtl-indented-narrow",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": ".note",
+      "assert": [
+        "sameRight:3",
+        "sameLeft:3",
+        "sameWidth:3",
+        "maxWidthLE"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

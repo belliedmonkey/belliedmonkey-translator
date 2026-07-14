@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>left indented narrow block</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; }
+  .note { width: 50%; margin-left: 120px; margin-top: 16px; line-height: 1.5; }
+  .flush { width: 50%; margin-top: 16px; line-height: 1.5; }
+  .ib { display: inline-block; width: 40%; margin-top: 16px; line-height: 1.5; }
+</style>
+<body>
+<main>
+  <div class="flush">A narrow block sitting flush against the left edge still deserves a matching translation.</div>
+  <div class="ib">An inline block element with an explicit width is a real layout constraint too.</div>
+  <div class="note">The quick brown fox jumps over the lazy dog near the quiet river bank.</div>
+  <div class="note">A good translation tool should never rearrange the page it is trying to help you read.</div>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "left-indented-narrow",
+  "unitCount": 4,
+  "targets": [
+    {
+      "sel": ".note",
+      "assert": [
+        "sameLeft:3",
+        "sameWidth:3",
+        "leftGapPreserved:3"
+      ]
+    },
+    {
+      "sel": ".flush",
+      "assert": [
+        "sameLeft:3",
+        "sameWidth:3",
+        "maxWidthLE"
+      ]
+    },
+    {
+      "sel": ".ib",
+      "assert": [
+        "sameLeft:3",
+        "maxWidthLE"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

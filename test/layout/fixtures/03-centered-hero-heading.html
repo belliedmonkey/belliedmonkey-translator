@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>centered hero heading</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  header { padding: 24px; }
+  h1 { text-align: center; font-size: 40px; margin: 0 0 12px; }
+  main { padding: 0 24px; }
+</style>
+<body>
+<header>
+  <h1>Introducing a Better Way to Read the Web</h1>
+</header>
+<main>
+  <p>A good translation tool should never rearrange the page it is trying to help you read.</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "centered-hero-heading",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": "h1",
+      "assert": [
+        "textAlignCopied:center",
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

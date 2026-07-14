@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>nested flex in grid</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .shell { display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 24px; }
+  .panel { display: flex; flex-direction: column; padding: 16px; background: #eef; border-radius: 8px; margin-top: 16px; }
+  .panel div { margin-bottom: 12px; line-height: 1.5; }
+</style>
+<body>
+<div class="shell">
+  <aside><p>Navigation links would normally live in this side column.</p></aside>
+  <section class="main">
+    <p>Reading foreign articles every morning is a simple habit that compounds into fluency.</p>
+    <div class="panel">
+      <div>The panel explains how settings are stored on the device only.</div>
+      <div>Nothing ever leaves your phone without your explicit consent.</div>
+    </div>
+  </section>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "nested-flex-in-grid",
+  "unitCount": 4,
+  "targets": [
+    {
+      "sel": ".panel > div:not(.mt-translation)",
+      "assert": [
+        "parentNotMutated",
+        "sameWidth:4"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>
