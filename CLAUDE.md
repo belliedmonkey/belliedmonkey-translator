@@ -21,10 +21,15 @@ Safari iOS browser extension for bilingual translation — fully open source and
 - **YouTube dual subtitles**: original subtitle on top, translation appended below in yellow
 - **Multi-provider LLM**: Google (free), OpenAI, Claude, DeepSeek, GLM (智谱)
 
-## Build
+## Build & Test
 
 ```bash
-node build.js        # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
+node build.js            # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
+npm test                 # Pure-logic suite (zero-dep vm harness, Node ≥16) — every push
+npm run test:layout      # Layout regression corpus (real headless Chrome via raw CDP,
+                         # Node ≥22) — mandatory when extension/content/** or styles/** change.
+                         # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
+                         # contract: new site fix ⇒ new fixture red-before-fix, old fixtures stay green)
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.
