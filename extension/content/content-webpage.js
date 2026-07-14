@@ -127,7 +127,10 @@ var WebpageTranslator = (() => {
     const px = (parseFloat(cs.fontSize) || 16) * parseScale(settings.fontSize);
     const lh = (cs.lineHeight && cs.lineHeight !== 'normal') ? cs.lineHeight : '1.4';
     const ls = (cs.letterSpacing && cs.letterSpacing !== 'normal') ? `letter-spacing:${cs.letterSpacing};` : '';
-    return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}`;
+    // text-align is NOT inherited by a sibling of the styled node (e.g. a centered
+    // hero <h1 style="text-align:center">) — copy it so the translation aligns.
+    const ta = (cs.textAlign && cs.textAlign !== 'start') ? `text-align:${cs.textAlign};` : '';
+    return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}${ta}`;
   }
   function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
 
@@ -136,20 +139,108 @@ var WebpageTranslator = (() => {
   // 29万次观看 · 1年前", header, comment counts) — it overlaps and spills off the
   // row. Force it onto its own full-width line: in flex, flex-basis:100% + make the
   // row wrap (record nowrap→wrap for clean revert); in grid, span every column.
+  // Revert the flex-wrap mutation, restoring any inline value the page had itself.
+  function undoFlowFix(p) {
+    if (!p || !p.hasAttribute || !p.hasAttribute('data-mt-flow-fix')) return;
+    const prev = p.getAttribute('data-mt-flow-fix');
+    p.style.flexWrap = (prev && prev !== '1') ? prev : '';
+    p.removeAttribute('data-mt-flow-fix');
+  }
+
   function flowFixCss(node) {
     const p = node.parentElement;
     if (!p) return '';
     let cs; try { cs = getComputedStyle(p); } catch (_) { return ''; }
     const disp = cs.display;
     if (disp === 'flex' || disp === 'inline-flex') {
+      // Column-direction flex already stacks new items vertically — no fix needed.
+      // Forcing wrap + flex-basis:100% there is actively harmful: basis means HEIGHT
+      // in a column, so the translation fills the column and WRAPS INTO A NEW COLUMN
+      // beside the original (Anthropic QuoteCarousel cards: a squeezed right-side strip).
+      if ((cs.flexDirection || 'row').startsWith('column')) {
+        // A responsive flip (row → column media query) can leave our earlier wrap
+        // mutation stranded on the parent — revert it here rather than waiting for disable().
+        undoFlowFix(p);
+        return '';
+      }
       if (cs.flexWrap === 'nowrap' && !p.hasAttribute('data-mt-flow-fix')) {
+        // Record the page's own inline flex-wrap (usually none) so revert can
+        // RESTORE it instead of erasing it. '1' = "no prior inline value".
+        p.setAttribute('data-mt-flow-fix', p.style.flexWrap || '1');
         p.style.flexWrap = 'wrap';
-        p.setAttribute('data-mt-flow-fix', '1');
       }
       return 'flex-basis:100%;width:100%;';
     }
     if (disp === 'grid' || disp === 'inline-grid') return 'grid-column:1 / -1;';
     return '';
+  }
+
+  // A block original that is NARROWER than its parent's content box (max-width +
+  // margin:auto reading columns — Anthropic, Medium-style articles) does not pass
+  // that constraint to a sibling: the translation would span the full container
+  // width, flush left. Mirror the original's horizontal geometry: cap max-width to
+  // the original's used width (responsive: it can still shrink), and reproduce
+  // centering with auto margins (or the left offset for a non-centered indent).
+  function layoutCss(node) {
+    const p = node.parentElement;
+    if (!p) return '';
+    let cs, pcs;
+    try { cs = getComputedStyle(node); pcs = getComputedStyle(p); } catch (_) { return ''; }
+    // A ROW-flex/grid ITEM's narrowness comes from track/line distribution, not
+    // from the node's own layout constraint — mirroring it would clamp the
+    // translation that flowFixCss just forced onto its own full-width row. Those
+    // are flowFixCss's domain. COLUMN-flex items stack like blocks, but with
+    // align-items:center/start they do NOT stretch — mirror those like blocks so
+    // the translation matches a centered/fixed-width item instead of shrink-wrapping.
+    if (pcs.display.includes('grid')) return '';
+    if (pcs.display.includes('flex') && !(pcs.flexDirection || 'row').startsWith('column')) return '';
+    if (cs.display.startsWith('inline') && cs.display !== 'inline-block') return ''; // inline width is not a layout constraint
+    // A COLD bail (no cached mirror yet) must not freeze an empty mirror forever:
+    // viewport-priority translation often fires exactly while an entrance scale
+    // animation is mid-flight. Flag the node so tick() re-renders it for a few
+    // ticks until the geometry is measurable; give up after ~8 (permanent transform).
+    const bailCold = () => {
+      if (!node.__mtLayoutCss && node.__mtLayoutCold !== -1) {
+        node.__mtLayoutCold = (node.__mtLayoutCold || 0) + 1;
+        if (node.__mtLayoutCold > 8) node.__mtLayoutCold = -1; // terminal: -1 = given up, stops the retry loop
+      }
+      return node.__mtLayoutCss || '';
+    };
+    const nr = node.getBoundingClientRect();
+    // Node hidden (interleave re-render sets display:none) — reuse the geometry
+    // captured while it was still visible instead of dropping the constraint.
+    if (nr.width < 1) return bailCold();
+    // A transformed ancestor (entrance scale animation, pinch-zoom wrapper) makes
+    // getBoundingClientRect return VISUAL px while our emitted margins apply in
+    // LOCAL px — the mirror would be off by the scale factor. Detect and bail.
+    if (node.offsetWidth && Math.abs(nr.width - node.offsetWidth) > 2) return bailCold();
+    node.__mtLayoutCold = 0; // measurable — any retry loop ends here
+    const pr = p.getBoundingClientRect();
+    const contentL = pr.left + (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.borderLeftWidth) || 0);
+    const contentR = pr.right - (parseFloat(pcs.paddingRight) || 0) - (parseFloat(pcs.borderRightWidth) || 0);
+    const gapL = nr.left - contentL, gapR = contentR - nr.right;
+    if (gapL + gapR < 4) { node.__mtLayoutCss = ''; return ''; } // fills the row — nothing to mirror (and refresh the cache)
+    // Cap to the original's USED width. Never copy cs.maxWidth verbatim: the common
+    // responsive pattern `width:600px; max-width:100%` computes to maxWidth '100%',
+    // which on the sibling resolves to the FULL parent — reintroducing the very
+    // flush-edge regression this mirror exists to fix. Ch/em caps would mis-scale
+    // against the translation's own (user-scaled) font too.
+    const mw = `${nr.width.toFixed(1)}px`;
+    // Mirror the INLINE-START gap with a logical margin: a physical margin-left is
+    // discarded by the over-constrained rule in RTL containing blocks (CSS2.1 §10.3.3),
+    // snapping the translation to the wrong edge on Arabic reading columns.
+    const rtl = (pcs.direction === 'rtl');
+    const gapStart = rtl ? gapR : gapL;
+    // A block sibling FILLS its container, so a max-width cap suffices; a column-flex
+    // item SHRINK-WRAPS its content, so it additionally needs an explicit width to
+    // match the original instead of collapsing to its text width.
+    const w = pcs.display.includes('flex') ? `width:${mw};max-width:${mw};` : `max-width:${mw};`;
+    let out;
+    if (gapStart > 1 && Math.abs(gapL - gapR) < 2) out = `${w}margin-left:auto;margin-right:auto;`;
+    else if (gapStart > 1) out = `${w}margin-inline-start:${gapStart.toFixed(1)}px;`;
+    else out = w;
+    node.__mtLayoutCss = out;
+    return out;
   }
 
   // ─── Sibling renderer ─────────────────────────────────────────────────
@@ -181,14 +272,14 @@ var WebpageTranslator = (() => {
     if (st.state === 'pending') {
       restoreOriginal(node);
       const d = ensureSibling(node); d.onclick = null;
-      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + flowFixCss(node);
+      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + flowFixCss(node) + layoutCss(node);
       d.textContent = TranslationCore.MSG.loading;
       return;
     }
     if (st.state === 'error') {
       restoreOriginal(node);
       const d = ensureSibling(node);
-      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + flowFixCss(node);
+      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + flowFixCss(node) + layoutCss(node);
       d.textContent = TranslationCore.MSG.error;
       d.onclick = () => { engine.retry(u); u._shownKey = ''; };
       return;
@@ -201,7 +292,7 @@ var WebpageTranslator = (() => {
       } else {
         restoreOriginal(node);
         const d = ensureSibling(node); d.onclick = null;
-        d.style.cssText = transStyle(node) + flowFixCss(node);
+        d.style.cssText = transStyle(node) + flowFixCss(node) + layoutCss(node);
         buildRichText(st.translation, d);
       }
       return;
@@ -227,7 +318,7 @@ var WebpageTranslator = (() => {
     if (node.nextElementSibling !== holder) node.insertAdjacentElement('afterend', holder); // (re)anchor
     // Copy the original's font onto the holder so the re-rendered original rows match
     // the source; translation rows additionally take the distinct color via transStyle.
-    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node);
+    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node) + layoutCss(node);
     holder.textContent = '';
     for (let i = 0; i < oParas.length; i++) {
       const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
@@ -340,7 +431,9 @@ var WebpageTranslator = (() => {
       if (!u.node.isConnected) continue;
       const near = inViewport(u.node);
       const st = engine.stateOf(u);
-      const key = st.state + '|' + (st.translation ? 'T' : '');
+      // __mtLayoutCold: layoutCss bailed with no cached mirror (mid-animation /
+      // hidden) — vary the key each tick so the unit re-renders until it measures.
+      const key = st.state + '|' + (st.translation ? 'T' : '') + (u.node.__mtLayoutCold > 0 ? '|c' + tickCount : '');
       if (u._shownKey === key) continue;
       if (!u._rendered && !near) continue; // don't render far-offscreen untranslated
       renderUnit(u, st);
@@ -377,14 +470,13 @@ var WebpageTranslator = (() => {
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
       if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); }
-      const p = node.parentElement; // undo the flex-row wrap fix (see flowFixCss)
-      if (p && p.hasAttribute('data-mt-flow-fix')) { p.style.flexWrap = ''; p.removeAttribute('data-mt-flow-fix'); }
+      undoFlowFix(node.parentElement); // undo the flex-row wrap fix (see flowFixCss)
     }
     document.querySelectorAll('.' + CLASS).forEach((e) => e.remove());
     document.querySelectorAll('[' + PROCESSED + ']').forEach((e) => e.removeAttribute(PROCESSED));
     document.querySelectorAll('[data-mt-hidden]').forEach((e) => { e.style.display = ''; e.removeAttribute('data-mt-hidden'); });
     document.querySelectorAll('[' + DOMProcessor.TRANSLATABLE_ATTR + ']').forEach((e) => e.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR));
-    document.querySelectorAll('[data-mt-flow-fix]').forEach((e) => { e.style.flexWrap = ''; e.removeAttribute('data-mt-flow-fix'); });
+    document.querySelectorAll('[data-mt-flow-fix]').forEach(undoFlowFix);
     units = [];
     engine = null;
   }
