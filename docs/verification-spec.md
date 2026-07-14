@@ -290,13 +290,46 @@ verification in one connection, or restart web-ext between attempts.
 
 ---
 
-## 3. Automated gate — `npm test` (mandatory, before every push)
+## 3. Automated gates (mandatory, before every push)
+
+### 3.1 `npm test` — pure logic (every push)
 
 `npm test` (`node test/run.js`, zero-dep, Node ≥16) covers the pure-logic core: the
 translate-ahead subtitle engine + state machine, cue→sentence merge, i18n/locale
 resolution, and every provider's request-building / caching / retry-fallback. **It must
 be green before you push.** When you change logic, add/update tests in the same commit.
 **Never push on a red suite.**
+
+### 3.2 `npm run test:layout` — layout regression corpus
+
+`npm run test:layout` (`node test/layout/run-layout.js`, zero-dep, Node ≥22 for the
+built-in WebSocket) drives the **real sibling renderer in a real Chrome layout engine**:
+it builds `dist/`, loads it into a throwaway-profile Chrome via the §2.D CDP
+`Extensions.loadUnpacked` flow, serves the local fixture pages in
+`test/layout/fixtures/` over localhost, intercepts the Google translate endpoints with
+canned deterministic responses (fully offline), and asserts geometry invariants on the
+injected `.mt-translation` siblings (below the original, same column, no parent-style
+pollution, no horizontal overflow, …). Screenshots land in `test/layout/artifacts/`
+(gitignored) for human eyeballing. ~35s wall time (headless Chrome).
+
+**Mandatory before every push that touches `extension/content/**` or
+`extension/styles/**`; recommended otherwise.** No Chrome on the machine is a hard
+failure (set `CHROME_BIN=/path/to/chrome`), never a silent skip.
+
+**The incremental-adaptation contract** (the reason this suite exists):
+
+1. Every site-specific layout fix MUST land with a new fixture in
+   `test/layout/fixtures/` distilled from that site's minimal layout pattern, and that
+   fixture must **fail before the fix** (record the red run in the GitHub issue).
+2. The fixture passes after the fix.
+3. **All pre-existing fixtures stay green.** A fixture is never edited to accommodate a
+   new fix — unless the fixture's own assertion is demonstrably wrong, justified in the
+   issue. This is what guarantees each adaptation is an increment, not a regression.
+
+Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
+`layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT
+cover WebKit/Gecko engine differences, real devices, subtitles/overlays, or visual
+color/contrast — those remain owned by the §1 full matrix via cua-driver.
 
 ---
 
