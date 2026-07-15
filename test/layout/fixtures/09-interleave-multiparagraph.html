@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>interleave multiparagraph blob</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  article { width: 100%; padding: 24px 0; }
+  #blob { max-width: 640px; margin: 16px auto; white-space: pre-line; line-height: 1.6; }
+  article > p { max-width: 640px; margin: 16px auto; }
+</style>
+<body>
+<article>
+  <p>Most people underestimate how much vocabulary they absorb from context alone.</p>
+  <div id="blob">Learning a language by reading real articles beats memorizing word lists.
+
+The trick is seeing the same words appear again and again in living sentences.</div>
+</article>
+<script type="application/json" id="mt-expect">
+{
+  "name": "interleave-multiparagraph",
+  "unitCount": 2,
+  "rerender": true,
+  "skipUniversal": {
+    "belowOriginal": [
+      "#blob"
+    ],
+    "originalGeometryStable": [
+      "#blob"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#blob",
+      "assert": [
+        "holderReplacesOriginal",
+        "cachedLayoutCss:max-width.*margin-left:auto",
+        "maxWidthLE"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

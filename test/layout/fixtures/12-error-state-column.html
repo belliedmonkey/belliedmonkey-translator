@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>error state in reading column</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; }
+  p.col { max-width: 640px; width: 100%; margin: 16px auto; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <p class="col">When the translation service is unreachable the error chip must respect the column too.</p>
+  <p class="col">A failed request should never break the page layout it was asked to translate.</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "error-state-column",
+  "unitCount": 2,
+  "failTranslate": true,
+  "countMode": "error",
+  "timeoutMs": 20000,
+  "skipUniversal": {
+    "translationContent": [
+      "*"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "p.col",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2",
+        "centeredInParent:3"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

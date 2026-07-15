@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>grid container captions</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; }
+  .grid div { line-height: 1.4; }
+</style>
+<body>
+<div class="grid">
+  <div>The first caption describes a mountain photographed at sunrise.</div>
+  <div>The second caption describes a harbor full of fishing boats.</div>
+  <div>The third caption describes a forest trail in early autumn.</div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "grid-container",
+  "unitCount": 3,
+  "skipUniversal": {
+    "originalGeometryStable": [
+      ".grid > div"
+    ]
+  },
+  "targets": [
+    {
+      "sel": ".grid > div:not(.mt-translation)",
+      "assert": [
+        "gridSpansAllColumns:6",
+        "ownRow"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

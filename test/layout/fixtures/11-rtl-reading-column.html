@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<title>rtl reading column</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; }
+  p.col { max-width: 600px; width: 100%; margin: 16px auto; line-height: 1.8; }
+</style>
+<body>
+<main>
+  <p class="col">القراءة اليومية للمقالات الأجنبية عادة بسيطة تتراكم مع الوقت لتصبح طلاقة حقيقية في اللغة.</p>
+  <p class="col">أداة الترجمة الجيدة لا تعيد ترتيب الصفحة التي تحاول مساعدتك على قراءتها أبدا.</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "rtl-reading-column",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": "p.col",
+      "assert": [
+        "sameWidth:3",
+        "centeredInParent:4",
+        "maxWidthLE"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

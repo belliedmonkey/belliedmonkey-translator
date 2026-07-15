@@ -11,3 +11,6 @@ pnpm-lock.yaml
 
 # macOS
 .DS_Store
+
+# layout regression suite output (screenshots + results.json)
+test/layout/artifacts/
