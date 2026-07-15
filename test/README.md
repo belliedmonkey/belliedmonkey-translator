@@ -51,6 +51,9 @@ Fixture authoring rules:
   `mutations` (parent changes the renderer is EXPECTED to make — their absence
   fails), `skipUniversal` opt-outs, `rerender` (re-assert after a
   settings-change disable/enable cycle). Vocabulary: `test/layout/assert-lib.js`.
+- `requireFab: true` asserts `#mt-fab` is present AND connected after settle —
+  fixture 15 sweeps non-initial body children ~900ms after load (simulating a
+  hydrating framework's reconciliation, issue #30) and the FAB must remount.
 - Universal invariants run on every unit automatically: translation visible,
   **contains a real canned translation** (【译】 marker — kills vacuous greens from
   pending/error placeholders; error fixtures opt out via

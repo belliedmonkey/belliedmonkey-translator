@@ -236,6 +236,12 @@
         }
       }
     }
+    if (manifest.requireFab) {
+      const fab = document.getElementById('mt-fab');
+      if (!fab || !fab.isConnected) {
+        fail('fabMounted', '#mt-fab', fab ? 'exists but disconnected' : 'not in the DOM (hydration sweep not survived — issue #30)');
+      }
+    }
     // Document-scoped invariant — opt out with skipUniversal.noHorizontalOverflow: ["*"]
     // (selector lists are meaningless here; anything else is a fixture-author error).
     const nhoSkip = (manifest.skipUniversal || {}).noHorizontalOverflow;

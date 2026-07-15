@@ -27,6 +27,27 @@ var FloatingButton = (() => {
     document.body.appendChild(fab);
     updateState(_enabled);
     makeDraggable(fab);
+    watchRemount();
+  }
+
+  // A hydrating SPA (Next.js/React — anthropic.com) reconciles body children
+  // AFTER our document_idle injection and sweeps the FAB out of the DOM. That is
+  // why the FAB "never shows" on Chrome/iOS Safari, whose injection precedes the
+  // sweep, while Firefox/macOS Safari inject after it and survive (issue #30).
+  // Re-append the SAME element when someone else removes it (drag position and
+  // handlers survive); remove() disconnects first so our own teardown never
+  // remounts. Bounded so a page that keeps fighting wins after 20 rounds.
+  let remountObs = null;
+  let remountCount = 0;
+  function watchRemount() {
+    if (remountObs) remountObs.disconnect();
+    remountCount = 0;
+    remountObs = new MutationObserver(() => {
+      if (!fab || fab.isConnected || !document.body) return; // O(1) early exit on unrelated mutations
+      if (++remountCount > 20) { remountObs.disconnect(); remountObs = null; return; }
+      document.body.appendChild(fab);
+    });
+    remountObs.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   function handleClick() {
@@ -53,6 +74,7 @@ var FloatingButton = (() => {
   }
 
   function remove() {
+    if (remountObs) { remountObs.disconnect(); remountObs = null; }
     if (fab) { fab.remove(); fab = null; }
   }
 
