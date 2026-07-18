@@ -175,6 +175,24 @@ Substack transcript acquisition) feature-detects the player shell by its
 stable class prefix (`[class*="playerShell"]` containing a media element) and
 re-asserts the marker each tick, so SPA re-renders can't shed it.
 
+**Non-content chrome regions — the `data-mt-skip-region` marker (second generic
+seam).** Some sites wrap large, unambiguous **non-content chrome** in a structure
+that the content filters below cannot cleanly reject: a feed's trends /
+who-to-follow sidebar, a footer link farm, a "subscribe to Premium" promo. Its
+text is long, letter-bearing, real prose — so `minLen` / `isUntranslatable` pass
+it, and it clutters the page with translations of things nobody reads bilingually
+(x.com is the motivating case — see the Twitter adapter). This is site-specific
+knowledge, so — exactly like `data-mt-player-region` above — it enters through a
+**generic marker, never a segmenter selector**: a platform adapter that KNOWS its
+chrome marks the subtree with **`data-mt-skip-region`**, and `DomSegmenter`'s
+`computeSkipRegions` honors that marker generically (marked subtree = excluded
+from the webpage path, pruned in `hardSkip` like a player region). The segmenter
+itself gains no `data-testid`/host branches. The marker is the **only** sanctioned
+way to skip a *region*; it is a deliberate, adapter-scoped exception to the
+"skip by content, not by region" rule below, and adapters — not the segmenter —
+are the sole writers of it (each adapter feature-detects its own site, so the
+global marker never fires elsewhere).
+
 **Skip by content, not by semantic region.** We do NOT blanket-skip
 `<nav>/<header>/<footer>/<aside>` — SPAs (e.g. reddit) put real content (sidebar
 descriptions, rules, nav labels) inside them, and the reference translates those.
@@ -228,7 +246,8 @@ differences live only in a thin control/render adapter.**
 | Module | File | Role |
 |---|---|---|
 | `TranslationCore` | `content/translation-core.js` | generic: `createEngine` (state machine + retry, `selectActive`), `createSubtitleEngine` (time-window specialization), helpers (`isTranslated`, `looksLikeCode`, language, pager, i18n) |
-| `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits` |
+| `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits`; honors two generic adapter markers — `computePlayerRegions` (`data-mt-player-region`) and `computeSkipRegions` (`data-mt-skip-region`) |
+| `TwitterSite` | `content/site-twitter.js` | x.com/twitter.com **site adapter** (DOM/text dimension): feature-detects the tweet UI and marks non-content chrome (trends/who-to-follow sidebar, left nav, per-tweet engagement bar, and the tweet author/metadata line) with `data-mt-skip-region` so the generic segmenter excludes it; re-asserted via a `MutationObserver` against the virtualized feed. No selectors leak into `DomSegmenter`. |
 | `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |

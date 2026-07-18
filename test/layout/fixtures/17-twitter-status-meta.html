@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>twitter status page metadata row</title>
+<style>
+  /* x.com single-tweet (status) page: below the tweet body sits a metadata row —
+     "6:53 AM · Jul 18, 2026 · 138K Views" (time · date · views). It has no stable
+     test id and is pure date/number metadata: translating it yields a near-identical
+     green duplicate (see the ClaudeDevs video tweet). site-twitter.markStatusMeta
+     anchors it structurally (a standalone <time> not in User-Name/tweetText, plus the
+     analytics link) and marks it data-mt-skip-region. Only the tweet body should
+     translate. Red before the fix (the metadata row translates too). */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  article[role="article"] { display: flex; flex-direction: column; width: 600px; padding: 16px; }
+  [data-testid="tweetText"] { font-size: 15px; line-height: 1.4; }
+  .meta { color: #536471; padding: 12px 0; border-bottom: 1px solid #eee; }
+  [role="group"] { display: flex; gap: 40px; margin-top: 8px; color: #536471; }
+</style>
+<body>
+<main data-testid="primaryColumn">
+  <article role="article">
+    <div data-testid="User-Name"><span>Claude Developers</span> <span>@ClaudeDevs</span></div>
+    <div data-testid="tweetText"><span>Over the past six months the Claude Platform shipped several new APIs that help developers build and deploy agents fast. The team sat down to discuss the patterns we are seeing in production.</span></div>
+    <!-- Status-page metadata row (must be skipped) -->
+    <div class="meta">
+      <a href="/ClaudeDevs/status/123"><time datetime="2026-07-18T06:53">6:53 AM</time></a>
+      <span> · Jul 18, 2026 from San Francisco</span>
+      <span> · </span>
+      <a href="/ClaudeDevs/status/123/analytics"><span>138K</span> Views worldwide today</a>
+    </div>
+    <div role="group" aria-label="engagement"><span>128</span><span>45</span><span>1.2K</span></div>
+  </article>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "twitter-status-meta",
+  "unitCount": 1,
+  "targets": [
+    {
+      "sel": "[data-testid=\"tweetText\"]",
+      "assert": ["parentNotMutated", "sameWidth:4"]
+    }
+  ]
+}
+</script>
+</body>
+</html>
