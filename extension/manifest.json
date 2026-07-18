@@ -40,6 +40,7 @@
         "content/dom-processor.js",
         "content/floating-button.js",
         "content/content-webpage.js",
+        "content/subtitle-adapter.js",
         "content/content-youtube.js",
         "content/content-podcast.js",
         "content/content-main.js"
@@ -68,6 +69,7 @@
         "content/dom-processor.js",
         "content/floating-button.js",
         "content/content-webpage.js",
+        "content/subtitle-adapter.js",
         "content/content-youtube.js",
         "content/content-podcast.js",
         "content/content-twitter.js",
