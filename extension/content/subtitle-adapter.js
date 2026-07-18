@@ -122,9 +122,11 @@ var SubtitleAdapter = (() => {
     function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); }
 
     // ─── Display loop ──────────────────────────────────────────────────
+    const MAX_ATTEMPTS = spec.maxAttempts || RESOLVE_MAX_ATTEMPTS;
     function tick() {
       ensureControlButton();
       if (spec.syncNative) spec.syncNative(active, engine.items.length);
+      if (spec.onTick) spec.onTick(active); // per-tick backend hook (e.g. YT ensureCaptionsOn)
       if (!active) { if (document.getElementById(ID.overlay)) clearOverlay(); return; }
       if (!spec.hasMedia()) { if (document.getElementById(ID.overlay)) clearOverlay(); return; }
 
@@ -133,6 +135,7 @@ var SubtitleAdapter = (() => {
         lastKey = key;
         engine.setItems([]); engine.reset();
         inFlight = false; attempts = 0; nextAt = 0; status = ''; clearOverlay();
+        if (spec.onMediaKeyChange) spec.onMediaKeyChange(); // backend resets its own acquire state
       }
 
       if (!engine.items.length && status !== 'unavailable' && !inFlight && Date.now() >= nextAt) {
@@ -140,10 +143,10 @@ var SubtitleAdapter = (() => {
         Promise.resolve().then(spec.acquire).then((res) => {
           if (res === 'unavailable') { status = 'unavailable'; }
           else if (res && res.length) { engine.setItems(TranslationCore.mergeSentences(res)); status = 'ready'; }
-          else if (attempts >= RESOLVE_MAX_ATTEMPTS) { status = 'unavailable'; }
+          else if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; }
           else { nextAt = Date.now() + RESOLVE_RETRY_MS; }
         }).catch(() => {
-          if (attempts >= RESOLVE_MAX_ATTEMPTS) status = 'unavailable';
+          if (attempts >= MAX_ATTEMPTS) status = 'unavailable';
           else nextAt = Date.now() + RESOLVE_RETRY_MS;
         }).finally(() => { inFlight = false; });
       }
@@ -179,9 +182,14 @@ var SubtitleAdapter = (() => {
 
     // ─── Control button + menu ─────────────────────────────────────────
     function ensureControlButton() {
-      if (!active) { document.getElementById(ID.btn)?.remove(); closeMenu(); return; }
-      if (spec.showButton && !spec.showButton()) return; // mobile: the page FAB drives it
-      if (document.getElementById(ID.btn) || !spec.hasMedia()) return;
+      // Backends WITH an on/off menu row (YouTube, Twitter) use the button as the
+      // entry point, so it shows even when inactive. Backends WITHOUT one (podcast) are
+      // toggled by the page FAB, so their button shows only once active.
+      const show = (active || spec.menuToggle !== false)
+        && spec.hasMedia()
+        && !(spec.showButton && !spec.showButton()); // mobile: the page FAB drives it
+      if (!show) { document.getElementById(ID.btn)?.remove(); closeMenu(); return; }
+      if (document.getElementById(ID.btn)) return;
       const btn = document.createElement('button');
       btn.id = ID.btn;
       btn.setAttribute('translate', 'no');
@@ -207,6 +215,9 @@ var SubtitleAdapter = (() => {
         'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
         'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
       const T = TranslationCore.t;
+      // Some backends (podcast) have no on/off row in the menu — they are toggled by
+      // the page FAB. spec.menuToggle === false omits it (zero-behavior-change parity).
+      const withToggle = spec.menuToggle !== false;
       const row = (label, opts = {}) => {
         const rr = document.createElement('div');
         rr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;';
@@ -220,8 +231,10 @@ var SubtitleAdapter = (() => {
         return rr;
       };
       const sep = () => { const s = document.createElement('div'); s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;'; return s; };
-      menu.appendChild(row(active ? spec.labels.subOff : spec.labels.subOn, { checked: active, onClick: () => setActive(!active) }));
-      menu.appendChild(sep());
+      if (withToggle) {
+        menu.appendChild(row(active ? spec.labels.subOff : spec.labels.subOn, { checked: active, onClick: () => setActive(!active) }));
+        menu.appendChild(sep());
+      }
       const head = document.createElement('div');
       head.textContent = T('yt_display_type', '字幕显示类型');
       head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';

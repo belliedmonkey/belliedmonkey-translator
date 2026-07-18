@@ -1,50 +1,19 @@
 // content-podcast.js — Podcast bilingual subtitles (audio analogue of YouTube).
 //
-// See docs/domain-design.md §2.2 (core constraint) and interaction-spec.md.
-// Strategy: acquire an EXISTING timed transcript whole (in-page WebVTT/SRT, or a
-// Podcasting 2.0 <podcast:transcript> from the feed, or — Phase B — Spotify's synced
-// DOM), merge into sentences, translate ahead in the 60s window (reusing the same
-// TranslationCore subtitle engine as YouTube), and render a self-drawn overlay
-// anchored to the VIEWPORT (audio pages have no video frame), synced to the <audio>
-// element's currentTime. No word-by-word, no ASR; if there's no timed transcript we
-// show 字幕不可用 and the webpage text path still translates the show-notes page.
+// Thin backend over SubtitleAdapter.createSubtitleUI (see docs/domain-design.md §2.2).
+// Supplies only the podcast-specific parts: the source (an EXISTING timed transcript —
+// in-page WebVTT/SRT, Podcasting-2.0 <podcast:transcript>, or Spotify's synced DOM),
+// the media clock (<audio>.currentTime, or Spotify's progress bar), a viewport-anchored
+// overlay, and the platform-native-caption suppression (Spotify list / Substack player
+// shell marking / third-party caption layers / native <track>). No ASR; if there is no
+// timed transcript we show 字幕不可用 and the webpage text path still translates the page.
+// All overlay/tick/menu/SRT live in subtitle-adapter.js.
 
 var PodcastTranslator = (() => {
-  const OVERLAY_ID = 'mt-pod-overlay';
-  const ORIG_CLASS = 'mt-pod-orig';
-  const TRANS_CLASS = 'mt-pod-trans';
-  const BTN_ID = 'mt-pod-btn';
-  const MENU_ID = 'mt-pod-menu';
   const IS_SPOTIFY = /(^|\.)spotify\.com$/.test(location.hostname);
-
-  let settings = {};
-  let active = false;
-  let pollTimer = null;
-  let lastKey = '';            // episode identity (url + audio src) to detect changes
-  let displayMode = 'both';    // 'both' | 'trans' | 'orig'
-  let lastShownKey = '';
-
-  // transcript acquisition state (full transcript up front — see §2.2). We retry a
-  // few times because a podcast embed may render its transcript URL into the DOM
-  // slightly after the audio element appears (and to ride out a transient CDN hiccup).
-  let transcriptStatus = '';   // '' | 'loading' | 'ready' | 'unavailable'
-  let resolveInFlight = false;
-  let resolveAttempts = 0;
-  let resolveNextAt = 0;
-  const RESOLVE_MAX_ATTEMPTS = 6;
-  const RESOLVE_RETRY_MS = 2500;
-
-  const pager = TranslationCore.createPager({ measurerId: 'mt-pod-meas' });
-  const engine = TranslationCore.createSubtitleEngine({
-    getCurrentTime: () => positionMs(),
-    translate: (text) => TranslationAPI.translate(
-      text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
-  });
+  let ui; // set below; sync closures reference ui.engine / ui.active
 
   // ─── Media element ─────────────────────────────────────────────────────
-  // Prefer an <audio> that is actually playing/progressed; fall back to <video>
-  // for audio-only <video> players. (We are not initialized on YouTube.)
   function mediaEl() {
     const els = Array.from(document.querySelectorAll('audio, video'));
     if (!els.length) return null;
@@ -53,19 +22,15 @@ var PodcastTranslator = (() => {
       || els.find((e) => e.tagName === 'AUDIO')
       || els[0];
   }
-  // On Spotify only ENGAGE on an episode page (so music/playlist pages stay dormant →
-  // text-only, no 字幕不可用). Elsewhere, any media element means a podcast may be present.
   function isSpotifyEpisode() { return /\/episode\//.test(location.pathname) || !!document.querySelector('[data-testid="transcript-tab"]'); }
   function hasMedia() { return IS_SPOTIFY ? isSpotifyEpisode() : !!document.querySelector('audio, video'); }
   function episodeKey() {
-    if (IS_SPOTIFY) return location.href; // media is a muted blob <video>; identity is the episode URL
+    if (IS_SPOTIFY) return location.href;
     const m = mediaEl(); return location.href + '|' + (m ? (m.currentSrc || m.src || '') : '');
   }
 
-  // Playback position in ms. Spotify streams via MSE — the <video> element's
-  // currentTime is a buffer position, NOT the episode position — so read the real
-  // position (ms) off the player's progress-bar slider (aria-valuenow). Elsewhere the
-  // media element's currentTime is authoritative.
+  // Playback position in ms (Spotify: read the progress-bar slider — the <video>'s
+  // currentTime is an MSE buffer position, not the episode position).
   function spotifyProgressEl() {
     return document.querySelector('[data-testid="playback-progressbar"] input[type="range"], [data-testid="progress-bar"] input[type="range"]')
       || [...document.querySelectorAll('[role="slider"][aria-valuenow]')].find((s) => +s.getAttribute('aria-valuemax') > 60000);
@@ -90,8 +55,6 @@ var PodcastTranslator = (() => {
     return Math.round(((h * 3600 + m * 60 + s) || 0) * 1000);
   }
   function stripCueTags(t) { return t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/[^\S\n]+/g, ' ').trim(); }
-
-  // Parses both WebVTT and SRT (tcToMs normalizes ',' → '.').
   function parseTimedText(text) {
     const out = [];
     const blocks = text.replace(/\r/g, '').split(/\n\n+/);
@@ -110,36 +73,23 @@ var PodcastTranslator = (() => {
     out.sort((a, b) => a.start - b.start);
     return out;
   }
-
-  // 10s abort on every transcript-acquisition fetch: a HANGING fetch (observed
-  // on macOS Safari) would otherwise pin resolveInFlight=true forever — the
-  // ⏳ 字幕加载中 notice then never resolves to retry / 字幕不可用 ("never a
-  // stuck line", interaction-spec).
   function fetchWithTimeout(url) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 10000);
     return fetch(url, { signal: ctl.signal }).finally(() => clearTimeout(timer));
   }
-
   async function fetchTimedText(url) {
     try {
-      // NO credentials: a CloudFront-signed transcript URL (e.g. Substack's
-      // substackcdn.com en.vtt) returns 503 for cookie-bearing requests — the
-      // signature already authorizes it. Default 'same-origin' still sends cookies
-      // for a same-origin <track src> but never to a cross-origin CDN.
-      const r = await fetchWithTimeout(url);
+      const r = await fetchWithTimeout(url); // NO credentials: a CloudFront-signed URL 503s for cookie-bearing requests
       if (!r.ok) return null;
       const txt = await r.text();
-      if (/^\s*<\?xml|<Error>|MissingKey/i.test(txt.slice(0, 120))) return null; // signed-URL error etc.
+      if (/^\s*<\?xml|<Error>|MissingKey/i.test(txt.slice(0, 120))) return null;
       const cues = parseTimedText(txt);
       return cues.length ? cues : null;
     } catch (_) { return null; }
   }
 
   // ─── Cue sources ───────────────────────────────────────────────────────
-  // 1) An in-page WebVTT/SRT URL (a <track src>, or a URL embedded in the page —
-  //    e.g. Substack's CloudFront-SIGNED `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`;
-  //    the bare/unsigned URL is rejected, so we prefer the signed one).
   function findCaptionUrlInPage() {
     for (const tr of document.querySelectorAll('track')) {
       const k = (tr.getAttribute('kind') || '').toLowerCase();
@@ -152,13 +102,6 @@ var PodcastTranslator = (() => {
     const any = html.match(/https?:\/\/[^"'\\\s]+\.(?:vtt|srt)(?:\?[^"'\\\s]*)?/i);
     return any ? any[0] : null;
   }
-  // A page can embed MANY transcript URLs (the post's own + sidebar/recommended
-  // episodes — Substack pages carry ~8). Prefer the candidate that shares a long
-  // path segment (upload id / post id) with the playing media's own src; fall
-  // back to first-in-document-order (the main post body precedes the sidebar —
-  // verified on Substack, where this fallback is also the NORM: their players use
-  // MSE blob: srcs that carry no matchable path tokens, so the token match only
-  // helps platforms with real media URLs).
   function pickCaptionForMedia(candidates) {
     const m = mediaEl();
     const src = m && (m.currentSrc || m.src) || '';
@@ -169,13 +112,8 @@ var PodcastTranslator = (() => {
     }
     return candidates[0];
   }
-  // Cheap top-frame probe used by content-main's drivesPodcast() gate: a VIDEO
-  // page only engages the subtitle path when a timed-transcript source is
-  // discoverable (a caption <track> or an embedded .vtt/.srt URL) — so pages
-  // with decorative/hero videos never grow a 译 button or a 字幕不可用 notice.
   function hasTranscriptHint() { return !!findCaptionUrlInPage(); }
 
-  // 2) Podcasting 2.0 <podcast:transcript> from the page's RSS feed.
   async function resolveViaRss() {
     const link = document.querySelector('link[rel="alternate"][type="application/rss+xml"]');
     if (!link) return null;
@@ -195,17 +133,10 @@ var PodcastTranslator = (() => {
     const pick = trs.find((t) => /vtt/i.test(t.getAttribute('type') || ''))
       || trs.find((t) => /srt|subrip/i.test(t.getAttribute('type') || '')) || trs[0];
     const url = pick.getAttribute('url');
-    if (!url || /json|html|plain/i.test(pick.getAttribute('type') || '')) return null; // need a TIMED format
+    if (!url || /json|html|plain/i.test(pick.getAttribute('type') || '')) return null;
     return fetchTimedText(url);
   }
 
-  // 3) Spotify synced "Read along" transcript (open.spotify.com).
-  // The transcript only mounts when the episode page's 转录/Transcript tab is active,
-  // so we activate it once, then scrape the cue list. The cue DOM uses hashed class
-  // names (fragile), so we anchor structurally: the list is the div whose direct
-  // children are the cue rows — header rows carry a seek <button> whose text starts
-  // with a m:ss timestamp; the following non-button rows are that cue's spoken text.
-  // Timestamps are second-granularity; position comes from positionMs() (progress bar).
   let spotifyTabActivated = false;
   function spotifyTranscriptList() {
     const isHeader = (el) => {
@@ -220,11 +151,9 @@ var PodcastTranslator = (() => {
     if (!IS_SPOTIFY) return null;
     const { list, isHeader } = spotifyTranscriptList();
     if (!list) {
-      // Not mounted yet — activate the Transcript tab once so it renders, then let the
-      // resolve retry loop pick it up next tick. Only auto-click once per episode.
       const tab = document.querySelector('[data-testid="transcript-tab"]');
       if (tab && !spotifyTabActivated) { spotifyTabActivated = true; try { tab.click(); } catch (_) {} }
-      return null; // no transcript tab at all → this episode has none → text floor
+      return null;
     }
     const parseTs = (t) => {
       const p = t.split(':').map(Number);
@@ -240,7 +169,7 @@ var PodcastTranslator = (() => {
         if (cur && cur.text) cues.push(cur);
         cur = { start: parseTs(m[1]), end: 0, text: '' };
       } else if (cur && txt) {
-        if (/自动生成|automatically generated|accuracy/i.test(txt)) continue; // skip the disclaimer
+        if (/自动生成|automatically generated|accuracy/i.test(txt)) continue;
         cur.text = (cur.text ? cur.text + ' ' : '') + txt;
       }
     }
@@ -250,7 +179,7 @@ var PodcastTranslator = (() => {
     return cues.length ? cues : null;
   }
 
-  async function resolveCues() {
+  async function acquire() {
     const inPage = findCaptionUrlInPage();
     if (inPage) { const c = await fetchTimedText(inPage); if (c && c.length) return c; }
     const rss = await resolveViaRss(); if (rss && rss.length) return rss;
@@ -258,132 +187,18 @@ var PodcastTranslator = (() => {
     return null;
   }
 
-  // ─── Overlay (self-rendered, anchored to the viewport) ─────────────────
-  function ensureOverlay() {
-    let ov = document.getElementById(OVERLAY_ID);
-    if (!ov) {
-      ov = document.createElement('div');
-      ov.id = OVERLAY_ID;
-      // Own UI — never re-translated by the webpage path (dom-processor hardSkip
-      // honors translate=no; without this the segmenter injects stale
-      // .mt-translation siblings INSIDE the overlay → scattered fragments +
-      // duplicate loader chips).
-      ov.setAttribute('translate', 'no');
-      ov.style.cssText =
-        'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);' +
-        'width:max-content;max-width:90%;z-index:2147482000;pointer-events:none;' +
-        'display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;';
-      const en = document.createElement('div'); en.className = ORIG_CLASS;
-      const zh = document.createElement('div'); zh.className = TRANS_CLASS;
-      ov.appendChild(en); ov.appendChild(zh);
-      document.body.appendChild(ov);
-    }
-    return ov;
+  // ─── Overlay anchor (viewport-fixed; audio pages have no video frame) ───
+  function placeOverlay(ov) {
+    ov.style.cssText =
+      'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);' +
+      'width:max-content;max-width:90%;z-index:2147482000;pointer-events:none;' +
+      'display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;';
+    return true;
   }
-
   function fontPx() { return Math.max(15, Math.min(30, Math.round(window.innerWidth * 0.026))); }
   function overlayTextWidth() { return Math.min(Math.round(window.innerWidth * 0.9), 760) - 24; }
 
-  function lineCss(fp, color) {
-    return 'display:inline-block;max-width:100%;box-sizing:border-box;' +
-      `color:${color};font-size:${fp}px;line-height:1.3;` +
-      'padding:2px 10px;background:rgba(8,8,8,0.82);border-radius:3px;' +
-      'text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;' +
-      'text-shadow:1px 1px 2px rgba(0,0,0,0.85);';
-  }
-
-  function pagesFor(s, fp, width) {
-    if (!s._pg || s._pg.w !== width || s._pg.fp !== fp || s._pg.trText !== (s.tr || '')) {
-      s._pg = {
-        w: width, fp, trText: s.tr || '',
-        en: pager.pageize(s.text, 1, fp, width),
-        zh: s.tr ? pager.pageize(s.tr, 1, Math.round(fp * 0.95), width) : null,
-      };
-    }
-    return s._pg;
-  }
-
-  function renderOverlay(en, zh, state, sentence) {
-    const ov = ensureOverlay();
-    const enEl = ov.querySelector('.' + ORIG_CLASS);
-    const zhEl = ov.querySelector('.' + TRANS_CLASS);
-    const fp = fontPx();
-    if (displayMode === 'trans' || !en) { enEl.style.display = 'none'; enEl.textContent = ''; }
-    else { enEl.style.cssText = lineCss(fp, '#fff'); enEl.textContent = en; }
-    zhEl.onclick = null;
-    if (displayMode === 'orig') { zhEl.style.display = 'none'; zhEl.textContent = ''; }
-    else if (zh) { zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || '#fff'); zhEl.textContent = zh; }
-    else if (state === 'error') {
-      zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
-      zhEl.textContent = TranslationCore.MSG.error;
-      zhEl.onclick = () => { engine.retry(sentence); lastShownKey = ''; };
-    } else if (state === 'pending') {
-      zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
-      zhEl.textContent = TranslationCore.MSG.preparing;
-    } else { zhEl.style.display = 'none'; zhEl.textContent = ''; }
-  }
-
-  function renderNotice(msg) {
-    const ov = ensureOverlay();
-    const enEl = ov.querySelector('.' + ORIG_CLASS);
-    const zhEl = ov.querySelector('.' + TRANS_CLASS);
-    enEl.style.display = 'none'; enEl.textContent = '';
-    zhEl.onclick = null;
-    zhEl.style.cssText = lineCss(Math.round(fontPx() * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
-    zhEl.textContent = msg;
-  }
-
-  function clearOverlay() {
-    const ov = document.getElementById(OVERLAY_ID);
-    if (ov) {
-      // display:none too — an emptied inline-block pill (padding + dark bg)
-      // would otherwise linger as a small dark dot. renderOverlay/renderNotice
-      // re-set the full cssText on next render, so this is safely reversible.
-      for (const cls of [ORIG_CLASS, TRANS_CLASS]) {
-        const el = ov.querySelector('.' + cls);
-        el.textContent = ''; el.style.display = 'none';
-      }
-    }
-    lastShownKey = '';
-  }
-  function removeOverlay() { document.getElementById(OVERLAY_ID)?.remove(); document.getElementById('mt-pod-meas')?.remove(); }
-
-  // ─── Hide Spotify's own Read-Along transcript while our overlay is on ───
-  // Spotify keeps its native cue list rendered in the 转录 panel; with our bilingual
-  // overlay drawn on top, every English line shows twice. Once we've scraped the list
-  // into the engine, hide JUST that cue-list div — never its sibling 简介/转录/章节 tab
-  // bar (the list is one child of the tab section, so we hide the list, not the
-  // section). Fully reversible: restored the moment translation is off. Re-applied each
-  // tick because Spotify re-renders (a fresh visible list node just gets re-hidden).
-  function syncSpotifyNativeUI() {
-    if (active && engine.items.length) {
-      if (!IS_SPOTIFY) return;
-      const { list } = spotifyTranscriptList();
-      if (list && list.getAttribute('data-mt-native-hidden') !== '1') {
-        list.setAttribute('data-mt-native-hidden', '1');
-        list.style.setProperty('display', 'none', 'important');
-      }
-    } else {
-      // Shared restore sweep for EVERY data-mt-native-hidden marker (Spotify
-      // transcript list AND the third-party caption layers hidden above).
-      document.querySelectorAll('[data-mt-native-hidden]').forEach((el) => {
-        el.removeAttribute('data-mt-native-hidden');
-        el.style.removeProperty('display');
-      });
-    }
-  }
-
-  // ─── Substack adapter: mark the player SHELL as a player region ─────────
-  // Substack nests its player (playerShell > stage > {video-player > VIDEO,
-  // caption box, transcript scroller}) — the generic closest('[class*="player"]')
-  // in DomSegmenter finds only the inner video-player, leaving the per-word
-  // caption rows / transcript panel in the collected page text (churn +
-  // translation placeholders — #21). Per domain review, site knowledge lives in
-  // the adapter: WE mark the shell with data-mt-player-region and the segmenter
-  // honors the marker generically. Feature-detected by Substack's stable class
-  // prefix (works on custom-domain Substacks too); re-asserted each tick because
-  // the SPA re-renders. Marking is unconditional (not gated on `active`): the
-  // pollution happens whenever the WEBPAGE path runs, even with subtitles off.
+  // ─── Native-caption suppression (runs every tick via spec.syncNative) ───
   function markSubstackPlayerShells() {
     for (const shell of document.querySelectorAll('[class*="playerShell"]')) {
       if (shell.querySelector('audio, video') && !shell.hasAttribute('data-mt-player-region')) {
@@ -391,23 +206,27 @@ var PodcastTranslator = (() => {
       }
     }
   }
-
-  // ─── Hide third-party caption layers that duplicate our overlay ─────────
-  // "One subtitle display at a time" (interaction-spec): while our overlay has a
-  // transcript, a player-drawn caption layer (e.g. Substack's self-drawn caption
-  // box — driven by ITS OWN UI state, not by track mode, so the <track>
-  // suppression below can't turn it off) duplicates every line. Generic,
-  // site-free detection: an element whose box overlaps the video's rect AND
-  // whose text matches the currently-active cue text is a caption display →
-  // hide it (same data-mt-native-hidden + restore contract as the Spotify
-  // transcript hide). A desktop transcript SIDEBAR does not overlap the video
-  // and stays visible.
+  function syncSpotifyNativeUI(active, hasItems) {
+    if (active && hasItems) {
+      if (!IS_SPOTIFY) return;
+      const { list } = spotifyTranscriptList();
+      if (list && list.getAttribute('data-mt-native-hidden') !== '1') {
+        list.setAttribute('data-mt-native-hidden', '1');
+        list.style.setProperty('display', 'none', 'important');
+      }
+    } else {
+      document.querySelectorAll('[data-mt-native-hidden]').forEach((el) => {
+        el.removeAttribute('data-mt-native-hidden');
+        el.style.removeProperty('display');
+      });
+    }
+  }
   function normText(s) { return (s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
-  function syncThirdPartyCaptionLayers() {
-    if (!active || !engine.items.length) return; // restore handled by the shared sweep
+  function syncThirdPartyCaptionLayers(active, hasItems) {
+    if (!active || !hasItems) return;
     const m = mediaEl();
     if (!m || m.tagName !== 'VIDEO') return;
-    const s = engine.activeAt(m.currentTime * 1000);
+    const s = ui.engine.activeAt(m.currentTime * 1000);
     if (!s) return;
     const cur = normText(s.text);
     if (cur.length < 8) return;
@@ -420,8 +239,6 @@ var PodcastTranslator = (() => {
       const r = el.getBoundingClientRect();
       const overV = r.width > 0 && !(r.right < vr.left || r.left > vr.right || r.bottom < vr.top || r.top > vr.bottom);
       if (!overV) continue;
-      // Hide the outermost ancestor that is still over the video and free of the
-      // video itself — the whole caption box, not just one word span.
       let top = el;
       let p = el.parentElement;
       while (p && !p.contains(m) && p.getAttribute('data-mt-player-region') !== '1') {
@@ -433,200 +250,45 @@ var PodcastTranslator = (() => {
       top.style.setProperty('display', 'none', 'important');
     }
   }
-
-  // ─── Suppress the platform's native <track> captions while ours drive ───
-  // WebKit (Safari / iOS / iPadOS) auto-enables a media element's subtitle
-  // <track> per the SYSTEM caption preference — the player then renders its own
-  // caption line (and players like Substack's sync their custom caption UI to
-  // the track mode), duplicating our bilingual overlay. While our overlay has a
-  // transcript to show, force every text track to 'disabled' (we never read
-  // track.cues — cue text is fetched from the track/page URL, so this costs
-  // nothing); restore the original modes the moment translation is off. Same
-  // re-assert-each-tick pattern as syncSpotifyNativeUI: players and browsers
-  // re-enable tracks at will (episode swap, quality change, fullscreen).
   const savedTrackModes = new Map();
-  function syncNativeTextTracks() {
+  function syncNativeTextTracks(active, hasItems) {
     const m = mediaEl();
-    if (active && engine.items.length && m && m.textTracks) {
+    if (active && hasItems && m && m.textTracks) {
       for (const t of m.textTracks) {
-        if (t.mode !== 'disabled') {
-          if (!savedTrackModes.has(t)) savedTrackModes.set(t, t.mode);
-          t.mode = 'disabled';
-        }
+        if (t.mode !== 'disabled') { if (!savedTrackModes.has(t)) savedTrackModes.set(t, t.mode); t.mode = 'disabled'; }
       }
     } else if (savedTrackModes.size) {
       savedTrackModes.forEach((mode, t) => { try { t.mode = mode; } catch (_) {} });
       savedTrackModes.clear();
     }
   }
-
-  // ─── Display loop ──────────────────────────────────────────────────────
-  function tick() {
-    ensureControlButton();
-    markSubstackPlayerShells(); // adapter-marked player regions for DomSegmenter (#21)
-    syncSpotifyNativeUI(); // hide/restore Spotify's native transcript (runs on every path)
-    syncThirdPartyCaptionLayers(); // hide player-drawn caption layers duplicating our overlay
-    syncNativeTextTracks(); // suppress/restore native <track> captions (runs on every path)
-    if (!active) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
-    // Dormant on non-media pages (the FAB also turns us on for plain articles).
-    if (!hasMedia()) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
-
-    if (episodeKey() !== lastKey) {
-      lastKey = episodeKey();
-      engine.setItems([]); engine.reset();
-      resolveInFlight = false; resolveAttempts = 0; resolveNextAt = 0;
-      spotifyTabActivated = false;
-      transcriptStatus = ''; clearOverlay();
-    }
-
-    if (!engine.items.length && transcriptStatus !== 'unavailable' && !resolveInFlight
-        && hasMedia() && Date.now() >= resolveNextAt) {
-      resolveInFlight = true; transcriptStatus = 'loading'; resolveAttempts++;
-      resolveCues().then((cues) => {
-        if (cues && cues.length) { engine.setItems(TranslationCore.mergeSentences(cues)); transcriptStatus = 'ready'; }
-        else if (resolveAttempts >= RESOLVE_MAX_ATTEMPTS) { transcriptStatus = 'unavailable'; }
-        else { resolveNextAt = Date.now() + RESOLVE_RETRY_MS; }
-      }).catch(() => {
-        if (resolveAttempts >= RESOLVE_MAX_ATTEMPTS) transcriptStatus = 'unavailable';
-        else resolveNextAt = Date.now() + RESOLVE_RETRY_MS;
-      }).finally(() => { resolveInFlight = false; });
-    }
-
-    const m = mediaEl();
-    if (engine.items.length && m) {
-      const tMs = m.currentTime * 1000;
-      engine.pump();
-      const s = engine.activeAt(tMs);
-      if (!s) { if (lastShownKey) clearOverlay(); return; }
-      const fp = fontPx();
-      const width = overlayTextWidth();
-      const frac = Math.min(0.999, Math.max(0, (tMs - s.start) / Math.max(1, s.end - s.start)));
-      const pg = pagesFor(s, fp, width);
-      const en = pg.en[Math.min(pg.en.length - 1, Math.floor(frac * pg.en.length))];
-      const st = engine.stateOf(s, tMs);
-      let zh = null;
-      if (st.translation && pg.zh) zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
-      const key = s.start + '|' + en + '|' + (zh || st.state);
-      if (key !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = key; }
-    } else {
-      lastShownKey = '';
-      // Notice states require PLAYBACK (interaction-spec "Loading / fallback"):
-      // a paused / never-started video must not pin a ⏳ 字幕加载中 / 字幕不可用
-      // pill on the page. (A visible bilingual PAIR may persist through a pause —
-      // that's the branch above; only the notices are playback-gated.)
-      if (!m || m.paused) { if (document.getElementById(OVERLAY_ID)) clearOverlay(); return; }
-      if (transcriptStatus === 'unavailable') {
-        renderNotice(TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'));
-      } else {
-        renderNotice(TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
-      }
-    }
+  function syncNative(active, hasItems) {
+    markSubstackPlayerShells();       // adapter-marked player regions for DomSegmenter (#21) — always
+    syncSpotifyNativeUI(active, hasItems);
+    syncThirdPartyCaptionLayers(active, hasItems);
+    syncNativeTextTracks(active, hasItems);
   }
 
-  function startLoop() { if (pollTimer) clearInterval(pollTimer); lastKey = episodeKey(); pollTimer = setInterval(tick, 250); }
+  const T = TranslationCore.t;
+  ui = SubtitleAdapter.createSubtitleUI({
+    ids: { overlay: 'mt-pod-overlay', orig: 'mt-pod-orig', trans: 'mt-pod-trans', btn: 'mt-pod-btn', menu: 'mt-pod-menu', meas: 'mt-pod-meas' },
+    menuToggle: false, // podcast is toggled by the page FAB — no on/off row in the menu
+    hasMedia,
+    mediaKey: episodeKey,
+    getCurrentTime: positionMs,
+    isPlaying: () => { const m = mediaEl(); return !!(m && !m.paused); },
+    acquire,
+    placeOverlay,
+    fontPx,
+    textWidth: overlayTextWidth,
+    onMediaKeyChange: () => { spotifyTabActivated = false; },
+    syncNative,
+    srtName: () => document.title,
+    translate: (text, s) => TranslationAPI.translate(
+      text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+    labels: { btnTitle: T('podcast_sub_off', '关闭播客字幕翻译') },
+  });
 
-  // ─── Floating control button + menu ────────────────────────────────────
-  function ensureControlButton() {
-    if (!active) { document.getElementById(BTN_ID)?.remove(); closeMenu(); return; }
-    if (document.getElementById(BTN_ID) || !hasMedia()) return;
-    const btn = document.createElement('button');
-    btn.id = BTN_ID;
-    btn.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
-    btn.title = TranslationCore.t('podcast_sub_off', '关闭播客字幕翻译');
-    btn.textContent = '译';
-    // Sit ABOVE the page-text FAB (bottom:88px, 52px tall → tops at 140px) so the
-    // two controls never overlap; both hug the right edge.
-    btn.style.cssText =
-      'position:fixed;right:18px;bottom:150px;width:40px;height:40px;border-radius:50%;border:none;' +
-      'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
-      'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
-    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
-    document.body.appendChild(btn);
-  }
-
-  function closeMenu() { document.getElementById(MENU_ID)?.remove(); }
-
-  function toggleMenu(btn) {
-    if (document.getElementById(MENU_ID)) { closeMenu(); return; }
-    const menu = document.createElement('div');
-    menu.id = MENU_ID;
-    menu.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
-    menu.style.cssText =
-      'position:fixed;right:18px;bottom:196px;max-height:calc(100vh - 220px);overflow-y:auto;' +
-      'z-index:2147483000;min-width:200px;background:rgba(28,28,28,.97);border-radius:10px;' +
-      'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
-    const T = TranslationCore.t;
-    const row = (label, opts = {}) => {
-      const r = document.createElement('div');
-      r.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;';
-      const tk = document.createElement('span'); tk.textContent = opts.checked ? '✓' : '';
-      tk.style.cssText = 'width:12px;display:inline-block;color:#4caf50;';
-      const t = document.createElement('span'); t.textContent = label; t.style.flex = '1';
-      r.appendChild(tk); r.appendChild(t);
-      if (opts.onClick) r.addEventListener('click', (e) => { e.stopPropagation(); opts.onClick(); });
-      return r;
-    };
-    const sep = () => { const s = document.createElement('div'); s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;'; return s; };
-    const head = document.createElement('div');
-    head.textContent = T('yt_display_type', '字幕显示类型');
-    head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';
-    menu.appendChild(head);
-    menu.appendChild(row(T('yt_mode_both', '双语字幕'), { checked: displayMode === 'both', onClick: () => setMode('both') }));
-    menu.appendChild(row(T('yt_mode_trans', '仅译文'), { checked: displayMode === 'trans', onClick: () => setMode('trans') }));
-    menu.appendChild(row(T('yt_mode_orig', '仅原文'), { checked: displayMode === 'orig', onClick: () => setMode('orig') }));
-    menu.appendChild(sep());
-    menu.appendChild(row(T('yt_download_srt', '下载字幕 (.srt)'), { onClick: () => { downloadSrt(); closeMenu(); } }));
-    menu.appendChild(row(T('settings', '设置'), { onClick: () => { openSettings(); closeMenu(); } }));
-    document.body.appendChild(menu);
-    setTimeout(() => {
-      const off = (e) => { if (!menu.contains(e.target) && e.target.id !== BTN_ID) { closeMenu(); document.removeEventListener('click', off); } };
-      document.addEventListener('click', off);
-    }, 0);
-  }
-
-  function setMode(mode) { displayMode = mode; clearOverlay(); closeMenu(); tick(); }
-
-  // ─── .srt export ───────────────────────────────────────────────────────
-  function msToSrt(ms) {
-    const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000), z = ms % 1000;
-    const p = (n, w = 2) => String(n).padStart(w, '0');
-    return `${p(h)}:${p(m)}:${p(s)},${p(z, 3)}`;
-  }
-  function downloadSrt() {
-    const items = engine.items;
-    if (!items.length) { alert(TranslationCore.t('yt_subtitle_not_ready', '字幕还没准备好,等翻译加载后再试')); return; }
-    let srt = '';
-    items.forEach((s, i) => {
-      const body = displayMode === 'orig' ? s.text : displayMode === 'trans' ? (s.tr || s.text) : s.text + (s.tr ? '\n' + s.tr : '');
-      srt += `${i + 1}\n${msToSrt(s.start)} --> ${msToSrt(s.end)}\n${body}\n\n`;
-    });
-    const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.setAttribute('translate', 'no'); // own UI — keeps the SPA observer quiet
-    a.href = URL.createObjectURL(blob);
-    a.download = (document.title.replace(/[\\/:*?"<>|]/g, '_') || 'podcast') + '.srt';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  }
-  function openSettings() {
-    try { if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage(); else window.open(chrome.runtime.getURL('options/options.html'), '_blank'); }
-    catch (_) { window.open(chrome.runtime.getURL('options/options.html'), '_blank'); }
-  }
-
-  // ─── Public API (mirrors YouTubeTranslator) ────────────────────────────
-  function applyState() {
-    if (!active) { removeOverlay(); document.getElementById(BTN_ID)?.remove(); closeMenu(); }
-  }
-  function setActive(on) {
-    active = on;
-    if (on) { resolveInFlight = false; resolveAttempts = 0; resolveNextAt = 0; transcriptStatus = ''; lastKey = episodeKey(); }
-    applyState();
-    tick();
-  }
-  function init(cfg) { settings = cfg; active = false; startLoop(); }
-  function enable(cfg) { if (cfg) settings = cfg; setActive(true); }
-  function disable() { setActive(false); }
-  function updateSettings(cfg) { settings = cfg; engine.reset(); clearOverlay(); }
-
-  return { init, enable, disable, updateSettings, hasTranscriptHint };
+  return { init: ui.init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, hasTranscriptHint };
 })();
