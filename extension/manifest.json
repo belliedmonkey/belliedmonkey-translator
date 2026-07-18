@@ -52,6 +52,12 @@
       "all_frames": true
     },
     {
+      "matches": ["*://*.x.com/*", "*://*.twitter.com/*"],
+      "js": ["content/tw-media-observer.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
       "matches": ["<all_urls>"],
       "exclude_matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
       "js": [
@@ -64,6 +70,7 @@
         "content/content-webpage.js",
         "content/content-youtube.js",
         "content/content-podcast.js",
+        "content/content-twitter.js",
         "content/site-twitter.js",
         "content/content-main.js"
       ],
