@@ -40,6 +40,10 @@
   // www.youtube.com). On mobile the FAB drives BOTH page text and video subtitles, and
   // content-youtube suppresses its in-player 译 button — one button, no collision.
   const isMobileYouTube = isYouTube && (/m\.youtube\.com/.test(location.hostname) || TranslationCore.isMobileLayout());
+  // Twitter/X in-tweet video subtitles: desktop shows content-twitter's own 译 floating
+  // button; on a touch device the page FAB drives it (mirrors isMobileYouTube). Same
+  // single TranslationCore.isMobileLayout() signal so the two never disagree.
+  const isMobileTwitter = isTwitter && TranslationCore.isMobileLayout();
   // Embedded player on another site (youtube.com/embed or youtube-nocookie.com/embed
   // inside an iframe): translate ONLY the video subtitles — no FAB, no page text.
   const isEmbed = window.top !== window.self;
@@ -85,6 +89,10 @@
         if (enabled) PodcastTranslator.enable(cfg);
         else PodcastTranslator.disable();
       }
+      if (isMobileTwitter) {
+        if (enabled) TwitterTranslator.enable(cfg);
+        else TwitterTranslator.disable();
+      }
     });
   }
 
@@ -94,6 +102,10 @@
   // x.com chrome marking (runs regardless of translation on/off; idempotent with
   // the module's own self-start). Keeps sidebar/nav/footer out of the webpage path.
   if (isTwitter) TwitterSite.init();
+
+  // Twitter/X in-tweet video subtitles: independent, controlled by content-twitter's
+  // own 译 button on desktop (mobile: the FAB above drives it). Dormant until enabled.
+  if (isTwitter) TwitterTranslator.init(cfg);
 
   // YouTube video subtitles: independent, controlled by the in-player 译 button.
   // The /api/timedtext interceptor lives in content/yt-hook.js (world:"MAIN").
@@ -118,11 +130,13 @@
       if (cfg.enabled) WebpageTranslator.enable(cfg);
       else WebpageTranslator.disable();
       if (drivesPodcast()) { if (cfg.enabled) PodcastTranslator.enable(cfg); else PodcastTranslator.disable(); }
+      if (isMobileTwitter) { if (cfg.enabled) TwitterTranslator.enable(cfg); else TwitterTranslator.disable(); }
     } else {
       // provider / language / color change → re-translate what's active
       WebpageTranslator.updateSettings(cfg);
       if (isYouTube) YouTubeTranslator.updateSettings(cfg);
       if (!isYouTube) PodcastTranslator.updateSettings(cfg);
+      if (isTwitter) TwitterTranslator.updateSettings(cfg);
     }
   });
 
@@ -136,6 +150,7 @@
       WebpageTranslator.enable(cfg);
       if (isMobileYouTube) YouTubeTranslator.enable(cfg);
       if (drivesPodcast()) PodcastTranslator.enable(cfg);
+      if (isMobileTwitter) TwitterTranslator.enable(cfg);
       sendResponse({ ok: true });
     }
 
@@ -146,6 +161,7 @@
       WebpageTranslator.disable();
       if (isMobileYouTube) YouTubeTranslator.disable();
       if (drivesPodcast()) PodcastTranslator.disable();
+      if (isMobileTwitter) TwitterTranslator.disable();
       sendResponse({ ok: true });
     }
 

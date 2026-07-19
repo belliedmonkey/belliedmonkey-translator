@@ -123,6 +123,42 @@ Platforms: **generic in-page VTT/SRT + RSS `podcast:transcript`** (incl. Substac
 are Phase A; **Spotify** synced-DOM is Phase B. **Apple Podcasts web** and **小宇宙**
 expose no timed transcript on web → **text-only** (page path), no subtitle overlay.
 
+### 2.3 Twitter/X video subtitle core constraint (核心约束 — do not break)
+
+x.com/twitter.com in-tweet video is the **video analogue of §2.1/§2.2** and follows
+the same one logic, reusing the same Engine (`createSubtitleEngine`, 60s translate-
+ahead) and overlay renderer. Twitter-specific parts are only the **source**
+(HLS-embedded WebVTT) and the **renderer anchor** (the active tweet's video).
+
+1. **VTT-ONLY — never ASR, never per-caption.** X serves video as HLS
+   (`video.twimg.com/amplify_video/<id>/pl/<hash>.m3u8`). Captions exist **only when
+   the uploader/X provided a WebVTT subtitle track** — surfaced in the HLS **master
+   playlist** as `#EXT-X-MEDIA:TYPE=SUBTITLES,…,URI="…"` (X auto-generates one for
+   many videos, `CHARACTERISTICS="twitter.auto-generated"`). If there is **no
+   SUBTITLES track**, show `字幕不可用` — this is a **first-class, common** outcome,
+   never a word-by-word or ASR fallback (no-backend; infeasible on Safari iOS).
+2. **Acquire the COMPLETE transcript up front** (verified 2026-07-18 on the target
+   video): master m3u8 → SUBTITLES `URI` → a VOD **subtitle sub-playlist** whose
+   `#EXTINF` lists `.vtt` segment(s) (`/subtitles/amplify_video/<id>/<seg>/<hash>.vtt`)
+   → fetch + **concatenate** the segments. Unlike YouTube's `/api/timedtext`, these
+   URLs are **NOT pot-locked** — a direct fetch from the isolated content script
+   returns the real body (`<all_urls>` host permission covers cross-origin
+   `video.twimg.com`). The `.vtt` text wraps words in a custom `<X-word-ms …>` tag;
+   the shared `parseTimedText` strips `<[^>]+>` and yields clean text, so **the
+   podcast VTT parser is reused unchanged**.
+3. **Discovery must not depend on `world:"MAIN"`** (Safari iOS). The master `.m3u8`
+   URL is recorded from the **Resource Timing API** by an isolated `document_start`
+   observer (`content/tw-media-observer.js`, `window.__mtTwHlsUrls`) — same pattern as
+   `yt-timedtext-observer.js`. Multi-segment VTT carries `X-TIMESTAMP-MAP`; honor per
+   segment (or trust absolute cue times for a single segment) before `mergeSentences`.
+4. **Translate ahead in the 60-second window, whole merged sentences** — identical to
+   §2.1/§2.2; once loaded the `字幕准备中…` state must not recur during steady playback.
+5. **A tweet/feed can hold MANY `<video>` elements.** The active media is the
+   playing / most-viewport-visible one; the overlay anchors to **that** video's player
+   container and syncs to **its** `currentTime`; `mediaKey` = the tweet's status id
+   (from the nearest `a[href*="/status/"]`) so scrolling to another playing video
+   re-acquires that video's transcript. See §5.
+
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
 `DomSegmenter` relies on: block/inline classification (by computed `display` —
@@ -252,6 +288,7 @@ differences live only in a thin control/render adapter.**
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
 | `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
+| `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
 

@@ -40,6 +40,7 @@
         "content/dom-processor.js",
         "content/floating-button.js",
         "content/content-webpage.js",
+        "content/subtitle-adapter.js",
         "content/content-youtube.js",
         "content/content-podcast.js",
         "content/content-main.js"
@@ -49,6 +50,12 @@
         "styles/floating-button.css"
       ],
       "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": ["*://*.x.com/*", "*://*.twitter.com/*"],
+      "js": ["content/tw-media-observer.js"],
+      "run_at": "document_start",
       "all_frames": true
     },
     {
@@ -62,8 +69,10 @@
         "content/dom-processor.js",
         "content/floating-button.js",
         "content/content-webpage.js",
+        "content/subtitle-adapter.js",
         "content/content-youtube.js",
         "content/content-podcast.js",
+        "content/content-twitter.js",
         "content/site-twitter.js",
         "content/content-main.js"
       ],
