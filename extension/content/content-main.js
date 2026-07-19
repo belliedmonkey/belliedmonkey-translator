@@ -29,6 +29,11 @@
   };
 
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
+  // x.com / twitter.com: a SITE adapter (DOM/text dimension) that marks
+  // non-content chrome as data-mt-skip-region so the generic webpage path doesn't
+  // clutter the feed with sidebar/nav/footer translations. Tweet text itself still
+  // flows through the normal WebpageTranslator path — no special text routing.
+  const isTwitter = /(^|\.)(x\.com|twitter\.com)$/.test(location.hostname);
   // Mobile YouTube (m.youtube.com) has no player control bar for the in-player 译
   // button, so the FAB drives BOTH subtitles and page text there.
   // Mobile = m.youtube.com OR any touch device (incl. a phone/iPad on the desktop-layout
@@ -85,6 +90,10 @@
 
   // Webpage text everywhere (YouTube too — title / description / comments)
   WebpageTranslator.init(cfg);
+
+  // x.com chrome marking (runs regardless of translation on/off; idempotent with
+  // the module's own self-start). Keeps sidebar/nav/footer out of the webpage path.
+  if (isTwitter) TwitterSite.init();
 
   // YouTube video subtitles: independent, controlled by the in-player 译 button.
   // The /api/timedtext interceptor lives in content/yt-hook.js (world:"MAIN").

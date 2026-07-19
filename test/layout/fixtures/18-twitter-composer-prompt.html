@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>twitter composer + inline prompt + quotes link</title>
+<style>
+  /* Second-tier x.com chrome discovered by a live-DOM audit of the logged-in feed +
+     status page: the inline composer placeholder ("What's happening?" / "Post your
+     reply"), inline promo prompts ([data-testid="inlinePrompt"], e.g. "Turn on push
+     notifications"), and the "View quotes" UI link — all translated as content before
+     the fix. site-twitter marks them data-mt-skip-region. Only the tweet body should
+     translate. Red before the fix. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 600px; }
+  article[role="article"] { display: flex; flex-direction: column; padding: 16px; }
+  [data-testid="tweetText"] { font-size: 15px; line-height: 1.4; }
+  [data-testid="inlinePrompt"] { padding: 16px; background: #f7f9f9; }
+  [data-testid="tweetTextarea_0RichTextInputContainer"] { padding: 12px; color: #536471; }
+  [role="group"] { display: flex; gap: 40px; margin-top: 8px; }
+</style>
+<body>
+<main data-testid="primaryColumn">
+
+  <!-- Inline promo prompt (chrome) -->
+  <div data-testid="inlinePrompt">
+    <h1>Turn on push notifications</h1>
+    <div>Stay in the loop with everything happening on the platform right now.</div>
+  </div>
+
+  <!-- Inline composer placeholder (chrome) -->
+  <div data-testid="tweetTextarea_0RichTextInputContainer">
+    <div>What is happening right now? Share something with the world today</div>
+  </div>
+
+  <article role="article">
+    <div data-testid="User-Name"><span>Claude Developers</span> <span>@ClaudeDevs</span></div>
+    <div data-testid="tweetText"><span>The new tool-use API handles multi-step reasoning out of the box, so you can ship complex agent workflows in a single afternoon instead of a week.</span></div>
+    <a href="/ClaudeDevs/status/123/quotes">View all 42 quotes on this post</a>
+    <div role="group" aria-label="engagement"><span>128</span><span>45</span><span>1.2K</span></div>
+  </article>
+
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "twitter-composer-prompt",
+  "unitCount": 1,
+  "targets": [
+    { "sel": "[data-testid=\"tweetText\"]", "assert": ["parentNotMutated", "sameWidth:4"] }
+  ]
+}
+</script>
+</body>
+</html>

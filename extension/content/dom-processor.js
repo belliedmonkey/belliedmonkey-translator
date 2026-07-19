@@ -116,6 +116,21 @@ var DOMProcessor = (() => {
     return false;
   }
 
+  // Non-content chrome regions (feed trends/who-to-follow sidebar, footer link
+  // farm, engagement bar, compose box) — owned by the site adapter, not the
+  // segmenter. See docs/domain-design.md §3: a platform adapter that KNOWS its
+  // chrome marks the subtree with data-mt-skip-region; we honor the marker
+  // generically (no per-site selectors here), the deliberate adapter-scoped
+  // exception to "skip by content, not by region". Recomputed once per collect pass.
+  let skipRegions = [];
+  function computeSkipRegions() {
+    skipRegions = Array.from(document.querySelectorAll('[data-mt-skip-region]'));
+  }
+  function inSkipRegion(el) {
+    for (let i = 0; i < skipRegions.length; i++) if (skipRegions[i].contains(el)) return true;
+    return false;
+  }
+
   // Hard skip: reject this element AND its subtree from the walk entirely.
   function hardSkip(el) {
     const tag = el.tagName.toLowerCase();
@@ -125,6 +140,8 @@ var DOMProcessor = (() => {
     if (el.classList && el.classList.contains(TRANSLATION_CLASS)) return true;
     // Video captions/controls + our subtitle overlay are the subtitle path's job.
     if (inPlayerRegion(el)) return true;
+    // Adapter-marked non-content chrome (data-mt-skip-region) — prune the subtree.
+    if (inSkipRegion(el)) return true;
     if (el.hasAttribute(PROCESSED_ATTR)) return true;
     if (el.getAttribute('translate') === 'no') return true;
     if (el.getAttribute('aria-hidden') === 'true') return true;
@@ -225,6 +242,7 @@ var DOMProcessor = (() => {
   function collectUnits(root = document.body) {
     const nodes = [];
     computePlayerRegions();
+    computeSkipRegions();
     walkRoot(root, nodes);
     return nodes;
   }
