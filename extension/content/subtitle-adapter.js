@@ -189,18 +189,24 @@ var SubtitleAdapter = (() => {
         && spec.hasMedia()
         && !(spec.showButton && !spec.showButton()); // mobile: the page FAB drives it
       if (!show) { document.getElementById(ID.btn)?.remove(); closeMenu(); return; }
-      if (document.getElementById(ID.btn)) return;
-      const btn = document.createElement('button');
-      btn.id = ID.btn;
-      btn.setAttribute('translate', 'no');
-      btn.title = spec.labels.btnTitle;
-      btn.textContent = '译';
-      btn.style.cssText = spec.buttonCss ? spec.buttonCss() :
-        'position:fixed;right:18px;bottom:150px;width:40px;height:40px;border-radius:50%;border:none;' +
-        'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
-        'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
-      btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
-      document.body.appendChild(btn);
+      let btn = document.getElementById(ID.btn);
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = ID.btn;
+        btn.setAttribute('translate', 'no');
+        btn.title = spec.labels.btnTitle;
+        btn.textContent = '译';
+        btn.style.cssText = spec.buttonCss ? spec.buttonCss() :
+          'position:fixed;right:18px;bottom:150px;width:40px;height:40px;border-radius:50%;border:none;' +
+          'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
+          'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
+        btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
+        document.body.appendChild(btn);
+      }
+      // A backend may re-parent/reposition the button into the active media's container
+      // each tick (Twitter embeds 译 inside the video, so it rides fullscreen and binds to
+      // the active video — §2.3.6/§5). Backends without the hook keep the body-fixed default.
+      if (spec.anchorButton) spec.anchorButton(btn);
     }
     function closeMenu() { document.getElementById(ID.menu)?.remove(); }
     function toggleMenu(btn) {
@@ -210,8 +216,15 @@ var SubtitleAdapter = (() => {
       menu.setAttribute('translate', 'no');
       const r = btn.getBoundingClientRect();
       const right = Math.max(10, Math.round(window.innerWidth - r.right));
-      const bottom = Math.max(10, Math.round(window.innerHeight - r.top + 8));
-      menu.style.cssText = `position:fixed;right:${right}px;bottom:${bottom}px;max-height:calc(100vh - 72px);overflow-y:auto;` +
+      // Open the menu DOWNWARD when the button sits in the top half of the viewport
+      // (e.g. Twitter's 译 embedded at the video's top-right, §2.3.6) so the menu's top
+      // items never clip above the viewport/header; open UPWARD otherwise (YouTube /
+      // podcast float their button near the bottom).
+      const openDown = r.top < window.innerHeight / 2;
+      const vpos = openDown
+        ? `top:${Math.max(10, Math.round(r.bottom + 8))}px`
+        : `bottom:${Math.max(10, Math.round(window.innerHeight - r.top + 8))}px`;
+      menu.style.cssText = `position:fixed;right:${right}px;${vpos};max-height:calc(100vh - 72px);overflow-y:auto;` +
         'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
         'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
       const T = TranslationCore.t;

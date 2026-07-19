@@ -154,10 +154,25 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
 4. **Translate ahead in the 60-second window, whole merged sentences** — identical to
    §2.1/§2.2; once loaded the `字幕准备中…` state must not recur during steady playback.
 5. **A tweet/feed can hold MANY `<video>` elements.** The active media is the
-   playing / most-viewport-visible one; the overlay anchors to **that** video's player
-   container and syncs to **its** `currentTime`; `mediaKey` = the tweet's status id
+   playing / most-viewport-visible one, chosen with **hysteresis**: the current active
+   video is kept until it stops/leaves the viewport or another video's visible area
+   clearly exceeds it (≥1.3×), so two comparably-sized videos do not flip every 250ms
+   tick (a flip changes `mediaKey` → engine reset). `mediaKey` = the tweet's status id
    (from the nearest `a[href*="/status/"]`) so scrolling to another playing video
    re-acquires that video's transcript. See §5.
+6. **Overlay AND the `译` button are anchored INSIDE the active video's player
+   container** (re-parented into it, `position:absolute`), not left `position:fixed`
+   on `document.body`. This is the §2.1 YouTube pattern (`placeOverlay` →
+   `player.appendChild(ov)`) and is **load-bearing for fullscreen**: the browser
+   promotes only ONE element into the top layer on fullscreen, so a body-level `fixed`
+   sibling of the fullscreened player is not painted and the subtitle vanishes. Placing
+   both controls *inside* the container that X fullscreens makes them ride into the top
+   layer and survive. A `fullscreenchange` / `webkitfullscreenchange` listener is the
+   fallback: if `document.fullscreenElement` differs from our container, re-parent
+   overlay + button into it. **Desktop fullscreen with bilingual subtitles is a
+   first-class, must-verify surface (Chrome + Safari on x.com);** it is a **permanent
+   matrix item** per `verification-spec.md` §0. (iOS uses the OS's native video
+   fullscreen — a DOM overlay cannot cover it; that is a documented N/A, never faked.)
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
@@ -276,6 +291,17 @@ differences live only in a thin control/render adapter.**
     the `.ytp-right-controls` DOM in the other is what produced the two-button bug.)
   - embed (iframe): floating 译 button; menu fixed
   The subtitle core (SubtitleSource + Engine + OverlayRenderer) is shared across all three.
+- **Twitter/X video module** differs from YouTube in ONE control-layer decision (a
+  legitimate per-site variation point, still no `dom-processor` selectors): the desktop
+  `译` button is **embedded inside the active video's player container** (top-right),
+  not floating on `document.body`. Rationale: X's desktop player fullscreens its own
+  container `div` (which can host child nodes), so an in-container button + overlay
+  survive fullscreen and are unambiguously bound to the video they control (a feed has
+  many videos — see §2.3.5/§2.3.6). YouTube deliberately keeps its `译` *floating*
+  because YouTube's control bar auto-hides and an in-bar button would disappear with it;
+  YouTube's overlay already rides fullscreen via `#movie_player`, so YouTube is
+  unchanged. Mobile (touch) still suppresses the `译` button and lets the page FAB drive
+  both (via the shared `TranslationCore.isMobileLayout()` signal).
 
 ## 6. Module map
 

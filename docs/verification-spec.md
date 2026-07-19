@@ -53,6 +53,24 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
+**Mandatory: desktop fullscreen playback with bilingual subtitles.** For any change
+touching video subtitles, **entering native fullscreen on every desktop browser × every
+video site is a required check** — the bilingual overlay must remain inside the
+fullscreened player and keep advancing (and exiting fullscreen must restore it). This is
+a **permanent matrix item** (per §0; it was a shipped x.com regression — overlay vanished
+in fullscreen — so it is added forever):
+
+| Desktop browser | YouTube fullscreen | x.com fullscreen | Podcast |
+|---|---|---|---|
+| macOS Safari | required | required | N/A (audio, no video) |
+| macOS Chrome / Edge | required | required | N/A |
+| Firefox | required | required | N/A |
+
+**iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
+fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
+limitation, **never** reported as passing. Verify iOS subtitles only in inline
+(non-fullscreen) playback.
+
 ---
 
 ## 2. Per-surface build → install → enable → open-URL → drive

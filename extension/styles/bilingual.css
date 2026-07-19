@@ -71,11 +71,3 @@
   from { opacity: 0; transform: translateY(4px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-/* YouTube dual subtitle */
-.mt-yt-dual {
-  display: block !important;
-  margin-top: 3px;
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9), -1px -1px 3px rgba(0, 0, 0, 0.9);
-  line-height: 1.4;
-}
