@@ -20,12 +20,24 @@ var TwitterTranslator = (() => {
     const h = Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0));
     return w * h;
   }
+  // Active-video selection with HYSTERESIS (§2.3.5): keep the current active video
+  // until it stops/leaves the viewport or another video's visible area clearly beats
+  // it (≥1.3×), so two comparably-sized feed videos don't flip every 250ms tick (a
+  // flip changes mediaKey → engine reset). One button + one overlay follow the winner.
+  let stickyActive = null;
+  const AREA_MARGIN = 1.3;
   function activeVideo() {
     const vids = amplifyVideos();
-    if (!vids.length) return null;
+    if (!vids.length) { stickyActive = null; return null; }
     const playing = vids.filter((v) => !v.paused && v.currentTime > 0);
     const pool = playing.length ? playing : vids;
-    return pool.slice().sort((a, b) => visibleArea(b) - visibleArea(a))[0] || null;
+    const best = pool.slice().sort((a, b) => visibleArea(b) - visibleArea(a))[0] || null;
+    if (stickyActive && pool.indexOf(stickyActive) !== -1) {
+      // retain unless another video is clearly more visible than the sticky one
+      if (best === stickyActive || visibleArea(best) < visibleArea(stickyActive) * AREA_MARGIN) return stickyActive;
+    }
+    stickyActive = best;
+    return best;
   }
   function mediaId(v) {
     if (!v) return '';
@@ -37,13 +49,26 @@ var TwitterTranslator = (() => {
     if (img) { const mm = img.src.match(/amplify_video_thumb\/(\d+)/); if (mm) return mm[1]; }
     return '';
   }
+  // Stable per-video identity. X re-renders the player subtree on mouse hover (to show
+  // controls), which can transiently detach the enclosing <article> (status-id lookup
+  // fails) or swap currentSrc. Recomputing then would FLIP mediaKey → engine reset →
+  // subtitles snap back to 字幕加载中… mid-playback. Cache the first non-empty key per
+  // <video> element so that churn can't change it.
+  const keyByVideo = new WeakMap(); // v -> { key, mid }
   function activeKey() {
     const v = activeVideo();
     if (!v) return '';
+    const mid = mediaId(v); // stable amplify id when resolvable; '' during hover churn
+    const cached = keyByVideo.get(v);
+    // Keep the cached key through hover flicker (mid empty or unchanged); only recompute
+    // when the element is genuinely reused for a different media (mid changed) — feed recycling.
+    if (cached && (!mid || mid === cached.mid)) return cached.key;
     const art = v.closest('article[role="article"]');
     const link = art && art.querySelector('a[href*="/status/"]');
     const status = link && (link.getAttribute('href').match(/status\/(\d+)/) || [])[1];
-    return status || mediaId(v) || v.currentSrc || v.src || '';
+    const key = status || mid || v.currentSrc || v.src || '';
+    if (key) keyByVideo.set(v, { key, mid });
+    return key || (cached ? cached.key : '');
   }
 
   // ─── Timed-text parsing (WebVTT; X wraps words in <X-word-ms> — stripped) ─
@@ -117,17 +142,53 @@ var TwitterTranslator = (() => {
     return cues.length ? cues : null;
   }
 
-  // ─── Overlay anchor: fixed, positioned over the active video each tick ──
+  // ─── Player container (§2.3.6): the element we re-parent overlay + 译 button
+  // INTO, so both ride into the top layer on fullscreen and are bound to the active
+  // video. Runtime-adaptive: when a fullscreen element exists and can host children
+  // (not a raw <video>), that IS the container — so we follow whatever X fullscreens
+  // on Chrome/Safari. Otherwise X's video wrapper, falling back to the nearest
+  // positioned ancestor, then the video's parent.
+  function positionedAncestor(v) {
+    let el = v.parentElement;
+    while (el && el !== document.body) { if (getComputedStyle(el).position !== 'static') return el; el = el.parentElement; }
+    return null;
+  }
+  function playerContainer(v) {
+    if (!v) return null;
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsEl && fsEl.tagName !== 'VIDEO' && (fsEl === v || fsEl.contains(v))) return fsEl;
+    return v.closest('[data-testid="videoPlayer"]') || v.closest('[data-testid="videoComponent"]') ||
+      positionedAncestor(v) || v.parentElement;
+  }
+  // Re-parent an element into the active video's container each tick (idempotent),
+  // ensuring the container can anchor absolutely-positioned children.
+  function anchorInto(el, container) {
+    if (el.parentElement !== container) container.appendChild(el);
+    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+  }
+
+  // ─── Overlay anchor: absolute, INSIDE the active video's container (§2.3.6) ──
   function placeOverlay(ov) {
     const v = activeVideo();
-    if (!v) { ov.style.display = 'none'; return false; }
+    const container = playerContainer(v);
+    if (!v || !container) { ov.style.display = 'none'; return false; }
     const r = v.getBoundingClientRect();
     if (!r.width || !r.height) { ov.style.display = 'none'; return false; }
-    ov.style.cssText = 'position:fixed;z-index:2147482000;pointer-events:none;display:flex;' +
-      'flex-direction:column;align-items:center;gap:3px;text-align:center;transform:translateX(-50%);' +
-      `left:${Math.round(r.left + r.width / 2)}px;bottom:${Math.round(innerHeight - r.bottom + Math.max(8, r.height * 0.08))}px;` +
-      `width:max-content;max-width:${Math.round(r.width * 0.92)}px;`;
+    anchorInto(ov, container);
+    ov.style.cssText = 'position:absolute;left:50%;bottom:8%;transform:translateX(-50%);' +
+      'z-index:2147482000;pointer-events:none;display:flex;flex-direction:column;align-items:center;' +
+      'gap:3px;text-align:center;width:max-content;max-width:92%;';
     return true;
+  }
+  // 译 button embedded top-right INSIDE the active video's container (§2.3.6, §5).
+  function anchorButton(btn) {
+    const v = activeVideo();
+    const container = playerContainer(v);
+    if (!container) return;
+    anchorInto(btn, container);
+    btn.style.cssText = 'position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;' +
+      'border:none;cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:14px;font-weight:700;' +
+      'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;pointer-events:auto;';
   }
   function fontPx() { const v = activeVideo(); const h = (v && v.getBoundingClientRect().height) || 360; return Math.max(15, Math.min(34, Math.round(h * 0.05))); }
   function textWidth() { const v = activeVideo(); const w = (v && v.getBoundingClientRect().width) || 600; return Math.max(180, Math.round(w * 0.92) - 20); }
@@ -155,6 +216,7 @@ var TwitterTranslator = (() => {
     isPlaying: () => { const v = activeVideo(); return !!(v && !v.paused); },
     acquire,
     placeOverlay,
+    anchorButton,
     fontPx,
     textWidth,
     translate: (text, s) => TranslationAPI.translate(
@@ -170,5 +232,23 @@ var TwitterTranslator = (() => {
     },
   });
 
-  return { init: ui.init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings };
+  // Instant re-anchor on fullscreen enter/exit (the 250ms tick also re-anchors, but
+  // this avoids a flash of missing subtitle). playerContainer() reads
+  // document.fullscreenElement, so re-running placeOverlay/anchorButton moves both
+  // overlay and 译 button into whatever X just fullscreened (Chrome + Safari, §2.3.6).
+  function reanchor() {
+    const ov = document.getElementById('mt-tw-overlay'); if (ov) placeOverlay(ov);
+    const btn = document.getElementById('mt-tw-btn'); if (btn) anchorButton(btn);
+  }
+  const FS_EVENTS = ['fullscreenchange', 'webkitfullscreenchange'];
+  let fsBound = false;
+  function bindFs() { if (fsBound) return; fsBound = true; FS_EVENTS.forEach((e) => document.addEventListener(e, reanchor)); }
+  function unbindFs() { if (!fsBound) return; fsBound = false; FS_EVENTS.forEach((e) => document.removeEventListener(e, reanchor)); }
+
+  return {
+    init: (s) => { bindFs(); return ui.init(s); },
+    enable: ui.enable,
+    disable: () => { unbindFs(); return ui.disable(); },
+    updateSettings: ui.updateSettings,
+  };
 })();

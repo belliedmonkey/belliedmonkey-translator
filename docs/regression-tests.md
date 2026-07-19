@@ -201,6 +201,43 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 
 ---
 
+## 3.5 x.com / Twitter in-tweet video subtitles
+
+Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn` (译).
+
+- [ ] **译 button embedded INSIDE the video component.** Desktop x.com status page with a
+  video. Enable subtitles. **Expected:** the green `译` button sits **inside the active
+  video's player container** (top-right corner), NOT floating fixed at the page's
+  bottom-right. *(Spec: domain-design §5 Twitter control placement; §2.3.6.)*
+
+- [ ] **Whole-sentence bilingual pairs advance with the clock.** Play. **Expected:**
+  matched original (white) + translation lines appear together over the video, advancing
+  with playback; **never** word-by-word. HLS→VTT: master `.m3u8` (Resource Timing
+  observer, not pot-locked) → `#EXT-X-MEDIA:TYPE=SUBTITLES` → `.vtt` segments. *(Spec §2.3.)*
+
+- [ ] **`字幕不可用` when the video has no SUBTITLES track.** **Expected:** single-line
+  `字幕不可用` notice — a first-class, common outcome, never an ASR/word-by-word fallback.
+  *(Spec §2.3.1.)*
+
+- [ ] **Multi-video: control + overlay follow the ACTIVE video, with hysteresis.** A feed
+  (or thread) with two videos. **Expected:** exactly one `译` + one overlay, bound to the
+  playing / most-visible video; scrolling/switching moves them to the new active video;
+  two comparably-sized videos do **not** flip the overlay every ~250ms tick. *(Spec
+  §2.3.5; `activeVideo()` AREA_MARGIN 1.3× stickiness.)*
+
+- [ ] **⭐ Fullscreen keeps bilingual subtitles (Chrome + Safari) — mandatory.** Play,
+  click X's fullscreen button. **Expected:** `#mt-tw-overlay` stays **inside** the
+  fullscreened player and the bilingual pairs keep advancing (overlay re-parented into
+  `document.fullscreenElement`); exiting fullscreen restores the inline overlay. Run on
+  **macOS Chrome AND macOS Safari** (Firefox too if applicable). *(Spec §2.3.6;
+  verification-spec §1 mandatory fullscreen matrix. If X fullscreens a raw `<video>` on a
+  given browser — no DOM child possible — record it honestly, do not fake a pass.)*
+
+- [ ] **双语 / 仅译文 / 仅原文 + 下载字幕 (.srt).** Via the 译 menu, same as YouTube.
+  **Expected:** modes switch; `.srt` downloads the merged sentences. *(Shared harness.)*
+
+---
+
 ## 4. Podcast bilingual subtitles
 
 - [ ] **Web podcast with existing timed transcript (Substack).** Load
