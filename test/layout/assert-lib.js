@@ -188,6 +188,32 @@
       return (dl <= tol && dw <= tol)
         || `holder [left ${t.left.toFixed(1)} w ${t.width.toFixed(1)}] vs original [left ${r.left.toFixed(1)} w ${r.width.toFixed(1)}]`;
     },
+    // The spec rule is "never a whole block of originals followed by a whole block of
+    // translations" — a PAIRING property, which no geometry assertion can see. The
+    // holder's rows must alternate original / translation / original / translation.
+    // Rows are classified by COLOUR, not by the canned 【译】 marker: the harness's
+    // fake translator prefixes the marker per blank-line paragraph, so line-wise
+    // slices would not each carry one. Colour is the renderer's own signal (original
+    // rows take the source colour, translation rows take the configured one) and it
+    // checks the styling at the same time. `minRows` guards against a vacuous pass.
+    interleaveAlternates(node, trans, arg) {
+      if (trans.dataset.interleave !== '1') return 'sibling is not an interleave holder';
+      const rows = [...trans.children];
+      const minRows = parseFloat(arg) || 4;
+      if (rows.length < minRows) return `holder has ${rows.length} rows, expected >= ${minRows}`;
+      if (rows.length % 2) return `holder has an odd row count (${rows.length}) — rows are unpaired`;
+      const origColor = csOf(node).color;
+      const colors = rows.map((r) => csOf(r).color);
+      if (colors.every((c) => c === colors[0])) {
+        return `every row is ${colors[0]} — original and translation are indistinguishable`;
+      }
+      const kind = colors.map((c) => (c === origColor ? 'O' : 'T'));
+      const want = rows.map((_, i) => (i % 2 ? 'T' : 'O'));
+      if (kind.join('') !== want.join('')) {
+        return `row order ${kind.join('')} is not alternating (expected ${want.join('')})`;
+      }
+      return true;
+    },
     // The interleave holder re-draws the ORIGINAL paragraphs itself. The holder is a
     // .mt-translation element, which carries the translation colour — so an original
     // row that sets no colour of its own inherits it and the bilingual pair becomes
