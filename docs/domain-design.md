@@ -266,6 +266,24 @@ selectors: sibling injection (resists Polymer re-render, also fine on normal
 pages), clickable URLs (general), interleaved description. Only "timestamp click →
 `video.currentTime`" is a small optional renderer hook.
 
+**Renderer contract: the injected sibling MIRRORS its original, and the mirror is
+not a one-shot.** Two consequences, both general (no site knowledge):
+
+- **Placement follows VISUAL order, not DOM order.** "Original above, translation
+  below" is the invariant; `afterend` is merely the usual way to achieve it. In a
+  container whose visual order is reversed (`flex-direction:column-reverse`, or a
+  row with `flex-wrap:wrap-reverse`, where the lines stack upward) the renderer
+  anchors the translation *before* the original instead. The decision is computed
+  from the parent's computed style at render time and cached on the node, so the
+  per-tick re-anchor pass never forces a style recalc.
+- **The mirror is re-measured when the viewport changes.** The copied geometry is
+  viewport-time pixels (width cap, inline-start indent, the flex-row wrap fix), so
+  rotation / resize / a media-query breakpoint invalidates it. The renderer drops
+  the frozen state (debounced) and re-arms the render key; the next tick re-runs
+  the **same** first-render path — there is deliberately no second layout code
+  path. A hidden interleave original is briefly restored inside the same task
+  (never painted) so it can be measured rather than served from a stale cache.
+
 ## 5. Device dimension (mobile vs desktop vs embed)
 
 **Principle: parsing / segmentation / engine are device-agnostic; device

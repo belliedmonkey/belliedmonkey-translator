@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>interleave holder across a viewport resize</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  article { width: 100%; padding: 24px 0; }
+  /* Percentage column again, but this time the unit is a single-blob paragraph
+     that the renderer replaces with an interleave holder and HIDES. On resize the
+     original is display:none, so the mirror can only come from the
+     __mtLayoutCss cache — the cache-READ path, which until #28 had no organic
+     trigger and, once triggered, served pre-resize pixels. */
+  #blob { width: 70%; margin: 16px auto; white-space: pre-line; line-height: 1.6; }
+  article > p { width: 70%; margin: 16px auto; }
+</style>
+<body>
+<article>
+  <p>Most people underestimate how much vocabulary they absorb from context alone.</p>
+  <div id="blob">Learning a language by reading real articles beats memorizing word lists.
+
+The trick is seeing the same words appear again and again in living sentences.</div>
+</article>
+<script type="application/json" id="mt-expect">
+{
+  "name": "resize-interleave-hidden",
+  "unitCount": 2,
+  "skipUniversal": {
+    "belowOriginal": [
+      "#blob"
+    ],
+    "originalGeometryStable": [
+      "#blob"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#blob",
+      "assert": [
+        "holderReplacesOriginal",
+        "hiddenOriginalMirrored:3"
+      ]
+    },
+    {
+      "sel": "article > p",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    }
+  ],
+  "resize": {
+    "width": 640,
+    "height": 900
+  }
+}
+</script>
+</body>
+</html>

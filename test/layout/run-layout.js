@@ -7,6 +7,7 @@
 // asserts geometry invariants on the injected .mt-translation siblings.
 //
 //   node test/layout/run-layout.js [--fixture <substring>] [--no-build] [--keep]
+//                                  [--artifacts <dir>]
 //
 // Exit 0 = all fixtures green. Any failure (or missing Chrome) exits 1 — never
 // a silent skip.
@@ -21,7 +22,6 @@ const { launchChrome } = require('./chrome');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');
-const ARTIFACT_DIR = path.join(__dirname, 'artifacts');
 const DIST = path.join(ROOT, 'dist');
 
 const CFG = {
@@ -34,9 +34,46 @@ const args = process.argv.slice(2);
 const flag = (f) => args.includes(f);
 const argOf = (f) => { const i = args.indexOf(f); return i === -1 ? null : args[i + 1]; };
 
+// ─── artifact dir (concurrency-safe) ───────────────────────────────────
+// Two suites running at once (a second worktree, a rerun while the first is
+// still going) would otherwise overwrite each other's screenshots and
+// results.json — the second run's "evidence" would be a mix of both. So the
+// default dir is claimed with a pid lock; a run that finds a LIVE holder falls
+// back to `artifacts-<pid>/` and says so, instead of silently clobbering.
+function claimArtifactDir() {
+  const explicit = argOf('--artifacts') || process.env.MT_LAYOUT_ARTIFACTS;
+  if (explicit) { fs.mkdirSync(explicit, { recursive: true }); return { dir: explicit, lock: null }; }
+  const preferred = path.join(__dirname, 'artifacts');
+  fs.mkdirSync(preferred, { recursive: true });
+  const lock = path.join(preferred, '.lock');
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (_) { return false; } };
+  try {
+    fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
+    return { dir: preferred, lock };
+  } catch (_) {
+    const holder = parseInt(fs.readFileSync(lock, 'utf8').trim(), 10);
+    if (!holder || holder === process.pid || !alive(holder)) {   // stale lock (killed run) → take it
+      fs.writeFileSync(lock, String(process.pid));
+      return { dir: preferred, lock };
+    }
+    const own = `${preferred}-${process.pid}`;
+    fs.mkdirSync(own, { recursive: true });
+    console.log(`note: artifacts/ is in use by pid ${holder} — writing to ${path.basename(own)}/ instead`);
+    return { dir: own, lock: null };
+  }
+}
+
 if (typeof WebSocket === 'undefined') {
   console.error('test:layout needs Node >= 22 (built-in WebSocket). `npm test` still runs on >= 16.');
   process.exit(1);
+}
+
+const { dir: ARTIFACT_DIR, lock: ARTIFACT_LOCK } = claimArtifactDir();
+function releaseArtifactDir() {
+  if (!ARTIFACT_LOCK) return;
+  try {
+    if (fs.readFileSync(ARTIFACT_LOCK, 'utf8').trim() === String(process.pid)) fs.rmSync(ARTIFACT_LOCK);
+  } catch (_) { /* already gone */ }
 }
 
 // ─── canned Google translation (deterministic, offline) ───────────────
@@ -205,6 +242,28 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
       if (!r2.pass) result = { ...r2, failures: r2.failures.map((f) => ({ ...f, phase: 'rerender' })) };
     }
 
+    if (result.pass && manifest.resize) {
+      // Viewport-change path (issue #28): rotation / window resize / media-query
+      // breakpoint. The renderer froze viewport-time PIXEL geometry into inline
+      // styles; after the resize it must re-measure and re-mirror the NEW
+      // original geometry (and undo a now-wrong flex-row wrap fix).
+      const rz = manifest.resize;
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: rz.width, height: rz.height, deviceScaleFactor: 1, mobile: !!rz.mobile }, sessionId);
+      // Let the page reflow, the renderer's debounced invalidation fire, and the
+      // next tick repaint. Generous: the debounce + a 350ms tick + settle.
+      await evalIn(cdp, sessionId, ctxId, `new Promise(r => setTimeout(r, ${rz.settleMs || 1500}))`);
+      await awaitStable(cdp, sessionId, ctxId, manifest);
+      // The originals legitimately MOVED — re-baseline so the post-resize asserts
+      // compare the mirror against the new original geometry. `false` keeps the
+      // horizontal-overflow cap at the new innerWidth instead of baking in an
+      // overflow the stale translation may be causing right now.
+      await evalIn(cdp, sessionId, ctxId, 'window.__mtLayout.captureBaseline(false)');
+      const rzManifest = JSON.stringify({ ...manifest, ...(manifest.resizeManifest || {}) });
+      const r3 = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.runAsserts(${rzManifest})`);
+      if (!r3.pass) result = { ...r3, failures: r3.failures.map((f) => ({ ...f, phase: 'resize' })) };
+    }
+
     return { file, name: manifest.name, ...result };
   } catch (err) {
     return { file, name: manifest ? manifest.name : file, pass: false, failures: [{ name: 'harness', sel: '-', detail: err.message }] };
@@ -256,6 +315,7 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
     try { if (cdp) cdp.close(); } catch (_) { /* already closed */ }
     if (chrome && (force || !flag('--keep'))) chrome.cleanup();
     fs.rmSync(runDist, { recursive: true, force: true });
+    releaseArtifactDir();
   };
   // Ctrl-C mid-run must not orphan the Chrome process or leak the tmp profile/dist —
   // explicit termination overrides --keep (keep is for normal completion only).
