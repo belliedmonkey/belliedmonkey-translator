@@ -10,6 +10,10 @@
 //                 [{ sel, prop, to, marker }]  (absence of the mutation = FAIL)
 //   skipUniversal — { invariantName: [selector, ...] } opt-outs
 //   rerender    — true → runner re-runs asserts after a settings-change re-render
+//   resize      — { width, height, mobile?, settleMs? } → runner changes the
+//                 viewport mid-fixture, re-baselines, and re-runs the asserts
+//   resizeManifest — manifest fields to OVERRIDE for that post-resize pass
+//                 (e.g. `mutations: []` once a media query flipped the row away)
 (() => {
   'use strict';
 
@@ -38,7 +42,12 @@
   const baseline = new Map(); // element -> { rect, props }
   let baselineScrollWidth = 0;
 
-  function captureBaseline() {
+  // keepScrollWidth defaults to true (the pre-enable capture: the page's own
+  // natural scrollWidth is the honest cap). The runner passes `false` when
+  // re-baselining AFTER a mid-fixture resize — at that moment a stale, too-wide
+  // translation may itself be causing overflow, and baking it into the cap would
+  // turn noHorizontalOverflow vacuously green for exactly the bug under test.
+  function captureBaseline(keepScrollWidth) {
     baseline.clear();
     for (const el of document.body.querySelectorAll('*')) {
       const r = rectOf(el);
@@ -47,7 +56,7 @@
       for (const p of PARENT_PROPS) props[p] = cs[p];
       baseline.set(el, { rect: { left: r.left, width: r.width, top: r.top, bottom: r.bottom }, props });
     }
-    baselineScrollWidth = document.scrollingElement.scrollWidth;
+    baselineScrollWidth = (keepScrollWidth === false) ? 0 : document.scrollingElement.scrollWidth;
     return baseline.size;
   }
 
@@ -156,6 +165,28 @@
       if (trans.dataset.interleave !== '1') return 'sibling is not an interleave holder';
       if (trans.children.length < 4) return `holder has ${trans.children.length} rows, expected >= 4 (2 paragraph pairs)`;
       return true;
+    },
+    // The flex-row flow fix (`flex-basis:100%`) must not survive onto a container
+    // that a media query has since flipped to `column` — there `basis` means
+    // HEIGHT, so a stranded 100% stretches the translation over the whole column.
+    flexBasisAuto(node, trans) {
+      const b = csOf(trans).flexBasis;
+      return b === 'auto' || `translation still carries flex-basis:${b} (stranded row fix)`;
+    },
+    // Geometry check for the INTERLEAVE holder, whose original is display:none —
+    // its baseline rect is 0×0, so maxWidthLE/sameWidth can't be used. Briefly
+    // restore the original's display to read its real flow geometry and compare.
+    // Synchronous (unhide → measure → re-hide inside one task), so nothing paints.
+    hiddenOriginalMirrored(node, trans, arg) {
+      const tol = parseFloat(arg) || 3;
+      const prev = node.style.display;
+      node.style.display = '';
+      const r = rectOf(node);           // forced layout: original back in flow
+      node.style.display = prev;
+      const t = rectOf(trans);          // forced layout again: original hidden as before
+      const dl = Math.abs(t.left - r.left), dw = Math.abs(t.width - r.width);
+      return (dl <= tol && dw <= tol)
+        || `holder [left ${t.left.toFixed(1)} w ${t.width.toFixed(1)}] vs original [left ${r.left.toFixed(1)} w ${r.width.toFixed(1)}]`;
     },
     cachedLayoutCss(node, trans, arg) {
       const v = node.__mtLayoutCss || '';

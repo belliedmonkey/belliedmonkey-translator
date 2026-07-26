@@ -65,6 +65,21 @@ Fixture authoring rules:
   for terminal error chips instead of 【译】 translations), `timeoutMs` for slow
   fixtures, `rerender: true` to re-assert after a settings-change
   disable/enable cycle.
+- `resize: { width, height, mobile?, settleMs? }` re-runs every assert after a
+  **mid-fixture viewport change** (`Emulation.setDeviceMetricsOverride`) — the
+  rotation / window-resize / media-query-breakpoint path (issue #28). The runner
+  waits out the renderer's debounced re-measure, then **re-baselines** (the
+  originals legitimately moved, so the mirror is compared against their NEW
+  geometry; the horizontal-overflow cap tightens to the new `innerWidth` rather
+  than baking in an overflow the stale translation is causing). `resizeManifest`
+  overrides manifest fields for that pass only — e.g. `mutations: []` once a media
+  query has flipped the flex row away and the wrap fix must be *gone*
+  (fixture 20). Fixtures 19/20/23 cover visible units, the row→column flip, and
+  the hidden interleave holder.
+- Concurrency: `test/layout/artifacts/` is claimed with a pid lock. A second suite
+  running at the same time writes to `artifacts-<pid>/` and says so, instead of
+  silently mixing its screenshots and `results.json` into the first run's. Force a
+  path with `--artifacts <dir>` or `MT_LAYOUT_ARTIFACTS`.
 - RTL: centered column (fixture 11) AND indented column (fixture 13 — pins the
   `margin-inline-start` logical-property mirror; a physical `margin-left` is
   dropped by the RTL over-constrained rule and failed this fixture by exactly
@@ -72,13 +87,18 @@ Fixture authoring rules:
   are owned by the device matrix screenshots.
 - Chrome runs `--headless=new` by default; set `MT_LAYOUT_HEADED=1` for a
   visible window (pairs with `--keep` for debugging).
-- Known accepted gaps (documented, not silent): the `__mtLayoutCss` hidden-node
-  *read* path has no organic trigger in fixtures (mutation-survivor; the cache
-  *write* is pinned by fixture 09, whose `cachedLayoutCss` regex is exempt from
-  the never-edit rule if the CSS serialization changes); `column-reverse` flex
-  behavior is an open renderer decision; viewport-resize/orientation re-measure
-  is not implemented (frozen-px philosophy, same as font sizing) — tracked on
-  the suite's GitHub issue.
+- Closed gaps (were listed here as accepted, fixed in issue #28): the
+  `__mtLayoutCss` hidden-node *read* path now has an organic trigger (fixture 23 —
+  an interleave holder measured across a resize; the cache *write* is still pinned
+  by fixture 09, whose `cachedLayoutCss` regex is exempt from the never-edit rule
+  if the CSS serialization changes); reversed flex containers have a decided
+  placement rule (fixtures 21/22); viewport-resize/orientation re-measure is
+  implemented and pinned (fixtures 19/20/23).
+- Known accepted gaps (documented, not silent): a *permanently* transformed
+  ancestor still makes `layoutCss` give up after ~8 ticks and render an
+  unmirrored translation (bounded retry, by design); no fixture drives a real
+  device rotation — `setDeviceMetricsOverride` is a viewport change, and true
+  iPhone/iPad rotation stays owned by the §1 device matrix.
 
 ## What's NOT here (manual)
 
