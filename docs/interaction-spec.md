@@ -353,6 +353,13 @@ These apply to every webpage text translation, on every platform:
   `1.0×`). Applies to the sibling translation and to the re-rendered originals +
   translations in the single-blob interleave path. Subtitle overlays are a separate
   path (`lineCss`, keyed off `ytTextColor`) and are unaffected.
+- **…and in the interleave path the ORIGINAL keeps looking like an original.** When a
+  single-blob paragraph is re-drawn as alternating original / translation rows, the
+  re-drawn original rows carry the **source element's own color**, not the
+  translation color. The holder we draw them into is itself a `.mt-translation`
+  element, so without that the originals inherit the green and the whole block
+  renders in one solid color — the bilingual pair stops being tellable apart, which
+  is the single thing color exists to do here. (Regression-tested by fixture 25.)
 
 ---
 

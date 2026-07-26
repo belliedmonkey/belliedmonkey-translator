@@ -134,6 +134,12 @@ var WebpageTranslator = (() => {
     return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}${ta}`;
   }
   function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
+  // The original element's OWN text color, for the interleave path's re-drawn
+  // original rows (see renderInterleaved).
+  function origColorOf(node) {
+    let cs = null; try { cs = node && getComputedStyle(node); } catch (_) { cs = null; }
+    return (cs && cs.color) ? `color:${cs.color};` : '';
+  }
 
   // A sibling translation injected into a flex/grid row becomes a flex/grid ITEM
   // placed inline next to the original (mobile YouTube metadata "4946次点赞 ·
@@ -358,8 +364,18 @@ var WebpageTranslator = (() => {
     // the source; translation rows additionally take the distinct color via transStyle.
     holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node) + layoutCss(node);
     holder.textContent = '';
+    // …and re-assert the original's own COLOR on the original rows. The holder is a
+    // `.mt-translation` element, and bilingual.css colors that class with the
+    // translation color — which the re-drawn originals would otherwise inherit,
+    // rendering the whole block in one solid green. Color is the ONE property the
+    // bilingual pair keeps distinct (interaction-spec), so losing it is the one thing
+    // this path must not do. Reading it works even on a re-render, when the source is
+    // already display:none: `color` is a computed, inherited value either way.
+    const origColor = origColorOf(node);
     for (let i = 0; i < oParas.length; i++) {
-      const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
+      const o = document.createElement('div');
+      o.style.cssText = 'white-space:pre-wrap;margin-top:6px;' + origColor;
+      buildRichText(oParas[i], o); holder.appendChild(o);
       const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(tParas[i], t); holder.appendChild(t);
     }
     node.setAttribute('data-mt-hidden', '1');

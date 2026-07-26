@@ -188,6 +188,21 @@
       return (dl <= tol && dw <= tol)
         || `holder [left ${t.left.toFixed(1)} w ${t.width.toFixed(1)}] vs original [left ${r.left.toFixed(1)} w ${r.width.toFixed(1)}]`;
     },
+    // The interleave holder re-draws the ORIGINAL paragraphs itself. The holder is a
+    // .mt-translation element, which carries the translation colour — so an original
+    // row that sets no colour of its own inherits it and the bilingual pair becomes
+    // one solid colour, breaking the one property interaction-spec keeps distinct.
+    interleaveRowColors(node, trans) {
+      if (trans.dataset.interleave !== '1') return 'sibling is not an interleave holder';
+      const rows = [...trans.children];
+      if (rows.length < 2) return `holder has ${rows.length} rows, expected >= 2`;
+      const want = csOf(node).color;              // the hidden original's own colour
+      const gotOrig = csOf(rows[0]).color;
+      const gotTrans = csOf(rows[1]).color;
+      if (gotOrig !== want) return `original row is ${gotOrig}, original element is ${want}`;
+      if (gotTrans === gotOrig) return `translation row shares the original colour ${gotTrans}`;
+      return true;
+    },
     cachedLayoutCss(node, trans, arg) {
       const v = node.__mtLayoutCss || '';
       return new RegExp(arg).test(v) || `__mtLayoutCss "${v}" !~ /${arg}/`;
