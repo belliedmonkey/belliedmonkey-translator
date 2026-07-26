@@ -82,6 +82,7 @@ var DOMProcessor = (() => {
     return INLINE_TAGS.has(el.tagName.toLowerCase());
   }
 
+  // "Could this element be a unit?" — anything that generates a non-inline box.
   function isBlock(el) {
     if (!(el instanceof Element)) return false;
     const cs = computed(el);
@@ -91,6 +92,33 @@ var DOMProcessor = (() => {
       return true; // block / flex / grid / list-item / table / inline-block / inline-flex / …
     }
     return BLOCK_TAGS.has(el.tagName.toLowerCase());
+  }
+
+  // "Does this child BREAK a paragraph?" — a DIFFERENT question from isBlock, and
+  // conflating the two silently deleted whole paragraphs (domain-design §3).
+  // `inline-block` / `inline-flex` / `inline-grid` / `inline-table` are INLINE-LEVEL:
+  // they sit in the parent's inline formatting context, in the line box beside the
+  // text — an emoji wrapper, a badge, an inline icon. They decorate a paragraph, they
+  // do not end it. Only block-level boxes do.
+  function isBlockLevel(el) {
+    if (!isBlock(el)) return false;
+    const cs = computed(el);
+    return !(cs && cs.display && cs.display.startsWith('inline-'));
+  }
+
+  // Text-bearing inline content: a non-empty text node, or an inline child that
+  // holds one. Used as the guard below.
+  function hasInlineText(el) {
+    for (const node of el.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) { if (node.textContent.trim()) return true; continue; }
+      if (!(node instanceof Element)) continue;
+      if (node.classList && node.classList.contains(TRANSLATION_CLASS)) continue;
+      if (EXCLUDE_TAGS.has(node.tagName.toLowerCase())) continue;
+      if (!isVisible(node)) continue;
+      if (isBlock(node) && !isContents(node)) continue;   // not inline content
+      if (node.textContent && node.textContent.trim()) return true;
+    }
+    return false;
   }
 
   // Video-player regions (captions/controls + our subtitle overlay) are owned by
@@ -187,11 +215,18 @@ var DOMProcessor = (() => {
   // real paragraphs) is mis-seen as a leaf and its ENTIRE subtree is collected as
   // one giant multi-thousand-px unit (see docs/domain-design.md §3).
   function hasBlockChild(el) {
+    // An inline-level child (inline-block/-flex/-grid/-table) does NOT break a
+    // paragraph — but only when this element also carries text-bearing inline
+    // content. With none, an all-inline-level element is a layout container (an
+    // inline-block card grid) and must still be descended into, or we resurrect the
+    // giant-blob failure this function exists to prevent. See domain-design §3.
+    const decorated = hasInlineText(el);
     for (const child of el.children) {
       if (EXCLUDE_TAGS.has(child.tagName.toLowerCase())) continue;
       if (child.classList && child.classList.contains(TRANSLATION_CLASS)) continue;
       if (!isVisible(child)) continue;
-      if (isBlock(child)) return true;
+      if (isBlockLevel(child)) return true;                       // block-level → real break
+      if (isBlock(child)) { if (!decorated) return true; continue; } // inline-level box
       if (isContents(child) && hasBlockChild(child)) return true; // see-through wrapper
     }
     return false;
