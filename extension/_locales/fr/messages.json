@@ -222,16 +222,16 @@
     "message": "Cache vidé"
   },
   "hint_openai": {
-    "message": "Clé API OpenAI (sk-…). Modèle : gpt-4o-mini"
+    "message": "Clé API OpenAI (sk-…)."
   },
   "hint_claude": {
-    "message": "Clé API Anthropic (sk-ant-…). Modèle : claude-haiku-4-5"
+    "message": "Clé API Anthropic (sk-ant-…)."
   },
   "hint_deepseek": {
-    "message": "Clé API DeepSeek. Modèle : deepseek-chat"
+    "message": "Clé API DeepSeek."
   },
   "hint_glm": {
-    "message": "Clé API GLM (Zhipu AI). Modèle : glm-4-flash (offre gratuite)"
+    "message": "Clé API GLM (Zhipu AI) (offre gratuite)."
   },
   "ui_lang_label": {
     "message": "Langue de l'interface"
@@ -246,10 +246,13 @@
     "message": "Très grand (1,25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Modèle par défaut :"
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."

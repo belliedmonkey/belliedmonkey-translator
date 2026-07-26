@@ -222,16 +222,16 @@
     "message": "缓存已清除"
   },
   "hint_openai": {
-    "message": "OpenAI API Key（sk-…）。模型：gpt-4o-mini"
+    "message": "OpenAI API Key（sk-…）。"
   },
   "hint_claude": {
-    "message": "Anthropic API Key（sk-ant-…）。模型：claude-haiku-4-5"
+    "message": "Anthropic API Key（sk-ant-…）。"
   },
   "hint_deepseek": {
-    "message": "DeepSeek API Key。模型：deepseek-chat"
+    "message": "DeepSeek API Key。"
   },
   "hint_glm": {
-    "message": "智谱 AI API Key。模型：glm-4-flash（有免费额度）"
+    "message": "智谱 AI API Key（有免费额度）。"
   },
   "ui_lang_label": {
     "message": "界面语言"
@@ -246,10 +246,13 @@
     "message": "较大 (1.25×)"
   },
   "hint_qwen": {
-    "message": "通义千问（DashScope）API Key。默认模型 qwen-plus。"
+    "message": "通义千问（DashScope）API Key。"
   },
   "hint_kimi": {
-    "message": "Kimi（Moonshot）API Key，请在对应区域平台申请（国内 moonshot.cn / 国际 moonshot.ai）。默认模型 moonshot-v1-8k。"
+    "message": "Kimi（Moonshot）API Key，请在对应区域平台申请（国内 moonshot.cn / 国际 moonshot.ai）。"
+  },
+  "label_default_model": {
+    "message": "默认模型："
   },
   "hint_custom_chat": {
     "message": "任意 Chat Completions 格式的对话接口。填写接口地址（base URL）、模型与 Key。"

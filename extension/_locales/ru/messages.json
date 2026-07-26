@@ -222,16 +222,16 @@
     "message": "Кэш очищен"
   },
   "hint_openai": {
-    "message": "Ключ OpenAI API (sk-…). Модель: gpt-4o-mini"
+    "message": "Ключ OpenAI API (sk-…)."
   },
   "hint_claude": {
-    "message": "Ключ Anthropic API (sk-ant-…). Модель: claude-haiku-4-5"
+    "message": "Ключ Anthropic API (sk-ant-…)."
   },
   "hint_deepseek": {
-    "message": "Ключ DeepSeek API. Модель: deepseek-chat"
+    "message": "Ключ DeepSeek API."
   },
   "hint_glm": {
-    "message": "Ключ GLM (Zhipu AI) API. Модель: glm-4-flash (есть бесплатный лимит)"
+    "message": "Ключ GLM (Zhipu AI) API (есть бесплатный лимит)."
   },
   "ui_lang_label": {
     "message": "Язык интерфейса"
@@ -246,10 +246,13 @@
     "message": "Самый большой (1.25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Модель по умолчанию:"
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."

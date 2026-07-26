@@ -222,16 +222,16 @@
     "message": "キャッシュを消去しました"
   },
   "hint_openai": {
-    "message": "OpenAI API キー（sk-…）。モデル：gpt-4o-mini"
+    "message": "OpenAI API キー（sk-…）。"
   },
   "hint_claude": {
-    "message": "Anthropic API キー（sk-ant-…）。モデル：claude-haiku-4-5"
+    "message": "Anthropic API キー（sk-ant-…）。"
   },
   "hint_deepseek": {
-    "message": "DeepSeek API キー。モデル：deepseek-chat"
+    "message": "DeepSeek API キー。"
   },
   "hint_glm": {
-    "message": "GLM（智譜 AI）API キー。モデル：glm-4-flash（無料枠あり）"
+    "message": "GLM（智譜 AI）API キー（無料枠あり）。"
   },
   "ui_lang_label": {
     "message": "表示言語"
@@ -246,10 +246,13 @@
     "message": "大きめ (1.25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "既定モデル："
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."

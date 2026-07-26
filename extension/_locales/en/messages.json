@@ -222,16 +222,16 @@
     "message": "Cache cleared"
   },
   "hint_openai": {
-    "message": "OpenAI API Key (sk-…). Model: gpt-4o-mini"
+    "message": "OpenAI API Key (sk-…)."
   },
   "hint_claude": {
-    "message": "Anthropic API Key (sk-ant-…). Model: claude-haiku-4-5"
+    "message": "Anthropic API Key (sk-ant-…)."
   },
   "hint_deepseek": {
-    "message": "DeepSeek API Key. Model: deepseek-chat"
+    "message": "DeepSeek API Key."
   },
   "hint_glm": {
-    "message": "GLM (Zhipu AI) API Key. Model: glm-4-flash (free tier available)"
+    "message": "GLM (Zhipu AI) API Key (free tier available)."
   },
   "ui_lang_label": {
     "message": "Interface language"
@@ -246,10 +246,13 @@
     "message": "Largest (1.25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Default model:"
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
