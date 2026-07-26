@@ -204,6 +204,67 @@ states. Differences from YouTube are noted below.
 
 ---
 
+## x.com / twitter.com
+
+Two independent things happen on x.com: **in-tweet video subtitles** (the video
+analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3) and a
+**de-cluttered page-text pass** (§3's `data-mt-skip-region` marker). Same engine, same
+60s translate-ahead, same display modes as YouTube. Only the differences are listed.
+
+### Video subtitles — source & timing
+- **VTT-only. Never ASR, never per-caption.** Captions exist only when the uploader or X
+  provided a WebVTT track in the HLS master playlist. **No track → `字幕不可用`**, and
+  that is a **first-class, common outcome** — not a degraded mode, and never a
+  word-by-word fallback.
+- **Whole transcript up front**, then translate-ahead in the 60-second window. A visible
+  consequence the user can check: with subtitles on and the video **paused at the
+  start**, the first sentence's original line is **already on screen** — the transcript
+  was fetched whole, not scraped per caption. Once loaded, `字幕准备中…` must not recur
+  during steady playback.
+- **X's own captions are suppressed** while ours drive. The user must never see X's grey
+  native caption box and our bilingual overlay at the same time.
+
+### Video subtitles — layout & fullscreen
+- **Overlay is anchored INSIDE the active video's player container** (not
+  `position:fixed` on the page), bottom-centred over the video, original line above and
+  translation below.
+- **Fullscreen is first-class and must-verify.** Entering the player's own fullscreen
+  keeps **both the overlay and the `译` button visible inside the fullscreened player**,
+  and the pair keeps advancing with playback; exiting restores the inline overlay. This
+  is a permanent matrix item (`verification-spec.md` §0) on **Chrome, Safari and
+  Firefox** — it was a shipped regression once (a body-level `fixed` element is not
+  promoted into the browser's top layer, so the subtitle vanished).
+- **iOS (iPhone / iPad) fullscreen is N/A**, never "passing": iOS hands video fullscreen
+  to the OS's native player, which a DOM overlay cannot cover. On iOS, subtitles are an
+  **inline-playback** feature.
+
+### Video subtitles — controls
+- **Desktop: the `译` button is embedded in the video itself** (top-right, inside the
+  player container), not floating at the page corner. Two reasons the user feels: it
+  survives fullscreen, and in a feed of many videos it is unambiguous **which** video it
+  controls. (This differs from YouTube's floating button — see domain-design §5.2.)
+- **Mobile (any touch device): no separate `译` button.** The page **FAB drives both**
+  the video subtitles and the page text — one green circle, never two.
+- The button's menu is the shared one: **开启/关闭视频字幕翻译**, **双语字幕 / 仅译文 /
+  仅原文**, **下载字幕 (.srt)**, **设置**.
+- **A feed holds many videos.** The subtitles follow the *active* one (playing, or
+  clearly the most visible) and switch only with **hysteresis** — two comparably sized
+  videos must not make the overlay flip back and forth while scrolling.
+
+### Page text — what is NOT translated
+- Tweet text translates through the **normal webpage path**, unchanged. What the adapter
+  removes is only **non-content chrome**, which must show **no** translation line: the
+  left nav, the right rail (**相关用户** / **有什么新鲜事** trends), the per-tweet
+  engagement bar (reply / repost / like / bookmark counts), the tweet author line, the
+  status page's `time · date · views` metadata row, the reply composer placeholder,
+  inline promos and the footer link farm.
+- **Known residue, left by design:** the page header **`帖子`**, **`广告`** and
+  **`来自 <domain>`** still get a no-op duplicate. They are bare spans with no stable
+  anchor; targeting them needs brittle positional selectors and the impact is a single
+  repeated label. Do not report these as regressions.
+
+---
+
 ## Webpage bilingual translation
 - **Off by default**; starts only when the FAB is turned on (per page load).
 - Translation is injected **under each original paragraph** (original kept above,

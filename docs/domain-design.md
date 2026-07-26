@@ -266,17 +266,41 @@ selectors: sibling injection (resists Polymer re-render, also fine on normal
 pages), clickable URLs (general), interleaved description. Only "timestamp click →
 `video.currentTime`" is a small optional renderer hook.
 
-## 5. Device dimension (mobile vs desktop vs embed)
+## 5. The control/render adapter — the only variation point (device × site)
 
-**Principle: parsing / segmentation / engine are device-agnostic; device
-differences live only in a thin control/render adapter.**
+**Principle: parsing / segmentation / engine are single implementations. ALL
+variation lives in one thin control/render adapter, and that adapter varies along
+exactly TWO axes — DEVICE and SITE.**
+
+Naming the second axis is deliberate. The adapter always carried it (YouTube's
+overlay anchors into `#movie_player`, the podcast overlay anchors to the viewport
+because an audio page has no player), but the doc only described the device axis, so
+the first *button*-level site difference (Twitter, below) read as an unexplained
+exception. It isn't one — it is the site axis doing its job. What must stay closed is
+the boundary: two axes, in one layer, and nowhere else.
+
+**When a SITE difference is legitimate** — all three must hold, or it is an
+anti-pattern:
+
+1. It lives **only** in the control/render adapter. Nothing reaches `DomSegmenter`,
+   `SubtitleSource` or the Engine — in particular **no `dom-processor` selectors**
+   (the §3 rule stands; site knowledge into the extractor still enters *only* through
+   the generic `data-mt-player-region` / `data-mt-skip-region` markers).
+2. It is forced by an **observable property of the host's own player/DOM** — the shape
+   of what that site fullscreens, whether a media element exists at all — not by
+   taste, and not by "this site felt nicer that way".
+3. The **reason is written down here** next to the difference, so the next site is
+   judged against the property, not against the precedent.
 
 - `DomSegmenter` / `SubtitleSource` / `Engine` are **single implementations, not
-  per-device**. Standard HTML semantics apply identically to mobile and desktop
-  DOM. *Needing a per-device branch in the segmenter means it has regressed into
-  selector dependence (anti-pattern).* Device-specific behavior (touch
+  per-device and not per-site**. Standard HTML semantics apply identically to mobile and
+  desktop DOM. *Needing a per-device or per-site branch in the segmenter means it has
+  regressed into selector dependence (anti-pattern).* Device-specific behavior (touch
   tap-to-translate, FAB, viewport size) belongs to the **interaction layer**;
   viewport size is read at runtime (`innerHeight`), not branched in code.
+
+### 5.1 The DEVICE axis — mobile vs desktop vs embed
+
 - **YouTube video module** is unified; the desktop/mobile/embed differences are
   isolated in a `PlayerContext` adapter (the only variation point):
   - **desktop (non-touch)**: floating 译 button controls video subtitles; the page FAB
@@ -291,17 +315,48 @@ differences live only in a thin control/render adapter.**
     the `.ytp-right-controls` DOM in the other is what produced the two-button bug.)
   - embed (iframe): floating 译 button; menu fixed
   The subtitle core (SubtitleSource + Engine + OverlayRenderer) is shared across all three.
-- **Twitter/X video module** differs from YouTube in ONE control-layer decision (a
-  legitimate per-site variation point, still no `dom-processor` selectors): the desktop
-  `译` button is **embedded inside the active video's player container** (top-right),
-  not floating on `document.body`. Rationale: X's desktop player fullscreens its own
-  container `div` (which can host child nodes), so an in-container button + overlay
-  survive fullscreen and are unambiguously bound to the video they control (a feed has
-  many videos — see §2.3.5/§2.3.6). YouTube deliberately keeps its `译` *floating*
-  because YouTube's control bar auto-hides and an in-bar button would disappear with it;
-  YouTube's overlay already rides fullscreen via `#movie_player`, so YouTube is
-  unchanged. Mobile (touch) still suppresses the `译` button and lets the page FAB drive
-  both (via the shared `TranslationCore.isMobileLayout()` signal).
+
+### 5.2 The SITE axis today — control anchoring
+
+The one place sites currently diverge is **where the overlay and the `译` button are
+anchored**. Current state, stated plainly rather than as a rule, because the two sites
+are not symmetric:
+
+| site | overlay | desktop `译` button |
+|---|---|---|
+| **YouTube** | inside the player — `placeOverlay` → `player.appendChild(ov)` on `#movie_player` | **floating**, `position:fixed` on `document.body` (`content-youtube.js` `btnCss`), sitting above the page FAB |
+| **Twitter/X** | inside the active tweet's player container | **inside the same container**, `position:absolute`, top-right |
+| **Podcast** | viewport-anchored `position:fixed` — an audio page has **no player element to anchor to** (§2.2) | floating control, shown only while subtitles are active |
+
+**Why Twitter embeds its button** (test #2 above — an observable property of the host):
+X's desktop player fullscreens **its own container `div`**, which can host child nodes.
+The browser promotes only ONE element into the top layer, so a body-level `fixed`
+sibling of that container is not painted — the control would vanish in fullscreen.
+Putting both the overlay and the button *inside* the container that X fullscreens makes
+them ride into the top layer (§2.3.6), and additionally binds the button unambiguously
+to the video it controls, which matters because a feed holds many videos (§2.3.5).
+Verified live in fullscreen on macOS Safari, macOS Chrome and Firefox.
+
+**Why YouTube's button is still floating: history, not a decision.** It predates the
+Twitter work; the overlay was moved into `#movie_player` but the button was not. An
+earlier draft of this section justified it as "YouTube's control bar auto-hides, so an
+in-bar button would disappear" — that reasoning is **wrong and has been removed**:
+*inside the player container* is not *inside the control bar*. Twitter's button is an
+`position:absolute` child of the container, not part of X's control chrome, and it does
+not auto-hide. Nothing about YouTube prevents the same treatment.
+
+> **Open question — not verified.** By the §2.3.6 top-layer argument, YouTube's
+> body-level `fixed` button should **disappear when the video is fullscreened** (the
+> overlay survives; the button is not inside `#movie_player`). This has **not** been
+> tested — two attempts to drive YouTube into fullscreen did not land, and no claim is
+> made here either way. If it reproduces, the fix is to anchor YouTube's button into
+> `#movie_player` exactly as Twitter does, which would collapse this row of the table
+> and make in-container anchoring a genuine cross-site rule. Tracked separately; do not
+> cite the current asymmetry as intentional design.
+
+Mobile (touch) is unaffected on both sites: the `译` button is suppressed and the page
+FAB drives both page text and subtitles, via the shared
+`TranslationCore.isMobileLayout()` signal.
 
 ## 6. Module map
 
