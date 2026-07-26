@@ -222,16 +222,16 @@
     "message": "캐시 지움"
   },
   "hint_openai": {
-    "message": "OpenAI API 키(sk-…). 모델: gpt-4o-mini"
+    "message": "OpenAI API 키(sk-…)."
   },
   "hint_claude": {
-    "message": "Anthropic API 키(sk-ant-…). 모델: claude-haiku-4-5"
+    "message": "Anthropic API 키(sk-ant-…)."
   },
   "hint_deepseek": {
-    "message": "DeepSeek API 키. 모델: deepseek-chat"
+    "message": "DeepSeek API 키."
   },
   "hint_glm": {
-    "message": "GLM(Zhipu AI) API 키. 모델: glm-4-flash(무료 제공량 있음)"
+    "message": "GLM(Zhipu AI) API 키(무료 제공량 있음)."
   },
   "ui_lang_label": {
     "message": "인터페이스 언어"
@@ -246,10 +246,13 @@
     "message": "크게 (1.25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "기본 모델:"
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."

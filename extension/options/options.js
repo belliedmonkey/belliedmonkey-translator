@@ -59,9 +59,23 @@ function populateProviders() {
   if (prev && providerById(prev)) sel.value = prev;
 }
 
+// The MODEL NAME belongs to the registry (build/providers.config.js `defaultModel`),
+// not to the translators. It used to be hardcoded inside each localized hint — a
+// consumer that never re-read the registry, so it drifted: the DeepSeek hint still
+// said `deepseek-chat` long after the API stopped accepting that name, while the
+// model PLACEHOLDER two lines below already showed the correct one. Render it from
+// the same source instead (AGENTS.md — "one registry, N consumers"; the hints keep
+// only the facts the registry doesn't own: the sk-… prefix, GLM's free tier, Kimi's
+// per-region platform). The separator lives inside the localized label because it is
+// script-specific (full-width ：in CJK, a space before : in French).
 function apiHint(provider) {
   const p = providerById(provider);
-  return (p && p.hintKey) ? t(p.hintKey, '') : '';
+  if (!p) return '';
+  const hint = p.hintKey ? t(p.hintKey, '') : '';
+  if (!p.defaultModel) return hint;                 // custom endpoints have no default
+  const label = t('label_default_model', '默认模型：');
+  const gap = /[。．！？]$/.test(hint) ? '' : ' ';   // CJK sentences don't take a space
+  return `${hint}${hint ? gap : ''}${label}${p.defaultModel}`;
 }
 
 function showToast(msg, duration = 2500) {
