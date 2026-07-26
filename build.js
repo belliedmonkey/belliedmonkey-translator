@@ -187,6 +187,13 @@ function validateManifest(distDir, isFirefox) {
   if (isFirefox && !m.background?.scripts) { err('Firefox build missing background.scripts'); process.exit(1); }
   if (!isFirefox && !m.background?.service_worker) { err('Chrome build missing background.service_worker'); process.exit(1); }
   if (!m.browser_specific_settings?.gecko?.id) { err('Missing gecko.id (required for AMO)'); process.exit(1); }
+  // The extension version (manifest) and the repo version (package.json) are bumped
+  // by the same release step and must not drift — they silently did through 1.1.0.
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
+  if (m.version !== pkgVersion) {
+    err(`version drift: manifest.json ${m.version} != package.json ${pkgVersion} — bump both`);
+    process.exit(1);
+  }
   log('manifest.json valid');
 }
 

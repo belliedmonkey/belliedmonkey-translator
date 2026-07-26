@@ -14,3 +14,13 @@ pnpm-lock.yaml
 
 # layout regression suite output (screenshots + results.json)
 test/layout/artifacts/
+test/layout/artifacts-*/
+
+# Claude Code: share the project settings, keep per-machine state out
+.claude/settings.local.json
+.claude/worktrees/
+
+# Local secrets — provider API keys for verification runs live in the shell
+# environment (MT_API_KEY), never in the repo.
+.env
+.env.*
