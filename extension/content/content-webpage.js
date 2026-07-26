@@ -79,7 +79,8 @@ var WebpageTranslator = (() => {
           orphans.delete(u.text);
           n.__mtTrans = orphan.div;
           u.tr = orphan.tr;                      // seed engine state: stateOf()=done, pump() skips
-          if (n.nextElementSibling !== orphan.div) n.insertAdjacentElement('afterend', orphan.div);
+          n.__mtPlaceBefore = computePlacement(n); // one style read per ADOPTED node, not per unit
+          anchor(n, orphan.div);
         }
         return u;
       });
@@ -243,8 +244,43 @@ var WebpageTranslator = (() => {
     return out;
   }
 
+  // ─── Placement: visual order, not DOM order ───────────────────────────
+  // The one universal rule of the bilingual pair is "original above, translation
+  // below" (interaction-spec). A flex container can REVERSE the visual order of
+  // its children, and then a translation inserted after its original in the DOM
+  // paints ABOVE it — the pair reads backwards:
+  //   • flex-direction:column-reverse — the MAIN axis stacks items bottom-to-top.
+  //   • flex-wrap:wrap-reverse in a row — the LINES stack bottom-to-top, and the
+  //     translation already gets its own line from flowFixCss.
+  // (A plain row-reverse is NOT affected: only the main axis is mirrored, and the
+  // translation's own line still comes after on the downward cross axis.)
+  // In those containers we anchor the translation BEFORE the original instead, so
+  // it still renders below it.
+  function computePlacement(node) {
+    const p = node.parentElement;
+    if (!p) return false;
+    let cs; try { cs = getComputedStyle(p); } catch (_) { return false; }
+    if (cs.display !== 'flex' && cs.display !== 'inline-flex') return false;
+    const dir = cs.flexDirection || 'row';
+    if (dir === 'column-reverse') return true;
+    return dir.startsWith('row') && cs.flexWrap === 'wrap-reverse';
+  }
+  // Read the CACHED decision. reanchorAll runs every tick AND inside the
+  // pre-paint observer microtask, so it must never force a style recalc; the flag
+  // is (re)computed at render time, where computed styles are read anyway.
+  function placeBefore(node) { return node.__mtPlaceBefore === true; }
+
   // ─── Sibling renderer ─────────────────────────────────────────────────
-  function siblingOf(node) { const s = node.nextElementSibling; return (s && s.classList && s.classList.contains(CLASS)) ? s : null; }
+  function adjacentTrans(node) {
+    const s = placeBefore(node) ? node.previousElementSibling : node.nextElementSibling;
+    return (s && s.classList && s.classList.contains(CLASS)) ? s : null;
+  }
+  function anchor(node, el) {
+    const before = placeBefore(node);
+    if ((before ? node.previousElementSibling : node.nextElementSibling) !== el) {
+      node.insertAdjacentElement(before ? 'beforebegin' : 'afterend', el);
+    }
+  }
   // Anchor ONE translation div immediately after `node`. SPA frameworks (React on
   // Substack, etc.) re-render their container and DISPLACE our injected sibling to the
   // end of the container — so we track the translation on the node itself
@@ -253,16 +289,17 @@ var WebpageTranslator = (() => {
   // the translations pile up at the container end and the page reads as "英文一块 / 中文
   // 一块" instead of interleaved.
   function ensureSibling(node) {
+    node.__mtPlaceBefore = computePlacement(node);                    // refresh before adopting/anchoring
     let d = node.__mtTrans;
     if (d && !d.isConnected) d = null;                                // was removed
     if (d && d.dataset.interleave === '1') { d.remove(); d = null; }  // was an interleave holder
     if (!d) {
-      d = siblingOf(node);                                            // adopt an adjacent one if present
+      d = adjacentTrans(node);                                        // adopt an adjacent one if present
       if (d && d.dataset.interleave === '1') { d.remove(); d = null; }
       if (!d) { d = document.createElement('div'); d.className = CLASS; }
       node.__mtTrans = d;
     }
-    if (node.nextElementSibling !== d) node.insertAdjacentElement('afterend', d); // (re)anchor
+    anchor(node, d);
     return d;
   }
   function restoreOriginal(node) { if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); } }
@@ -300,22 +337,23 @@ var WebpageTranslator = (() => {
     // nothing to translate → no sibling
     restoreOriginal(node);
     if (node.__mtTrans) { node.__mtTrans.remove(); node.__mtTrans = null; }
-    else { const d = siblingOf(node); if (d) d.remove(); }
+    else { const d = adjacentTrans(node); if (d) d.remove(); }
   }
 
   // Single-blob text with internal paragraphs: hide the original, draw our own
   // holder with each original paragraph followed by its translation (interleave).
   function renderInterleaved(node, oParas, tParas) {
+    node.__mtPlaceBefore = computePlacement(node);
     let holder = node.__mtTrans;
     if (holder && !holder.isConnected) holder = null;
     if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; } // was a plain sibling
     if (!holder) {
-      holder = siblingOf(node);
+      holder = adjacentTrans(node);
       if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
       if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; }
       node.__mtTrans = holder;
     }
-    if (node.nextElementSibling !== holder) node.insertAdjacentElement('afterend', holder); // (re)anchor
+    anchor(node, holder);
     // Copy the original's font onto the holder so the re-rendered original rows match
     // the source; translation rows additionally take the distinct color via transStyle.
     holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node) + layoutCss(node);
@@ -371,7 +409,7 @@ var WebpageTranslator = (() => {
     for (const u of units) {
       if (!u.node.isConnected) continue;
       const t = u.node.__mtTrans;
-      if (t && t.isConnected && u.node.nextElementSibling !== t) u.node.insertAdjacentElement('afterend', t);
+      if (t && t.isConnected) anchor(u.node, t); // reads the cached side — no style recalc
     }
   }
   let obsScheduled = false;
@@ -420,6 +458,56 @@ var WebpageTranslator = (() => {
   }
   function removeDomObserver() { if (domObs) { domObs.disconnect(); domObs = null; } }
 
+  // ─── Viewport-change invalidation (issue #28) ─────────────────────────
+  // layoutCss / flowFixCss freeze VIEWPORT-TIME pixel geometry into inline styles
+  // (a px max-width cap, a px inline-start indent, flex-basis:100% + the parent's
+  // wrap mutation), and tick() only re-renders a unit when its state key changes.
+  // So a rotation, a window resize or a media-query breakpoint leaves every
+  // settled translation mirroring the OLD viewport — a stale cap that squeezes
+  // the text, and, when a row flips to a column, a stranded wrap fix that only an
+  // unrelated re-render would revert.
+  //
+  // The repair is deliberately not a second layout path: we just DROP the frozen
+  // state and re-arm the render key, so the next tick walks the exact same
+  // renderUnit → flowFixCss/layoutCss code as a first render (which re-measures
+  // and, in a column, calls undoFlowFix). Debounced because a rotation fires
+  // `resize` many times and each intermediate size is meaningless.
+  let resizeTimer = null;
+  function invalidateGeometry() {
+    for (const u of units) {
+      const node = u.node;
+      if (!node.isConnected) continue;
+      if (node.hasAttribute('data-mt-hidden')) {
+        // The interleave path hides its original, so it measures 0×0 and layoutCss
+        // would fall back to the pre-resize cache — the stale mirror survives the
+        // resize. Restore display, re-measure, hide again, all synchronously in
+        // this task: the browser cannot paint in between, so nothing flashes.
+        const prev = node.style.display;
+        node.style.display = '';
+        node.__mtLayoutCold = 0;
+        layoutCss(node);                 // refreshes node.__mtLayoutCss for the read path
+        node.style.display = prev;
+      } else {
+        node.__mtLayoutCold = 0;         // a node that gave up (-1) mid-animation gets a fresh chance
+      }
+      u._shownKey = '';                  // next tick re-renders → re-measures + re-runs the flow fix
+    }
+  }
+  function onViewportChange() {
+    if (!active) return;
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { resizeTimer = null; if (active) invalidateGeometry(); }, 200);
+  }
+  function installViewportListeners() {
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', onViewportChange);
+  }
+  function removeViewportListeners() {
+    window.removeEventListener('resize', onViewportChange);
+    window.removeEventListener('orientationchange', onViewportChange);
+    if (resizeTimer) { clearTimeout(resizeTimer); resizeTimer = null; }
+  }
+
   // ─── Display loop ─────────────────────────────────────────────────────
   function tick() {
     if (!active || !engine) return;
@@ -451,6 +539,7 @@ var WebpageTranslator = (() => {
     units = []; known = new WeakSet();
     recollect(document.body);
     installDomObserver();
+    installViewportListeners();
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(tick, 350);
     tick();
@@ -459,13 +548,14 @@ var WebpageTranslator = (() => {
   function disable() {
     active = false;
     removeDomObserver();
+    removeViewportListeners();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     // Per-unit cleanup first — reaches translations injected inside shadow roots
     // (document.querySelectorAll cannot cross shadow boundaries).
     for (const u of units) {
       const node = u.node;
       if (!node || !node.removeAttribute) continue;
-      const sib = node.__mtTrans || siblingOf(node); if (sib) sib.remove();
+      const sib = node.__mtTrans || adjacentTrans(node); if (sib) sib.remove();
       node.__mtTrans = null;
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);

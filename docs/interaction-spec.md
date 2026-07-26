@@ -301,6 +301,25 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   overlap/spill off the row. So the translation is forced onto its own line below:
   flex → `flex-basis:100%` + the row is made to wrap; grid → spans all columns.
   The row's `flex-wrap` is restored on disable.
+- **Reversed flex containers: the translation still reads BELOW the original.**
+  A `flex-direction:column-reverse` container stacks its items bottom-to-top, and
+  a row with `flex-wrap:wrap-reverse` stacks its *lines* bottom-to-top — in both,
+  a translation appended after its original in the DOM would **paint above it**
+  and the bilingual pair would read backwards. Placement therefore follows
+  **visual order, not DOM order**: in those containers the translation is
+  anchored *before* the original so it still renders below. (A plain
+  `row-reverse` only mirrors the main axis; its own-line translation already
+  lands below, so it is unchanged.)
+- **Rotation / resize / breakpoint re-measures the mirror.** The geometry a
+  translation copies from its original (the width cap, the indent, the flex-row
+  fix) is measured in **pixels at render time**. When the viewport changes —
+  iPhone rotation, a desktop window resize, a media-query breakpoint — those
+  frozen pixels are dropped (debounced) and every visible translation
+  re-measures on the next tick, so it keeps matching its original instead of
+  squeezing into a stale column. A row that a media query has flipped to a
+  column also gets its wrap fix reverted there and then. For a single-blob
+  interleave, whose original is hidden, the original is briefly restored *within
+  the same task* (never painted) to re-measure it.
 - **Translate only what's visible.** Hidden text (e.g. the collapsed-vs-expanded
   description, `display:none` nodes) is excluded via computed-style visibility —
   never translate text the user can't see.

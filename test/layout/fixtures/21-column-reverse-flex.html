@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>column-reverse flex stack</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  /* column-reverse stacks items BOTTOM-TO-TOP, so a translation inserted after
+     its original in the DOM paints ABOVE it — the bilingual pair reads backwards
+     (issue #28). Placement has to follow visual order, not DOM order. */
+  .stack { display: flex; flex-direction: column-reverse; gap: 10px; padding: 20px; max-width: 700px; }
+</style>
+<body>
+<div class="stack">
+  <p>Most people underestimate how much vocabulary they absorb from context alone.</p>
+  <p>Reading foreign articles every morning is a simple habit that compounds into fluency.</p>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "column-reverse-flex",
+  "unitCount": 2,
+  "rerender": true,
+  "targets": [
+    {
+      "sel": ".stack > p",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2",
+        "noOverlapWithSiblings"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

@@ -374,14 +374,17 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   `google` and translation works with no API key. *(CLAUDE.md provider table;
   content-main `provider:'google'`.)*
 
-- [ ] **OpenAI / Claude / DeepSeek / GLM with API key.** For each: set provider + key
-  in options, translate a page and a video. **Expected:** each returns translations
-  via its adapter (`gpt-4o-mini` / `claude-haiku-4-5` / `deepseek-chat` /
-  `glm-4-flash`). *(CLAUDE.md Provider Adapters.)*
+- [ ] **Every keyed provider in the flavor, with an API key.** For each entry in
+  `build/providers.config.js` whose `needsKey` is set and whose `flavors` include
+  the build under test: set provider + key in options, translate a page and a video.
+  **Expected:** each returns translations, and the options page's hint + model
+  placeholder both show that entry's `defaultModel`. Do **not** hardcode the model
+  names in this checklist — the registry owns them (`docs/domain-design.md` §7), and
+  a copy here is one more consumer that drifts. *(This is how the stale
+  `deepseek-chat` hint survived a model rename.)*
 
-- [ ] **Custom base URL for OpenAI-compatible.** Set `apiBaseUrl` for openai /
-  deepseek / glm. **Expected:** requests go to the custom endpoint. *(CLAUDE.md
-  "Custom base URL … supported for OpenAI-compatible providers".)*
+- [ ] **Custom base URL.** For each entry with `supportsBaseUrl`, set `apiBaseUrl`.
+  **Expected:** requests go to the custom endpoint instead of `defaultBase`.
 
 - [ ] **Provider switch re-translates active content.** With page text (and video
   subtitles) on, change provider in the popup. **Expected:** the storage change fires

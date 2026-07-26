@@ -327,8 +327,12 @@ it builds `dist/`, loads it into a throwaway-profile Chrome via the §2.D CDP
 `test/layout/fixtures/` over localhost, intercepts the Google translate endpoints with
 canned deterministic responses (fully offline), and asserts geometry invariants on the
 injected `.mt-translation` siblings (below the original, same column, no parent-style
-pollution, no horizontal overflow, …). Screenshots land in `test/layout/artifacts/`
-(gitignored) for human eyeballing. ~35s wall time (headless Chrome).
+pollution, no horizontal overflow, …). A fixture can also declare a **mid-run
+viewport change** (`resize` in its manifest — `Emulation.setDeviceMetricsOverride`),
+which re-runs every assert after the renderer's debounced re-measure: that is the
+rotation / window-resize / media-query-breakpoint path. Screenshots land in
+`test/layout/artifacts/` (gitignored, pid-locked so concurrent runs don't clobber
+each other) for human eyeballing. ~50s wall time (headless Chrome).
 
 **Mandatory before every push that touches `extension/content/**` or
 `extension/styles/**`; recommended otherwise.** No Chrome on the machine is a hard

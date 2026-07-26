@@ -222,16 +222,16 @@
     "message": "تم مسح الذاكرة"
   },
   "hint_openai": {
-    "message": "مفتاح OpenAI API (sk-…). النموذج: gpt-4o-mini"
+    "message": "مفتاح OpenAI API (sk-…)."
   },
   "hint_claude": {
-    "message": "مفتاح Anthropic API (sk-ant-…). النموذج: claude-haiku-4-5"
+    "message": "مفتاح Anthropic API (sk-ant-…)."
   },
   "hint_deepseek": {
-    "message": "مفتاح DeepSeek API. النموذج: deepseek-chat"
+    "message": "مفتاح DeepSeek API."
   },
   "hint_glm": {
-    "message": "مفتاح GLM (Zhipu AI) API. النموذج: glm-4-flash (يوجد حد مجاني)"
+    "message": "مفتاح GLM (Zhipu AI) API (يوجد حد مجاني)."
   },
   "ui_lang_label": {
     "message": "لغة الواجهة"
@@ -246,10 +246,13 @@
     "message": "الأكبر (1.25×)"
   },
   "hint_qwen": {
-    "message": "Qwen (DashScope) API Key. Default model: qwen-plus."
+    "message": "Qwen (DashScope) API Key."
   },
   "hint_kimi": {
-    "message": "Kimi (Moonshot) API Key from the matching region platform. Default model: moonshot-v1-8k."
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "النموذج الافتراضي:"
   },
   "hint_custom_chat": {
     "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
