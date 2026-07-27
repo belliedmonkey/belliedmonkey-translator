@@ -37,6 +37,34 @@ describe('TranslationCore — language helpers', () => {
     eq(TC.isTranslated('x', 5), false, 'non-string is not translated');
   });
 
+  // A true here means the unit is never sent to the provider and renders NOTHING, so a
+  // wrong true is a silent non-translation. These cases pin the bias toward "no".
+  test('isAlreadyTargetLanguage: skips native text, never a real translation job', () => {
+    const A = TC.isAlreadyTargetLanguage;
+
+    eq(A('公司真开起来，你会发现最简单的就是开公司本身了。', 'zh-CN'), true, 'pure Chinese, zh target');
+    eq(A('广告', 'zh-CN'), true, 'short native label still counts');
+    eq(A('Reading foreign articles every morning.', 'zh-CN'), false, 'English must be translated');
+
+    eq(A('我们最近在读 Attention Is All You Need 这篇论文。', 'zh-CN'), false,
+      'a few foreign words are enough to be worth translating');
+    eq(A('看看 @someone 发的 https://t.co/abc 这条', 'zh-CN'), true,
+      'handles and URLs are Latin for mechanical reasons — they must not look bilingual');
+
+    eq(A('これは日本語の文章です。', 'ja'), true, 'kana → Japanese, ja target');
+    eq(A('これは日本語の文章です。', 'zh-CN'), false, 'kana present → not Chinese, must translate');
+    eq(A('한국어 문장입니다.', 'ko'), true, 'Hangul → Korean, ko target');
+    eq(A('한국어 문장입니다.', 'zh-CN'), false, 'Hangul present → not Chinese');
+
+    eq(A('This is plain English.', 'en'), false, 'Latin target never skips — script cannot separate en/fr');
+    eq(A('Ceci est une phrase en français.', 'en'), false, 'French under an en target must still be sent');
+
+    eq(A('', 'zh-CN'), false);
+    eq(A('   ', 'zh-CN'), false);
+    eq(A('公司真开起来', ''), false, 'no target language → never skip');
+    eq(A(null, 'zh-CN'), false);
+  });
+
   test('endsSentence: terminals across scripts + trailing quote/bracket', () => {
     eq(TC.endsSentence('Hello.'), true);
     eq(TC.endsSentence('你好。'), true);
@@ -273,6 +301,27 @@ describe('TranslationCore — createSubtitleEngine', () => {
     eng.pump();
     ok(calls.includes('near') && calls.includes('soon'), 'in-window sentences translate');
     ok(!calls.includes('far'), 'beyond AHEAD is not translated yet');
+  });
+
+  // The subtitle path shares the engine, so the same-language skip must reach it too:
+  // a Chinese-language video with target zh-CN would otherwise show every cue twice.
+  test('cues already in the target language are never sent to the provider', async () => {
+    const { TC } = loadCore();
+    const calls = [];
+    const eng = TC.createSubtitleEngine({
+      getCurrentTime: () => 0,
+      translate: async (x) => { calls.push(x); return x; },
+      targetLang: 'zh-CN',
+      window: FAST,
+    });
+    const native = { start: 0, end: 1000, text: '我们今天聊聊这个话题' };
+    const foreign = { start: 2000, end: 3000, text: 'Today we are talking about this topic' };
+    eng.setItems([native, foreign]);
+    eng.pump();
+    await tick();
+    deepEq(calls, ['Today we are talking about this topic'], 'only the foreign cue is requested');
+    eq(eng.stateOf(native, 500).state, '', 'native cue never sits in pending');
+    ok(!eng.stateOf(native, 500).translation, 'native cue shows no second line');
   });
 
   test('grace period: no "pending" until we are behind by GRACE_MS', () => {

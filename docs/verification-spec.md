@@ -28,6 +28,19 @@ Corollaries:
   full coverage you didn't perform. (See §4 honesty rules.)
 - **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
   browser/computer-use tools — for every surface, including desktop Chrome.
+- **Configure DeepSeek on every surface before verifying — never verify on the free
+  Google endpoint (mandatory, 2026-07-27).** The free `translate_a/single` is not a
+  stable baseline and derailed one full-matrix pass three separate ways: it returned a
+  real translation and a verbatim echo for the *same* input minutes apart; its `sl=auto`
+  classified a Chinese-dominant mixed block as zh and echoed the whole block, so the
+  mixed-language cases never reached the code under test; and it echoed a Chinese line
+  with the spaces around embedded Latin words stripped, manufacturing a duplicate-row
+  symptom. Any of these turns "not exercised" into something that reads as a pass or a
+  failure. **Check the provider first; do not settle for the default and explain
+  afterwards.** The key lives only in the browser's extension storage — never in git,
+  never baked into a build artifact. Safari's temporary extension and a default
+  `web-ext` profile both wipe storage on quit, so either use a persistent profile
+  (§2.E) or count "re-enter the key" as a setup step for that surface.
 
 Scope: the full matrix applies to any change with an observable runtime surface —
 a URL/page render, a subtitle/overlay, layout, a control, a provider, i18n. A
@@ -191,6 +204,19 @@ So there are two real paths for macOS Safari — **prefer the first**:
   signing identity** (not `CODE_SIGNING_ALLOWED=NO`), `open` the container so it registers,
   then it appears in Settings → 扩展 → enable + grant host.
 
+  - **⚠️ 允许未签名的扩展 needs the user's macOS PASSWORD (2026-07-27).** Ticking it raises a
+    system authorization prompt ("Safari浏览器正尝试允许未签名的扩展"). An agent must not type
+    it — hand this step to the user together with the folder pick, in ONE ask, so they are
+    interrupted once rather than twice. Once granted the setting persists, so later re-adds
+    only need the folder pick.
+  - **⚠️ Do NOT use the extension detail pane's 重新载入 to pick up a rebuild (2026-07-27).**
+    It left the extension loaded but inert — the FAB injected and no unit ever translated.
+    The rule above stands unchanged: quit Safari → reopen → 添加临时扩展 once.
+  - **⚠️ An off-screen Safari window screenshots BLANK — that is a capture artifact, not a
+    bug (2026-07-27).** `list_windows` reporting `is_on_screen: false` while the title is
+    correct means the capture will be empty white; `bring_to_front` first. Cost an
+    incorrect "the extension broke the page" conclusion.
+
 **Restore after:** if you enabled "允许未签名的扩展", uncheck it; remove any temporary
 extension / app copy; return Develop-menu visibility to its snapshotted state.
 
@@ -291,14 +317,40 @@ cheap — just do it).
 node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
 npx --yes web-ext run --source-dir dist-firefox \
   --firefox /Applications/Firefox.app/Contents/MacOS/firefox \
-  --start-url "<test-url>" \
-  --args=--remote-debugging-port=9251 --no-config-discovery
+  --profile-create-if-missing --keep-profile-changes \
+  -p "$HOME/.mt-verify-firefox" \
+  --start-url "<test-url>" --no-config-discovery
 ```
+
+**Use a PERSISTENT profile, not the default throwaway one.** §0 requires DeepSeek, and
+the API key lives in extension storage — a throwaway profile wipes it on every quit, so
+each run would need the key re-entered by hand. `--profile-create-if-missing
+--keep-profile-changes -p <dir>` keeps the key (and the granted permissions) across
+runs. The profile dir is outside the repo and holds only the key, so it never reaches
+git; delete it to reset. This is still fully sandboxed — it is NOT the daily browser
+profile.
 
 `web-ext run` (Mozilla's official tool, npx-fetched — not a repo dependency) launches a
 **fresh throwaway profile** with the add-on temporarily installed (auto-clears on quit;
 it live-references `dist-firefox/`, and about:debugging has a per-extension **Reload**
 button — friendlier than Safari's snapshot semantics).
+
+**⚠️ A PENDING Firefox update blocks this row entirely (2026-07-27).** If an update is
+staged under `~/Library/Caches/Mozilla/updates/Applications/Firefox/updates/0/`
+(`update.mar` present), every launch hands off to `org.mozilla.updater`, which then waits
+for **all** Firefox instances to quit — so the daily browser being open leaves it spinning
+forever and `web-ext` dies with `ECONNREFUSED` on its debugger port. It looks like a
+web-ext/harness failure and is not. `--pref app.update.*=false` does **not** help: the
+staged update is applied by the launcher before prefs are read. Check first:
+
+```bash
+ls ~/Library/Caches/Mozilla/updates/Applications/Firefox/updates/0/update.mar 2>/dev/null
+pgrep -x firefox; pgrep -f org.mozilla.updater
+```
+
+The fix is the user's call, not the agent's — ask them to quit Firefox so the update
+applies (they get the security update and it stops recurring). Moving the staged update
+aside works too but touches their update cache, so it needs explicit consent.
 
 **⚠️ That Reload button is mandatory, not optional (burned 2026-07-26).** Like Chrome
 (§2.D), a loaded add-on keeps serving the content scripts it started with: after

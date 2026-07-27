@@ -188,6 +188,20 @@
       return (dl <= tol && dw <= tol)
         || `holder [left ${t.left.toFixed(1)} w ${t.width.toFixed(1)}] vs original [left ${r.left.toFixed(1)} w ${r.width.toFixed(1)}]`;
     },
+    // Text already in the target language must render NOTHING — not a duplicate, not a
+    // placeholder, not an error chip. Checks both sides, since placement follows visual
+    // order, and `__mtTrans` too, in case a holder exists but was moved.
+    noTranslationSibling(node) {
+      if (node.__mtTrans && node.__mtTrans.isConnected) {
+        return `node kept a translation holder: "${node.__mtTrans.textContent.slice(0, 40)}"`;
+      }
+      for (const sib of [node.previousElementSibling, node.nextElementSibling]) {
+        if (sib && sib.classList && sib.classList.contains('mt-translation')) {
+          return `adjacent .mt-translation exists: "${sib.textContent.slice(0, 40)}"`;
+        }
+      }
+      return true;
+    },
     // The spec rule is "never a whole block of originals followed by a whole block of
     // translations" — a PAIRING property, which no geometry assertion can see. The
     // holder's rows must alternate original / translation / original / translation.
@@ -201,16 +215,37 @@
       const rows = [...trans.children];
       const minRows = parseFloat(arg) || 4;
       if (rows.length < minRows) return `holder has ${rows.length} rows, expected >= ${minRows}`;
-      if (rows.length % 2) return `holder has an odd row count (${rows.length}) — rows are unpaired`;
       const origColor = csOf(node).color;
       const colors = rows.map((r) => csOf(r).color);
       if (colors.every((c) => c === colors[0])) {
         return `every row is ${colors[0]} — original and translation are indistinguishable`;
       }
       const kind = colors.map((c) => (c === origColor ? 'O' : 'T'));
-      const want = rows.map((_, i) => (i % 2 ? 'T' : 'O'));
-      if (kind.join('') !== want.join('')) {
-        return `row order ${kind.join('')} is not alternating (expected ${want.join('')})`;
+      // Each translation must sit directly under ITS OWN original. A same-language slice
+      // draws no translation row at all, so an unpaired O is legitimate and the sequence
+      // is not strictly O/T/O/T — but a T may never lead, and two T in a row still means
+      // the block was split into all-originals-then-all-translations.
+      const seq = kind.join('');
+      if (kind[0] === 'T') return `row order ${seq} starts with a translation`;
+      const dbl = seq.indexOf('TT');
+      if (dbl >= 0) return `row order ${seq} has adjacent translations at ${dbl} — rows are not interleaved`;
+      return true;
+    },
+    // No row may repeat the row above it. A slice whose "translation" came back as the
+    // original text is not a translation — showing it doubles the line for the reader.
+    // Spacing adjacent to a CJK character is typography, not language — a provider that
+    // hands the line back re-typeset ("一个 Obsidian 文档" → "一个Obsidian文档") has still
+    // said nothing new, and drawing it doubles the line for the reader. So compare with
+    // that spacing ignored; raw equality alone missed this on macOS Safari.
+    noDuplicateRow(node, trans) {
+      if (trans.dataset.interleave !== '1') return 'sibling is not an interleave holder';
+      const CJK = '\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}';
+      const norm = (s) => s.replace(/\s+/g, ' ')
+        .replace(new RegExp(`\\s+(?=[${CJK}])`, 'gu'), '')
+        .replace(new RegExp(`([${CJK}])\\s+`, 'gu'), '$1').trim();
+      const rows = [...trans.children].map((r) => norm(r.textContent));
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i] && rows[i] === rows[i - 1]) return `row ${i} repeats row ${i - 1}: "${rows[i]}"`;
       }
       return true;
     },
@@ -237,6 +272,10 @@
       return trans.textContent.includes('【译】') || 'translation text lacks the 【译】 marker';
     },
   };
+
+  // Assertions whose subject is the ABSENCE of a translation — they must still run
+  // when there is no sibling, so they bypass the generic targetHasTranslation guard.
+  const ABSENCE_ASSERTS = new Set(['noTranslationSibling']);
 
   // ─── Universal invariants (every unit, every fixture) ────────────────
   function skipped(manifest, name, node) {
@@ -328,9 +367,14 @@
     for (const t of (manifest.targets || [])) {
       const nodes = [...document.querySelectorAll(t.sel)];
       if (!nodes.length) { fail('targetSelector', t.sel, 'matches no elements'); continue; }
+      // A target asserting ABSENCE (text already in the target language renders
+      // nothing) must not be pre-empted by the generic "has a translation" guard —
+      // that guard is what every other target wants, and the absence assertion is
+      // precisely its inverse.
+      const assertsAbsence = t.assert.some((s) => ABSENCE_ASSERTS.has(s.split(':')[0]));
       for (const node of nodes) {
         const trans = transOf(node);
-        if (!trans) { fail('targetHasTranslation', t.sel, 'no translation sibling'); continue; }
+        if (!trans && !assertsAbsence) { fail('targetHasTranslation', t.sel, 'no translation sibling'); continue; }
         for (const spec of t.assert) {
           const i = spec.indexOf(':');
           const name = i === -1 ? spec : spec.slice(0, i);

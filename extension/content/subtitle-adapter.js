@@ -51,6 +51,9 @@ var SubtitleAdapter = (() => {
     const engine = TranslationCore.createSubtitleEngine({
       getCurrentTime: () => spec.getCurrentTime(),
       translate: (text) => spec.translate(text, settings), // harness owns settings; backend reads it
+      // Cues already in the target language are skipped before the request, so a
+      // native-language video shows one line instead of the same line twice.
+      targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
     });
 
     // ─── Overlay ───────────────────────────────────────────────────────

@@ -258,10 +258,12 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   engagement bar (reply / repost / like / bookmark counts), the tweet author line, the
   status page's `time · date · views` metadata row, the reply composer placeholder,
   inline promos and the footer link farm.
-- **Known residue, left by design:** the page header **`帖子`**, **`广告`** and
-  **`来自 <domain>`** still get a no-op duplicate. They are bare spans with no stable
-  anchor; targeting them needs brittle positional selectors and the impact is a single
-  repeated label. Do not report these as regressions.
+- **The three no-op residues are gone.** `帖子`, `广告` and `来自 <domain>` used to get a
+  duplicate of themselves; they were documented as left by design because they are bare
+  spans with no stable anchor to skip by *region*. They are all same-language duplicates,
+  so the universal "only translate what is in another language" rule above removes them
+  by *content* instead — no site-specific selector needed. Seeing one of them duplicated
+  again **is** a regression now.
 
 ---
 
@@ -332,6 +334,41 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 
 ## Text translation — universal rules (ALL devices, ALL pages)
 These apply to every webpage text translation, on every platform:
+- **Only translate what is in ANOTHER language — and don't even ask the provider
+  otherwise.** A paragraph that is already in the target language must produce **no
+  translation line at all**: not a duplicate, not a placeholder, not an error. It must
+  also **not be sent to the provider** — an unnecessary request costs the user quota,
+  and the answer would be discarded anyway. A bilingual pair is only shown when the two
+  sides really are different languages; **a few foreign words are enough** to make a
+  paragraph worth translating, so a mostly-Chinese sentence quoting an English phrase
+  still gets translated.
+- **Known limit of that rule — stated, not hidden.** Script can only tell you *same
+  script*, never *same language*. So the skip is enabled **only for Chinese / Japanese /
+  Korean targets**, where the mapping is clean (Han without kana → Chinese, kana →
+  Japanese, Hangul → Korean). With a Latin target, English and French are the same
+  script and are indistinguishable this way, so no skipping happens there and every unit
+  is still sent. **Erring toward translating is deliberate**: a wrongly skipped
+  paragraph shows nothing at all and gives the user nothing to retry, which is far worse
+  than one redundant line. URLs, `@handles` and `#tags` are excluded from the
+  measurement — they are Latin even inside otherwise-native text.
+- **Backstop for the targets that can't be skipped:** if a translation comes back
+  **identical** to the original after normalisation, draw nothing. Strict equality only —
+  never a similarity guess, which could suppress a genuine translation.
+- **Normalisation ignores spacing that is typography rather than language.** Whitespace
+  runs collapse, and whitespace *touching a CJK character* is dropped entirely: providers
+  re-typeset freely around an embedded Latin word (Google returned
+  「我会创建一个 Obsidian 文档」 as 「我会创建一个Obsidian文档」), and treating that as a
+  translation draws the line twice. A space **between two Latin words** is untouched. This
+  stays strict equality — a real translation differs by far more than spacing — and it is
+  the comparison used for both the whole-unit and the per-line check.
+- **The backstop applies per LINE, not just per paragraph.** The skip decision is made
+  for a whole unit, but the reader sees the interleaved slices of it. A paragraph can
+  legitimately deserve translating (it quotes foreign words) and still contain an
+  individual line that is already the target language and comes back unchanged — that
+  line is drawn **once, with no translation row under it**, while its siblings keep
+  theirs. So the interleaved sequence is not always strictly original/translation/
+  original/translation: an original may stand alone. What is never allowed is a
+  translation row that does not sit directly under its own original.
 - **Interleaved, paragraph by paragraph.** Each original paragraph is **immediately
   followed by its own translation** (original above, translation below) — never a
   whole block of originals followed by a whole block of translations. If the
