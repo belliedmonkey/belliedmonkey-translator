@@ -27,6 +27,9 @@ var WebpageTranslator = (() => {
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
+      // Text already in the target language never reaches the provider (engine skips it
+      // before the request) and therefore renders no sibling at all.
+      targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
       // viewport priority + lazy: only translate units in/near the viewport.
       selectActive: (us) => us.filter((u) => u.node.isConnected && inViewport(u.node)),
       window: { AHEAD_MS: 0, MAX_PER_TICK: 5, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 0 },
@@ -134,6 +137,9 @@ var WebpageTranslator = (() => {
     return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}${ta}`;
   }
   function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
+  // Whitespace-insensitive comparison, used to recognise "the response is the original
+  // text back again". Strict equality only — never a similarity guess.
+  function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
   // The original element's OWN text color, for the interleave path's re-drawn
   // original rows (see renderInterleaved).
   function origColorOf(node) {
@@ -327,7 +333,13 @@ var WebpageTranslator = (() => {
       d.onclick = () => { engine.retry(u); u._shownKey = ''; };
       return;
     }
-    if (st.translation) {
+    // Backstop for the targets the engine cannot pre-skip (Latin ones — script can't
+    // separate English from French): a response identical to the original is not a
+    // translation, so draw nothing and fall through to the no-sibling branch. Strict
+    // equality after whitespace normalisation only — never a similarity guess, which
+    // could suppress a real translation.
+    const sameAsOriginal = st.translation && norm(st.translation) === norm(u.text);
+    if (st.translation && !sameAsOriginal) {
       const pairs = pairForInterleave(node, u.text, st.translation);
       if (pairs) {
         renderInterleaved(node, pairs); // single blob → interleave
@@ -435,6 +447,11 @@ var WebpageTranslator = (() => {
       const o = document.createElement('div');
       o.style.cssText = 'white-space:pre-wrap;' + (p.tight ? 'margin-top:2px;' : 'margin-top:6px;') + origColor;
       buildRichText(p.o, o); holder.appendChild(o);
+      // The skip decision is per UNIT but display is per SLICE: a paragraph that
+      // legitimately needs translating (it quotes foreign words) can still contain an
+      // individual line that comes back unchanged. Draw the original alone for those —
+      // same rule as the whole-unit backstop, applied at the granularity the user sees.
+      if (norm(p.t) === norm(p.o)) continue;
       const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(p.t, t); holder.appendChild(t);
     }
     node.setAttribute('data-mt-hidden', '1');

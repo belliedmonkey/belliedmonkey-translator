@@ -81,7 +81,20 @@ function releaseArtifactDir() {
 // extension/content/translation-api.js (translate_a/single and translate_a/t on
 // translate.googleapis.com). If that provider moves, this intercept must move with
 // it — drift shows up as an awaitStable timeout, and this comment is the pointer.
-const fakeTranslate = (q) => q.split(/\n{2,}/).map((p) => '【译】' + p).join('\n\n');
+// Marks every non-empty LINE, not every blank-line paragraph: a real engine returns a
+// changed string for each line of a line-structured block, and marking only the first
+// line would leave the rest byte-identical to the original — an artifact the renderer
+// now (correctly) suppresses, which would make line-wise fixtures look under-rendered.
+// A line that is ALREADY the target language is echoed back unchanged, because that is
+// exactly what a real provider does with it (see fixture 28).
+// Uses the PRODUCTION predicate rather than a hand-rolled proxy, so "what a provider
+// echoes back" cannot drift away from "what the engine considers already-translated".
+const { isAlreadyTargetLanguage } = require('../harness')
+  .loadModule('translation-core.js', { window: {}, navigator: { language: 'en-US' } })
+  .TranslationCore;
+const fakeTranslate = (q) => q.split('\n')
+  .map((line) => (!line.trim() || isAlreadyTargetLanguage(line, CFG.targetLang) ? line : '【译】' + line))
+  .join('\n');
 
 function googleBody(url) {
   const u = new URL(url);

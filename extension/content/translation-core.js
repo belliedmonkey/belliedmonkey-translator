@@ -70,9 +70,50 @@ var TranslationCore = (() => {
   // Success = produced non-empty output. Identical output is NOT a failure (a
   // number, a proper noun, or already-target-language text is legitimately
   // unchanged) — so we never reject a translation just because it equals input.
+  // (Already-target-language text is now caught BEFORE the request instead — see
+  // isAlreadyTargetLanguage; this stays the success test, not a language test.)
   function isTranslated(input, output) {
     return typeof output === 'string' && output.trim().length > 0;
   }
+
+  // ─── "Is this text already in the target language?" ───────────────────
+  // Answering yes means we never send the request at all (pump()), so the unit shows
+  // NOTHING — no duplicate, no placeholder, no error. That makes a wrong yes a silent
+  // non-translation, so the predicate is deliberately narrow and biased toward "no".
+  //
+  // Script can only tell you SAME SCRIPT, never same language. So this is enabled only
+  // for zh / ja / ko targets, the one family where the mapping is clean. With a Latin
+  // target, English and French are the same script and indistinguishable this way — it
+  // returns false there and behaviour is unchanged. See docs/interaction-spec.md.
+  const SCRIPT_OF_TARGET = [
+    // order matters: ja before zh, because Japanese text also contains Han.
+    { test: /^ja\b/i, has: /[\p{Script=Hiragana}\p{Script=Katakana}]/u },
+    { test: /^ko\b/i, has: /\p{Script=Hangul}/u },
+    { test: /^zh\b/i, has: /\p{Script=Han}/u, notAlso: /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u },
+  ];
+  // Anything that is Latin for mechanical reasons rather than linguistic ones. Left in,
+  // a single @handle or t.co link makes a pure-Chinese tweet look bilingual.
+  const NON_LINGUISTIC = /https?:\/\/\S+|\bwww\.\S+|[@#][\w一-鿿]+|\b[\w.+-]+@[\w.-]+\.\w+\b/gu;
+  const FOREIGN_RUN = /\p{Letter}+/gu;
+
+  function isAlreadyTargetLanguage(text, targetLang) {
+    if (typeof text !== 'string' || !text.trim() || !targetLang) return false;
+    const rule = SCRIPT_OF_TARGET.find((r) => r.test.test(targetLang));
+    if (!rule) return false;                        // Latin (and everything else): never skip
+    const body = text.replace(NON_LINGUISTIC, ' ');
+    if (!rule.has.test(body)) return false;         // no target script at all → translate
+    if (rule.notAlso && rule.notAlso.test(body)) return false; // zh target, kana/Hangul present → not Chinese
+    // Count letters NOT in the target script. Digits, punctuation, whitespace and emoji
+    // are not letters, so they never count either way.
+    let foreign = 0;
+    for (const run of body.match(FOREIGN_RUN) || []) {
+      if (!rule.has.test(run)) foreign += run.length;
+    }
+    // A few foreign words are enough to make the paragraph worth translating — that is
+    // the "at least some words are in another language" half of the rule.
+    return foreign < FOREIGN_LETTER_FLOOR;
+  }
+  const FOREIGN_LETTER_FLOOR = 8;
 
   function endsSentence(s) { return SENT_END.test(s); }
 
@@ -188,6 +229,7 @@ var TranslationCore = (() => {
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
     const win = cfg.window || WINDOW;
+    const targetLang = cfg.targetLang || '';
     let units = [];
 
     function setUnits(list) { units = list || []; }
@@ -199,6 +241,11 @@ var TranslationCore = (() => {
       for (let i = 0; i < active.length && started < win.MAX_PER_TICK; i++) {
         const it = active[i];
         if (it.tr || it._done || it._err || it._fetching) continue;
+        // Already in the target language → don't spend a request on it, and let it
+        // settle into the same "nothing to show" state an empty response produces, so
+        // the renderer draws no sibling at all. Covers the webpage AND subtitle paths,
+        // which share this engine.
+        if (isAlreadyTargetLanguage(it.text, targetLang)) { it._done = true; continue; }
         it._fetching = true;
         started++;
         translate(it.text).then((t) => {
@@ -239,6 +286,7 @@ var TranslationCore = (() => {
     const engine = createEngine({
       translate: cfg.translate,
       window: win,
+      targetLang: cfg.targetLang,
       // sliding window: only sentences from now to +AHEAD_MS
       selectActive: (units) => {
         const tMs = getCurrentTime();
@@ -284,7 +332,7 @@ var TranslationCore = (() => {
 
   return {
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
-    isTranslated, looksLikeCode, endsSentence, joinCue, wordBreakIndex,
+    isTranslated, isAlreadyTargetLanguage, looksLikeCode, endsSentence, joinCue, wordBreakIndex,
     mergeSentences, createPager, createEngine, createSubtitleEngine, isMobileLayout,
   };
 })();

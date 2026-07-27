@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>same-language lines inside a translated block draw no translation row</title>
+<style>
+  /* The skip decision is per UNIT, the display is per SLICE — and they disagree.
+
+     This block quotes enough foreign words (Obsidian / Claude Code / a whole English
+     line) that the UNIT is not already-target-language, so it is sent to the provider
+     and translated — correctly. But two of its lines are Chinese with at most a word or
+     two of Latin: the provider hands those straight back, and interleave drew each of
+     them twice. Found on x.com/home AFTER the unit-level skip shipped, which is exactly
+     why fixture 27 could not catch it — this needs a block that legitimately translates
+     and still contains native lines.
+
+     The English line is the over-suppression guard: suppressing same-language slices
+     must not cost us the slices that genuinely need translating.
+
+     RED before the fix: `noDuplicateRow` sees the echoed rows repeated back-to-back. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; padding: 24px 0; }
+  #tweet { max-width: 640px; margin: 16px auto; white-space: pre-line; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <div id="tweet">我正在尝试一种新的 coding 习惯
+
+我会创建一个 Obsidian 文档，告诉 Claude Code 挂一个心跳
+
+当 Fable5
+
+The trick is seeing the same words in living sentences</div>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "same-language-line-in-mixed-block",
+  "unitCount": 1,
+  "skipUniversal": {
+    "belowOriginal": [
+      "#tweet"
+    ],
+    "originalGeometryStable": [
+      "#tweet"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#tweet",
+      "assert": [
+        "holderReplacesOriginal",
+        "interleaveAlternates:6",
+        "noDuplicateRow"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>
