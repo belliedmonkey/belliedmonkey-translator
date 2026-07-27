@@ -354,6 +354,13 @@ These apply to every webpage text translation, on every platform:
 - **Backstop for the targets that can't be skipped:** if a translation comes back
   **identical** to the original after normalisation, draw nothing. Strict equality only —
   never a similarity guess, which could suppress a genuine translation.
+- **Normalisation ignores spacing that is typography rather than language.** Whitespace
+  runs collapse, and whitespace *touching a CJK character* is dropped entirely: providers
+  re-typeset freely around an embedded Latin word (Google returned
+  「我会创建一个 Obsidian 文档」 as 「我会创建一个Obsidian文档」), and treating that as a
+  translation draws the line twice. A space **between two Latin words** is untouched. This
+  stays strict equality — a real translation differs by far more than spacing — and it is
+  the comparison used for both the whole-unit and the per-line check.
 - **The backstop applies per LINE, not just per paragraph.** The skip decision is made
   for a whole unit, but the reader sees the interleaved slices of it. A paragraph can
   legitimately deserve translating (it quotes foreign words) and still contain an

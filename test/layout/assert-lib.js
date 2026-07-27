@@ -233,9 +233,17 @@
     },
     // No row may repeat the row above it. A slice whose "translation" came back as the
     // original text is not a translation — showing it doubles the line for the reader.
+    // Spacing adjacent to a CJK character is typography, not language — a provider that
+    // hands the line back re-typeset ("一个 Obsidian 文档" → "一个Obsidian文档") has still
+    // said nothing new, and drawing it doubles the line for the reader. So compare with
+    // that spacing ignored; raw equality alone missed this on macOS Safari.
     noDuplicateRow(node, trans) {
       if (trans.dataset.interleave !== '1') return 'sibling is not an interleave holder';
-      const rows = [...trans.children].map((r) => r.textContent.replace(/\s+/g, ' ').trim());
+      const CJK = '\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}';
+      const norm = (s) => s.replace(/\s+/g, ' ')
+        .replace(new RegExp(`\\s+(?=[${CJK}])`, 'gu'), '')
+        .replace(new RegExp(`([${CJK}])\\s+`, 'gu'), '$1').trim();
+      const rows = [...trans.children].map((r) => norm(r.textContent));
       for (let i = 1; i < rows.length; i++) {
         if (rows[i] && rows[i] === rows[i - 1]) return `row ${i} repeats row ${i - 1}: "${rows[i]}"`;
       }

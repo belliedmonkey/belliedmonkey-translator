@@ -139,7 +139,20 @@ var WebpageTranslator = (() => {
   function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
   // Whitespace-insensitive comparison, used to recognise "the response is the original
   // text back again". Strict equality only — never a similarity guess.
-  function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+  //
+  // Whitespace TOUCHING a CJK character is dropped too, because it is typography, not
+  // language: providers add and remove the space around an embedded Latin word freely
+  // (Google handed back "我会创建一个 Obsidian 文档" as "我会创建一个Obsidian文档"), and
+  // without this the echoed line reads as a translation and gets drawn twice — caught on
+  // macOS Safari. A space BETWEEN two Latin words is untouched, and a real translation
+  // still differs by far more than spacing, so nothing genuine can be suppressed.
+  const CJK = '\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}';
+  const SPACE_BEFORE_CJK = new RegExp(`\\s+(?=[${CJK}])`, 'gu');
+  const SPACE_AFTER_CJK = new RegExp(`([${CJK}])\\s+`, 'gu');   // capture, not lookbehind (older WebKit)
+  function norm(s) {
+    return String(s || '').replace(/\s+/g, ' ')
+      .replace(SPACE_BEFORE_CJK, '').replace(SPACE_AFTER_CJK, '$1').trim();
+  }
   // The original element's OWN text color, for the interleave path's re-drawn
   // original rows (see renderInterleaved).
   function origColorOf(node) {

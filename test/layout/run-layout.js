@@ -92,8 +92,18 @@ function releaseArtifactDir() {
 const { isAlreadyTargetLanguage } = require('../harness')
   .loadModule('translation-core.js', { window: {}, navigator: { language: 'en-US' } })
   .TranslationCore;
+// An echoed line is NOT returned byte-identical: real providers re-typeset CJK, dropping
+// the spaces around an embedded Latin word (Google returned "我会创建一个 Obsidian 文档"
+// as "我会创建一个Obsidian文档"). Modelling that is what makes the renderer's comparison
+// honest — a byte-identical echo would let a too-strict `norm()` pass. Found on macOS
+// Safari; encoded here so it cannot regress.
+const dropCjkSpaces = (s) => s
+  .replace(/\s+(?=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])/gu, '')
+  .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])\s+/gu, '$1');
 const fakeTranslate = (q) => q.split('\n')
-  .map((line) => (!line.trim() || isAlreadyTargetLanguage(line, CFG.targetLang) ? line : '【译】' + line))
+  .map((line) => (!line.trim() ? line
+    : isAlreadyTargetLanguage(line, CFG.targetLang) ? dropCjkSpaces(line)
+    : '【译】' + line))
   .join('\n');
 
 function googleBody(url) {
