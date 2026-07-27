@@ -28,6 +28,19 @@ Corollaries:
   full coverage you didn't perform. (See §4 honesty rules.)
 - **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
   browser/computer-use tools — for every surface, including desktop Chrome.
+- **Configure DeepSeek on every surface before verifying — never verify on the free
+  Google endpoint (mandatory, 2026-07-27).** The free `translate_a/single` is not a
+  stable baseline and derailed one full-matrix pass three separate ways: it returned a
+  real translation and a verbatim echo for the *same* input minutes apart; its `sl=auto`
+  classified a Chinese-dominant mixed block as zh and echoed the whole block, so the
+  mixed-language cases never reached the code under test; and it echoed a Chinese line
+  with the spaces around embedded Latin words stripped, manufacturing a duplicate-row
+  symptom. Any of these turns "not exercised" into something that reads as a pass or a
+  failure. **Check the provider first; do not settle for the default and explain
+  afterwards.** The key lives only in the browser's extension storage — never in git,
+  never baked into a build artifact. Safari's temporary extension and a default
+  `web-ext` profile both wipe storage on quit, so either use a persistent profile
+  (§2.E) or count "re-enter the key" as a setup step for that surface.
 
 Scope: the full matrix applies to any change with an observable runtime surface —
 a URL/page render, a subtitle/overlay, layout, a control, a provider, i18n. A
@@ -304,9 +317,18 @@ cheap — just do it).
 node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
 npx --yes web-ext run --source-dir dist-firefox \
   --firefox /Applications/Firefox.app/Contents/MacOS/firefox \
-  --start-url "<test-url>" \
-  --args=--remote-debugging-port=9251 --no-config-discovery
+  --profile-create-if-missing --keep-profile-changes \
+  -p "$HOME/.mt-verify-firefox" \
+  --start-url "<test-url>" --no-config-discovery
 ```
+
+**Use a PERSISTENT profile, not the default throwaway one.** §0 requires DeepSeek, and
+the API key lives in extension storage — a throwaway profile wipes it on every quit, so
+each run would need the key re-entered by hand. `--profile-create-if-missing
+--keep-profile-changes -p <dir>` keeps the key (and the granted permissions) across
+runs. The profile dir is outside the repo and holds only the key, so it never reaches
+git; delete it to reset. This is still fully sandboxed — it is NOT the daily browser
+profile.
 
 `web-ext run` (Mozilla's official tool, npx-fetched — not a repo dependency) launches a
 **fresh throwaway profile** with the add-on temporarily installed (auto-clears on quit;
