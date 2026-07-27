@@ -134,6 +134,12 @@ var WebpageTranslator = (() => {
     return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}${ta}`;
   }
   function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
+  // The original element's OWN text color, for the interleave path's re-drawn
+  // original rows (see renderInterleaved).
+  function origColorOf(node) {
+    let cs = null; try { cs = node && getComputedStyle(node); } catch (_) { cs = null; }
+    return (cs && cs.color) ? `color:${cs.color};` : '';
+  }
 
   // A sibling translation injected into a flex/grid row becomes a flex/grid ITEM
   // placed inline next to the original (mobile YouTube metadata "4946次点赞 ·
@@ -322,10 +328,9 @@ var WebpageTranslator = (() => {
       return;
     }
     if (st.translation) {
-      const oParas = u.text.split(/\n{2,}/);
-      const tParas = st.translation.split(/\n{2,}/);
-      if (oParas.length > 1 && oParas.length === tParas.length) {
-        renderInterleaved(node, oParas, tParas); // single-blob multi-paragraph (e.g. YT description)
+      const pairs = pairForInterleave(node, u.text, st.translation);
+      if (pairs) {
+        renderInterleaved(node, pairs); // single blob → interleave
       } else {
         restoreOriginal(node);
         const d = ensureSibling(node); d.onclick = null;
@@ -340,9 +345,69 @@ var WebpageTranslator = (() => {
     else { const d = adjacentTrans(node); if (d) d.remove(); }
   }
 
-  // Single-blob text with internal paragraphs: hide the original, draw our own
-  // holder with each original paragraph followed by its translation (interleave).
-  function renderInterleaved(node, oParas, tParas) {
+  // Decide how to slice a single-blob unit for the interleave renderer, or return
+  // null to keep the plain one-sibling rendering.
+  //
+  // Blank-line paragraphs come first — the original YouTube-description case. But
+  // "paragraph" cannot mean *only* that: LINE-STRUCTURED text (a chapter list, lyrics,
+  // a poem, a plain-text bullet list) separates entries with a SINGLE newline, so the
+  // whole block used to count as one paragraph and rendered as N originals followed by
+  // N translations — precisely what interaction-spec forbids ("never a whole block of
+  // originals followed by a whole block of translations"). So fall back to pairing
+  // line by line.
+  //
+  // Either way we pair ONLY when both sides yield the same count. A mis-pair would
+  // attach a translation to the wrong original, which is worse than the whole-block
+  // rendering we fall back to — fewer interleaves is acceptable, mis-pairing is not.
+  // Blank lines are dropped on both sides before counting so they can't skew it.
+  function pairForInterleave(node, orig, trans) {
+    const paras = (s) => s.split(/\n{2,}/).filter((x) => x.trim());
+    const lines = (s) => s.split('\n').filter((x) => x.trim());
+    // Line-wise slicing is valid ONLY where the newlines are real. In normal HTML a
+    // newline between inline elements is source formatting and renders as a SPACE —
+    // but getTextContent keeps it, so splitting on it would shred an ordinary
+    // paragraph into fake lines (caught by fixture 24, whose spans sit on separate
+    // source lines). Only white-space:pre* renders a newline as a line break, which is
+    // what a chapter list / lyrics / a tweet body uses.
+    const pre = preservesNewlines(node);
+    const same = (a, b) => a.length > 1 && a.length === b.length;
+
+    const op = paras(orig), tp = paras(trans);
+    let pairs = null;
+    if (same(op, tp)) pairs = op.map((o, i) => ({ o, t: tp[i], tight: false }));
+    else if (pre) {
+      const ol = lines(orig), tl = lines(trans);
+      if (same(ol, tl)) pairs = ol.map((o, i) => ({ o, t: tl[i], tight: true }));
+    }
+    if (!pairs) return null;
+
+    // A blank-line paragraph can ITSELF be line-structured — the motivating case is a
+    // tweet whose second paragraph is a 30-line chapter list. Pairing only at
+    // paragraph level would render those 30 originals above 30 translations, the exact
+    // shape the spec forbids. So expand every paragraph that is line-structured on
+    // both sides; leave the rest alone.
+    if (pre) {
+      const out = [];
+      for (const p of pairs) {
+        const ol = lines(p.o), tl = lines(p.t);
+        if (same(ol, tl)) ol.forEach((o, i) => out.push({ o, t: tl[i], tight: true }));
+        else out.push(p);
+      }
+      pairs = out;
+    }
+    return pairs;
+  }
+  function preservesNewlines(node) {
+    let cs = null; try { cs = node && getComputedStyle(node); } catch (_) { cs = null; }
+    return !!(cs && /^(pre|pre-wrap|pre-line|break-spaces)$/.test(cs.whiteSpace));
+  }
+
+  // Single-blob text: hide the original, draw our own holder with each original slice
+  // immediately followed by its translation (interleave). `pairs` comes from
+  // pairForInterleave; each carries `tight` = this slice is a LINE of a
+  // line-structured block, not a blank-line paragraph, so it must not be pushed apart
+  // by paragraph spacing (a chapter list would otherwise be stretched).
+  function renderInterleaved(node, pairs) {
     node.__mtPlaceBefore = computePlacement(node);
     let holder = node.__mtTrans;
     if (holder && !holder.isConnected) holder = null;
@@ -358,9 +423,19 @@ var WebpageTranslator = (() => {
     // the source; translation rows additionally take the distinct color via transStyle.
     holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node) + layoutCss(node);
     holder.textContent = '';
-    for (let i = 0; i < oParas.length; i++) {
-      const o = document.createElement('div'); o.style.cssText = 'white-space:pre-wrap;margin-top:6px;'; buildRichText(oParas[i], o); holder.appendChild(o);
-      const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(tParas[i], t); holder.appendChild(t);
+    // …and re-assert the original's own COLOR on the original rows. The holder is a
+    // `.mt-translation` element, and bilingual.css colors that class with the
+    // translation color — which the re-drawn originals would otherwise inherit,
+    // rendering the whole block in one solid green. Color is the ONE property the
+    // bilingual pair keeps distinct (interaction-spec), so losing it is the one thing
+    // this path must not do. Reading it works even on a re-render, when the source is
+    // already display:none: `color` is a computed, inherited value either way.
+    const origColor = origColorOf(node);
+    for (const p of pairs) {
+      const o = document.createElement('div');
+      o.style.cssText = 'white-space:pre-wrap;' + (p.tight ? 'margin-top:2px;' : 'margin-top:6px;') + origColor;
+      buildRichText(p.o, o); holder.appendChild(o);
+      const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(p.t, t); holder.appendChild(t);
     }
     node.setAttribute('data-mt-hidden', '1');
     node.style.display = 'none';

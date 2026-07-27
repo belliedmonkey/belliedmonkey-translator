@@ -337,6 +337,19 @@ These apply to every webpage text translation, on every platform:
   whole block of originals followed by a whole block of translations. If the
   platform renders text as one blob with no per-paragraph nodes (e.g. the YouTube
   description), re-render it ourselves to achieve the interleave.
+- **What counts as a "paragraph" here.** Leaving this undefined is how the rule above
+  got violated in practice, so: it is a blank-line-delimited paragraph **and, in
+  line-structured text, a single line**. A chapter list, lyrics, a poem or a
+  plain-text bullet list separates entries with one newline; treating the block as a
+  single paragraph makes N originals render above N translations — the very shape the
+  rule forbids. A newline only counts when it is **really rendered as a line break**
+  (the element's `white-space` is `pre` / `pre-wrap` / `pre-line` / `break-spaces`);
+  in ordinary HTML a newline between inline elements is source formatting and renders
+  as a space, so splitting on it would shred a normal paragraph into fake lines.
+- **Never mis-pair.** Original and translation are interleaved only when both sides
+  yield the **same** number of slices. If the model reflows the text and the counts
+  disagree, fall back to the single-translation-block rendering: fewer interleaves is
+  acceptable, attaching a translation to the wrong original is not.
 - **Translation style matches the original.** The translated paragraph mirrors the
   original's formatting: line breaks / blank lines preserved (`white-space:
   pre-wrap`), and inline elements kept functional — URLs stay clickable links and
@@ -353,6 +366,13 @@ These apply to every webpage text translation, on every platform:
   `1.0×`). Applies to the sibling translation and to the re-rendered originals +
   translations in the single-blob interleave path. Subtitle overlays are a separate
   path (`lineCss`, keyed off `ytTextColor`) and are unaffected.
+- **…and in the interleave path the ORIGINAL keeps looking like an original.** When a
+  single-blob paragraph is re-drawn as alternating original / translation rows, the
+  re-drawn original rows carry the **source element's own color**, not the
+  translation color. The holder we draw them into is itself a `.mt-translation`
+  element, so without that the originals inherit the green and the whole block
+  renders in one solid color — the bilingual pair stops being tellable apart, which
+  is the single thing color exists to do here. (Regression-tested by fixture 25.)
 
 ---
 

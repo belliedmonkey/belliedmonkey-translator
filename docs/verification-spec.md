@@ -236,6 +236,16 @@ DisableLoadExtensionCommandLineSwitch` did **not** re-enable it on Chrome 150. T
 **harness limitation, not an extension defect** (the same `dist/` injects fine on iOS/iPad
 Safari).
 
+**⚠️ Rebuilding `dist/` is NOT enough — reload the extension (burned 2026-07-26, twice).**
+An already-loaded unpacked extension keeps serving the content scripts it loaded with;
+a page reload runs the OLD code. Symptom: you rebuild with a fix, reload the tab, the bug
+is still there, and you conclude the fix does not work. On a **long-lived** Chrome
+(`chrome://extensions` → the extension's ⟳ **reload** icon) this is mandatory after every
+`node build.js`; then reload the page. **Firefox has the same trap** (§2.E:
+`about:debugging` → **重载 / Reload** on the temporary add-on, then reload the page) — and
+Safari's temporary extension is worse still, being a snapshot (§2.C). Only the throwaway
+CDP flow below is exempt, because it loads the extension fresh each run.
+
 **Recommended — CDP `Extensions.loadUnpacked` (no GUI, no CLI flag):** launch a throwaway
 profile with only `--remote-debugging-port`, then load the extension over the browser-level
 CDP endpoint. This bypasses **both** the `--load-extension` block **and** the GUI file-picker:
@@ -288,7 +298,17 @@ npx --yes web-ext run --source-dir dist-firefox \
 `web-ext run` (Mozilla's official tool, npx-fetched — not a repo dependency) launches a
 **fresh throwaway profile** with the add-on temporarily installed (auto-clears on quit;
 it live-references `dist-firefox/`, and about:debugging has a per-extension **Reload**
-button — friendlier than Safari's snapshot semantics). Manual alternative:
+button — friendlier than Safari's snapshot semantics).
+
+**⚠️ That Reload button is mandatory, not optional (burned 2026-07-26).** Like Chrome
+(§2.D), a loaded add-on keeps serving the content scripts it started with: after
+`node build.js firefox` you must hit **重载 / Reload** on the add-on in
+`about:debugging`, *then* load the page — otherwise you are testing the previous build
+and will wrongly conclude the fix failed. **A logged-in session is a reason to prefer
+the real profile over `web-ext run`:** the throwaway profile has no cookies, so for a
+login-gated site load the temporary add-on into your normal Firefox instead
+(`about:debugging` → 临时载入附加组件 → `dist-firefox/manifest.json`; it still
+auto-clears when Firefox quits). Manual alternative:
 `about:debugging#/runtime/this-firefox` → 临时载入附加组件 → `dist-firefox/manifest.json`.
 
 Drive/verify over **WebDriver BiDi** (Firefox ≥129 removed CDP): raw WebSocket at

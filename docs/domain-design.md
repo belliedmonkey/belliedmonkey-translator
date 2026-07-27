@@ -203,6 +203,33 @@ above the viewport the browser's scroll anchoring jumps the page far down. The r
 is symmetric with the visibility rule above, which already treats `display:contents`
 as "render its children."
 
+**…and an INLINE-LEVEL box must not break a paragraph.** The mirror image of the
+same mistake. `inline-block` / `inline-flex` / `inline-grid` / `inline-table` are
+**inline-level**: they sit in the parent's *inline* formatting context, in the line
+box next to the text. They are decorations *within* a paragraph — an emoji wrapper,
+a badge, an inline icon — not a break in it. Only `block` / `flex` / `grid` /
+`list-item` / `table` are block-level and end a paragraph.
+
+Counting them as blocks silently deletes the paragraph: `hasBlockChild` reports the
+paragraph as a container, so the walker declines to collect it and descends instead;
+inside, the prose lives in `inline` spans that the walk rejects, and the badge itself
+fails `minLen`. **Nothing is collected — no translation, no placeholder, no error**,
+which is worse than a visible failure because there is nothing for the user to
+retry. (Found on x.com, where a tweet body is spans + `inline-flex` emoji wrappers —
+but this is not site knowledge: any page with an inline badge inside running text has
+it.)
+
+So "does this child break the paragraph?" is a **different question** from "could
+this element be a unit?", and the two must not share one predicate. Leaf-block
+detection asks the former; an inline-level child answers *no*.
+
+**Guard — do not resurrect the giant-blob failure.** A container whose children are
+*all* inline-level boxes with no text-bearing inline content between them (an
+inline-block card grid) is still a layout container and must be descended into,
+exactly as above. An inline-level child therefore stops breaking the paragraph only
+when the element **also holds inline content that actually bears text**. That keeps
+both cases: decorated paragraph → one unit; card grid → one unit per card.
+
 **Don't translate the media-player region.** The video player's chrome (live
 captions, controls) and our own subtitle overlay belong to the **subtitle/player
 path**, not the webpage extractor — so `DomSegmenter` skips any subtree inside a

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>paragraph decorated with an inline-level box</title>
+<style>
+  /* A paragraph whose prose lives in <span>s and which also contains an
+     INLINE-LEVEL box (display:inline-flex) — an emoji / badge / icon wrapper.
+     x.com's tweetText is exactly this shape, and it is not site-specific: any
+     page that puts an inline-flex/inline-block decoration inside running text
+     has it.
+
+     Before the fix `isBlock()` classified inline-flex as block-level, so
+     `hasBlockChild()` reported the paragraph as a CONTAINER: the walker declined
+     to collect it (dom-processor.js:261) and descended instead — where the prose
+     <span>s were rejected as inline (line 260) and the tiny inline-flex box failed
+     minLen (line 265). Net effect: the whole paragraph was silently dropped, no
+     translation and no error. RED = unitCount never reaches 2.
+
+     Inline-level boxes participate in the parent's INLINE formatting context, so
+     they must not count as a paragraph break. See docs/domain-design.md §3. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 620px; padding: 20px; }
+  .post { margin: 16px 0; line-height: 1.5; }
+  .badge { display: inline-flex; align-items: center; width: 18px; height: 18px;
+           background: #f0f0f0; border-radius: 4px; vertical-align: middle; }
+  .plain { margin: 16px 0; line-height: 1.5; }
+</style>
+<body>
+<main>
+
+  <!-- Prose + an inline-flex decoration in the middle. This is the regression. -->
+  <div class="post" id="decorated">
+    <span>Reading foreign articles every morning is a simple habit that compounds into fluency</span>
+    <div class="badge" aria-hidden="true"></div>
+    <span>and most people underestimate how much vocabulary they absorb from context alone.</span>
+  </div>
+
+  <!-- Control: identical prose, no inline-level child. Always translated, before
+       and after — proves the fixture isn't green for an unrelated reason. -->
+  <div class="plain" id="control">
+    <span>The quick brown fox jumps over the lazy dog near the quiet river bank every single morning.</span>
+  </div>
+
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "inline-flex-in-paragraph",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": "#decorated",
+      "assert": [
+        "translationMarked",
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    },
+    {
+      "sel": "#control",
+      "assert": [
+        "translationMarked"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>
