@@ -100,19 +100,53 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 
 | Surface | Target `en`, long English paragraph | Target `zh-CN`, Chinese page |
 |---|---|---|
-| iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage` | no translation lines, nothing sent (script layer, unchanged) |
+| iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage`. Measured on all three: macOS Safari 2026-07-28, iPhone (iOS 26.5) and iPad Air (iOS 17.2) 2026-07-28 via §1.1 | no translation lines, nothing sent (script layer, unchanged) |
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
 
-**⚠️ On the iOS simulators the request-level check is currently NOT achievable
-(2026-07-28).** It needs 自定义 API 地址 pointed at a local endpoint, and text entry into
-the simulator is unreliable: cua-driver's synthesized keystrokes arrive mangled
-(`http://127.0.0.1:8788` came out as `Aaaaaaaa…`, then `Vfff`), `⌘V` types a literal
-"V" even after `xcrun simctl pbcopy` puts the URL on the device pasteboard, and
-`⇧⌘K` (Connect Hardware Keyboard) did not restore host-key delivery. Until a working
-input path is found, verify the two iOS rows at the DOM/FAB level and take the
-request-level claim from **macOS Safari**, which runs the same WebKit and the same
-WebExtensions API surface. Say so explicitly rather than implying it was measured on iOS.
+### 1.1 Request-level checks on the iOS simulators — the working recipe
+
+**Achieved 2026-07-28.** An earlier note here claimed this was impossible because
+simulator text entry is broken. The text entry *is* broken — cua-driver's synthesized
+keystrokes arrive mangled (`http://127.0.0.1:8788` became `Aaaaaaaa…`, then `Vfff`),
+`⌘V` types a literal "V" even after `xcrun simctl pbcopy`, and `⇧⌘K` does not restore
+host-key delivery. But typing was never actually required: **stop configuring the app
+and configure the build.**
+
+1. Copy `dist/` to a throwaway dir and instrument the COPY only — never the repo:
+   - `content/providers.gen.js` → point the provider's `defaultBase` at a local
+     logging endpoint. Leaving 自定义 API 地址 empty then resolves to it, no typing.
+   - `background.js` `DEFAULT_SETTINGS` → preset `targetLang` / `provider` / `apiKey`.
+   - `content/translation-api.js` → `apiKey = apiKey || '<key>'`, because storage may
+     already hold an empty key and `onInstalled` only fills **absent** keys.
+2. `xcrun safari-web-extension-converter <throwaway-dist> --ios-only --copy-resources`,
+   build with `CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO`, `simctl install`.
+3. Enable the extension (page menu → 管理扩展 → toggle) and grant host access. Both are
+   taps; the target-language and engine pickers are taps too. Only free text is broken.
+4. Read the endpoint's log for which texts were sent.
+
+**⚠️ `simctl install` does NOT refresh the extension's content scripts.** Reinstalling
+the host app, terminating Safari, and rebooting the simulator all left the PREVIOUS
+build's scripts running — with a correct new bundle verifiably on disk
+(`simctl get_app_container` + grep confirmed it). Only **`xcrun simctl erase`** picked
+up the new resources. Budget for that: erase wipes extension enablement, host
+permission and all settings, so plan to re-grant afterwards.
+
+**⚠️ Ship a build marker with any instrumented build.** Without one you cannot tell
+"instrumented build running" from "stale copy", and every downstream reading is
+uninterpretable. A fixed banner painted by a content script works:
+
+```js
+var b = document.createElement('div');
+b.textContent = 'BUILD=instrumented base=' + provider.defaultBase;
+b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b00;color:#fff';
+(document.body || document.documentElement).appendChild(b);
+```
+
+Paint it **immediately** — content scripts run at `document_idle`, so a
+`DOMContentLoaded` listener never fires and the marker silently never appears. That
+false negative cost an incorrect "Safari is serving stale scripts" conclusion.
+Note the banner is itself page text, so it shows up as a translatable unit in the log.
 
 **How to see the requests.** Chrome exposes them over CDP `Network.requestWillBeSent`.
 Firefox's BiDi `network.beforeRequestSent` proved **unreliable** (a run that demonstrably
