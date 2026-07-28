@@ -263,6 +263,209 @@ describe('TranslationCore — createEngine (state machine)', () => {
     eq(units[0].tr, '');
     eq(units[0]._done, false);
   });
+
+  // Settings must be read LATE. The subtitle harness builds its engine before
+  // settings exist, so capturing the value froze the same-language check to
+  // DEFAULT_TARGET_LANG for the whole session (subtitles ignored the user's target
+  // language entirely). See docs/domain-design.md §4.
+  test('targetLang accepts a getter and is re-read every pump', () => {
+    const { TC } = loadCore();
+    let settings = {};                                   // not yet assigned, as in the real harness
+    const sent = [];
+    const eng = TC.createEngine({
+      translate: async (t) => { sent.push(t); return 'x'; },
+      targetLang: () => settings.targetLang || 'zh-CN',
+      window: FAST,
+    });
+    const units = [{ text: 'これは日本語の文章です。' }];
+    eng.setUnits(units);
+    eng.pump();
+    deepEq(sent, ['これは日本語の文章です。'], 'zh-CN target: kana present → must translate');
+
+    eng.reset(); sent.length = 0;
+    settings = { targetLang: 'ja' };                      // user switches target after construction
+    eng.pump();
+    deepEq(sent, [], 'ja target now skips it — the getter saw the change');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// The OPTIONAL browser language detector (docs/domain-design.md §5.3). A skip is a
+// silent non-translation, so every gate below is a "must still translate" case.
+describe('TranslationCore — injected browser detector (capability axis)', () => {
+  const DFAST = Object.assign({}, FAST, { MAX_DETECT_WAITS: 3 });
+  // 60+ linguistic letters, so the length gate is satisfied and each case isolates
+  // exactly the gate it names.
+  const LONG_EN = 'The quick brown fox jumps over the lazy dog while the whole town sleeps soundly.';
+  const reliable = (lang) => ({ lang, percentage: 100, isReliable: true });
+
+  // Drives one pump with a canned detector and reports what reached the provider.
+  function run(detect, opts = {}) {
+    const { TC } = loadCore();
+    const sent = [];
+    const eng = TC.createEngine({
+      translate: async (t) => { sent.push(t); return 'x'; },
+      targetLang: opts.targetLang || 'en',
+      detect,
+      window: DFAST,
+    });
+    const units = [{ text: opts.text || LONG_EN }];
+    eng.setUnits(units);
+    for (let i = 0; i < (opts.pumps || 1); i++) eng.pump();
+    return { sent, units, eng };
+  }
+
+  test('no detector injected → behaviour is exactly the script-only baseline', () => {
+    const { sent } = run(null);
+    deepEq(sent, [LONG_EN], 'Safari path: a Latin target still sends every unit');
+  });
+
+  test('all three gates pass → never sent to the provider', () => {
+    const { sent, units } = run(() => reliable('en'));
+    deepEq(sent, [], 'already the target language → no request');
+    eq(units[0]._done, true, 'settles into the same "nothing to show" state as an empty response');
+    deepEq(units[0].tr, undefined, 'and draws no translation');
+  });
+
+  test('base subtag is what matches — en-US settings vs an "en" answer', () => {
+    deepEq(run(() => reliable('en'), { targetLang: 'en-US' }).sent, []);
+    deepEq(run(() => reliable('en-GB'), { targetLang: 'en' }).sent, []);
+  });
+
+  test('gate 1 — isReliable false → still translated', () => {
+    // Measured on real CLD: "Bonjour." comes back Norwegian at 100% with isReliable
+    // false. A percentage is a share of the text, not a confidence.
+    const { sent } = run(() => ({ lang: 'en', percentage: 100, isReliable: false }));
+    deepEq(sent, [LONG_EN]);
+  });
+
+  test('gate 2 — below 90% of the text → still translated', () => {
+    deepEq(run(() => ({ lang: 'en', percentage: 89, isReliable: true })).sent, [LONG_EN]);
+    deepEq(run(() => ({ lang: 'en', percentage: 90, isReliable: true })).sent, [], 'boundary is inclusive');
+  });
+
+  test('gate 3 — under 60 linguistic letters → still translated', () => {
+    const short = 'The cat sat on the mat and looked around.';   // 33 letters
+    deepEq(run(() => reliable('en'), { text: short }).sent, [short],
+      'short text is where detectors are confidently wrong');
+    // URLs and @handles are not language and must not be counted toward the floor.
+    const padded = 'Short line. https://example.com/a/very/long/path/that/is/not/language @somebody';
+    deepEq(run(() => reliable('en'), { text: padded }).sent, [padded],
+      'a long URL does not buy its way past the length gate');
+  });
+
+  test('a different language, or "und", is never a match', () => {
+    deepEq(run(() => reliable('fr')).sent, [LONG_EN], 'French under an en target must be translated');
+    deepEq(run(() => reliable('und')).sent, [LONG_EN], 'und = the detector does not know');
+    deepEq(run(() => null).sent, [LONG_EN], 'null = no answer will ever come');
+  });
+
+  test('zh/ja/ko targets never consult the detector', () => {
+    // Layer 1 (script) decides these targets, so layer 2 must not run at all — that is
+    // what keeps the most-used path identical on Safari and Chrome.
+    let asked = 0;
+    const cn = run((t) => { asked++; return reliable('zh'); },
+      { targetLang: 'zh-CN', text: '公司真开起来，你会发现最简单的就是开公司本身了。' });
+    eq(asked, 0, 'the detector must not even be called for a script-decidable target');
+    deepEq(cn.sent, [], 'and the script rule still skips native text on its own');
+
+    // An English paragraph under a zh-CN target: script says "translate", and the
+    // detector must not get a second vote either.
+    const en = run((t) => { asked++; return reliable('en'); }, { targetLang: 'zh-CN' });
+    eq(asked, 0);
+    deepEq(en.sent, [LONG_EN]);
+  });
+
+  // Guards the boundary of the rule above rather than the rule itself: this is a
+  // PRE-EXISTING limitation of the script layer, recorded so a future change to
+  // isAlreadyTargetLanguage has to face it deliberately. Neither layer separates
+  // Traditional from Simplified — 繁體 is Han without kana, exactly like 简体, and the
+  // browser detector reports both as plain `zh`, so it cannot close the gap either.
+  // See docs/interaction-spec.md.
+  test('KNOWN GAP: Traditional vs Simplified Chinese are not separated', () => {
+    const { TC } = loadCore();
+    const TRAD = '這是一段完全用繁體中文寫成的句子，用來測試判斷結果是否可靠。';
+    const SIMP = '这是一段完全用简体中文写成的句子，用来测试判断结果是否可靠。';
+    eq(TC.isAlreadyTargetLanguage(TRAD, 'zh-CN'), true, 'Traditional under zh-CN is skipped — the gap');
+    eq(TC.isAlreadyTargetLanguage(SIMP, 'zh-TW'), true, 'and the mirror case under zh-TW');
+    // If this test ever goes red because the values flipped, the gap was closed on
+    // purpose — update docs/interaction-spec.md's "Pre-existing limitation" note.
+  });
+
+  test('a detector that never answers cannot pin a unit at "pending"', () => {
+    // detect() returning undefined forever = in flight forever. stateOf reports
+    // 'pending' ("⏳ 翻译中…") while !_done, so without the bounded wait this unit
+    // would never resolve and never render.
+    let asked = 0;
+    const { sent, units, eng } = run(() => { asked++; return undefined; }, { pumps: 3 });
+    deepEq(sent, [], 'waits during the grace ticks');
+    eq(eng.stateOf(units[0]).state, 'pending');
+    eq(asked, 3);
+    eng.pump();                     // MAX_DETECT_WAITS exceeded
+    deepEq(sent, [LONG_EN], 'gives up waiting and translates — erring toward translating');
+  });
+
+  test('a detector that throws must not take the engine down with it', () => {
+    const { sent } = run(() => { throw new Error('detector exploded'); });
+    deepEq(sent, [LONG_EN], 'the unit is translated, exactly as on a browser with no detector');
+  });
+
+  // ── Wiring regressions ────────────────────────────────────────────────
+  // The three tests below exist because the suite above could not have caught the
+  // bugs they pin. Every case above hands createEngine a config the TEST built
+  // (DFAST, with MAX_DETECT_WAITS present) and asserts on what reached the
+  // provider. The defects lived in the config PRODUCTION builds, and in work done
+  // rather than output produced — neither of which those assertions can see.
+
+  test('a window override that omits MAX_DETECT_WAITS still grants the detector its ticks', () => {
+    // FAST has no MAX_DETECT_WAITS — the exact shape an adapter writes when it
+    // overrides only the knobs it cares about. If cfg.window REPLACED the defaults,
+    // win.MAX_DETECT_WAITS would be undefined, `1 <= undefined` false, and the unit
+    // would translate on tick 1. And because detect() always answers `undefined` on
+    // the first ask for a new text, that silently turns the whole detector off — with
+    // every other test in this file still green, because they all supply the key.
+    const { TC } = loadCore();
+    const sent = [];
+    const eng = TC.createEngine({
+      translate: async (t) => { sent.push(t); return 'x'; },
+      targetLang: 'en',
+      detect: () => undefined,          // in flight — the shape of every FIRST ask
+      window: FAST,                     // note: no MAX_DETECT_WAITS
+    });
+    eng.setUnits([{ text: LONG_EN }]);
+    eng.pump();
+    deepEq(sent, [], 'must wait, not translate on tick 1 — else the detector never answers');
+  });
+
+  test('a unit under the length floor is never even asked', () => {
+    // The floor depends only on the text, so a sub-floor unit can never be skipped
+    // whatever the detector says. Asking anyway spends an IPC, a cache entry and a
+    // reaper timer, and stalls the unit for MAX_DETECT_WAITS ticks to discard the
+    // answer. Outcome-only assertions cannot see this: the unit is translated either
+    // way. So assert on the CALL, the way the zh/ja/ko routing test does.
+    let asked = 0;
+    const short = 'The meeting starts at noon.';
+    const { sent } = run(() => { asked++; return reliable('en'); }, { text: short });
+    eq(asked, 0, 'below the floor the answer is unusable — do not spend the call');
+    deepEq(sent, [short], 'and it is still translated');
+  });
+
+  test('detector waits consume the per-tick budget', () => {
+    // Without this, a viewport full of units fires one detector call each inside a
+    // single 350ms handler and starts zero translations — MAX_PER_TICK only counted
+    // translate() starts, and the wait branch `continue`d past it.
+    let asked = 0;
+    const { TC } = loadCore();
+    const eng = TC.createEngine({
+      translate: async () => 'x',
+      targetLang: 'en',
+      detect: () => { asked++; return undefined; },
+      window: Object.assign({}, DFAST, { MAX_PER_TICK: 2 }),
+    });
+    eng.setUnits(Array.from({ length: 10 }, (_, i) => ({ text: LONG_EN + ' ' + i })));
+    eng.pump();
+    eq(asked, 2, 'the detector fan-out is bounded by MAX_PER_TICK, not by unit count');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────

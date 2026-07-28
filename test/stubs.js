@@ -3,16 +3,35 @@
 // In-memory chrome.storage.local + chrome.i18n. `store` is the backing object so a
 // test can seed/inspect it. onChanged is a no-op recorder (translation-core adds a
 // listener at load; we don't need to fire it).
+//
+// `opts.detectLanguage` models the OPTIONAL browser language detector: omit it to
+// simulate Safari (the method simply isn't there — the shape LangDetect probes for),
+// or pass (text) => {isReliable, languages:[…]} to simulate Chrome/Firefox. Throwing
+// from it exercises the latch-off path. `opts.detectMode` picks the calling
+// convention: 'promise' (default, Chrome MV3 without a callback) or 'callback'
+// (Firefox's chrome.* namespace) — both are supported in production, so both are
+// testable here.
 function makeChrome(opts = {}) {
   const store = opts.store || {};
   const listeners = [];
+  const i18n = {
+    getUILanguage: () => opts.uiLanguage || 'en-US',
+    getMessage: (key) => (opts.messages && opts.messages[key]) || '',
+  };
+  if (opts.detectLanguage) {
+    i18n.detectLanguage = (text, cb) => {
+      const r = opts.detectLanguage(text);   // may throw — that is a tested path
+      if (opts.detectMode === 'callback') {
+        Promise.resolve().then(() => cb && cb(r));
+        return undefined;
+      }
+      return Promise.resolve(r);
+    };
+  }
   return {
     _store: store,
     _fireChange(changes) { listeners.forEach((l) => l(changes)); },
-    i18n: {
-      getUILanguage: () => opts.uiLanguage || 'en-US',
-      getMessage: (key) => (opts.messages && opts.messages[key]) || '',
-    },
+    i18n,
     storage: {
       local: {
         get: (keys, cb) => {

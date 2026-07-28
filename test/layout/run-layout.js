@@ -100,20 +100,32 @@ const { isAlreadyTargetLanguage } = require('../harness')
 const dropCjkSpaces = (s) => s
   .replace(/\s+(?=[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])/gu, '')
   .replace(/([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}])\s+/gu, '$1');
-const fakeTranslate = (q) => q.split('\n')
+// `echoRe` (fixture manifest, optional) names lines the provider should hand BACK
+// unchanged. The production predicate covers this for zh/ja/ko targets, but it
+// deliberately answers "no" for a Latin target — and a real provider asked to render
+// English into English still echoes. Fixtures with a Latin target declare the echo
+// explicitly rather than having the harness guess at a language.
+const fakeTranslate = (q, cfg, echoRe) => q.split('\n')
   .map((line) => (!line.trim() ? line
-    : isAlreadyTargetLanguage(line, CFG.targetLang) ? dropCjkSpaces(line)
-    : '【译】' + line))
+    : (isAlreadyTargetLanguage(line, cfg.targetLang) || (echoRe && echoRe.test(line)))
+      ? dropCjkSpaces(line)
+      : '【译】' + line))
   .join('\n');
 
-function googleBody(url) {
+// Every `q` the extension put on a provider URL, both endpoint shapes.
+function queriesOf(url) {
+  const u = new URL(url);
+  return u.searchParams.getAll('q');
+}
+
+function googleBody(url, cfg, echoRe) {
   const u = new URL(url);
   if (u.pathname.includes('/translate_a/single')) {
     const q = u.searchParams.get('q') || '';
-    return JSON.stringify([[[fakeTranslate(q), q]]]);
+    return JSON.stringify([[[fakeTranslate(q, cfg, echoRe), q]]]);
   }
   if (u.pathname.includes('/translate_a/t')) {
-    return JSON.stringify(u.searchParams.getAll('q').map((q) => [fakeTranslate(q)]));
+    return JSON.stringify(u.searchParams.getAll('q').map((q) => [fakeTranslate(q, cfg, echoRe)]));
   }
   return JSON.stringify([[['', '']]]);
 }
@@ -195,6 +207,38 @@ async function awaitStable(cdp, sessionId, ctxId, manifest) {
   throw new Error(`never reached ${expected} stable settled translations; state=${diag}`);
 }
 
+// Node-side asserts over what was actually sent to the provider. `expectNotRequested`
+// is the one that matters: a unit the engine skips renders exactly like a unit whose
+// echoed translation the renderer suppressed, so the DOM cannot tell them apart — only
+// the absent request can. `expectRequested` is the over-suppression guard for it.
+function checkRequests(manifest, requested) {
+  const failures = [];
+  const seen = requested.join('\n');
+  for (const needle of manifest.expectNotRequested || []) {
+    if (seen.includes(needle)) {
+      failures.push({
+        name: 'expectNotRequested', sel: needle.slice(0, 40),
+        detail: 'text was sent to the provider but should have been skipped before the request',
+      });
+    }
+  }
+  for (const needle of manifest.expectRequested || []) {
+    if (!seen.includes(needle)) {
+      failures.push({
+        name: 'expectRequested', sel: needle.slice(0, 40),
+        detail: 'text was never sent to the provider — over-suppressed',
+      });
+    }
+  }
+  return failures;
+}
+
+function mergeFailures(result, extra) {
+  if (!extra.length) return result;
+  const failures = [...(result.failures || []), ...extra];
+  return { ...result, pass: false, failures };
+}
+
 async function runFixture(cdp, baseUrl, file, assertLibSrc) {
   let manifest = null;
   // Everything (incl. manifest parse) lives inside the try so a failure mid-setup still
@@ -202,8 +246,22 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
   // answering for a dead session on every later fixture).
   let targetId = null, sessionId = null;
   let offCtx = () => {}, offClear = () => {}, offFetch = () => {};
+  // Per-fixture settings overlay. Almost every fixture wants the default zh-CN target;
+  // the ones exercising a Latin target (where the same-language skip depends on the
+  // browser's own detector, not on script) declare `"cfg": {"targetLang": "en"}`.
+  let fixtureCfg = CFG;
+  let echoRe = null;
+  // Every text the page actually asked the provider to translate. Some behaviour is
+  // invisible in the DOM and only observable here: when the engine skips a unit
+  // up front, the renderer's identical-output backstop would have suppressed the same
+  // line anyway, so the rendered result is byte-identical either way — the difference
+  // is the request that was never sent (the user's quota). `expectNotRequested` is the
+  // only assertion that can see it.
+  const requested = [];
   try {
     manifest = readManifest(file); // malformed #mt-expect fails THIS fixture, not the suite
+    fixtureCfg = { ...CFG, ...(manifest.cfg || {}) };
+    echoRe = manifest.echoRe ? new RegExp(manifest.echoRe, 'u') : null;
     ({ targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' }));
     ({ sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true }));
 
@@ -225,7 +283,8 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
           .catch(() => { /* tab already closing */ });
         return;
       }
-      const body = googleBody(p.request.url);
+      requested.push(...queriesOf(p.request.url));
+      const body = googleBody(p.request.url, fixtureCfg, echoRe);
       cdp.send('Fetch.fulfillRequest', {
         requestId: p.requestId, responseCode: 200,
         responseHeaders: [
@@ -249,16 +308,17 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
     await evalIn(cdp, sessionId, ctxId,
       'new Promise(r => requestAnimationFrame(() => r(window.__mtLayout.captureBaseline())))');
 
-    await evalIn(cdp, sessionId, ctxId, `WebpageTranslator.enable(${JSON.stringify(CFG)}); true`);
+    await evalIn(cdp, sessionId, ctxId, `WebpageTranslator.enable(${JSON.stringify(fixtureCfg)}); true`);
     await awaitStable(cdp, sessionId, ctxId, manifest);
 
     const manifestJs = JSON.stringify(manifest);
     let result = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.runAsserts(${manifestJs})`);
+    result = mergeFailures(result, checkRequests(manifest, requested));
 
     if (result.pass && manifest.rerender) {
       // Settings-change path: updateSettings() = disable() + enable() — geometry
       // must come out identical (exercises revert + the __mtLayoutCss re-measure).
-      const cfg2 = { ...CFG, textColor: '#0000aa' };
+      const cfg2 = { ...fixtureCfg, textColor: '#0000aa' };
       await evalIn(cdp, sessionId, ctxId, `WebpageTranslator.updateSettings(${JSON.stringify(cfg2)}); true`);
       await awaitStable(cdp, sessionId, ctxId, manifest);
       const r2 = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.runAsserts(${manifestJs})`);
