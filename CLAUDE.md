@@ -47,6 +47,7 @@ extension/
 ├── background.js              # Service worker — state only (see Critical Safari Bug below)
 ├── content/
 │   ├── translation-core.js    # Platform-agnostic engine: subtitle state machine, sliding-window preload, pager, cue merge, language helpers, i18n
+│   ├── lang-detect.js         # OPTIONAL browser-native language detector (chrome.i18n) — absent on Safari
 │   ├── translation-api.js     # All fetch() calls to LLM APIs — runs in content script
 │   ├── dom-processor.js       # DomSegmenter: general standard-HTML segmentation (computed visibility, block/inline, code heuristics)
 │   ├── floating-button.js     # Mobile FAB (draggable)
@@ -92,12 +93,15 @@ Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
 1. `translation-core.js` → exposes `window.TranslationCore` (platform-agnostic engine:
    subtitle state machine + sliding-window preload, pager, cue merge, language-aware
    helpers, i18n `t()`, MSG). Must load first — others depend on it.
-2. `translation-api.js` → exposes `window.TranslationAPI`
-3. `dom-processor.js` → exposes `window.DOMProcessor`
-4. `floating-button.js` → exposes `window.FloatingButton`
-5. `content-webpage.js` → exposes `window.WebpageTranslator`
-6. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
-7. `content-main.js` → reads settings, initializes everything
+2. `lang-detect.js` → exposes `window.LangDetect`, the OPTIONAL browser-native language
+   detector (`chrome.i18n.detectLanguage`; absent on every Safari). Adapters inject it
+   into the engine — the engine never probes for it. See `docs/domain-design.md` §5.3.
+3. `translation-api.js` → exposes `window.TranslationAPI`
+4. `dom-processor.js` → exposes `window.DOMProcessor`
+5. `floating-button.js` → exposes `window.FloatingButton`
+6. `content-webpage.js` → exposes `window.WebpageTranslator`
+7. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
+8. `content-main.js` → reads settings, initializes everything
 
 ## Internationalization (i18n)
 
