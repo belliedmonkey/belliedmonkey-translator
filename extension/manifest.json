@@ -3,39 +3,50 @@
   "default_locale": "zh_CN",
   "name": "__MSG_extension_name__",
   "description": "__MSG_extension_description__",
-  "version": "1.1.0",
-
+  "version": "1.2.0",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
-      "js": ["content/yt-hook.js"],
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/yt-hook.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": true
     },
     {
-      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
-      "js": ["content/yt-timedtext-observer.js"],
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/yt-timedtext-observer.js"
+      ],
       "run_at": "document_start",
       "all_frames": true
     },
     {
-      "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
       "js": [
         "content/i18n-messages.js",
         "content/providers.gen.js",
         "content/translation-core.js",
+        "content/lang-detect.js",
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
@@ -53,18 +64,29 @@
       "all_frames": true
     },
     {
-      "matches": ["*://*.x.com/*", "*://*.twitter.com/*"],
-      "js": ["content/tw-media-observer.js"],
+      "matches": [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*"
+      ],
+      "js": [
+        "content/tw-media-observer.js"
+      ],
       "run_at": "document_start",
       "all_frames": true
     },
     {
-      "matches": ["<all_urls>"],
-      "exclude_matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
       "js": [
         "content/i18n-messages.js",
         "content/providers.gen.js",
         "content/translation-core.js",
+        "content/lang-detect.js",
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
@@ -83,7 +105,6 @@
       "run_at": "document_idle"
     }
   ],
-
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -93,28 +114,27 @@
     },
     "default_title": "__MSG_action_title__"
   },
-
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
   },
-
   "permissions": [
     "storage",
     "activeTab"
   ],
-
   "host_permissions": [
     "<all_urls>"
   ],
-
   "web_accessible_resources": [
     {
-      "resources": ["content/content-injected.js"],
-      "matches": ["*://*.youtube.com/*"]
+      "resources": [
+        "content/content-injected.js"
+      ],
+      "matches": [
+        "*://*.youtube.com/*"
+      ]
     }
   ],
-
   "browser_specific_settings": {
     "gecko": {
       "id": "mobiletranslator@belliedmonkey",

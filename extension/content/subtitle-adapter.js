@@ -53,7 +53,18 @@ var SubtitleAdapter = (() => {
       translate: (text) => spec.translate(text, settings), // harness owns settings; backend reads it
       // Cues already in the target language are skipped before the request, so a
       // native-language video shows one line instead of the same line twice.
-      targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      //
+      // A GETTER, not a value: this engine is built here, before init/enable/
+      // updateSettings have ever assigned `settings`. Passing `settings.targetLang`
+      // read `undefined` and froze the check to DEFAULT_TARGET_LANG for the whole
+      // session, so subtitles ignored the user's chosen target language entirely.
+      // `translate` above was already a late-reading closure; this now matches it.
+      // See docs/domain-design.md §4.
+      targetLang: () => settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      // Optional browser-native detector — see docs/domain-design.md §5.3. Probed in
+      // the adapter, never inside TranslationCore. Absent on every Safari.
+      detect: (typeof LangDetect !== 'undefined' && LangDetect.available())
+        ? LangDetect.detect : null,
     });
 
     // ─── Overlay ───────────────────────────────────────────────────────

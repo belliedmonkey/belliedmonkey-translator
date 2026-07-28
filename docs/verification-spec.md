@@ -84,6 +84,62 @@ fullscreen (a system surface), which a DOM overlay cannot cover — a documented
 limitation, **never** reported as passing. Verify iOS subtitles only in inline
 (non-fullscreen) playback.
 
+**Mandatory: the same-language skip, checked in BOTH directions.** The skip has a
+browser-capability layer (`docs/domain-design.md` §5.3 — `chrome.i18n.detectLanguage`
+exists on Chrome/Edge/Firefox, on no Safari), so the surfaces that *lack* it need a
+check of their own. Testing only the rows where the feature fires would let a broken
+probe — one that throws, or silently skips everything — ship to Safari unnoticed. This
+is a **permanent matrix item** for any change touching the skip:
+
+**Check the REQUEST, not the rendered line.** With an `en` target on an English paragraph
+the DOM is byte-identical on every surface — a unit the engine skipped and a unit whose
+echoed translation the renderer's identical-output backstop suppressed both render as
+"no translation line". The only observable difference is whether the provider was
+called. (Burned 2026-07-28: this table originally said Safari would "still get a
+translation line"; it does not, and reading the DOM would have passed a broken detector.)
+
+| Surface | Target `en`, long English paragraph | Target `zh-CN`, Chinese page |
+|---|---|---|
+| iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage` | no translation lines, nothing sent (script layer, unchanged) |
+| macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
+| Firefox | same as Chrome / Edge | same as Chrome / Edge |
+
+**⚠️ On the iOS simulators the request-level check is currently NOT achievable
+(2026-07-28).** It needs 自定义 API 地址 pointed at a local endpoint, and text entry into
+the simulator is unreliable: cua-driver's synthesized keystrokes arrive mangled
+(`http://127.0.0.1:8788` came out as `Aaaaaaaa…`, then `Vfff`), `⌘V` types a literal
+"V" even after `xcrun simctl pbcopy` puts the URL on the device pasteboard, and
+`⇧⌘K` (Connect Hardware Keyboard) did not restore host-key delivery. Until a working
+input path is found, verify the two iOS rows at the DOM/FAB level and take the
+request-level claim from **macOS Safari**, which runs the same WebKit and the same
+WebExtensions API surface. Say so explicitly rather than implying it was measured on iOS.
+
+**How to see the requests.** Chrome exposes them over CDP `Network.requestWillBeSent`.
+Firefox's BiDi `network.beforeRequestSent` proved **unreliable** (a run that demonstrably
+translated reported zero requests) — do not trust it; and Safari has no such channel at
+all. The portable instrument is to point 自定义 API 地址 at a local Chat-Completions-shaped
+endpoint that logs each text and answers with a marked echo, so "was it sent" becomes
+both logged and visible in the page. Always assert a **positive control** (a text you
+know was translated must appear in the log); without one, "no request seen" is
+indistinguishable from "I could not see".
+
+**Purge the translation cache between runs.** It is keyed `tr:{provider}:{lang}:{text}`
+with a 12h TTL, so a rerun serves the previous run's answers and issues no requests at
+all — which reads as "the skip fired" for every paragraph. Either clear the `tr:` keys or
+weave a per-load nonce into every paragraph of the fixture.
+
+**And on all five rows**: set the target to something other than `zh-CN` (e.g. `ja`) and
+play a subtitled video — the subtitle path must honour that target. It previously froze
+to `DEFAULT_TARGET_LANG` at construction regardless of settings.
+
+> **Measured in real content scripts (2026-07-27), keep for the next person.** Chrome:
+> `chrome.i18n` exposes `detectLanguage`, returns a Promise *and* fires a callback.
+> Firefox: `detectLanguage` is present but **callback-only** — it returns `undefined`,
+> so a promise-only implementation never resolves there. The same English paragraph
+> scores 100% on Chrome and **99%** on Firefox, which is why the confidence gate sits at
+> 90 rather than 100. Neither of these is guessable from the compat tables; re-measure
+> rather than assume if the wrapper is rewritten.
+
 ---
 
 ## 2. Per-surface build → install → enable → open-URL → drive
@@ -161,7 +217,8 @@ So there are two real paths for macOS Safari — **prefer the first**:
   Unpacked**, so you point it straight at **`dist/`**. No `xcodebuild (macOS)`, no signing.
   It loads as a *temporary* extension (auto-cleared on Safari quit → self-cleaning for
   verification). On macOS 26 the "允许未签名的扩展" toggle lives on this **开发者** Settings
-  tab (on macOS ≤ 15 it's Develop menu → 允许未签名的扩展, session-scoped). Then grant host
+  tab (on macOS ≤ 15 it's Develop menu → 允许未签名的扩展). **Session-scoped on every macOS
+  version, 26 included — see the password/persistence note below.** Then grant host
   access **在每个网站上始终允许**, open the test URL, drive the FAB by pixel-click.
 
   **⚠️ Update semantics — the temporary extension is a SNAPSHOT (verified 2026-07-12).**
@@ -207,11 +264,21 @@ So there are two real paths for macOS Safari — **prefer the first**:
   - **⚠️ 允许未签名的扩展 needs the user's macOS PASSWORD (2026-07-27).** Ticking it raises a
     system authorization prompt ("Safari浏览器正尝试允许未签名的扩展"). An agent must not type
     it — hand this step to the user together with the folder pick, in ONE ask, so they are
-    interrupted once rather than twice. Once granted the setting persists, so later re-adds
-    only need the folder pick.
+    interrupted once rather than twice. `defaults write com.apple.Safari
+    AllowUnsignedAppExtensions` is **not** a way around it: Safari's prefs live in a
+    sandboxed container and the write fails outright without Full Disk Access.
+  - **⚠️ That authorization is SESSION-SCOPED — it does NOT persist (corrected 2026-07-28,
+    macOS 26.5.1).** The checkbox is clear again after every Safari quit and the password
+    prompt returns. So **once the user has authorized, do not quit Safari** for the rest of
+    the run — quitting throws their authorization away and costs them a second interruption
+    for nothing. (Burned 2026-07-28: quitting to force a clean snapshot did exactly that.)
+    This supersedes the earlier "once granted the setting persists".
   - **⚠️ Do NOT use the extension detail pane's 重新载入 to pick up a rebuild (2026-07-27).**
     It left the extension loaded but inert — the FAB injected and no unit ever translated.
-    The rule above stands unchanged: quit Safari → reopen → 添加临时扩展 once.
+    (Re-confirmed 2026-07-28: after 重新载入 the extension's own options page renders blank
+    and a ⌘R does not revive it — its old UUID is dead.) To load a fresh build **without
+    quitting**, use 卸载 then 添加临时扩展 again; reserve quit → reopen for when no
+    authorization is at stake.
   - **⚠️ An off-screen Safari window screenshots BLANK — that is a capture artifact, not a
     bug (2026-07-27).** `list_windows` reporting `is_on_screen: false` while the title is
     correct means the capture will be empty white; `bring_to_front` first. Cost an
@@ -390,6 +457,34 @@ resolution, and every provider's request-building / caching / retry-fallback. **
 be green before you push.** When you change logic, add/update tests in the same commit.
 **Never push on a red suite.**
 
+#### 3.1.1 Three blind spots a green suite does not cover
+
+Found the hard way (2026-07-28): a pre-landing review caught three defects in a
+feature whose suite was 76/76 green, one of which silently disabled the whole
+feature. None were oversights — each sat in a place the assertions structurally
+could not look. When you add a test, ask which of these it needs:
+
+1. **Assert on the config PRODUCTION builds, not one the test assembles.** The
+   detector tests passed `createEngine` a window object they had built correctly;
+   the bug was in the partial literal an *adapter* writes. A default that a caller
+   can silently omit fails open (`n <= undefined` is false), so the guard vanishes
+   with every test still green. Prefer merging over defaults (`Object.assign({},
+   WINDOW, cfg.window)`) so a partial override cannot be wrong, and keep one test
+   that passes the *incomplete* shape on purpose.
+2. **Assert on work NOT done, not only on output.** A wasted provider call, a
+   redundant IPC, or a skipped unit produces byte-identical output. If the feature's
+   value is a negative — "this is not sent", "this is not asked" — then only a
+   call-count or a request log can see it. This project's whole same-language skip
+   is such a feature; `expectNotRequested` (§3.2) and `asked === 0` unit assertions
+   exist for exactly this reason.
+3. **Assert on resource lifetime where it matters.** Timers, caches and retained
+   strings are invisible to outcome assertions. The vm harness merges whatever
+   globals you pass, so inject a recording `setTimeout`/`clearTimeout` rather than
+   assuming cleanup happens.
+
+The recurring shape behind all three: **a green suite proves the happy path
+produced the right output; it proves nothing about cost, cleanup, or wiring.**
+
 ### 3.2 `npm run test:layout` — layout regression corpus
 
 `npm run test:layout` (`node test/layout/run-layout.js`, zero-dep, Node ≥22 for the
@@ -405,6 +500,20 @@ which re-runs every assert after the renderer's debounced re-measure: that is th
 rotation / window-resize / media-query-breakpoint path. Screenshots land in
 `test/layout/artifacts/` (gitignored, pid-locked so concurrent runs don't clobber
 each other) for human eyeballing. ~50s wall time (headless Chrome).
+
+Two manifest keys reach beyond geometry, because some behaviour is **invisible in the
+DOM**:
+
+- `"cfg": {…}` overlays the run's settings for that fixture — `targetLang` above all.
+  Fixtures default to a `zh-CN` target; the same-language rules behave differently under
+  a Latin target, and that path needs its own fixture (29).
+- `"expectNotRequested"` / `"expectRequested"` assert on the **provider requests the
+  page actually issued** (the harness already intercepts them). This is the only way to
+  test a unit the engine skips ahead of time: the renderer's identical-output backstop
+  would suppress that line anyway, so the rendered DOM is byte-identical with and
+  without the skip — what changes is the request that was never sent, i.e. the user's
+  quota. A DOM-only fixture for such a change passes for the wrong reason and would
+  stay green if the feature were deleted.
 
 **Mandatory before every push that touches `extension/content/**` or
 `extension/styles/**`; recommended otherwise.** No Chrome on the machine is a hard

@@ -22,16 +22,29 @@ var WebpageTranslator = (() => {
   const PROCESSED = DOMProcessor.PROCESSED_ATTR;
 
   // ─── Engine: per-unit state machine + retry, viewport scheduler ───────
+  // The capability probe lives HERE, in the adapter — never inside TranslationCore
+  // (docs/domain-design.md §5.3 rule 2). LangDetect is also absent entirely from the
+  // pure-logic test harness, hence the typeof guard as well as the availability check.
+  function langDetector() {
+    return typeof LangDetect !== 'undefined' ? LangDetect.detectorOrNull() : null;
+  }
+
   function makeEngine() {
     return TranslationCore.createEngine({
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
       // Text already in the target language never reaches the provider (engine skips it
-      // before the request) and therefore renders no sibling at all.
-      targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      // before the request) and therefore renders no sibling at all. Read late (getter,
+      // not value) per docs/domain-design.md §4 — the engine must never hold a stale copy.
+      targetLang: () => settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
+      // Optional browser-native detector (docs/domain-design.md §5.3): extends that skip
+      // to targets script cannot decide, on the browsers that have one. Absent on every
+      // Safari, where the engine falls back to the script check alone.
+      detect: langDetector(),
       // viewport priority + lazy: only translate units in/near the viewport.
       selectActive: (us) => us.filter((u) => u.node.isConnected && inViewport(u.node)),
+      // Merged over the core WINDOW defaults — list only what differs here.
       window: { AHEAD_MS: 0, MAX_PER_TICK: 5, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 0 },
     });
   }
