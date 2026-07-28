@@ -21,12 +21,12 @@ middle is generic and lives in `TranslationCore`.
 ```
                 ┌──────────────── TranslationCore (platform-agnostic) ────────────────┐
                 │  TranslationUnit { text, tr, _fetching,_done,_err,_tries, payload }  │
-                │  Engine = createEngine({ translate, selectActive })                 │
+                │  Engine = createEngine({ translate, selectActive, targetLang, detect? }) │
                 │     setUnits · pump · stateOf · retry · reset                       │
                 │     state machine: pending → translating → (done | nothing | error→retry) │
                 │     pump(): only translate units selectActive() picks; backoff retry │
-                │  helpers: isTranslated · looksLikeCode · language helpers ·          │
-                │           createPager · MSG · t (i18n) · DEFAULT_TARGET_LANG         │
+                │  helpers: isTranslated · isAlreadyTargetLanguage · looksLikeCode ·   │
+                │           language helpers · createPager · MSG · t · DEFAULT_TARGET_LANG │
                 └──────────▲────────────────────────────────────────────▲─────────────┘
         DOM source (units{node})                                  timed text (units{start,end})
    ┌──────────────────────┴───────────────────────────┐   ┌──────────┴─────────────────────┐
@@ -293,6 +293,16 @@ selectors: sibling injection (resists Polymer re-render, also fine on normal
 pages), clickable URLs (general), interleaved description. Only "timestamp click →
 `video.currentTime`" is a small optional renderer hook.
 
+**Engine settings are read late, not captured at construction.** `createEngine`
+accepts `targetLang` as either a string or a **getter function**, and `pump()` reads
+it per tick. The subtitle harness needs the getter: `createSubtitleUI` builds its
+engine at module scope, *before* `init`/`enable`/`updateSettings` ever assign
+`settings` — capturing the value there froze the same-language check to
+`DEFAULT_TARGET_LANG` for the whole session, so subtitles ignored the user's chosen
+target language entirely. `translate` was already injected as a late-reading closure
+for exactly this reason; `targetLang` now matches it. Anything else the engine reads
+from user settings must follow the same rule.
+
 **Renderer contract: the injected sibling MIRRORS its original, and the mirror is
 not a one-shot.** Two consequences, both general (no site knowledge):
 
@@ -311,18 +321,21 @@ not a one-shot.** Two consequences, both general (no site knowledge):
   path. A hidden interleave original is briefly restored inside the same task
   (never painted) so it can be measured rather than served from a stale cache.
 
-## 5. The control/render adapter — the only variation point (device × site)
+## 5. The control/render adapter — the only variation point (device × site × capability)
 
 **Principle: parsing / segmentation / engine are single implementations. ALL
 variation lives in one thin control/render adapter, and that adapter varies along
-exactly TWO axes — DEVICE and SITE.**
+exactly THREE axes — DEVICE, SITE and BROWSER CAPABILITY.**
 
 Naming the second axis is deliberate. The adapter always carried it (YouTube's
 overlay anchors into `#movie_player`, the podcast overlay anchors to the viewport
 because an audio page has no player), but the doc only described the device axis, so
 the first *button*-level site difference (Twitter, below) read as an unexplained
-exception. It isn't one — it is the site axis doing its job. What must stay closed is
-the boundary: two axes, in one layer, and nowhere else.
+exception. It isn't one — it is the site axis doing its job. The third axis is named
+for the same reason: the adapter already carried it (`yt-hook.js` exists only where
+`world:"MAIN"` does, §2.1), and leaving it unnamed would make the next
+capability-conditional feature read as an exception too. What must stay closed is
+the boundary: three axes, in one layer, and nowhere else.
 
 **When a SITE difference is legitimate** — all three must hold, or it is an
 anti-pattern:
@@ -403,11 +416,56 @@ Mobile (touch) is unaffected on both sites: the `译` button is suppressed and t
 FAB drives both page text and subtitles, via the shared
 `TranslationCore.isMobileLayout()` signal.
 
+### 5.3 The BROWSER-CAPABILITY axis — opportunistic, never load-bearing
+
+Some browsers expose a capability others do not. `world:"MAIN"` (§2.1) was the first;
+**browser-native language detection is the second**. The rule that keeps this axis from
+becoming a second product:
+
+1. **The baseline must be complete on the weakest surface.** Safari iOS is the floor.
+   A feature whose *correctness* depends on a capability Safari lacks is out of scope
+   (that is the §8 argument against in-browser ASR). A capability may only make an
+   already-correct baseline **cheaper or sharper** — never supply the only working path.
+2. **The capability is injected into the core, never probed by it.** The adapter
+   probes, and passes a plain function in. The core's contract is that function's
+   signature, not the browser behind it — `TranslationCore` must not call
+   `chrome.i18n.detectLanguage`, test for `world:"MAIN"`, or sniff a UA.
+   State the rule against the *capability*, not a namespace: `TranslationCore` does
+   legitimately call `chrome.i18n.getUILanguage` / `getMessage` for locale lookup, so
+   "must not contain the string `chrome.i18n`" would be false the day it was written —
+   and a governance rule that fails on its own codebase gets ignored.
+3. **Degradation is silent and total.** Absent capability, broken capability, and a
+   capability that throws all reduce to the same thing: the baseline path, byte for
+   byte. No retry loop, no user-visible notice, no half-state.
+4. **The difference is written down here, and named in `docs/verification-spec.md`
+   as a per-surface expectation** — so a regression on the surfaces that *lack* the
+   capability is a test failure, not an untested assumption.
+
+**Today's instance — same-language skip.** `createEngine` takes an optional
+`detect(text)`. When absent (all Safari rows), the engine uses only the script-based
+`isAlreadyTargetLanguage()`, which is decidable for zh/ja/ko targets and returns false
+for everything else. When present (Chrome/Edge via `chrome.i18n.detectLanguage`,
+Firefox likewise), the engine may additionally skip a unit whose detected language
+matches a **non**-script-decidable target — the English/French case script cannot
+separate. zh/ja/ko targets never consult the detector, so the most-used path is
+identical on every surface by construction.
+
+> **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
+> other two: DEVICE and SITE change *where* things are drawn, whereas this one can
+> change *what the user sees*. With an `en` target on an English page, Chrome draws
+> nothing under the paragraph and Safari draws a redundant translation line. That is
+> deliberate — Safari's behaviour is exactly today's behaviour, so no surface
+> regresses, and the alternative (holding every browser to Safari's floor) means
+> permanently burning provider quota on requests whose answers are discarded. The
+> asymmetry is bounded by the strict gates in `docs/interaction-spec.md`: the detector
+> can only ever *remove* a line that duplicates the original.
+
 ## 6. Module map
 
 | Module | File | Role |
 |---|---|---|
-| `TranslationCore` | `content/translation-core.js` | generic: `createEngine` (state machine + retry, `selectActive`), `createSubtitleEngine` (time-window specialization), helpers (`isTranslated`, `looksLikeCode`, language, pager, i18n) |
+| `TranslationCore` | `content/translation-core.js` | generic: `createEngine` (state machine + retry, `selectActive`, optional injected `detect` — §5.3), `createSubtitleEngine` (time-window specialization), helpers (`isTranslated`, `isAlreadyTargetLanguage`, `looksLikeCode`, language, pager, i18n) |
+| `LangDetect` | `content/lang-detect.js` | **optional** browser-native language detection (§5.3): probes `chrome.i18n.detectLanguage` (Chrome/Edge/Firefox; absent on all Safari), caches results, and exposes a **synchronous** three-state `detect(text)` — result / `undefined` (in flight) / `null` (never available) — so the engine's `pump()` stays sync. Latches off permanently on any error. Never the sole source of a skip decision |
 | `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits`; honors two generic adapter markers — `computePlayerRegions` (`data-mt-player-region`) and `computeSkipRegions` (`data-mt-skip-region`) |
 | `TwitterSite` | `content/site-twitter.js` | x.com/twitter.com **site adapter** (DOM/text dimension): feature-detects the tweet UI and marks non-content chrome (trends/who-to-follow sidebar, left nav, per-tweet engagement bar, and the tweet author/metadata line) with `data-mt-skip-region` so the generic segmenter excludes it; re-asserted via a `MutationObserver` against the virtualized feed. No selectors leak into `DomSegmenter`. |
 | `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |

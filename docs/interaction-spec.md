@@ -342,18 +342,64 @@ These apply to every webpage text translation, on every platform:
   sides really are different languages; **a few foreign words are enough** to make a
   paragraph worth translating, so a mostly-Chinese sentence quoting an English phrase
   still gets translated.
-- **Known limit of that rule — stated, not hidden.** Script can only tell you *same
-  script*, never *same language*. So the skip is enabled **only for Chinese / Japanese /
-  Korean targets**, where the mapping is clean (Han without kana → Chinese, kana →
-  Japanese, Hangul → Korean). With a Latin target, English and French are the same
-  script and are indistinguishable this way, so no skipping happens there and every unit
-  is still sent. **Erring toward translating is deliberate**: a wrongly skipped
-  paragraph shows nothing at all and gives the user nothing to retry, which is far worse
-  than one redundant line. URLs, `@handles` and `#tags` are excluded from the
-  measurement — they are Latin even inside otherwise-native text.
-- **Backstop for the targets that can't be skipped:** if a translation comes back
+- **How the skip decides, in two layers.** The bias never changes: **erring toward
+  translating is deliberate**, because a wrongly skipped paragraph shows nothing at all
+  and gives the user nothing to retry — far worse than one redundant line. URLs,
+  `@handles` and `#tags` are excluded from every measurement below; they are Latin even
+  inside otherwise-native text.
+
+  **Layer 1 — script, on every surface.** Available everywhere, the only layer on
+  Safari. Script can only tell you *same script*, never *same language*, so it decides
+  **only Chinese / Japanese / Korean targets**, where the mapping is clean (Han without
+  kana → Chinese, kana → Japanese, Hangul → Korean). It answers "no" for every other
+  target.
+
+  **Layer 2 — browser-native detection, where the browser has it.** Chrome, Edge and
+  Firefox expose a language detector (`chrome.i18n.detectLanguage`); no Safari does.
+  Where present, it decides the targets layer 1 cannot — the English/French case — and
+  those units are skipped too.
+
+  **Layer 2 is never consulted for zh/ja/ko targets.** It has nothing to add there and
+  would cost consistency. Measured: the detector reports 繁體中文 as plain `zh`, the
+  same answer it gives 简体中文 — which is precisely the blind spot layer 1 already
+  has (both are Han without kana). Routing the most-used path through a
+  browser-conditional check would fix no case and make Safari and Chrome disagree.
+
+  > **Pre-existing limitation, recorded not fixed.** Because neither layer separates
+  > Traditional from Simplified, a 繁體中文 paragraph under a `zh-CN` target is skipped
+  > today and shows no translation (and the mirror case under `zh-TW`). That is a real
+  > gap, it predates the two-layer split, and a browser detector cannot close it —
+  > separating Hant from Hans needs character-repertoire analysis, not language
+  > detection. Tracked separately; do not cite it as intended behaviour.
+
+  **Layer 2 only fires under all three gates**, because a language detector is
+  confidently wrong on short text far more often than on long text: the detector
+  reports the result **reliable**, the winning language holds **≥ 90%** of the text,
+  and the text has **≥ 60 letters** after the exclusions above. Miss any one gate and
+  the unit is translated.
+
+  `isReliable` is the load-bearing gate and the length gate exists to feed it. Measured:
+  `"Bonjour."` comes back as **Norwegian at 100%** — with `isReliable: false`. A
+  percentage is a share of the text, not a confidence, so it is near-useless alone; and
+  a 48-letter English sentence still self-reports unreliable, which is where the 60
+  floor comes from. **When tuning, raise the length gate — never relax the other two.**
+
+  The 90% figure has headroom for a reason: the same unambiguous English paragraph
+  scores **100% on Chrome and 99% on Firefox**. The engines do not agree to the point,
+  so a gate at 100 would silently do nothing on Firefox.
+
+- **Known limit — stated, not hidden.** The two layers mean a browser without a
+  detector translates a paragraph that a browser with one skips: with an `en` target on
+  an English page, Chrome draws nothing under the paragraph and Safari draws a redundant
+  translation line. Safari's behaviour is exactly the behaviour every browser had
+  before, so nothing regresses — but the surfaces are not identical, and that is
+  accepted rather than accidental (`docs/domain-design.md` §5.3).
+- **Backstop for everything the two layers let through:** if a translation comes back
   **identical** to the original after normalisation, draw nothing. Strict equality only —
-  never a similarity guess, which could suppress a genuine translation.
+  never a similarity guess, which could suppress a genuine translation. This is what
+  keeps Safari's output correct (just costlier) without a detector, and it stays the
+  final net even where layer 2 runs — a unit under 60 letters is never skipped ahead of
+  time, so short native lines still land here.
 - **Normalisation ignores spacing that is typography rather than language.** Whitespace
   runs collapse, and whitespace *touching a CJK character* is dropped entirely: providers
   re-typeset freely around an embedded Latin word (Google returned

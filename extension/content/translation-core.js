@@ -9,7 +9,11 @@
 var TranslationCore = (() => {
   // ─── Constants ────────────────────────────────────────────────────────
   const DEFAULT_TARGET_LANG = 'zh-CN';
-  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700 };
+  // MAX_DETECT_WAITS: how many ticks a unit may wait on the optional browser language
+  // detector before it is translated anyway. Ticks are ~350ms, so 3 is ~1s. This is a
+  // safety net, not a tuning knob — without it a detector that never answers would pin
+  // units at 'pending' ("⏳ 翻译中…") forever.
+  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
@@ -115,6 +119,59 @@ var TranslationCore = (() => {
   }
   const FOREIGN_LETTER_FLOOR = 8;
 
+  // Can script alone decide this target? True exactly when isAlreadyTargetLanguage can
+  // return true — i.e. zh / ja / ko. The engine uses this to route: script-decidable
+  // targets are answered by the line above and NEVER by a browser detector.
+  //
+  // The detector buys nothing here and costs consistency. Measured: it reports 繁體中文
+  // as plain `zh`, the same answer it gives 简体中文 — exactly the blind spot the script
+  // rule already has (both are Han without kana). So routing zh/ja/ko through it would
+  // not fix a single case, and would make the most-used path behave differently on
+  // Safari than on Chrome. See docs/interaction-spec.md and docs/domain-design.md §5.3.
+  //
+  // (The zh-Hant/zh-Hans blind spot itself is a real, PRE-EXISTING limitation — a
+  // Traditional paragraph under a zh-CN target is skipped today — and is out of scope
+  // here precisely because the detector cannot fix it either.)
+  function isScriptDecidableTarget(targetLang) {
+    return !!targetLang && SCRIPT_OF_TARGET.some((r) => r.test.test(targetLang));
+  }
+
+  // ─── The browser-detector gate (docs/interaction-spec.md) ─────────────
+  // A skip is a SILENT non-translation, so a detector's answer is only trusted when
+  // all three hold. isReliable is the load-bearing one; the length floor exists to
+  // feed it (measured: "Bonjour." → Norwegian at 100% with isReliable false, and a
+  // 48-letter English sentence still self-reports unreliable). When tuning, raise
+  // DETECT_MIN_LETTERS — never lower the other two.
+  const DETECT_MIN_PERCENTAGE = 90;
+  const DETECT_MIN_LETTERS = 60;
+
+  // Letters that carry language, i.e. after dropping URLs / @handles / #tags / emails,
+  // and counting only letters (digits, punctuation, spaces and emoji never count).
+  function linguisticLetterCount(text) {
+    if (typeof text !== 'string' || !text) return 0;
+    let n = 0;
+    for (const run of text.replace(NON_LINGUISTIC, ' ').match(FOREIGN_RUN) || []) n += run.length;
+    return n;
+  }
+
+  // Compare only the base subtag: the detector says `en`, settings say `en-US`.
+  function baseSubtag(tag) {
+    return String(tag || '').toLowerCase().split(/[-_]/)[0];
+  }
+
+  // Cheap checks first. The letter count is the only O(n) test here (a regex
+  // replace plus a match over the whole unit), and on a page actually worth
+  // translating the common answer is "detected language != target" — so the
+  // O(1) subtag compare goes above it and the scan is usually never run.
+  function detectorSaysTargetLanguage(det, text, targetLang) {
+    if (!det || !targetLang) return false;
+    if (det.isReliable !== true) return false;
+    if ((det.percentage | 0) < DETECT_MIN_PERCENTAGE) return false;
+    const a = baseSubtag(det.lang);
+    if (!a || a !== baseSubtag(targetLang)) return false;
+    return linguisticLetterCount(text) >= DETECT_MIN_LETTERS;
+  }
+
   function endsSentence(s) { return SENT_END.test(s); }
 
   // Join two cue fragments: no separator when both sides are CJK (no inter-word
@@ -218,18 +275,37 @@ var TranslationCore = (() => {
   }
 
   // ─── Generic translation engine: per-unit state machine + retry ───────
-  // units: [{text, ...payload}]. The engine adds state: tr (translation),
-  // _fetching, _done, _err, _tries. The caller injects:
+  // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
+  // `_`-prefixed state — see reset() for the authoritative set, so this list cannot
+  // go stale the next time a field is added. The caller injects:
   //   translate(text) → Promise<string>
   //   selectActive(units) → units[]   (the scheduler: which units to translate now —
   //                                     time-window for subtitles, viewport for pages)
+  //   targetLang        string OR a getter — see "read late" below
+  //   detect(text)      OPTIONAL browser language detector, three-state and SYNCHRONOUS:
+  //                     {lang,percentage,isReliable} | undefined (in flight) | null
+  //                     (never). Supplied by the adapter where the browser has one
+  //                     (docs/domain-design.md §5.3) — the engine never probes for it.
   // Rendering stays in the adapter. This is the shared core for BOTH the webpage
   // path and the subtitle path (see docs/domain-design.md).
   function createEngine(cfg) {
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
-    const win = cfg.window || WINDOW;
-    const targetLang = cfg.targetLang || '';
+    // MERGE, not replace: an adapter's override lists only the knobs it cares about,
+    // so a replacement silently leaves every other tunable undefined — and an
+    // undefined threshold fails open (`n <= undefined` is false), disabling the
+    // feature it guards without a single test going red.
+    const win = Object.assign({}, WINDOW, cfg.window);
+    const detect = typeof cfg.detect === 'function' ? cfg.detect : null;
+    // Settings are read LATE, per tick — never captured here. The subtitle harness
+    // builds its engine before init/enable/updateSettings have assigned `settings`, so
+    // capturing froze the same-language check to DEFAULT_TARGET_LANG for the whole
+    // session and subtitles ignored the user's chosen target entirely. `translate` was
+    // already a late-reading closure; `targetLang` now matches it. See
+    // docs/domain-design.md §4.
+    const targetLangOf = typeof cfg.targetLang === 'function'
+      ? () => cfg.targetLang() || ''
+      : () => cfg.targetLang || '';
     let units = [];
 
     function setUnits(list) { units = list || []; }
@@ -237,6 +313,10 @@ var TranslationCore = (() => {
     function pump() {
       if (!units.length) return;
       const active = selectActive(units) || [];
+      const targetLang = targetLangOf();
+      // Loop-invariant for this tick — hoisted so the script-family regexes aren't
+      // re-run once per unit per 350ms tick.
+      const useDetector = !!detect && !!targetLang && !isScriptDecidableTarget(targetLang);
       let started = 0;
       for (let i = 0; i < active.length && started < win.MAX_PER_TICK; i++) {
         const it = active[i];
@@ -245,7 +325,45 @@ var TranslationCore = (() => {
         // settle into the same "nothing to show" state an empty response produces, so
         // the renderer draws no sibling at all. Covers the webpage AND subtitle paths,
         // which share this engine.
+        //
+        // Layer 1 — script. Works on every surface, and is the ONLY layer consulted for
+        // the targets it can decide (zh/ja/ko), so the most-used path is identical on
+        // every browser by construction.
         if (isAlreadyTargetLanguage(it.text, targetLang)) { it._done = true; continue; }
+        // Layer 2 — the injected browser detector, for the targets script cannot decide
+        // (English vs French are the same script). Absent on Safari, where this whole
+        // branch short-circuits and behaviour is exactly layer 1 alone.
+        //
+        // The length floor is checked HERE, before asking. It depends only on the text,
+        // so a unit under it can never be skipped no matter what the detector says —
+        // asking anyway would spend an IPC, a cache entry and a reaper timer, and stall
+        // the unit for MAX_DETECT_WAITS ticks, all to discard the answer. That waste
+        // lands hardest on subtitles, where merged cues are capped at MERGE.MAX_LEN and
+        // many are sub-floor by construction. Memoized: it.text never changes.
+        if (useDetector) {
+          if (it._letters == null) it._letters = linguisticLetterCount(it.text);
+          if (it._letters >= DETECT_MIN_LETTERS) {
+            // A throwing detector must not take the tick loop down with it — pump()
+            // drives rendering for the whole page, so an exception here would stall
+            // every unit, not just this one. Treat it as "no answer" and translate.
+            let det = null;
+            try { det = detect(it.text); } catch (_) { det = null; }
+            if (det === undefined) {
+              // In flight. Wait a tick rather than translating — but only briefly.
+              // stateOf() reports 'pending' while !_done, so a detector that never
+              // answers would pin the unit at "⏳ 翻译中…" forever. Bounded wait, then
+              // translate: erring toward translating is the standing rule.
+              //
+              // The wait counts against MAX_PER_TICK: a first ask is an IPC, and
+              // without this a viewport full of units would fire an unbounded burst
+              // of detector calls inside one 350ms handler and start no translations.
+              if ((it._detectWaits = (it._detectWaits || 0) + 1) <= win.MAX_DETECT_WAITS) { started++; continue; }
+            } else if (detectorSaysTargetLanguage(det, it.text, targetLang)) {
+              it._done = true;
+              continue;
+            }
+          }
+        }
         it._fetching = true;
         started++;
         translate(it.text).then((t) => {
@@ -271,6 +389,7 @@ var TranslationCore = (() => {
     function reset() {
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
+        it._detectWaits = 0;
       });
     }
 
@@ -282,11 +401,16 @@ var TranslationCore = (() => {
   // (setItems/activeAt/stateOf(it,tMs)/items) so content-youtube is unaffected.
   function createSubtitleEngine(cfg) {
     const getCurrentTime = cfg.getCurrentTime;     // () => ms
-    const win = cfg.window || WINDOW;
+    // MERGE, not replace: an adapter's override lists only the knobs it cares about,
+    // so a replacement silently leaves every other tunable undefined — and an
+    // undefined threshold fails open (`n <= undefined` is false), disabling the
+    // feature it guards without a single test going red.
+    const win = Object.assign({}, WINDOW, cfg.window);
     const engine = createEngine({
       translate: cfg.translate,
       window: win,
-      targetLang: cfg.targetLang,
+      targetLang: cfg.targetLang,   // string or getter — passed through, read late
+      detect: cfg.detect,
       // sliding window: only sentences from now to +AHEAD_MS
       selectActive: (units) => {
         const tMs = getCurrentTime();
@@ -332,7 +456,8 @@ var TranslationCore = (() => {
 
   return {
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
-    isTranslated, isAlreadyTargetLanguage, looksLikeCode, endsSentence, joinCue, wordBreakIndex,
+    isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
+    looksLikeCode, endsSentence, joinCue, wordBreakIndex,
     mergeSentences, createPager, createEngine, createSubtitleEngine, isMobileLayout,
   };
 })();
