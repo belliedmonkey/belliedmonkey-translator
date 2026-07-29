@@ -3,6 +3,7 @@ dist-china/
 dist-firefox/
 safari-project/
 safari-project-china/
+safari-project-macos/
 *.zip
 *.xpi
 node_modules/

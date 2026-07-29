@@ -68,6 +68,25 @@ issue updated as related work lands, and reference it from commits/PRs. The goal
 is a durable record of not just *what* changed but *why* — so the thinking behind
 each fix is preserved, not just the diff.
 
+## Release state — never inferred from this repo
+
+**Anything about publishing (which stores the product is live on, at what version,
+under which listing) must be looked up in gbrain first, never derived from the
+repo.** No git tag, no GitHub release, and no store link in the README says
+anything about whether a build shipped — those are simply not how this project
+tracks releases. The store listings, app record ids, legal pages and per-platform
+status live in the marketing-site content indexed in gbrain
+(`belliedmonkey-cc` / `belliedmonkey-com`).
+
+This is not a style preference; reasoning from the repo produces confidently wrong
+answers. On 2026-07-28 the absence of tags was read as "never published" while both
+the App Store and the Chrome Web Store had live listings, and the local (gitignored)
+Xcode project was read as the shipped version while App Store Connect was two
+versions ahead of it.
+
+The same asymmetry applies inside a release: `package.json` is the source of truth
+for the *version*, but only the store knows the last accepted *build number*.
+
 ## Verification — governed by the verification spec
 
 **All verification / testing is governed by the single source of truth,
@@ -95,13 +114,29 @@ is in [`docs/device-verification.md`](docs/device-verification.md).
 node build.js                     # global Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
 node build.js --flavor china      # china build → dist-china/ (+ -china.zip); runs the compliance gate
 node build.js firefox             # Firefox build → dist-firefox/ + .xpi
-bash build-safari.sh              # global Safari Xcode project (needs FULL Xcode)
-bash build-safari.sh china        # china Safari Xcode project (bundle id …​.cn)
+bash build-safari.sh              # global Safari iOS Xcode project (needs FULL Xcode)
+bash build-safari.sh china        # china Safari iOS Xcode project (bundle id …​.cn)
+bash build-safari.sh global macos # global Safari macOS project → safari-project-macos/
+BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build number
 ```
 
 - Source lives in `extension/`; `build.js` copies it to `dist/` and validates.
 - Icons: real PNGs in `extension/icons/` (source `icon.svg`). The build FAILS if
   they aren't genuine PNGs — don't emit SVG renamed to `.png`.
+- `build-safari.sh <flavor> <platform>`: flavor `global|china`, platform
+  `ios|macos`. **Every run re-applies** the project settings — version (from
+  `package.json`), both bundle ids, display name, and the Info.plist keys the
+  stores require (`ITSAppUsesNonExemptEncryption`, plus
+  `LSApplicationCategoryType` on macOS). Only your signing config is preserved.
+  `safari-project*/` is gitignored, i.e. purely local state, so the script is the
+  only thing keeping it from drifting — an earlier version skipped all
+  post-processing when the project already existed, and `MARKETING_VERSION` sat
+  at 1.0 while `package.json` reached 1.2.0.
+- Build numbers are **not** derived: App Store requires them to increase per
+  platform, and iOS/macOS count separately. The script only writes
+  `CURRENT_PROJECT_VERSION` when `BUILD_NUMBER=` is given; otherwise it keeps the
+  existing value and tells you to check App Store Connect. The repo cannot know
+  the store's state — see the release-state rule below.
 
 ## Architecture
 

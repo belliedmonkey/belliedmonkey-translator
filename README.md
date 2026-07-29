@@ -46,6 +46,16 @@ bash build-safari.sh
 
 > **注意**：免费 Apple ID 安装的 App 有效期 7 天，到期后重新用 Xcode Run 一次即可续期，无需重新设置。
 
+Mac Safari 用同一套流程，只是换个平台参数（生成到 `safari-project-macos/`，顶部选
+**My Mac** 后 Run）：
+
+```bash
+bash build-safari.sh global macos
+```
+
+装好后在 **Safari → 设置 → 扩展** 里勾选启用。未签名的扩展还需先开
+**Safari → 设置 → 开发者 → 允许未签名的扩展**——该开关每次重启 Safari 都会复位。
+
 ## 在 Chrome / Edge 测试（无需 Mac）
 
 ```bash
@@ -83,10 +93,17 @@ node build.js firefox   # → 生成 dist-firefox/ 和 belliedmonkeytranslator-f
 ## 构建命令速查
 
 ```bash
-node build.js              # Chrome / Safari 构建 → dist/ + belliedmonkeytranslator.zip
-node build.js firefox      # Firefox 构建 → dist-firefox/ + belliedmonkeytranslator-firefox.xpi
-bash build-safari.sh       # 生成 Safari iOS Xcode 项目（需 Mac）
+node build.js                        # Chrome / Safari 构建 → dist/ + belliedmonkeytranslator.zip
+node build.js firefox                # Firefox 构建 → dist-firefox/ + belliedmonkeytranslator-firefox.xpi
+bash build-safari.sh                 # 生成 / 更新 Safari iOS Xcode 项目（需完整 Xcode）
+bash build-safari.sh global macos    # 同上，但生成 macOS 版工程
+BUILD_NUMBER=11 bash build-safari.sh global macos   # 顺便指定上传用的 build 号
 ```
+
+`build-safari.sh <flavor> <platform>`：flavor 为 `global`（默认）或 `china`，platform 为
+`ios`（默认）或 `macos`。**每次运行都会重设**版本号（跟随 `package.json`）、bundle id、
+显示名与上架所需的 Info.plist 键，只保留你在 Xcode 里配好的签名。`safari-project*/` 全在
+`.gitignore` 里，是纯本地状态——所以这些设置必须由脚本反复写入，否则会静默漂移。
 
 零依赖，无需 `npm install`，需要 Node.js 16+。
 
