@@ -1,153 +1,295 @@
-# 大肚猴翻译 · Mobile Translator
+<h1 align="center">BelliedMonkey Translator</h1>
 
-Safari iOS 浏览器翻译插件，支持网页双语对照翻译、YouTube 与播客双语字幕。完全开源免费，可自由配置任意 LLM API，数据不上传。
+<p align="center">
+  <b>Read the world's web — both languages at once.</b><br>
+  Bilingual pages, plus dual subtitles for video and podcasts.<br>
+  Bring your own LLM key. No servers of ours in the middle.
+</p>
 
-## 功能
+<p align="center">
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
+  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-0a7a3c"></a>
+</p>
 
-- **网页双语翻译**：原文保留，译文以绿色显示在每个段落下方
-- **YouTube 双语字幕**：整段字幕预取 + 60 秒预译，整句原文 + 译文同步显示（自绘固定叠加层）
-- **播客/音频双语字幕**：有时轴字幕的播客（Substack、Spotify「跟随文字」等）显示双语字幕；无字幕站点自动回退为页面文本翻译
-- **多引擎切换**：Google 翻译（免费无需 Key）/ ChatGPT / Claude / DeepSeek / 智谱 GLM
-- **移动端交互**：可拖拽悬浮按钮、点击段落弹出翻译 chip、深色模式适配
-- **翻译缓存**：内存 + 本地存储双层缓存（TTL 12 小时），重复内容秒出
-- **自定义 API 地址**：支持中转代理（适用于国内访问 OpenAI 等）
+<p align="center">
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-## 平台支持
+<p align="center">
+  <img src="docs/media/hero-bilingual.gif" alt="A Substack podcast page: every paragraph carries a green translation beneath it, and a bilingual subtitle pair tracks the audio at the bottom of the screen." width="720">
+</p>
 
-| 平台 | 支持 | 说明 |
-|---|---|---|
-| iPhone / iPad Safari | ✅ | 需要 Mac + Xcode 打包安装 |
-| Mac Safari | ✅ | 同上 |
-| Chrome / Edge（桌面） | ✅ | 直接加载 `dist/` 解压扩展 |
-| Firefox（桌面 + Android） | ✅ | `node build.js firefox` 构建后提交 AMO |
-| iPhone Chrome / Firefox | ❌ | iOS 系统限制，所有浏览器均不支持扩展 |
+<p align="center"><sub>Page text and audio subtitles at the same time. The original stays; the translation goes underneath.</sub></p>
 
-## 安装到 iPhone（Safari）
+---
 
-**前提**：Mac + Xcode 14+ + Apple ID（免费账号即可，无需付费开发者计划）
+## Install
 
-```bash
-# 1. 克隆项目
-git clone https://github.com/belliedmonkey/belliedmonkey-translator
-cd belliedmonkey-translator
+Install from a store — building from source is for contributors, not for using it.
 
-# 2. 一键构建 + 生成 Xcode 项目
-bash build-safari.sh
-```
+| Platform | |
+|---|---|
+| **iPhone · iPad · Mac** (Safari) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three |
+| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) |
+| **Firefox** (desktop · Android) | Store review is pending. Until it clears, grab the `.xpi` from [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases) and load it via `about:debugging` → This Firefox → Load Temporary Add-on |
+| **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
-脚本自动完成：`node build.js` → `xcrun safari-web-extension-converter` → 提示打开 Xcode
+Then open the extension's settings and pick a translation engine. Nothing else is required.
 
-在 Xcode 中完成最后步骤：
-1. 点击左侧 `BelliedMonkey Translator` → `Signing & Capabilities` → **Team 选你的 Apple ID**
-2. 同样设置 `BelliedMonkey Translator Extension`（两个 Target 都要）
-3. 用数据线连接 iPhone，顶部选择你的设备
-4. 点击 ▶ **Run**（或 `⌘R`）
-5. 手机上：**设置 → Safari → 扩展 → 大肚猴翻译 → 打开 → 允许访问所有网站**
+<details>
+<summary><b>Building from source</b></summary>
 
-> **注意**：免费 Apple ID 安装的 App 有效期 7 天，到期后重新用 Xcode Run 一次即可续期，无需重新设置。
-
-Mac Safari 用同一套流程，只是换个平台参数（生成到 `safari-project-macos/`，顶部选
-**My Mac** 后 Run）：
+Zero dependencies — no `npm install`. Node.js ≥ 16.
 
 ```bash
-bash build-safari.sh global macos
+node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
+node build.js firefox             # Firefox          → dist-firefox/ + .xpi
+node build.js --flavor china      # China flavor     → dist-china/
 ```
 
-装好后在 **Safari → 设置 → 扩展** 里勾选启用。未签名的扩展还需先开
-**Safari → 设置 → 开发者 → 允许未签名的扩展**——该开关每次重启 Safari 都会复位。
+Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
 
-## 在 Chrome / Edge 测试（无需 Mac）
+For Safari you additionally need macOS with a full Xcode install:
 
 ```bash
-node build.js
+bash build-safari.sh                  # generates the iOS Xcode project
+bash build-safari.sh global macos     # …or the macOS one
+BUILD_NUMBER=11 bash build-safari.sh global macos   # explicit build number for uploads
 ```
 
-打开 `chrome://extensions/` → 开启开发者模式 → 加载已解压的扩展程序 → 选择 `dist/`
+In Xcode: set your Team on **both** targets → select your device → Run. Then on the phone,
+**设置 → Safari → 扩展** and allow access to all websites.
 
-## 发布到 Firefox（覆盖桌面 + Android 用户）
+Two things that surprise people: an app installed with a free Apple ID **expires after 7
+days** (re-run from Xcode to renew), and on macOS the *Allow Unsigned Extensions* switch
+**resets every time Safari restarts**. Neither applies to a store install.
+
+`build-safari.sh` re-applies version, bundle id, display name and the Info.plist keys on
+**every** run. That is deliberate: `safari-project*/` is gitignored local state, so without
+re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmonkey-translator/issues/51)).
+
+</details>
+
+---
+
+## What it does
+
+**Bilingual pages.** Every paragraph keeps its original text, with the translation directly
+beneath it in a distinct colour. No tab switching, no losing your place. The translation
+inherits the original's font, size, weight and alignment — only the colour differs — and
+re-measures when the window resizes, so it never breaks out of the column it belongs to.
+
+**Dual subtitles for video.** The full transcript is fetched **once, up front**, merged into
+whole sentences, and translated **ahead of the playhead in a 60-second sliding window**.
+Because the work runs ahead of playback, translation latency is invisible — you get matched
+whole-sentence pairs, never word-by-word fragments, and no stutter even with a slow model.
+
+**Dual subtitles for podcasts and audio.** The same engine, with no video frame at all:
+a viewport-anchored overlay tracks the audio clock.
+
+**Any LLM you want, or none.** Transport is keyed by request *format* rather than by vendor —
+Google, OpenAI-compatible chat completions, and Anthropic-compatible messages — so any
+endpoint speaking one of those shapes works, including your own. The list of built-in engines
+lives in the extension's settings page; the single source of truth in this repo is
+[`build/providers.config.js`](build/providers.config.js), and it is deliberately not
+duplicated here — every copy of it is one more thing that goes stale.
+
+---
+
+## Supported sites
+
+Most of the web needs no per-site code: the segmenter uses only standard HTML semantics and
+has **zero site selectors**. What follows is the awkward 20% — sites whose markup defeats the
+general rules, or whose media needs a transcript path of its own.
+
+| Site | Page text | Video subtitles | Audio subtitles |
+|---|:---:|:---:|:---:|
+| **YouTube** — incl. `m.youtube.com`, `youtube-nocookie.com` embeds | generic | ✅ | — |
+| **x.com / twitter.com** | ✅ de-cluttered | ⚠️ needs a real caption track | — |
+| **Substack** — incl. custom domains | ✅ | ✅ video posts | ✅ |
+| **Spotify** — episode pages | generic | — | ⚠️ fragile |
+| **Apple Podcasts (web)** · **小宇宙** | generic | — | ❌ impossible |
+| **Anything else** | ✅ | — | ✅ if the page has a transcript |
+
+**generic** — works through the general rules, with no site-specific code.
+**⚠️** — see [Known limitations](#known-limitations).
+**❌ impossible** — those two sites expose no timed transcript anywhere on the web, so there is
+nothing to translate. They fall back to page text.
+
+"Anything else" is not a hedge. Any page carrying a WebVTT/SRT file or a `<track>`, and any
+podcast publishing a Podcasting 2.0 `<podcast:transcript>`, gets subtitles with no adapter at
+all. Web components are handled too — open shadow roots are traversed, which is why sites
+that keep their content in custom elements work without special-casing.
+
+### Adapted sites don't regress
+
+Two mechanisms, each covering half of that promise:
+
+- **Page text and layout** — every site-specific layout fix ships with a new regression
+  fixture distilled from that site's minimal markup pattern, and **that fixture must fail
+  before the fix**, with the red run recorded in the issue. Pre-existing fixtures are never
+  edited to accommodate a new one. 29 fixtures today, run against a real headless Chrome.
+- **Video and audio subtitles** — once a device or browser is adapted it is **permanently
+  added to the verification matrix** and exercised on every future change, during actual
+  playback. Subtitles are deliberately *not* covered by the layout fixtures; that gate is
+  scoped to renderer logic in Chromium and says so.
+
+The rules are written down in [`docs/verification-spec.md`](docs/verification-spec.md), not
+just practised.
+
+---
+
+## Why bring your own key
+
+- **No servers of ours.** Translation requests go from your browser straight to the provider
+  you chose. There is nothing in between to log, store, or resell — because there is nothing
+  in between.
+- **Your key stays local.** It lives in `chrome.storage.local` and never leaves your device.
+- **You control the cost.** Which engine, which model, how much you spend — all yours. A free
+  engine is available if you'd rather not configure anything, though a real model is
+  noticeably better.
+- **Auditable.** Every claim above is a line of source you can read. That is the point of
+  publishing it.
+
+On **iPhone and iPad this works exactly as it does on desktop**, which is harder than it
+sounds and is why the architecture looks unusual. See
+[Safari iOS, and why the service worker does nothing](#safari-ios-and-why-the-service-worker-does-nothing).
+
+---
+
+## Known limitations
+
+Stated up front, because finding them yourself is worse.
+
+- **iOS has no subtitles in video fullscreen.** iOS hands fullscreen playback to the system's
+  native player, which a web overlay cannot draw on. On iPhone and iPad, subtitles are an
+  inline-playback feature. This is a platform boundary, not a to-do.
+- **No speech recognition, ever.** If a video or podcast has no existing timed transcript, you
+  get an honest `字幕不可用` notice and the page-text translation as the floor — never a
+  word-by-word guess. Running ASR would mean either a backend of ours or something infeasible
+  on Safari iOS, and both are refused.
+- **x.com video usually has no caption track.** Captions on X are typically *burned into the
+  video image*, which no translator can read. Of four candidate videos sampled while
+  preparing demo material, three had burned-in captions and one had none — only a long-form
+  upload with a real CC track worked. If the player shows a working CC button, so will we.
+- **Traditional and Simplified Chinese are not distinguished.** A Traditional Chinese
+  paragraph under a Simplified Chinese target is skipped and shows nothing (and vice versa).
+  Browser language detectors report both as plain `zh`; separating them needs
+  character-repertoire analysis, which isn't built yet. This is a gap, not intended behaviour.
+- **Spotify's transcript scraping is structurally fragile.** Spotify's cue classes are hashed,
+  so the code anchors on the seek button plus the `m:ss` timestamp pattern instead. It works,
+  and it needs periodic re-verification. Episode pages only.
+- **Browsers are not identical, on purpose.** The "don't re-translate text already in your
+  target language" check uses the browser's own language detector, which Safari does not
+  implement. On Safari the request is still made. Holding every browser down to Safari's floor
+  would mean permanently spending your quota on answers that get discarded, so the asymmetry
+  was chosen deliberately and written down.
+
+---
+
+## Privacy
+
+- **No servers of ours.** Requests go from your browser to the engine you picked. We never
+  handle, store or upload your data — there is no "we" in the path at all.
+- **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
+- **No account, no tracking, no telemetry.** Nothing to sign up for.
+- **What is sent** is the text to be translated. Not the URL, not the page title, not the
+  referrer, not your user agent, not any identifier. This is also what the extension declares
+  to Firefox under `data_collection_permissions`: `websiteContent`, and deliberately *not*
+  `browsingActivity`.
+
+Full policy: [belliedmonkey.cc/privacy.html](https://belliedmonkey.cc/privacy.html)
+
+---
+
+## For developers
+
+### Safari iOS, and why the service worker does nothing
+
+On Safari iOS the background service worker becomes permanently `undefined` after the device
+locks, and `chrome.runtime.sendMessage()` from a content script then fails **silently** — no
+exception, no rejection. The extension appears to work, you pocket your phone, and translation
+is dead until Safari is force-quit.
+
+So the standard MV3 architecture is inverted here: **every provider `fetch()` runs in the
+content script** ([`extension/content/translation-api.js`](extension/content/translation-api.js)),
+and content scripts read settings straight from `chrome.storage.local` rather than asking the
+worker. [`extension/background.js`](extension/background.js) is 64 lines that handle defaults,
+badge text and cache clearing — it is never on the critical path.
+
+### How subtitles are acquired
+
+Never word-by-word, and never by scraping the rendered captions. The transcript is fetched
+whole, merged into sentences, and translated ahead of playback.
+
+Getting the transcript is the hard part and differs per source. YouTube gates
+`/api/timedtext` behind a proof-of-origin token that only its own player can mint — a forged
+request returns **HTTP 200 with an empty body**, the worst possible failure mode. So the
+extension lets YouTube fetch it, then reads YouTube's own request URL out of the **Resource
+Timing API** and re-fetches that exact URL. Because that buffer evicts, a 28-line
+`document_start` script exists purely to record those URLs before they vanish. x.com is easier
+— its subtitle segments are not token-gated — and podcasts use in-page WebVTT/SRT or the
+podcast feed's `<podcast:transcript>`.
+
+### Build and test
 
 ```bash
-node build.js firefox   # → 生成 dist-firefox/ 和 belliedmonkeytranslator-firefox.xpi
+npm test              # 87 unit tests, zero dependencies, Node ≥16
+npm run test:layout   # 29 layout fixtures against real headless Chrome (Node ≥22)
 ```
 
-本地测试：Firefox → `about:debugging` → 此 Firefox → 临时载入附加组件 → 选 `.xpi`
+`npm run test:layout` is **mandatory** before any push touching `extension/content/**` or
+`extension/styles/**`. CI runs the unit tests and all three builds; it deliberately does not
+run the layout corpus or the device matrix, and the workflow says so rather than letting a
+green badge imply coverage it doesn't have.
 
-正式发布：前往 [addons.mozilla.org/developers](https://addons.mozilla.org/developers/) → 上传 `.xpi` → 填写描述截图 → 提交审核（通常 1-3 个工作日，**免费**）
+### Where the rules live
 
-发布后 Firefox Android 用户可直接在附加组件商店搜索安装。
+| Document | What it owns |
+|---|---|
+| [`docs/domain-design.md`](docs/domain-design.md) | The domain model: `source → Extractor → units → Engine → Renderer`, the zero-site-selectors rule, provider registry. **Changes here need human review first.** |
+| [`docs/verification-spec.md`](docs/verification-spec.md) | How anything is verified. The full-matrix rule, per-surface traps, honesty rules. |
+| [`docs/interaction-spec.md`](docs/interaction-spec.md) | User-facing interaction and layout constraints. |
+| [`docs/regression-tests.md`](docs/regression-tests.md) | The manual device checklist. |
+| [`AGENTS.md`](AGENTS.md) | Conventions for both humans and AI agents working here. |
 
-## 配置翻译引擎
-
-点击 Safari 工具栏插件图标打开快速设置，或点击「更多设置」进入完整选项页。
-
-| 引擎 | 费用 | API Key | 推荐场景 |
-|---|---|---|---|
-| Google 翻译 | 免费 | 不需要 | 日常使用默认选项 |
-| ChatGPT (OpenAI) | 按量计费 | 是（`sk-…`） | 翻译质量要求高 |
-| Claude (Anthropic) | 按量计费 | 是（`sk-ant-…`） | 长文翻译质量好 |
-| DeepSeek | 极低价 | 是 | 高性价比 |
-| 智谱 GLM | 有免费额度 | 是 | 免费体验 LLM 翻译 |
-
-所有 LLM 引擎均支持配置**自定义 API 地址**，可接入中转代理或自建服务。
-
-## 构建命令速查
-
-```bash
-node build.js                        # Chrome / Safari 构建 → dist/ + belliedmonkeytranslator.zip
-node build.js firefox                # Firefox 构建 → dist-firefox/ + belliedmonkeytranslator-firefox.xpi
-bash build-safari.sh                 # 生成 / 更新 Safari iOS Xcode 项目（需完整 Xcode）
-bash build-safari.sh global macos    # 同上，但生成 macOS 版工程
-BUILD_NUMBER=11 bash build-safari.sh global macos   # 顺便指定上传用的 build 号
-```
-
-`build-safari.sh <flavor> <platform>`：flavor 为 `global`（默认）或 `china`，platform 为
-`ios`（默认）或 `macos`。**每次运行都会重设**版本号（跟随 `package.json`）、bundle id、
-显示名与上架所需的 Info.plist 键，只保留你在 Xcode 里配好的签名。`safari-project*/` 全在
-`.gitignore` 里，是纯本地状态——所以这些设置必须由脚本反复写入，否则会静默漂移。
-
-零依赖，无需 `npm install`，需要 Node.js 16+。
-
-## 代码结构
+### Code layout
 
 ```
 extension/
-├── manifest.json              # Manifest v3（Chrome / Safari / Firefox 通用）
-├── background.js              # Service worker — 仅管理状态，不做翻译请求
+├── manifest.json           Manifest V3 — Chrome / Safari / Firefox
+├── background.js           State only. Never translation. (See above.)
 ├── content/
-│   ├── translation-core.js    # 平台无关引擎：字幕状态机、60s 预译窗口、分页、句子合并、i18n
-│   ├── translation-api.js     # 所有 LLM API fetch() 调用（在 content script 中执行）
-│   ├── dom-processor.js       # 段落检测、双语注入
-│   ├── floating-button.js     # 悬浮按钮（可拖拽）
-│   ├── content-webpage.js     # 网页全文双语翻译
-│   ├── content-youtube.js     # YouTube 双语字幕：整段预取 + 60s 预译
-│   ├── content-podcast.js     # 播客/音频双语字幕（Substack VTT / Spotify「跟随文字」等）
-│   ├── yt-timedtext-observer.js # Safari：用 Resource Timing 记录 YouTube 自己的 /api/timedtext URL
-│   ├── yt-hook.js             # world:MAIN 钩子（仅 Chrome）— 机会性抓取字幕
-│   └── content-main.js        # 入口：读取设置，路由到网页/YouTube/播客翻译器
-├── styles/
-│   ├── bilingual.css          # 双语样式（.mt-translation、进度条、翻译 chip）
-│   └── floating-button.css    # 悬浮按钮（#mt-fab）
-├── popup/                     # 工具栏弹出快速设置
-└── options/                   # 完整选项页（颜色/字号/API Key/缓存管理）
+│   ├── translation-core.js Platform-agnostic engine: subtitle state machine,
+│   │                       60s sliding window, sentence merge, paging, i18n
+│   ├── translation-api.js  Every provider fetch() — runs in the content script
+│   ├── dom-processor.js    DomSegmenter — standard HTML semantics, zero site selectors
+│   ├── content-webpage.js  Bilingual page rendering
+│   ├── content-youtube.js  ├─ subtitle sources, one adapter each
+│   ├── content-podcast.js  │
+│   ├── content-twitter.js  │
+│   ├── site-twitter.js     └─ x.com chrome de-cluttering
+│   └── content-main.js     Entry point: reads settings, routes
+├── popup/ · options/       Settings UI
+└── _locales/               11 languages
 ```
 
-## 关键技术说明
+---
 
-**Safari iOS Service Worker Bug**：设备锁屏后 Safari 的 background service worker 会永久失效（直到强退 Safari）。因此所有翻译 API 的 `fetch()` 调用都在 `content/translation-api.js`（content script 中）直接发出，`background.js` 只负责存储初始化和图标状态，从不参与翻译。
+## Contributing
 
-**YouTube / 播客字幕方案**：不做逐字翻译。一次性预取完整字幕（YouTube 用 `/api/timedtext`；Safari 上通过 Resource Timing 观察器拿到 YouTube 自己带 pot 的 URL 再 refetch，绕开 `world:MAIN` 限制），按 **60 秒滑动窗口预译**，合并成整句后由 `video.currentTime` / `audio.currentTime` 匹配，显示在自绘的固定叠加层里。因此即使 LLM 较慢也不会逐条卡顿。播客侧支持站内 VTT/SRT、Podcasting 2.0 `<podcast:transcript>`、以及 Spotify「跟随文字」的 DOM 抓取。
+Bug reports and site requests both have a form — the fields on them are the ones that
+actually determine whether something can be reproduced. If you want a specific site to work
+properly, [open a site request](https://github.com/belliedmonkey/belliedmonkey-translator/issues/new?template=site_adaptation.yml);
+that is how the roadmap gets decided.
 
-## 隐私 Privacy
+Every change is recorded in an issue capturing the problem, the fix, **and the reasoning** —
+so the thinking survives, not just the diff. See [`AGENTS.md`](AGENTS.md).
 
-- **无自建服务器**：翻译请求直接从你的浏览器发往你选择的翻译引擎，我们不经手、不存储、不上传你的任何数据。
-- **API Key 只存在本地**：你的 key 保存在浏览器本地存储（`chrome.storage.local`），从不离开你的设备。
-- **自带 Key（BYO-key）**：用哪个引擎、花多少钱由你自己控制。用 Google 免费引擎则无需任何 Key。
-- **完全开源，可自行审计**：以上每一条都能在源码里逐行验证——这正是开源的意义。
+## License
 
-## 许可证 License
+[GNU General Public License v3.0 or later](LICENSE). Use it, study it, change it, share it —
+derivative works stay GPL-3.0.
 
-本项目采用 **GNU General Public License v3.0 (GPL-3.0-or-later)**，完整条款见 [`LICENSE`](LICENSE)。
-
-你可以自由使用、研究、修改和分发本项目；但基于本项目的衍生作品必须同样以 GPL-3.0 开源。
-
-Copyright (C) 2026 belliedmonkey and contributors.
+Copyright © 2026 belliedmonkey and contributors.
