@@ -187,6 +187,21 @@ function validateManifest(distDir, isFirefox) {
   if (isFirefox && !m.background?.scripts) { err('Firefox build missing background.scripts'); process.exit(1); }
   if (!isFirefox && !m.background?.service_worker) { err('Chrome build missing background.service_worker'); process.exit(1); }
   if (!m.browser_specific_settings?.gecko?.id) { err('Missing gecko.id (required for AMO)'); process.exit(1); }
+  // Firefox requires an explicit data-collection disclosure on every new AMO
+  // submission since 2025-11-03; AMO's validator hard-fails without it. The honest
+  // value here is `websiteContent`, NOT `none`: we send the text of the page (and of
+  // video/podcast transcripts) to whichever translation provider the user configured,
+  // i.e. it IS transmitted outside the extension for processing. That we operate no
+  // server of our own does not make it `none` — the field describes what leaves the
+  // extension, not who receives it. Requests carry text only: no URL, title,
+  // referrer, user agent or any user identifier, which is why `browsingActivity`
+  // is deliberately absent. Re-check this if translation-api.js ever starts sending
+  // more than text.
+  const dcp = m.browser_specific_settings?.gecko?.data_collection_permissions?.required;
+  if (!Array.isArray(dcp) || dcp.length === 0) {
+    err('Missing gecko.data_collection_permissions.required (AMO rejects the upload without it)');
+    process.exit(1);
+  }
   // The extension version (manifest) and the repo version (package.json) are bumped
   // by the same release step and must not drift — they silently did through 1.1.0.
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
