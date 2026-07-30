@@ -1,0 +1,67 @@
+name: test
+
+# Zero-dependency repo: there is nothing to install, so there is deliberately no
+# `npm ci`, no lockfile restore and no cache step. If an install step ever shows
+# up here, a dependency crept into package.json and that is the thing to fix.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: npm test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 16 is the floor declared in package.json `engines`; 22 is what
+        # `npm run test:layout` needs locally. Both must stay green, otherwise
+        # the declared floor is a fiction.
+        node: ['16', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  build:
+    name: build (${{ matrix.flavor }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flavor: global
+            cmd: node build.js
+          - flavor: china
+            cmd: node build.js --flavor china
+          - flavor: firefox
+            cmd: node build.js firefox
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # build.js carries hard gates, not just packaging: the manifest
+      # `data_collection_permissions` assertion (issue #53) and the china-flavor
+      # compliance grep over dist-china/. A green build IS the gate here; the
+      # zip it produces is a byproduct we throw away.
+      - run: ${{ matrix.cmd }}
+
+# Not covered here, on purpose:
+#
+#   npm run test:layout  — the 29-fixture layout corpus. It drives a real headless
+#   Chrome over raw CDP and loads the extension via Extensions.loadUnpacked, which
+#   is worth having in CI but is not wired up yet. Until it is, it stays a
+#   mandatory LOCAL gate before any push touching extension/content/** or
+#   extension/styles/** (docs/verification-spec.md §3.2) — CI being green does not
+#   discharge it.
+#
+#   The 5-row device matrix (iPhone / iPad / macOS Safari / Chrome / Firefox via
+#   cua-driver) cannot run on a GitHub runner at all. See docs/verification-spec.md §0.
