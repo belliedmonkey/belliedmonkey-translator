@@ -1,0 +1,84 @@
+name: Site adaptation request
+description: Ask for bilingual translation or dual subtitles to work properly on a specific site
+title: "[site] "
+labels: [site-adaptation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        中文提交完全没问题。
+
+        General HTML pages already work without any per-site code — the segmenter uses
+        only standard HTML semantics and has **zero site selectors**. What needs adapting
+        is the awkward 20%: sites whose markup defeats the general rules, and sites whose
+        video or audio needs a transcript acquisition path of its own.
+
+        Every adaptation that lands comes with a regression fixture that was **red before
+        the fix**, and existing fixtures are never edited to accommodate a new one — that
+        is what makes each one an increment rather than a trade.
+
+  - type: input
+    id: url
+    attributes:
+      label: A specific page URL on that site
+      description: Not just the domain — a real page that shows the problem, ideally one that is readable without logging in.
+      placeholder: https://example.com/some/article
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: form
+    attributes:
+      label: What would you want to work there?
+      options:
+        - label: Page text — bilingual paragraphs
+        - label: Video subtitles
+        - label: Audio / podcast subtitles
+
+  - type: textarea
+    id: current
+    attributes:
+      label: What happens today?
+      description: "\"Nothing at all\", \"the whole article collapses into one giant block\", \"it says 字幕不可用\", \"the sidebar and ads get translated too\" — each of these points at a different cause."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transcript
+    attributes:
+      label: For subtitles — does the site already have a transcript or captions of its own?
+      description: >
+        This decides whether the request is possible at all. We use an existing timed
+        transcript and never generate one: there is no speech recognition in this
+        extension and there will not be. If a video's captions are burned into the video
+        image rather than being a real caption track, no translator can read them —
+        that is currently the common case on x.com.
+      options:
+        - The player has a CC / subtitles button that works
+        - There is a transcript tab or "follow along" text on the page
+        - The captions are burned into the video image
+        - There is no transcript at all
+        - Not applicable — I am asking about page text
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: login
+    attributes:
+      label: Does the page need an account to view?
+      description: Login-gated pages are still worth filing; they are just slower to verify because every surface in the matrix has to be signed in separately.
+      options:
+        - No, it is public
+        - Yes, an account is required
+        - Partly — some content is public
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: A screenshot of what it looks like now, or a note about how often you use this site.
+    validations:
+      required: false

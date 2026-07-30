@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup help — keys, engines, enabling the extension
+    url: https://belliedmonkey.cc/support.html
+    about: Which engine to pick, where the API key goes, how to enable it in Safari. Start here before filing a bug.
+  - name: Privacy — what leaves your browser
+    url: https://belliedmonkey.cc/privacy.html
+    about: There is no server of ours in the middle. This page says exactly what is sent and to whom.
