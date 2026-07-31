@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>auto-width table beside a text column</title>
+<style>
+  /* A float-right, AUTO-WIDTH table whose cells hold translatable text, with the
+     article text flowing beside it. Wikipedia's infobox is exactly this shape, and
+     it is not site knowledge: any page that floats a data table next to prose has it.
+
+     Before the fix, the renderer anchored the translation as a SIBLING of the
+     original in every case. For a unit whose computed display is `table-cell`, that
+     sibling lands inside the <tr>, and the browser wraps it in an ANONYMOUS TABLE
+     CELL — i.e. the translations become a whole extra COLUMN. The table's intrinsic
+     width roughly doubles and the prose column beside it collapses.
+
+     Observed on en.wikipedia.org/wiki/Giant_panda (issue #59): the first paragraph
+     was squeezed to ~115px, two or three words per line, while paragraphs BELOW the
+     table were untouched — the damage is confined to text sharing horizontal space
+     with the table.
+
+     RED before the fix: #lede's universal `originalGeometryStable` fails, because the
+     widened table steals its width. (`noHorizontalOverflow` may also go red — the
+     doubled table can push past <main>.)
+
+     The table is deliberately auto-width. A fixed `width` would mask the whole bug. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 760px; padding: 20px; }
+
+  .infobox { float: right; margin: 0 0 12px 18px; border-collapse: collapse;
+             border: 1px solid #a2a9b1; background: #f8f9fa; }
+  .infobox th, .infobox td { padding: 6px 8px; text-align: left; vertical-align: top;
+                             font-size: 13px; line-height: 1.4; }
+  .infobox th { background: #eaecf0; font-weight: 700; }
+
+  p { margin: 12px 0; line-height: 1.6; }
+</style>
+<body>
+<main>
+
+  <table class="infobox">
+    <tr><th id="cap" colspan="2">Conservation status of the species</th></tr>
+    <tr><th id="k1">Kingdom of life</th><td id="v1">Animalia and related groups</td></tr>
+    <tr><th id="k2">Natural habitat</th><td id="v2">Temperate broadleaf forest</td></tr>
+  </table>
+
+  <!-- Flows beside the float. Its width is the regression signal. -->
+  <p id="lede">The giant panda is a bear species endemic to China, characterised by its
+  white coat with black patches around the eyes, ears, legs and shoulders, and it feeds
+  almost entirely on bamboo and bamboo shoots throughout the year.</p>
+
+  <!-- Control: clears the float, so its width never depended on the table. Green
+       before and after — proves the fixture is not red for an unrelated reason. -->
+  <p id="control" style="clear: both;">Females rear cubs for an average of eighteen to
+  twenty four months, and the oldest known individual of the species lived to thirty
+  eight years of age while in captivity.</p>
+
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "table-beside-text-column",
+  "unitCount": 7,
+  "targets": [
+    {
+      "sel": "#cap",
+      "assert": [
+        "translationMarked"
+      ]
+    },
+    {
+      "sel": "#v1",
+      "assert": [
+        "translationMarked"
+      ]
+    },
+    {
+      "sel": "#v2",
+      "assert": [
+        "translationMarked"
+      ]
+    },
+    {
+      "sel": "#lede",
+      "assert": [
+        "translationMarked",
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    },
+    {
+      "sel": "#control",
+      "assert": [
+        "translationMarked"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

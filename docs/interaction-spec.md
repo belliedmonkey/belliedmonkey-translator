@@ -415,6 +415,18 @@ These apply to every webpage text translation, on every platform:
   theirs. So the interleaved sequence is not always strictly original/translation/
   original/translation: an original may stand alone. What is never allowed is a
   translation row that does not sit directly under its own original.
+- **A table cell holds its translation INSIDE itself, not beside it.** "Below the
+  original" is a *visual* rule, not a DOM-sibling rule, and in one place the two
+  conflict: an element placed next to a `display: table-cell` unit lands in the
+  `<tr>`, where the browser wraps it in an anonymous cell — so the translations become
+  an extra **column** and the table's intrinsic width roughly doubles. Observed on a
+  floated Wikipedia infobox (issue #59): the prose column beside it collapsed to
+  ~115px while paragraphs below the table were untouched. Cells therefore take the
+  translation as their **last child**, and it must contribute **nothing** to the
+  table's intrinsic width — an auto-width table is sized from its cells' max-content,
+  so merely wrapping the translation still widens the column (+78px, measured).
+  Cells also skip the interleave path, which hides the original and would take the
+  translation down with it. Fixture 30; generic, not site knowledge.
 - **Interleaved, paragraph by paragraph.** Each original paragraph is **immediately
   followed by its own translation** (original above, translation below) — never a
   whole block of originals followed by a whole block of translations. If the

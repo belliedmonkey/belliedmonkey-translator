@@ -312,8 +312,24 @@
         }
       }
       if (!skipped(manifest, 'belowOriginal', node)) {
-        if (rectOf(trans).top < rectOf(node).bottom - 1) {
-          fail('belowOriginal', sel, `trans.top ${rectOf(trans).top.toFixed(1)} < orig.bottom ${rectOf(node).bottom.toFixed(1)}`);
+        // A table cell takes its translation as a CHILD, because a sibling inside the
+        // <tr> would become an extra table column (issue #59). "Below" then cannot be
+        // measured against the original's own box — that box now CONTAINS the
+        // translation, so the naive check is true by construction and the invariant
+        // would silently stop testing anything. Measure against the original content
+        // that precedes the translation instead.
+        let refBottom;
+        if (node.contains(trans)) {
+          const r = document.createRange();
+          r.selectNodeContents(node);
+          r.setEndBefore(trans);
+          const rr = r.getBoundingClientRect();
+          refBottom = rr.height ? rr.bottom : rectOf(node).top;
+        } else {
+          refBottom = rectOf(node).bottom;
+        }
+        if (rectOf(trans).top < refBottom - 1) {
+          fail('belowOriginal', sel, `trans.top ${rectOf(trans).top.toFixed(1)} < original content bottom ${refBottom.toFixed(1)}`);
         }
       }
       if (!skipped(manifest, 'originalGeometryStable', node)) {
