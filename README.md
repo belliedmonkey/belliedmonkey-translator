@@ -109,6 +109,7 @@ general rules, or whose media needs a transcript path of its own.
 | **x.com / twitter.com** | ✅ de-cluttered | ⚠️ needs a real caption track | — |
 | **Substack** — incl. custom domains | ✅ | ✅ video posts | ✅ |
 | **Spotify** — episode pages | generic | — | ⚠️ fragile |
+| **Wikipedia** — and any page with a data table | ✅ incl. infobox cells | — | — |
 | **Apple Podcasts (web)** · **小宇宙** | generic | — | ❌ impossible |
 | **Anything else** | ✅ | — | ✅ if the page has a transcript |
 
@@ -129,7 +130,12 @@ Two mechanisms, each covering half of that promise:
 - **Page text and layout** — every site-specific layout fix ships with a new regression
   fixture distilled from that site's minimal markup pattern, and **that fixture must fail
   before the fix**, with the red run recorded in the issue. Pre-existing fixtures are never
-  edited to accommodate a new one. 29 fixtures today, run against a real headless Chrome.
+  edited to accommodate a new one. 30 fixtures today, run against a real headless Chrome.
+
+  Worked example, issue #59: on Wikipedia the translations inside a floated infobox became an
+  extra table column, doubling the table's width and collapsing the prose beside it to ~115px.
+  The fix is generic — no hostname or selector entered the segmenter — but Wikipedia now has a
+  fixture of its own, so that page cannot silently break again.
 - **Video and audio subtitles** — once a device or browser is adapted it is **permanently
   added to the verification matrix** and exercised on every future change, during actual
   playback. Subtitles are deliberately *not* covered by the layout fixtures; that gate is

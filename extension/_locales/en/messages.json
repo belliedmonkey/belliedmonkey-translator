@@ -268,5 +268,11 @@
   },
   "toast_model_saved": {
     "message": "Model saved"
+  },
+  "setup_need_key": {
+    "message": "This engine needs an API key. Translation will not work until you enter one below."
+  },
+  "setup_free_channel": {
+    "message": "You are on the free no-key engine — fine for a first look. It is not a stable endpoint: it sometimes returns your original text unchanged. Switching to any LLM engine with your own key is noticeably more reliable, and better."
   }
 }

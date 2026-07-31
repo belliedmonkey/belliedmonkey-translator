@@ -471,6 +471,40 @@ These apply to every webpage text translation, on every platform:
 
 ---
 
+## First run — choosing an engine is a step, not a skip
+
+The default provider needs no key and works immediately, and **that is the trap**: it is
+not a stable endpoint (`verification-spec.md` §0 — it can return the original text
+unchanged for input it translated a minute earlier). A user who never opens settings meets
+that flakiness as their first impression and reads it as "the extension is broken".
+
+So the onboarding tells them what to expect **before** a bad first result, never after:
+
+- **On install only** (`reason === 'install'`, never on update) a **dot** is placed on the
+  toolbar icon, cleared the first time the popup opens. A dot rather than `!`, because the
+  shipped default is a *working* configuration and a permanent error badge on something
+  that works is crying wolf. Best-effort: wrapped, because `chrome.action` is not
+  guaranteed on every Safari surface and failing to show onboarding must never break the
+  install.
+  - **Not `openOptionsPage()`.** That was tried and rejected on evidence: opening a tab at
+    install time **hung the layout suite indefinitely**, because loading the extension over
+    CDP fires `onInstalled` and the surprise tab derailed the harness. A side effect our own
+    automation cannot survive is the wrong mechanism, not a harness bug to work around — and
+    what it does to a test run, it also does to a user who was mid-task.
+- **A setup note sits at the top of BOTH the popup and the options page**, in two mutually
+  exclusive states, never both:
+  - the chosen engine needs a key and none is set → **warn**: translation will not work
+    until a key is entered;
+  - the free no-key engine is selected → **plain**: it works and is fine for a first look,
+    it is not a stable endpoint and can hand back the original text unchanged, and any LLM
+    engine with your own key is more reliable and better.
+  - A configured keyed engine shows **nothing** — the note is onboarding, not chrome.
+- The note clears on `input`, not just `change`. Waiting for blur would leave "translation
+  will not work" on screen while the field is visibly full.
+- **The free engine is not removed or hidden.** Zero-config trial is a real feature and is
+  promised in the store listing; what changes is that the user is told what it is, instead
+  of landing on it silently.
+
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
 menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此

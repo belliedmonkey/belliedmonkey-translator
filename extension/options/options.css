@@ -258,3 +258,26 @@ input[type="color"] {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ─── Onboarding note ────────────────────────────────────────────────
+   Same two states as the popup (see popup.css). This is the surface the
+   first-run open lands on, so it carries the same text with more room. */
+.setup-note {
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  border: 1px solid #cfe3d6;
+  background: #f2f8f4;
+  color: #35543f;
+}
+.setup-note.warn {
+  border-color: #e8d3a8;
+  background: #fdf6e7;
+  color: #6b5320;
+}
+@media (prefers-color-scheme: dark) {
+  .setup-note { border-color: #24503a; background: #10201a; color: #a8d8bd; }
+  .setup-note.warn { border-color: #5c4a1e; background: #241f10; color: #e3c98a; }
+}

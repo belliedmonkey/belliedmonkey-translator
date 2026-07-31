@@ -258,3 +258,28 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ─── Onboarding note ────────────────────────────────────────────────
+   Two states, never both: `warn` = the chosen engine needs a key and none
+   is set (translation will fail); the plain state = the free no-key engine
+   is selected, which works but is not a stable endpoint. Both exist so the
+   user learns what to expect BEFORE a bad first result, not after. */
+.setup-note {
+  margin: 0 14px 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid #cfe3d6;
+  background: #f2f8f4;
+  color: #35543f;
+}
+.setup-note.warn {
+  border-color: #e8d3a8;
+  background: #fdf6e7;
+  color: #6b5320;
+}
+@media (prefers-color-scheme: dark) {
+  .setup-note { border-color: #24503a; background: #10201a; color: #a8d8bd; }
+  .setup-note.warn { border-color: #5c4a1e; background: #241f10; color: #e3c98a; }
+}

@@ -73,6 +73,30 @@ async function saveSettings(patch) {
   return new Promise(resolve => chrome.storage.local.set(patch, resolve));
 }
 
+// Say what to do BEFORE the first bad result, not after. Two mutually exclusive
+// states: a keyed engine with no key (translation WILL fail — warn), or the free
+// no-key engine (works, but it is not a stable endpoint and can hand back the
+// original text unchanged, which reads as "the extension is broken"). A configured
+// keyed engine shows nothing.
+function updateSetupNote(provider, apiKey) {
+  const el = $('setup-note');
+  if (!el) return;
+  const p = providerById(provider) || {};
+  const needsKey = !!p.needsKey;
+  const hasKey = !!(apiKey || '').trim();
+  if (needsKey && !hasKey) {
+    el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');
+    el.classList.add('warn');
+    el.style.display = 'block';
+  } else if (!needsKey) {
+    el.textContent = t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。');
+    el.classList.remove('warn');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function updateApiKeySection(provider) {
   const p = providerById(provider) || {};
   $('apikey-section').style.display = p.needsKey ? 'block' : 'none';
@@ -107,6 +131,11 @@ async function queryPageTranslated() {
 }
 
 async function init() {
+  // Clear the first-run dot (background.js sets it on install). Clearing the GLOBAL
+  // badge is safe: the per-tab 'ON' badges are stored separately and take precedence,
+  // so an active translation keeps its indicator.
+  try { chrome.action.setBadgeText({ text: '' }); } catch (_) { /* best-effort */ }
+
   const s = await getSettings();
   _uiLang = s.uiLang || 'auto';
   applyI18n();
@@ -122,6 +151,7 @@ async function init() {
   $('api-model').value = s.apiModel || '';
 
   updateApiKeySection(prov);
+  updateSetupNote(prov, s.apiKey);
   if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
 
   // Reflect the CURRENT page's translation state (not a stored default).
@@ -141,6 +171,7 @@ async function init() {
     applyI18n();
     populateProviders();  // re-localize provider option labels
     updateTranslateUI();  // re-localize the button/badge text
+    updateSetupNote($('provider').value, $('api-key').value);  // …and the setup note
     showToast(t('toast_lang_switched', '语言已切换'));
   });
 
@@ -148,12 +179,17 @@ async function init() {
     const provider = e.target.value;
     await saveSettings({ provider });
     updateApiKeySection(provider);
+    updateSetupNote(provider, $('api-key').value);
     showToast(t('toast_provider_switched', '翻译引擎已切换'));
   });
 
   $('api-key').addEventListener('change', async (e) => {
     await saveSettings({ apiKey: e.target.value.trim() });
+    updateSetupNote($('provider').value, e.target.value);
   });
+  // `change` only fires on blur — the note must clear as soon as a key is typed,
+  // otherwise it keeps saying "translation will not work" while the field is full.
+  $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
 
   $('api-base-url').addEventListener('change', async (e) => {
     await saveSettings({ apiBaseUrl: e.target.value.trim() });
