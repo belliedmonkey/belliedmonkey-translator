@@ -22,7 +22,7 @@ if (typeof self !== 'undefined' && self.addEventListener) {
   self.addEventListener('activate', (e) => e.waitUntil?.(self.clients?.claim()));
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (existing) => {
     const toSet = {};
     for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
@@ -30,6 +30,31 @@ chrome.runtime.onInstalled.addListener(() => {
     }
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
+
+  // First run only: put a dot on the toolbar icon so the user looks at the popup
+  // once. The default provider needs no key and works immediately, which is exactly
+  // the trap — it is not a stable endpoint, so a user who never opens settings meets
+  // its flakiness first and reads it as "broken". The popup carries the explanation
+  // (see the setup note there); this is only what makes them open it.
+  //
+  // A DOT, not "!": the shipped default is a WORKING configuration, and a permanent
+  // error badge on something that works is crying wolf. It clears the first time the
+  // popup opens.
+  //
+  // This deliberately replaces an earlier attempt that called openOptionsPage() here.
+  // That hijacks a tab at install time, and it is not a harmless one: it hung the
+  // layout suite indefinitely, because loading the extension over CDP fires
+  // onInstalled and the surprise tab derailed the harness. A side effect our own
+  // automation cannot survive is the wrong mechanism, not a harness bug to paper over.
+  //
+  // Never on 'update', and wrapped — chrome.action is not guaranteed on every Safari
+  // surface, and failing to show onboarding must never break the install.
+  if (details && details.reason === 'install') {
+    try {
+      chrome.action.setBadgeText({ text: '•' });
+      chrome.action.setBadgeBackgroundColor({ color: '#0a7a3c' });
+    } catch (_) { /* onboarding is best-effort */ }
+  }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

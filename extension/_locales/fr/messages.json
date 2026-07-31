@@ -268,5 +268,11 @@
   },
   "toast_model_saved": {
     "message": "Model saved"
+  },
+  "setup_need_key": {
+    "message": "Ce moteur nécessite une clé API. La traduction ne fonctionnera pas tant que vous n'en aurez pas saisi une ci-dessous."
+  },
+  "setup_free_channel": {
+    "message": "Vous utilisez le moteur gratuit sans clé — parfait pour un premier aperçu. Ce point de terminaison n'est pas stable : il renvoie parfois votre texte d'origine inchangé. Passer à un moteur LLM avec votre propre clé est nettement plus fiable, et meilleur."
   }
 }

@@ -85,6 +85,27 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => el.classList.remove('show'), duration);
 }
 
+// Say what to do BEFORE the first bad result, not after. Mirrors popup.js —
+// see the comment there for why both states exist.
+function updateSetupNote(provider, apiKey) {
+  const el = $('setup-note');
+  if (!el) return;
+  const p = providerById(provider) || {};
+  const needsKey = !!p.needsKey;
+  const hasKey = !!(apiKey || '').trim();
+  if (needsKey && !hasKey) {
+    el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');
+    el.classList.add('warn');
+    el.style.display = 'block';
+  } else if (!needsKey) {
+    el.textContent = t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。');
+    el.classList.remove('warn');
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function updateProviderUI(provider) {
   const p = providerById(provider) || {};
   $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
@@ -93,6 +114,9 @@ function updateProviderUI(provider) {
   $('api-base-url').placeholder = p.defaultBase || 'https://…';
   $('api-model').placeholder = p.defaultModel || '';
   $('api-hint').textContent = apiHint(provider);
+  // Hooked here rather than at each call site: updateProviderUI already re-runs on
+  // load, on engine change and on UI-language change — every moment the note can go stale.
+  updateSetupNote(provider, $('api-key').value);
 }
 
 function updateColorPreview(color) {
@@ -155,6 +179,8 @@ async function init() {
   });
 
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });
+  // `change` only fires on blur — clear the note as soon as a key is typed.
+  $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
   $('api-base-url').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apiurl_saved', 'API 地址已保存')); });
   $('api-model').addEventListener('change', async () => { await saveAll(); showToast(t('toast_model_saved', '模型已保存')); });
   $('target-lang').addEventListener('change', async () => { await saveAll(); showToast(t('toast_lang_saved', '语言已保存')); });

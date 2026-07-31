@@ -268,5 +268,11 @@
   },
   "toast_model_saved": {
     "message": "模型已儲存"
+  },
+  "setup_need_key": {
+    "message": "這個引擎需要 API Key。填入下方的 Key 之後翻譯才會運作。"
+  },
+  "setup_free_channel": {
+    "message": "目前使用免費通道，不需要 API Key —— 適合先看看效果。它的回應不穩定，偶爾會把原文原樣傳回；改用任一 LLM 引擎並填入你自己的 Key，會穩定許多，品質也更好。"
   }
 }

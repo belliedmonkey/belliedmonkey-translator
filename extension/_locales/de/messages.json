@@ -268,5 +268,11 @@
   },
   "toast_model_saved": {
     "message": "Model saved"
+  },
+  "setup_need_key": {
+    "message": "Diese Engine benötigt einen API-Schlüssel. Ohne Eingabe unten funktioniert die Übersetzung nicht."
+  },
+  "setup_free_channel": {
+    "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
   }
 }
