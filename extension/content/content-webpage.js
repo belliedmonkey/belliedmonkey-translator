@@ -186,6 +186,17 @@ var WebpageTranslator = (() => {
     p.removeAttribute('data-mt-flow-fix');
   }
 
+  // A unit whose own box is a TABLE CELL cannot take a sibling: an element placed
+  // next to it inside the <tr> is wrapped by the browser in an ANONYMOUS TABLE CELL,
+  // so the translations become a whole extra COLUMN and the table's intrinsic width
+  // roughly doubles (issue #59, en.wikipedia.org infobox: the prose column beside it
+  // collapsed to ~115px). Cells therefore take the translation INSIDE themselves.
+  // Generic, not site knowledge — any page that floats a data table next to prose.
+  function isCell(node) {
+    let cs; try { cs = getComputedStyle(node); } catch (_) { return false; }
+    return !!cs && cs.display === 'table-cell';
+  }
+
   function flowFixCss(node) {
     const p = node.parentElement;
     if (!p) return '';
@@ -282,6 +293,23 @@ var WebpageTranslator = (() => {
     return out;
   }
 
+  // Geometry CSS for the translation. Inside a cell the translation is a CHILD, so
+  // it already inherits the cell's box — there is no sibling to constrain, and both
+  // mirrors would be measured against the wrong parent (the <tr>).
+  //
+  // What it needs instead is to contribute NOTHING to the table's intrinsic width.
+  // An auto-width table is sized shrink-to-fit from its cells' MAX-CONTENT, so a
+  // translation that is merely wrapped (`overflow-wrap`) still widens the column —
+  // measured at +78px on fixture 30, which pushes the prose beside a floated table
+  // around exactly like the extra-column bug did. `width:0` makes the contribution a
+  // definite zero; `min-width:100%` then fills the cell back out at used-value time.
+  // `overflow-wrap:anywhere` stays as the belt to `width:0`'s braces, so a single long
+  // unbreakable token can't overflow the cell it is now painted inside.
+  function placementCss(node) {
+    if (isCell(node)) return 'width:0;min-width:100%;overflow-wrap:anywhere;';
+    return flowFixCss(node) + layoutCss(node);
+  }
+
   // ─── Placement: visual order, not DOM order ───────────────────────────
   // The one universal rule of the bilingual pair is "original above, translation
   // below" (interaction-spec). A flex container can REVERSE the visual order of
@@ -310,10 +338,18 @@ var WebpageTranslator = (() => {
 
   // ─── Sibling renderer ─────────────────────────────────────────────────
   function adjacentTrans(node) {
+    if (isCell(node)) {
+      const c = node.lastElementChild;
+      return (c && c.classList && c.classList.contains(CLASS)) ? c : null;
+    }
     const s = placeBefore(node) ? node.previousElementSibling : node.nextElementSibling;
     return (s && s.classList && s.classList.contains(CLASS)) ? s : null;
   }
   function anchor(node, el) {
+    // A cell holds its translation as its LAST CHILD — see isCell. Re-appending an
+    // element that is already last is a no-op in the DOM, but guard anyway so an SPA
+    // re-render doesn't churn.
+    if (isCell(node)) { if (node.lastElementChild !== el) node.appendChild(el); return; }
     const before = placeBefore(node);
     if ((before ? node.previousElementSibling : node.nextElementSibling) !== el) {
       node.insertAdjacentElement(before ? 'beforebegin' : 'afterend', el);
@@ -347,14 +383,14 @@ var WebpageTranslator = (() => {
     if (st.state === 'pending') {
       restoreOriginal(node);
       const d = ensureSibling(node); d.onclick = null;
-      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + flowFixCss(node) + layoutCss(node);
+      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + placementCss(node);
       d.textContent = TranslationCore.MSG.loading;
       return;
     }
     if (st.state === 'error') {
       restoreOriginal(node);
       const d = ensureSibling(node);
-      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + flowFixCss(node) + layoutCss(node);
+      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + placementCss(node);
       d.textContent = TranslationCore.MSG.error;
       d.onclick = () => { engine.retry(u); u._shownKey = ''; };
       return;
@@ -372,7 +408,7 @@ var WebpageTranslator = (() => {
       } else {
         restoreOriginal(node);
         const d = ensureSibling(node); d.onclick = null;
-        d.style.cssText = transStyle(node) + flowFixCss(node) + layoutCss(node);
+        d.style.cssText = transStyle(node) + placementCss(node);
         buildRichText(st.translation, d);
       }
       return;
@@ -399,6 +435,12 @@ var WebpageTranslator = (() => {
   // rendering we fall back to — fewer interleaves is acceptable, mis-pairing is not.
   // Blank lines are dropped on both sides before counting so they can't skew it.
   function pairForInterleave(node, orig, trans) {
+    // The interleave path HIDES the original and draws its own holder. A cell holds
+    // its translation as a CHILD (see isCell), so hiding the cell would hide the
+    // holder with it — the pair would vanish entirely. Cells keep the plain
+    // one-child rendering; a table cell carrying a multi-paragraph blob is rare
+    // enough that this is a cheaper guarantee than making interleave cell-aware.
+    if (isCell(node)) return null;
     const paras = (s) => s.split(/\n{2,}/).filter((x) => x.trim());
     const lines = (s) => s.split('\n').filter((x) => x.trim());
     // Line-wise slicing is valid ONLY where the newlines are real. In normal HTML a
@@ -459,7 +501,7 @@ var WebpageTranslator = (() => {
     anchor(node, holder);
     // Copy the original's font onto the holder so the re-rendered original rows match
     // the source; translation rows additionally take the distinct color via transStyle.
-    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + flowFixCss(node) + layoutCss(node);
+    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + placementCss(node);
     holder.textContent = '';
     // …and re-assert the original's own COLOR on the original rows. The holder is a
     // `.mt-translation` element, and bilingual.css colors that class with the
