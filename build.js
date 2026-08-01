@@ -57,12 +57,36 @@ if (FLAVOR === 'china' && TARGET === 'firefox') { err('--flavor china is only fo
 // table of all locale messages, consulted by t() before falling back to
 // chrome.i18n. Generated from _locales/ so it never drifts.
 
+// Chrome resolves `_locales/<dir>` ONLY for names on its supported-locale list, and it
+// fails silently: an unsupported directory is simply never read, so `__MSG_*` in the
+// manifest falls back to default_locale and the Chrome Web Store does not even offer that
+// language for a store listing. Nothing in the repo can tell you — `_locales/pt` shipped a
+// complete, key-identical, JSON-valid messages.json for three releases while Chrome ignored
+// every byte of it, and it was only caught by noticing the store dashboard said 10 languages
+// where the package had 11 (issue #65).
+//
+// So the directory names are a build gate, like version drift and data_collection_permissions.
+// List per https://developer.chrome.com/docs/extensions/reference/api/i18n — note there is no
+// bare `pt` (only pt_BR / pt_PT) and no bare `en_*` shortcuts beyond the ones below.
+const CHROME_LOCALES = new Set([
+  'am', 'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_GB', 'en_US', 'es',
+  'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id', 'it',
+  'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT',
+  'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi',
+  'zh_CN', 'zh_TW',
+]);
+
 function generateI18nMessages(dir) {
   const localesDir = path.join(dir, '_locales');
   const out = {};
   for (const loc of fs.readdirSync(localesDir)) {
     const f = path.join(localesDir, loc, 'messages.json');
     if (!fs.existsSync(f)) continue;
+    if (!CHROME_LOCALES.has(loc)) {
+      err(`_locales/${loc} is not a locale Chrome recognises — it would be silently ignored ` +
+          `(no bare "pt": use pt_BR / pt_PT). See issue #65.`);
+      process.exit(1);
+    }
     let raw;
     try { raw = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { err(`Bad JSON in _locales/${loc}/messages.json`); process.exit(1); }
     const flat = {};
