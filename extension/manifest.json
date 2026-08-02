@@ -133,6 +133,14 @@
       "matches": [
         "*://*.youtube.com/*"
       ]
+    },
+    {
+      "resources": [
+        "options/options.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "browser_specific_settings": {

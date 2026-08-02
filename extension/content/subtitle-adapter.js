@@ -302,9 +302,15 @@ var SubtitleAdapter = (() => {
       document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     }
+    // We are in a content script: chrome.runtime.openOptionsPage() is not part of
+    // the surface exposed here, so navigating to the page ourselves is the only
+    // path. That needs options/options.html in web_accessible_resources — without
+    // it the browser refuses the navigation and Safari reports 「网址无效」 (#67).
+    // Do NOT route this through the background worker: on Safari iOS it goes
+    // permanently undefined after device lock, which would make settings
+    // unreachable only *after* the phone is locked — a far more confusing failure.
     function openSettings() {
-      try { if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage(); else window.open(chrome.runtime.getURL('options/options.html'), '_blank'); }
-      catch (_) { window.open(chrome.runtime.getURL('options/options.html'), '_blank'); }
+      window.open(chrome.runtime.getURL('options/options.html'), '_blank');
     }
 
     // ─── Public API ────────────────────────────────────────────────────
