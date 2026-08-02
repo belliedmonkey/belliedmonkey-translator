@@ -104,6 +104,31 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
 
+**Mandatory: the learning layer (记忆层).** Permanent matrix item for any change
+touching `content/learn-*.js`, `learn/**`, or the two capture attachment points
+(`content-webpage.js` `renderUnit`, `subtitle-adapter.js` after `renderOverlay`). See
+[`docs/learning-design.md`](learning-design.md).
+
+Each row runs the same five steps, in order:
+
+| # | Step | What proves it |
+|---|---|---|
+| 1 | **Non-interference** — translate a long article with capture **off**, then with capture **on** | Same unit count, same translation lines, no new console output. Domain-design §9.1 law 1 says translation must be *byte-for-byte* identical; a screenshot pair is the minimum, a DOM unit-count comparison is better |
+| 2 | **Capture** — read 2–3 paragraphs for >3 s each, scroll past others fast | Only the dwelled ones appear in the review page. **The fast-scrolled ones must be absent** — that is the assertion that matters, and it is invisible unless you look for it |
+| 3 | **Review** — open the review page, complete one full grading round | Cards render, all four grades present, source link resolves back to the page |
+| 4 | **Persistence** — quit the browser / kill the app, reopen, open the review page | Scheduling state survived. On iOS this is also the only real check that a dead service worker did not take the corpus with it |
+| 5 | **Origin isolation** — on the host page, evaluate `indexedDB.databases()` | **`mt-learn` must NOT be there.** The corpus lives in the extension origin; if it shows up under the host page, laws in domain-design §9.3 are broken and the user's reading history is readable by every site |
+
+**Video cards must be verified during real playback** (§4): capture from a YouTube
+video requires the playhead to actually cross the sentence, so a paused player
+captures nothing — a run that "looked fine" without ≥20–30 s of playback has verified
+nothing about subtitle capture.
+
+**iOS rows:** `xcrun simctl erase` is still the only thing that refreshes content
+scripts (§1.1), and any instrumentation must ship a build marker. Purge the `tr:`
+cache *and* the `lq:` outbox between runs, or a previous run's captures will be
+mistaken for this one's.
+
 ### 1.1 Request-level checks on the iOS simulators — the working recipe
 
 **Achieved 2026-07-28.** An earlier note here claimed this was impossible because
@@ -491,6 +516,20 @@ resolution, and every provider's request-building / caching / retry-fallback. **
 be green before you push.** When you change logic, add/update tests in the same commit.
 **Never push on a red suite.**
 
+**Learning layer (记忆层).** `learn-model.js` and `learn-scheduler.js` are pure by
+construction and belong here in full; `learn-collector.js` is testable with an
+injected clock and an `IntersectionObserver` stub. All three land in §3.1.1's line of
+fire, and the mapping is not optional:
+
+- **(1) production config** — the scheduler must be asserted against the exported
+  `DEFAULTS`, with one case passing a deliberately partial config. A scheduler whose
+  `dailyNew` silently reads `undefined` still returns a plausible-looking deck.
+- **(2) work not done** — a segment below the dwell threshold must produce **zero**
+  storage writes, and a mature card must be **absent** from the deck. Both are
+  invisible in the output; only call counts see them.
+- **(3) resource lifetime** — `disable()` must disconnect every `IntersectionObserver`
+  and clear the flush timer. Inject recording stubs; do not assume cleanup.
+
 #### 3.1.1 Three blind spots a green suite does not cover
 
 Found the hard way (2026-07-28): a pre-landing review caught three defects in a
@@ -562,6 +601,13 @@ failure (set `CHROME_BIN=/path/to/chrome`), never a silent skip.
 3. **All pre-existing fixtures stay green.** A fixture is never edited to accommodate a
    new fix — unless the fixture's own assertion is demonstrably wrong, justified in the
    issue. This is what guarantees each adaptation is an increment, not a regression.
+
+**Learning layer.** The Collector is a sink and must be geometrically inert, so it
+owes this suite a fixture of its own: with capture enabled, **every geometry
+invariant must hold unchanged**, and the injected `.mt-translation` siblings must
+never themselves be collected (domain-design §9.1 law 4). When the in-page review
+card lands, it injects DOM into the page and therefore falls under the contract above
+in full — new fixture, **red before the change**, all pre-existing fixtures green.
 
 Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
 `layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT

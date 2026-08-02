@@ -524,6 +524,77 @@ menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中�
   verbatim**: language-picker **endonyms** (简体中文 / English / 日本語 …) and third-party
   **brand names** (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM).
 
+## 复习 / Review (记忆层)
+
+Domain model, scheduler math and storage live in
+[`learning-design.md`](learning-design.md); the boundary rule lives in
+[`domain-design.md`](domain-design.md) §9. **Only the user-facing behavior is here.**
+
+### Capture — consent and control
+- **OFF until the user turns it on, once.** Capture never starts by itself on
+  upgrade. The first-run copy says plainly what is recorded (the sentence, its
+  translation, the page URL and title, and how long it was on screen) and that it
+  **stays on this device**.
+- **Capture is invisible while it happens.** No badge, no toast, no highlight, no
+  count ticking up in the corner. Reading a page with capture on must look and feel
+  **exactly** like reading it with capture off — this is the user-facing face of the
+  "capture is a sink" law (domain-design §9.1).
+- **Off and purge are one tap each**, both in the options page: a master switch and a
+  「清空学习库」 button with a confirm step. Turning it off stops capture immediately;
+  it does **not** silently delete what was already collected (say so on the switch).
+- **Saving a sentence deliberately** is a long-press / right-click on an injected
+  `.mt-translation`, which stars it and bypasses the salience gate. A plain tap on
+  body text still produces **no perceptible action** (see "Text translation —
+  universal rules"); only the translation sibling is interactive, and only on
+  long-press. A brief inline confirmation appears on the sibling itself — never a
+  page-level toast.
+
+### Entry points
+- **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
+  still shows, reading 「复习」 with no count — never hidden, or the feature becomes
+  undiscoverable.
+- **options**: a 学习 section (master switch, languages being learned, daily new-card
+  cap, corpus size / usage, export, purge).
+- **Never the action badge.** The service worker dies on Safari iOS, so a badge count
+  would be silently wrong there (domain-design §5.3.1). Counts are rendered by the
+  page that shows them.
+
+### The review card
+Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
+
+```
+①  source sentence, large                ← media card: player embedded directly below
+    [ 显示译文 ]                            one button, nothing else on screen
+─────────────────────────────  after reveal
+②  translation, in the bilingual green (same visual language as .mt-translation)
+    [不记得] [有点难] [记得] [太简单]        ← grades 0/1/2/3, always four, never two
+    ⓘ source: site · title · 打开原文
+```
+
+- **Four grades, not two.** The scheduler's stability update is graded; collapsing to
+  记得/不记得 would throw away the signal it needs.
+- **Media cards replay the original audio, never TTS** — an embedded
+  `youtube-nocookie.com` player bounded to `[startMs, endMs]`. Podcast and x.com clips
+  cannot be embedded, so they degrade to 「打开原页并跳到该时间点」 — an honest
+  degradation, never a silent one.
+- **Passage cards are re-reads, not tests.** Source and translation shown together,
+  one 「已重读」 action (recorded as grade 2). No reveal step — there is nothing to hide.
+- **Source attribution is always present and always clickable.** A card the user
+  cannot trace back to where they met it is a flashcard, which is exactly what this
+  feature is not.
+- **LLM quizzes are opt-in and must state their cost.** When the selected engine is
+  the free Google endpoint the toggle is **disabled with the reason shown** — never
+  offered and then silently failing.
+
+### States
+- **Empty corpus**: explain how material gets collected (browse and translate), not
+  「暂无数据」.
+- **Nothing due**: say when the next card comes up. Do not fabricate work by
+  advancing cards early — the whole product claim is that timing is principled.
+- **Injected review UI obeys the same rules as every other piece of our chrome**:
+  `translate="no"` **and** `data-mt-skip-region`, so we never translate, re-render, or
+  re-capture our own interface.
+
 ## General
 - **Screenshot-verify** every visual change against the built/loaded extension.
 - Don't cover more of the frame/page than necessary.

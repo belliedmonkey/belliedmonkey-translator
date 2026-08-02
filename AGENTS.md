@@ -12,6 +12,37 @@ configurable LLM APIs. The provider list is a **build-time region flavor**
 (`global` / `china`) resolved from a single registry — see "Provider registry &
 region flavors" below and `docs/domain-design.md` §7.
 
+## 产品原则：普惠优先（能免费尽量免费）
+
+This project exists to be **freely and widely usable**, not to be monetized. Ask
+these in order when designing anything new:
+
+1. **Can this be done without a server?** If yes, do it without one. Anything the
+   device can compute, the device computes.
+2. **Translation always uses the user's own key and never passes through a server of
+   ours.** This is not a cost decision — it is the foundation of the privacy
+   architecture. A server that never proxies a translation never sees plaintext,
+   which is the only condition under which end-to-end encryption means anything and
+   under which `README.md`'s "no servers of ours in the middle" stays literally true.
+   **This does not yield to any feature**, including a hosted default for users who
+   have not configured a key.
+3. **Accounts and sync are free.** The server carries only what genuinely cannot work
+   without it — and the product must be complete for a signed-out user.
+4. **The server performs no computation on user data.** No model calls, no
+   server-side recommendation, quiz generation, or analytics.
+5. **The server stores no binary media** — no audio, video, images, screenshots, or
+   full page text. Media is stored as a **pointer** (e.g. media id + start/end
+   offsets, ~20 bytes).
+6. **Charge only where the cost genuinely cannot be carried.** If some future
+   feature's storage or compute is truly unaffordable, price *that feature* — and
+   **never convert something already shipped free into a paid feature.**
+7. **Cost is estimated before it is incurred.** Before introducing any server-side
+   storage, write the bytes-per-user-per-year estimate **and its assumptions** into
+   the design doc. (`docs/learning-design.md` §8.2 is the worked example.)
+8. **No crippled builds.** Compliance or distribution pressure is resolved by
+   narrowing *where the product is distributed* — never by shipping some users a
+   version with fewer features.
+
 ## Interaction / UX constraints
 
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
@@ -29,12 +60,20 @@ Extractor → units → Engine (state machine + scheduling + retry) → Renderer
 "split-by-source-kind-not-site" rule, and the "parsing is device-agnostic; device
 differences only in a thin control/render adapter" principle.
 
+**The learning/memory domain (记忆层) lives in
+[`docs/learning-design.md`](docs/learning-design.md)**, with its boundary against the
+translation pipeline fixed in [`docs/domain-design.md`](docs/domain-design.md) §9.
+The load-bearing rule: **capture is a sink, never a source** — if the learning layer
+were deleted at runtime, translation output must be byte-for-byte identical.
+
 **Governance rule (mandatory):** any change that touches the domain design — the
-model, the extractor/engine/renderer boundary, the device principle, or the
-`DomSegmenter` rules — **must first update `docs/domain-design.md` and pass human
-domain-design review before the code changes.** Do not refactor the architecture
-or add per-site / per-device branches to the segmenter without that review.
-Routine bug fixes that conform to the existing model do not require it.
+model, the extractor/engine/renderer boundary, the device principle, the
+`DomSegmenter` rules, or the learning layer's Collector boundary / scheduler
+contract / storage tiers — **must first update `docs/domain-design.md` (and
+`docs/learning-design.md` where it applies) and pass human domain-design review
+before the code changes.** Do not refactor the architecture or add per-site /
+per-device branches to the segmenter without that review. Routine bug fixes that
+conform to the existing model do not require it.
 
 ## Provider registry & region flavors (合规双分发) — domain design
 
