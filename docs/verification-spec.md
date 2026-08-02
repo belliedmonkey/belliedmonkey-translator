@@ -286,7 +286,7 @@ So there are two real paths for macOS Safari — **prefer the first**:
   - **⚠️ Multiple `dist/` folders exist — verify the PATH picked in the file dialog
     (burned 2026-07-12).** The main checkout (`~/mobiletranslator/dist`, built from
     `main`) and each git worktree (`…/.claude/worktrees/<name>/dist`, built from the
-    feature branch) all have a `dist/`, plus `dist-china/` / `dist-firefox/`. A re-add
+    feature branch) all have a `dist/`, plus `dist-firefox/`. A re-add
     that picks the WRONG dist silently loads code without the change under test — the
     symptom looks exactly like "the fix doesn't work on Safari". Before re-adding, state
     the **absolute path** of the dist being verified and confirm its freshness

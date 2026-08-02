@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "Vous utilisez le moteur gratuit sans clé — parfait pour un premier aperçu. Ce point de terminaison n'est pas stable : il renvoie parfois votre texte d'origine inchangé. Passer à un moteur LLM avec votre propre clé est nettement plus fiable, et meilleur."
+  },
+  "label_endpoint": {
+    "message": "Point d'accès du service"
+  },
+  "options_endpoint_hint": {
+    "message": "Ce moteur exploite un point d'accès distinct par région, et les clés API sont émises par région — une clé d'une région ne fonctionnera pas sur l'autre."
+  },
+  "endpoint_intl": {
+    "message": "International"
+  },
+  "endpoint_cn": {
+    "message": "Chine continentale"
+  },
+  "endpoint_custom": {
+    "message": "Personnalisé (voir l'adresse ci-dessous)"
+  },
+  "toast_endpoint_saved": {
+    "message": "Point d'accès enregistré"
   }
 }

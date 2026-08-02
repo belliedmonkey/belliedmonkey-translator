@@ -1,14 +1,14 @@
 #!/bin/bash
 # build-safari.sh — 一键构建并生成/更新 Safari Xcode 项目
 #
-#   bash build-safari.sh                    # 海外版 iOS   → com.belliedmonkeytranslator
-#   bash build-safari.sh china              # 中国版 iOS   → com.belliedmonkeytranslator.cn
-#   bash build-safari.sh global macos       # 海外版 macOS  → 同一个 App 记录的 macOS 平台
-#   BUILD_NUMBER=11 bash build-safari.sh global macos
+#   bash build-safari.sh                    # iOS   → com.belliedmonkeytranslator
+#   bash build-safari.sh macos              # macOS → 同一个 App 记录的 macOS 平台
+#   BUILD_NUMBER=11 bash build-safari.sh macos
 #
-# 两个 flavor 生成两个独立的 Xcode 项目 / bundle id —— 对应两个 App Store app 记录
-# (App Store 一个 app 记录只能对所有区发同一个二进制,合规隔离必须双分发)。
-# 同一 flavor 的 iOS 与 macOS 共用一个 app 记录、同一个 bundle id,但 build 号各自独立。
+# 只有一个版本。2026-08-02 删除了 global/china 双分发 —— 它给一部分用户发的是功能
+# 更少的产品。合规压力用「缩小分发范围」解决,不用「削功能」解决。
+# 见 docs/domain-design.md §7.1。
+# iOS 与 macOS 共用一个 app 记录、同一个 bundle id,但 build 号各自独立。
 #
 # ⚠️ 为什么这个脚本每次都要重设工程设置(而不是只在首次生成时设一次):
 #    safari-project*/ 全部在 .gitignore 里,是纯本地状态。旧版脚本在工程已存在时
@@ -23,34 +23,29 @@ set -e
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 export LANG="${LANG:-en_US.UTF-8}"
 
-FLAVOR="${1:-global}"
-PLATFORM="${2:-ios}"
-
-if [ "$FLAVOR" != "global" ] && [ "$FLAVOR" != "china" ]; then
-  echo "❌ 未知 flavor：$FLAVOR（可选 global | china）"; exit 1
+# 旧签名是 `build-safari.sh <flavor> <platform>`。china 已删除;这里显式报错而不是
+# 让它被当成 platform 名解析失败,否则错误信息会指向完全无关的地方。
+if [ "$1" = "china" ]; then
+  echo "❌ 中国版已删除（2026-08-02，单一分发）。只有一个版本：bash build-safari.sh [ios|macos]"; exit 1
 fi
+[ "$1" = "global" ] && shift   # 兼容旧的 `build-safari.sh global macos` 写法
+
+PLATFORM="${1:-ios}"
+
 if [ "$PLATFORM" != "ios" ] && [ "$PLATFORM" != "macos" ]; then
   echo "❌ 未知 platform：$PLATFORM（可选 ios | macos）"; exit 1
 fi
 
-DISPLAY_NAME="大肚猴翻译"              # 主屏/程序坞显示名(两个 flavor 相同)
+DISPLAY_NAME="大肚猴翻译"              # 主屏/程序坞显示名
 # App Store Connect 里的主类别是「工具」——macOS 上架强制要求 Info.plist 声明,
 # 且必须与 ASC 的类别一致,否则审核会挑(缺失则直接上传失败 code 90242)。
 APP_CATEGORY="public.app-category.utilities"
 
-if [ "$FLAVOR" = "china" ]; then
-  APP_NAME="BelliedMonkey Translator CN"
-  BUNDLE_ID="com.belliedmonkeytranslator.cn"
-  DIST="$(pwd)/dist-china"
-  BUILD_CMD="node build.js --flavor china"
-  PROJ_BASE="$(pwd)/safari-project-china"
-else
-  APP_NAME="BelliedMonkey Translator"
-  BUNDLE_ID="com.belliedmonkeytranslator"
-  DIST="$(pwd)/dist"
-  BUILD_CMD="node build.js"
-  PROJ_BASE="$(pwd)/safari-project"
-fi
+APP_NAME="BelliedMonkey Translator"
+BUNDLE_ID="com.belliedmonkeytranslator"
+DIST="$(pwd)/dist"
+BUILD_CMD="node build.js"
+PROJ_BASE="$(pwd)/safari-project"
 
 if [ "$PLATFORM" = "macos" ]; then
   SAFARI_PROJECT="${PROJ_BASE}-macos"
@@ -64,7 +59,7 @@ fi
 VERSION=$(node -p "require('./package.json').version")
 
 echo ""
-echo "🌿 Safari 扩展构建（flavor: $FLAVOR · platform: $PLATFORM · $BUNDLE_ID · v$VERSION）"
+echo "🌿 Safari 扩展构建（platform: $PLATFORM · $BUNDLE_ID · v$VERSION）"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 command -v node &>/dev/null || { echo "❌ 未找到 Node.js：https://nodejs.org"; exit 1; }
@@ -148,7 +143,7 @@ else
   CUR=$(grep -ohE "CURRENT_PROJECT_VERSION = [^;]*" "$PBX" | head -1 | sed 's/.*= //')
   echo "   ⚠️ build 号保持 $CUR —— 上传前请确认它大于 App Store Connect 里"
   echo "      【$PLATFORM 平台】的最后一个 build（两个平台各自计数）。"
-  echo "      需要改就重跑： BUILD_NUMBER=<n> bash build-safari.sh $FLAVOR $PLATFORM"
+  echo "      需要改就重跑： BUILD_NUMBER=<n> bash build-safari.sh $PLATFORM"
 fi
 
 # ── Step 3: 后续操作 ────────────────────────────────────────────────────

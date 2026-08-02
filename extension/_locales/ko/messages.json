@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "지금은 키가 필요 없는 무료 엔진입니다. 먼저 살펴보기에는 충분하지만 응답이 불안정해서 원문을 그대로 돌려주는 경우가 있습니다. LLM 엔진으로 바꾸고 본인 키를 넣으면 훨씬 안정적이고 품질도 좋아집니다."
+  },
+  "label_endpoint": {
+    "message": "서비스 엔드포인트"
+  },
+  "options_endpoint_hint": {
+    "message": "이 엔진은 지역별로 별도의 엔드포인트를 운영하며 API 키도 지역별로 발급됩니다. 한 지역의 키는 다른 지역에서 사용할 수 없습니다."
+  },
+  "endpoint_intl": {
+    "message": "국제"
+  },
+  "endpoint_cn": {
+    "message": "중국 본토"
+  },
+  "endpoint_custom": {
+    "message": "사용자 지정(아래 주소 참조)"
+  },
+  "toast_endpoint_saved": {
+    "message": "서비스 엔드포인트가 저장되었습니다"
   }
 }

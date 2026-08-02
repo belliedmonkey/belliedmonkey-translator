@@ -1,7 +1,7 @@
 // options.js
 
 // Provider list is the build-time registry (window.MT_PROVIDERS, generated per
-// flavor from build/providers.config.js). No hardcoded provider list here.
+// from build/providers.config.js). No hardcoded provider list here.
 const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
 const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
@@ -44,7 +44,7 @@ function applyI18n() {
 }
 
 // Provider <select> is populated from the registry; label comes from labelKey
-// (localizable) or the flavor-resolved literal label.
+// (localizable) or the registry's literal label.
 function providerLabel(p) { return p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id); }
 function populateProviders() {
   const sel = $('provider');
@@ -106,9 +106,45 @@ function updateSetupNote(provider, apiKey) {
   }
 }
 
+// Endpoint picker. Some providers run more than one regional endpoint (the registry
+// declares them in `altBases`); a key issued for one does not work on the other. The
+// picker just writes the chosen URL into the EXISTING apiBaseUrl setting — no new
+// setting key, and no runtime region branch. Providers without `altBases` never show
+// it. URLs live only in the registry, never here (docs/domain-design.md §7).
+function renderEndpoints(p) {
+  const field = $('endpoint-field');
+  const sel = $('api-endpoint');
+  const alts = p.altBases || null;
+  if (!alts || !alts.length) { field.style.display = 'none'; sel.innerHTML = ''; return; }
+  field.style.display = 'block';
+  sel.innerHTML = '';
+  for (const a of alts) {
+    const o = document.createElement('option');
+    o.value = a.url;
+    o.textContent = t(a.labelKey, a.url);
+    sel.appendChild(o);
+  }
+  const custom = document.createElement('option');
+  custom.value = '';
+  custom.textContent = t('endpoint_custom', '自定义（见下方地址栏）');
+  sel.appendChild(custom);
+  syncEndpointFromBaseUrl(p);
+}
+
+// An empty apiBaseUrl means "use defaultBase", so it must select the SAME option a
+// stored explicit URL would — otherwise a fresh install shows 自定义 while actually
+// using the default.
+function syncEndpointFromBaseUrl(p) {
+  const sel = $('api-endpoint');
+  if (!sel.options.length) return;
+  const effective = ($('api-base-url').value.trim() || p.defaultBase || '');
+  sel.value = [...sel.options].some((o) => o.value === effective) ? effective : '';
+}
+
 function updateProviderUI(provider) {
   const p = providerById(provider) || {};
   $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
+  renderEndpoints(p);
   $('baseurl-field').style.display = p.supportsBaseUrl ? 'block' : 'none';
   $('model-field').style.display = p.supportsModel ? 'block' : 'none';
   $('api-base-url').placeholder = p.defaultBase || 'https://…';
@@ -151,8 +187,8 @@ async function init() {
   const s = s0;
 
   populateProviders();
-  // A stored provider from another flavor may not exist in this build → fall
-  // back to the first registry provider available here.
+  // A stored provider id may no longer be in the registry (removed entry, or a
+  // profile from an older build) → fall back to the first one that is.
   const prov = providerById(s.provider) ? s.provider : defaultProviderId();
   $('provider').value       = prov;
   $('api-key').value        = s.apiKey      || '';
@@ -168,7 +204,7 @@ async function init() {
   updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
   $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
-  if (prov !== s.provider) await saveAll(); // migrate an out-of-flavor provider
+  if (prov !== s.provider) await saveAll(); // persist the fallback
 
   // ─── Listeners ──────────────────────────────────────────────────────
 
@@ -181,7 +217,20 @@ async function init() {
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });
   // `change` only fires on blur — clear the note as soon as a key is typed.
   $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
-  $('api-base-url').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apiurl_saved', 'API 地址已保存')); });
+  // Picking an endpoint writes into the base-URL field, which is the single stored
+  // value; the empty option means "I'll type my own" and leaves it untouched.
+  $('api-endpoint').addEventListener('change', async (e) => {
+    if (e.target.value) $('api-base-url').value = e.target.value;
+    await saveAll();
+    showToast(t('toast_endpoint_saved', '服务端点已保存'));
+  });
+  $('api-base-url').addEventListener('change', async () => {
+    await saveAll();
+    // Typing a URL by hand must move the picker to 自定义 (or back onto a known
+    // endpoint), or the two controls would disagree about what is in effect.
+    syncEndpointFromBaseUrl(providerById($('provider').value) || {});
+    showToast(t('toast_apiurl_saved', 'API 地址已保存'));
+  });
   $('api-model').addEventListener('change', async () => { await saveAll(); showToast(t('toast_model_saved', '模型已保存')); });
   $('target-lang').addEventListener('change', async () => { await saveAll(); showToast(t('toast_lang_saved', '语言已保存')); });
   $('ui-lang').addEventListener('change', async (e) => {

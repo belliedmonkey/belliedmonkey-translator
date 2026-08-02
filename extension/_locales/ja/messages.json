@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "現在はキー不要の無料エンジンです。まず試すには十分ですが、応答が安定せず、原文をそのまま返すことがあります。いずれかの LLM エンジンに切り替えてご自身のキーを入れると、明らかに安定し、品質も上がります。"
+  },
+  "label_endpoint": {
+    "message": "サービスエンドポイント"
+  },
+  "options_endpoint_hint": {
+    "message": "このエンジンは地域ごとに別々のエンドポイントを運用しており、API キーも地域ごとに発行されます。一方の地域のキーはもう一方では使えません。"
+  },
+  "endpoint_intl": {
+    "message": "国際"
+  },
+  "endpoint_cn": {
+    "message": "中国本土"
+  },
+  "endpoint_custom": {
+    "message": "カスタム（下のアドレスを参照）"
+  },
+  "toast_endpoint_saved": {
+    "message": "サービスエンドポイントを保存しました"
   }
 }

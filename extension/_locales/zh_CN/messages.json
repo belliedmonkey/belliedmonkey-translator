@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。"
+  },
+  "label_endpoint": {
+    "message": "服务端点"
+  },
+  "options_endpoint_hint": {
+    "message": "该引擎在不同区域有各自独立的端点，API Key 也按区域发放 —— 一个区域的 Key 不能用在另一个区域。"
+  },
+  "endpoint_intl": {
+    "message": "国际"
+  },
+  "endpoint_cn": {
+    "message": "中国大陆"
+  },
+  "endpoint_custom": {
+    "message": "自定义（见下方地址）"
+  },
+  "toast_endpoint_saved": {
+    "message": "服务端点已保存"
   }
 }

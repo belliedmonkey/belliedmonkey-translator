@@ -374,14 +374,22 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   `google` and translation works with no API key. *(CLAUDE.md provider table;
   content-main `provider:'google'`.)*
 
-- [ ] **Every keyed provider in the flavor, with an API key.** For each entry in
-  `build/providers.config.js` whose `needsKey` is set and whose `flavors` include
-  the build under test: set provider + key in options, translate a page and a video.
+- [ ] **Every keyed provider, with an API key.** For each entry in
+  `build/providers.config.js` whose `needsKey` is set: set provider + key in
+  options, translate a page and a video.
   **Expected:** each returns translations, and the options page's hint + model
   placeholder both show that entry's `defaultModel`. Do **not** hardcode the model
   names in this checklist — the registry owns them (`docs/domain-design.md` §7), and
   a copy here is one more consumer that drifts. *(This is how the stale
   `deepseek-chat` hint survived a model rename.)*
+
+- [ ] **Endpoint picker.** For each entry with `altBases` (regional endpoints —
+  `docs/domain-design.md` §7.1): the options page shows a **服务端点** dropdown, and
+  entries **without** `altBases` do **not** show it. Switching the dropdown rewrites
+  the base-URL field and persists. Typing a URL by hand that matches no listed
+  endpoint moves the dropdown to 自定义; typing one that *does* match snaps it back.
+  A fresh profile (empty `apiBaseUrl`) must select the entry's `defaultBase`, **not**
+  自定义.
 
 - [ ] **Custom base URL.** For each entry with `supportsBaseUrl`, set `apiBaseUrl`.
   **Expected:** requests go to the custom endpoint instead of `defaultBase`.

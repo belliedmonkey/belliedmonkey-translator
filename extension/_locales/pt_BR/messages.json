@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "Você está no motor gratuito sem chave — o suficiente para uma primeira olhada. Não é um endpoint estável: às vezes devolve o seu texto original sem alterações. Trocar para um motor LLM com a sua própria chave é bem mais confiável, e melhor."
+  },
+  "label_endpoint": {
+    "message": "Endpoint do serviço"
+  },
+  "options_endpoint_hint": {
+    "message": "Este mecanismo opera um endpoint separado por região, e as chaves de API são emitidas por região — uma chave de uma região não funciona na outra."
+  },
+  "endpoint_intl": {
+    "message": "Internacional"
+  },
+  "endpoint_cn": {
+    "message": "China continental"
+  },
+  "endpoint_custom": {
+    "message": "Personalizado (veja o endereço abaixo)"
+  },
+  "toast_endpoint_saved": {
+    "message": "Endpoint do serviço salvo"
   }
 }

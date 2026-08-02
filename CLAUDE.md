@@ -75,10 +75,15 @@ extension/
 single registry (`docs/domain-design.md` §7); the build emits
 `content/providers.gen.js` (`window.MT_PROVIDERS`), and every runtime surface reads
 it — `translation-api.js` (dispatch), `options.js` / `popup.js` (UI). Read the
-registry for the current ids, endpoints, `defaultModel`s and which flavor each ships
-in. **Never re-state a model name, endpoint or provider list in docs, UI strings or
-code** — each copy is a consumer that stops tracking the registry and drifts (the
-DeepSeek hint kept saying `deepseek-chat` long after the API rejected it).
+registry for the current ids, endpoints and `defaultModel`s. **Never re-state a model
+name, endpoint or provider list in docs, UI strings or code** — each copy is a
+consumer that stops tracking the registry and drifts (the DeepSeek hint kept saying
+`deepseek-chat` long after the API rejected it).
+
+**One build for everyone.** There is no `global`/`china` flavor (removed 2026-08-02).
+Providers running more than one regional endpoint declare `altBases` in the registry
+and the options page shows an endpoint picker — keys are region-bound, so this is a
+user choice, never a runtime region branch. See `docs/domain-design.md` §7.1.
 
 Transport is keyed by request **format**, not vendor: `google`, `chat-compat`
 (OpenAI Chat-Completions shape) or `messages-compat` (Anthropic Messages shape), read

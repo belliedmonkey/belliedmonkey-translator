@@ -476,20 +476,19 @@ identical on every surface by construction.
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
 
-## 7. Provider transport & region flavors (合规双分发)
+## 7. Provider transport & endpoints (single distribution)
 
-The transport is **provider-agnostic and format-keyed**, and the provider *list*
-is a build-time concern, not a runtime one.
+The transport is **provider-agnostic and format-keyed**, and the provider *list* is
+a build-time concern, not a runtime one.
 
 - **Single source of truth.** `build/providers.config.js` is the one registry of
-  translation providers. Each entry declares `{ id, type, flavors, needsKey,
-  supportsBaseUrl, supportsModel, requiresBaseUrl, defaultBase, path, defaultModel,
-  label, labelKey, hintKey }`. It replaces the four previously-duplicated lists
-  (the two HTML `<select>`s, the two settings scripts, and the transport's own
-  provider table). The build generates `content/providers.gen.js`
-  (`window.MT_FLAVOR` + `window.MT_PROVIDERS`), which every runtime surface reads —
-  `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), so they can never
-  drift.
+  translation providers. Each entry declares `{ id, type, needsKey, supportsBaseUrl,
+  supportsModel, requiresBaseUrl, defaultBase, altBases, path, defaultModel, label,
+  labelKey, hintKey }`. It replaces the four previously-duplicated lists (the two
+  HTML `<select>`s, the two settings scripts, and the transport's own provider
+  table). The build generates `content/providers.gen.js` (`window.MT_PROVIDERS`),
+  which every runtime surface reads — `translation-api.js` (dispatch),
+  `options.js`/`popup.js` (UI) — so they can never drift.
 
 - **Transport is keyed by request FORMAT, not vendor.** `type` is one of
   `google`, `chat-compat` (OpenAI Chat-Completions request shape), or
@@ -498,42 +497,58 @@ is a build-time concern, not a runtime one.
   a custom `baseUrl`/`model`. `anthropic-version` is sent for `messages-compat` as a
   required *protocol* header, not a brand reference.
 
-- **Region flavor is a build/distribution concern, decided at build time — never a
-  runtime per-request branch.** `node build.js --flavor global|china` filters the
-  registry by each entry's `flavors` and resolves flavor-varying `defaultBase` /
-  `label` to a single value:
-  - **global** (`dist/`, `com.belliedmonkeytranslator`): Google, OpenAI, Claude,
-    DeepSeek, GLM, Qwen, Kimi + custom (Chat / Messages). International endpoints
-    (`api.z.ai`, `dashscope-intl…`, `api.moonshot.ai`). **Not available in China.**
-  - **china** (`dist-china/`, `com.belliedmonkeytranslator.cn`): DeepSeek, GLM
-    (智谱), Qwen (通义千问), Kimi + two brand-free custom endpoints (Chat / Messages
-    format, user-supplied base URL). Domestic endpoints (`open.bigmodel.cn`,
-    `dashscope.aliyuncs.com`, `api.moonshot.cn`). **No Google/OpenAI/Claude, and no
-    vendor brand strings anywhere in UI or metadata.**
+- **Never restate a provider list, model name, or endpoint anywhere else** — not in
+  docs, not in UI strings, not in code comments. Every copy is a consumer that stops
+  tracking the registry and drifts. (The DeepSeek hint kept naming a model months
+  after the API rejected it.)
 
-- **Why two binaries (not runtime storefront gating).** An App Store app record
-  serves one binary to every storefront, so China-mainland legal isolation
-  (Guideline 5 — generative-AI services need MIIT permits; OpenAI/ChatGPT
-  references are disallowed) requires **two app records / two bundle ids**, driven
-  by the same codebase via flavor. `build-safari.sh [china]` produces the matching
-  Xcode project + bundle id.
+### 7.1 One build for everyone (amended 2026-08-02)
 
-- **Compliance gate (build-enforced).** After a `--flavor china` build, `build.js`
-  greps `dist-china/` for `/ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i`
-  and **fails the build on any hit**. Brand-free labels + no default global
-  endpoints + description substitution together keep this at zero.
+**There is a single distribution.** The previous `global` / `china` build-flavor
+split — two binaries, two bundle ids, two App Store records, a brand-free provider
+subset for one of them, and a compliance grep gate over `dist-china/` — has been
+removed, along with `--flavor`, `dist-china/`, `build-safari.sh china`, and
+`window.MT_FLAVOR`.
 
-- **China has no free/no-key default.** Google is absent (blocked in China), so the
-  china build defaults to a keyed domestic provider (GLM has a free tier); the
-  China onboarding must include a "get a free GLM key" step. Fallback differs too:
-  global builds fall back to Google on total provider failure; **china builds must
-  not** — they surface the error instead (no reachable Google).
+**Why it was removed.** The split existed because App Store Guideline 5 / MIIT
+constraints make a China-mainland listing incompatible with bundled foreign AI
+services, and one app record serves one binary to every storefront. That constraint
+is real and has not changed — but the *response* to it was to hand one group of users
+a product with fewer engines. The governing product principle is the opposite:
+**compliance pressure is resolved by narrowing where the product is distributed, not
+by narrowing what it does** — no group of users gets a deliberately reduced build.
+The China app record was never published, so nothing was withdrawn from anyone.
 
-- **Residual risk.** A user-supplied custom endpoint in the china build is a generic
-  BYO-endpoint; a reviewer could read it as indirect access to a disallowed service.
-  Mitigated by brand-free labels + no default endpoint + Review Notes; the fallback
-  if rejected is to drop the custom endpoints from the china flavor and keep only
-  pure domestic-brand providers.
+**What replaces the part that was actually load-bearing.** The domestic endpoints
+were the genuinely useful half of the china flavor: GLM, Qwen and Kimi run separate
+mainland and international endpoints, and **keys are region-bound** — an
+international key does not work against the mainland endpoint or vice versa. Deleting
+those endpoints would have made the unified build unusable for exactly the users the
+split was meant to serve. So a provider that operates more than one regional endpoint
+declares them in the registry:
+
+```js
+altBases: [ { labelKey: 'endpoint_intl', url: … },
+            { labelKey: 'endpoint_cn',   url: … } ]
+```
+
+The options page renders an endpoint picker when (and only when) `altBases` is
+present, and writes the chosen URL into the **existing** `apiBaseUrl` setting.
+
+- **No new setting key** — the endpoint is just a base URL, which the product already
+  models and already lets users type by hand.
+- **No runtime region branch.** Nothing inspects locale, timezone, or IP. The user
+  chooses; the registry is still the only place a URL is written down.
+- Labels go through i18n keys, so the picker is localized without any endpoint string
+  leaking into `_locales`.
+
+**The Google fallback is no longer region-gated.** It used to be suppressed for china
+builds on the grounds that Google is unreachable there. Reachability is a property of
+the *user's network*, not of the build, so the gate could not survive unification.
+The replacement is better for everyone: the fallback is still attempted, but if it
+also fails, the **original provider error** is surfaced rather than Google's — a
+Google error would name a service the user never chose and hide the real cause (bad
+key, wrong endpoint, rate limit).
 
 ## 8. Out of scope
 

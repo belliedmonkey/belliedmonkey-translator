@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
+  },
+  "label_endpoint": {
+    "message": "Dienst-Endpunkt"
+  },
+  "options_endpoint_hint": {
+    "message": "Diese Engine betreibt je Region einen eigenen Endpunkt, und API-Schlüssel werden pro Region ausgegeben — ein Schlüssel der einen Region funktioniert in der anderen nicht."
+  },
+  "endpoint_intl": {
+    "message": "International"
+  },
+  "endpoint_cn": {
+    "message": "Festlandchina"
+  },
+  "endpoint_custom": {
+    "message": "Benutzerdefiniert (siehe Adresse unten)"
+  },
+  "toast_endpoint_saved": {
+    "message": "Dienst-Endpunkt gespeichert"
   }
 }

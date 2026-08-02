@@ -8,9 +8,9 @@ Guidance for AI agents working on this repo. (Format follows https://agents.md/.
 bilingual translation. Targets **Safari iOS** (primary) and **Chrome/Firefox**.
 Webpage mode shows the translation under each paragraph; YouTube mode shows a
 bilingual subtitle line under the original caption. Multi-provider, fully
-configurable LLM APIs. The provider list is a **build-time region flavor**
-(`global` / `china`) resolved from a single registry — see "Provider registry &
-region flavors" below and `docs/domain-design.md` §7.
+configurable LLM APIs. **One build for everyone** — the provider list comes from a
+single registry resolved at build time; see "Provider registry" below and
+`docs/domain-design.md` §7.
 
 ## Interaction / UX constraints
 
@@ -36,27 +36,29 @@ domain-design review before the code changes.** Do not refactor the architecture
 or add per-site / per-device branches to the segmenter without that review.
 Routine bug fixes that conform to the existing model do not require it.
 
-## Provider registry & region flavors (合规双分发) — domain design
+## Provider registry — domain design
 
 **The provider transport model lives in [`docs/domain-design.md`](docs/domain-design.md) §7** and is
 governed by the same human-review rule above. Key invariants:
 
-- **One registry, four consumers.** `build/providers.config.js` is the single
+- **One registry, three consumers.** `build/providers.config.js` is the single
   source of truth for providers; the build emits `content/providers.gen.js`
-  (`window.MT_FLAVOR` + `window.MT_PROVIDERS`) read by the transport, options, and
-  popup. Do **not** re-introduce a hardcoded provider list anywhere.
+  (`window.MT_PROVIDERS`) read by the transport, options, and popup. Do **not**
+  re-introduce a hardcoded provider list anywhere.
 - **Transport is format-keyed, not vendor-keyed** (`google` / `chat-compat` /
   `messages-compat`). Never hardcode a vendor endpoint in `translation-api.js`.
-- **Region flavor is decided at build time, never at runtime.**
-  `node build.js --flavor global|china` and `bash build-safari.sh [china]` produce
-  two independent binaries / bundle ids (`com.belliedmonkeytranslator` vs
-  `com.belliedmonkeytranslator.cn`) → two App Store app records. Rationale: China
-  mainland legal isolation (App Store Guideline 5 / MIIT) forbids OpenAI/ChatGPT
-  references, and one app record serves one binary to all storefronts.
-- **China build is brand-free and gated.** The china flavor carries no
-  Google/OpenAI/Claude and no vendor brand strings; `build.js` runs a **compliance
-  gate** over `dist-china/` (fails on `/ChatGPT|OpenAI|Claude|api.openai|api.anthropic/i`).
-  Any change to china-flavor providers/labels must keep that gate green.
+- **Never restate a provider list, model name or endpoint** in docs, UI strings or
+  code comments. Every copy is a consumer that stops tracking the registry and
+  drifts (the DeepSeek hint named a model the API had long since rejected).
+- **One build for everyone (2026-08-02).** The `global`/`china` flavor split is
+  gone — no `--flavor`, no `dist-china/`, no `MT_FLAVOR`, no compliance grep.
+  Compliance pressure is resolved by narrowing **distribution scope**, never by
+  shipping some users fewer features. See `docs/domain-design.md` §7.1.
+- **Regional endpoints live in the registry, not in a build flavor.** A provider
+  running more than one regional endpoint (keys are region-bound) declares
+  `altBases`; the options page renders a picker that writes into the existing
+  `apiBaseUrl`. **No runtime region detection** — never branch on locale, timezone
+  or IP.
 
 ## Change documentation — every change gets a GitHub issue
 
@@ -111,20 +113,18 @@ is in [`docs/device-verification.md`](docs/device-verification.md).
 ## Build & run
 
 ```bash
-node build.js                     # global Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
-node build.js --flavor china      # china build → dist-china/ (+ -china.zip); runs the compliance gate
+node build.js                     # Chrome/Safari build → dist/ (+ belliedmonkeytranslator.zip)
 node build.js firefox             # Firefox build → dist-firefox/ + .xpi
-bash build-safari.sh              # global Safari iOS Xcode project (needs FULL Xcode)
-bash build-safari.sh china        # china Safari iOS Xcode project (bundle id …​.cn)
-bash build-safari.sh global macos # global Safari macOS project → safari-project-macos/
-BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build number
+bash build-safari.sh              # Safari iOS Xcode project (needs FULL Xcode)
+bash build-safari.sh macos        # Safari macOS project → safari-project-macos/
+BUILD_NUMBER=11 bash build-safari.sh macos          # also set the upload build number
 ```
 
 - Source lives in `extension/`; `build.js` copies it to `dist/` and validates.
 - Icons: real PNGs in `extension/icons/` (source `icon.svg`). The build FAILS if
   they aren't genuine PNGs — don't emit SVG renamed to `.png`.
-- `build-safari.sh <flavor> <platform>`: flavor `global|china`, platform
-  `ios|macos`. **Every run re-applies** the project settings — version (from
+- `build-safari.sh <platform>`: platform `ios|macos`. **Every run re-applies**
+  the project settings — version (from
   `package.json`), both bundle ids, display name, and the Info.plist keys the
   stores require (`ITSAppUsesNonExemptEncryption`, plus
   `LSApplicationCategoryType` on macOS). Only your signing config is preserved.

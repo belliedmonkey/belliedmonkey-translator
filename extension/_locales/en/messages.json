@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "You are on the free no-key engine — fine for a first look. It is not a stable endpoint: it sometimes returns your original text unchanged. Switching to any LLM engine with your own key is noticeably more reliable, and better."
+  },
+  "label_endpoint": {
+    "message": "Service endpoint"
+  },
+  "options_endpoint_hint": {
+    "message": "This engine runs a separate endpoint per region, and API keys are issued per region — a key from one region will not work on the other."
+  },
+  "endpoint_intl": {
+    "message": "International"
+  },
+  "endpoint_cn": {
+    "message": "Chinese mainland"
+  },
+  "endpoint_custom": {
+    "message": "Custom (see the address below)"
+  },
+  "toast_endpoint_saved": {
+    "message": "Service endpoint saved"
   }
 }

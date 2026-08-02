@@ -274,5 +274,23 @@
   },
   "setup_free_channel": {
     "message": "Estás usando el motor gratuito sin clave: suficiente para echar un primer vistazo. No es un endpoint estable: a veces devuelve tu texto original sin cambios. Cambiar a un motor LLM con tu propia clave es bastante más fiable, y mejor."
+  },
+  "label_endpoint": {
+    "message": "Punto de acceso del servicio"
+  },
+  "options_endpoint_hint": {
+    "message": "Este motor opera un punto de acceso distinto por región, y las claves API se emiten por región: una clave de una región no funcionará en la otra."
+  },
+  "endpoint_intl": {
+    "message": "Internacional"
+  },
+  "endpoint_cn": {
+    "message": "China continental"
+  },
+  "endpoint_custom": {
+    "message": "Personalizado (ver la dirección abajo)"
+  },
+  "toast_endpoint_saved": {
+    "message": "Punto de acceso guardado"
   }
 }

@@ -37,6 +37,11 @@ Install from a store — building from source is for contributors, not for using
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
 
+Some engines run separate endpoints for different regions and issue keys per region
+(GLM, Qwen, Kimi). Where that applies, the settings page shows an **endpoint** picker
+next to the engine — pick the one your key belongs to. Nothing is detected from your
+location; it is your choice.
+
 <details>
 <summary><b>Building from source</b></summary>
 
@@ -45,7 +50,6 @@ Zero dependencies — no `npm install`. Node.js ≥ 16.
 ```bash
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi
-node build.js --flavor china      # China flavor     → dist-china/
 ```
 
 Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.

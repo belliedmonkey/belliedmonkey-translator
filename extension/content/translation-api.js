@@ -87,10 +87,11 @@ Rules:
   }
 
   // Provider config comes from the build-time registry (window.MT_PROVIDERS,
-  // generated per flavor from build/providers.config.js). Transport is keyed by
+  // generated from build/providers.config.js). Transport is keyed by
   // request FORMAT, not by vendor: 'chat-compat' = the Chat Completions request
-  // shape; 'messages-compat' = the Messages request shape. Brand-free on purpose so
-  // a China build carries no vendor brand strings (App Store Guideline 5).
+  // shape; 'messages-compat' = the Messages request shape. Brand-free on purpose:
+  // a self-hosted or third-party endpoint is reached by picking the matching format
+  // plus a base URL, so no adapter ever has to name a vendor.
   function providerById(id) {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
     return list.find((p) => p.id === id) || null;
@@ -209,10 +210,15 @@ Rules:
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
-            // Global builds fall back to Google on total failure; China builds have
-            // no Google (blocked in China) — surface the error instead.
-            const chinaFlavor = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china');
-            if (provider !== 'google' && !chinaFlavor) return await translateGoogle(text, targetLang);
+            // Last resort: the keyless Google endpoint. If IT fails too — it is
+            // unreachable from some networks — surface the ORIGINAL provider error.
+            // Google's error would name a service the user never chose and hide the
+            // real cause (bad key, wrong endpoint, rate limit).
+            // (This replaced a build-time `MT_FLAVOR === 'china'` gate: reachability
+            // is a property of the user's network, not of the build.)
+            if (provider !== 'google') {
+              try { return await translateGoogle(text, targetLang); } catch (_) { throw err; }
+            }
             throw err;
           }
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;

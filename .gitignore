@@ -1,9 +1,12 @@
 dist/
-dist-china/
 dist-firefox/
 safari-project/
-safari-project-china/
 safari-project-macos/
+# Legacy output of the removed china flavor (see docs/domain-design.md §7.1).
+# Nothing regenerates these; delete them whenever you like — kept ignored only so a
+# stale local copy can't be committed by accident.
+dist-china/
+safari-project-china/
 *.zip
 *.xpi
 node_modules/

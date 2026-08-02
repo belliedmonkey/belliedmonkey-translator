@@ -37,6 +37,10 @@
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
 
+有些引擎在不同区域有各自独立的端点，API Key 也按区域发放（GLM、通义千问、Kimi）。
+遇到这种引擎时，设置页会在引擎旁边多出一个**服务端点**下拉 —— 选你的 Key 所属的那个。
+扩展不会根据你的位置自动判断，选择权在你。
+
 <details>
 <summary><b>从源码构建</b></summary>
 
@@ -45,7 +49,6 @@
 ```bash
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi
-node build.js --flavor china      # 中国版            → dist-china/
 ```
 
 在 `chrome://extensions` 开启开发者模式 → 加载已解压的扩展程序 → 选 `dist/`。

@@ -31,27 +31,25 @@ jobs:
       - run: npm test
 
   build:
-    name: build (${{ matrix.flavor }})
+    name: build (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - flavor: global
+          - target: chrome
             cmd: node build.js
-          - flavor: china
-            cmd: node build.js --flavor china
-          - flavor: firefox
+          - target: firefox
             cmd: node build.js firefox
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # build.js carries hard gates, not just packaging: the manifest
-      # `data_collection_permissions` assertion (issue #53) and the china-flavor
-      # compliance grep over dist-china/. A green build IS the gate here; the
-      # zip it produces is a byproduct we throw away.
+      # build.js carries hard gates, not just packaging: version drift between
+      # package.json and manifest.json, the manifest `data_collection_permissions`
+      # assertion (issue #53), and the Chrome `_locales` directory-name check
+      # (issue #65). A green build IS the gate here; the zip is a byproduct.
       - run: ${{ matrix.cmd }}
 
 # Not covered here, on purpose:

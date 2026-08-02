@@ -1,7 +1,7 @@
 // popup.js
 
 // Provider list is the build-time registry (window.MT_PROVIDERS, generated per
-// flavor from build/providers.config.js).
+// from build/providers.config.js).
 const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
 const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
@@ -152,7 +152,7 @@ async function init() {
 
   updateApiKeySection(prov);
   updateSetupNote(prov, s.apiKey);
-  if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
+  if (prov !== s.provider) await saveSettings({ provider: prov }); // persist the fallback
 
   // Reflect the CURRENT page's translation state (not a stored default).
   pageTranslated = await queryPageTranslated();
