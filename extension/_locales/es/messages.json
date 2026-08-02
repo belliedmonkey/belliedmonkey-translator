@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "Estás usando el motor gratuito sin clave: suficiente para echar un primer vistazo. No es un endpoint estable: a veces devuelve tu texto original sin cambios. Cambiar a un motor LLM con tu propia clave es bastante más fiable, y mejor."
+  },
+  "learn_title": {
+    "message": "Repaso"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Repaso"
+  },
+  "learn_review": {
+    "message": "Repaso"
+  },
+  "learn_reveal": {
+    "message": "Mostrar traducción"
+  },
+  "learn_grade_again": {
+    "message": "Olvidé"
+  },
+  "learn_grade_hard": {
+    "message": "Difícil"
+  },
+  "learn_grade_good": {
+    "message": "Lo sé"
+  },
+  "learn_grade_easy": {
+    "message": "Muy fácil"
+  },
+  "learn_empty_title": {
+    "message": "Aún no hay material"
+  },
+  "learn_empty_body": {
+    "message": "Activa la captura y navega y traduce como siempre. Se guardan las frases que realmente leíste, no las que pasaste de largo."
+  },
+  "learn_open_settings": {
+    "message": "Activar la captura en ajustes"
+  },
+  "learn_alldone_title": {
+    "message": "Listo por ahora"
+  },
+  "learn_alldone_body": {
+    "message": "Sigue navegando y traduciendo: el material nuevo llega solo."
+  },
+  "learn_next_due": {
+    "message": "La próxima tarjeta toca {when}."
+  },
+  "learn_in_minutes": {
+    "message": "en unos {n} min"
+  },
+  "learn_in_hours": {
+    "message": "en unas {n} h"
+  },
+  "learn_in_days": {
+    "message": "en unos {n} días"
+  },
+  "learn_progress": {
+    "message": "Progreso"
+  },
+  "learn_done_run": {
+    "message": "{n} hechas en esta sesión"
+  },
+  "learn_settings": {
+    "message": "Ajustes"
+  },
+  "learn_unknown_source": {
+    "message": "Fuente desconocida"
+  },
+  "learn_clip_no_embed": {
+    "message": "Este fragmento no se puede incrustar: "
+  },
+  "learn_clip_open": {
+    "message": "abrir el original en ese momento"
+  },
+  "learn_count_due": {
+    "message": "Pendientes"
+  },
+  "learn_count_learning": {
+    "message": "Aprendiendo"
+  },
+  "learn_count_new": {
+    "message": "Candidatas"
+  },
+  "learn_count_known": {
+    "message": "Dominadas"
+  },
+  "learn_section": {
+    "message": "Aprendizaje"
+  },
+  "learn_section_hint": {
+    "message": "Al activarlo, las frases que realmente leíste se guardan EN ESTE DISPOSITIVO junto con la dirección de la página, su título y cuánto tiempo estuvo en pantalla, y se te vuelven a mostrar siguiendo una curva del olvido. Lo que pasas de largo no se guarda. Nada se sube, y un botón lo borra todo."
+  },
+  "learn_enable": {
+    "message": "Recopilar material"
+  },
+  "learn_daily_new": {
+    "message": "Tarjetas nuevas por día (máx.)"
+  },
+  "learn_open_review": {
+    "message": "Abrir la página de repaso"
+  },
+  "learn_clear": {
+    "message": "Borrar la biblioteca"
+  },
+  "learn_clear_confirm": {
+    "message": "¿Borrar la biblioteca? Se eliminarán todas las frases recopiladas y todo el progreso, sin posibilidad de deshacer."
+  },
+  "learn_stats": {
+    "message": "{n} elementos · {due} pendientes · unos {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "La biblioteca está vacía"
+  },
+  "toast_learn_on": {
+    "message": "Recopilación activada"
+  },
+  "toast_learn_off": {
+    "message": "Recopilación detenida (lo ya recopilado se conserva)"
+  },
+  "toast_learn_cleared": {
+    "message": "Biblioteca borrada"
+  },
+  "toast_learn_clear_failed": {
+    "message": "No se pudo borrar"
+  },
+  "toast_saved": {
+    "message": "Guardado"
   }
 }

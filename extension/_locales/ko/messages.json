@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "지금은 키가 필요 없는 무료 엔진입니다. 먼저 살펴보기에는 충분하지만 응답이 불안정해서 원문을 그대로 돌려주는 경우가 있습니다. LLM 엔진으로 바꾸고 본인 키를 넣으면 훨씬 안정적이고 품질도 좋아집니다."
+  },
+  "learn_title": {
+    "message": "복습"
+  },
+  "learn_title_full": {
+    "message": "대두원숭이 번역 · 복습"
+  },
+  "learn_review": {
+    "message": "복습"
+  },
+  "learn_reveal": {
+    "message": "번역 보기"
+  },
+  "learn_grade_again": {
+    "message": "기억 안 남"
+  },
+  "learn_grade_hard": {
+    "message": "어려움"
+  },
+  "learn_grade_good": {
+    "message": "기억함"
+  },
+  "learn_grade_easy": {
+    "message": "너무 쉬움"
+  },
+  "learn_empty_title": {
+    "message": "아직 학습 자료가 없습니다"
+  },
+  "learn_empty_body": {
+    "message": "수집을 켠 뒤 평소처럼 탐색하고 번역하세요. 실제로 읽은 문장만 저장되며, 빠르게 스크롤해 지나간 문장은 저장되지 않습니다."
+  },
+  "learn_open_settings": {
+    "message": "설정에서 수집 켜기"
+  },
+  "learn_alldone_title": {
+    "message": "지금은 복습이 끝났습니다"
+  },
+  "learn_alldone_body": {
+    "message": "계속 탐색하고 번역하면 새 자료가 자동으로 들어옵니다."
+  },
+  "learn_next_due": {
+    "message": "다음 카드는 {when} 예정입니다."
+  },
+  "learn_in_minutes": {
+    "message": "약 {n}분 후"
+  },
+  "learn_in_hours": {
+    "message": "약 {n}시간 후"
+  },
+  "learn_in_days": {
+    "message": "약 {n}일 후"
+  },
+  "learn_progress": {
+    "message": "진행"
+  },
+  "learn_done_run": {
+    "message": "이번에 {n}장 완료"
+  },
+  "learn_settings": {
+    "message": "설정"
+  },
+  "learn_unknown_source": {
+    "message": "출처 불명"
+  },
+  "learn_clip_no_embed": {
+    "message": "이 클립은 삽입 재생할 수 없습니다 — "
+  },
+  "learn_clip_open": {
+    "message": "원본을 해당 시점에서 열기"
+  },
+  "learn_count_due": {
+    "message": "복습 대기"
+  },
+  "learn_count_learning": {
+    "message": "학습 중"
+  },
+  "learn_count_new": {
+    "message": "후보"
+  },
+  "learn_count_known": {
+    "message": "익힘"
+  },
+  "learn_section": {
+    "message": "학습"
+  },
+  "learn_section_hint": {
+    "message": "켜면 실제로 읽은 문장이 페이지 주소, 제목, 화면에 표시된 시간과 함께 이 기기에 저장되어 망각 곡선에 따라 다시 제시됩니다. 빠르게 스크롤해 지나간 문장은 저장되지 않습니다. 업로드되지 않으며 버튼 하나로 모두 지울 수 있습니다."
+  },
+  "learn_enable": {
+    "message": "학습 자료 수집"
+  },
+  "learn_daily_new": {
+    "message": "하루 최대 새 카드 수"
+  },
+  "learn_open_review": {
+    "message": "복습 페이지 열기"
+  },
+  "learn_clear": {
+    "message": "학습 라이브러리 지우기"
+  },
+  "learn_clear_confirm": {
+    "message": "학습 라이브러리를 지울까요? 수집된 모든 문장과 복습 진행 상황이 삭제되며 되돌릴 수 없습니다."
+  },
+  "learn_stats": {
+    "message": "{n}개 · 복습 대기 {due} · 약 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "학습 라이브러리가 비어 있습니다"
+  },
+  "toast_learn_on": {
+    "message": "학습 자료 수집을 시작했습니다"
+  },
+  "toast_learn_off": {
+    "message": "수집을 중지했습니다(이미 수집된 내용은 유지됩니다)"
+  },
+  "toast_learn_cleared": {
+    "message": "학습 라이브러리를 지웠습니다"
+  },
+  "toast_learn_clear_failed": {
+    "message": "지우지 못했습니다"
+  },
+  "toast_saved": {
+    "message": "저장했습니다"
   }
 }

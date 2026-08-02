@@ -98,6 +98,24 @@ body {
   gap: 12px;
 }
 
+/* 复习入口：整行可点，视觉上仍是一行设置，不是一个突兀的按钮。 */
+.row-btn {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+.row-btn:hover .row-label { color: var(--green, #0a7a3c); }
+.row-value {
+  font-size: 13px;
+  color: var(--text-secondary, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
 .row.col {
   flex-direction: column;
   align-items: stretch;

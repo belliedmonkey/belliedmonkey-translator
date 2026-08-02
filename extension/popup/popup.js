@@ -58,7 +58,12 @@ function populateProviders() {
 
 async function getSettings() {
   return new Promise(resolve => {
-    chrome.storage.local.get(null, s => resolve(s || {}));
+    // Explicit keys, never get(null): the bucket also holds the unbounded `tr:`
+    // cache and the `lq:` learning outbox (docs/learning-design.md §7).
+    chrome.storage.local.get([
+      'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+      'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
+    ], s => resolve(s || {}));
   });
 }
 
@@ -190,6 +195,22 @@ async function init() {
   // `change` only fires on blur — the note must clear as soon as a key is typed,
   // otherwise it keeps saying "translation will not work" while the field is full.
   $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
+
+  // 复习入口。The row renders immediately and the count fills in when IndexedDB
+  // resolves — the popup must never wait on the corpus to paint.
+  $('open-review').addEventListener('click', () => {
+    window.open(chrome.runtime.getURL('learn/review.html'), '_blank');
+    window.close();
+  });
+  (async () => {
+    try {
+      await LearnDrain.run();
+      const items = await LearnStore.allItems();
+      const due = LearnScheduler.dueCount(items, Date.now());
+      const el = $('review-count');
+      if (el) el.textContent = due > 0 ? String(due) : '';
+    } catch (_) { /* silent + total */ }
+  })();
 
   $('api-base-url').addEventListener('change', async (e) => {
     await saveSettings({ apiBaseUrl: e.target.value.trim() });

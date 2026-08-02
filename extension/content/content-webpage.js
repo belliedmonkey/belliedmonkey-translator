@@ -378,6 +378,33 @@ var WebpageTranslator = (() => {
   }
   function restoreOriginal(node) { if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); } }
 
+  // Long-press (or right-click) a translation to save that sentence to the learning
+  // corpus, bypassing the dwell/salience gate. Deliberately NOT a plain click:
+  // interaction-spec requires that clicking body text produce no perceptible action,
+  // and a tap-to-save would break that on every SPA re-render.
+  const STAR_HOLD_MS = 550;
+  function attachStarGesture(d, node) {
+    if (d.__mtStarWired) return;
+    d.__mtStarWired = true;
+    let timer = null;
+    const confirm = () => {
+      let ok = false;
+      try { ok = LearnCollector.star(node); } catch (_) {}
+      if (!ok) return;
+      // Confirmation lands on the sibling itself — never a page-level toast.
+      const prev = d.style.outline;
+      d.style.outline = '2px solid currentColor';
+      setTimeout(() => { d.style.outline = prev; }, 450);
+    };
+    const start = () => { clearTimeout(timer); timer = setTimeout(confirm, STAR_HOLD_MS); };
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    d.addEventListener('pointerdown', start);
+    d.addEventListener('pointerup', cancel);
+    d.addEventListener('pointerleave', cancel);
+    d.addEventListener('pointercancel', cancel);
+    d.addEventListener('contextmenu', (e) => { if (LearnCollector.isOn) { e.preventDefault(); confirm(); } });
+  }
+
   function renderUnit(u, st) {
     const node = u.node;
     if (st.state === 'pending') {
@@ -402,6 +429,13 @@ var WebpageTranslator = (() => {
     // could suppress a real translation.
     const sameAsOriginal = st.translation && norm(st.translation) === norm(u.text);
     if (st.translation && !sameAsOriginal) {
+      // Learning layer: a SINK, never a source (domain-design §9.1). This is the
+      // one line that feeds it, placed here — after the same-language backstop —
+      // so only genuine translations are ever captured. It must not be able to
+      // affect anything below it, hence the try/catch: if capture throws, the
+      // renderer carries on byte-for-byte as if the learning layer did not exist.
+      try { LearnCollector.observe(node, u.text, st.translation); } catch (_) {}
+
       const pairs = pairForInterleave(node, u.text, st.translation);
       if (pairs) {
         renderInterleaved(node, pairs); // single blob → interleave
@@ -410,6 +444,7 @@ var WebpageTranslator = (() => {
         const d = ensureSibling(node); d.onclick = null;
         d.style.cssText = transStyle(node) + placementCss(node);
         buildRichText(st.translation, d);
+        try { attachStarGesture(d, node); } catch (_) {}
       }
       return;
     }

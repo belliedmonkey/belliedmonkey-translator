@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "أنت تستخدم المحرّك المجاني الذي لا يحتاج مفتاحًا — وهو يكفي لإلقاء نظرة أولى. لكنه ليس ثابتًا: فهو يعيد أحيانًا نصّك الأصلي كما هو. الانتقال إلى أي محرّك LLM بمفتاحك الخاص أكثر ثباتًا بوضوح، وأفضل جودة."
+  },
+  "learn_title": {
+    "message": "المراجعة"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — المراجعة"
+  },
+  "learn_review": {
+    "message": "المراجعة"
+  },
+  "learn_reveal": {
+    "message": "إظهار الترجمة"
+  },
+  "learn_grade_again": {
+    "message": "نسيت"
+  },
+  "learn_grade_hard": {
+    "message": "صعب"
+  },
+  "learn_grade_good": {
+    "message": "تذكرت"
+  },
+  "learn_grade_easy": {
+    "message": "سهل جدًا"
+  },
+  "learn_empty_title": {
+    "message": "لا توجد مواد تعلم بعد"
+  },
+  "learn_empty_body": {
+    "message": "فعّل الالتقاط ثم تصفّح وترجم كالمعتاد. تُحفظ الجمل التي قرأتها فعلاً — أما التي مررت عليها سريعًا فلا."
+  },
+  "learn_open_settings": {
+    "message": "فعّل الالتقاط من الإعدادات"
+  },
+  "learn_alldone_title": {
+    "message": "انتهيت الآن"
+  },
+  "learn_alldone_body": {
+    "message": "واصل التصفح والترجمة — ستصل مواد جديدة تلقائيًا."
+  },
+  "learn_next_due": {
+    "message": "البطاقة التالية مستحقة {when}."
+  },
+  "learn_in_minutes": {
+    "message": "خلال {n} دقيقة تقريبًا"
+  },
+  "learn_in_hours": {
+    "message": "خلال {n} ساعة تقريبًا"
+  },
+  "learn_in_days": {
+    "message": "خلال {n} يوم تقريبًا"
+  },
+  "learn_progress": {
+    "message": "التقدّم"
+  },
+  "learn_done_run": {
+    "message": "أنجزت {n} في هذه الجلسة"
+  },
+  "learn_settings": {
+    "message": "الإعدادات"
+  },
+  "learn_unknown_source": {
+    "message": "مصدر غير معروف"
+  },
+  "learn_clip_no_embed": {
+    "message": "لا يمكن تضمين هذا المقطع — "
+  },
+  "learn_clip_open": {
+    "message": "افتح الأصل عند تلك اللحظة"
+  },
+  "learn_count_due": {
+    "message": "مستحق"
+  },
+  "learn_count_learning": {
+    "message": "قيد التعلم"
+  },
+  "learn_count_new": {
+    "message": "مرشحة"
+  },
+  "learn_count_known": {
+    "message": "متقنة"
+  },
+  "learn_section": {
+    "message": "التعلّم"
+  },
+  "learn_section_hint": {
+    "message": "عند التفعيل، تُحفظ الجمل التي قرأتها فعلاً على هذا الجهاز مع عنوان الصفحة وعنوانها ومدة ظهورها، ثم تُعرض عليك مجددًا وفق منحنى النسيان. ما تمرّ عليه سريعًا لا يُحفظ. لا يُرفع شيء، وزر واحد يمحو كل شيء."
+  },
+  "learn_enable": {
+    "message": "جمع مواد التعلّم"
+  },
+  "learn_daily_new": {
+    "message": "أقصى عدد بطاقات جديدة يوميًا"
+  },
+  "learn_open_review": {
+    "message": "افتح صفحة المراجعة"
+  },
+  "learn_clear": {
+    "message": "مسح مكتبة التعلّم"
+  },
+  "learn_clear_confirm": {
+    "message": "مسح مكتبة التعلّم؟ ستُحذف كل الجمل المجمّعة وكل تقدّم المراجعة، ولا يمكن التراجع."
+  },
+  "learn_stats": {
+    "message": "{n} عنصرًا · {due} مستحق · نحو {kb} كيلوبايت"
+  },
+  "learn_stats_empty": {
+    "message": "مكتبة التعلّم فارغة"
+  },
+  "toast_learn_on": {
+    "message": "بدأ جمع مواد التعلّم"
+  },
+  "toast_learn_off": {
+    "message": "توقّف الجمع (يبقى ما جُمع سابقًا)"
+  },
+  "toast_learn_cleared": {
+    "message": "تم مسح مكتبة التعلّم"
+  },
+  "toast_learn_clear_failed": {
+    "message": "تعذّر المسح"
+  },
+  "toast_saved": {
+    "message": "تم الحفظ"
   }
 }

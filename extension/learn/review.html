@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大肚猴翻译 — 复习</title>
+  <link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <div class="page">
+    <header class="bar">
+      <h1 data-i18n="learn_title">复习</h1>
+      <div class="counts" id="counts"></div>
+    </header>
+
+    <!-- Empty: no corpus at all. Says how material gets collected, rather than
+         「暂无数据」 (interaction-spec: 复习 / Review → States). -->
+    <section class="panel" id="empty" hidden>
+      <h2 data-i18n="learn_empty_title">还没有学习材料</h2>
+      <p data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你**真正读过**的句子会自动存进来 —— 快速滚过去的不算。</p>
+      <p><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
+    </section>
+
+    <!-- Empty: corpus exists, nothing due. Says WHEN the next card comes up; never
+         fabricates work by advancing cards early. -->
+    <section class="panel" id="nothing-due" hidden>
+      <h2 data-i18n="learn_alldone_title">今天的复习做完了</h2>
+      <p id="next-due"></p>
+    </section>
+
+    <section class="card" id="card" hidden>
+      <div class="src" id="src"></div>
+
+      <p class="orig" id="orig"></p>
+
+      <div class="media" id="media" hidden></div>
+
+      <button class="reveal" id="reveal" data-i18n="learn_reveal">显示译文</button>
+
+      <div class="answer" id="answer" hidden>
+        <p class="tr" id="tr"></p>
+        <div class="grades">
+          <button class="grade g0" data-grade="0" data-i18n="learn_grade_again">不记得</button>
+          <button class="grade g1" data-grade="1" data-i18n="learn_grade_hard">有点难</button>
+          <button class="grade g2" data-grade="2" data-i18n="learn_grade_good">记得</button>
+          <button class="grade g3" data-grade="3" data-i18n="learn_grade_easy">太简单</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="progress"></span>
+      <a href="#" id="open-settings" data-i18n="learn_settings">设置</a>
+    </footer>
+  </div>
+
+  <script src="../content/i18n-messages.js"></script>
+  <script src="i18n.js"></script>
+  <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-scheduler.js"></script>
+  <script src="store.js"></script>
+  <script src="drain.js"></script>
+  <script src="review.js"></script>
+</body>
+</html>

@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
+  },
+  "learn_title": {
+    "message": "Wiederholen"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Wiederholen"
+  },
+  "learn_review": {
+    "message": "Wiederholen"
+  },
+  "learn_reveal": {
+    "message": "Übersetzung zeigen"
+  },
+  "learn_grade_again": {
+    "message": "Vergessen"
+  },
+  "learn_grade_hard": {
+    "message": "Schwer"
+  },
+  "learn_grade_good": {
+    "message": "Gewusst"
+  },
+  "learn_grade_easy": {
+    "message": "Zu leicht"
+  },
+  "learn_empty_title": {
+    "message": "Noch kein Lernmaterial"
+  },
+  "learn_empty_body": {
+    "message": "Erfassung einschalten und wie gewohnt surfen und übersetzen. Sätze, die Sie wirklich gelesen haben, werden gespeichert — überflogene nicht."
+  },
+  "learn_open_settings": {
+    "message": "Erfassung in den Einstellungen aktivieren"
+  },
+  "learn_alldone_title": {
+    "message": "Fürs Erste erledigt"
+  },
+  "learn_alldone_body": {
+    "message": "Surfen und übersetzen Sie weiter — neues Material kommt von selbst."
+  },
+  "learn_next_due": {
+    "message": "Die nächste Karte ist {when} fällig."
+  },
+  "learn_in_minutes": {
+    "message": "in etwa {n} Min."
+  },
+  "learn_in_hours": {
+    "message": "in etwa {n} Std."
+  },
+  "learn_in_days": {
+    "message": "in etwa {n} Tagen"
+  },
+  "learn_progress": {
+    "message": "Fortschritt"
+  },
+  "learn_done_run": {
+    "message": "{n} in dieser Sitzung"
+  },
+  "learn_settings": {
+    "message": "Einstellungen"
+  },
+  "learn_unknown_source": {
+    "message": "Unbekannte Quelle"
+  },
+  "learn_clip_no_embed": {
+    "message": "Dieser Clip lässt sich nicht einbetten — "
+  },
+  "learn_clip_open": {
+    "message": "Original an dieser Stelle öffnen"
+  },
+  "learn_count_due": {
+    "message": "Fällig"
+  },
+  "learn_count_learning": {
+    "message": "Im Lernen"
+  },
+  "learn_count_new": {
+    "message": "Kandidaten"
+  },
+  "learn_count_known": {
+    "message": "Beherrscht"
+  },
+  "learn_section": {
+    "message": "Lernen"
+  },
+  "learn_section_hint": {
+    "message": "Wenn aktiviert, werden Sätze, die Sie wirklich gelesen haben, zusammen mit Seitenadresse, Titel und Anzeigedauer AUF DIESEM GERÄT gespeichert und Ihnen entlang einer Vergessenskurve erneut gezeigt. Überflogener Text wird nicht gespeichert. Nichts wird hochgeladen, und ein Knopf löscht alles."
+  },
+  "learn_enable": {
+    "message": "Lernmaterial sammeln"
+  },
+  "learn_daily_new": {
+    "message": "Neue Karten pro Tag (max.)"
+  },
+  "learn_open_review": {
+    "message": "Wiederholungsseite öffnen"
+  },
+  "learn_clear": {
+    "message": "Lernbibliothek löschen"
+  },
+  "learn_clear_confirm": {
+    "message": "Lernbibliothek löschen? Alle gesammelten Sätze und der gesamte Fortschritt werden entfernt — unwiderruflich."
+  },
+  "learn_stats": {
+    "message": "{n} Einträge · {due} fällig · ca. {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "Die Lernbibliothek ist leer"
+  },
+  "toast_learn_on": {
+    "message": "Sammeln aktiviert"
+  },
+  "toast_learn_off": {
+    "message": "Sammeln gestoppt (bereits Gesammeltes bleibt erhalten)"
+  },
+  "toast_learn_cleared": {
+    "message": "Lernbibliothek gelöscht"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Löschen fehlgeschlagen"
+  },
+  "toast_saved": {
+    "message": "Gespeichert"
   }
 }

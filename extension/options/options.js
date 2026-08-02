@@ -8,6 +8,12 @@ const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
 const $ = id => document.getElementById(id);
 
+const SETTINGS_KEYS = [
+  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'textColor', 'ytTextColor', 'fontSize', 'showFab',
+  'learnEnabled', 'learnDailyNew',
+];
+
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
 // locale), consulting the bundled MT_I18N_MESSAGES table, then chrome.i18n, then the
 // in-markup fallback. chrome.i18n.getMessage alone can't be switched at runtime.
@@ -134,7 +140,9 @@ async function saveAll() {
     textColor:   $('text-color').value,
     ytTextColor: $('yt-text-color').value,
     fontSize:    $('font-size').value,
-    showFab:     $('show-fab').checked
+    showFab:     $('show-fab').checked,
+    learnEnabled: $('learn-enabled').checked,
+    learnDailyNew: Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew))
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
 }
@@ -145,7 +153,9 @@ const SCALE_OPTS = ['0.8', '0.9', '1.0', '1.1', '1.25'];
 function scaleValue(v) { return SCALE_OPTS.includes(v) ? v : '1.0'; }
 
 async function init() {
-  const s0 = await new Promise(resolve => chrome.storage.local.get(null, resolve));
+  // Explicit keys, never get(null): the same bucket holds the unbounded `tr:` cache
+  // and the `lq:` learning outbox (docs/learning-design.md §7).
+  const s0 = await new Promise(resolve => chrome.storage.local.get(SETTINGS_KEYS, resolve));
   _uiLang = s0.uiLang || 'auto';
   applyI18n();
   const s = s0;
@@ -164,6 +174,9 @@ async function init() {
   $('yt-text-color').value  = s.ytTextColor || '#ffffff';
   $('font-size').value      = scaleValue(s.fontSize);
   $('show-fab').checked     = s.showFab !== false;
+  // Capture is OFF until the user turns it on once — never default-on on upgrade.
+  $('learn-enabled').checked = s.learnEnabled === true;
+  $('learn-daily-new').value = Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew;
 
   updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
@@ -209,6 +222,58 @@ async function init() {
     const input = $('api-key');
     input.type = input.type === 'password' ? 'text' : 'password';
   });
+
+  // ─── Learning (记忆层) ──────────────────────────────────────────────
+
+  async function refreshLearnStats() {
+    const el = $('learn-stats');
+    if (!el) return;
+    try {
+      // Opening this page is also one of the few chances to drain the outbox into
+      // the corpus — the content script cannot (wrong origin) and the service
+      // worker cannot be trusted to (Safari iOS).
+      await LearnDrain.run();
+      const st = await LearnStore.stats();
+      const due = LearnScheduler.dueCount(await LearnStore.allItems(), Date.now());
+      el.textContent = st.total
+        ? t('learn_stats', '学习库 {n} 条 · 待复习 {due} · 约 {kb} KB')
+            .replace('{n}', String(st.total))
+            .replace('{due}', String(due))
+            .replace('{kb}', String(Math.max(1, Math.round(st.approxChars / 1024))))
+        : t('learn_stats_empty', '学习库为空');
+    } catch (_) {
+      el.textContent = '';   // silent + total (domain-design §9.1 law 2)
+    }
+  }
+
+  $('learn-enabled').addEventListener('change', async () => {
+    await saveAll();
+    // Turning capture OFF stops collecting; it does NOT delete what was already
+    // collected. Say so, rather than letting the user assume either way.
+    showToast($('learn-enabled').checked
+      ? t('toast_learn_on', '已开始采集学习材料')
+      : t('toast_learn_off', '已停止采集（已收集的内容保留）'));
+    refreshLearnStats();
+  });
+  $('learn-daily-new').addEventListener('change', async () => {
+    await saveAll();
+    $('learn-daily-new').value = Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew));
+    showToast(t('toast_saved', '已保存'));
+  });
+  $('btn-open-review').addEventListener('click', () => {
+    window.open(chrome.runtime.getURL('learn/review.html'), '_blank');
+  });
+  $('btn-clear-learn').addEventListener('click', async () => {
+    if (!window.confirm(t('learn_clear_confirm', '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
+    try {
+      await LearnStore.clearAll();
+      showToast(t('toast_learn_cleared', '学习库已清空'));
+    } catch (_) {
+      showToast(t('toast_learn_clear_failed', '清空失败'));
+    }
+    refreshLearnStats();
+  });
+  refreshLearnStats();
 
   $('btn-clear-cache').addEventListener('click', async () => {
     const status = $('cache-status');

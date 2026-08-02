@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "You are on the free no-key engine — fine for a first look. It is not a stable endpoint: it sometimes returns your original text unchanged. Switching to any LLM engine with your own key is noticeably more reliable, and better."
+  },
+  "learn_title": {
+    "message": "Review"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Review"
+  },
+  "learn_review": {
+    "message": "Review"
+  },
+  "learn_reveal": {
+    "message": "Show translation"
+  },
+  "learn_grade_again": {
+    "message": "Forgot"
+  },
+  "learn_grade_hard": {
+    "message": "Hard"
+  },
+  "learn_grade_good": {
+    "message": "Got it"
+  },
+  "learn_grade_easy": {
+    "message": "Too easy"
+  },
+  "learn_empty_title": {
+    "message": "No learning material yet"
+  },
+  "learn_empty_body": {
+    "message": "Turn on capture, then just browse and translate as usual. Sentences you actually read get saved — the ones you scroll straight past do not."
+  },
+  "learn_open_settings": {
+    "message": "Turn on capture in settings"
+  },
+  "learn_alldone_title": {
+    "message": "Done for now"
+  },
+  "learn_alldone_body": {
+    "message": "Keep browsing and translating — new material arrives on its own."
+  },
+  "learn_next_due": {
+    "message": "The next card is due {when}."
+  },
+  "learn_in_minutes": {
+    "message": "in about {n} min"
+  },
+  "learn_in_hours": {
+    "message": "in about {n} h"
+  },
+  "learn_in_days": {
+    "message": "in about {n} days"
+  },
+  "learn_progress": {
+    "message": "Progress"
+  },
+  "learn_done_run": {
+    "message": "{n} done this session"
+  },
+  "learn_settings": {
+    "message": "Settings"
+  },
+  "learn_unknown_source": {
+    "message": "Unknown source"
+  },
+  "learn_clip_no_embed": {
+    "message": "This clip cannot be embedded — "
+  },
+  "learn_clip_open": {
+    "message": "open the original at that timestamp"
+  },
+  "learn_count_due": {
+    "message": "Due"
+  },
+  "learn_count_learning": {
+    "message": "Learning"
+  },
+  "learn_count_new": {
+    "message": "Candidates"
+  },
+  "learn_count_known": {
+    "message": "Known"
+  },
+  "learn_section": {
+    "message": "Learning"
+  },
+  "learn_section_hint": {
+    "message": "When on, sentences you actually read are stored ON THIS DEVICE together with the page address, its title and how long the text was on screen, and shown to you again on a forgetting curve. Text you scroll straight past is not stored. Nothing is uploaded, and one button erases all of it."
+  },
+  "learn_enable": {
+    "message": "Collect learning material"
+  },
+  "learn_daily_new": {
+    "message": "New cards per day (max)"
+  },
+  "learn_open_review": {
+    "message": "Open the review page"
+  },
+  "learn_clear": {
+    "message": "Erase the learning corpus"
+  },
+  "learn_clear_confirm": {
+    "message": "Erase the learning corpus? Every collected sentence and all review progress will be deleted, and this cannot be undone."
+  },
+  "learn_stats": {
+    "message": "{n} items · {due} due · about {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "The learning corpus is empty"
+  },
+  "toast_learn_on": {
+    "message": "Collecting learning material"
+  },
+  "toast_learn_off": {
+    "message": "Collection stopped (what was already collected is kept)"
+  },
+  "toast_learn_cleared": {
+    "message": "Learning corpus erased"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Could not erase"
+  },
+  "toast_saved": {
+    "message": "Saved"
   }
 }

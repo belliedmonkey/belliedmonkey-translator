@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "目前使用免費通道，不需要 API Key —— 適合先看看效果。它的回應不穩定，偶爾會把原文原樣傳回；改用任一 LLM 引擎並填入你自己的 Key，會穩定許多，品質也更好。"
+  },
+  "learn_title": {
+    "message": "複習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻譯 · 複習"
+  },
+  "learn_review": {
+    "message": "複習"
+  },
+  "learn_reveal": {
+    "message": "顯示譯文"
+  },
+  "learn_grade_again": {
+    "message": "不記得"
+  },
+  "learn_grade_hard": {
+    "message": "有點難"
+  },
+  "learn_grade_good": {
+    "message": "記得"
+  },
+  "learn_grade_easy": {
+    "message": "太簡單"
+  },
+  "learn_empty_title": {
+    "message": "還沒有學習材料"
+  },
+  "learn_empty_body": {
+    "message": "打開採集開關，然後照常瀏覽、照常翻譯。你真正讀過的句子會自動存進來 —— 快速滑過去的不算。"
+  },
+  "learn_open_settings": {
+    "message": "去設定裡打開採集"
+  },
+  "learn_alldone_title": {
+    "message": "今天的複習做完了"
+  },
+  "learn_alldone_body": {
+    "message": "繼續瀏覽和翻譯，新的材料會自動進來。"
+  },
+  "learn_next_due": {
+    "message": "下一張卡片{when}到期。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分鐘後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 小時後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 天後"
+  },
+  "learn_progress": {
+    "message": "本輪進度"
+  },
+  "learn_done_run": {
+    "message": "本次完成 {n} 張"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "未知來源"
+  },
+  "learn_clip_no_embed": {
+    "message": "這個片段無法內嵌播放 —— "
+  },
+  "learn_clip_open": {
+    "message": "打開原頁並跳到該時間點"
+  },
+  "learn_count_due": {
+    "message": "待複習"
+  },
+  "learn_count_learning": {
+    "message": "學習中"
+  },
+  "learn_count_new": {
+    "message": "候選"
+  },
+  "learn_count_known": {
+    "message": "已掌握"
+  },
+  "learn_section": {
+    "message": "學習"
+  },
+  "learn_section_hint": {
+    "message": "打開後，你真正讀過的句子會連同頁面網址、標題和停留時長一起存在這台裝置上，按遺忘曲線重新推給你。快速滑過去的不算。不會上傳，一鍵可清空。"
+  },
+  "learn_enable": {
+    "message": "採集學習材料"
+  },
+  "learn_daily_new": {
+    "message": "每天最多引入的新卡片"
+  },
+  "learn_open_review": {
+    "message": "打開複習頁"
+  },
+  "learn_clear": {
+    "message": "清空學習庫"
+  },
+  "learn_clear_confirm": {
+    "message": "清空學習庫？所有已採集的句子與複習進度都會被刪除，且無法恢復。"
+  },
+  "learn_stats": {
+    "message": "學習庫 {n} 條 · 待複習 {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "學習庫為空"
+  },
+  "toast_learn_on": {
+    "message": "已開始採集學習材料"
+  },
+  "toast_learn_off": {
+    "message": "已停止採集（已收集的內容保留）"
+  },
+  "toast_learn_cleared": {
+    "message": "學習庫已清空"
+  },
+  "toast_learn_clear_failed": {
+    "message": "清空失敗"
+  },
+  "toast_saved": {
+    "message": "已儲存"
   }
 }

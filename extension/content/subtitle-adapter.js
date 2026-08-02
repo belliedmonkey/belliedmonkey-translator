@@ -35,6 +35,7 @@
 var SubtitleAdapter = (() => {
   const RESOLVE_MAX_ATTEMPTS = 6;
   const RESOLVE_RETRY_MS = 2500;
+  const TICK_MS = 250;
 
   function createSubtitleUI(spec) {
     const ID = spec.ids;
@@ -44,6 +45,9 @@ var SubtitleAdapter = (() => {
     let lastKey = '';
     let displayMode = 'both';
     let lastShownKey = '';
+    // Learning layer: how long the playhead has actually rested on the current
+    // sentence. Reset whenever the sentence changes; see the capture site in tick().
+    let watchAcc = { key: '', ms: 0, done: false };
     let status = '';           // '' | 'loading' | 'ready' | 'unavailable'
     let inFlight = false, attempts = 0, nextAt = 0;
 
@@ -184,6 +188,25 @@ var SubtitleAdapter = (() => {
         if (st.translation && pg.zh) zh = pg.zh[Math.min(pg.zh.length - 1, Math.floor(frac * pg.zh.length))];
         const k = s.start + '|' + en + '|' + (zh || st.state);
         if (k !== lastShownKey) { renderOverlay(en, zh, st.state, s); lastShownKey = k; }
+
+        // Learning layer: a SINK, never a source (domain-design §9.1). A subtitle
+        // counts as consumed only when the playhead actually STAYED on it — we
+        // accumulate display ticks rather than trusting `activeAt`, so seeking past
+        // a sentence (or scrubbing through a video) captures nothing.
+        try {
+          const wk = String(s.start);
+          if (watchAcc.key !== wk) watchAcc = { key: wk, ms: 0, done: false };
+          watchAcc.ms += TICK_MS;
+          const span = Math.max(1, s.end - s.start);
+          if (!watchAcc.done && st.translation && watchAcc.ms >= Math.min(1500, span * 0.6)) {
+            watchAcc.done = true;
+            LearnCollector.noteSubtitle({
+              text: s.text, tr: st.translation,
+              startMs: s.start, endMs: s.end,
+              mediaKey: spec.mediaKey ? spec.mediaKey() : '',
+            });
+          }
+        } catch (_) {}
       } else {
         lastShownKey = '';
         const playing = spec.isPlaying ? spec.isPlaying() : true;
@@ -192,7 +215,7 @@ var SubtitleAdapter = (() => {
         else renderNotice(TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
       }
     }
-    function startLoop() { if (pollTimer) clearInterval(pollTimer); pollTimer = setInterval(tick, 250); }
+    function startLoop() { if (pollTimer) clearInterval(pollTimer); pollTimer = setInterval(tick, TICK_MS); }
 
     // ─── Control button + menu ─────────────────────────────────────────
     function ensureControlButton() {

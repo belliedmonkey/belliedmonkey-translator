@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "Сейчас выбран бесплатный движок без ключа — этого хватит, чтобы посмотреть. Но эта точка доступа нестабильна: иногда она возвращает ваш исходный текст без изменений. Переход на любой LLM-движок со своим ключом заметно надёжнее и качественнее."
+  },
+  "learn_title": {
+    "message": "Повторение"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Повторение"
+  },
+  "learn_review": {
+    "message": "Повторение"
+  },
+  "learn_reveal": {
+    "message": "Показать перевод"
+  },
+  "learn_grade_again": {
+    "message": "Забыл"
+  },
+  "learn_grade_hard": {
+    "message": "Трудно"
+  },
+  "learn_grade_good": {
+    "message": "Помню"
+  },
+  "learn_grade_easy": {
+    "message": "Слишком легко"
+  },
+  "learn_empty_title": {
+    "message": "Пока нет материала"
+  },
+  "learn_empty_body": {
+    "message": "Включите сбор и просматривайте и переводите как обычно. Сохраняются предложения, которые вы действительно прочитали, а не те, мимо которых пролистали."
+  },
+  "learn_open_settings": {
+    "message": "Включить сбор в настройках"
+  },
+  "learn_alldone_title": {
+    "message": "На сейчас всё"
+  },
+  "learn_alldone_body": {
+    "message": "Продолжайте читать и переводить — новый материал появится сам."
+  },
+  "learn_next_due": {
+    "message": "Следующая карточка — {when}."
+  },
+  "learn_in_minutes": {
+    "message": "примерно через {n} мин"
+  },
+  "learn_in_hours": {
+    "message": "примерно через {n} ч"
+  },
+  "learn_in_days": {
+    "message": "примерно через {n} дн."
+  },
+  "learn_progress": {
+    "message": "Прогресс"
+  },
+  "learn_done_run": {
+    "message": "Сделано за сессию: {n}"
+  },
+  "learn_settings": {
+    "message": "Настройки"
+  },
+  "learn_unknown_source": {
+    "message": "Неизвестный источник"
+  },
+  "learn_clip_no_embed": {
+    "message": "Этот фрагмент нельзя встроить — "
+  },
+  "learn_clip_open": {
+    "message": "открыть оригинал на этой отметке"
+  },
+  "learn_count_due": {
+    "message": "К повтору"
+  },
+  "learn_count_learning": {
+    "message": "Изучается"
+  },
+  "learn_count_new": {
+    "message": "Кандидаты"
+  },
+  "learn_count_known": {
+    "message": "Освоено"
+  },
+  "learn_section": {
+    "message": "Обучение"
+  },
+  "learn_section_hint": {
+    "message": "Когда включено, предложения, которые вы действительно прочитали, сохраняются НА ЭТОМ УСТРОЙСТВЕ вместе с адресом страницы, её заголовком и временем показа и снова показываются вам по кривой забывания. То, мимо чего вы пролистали, не сохраняется. Ничего не загружается, и одна кнопка стирает всё."
+  },
+  "learn_enable": {
+    "message": "Собирать материал"
+  },
+  "learn_daily_new": {
+    "message": "Новых карточек в день (макс.)"
+  },
+  "learn_open_review": {
+    "message": "Открыть страницу повторения"
+  },
+  "learn_clear": {
+    "message": "Очистить библиотеку"
+  },
+  "learn_clear_confirm": {
+    "message": "Очистить библиотеку? Все собранные предложения и весь прогресс будут удалены безвозвратно."
+  },
+  "learn_stats": {
+    "message": "{n} записей · {due} к повтору · около {kb} КБ"
+  },
+  "learn_stats_empty": {
+    "message": "Библиотека пуста"
+  },
+  "toast_learn_on": {
+    "message": "Сбор материала включён"
+  },
+  "toast_learn_off": {
+    "message": "Сбор остановлен (собранное сохраняется)"
+  },
+  "toast_learn_cleared": {
+    "message": "Библиотека очищена"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Не удалось очистить"
+  },
+  "toast_saved": {
+    "message": "Сохранено"
   }
 }

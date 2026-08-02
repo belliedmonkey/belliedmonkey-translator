@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "Vous utilisez le moteur gratuit sans clé — parfait pour un premier aperçu. Ce point de terminaison n'est pas stable : il renvoie parfois votre texte d'origine inchangé. Passer à un moteur LLM avec votre propre clé est nettement plus fiable, et meilleur."
+  },
+  "learn_title": {
+    "message": "Révision"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Révision"
+  },
+  "learn_review": {
+    "message": "Révision"
+  },
+  "learn_reveal": {
+    "message": "Afficher la traduction"
+  },
+  "learn_grade_again": {
+    "message": "Oublié"
+  },
+  "learn_grade_hard": {
+    "message": "Difficile"
+  },
+  "learn_grade_good": {
+    "message": "Su"
+  },
+  "learn_grade_easy": {
+    "message": "Trop facile"
+  },
+  "learn_empty_title": {
+    "message": "Pas encore de matériel"
+  },
+  "learn_empty_body": {
+    "message": "Activez la capture, puis naviguez et traduisez normalement. Les phrases que vous avez vraiment lues sont enregistrées — pas celles que vous faites défiler."
+  },
+  "learn_open_settings": {
+    "message": "Activer la capture dans les réglages"
+  },
+  "learn_alldone_title": {
+    "message": "Terminé pour l'instant"
+  },
+  "learn_alldone_body": {
+    "message": "Continuez à naviguer et à traduire — du nouveau matériel arrivera tout seul."
+  },
+  "learn_next_due": {
+    "message": "La prochaine carte est prévue {when}."
+  },
+  "learn_in_minutes": {
+    "message": "dans environ {n} min"
+  },
+  "learn_in_hours": {
+    "message": "dans environ {n} h"
+  },
+  "learn_in_days": {
+    "message": "dans environ {n} jours"
+  },
+  "learn_progress": {
+    "message": "Progression"
+  },
+  "learn_done_run": {
+    "message": "{n} faites cette session"
+  },
+  "learn_settings": {
+    "message": "Réglages"
+  },
+  "learn_unknown_source": {
+    "message": "Source inconnue"
+  },
+  "learn_clip_no_embed": {
+    "message": "Ce extrait ne peut pas être intégré — "
+  },
+  "learn_clip_open": {
+    "message": "ouvrir l'original à cet instant"
+  },
+  "learn_count_due": {
+    "message": "À revoir"
+  },
+  "learn_count_learning": {
+    "message": "En cours"
+  },
+  "learn_count_new": {
+    "message": "Candidats"
+  },
+  "learn_count_known": {
+    "message": "Acquises"
+  },
+  "learn_section": {
+    "message": "Apprentissage"
+  },
+  "learn_section_hint": {
+    "message": "Une fois activé, les phrases que vous avez réellement lues sont conservées SUR CET APPAREIL avec l'adresse de la page, son titre et la durée d'affichage, puis vous sont représentées selon une courbe de l'oubli. Ce que vous faites défiler n'est pas conservé. Rien n'est téléversé, et un bouton efface tout."
+  },
+  "learn_enable": {
+    "message": "Collecter le matériel"
+  },
+  "learn_daily_new": {
+    "message": "Nouvelles cartes par jour (max)"
+  },
+  "learn_open_review": {
+    "message": "Ouvrir la page de révision"
+  },
+  "learn_clear": {
+    "message": "Effacer la bibliothèque"
+  },
+  "learn_clear_confirm": {
+    "message": "Effacer la bibliothèque ? Toutes les phrases collectées et toute la progression seront supprimées, sans retour possible."
+  },
+  "learn_stats": {
+    "message": "{n} éléments · {due} à revoir · environ {kb} Ko"
+  },
+  "learn_stats_empty": {
+    "message": "La bibliothèque est vide"
+  },
+  "toast_learn_on": {
+    "message": "Collecte activée"
+  },
+  "toast_learn_off": {
+    "message": "Collecte arrêtée (ce qui est déjà collecté est conservé)"
+  },
+  "toast_learn_cleared": {
+    "message": "Bibliothèque effacée"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Échec de l'effacement"
+  },
+  "toast_saved": {
+    "message": "Enregistré"
   }
 }

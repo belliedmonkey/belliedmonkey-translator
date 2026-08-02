@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。"
+  },
+  "learn_title": {
+    "message": "复习"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻译 · 复习"
+  },
+  "learn_review": {
+    "message": "复习"
+  },
+  "learn_reveal": {
+    "message": "显示译文"
+  },
+  "learn_grade_again": {
+    "message": "不记得"
+  },
+  "learn_grade_hard": {
+    "message": "有点难"
+  },
+  "learn_grade_good": {
+    "message": "记得"
+  },
+  "learn_grade_easy": {
+    "message": "太简单"
+  },
+  "learn_empty_title": {
+    "message": "还没有学习材料"
+  },
+  "learn_empty_body": {
+    "message": "打开采集开关，然后照常浏览、照常翻译。你真正读过的句子会自动存进来 —— 快速滚过去的不算。"
+  },
+  "learn_open_settings": {
+    "message": "去设置里打开采集"
+  },
+  "learn_alldone_title": {
+    "message": "今天的复习做完了"
+  },
+  "learn_alldone_body": {
+    "message": "继续浏览和翻译，新的材料会自动进来。"
+  },
+  "learn_next_due": {
+    "message": "下一张卡片{when}到期。"
+  },
+  "learn_in_minutes": {
+    "message": "约 {n} 分钟后"
+  },
+  "learn_in_hours": {
+    "message": "约 {n} 小时后"
+  },
+  "learn_in_days": {
+    "message": "约 {n} 天后"
+  },
+  "learn_progress": {
+    "message": "本轮进度"
+  },
+  "learn_done_run": {
+    "message": "本次完成 {n} 张"
+  },
+  "learn_settings": {
+    "message": "设置"
+  },
+  "learn_unknown_source": {
+    "message": "未知来源"
+  },
+  "learn_clip_no_embed": {
+    "message": "这个片段无法内嵌播放 —— "
+  },
+  "learn_clip_open": {
+    "message": "打开原页并跳到该时间点"
+  },
+  "learn_count_due": {
+    "message": "待复习"
+  },
+  "learn_count_learning": {
+    "message": "学习中"
+  },
+  "learn_count_new": {
+    "message": "候选"
+  },
+  "learn_count_known": {
+    "message": "已掌握"
+  },
+  "learn_section": {
+    "message": "学习"
+  },
+  "learn_section_hint": {
+    "message": "打开后，你真正读过的句子会连同页面地址、标题和停留时长一起存在这台设备上，按遗忘曲线重新推给你。快速滚过去的不算。不会上传，一键可清空。"
+  },
+  "learn_enable": {
+    "message": "采集学习材料"
+  },
+  "learn_daily_new": {
+    "message": "每天最多引入的新卡片"
+  },
+  "learn_open_review": {
+    "message": "打开复习页"
+  },
+  "learn_clear": {
+    "message": "清空学习库"
+  },
+  "learn_clear_confirm": {
+    "message": "清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。"
+  },
+  "learn_stats": {
+    "message": "学习库 {n} 条 · 待复习 {due} · 约 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "学习库为空"
+  },
+  "toast_learn_on": {
+    "message": "已开始采集学习材料"
+  },
+  "toast_learn_off": {
+    "message": "已停止采集（已收集的内容保留）"
+  },
+  "toast_learn_cleared": {
+    "message": "学习库已清空"
+  },
+  "toast_learn_clear_failed": {
+    "message": "清空失败"
+  },
+  "toast_saved": {
+    "message": "已保存"
   }
 }

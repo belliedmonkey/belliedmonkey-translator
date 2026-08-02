@@ -274,5 +274,128 @@
   },
   "setup_free_channel": {
     "message": "現在はキー不要の無料エンジンです。まず試すには十分ですが、応答が安定せず、原文をそのまま返すことがあります。いずれかの LLM エンジンに切り替えてご自身のキーを入れると、明らかに安定し、品質も上がります。"
+  },
+  "learn_title": {
+    "message": "復習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻訳 · 復習"
+  },
+  "learn_review": {
+    "message": "復習"
+  },
+  "learn_reveal": {
+    "message": "訳を表示"
+  },
+  "learn_grade_again": {
+    "message": "忘れた"
+  },
+  "learn_grade_hard": {
+    "message": "難しい"
+  },
+  "learn_grade_good": {
+    "message": "わかった"
+  },
+  "learn_grade_easy": {
+    "message": "簡単すぎ"
+  },
+  "learn_empty_title": {
+    "message": "学習素材はまだありません"
+  },
+  "learn_empty_body": {
+    "message": "収集をオンにして、いつも通り閲覧・翻訳してください。実際に読んだ文だけが保存され、素早くスクロールして通り過ぎた文は保存されません。"
+  },
+  "learn_open_settings": {
+    "message": "設定で収集をオンにする"
+  },
+  "learn_alldone_title": {
+    "message": "今回の復習は完了です"
+  },
+  "learn_alldone_body": {
+    "message": "閲覧と翻訳を続ければ、新しい素材が自動的に入ってきます。"
+  },
+  "learn_next_due": {
+    "message": "次のカードは{when}に予定されています。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 時間後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 日後"
+  },
+  "learn_progress": {
+    "message": "進捗"
+  },
+  "learn_done_run": {
+    "message": "今回 {n} 枚完了"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "出典不明"
+  },
+  "learn_clip_no_embed": {
+    "message": "このクリップは埋め込み再生できません — "
+  },
+  "learn_clip_open": {
+    "message": "元のページをその時刻で開く"
+  },
+  "learn_count_due": {
+    "message": "復習待ち"
+  },
+  "learn_count_learning": {
+    "message": "学習中"
+  },
+  "learn_count_new": {
+    "message": "候補"
+  },
+  "learn_count_known": {
+    "message": "習得済み"
+  },
+  "learn_section": {
+    "message": "学習"
+  },
+  "learn_section_hint": {
+    "message": "オンにすると、実際に読んだ文が、ページのアドレス・タイトル・画面に表示されていた時間とともに、この端末内に保存され、忘却曲線に沿って再提示されます。素早くスクロールして通り過ぎた文は保存されません。アップロードは一切行われず、ボタン一つで全消去できます。"
+  },
+  "learn_enable": {
+    "message": "学習素材を収集する"
+  },
+  "learn_daily_new": {
+    "message": "1 日に導入する新規カードの上限"
+  },
+  "learn_open_review": {
+    "message": "復習ページを開く"
+  },
+  "learn_clear": {
+    "message": "学習ライブラリを消去"
+  },
+  "learn_clear_confirm": {
+    "message": "学習ライブラリを消去しますか？収集済みの文と復習の進捗はすべて削除され、元に戻せません。"
+  },
+  "learn_stats": {
+    "message": "{n} 件 · 復習待ち {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "学習ライブラリは空です"
+  },
+  "toast_learn_on": {
+    "message": "学習素材の収集を開始しました"
+  },
+  "toast_learn_off": {
+    "message": "収集を停止しました（収集済みの内容は保持されます）"
+  },
+  "toast_learn_cleared": {
+    "message": "学習ライブラリを消去しました"
+  },
+  "toast_learn_clear_failed": {
+    "message": "消去できませんでした"
+  },
+  "toast_saved": {
+    "message": "保存しました"
   }
 }

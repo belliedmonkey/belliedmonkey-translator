@@ -143,6 +143,29 @@
         <div id="cache-status" class="cache-status"></div>
       </section>
 
+      <!-- 学习（记忆层）。采集默认关闭 —— 升级不会自己开始记录。 -->
+      <section class="card">
+        <h2 data-i18n="learn_section">学习</h2>
+        <p class="hint" data-i18n="learn_section_hint">打开后，你**真正读过**的句子会连同页面地址、标题和停留时长一起存在**这台设备**上，按遗忘曲线重新推给你。快速滚过去的不算。不会上传，一键可清空。</p>
+
+        <div class="field row">
+          <label for="learn-enabled" data-i18n="learn_enable">采集学习材料</label>
+          <label class="switch">
+            <input type="checkbox" id="learn-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="learn-daily-new" data-i18n="learn_daily_new">每天最多引入的新卡片</label>
+          <input type="number" id="learn-daily-new" min="1" max="200" step="1">
+        </div>
+
+        <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
+        <div id="learn-stats" class="cache-status"></div>
+        <button class="btn-danger" id="btn-clear-learn" data-i18n="learn_clear">清空学习库</button>
+      </section>
+
       <!-- 关于 -->
       <section class="card about">
         <h2 data-i18n="options_about_section">关于</h2>
@@ -157,6 +180,10 @@
 
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/providers.gen.js"></script>
+  <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-scheduler.js"></script>
+  <script src="../learn/store.js"></script>
+  <script src="../learn/drain.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
