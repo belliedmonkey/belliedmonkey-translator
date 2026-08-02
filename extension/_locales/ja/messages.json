@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "出典不明"
   },
-  "learn_clip_no_embed": {
-    "message": "このクリップは埋め込み再生できません — "
-  },
-  "learn_clip_open": {
-    "message": "元のページをその時刻で開く"
-  },
   "learn_count_due": {
     "message": "復習待ち"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "保存しました"
+  },
+  "learn_replay": {
+    "message": "▶ このクリップを聴き直す"
+  },
+  "learn_replay_hint": {
+    "message": "元の動画をその時刻で新しいタブに開きます（そこでも二言語字幕が使えます）"
   }
 }

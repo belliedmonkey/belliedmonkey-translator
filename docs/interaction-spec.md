@@ -563,8 +563,8 @@ Domain model, scheduler math and storage live in
 Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 
 ```
-①  source sentence, large                ← media card: player embedded directly below
-    [ 显示译文 ]                            one button, nothing else on screen
+①  source sentence, large                ← media card: a 「▶ 重听这个片段」 button below
+    [ 显示译文 ]                            one reveal button, nothing else on screen
 ─────────────────────────────  after reveal
 ②  translation, in the bilingual green (same visual language as .mt-translation)
     [不记得] [有点难] [记得] [太简单]        ← grades 0/1/2/3, always four, never two
@@ -573,10 +573,16 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 
 - **Four grades, not two.** The scheduler's stability update is graded; collapsing to
   记得/不记得 would throw away the signal it needs.
-- **Media cards replay the original audio, never TTS** — an embedded
-  `youtube-nocookie.com` player bounded to `[startMs, endMs]`. Podcast and x.com clips
-  cannot be embedded, so they degrade to 「打开原页并跳到该时间点」 — an honest
-  degradation, never a silent one.
+- **Media cards replay the original audio, never TTS.** They do it by **opening the
+  source at the timestamp in a new tab**, not with an inline player. Our own bilingual
+  subtitles are active on that tab, so the replay is still a bilingual one.
+  - **There is no inline player, and this is permanent.** YouTube's embedded player
+    only accepts an http(s) embedding origin; from `chrome-extension://` it refuses
+    with 「错误 153 · 视频播放器配置错误」. Measured 2026-08-02 across four variants —
+    `youtube-nocookie.com` and `youtube.com`, each with the default referrer policy
+    and with `no-referrer` — all four failed identically. The `no-referrer` runs also
+    rule out a sandboxed extension page (opaque origin, no referrer). **Do not
+    re-add the iframe**; it will look like a regression to fix and is not one.
 - **Passage cards are re-reads, not tests.** Source and translation shown together,
   one 「已重读」 action (recorded as grade 2). No reveal step — there is nothing to hide.
 - **Source attribution is always present and always clickable.** A card the user

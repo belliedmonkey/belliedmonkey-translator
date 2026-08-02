@@ -67,13 +67,17 @@ body {
   overflow-wrap: anywhere;
 }
 
-.media { margin-top: 14px; }
-.media iframe {
-  width: 100%; aspect-ratio: 16 / 9; border: 0;
-  border-radius: 8px; display: block; max-width: 100%;
+/* Media cards: replay the ORIGINAL audio by opening the source at the timestamp.
+   No inline player — YouTube refuses to embed from a chrome-extension:// origin
+   (error 153); see the note in review.js. */
+.media { margin-top: 16px; }
+.replay {
+  display: inline-block; text-decoration: none;
+  border: 1px solid var(--green); color: var(--green);
+  border-radius: 8px; padding: 10px 16px; font-weight: 600;
 }
-.media .fallback { font-size: 14px; color: var(--text-secondary); }
-.media .fallback a { color: var(--green); }
+.replay:hover { background: var(--green); color: #fff; }
+.media .fallback { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
 
 button {
   font: inherit; cursor: pointer; border-radius: 8px;

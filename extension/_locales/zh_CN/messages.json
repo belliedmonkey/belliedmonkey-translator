@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "未知来源"
   },
-  "learn_clip_no_embed": {
-    "message": "这个片段无法内嵌播放 —— "
-  },
-  "learn_clip_open": {
-    "message": "打开原页并跳到该时间点"
-  },
   "learn_count_due": {
     "message": "待复习"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "已保存"
+  },
+  "learn_replay": {
+    "message": "▶ 重听这个片段"
+  },
+  "learn_replay_hint": {
+    "message": "在新标签页打开原视频并跳到该处（那里也会有双语字幕）"
   }
 }

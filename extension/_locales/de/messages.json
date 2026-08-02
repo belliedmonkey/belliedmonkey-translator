@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Unbekannte Quelle"
   },
-  "learn_clip_no_embed": {
-    "message": "Dieser Clip lässt sich nicht einbetten — "
-  },
-  "learn_clip_open": {
-    "message": "Original an dieser Stelle öffnen"
-  },
   "learn_count_due": {
     "message": "Fällig"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Gespeichert"
+  },
+  "learn_replay": {
+    "message": "▶ Diesen Ausschnitt erneut hören"
+  },
+  "learn_replay_hint": {
+    "message": "Öffnet die Quelle an dieser Stelle in einem neuen Tab — die zweisprachigen Untertitel funktionieren dort ebenfalls."
   }
 }

@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Source inconnue"
   },
-  "learn_clip_no_embed": {
-    "message": "Ce extrait ne peut pas être intégré — "
-  },
-  "learn_clip_open": {
-    "message": "ouvrir l'original à cet instant"
-  },
   "learn_count_due": {
     "message": "À revoir"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Enregistré"
+  },
+  "learn_replay": {
+    "message": "▶ Réécouter cet extrait"
+  },
+  "learn_replay_hint": {
+    "message": "Ouvre la source dans un nouvel onglet à cet instant — les sous-titres bilingues y fonctionnent aussi."
   }
 }

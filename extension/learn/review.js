@@ -2,8 +2,9 @@
 // Interaction rules: docs/interaction-spec.md 「复习 / Review」.
 //
 // Reveal is ALWAYS user-initiated: nothing auto-advances and nothing is timed.
-// Media cards replay the ORIGINAL audio (an embedded player bounded to the
-// sentence), never synthesized speech.
+// Media cards replay the ORIGINAL audio, never synthesized speech — by opening the
+// source at the timestamp, since YouTube refuses to embed from an extension origin
+// (see renderMedia).
 
 (async () => {
   const $ = (id) => document.getElementById(id);
@@ -38,16 +39,6 @@
     return a;
   }
 
-  function ytIdOf(item, source) {
-    const a = item.anchor;
-    if (a && a.k === 'media' && a.mediaKey && /^[\w-]{11}$/.test(a.mediaKey)) return a.mediaKey;
-    try {
-      const u = new URL(source && source.url);
-      if (/(^|\.)youtube\.com$/.test(u.hostname)) return u.searchParams.get('v');
-    } catch (_) {}
-    return null;
-  }
-
   function mediaUrl(item, source) {
     const a = item.anchor;
     if (!a || a.k !== 'media') return null;
@@ -61,41 +52,38 @@
     } catch (_) { return base; }
   }
 
+  // Media cards replay the ORIGINAL audio — never synthesized speech. But they do it
+  // by OPENING the source at the timestamp, not by embedding it.
+  //
+  // Why not an inline player: YouTube's embedded player only accepts an http(s)
+  // embedding origin. From `chrome-extension://` it refuses with "错误 153 · 视频播放器
+  // 配置错误". Measured 2026-08-02 across four variants — youtube-nocookie.com and
+  // youtube.com, each with the default referrer policy and with `no-referrer` — all
+  // four failed identically. The `no-referrer` runs also rule out a sandboxed
+  // extension page (opaque origin, no referrer), which is the same condition. There
+  // is no workaround inside an extension page, so this is a permanent constraint,
+  // not a bug to retry. Do not re-add the iframe.
   function renderMedia(item, sources) {
     const box = $('media');
     box.hidden = true;
     box.textContent = '';
     const a = item.anchor;
     if (!a || a.k !== 'media') return;
-    const source = sources.get(item.sourceId);
-    const id = ytIdOf(item, source);
-    const start = Math.max(0, Math.floor((a.startMs || 0) / 1000));
-    const end = Math.ceil((a.endMs || 0) / 1000);
-
-    if (id) {
-      const f = document.createElement('iframe');
-      const p = new URLSearchParams({ start: String(start) });
-      if (end > start) p.set('end', String(end));
-      f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?' + p.toString();
-      f.allow = 'accelerometer; encrypted-media; picture-in-picture';
-      f.referrerPolicy = 'strict-origin-when-cross-origin';
-      f.setAttribute('allowfullscreen', '');
-      box.appendChild(f);
-      box.hidden = false;
-      return;
-    }
-    // Podcast / x.com clips cannot be embedded. Degrade to opening the original at
-    // the timestamp — an HONEST degradation, stated, never a silent one.
-    const url = mediaUrl(item, source);
+    const url = mediaUrl(item, sources.get(item.sourceId));
     if (!url) return;
-    const p = document.createElement('p');
-    p.className = 'fallback';
-    p.textContent = t('learn_clip_no_embed', '这个片段无法内嵌播放 —— ');
-    const link = document.createElement('a');
-    link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    link.textContent = t('learn_clip_open', '打开原页并跳到该时间点');
-    p.appendChild(link);
-    box.appendChild(p);
+
+    const btn = document.createElement('a');
+    btn.className = 'replay';
+    btn.href = url;
+    btn.target = '_blank';
+    btn.rel = 'noopener noreferrer';
+    btn.textContent = t('learn_replay', '▶ 重听这个片段');
+    box.appendChild(btn);
+
+    const hint = document.createElement('p');
+    hint.className = 'fallback';
+    hint.textContent = t('learn_replay_hint', '在新标签页打开原视频并跳到该处（那里也会有双语字幕）');
+    box.appendChild(hint);
     box.hidden = false;
   }
 

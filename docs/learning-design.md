@@ -31,9 +31,15 @@ Two scopes are deliberately **out** of the model (decided 2026-08-02):
   met, in the context they met it. Word extraction needs frequency lists per
   language, and would break the "language-agnostic" property the translation domain
   fought for (§3 of domain-design).
-- **No TTS.** Audio review replays the *original* media segment (YouTube embed),
-  never synthesized speech. This keeps zero new network dependencies, zero cost, and
-  keeps the learner's ear on real speech.
+- **No TTS.** Audio review replays the *original* media segment, never synthesized
+  speech. This keeps zero new network dependencies, zero cost, and keeps the
+  learner's ear on real speech.
+  - Replay **opens the source at the timestamp**; it is not an inline player.
+    YouTube's embedded player only accepts an http(s) embedding origin and refuses
+    `chrome-extension://` with error 153 — verified across four URL/referrer
+    variants on 2026-08-02, including the no-referrer case that also covers a
+    sandboxed page. A future iOS host app (§V4) may be able to embed natively; the
+    extension cannot, ever.
 
 ---
 

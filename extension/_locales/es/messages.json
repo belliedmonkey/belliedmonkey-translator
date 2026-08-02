@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Fuente desconocida"
   },
-  "learn_clip_no_embed": {
-    "message": "Este fragmento no se puede incrustar: "
-  },
-  "learn_clip_open": {
-    "message": "abrir el original en ese momento"
-  },
   "learn_count_due": {
     "message": "Pendientes"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Guardado"
+  },
+  "learn_replay": {
+    "message": "▶ Volver a escuchar"
+  },
+  "learn_replay_hint": {
+    "message": "Abre la fuente en una pestaña nueva en ese momento; los subtítulos bilingües también funcionan allí."
   }
 }

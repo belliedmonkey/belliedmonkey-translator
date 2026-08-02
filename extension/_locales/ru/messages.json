@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Неизвестный источник"
   },
-  "learn_clip_no_embed": {
-    "message": "Этот фрагмент нельзя встроить — "
-  },
-  "learn_clip_open": {
-    "message": "открыть оригинал на этой отметке"
-  },
   "learn_count_due": {
     "message": "К повтору"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Сохранено"
+  },
+  "learn_replay": {
+    "message": "▶ Прослушать фрагмент"
+  },
+  "learn_replay_hint": {
+    "message": "Открывает источник в новой вкладке на этой отметке — двуязычные субтитры там тоже работают."
   }
 }

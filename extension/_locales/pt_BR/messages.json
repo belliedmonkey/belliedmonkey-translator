@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Fonte desconhecida"
   },
-  "learn_clip_no_embed": {
-    "message": "Este trecho não pode ser incorporado — "
-  },
-  "learn_clip_open": {
-    "message": "abrir o original nesse ponto"
-  },
   "learn_count_due": {
     "message": "A revisar"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Salvo"
+  },
+  "learn_replay": {
+    "message": "▶ Ouvir o trecho de novo"
+  },
+  "learn_replay_hint": {
+    "message": "Abre a fonte em uma nova aba nesse ponto — as legendas bilíngues também funcionam lá."
   }
 }

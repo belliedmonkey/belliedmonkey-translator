@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "출처 불명"
   },
-  "learn_clip_no_embed": {
-    "message": "이 클립은 삽입 재생할 수 없습니다 — "
-  },
-  "learn_clip_open": {
-    "message": "원본을 해당 시점에서 열기"
-  },
   "learn_count_due": {
     "message": "복습 대기"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "저장했습니다"
+  },
+  "learn_replay": {
+    "message": "▶ 이 구간 다시 듣기"
+  },
+  "learn_replay_hint": {
+    "message": "원본을 해당 시점에서 새 탭으로 엽니다(거기서도 이중 자막이 동작합니다)"
   }
 }

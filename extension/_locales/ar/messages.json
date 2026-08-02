@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "مصدر غير معروف"
   },
-  "learn_clip_no_embed": {
-    "message": "لا يمكن تضمين هذا المقطع — "
-  },
-  "learn_clip_open": {
-    "message": "افتح الأصل عند تلك اللحظة"
-  },
   "learn_count_due": {
     "message": "مستحق"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "تم الحفظ"
+  },
+  "learn_replay": {
+    "message": "▶ أعد سماع هذا المقطع"
+  },
+  "learn_replay_hint": {
+    "message": "يفتح المصدر في تبويب جديد عند تلك اللحظة — والترجمة الثنائية تعمل هناك أيضًا."
   }
 }

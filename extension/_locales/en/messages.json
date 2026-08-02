@@ -338,12 +338,6 @@
   "learn_unknown_source": {
     "message": "Unknown source"
   },
-  "learn_clip_no_embed": {
-    "message": "This clip cannot be embedded — "
-  },
-  "learn_clip_open": {
-    "message": "open the original at that timestamp"
-  },
   "learn_count_due": {
     "message": "Due"
   },
@@ -397,5 +391,11 @@
   },
   "toast_saved": {
     "message": "Saved"
+  },
+  "learn_replay": {
+    "message": "▶ Replay this clip"
+  },
+  "learn_replay_hint": {
+    "message": "Opens the source in a new tab at that timestamp — bilingual subtitles work there too."
   }
 }
