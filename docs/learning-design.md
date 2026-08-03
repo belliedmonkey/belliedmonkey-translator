@@ -433,6 +433,15 @@ reviewed stay resident while one-off synthesis ages out.
 **The cache key is already the sync key.** When optional audio upload lands (§8),
 the local → server → synthesize fallback falls out of this without a migration.
 
+**Measured platform behaviour (2026-08-03, iPhone simulator iOS 17.2, in the real
+`safari-web-extension://` page):** `speechSynthesis` is present, `getVoices()`
+returns 111 voices (31 of them English), and `LearnTTS.speak()` resolves `ok` with
+the utterance's `start` and `end` both firing — **so the on-device engine is fully
+usable on iOS, which is what made it safe to keep as the default.** Autoplay without
+a user gesture is **refused**; the utterance is dropped silently, which is why
+`speak()` waits for `start` rather than trusting a non-throwing call. Not verified:
+whether one gesture unlocks autoplay for the rest of the page session.
+
 **Voice selection is language-aware** (§4.1's rule, applied): the user's preferred
 voice is used only if it speaks the card's language; otherwise the best system voice
 for that language; otherwise **the feature reports itself unavailable with a reason**

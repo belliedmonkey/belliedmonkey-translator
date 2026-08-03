@@ -49,7 +49,7 @@ function setup(opts = {}) {
 
 // `late` models the real platform behaviour: getVoices() is empty at first and the
 // list only shows up when `voiceschanged` fires. Call `.arrive()` to simulate that.
-function fakeSpeech(voices, late) {
+function fakeSpeech(voices, late, silent) {
   const spoken = [];
   const listeners = [];
   let current = late ? [] : voices;
@@ -61,11 +61,18 @@ function fakeSpeech(voices, late) {
     },
     api: {
       getVoices: () => current,
-      speak: (u) => spoken.push(u),
+      // A real platform dispatches `start` when audio actually begins; `silent`
+      // models iOS ignoring speak() without a user gesture (no throw, no error,
+      // no sound) — the case that used to be reported as success.
+      speak: (u) => { spoken.push(u); if (!silent && u.__on && u.__on.start) u.__on.start(); },
       cancel() {},
       addEventListener: (type, fn) => listeners.push([type, fn]),
     },
-    Utterance: function (text) { this.text = text; },
+    Utterance: function (text) {
+      this.text = text;
+      this.__on = {};
+      this.addEventListener = (type, fn) => { this.__on[type] = fn; };
+    },
   };
 }
 
@@ -338,5 +345,26 @@ describe('LearnTTS — voices that arrive LATE', () => {
     off();
     sp.arrive();
     eq(n, 1, 'a leaked subscriber outlives the page it belonged to');
+  });
+});
+
+describe('LearnTTS — silence is not success', () => {
+  test('a platform that ignores speak() (no throw, no sound) reports blocked', async () => {
+    // This is iOS without a user gesture. The old code returned ok:true because
+    // speak() had not thrown, so the card said "playing…" over silence.
+    const sp = fakeSpeech([voice('Alex', 'en-US')], false, true);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.speak('Hello there', 'en');
+    eq(r.ok, false);
+    eq(r.reason, 'blocked');
+    eq(sp.spoken.length, 1, 'we did attempt it — the failure is that nothing started');
+  });
+
+  test('a platform that really starts speaking reports ok', async () => {
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    eq((await TTS.speak('Hello there', 'en')).ok, true);
   });
 });

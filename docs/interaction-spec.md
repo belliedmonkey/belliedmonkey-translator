@@ -621,6 +621,18 @@ capture.
   handled silently rather than scolding the user for a browser policy.
 - **Autoplay is a setting, and never blocks anything.** If the browser refuses it,
   the card is fully usable via the button.
+  - **On iOS, autoplay IS refused** — measured 2026-08-03 on the iPhone simulator
+    (iOS 17.2) in the real extension page: the card renders, the ▶ control is
+    enabled, and nothing is spoken until the user taps it. So on iPhone/iPad,
+    `audio-first` means *tap to listen, then reveal*, not *listen hands-free*. This
+    is a platform rule about user gestures, not a defect, and the UI must not
+    apologise for it on every card — the ▶ control being the only thing on screen
+    already says what to do.
+  - **A blocked autoplay must be DETECTED, not assumed to have worked.** iOS ignores
+    `speechSynthesis.speak()` without a gesture *silently*: no exception, no error
+    event, no sound. Treating a non-throwing call as success made the card announce
+    「播放中…」 over silence. Playback counts as started only when the utterance's
+    `start` event fires.
 - **Synthesized audio is cached on the device** (endpoint engines only — the built-in
   voice cannot return audio data at all). Cache size and a one-tap clear are visible
   in settings, because a cache the user cannot see is a cache they will one day be

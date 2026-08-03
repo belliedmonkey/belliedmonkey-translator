@@ -104,6 +104,21 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
 
+**Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
+a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
+is named here rather than assumed:
+
+| Surface | Expected |
+|---|---|
+| macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
+| **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
+
+**Check that silence is reported as silence.** iOS drops `speechSynthesis.speak()`
+without a gesture with no exception, no error event and no sound — so a test that
+only asserts "speak() did not throw" passes over total silence. Assert on the
+utterance's `start` event, or on the ▶ label flipping to its replay wording (which
+only happens on a confirmed start).
+
 **Mandatory: the learning layer (记忆层).** Permanent matrix item for any change
 touching `content/learn-*.js`, `learn/**`, or the two capture attachment points
 (`content-webpage.js` `renderUnit`, `subtitle-adapter.js` after `renderOverlay`). See
