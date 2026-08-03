@@ -31,10 +31,18 @@
     <section class="card" id="card" hidden>
       <div class="src" id="src"></div>
 
+      <!-- 语音。在 audio-first 模式下原文先藏起来，先听再看。播放原文不揭晓
+           任何东西，所以不违反「揭晓永远由用户发起」——那条约束的是译文。 -->
+      <div class="audio" id="audio" hidden>
+        <button class="play" id="play" data-i18n="tts_play">▶ 听一遍</button>
+        <span class="audio-note" id="audio-note"></span>
+      </div>
+
       <p class="orig" id="orig"></p>
 
       <div class="media" id="media" hidden></div>
 
+      <button class="reveal secondary" id="reveal-orig" hidden data-i18n="learn_reveal_orig">显示原文</button>
       <button class="reveal" id="reveal" data-i18n="learn_reveal">显示译文</button>
 
       <div class="answer" id="answer" hidden>
@@ -58,7 +66,9 @@
   <script src="i18n.js"></script>
   <script src="../content/learn-model.js"></script>
   <script src="../content/learn-scheduler.js"></script>
+  <script src="../content/tts.gen.js"></script>
   <script src="store.js"></script>
+  <script src="tts.js"></script>
   <script src="drain.js"></script>
   <script src="review.js"></script>
 </body>

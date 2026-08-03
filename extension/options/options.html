@@ -166,6 +166,73 @@
         <button class="btn-danger" id="btn-clear-learn" data-i18n="learn_clear">清空学习库</button>
       </section>
 
+      <!-- 语音（TTS）。本地优先：默认用设备内置语音，零配置零成本可离线。 -->
+      <section class="card">
+        <h2 data-i18n="tts_section">语音</h2>
+        <p class="hint" data-i18n="tts_section_hint">把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。</p>
+
+        <div class="field">
+          <label for="tts-mode" data-i18n="tts_mode">语音模式</label>
+          <select id="tts-mode">
+            <option value="off" data-i18n="tts_mode_off">关闭</option>
+            <option value="assist" data-i18n="tts_mode_assist">显示原文，可点播放</option>
+            <option value="audio-first" data-i18n="tts_mode_audio_first">先听后看（原文先隐藏）</option>
+          </select>
+        </div>
+
+        <div id="tts-config" hidden>
+          <div class="field">
+            <label for="tts-engine" data-i18n="tts_engine">语音引擎</label>
+            <select id="tts-engine"></select>
+            <p class="hint" id="tts-engine-hint"></p>
+          </div>
+
+          <div class="field" id="tts-baseurl-field">
+            <label for="tts-base-url" data-i18n="tts_base_url">语音端点地址</label>
+            <input type="text" id="tts-base-url" placeholder="http://127.0.0.1:8880">
+          </div>
+
+          <div class="field" id="tts-key-field">
+            <label for="tts-api-key" data-i18n="tts_api_key">语音 API Key</label>
+            <input type="password" id="tts-api-key" placeholder="sk-…">
+          </div>
+
+          <div class="field" id="tts-model-field">
+            <label for="tts-model" data-i18n="tts_model">语音模型</label>
+            <input type="text" id="tts-model">
+          </div>
+
+          <div class="field">
+            <label for="tts-voice" data-i18n="tts_voice">声音</label>
+            <select id="tts-voice"></select>
+            <p class="hint" data-i18n="tts_voice_hint">按卡片的语言自动挑选。这里选的声音只在它会说那门语言时才会被采用。</p>
+          </div>
+
+          <div class="field">
+            <label for="tts-rate" data-i18n="tts_rate">语速</label>
+            <select id="tts-rate">
+              <option value="0.7">0.7×</option>
+              <option value="0.85">0.85×</option>
+              <option value="1">1.0×</option>
+              <option value="1.15">1.15×</option>
+              <option value="1.3">1.3×</option>
+            </select>
+          </div>
+
+          <div class="field row">
+            <label for="tts-autoplay" data-i18n="tts_autoplay">进入卡片自动播放</label>
+            <label class="switch">
+              <input type="checkbox" id="tts-autoplay" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button id="btn-tts-test" data-i18n="tts_test">试听一句</button>
+          <div id="tts-cache" class="cache-status"></div>
+          <button class="btn-danger" id="btn-clear-tts" data-i18n="tts_clear_cache">清空语音缓存</button>
+        </div>
+      </section>
+
       <!-- 关于 -->
       <section class="card about">
         <h2 data-i18n="options_about_section">关于</h2>
@@ -182,7 +249,9 @@
   <script src="../content/providers.gen.js"></script>
   <script src="../content/learn-model.js"></script>
   <script src="../content/learn-scheduler.js"></script>
+  <script src="../content/tts.gen.js"></script>
   <script src="../learn/store.js"></script>
+  <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="options.js"></script>
 </body>

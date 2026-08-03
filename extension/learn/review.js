@@ -14,6 +14,8 @@
   let idx = 0;
   let sched = {};       // scheduler config, merged over production DEFAULTS
   let doneThisRun = 0;
+  let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
+  let ttsAutoPlay = true;
 
   function todayKey(now) { return new Date(now).toISOString().slice(0, 10); }
 
@@ -22,7 +24,10 @@
       // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
       // cache and the `lq:` outbox, and reading the whole thing here would drag
       // both along. (docs/learning-design.md §7.)
-      chrome.storage.local.get(['uiLang', 'learnEnabled', 'learnDailyNew'], (s) => resolve(s || {}));
+      chrome.storage.local.get([
+        'uiLang', 'learnEnabled', 'learnDailyNew',
+        'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+      ], (s) => resolve(s || {}));
     });
   }
 
@@ -87,6 +92,66 @@
     box.hidden = false;
   }
 
+  // Why an engine cannot speak, in the user's words. An engine that silently does
+  // nothing is the worst possible outcome here — the user cannot tell a missing
+  // voice from a broken key from a typo'd URL.
+  function reasonText(reason) {
+    switch (reason) {
+      case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
+      case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
+      case 'no_base': return t('tts_no_base', '还没填语音端点地址');
+      case 'no_key': return t('tts_no_key', '还没填语音 API Key');
+      case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
+      case 'http': return t('tts_http', '语音服务返回了错误');
+      default: return t('tts_failed', '这句暂时读不出来');
+    }
+  }
+
+  function setNote(msg) { $('audio-note').textContent = msg || ''; }
+
+  async function playCurrent(auto) {
+    const item = deck[idx];
+    if (!item || ttsMode === 'off') return;
+    const btn = $('play');
+    btn.disabled = true;
+    setNote(t('tts_playing', '播放中…'));
+    const r = await LearnTTS.speak(item.text, item.lang);
+    btn.disabled = false;
+    if (r.ok) {
+      setNote('');
+      btn.textContent = t('tts_replay', '▶ 再听一遍');
+      return;
+    }
+    // An autoplay block is not an error worth shouting about — the button is right
+    // there. Everything else gets a plain explanation.
+    setNote(auto && r.reason === 'blocked' ? '' : reasonText(r.reason));
+  }
+
+  // Render the audio row for this card, and decide whether it can work at all
+  // BEFORE offering a button that would always fail.
+  async function setupAudio(item) {
+    const box = $('audio');
+    setNote('');
+    $('play').textContent = t('tts_play', '▶ 听一遍');
+    if (ttsMode === 'off') { box.hidden = true; return; }
+    box.hidden = false;
+    const av = await LearnTTS.available(item.lang);
+    $('play').disabled = !av.ok;
+    if (!av.ok) { setNote(reasonText(av.reason)); return; }
+    if (ttsAutoPlay || ttsMode === 'audio-first') playCurrent(true);
+  }
+
+  // Card stages. In 'audio-first' the ORIGINAL text starts hidden: you listen, then
+  // reveal the text, then the translation. In 'assist'/'off' the original is visible
+  // from the start and there are only two stages.
+  function applyStage(stage) {
+    const audioFirst = ttsMode === 'audio-first';
+    $('orig').hidden = audioFirst && stage < 1;
+    $('reveal-orig').hidden = !(audioFirst && stage < 1);
+    $('reveal').hidden = stage !== 1;
+    $('answer').hidden = stage < 2;
+  }
+
   function show(sources) {
     currentSources = sources;
     const item = deck[idx];
@@ -95,10 +160,11 @@
     $('nothing-due').hidden = true;
     if (!item) return;
 
-    $('answer').hidden = true;
-    $('reveal').hidden = false;
+    LearnTTS.stop();
     $('orig').textContent = item.text;
     $('tr').textContent = item.tr;
+    applyStage(ttsMode === 'audio-first' ? 0 : 1);
+    setupAudio(item);
 
     const src = $('src');
     src.textContent = '';
@@ -113,6 +179,7 @@
   async function grade(g, sources) {
     const item = deck[idx];
     if (!item) return;
+    LearnTTS.stop();
     const now = Date.now();
     const wasNew = !item.sched || !item.sched.s;
 
@@ -203,6 +270,17 @@
   PageI18n.setUiLang(settings.uiLang);
   PageI18n.applyI18n('learn_title_full');
 
+  ttsMode = settings.ttsMode || 'off';
+  ttsAutoPlay = settings.ttsAutoPlay !== false;
+  LearnTTS.configure({
+    engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
+    baseUrl: settings.ttsBaseUrl || '',
+    apiKey: settings.ttsApiKey || '',
+    model: settings.ttsModel || '',
+    voice: settings.ttsVoice || '',
+    rate: Number(settings.ttsRate) > 0 ? Number(settings.ttsRate) : 1,
+  });
+
   sched = Object.assign({}, LearnScheduler.DEFAULTS, {
     dailyNew: Number(settings.learnDailyNew) > 0
       ? Number(settings.learnDailyNew)
@@ -213,10 +291,14 @@
     b.addEventListener('click', () => grade(Number(b.dataset.grade), currentSources));
   });
   // Reveal is user-initiated, always. Nothing auto-advances, nothing is timed.
-  $('reveal').addEventListener('click', () => {
-    $('answer').hidden = false;
-    $('reveal').hidden = true;
-  });
+  $('reveal').addEventListener('click', () => applyStage(2));
+  $('reveal-orig').addEventListener('click', () => applyStage(1));
+  $('play').addEventListener('click', () => playCurrent(false));
+  // Platform voices load asynchronously and can land AFTER the first card was
+  // rendered. Without this the card keeps the verdict it was given while the list
+  // was still empty — a disabled button and "no built-in speech" on a machine that
+  // has plenty. Re-decide for whatever card is on screen.
+  LearnTTS.onVoicesChanged(() => { const it = deck[idx]; if (it) setupAudio(it); });
   const openOptions = (e) => {
     e.preventDefault();
     try { chrome.runtime.openOptionsPage(); }

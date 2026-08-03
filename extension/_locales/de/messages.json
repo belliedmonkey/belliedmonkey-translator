@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "Öffnet die Quelle an dieser Stelle in einem neuen Tab — die zweisprachigen Untertitel funktionieren dort ebenfalls."
+  },
+  "tts_section": {
+    "message": "Sprache"
+  },
+  "tts_section_hint": {
+    "message": "Macht aus Karten Hörübungen. Nutzt standardmäßig die Stimme Ihres Geräts — ohne Netz, ohne Kosten. Sie können auch einen eigenen Sprachserver angeben."
+  },
+  "tts_mode": {
+    "message": "Sprachmodus"
+  },
+  "tts_mode_off": {
+    "message": "Aus"
+  },
+  "tts_mode_assist": {
+    "message": "Text anzeigen, mit Wiedergabetaste"
+  },
+  "tts_mode_audio_first": {
+    "message": "Erst hören (Text zunächst verborgen)"
+  },
+  "tts_engine": {
+    "message": "Sprach-Engine"
+  },
+  "tts_engine_browser": {
+    "message": "Geräteeigene Stimme (kostenlos · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Lokaler / selbst gehosteter Sprach-Endpunkt"
+  },
+  "tts_hint_browser": {
+    "message": "Nutzt die Stimmen, die Ihr Betriebssystem bereits hat. Es wird nichts gesendet und nichts zwischengespeichert — diese Engine spricht nur, sie kann kein Audio zurückgeben."
+  },
+  "tts_hint_local": {
+    "message": "Jeder Server, der das OpenAI-Speech-Format spricht — auf Ihrem Rechner oder im LAN. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_hint_openai": {
+    "message": "Nutzt Ihren eigenen API-Schlüssel. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_base_url": {
+    "message": "URL des Sprach-Endpunkts"
+  },
+  "tts_api_key": {
+    "message": "Sprach-API-Schlüssel"
+  },
+  "tts_model": {
+    "message": "Sprachmodell"
+  },
+  "tts_voice": {
+    "message": "Stimme"
+  },
+  "tts_voice_auto": {
+    "message": "Automatisch (passend zur Kartensprache)"
+  },
+  "tts_voice_hint": {
+    "message": "Stimmen werden der Sprache jeder Karte zugeordnet. Die hier gewählte wird nur verwendet, wenn sie diese Sprache tatsächlich spricht."
+  },
+  "tts_rate": {
+    "message": "Tempo"
+  },
+  "tts_autoplay": {
+    "message": "Beim Öffnen einer Karte automatisch abspielen"
+  },
+  "tts_test": {
+    "message": "Testsatz abspielen"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Wird synthetisiert…"
+  },
+  "tts_test_ok": {
+    "message": "Wiedergabe"
+  },
+  "tts_play": {
+    "message": "▶ Anhören"
+  },
+  "tts_replay": {
+    "message": "▶ Nochmal anhören"
+  },
+  "tts_playing": {
+    "message": "Wiedergabe…"
+  },
+  "tts_no_voice": {
+    "message": "Ihr System hat keine Stimme für diese Sprache"
+  },
+  "tts_unsupported": {
+    "message": "Dieser Browser bietet keine integrierte Sprachausgabe"
+  },
+  "tts_no_base": {
+    "message": "Noch keine Endpunkt-URL"
+  },
+  "tts_no_key": {
+    "message": "Noch kein Sprach-API-Schlüssel"
+  },
+  "tts_blocked": {
+    "message": "Der Browser hat die automatische Wiedergabe blockiert — zum Abspielen tippen"
+  },
+  "tts_http": {
+    "message": "Der Sprachdienst hat einen Fehler zurückgegeben"
+  },
+  "tts_failed": {
+    "message": "Dieser Satz kann gerade nicht gesprochen werden"
+  },
+  "tts_cache": {
+    "message": "Sprach-Cache: {n} Clips · ca. {mb} MB (Limit {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "Der Sprach-Cache ist leer"
+  },
+  "tts_cache_na": {
+    "message": "Die geräteeigene Stimme erzeugt keinen Cache"
+  },
+  "tts_clear_cache": {
+    "message": "Sprach-Cache leeren"
+  },
+  "toast_tts_cleared": {
+    "message": "Sprach-Cache geleert"
+  },
+  "learn_reveal_orig": {
+    "message": "Text anzeigen"
   }
 }

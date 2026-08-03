@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "يفتح المصدر في تبويب جديد عند تلك اللحظة — والترجمة الثنائية تعمل هناك أيضًا."
+  },
+  "tts_section": {
+    "message": "النطق"
+  },
+  "tts_section_hint": {
+    "message": "حوّل بطاقات المراجعة إلى تدريب استماع. يستخدم صوت جهازك افتراضيًا — بلا شبكة ولا تكلفة. ويمكنك توجيهه إلى خادم نطق تشغّله بنفسك."
+  },
+  "tts_mode": {
+    "message": "وضع النطق"
+  },
+  "tts_mode_off": {
+    "message": "مغلق"
+  },
+  "tts_mode_assist": {
+    "message": "إظهار النص مع زر تشغيل"
+  },
+  "tts_mode_audio_first": {
+    "message": "استمع أولًا (النص مخفي في البداية)"
+  },
+  "tts_engine": {
+    "message": "محرّك النطق"
+  },
+  "tts_engine_browser": {
+    "message": "صوت الجهاز المدمج (مجاني · دون اتصال)"
+  },
+  "tts_engine_local": {
+    "message": "نقطة نطق محلية / ذاتية الاستضافة"
+  },
+  "tts_hint_browser": {
+    "message": "يستخدم الأصوات الموجودة في نظام تشغيلك. لا يُرسَل شيء ولا يُخزَّن شيء — هذا المحرّك ينطق فقط ولا يمكنه إعادة بيانات صوتية."
+  },
+  "tts_hint_local": {
+    "message": "أي خادم يتحدث تنسيق speech الخاص بـ OpenAI، على جهازك أو شبكتك المحلية. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
+  },
+  "tts_hint_openai": {
+    "message": "يستخدم مفتاح API الخاص بك. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
+  },
+  "tts_base_url": {
+    "message": "عنوان نقطة النطق"
+  },
+  "tts_api_key": {
+    "message": "مفتاح API للنطق"
+  },
+  "tts_model": {
+    "message": "نموذج النطق"
+  },
+  "tts_voice": {
+    "message": "الصوت"
+  },
+  "tts_voice_auto": {
+    "message": "تلقائي (حسب لغة البطاقة)"
+  },
+  "tts_voice_hint": {
+    "message": "تُطابَق الأصوات مع لغة كل بطاقة. الصوت الذي تختاره هنا لا يُستخدم إلا إذا كان ينطق تلك اللغة فعلًا."
+  },
+  "tts_rate": {
+    "message": "السرعة"
+  },
+  "tts_autoplay": {
+    "message": "التشغيل تلقائيًا عند فتح البطاقة"
+  },
+  "tts_test": {
+    "message": "جرّب جملة"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "جارٍ التركيب…"
+  },
+  "tts_test_ok": {
+    "message": "قيد التشغيل"
+  },
+  "tts_play": {
+    "message": "▶ استمع"
+  },
+  "tts_replay": {
+    "message": "▶ استمع مرة أخرى"
+  },
+  "tts_playing": {
+    "message": "قيد التشغيل…"
+  },
+  "tts_no_voice": {
+    "message": "لا يوجد صوت لهذه اللغة في نظامك"
+  },
+  "tts_unsupported": {
+    "message": "لا يوفّر هذا المتصفح نطقًا مدمجًا"
+  },
+  "tts_no_base": {
+    "message": "لم تُدخل عنوان نقطة النطق بعد"
+  },
+  "tts_no_key": {
+    "message": "لم تُدخل مفتاح API للنطق بعد"
+  },
+  "tts_blocked": {
+    "message": "حظر المتصفح التشغيل التلقائي — اضغط للتشغيل"
+  },
+  "tts_http": {
+    "message": "أعادت خدمة النطق خطأً"
+  },
+  "tts_failed": {
+    "message": "لا يمكن نطق هذه الجملة الآن"
+  },
+  "tts_cache": {
+    "message": "ذاكرة النطق: {n} مقطعًا · نحو {mb} ميغابايت (الحد {cap} ميغابايت)"
+  },
+  "tts_cache_empty": {
+    "message": "ذاكرة النطق فارغة"
+  },
+  "tts_cache_na": {
+    "message": "لا ينتج صوت الجهاز المدمج أي ذاكرة مؤقتة"
+  },
+  "tts_clear_cache": {
+    "message": "مسح ذاكرة النطق"
+  },
+  "toast_tts_cleared": {
+    "message": "تم مسح ذاكرة النطق"
+  },
+  "learn_reveal_orig": {
+    "message": "إظهار النص"
   }
 }

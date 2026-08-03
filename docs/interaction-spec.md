@@ -592,6 +592,40 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
   the free Google endpoint the toggle is **disabled with the reason shown** — never
   offered and then silently failing.
 
+### 语音 (TTS)
+
+Turns a review card into listening practice. **Off until the user turns it on**, like
+capture.
+
+- **On-device first.** The default engine is the platform's own `speechSynthesis`:
+  free, offline, nothing sent anywhere. A self-hosted or cloud endpoint is a choice
+  the user makes, never the default. The settings list is ordered on-device →
+  self-hosted → cloud, so the principle is visible rather than merely stated.
+- **Three modes.**
+  - `off` — no audio UI at all.
+  - `assist` — the card looks as it always did, plus a ▶ control.
+  - `audio-first` — **the original text starts hidden**: listen → 「显示原文」→
+    「显示译文」→ grade.
+- **`audio-first` does not violate "reveal is always user-initiated."** That rule
+  governs the **translation**. Playing the original aloud reveals nothing — it is the
+  same information the card was already going to show, in another channel. Revealing
+  the text and revealing the translation both remain explicit taps.
+- **Voices are matched to the card's language, not chosen globally.** A Japanese
+  sentence read in an English voice is worse than silence. The user's preferred voice
+  is used **only if it speaks that language**; otherwise the best system voice for
+  that language is used; if there is none, **the card says so and the ▶ control is
+  disabled** — never a button that silently does nothing.
+- **Every failure names itself**: no voice for this language / no built-in speech in
+  this browser / no endpoint URL / no API key / the service returned an error. A
+  blocked autoplay is the one exception — the ▶ button is right there, so it is
+  handled silently rather than scolding the user for a browser policy.
+- **Autoplay is a setting, and never blocks anything.** If the browser refuses it,
+  the card is fully usable via the button.
+- **Synthesized audio is cached on the device** (endpoint engines only — the built-in
+  voice cannot return audio data at all). Cache size and a one-tap clear are visible
+  in settings, because a cache the user cannot see is a cache they will one day be
+  surprised by.
+
 ### States
 - **Empty corpus**: explain how material gets collected (browse and translate), not
   「暂无数据」.

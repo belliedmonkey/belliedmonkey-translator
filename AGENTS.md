@@ -30,18 +30,33 @@ these in order when designing anything new:
    without it — and the product must be complete for a signed-out user.
 4. **The server performs no computation on user data.** No model calls, no
    server-side recommendation, quiz generation, or analytics.
-5. **The server stores no binary media** — no audio, video, images, screenshots, or
-   full page text. Media is stored as a **pointer** (e.g. media id + start/end
-   offsets, ~20 bytes).
-6. **Charge only where the cost genuinely cannot be carried.** If some future
+5. **The server never stores media we do not own.** Third-party audio and video (a
+   YouTube segment, podcast audio) is stored as a **pointer** — media id + start/end
+   offsets, ~20 bytes — and replayed from the source. This is **not** a cost
+   trade-off that a bigger budget could reverse: we never possess those bytes,
+   obtaining them would breach the platform's terms, and redistributing them is a
+   copyright matter. Full page text and screenshots are out for the same reason.
+6. **Media the user generated locally may be stored — but only if the user chose
+   it.** Speech synthesized by the user's own TTS engine is theirs, not a third
+   party's. Such uploads are **off by default**, stated plainly in the UI, counted
+   against the user's quota, and deletable in one action.
+   *(Amended 2026-08-03. Rules 5 and 6 were one rule reading "the server stores no
+   binary media", which conflated two different things: what we may not have, and
+   what the user made. The former is a hard boundary; the latter is the user's
+   call. "No binary media" was only ever an approximation of the first.)*
+7. **Every account has a server-side hard quota (currently 50 MB), enforced by a
+   database constraint** — never by client-side good behaviour. On reaching it: stop
+   accepting new content, keep syncing progress, and say so. **Never silently drop
+   data.**
+8. **Charge only where the cost genuinely cannot be carried.** If some future
    feature's storage or compute is truly unaffordable, price *that feature* — and
    **never convert something already shipped free into a paid feature.**
-7. **Cost is estimated before it is incurred.** Before introducing any server-side
+9. **Cost is estimated before it is incurred.** Before introducing any server-side
    storage, write the bytes-per-user-per-year estimate **and its assumptions** into
    the design doc. (`docs/learning-design.md` §8.2 is the worked example.)
-8. **No crippled builds.** Compliance or distribution pressure is resolved by
-   narrowing *where the product is distributed* — never by shipping some users a
-   version with fewer features.
+10. **No crippled builds.** Compliance or distribution pressure is resolved by
+    narrowing *where the product is distributed* — never by shipping some users a
+    version with fewer features.
 
 ## Interaction / UX constraints
 

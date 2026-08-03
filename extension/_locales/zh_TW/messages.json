@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "在新分頁開啟原影片並跳到該處（那裡也會有雙語字幕）"
+  },
+  "tts_section": {
+    "message": "語音"
+  },
+  "tts_section_hint": {
+    "message": "把複習卡當成聽力材料。預設使用你裝置自帶的語音，不連網、不花錢；也可以指向你自己架的語音服務。"
+  },
+  "tts_mode": {
+    "message": "語音模式"
+  },
+  "tts_mode_off": {
+    "message": "關閉"
+  },
+  "tts_mode_assist": {
+    "message": "顯示原文，可點播放"
+  },
+  "tts_mode_audio_first": {
+    "message": "先聽後看（原文先隱藏）"
+  },
+  "tts_engine": {
+    "message": "語音引擎"
+  },
+  "tts_engine_browser": {
+    "message": "裝置內建語音（免費 · 離線）"
+  },
+  "tts_engine_local": {
+    "message": "本機 / 自建語音端點"
+  },
+  "tts_hint_browser": {
+    "message": "使用你作業系統既有的語音。不傳送任何資料，也不產生快取 —— 這個引擎只能朗讀，拿不到音訊資料。"
+  },
+  "tts_hint_local": {
+    "message": "任何實作了 OpenAI 語音格式的服務，跑在你自己的機器或區域網路上。合成結果會快取在本機，同一句只花一次代價。"
+  },
+  "tts_hint_openai": {
+    "message": "用你自己的 API Key。合成結果會快取在本機，同一句只花一次錢。"
+  },
+  "tts_base_url": {
+    "message": "語音端點位址"
+  },
+  "tts_api_key": {
+    "message": "語音 API Key"
+  },
+  "tts_model": {
+    "message": "語音模型"
+  },
+  "tts_voice": {
+    "message": "聲音"
+  },
+  "tts_voice_auto": {
+    "message": "自動（按卡片語言挑選）"
+  },
+  "tts_voice_hint": {
+    "message": "按卡片的語言自動挑選。這裡選的聲音只在它會說那門語言時才會被採用。"
+  },
+  "tts_rate": {
+    "message": "語速"
+  },
+  "tts_autoplay": {
+    "message": "進入卡片自動播放"
+  },
+  "tts_test": {
+    "message": "試聽一句"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "正在合成…"
+  },
+  "tts_test_ok": {
+    "message": "播放中"
+  },
+  "tts_play": {
+    "message": "▶ 聽一遍"
+  },
+  "tts_replay": {
+    "message": "▶ 再聽一遍"
+  },
+  "tts_playing": {
+    "message": "播放中…"
+  },
+  "tts_no_voice": {
+    "message": "系統裡沒有這門語言的語音"
+  },
+  "tts_unsupported": {
+    "message": "這個瀏覽器不提供內建語音"
+  },
+  "tts_no_base": {
+    "message": "還沒填語音端點位址"
+  },
+  "tts_no_key": {
+    "message": "還沒填語音 API Key"
+  },
+  "tts_blocked": {
+    "message": "瀏覽器擋下了自動播放，點一下播放"
+  },
+  "tts_http": {
+    "message": "語音服務回傳了錯誤"
+  },
+  "tts_failed": {
+    "message": "這句暫時讀不出來"
+  },
+  "tts_cache": {
+    "message": "語音快取 {n} 條 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "語音快取為空"
+  },
+  "tts_cache_na": {
+    "message": "裝置內建語音不產生快取"
+  },
+  "tts_clear_cache": {
+    "message": "清空語音快取"
+  },
+  "toast_tts_cleared": {
+    "message": "語音快取已清空"
+  },
+  "learn_reveal_orig": {
+    "message": "顯示原文"
   }
 }

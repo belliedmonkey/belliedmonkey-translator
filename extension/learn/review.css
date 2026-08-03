@@ -93,6 +93,22 @@ button:hover { border-color: var(--green); }
 }
 .reveal:hover { opacity: .92; }
 
+/* 语音控件。audio-first 下它是卡片的主入口，所以视觉重量高于普通按钮但低于揭晓。 */
+.audio { margin: 4px 0 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.play {
+  border-color: var(--green); color: var(--green); font-weight: 600;
+}
+.play:hover { background: var(--green); color: #fff; }
+.play[disabled] { opacity: .5; cursor: default; border-color: var(--border); color: var(--text-secondary); }
+.play[disabled]:hover { background: none; color: var(--text-secondary); }
+/* 不可用时必须说出原因，不能只是没反应（interaction-spec：绝不静默失败）。 */
+.audio-note { font-size: 13px; color: var(--text-secondary); }
+
+.reveal.secondary {
+  background: var(--card-bg); color: var(--green); border-color: var(--green);
+}
+.reveal.secondary:hover { background: var(--green); color: #fff; }
+
 .answer { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px; }
 .tr { color: var(--green); font-size: 19px; line-height: 1.5; overflow-wrap: anywhere; }
 

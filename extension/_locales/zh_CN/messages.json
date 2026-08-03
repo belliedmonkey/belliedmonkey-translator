@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "在新标签页打开原视频并跳到该处（那里也会有双语字幕）"
+  },
+  "tts_section": {
+    "message": "语音"
+  },
+  "tts_section_hint": {
+    "message": "把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。"
+  },
+  "tts_mode": {
+    "message": "语音模式"
+  },
+  "tts_mode_off": {
+    "message": "关闭"
+  },
+  "tts_mode_assist": {
+    "message": "显示原文，可点播放"
+  },
+  "tts_mode_audio_first": {
+    "message": "先听后看（原文先隐藏）"
+  },
+  "tts_engine": {
+    "message": "语音引擎"
+  },
+  "tts_engine_browser": {
+    "message": "设备内置语音（免费 · 离线）"
+  },
+  "tts_engine_local": {
+    "message": "本地 / 自建语音端点"
+  },
+  "tts_hint_browser": {
+    "message": "用你操作系统里已有的语音。不发送任何数据，也不产生缓存 —— 这个引擎只能朗读，拿不到音频数据。"
+  },
+  "tts_hint_local": {
+    "message": "任何实现了 OpenAI 语音格式的服务，跑在你自己的机器或局域网上。合成结果会缓存在本地，同一句只花一次代价。"
+  },
+  "tts_hint_openai": {
+    "message": "用你自己的 API Key。合成结果会缓存在本地，同一句只花一次钱。"
+  },
+  "tts_base_url": {
+    "message": "语音端点地址"
+  },
+  "tts_api_key": {
+    "message": "语音 API Key"
+  },
+  "tts_model": {
+    "message": "语音模型"
+  },
+  "tts_voice": {
+    "message": "声音"
+  },
+  "tts_voice_auto": {
+    "message": "自动（按卡片语言挑选）"
+  },
+  "tts_voice_hint": {
+    "message": "按卡片的语言自动挑选。这里选的声音只在它会说那门语言时才会被采用。"
+  },
+  "tts_rate": {
+    "message": "语速"
+  },
+  "tts_autoplay": {
+    "message": "进入卡片自动播放"
+  },
+  "tts_test": {
+    "message": "试听一句"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "正在合成…"
+  },
+  "tts_test_ok": {
+    "message": "播放中"
+  },
+  "tts_play": {
+    "message": "▶ 听一遍"
+  },
+  "tts_replay": {
+    "message": "▶ 再听一遍"
+  },
+  "tts_playing": {
+    "message": "播放中…"
+  },
+  "tts_no_voice": {
+    "message": "系统里没有这门语言的语音"
+  },
+  "tts_unsupported": {
+    "message": "这个浏览器不提供内置语音"
+  },
+  "tts_no_base": {
+    "message": "还没填语音端点地址"
+  },
+  "tts_no_key": {
+    "message": "还没填语音 API Key"
+  },
+  "tts_blocked": {
+    "message": "浏览器拦下了自动播放，点一下播放"
+  },
+  "tts_http": {
+    "message": "语音服务返回了错误"
+  },
+  "tts_failed": {
+    "message": "这句暂时读不出来"
+  },
+  "tts_cache": {
+    "message": "语音缓存 {n} 条 · 约 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "语音缓存为空"
+  },
+  "tts_cache_na": {
+    "message": "设备内置语音不产生缓存"
+  },
+  "tts_clear_cache": {
+    "message": "清空语音缓存"
+  },
+  "toast_tts_cleared": {
+    "message": "语音缓存已清空"
+  },
+  "learn_reveal_orig": {
+    "message": "显示原文"
   }
 }

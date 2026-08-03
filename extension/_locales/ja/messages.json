@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "元の動画をその時刻で新しいタブに開きます（そこでも二言語字幕が使えます）"
+  },
+  "tts_section": {
+    "message": "音声"
+  },
+  "tts_section_hint": {
+    "message": "復習カードをリスニング教材にします。既定では端末内蔵の音声を使い、通信も費用も不要です。自分で立てた音声サーバーを指定することもできます。"
+  },
+  "tts_mode": {
+    "message": "音声モード"
+  },
+  "tts_mode_off": {
+    "message": "オフ"
+  },
+  "tts_mode_assist": {
+    "message": "原文を表示し、再生ボタンを添える"
+  },
+  "tts_mode_audio_first": {
+    "message": "先に聴く（原文は最初は非表示）"
+  },
+  "tts_engine": {
+    "message": "音声エンジン"
+  },
+  "tts_engine_browser": {
+    "message": "端末内蔵の音声（無料・オフライン）"
+  },
+  "tts_engine_local": {
+    "message": "ローカル / 自前の音声エンドポイント"
+  },
+  "tts_hint_browser": {
+    "message": "OS が既に持っている音声を使います。何も送信せず、キャッシュも作りません — このエンジンは読み上げるだけで、音声データを返せません。"
+  },
+  "tts_hint_local": {
+    "message": "OpenAI の音声フォーマットに対応した任意のサーバー（自分のマシンや LAN 上）。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_hint_openai": {
+    "message": "あなた自身の API キーを使います。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_base_url": {
+    "message": "音声エンドポイントの URL"
+  },
+  "tts_api_key": {
+    "message": "音声 API キー"
+  },
+  "tts_model": {
+    "message": "音声モデル"
+  },
+  "tts_voice": {
+    "message": "声"
+  },
+  "tts_voice_auto": {
+    "message": "自動（カードの言語に合わせる）"
+  },
+  "tts_voice_hint": {
+    "message": "カードの言語に合わせて自動で選ばれます。ここで選んだ声は、その言語を話せる場合にのみ使われます。"
+  },
+  "tts_rate": {
+    "message": "速度"
+  },
+  "tts_autoplay": {
+    "message": "カードを開いたら自動再生"
+  },
+  "tts_test": {
+    "message": "テスト再生"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "合成中…"
+  },
+  "tts_test_ok": {
+    "message": "再生中"
+  },
+  "tts_play": {
+    "message": "▶ 聴く"
+  },
+  "tts_replay": {
+    "message": "▶ もう一度聴く"
+  },
+  "tts_playing": {
+    "message": "再生中…"
+  },
+  "tts_no_voice": {
+    "message": "この言語の音声が端末にありません"
+  },
+  "tts_unsupported": {
+    "message": "このブラウザには内蔵音声がありません"
+  },
+  "tts_no_base": {
+    "message": "音声エンドポイントの URL が未設定です"
+  },
+  "tts_no_key": {
+    "message": "音声 API キーが未設定です"
+  },
+  "tts_blocked": {
+    "message": "自動再生がブロックされました。タップして再生してください"
+  },
+  "tts_http": {
+    "message": "音声サービスがエラーを返しました"
+  },
+  "tts_failed": {
+    "message": "この文はいま読み上げられません"
+  },
+  "tts_cache": {
+    "message": "音声キャッシュ {n} 件 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "音声キャッシュは空です"
+  },
+  "tts_cache_na": {
+    "message": "端末内蔵の音声はキャッシュを作りません"
+  },
+  "tts_clear_cache": {
+    "message": "音声キャッシュを消去"
+  },
+  "toast_tts_cleared": {
+    "message": "音声キャッシュを消去しました"
+  },
+  "learn_reveal_orig": {
+    "message": "原文を表示"
   }
 }

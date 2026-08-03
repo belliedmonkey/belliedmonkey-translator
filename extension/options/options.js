@@ -12,6 +12,7 @@ const SETTINGS_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
   'textColor', 'ytTextColor', 'fontSize', 'showFab',
   'learnEnabled', 'learnDailyNew',
+  'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -125,6 +126,108 @@ function updateProviderUI(provider) {
   updateSetupNote(provider, $('api-key').value);
 }
 
+// The engine list comes from the build-time registry (window.MT_TTS_ENGINES,
+// generated from build/tts.config.js). No hardcoded engine list here — same rule as
+// the translation providers.
+const TTS_ENGINES = (window.MT_TTS_ENGINES || []);
+const ttsEngineById = (id) => TTS_ENGINES.find((e) => e.id === id) || null;
+function ttsEngineLabel(e) { return e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id); }
+
+function populateTtsEngines(selected) {
+  const sel = $('tts-engine');
+  sel.innerHTML = '';
+  for (const e of TTS_ENGINES) {
+    const o = document.createElement('option');
+    o.value = e.id;
+    o.textContent = ttsEngineLabel(e);
+    sel.appendChild(o);
+  }
+  sel.value = ttsEngineById(selected) ? selected : (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser';
+}
+
+function ttsReason(reason) {
+  switch (reason) {
+    case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
+    case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
+    case 'no_base': return t('tts_no_base', '还没填语音端点地址');
+    case 'no_key': return t('tts_no_key', '还没填语音 API Key');
+    case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
+    case 'http': return t('tts_http', '语音服务返回了错误');
+    default: return t('tts_failed', '这句暂时读不出来');
+  }
+}
+
+function applyTtsConfig() {
+  LearnTTS.configure({
+    engineId: $('tts-engine').value,
+    baseUrl: $('tts-base-url').value.trim(),
+    apiKey: $('tts-api-key').value.trim(),
+    model: $('tts-model').value.trim(),
+    voice: $('tts-voice').value,
+    rate: Number($('tts-rate').value) || 1,
+  });
+}
+
+async function refreshTtsCache() {
+  const el = $('tts-cache');
+  if (!el) return;
+  try {
+    const st = await LearnStore.audioStats();
+    const e = ttsEngineById($('tts-engine').value);
+    // The browser engine cannot return audio data, so it can never populate a
+    // cache — say that rather than showing a permanent "0 KB" that looks broken.
+    if (e && !e.returnsAudio) { el.textContent = t('tts_cache_na', '设备内置语音不产生缓存'); return; }
+    el.textContent = st.count
+      ? t('tts_cache', '语音缓存 {n} 条 · 约 {mb} MB（上限 {cap} MB）')
+          .replace('{n}', String(st.count))
+          .replace('{mb}', String(Math.max(1, Math.round(st.bytes / 1048576))))
+          .replace('{cap}', String(Math.round(LearnStore.MAX_AUDIO_BYTES / 1048576)))
+      : t('tts_cache_empty', '语音缓存为空');
+  } catch (_) { el.textContent = ''; }
+}
+
+// Voices for the browser engine are discovered at runtime and arrive LATE — see
+// LearnTTS.loadVoices. Registry engines declare their voices, and a self-hosted one
+// declares none, so the field falls back to free text via a single "default" option.
+async function updateTtsUI(selectedVoice) {
+  const mode = $('tts-mode').value;
+  $('tts-config').hidden = mode === 'off';
+  const e = ttsEngineById($('tts-engine').value) || TTS_ENGINES[0];
+  if (!e) return;
+  $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
+  $('tts-baseurl-field').style.display = e.supportsBaseUrl ? 'block' : 'none';
+  $('tts-key-field').style.display = e.needsKey ? 'block' : 'none';
+  $('tts-model-field').style.display = e.supportsModel ? 'block' : 'none';
+  $('tts-model').placeholder = e.defaultModel || '';
+
+  const sel = $('tts-voice');
+  sel.innerHTML = '';
+  const auto = document.createElement('option');
+  auto.value = '';
+  auto.textContent = t('tts_voice_auto', '自动（按卡片语言挑选）');
+  sel.appendChild(auto);
+
+  applyTtsConfig();
+  if (e.type === 'browser') {
+    const voices = await LearnTTS.loadVoices();
+    for (const v of voices) {
+      const o = document.createElement('option');
+      o.value = v.voiceURI;
+      o.textContent = `${v.name} — ${v.lang}`;
+      sel.appendChild(o);
+    }
+  } else if (e.voices) {
+    for (const v of e.voices) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    }
+  }
+  sel.value = [...sel.options].some((o) => o.value === selectedVoice) ? selectedVoice : '';
+  applyTtsConfig();
+  refreshTtsCache();
+}
+
 function updateColorPreview(color) {
   $('color-preview').style.color = color;
 }
@@ -142,7 +245,15 @@ async function saveAll() {
     fontSize:    $('font-size').value,
     showFab:     $('show-fab').checked,
     learnEnabled: $('learn-enabled').checked,
-    learnDailyNew: Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew))
+    learnDailyNew: Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew)),
+    ttsMode:     $('tts-mode').value,
+    ttsAutoPlay: $('tts-autoplay').checked,
+    ttsEngine:   $('tts-engine').value,
+    ttsBaseUrl:  $('tts-base-url').value.trim(),
+    ttsApiKey:   $('tts-api-key').value.trim(),
+    ttsModel:    $('tts-model').value.trim(),
+    ttsVoice:    $('tts-voice').value,
+    ttsRate:     $('tts-rate').value
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
 }
@@ -177,6 +288,14 @@ async function init() {
   // Capture is OFF until the user turns it on once — never default-on on upgrade.
   $('learn-enabled').checked = s.learnEnabled === true;
   $('learn-daily-new').value = Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew;
+  $('tts-mode').value      = s.ttsMode || 'off';
+  $('tts-autoplay').checked = s.ttsAutoPlay !== false;
+  $('tts-base-url').value  = s.ttsBaseUrl || '';
+  $('tts-api-key').value   = s.ttsApiKey || '';
+  $('tts-model').value     = s.ttsModel || '';
+  $('tts-rate').value      = String(Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1);
+  populateTtsEngines(s.ttsEngine || LearnTTS.DEFAULTS.engineId);
+  await updateTtsUI(s.ttsVoice || '');
 
   updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
@@ -221,6 +340,45 @@ async function init() {
   $('toggle-eye').addEventListener('click', () => {
     const input = $('api-key');
     input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // ─── 语音 (TTS) ─────────────────────────────────────────────────────
+
+  $('tts-mode').addEventListener('change', async () => {
+    await saveAll();
+    await updateTtsUI($('tts-voice').value);
+    showToast(t('toast_saved', '已保存'));
+  });
+  $('tts-engine').addEventListener('change', async () => {
+    // Engine defaults differ, so the model placeholder and voice list must follow
+    // the engine BEFORE the user is asked to pick a voice for it.
+    await updateTtsUI('');
+    await saveAll();
+    showToast(t('toast_saved', '已保存'));
+  });
+  for (const id of ['tts-base-url', 'tts-api-key', 'tts-model', 'tts-voice', 'tts-rate']) {
+    $(id).addEventListener('change', async () => { await saveAll(); showToast(t('toast_saved', '已保存')); });
+  }
+  $('tts-autoplay').addEventListener('change', async () => { await saveAll(); });
+  // Same late-arrival race as the review page: a voice list built before the
+  // platform published its voices would stay empty forever.
+  LearnTTS.onVoicesChanged(() => { updateTtsUI($('tts-voice').value); });
+
+  // A test button, because every failure mode here is invisible until you try:
+  // a voice the system does not have, a URL that is not serving, a wrong key.
+  $('btn-tts-test').addEventListener('click', async () => {
+    applyTtsConfig();
+    const note = $('tts-cache');
+    const sample = t('tts_test_sample', 'This is what your review cards will sound like.');
+    note.textContent = t('tts_testing', '正在合成…');
+    const r = await LearnTTS.speak(sample, 'en');
+    note.textContent = r.ok ? t('tts_test_ok', '播放中') : ttsReason(r.reason);
+    if (r.ok) setTimeout(refreshTtsCache, 1500);
+  });
+  $('btn-clear-tts').addEventListener('click', async () => {
+    try { await LearnStore.clearAudio(); showToast(t('toast_tts_cleared', '语音缓存已清空')); }
+    catch (_) { showToast(t('toast_learn_clear_failed', '清空失败')); }
+    refreshTtsCache();
   });
 
   // ─── Learning (记忆层) ──────────────────────────────────────────────

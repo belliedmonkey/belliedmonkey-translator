@@ -31,9 +31,10 @@ Two scopes are deliberately **out** of the model (decided 2026-08-02):
   met, in the context they met it. Word extraction needs frequency lists per
   language, and would break the "language-agnostic" property the translation domain
   fought for (§3 of domain-design).
-- **No TTS.** Audio review replays the *original* media segment, never synthesized
-  speech. This keeps zero new network dependencies, zero cost, and keeps the
-  learner's ear on real speech.
+- **Media cards replay the ORIGINAL audio, never a synthesized substitute.** A
+  YouTube sentence is re-heard as it was actually said. (Text cards are a different
+  matter — they have no original audio, so §9.1 gives them synthesized speech. The
+  rule is "never replace real speech with synthetic", not "never synthesize".)
   - Replay **opens the source at the timestamp**; it is not an inline player.
     YouTube's embedded player only accepts an http(s) embedding origin and refuses
     `chrome-extension://` with error 153 — verified across four URL/referrer
@@ -400,6 +401,42 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows |
 
 ---
+
+## 9.1 Speech (TTS)
+
+Registry: `build/tts.config.js` → `content/tts.gen.js` (`window.MT_TTS_ENGINES`).
+A **second** registry, deliberately: `build/providers.config.js` is the registry of
+*translation* providers (domain-design §7), and folding a different capability into it
+would grow every translation entry fields it never uses. The three rules carry over
+unchanged — transport keyed by **format** not vendor, the registry is the only place
+an engine/model/voice/endpoint is written down, and no runtime region branching.
+
+Two formats cover the whole space:
+
+| type | why it exists |
+|---|---|
+| `browser` | the platform's `speechSynthesis`. Free, offline, zero-config, **the default**. It only *speaks*: the Web Speech API exposes no way to obtain the audio data, so nothing from this engine can ever be cached or uploaded. That is a property of the API, not a gap to close |
+| `speech-compat` | the OpenAI `/v1/audio/speech` request shape — which is also what self-hosted TTS servers implement. **One format therefore covers both "my own machine" and "a cloud key"**, which is exactly what 本地优先 needs |
+
+**Audio is a derived artifact, not content.** Same text + same engine + same voice =
+same audio, so the *configuration* is what syncs; each device synthesizes locally.
+That is better than syncing audio on every axis that matters: offline, instant,
+zero egress, and changing the voice takes effect everywhere at once.
+
+**Local cache** (endpoint engines only): IndexedDB `audio` store, keyed
+`hash16(engineId ␀ model ␀ voice ␀ lang ␀ normText)`. Synthesis costs the user money
+or CPU and a card is replayed many times, so this is not an optimization — it is what
+makes a paid engine usable. Capped (200 MB default) with **least-recently-played**
+eviction: `at` is refreshed on every cache *hit*, so the sentences actually being
+reviewed stay resident while one-off synthesis ages out.
+
+**The cache key is already the sync key.** When optional audio upload lands (§8),
+the local → server → synthesize fallback falls out of this without a migration.
+
+**Voice selection is language-aware** (§4.1's rule, applied): the user's preferred
+voice is used only if it speaks the card's language; otherwise the best system voice
+for that language; otherwise **the feature reports itself unavailable with a reason**
+rather than reading the sentence in the wrong language.
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 

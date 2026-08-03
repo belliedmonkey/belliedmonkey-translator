@@ -8,8 +8,11 @@
 
 var LearnStore = (() => {
   const DB_NAME = 'mt-learn';
-  const DB_VERSION = 1;
+  // v2 adds the `audio` store. The upgrade path only ever ADDS (every create is
+  // guarded by `contains`), so bumping the version never touches existing data.
+  const DB_VERSION = 2;
   const MAX_ITEMS = 20000;
+  const MAX_AUDIO_BYTES = 200 * 1024 * 1024;   // 200 MB, LRU-evicted
 
   let dbp = null;
 
@@ -33,6 +36,13 @@ var LearnStore = (() => {
           r.createIndex('at', 'at');
         }
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'k' });
+        // Synthesized speech, keyed by LearnTTS.cacheKey. Only 'speech-compat'
+        // engines land here — the browser engine cannot return audio data at all.
+        if (!db.objectStoreNames.contains('audio')) {
+          const a = db.createObjectStore('audio', { keyPath: 'k' });
+          a.createIndex('at', 'at');       // LRU
+          a.createIndex('bytes', 'bytes');
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -120,9 +130,75 @@ var LearnStore = (() => {
     });
   }
 
+  // ─── Audio cache ─────────────────────────────────────────────────────────
+  // Synthesis costs the user money or CPU and a card is replayed many times, so a
+  // cache is not an optimization here — it is what makes a paid engine usable.
+
+  function getAudio(k) {
+    let out = null;
+    return tx(['audio'], 'readonly', (s) => {
+      const r = s.audio.get(k);
+      r.onsuccess = () => { out = r.result || null; };
+    }).then(() => {
+      if (out) touchAudio(k).catch(() => {});   // LRU bookkeeping, never blocking
+      return out;
+    }).catch(() => null);
+  }
+
+  function touchAudio(k) {
+    return tx(['audio'], 'readwrite', (s) => {
+      const r = s.audio.get(k);
+      r.onsuccess = () => { if (r.result) s.audio.put(Object.assign(r.result, { at: Date.now() })); };
+    });
+  }
+
+  function putAudio(k, blob, meta) {
+    const rec = Object.assign({ k, blob, bytes: blob.size || 0, at: Date.now() }, meta || {});
+    return tx(['audio'], 'readwrite', (s) => { s.audio.put(rec); })
+      .then(() => evictAudioIfNeeded());
+  }
+
+  // Least-recently-PLAYED goes first. Sorting by `at` (updated on every cache hit)
+  // rather than by creation time is what keeps the sentences you actually review
+  // resident while one-off synthesis ages out.
+  function evictAudioIfNeeded(limitBytes) {
+    const cap = limitBytes || MAX_AUDIO_BYTES;
+    let recs = [];
+    return tx(['audio'], 'readonly', (s) => {
+      const r = s.audio.getAll();
+      r.onsuccess = () => { recs = r.result || []; };
+    }).then(() => {
+      let total = recs.reduce((n, r) => n + (r.bytes || 0), 0);
+      if (total <= cap) return 0;
+      recs.sort((a, b) => (a.at || 0) - (b.at || 0));
+      const doomed = [];
+      for (const r of recs) {
+        if (total <= cap) break;
+        doomed.push(r.k);
+        total -= (r.bytes || 0);
+      }
+      if (!doomed.length) return 0;
+      return tx(['audio'], 'readwrite', (s) => { for (const k of doomed) s.audio.delete(k); })
+        .then(() => doomed.length);
+    });
+  }
+
+  function audioStats() {
+    let recs = [];
+    return tx(['audio'], 'readonly', (s) => {
+      const r = s.audio.getAll();
+      r.onsuccess = () => { recs = r.result || []; };
+    }).then(() => ({
+      count: recs.length,
+      bytes: recs.reduce((n, r) => n + (r.bytes || 0), 0),
+    })).catch(() => ({ count: 0, bytes: 0 }));
+  }
+
+  function clearAudio() { return tx(['audio'], 'readwrite', (s) => { s.audio.clear(); }); }
+
   function clearAll() {
-    return tx(['items', 'sources', 'reviews', 'meta'], 'readwrite', (s) => {
-      s.items.clear(); s.sources.clear(); s.reviews.clear(); s.meta.clear();
+    return tx(['items', 'sources', 'reviews', 'meta', 'audio'], 'readwrite', (s) => {
+      s.items.clear(); s.sources.clear(); s.reviews.clear(); s.meta.clear(); s.audio.clear();
     });
   }
 
@@ -139,8 +215,9 @@ var LearnStore = (() => {
   }
 
   return {
-    MAX_ITEMS,
+    MAX_ITEMS, MAX_AUDIO_BYTES,
     open, allItems, allSources, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
+    getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,
   };
 })();

@@ -397,5 +397,125 @@
   },
   "learn_replay_hint": {
     "message": "Abre a fonte em uma nova aba nesse ponto — as legendas bilíngues também funcionam lá."
+  },
+  "tts_section": {
+    "message": "Voz"
+  },
+  "tts_section_hint": {
+    "message": "Transforme os cartões em prática de escuta. Usa a voz do seu aparelho por padrão — sem rede, sem custo. Você também pode apontar para um servidor de voz próprio."
+  },
+  "tts_mode": {
+    "message": "Modo de voz"
+  },
+  "tts_mode_off": {
+    "message": "Desligado"
+  },
+  "tts_mode_assist": {
+    "message": "Mostrar o texto, com botão de reprodução"
+  },
+  "tts_mode_audio_first": {
+    "message": "Ouvir primeiro (texto oculto no início)"
+  },
+  "tts_engine": {
+    "message": "Mecanismo de voz"
+  },
+  "tts_engine_browser": {
+    "message": "Voz integrada do aparelho (grátis · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Endpoint de voz local / auto-hospedado"
+  },
+  "tts_hint_browser": {
+    "message": "Usa as vozes que seu sistema operacional já tem. Nada é enviado nem armazenado em cache — este mecanismo apenas fala, não devolve áudio."
+  },
+  "tts_hint_local": {
+    "message": "Qualquer servidor que fale o formato speech da OpenAI, na sua máquina ou rede local. O áudio sintetizado fica em cache local: cada frase só custa uma vez."
+  },
+  "tts_hint_openai": {
+    "message": "Usa sua própria chave de API. O áudio sintetizado fica em cache local: cada frase só custa uma vez."
+  },
+  "tts_base_url": {
+    "message": "URL do endpoint de voz"
+  },
+  "tts_api_key": {
+    "message": "Chave de API de voz"
+  },
+  "tts_model": {
+    "message": "Modelo de voz"
+  },
+  "tts_voice": {
+    "message": "Voz"
+  },
+  "tts_voice_auto": {
+    "message": "Automática (conforme o idioma do cartão)"
+  },
+  "tts_voice_hint": {
+    "message": "As vozes são combinadas com o idioma de cada cartão. A que você escolher aqui só é usada se realmente falar esse idioma."
+  },
+  "tts_rate": {
+    "message": "Velocidade"
+  },
+  "tts_autoplay": {
+    "message": "Tocar automaticamente ao abrir o cartão"
+  },
+  "tts_test": {
+    "message": "Ouvir uma frase de teste"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Sintetizando…"
+  },
+  "tts_test_ok": {
+    "message": "Reproduzindo"
+  },
+  "tts_play": {
+    "message": "▶ Ouvir"
+  },
+  "tts_replay": {
+    "message": "▶ Ouvir de novo"
+  },
+  "tts_playing": {
+    "message": "Reproduzindo…"
+  },
+  "tts_no_voice": {
+    "message": "Seu sistema não tem voz para este idioma"
+  },
+  "tts_unsupported": {
+    "message": "Este navegador não oferece voz integrada"
+  },
+  "tts_no_base": {
+    "message": "Ainda falta a URL do endpoint de voz"
+  },
+  "tts_no_key": {
+    "message": "Ainda falta a chave de API de voz"
+  },
+  "tts_blocked": {
+    "message": "O navegador bloqueou a reprodução automática — toque para ouvir"
+  },
+  "tts_http": {
+    "message": "O serviço de voz retornou um erro"
+  },
+  "tts_failed": {
+    "message": "Esta frase não pode ser lida agora"
+  },
+  "tts_cache": {
+    "message": "Cache de voz: {n} trechos · cerca de {mb} MB (limite {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "O cache de voz está vazio"
+  },
+  "tts_cache_na": {
+    "message": "A voz integrada não gera cache"
+  },
+  "tts_clear_cache": {
+    "message": "Limpar o cache de voz"
+  },
+  "toast_tts_cleared": {
+    "message": "Cache de voz limpo"
+  },
+  "learn_reveal_orig": {
+    "message": "Mostrar o texto"
   }
 }
