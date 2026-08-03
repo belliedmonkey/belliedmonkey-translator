@@ -553,23 +553,27 @@ for bilingual injection. Revisit only if unstructured pages prove inadequate.
 
 **ASR / self-generated podcast transcripts are out of scope** (§2.2): in-browser ASR
 is infeasible on Safari iOS, and the learning layer's optional backend (§9) is
-explicitly not a licence to add one — it carries ciphertext and proxied provider
-calls, never media. Podcasts with neither a timed transcript nor a text transcript
+explicitly not a licence to add one — it carries text and scheduling state, never
+media, and never audio we would have to transcribe. Podcasts with neither a timed transcript nor a text transcript
 page get no translation.
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
 learning layer (§9) adds an **optional, opt-in, free** account whose server does
-exactly one thing: hold an end-to-end-encrypted copy of the user's learning corpus so
-it can follow them between devices.
+exactly one thing: hold a copy of the user's learning corpus so it can follow them
+between devices (`docs/learning-design.md` §8.4 — stored in plaintext; the trust
+answer is that the backend is open source and self-hostable, and that not syncing
+costs the user nothing).
 
 What does **not** change, and is now load-bearing rather than incidental:
 
-- **Translation always runs browser → provider, on the user's own key.** There is no
-  server-side translation, no hosted key, no "convenience" default for users who
-  haven't configured one. Consequently **the server never sees plaintext** — which is
-  the only condition under which the end-to-end encryption is meaningful, and the
-  reason `README.md`'s "no servers of ours in the middle" stays literally true.
+- **Translation DEFAULTS to browser → provider, on the user's own key, and that path
+  stays free and fully capable forever.** It is never degraded to make a paid path
+  look better. A server-side model may be offered as an **opt-in paid alternative**
+  (`docs/learning-design.md` §2.1), which means `README.md`'s "no servers of ours in
+  the middle" must be stated **per path** rather than as a blanket claim. The
+  invariant that survives is not our abstinence — it is that **someone who never pays
+  and never signs in has a complete product.**
 - **The server runs no model and performs no computation on user data.** It stores
   opaque bytes.
 - **The extension is complete without an account.** Sync is additive; every learning
@@ -654,7 +658,7 @@ source → Extractor → Engine → Renderer
 Hence three tiers: content script → bounded `lq:` outbox in `chrome.storage.local` →
 IndexedDB opened only in extension pages. Same reason `crypto.subtle` is unusable in
 content scripts (plain-`http` pages are not secure contexts), so the item id uses a
-synchronous FNV-1a hash and all encryption happens in extension pages.
+synchronous FNV-1a hash rather than `crypto.subtle`.
 
 ### 9.4 Device axis
 

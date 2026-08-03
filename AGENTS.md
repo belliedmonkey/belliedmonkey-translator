@@ -19,17 +19,28 @@ these in order when designing anything new:
 
 1. **Can this be done without a server?** If yes, do it without one. Anything the
    device can compute, the device computes.
-2. **Translation always uses the user's own key and never passes through a server of
-   ours.** This is not a cost decision — it is the foundation of the privacy
-   architecture. A server that never proxies a translation never sees plaintext,
-   which is the only condition under which end-to-end encryption means anything and
-   under which `README.md`'s "no servers of ours in the middle" stays literally true.
-   **This does not yield to any feature**, including a hosted default for users who
-   have not configured a key.
+2. **Local first, and the free path never needs a server of ours.** Translation
+   **defaults** to the user's own key, browser → provider directly, and that path
+   stays fully capable forever — it is never degraded to make a paid path look
+   better. A server-side model may be offered **only** as an opt-in paid
+   alternative, and only where it demonstrably beats what the local path can do.
+   The invariant is not "we never run a model" — it is: **a person who never pays
+   and never signs in has a complete product.**
+   *(Amended 2026-08-04. This rule used to read "never passes through a server of
+   ours … does not yield to any feature", justified by end-to-end encryption making
+   plaintext unreachable. That justification no longer holds — see rule 4 and
+   `docs/learning-design.md` §8.4 — so the rule was narrowed to the part that was
+   actually load-bearing: the free path's independence, not our abstinence.)*
 3. **Accounts and sync are free.** The server carries only what genuinely cannot work
    without it — and the product must be complete for a signed-out user.
-4. **The server performs no computation on user data.** No model calls, no
-   server-side recommendation, quiz generation, or analytics.
+4. **No telemetry, ever — and server-side computation only as a paid, opt-in
+   exception.** Usage analytics and tracking stay permanently forbidden; `README.md`
+   says "no tracking, no telemetry" and that must remain literally true. Model
+   inference on user content (translation, quiz generation, grading) is allowed
+   **only** when the user chose it and is paying for it, because it is a real
+   recurring cost (rule 8). Whatever such a path processes must be disclosed for
+   that path specifically — never averaged away in a claim about the product as a
+   whole.
 5. **The server never stores media we do not own.** Third-party audio and video (a
    YouTube segment, podcast audio) is stored as a **pointer** — media id + start/end
    offsets, ~20 bytes — and replayed from the source. This is **not** a cost

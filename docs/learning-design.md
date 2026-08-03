@@ -52,24 +52,41 @@ designed under.
 
 | | Everyone |
 |---|---|
-| Translation | **always** the user's own key, browser → provider directly. There is no server-side translation, ever |
+| Translation | **defaults** to the user's own key, browser → provider directly, and that path stays free and fully capable forever. A server-side model may be offered as an opt-in **paid** alternative (§2.1) |
 | Learning corpus | device-local IndexedDB; optionally synced across devices |
-| LLM quizzes | the user's own key |
+| LLM quizzes | the user's own key by default; a paid server-side path is permitted under §2.1 |
 | Account & sync | free, optional, opt-in |
-| Encryption | end-to-end, **no exception** — the server only ever holds ciphertext and an email address |
+| Storage at rest | **plaintext** on the server (§8.4). Not end-to-end encrypted |
 
-> **核心约束 — the server never runs a model, and that is load-bearing.** The reason
-> is not cost. It is that a server which never proxies a translation **never sees
-> plaintext**, which is the only condition under which end-to-end encryption is
-> meaningful and under which `README.md`'s "no servers of ours in the middle" stays
-> literally true. Do not add a server-side model call for any feature, including a
-> "convenience" default for users without a key.
+> **核心约束 — the free path never needs a server of ours.** A person who never pays
+> and never signs in must have a *complete* product: capture, scheduling, review,
+> on-device speech, and BYO-key translation all work with no account and no network
+> of ours. The local path is never degraded to make a paid path look better. This is
+> the invariant that survived — it is **not** "we never run a model".
 
-> **核心约束 — the consequence must be stated, not buried.** Because storage is
-> ciphertext-only, **server-side intelligence is permanently impossible**: no
-> cross-user difficulty grading, no shared quiz cache (the same sentence quizzed once
-> for everyone), no web review app. This was chosen knowingly. Do not re-litigate it
-> in code by "temporarily" storing plaintext.
+### 2.1 When a server-side model is allowed
+
+*(Amended 2026-08-04. This section previously read "the server never runs a model,
+and that is load-bearing", justified by end-to-end encryption. §8.4 removed the
+encryption, so that justification is gone; the rule was narrowed rather than kept
+for its own sake.)*
+
+Three conditions, all required:
+
+1. **The user chose it and is paying for it.** Inference is a real recurring cost, so
+   pricing it is exactly what `AGENTS.md` rule 8 permits — and BYO-key stays free, so
+   rule 6 (never convert free to paid) is not touched.
+2. **It demonstrably beats what the local path can do.** "Convenient for us to host"
+   is not a reason. If a user's own key produces the same result, there is nothing to
+   sell.
+3. **What that path processes is disclosed for that path specifically** — never
+   averaged away into a claim about the product as a whole (§10).
+
+**Local deployment stays first.** Default, recommended, and the one the onboarding
+teaches. A hosted model is an alternative for people who want it, never the path of
+least resistance.
+
+**Telemetry remains permanently forbidden**, and is not affected by any of this.
 
 ---
 
@@ -327,7 +344,7 @@ starred card or one you are actively learning.
 > and only once such a tier exists. Never show an upgrade path to a tier that does
 > not exist.
 
-## 8. Sync and encryption (V3)
+## 8. Sync (V3)
 
 ### 8.1 No new dependency
 
@@ -353,7 +370,7 @@ card's `text` + `tr` is ~200 B of plaintext; a card accrues ~8 reviews over its 
 |---|---|---|
 | **1 — sync only graduated cards** | The candidate pool (hundreds of segments per page) **never leaves the device**. This is not merely thrift: the candidate pool *should* be a product of what you read on this device, while cards you have actually started learning *should* follow you | ~10× |
 | **2 — normalize the source** | URL + title is ~160 B, nearly half a card. A `Source` row is shared by every card from the same page (~30 for an article) | 160 B → ~5 B per card |
-| **3 — compress, then encrypt, in batches** | Ciphertext is incompressible, so the order **must** be deflate → AES-GCM. Compressing one short sentence is near-useless, so ~200 cards are packed into one **immutable chunk** and compressed together. Mixed CJK/Latin text batches at ~3× | ~3× |
+| **3 — compress in batches** | Compressing one short sentence is near-useless, so ~200 cards are packed into one **immutable chunk** and compressed together. Mixed CJK/Latin text batches at ~3×. (This lever originally also fixed an ordering trap — ciphertext is incompressible, so encryption had to come second. With §8.4's decision there is no encryption step, and the batching stands on its own.) | ~3× |
 | **4 — append-only + whole-snapshot compaction** | Chunks are only ever appended, never updated. When the chunk count passes a threshold the client pulls everything, rewrites it as one snapshot chunk, and deletes the superseded ones. **No incremental merge machinery** — the local corpus is already hard-capped at 20,000 items, so a whole rewrite is affordable | 5,000 rows → ~25 |
 
 | | Raw | After |
@@ -378,12 +395,12 @@ only** — `mediaKey` plus start/end offsets, ~20 bytes.
 ```sql
 -- RLS on every table: user_id = auth.uid()
 learn_chunks (user_id uuid, seq bigint, kind text,   -- 'cards' | 'reviews' | 'sources'
-              ct bytea, generation int,
+              blob bytea, generation int,             -- deflate-raw, NOT encrypted
               PRIMARY KEY (user_id, seq))            -- append-only; never UPDATEd
 ```
 
-- **Pull** `seq > cursor`; decrypt, inflate, replay into the local IndexedDB. Cursor
-  lives in `meta`.
+- **Pull** `seq > cursor`; inflate, replay into the local IndexedDB. Cursor lives in
+  `meta`.
 - **Push** batches new cards and reviews into a fresh chunk and appends it.
 - **Conflicts:** `text`/`tr`/`anchor` are immutable ⇒ none. `sched` is **derived by
   replaying the review log**, never synced directly ⇒ none. Only `starred` / `state` /
@@ -396,17 +413,38 @@ learn_chunks (user_id uuid, seq bigint, kind text,   -- 'cards' | 'reviews' | 's
 Replay must be **idempotent** — a chunk applied twice produces the same local state.
 That is what makes an interrupted sync safe to simply re-run.
 
-### 8.4 Crypto
+### 8.4 No end-to-end encryption — and what that obliges us to say
 
-AES-GCM-256. The key is generated locally (`crypto.getRandomValues(32)`), stored in
-`chrome.storage.local`, and exported to the user as a Crockford base32 **recovery
-code**. Per-record random nonce. Encryption runs **only in extension pages**, which
-are secure contexts (§4's note on `crypto.subtle`).
+*(Decided 2026-08-04, reversing the earlier E2E design.)* The synced corpus is stored
+**in plaintext**. The trust answer is that the project is open source and the backend
+is self-hostable: anyone who would rather not trust the hosted instance can run their
+own, or simply not sync — the local product is complete without it (§2).
 
-> **Losing the recovery code makes the synced corpus permanently unreadable.** That
-> is the price of end-to-end encryption and the UI must say it in those words, with a
-> blocking "I have written it down" confirmation at enrollment. Never soften this
-> into "you may lose access".
+What this buys, and it is not small: **no recovery code** (the single worst thing in
+the old design — lose the code, lose everything, forever), a corpus that can actually
+be debugged when a user reports broken sync, and the option of server-side features
+later (a shared quiz cache would let one generation serve every user who meets the
+same sentence — a real cost win for a free project).
+
+> **核心约束 — do not oversell "open source" as the privacy answer.** Being open
+> source makes the **client** auditable: a user can verify what it uploads. It does
+> **not** make the **server** auditable — nobody can verify what happens to data
+> after it arrives. Self-hosting answers both, but only for the few who can run it.
+> So the privacy statement must say what is *true* — we store your learning material
+> in readable form, here is what we do and do not do with it, here is how to
+> self-host, here is how to delete it — and must never imply that publishing the
+> source resolves the question.
+
+**What the plaintext actually is, stated plainly**: the sentences you read, their
+translations, the page URL and title, and when you reviewed them. That is a **reading
+history**, the most sensitive thing this product touches. It obliges, at minimum:
+
+- TLS in transit and provider-level encryption at rest (table stakes, not a feature);
+- **RLS on every table** so one account can never read another's (§8.3);
+- **one-action export and one-action deletion** of everything, from settings;
+- treating it as personal data for GDPR / 个人信息保护法 purposes — including breach
+  notification. Under E2E one could argue we held only opaque bytes; that argument is
+  now gone, and pretending otherwise would be the dishonest kind of shortcut.
 
 ### 8.5 Abuse limits — free accounts still need a ceiling
 
@@ -516,21 +554,27 @@ Required new bullet, adjacent to the "no account" bullet:
 
 ### Gate B — ships with V3 (accounts and sync)
 
-- **"No servers of ours in the middle"** (README hero, line 6) and "**No servers of
-  ours.** Requests go from your browser to the engine you picked" **stay verbatim**.
-  They are about the *translation* path, and that path never touches our server —
-  before or after sync exists. Do not weaken them out of an abundance of caution;
-  they are the strongest true thing the project can say.
+- **"No servers of ours in the middle"** (README hero, line 6) can no longer stand as
+  an unqualified claim once either sync or a hosted model exists. It must be stated
+  **per path**: by default your translation goes straight from your browser to the
+  engine you picked and we are not in it — and that stays true, free, forever. If you
+  turn on sync, your learning material is stored on our server in readable form. If
+  you ever opt into a hosted model, that text passes through us too. Say all three;
+  do not average them into one reassuring sentence.
 - **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one
   that changes. It becomes: no tracking and no telemetry (still true), plus an
-  **optional, free account** that exists solely to sync an end-to-end-encrypted
-  learning corpus — and which the extension works completely without.
-- **Firefox `data_collection_permissions`** must be re-evaluated against
-  `build.js` (which already carries this reminder and a build-time assertion) —
-  syncing ciphertext is still transmitting website content plus browsing activity.
-- **App Store privacy labels** must be refilled (adds "Usage Data" and "User
-  Content"), and the host app must offer in-app **account deletion** — an Apple
-  requirement for any app with account creation, not a nicety.
+  **optional, free account** whose only job is to sync the learning corpus between
+  the user's own devices — and which the extension works completely without.
+- **Firefox `data_collection_permissions`** must be re-evaluated against `build.js`
+  (which already carries this reminder and a build-time assertion). Syncing plaintext
+  transmits website content **and** browsing activity, and it is now readable on the
+  receiving end — so the declaration almost certainly has to grow, and the wording
+  must not lean on "it's encrypted" because it no longer is.
+- **App Store privacy labels** must be refilled (adds "User Content"; **not** "Usage
+  Data" — there is still no telemetry), and the host app must offer in-app **account
+  deletion** — an Apple requirement for any app with account creation, not a nicety.
+  Data **export** belongs next to it: plaintext storage makes it trivial to provide
+  and indefensible to withhold.
 - **`belliedmonkey.cc/privacy.html` lives outside this repo.** Per `AGENTS.md`, look
   its current state up in gbrain first; never infer it from this repository.
 
@@ -541,12 +585,13 @@ Required new bullet, adjacent to the "no account" bullet:
   replays the original audio; it is never re-read by a synthetic voice. Synthesizing
   speech for *text* cards — which have no original audio — is in scope and specified
   in §9.1.
-- **Any server-side model call** (§2), including a "convenience" hosted default for
-  users who have not configured a key. The server never runs a model.
-- **Server-side intelligence** (§2) — precluded by ciphertext-at-rest.
-- **Paid tiers for anything designed here.** Per `AGENTS.md`, a feature may only be
-  priced if its storage or compute genuinely cannot be carried for free, and
-  **something already shipped free is never converted to paid**.
+- **A hosted model as the DEFAULT path** (§2.1). Local/BYO-key is the default and
+  stays fully capable; a server-side model is an opt-in paid alternative or it does
+  not ship at all.
+- **Telemetry and usage analytics**, permanently — unaffected by §2.1.
+- **Converting anything already free into paid.** Per `AGENTS.md` rule 6. A paid
+  server-side model is a *new* capability, not a conversion, which is the only reason
+  it is permitted.
 - **ASR** remains out of scope, unchanged from domain-design §8: the learning layer
   consumes transcripts that already exist, it never creates them.
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
