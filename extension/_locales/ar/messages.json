@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "إظهار النص"
+  },
+  "learn_clean_known": {
+    "message": "امسح البطاقات التي أتقنتها"
+  },
+  "learn_clean_known_n": {
+    "message": "امسح {n} بطاقة أتقنتها"
+  },
+  "learn_pressure_dropped": {
+    "message": "تعذّر حفظ {n} عنصرًا مجمّعًا — يحدث هذا عندما تمتلئ المكتبة."
+  },
+  "learn_pressure_evicted": {
+    "message": "المكتبة ممتلئة — حُذفت {n} بطاقة قديمة تلقائيًا لإفساح المجال."
+  },
+  "learn_pressure_near": {
+    "message": "المكتبة أوشكت على الامتلاء ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "تم مسح {n} بطاقة أتقنتها"
   }
 }

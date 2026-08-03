@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Mostrar o texto"
+  },
+  "learn_clean_known": {
+    "message": "Limpar cartões dominados"
+  },
+  "learn_clean_known_n": {
+    "message": "Limpar {n} cartões dominados"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} itens coletados não puderam ser salvos — isso acontece quando a biblioteca está cheia."
+  },
+  "learn_pressure_evicted": {
+    "message": "A biblioteca está cheia — {n} cartões antigos foram removidos automaticamente para abrir espaço."
+  },
+  "learn_pressure_near": {
+    "message": "A biblioteca está quase cheia ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} cartões dominados limpos"
   }
 }

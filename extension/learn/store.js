@@ -110,6 +110,55 @@ var LearnStore = (() => {
     return tx(['reviews'], 'readwrite', (s) => { s.reviews.add({ itemId, grade, at }); });
   }
 
+  // ─── Storage pressure ────────────────────────────────────────────────────
+  // Law 2 (domain-design §9.1) lets us drop material; it does NOT let the user find
+  // out months later. Anything discarded is counted here so the review page and
+  // settings can report it — see learning-design.md §7.1.
+
+  function bumpPressure(field, n, now) {
+    if (!n) return Promise.resolve();
+    return getMeta('pressure', null).then((p) => {
+      const next = Object.assign({ evicted: 0, dropped: 0, at: 0 }, p || {});
+      next[field] = (next[field] || 0) + n;
+      next.at = now || Date.now();
+      return setMeta('pressure', next);
+    }).catch(() => {});
+  }
+
+  // What the surfaces render. `atCap` is the live condition; the counters are what
+  // has already been lost since the user last acted on it.
+  function pressure() {
+    return Promise.all([allItems(), getMeta('pressure', null)]).then(([items, p]) => {
+      const rec = Object.assign({ evicted: 0, dropped: 0, at: 0 }, p || {});
+      const known = items.filter((it) => LearnScheduler.stateFor(it) === 'known' && !it.starred).length;
+      return {
+        total: items.length,
+        cap: MAX_ITEMS,
+        atCap: items.length >= MAX_ITEMS,
+        nearCap: items.length >= Math.floor(MAX_ITEMS * 0.95),
+        evicted: rec.evicted || 0,
+        dropped: rec.dropped || 0,
+        at: rec.at || 0,
+        reclaimable: known,
+      };
+    }).catch(() => null);
+  }
+
+  function clearPressure() { return setMeta('pressure', { evicted: 0, dropped: 0, at: 0 }); }
+
+  // The TARGETED cleanup. 'known' cards are the ones the scheduler itself concluded
+  // you no longer need, so this frees space without throwing away a single card you
+  // are actively learning — unlike clearAll(), which is the nuclear option.
+  function clearKnown() {
+    return allItems().then((items) => {
+      const doomed = items.filter((it) => !it.starred && LearnScheduler.stateFor(it) === 'known');
+      if (!doomed.length) return 0;
+      return tx(['items'], 'readwrite', (s) => { for (const d of doomed) s.items.delete(d.id); })
+        .then(() => clearPressure())
+        .then(() => doomed.length);
+    });
+  }
+
   // Bounded corpus. Evict 'known' first, then lowest salience, then oldest —
   // never a card the user is actively learning.
   function evictIfNeeded(limit) {
@@ -126,6 +175,7 @@ var LearnStore = (() => {
         .slice(0, overflow);
       if (!doomed.length) return 0;
       return tx(['items'], 'readwrite', (s) => { for (const d of doomed) s.items.delete(d.id); })
+        .then(() => bumpPressure('evicted', doomed.length))
         .then(() => doomed.length);
     });
   }
@@ -197,6 +247,8 @@ var LearnStore = (() => {
   function clearAudio() { return tx(['audio'], 'readwrite', (s) => { s.audio.clear(); }); }
 
   function clearAll() {
+    // Wipes `meta` too, which resets the pressure counters — correct, since after
+    // this there is nothing left to be under pressure about.
     return tx(['items', 'sources', 'reviews', 'meta', 'audio'], 'readwrite', (s) => {
       s.items.clear(); s.sources.clear(); s.reviews.clear(); s.meta.clear(); s.audio.clear();
     });
@@ -218,6 +270,7 @@ var LearnStore = (() => {
     MAX_ITEMS, MAX_AUDIO_BYTES,
     open, allItems, allSources, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
+    pressure, bumpPressure, clearPressure, clearKnown,
     getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,
   };
 })();

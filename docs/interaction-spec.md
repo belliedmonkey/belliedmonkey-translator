@@ -638,6 +638,27 @@ capture.
   in settings, because a cache the user cannot see is a cache they will one day be
   surprised by.
 
+### 存储压力
+
+Capture stopping, or collected material being discarded, is **never** announced in
+the page — but it is **always** visible to a user who turned capture on
+(domain-design §9.1 law 2). It surfaces in the review page and settings, never as a
+toast over an article.
+
+- **Review page**: a single line above the card — 「学习库已满，正在自动淘汰旧卡」 or
+  「有采集内容没能存下来」 — with the cleanup action beside it. It never blocks the
+  card; a full corpus still reviews perfectly well.
+- **Settings**: the same state, stated with numbers, next to the usage readout.
+- **The primary cleanup is targeted, not nuclear.** 「清理已掌握的卡」 removes only
+  `state='known'` items — the ones the scheduler itself concluded you no longer need
+  — and never a starred card or one you are learning. 「清空学习库」 stays available
+  for people who want a clean slate, with its existing confirm step.
+- **Never offer to sell local storage.** The local cap is self-imposed and costs the
+  project nothing; see learning-design §7.1. A paid option may only ever appear
+  against the *server* quota, and only if such a tier exists.
+- Once cleared, the message goes away on its own — it reports a live state, not a
+  dismissed alert.
+
 ### States
 - **Empty corpus**: explain how material gets collected (browse and translate), not
   「暂无数据」.

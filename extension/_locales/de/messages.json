@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Text anzeigen"
+  },
+  "learn_clean_known": {
+    "message": "Beherrschte Karten aufräumen"
+  },
+  "learn_clean_known_n": {
+    "message": "{n} beherrschte Karten aufräumen"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} erfasste Einträge konnten nicht gespeichert werden — das passiert, wenn die Bibliothek voll ist."
+  },
+  "learn_pressure_evicted": {
+    "message": "Die Bibliothek ist voll — {n} alte Karten wurden automatisch entfernt, um Platz zu schaffen."
+  },
+  "learn_pressure_near": {
+    "message": "Die Bibliothek ist fast voll ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} beherrschte Karten aufgeräumt"
   }
 }

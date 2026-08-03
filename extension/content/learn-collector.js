@@ -5,9 +5,11 @@
 //   1. Capture is a sink, never a source. Nothing here calls the engine, marks a
 //      unit, or originates a translation. Delete this file at runtime and the
 //      translation output must be byte-for-byte identical.
-//   2. Degradation is silent and total. Every entry point is wrapped: storage full,
-//      no IntersectionObserver, a throwing observer — all reduce to "no capture".
-//      Dropping captures is a NORMAL path, not an error path.
+//   2. Silent in the browsing flow — never silent to a user who opted in. Every
+//      entry point is wrapped: storage full, no IntersectionObserver, a throwing
+//      observer — all reduce to "no capture", and the PAGE never hears about it.
+//      But anything that loses captures is counted (`lq:dropped`) so the learning
+//      surfaces can say so. Dropping is a normal path; hiding it is not.
 //   3. Nothing reaches DomSegmenter. There are no selectors here beyond refusing to
 //      look at our own injected UI.
 //   4. Self-capture is forbidden — `.mt-translation` and any `#mt-*` subtree are
@@ -208,22 +210,31 @@ var LearnCollector = (() => {
         const src = meta();
         const key = LearnModel.OUTBOX_PREFIX + sessionId;
         const idxKey = LearnModel.OUTBOX_INDEX;
-        chrome.storage.local.get([idxKey], (res) => {
+        const dropKey = LearnModel.OUTBOX_DROPPED;
+        chrome.storage.local.get([idxKey, dropKey], (res) => {
           try {
             const index = Array.isArray(res && res[idxKey]) ? res[idxKey].slice() : [];
             const at = index.findIndex((e) => e && e.k === key);
             const entry = { k: key, ts: now, n: items.length };
             if (at >= 0) index[at] = entry; else index.push(entry);
 
-            // Bounded: the oldest sessions are dropped. This is a NORMAL path — a
-            // user who never opens the review page simply keeps the most recent
-            // captures, and nothing errors (law 2).
+            // Bounded: the oldest sessions are dropped. Still a NORMAL path (law 2)
+            // — but no longer an invisible one. These captures never reach the
+            // corpus at all, so the count is carried forward for the learning
+            // surfaces to report; the page itself stays silent.
             const drop = index.length > LearnModel.MAX_OUTBOX_SESSIONS
               ? index.splice(0, index.length - LearnModel.MAX_OUTBOX_SESSIONS)
               : [];
 
             const write = {};
             write[idxKey] = index;
+            if (drop.length) {
+              const prev = (res && res[dropKey]) || { n: 0, at: 0 };
+              write[dropKey] = {
+                n: (prev.n || 0) + drop.reduce((t, e) => t + (e.n || 0), 0),
+                at: now,
+              };
+            }
             write[key] = { url: src.url, title: src.title, sourceId: src.sourceId, items };
             chrome.storage.local.set(write, () => {
               if (drop.length) safe(() => chrome.storage.local.remove(drop.map((e) => e.k)));

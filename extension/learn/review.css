@@ -43,6 +43,16 @@ body {
 .bar h1 { font-size: 20px; font-weight: 650; }
 .counts { color: var(--text-secondary); font-size: 13px; }
 
+/* 存储压力条。醒目到不会被忽略，但不是错误状态——库满了复习照常工作。 */
+.pressure {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--card-bg); border: 1px solid var(--green);
+  border-left-width: 3px; border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.pressure button { padding: 7px 12px; font-size: 13px; border-color: var(--green); color: var(--green); }
+.pressure button:hover { background: var(--green); color: #fff; }
+
 .panel, .card {
   background: var(--card-bg);
   border: 1px solid var(--border);

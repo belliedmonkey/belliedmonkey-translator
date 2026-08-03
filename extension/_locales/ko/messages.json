@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "원문 보기"
+  },
+  "learn_clean_known": {
+    "message": "익힌 카드 정리"
+  },
+  "learn_clean_known_n": {
+    "message": "익힌 카드 {n}장 정리"
+  },
+  "learn_pressure_dropped": {
+    "message": "수집한 항목 {n}개를 저장하지 못했습니다(라이브러리가 가득 찼을 때 발생합니다)."
+  },
+  "learn_pressure_evicted": {
+    "message": "라이브러리가 가득 차서 공간 확보를 위해 오래된 카드 {n}장을 자동으로 삭제했습니다."
+  },
+  "learn_pressure_near": {
+    "message": "라이브러리가 거의 찼습니다({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "익힌 카드 {n}장을 정리했습니다"
   }
 }

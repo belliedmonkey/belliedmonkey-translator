@@ -199,9 +199,37 @@
 
     doneThisRun++;
     idx++;
+    refreshPressure();
     if (idx >= deck.length) { await start(); return; }
     show(sources);
     await refreshCounts();
+  }
+
+  // Storage pressure. Law 2 forbids telling the PAGE anything; it requires telling
+  // a user who turned capture on. This is that surface.
+  async function refreshPressure() {
+    const box = $('pressure');
+    if (!box) return;
+    try {
+      const p = await LearnStore.pressure();
+      if (!p) { box.hidden = true; return; }
+      let msg = '';
+      if (p.dropped > 0) {
+        msg = t('learn_pressure_dropped', '有 {n} 条采集内容没能存下来（学习库满时会发生）。')
+          .replace('{n}', String(p.dropped));
+      } else if (p.evicted > 0) {
+        msg = t('learn_pressure_evicted', '学习库已满，已自动淘汰 {n} 张旧卡为新内容腾地方。')
+          .replace('{n}', String(p.evicted));
+      } else if (p.atCap || p.nearCap) {
+        msg = t('learn_pressure_near', '学习库快满了（{n} / {cap}）。')
+          .replace('{n}', String(p.total)).replace('{cap}', String(p.cap));
+      }
+      box.hidden = !msg;
+      if (!msg) return;
+      $('pressure-msg').textContent = msg;
+      // Only offer the targeted cleanup when it would actually reclaim something.
+      $('pressure-fix').hidden = p.reclaimable === 0;
+    } catch (_) { box.hidden = true; }
   }
 
   async function refreshCounts() {
@@ -310,6 +338,17 @@
   // Drain the outbox first — this page is one of the few places that can, since the
   // corpus lives in the extension origin and the service worker cannot be trusted
   // on Safari iOS.
+  $('pressure-fix').addEventListener('click', async () => {
+    const n = await LearnStore.clearKnown().catch(() => 0);
+    await refreshPressure();
+    await refreshCounts();
+    if (!n) return;
+    // The corpus changed underneath the deck, so rebuild rather than leaving a
+    // card on screen that no longer exists.
+    await start();
+  });
+
   await LearnDrain.run();
+  await refreshPressure();
   await start();
 })();

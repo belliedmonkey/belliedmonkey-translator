@@ -15,24 +15,36 @@ var LearnDrain = (() => {
   function readOutbox() {
     return new Promise((resolve) => {
       try {
-        chrome.storage.local.get([LearnModel.OUTBOX_INDEX], (res) => {
+        chrome.storage.local.get([LearnModel.OUTBOX_INDEX, LearnModel.OUTBOX_DROPPED], (res) => {
+          const dropped = ((res || {})[LearnModel.OUTBOX_DROPPED] || {}).n || 0;
           const index = (res || {})[LearnModel.OUTBOX_INDEX];
           const keys = keysOf(index);
-          if (!keys.length) { resolve({ keys: [], batches: [] }); return; }
+          if (!keys.length) { resolve({ keys: [], batches: [], dropped }); return; }
           chrome.storage.local.get(keys, (blobs) => {
             const batches = keys.map((k) => (blobs || {})[k]).filter(Boolean);
-            resolve({ keys, batches });
+            resolve({ keys, batches, dropped });
           });
         });
-      } catch (_) { resolve({ keys: [], batches: [] }); }
+      } catch (_) { resolve({ keys: [], batches: [], dropped: 0 }); }
     });
+  }
+
+  // Captures the content script had to drop never reach the corpus, so this is the
+  // only chance to record that they existed at all (learning-design.md §7.1).
+  function carryDropped(n) {
+    if (!n) return Promise.resolve();
+    return LearnStore.bumpPressure('dropped', n)
+      .then(() => new Promise((r) => {
+        try { chrome.storage.local.remove([LearnModel.OUTBOX_DROPPED], () => r()); } catch (_) { r(); }
+      }))
+      .catch(() => {});
   }
 
   // Returns the number of items merged. Never throws — a drain that fails leaves the
   // outbox untouched and simply reports 0, so the next page open retries it.
   function run() {
-    return readOutbox().then(({ keys, batches }) => {
-      if (!batches.length) return 0;
+    return readOutbox().then(({ keys, batches, dropped }) => {
+      if (!batches.length) return carryDropped(dropped).then(() => 0);
       const items = [];
       const sources = [];
       const seenSrc = new Set();
@@ -48,6 +60,7 @@ var LearnDrain = (() => {
       }
       return LearnStore.mergeBatch(items, sources)
         .then(() => LearnStore.evictIfNeeded())
+        .then(() => carryDropped(dropped))
         .then(() => clear(keys))
         .then(() => items.length);
     }).catch(() => 0);

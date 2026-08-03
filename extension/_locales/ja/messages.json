@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "原文を表示"
+  },
+  "learn_clean_known": {
+    "message": "習得済みのカードを整理"
+  },
+  "learn_clean_known_n": {
+    "message": "習得済みの {n} 枚を整理"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} 件の収集内容を保存できませんでした（ライブラリが満杯のときに起こります）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "ライブラリが満杯のため、空きを作るために古いカード {n} 枚を自動的に削除しました。"
+  },
+  "learn_pressure_near": {
+    "message": "ライブラリがまもなく満杯です（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "習得済みの {n} 枚を整理しました"
   }
 }

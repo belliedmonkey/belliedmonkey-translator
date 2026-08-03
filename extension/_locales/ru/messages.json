@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Показать текст"
+  },
+  "learn_clean_known": {
+    "message": "Убрать освоенные карточки"
+  },
+  "learn_clean_known_n": {
+    "message": "Убрать освоенных карточек: {n}"
+  },
+  "learn_pressure_dropped": {
+    "message": "Не удалось сохранить собранных элементов: {n} — так бывает, когда библиотека заполнена."
+  },
+  "learn_pressure_evicted": {
+    "message": "Библиотека заполнена — автоматически удалено старых карточек: {n}, чтобы освободить место."
+  },
+  "learn_pressure_near": {
+    "message": "Библиотека почти заполнена ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Убрано освоенных карточек: {n}"
   }
 }

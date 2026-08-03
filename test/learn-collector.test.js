@@ -211,6 +211,46 @@ describe('LearnCollector — silent and total degradation', () => {
     await C.disable();
   });
 
+  test('dropped captures are COUNTED, not just discarded', async () => {
+    // Law 2 was amended 2026-08-04: dropping is still a normal path, but it may not
+    // be an invisible one. Without this counter the user has no way to ever learn
+    // that collection silently stopped keeping up.
+    const store = {};
+    const model = loadModule('learn-model.js', { window: {} }).LearnModel;
+    const index = [];
+    for (let i = 0; i < model.MAX_OUTBOX_SESSIONS; i++) {
+      const k = 'lq:old' + i;
+      index.push({ k, ts: i, n: 3 });          // 3 captures per dropped session
+      store[k] = { items: [] };
+    }
+    store['lq:index'] = index;
+
+    const { C, observers } = setup({ store });
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t });
+    const node = el();
+    C.observe(node, LATIN, '一段足够长的中文译文。');
+    dwell(C, observers, node, 4000, clock);
+    ok(await C.flush() > 0);
+
+    const rec = store[model.OUTBOX_DROPPED];
+    ok(rec, 'a dropped session must leave a record behind');
+    eq(rec.n, 3, 'the count is of ITEMS lost, not sessions — that is what the user lost');
+    ok(rec.at > 0);
+  });
+
+  test('nothing is recorded as dropped when nothing was dropped', async () => {
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t });
+    const node = el();
+    C.observe(node, LATIN, '一段足够长的中文译文。');
+    dwell(C, observers, node, 4000, clock);
+    await C.flush();
+    const model = loadModule('learn-model.js', { window: {} }).LearnModel;
+    eq(model.OUTBOX_DROPPED in store, false, 'a false alarm is as bad as a missed one');
+  });
+
   test('the outbox is bounded: old sessions are dropped, which is a NORMAL path', async () => {
     const store = {};
     // Seed an index already at the cap, with keys present.

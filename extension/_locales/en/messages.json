@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Show the text"
+  },
+  "learn_clean_known": {
+    "message": "Clear cards you've mastered"
+  },
+  "learn_clean_known_n": {
+    "message": "Clear {n} mastered cards"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} captured items could not be saved — this happens when the corpus is full."
+  },
+  "learn_pressure_evicted": {
+    "message": "The corpus is full — {n} old cards were dropped automatically to make room."
+  },
+  "learn_pressure_near": {
+    "message": "The corpus is nearly full ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Cleared {n} mastered cards"
   }
 }

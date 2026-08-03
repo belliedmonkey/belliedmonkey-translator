@@ -604,10 +604,23 @@ source → Extractor → Engine → Renderer
    **never originates a translation request**. *If the learning layer were deleted at
    runtime, translation output must be byte-for-byte identical.*
 
-2. **Degradation is silent and total.** Storage full, IndexedDB unavailable, outbox
-   overflow — all reduce to *no capture*, with the translation path untouched. No
-   retry loop, no user-visible notice, no half-state (same shape as §5.3.3).
-   **Dropping captures is a normal path, not an error path.**
+2. **Silent in the browsing flow — never silent to a user who opted in.**
+   *(Amended 2026-08-04. The original wording was "degradation is silent and total",
+   which conflated two separate things and let the second one hide behind the first.)*
+   - **Toward the page: absolutely silent.** Storage full, IndexedDB unavailable,
+     outbox overflow — all reduce to *no capture*, with the translation path
+     untouched. No retry loop, no notice injected into the page, no half-state (same
+     shape as §5.3.3). Reading a page must never be interrupted by the learning
+     layer's problems.
+   - **Toward a user who turned capture ON: never silent.** Anything that stops
+     capture, or discards material already collected, **must be visible in the
+     learning surfaces** (review page, settings, popup) with an action that fixes it.
+     A learner who finds out months later that collection quietly stopped is the
+     worst outcome this feature has — worse than being told on day one. (This is the
+     same rule `learning-design.md` §8.5 already applies to the server quota; law 2
+     used to contradict it.)
+   - **Dropping captures is still a normal path, not an error path** — it just is not
+     an *invisible* one.
 
 3. **Nothing reaches `DomSegmenter`.** The Collector adds **zero selectors**. Site
    knowledge enters only through the two markers the segmenter already honors,

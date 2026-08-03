@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Mostrar el texto"
+  },
+  "learn_clean_known": {
+    "message": "Limpiar las tarjetas dominadas"
+  },
+  "learn_clean_known_n": {
+    "message": "Limpiar {n} tarjetas dominadas"
+  },
+  "learn_pressure_dropped": {
+    "message": "No se pudieron guardar {n} elementos recopilados: ocurre cuando la biblioteca está llena."
+  },
+  "learn_pressure_evicted": {
+    "message": "La biblioteca está llena: se eliminaron automáticamente {n} tarjetas antiguas para hacer espacio."
+  },
+  "learn_pressure_near": {
+    "message": "La biblioteca está casi llena ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Se limpiaron {n} tarjetas dominadas"
   }
 }

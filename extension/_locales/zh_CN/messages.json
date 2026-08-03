@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "显示原文"
+  },
+  "learn_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "learn_clean_known_n": {
+    "message": "清理已掌握的 {n} 张卡"
+  },
+  "learn_pressure_dropped": {
+    "message": "有 {n} 条采集内容没能存下来（学习库满时会发生）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "学习库已满，已自动淘汰 {n} 张旧卡为新内容腾地方。"
+  },
+  "learn_pressure_near": {
+    "message": "学习库快满了（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "已清理 {n} 张已掌握的卡"
   }
 }

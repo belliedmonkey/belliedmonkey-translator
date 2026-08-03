@@ -517,5 +517,23 @@
   },
   "learn_reveal_orig": {
     "message": "Afficher le texte"
+  },
+  "learn_clean_known": {
+    "message": "Effacer les cartes acquises"
+  },
+  "learn_clean_known_n": {
+    "message": "Effacer {n} cartes acquises"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} éléments collectés n'ont pas pu être enregistrés — cela arrive quand la bibliothèque est pleine."
+  },
+  "learn_pressure_evicted": {
+    "message": "La bibliothèque est pleine — {n} anciennes cartes ont été supprimées automatiquement pour faire de la place."
+  },
+  "learn_pressure_near": {
+    "message": "La bibliothèque est presque pleine ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} cartes acquises effacées"
   }
 }

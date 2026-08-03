@@ -89,11 +89,19 @@ source → Extractor → Engine → Renderer
    and **never originates a translation request**. If the learning layer were deleted
    at runtime, translation output must be byte-for-byte identical.
 
-2. **Degradation is silent and total.** Storage full, IndexedDB unavailable, quota
-   denied, outbox overflow — all reduce to the same thing: *no capture*, and the
-   translation path continues untouched. No retry loop, no user-visible notice, no
-   half-state. (Same shape as the browser-capability rule, domain-design §5.3.3.)
-   **Dropping captures is a normal path, not an error path.**
+2. **Silent in the browsing flow — never silent to a user who opted in.**
+   *(Amended 2026-08-04; see §7.1 for what the surfaces must show.)*
+   - **Toward the page: absolutely silent.** Storage full, IndexedDB unavailable,
+     quota denied, outbox overflow — all reduce to *no capture*, with the translation
+     path untouched. No retry loop, no notice injected into the page, no half-state
+     (same shape as domain-design §5.3.3).
+   - **Toward a user who turned capture ON: never silent.** Anything that stops
+     capture, or discards material already collected, must be **visible in the
+     learning surfaces with an action that fixes it**. §8.5 already says exactly this
+     about the server quota; the original wording of this law contradicted it, and
+     the contradiction was resolved in favour of telling the user.
+   - **Dropping captures is still a normal path, not an error path** — it just is not
+     an *invisible* one.
 
 3. **Nothing reaches `DomSegmenter`.** The Collector adds **zero selectors**. Site
    knowledge enters only through the two generic markers the segmenter already
@@ -271,9 +279,11 @@ content script  ──write──▶  chrome.storage.local  ──drain──▶
 Merge on drain: existing `id` ⇒ `seenCount++`, `dwellMs +=`, `lastSeenAt` updated,
 `salience = max(…)`. `text` / `tr` / `anchor` are never overwritten.
 
-**IndexedDB `mt-learn` v1** — `items` (keyPath `id`; indexes `dueAt`, `state`, `lang`,
-`createdAt`, `salience`, `[state+dueAt]`), `reviews` (append-only; indexes `itemId`,
-`at`), `meta` (sync cursor, device id, daily-new counter, key material).
+**IndexedDB `mt-learn` v2** — `items` (keyPath `id`; indexes `state`, `lang`,
+`createdAt`, `salience`), `sources`, `reviews` (append-only; indexes `itemId`, `at`),
+`meta` (sync cursor, device id, daily-new counter, key material), and `audio` (§9.1's
+speech cache; added in v2). Every `createObjectStore` is guarded by `contains`, so a
+version bump only ever adds.
 
 **Capacity.** Hard cap 20,000 items; eviction order `state='known'` → `salience`
 ascending → `createdAt` ascending. V1 deliberately does **not** request
@@ -289,6 +299,33 @@ readout in settings is the mechanism instead.
 > `bilingualMode` is dead.)
 
 ---
+
+### 7.1 Storage pressure must be visible — and fixable
+
+Law 2 (§3) requires that anything which stops capture, or discards material already
+collected, is visible **in the learning surfaces**. Concretely there are three
+pressure states, and they are genuinely different:
+
+| State | What actually happens today | What the user is told |
+|---|---|---|
+| **Outbox overflowed** (`lq:` past 40 sessions) | Captures from the oldest page sessions were **lost before ever reaching the corpus** — this is the one that really means "capture stopped". Happens when the user browses a lot but never opens an extension page | 「有采集内容没能存下来」 + how to prevent it (opening the review page drains the outbox) |
+| **Corpus at the cap** (20,000 items) | Capture does **not** stop — the corpus recycles, dropping `known` first, then lowest-salience, then oldest, never a starred card. But material the user collected is being discarded | 「学习库已满，正在自动淘汰旧卡」 + the cleanup action below |
+| **Server quota full** (50 MB, V3) | New card *text* stops uploading; progress keeps syncing (§8.5) | 「已达云端上限」 + cleanup, and this is the one place a paid tier is coherent |
+
+**Two cleanup actions, not one.** 「清空学习库」 (erase everything) already exists but
+is nuclear — it throws away months of scheduling progress to reclaim space. The
+primary action must be **targeted**: drop `state='known'` cards, which are by
+definition the ones the scheduler has decided you no longer need, and never touch a
+starred card or one you are actively learning.
+
+> **核心约束 — do not offer to sell local storage.** The 20,000-item cap is
+> *self-imposed*: it exists so V1 need not request the `unlimitedStorage` permission,
+> which affects store review. Local storage costs the project nothing, so charging
+> for more of it would violate `AGENTS.md` rules 8 (price only what genuinely cannot
+> be carried) and 6 (never convert something already free into paid). A paid option
+> may appear **only** against the server quota — a cost that is actually incurred —
+> and only once such a tier exists. Never show an upgrade path to a tier that does
+> not exist.
 
 ## 8. Sync and encryption (V3)
 
@@ -500,7 +537,10 @@ Required new bullet, adjacent to the "no account" bullet:
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
-- **TTS / synthesized speech** (§1). Audio review replays the original media.
+- **Synthetic speech as a REPLACEMENT for real speech** (§1). A media card always
+  replays the original audio; it is never re-read by a synthetic voice. Synthesizing
+  speech for *text* cards — which have no original audio — is in scope and specified
+  in §9.1.
 - **Any server-side model call** (§2), including a "convenience" hosted default for
   users who have not configured a key. The server never runs a model.
 - **Server-side intelligence** (§2) — precluded by ciphertext-at-rest.

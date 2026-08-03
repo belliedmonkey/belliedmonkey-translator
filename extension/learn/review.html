@@ -15,6 +15,13 @@
 
     <!-- Empty: no corpus at all. Says how material gets collected, rather than
          「暂无数据」 (interaction-spec: 复习 / Review → States). -->
+    <!-- 存储压力。绝不在网页里出现，但对开了采集的用户绝不隐瞒
+         （domain-design §9.1 铁律二）。它不挡卡片——库满了照样能复习。 -->
+    <div class="pressure" id="pressure" hidden>
+      <span id="pressure-msg"></span>
+      <button id="pressure-fix" data-i18n="learn_clean_known">清理已掌握的卡</button>
+    </div>
+
     <section class="panel" id="empty" hidden>
       <h2 data-i18n="learn_empty_title">还没有学习材料</h2>
       <p data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你**真正读过**的句子会自动存进来 —— 快速滚过去的不算。</p>

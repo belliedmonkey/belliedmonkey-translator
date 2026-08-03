@@ -421,6 +421,46 @@ async function init() {
   $('btn-open-review').addEventListener('click', () => {
     window.open(chrome.runtime.getURL('learn/review.html'), '_blank');
   });
+  // Storage pressure, stated with numbers. Same live state as the review page —
+  // learning-design.md §7.1; never surfaced in a web page (law 2).
+  async function refreshPressure() {
+    const el = $('learn-pressure');
+    const btn = $('btn-clean-known');
+    if (!el) return;
+    try {
+      const p = await LearnStore.pressure();
+      if (!p) { el.textContent = ''; btn.hidden = true; return; }
+      let msg = '';
+      if (p.dropped > 0) {
+        msg = t('learn_pressure_dropped', '有 {n} 条采集内容没能存下来（学习库满时会发生）。')
+          .replace('{n}', String(p.dropped));
+      } else if (p.evicted > 0) {
+        msg = t('learn_pressure_evicted', '学习库已满，已自动淘汰 {n} 张旧卡为新内容腾地方。')
+          .replace('{n}', String(p.evicted));
+      } else if (p.atCap || p.nearCap) {
+        msg = t('learn_pressure_near', '学习库快满了（{n} / {cap}）。')
+          .replace('{n}', String(p.total)).replace('{cap}', String(p.cap));
+      }
+      el.textContent = msg;
+      // Offering a cleanup that would free nothing is worse than offering none.
+      btn.hidden = p.reclaimable === 0;
+      if (!btn.hidden) {
+        btn.textContent = t('learn_clean_known_n', '清理已掌握的 {n} 张卡')
+          .replace('{n}', String(p.reclaimable));
+      }
+    } catch (_) { el.textContent = ''; btn.hidden = true; }
+  }
+
+  $('btn-clean-known').addEventListener('click', async () => {
+    const n = await LearnStore.clearKnown().catch(() => -1);
+    if (n < 0) { showToast(t('toast_learn_clear_failed', '清空失败')); }
+    else {
+      showToast(t('toast_learn_cleaned', '已清理 {n} 张已掌握的卡').replace('{n}', String(n)));
+    }
+    refreshLearnStats();
+    refreshPressure();
+  });
+
   $('btn-clear-learn').addEventListener('click', async () => {
     if (!window.confirm(t('learn_clear_confirm', '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
     try {
@@ -430,8 +470,10 @@ async function init() {
       showToast(t('toast_learn_clear_failed', '清空失败'));
     }
     refreshLearnStats();
+    refreshPressure();
   });
   refreshLearnStats();
+  refreshPressure();
 
   $('btn-clear-cache').addEventListener('click', async () => {
     const status = $('cache-status');
