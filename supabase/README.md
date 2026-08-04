@@ -50,32 +50,32 @@ PostgREST 相同的机制模拟两个登录用户，跑完用异常回滚，一�
 加一条 UPDATE 策略会静默地删掉这个保证——这是这个库里最容易被无声破坏的东西。
 
 
-## 发布闸门：自建 SMTP（**没配之前登录不能给真人用**）
+## 邮件：Gmail SMTP（过渡方案，已配好 2026-08-04）
 
-新项目当前 `smtp_host = None`，用的是 Supabase 内建邮件服务，而
+内建邮件服务只供测试：`rate_limit_email_sent` 默认 **2 封/小时，整个项目共享**。
+照那个配置，一小时内第三个想登录的用户就收不到验证码——而他看到的是「填了邮箱，
+什么也没来」，**看起来像扩展坏了，不像邮件配额用光了**。这类故障只在真有人用的时候
+才出现，而那时已经发版了。
+
+现在走 Gmail SMTP：
 
 ```
-rate_limit_email_sent = 2      # 每小时 2 封，整个项目共享，不是每用户
+smtp_host = smtp.gmail.com : 587      smtp_user / smtp_admin_email = belliedmonkey@gmail.com
+smtp_sender_name = 大肚猴翻译 BelliedMonkey Translator
+rate_limit_email_sent = 20            # 每小时，整个项目共享
 ```
 
-内建服务是给开发测试用的，Supabase 不保证投递。**照这个配置，一小时内第三个想登录
-的用户就收不到验证码**——而他看到的症状是「填了邮箱，什么也没来」，看起来像扩展坏了，
-不像邮件配额用光了。这类故障最贵的地方在于：它只在有人用的时候才出现，而那时你已经
-发版了。
+**为什么是 20 而不是设满**：Gmail 免费额度约 500 封/天，20×24 = 480，**故意卡在
+Gmail 的天花板之下**。撞限额时撞的是我们自己的墙——用户看到明确报错、日志里查得到；
+撞 Gmail 的墙是静默丢信，两边都查不出来。**永远撞你能控制的那道墙。**
 
-上线前必须：
+两个坑：
 
-1. 接一个真实的邮件服务（Resend / SES / Postmark 之类；Resend 免费额度对这个量级
-   够用，符合「能免费尽量免费」）。
-2. 在 belliedmonkey.com 上配 SPF / DKIM，否则验证码会进垃圾箱——**那和收不到在用户
-   眼里是一回事**。
-3. 配好之后再调 `rate_limit_email_sent`。在内建服务下调高它没有意义。
+- `smtp_port` 必须传**字符串** `"587"`，传数字会被 Management API 拒绝
+  （`expected string, received number`）。
+- 发件人被 Gmail 强制成 `belliedmonkey@gmail.com`，改不了。好在那本来就是
+  privacy.html 和 App Store 上公开的支持邮箱。
 
-```bash
-curl -X PATCH "https://api.supabase.com/v1/projects/<REF>/config/auth" \
-  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -H 'User-Agent: SupabaseCLI/1.100.1' \
-  -d '{"smtp_host":"…","smtp_port":587,"smtp_user":"…","smtp_pass":"…",
-       "smtp_admin_email":"noreply@belliedmonkey.com","smtp_sender_name":"大肚猴翻译",
-       "rate_limit_email_sent":30}'
-```
+**什么时候必须换掉**：日发信接近 500，或者需要 `noreply@belliedmonkey.com` 这样的
+品牌发件人。换 Resend / SES 时要在 DNSPod 上给 belliedmonkey.com 加 SPF / DKIM——
+**进垃圾箱和收不到，在用户眼里是一回事**。
