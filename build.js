@@ -247,6 +247,28 @@ function validateManifest(distDir, isFirefox) {
     err('Missing gecko.data_collection_permissions.required (AMO rejects the upload without it)');
     process.exit(1);
   }
+  // ─── Sync flag ↔ privacy promise, coupled mechanically ───────────────────
+  // learning-design.md §10 Gate B. Turning sync on makes four sentences false at
+  // once ("no account", "we receive nothing", "never uploaded", "no servers of
+  // ours in the middle" as applied to the corpus). Every one of them is somewhere
+  // a build cannot see — the README, a website, a store listing — so the only
+  // thing that can be checked here is the one that lives in this repo. A promise
+  // whose upkeep depends on someone remembering at release time is the kind that
+  // gets broken; this makes forgetting fail the build instead.
+  const backend = require('./extension/learn/backend.config.js');
+  if (backend.enabled) {
+    const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const stale = '**No account, no tracking, no telemetry.**';
+    if (readme.includes(stale)) {
+      err(`sync is enabled (learn/backend.config.js) but README.md still says\n` +
+          `  ${stale}\n` +
+          `That sentence is false the moment an account exists. Update the README, ` +
+          `privacy.html on both sites, the store listings, and re-evaluate ` +
+          `gecko.data_collection_permissions — see docs/learning-design.md §10 Gate B.`);
+      process.exit(1);
+    }
+  }
+
   // The extension version (manifest) and the repo version (package.json) are bumped
   // by the same release step and must not drift — they silently did through 1.1.0.
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;

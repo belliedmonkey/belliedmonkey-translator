@@ -522,7 +522,15 @@ async function init() {
   // learning-design.md §8. Signed out is the DEFAULT, not a degraded mode, so
   // nothing in this block may make the rest of the page depend on it.
 
-  function syncSay(msg) { $('sync-status').textContent = msg || ''; }
+  // Sync ships disabled (see backend.config.js). Remove the section rather than
+  // hide it: a disabled-but-present control is something users try, and something
+  // the next person assumes is live.
+  if (!MT_BACKEND.enabled) {
+    const sec = $('sync-section');
+    if (sec) sec.remove();
+  }
+
+  function syncSay(msg) { const el = $('sync-status'); if (el) el.textContent = msg || ''; }
 
   // Every failure here gets its own sentence. "同步失败" tells a user nothing about
   // whether to wait, retry, sign in again, or delete something — and this is a
@@ -558,6 +566,7 @@ async function init() {
     } catch (_) { $('sync-usage').textContent = ''; }
   }
 
+  if (MT_BACKEND.enabled) {
   $('btn-sync-code').addEventListener('click', async () => {
     const email = $('sync-email').value.trim();
     if (!email) { syncSay(t('sync_need_email', '先填邮箱')); return; }
@@ -626,6 +635,7 @@ async function init() {
   });
 
   refreshSyncUI();
+  }   // end if (MT_BACKEND.enabled)
 
   $('btn-clear-cache').addEventListener('click', async () => {
     const status = $('cache-status');

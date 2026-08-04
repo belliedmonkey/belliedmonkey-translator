@@ -11,6 +11,20 @@
 // the client is written so that changing it is a one-file change.
 
 var MT_BACKEND = {
+  // ─── SHIPPING SWITCH ─────────────────────────────────────────────────────
+  // false ⇒ the 多设备同步 section is not rendered at all, so there is no path to
+  // an account or to our server. V1 ships with sync OFF: the release is capture +
+  // review + TTS, all local, which lets every privacy claim in README/privacy.html
+  // stay TRUE VERBATIM. Turning this on breaks four sentences at once
+  // ("no account", "we receive nothing", "never uploaded"), so it is a release
+  // decision, not a config tweak.
+  //
+  // `build.js` refuses to build with this true while the README still carries the
+  // "No account, no tracking, no telemetry" line — see learning-design.md §10 Gate B.
+  // The flag and the promise are coupled mechanically because a promise that depends
+  // on someone remembering is the kind that gets broken.
+  enabled: false,
+
   // Dedicated project, Tokyo (ap-northeast-1) — 2026-08-04. Tokyo rather than the
   // us-east-1 the other projects use: sync is not latency-critical, but the users
   // are, and from mainland China us-east-1 is ~250-350ms and unreliable where Tokyo
