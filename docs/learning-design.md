@@ -14,6 +14,30 @@
 
 ---
 
+## 0. 评审记录 (domain-design review log)
+
+| 日期 | 评审人 | 范围 | 结论 |
+|---|---|---|---|
+| 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
+
+**这是一次追溯性评审。** `AGENTS.md` 要求领域改动「先更新文档、过人工评审、再改代码」；
+实际顺序是反的——评审发生时已有 15 个 commit。记在这里不是自责，是因为**追溯评审有一个
+前置评审没有的失败模式**：评审人会锚定在既有实现上，把评审做成盖章。将来读到这一行的人
+应当知道，下面这些结论是在那个偏置下做出的。
+
+本轮四项结论：
+
+1. **铁律二维持修订后的范围**（§3 law 2 / `domain-design.md` §9.1）。范围是「**任何**
+   导致采集停止或丢弃已采集内容的事」，而不是只有「存储满」。已知代价：每新增一条可能
+   丢数据的路径，必须同时做一个用户可见的面。**这是有意保留的约束，不是疏漏。**
+2. **§2.1 增加可执行闸门**（下详）。原文只有「本地部署优先」一句倾向，没有任何机制
+   阻止重心往服务端漂。
+3. **§6 改为如实描述**。原文把这道门写成「显著性选择器」，实际行为是垃圾过滤器；
+   真正的限流阀是调度器的 `dailyNew`。数字不变，描述改。
+4. **新增 §12 否决记录**。文档此前只保留最后一版方案，被否的路径和原因全部丢失。
+
+---
+
 ## 1. Why this exists
 
 The extension is currently amnesiac. It builds, for every page and every video the
@@ -85,6 +109,24 @@ Three conditions, all required:
 **Local deployment stays first.** Default, recommended, and the one the onboarding
 teaches. A hosted model is an alternative for people who want it, never the path of
 least resistance.
+
+> **核心约束 — a server-side model feature may not ship before its local equivalent.**
+> *(Added 2026-08-04 by domain review; `AGENTS.md` rule 11.)* Any capability that depends on a model
+> running on our server may be released only once the same capability already works
+> on the local / self-hosted path. The hosted version may be faster or better; it may
+> not be the **only** version.
+>
+> **Why this needs to be a gate and not a preference.** "Local first" was one
+> sentence, and nothing enforced it — while the pull toward the server is real and
+> constant: hosting spares us the user's GPU, their endpoint configuration, and error
+> messages in eleven languages. Every individual feature looks more sensible hosted.
+> Drift is the accumulation of decisions that were each locally correct, which is
+> exactly the kind of drift a preference cannot stop. This gate inverts the pull:
+> **to ship the hosted version you must first build the local one**, so the easy path
+> stops being a shortcut.
+>
+> It is also checkable, which a preference is not. Before release, ask: *can someone
+> who never signs in and never pays use this?* A "no" blocks the release.
 
 **Telemetry remains permanently forbidden**, and is not affected by any of this.
 
@@ -241,17 +283,39 @@ session is not one article read back to itself.
 
 ---
 
-## 6. What counts as "seen" — the salience gate
+## 6. What counts as "seen" — the capture gate
 
-A single page yields hundreds of segments. Capturing all of them produces a corpus
-nobody wants to review. The gate is **deterministic, LLM-free, word-list-free and
-language-agnostic**:
+*(Renamed and rewritten 2026-08-04 by domain review. It was called a "salience gate"
+and described as selecting what stands out. The numbers do not do that, and the
+mismatch is what the review caught — see below. The numbers were kept; the
+description was corrected. Also fixed here: the formula previously written in this
+doc had four terms including a `sourceRecency` that **does not exist in the code**.)*
+
+The gate is **deterministic, LLM-free, word-list-free and language-agnostic**:
 
 ```
-salience = 0.45*dwell + 0.25*lengthBand + 0.20*repeat + 0.10*sourceRecency
+salience = 0.50*dwell + 0.28*lengthBand + 0.22*repeat        # learn-model.js W
 gate:      salience ≥ 0.45  AND  (dwellMs ≥ 2500 OR playedThrough)
 starred ⇒ salience = 1.0, gate bypassed
 ```
+
+> **What this actually does, stated plainly.** On a first encounter `repeat` is 0 and
+> an in-band length contributes 0.28, so clearing 0.45 needs only `dwell ≥ 0.34` —
+> about 2 s, under the 2.5 s hard floor that applies anyway. **Any in-band sentence
+> you looked at for 2.5 seconds is captured the first time you see it; the repeat term
+> never has to participate.** Subtitles are stronger still: `playedThrough` scores
+> dwell 1.0, so every fully-played sentence lands at 0.78.
+>
+> So this is a **junk filter, not a selector**. It removes what you scrolled past,
+> what is too short to be a card, code, and text already in your language. What
+> survives is *everything you actually read* — on the order of 100–150 captures a day
+> for a normal reading habit, or 200+ from one 20-minute video, reaching the 20,000
+> cap in roughly two to three months of daily use, after which §7.1 eviction begins.
+>
+> **Selection happens one layer down, in the scheduler**: `dailyNew` (15) is the real
+> limiter on what enters review. The corpus is a firehose and the deck is a trickle,
+> and that is the design — not an accident of tuning. Anyone re-tuning these weights
+> should know they are adjusting *what is kept*, not *what is studied*.
 
 - **dwell** — `IntersectionObserver` at threshold 0.5, accumulating visible
   milliseconds; `clamp(dwellMs / 6000, 0, 1)`. This is the honest reading of "看过":
@@ -260,12 +324,18 @@ starred ⇒ salience = 1.0, gate bypassed
   (`dom-processor.js` `minLen`): 8–60 chars for CJK/Hangul/Thai, 40–220 for
   Latin/Cyrillic. Tapers outside the band rather than cutting hard.
 - **repeat** — `min(1, (seenCount - 1) / 3)`. Meeting the same sentence again is
-  evidence it matters.
+  evidence it matters. In practice it only ever *raises* an already-passing score.
 - Noise is removed with judgments that **already exist**: `looksLikeCode()`,
   `isAlreadyTargetLanguage()`, and the `data-mt-skip-region` marker.
 - **Subtitles** — a sentence counts only if the playhead actually crossed
   `[start, end]` while the overlay was showing (`playedThrough`). Seeking past a
   sentence is not watching it.
+
+**These numbers are unvalidated.** They were chosen to have the shape of an FSRS-like
+model, not from evidence. Retuning the gate is cheap forever — it changes only what is
+captured next, never an existing card. Retuning the **scheduler** shifts the due dates
+of cards that already have history, and lowering either **cap** evicts data
+permanently; those two are the ones that get expensive.
 
 ---
 
@@ -732,3 +802,26 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
   and can be disabled and purged from settings at any time. See `README.md` — the
   privacy statement is part of the product, not marketing copy.
+
+---
+
+## 12. 否决记录 (rejected alternatives)
+
+*(Added 2026-08-04 by domain review.)* This document used to keep only the surviving
+version of each decision. That is how a project re-walks a path it already found
+closed: the reasoning is in a chat log nobody reads, so the idea comes back, sounds
+reasonable, and costs the same investigation twice. **Every entry below was learned by
+trying it.**
+
+Add a row whenever a considered approach is dropped. One line is enough; the reason
+matters more than the detail.
+
+| 日期 | 被否的方案 | 为什么不行 |
+|---|---|---|
+| 2026-08-03 | 订阅制（服务端 LLM 额度 + Stripe/IAP） | 产品决策：改为公益普惠，BYO-key 永远免费。收费只用在成本确实扛不住的地方（`AGENTS.md` 规则 8） |
+| 2026-08-03 | 中国版单独构建（阉割功能集） | 产品决策：单一国际版；「我不要做成阉割版」。分发统一见 `domain-design.md` §7 |
+| 2026-08-03 | 复习页内嵌 YouTube 播放器重听 | **平台硬限制**：error 153。nocookie/youtube.com × 默认/no-referrer 四种变体全部同样失败，`no-referrer` 那两次也排除了「扩展页被沙箱」的解释。媒体卡改为跳转到时间点。**不要再加 iframe** |
+| 2026-08-04 | 端到端加密（原为「无例外」的核心约束） | 密钥管理会把最重的负担压在最不会保管密钥的用户身上，与 §2 普惠正面冲突；且与 §2.1 付费服务端模型互斥。完整得失见 §8.6。**留了 `enc` 信封的门** |
+| 2026-08-04 | 同步到用户自己的云盘目录（iCloud / Google Drive） | `showDirectoryPicker` 只有桌面 Chromium 有：Firefox 没有，macOS Safari 没有，**iOS 上根本不可能**——而 iOS 是主力面。浏览器扩展没有可设的「数据目录」 |
+| 2026-08-04 | 自建 auth 框架替代 GoTrue（Auth.js 之类） | 需要一台我们运维的服务器；更糟的是 PostgREST 用**项目唯一的** JWT secret 验签，把它交给第二个 auth 服务等于两个产品互持对方的万能钥匙。见 §8.4.1 |
+| 2026-08-04 | 与 champagne 共用 Supabase 项目（`bt_` 前缀隔离） | 前缀能隔离表，**隔离不了身份**——一个项目只有一个 `auth.users`。已迁至独立项目（东京）。当时迁移代价为零，因为表里还没有数据；有用户之后同样这一步要每个人重新注册 |

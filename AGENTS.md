@@ -68,6 +68,20 @@ these in order when designing anything new:
 10. **No crippled builds.** Compliance or distribution pressure is resolved by
     narrowing *where the product is distributed* — never by shipping some users a
     version with fewer features.
+11. **A server-side model feature may not ship before its local equivalent.**
+    *(Added 2026-08-04 by domain-design review — see `docs/learning-design.md` §2.1.
+    Appended rather than inserted next to rule 2 so that existing references to rules
+    7/8/9 keep pointing at the same text.)* Any capability that depends on a model
+    running on our server may be released only once the same capability already works
+    on the local / self-hosted path. The hosted version may be faster or better; it
+    may not be the **only** version. "Local first" on its own is a preference, and a
+    preference cannot stop drift assembled from individually-sensible decisions —
+    hosting always spares us the user's hardware, their configuration, and their error
+    messages in eleven languages. This gate inverts that pull: **to ship the hosted
+    version you must first build the local one**, so the easy path stops being a
+    shortcut. Release check: *can someone who never signs in and never pays use this?*
+    A "no" blocks the release.
+
 
 ## Interaction / UX constraints
 
