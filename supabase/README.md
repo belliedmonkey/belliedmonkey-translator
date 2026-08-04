@@ -10,10 +10,27 @@ psql "$DATABASE_URL" -f supabase/schema.sql        # 1. 库结构、RLS、配额
 supabase functions deploy bt-delete-account        # 2. 一键删除的后半截（§8.7）
 ```
 
-3. 在 Authentication → Email Templates 里把模板改成渲染 **`{{ .Token }}`**。
-   默认模板发的是**魔法链接**，而链接在浏览器扩展里无法完成——接跳转需要一个
-   我们托管的页面，我们不托管任何东西。这一步没有 SQL 可以代劳，漏掉的表现是
-   「验证码收到了，但邮件里只有一个点不动的链接」。
+3. 邮件模板与验证码长度（**没有 SQL 能代劳**，走 Management API）：
+
+```bash
+TOKEN=$(security find-generic-password -s "Supabase CLI" -w)   # macOS Keychain
+curl -X PATCH "https://api.supabase.com/v1/projects/<REF>/config/auth" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -H 'User-Agent: SupabaseCLI/1.100.1' \
+  -d '{"mailer_otp_length":6,
+       "mailer_templates_confirmation_content":"…{{ .Token }}…",
+       "mailer_templates_magic_link_content":"…{{ .Token }}…"}'
+```
+
+   三个坑，每一个都是实测踩出来的：
+
+   - **必须两个模板都改。** GoTrue 按「这个邮箱是不是新的」选模板：新邮箱走
+     confirmation，老邮箱走 magic link。只改一个，等于一半用户收到一个在扩展里
+     点不动的链接——而且看起来像扩展的 bug，不像邮件模板的问题。
+   - **`mailer_otp_length` 默认是 8，不是 6。** UI 文案「6 位验证码」已经翻成 11
+     种语言，所以改配置（一处）比改文案（十一处）便宜。
+   - **Management API 会按 User-Agent 挡人**：不带 UA 会收到 `403 error code 1010`
+     （Cloudflare），看着像权限不足，其实不是。
 
 然后把 `extension/learn/backend.config.js` 的 `url` / `anonKey` 改成新项目的。
 那个文件就是全部的「用哪个后端」——刻意只有一处。

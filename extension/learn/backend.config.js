@@ -11,11 +11,13 @@
 // the client is written so that changing it is a one-file change.
 
 var MT_BACKEND = {
-  // 2026-08-04: temporarily shares the `champagne` project; every object of ours
-  // carries the `bt_` prefix. Move to a dedicated project while the table is still
-  // empty — the cost of splitting is measured in users, and there are none yet.
-  url: 'https://uqeqngjkwybxnfsgivze.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxZXFuZ2prd3lieG5mc2dpdnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMDk1MDksImV4cCI6MjA4Njg4NTUwOX0.0bh8M0Ft4345RM78dXFqsmFmteIcmk-S_7rVoZJI77c',
+  // Dedicated project, Tokyo (ap-northeast-1) — 2026-08-04. Tokyo rather than the
+  // us-east-1 the other projects use: sync is not latency-critical, but the users
+  // are, and from mainland China us-east-1 is ~250-350ms and unreliable where Tokyo
+  // is ~50-80ms. Region cannot be changed after creation, so it is a decision, not
+  // a default.
+  url: 'https://cavezcufztzqsohpjmup.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmV6Y3VmenR6cXNvaHBqbXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MTczNTAsImV4cCI6MjEwMTM5MzM1MH0.VdL1B_jYLySEkhecL6WHOLV_vYbnRItpciFx7ZSxO4M',
   table: 'bt_chunks',
   quotaBytes: 50 * 1024 * 1024,
 };
