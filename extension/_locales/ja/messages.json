@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "習得済みの {n} 枚を整理しました"
+  },
+  "learn_export": {
+    "message": "学習ライブラリを書き出す"
+  },
+  "learn_import": {
+    "message": "ファイルから読み込む"
+  },
+  "toast_exported": {
+    "message": "{n} 枚を書き出しました"
+  },
+  "toast_export_empty": {
+    "message": "書き出せるカードがまだありません"
+  },
+  "toast_export_failed": {
+    "message": "書き出しに失敗しました"
+  },
+  "toast_imported": {
+    "message": "{n} 枚を読み込みました"
+  },
+  "toast_import_skipped": {
+    "message": "読み取れない {n} 行をスキップしました"
+  },
+  "toast_import_bad_format": {
+    "message": "学習ライブラリの書き出しファイルではありません"
+  },
+  "toast_import_failed": {
+    "message": "読み込みに失敗しました"
   }
 }

@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "익힌 카드 {n}장을 정리했습니다"
+  },
+  "learn_export": {
+    "message": "학습 라이브러리 내보내기"
+  },
+  "learn_import": {
+    "message": "파일에서 가져오기"
+  },
+  "toast_exported": {
+    "message": "{n}장을 내보냈습니다"
+  },
+  "toast_export_empty": {
+    "message": "내보낼 카드가 아직 없습니다"
+  },
+  "toast_export_failed": {
+    "message": "내보내기에 실패했습니다"
+  },
+  "toast_imported": {
+    "message": "{n}장을 가져왔습니다"
+  },
+  "toast_import_skipped": {
+    "message": "읽을 수 없는 {n}줄을 건너뛰었습니다"
+  },
+  "toast_import_bad_format": {
+    "message": "학습 라이브러리 내보내기 파일이 아닙니다"
+  },
+  "toast_import_failed": {
+    "message": "가져오기에 실패했습니다"
   }
 }

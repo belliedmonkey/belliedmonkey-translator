@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "Убрано освоенных карточек: {n}"
+  },
+  "learn_export": {
+    "message": "Экспортировать библиотеку"
+  },
+  "learn_import": {
+    "message": "Импортировать из файла"
+  },
+  "toast_exported": {
+    "message": "Экспортировано карточек: {n}"
+  },
+  "toast_export_empty": {
+    "message": "Пока нечего экспортировать"
+  },
+  "toast_export_failed": {
+    "message": "Не удалось экспортировать"
+  },
+  "toast_imported": {
+    "message": "Импортировано карточек: {n}"
+  },
+  "toast_import_skipped": {
+    "message": "Пропущено нечитаемых строк: {n}"
+  },
+  "toast_import_bad_format": {
+    "message": "Это не файл экспорта библиотеки"
+  },
+  "toast_import_failed": {
+    "message": "Не удалось импортировать"
   }
 }

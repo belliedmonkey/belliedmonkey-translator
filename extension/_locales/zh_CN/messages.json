@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "已清理 {n} 张已掌握的卡"
+  },
+  "learn_export": {
+    "message": "导出学习库"
+  },
+  "learn_import": {
+    "message": "从文件导入"
+  },
+  "toast_exported": {
+    "message": "已导出 {n} 张卡片"
+  },
+  "toast_export_empty": {
+    "message": "还没有可导出的卡片"
+  },
+  "toast_export_failed": {
+    "message": "导出失败"
+  },
+  "toast_imported": {
+    "message": "已导入 {n} 张卡片"
+  },
+  "toast_import_skipped": {
+    "message": "{n} 行无法解析已跳过"
+  },
+  "toast_import_bad_format": {
+    "message": "这不是学习库导出文件"
+  },
+  "toast_import_failed": {
+    "message": "导入失败"
   }
 }

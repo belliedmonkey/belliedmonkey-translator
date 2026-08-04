@@ -78,6 +78,7 @@ var LearnStore = (() => {
 
   function allItems() { return getAllFrom('items'); }
   function allSources() { return getAllFrom('sources'); }
+  function allReviews() { return getAllFrom('reviews'); }
 
   function putItem(item) { return tx(['items'], 'readwrite', (s) => { s.items.put(item); }); }
 
@@ -268,7 +269,7 @@ var LearnStore = (() => {
 
   return {
     MAX_ITEMS, MAX_AUDIO_BYTES,
-    open, allItems, allSources, putItem, mergeBatch, recordReview,
+    open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     pressure, bumpPressure, clearPressure, clearKnown,
     getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,

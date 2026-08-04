@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "تم مسح {n} بطاقة أتقنتها"
+  },
+  "learn_export": {
+    "message": "تصدير مكتبة التعلّم"
+  },
+  "learn_import": {
+    "message": "استيراد من ملف"
+  },
+  "toast_exported": {
+    "message": "تم تصدير {n} بطاقة"
+  },
+  "toast_export_empty": {
+    "message": "لا يوجد ما يُصدَّر بعد"
+  },
+  "toast_export_failed": {
+    "message": "فشل التصدير"
+  },
+  "toast_imported": {
+    "message": "تم استيراد {n} بطاقة"
+  },
+  "toast_import_skipped": {
+    "message": "تم تخطي {n} سطرًا غير قابل للقراءة"
+  },
+  "toast_import_bad_format": {
+    "message": "هذا ليس ملف تصدير لمكتبة التعلّم"
+  },
+  "toast_import_failed": {
+    "message": "فشل الاستيراد"
   }
 }

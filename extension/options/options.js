@@ -381,6 +381,48 @@ async function init() {
     refreshTtsCache();
   });
 
+  // ─── 导出 / 导入 ────────────────────────────────────────────────────
+  // Same chunk format sync will use, so this is not throwaway plumbing — and it
+  // works today, with no account and no server (learning-design §8.2).
+
+  $('btn-export-learn').addEventListener('click', async () => {
+    try {
+      const { bytes, header } = await LearnChunk.exportBytes(Date.now());
+      if (!header.counts.cards) { showToast(t('toast_export_empty', '还没有可导出的卡片')); return; }
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = LearnChunk.fileName(Date.now());
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showToast(t('toast_exported', '已导出 {n} 张卡片').replace('{n}', String(header.counts.cards)));
+    } catch (_) {
+      showToast(t('toast_export_failed', '导出失败'));
+    }
+  });
+
+  $('btn-import-learn').addEventListener('click', () => $('import-file').click());
+  $('import-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';                       // so re-picking the same file re-fires
+    if (!file) return;
+    try {
+      const stats = await LearnChunk.importBytes(new Uint8Array(await file.arrayBuffer()));
+      // Merging, never replacing: an import adds to what is here. Re-importing the
+      // same file changes nothing (replay is idempotent), which is what makes it
+      // safe to just try again if a transfer was interrupted.
+      let msg = t('toast_imported', '已导入 {n} 张卡片').replace('{n}', String(stats.cards));
+      if (stats.skipped) msg += ' · ' + t('toast_import_skipped', '{n} 行无法解析已跳过').replace('{n}', String(stats.skipped));
+      showToast(msg);
+    } catch (err) {
+      showToast(err && err.code === 'bad_format'
+        ? t('toast_import_bad_format', '这不是学习库导出文件')
+        : t('toast_import_failed', '导入失败'));
+    }
+    refreshLearnStats();
+    refreshPressure();
+  });
+
   // ─── Learning (记忆层) ──────────────────────────────────────────────
 
   async function refreshLearnStats() {

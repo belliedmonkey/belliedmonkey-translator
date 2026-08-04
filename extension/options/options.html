@@ -162,6 +162,11 @@
         </div>
 
         <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
+        <!-- 导出不是合规负担，它同时是：数据可携带权、不想注册账号时的多端路径、
+             以及对「我信不过你们」最诚实的回答（learning-design §8.2）。 -->
+        <button id="btn-export-learn" data-i18n="learn_export">导出学习库</button>
+        <button id="btn-import-learn" data-i18n="learn_import">从文件导入</button>
+        <input type="file" id="import-file" accept=".mtlearn,.jsonl,.gz" hidden>
         <div id="learn-stats" class="cache-status"></div>
         <!-- 定向清理优先于核弹式清空：已掌握的卡是调度器自己判定你不再需要的。 -->
         <div id="learn-pressure" class="cache-status"></div>
@@ -254,6 +259,7 @@
   <script src="../content/learn-scheduler.js"></script>
   <script src="../content/tts.gen.js"></script>
   <script src="../learn/store.js"></script>
+  <script src="../learn/chunk.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="options.js"></script>

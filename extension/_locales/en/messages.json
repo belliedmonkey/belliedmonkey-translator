@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "Cleared {n} mastered cards"
+  },
+  "learn_export": {
+    "message": "Export the corpus"
+  },
+  "learn_import": {
+    "message": "Import from a file"
+  },
+  "toast_exported": {
+    "message": "Exported {n} cards"
+  },
+  "toast_export_empty": {
+    "message": "Nothing to export yet"
+  },
+  "toast_export_failed": {
+    "message": "Export failed"
+  },
+  "toast_imported": {
+    "message": "Imported {n} cards"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unreadable lines skipped"
+  },
+  "toast_import_bad_format": {
+    "message": "That is not a learning-corpus export file"
+  },
+  "toast_import_failed": {
+    "message": "Import failed"
   }
 }

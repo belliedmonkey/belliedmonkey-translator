@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "Se limpiaron {n} tarjetas dominadas"
+  },
+  "learn_export": {
+    "message": "Exportar la biblioteca"
+  },
+  "learn_import": {
+    "message": "Importar desde un archivo"
+  },
+  "toast_exported": {
+    "message": "Se exportaron {n} tarjetas"
+  },
+  "toast_export_empty": {
+    "message": "Aún no hay nada que exportar"
+  },
+  "toast_export_failed": {
+    "message": "Falló la exportación"
+  },
+  "toast_imported": {
+    "message": "Se importaron {n} tarjetas"
+  },
+  "toast_import_skipped": {
+    "message": "Se omitieron {n} líneas ilegibles"
+  },
+  "toast_import_bad_format": {
+    "message": "Ese no es un archivo de exportación de la biblioteca"
+  },
+  "toast_import_failed": {
+    "message": "Falló la importación"
   }
 }

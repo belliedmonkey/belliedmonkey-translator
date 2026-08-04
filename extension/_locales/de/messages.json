@@ -535,5 +535,32 @@
   },
   "toast_learn_cleaned": {
     "message": "{n} beherrschte Karten aufgeräumt"
+  },
+  "learn_export": {
+    "message": "Bibliothek exportieren"
+  },
+  "learn_import": {
+    "message": "Aus Datei importieren"
+  },
+  "toast_exported": {
+    "message": "{n} Karten exportiert"
+  },
+  "toast_export_empty": {
+    "message": "Noch nichts zu exportieren"
+  },
+  "toast_export_failed": {
+    "message": "Export fehlgeschlagen"
+  },
+  "toast_imported": {
+    "message": "{n} Karten importiert"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unlesbare Zeilen übersprungen"
+  },
+  "toast_import_bad_format": {
+    "message": "Das ist keine exportierte Lernbibliothek"
+  },
+  "toast_import_failed": {
+    "message": "Import fehlgeschlagen"
   }
 }
