@@ -174,6 +174,42 @@
         <button class="btn-danger" id="btn-clear-learn" data-i18n="learn_clear">清空学习库</button>
       </section>
 
+      <!-- 同步（可选）。不登录是默认状态，不是降级版本：本地学习功能完全一样。
+           learning-design.md §8。上行的只有已晋级的卡，候选池永不离开设备。 -->
+      <section class="card">
+        <h2 data-i18n="sync_section">多设备同步</h2>
+        <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。</p>
+
+        <div id="sync-out">
+          <div class="field">
+            <label for="sync-email" data-i18n="sync_email">邮箱</label>
+            <input type="email" id="sync-email" autocomplete="email" placeholder="you@example.com">
+          </div>
+          <button id="btn-sync-code" data-i18n="sync_send_code">发送验证码</button>
+
+          <!-- 验证码而不是登录链接：链接需要一个我们托管的页面来接收跳转，而我们
+               不托管任何东西。见 learning-design §8.4.1。 -->
+          <div id="sync-code-row" hidden>
+            <div class="field">
+              <label for="sync-code" data-i18n="sync_code">邮件里的 6 位验证码</label>
+              <input type="text" id="sync-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
+            </div>
+            <button id="btn-sync-verify" data-i18n="sync_verify">登录</button>
+          </div>
+        </div>
+
+        <div id="sync-in" hidden>
+          <div id="sync-who" class="cache-status"></div>
+          <div id="sync-usage" class="cache-status"></div>
+          <button id="btn-sync-now" data-i18n="sync_now">立即同步</button>
+          <button id="btn-sync-out" data-i18n="sync_signout">退出登录</button>
+          <!-- §8.7：删除必须是一个动作，且包含账号本身，不只是数据行。 -->
+          <button class="btn-danger" id="btn-sync-delete" data-i18n="sync_delete">删除云端数据与账号</button>
+        </div>
+
+        <div id="sync-status" class="cache-status"></div>
+      </section>
+
       <!-- 语音（TTS）。本地优先：默认用设备内置语音，零配置零成本可离线。 -->
       <section class="card">
         <h2 data-i18n="tts_section">语音</h2>
@@ -260,6 +296,9 @@
   <script src="../content/tts.gen.js"></script>
   <script src="../learn/store.js"></script>
   <script src="../learn/chunk.js"></script>
+  <script src="../learn/backend.config.js"></script>
+  <script src="../learn/auth.js"></script>
+  <script src="../learn/sync.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="options.js"></script>

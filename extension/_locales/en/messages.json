@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "Import failed"
+  },
+  "sync_section": {
+    "message": "Sync across devices"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Everything works without an account — sync just lets you review on your phone what you read on your laptop. Cards already in review and your review history are uploaded; candidates that have not entered review never leave this device."
+  },
+  "sync_email": {
+    "message": "Email"
+  },
+  "sync_send_code": {
+    "message": "Send code"
+  },
+  "sync_code": {
+    "message": "6-digit code from the email"
+  },
+  "sync_verify": {
+    "message": "Sign in"
+  },
+  "sync_now": {
+    "message": "Sync now"
+  },
+  "sync_signout": {
+    "message": "Sign out"
+  },
+  "sync_delete": {
+    "message": "Delete cloud data and account"
+  },
+  "sync_err_offline": {
+    "message": "Can't reach the server; this will retry later. Everything you have learned is on this device."
+  },
+  "sync_err_quota": {
+    "message": "Your cloud storage is full, so new material is not being uploaded (this device is unaffected). Clearing mastered cards frees space."
+  },
+  "sync_err_signed_out": {
+    "message": "Your session expired. Please sign in again."
+  },
+  "sync_err_rate": {
+    "message": "Too many codes requested. Try again in a few minutes."
+  },
+  "sync_err_generic": {
+    "message": "Sync did not finish"
+  },
+  "sync_signed_in": {
+    "message": "Signed in as {email}"
+  },
+  "sync_usage": {
+    "message": "{used} MB of {quota} MB used · {n} chunks"
+  },
+  "sync_need_email": {
+    "message": "Enter your email first"
+  },
+  "sync_sending": {
+    "message": "Sending…"
+  },
+  "sync_code_sent": {
+    "message": "Code sent to {email}. Enter it below."
+  },
+  "sync_verifying": {
+    "message": "Verifying…"
+  },
+  "sync_signed_in_now": {
+    "message": "Signed in. The first sync may take a few seconds."
+  },
+  "sync_bad_code": {
+    "message": "That code is wrong or expired. Request a new one."
+  },
+  "sync_running": {
+    "message": "Syncing…"
+  },
+  "sync_done": {
+    "message": "Sync complete · {in} received · {out} uploaded"
+  },
+  "sync_signed_out": {
+    "message": "Signed out. Your learning library stays on this device, untouched."
+  },
+  "sync_delete_confirm": {
+    "message": "Delete cloud data and account? Everything on the server and this account will be deleted permanently. Your library on this device is kept."
+  },
+  "sync_deleting": {
+    "message": "Deleting…"
+  },
+  "sync_deleted": {
+    "message": "Cloud data and account deleted. Your library on this device is kept."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud data deleted, but the account could not be removed ({why}). You can retry or contact us."
   }
 }

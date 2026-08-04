@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "Falha ao importar"
+  },
+  "sync_section": {
+    "message": "Sincronização entre dispositivos"
+  },
+  "sync_section_hint": {
+    "message": "Opcional. Tudo funciona sem conta — a sincronização apenas permite revisar no celular o que você leu no computador. São enviados os cartões já em revisão e o seu histórico; os candidatos que ainda não entraram em revisão nunca saem deste dispositivo."
+  },
+  "sync_email": {
+    "message": "E-mail"
+  },
+  "sync_send_code": {
+    "message": "Enviar código"
+  },
+  "sync_code": {
+    "message": "Código de 6 dígitos do e-mail"
+  },
+  "sync_verify": {
+    "message": "Entrar"
+  },
+  "sync_now": {
+    "message": "Sincronizar agora"
+  },
+  "sync_signout": {
+    "message": "Sair"
+  },
+  "sync_delete": {
+    "message": "Excluir dados da nuvem e a conta"
+  },
+  "sync_err_offline": {
+    "message": "Não foi possível acessar o servidor; tentaremos de novo depois. Tudo o que você aprendeu está neste dispositivo."
+  },
+  "sync_err_quota": {
+    "message": "Seu espaço na nuvem está cheio, então nada novo está sendo enviado (este dispositivo não é afetado). Limpar os cartões dominados libera espaço."
+  },
+  "sync_err_signed_out": {
+    "message": "Sua sessão expirou. Entre novamente."
+  },
+  "sync_err_rate": {
+    "message": "Você pediu códigos demais. Tente de novo em alguns minutos."
+  },
+  "sync_err_generic": {
+    "message": "A sincronização não foi concluída"
+  },
+  "sync_signed_in": {
+    "message": "Conectado como {email}"
+  },
+  "sync_usage": {
+    "message": "{used} MB de {quota} MB usados · {n} blocos"
+  },
+  "sync_need_email": {
+    "message": "Informe seu e-mail primeiro"
+  },
+  "sync_sending": {
+    "message": "Enviando…"
+  },
+  "sync_code_sent": {
+    "message": "Código enviado para {email}. Digite-o abaixo."
+  },
+  "sync_verifying": {
+    "message": "Verificando…"
+  },
+  "sync_signed_in_now": {
+    "message": "Conectado. A primeira sincronização pode levar alguns segundos."
+  },
+  "sync_bad_code": {
+    "message": "Esse código está errado ou expirou. Peça um novo."
+  },
+  "sync_running": {
+    "message": "Sincronizando…"
+  },
+  "sync_done": {
+    "message": "Sincronização concluída · {in} recebidos · {out} enviados"
+  },
+  "sync_signed_out": {
+    "message": "Você saiu. Sua biblioteca continua intacta neste dispositivo."
+  },
+  "sync_delete_confirm": {
+    "message": "Excluir os dados da nuvem e a conta? Tudo o que está no servidor e esta conta serão excluídos permanentemente. Sua biblioteca local será mantida."
+  },
+  "sync_deleting": {
+    "message": "Excluindo…"
+  },
+  "sync_deleted": {
+    "message": "Dados da nuvem e conta excluídos. Sua biblioteca local foi mantida."
+  },
+  "sync_deleted_partial": {
+    "message": "Dados da nuvem excluídos, mas não foi possível remover a conta ({why}). Você pode tentar de novo ou falar conosco."
   }
 }

@@ -404,7 +404,7 @@ being actively learned.
 
 ```sql
 -- 实际落地的表（2026-08-04）。RLS 开启，策略只有 select / insert / delete。
-belliedmonkey_translator_chunks (
+bt_chunks (
   seq        bigint generated always as identity primary key,   -- 服务端分配
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   kind       text not null check (kind in ('cards','reviews','sources')),
@@ -426,47 +426,51 @@ Two deliberate deviations from the earlier sketch, both discovered while applyin
 
 **Quota is a `BEFORE INSERT` trigger** summing `octet_length(blob)` for that user, and
 it raises rather than truncating — `AGENTS.md` rule 7's "enforced by a database
-constraint, never by client-side good behaviour", and rule 7's "never silently drop
-data". The client turns that error into §7.1's pressure state plus a cleanup action.
+constraint, never by client-side good behaviour" plus "never silently drop data". The
+client turns that error into §7.1's pressure state with a cleanup action.
 
-### 8.4.1 核心约束 — the project is shared, and that has a cost with a date on it
+### 8.4.1 核心约束 — this project's identity system belongs to the learning layer
 
-> As of 2026-08-04 these tables live **in the champagne project**, distinguished only
-> by the `belliedmonkey_translator_` prefix. That is a deliberate temporary choice,
-> and the prefix solves the *smaller* half of the problem.
->
-> **A Supabase project has exactly one `auth.users`.** Prefixes namespace tables; they
-> do not namespace identity. Both products therefore share one set of email templates,
-> one JWT secret, one rate limit, and one user list, and rotating any of it for one
-> affects the other.
->
-> **Splitting later costs users a re-registration.** `user_id` references
-> `auth.users(id)`; rows can be dumped and moved, auth identities cannot. Plan the
-> split before there are users worth keeping, or accept that cost knowingly.
->
-> If this becomes permanent, move to a dedicated **schema** rather than a prefix — it
-> gives real isolation and `pg_dump -n` takes the whole thing out in one command. The
-> only extra step is exposing the schema to PostgREST in project settings.
+As of 2026-08-04 these tables live **in the champagne project**, distinguished by the
+`bt_` prefix, and **`auth.users` is ours**. That second half is a decision, recorded
+here because it binds the other product:
 
-- **Pull** `seq > cursor`; inflate, replay into the local IndexedDB. Cursor in `meta`.
-- **Push** batches new cards and reviews into a fresh chunk and appends it.
-- **Conflicts:** `text`/`tr`/`anchor` are immutable ⇒ none. `sched` is **derived by
-  replaying the review log**, never synced directly ⇒ none. Only `starred` / `state` /
-  `muted` need last-write-wins, carried as ordinary log entries.
-- **Compaction** may only be initiated by a client that has *just* completed a full
-  pull, and carries `expected_generation`; a losing racer retries later and backs off
-  after N consecutive failures, so two devices cannot livelock each other.
-- **Replay is idempotent** — a chunk applied twice yields the same local state, which
-  is what makes an interrupted sync safe to simply re-run.
-- **Not encrypted** (§8.6). Compression uses the platform's own
-  `CompressionStream('deflate-raw')`; adding a library for what the browser provides
-  would violate the zero-dependency rule.
+> Champagne is paused and will not use Supabase Auth. Its three users live in its own
+> Prisma `User` table (`Account` / `Session` / `VerificationToken`) and have never
+> touched GoTrue — `auth.users` was empty when we took it. **If champagne ever needs a
+> Supabase identity system, champagne moves to its own project, not us.**
 
-**No new dependency**: `@supabase/supabase-js` is not introduced — raw `fetch`
-against GoTrue (`/auth/v1/otp`, `/auth/v1/verify`) and PostgREST. Login is an emailed
-6-digit OTP entered in the options page: no redirect, no callback URL, no `identity`
-or `webNavigation` permission, and it does not trigger Apple's "offer Sign in with
-Apple" rule.
+That is the right way round: we are the only occupant with users under `auth.uid()`,
+and RLS on every one of our tables is written against it. Moving the party that has no
+GoTrue rows costs nothing; moving the party that does costs every user a
+re-registration, because rows can be dumped and moved and auth identities cannot.
+
+**Why the prefix alone could not have settled this.** A prefix namespaces tables; it
+cannot namespace identity, because a Supabase project has exactly one `auth.users`.
+Two products both using it would share one set of email templates, one JWT secret, one
+rate limit, one user list. The decision above removes the second occupant rather than
+trying to partition something that does not partition.
+
+**Replacing GoTrue with a self-hosted framework was considered and rejected** (same
+day) — it would have made this worse, not better:
+
+- Auth.js / NextAuth and friends **need a server to run on**. We do not have one, and
+  §2.1 plus `AGENTS.md` rule 4 make acquiring one a real decision, not a detail.
+- PostgREST validates JWTs against the **project's single JWT secret**, which is also
+  what `auth.uid()` reads. Handing that secret to a second auth service lets it mint
+  valid tokens for the other product's users, and vice versa — promoting an
+  inconvenience into each product holding a master key to the other.
+
+**The client still treats the backend as replaceable.** `learn/auth.js` exposes exactly
+`signIn / verify / token / signOut / deleteAccount` and is the only module that knows
+what GoTrue is; `learn/sync.js` speaks PostgREST and never learns how the token was
+obtained. Changing provider — or moving to a dedicated project — is a one-file change
+with the sync path untouched.
+
+**Setup consequence, easy to lose:** sign-in is a **6-digit code**, not a magic link —
+a link needs a page we host to catch the redirect and we host nothing. The provider's
+email template must therefore render `{{ .Token }}`; the stock template sends a link,
+and a link cannot be completed from inside an extension.
 
 ### 8.5 Storage cost — four levers, and the estimate rule 9 requires
 

@@ -517,6 +517,106 @@ async function init() {
   refreshLearnStats();
   refreshPressure();
 
+  // ─── Sync (可选) ────────────────────────────────────────────────────
+  // learning-design.md §8. Signed out is the DEFAULT, not a degraded mode, so
+  // nothing in this block may make the rest of the page depend on it.
+
+  function syncSay(msg) { $('sync-status').textContent = msg || ''; }
+
+  // Every failure here gets its own sentence. "同步失败" tells a user nothing about
+  // whether to wait, retry, sign in again, or delete something — and this is a
+  // surface they deliberately turned on, so §9.1 law 2 requires it be told.
+  function syncError(e) {
+    const code = (e && e.code) || '';
+    if (code === 'offline') return t('sync_err_offline', '连不上服务器，稍后会自动重试。已学的内容都在本机。');
+    if (code === 'quota') return t('sync_err_quota', '云端空间已满，新内容暂时不再上传（本机不受影响）。清理已掌握的卡可以腾出空间。');
+    if (code === 'signed_out') return t('sync_err_signed_out', '登录已失效，请重新登录。');
+    if (code === 'rate_limited') return t('sync_err_rate', '验证码发得太频繁了，等几分钟再试。');
+    return (e && e.message) || t('sync_err_generic', '同步没能完成');
+  }
+
+  const fmtMB = (n) => (n / 1024 / 1024).toFixed(1);
+
+  async function refreshSyncUI() {
+    const s = await LearnAuth.current().catch(() => null);
+    $('sync-out').hidden = !!s;
+    $('sync-in').hidden = !s;
+    if (!s) { $('sync-usage').textContent = ''; return; }
+    $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', s.email || '');
+    try {
+      const u = await LearnSync.usage();
+      $('sync-usage').textContent = t('sync_usage', '云端已用 {used} MB / {quota} MB · {n} 个数据块')
+        .replace('{used}', fmtMB(u.bytes)).replace('{quota}', fmtMB(u.quota))
+        .replace('{n}', String(u.chunks));
+    } catch (_) { $('sync-usage').textContent = ''; }
+  }
+
+  $('btn-sync-code').addEventListener('click', async () => {
+    const email = $('sync-email').value.trim();
+    if (!email) { syncSay(t('sync_need_email', '先填邮箱')); return; }
+    syncSay(t('sync_sending', '发送中…'));
+    try {
+      await LearnAuth.signIn(email);
+      $('sync-code-row').hidden = false;
+      $('sync-code').focus();
+      syncSay(t('sync_code_sent', '验证码已发到 {email}，填在下面。').replace('{email}', email));
+    } catch (e) { syncSay(syncError(e)); }
+  });
+
+  $('btn-sync-verify').addEventListener('click', async () => {
+    syncSay(t('sync_verifying', '验证中…'));
+    try {
+      await LearnAuth.verify($('sync-email').value.trim(), $('sync-code').value.trim());
+      $('sync-code').value = '';
+      $('sync-code-row').hidden = true;
+      await refreshSyncUI();
+      syncSay(t('sync_signed_in_now', '已登录。第一次同步可能要几秒。'));
+      await runSync();
+    } catch (e) {
+      syncSay(e && e.status === 403 || e && e.status === 401
+        ? t('sync_bad_code', '验证码不对或已过期，重新发一个。')
+        : syncError(e));
+    }
+  });
+
+  async function runSync() {
+    syncSay(t('sync_running', '同步中…'));
+    try {
+      const r = await LearnSync.sync(Date.now());
+      syncSay(t('sync_done', '同步完成 · 收到 {in} 张 · 上传 {out} 张')
+        .replace('{in}', String(r.pulled.cards)).replace('{out}', String(r.pushed.pushed || 0)));
+      await Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
+    } catch (e) { syncSay(syncError(e)); }
+  }
+  $('btn-sync-now').addEventListener('click', runSync);
+
+  $('btn-sync-out').addEventListener('click', async () => {
+    await LearnAuth.signOut();
+    // The corpus stays. Signing out is not a reason to lose what you learned, and a
+    // user who expects otherwise is better surprised in this direction.
+    await LearnSync.forget();
+    await refreshSyncUI();
+    syncSay(t('sync_signed_out', '已退出登录。本机的学习库原样保留。'));
+  });
+
+  $('btn-sync-delete').addEventListener('click', async () => {
+    if (!window.confirm(t('sync_delete_confirm', '删除云端数据与账号？服务器上的所有内容与这个账号都会被删除，无法恢复。本机的学习库会保留。'))) return;
+    syncSay(t('sync_deleting', '删除中…'));
+    try {
+      const r = await LearnAuth.deleteAccount();
+      await LearnSync.forget();
+      await refreshSyncUI();
+      // A half-done deletion is reported as half-done. Saying "已删除" when the
+      // account survived would be a claim the user cannot verify.
+      syncSay(r.account
+        ? t('sync_deleted', '云端数据与账号都已删除。本机的学习库保留。')
+        : t('sync_deleted_partial', '云端数据已删除，但账号没能删掉（{why}）。可以重试或联系我们。')
+            .replace('{why}', String(r.reason || '')));
+    } catch (e) { syncSay(syncError(e)); }
+  });
+
+  refreshSyncUI();
+
   $('btn-clear-cache').addEventListener('click', async () => {
     const status = $('cache-status');
     status.textContent = t('toast_clearing', '清除中…');

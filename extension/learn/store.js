@@ -119,7 +119,7 @@ var LearnStore = (() => {
   function bumpPressure(field, n, now) {
     if (!n) return Promise.resolve();
     return getMeta('pressure', null).then((p) => {
-      const next = Object.assign({ evicted: 0, dropped: 0, at: 0 }, p || {});
+      const next = Object.assign({ evicted: 0, dropped: 0, quotaBlocked: 0, at: 0 }, p || {});
       next[field] = (next[field] || 0) + n;
       next.at = now || Date.now();
       return setMeta('pressure', next);
@@ -130,7 +130,7 @@ var LearnStore = (() => {
   // has already been lost since the user last acted on it.
   function pressure() {
     return Promise.all([allItems(), getMeta('pressure', null)]).then(([items, p]) => {
-      const rec = Object.assign({ evicted: 0, dropped: 0, at: 0 }, p || {});
+      const rec = Object.assign({ evicted: 0, dropped: 0, quotaBlocked: 0, at: 0 }, p || {});
       const known = items.filter((it) => LearnScheduler.stateFor(it) === 'known' && !it.starred).length;
       return {
         total: items.length,
@@ -139,13 +139,17 @@ var LearnStore = (() => {
         nearCap: items.length >= Math.floor(MAX_ITEMS * 0.95),
         evicted: rec.evicted || 0,
         dropped: rec.dropped || 0,
+        // Uploads the server refused for lack of room. Nothing was lost — it is all
+        // still local — but the user is the only one who can make room, so they have
+        // to be told (§7.1).
+        quotaBlocked: rec.quotaBlocked || 0,
         at: rec.at || 0,
         reclaimable: known,
       };
     }).catch(() => null);
   }
 
-  function clearPressure() { return setMeta('pressure', { evicted: 0, dropped: 0, at: 0 }); }
+  function clearPressure() { return setMeta('pressure', { evicted: 0, dropped: 0, quotaBlocked: 0, at: 0 }); }
 
   // The TARGETED cleanup. 'known' cards are the ones the scheduler itself concluded
   // you no longer need, so this frees space without throwing away a single card you

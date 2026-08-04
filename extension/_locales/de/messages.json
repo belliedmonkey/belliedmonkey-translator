@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "Import fehlgeschlagen"
+  },
+  "sync_section": {
+    "message": "Geräteübergreifende Synchronisierung"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Alles funktioniert auch ohne Konto — die Synchronisierung lässt dich nur auf dem Handy wiederholen, was du am Rechner gelesen hast. Hochgeladen werden Karten, die bereits in der Wiederholung sind, sowie dein Wiederholungsverlauf; Kandidaten, die noch nicht in der Wiederholung sind, verlassen dieses Gerät nie."
+  },
+  "sync_email": {
+    "message": "E-Mail"
+  },
+  "sync_send_code": {
+    "message": "Code senden"
+  },
+  "sync_code": {
+    "message": "6-stelliger Code aus der E-Mail"
+  },
+  "sync_verify": {
+    "message": "Anmelden"
+  },
+  "sync_now": {
+    "message": "Jetzt synchronisieren"
+  },
+  "sync_signout": {
+    "message": "Abmelden"
+  },
+  "sync_delete": {
+    "message": "Cloud-Daten und Konto löschen"
+  },
+  "sync_err_offline": {
+    "message": "Server nicht erreichbar; es wird später erneut versucht. Alles Gelernte liegt auf diesem Gerät."
+  },
+  "sync_err_quota": {
+    "message": "Dein Cloud-Speicher ist voll, daher wird nichts Neues hochgeladen (dieses Gerät ist nicht betroffen). Beherrschte Karten zu löschen schafft Platz."
+  },
+  "sync_err_signed_out": {
+    "message": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
+  },
+  "sync_err_rate": {
+    "message": "Zu viele Codes angefordert. Versuch es in ein paar Minuten erneut."
+  },
+  "sync_err_generic": {
+    "message": "Die Synchronisierung wurde nicht abgeschlossen"
+  },
+  "sync_signed_in": {
+    "message": "Angemeldet als {email}"
+  },
+  "sync_usage": {
+    "message": "{used} MB von {quota} MB belegt · {n} Blöcke"
+  },
+  "sync_need_email": {
+    "message": "Gib zuerst deine E-Mail-Adresse ein"
+  },
+  "sync_sending": {
+    "message": "Wird gesendet…"
+  },
+  "sync_code_sent": {
+    "message": "Code an {email} gesendet. Gib ihn unten ein."
+  },
+  "sync_verifying": {
+    "message": "Wird geprüft…"
+  },
+  "sync_signed_in_now": {
+    "message": "Angemeldet. Die erste Synchronisierung kann ein paar Sekunden dauern."
+  },
+  "sync_bad_code": {
+    "message": "Der Code ist falsch oder abgelaufen. Fordere einen neuen an."
+  },
+  "sync_running": {
+    "message": "Wird synchronisiert…"
+  },
+  "sync_done": {
+    "message": "Synchronisierung abgeschlossen · {in} empfangen · {out} hochgeladen"
+  },
+  "sync_signed_out": {
+    "message": "Abgemeldet. Deine Lernbibliothek bleibt unverändert auf diesem Gerät."
+  },
+  "sync_delete_confirm": {
+    "message": "Cloud-Daten und Konto löschen? Alles auf dem Server und dieses Konto werden endgültig gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleting": {
+    "message": "Wird gelöscht…"
+  },
+  "sync_deleted": {
+    "message": "Cloud-Daten und Konto gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud-Daten gelöscht, aber das Konto konnte nicht entfernt werden ({why}). Versuch es erneut oder kontaktiere uns."
   }
 }

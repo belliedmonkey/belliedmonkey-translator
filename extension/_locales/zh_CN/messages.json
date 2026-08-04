@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "导入失败"
+  },
+  "sync_section": {
+    "message": "多设备同步"
+  },
+  "sync_section_hint": {
+    "message": "可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。"
+  },
+  "sync_email": {
+    "message": "邮箱"
+  },
+  "sync_send_code": {
+    "message": "发送验证码"
+  },
+  "sync_code": {
+    "message": "邮件里的 6 位验证码"
+  },
+  "sync_verify": {
+    "message": "登录"
+  },
+  "sync_now": {
+    "message": "立即同步"
+  },
+  "sync_signout": {
+    "message": "退出登录"
+  },
+  "sync_delete": {
+    "message": "删除云端数据与账号"
+  },
+  "sync_err_offline": {
+    "message": "连不上服务器，稍后会自动重试。已学的内容都在本机。"
+  },
+  "sync_err_quota": {
+    "message": "云端空间已满，新内容暂时不再上传（本机不受影响）。清理已掌握的卡可以腾出空间。"
+  },
+  "sync_err_signed_out": {
+    "message": "登录已失效，请重新登录。"
+  },
+  "sync_err_rate": {
+    "message": "验证码发得太频繁了，等几分钟再试。"
+  },
+  "sync_err_generic": {
+    "message": "同步没能完成"
+  },
+  "sync_signed_in": {
+    "message": "已登录：{email}"
+  },
+  "sync_usage": {
+    "message": "云端已用 {used} MB / {quota} MB · {n} 个数据块"
+  },
+  "sync_need_email": {
+    "message": "先填邮箱"
+  },
+  "sync_sending": {
+    "message": "发送中…"
+  },
+  "sync_code_sent": {
+    "message": "验证码已发到 {email}，填在下面。"
+  },
+  "sync_verifying": {
+    "message": "验证中…"
+  },
+  "sync_signed_in_now": {
+    "message": "已登录。第一次同步可能要几秒。"
+  },
+  "sync_bad_code": {
+    "message": "验证码不对或已过期，重新发一个。"
+  },
+  "sync_running": {
+    "message": "同步中…"
+  },
+  "sync_done": {
+    "message": "同步完成 · 收到 {in} 张 · 上传 {out} 张"
+  },
+  "sync_signed_out": {
+    "message": "已退出登录。本机的学习库原样保留。"
+  },
+  "sync_delete_confirm": {
+    "message": "删除云端数据与账号？服务器上的所有内容与这个账号都会被删除，无法恢复。本机的学习库会保留。"
+  },
+  "sync_deleting": {
+    "message": "删除中…"
+  },
+  "sync_deleted": {
+    "message": "云端数据与账号都已删除。本机的学习库保留。"
+  },
+  "sync_deleted_partial": {
+    "message": "云端数据已删除，但账号没能删掉（{why}）。可以重试或联系我们。"
   }
 }

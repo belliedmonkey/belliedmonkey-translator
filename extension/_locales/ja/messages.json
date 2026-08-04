@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "読み込みに失敗しました"
+  },
+  "sync_section": {
+    "message": "デバイス間の同期"
+  },
+  "sync_section_hint": {
+    "message": "任意です。アカウントなしでもすべて使えます。同期は、パソコンで読んだ文をスマホで復習できるようにするだけのものです。復習に入ったカードと復習履歴だけがアップロードされ、まだ復習に入っていない候補はこの端末から出ません。"
+  },
+  "sync_email": {
+    "message": "メールアドレス"
+  },
+  "sync_send_code": {
+    "message": "確認コードを送信"
+  },
+  "sync_code": {
+    "message": "メールに届いた6桁のコード"
+  },
+  "sync_verify": {
+    "message": "ログイン"
+  },
+  "sync_now": {
+    "message": "今すぐ同期"
+  },
+  "sync_signout": {
+    "message": "ログアウト"
+  },
+  "sync_delete": {
+    "message": "クラウドのデータとアカウントを削除"
+  },
+  "sync_err_offline": {
+    "message": "サーバーに接続できません。後で自動的に再試行します。学習した内容はこの端末に残っています。"
+  },
+  "sync_err_quota": {
+    "message": "クラウドの容量がいっぱいのため、新しい内容はアップロードされていません（この端末には影響しません）。習得済みのカードを整理すると空きができます。"
+  },
+  "sync_err_signed_out": {
+    "message": "ログインの有効期限が切れました。もう一度ログインしてください。"
+  },
+  "sync_err_rate": {
+    "message": "コードの送信が多すぎます。数分後にお試しください。"
+  },
+  "sync_err_generic": {
+    "message": "同期を完了できませんでした"
+  },
+  "sync_signed_in": {
+    "message": "ログイン中：{email}"
+  },
+  "sync_usage": {
+    "message": "クラウド使用量 {used} MB / {quota} MB · {n} チャンク"
+  },
+  "sync_need_email": {
+    "message": "先にメールアドレスを入力してください"
+  },
+  "sync_sending": {
+    "message": "送信中…"
+  },
+  "sync_code_sent": {
+    "message": "{email} にコードを送りました。下に入力してください。"
+  },
+  "sync_verifying": {
+    "message": "確認中…"
+  },
+  "sync_signed_in_now": {
+    "message": "ログインしました。初回の同期には数秒かかることがあります。"
+  },
+  "sync_bad_code": {
+    "message": "コードが正しくないか期限切れです。もう一度送信してください。"
+  },
+  "sync_running": {
+    "message": "同期中…"
+  },
+  "sync_done": {
+    "message": "同期完了 · 受信 {in} 枚 · 送信 {out} 枚"
+  },
+  "sync_signed_out": {
+    "message": "ログアウトしました。この端末の学習ライブラリはそのまま残ります。"
+  },
+  "sync_delete_confirm": {
+    "message": "クラウドのデータとアカウントを削除しますか？サーバー上のすべての内容とこのアカウントが完全に削除されます。この端末のライブラリは残ります。"
+  },
+  "sync_deleting": {
+    "message": "削除中…"
+  },
+  "sync_deleted": {
+    "message": "クラウドのデータとアカウントを削除しました。この端末のライブラリは残っています。"
+  },
+  "sync_deleted_partial": {
+    "message": "クラウドのデータは削除しましたが、アカウントを削除できませんでした（{why}）。再試行するかご連絡ください。"
   }
 }

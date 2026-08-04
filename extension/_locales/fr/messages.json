@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "Échec de l'import"
+  },
+  "sync_section": {
+    "message": "Synchronisation entre appareils"
+  },
+  "sync_section_hint": {
+    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Seules les cartes déjà en révision et votre historique sont envoyés ; les candidates qui ne sont pas encore en révision ne quittent jamais cet appareil."
+  },
+  "sync_email": {
+    "message": "E-mail"
+  },
+  "sync_send_code": {
+    "message": "Envoyer le code"
+  },
+  "sync_code": {
+    "message": "Code à 6 chiffres reçu par e-mail"
+  },
+  "sync_verify": {
+    "message": "Se connecter"
+  },
+  "sync_now": {
+    "message": "Synchroniser maintenant"
+  },
+  "sync_signout": {
+    "message": "Se déconnecter"
+  },
+  "sync_delete": {
+    "message": "Supprimer les données du cloud et le compte"
+  },
+  "sync_err_offline": {
+    "message": "Serveur injoignable ; nouvelle tentative plus tard. Tout ce que vous avez appris est sur cet appareil."
+  },
+  "sync_err_quota": {
+    "message": "Votre espace cloud est plein : les nouveaux éléments ne sont plus envoyés (cet appareil n'est pas affecté). Supprimer les cartes maîtrisées libère de la place."
+  },
+  "sync_err_signed_out": {
+    "message": "Votre session a expiré. Reconnectez-vous."
+  },
+  "sync_err_rate": {
+    "message": "Trop de codes demandés. Réessayez dans quelques minutes."
+  },
+  "sync_err_generic": {
+    "message": "La synchronisation n'a pas abouti"
+  },
+  "sync_signed_in": {
+    "message": "Connecté : {email}"
+  },
+  "sync_usage": {
+    "message": "{used} Mo sur {quota} Mo utilisés · {n} blocs"
+  },
+  "sync_need_email": {
+    "message": "Saisissez d'abord votre e-mail"
+  },
+  "sync_sending": {
+    "message": "Envoi…"
+  },
+  "sync_code_sent": {
+    "message": "Code envoyé à {email}. Saisissez-le ci-dessous."
+  },
+  "sync_verifying": {
+    "message": "Vérification…"
+  },
+  "sync_signed_in_now": {
+    "message": "Connecté. La première synchronisation peut prendre quelques secondes."
+  },
+  "sync_bad_code": {
+    "message": "Ce code est incorrect ou expiré. Demandez-en un nouveau."
+  },
+  "sync_running": {
+    "message": "Synchronisation…"
+  },
+  "sync_done": {
+    "message": "Synchronisation terminée · {in} reçues · {out} envoyées"
+  },
+  "sync_signed_out": {
+    "message": "Déconnecté. Votre bibliothèque reste intacte sur cet appareil."
+  },
+  "sync_delete_confirm": {
+    "message": "Supprimer les données du cloud et le compte ? Tout ce qui se trouve sur le serveur ainsi que ce compte seront définitivement supprimés. Votre bibliothèque locale est conservée."
+  },
+  "sync_deleting": {
+    "message": "Suppression…"
+  },
+  "sync_deleted": {
+    "message": "Données cloud et compte supprimés. Votre bibliothèque locale est conservée."
+  },
+  "sync_deleted_partial": {
+    "message": "Données cloud supprimées, mais le compte n'a pas pu être supprimé ({why}). Réessayez ou contactez-nous."
   }
 }

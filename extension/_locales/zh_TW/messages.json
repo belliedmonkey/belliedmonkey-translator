@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "匯入失敗"
+  },
+  "sync_section": {
+    "message": "多裝置同步"
+  },
+  "sync_section_hint": {
+    "message": "選用。不登入也能完整使用——同步只是讓你在手機上複習電腦上讀到的句子。上傳的是已進入複習的卡片與複習記錄，還沒進複習的候選永遠留在本裝置。"
+  },
+  "sync_email": {
+    "message": "電子郵件"
+  },
+  "sync_send_code": {
+    "message": "寄送驗證碼"
+  },
+  "sync_code": {
+    "message": "信件裡的 6 位驗證碼"
+  },
+  "sync_verify": {
+    "message": "登入"
+  },
+  "sync_now": {
+    "message": "立即同步"
+  },
+  "sync_signout": {
+    "message": "登出"
+  },
+  "sync_delete": {
+    "message": "刪除雲端資料與帳號"
+  },
+  "sync_err_offline": {
+    "message": "連不上伺服器，稍後會自動重試。已學的內容都在本機。"
+  },
+  "sync_err_quota": {
+    "message": "雲端空間已滿，新內容暫時不再上傳（本機不受影響）。清理已掌握的卡片可以騰出空間。"
+  },
+  "sync_err_signed_out": {
+    "message": "登入已失效，請重新登入。"
+  },
+  "sync_err_rate": {
+    "message": "驗證碼寄得太頻繁了，等幾分鐘再試。"
+  },
+  "sync_err_generic": {
+    "message": "同步沒能完成"
+  },
+  "sync_signed_in": {
+    "message": "已登入：{email}"
+  },
+  "sync_usage": {
+    "message": "雲端已用 {used} MB / {quota} MB · {n} 個資料塊"
+  },
+  "sync_need_email": {
+    "message": "先填電子郵件"
+  },
+  "sync_sending": {
+    "message": "寄送中…"
+  },
+  "sync_code_sent": {
+    "message": "驗證碼已寄到 {email}，填在下面。"
+  },
+  "sync_verifying": {
+    "message": "驗證中…"
+  },
+  "sync_signed_in_now": {
+    "message": "已登入。第一次同步可能要幾秒。"
+  },
+  "sync_bad_code": {
+    "message": "驗證碼不對或已過期，重新寄一個。"
+  },
+  "sync_running": {
+    "message": "同步中…"
+  },
+  "sync_done": {
+    "message": "同步完成 · 收到 {in} 張 · 上傳 {out} 張"
+  },
+  "sync_signed_out": {
+    "message": "已登出。本機的學習庫原樣保留。"
+  },
+  "sync_delete_confirm": {
+    "message": "刪除雲端資料與帳號？伺服器上的所有內容與這個帳號都會被刪除，無法復原。本機的學習庫會保留。"
+  },
+  "sync_deleting": {
+    "message": "刪除中…"
+  },
+  "sync_deleted": {
+    "message": "雲端資料與帳號都已刪除。本機的學習庫保留。"
+  },
+  "sync_deleted_partial": {
+    "message": "雲端資料已刪除，但帳號沒能刪掉（{why}）。可以重試或聯絡我們。"
   }
 }

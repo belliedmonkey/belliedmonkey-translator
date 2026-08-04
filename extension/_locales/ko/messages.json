@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "가져오기에 실패했습니다"
+  },
+  "sync_section": {
+    "message": "기기 간 동기화"
+  },
+  "sync_section_hint": {
+    "message": "선택 사항입니다. 계정 없이도 모든 기능을 쓸 수 있습니다. 동기화는 컴퓨터에서 읽은 문장을 휴대폰에서 복습할 수 있게 해줄 뿐입니다. 복습에 들어간 카드와 복습 기록만 업로드되며, 아직 복습에 들어가지 않은 후보는 이 기기를 벗어나지 않습니다."
+  },
+  "sync_email": {
+    "message": "이메일"
+  },
+  "sync_send_code": {
+    "message": "인증 코드 보내기"
+  },
+  "sync_code": {
+    "message": "메일로 받은 6자리 코드"
+  },
+  "sync_verify": {
+    "message": "로그인"
+  },
+  "sync_now": {
+    "message": "지금 동기화"
+  },
+  "sync_signout": {
+    "message": "로그아웃"
+  },
+  "sync_delete": {
+    "message": "클라우드 데이터와 계정 삭제"
+  },
+  "sync_err_offline": {
+    "message": "서버에 연결할 수 없습니다. 나중에 자동으로 다시 시도합니다. 학습한 내용은 이 기기에 있습니다."
+  },
+  "sync_err_quota": {
+    "message": "클라우드 저장 공간이 가득 차 새 자료가 업로드되지 않습니다(이 기기는 영향 없음). 이미 익힌 카드를 정리하면 공간이 생깁니다."
+  },
+  "sync_err_signed_out": {
+    "message": "로그인이 만료되었습니다. 다시 로그인해 주세요."
+  },
+  "sync_err_rate": {
+    "message": "코드를 너무 자주 요청했습니다. 몇 분 뒤에 다시 시도하세요."
+  },
+  "sync_err_generic": {
+    "message": "동기화를 마치지 못했습니다"
+  },
+  "sync_signed_in": {
+    "message": "로그인됨: {email}"
+  },
+  "sync_usage": {
+    "message": "클라우드 {used} MB / {quota} MB 사용 · 청크 {n}개"
+  },
+  "sync_need_email": {
+    "message": "이메일을 먼저 입력하세요"
+  },
+  "sync_sending": {
+    "message": "보내는 중…"
+  },
+  "sync_code_sent": {
+    "message": "{email} 로 코드를 보냈습니다. 아래에 입력하세요."
+  },
+  "sync_verifying": {
+    "message": "확인 중…"
+  },
+  "sync_signed_in_now": {
+    "message": "로그인했습니다. 첫 동기화는 몇 초 걸릴 수 있습니다."
+  },
+  "sync_bad_code": {
+    "message": "코드가 틀렸거나 만료되었습니다. 새로 요청하세요."
+  },
+  "sync_running": {
+    "message": "동기화 중…"
+  },
+  "sync_done": {
+    "message": "동기화 완료 · {in}장 받음 · {out}장 올림"
+  },
+  "sync_signed_out": {
+    "message": "로그아웃했습니다. 이 기기의 학습 자료는 그대로 남습니다."
+  },
+  "sync_delete_confirm": {
+    "message": "클라우드 데이터와 계정을 삭제할까요? 서버의 모든 내용과 이 계정이 영구히 삭제됩니다. 이 기기의 자료는 유지됩니다."
+  },
+  "sync_deleting": {
+    "message": "삭제 중…"
+  },
+  "sync_deleted": {
+    "message": "클라우드 데이터와 계정을 삭제했습니다. 이 기기의 자료는 그대로입니다."
+  },
+  "sync_deleted_partial": {
+    "message": "클라우드 데이터는 삭제했지만 계정은 삭제하지 못했습니다({why}). 다시 시도하거나 문의해 주세요."
   }
 }

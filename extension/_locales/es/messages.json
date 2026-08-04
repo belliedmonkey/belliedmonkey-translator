@@ -562,5 +562,92 @@
   },
   "toast_import_failed": {
     "message": "Falló la importación"
+  },
+  "sync_section": {
+    "message": "Sincronización entre dispositivos"
+  },
+  "sync_section_hint": {
+    "message": "Opcional. Todo funciona sin cuenta: la sincronización solo te permite repasar en el móvil lo que leíste en el ordenador. Se suben las tarjetas que ya están en repaso y tu historial; las candidatas que aún no han entrado en repaso nunca salen de este dispositivo."
+  },
+  "sync_email": {
+    "message": "Correo electrónico"
+  },
+  "sync_send_code": {
+    "message": "Enviar código"
+  },
+  "sync_code": {
+    "message": "Código de 6 dígitos del correo"
+  },
+  "sync_verify": {
+    "message": "Iniciar sesión"
+  },
+  "sync_now": {
+    "message": "Sincronizar ahora"
+  },
+  "sync_signout": {
+    "message": "Cerrar sesión"
+  },
+  "sync_delete": {
+    "message": "Eliminar datos de la nube y la cuenta"
+  },
+  "sync_err_offline": {
+    "message": "No se puede conectar con el servidor; se reintentará más tarde. Todo lo que has aprendido está en este dispositivo."
+  },
+  "sync_err_quota": {
+    "message": "Tu espacio en la nube está lleno, así que no se sube contenido nuevo (este dispositivo no se ve afectado). Borrar las tarjetas dominadas libera espacio."
+  },
+  "sync_err_signed_out": {
+    "message": "Tu sesión ha caducado. Vuelve a iniciar sesión."
+  },
+  "sync_err_rate": {
+    "message": "Has pedido demasiados códigos. Inténtalo dentro de unos minutos."
+  },
+  "sync_err_generic": {
+    "message": "La sincronización no se completó"
+  },
+  "sync_signed_in": {
+    "message": "Sesión iniciada: {email}"
+  },
+  "sync_usage": {
+    "message": "{used} MB de {quota} MB usados · {n} bloques"
+  },
+  "sync_need_email": {
+    "message": "Introduce primero tu correo"
+  },
+  "sync_sending": {
+    "message": "Enviando…"
+  },
+  "sync_code_sent": {
+    "message": "Código enviado a {email}. Escríbelo abajo."
+  },
+  "sync_verifying": {
+    "message": "Verificando…"
+  },
+  "sync_signed_in_now": {
+    "message": "Sesión iniciada. La primera sincronización puede tardar unos segundos."
+  },
+  "sync_bad_code": {
+    "message": "Ese código es incorrecto o ha caducado. Pide uno nuevo."
+  },
+  "sync_running": {
+    "message": "Sincronizando…"
+  },
+  "sync_done": {
+    "message": "Sincronización completa · {in} recibidas · {out} subidas"
+  },
+  "sync_signed_out": {
+    "message": "Sesión cerrada. Tu biblioteca sigue intacta en este dispositivo."
+  },
+  "sync_delete_confirm": {
+    "message": "¿Eliminar los datos de la nube y la cuenta? Todo lo que hay en el servidor y esta cuenta se eliminarán de forma permanente. Tu biblioteca local se conserva."
+  },
+  "sync_deleting": {
+    "message": "Eliminando…"
+  },
+  "sync_deleted": {
+    "message": "Datos de la nube y cuenta eliminados. Tu biblioteca local se conserva."
+  },
+  "sync_deleted_partial": {
+    "message": "Datos de la nube eliminados, pero no se pudo borrar la cuenta ({why}). Puedes reintentarlo o escribirnos."
   }
 }
