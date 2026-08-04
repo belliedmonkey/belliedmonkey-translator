@@ -403,11 +403,50 @@ being actively learned.
 ### 8.4 Chunk format and transport
 
 ```sql
--- RLS on every table: user_id = auth.uid()
-learn_chunks (user_id uuid, seq bigint, kind text,   -- 'cards' | 'reviews' | 'sources'
-              blob bytea, generation int,            -- deflate-raw, NOT encrypted
-              PRIMARY KEY (user_id, seq))            -- append-only; never UPDATEd
+-- 实际落地的表（2026-08-04）。RLS 开启，策略只有 select / insert / delete。
+belliedmonkey_translator_chunks (
+  seq        bigint generated always as identity primary key,   -- 服务端分配
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  kind       text not null check (kind in ('cards','reviews','sources')),
+  blob       bytea not null,                                    -- deflate-raw, 未加密
+  generation int  not null default 0,
+  created_at timestamptz not null default now())
 ```
+
+Two deliberate deviations from the earlier sketch, both discovered while applying it:
+
+- **`seq` is server-assigned (`identity`), not `PRIMARY KEY (user_id, seq)` written by
+  the client.** Client-assigned sequence numbers race: two devices pushing at the same
+  moment pick the same next number and one insert fails, or worse, silently wins.
+  Pull semantics are unchanged — `where user_id = auth.uid() and seq > cursor`.
+- **Append-only is enforced by the ABSENCE of an UPDATE policy**, not by client
+  discipline. With RLS on and no UPDATE policy, nothing in the system — including our
+  own client, including a bug in it — can rewrite a chunk that has been written.
+  That is the kind of invariant worth having the database hold rather than a comment.
+
+**Quota is a `BEFORE INSERT` trigger** summing `octet_length(blob)` for that user, and
+it raises rather than truncating — `AGENTS.md` rule 7's "enforced by a database
+constraint, never by client-side good behaviour", and rule 7's "never silently drop
+data". The client turns that error into §7.1's pressure state plus a cleanup action.
+
+### 8.4.1 核心约束 — the project is shared, and that has a cost with a date on it
+
+> As of 2026-08-04 these tables live **in the champagne project**, distinguished only
+> by the `belliedmonkey_translator_` prefix. That is a deliberate temporary choice,
+> and the prefix solves the *smaller* half of the problem.
+>
+> **A Supabase project has exactly one `auth.users`.** Prefixes namespace tables; they
+> do not namespace identity. Both products therefore share one set of email templates,
+> one JWT secret, one rate limit, and one user list, and rotating any of it for one
+> affects the other.
+>
+> **Splitting later costs users a re-registration.** `user_id` references
+> `auth.users(id)`; rows can be dumped and moved, auth identities cannot. Plan the
+> split before there are users worth keeping, or accept that cost knowingly.
+>
+> If this becomes permanent, move to a dedicated **schema** rather than a prefix — it
+> gives real isolation and `pg_dump -n` takes the whole thing out in one command. The
+> only extra step is exposing the schema to PostgREST in project settings.
 
 - **Pull** `seq > cursor`; inflate, replay into the local IndexedDB. Cursor in `meta`.
 - **Push** batches new cards and reviews into a fresh chunk and appends it.
