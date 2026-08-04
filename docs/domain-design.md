@@ -559,11 +559,12 @@ page get no translation.
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
-learning layer (§9) adds an **optional, opt-in, free** account whose server does
-exactly one thing: hold a copy of the user's learning corpus so it can follow them
-between devices (`docs/learning-design.md` §8.4 — stored in plaintext; the trust
-answer is that the backend is open source and self-hostable, and that not syncing
-costs the user nothing).
+learning layer (§9) adds an **optional, opt-in** hosted alternative whose server does
+exactly one thing on the default path: **nothing.** The corpus syncs as files in a
+folder the user already syncs — iCloud Drive, Google Drive, Dropbox, whatever — and
+never reaches us at all (`docs/learning-design.md` §8). A hosted alternative exists
+for people who would rather not manage a folder, but it is paid and opt-in, and the
+free path is complete without it.
 
 What does **not** change, and is now load-bearing rather than incidental:
 
