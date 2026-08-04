@@ -655,5 +655,8 @@
   },
   "toast_import_upgrade": {
     "message": "Ce fichier a été créé par une version plus récente de l'extension. Mettez à jour, puis importez-le. Le fichier lui-même est intact."
+  },
+  "options_init_failed": {
+    "message": "La page des réglages n'a pas fini de se charger. Rouvrez-la ; si cela persiste, envoyez-nous ce message."
   }
 }

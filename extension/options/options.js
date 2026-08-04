@@ -266,7 +266,17 @@ function scaleValue(v) { return SCALE_OPTS.includes(v) ? v : '1.0'; }
 async function init() {
   // Explicit keys, never get(null): the same bucket holds the unbounded `tr:` cache
   // and the `lq:` learning outbox (docs/learning-design.md §7).
-  const s0 = await new Promise(resolve => chrome.storage.local.get(SETTINGS_KEYS, resolve));
+  // `resolve(s || {})`, not bare `resolve` — popup.js has always had the guard and
+  // this file did not, which is the entire difference between the popup working on
+  // Safari iOS and this page being inert there. A callback that arrives with no
+  // value resolves to `undefined`, the next line reads `.uiLang` off it, init()
+  // rejects, and NOTHING after this point runs: no provider list, no listeners, no
+  // learning stats. The page still renders, because all of that is static HTML — so
+  // it looks fine and does nothing.
+  const s0 = await new Promise((resolve) => {
+    try { chrome.storage.local.get(SETTINGS_KEYS, (v) => resolve(v || {})); }
+    catch (_) { resolve({}); }
+  });
   _uiLang = s0.uiLang || 'auto';
   applyI18n();
   // Single source: the manifest. `about_line` used to carry "· v1.0.0" inside every
@@ -661,4 +671,18 @@ async function init() {
   });
 }
 
-init();
+// A bare `init()` turns any throw inside it into a silent unhandled rejection, which
+// is exactly how the failure above stayed invisible: the page looked rendered and was
+// simply dead. Surface it instead — on a surface the user opened deliberately, a
+// broken settings page must not be quiet (domain-design §9.1 law 2).
+init().catch((e) => {
+  try {
+    console.error('[options] init failed:', e);
+    const el = document.getElementById('setup-note');
+    if (el) {
+      el.textContent = t('options_init_failed', '设置页没能加载完（' + (e && e.message || e) + '）。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。');
+      el.classList.add('warn');
+      el.style.display = 'block';
+    }
+  } catch (_) {}
+});

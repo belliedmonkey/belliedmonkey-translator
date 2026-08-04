@@ -655,5 +655,8 @@
   },
   "toast_import_upgrade": {
     "message": "Diese Datei stammt aus einer neueren Version der Erweiterung. Aktualisiere und importiere sie dann. Mit der Datei selbst ist alles in Ordnung."
+  },
+  "options_init_failed": {
+    "message": "Die Einstellungsseite wurde nicht fertig geladen. Öffne sie erneut; wenn es bleibt, schick uns diese Meldung."
   }
 }

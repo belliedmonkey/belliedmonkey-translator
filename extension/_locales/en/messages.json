@@ -655,5 +655,8 @@
   },
   "toast_import_upgrade": {
     "message": "This file was written by a newer version of the extension. Update, then import it. There is nothing wrong with the file."
+  },
+  "options_init_failed": {
+    "message": "The settings page did not finish loading. Reopen it; if it keeps happening, please send us this message."
   }
 }
