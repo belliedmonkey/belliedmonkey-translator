@@ -247,6 +247,24 @@ function validateManifest(distDir, isFirefox) {
     err('Missing gecko.data_collection_permissions.required (AMO rejects the upload without it)');
     process.exit(1);
   }
+  // A version literal inside a translated string has as many copies as there are
+  // locales and tracks none of them: `about_line` said "v1.0.0" in all eleven while
+  // the manifest was 1.3.0, and nothing anywhere noticed. Same disease as a model
+  // name in a hint — one registry, N consumers (AGENTS.md).
+  for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+    const f = path.join(distDir, '_locales', loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const msgs = JSON.parse(fs.readFileSync(f, 'utf8'));
+    for (const [k, v] of Object.entries(msgs)) {
+      if (/\bv?\d+\.\d+\.\d+\b/.test(String(v && v.message))) {
+        err(`_locales/${loc}/messages.json key "${k}" hardcodes a version: ` +
+            `"${v.message}"\nRender it from chrome.runtime.getManifest().version instead — ` +
+            `a version inside a translation has N copies and tracks none of them.`);
+        process.exit(1);
+      }
+    }
+  }
+
   // ─── Sync flag ↔ privacy promise, coupled mechanically ───────────────────
   // learning-design.md §10 Gate B. Turning sync on makes four sentences false at
   // once ("no account", "we receive nothing", "never uploaded", "no servers of

@@ -269,6 +269,13 @@ async function init() {
   const s0 = await new Promise(resolve => chrome.storage.local.get(SETTINGS_KEYS, resolve));
   _uiLang = s0.uiLang || 'auto';
   applyI18n();
+  // Single source: the manifest. `about_line` used to carry "· v1.0.0" inside every
+  // localized string, so the version had eleven copies and none of them tracked the
+  // build — exactly the failure the provider registry rule exists to prevent.
+  try {
+    const el = $('about-version');
+    if (el) el.textContent = 'v' + chrome.runtime.getManifest().version;
+  } catch (_) {}
   const s = s0;
 
   populateProviders();

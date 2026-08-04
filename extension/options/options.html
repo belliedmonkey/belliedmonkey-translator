@@ -280,7 +280,9 @@
       <!-- 关于 -->
       <section class="card about">
         <h2 data-i18n="options_about_section">关于</h2>
-        <p data-i18n="about_line">大肚猴翻译 · v1.0.0</p>
+        <!-- 版本号来自 manifest，不来自翻译。写死在 11 份译文里的结果是：
+             manifest 已经 1.3.0，界面还显示 v1.0.0，而且没有任何东西会报。 -->
+        <p><span data-i18n="about_line">大肚猴翻译</span> · <span id="about-version"></span></p>
         <p data-i18n="options_about_desc">支持网页全文双语对照翻译 + YouTube 双语字幕。</p>
         <p data-i18n="options_about_safari">Safari iOS：在设置 → Safari → 扩展 中启用。</p>
       </section>
