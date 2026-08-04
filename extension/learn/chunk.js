@@ -14,6 +14,25 @@
 var LearnChunk = (() => {
   const FORMAT = 'mt-learn/1';
 
+  // ─── The encryption envelope, declared before there is any encryption ─────
+  //
+  // `enc` says how the RECORD LINES are wrapped. Only 'none' is readable by this
+  // build. The field exists now, while it costs ten lines, because it cannot be
+  // added later without a format break — and because of what happens without it:
+  // an old client handed an encrypted chunk would find lines it cannot JSON.parse
+  // and report them as unreadable, dressing up "you need to update" as "your data
+  // is damaged". Those two need different words and different actions.
+  //
+  // Consequence, and the reason this works: THE HEADER LINE IS ALWAYS PLAINTEXT.
+  // Whatever encryption arrives later encrypts the records, never the header — a
+  // reader that cannot decrypt must still be able to say why.
+  const ENC_NONE = 'none';
+  const READABLE_ENC = [ENC_NONE];
+
+  // A file written before this field existed is plaintext by definition.
+  function encOf(header) { return (header && header.enc) || ENC_NONE; }
+  function canRead(header) { return READABLE_ENC.indexOf(encOf(header)) >= 0; }
+
   // Only graduated cards travel — lever 1 in §8.5. The candidate pool is a product
   // of what you read on THIS device and has no business following you around.
   function isGraduated(item) {
@@ -34,6 +53,7 @@ var LearnChunk = (() => {
     return {
       header: {
         format: FORMAT,
+        enc: ENC_NONE,
         createdAt: now,
         counts: { cards: cards.length, sources: srcs.length, reviews: revs.length },
       },
@@ -146,6 +166,15 @@ var LearnChunk = (() => {
       e.code = 'bad_format';
       throw e;
     }
+    // Ours, well-formed, and not readable by this build. Distinct from bad_format
+    // on purpose: nothing is wrong with this file, and telling the user to check
+    // their export would send them looking for a fault that does not exist.
+    if (!canRead(bundle.header)) {
+      const e = new Error('chunk uses enc=' + encOf(bundle.header) + ', unsupported by this version');
+      e.code = 'enc_unsupported';
+      e.enc = encOf(bundle.header);
+      throw e;
+    }
     const stats = await replay(bundle);
     stats.skipped = bundle.skipped;
     return stats;
@@ -158,7 +187,8 @@ var LearnChunk = (() => {
   }
 
   return {
-    FORMAT, isGraduated, build, toJsonl, fromJsonl,
+    FORMAT, ENC_NONE, encOf, canRead,
+    isGraduated, build, toJsonl, fromJsonl,
     deflate, inflate, hasCompression, replay,
     exportBytes, importBytes, fileName,
   };

@@ -649,5 +649,11 @@
   },
   "sync_deleted_partial": {
     "message": "Datos de la nube eliminados, pero no se pudo borrar la cuenta ({why}). Puedes reintentarlo o escribirnos."
+  },
+  "sync_err_upgrade": {
+    "message": "En la nube hay contenido que esta versión aún no puede leer (probablemente escrito por una versión más reciente). Actualiza la extensión y vuelve a sincronizar: no se ha perdido nada, simplemente todavía no se puede leer."
+  },
+  "toast_import_upgrade": {
+    "message": "Este archivo lo creó una versión más reciente de la extensión. Actualiza y vuelve a importarlo. El archivo está intacto."
   }
 }

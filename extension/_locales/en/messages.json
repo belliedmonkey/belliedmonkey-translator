@@ -649,5 +649,11 @@
   },
   "sync_deleted_partial": {
     "message": "Cloud data deleted, but the account could not be removed ({why}). You can retry or contact us."
+  },
+  "sync_err_upgrade": {
+    "message": "There is something in the cloud this version can't read yet (probably written by a newer build). Update the extension, then sync — nothing is lost, it just can't be read yet."
+  },
+  "toast_import_upgrade": {
+    "message": "This file was written by a newer version of the extension. Update, then import it. There is nothing wrong with the file."
   }
 }

@@ -415,8 +415,9 @@ async function init() {
       if (stats.skipped) msg += ' · ' + t('toast_import_skipped', '{n} 行无法解析已跳过').replace('{n}', String(stats.skipped));
       showToast(msg);
     } catch (err) {
-      showToast(err && err.code === 'bad_format'
-        ? t('toast_import_bad_format', '这不是学习库导出文件')
+      const c = err && err.code;
+      showToast(c === 'bad_format' ? t('toast_import_bad_format', '这不是学习库导出文件')
+        : c === 'enc_unsupported' ? t('toast_import_upgrade', '这个文件来自更新版本的扩展，升级后才能导入。文件本身没有问题。')
         : t('toast_import_failed', '导入失败'));
     }
     refreshLearnStats();
@@ -531,6 +532,7 @@ async function init() {
     if (code === 'offline') return t('sync_err_offline', '连不上服务器，稍后会自动重试。已学的内容都在本机。');
     if (code === 'quota') return t('sync_err_quota', '云端空间已满，新内容暂时不再上传（本机不受影响）。清理已掌握的卡可以腾出空间。');
     if (code === 'signed_out') return t('sync_err_signed_out', '登录已失效，请重新登录。');
+    if (code === 'enc_unsupported') return t('sync_err_upgrade', '云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级扩展后再同步——那些内容没有丢，只是暂时读不了。');
     if (code === 'rate_limited') return t('sync_err_rate', '验证码发得太频繁了，等几分钟再试。');
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
@@ -583,8 +585,11 @@ async function init() {
     syncSay(t('sync_running', '同步中…'));
     try {
       const r = await LearnSync.sync(Date.now());
-      syncSay(t('sync_done', '同步完成 · 收到 {in} 张 · 上传 {out} 张')
-        .replace('{in}', String(r.pulled.cards)).replace('{out}', String(r.pushed.pushed || 0)));
+      // "Needs upgrade" is not a failure and must not be worded as one: nothing was
+      // lost, nothing is corrupt, and the fix is not something to debug.
+      if (r.pulled.needsUpgrade) syncSay(t('sync_err_upgrade', '云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级扩展后再同步——那些内容没有丢，只是暂时读不了。'));
+      else syncSay(t('sync_done', '同步完成 · 收到 {in} 张 · 上传 {out} 张')
+        .replace('{in}', String(r.pulled.cards)).replace('{out}', String((r.pushed && r.pushed.pushed) || 0)));
       await Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
     } catch (e) { syncSay(syncError(e)); }
   }

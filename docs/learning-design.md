@@ -498,26 +498,68 @@ holds ~900 user-years; the 8 GB paid tier ~14,500.
 and the candidate pool. Media is a pointer only — `mediaKey` plus start/end offsets,
 ~20 bytes.
 
-### 8.6 No end-to-end encryption — and what that obliges us to say
+### 8.6 No end-to-end encryption — decided 2026-08-04, with the door held open
 
-The synced corpus is stored **in plaintext**. The trust answer is that the project is
-open source, the backend is self-hostable, sync is opt-in, and §8.2's export means
-leaving costs nothing.
+**What is actually stored is not "some sentences" — it is a reading history.** A chunk
+carries the sentences and translations, the **source table (URL + title)**, and the
+review log (card id, grade, **timestamp**). Together those reconstruct which pages a
+person read, when, and which sentences they keep forgetting. The sensitive column is
+the URL, not the prose. Any argument about this data that reasons about "just text"
+is reasoning about the wrong object.
 
-What this buys, and it is not small: **no recovery code** (the worst thing in the
-original design — lose the code, lose everything, forever), a corpus that can be
-debugged when a user reports broken sync, and the option of server-side features
-later (a shared quiz cache would let one generation serve every user who meets the
-same sentence — a real cost win for a free project).
+**Decision: no E2E for now; optional E2E later; the format door is open today.**
+
+What E2E would buy, stated honestly because it is not nothing:
+
+- A dump of the database becomes noise instead of every user's reading history.
+- **It takes us out of the trust chain — which "open source" does not.** Open source
+  proves the CLIENT is honest: anyone can read it and confirm what it uploads. It says
+  nothing about what runs on our server, which we can change unobserved. And
+  self-hosting is not a real option for ~all users; it means running a Supabase. The
+  relationship is the other way round from how §8.6 used to put it: **E2E is what
+  would make "we are open source" an actual answer**, because then the thing you must
+  verify is the client, and the client is verifiable.
+- Materially smaller breach exposure (ciphertext, no key). Not zero — we still hold
+  email addresses.
+
+What it would cost, and why the cost decided it:
+
+- **Key management would become the hardest UX problem in the product, and it
+  collides with §2's free-for-everyone.** The key must reach the second device: a
+  recovery code the user will lose, or a password — and login is deliberately
+  passwordless OTP precisely to keep friction near zero. Either way, **the users least
+  able to manage a key are the ones who would lose everything**, which is the wrong
+  people to hand the burden to in a product whose whole premise is 普惠.
+- Lost key = permanently unreadable, with support powerless. Value here accrues over
+  months.
+- **Collides with §2.1** (paid server-side models): a server that cannot read the
+  corpus can never run anything over it.
+- It is not "we know nothing" regardless: email, upload times, chunk sizes and
+  frequency stay in the clear, and that metadata alone shows when someone reads.
+
+**Not a technical obstacle.** `crypto.subtle` is unavailable in content scripts on
+plain-http pages (§7), but sync runs entirely in extension pages, which are secure
+contexts. Everything blocking this is product cost, not implementation cost.
+
+**What ships today instead: the `enc` field.** Every chunk header declares
+`enc: 'none'`, and a reader that meets an `enc` it does not know **refuses with its
+own code** (`enc_unsupported`) rather than treating the ciphertext as damaged lines.
+Two consequences worth stating, because both are easy to undo by accident:
+
+- **The header line stays plaintext, forever.** Whatever encryption arrives encrypts
+  the records, never the header — a reader that cannot decrypt must still be able to
+  say *why*. Encrypting the header would turn "update the extension" into "your data
+  is corrupt", which sends the user to look for a fault that does not exist.
+- **On pull, an unreadable-because-newer chunk STALLS sync and does not advance the
+  cursor** (§8.4). This is the opposite of the handling for an unparseable row, and
+  the difference is recoverability: a stalled sync resumes after an update, whereas a
+  skipped chunk is stepped over permanently and no later version ever gets it back.
 
 > **核心约束 — do not oversell "open source" as the privacy answer.** Being open
-> source makes the **client** auditable: a user can verify what it uploads. It does
-> **not** make the **server** auditable — nobody can verify what happens to data
-> after it arrives. Self-hosting answers both, but only for the few who can run it.
-> The privacy statement must say what is *true* — we store your learning material in
-> readable form, here is what we do and do not do with it, here is how to export it,
-> here is how to delete it — and must never imply that publishing the source resolves
-> the question.
+> source lets people verify the client. It does not constrain the server, and
+> self-hosting is not available to the people who most need the assurance. Until E2E
+> exists, the honest sentence is "we can read what you sync" — say that, rather than
+> implying the licence protects them.
 
 ### 8.7 核心约束 — we hold personal data now, and the obligations are not optional
 

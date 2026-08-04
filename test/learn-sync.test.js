@@ -299,6 +299,52 @@ describe('LearnSync — pull', () => {
   });
 });
 
+describe('LearnSync — a chunk from a NEWER client', () => {
+  function serve(bundleJsonl) {
+    const store = fakeStore({ meta: { auth: liveSession(), syncCursor: 3 } });
+    let served = false;
+    const hex = (s) => '\\x' + Array.from(new TextEncoder().encode(s))
+      .map((n) => n.toString(16).padStart(2, '0')).join('');
+    const fetchFn = fakeFetch([
+      { match: (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u),
+        reply: () => { if (served) return reply(200, []); served = true;
+          return reply(200, [{ seq: 9, blob: hex(bundleJsonl) }]); } },
+      { match: (u, i) => i && i.method === 'POST', reply: () => reply(201, [{ seq: 10 }]) },
+    ]);
+    return { store, fetchFn };
+  }
+
+  test('pull STALLS and does NOT advance the cursor', async () => {
+    // Skipping would step over the row permanently: upgrading later would then
+    // never recover it. A stalled sync is recoverable; a skipped chunk is not.
+    const setupOnce = setup();
+    const b = setupOnce.C.build([card('a')], [], [], T0);
+    b.header.enc = 'age-x25519';
+    const { store, fetchFn } = serve(setupOnce.C.toJsonl(b));
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.pull();
+    eq(r.needsUpgrade, 'age-x25519');
+    eq(r.chunks, 0);
+    eq(store.meta.syncCursor, 3, 'THE CURSOR MUST NOT MOVE PAST IT');
+  });
+
+  test('sync() does not push on top of what it could not read', async () => {
+    const setupOnce = setup();
+    const b = setupOnce.C.build([card('a')], [], [], T0);
+    b.header.enc = 'age-x25519';
+    const { store, fetchFn } = serve(setupOnce.C.toJsonl(b));
+    store.items.push(card('local'));
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.sync(T0 + 1000);
+    ok(r.pulled.needsUpgrade, 'the stall is reported');
+    eq(r.pushed, null, 'nothing was pushed');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0,
+      'a push would land above the stalled chunk and a later compaction could sweep it');
+  });
+});
+
 describe('LearnSync — compaction', () => {
   test('below the threshold, compaction writes nothing', async () => {
     const store = fakeStore({ meta: { auth: liveSession() }, items: [card('a')] });

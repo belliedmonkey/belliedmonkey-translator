@@ -140,9 +140,22 @@ var LearnSync = (() => {
       for (const row of rows) {
         const text = await LearnChunk.inflate(fromHex(row.blob));
         const bundle = LearnChunk.fromJsonl(text);
-        // A chunk we cannot read is skipped, counted, and the cursor still advances
-        // past it. Stopping instead would wedge sync permanently on one bad row.
-        if (bundle.header && bundle.header.format === LearnChunk.FORMAT) {
+        const ours = !!(bundle.header && bundle.header.format === LearnChunk.FORMAT);
+
+        // Two failures that look alike and must be handled OPPOSITELY.
+        //
+        // Ours but written by a NEWER client (an encryption envelope this build
+        // cannot open): the row is perfectly good, we simply cannot read it yet.
+        // Stop here and DO NOT advance the cursor — skipping would step over it
+        // permanently, so upgrading later would silently never recover that
+        // material. A stalled sync is recoverable; a skipped chunk is not.
+        if (ours && !LearnChunk.canRead(bundle.header)) {
+          stats.needsUpgrade = LearnChunk.encOf(bundle.header);
+          return stats;
+        }
+        // Not ours / unparseable: there is nothing to recover by waiting, and
+        // stopping would wedge sync forever on one bad row. Skip, count, advance.
+        if (ours) {
           const s = await LearnChunk.replay(bundle);
           stats.cards += s.cards; stats.reviews += s.reviews; stats.chunks++;
         } else {
@@ -196,6 +209,10 @@ var LearnSync = (() => {
   // this device uploads its own view of the same card.
   async function sync(now) {
     const pulled = await pull();
+    // Do not push on top of material we could not read. Our push would land at a
+    // higher `seq` than the chunk we stalled on, and a later compaction — ours or
+    // another device's — could then sweep it away before we ever caught up.
+    if (pulled.needsUpgrade) return { pulled, pushed: null };
     const pushed = await push(now);
     return { pulled, pushed };
   }

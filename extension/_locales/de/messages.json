@@ -649,5 +649,11 @@
   },
   "sync_deleted_partial": {
     "message": "Cloud-Daten gelöscht, aber das Konto konnte nicht entfernt werden ({why}). Versuch es erneut oder kontaktiere uns."
+  },
+  "sync_err_upgrade": {
+    "message": "In der Cloud liegt etwas, das diese Version noch nicht lesen kann (vermutlich von einer neueren Version geschrieben). Aktualisiere die Erweiterung und synchronisiere dann — es ist nichts verloren, es ist nur noch nicht lesbar."
+  },
+  "toast_import_upgrade": {
+    "message": "Diese Datei stammt aus einer neueren Version der Erweiterung. Aktualisiere und importiere sie dann. Mit der Datei selbst ist alles in Ordnung."
   }
 }

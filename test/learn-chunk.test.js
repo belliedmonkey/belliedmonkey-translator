@@ -102,6 +102,45 @@ describe('LearnChunk — only graduated cards travel', () => {
   });
 });
 
+describe('LearnChunk — the encryption envelope (declared before there is any)', () => {
+  test('every bundle declares enc, so a reader never has to guess', () => {
+    const { C } = setup();
+    eq(C.build([card('a')], [], [], T0).header.enc, C.ENC_NONE);
+  });
+
+  test('a file written BEFORE the field existed is still readable', async () => {
+    // Not hypothetical: files were exported by real users before `enc` was added.
+    const { C, items } = setup();
+    const b = C.build([card('a')], [], [], T0);
+    delete b.header.enc;
+    await C.importBytes(new TextEncoder().encode(C.toJsonl(b)));
+    eq(items.length, 1, 'a missing envelope means plaintext, not "unknown"');
+  });
+
+  test('an UNREADABLE-BECAUSE-NEWER chunk is refused with its OWN code', async () => {
+    // The whole point of the field. Without it the ciphertext lines would come back
+    // as `skipped`, and "update the extension" would be reported as "your data is
+    // damaged" — a different problem, sending the user somewhere useless.
+    const { C, items } = setup();
+    const b = C.build([card('a')], [], [], T0);
+    b.header.enc = 'age-x25519';
+    await rejects(
+      C.importBytes(new TextEncoder().encode(C.toJsonl(b))),
+      (e) => e.code === 'enc_unsupported' && e.enc === 'age-x25519');
+    eq(items.length, 0, 'nothing may be written from a chunk we cannot read');
+  });
+
+  test('unreadable-because-newer is NOT the same as bad_format', async () => {
+    const { C } = setup();
+    const mine = C.build([card('a')], [], [], T0);
+    mine.header.enc = 'whatever';
+    await rejects(C.importBytes(new TextEncoder().encode(C.toJsonl(mine))),
+      (e) => e.code === 'enc_unsupported');
+    await rejects(C.importBytes(new TextEncoder().encode('{"format":"someone-else/9"}\n')),
+      (e) => e.code === 'bad_format');
+  });
+});
+
 describe('LearnChunk — JSONL round trip', () => {
   test('encode → decode preserves every record', () => {
     const { C } = setup();

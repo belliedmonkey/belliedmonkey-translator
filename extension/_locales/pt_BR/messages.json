@@ -649,5 +649,11 @@
   },
   "sync_deleted_partial": {
     "message": "Dados da nuvem excluídos, mas não foi possível remover a conta ({why}). Você pode tentar de novo ou falar conosco."
+  },
+  "sync_err_upgrade": {
+    "message": "Há algo na nuvem que esta versão ainda não consegue ler (provavelmente gravado por uma versão mais recente). Atualize a extensão e sincronize de novo — nada foi perdido, apenas ainda não pode ser lido."
+  },
+  "toast_import_upgrade": {
+    "message": "Este arquivo foi criado por uma versão mais recente da extensão. Atualize e importe de novo. O arquivo está intacto."
   }
 }
