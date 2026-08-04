@@ -117,13 +117,25 @@ describe('TranslationAPI — cache', () => {
 
 // ─────────────────────────────────────────────────────────────────────────
 describe('TranslationAPI — retry & fallback', () => {
-  test('a failing non-google provider falls back to Google', async () => {
-    // 3 OpenAI failures (retry-after:0 → fast), then a Google success.
-    const program = [errJson(500), errJson(500), errJson(500), okJson([[['谷歌', 'hello']]])];
-    const { API, fetch } = loadAPI(program);
-    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', ''), '谷歌');
-    eq(fetch.calls.length, 4);
-    match(fetch.calls[3].url, /translate_a\/single/, 'final attempt is Google');
+  test('a failing provider REJECTS — it never reaches for Google behind your back', async () => {
+    // The old behaviour was a 4th call to translate_a/single after 3 provider
+    // failures. It made a broken key look like a working one (the user sees a
+    // translation and never learns their engine was never used), and it defeated
+    // verification-spec §0, which bans verifying on that endpoint — a ban the
+    // product itself was violating. A 4th call here is the regression.
+    const { API, fetch } = loadAPI([errJson(500), errJson(500), errJson(500),
+                                    okJson([[['谷歌', 'hello']]])]);
+    await rejects(API.translate('hello', 'zh-CN', 'openai', 'KEY', ''));
+    eq(fetch.calls.length, 3, 'exactly the 3 provider retries — no 4th Google attempt');
+  });
+
+  test('an EMPTY key fails visibly instead of quietly producing Google output', async () => {
+    // The shape that hid a misconfiguration in the field: nothing validates the key
+    // up front, so an empty one is a normal 401 — which must surface, not reroute.
+    const { API, fetch } = loadAPI([errJson(401), errJson(401), errJson(401),
+                                    okJson([[['谷歌', 'hello']]])]);
+    await rejects(API.translate('hello', 'zh-CN', 'deepseek', '', ''));
+    eq(fetch.calls.length, 3);
   });
 
   test('Google failing on all retries rejects (no fallback loop)', async () => {
@@ -131,12 +143,13 @@ describe('TranslationAPI — retry & fallback', () => {
     await rejects(API.translate('hello', 'zh-CN', 'google', '', ''));
   });
 
-  test('China flavor: a failing provider rejects (no Google fallback — Google is blocked in China)', async () => {
-    // 3 failures and NO Google success programmed: the china build must surface
-    // the error rather than silently reaching for translate.googleapis.com.
-    const { API, fetch } = loadAPI([errJson(500), errJson(500), errJson(500)], {}, 'china');
+  test('the no-fallback rule is universal — it was never a China-only concern', async () => {
+    // This used to be flavor-gated: China surfaced the error, everyone else got a
+    // silent Google translation. The distribution split is gone (domain-design §7)
+    // and so is the split behaviour — the honest one is now the only one.
+    const { API, fetch } = loadAPI([errJson(500), errJson(500), errJson(500)]);
     await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'KEY', ''));
-    eq(fetch.calls.length, 3, 'exactly the 3 provider retries, no 4th Google attempt');
+    eq(fetch.calls.length, 3);
   });
 });
 

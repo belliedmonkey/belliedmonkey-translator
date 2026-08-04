@@ -209,10 +209,25 @@ Rules:
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
-            // Global builds fall back to Google on total failure; China builds have
-            // no Google (blocked in China) — surface the error instead.
-            const chinaFlavor = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china');
-            if (provider !== 'google' && !chinaFlavor) return await translateGoogle(text, targetLang);
+            // NO SILENT FALLBACK. This used to hand a failed provider off to the free
+            // Google endpoint, and the cost of that was three separate things:
+            //
+            //  1. It made a broken key invisible. A wrong, expired or never-saved key
+            //     produced a plausible translation, so the user was quietly moved onto
+            //     the unstable path the onboarding note warns them away from — with no
+            //     signal that their own engine was never used.
+            //  2. It defeated verification-spec §0, which forbids verifying on the free
+            //     Google endpoint precisely because it is not a stable baseline. The
+            //     rule cannot hold if the product routes there by itself: a verifier
+            //     configures DeepSeek, sees output, and is reading Google.
+            //  3. It swallowed the real error. Found while chasing a Safari iOS hang
+            //     that showed 「翻译中…」 forever — the fallback meant nothing anywhere
+            //     ever reported what had actually failed.
+            //
+            // Failing loudly is also what domain-design §9.1 law 2 requires of a
+            // surface the user turned on: the 'error' state renders 「翻译失败 —
+            // 点击重试」 with a working retry. Google remains selectable AS an engine;
+            // it is no longer a silent understudy for the one you picked.
             throw err;
           }
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
