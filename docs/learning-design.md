@@ -53,10 +53,10 @@ designed under.
 | | Everyone |
 |---|---|
 | Translation | **defaults** to the user's own key, browser → provider directly, and that path stays free and fully capable forever. A server-side model may be offered as an opt-in **paid** alternative (§2.1) |
-| Learning corpus | device-local IndexedDB; optionally synced **through storage the user already owns** (a cloud-synced folder), never through us — §8 |
+| Learning corpus | device-local IndexedDB; optionally synced to our server under a fixed free quota (§8), with one-action export at any time |
 | LLM quizzes | the user's own key by default; a paid server-side path is permitted under §2.1 |
-| Account & sync | **no account at all** on the default path. A paid hosted option exists (§8.6) |
-| Storage at rest | the user's own file, in the user's own storage. Nothing of theirs on our machines unless they choose §8.6 |
+| Account & sync | free, optional, opt-in. A signed-out user has a complete product |
+| Storage at rest | **plaintext** on our server (§8.6), under the obligations in §8.7 |
 
 > **核心约束 — the free path never needs a server of ours.** A person who never pays
 > and never signs in must have a *complete* product: capture, scheduling, review,
@@ -344,94 +344,102 @@ starred card or one you are actively learning.
 > and only once such a tier exists. Never show an upgrade path to a tier that does
 > not exist.
 
-## 8. Sync (V3) — the user's own storage, no server by default
+## 8. Sync (V3) — hosted, with a fixed free quota
 
-*(Redesigned 2026-08-04. The previous design synced to a Supabase instance we run.
-This one does not: the corpus lives in a folder the user already syncs — iCloud
-Drive, Google Drive, Dropbox, 百度网盘, Syncthing, anything — and **we never receive
-it at all**. A hosted option remains, paid and opt-in, in §8.6.)*
+*(Settled 2026-08-04, after two reversals. The design went: our server with E2E →
+the user's own cloud folder → **our server, plaintext, fixed quota**. The middle
+option was dropped because a browser extension has no settable "data directory":
+`showDirectoryPicker` is Chromium-desktop only — not Firefox, not macOS Safari, and
+**impossible on iOS**, where an extension cannot reach the Files app or iCloud Drive.
+A default path that works on one of five matrix rows, and not the primary one, is not
+a default. The reasoning is kept here because it is the kind of thing that looks
+attractive again in six months.)*
 
 ### 8.1 The shape
 
-The corpus syncs as **files in a directory the user chose**. There is no account, no
-key, no endpoint, and nothing of the user's on any machine of ours.
+- The corpus syncs to **our server**, as the same append-only chunks. Stored in
+  **plaintext** (§8.4 — the trust answer is that the project is open source and the
+  backend self-hostable, plus §8.2's export).
+- **Every account has a fixed free quota** (currently 50 MB, `AGENTS.md` rule 7),
+  enforced by a database constraint, never by client-side good behaviour.
+- **On reaching it**: stop accepting new card text, keep syncing review progress, say
+  so plainly, and offer cleanup (§8.3). **Never silently drop data.**
+- Sync is **opt-in**. A signed-out user has a complete product; that is rule 2 and it
+  does not bend.
 
-Two tiers, split exactly along `docs/domain-design.md` §5.3's browser-capability
-axis — *the baseline must be complete on the weakest surface; a capability may only
-make it cheaper or sharper, never supply the only working path*:
+### 8.2 核心约束 — export stays, and it is not a nicety
 
-| Tier | How | Availability |
-|---|---|---|
-| **Baseline — export / import a file** | One file out, one file in. The user drops it in whatever folder they already sync, and imports it on the other device | **Every surface, including iOS.** This is the floor and it must stay complete on its own |
-| **Upgrade — a chosen directory** | `showDirectoryPicker()` once; the handle is persisted in IndexedDB and re-authorised on later visits. After that, sync is automatic against the same file format | Chromium desktop only (see §8.3) |
-
-Same format both ways, so a user can start with export/import and later point a
-directory at the same data, or move between machines with different capabilities.
-
-### 8.2 核心约束 — one writer per file, or the cloud will fight you
-
-> Consumer cloud drives are **bad** at merging one file edited by two devices: they
-> resolve it by producing 「冲突副本」/「conflicted copy」 duplicates, silently, and
-> the loser's edits survive only as a stray file the user has to notice. They are
-> **good** at many files each written by exactly one device.
+> **A one-action export of everything, and an import that restores it, ship with
+> sync — not after.** Three independent reasons, any one of which is sufficient:
 >
-> Therefore: **a device writes only its own files, and reads everyone's.**
+> 1. **It is the data-portability right** (GDPR Art. 20). We now hold the data, so
+>    this is no longer optional in the way it was when we held nothing.
+> 2. **It is the no-account path.** Someone who never wants to sign in can still move
+>    between their own devices by carrying the file.
+> 3. **It is the honest answer to "I don't trust you".** That answer must not be
+>    "self-host Supabase" — realistically nobody will. It is "take your file and go",
+>    and it has to actually work.
+>
+> The format is the §8.4 chunk format unchanged, so this costs almost nothing to
+> provide and would be indefensible to withhold.
 
+### 8.3 Quota pressure — the third state in §7.1
+
+The server quota is the third of the three pressure states §7.1 already describes,
+and it reuses that machinery: a line in the review page and settings, with a cleanup
+action beside it, never a blocker and never a page-level interruption.
+
+**The quota's real job is anti-abuse, not rationing.** At §8.5's ~0.55 MB per
+user-year, 50 MB is roughly 90 years of ordinary use — a normal user will never see
+it. It exists so that free storage with open sign-up does not quietly become a file
+host. So: build the cleanup path properly, but do **not** build an elaborate
+quota-management experience for a state real users will not reach, and do not
+advertise "limited storage" as though it were a constraint they will feel.
+
+Cleanup is the same targeted action as local (§7.1): drop `state='known'` cards —
+what the scheduler itself concluded you no longer need — never a starred card or one
+being actively learned.
+
+### 8.4 Chunk format and transport
+
+```sql
+-- RLS on every table: user_id = auth.uid()
+learn_chunks (user_id uuid, seq bigint, kind text,   -- 'cards' | 'reviews' | 'sources'
+              blob bytea, generation int,            -- deflate-raw, NOT encrypted
+              PRIMARY KEY (user_id, seq))            -- append-only; never UPDATEd
 ```
-<chosen folder>/belliedmonkey-learn/
-    cards-<deviceId>-000017.jsonl.gz     ← only this device ever writes these
-    reviews-<deviceId>-000042.jsonl.gz
-    cards-<otherDevice>-000009.jsonl.gz  ← read-only from here
-```
 
-- Files are **append-only and immutable once written** — the §8.4 chunk log,
-  unchanged, with the filesystem as the log instead of a table.
-- **Replay is idempotent**, so re-reading a folder is always safe and a partial sync
-  is always resumable.
-- **Compaction rewrites only the device's OWN files.** Never another device's — that
-  is the one operation that would recreate the conflict problem.
-- `deviceId` is a random local id, not anything identifying.
+- **Pull** `seq > cursor`; inflate, replay into the local IndexedDB. Cursor in `meta`.
+- **Push** batches new cards and reviews into a fresh chunk and appends it.
+- **Conflicts:** `text`/`tr`/`anchor` are immutable ⇒ none. `sched` is **derived by
+  replaying the review log**, never synced directly ⇒ none. Only `starred` / `state` /
+  `muted` need last-write-wins, carried as ordinary log entries.
+- **Compaction** may only be initiated by a client that has *just* completed a full
+  pull, and carries `expected_generation`; a losing racer retries later and backs off
+  after N consecutive failures, so two devices cannot livelock each other.
+- **Replay is idempotent** — a chunk applied twice yields the same local state, which
+  is what makes an interrupted sync safe to simply re-run.
+- **Not encrypted** (§8.6). Compression uses the platform's own
+  `CompressionStream('deflate-raw')`; adding a library for what the browser provides
+  would violate the zero-dependency rule.
 
-### 8.3 Platform reality — state it, do not paper over it
+**No new dependency**: `@supabase/supabase-js` is not introduced — raw `fetch`
+against GoTrue (`/auth/v1/otp`, `/auth/v1/verify`) and PostgREST. Login is an emailed
+6-digit OTP entered in the options page: no redirect, no callback URL, no `identity`
+or `webNavigation` permission, and it does not trigger Apple's "offer Sign in with
+Apple" rule.
 
-| Surface | Automatic directory sync | Export / import |
+### 8.5 Storage cost — four levers, and the estimate rule 9 requires
+
+**Assumptions.** `dailyNew = 15` ⇒ at most ~5,000 graduated cards per user-year; a
+card's `text` + `tr` is ~200 B of plaintext; a card accrues ~8 reviews over its life.
+
+| Lever | What it does | Saves |
 |---|---|---|
-| Chrome / Edge desktop | ✅ `showDirectoryPicker` | ✅ |
-| Firefox desktop | ❌ not implemented | ✅ |
-| macOS Safari | ❌ not implemented | ✅ |
-| **iPhone / iPad Safari** | ❌ **impossible** — a web extension cannot reach the Files app or iCloud Drive | ✅ (share sheet) |
-
-So the "point it at your cloud folder" experience covers **one of the five matrix
-rows, and not the primary one**. That is exactly why the baseline is export/import
-and not the directory handle: per §5.3.1 the floor has to work on Safari iOS, and it
-does.
-
-A native iOS host app (V4) *can* reach iCloud Drive and the Files app through the
-document picker, so the automatic tier becomes available there later — as an
-upgrade to a baseline that already worked, which is the only shape §5.3 allows.
-
-### 8.4 Chunk format
-
-```
-cards-<deviceId>-<seq>.jsonl.gz      one JSON object per line, deflate-raw
-reviews-<deviceId>-<seq>.jsonl.gz
-sources-<deviceId>-<seq>.jsonl.gz
-```
-
-- **Not encrypted.** It is the user's own file in the user's own storage; encrypting
-  it would only mean *they* could not read it either, and the recovery-code problem
-  would come back for no gain. (§8.6 is where at-rest questions actually arise.)
-- Compression uses the platform's own `CompressionStream('deflate-raw')` — adding a
-  library for something the browser provides would violate the zero-dependency rule.
-- The §8.5 cost estimate is unchanged and now describes **the user's** disk, not
-  ours: ~0.55 MB per user-year.
-
-### 8.5 Storage cost — now the user's, and still worth minimizing
-
-The four levers (sync only graduated cards · normalize the source · compress in
-batches · append-only with self-compaction) are unchanged and still earn ~4.5×
-against a naive dump. Their purpose has shifted from "our bill" to "not being rude
-with someone else's Drive quota", which is reason enough on its own.
+| **1 — sync only graduated cards** | The candidate pool (hundreds of segments per page) **never leaves the device**. Not merely thrift: the candidate pool *should* be a product of what you read on this device, while cards you have started learning *should* follow you | ~10× |
+| **2 — normalize the source** | URL + title is ~160 B, nearly half a card. A `Source` row is shared by every card from the same page (~30 for an article) | 160 B → ~5 B |
+| **3 — compress in batches** | Compressing one short sentence is near-useless, so ~200 cards are packed into one immutable chunk and compressed together. Mixed CJK/Latin batches at ~3× | ~3× |
+| **4 — append-only + whole-snapshot compaction** | Chunks are only appended. Past a threshold the client pulls everything, rewrites one snapshot chunk, deletes the superseded ones. **No incremental merge machinery** — the local corpus is hard-capped at 20,000 items, so a whole rewrite is affordable | 5,000 rows → ~25 |
 
 | | Raw | After |
 |---|---|---|
@@ -440,40 +448,57 @@ with someone else's Drive quota", which is reason enough on its own.
 | Sources ~500 × 160 B | 80 KB | ~27 KB |
 | **Per user-year** | ~1.7 MB | **~0.55 MB** |
 
-**What is never written, to anyone's storage**: audio, video, images, screenshots,
-full page text, and the candidate pool. Media is a pointer only.
+Without levers 2 and 3 it is ~2.5 MB/user-year. At 0.55 MB: Supabase's free 500 MB
+holds ~900 user-years; the 8 GB paid tier ~14,500.
 
-### 8.6 The hosted option — paid, opt-in, and now genuinely optional
+**What the server never stores**: audio, video, images, screenshots, full page text,
+and the candidate pool. Media is a pointer only — `mediaKey` plus start/end offsets,
+~20 bytes.
 
-A user who would rather not manage a folder can pay to have us hold the same chunks.
-Nothing about the format or the protocol changes; only the transport does.
+### 8.6 No end-to-end encryption — and what that obliges us to say
 
-This is the **only** path that puts user data on our machines, and it carries the
-obligations that follow (§8.7). It exists because some people will want it, not
-because the free path is incomplete — per `AGENTS.md` rule 2, the free path stays
-complete forever.
+The synced corpus is stored **in plaintext**. The trust answer is that the project is
+open source, the backend is self-hostable, sync is opt-in, and §8.2's export means
+leaving costs nothing.
 
-### 8.7 核心约束 — the legal position is "we hold nothing", and that must stay true
+What this buys, and it is not small: **no recovery code** (the worst thing in the
+original design — lose the code, lose everything, forever), a corpus that can be
+debugged when a user reports broken sync, and the option of server-side features
+later (a shared quiz cache would let one generation serve every user who meets the
+same sentence — a real cost win for a free project).
 
-> On the default path we are **neither controller nor processor**: the data goes from
-> the user's device to storage the user already owns, and never touches us. There is
-> no breach of ours to notify, no export or deletion request to service, no
-> cross-border transfer question.
+> **核心约束 — do not oversell "open source" as the privacy answer.** Being open
+> source makes the **client** auditable: a user can verify what it uploads. It does
+> **not** make the **server** auditable — nobody can verify what happens to data
+> after it arrives. Self-hosting answers both, but only for the few who can run it.
+> The privacy statement must say what is *true* — we store your learning material in
+> readable form, here is what we do and do not do with it, here is how to export it,
+> here is how to delete it — and must never imply that publishing the source resolves
+> the question.
+
+### 8.7 核心约束 — we hold personal data now, and the obligations are not optional
+
+> **What the plaintext actually is**: the sentences you read, their translations, the
+> page URL and title, and when you reviewed them. That is a **reading history** — the
+> most sensitive thing this product touches — tied to an email address.
 >
-> **This is not a loophole.** Holding nothing is data minimisation — GDPR's own
-> Article 5(1)(c) principle — and it is a stronger privacy position than any policy
-> promise about data we *do* hold could be.
+> This is personal data under GDPR and 个人信息保护法 (whose Art. 3 extra-territorial
+> reach covers PRC residents wherever we run). There is no argument left that we hold
+> only opaque bytes; that argument died with the encryption, and pretending otherwise
+> would be the dishonest kind of shortcut.
 
-Three things this does **not** do, and the docs must not imply otherwise:
+**Build these before the first byte is stored, not after:**
 
-1. **It only holds while we hold nothing.** The moment §8.6 stores a paying user's
-   chunks, the full obligations return **for those users**: deletion, export, breach
-   notification, and treating it as personal data under GDPR and 个人信息保护法.
-   Build those before the first paid byte is stored, not after.
-2. **An account is itself personal data.** The default path needs none — take that
-   simplification and do not add an account it does not require.
-3. **This is the engineering shape of the argument, not legal advice.** Have it
-   reviewed before any of it is published as a privacy claim.
+- **RLS on every table**, so one account can never read another's;
+- **one-action export** (§8.2) and **one-action deletion** of everything, from
+  settings — deletion must remove the account too, not just its rows;
+- **breach notification** capability: know what you hold and who to tell;
+- **TLS in transit, provider encryption at rest** — table stakes, not features;
+- **retention that is stated and honoured**, including what happens to an abandoned
+  account.
+
+*This is the engineering shape of the argument, not legal advice. Have it reviewed
+before any of it is published as a privacy claim.*
 
 ## 9. Module map additions
 
@@ -566,34 +591,40 @@ Required new bullet, adjacent to the "no account" bullet:
 
 ### Gate B — ships with V3 (sync)
 
-*(Rewritten 2026-08-04. An earlier draft of this gate weakened three README claims to
-make room for a server we ran. §8's redesign means we do not run one on the default
-path, so **those claims come back rather than going away** — and they are now true
-for a stronger reason than before.)*
+*(Rewritten twice on 2026-08-04 as §8 moved: our server → the user's cloud folder →
+our server again. That churn is exactly why this gate exists as a written target
+rather than as wording improvised at release time. The version below matches the
+settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
 
-- **"No servers of ours in the middle"** (README hero, line 6) **stays verbatim** on
-  the default path, and now covers sync too: the corpus goes to storage the user
-  already owns and never reaches us.
-- **"No account, no tracking, no telemetry. Nothing to sign up for."** also **stays
-  verbatim** by default — §8's design needs no account at all. (V1's local-history
-  disclosure from Gate A still applies; that is about the user's own device.)
-- **The two paid, opt-in paths must be stated as exceptions, not averaged in**: a
-  hosted corpus (§8.6) puts the user's learning material on our machines, and a
-  hosted model (§2.1) sends text through us. Name them as the exceptions they are;
-  do not soften the default claim to cover them.
+- **"No servers of ours in the middle"** (README hero, line 6) and "**No servers of
+  ours.** Requests go from your browser to the engine you picked" **stay verbatim** —
+  they describe the *translation* path, which is unchanged and still goes straight
+  from the browser to the engine the user chose. Do not weaken them to cover sync;
+  weakening a true statement to cover a different thing is how a privacy page stops
+  meaning anything.
+- **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one that
+  changes, and it must change honestly. No tracking and no telemetry stay literally
+  true. What is added is an **optional account** for syncing, which the extension
+  works completely without — and, for people who turn it on, **the corpus is stored
+  on our servers in readable form**. Say that in those words. It is the sentence a
+  reader deserves to find without digging.
+- **A hosted model (§2.1), if it ever ships, is a separate disclosure**: that path
+  sends page text through us. Name it as its own exception; never fold it into a
+  sentence about sync.
 - **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one
   that changes. It becomes: no tracking and no telemetry (still true), plus an
   **optional, free account** whose only job is to sync the learning corpus between
   the user's own devices — and which the extension works completely without.
-- **Firefox `data_collection_permissions`** stays `["websiteContent"]` on the default
-  path: writing a file to the user's own disk is not transmission to anyone. It must
-  be re-evaluated only if the hosted option (§8.6) ships.
-- **App Store privacy labels** need no change for the default path — no data leaves
-  the device for us. They must be refilled (and in-app **account deletion** added, an
-  Apple requirement wherever accounts exist) only if §8.6 ships.
-- **Data export is not a compliance chore here — it IS the sync mechanism** (§8.1).
-  That is a happy accident worth keeping: the thing regulators ask for is the same
-  thing the product needs anyway.
+- **Firefox `data_collection_permissions`** must be re-evaluated against `build.js`
+  (which already carries this reminder and a build-time assertion). Syncing transmits
+  website content **and** browsing activity, readable on the receiving end, so the
+  declaration almost certainly has to grow — and the wording must not lean on "it's
+  encrypted", because it is not.
+- **App Store privacy labels** must be refilled — adds "User Content"; **not** "Usage
+  Data", since there is still no telemetry — and the host app must offer in-app
+  **account deletion**, an Apple requirement wherever accounts exist.
+- **Export ships with sync, not after** (§8.2). It is simultaneously the portability
+  right, the no-account path, and the honest answer to "I don't trust you".
 - **`belliedmonkey.cc/privacy.html` lives outside this repo.** Per `AGENTS.md`, look
   its current state up in gbrain first; never infer it from this repository.
 
