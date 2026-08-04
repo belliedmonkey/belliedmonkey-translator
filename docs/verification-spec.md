@@ -735,3 +735,32 @@ deliberately and referenced from `AGENTS.md`. The separate **change-documentatio
 (every change gets a GitHub issue capturing problem / solution / reasoning) lives in
 [`AGENTS.md`](../AGENTS.md) — it is a process rule, not a verification rule, and is
 unaffected by this consolidation.
+
+---
+
+## Safari bundle completeness — a gate, because the build cannot see this
+
+`xcrun safari-web-extension-converter` captures the extension's **file list** at
+conversion time. Files added to `extension/` afterwards are never referenced by the
+Xcode project, so they are silently absent from the built `.appex` — while the build
+succeeds, the manifest validates, and every one of our own gates stays green.
+
+**This had already happened.** The entire `learn/` directory was missing from the iOS
+build. The visible consequence was not "the learning feature is absent": `options.html`
+loaded seven scripts that were not there, `options.js` threw on the first undefined
+global, and **the whole settings page was dead — including the field where the API key
+is entered**. Found by running the matrix, not by any test.
+
+Before any iOS/macOS verification run, and before any Safari release:
+
+```bash
+node build.js
+xcodebuild -scheme "BelliedMonkey Translator (iOS)" \
+  -destination 'id=<SIM_UDID>' -configuration Debug \
+  -derivedDataPath /tmp/bt-dd CODE_SIGNING_ALLOWED=NO build
+npm run verify:ios            # every dist/ file must exist in the .appex
+```
+
+A non-zero exit means **regenerate the project** (the command is printed in the
+failure) and rebuild. Do not hand-add files in Xcode: the next added file reproduces
+the same silent gap.
