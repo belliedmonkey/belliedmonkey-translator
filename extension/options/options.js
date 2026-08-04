@@ -537,7 +537,12 @@ async function init() {
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
 
-  const fmtMB = (n) => (n / 1024 / 1024).toFixed(1);
+  // Adaptive unit. A fixed "MB" reads 0.0 for everything under ~50 KB, which is
+  // where a real corpus lives for a long time against a 50 MB quota — so the number
+  // meant to show usage growing showed nothing growing, right up until it mattered.
+  const fmtSize = (n) => (n < 1024 * 1024
+    ? Math.round(n / 1024) + ' KB'
+    : (n / 1024 / 1024).toFixed(1) + ' MB');
 
   async function refreshSyncUI() {
     const s = await LearnAuth.current().catch(() => null);
@@ -547,8 +552,8 @@ async function init() {
     $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', s.email || '');
     try {
       const u = await LearnSync.usage();
-      $('sync-usage').textContent = t('sync_usage', '云端已用 {used} MB / {quota} MB · {n} 个数据块')
-        .replace('{used}', fmtMB(u.bytes)).replace('{quota}', fmtMB(u.quota))
+      $('sync-usage').textContent = t('sync_usage', '云端已用 {used} / {quota} · {n} 个数据块')
+        .replace('{used}', fmtSize(u.bytes)).replace('{quota}', fmtSize(u.quota))
         .replace('{n}', String(u.chunks));
     } catch (_) { $('sync-usage').textContent = ''; }
   }

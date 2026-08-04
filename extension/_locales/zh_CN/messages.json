@@ -609,7 +609,7 @@
     "message": "已登录：{email}"
   },
   "sync_usage": {
-    "message": "云端已用 {used} MB / {quota} MB · {n} 个数据块"
+    "message": "云端已用 {used} / {quota} · {n} 个数据块"
   },
   "sync_need_email": {
     "message": "先填邮箱"

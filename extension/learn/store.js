@@ -93,18 +93,25 @@ var LearnStore = (() => {
 
   // Merge a batch of captured items. Text/tr/anchor are immutable; only
   // evidence-of-use accumulates (learning-design.md §4).
+  // Returns how many items were NEW to this device, not how many were offered.
+  // The difference is the whole meaning of the number the sync UI shows: a device
+  // re-reading its own upload merges the full batch and adds nothing, and reporting
+  // the batch size there tells the user cards arrived from somewhere when none did.
+  // Counted in a closure, not returned from `fn` — see the `tx()` note above.
   function mergeBatch(items, sources) {
     if (!items.length && !(sources || []).length) return Promise.resolve(0);
+    let added = 0;
     return tx(['items', 'sources'], 'readwrite', (s) => {
       for (const src of sources || []) if (src && src.id) s.sources.put(src);
       for (const inc of items) {
         const r = s.items.get(inc.id);
         r.onsuccess = () => {
           const prev = r.result;
+          if (!prev) added++;
           s.items.put(prev ? LearnModel.mergeItem(prev, inc) : inc);
         };
       }
-    }).then(() => items.length);
+    }).then(() => added);
   }
 
   function recordReview(itemId, grade, at) {

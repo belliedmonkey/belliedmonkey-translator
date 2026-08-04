@@ -26,13 +26,14 @@ function setup(seed = {}) {
     allReviews: () => Promise.resolve(reviews.slice()),
     mergeBatch: (incoming, srcs) => {
       calls.merge.push({ items: incoming.length, sources: (srcs || []).length });
+      let added = 0;
       for (const inc of incoming) {
         const i = items.findIndex((x) => x.id === inc.id);
         if (i >= 0) items[i] = LearnModel.mergeItem(items[i], inc);
-        else items.push(inc);
+        else { items.push(inc); added++; }
       }
       for (const s of srcs || []) if (!sources.some((x) => x.id === s.id)) sources.push(s);
-      return Promise.resolve(incoming.length);
+      return Promise.resolve(added);          // NEW here, not offered
     },
     recordReview: (itemId, grade, at) => {
       calls.review.push({ itemId, grade, at });
@@ -213,6 +214,17 @@ describe('LearnChunk — import', () => {
     eq(items.length, 2, 'a re-import must not duplicate cards');
     eq(second.reviews, 0, 'a re-import must not re-append reviews');
     eq(reviews.length, 1, 'the review log is append-only — duplicates would corrupt the schedule');
+  });
+
+  test('a re-import reports 0 received — the number means NEW, not replayed', async () => {
+    // Found by driving the real UI: a device that pulls back its own upload showed
+    // "received 8", which a user reads as "8 arrived from another device" when none
+    // did. Idempotent replay was already correct; the COUNT was the lie.
+    const { C } = setup();
+    const bundle = C.build([card('a'), card('b')], [{ id: 'src1', url: 'u' }], [], T0);
+    const bytes = new TextEncoder().encode(C.toJsonl(bundle));
+    eq((await C.importBytes(bytes)).cards, 2);
+    eq((await C.importBytes(bytes)).cards, 0, 'nothing was new the second time');
   });
 
   test('re-import does not rewrite text — immutability is what makes sync conflict-free', async () => {

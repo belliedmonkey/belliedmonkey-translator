@@ -609,7 +609,7 @@
     "message": "Вы вошли как {email}"
   },
   "sync_usage": {
-    "message": "Использовано {used} МБ из {quota} МБ · блоков: {n}"
+    "message": "Использовано {used} из {quota} · блоков: {n}"
   },
   "sync_need_email": {
     "message": "Сначала введите почту"

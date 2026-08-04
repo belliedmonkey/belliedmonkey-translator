@@ -609,7 +609,7 @@
     "message": "로그인됨: {email}"
   },
   "sync_usage": {
-    "message": "클라우드 {used} MB / {quota} MB 사용 · 청크 {n}개"
+    "message": "클라우드 {used} / {quota} 사용 · 청크 {n}개"
   },
   "sync_need_email": {
     "message": "이메일을 먼저 입력하세요"

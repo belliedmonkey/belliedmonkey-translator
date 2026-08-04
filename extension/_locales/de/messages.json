@@ -609,7 +609,7 @@
     "message": "Angemeldet als {email}"
   },
   "sync_usage": {
-    "message": "{used} MB von {quota} MB belegt · {n} Blöcke"
+    "message": "{used} von {quota} belegt · {n} Blöcke"
   },
   "sync_need_email": {
     "message": "Gib zuerst deine E-Mail-Adresse ein"

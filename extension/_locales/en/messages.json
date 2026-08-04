@@ -609,7 +609,7 @@
     "message": "Signed in as {email}"
   },
   "sync_usage": {
-    "message": "{used} MB of {quota} MB used · {n} chunks"
+    "message": "{used} of {quota} used · {n} chunks"
   },
   "sync_need_email": {
     "message": "Enter your email first"

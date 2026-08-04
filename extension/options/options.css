@@ -108,8 +108,13 @@ body {
 
 /* ─── Inputs ─────────────────────────────────────────────── */
 
-input[type="text"],
-input[type="password"],
+/* Styled by EXCLUSION, not by enumeration. The rule used to list
+   `[type="text"], [type="password"]`, which meant every new input type silently fell
+   back to the UA control — it had already happened twice before anyone rendered the
+   page (`type="number"` on 每天最多引入的新卡片, then `type="email"` on the sync
+   section). Listing the three types that must keep their native appearance is a
+   closed set; listing the ones that need ours never is. */
+input:not([type="checkbox"]):not([type="color"]):not([type="file"]),
 select {
   width: 100%;
   background: var(--input-bg);

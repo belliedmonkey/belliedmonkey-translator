@@ -609,7 +609,7 @@
     "message": "已登入：{email}"
   },
   "sync_usage": {
-    "message": "雲端已用 {used} MB / {quota} MB · {n} 個資料塊"
+    "message": "雲端已用 {used} / {quota} · {n} 個資料塊"
   },
   "sync_need_email": {
     "message": "先填電子郵件"

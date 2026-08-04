@@ -132,8 +132,10 @@ var LearnChunk = (() => {
   async function replay(bundle) {
     const stats = { cards: 0, sources: 0, reviews: 0 };
     if (bundle.cards.length || bundle.sources.length) {
-      await LearnStore.mergeBatch(bundle.cards, bundle.sources);
-      stats.cards = bundle.cards.length;
+      // `cards` is what was NEW here, not what the bundle contained — the surfaces
+      // render it as "received", and a re-read of our own chunk receives nothing.
+      stats.cards = await LearnStore.mergeBatch(bundle.cards, bundle.sources);
+      stats.merged = bundle.cards.length;
       stats.sources = bundle.sources.length;
     }
     // Reviews are an append-only log keyed by (itemId, at), so re-importing must not

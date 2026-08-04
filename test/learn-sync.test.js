@@ -57,7 +57,7 @@ function fakeStore(seed = {}) {
     allItems: () => Promise.resolve(items.slice()),
     allSources: () => Promise.resolve(sources.slice()),
     allReviews: () => Promise.resolve(reviews.slice()),
-    mergeBatch: (inc) => { for (const c of inc) if (!items.some((x) => x.id === c.id)) items.push(c); return Promise.resolve(inc.length); },
+    mergeBatch: (inc) => { let added = 0; for (const c of inc) if (!items.some((x) => x.id === c.id)) { items.push(c); added++; } return Promise.resolve(added); },
     recordReview: (itemId, grade, at) => { reviews.push({ itemId, grade, at }); return Promise.resolve(); },
     evictIfNeeded: () => Promise.resolve(0),
     bumpPressure: (f, n) => { bumps.push({ f, n }); return Promise.resolve(); },

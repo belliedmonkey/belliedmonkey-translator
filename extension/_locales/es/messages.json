@@ -609,7 +609,7 @@
     "message": "Sesión iniciada: {email}"
   },
   "sync_usage": {
-    "message": "{used} MB de {quota} MB usados · {n} bloques"
+    "message": "{used} de {quota} usados · {n} bloques"
   },
   "sync_need_email": {
     "message": "Introduce primero tu correo"

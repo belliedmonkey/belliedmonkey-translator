@@ -609,7 +609,7 @@
     "message": "Conectado como {email}"
   },
   "sync_usage": {
-    "message": "{used} MB de {quota} MB usados · {n} blocos"
+    "message": "{used} de {quota} usados · {n} blocos"
   },
   "sync_need_email": {
     "message": "Informe seu e-mail primeiro"

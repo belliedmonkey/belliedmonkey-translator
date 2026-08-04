@@ -609,7 +609,7 @@
     "message": "ログイン中：{email}"
   },
   "sync_usage": {
-    "message": "クラウド使用量 {used} MB / {quota} MB · {n} チャンク"
+    "message": "クラウド使用量 {used} / {quota} · {n} チャンク"
   },
   "sync_need_email": {
     "message": "先にメールアドレスを入力してください"

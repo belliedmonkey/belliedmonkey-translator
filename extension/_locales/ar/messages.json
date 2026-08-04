@@ -609,7 +609,7 @@
     "message": "مسجّل الدخول: {email}"
   },
   "sync_usage": {
-    "message": "المستخدم {used} م.ب من {quota} م.ب · {n} كتلة"
+    "message": "المستخدم {used} من {quota} · {n} كتلة"
   },
   "sync_need_email": {
     "message": "أدخل بريدك الإلكتروني أولًا"
