@@ -7,12 +7,22 @@
 // translated with the configured provider. The user-visible result was that every
 // setting appeared to revert — you would re-enter your API key on every visit.
 //
-// The mechanism is NOT isolated (that needs a Web Inspector session). Two candidates
-// remain: the array form `get([...])` behaving differently there, or the callback
-// arriving with nothing at all. So this helper does not bet on either — it tries the
-// normal read, and only if the result contains none of the keys we asked for does it
-// fall back to a full read and filter. Where the array form works, this is exactly
-// one call and nothing changes.
+// ⚠️ THIS DOES NOT FIX THE SAFARI iOS SYMPTOM. Verified on device 2026-08-05: with
+// this helper in place, reopening the settings page STILL shows the default provider
+// instead of the saved one. So the cause is not the array form of `get()` — the
+// full-bucket fallback comes back empty too. An extension page on that platform
+// appears unable to read `chrome.storage.local` at all, while a content script on the
+// same device reads the same keys successfully and writes from this same page do
+// persist (the content script sees them).
+//
+// The file is kept anyway, for what it does do: it makes every extension-page read
+// defensive (no throw, no hang, never `undefined`) and puts the retry in one place
+// for when the real cause is known. It is NOT a fix, and the comment says so, because
+// a helper named like a solution is how a known-open bug gets closed by accident.
+//
+// Real cause: still open. Next step is a Safari Web Inspector session against the
+// options page — nothing short of the console distinguishes "read returned empty"
+// from "read never returned".
 //
 // The full read is the fallback and never the default, deliberately: the same bucket
 // holds the unbounded `tr:` translation cache and the `lq:` learning outbox
