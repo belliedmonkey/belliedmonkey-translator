@@ -162,13 +162,29 @@ Rules:
     try { chrome.storage.local.set({ [CACHE_KEY_PREFIX + key]: { v: value, ts: Date.now() } }); } catch (_) {}
   }
 
+  // The `try` must wrap the CALLBACK BODY, not just the call. That distinction was
+  // worth a whole afternoon: on Safari iOS this callback arrives with `res`
+  // undefined, `res[...]` threw inside the callback, and the surrounding try/catch —
+  // which only covers the synchronous `get()` call — never saw it. So `resolve` was
+  // never reached and THE PROMISE NEVER SETTLED. `translate()` awaits this before it
+  // ever fetches, so the symptom was: no request, no timeout (AbortController never
+  // got involved), no error, and every unit pinned at 「翻译中…」 forever. Removing
+  // the Google fallback changed nothing, because the retry loop was never reached
+  // either.
+  //
+  // Two rules this encodes, both cheap and both learned the expensive way:
+  //   · a promise executor must settle on EVERY path, including a throwing callback;
+  //   · never dereference what a browser API hands a callback — Safari passes
+  //     undefined where Chrome passes {} (same root cause as options.js init).
   async function cacheGetStorage(key) {
     return new Promise(resolve => {
       try {
         chrome.storage.local.get([CACHE_KEY_PREFIX + key], (res) => {
-          const entry = res[CACHE_KEY_PREFIX + key];
-          if (entry && Date.now() - entry.ts < CACHE_TTL) resolve(entry.v);
-          else resolve(null);
+          try {
+            const entry = (res || {})[CACHE_KEY_PREFIX + key];
+            if (entry && Date.now() - entry.ts < CACHE_TTL) resolve(entry.v);
+            else resolve(null);
+          } catch (_) { resolve(null); }
         });
       } catch (_) { resolve(null); }
     });

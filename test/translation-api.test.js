@@ -116,6 +116,60 @@ describe('TranslationAPI — cache', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+describe('TranslationAPI — a storage callback that hands back undefined (Safari iOS)', () => {
+  // The bug this pins cost an afternoon of matrix time and looked like a network
+  // problem the whole way. `chrome.storage.local.get` on Safari iOS invokes its
+  // callback with NO value. The cache read then did `res[key]`, which threw INSIDE
+  // the callback — where the surrounding try/catch (wrapping only the synchronous
+  // `get()` call) could not see it. `resolve` was never reached, so the promise
+  // never settled, and `translate()` awaits that read BEFORE it fetches.
+  //
+  // The visible symptom had none of the shape of its cause: every paragraph sat at
+  // 「翻译中…」 forever — no request on the wire, no 20s AbortController timeout
+  // (nothing had been fetched), no error state, and removing an unrelated fallback
+  // changed nothing because the retry loop was never reached either.
+  function apiWithBlindStorage(program) {
+    const fetch = makeFetch(program);
+    const chrome = {
+      storage: {
+        local: {
+          // Exactly Safari's shape: the callback fires ASYNCHRONOUSLY, with nothing.
+          // The async part is load-bearing and was nearly got wrong here: a
+          // SYNCHRONOUS stub lets the callback's throw unwind through `get()` into
+          // the enclosing try/catch, which resolves the promise and hides the bug —
+          // a green test proving nothing. Real callbacks land on a later turn, where
+          // nothing is left to catch them.
+          get: (_keys, cb) => setTimeout(() => cb(undefined), 0),
+          set: () => {},
+          remove: (_k, cb) => cb && cb(),
+        },
+      },
+    };
+    const window = loadRegistry();   // same registry as loadAPI, or we'd hit the
+                                     // google branch instead of the code under test
+    const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window });
+    return { API: ctx.TranslationAPI, fetch };
+  }
+
+  test('translate() still COMPLETES — a throwing callback must not strand the promise', async () => {
+    const { API, fetch } = apiWithBlindStorage([okJson({ choices: [{ message: { content: '译文' } }] })]);
+    const out = await Promise.race([
+      API.translate('hello', 'zh-CN', 'deepseek', 'KEY', ''),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('HUNG: promise never settled')), 15000)),
+    ]);
+    eq(out, '译文');
+    eq(fetch.calls.length, 1, 'the request must actually reach the network');
+  });
+
+  test('and a real failure still surfaces rather than hanging', async () => {
+    const { API } = apiWithBlindStorage([errJson(401), errJson(401), errJson(401)]);
+    await Promise.race([
+      rejects(API.translate('hello', 'zh-CN', 'deepseek', '', '')),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('HUNG')), 15000)),
+    ]);
+  });
+});
+
 describe('TranslationAPI — retry & fallback', () => {
   test('a failing provider REJECTS — it never reaches for Google behind your back', async () => {
     // The old behaviour was a 4th call to translate_a/single after 3 provider

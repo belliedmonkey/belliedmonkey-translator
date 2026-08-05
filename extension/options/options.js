@@ -658,7 +658,7 @@ async function init() {
     const status = $('cache-status');
     status.textContent = t('toast_clearing', '清除中…');
     chrome.storage.local.get(null, (items) => {
-      const keys = Object.keys(items).filter(k => k.startsWith('tr:'));
+      const keys = Object.keys(items || {}).filter(k => k.startsWith('tr:'));
       if (keys.length === 0) {
         status.textContent = t('toast_cache_empty', '缓存为空');
         return;
