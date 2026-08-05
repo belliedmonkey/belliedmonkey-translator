@@ -20,9 +20,11 @@
 // failure — domain-design §9.1 law 2: a surface the user opened deliberately does not
 // get to fail quietly.
 //
-// NOT fixed here, because it is not a code defect: whatever prevents the storage
-// directory from being created. On this simulator it persisted across reinstalls; a
-// `simctl erase` or a real device is the next thing to try.
+// The storage-directory failure itself turned out to be that simulator's own state:
+// after `simctl erase` and a clean setup, settings read back correctly. So this file
+// does not exist to work around a platform defect — it exists so that the NEXT
+// storage failure, wherever it comes from, cannot masquerade as an empty profile and
+// get silently painted over with defaults.
 
 var PageSettings = (() => {
   // Returns {ok, data, error}. `ok:false` means the read FAILED — which is not the
