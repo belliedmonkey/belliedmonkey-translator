@@ -764,3 +764,36 @@ npm run verify:ios            # every dist/ file must exist in the .appex
 A non-zero exit means **regenerate the project** (the command is printed in the
 failure) and rebuild. Do not hand-add files in Xcode: the next added file reproduces
 the same silent gap.
+
+---
+
+## 更正与未决（iPhone 行，2026-08-05）
+
+**更正一条已推送的错误声明。** commit `8036d83` 的信息里写着「同一篇 Wikipedia、同一个
+DeepSeek key……改后 30 秒内全部渲染」。**那次的译文其实来自免费 Google 端点**，不是
+DeepSeek——覆盖安装（`simctl install` 不卸载）**会清空扩展设置**，而我只验证了代码
+刷新、没验证存储保留，就把结论说满了。
+
+识别它的信号当时就在眼前：那段译文前后大半是**原文回显**，正是本文件 §0 记录的免费
+端点典型故障，我却当成模型质量问题带过去了。**「验证用的是不是你以为的那条路」必须
+在每次重装后重新确认，不能沿用。**
+
+重配 DeepSeek 后已重新验证：译文全中文、无回显。所以
+
+- 悬挂 promise 的修复 **成立**（该 bug 在 fetch 之前，与引擎无关）；
+- 「iOS 上 DeepSeek 端到端翻译」**现在才成立**。
+
+### 本行仍未验证
+
+- 采集是否真的写入学习库、复习页、TTS、长按加星。
+- **新发现的缺陷（未修）**：Safari iOS 上**弹窗读不到已保存的设置**——设置页显示
+  DeepSeek 且译文确由 DeepSeek 产生时，弹窗仍显示「Google 翻译（免费）」并展示免费
+  通道提示。状态本身（已翻译/未翻译）是对的。用户会因此以为自己的 key 没生效。
+  与 `options.js` 的 init 失败同族（`chrome.storage.local.get` 在该平台上的回调行为），
+  但 popup 有 `s || {}` 兜底，所以不是崩溃而是**静默退回默认值**——更难发现。
+
+### 一条操作纪律
+
+`simctl install` 覆盖安装**会重置扩展存储**（也会重置 Safari 的扩展开关与站点授权）。
+每次重装后：重新配 provider + key，并**用「译文里有没有原文回显」确认自己确实在验
+预期的那条路径**。
