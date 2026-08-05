@@ -273,10 +273,11 @@ async function init() {
   // rejects, and NOTHING after this point runs: no provider list, no listeners, no
   // learning stats. The page still renders, because all of that is static HTML — so
   // it looks fine and does nothing.
-  const s0 = await new Promise((resolve) => {
-    try { chrome.storage.local.get(SETTINGS_KEYS, (v) => resolve(v || {})); }
-    catch (_) { resolve({}); }
-  });
+  // PageSettings, not a bare get: extension pages on Safari iOS read back nothing
+  // (learn/page-settings.js). Symptom was every setting appearing to revert — you
+  // re-entered your API key on every visit — while the content script read the same
+  // keys fine and translated with the configured provider.
+  const s0 = await PageSettings.read(SETTINGS_KEYS);
   _uiLang = s0.uiLang || 'auto';
   applyI18n();
   // Single source: the manifest. `about_line` used to carry "· v1.0.0" inside every

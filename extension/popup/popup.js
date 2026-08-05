@@ -56,16 +56,16 @@ function populateProviders() {
   if (prev && providerById(prev)) sel.value = prev;
 }
 
-async function getSettings() {
-  return new Promise(resolve => {
-    // Explicit keys, never get(null): the bucket also holds the unbounded `tr:`
-    // cache and the `lq:` learning outbox (docs/learning-design.md §7).
-    chrome.storage.local.get([
-      'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-      'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
-    ], s => resolve(s || {}));
-  });
-}
+// Explicit keys, never get(null) by default: the bucket also holds the unbounded
+// `tr:` cache and the `lq:` learning outbox (docs/learning-design.md §7). The read
+// goes through PageSettings because an extension page on Safari iOS gets nothing back
+// — this popup showed "Google 翻译（免费）" while the page it was describing had just
+// been translated by the user's own DeepSeek key.
+const POPUP_KEYS = [
+  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
+];
+async function getSettings() { return PageSettings.read(POPUP_KEYS); }
 
 function showToast(msg, duration = 2000) {
   const el = $('toast');

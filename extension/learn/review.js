@@ -24,10 +24,10 @@
       // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
       // cache and the `lq:` outbox, and reading the whole thing here would drag
       // both along. (docs/learning-design.md §7.)
-      chrome.storage.local.get([
+      resolve(PageSettings.read([
         'uiLang', 'learnEnabled', 'learnDailyNew',
         'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-      ], (s) => resolve(s || {}));
+      ]));
     });
   }
 
