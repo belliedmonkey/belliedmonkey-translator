@@ -1,4 +1,11 @@
 /* popup.css */
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element, so `.pressure{display:flex}` silently made a
+   `hidden` banner permanently visible — on a brand-new library it showed a cleanup
+   button for zero reclaimable cards, i.e. shouted about a problem that did not exist.
+   One line here beats remembering it at every future `display` rule. */
+[hidden] { display: none !important; }
+
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
