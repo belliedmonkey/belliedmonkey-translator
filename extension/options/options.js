@@ -94,9 +94,13 @@ function showToast(msg, duration = 2500) {
 
 // Say what to do BEFORE the first bad result, not after. Mirrors popup.js —
 // see the comment there for why both states exist.
+let _settingsReadFailed = false;
 function updateSetupNote(provider, apiKey) {
   const el = $('setup-note');
   if (!el) return;
+  // A storage failure outranks onboarding advice: telling someone to fill in a key
+  // while we cannot read the one they already saved is worse than saying nothing.
+  if (_settingsReadFailed) return;
   const p = providerById(provider) || {};
   const needsKey = !!p.needsKey;
   const hasKey = !!(apiKey || '').trim();
@@ -277,7 +281,23 @@ async function init() {
   // (learn/page-settings.js). Symptom was every setting appearing to revert — you
   // re-entered your API key on every visit — while the content script read the same
   // keys fine and translated with the configured provider.
-  const s0 = await PageSettings.read(SETTINGS_KEYS);
+  // A failed read is NOT an empty profile. Painting defaults over a storage failure
+  // is how "your API key silently reverted to the free channel" happened.
+  const _s = await PageSettings.read(SETTINGS_KEYS);
+  const s0 = _s.data;
+  if (!_s.ok) {
+    _settingsReadFailed = true;
+    try {
+      const el = $('setup-note');
+      if (el) {
+        el.textContent = t('settings_read_failed',
+          '读不到已保存的设置，下面显示的是默认值——请不要在此保存，否则会覆盖掉你原来的配置。（{why}）')
+          .replace('{why}', _s.error || '');
+        el.classList.add('warn');
+        el.style.display = 'block';
+      }
+    } catch (_) {}
+  }
   _uiLang = s0.uiLang || 'auto';
   applyI18n();
   // Single source: the manifest. `about_line` used to carry "· v1.0.0" inside every

@@ -658,5 +658,8 @@
   },
   "options_init_failed": {
     "message": "La página de ajustes no terminó de cargarse. Vuelve a abrirla; si sigue igual, envíanos este mensaje."
+  },
+  "settings_read_failed": {
+    "message": "No se han podido leer tus ajustes guardados, así que abajo se muestran los valores por defecto. No guardes desde esta página: sobrescribirías tu configuración. ({why})"
   }
 }

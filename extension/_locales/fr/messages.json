@@ -658,5 +658,8 @@
   },
   "options_init_failed": {
     "message": "La page des réglages n'a pas fini de se charger. Rouvrez-la ; si cela persiste, envoyez-nous ce message."
+  },
+  "settings_read_failed": {
+    "message": "Vos réglages enregistrés n'ont pas pu être lus ; les valeurs par défaut sont affichées. N'enregistrez pas depuis cette page — cela écraserait vos réglages. ({why})"
   }
 }

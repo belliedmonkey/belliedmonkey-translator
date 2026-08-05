@@ -1,58 +1,67 @@
-// learn/page-settings.js — reading settings from an EXTENSION PAGE.
+// learn/page-settings.js — reading settings from an EXTENSION PAGE, and knowing
+// when that read FAILED as opposed to came back empty.
 //
-// Content scripts read `chrome.storage.local` fine on every platform we ship to.
-// Extension pages on Safari iOS do not: verified 2026-08-05 on iPhone 17 Pro /
-// iOS 26.5, where the options page and the popup both came back with nothing while
-// the content script on the same device, at the same moment, read the same keys and
-// translated with the configured provider. The user-visible result was that every
-// setting appeared to revert — you would re-enter your API key on every visit.
+// Found with Safari Web Inspector against the simulator's options page, 2026-08-05,
+// after two wrong guesses. The two forms of the same call disagree:
 //
-// ⚠️ THIS DOES NOT FIX THE SAFARI iOS SYMPTOM. Verified on device 2026-08-05: with
-// this helper in place, reopening the settings page STILL shows the default provider
-// instead of the saved one. So the cause is not the array form of `get()` — the
-// full-bucket fallback comes back empty too. An extension page on that platform
-// appears unable to read `chrome.storage.local` at all, while a content script on the
-// same device reads the same keys successfully and writes from this same page do
-// persist (the content script sees them).
+//   callback form:  cb(undefined)          ← fires, hands back nothing, says nothing
+//   promise form:   rejects with
+//     "Invalid call to browser.storage.local.get().
+//      Failed to create extension storage directory."
 //
-// The file is kept anyway, for what it does do: it makes every extension-page read
-// defensive (no throw, no hang, never `undefined`) and puts the retry in one place
-// for when the real cause is known. It is NOT a fix, and the comment says so, because
-// a helper named like a solution is how a known-open bug gets closed by accident.
+// So the storage layer was BROKEN, and the callback form reported that as an empty
+// result. Our code then did the only thing it could with an empty result: painted
+// defaults. The user saw their provider and API key silently revert to the free
+// channel — indistinguishable, from the outside, from never having saved them.
 //
-// Real cause: still open. Next step is a Safari Web Inspector session against the
-// options page — nothing short of the console distinguishes "read returned empty"
-// from "read never returned".
+// That silence is the part that is ours to fix. Prefer the promise form because it is
+// the only one that tells the truth; fall back to the callback form (with a
+// `lastError` check) for anything that does not return a thenable. Report failure as
+// failure — domain-design §9.1 law 2: a surface the user opened deliberately does not
+// get to fail quietly.
 //
-// The full read is the fallback and never the default, deliberately: the same bucket
-// holds the unbounded `tr:` translation cache and the `lq:` learning outbox
-// (learning-design.md §7), so reading everything is expensive and gets more expensive
-// the longer someone uses the product.
+// NOT fixed here, because it is not a code defect: whatever prevents the storage
+// directory from being created. On this simulator it persisted across reinstalls; a
+// `simctl erase` or a real device is the next thing to try.
 
 var PageSettings = (() => {
+  // Returns {ok, data, error}. `ok:false` means the read FAILED — which is not the
+  // same as `{}`, and the caller must not treat it as "no settings yet".
   function rawGet(query) {
     return new Promise((resolve) => {
+      let settled = false;
+      const done = (r) => { if (!settled) { settled = true; resolve(r); } };
       try {
-        chrome.storage.local.get(query, (res) => {
-          try { resolve(res || {}); } catch (_) { resolve({}); }
+        const maybe = chrome.storage.local.get(query, (v) => {
+          const le = (chrome.runtime && chrome.runtime.lastError) || null;
+          if (le) done({ ok: false, data: {}, error: le.message || String(le) });
+          else if (v === undefined || v === null) {
+            // The shape Safari hands back when the layer is broken. Without the
+            // promise form there is no message to show, so say what we know.
+            done({ ok: false, data: {}, error: 'storage returned nothing' });
+          } else done({ ok: true, data: v, error: null });
         });
-      } catch (_) { resolve({}); }
+        // Safari (and MV3 Chrome) also return a promise. It is the only path that
+        // carries the real reason, so let it win when it settles.
+        if (maybe && typeof maybe.then === 'function') {
+          maybe.then(
+            (v) => done({ ok: true, data: v || {}, error: null }),
+            (e) => done({ ok: false, data: {}, error: (e && e.message) || String(e) })
+          );
+        }
+      } catch (e) {
+        done({ ok: false, data: {}, error: (e && e.message) || String(e) });
+      }
     });
   }
 
-  // `keys` is the explicit list the caller needs. Returns an object with whatever of
-  // those keys exists — never undefined, never a rejected promise.
+  // `keys` is the explicit list the caller needs. Never throws, always settles.
   async function read(keys) {
-    const first = await rawGet(keys);
-    if (Object.keys(first).some((k) => keys.indexOf(k) >= 0)) return first;
-
-    // Nothing came back. Either the profile really is empty (a first run — in which
-    // case the fallback is one wasted read on a nearly empty bucket) or this platform
-    // did not honour the array form.
-    const all = await rawGet(null);
+    const r = await rawGet(keys);
+    if (!r.ok) return r;
     const out = {};
-    for (const k of keys) if (k in all) out[k] = all[k];
-    return out;
+    for (const k of keys) if (k in r.data) out[k] = r.data[k];
+    return { ok: true, data: out, error: null };
   }
 
   return { read, rawGet };

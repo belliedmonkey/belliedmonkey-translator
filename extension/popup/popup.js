@@ -65,7 +65,14 @@ const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
 ];
-async function getSettings() { return PageSettings.read(POPUP_KEYS); }
+async function getSettings() {
+  const r = await PageSettings.read(POPUP_KEYS);
+  // The popup has no room for an explanation; it must at least not lie. When the
+  // read failed we show what we have and mark it, rather than presenting defaults
+  // as if they were the user's configuration.
+  if (!r.ok) { try { document.body.dataset.settingsUnavailable = '1'; } catch (_) {} }
+  return r.data;
+}
 
 function showToast(msg, duration = 2000) {
   const el = $('toast');

@@ -658,5 +658,8 @@
   },
   "options_init_failed": {
     "message": "A página de configurações não terminou de carregar. Abra-a de novo; se continuar, envie-nos esta mensagem."
+  },
+  "settings_read_failed": {
+    "message": "Não foi possível ler suas configurações salvas, então os valores padrão são exibidos. Não salve nesta página — isso sobrescreveria o que você tinha. ({why})"
   }
 }

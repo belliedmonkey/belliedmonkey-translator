@@ -658,5 +658,8 @@
   },
   "options_init_failed": {
     "message": "The settings page did not finish loading. Reopen it; if it keeps happening, please send us this message."
+  },
+  "settings_read_failed": {
+    "message": "Your saved settings could not be read, so the defaults are shown below. Do not save from this page — it would overwrite what you had. ({why})"
   }
 }

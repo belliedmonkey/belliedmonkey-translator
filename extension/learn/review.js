@@ -27,7 +27,7 @@
       resolve(PageSettings.read([
         'uiLang', 'learnEnabled', 'learnDailyNew',
         'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-      ]));
+      ]).then(function (r) { return r.data; }));
     });
   }
 

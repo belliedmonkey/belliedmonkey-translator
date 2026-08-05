@@ -658,5 +658,8 @@
   },
   "options_init_failed": {
     "message": "Die Einstellungsseite wurde nicht fertig geladen. Öffne sie erneut; wenn es bleibt, schick uns diese Meldung."
+  },
+  "settings_read_failed": {
+    "message": "Deine gespeicherten Einstellungen konnten nicht gelesen werden; unten stehen die Standardwerte. Speichere hier nicht — das würde deine Einstellungen überschreiben. ({why})"
   }
 }

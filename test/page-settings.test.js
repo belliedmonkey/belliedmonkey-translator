@@ -1,66 +1,74 @@
 // test/page-settings.test.js — reading settings from an extension page.
 //
-// Pins a platform behaviour, not a preference: on Safari iOS an extension page's
-// `chrome.storage.local.get([...])` came back with nothing while the content script
-// on the same device read the same keys successfully. Every setting appeared to
-// revert; the user re-entered their API key on every visit.
+// The shape being pinned was found with Safari Web Inspector, not guessed. On the
+// simulator the two forms of the SAME call disagree:
+//
+//   callback form → cb(undefined), silently
+//   promise form  → rejects "Failed to create extension storage directory."
+//
+// The storage layer was broken; the callback form reported that as an empty result;
+// the page painted defaults over the user's saved provider and API key. So the
+// contract here is not "return data" — it is **distinguish failure from empty**.
 
 const { loadModule, describe, test, ok, eq } = require('./harness');
 
-function load(getImpl) {
-  const chrome = { storage: { local: { get: getImpl, set: () => {} } } };
+function load(getImpl, lastError) {
+  const chrome = {
+    runtime: { lastError: lastError || null },
+    storage: { local: { get: getImpl, set: () => {} } },
+  };
   return loadModule('learn/page-settings.js', { window: {}, chrome }).PageSettings;
 }
 
 const KEYS = ['provider', 'apiKey', 'targetLang'];
 
 describe('PageSettings.read', () => {
-  test('the normal path is ONE call — the fallback must not cost everyone', async () => {
-    let calls = 0;
-    const P = load((q, cb) => { calls++; setTimeout(() => cb({ provider: 'deepseek', apiKey: 'K' }), 0); });
-    const s = await P.read(KEYS);
-    eq(s.provider, 'deepseek');
-    eq(calls, 1, 'a working array read must not trigger the full-bucket fallback');
+  test('a normal callback read returns ok with only the requested keys', async () => {
+    const P = load((q, cb) => { setTimeout(() => cb({ provider: 'deepseek', 'tr:x': 'noise' }), 0); });
+    const r = await P.read(KEYS);
+    eq(r.ok, true);
+    eq(r.data.provider, 'deepseek');
+    ok(!('tr:x' in r.data), 'the translation cache must not leak into settings');
   });
 
-  test('an EMPTY array read falls back to a full read and recovers the values', async () => {
-    // The Safari iOS shape. Without the fallback this returns {} and the page paints
-    // defaults over real saved settings.
-    const queries = [];
-    const P = load((q, cb) => {
-      queries.push(q);
-      setTimeout(() => cb(q === null
-        ? { provider: 'deepseek', apiKey: 'K', targetLang: 'ja', 'tr:x': 'cache noise' }
-        : {}), 0);
-    });
-    const s = await P.read(KEYS);
-    eq(s.provider, 'deepseek');
-    eq(s.targetLang, 'ja');
-    eq(queries.length, 2);
-    eq(queries[1], null, 'the fallback is the full read');
-    ok(!('tr:x' in s), 'the translation cache must not leak into settings');
+  test('a REJECTING promise form reports ok:false and carries the reason', async () => {
+    // The real Safari path. The message is the only thing that tells a user their
+    // storage is broken rather than empty.
+    const P = load(() => Promise.reject(new Error('Failed to create extension storage directory.')));
+    const r = await P.read(KEYS);
+    eq(r.ok, false);
+    ok(/storage directory/.test(r.error), r.error);
   });
 
-  test('a callback that hands back UNDEFINED does not throw or hang', async () => {
-    const P = load((q, cb) => setTimeout(() => cb(undefined), 0));
-    const s = await Promise.race([
+  test('a callback handed UNDEFINED is a FAILURE, not an empty profile', async () => {
+    // This is the whole bug: treating it as {} is what painted defaults over a saved
+    // API key. It must not come back ok:true.
+    const P = load((q, cb) => { setTimeout(() => cb(undefined), 0); });
+    const r = await P.read(KEYS);
+    eq(r.ok, false);
+  });
+
+  test('chrome.runtime.lastError is surfaced even when a value arrives', async () => {
+    const P = load((q, cb) => { setTimeout(() => cb({}), 0); }, { message: 'quota' });
+    const r = await P.read(KEYS);
+    eq(r.ok, false);
+    eq(r.error, 'quota');
+  });
+
+  test('a genuinely empty profile is ok:true with no keys — NOT a failure', async () => {
+    // The counterpart that keeps the rule honest: first run must not scream.
+    const P = load((q, cb) => { setTimeout(() => cb({}), 0); });
+    const r = await P.read(KEYS);
+    eq(r.ok, true);
+    eq(Object.keys(r.data).length, 0);
+  });
+
+  test('a THROWING storage layer settles as a failure rather than hanging', async () => {
+    const P = load(() => { throw new Error('no storage'); });
+    const r = await Promise.race([
       P.read(KEYS),
       new Promise((_, rej) => setTimeout(() => rej(new Error('HUNG')), 2000)),
     ]);
-    eq(Object.keys(s).length, 0);
-  });
-
-  test('a THROWING storage layer resolves to {} rather than rejecting', async () => {
-    const P = load(() => { throw new Error('no storage'); });
-    const s = await P.read(KEYS);
-    eq(Object.keys(s).length, 0);
-  });
-
-  test('a genuinely empty profile costs the extra read once and returns {}', async () => {
-    let calls = 0;
-    const P = load((q, cb) => { calls++; setTimeout(() => cb({}), 0); });
-    const s = await P.read(KEYS);
-    eq(Object.keys(s).length, 0);
-    eq(calls, 2, 'first run pays one extra read on a nearly empty bucket — acceptable');
+    eq(r.ok, false);
   });
 });
