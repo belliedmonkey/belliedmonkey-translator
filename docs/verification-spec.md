@@ -1171,3 +1171,51 @@ AppleScript 打开设置。设置窗口在 WindowServer 与 AX 两个视角下�
 **这是 iOS 输入解决之后，矩阵里剩下的唯一一处真正需要人的地方。** 值得写下来而不是每次
 重新发现。
 
+
+### macOS Safari ✅（同日补完，#80 收尾）
+
+macOS 目标编译 → 运行容器 app → Safari 注册扩展。人工两步：设置 → 开发者 → **允许未签名的
+扩展**；设置 → 扩展 → **勾选**。之后引擎选 DeepSeek、粘贴 key、点「翻译本页」。
+
+实测（`do JavaScript` 直接读 DOM，非截图）：
+
+```
+{"total":26,"real":26,"pending":0,"failed":0}
+```
+
+最长一段译文抽样通顺完整。**页面是 en.wikipedia.org** —— 就是那个 CSP 白名单里没有
+`api.deepseek.com` 的页面。
+
+#### 这一行同时给了 #84 一个桌面对桌面的对照
+
+| 浏览器 | 同一页面（维基，含限制性 CSP） | 同一服务商 | 结果 |
+|---|---|---|---|
+| macOS Safari | ✅ | DeepSeek | **26/26 全译** |
+| Firefox | ✅ | DeepSeek | **全线失败** |
+
+此前的对照是 iPad 对 Firefox（跨设备），现在是**同一台 Mac 上两个浏览器**。
+「内容脚本 fetch 受页面 CSP 约束」确定是 Firefox 独有。
+
+#### 一条测量纪律
+
+这个 Safari 窗口的**截图全程是全白的**，而 DOM 里有 37 段正文、FAB 已注入。
+照截图下结论会报出一个根本不存在的「页面渲染失败」。**截图不渲染 ≠ 页面是空的**——
+窗口被遮挡/未合成时，`get_window_state` 的截图可以是空白而窗口内容完好。
+可读 DOM 的场合一律以 DOM 为准。
+
+（前置条件：Safari → 设置 → 开发者 → **允许 Apple 事件中的 JavaScript**。这个开关
+AX 可点，不必麻烦人；只有「允许未签名的扩展」和扩展勾选需要人。）
+
+### #80 结论
+
+| 行 | DeepSeek 链路 |
+|---|---|
+| iPhone Safari | ✅ |
+| iPad Safari | ✅ |
+| macOS Chrome | ✅ |
+| macOS Safari | ✅ |
+| Firefox | ✅（无 CSP 页面；有 CSP 页面见 #84） |
+
+**五行全部用 DeepSeek 验证过。** 用免费 Google 通道跑矩阵不仅不算数，而且会掩盖缺陷——
+#84 正是因为坚持用 DeepSeek 才暴露的。
+
