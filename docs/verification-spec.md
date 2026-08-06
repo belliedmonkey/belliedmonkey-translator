@@ -1122,3 +1122,52 @@ macOS Safari 三处都复现。
 - ~~iOS 侧的上行未验证~~ —— **已于同日补完，见上一小节**（iOS 上传 2 张、桌面收到 2 张、
   排程随卡片同行、两端收敛）。
 
+
+## #80 收尾：iPad ✅ / Firefox ✅（并发现 Firefox 独有缺陷）/ macOS Safari 仍缺（2026-08-06）
+
+### 判据改了，比原来硬
+
+原判据是「看译文里有没有原文回显」。**#74 移除静默回退之后有更硬的判据**：既然失败不会再
+悄悄退回免费 Google，那么「引擎选的是 DeepSeek + 段落出译文（不是 ⚠️）」本身就证明请求
+走的是 DeepSeek。不再依赖对译文风格的肉眼判断。
+
+### iPad Safari ✅
+
+发布配置重建 + 重装（`verify:ios` 62/62）。弹窗里引擎显示 DeepSeek、Key 已填（**直接读到的
+状态，不是推断**），点「翻译本页」后整页流畅译文，无 ⚠️。
+
+顺带更正一条旧笔记：**卸载重装并不会重置 Safari 扩展开关、站点授权与扩展存储**——重装后
+FAB 直接出现，引擎/Key/学习库全部保留。
+
+### Firefox ✅，但暴露了一个 Firefox 独有的真缺陷（issue #84）
+
+用 `web-ext run` 装临时扩展（免文件选择器，可脚本化）。同一个 Firefox、同一份扩展、同一个 key：
+
+| 页面 | 页面 CSP | 结果 |
+|---|---|---|
+| en.wikipedia.org | `default-src` 白名单**不含** `api.deepseek.com` | **每一段都翻译失败** |
+| plato.stanford.edu | **无 CSP** | **整页流畅译文** |
+
+**Firefox 让内容脚本的 `fetch` 受宿主页面 CSP 约束；Chrome 豁免；WebKit 也豁免**——今天 iPad
+在**同一个维基页面**上用 DeepSeek 翻译成功，这就是对照。
+
+所以之前几轮 Firefox「看起来能翻译」是因为 `*.googleapis.com` 恰好在维基的白名单里。
+
+**这条同时说明：#80 原来的怀疑方向（key 没填对）是错的，真因是浏览器差异。**
+DeepSeek 链路本身在 Firefox 上是通的，详见 #84。
+
+### macOS Safari ❌ 仍未验证 —— 卡在人工步骤
+
+macOS 目标已编译（`xcodebuild -scheme "BelliedMonkey Translator (macOS)"`）、容器 app 已运行、
+Safari 已注册该扩展。卡在最后两步，自动化打不进去：
+
+1. Safari → 设置 → **开发者 → 允许未签名的扩展**（新版 Safari 已不在「开发」菜单里，
+   移进了设置的开发者分页）
+2. Safari → 设置 → **扩展 → 勾选大肚猴翻译**
+
+实测不通的手段：合成 ⌘,、`invoke_menu`（Safari浏览器 → 设置…，AX 返回成功但窗口不出现）、
+AppleScript 打开设置。设置窗口在 WindowServer 与 AX 两个视角下都不出现。
+
+**这是 iOS 输入解决之后，矩阵里剩下的唯一一处真正需要人的地方。** 值得写下来而不是每次
+重新发现。
+
