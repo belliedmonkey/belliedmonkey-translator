@@ -429,7 +429,7 @@
     "message": "Nutzt die Stimmen, die Ihr Betriebssystem bereits hat. Es wird nichts gesendet und nichts zwischengespeichert — diese Engine spricht nur, sie kann kein Audio zurückgeben."
   },
   "tts_hint_local": {
-    "message": "Jeder Server, der das OpenAI-Speech-Format spricht — auf Ihrem Rechner oder im LAN. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+    "message": "Jeder Sprachserver, der die Schnittstelle /v1/audio/speech implementiert — auf Ihrem Rechner oder im LAN. Synthesen werden lokal zwischengespeichert, ein Satz kostet also nur einmal."
   },
   "tts_hint_openai": {
     "message": "Nutzt Ihren eigenen API-Schlüssel. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."

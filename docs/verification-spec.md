@@ -525,7 +525,7 @@ verification in one connection, or restart web-ext between attempts.
 
 ### 3.1 `npm test` — pure logic (every push)
 
-`npm test` (`node test/run.js`, zero-dep, Node ≥16) covers the pure-logic core: the
+`npm test` (`node test/run.js`, zero-dep, Node ≥18) covers the pure-logic core: the
 translate-ahead subtitle engine + state machine, cue→sentence merge, i18n/locale
 resolution, and every provider's request-building / caching / retry-fallback. **It must
 be green before you push.** When you change logic, add/update tests in the same commit.

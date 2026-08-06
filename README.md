@@ -245,7 +245,7 @@ podcast feed's `<podcast:transcript>`.
 ### Build and test
 
 ```bash
-npm test              # 87 unit tests, zero dependencies, Node ≥16
+npm test              # pure-logic suite, zero dependencies, Node ≥18
 npm run test:layout   # 29 layout fixtures against real headless Chrome (Node ≥22)
 ```
 

@@ -429,7 +429,7 @@
     "message": "Usa as vozes que seu sistema operacional já tem. Nada é enviado nem armazenado em cache — este mecanismo apenas fala, não devolve áudio."
   },
   "tts_hint_local": {
-    "message": "Qualquer servidor que fale o formato speech da OpenAI, na sua máquina ou rede local. O áudio sintetizado fica em cache local: cada frase só custa uma vez."
+    "message": "Qualquer servidor de voz que implemente a interface /v1/audio/speech, na sua máquina ou rede local. A síntese fica em cache local, então uma frase custa apenas uma vez."
   },
   "tts_hint_openai": {
     "message": "Usa sua própria chave de API. O áudio sintetizado fica em cache local: cada frase só custa uma vez."

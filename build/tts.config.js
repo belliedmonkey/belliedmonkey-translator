@@ -35,7 +35,7 @@
 
 module.exports = [
   {
-    id: 'browser', type: 'browser',
+    id: 'browser', type: 'browser', flavors: ['global', 'china'],
     needsKey: false, supportsBaseUrl: false, supportsModel: false, requiresBaseUrl: false,
     defaultBase: null, path: null, defaultModel: '', voices: null,
     returnsAudio: false,
@@ -43,9 +43,10 @@ module.exports = [
     hintKey: 'tts_hint_browser',
   },
   {
-    // Any server implementing the OpenAI speech shape on the user's own machine or
-    // LAN. Brand-free by design — the user supplies the base URL.
-    id: 'local', type: 'speech-compat',
+    // Any server implementing the /v1/audio/speech request shape on the user's own
+    // machine or LAN. Brand-free by design — the user supplies the base URL, and the
+    // user-visible hint names the interface, never the vendor that first shipped it.
+    id: 'local', type: 'speech-compat', flavors: ['global', 'china'],
     needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: true,
     defaultBase: null, path: '/v1/audio/speech', defaultModel: '', voices: null,
     returnsAudio: true,
@@ -53,7 +54,10 @@ module.exports = [
     hintKey: 'tts_hint_local',
   },
   {
-    id: 'openai_speech', type: 'speech-compat',
+    // GLOBAL ONLY. Its label, defaultBase and hint key all carry a brand the China
+    // bundle may not ship; `flavors` is what keeps it out. Without this field the
+    // China compliance gate fails the build — which is how the omission was caught.
+    id: 'openai_speech', type: 'speech-compat', flavors: ['global'],
     needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: false,
     defaultBase: 'https://api.openai.com', path: '/v1/audio/speech',
     defaultModel: 'gpt-4o-mini-tts',

@@ -429,7 +429,7 @@
     "message": "Utilise les voix déjà présentes dans votre système. Rien n'est envoyé ni mis en cache — ce moteur ne fait que parler, il ne peut pas restituer l'audio."
   },
   "tts_hint_local": {
-    "message": "Tout serveur parlant le format speech d'OpenAI, sur votre machine ou votre réseau local. L'audio synthétisé est mis en cache localement : une phrase n'est payée qu'une fois."
+    "message": "Tout serveur vocal implémentant l’interface /v1/audio/speech, sur votre machine ou votre réseau local. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
   },
   "tts_hint_openai": {
     "message": "Utilise votre propre clé API. L'audio synthétisé est mis en cache localement : une phrase n'est payée qu'une fois."

@@ -19,10 +19,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 16 is the floor declared in package.json `engines`; 22 is what
+        # The low number is the floor declared in package.json `engines`; 22 is what
         # `npm run test:layout` needs locally. Both must stay green, otherwise
         # the declared floor is a fiction.
-        node: ['16', '22']
+        #
+        # It became a fiction once: the floor sat at 16 while learn/chunk.js started
+        # using `CompressionStream` and `Response`, both Node 18 globals. This row is
+        # what caught it (34 red tests), so the fix was to raise the floor to the
+        # truth — never to drop the row. A floor nothing runs at is just a comment.
+        node: ['18', '22']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

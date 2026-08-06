@@ -32,7 +32,7 @@ Safari iOS browser extension for bilingual translation — fully open source and
 
 ```bash
 node build.js            # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
-npm test                 # Pure-logic suite (zero-dep vm harness, Node ≥16) — every push
+npm test                 # Pure-logic suite (zero-dep vm harness, Node ≥18 — learn/chunk.js uses CompressionStream/Response) — every push
 npm run test:layout      # Layout regression corpus (real headless Chrome via raw CDP,
                          # Node ≥22) — mandatory when extension/content/** or styles/** change.
                          # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
