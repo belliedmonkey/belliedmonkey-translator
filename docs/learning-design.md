@@ -542,6 +542,34 @@ a link needs a page we host to catch the redirect and we host nothing. The provi
 email template must therefore render `{{ .Token }}`; the stock template sends a link,
 and a link cannot be completed from inside an extension.
 
+### 8.4.2 核心约束 — 合并有两种语义，混淆它们就是数据损坏
+
+**2026-08-06 两台真实设备打真实后端跑完整闭环时定下的。** 三条缺陷同源：把
+「同一条卡的两次合并」当成了一回事。它们不是。
+
+| 语义 | 谁触发 | dwellMs / seenCount |
+|---|---|---|
+| **新的观察** | 采集器：这段文字被又读了一次 | **相加**——那是两份独立证据 |
+| **同一事实的副本** | 同步重放、文件导入 | **取 max**——同一批经历的拷贝 |
+
+同步会例行地重放**自己**推上去的块（拉取游标不跳过自己写的行），所以相加式合并
+会让每一轮同步都把累加量放大。实测：一次重放之后同一条卡的 dwellMs 在两台设备上
+是 2639657 对 220812。`sync.js` 压缩逻辑旁边那句「Idempotent replay is what makes
+that a non-event rather than a corruption」写的正是这条要求，而代码原本不满足它。
+
+**排程按 `lastReviewAt` 取较新的一方。** 在此之前 `sched` 根本不在 `mergeItem` 的
+覆盖列表里，本地排程永远赢：两台设备都有这张卡之后，在 A 上复习完，B 上那张卡照旧
+到期。复习日志同步了、排程没同步——而这恰好是多设备学习唯一必须做对的事。
+
+**拉下来的东西不许再推回去。** 重放时给条目盖 `syncedAt` 水印（复习记录则是
+`viaSync`），push 只发 `touchedAt > max(PUSHED, syncedAt)` 的东西。没有这道闸门时，
+新设备的 PUSHED 是 0，于是它拉完整份语料之后**立刻把整份推回服务器**——用户为同一
+份数据在 50 MB 配额里付两次钱，25 MB 的库加一台设备就直接顶满。水印**只在同步路径
+盖，不在文件导入路径盖**：导入的语料本来就该上传，盖了会被静默地永远挡在本地。
+
+验收判据是**收敛**：无任何用户活动时，连续多轮双向同步必须稳定在「收到 0 · 上传
+0」。这条比任何单点断言都难糊弄——回声、非幂等累加、水位算错，都会让它一直不为零。
+
 ### 8.5 Storage cost — four levers, and the estimate rule 9 requires
 
 **Assumptions.** `dailyNew = 15` ⇒ at most ~5,000 graduated cards per user-year; a
