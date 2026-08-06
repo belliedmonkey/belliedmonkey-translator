@@ -910,19 +910,29 @@ IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲�
 **值得记的信号**：iPhone 上修的六个缺陷在 iPad 上**一个都不复现**。这说明它们修在了
 共用路径上，而不是某台设备的怪癖——否则第二行会重现其中一部分。
 
-### Firefox (desktop) —— 结构部分通过，翻译链路待补
+### Firefox (desktop) —— 结构与合规声明通过，DeepSeek 链路未跑
 
-`node build.js firefox` → `dist-firefox/` 完整（`learn/` 下的新文件全部在包内，包括
-`page-settings.js`），`gecko.data_collection_permissions.required` 仍为
-`["websiteContent"]`——V1 不新增任何传输，正确。
+`node build.js firefox` → `dist-firefox/` 完整（`learn/` 下新文件全部在包内）。
+`npx web-ext run` 临时载入后验证通过：
 
-`npx web-ext run` 临时载入后：**扩展载入成功 · 内容脚本运行 · FAB 渲染 · 页面无异常**。
+- 扩展载入 · 内容脚本运行 · FAB 渲染 · 页面无异常
+- `about:addons` 里**版本显示 1.3.0**——即版本号来自 manifest 的修复在 Firefox 上同样
+  生效（此前十一份译文各写死一个 v1.0.0）
+- 扩展描述正确本地化
+- **「权限与数据」页：数据收集 → 必要 →「开发者称此扩展收集：网站内容」。** 这是
+  `data_collection_permissions: ["websiteContent"]` 渲染给用户看的样子——**Gate A 的
+  声明在用户真正会看到的界面上得到了验证**，且未提及浏览活动或个人数据，对 V1 正确。
+  权限列表亦正确：所有网站（可选）、youtube/x/twitter，**本地文件为关**。
+- **内联链接行（`|` 分隔）译文正确排在下方，无重叠** —— 与 iPad 上观察到的重叠形成
+  对照，**支持「那个缺陷是 Safari 特有」这一判断**。
 
-**未跑**（与 iPad 同一阻塞）：DeepSeek 翻译 → 采集 → 复习页 → TTS，需要真实 key。
+**未跑，且不含糊**：
 
-**未跑（需要 devtools）**：§1 规定的「同语言跳过」在 Firefox 上要**看请求而不是看 DOM**
-——Firefox 有 `chrome.i18n.detectLanguage`，Safari 没有，而两边的 DOM 在目标语言=en 的
-英文段落上是逐字节相同的。这条必须观察是否发出了请求，截图证明不了。
+- **DeepSeek 链路。** 页面上观察到的翻译来自**默认的免费 Google 通道**，按 §0 这不算
+  验证。Firefox 的扩展选项入口没能通过 `about:addons` 打开（该页只有「详细信息 / 权限
+  与数据」两个标签，没有首选项），需要改从工具栏弹窗配置。
+- 采集 → 复习页 → TTS。
+- 「同语言跳过」的 Firefox 侧：§1 要求**看请求而不是看 DOM**，需要 devtools。
 
 ---
 
