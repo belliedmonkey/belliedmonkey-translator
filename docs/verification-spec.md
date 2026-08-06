@@ -896,3 +896,31 @@ IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲�
 
 **值得记的信号**：iPhone 上修的六个缺陷在 iPad 上**一个都不复现**。这说明它们修在了
 共用路径上，而不是某台设备的怪癖——否则第二行会重现其中一部分。
+
+### Firefox (desktop) —— 结构部分通过，翻译链路待补
+
+`node build.js firefox` → `dist-firefox/` 完整（`learn/` 下的新文件全部在包内，包括
+`page-settings.js`），`gecko.data_collection_permissions.required` 仍为
+`["websiteContent"]`——V1 不新增任何传输，正确。
+
+`npx web-ext run` 临时载入后：**扩展载入成功 · 内容脚本运行 · FAB 渲染 · 页面无异常**。
+
+**未跑**（与 iPad 同一阻塞）：DeepSeek 翻译 → 采集 → 复习页 → TTS，需要真实 key。
+
+**未跑（需要 devtools）**：§1 规定的「同语言跳过」在 Firefox 上要**看请求而不是看 DOM**
+——Firefox 有 `chrome.i18n.detectLanguage`，Safari 没有，而两边的 DOM 在目标语言=en 的
+英文段落上是逐字节相同的。这条必须观察是否发出了请求，截图证明不了。
+
+---
+
+## 矩阵当前进度（2026-08-06）
+
+| 行 | 状态 |
+|---|---|
+| iPhone Safari | ✅ 跑完，6 个缺陷已修并复验 |
+| iPad Safari | ◐ 结构通过；翻译链路待补（需 key） |
+| macOS Safari | ⬜ 未跑——**需要人工输密码勾选「允许未签名的扩展」** |
+| macOS Chrome | ✅ 跑过（抓到 3 个缺陷，均已修） |
+| Firefox | ◐ 结构通过；翻译链路 + 探测器请求检查待补 |
+
+按 §0，**这不构成一次完整验证**。上表就是「诚实说明哪些跑了、哪些没跑」本身。
