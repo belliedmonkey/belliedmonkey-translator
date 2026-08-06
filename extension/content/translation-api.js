@@ -47,12 +47,13 @@ Rules:
   // ─── Firefox: the host page's CSP applies to us (domain-design §5.4) ────
   //
   // Firefox subjects a content script's `fetch` to the CSP of the page it is injected
-  // into; Chrome and WebKit exempt it. Measured 2026-08-06 on one Mac, same page
-  // (en.wikipedia.org, whose CSP allows googleapis/openai/anthropic but NOT
-  // api.deepseek.com) and same key: Safari translated 26/26 paragraphs, Firefox failed
-  // every one; on a CSP-free page the same Firefox was perfect. Left alone, whether
-  // translation works depends on which site the reader is on, and nothing the user can
-  // change fixes it.
+  // into; Chrome and WebKit exempt it. Measured 2026-08-06 on one Mac, same page and
+  // same key: the page's CSP allowlist happened to contain some providers' hosts and
+  // not the one in use — Safari translated 26/26 paragraphs, Firefox failed every one;
+  // on a CSP-free page the same Firefox was perfect. Left alone, whether translation
+  // works depends on which site the reader is on, and nothing the user can change
+  // fixes it. (Hosts are deliberately not named here: this file ships in every flavor,
+  // and the China bundle may not carry brand references — see build.js's gate.)
   //
   // Detection is a FACT about the runtime, not a UA string (§5.3 rule 2): Firefox is
   // the only browser whose extension URLs are `moz-extension://`.
