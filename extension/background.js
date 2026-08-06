@@ -24,9 +24,10 @@ if (typeof self !== 'undefined' && self.addEventListener) {
 
 chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (existing) => {
+    const have = existing || {};          // Safari hands callbacks undefined
     const toSet = {};
     for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
-      if (existing[k] === undefined) toSet[k] = v;
+      if (have[k] === undefined) toSet[k] = v;
     }
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
@@ -81,7 +82,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.action === 'clearCache') {
     chrome.storage.local.get(null, (items) => {
-      const cacheKeys = Object.keys(items).filter(k => k.startsWith('tr:'));
+      const cacheKeys = Object.keys(items || {}).filter(k => k.startsWith('tr:'));
       chrome.storage.local.remove(cacheKeys, () => sendResponse({ cleared: cacheKeys.length }));
     });
     return true;

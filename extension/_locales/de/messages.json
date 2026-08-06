@@ -240,7 +240,7 @@
     "message": "System folgen"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "Am größten (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
+  },
+  "learn_title": {
+    "message": "Wiederholen"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Wiederholen"
+  },
+  "learn_review": {
+    "message": "Wiederholen"
+  },
+  "learn_reveal": {
+    "message": "Übersetzung zeigen"
+  },
+  "learn_grade_again": {
+    "message": "Vergessen"
+  },
+  "learn_grade_hard": {
+    "message": "Schwer"
+  },
+  "learn_grade_good": {
+    "message": "Gewusst"
+  },
+  "learn_grade_easy": {
+    "message": "Zu leicht"
+  },
+  "learn_empty_title": {
+    "message": "Noch kein Lernmaterial"
+  },
+  "learn_empty_body": {
+    "message": "Erfassung einschalten und wie gewohnt surfen und übersetzen. Sätze, die Sie wirklich gelesen haben, werden gespeichert — überflogene nicht."
+  },
+  "learn_open_settings": {
+    "message": "Erfassung in den Einstellungen aktivieren"
+  },
+  "learn_alldone_title": {
+    "message": "Fürs Erste erledigt"
+  },
+  "learn_alldone_body": {
+    "message": "Surfen und übersetzen Sie weiter — neues Material kommt von selbst."
+  },
+  "learn_next_due": {
+    "message": "Die nächste Karte ist {when} fällig."
+  },
+  "learn_in_minutes": {
+    "message": "in etwa {n} Min."
+  },
+  "learn_in_hours": {
+    "message": "in etwa {n} Std."
+  },
+  "learn_in_days": {
+    "message": "in etwa {n} Tagen"
+  },
+  "learn_progress": {
+    "message": "Fortschritt"
+  },
+  "learn_done_run": {
+    "message": "{n} in dieser Sitzung"
+  },
+  "learn_settings": {
+    "message": "Einstellungen"
+  },
+  "learn_unknown_source": {
+    "message": "Unbekannte Quelle"
+  },
+  "learn_count_due": {
+    "message": "Fällig"
+  },
+  "learn_count_learning": {
+    "message": "Im Lernen"
+  },
+  "learn_count_new": {
+    "message": "Kandidaten"
+  },
+  "learn_count_known": {
+    "message": "Beherrscht"
+  },
+  "learn_section": {
+    "message": "Lernen"
+  },
+  "learn_section_hint": {
+    "message": "Wenn aktiviert, werden Sätze, die Sie wirklich gelesen haben, zusammen mit Seitenadresse, Titel und Anzeigedauer AUF DIESEM GERÄT gespeichert und Ihnen entlang einer Vergessenskurve erneut gezeigt. Überflogener Text wird nicht gespeichert. Nichts wird hochgeladen, und ein Knopf löscht alles."
+  },
+  "learn_enable": {
+    "message": "Lernmaterial sammeln"
+  },
+  "learn_daily_new": {
+    "message": "Neue Karten pro Tag (max.)"
+  },
+  "learn_open_review": {
+    "message": "Wiederholungsseite öffnen"
+  },
+  "learn_clear": {
+    "message": "Lernbibliothek löschen"
+  },
+  "learn_clear_confirm": {
+    "message": "Lernbibliothek löschen? Alle gesammelten Sätze und der gesamte Fortschritt werden entfernt — unwiderruflich."
+  },
+  "learn_stats": {
+    "message": "{n} Einträge · {due} fällig · ca. {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "Die Lernbibliothek ist leer"
+  },
+  "toast_learn_on": {
+    "message": "Sammeln aktiviert"
+  },
+  "toast_learn_off": {
+    "message": "Sammeln gestoppt (bereits Gesammeltes bleibt erhalten)"
+  },
+  "toast_learn_cleared": {
+    "message": "Lernbibliothek gelöscht"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Löschen fehlgeschlagen"
+  },
+  "toast_saved": {
+    "message": "Gespeichert"
+  },
+  "learn_replay": {
+    "message": "▶ Diesen Ausschnitt erneut hören"
+  },
+  "learn_replay_hint": {
+    "message": "Öffnet die Quelle an dieser Stelle in einem neuen Tab — die zweisprachigen Untertitel funktionieren dort ebenfalls."
+  },
+  "tts_section": {
+    "message": "Sprache"
+  },
+  "tts_section_hint": {
+    "message": "Macht aus Karten Hörübungen. Nutzt standardmäßig die Stimme Ihres Geräts — ohne Netz, ohne Kosten. Sie können auch einen eigenen Sprachserver angeben."
+  },
+  "tts_mode": {
+    "message": "Sprachmodus"
+  },
+  "tts_mode_off": {
+    "message": "Aus"
+  },
+  "tts_mode_assist": {
+    "message": "Text anzeigen, mit Wiedergabetaste"
+  },
+  "tts_mode_audio_first": {
+    "message": "Erst hören (Text zunächst verborgen)"
+  },
+  "tts_engine": {
+    "message": "Sprach-Engine"
+  },
+  "tts_engine_browser": {
+    "message": "Geräteeigene Stimme (kostenlos · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Lokaler / selbst gehosteter Sprach-Endpunkt"
+  },
+  "tts_hint_browser": {
+    "message": "Nutzt die Stimmen, die Ihr Betriebssystem bereits hat. Es wird nichts gesendet und nichts zwischengespeichert — diese Engine spricht nur, sie kann kein Audio zurückgeben."
+  },
+  "tts_hint_local": {
+    "message": "Jeder Sprachserver, der die Schnittstelle /v1/audio/speech implementiert — auf Ihrem Rechner oder im LAN. Synthesen werden lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_hint_openai": {
+    "message": "Nutzt Ihren eigenen API-Schlüssel. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_base_url": {
+    "message": "URL des Sprach-Endpunkts"
+  },
+  "tts_api_key": {
+    "message": "Sprach-API-Schlüssel"
+  },
+  "tts_model": {
+    "message": "Sprachmodell"
+  },
+  "tts_voice": {
+    "message": "Stimme"
+  },
+  "tts_voice_auto": {
+    "message": "Automatisch (passend zur Kartensprache)"
+  },
+  "tts_voice_hint": {
+    "message": "Stimmen werden der Sprache jeder Karte zugeordnet. Die hier gewählte wird nur verwendet, wenn sie diese Sprache tatsächlich spricht."
+  },
+  "tts_rate": {
+    "message": "Tempo"
+  },
+  "tts_autoplay": {
+    "message": "Beim Öffnen einer Karte automatisch abspielen"
+  },
+  "tts_test": {
+    "message": "Testsatz abspielen"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Wird synthetisiert…"
+  },
+  "tts_test_ok": {
+    "message": "Wiedergabe"
+  },
+  "tts_play": {
+    "message": "▶ Anhören"
+  },
+  "tts_replay": {
+    "message": "▶ Nochmal anhören"
+  },
+  "tts_playing": {
+    "message": "Wiedergabe…"
+  },
+  "tts_no_voice": {
+    "message": "Ihr System hat keine Stimme für diese Sprache"
+  },
+  "tts_unsupported": {
+    "message": "Dieser Browser bietet keine integrierte Sprachausgabe"
+  },
+  "tts_no_base": {
+    "message": "Noch keine Endpunkt-URL"
+  },
+  "tts_no_key": {
+    "message": "Noch kein Sprach-API-Schlüssel"
+  },
+  "tts_blocked": {
+    "message": "Der Browser hat die automatische Wiedergabe blockiert — zum Abspielen tippen"
+  },
+  "tts_http": {
+    "message": "Der Sprachdienst hat einen Fehler zurückgegeben"
+  },
+  "tts_failed": {
+    "message": "Dieser Satz kann gerade nicht gesprochen werden"
+  },
+  "tts_cache": {
+    "message": "Sprach-Cache: {n} Clips · ca. {mb} MB (Limit {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "Der Sprach-Cache ist leer"
+  },
+  "tts_cache_na": {
+    "message": "Die geräteeigene Stimme erzeugt keinen Cache"
+  },
+  "tts_clear_cache": {
+    "message": "Sprach-Cache leeren"
+  },
+  "toast_tts_cleared": {
+    "message": "Sprach-Cache geleert"
+  },
+  "learn_reveal_orig": {
+    "message": "Text anzeigen"
+  },
+  "learn_clean_known": {
+    "message": "Beherrschte Karten aufräumen"
+  },
+  "learn_clean_known_n": {
+    "message": "{n} beherrschte Karten aufräumen"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} erfasste Einträge konnten nicht gespeichert werden — das passiert, wenn die Bibliothek voll ist."
+  },
+  "learn_pressure_evicted": {
+    "message": "Die Bibliothek ist voll — {n} alte Karten wurden automatisch entfernt, um Platz zu schaffen."
+  },
+  "learn_pressure_near": {
+    "message": "Die Bibliothek ist fast voll ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} beherrschte Karten aufgeräumt"
+  },
+  "learn_export": {
+    "message": "Bibliothek exportieren"
+  },
+  "learn_import": {
+    "message": "Aus Datei importieren"
+  },
+  "toast_exported": {
+    "message": "{n} Karten exportiert"
+  },
+  "toast_export_empty": {
+    "message": "Noch nichts zu exportieren"
+  },
+  "toast_export_failed": {
+    "message": "Export fehlgeschlagen"
+  },
+  "toast_imported": {
+    "message": "{n} Karten importiert"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unlesbare Zeilen übersprungen"
+  },
+  "toast_import_bad_format": {
+    "message": "Das ist keine exportierte Lernbibliothek"
+  },
+  "toast_import_failed": {
+    "message": "Import fehlgeschlagen"
+  },
+  "sync_section": {
+    "message": "Geräteübergreifende Synchronisierung"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Alles funktioniert auch ohne Konto — die Synchronisierung lässt dich nur auf dem Handy wiederholen, was du am Rechner gelesen hast. Hochgeladen werden Karten, die bereits in der Wiederholung sind, sowie dein Wiederholungsverlauf; Kandidaten, die noch nicht in der Wiederholung sind, verlassen dieses Gerät nie."
+  },
+  "sync_email": {
+    "message": "E-Mail"
+  },
+  "sync_send_code": {
+    "message": "Code senden"
+  },
+  "sync_code": {
+    "message": "6-stelliger Code aus der E-Mail"
+  },
+  "sync_verify": {
+    "message": "Anmelden"
+  },
+  "sync_now": {
+    "message": "Jetzt synchronisieren"
+  },
+  "sync_signout": {
+    "message": "Abmelden"
+  },
+  "sync_delete": {
+    "message": "Cloud-Daten und Konto löschen"
+  },
+  "sync_err_offline": {
+    "message": "Server nicht erreichbar; es wird später erneut versucht. Alles Gelernte liegt auf diesem Gerät."
+  },
+  "sync_err_quota": {
+    "message": "Dein Cloud-Speicher ist voll, daher wird nichts Neues hochgeladen (dieses Gerät ist nicht betroffen). Beherrschte Karten zu löschen schafft Platz."
+  },
+  "sync_err_signed_out": {
+    "message": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
+  },
+  "sync_err_rate": {
+    "message": "Zu viele Codes angefordert. Versuch es in ein paar Minuten erneut."
+  },
+  "sync_err_generic": {
+    "message": "Die Synchronisierung wurde nicht abgeschlossen"
+  },
+  "sync_signed_in": {
+    "message": "Angemeldet als {email}"
+  },
+  "sync_usage": {
+    "message": "{used} von {quota} belegt · {n} Blöcke"
+  },
+  "sync_need_email": {
+    "message": "Gib zuerst deine E-Mail-Adresse ein"
+  },
+  "sync_sending": {
+    "message": "Wird gesendet…"
+  },
+  "sync_code_sent": {
+    "message": "Code an {email} gesendet. Gib ihn unten ein."
+  },
+  "sync_verifying": {
+    "message": "Wird geprüft…"
+  },
+  "sync_signed_in_now": {
+    "message": "Angemeldet. Die erste Synchronisierung kann ein paar Sekunden dauern."
+  },
+  "sync_bad_code": {
+    "message": "Der Code ist falsch oder abgelaufen. Fordere einen neuen an."
+  },
+  "sync_running": {
+    "message": "Wird synchronisiert…"
+  },
+  "sync_done": {
+    "message": "Synchronisierung abgeschlossen · {in} empfangen · {out} hochgeladen"
+  },
+  "sync_signed_out": {
+    "message": "Abgemeldet. Deine Lernbibliothek bleibt unverändert auf diesem Gerät."
+  },
+  "sync_delete_confirm": {
+    "message": "Cloud-Daten und Konto löschen? Alles auf dem Server und dieses Konto werden endgültig gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleting": {
+    "message": "Wird gelöscht…"
+  },
+  "sync_deleted": {
+    "message": "Cloud-Daten und Konto gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud-Daten gelöscht, aber das Konto konnte nicht entfernt werden ({why}). Versuch es erneut oder kontaktiere uns."
+  },
+  "sync_err_upgrade": {
+    "message": "In der Cloud liegt etwas, das diese Version noch nicht lesen kann (vermutlich von einer neueren Version geschrieben). Aktualisiere die Erweiterung und synchronisiere dann — es ist nichts verloren, es ist nur noch nicht lesbar."
+  },
+  "toast_import_upgrade": {
+    "message": "Diese Datei stammt aus einer neueren Version der Erweiterung. Aktualisiere und importiere sie dann. Mit der Datei selbst ist alles in Ordnung."
+  },
+  "options_init_failed": {
+    "message": "Die Einstellungsseite wurde nicht fertig geladen. Öffne sie erneut; wenn es bleibt, schick uns diese Meldung."
+  },
+  "settings_read_failed": {
+    "message": "Deine gespeicherten Einstellungen konnten nicht gelesen werden; unten stehen die Standardwerte. Speichere hier nicht — das würde deine Einstellungen überschreiben. ({why})"
   }
 }

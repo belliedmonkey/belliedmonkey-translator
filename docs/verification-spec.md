@@ -104,6 +104,46 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
 
+**Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
+a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
+is named here rather than assumed:
+
+| Surface | Expected |
+|---|---|
+| macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
+| **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
+
+**Check that silence is reported as silence.** iOS drops `speechSynthesis.speak()`
+without a gesture with no exception, no error event and no sound — so a test that
+only asserts "speak() did not throw" passes over total silence. Assert on the
+utterance's `start` event, or on the ▶ label flipping to its replay wording (which
+only happens on a confirmed start).
+
+**Mandatory: the learning layer (记忆层).** Permanent matrix item for any change
+touching `content/learn-*.js`, `learn/**`, or the two capture attachment points
+(`content-webpage.js` `renderUnit`, `subtitle-adapter.js` after `renderOverlay`). See
+[`docs/learning-design.md`](learning-design.md).
+
+Each row runs the same five steps, in order:
+
+| # | Step | What proves it |
+|---|---|---|
+| 1 | **Non-interference** — translate a long article with capture **off**, then with capture **on** | Same unit count, same translation lines, no new console output. Domain-design §9.1 law 1 says translation must be *byte-for-byte* identical; a screenshot pair is the minimum, a DOM unit-count comparison is better |
+| 2 | **Capture** — read 2–3 paragraphs for >3 s each, scroll past others fast | Only the dwelled ones appear in the review page. **The fast-scrolled ones must be absent** — that is the assertion that matters, and it is invisible unless you look for it |
+| 3 | **Review** — open the review page, complete one full grading round | Cards render, all four grades present, source link resolves back to the page |
+| 4 | **Persistence** — quit the browser / kill the app, reopen, open the review page | Scheduling state survived. On iOS this is also the only real check that a dead service worker did not take the corpus with it |
+| 5 | **Origin isolation** — on the host page, evaluate `indexedDB.databases()` | **`mt-learn` must NOT be there.** The corpus lives in the extension origin; if it shows up under the host page, laws in domain-design §9.3 are broken and the user's reading history is readable by every site |
+
+**Video cards must be verified during real playback** (§4): capture from a YouTube
+video requires the playhead to actually cross the sentence, so a paused player
+captures nothing — a run that "looked fine" without ≥20–30 s of playback has verified
+nothing about subtitle capture.
+
+**iOS rows:** `xcrun simctl erase` is still the only thing that refreshes content
+scripts (§1.1), and any instrumentation must ship a build marker. Purge the `tr:`
+cache *and* the `lq:` outbox between runs, or a previous run's captures will be
+mistaken for this one's.
+
 ### 1.1 Request-level checks on the iOS simulators — the working recipe
 
 **Achieved 2026-07-28.** An earlier note here claimed this was impossible because
@@ -485,11 +525,25 @@ verification in one connection, or restart web-ext between attempts.
 
 ### 3.1 `npm test` — pure logic (every push)
 
-`npm test` (`node test/run.js`, zero-dep, Node ≥16) covers the pure-logic core: the
+`npm test` (`node test/run.js`, zero-dep, Node ≥18) covers the pure-logic core: the
 translate-ahead subtitle engine + state machine, cue→sentence merge, i18n/locale
 resolution, and every provider's request-building / caching / retry-fallback. **It must
 be green before you push.** When you change logic, add/update tests in the same commit.
 **Never push on a red suite.**
+
+**Learning layer (记忆层).** `learn-model.js` and `learn-scheduler.js` are pure by
+construction and belong here in full; `learn-collector.js` is testable with an
+injected clock and an `IntersectionObserver` stub. All three land in §3.1.1's line of
+fire, and the mapping is not optional:
+
+- **(1) production config** — the scheduler must be asserted against the exported
+  `DEFAULTS`, with one case passing a deliberately partial config. A scheduler whose
+  `dailyNew` silently reads `undefined` still returns a plausible-looking deck.
+- **(2) work not done** — a segment below the dwell threshold must produce **zero**
+  storage writes, and a mature card must be **absent** from the deck. Both are
+  invisible in the output; only call counts see them.
+- **(3) resource lifetime** — `disable()` must disconnect every `IntersectionObserver`
+  and clear the flush timer. Inject recording stubs; do not assume cleanup.
 
 #### 3.1.1 Three blind spots a green suite does not cover
 
@@ -562,6 +616,13 @@ failure (set `CHROME_BIN=/path/to/chrome`), never a silent skip.
 3. **All pre-existing fixtures stay green.** A fixture is never edited to accommodate a
    new fix — unless the fixture's own assertion is demonstrably wrong, justified in the
    issue. This is what guarantees each adaptation is an increment, not a regression.
+
+**Learning layer.** The Collector is a sink and must be geometrically inert, so it
+owes this suite a fixture of its own: with capture enabled, **every geometry
+invariant must hold unchanged**, and the injected `.mt-translation` siblings must
+never themselves be collected (domain-design §9.1 law 4). When the in-page review
+card lands, it injects DOM into the page and therefore falls under the contract above
+in full — new fixture, **red before the change**, all pre-existing fixtures green.
 
 Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
 `layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT
@@ -674,3 +735,265 @@ deliberately and referenced from `AGENTS.md`. The separate **change-documentatio
 (every change gets a GitHub issue capturing problem / solution / reasoning) lives in
 [`AGENTS.md`](../AGENTS.md) — it is a process rule, not a verification rule, and is
 unaffected by this consolidation.
+
+---
+
+## Safari bundle completeness — a gate, because the build cannot see this
+
+`xcrun safari-web-extension-converter` captures the extension's **file list** at
+conversion time. Files added to `extension/` afterwards are never referenced by the
+Xcode project, so they are silently absent from the built `.appex` — while the build
+succeeds, the manifest validates, and every one of our own gates stays green.
+
+**This had already happened.** The entire `learn/` directory was missing from the iOS
+build. The visible consequence was not "the learning feature is absent": `options.html`
+loaded seven scripts that were not there, `options.js` threw on the first undefined
+global, and **the whole settings page was dead — including the field where the API key
+is entered**. Found by running the matrix, not by any test.
+
+Before any iOS/macOS verification run, and before any Safari release:
+
+```bash
+node build.js
+xcodebuild -scheme "BelliedMonkey Translator (iOS)" \
+  -destination 'id=<SIM_UDID>' -configuration Debug \
+  -derivedDataPath /tmp/bt-dd CODE_SIGNING_ALLOWED=NO build
+npm run verify:ios            # every dist/ file must exist in the .appex
+```
+
+A non-zero exit means **regenerate the project** (the command is printed in the
+failure) and rebuild. Do not hand-add files in Xcode: the next added file reproduces
+the same silent gap.
+
+---
+
+## 更正与未决（iPhone 行，2026-08-05）
+
+**更正一条已推送的错误声明。** commit `8036d83` 的信息里写着「同一篇 Wikipedia、同一个
+DeepSeek key……改后 30 秒内全部渲染」。**那次的译文其实来自免费 Google 端点**，不是
+DeepSeek——覆盖安装（`simctl install` 不卸载）**会清空扩展设置**，而我只验证了代码
+刷新、没验证存储保留，就把结论说满了。
+
+识别它的信号当时就在眼前：那段译文前后大半是**原文回显**，正是本文件 §0 记录的免费
+端点典型故障，我却当成模型质量问题带过去了。**「验证用的是不是你以为的那条路」必须
+在每次重装后重新确认，不能沿用。**
+
+重配 DeepSeek 后已重新验证：译文全中文、无回显。所以
+
+- 悬挂 promise 的修复 **成立**（该 bug 在 fetch 之前，与引擎无关）；
+- 「iOS 上 DeepSeek 端到端翻译」**现在才成立**。
+
+### 本行仍未验证
+
+- 采集是否真的写入学习库、复习页、TTS、长按加星。
+- **已修但未在设备上验证**：Safari iOS 上**扩展页读不回 `chrome.storage.local`**。
+  决定性证据：设置页重新加载后显示 Google，而**同一时刻内容脚本正拿着已保存的
+  DeepSeek key 成功翻译**。所以写入是好的，读不回来的只有扩展页（设置页、弹窗、
+  复习页）。用户的真实体验是「每次打开设置页配置都像消失了，得重填 API Key」。
+  修法见 `extension/learn/page-settings.js`：**机制尚未隔离**（需要 Web Inspector），
+  所以不赌任何一种——正常数组读一次；仅当结果里一个目标 key 都没有时才回退到整桶读
+  并过滤。数组形式正常的平台上零变化。有 5 个单测，其中一条专门断言「正常路径只有
+  一次调用」，避免让所有平台替 Safari 买单。
+  **真因（2026-08-05 用 Safari Web Inspector 查明）。** 同一个调用的两种形式互相矛盾：
+
+  ```
+  回调形式   → cb(undefined)，一声不吭
+  promise 形式 → reject: "Invalid call to browser.storage.local.get().
+                          Failed to create extension storage directory."
+  ```
+
+  **存储层是坏的，而回调形式把它报成了「空结果」。** 我们的代码拿到空结果只能画默认值，
+  于是用户看到自己的引擎和 API Key 悄悄退回免费通道——从外面看，和「从没保存过」
+  完全一样。
+
+  两条更正，都是我先前判断错的：
+  - 「回调永远不执行」**是错的**。它执行，只是带着 `undefined`。
+  - 「promise 一直 pending」**也是错的**——`Promise {pending}` 只是**创建瞬间**的状态，
+    任何异步调用都长这样，它什么也不证明。**这个 console 里 `console.log` 的输出根本
+    不显示**，只有表达式返回值会显示；我据此做的推断全部作废。正确的做法是把结果存进
+    全局变量，隔几秒再以表达式读它。
+
+  **已修的是那份沉默**（`page-settings.js` + 三个扩展页）：优先用 promise 形式（唯一说
+  真话的那个），检查 `chrome.runtime.lastError`，把「读失败」和「配置为空」区分开，并在
+  设置页顶部明确告知——**且提醒不要在此保存，否则会覆盖原有配置**。
+
+  **结案：那是脏模拟器的环境故障，不是 iOS 上的产品缺陷。** `simctl erase` 后重装、
+  重新配置，设置页离开再回来**正常显示 DeepSeek**。扩展页在 iOS 上读得到
+  `chrome.storage.local`；先前那台模拟器建不出扩展存储目录，是它自己被反复安装/卸载
+  折腾出来的状态。
+
+  `page-settings.js` 保留，但**目的不是绕过某个平台缺陷**——而是让**下一次存储失败，
+  无论来自哪里，都不能再伪装成「配置为空」并被默认值悄悄覆盖**。查明过程暴露的那个真
+  问题依然成立：存储坏掉时只有 promise 形式说真话。
+
+  > **核心约束 — 平台「不可能」时，先 erase 再下结论。** 一台被反复安装/卸载折腾过的
+  > 模拟器能制造出与产品缺陷难以区分的症状（本次是扩展存储目录建不出来）。判据：当某个
+  > 平台 API 的行为**在文档上讲不通**时，`simctl erase` 一次的成本远低于沿着错误前提
+  > 继续排查。本次没有先做，代价是数轮返工。
+
+### 本行仍未验证
+
+- 采集是否真的写入学习库、复习页、TTS、长按加星。
+- **已修但未在设备上验证**：Safari iOS 上**扩展页读不回 `chrome.storage.local`**。
+  决定性证据：设置页重新加载后显示 Google，而**同一时刻内容脚本正拿着已保存的
+  DeepSeek key 成功翻译**。所以写入是好的，读不回来的只有扩展页（设置页、弹窗、
+  复习页）。用户的真实体验是「每次打开设置页配置都像消失了，得重填 API Key」。
+  修法见 `extension/learn/page-settings.js`：**机制尚未隔离**（需要 Web Inspector），
+  所以不赌任何一种——正常数组读一次；仅当结果里一个目标 key 都没有时才回退到整桶读
+  并过滤。数组形式正常的平台上零变化。有 5 个单测，其中一条专门断言「正常路径只有
+  一次调用」，避免让所有平台替 Safari 买单。
+  **状态：验证不通过，缺陷仍然存在。** 2026-08-05 在设备上按预先写死的判据验收——
+  配好 DeepSeek → 离开设置页 → 重新打开——**仍然显示 Google**。
+
+  否定结果缩小了范围：整桶读 `get(null)` 也拿不回来，**所以不是「数组形式不被支持」**。
+  扩展页在该平台上似乎完全读不到 `chrome.storage.local`，而同一设备上的内容脚本读得到，
+  且这个页面自己的写入确实持久化了（内容脚本能看到）。
+
+  `page-settings.js` 保留但**已在文件头标注它不是修复**——只是让扩展页的读取变得防御性
+  （不抛、不挂、不返回 undefined），并把重试收在一处。**下一步只有 Safari Web Inspector**：
+  除了 console，没有别的办法区分「读返回了空」和「读根本没返回」。
+- **（此前记为独立缺陷的）弹窗显示 Google**：同一根因，不是两个 bug——设置页显示
+  DeepSeek 且译文确由 DeepSeek 产生时，弹窗仍显示「Google 翻译（免费）」并展示免费
+  通道提示。状态本身（已翻译/未翻译）是对的。用户会因此以为自己的 key 没生效。
+  与 `options.js` 的 init 失败同族（`chrome.storage.local.get` 在该平台上的回调行为），
+  但 popup 有 `s || {}` 兜底，所以不是崩溃而是**静默退回默认值**——更难发现。
+
+### 一条操作纪律
+
+`simctl install` 覆盖安装**会重置扩展存储**（也会重置 Safari 的扩展开关与站点授权）。
+每次重装后：重新配 provider + key，并**用「译文里有没有原文回显」确认自己确实在验
+预期的那条路径**。
+
+---
+
+## 矩阵执行记录：iPhone 与 iPad（2026-08-05 / 08-06）
+
+### iPhone 17 Pro · iOS 26.5 —— 已跑完
+
+**6 个真缺陷，全部已修并在设备上复验**：
+
+| # | 缺陷 | 症状 |
+|---|---|---|
+| 1 | `learn/` 整个目录从未进过 Safari 包 | 设置页全死，含填 API Key 处 |
+| 2 | `init()` 在 `s0.uiLang` 上抛错，且 `init()` 无 `.catch()` | 页面渲染正常但所有 JS 行为失效 |
+| 3 | 失败后静默回退 Google | 掩盖真错误、违反 §0、误导用户 |
+| 4 | `try` 只包住 `get()` 调用而非回调体 | promise 永久悬挂，翻译永不落地 |
+| 5 | 存储读失败被当成「配置为空」 | 用默认值悄悄覆盖用户配置 |
+| 6 | `.pressure{display:flex}` 打败 `[hidden]` | 空库上虚报「清理已掌握的卡」 |
+
+**通过**：扩展加载 · 内容脚本 · FAB · popup · 设置页 · 引擎注册表 · API Key 保存 ·
+IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲染 · **采集写入（候选 6）** ·
+**复习页** · **TTS（进入 onstart 后才有的激活态）**
+
+### iPad (A16) · iOS 26.5 —— 已跑，含一个未修的排版缺陷
+
+**通过**：扩展加载 / 启用 / 站点授权 · 内容脚本 · **popup 以 popover 渲染**（非 iPhone
+的底部抽屉）· **FAB 出现**——即 `isMobileLayout()` 正确将 iPad 判为触摸设备 · 引擎与
+语言选择器 · 宽屏下引导提示不溢出
+
+**已补跑**：配置持久化（引擎选择在弹窗与设置页之间正确保留）· **DeepSeek 端到端翻译**
+（整段捐款横幅、标题、正文均为干净中文，无原文回显）。
+
+**已修的缺陷 — `table-caption` 的译文压在原文上**：en.wikipedia.org 上图注译文与原文
+重叠。**我最初把症状读成「`|` 分隔的链接行重叠」，据此写的 fixture 是绿的——形状猜错了。**
+用 Web Inspector 读真实 DOM 才看清：
+
+```
+prevTag: FIGCAPTION   parentTag: FIGURE   prevDisplay: table-caption
+```
+
+Wikipedia 的 `<figure>` 是 `display:table`，`<figcaption>` 是它的 caption；往 caption
+后面插一个 block 兄弟节点会被浏览器包进**匿名表格盒**，于是译文压在图注上、caption 宽度
+被撑大。**与 issue #59（表格单元格必须把译文作为子节点）是同一机制**，只是 `isCell()`
+当初只测了 `table-cell`，漏了 `table-caption`。判据已改为一组表格 display 值。
+
+按 §3.2 先红后修，全程有据：`32-figcaption-table-caption.html` 先红——
+`belowOriginal: trans.top 240.4 < 328.7`、`width 320.0 -> 510.7`——修完转绿。
+
+**两条我自己的错误，记下来比结论更有用：**
+
+1. **猜形状不如读 DOM。** 那个绿 fixture 什么都没钉住，已删除。
+2. **「Firefox 上那页没重叠 ⇒ 这是 Safari 特有的」这个推断是错的。** 它在 headless
+   Chrome 里就能复现——我当时比较的根本不是同一个元素。**跨浏览器的目视比对不能替代
+   读 DOM。**
+
+**值得记的信号**：iPhone 上修的六个缺陷在 iPad 上**一个都不复现**。这说明它们修在了
+共用路径上，而不是某台设备的怪癖——否则第二行会重现其中一部分。
+
+### Firefox (desktop) —— 结构与合规声明通过，DeepSeek 链路未跑
+
+`node build.js firefox` → `dist-firefox/` 完整（`learn/` 下新文件全部在包内）。
+`npx web-ext run` 临时载入后验证通过：
+
+- 扩展载入 · 内容脚本运行 · FAB 渲染 · 页面无异常
+- `about:addons` 里**版本显示 1.3.0**——即版本号来自 manifest 的修复在 Firefox 上同样
+  生效（此前十一份译文各写死一个 v1.0.0）
+- 扩展描述正确本地化
+- **「权限与数据」页：数据收集 → 必要 →「开发者称此扩展收集：网站内容」。** 这是
+  `data_collection_permissions: ["websiteContent"]` 渲染给用户看的样子——**Gate A 的
+  声明在用户真正会看到的界面上得到了验证**，且未提及浏览活动或个人数据，对 V1 正确。
+  权限列表亦正确：所有网站（可选）、youtube/x/twitter，**本地文件为关**。
+- 内联链接行（`|` 分隔）译文正确排在下方。**当时据此推断「iPad 上那个重叠是 Safari
+  特有的」——后来证明是错的**（真凶是 `table-caption`，headless Chrome 里就能复现）。
+  留在这里作为提醒：**目视比对两个浏览器时，先确认你比的是同一个元素。**
+
+**未跑，且不含糊**：
+
+- **DeepSeek 链路。** 页面上观察到的翻译来自**默认的免费 Google 通道**，按 §0 这不算
+  验证。Firefox 的扩展选项入口没能通过 `about:addons` 打开（该页只有「详细信息 / 权限
+  与数据」两个标签，没有首选项），需要改从工具栏弹窗配置。
+- 采集 → 复习页 → TTS。
+- 「同语言跳过」的 Firefox 侧：§1 要求**看请求而不是看 DOM**，需要 devtools。
+
+---
+
+## 矩阵当前进度（2026-08-06）
+
+| 行 | 状态 |
+|---|---|
+| iPhone Safari | ✅ 跑完，6 个缺陷已修并复验 |
+| iPad Safari | ◐ 结构通过；翻译链路待补（需 key） |
+| macOS Safari | ✅ 跑完（读 DOM 代替截图）；DeepSeek 链路未跑 |
+| macOS Chrome | ✅ 跑过（抓到 3 个缺陷，均已修） |
+| Firefox | ◐ 结构通过；翻译链路 + 探测器请求检查待补 |
+
+按 §0，**这不构成一次完整验证**。上表就是「诚实说明哪些跑了、哪些没跑」本身。
+
+### macOS Safari —— 跑完（用「读 DOM」代替截图）
+
+**两处与旧笔记不符，已更正：**
+
+1. **「允许未签名的扩展」这次已经是勾上的**（距上次授权多日、Safari 中间退出过多次），
+   **没有再要密码**。旧结论「session-scoped、每次都要重新授权」不成立。**先读 AX 里那个
+   复选框的 value 再决定要不要麻烦用户。**
+2. **卡住 agent 的不是密码，是「添加临时扩展…」按钮**：AX `AXPress` 返回 -25204，前台
+   像素点击也不弹面板——文件夹选择器由 macOS 沙盒的 Open/Save Panel Service **出进程**
+   托管。§2.C 把「选文件夹」标为人工步骤是对的，实测它是**唯一**的人工步骤。
+
+**观察手段：`osascript … do JavaScript`，不是截图。** `get_window_state` 抓 Safari 的
+窗口时内容区**永远是空白**——而实测 `document.body.innerText.length` 是 11566，页面渲染
+完全正常。**那张空白截图什么都不是**（§见「抓不到画面时不要用『看起来没问题』代替验证」）。
+需要临时打开「允许 Apple 事件中的 JavaScript」（会弹确认框），**用完必须关回去**——它让
+本机任何脚本都能在 Safari 页面里执行 JS。本次已关回。
+
+**已验证**：临时扩展载入并启用 · 版本 1.3.0 · 描述本地化 · **内容脚本运行（`#mt-fab`
+存在）** · 页面渲染正常 · 点 FAB 后 **76 个 unit、14 条译文**（分段与渲染管线在 Safari
+上工作）。
+
+**`table-caption` 修复在本引擎上的前后对照**（同一页面、同一段测量代码、同一引擎）：
+
+| | trans | overlaps | 图注译文作为子节点 |
+|---|---|---|---|
+| 修复前快照 | 14 | **2**（均为 FIGCAPTION / table-caption / FIGURE） | 0 |
+| 修复后快照 | 14 | **0** | **2** |
+
+这同时**彻底否掉了「那个缺陷是 Safari 特有」的推断**：headless Chrome、iPad Safari、
+macOS Safari 三处都复现。
+
+**未跑**：DeepSeek 链路（上述译文来自默认的免费 Google 通道，按 §0 不算翻译验证）、
+采集 / 复习页 / TTS。Safari 的临时扩展没有可从 `about:` 页打开的选项入口，配置 key 需要
+走弹窗 UI。
+
+> **核心约束 — 抓不到画面时，不要用「看起来没问题」代替验证。** 本次差一点把一张空白
+> 截图读成结论。判据：若某个观察手段**在成功与失败下产出相同的输出**，它就不是证据。
+> 下一步需要换手段（Safari Web Inspector 读 DOM，或屏幕录制），而不是再截一张图。

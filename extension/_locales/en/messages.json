@@ -240,7 +240,7 @@
     "message": "Follow system"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "Largest (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "You are on the free no-key engine — fine for a first look. It is not a stable endpoint: it sometimes returns your original text unchanged. Switching to any LLM engine with your own key is noticeably more reliable, and better."
+  },
+  "learn_title": {
+    "message": "Review"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Review"
+  },
+  "learn_review": {
+    "message": "Review"
+  },
+  "learn_reveal": {
+    "message": "Show translation"
+  },
+  "learn_grade_again": {
+    "message": "Forgot"
+  },
+  "learn_grade_hard": {
+    "message": "Hard"
+  },
+  "learn_grade_good": {
+    "message": "Got it"
+  },
+  "learn_grade_easy": {
+    "message": "Too easy"
+  },
+  "learn_empty_title": {
+    "message": "No learning material yet"
+  },
+  "learn_empty_body": {
+    "message": "Turn on capture, then just browse and translate as usual. Sentences you actually read get saved — the ones you scroll straight past do not."
+  },
+  "learn_open_settings": {
+    "message": "Turn on capture in settings"
+  },
+  "learn_alldone_title": {
+    "message": "Done for now"
+  },
+  "learn_alldone_body": {
+    "message": "Keep browsing and translating — new material arrives on its own."
+  },
+  "learn_next_due": {
+    "message": "The next card is due {when}."
+  },
+  "learn_in_minutes": {
+    "message": "in about {n} min"
+  },
+  "learn_in_hours": {
+    "message": "in about {n} h"
+  },
+  "learn_in_days": {
+    "message": "in about {n} days"
+  },
+  "learn_progress": {
+    "message": "Progress"
+  },
+  "learn_done_run": {
+    "message": "{n} done this session"
+  },
+  "learn_settings": {
+    "message": "Settings"
+  },
+  "learn_unknown_source": {
+    "message": "Unknown source"
+  },
+  "learn_count_due": {
+    "message": "Due"
+  },
+  "learn_count_learning": {
+    "message": "Learning"
+  },
+  "learn_count_new": {
+    "message": "Candidates"
+  },
+  "learn_count_known": {
+    "message": "Known"
+  },
+  "learn_section": {
+    "message": "Learning"
+  },
+  "learn_section_hint": {
+    "message": "When on, sentences you actually read are stored ON THIS DEVICE together with the page address, its title and how long the text was on screen, and shown to you again on a forgetting curve. Text you scroll straight past is not stored. Nothing is uploaded, and one button erases all of it."
+  },
+  "learn_enable": {
+    "message": "Collect learning material"
+  },
+  "learn_daily_new": {
+    "message": "New cards per day (max)"
+  },
+  "learn_open_review": {
+    "message": "Open the review page"
+  },
+  "learn_clear": {
+    "message": "Erase the learning corpus"
+  },
+  "learn_clear_confirm": {
+    "message": "Erase the learning corpus? Every collected sentence and all review progress will be deleted, and this cannot be undone."
+  },
+  "learn_stats": {
+    "message": "{n} items · {due} due · about {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "The learning corpus is empty"
+  },
+  "toast_learn_on": {
+    "message": "Collecting learning material"
+  },
+  "toast_learn_off": {
+    "message": "Collection stopped (what was already collected is kept)"
+  },
+  "toast_learn_cleared": {
+    "message": "Learning corpus erased"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Could not erase"
+  },
+  "toast_saved": {
+    "message": "Saved"
+  },
+  "learn_replay": {
+    "message": "▶ Replay this clip"
+  },
+  "learn_replay_hint": {
+    "message": "Opens the source in a new tab at that timestamp — bilingual subtitles work there too."
+  },
+  "tts_section": {
+    "message": "Speech"
+  },
+  "tts_section_hint": {
+    "message": "Turn review cards into listening practice. Uses your device's own voice by default — no network, no cost. You can also point it at a speech server you run yourself."
+  },
+  "tts_mode": {
+    "message": "Speech mode"
+  },
+  "tts_mode_off": {
+    "message": "Off"
+  },
+  "tts_mode_assist": {
+    "message": "Show the text, with a play button"
+  },
+  "tts_mode_audio_first": {
+    "message": "Listen first (text hidden until you ask)"
+  },
+  "tts_engine": {
+    "message": "Speech engine"
+  },
+  "tts_engine_browser": {
+    "message": "Built-in device voice (free · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Local / self-hosted speech endpoint"
+  },
+  "tts_hint_browser": {
+    "message": "Uses the voices your operating system already has. Nothing is sent anywhere and nothing is cached — this engine only speaks, it cannot hand back audio."
+  },
+  "tts_hint_local": {
+    "message": "Any speech server implementing the /v1/audio/speech interface, running on your machine or LAN. Synthesis is cached locally, so a sentence costs you only once."
+  },
+  "tts_hint_openai": {
+    "message": "Uses your own API key. Synthesized audio is cached locally so a card is only paid for once."
+  },
+  "tts_base_url": {
+    "message": "Speech endpoint URL"
+  },
+  "tts_api_key": {
+    "message": "Speech API key"
+  },
+  "tts_model": {
+    "message": "Speech model"
+  },
+  "tts_voice": {
+    "message": "Voice"
+  },
+  "tts_voice_auto": {
+    "message": "Automatic (matched to the card's language)"
+  },
+  "tts_voice_hint": {
+    "message": "Voices are matched to each card's language. The one you pick here is only used when it actually speaks that language."
+  },
+  "tts_rate": {
+    "message": "Speed"
+  },
+  "tts_autoplay": {
+    "message": "Play automatically when a card opens"
+  },
+  "tts_test": {
+    "message": "Play a test sentence"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Synthesizing…"
+  },
+  "tts_test_ok": {
+    "message": "Playing"
+  },
+  "tts_play": {
+    "message": "▶ Listen"
+  },
+  "tts_replay": {
+    "message": "▶ Listen again"
+  },
+  "tts_playing": {
+    "message": "Playing…"
+  },
+  "tts_no_voice": {
+    "message": "Your system has no voice for this language"
+  },
+  "tts_unsupported": {
+    "message": "This browser offers no built-in speech"
+  },
+  "tts_no_base": {
+    "message": "No speech endpoint URL yet"
+  },
+  "tts_no_key": {
+    "message": "No speech API key yet"
+  },
+  "tts_blocked": {
+    "message": "The browser blocked autoplay — tap to play"
+  },
+  "tts_http": {
+    "message": "The speech service returned an error"
+  },
+  "tts_failed": {
+    "message": "This sentence cannot be spoken right now"
+  },
+  "tts_cache": {
+    "message": "Speech cache: {n} clips · about {mb} MB (limit {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "The speech cache is empty"
+  },
+  "tts_cache_na": {
+    "message": "The built-in device voice produces no cache"
+  },
+  "tts_clear_cache": {
+    "message": "Clear the speech cache"
+  },
+  "toast_tts_cleared": {
+    "message": "Speech cache cleared"
+  },
+  "learn_reveal_orig": {
+    "message": "Show the text"
+  },
+  "learn_clean_known": {
+    "message": "Clear cards you've mastered"
+  },
+  "learn_clean_known_n": {
+    "message": "Clear {n} mastered cards"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} captured items could not be saved — this happens when the corpus is full."
+  },
+  "learn_pressure_evicted": {
+    "message": "The corpus is full — {n} old cards were dropped automatically to make room."
+  },
+  "learn_pressure_near": {
+    "message": "The corpus is nearly full ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Cleared {n} mastered cards"
+  },
+  "learn_export": {
+    "message": "Export the corpus"
+  },
+  "learn_import": {
+    "message": "Import from a file"
+  },
+  "toast_exported": {
+    "message": "Exported {n} cards"
+  },
+  "toast_export_empty": {
+    "message": "Nothing to export yet"
+  },
+  "toast_export_failed": {
+    "message": "Export failed"
+  },
+  "toast_imported": {
+    "message": "Imported {n} cards"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unreadable lines skipped"
+  },
+  "toast_import_bad_format": {
+    "message": "That is not a learning-corpus export file"
+  },
+  "toast_import_failed": {
+    "message": "Import failed"
+  },
+  "sync_section": {
+    "message": "Sync across devices"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Everything works without an account — sync just lets you review on your phone what you read on your laptop. Cards already in review and your review history are uploaded; candidates that have not entered review never leave this device."
+  },
+  "sync_email": {
+    "message": "Email"
+  },
+  "sync_send_code": {
+    "message": "Send code"
+  },
+  "sync_code": {
+    "message": "6-digit code from the email"
+  },
+  "sync_verify": {
+    "message": "Sign in"
+  },
+  "sync_now": {
+    "message": "Sync now"
+  },
+  "sync_signout": {
+    "message": "Sign out"
+  },
+  "sync_delete": {
+    "message": "Delete cloud data and account"
+  },
+  "sync_err_offline": {
+    "message": "Can't reach the server; this will retry later. Everything you have learned is on this device."
+  },
+  "sync_err_quota": {
+    "message": "Your cloud storage is full, so new material is not being uploaded (this device is unaffected). Clearing mastered cards frees space."
+  },
+  "sync_err_signed_out": {
+    "message": "Your session expired. Please sign in again."
+  },
+  "sync_err_rate": {
+    "message": "Too many codes requested. Try again in a few minutes."
+  },
+  "sync_err_generic": {
+    "message": "Sync did not finish"
+  },
+  "sync_signed_in": {
+    "message": "Signed in as {email}"
+  },
+  "sync_usage": {
+    "message": "{used} of {quota} used · {n} chunks"
+  },
+  "sync_need_email": {
+    "message": "Enter your email first"
+  },
+  "sync_sending": {
+    "message": "Sending…"
+  },
+  "sync_code_sent": {
+    "message": "Code sent to {email}. Enter it below."
+  },
+  "sync_verifying": {
+    "message": "Verifying…"
+  },
+  "sync_signed_in_now": {
+    "message": "Signed in. The first sync may take a few seconds."
+  },
+  "sync_bad_code": {
+    "message": "That code is wrong or expired. Request a new one."
+  },
+  "sync_running": {
+    "message": "Syncing…"
+  },
+  "sync_done": {
+    "message": "Sync complete · {in} received · {out} uploaded"
+  },
+  "sync_signed_out": {
+    "message": "Signed out. Your learning library stays on this device, untouched."
+  },
+  "sync_delete_confirm": {
+    "message": "Delete cloud data and account? Everything on the server and this account will be deleted permanently. Your library on this device is kept."
+  },
+  "sync_deleting": {
+    "message": "Deleting…"
+  },
+  "sync_deleted": {
+    "message": "Cloud data and account deleted. Your library on this device is kept."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud data deleted, but the account could not be removed ({why}). You can retry or contact us."
+  },
+  "sync_err_upgrade": {
+    "message": "There is something in the cloud this version can't read yet (probably written by a newer build). Update the extension, then sync — nothing is lost, it just can't be read yet."
+  },
+  "toast_import_upgrade": {
+    "message": "This file was written by a newer version of the extension. Update, then import it. There is nothing wrong with the file."
+  },
+  "options_init_failed": {
+    "message": "The settings page did not finish loading. Reopen it; if it keeps happening, please send us this message."
+  },
+  "settings_read_failed": {
+    "message": "Your saved settings could not be read, so the defaults are shown below. Do not save from this page — it would overwrite what you had. ({why})"
   }
 }

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Learning capture is geometrically inert</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 720px; }
+  h1 { font-size: 22px; margin: 0 0 12px; }
+  p { margin: 0 0 14px; line-height: 1.6; }
+  .note { border-left: 3px solid #ccc; padding-left: 12px; color: #444; }
+</style>
+</head>
+<body>
+
+<h1 id="h1">The observatory reopened after a decade of silence</h1>
+
+<p id="p1">The committee published its findings on a Tuesday morning, and by the
+afternoon every newsroom in the country had a version of the story that suited its
+own audience rather better than the report itself did.</p>
+
+<p id="p2" class="note">Nobody had expected the instrument to survive the winter, least
+of all the engineers who had spent three seasons arguing about whether the mounting
+bracket would hold under load at that altitude.</p>
+
+<p id="p3">Funding arrived late, as it usually does, and in an amount that made the
+original proposal look like an act of optimism rather than a plan anybody intended to
+follow through to completion.</p>
+
+<!--
+  The learning layer's Collector is a SINK (docs/domain-design.md §9.1 law 1): it
+  reads what the renderer already displayed and can never influence it. This fixture
+  turns capture ON via `cfg` and asserts the ordinary geometry invariants still hold
+  byte-for-byte — i.e. attaching an IntersectionObserver and a long-press handler to
+  every `.mt-translation` changes nothing the user can see.
+
+  It also pins law 4: our own injected siblings must never be observed for capture,
+  or the extension would translate its own translations and capture the result.
+  With capture on, the unit count must stay at the 4 ORIGINAL blocks (heading + 3
+  paragraphs) — if the `.mt-translation` siblings were being collected too, they
+  would become units on the next recollect pass and the count would climb.
+
+  The heavy lifting here is done by the UNIVERSAL invariants the runner applies to
+  every unit (translation visible, below its original, original geometry stable,
+  parent styles unpolluted, no horizontal overflow) plus `rerender`, which re-runs
+  them all after a re-render — the moment a stray observer or handler would show up.
+-->
+<script type="application/json" id="mt-expect">
+{
+  "name": "learning-capture-noop",
+  "cfg": { "learnEnabled": true },
+  "unitCount": 4,
+  "rerender": true,
+  "targets": [
+    { "sel": "#h1", "assert": ["ownRow", "sameLeft"] },
+    { "sel": "#p1", "assert": ["ownRow", "sameLeft"] },
+    { "sel": "#p2", "assert": ["ownRow", "sameLeft"] },
+    { "sel": "#p3", "assert": ["ownRow", "sameLeft"] }
+  ]
+}
+</script>
+</body>
+</html>

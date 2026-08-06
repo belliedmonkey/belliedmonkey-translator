@@ -240,7 +240,7 @@
     "message": "اتّباع النظام"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "الأكبر (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "أنت تستخدم المحرّك المجاني الذي لا يحتاج مفتاحًا — وهو يكفي لإلقاء نظرة أولى. لكنه ليس ثابتًا: فهو يعيد أحيانًا نصّك الأصلي كما هو. الانتقال إلى أي محرّك LLM بمفتاحك الخاص أكثر ثباتًا بوضوح، وأفضل جودة."
+  },
+  "learn_title": {
+    "message": "المراجعة"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — المراجعة"
+  },
+  "learn_review": {
+    "message": "المراجعة"
+  },
+  "learn_reveal": {
+    "message": "إظهار الترجمة"
+  },
+  "learn_grade_again": {
+    "message": "نسيت"
+  },
+  "learn_grade_hard": {
+    "message": "صعب"
+  },
+  "learn_grade_good": {
+    "message": "تذكرت"
+  },
+  "learn_grade_easy": {
+    "message": "سهل جدًا"
+  },
+  "learn_empty_title": {
+    "message": "لا توجد مواد تعلم بعد"
+  },
+  "learn_empty_body": {
+    "message": "فعّل الالتقاط ثم تصفّح وترجم كالمعتاد. تُحفظ الجمل التي قرأتها فعلاً — أما التي مررت عليها سريعًا فلا."
+  },
+  "learn_open_settings": {
+    "message": "فعّل الالتقاط من الإعدادات"
+  },
+  "learn_alldone_title": {
+    "message": "انتهيت الآن"
+  },
+  "learn_alldone_body": {
+    "message": "واصل التصفح والترجمة — ستصل مواد جديدة تلقائيًا."
+  },
+  "learn_next_due": {
+    "message": "البطاقة التالية مستحقة {when}."
+  },
+  "learn_in_minutes": {
+    "message": "خلال {n} دقيقة تقريبًا"
+  },
+  "learn_in_hours": {
+    "message": "خلال {n} ساعة تقريبًا"
+  },
+  "learn_in_days": {
+    "message": "خلال {n} يوم تقريبًا"
+  },
+  "learn_progress": {
+    "message": "التقدّم"
+  },
+  "learn_done_run": {
+    "message": "أنجزت {n} في هذه الجلسة"
+  },
+  "learn_settings": {
+    "message": "الإعدادات"
+  },
+  "learn_unknown_source": {
+    "message": "مصدر غير معروف"
+  },
+  "learn_count_due": {
+    "message": "مستحق"
+  },
+  "learn_count_learning": {
+    "message": "قيد التعلم"
+  },
+  "learn_count_new": {
+    "message": "مرشحة"
+  },
+  "learn_count_known": {
+    "message": "متقنة"
+  },
+  "learn_section": {
+    "message": "التعلّم"
+  },
+  "learn_section_hint": {
+    "message": "عند التفعيل، تُحفظ الجمل التي قرأتها فعلاً على هذا الجهاز مع عنوان الصفحة وعنوانها ومدة ظهورها، ثم تُعرض عليك مجددًا وفق منحنى النسيان. ما تمرّ عليه سريعًا لا يُحفظ. لا يُرفع شيء، وزر واحد يمحو كل شيء."
+  },
+  "learn_enable": {
+    "message": "جمع مواد التعلّم"
+  },
+  "learn_daily_new": {
+    "message": "أقصى عدد بطاقات جديدة يوميًا"
+  },
+  "learn_open_review": {
+    "message": "افتح صفحة المراجعة"
+  },
+  "learn_clear": {
+    "message": "مسح مكتبة التعلّم"
+  },
+  "learn_clear_confirm": {
+    "message": "مسح مكتبة التعلّم؟ ستُحذف كل الجمل المجمّعة وكل تقدّم المراجعة، ولا يمكن التراجع."
+  },
+  "learn_stats": {
+    "message": "{n} عنصرًا · {due} مستحق · نحو {kb} كيلوبايت"
+  },
+  "learn_stats_empty": {
+    "message": "مكتبة التعلّم فارغة"
+  },
+  "toast_learn_on": {
+    "message": "بدأ جمع مواد التعلّم"
+  },
+  "toast_learn_off": {
+    "message": "توقّف الجمع (يبقى ما جُمع سابقًا)"
+  },
+  "toast_learn_cleared": {
+    "message": "تم مسح مكتبة التعلّم"
+  },
+  "toast_learn_clear_failed": {
+    "message": "تعذّر المسح"
+  },
+  "toast_saved": {
+    "message": "تم الحفظ"
+  },
+  "learn_replay": {
+    "message": "▶ أعد سماع هذا المقطع"
+  },
+  "learn_replay_hint": {
+    "message": "يفتح المصدر في تبويب جديد عند تلك اللحظة — والترجمة الثنائية تعمل هناك أيضًا."
+  },
+  "tts_section": {
+    "message": "النطق"
+  },
+  "tts_section_hint": {
+    "message": "حوّل بطاقات المراجعة إلى تدريب استماع. يستخدم صوت جهازك افتراضيًا — بلا شبكة ولا تكلفة. ويمكنك توجيهه إلى خادم نطق تشغّله بنفسك."
+  },
+  "tts_mode": {
+    "message": "وضع النطق"
+  },
+  "tts_mode_off": {
+    "message": "مغلق"
+  },
+  "tts_mode_assist": {
+    "message": "إظهار النص مع زر تشغيل"
+  },
+  "tts_mode_audio_first": {
+    "message": "استمع أولًا (النص مخفي في البداية)"
+  },
+  "tts_engine": {
+    "message": "محرّك النطق"
+  },
+  "tts_engine_browser": {
+    "message": "صوت الجهاز المدمج (مجاني · دون اتصال)"
+  },
+  "tts_engine_local": {
+    "message": "نقطة نطق محلية / ذاتية الاستضافة"
+  },
+  "tts_hint_browser": {
+    "message": "يستخدم الأصوات الموجودة في نظام تشغيلك. لا يُرسَل شيء ولا يُخزَّن شيء — هذا المحرّك ينطق فقط ولا يمكنه إعادة بيانات صوتية."
+  },
+  "tts_hint_local": {
+    "message": "أي خادم صوت يطبّق واجهة ‎/v1/audio/speech‎، على جهازك أو شبكتك المحلية. يُخزَّن الصوت المُركَّب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
+  },
+  "tts_hint_openai": {
+    "message": "يستخدم مفتاح API الخاص بك. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
+  },
+  "tts_base_url": {
+    "message": "عنوان نقطة النطق"
+  },
+  "tts_api_key": {
+    "message": "مفتاح API للنطق"
+  },
+  "tts_model": {
+    "message": "نموذج النطق"
+  },
+  "tts_voice": {
+    "message": "الصوت"
+  },
+  "tts_voice_auto": {
+    "message": "تلقائي (حسب لغة البطاقة)"
+  },
+  "tts_voice_hint": {
+    "message": "تُطابَق الأصوات مع لغة كل بطاقة. الصوت الذي تختاره هنا لا يُستخدم إلا إذا كان ينطق تلك اللغة فعلًا."
+  },
+  "tts_rate": {
+    "message": "السرعة"
+  },
+  "tts_autoplay": {
+    "message": "التشغيل تلقائيًا عند فتح البطاقة"
+  },
+  "tts_test": {
+    "message": "جرّب جملة"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "جارٍ التركيب…"
+  },
+  "tts_test_ok": {
+    "message": "قيد التشغيل"
+  },
+  "tts_play": {
+    "message": "▶ استمع"
+  },
+  "tts_replay": {
+    "message": "▶ استمع مرة أخرى"
+  },
+  "tts_playing": {
+    "message": "قيد التشغيل…"
+  },
+  "tts_no_voice": {
+    "message": "لا يوجد صوت لهذه اللغة في نظامك"
+  },
+  "tts_unsupported": {
+    "message": "لا يوفّر هذا المتصفح نطقًا مدمجًا"
+  },
+  "tts_no_base": {
+    "message": "لم تُدخل عنوان نقطة النطق بعد"
+  },
+  "tts_no_key": {
+    "message": "لم تُدخل مفتاح API للنطق بعد"
+  },
+  "tts_blocked": {
+    "message": "حظر المتصفح التشغيل التلقائي — اضغط للتشغيل"
+  },
+  "tts_http": {
+    "message": "أعادت خدمة النطق خطأً"
+  },
+  "tts_failed": {
+    "message": "لا يمكن نطق هذه الجملة الآن"
+  },
+  "tts_cache": {
+    "message": "ذاكرة النطق: {n} مقطعًا · نحو {mb} ميغابايت (الحد {cap} ميغابايت)"
+  },
+  "tts_cache_empty": {
+    "message": "ذاكرة النطق فارغة"
+  },
+  "tts_cache_na": {
+    "message": "لا ينتج صوت الجهاز المدمج أي ذاكرة مؤقتة"
+  },
+  "tts_clear_cache": {
+    "message": "مسح ذاكرة النطق"
+  },
+  "toast_tts_cleared": {
+    "message": "تم مسح ذاكرة النطق"
+  },
+  "learn_reveal_orig": {
+    "message": "إظهار النص"
+  },
+  "learn_clean_known": {
+    "message": "امسح البطاقات التي أتقنتها"
+  },
+  "learn_clean_known_n": {
+    "message": "امسح {n} بطاقة أتقنتها"
+  },
+  "learn_pressure_dropped": {
+    "message": "تعذّر حفظ {n} عنصرًا مجمّعًا — يحدث هذا عندما تمتلئ المكتبة."
+  },
+  "learn_pressure_evicted": {
+    "message": "المكتبة ممتلئة — حُذفت {n} بطاقة قديمة تلقائيًا لإفساح المجال."
+  },
+  "learn_pressure_near": {
+    "message": "المكتبة أوشكت على الامتلاء ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "تم مسح {n} بطاقة أتقنتها"
+  },
+  "learn_export": {
+    "message": "تصدير مكتبة التعلّم"
+  },
+  "learn_import": {
+    "message": "استيراد من ملف"
+  },
+  "toast_exported": {
+    "message": "تم تصدير {n} بطاقة"
+  },
+  "toast_export_empty": {
+    "message": "لا يوجد ما يُصدَّر بعد"
+  },
+  "toast_export_failed": {
+    "message": "فشل التصدير"
+  },
+  "toast_imported": {
+    "message": "تم استيراد {n} بطاقة"
+  },
+  "toast_import_skipped": {
+    "message": "تم تخطي {n} سطرًا غير قابل للقراءة"
+  },
+  "toast_import_bad_format": {
+    "message": "هذا ليس ملف تصدير لمكتبة التعلّم"
+  },
+  "toast_import_failed": {
+    "message": "فشل الاستيراد"
+  },
+  "sync_section": {
+    "message": "المزامنة بين الأجهزة"
+  },
+  "sync_section_hint": {
+    "message": "اختيارية. كل شيء يعمل بدون حساب — المزامنة تتيح لك فقط أن تراجع على هاتفك ما قرأته على حاسوبك. تُرفع البطاقات التي دخلت المراجعة وسجل مراجعاتك؛ أما المرشحة التي لم تدخل المراجعة بعد فلا تغادر هذا الجهاز أبدًا."
+  },
+  "sync_email": {
+    "message": "البريد الإلكتروني"
+  },
+  "sync_send_code": {
+    "message": "إرسال الرمز"
+  },
+  "sync_code": {
+    "message": "الرمز المكوّن من 6 أرقام في البريد"
+  },
+  "sync_verify": {
+    "message": "تسجيل الدخول"
+  },
+  "sync_now": {
+    "message": "زامن الآن"
+  },
+  "sync_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "sync_delete": {
+    "message": "حذف بيانات السحابة والحساب"
+  },
+  "sync_err_offline": {
+    "message": "تعذّر الوصول إلى الخادم، وسنعيد المحاولة لاحقًا. كل ما تعلّمته موجود على هذا الجهاز."
+  },
+  "sync_err_quota": {
+    "message": "مساحتك السحابية ممتلئة، لذا لا يُرفع أي محتوى جديد (هذا الجهاز غير متأثر). حذف البطاقات المُتقنة يوفّر مساحة."
+  },
+  "sync_err_signed_out": {
+    "message": "انتهت صلاحية جلستك. سجّل الدخول من جديد."
+  },
+  "sync_err_rate": {
+    "message": "طلبت رموزًا كثيرة. حاول بعد بضع دقائق."
+  },
+  "sync_err_generic": {
+    "message": "لم تكتمل المزامنة"
+  },
+  "sync_signed_in": {
+    "message": "مسجّل الدخول: {email}"
+  },
+  "sync_usage": {
+    "message": "المستخدم {used} من {quota} · {n} كتلة"
+  },
+  "sync_need_email": {
+    "message": "أدخل بريدك الإلكتروني أولًا"
+  },
+  "sync_sending": {
+    "message": "جارٍ الإرسال…"
+  },
+  "sync_code_sent": {
+    "message": "أُرسل الرمز إلى {email}. أدخله بالأسفل."
+  },
+  "sync_verifying": {
+    "message": "جارٍ التحقق…"
+  },
+  "sync_signed_in_now": {
+    "message": "تم تسجيل الدخول. قد تستغرق المزامنة الأولى بضع ثوانٍ."
+  },
+  "sync_bad_code": {
+    "message": "الرمز غير صحيح أو منتهي الصلاحية. اطلب رمزًا جديدًا."
+  },
+  "sync_running": {
+    "message": "جارٍ المزامنة…"
+  },
+  "sync_done": {
+    "message": "اكتملت المزامنة · وصلت {in} · رُفعت {out}"
+  },
+  "sync_signed_out": {
+    "message": "تم تسجيل الخروج. مكتبتك على هذا الجهاز باقية كما هي."
+  },
+  "sync_delete_confirm": {
+    "message": "حذف بيانات السحابة والحساب؟ سيُحذف كل ما على الخادم وهذا الحساب نهائيًا. وتبقى مكتبتك على هذا الجهاز."
+  },
+  "sync_deleting": {
+    "message": "جارٍ الحذف…"
+  },
+  "sync_deleted": {
+    "message": "حُذفت بيانات السحابة والحساب. ومكتبتك على هذا الجهاز باقية."
+  },
+  "sync_deleted_partial": {
+    "message": "حُذفت بيانات السحابة، لكن تعذّر حذف الحساب ({why}). يمكنك إعادة المحاولة أو مراسلتنا."
+  },
+  "sync_err_upgrade": {
+    "message": "توجد في السحابة بيانات لا تستطيع هذه النسخة قراءتها بعد (غالبًا كتبتها نسخة أحدث). حدّث الإضافة ثم زامن — لم يُفقد شيء، فقط تعذّرت قراءته الآن."
+  },
+  "toast_import_upgrade": {
+    "message": "أُنشئ هذا الملف بنسخة أحدث من الإضافة. حدّثها ثم استورده. الملف نفسه سليم."
+  },
+  "options_init_failed": {
+    "message": "لم تكتمل صفحة الإعدادات في التحميل. أعد فتحها؛ وإن تكرر ذلك فأرسل لنا هذه الرسالة."
+  },
+  "settings_read_failed": {
+    "message": "تعذّرت قراءة إعداداتك المحفوظة، لذا تظهر القيم الافتراضية أدناه. لا تحفظ من هذه الصفحة — فسيؤدي ذلك إلى استبدال إعداداتك. ({why})"
   }
 }

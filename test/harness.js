@@ -10,12 +10,18 @@ const vm = require('vm');
 const fs = require('fs');
 const path = require('path');
 
-const EXT_DIR = path.join(__dirname, '..', 'extension', 'content');
+const EXT_ROOT = path.join(__dirname, '..', 'extension');
+const EXT_DIR = path.join(EXT_ROOT, 'content');
 
-// Load an extension content-script file into a fresh vm context seeded with the
-// given sandbox globals. Returns the context (read exported globals off it).
+// Load an extension source file into a fresh vm context seeded with the given
+// sandbox globals. Returns the context (read exported globals off it).
+//
+// A bare name resolves under extension/content/ (the content scripts). A name with
+// a slash resolves under extension/ — extension-PAGE modules live outside content/
+// (learn/tts.js, learn/store.js) and are just as worth regressing.
 function loadModule(relFile, sandbox = {}) {
-  const code = fs.readFileSync(path.join(EXT_DIR, relFile), 'utf8');
+  const abs = relFile.includes('/') ? path.join(EXT_ROOT, relFile) : path.join(EXT_DIR, relFile);
+  const code = fs.readFileSync(abs, 'utf8');
   const base = {
     console,
     setTimeout,

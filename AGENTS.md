@@ -12,6 +12,77 @@ configurable LLM APIs. The provider list is a **build-time region flavor**
 (`global` / `china`) resolved from a single registry — see "Provider registry &
 region flavors" below and `docs/domain-design.md` §7.
 
+## 产品原则：普惠优先（能免费尽量免费）
+
+This project exists to be **freely and widely usable**, not to be monetized. Ask
+these in order when designing anything new:
+
+1. **Can this be done without a server?** If yes, do it without one. Anything the
+   device can compute, the device computes.
+2. **Local first, and the free path never needs a server of ours.** Translation
+   **defaults** to the user's own key, browser → provider directly, and that path
+   stays fully capable forever — it is never degraded to make a paid path look
+   better. A server-side model may be offered **only** as an opt-in paid
+   alternative, and only where it demonstrably beats what the local path can do.
+   The invariant is not "we never run a model" — it is: **a person who never pays
+   and never signs in has a complete product.**
+   *(Amended 2026-08-04. This rule used to read "never passes through a server of
+   ours … does not yield to any feature", justified by end-to-end encryption making
+   plaintext unreachable. That justification no longer holds — see rule 4 and
+   `docs/learning-design.md` §8.4 — so the rule was narrowed to the part that was
+   actually load-bearing: the free path's independence, not our abstinence.)*
+3. **Accounts and sync are free.** The server carries only what genuinely cannot work
+   without it — and the product must be complete for a signed-out user.
+4. **No telemetry, ever — and server-side computation only as a paid, opt-in
+   exception.** Usage analytics and tracking stay permanently forbidden; `README.md`
+   says "no tracking, no telemetry" and that must remain literally true. Model
+   inference on user content (translation, quiz generation, grading) is allowed
+   **only** when the user chose it and is paying for it, because it is a real
+   recurring cost (rule 8). Whatever such a path processes must be disclosed for
+   that path specifically — never averaged away in a claim about the product as a
+   whole.
+5. **The server never stores media we do not own.** Third-party audio and video (a
+   YouTube segment, podcast audio) is stored as a **pointer** — media id + start/end
+   offsets, ~20 bytes — and replayed from the source. This is **not** a cost
+   trade-off that a bigger budget could reverse: we never possess those bytes,
+   obtaining them would breach the platform's terms, and redistributing them is a
+   copyright matter. Full page text and screenshots are out for the same reason.
+6. **Media the user generated locally may be stored — but only if the user chose
+   it.** Speech synthesized by the user's own TTS engine is theirs, not a third
+   party's. Such uploads are **off by default**, stated plainly in the UI, counted
+   against the user's quota, and deletable in one action.
+   *(Amended 2026-08-03. Rules 5 and 6 were one rule reading "the server stores no
+   binary media", which conflated two different things: what we may not have, and
+   what the user made. The former is a hard boundary; the latter is the user's
+   call. "No binary media" was only ever an approximation of the first.)*
+7. **Every account has a server-side hard quota (currently 50 MB), enforced by a
+   database constraint** — never by client-side good behaviour. On reaching it: stop
+   accepting new content, keep syncing progress, and say so. **Never silently drop
+   data.**
+8. **Charge only where the cost genuinely cannot be carried.** If some future
+   feature's storage or compute is truly unaffordable, price *that feature* — and
+   **never convert something already shipped free into a paid feature.**
+9. **Cost is estimated before it is incurred.** Before introducing any server-side
+   storage, write the bytes-per-user-per-year estimate **and its assumptions** into
+   the design doc. (`docs/learning-design.md` §8.2 is the worked example.)
+10. **No crippled builds.** Compliance or distribution pressure is resolved by
+    narrowing *where the product is distributed* — never by shipping some users a
+    version with fewer features.
+11. **A server-side model feature may not ship before its local equivalent.**
+    *(Added 2026-08-04 by domain-design review — see `docs/learning-design.md` §2.1.
+    Appended rather than inserted next to rule 2 so that existing references to rules
+    7/8/9 keep pointing at the same text.)* Any capability that depends on a model
+    running on our server may be released only once the same capability already works
+    on the local / self-hosted path. The hosted version may be faster or better; it
+    may not be the **only** version. "Local first" on its own is a preference, and a
+    preference cannot stop drift assembled from individually-sensible decisions —
+    hosting always spares us the user's hardware, their configuration, and their error
+    messages in eleven languages. This gate inverts that pull: **to ship the hosted
+    version you must first build the local one**, so the easy path stops being a
+    shortcut. Release check: *can someone who never signs in and never pays use this?*
+    A "no" blocks the release.
+
+
 ## Interaction / UX constraints
 
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
@@ -19,6 +90,14 @@ region flavors" below and `docs/domain-design.md` §7.
 state, control menu, webpage injection). When you change how translations look or
 behave, update that file in the same commit. Don't scatter interaction rules here or
 in code comments.
+
+## Releasing
+
+Before any release, work through [`docs/release-checklist.md`](docs/release-checklist.md).
+It holds only what the build gates cannot see — chiefly the **cross-repo** obligation that
+the two websites' privacy pages ship in the SAME version as the feature they describe
+(`privacy.html` promises exactly that, in those words). A checklist is weaker than a gate;
+anything on it that can become a gate should move into `build.js` and be deleted from there.
 
 ## Domain design (architecture) — REQUIRES HUMAN REVIEW
 
@@ -29,12 +108,20 @@ Extractor → units → Engine (state machine + scheduling + retry) → Renderer
 "split-by-source-kind-not-site" rule, and the "parsing is device-agnostic; device
 differences only in a thin control/render adapter" principle.
 
+**The learning/memory domain (记忆层) lives in
+[`docs/learning-design.md`](docs/learning-design.md)**, with its boundary against the
+translation pipeline fixed in [`docs/domain-design.md`](docs/domain-design.md) §9.
+The load-bearing rule: **capture is a sink, never a source** — if the learning layer
+were deleted at runtime, translation output must be byte-for-byte identical.
+
 **Governance rule (mandatory):** any change that touches the domain design — the
-model, the extractor/engine/renderer boundary, the device principle, or the
-`DomSegmenter` rules — **must first update `docs/domain-design.md` and pass human
-domain-design review before the code changes.** Do not refactor the architecture
-or add per-site / per-device branches to the segmenter without that review.
-Routine bug fixes that conform to the existing model do not require it.
+model, the extractor/engine/renderer boundary, the device principle, the
+`DomSegmenter` rules, or the learning layer's Collector boundary / scheduler
+contract / storage tiers — **must first update `docs/domain-design.md` (and
+`docs/learning-design.md` where it applies) and pass human domain-design review
+before the code changes.** Do not refactor the architecture or add per-site /
+per-device branches to the segmenter without that review. Routine bug fixes that
+conform to the existing model do not require it.
 
 ## Provider registry & region flavors (合规双分发) — domain design
 

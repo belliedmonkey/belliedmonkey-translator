@@ -214,7 +214,7 @@ token 限制；播客则用页内的 WebVTT/SRT 或 feed 里的 `<podcast:transc
 ### 构建与测试
 
 ```bash
-npm test              # 87 个单元测试，零依赖，Node ≥16
+npm test              # 纯逻辑测试套件，零依赖，Node ≥18
 npm run test:layout   # 29 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
 ```
 

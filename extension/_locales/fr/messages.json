@@ -240,7 +240,7 @@
     "message": "Suivre le système"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "Très grand (1,25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "Vous utilisez le moteur gratuit sans clé — parfait pour un premier aperçu. Ce point de terminaison n'est pas stable : il renvoie parfois votre texte d'origine inchangé. Passer à un moteur LLM avec votre propre clé est nettement plus fiable, et meilleur."
+  },
+  "learn_title": {
+    "message": "Révision"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Révision"
+  },
+  "learn_review": {
+    "message": "Révision"
+  },
+  "learn_reveal": {
+    "message": "Afficher la traduction"
+  },
+  "learn_grade_again": {
+    "message": "Oublié"
+  },
+  "learn_grade_hard": {
+    "message": "Difficile"
+  },
+  "learn_grade_good": {
+    "message": "Su"
+  },
+  "learn_grade_easy": {
+    "message": "Trop facile"
+  },
+  "learn_empty_title": {
+    "message": "Pas encore de matériel"
+  },
+  "learn_empty_body": {
+    "message": "Activez la capture, puis naviguez et traduisez normalement. Les phrases que vous avez vraiment lues sont enregistrées — pas celles que vous faites défiler."
+  },
+  "learn_open_settings": {
+    "message": "Activer la capture dans les réglages"
+  },
+  "learn_alldone_title": {
+    "message": "Terminé pour l'instant"
+  },
+  "learn_alldone_body": {
+    "message": "Continuez à naviguer et à traduire — du nouveau matériel arrivera tout seul."
+  },
+  "learn_next_due": {
+    "message": "La prochaine carte est prévue {when}."
+  },
+  "learn_in_minutes": {
+    "message": "dans environ {n} min"
+  },
+  "learn_in_hours": {
+    "message": "dans environ {n} h"
+  },
+  "learn_in_days": {
+    "message": "dans environ {n} jours"
+  },
+  "learn_progress": {
+    "message": "Progression"
+  },
+  "learn_done_run": {
+    "message": "{n} faites cette session"
+  },
+  "learn_settings": {
+    "message": "Réglages"
+  },
+  "learn_unknown_source": {
+    "message": "Source inconnue"
+  },
+  "learn_count_due": {
+    "message": "À revoir"
+  },
+  "learn_count_learning": {
+    "message": "En cours"
+  },
+  "learn_count_new": {
+    "message": "Candidats"
+  },
+  "learn_count_known": {
+    "message": "Acquises"
+  },
+  "learn_section": {
+    "message": "Apprentissage"
+  },
+  "learn_section_hint": {
+    "message": "Une fois activé, les phrases que vous avez réellement lues sont conservées SUR CET APPAREIL avec l'adresse de la page, son titre et la durée d'affichage, puis vous sont représentées selon une courbe de l'oubli. Ce que vous faites défiler n'est pas conservé. Rien n'est téléversé, et un bouton efface tout."
+  },
+  "learn_enable": {
+    "message": "Collecter le matériel"
+  },
+  "learn_daily_new": {
+    "message": "Nouvelles cartes par jour (max)"
+  },
+  "learn_open_review": {
+    "message": "Ouvrir la page de révision"
+  },
+  "learn_clear": {
+    "message": "Effacer la bibliothèque"
+  },
+  "learn_clear_confirm": {
+    "message": "Effacer la bibliothèque ? Toutes les phrases collectées et toute la progression seront supprimées, sans retour possible."
+  },
+  "learn_stats": {
+    "message": "{n} éléments · {due} à revoir · environ {kb} Ko"
+  },
+  "learn_stats_empty": {
+    "message": "La bibliothèque est vide"
+  },
+  "toast_learn_on": {
+    "message": "Collecte activée"
+  },
+  "toast_learn_off": {
+    "message": "Collecte arrêtée (ce qui est déjà collecté est conservé)"
+  },
+  "toast_learn_cleared": {
+    "message": "Bibliothèque effacée"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Échec de l'effacement"
+  },
+  "toast_saved": {
+    "message": "Enregistré"
+  },
+  "learn_replay": {
+    "message": "▶ Réécouter cet extrait"
+  },
+  "learn_replay_hint": {
+    "message": "Ouvre la source dans un nouvel onglet à cet instant — les sous-titres bilingues y fonctionnent aussi."
+  },
+  "tts_section": {
+    "message": "Voix"
+  },
+  "tts_section_hint": {
+    "message": "Transformez les cartes en exercices d'écoute. Utilise par défaut la voix de votre appareil — sans réseau ni coût. Vous pouvez aussi pointer vers votre propre serveur vocal."
+  },
+  "tts_mode": {
+    "message": "Mode voix"
+  },
+  "tts_mode_off": {
+    "message": "Désactivé"
+  },
+  "tts_mode_assist": {
+    "message": "Afficher le texte, avec un bouton lecture"
+  },
+  "tts_mode_audio_first": {
+    "message": "Écouter d'abord (texte masqué au départ)"
+  },
+  "tts_engine": {
+    "message": "Moteur vocal"
+  },
+  "tts_engine_browser": {
+    "message": "Voix intégrée de l'appareil (gratuit · hors ligne)"
+  },
+  "tts_engine_local": {
+    "message": "Point d'accès vocal local / auto-hébergé"
+  },
+  "tts_hint_browser": {
+    "message": "Utilise les voix déjà présentes dans votre système. Rien n'est envoyé ni mis en cache — ce moteur ne fait que parler, il ne peut pas restituer l'audio."
+  },
+  "tts_hint_local": {
+    "message": "Tout serveur vocal implémentant l’interface /v1/audio/speech, sur votre machine ou votre réseau local. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
+  },
+  "tts_hint_openai": {
+    "message": "Utilise votre propre clé API. L'audio synthétisé est mis en cache localement : une phrase n'est payée qu'une fois."
+  },
+  "tts_base_url": {
+    "message": "URL du point d'accès vocal"
+  },
+  "tts_api_key": {
+    "message": "Clé API vocale"
+  },
+  "tts_model": {
+    "message": "Modèle vocal"
+  },
+  "tts_voice": {
+    "message": "Voix"
+  },
+  "tts_voice_auto": {
+    "message": "Automatique (selon la langue de la carte)"
+  },
+  "tts_voice_hint": {
+    "message": "Les voix sont associées à la langue de chaque carte. Celle que vous choisissez ici n'est utilisée que si elle parle réellement cette langue."
+  },
+  "tts_rate": {
+    "message": "Vitesse"
+  },
+  "tts_autoplay": {
+    "message": "Lire automatiquement à l'ouverture d'une carte"
+  },
+  "tts_test": {
+    "message": "Écouter un test"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Synthèse en cours…"
+  },
+  "tts_test_ok": {
+    "message": "Lecture"
+  },
+  "tts_play": {
+    "message": "▶ Écouter"
+  },
+  "tts_replay": {
+    "message": "▶ Réécouter"
+  },
+  "tts_playing": {
+    "message": "Lecture…"
+  },
+  "tts_no_voice": {
+    "message": "Votre système n'a pas de voix pour cette langue"
+  },
+  "tts_unsupported": {
+    "message": "Ce navigateur ne propose pas de synthèse intégrée"
+  },
+  "tts_no_base": {
+    "message": "Aucune URL de point d'accès vocal"
+  },
+  "tts_no_key": {
+    "message": "Aucune clé API vocale"
+  },
+  "tts_blocked": {
+    "message": "Le navigateur a bloqué la lecture automatique — touchez pour lire"
+  },
+  "tts_http": {
+    "message": "Le service vocal a renvoyé une erreur"
+  },
+  "tts_failed": {
+    "message": "Cette phrase ne peut pas être lue pour l'instant"
+  },
+  "tts_cache": {
+    "message": "Cache vocal : {n} extraits · environ {mb} Mo (limite {cap} Mo)"
+  },
+  "tts_cache_empty": {
+    "message": "Le cache vocal est vide"
+  },
+  "tts_cache_na": {
+    "message": "La voix intégrée ne produit aucun cache"
+  },
+  "tts_clear_cache": {
+    "message": "Vider le cache vocal"
+  },
+  "toast_tts_cleared": {
+    "message": "Cache vocal vidé"
+  },
+  "learn_reveal_orig": {
+    "message": "Afficher le texte"
+  },
+  "learn_clean_known": {
+    "message": "Effacer les cartes acquises"
+  },
+  "learn_clean_known_n": {
+    "message": "Effacer {n} cartes acquises"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} éléments collectés n'ont pas pu être enregistrés — cela arrive quand la bibliothèque est pleine."
+  },
+  "learn_pressure_evicted": {
+    "message": "La bibliothèque est pleine — {n} anciennes cartes ont été supprimées automatiquement pour faire de la place."
+  },
+  "learn_pressure_near": {
+    "message": "La bibliothèque est presque pleine ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} cartes acquises effacées"
+  },
+  "learn_export": {
+    "message": "Exporter la bibliothèque"
+  },
+  "learn_import": {
+    "message": "Importer depuis un fichier"
+  },
+  "toast_exported": {
+    "message": "{n} cartes exportées"
+  },
+  "toast_export_empty": {
+    "message": "Rien à exporter pour l'instant"
+  },
+  "toast_export_failed": {
+    "message": "Échec de l'export"
+  },
+  "toast_imported": {
+    "message": "{n} cartes importées"
+  },
+  "toast_import_skipped": {
+    "message": "{n} lignes illisibles ignorées"
+  },
+  "toast_import_bad_format": {
+    "message": "Ce n'est pas un fichier d'export de bibliothèque"
+  },
+  "toast_import_failed": {
+    "message": "Échec de l'import"
+  },
+  "sync_section": {
+    "message": "Synchronisation entre appareils"
+  },
+  "sync_section_hint": {
+    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Seules les cartes déjà en révision et votre historique sont envoyés ; les candidates qui ne sont pas encore en révision ne quittent jamais cet appareil."
+  },
+  "sync_email": {
+    "message": "E-mail"
+  },
+  "sync_send_code": {
+    "message": "Envoyer le code"
+  },
+  "sync_code": {
+    "message": "Code à 6 chiffres reçu par e-mail"
+  },
+  "sync_verify": {
+    "message": "Se connecter"
+  },
+  "sync_now": {
+    "message": "Synchroniser maintenant"
+  },
+  "sync_signout": {
+    "message": "Se déconnecter"
+  },
+  "sync_delete": {
+    "message": "Supprimer les données du cloud et le compte"
+  },
+  "sync_err_offline": {
+    "message": "Serveur injoignable ; nouvelle tentative plus tard. Tout ce que vous avez appris est sur cet appareil."
+  },
+  "sync_err_quota": {
+    "message": "Votre espace cloud est plein : les nouveaux éléments ne sont plus envoyés (cet appareil n'est pas affecté). Supprimer les cartes maîtrisées libère de la place."
+  },
+  "sync_err_signed_out": {
+    "message": "Votre session a expiré. Reconnectez-vous."
+  },
+  "sync_err_rate": {
+    "message": "Trop de codes demandés. Réessayez dans quelques minutes."
+  },
+  "sync_err_generic": {
+    "message": "La synchronisation n'a pas abouti"
+  },
+  "sync_signed_in": {
+    "message": "Connecté : {email}"
+  },
+  "sync_usage": {
+    "message": "{used} sur {quota} utilisés · {n} blocs"
+  },
+  "sync_need_email": {
+    "message": "Saisissez d'abord votre e-mail"
+  },
+  "sync_sending": {
+    "message": "Envoi…"
+  },
+  "sync_code_sent": {
+    "message": "Code envoyé à {email}. Saisissez-le ci-dessous."
+  },
+  "sync_verifying": {
+    "message": "Vérification…"
+  },
+  "sync_signed_in_now": {
+    "message": "Connecté. La première synchronisation peut prendre quelques secondes."
+  },
+  "sync_bad_code": {
+    "message": "Ce code est incorrect ou expiré. Demandez-en un nouveau."
+  },
+  "sync_running": {
+    "message": "Synchronisation…"
+  },
+  "sync_done": {
+    "message": "Synchronisation terminée · {in} reçues · {out} envoyées"
+  },
+  "sync_signed_out": {
+    "message": "Déconnecté. Votre bibliothèque reste intacte sur cet appareil."
+  },
+  "sync_delete_confirm": {
+    "message": "Supprimer les données du cloud et le compte ? Tout ce qui se trouve sur le serveur ainsi que ce compte seront définitivement supprimés. Votre bibliothèque locale est conservée."
+  },
+  "sync_deleting": {
+    "message": "Suppression…"
+  },
+  "sync_deleted": {
+    "message": "Données cloud et compte supprimés. Votre bibliothèque locale est conservée."
+  },
+  "sync_deleted_partial": {
+    "message": "Données cloud supprimées, mais le compte n'a pas pu être supprimé ({why}). Réessayez ou contactez-nous."
+  },
+  "sync_err_upgrade": {
+    "message": "Le cloud contient des données que cette version ne sait pas encore lire (sans doute écrites par une version plus récente). Mettez l'extension à jour, puis synchronisez — rien n'est perdu, c'est seulement illisible pour l'instant."
+  },
+  "toast_import_upgrade": {
+    "message": "Ce fichier a été créé par une version plus récente de l'extension. Mettez à jour, puis importez-le. Le fichier lui-même est intact."
+  },
+  "options_init_failed": {
+    "message": "La page des réglages n'a pas fini de se charger. Rouvrez-la ; si cela persiste, envoyez-nous ce message."
+  },
+  "settings_read_failed": {
+    "message": "Vos réglages enregistrés n'ont pas pu être lus ; les valeurs par défaut sont affichées. N'enregistrez pas depuis cette page — cela écraserait vos réglages. ({why})"
   }
 }

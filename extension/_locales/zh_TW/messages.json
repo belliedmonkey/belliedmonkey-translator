@@ -240,7 +240,7 @@
     "message": "跟隨系統"
   },
   "about_line": {
-    "message": "大肚猴翻譯 · v1.0.0"
+    "message": "大肚猴翻譯"
   },
   "options_font_xl": {
     "message": "較大 (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "目前使用免費通道，不需要 API Key —— 適合先看看效果。它的回應不穩定，偶爾會把原文原樣傳回；改用任一 LLM 引擎並填入你自己的 Key，會穩定許多，品質也更好。"
+  },
+  "learn_title": {
+    "message": "複習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻譯 · 複習"
+  },
+  "learn_review": {
+    "message": "複習"
+  },
+  "learn_reveal": {
+    "message": "顯示譯文"
+  },
+  "learn_grade_again": {
+    "message": "不記得"
+  },
+  "learn_grade_hard": {
+    "message": "有點難"
+  },
+  "learn_grade_good": {
+    "message": "記得"
+  },
+  "learn_grade_easy": {
+    "message": "太簡單"
+  },
+  "learn_empty_title": {
+    "message": "還沒有學習材料"
+  },
+  "learn_empty_body": {
+    "message": "打開採集開關，然後照常瀏覽、照常翻譯。你真正讀過的句子會自動存進來 —— 快速滑過去的不算。"
+  },
+  "learn_open_settings": {
+    "message": "去設定裡打開採集"
+  },
+  "learn_alldone_title": {
+    "message": "今天的複習做完了"
+  },
+  "learn_alldone_body": {
+    "message": "繼續瀏覽和翻譯，新的材料會自動進來。"
+  },
+  "learn_next_due": {
+    "message": "下一張卡片{when}到期。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分鐘後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 小時後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 天後"
+  },
+  "learn_progress": {
+    "message": "本輪進度"
+  },
+  "learn_done_run": {
+    "message": "本次完成 {n} 張"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "未知來源"
+  },
+  "learn_count_due": {
+    "message": "待複習"
+  },
+  "learn_count_learning": {
+    "message": "學習中"
+  },
+  "learn_count_new": {
+    "message": "候選"
+  },
+  "learn_count_known": {
+    "message": "已掌握"
+  },
+  "learn_section": {
+    "message": "學習"
+  },
+  "learn_section_hint": {
+    "message": "打開後，你真正讀過的句子會連同頁面網址、標題和停留時長一起存在這台裝置上，按遺忘曲線重新推給你。快速滑過去的不算。不會上傳，一鍵可清空。"
+  },
+  "learn_enable": {
+    "message": "採集學習材料"
+  },
+  "learn_daily_new": {
+    "message": "每天最多引入的新卡片"
+  },
+  "learn_open_review": {
+    "message": "打開複習頁"
+  },
+  "learn_clear": {
+    "message": "清空學習庫"
+  },
+  "learn_clear_confirm": {
+    "message": "清空學習庫？所有已採集的句子與複習進度都會被刪除，且無法恢復。"
+  },
+  "learn_stats": {
+    "message": "學習庫 {n} 條 · 待複習 {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "學習庫為空"
+  },
+  "toast_learn_on": {
+    "message": "已開始採集學習材料"
+  },
+  "toast_learn_off": {
+    "message": "已停止採集（已收集的內容保留）"
+  },
+  "toast_learn_cleared": {
+    "message": "學習庫已清空"
+  },
+  "toast_learn_clear_failed": {
+    "message": "清空失敗"
+  },
+  "toast_saved": {
+    "message": "已儲存"
+  },
+  "learn_replay": {
+    "message": "▶ 重聽這個片段"
+  },
+  "learn_replay_hint": {
+    "message": "在新分頁開啟原影片並跳到該處（那裡也會有雙語字幕）"
+  },
+  "tts_section": {
+    "message": "語音"
+  },
+  "tts_section_hint": {
+    "message": "把複習卡當成聽力材料。預設使用你裝置自帶的語音，不連網、不花錢；也可以指向你自己架的語音服務。"
+  },
+  "tts_mode": {
+    "message": "語音模式"
+  },
+  "tts_mode_off": {
+    "message": "關閉"
+  },
+  "tts_mode_assist": {
+    "message": "顯示原文，可點播放"
+  },
+  "tts_mode_audio_first": {
+    "message": "先聽後看（原文先隱藏）"
+  },
+  "tts_engine": {
+    "message": "語音引擎"
+  },
+  "tts_engine_browser": {
+    "message": "裝置內建語音（免費 · 離線）"
+  },
+  "tts_engine_local": {
+    "message": "本機 / 自建語音端點"
+  },
+  "tts_hint_browser": {
+    "message": "使用你作業系統既有的語音。不傳送任何資料，也不產生快取 —— 這個引擎只能朗讀，拿不到音訊資料。"
+  },
+  "tts_hint_local": {
+    "message": "任何實作了 /v1/audio/speech 介面的語音服務，跑在你自己的機器或區域網路上。合成結果會快取在本機，同一句只花一次代價。"
+  },
+  "tts_hint_openai": {
+    "message": "用你自己的 API Key。合成結果會快取在本機，同一句只花一次錢。"
+  },
+  "tts_base_url": {
+    "message": "語音端點位址"
+  },
+  "tts_api_key": {
+    "message": "語音 API Key"
+  },
+  "tts_model": {
+    "message": "語音模型"
+  },
+  "tts_voice": {
+    "message": "聲音"
+  },
+  "tts_voice_auto": {
+    "message": "自動（按卡片語言挑選）"
+  },
+  "tts_voice_hint": {
+    "message": "按卡片的語言自動挑選。這裡選的聲音只在它會說那門語言時才會被採用。"
+  },
+  "tts_rate": {
+    "message": "語速"
+  },
+  "tts_autoplay": {
+    "message": "進入卡片自動播放"
+  },
+  "tts_test": {
+    "message": "試聽一句"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "正在合成…"
+  },
+  "tts_test_ok": {
+    "message": "播放中"
+  },
+  "tts_play": {
+    "message": "▶ 聽一遍"
+  },
+  "tts_replay": {
+    "message": "▶ 再聽一遍"
+  },
+  "tts_playing": {
+    "message": "播放中…"
+  },
+  "tts_no_voice": {
+    "message": "系統裡沒有這門語言的語音"
+  },
+  "tts_unsupported": {
+    "message": "這個瀏覽器不提供內建語音"
+  },
+  "tts_no_base": {
+    "message": "還沒填語音端點位址"
+  },
+  "tts_no_key": {
+    "message": "還沒填語音 API Key"
+  },
+  "tts_blocked": {
+    "message": "瀏覽器擋下了自動播放，點一下播放"
+  },
+  "tts_http": {
+    "message": "語音服務回傳了錯誤"
+  },
+  "tts_failed": {
+    "message": "這句暫時讀不出來"
+  },
+  "tts_cache": {
+    "message": "語音快取 {n} 條 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "語音快取為空"
+  },
+  "tts_cache_na": {
+    "message": "裝置內建語音不產生快取"
+  },
+  "tts_clear_cache": {
+    "message": "清空語音快取"
+  },
+  "toast_tts_cleared": {
+    "message": "語音快取已清空"
+  },
+  "learn_reveal_orig": {
+    "message": "顯示原文"
+  },
+  "learn_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "learn_clean_known_n": {
+    "message": "清理已掌握的 {n} 張卡"
+  },
+  "learn_pressure_dropped": {
+    "message": "有 {n} 條採集內容沒能存下來（學習庫滿時會發生）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "學習庫已滿，已自動淘汰 {n} 張舊卡為新內容騰地方。"
+  },
+  "learn_pressure_near": {
+    "message": "學習庫快滿了（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "已清理 {n} 張已掌握的卡"
+  },
+  "learn_export": {
+    "message": "匯出學習庫"
+  },
+  "learn_import": {
+    "message": "從檔案匯入"
+  },
+  "toast_exported": {
+    "message": "已匯出 {n} 張卡片"
+  },
+  "toast_export_empty": {
+    "message": "還沒有可匯出的卡片"
+  },
+  "toast_export_failed": {
+    "message": "匯出失敗"
+  },
+  "toast_imported": {
+    "message": "已匯入 {n} 張卡片"
+  },
+  "toast_import_skipped": {
+    "message": "{n} 行無法解析已跳過"
+  },
+  "toast_import_bad_format": {
+    "message": "這不是學習庫匯出檔案"
+  },
+  "toast_import_failed": {
+    "message": "匯入失敗"
+  },
+  "sync_section": {
+    "message": "多裝置同步"
+  },
+  "sync_section_hint": {
+    "message": "選用。不登入也能完整使用——同步只是讓你在手機上複習電腦上讀到的句子。上傳的是已進入複習的卡片與複習記錄，還沒進複習的候選永遠留在本裝置。"
+  },
+  "sync_email": {
+    "message": "電子郵件"
+  },
+  "sync_send_code": {
+    "message": "寄送驗證碼"
+  },
+  "sync_code": {
+    "message": "信件裡的 6 位驗證碼"
+  },
+  "sync_verify": {
+    "message": "登入"
+  },
+  "sync_now": {
+    "message": "立即同步"
+  },
+  "sync_signout": {
+    "message": "登出"
+  },
+  "sync_delete": {
+    "message": "刪除雲端資料與帳號"
+  },
+  "sync_err_offline": {
+    "message": "連不上伺服器，稍後會自動重試。已學的內容都在本機。"
+  },
+  "sync_err_quota": {
+    "message": "雲端空間已滿，新內容暫時不再上傳（本機不受影響）。清理已掌握的卡片可以騰出空間。"
+  },
+  "sync_err_signed_out": {
+    "message": "登入已失效，請重新登入。"
+  },
+  "sync_err_rate": {
+    "message": "驗證碼寄得太頻繁了，等幾分鐘再試。"
+  },
+  "sync_err_generic": {
+    "message": "同步沒能完成"
+  },
+  "sync_signed_in": {
+    "message": "已登入：{email}"
+  },
+  "sync_usage": {
+    "message": "雲端已用 {used} / {quota} · {n} 個資料塊"
+  },
+  "sync_need_email": {
+    "message": "先填電子郵件"
+  },
+  "sync_sending": {
+    "message": "寄送中…"
+  },
+  "sync_code_sent": {
+    "message": "驗證碼已寄到 {email}，填在下面。"
+  },
+  "sync_verifying": {
+    "message": "驗證中…"
+  },
+  "sync_signed_in_now": {
+    "message": "已登入。第一次同步可能要幾秒。"
+  },
+  "sync_bad_code": {
+    "message": "驗證碼不對或已過期，重新寄一個。"
+  },
+  "sync_running": {
+    "message": "同步中…"
+  },
+  "sync_done": {
+    "message": "同步完成 · 收到 {in} 張 · 上傳 {out} 張"
+  },
+  "sync_signed_out": {
+    "message": "已登出。本機的學習庫原樣保留。"
+  },
+  "sync_delete_confirm": {
+    "message": "刪除雲端資料與帳號？伺服器上的所有內容與這個帳號都會被刪除，無法復原。本機的學習庫會保留。"
+  },
+  "sync_deleting": {
+    "message": "刪除中…"
+  },
+  "sync_deleted": {
+    "message": "雲端資料與帳號都已刪除。本機的學習庫保留。"
+  },
+  "sync_deleted_partial": {
+    "message": "雲端資料已刪除，但帳號沒能刪掉（{why}）。可以重試或聯絡我們。"
+  },
+  "sync_err_upgrade": {
+    "message": "雲端有這個版本還讀不了的內容（可能來自更新版本的擴充功能）。請升級後再同步——那些內容沒有遺失，只是暫時讀不了。"
+  },
+  "toast_import_upgrade": {
+    "message": "這個檔案來自更新版本的擴充功能，升級後才能匯入。檔案本身沒有問題。"
+  },
+  "options_init_failed": {
+    "message": "設定頁沒能載入完成。請重新開啟這個頁面；若仍然如此，請把這條訊息回報給我們。"
+  },
+  "settings_read_failed": {
+    "message": "讀不到已儲存的設定，下面顯示的是預設值——請不要在此儲存，否則會覆蓋掉你原本的設定。（{why}）"
   }
 }

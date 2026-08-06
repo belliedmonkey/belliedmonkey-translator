@@ -240,7 +240,7 @@
     "message": "Seguir o sistema"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "Bem maior (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "Você está no motor gratuito sem chave — o suficiente para uma primeira olhada. Não é um endpoint estável: às vezes devolve o seu texto original sem alterações. Trocar para um motor LLM com a sua própria chave é bem mais confiável, e melhor."
+  },
+  "learn_title": {
+    "message": "Revisão"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Revisão"
+  },
+  "learn_review": {
+    "message": "Revisão"
+  },
+  "learn_reveal": {
+    "message": "Mostrar tradução"
+  },
+  "learn_grade_again": {
+    "message": "Esqueci"
+  },
+  "learn_grade_hard": {
+    "message": "Difícil"
+  },
+  "learn_grade_good": {
+    "message": "Lembrei"
+  },
+  "learn_grade_easy": {
+    "message": "Fácil demais"
+  },
+  "learn_empty_title": {
+    "message": "Ainda não há material"
+  },
+  "learn_empty_body": {
+    "message": "Ative a captura e navegue e traduza como sempre. Frases que você realmente leu são salvas — as que você passou rolando, não."
+  },
+  "learn_open_settings": {
+    "message": "Ativar captura nas configurações"
+  },
+  "learn_alldone_title": {
+    "message": "Concluído por enquanto"
+  },
+  "learn_alldone_body": {
+    "message": "Continue navegando e traduzindo — material novo chega sozinho."
+  },
+  "learn_next_due": {
+    "message": "O próximo cartão vence {when}."
+  },
+  "learn_in_minutes": {
+    "message": "em cerca de {n} min"
+  },
+  "learn_in_hours": {
+    "message": "em cerca de {n} h"
+  },
+  "learn_in_days": {
+    "message": "em cerca de {n} dias"
+  },
+  "learn_progress": {
+    "message": "Progresso"
+  },
+  "learn_done_run": {
+    "message": "{n} feitos nesta sessão"
+  },
+  "learn_settings": {
+    "message": "Configurações"
+  },
+  "learn_unknown_source": {
+    "message": "Fonte desconhecida"
+  },
+  "learn_count_due": {
+    "message": "A revisar"
+  },
+  "learn_count_learning": {
+    "message": "Aprendendo"
+  },
+  "learn_count_new": {
+    "message": "Candidatas"
+  },
+  "learn_count_known": {
+    "message": "Dominadas"
+  },
+  "learn_section": {
+    "message": "Aprendizado"
+  },
+  "learn_section_hint": {
+    "message": "Quando ativado, as frases que você realmente leu são guardadas NESTE DISPOSITIVO junto com o endereço da página, o título e por quanto tempo o texto ficou na tela, e voltam a ser mostradas seguindo uma curva do esquecimento. O que você passa rolando não é guardado. Nada é enviado, e um botão apaga tudo."
+  },
+  "learn_enable": {
+    "message": "Coletar material"
+  },
+  "learn_daily_new": {
+    "message": "Cartões novos por dia (máx.)"
+  },
+  "learn_open_review": {
+    "message": "Abrir a página de revisão"
+  },
+  "learn_clear": {
+    "message": "Apagar a biblioteca"
+  },
+  "learn_clear_confirm": {
+    "message": "Apagar a biblioteca? Todas as frases coletadas e todo o progresso serão excluídos, sem como desfazer."
+  },
+  "learn_stats": {
+    "message": "{n} itens · {due} a revisar · cerca de {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "A biblioteca está vazia"
+  },
+  "toast_learn_on": {
+    "message": "Coleta iniciada"
+  },
+  "toast_learn_off": {
+    "message": "Coleta interrompida (o que já foi coletado é mantido)"
+  },
+  "toast_learn_cleared": {
+    "message": "Biblioteca apagada"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Não foi possível apagar"
+  },
+  "toast_saved": {
+    "message": "Salvo"
+  },
+  "learn_replay": {
+    "message": "▶ Ouvir o trecho de novo"
+  },
+  "learn_replay_hint": {
+    "message": "Abre a fonte em uma nova aba nesse ponto — as legendas bilíngues também funcionam lá."
+  },
+  "tts_section": {
+    "message": "Voz"
+  },
+  "tts_section_hint": {
+    "message": "Transforme os cartões em prática de escuta. Usa a voz do seu aparelho por padrão — sem rede, sem custo. Você também pode apontar para um servidor de voz próprio."
+  },
+  "tts_mode": {
+    "message": "Modo de voz"
+  },
+  "tts_mode_off": {
+    "message": "Desligado"
+  },
+  "tts_mode_assist": {
+    "message": "Mostrar o texto, com botão de reprodução"
+  },
+  "tts_mode_audio_first": {
+    "message": "Ouvir primeiro (texto oculto no início)"
+  },
+  "tts_engine": {
+    "message": "Mecanismo de voz"
+  },
+  "tts_engine_browser": {
+    "message": "Voz integrada do aparelho (grátis · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Endpoint de voz local / auto-hospedado"
+  },
+  "tts_hint_browser": {
+    "message": "Usa as vozes que seu sistema operacional já tem. Nada é enviado nem armazenado em cache — este mecanismo apenas fala, não devolve áudio."
+  },
+  "tts_hint_local": {
+    "message": "Qualquer servidor de voz que implemente a interface /v1/audio/speech, na sua máquina ou rede local. A síntese fica em cache local, então uma frase custa apenas uma vez."
+  },
+  "tts_hint_openai": {
+    "message": "Usa sua própria chave de API. O áudio sintetizado fica em cache local: cada frase só custa uma vez."
+  },
+  "tts_base_url": {
+    "message": "URL do endpoint de voz"
+  },
+  "tts_api_key": {
+    "message": "Chave de API de voz"
+  },
+  "tts_model": {
+    "message": "Modelo de voz"
+  },
+  "tts_voice": {
+    "message": "Voz"
+  },
+  "tts_voice_auto": {
+    "message": "Automática (conforme o idioma do cartão)"
+  },
+  "tts_voice_hint": {
+    "message": "As vozes são combinadas com o idioma de cada cartão. A que você escolher aqui só é usada se realmente falar esse idioma."
+  },
+  "tts_rate": {
+    "message": "Velocidade"
+  },
+  "tts_autoplay": {
+    "message": "Tocar automaticamente ao abrir o cartão"
+  },
+  "tts_test": {
+    "message": "Ouvir uma frase de teste"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Sintetizando…"
+  },
+  "tts_test_ok": {
+    "message": "Reproduzindo"
+  },
+  "tts_play": {
+    "message": "▶ Ouvir"
+  },
+  "tts_replay": {
+    "message": "▶ Ouvir de novo"
+  },
+  "tts_playing": {
+    "message": "Reproduzindo…"
+  },
+  "tts_no_voice": {
+    "message": "Seu sistema não tem voz para este idioma"
+  },
+  "tts_unsupported": {
+    "message": "Este navegador não oferece voz integrada"
+  },
+  "tts_no_base": {
+    "message": "Ainda falta a URL do endpoint de voz"
+  },
+  "tts_no_key": {
+    "message": "Ainda falta a chave de API de voz"
+  },
+  "tts_blocked": {
+    "message": "O navegador bloqueou a reprodução automática — toque para ouvir"
+  },
+  "tts_http": {
+    "message": "O serviço de voz retornou um erro"
+  },
+  "tts_failed": {
+    "message": "Esta frase não pode ser lida agora"
+  },
+  "tts_cache": {
+    "message": "Cache de voz: {n} trechos · cerca de {mb} MB (limite {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "O cache de voz está vazio"
+  },
+  "tts_cache_na": {
+    "message": "A voz integrada não gera cache"
+  },
+  "tts_clear_cache": {
+    "message": "Limpar o cache de voz"
+  },
+  "toast_tts_cleared": {
+    "message": "Cache de voz limpo"
+  },
+  "learn_reveal_orig": {
+    "message": "Mostrar o texto"
+  },
+  "learn_clean_known": {
+    "message": "Limpar cartões dominados"
+  },
+  "learn_clean_known_n": {
+    "message": "Limpar {n} cartões dominados"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} itens coletados não puderam ser salvos — isso acontece quando a biblioteca está cheia."
+  },
+  "learn_pressure_evicted": {
+    "message": "A biblioteca está cheia — {n} cartões antigos foram removidos automaticamente para abrir espaço."
+  },
+  "learn_pressure_near": {
+    "message": "A biblioteca está quase cheia ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} cartões dominados limpos"
+  },
+  "learn_export": {
+    "message": "Exportar a biblioteca"
+  },
+  "learn_import": {
+    "message": "Importar de um arquivo"
+  },
+  "toast_exported": {
+    "message": "{n} cartões exportados"
+  },
+  "toast_export_empty": {
+    "message": "Ainda não há nada para exportar"
+  },
+  "toast_export_failed": {
+    "message": "Falha ao exportar"
+  },
+  "toast_imported": {
+    "message": "{n} cartões importados"
+  },
+  "toast_import_skipped": {
+    "message": "{n} linhas ilegíveis ignoradas"
+  },
+  "toast_import_bad_format": {
+    "message": "Esse não é um arquivo de exportação da biblioteca"
+  },
+  "toast_import_failed": {
+    "message": "Falha ao importar"
+  },
+  "sync_section": {
+    "message": "Sincronização entre dispositivos"
+  },
+  "sync_section_hint": {
+    "message": "Opcional. Tudo funciona sem conta — a sincronização apenas permite revisar no celular o que você leu no computador. São enviados os cartões já em revisão e o seu histórico; os candidatos que ainda não entraram em revisão nunca saem deste dispositivo."
+  },
+  "sync_email": {
+    "message": "E-mail"
+  },
+  "sync_send_code": {
+    "message": "Enviar código"
+  },
+  "sync_code": {
+    "message": "Código de 6 dígitos do e-mail"
+  },
+  "sync_verify": {
+    "message": "Entrar"
+  },
+  "sync_now": {
+    "message": "Sincronizar agora"
+  },
+  "sync_signout": {
+    "message": "Sair"
+  },
+  "sync_delete": {
+    "message": "Excluir dados da nuvem e a conta"
+  },
+  "sync_err_offline": {
+    "message": "Não foi possível acessar o servidor; tentaremos de novo depois. Tudo o que você aprendeu está neste dispositivo."
+  },
+  "sync_err_quota": {
+    "message": "Seu espaço na nuvem está cheio, então nada novo está sendo enviado (este dispositivo não é afetado). Limpar os cartões dominados libera espaço."
+  },
+  "sync_err_signed_out": {
+    "message": "Sua sessão expirou. Entre novamente."
+  },
+  "sync_err_rate": {
+    "message": "Você pediu códigos demais. Tente de novo em alguns minutos."
+  },
+  "sync_err_generic": {
+    "message": "A sincronização não foi concluída"
+  },
+  "sync_signed_in": {
+    "message": "Conectado como {email}"
+  },
+  "sync_usage": {
+    "message": "{used} de {quota} usados · {n} blocos"
+  },
+  "sync_need_email": {
+    "message": "Informe seu e-mail primeiro"
+  },
+  "sync_sending": {
+    "message": "Enviando…"
+  },
+  "sync_code_sent": {
+    "message": "Código enviado para {email}. Digite-o abaixo."
+  },
+  "sync_verifying": {
+    "message": "Verificando…"
+  },
+  "sync_signed_in_now": {
+    "message": "Conectado. A primeira sincronização pode levar alguns segundos."
+  },
+  "sync_bad_code": {
+    "message": "Esse código está errado ou expirou. Peça um novo."
+  },
+  "sync_running": {
+    "message": "Sincronizando…"
+  },
+  "sync_done": {
+    "message": "Sincronização concluída · {in} recebidos · {out} enviados"
+  },
+  "sync_signed_out": {
+    "message": "Você saiu. Sua biblioteca continua intacta neste dispositivo."
+  },
+  "sync_delete_confirm": {
+    "message": "Excluir os dados da nuvem e a conta? Tudo o que está no servidor e esta conta serão excluídos permanentemente. Sua biblioteca local será mantida."
+  },
+  "sync_deleting": {
+    "message": "Excluindo…"
+  },
+  "sync_deleted": {
+    "message": "Dados da nuvem e conta excluídos. Sua biblioteca local foi mantida."
+  },
+  "sync_deleted_partial": {
+    "message": "Dados da nuvem excluídos, mas não foi possível remover a conta ({why}). Você pode tentar de novo ou falar conosco."
+  },
+  "sync_err_upgrade": {
+    "message": "Há algo na nuvem que esta versão ainda não consegue ler (provavelmente gravado por uma versão mais recente). Atualize a extensão e sincronize de novo — nada foi perdido, apenas ainda não pode ser lido."
+  },
+  "toast_import_upgrade": {
+    "message": "Este arquivo foi criado por uma versão mais recente da extensão. Atualize e importe de novo. O arquivo está intacto."
+  },
+  "options_init_failed": {
+    "message": "A página de configurações não terminou de carregar. Abra-a de novo; se continuar, envie-nos esta mensagem."
+  },
+  "settings_read_failed": {
+    "message": "Não foi possível ler suas configurações salvas, então os valores padrão são exibidos. Não salve nesta página — isso sobrescreveria o que você tinha. ({why})"
   }
 }

@@ -162,13 +162,29 @@ Rules:
     try { chrome.storage.local.set({ [CACHE_KEY_PREFIX + key]: { v: value, ts: Date.now() } }); } catch (_) {}
   }
 
+  // The `try` must wrap the CALLBACK BODY, not just the call. That distinction was
+  // worth a whole afternoon: on Safari iOS this callback arrives with `res`
+  // undefined, `res[...]` threw inside the callback, and the surrounding try/catch —
+  // which only covers the synchronous `get()` call — never saw it. So `resolve` was
+  // never reached and THE PROMISE NEVER SETTLED. `translate()` awaits this before it
+  // ever fetches, so the symptom was: no request, no timeout (AbortController never
+  // got involved), no error, and every unit pinned at 「翻译中…」 forever. Removing
+  // the Google fallback changed nothing, because the retry loop was never reached
+  // either.
+  //
+  // Two rules this encodes, both cheap and both learned the expensive way:
+  //   · a promise executor must settle on EVERY path, including a throwing callback;
+  //   · never dereference what a browser API hands a callback — Safari passes
+  //     undefined where Chrome passes {} (same root cause as options.js init).
   async function cacheGetStorage(key) {
     return new Promise(resolve => {
       try {
         chrome.storage.local.get([CACHE_KEY_PREFIX + key], (res) => {
-          const entry = res[CACHE_KEY_PREFIX + key];
-          if (entry && Date.now() - entry.ts < CACHE_TTL) resolve(entry.v);
-          else resolve(null);
+          try {
+            const entry = (res || {})[CACHE_KEY_PREFIX + key];
+            if (entry && Date.now() - entry.ts < CACHE_TTL) resolve(entry.v);
+            else resolve(null);
+          } catch (_) { resolve(null); }
         });
       } catch (_) { resolve(null); }
     });
@@ -209,10 +225,25 @@ Rules:
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
-            // Global builds fall back to Google on total failure; China builds have
-            // no Google (blocked in China) — surface the error instead.
-            const chinaFlavor = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china');
-            if (provider !== 'google' && !chinaFlavor) return await translateGoogle(text, targetLang);
+            // NO SILENT FALLBACK. This used to hand a failed provider off to the free
+            // Google endpoint, and the cost of that was three separate things:
+            //
+            //  1. It made a broken key invisible. A wrong, expired or never-saved key
+            //     produced a plausible translation, so the user was quietly moved onto
+            //     the unstable path the onboarding note warns them away from — with no
+            //     signal that their own engine was never used.
+            //  2. It defeated verification-spec §0, which forbids verifying on the free
+            //     Google endpoint precisely because it is not a stable baseline. The
+            //     rule cannot hold if the product routes there by itself: a verifier
+            //     configures DeepSeek, sees output, and is reading Google.
+            //  3. It swallowed the real error. Found while chasing a Safari iOS hang
+            //     that showed 「翻译中…」 forever — the fallback meant nothing anywhere
+            //     ever reported what had actually failed.
+            //
+            // Failing loudly is also what domain-design §9.1 law 2 requires of a
+            // surface the user turned on: the 'error' state renders 「翻译失败 —
+            // 点击重试」 with a working retry. Google remains selectable AS an engine;
+            // it is no longer a silent understudy for the one you picked.
             throw err;
           }
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;

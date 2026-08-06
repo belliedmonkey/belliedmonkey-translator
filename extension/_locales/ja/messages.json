@@ -240,7 +240,7 @@
     "message": "システムに従う"
   },
   "about_line": {
-    "message": "BelliedMonkey Translator · v1.0.0"
+    "message": "BelliedMonkey Translator"
   },
   "options_font_xl": {
     "message": "大きめ (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "現在はキー不要の無料エンジンです。まず試すには十分ですが、応答が安定せず、原文をそのまま返すことがあります。いずれかの LLM エンジンに切り替えてご自身のキーを入れると、明らかに安定し、品質も上がります。"
+  },
+  "learn_title": {
+    "message": "復習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻訳 · 復習"
+  },
+  "learn_review": {
+    "message": "復習"
+  },
+  "learn_reveal": {
+    "message": "訳を表示"
+  },
+  "learn_grade_again": {
+    "message": "忘れた"
+  },
+  "learn_grade_hard": {
+    "message": "難しい"
+  },
+  "learn_grade_good": {
+    "message": "わかった"
+  },
+  "learn_grade_easy": {
+    "message": "簡単すぎ"
+  },
+  "learn_empty_title": {
+    "message": "学習素材はまだありません"
+  },
+  "learn_empty_body": {
+    "message": "収集をオンにして、いつも通り閲覧・翻訳してください。実際に読んだ文だけが保存され、素早くスクロールして通り過ぎた文は保存されません。"
+  },
+  "learn_open_settings": {
+    "message": "設定で収集をオンにする"
+  },
+  "learn_alldone_title": {
+    "message": "今回の復習は完了です"
+  },
+  "learn_alldone_body": {
+    "message": "閲覧と翻訳を続ければ、新しい素材が自動的に入ってきます。"
+  },
+  "learn_next_due": {
+    "message": "次のカードは{when}に予定されています。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 時間後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 日後"
+  },
+  "learn_progress": {
+    "message": "進捗"
+  },
+  "learn_done_run": {
+    "message": "今回 {n} 枚完了"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "出典不明"
+  },
+  "learn_count_due": {
+    "message": "復習待ち"
+  },
+  "learn_count_learning": {
+    "message": "学習中"
+  },
+  "learn_count_new": {
+    "message": "候補"
+  },
+  "learn_count_known": {
+    "message": "習得済み"
+  },
+  "learn_section": {
+    "message": "学習"
+  },
+  "learn_section_hint": {
+    "message": "オンにすると、実際に読んだ文が、ページのアドレス・タイトル・画面に表示されていた時間とともに、この端末内に保存され、忘却曲線に沿って再提示されます。素早くスクロールして通り過ぎた文は保存されません。アップロードは一切行われず、ボタン一つで全消去できます。"
+  },
+  "learn_enable": {
+    "message": "学習素材を収集する"
+  },
+  "learn_daily_new": {
+    "message": "1 日に導入する新規カードの上限"
+  },
+  "learn_open_review": {
+    "message": "復習ページを開く"
+  },
+  "learn_clear": {
+    "message": "学習ライブラリを消去"
+  },
+  "learn_clear_confirm": {
+    "message": "学習ライブラリを消去しますか？収集済みの文と復習の進捗はすべて削除され、元に戻せません。"
+  },
+  "learn_stats": {
+    "message": "{n} 件 · 復習待ち {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "学習ライブラリは空です"
+  },
+  "toast_learn_on": {
+    "message": "学習素材の収集を開始しました"
+  },
+  "toast_learn_off": {
+    "message": "収集を停止しました（収集済みの内容は保持されます）"
+  },
+  "toast_learn_cleared": {
+    "message": "学習ライブラリを消去しました"
+  },
+  "toast_learn_clear_failed": {
+    "message": "消去できませんでした"
+  },
+  "toast_saved": {
+    "message": "保存しました"
+  },
+  "learn_replay": {
+    "message": "▶ このクリップを聴き直す"
+  },
+  "learn_replay_hint": {
+    "message": "元の動画をその時刻で新しいタブに開きます（そこでも二言語字幕が使えます）"
+  },
+  "tts_section": {
+    "message": "音声"
+  },
+  "tts_section_hint": {
+    "message": "復習カードをリスニング教材にします。既定では端末内蔵の音声を使い、通信も費用も不要です。自分で立てた音声サーバーを指定することもできます。"
+  },
+  "tts_mode": {
+    "message": "音声モード"
+  },
+  "tts_mode_off": {
+    "message": "オフ"
+  },
+  "tts_mode_assist": {
+    "message": "原文を表示し、再生ボタンを添える"
+  },
+  "tts_mode_audio_first": {
+    "message": "先に聴く（原文は最初は非表示）"
+  },
+  "tts_engine": {
+    "message": "音声エンジン"
+  },
+  "tts_engine_browser": {
+    "message": "端末内蔵の音声（無料・オフライン）"
+  },
+  "tts_engine_local": {
+    "message": "ローカル / 自前の音声エンドポイント"
+  },
+  "tts_hint_browser": {
+    "message": "OS が既に持っている音声を使います。何も送信せず、キャッシュも作りません — このエンジンは読み上げるだけで、音声データを返せません。"
+  },
+  "tts_hint_local": {
+    "message": "/v1/audio/speech インターフェースに対応した音声サーバー（自分のマシンや LAN 上）。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_hint_openai": {
+    "message": "あなた自身の API キーを使います。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_base_url": {
+    "message": "音声エンドポイントの URL"
+  },
+  "tts_api_key": {
+    "message": "音声 API キー"
+  },
+  "tts_model": {
+    "message": "音声モデル"
+  },
+  "tts_voice": {
+    "message": "声"
+  },
+  "tts_voice_auto": {
+    "message": "自動（カードの言語に合わせる）"
+  },
+  "tts_voice_hint": {
+    "message": "カードの言語に合わせて自動で選ばれます。ここで選んだ声は、その言語を話せる場合にのみ使われます。"
+  },
+  "tts_rate": {
+    "message": "速度"
+  },
+  "tts_autoplay": {
+    "message": "カードを開いたら自動再生"
+  },
+  "tts_test": {
+    "message": "テスト再生"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "合成中…"
+  },
+  "tts_test_ok": {
+    "message": "再生中"
+  },
+  "tts_play": {
+    "message": "▶ 聴く"
+  },
+  "tts_replay": {
+    "message": "▶ もう一度聴く"
+  },
+  "tts_playing": {
+    "message": "再生中…"
+  },
+  "tts_no_voice": {
+    "message": "この言語の音声が端末にありません"
+  },
+  "tts_unsupported": {
+    "message": "このブラウザには内蔵音声がありません"
+  },
+  "tts_no_base": {
+    "message": "音声エンドポイントの URL が未設定です"
+  },
+  "tts_no_key": {
+    "message": "音声 API キーが未設定です"
+  },
+  "tts_blocked": {
+    "message": "自動再生がブロックされました。タップして再生してください"
+  },
+  "tts_http": {
+    "message": "音声サービスがエラーを返しました"
+  },
+  "tts_failed": {
+    "message": "この文はいま読み上げられません"
+  },
+  "tts_cache": {
+    "message": "音声キャッシュ {n} 件 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "音声キャッシュは空です"
+  },
+  "tts_cache_na": {
+    "message": "端末内蔵の音声はキャッシュを作りません"
+  },
+  "tts_clear_cache": {
+    "message": "音声キャッシュを消去"
+  },
+  "toast_tts_cleared": {
+    "message": "音声キャッシュを消去しました"
+  },
+  "learn_reveal_orig": {
+    "message": "原文を表示"
+  },
+  "learn_clean_known": {
+    "message": "習得済みのカードを整理"
+  },
+  "learn_clean_known_n": {
+    "message": "習得済みの {n} 枚を整理"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} 件の収集内容を保存できませんでした（ライブラリが満杯のときに起こります）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "ライブラリが満杯のため、空きを作るために古いカード {n} 枚を自動的に削除しました。"
+  },
+  "learn_pressure_near": {
+    "message": "ライブラリがまもなく満杯です（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "習得済みの {n} 枚を整理しました"
+  },
+  "learn_export": {
+    "message": "学習ライブラリを書き出す"
+  },
+  "learn_import": {
+    "message": "ファイルから読み込む"
+  },
+  "toast_exported": {
+    "message": "{n} 枚を書き出しました"
+  },
+  "toast_export_empty": {
+    "message": "書き出せるカードがまだありません"
+  },
+  "toast_export_failed": {
+    "message": "書き出しに失敗しました"
+  },
+  "toast_imported": {
+    "message": "{n} 枚を読み込みました"
+  },
+  "toast_import_skipped": {
+    "message": "読み取れない {n} 行をスキップしました"
+  },
+  "toast_import_bad_format": {
+    "message": "学習ライブラリの書き出しファイルではありません"
+  },
+  "toast_import_failed": {
+    "message": "読み込みに失敗しました"
+  },
+  "sync_section": {
+    "message": "デバイス間の同期"
+  },
+  "sync_section_hint": {
+    "message": "任意です。アカウントなしでもすべて使えます。同期は、パソコンで読んだ文をスマホで復習できるようにするだけのものです。復習に入ったカードと復習履歴だけがアップロードされ、まだ復習に入っていない候補はこの端末から出ません。"
+  },
+  "sync_email": {
+    "message": "メールアドレス"
+  },
+  "sync_send_code": {
+    "message": "確認コードを送信"
+  },
+  "sync_code": {
+    "message": "メールに届いた6桁のコード"
+  },
+  "sync_verify": {
+    "message": "ログイン"
+  },
+  "sync_now": {
+    "message": "今すぐ同期"
+  },
+  "sync_signout": {
+    "message": "ログアウト"
+  },
+  "sync_delete": {
+    "message": "クラウドのデータとアカウントを削除"
+  },
+  "sync_err_offline": {
+    "message": "サーバーに接続できません。後で自動的に再試行します。学習した内容はこの端末に残っています。"
+  },
+  "sync_err_quota": {
+    "message": "クラウドの容量がいっぱいのため、新しい内容はアップロードされていません（この端末には影響しません）。習得済みのカードを整理すると空きができます。"
+  },
+  "sync_err_signed_out": {
+    "message": "ログインの有効期限が切れました。もう一度ログインしてください。"
+  },
+  "sync_err_rate": {
+    "message": "コードの送信が多すぎます。数分後にお試しください。"
+  },
+  "sync_err_generic": {
+    "message": "同期を完了できませんでした"
+  },
+  "sync_signed_in": {
+    "message": "ログイン中：{email}"
+  },
+  "sync_usage": {
+    "message": "クラウド使用量 {used} / {quota} · {n} チャンク"
+  },
+  "sync_need_email": {
+    "message": "先にメールアドレスを入力してください"
+  },
+  "sync_sending": {
+    "message": "送信中…"
+  },
+  "sync_code_sent": {
+    "message": "{email} にコードを送りました。下に入力してください。"
+  },
+  "sync_verifying": {
+    "message": "確認中…"
+  },
+  "sync_signed_in_now": {
+    "message": "ログインしました。初回の同期には数秒かかることがあります。"
+  },
+  "sync_bad_code": {
+    "message": "コードが正しくないか期限切れです。もう一度送信してください。"
+  },
+  "sync_running": {
+    "message": "同期中…"
+  },
+  "sync_done": {
+    "message": "同期完了 · 受信 {in} 枚 · 送信 {out} 枚"
+  },
+  "sync_signed_out": {
+    "message": "ログアウトしました。この端末の学習ライブラリはそのまま残ります。"
+  },
+  "sync_delete_confirm": {
+    "message": "クラウドのデータとアカウントを削除しますか？サーバー上のすべての内容とこのアカウントが完全に削除されます。この端末のライブラリは残ります。"
+  },
+  "sync_deleting": {
+    "message": "削除中…"
+  },
+  "sync_deleted": {
+    "message": "クラウドのデータとアカウントを削除しました。この端末のライブラリは残っています。"
+  },
+  "sync_deleted_partial": {
+    "message": "クラウドのデータは削除しましたが、アカウントを削除できませんでした（{why}）。再試行するかご連絡ください。"
+  },
+  "sync_err_upgrade": {
+    "message": "クラウドに、このバージョンではまだ読めない内容があります（新しいバージョンの拡張機能で保存されたものと思われます）。拡張機能を更新してから同期してください。データは失われていません、今は読めないだけです。"
+  },
+  "toast_import_upgrade": {
+    "message": "このファイルは新しいバージョンの拡張機能で作成されています。更新してからインポートしてください。ファイル自体に問題はありません。"
+  },
+  "options_init_failed": {
+    "message": "設定ページを最後まで読み込めませんでした。開き直してください。繰り返す場合はこのメッセージをお知らせください。"
+  },
+  "settings_read_failed": {
+    "message": "保存済みの設定を読み取れなかったため、以下は初期値です。このページから保存しないでください——元の設定が上書きされます。（{why}）"
   }
 }

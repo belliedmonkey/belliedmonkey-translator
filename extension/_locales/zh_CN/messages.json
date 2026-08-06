@@ -240,7 +240,7 @@
     "message": "跟随系统"
   },
   "about_line": {
-    "message": "大肚猴翻译 · v1.0.0"
+    "message": "大肚猴翻译"
   },
   "options_font_xl": {
     "message": "较大 (1.25×)"
@@ -274,5 +274,392 @@
   },
   "setup_free_channel": {
     "message": "当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。"
+  },
+  "learn_title": {
+    "message": "复习"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻译 · 复习"
+  },
+  "learn_review": {
+    "message": "复习"
+  },
+  "learn_reveal": {
+    "message": "显示译文"
+  },
+  "learn_grade_again": {
+    "message": "不记得"
+  },
+  "learn_grade_hard": {
+    "message": "有点难"
+  },
+  "learn_grade_good": {
+    "message": "记得"
+  },
+  "learn_grade_easy": {
+    "message": "太简单"
+  },
+  "learn_empty_title": {
+    "message": "还没有学习材料"
+  },
+  "learn_empty_body": {
+    "message": "打开采集开关，然后照常浏览、照常翻译。你真正读过的句子会自动存进来 —— 快速滚过去的不算。"
+  },
+  "learn_open_settings": {
+    "message": "去设置里打开采集"
+  },
+  "learn_alldone_title": {
+    "message": "今天的复习做完了"
+  },
+  "learn_alldone_body": {
+    "message": "继续浏览和翻译，新的材料会自动进来。"
+  },
+  "learn_next_due": {
+    "message": "下一张卡片{when}到期。"
+  },
+  "learn_in_minutes": {
+    "message": "约 {n} 分钟后"
+  },
+  "learn_in_hours": {
+    "message": "约 {n} 小时后"
+  },
+  "learn_in_days": {
+    "message": "约 {n} 天后"
+  },
+  "learn_progress": {
+    "message": "本轮进度"
+  },
+  "learn_done_run": {
+    "message": "本次完成 {n} 张"
+  },
+  "learn_settings": {
+    "message": "设置"
+  },
+  "learn_unknown_source": {
+    "message": "未知来源"
+  },
+  "learn_count_due": {
+    "message": "待复习"
+  },
+  "learn_count_learning": {
+    "message": "学习中"
+  },
+  "learn_count_new": {
+    "message": "候选"
+  },
+  "learn_count_known": {
+    "message": "已掌握"
+  },
+  "learn_section": {
+    "message": "学习"
+  },
+  "learn_section_hint": {
+    "message": "打开后，你真正读过的句子会连同页面地址、标题和停留时长一起存在这台设备上，按遗忘曲线重新推给你。快速滚过去的不算。不会上传，一键可清空。"
+  },
+  "learn_enable": {
+    "message": "采集学习材料"
+  },
+  "learn_daily_new": {
+    "message": "每天最多引入的新卡片"
+  },
+  "learn_open_review": {
+    "message": "打开复习页"
+  },
+  "learn_clear": {
+    "message": "清空学习库"
+  },
+  "learn_clear_confirm": {
+    "message": "清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。"
+  },
+  "learn_stats": {
+    "message": "学习库 {n} 条 · 待复习 {due} · 约 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "学习库为空"
+  },
+  "toast_learn_on": {
+    "message": "已开始采集学习材料"
+  },
+  "toast_learn_off": {
+    "message": "已停止采集（已收集的内容保留）"
+  },
+  "toast_learn_cleared": {
+    "message": "学习库已清空"
+  },
+  "toast_learn_clear_failed": {
+    "message": "清空失败"
+  },
+  "toast_saved": {
+    "message": "已保存"
+  },
+  "learn_replay": {
+    "message": "▶ 重听这个片段"
+  },
+  "learn_replay_hint": {
+    "message": "在新标签页打开原视频并跳到该处（那里也会有双语字幕）"
+  },
+  "tts_section": {
+    "message": "语音"
+  },
+  "tts_section_hint": {
+    "message": "把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。"
+  },
+  "tts_mode": {
+    "message": "语音模式"
+  },
+  "tts_mode_off": {
+    "message": "关闭"
+  },
+  "tts_mode_assist": {
+    "message": "显示原文，可点播放"
+  },
+  "tts_mode_audio_first": {
+    "message": "先听后看（原文先隐藏）"
+  },
+  "tts_engine": {
+    "message": "语音引擎"
+  },
+  "tts_engine_browser": {
+    "message": "设备内置语音（免费 · 离线）"
+  },
+  "tts_engine_local": {
+    "message": "本地 / 自建语音端点"
+  },
+  "tts_hint_browser": {
+    "message": "用你操作系统里已有的语音。不发送任何数据，也不产生缓存 —— 这个引擎只能朗读，拿不到音频数据。"
+  },
+  "tts_hint_local": {
+    "message": "任何实现了 /v1/audio/speech 接口的语音服务，跑在你自己的机器或局域网上。合成结果会缓存在本地，同一句只花一次代价。"
+  },
+  "tts_hint_openai": {
+    "message": "用你自己的 API Key。合成结果会缓存在本地，同一句只花一次钱。"
+  },
+  "tts_base_url": {
+    "message": "语音端点地址"
+  },
+  "tts_api_key": {
+    "message": "语音 API Key"
+  },
+  "tts_model": {
+    "message": "语音模型"
+  },
+  "tts_voice": {
+    "message": "声音"
+  },
+  "tts_voice_auto": {
+    "message": "自动（按卡片语言挑选）"
+  },
+  "tts_voice_hint": {
+    "message": "按卡片的语言自动挑选。这里选的声音只在它会说那门语言时才会被采用。"
+  },
+  "tts_rate": {
+    "message": "语速"
+  },
+  "tts_autoplay": {
+    "message": "进入卡片自动播放"
+  },
+  "tts_test": {
+    "message": "试听一句"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "正在合成…"
+  },
+  "tts_test_ok": {
+    "message": "播放中"
+  },
+  "tts_play": {
+    "message": "▶ 听一遍"
+  },
+  "tts_replay": {
+    "message": "▶ 再听一遍"
+  },
+  "tts_playing": {
+    "message": "播放中…"
+  },
+  "tts_no_voice": {
+    "message": "系统里没有这门语言的语音"
+  },
+  "tts_unsupported": {
+    "message": "这个浏览器不提供内置语音"
+  },
+  "tts_no_base": {
+    "message": "还没填语音端点地址"
+  },
+  "tts_no_key": {
+    "message": "还没填语音 API Key"
+  },
+  "tts_blocked": {
+    "message": "浏览器拦下了自动播放，点一下播放"
+  },
+  "tts_http": {
+    "message": "语音服务返回了错误"
+  },
+  "tts_failed": {
+    "message": "这句暂时读不出来"
+  },
+  "tts_cache": {
+    "message": "语音缓存 {n} 条 · 约 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "语音缓存为空"
+  },
+  "tts_cache_na": {
+    "message": "设备内置语音不产生缓存"
+  },
+  "tts_clear_cache": {
+    "message": "清空语音缓存"
+  },
+  "toast_tts_cleared": {
+    "message": "语音缓存已清空"
+  },
+  "learn_reveal_orig": {
+    "message": "显示原文"
+  },
+  "learn_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "learn_clean_known_n": {
+    "message": "清理已掌握的 {n} 张卡"
+  },
+  "learn_pressure_dropped": {
+    "message": "有 {n} 条采集内容没能存下来（学习库满时会发生）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "学习库已满，已自动淘汰 {n} 张旧卡为新内容腾地方。"
+  },
+  "learn_pressure_near": {
+    "message": "学习库快满了（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "已清理 {n} 张已掌握的卡"
+  },
+  "learn_export": {
+    "message": "导出学习库"
+  },
+  "learn_import": {
+    "message": "从文件导入"
+  },
+  "toast_exported": {
+    "message": "已导出 {n} 张卡片"
+  },
+  "toast_export_empty": {
+    "message": "还没有可导出的卡片"
+  },
+  "toast_export_failed": {
+    "message": "导出失败"
+  },
+  "toast_imported": {
+    "message": "已导入 {n} 张卡片"
+  },
+  "toast_import_skipped": {
+    "message": "{n} 行无法解析已跳过"
+  },
+  "toast_import_bad_format": {
+    "message": "这不是学习库导出文件"
+  },
+  "toast_import_failed": {
+    "message": "导入失败"
+  },
+  "sync_section": {
+    "message": "多设备同步"
+  },
+  "sync_section_hint": {
+    "message": "可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。"
+  },
+  "sync_email": {
+    "message": "邮箱"
+  },
+  "sync_send_code": {
+    "message": "发送验证码"
+  },
+  "sync_code": {
+    "message": "邮件里的 6 位验证码"
+  },
+  "sync_verify": {
+    "message": "登录"
+  },
+  "sync_now": {
+    "message": "立即同步"
+  },
+  "sync_signout": {
+    "message": "退出登录"
+  },
+  "sync_delete": {
+    "message": "删除云端数据与账号"
+  },
+  "sync_err_offline": {
+    "message": "连不上服务器，稍后会自动重试。已学的内容都在本机。"
+  },
+  "sync_err_quota": {
+    "message": "云端空间已满，新内容暂时不再上传（本机不受影响）。清理已掌握的卡可以腾出空间。"
+  },
+  "sync_err_signed_out": {
+    "message": "登录已失效，请重新登录。"
+  },
+  "sync_err_rate": {
+    "message": "验证码发得太频繁了，等几分钟再试。"
+  },
+  "sync_err_generic": {
+    "message": "同步没能完成"
+  },
+  "sync_signed_in": {
+    "message": "已登录：{email}"
+  },
+  "sync_usage": {
+    "message": "云端已用 {used} / {quota} · {n} 个数据块"
+  },
+  "sync_need_email": {
+    "message": "先填邮箱"
+  },
+  "sync_sending": {
+    "message": "发送中…"
+  },
+  "sync_code_sent": {
+    "message": "验证码已发到 {email}，填在下面。"
+  },
+  "sync_verifying": {
+    "message": "验证中…"
+  },
+  "sync_signed_in_now": {
+    "message": "已登录。第一次同步可能要几秒。"
+  },
+  "sync_bad_code": {
+    "message": "验证码不对或已过期，重新发一个。"
+  },
+  "sync_running": {
+    "message": "同步中…"
+  },
+  "sync_done": {
+    "message": "同步完成 · 收到 {in} 张 · 上传 {out} 张"
+  },
+  "sync_signed_out": {
+    "message": "已退出登录。本机的学习库原样保留。"
+  },
+  "sync_delete_confirm": {
+    "message": "删除云端数据与账号？服务器上的所有内容与这个账号都会被删除，无法恢复。本机的学习库会保留。"
+  },
+  "sync_deleting": {
+    "message": "删除中…"
+  },
+  "sync_deleted": {
+    "message": "云端数据与账号都已删除。本机的学习库保留。"
+  },
+  "sync_deleted_partial": {
+    "message": "云端数据已删除，但账号没能删掉（{why}）。可以重试或联系我们。"
+  },
+  "sync_err_upgrade": {
+    "message": "云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级扩展后再同步——那些内容没有丢，只是暂时读不了。"
+  },
+  "toast_import_upgrade": {
+    "message": "这个文件来自更新版本的扩展，升级后才能导入。文件本身没有问题。"
+  },
+  "options_init_failed": {
+    "message": "设置页没能加载完。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。"
+  },
+  "settings_read_failed": {
+    "message": "读不到已保存的设置，下面显示的是默认值——请不要在此保存，否则会覆盖掉你原来的配置。（{why}）"
   }
 }

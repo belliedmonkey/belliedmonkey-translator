@@ -38,6 +38,11 @@ middle is generic and lives in `TranslationCore`.
    └────────────────────────────────────────────────────┘   └────────────────────────────────┘
 ```
 
+One **sink** hangs off the end of this pipeline — the learning layer's Collector
+(§9). It is not a fourth stage: it reads what the Renderer already displayed and can
+never influence anything upstream of it. Deleting it at runtime must leave
+translation output byte-for-byte identical.
+
 ## 2. The split is "is the source DOM?", not "which site"
 
 - **Anything that IS DOM** (normal pages **and** YouTube's title/description/
@@ -475,6 +480,11 @@ identical on every surface by construction.
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
+| `LearnModel` | `content/learn-model.js` | learning layer (§9): pure — content-addressed id (FNV-1a, **not** `crypto.subtle`, which is absent on plain-`http` pages), text normalization, script-aware salience scoring, `Item` factory |
+| `LearnScheduler` | `content/learn-scheduler.js` | learning layer (§9): pure Ebbinghaus scheduler — `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
+| `LearnCollector` | `content/learn-collector.js` | learning layer (§9): the **sink** — dwell observation, salience gate, bounded `lq:` outbox writes. Reads only what the Renderer already displays; never originates a translation |
+| `LearnStore` | `learn/store.js` + `learn/drain.js` | learning layer (§9): the corpus. IndexedDB opened **only in extension pages** (a content script's `indexedDB` belongs to the host page's origin) + the outbox→corpus drain/merge |
+| `Reviewer` | `learn/review.{html,css,js}` | learning layer (§9): the review surface — one implementation covering all five matrix rows |
 
 ## 7. Provider transport & region flavors (合规双分发)
 
@@ -541,6 +551,118 @@ No Readability-style full-article extraction fallback (the reference extension
 uses one for unstructured pages); rule-based semantic segmentation is sufficient
 for bilingual injection. Revisit only if unstructured pages prove inadequate.
 
-**ASR / self-generated podcast transcripts are out of scope** (§2.2): no-backend
-principle + in-browser ASR is infeasible on Safari iOS. Podcasts with neither a
-timed transcript nor a text transcript page get no translation.
+**ASR / self-generated podcast transcripts are out of scope** (§2.2): in-browser ASR
+is infeasible on Safari iOS, and the learning layer's optional backend (§9) is
+explicitly not a licence to add one — it carries text and scheduling state, never
+media, and never audio we would have to transcribe. Podcasts with neither a timed transcript nor a text transcript
+page get no translation.
+
+**Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
+path".** The original formulation treated *any* server of ours as out of scope. The
+learning layer (§9) adds an **optional, opt-in, free** account whose server does
+exactly one thing: hold the user's learning corpus so it can follow them between
+devices, under a fixed free quota (`docs/learning-design.md` §8). It is stored in
+plaintext, which carries real obligations — §8.7 lists them, and they are not
+optional. Sync is opt-in and a signed-out user has a complete product.
+
+What does **not** change, and is now load-bearing rather than incidental:
+
+- **Translation DEFAULTS to browser → provider, on the user's own key, and that path
+  stays free and fully capable forever.** It is never degraded to make a paid path
+  look better. A server-side model may be offered as an **opt-in paid alternative**
+  (`docs/learning-design.md` §2.1), which means `README.md`'s "no servers of ours in
+  the middle" must be stated **per path** rather than as a blanket claim. The
+  invariant that survives is not our abstinence — it is that **someone who never pays
+  and never signs in has a complete product.**
+- **The server runs no model and performs no computation on user data.** It stores
+  opaque bytes.
+- **The extension is complete without an account.** Sync is additive; every learning
+  feature works fully offline and signed-out, on every surface.
+
+See `AGENTS.md` 「产品原则：普惠优先」 for the governing rule, and
+`docs/learning-design.md` §2 and §8 for the model.
+
+## 9. The learning domain (记忆层) — a sink attached to the pipeline
+
+> Full model, scheduler math, salience gate, storage tiers, sync protocol and crypto
+> live in **[`docs/learning-design.md`](learning-design.md)**, which is the single
+> source of truth for that domain. This section fixes only the part that constrains
+> the *translation* domain — i.e. the boundary.
+
+The extension already holds, for every page and video, a large set of aligned
+`(source, translation)` pairs. The learning layer retains them and re-surfaces them
+on an Ebbinghaus forgetting curve. It attaches as a **bypass sink**, downstream of
+the Renderer:
+
+```
+source → Extractor → Engine → Renderer
+                                  │
+                                  └──▶ Collector ──▶ Store ──▶ Scheduler ──▶ Reviewer
+```
+
+### 9.1 核心约束 — the four Collector laws (do not break)
+
+1. **Capture is a sink, never a source.** The Collector reads only what the Renderer
+   has already decided to display. It never back-pressures the engine: it does not
+   influence `selectActive`, does not alter `pump()` cadence, does not mark units, and
+   **never originates a translation request**. *If the learning layer were deleted at
+   runtime, translation output must be byte-for-byte identical.*
+
+2. **Silent in the browsing flow — never silent to a user who opted in.**
+   *(Amended 2026-08-04. The original wording was "degradation is silent and total",
+   which conflated two separate things and let the second one hide behind the first.)*
+   - **Toward the page: absolutely silent.** Storage full, IndexedDB unavailable,
+     outbox overflow — all reduce to *no capture*, with the translation path
+     untouched. No retry loop, no notice injected into the page, no half-state (same
+     shape as §5.3.3). Reading a page must never be interrupted by the learning
+     layer's problems.
+   - **Toward a user who turned capture ON: never silent.** Anything that stops
+     capture, or discards material already collected, **must be visible in the
+     learning surfaces** (review page, settings, popup) with an action that fixes it.
+     A learner who finds out months later that collection quietly stopped is the
+     worst outcome this feature has — worse than being told on day one. (This is the
+     same rule `learning-design.md` §8.5 already applies to the server quota; law 2
+     used to contradict it.)
+   - **Dropping captures is still a normal path, not an error path** — it just is not
+     an *invisible* one.
+
+3. **Nothing reaches `DomSegmenter`.** The Collector adds **zero selectors**. Site
+   knowledge enters only through the two markers the segmenter already honors,
+   `data-mt-player-region` and `data-mt-skip-region` (§3). Needing a per-site or
+   per-device branch to decide *what to capture* means the design has regressed into
+   selector dependence — fix the salience model instead.
+
+4. **Self-capture is forbidden.** Injected learning UI carries `translate="no"` **and**
+   `data-mt-skip-region`; the Collector skips `.mt-translation` and every `#mt-*`
+   subtree. Without this the extension translates its own translations and captures
+   the result — an unbounded loop that corrupts the corpus.
+
+### 9.2 Where it attaches (the only three touch points)
+
+| Surface | Attachment | Why there |
+|---|---|---|
+| Webpage | `content-webpage.js` `renderUnit`, inside the `st.translation && !sameAsOriginal` branch | This is **after** the same-language backstop, so only genuine translations reach it; node, source text and translation are all in hand |
+| Subtitles | `subtitle-adapter.js`, after `renderOverlay` | The sentence carries `{start, end, text, tr}`; capture requires the playhead to have actually crossed `[start, end]` — seeking past is not watching |
+| Session boundary | `spec.onMediaKeyChange` / `WebpageTranslator.disable()` | Flush point; also where the dwell observers are disconnected |
+
+`dom-processor.js` is **not modified**. It knows neither URL nor title by design
+(§3); the Collector reads `location.href` / `document.title` itself.
+
+### 9.3 Storage — the boundary is an origin boundary, not a preference
+
+> **A content script's `indexedDB` belongs to the HOST PAGE's origin.** The corpus
+> cannot live there: it would scatter across every visited site and be readable by the
+> page. And the service worker cannot be in the path either — it goes permanently
+> `undefined` on Safari iOS after device lock (§5.3.1).
+
+Hence three tiers: content script → bounded `lq:` outbox in `chrome.storage.local` →
+IndexedDB opened only in extension pages. Same reason `crypto.subtle` is unusable in
+content scripts (plain-`http` pages are not secure contexts), so the item id uses a
+synchronous FNV-1a hash rather than `crypto.subtle`.
+
+### 9.4 Device axis
+
+The review surface is one implementation for all five matrix rows (§5.1's principle
+holds: viewport size is read at runtime, never branched). The iOS host app (planned)
+is an *additional* surface, never the only working path — Safari iOS must be complete
+without it, per §5.3.1.

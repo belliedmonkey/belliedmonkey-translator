@@ -50,6 +50,9 @@
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
+        "content/learn-model.js",
+        "content/learn-scheduler.js",
+        "content/learn-collector.js",
         "content/content-webpage.js",
         "content/subtitle-adapter.js",
         "content/content-youtube.js",
@@ -90,6 +93,9 @@
         "content/translation-api.js",
         "content/dom-processor.js",
         "content/floating-button.js",
+        "content/learn-model.js",
+        "content/learn-scheduler.js",
+        "content/learn-collector.js",
         "content/content-webpage.js",
         "content/subtitle-adapter.js",
         "content/content-youtube.js",
@@ -137,6 +143,14 @@
     {
       "resources": [
         "options/options.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
+        "learn/review.html"
       ],
       "matches": [
         "<all_urls>"

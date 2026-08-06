@@ -1,4 +1,11 @@
 /* options.css */
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element, so `.pressure{display:flex}` silently made a
+   `hidden` banner permanently visible — on a brand-new library it showed a cleanup
+   button for zero reclaimable cards, i.e. shouted about a problem that did not exist.
+   One line here beats remembering it at every future `display` rule. */
+[hidden] { display: none !important; }
+
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -108,8 +115,13 @@ body {
 
 /* ─── Inputs ─────────────────────────────────────────────── */
 
-input[type="text"],
-input[type="password"],
+/* Styled by EXCLUSION, not by enumeration. The rule used to list
+   `[type="text"], [type="password"]`, which meant every new input type silently fell
+   back to the UA control — it had already happened twice before anyone rendered the
+   page (`type="number"` on 每天最多引入的新卡片, then `type="email"` on the sync
+   section). Listing the three types that must keep their native appearance is a
+   closed set; listing the ones that need ours never is. */
+input:not([type="checkbox"]):not([type="color"]):not([type="file"]),
 select {
   width: 100%;
   background: var(--input-bg);
@@ -205,6 +217,20 @@ input[type="color"] {
 .switch input:checked + .slider::before { transform: translateX(18px); }
 
 /* ─── Buttons ────────────────────────────────────────────── */
+
+/* Plain action buttons. There was no base rule, so every unclassed <button> in a
+   card rendered as a raw UA control next to properly styled ones. */
+.card button:not(.btn-danger):not(.icon-btn) {
+  background: var(--card-bg);
+  color: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.card button:not(.btn-danger):not(.icon-btn):hover { background: var(--green); color: #fff; }
 
 .btn-danger {
   background: #fee2e2;

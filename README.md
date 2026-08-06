@@ -200,6 +200,10 @@ Stated up front, because finding them yourself is worse.
   handle, store or upload your data — there is no "we" in the path at all.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
 - **No account, no tracking, no telemetry.** Nothing to sign up for.
+- **Learning material is built on your device.** If you turn on the learning feature, the
+  extension keeps the sentences you actually read — with the page URL, its title, and how long
+  the text was on screen — in local storage on that device, so it can show them to you again
+  later. It is off until you turn it on, it is never uploaded, and one button erases all of it.
 - **What is sent** is the text to be translated. Not the URL, not the page title, not the
   referrer, not your user agent, not any identifier. This is also what the extension declares
   to Firefox under `data_collection_permissions`: `websiteContent`, and deliberately *not*
@@ -241,7 +245,7 @@ podcast feed's `<podcast:transcript>`.
 ### Build and test
 
 ```bash
-npm test              # 87 unit tests, zero dependencies, Node ≥16
+npm test              # pure-logic suite, zero dependencies, Node ≥18
 npm run test:layout   # 29 layout fixtures against real headless Chrome (Node ≥22)
 ```
 

@@ -7,9 +7,10 @@
     "test": "node test/run.js",
     "test:layout": "node test/layout/run-layout.js",
     "build": "node build.js",
-    "clean": "rm -rf dist belliedmonkeytranslator.zip"
+    "clean": "rm -rf dist belliedmonkeytranslator.zip",
+    "verify:ios": "node scripts/verify-ios-bundle.js"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

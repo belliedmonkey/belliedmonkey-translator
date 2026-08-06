@@ -524,6 +524,150 @@ menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中�
   verbatim**: language-picker **endonyms** (简体中文 / English / 日本語 …) and third-party
   **brand names** (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM).
 
+## 复习 / Review (记忆层)
+
+Domain model, scheduler math and storage live in
+[`learning-design.md`](learning-design.md); the boundary rule lives in
+[`domain-design.md`](domain-design.md) §9. **Only the user-facing behavior is here.**
+
+### Capture — consent and control
+- **OFF until the user turns it on, once.** Capture never starts by itself on
+  upgrade. The first-run copy says plainly what is recorded (the sentence, its
+  translation, the page URL and title, and how long it was on screen) and that it
+  **stays on this device**.
+- **Capture is invisible while it happens.** No badge, no toast, no highlight, no
+  count ticking up in the corner. Reading a page with capture on must look and feel
+  **exactly** like reading it with capture off — this is the user-facing face of the
+  "capture is a sink" law (domain-design §9.1).
+- **Off and purge are one tap each**, both in the options page: a master switch and a
+  「清空学习库」 button with a confirm step. Turning it off stops capture immediately;
+  it does **not** silently delete what was already collected (say so on the switch).
+- **Saving a sentence deliberately** is a long-press / right-click on an injected
+  `.mt-translation`, which stars it and bypasses the salience gate. A plain tap on
+  body text still produces **no perceptible action** (see "Text translation —
+  universal rules"); only the translation sibling is interactive, and only on
+  long-press. A brief inline confirmation appears on the sibling itself — never a
+  page-level toast.
+
+### Entry points
+- **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
+  still shows, reading 「复习」 with no count — never hidden, or the feature becomes
+  undiscoverable.
+- **options**: a 学习 section (master switch, languages being learned, daily new-card
+  cap, corpus size / usage, export, purge).
+- **Never the action badge.** The service worker dies on Safari iOS, so a badge count
+  would be silently wrong there (domain-design §5.3.1). Counts are rendered by the
+  page that shows them.
+
+### The review card
+Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
+
+```
+①  source sentence, large                ← media card: a 「▶ 重听这个片段」 button below
+    [ 显示译文 ]                            one reveal button, nothing else on screen
+─────────────────────────────  after reveal
+②  translation, in the bilingual green (same visual language as .mt-translation)
+    [不记得] [有点难] [记得] [太简单]        ← grades 0/1/2/3, always four, never two
+    ⓘ source: site · title · 打开原文
+```
+
+- **Four grades, not two.** The scheduler's stability update is graded; collapsing to
+  记得/不记得 would throw away the signal it needs.
+- **Media cards replay the original audio, never TTS.** They do it by **opening the
+  source at the timestamp in a new tab**, not with an inline player. Our own bilingual
+  subtitles are active on that tab, so the replay is still a bilingual one.
+  - **There is no inline player, and this is permanent.** YouTube's embedded player
+    only accepts an http(s) embedding origin; from `chrome-extension://` it refuses
+    with 「错误 153 · 视频播放器配置错误」. Measured 2026-08-02 across four variants —
+    `youtube-nocookie.com` and `youtube.com`, each with the default referrer policy
+    and with `no-referrer` — all four failed identically. The `no-referrer` runs also
+    rule out a sandboxed extension page (opaque origin, no referrer). **Do not
+    re-add the iframe**; it will look like a regression to fix and is not one.
+- **Passage cards are re-reads, not tests.** Source and translation shown together,
+  one 「已重读」 action (recorded as grade 2). No reveal step — there is nothing to hide.
+- **Source attribution is always present and always clickable.** A card the user
+  cannot trace back to where they met it is a flashcard, which is exactly what this
+  feature is not.
+- **LLM quizzes are opt-in and must state their cost.** When the selected engine is
+  the free Google endpoint the toggle is **disabled with the reason shown** — never
+  offered and then silently failing.
+
+### 语音 (TTS)
+
+Turns a review card into listening practice. **Off until the user turns it on**, like
+capture.
+
+- **On-device first.** The default engine is the platform's own `speechSynthesis`:
+  free, offline, nothing sent anywhere. A self-hosted or cloud endpoint is a choice
+  the user makes, never the default. The settings list is ordered on-device →
+  self-hosted → cloud, so the principle is visible rather than merely stated.
+- **Three modes.**
+  - `off` — no audio UI at all.
+  - `assist` — the card looks as it always did, plus a ▶ control.
+  - `audio-first` — **the original text starts hidden**: listen → 「显示原文」→
+    「显示译文」→ grade.
+- **`audio-first` does not violate "reveal is always user-initiated."** That rule
+  governs the **translation**. Playing the original aloud reveals nothing — it is the
+  same information the card was already going to show, in another channel. Revealing
+  the text and revealing the translation both remain explicit taps.
+- **Voices are matched to the card's language, not chosen globally.** A Japanese
+  sentence read in an English voice is worse than silence. The user's preferred voice
+  is used **only if it speaks that language**; otherwise the best system voice for
+  that language is used; if there is none, **the card says so and the ▶ control is
+  disabled** — never a button that silently does nothing.
+- **Every failure names itself**: no voice for this language / no built-in speech in
+  this browser / no endpoint URL / no API key / the service returned an error. A
+  blocked autoplay is the one exception — the ▶ button is right there, so it is
+  handled silently rather than scolding the user for a browser policy.
+- **Autoplay is a setting, and never blocks anything.** If the browser refuses it,
+  the card is fully usable via the button.
+  - **On iOS, autoplay IS refused** — measured 2026-08-03 on the iPhone simulator
+    (iOS 17.2) in the real extension page: the card renders, the ▶ control is
+    enabled, and nothing is spoken until the user taps it. So on iPhone/iPad,
+    `audio-first` means *tap to listen, then reveal*, not *listen hands-free*. This
+    is a platform rule about user gestures, not a defect, and the UI must not
+    apologise for it on every card — the ▶ control being the only thing on screen
+    already says what to do.
+  - **A blocked autoplay must be DETECTED, not assumed to have worked.** iOS ignores
+    `speechSynthesis.speak()` without a gesture *silently*: no exception, no error
+    event, no sound. Treating a non-throwing call as success made the card announce
+    「播放中…」 over silence. Playback counts as started only when the utterance's
+    `start` event fires.
+- **Synthesized audio is cached on the device** (endpoint engines only — the built-in
+  voice cannot return audio data at all). Cache size and a one-tap clear are visible
+  in settings, because a cache the user cannot see is a cache they will one day be
+  surprised by.
+
+### 存储压力
+
+Capture stopping, or collected material being discarded, is **never** announced in
+the page — but it is **always** visible to a user who turned capture on
+(domain-design §9.1 law 2). It surfaces in the review page and settings, never as a
+toast over an article.
+
+- **Review page**: a single line above the card — 「学习库已满，正在自动淘汰旧卡」 or
+  「有采集内容没能存下来」 — with the cleanup action beside it. It never blocks the
+  card; a full corpus still reviews perfectly well.
+- **Settings**: the same state, stated with numbers, next to the usage readout.
+- **The primary cleanup is targeted, not nuclear.** 「清理已掌握的卡」 removes only
+  `state='known'` items — the ones the scheduler itself concluded you no longer need
+  — and never a starred card or one you are learning. 「清空学习库」 stays available
+  for people who want a clean slate, with its existing confirm step.
+- **Never offer to sell local storage.** The local cap is self-imposed and costs the
+  project nothing; see learning-design §7.1. A paid option may only ever appear
+  against the *server* quota, and only if such a tier exists.
+- Once cleared, the message goes away on its own — it reports a live state, not a
+  dismissed alert.
+
+### States
+- **Empty corpus**: explain how material gets collected (browse and translate), not
+  「暂无数据」.
+- **Nothing due**: say when the next card comes up. Do not fabricate work by
+  advancing cards early — the whole product claim is that timing is principled.
+- **Injected review UI obeys the same rules as every other piece of our chrome**:
+  `translate="no"` **and** `data-mt-skip-region`, so we never translate, re-render, or
+  re-capture our own interface.
+
 ## General
 - **Screenshot-verify** every visual change against the built/loaded extension.
 - Don't cover more of the frame/page than necessary.

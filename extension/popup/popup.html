@@ -21,6 +21,16 @@
        Filled and shown/hidden by popup.js — never both states at once. -->
   <div class="setup-note" id="setup-note" style="display:none"></div>
 
+  <!-- 复习入口。到期为 0 时这一行仍然显示（只是没有计数）—— 藏起来会让整个功能
+       无从发现。计数不用 action badge：service worker 在 Safari iOS 上会死，
+       badge 会静默过期。 -->
+  <div class="section">
+    <button class="row row-btn" id="open-review">
+      <span class="row-label" data-i18n="learn_review">复习</span>
+      <span class="row-value" id="review-count"></span>
+    </button>
+  </div>
+
   <div class="section">
     <div class="row">
       <span class="row-label" data-i18n="popup_target_lang">目标语言</span>
@@ -92,8 +102,14 @@
 
   <div id="toast" class="toast"></div>
 
+  <script src="../learn/page-settings.js"></script>
+
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/providers.gen.js"></script>
+  <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-scheduler.js"></script>
+  <script src="../learn/store.js"></script>
+  <script src="../learn/drain.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

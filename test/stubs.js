@@ -44,6 +44,11 @@ function makeChrome(opts = {}) {
           return Promise.resolve(out);
         },
         set: (obj, cb) => { Object.assign(store, obj); if (cb) cb(); return Promise.resolve(); },
+        remove: (keys, cb) => {
+          (Array.isArray(keys) ? keys : [keys]).forEach((k) => { delete store[k]; });
+          if (cb) cb();
+          return Promise.resolve();
+        },
       },
       onChanged: { addListener: (fn) => listeners.push(fn) },
     },

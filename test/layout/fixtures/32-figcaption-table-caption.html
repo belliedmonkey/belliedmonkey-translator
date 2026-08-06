@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A figcaption whose computed display is table-caption</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 720px; }
+  p { margin: 0 0 14px; line-height: 1.6; }
+  /* Wikipedia's own shape (skin vector-2022): the figure is a CSS TABLE and the
+     caption is its table-caption. Reproduced by declaration rather than by copying
+     their stylesheet, so the fixture stays stable. */
+  figure.thumb { display: table; margin: 0 0 14px; }
+  figure.thumb figcaption { display: table-caption; caption-side: bottom; font-size: .9em; }
+  .box { width: 320px; height: 90px; background: #eee; }
+</style>
+</head>
+<body>
+
+<p id="lead">The committee published its findings on a Tuesday morning, and by the afternoon
+every newsroom in the country had a version of the story that suited its own audience.</p>
+
+<figure id="fig" class="thumb">
+  <div class="box"></div>
+  <figcaption id="cap">A representation of the forgetting curve showing retained information
+  halving after each day</figcaption>
+</figure>
+
+<p id="tail">Funding arrived late, as it usually does, and in an amount that made the original
+proposal look like an act of optimism rather than a plan anybody meant to follow through.</p>
+
+<!--
+  REGRESSION, found on iPad Safari 2026-08-06 and root-caused with Web Inspector: the
+  caption's translation was drawn ON TOP of the caption text.
+  `getComputedStyle(figcaption).display === "table-caption"`.
+
+  Same mechanism as issue #59 (a table CELL cannot take a sibling — the browser wraps
+  it in an anonymous table box). A table-CAPTION has the same problem and was simply
+  not covered: `isCell()` tested only `table-cell`. So the block sibling landed inside
+  the figure's anonymous table box and overlapped the caption.
+
+  The default `belowOriginal` assertion is what catches it: the translation's top must
+  not sit above the caption's own content bottom.
+-->
+
+<script type="application/json" id="mt-expect">
+{
+  "name": "figcaption-table-caption",
+  "unitCount": 3,
+  "targets": [
+    { "sel": "#lead", "assert": ["translationMarked"] },
+    { "sel": "#cap",  "assert": ["translationMarked"] },
+    { "sel": "#tail", "assert": ["translationMarked"] }
+  ]
+}
+</script>
+
+</body>
+</html>

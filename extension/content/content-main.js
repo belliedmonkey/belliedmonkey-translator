@@ -7,9 +7,17 @@
   if (window.__mtMainLoaded) return;
   window.__mtMainLoaded = true;
 
-  // Read settings directly from storage (never ask service worker — Safari iOS bug)
+  // Read settings directly from storage (never ask service worker — Safari iOS bug).
+  // EXPLICIT KEYS, never get(null): the same bucket also holds the unbounded `tr:`
+  // translation cache and the `lq:` learning outbox, and pulling the whole bucket on
+  // every page load would drag both along. (docs/learning-design.md §7.)
+  const SETTINGS_KEYS = [
+    'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'textColor', 'ytTextColor', 'fontSize', 'showFab',
+    'learnEnabled', 'learnDailyNew',
+  ];
   const settings = await new Promise(resolve => {
-    chrome.storage.local.get(null, (s) => resolve(s || {}));
+    chrome.storage.local.get(SETTINGS_KEYS, (s) => resolve(s || {}));
   });
 
   const cfg = {
@@ -25,7 +33,10 @@
     ytTextColor: settings.ytTextColor || '#ffffff',
     fontSize: settings.fontSize || '1.0',
     showFab: settings.showFab !== false,
-    ytSubEnabled: false // video subtitles also start off until the 译 button is turned on
+    ytSubEnabled: false, // video subtitles also start off until the 译 button is turned on
+    // Learning layer. OFF until the user turns it on once — capture never starts by
+    // itself on upgrade (interaction-spec 「复习 / Review」 → Capture).
+    learnEnabled: settings.learnEnabled === true
   };
 
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
@@ -96,6 +107,29 @@
     });
   }
 
+  // ─── Learning layer (记忆层) ───────────────────────────────────────────
+  // A SINK hanging off the renderer: it reads what is already displayed and can
+  // never influence anything upstream (domain-design §9.1). Everything below is
+  // wrapped so that a broken learning layer degrades to "no capture", never to
+  // degraded translation.
+  function syncCollector() {
+    try {
+      if (cfg.learnEnabled) {
+        LearnCollector.enable({
+          targetLang: cfg.targetLang,
+          // The detector is INJECTED here, never probed for inside the collector
+          // (domain-design §5.3.2). Absent on every Safari → items are stored with
+          // lang 'und' rather than dropped.
+          detect: (typeof LangDetect !== 'undefined' && LangDetect.available())
+            ? LangDetect.detect : null,
+        });
+      } else {
+        LearnCollector.disable();
+      }
+    } catch (_) {}
+  }
+  syncCollector();
+
   // Webpage text everywhere (YouTube too — title / description / comments)
   WebpageTranslator.init(cfg);
 
@@ -131,9 +165,14 @@
       else WebpageTranslator.disable();
       if (drivesPodcast()) { if (cfg.enabled) PodcastTranslator.enable(cfg); else PodcastTranslator.disable(); }
       if (isMobileTwitter) { if (cfg.enabled) TwitterTranslator.enable(cfg); else TwitterTranslator.disable(); }
+    } else if ('learnEnabled' in changes || 'learnDailyNew' in changes) {
+      // A learning-settings change must NOT re-translate the page: capture is a
+      // sink, so toggling it has no bearing on what is displayed.
+      syncCollector();
     } else {
       // provider / language / color change → re-translate what's active
       WebpageTranslator.updateSettings(cfg);
+      try { LearnCollector.updateSettings({ targetLang: cfg.targetLang }); } catch (_) {}
       if (isYouTube) YouTubeTranslator.updateSettings(cfg);
       if (!isYouTube) PodcastTranslator.updateSettings(cfg);
       if (isTwitter) TwitterTranslator.updateSettings(cfg);

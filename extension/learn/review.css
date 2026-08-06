@@ -1,0 +1,149 @@
+/* review.css — the review surface. One implementation for every matrix row, so it
+   has to read well from a 375px iPhone to a desktop window. Visual language is
+   deliberately the same as the options page and the injected .mt-translation green. */
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element, so `.pressure{display:flex}` silently made a
+   `hidden` banner permanently visible — on a brand-new library it showed a cleanup
+   button for zero reclaimable cards, i.e. shouted about a problem that did not exist.
+   One line here beats remembering it at every future `display` rule. */
+[hidden] { display: none !important; }
+
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #0a7a3c;
+  --text: #111827;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --bg: #f3f4f6;
+  --card-bg: #ffffff;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --green: #4ade80;
+    --text: #f9fafb;
+    --text-secondary: #9ca3af;
+    --border: #374151;
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 680px; margin: 0 auto; padding: 16px; }
+
+.bar {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.bar h1 { font-size: 20px; font-weight: 650; }
+.counts { color: var(--text-secondary); font-size: 13px; }
+
+/* 存储压力条。醒目到不会被忽略，但不是错误状态——库满了复习照常工作。 */
+.pressure {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--card-bg); border: 1px solid var(--green);
+  border-left-width: 3px; border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.pressure button { padding: 7px 12px; font-size: 13px; border-color: var(--green); color: var(--green); }
+.pressure button:hover { background: var(--green); color: #fff; }
+
+.panel, .card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.panel h2 { font-size: 16px; margin-bottom: 8px; }
+.panel p { color: var(--text-secondary); margin-bottom: 8px; }
+.panel a, .foot a { color: var(--green); text-decoration: none; }
+.panel a:hover, .foot a:hover { text-decoration: underline; }
+
+/* Source attribution is always present and always clickable — a card the user
+   cannot trace back to where they met it is a flashcard, which this is not. */
+.src {
+  font-size: 12px; color: var(--text-secondary);
+  margin-bottom: 14px; word-break: break-word;
+}
+.src a { color: var(--text-secondary); text-decoration: underline; }
+
+.orig {
+  font-size: 21px; line-height: 1.5; font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* Media cards: replay the ORIGINAL audio by opening the source at the timestamp.
+   No inline player — YouTube refuses to embed from a chrome-extension:// origin
+   (error 153); see the note in review.js. */
+.media { margin-top: 16px; }
+.replay {
+  display: inline-block; text-decoration: none;
+  border: 1px solid var(--green); color: var(--green);
+  border-radius: 8px; padding: 10px 16px; font-weight: 600;
+}
+.replay:hover { background: var(--green); color: #fff; }
+.media .fallback { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+
+button {
+  font: inherit; cursor: pointer; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+  padding: 10px 14px;
+}
+button:hover { border-color: var(--green); }
+
+.reveal {
+  margin-top: 18px; width: 100%;
+  background: var(--green); border-color: var(--green); color: #fff;
+  font-weight: 600; padding: 12px;
+}
+.reveal:hover { opacity: .92; }
+
+/* 语音控件。audio-first 下它是卡片的主入口，所以视觉重量高于普通按钮但低于揭晓。 */
+.audio { margin: 4px 0 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.play {
+  border-color: var(--green); color: var(--green); font-weight: 600;
+}
+.play:hover { background: var(--green); color: #fff; }
+.play[disabled] { opacity: .5; cursor: default; border-color: var(--border); color: var(--text-secondary); }
+.play[disabled]:hover { background: none; color: var(--text-secondary); }
+/* 不可用时必须说出原因，不能只是没反应（interaction-spec：绝不静默失败）。 */
+.audio-note { font-size: 13px; color: var(--text-secondary); }
+
+.reveal.secondary {
+  background: var(--card-bg); color: var(--green); border-color: var(--green);
+}
+.reveal.secondary:hover { background: var(--green); color: #fff; }
+
+.answer { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 16px; }
+.tr { color: var(--green); font-size: 19px; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* Four grades, never two — the scheduler's stability update is graded, and
+   collapsing to 记得/不记得 would throw away the signal it needs. */
+.grades {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; margin-top: 18px;
+}
+@media (max-width: 480px) {
+  .grades { grid-template-columns: repeat(2, 1fr); }
+  .orig { font-size: 19px; }
+}
+.grade { padding: 12px 6px; font-size: 14px; }
+.g0:hover { border-color: #c0392b; }
+.g3:hover { border-color: #2563eb; }
+
+.foot {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 16px; font-size: 13px; color: var(--text-secondary);
+}
