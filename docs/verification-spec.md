@@ -894,18 +894,28 @@ IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲�
 **已补跑**：配置持久化（引擎选择在弹窗与设置页之间正确保留）· **DeepSeek 端到端翻译**
 （整段捐款横幅、标题、正文均为干净中文，无原文回显）。
 
-**未修的缺陷 — 内联链接行译文与原文重叠**：en.wikipedia.org 捐款横幅页脚那一行（由 `|`
-分隔的居中链接）译文**压在原文上**，渲染成
-「问题捐赠吗?维基百科其他资金如何使用ked questions」。间隔 20 秒复查仍在，不是渲染
-中途的瞬时状态。
+**已修的缺陷 — `table-caption` 的译文压在原文上**：en.wikipedia.org 上图注译文与原文
+重叠。**我最初把症状读成「`|` 分隔的链接行重叠」，据此写的 fixture 是绿的——形状猜错了。**
+用 Web Inspector 读真实 DOM 才看清：
 
-新增 `test/layout/fixtures/32-inline-link-row-pipe-separated.html` 重建了这个**形状**
-（居中、内容全是链接与 `|`、换行到第二行），但**headless Chrome 下是绿的**——所以要么
-这是 Safari 特有的，要么真实标记与我的猜测不同（很可能容器不是 `<p>`，因为
-`placementCss` 是按元素类型决定的）。
+```
+prevTag: FIGCAPTION   parentTag: FIGURE   prevDisplay: table-caption
+```
 
-**按 §3.2 的「先红后修」契约，这个缺陷目前没有被任何测试钉住。** 下一步需要在 iPad 上
-取到那一行的真实 DOM（Web Inspector），据此改写 fixture 直到它变红，再修。
+Wikipedia 的 `<figure>` 是 `display:table`，`<figcaption>` 是它的 caption；往 caption
+后面插一个 block 兄弟节点会被浏览器包进**匿名表格盒**，于是译文压在图注上、caption 宽度
+被撑大。**与 issue #59（表格单元格必须把译文作为子节点）是同一机制**，只是 `isCell()`
+当初只测了 `table-cell`，漏了 `table-caption`。判据已改为一组表格 display 值。
+
+按 §3.2 先红后修，全程有据：`32-figcaption-table-caption.html` 先红——
+`belowOriginal: trans.top 240.4 < 328.7`、`width 320.0 -> 510.7`——修完转绿。
+
+**两条我自己的错误，记下来比结论更有用：**
+
+1. **猜形状不如读 DOM。** 那个绿 fixture 什么都没钉住，已删除。
+2. **「Firefox 上那页没重叠 ⇒ 这是 Safari 特有的」这个推断是错的。** 它在 headless
+   Chrome 里就能复现——我当时比较的根本不是同一个元素。**跨浏览器的目视比对不能替代
+   读 DOM。**
 
 **值得记的信号**：iPhone 上修的六个缺陷在 iPad 上**一个都不复现**。这说明它们修在了
 共用路径上，而不是某台设备的怪癖——否则第二行会重现其中一部分。
@@ -923,8 +933,9 @@ IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲�
   `data_collection_permissions: ["websiteContent"]` 渲染给用户看的样子——**Gate A 的
   声明在用户真正会看到的界面上得到了验证**，且未提及浏览活动或个人数据，对 V1 正确。
   权限列表亦正确：所有网站（可选）、youtube/x/twitter，**本地文件为关**。
-- **内联链接行（`|` 分隔）译文正确排在下方，无重叠** —— 与 iPad 上观察到的重叠形成
-  对照，**支持「那个缺陷是 Safari 特有」这一判断**。
+- 内联链接行（`|` 分隔）译文正确排在下方。**当时据此推断「iPad 上那个重叠是 Safari
+  特有的」——后来证明是错的**（真凶是 `table-caption`，headless Chrome 里就能复现）。
+  留在这里作为提醒：**目视比对两个浏览器时，先确认你比的是同一个元素。**
 
 **未跑，且不含糊**：
 
