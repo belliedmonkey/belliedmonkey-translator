@@ -134,7 +134,9 @@ var LearnChunk = (() => {
     if (bundle.cards.length || bundle.sources.length) {
       // `cards` is what was NEW here, not what the bundle contained — the surfaces
       // render it as "received", and a re-read of our own chunk receives nothing.
-      stats.cards = await LearnStore.mergeBatch(bundle.cards, bundle.sources);
+      // `accumulate: false` — a chunk holds encounters that were already counted
+      // wherever they happened. Replay copies them; it does not witness them again.
+      stats.cards = await LearnStore.mergeBatch(bundle.cards, bundle.sources, { accumulate: false });
       stats.merged = bundle.cards.length;
       stats.sources = bundle.sources.length;
     }

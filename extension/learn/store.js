@@ -98,7 +98,10 @@ var LearnStore = (() => {
   // re-reading its own upload merges the full batch and adds nothing, and reporting
   // the batch size there tells the user cards arrived from somewhere when none did.
   // Counted in a closure, not returned from `fn` — see the `tx()` note above.
-  function mergeBatch(items, sources) {
+  // `opts` is handed straight to LearnModel.mergeItem. Callers replaying a chunk
+  // (sync pull, file import) MUST pass `{accumulate: false}`: those items are copies
+  // of encounters already counted, not new ones.
+  function mergeBatch(items, sources, opts) {
     if (!items.length && !(sources || []).length) return Promise.resolve(0);
     let added = 0;
     return tx(['items', 'sources'], 'readwrite', (s) => {
@@ -108,7 +111,7 @@ var LearnStore = (() => {
         r.onsuccess = () => {
           const prev = r.result;
           if (!prev) added++;
-          s.items.put(prev ? LearnModel.mergeItem(prev, inc) : inc);
+          s.items.put(prev ? LearnModel.mergeItem(prev, inc, opts) : inc);
         };
       }
     }).then(() => added);
