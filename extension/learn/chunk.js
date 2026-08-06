@@ -129,14 +129,19 @@ var LearnChunk = (() => {
   // That is what makes an interrupted import or a re-run sync safe (§8.4), and it
   // falls out of `mergeItem` treating text/tr/anchor as immutable.
 
-  async function replay(bundle) {
+  // `opts.fromServer` distinguishes a sync pull from a file import. Both replay a
+  // copy (hence never accumulate), but only the sync path may watermark the result
+  // as "the server already has this" — an imported file has to be uploadable.
+  async function replay(bundle, opts) {
+    const fromServer = !!(opts && opts.fromServer);
     const stats = { cards: 0, sources: 0, reviews: 0 };
     if (bundle.cards.length || bundle.sources.length) {
       // `cards` is what was NEW here, not what the bundle contained — the surfaces
       // render it as "received", and a re-read of our own chunk receives nothing.
       // `accumulate: false` — a chunk holds encounters that were already counted
       // wherever they happened. Replay copies them; it does not witness them again.
-      stats.cards = await LearnStore.mergeBatch(bundle.cards, bundle.sources, { accumulate: false });
+      stats.cards = await LearnStore.mergeBatch(bundle.cards, bundle.sources,
+        { accumulate: false, markSynced: fromServer });
       stats.merged = bundle.cards.length;
       stats.sources = bundle.sources.length;
     }
@@ -145,7 +150,7 @@ var LearnChunk = (() => {
     if (bundle.reviews.length) {
       const seen = new Set((await LearnStore.allReviews()).map((r) => r.itemId + '|' + r.at));
       const fresh = bundle.reviews.filter((r) => !seen.has(r.itemId + '|' + r.at));
-      for (const r of fresh) await LearnStore.recordReview(r.itemId, r.grade, r.at);
+      for (const r of fresh) await LearnStore.recordReview(r.itemId, r.grade, r.at, { viaSync: fromServer });
       stats.reviews = fresh.length;
     }
     await LearnStore.evictIfNeeded();
