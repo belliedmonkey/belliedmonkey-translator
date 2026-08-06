@@ -98,7 +98,10 @@ var LearnStore = (() => {
   // re-reading its own upload merges the full batch and adds nothing, and reporting
   // the batch size there tells the user cards arrived from somewhere when none did.
   // Counted in a closure, not returned from `fn` — see the `tx()` note above.
-  function mergeBatch(items, sources) {
+  // `opts` is handed straight to LearnModel.mergeItem. Callers replaying a chunk
+  // (sync pull, file import) MUST pass `{accumulate: false}`: those items are copies
+  // of encounters already counted, not new ones.
+  function mergeBatch(items, sources, opts) {
     if (!items.length && !(sources || []).length) return Promise.resolve(0);
     let added = 0;
     return tx(['items', 'sources'], 'readwrite', (s) => {
@@ -108,14 +111,25 @@ var LearnStore = (() => {
         r.onsuccess = () => {
           const prev = r.result;
           if (!prev) added++;
-          s.items.put(prev ? LearnModel.mergeItem(prev, inc) : inc);
+          const merged = prev ? LearnModel.mergeItem(prev, inc, opts) : inc;
+          // Watermark: this state came from the server, so push must not send it
+          // back. Only a LOCAL change (a review, a re-read) lifts touchedAt above
+          // it again. Not set on file import — an imported corpus does belong on
+          // the server, and stamping it would silently keep it off.
+          if (opts && opts.markSynced) merged.syncedAt = LearnModel.touchedAt(merged);
+          s.items.put(merged);
         };
       }
     }).then(() => added);
   }
 
-  function recordReview(itemId, grade, at) {
-    return tx(['reviews'], 'readwrite', (s) => { s.reviews.add({ itemId, grade, at }); });
+  // `opts.viaSync` marks a review that arrived from the server rather than one the
+  // user just gave. Same reason as `syncedAt` on items: without it the review log
+  // bounces back up on the next push.
+  function recordReview(itemId, grade, at, opts) {
+    const row = { itemId, grade, at };
+    if (opts && opts.viaSync) row.viaSync = 1;
+    return tx(['reviews'], 'readwrite', (s) => { s.reviews.add(row); });
   }
 
   // ─── Storage pressure ────────────────────────────────────────────────────

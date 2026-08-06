@@ -66,10 +66,9 @@ var LearnSync = (() => {
   // state: re-uploading a card costs a few bytes and replay discards it, whereas
   // MISSING an update is silent divergence between devices. Cheap-and-redundant beats
   // clever-and-lossy every time here.
-  function touchedAt(item) {
-    const sched = item.sched || {};
-    return Math.max(item.createdAt || 0, item.lastSeenAt || 0, sched.lastReviewAt || 0);
-  }
+  // Lives in LearnModel so that `mergeBatch`, which stamps `syncedAt`, and this,
+  // which reads it, can never drift apart.
+  const touchedAt = (item) => LearnModel.touchedAt(item);
 
   async function push(now) {
     const at = now || Date.now();
@@ -78,8 +77,15 @@ var LearnSync = (() => {
       LearnStore.allItems(), LearnStore.allSources(), LearnStore.allReviews(),
     ]);
 
-    const fresh = items.filter((it) => touchedAt(it) > since);
-    const revs = reviews.filter((r) => (r.at || 0) > since);
+    // `> syncedAt` is what stops the echo: an item whose newest timestamp is exactly
+    // the one we received from the server has not moved HERE, so sending it back
+    // would only duplicate it. Only a local review or re-read lifts touchedAt past
+    // the watermark. Same idea for reviews, which carry `viaSync` instead.
+    const fresh = items.filter((it) => {
+      const t = touchedAt(it);
+      return t > since && t > (it.syncedAt || 0);
+    });
+    const revs = reviews.filter((r) => (r.at || 0) > since && !r.viaSync);
     const bundle = LearnChunk.build(fresh, sources, revs, at);
     if (!bundle.cards.length && !bundle.reviews.length) {
       await LearnStore.setMeta(PUSHED, at);
@@ -156,7 +162,7 @@ var LearnSync = (() => {
         // Not ours / unparseable: there is nothing to recover by waiting, and
         // stopping would wedge sync forever on one bad row. Skip, count, advance.
         if (ours) {
-          const s = await LearnChunk.replay(bundle);
+          const s = await LearnChunk.replay(bundle, { fromServer: true });
           stats.cards += s.cards; stats.reviews += s.reviews; stats.chunks++;
         } else {
           stats.skipped++;

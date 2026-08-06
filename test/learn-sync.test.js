@@ -79,7 +79,7 @@ function setup(opts = {}) {
   }).LearnAuth;
 
   const LearnSync = loadModule('learn/sync.js', {
-    window: {}, MT_BACKEND: BACKEND, LearnStore, LearnAuth, LearnChunk,
+    window: {}, MT_BACKEND: BACKEND, LearnStore, LearnAuth, LearnChunk, LearnModel,
     fetch: fetchFn, Date, Math, TextEncoder, TextDecoder, Response,
   }).LearnSync;
 
@@ -402,5 +402,89 @@ describe('LearnSync — plumbing', () => {
     eq(store.meta.syncCursor, 0);
     eq(store.meta.syncPushedAt, 0);
     eq(store.items.length, 1, 'signing out is not a reason to lose what you learned');
+  });
+});
+
+// ─── The echo ────────────────────────────────────────────────────────────────
+// Found on 2026-08-06 running two real devices against the real backend. Every
+// chunk a device pulled came straight back up as a chunk of its own:
+//
+//   seq 6  device A pushes 13 cards / 3 sources / 14 reviews
+//   seq 7  device B pushes 13 cards / 3 sources / 14 reviews   ← the same material
+//   seq 8  device A pushes 5 cards
+//   seq 9  device B pushes 5 cards                              ← again
+//
+// Cause: push selects `touchedAt(item) > PUSHED`, and replaying a remote item writes
+// the remote timestamps locally, so anything just received looks freshly touched.
+// Worst case is a NEW device, whose PUSHED is 0: its first pull is immediately
+// followed by a push of the ENTIRE corpus back to the server. The user pays for that
+// twice out of a 50 MB quota — a 25 MB corpus fills the account by adding a device.
+
+describe('LearnSync — 拉下来的东西不许再推回去', () => {
+  function echoStore(seed) {
+    const s = fakeStore(seed);
+    const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+    s.mergeBatch = (inc, srcs, opts) => {
+      let added = 0;
+      for (const c of inc) {
+        const i = s.items.findIndex((x) => x.id === c.id);
+        const merged = i < 0 ? c : LearnModel.mergeItem(s.items[i], c, opts);
+        if (opts && opts.markSynced) merged.syncedAt = LearnModel.touchedAt(merged);
+        if (i < 0) { s.items.push(merged); added++; } else s.items[i] = merged;
+      }
+      return Promise.resolve(added);
+    };
+    s.recordReview = (itemId, grade, at, opts) => {
+      s.reviews.push(Object.assign({ itemId, grade, at }, opts && opts.viaSync ? { viaSync: 1 } : {}));
+      return Promise.resolve();
+    };
+    return s;
+  }
+
+  // Build the wire form of a chunk the way another device would have sent it.
+  async function remoteChunk(C, cards, reviews) {
+    const bundle = C.build(cards, [{ id: 'src1', url: 'u', title: 't' }], reviews || [], T0 + 5000);
+    const bytes = await C.deflate(C.toJsonl(bundle));
+    let hex = '\\x';
+    for (const b of bytes) hex += b.toString(16).padStart(2, '0');
+    return hex;
+  }
+
+  async function runOnce(store, chunkHex) {
+    const posts = [];
+    const fetchFn = fakeFetch([
+      { match: (u, i) => (i && i.method) === 'POST' && /bt_chunks/.test(u),
+        reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: 99 }]); } },
+      { match: (u) => /seq=gt/.test(u),
+        reply: (u) => reply(200, /seq=gt\.0/.test(u) ? [{ seq: 42, blob: chunkHex }] : []) },
+    ]);
+    const { S, store: st } = setup({ store, fetch: fetchFn });
+    st.meta.auth = liveSession();
+    await S.sync();
+    return { posts, store: st };
+  }
+
+  test('新设备登录后不会把刚拉到的整份语料原样推回去', async () => {
+    const store = echoStore({ meta: { syncCursor: 0, syncPushedAt: 0 } });
+    const { C } = setup({ store });
+    const hex = await remoteChunk(C, [card('a'), card('b')], [{ itemId: 'a', grade: 2, at: T0 + 1 }]);
+    const { posts, store: st } = await runOnce(store, hex);
+    eq(st.items.length, 2, '拉取本身应当落地');
+    const cards = posts.flatMap((p) => (p.blob ? [p] : []));
+    eq(cards.length, 0, `刚拉到的内容被推了回去（${cards.length} 个块）`);
+  });
+
+  test('拉到之后本地又复习过的卡，仍然要推上去', async () => {
+    const store = echoStore({ meta: { syncCursor: 0, syncPushedAt: 0 } });
+    const { C } = setup({ store });
+    const hex = await remoteChunk(C, [card('a')], []);
+    await runOnce(store, hex);
+    // 本地复习：必须晚于上一次 push 的水位（push 盖的是真实当前时间，
+    // 不是 T0 那套假时间 —— 第一版测试在这里把复习写成了「发生在过去」）。
+    const later = Date.now() + 1000;
+    const it = store.items[0];
+    it.sched = { s: 4, d: 7, lastReviewAt: later, dueAt: later, reps: 2, lapses: 0 };
+    const { posts } = await runOnce(store, hex);
+    ok(posts.length > 0, '本地复习过的卡没有被推上去 —— 这才是真的丢数据');
   });
 });
