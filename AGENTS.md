@@ -91,6 +91,14 @@ state, control menu, webpage injection). When you change how translations look o
 behave, update that file in the same commit. Don't scatter interaction rules here or
 in code comments.
 
+## Releasing
+
+Before any release, work through [`docs/release-checklist.md`](docs/release-checklist.md).
+It holds only what the build gates cannot see — chiefly the **cross-repo** obligation that
+the two websites' privacy pages ship in the SAME version as the feature they describe
+(`privacy.html` promises exactly that, in those words). A checklist is weaker than a gate;
+anything on it that can become a gate should move into `build.js` and be deleted from there.
+
 ## Domain design (architecture) — REQUIRES HUMAN REVIEW
 
 **The translation domain model is the single source of truth in
