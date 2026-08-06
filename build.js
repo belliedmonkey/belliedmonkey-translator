@@ -34,6 +34,11 @@ const ZIP = path.join(ROOT,
   TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi'
     : (FLAVOR === 'china' ? 'belliedmonkeytranslator-china.zip' : 'belliedmonkeytranslator.zip'));
 
+// Set to a reason string when the build is deliberately NOT shippable. dist/ is
+// still written (so it can be loaded unpacked for testing) but the packaged
+// artifact is withheld — see the Gate B escape hatch in validateManifest().
+let SKIP_ZIP = null;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function copyDir(src, dst) {
@@ -296,12 +301,26 @@ function validateManifest(distDir, isFirefox) {
     const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
     const stale = '**No account, no tracking, no telemetry.**';
     if (readme.includes(stale)) {
-      err(`sync is enabled (learn/backend.config.js) but README.md still says\n` +
-          `  ${stale}\n` +
-          `That sentence is false the moment an account exists. Update the README, ` +
-          `privacy.html on both sites, the store listings, and re-evaluate ` +
-          `gecko.data_collection_permissions — see docs/learning-design.md §10 Gate B.`);
-      process.exit(1);
+      // Escape hatch for end-to-end verification, and ONLY that. Without it the
+      // single way to build a sync-enabled bundle is to edit the README — i.e. to
+      // do the exact thing this gate exists to prevent. A gate with no test path
+      // does not survive: the first person who needs to test disables the gate.
+      //
+      // The escape does not weaken the release invariant, because it forbids the
+      // shippable artifact instead: MT_SYNC_E2E builds dist/ (loadable unpacked)
+      // and refuses to produce the .zip. You can test it; you cannot ship it.
+      if (process.env.MT_SYNC_E2E === '1') {
+        SKIP_ZIP = 'sync enabled without the Gate B doc updates (MT_SYNC_E2E)';
+        log(`\x1b[33mGate B bypassed for E2E testing — no .zip will be produced.\x1b[0m`);
+      } else {
+        err(`sync is enabled (learn/backend.config.js) but README.md still says\n` +
+            `  ${stale}\n` +
+            `That sentence is false the moment an account exists. Update the README, ` +
+            `privacy.html on both sites, the store listings, and re-evaluate ` +
+            `gecko.data_collection_permissions — see docs/learning-design.md §10 Gate B.\n` +
+            `To build a test bundle without shipping one: MT_SYNC_E2E=1 node build.js`);
+        process.exit(1);
+      }
     }
   }
 
@@ -355,7 +374,10 @@ validateManifest(DIST, isFirefox);
 if (FLAVOR === 'china') complianceGateChina(DIST);
 
 // Zip (Firefox .xpi is just a zip)
-try {
+if (SKIP_ZIP) {
+  log(`\x1b[33mNOT packaged — ${SKIP_ZIP}.\x1b[0m`);
+  log(`${path.basename(DIST)}/ is loadable unpacked for testing only.`);
+} else try {
   execSync(`cd "${DIST}" && zip -r "${ZIP}" .`, { stdio: 'pipe' });
   const zipSize = Math.round(fs.statSync(ZIP).size / 1024);
   log(`Packaged → ${path.basename(ZIP)} (${zipSize} KB)`);
