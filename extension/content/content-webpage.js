@@ -186,15 +186,26 @@ var WebpageTranslator = (() => {
     p.removeAttribute('data-mt-flow-fix');
   }
 
-  // A unit whose own box is a TABLE CELL cannot take a sibling: an element placed
-  // next to it inside the <tr> is wrapped by the browser in an ANONYMOUS TABLE CELL,
-  // so the translations become a whole extra COLUMN and the table's intrinsic width
-  // roughly doubles (issue #59, en.wikipedia.org infobox: the prose column beside it
-  // collapsed to ~115px). Cells therefore take the translation INSIDE themselves.
-  // Generic, not site knowledge — any page that floats a data table next to prose.
+  // A unit laid out as part of a CSS TABLE cannot take a sibling: the browser wraps
+  // anything placed next to it in an ANONYMOUS table box, which both displaces the
+  // translation and distorts the table's intrinsic sizing. Such units take the
+  // translation INSIDE themselves instead.
+  //
+  // Two display values, found a fortnight apart, same mechanism:
+  //   · `table-cell`   — issue #59, en.wikipedia.org infobox: the translations became
+  //     a whole extra COLUMN and the prose column beside it collapsed to ~115px.
+  //   · `table-caption` — found on iPad Safari 2026-08-06 and root-caused with Web
+  //     Inspector: Wikipedia's `<figure>` is `display:table` and its `<figcaption>` is
+  //     the table's caption, so the block sibling landed in the figure's anonymous box
+  //     and was drawn ON TOP of the caption text. This predicate tested only
+  //     `table-cell`, so captions fell through.
+  //
+  // Listing the table display values is the point: this is generic layout knowledge,
+  // not site knowledge. Any page whose figure or table is a CSS table hits it.
+  const TABLE_DISPLAYS = ['table-cell', 'table-caption'];
   function isCell(node) {
     let cs; try { cs = getComputedStyle(node); } catch (_) { return false; }
-    return !!cs && cs.display === 'table-cell';
+    return !!cs && TABLE_DISPLAYS.indexOf(cs.display) >= 0;
   }
 
   function flowFixCss(node) {
