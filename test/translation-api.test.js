@@ -229,3 +229,53 @@ describe('TranslationAPI — translateBatch', () => {
     deepEq(await API.translateBatch(['xx', 'yy'], 'ja', 'openai', 'KEY', ''), ['T:xx', 'T:yy']);
   });
 });
+
+// ─── domain-design §5.4: Firefox routes through the background ────────────────
+// Firefox applies the HOST PAGE's CSP to a content script's fetch; Chrome and WebKit
+// do not. Measured 2026-08-06 on one Mac: en.wikipedia.org (CSP allows googleapis /
+// openai / anthropic but not api.deepseek.com) — Safari translated 26/26 paragraphs,
+// Firefox failed every one. On a CSP-free page the same Firefox worked. So on Firefox
+// whether translation works depends on which site the reader happens to be on.
+//
+// The exception is confined to apiFetch(), the one function every provider funnels
+// through, so provider adapters / retry / error shape cannot drift per browser.
+
+describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
+  const ffOpts = (onMessage) => ({ extensionOrigin: 'moz-extension://uuid/', onMessage });
+
+  test('on Firefox the request goes through the background, not the page', async () => {
+    const proxied = [];
+    const { API, fetch, chrome } = loadAPI([], ffOpts((msg) => {
+      proxied.push(msg);
+      return { ok: true, status: 200, text: JSON.stringify([[['你好', 'hello']]]) };
+    }));
+    eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
+    eq(fetch.calls.length, 0, '内容脚本仍然直接 fetch —— 正是被 CSP 拦掉的那条路');
+    eq(proxied.length, 1);
+    eq(proxied[0].action, 'proxyFetch');
+    match(proxied[0].url, /translate\.googleapis\.com/);
+  });
+
+  test('everywhere else the direct fetch is untouched', async () => {
+    const { API, fetch, chrome } = loadAPI([okJson([[['你好', 'hello']]])]);
+    eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
+    eq(fetch.calls.length, 1);
+    eq(chrome.runtime._sent.length, 0, '非 Firefox 不该绕道 background');
+  });
+
+  test('a proxied HTTP error keeps status and retry-after, same shape as direct', async () => {
+    const { API } = loadAPI([], ffOpts(() => ({
+      ok: false, status: 429, statusText: 'Too Many Requests',
+      retryAfter: 0, text: JSON.stringify({ error: { message: 'slow down' } }),
+    })));
+    await rejects(() => API.translate('hello there', 'zh-CN', 'deepseek', 'k', ''), /429/);
+  });
+
+  test('a failing proxy surfaces the error and does NOT fall back to the blocked path', async () => {
+    // 有回退的话，能不能翻译就又取决于页面有没有 CSP —— 正是这条改动要消灭的不确定性。
+    const { API, fetch } = loadAPI([okJson([[['不该用到', 'x']]])],
+      ffOpts(() => ({ error: 'background unreachable' })));
+    await rejects(() => API.translate('hello there', 'zh-CN', 'google', '', ''), /unreachable/);
+    eq(fetch.calls.length, 0, '静默回退到已知被拦的路径 —— #74 已经否决过这种做法');
+  });
+});

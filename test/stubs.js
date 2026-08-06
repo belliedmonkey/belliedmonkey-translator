@@ -28,9 +28,24 @@ function makeChrome(opts = {}) {
       return Promise.resolve(r);
     };
   }
+  // `extensionOrigin` is how the code tells which browser it is running on without
+  // sniffing a UA (domain-design §5.4 rule 3): Firefox is the only runtime whose
+  // extension URLs are `moz-extension://`. `sendMessage` records every call so a test
+  // can assert the request was proxied rather than sent directly.
+  const sent = [];
+  const runtime = {
+    _sent: sent,
+    getURL: (p) => (opts.extensionOrigin || 'chrome-extension://abcdef/') + (p || ''),
+    sendMessage: (msg) => {
+      sent.push(msg);
+      if (!opts.onMessage) return Promise.resolve(undefined);
+      return Promise.resolve(opts.onMessage(msg));
+    },
+  };
   return {
     _store: store,
     _fireChange(changes) { listeners.forEach((l) => l(changes)); },
+    runtime,
     i18n,
     storage: {
       local: {

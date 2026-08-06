@@ -52,10 +52,23 @@ function deepEq(actual, expected, msg) {
 function match(str, re, msg) {
   if (!re.test(str)) throw new AssertionError(msg || `expected ${JSON.stringify(str)} to match ${re}`);
 }
-async function rejects(promiseOrFn, msg) {
+// A RegExp second argument is MATCHED against the error; a string is only the failure
+// message. That asymmetry exists because `rejects(fn, /429/)` reads like a matcher and
+// used to be silently ignored — the call passed on ANY rejection, so a test asserting
+// "the status survives" still passed after the status was thrown away. Found by
+// mutating the code and watching the test stay green (2026-08-07).
+async function rejects(promiseOrFn, msgOrPattern) {
+  const pattern = msgOrPattern instanceof RegExp ? msgOrPattern : null;
+  const msg = pattern ? null : msgOrPattern;
   try {
     await (typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn);
-  } catch (_) {
+  } catch (e) {
+    if (pattern) {
+      const text = String((e && e.message) || e);
+      if (!pattern.test(text)) {
+        throw new AssertionError(`rejected, but with ${JSON.stringify(text)} — expected to match ${pattern}`);
+      }
+    }
     return; // expected
   }
   throw new AssertionError(msg || 'expected promise to reject, but it resolved');

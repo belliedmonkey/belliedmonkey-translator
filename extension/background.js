@@ -58,6 +58,44 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// ─── Firefox only: proxy the translation fetch (domain-design §5.4) ─────────
+//
+// The Safari rule stands everywhere else — translation NEVER goes through the
+// background, because Safari iOS's service worker is permanently `undefined` after
+// device lock. Firefox is the one exception: it applies the HOST PAGE's CSP to a
+// content script's fetch, so a provider the visited site does not allowlist simply
+// cannot be reached from there. This listener is registered ONLY on Firefox, so the
+// Safari rule holds by construction rather than by everyone remembering it.
+const IS_FIREFOX = (() => {
+  try { return chrome.runtime.getURL('').indexOf('moz-extension://') === 0; } catch (_) { return false; }
+})();
+
+if (IS_FIREFOX) {
+  const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-api.js
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!msg || msg.action !== 'proxyFetch') return;
+    (async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), PROXY_TIMEOUT_MS);
+      try {
+        const r = await fetch(msg.url, Object.assign({}, msg.init, { signal: ctrl.signal }));
+        // The body always travels as text; the caller parses. A non-2xx body is sent
+        // too — that is where provider error messages live.
+        sendResponse({
+          ok: r.ok, status: r.status, statusText: r.statusText,
+          retryAfterHeader: r.headers.get('retry-after'),
+          text: await r.text(),
+        });
+      } catch (e) {
+        sendResponse({ error: String((e && e.message) || e) });
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    return true;
+  });
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'getSettings') {
     chrome.storage.local.get(null, (s) => sendResponse({ settings: s }));
