@@ -527,6 +527,40 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
+### Stage 2 spike — what the app's `WKWebView` can actually do (2026-08-07)
+
+`ViewController.swift` uses `loadFileURL`, so the whole learning UI would run on a
+**`file://` origin**. Everything the corpus and sync need is a platform capability
+there, and §5.3 forbids basing a baseline on an unverified one — so it was measured on
+all three surfaces before any app code was written. **Identical on all three:**
+
+| | macOS | iOS 17.2 | iOS 26.5 |
+|---|---|---|---|
+| `isSecureContext` | ✅ true | ✅ | ✅ |
+| `indexedDB` (write + read back) | ✅ | ✅ | ✅ |
+| `crypto.subtle` / `CompressionStream` | ✅ | ✅ | ✅ |
+| `fetch` → Supabase auth / rest | ✅ 200 | ✅ 200 | ✅ 200 |
+
+Two results worth keeping, because both are the opposite of the safe assumption:
+
+- **`file://` is a secure context here.** In a browser it is not, which is exactly why
+  `domain-design` §9.3 has content scripts using FNV-1a instead of `crypto.subtle`.
+  The app is not under that constraint.
+- **CORS does not block Supabase**, despite a `file://` page sending `Origin: null`.
+  A custom `WKURLSchemeHandler` to manufacture a real origin — the obvious fallback —
+  is **not needed**.
+
+So the app needs **no Swift for capabilities**. The only Swift change Stage 2 requires
+is `isScrollEnabled = false` on iOS, which exists to keep the converter's one-screen
+template from bouncing and would trap a scrolling review list.
+
+> **Measuring this cost one wrong turn worth recording:** the first iOS run reported
+> the *previous* `Main.html`. Xcode's incremental build had not re-copied the changed
+> resource, and the app came up looking fine — a stale-resource result that reads
+> exactly like a real one. `rm -rf` the derivedData before believing an app-resource
+> measurement. (Related to, but distinct from, the ios-sim issue where *new* files
+> never enter the bundle at all.)
+
 ### F. iOS host app (Xcode Simulator) — ⬜ not built yet
 
 The app is a `WKWebView` hosting the **same** review UI (`learning-design.md` §9), so

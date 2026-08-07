@@ -466,6 +466,16 @@ if (FLAVOR !== 'china') descriptionBrandGate(DIST);
 // Length gate runs for BOTH flavors — Apple rejects the upload, not the build.
 descriptionLengthGate(DIST);
 
+// ─── Host app assets (learning-design §7.2) ─────────────────────────────────
+// Built from `app/` plus the SAME shared modules the extension ships — not copies of
+// them (§9: "not a second engine"). Global flavor only for now: the app is an Apple
+// surface and the China build has no App Store presence yet, so building it there
+// would ship an untested target rather than a feature.
+if (FLAVOR === 'global') {
+  const { buildAppBundle } = require('./build/app-bundle.js');
+  buildAppBundle(path.join(ROOT, 'dist-app'), log);
+}
+
 // Zip (Firefox .xpi is just a zip)
 if (SKIP_ZIP) {
   log(`\x1b[33mNOT packaged — ${SKIP_ZIP}.\x1b[0m`);
