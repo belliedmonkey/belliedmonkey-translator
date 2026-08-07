@@ -1003,7 +1003,17 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnCollector` | `content/learn-collector.js` | the sink (§3): dwell observation via `IntersectionObserver`, salience gate, bounded `lq:` outbox writes. Never originates a translation |
 | `LearnStore` | `learn/store.js` + `learn/drain.js` | extension-page-only IndexedDB corpus and the outbox→corpus drain/merge |
 | `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
-| Host app | `Shared (App)/` | the one-tap surface on iOS + macOS. **Not a second engine**: it loads the same `learn-model.js` / `learn-scheduler.js` / `chunk.js` / `sync.js` / `auth.js` / `review.*`, and replaces only the host shims (`page-settings.js`, `drain.js`, `tts.js`). `ViewController.swift` is already a `WKWebView` with a `controller` message bridge |
+| Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
+
+> **Why the app is exactly three files.** `safari-project/` is gitignored and gets
+> regenerated, which resets the Xcode project's file list (release-checklist #72). The
+> converter's App target already references `Main.html`, `Script.js` and `Style.css` —
+> so emitting those three names and no others means **the app can grow forever without
+> a pbxproj edit**, and regeneration stays routine instead of destructive. The cost is
+> a concatenated bundle rather than separate modules; the alternative was
+> hand-maintaining an Xcode project or re-meeting "new files never enter the bundle"
+> every time. `npm run app:sync` copies them in and patches the one Swift line the
+> converter gets wrong for us (`isScrollEnabled`).
 
 ---
 

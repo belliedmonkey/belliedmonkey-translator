@@ -1,0 +1,121 @@
+// scripts/verify-app-bundle.js — does the host app's page actually come up?
+//
+//   npm run test:app        (needs Chrome; Node ≥22)
+//
+// The app is a WKWebView on a `file://` origin, and its failure mode is a **blank
+// white screen with nothing in any log** — a 404 on a stylesheet or script produces
+// exactly that, and an iOS screenshot of it is indistinguishable from a screenshot of
+// a view that has not painted yet. So this loads the built bundle in a real engine and
+// asserts on the DOM.
+//
+// ─── Serve it in the SHIPPED LAYOUT, not a convenient one ────────────────────
+// This is the whole reason the file exists in this shape. The Safari converter puts
+// `Main.html` in `Base.lproj/` while `Script.js` and `Style.css` sit at the bundle
+// ROOT — hence `../Script.js`. The first version of this check served all three flat
+// from one directory, so same-directory hrefs resolved, the DOM assertions passed, and
+// the app was still a blank screen on the simulator. **A green check against a layout
+// the product does not use is worse than no check**: it costs the same and it converts
+// "unverified" into "verified".
+
+'use strict';
+const path = require('path');
+const fs = require('fs');
+const http = require('http');
+
+const ROOT = path.join(__dirname, '..');
+const { launchChrome } = require(path.join(ROOT, 'test/layout/chrome.js'));
+const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
+const SRC = path.join(ROOT, 'dist-app');
+
+const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
+
+setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.exit(2); }, 60000).unref();
+
+(async () => {
+  for (const f of ['Main.html', 'Script.js', 'Style.css']) {
+    if (!fs.existsSync(path.join(SRC, f))) {
+      console.error(`✗ dist-app/${f} 不存在 —— 先跑 node build.js`);
+      process.exit(1);
+    }
+  }
+
+  const missed = [];
+  const srv = http.createServer((req, res) => {
+    // Bundle layout: /Base.lproj/Main.html, /Script.js, /Style.css
+    const rel = req.url === '/' ? '/Base.lproj/Main.html' : req.url;
+    const name = path.basename(rel);
+    const inBaseLproj = rel.startsWith('/Base.lproj/');
+    const ok = (name === 'Main.html' && inBaseLproj)
+      || ((name === 'Script.js' || name === 'Style.css') && !inBaseLproj);
+    // Chrome asks for /favicon.ico on its own; that is the browser, not the page.
+    if (!ok) { if (name !== "favicon.ico") missed.push(rel); res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'text/plain' });
+    res.end(fs.readFileSync(path.join(SRC, name)));
+  }).listen(0);
+  await new Promise((r) => srv.on('listening', r));
+  const url = 'http://127.0.0.1:' + srv.address().port + '/Base.lproj/Main.html';
+
+  const chrome = await launchChrome();
+  let ok = true;
+  try {
+    const cdp = await CDP.connect(chrome.port);
+    const targets = await cdp.send('Target.getTargets', {});
+    const page = targets.targetInfos.find((t) => t.type === 'page');
+    const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: page.targetId, flatten: true });
+    const problems = [];
+    await cdp.send('Runtime.enable', {}, sessionId);
+    await cdp.send('Log.enable', {}, sessionId);
+    cdp.listeners.push({ event: 'Runtime.exceptionThrown', fn: (p) => problems.push(
+      'EXCEPTION ' + ((p.exceptionDetails.exception || {}).description || p.exceptionDetails.text)) });
+    cdp.listeners.push({ event: 'Log.entryAdded', fn: (p) => {
+      if (p.entry.level !== 'error') return;
+      if (/favicon\.ico/.test(p.entry.url || '')) return;
+      problems.push('ERROR ' + p.entry.text + ' ' + (p.entry.url || ''));
+    } });
+    await cdp.send('Page.enable', {}, sessionId);
+    await cdp.send('Page.navigate', { url }, sessionId);
+    await new Promise((r) => setTimeout(r, 2500));
+
+    const r = await cdp.send('Runtime.evaluate', {
+      expression: `JSON.stringify({
+        text: document.body.innerText.trim().length,
+        syncEnabled: !!(window.MT_BACKEND && MT_BACKEND.enabled),
+        outHidden: document.getElementById('signed-out').hidden,
+        // Assert on what must be HIDDEN too. \`hidden\` is an attribute, not a
+        // rendering guarantee — any author \`display\` rule beats it, and then the app
+        // shows a verification-code field before a code exists.
+        codeShown: getComputedStyle(document.getElementById('code-form')).display !== 'none',
+        inShown: getComputedStyle(document.getElementById('signed-in')).display !== 'none',
+        lede: (document.getElementById('lede').textContent || '').length,
+        sendLabel: (document.getElementById('send').textContent || '').length,
+        styled: getComputedStyle(document.body).getPropertyValue('--green').trim(),
+        globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync']
+          .filter((g) => typeof window[g] === 'undefined'),
+      })`, returnByValue: true }, sessionId);
+    const o = JSON.parse(r.result.value);
+
+    const need = (cond, msg) => { if (!cond) { ok = false; console.log('  ✗ ' + msg); } };
+    need(problems.length === 0, '控制台有错: ' + problems.join(' | '));
+    need(missed.length === 0, '请求了 bundle 里不存在的路径: ' + missed.join(', '));
+    need(o.globals.length === 0, '打包漏了模块: ' + o.globals.join(', '));
+    // Both shipping states are real states, and the OFF one carries a promise worth
+    // holding the app to: `MT_BACKEND.enabled === false` says there is "no path to an
+    // account or to our server". An app whose whole job is signing in is exactly such
+    // a path, so assert the absence, not just the presence.
+    if (o.syncEnabled) {
+      need(!o.outHidden, '登录界面没显示出来 —— 这就是那块白屏');
+      need(!o.codeShown, '验证码表单在没发码时就显示了 —— [hidden] 被某条 display 规则压过了');
+      need(!o.inShown, '已登录界面在未登录时就显示了');
+      need(o.text > 40, '页面几乎没有文字（' + o.text + '），八成是白屏');
+      need(o.lede > 0 && o.sendLabel > 0, '文案没渲染（i18n 没跑）');
+    } else {
+      need(o.outHidden && !o.inShown, '同步关闭时仍然给出了登录入口 —— 这正是那个开关承诺不会发生的事');
+      need(o.text > 10, '同步关闭时页面是空的 —— 至少要说清楚为什么没有内容');
+    }
+    // Style.css 404s silently; without this the page still "works" and looks broken.
+    need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
+  } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
+  chrome.cleanup(); srv.close();
+  console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');
+  process.exit(ok ? 0 : 1);
+})();

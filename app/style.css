@@ -1,0 +1,115 @@
+/* app/style.css — the host app's shell.
+ *
+ * Built to `Style.css`, one of the three fixed filenames the Safari converter's App
+ * target already references, so regenerating the Xcode project never needs a pbxproj
+ * edit (see scripts/sync-app-assets.js).
+ *
+ * System font and system colours throughout: this ships inside an App Store app on
+ * two platforms, and anything hand-picked here is a thing that looks wrong in dark
+ * mode, at accessibility text sizes, or on the OS we did not check. */
+
+:root {
+  --green: #0a7a3c;
+  --fg: #1c1c1e;
+  --dim: #6b6b70;
+  --line: rgba(0, 0, 0, 0.12);
+  --bg: #fff;
+  --field: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --green: #4ec98a;
+    --fg: #f2f2f7;
+    --dim: #9a9aa0;
+    --line: rgba(255, 255, 255, 0.18);
+    --bg: #1c1c1e;
+    --field: #2c2c2e;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* MUST stay ahead of any rule that sets `display`. The UA stylesheet gives [hidden]
+   `display: none`, but an author rule like `form { display: flex }` outranks it — so
+   every screen the app tries to hide renders anyway, stacked on top of each other.
+   That is exactly what the first simulator build showed: the verification-code form
+   on screen before any code had been requested. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  /* The iOS ViewController disables scrolling for the converter's one-screen
+     template; scripts/sync-app-assets.js patches that off. If it ever comes back,
+     this page silently stops scrolling — check there first. */
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: -apple-system-body, 16px/1.45 -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+h1 { font-size: 1.45rem; margin: 0 0 6px; }
+.lede { margin: 0 0 20px; color: var(--dim); }
+.note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; }
+
+form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+label { font-size: 0.85rem; color: var(--dim); }
+
+input {
+  font: inherit;
+  color: var(--fg);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  /* 16px minimum or iOS zooms the whole page on focus. */
+  font-size: max(16px, 1rem);
+}
+input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--green);
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  /* Comfortably past the 44pt touch target. */
+  min-height: 48px;
+}
+button:disabled { opacity: 0.45; cursor: default; }
+
+button.link {
+  background: none;
+  color: var(--green);
+  font-weight: 400;
+  min-height: 0;
+  padding: 6px;
+  text-decoration: underline;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+#who { color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
+
+.counts { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 4px; }
+.counts b { display: block; font-size: 1.7rem; color: var(--green); font-variant-numeric: tabular-nums; }
+.counts span { font-size: 0.8rem; color: var(--dim); }
+
+#status { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--dim); }
+#status.err { color: #c1121f; }
+@media (prefers-color-scheme: dark) { #status.err { color: #ff6b6b; } }

@@ -25,3 +25,4 @@ test/layout/artifacts-*/
 # environment (MT_API_KEY), never in the repo.
 .env
 .env.*
+dist-app/

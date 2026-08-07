@@ -37,6 +37,13 @@ npm run test:layout      # Layout regression corpus (real headless Chrome via ra
                          # Node ≥22) — mandatory when extension/content/** or styles/** change.
                          # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
                          # contract: new site fix ⇒ new fixture red-before-fix, old fixtures stay green)
+npm run app:sync         # Push dist-app/ into the generated Xcode project + patch ViewController.
+                         # Run after EVERY regeneration of safari-project/ — that tree is
+                         # gitignored and disposable; app/ in the repo is the real source.
+npm run test:app         # Host app page comes up (real Chrome, Node ≥22) — mandatory when app/**
+                         # changes. Serves the SHIPPED bundle layout (Main.html in Base.lproj/,
+                         # Script.js at the root), because a flat layout hides the 404 that turns
+                         # the app into a blank white screen.
 npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — mandatory whenever
                          # learn/store.js's DB_VERSION changes. It is the only change that touches
                          # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
