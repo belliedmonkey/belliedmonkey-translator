@@ -578,6 +578,19 @@ extension's own `review.js` / `review.html` / `review.css`, inlined at build tim
 > The DOM assertions in `test:app` could not see this: they use `getElementById` too,
 > which is exactly what the collision fools.
 
+**Push-back verified the same session.** The grade given above was still local; with
+`doSync()` switched from `pull()` to `sync()` it uploaded as **「已上传 1 条复习记录」**
+(复习记录 11→12), and the next run settled to 「已经是最新的」 — §8.4.2 convergence, in
+both directions, on a real device against the real backend.
+
+> **The same wording confusion, shipped twice in one file.** A converged pull still
+> READS a chunk — the cursor does not skip rows this device just wrote — so keying the
+> message on `r.chunks` announced 「收到 0 张卡 · 0 条复习记录」 immediately after a
+> perfectly successful sync. Earlier the same day, keying it on `!r.chunks` announced
+> 「服务器上还没有内容」 next to a count of 11. **Both times the healthy state was
+> rendered as a failure**, and both times the fix was to key on what was actually NEW
+> (`r.cards || r.reviews`) rather than on transport-level activity.
+
 **iPhone 17 Pro · iOS 26.5, real backend, real email OTP.** The full loop:
 
 | Step | Result |
