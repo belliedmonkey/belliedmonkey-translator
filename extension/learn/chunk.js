@@ -138,6 +138,23 @@ var LearnChunk = (() => {
   async function replay(bundle, opts) {
     const fromServer = !!(opts && opts.fromServer);
     const stats = { cards: 0, sources: 0, reviews: 0 };
+
+    // §7.3 — the server is the ARCHIVE, this device keeps a WORKING SET. Material
+    // this device evicted under storage pressure must not come straight back down,
+    // or the user's cleanup visibly does nothing and the corpus thrashes at the cap.
+    //
+    // ONLY on the sync path. A file import is the user asking for this material, and
+    // capture re-admits anything they read again — the tombstone is about what the
+    // SERVER may push here, never about what the user may put here.
+    if (fromServer && bundle.cards.length) {
+      const tombs = await LearnStore.tombstones();
+      if (tombs.size) {
+        const kept = bundle.cards.filter((c) => !tombs.has(c.id));
+        stats.declined = bundle.cards.length - kept.length;
+        bundle = Object.assign({}, bundle, { cards: kept });
+      }
+    }
+
     if (bundle.cards.length || bundle.sources.length) {
       // `cards` is what was NEW here, not what the bundle contained — the surfaces
       // render it as "received", and a re-read of our own chunk receives nothing.

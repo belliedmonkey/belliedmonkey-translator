@@ -41,6 +41,8 @@ function setup(seed = {}) {
       return Promise.resolve();
     },
     evictIfNeeded: () => { calls.evict++; return Promise.resolve(0); },
+    tombstones: () => Promise.resolve(new Set(seed.tombs || [])),
+    hasEverEvicted: () => Promise.resolve(!!seed.everEvicted),
   };
 
   const ctx = loadModule('learn/chunk.js', {
@@ -113,6 +115,56 @@ describe('LearnChunk — the candidate pool travels (§8.5 lever 1, reversed)', 
       [], [{ itemId: 'a', grade: 2, at: T0 }, { itemId: 'gone', grade: 2, at: T0 }], T0);
     eq(b.reviews.length, 1);
     eq(b.reviews[0].itemId, 'a');
+  });
+});
+
+// §7.3 — the server is the ARCHIVE, this device keeps a WORKING SET. The whole point
+// is that the boundary runs between "the server may push this here" and "the user may
+// put this here", NOT between "keep" and "delete". Every test below is aimed at that
+// line, because getting it wrong in either direction is silent: filter too much and
+// the user's own import quietly loses cards; filter too little and their cleanup
+// visibly does nothing.
+describe('LearnChunk — eviction tombstones filter the PULL only (§7.3)', () => {
+  const bundle = (cards) => ({ header: {}, cards, sources: [], reviews: [] });
+
+  test('a pulled chunk does not hand back what this device evicted', async () => {
+    const { C, items } = setup({ tombs: ['gone'] });
+    const s = await C.replay(bundle([card('kept'), card('gone')]), { fromServer: true });
+    eq(s.cards, 1, '被淘汰的卡又回来了 = 用户清理完立刻又满');
+    eq(s.declined, 1, '拒收了多少要报出来，不能静默');
+    eq(items.map((i) => i.id).join(','), 'kept');
+  });
+
+  test('a FILE IMPORT ignores tombstones entirely', async () => {
+    // Importing is the user asking for this material by name. Filtering it would be
+    // the tombstone overriding an explicit instruction — the exact inversion §7.3
+    // exists to prevent.
+    const { C, items } = setup({ tombs: ['gone'] });
+    const s = await C.replay(bundle([card('kept'), card('gone')]));
+    eq(s.cards, 2, '导入是用户点名要这些内容，墓碑不该拦');
+    eq(items.length, 2);
+  });
+
+  test('a review for a tombstoned card is still recorded', async () => {
+    // 13 bytes, and it is the user's actual history. Dropping it would lose review
+    // data because of a storage decision on one device.
+    const { C, calls } = setup({ tombs: ['gone'] });
+    const b = bundle([card('gone')]);
+    b.reviews = [{ itemId: 'gone', grade: 3, at: T0 }];
+    const s = await C.replay(b, { fromServer: true });
+    eq(s.cards, 0);
+    eq(s.reviews, 1, '排程历史不该因为另一台设备存满而消失');
+    eq(calls.review.length, 1);
+  });
+
+  test('with no tombstones nothing is declined and nothing is copied', async () => {
+    // Guards the guard: if `tombstones()` ever returned a non-empty set by accident,
+    // every test above would still pass while sync quietly dropped real cards.
+    const { C, items } = setup();
+    const s = await C.replay(bundle([card('a'), card('b')]), { fromServer: true });
+    eq(s.cards, 2);
+    eq(s.declined, undefined, '没有拒收就不该报拒收');
+    eq(items.length, 2);
   });
 });
 

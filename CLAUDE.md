@@ -37,6 +37,10 @@ npm run test:layout      # Layout regression corpus (real headless Chrome via ra
                          # Node ≥22) — mandatory when extension/content/** or styles/** change.
                          # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
                          # contract: new site fix ⇒ new fixture red-before-fix, old fixtures stay green)
+npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — mandatory whenever
+                         # learn/store.js's DB_VERSION changes. It is the only change that touches
+                         # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
+                         # vm harness). See docs/verification-spec.md §3.1.2
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.

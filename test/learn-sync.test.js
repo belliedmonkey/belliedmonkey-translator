@@ -60,6 +60,10 @@ function fakeStore(seed = {}) {
     mergeBatch: (inc) => { let added = 0; for (const c of inc) if (!items.some((x) => x.id === c.id)) { items.push(c); added++; } return Promise.resolve(added); },
     recordReview: (itemId, grade, at) => { reviews.push({ itemId, grade, at }); return Promise.resolve(); },
     evictIfNeeded: () => Promise.resolve(0),
+    // §7.3. Defaults are the "nothing has been evicted here" case, so every test
+    // written before tombstones existed keeps the meaning it was written with.
+    tombstones: () => Promise.resolve(new Set(seed.tombs || [])),
+    hasEverEvicted: () => Promise.resolve(!!seed.everEvicted),
     bumpPressure: (f, n) => { bumps.push({ f, n }); return Promise.resolve(); },
   };
 }
@@ -447,6 +451,33 @@ describe('LearnSync — compaction', () => {
     eq(r.skipped, 'empty-corpus', '要说清楚是为什么没压缩，不能静默返回 0');
     eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0,
       '一次 DELETE 就抹掉了整个账号的历史');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST' && !/rpc/.test(c.url)).length, 0);
+  });
+
+  test('a device that has EVER evicted never compacts (§7.3)', async () => {
+    // The severe half of the eviction conflict. Such a device holds a working set,
+    // not the archive; its snapshot is missing whatever it evicted, and the DELETE
+    // that follows would remove those rows from the server permanently — for every
+    // device, of material the user never asked to delete.
+    //
+    // A non-empty corpus deliberately: this must not be mistaken for the empty-corpus
+    // guard, and it must fire even when the device looks perfectly healthy.
+    const items = [];
+    for (let i = 0; i < 300; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items, everEvicted: true });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.compacted, 0);
+    eq(r.skipped, 'ever-evicted');
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0,
+      '这一次 DELETE 会把被淘汰的内容从所有设备上永久抹掉');
     eq(fetchFn.calls.filter((c) => c.method === 'POST' && !/rpc/.test(c.url)).length, 0);
   });
 

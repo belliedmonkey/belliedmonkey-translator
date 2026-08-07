@@ -451,8 +451,8 @@ Three consequences that surprise people, so state them where they will be read:
 
 ### 7.3 Eviction and compaction cancel each other out
 
-*(Found 2026-08-07 while reversing §8.5 lever 1; direction decided the same day, see
-below. The mechanisms are not built yet.)*
+*(Found 2026-08-07 while reversing §8.5 lever 1; direction decided and both mechanisms
+built the same day.)*
 
 Device A hits the 20,000 cap and evicts 5,000 `known` cards per §7.1. Device B later
 compacts (§8.4): it writes a snapshot **from its own complete corpus** and deletes
@@ -515,6 +515,18 @@ Two mechanisms follow, and they are small:
 2. **Only a device that can prove its corpus is complete may compact.** In practice a
    device that has ever evicted cannot prove that, so the workable rule is blunt:
    **a device that has ever evicted never compacts.**
+   - The gate is an `everEvicted` **latch in `meta`**, deliberately not a read of the
+     tombstone store or of the `evicted` pressure counter. Both of those are erasable
+     — tombstones age out, and `clearPressure` is a user action — and a permission to
+     delete server rows must not come back just because the evidence was tidied away.
+
+**Storage layout** (`store.js`, IndexedDB **v3**): a `tombs` store keyed by item id,
+with an `at` index for aging. Both selection decisions — which items are evicted, and
+which tombstones are forgotten — are pure exported functions (`doomedFor`,
+`staleTombs`) so the suite can assert on them; everything around them is IndexedDB
+plumbing. The v2→v3 migration has its own gate, `npm run test:idb`
+(`verification-spec` §3.1.2), because it is the one change that touches data users
+already have and `npm test` structurally cannot see it.
 
 #### What this costs, stated plainly: the storage bound is not real
 

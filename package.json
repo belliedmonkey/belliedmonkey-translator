@@ -8,7 +8,8 @@
     "test:layout": "node test/layout/run-layout.js",
     "build": "node build.js",
     "clean": "rm -rf dist belliedmonkeytranslator.zip",
-    "verify:ios": "node scripts/verify-ios-bundle.js"
+    "verify:ios": "node scripts/verify-ios-bundle.js",
+    "test:idb": "node scripts/verify-idb-upgrade.js"
   },
   "engines": {
     "node": ">=18.0.0"

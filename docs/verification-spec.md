@@ -628,6 +628,31 @@ could not look. When you add a test, ask which of these it needs:
 The recurring shape behind all three: **a green suite proves the happy path
 produced the right output; it proves nothing about cost, cleanup, or wiring.**
 
+### 3.1.2 `npm run test:idb` — the IndexedDB upgrade, on every `DB_VERSION` bump
+
+**Mandatory whenever `learn/store.js`'s `DB_VERSION` changes.** Real Chrome, throwaway
+profile (Node ≥22, same launcher as §3.2): it seeds a database at the *previous*
+shipped schema, opens it through `LearnStore.open()` itself, and asserts the old
+items, reviews, meta and indexes all survive and the new store is writable.
+
+This is the one migration that touches data **users already have**, and `npm test`
+structurally cannot see it — the zero-dep harness has no IndexedDB. The comment in
+`store.js` ("every create is guarded by `contains`, so bumping the version never
+touches existing data") is true of *added stores* and says nothing about an index
+added to an existing one, which is the shape that would actually eat a corpus.
+
+Three ways of getting it wrong were confirmed to make this fail, by breaking
+`store.js` on purpose: not bumping the version, adding an index to an existing store,
+and deleting-then-recreating a store. Keep that habit — a migration check that has
+never been seen red is not evidence.
+
+> **The checker itself had this bug first.** `db.transaction([...])` throws
+> *synchronously* for a missing store, so the initial version's promise never settled
+> and a genuinely broken upgrade came out as a 90-second hang rather than a ✗. Same
+> family as §4's rule about `close()`: **a check that hangs is indistinguishable from
+> one that is still working.** Wrap the body, and give every long-running check a
+> hard timeout that prints a verdict.
+
 ### 3.2 `npm run test:layout` — layout regression corpus
 
 `npm run test:layout` (`node test/layout/run-layout.js`, zero-dep, Node ≥22 for the

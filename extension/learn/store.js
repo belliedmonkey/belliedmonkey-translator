@@ -8,10 +8,12 @@
 
 var LearnStore = (() => {
   const DB_NAME = 'mt-learn';
-  // v2 adds the `audio` store. The upgrade path only ever ADDS (every create is
-  // guarded by `contains`), so bumping the version never touches existing data.
-  const DB_VERSION = 2;
+  // v2 adds the `audio` store; v3 adds `tombs` (§7.3). The upgrade path only ever
+  // ADDS (every create is guarded by `contains`), so bumping the version never
+  // touches existing data.
+  const DB_VERSION = 3;
   const MAX_ITEMS = 20000;
+  const MAX_TOMBS = 20000;   // same order as the corpus; oldest forgotten past this
   const MAX_AUDIO_BYTES = 200 * 1024 * 1024;   // 200 MB, LRU-evicted
 
   let dbp = null;
@@ -42,6 +44,14 @@ var LearnStore = (() => {
           const a = db.createObjectStore('audio', { keyPath: 'k' });
           a.createIndex('at', 'at');       // LRU
           a.createIndex('bytes', 'bytes');
+        }
+        // Ids this device evicted. §7.3: the server is the ARCHIVE and each device
+        // keeps a WORKING SET, so a pull must not hand back what local pressure just
+        // let go of. These are PER-DEVICE and never sync — eviction is a fact about
+        // this device's storage, not about what the corpus should contain.
+        if (!db.objectStoreNames.contains('tombs')) {
+          const t = db.createObjectStore('tombs', { keyPath: 'id' });
+          t.createIndex('at', 'at');       // oldest forgotten first
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -185,23 +195,88 @@ var LearnStore = (() => {
     });
   }
 
-  // Bounded corpus. Evict 'known' first, then lowest salience, then oldest —
-  // never a card the user is actively learning.
-  function evictIfNeeded(limit) {
+  // ─── What gets dropped: pure, and exported so it can be tested ───────────
+  //
+  // These two decide what this device forgets. Everything around them is IndexedDB
+  // plumbing, which the zero-dep suite cannot reach — so the decisions live out here
+  // where they can be asserted on directly, and the untestable part is reduced to
+  // "call the pure function, then write the result".
+
+  // Evict 'known' first, then lowest salience, then oldest — never a starred card
+  // and never one the user is actively learning.
+  function doomedFor(items, cap) {
+    if (items.length <= cap) return [];
+    const overflow = items.length - cap;
+    const rank = (it) => (it.state === 'known' ? 0 : it.state === 'candidate' ? 1 : 2);
+    return items
+      .filter((it) => !it.starred)
+      .sort((a, b) => rank(a) - rank(b)
+        || (a.salience || 0) - (b.salience || 0)
+        || (a.createdAt || 0) - (b.createdAt || 0))
+      .slice(0, overflow);
+  }
+
+  // Oldest tombstones are forgotten first (§7.3): the worst case is that a card
+  // evicted long ago returns once, i.e. exactly the behaviour we had before
+  // tombstones existed.
+  function staleTombs(rows, cap) {
+    if (rows.length <= cap) return [];
+    return rows.slice().sort((a, b) => (a.at || 0) - (b.at || 0)).slice(0, rows.length - cap);
+  }
+
+  // Bounded corpus.
+  function evictIfNeeded(limit, now) {
     const cap = limit || MAX_ITEMS;
     return allItems().then((items) => {
       if (items.length <= cap) return 0;
-      const overflow = items.length - cap;
-      const rank = (it) => (it.state === 'known' ? 0 : it.state === 'candidate' ? 1 : 2);
-      const doomed = items
-        .filter((it) => !it.starred)
-        .sort((a, b) => rank(a) - rank(b)
-          || (a.salience || 0) - (b.salience || 0)
-          || (a.createdAt || 0) - (b.createdAt || 0))
-        .slice(0, overflow);
+      const doomed = doomedFor(items, cap);
       if (!doomed.length) return 0;
-      return tx(['items'], 'readwrite', (s) => { for (const d of doomed) s.items.delete(d.id); })
+      const at = now || Date.now();
+      return tx(['items', 'tombs'], 'readwrite', (s) => {
+        for (const d of doomed) { s.items.delete(d.id); s.tombs.put({ id: d.id, at }); }
+      })
+        // `everEvicted` is a separate, never-cleared flag rather than a read of
+        // `tombs` or of the pressure counter, because both of those are erasable:
+        // tombstones age out (below) and `clearPressure` is a user action. What it
+        // gates — whether this device may ever write a compaction snapshot (§7.3) —
+        // must not become true again just because the evidence was tidied away.
+        .then(() => setMeta('everEvicted', 1))
+        .then(() => trimTombs())
         .then(() => bumpPressure('evicted', doomed.length))
+        .then(() => doomed.length);
+    });
+  }
+
+  // ─── Eviction tombstones (§7.3) ──────────────────────────────────────────
+  //
+  // The rule they implement: **eviction is local pressure, not the user deleting
+  // something.** So it must never propagate — no tombstone kind in the chunk format,
+  // no snapshot that omits what one device dropped. It only stops the SYNC PULL from
+  // handing the material straight back, which is what otherwise makes the user's
+  // cleanup look like it did nothing (「清理完又满了」).
+  //
+  // Capture is deliberately NOT filtered: if the user reads the sentence again, the
+  // Collector captures it and the drain re-admits it, tombstone and all. That keeps
+  // law 1's direction of travel intact and mirrors §8.4.2's split between "a new
+  // observation" and "a copy of the same fact".
+
+  function tombstones() {
+    return getAllFrom('tombs').then((rows) => new Set(rows.map((r) => r.id)))
+      .catch(() => new Set());   // a broken tomb store must never block a sync
+  }
+
+  function hasEverEvicted() { return getMeta('everEvicted', 0).then((v) => !!v); }
+
+  // Bounded like everything else here. On overflow the OLDEST are forgotten, so the
+  // worst case is that a long-ago-evicted card returns once — i.e. it degrades to the
+  // behaviour we had before tombstones existed, which is the right direction for a
+  // bound to fail in.
+  function trimTombs(limit) {
+    const cap = limit || MAX_TOMBS;
+    return getAllFrom('tombs').then((rows) => {
+      const doomed = staleTombs(rows, cap);
+      if (!doomed.length) return 0;
+      return tx(['tombs'], 'readwrite', (s) => { for (const d of doomed) s.tombs.delete(d.id); })
         .then(() => doomed.length);
     });
   }
@@ -274,9 +349,13 @@ var LearnStore = (() => {
 
   function clearAll() {
     // Wipes `meta` too, which resets the pressure counters — correct, since after
-    // this there is nothing left to be under pressure about.
-    return tx(['items', 'sources', 'reviews', 'meta', 'audio'], 'readwrite', (s) => {
-      s.items.clear(); s.sources.clear(); s.reviews.clear(); s.meta.clear(); s.audio.clear();
+    // this there is nothing left to be under pressure about. That also clears
+    // `everEvicted`, and tombstones go with it: an empty corpus has not evicted
+    // anything, and keeping the tombstones would make a fresh re-sync silently
+    // refuse to restore the very cards the user just asked to start over with.
+    return tx(['items', 'sources', 'reviews', 'meta', 'audio', 'tombs'], 'readwrite', (s) => {
+      s.items.clear(); s.sources.clear(); s.reviews.clear();
+      s.meta.clear(); s.audio.clear(); s.tombs.clear();
     });
   }
 
@@ -293,9 +372,11 @@ var LearnStore = (() => {
   }
 
   return {
-    MAX_ITEMS, MAX_AUDIO_BYTES,
+    MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS,
     open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
+    tombstones, hasEverEvicted, trimTombs,
+    doomedFor, staleTombs,          // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,
     getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,
   };

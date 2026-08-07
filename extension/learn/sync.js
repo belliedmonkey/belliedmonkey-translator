@@ -242,11 +242,24 @@ var LearnSync = (() => {
     const [items, sources, reviews] = await Promise.all([
       LearnStore.allItems(), LearnStore.allSources(), LearnStore.allReviews(),
     ]);
-    // **Never compact from an empty corpus.** The delete below is justified only by
-    // the snapshot being COMPLETE; a snapshot of nothing supersedes nothing, and
-    // writing one would erase the account's entire history on behalf of a device that
-    // simply has not pulled yet.
+    // ─── Two preconditions, both about COMPLETENESS ──────────────────────────
+    //
+    // Compaction's licence to delete rests entirely on the snapshot being complete
+    // (§8.4: it supersedes everything below it *because* it is). Anything that makes
+    // this device's corpus a subset of the archive therefore disqualifies it, and
+    // getting this wrong is not churn — it is permanent loss of material the user
+    // never asked to delete, on every device at once.
+
+    // **Never compact from an empty corpus.** A snapshot of nothing supersedes
+    // nothing; writing one would erase the account's entire history on behalf of the
+    // device that knows the least — one that simply has not pulled yet.
     if (!items.length) return { compacted: 0, skipped: 'empty-corpus' };
+
+    // **Never compact from a device that has ever evicted** (§7.3). Eviction is local
+    // storage pressure, and a device under it holds a working set, not the archive.
+    // Note `everEvicted` is a latch, not a count: tombstones age out and the pressure
+    // counters are user-clearable, so neither can be asked this question.
+    if (await LearnStore.hasEverEvicted()) return { compacted: 0, skipped: 'ever-evicted' };
 
     // Batched for the same reason a push is (§8.4) — this is the WHOLE corpus, up to
     // the 20,000-item cap. Splitting it does not weaken the property compaction rests
