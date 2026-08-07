@@ -35,6 +35,7 @@
     sources: '个来源',
     never: '还没有同步过',
     empty: '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。',
+    upToDate: '已经是最新的。',
     sent: '验证码已发送，查收邮件。',
     codeBad: '验证码不对或已过期，重新试一次。',
     offline: '连不上服务器，检查网络后重试。',
@@ -185,10 +186,15 @@
       await paintCounts();
       if (r.needsUpgrade) {
         say('服务器上有这个版本读不了的内容，请更新 App。', true);
-      } else if (!r.chunks) {
-        say(t('empty'));
-      } else {
+      } else if (r.chunks) {
         say('收到 ' + r.cards + ' 张卡 · ' + r.reviews + ' 条复习记录');
+      } else {
+        // Zero chunks is TWO different states and they must not share a sentence.
+        // Converged (the good one) told the user 「服务器上还没有内容」 while the
+        // counts beside it read 11 — i.e. the app announced data loss every time
+        // sync worked perfectly. Distinguish by whether anything is actually here.
+        const stats = await LearnStore.stats();
+        say(stats.total ? t('upToDate') : t('empty'));
       }
     } catch (err) {
       say(humanError(err), true);

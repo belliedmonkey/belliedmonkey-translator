@@ -63,7 +63,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
-| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ⬜ not built yet — see §2.F |
+| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ⬜ not built yet — see §2.G |
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
@@ -561,30 +561,33 @@ template from bouncing and would trap a scrolling review list.
 > measurement. (Related to, but distinct from, the ios-sim issue where *new* files
 > never enter the bundle at all.)
 
-### F. iOS host app (Xcode Simulator) — ⬜ not built yet
+### F. iOS host app (Xcode Simulator) — ✅ Stage 2 verified 2026-08-07
 
-The app is a `WKWebView` hosting the **same** review UI (`learning-design.md` §9), so
-once it loads, everything already known about driving the review page applies. What is
-new is only the shell.
+**iPhone 17 Pro · iOS 26.5, real backend, real email OTP.** The full loop:
 
-The pass is one uninterrupted loop, and it must be **the app's own**, not the
-extension's: **sign in → pull → a card appears → grade it → relaunch the app → the
-grade is still there → the extension pulls that same grade back**. The last step is
-what proves the two corpora actually met (§7.2); everything before it is satisfied by
-an app that never talks to the server.
+| Step | Result |
+|---|---|
+| Sign in (`LearnAuth.signIn` → GoTrue → email OTP → `verify`) | ✅ |
+| Auto-pull on verify | ✅ **11 cards · 11 reviews · 2 sources** — material captured in a browser arrived in the app |
+| Sync again | ✅ 0 chunks — converged (§8.4.2's criterion) |
+| Reinstall over the top + relaunch | ✅ session, corpus and last-sync time all survived |
 
-Simulator handling is unchanged from rows 1–2, including the two recipes that cost a
-day each to find and are easy to reach for again:
+That is Stage 2's acceptance criterion met: the extension's corpus reaches the app, and
+the server is the only thing between them (§7.2).
 
-- **Text input**: `pbcopy` → focus the field → **2200 ms** long-press → 全选 → paste.
-  `type_text` turns every character into `a`; modifier keys are swallowed; `press_key`
-  is reliable for single keys only. See §1.1.
-- **A blank screenshot is not an empty screen.** Read the DOM and believe the DOM; a
-  page with 37 rendered paragraphs has screenshotted pure white here.
-- **New files never enter the app bundle** on their own — the Safari project packs
-  the file list captured at conversion time. Run `npm run verify:ios`, then uninstall
-  and reinstall. (That does **not** reset the extension toggle, per-site permission,
-  or extension storage — see `release-checklist.md`.)
+**Simulator text input — the recipe, and one correction to it.** `type_text` still
+turns every character into `a` (23 a's, reproduced again here). The working path is
+`pbcopy` → `xcrun simctl pbsync host <udid>` → focus the field → **原地 `drag` with
+`duration_ms: 2200`** (that is the long-press; there is no hold-click) → **Select All**
+→ **Paste**.
+
+- **Do NOT press ⌘⇧K "to enable the hardware keyboard".** It is a toggle and the
+  hardware keyboard is already on — pressing it *disconnects* it and raises the
+  software keyboard, which is the opposite of the intent and looks like the fix failed.
+- **The two coordinate spaces are different and it is easy to mix them up.** cua-driver
+  wants window-local pixels from `get_window_state` (device screen + simulator chrome);
+  `xcrun simctl io … screenshot` gives device pixels only. Locate tap targets in the
+  `get_window_state` image, never in a `simctl` screenshot.
 
 ### G. macOS host app (real Mac) — ⬜ not built yet
 
