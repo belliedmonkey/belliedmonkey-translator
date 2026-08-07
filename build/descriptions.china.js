@@ -19,7 +19,9 @@ module.exports = {
   fr:    'Traduction bilingue des pages web, avec plusieurs moteurs de traduction IA intégrés.',
   de:    'Zweisprachige Webseiten-Übersetzung mit mehreren integrierten KI-Übersetzungsmodulen.',
   es:    'Traducción bilingüe de páginas web, con varios motores de traducción de IA integrados.',
-  pt:    'Tradução bilíngue de páginas, com vários motores de tradução de IA integrados e endpoints personalizados.',
+  // `pt_BR`, not `pt`: Chrome's supported-locale list has no bare `pt`, so #65 renamed
+  // the directory. This key must match the DIRECTORY name — it is looked up by it.
+  pt_BR: 'Tradução bilíngue de páginas, com vários motores de tradução de IA integrados e endpoints personalizados.',
   ru:    'Двуязычный перевод страниц с несколькими встроенными ИИ-движками и настраиваемыми эндпоинтами.',
   ar:    'ترجمة ثنائية اللغة لصفحات الويب، مع عدة محركات ترجمة بالذكاء الاصطناعي ونقاط نهاية مخصصة.',
 };

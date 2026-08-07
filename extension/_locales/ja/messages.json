@@ -3,7 +3,7 @@
     "message": "大肚猴翻訳"
   },
   "extension_description": {
-    "message": "ウェブページの対訳翻訳 + YouTube バイリンガル字幕。OpenAI/Claude/DeepSeek/GLM などに対応"
+    "message": "ウェブページの対訳翻訳 + YouTube バイリンガル字幕。複数のAI翻訳エンジンを内蔵、独自のエンドポイントとAPIキーも利用可能。"
   },
   "action_title": {
     "message": "大肚猴翻訳"

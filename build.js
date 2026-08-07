@@ -150,6 +150,41 @@ function chinaOnlyStripKeys() {
   return [...out].filter((k) => !kept.has(k));
 }
 
+// Brand words come from build/brands.js so a test can require them — see the note
+// there about why this cannot live in build.js.
+const { providerBrands } = require("./build/brands.js");
+
+// ─── Gate: the store description must not name providers (issue #69) ───────
+// `extension_description` had drifted to naming 4 of 9 providers — and the one it
+// omitted was `google`, the zero-config default every new user meets first. Completing
+// the list would only move the bug to the next registry change (and 9 names do not fit
+// a 132-character store summary anyway), so the description describes the CAPABILITY
+// and this gate keeps it that way.
+//
+// GLOBAL builds only. The China description is generated at build time from
+// descriptions.china.js and already has the forbidden-brand grep over dist-china/.
+function descriptionBrandGate(dir) {
+  const brands = providerBrands();
+  const localesDir = path.join(dir, '_locales');
+  const hits = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const desc = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message || '';
+    for (const b of brands) {
+      if (desc.toLowerCase().indexOf(b.toLowerCase()) >= 0) hits.push(`${loc}: "${b}" in ${JSON.stringify(desc.slice(0, 90))}`);
+    }
+  }
+  if (hits.length) {
+    err('extension_description names a provider — the registry is the single source of truth\n' +
+        '  (CLAUDE.md: never re-state a model name, endpoint or provider list in UI strings).\n' +
+        '  Describe the capability instead; the list will drift the moment the registry changes.\n' +
+        hits.map((h) => '   ' + h).join('\n'));
+    process.exit(1);
+  }
+  log(`Store description is provider-neutral (checked ${brands.length} brand tokens)`);
+}
+
 function applyChinaLocales(dir) {
   const DESC = require('./build/descriptions.china.js');
   const STRIP_KEYS = chinaOnlyStripKeys();
@@ -159,7 +194,26 @@ function applyChinaLocales(dir) {
     if (!fs.existsSync(f)) continue;
     const raw = JSON.parse(fs.readFileSync(f, 'utf8'));
     let dirty = false;
-    if (raw.extension_description) { raw.extension_description.message = DESC[loc] || DESC._default; dirty = true; }
+    if (raw.extension_description) {
+      // A locale with no China description must FAIL the build, not silently take the
+      // English `_default`. That fallback hid #70 for two weeks: `_locales/pt` was
+      // renamed `pt_BR` (#65) and `descriptions.china.js` kept the old `pt` key, so
+      // Portuguese users of the China build would have seen an English description —
+      // a compliant, brand-free, perfectly buildable wrong answer.
+      //
+      // `_default` stays, but now only as the last line of defence for a locale dir
+      // that appears without warning; on the normal path it is never reached, and if
+      // it ever is, this throws first. Deleting it instead would write `undefined`
+      // into messages.json, which is worse than an English fallback.
+      if (!DESC[loc]) {
+        err(`no China description for locale "${loc}" — add it to build/descriptions.china.js.\n` +
+            `  Falling back to English would ship a wrong description that still builds and still passes\n` +
+            `  the brand grep (that is exactly how #70 survived). Present keys: ${Object.keys(DESC).filter((k) => k !== '_default').join(', ')}`);
+        process.exit(1);
+      }
+      raw.extension_description.message = DESC[loc];
+      dirty = true;
+    }
     for (const k of STRIP_KEYS) { if (raw[k]) { delete raw[k]; dirty = true; } }
     if (dirty) fs.writeFileSync(f, JSON.stringify(raw, null, 2) + '\n');
   }
@@ -372,6 +426,9 @@ validateManifest(DIST, isFirefox);
 
 // China compliance gate (after all DIST content is final)
 if (FLAVOR === 'china') complianceGateChina(DIST);
+
+// Store-description gate (global builds only — see the function comment)
+if (FLAVOR !== 'china') descriptionBrandGate(DIST);
 
 // Zip (Firefox .xpi is just a zip)
 if (SKIP_ZIP) {

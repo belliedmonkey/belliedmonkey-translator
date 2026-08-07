@@ -3,7 +3,7 @@
     "message": "대두원숭이 번역"
   },
   "extension_description": {
-    "message": "웹페이지 이중 번역 + YouTube 이중 자막. OpenAI/Claude/DeepSeek/GLM 등 지원"
+    "message": "웹페이지 이중 번역 + YouTube 이중 자막. 여러 AI 번역 엔진 내장, 직접 만든 엔드포인트와 API 키도 사용 가능."
   },
   "action_title": {
     "message": "대두원숭이 번역"

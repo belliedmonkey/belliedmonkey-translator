@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Traducción bilingüe de páginas web + subtítulos de YouTube, con OpenAI/Claude/DeepSeek/GLM"
+    "message": "Traducción bilingüe de páginas web + subtítulos bilingües de YouTube. Varios motores de IA integrados, o tu propio endpoint."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

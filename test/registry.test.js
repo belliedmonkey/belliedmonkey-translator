@@ -68,3 +68,65 @@ describe('capability registries', () => {
     eq(globalOnly.every((e) => e.flavors.includes('global')), true);
   });
 });
+
+// ─── The description gate is only as good as its derivation (#69) ────────────
+// build/brands.js feeds the gate that keeps `extension_description` provider-neutral.
+// A derivation that silently returned [] would make that gate pass on every string,
+// which is the failure mode this file exists to prevent elsewhere too — so assert the
+// tokens, not just that the function runs.
+
+describe('provider brand derivation (#69)', () => {
+  const { providerBrands } = require('../build/brands.js');
+
+  test('every branded provider contributes a token', () => {
+    const brands = providerBrands().map((b) => b.toLowerCase());
+    // One token per real vendor name that appears in a label, in either flavor.
+    for (const expected of ['google', 'chatgpt', 'openai', 'claude', 'anthropic',
+      'deepseek', 'glm', 'qwen', 'kimi', '智谱', '通义千问']) {
+      ok(brands.indexOf(expected.toLowerCase()) >= 0, `品牌词漏了 "${expected}" —— 闸门会放行点名它的文案`);
+    }
+  });
+
+  test('the generic words in labels are NOT treated as brands', () => {
+    const brands = providerBrands().map((b) => b.toLowerCase());
+    // These all appear inside labels ("Google 翻译（免费，无需 API Key）", "自定义 · Chat
+    // Completions 格式"). If they leaked in, the gate would reject ordinary prose and
+    // someone would delete the gate rather than fight it.
+    for (const generic of ['api', 'key', 'custom', 'chat', 'completions', '翻译', '自定义', '格式']) {
+      ok(brands.indexOf(generic) < 0, `"${generic}" 被当成品牌词 —— 闸门会对正常文案误报`);
+    }
+  });
+
+  test('shipped descriptions name no provider, in every locale', () => {
+    const fs = require('fs'), path = require('path');
+    const brands = providerBrands();
+    const dir = path.join(__dirname, '..', 'extension', '_locales');
+    const offenders = [];
+    for (const loc of fs.readdirSync(dir)) {
+      const f = path.join(dir, loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const desc = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message || '';
+      for (const b of brands) {
+        if (desc.toLowerCase().indexOf(b.toLowerCase()) >= 0) offenders.push(`${loc}:${b}`);
+      }
+    }
+    eq(offenders.length, 0, `商店描述里点名了服务商: ${offenders.join(', ')}`);
+  });
+});
+
+// ─── Every locale must have a China description (#70) ────────────────────────
+// `_locales/pt` was renamed `pt_BR` (#65) and descriptions.china.js kept `pt`, so the
+// China build silently served Portuguese users the English `_default` — a compliant,
+// brand-free, perfectly buildable wrong answer that no gate could see.
+
+describe('China descriptions cover every locale (#70)', () => {
+  test('each _locales dir has a matching key', () => {
+    const fs = require('fs'), path = require('path');
+    const DESC = require('../build/descriptions.china.js');
+    const dir = path.join(__dirname, '..', 'extension', '_locales');
+    const missing = fs.readdirSync(dir)
+      .filter((loc) => fs.existsSync(path.join(dir, loc, 'messages.json')))
+      .filter((loc) => !DESC[loc]);
+    eq(missing.length, 0, `descriptions.china.js 缺少: ${missing.join(', ')}（会静默回落成英文）`);
+  });
+});
