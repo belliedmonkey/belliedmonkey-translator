@@ -63,6 +63,14 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
+| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ⬜ not built yet — see §2.F |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ⬜ not built yet — see §2.G |
+
+Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
+(`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
+not run there, and `domain-design.md` §9.4's constraint (the app is an *additional*
+surface, never the only working path) means a change to translation is N/A for them by
+construction, not by exemption.
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
@@ -518,6 +526,53 @@ verification in one connection, or restart web-ext between attempts.
 > advancing ("That this was your natural choice." / "这是你自然的选择。"); trusted click
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
+
+### F. iOS host app (Xcode Simulator) — ⬜ not built yet
+
+The app is a `WKWebView` hosting the **same** review UI (`learning-design.md` §9), so
+once it loads, everything already known about driving the review page applies. What is
+new is only the shell.
+
+The pass is one uninterrupted loop, and it must be **the app's own**, not the
+extension's: **sign in → pull → a card appears → grade it → relaunch the app → the
+grade is still there → the extension pulls that same grade back**. The last step is
+what proves the two corpora actually met (§7.2); everything before it is satisfied by
+an app that never talks to the server.
+
+Simulator handling is unchanged from rows 1–2, including the two recipes that cost a
+day each to find and are easy to reach for again:
+
+- **Text input**: `pbcopy` → focus the field → **2200 ms** long-press → 全选 → paste.
+  `type_text` turns every character into `a`; modifier keys are swallowed; `press_key`
+  is reliable for single keys only. See §1.1.
+- **A blank screenshot is not an empty screen.** Read the DOM and believe the DOM; a
+  page with 37 rendered paragraphs has screenshotted pure white here.
+- **New files never enter the app bundle** on their own — the Safari project packs
+  the file list captured at conversion time. Run `npm run verify:ios`, then uninstall
+  and reinstall. (That does **not** reset the extension toggle, per-site permission,
+  or extension storage — see `release-checklist.md`.)
+
+### G. macOS host app (real Mac) — ⬜ not built yet
+
+Same loop as F. The one thing that must not be improvised is the install:
+
+```bash
+node build.js
+xcodebuild -project "safari-project/…/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (macOS)" -configuration Debug \
+  -derivedDataPath /tmp/bmt-mac-signed -allowProvisioningUpdates build   # NOT CODE_SIGNING_ALLOWED=NO
+rm -rf "/Applications/BelliedMonkey Translator.app"
+cp -R "/tmp/bmt-mac-signed/Build/Products/Debug/BelliedMonkey Translator.app" /Applications/
+open "/Applications/BelliedMonkey Translator.app"
+pluginkit -m -p com.apple.Safari.web-extension | grep belliedmonkey     # proof it registered
+```
+
+**An app built with `CODE_SIGNING_ALLOWED=NO` is never registered by Safari, even from
+`/Applications`** (measured). This is also what finally explained a full day of
+intermittent 「扩展突然不跑了」 on row 3: an unsigned temporary extension is switched
+off at every Safari restart and needs an admin password to re-enable, whereas a really
+signed container app installs once and survives. **Prefer the signed app to 添加临时扩展
+for any session longer than a few minutes.**
 
 ---
 

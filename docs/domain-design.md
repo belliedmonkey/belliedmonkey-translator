@@ -542,7 +542,8 @@ default path" is untouched; nothing about Firefox's exception is load-bearing fo
 | `LearnScheduler` | `content/learn-scheduler.js` | learning layer (§9): pure Ebbinghaus scheduler — `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
 | `LearnCollector` | `content/learn-collector.js` | learning layer (§9): the **sink** — dwell observation, salience gate, bounded `lq:` outbox writes. Reads only what the Renderer already displays; never originates a translation |
 | `LearnStore` | `learn/store.js` + `learn/drain.js` | learning layer (§9): the corpus. IndexedDB opened **only in extension pages** (a content script's `indexedDB` belongs to the host page's origin) + the outbox→corpus drain/merge |
-| `Reviewer` | `learn/review.{html,css,js}` | learning layer (§9): the review surface — one implementation covering all five matrix rows |
+| `Reviewer` | `learn/review.{html,css,js}` | learning layer (§9): the review surface — one implementation covering all five matrix rows, hosted in an extension page **and** in the host app's `WKWebView` (§9.4) |
+| Host app | `safari-project/…/Shared (App)/` | learning layer (§9.4): the one-tap surface on iOS + macOS. **Not a second engine** — it loads the same review UI and scheduler, swapping only the host shims. Requires sign-in; the server is its only source (§9.3) |
 
 ## 7. Provider transport & region flavors (合规双分发)
 
@@ -718,9 +719,46 @@ IndexedDB opened only in extension pages. Same reason `crypto.subtle` is unusabl
 content scripts (plain-`http` pages are not secure contexts), so the item id uses a
 synchronous FNV-1a hash rather than `crypto.subtle`.
 
+**The host app is a FOURTH origin, and the only bridge to it is the server**
+*(2026-08-07)*. The app's `WKWebView` can no more read the extension's IndexedDB than
+a content script can — it is a different origin again, and origin is the whole reason
+this boundary exists. So there are two corpora, and exactly one thing connects them:
+
+| Surface | Corpus lives in | Review surface | Signed out |
+|---|---|---|---|
+| Chrome / Firefox / Safari extension | extension-page IndexedDB | the extension's review page | **complete** |
+| iOS / macOS app | the app's own store | the app | **empty** — and the app must say so |
+
+Consequences, both counter-intuitive enough to be worth stating:
+
+- **On one iPhone, Safari's corpus and the app's corpus still meet by going through
+  the server.** Same device, same user, two origins.
+- **The extension owns the upload.** It pushes its own captures and holds its own
+  progress cursor; the app is downstream. The rejected alternative — draining the
+  outbox to native and letting the app upload — is recorded in `learning-design.md`
+  §12: it puts upload in the hands of a process the user may never launch, and the
+  extension could not even observe whether its data had arrived.
+
 ### 9.4 Device axis
 
-The review surface is one implementation for all five matrix rows (§5.1's principle
-holds: viewport size is read at runtime, never branched). The iOS host app (planned)
-is an *additional* surface, never the only working path — Safari iOS must be complete
-without it, per §5.3.1.
+There are **two** review implementations, and the split is an *entry-depth* problem,
+not a capability one: on iOS, reaching an extension page costs three taps (address bar
+→ extension → review) because that is where iOS puts extension UI **by construction**.
+An app icon is one tap. Both surfaces run the same engine (`learn-model.js`,
+`learn-scheduler.js`); §5.1's principle still holds inside each — viewport size is read
+at runtime, never branched.
+
+| Implementation | Covers | Requires sign-in |
+|---|---|---|
+| Extension review page | all five matrix rows | no |
+| Host app (iOS + macOS) | the two Apple rows | **yes** — the server is the only bridge (§9.3) |
+
+> **核心约束 — the host app is an ADDITIONAL surface, never the only working path.**
+> Safari iOS must be complete without it, per §5.3.1.
+>
+> **This constraint survived a design that was aimed directly at it** *(2026-08-07)*.
+> The proposal was to retire the extension's review page everywhere and make the app
+> the sole learning surface. It was rejected: it would leave a signed-out user without
+> a review surface at all, against `AGENTS.md` rules 2 and 3. **Keeping the extension's
+> review page is what makes signing in buy multi-device sync and a better surface,
+> rather than buying the feature itself.**
