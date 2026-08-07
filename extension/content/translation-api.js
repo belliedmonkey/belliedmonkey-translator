@@ -44,14 +44,60 @@ Rules:
     return isNaN(t) ? null : Math.max(0, t - Date.now());
   }
 
+  // ─── Firefox: the host page's CSP applies to us (domain-design §5.4) ────
+  //
+  // Firefox subjects a content script's `fetch` to the CSP of the page it is injected
+  // into; Chrome and WebKit exempt it. Measured 2026-08-06 on one Mac, same page and
+  // same key: the page's CSP allowlist happened to contain some providers' hosts and
+  // not the one in use — Safari translated 26/26 paragraphs, Firefox failed every one;
+  // on a CSP-free page the same Firefox was perfect. Left alone, whether translation
+  // works depends on which site the reader is on, and nothing the user can change
+  // fixes it. (Hosts are deliberately not named here: this file ships in every flavor,
+  // and the China bundle may not carry brand references — see build.js's gate.)
+  //
+  // Detection is a FACT about the runtime, not a UA string (§5.3 rule 2): Firefox is
+  // the only browser whose extension URLs are `moz-extension://`.
+  const IS_FIREFOX = (() => {
+    try { return chrome.runtime.getURL('').indexOf('moz-extension://') === 0; } catch (_) { return false; }
+  })();
+
+  // Same request from the background page, which no page's CSP can reach. A Response
+  // cannot cross the message boundary, so the parts `apiFetch` actually reads are sent
+  // and a minimal stand-in is rebuilt here — keeping ONE error shape for both paths.
+  async function proxyFetch(url, opts) {
+    const o = opts || {};
+    const r = await chrome.runtime.sendMessage({
+      action: 'proxyFetch', url,
+      init: { method: o.method || 'GET', headers: o.headers, body: o.body },
+    });
+    if (!r) throw new Error('background did not answer the proxied request');
+    if (r.error) throw new Error(r.error);
+    return {
+      ok: !!r.ok, status: r.status, statusText: r.statusText || '',
+      // The RAW header travels, not a parsed number: parseRetryAfter() below is the
+      // single place that interprets it, so the two paths cannot disagree about units.
+      headers: { get: (h) => (String(h).toLowerCase() === 'retry-after' ? (r.retryAfterHeader || null) : null) },
+      json: async () => JSON.parse(r.text || 'null'),
+      text: async () => r.text || '',
+    };
+  }
+
   async function apiFetch(url, opts, label) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
     let resp;
-    try {
-      resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
-    } finally {
-      clearTimeout(timer);
+    if (IS_FIREFOX) {
+      // No fallback to the direct fetch when this fails. A fallback would succeed on
+      // CSP-free pages and fail elsewhere — restoring exactly the site-dependent
+      // unpredictability this removes (and #74 already ruled that a silent fallback
+      // hiding a real failure is worse than a visible one).
+      resp = await proxyFetch(url, opts);
+    } else {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+      } finally {
+        clearTimeout(timer);
+      }
     }
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));

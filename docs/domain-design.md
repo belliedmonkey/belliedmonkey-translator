@@ -465,6 +465,64 @@ identical on every surface by construction.
 > asymmetry is bounded by the strict gates in `docs/interaction-spec.md`: the detector
 > can only ever *remove* a line that duplicates the original.
 
+### 5.4 The RESTRICTION axis — when a browser takes something away
+
+§5.3 covers a browser having a capability others lack, and its rule is that the extra
+capability may only sharpen an already-complete baseline. **This axis is the mirror
+image and needs the opposite rule:** a browser can *forbid* something the baseline
+depends on, and then the compensating path is not opportunistic — it is the only
+working path on that surface, and it must be built.
+
+**Today's instance — Firefox applies the host page's CSP to content-script `fetch`.**
+
+Measured 2026-08-06, same Mac, same page (`en.wikipedia.org`, whose CSP `default-src`
+allows `*.googleapis.com` / `api.openai.com` / `api.anthropic.com` but **not**
+`api.deepseek.com`), same DeepSeek key, same extension code:
+
+| Browser | Result |
+|---|---|
+| macOS Safari | 26 / 26 paragraphs translated |
+| Firefox | every paragraph `翻译失败` |
+
+On a page with no CSP the same Firefox translates perfectly. So on Firefox **whether
+translation works depends on which site the reader is on**, and the user has no way to
+tell why — changing key or model does nothing.
+
+Chrome and WebKit both exempt content-script fetches from the page CSP; Firefox does
+not. This is not a capability we can decline to use. It breaks the product.
+
+#### The rule
+
+1. **The default stays Safari's.** All translation `fetch` lives in
+   `content/translation-api.js` because Safari iOS's service worker goes permanently
+   `undefined` after device lock (§5.3.1 / CLAUDE.md). Safari is the floor and the
+   floor sets the default.
+2. **A restriction earns exactly one exception, at one chokepoint.** Firefox routes
+   the same request through the background page, which is not subject to any page's
+   CSP. The exception lives in `apiFetch()` — the single function every provider
+   already funnels through — so the provider adapters, the retry/timeout policy and
+   the error shape are untouched and cannot drift per browser.
+3. **Detect the runtime by a fact, never by a UA string.** `chrome.runtime.getURL('')`
+   returns `moz-extension://…` on Firefox and nothing else. §5.3 rule 2 forbids UA
+   sniffing; this honours it — the check is on what the runtime *is*, not what it
+   claims to be.
+4. **No silent fallback to the blocked path.** If the background proxy fails, the
+   error surfaces. A fallback to the direct fetch would work on CSP-free pages and
+   fail on others, i.e. it would restore exactly the site-dependent unpredictability
+   this exists to remove — and §7.1 / the #74 decision already ruled that a silent
+   fallback that hides a misconfiguration is worse than a visible failure.
+5. **The background stays state-only everywhere else.** The proxy handler is
+   registered *only* when the background itself is running on Firefox, so the Safari
+   rule remains true by construction rather than by everyone remembering it.
+
+#### Why this does not reopen §5.3 rule 1
+
+Rule 1 says a capability may never supply the only working path. That protects the
+*floor*: Safari must be complete without help. Here the floor is fine — Safari uses the
+default path and works. What is broken is a surface *above* the floor, and the
+compensation is confined to that surface. The invariant "Safari iOS is complete on the
+default path" is untouched; nothing about Firefox's exception is load-bearing for it.
+
 ## 6. Module map
 
 | Module | File | Role |
