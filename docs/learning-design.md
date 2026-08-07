@@ -1141,6 +1141,45 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
 - **`belliedmonkey.cc/privacy.html` lives outside this repo.** Per `AGENTS.md`, look
   its current state up in gbrain first; never infer it from this repository.
 
+#### The exact replacement text (written 2026-08-08, ships WITH sync, not before)
+
+This section used to describe the changes. Descriptions get re-interpreted under
+release pressure, which is the thing §10 exists to prevent — so here is the text.
+
+**Nothing below may land early.** With `MT_BACKEND.enabled === false` the current
+README is TRUE, and replacing it now would make the project claim it stores a reading
+history that it does not store. False in the frightening direction is still false.
+`build.js`'s gate enforces exactly this pairing: it blocks `enabled: true` while the
+old sentence is present, so the flip is one atomic change.
+
+**README.md § Privacy — four sentences change, and the fourth is the dangerous one:**
+
+| Now | Becomes |
+|---|---|
+| **No servers of ours.** … We never handle, store or upload your data — there is no "we" in the path at all. | **No servers of ours in the translation path.** Requests go from your browser to the engine you picked. *(Keep the first half verbatim — it is still true and §10 forbids weakening a true statement to cover a different one. Delete only the "there is no 'we' at all" clause, which sync makes false.)* |
+| **No account, no tracking, no telemetry.** Nothing to sign up for. | **No tracking, no telemetry — and no account unless you want one.** Syncing your learning material between your own devices needs a free account; everything else works without one. |
+| It is off until you turn it on, **it is never uploaded**, and one button erases all of it. | It is off until you turn it on, it stays on your device **unless you turn on sync**, and one button erases all of it. |
+| **What is sent** is the text to be translated. Not the URL, not the page title, not the referrer… | **What is sent for translation** is the text, and nothing else — not the URL, not the page title, not the referrer, not any identifier. **What sync sends, if you turn it on, is different and larger: every sentence the extension kept, the page URL and title it came from, and when you reviewed it — in readable form on our servers.** |
+
+The last row is the one to get right. Per §8.6 the corpus is now the candidate pool,
+i.e. **everything you read**, not a flashcard deck — a disclosure calibrated to the
+narrower dataset would be inaccurate *in our favour*, which is the kind that costs
+trust when someone notices.
+
+**`manifest.json` → `browser_specific_settings.gecko.data_collection_permissions`:**
+
+```jsonc
+{ "required": ["websiteContent", "browsingActivity", "personallyIdentifyingInfo"] }
+```
+
+- `browsingActivity` — the source table is URL + title + time. §8.6: "the sensitive
+  column is the URL". The current declaration deliberately says *not*
+  `browsingActivity`, and that comment must go with it.
+- `personallyIdentifyingInfo` — the account is an email address.
+- **Firefox is LIVE on AMO** (re-verified 2026-08-08: `status: public`, 1.2.0), so this
+  is a change to a published declaration, not a first submission. Growing it is a
+  review-visible event; budget for it.
+
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.

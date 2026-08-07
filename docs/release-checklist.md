@@ -8,6 +8,24 @@
 > **清单比闸门弱。** 它依赖有人在发版时打开它。凡是能变成闸门的项，都应该从这里搬进
 > `build.js` 然后从这里删掉——这份文件越短越好。
 
+## 各商店状态：**别从这里读，去复验**（2026-08-08）
+
+权威页是 gbrain 的 `belliedmonkey-translator-release-state`，**但它自己写着会过时**，
+所以每次用之前跑那一页的「怎么复验」。08-08 实测，与 08-01 的记载有两处不符：
+
+| 行 | 权威页（08-01） | 实测（08-08） |
+|---|---|---|
+| **Firefox AMO** | 1.2.0 仍在审核（401） | **已上架**：`status: public`、1.2.0、2 个日活 |
+| iOS App Store | 1.3.0 已上传待审 | 线上仍是 **1.2.0**（07-29 发布）——1.3.0 传上去一周还没放出来，值得去 ASC 看是不是被拒了 |
+
+```bash
+curl -s "https://itunes.apple.com/lookup?id=6787190032" | ...   # iOS 线上版本
+curl -s https://addons.mozilla.org/api/v5/addons/addon/mobiletranslator@belliedmonkey/
+```
+
+**Firefox 已上架这条会改变 Gate B 的成本**：`data_collection_permissions` 不再是首次
+提交时随便填，而是**修改一条已公开的声明**，会被审核看见。
+
 ## 0. 门禁（都能自动跑，跑之前别做下面任何一步）
 
 ```bash
