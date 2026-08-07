@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Двуязычный перевод страниц + субтитры YouTube, с OpenAI/Claude/DeepSeek/GLM"
+    "message": "Двуязычный перевод страниц + двуязычные субтитры YouTube. Несколько встроенных ИИ-движков или собственная конечная точка."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

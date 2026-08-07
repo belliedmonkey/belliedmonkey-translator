@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Zweisprachige Webseiten-Übersetzung + YouTube-Untertitel, mit OpenAI/Claude/DeepSeek/GLM"
+    "message": "Zweisprachige Webseiten-Übersetzung + zweisprachige YouTube-Untertitel. Mehrere KI-Engines integriert, oder eigener Endpunkt."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

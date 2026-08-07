@@ -3,7 +3,7 @@
     "message": "大肚猴翻譯"
   },
   "extension_description": {
-    "message": "網頁雙語對照翻譯 + YouTube 雙語字幕，支援 ChatGPT、Claude、DeepSeek、GLM 等多種翻譯引擎"
+    "message": "網頁雙語對照翻譯 + YouTube 雙語字幕。內建多種 AI 翻譯引擎，也可填入你自己的介接位址與 API Key。"
   },
   "action_title": {
     "message": "大肚猴翻譯"
