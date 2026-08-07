@@ -530,11 +530,12 @@ keep studying.* Building it would satisfy the rule on paper and produce a featur
 one uses, and a feature no one uses is not compliance — it is decoration. **A rule is
 kept by the path people actually take.**
 
-> **Today's export does not match this section.** `chunk.js`'s `build()` filters
-> through `isGraduated`, and `exportBytes()` goes through the same `build()` — so
-> 「一键导出**全部**」 currently omits the entire candidate pool. Removing that filter
-> for §8.5 fixes the export in the same edit. Until then, this paragraph describes an
-> intent, not the behaviour.
+> **The export used not to match this section, and now does** *(fixed 2026-08-07)*.
+> `chunk.js`'s `build()` filtered through `isGraduated`, and `exportBytes()` goes
+> through that same `build()` — so 「一键导出**全部**」 silently omitted the entire
+> candidate pool for as long as the filter existed. Nobody noticed because the export
+> *worked*: it produced a valid, importable file that was simply missing most of the
+> corpus. Reversing §8.5 lever 1 removed the filter and fixed this in the same edit.
 >
 > The format is the §8.4 chunk format unchanged, so this costs almost nothing to
 > provide and would be indefensible to withhold.
@@ -596,11 +597,12 @@ constraint, never by client-side good behaviour" plus "never silently drop data"
 client turns that error into §7.1's pressure state with a cleanup action.
 
 **核心约束 — a push is batched at ~200 cards per chunk** *(promoted from an assumption
-to a rule, 2026-08-07)*. §8.5 lever 3 has always described chunks as "~200 cards packed
-together", but `sync.js`'s `push()` builds **one** bundle from everything fresh and
-does **one** `insert`. That was harmless while only cards that had entered the deck
-travelled — a few hundred at most. With the candidate pool travelling, a user who has
-been capturing for three months pushes ~20,000 items the first time they sign in:
+to a rule, and implemented, 2026-08-07)*. §8.5 lever 3 had always described chunks as
+"~200 cards packed together", but `sync.js`'s `push()` built **one** bundle from
+everything fresh and did **one** `insert`. That was harmless while only cards that had
+entered the deck travelled — a few hundred at most. With the candidate pool travelling,
+a user who has been capturing for three months pushes ~20,000 items the first time they
+sign in:
 
 - ~1.7 MB compressed, and PostgREST carries `bytea` as a `\x` hex literal, so the
   **request body is ~3.4 MB** (§8.4's deliberate 2×-on-the-wire trade).
@@ -608,6 +610,23 @@ been capturing for three months pushes ~20,000 items the first time they sign in
 
 Batching also gives the surfaces something honest to show, which law 2 (§3) requires:
 「已上传 3,400 / 19,800」 rather than one opaque wait.
+
+**`PUSHED` stays all-or-nothing, and that is deliberate.** Advancing it per batch so an
+interrupted push resumes looks obviously right and is a trap: `revs` is selected by
+`at > since`, and **a review can be older than the card carrying it** (a later re-read
+lifts `lastSeenAt`, and `touchedAt` is the max). A partly-advanced watermark would
+therefore step over reviews whose card had not been sent yet — silent, permanent loss,
+in exchange for saving a retransmit. Idempotent replay already makes the whole-push
+retry safe; the cost is bandwidth, and bandwidth is the cheap thing here.
+
+**The same batching applies to compaction**, which writes the entire corpus. Splitting a
+snapshot does not weaken what compaction rests on — "a snapshot supersedes everything
+below it *because* it is complete" is a property of the SET of rows above the deletion
+point, not of there being exactly one row — but **every part must be written before
+anything is deleted**, or a failure part-way leaves a hole with nothing below to
+recover it. Compaction also now **refuses to run from an empty corpus**: the delete is
+justified only by completeness, and a device that has not pulled yet would otherwise
+erase the account's whole history on behalf of the one device that knows the least.
 
 ### 8.4.1 核心约束 — this project's identity system belongs to the learning layer
 
@@ -737,6 +756,21 @@ So: ~6.5× the old *flow* figure, and a *stored* ceiling of ~2.1 MB against a 50
 quota (~25× headroom). Supabase's free 500 MB holds **~240 active accounts**, the 8 GB
 paid tier ~3,900. Compare the old, wrongly-framed claim of "~900 user-years" — see
 §8.3 on why per-year was the wrong unit once compaction existed.
+
+> **The bound is conditional, and the condition is not met today** *(found
+> 2026-08-07 while implementing the batching)*. Every "stored is bounded" claim above
+> rests on lever 4, and **`LearnSync.compact()` has no production caller** — it is
+> reachable only from the test suite. Nothing schedules it, and `sync()` does not call
+> it. Until something does, storage follows the *flow* row (~3.6 MB/user-year,
+> unbounded), not the ceiling: an account reaches the 50 MB quota in roughly **14
+> years** rather than never.
+>
+> That is still not a number a real user meets, so this is not urgent — but it is the
+> difference between a designed bound and an accident, and the cost model must not be
+> read as describing behaviour that no code performs. Wiring compaction up is
+> deliberately **not** bundled into this change: when it runs it *deletes server rows*,
+> and it interacts with §7.3's unresolved eviction conflict, so it wants its own review
+> rather than a free ride.
 
 **What the server never stores**: audio, video, images, screenshots, and full page
 text. Media is a pointer only — `mediaKey` plus start/end offsets, ~20 bytes.

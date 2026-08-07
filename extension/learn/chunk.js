@@ -33,19 +33,22 @@ var LearnChunk = (() => {
   function encOf(header) { return (header && header.enc) || ENC_NONE; }
   function canRead(header) { return READABLE_ENC.indexOf(encOf(header)) >= 0; }
 
-  // Only graduated cards travel — lever 1 in §8.5. The candidate pool is a product
-  // of what you read on THIS device and has no business following you around.
-  function isGraduated(item) {
-    if (!item) return false;
-    if (item.starred) return true;
-    const st = LearnScheduler.stateFor(item);
-    return st === 'learning' || st === 'known';
-  }
+  // EVERY item travels, candidates included. §8.5's lever 1 used to filter to cards
+  // that had entered the deck, on the reasoning that the candidate pool "is a product
+  // of what you read on THIS device". That reasoning assumed the deck and the corpus
+  // live on the same device; with the host app they do not (§7.2), and the filter
+  // becomes a deadlock — **a card only enters the deck by being reviewed**, so someone
+  // who wants to study in the app uploads nothing, receives nothing, and never gets a
+  // first card. The extension would meanwhile report 「同步成功 · 上传 0 张」.
+  //
+  // This is also what makes §8.2's 「一键导出全部」 true: `exportBytes` goes through
+  // this same `build`, so while the filter was here the export silently omitted the
+  // entire candidate pool.
 
   // Source rows are shared by every card from the same page (lever 2): a URL + title
   // is ~160 B, nearly half a card, and an article yields ~30 cards.
   function build(items, sources, reviews, now) {
-    const cards = items.filter(isGraduated);
+    const cards = (items || []).filter(Boolean);
     const needed = new Set(cards.map((c) => c.sourceId).filter(Boolean));
     const srcs = (sources || []).filter((s) => needed.has(s.id));
     const cardIds = new Set(cards.map((c) => c.id));
@@ -197,7 +200,7 @@ var LearnChunk = (() => {
 
   return {
     FORMAT, ENC_NONE, encOf, canRead,
-    isGraduated, build, toJsonl, fromJsonl,
+    build, toJsonl, fromJsonl,
     deflate, inflate, hasCompression, replay,
     exportBytes, importBytes, fileName,
   };

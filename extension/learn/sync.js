@@ -20,6 +20,7 @@ var LearnSync = (() => {
   const PUSHED = 'syncPushedAt';       // ms; everything touched before this is up there
   const PAGE = 200;                    // rows per pull request
   const COMPACT_AT = 40;               // chunks before a snapshot replaces them
+  const PUSH_BATCH = 200;              // cards per chunk — §8.5 lever 3, §8.4's rule
 
   function rest(path) { return MT_BACKEND.url + '/rest/v1/' + path; }
 
@@ -86,16 +87,58 @@ var LearnSync = (() => {
       return t > since && t > (it.syncedAt || 0);
     });
     const revs = reviews.filter((r) => (r.at || 0) > since && !r.viaSync);
-    const bundle = LearnChunk.build(fresh, sources, revs, at);
-    if (!bundle.cards.length && !bundle.reviews.length) {
+    if (!fresh.length && !revs.length) {
       await LearnStore.setMeta(PUSHED, at);
-      return { pushed: 0, bytes: 0 };
+      return { pushed: 0, reviews: 0, bytes: 0, chunks: 0 };
     }
 
-    const blob = await LearnChunk.deflate(LearnChunk.toJsonl(bundle));
-    await insert('bundle', blob, 0);
+    // ─── Batched, because the first push after signing in is the whole corpus ──
+    //
+    // §8.5 lever 3 has always described chunks as "~200 cards packed together", but
+    // this built ONE bundle and did ONE insert. That was harmless while only cards
+    // that had entered the deck travelled; since the candidate pool travels too
+    // (§8.5), a user who has been capturing for three months pushes ~20,000 items the
+    // first time they sign in — ~1.7 MB compressed, and PostgREST carries bytea as a
+    // `\x` hex literal, so a ~3.4 MB request body.
+    //
+    // `PUSHED` stays all-or-nothing: any failure leaves it untouched and the whole
+    // push is retried, which idempotent replay makes safe. Advancing it per batch
+    // looks tempting and is a trap — `revs` is selected by `at > since`, and a review
+    // can be older than the card that carries it (a later re-read lifts `lastSeenAt`),
+    // so a partly-advanced watermark would step over reviews whose card had not been
+    // sent yet.
+    const batches = [];
+    for (let i = 0; i < fresh.length; i += PUSH_BATCH) batches.push(fresh.slice(i, i + PUSH_BATCH));
+    if (!batches.length) batches.push([]);
+
+    // `build()` keeps a chunk self-consistent by dropping reviews whose card is not in
+    // it. Across batches that is exactly right — a review rides with its own card —
+    // EXCEPT for a review whose card is in no batch at all: it would be dropped while
+    // `PUSHED` advanced past it, i.e. lost silently and permanently.
+    //
+    // This is reachable, not hypothetical: `evictIfNeeded` deletes items and leaves
+    // their reviews behind (`store.js`), so any evicted card's reviews are orphans
+    // from that moment on. They ride in the final chunk.
+    const freshIds = new Set(fresh.map((it) => it.id));
+    const orphans = revs.filter((r) => !freshIds.has(r.itemId));
+
+    const out = { pushed: 0, reviews: 0, bytes: 0, chunks: 0 };
+    for (let i = 0; i < batches.length; i++) {
+      const bundle = LearnChunk.build(batches[i], sources, revs, at);
+      if (i === batches.length - 1 && orphans.length) {
+        bundle.reviews = bundle.reviews.concat(orphans);
+        bundle.header.counts.reviews = bundle.reviews.length;
+      }
+      if (!bundle.cards.length && !bundle.reviews.length) continue;
+      const blob = await LearnChunk.deflate(LearnChunk.toJsonl(bundle));
+      await insert('bundle', blob, 0);
+      out.pushed += bundle.cards.length;
+      out.reviews += bundle.reviews.length;
+      out.bytes += blob.length;
+      out.chunks++;
+    }
     await LearnStore.setMeta(PUSHED, at);
-    return { pushed: bundle.cards.length, reviews: bundle.reviews.length, bytes: blob.length };
+    return out;
   }
 
   // PostgREST has no bytea literal in JSON, so the blob travels as a `\x…` hex string,
@@ -199,14 +242,30 @@ var LearnSync = (() => {
     const [items, sources, reviews] = await Promise.all([
       LearnStore.allItems(), LearnStore.allSources(), LearnStore.allReviews(),
     ]);
-    const snapshot = LearnChunk.build(items, sources, reviews, at);
-    await insert('bundle', await LearnChunk.deflate(LearnChunk.toJsonl(snapshot)), gen);
+    // **Never compact from an empty corpus.** The delete below is justified only by
+    // the snapshot being COMPLETE; a snapshot of nothing supersedes nothing, and
+    // writing one would erase the account's entire history on behalf of a device that
+    // simply has not pulled yet.
+    if (!items.length) return { compacted: 0, skipped: 'empty-corpus' };
 
-    // Delete strictly BELOW the snapshot's own row and only what existed when we
+    // Batched for the same reason a push is (§8.4) — this is the WHOLE corpus, up to
+    // the 20,000-item cap. Splitting it does not weaken the property compaction rests
+    // on: "a snapshot supersedes everything below it because it is complete" is about
+    // the SET of rows above the deletion point, not about there being exactly one. All
+    // parts are written BEFORE anything is deleted, so a failure part-way leaves
+    // redundant rows — which the next compaction sweeps — and never a gap.
+    let cards = 0;
+    for (let i = 0; i < items.length; i += PUSH_BATCH) {
+      const part = LearnChunk.build(items.slice(i, i + PUSH_BATCH), sources, reviews, at);
+      await insert('bundle', await LearnChunk.deflate(LearnChunk.toJsonl(part)), gen);
+      cards += part.cards.length;
+    }
+
+    // Delete strictly BELOW the snapshot's own rows and only what existed when we
     // read: a concurrent push must not be swept before anyone has pulled it.
     await call(rest(MT_BACKEND.table) + '?seq=lte.' + highWater,
       { method: 'DELETE', headers: await headers() });
-    return { compacted: rows.length, generation: gen, cards: snapshot.cards.length };
+    return { compacted: rows.length, generation: gen, cards };
   }
 
   // ─── Public ──────────────────────────────────────────────────────────────

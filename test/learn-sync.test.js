@@ -225,15 +225,86 @@ describe('LearnSync — push', () => {
       'an empty chunk would burn quota to say nothing');
   });
 
-  test('candidates never leave the device, however recently they were touched', async () => {
+  // Reversed 2026-08-07 with §8.5 lever 1. This test used to assert the opposite
+  // ("candidates never leave the device"), and that assertion is exactly what the
+  // host app deadlocks on: a card only enters the deck by being reviewed, so a user
+  // who reviews only in the app would push nothing forever.
+  test('a corpus of nothing but candidates IS pushed', async () => {
     const store = fakeStore({
       meta: { auth: liveSession() },
       items: [card('cand', { state: 'candidate', sched: null, lastSeenAt: T0 + 900 })],
     });
     const fetchFn = fakeFetch([]);
     const { S } = setup({ store, fetch: fetchFn });
-    eq((await S.push(T0 + 1000)).pushed, 0);
-    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0);
+    eq((await S.push(T0 + 1000)).pushed, 1, '不上行 = App 永远拿不到第一张卡');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 1);
+  });
+
+  // ─── Batching (§8.4) ──────────────────────────────────────────────────────
+  // Before the candidate pool travelled, a push was a few hundred cards and one
+  // request was fine. Now the first push after signing in is the whole corpus —
+  // ~20,000 items, ~1.7 MB compressed, and PostgREST carries bytea as a `\x` hex
+  // literal, so a ~3.4 MB body in a single request that either lands or does not.
+
+  test('a corpus larger than one batch is split across several chunks', async () => {
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.push(T0 + 1000);
+    eq(r.chunks, 3, '450 张按 200 一批 = 3 个块');
+    eq(r.pushed, 450, '分批不能丢卡');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 3);
+  });
+
+  test('every card appears in exactly one chunk — no gap, no duplicate', async () => {
+    // The assertion that actually catches an off-by-one in the slice loop. A count
+    // alone would survive `i += PUSH_BATCH - 1` (overlap) or a dropped tail.
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const posts = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: posts.length }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    await S.push(T0 + 1000);
+    const seen = [];
+    for (const p of posts) {
+      const text = await C.inflate(S.fromHex(p.blob));
+      for (const c of C.fromJsonl(text).cards) seen.push(c.id);
+    }
+    eq(seen.length, 450, '卡片总数对不上就是漏了或重了');
+    eq(new Set(seen).size, 450, '同一张卡出现在两个块里 = 重复计费');
+  });
+
+  test('a review whose card was EVICTED still reaches the server', async () => {
+    // `evictIfNeeded` deletes items and leaves their reviews behind, so an orphan
+    // review is a normal consequence of a full corpus, not a corruption. `build()`
+    // drops reviews whose card is not in the bundle — so without explicit handling
+    // this review is dropped while PUSHED advances past it: silent, permanent loss.
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items: [card('alive')],
+      reviews: [{ itemId: 'alive', grade: 2, at: T0 + 500 },
+        { itemId: 'evicted-card', grade: 3, at: T0 + 600 }],
+    });
+    const posts = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: 1 }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    const r = await S.push(T0 + 1000);
+    eq(r.reviews, 2, '被淘汰卡片的复习记录也必须上行');
+    const text = await C.inflate(S.fromHex(posts[0].blob));
+    const ids = C.fromJsonl(text).reviews.map((x) => x.itemId).sort();
+    eq(ids.join(','), 'alive,evicted-card');
   });
 
   test('QUOTA EXCEEDED is surfaced AND the material is kept for retry', async () => {
@@ -355,6 +426,64 @@ describe('LearnSync — compaction', () => {
     const { S } = setup({ store, fetch: fetchFn });
     eq((await S.compact(T0)).compacted, 0);
     eq(fetchFn.calls.filter((c) => c.method === 'POST' || c.method === 'DELETE').length, 0);
+  });
+
+  test('an EMPTY corpus never compacts — it would erase the account', async () => {
+    // The delete is justified only by the snapshot being complete. A device that has
+    // not pulled yet has an empty corpus, and letting it write a snapshot of nothing
+    // and then sweep everything below would destroy the user's whole history on
+    // behalf of the one device that knows the least.
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [] });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.compacted, 0);
+    eq(r.skipped, 'empty-corpus', '要说清楚是为什么没压缩，不能静默返回 0');
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0,
+      '一次 DELETE 就抹掉了整个账号的历史');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST' && !/rpc/.test(c.url)).length, 0);
+  });
+
+  test('a large snapshot is split, and every part is written BEFORE the sweep', async () => {
+    // A snapshot is the whole corpus — up to the 20,000-item cap — so it needs the
+    // same batching as a push. Splitting does not weaken what compaction rests on:
+    // "complete" is a property of the SET of rows above the deletion point, not of
+    // there being exactly one row. But the ORDER is load-bearing — if the delete ran
+    // before the last part landed, the corpus would have a hole with nothing left
+    // below to recover it.
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const order = [], bodies = [];
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'POST' && !/rpc/.test(u),
+        reply: (u, i) => { order.push('POST'); bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: 46 }]); } },
+      { match: (u, i) => i && i.method === 'DELETE',
+        reply: () => { order.push('DELETE'); return reply(204, null); } },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.cards, 450, '快照必须完整，否则它没有资格取代下面的行');
+    eq(bodies.length, 3, '450 张按 200 一批 = 3 个块');
+    eq(order.indexOf('DELETE'), order.length - 1, 'DELETE 必须在所有分片写完之后');
+
+    const seen = [];
+    for (const b of bodies) {
+      ok(b.generation === r.generation, '同一次压缩的所有分片必须同代');
+      const text = await C.inflate(S.fromHex(b.blob));
+      for (const c of C.fromJsonl(text).cards) seen.push(c.id);
+    }
+    eq(new Set(seen).size, 450, '快照缺一张卡，就是把它从服务器上抹掉了');
   });
 
   test('a snapshot is COMPLETE and only rows at-or-below it are swept', async () => {
