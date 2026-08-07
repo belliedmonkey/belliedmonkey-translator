@@ -114,3 +114,33 @@ codesign -dv --verbose=2 <app>      # Authority 必须是 Apple Distribution，�
 
 两者都没有时，只剩 **Xcode Organizer 图形界面**这一条路（用已登录的 Apple ID）。
 配一次 API key 之后整条链路就能无人值守。
+
+### 商店描述有两个不同的上限，小的那个只在上传时才检查
+
+| 面 | 上限 | 谁来查 |
+|---|---|---|
+| Chrome Web Store 摘要 | 132 | 商店后台 |
+| **Safari 扩展 `extension_description`** | **112** | **只有 App Store Connect 的上传校验** |
+
+2026-08-07 实测：六个 locale 写到 121–125 字符，`npm test`、`test:layout`、三个构建、
+`verify:ios`、归档、导出**全部通过**，模拟器安装运行正常，**只在 TestFlight 上传那一刻**
+被逐 locale 拒绝：
+
+```
+Invalid messages file. The messages.json validation failed for locale de …
+The description field must be present, of string type, and 112 or fewer characters long.
+```
+
+已由 `descriptionLengthGate`（build.js 第五道闸门）覆盖，**两个 flavor 都跑**——中国版
+描述是构建期生成的，一样会超长。另有两条单元测试。
+
+### 上传成功与否，看本地分发日志，不要只看界面
+
+```bash
+LATEST=$(ls -dt /var/folders/*/*/T/*.xcdistributionlogs | head -1)
+grep -rhiE 'UPLOAD SUCCEEDED|ERROR ITMS|Invalid' "$LATEST" | tail -5
+grep -rhoE 'BelliedMonkey[^"]*\.xcarchive|"cfBundleVersion" : "[0-9]+"' "$LATEST" | sort -u
+```
+
+第二条命令能确认**上传的到底是哪个归档、哪个 build 号**——Organizer 里同时躺着好几个
+版本相近的归档时，这是唯一能证明「传的是修好的那个」的证据。
