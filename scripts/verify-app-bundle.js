@@ -90,7 +90,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         sendLabel: (document.getElementById('send').textContent || '').length,
         styled: getComputedStyle(document.body).getPropertyValue('--green').trim(),
         globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync',
-          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings']
+          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings']
           .filter((g) => typeof window[g] === 'undefined'),
         // The review surface is INLINED from extension/learn/review.html at build
         // time. If that lift silently produced nothing, everything above still
@@ -101,6 +101,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'pressure-fix','open-settings','empty-settings','orig','src','progress']
           .filter((id) => !document.getElementById(id)),
         reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
+        // Stage 4. The dead end this replaced was two taps deep (review page → 设置 →
+        // the shim throws), so assert the elements exist — and that the
+        // Apple-required in-app account deletion is among them: per learning-design
+        // §10 Gate B the app cannot ship without it, which makes its absence a
+        // release blocker rather than a missing feature.
+        settingsMissing: ['app-settings','settings-back','daily','tts-auto','tts-rate',
+          'clean-known','settings-signout','delete-account','gear']
+          .filter((id) => !document.getElementById(id)),
+        settingsHidden: getComputedStyle(document.getElementById('app-settings')).display === 'none',
         // review.css must survive the concatenation too — it owns the review markup.
         reviewStyled: getComputedStyle(document.querySelector('.page') || document.body).maxWidth,
       })`, returnByValue: true }, sessionId);
@@ -131,6 +140,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     need(o.reviewMissing.length === 0, '复习页没被嵌进来，缺: ' + o.reviewMissing.join(', '));
     need(o.reviewHidden, '复习视图在没进入之前就显示了');
     need(o.reviewStyled && o.reviewStyled !== 'none', 'review.css 没进 Style.css');
+    need(o.settingsMissing.length === 0, '设置页元素缺: ' + o.settingsMissing.join(', ')
+      + (o.settingsMissing.indexOf('delete-account') >= 0
+        ? '（删除账号是 Apple 的上架硬要求，§10 Gate B）' : ''));
+    need(o.settingsHidden, '设置页在没进入之前就显示了');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');

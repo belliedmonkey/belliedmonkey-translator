@@ -14,6 +14,11 @@
 (() => {
   const $ = (id) => document.getElementById(id);
 
+  // Declared up here, not beside the sign-in code: `show()` reads it and is defined
+  // above that point, so a `let` further down would be a temporal-dead-zone trap
+  // waiting for the first refactor that calls `show()` earlier.
+  let currentSession = null;
+
   // Chinese-first with the same fallback discipline as the extension's `t()`: a
   // missing string must never blank the UI. There is no `chrome.i18n` here (this is
   // not an extension page), so the app carries its own copy rather than pretending.
@@ -28,6 +33,7 @@
     back: '换一个邮箱',
     localNote: '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。',
     signout: '退出',
+    gear: '设置',
     review: '开始复习',
     reviewBack: '← 返回',   // NOT `back` — that key is the sign-in flow's 换一个邮箱
     sync: '同步',
@@ -72,6 +78,8 @@
     $('back').textContent = t('back');
     $('local-note').textContent = t('localNote');
     $('signout').textContent = t('signout');
+    $('gear').textContent = t('gear');
+    AppSettings.paintStatic();
     $('review').textContent = t('review');
     $('review-back').textContent = t('reviewBack');
     $('sync').textContent = t('sync');
@@ -103,8 +111,12 @@
   }
 
   async function show(session) {
+    currentSession = session;
     $('signed-out').hidden = !!session;
     $('signed-in').hidden = !session;
+    // Signing out from inside settings or review must not leave that view on screen
+    // over the sign-in form.
+    if (!session) { $('app-settings').hidden = true; $('review-view').hidden = true; }
     if (session) {
       $('who').textContent = session.email || '';
       await paintCounts();
@@ -252,6 +264,42 @@
     await paintCounts();
   });
 
+  // ─── Settings ─────────────────────────────────────────────────────────────
+  // The review page's own 「设置」 link lands here. Before Stage 4 it called
+  // `chrome.runtime.openOptionsPage()`, which the shim throws on — a dead end the
+  // user could reach in two taps.
+
+  async function openSettings() {
+    $('signed-in').hidden = true;
+    $('review-view').hidden = true;
+    $('app-settings').hidden = false;
+    await AppSettings.paint(currentSession, say);
+    say('');
+  }
+
+  async function closeSettings() {
+    $('app-settings').hidden = true;
+    $('signed-in').hidden = false;
+    await paintCounts();
+    say('');
+  }
+
+  $('gear').addEventListener('click', openSettings);
+  $('settings-back').addEventListener('click', closeSettings);
+  // Both of review.html's settings links, captured so review.js's own handler (which
+  // throws through the shim) never runs. Capture phase, because review.js attached
+  // first and `preventDefault` alone would not stop a listener already registered.
+  for (const id of ['open-settings', 'empty-settings']) {
+    const el = $(id);
+    if (el) {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSettings();
+      }, true);
+    }
+  }
+
   // ─── Boot ─────────────────────────────────────────────────────────────────
 
   (async () => {
@@ -268,6 +316,16 @@
       say('同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。');
       return;
     }
+
+    await AppSettings.ensureDefaults();
+    AppSettings.wire({
+      say,
+      session: () => currentSession,
+      onSignOut: async () => {
+        await LearnAuth.signOut();
+        await show(null);
+      },
+    });
 
     try {
       await show(await LearnAuth.current());
