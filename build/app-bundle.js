@@ -42,6 +42,7 @@ const MODULES = [
   'extension/learn/chunk.js',            // LearnChunk
   'extension/learn/sync.js',             // LearnSync
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
+  'app/settings.js',                     // AppSettings — the learning layer's own knobs
 ];
 
 // `drain.js` ships even though the app has no outbox: with the shim's empty

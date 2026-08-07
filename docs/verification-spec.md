@@ -617,6 +617,18 @@ turns every character into `a` (23 a's, reproduced again here). The working path
   `xcrun simctl io … screenshot` gives device pixels only. Locate tap targets in the
   `get_window_state` image, never in a `simctl` screenshot.
 
+**Stage 4 (settings) verified 2026-08-07.** 设置 reachable from both the header and
+the review page footer — and that second path is the whole point: before this it
+called `chrome.runtime.openOptionsPage()`, which the shim throws on, so a user could
+reach a dead end in two taps. The page carries 每日新卡上限 / 自动朗读 / 朗读速度
+(written to the SAME `chrome.storage` keys `review.js` reads, so there is no second
+settings model to drift), 学习库 counts + §7.1's targeted 清理已掌握的卡, and 账号:
+退出登录 plus **删除账号与云端数据**.
+
+> **The account deletion is a release gate, not a feature.** §10 Gate B: Apple
+> requires in-app account deletion wherever accounts exist. `npm run test:app` now
+> fails by name if that button goes missing, and the failure message says why.
+
 ### G. macOS host app (real Mac) — ⬜ not built yet
 
 Same loop as F. The one thing that must not be improvised is the install:

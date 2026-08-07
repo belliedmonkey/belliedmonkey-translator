@@ -121,3 +121,24 @@ header {
 button.secondary { background: none; color: var(--green); border: 1px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
 #review-back { align-self: flex-start; }
+
+/* ─── Settings ───────────────────────────────────────────────────────────── */
+.head-actions { display: flex; gap: 14px; }
+#app-settings { display: flex; flex-direction: column; gap: 14px; }
+#app-settings h2 { font-size: 1.25rem; margin: 0; }
+#app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
+#app-settings > button { align-self: flex-start; }
+#settings-back { align-self: flex-start; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.field input[type=number] { max-width: 8em; }
+.field input[type=range] { width: 100%; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.check input { width: 22px; height: 22px; }
+/* Range and checkbox render in the SYSTEM accent (blue) otherwise — the only
+   off-brand pixels on the page, and the kind of detail that reads as unfinished. */
+.field input[type=range], .check input { accent-color: var(--green); }
+#settings-counts { display: block; color: var(--dim); font-size: 0.9rem; }
+/* Destructive, and it must LOOK destructive — a delete that shares the primary
+   button style is a delete someone presses by muscle memory. */
+button.danger { background: none; color: #c1121f; border: 1px solid currentColor; }
+@media (prefers-color-scheme: dark) { button.danger { color: #ff6b6b; } }
