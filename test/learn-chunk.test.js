@@ -61,26 +61,34 @@ function card(id, over) {
   }, over);
 }
 
-describe('LearnChunk — only graduated cards travel', () => {
-  test('a candidate (never reviewed, never starred) is NOT exported', () => {
+// §8.5 lever 1 was REVERSED on 2026-08-07: the candidate pool travels. These tests
+// are the reversal, kept pointed at the deadlock rather than at the mechanism — a
+// card only enters the deck by being REVIEWED, so if candidates stayed home, someone
+// who wants to study in the host app would upload nothing, receive nothing, and never
+// get a first card, while the extension cheerfully reported 「同步成功 · 上传 0 张」.
+describe('LearnChunk — the candidate pool travels (§8.5 lever 1, reversed)', () => {
+  test('a candidate (never reviewed, never starred) IS exported', () => {
     const { C } = setup();
-    eq(C.isGraduated(card('a', { state: 'candidate', sched: null })), false);
+    const b = C.build([card('a', { state: 'candidate', sched: null })], [], [], T0);
+    eq(b.cards.length, 1, '候选卡不上行 = App 永远拿不到第一张卡');
+    eq(b.header.counts.cards, 1);
   });
 
-  test('learning, known and starred cards ARE exported', () => {
+  test('a corpus of NOTHING BUT candidates still produces a non-empty bundle', () => {
+    // The exact shape of the deadlock. Under lever 1 this bundle was empty and the
+    // push reported success, so nothing anywhere could tell the two apart.
     const { C } = setup();
-    eq(C.isGraduated(card('a')), true);
-    eq(C.isGraduated(card('b', { sched: { s: 400, d: 5, lastReviewAt: T0 } })), true);
-    eq(C.isGraduated(card('c', { state: 'candidate', sched: null, starred: true })), true);
-  });
-
-  test('build() drops the candidate pool — that is lever 1, worth ~10×', () => {
-    const { C } = setup();
-    const items = [card('a'), card('b', { state: 'candidate', sched: null }), card('c')];
+    const items = ['a', 'b', 'c'].map((id) => card(id, { state: 'candidate', sched: null }));
     const b = C.build(items, [{ id: 'src1', url: 'u', title: 't' }], [], T0);
-    eq(b.cards.length, 2);
-    eq(b.header.counts.cards, 2);
-    ok(!b.cards.some((c) => c.id === 'b'), 'the candidate must not be in the bundle');
+    eq(b.cards.length, 3);
+    eq(b.sources.length, 1, 'and their source rides along, or the cards lose provenance');
+  });
+
+  test('cards that entered the deck still travel too', () => {
+    const { C } = setup();
+    const items = [card('a'), card('b', { sched: { s: 400, d: 5, lastReviewAt: T0 } }),
+      card('c', { state: 'candidate', sched: null, starred: true })];
+    eq(C.build(items, [], [], T0).cards.length, 3);
   });
 
   test('only sources actually referenced are carried (lever 2)', () => {
@@ -93,11 +101,16 @@ describe('LearnChunk — only graduated cards travel', () => {
     eq(b.sources[0].id, 'src1');
   });
 
-  test('reviews for cards that did not travel do not travel either', () => {
+  test('a review whose card is not in the bundle is left out of it', () => {
+    // Keeps a chunk self-consistent. Note this is a property of `build` alone —
+    // `LearnSync.push` batches the corpus, so a review is only ever "left out" of the
+    // batch it does not belong to, and one whose card is in NO batch (an evicted card
+    // still has its reviews) is carried explicitly in the final chunk. See
+    // learn-sync.test.js; dropping it there would be permanent data loss.
     const { C } = setup();
     const b = C.build(
-      [card('a'), card('b', { state: 'candidate', sched: null })],
-      [], [{ itemId: 'a', grade: 2, at: T0 }, { itemId: 'b', grade: 2, at: T0 }], T0);
+      [card('a')],
+      [], [{ itemId: 'a', grade: 2, at: T0 }, { itemId: 'gone', grade: 2, at: T0 }], T0);
     eq(b.reviews.length, 1);
     eq(b.reviews[0].itemId, 'a');
   });
