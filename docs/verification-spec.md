@@ -561,7 +561,35 @@ template from bouncing and would trap a scrolling review list.
 > measurement. (Related to, but distinct from, the ios-sim issue where *new* files
 > never enter the bundle at all.)
 
-### F. iOS host app (Xcode Simulator) — ✅ Stage 2 verified 2026-08-07
+### F. iOS host app (Xcode Simulator) — ✅ Stage 2 + 3 verified 2026-08-07
+
+**Stage 3 (review in the app).** iPhone 17 Pro · iOS 26.5, continuing from the Stage 2
+corpus: 开始复习 → a real card (`en.wikipedia.org · Forgetting curve`, synced from a
+browser) → 显示译文 → 记得 → 待复习 1→0, 「下一张卡片约 6 小时后到期」,「本次完成 1
+张」 → terminate + relaunch → **schedule still there**. The review surface is the
+extension's own `review.js` / `review.html` / `review.css`, inlined at build time.
+
+> **The bug inlining creates, found by screenshot on the first build: id collisions.**
+> Both documents were written as whole pages, each free to use any id. Merged, a
+> duplicate is not an error anywhere — `getElementById` returns the first match — so
+> `review.js` wrote its counts into the app shell's `#counts` and the app's card
+> totals silently vanished. `build/app-bundle.js` now **fails the build** on any
+> clash, and the app shell is the side that renames (`review.html` is shared source).
+> The DOM assertions in `test:app` could not see this: they use `getElementById` too,
+> which is exactly what the collision fools.
+
+**Push-back verified the same session.** The grade given above was still local; with
+`doSync()` switched from `pull()` to `sync()` it uploaded as **「已上传 1 条复习记录」**
+(复习记录 11→12), and the next run settled to 「已经是最新的」 — §8.4.2 convergence, in
+both directions, on a real device against the real backend.
+
+> **The same wording confusion, shipped twice in one file.** A converged pull still
+> READS a chunk — the cursor does not skip rows this device just wrote — so keying the
+> message on `r.chunks` announced 「收到 0 张卡 · 0 条复习记录」 immediately after a
+> perfectly successful sync. Earlier the same day, keying it on `!r.chunks` announced
+> 「服务器上还没有内容」 next to a count of 11. **Both times the healthy state was
+> rendered as a failure**, and both times the fix was to key on what was actually NEW
+> (`r.cards || r.reviews`) rather than on transport-level activity.
 
 **iPhone 17 Pro · iOS 26.5, real backend, real email OTP.** The full loop:
 

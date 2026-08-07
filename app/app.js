@@ -28,6 +28,8 @@
     back: '换一个邮箱',
     localNote: '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。',
     signout: '退出',
+    review: '开始复习',
+    reviewBack: '← 返回',   // NOT `back` — that key is the sign-in flow's 换一个邮箱
     sync: '同步',
     syncing: '正在同步…',
     cards: '张卡',
@@ -70,6 +72,8 @@
     $('back').textContent = t('back');
     $('local-note').textContent = t('localNote');
     $('signout').textContent = t('signout');
+    $('review').textContent = t('review');
+    $('review-back').textContent = t('reviewBack');
     $('sync').textContent = t('sync');
   }
 
@@ -79,7 +83,7 @@
       LearnStore.allReviews(),
       LearnStore.getMeta('appLastSync', 0),
     ]);
-    $('counts').innerHTML = '';
+    $('app-counts').innerHTML = '';
     const cell = (n, label) => {
       const d = document.createElement('div');
       const b = document.createElement('b');
@@ -89,7 +93,7 @@
       d.append(b, s);
       return d;
     };
-    $('counts').append(
+    $('app-counts').append(
       cell(stats.total, t('cards')),
       cell(reviews.length, t('reviews')),
       cell(stats.sources, t('sources')));
@@ -176,18 +180,42 @@
     $('sync').textContent = t('syncing');
     say('');
     try {
-      // PULL ONLY. The app is downstream of the extension by design
-      // (domain-design §9.3): the extension owns the upload and its own progress
-      // cursor. Stage 4 gives the app a push of its own review results; until it has
-      // reviews to push, a push here would only be able to send back what it just
-      // received.
-      const r = await LearnSync.pull();
+      // Pull AND push. The app is downstream for CORPUS (the extension captures and
+      // owns that upload, domain-design §9.3) but it is the origin of REVIEW
+      // PROGRESS — grades given here exist nowhere else. Without the push, learning on
+      // the phone would be a dead end: the extension would keep showing those cards as
+      // due, and reinstalling the app would lose months of scheduling.
+      //
+      // Pushing is safe because of §8.4.2's watermarks, not because of care taken
+      // here: items replayed from the server carry `syncedAt = touchedAt`, so only a
+      // LOCAL review lifts them back above it, and reviews that arrived from the
+      // server carry `viaSync`. A first push from a freshly-synced app therefore
+      // uploads the grades and nothing else — which is exactly what convergence
+      // (「上传 0」on the second run) proves.
+      const { pulled, pushed } = await LearnSync.sync();
+      const r = pulled;
       await LearnStore.setMeta('appLastSync', Date.now());
       await paintCounts();
+      // Both directions get said, and the upload is not hidden when it is the only
+      // thing that happened — 「收到 0」 alone after a review session would read as
+      // "your grades went nowhere".
+      const up = pushed && (pushed.pushed || pushed.reviews)
+        ? ' · 上传 ' + (pushed.reviews || 0) + ' 条复习记录' : '';
+
       if (r.needsUpgrade) {
+        // `sync()` returns pushed:null in this case — it refuses to push on top of a
+        // chunk it could not read, so there is nothing to report but the stall.
         say('服务器上有这个版本读不了的内容，请更新 App。', true);
-      } else if (r.chunks) {
-        say('收到 ' + r.cards + ' 张卡 · ' + r.reviews + ' 条复习记录');
+      } else if (r.cards || r.reviews) {
+        // Keyed on what was NEW, not on `r.chunks`. A converged pull still READS a
+        // chunk — the cursor does not skip rows this device wrote (§8.4.2) — so
+        // branching on chunks announced 「收到 0 张卡 · 0 条复习记录」 right after a
+        // perfectly successful sync. Second time this exact confusion has been
+        // shipped in this file; both times it turned the healthy state into a
+        // sentence that reads like a failure.
+        say('收到 ' + r.cards + ' 张卡 · ' + r.reviews + ' 条复习记录' + up);
+      } else if (up) {
+        say('已上传' + up.replace(' · 上传 ', ' '));
       } else {
         // Zero chunks is TWO different states and they must not share a sentence.
         // Converged (the good one) told the user 「服务器上还没有内容」 while the
@@ -205,6 +233,24 @@
   }
 
   $('sync').addEventListener('click', doSync);
+
+  // ─── Review ───────────────────────────────────────────────────────────────
+  // `review.js` runs its own boot on load and owns everything inside #review-view.
+  // The app only shows and hides that view — reaching into its internals here would
+  // be the start of the second implementation §9 exists to prevent.
+  $('review').addEventListener('click', () => {
+    $('signed-in').hidden = true;
+    $('review-view').hidden = false;
+    say('');
+  });
+
+  $('review-back').addEventListener('click', async () => {
+    $('review-view').hidden = true;
+    $('signed-in').hidden = false;
+    // Grades given in there changed the corpus, so the counts on the way out must
+    // not be the ones from the way in.
+    await paintCounts();
+  });
 
   // ─── Boot ─────────────────────────────────────────────────────────────────
 

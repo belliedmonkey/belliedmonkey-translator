@@ -45,9 +45,21 @@
         <button id="signout" type="button" class="link"></button>
       </header>
 
-      <div id="counts" class="counts"></div>
-      <button id="sync" type="button"></button>
+      <div id="app-counts" class="counts"></div>
+      <div class="row">
+        <button id="review" type="button"></button>
+        <button id="sync" type="button" class="secondary"></button>
+      </div>
       <p class="note" id="last"></p>
+    </section>
+
+    <!-- The review surface, lifted from extension/learn/review.html at build time
+         (build/app-bundle.js). Not a copy kept in sync by hand — the extension's file
+         is the source, and this is the only place the app can put it, since the app
+         is exactly three filenames. -->
+    <section id="review-view" hidden>
+      <button id="review-back" type="button" class="link"></button>
+      <!--REVIEW-->
     </section>
   </main>
 

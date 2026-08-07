@@ -89,8 +89,20 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         lede: (document.getElementById('lede').textContent || '').length,
         sendLabel: (document.getElementById('send').textContent || '').length,
         styled: getComputedStyle(document.body).getPropertyValue('--green').trim(),
-        globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync']
+        globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync',
+          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings']
           .filter((g) => typeof window[g] === 'undefined'),
+        // The review surface is INLINED from extension/learn/review.html at build
+        // time. If that lift silently produced nothing, everything above still
+        // passes and the app just has no review page — so name the elements
+        // review.js will \`addEventListener\` on, because a missing one throws during
+        // its boot and takes the whole bundle down with it.
+        reviewMissing: ['review-view','card','counts','empty','nothing-due','pressure',
+          'pressure-fix','open-settings','empty-settings','orig','src','progress']
+          .filter((id) => !document.getElementById(id)),
+        reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
+        // review.css must survive the concatenation too — it owns the review markup.
+        reviewStyled: getComputedStyle(document.querySelector('.page') || document.body).maxWidth,
       })`, returnByValue: true }, sessionId);
     const o = JSON.parse(r.result.value);
 
@@ -114,6 +126,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
+    // The review surface, in both shipping states — it is inlined at build time and
+    // its absence is invisible to every assertion above.
+    need(o.reviewMissing.length === 0, '复习页没被嵌进来，缺: ' + o.reviewMissing.join(', '));
+    need(o.reviewHidden, '复习视图在没进入之前就显示了');
+    need(o.reviewStyled && o.reviewStyled !== 'none', 'review.css 没进 Style.css');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');
