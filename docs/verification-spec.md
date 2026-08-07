@@ -1219,3 +1219,72 @@ AX 可点，不必麻烦人；只有「允许未签名的扩展」和扩展勾�
 **五行全部用 DeepSeek 验证过。** 用免费 Google 通道跑矩阵不仅不算数，而且会掩盖缺陷——
 #84 正是因为坚持用 DeepSeek 才暴露的。
 
+
+## Safari 扩展的可重复启用 —— 用真签名，不要临时扩展（2026-08-07）
+
+**今天一整天反复出现的「扩展突然不跑了」，根因是一直在用未签名的临时扩展。**
+
+| | 临时扩展（未签名） | 容器 App 真签名 |
+|---|---|---|
+| 每次 Safari 重启 | 「允许未签名的扩展」被关闭，重开要**管理员密码** | 不需要 |
+| 添加方式 | 设置 → 开发者 → 添加临时扩展… → **文件选择器**（必须人点） | `cp` 到 `/Applications` + `open`，全脚本化 |
+| 列在哪 | 「临时」 | **「已安装」** |
+| 跨重启 | 丢失 | 存活 |
+
+可脚本化的流程：
+
+```bash
+node build.js
+xcodebuild -project "safari-project/…/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (macOS)" -configuration Debug \
+  -derivedDataPath /tmp/bmt-mac-signed -allowProvisioningUpdates build     # 不要 CODE_SIGNING_ALLOWED=NO
+
+rm -rf "/Applications/BelliedMonkey Translator.app"
+cp -R "/tmp/bmt-mac-signed/Build/Products/Debug/BelliedMonkey Translator.app" /Applications/
+open "/Applications/BelliedMonkey Translator.app"
+
+pluginkit -m -p com.apple.Safari.web-extension | grep belliedmonkey   # 登记成功的证据
+```
+
+**`CODE_SIGNING_ALLOWED=NO` 构建出的 app，即使放进 `/Applications` 也不会被 Safari 注册**
+（实测确认）。必须用 `Apple Development` 身份真签名，工程里 `DEVELOPMENT_TEAM` 与
+`CODE_SIGN_STYLE = Automatic` 都要在。
+
+首次仍需人点两下（一次性，此后存活）：设置 → 扩展 → 勾选；以及详情里的
+**「在每个网站上始终允许…」**。勾选框在 AX 里可读可点（id 形如
+`com.belliedmonkeytranslator.extension (X2Q85MABWK)-checkbox`），站点授权按钮要按像素点。
+
+## Stage 0 尖刺结论：原生消息在哪些上下文可用（2026-08-07）
+
+学习模块迁入 App 的方案，基线假设是「扩展能把采集到的内容送进原生」。实测：
+
+| 上下文 | `sendNativeMessage` | 说明 |
+|---|---|---|
+| **内容脚本** | **不存在** | `chrome` 与 `browser` 命名空间下都是 `undefined`——不是调用失败，是 API 根本不暴露 |
+| **background** | **存在且可用** | 见下方时延 |
+
+background 实测（macOS Safari，回声型 handler）：
+
+```
+tiny      ERR   289ms   "未能与帮助应用程序通信"   ← 冷启动，第一次必然失败
+batch40   OK    821ms   40 条草稿，含帮助 app 启动
+batch400  OK     10ms   400 条草稿（约 200KB）
+serial10  OK      8ms   10 次调用 ≈ 0.8ms/次
+```
+
+### 三条直接影响设计的结论
+
+1. **采集器写不了原生。** 采集跑在内容脚本里，那里没有这个 API。数据通路只能是
+   `内容脚本 → chrome.storage.local 外发箱 → background/扩展页 → 原生`。
+   外发箱保持不变这一点因此不是可选项，而是唯一可行解。
+2. **第一次调用必然失败。** 帮助 app 冷启动时报「未能与帮助应用程序通信」。排空逻辑
+   必须容忍并重试首次失败，否则每次冷启动都丢一批。**这条不实测就发现不了。**
+3. **吞吐不是瓶颈。** 200KB 往返 10ms，热态下每次调用不到 1 毫秒。批量大小可以放心设计。
+
+### 尚未验证
+
+- **Safari iOS 上 background service worker 锁屏后永久失效**（本项目最老的约束）。若排空
+  依赖 background，锁屏之后就再也不会发生，直到扩展重新加载。因此排空**还必须**能从
+  用户打开的扩展页面发起——扩展页是否可用尚未实测（探针已写好，卡在 macOS 上打不开
+  options 页；background 可用强烈提示扩展页同样可用，但**这是推断，不是测量**）。
+- App Group 共享容器尚未验证（标准能力，风险低，但没测就是没测）。
