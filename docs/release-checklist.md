@@ -67,3 +67,50 @@ N 个消费者」；已因此漂移过两次：DeepSeek 模型名、版本号）
 
 AGENTS.md 要求每个改动一个 issue。**修复合并进 `main` 之后才关闭 issue**——分支上就关，
 等于声称一件还没进产品的事已经做完了。
+
+## iOS：重新生成 Safari 工程会静默重置三样东西
+
+`xcrun safari-web-extension-converter --force` 每跑一次，都会把工程恢复成转换器的
+默认值。**这三样都只在发布那一刻才炸，本地跑模拟器一切正常。**
+
+| 被重置的 | 默认值 | 正确值 | 不改会怎样 |
+|---|---|---|---|
+| `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` | `1.0` / `1` | 当前版本 / 上次 build + 1 | 传上去是 1.0(1)，被 ASC 当成版本回退 |
+| 扩展 target 的 `PRODUCT_BUNDLE_IDENTIFIER` | `…​.Extension`（大写 E） | `…​.extension`（小写） | 导出直接失败：`No profiles for '…​.Extension' were found` |
+| `DEVELOPMENT_TEAM` | 空 | `X2Q85MABWK` | 自动签名找不到团队 |
+
+第三项之外，**文件清单**曾经也是这类问题（#72），已由 `npm run verify:ios` 覆盖。
+
+### 发 TestFlight 的完整命令
+
+```bash
+node build.js                       # 工程直接引用 ../../../dist/，必须先重建
+npm run verify:ios                  # 逐文件比对，缺一个就非零退出
+
+xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (iOS)" -configuration Release \
+  -destination "generic/platform=iOS" -archivePath /tmp/bmt-archive.xcarchive \
+  -allowProvisioningUpdates archive
+
+xcodebuild -exportArchive -archivePath /tmp/bmt-archive.xcarchive \
+  -exportOptionsPlist /tmp/exportOptions.plist -exportPath /tmp/bmt-export \
+  -allowProvisioningUpdates
+```
+
+导出后**必须核对**（历史上每一项都出过错）：
+
+```bash
+codesign -dv --verbose=2 <app>      # Authority 必须是 Apple Distribution，不是 Development
+                                    # appex id 必须是小写 .extension
+                                    # version / build 必须是你以为的那个
+```
+
+### 上传需要凭证 —— 这台机器上一个都没有
+
+`xcrun altool` / `xcodebuild` 上传需要二者之一：
+
+- **ASC API key**：`~/.appstoreconnect/private_keys/AuthKey_XXXX.p8` + Key ID + Issuer ID
+- **App 专用密码**：Apple ID + [appleid.apple.com](https://appleid.apple.com) 生成的专用密码
+
+两者都没有时，只剩 **Xcode Organizer 图形界面**这一条路（用已登录的 Apple ID）。
+配一次 API key 之后整条链路就能无人值守。
