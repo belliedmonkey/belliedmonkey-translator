@@ -64,7 +64,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
-| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ⬜ not built yet — see §2.G |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（拉取 → 复习 → 落盘 → 退出后重启仍是退出）— see §2.G |
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -629,7 +629,38 @@ settings model to drift), 学习库 counts + §7.1's targeted 清理已掌握的
 > requires in-app account deletion wherever accounts exist. `npm run test:app` now
 > fails by name if that button goes missing, and the failure message says why.
 
-### G. macOS host app (real Mac) — ⬜ not built yet
+### G. macOS host app (real Mac) — ✅ verified 2026-08-08
+
+Same three built files as row F, same Xcode project, so what this row tests is the
+macOS *host*, not the product logic. Signed build → `/Applications` → `open` (§2.G's
+recipe below). Verified: launch and layout; signed-in state pulling **11 cards · 12
+reviews**; sync; grading a card **persisted to IndexedDB** (+66 KB, `grade` +3,
+`lastReviewAt` +6 on disk); and — the one that matters most — **explicit sign-out
+survives a relaunch**.
+
+> **Two operator lessons, both cost real time.**
+>
+> 1. **Driving the app's `WKWebView` from outside is unreliable on macOS.**
+>    `type_text` interleaves characters (`belliedmonkey@gmail.com` came out
+>    `bellicedmoonkdey@gmaeil.com`), and ⌘A/⌘V do not land in the web view at all.
+>    Unlike the simulator there is no long-press-paste fallback. **Hand text entry to
+>    the human on this row** rather than burning attempts; everything else drives fine.
+> 2. **When a human is in the loop, ASK before investigating an anomaly.** The app
+>    appeared signed-in without an OTP, and the possibility that it was a broken auth
+>    path justified looking — but the first move should have been one question. It
+>    cost a container audit, two IndexedDB inspections and a full data wipe to
+>    establish something the user answered in three words: they had signed in
+>    themselves. **A wipe is also destructive**, and it was aimed at a hypothesis that
+>    a question would have eliminated for free.
+>
+> The reflex worth keeping is the other half: what made this safe to conclude was not
+> the explanation, it was the **falsifying test** — sign out, relaunch, confirm it
+> stays out. That distinguishes "a session I forgot about" from "sessions resurrect"
+> without needing to know where the session came from.
+
+**Scope note:** relaunch-persistence of the graded state was not re-driven here (the
+on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
+row F). Not claimed as more than that.
 
 Same loop as F. The one thing that must not be improvised is the install:
 
