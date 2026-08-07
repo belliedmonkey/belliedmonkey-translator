@@ -130,3 +130,30 @@ describe('China descriptions cover every locale (#70)', () => {
     eq(missing.length, 0, `descriptions.china.js 缺少: ${missing.join(', ')}（会静默回落成英文）`);
   });
 });
+
+// ─── Apple caps the description at 112 characters ────────────────────────────
+// Apple's validator rejects the UPLOAD, per locale, after a successful archive and
+// export — nothing earlier can see it. The #69 rewrite was checked against Chrome's
+// 132-character store summary limit, so six locales passed every local gate, built,
+// installed on the simulator, and died at TestFlight (2026-08-07).
+
+describe('description length (Apple 112)', () => {
+  test('every locale fits', () => {
+    const fs = require('fs'), path = require('path');
+    const dir = path.join(__dirname, '..', 'extension', '_locales');
+    const over = [];
+    for (const loc of fs.readdirSync(dir)) {
+      const f = path.join(dir, loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const d = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message || '';
+      if ([...d].length > 112) over.push(`${loc}=${[...d].length}`);
+    }
+    eq(over.length, 0, `超过 Apple 的 112 字符上限: ${over.join(', ')}`);
+  });
+
+  test('the China descriptions fit too', () => {
+    const DESC = require('../build/descriptions.china.js');
+    const over = Object.entries(DESC).filter(([, v]) => [...String(v)].length > 112).map(([k, v]) => `${k}=${[...String(v)].length}`);
+    eq(over.length, 0, `中国版描述超长: ${over.join(', ')}`);
+  });
+});

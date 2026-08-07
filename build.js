@@ -185,6 +185,39 @@ function descriptionBrandGate(dir) {
   log(`Store description is provider-neutral (checked ${brands.length} brand tokens)`);
 }
 
+// ─── Gate: Apple caps the description at 112 characters ────────────────────
+// Apple's App Store Connect validator rejects the whole upload with
+//   "Invalid messages file … The description field must be present, of string type,
+//    and 112 or fewer characters long."
+// per offending locale. Chrome's store summary allows 132, which is what the #69
+// rewrite was checked against — so six locales sailed through every local gate, built
+// fine, installed fine on the simulator, and only failed at the TestFlight upload.
+// Nothing before that point can see it, which is exactly why it is a gate now.
+//
+// Runs for BOTH flavors: the China descriptions are generated at build time and are
+// just as capable of being too long.
+const DESC_MAX = 112;
+
+function descriptionLengthGate(dir) {
+  const localesDir = path.join(dir, '_locales');
+  const over = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const desc = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message;
+    if (typeof desc !== 'string' || !desc) { over.push(`${loc}: missing or not a string`); continue; }
+    const n = [...desc].length;
+    if (n > DESC_MAX) over.push(`${loc}: ${n} chars (max ${DESC_MAX}) — ${JSON.stringify(desc.slice(0, 60))}…`);
+  }
+  if (over.length) {
+    err(`extension_description exceeds Apple's ${DESC_MAX}-character limit — App Store Connect\n` +
+        `  rejects the upload, one error per locale, after a successful archive and export:\n` +
+        over.map((o) => '   ' + o).join('\n'));
+    process.exit(1);
+  }
+  log(`Store description within Apple's ${DESC_MAX}-char limit (all locales)`);
+}
+
 function applyChinaLocales(dir) {
   const DESC = require('./build/descriptions.china.js');
   const STRIP_KEYS = chinaOnlyStripKeys();
@@ -429,6 +462,9 @@ if (FLAVOR === 'china') complianceGateChina(DIST);
 
 // Store-description gate (global builds only — see the function comment)
 if (FLAVOR !== 'china') descriptionBrandGate(DIST);
+
+// Length gate runs for BOTH flavors — Apple rejects the upload, not the build.
+descriptionLengthGate(DIST);
 
 // Zip (Firefox .xpi is just a zip)
 if (SKIP_ZIP) {
