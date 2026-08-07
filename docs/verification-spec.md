@@ -561,7 +561,22 @@ template from bouncing and would trap a scrolling review list.
 > measurement. (Related to, but distinct from, the ios-sim issue where *new* files
 > never enter the bundle at all.)
 
-### F. iOS host app (Xcode Simulator) — ✅ Stage 2 verified 2026-08-07
+### F. iOS host app (Xcode Simulator) — ✅ Stage 2 + 3 verified 2026-08-07
+
+**Stage 3 (review in the app).** iPhone 17 Pro · iOS 26.5, continuing from the Stage 2
+corpus: 开始复习 → a real card (`en.wikipedia.org · Forgetting curve`, synced from a
+browser) → 显示译文 → 记得 → 待复习 1→0, 「下一张卡片约 6 小时后到期」,「本次完成 1
+张」 → terminate + relaunch → **schedule still there**. The review surface is the
+extension's own `review.js` / `review.html` / `review.css`, inlined at build time.
+
+> **The bug inlining creates, found by screenshot on the first build: id collisions.**
+> Both documents were written as whole pages, each free to use any id. Merged, a
+> duplicate is not an error anywhere — `getElementById` returns the first match — so
+> `review.js` wrote its counts into the app shell's `#counts` and the app's card
+> totals silently vanished. `build/app-bundle.js` now **fails the build** on any
+> clash, and the app shell is the side that renames (`review.html` is shared source).
+> The DOM assertions in `test:app` could not see this: they use `getElementById` too,
+> which is exactly what the collision fools.
 
 **iPhone 17 Pro · iOS 26.5, real backend, real email OTP.** The full loop:
 

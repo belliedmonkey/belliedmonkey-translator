@@ -113,3 +113,11 @@ header {
 #status { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--dim); }
 #status.err { color: #c1121f; }
 @media (prefers-color-scheme: dark) { #status.err { color: #ff6b6b; } }
+
+/* ─── App shell on top of review.css ─────────────────────────────────────── */
+/* review.css owns everything inside #review-view; these only place the shell. */
+.row { display: flex; gap: 10px; align-items: stretch; }
+.row button { flex: 1; }
+button.secondary { background: none; color: var(--green); border: 1px solid var(--line); }
+#review-view { display: flex; flex-direction: column; gap: 6px; }
+#review-back { align-self: flex-start; }

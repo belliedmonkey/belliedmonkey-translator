@@ -28,6 +28,8 @@
     back: '换一个邮箱',
     localNote: '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。',
     signout: '退出',
+    review: '开始复习',
+    reviewBack: '← 返回',   // NOT `back` — that key is the sign-in flow's 换一个邮箱
     sync: '同步',
     syncing: '正在同步…',
     cards: '张卡',
@@ -70,6 +72,8 @@
     $('back').textContent = t('back');
     $('local-note').textContent = t('localNote');
     $('signout').textContent = t('signout');
+    $('review').textContent = t('review');
+    $('review-back').textContent = t('reviewBack');
     $('sync').textContent = t('sync');
   }
 
@@ -79,7 +83,7 @@
       LearnStore.allReviews(),
       LearnStore.getMeta('appLastSync', 0),
     ]);
-    $('counts').innerHTML = '';
+    $('app-counts').innerHTML = '';
     const cell = (n, label) => {
       const d = document.createElement('div');
       const b = document.createElement('b');
@@ -89,7 +93,7 @@
       d.append(b, s);
       return d;
     };
-    $('counts').append(
+    $('app-counts').append(
       cell(stats.total, t('cards')),
       cell(reviews.length, t('reviews')),
       cell(stats.sources, t('sources')));
@@ -205,6 +209,24 @@
   }
 
   $('sync').addEventListener('click', doSync);
+
+  // ─── Review ───────────────────────────────────────────────────────────────
+  // `review.js` runs its own boot on load and owns everything inside #review-view.
+  // The app only shows and hides that view — reaching into its internals here would
+  // be the start of the second implementation §9 exists to prevent.
+  $('review').addEventListener('click', () => {
+    $('signed-in').hidden = true;
+    $('review-view').hidden = false;
+    say('');
+  });
+
+  $('review-back').addEventListener('click', async () => {
+    $('review-view').hidden = true;
+    $('signed-in').hidden = false;
+    // Grades given in there changed the corpus, so the counts on the way out must
+    // not be the ones from the way in.
+    await paintCounts();
+  });
 
   // ─── Boot ─────────────────────────────────────────────────────────────────
 
