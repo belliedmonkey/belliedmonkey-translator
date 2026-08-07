@@ -451,8 +451,8 @@ Three consequences that surprise people, so state them where they will be read:
 
 ### 7.3 Eviction and compaction cancel each other out
 
-*(Found 2026-08-07 while reversing §8.5 lever 1. Not yet fixed — recorded so it is not
-rediscovered as a bug report.)*
+*(Found 2026-08-07 while reversing §8.5 lever 1; direction decided the same day, see
+below. The mechanisms are not built yet.)*
 
 Device A hits the 20,000 cap and evicts 5,000 `known` cards per §7.1. Device B later
 compacts (§8.4): it writes a snapshot **from its own complete corpus** and deletes
@@ -465,13 +465,75 @@ user sees 「清理完又满了」. While only cards that had entered the deck w
 this was years away for a real user; with the candidate pool travelling (§8.5) the cap
 arrives in **two to three months** (§6), so this is now on the normal path.
 
-The fix is not settled. The two candidate directions, neither costed yet:
+#### The churn is the mild half. Compaction from an evicting device destroys data.
 
-- **Eviction propagates** — a tombstone kind in the chunk format, which is a genuine
-  format change and interacts with append-only.
-- **Snapshots exclude what a device evicted** — cheaper, but a snapshot that is not
-  complete breaks the property compaction relies on (§8.4: "a snapshot supersedes
-  everything below it *because* it is complete").
+Reverse the roles. **Device A evicts 5,000 cards and then compacts**: it writes a
+snapshot from a corpus that is now missing those 5,000, and deletes every row below
+it. Nothing else on the server holds them. **They are gone for every device and for
+good** — not churn, not a re-download, permanent loss of material the user never asked
+to delete.
+
+Compaction's licence to delete rests entirely on the snapshot being COMPLETE (§8.4).
+Eviction is precisely the thing that makes a device incomplete. The two features are
+not merely awkward together; **as written, one of them is a data-loss bug in the
+presence of the other**, and eviction went from "years away" to "two to three months"
+when the candidate pool started travelling.
+
+#### 核心约束 — eviction is local pressure, not the user deleting something
+
+This is the sentence that decides the design, and both of the directions this section
+originally floated violate it:
+
+> A device running out of room is a fact about **that device**. It is not a statement
+> about what the corpus should contain, and it must never remove anything from another
+> device or from the server.
+
+- **Eviction propagates (tombstones in the chunk format)** — rejected. It converts
+  "this phone is full" into "delete this everywhere". A user whose phone fills up
+  would silently lose corpus on their laptop. Wrong semantics, and a format change
+  besides.
+- **Snapshots exclude what a device evicted** — rejected. Same wrong semantics,
+  reached by a different route, plus it breaks the completeness property outright.
+
+**Decision (2026-08-07): the server is the ARCHIVE, each device keeps a WORKING SET.**
+Two mechanisms follow, and they are small:
+
+1. **Eviction records a local tombstone, and the tombstone filters the SYNC PULL only.**
+   `chunk.js`'s `replay()` already distinguishes the two callers via `opts.fromServer`
+   (§8.4.2) — the same seam. A tombstoned id is not re-admitted from a chunk, so the
+   churn stops. Tombstones **never sync**; they are per-device by definition.
+   - **Capture always wins.** If the user reads the sentence again, the Collector
+     captures it and the drain re-admits it, tombstone or not. Only the server path is
+     filtered. This preserves law 1's direction of travel and matches §8.4.2's
+     existing split between "a new observation" and "a copy of the same fact".
+   - Reviews arriving for a tombstoned card are **kept**, not dropped — they are 13
+     bytes and they are the user's actual history. See PR #88 for why orphan reviews
+     are already a normal state.
+   - The tombstone set is bounded like everything else here; on overflow the oldest
+     are forgotten and those cards may return once. Degrades to today's behaviour,
+     which is the right direction for a bound to fail in.
+2. **Only a device that can prove its corpus is complete may compact.** In practice a
+   device that has ever evicted cannot prove that, so the workable rule is blunt:
+   **a device that has ever evicted never compacts.**
+
+#### What this costs, stated plainly: the storage bound is not real
+
+Rule 2 has a consequence that has to be said rather than buried. Eviction is on the
+normal path now, so **most active accounts will end up with no device eligible to
+compact** — and §8.5's lever 4, the thing that makes stored bytes *bounded*, stops
+applying to exactly the users who generate the most data.
+
+So the honest position, until something changes:
+
+- Storage follows §8.5's **flow** row: ~3.6 MB/user-year, **unbounded**, reaching the
+  50 MB quota in ~14 years.
+- That is beyond any horizon this project is planning for, so **doing nothing is a
+  legitimate answer** — and it is the current answer. `compact()` has no production
+  caller anyway (§8.5), so nothing regresses.
+- If a bound is ever wanted, the shape that survives this section is **server-side
+  compaction** (a Postgres function over the user's own rows, which by construction
+  sees the complete archive), not a smarter client. Recorded here so the next person
+  does not re-derive the client-side version and re-discover why it deletes data.
 
 ## 8. Sync (V3) — hosted, with a fixed free quota
 
@@ -546,18 +608,26 @@ The server quota is the third of the three pressure states §7.1 already describ
 and it reuses that machinery: a line in the review page and settings, with a cleanup
 action beside it, never a blocker and never a page-level interruption.
 
-**The quota's real job is anti-abuse, not rationing.** An ordinary account **converges
-to ~2 MB and stays there** (§8.5): the local corpus is hard-capped at 20,000 items and
-compaction sweeps every superseded row, so stored bytes are *bounded*, not annual.
-50 MB is ~25× that ceiling — a normal user will never see it. It exists so that free
-storage with open sign-up does not quietly become a file host.
+**The quota's real job is anti-abuse, not rationing.** An ordinary account grows at
+~3.6 MB/user-year (§8.5), so 50 MB is **~14 years** of daily use — a normal user will
+not see it. It exists so that free storage with open sign-up does not quietly become a
+file host.
 
-> *(Corrected 2026-08-07.)* This paragraph used to read "at ~0.55 MB per user-year,
-> 50 MB is roughly 90 years of ordinary use". Two things were wrong with it, and the
-> second is the one worth remembering. The rate changed when the candidate pool
-> started travelling (§8.5) — but **"user-years" was the wrong unit from the start**,
-> because compaction bounds an account rather than letting it grow. Multiplying a
-> per-year figure by a quota answered a question nobody was asking.
+> *(Corrected twice on 2026-08-07, and the second correction matters more than the
+> first.)* This first said 「~0.55 MB/人年 ⇒ 约 90 年」, then 「收敛到 ~2 MB 并停在
+> 那里」 once compaction was framed as a bound. **The second version was wrong for a
+> more interesting reason than the first**: compaction is not something an evicting
+> device may safely do (§7.3), and eviction is now on the normal path — so for exactly
+> the heaviest users, no bound applies. The plain unbounded number is the one that
+> survives contact with §7.3, and it is still comfortable.
+>
+> Worth keeping the shape of the mistake, since it is the sort that repeats: **the
+> second version was more sophisticated than the first and wronger in a way that was
+> harder to see.** 「~0.55 MB/人年 ⇒ 约 90 年」 was merely a stale rate. 「收敛到
+> ~2 MB」 introduced a *bound* by reasoning about a mechanism (compaction) without
+> checking whether that mechanism could actually run — it had no production caller
+> (§8.5) and, once §7.3 was worked through, turned out to be unsafe for most accounts
+> anyway. A number derived from a mechanism is only as true as the mechanism.
 
 So: build the cleanup path properly, but do **not** build an elaborate
 quota-management experience for a state real users will not reach, and do not
@@ -741,7 +811,8 @@ doing so is below; it is real but it is not close to a limit.
 | Sources ~1,500 × 160 B | 240 KB | ~80 KB |
 | **Per user-year** | ~10.7 MB | **~3.6 MB** |
 
-**Stored, which is bounded — and this is the number that matters.** Lever 4 sweeps
+**Stored, if lever 4 ever applies** — read the caveat below before using this table;
+for an account whose devices evict, it does not apply at all (§7.3). Lever 4 sweeps
 every superseded row, and the local corpus cannot exceed 20,000 items, so an account
 converges rather than growing:
 
@@ -752,10 +823,11 @@ converges rather than growing:
 | + up to `COMPACT_AT` (40) increment chunks | ~0.36 MB |
 | **Steady state per account** | **~2.1 MB** |
 
-So: ~6.5× the old *flow* figure, and a *stored* ceiling of ~2.1 MB against a 50 MB
-quota (~25× headroom). Supabase's free 500 MB holds **~240 active accounts**, the 8 GB
-paid tier ~3,900. Compare the old, wrongly-framed claim of "~900 user-years" — see
-§8.3 on why per-year was the wrong unit once compaction existed.
+So: ~6.5× the old flow figure. **For planning, use the flow row** — ~3.6 MB/user-year,
+i.e. the 50 MB quota in ~14 years, and Supabase's free 500 MB holding roughly **140
+account-years** of active use (the 8 GB paid tier ~2,300). The ~2.1 MB ceiling applies
+only to an account no device of which has ever evicted, which §7.3 shows is not the
+common case.
 
 > **The bound is conditional, and the condition is not met today** *(found
 > 2026-08-07 while implementing the batching)*. Every "stored is bounded" claim above
@@ -767,10 +839,17 @@ paid tier ~3,900. Compare the old, wrongly-framed claim of "~900 user-years" —
 >
 > That is still not a number a real user meets, so this is not urgent — but it is the
 > difference between a designed bound and an accident, and the cost model must not be
-> read as describing behaviour that no code performs. Wiring compaction up is
-> deliberately **not** bundled into this change: when it runs it *deletes server rows*,
-> and it interacts with §7.3's unresolved eviction conflict, so it wants its own review
-> rather than a free ride.
+> read as describing behaviour that no code performs.
+>
+> **Do not treat this as a gap waiting to be closed by scheduling `compact()`.** §7.3
+> settled the eviction conflict the same day and the answer runs the other way: a
+> device that has evicted cannot write a complete snapshot, and letting it compact
+> would **permanently delete** the material it evicted, for every device. Since
+> eviction is now on the normal path, most active accounts will have no device
+> eligible to compact at all. **Lever 4 therefore does not apply to the users who
+> generate the most data, and the honest number for them is the flow row.** If a bound
+> is ever wanted it has to be *server-side* compaction (§7.3), not a client that has
+> been made cleverer.
 
 **What the server never stores**: audio, video, images, screenshots, and full page
 text. Media is a pointer only — `mediaKey` plus start/end offsets, ~20 bytes.
