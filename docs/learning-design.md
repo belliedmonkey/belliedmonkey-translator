@@ -19,6 +19,15 @@
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
+| 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | 待评审 —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
+
+**2026-08-07 这次是前置评审**（文档先于代码），与上一次相反。起因是真机使用发现
+**手机上进复习页要三步**（地址栏扩展图标 → 大肚猴翻译 → 复习），而这是 iOS 放置扩展
+UI 的构造位置，不是可以靠调菜单解决的。
+
+结论是加一个配套 App 作为浅入口，**同时保留浏览器端复习页**。过程中被否掉的两个方案
+连同证据都记在 §12：走原生消息把语料交给 App 上传（上传进度会落到 App 手里），以及
+把扩展退成纯采集器（会使产品对未登录用户不完整）。
 
 **这是一次追溯性评审。** `AGENTS.md` 要求领域改动「先更新文档、过人工评审、再改代码」；
 实际顺序是反的——评审发生时已有 15 个 commit。记在这里不是自责，是因为**追溯评审有一个
@@ -341,6 +350,9 @@ permanently; those two are the ones that get expensive.
 
 ## 7. 核心约束 — storage is three tiers, and the reason is origin
 
+> *(§7.2 adds the host app, which is a **fourth** origin and therefore a second corpus.
+> The three tiers below describe the extension's, and are unchanged by it.)*
+
 > **A content script's `indexedDB` belongs to the HOST PAGE's origin, not the
 > extension's.** Writing the corpus there would scatter it across every site the user
 > visits and expose it to the page's own scripts. It is not an option.
@@ -414,6 +426,53 @@ starred card or one you are actively learning.
 > and only once such a tier exists. Never show an upgrade path to a tier that does
 > not exist.
 
+### 7.2 核心约束 — there are TWO corpora, and only the server joins them
+
+*(2026-08-07, with the host app.)* The three tiers above describe **one** corpus, the
+extension's. The host app has its own, in its own `WKWebView` origin, and **origin is
+the entire reason §7 exists** — the app can no more read the extension's IndexedDB
+than a content script can. There is no shared-container shortcut: see §12 for why the
+native-messaging bridge was rejected on product grounds even though it works.
+
+```
+extension: content script ─▶ lq: outbox ─▶ IndexedDB ─┐
+                                                       ├─▶ §8 sync (the server)
+app:                                    app store ────┘
+```
+
+Three consequences that surprise people, so state them where they will be read:
+
+1. **Same device, still through the server.** On one iPhone, Safari's corpus and the
+   app's corpus meet only via §8.
+2. **The app is empty until you sign in**, and must say so in those words rather than
+   showing an empty deck. The extension's review page is the signed-out path (§8.1).
+3. **The extension owns the upload** — it holds `syncPushedAt` and can therefore tell
+   the user what has and has not reached the server. Nothing else can.
+
+### 7.3 Eviction and compaction cancel each other out
+
+*(Found 2026-08-07 while reversing §8.5 lever 1. Not yet fixed — recorded so it is not
+rediscovered as a bug report.)*
+
+Device A hits the 20,000 cap and evicts 5,000 `known` cards per §7.1. Device B later
+compacts (§8.4): it writes a snapshot **from its own complete corpus** and deletes
+every row below it. A's next pull replays that snapshot and **receives the 5,000 cards
+it just evicted**, putting it straight back over the cap.
+
+It does not loop forever — replayed items carry the `syncedAt` watermark (§8.4.2) so
+they are not pushed back — but **eviction is undone at every compaction**, and the
+user sees 「清理完又满了」. While only cards that had entered the deck were uploaded
+this was years away for a real user; with the candidate pool travelling (§8.5) the cap
+arrives in **two to three months** (§6), so this is now on the normal path.
+
+The fix is not settled. The two candidate directions, neither costed yet:
+
+- **Eviction propagates** — a tombstone kind in the chunk format, which is a genuine
+  format change and interacts with append-only.
+- **Snapshots exclude what a device evicted** — cheaper, but a snapshot that is not
+  complete breaks the property compaction relies on (§8.4: "a snapshot supersedes
+  everything below it *because* it is complete").
+
 ## 8. Sync (V3) — hosted, with a fixed free quota
 
 *(Settled 2026-08-04, after two reversals. The design went: our server with E2E →
@@ -436,6 +495,18 @@ attractive again in six months.)*
   so plainly, and offer cleanup (§8.3). **Never silently drop data.**
 - Sync is **opt-in**. A signed-out user has a complete product; that is rule 2 and it
   does not bend.
+- **Since 2026-08-07 sync has a second job: it is the only way material reaches the
+  host app** (§7.2). Both sentences have to be said together, and neither may be
+  dropped to make the other sound better:
+  - *Signing in is not required to learn.* The extension's review page is complete
+    without an account, on every browser. That is what keeps rule 2 intact.
+  - *Without signing in, the app has nothing.* Not a degraded app — an empty one.
+    Say it in those words, at the point where a user would otherwise wait for cards
+    that are never coming.
+
+  What an account buys is therefore **multi-device sync and a one-tap surface**, not
+  the feature itself. If that ever inverts, rule 2 has been broken, whatever the
+  release notes say.
 
 ### 8.2 核心约束 — export stays, and it is not a nicety
 
@@ -444,11 +515,26 @@ attractive again in six months.)*
 >
 > 1. **It is the data-portability right** (GDPR Art. 20). We now hold the data, so
 >    this is no longer optional in the way it was when we held nothing.
-> 2. **It is the no-account path.** Someone who never wants to sign in can still move
->    between their own devices by carrying the file.
+> 2. **It is the exit, not a transport.** *(Reworded 2026-08-07.)* This used to read
+>    "it is the no-account path — carry the file between your own devices". That is no
+>    longer what it is for, and leaving the old wording would have quietly made a file
+>    shuttle into the answer for signed-out users.
 > 3. **It is the honest answer to "I don't trust you".** That answer must not be
 >    "self-host Supabase" — realistically nobody will. It is "take your file and go",
 >    and it has to actually work.
+
+**The no-account path is the extension's own review page** (§8.1), not a file. A file
+bridge between the extension and the app was considered and dropped on product
+grounds, not principle: *nobody imports and exports by hand several times a week to
+keep studying.* Building it would satisfy the rule on paper and produce a feature no
+one uses, and a feature no one uses is not compliance — it is decoration. **A rule is
+kept by the path people actually take.**
+
+> **Today's export does not match this section.** `chunk.js`'s `build()` filters
+> through `isGraduated`, and `exportBytes()` goes through the same `build()` — so
+> 「一键导出**全部**」 currently omits the entire candidate pool. Removing that filter
+> for §8.5 fixes the export in the same edit. Until then, this paragraph describes an
+> intent, not the behaviour.
 >
 > The format is the §8.4 chunk format unchanged, so this costs almost nothing to
 > provide and would be indefensible to withhold.
@@ -459,10 +545,20 @@ The server quota is the third of the three pressure states §7.1 already describ
 and it reuses that machinery: a line in the review page and settings, with a cleanup
 action beside it, never a blocker and never a page-level interruption.
 
-**The quota's real job is anti-abuse, not rationing.** At §8.5's ~0.55 MB per
-user-year, 50 MB is roughly 90 years of ordinary use — a normal user will never see
-it. It exists so that free storage with open sign-up does not quietly become a file
-host. So: build the cleanup path properly, but do **not** build an elaborate
+**The quota's real job is anti-abuse, not rationing.** An ordinary account **converges
+to ~2 MB and stays there** (§8.5): the local corpus is hard-capped at 20,000 items and
+compaction sweeps every superseded row, so stored bytes are *bounded*, not annual.
+50 MB is ~25× that ceiling — a normal user will never see it. It exists so that free
+storage with open sign-up does not quietly become a file host.
+
+> *(Corrected 2026-08-07.)* This paragraph used to read "at ~0.55 MB per user-year,
+> 50 MB is roughly 90 years of ordinary use". Two things were wrong with it, and the
+> second is the one worth remembering. The rate changed when the candidate pool
+> started travelling (§8.5) — but **"user-years" was the wrong unit from the start**,
+> because compaction bounds an account rather than letting it grow. Multiplying a
+> per-year figure by a quota answered a question nobody was asking.
+
+So: build the cleanup path properly, but do **not** build an elaborate
 quota-management experience for a state real users will not reach, and do not
 advertise "limited storage" as though it were a constraint they will feel.
 
@@ -498,6 +594,20 @@ Two deliberate deviations from the earlier sketch, both discovered while applyin
 it raises rather than truncating — `AGENTS.md` rule 7's "enforced by a database
 constraint, never by client-side good behaviour" plus "never silently drop data". The
 client turns that error into §7.1's pressure state with a cleanup action.
+
+**核心约束 — a push is batched at ~200 cards per chunk** *(promoted from an assumption
+to a rule, 2026-08-07)*. §8.5 lever 3 has always described chunks as "~200 cards packed
+together", but `sync.js`'s `push()` builds **one** bundle from everything fresh and
+does **one** `insert`. That was harmless while only cards that had entered the deck
+travelled — a few hundred at most. With the candidate pool travelling, a user who has
+been capturing for three months pushes ~20,000 items the first time they sign in:
+
+- ~1.7 MB compressed, and PostgREST carries `bytea` as a `\x` hex literal, so the
+  **request body is ~3.4 MB** (§8.4's deliberate 2×-on-the-wire trade).
+- A single failure loses the whole push; there is no partial progress to resume from.
+
+Batching also gives the surfaces something honest to show, which law 2 (§3) requires:
+「已上传 3,400 / 19,800」 rather than one opaque wait.
 
 ### 8.4.1 核心约束 — this project's identity system belongs to the learning layer
 
@@ -570,31 +680,71 @@ that a non-event rather than a corruption」写的正是这条要求，而代码
 验收判据是**收敛**：无任何用户活动时，连续多轮双向同步必须稳定在「收到 0 · 上传
 0」。这条比任何单点断言都难糊弄——回声、非幂等累加、水位算错，都会让它一直不为零。
 
-### 8.5 Storage cost — four levers, and the estimate rule 9 requires
+### 8.5 Storage cost — three levers (one reversed), and the estimate rule 9 requires
 
-**Assumptions.** `dailyNew = 15` ⇒ at most ~5,000 graduated cards per user-year; a
-card's `text` + `tr` is ~200 B of plaintext; a card accrues ~8 reviews over its life.
+**Assumptions.** Capture runs at ~125/day (§6's measured 100–150) ⇒ ~45,000
+captures per user-year; the corpus is hard-capped at 20,000 items, so it turns over
+~2.3× a year. A card's `text` + `tr` is ~220 B of plaintext. `dailyNew = 15` ⇒ ~5,000
+cards enter the deck per user-year, each accruing ~8 reviews at ~13 B. ~30 cards come
+from one page ⇒ ~1,500 sources a year at ~160 B.
 
 | Lever | What it does | Saves |
 |---|---|---|
-| **1 — sync only graduated cards** | The candidate pool (hundreds of segments per page) **never leaves the device**. Not merely thrift: the candidate pool *should* be a product of what you read on this device, while cards you have started learning *should* follow you | ~10× |
+| ~~**1 — sync only cards that entered the deck**~~ | **REVERSED 2026-08-07 — see below.** The candidate pool now travels | ~~~10×~~ |
 | **2 — normalize the source** | URL + title is ~160 B, nearly half a card. A `Source` row is shared by every card from the same page (~30 for an article) | 160 B → ~5 B |
 | **3 — compress in batches** | Compressing one short sentence is near-useless, so ~200 cards are packed into one immutable chunk and compressed together. Mixed CJK/Latin batches at ~3× | ~3× |
 | **4 — append-only + whole-snapshot compaction** | Chunks are only appended. Past a threshold the client pulls everything, rewrites one snapshot chunk, deletes the superseded ones. **No incremental merge machinery** — the local corpus is hard-capped at 20,000 items, so a whole rewrite is affordable | 5,000 rows → ~25 |
 
-| | Raw | After |
+#### Why lever 1 was reversed
+
+**A card only enters the deck by being reviewed.** Lever 1's own justification — "the
+candidate pool *should* be a product of what you read on this device, while cards you
+have started learning *should* follow you" — quietly assumed the deck and the corpus
+live on the same device. With the host app (§7.2) they do not, and the assumption
+becomes a deadlock:
+
+> Someone who wants to study in the app will not first go and study in the browser.
+> So nothing enters their deck → nothing is uploaded → **the app stays empty forever**
+> and they never get a first card. The extension meanwhile reports 「同步成功 ·
+> 上传 0 张」, which is the worst possible shape: correct, cheerful, and useless.
+
+Uploading the candidate pool is the only thing that breaks the cycle. The cost of
+doing so is below; it is real but it is not close to a limit.
+
+#### The estimate rule 9 requires
+
+**Written per user-year** (bandwidth, and what the quota trigger sees):
+
+| | Raw | Compressed |
 |---|---|---|
-| Card text 5,000 × 220 B | 1.1 MB | ~365 KB |
+| Captures 45,000 × 220 B | 9.9 MB | **~3.3 MB** |
 | Review log 40,000 × 13 B | 520 KB | ~173 KB |
-| Sources ~500 × 160 B | 80 KB | ~27 KB |
-| **Per user-year** | ~1.7 MB | **~0.55 MB** |
+| Sources ~1,500 × 160 B | 240 KB | ~80 KB |
+| **Per user-year** | ~10.7 MB | **~3.6 MB** |
 
-Without levers 2 and 3 it is ~2.5 MB/user-year. At 0.55 MB: Supabase's free 500 MB
-holds ~900 user-years; the 8 GB paid tier ~14,500.
+**Stored, which is bounded — and this is the number that matters.** Lever 4 sweeps
+every superseded row, and the local corpus cannot exceed 20,000 items, so an account
+converges rather than growing:
 
-**What the server never stores**: audio, video, images, screenshots, full page text,
-and the candidate pool. Media is a pointer only — `mediaKey` plus start/end offsets,
-~20 bytes.
+| | Compressed |
+|---|---|
+| Snapshot: 20,000 cards | ~1.47 MB |
+| + review log, + ~700 sources | ~0.21 MB |
+| + up to `COMPACT_AT` (40) increment chunks | ~0.36 MB |
+| **Steady state per account** | **~2.1 MB** |
+
+So: ~6.5× the old *flow* figure, and a *stored* ceiling of ~2.1 MB against a 50 MB
+quota (~25× headroom). Supabase's free 500 MB holds **~240 active accounts**, the 8 GB
+paid tier ~3,900. Compare the old, wrongly-framed claim of "~900 user-years" — see
+§8.3 on why per-year was the wrong unit once compaction existed.
+
+**What the server never stores**: audio, video, images, screenshots, and full page
+text. Media is a pointer only — `mediaKey` plus start/end offsets, ~20 bytes.
+
+> **The candidate pool used to be on that list.** It is not any more, and that is a
+> privacy change, not a billing one — it is the difference between "the sentences you
+> chose to study" and "everything you read". §8.6 is re-argued against the wider
+> dataset; do not treat this as a line-item edit.
 
 ### 8.6 No end-to-end encryption — decided 2026-08-04, with the door held open
 
@@ -604,6 +754,40 @@ review log (card id, grade, **timestamp**). Together those reconstruct which pag
 person read, when, and which sentences they keep forgetting. The sensitive column is
 the URL, not the prose. Any argument about this data that reasons about "just text"
 is reasoning about the wrong object.
+
+#### Re-argued 2026-08-07, because the dataset got much wider
+
+This section was decided when only cards that had entered the deck were uploaded —
+~5,000 a year, **selected by the user**. Since §8.5 lever 1 was reversed, what leaves
+the device is the candidate pool: by §6's own description, **everything you actually
+read** — every in-band segment you looked at for 2.5 seconds — at ~45,000 a year, with
+URL, title and timestamp.
+
+The difference is a change of kind, not of volume:
+
+| | Before | Now |
+|---|---|---|
+| Granularity | pages you studied from | **paragraphs you read** |
+| Selection | you chose them | the junk filter kept them |
+| Reconstructs | a study record | **a reading history, near-complete** |
+
+**The decision does not change, and the reasons it does not are the same ones:** key
+management would fall hardest on the users least able to carry it (§2 普惠), a lost key
+is unrecoverable, and E2E is mutually exclusive with §2.1. None of that is affected by
+the corpus getting wider.
+
+**What does change is what we owe the user, and it changes in three places:**
+
+1. **The disclosure must name the real thing.** Not "the sentences you're studying" —
+   **"every sentence you read on a page you translated, in readable form on our
+   servers"**. §10 Gate B is rewritten accordingly. A disclosure calibrated to the
+   narrower dataset is now inaccurate, and it is inaccurate in our favour, which is
+   the kind that costs trust when someone notices.
+2. **§8.7's obligations get sharper, not merely restated** — deletion, retention and
+   breach notification now cover a reading history rather than a flashcard deck.
+3. **The case for optional E2E is materially stronger than it was**, and the `enc`
+   door (below) is now the most valuable thing in this section rather than a hedge.
+   This does not make it ship; it makes it the first thing to revisit.
 
 **Decision: no E2E for now; optional E2E later; the format door is open today.**
 
@@ -693,7 +877,8 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnScheduler` | `content/learn-scheduler.js` | pure: `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
 | `LearnCollector` | `content/learn-collector.js` | the sink (§3): dwell observation via `IntersectionObserver`, salience gate, bounded `lq:` outbox writes. Never originates a translation |
 | `LearnStore` | `learn/store.js` + `learn/drain.js` | extension-page-only IndexedDB corpus and the outbox→corpus drain/merge |
-| `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows |
+| `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
+| Host app | `Shared (App)/` | the one-tap surface on iOS + macOS. **Not a second engine**: it loads the same `learn-model.js` / `learn-scheduler.js` / `chunk.js` / `sync.js` / `auth.js` / `review.*`, and replaces only the host shims (`page-settings.js`, `drain.js`, `tts.js`). `ViewController.swift` is already a `WKWebView` with a `controller` message bridge |
 
 ---
 
@@ -788,16 +973,26 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
 - **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one that
   changes, and it must change honestly. No tracking and no telemetry stay literally
   true. What is added is an **optional account** for syncing, which the extension
-  works completely without — and, for people who turn it on, **the corpus is stored
-  on our servers in readable form**. Say that in those words. It is the sentence a
+  works completely without — and, for people who turn it on, **every sentence they
+  read on a translated page is stored on our servers in readable form**, along with
+  the page URL, its title and the time. Say it in those words. It is the sentence a
   reader deserves to find without digging.
+  *(Sharpened 2026-08-07 per §8.6: this used to say "the corpus", which was accurate
+  when only cards you had chosen to study were uploaded. Since the candidate pool
+  travels, "the corpus" understates it to the reader's disadvantage.)*
 - **A hosted model (§2.1), if it ever ships, is a separate disclosure**: that path
   sends page text through us. Name it as its own exception; never fold it into a
   sentence about sync.
-- **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one
-  that changes. It becomes: no tracking and no telemetry (still true), plus an
-  **optional, free account** whose only job is to sync the learning corpus between
-  the user's own devices — and which the extension works completely without.
+- **The host app needs its own disclosure, and it must not lean on the extension's.**
+  *(Added 2026-08-07.)* The app is useless without an account (§7.2), so the person
+  reading its App Store page is by definition someone who will sign in — the "works
+  completely without an account" sentence that is true of the extension is
+  **misleading if it is the first thing they read**. State it the other way round for
+  the app: this app syncs your learning corpus through our servers, in readable form;
+  the browser extension works without an account and stores everything locally.
+  *(This bullet replaces a duplicate of the one above, which had drifted into the
+  list twice with slightly different wording — itself a small warning about how a
+  privacy statement decays.)*
 - **Firefox `data_collection_permissions`** must be re-evaluated against `build.js`
   (which already carries this reminder and a build-time assertion). Syncing transmits
   website content **and** browsing activity, readable on the receiving end, so the
@@ -853,3 +1048,6 @@ matters more than the detail.
 | 2026-08-04 | 同步到用户自己的云盘目录（iCloud / Google Drive） | `showDirectoryPicker` 只有桌面 Chromium 有：Firefox 没有，macOS Safari 没有，**iOS 上根本不可能**——而 iOS 是主力面。浏览器扩展没有可设的「数据目录」 |
 | 2026-08-04 | 自建 auth 框架替代 GoTrue（Auth.js 之类） | 需要一台我们运维的服务器；更糟的是 PostgREST 用**项目唯一的** JWT secret 验签，把它交给第二个 auth 服务等于两个产品互持对方的万能钥匙。见 §8.4.1 |
 | 2026-08-04 | 与 champagne 共用 Supabase 项目（`bt_` 前缀隔离） | 前缀能隔离表，**隔离不了身份**——一个项目只有一个 `auth.users`。已迁至独立项目（东京）。当时迁移代价为零，因为表里还没有数据；有用户之后同样这一步要每个人重新注册 |
+| 2026-08-07 | 扩展经 `sendNativeMessage` 把外发箱排空给 App，由 **App 负责上传** | **不是不可行——尖刺跑通了**（`verification-spec.md` Stage 0，提交 `1f4113a`：内容脚本没有这个 API；background 有，200KB 往返 10ms、热态 ~0.8ms/次，但**冷启动第一次调用必然失败**）。否决理由是**上传进度会落到 App 手里**：用户不打开 App 就可能永远不上传，而扩展连数据到没到服务器都无从得知。改为扩展直传服务器、自己持有 `syncPushedAt`。连带省掉了原生桥、App Group，以及 `safari-project` 重新生成会抹掉手写 Swift 的整个冲突 |
+| 2026-08-07 | 扩展退成纯采集器，删掉浏览器端复习页，全部学习入口引导到 App | 未登录用户就没有复习面了，与 `AGENTS.md` 规约 2（不付费不登录也有完整产品）和规约 3（对未登录用户必须完整）正面冲突。保留浏览器复习页之后，登录换来的是**多端同步 + 一个一键可达的面**，而不是功能本身 |
+| 2026-08-07 | 用导出/导入文件做扩展↔App 的无账号通道 | **产品判断，不是原则妥协**：没有人会为了继续学习，每周手动导入导出几次。造出来就是没人用的功能，而没人用的功能不叫合规，叫装饰。规约要靠**用户真会走的那条路**来守——那条路是浏览器端自己的复习页（§8.2） |
