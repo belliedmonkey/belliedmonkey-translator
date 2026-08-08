@@ -246,6 +246,22 @@
 
   $('sync').addEventListener('click', doSync);
 
+  // §8.8 — launch and return-to-foreground are the app's heartbeats. Silent by
+  // contract: autoSync resolves null on signed-out / throttled / failed, and only a
+  // run that actually happened repaints. The loud path stays on the button above.
+  async function quietSync() {
+    if (!currentSession) return;
+    const r = await LearnSync.autoSync().catch(() => null);
+    if (r) {
+      await LearnStore.setMeta('appLastSync', Date.now());
+      await paintCounts();
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') quietSync();
+  });
+
   // ─── Review ───────────────────────────────────────────────────────────────
   // `review.js` runs its own boot on load and owns everything inside #review-view.
   // The app only shows and hides that view — reaching into its internals here would
@@ -253,6 +269,12 @@
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;
     $('review-view').hidden = false;
+    // §8.8 — the app is a long-lived single page and review.js built its deck at
+    // bundle load, so material synced since then is invisible until a rebuild.
+    // Entering the view IS the rebuild point. `start()` is review.js's own export
+    // (same bytes as the extension); this is showing/hiding plus one sanctioned
+    // call, not a second implementation.
+    if (window.LearnReview) LearnReview.start();
     say('');
   });
 
@@ -329,6 +351,9 @@
 
     try {
       await show(await LearnAuth.current());
+      // Fire-and-forget: launch is a heartbeat (§8.8), and the sign-in screen or
+      // counts must never wait on the network for a run the user didn't ask for.
+      quietSync();
     } catch (err) {
       // A corrupt session must not leave a blank window with no way forward.
       await show(null);

@@ -538,6 +538,11 @@
 
   let currentSources = new Map();
 
+  // §8.8 — the app enters this view without reloading the page (it is a long-lived
+  // single page), so it needs a handle to rebuild the deck on entry. The extension
+  // reloads per open and never calls this; exposing it there is harmless.
+  window.LearnReview = { start };
+
   // ─── Boot ────────────────────────────────────────────────────────────────
 
   const settings = await loadSettings();
@@ -655,6 +660,19 @@
   await LearnDrain.run();
   await refreshPressure();
   await start();
+
+  // §8.8 — opening this page is the heartbeat. Fire-and-forget AFTER the first
+  // deck is on screen: blocking start() on the network would hold the whole page
+  // hostage to a slow sync the user never asked for. If the pull actually brought
+  // something new AND no card is mid-review (empty / deck-done states — exactly
+  // where fresh material matters most), rebuild; a card on screen is never yanked.
+  if (typeof LearnSync !== 'undefined') {
+    LearnSync.autoSync().then(async (r) => {
+      if (r && r.pulled && (r.pulled.cards || r.pulled.reviews) && $('card').hidden) {
+        await start();
+      }
+    }).catch(() => {});
+  }
 
   // One-time explainer (§5.1): shown above the first card ever seen, non-blocking,
   // dismissed forever. Not shown over the empty state — grading advice before there

@@ -295,6 +295,41 @@ var LearnSync = (() => {
     return { pulled, pushed };
   }
 
+  // ─── Auto-sync (§8.8) — the page-open heartbeat ──────────────────────────
+  // Silent BY CONTRACT, not by sloppiness: the user did not initiate this run, so
+  // its failure may not interrupt them (§8.8 rule 1) — every error path resolves to
+  // null. The manual button keeps the loud path. Quota visibility is §8.3's job
+  // (insert() bumps the pressure counter before this swallows the error).
+  //
+  // `inflight` dedupes concurrent triggers — two surfaces opening at once, or the
+  // app's launch sync racing review.js's boot sync — into ONE run whose result both
+  // callers see. The throttle stamp is written only after a SUCCESSFUL sync, so an
+  // offline attempt costs one failed request per page open and retries next open.
+  const AUTO_AT = 'autoSyncAt';
+  const AUTO_MIN_MS = 10 * 60 * 1000;
+  let inflight = null;
+
+  function autoSync(now) {
+    if (inflight) return inflight;
+    inflight = (async () => {
+      try {
+        const at = now || Date.now();
+        const t = await LearnAuth.token().catch(() => null);
+        if (!t) return null;                        // signed out ⇒ nothing to do
+        const last = (await LearnStore.getMeta(AUTO_AT, 0)) || 0;
+        if (at - last < AUTO_MIN_MS) return null;   // heartbeat, not a drumroll
+        const r = await sync(at);
+        await LearnStore.setMeta(AUTO_AT, at);
+        return r;
+      } catch (_) {
+        return null;
+      } finally {
+        inflight = null;
+      }
+    })();
+    return inflight;
+  }
+
   async function usage() {
     const rows = await call(MT_BACKEND.url + '/rest/v1/rpc/bt_usage',
       { method: 'POST', headers: await headers(), body: '{}' });
@@ -313,7 +348,7 @@ var LearnSync = (() => {
     await LearnStore.setMeta(PUSHED, 0);
   }
 
-  return { push, pull, sync, compact, usage, forget, toHex, fromHex, touchedAt, COMPACT_AT };
+  return { push, pull, sync, autoSync, compact, usage, forget, toHex, fromHex, touchedAt, COMPACT_AT, AUTO_MIN_MS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnSync;
