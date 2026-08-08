@@ -58,10 +58,20 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
 .note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; }
 
-form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
-label { font-size: 0.85rem; color: var(--dim); }
+/* ─── Shell element styling — SCOPED, because the cascade doesn't know about
+   ownership. This file is concatenated AFTER review.css, so any bare element
+   rule here wins every specificity tie inside #review-view too — which review.css
+   owns. That is not theoretical: the bare `button { color:#fff; background:green }`
+   below used to leak under review.css's `.play` (an outline button that sets only
+   `color: green`), producing a green-on-green ▶ that looked like a blank chip the
+   moment TTS first became enabled. `:where()` keeps each rule's specificity
+   identical to the bare element selector while making it MATCH only shell
+   surfaces — review markup never sees these rules at all. ───────────────────── */
 
-input {
+:where(#signed-out, #signed-in, #app-settings) form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+:where(#signed-out, #signed-in, #app-settings) label { font-size: 0.85rem; color: var(--dim); }
+
+:where(#signed-out, #signed-in, #app-settings) input {
   font: inherit;
   color: var(--fg);
   background: var(--field);
@@ -71,9 +81,9 @@ input {
   /* 16px minimum or iOS zooms the whole page on focus. */
   font-size: max(16px, 1rem);
 }
-input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+:where(#signed-out, #signed-in, #app-settings) input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
 
-button {
+:where(#signed-out, #signed-in, #app-settings) button {
   font: inherit;
   font-weight: 600;
   color: #fff;
@@ -85,9 +95,9 @@ button {
   /* Comfortably past the 44pt touch target. */
   min-height: 48px;
 }
-button:disabled { opacity: 0.45; cursor: default; }
+:where(#signed-out, #signed-in, #app-settings) button:disabled { opacity: 0.45; cursor: default; }
 
-button.link {
+:where(#signed-out, #signed-in, #app-settings) button.link {
   background: none;
   color: var(--green);
   font-weight: 400;
@@ -118,9 +128,23 @@ header {
 /* review.css owns everything inside #review-view; these only place the shell. */
 .row { display: flex; gap: 10px; align-items: stretch; }
 .row button { flex: 1; }
-button.secondary { background: none; color: var(--green); border: 1px solid var(--line); }
+:where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--green); border: 1px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
-#review-back { align-self: flex-start; }
+/* The one shell-owned control INSIDE the review surface, so the scoped rules
+   above no longer reach it — it carries its link styling by id (which also
+   outranks review.css's button base, deliberately: this button is the shell's). */
+#review-back {
+  align-self: flex-start;
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--green);
+  font-weight: 400;
+  min-height: 0;
+  padding: 6px;
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 /* ─── Settings ───────────────────────────────────────────────────────────── */
 .head-actions { display: flex; gap: 14px; }

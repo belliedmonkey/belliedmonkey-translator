@@ -761,6 +761,17 @@ never been seen red is not evidence.
 > one that is still working.** Wrap the body, and give every long-running check a
 > hard timeout that prints a verdict.
 
+### 3.1.3 `npm run test:learn` — the learning suite, end to end, in both hosts
+
+**Mandatory whenever the learning surface changes** (`extension/learn/**`,
+`extension/content/learn-*`, review-related `app/**`). Real Chrome, two hosts —
+the shipped app bundle (dist-app, shipped layout) and the extension review page
+(dist/learn/review.html plus the app's own chrome shim) — walked through the whole
+loop with a seeded per-tier corpus, asserting against the DATABASE for behavior and
+sweeping the visible surface after every step (non-empty labels, foreground ≠
+background — the class of bug that only exists where CSS cascades differ per host).
+Case list and manual-matrix complement: [`learn-regression.md`](learn-regression.md).
+
 ### 3.2 `npm run test:layout` — layout regression corpus
 
 `npm run test:layout` (`node test/layout/run-layout.js`, zero-dep, Node ≥22 for the
