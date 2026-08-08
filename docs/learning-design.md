@@ -21,6 +21,7 @@
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
 | 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | 待评审 —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
 | 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | 待评审 —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
+| 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | 待评审 —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
 
 **2026-08-08 的评审范围**由真机使用反馈驱动：评分按钮后果不可见、「学习好了」无
 标准、牌组耗尽后精力无处使。三个方向已由产品在设计前定下（AskUserQuestion）：
@@ -545,6 +546,21 @@ Three consequences that surprise people, so state them where they will be read:
    showing an empty deck. The extension's review page is the signed-out path (§8.1).
 3. **The extension owns the upload** — it holds `syncPushedAt` and can therefore tell
    the user what has and has not reached the server. Nothing else can.
+
+**App 侧凭证（2026-08-08 (二) 放宽，边界如下）。** 此前的边界是「翻译引擎 / API
+key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。§9.2 的解析改变了后半个
+前提：App 里的复习面有一个确实需要 chat 引擎的功能。因此 App 的设置页**可以**配置
+一个 chat 类引擎 + key，且仅此一件事使用它 —— App 仍然从不翻译、从不采集。三条不
+放宽的边界：
+
+1. **凭证是设备本地的，永不同步。** key 不进 chunk、不进服务器 —— §8.6 已裁定
+   服务器无 E2E，把凭证放上去等于把泄露半径从一台设备扩到整个服务端（§12）。
+   换设备重新填一次 key，代价与收益相称。
+2. **配置是可选的，空着不减损其它一切。** 解析的能力门控（§9.2）本来就规定
+   「没引擎 ⇒ 入口不渲染」；App 不配 key 就是这个状态，不是降级。
+3. **存放风险如实陈述**：App 的 `chrome.storage` 垫片背靠 `localStorage`，明文，
+   与扩展侧 `chrome.storage.local` 的现状同级（都不加密）。这不是新增风险面，
+   但设置页的措辞不得暗示比扩展更安全。
 
 ### 7.3 Eviction and compaction cancel each other out
 
@@ -1089,6 +1105,36 @@ Two consequences worth stating, because both are easy to undo by accident:
 *This is the engineering shape of the argument, not legal advice. Have it reviewed
 before any of it is published as a privacy claim.*
 
+### 8.8 自动同步触发 — 打开即同步，静默失败，手动按钮不动（2026-08-08 (二)）
+
+真机用出来的问题：全仓库只有两个同步触发点，且都是手动按钮（扩展选项页、App 主
+页）。用户在浏览器里采集了一周，App 里的库还停在上次点按钮那天 —— 表现为「App 没
+有我账号的例句」，实际是**没人扮演心跳**。
+
+**触发模型：页面打开就是心跳，不引入定时器。**
+
+- **扩展**：复习页与选项页打开时，若已登录则自动 `sync()`（推 + 拉），节流
+  **10 分钟**（meta `autoSyncAt`，设备本地）。扩展页都是短命页面，打开事件天然
+  就是「用户在用」的信号；Safari iOS 的后台 SW 会永久死掉（Critical Safari Bug），
+  任何 alarms / 周期任务在主力面上都是假心跳（§12）。
+- **App**：启动（及从后台回前台）时，若已登录则自动 `sync()`。App 的拉取本来就
+  发生在这两个时刻之后的手动点击里 —— 把点击省掉，语义不变。
+- **复习面时效性**：App 是常驻单页，deck 在 bundle 加载时建一次 —— 自动拉取若不
+  伴随重建，新材料到了库里、复习面却看不见。因此**进入复习视图时重建 deck**
+  （`review.js` 暴露 `start()`，App 进视图时调用）。扩展侧复习页每次打开都是新
+  页面，天然重建，行为不变。
+
+**三条规则：**
+
+1. **自动同步静默失败。** 无网、服务器 5xx、配额满 —— 都不弹任何东西，只更新
+   已有的「上次同步」状态行。用户没有发起这次动作，就不得为它的失败埋单打断；
+   配额满的可见性已由 §8.3 的压力状态负责，不需要在这里重复。
+2. **手动按钮原样保留，语义不变。** 它仍然是「现在就同步，并把结果说给我听」——
+   成功报数字、失败报原因。自动路径永远不能替代一条用户能主动拽的绳子。
+3. **收敛判据不变。** 自动触发只是把既有 `sync()` 在既有时机之外多调几次；无
+   活动时双向同步仍须稳定「收到 0 · 上传 0」。若自动化让 0/0 破了，坏的是
+   sync，不是触发器 —— 修那边。
+
 ## 9. Module map additions
 
 These rows are mirrored into `docs/domain-design.md` §6.
@@ -1180,6 +1226,10 @@ rather than reading the sentence in the wrong language.
   输出并防御性解析——模型输出不可信是前提，不是意外。
 - 规约走查：用户自己的 key、设备发起、结果不落我们的服务器 —— 规约 1 / 2 / 4 全
   满足，不涉及 §2.1 的付费服务端路径。
+- **App 里同样可用（2026-08-08 (二)）**：App 设置页可配 chat 引擎 + key（§7.2 的
+  放宽及其三条边界），配了之后同一个能力门自然打开 —— `review.js` 是同一份字节，
+  门控逻辑一行不改。App 侧需要把 `providers.gen.js` 进 bundle（注册表仍是唯一
+  来源，App 不复述任何引擎名）。不配 key 的 App 维持现状：入口不渲染。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
@@ -1354,3 +1404,5 @@ matters more than the detail.
 | 2026-08-08 | 读 / 听 / 写各自独立排程 | `sched` 变三份、同步「按 lastReviewAt 取新」拆三路、复习债 ×3，换来的精度建立在两个本就未经验证的阈值上。一套排程 + 按强度门控题型（§5.2）以十分之一的复杂度覆盖同一目标 |
 | 2026-08-08 | 自由练习正常推进排程 | 连点两遍「记得」就能把间隔刷到几个月——掌握变成可以刷出来的假象，恰是「科学验证」的反面。改为不对称规则：答错照实算（遗忘证据任何时刻有效），答对只记录（刚见过就答对证明不了长期记忆）。Anki 对 cram 的处理同理（§5.3） |
 | 2026-08-08 | ASR 语音评测（为「说」）——二次否决 | 浏览器 `SpeechRecognition` 把录音送厂商服务器（Chrome→Google、Safari→Apple），与「无遥测」承诺正面冲突；本地 ASR 模型则破坏零依赖。说 = 听懂档的跟读自评，界面明标「练习，不验证」（§5.2） |
+| 2026-08-08 (二) | API key 走账号同步通道（凭证进 chunk / 服务器），让 App「登录即有解析」 | §8.6 已裁定服务器无 E2E —— 凭证上服务器等于把泄露半径从一台设备扩到整个服务端，且解析本身是可再生衍生物（§9.2 本来就不同步）。换设备重填一次 key 的代价与收益相称。App 侧改为本地配置（§7.2） |
+| 2026-08-08 (二) | 后台定时自动同步（`chrome.alarms` / 周期任务 / App 后台刷新） | Safari iOS 的后台 SW 锁屏后永久 `undefined`（Critical Safari Bug），主力面上定时器就是假心跳 —— 表上有、实际不跑，比没有更糟（用户以为在同步）。页面打开事件才是真实可靠的「用户在用」信号，且免去一整类不可见失败面（§8.8） |

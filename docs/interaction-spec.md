@@ -604,8 +604,17 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 
 ### 语音 (TTS)
 
-Turns a review card into listening practice. **Off until the user turns it on**, like
-capture.
+Turns a review card into listening practice. **Off until the user turns it on** in
+the browser extension, like capture — with one dated exception:
+
+- **The app defaults to `assist`** *(2026-08-08)*. Two reasons, both app-specific:
+  the default engine is the platform's own on-device `speechSynthesis` (free, sends
+  nothing anywhere — the off-default was never privacy-motivated for it), and the
+  mastery ladder's 听懂 form gates on TTS being available: an app that ships the
+  ladder with speech permanently off ships a ladder missing a rung, plus settings
+  (autoplay / rate) that govern a feature which can never run. The extension keeps
+  the off-default — it lives next to capture, and its users chose their modes
+  already. The app's 语音模式 control offers the same three modes either way.
 
 - **On-device first.** The default engine is the platform's own `speechSynthesis`:
   free, offline, nothing sent anywhere. A self-hosted or cloud endpoint is a choice
@@ -690,6 +699,25 @@ The card's FORM changes as `s` grows; the grading flow does not:
 - **Cost is stated at the point of use**: 「使用你配置的 API，一次调用，永久缓存」.
   Cached notes render instantly with no spinner and no second charge. Generation is
   always per-card and user-initiated — never bulk, never automatic.
+- **In the app** *(2026-08-08)*: the app's settings can hold a chat engine + key of
+  their own (learning-design §7.2 — device-local, never synced; the wording must not
+  imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
+  not configured ⇒ the entry point does not render, same as everywhere else.
+
+### App 内同步与时效 — 2026-08-08
+
+- **Opening is the heartbeat** (learning-design §8.8): the extension's review and
+  options pages auto-sync on open when signed in (throttled to 10 minutes); the app
+  auto-syncs on launch and on returning to the foreground. No timers, no background
+  tasks — on iOS those die with the service worker and become heartbeats that exist
+  on paper only.
+- **Auto-sync fails silently.** The user didn't initiate it, so its failure may not
+  interrupt; the 「上次同步」 line carries the state. The manual 同步 button keeps
+  its exact meaning: sync now, and tell me what happened — numbers on success,
+  reasons on failure.
+- **Entering the app's review view rebuilds the deck**, so freshly synced material
+  is reviewable without relaunching. The extension's review page reloads per open
+  and needs no change.
 
 ### 存储压力
 
