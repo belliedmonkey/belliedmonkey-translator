@@ -98,7 +98,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // review.js will \`addEventListener\` on, because a missing one throws during
         // its boot and takes the whole bundle down with it.
         reviewMissing: ['review-view','card','counts','empty','nothing-due','pressure',
-          'pressure-fix','open-settings','empty-settings','orig','src','progress']
+          'pressure-fix','open-settings','empty-settings','orig','src','progress',
+          // Stage A (§5.1): strength bar, one-time explainer, cap hint
+          'strength','strength-bar','strength-label','howto','howto-ok','cap-hint']
           .filter((id) => !document.getElementById(id)),
         reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
         // Stage 4. The dead end this replaced was two taps deep (review page → 设置 →

@@ -152,6 +152,29 @@
     $('answer').hidden = stage < 2;
   }
 
+  // §5.1 — memory strength, always visible. 「已掌握」 gets its user-visible
+  // definition here: strength reaching KNOWN_S days.
+  function renderStrength(item) {
+    const s = item.sched && item.sched.s ? item.sched.s : 0;
+    const cap = sched.KNOWN_S || LearnScheduler.DEFAULTS.KNOWN_S;
+    $('strength-bar').style.width = Math.min(100, Math.round((s / cap) * 100)) + '%';
+    const shown = s >= 10 ? Math.round(s) : Math.round(s * 10) / 10;
+    $('strength-label').textContent = t('learn_strength', '记忆强度')
+      + ' ' + shown + ' / ' + cap + ' ' + t('learn_days_unit', '天');
+  }
+
+  // §5.1 — every grade button carries its consequence. previewIntervals runs the
+  // same applyReview the press would run, so the label cannot drift from the act.
+  function renderGradePreviews(item) {
+    const iv = LearnScheduler.previewIntervals(item.sched, Date.now(), sched);
+    document.querySelectorAll('.grade').forEach((b) => {
+      const el = b.querySelector('.when');
+      if (!el) return;
+      const g = Number(b.dataset.grade);
+      el.textContent = g === 0 ? t('learn_relearn', '重新学') : fmtWhen(iv[g]);
+    });
+  }
+
   function show(sources) {
     currentSources = sources;
     const item = deck[idx];
@@ -163,6 +186,8 @@
     LearnTTS.stop();
     $('orig').textContent = item.text;
     $('tr').textContent = item.tr;
+    renderStrength(item);
+    renderGradePreviews(item);
     applyStage(ttsMode === 'audio-first' ? 0 : 1);
     setupAudio(item);
 
@@ -282,6 +307,10 @@
       $('next-due').textContent = upcoming
         ? t('learn_next_due', '下一张卡片 {when}到期。').replace('{when}', fmtWhen(upcoming))
         : t('learn_alldone_body', '继续浏览和翻译，新的材料会自动进来。');
+      // The cap has a dial (1–200, in settings); a wall nobody can see the dial
+      // for reads as a defect (§5.1).
+      $('cap-hint').textContent = t('learn_cap_hint', '每天新卡上限 {n} 张，可在设置里调整。')
+        .replace('{n}', String(sched.dailyNew));
       $('progress').textContent = doneThisRun
         ? t('learn_done_run', '本次完成 {n} 张').replace('{n}', String(doneThisRun)) : '';
       return;
@@ -351,4 +380,15 @@
   await LearnDrain.run();
   await refreshPressure();
   await start();
+
+  // One-time explainer (§5.1): shown above the first card ever seen, non-blocking,
+  // dismissed forever. Not shown over the empty state — grading advice before there
+  // is anything to grade would explain the wrong thing.
+  if (!$('card').hidden && !(await LearnStore.getMeta('howtoSeen', 0))) {
+    $('howto').hidden = false;
+  }
+  $('howto-ok').addEventListener('click', async () => {
+    $('howto').hidden = true;
+    await LearnStore.setMeta('howtoSeen', 1);
+  });
 })();

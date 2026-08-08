@@ -83,6 +83,19 @@ var LearnScheduler = (() => {
     return out;
   }
 
+  // §5.1 — every grade button previews its own consequence. This runs the SAME
+  // applyReview the button would run, so the label can never drift from the act:
+  // preview[g] is exactly the interval the user gets by pressing g.
+  function previewIntervals(sched, now, cfg) {
+    const c = cfgOf(cfg);
+    const out = [];
+    for (let g = 0; g <= 3; g++) {
+      const next = applyReview(sched, g, now, c);
+      out.push(Math.max(0, next.dueAt - now));
+    }
+    return out;
+  }
+
   function stateFor(item, cfg) {
     const c = cfgOf(cfg);
     if (item.state === 'muted') return 'muted';
@@ -195,7 +208,7 @@ var LearnScheduler = (() => {
 
   return {
     DEFAULTS, DAY,
-    freshSched, retrievability, nextDue, applyReview, stateFor,
+    freshSched, retrievability, nextDue, applyReview, previewIntervals, stateFor,
     buildDeck, dueCount, spreadBySource,
   };
 })();

@@ -147,3 +147,25 @@ button:hover { border-color: var(--green); }
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 16px; font-size: 13px; color: var(--text-secondary);
 }
+
+/* ─── §5.1 transparency ────────────────────────────────────────────────────── */
+
+/* Consequence labels inside the grade buttons. The button becomes two lines:
+   the grade word on top, its preview interval below in the secondary tone. */
+.grade { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.grade .when { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
+
+/* Memory strength — always visible on the card. */
+.strength { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.strength-track {
+  flex: 1; height: 6px; border-radius: 3px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  overflow: hidden;
+}
+.strength-bar { height: 100%; width: 0; border-radius: 3px; background: var(--green); }
+.strength-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+
+/* One-time explainer. */
+.howto p { margin-bottom: 4px; }
+.howto button { margin-top: 8px; }
+.cap-hint { font-size: 13px; }

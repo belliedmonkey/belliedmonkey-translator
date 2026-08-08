@@ -661,5 +661,41 @@
   },
   "settings_read_failed": {
     "message": "Deine gespeicherten Einstellungen konnten nicht gelesen werden; unten stehen die Standardwerte. Speichere hier nicht — das würde deine Einstellungen überschreiben. ({why})"
+  },
+  "learn_relearn": {
+    "message": "Neu lernen",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "Gedächtnisstärke",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "Tage",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "So funktioniert die Wiederholung",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "Gewusst → das Intervall wächst, die Karte kommt später wieder.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "Vergessen → es beginnt von vorn, die Karte kommt bald wieder.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "Bei 180 Tagen Stärke ist die Karte gemeistert.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "Verstanden",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "Bis zu {n} neue Karten pro Tag — in den Einstellungen änderbar.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
   }
 }

@@ -28,15 +28,35 @@
       <p><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
     </section>
 
+    <!-- One-time explainer (interaction-spec 复习: first visit, three sentences,
+         dismissed forever). Non-blocking: it sits above the card, never instead. -->
+    <section class="panel howto" id="howto" hidden>
+      <h2 data-i18n="learn_howto_title">复习是怎么运作的</h2>
+      <p data-i18n="learn_howto_1">记得 → 间隔拉长，下次更晚出现。</p>
+      <p data-i18n="learn_howto_2">忘了 → 重新开始，很快再见。</p>
+      <p data-i18n="learn_howto_3">记忆强度攒满 180 天，这张卡就毕业了。</p>
+      <button id="howto-ok" data-i18n="learn_howto_ok">知道了</button>
+    </section>
+
     <!-- Empty: corpus exists, nothing due. Says WHEN the next card comes up; never
          fabricates work by advancing cards early. -->
     <section class="panel" id="nothing-due" hidden>
       <h2 data-i18n="learn_alldone_title">今天的复习做完了</h2>
       <p id="next-due"></p>
+      <!-- The daily-new cap has a setting; a wall nobody can see the dial for reads
+           as a defect (§5.1). -->
+      <p class="cap-hint" id="cap-hint"></p>
     </section>
 
     <section class="card" id="card" hidden>
       <div class="src" id="src"></div>
+
+      <!-- Memory strength, always visible (§5.1): the first place 「已掌握」 has a
+           user-visible definition — strength reaching 180 days. -->
+      <div class="strength" id="strength">
+        <div class="strength-track"><div class="strength-bar" id="strength-bar"></div></div>
+        <span class="strength-label" id="strength-label"></span>
+      </div>
 
       <!-- 语音。在 audio-first 模式下原文先藏起来，先听再看。播放原文不揭晓
            任何东西，所以不违反「揭晓永远由用户发起」——那条约束的是译文。 -->
@@ -54,11 +74,13 @@
 
       <div class="answer" id="answer" hidden>
         <p class="tr" id="tr"></p>
+        <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
+             textContent, which would wipe the .when consequence label (§5.1). -->
         <div class="grades">
-          <button class="grade g0" data-grade="0" data-i18n="learn_grade_again">不记得</button>
-          <button class="grade g1" data-grade="1" data-i18n="learn_grade_hard">有点难</button>
-          <button class="grade g2" data-grade="2" data-i18n="learn_grade_good">记得</button>
-          <button class="grade g3" data-grade="3" data-i18n="learn_grade_easy">太简单</button>
+          <button class="grade g0" data-grade="0"><span data-i18n="learn_grade_again">不记得</span><small class="when"></small></button>
+          <button class="grade g1" data-grade="1"><span data-i18n="learn_grade_hard">有点难</span><small class="when"></small></button>
+          <button class="grade g2" data-grade="2"><span data-i18n="learn_grade_good">记得</span><small class="when"></small></button>
+          <button class="grade g3" data-grade="3"><span data-i18n="learn_grade_easy">太简单</span><small class="when"></small></button>
         </div>
       </div>
     </section>
