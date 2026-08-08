@@ -120,10 +120,19 @@
     const item = deck[idx];
     if (!item || ttsMode === 'off') return;
     const btn = $('play');
-    btn.disabled = true;
-    setNote(t('tts_playing', '播放中…'));
+    // Only a MANUAL play locks the button and claims "playing…". An auto attempt
+    // on iOS sits blocked for the whole start-timeout — disabling ▶ for those
+    // seconds would lock out the very tap that can actually start audio.
+    if (!auto) {
+      btn.disabled = true;
+      setNote(t('tts_playing', '播放中…'));
+    }
     const r = await LearnTTS.speak(item.text, item.lang);
     btn.disabled = false;
+    // This resolve may be seconds late (blocked speak resolves via timeout). If
+    // the user has moved on, or a newer speak took over, it owns the UI — write
+    // nothing for this one.
+    if (deck[idx] !== item || r.reason === 'superseded') return;
     if (r.ok) {
       setNote('');
       btn.textContent = t('tts_replay', '▶ 再听一遍');
@@ -605,8 +614,9 @@
   });
   $('practice-start').addEventListener('click', () => { startPractice(); });
 
-  // §9.2 — generate on demand. One call, cached forever; failures name themselves
-  // in the cost line's place rather than leaving a dead button.
+  // §9.2 — generate on demand. One call, cached per prompt version (LearnNotes
+  // regenerates only when a prompt fix invalidates the old output); failures
+  // name themselves in the cost line's place rather than leaving a dead button.
   $('notes-btn').addEventListener('click', async () => {
     const item = deck[idx];
     if (!item) return;
@@ -616,6 +626,9 @@
       const r = await LearnNotes.get(item, explainLang);
       if (deck[idx] === item) renderNotes(r.data);
     } catch (_) {
+      // Same guard as the success branch: a failure landing after the user moved
+      // on must not stamp the previous card's error onto the current card.
+      if (deck[idx] !== item) return;
       $('notes-cost').textContent = t('learn_notes_failed', '解析失败，稍后再试');
       $('notes-btn').disabled = false;
     }

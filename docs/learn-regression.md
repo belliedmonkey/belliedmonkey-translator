@@ -27,7 +27,7 @@
 |---|---|---|
 | 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限 |
 | 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、mergeItem skills 并集幂等 |
-| 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡至多扣一次费**（调用计数）、两种线格式 |
+| 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡每提示词版本至多扣一次费**（调用计数；版本升级只为纠错，见 learning-design §9.2）、生词必须逐字来自原句（v2 提示词 + 零匹配判 bad_output）、并发去重、缓存写失败不重复扣费、两种线格式 |
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
 | 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
 | 块格式 | `learn-chunk.test.js` | 往返无损、replay 幂等、复习记录带 mode/practice 通过重放 |

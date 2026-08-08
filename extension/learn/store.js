@@ -293,8 +293,10 @@ var LearnStore = (() => {
   }
 
   // ─── Sentence-note cache (§9.2) ──────────────────────────────────────────
-  // One generation per card, ever: the answer face renders from here on every
-  // revisit, so the user's key is charged exactly once per sentence.
+  // One generation per card per prompt version: the answer face renders from
+  // here on every revisit. LearnNotes owns the version gate (`v` on the
+  // record); a bump — only ever for a prompt that produced wrong output —
+  // makes the next click regenerate. Otherwise charged exactly once.
 
   function getNote(id) {
     let out = null;
