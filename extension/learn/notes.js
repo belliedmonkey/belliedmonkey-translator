@@ -2,8 +2,9 @@
 // See docs/learning-design.md §9.2 and interaction-spec 「解析」.
 //
 // Uses the user's OWN chat-capable engine, read from the same provider registry the
-// translator uses (window.MT_PROVIDERS — the single source, per CLAUDE.md; nothing
-// vendor-specific is restated here, only the two wire formats). The free Google
+// translator uses (window.MT_PROVIDERS — the single source of provider truth;
+// nothing vendor-specific is restated here, only the two wire formats — note the
+// China gate scans shipped COMMENTS too, so no repo-doc names in this file). The free Google
 // channel is a translation API and cannot do this, so capability is a hard gate:
 // no chat engine configured ⇒ `capable()` is false ⇒ the UI renders no entry point.
 //
