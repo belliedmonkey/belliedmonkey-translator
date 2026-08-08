@@ -108,7 +108,8 @@ Three conditions, all required:
 
 1. **The user chose it and is paying for it.** Inference is a real recurring cost, so
    pricing it is exactly what `AGENTS.md` rule 8 permits — and BYO-key stays free, so
-   rule 6 (never convert free to paid) is not touched.
+   rule 8's other half (never convert something already shipped free into a paid
+   feature) is not touched either.
 2. **It demonstrably beats what the local path can do.** "Convenient for us to host"
    is not a reason. If a user's own key produces the same result, there is nothing to
    sell.
@@ -420,8 +421,9 @@ starred card or one you are actively learning.
 > **核心约束 — do not offer to sell local storage.** The 20,000-item cap is
 > *self-imposed*: it exists so V1 need not request the `unlimitedStorage` permission,
 > which affects store review. Local storage costs the project nothing, so charging
-> for more of it would violate `AGENTS.md` rules 8 (price only what genuinely cannot
-> be carried) and 6 (never convert something already free into paid). A paid option
+> for more of it would violate `AGENTS.md` rule 8 on both counts — price only what
+> genuinely cannot be carried, **and** never convert something already shipped free
+> into a paid feature. A paid option
 > may appear **only** against the server quota — a cost that is actually incurred —
 > and only once such a tier exists. Never show an upgrade path to a tier that does
 > not exist.
@@ -1191,7 +1193,7 @@ trust when someone notices.
   stays fully capable; a server-side model is an opt-in paid alternative or it does
   not ship at all.
 - **Telemetry and usage analytics**, permanently — unaffected by §2.1.
-- **Converting anything already free into paid.** Per `AGENTS.md` rule 6. A paid
+- **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
   server-side model is a *new* capability, not a conversion, which is the only reason
   it is permitted.
 - **ASR** remains out of scope, unchanged from domain-design §8: the learning layer
