@@ -657,7 +657,7 @@
     "message": "أُنشئ هذا الملف بنسخة أحدث من الإضافة. حدّثها ثم استورده. الملف نفسه سليم."
   },
   "options_init_failed": {
-    "message": "لم تكتمل صفحة الإعدادات في التحميل. أعد فتحها؛ وإن تكرر ذلك فأرسل لنا هذه الرسالة."
+    "message": "تعذّر تحميل صفحة الإعدادات ({err}). أعد فتح الصفحة؛ وإذا استمر ذلك فأبلغنا بهذه الرسالة."
   },
   "settings_read_failed": {
     "message": "تعذّرت قراءة إعداداتك المحفوظة، لذا تظهر القيم الافتراضية أدناه. لا تحفظ من هذه الصفحة — فسيؤدي ذلك إلى استبدال إعداداتك. ({why})"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "قاعدة نحوية",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "الجمل التي تقرأها في المتصفح تتزامن هنا للمراجعة."
+  },
+  "app_email_label": {
+    "message": "البريد الإلكتروني"
+  },
+  "app_send": {
+    "message": "إرسال الرمز"
+  },
+  "app_sending": {
+    "message": "جارٍ الإرسال…"
+  },
+  "app_code_label": {
+    "message": "الرمز (تحقق من بريدك)"
+  },
+  "app_verify": {
+    "message": "تسجيل الدخول"
+  },
+  "app_verifying": {
+    "message": "جارٍ تسجيل الدخول…"
+  },
+  "app_back_email": {
+    "message": "استخدام بريد آخر"
+  },
+  "app_local_note": {
+    "message": "تعمل إضافة المتصفح على الالتقاط والمراجعة دون حساب — كل شيء يبقى على جهازك. تسجيل الدخول فقط لمزامنة موادك مع هذا الجهاز."
+  },
+  "app_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "app_settings_link": {
+    "message": "الإعدادات"
+  },
+  "app_review_start": {
+    "message": "بدء المراجعة"
+  },
+  "app_review_back": {
+    "message": "رجوع"
+  },
+  "app_sync": {
+    "message": "مزامنة"
+  },
+  "app_syncing": {
+    "message": "جارٍ المزامنة…"
+  },
+  "app_unit_cards": {
+    "message": "بطاقة"
+  },
+  "app_unit_reviews": {
+    "message": "مراجعة"
+  },
+  "app_unit_sources": {
+    "message": "مصدر"
+  },
+  "app_never_synced": {
+    "message": "لم تتم المزامنة بعد"
+  },
+  "app_sync_empty": {
+    "message": "تمت المزامنة، لكن الخادم فارغ — التقط بعض الجمل في المتصفح أولاً ثم زامن مجدداً."
+  },
+  "app_up_to_date": {
+    "message": "كل شيء محدّث."
+  },
+  "app_code_sent": {
+    "message": "تم إرسال الرمز — تحقق من بريدك."
+  },
+  "app_code_bad": {
+    "message": "الرمز خاطئ أو منتهي الصلاحية — حاول مجدداً."
+  },
+  "app_offline": {
+    "message": "تعذر الوصول إلى الخادم — تحقق من اتصالك وأعد المحاولة."
+  },
+  "app_needs_upgrade": {
+    "message": "لدى الخادم محتوى لا تستطيع هذه النسخة قراءته — حدّث التطبيق."
+  },
+  "app_received": {
+    "message": "تم استلام {n} بطاقة · {m} مراجعة"
+  },
+  "app_uploaded_n": {
+    "message": "تم رفع {n} مراجعة"
+  },
+  "app_uploaded_only": {
+    "message": "تم رفع {n} مراجعة"
+  },
+  "app_sync_disabled": {
+    "message": "المزامنة غير مفعّلة في هذا الإصدار. لا يتأثر الالتقاط والمراجعة في إضافة المتصفح — كل شيء يبقى على جهازك."
+  },
+  "app_set_title": {
+    "message": "الإعدادات"
+  },
+  "app_set_daily": {
+    "message": "الحد الأقصى للبطاقات الجديدة يومياً"
+  },
+  "app_set_tts_auto": {
+    "message": "نطق تلقائي عند عرض الترجمة"
+  },
+  "app_set_tts_rate": {
+    "message": "سرعة النطق"
+  },
+  "app_set_tts_note": {
+    "message": "لا يزال محرك النطق والصوت يُضبطان في إعدادات إضافة المتصفح — تلك بيانات اعتماد خاصة بكل متصفح."
+  },
+  "app_set_notes_title": {
+    "message": "تحليل الجملة"
+  },
+  "app_set_notes_provider": {
+    "message": "محرك التحليل"
+  },
+  "app_set_notes_none": {
+    "message": "بدون"
+  },
+  "app_set_notes_key": {
+    "message": "مفتاح API"
+  },
+  "app_set_notes_base": {
+    "message": "عنوان نقطة نهاية مخصص"
+  },
+  "app_set_notes_model": {
+    "message": "النموذج"
+  },
+  "app_set_notes_note": {
+    "message": "يُستخدم فقط لتوليد تحليل الجملة (كلمات / عبارات / قواعد) عبر واجهة API الخاصة بك. يبقى المفتاح على هذا الجهاز فقط ولا يتزامن مع حسابك؛ وهو منفصل عن مفتاح إضافة المتصفح وبنفس مستوى الأمان — كلاهما محفوظ نصاً صريحاً على الجهاز."
+  },
+  "app_set_corpus": {
+    "message": "المكتبة"
+  },
+  "app_set_clean_known": {
+    "message": "تنظيف البطاقات المتقنة"
+  },
+  "app_set_cleaned": {
+    "message": "تم تنظيف {n} بطاقة"
+  },
+  "app_set_clean_none": {
+    "message": "لا شيء للتنظيف"
+  },
+  "app_set_account": {
+    "message": "الحساب"
+  },
+  "app_set_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "app_set_delete": {
+    "message": "حذف الحساب وبيانات السحابة"
+  },
+  "app_set_delete_note": {
+    "message": "يؤدي الحذف إلى إزالة موادك وسجل مراجعاتك نهائياً من الخادم وإغلاق الحساب. المحتوى المنزَّل على هذا الجهاز لا يتأثر — لحذفه أيضاً احذف التطبيق."
+  },
+  "app_set_confirm_delete": {
+    "message": "هل تريد حذف حسابك؟ سيُزال كل شيء على الخادم نهائياً ولا يمكن استرجاعه."
+  },
+  "app_set_deleting": {
+    "message": "جارٍ الحذف…"
+  },
+  "app_set_deleted": {
+    "message": "تم حذف الحساب."
+  },
+  "app_unit_known": {
+    "message": "متقنة"
   }
 }

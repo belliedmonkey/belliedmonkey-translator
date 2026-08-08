@@ -16,41 +16,9 @@
 var AppSettings = (() => {
   const $ = (id) => document.getElementById(id);
 
-  const T = {
-    title: '设置',
-    back: '← 返回',
-    daily: '每天最多学几张新卡',
-    ttsMode: '语音模式',
-    ttsModeOff: '关闭',
-    ttsModeAssist: '显示原文，可点播放',
-    ttsModeAudioFirst: '先听后看（原文先隐藏）',
-    ttsAuto: '显示译文时自动朗读',
-    ttsRate: '朗读速度',
-    ttsNote: '朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，'
-      + '这里改了也不会跟着你走。',
-    notesTitle: '句子解析',
-    notesProvider: '解析引擎',
-    notesNone: '不使用',
-    notesKey: 'API Key',
-    notesBase: '自定义接口地址',
-    notesModel: '模型',
-    notesNote: '仅用于生成句子解析（生词 / 短语 / 语法），调用你自己的 API。'
-      + '密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，'
-      + '安全性也相同 —— 都是本机明文保存。',
-    corpus: '学习库',
-    cleanKnown: '清理已掌握的卡',
-    cleaned: (n) => n ? ('已清理 ' + n + ' 张') : '没有可清理的卡',
-    account: '账号',
-    signout: '退出登录',
-    deleteAccount: '删除账号与云端数据',
-    deleteNote: '删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。'
-      + '这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。',
-    confirmDelete: '确定要删除账号吗？服务器上的所有内容会被永久移除，无法恢复。',
-    deleting: '正在删除…',
-    deleted: '账号已删除。',
-    cards: '张卡', reviews: '条复习记录', known: '已掌握',
-  };
-  const t = (k) => T[k] || k;
+  // Same i18n as everything else (interaction-spec 「界面语言」: no hardcoded copy).
+  // Chinese literals below are FALLBACKS beside their keys, never the only copy.
+  const t = (k, fb) => PageI18n.t(k, fb);
 
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
@@ -85,41 +53,43 @@ var AppSettings = (() => {
   }
 
   function paintStatic() {
-    $('settings-title').textContent = t('title');
-    $('settings-back').textContent = t('back');
-    $('daily-label').textContent = t('daily');
-    $('tts-mode-label').textContent = t('ttsMode');
-    $('tts-mode-off').textContent = t('ttsModeOff');
-    $('tts-mode-assist').textContent = t('ttsModeAssist');
-    $('tts-mode-audio-first').textContent = t('ttsModeAudioFirst');
-    $('tts-auto-label').textContent = t('ttsAuto');
-    $('tts-rate-label').textContent = t('ttsRate');
-    $('tts-note').textContent = t('ttsNote');
-    $('notes-title').textContent = t('notesTitle');
-    $('notes-provider-label').textContent = t('notesProvider');
-    $('notes-key-label').textContent = t('notesKey');
-    $('notes-base-label').textContent = t('notesBase');
-    $('notes-model-label').textContent = t('notesModel');
-    $('notes-note').textContent = t('notesNote');
+    $('settings-title').textContent = t('app_set_title', '设置');
+    $('settings-back').textContent = t('app_review_back', '← 返回');
+    $('daily-label').textContent = t('app_set_daily', '每天最多学几张新卡');
+    // The three modes reuse the extension options page's keys — same feature, same
+    // words, one translation to maintain.
+    $('tts-mode-label').textContent = t('tts_mode', '语音模式');
+    $('tts-mode-off').textContent = t('tts_mode_off', '关闭');
+    $('tts-mode-assist').textContent = t('tts_mode_assist', '显示原文，可点播放');
+    $('tts-mode-audio-first').textContent = t('tts_mode_audio_first', '先听后看（原文先隐藏）');
+    $('tts-auto-label').textContent = t('app_set_tts_auto', '显示译文时自动朗读');
+    $('tts-rate-label').textContent = t('app_set_tts_rate', '朗读速度');
+    $('tts-note').textContent = t('app_set_tts_note', '朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，这里改了也不会跟着你走。');
+    $('notes-title').textContent = t('app_set_notes_title', '句子解析');
+    $('notes-provider-label').textContent = t('app_set_notes_provider', '解析引擎');
+    $('notes-key-label').textContent = t('app_set_notes_key', 'API Key');
+    $('notes-base-label').textContent = t('app_set_notes_base', '自定义接口地址');
+    $('notes-model-label').textContent = t('app_set_notes_model', '模型');
+    $('notes-note').textContent = t('app_set_notes_note', '仅用于生成句子解析（生词 / 短语 / 语法），调用你自己的 API。密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。');
     // The picker lists chat-capable engines ONLY, and asks LearnNotes which those
     // are — the gate and the picker share one definition, so they cannot drift.
     // Labels come from the registry; nothing engine-specific is restated here.
     const sel = $('notes-provider');
     sel.textContent = '';
     const none = document.createElement('option');
-    none.value = ''; none.textContent = t('notesNone');
+    none.value = ''; none.textContent = t('app_set_notes_none', '不使用');
     sel.append(none);
     for (const p of LearnNotes.chatEngines()) {
       const o = document.createElement('option');
       o.value = p.id; o.textContent = p.label;
       sel.append(o);
     }
-    $('corpus-title').textContent = t('corpus');
-    $('clean-known').textContent = t('cleanKnown');
-    $('account-title').textContent = t('account');
-    $('settings-signout').textContent = t('signout');
-    $('delete-account').textContent = t('deleteAccount');
-    $('delete-note').textContent = t('deleteNote');
+    $('corpus-title').textContent = t('app_set_corpus', '学习库');
+    $('clean-known').textContent = t('app_set_clean_known', '清理已掌握的卡');
+    $('account-title').textContent = t('app_set_account', '账号');
+    $('settings-signout').textContent = t('app_set_signout', '退出登录');
+    $('delete-account').textContent = t('app_set_delete', '删除账号与云端数据');
+    $('delete-note').textContent = t('app_set_delete_note', '删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。');
   }
 
   async function paint(session, say) {
@@ -138,8 +108,9 @@ var AppSettings = (() => {
 
     const [stats, reviews] = await Promise.all([LearnStore.stats(), LearnStore.allReviews()]);
     $('settings-counts').textContent =
-      stats.total + ' ' + t('cards') + ' · ' + reviews.length + ' ' + t('reviews')
-      + ' · ' + (stats.by.known || 0) + ' ' + t('known');
+      stats.total + ' ' + t('app_unit_cards', '张卡') + ' · '
+      + reviews.length + ' ' + t('app_unit_reviews', '条复习记录')
+      + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
   }
 
   // Field visibility and placeholders follow the registry entry, not a hardcoded
@@ -203,7 +174,9 @@ var AppSettings = (() => {
       // longer need. Never a starred card, never one being actively learned.
       const n = await LearnStore.clearKnown().catch(() => 0);
       await paint(opts.session(), say);
-      say(t('cleaned')(n));
+      say(n
+        ? t('app_set_cleaned', '已清理 {n} 张').replace('{n}', String(n))
+        : t('app_set_clean_none', '没有可清理的卡'));
     });
 
     $('settings-signout').addEventListener('click', opts.onSignOut);
@@ -211,12 +184,12 @@ var AppSettings = (() => {
     $('delete-account').addEventListener('click', async () => {
       // Destructive and irreversible, so it asks — and the question names what goes,
       // rather than a generic 「确定吗」 that the user answers without reading.
-      if (!window.confirm(t('confirmDelete'))) return;
+      if (!window.confirm(t('app_set_confirm_delete', '确定要删除账号吗？服务器上的所有内容会被永久移除，无法恢复。'))) return;
       $('delete-account').disabled = true;
-      say(t('deleting'));
+      say(t('app_set_deleting', '正在删除…'));
       try {
         await LearnAuth.deleteAccount();
-        say(t('deleted'));
+        say(t('app_set_deleted', '账号已删除。'));
         await opts.onSignOut();
       } catch (e) {
         say(String((e && e.message) || e), true);

@@ -657,7 +657,7 @@
     "message": "このファイルは新しいバージョンの拡張機能で作成されています。更新してからインポートしてください。ファイル自体に問題はありません。"
   },
   "options_init_failed": {
-    "message": "設定ページを最後まで読み込めませんでした。開き直してください。繰り返す場合はこのメッセージをお知らせください。"
+    "message": "設定ページを読み込めませんでした（{err}）。このページを開き直してください。それでも続く場合は、このメッセージをご報告ください。"
   },
   "settings_read_failed": {
     "message": "保存済みの設定を読み取れなかったため、以下は初期値です。このページから保存しないでください——元の設定が上書きされます。（{why}）"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "文法",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "ブラウザで読んだ文がここに同期され、復習できます。"
+  },
+  "app_email_label": {
+    "message": "メールアドレス"
+  },
+  "app_send": {
+    "message": "認証コードを送信"
+  },
+  "app_sending": {
+    "message": "送信中…"
+  },
+  "app_code_label": {
+    "message": "認証コード（メールをご確認ください）"
+  },
+  "app_verify": {
+    "message": "ログイン"
+  },
+  "app_verifying": {
+    "message": "ログイン中…"
+  },
+  "app_back_email": {
+    "message": "別のメールアドレスを使う"
+  },
+  "app_local_note": {
+    "message": "ブラウザ拡張機能はログインなしでも収集・復習でき、すべて端末内に保存されます。ログインは教材をこの端末に同期するためだけのものです。"
+  },
+  "app_signout": {
+    "message": "ログアウト"
+  },
+  "app_settings_link": {
+    "message": "設定"
+  },
+  "app_review_start": {
+    "message": "復習を始める"
+  },
+  "app_review_back": {
+    "message": "← 戻る"
+  },
+  "app_sync": {
+    "message": "同期"
+  },
+  "app_syncing": {
+    "message": "同期中…"
+  },
+  "app_unit_cards": {
+    "message": "枚のカード"
+  },
+  "app_unit_reviews": {
+    "message": "件の復習記録"
+  },
+  "app_unit_sources": {
+    "message": "件のソース"
+  },
+  "app_never_synced": {
+    "message": "まだ同期していません"
+  },
+  "app_sync_empty": {
+    "message": "同期は完了しましたが、サーバーにはまだ何もありません。まずブラウザで文を収集してから、もう一度同期してください。"
+  },
+  "app_up_to_date": {
+    "message": "すでに最新です。"
+  },
+  "app_code_sent": {
+    "message": "認証コードを送信しました。メールをご確認ください。"
+  },
+  "app_code_bad": {
+    "message": "認証コードが違うか期限切れです。もう一度お試しください。"
+  },
+  "app_offline": {
+    "message": "サーバーに接続できません。ネットワークを確認して再試行してください。"
+  },
+  "app_needs_upgrade": {
+    "message": "サーバーにこのバージョンでは読めないコンテンツがあります。アプリを更新してください。"
+  },
+  "app_received": {
+    "message": "{n} 枚のカード・{m} 件の復習記録を受信"
+  },
+  "app_uploaded_n": {
+    "message": "{n} 件の復習記録を送信"
+  },
+  "app_uploaded_only": {
+    "message": "{n} 件の復習記録を送信しました"
+  },
+  "app_sync_disabled": {
+    "message": "このバージョンでは同期はまだ有効になっていません。ブラウザ拡張機能の収集と復習は影響を受けず、すべて端末内に保存されます。"
+  },
+  "app_set_title": {
+    "message": "設定"
+  },
+  "app_set_daily": {
+    "message": "1日に学ぶ新しいカードの上限"
+  },
+  "app_set_tts_auto": {
+    "message": "訳文の表示時に自動で読み上げる"
+  },
+  "app_set_tts_rate": {
+    "message": "読み上げ速度"
+  },
+  "app_set_tts_note": {
+    "message": "読み上げエンジンと音声はブラウザ拡張機能の設定ページで設定します。それらはブラウザごとの認証情報で、ここで変えても引き継がれません。"
+  },
+  "app_set_notes_title": {
+    "message": "文の解説"
+  },
+  "app_set_notes_provider": {
+    "message": "解説エンジン"
+  },
+  "app_set_notes_none": {
+    "message": "使用しない"
+  },
+  "app_set_notes_key": {
+    "message": "APIキー"
+  },
+  "app_set_notes_base": {
+    "message": "カスタムエンドポイント"
+  },
+  "app_set_notes_model": {
+    "message": "モデル"
+  },
+  "app_set_notes_note": {
+    "message": "文の解説（単語・フレーズ・文法）の生成のみに使われ、あなた自身の API を呼び出します。キーはこの端末にのみ保存され、アカウントと同期されません。ブラウザ拡張機能で設定したキーとは別物で、安全性も同じです（どちらも端末内に平文で保存されます）。"
+  },
+  "app_set_corpus": {
+    "message": "学習ライブラリ"
+  },
+  "app_set_clean_known": {
+    "message": "習得済みカードを整理"
+  },
+  "app_set_cleaned": {
+    "message": "{n} 枚を整理しました"
+  },
+  "app_set_clean_none": {
+    "message": "整理できるカードはありません"
+  },
+  "app_set_account": {
+    "message": "アカウント"
+  },
+  "app_set_signout": {
+    "message": "ログアウト"
+  },
+  "app_set_delete": {
+    "message": "アカウントとクラウドデータを削除"
+  },
+  "app_set_delete_note": {
+    "message": "削除すると、サーバー上の教材と復習記録は完全に削除され、アカウントも解約されます。この端末にダウンロード済みの内容は影響を受けません。まとめて消したい場合はアプリを削除してください。"
+  },
+  "app_set_confirm_delete": {
+    "message": "アカウントを削除しますか？サーバー上のすべての内容が完全に削除され、元に戻せません。"
+  },
+  "app_set_deleting": {
+    "message": "削除中…"
+  },
+  "app_set_deleted": {
+    "message": "アカウントを削除しました。"
+  },
+  "app_unit_known": {
+    "message": "習得済み"
   }
 }

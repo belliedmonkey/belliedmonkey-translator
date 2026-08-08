@@ -520,9 +520,23 @@ menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中�
   can't be switched at runtime, so `t()` consults a bundled message table
   (`MT_I18N_MESSAGES`, generated from `_locales/`) keyed by the effective locale, then
   falls back to `chrome.i18n`, then the literal Chinese fallback.
-- **All user-visible strings are localized**, with two **deliberate exceptions shown
-  verbatim**: language-picker **endonyms** (简体中文 / English / 日本語 …) and third-party
-  **brand names** (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM).
+- **All user-visible strings are localized — hardcoded copy is a defect, not a
+  style choice** *(hardened 2026-08-08)*. This covers **every surface in every
+  module**: extension pages, content-script notices, **and the host app shell** —
+  the app bundle has carried `MT_I18N_MESSAGES` + `PageI18n` from the start, so
+  "this surface has no `chrome.i18n`" was never a reason. A string a user can see
+  lives as a key in `_locales/` (all locales, identical key sets), and the Chinese
+  literal appears in code **only as the fallback argument of a `t()` call** — the
+  convention that keeps a missing key from blanking the UI. Dynamic details go in
+  as `{placeholders}` replaced at the call site, never concatenated into the
+  fallback (a built-in detail is dead the moment the key resolves).
+  **Enforced by `test/no-hardcoded-copy.test.js`** on every `npm test`: a CJK
+  string literal outside a `t()` fallback position fails the build.
+- The **deliberate exceptions, shown verbatim**, are exactly three: language-picker
+  **endonyms** (简体中文 / English / 日本語 …), third-party **brand names**
+  (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM), and the product's
+  own **译 button glyph** — an icon that happens to be a character, identical in
+  every locale. The test's allowlist must stay exactly as long as this list.
 
 ## 复习 / Review (记忆层)
 

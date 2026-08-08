@@ -233,11 +233,11 @@
   function renderNotes(data) {
     const box = $('notes-box');
     box.textContent = '';
-    const section = (titleKey, fallback, rows, keyName) => {
+    const section = (title, rows, keyName) => {
       if (!rows || !rows.length) return;
       const h = document.createElement('p');
       h.className = 'notes-h';
-      h.textContent = t(titleKey, fallback);
+      h.textContent = title;
       box.appendChild(h);
       for (const r of rows) {
         const line = document.createElement('p');
@@ -249,8 +249,8 @@
         box.appendChild(line);
       }
     };
-    section('learn_notes_words', '生词', data.words, 'w');
-    section('learn_notes_phrases', '短语搭配', data.phrases, 'p');
+    section(t('learn_notes_words', '生词'), data.words, 'w');
+    section(t('learn_notes_phrases', '短语搭配'), data.phrases, 'p');
     if (data.grammar) {
       const h = document.createElement('p');
       h.className = 'notes-h';

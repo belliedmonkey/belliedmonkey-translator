@@ -657,7 +657,7 @@
     "message": "这个文件来自更新版本的扩展，升级后才能导入。文件本身没有问题。"
   },
   "options_init_failed": {
-    "message": "设置页没能加载完。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。"
+    "message": "设置页没能加载完（{err}）。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。"
   },
   "settings_read_failed": {
     "message": "读不到已保存的设置，下面显示的是默认值——请不要在此保存，否则会覆盖掉你原来的配置。（{why}）"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "语法点",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "你在浏览器里读到的句子，会同步到这里来复习。"
+  },
+  "app_email_label": {
+    "message": "邮箱"
+  },
+  "app_send": {
+    "message": "发送验证码"
+  },
+  "app_sending": {
+    "message": "正在发送…"
+  },
+  "app_code_label": {
+    "message": "验证码（查收邮件）"
+  },
+  "app_verify": {
+    "message": "登录"
+  },
+  "app_verifying": {
+    "message": "正在登录…"
+  },
+  "app_back_email": {
+    "message": "换一个邮箱"
+  },
+  "app_local_note": {
+    "message": "浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。"
+  },
+  "app_signout": {
+    "message": "退出"
+  },
+  "app_settings_link": {
+    "message": "设置"
+  },
+  "app_review_start": {
+    "message": "开始复习"
+  },
+  "app_review_back": {
+    "message": "← 返回"
+  },
+  "app_sync": {
+    "message": "同步"
+  },
+  "app_syncing": {
+    "message": "正在同步…"
+  },
+  "app_unit_cards": {
+    "message": "张卡"
+  },
+  "app_unit_reviews": {
+    "message": "条复习记录"
+  },
+  "app_unit_sources": {
+    "message": "个来源"
+  },
+  "app_never_synced": {
+    "message": "还没有同步过"
+  },
+  "app_sync_empty": {
+    "message": "同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。"
+  },
+  "app_up_to_date": {
+    "message": "已经是最新的。"
+  },
+  "app_code_sent": {
+    "message": "验证码已发送，查收邮件。"
+  },
+  "app_code_bad": {
+    "message": "验证码不对或已过期，重新试一次。"
+  },
+  "app_offline": {
+    "message": "连不上服务器，检查网络后重试。"
+  },
+  "app_needs_upgrade": {
+    "message": "服务器上有这个版本读不了的内容，请更新 App。"
+  },
+  "app_received": {
+    "message": "收到 {n} 张卡 · {m} 条复习记录"
+  },
+  "app_uploaded_n": {
+    "message": "上传 {n} 条复习记录"
+  },
+  "app_uploaded_only": {
+    "message": "已上传 {n} 条复习记录"
+  },
+  "app_sync_disabled": {
+    "message": "同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。"
+  },
+  "app_set_title": {
+    "message": "设置"
+  },
+  "app_set_daily": {
+    "message": "每天最多学几张新卡"
+  },
+  "app_set_tts_auto": {
+    "message": "显示译文时自动朗读"
+  },
+  "app_set_tts_rate": {
+    "message": "朗读速度"
+  },
+  "app_set_tts_note": {
+    "message": "朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，这里改了也不会跟着你走。"
+  },
+  "app_set_notes_title": {
+    "message": "句子解析"
+  },
+  "app_set_notes_provider": {
+    "message": "解析引擎"
+  },
+  "app_set_notes_none": {
+    "message": "不使用"
+  },
+  "app_set_notes_key": {
+    "message": "API Key"
+  },
+  "app_set_notes_base": {
+    "message": "自定义接口地址"
+  },
+  "app_set_notes_model": {
+    "message": "模型"
+  },
+  "app_set_notes_note": {
+    "message": "仅用于生成句子解析（生词 / 短语 / 语法），调用你自己的 API。密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。"
+  },
+  "app_set_corpus": {
+    "message": "学习库"
+  },
+  "app_set_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "app_set_cleaned": {
+    "message": "已清理 {n} 张"
+  },
+  "app_set_clean_none": {
+    "message": "没有可清理的卡"
+  },
+  "app_set_account": {
+    "message": "账号"
+  },
+  "app_set_signout": {
+    "message": "退出登录"
+  },
+  "app_set_delete": {
+    "message": "删除账号与云端数据"
+  },
+  "app_set_delete_note": {
+    "message": "删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。"
+  },
+  "app_set_confirm_delete": {
+    "message": "确定要删除账号吗？服务器上的所有内容会被永久移除，无法恢复。"
+  },
+  "app_set_deleting": {
+    "message": "正在删除…"
+  },
+  "app_set_deleted": {
+    "message": "账号已删除。"
+  },
+  "app_unit_known": {
+    "message": "已掌握"
   }
 }

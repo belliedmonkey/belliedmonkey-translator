@@ -657,7 +657,7 @@
     "message": "이 파일은 더 새로운 버전의 확장 프로그램에서 만들어졌습니다. 업데이트한 뒤 가져오세요. 파일 자체에는 문제가 없습니다."
   },
   "options_init_failed": {
-    "message": "설정 페이지를 끝까지 불러오지 못했습니다. 다시 열어 보세요. 계속되면 이 메시지를 보내 주세요."
+    "message": "설정 페이지를 불러오지 못했습니다({err}). 페이지를 다시 열어 보세요. 계속되면 이 메시지를 제보해 주세요."
   },
   "settings_read_failed": {
     "message": "저장된 설정을 읽지 못해 아래는 기본값입니다. 이 페이지에서 저장하지 마세요 — 원래 설정을 덮어씁니다. ({why})"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "문법",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "브라우저에서 읽은 문장이 여기로 동기화되어 복습할 수 있습니다."
+  },
+  "app_email_label": {
+    "message": "이메일"
+  },
+  "app_send": {
+    "message": "인증 코드 보내기"
+  },
+  "app_sending": {
+    "message": "보내는 중…"
+  },
+  "app_code_label": {
+    "message": "인증 코드(이메일 확인)"
+  },
+  "app_verify": {
+    "message": "로그인"
+  },
+  "app_verifying": {
+    "message": "로그인 중…"
+  },
+  "app_back_email": {
+    "message": "다른 이메일 사용"
+  },
+  "app_local_note": {
+    "message": "브라우저 확장 프로그램은 로그인 없이도 수집하고 복습할 수 있으며 모두 기기에 저장됩니다. 로그인은 자료를 이 기기로 동기화하기 위한 것일 뿐입니다."
+  },
+  "app_signout": {
+    "message": "로그아웃"
+  },
+  "app_settings_link": {
+    "message": "설정"
+  },
+  "app_review_start": {
+    "message": "복습 시작"
+  },
+  "app_review_back": {
+    "message": "← 뒤로"
+  },
+  "app_sync": {
+    "message": "동기화"
+  },
+  "app_syncing": {
+    "message": "동기화 중…"
+  },
+  "app_unit_cards": {
+    "message": "장의 카드"
+  },
+  "app_unit_reviews": {
+    "message": "개의 복습 기록"
+  },
+  "app_unit_sources": {
+    "message": "개의 출처"
+  },
+  "app_never_synced": {
+    "message": "아직 동기화하지 않음"
+  },
+  "app_sync_empty": {
+    "message": "동기화했지만 서버에 아직 아무것도 없습니다. 먼저 브라우저에서 문장을 수집한 뒤 다시 동기화하세요."
+  },
+  "app_up_to_date": {
+    "message": "이미 최신 상태입니다."
+  },
+  "app_code_sent": {
+    "message": "인증 코드를 보냈습니다. 이메일을 확인하세요."
+  },
+  "app_code_bad": {
+    "message": "코드가 틀렸거나 만료되었습니다. 다시 시도하세요."
+  },
+  "app_offline": {
+    "message": "서버에 연결할 수 없습니다. 네트워크를 확인한 뒤 다시 시도하세요."
+  },
+  "app_needs_upgrade": {
+    "message": "서버에 이 버전이 읽을 수 없는 콘텐츠가 있습니다. 앱을 업데이트하세요."
+  },
+  "app_received": {
+    "message": "카드 {n}장 · 복습 기록 {m}개 수신"
+  },
+  "app_uploaded_n": {
+    "message": "복습 기록 {n}개 업로드"
+  },
+  "app_uploaded_only": {
+    "message": "복습 기록 {n}개를 업로드했습니다"
+  },
+  "app_sync_disabled": {
+    "message": "이 버전에서는 동기화가 아직 활성화되지 않았습니다. 브라우저 확장 프로그램의 수집과 복습은 영향을 받지 않으며 모두 기기에 저장됩니다."
+  },
+  "app_set_title": {
+    "message": "설정"
+  },
+  "app_set_daily": {
+    "message": "하루 최대 새 카드 수"
+  },
+  "app_set_tts_auto": {
+    "message": "번역 표시 시 자동 읽기"
+  },
+  "app_set_tts_rate": {
+    "message": "읽기 속도"
+  },
+  "app_set_tts_note": {
+    "message": "음성 엔진과 목소리는 여전히 브라우저 확장 프로그램 설정에서 구성합니다. 브라우저별 자격 증명이라 여기서 바꿔도 함께 이동하지 않습니다."
+  },
+  "app_set_notes_title": {
+    "message": "문장 해설"
+  },
+  "app_set_notes_provider": {
+    "message": "해설 엔진"
+  },
+  "app_set_notes_none": {
+    "message": "사용 안 함"
+  },
+  "app_set_notes_key": {
+    "message": "API 키"
+  },
+  "app_set_notes_base": {
+    "message": "사용자 지정 엔드포인트"
+  },
+  "app_set_notes_model": {
+    "message": "모델"
+  },
+  "app_set_notes_note": {
+    "message": "문장 해설(단어/구/문법) 생성에만 사용되며 본인의 API를 호출합니다. 키는 이 기기에만 저장되고 계정과 동기화되지 않습니다. 브라우저 확장 프로그램에 설정한 키와는 별개이며 보안 수준도 같습니다(둘 다 기기에 평문으로 저장)."
+  },
+  "app_set_corpus": {
+    "message": "학습 라이브러리"
+  },
+  "app_set_clean_known": {
+    "message": "마스터한 카드 정리"
+  },
+  "app_set_cleaned": {
+    "message": "{n}장을 정리했습니다"
+  },
+  "app_set_clean_none": {
+    "message": "정리할 카드가 없습니다"
+  },
+  "app_set_account": {
+    "message": "계정"
+  },
+  "app_set_signout": {
+    "message": "로그아웃"
+  },
+  "app_set_delete": {
+    "message": "계정 및 클라우드 데이터 삭제"
+  },
+  "app_set_delete_note": {
+    "message": "삭제하면 서버의 자료와 복습 기록이 영구히 제거되고 계정도 해지됩니다. 이 기기에 이미 내려받은 내용은 영향을 받지 않습니다. 함께 지우려면 앱을 삭제하세요."
+  },
+  "app_set_confirm_delete": {
+    "message": "계정을 삭제할까요? 서버의 모든 내용이 영구히 제거되며 복구할 수 없습니다."
+  },
+  "app_set_deleting": {
+    "message": "삭제 중…"
+  },
+  "app_set_deleted": {
+    "message": "계정이 삭제되었습니다."
+  },
+  "app_unit_known": {
+    "message": "마스터함"
   }
 }

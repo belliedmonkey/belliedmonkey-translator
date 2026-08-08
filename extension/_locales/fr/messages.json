@@ -657,7 +657,7 @@
     "message": "Ce fichier a été créé par une version plus récente de l'extension. Mettez à jour, puis importez-le. Le fichier lui-même est intact."
   },
   "options_init_failed": {
-    "message": "La page des réglages n'a pas fini de se charger. Rouvrez-la ; si cela persiste, envoyez-nous ce message."
+    "message": "La page de réglages n'a pas pu se charger ({err}). Rouvrez cette page ; si cela persiste, signalez-nous ce message."
   },
   "settings_read_failed": {
     "message": "Vos réglages enregistrés n'ont pas pu être lus ; les valeurs par défaut sont affichées. N'enregistrez pas depuis cette page — cela écraserait vos réglages. ({why})"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "Grammaire",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "Les phrases que vous lisez dans le navigateur se synchronisent ici pour révision."
+  },
+  "app_email_label": {
+    "message": "E-mail"
+  },
+  "app_send": {
+    "message": "Envoyer le code"
+  },
+  "app_sending": {
+    "message": "Envoi…"
+  },
+  "app_code_label": {
+    "message": "Code (vérifiez vos e-mails)"
+  },
+  "app_verify": {
+    "message": "Se connecter"
+  },
+  "app_verifying": {
+    "message": "Connexion…"
+  },
+  "app_back_email": {
+    "message": "Changer d'adresse e-mail"
+  },
+  "app_local_note": {
+    "message": "L'extension de navigateur capture et révise sans compte — tout reste sur votre appareil. La connexion sert uniquement à synchroniser votre matériel sur cet appareil."
+  },
+  "app_signout": {
+    "message": "Se déconnecter"
+  },
+  "app_settings_link": {
+    "message": "Réglages"
+  },
+  "app_review_start": {
+    "message": "Commencer la révision"
+  },
+  "app_review_back": {
+    "message": "← Retour"
+  },
+  "app_sync": {
+    "message": "Synchroniser"
+  },
+  "app_syncing": {
+    "message": "Synchronisation…"
+  },
+  "app_unit_cards": {
+    "message": "cartes"
+  },
+  "app_unit_reviews": {
+    "message": "révisions"
+  },
+  "app_unit_sources": {
+    "message": "sources"
+  },
+  "app_never_synced": {
+    "message": "Pas encore synchronisé"
+  },
+  "app_sync_empty": {
+    "message": "Synchronisé, mais le serveur est encore vide — capturez d'abord des phrases dans le navigateur, puis resynchronisez."
+  },
+  "app_up_to_date": {
+    "message": "Déjà à jour."
+  },
+  "app_code_sent": {
+    "message": "Code envoyé — vérifiez vos e-mails."
+  },
+  "app_code_bad": {
+    "message": "Code incorrect ou expiré — réessayez."
+  },
+  "app_offline": {
+    "message": "Serveur injoignable — vérifiez votre connexion et réessayez."
+  },
+  "app_needs_upgrade": {
+    "message": "Le serveur contient des données illisibles pour cette version — mettez à jour l'app."
+  },
+  "app_received": {
+    "message": "{n} cartes · {m} révisions reçues"
+  },
+  "app_uploaded_n": {
+    "message": "{n} révisions envoyées"
+  },
+  "app_uploaded_only": {
+    "message": "{n} révisions envoyées"
+  },
+  "app_sync_disabled": {
+    "message": "La synchronisation n'est pas activée dans cette version. La capture et la révision de l'extension ne sont pas affectées — tout reste sur votre appareil."
+  },
+  "app_set_title": {
+    "message": "Réglages"
+  },
+  "app_set_daily": {
+    "message": "Nouvelles cartes max par jour"
+  },
+  "app_set_tts_auto": {
+    "message": "Lecture auto à l'affichage de la traduction"
+  },
+  "app_set_tts_rate": {
+    "message": "Vitesse de lecture"
+  },
+  "app_set_tts_note": {
+    "message": "Le moteur vocal et la voix se configurent toujours dans les réglages de l'extension — ce sont des identifiants propres à chaque navigateur."
+  },
+  "app_set_notes_title": {
+    "message": "Notes de phrase"
+  },
+  "app_set_notes_provider": {
+    "message": "Moteur de notes"
+  },
+  "app_set_notes_none": {
+    "message": "Aucun"
+  },
+  "app_set_notes_key": {
+    "message": "Clé API"
+  },
+  "app_set_notes_base": {
+    "message": "URL d'endpoint personnalisée"
+  },
+  "app_set_notes_model": {
+    "message": "Modèle"
+  },
+  "app_set_notes_note": {
+    "message": "Sert uniquement à générer les notes de phrase (mots / expressions / grammaire) via votre propre API. La clé reste sur cet appareil et n'est jamais synchronisée avec votre compte ; elle est distincte de celle de l'extension, avec la même sécurité — les deux sont stockées en clair sur l'appareil."
+  },
+  "app_set_corpus": {
+    "message": "Bibliothèque"
+  },
+  "app_set_clean_known": {
+    "message": "Nettoyer les cartes maîtrisées"
+  },
+  "app_set_cleaned": {
+    "message": "{n} cartes nettoyées"
+  },
+  "app_set_clean_none": {
+    "message": "Rien à nettoyer"
+  },
+  "app_set_account": {
+    "message": "Compte"
+  },
+  "app_set_signout": {
+    "message": "Se déconnecter"
+  },
+  "app_set_delete": {
+    "message": "Supprimer le compte et les données cloud"
+  },
+  "app_set_delete_note": {
+    "message": "La suppression retire définitivement votre matériel et votre historique du serveur et ferme le compte. Le contenu déjà téléchargé sur cet appareil n'est pas affecté — pour l'effacer aussi, supprimez l'app."
+  },
+  "app_set_confirm_delete": {
+    "message": "Supprimer votre compte ? Tout ce qui est sur le serveur sera définitivement supprimé, sans récupération possible."
+  },
+  "app_set_deleting": {
+    "message": "Suppression…"
+  },
+  "app_set_deleted": {
+    "message": "Compte supprimé."
+  },
+  "app_unit_known": {
+    "message": "maîtrisées"
   }
 }

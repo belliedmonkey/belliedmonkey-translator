@@ -657,7 +657,7 @@
     "message": "Este arquivo foi criado por uma versão mais recente da extensão. Atualize e importe de novo. O arquivo está intacto."
   },
   "options_init_failed": {
-    "message": "A página de configurações não terminou de carregar. Abra-a de novo; se continuar, envie-nos esta mensagem."
+    "message": "A página de configurações não carregou ({err}). Reabra a página; se persistir, informe-nos esta mensagem."
   },
   "settings_read_failed": {
     "message": "Não foi possível ler suas configurações salvas, então os valores padrão são exibidos. Não salve nesta página — isso sobrescreveria o que você tinha. ({why})"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "Gramática",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "As frases que você lê no navegador são sincronizadas aqui para revisão."
+  },
+  "app_email_label": {
+    "message": "E-mail"
+  },
+  "app_send": {
+    "message": "Enviar código"
+  },
+  "app_sending": {
+    "message": "Enviando…"
+  },
+  "app_code_label": {
+    "message": "Código (verifique seu e-mail)"
+  },
+  "app_verify": {
+    "message": "Entrar"
+  },
+  "app_verifying": {
+    "message": "Entrando…"
+  },
+  "app_back_email": {
+    "message": "Usar outro e-mail"
+  },
+  "app_local_note": {
+    "message": "A extensão do navegador captura e revisa sem conta — tudo fica no seu dispositivo. Entrar serve apenas para sincronizar seu material com este dispositivo."
+  },
+  "app_signout": {
+    "message": "Sair"
+  },
+  "app_settings_link": {
+    "message": "Configurações"
+  },
+  "app_review_start": {
+    "message": "Começar revisão"
+  },
+  "app_review_back": {
+    "message": "← Voltar"
+  },
+  "app_sync": {
+    "message": "Sincronizar"
+  },
+  "app_syncing": {
+    "message": "Sincronizando…"
+  },
+  "app_unit_cards": {
+    "message": "cartões"
+  },
+  "app_unit_reviews": {
+    "message": "revisões"
+  },
+  "app_unit_sources": {
+    "message": "fontes"
+  },
+  "app_never_synced": {
+    "message": "Ainda não sincronizado"
+  },
+  "app_sync_empty": {
+    "message": "Sincronizado, mas o servidor ainda está vazio — capture frases no navegador primeiro e sincronize de novo."
+  },
+  "app_up_to_date": {
+    "message": "Já está atualizado."
+  },
+  "app_code_sent": {
+    "message": "Código enviado — verifique seu e-mail."
+  },
+  "app_code_bad": {
+    "message": "Código errado ou expirado — tente novamente."
+  },
+  "app_offline": {
+    "message": "Não foi possível conectar ao servidor — verifique a conexão e tente de novo."
+  },
+  "app_needs_upgrade": {
+    "message": "O servidor tem conteúdo que esta versão não consegue ler — atualize o app."
+  },
+  "app_received": {
+    "message": "Recebidos {n} cartões · {m} revisões"
+  },
+  "app_uploaded_n": {
+    "message": "{n} revisões enviadas"
+  },
+  "app_uploaded_only": {
+    "message": "{n} revisões enviadas"
+  },
+  "app_sync_disabled": {
+    "message": "A sincronização não está ativada nesta versão. A captura e a revisão da extensão não são afetadas — tudo fica no seu dispositivo."
+  },
+  "app_set_title": {
+    "message": "Configurações"
+  },
+  "app_set_daily": {
+    "message": "Máx. de cartões novos por dia"
+  },
+  "app_set_tts_auto": {
+    "message": "Falar automaticamente ao mostrar a tradução"
+  },
+  "app_set_tts_rate": {
+    "message": "Velocidade da fala"
+  },
+  "app_set_tts_note": {
+    "message": "O mecanismo de fala e a voz ainda são configurados nos ajustes da extensão — são credenciais de cada navegador."
+  },
+  "app_set_notes_title": {
+    "message": "Notas da frase"
+  },
+  "app_set_notes_provider": {
+    "message": "Motor de notas"
+  },
+  "app_set_notes_none": {
+    "message": "Nenhum"
+  },
+  "app_set_notes_key": {
+    "message": "Chave da API"
+  },
+  "app_set_notes_base": {
+    "message": "URL de endpoint personalizada"
+  },
+  "app_set_notes_model": {
+    "message": "Modelo"
+  },
+  "app_set_notes_note": {
+    "message": "Usado apenas para gerar notas da frase (palavras / expressões / gramática), chamando sua própria API. A chave fica só neste dispositivo e nunca sincroniza com sua conta; é separada da chave configurada na extensão, com a mesma segurança — ambas ficam em texto simples no dispositivo."
+  },
+  "app_set_corpus": {
+    "message": "Biblioteca"
+  },
+  "app_set_clean_known": {
+    "message": "Limpar cartões dominados"
+  },
+  "app_set_cleaned": {
+    "message": "{n} cartões limpos"
+  },
+  "app_set_clean_none": {
+    "message": "Nada para limpar"
+  },
+  "app_set_account": {
+    "message": "Conta"
+  },
+  "app_set_signout": {
+    "message": "Sair"
+  },
+  "app_set_delete": {
+    "message": "Excluir conta e dados na nuvem"
+  },
+  "app_set_delete_note": {
+    "message": "Excluir remove permanentemente seu material e histórico do servidor e encerra a conta. O conteúdo já baixado neste dispositivo não é afetado — para removê-lo também, exclua o app."
+  },
+  "app_set_confirm_delete": {
+    "message": "Excluir sua conta? Tudo no servidor será removido permanentemente, sem recuperação."
+  },
+  "app_set_deleting": {
+    "message": "Excluindo…"
+  },
+  "app_set_deleted": {
+    "message": "Conta excluída."
+  },
+  "app_unit_known": {
+    "message": "dominados"
   }
 }
