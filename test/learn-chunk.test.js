@@ -309,6 +309,50 @@ describe('LearnChunk — import', () => {
 });
 
 describe('LearnChunk — compression is optional, never a dependency', () => {
+  // ─── The EXPORT half, through the function the button actually calls ──────
+  //
+  // Every test above builds its bytes by hand (`build` + `toJsonl`), so
+  // `exportBytes` — the entry point `options.js` calls — had zero coverage while
+  // `importBytes` had fourteen tests. That is §3.1.1 blind spot 1 exactly: asserting
+  // on a payload the test assembled rather than the one production assembles. The
+  // composition it performs (three store reads → build → deflate) is small, and small
+  // is precisely where an untested seam survives unnoticed.
+
+  test('exportBytes reads the store and produces an importable file', async () => {
+    const src = setup({
+      items: [card('a'), card('b')],
+      sources: [{ id: 'src1', url: 'u', title: 't' }],
+      reviews: [{ itemId: 'a', grade: 3, at: T0 }],
+    });
+    const { bytes, header } = await src.C.exportBytes(T0);
+    eq(header.counts.cards, 2);
+    eq(header.counts.sources, 1);
+    eq(header.counts.reviews, 1);
+
+    // Into a DIFFERENT store — a round trip that ends where it started proves
+    // nothing about a file leaving one device and landing on another.
+    const dst = setup();
+    const stats = await dst.C.importBytes(bytes);
+    eq(stats.cards, 2);
+    eq(dst.items.map((i) => i.id).sort().join(','), 'a,b');
+    eq(dst.sources.length, 1);
+    eq(dst.reviews.length, 1);
+  });
+
+  test('a corpus of ONLY candidates exports non-empty (§8.2)', async () => {
+    // The one that was actually broken. While `build` filtered to cards that had
+    // entered the deck, a user with hundreds of candidates and none reviewed got
+    // 「还没有可导出的卡片」 from a full corpus — options.js branches on
+    // `header.counts.cards`, so a zero there is not a small inaccuracy, it is the
+    // export refusing to run. 「一键导出全部」 has to mean all of it.
+    const src = setup({
+      items: ['a', 'b', 'c'].map((id) => card(id, { state: 'candidate', sched: null })),
+      sources: [{ id: 'src1', url: 'u', title: 't' }],
+    });
+    const { header } = await src.C.exportBytes(T0);
+    eq(header.counts.cards, 3, '候选池不进导出 = 用户点导出会被告知「没有内容」');
+  });
+
   test('with no CompressionStream, export/import still round-trips', async () => {
     const { C, items } = setup();
     eq(C.hasCompression(), false);
