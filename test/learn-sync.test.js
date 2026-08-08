@@ -648,3 +648,58 @@ describe('LearnSync — 拉下来的东西不许再推回去', () => {
     ok(posts.length > 0, '本地复习过的卡没有被推上去 —— 这才是真的丢数据');
   });
 });
+
+describe('LearnSync — autoSync（§8.8 页面打开即心跳）', () => {
+  test('未登录 ⇒ null，且一个请求都不发', async () => {
+    const { S, fetchFn } = setup();
+    eq(await S.autoSync(T0), null);
+    eq(fetchFn.calls.length, 0, '未登录的自动同步碰了网络');
+  });
+
+  test('已登录首跑 ⇒ 真同步一次，并盖下节流水位', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    const r = await S.autoSync(at);
+    ok(r && r.pulled, '成功的自动同步要把结果交给调用方');
+    eq(store.meta.autoSyncAt, at, '成功后必须盖水位，否则每次打开都重跑');
+    ok(fetchFn.calls.length > 0);
+  });
+
+  test('10 分钟内再触发 ⇒ null，不再发请求；过窗后恢复', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    await S.autoSync(at);
+    const n = fetchFn.calls.length;
+    eq(await S.autoSync(at + S.AUTO_MIN_MS - 1), null, '节流窗内不许重跑');
+    eq(fetchFn.calls.length, n, '节流命中却发了请求');
+    ok(await S.autoSync(at + S.AUTO_MIN_MS + 1) !== null, '过窗后应当恢复心跳');
+  });
+
+  test('失败 ⇒ 静默 null、不盖水位，下次打开重试', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const fetchFn = (() => {
+      const calls = [];
+      const fn = async (url, init) => { calls.push({ url }); throw new Error('net down'); };
+      fn.calls = calls;
+      return fn;
+    })();
+    const { S } = setup({ store, fetch: fetchFn });
+    const at = Date.now();
+    eq(await S.autoSync(at), null, '自动路径的失败必须静默（§8.8 规则 1）');
+    eq(store.meta.autoSyncAt, undefined, '失败也盖水位 = 离线一次就静音十分钟');
+    await S.autoSync(at + 1000);
+    ok(fetchFn.calls.length >= 2, '失败后下次打开应当重试');
+  });
+
+  test('并发触发去重成一次 —— 两个面同时打开只跑一趟', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    const [r1, r2] = await Promise.all([S.autoSync(at), S.autoSync(at)]);
+    ok(r1 === r2, '两个并发调用应共享同一趟运行的结果');
+    const pulls = fetchFn.calls.filter((c) => c.method === 'GET').length;
+    eq(pulls, 1, `并发触发拉了 ${pulls} 次 —— 应当只有一次`);
+  });
+});

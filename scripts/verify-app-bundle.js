@@ -90,7 +90,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         sendLabel: (document.getElementById('send').textContent || '').length,
         styled: getComputedStyle(document.body).getPropertyValue('--green').trim(),
         globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync',
-          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings']
+          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings',
+          // §8.8 — app.js rebuilds the deck through this on every review-view entry;
+          // if review.js stops exporting it, the app silently loses deck freshness.
+          'LearnReview']
           .filter((g) => typeof window[g] === 'undefined'),
         // The review surface is INLINED from extension/learn/review.html at build
         // time. If that lift silently produced nothing, everything above still

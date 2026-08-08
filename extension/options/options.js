@@ -673,6 +673,12 @@ async function init() {
   });
 
   refreshSyncUI();
+  // §8.8 — opening this page is the heartbeat (throttled + silent inside autoSync;
+  // signed-out resolves to null). Only a run that actually happened repaints, so the
+  // quiet path stays quiet.
+  LearnSync.autoSync().then((r) => {
+    if (r) return Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
+  }).catch(() => {});
   }   // end if (MT_BACKEND.enabled)
 
   $('btn-clear-cache').addEventListener('click', async () => {
