@@ -215,3 +215,48 @@ describe('LearnScheduler — dueCount', () => {
     eq(S.dueCount(items, T0), 1);
   });
 });
+
+// ─── §5.1 — the grade buttons preview their own consequence ──────────────────
+// The property that matters is NOT "the numbers look reasonable" — it is that the
+// preview and the press are THE SAME computation. A preview that runs its own
+// arithmetic drifts the first time applyReview is tuned, and then the buttons
+// promise intervals the scheduler no longer grants.
+
+describe('LearnScheduler — previewIntervals (§5.1)', () => {
+  test('each preview equals exactly what pressing that grade would grant', () => {
+    const S = load();
+    for (const sched of [
+      null,                                                    // fresh card
+      { s: 3, d: 5, lastReviewAt: T0 - 2 * DAY },              // young
+      { s: 120, d: 3, lastReviewAt: T0 - 100 * DAY },          // mature, overdue
+    ]) {
+      // Once with defaults, once with a custom config — the second pins the cfg
+      // PASSTHROUGH: a preview that quietly ignores cfg matches applyReview under
+      // defaults and lies the moment the user changes a setting.
+      for (const cfg of [undefined, { S0: [1, 2, 3, 4], FACTOR: [0.5, 1.3, 2.0, 5.0] }]) {
+        const iv = S.previewIntervals(sched, T0, cfg);
+        for (let g = 0; g <= 3; g++) {
+          const pressed = S.applyReview(sched, g, T0, cfg);
+          eq(iv[g], Math.max(0, pressed.dueAt - T0),
+            '档位 ' + g + ' 的预览与实际按下不一致 —— 按钮在撒谎');
+        }
+      }
+    }
+  });
+
+  test('a better grade never promises a shorter interval', () => {
+    const S = load();
+    const iv = S.previewIntervals({ s: 5, d: 5, lastReviewAt: T0 - 4 * DAY }, T0);
+    ok(iv[0] < iv[1] && iv[1] < iv[2] && iv[2] < iv[3],
+      '间隔必须随档位单调上升: ' + iv.join(','));
+  });
+
+  test('config is merged over DEFAULTS, same contract as the rest of the module', () => {
+    // verification-spec §3.1.1 blind spot 1: pass a deliberately PARTIAL config and
+    // assert the defaults still participate.
+    const S = load();
+    const full = S.previewIntervals(null, T0);
+    const partial = S.previewIntervals(null, T0, { deckSize: 5 });   // unrelated key
+    eq(full.join(','), partial.join(','), '无关的局部配置改变了预览 —— 合并逻辑坏了');
+  });
+});

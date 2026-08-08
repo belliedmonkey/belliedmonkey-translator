@@ -661,5 +661,41 @@
   },
   "settings_read_failed": {
     "message": "Não foi possível ler suas configurações salvas, então os valores padrão são exibidos. Não salve nesta página — isso sobrescreveria o que você tinha. ({why})"
+  },
+  "learn_relearn": {
+    "message": "Reaprender",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "Força da memória",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "dias",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "Como funciona a revisão",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "Lembrou → o intervalo cresce e o cartão volta mais tarde.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "Esqueceu → recomeça e volta logo.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "Com 180 dias de força, o cartão se forma.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "Entendi",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "Até {n} cartões novos por dia — ajustável nas configurações.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
   }
 }
