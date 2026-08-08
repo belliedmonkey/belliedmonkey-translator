@@ -48,6 +48,10 @@ npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — man
                          # learn/store.js's DB_VERSION changes. It is the only change that touches
                          # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
                          # vm harness). See docs/verification-spec.md §3.1.2
+npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
+                         # page; real Chrome, Node ≥22) — mandatory when the learning surface
+                         # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified
+                         # tier/practice/notes flow. Cases: docs/learn-regression.md
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.

@@ -11,7 +11,8 @@
     "verify:ios": "node scripts/verify-ios-bundle.js",
     "test:idb": "node scripts/verify-idb-upgrade.js",
     "app:sync": "node scripts/sync-app-assets.js",
-    "test:app": "node scripts/verify-app-bundle.js"
+    "test:app": "node scripts/verify-app-bundle.js",
+    "test:learn": "node scripts/verify-learn-flow.js"
   },
   "engines": {
     "node": ">=18.0.0"
