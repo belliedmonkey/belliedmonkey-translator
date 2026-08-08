@@ -890,7 +890,7 @@
     "message": "Velocidad de lectura"
   },
   "app_set_tts_note": {
-    "message": "El motor de voz y la voz se configuran en los ajustes de la extensión del navegador: son credenciales de cada navegador."
+    "message": "Las tarjetas de idioma desconocido (p. ej., capturadas en Safari, que no tiene detección de idioma) solo se leen con la voz elegida arriba; sin elección, no se pueden reproducir. Los motores de voz en la nube (tu endpoint y clave) se siguen configurando en la extensión."
   },
   "app_set_notes_title": {
     "message": "Notas de la frase"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "dominadas"
+  },
+  "tts_no_voice_und": {
+    "message": "El idioma de esta tarjeta es desconocido: elige una voz en los ajustes y se reproducirá"
+  },
+  "app_set_tts_voice": {
+    "message": "Voz"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automático (según el idioma de la tarjeta)"
   }
 }

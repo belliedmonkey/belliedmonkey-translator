@@ -890,7 +890,7 @@
     "message": "Sprechtempo"
   },
   "app_set_tts_note": {
-    "message": "Sprach-Engine und Stimme werden weiterhin in den Einstellungen der Browser-Erweiterung konfiguriert — das sind Zugangsdaten je Browser."
+    "message": "Karten mit unbekannter Sprache (z. B. in Safari erfasst, das keine Spracherkennung hat) werden nur mit der oben gewählten Stimme vorgelesen; ohne Auswahl bleiben sie stumm. Cloud-Sprach-Engines (eigener Endpoint und Schlüssel) werden weiterhin in der Browser-Erweiterung konfiguriert."
   },
   "app_set_notes_title": {
     "message": "Satzanalyse"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "gemeistert"
+  },
+  "tts_no_voice_und": {
+    "message": "Die Sprache dieser Karte ist unbekannt — wähle in den Einstellungen eine Stimme, dann wird vorgelesen"
+  },
+  "app_set_tts_voice": {
+    "message": "Stimme"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automatisch (nach Kartensprache)"
   }
 }

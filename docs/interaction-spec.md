@@ -648,6 +648,16 @@ the browser extension, like capture — with one dated exception:
   is used **only if it speaks that language**; otherwise the best system voice for
   that language is used; if there is none, **the card says so and the ▶ control is
   disabled** — never a button that silently does nothing.
+- **Unknown-language cards (`und`) speak only with a user-chosen voice** *(2026-08-08)*.
+  This is a population, not an edge case: the browser-native detector is absent on
+  every Safari, so every card captured there is `und` — on the phone that is MOST
+  cards. Guessing a voice would read text in the wrong language (the exact thing the
+  rule above forbids), so `und` plays with the explicitly chosen voice or not at all
+  — and its failure message must point at OUR voice setting (「这张卡的语言未知 ——
+  在设置里选一个朗读语音后即可朗读」), never claim the system lacks a voice. Both
+  hosts offer the voice picker: the extension's options page and the app's settings
+  (the app's reconfigures TTS live — a picked voice works on the next card, no
+  relaunch).
 - **Every failure names itself**: no voice for this language / no built-in speech in
   this browser / no endpoint URL / no API key / the service returned an error. A
   blocked autoplay is the one exception — the ▶ button is right there, so it is

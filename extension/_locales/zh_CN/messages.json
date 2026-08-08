@@ -890,7 +890,7 @@
     "message": "朗读速度"
   },
   "app_set_tts_note": {
-    "message": "朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，这里改了也不会跟着你走。"
+    "message": "语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。云端语音引擎（自备端点与密钥）仍在浏览器扩展里配置。"
   },
   "app_set_notes_title": {
     "message": "句子解析"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "已掌握"
+  },
+  "tts_no_voice_und": {
+    "message": "这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读"
+  },
+  "app_set_tts_voice": {
+    "message": "朗读语音"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "自动（按卡片语言）"
   }
 }

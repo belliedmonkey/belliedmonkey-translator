@@ -152,6 +152,7 @@ function populateTtsEngines(selected) {
 function ttsReason(reason) {
   switch (reason) {
     case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
+    case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
     case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
     case 'no_base': return t('tts_no_base', '还没填语音端点地址');
     case 'no_key': return t('tts_no_key', '还没填语音 API Key');

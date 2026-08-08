@@ -890,7 +890,7 @@
     "message": "Speech rate"
   },
   "app_set_tts_note": {
-    "message": "The speech engine and voice are still configured in the browser extension's settings — those are per-browser credentials and don't travel with you."
+    "message": "Cards with an unknown language (e.g. captured in Safari, which has no language detection) play only with the voice chosen above; without a choice they can't be spoken. Cloud speech engines (your own endpoint and key) are still configured in the browser extension."
   },
   "app_set_notes_title": {
     "message": "Sentence notes"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "mastered"
+  },
+  "tts_no_voice_und": {
+    "message": "This card's language is unknown — pick a voice in settings and it will play"
+  },
+  "app_set_tts_voice": {
+    "message": "Voice"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automatic (by card language)"
   }
 }

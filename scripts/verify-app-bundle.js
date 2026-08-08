@@ -121,7 +121,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // Apple-required in-app account deletion is among them: per learning-design
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
-        settingsMissing: ['app-settings','settings-back','daily','tts-mode','tts-auto','tts-rate',
+        settingsMissing: ['app-settings','settings-back','daily','tts-mode','tts-voice','tts-auto','tts-rate',
           // §7.2 device-local credential for §9.2 notes
           'notes-provider','notes-key','notes-base','notes-model',
           'clean-known','settings-signout','delete-account','gear']
