@@ -116,9 +116,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // Apple-required in-app account deletion is among them: per learning-design
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
-        settingsMissing: ['app-settings','settings-back','daily','tts-auto','tts-rate',
+        settingsMissing: ['app-settings','settings-back','daily','tts-mode','tts-auto','tts-rate',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
+        // chrome-shim seeds ttsMode='assist' SYNCHRONOUSLY, before review.js's
+        // one-shot boot read — the async ensureDefaults path loses that race, which
+        // is exactly how the app shipped with speech permanently off. Assert the
+        // seed itself, not the settings UI: the UI can look right while the boot
+        // read still saw nothing.
+        ttsModeSeeded: localStorage.getItem('mt:ttsMode') === JSON.stringify('assist'),
         settingsHidden: getComputedStyle(document.getElementById('app-settings')).display === 'none',
         // review.css must survive the concatenation too — it owns the review markup.
         reviewStyled: getComputedStyle(document.querySelector('.page') || document.body).maxWidth,
@@ -154,6 +160,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       + (o.settingsMissing.indexOf('delete-account') >= 0
         ? '（删除账号是 Apple 的上架硬要求，§10 Gate B）' : ''));
     need(o.settingsHidden, '设置页在没进入之前就显示了');
+    need(o.ttsModeSeeded, 'ttsMode 没被 shim 播种成 assist —— App 里语音又会永远关着');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');

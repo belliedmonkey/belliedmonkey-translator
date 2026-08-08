@@ -17,6 +17,10 @@ var AppSettings = (() => {
     title: '设置',
     back: '← 返回',
     daily: '每天最多学几张新卡',
+    ttsMode: '语音模式',
+    ttsModeOff: '关闭',
+    ttsModeAssist: '显示原文，可点播放',
+    ttsModeAudioFirst: '先听后看（原文先隐藏）',
     ttsAuto: '显示译文时自动朗读',
     ttsRate: '朗读速度',
     ttsNote: '朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，'
@@ -39,7 +43,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew', 'ttsAutoPlay', 'ttsRate'];
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'ttsMode', 'ttsAutoPlay', 'ttsRate'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -58,6 +62,9 @@ var AppSettings = (() => {
     const patch = {};
     if (cur.learnEnabled !== true) patch.learnEnabled = true;
     if (typeof cur.learnDailyNew !== 'number') patch.learnDailyNew = 15;
+    // Normally already seeded by chrome-shim.js (which must win the race against
+    // review.js's boot read); this only repairs a corrupted value.
+    if (['off', 'assist', 'audio-first'].indexOf(cur.ttsMode) < 0) patch.ttsMode = 'assist';
     if (typeof cur.ttsAutoPlay !== 'boolean') patch.ttsAutoPlay = false;
     if (typeof cur.ttsRate !== 'number') patch.ttsRate = 1;
     if (Object.keys(patch).length) await set(patch);
@@ -67,6 +74,10 @@ var AppSettings = (() => {
     $('settings-title').textContent = t('title');
     $('settings-back').textContent = t('back');
     $('daily-label').textContent = t('daily');
+    $('tts-mode-label').textContent = t('ttsMode');
+    $('tts-mode-off').textContent = t('ttsModeOff');
+    $('tts-mode-assist').textContent = t('ttsModeAssist');
+    $('tts-mode-audio-first').textContent = t('ttsModeAudioFirst');
     $('tts-auto-label').textContent = t('ttsAuto');
     $('tts-rate-label').textContent = t('ttsRate');
     $('tts-note').textContent = t('ttsNote');
@@ -81,6 +92,7 @@ var AppSettings = (() => {
   async function paint(session, say) {
     const cur = await get(KEYS);
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
+    $('tts-mode').value = cur.ttsMode || 'assist';
     $('tts-auto').checked = !!cur.ttsAutoPlay;
     $('tts-rate').value = cur.ttsRate != null ? cur.ttsRate : 1;
     $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
@@ -102,6 +114,7 @@ var AppSettings = (() => {
       $('daily').value = n;
       await set({ learnDailyNew: n });
     });
+    $('tts-mode').addEventListener('change', () => set({ ttsMode: $('tts-mode').value }));
     $('tts-auto').addEventListener('change', () => set({ ttsAutoPlay: $('tts-auto').checked }));
     $('tts-rate').addEventListener('input', () => {
       $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
