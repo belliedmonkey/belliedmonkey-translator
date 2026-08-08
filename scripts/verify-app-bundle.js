@@ -100,7 +100,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         reviewMissing: ['review-view','card','counts','empty','nothing-due','pressure',
           'pressure-fix','open-settings','empty-settings','orig','src','progress',
           // Stage A (§5.1): strength bar, one-time explainer, cap hint
-          'strength','strength-bar','strength-label','howto','howto-ok','cap-hint']
+          'strength','strength-bar','strength-label','howto','howto-ok','cap-hint',
+          // Stage B (§5.3): free practice
+          'practice-setup','practice-pool','practice-batch','practice-start','practice-open','practice-note']
           .filter((id) => !document.getElementById(id)),
         reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
         // Stage 4. The dead end this replaced was two taps deep (review page → 设置 →

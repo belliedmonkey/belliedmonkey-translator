@@ -260,3 +260,88 @@ describe('LearnScheduler — previewIntervals (§5.1)', () => {
     eq(full.join(','), partial.join(','), '无关的局部配置改变了预览 —— 合并逻辑坏了');
   });
 });
+
+// ─── §5.3 — free practice: the asymmetric rule and the unquota'd deck ────────
+
+describe('LearnScheduler — practiceOutcome (§5.3)', () => {
+  const SCHED = { s: 20, d: 5, lastReviewAt: T0 - 5 * DAY, dueAt: T0 + 15 * DAY, reps: 4, lapses: 0 };
+
+  test('a FAIL on a scheduled card is a real lapse', () => {
+    const S = load();
+    const next = S.practiceOutcome(SCHED, 0, T0);
+    ok(next !== null, '练习答错必须落排程');
+    ok(next.s < SCHED.s, '稳定度必须收缩（' + SCHED.s + ' → ' + next.s + '）');
+    eq(next.lapses, 1);
+    // And it is the SAME lapse a scheduled review would give — one rule, not two.
+    eq(next.s, S.applyReview(SCHED, 0, T0).s);
+  });
+
+  test('a PASS writes nothing — just-seen proves nothing about memory', () => {
+    const S = load();
+    for (const g of [1, 2, 3]) {
+      eq(S.practiceOutcome(SCHED, g, T0), null,
+        '档 ' + g + ' 在练习里不得推进排程 —— 否则掌握可以刷出来');
+    }
+  });
+
+  test('a candidate is never introduced from practice, pass or fail', () => {
+    const S = load();
+    for (const g of [0, 1, 2, 3]) {
+      eq(S.practiceOutcome(null, g, T0), null,
+        '候选卡在练习里只曝光（档 ' + g + '）—— 引入是每日牌组的事');
+    }
+  });
+});
+
+describe('LearnScheduler — buildPracticeDeck (§5.3)', () => {
+  function corpus() {
+    return [
+      card({ id: 'weak', sched: { s: 2, d: 5, lastReviewAt: T0 - 10 * DAY } }),   // R lowest of learning
+      card({ id: 'strong', sched: { s: 100, d: 5, lastReviewAt: T0 - DAY } }),
+      card({ id: 'cand', state: 'candidate', sched: null, salience: 0.9 }),
+      card({ id: 'known', sched: { s: 400, d: 5, lastReviewAt: T0 - DAY } }),
+      card({ id: 'mut', state: 'muted', sched: null }),
+    ];
+  }
+
+  test("pool 'learning' holds only learning cards, weakest first", () => {
+    const S = load();
+    const d = S.buildPracticeDeck(corpus(), T0, undefined, { pool: 'learning', limit: 0 });
+    eq(d.map((x) => x.id).join(','), 'weak,strong',
+      '候选/已掌握/静音都不得进默认池');
+  });
+
+  test("pool 'all' adds candidates and known — muted stays out everywhere", () => {
+    const S = load();
+    const ids = S.buildPracticeDeck(corpus(), T0, undefined, { pool: 'all', limit: 0 })
+      .map((x) => x.id);
+    ok(ids.indexOf('cand') >= 0 && ids.indexOf('known') >= 0, '全部池要含候选与已掌握');
+    eq(ids.indexOf('mut'), -1, '静音卡在任何池里都不出现');
+    // Candidates score R = 0 — never reviewed sorts as fully forgotten, ahead of all.
+    eq(ids[0], 'cand');
+  });
+
+  test('limit bounds the deck; 0 means the whole pool', () => {
+    const S = load();
+    eq(S.buildPracticeDeck(corpus(), T0, undefined, { pool: 'all', limit: 2 }).length, 2);
+    eq(S.buildPracticeDeck(corpus(), T0, undefined, { pool: 'all', limit: 0 }).length, 4);
+  });
+
+  test('no more than MAX_PER_SOURCE_RUN consecutive cards from one source', () => {
+    const S = load();
+    const items = [];
+    for (let i = 0; i < 8; i++) {
+      items.push(card({ id: 'a' + i, sourceId: 'srcA', sched: { s: 2, d: 5, lastReviewAt: T0 - 9 * DAY } }));
+    }
+    for (let i = 0; i < 8; i++) {
+      items.push(card({ id: 'b' + i, sourceId: 'srcB', sched: { s: 2, d: 5, lastReviewAt: T0 - 9 * DAY } }));
+    }
+    const d = S.buildPracticeDeck(items, T0, undefined, { pool: 'learning', limit: 0 });
+    let run = 1, worst = 1;
+    for (let i = 1; i < d.length; i++) {
+      run = d[i].sourceId === d[i - 1].sourceId ? run + 1 : 1;
+      if (run > worst) worst = run;
+    }
+    ok(worst <= 3, '同源连读跑到了 ' + worst + ' 张 —— spreadBySource 没生效');
+  });
+});

@@ -697,5 +697,37 @@
   "learn_cap_hint": {
     "message": "每天新卡上限 {n} 张，可在设置里调整。",
     "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "自由练习",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "练习不能刷出掌握，但能暴露遗忘。",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "学习中",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "全部（含候选与已掌握）",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "不限",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "开始练习",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "练习 {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "练习完成 {n} 张。",
+    "description": "Practice summary; {n} cards done"
   }
 }

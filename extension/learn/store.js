@@ -136,9 +136,14 @@ var LearnStore = (() => {
   // `opts.viaSync` marks a review that arrived from the server rather than one the
   // user just gave. Same reason as `syncedAt` on items: without it the review log
   // bounces back up on the next push.
+  // `opts.mode` (§5.2: which exercise form was graded) and `opts.practice` (§5.3: a
+  // free-practice rep, logged but never schedule-advancing) travel on the row itself
+  // — the log is history, and history stripped of its circumstances stops being one.
   function recordReview(itemId, grade, at, opts) {
     const row = { itemId, grade, at };
     if (opts && opts.viaSync) row.viaSync = 1;
+    if (opts && opts.practice) row.practice = 1;
+    if (opts && opts.mode) row.mode = opts.mode;
     return tx(['reviews'], 'readwrite', (s) => { s.reviews.add(row); });
   }
 

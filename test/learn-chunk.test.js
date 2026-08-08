@@ -35,9 +35,13 @@ function setup(seed = {}) {
       for (const s of srcs || []) if (!sources.some((x) => x.id === s.id)) sources.push(s);
       return Promise.resolve(added);          // NEW here, not offered
     },
-    recordReview: (itemId, grade, at) => {
-      calls.review.push({ itemId, grade, at });
-      reviews.push({ itemId, grade, at });
+    recordReview: (itemId, grade, at, opts) => {
+      const row = { itemId, grade, at };
+      // Mirror the real store: circumstance fields land ON the row (§5.3).
+      if (opts && opts.practice) row.practice = 1;
+      if (opts && opts.mode) row.mode = opts.mode;
+      calls.review.push(row);
+      reviews.push(row);
       return Promise.resolve();
     },
     evictIfNeeded: () => { calls.evict++; return Promise.resolve(0); },
@@ -368,5 +372,30 @@ describe('LearnChunk — compression is optional, never a dependency', () => {
     const { C } = setup();
     const n = C.fileName(Date.UTC(2026, 7, 4, 12));
     ok(/^belliedmonkey-learn-2026080\d\.mtlearn$/.test(n), n);
+  });
+});
+
+// ─── §5.3 — a review's circumstances survive replay ──────────────────────────
+// `mode` and `practice` ride ON the log row. A replay that strips them would turn
+// practice reps into apparent scheduled reviews on every other device — the history
+// would still be "true" and tell a different story, which is worse than being wrong.
+
+describe('LearnChunk — replay keeps mode/practice on review rows (§5.3)', () => {
+  test('a practice review replays as a practice review', async () => {
+    const { C, reviews } = setup({ items: [card('a')] });
+    const bundle = {
+      header: {}, cards: [], sources: [],
+      reviews: [
+        { itemId: 'a', grade: 0, at: T0 + 1, practice: 1, mode: 'read' },
+        { itemId: 'a', grade: 2, at: T0 + 2, mode: 'read' },
+      ],
+    };
+    await C.replay(bundle, { fromServer: true });
+    const p = reviews.find((r) => r.at === T0 + 1);
+    const n = reviews.find((r) => r.at === T0 + 2);
+    eq(p.practice, 1, 'practice 标记在重放中被剥掉了');
+    eq(p.mode, 'read');
+    eq(n.practice, undefined, '普通复习不得凭空长出 practice 标记');
+    eq(n.mode, 'read');
   });
 });

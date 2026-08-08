@@ -697,5 +697,37 @@
   "learn_cap_hint": {
     "message": "Bis zu {n} neue Karten pro Tag — in den Einstellungen änderbar.",
     "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "Freies Üben",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "Üben erschleicht keine Meisterschaft, aber es deckt Vergessenes auf.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "In Arbeit",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "Alles (inkl. neu & gemeistert)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "Ohne Limit",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "Üben starten",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "Üben {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "Üben beendet — {n} Karten.",
+    "description": "Practice summary; {n} cards done"
   }
 }

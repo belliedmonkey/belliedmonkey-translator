@@ -14,6 +14,8 @@
   let idx = 0;
   let sched = {};       // scheduler config, merged over production DEFAULTS
   let doneThisRun = 0;
+  let practicing = false;   // §5.3 — free practice: same card flow, asymmetric rule
+  let donePractice = 0;
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
@@ -165,14 +167,26 @@
 
   // §5.1 — every grade button carries its consequence. previewIntervals runs the
   // same applyReview the press would run, so the label cannot drift from the act.
+  //
+  // In PRACTICE the same honesty rule cuts the other way: grades 1–3 will not be
+  // granted an interval (§5.3), so promising one would be the lie §5.1 exists to
+  // prevent. Their labels go blank and the one-line rule above the grades explains;
+  // grade 0 keeps 「重新学」 only when the card has a schedule to lapse.
   function renderGradePreviews(item) {
-    const iv = LearnScheduler.previewIntervals(item.sched, Date.now(), sched);
+    const iv = practicing ? null
+      : LearnScheduler.previewIntervals(item.sched, Date.now(), sched);
+    const hadSched = !!(item.sched && item.sched.s);
     document.querySelectorAll('.grade').forEach((b) => {
       const el = b.querySelector('.when');
       if (!el) return;
       const g = Number(b.dataset.grade);
-      el.textContent = g === 0 ? t('learn_relearn', '重新学') : fmtWhen(iv[g]);
+      if (practicing) {
+        el.textContent = g === 0 && hadSched ? t('learn_relearn', '重新学') : '';
+      } else {
+        el.textContent = g === 0 ? t('learn_relearn', '重新学') : fmtWhen(iv[g]);
+      }
     });
+    $('practice-note').hidden = !practicing;
   }
 
   function show(sources) {
@@ -197,8 +211,10 @@
 
     renderMedia(item, sources);
 
-    $('progress').textContent = t('learn_progress', '本轮进度')
-      + ' ' + (idx + 1) + ' / ' + deck.length;
+    $('progress').textContent = practicing
+      ? t('learn_practice_progress', '练习 {i} / {n}')
+          .replace('{i}', String(idx + 1)).replace('{n}', String(deck.length))
+      : t('learn_progress', '本轮进度') + ' ' + (idx + 1) + ' / ' + deck.length;
   }
 
   async function grade(g, sources) {
@@ -206,12 +222,33 @@
     if (!item) return;
     LearnTTS.stop();
     const now = Date.now();
+
+    if (practicing) {
+      // §5.3 — the asymmetric rule lives in a PURE function; this is just plumbing.
+      // A fail on a scheduled card lapses it; everything else writes no schedule,
+      // and a candidate is never introduced from here (that is the daily deck's job,
+      // which is also why newToday is untouched on this path).
+      const next = LearnScheduler.practiceOutcome(item.sched, g, now, sched);
+      if (next) {
+        item.sched = next;
+        item.state = LearnScheduler.stateFor(item, sched);
+        await LearnStore.putItem(item);
+      }
+      await LearnStore.recordReview(item.id, g, now, { practice: 1, mode: 'read' });
+      donePractice++;
+      idx++;
+      if (idx >= deck.length) { await endPractice(); return; }
+      show(sources);
+      await refreshCounts();
+      return;
+    }
+
     const wasNew = !item.sched || !item.sched.s;
 
     item.sched = LearnScheduler.applyReview(item.sched, g, now, sched);
     item.state = LearnScheduler.stateFor(item, sched);
     await LearnStore.putItem(item);
-    await LearnStore.recordReview(item.id, g, now);
+    await LearnStore.recordReview(item.id, g, now, { mode: 'read' });
 
     // The daily new-card cap has to survive page reloads, or "15 a day" silently
     // becomes "15 per session".
@@ -228,6 +265,34 @@
     if (idx >= deck.length) { await start(); return; }
     show(sources);
     await refreshCounts();
+  }
+
+  // ─── §5.3 free practice ──────────────────────────────────────────────────
+
+  async function startPractice() {
+    const items = await LearnStore.allItems();
+    const srcList = await LearnStore.allSources();
+    const sources = new Map(srcList.map((s) => [s.id, s]));
+    const pool = $('practice-pool').value;
+    const limit = Number($('practice-batch').value) || 0;
+    const practiceDeck = LearnScheduler.buildPracticeDeck(items, Date.now(), sched, { pool, limit });
+    if (!practiceDeck.length) return;      // nothing matches the pool — leave the setup visible
+    practicing = true;
+    donePractice = 0;
+    deck = practiceDeck;
+    idx = 0;
+    currentSources = sources;
+    $('practice-setup').hidden = true;
+    show(sources);
+  }
+
+  async function endPractice() {
+    practicing = false;
+    const n = donePractice;
+    donePractice = 0;
+    await start();
+    $('progress').textContent = t('learn_practice_done', '练习完成 {n} 张。')
+      .replace('{n}', String(n));
   }
 
   // Storage pressure. Law 2 forbids telling the PAGE anything; it requires telling
@@ -279,6 +344,11 @@
   }
 
   async function start() {
+    // A rebuild is always a return to the SCHEDULED deck. pressure-fix (and anything
+    // else that rebuilds) can fire mid-practice; leaving the flag up would apply the
+    // practice rule to scheduled cards.
+    practicing = false;
+    $('practice-note').hidden = true;
     const { items } = await refreshCounts();
     const now = Date.now();
 
@@ -290,6 +360,11 @@
 
     deck = LearnScheduler.buildDeck(items, now, sched, newToday);
     idx = 0;
+
+    // Practice is offered whenever there is a corpus and no scheduled deck on
+    // screen — the deck-done page stops being a dead end (§5.3). The footer link
+    // can reveal it at any other time.
+    $('practice-setup').hidden = !(items.length && !deck.length);
 
     if (!items.length) {
       $('card').hidden = true; $('nothing-due').hidden = true; $('empty').hidden = false;
@@ -363,6 +438,14 @@
   };
   $('open-settings').addEventListener('click', openOptions);
   $('empty-settings').addEventListener('click', openOptions);
+
+  // §5.3 — free practice entries.
+  $('practice-open').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('practice-setup').hidden = false;
+    $('practice-setup').scrollIntoView({ block: 'nearest' });
+  });
+  $('practice-start').addEventListener('click', () => { startPractice(); });
 
   // Drain the outbox first — this page is one of the few places that can, since the
   // corpus lives in the extension origin and the service worker cannot be trusted
