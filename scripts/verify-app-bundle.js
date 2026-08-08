@@ -93,7 +93,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings',
           // §8.8 — app.js rebuilds the deck through this on every review-view entry;
           // if review.js stops exporting it, the app silently loses deck freshness.
-          'LearnReview']
+          'LearnReview',
+          // §7.2/§9.2 — the registry feeds the notes gate and the engine picker.
+          'MT_PROVIDERS']
           .filter((g) => typeof window[g] === 'undefined'),
         // The review surface is INLINED from extension/learn/review.html at build
         // time. If that lift silently produced nothing, everything above still
@@ -109,8 +111,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // Stage C (§5.2): mastery ladder — badges, shadowing hint, write-tier cloze
           'badges','badge-read','badge-listen','badge-write','badge-full',
           'shadow','cloze','cloze-check','write-prompt','write-replaced','grades',
-          // Stage D (§9.2): sentence notes — present in the DOM even where the
-          // capability gate keeps the wrap hidden (the app has no provider config)
+          // Stage D (§9.2): sentence notes — present in the DOM even while the
+          // capability gate keeps the wrap hidden (no key configured yet)
           'notes-wrap','notes-btn','notes-box','notes-cost']
           .filter((id) => !document.getElementById(id)),
         reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
@@ -120,8 +122,19 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
         settingsMissing: ['app-settings','settings-back','daily','tts-mode','tts-auto','tts-rate',
+          // §7.2 device-local credential for §9.2 notes
+          'notes-provider','notes-key','notes-base','notes-model',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
+        // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus
+        // every chat-capable registry entry, and never the google translation
+        // channel (excluded by TYPE — §9.2). Counted against the live registry, so
+        // adding an engine to the registry can never silently miss the app.
+        notesPickerCount: document.getElementById('notes-provider').options.length,
+        notesPickerWant: 1 + (window.LearnNotes ? LearnNotes.chatEngines().length : -99),
+        notesPickerHasNonChat: [...document.getElementById('notes-provider').options].some(
+          (o) => o.value && !(window.MT_PROVIDERS || []).some((p) => p.id === o.value
+            && (p.type === 'chat-compat' || p.type === 'messages-compat'))),
         // chrome-shim seeds ttsMode='assist' SYNCHRONOUSLY, before review.js's
         // one-shot boot read — the async ensureDefaults path loses that race, which
         // is exactly how the app shipped with speech permanently off. Assert the
@@ -152,6 +165,30 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(o.outHidden && !o.inShown, '同步关闭时仍然给出了登录入口 —— 这正是那个开关承诺不会发生的事');
       need(o.text > 10, '同步关闭时页面是空的 —— 至少要说清楚为什么没有内容');
     }
+    // §9.2 live gate — pasting a key must open the notes gate WITHOUT a relaunch:
+    // settings save reconfigures LearnNotes directly, and the gate is re-asked per
+    // card. review.js reads settings once at load, so if that reconfigure call is
+    // lost, this is the check that knows (the DOM assertions above cannot see it).
+    // Only meaningful when the account surface exists (sync-enabled builds — the
+    // disabled build returns from boot before wire() attaches any listener).
+    if (o.syncEnabled) {
+      const g = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const before = LearnNotes.capable();
+          const sel = document.getElementById('notes-provider');
+          const opt = [...sel.options].find((x) => x.value);
+          sel.value = opt ? opt.value : '';
+          sel.dispatchEvent(new Event('change'));
+          const key = document.getElementById('notes-key');
+          key.value = 'k-live-gate';
+          key.dispatchEvent(new Event('change'));
+          await new Promise((r) => setTimeout(r, 80));
+          return JSON.stringify({ before, after: LearnNotes.capable() });
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const gv = JSON.parse(g.result.value);
+      need(!gv.before, '还没配 key 门就开了');
+      need(gv.after, '填了 key 门没开 —— 解析要等下次启动才出现，用户会当它是坏的');
+    }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
     // The review surface, in both shipping states — it is inlined at build time and
@@ -164,6 +201,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         ? '（删除账号是 Apple 的上架硬要求，§10 Gate B）' : ''));
     need(o.settingsHidden, '设置页在没进入之前就显示了');
     need(o.ttsModeSeeded, 'ttsMode 没被 shim 播种成 assist —— App 里语音又会永远关着');
+    need(o.notesPickerCount === o.notesPickerWant,
+      '解析引擎选择器与注册表不同步：' + o.notesPickerCount + ' 项，应为 ' + o.notesPickerWant);
+    need(!o.notesPickerHasNonChat, '解析引擎选择器混入了非 chat 类引擎 —— 门控按 type，选择器也必须');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');

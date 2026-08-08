@@ -12,8 +12,9 @@
 // store, and `get()` is cache-first. Cost is a real per-call charge on the user's
 // key; predictability is part of the feature.
 //
-// EXTENSION PAGES ONLY (and the app's WKWebView, where no provider is configured and
-// the gate simply stays closed).
+// EXTENSION PAGES ONLY (and the app's WKWebView, where the app's own settings may
+// hold a chat engine + key — learning-design §7.2's device-local credentials; no
+// key configured ⇒ the gate simply stays closed).
 
 var LearnNotes = (() => {
   let cfg = { provider: '', apiKey: '', baseUrl: '', model: '' };
@@ -23,6 +24,14 @@ var LearnNotes = (() => {
   function providerInfo() {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
     return list.find((p) => p.id === cfg.provider) || null;
+  }
+
+  // The one place that knows which registry TYPES can do this job. The app's
+  // settings select is built from this, so "what counts as a chat engine" cannot
+  // drift between the gate and the picker.
+  function chatEngines() {
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    return list.filter((p) => p.type === 'chat-compat' || p.type === 'messages-compat');
   }
 
   // Chat-capable AND keyed. `google` is excluded by type, not by name — the registry
@@ -119,7 +128,7 @@ var LearnNotes = (() => {
 
   function cached(id) { return LearnStore.getNote(id); }
 
-  return { configure, capable, parseNotes, buildPrompt, get, cached };
+  return { configure, capable, chatEngines, parseNotes, buildPrompt, get, cached };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnNotes;

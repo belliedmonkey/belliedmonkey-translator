@@ -57,9 +57,10 @@
     </section>
 
     <!-- Settings. Only what the LEARNING layer owns (plan §F): the review loop's own
-         knobs, the account, and the corpus. Translation engine / API key / custom
-         endpoint stay browser-side on purpose — those are per-browser credentials and
-         have no meaning here, since the app never translates. -->
+         knobs, the account, the corpus — and, since learning-design §7.2's 2026-08-08
+         amendment, ONE device-local credential: a chat engine + key used solely for
+         sentence notes (§9.2). The app still never translates and never captures;
+         the key never syncs. -->
     <section id="app-settings" hidden>
       <button id="settings-back" type="button" class="link"></button>
       <h2 id="settings-title"></h2>
@@ -90,6 +91,28 @@
       </label>
 
       <p class="note" id="tts-note"></p>
+
+      <h3 id="notes-title"></h3>
+      <label class="field">
+        <span id="notes-provider-label"></span>
+        <select id="notes-provider"></select>
+      </label>
+      <label class="field" id="notes-key-field">
+        <span id="notes-key-label"></span>
+        <input id="notes-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" id="notes-base-field">
+        <span id="notes-base-label"></span>
+        <input id="notes-base" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" id="notes-model-field">
+        <span id="notes-model-label"></span>
+        <input id="notes-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <p class="note" id="notes-note"></p>
 
       <h3 id="corpus-title"></h3>
       <div class="counts" id="settings-counts"></div>
