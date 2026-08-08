@@ -69,6 +69,7 @@
 | # | 用例 | 面 | 步骤与预期 |
 |---|---|---|---|
 | M1 | 真声音出来 | iPhone App | 设置选英语语音 → 复习页 ▶ → 有声；und 卡先指路、选完语音后可播 |
+| M1′ | **WKWebView TTS 冒烟（半自动，模拟器）** | iOS 模拟器 App | cua-driver 驱动：升级安装当前构建（保登录态与语料）→ 设置：断言「朗读语音」列出**真实 iOS 语音**（WKWebView 的 getVoices 真通，测不了 mock）→ 选一个英语语音 → 复习页 ▶ → 断言按钮转「▶ 再听一遍」且无错误提示（utterance 的 `start` 事件真的来了 = WebKit 真在合成；iOS 静默吞掉 speak 时按钮不会变、会报 blocked——这正是 tts.js 等 start 的设计在验证自己）。不用插耳朵即可回归到手机侧最后一层；真发声仍归 M1。**首跑 2026-08-08（iPhone 17 Pro 模拟器 · iOS 26.5）全过**：真实语音表载入（Tingting/Daniel/Anna…）、选 Daniel (en-GB) 即刻生效、und 卡（真实 Safari 采集语料）按钮由禁用+指路文案转为可播、▶ 后转「再听一遍」。同一趟顺带在真 WKWebView 实证了绿字绿底修复与 und 指路文案 |
 | M2 | autoplay 拦截如实 | iPhone App/Safari | 听懂档自动播被 iOS 拦下时不喊错，▶ 一点即播（spec：拦截静默处理） |
 | M3 | OpenAI Speech 真调用 | iPhone App | 引擎选 OpenAI + 真 key → ▶ 出声；再播同句不再扣费（抓请求或看用量） |
 | M4 | 解析真调用 | iPhone App | 贴真 key → 解析这句 → 生词/短语/语法渲染；重看即时出（无第二次请求） |
