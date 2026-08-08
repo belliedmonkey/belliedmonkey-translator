@@ -657,7 +657,7 @@
     "message": "這個檔案來自更新版本的擴充功能，升級後才能匯入。檔案本身沒有問題。"
   },
   "options_init_failed": {
-    "message": "設定頁沒能載入完成。請重新開啟這個頁面；若仍然如此，請把這條訊息回報給我們。"
+    "message": "設定頁沒能載入完成（{err}）。請重新開啟這個頁面；若仍然如此，請把這條訊息回報給我們。"
   },
   "settings_read_failed": {
     "message": "讀不到已儲存的設定，下面顯示的是預設值——請不要在此儲存，否則會覆蓋掉你原本的設定。（{why}）"
@@ -789,5 +789,164 @@
   "learn_notes_grammar": {
     "message": "語法點",
     "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "你在瀏覽器裡讀到的句子，會同步到這裡來複習。"
+  },
+  "app_email_label": {
+    "message": "電子郵件"
+  },
+  "app_send": {
+    "message": "傳送驗證碼"
+  },
+  "app_sending": {
+    "message": "傳送中…"
+  },
+  "app_code_label": {
+    "message": "驗證碼（請查收郵件）"
+  },
+  "app_verify": {
+    "message": "登入"
+  },
+  "app_verifying": {
+    "message": "登入中…"
+  },
+  "app_back_email": {
+    "message": "換一個電子郵件"
+  },
+  "app_local_note": {
+    "message": "瀏覽器擴充功能不登入也能採集和複習，全部存在本機。登入只是為了讓語料同步到這台裝置上。"
+  },
+  "app_signout": {
+    "message": "登出"
+  },
+  "app_settings_link": {
+    "message": "設定"
+  },
+  "app_review_start": {
+    "message": "開始複習"
+  },
+  "app_review_back": {
+    "message": "← 返回"
+  },
+  "app_sync": {
+    "message": "同步"
+  },
+  "app_syncing": {
+    "message": "同步中…"
+  },
+  "app_unit_cards": {
+    "message": "張卡"
+  },
+  "app_unit_reviews": {
+    "message": "條複習紀錄"
+  },
+  "app_unit_sources": {
+    "message": "個來源"
+  },
+  "app_never_synced": {
+    "message": "還沒有同步過"
+  },
+  "app_sync_empty": {
+    "message": "同步完成，但伺服器上還沒有內容 —— 先在瀏覽器裡採集一些，再回來同步。"
+  },
+  "app_up_to_date": {
+    "message": "已經是最新的。"
+  },
+  "app_code_sent": {
+    "message": "驗證碼已傳送，請查收郵件。"
+  },
+  "app_code_bad": {
+    "message": "驗證碼不對或已過期，請再試一次。"
+  },
+  "app_offline": {
+    "message": "連不上伺服器，請檢查網路後重試。"
+  },
+  "app_needs_upgrade": {
+    "message": "伺服器上有這個版本讀不了的內容，請更新 App。"
+  },
+  "app_received": {
+    "message": "收到 {n} 張卡 · {m} 條複習紀錄"
+  },
+  "app_uploaded_n": {
+    "message": "上傳 {n} 條複習紀錄"
+  },
+  "app_uploaded_only": {
+    "message": "已上傳 {n} 條複習紀錄"
+  },
+  "app_sync_disabled": {
+    "message": "同步尚未在這個版本中啟用。瀏覽器擴充功能的採集與複習不受影響，全部存在本機。"
+  },
+  "app_set_title": {
+    "message": "設定"
+  },
+  "app_set_daily": {
+    "message": "每天最多學幾張新卡"
+  },
+  "app_set_tts_auto": {
+    "message": "顯示譯文時自動朗讀"
+  },
+  "app_set_tts_rate": {
+    "message": "朗讀速度"
+  },
+  "app_set_tts_note": {
+    "message": "朗讀引擎與語音仍在瀏覽器擴充功能的設定頁裡配置 —— 那些是每個瀏覽器各自的憑證，這裡改了也不會跟著你走。"
+  },
+  "app_set_notes_title": {
+    "message": "句子解析"
+  },
+  "app_set_notes_provider": {
+    "message": "解析引擎"
+  },
+  "app_set_notes_none": {
+    "message": "不使用"
+  },
+  "app_set_notes_key": {
+    "message": "API Key"
+  },
+  "app_set_notes_base": {
+    "message": "自訂介面位址"
+  },
+  "app_set_notes_model": {
+    "message": "模型"
+  },
+  "app_set_notes_note": {
+    "message": "僅用於產生句子解析（生詞 / 短語 / 語法），呼叫你自己的 API。金鑰只存在這台裝置上，不隨帳號同步；與瀏覽器擴充功能裡配置的金鑰互不相通，安全性也相同 —— 都是本機明文保存。"
+  },
+  "app_set_corpus": {
+    "message": "學習庫"
+  },
+  "app_set_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "app_set_cleaned": {
+    "message": "已清理 {n} 張"
+  },
+  "app_set_clean_none": {
+    "message": "沒有可清理的卡"
+  },
+  "app_set_account": {
+    "message": "帳號"
+  },
+  "app_set_signout": {
+    "message": "登出"
+  },
+  "app_set_delete": {
+    "message": "刪除帳號與雲端資料"
+  },
+  "app_set_delete_note": {
+    "message": "刪除後，伺服器上的語料與複習紀錄會被永久移除，帳號也會註銷。這台裝置上已經下載的內容不受影響 —— 想一併清掉，刪除 App 即可。"
+  },
+  "app_set_confirm_delete": {
+    "message": "確定要刪除帳號嗎？伺服器上的所有內容會被永久移除，無法復原。"
+  },
+  "app_set_deleting": {
+    "message": "刪除中…"
+  },
+  "app_set_deleted": {
+    "message": "帳號已刪除。"
+  },
+  "app_unit_known": {
+    "message": "已掌握"
   }
 }

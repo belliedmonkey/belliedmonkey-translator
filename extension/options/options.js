@@ -707,7 +707,11 @@ init().catch((e) => {
     console.error('[options] init failed:', e);
     const el = document.getElementById('setup-note');
     if (el) {
-      el.textContent = t('options_init_failed', '设置页没能加载完（' + (e && e.message || e) + '）。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。');
+      // {err} carries the actual failure. The first version built the detail into
+      // the FALLBACK string — dead the moment the key resolves, so localized users
+      // got a generic sentence and the one clue worth reporting was dropped.
+      el.textContent = t('options_init_failed', '设置页没能加载完（{err}）。请重新打开这个页面；若仍然如此，请把这条信息反馈给我们。')
+        .replace('{err}', String((e && e.message) || e));
       el.classList.add('warn');
       el.style.display = 'block';
     }

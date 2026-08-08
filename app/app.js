@@ -19,36 +19,14 @@
   // waiting for the first refactor that calls `show()` earlier.
   let currentSession = null;
 
-  // Chinese-first with the same fallback discipline as the extension's `t()`: a
-  // missing string must never blank the UI. There is no `chrome.i18n` here (this is
-  // not an extension page), so the app carries its own copy rather than pretending.
-  const T = {
-    lede: '你在浏览器里读到的句子，会同步到这里来复习。',
-    emailLabel: '邮箱',
-    send: '发送验证码',
-    sending: '正在发送…',
-    codeLabel: '验证码（查收邮件）',
-    verify: '登录',
-    verifying: '正在登录…',
-    back: '换一个邮箱',
-    localNote: '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。',
-    signout: '退出',
-    gear: '设置',
-    review: '开始复习',
-    reviewBack: '← 返回',   // NOT `back` — that key is the sign-in flow's 换一个邮箱
-    sync: '同步',
-    syncing: '正在同步…',
-    cards: '张卡',
-    reviews: '条复习记录',
-    sources: '个来源',
-    never: '还没有同步过',
-    empty: '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。',
-    upToDate: '已经是最新的。',
-    sent: '验证码已发送，查收邮件。',
-    codeBad: '验证码不对或已过期，重新试一次。',
-    offline: '连不上服务器，检查网络后重试。',
-  };
-  const t = (k) => T[k] || k;
+  // Same i18n as every other surface (interaction-spec 「界面语言」: no hardcoded
+  // copy, anywhere). The bundle has carried MT_I18N_MESSAGES + PageI18n from the
+  // start — the shim's getUILanguage hands it the system locale — so the app shell
+  // localizes exactly like the extension pages do. The Chinese here is the FALLBACK
+  // argument only, per the standing convention: a missing key must never blank the
+  // UI, and the literal beside the key is what the translator's source of truth
+  // (_locales/zh_CN) says.
+  const t = (k, fb) => PageI18n.t(k, fb);
 
   const say = (msg, isErr) => {
     const el = $('status');
@@ -60,29 +38,31 @@
   // precisely so callers can decide the wording, and "AuthApiError: Token has expired
   // or is invalid" is not wording — it is a stack trace with a sentence around it.
   function humanError(e) {
+    const offline = () => t('app_offline', '连不上服务器，检查网络后重试。');
+    const codeBad = () => t('app_code_bad', '验证码不对或已过期，重新试一次。');
     const code = e && e.code;
-    if (code === 'network') return t('offline');
-    if (code === 'signed_out') return t('codeBad');
+    if (code === 'network') return offline();
+    if (code === 'signed_out') return codeBad();
     const msg = String((e && e.message) || e);
-    if (/expired|invalid|otp/i.test(msg)) return t('codeBad');
-    if (/network|fetch|load failed/i.test(msg)) return t('offline');
+    if (/expired|invalid|otp/i.test(msg)) return codeBad();
+    if (/network|fetch|load failed/i.test(msg)) return offline();
     return msg;
   }
 
   function paintStatic() {
-    $('lede').textContent = t('lede');
-    $('email-label').textContent = t('emailLabel');
-    $('send').textContent = t('send');
-    $('code-label').textContent = t('codeLabel');
-    $('verify').textContent = t('verify');
-    $('back').textContent = t('back');
-    $('local-note').textContent = t('localNote');
-    $('signout').textContent = t('signout');
-    $('gear').textContent = t('gear');
+    $('lede').textContent = t('app_lede', '你在浏览器里读到的句子，会同步到这里来复习。');
+    $('email-label').textContent = t('app_email_label', '邮箱');
+    $('send').textContent = t('app_send', '发送验证码');
+    $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
+    $('verify').textContent = t('app_verify', '登录');
+    $('back').textContent = t('app_back_email', '换一个邮箱');
+    $('local-note').textContent = t('app_local_note', '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。');
+    $('signout').textContent = t('app_signout', '退出');
+    $('gear').textContent = t('app_settings_link', '设置');
     AppSettings.paintStatic();
-    $('review').textContent = t('review');
-    $('review-back').textContent = t('reviewBack');
-    $('sync').textContent = t('sync');
+    $('review').textContent = t('app_review_start', '开始复习');
+    $('review-back').textContent = t('app_review_back', '← 返回');
+    $('sync').textContent = t('app_sync', '同步');
   }
 
   async function paintCounts() {
@@ -102,12 +82,12 @@
       return d;
     };
     $('app-counts').append(
-      cell(stats.total, t('cards')),
-      cell(reviews.length, t('reviews')),
-      cell(stats.sources, t('sources')));
+      cell(stats.total, t('app_unit_cards', '张卡')),
+      cell(reviews.length, t('app_unit_reviews', '条复习记录')),
+      cell(stats.sources, t('app_unit_sources', '个来源')));
     $('last').textContent = last
       ? new Date(last).toLocaleString()
-      : t('never');
+      : t('app_never_synced', '还没有同步过');
   }
 
   async function show(session) {
@@ -132,7 +112,7 @@
     const email = $('email').value.trim();
     if (!email) return;
     $('send').disabled = true;
-    $('send').textContent = t('sending');
+    $('send').textContent = t('app_sending', '正在发送…');
     say('');
     try {
       await LearnAuth.signIn(email);
@@ -140,19 +120,19 @@
       $('email-form').hidden = true;
       $('code-form').hidden = false;
       $('code').focus();
-      say(t('sent'));
+      say(t('app_code_sent', '验证码已发送，查收邮件。'));
     } catch (err) {
       say(humanError(err), true);
     } finally {
       $('send').disabled = false;
-      $('send').textContent = t('send');
+      $('send').textContent = t('app_send', '发送验证码');
     }
   });
 
   $('code-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     $('verify').disabled = true;
-    $('verify').textContent = t('verifying');
+    $('verify').textContent = t('app_verifying', '正在登录…');
     say('');
     try {
       const session = await LearnAuth.verify(pendingEmail, $('code').value);
@@ -166,7 +146,7 @@
       say(humanError(err), true);
     } finally {
       $('verify').disabled = false;
-      $('verify').textContent = t('verify');
+      $('verify').textContent = t('app_verify', '登录');
     }
   });
 
@@ -189,7 +169,7 @@
 
   async function doSync() {
     $('sync').disabled = true;
-    $('sync').textContent = t('syncing');
+    $('sync').textContent = t('app_syncing', '正在同步…');
     say('');
     try {
       // Pull AND push. The app is downstream for CORPUS (the extension captures and
@@ -212,12 +192,13 @@
       // thing that happened — 「收到 0」 alone after a review session would read as
       // "your grades went nowhere".
       const up = pushed && (pushed.pushed || pushed.reviews)
-        ? ' · 上传 ' + (pushed.reviews || 0) + ' 条复习记录' : '';
+        ? ' · ' + t('app_uploaded_n', '上传 {n} 条复习记录').replace('{n}', String(pushed.reviews || 0))
+        : '';
 
       if (r.needsUpgrade) {
         // `sync()` returns pushed:null in this case — it refuses to push on top of a
         // chunk it could not read, so there is nothing to report but the stall.
-        say('服务器上有这个版本读不了的内容，请更新 App。', true);
+        say(t('app_needs_upgrade', '服务器上有这个版本读不了的内容，请更新 App。'), true);
       } else if (r.cards || r.reviews) {
         // Keyed on what was NEW, not on `r.chunks`. A converged pull still READS a
         // chunk — the cursor does not skip rows this device wrote (§8.4.2) — so
@@ -225,22 +206,26 @@
         // perfectly successful sync. Second time this exact confusion has been
         // shipped in this file; both times it turned the healthy state into a
         // sentence that reads like a failure.
-        say('收到 ' + r.cards + ' 张卡 · ' + r.reviews + ' 条复习记录' + up);
+        say(t('app_received', '收到 {n} 张卡 · {m} 条复习记录')
+          .replace('{n}', String(r.cards)).replace('{m}', String(r.reviews)) + up);
       } else if (up) {
-        say('已上传' + up.replace(' · 上传 ', ' '));
+        say(t('app_uploaded_only', '已上传 {n} 条复习记录')
+          .replace('{n}', String((pushed && pushed.reviews) || 0)));
       } else {
         // Zero chunks is TWO different states and they must not share a sentence.
         // Converged (the good one) told the user 「服务器上还没有内容」 while the
         // counts beside it read 11 — i.e. the app announced data loss every time
         // sync worked perfectly. Distinguish by whether anything is actually here.
         const stats = await LearnStore.stats();
-        say(stats.total ? t('upToDate') : t('empty'));
+        say(stats.total
+          ? t('app_up_to_date', '已经是最新的。')
+          : t('app_sync_empty', '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。'));
       }
     } catch (err) {
       say(humanError(err), true);
     } finally {
       $('sync').disabled = false;
-      $('sync').textContent = t('sync');
+      $('sync').textContent = t('app_sync', '同步');
     }
   }
 
@@ -335,7 +320,7 @@
     if (!MT_BACKEND.enabled) {
       $('signed-out').hidden = true;
       $('signed-in').hidden = true;
-      say('同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。');
+      say(t('app_sync_disabled', '同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。'));
       return;
     }
 
