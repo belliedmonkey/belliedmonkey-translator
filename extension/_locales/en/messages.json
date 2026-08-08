@@ -890,7 +890,7 @@
     "message": "Speech rate"
   },
   "app_set_tts_note": {
-    "message": "Cards with an unknown language (e.g. captured in Safari, which has no language detection) play only with the voice chosen above; without a choice they can't be spoken. Cloud speech engines (your own endpoint and key) are still configured in the browser extension."
+    "message": "Cards with an unknown language (e.g. captured in Safari, which has no language detection) play only with the voice chosen above; without a choice they can't be spoken. The speech API key works like the sentence-notes key: it stays on this device only, never syncs with your account, and is stored in plaintext."
   },
   "app_set_notes_title": {
     "message": "Sentence notes"

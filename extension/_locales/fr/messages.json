@@ -890,7 +890,7 @@
     "message": "Vitesse de lecture"
   },
   "app_set_tts_note": {
-    "message": "Les cartes de langue inconnue (p. ex. capturées dans Safari, sans détection de langue) ne sont lues qu'avec la voix choisie ci-dessus ; sans choix, elles restent muettes. Les moteurs vocaux cloud (votre endpoint et votre clé) se configurent toujours dans l'extension."
+    "message": "Les cartes de langue inconnue (p. ex. capturées dans Safari, sans détection de langue) ne sont lues qu'avec la voix choisie ci-dessus ; sans choix, elles restent muettes. La clé API vocale fonctionne comme celle des notes de phrase : elle reste sur cet appareil, en clair, et n'est jamais synchronisée avec votre compte."
   },
   "app_set_notes_title": {
     "message": "Notes de phrase"

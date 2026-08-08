@@ -634,6 +634,11 @@ the browser extension, like capture — with one dated exception:
   free, offline, nothing sent anywhere. A self-hosted or cloud endpoint is a choice
   the user makes, never the default. The settings list is ordered on-device →
   self-hosted → cloud, so the principle is visible rather than merely stated.
+  *(2026-08-08)* **Both hosts offer the full engine choice**: the extension's
+  options page and the app's settings render the same registry
+  (`MT_TTS_ENGINES`), same order, same per-engine fields; the app's speech key is
+  a device-local credential under learning-design §7.2's boundaries (never
+  synced), and app-side changes reconfigure TTS live — next card, no relaunch.
 - **Three modes.**
   - `off` — no audio UI at all.
   - `assist` — the card looks as it always did, plus a ▶ control.

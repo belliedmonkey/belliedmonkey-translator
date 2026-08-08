@@ -547,11 +547,12 @@ Three consequences that surprise people, so state them where they will be read:
 3. **The extension owns the upload** — it holds `syncPushedAt` and can therefore tell
    the user what has and has not reached the server. Nothing else can.
 
-**App 侧凭证（2026-08-08 (二) 放宽，边界如下）。** 此前的边界是「翻译引擎 / API
-key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。§9.2 的解析改变了后半个
-前提：App 里的复习面有一个确实需要 chat 引擎的功能。因此 App 的设置页**可以**配置
-一个 chat 类引擎 + key，且仅此一件事使用它 —— App 仍然从不翻译、从不采集。三条不
-放宽的边界：
+**App 侧凭证（2026-08-08 (二) 放宽，边界如下；同日稍晚扩至语音引擎）。** 此前的
+边界是「翻译引擎 / API key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。
+§9.2 的解析改变了后半个前提：App 里的复习面有确实需要用户自备引擎的功能。因此
+App 的设置页**可以**配置：一个 chat 类引擎 + key（仅供 §9.2 解析），以及一个语音
+引擎 + key（仅供 §9.1 朗读；引擎表来自 `MT_TTS_ENGINES` 注册表，本地优先的排序
+照旧）—— App 仍然从不翻译、从不采集。三条不放宽的边界（对两把 key 同样成立）：
 
 1. **凭证是设备本地的，永不同步。** key 不进 chunk、不进服务器 —— §8.6 已裁定
    服务器无 E2E，把凭证放上去等于把泄露半径从一台设备扩到整个服务端（§12）。
