@@ -383,7 +383,9 @@ describe('LearnTTS — silence is not success', () => {
     // speak() had not thrown, so the card said "playing…" over silence.
     const sp = fakeSpeech([voice('Alex', 'en-US')], false, true);
     const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
-    TTS.configure({ engineId: 'browser' });
+    // startTimeoutMs is configurable so a test does not sit through the real
+    // 4s cold-voice allowance; the default stays large for actual devices.
+    TTS.configure({ engineId: 'browser', startTimeoutMs: 100 });
     const r = await TTS.speak('Hello there', 'en');
     eq(r.ok, false);
     eq(r.reason, 'blocked');
@@ -395,5 +397,132 @@ describe('LearnTTS — silence is not success', () => {
     const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
     TTS.configure({ engineId: 'browser' });
     eq((await TTS.speak('Hello there', 'en')).ok, true);
+  });
+
+  test('the cold-voice allowance defaults to seconds, not 1500ms', () => {
+    const { TTS } = setup();
+    ok(TTS.DEFAULTS.startTimeoutMs >= 3000,
+      '真机冷启动语音超过 1.5s 才 start；超时后我们会 cancel，太短 = 把慢判成死');
+  });
+});
+
+describe('LearnTTS — iOS 卡死解法：cancel 后让位，speak 前 resume', () => {
+  // 真机事故形状：进卡时的无手势自动播放把 iOS 合成器卡在 paused 态，之后每次
+  // 手点 ▶ 都排进队列但永远不 start（超时 → cancel → 报 blocked）。手势里的
+  // resume() 是唯一的解卡途径；其它平台上它是 no-op。
+  //
+  // 计时探针：给 fake 的 cancel/speak 打时间戳。settleMs 用 120（可配置正是为了
+  // 测试不用坐等真实的 250ms），断言下限用 100 留出计时器精度余量。
+  function timedSpeech(active) {
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const t = { canceledAt: 0, spokeAt: 0, cancels: 0 };
+    const origSpeak = sp.api.speak;
+    if (active === 'speaking') sp.api.speaking = true;
+    if (active === 'pending') sp.api.pending = true;
+    sp.api.cancel = () => { t.canceledAt = Date.now(); t.cancels++; };
+    sp.api.speak = (u) => { t.spokeAt = Date.now(); origSpeak(u); };
+    return { sp, t };
+  }
+
+  test('speak() calls resume() before speak() — a paused synthesizer never starts otherwise', async () => {
+    const order = [];
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const origSpeak = sp.api.speak;
+    sp.api.resume = () => order.push('resume');
+    sp.api.cancel = () => order.push('cancel');
+    sp.api.speak = (u) => { order.push('speak'); origSpeak(u); };
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    eq((await TTS.speak('Hello', 'en')).ok, true);
+    ok(order.indexOf('resume') >= 0, '没有 resume —— iOS 上被 pause 卡住的队列永远不会 start');
+    ok(order.indexOf('resume') < order.indexOf('speak'), 'resume 必须发生在 speak 之前');
+  });
+
+  test('an interrupted synthesizer gets a settle beat between cancel() and speak()', async () => {
+    const { sp, t } = timedSpeech('speaking');
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', settleMs: 120 });
+    eq((await TTS.speak('Hello', 'en')).ok, true);
+    ok(t.spokeAt - t.canceledAt >= 100,
+      'cancel 打断了真播放后立刻 speak 会被 iOS 静默吞掉（间隔 ' + (t.spokeAt - t.canceledAt) + 'ms）');
+  });
+
+  test('a PENDING (queued, never started) synthesizer also gets the settle beat', async () => {
+    // 正是 iOS 卡死的形状：无手势 speak 排了队但从未 start —— speaking=false、
+    // pending=true。只看 speaking 会漏掉它。
+    const { sp, t } = timedSpeech('pending');
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', settleMs: 120 });
+    eq((await TTS.speak('Hello', 'en')).ok, true);
+    ok(t.spokeAt - t.canceledAt >= 100, 'pending 队列同样要让位（间隔 ' + (t.spokeAt - t.canceledAt) + 'ms）');
+  });
+
+  test('an interrupt from a PREVIOUS stop() (card change) still earns the settle beat', async () => {
+    // 复习页在换卡时先调 stop() 再 speak() —— 打断发生在 speak() 之外。只在
+    // speak() 里探测 speaking 的实现会错过这条最常见的路径。
+    const { sp, t } = timedSpeech('speaking');
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', settleMs: 120 });
+    TTS.stop();                                  // 外部打断：此刻 speaking=true
+    sp.api.speaking = false;                     // cancel 之后自然归 false
+    const stoppedAt = Date.now();
+    eq((await TTS.speak('Hello', 'en')).ok, true);
+    ok(t.spokeAt - stoppedAt >= 100,
+      '换卡的 stop() 也是打断 —— 紧随其后的 speak 必须让位（间隔 ' + (t.spokeAt - stoppedAt) + 'ms）');
+  });
+
+  test('an idle synthesizer speaks immediately — no settle tax on the common path', async () => {
+    const { sp, t } = timedSpeech(null);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    // settleMs 拉到 5s：若空闲路径误走让位，这条测试会明显超时级地变慢。
+    TTS.configure({ engineId: 'browser', settleMs: 5000 });
+    const before = Date.now();
+    eq((await TTS.speak('Hello', 'en')).ok, true);
+    ok(Date.now() - before < 1000, '空闲时不该白等 settleMs（耗时 ' + (Date.now() - before) + 'ms）');
+    ok(t.spokeAt > 0, 'speak 必须真的发生');
+  });
+
+  test('a voice that starts SLOWLY but within the allowance plays — and is not cancel()ed', async () => {
+    // 真机冷启动语音 start 迟到但没死：超时前 start = 成功，且成功路径绝不 cancel
+    // （cancel 正是把慢判成死的那一刀）。
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const cancels = [];
+    sp.api.cancel = () => cancels.push(1);
+    sp.api.speak = (u) => { setTimeout(() => { if (u.__on && u.__on.start) u.__on.start(); }, 50); };
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', startTimeoutMs: 500 });
+    eq((await TTS.speak('Hello', 'en')).ok, true, '慢启动 ≠ 死 —— 超时前 start 必须算成功');
+    // speak() 入口的例行 stop() 恰好 cancel 一次；start 之后不得再有第二次 ——
+    // 那第二刀正是把慢启动判成死的凶手。
+    eq(cancels.length, 1, '成功路径在 start 之后不许 cancel（共 ' + cancels.length + ' 次）');
+    // 超时计时器晚些醒来也不能补刀。
+    await new Promise((r) => setTimeout(r, 550));
+    eq(cancels.length, 1, '超时计时器在成功之后醒来仍然补了一刀 cancel');
+  });
+
+  test('a stale timed-out speak() must NOT cancel the next card\'s live speech', async () => {
+    // T1 竞态：卡 A 的 speak 被拦（永不 start），用户换卡，卡 B 的 speak 成功；
+    // 几秒后 A 的超时才醒来 —— 它绝不能对着 B 正在播的音喊 cancel。
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const cancels = [];
+    let calls = 0;
+    sp.api.cancel = () => cancels.push(Date.now());
+    sp.api.speak = (u) => {
+      calls++;
+      // 第一次 speak 静默（blocked）；第二次立刻 start（B 正常播放）。
+      if (calls >= 2 && u.__on && u.__on.start) u.__on.start();
+    };
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', startTimeoutMs: 300, settleMs: 0 });
+    const p1 = TTS.speak('card A', 'en');            // 会卡到超时
+    await new Promise((r) => setTimeout(r, 30));
+    const r2 = await TTS.speak('card B', 'en');      // 接管，立即成功
+    eq(r2.ok, true);
+    const cancelsAfterB = cancels.length;
+    const r1 = await p1;                             // A 的超时此后才醒来
+    eq(r1.ok, false);
+    eq(r1.reason, 'superseded', '被接管的调用要自报 superseded，而不是 blocked');
+    eq(cancels.length, cancelsAfterB,
+      'A 的超时对着 B 的现场播放喊了 cancel —— 正是「显示播放中却没声」的最坏结局');
   });
 });

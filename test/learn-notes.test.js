@@ -90,6 +90,129 @@ describe('LearnNotes — parseNotes treats model output as untrusted (§9.2)', (
   });
 });
 
+describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2 v2)', () => {
+  // 真机实测的事故形状：en.wikipedia 的英文卡，解析出带拼音的中文生词 —— v1 提示词
+  // 没说生词来自哪一侧，而 Safari 采集的卡 lang 全是 'und'，模型把译文当成了学习语言。
+  test('prompt pins the study side: from the Sentence, never the Translation', () => {
+    const { N } = setup();
+    const p = N.buildPrompt('zh-CN');
+    ok(/FROM THE SENTENCE ONLY/.test(p), '提示词必须点名生词只能取自原句');
+    ok(/never[\s\S]*from the Translation/.test(p), '提示词必须明说不取译文');
+    ok(p.indexOf('zh-CN') >= 0, '解释语言仍要进提示词');
+  });
+
+  test('a v1-era cached note (no version) is a MISS — regenerated once, then cached', async () => {
+    const { N, notesDb, calls } = setup();
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    // What v1 left behind: wrong-side vocabulary, stored without a version field.
+    notesDb.set(ITEM.id, { id: ITEM.id, data: { words: [{ w: '曲线', g: 'qūxiàn' }], phrases: [], grammar: '' } });
+    const r = await N.get(ITEM, 'zh-CN');
+    eq(r.cached, false, '旧版提示词的缓存必须重新生成 —— 里面是拿译文当学习语言的错误结果');
+    eq(calls.fetch.length, 1);
+    eq(notesDb.get(ITEM.id).v, N.PROMPT_VERSION, '重生成的记录要带上当前版本号');
+    const again = await N.get(ITEM, 'zh-CN');
+    eq(again.cached, true, '版本一致后回到缓存');
+    eq(calls.fetch.length, 1, '版本迁移每卡至多多扣一次费');
+  });
+
+  test('cached() hides stale-version notes from the auto-render path', async () => {
+    const { N, notesDb } = setup();
+    notesDb.set('c9', { id: 'c9', data: { words: [{ w: '旧', g: 'jiù' }], phrases: [], grammar: '' } });
+    eq(await N.cached('c9'), null, '旧版缓存不能再自动渲染到答案面 —— 按钮回来，点了再生成');
+    notesDb.set('c9', { id: 'c9', v: N.PROMPT_VERSION, data: { words: [{ w: 'new', g: '新' }], phrases: [], grammar: '' } });
+    ok((await N.cached('c9')) !== null, '当前版本的缓存照常自动渲染');
+  });
+
+  test('cached() is defensive: dataless records and a failing store both yield null', async () => {
+    const { N, notesDb } = setup();
+    notesDb.set('c8', { id: 'c8', v: N.PROMPT_VERSION });   // 有版本没内容
+    eq(await N.cached('c8'), null, '没 data 的记录不能进渲染路径');
+    // 再用一个 getNote 会拒绝的 store 加载一份新模块实例
+    const { loadModule } = require('./harness');
+    const c = loadModule('learn/notes.js', {
+      window: { MT_PROVIDERS: PROVIDERS },
+      LearnStore: { getNote: () => Promise.reject(new Error('idb gone')) },
+      fetch: async () => { throw new Error('unused'); },
+    });
+    eq(await c.LearnNotes.cached('c1'), null, '存储层挂了也不能把答案面炸掉');
+  });
+
+  test('wholesale wrong-side output (nothing from the sentence) is bad_output — never cached', async () => {
+    // 真机事故的直接机械化：英文卡解析出全中文生词。提示词只是指令，模型可以不听；
+    // 回验是不会不听的那道闸。
+    const { N, notesDb } = setup({
+      fetch: async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content:
+        '{"words":[{"w":"自豪地","g":"proudly"}],"phrases":[{"p":"自豪地托管","g":"proudly host"}],"grammar":"副词修饰动词"}' } }] }) }),
+    });
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    let code = null;
+    try { await N.get(ITEM, 'zh-CN'); } catch (e) { code = e.code; }
+    eq(code, 'bad_output', '零匹配 = 取错侧，必须拒收');
+    eq(notesDb.size, 0, '错侧结果被缓存 = 这张卡永远错下去');
+  });
+
+  test('notesMatchSentence: one verbatim hit passes (lemmatized strays tolerated), zero hits fails', () => {
+    const { N } = setup();
+    const s = 'The curve bends over time.';
+    ok(N.notesMatchSentence({ words: [{ w: 'bend', g: '弯' }, { w: 'curve', g: '曲线' }], phrases: [] }, s),
+      '个别词形还原（bends→bend 没命中）不该连坐 —— 有一个逐字命中即可');
+    ok(!N.notesMatchSentence({ words: [{ w: '曲线', g: 'qūxiàn' }], phrases: [{ p: '随时间', g: 'over time' }] }, s),
+      '全部来自译文 = 零命中，必须失败');
+    ok(N.notesMatchSentence({ words: [], phrases: [], grammar: '只有语法点' }, s),
+      '纯语法输出没有可回验的条目，放行');
+  });
+
+  test('failed regeneration of a stale note leaves the old record untouched', async () => {
+    const { N, notesDb } = setup({ fetch: async () => ({ ok: false, status: 500 }) });
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    notesDb.set(ITEM.id, { id: ITEM.id, data: { words: [{ w: '旧', g: 'jiù' }], phrases: [], grammar: '' } });
+    let code = null;
+    try { await N.get(ITEM, 'zh-CN'); } catch (e) { code = e.code; }
+    eq(code, 'http');
+    eq(notesDb.get(ITEM.id).v, undefined, '失败不得写入当前版本号 —— 否则错误笔记被洗白成 v2');
+  });
+
+  test('a failed cache WRITE after a successful (paid) call still returns the data', async () => {
+    // 扣费已经发生、数据已经在手 —— IndexedDB 写失败不能表现成「解析失败」
+    // 引诱用户再点一次、再扣一次。
+    const notesDb = new Map();
+    const { loadModule } = require('./harness');
+    const c = loadModule('learn/notes.js', {
+      window: { MT_PROVIDERS: PROVIDERS },
+      LearnStore: {
+        getNote: () => Promise.resolve(null),
+        putNote: () => Promise.reject(new Error('quota')),
+      },
+      fetch: async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content:
+        '{"words":[{"w":"curve","g":"曲线"}],"phrases":[],"grammar":""}' } }] }) }),
+    });
+    c.LearnNotes.configure({ provider: 'chat1', apiKey: 'k' });
+    const r = await c.LearnNotes.get(ITEM, 'zh-CN');
+    eq(r.cached, false);
+    eq(r.data.words[0].w, 'curve', '缓存写失败只意味着下次可能再生成，不意味着这次白付了');
+  });
+
+  test('concurrent get() for the same card charges the key ONCE', async () => {
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const { N, calls } = setup({
+      fetch: async (url, init) => {
+        calls.fetch.push({ url });
+        await gate;
+        return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content:
+          '{"words":[{"w":"curve","g":"曲线"}],"phrases":[],"grammar":""}' } }] }) };
+      },
+    });
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    const p1 = N.get(ITEM, 'zh-CN');
+    const p2 = N.get(ITEM, 'zh-CN');   // 同卡并发：练习卡组 / 双宿主同开
+    release();
+    const [r1, r2] = await Promise.all([p1, p2]);
+    eq(calls.fetch.length, 1, '同一张卡的并发生成必须去重 —— 两次扣费');
+    eq(JSON.stringify(r1.data), JSON.stringify(r2.data));
+  });
+});
+
 describe('LearnNotes — the key is charged AT MOST ONCE per card (§9.2)', () => {
   test('second get() serves the cache — zero further fetches', async () => {
     const { N, calls } = setup();
@@ -119,8 +242,9 @@ describe('LearnNotes — the key is charged AT MOST ONCE per card (§9.2)', () =
     const { N, calls } = setup({
       fetch: async (url, init) => {
         calls.fetch.push({ url, init: JSON.parse(init.body), headers: init.headers });
+        // 'curve' 逐字来自 ITEM.text —— 生词回验（notesMatchSentence）放行的前提。
         return { ok: true, status: 200, json: async () => ({ content: [{ text:
-          '{"words":[{"w":"x","g":"y"}],"phrases":[],"grammar":""}' }] }) };
+          '{"words":[{"w":"curve","g":"曲线"}],"phrases":[],"grammar":""}' }] }) };
       },
     });
     const { calls: c2 } = { calls };   // alias for clarity
