@@ -729,5 +729,37 @@
   "learn_practice_done": {
     "message": "Практика завершена — {n} карт.",
     "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "Чтение",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "Слух",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "Письмо",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "Полное освоение",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "Повторите вслух (практика — без оценки)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "Проверить",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "Дополните предложение",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "Заменено правильным ответом",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
   }
 }

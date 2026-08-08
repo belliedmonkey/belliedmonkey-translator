@@ -76,6 +76,15 @@
         <span class="strength-label" id="strength-label"></span>
       </div>
 
+      <!-- §5.2 skill badges: lit when that exercise form was passed at ≥「记得」.
+           All available badges lit + strength full ⇒ 全面掌握. -->
+      <div class="badges" id="badges">
+        <span class="badge" id="badge-read" data-i18n="learn_badge_read">读</span>
+        <span class="badge" id="badge-listen" data-i18n="learn_badge_listen">听</span>
+        <span class="badge" id="badge-write" data-i18n="learn_badge_write">写</span>
+        <span class="badge full" id="badge-full" hidden data-i18n="learn_mastered_full">全面掌握</span>
+      </div>
+
       <!-- 语音。在 audio-first 模式下原文先藏起来，先听再看。播放原文不揭晓
            任何东西，所以不违反「揭晓永远由用户发起」——那条约束的是译文。 -->
       <div class="audio" id="audio" hidden>
@@ -83,12 +92,24 @@
         <span class="audio-note" id="audio-note"></span>
       </div>
 
+      <!-- §5.2 说 = shadowing at the listen tier, labelled practice, never a test.
+           ASR stays out (§11/§12) — the browser's recognition API ships recordings
+           to vendor servers, which the no-telemetry promise cannot absorb. -->
+      <p class="shadow-hint" id="shadow" hidden data-i18n="learn_shadow_hint">跟着读一遍（练习，不计入验证）</p>
+
       <p class="orig" id="orig"></p>
+
+      <!-- §5.2 write tier: translation shown, the original with blanks. The inputs
+           are checked automatically — the one objectively verified skill. -->
+      <p class="shadow-hint" id="write-prompt" hidden data-i18n="learn_write_prompt">把原句补全</p>
+      <p class="cloze" id="cloze" hidden></p>
+      <p class="shadow-hint" id="write-replaced" hidden data-i18n="learn_write_replaced">已替换为正确答案</p>
 
       <div class="media" id="media" hidden></div>
 
       <button class="reveal secondary" id="reveal-orig" hidden data-i18n="learn_reveal_orig">显示原文</button>
       <button class="reveal" id="reveal" data-i18n="learn_reveal">显示译文</button>
+      <button class="reveal" id="cloze-check" hidden data-i18n="learn_check">检查</button>
 
       <div class="answer" id="answer" hidden>
         <p class="tr" id="tr"></p>
@@ -98,7 +119,7 @@
         <p class="practice-rule" id="practice-note" hidden data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
         <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
              textContent, which would wipe the .when consequence label (§5.1). -->
-        <div class="grades">
+        <div class="grades" id="grades">
           <button class="grade g0" data-grade="0"><span data-i18n="learn_grade_again">不记得</span><small class="when"></small></button>
           <button class="grade g1" data-grade="1"><span data-i18n="learn_grade_hard">有点难</span><small class="when"></small></button>
           <button class="grade g2" data-grade="2"><span data-i18n="learn_grade_good">记得</span><small class="when"></small></button>

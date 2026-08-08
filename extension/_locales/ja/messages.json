@@ -729,5 +729,37 @@
   "learn_practice_done": {
     "message": "練習完了 — {n}枚。",
     "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "読",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "聴",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "書",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "完全習得",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "声に出して読んでみる（練習・判定なし）",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "チェック",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "文を完成させる",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "正解に置き換えました",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
   }
 }

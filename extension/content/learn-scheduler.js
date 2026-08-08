@@ -14,6 +14,9 @@ var LearnScheduler = (() => {
     DELTA_D: [1.2, 0.35, 0, -0.5],  // difficulty increment per grade
     S_MIN: 0.02, S_MAX: 365,        // ~29 min … 1 year
     KNOWN_S: 180,                   // s ≥ this ⇒ state 'known'
+    // §5.2 mastery-ladder gates — same "unvalidated, cheap to retune" caveat as §6.
+    TIER_LISTEN_S: 4,               // s ≥ this ⇒ the listen form (when TTS can speak it)
+    TIER_WRITE_S: 30,               // s ≥ this ⇒ the write form (cloze, auto-checked)
     SPACING_GAIN: 1.0,              // a late-but-correct review earns extra
     dailyNew: 15,
     deckSize: 20,
@@ -81,6 +84,19 @@ var LearnScheduler = (() => {
     };
     out.dueAt = nextDue(out, c);
     return out;
+  }
+
+  // §5.2 — one schedule, three exercise forms, gated by memory strength: the
+  // stronger the memory, the harsher the test. `caps.listen` says whether THIS card
+  // can be spoken (engine + a voice for its language); a missing capability means
+  // the listen form DOES NOT EXIST for it — never that the card failed — so the
+  // ladder steps over it to whatever strength still earns.
+  function tierFor(item, caps, cfg) {
+    const c = cfgOf(cfg);
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    if (s >= c.TIER_WRITE_S) return 'write';
+    if (s >= c.TIER_LISTEN_S && caps && caps.listen) return 'listen';
+    return 'read';
   }
 
   // §5.1 — every grade button previews its own consequence. This runs the SAME
@@ -240,7 +256,7 @@ var LearnScheduler = (() => {
 
   return {
     DEFAULTS, DAY,
-    freshSched, retrievability, nextDue, applyReview, previewIntervals, stateFor,
+    freshSched, retrievability, nextDue, applyReview, previewIntervals, tierFor, stateFor,
     buildDeck, buildPracticeDeck, practiceOutcome, dueCount, spreadBySource,
   };
 })();
