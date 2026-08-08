@@ -8,10 +8,10 @@
 
 var LearnStore = (() => {
   const DB_NAME = 'mt-learn';
-  // v2 adds the `audio` store; v3 adds `tombs` (§7.3). The upgrade path only ever
-  // ADDS (every create is guarded by `contains`), so bumping the version never
-  // touches existing data.
-  const DB_VERSION = 3;
+  // v2 adds the `audio` store; v3 adds `tombs` (§7.3); v4 adds `notes` (§9.2).
+  // The upgrade path only ever ADDS (every create is guarded by `contains`), so
+  // bumping the version never touches existing data. EVERY bump: npm run test:idb.
+  const DB_VERSION = 4;
   const MAX_ITEMS = 20000;
   const MAX_TOMBS = 20000;   // same order as the corpus; oldest forgotten past this
   const MAX_AUDIO_BYTES = 200 * 1024 * 1024;   // 200 MB, LRU-evicted
@@ -52,6 +52,12 @@ var LearnStore = (() => {
         if (!db.objectStoreNames.contains('tombs')) {
           const t = db.createObjectStore('tombs', { keyPath: 'id' });
           t.createIndex('at', 'at');       // oldest forgotten first
+        }
+        // §9.2 sentence notes — the LLM-generated 生词/短语/语法 cache, keyed by
+        // card id. Device-local and NEVER synced: it is a regenerable derivative, and
+        // keeping it out of the chunk format is what keeps §8.5's cost model intact.
+        if (!db.objectStoreNames.contains('notes')) {
+          db.createObjectStore('notes', { keyPath: 'id' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -286,6 +292,23 @@ var LearnStore = (() => {
     });
   }
 
+  // ─── Sentence-note cache (§9.2) ──────────────────────────────────────────
+  // One generation per card, ever: the answer face renders from here on every
+  // revisit, so the user's key is charged exactly once per sentence.
+
+  function getNote(id) {
+    let out = null;
+    return tx(['notes'], 'readonly', (s) => {
+      const r = s.notes.get(id);
+      r.onsuccess = () => { out = r.result || null; };
+    }).then(() => out).catch(() => null);
+  }
+
+  function putNote(id, data, meta) {
+    const rec = Object.assign({ id, data, at: Date.now() }, meta || {});
+    return tx(['notes'], 'readwrite', (s) => { s.notes.put(rec); });
+  }
+
   // ─── Audio cache ─────────────────────────────────────────────────────────
   // Synthesis costs the user money or CPU and a card is replayed many times, so a
   // cache is not an optimization here — it is what makes a paid engine usable.
@@ -381,6 +404,7 @@ var LearnStore = (() => {
     open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
+    getNote, putNote,
     doomedFor, staleTombs,          // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,
     getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,

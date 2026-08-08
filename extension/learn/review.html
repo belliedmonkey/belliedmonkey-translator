@@ -117,6 +117,15 @@
              cannot promise intervals they will not grant, so their .when labels are
              replaced and this one line explains what a practice rep does instead. -->
         <p class="practice-rule" id="practice-note" hidden data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+        <!-- §9.2 sentence notes — rendered only when a chat-capable engine is
+             configured (capability gate; no engine ⇒ no entry point, never a
+             disabled button with an apology). Cost is stated at the point of use. -->
+        <div class="notes-wrap" id="notes-wrap" hidden>
+          <button class="reveal secondary" id="notes-btn" data-i18n="learn_notes_btn">解析这句</button>
+          <p class="shadow-hint" id="notes-cost" data-i18n="learn_notes_cost">使用你配置的 API，一次调用，永久缓存</p>
+          <div class="notes-box" id="notes-box" hidden></div>
+        </div>
+
         <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
              textContent, which would wipe the .when consequence label (§5.1). -->
         <div class="grades" id="grades">
@@ -144,8 +153,10 @@
   <script src="../content/learn-model.js"></script>
   <script src="../content/learn-scheduler.js"></script>
   <script src="../content/tts.gen.js"></script>
+  <script src="../content/providers.gen.js"></script>
   <script src="store.js"></script>
   <script src="tts.js"></script>
+  <script src="notes.js"></script>
   <script src="drain.js"></script>
   <script src="review.js"></script>
 </body>

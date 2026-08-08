@@ -761,5 +761,33 @@
   "learn_write_replaced": {
     "message": "Заменено правильным ответом",
     "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "Разобрать это предложение",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "Использует ваш API — один вызов, кэш навсегда",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "Разбор…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "Не удалось — попробуйте позже",
+    "description": "Notes failure status"
+  },
+  "learn_notes_words": {
+    "message": "Слова",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "Выражения",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "Грамматика",
+    "description": "Notes section header: grammar point"
   }
 }

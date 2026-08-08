@@ -31,6 +31,8 @@
       resolve(PageSettings.read([
         'uiLang', 'learnEnabled', 'learnDailyNew',
         'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+        // §9.2 — the translator's own engine config; the notes gate reads it.
+        'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
       ]).then(function (r) { return r.data; }));
     });
   }
@@ -226,6 +228,62 @@
     if (clozeState.inputs[0]) clozeState.inputs[0].focus();
   }
 
+  // §9.2 — render the notes. Model output is UNTRUSTED: textContent only, never
+  // innerHTML — a gloss is one prompt-injection away from being markup.
+  function renderNotes(data) {
+    const box = $('notes-box');
+    box.textContent = '';
+    const section = (titleKey, fallback, rows, keyName) => {
+      if (!rows || !rows.length) return;
+      const h = document.createElement('p');
+      h.className = 'notes-h';
+      h.textContent = t(titleKey, fallback);
+      box.appendChild(h);
+      for (const r of rows) {
+        const line = document.createElement('p');
+        line.className = 'notes-line';
+        const b = document.createElement('b');
+        b.textContent = r[keyName];
+        line.appendChild(b);
+        line.appendChild(document.createTextNode(' — ' + r.g));
+        box.appendChild(line);
+      }
+    };
+    section('learn_notes_words', '生词', data.words, 'w');
+    section('learn_notes_phrases', '短语搭配', data.phrases, 'p');
+    if (data.grammar) {
+      const h = document.createElement('p');
+      h.className = 'notes-h';
+      h.textContent = t('learn_notes_grammar', '语法点');
+      box.appendChild(h);
+      const g = document.createElement('p');
+      g.className = 'notes-line';
+      g.textContent = data.grammar;
+      box.appendChild(g);
+    }
+    box.hidden = false;
+    $('notes-btn').hidden = true;
+    $('notes-cost').hidden = true;
+  }
+
+  async function setupNotes(item) {
+    const wrap = $('notes-wrap');
+    wrap.hidden = !LearnNotes.capable();
+    $('notes-box').hidden = true;
+    $('notes-box').textContent = '';
+    $('notes-btn').hidden = false;
+    $('notes-btn').disabled = false;
+    $('notes-cost').hidden = false;
+    // The cost line doubles as the status line (loading / failure), so a new card
+    // must reset it — or the last card's error haunts every card after it.
+    $('notes-cost').textContent = t('learn_notes_cost', '使用你配置的 API，一次调用，永久缓存');
+    if (wrap.hidden) return;
+    // Cached notes render instantly — no spinner, no second charge
+    // (interaction-spec 「解析」).
+    const hit = await LearnNotes.cached(item.id);
+    if (hit && hit.data && deck[idx] === item) renderNotes(hit.data);
+  }
+
   async function show(sources) {
     currentSources = sources;
     const item = deck[idx];
@@ -270,6 +328,7 @@
       applyStage(currentMode === 'listen' || ttsMode === 'audio-first' ? 0 : 1);
     }
     setupAudio(item);
+    setupNotes(item);
 
     const src = $('src');
     src.textContent = '';
@@ -487,6 +546,16 @@
 
   ttsMode = settings.ttsMode || 'off';
   ttsAutoPlay = settings.ttsAutoPlay !== false;
+  // §9.2 — the notes gate reads the translator's own engine config. No chat-capable
+  // engine (or no key) ⇒ capable() stays false ⇒ the entry point never renders.
+  LearnNotes.configure({
+    provider: settings.provider || '',
+    apiKey: settings.apiKey || '',
+    baseUrl: settings.apiBaseUrl || '',
+    model: settings.apiModel || '',
+  });
+  const explainLang = settings.uiLang && settings.uiLang !== 'auto'
+    ? settings.uiLang : (navigator.language || 'zh-CN');
   LearnTTS.configure({
     engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
     baseUrl: settings.ttsBaseUrl || '',
@@ -529,6 +598,22 @@
     $('practice-setup').scrollIntoView({ block: 'nearest' });
   });
   $('practice-start').addEventListener('click', () => { startPractice(); });
+
+  // §9.2 — generate on demand. One call, cached forever; failures name themselves
+  // in the cost line's place rather than leaving a dead button.
+  $('notes-btn').addEventListener('click', async () => {
+    const item = deck[idx];
+    if (!item) return;
+    $('notes-btn').disabled = true;
+    $('notes-cost').textContent = t('learn_notes_loading', '解析中…');
+    try {
+      const r = await LearnNotes.get(item, explainLang);
+      if (deck[idx] === item) renderNotes(r.data);
+    } catch (_) {
+      $('notes-cost').textContent = t('learn_notes_failed', '解析失败，稍后再试');
+      $('notes-btn').disabled = false;
+    }
+  });
 
   // §5.2 write tier — 检查 is both the check and the reveal. The objective result
   // then CONSTRAINS the grades: after writing it correctly, 不记得 contradicts the

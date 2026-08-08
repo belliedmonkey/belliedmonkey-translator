@@ -761,5 +761,33 @@
   "learn_write_replaced": {
     "message": "استُبدلت بالإجابة الصحيحة",
     "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "اشرح هذه الجملة",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "يستخدم واجهتك المهيأة — استدعاء واحد، مخزّن دائمًا",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "جارٍ التحليل…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "فشل التحليل — حاول لاحقًا",
+    "description": "Notes failure status"
+  },
+  "learn_notes_words": {
+    "message": "مفردات",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "عبارات",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "قاعدة نحوية",
+    "description": "Notes section header: grammar point"
   }
 }

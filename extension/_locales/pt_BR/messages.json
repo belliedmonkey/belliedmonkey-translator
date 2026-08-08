@@ -761,5 +761,33 @@
   "learn_write_replaced": {
     "message": "Substituído pela resposta correta",
     "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "Explicar esta frase",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "Usa sua API configurada — uma chamada, em cache para sempre",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "Analisando…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "Falha na análise — tente mais tarde",
+    "description": "Notes failure status"
+  },
+  "learn_notes_words": {
+    "message": "Vocabulário",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "Expressões",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "Gramática",
+    "description": "Notes section header: grammar point"
   }
 }

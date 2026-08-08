@@ -761,5 +761,33 @@
   "learn_write_replaced": {
     "message": "정답으로 바꿨습니다",
     "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "이 문장 해설",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "설정한 API 사용 — 한 번 호출, 영구 캐시",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "분석 중…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "분석 실패 — 나중에 다시 시도하세요",
+    "description": "Notes failure status"
+  },
+  "learn_notes_words": {
+    "message": "단어",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "구문",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "문법",
+    "description": "Notes section header: grammar point"
   }
 }

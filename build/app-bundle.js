@@ -41,6 +41,9 @@ const MODULES = [
   'extension/learn/auth.js',             // LearnAuth
   'extension/learn/chunk.js',            // LearnChunk
   'extension/learn/sync.js',             // LearnSync
+  'extension/learn/notes.js',            // LearnNotes — review.js references it; in the
+                                         // app no provider is configured, so the §9.2
+                                         // capability gate simply stays closed
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs
 ];
