@@ -121,7 +121,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // Apple-required in-app account deletion is among them: per learning-design
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
-        settingsMissing: ['app-settings','settings-back','daily','tts-mode','tts-voice','tts-auto','tts-rate',
+        settingsMissing: ['app-settings','settings-back','daily','tts-mode',
+          // speech engine + its registry-declared credential fields (§7.2 / §9.1)
+          'tts-engine','tts-api-key','tts-base-url','tts-model',
+          'tts-voice','tts-auto','tts-rate',
           // §7.2 device-local credential for §9.2 notes
           'notes-provider','notes-key','notes-base','notes-model',
           'clean-known','settings-signout','delete-account','gear']
@@ -135,6 +138,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         notesPickerHasNonChat: [...document.getElementById('notes-provider').options].some(
           (o) => o.value && !(window.MT_PROVIDERS || []).some((p) => p.id === o.value
             && (p.type === 'chat-compat' || p.type === 'messages-compat'))),
+        // The speech-engine picker must be registry-fed too — one row per
+        // MT_TTS_ENGINES entry, counted against the live registry.
+        ttsEngineCount: document.getElementById('tts-engine').options.length,
+        ttsEngineWant: (window.MT_TTS_ENGINES || []).length,
         // chrome-shim seeds ttsMode='assist' SYNCHRONOUSLY, before review.js's
         // one-shot boot read — the async ensureDefaults path loses that race, which
         // is exactly how the app shipped with speech permanently off. Assert the
@@ -204,6 +211,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     need(o.notesPickerCount === o.notesPickerWant,
       '解析引擎选择器与注册表不同步：' + o.notesPickerCount + ' 项，应为 ' + o.notesPickerWant);
     need(!o.notesPickerHasNonChat, '解析引擎选择器混入了非 chat 类引擎 —— 门控按 type，选择器也必须');
+    need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 0,
+      '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');

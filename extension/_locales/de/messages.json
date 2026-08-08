@@ -890,7 +890,7 @@
     "message": "Sprechtempo"
   },
   "app_set_tts_note": {
-    "message": "Karten mit unbekannter Sprache (z. B. in Safari erfasst, das keine Spracherkennung hat) werden nur mit der oben gewählten Stimme vorgelesen; ohne Auswahl bleiben sie stumm. Cloud-Sprach-Engines (eigener Endpoint und Schlüssel) werden weiterhin in der Browser-Erweiterung konfiguriert."
+    "message": "Karten mit unbekannter Sprache (z. B. in Safari erfasst, das keine Spracherkennung hat) werden nur mit der oben gewählten Stimme vorgelesen; ohne Auswahl bleiben sie stumm. Der Sprach-API-Schlüssel verhält sich wie der Satzanalyse-Schlüssel: nur auf diesem Gerät, im Klartext, nie mit dem Konto synchronisiert."
   },
   "app_set_notes_title": {
     "message": "Satzanalyse"

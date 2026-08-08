@@ -890,7 +890,7 @@
     "message": "Velocidad de lectura"
   },
   "app_set_tts_note": {
-    "message": "Las tarjetas de idioma desconocido (p. ej., capturadas en Safari, que no tiene detección de idioma) solo se leen con la voz elegida arriba; sin elección, no se pueden reproducir. Los motores de voz en la nube (tu endpoint y clave) se siguen configurando en la extensión."
+    "message": "Las tarjetas de idioma desconocido (p. ej., capturadas en Safari, que no tiene detección de idioma) solo se leen con la voz elegida arriba; sin elección, no se pueden reproducir. La clave API de voz funciona como la de notas de la frase: queda solo en este dispositivo, en texto plano, y nunca se sincroniza con tu cuenta."
   },
   "app_set_notes_title": {
     "message": "Notas de la frase"
