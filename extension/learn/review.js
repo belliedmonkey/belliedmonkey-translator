@@ -16,6 +16,8 @@
   let doneThisRun = 0;
   let practicing = false;   // §5.3 — free practice: same card flow, asymmetric rule
   let donePractice = 0;
+  let currentMode = 'read'; // §5.2 — which exercise form the card on screen is using
+  let clozeState = null;    // write tier: { answers, inputs, checked }
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
@@ -140,14 +142,15 @@
     const av = await LearnTTS.available(item.lang);
     $('play').disabled = !av.ok;
     if (!av.ok) { setNote(reasonText(av.reason)); return; }
-    if (ttsAutoPlay || ttsMode === 'audio-first') playCurrent(true);
+    if (ttsAutoPlay || ttsMode === 'audio-first' || currentMode === 'listen') playCurrent(true);
   }
 
-  // Card stages. In 'audio-first' the ORIGINAL text starts hidden: you listen, then
-  // reveal the text, then the translation. In 'assist'/'off' the original is visible
-  // from the start and there are only two stages.
+  // Card stages. Audio-first staging (original hidden until revealed) applies when
+  // the user chose the audio-first SETTING — or when the ladder put this card at the
+  // LISTEN tier (§5.2), which is the same staging arrived at by strength instead of
+  // by preference. In 'assist'/'off' reading, the original shows from the start.
   function applyStage(stage) {
-    const audioFirst = ttsMode === 'audio-first';
+    const audioFirst = currentMode === 'listen' || ttsMode === 'audio-first';
     $('orig').hidden = audioFirst && stage < 1;
     $('reveal-orig').hidden = !(audioFirst && stage < 1);
     $('reveal').hidden = stage !== 1;
@@ -189,7 +192,41 @@
     $('practice-note').hidden = !practicing;
   }
 
-  function show(sources) {
+  // §5.2 skill badges. `listenPossible` feeds the 全面掌握 gate: a skill whose form
+  // does not exist for this card (no voice for its language) is not a missing skill.
+  function renderBadges(item, listenPossible) {
+    const sk = item.skills || {};
+    $('badge-read').classList.toggle('lit', !!sk.read);
+    $('badge-listen').classList.toggle('lit', !!sk.listen);
+    $('badge-listen').hidden = !listenPossible && !sk.listen;
+    $('badge-write').classList.toggle('lit', !!sk.write);
+    const cap = sched.KNOWN_S || LearnScheduler.DEFAULTS.KNOWN_S;
+    const full = !!(item.sched && item.sched.s >= cap)
+      && !!sk.read && !!sk.write && (!!sk.listen || !listenPossible);
+    $('badge-full').hidden = !full;
+  }
+
+  // §5.2 write tier: the cloze UI, from the pure builder. Inputs in document order;
+  // sizes track their answers so the layout does not telegraph less than it must.
+  function buildClozeUI(item) {
+    const c = LearnModel.clozeFor(item.text);
+    const box = $('cloze');
+    box.textContent = '';
+    clozeState = { answers: [], inputs: [], checked: false };
+    for (const p of c.parts) {
+      if (p.t === 'text') { box.appendChild(document.createTextNode(p.v)); continue; }
+      const inp = document.createElement('input');
+      inp.className = 'cloze-blank';
+      inp.size = Math.max(3, p.answer.length + 1);
+      inp.autocapitalize = 'none'; inp.autocomplete = 'off'; inp.spellcheck = false;
+      box.appendChild(inp);
+      clozeState.answers.push(p.answer);
+      clozeState.inputs.push(inp);
+    }
+    if (clozeState.inputs[0]) clozeState.inputs[0].focus();
+  }
+
+  async function show(sources) {
     currentSources = sources;
     const item = deck[idx];
     $('card').hidden = !item;
@@ -200,9 +237,38 @@
     LearnTTS.stop();
     $('orig').textContent = item.text;
     $('tr').textContent = item.tr;
+
+    // The exercise form comes from the ladder (§5.2). Availability must be known
+    // BEFORE staging: a listen card whose language cannot be spoken is a read card,
+    // not a broken one.
+    const av = ttsMode !== 'off' ? await LearnTTS.available(item.lang) : { ok: false };
+    currentMode = LearnScheduler.tierFor(item, { listen: av.ok }, sched);
+
     renderStrength(item);
+    renderBadges(item, av.ok);
     renderGradePreviews(item);
-    applyStage(ttsMode === 'audio-first' ? 0 : 1);
+
+    const write = currentMode === 'write';
+    clozeState = null;
+    $('cloze').hidden = !write;
+    $('write-prompt').hidden = !write;
+    $('write-replaced').hidden = true;
+    $('cloze-check').hidden = !write;
+    $('cloze-check').disabled = false;
+    $('shadow').hidden = currentMode !== 'listen';
+    $('grades').hidden = write;   // write reveals the grades only after 检查
+    document.querySelectorAll('.grade').forEach((b) => { b.disabled = false; });
+
+    if (write) {
+      // Translation up front, blanks to fill, no reveal step — 检查 is the reveal.
+      buildClozeUI(item);
+      $('orig').hidden = true;
+      $('reveal').hidden = true;
+      $('reveal-orig').hidden = true;
+      $('answer').hidden = false;
+    } else {
+      applyStage(currentMode === 'listen' || ttsMode === 'audio-first' ? 0 : 1);
+    }
     setupAudio(item);
 
     const src = $('src');
@@ -223,18 +289,34 @@
     LearnTTS.stop();
     const now = Date.now();
 
+    // §5.2 — a pass at ≥「记得」 lights this form's skill badge, on either path:
+    // practice proves nothing about long-term MEMORY (§5.3), but demonstrating a
+    // skill is demonstrating a skill. `lastSeenAt` bumps with it so the union
+    // reaches other devices — `touchedAt` reads timestamps, not badge bits.
+    const lightSkill = () => {
+      if (g < 2) return false;
+      if (item.skills && item.skills[currentMode]) return false;
+      item.skills = Object.assign({}, item.skills);
+      item.skills[currentMode] = 1;
+      item.lastSeenAt = now;
+      return true;
+    };
+
     if (practicing) {
       // §5.3 — the asymmetric rule lives in a PURE function; this is just plumbing.
       // A fail on a scheduled card lapses it; everything else writes no schedule,
       // and a candidate is never introduced from here (that is the daily deck's job,
       // which is also why newToday is untouched on this path).
       const next = LearnScheduler.practiceOutcome(item.sched, g, now, sched);
+      let dirty = false;
       if (next) {
         item.sched = next;
         item.state = LearnScheduler.stateFor(item, sched);
-        await LearnStore.putItem(item);
+        dirty = true;
       }
-      await LearnStore.recordReview(item.id, g, now, { practice: 1, mode: 'read' });
+      if (lightSkill()) dirty = true;
+      if (dirty) await LearnStore.putItem(item);
+      await LearnStore.recordReview(item.id, g, now, { practice: 1, mode: currentMode });
       donePractice++;
       idx++;
       if (idx >= deck.length) { await endPractice(); return; }
@@ -247,8 +329,9 @@
 
     item.sched = LearnScheduler.applyReview(item.sched, g, now, sched);
     item.state = LearnScheduler.stateFor(item, sched);
+    lightSkill();
     await LearnStore.putItem(item);
-    await LearnStore.recordReview(item.id, g, now, { mode: 'read' });
+    await LearnStore.recordReview(item.id, g, now, { mode: currentMode });
 
     // The daily new-card cap has to survive page reloads, or "15 a day" silently
     // becomes "15 per session".
@@ -446,6 +529,30 @@
     $('practice-setup').scrollIntoView({ block: 'nearest' });
   });
   $('practice-start').addEventListener('click', () => { startPractice(); });
+
+  // §5.2 write tier — 检查 is both the check and the reveal. The objective result
+  // then CONSTRAINS the grades: after writing it correctly, 不记得 contradicts the
+  // evidence on screen; after failing, so do 有点难/记得/太简单. Wrong blanks are
+  // replaced with the right answer — the correction is the teaching moment.
+  $('cloze-check').addEventListener('click', () => {
+    if (!clozeState || clozeState.checked) return;
+    let allOk = true;
+    clozeState.inputs.forEach((inp, i) => {
+      const okOne = LearnModel.clozeCheck(clozeState.answers[i], inp.value);
+      inp.classList.add(okOne ? 'ok' : 'bad');
+      if (!okOne) { allOk = false; inp.value = clozeState.answers[i]; }
+      inp.disabled = true;
+    });
+    clozeState.checked = true;
+    $('cloze-check').disabled = true;
+    $('write-replaced').hidden = allOk;   // say so when corrections were made
+    $('orig').hidden = false;
+    $('grades').hidden = false;
+    document.querySelectorAll('.grade').forEach((b) => {
+      const g = Number(b.dataset.grade);
+      b.disabled = allOk ? g === 0 : g > 0;
+    });
+  });
 
   // Drain the outbox first — this page is one of the few places that can, since the
   // corpus lives in the extension origin and the service worker cannot be trusted

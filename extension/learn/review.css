@@ -180,3 +180,27 @@ button:hover { border-color: var(--green); }
 }
 .practice-row button { padding: 8px 16px; }
 .foot-links { display: flex; gap: 14px; }
+
+/* ─── §5.2 mastery ladder ──────────────────────────────────────────────────── */
+.badges { display: flex; gap: 6px; margin: 0 0 10px; flex-wrap: wrap; }
+.badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  border: 1px solid var(--border); color: var(--text-secondary);
+}
+.badge.lit { border-color: var(--green); color: var(--green); font-weight: 600; }
+.badge.full { border-color: var(--green); background: var(--green); color: #fff; }
+
+.shadow-hint { font-size: 12px; color: var(--text-secondary); margin: -4px 0 8px; }
+
+.cloze { font-size: 21px; line-height: 1.9; }
+.cloze-blank {
+  font: inherit; color: var(--text);
+  background: transparent;
+  border: none; border-bottom: 2px solid var(--green);
+  border-radius: 0; padding: 0 2px; margin: 0 2px;
+  width: auto; text-align: center;
+}
+.cloze-blank:focus { outline: none; border-bottom-color: var(--text); }
+.cloze-blank.ok { border-bottom-color: var(--green); color: var(--green); }
+.cloze-blank.bad { border-bottom-color: #c0392b; color: #c0392b; }
+.grade:disabled { opacity: 0.35; cursor: default; }

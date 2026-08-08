@@ -345,3 +345,34 @@ describe('LearnScheduler — buildPracticeDeck (§5.3)', () => {
     ok(worst <= 3, '同源连读跑到了 ' + worst + ' 张 —— spreadBySource 没生效');
   });
 });
+
+// ─── §5.2 — the ladder: one schedule, three forms, gated by strength ─────────
+
+describe('LearnScheduler — tierFor (§5.2)', () => {
+  const at = (s) => ({ sched: s == null ? null : { s, d: 5, lastReviewAt: T0 } });
+  const CAPS = { listen: true };
+
+  test('strength walks the ladder: read → listen → write', () => {
+    const S = load();
+    eq(S.tierFor(at(null), CAPS), 'read', '新卡从认读开始');
+    eq(S.tierFor(at(3.9), CAPS), 'read');
+    eq(S.tierFor(at(4), CAPS), 'listen', 'TIER_LISTEN_S 的边界属于听懂');
+    eq(S.tierFor(at(29.9), CAPS), 'listen');
+    eq(S.tierFor(at(30), CAPS), 'write', 'TIER_WRITE_S 的边界属于产出');
+    eq(S.tierFor(at(400), CAPS), 'write');
+  });
+
+  test('no voice for the card ⇒ the listen form DOES NOT EXIST — read, not broken', () => {
+    const S = load();
+    eq(S.tierFor(at(10), { listen: false }), 'read');
+    eq(S.tierFor(at(10), undefined), 'read');
+    // But write does not need audio — capability gates only the form that uses it.
+    eq(S.tierFor(at(50), { listen: false }), 'write');
+  });
+
+  test('thresholds come from config, merged over DEFAULTS', () => {
+    const S = load();
+    eq(S.tierFor(at(10), { listen: true }, { TIER_LISTEN_S: 20 }), 'read');
+    eq(S.tierFor(at(10), { listen: true }, { TIER_WRITE_S: 8 }), 'write');
+  });
+});

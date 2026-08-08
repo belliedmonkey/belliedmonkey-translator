@@ -156,3 +156,122 @@ describe('LearnModel — outbox contract', () => {
     ok(M.MAX_OUTBOX_SESSIONS > 0 && M.MAX_OUTBOX_SESSIONS <= 100);
   });
 });
+
+// ─── §5.2 — the write tier's cloze: pure, deterministic, reconstructable ─────
+
+describe('LearnModel — clozeFor (§5.2)', () => {
+  const M = () => loadModule('learn-model.js', { window: {} }).LearnModel;
+  const joined = (c) => c.parts.map((p) => p.t === 'text' ? p.v : p.answer).join('');
+
+  test('joining parts reproduces the sentence EXACTLY — Latin and CJK', () => {
+    const m = M();
+    for (const s of [
+      'The forgetting curve shows how memory decays over time.',
+      '遗忘曲线展示了记忆随时间衰退的规律。',
+      'Short one.',
+      '短句。',
+      // The two longest words are ADJACENT — the text segment between their blanks
+      // is a single space, which is exactly what an off-by-one in partsFrom eats.
+      'The absolutely magnificent creature ran off and hid again today.',
+    ]) {
+      const c = m.clozeFor(s);
+      eq(joined(c), m.normText(s), '重组失败: ' + s);
+    }
+  });
+
+  test('deterministic — same sentence, same blanks, every time', () => {
+    const m = M();
+    const s = 'Practice cannot grind out mastery, but it can expose forgetting.';
+    eq(JSON.stringify(m.clozeFor(s)), JSON.stringify(m.clozeFor(s)));
+  });
+
+  test('every sentence with content gets at least one blank, never more than three', () => {
+    const m = M();
+    for (const s of [
+      'Hi.', 'One two.', '好。', '你好吗。',
+      'A considerably longer sentence with many perfectly blankable content words inside it, extended even further to be safe.',
+      '这是一个相当长的中文句子，包含许多可以挖空的内容词汇，为了保险起见再延长一点。',
+    ]) {
+      const c = m.clozeFor(s);
+      ok(c.blanks >= 1, '没挖空: ' + s);
+      ok(c.blanks <= 3, '挖多了(' + c.blanks + '): ' + s);
+    }
+  });
+
+  test('short sentences get exactly one blank; blanks prefer content words', () => {
+    const m = M();
+    const c = m.clozeFor('The quick brown fox jumps.');
+    eq(c.blanks, 1);
+    const answers = c.parts.filter((p) => p.t === 'blank').map((p) => p.answer);
+    ok(answers.every((a) => a.length >= 4), '挖到了功能词: ' + answers.join(','));
+  });
+
+  test('CJK blanks are letter runs — punctuation is never inside an answer', () => {
+    const m = M();
+    const c = m.clozeFor('学习一门语言，最难的是坚持，而不是方法。');
+    for (const p of c.parts) {
+      if (p.t !== 'blank') continue;
+      ok(!/[，。、；]/.test(p.answer), '空里有标点: "' + p.answer + '"');
+      eq(p.answer.length, 2, 'CJK 空应为两字: "' + p.answer + '"');
+    }
+  });
+});
+
+describe('LearnModel — clozeCheck (§5.2)', () => {
+  const M = () => loadModule('learn-model.js', { window: {} }).LearnModel;
+
+  test('case, punctuation and whitespace are typing noise, not knowledge', () => {
+    const m = M();
+    ok(m.clozeCheck('Forgetting', 'forgetting'));
+    ok(m.clozeCheck('curve', '  curve '));
+    ok(m.clozeCheck("don't", 'dont'));
+    ok(m.clozeCheck('记忆', '记忆'));
+  });
+
+  test('everything else must match exactly', () => {
+    const m = M();
+    eq(m.clozeCheck('curve', 'curves'), false);
+    eq(m.clozeCheck('记忆', '技艺'), false);
+    eq(m.clozeCheck('word', ''), false);
+  });
+
+  test('an empty expectation NEVER passes — 检查 must not succeed on nothing', () => {
+    const m = M();
+    eq(m.clozeCheck('', ''), false);
+    eq(m.clozeCheck('。', '。'), false);   // punctuation-only normalizes to empty
+  });
+});
+
+// ─── §4 — skills merge as a UNION, in both merge semantics ───────────────────
+
+describe('LearnModel — skills union (§4)', () => {
+  const M = () => loadModule('learn-model.js', { window: {} }).LearnModel;
+  const item = (over) => Object.assign({
+    id: 'x', text: 't', tr: 'y', lang: 'en', seenCount: 1, dwellMs: 0,
+    lastSeenAt: 1, salience: 0.5, state: 'learning', starred: false, sched: null,
+  }, over);
+
+  test('union under BOTH accumulate and copy — a skill passed anywhere is passed everywhere', () => {
+    const m = M();
+    for (const opts of [undefined, { accumulate: false }]) {
+      const out = m.mergeItem(
+        item({ skills: { read: 1 } }),
+        item({ skills: { write: 1 } }), opts);
+      eq(JSON.stringify(out.skills), '{"read":1,"write":1}',
+        JSON.stringify(opts) + ' 下不是并集');
+    }
+  });
+
+  test('idempotent — replaying the same copy changes nothing', () => {
+    const m = M();
+    const a = item({ skills: { read: 1, listen: 1 } });
+    const once = m.mergeItem(a, item({ skills: { read: 1, listen: 1 } }), { accumulate: false });
+    const twice = m.mergeItem(once, item({ skills: { read: 1, listen: 1 } }), { accumulate: false });
+    eq(JSON.stringify(once.skills), JSON.stringify(twice.skills));
+  });
+
+  test('both sides absent stays absent — no phantom object on every merge', () => {
+    const m = M();
+    eq(m.mergeItem(item({}), item({})).skills, undefined);
+  });
+});

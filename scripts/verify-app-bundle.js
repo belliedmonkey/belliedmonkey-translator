@@ -102,7 +102,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // Stage A (§5.1): strength bar, one-time explainer, cap hint
           'strength','strength-bar','strength-label','howto','howto-ok','cap-hint',
           // Stage B (§5.3): free practice
-          'practice-setup','practice-pool','practice-batch','practice-start','practice-open','practice-note']
+          'practice-setup','practice-pool','practice-batch','practice-start','practice-open','practice-note',
+          // Stage C (§5.2): mastery ladder — badges, shadowing hint, write-tier cloze
+          'badges','badge-read','badge-listen','badge-write','badge-full',
+          'shadow','cloze','cloze-check','write-prompt','write-replaced','grades']
           .filter((id) => !document.getElementById(id)),
         reviewHidden: getComputedStyle(document.getElementById('review-view')).display === 'none',
         // Stage 4. The dead end this replaced was two taps deep (review page → 设置 →

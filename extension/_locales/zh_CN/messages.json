@@ -729,5 +729,37 @@
   "learn_practice_done": {
     "message": "练习完成 {n} 张。",
     "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "读",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "听",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "写",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "全面掌握",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "跟着读一遍（练习，不计入验证）",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "检查",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "把原句补全",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "已替换为正确答案",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
   }
 }

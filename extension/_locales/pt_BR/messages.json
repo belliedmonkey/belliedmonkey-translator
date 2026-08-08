@@ -729,5 +729,37 @@
   "learn_practice_done": {
     "message": "Prática concluída — {n} cartões.",
     "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "Ler",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "Ouvir",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "Escrever",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "Domínio completo",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "Repita em voz alta (prática — sem nota)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "Verificar",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "Complete a frase",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "Substituído pela resposta correta",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
   }
 }

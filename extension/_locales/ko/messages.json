@@ -729,5 +729,37 @@
   "learn_practice_done": {
     "message": "연습 완료 — {n}장.",
     "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "읽기",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "듣기",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "쓰기",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "완전 숙달",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "따라 읽어 보세요 (연습 — 채점 없음)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "확인",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "문장을 완성하세요",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "정답으로 바꿨습니다",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
   }
 }
