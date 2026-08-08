@@ -20,6 +20,11 @@
 |---|---|---|---|
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
 | 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | 待评审 —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
+| 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | 待评审 —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
+
+**2026-08-08 的评审范围**由真机使用反馈驱动：评分按钮后果不可见、「学习好了」无
+标准、牌组耗尽后精力无处使。三个方向已由产品在设计前定下（AskUserQuestion）：
+掌握 = 读听写三技能阶梯；练习 = 答错算数、答对不加速；解析 = 按需生成、自带 key。
 
 **2026-08-07 这次是前置评审**（文档先于代码），与上一次相反。起因是真机使用发现
 **手机上进复习页要三步**（地址栏扩展图标 → 大肚猴翻译 → 复习），而这是 iOS 放置扩展
@@ -206,8 +211,15 @@ Item = {
   state: 'candidate' | 'learning' | 'known' | 'muted',
   sched: { s, d, lastReviewAt, dueAt, reps, lapses },
   starred,         // explicit user save → bypasses the salience gate
+  skills,          // {read?:1, listen?:1, write?:1} — tiers passed at grade ≥ 2 (§5.2)
 }
 ```
+
+A review-log row is `{ itemId, grade, at }` plus, since 2026-08-08, two optional
+fields: `mode: 'read' | 'listen' | 'write'` (which exercise form was graded, §5.2)
+and `practice: 1` (a free-practice rep, §5.3 — logged but not schedule-advancing).
+Both are additive: the log is append-only and JSONL carries unknown fields through
+old readers untouched, so the chunk format (§8.4) does not version-bump for this.
 
 - **`id` is content-addressed.** The same sentence met on a second device, or on a
   second site, collapses onto one item and increments `seenCount`. This is what makes
@@ -216,8 +228,12 @@ Item = {
   unavailable in content scripts on plain-`http` pages (not a secure context), so a
   SHA-based id would silently fail on exactly the long tail of sites we care about.
 - **`text` / `tr` / `anchor` are immutable after creation.** Only `sched`, `state`,
-  `starred` and the counters mutate. This is what shrinks the sync conflict surface
-  to almost nothing (§8.3).
+  `starred`, `skills` and the counters mutate. This is what shrinks the sync conflict
+  surface to almost nothing (§8.3).
+- **`skills` merges as a UNION** — a skill once passed anywhere is passed everywhere.
+  Union (max per key) is idempotent under *both* of §8.4.2's merge semantics, so it
+  needs no accumulate/copy branch and cannot echo-amplify: the same reasoning that
+  made `starred` safe to sync applies unchanged.
 
 ### 4.1 The learned language is the source language
 
@@ -290,6 +306,85 @@ session is not one article read back to itself.
 - The valuable behaviors here are **negative** (a mature card must *not* appear, a
   new card beyond `dailyNew` must *not* appear). Those need call-count assertions —
   a deck that merely *looks* right proves nothing about what was correctly withheld.
+
+### 5.1 核心约束 — 评分的后果必须可见（2026-08-08）
+
+*(真机反馈原话：「『太简单了』『我记住了』等状态我不知道点击完后意味着什么」。
+这不是文案问题——是调度器的全部输出都停在内部数字上，界面一个都不给。)*
+
+- **四个评分按钮各自标注后果。** 对当前卡预演 `applyReview(sched, g, now)` 四次
+  （纯函数，零成本），把间隔写在按钮上：「不记得 → 重新学」「有点难 → 2 天后」
+  「记得 → 5 天后」「太简单 → 12 天后」。新增纯函数
+  `previewIntervals(sched, now, cfg) → [ms, ms, ms, ms]`，和调度器的其余部分一样
+  注入 `now`、可测。选择即预览，是把调度器从黑箱变成可预期工具的最小改动。
+- **记忆强度常驻可见。** 卡片上一条小进度条 + 「记忆强度 {s} 天 / 180 天」。
+  「已掌握」由此第一次有了用户可见的定义：**强度达到 180 天，约等于半年不碰
+  仍有九成概率记得**（`R(180d) = 0.9`，§5 的公式直译成人话）。
+- **首次进入复习页给一张一次性说明卡**，三句话讲完循环：记得 → 间隔拉长；
+  忘了 → 重来；强度攒满 → 毕业。看过存 `meta`，永不再弹。
+- **牌组耗尽页说明上限并给出路。**「今天的复习做完了」页面注明「每天新卡上限
+  {n}，可在设置调整」——上限本来就可调（1–200），只是没人知道；同页给 §5.3 的
+  练习入口，耗尽不再是死路。
+
+### 5.2 核心约束 — 掌握是一个阶梯，不是一个阈值（2026-08-08）
+
+**「学习好了」的标准：同一个句子，能认、能听懂、能写出来。** 三种题型共用
+**一套排程**，按记忆强度逐级升难：
+
+| 阶段 | 题型 | 门控 |
+|---|---|---|
+| **认读** | 看原句 → 自评含义（原有流程） | `s < TIER_LISTEN_S` |
+| **听懂** | 只放音频 → 自评含义（复用既有 audio-first 机制，`review.js` 已有） | `TIER_LISTEN_S ≤ s < TIER_WRITE_S`，且该卡 TTS 可用 |
+| **产出** | 看译文 → 补全原句挖空（1–3 空按长度带），**输入自动判对** | `s ≥ TIER_WRITE_S` |
+
+```js
+TIER_LISTEN_S: 4,   // days — same "unvalidated, cheap to retune" caveat as §6
+TIER_WRITE_S: 30,
+```
+
+- **为什么一套排程带三种题型，而不是每技能一张时间表**：独立排程使 `sched` 变成
+  三份、同步合并的「按 lastReviewAt 取新」拆成三路、复习债×3，而换来的精度建立在
+  两个本就未经验证的阈值上（§12 已否决）。强度本身就是难度的正确门控——记忆越牢，
+  测试越苛刻，这正是「拉通听说读写」在间隔重复框架里的诚实实现。
+- **验证的诚实边界，写明而不是含混**：**写是唯一客观判定的技能**——挖空答案归一化
+  （大小写、标点、空白）后精确比对；读与听仍是自评。宣称「科学验证」时只有产出
+  阶段配得上这四个字，文档与界面都不夸大。
+- **挖空是本地纯函数** `LearnModel.clozeFor(text, lang)`：脚本感知选实词（沿用
+  §6 长度带的 CJK/Latin 区分），不调用任何模型。放 `learn-model.js` 因为两个宿主
+  （扩展页 + App）都已加载它。
+- **说 = 跟读，自评，不作验证。** 听懂阶段附「跟着读一遍」提示。浏览器的语音识别
+  API（SpeechRecognition）把录音送往厂商服务器，与「无遥测」承诺正面冲突，ASR
+  维持 §11 排除（本次重审后二次否决，§12）。界面明说这是练习不是测验。
+- **技能徽章**：每张卡显示 读 / 听 / 写 三枚徽章，各自在该题型下拿过 ≥「记得」
+  即点亮，落 `item.skills`（并集合并，§4）。
+- **「全面掌握」= `s ≥ KNOWN_S` 且该卡可用技能全部点亮。** 这是**展示层**概念：
+  `stateFor` / `known` 保持纯 `s` 判定不动——调度器状态机零迁移，已有用户的
+  「已掌握」不回退，只是徽章未满的卡在界面上标为「记忆已牢，技能未全」。
+- **TTS 不可用（无引擎 / 无该语言语音）的卡自动跳过听懂档**：能力缺失意味着该档
+  *不存在*，不是该卡失败——同 domain-design §5.3 规则 1 的能力语义。
+- **生词 / 语法 / 短语不进掌握标准。** 学习单位是句子（§1、§11 不变）；词汇与
+  语法作为句子卡的**解析面**提供（§9.2），帮助理解，不单独考、不单独排程。
+
+### 5.3 核心约束 — 自由练习：答错算数，答对不加速（2026-08-08）
+
+*(真机反馈：「每次只能学几个句子，太少了。应该允许用户根据自己的精力情况反复
+学习所有在学习库里的内容。」)*
+
+- **入口**：牌组耗尽页的「继续巩固练习」按钮 + 复习页常驻「自由练习」。
+- **池子**：默认「学习中」（按 R 升序，最接近遗忘的先出）；可切「全部」（含候选
+  与已掌握）。批量 10 / 20 / 不限；`spreadBySource` 照常防单文章连读。
+- **对排程的影响是不对称的，这是本节的核心**：
+  - **答错 → 照实算**：记录 + `applyReview(grade 0)`，打回重学、尽快再见。
+    任何时刻的遗忘都是真实证据。
+  - **答对 → 只记录，不写 `sched`**：刚见过就答对，证明不了长期记忆——把它计入
+    会让连点两遍「记得」刷出几个月的假间隔，正是「科学验证」的反面（Anki 对
+    cram 的处理同理；§12 记录了对称方案的否决）。
+  - 界面一句话讲清：**「练习不能刷出掌握，但能暴露遗忘。」**
+- **候选卡在练习里只曝光**：无论答对答错都不建 `sched`。新卡的正式引入只走每日
+  牌组——`dailyNew` 的意义就是防止今天的热情变成明天的复习债，练习不得绕开它。
+- 练习记录带 `practice: 1` 与 `mode`（§4），照常进 append-only 日志、照常同步；
+  重放端不因它推进任何排程（排程本来就随条目走、不由日志重建，§8.4.2 的机制
+  天然覆盖）。收敛判据不变：无活动时双向同步仍须稳定 0 / 0。
 
 ---
 
@@ -1005,6 +1100,7 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnCollector` | `content/learn-collector.js` | the sink (§3): dwell observation via `IntersectionObserver`, salience gate, bounded `lq:` outbox writes. Never originates a translation |
 | `LearnStore` | `learn/store.js` + `learn/drain.js` | extension-page-only IndexedDB corpus and the outbox→corpus drain/merge |
 | `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
+| `LearnNotes` | `learn/notes.js` *(planned, §9.2)* | 句子解析：生词 / 短语 / 语法点。调用用户配置的 chat 类引擎，结果落 IndexedDB `notes` 表（v4），永不同步 |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
 > **Why the app is exactly three files.** `safari-project/` is gitignored and gets
@@ -1063,6 +1159,27 @@ whether one gesture unlocks autoplay for the rest of the page session.
 voice is used only if it speaks the card's language; otherwise the best system voice
 for that language; otherwise **the feature reports itself unavailable with a reason**
 rather than reading the sentence in the wrong language.
+
+## 9.2 句子解析 (sentence notes) — 生词、短语、语法（2026-08-08）
+
+答案面新增「解析这句」：用**用户已配置的引擎**为当前句子生成生词表（词 + 释义）、
+短语 / 搭配、一个语法点。定位是**句子卡的一个面**，帮助理解——不拆词卡、不单独考、
+不进掌握标准（§5.2、§11 的边界都不动）。
+
+- **能力门控，同 domain-design §5.3 规则 1。** 只有 chat 类引擎（`MT_PROVIDERS`
+  中 `type` 为 `chat-compat` / `messages-compat`）能做这件事；免费 Google 通道是
+  翻译 API，做不了。没配可用引擎时**整个入口不渲染**——能力缺失 = 功能不存在，
+  不是灰按钮加解释。
+- **按需生成，一次缓存，永不重复扣费。** 结果按卡 id 落 IndexedDB 新 `notes` 表
+  （**DB_VERSION 3 → 4**，建表照例带 `contains` 守卫；这是唯一碰用户已有数据的
+  改动，`npm run test:idb` 必跑）。重看即时出。UI 注明：「使用你配置的 API，
+  一次调用，永久缓存」——成本可预期，绝不自动批量生成。
+- **不同步。** 解析是可再生的衍生物：换设备按需重新生成即可。省掉的是 chunk
+  格式变更与 50 MB 配额占用（§8.5 的成本模型不因它改一个字）。
+- **提示词英文**（同翻译系统提示词的既有惯例），解释语言跟 `uiLang`；要求 JSON
+  输出并防御性解析——模型输出不可信是前提，不是意外。
+- 规约走查：用户自己的 key、设备发起、结果不落我们的服务器 —— 规约 1 / 2 / 4 全
+  满足，不涉及 §2.1 的付费服务端路径。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
@@ -1185,6 +1302,9 @@ trust when someone notices.
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
+  *(Re-examined 2026-08-08 with the mastery ladder: still out. §9.2's sentence notes
+  surface vocabulary and grammar as a FACET of the sentence card — they aid
+  understanding, are never separately tested, and never get their own schedule.)*
 - **Synthetic speech as a REPLACEMENT for real speech** (§1). A media card always
   replays the original audio; it is never re-read by a synthetic voice. Synthesizing
   speech for *text* cards — which have no original audio — is in scope and specified
@@ -1198,6 +1318,10 @@ trust when someone notices.
   it is permitted.
 - **ASR** remains out of scope, unchanged from domain-design §8: the learning layer
   consumes transcripts that already exist, it never creates them.
+  *(Re-examined 2026-08-08 for the 说 skill and rejected a second time — §12. The
+  browser's `SpeechRecognition` ships the user's recordings to vendor servers, which
+  the no-telemetry promise cannot absorb. 说 is offered as shadowing with
+  self-assessment at the listen tier, labelled as practice, never as verification.)*
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
   and can be disabled and purged from settings at any time. See `README.md` — the
   privacy statement is part of the product, not marketing copy.
@@ -1227,3 +1351,6 @@ matters more than the detail.
 | 2026-08-07 | 扩展经 `sendNativeMessage` 把外发箱排空给 App，由 **App 负责上传** | **不是不可行——尖刺跑通了**（`verification-spec.md` Stage 0，提交 `1f4113a`：内容脚本没有这个 API；background 有，200KB 往返 10ms、热态 ~0.8ms/次，但**冷启动第一次调用必然失败**）。否决理由是**上传进度会落到 App 手里**：用户不打开 App 就可能永远不上传，而扩展连数据到没到服务器都无从得知。改为扩展直传服务器、自己持有 `syncPushedAt`。连带省掉了原生桥、App Group，以及 `safari-project` 重新生成会抹掉手写 Swift 的整个冲突 |
 | 2026-08-07 | 扩展退成纯采集器，删掉浏览器端复习页，全部学习入口引导到 App | 未登录用户就没有复习面了，与 `AGENTS.md` 规约 2（不付费不登录也有完整产品）和规约 3（对未登录用户必须完整）正面冲突。保留浏览器复习页之后，登录换来的是**多端同步 + 一个一键可达的面**，而不是功能本身 |
 | 2026-08-07 | 用导出/导入文件做扩展↔App 的无账号通道 | **产品判断，不是原则妥协**：没有人会为了继续学习，每周手动导入导出几次。造出来就是没人用的功能，而没人用的功能不叫合规，叫装饰。规约要靠**用户真会走的那条路**来守——那条路是浏览器端自己的复习页（§8.2） |
+| 2026-08-08 | 读 / 听 / 写各自独立排程 | `sched` 变三份、同步「按 lastReviewAt 取新」拆三路、复习债 ×3，换来的精度建立在两个本就未经验证的阈值上。一套排程 + 按强度门控题型（§5.2）以十分之一的复杂度覆盖同一目标 |
+| 2026-08-08 | 自由练习正常推进排程 | 连点两遍「记得」就能把间隔刷到几个月——掌握变成可以刷出来的假象，恰是「科学验证」的反面。改为不对称规则：答错照实算（遗忘证据任何时刻有效），答对只记录（刚见过就答对证明不了长期记忆）。Anki 对 cram 的处理同理（§5.3） |
+| 2026-08-08 | ASR 语音评测（为「说」）——二次否决 | 浏览器 `SpeechRecognition` 把录音送厂商服务器（Chrome→Google、Safari→Apple），与「无遥测」承诺正面冲突；本地 ASR 模型则破坏零依赖。说 = 听懂档的跟读自评，界面明标「练习，不验证」（§5.2） |
