@@ -32,6 +32,18 @@
     return out;
   };
 
+  // ─── App-side defaults that must exist BEFORE the first read ─────────────
+  // `review.js` reads settings ONCE, at bundle load, from its own top-level boot —
+  // and this shim is the only code that runs before it. `AppSettings.ensureDefaults`
+  // is async and loses that race, which is how the app shipped with `ttsMode`
+  // permanently 'off': the listen tier and the ▶ button gate on it, and nothing
+  // app-side ever set it. Seeding here is synchronous, so the first launch after
+  // install already has speech. 'assist' (show text, tap to play), not 'audio-first' —
+  // hiding every card's text behind audio is a choice the user makes, not a default.
+  if (localStorage.getItem(PREFIX + 'ttsMode') == null) {
+    try { localStorage.setItem(PREFIX + 'ttsMode', JSON.stringify('assist')); } catch (_) {}
+  }
+
   const storage = {
     get(query, cb) {
       const all = readAll();
