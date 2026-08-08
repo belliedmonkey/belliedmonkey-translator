@@ -170,7 +170,13 @@ var LearnChunk = (() => {
     if (bundle.reviews.length) {
       const seen = new Set((await LearnStore.allReviews()).map((r) => r.itemId + '|' + r.at));
       const fresh = bundle.reviews.filter((r) => !seen.has(r.itemId + '|' + r.at));
-      for (const r of fresh) await LearnStore.recordReview(r.itemId, r.grade, r.at, { viaSync: fromServer });
+      // `mode` / `practice` travel WITH the row (§5.2 / §5.3): a replay that strips
+      // them would turn practice reps into apparent scheduled reviews on the other
+      // device's statistics — same history, different story.
+      for (const r of fresh) {
+        await LearnStore.recordReview(r.itemId, r.grade, r.at,
+          { viaSync: fromServer, mode: r.mode, practice: r.practice });
+      }
       stats.reviews = fresh.length;
     }
     await LearnStore.evictIfNeeded();

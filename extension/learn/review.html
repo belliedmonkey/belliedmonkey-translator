@@ -48,6 +48,24 @@
       <p class="cap-hint" id="cap-hint"></p>
     </section>
 
+    <!-- §5.3 free practice. Shown whenever the deck is done, or on demand from the
+         footer — the deck-done screen is no longer a dead end. -->
+    <section class="panel practice-setup" id="practice-setup" hidden>
+      <p class="practice-rule" data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+      <div class="practice-row">
+        <select id="practice-pool">
+          <option value="learning" selected data-i18n="learn_pool_learning">学习中</option>
+          <option value="all" data-i18n="learn_pool_all">全部（含候选与已掌握）</option>
+        </select>
+        <select id="practice-batch">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="0" data-i18n="learn_batch_unlimited">不限</option>
+        </select>
+        <button id="practice-start" data-i18n="learn_practice_start">开始练习</button>
+      </div>
+    </section>
+
     <section class="card" id="card" hidden>
       <div class="src" id="src"></div>
 
@@ -74,6 +92,10 @@
 
       <div class="answer" id="answer" hidden>
         <p class="tr" id="tr"></p>
+        <!-- Practice honesty (§5.1 must survive §5.3): in practice the grade buttons
+             cannot promise intervals they will not grant, so their .when labels are
+             replaced and this one line explains what a practice rep does instead. -->
+        <p class="practice-rule" id="practice-note" hidden data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
         <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
              textContent, which would wipe the .when consequence label (§5.1). -->
         <div class="grades">
@@ -87,7 +109,10 @@
 
     <footer class="foot">
       <span id="progress"></span>
-      <a href="#" id="open-settings" data-i18n="learn_settings">设置</a>
+      <span class="foot-links">
+        <a href="#" id="practice-open" data-i18n="learn_practice">自由练习</a>
+        <a href="#" id="open-settings" data-i18n="learn_settings">设置</a>
+      </span>
     </footer>
   </div>
 

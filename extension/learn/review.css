@@ -169,3 +169,14 @@ button:hover { border-color: var(--green); }
 .howto p { margin-bottom: 4px; }
 .howto button { margin-top: 8px; }
 .cap-hint { font-size: 13px; }
+
+/* ─── §5.3 free practice ───────────────────────────────────────────────────── */
+.practice-rule { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+.practice-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+.practice-row select {
+  flex: 1; min-width: 0; padding: 8px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+  font-size: 14px;
+}
+.practice-row button { padding: 8px 16px; }
+.foot-links { display: flex; gap: 14px; }

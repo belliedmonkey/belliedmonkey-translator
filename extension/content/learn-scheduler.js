@@ -194,6 +194,38 @@ var LearnScheduler = (() => {
     return spreadBySource(picked, c.MAX_PER_SOURCE_RUN);
   }
 
+  // §5.3 — free practice draws from the corpus without the daily-deck quotas:
+  // weakest first, optionally bounded, interleaved as always. Candidates score
+  // R = 0 (never reviewed ⇒ fully forgotten), which puts fresh exposure ahead when
+  // the user explicitly chose the wider pool; salience breaks the tie among them.
+  function buildPracticeDeck(items, now, cfg, opts) {
+    const c = cfgOf(cfg);
+    const pool = (opts && opts.pool) === 'all' ? 'all' : 'learning';
+    const limit = opts && opts.limit > 0 ? opts.limit : 0;   // 0 ⇒ the whole pool
+    const picked = [];
+    for (const it of items) {
+      const st = stateFor(it, c);
+      if (st === 'muted') continue;
+      if (pool === 'learning' && st !== 'learning') continue;
+      picked.push({ it, R: retrievability(it.sched, now), sal: it.salience || 0 });
+    }
+    picked.sort((a, b) => (a.R - b.R) || (b.sal - a.sal));
+    const take = limit ? picked.slice(0, limit) : picked;
+    return spreadBySource(take.map((x) => x.it), c.MAX_PER_SOURCE_RUN);
+  }
+
+  // §5.3 — the asymmetric practice rule as a PURE decision, because it is the one
+  // behavior that guards schedule integrity and must be testable without a DOM:
+  //   · fail on a scheduled card  → a real lapse (forgetting is evidence any time)
+  //   · pass                      → null (just seen ⇒ proves nothing about memory)
+  //   · candidate, either way     → null (introduction belongs to the daily deck)
+  // Returns the new sched to store, or null meaning "write nothing".
+  function practiceOutcome(sched, grade, now, cfg) {
+    const hadSched = !!(sched && sched.s);
+    if (grade === 0 && hadSched) return applyReview(sched, 0, now, cfg);
+    return null;
+  }
+
   // How many cards are waiting right now (for the popup / options counter).
   function dueCount(items, now, cfg) {
     const c = cfgOf(cfg);
@@ -209,7 +241,7 @@ var LearnScheduler = (() => {
   return {
     DEFAULTS, DAY,
     freshSched, retrievability, nextDue, applyReview, previewIntervals, stateFor,
-    buildDeck, dueCount, spreadBySource,
+    buildDeck, buildPracticeDeck, practiceOutcome, dueCount, spreadBySource,
   };
 })();
 

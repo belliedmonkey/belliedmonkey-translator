@@ -697,5 +697,37 @@
   "learn_cap_hint": {
     "message": "Up to {n} new cards a day — adjustable in Settings.",
     "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "Free practice",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "Practice cannot grind out mastery, but it can expose forgetting.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "Learning",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "Everything (incl. new & known)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "No limit",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "Start practice",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "Practice {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "Practice done — {n} cards.",
+    "description": "Practice summary; {n} cards done"
   }
 }
