@@ -890,7 +890,7 @@
     "message": "Velocidade da fala"
   },
   "app_set_tts_note": {
-    "message": "O mecanismo de fala e a voz ainda são configurados nos ajustes da extensão — são credenciais de cada navegador."
+    "message": "Cartões com idioma desconhecido (por ex., capturados no Safari, que não tem detecção de idioma) só são lidos com a voz escolhida acima; sem escolha, não podem ser reproduzidos. Motores de voz na nuvem (seu endpoint e chave) continuam sendo configurados na extensão."
   },
   "app_set_notes_title": {
     "message": "Notas da frase"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "dominados"
+  },
+  "tts_no_voice_und": {
+    "message": "O idioma deste cartão é desconhecido — escolha uma voz nas configurações para reproduzir"
+  },
+  "app_set_tts_voice": {
+    "message": "Voz"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automático (pelo idioma do cartão)"
   }
 }

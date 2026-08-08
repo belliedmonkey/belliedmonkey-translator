@@ -23,7 +23,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew', 'ttsMode', 'ttsAutoPlay', 'ttsRate',
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'ttsMode', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel'];
 
@@ -62,9 +62,10 @@ var AppSettings = (() => {
     $('tts-mode-off').textContent = t('tts_mode_off', '关闭');
     $('tts-mode-assist').textContent = t('tts_mode_assist', '显示原文，可点播放');
     $('tts-mode-audio-first').textContent = t('tts_mode_audio_first', '先听后看（原文先隐藏）');
+    $('tts-voice-label').textContent = t('app_set_tts_voice', '朗读语音');
     $('tts-auto-label').textContent = t('app_set_tts_auto', '显示译文时自动朗读');
     $('tts-rate-label').textContent = t('app_set_tts_rate', '朗读速度');
-    $('tts-note').textContent = t('app_set_tts_note', '朗读引擎与语音仍在浏览器扩展的设置页里配置 —— 那些是每个浏览器各自的凭证，这里改了也不会跟着你走。');
+    $('tts-note').textContent = t('app_set_tts_note', '语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。云端语音引擎（自备端点与密钥）仍在浏览器扩展里配置。');
     $('notes-title').textContent = t('app_set_notes_title', '句子解析');
     $('notes-provider-label').textContent = t('app_set_notes_provider', '解析引擎');
     $('notes-key-label').textContent = t('app_set_notes_key', 'API Key');
@@ -92,10 +93,34 @@ var AppSettings = (() => {
     $('delete-note').textContent = t('app_set_delete_note', '删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。');
   }
 
+  // The system's voice list, loaded asynchronously (empty until the platform
+  // announces it — the classic getVoices trap LearnTTS.loadVoices exists for).
+  // Value is the voiceURI review.js already passes into LearnTTS at boot. The ''
+  // option means "match by the card's language" — which for an 'und' card (every
+  // card captured on Safari, where no detector exists) means NO voice, so the
+  // note below tells the user this picker is how those cards get a voice at all.
+  async function paintVoices(selected) {
+    const sel = $('tts-voice');
+    const voices = await LearnTTS.loadVoices(1500);
+    sel.textContent = '';
+    const auto = document.createElement('option');
+    auto.value = '';
+    auto.textContent = t('app_set_tts_voice_auto', '自动（按卡片语言）');
+    sel.append(auto);
+    for (const v of voices) {
+      const o = document.createElement('option');
+      o.value = v.voiceURI;
+      o.textContent = v.name + ' (' + v.lang + ')';
+      sel.append(o);
+    }
+    sel.value = voices.some((v) => v.voiceURI === selected) ? selected : '';
+  }
+
   async function paint(session, say) {
     const cur = await get(KEYS);
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'assist';
+    await paintVoices(cur.ttsVoice || '');
     $('tts-auto').checked = !!cur.ttsAutoPlay;
     $('tts-rate').value = cur.ttsRate != null ? cur.ttsRate : 1;
     $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
@@ -137,11 +162,29 @@ var AppSettings = (() => {
       await set({ learnDailyNew: n });
     });
     $('tts-mode').addEventListener('change', () => set({ ttsMode: $('tts-mode').value }));
+    // Voice and rate reconfigure LearnTTS LIVE, not just at next launch — same
+    // reasoning as the notes key (review.js reads settings once at bundle load,
+    // and "pick a voice, tap ▶, silence" would read as broken). configure() is
+    // RESET-style (DEFAULTS + next), so always pass the full current config.
+    $('tts-voice').addEventListener('change', async () => {
+      const v = $('tts-voice').value;
+      await set({ ttsVoice: v });
+      LearnTTS.configure(Object.assign({}, LearnTTS.config, { voice: v }));
+    });
     $('tts-auto').addEventListener('change', () => set({ ttsAutoPlay: $('tts-auto').checked }));
     $('tts-rate').addEventListener('input', () => {
       $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
     });
-    $('tts-rate').addEventListener('change', () => set({ ttsRate: Number($('tts-rate').value) }));
+    $('tts-rate').addEventListener('change', async () => {
+      const r = Number($('tts-rate').value);
+      await set({ ttsRate: r });
+      LearnTTS.configure(Object.assign({}, LearnTTS.config, { rate: r }));
+    });
+    // Voices can land AFTER the settings page painted (loadVoices' timeout path);
+    // re-populate so the picker never sits empty on a machine full of voices.
+    LearnTTS.onVoicesChanged(() => {
+      get(['ttsVoice']).then((c) => paintVoices(c.ttsVoice || ''));
+    });
 
     // §9.2 in the app: write the SAME keys review.js reads, and reconfigure
     // LearnNotes immediately — review.js only reads settings once at bundle load,

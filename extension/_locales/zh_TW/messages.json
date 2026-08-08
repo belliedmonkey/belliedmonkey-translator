@@ -890,7 +890,7 @@
     "message": "朗讀速度"
   },
   "app_set_tts_note": {
-    "message": "朗讀引擎與語音仍在瀏覽器擴充功能的設定頁裡配置 —— 那些是每個瀏覽器各自的憑證，這裡改了也不會跟著你走。"
+    "message": "語言未知的卡（例如在 Safari 裡採集的 —— 那裡沒有語言偵測）只用上面選定的朗讀語音；不選則這類卡無法朗讀。雲端語音引擎（自備端點與金鑰）仍在瀏覽器擴充功能裡配置。"
   },
   "app_set_notes_title": {
     "message": "句子解析"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "已掌握"
+  },
+  "tts_no_voice_und": {
+    "message": "這張卡的語言未知 —— 在設定裡選一個朗讀語音後即可朗讀"
+  },
+  "app_set_tts_voice": {
+    "message": "朗讀語音"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "自動（按卡片語言）"
   }
 }

@@ -176,6 +176,35 @@ describe('LearnTTS — availability is checked BEFORE offering a button', () => 
     eq((await TTS.available('ja')).reason, 'no_voice');
     eq((await TTS.available('en')).ok, true);
   });
+
+  // 'und' is every Safari-captured card (no detector there — domain-design §5.3),
+  // which on the phone means MOST cards. The reason code must be distinct: the
+  // no_voice wording ("no voice for this language") sends the user hunting iOS
+  // settings for an English voice their phone obviously has, when the actual fix
+  // is one tap away in OUR settings.
+  test('an unknown-language card without a chosen voice reports no_voice_und, not no_voice', async () => {
+    const sp = fakeSpeech([voice('Alex', 'en-US'), voice('Kyoko', 'ja-JP')]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    eq((await TTS.available('und')).reason, 'no_voice_und', 'und 卡要指路到语音设置');
+    eq((await TTS.available('')).reason, 'no_voice_und', '空 lang 与 und 同类');
+    // speak() has its own copy of this decision (available() is advisory; speak()
+    // is what the ▶ tap actually runs) — a mutant that broke only speak()'s
+    // reason survived the available()-only assertions.
+    const r = await TTS.speak('Hello there', 'und');
+    eq(r.ok, false);
+    eq(r.reason, 'no_voice_und', 'speak 的 und 报错也要指路，不许退回 no_voice');
+  });
+
+  test('an unknown-language card WITH a chosen voice plays with it', async () => {
+    const sp = fakeSpeech([voice('Alex', 'en-US'), voice('Kyoko', 'ja-JP')]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser', voice: 'Alex|en-US' });
+    eq((await TTS.available('und')).ok, true, '选了语音的 und 卡必须可播');
+    const r = await TTS.speak('Hello there', 'und');
+    eq(r.ok, true);
+    eq(sp.spoken[0].voice.name, 'Alex', 'und 卡用的是用户选的那个语音');
+  });
 });
 
 describe('LearnTTS — speak (browser engine)', () => {

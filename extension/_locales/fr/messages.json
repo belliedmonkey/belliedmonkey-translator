@@ -890,7 +890,7 @@
     "message": "Vitesse de lecture"
   },
   "app_set_tts_note": {
-    "message": "Le moteur vocal et la voix se configurent toujours dans les réglages de l'extension — ce sont des identifiants propres à chaque navigateur."
+    "message": "Les cartes de langue inconnue (p. ex. capturées dans Safari, sans détection de langue) ne sont lues qu'avec la voix choisie ci-dessus ; sans choix, elles restent muettes. Les moteurs vocaux cloud (votre endpoint et votre clé) se configurent toujours dans l'extension."
   },
   "app_set_notes_title": {
     "message": "Notes de phrase"
@@ -948,5 +948,14 @@
   },
   "app_unit_known": {
     "message": "maîtrisées"
+  },
+  "tts_no_voice_und": {
+    "message": "La langue de cette carte est inconnue — choisissez une voix dans les réglages pour l'écouter"
+  },
+  "app_set_tts_voice": {
+    "message": "Voix"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automatique (selon la langue de la carte)"
   }
 }
