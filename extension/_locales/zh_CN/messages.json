@@ -761,5 +761,33 @@
   "learn_write_replaced": {
     "message": "已替换为正确答案",
     "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "解析这句",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "使用你配置的 API，一次调用，永久缓存",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "解析中…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "解析失败，稍后再试",
+    "description": "Notes failure status"
+  },
+  "learn_notes_words": {
+    "message": "生词",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "短语搭配",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "语法点",
+    "description": "Notes section header: grammar point"
   }
 }

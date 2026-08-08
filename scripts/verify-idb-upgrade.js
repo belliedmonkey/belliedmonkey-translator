@@ -13,7 +13,7 @@
 // ─── Run this on EVERY `DB_VERSION` bump ─────────────────────────────────────
 //   npm run test:idb          (needs Chrome; see docs/verification-spec.md §3.3)
 //
-// `SEED_V2` below is the schema of the version users are UPGRADING FROM. When the
+// `SEED_PREV` below is the schema of the version users are UPGRADING FROM. When the
 // version moves again, seed the then-current shipped schema — the whole value of this
 // check is that it starts from what real users actually have on disk.
 //
@@ -36,8 +36,8 @@ const http = require('http');
 
 const STORE_SRC = fs.readFileSync(REPO + '/extension/learn/store.js', 'utf8');
 
-const SEED_V2 = `new Promise((resolve) => {
-  const req = indexedDB.open('mt-learn', 2);
+const SEED_PREV = `new Promise((resolve) => {
+  const req = indexedDB.open('mt-learn', 3);
   req.onupgradeneeded = () => {
     const db = req.result;
     const s = db.createObjectStore('items', { keyPath: 'id' });
@@ -49,15 +49,21 @@ const SEED_V2 = `new Promise((resolve) => {
     db.createObjectStore('meta', { keyPath: 'k' });
     const a = db.createObjectStore('audio', { keyPath: 'k' });
     a.createIndex('at','at'); a.createIndex('bytes','bytes');
+    const tb = db.createObjectStore('tombs', { keyPath: 'id' });
+    tb.createIndex('at','at');
   };
   req.onsuccess = () => {
     const db = req.result;
-    const t = db.transaction(['items','meta','reviews'],'readwrite');
+    // v3 has NO 'notes' store — asking for it here throws synchronously and the
+    // promise never settles (the exact hang this file's header warns about; this
+    // seed had it once, from a careless replace that hit the wrong transaction).
+    const t = db.transaction(['items','meta','reviews','tombs'],'readwrite');
     t.objectStore('items').put({ id:'old-1', text:'kept across upgrade', state:'known', salience:0.4, createdAt:1 });
     t.objectStore('items').put({ id:'old-2', text:'also kept', state:'candidate', salience:0.2, createdAt:2 });
     t.objectStore('meta').put({ k:'syncPushedAt', v:12345 });
     t.objectStore('reviews').add({ itemId:'old-1', grade:3, at:999 });
-    t.oncomplete = () => { db.close(); resolve('seeded v2'); };
+    t.objectStore('tombs').put({ id:'old-tomb', at: 5 });
+    t.oncomplete = () => { db.close(); resolve('seeded v3'); };
     t.onerror = () => resolve('SEED TX FAILED: ' + t.error);
   };
   req.onerror = () => resolve('SEED FAILED: ' + req.error);
@@ -68,22 +74,24 @@ const SEED_V2 = `new Promise((resolve) => {
 // upgrade produces — and without this the throw escapes the .then, the promise never
 // settles, and the checker HANGS. A check that hangs is indistinguishable from one
 // still working, so a real defect reads as "still running" instead of "✗".
-const CHECK_V3 = `new Promise((resolve) => {
+const CHECK_NEXT = `new Promise((resolve) => {
   LearnStore.open().then((db) => {
    try {
     const out = { version: db.version, stores: [...db.objectStoreNames].sort() };
-    const t = db.transaction(['items','meta','reviews','tombs'],'readwrite');
+    const t = db.transaction(['items','meta','reviews','tombs','notes'],'readwrite');
     const gi = t.objectStore('items').getAll();
     const gm = t.objectStore('meta').getAll();
     const gr = t.objectStore('reviews').getAll();
-    t.objectStore('tombs').put({ id:'t1', at: 7 });
     const gt = t.objectStore('tombs').getAll();
+    t.objectStore('notes').put({ id:'n1', data:{ words:[] }, at: 9 });
+    const gn = t.objectStore('notes').getAll();
     t.oncomplete = () => {
       out.items = gi.result.map(i => i.id).sort();
       out.itemText = (gi.result.find(i=>i.id==='old-1')||{}).text;
       out.meta = gm.result;
       out.reviews = gr.result.length;
       out.tombs = gt.result;
+      out.notes = gn.result;
       out.itemIndexes = [...db.transaction('items').objectStore('items').indexNames].sort();
       resolve(JSON.stringify(out));
     };
@@ -122,10 +130,10 @@ setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.
       return r.result && r.result.value;
     };
 
-    console.log('  seed:', await evalIn(SEED_V2));
+    console.log('  seed:', await evalIn(SEED_PREV));
     // Load store.js exactly as the extension does: a plain script that defines a global.
     await evalIn(STORE_SRC + '\n;"loaded"');
-    const raw = await evalIn(CHECK_V3);
+    const raw = await evalIn(CHECK_NEXT);
     console.log('  v3  :', raw);
 
     if (typeof raw !== 'string' || raw[0] !== '{') {
@@ -133,16 +141,17 @@ setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.
     }
     const o = JSON.parse(raw);
     const need = (cond, msg) => { if (!cond) { ok = false; console.log('  ✗ ' + msg); } };
-    need(o.version === 3, 'version 不是 3，是 ' + o.version);
-    need(o.stores.join(',') === 'audio,items,meta,reviews,sources,tombs', '表集合不对: ' + o.stores);
+    need(o.version === 4, 'version 不是 4，是 ' + o.version);
+    need(o.stores.join(',') === 'audio,items,meta,notes,reviews,sources,tombs', '表集合不对: ' + o.stores);
     need(o.items.join(',') === 'old-1,old-2', 'v2 的条目丢了: ' + o.items);
     need(o.itemText === 'kept across upgrade', '条目内容被改写了');
     need(o.reviews === 1, '复习记录丢了');
     need(JSON.stringify(o.meta) === '[{"k":"syncPushedAt","v":12345}]', 'meta 丢了/变了: ' + JSON.stringify(o.meta));
     need(o.itemIndexes.join(',') === 'createdAt,lang,salience,state', 'items 索引被改动了: ' + o.itemIndexes);
-    need(o.tombs.length === 1 && o.tombs[0].id === 't1', 'tombs 不可写');
+    need(o.tombs.length === 1 && o.tombs[0].id === 'old-tomb', 'v3 的墓碑丢了: ' + JSON.stringify(o.tombs));
+    need(o.notes.length === 1 && o.notes[0].id === 'n1', 'notes 不可写');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
-  console.log(ok ? '\n✓ v2→v3：旧数据完整保留，tombs 已建且可写' : '\n✗ 升级路径有问题');
+  console.log(ok ? '\n✓ v3→v4：旧数据完整保留（含墓碑），notes 已建且可写' : '\n✗ 升级路径有问题');
   process.exit(ok ? 0 : 1);
 })();
