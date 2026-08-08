@@ -573,6 +573,16 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 
 - **Four grades, not two.** The scheduler's stability update is graded; collapsing to
   记得/不记得 would throw away the signal it needs.
+- **Every grade button shows its consequence** *(2026-08-08 — real-device feedback:
+  「点击完后不知道意味着什么」)*: 「不记得 → 重新学」「有点难 → 2 天后」「记得 →
+  5 天后」「太简单 → 12 天后」, computed for the card on screen via
+  `previewIntervals` (learning-design §5.1). Choosing a grade is choosing a preview,
+  never a surprise.
+- **Memory strength is always visible on the card**: a small bar plus
+  「记忆强度 {s} 天 / 180 天」. 「已掌握」 has a user-visible definition — strength
+  reaching 180 days ≈ nine-in-ten recall after half a year untouched.
+- **First visit shows a one-time explainer** (three sentences: 记得→间隔拉长；
+  忘了→重来；强度攒满→毕业), dismissed forever once seen. Stored in `meta`.
 - **Media cards replay the original audio, never TTS.** They do it by **opening the
   source at the timestamp in a new tab**, not with an inline player. Our own bilingual
   subtitles are active on that tab, so the replay is still a bilingual one.
@@ -637,6 +647,49 @@ capture.
   voice cannot return audio data at all). Cache size and a one-tap clear are visible
   in settings, because a cache the user cannot see is a cache they will one day be
   surprised by.
+
+### 掌握阶梯 (mastery ladder) — 2026-08-08
+
+One schedule, three exercise forms, gated by memory strength (learning-design §5.2).
+The card's FORM changes as `s` grows; the grading flow does not:
+
+- **认读** (`s < 4`): the existing card — source sentence, reveal translation, grade.
+- **听懂** (`4 ≤ s < 30`, TTS available for the card's language): the existing
+  `audio-first` staging — listen → 显示原文 → 显示译文 → grade. A 「跟着读一遍」
+  line invites shadowing, labelled **练习，不验证** — never graded by machine.
+- **产出** (`s ≥ 30`): translation shown, the original with 1–3 blanks
+  (`clozeFor`), a text input per blank. **Checked automatically** after
+  normalization (case / punctuation / whitespace) — the one objectively verified
+  skill, and the UI says so rather than overclaiming the other two.
+- **Skill badges 读 / 听 / 写** on every card — lit when that form was passed at
+  ≥「记得」. All available badges lit + strength full ⇒ 「全面掌握」. A card with
+  full strength but unlit badges reads 「记忆已牢，技能未全」, never a demotion.
+- **A card whose language has no TTS skips the 听懂 form entirely** — a missing
+  capability means the form does not exist, not that the card failed (same
+  semantics as domain-design §5.3 rule 1).
+
+### 自由练习 (free practice) — 2026-08-08
+
+- **Entry**: a standing 「自由练习」 on the review page, and 「继续巩固练习」 on
+  the deck-done screen — 「今天的复习做完了」 is no longer a dead end. That screen
+  also names the daily-new cap and links to its setting.
+- **Pool**: 学习中 by default (weakest `R` first); switchable to 全部 (candidates
+  and known included). Batch 10 / 20 / 不限. `spreadBySource` applies as always.
+- **The asymmetric rule, stated on the surface in one line**:
+  **「练习不能刷出掌握，但能暴露遗忘。」** A practice FAIL counts fully (lapse,
+  card comes back soon); a practice PASS is logged but never lengthens the
+  interval. Candidates in practice are exposure only — introduction stays with the
+  daily deck (learning-design §5.3).
+
+### 解析 (sentence notes) — 2026-08-08
+
+- **「解析这句」 on the answer face** generates 生词表 / 短语搭配 / 一个语法点
+  via the user's own chat-capable engine (learning-design §9.2).
+- **Capability-gated like everything else**: no chat-capable engine configured ⇒
+  the button does not render at all. Never a disabled button with an apology.
+- **Cost is stated at the point of use**: 「使用你配置的 API，一次调用，永久缓存」.
+  Cached notes render instantly with no spinner and no second charge. Generation is
+  always per-card and user-initiated — never bulk, never automatic.
 
 ### 存储压力
 
