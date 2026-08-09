@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "Automatique (selon la langue de la carte)"
+  },
+  "learn_langs_label": {
+    "message": "Langues à apprendre"
+  },
+  "learn_langs_all": {
+    "message": "Toutes (par défaut)"
+  },
+  "learn_langs_hint": {
+    "message": "Seules les phrases dans les langues sélectionnées sont capturées. Quand Safari ne peut pas détecter la langue, le système d’écriture décide ; les enregistrements par appui long ne sont jamais filtrés."
+  },
+  "learn_sources_manage": {
+    "message": "Gérer les sources"
+  },
+  "learn_sources_empty": {
+    "message": "Aucune source capturée pour l’instant"
+  },
+  "learn_sources_count": {
+    "message": "{n} cartes"
+  },
+  "learn_src_delete": {
+    "message": "Supprimer l’enregistré"
+  },
+  "learn_src_block": {
+    "message": "Ne plus capturer"
+  },
+  "learn_src_unblock": {
+    "message": "Reprendre la capture"
+  },
+  "learn_src_blocked": {
+    "message": "Bloqué"
+  },
+  "learn_src_blocked_by": {
+    "message": "Bloqué par la règle {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Règles de blocage"
+  },
+  "learn_block_hint": {
+    "message": "Jokers pris en charge : example.com couvre tout le domaine (sous-domaines inclus) ; *.example.com/news/* couvre un chemin."
+  },
+  "learn_block_add": {
+    "message": "Ajouter"
+  },
+  "learn_block_placeholder": {
+    "message": "ex. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Règle invalide"
+  },
+  "learn_delete_confirm": {
+    "message": "Supprimer {n} cartes de {host} ? Cette action se synchronise sur tous vos appareils et est irréversible."
+  },
+  "learn_delete_done": {
+    "message": "{n} cartes supprimées"
+  },
+  "learn_delete_none": {
+    "message": "Plus rien à supprimer pour cette source"
+  },
+  "popup_site_section": {
+    "message": "Ce site"
+  },
+  "popup_site_capture": {
+    "message": "Capturer sur ce site"
+  },
+  "popup_site_manage": {
+    "message": "Gérer…"
+  },
+  "learn_card_src_actions": {
+    "message": "Actions sur la source"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

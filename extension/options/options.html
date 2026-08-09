@@ -161,6 +161,19 @@
           <input type="number" id="learn-daily-new" min="1" max="200" step="1">
         </div>
 
+        <!-- 学习语言白名单（learning-design §4.1）：默认「全部」= 一切 ≠ 目标语言。
+             收紧白名单不会删除已存内容 —— 删除是来源管理里的另一个动作。 -->
+        <div class="field">
+          <label data-i18n="learn_langs_label">学习语言</label>
+          <div id="learn-langs"></div>
+          <p class="hint" data-i18n="learn_langs_hint">只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。</p>
+        </div>
+
+        <!-- 来源管理（interaction-spec「来源治理」）：按域名列表点选是主路径，
+             通配符输入是补充。删除会同步到所有设备。 -->
+        <button id="btn-manage-sources" data-i18n="learn_sources_manage">来源管理</button>
+        <div id="sources-manager" hidden></div>
+
         <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
         <!-- 导出不是合规负担，它同时是：数据可携带权、不想注册账号时的多端路径、
              以及对「我信不过你们」最诚实的回答（learning-design §8.2）。 -->
@@ -295,7 +308,9 @@
 
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/providers.gen.js"></script>
+  <script src="../content/langs.gen.js"></script>
   <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-rules.js"></script>
   <script src="../content/learn-scheduler.js"></script>
   <script src="../content/tts.gen.js"></script>
   <script src="../learn/store.js"></script>
@@ -305,6 +320,7 @@
   <script src="../learn/sync.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
+  <script src="../learn/sources-view.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

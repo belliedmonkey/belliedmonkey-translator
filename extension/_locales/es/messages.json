@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "Automático (según el idioma de la tarjeta)"
+  },
+  "learn_langs_label": {
+    "message": "Idiomas que aprendes"
+  },
+  "learn_langs_all": {
+    "message": "Todos (predeterminado)"
+  },
+  "learn_langs_hint": {
+    "message": "Solo se capturan frases en los idiomas seleccionados. Cuando Safari no puede detectar el idioma, decide el sistema de escritura; lo guardado con pulsación larga nunca se filtra."
+  },
+  "learn_sources_manage": {
+    "message": "Gestionar fuentes"
+  },
+  "learn_sources_empty": {
+    "message": "Aún no hay fuentes capturadas"
+  },
+  "learn_sources_count": {
+    "message": "{n} tarjetas"
+  },
+  "learn_src_delete": {
+    "message": "Borrar lo guardado"
+  },
+  "learn_src_block": {
+    "message": "Dejar de capturar"
+  },
+  "learn_src_unblock": {
+    "message": "Reanudar captura"
+  },
+  "learn_src_blocked": {
+    "message": "Bloqueado"
+  },
+  "learn_src_blocked_by": {
+    "message": "Bloqueado por la regla {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Reglas de bloqueo"
+  },
+  "learn_block_hint": {
+    "message": "Admite comodines: example.com abarca todo el dominio (incluidos subdominios); *.example.com/news/* abarca una ruta."
+  },
+  "learn_block_add": {
+    "message": "Añadir"
+  },
+  "learn_block_placeholder": {
+    "message": "p. ej. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Regla no válida"
+  },
+  "learn_delete_confirm": {
+    "message": "¿Borrar {n} tarjetas de {host}? Se sincroniza en todos tus dispositivos y no se puede deshacer."
+  },
+  "learn_delete_done": {
+    "message": "{n} tarjetas borradas"
+  },
+  "learn_delete_none": {
+    "message": "No queda nada que borrar de esta fuente"
+  },
+  "popup_site_section": {
+    "message": "Este sitio"
+  },
+  "popup_site_capture": {
+    "message": "Capturar en este sitio"
+  },
+  "popup_site_manage": {
+    "message": "Gestionar…"
+  },
+  "learn_card_src_actions": {
+    "message": "Acciones de la fuente"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }
