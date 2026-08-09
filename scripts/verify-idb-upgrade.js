@@ -1,4 +1,4 @@
-// v2 → v3 upgrade, MEASURED in a real Chrome rather than reasoned about.
+// v4 → v5 upgrade, MEASURED in a real Chrome rather than reasoned about.
 //
 // The claim under test is store.js's own comment: "every create is guarded by
 // `contains`, so bumping the version never touches existing data." That holds right
@@ -24,9 +24,13 @@
 //   · deleting and recreating a store      → every user's corpus silently emptied
 //
 // One thing it CANNOT prove: the `contains` guard around a brand-new store. On the
-// v2→v3 path that store does not exist yet, so guarded and unguarded behave
+// v4→v5 path that store does not exist yet, so guarded and unguarded behave
 // identically. The guard is a convention for paths that skip versions, not something
 // this run exercises — do not read a green here as evidence for it.
+//
+// The v5 run ALSO exercises `deleteItems` (§7.4) against the upgraded data, because
+// its three claims — item AND its reviews go, the ledger records it, `everEvicted`
+// stays untouched — are IndexedDB plumbing `npm test` structurally cannot see.
 'use strict';
 const REPO = require('path').join(__dirname, '..');
 const { launchChrome } = require(REPO + '/test/layout/chrome.js');
@@ -34,10 +38,11 @@ const { CDP } = require(REPO + '/test/layout/cdp.js');
 const fs = require('fs');
 const http = require('http');
 
+const MODEL_SRC = fs.readFileSync(REPO + '/extension/content/learn-model.js', 'utf8');
 const STORE_SRC = fs.readFileSync(REPO + '/extension/learn/store.js', 'utf8');
 
 const SEED_PREV = `new Promise((resolve) => {
-  const req = indexedDB.open('mt-learn', 3);
+  const req = indexedDB.open('mt-learn', 4);
   req.onupgradeneeded = () => {
     const db = req.result;
     const s = db.createObjectStore('items', { keyPath: 'id' });
@@ -51,25 +56,27 @@ const SEED_PREV = `new Promise((resolve) => {
     a.createIndex('at','at'); a.createIndex('bytes','bytes');
     const tb = db.createObjectStore('tombs', { keyPath: 'id' });
     tb.createIndex('at','at');
+    db.createObjectStore('notes', { keyPath: 'id' });
   };
   req.onsuccess = () => {
     const db = req.result;
-    // v3 has NO 'notes' store — asking for it here throws synchronously and the
-    // promise never settles (the exact hang this file's header warns about; this
-    // seed had it once, from a careless replace that hit the wrong transaction).
-    const t = db.transaction(['items','meta','reviews','tombs'],'readwrite');
+    // v4 has NO 'dels' store — asking for it here throws synchronously and the
+    // promise never settles (the exact hang this file's header warns about).
+    const t = db.transaction(['items','meta','reviews','tombs','notes'],'readwrite');
     t.objectStore('items').put({ id:'old-1', text:'kept across upgrade', state:'known', salience:0.4, createdAt:1 });
     t.objectStore('items').put({ id:'old-2', text:'also kept', state:'candidate', salience:0.2, createdAt:2 });
     t.objectStore('meta').put({ k:'syncPushedAt', v:12345 });
     t.objectStore('reviews').add({ itemId:'old-1', grade:3, at:999 });
+    t.objectStore('reviews').add({ itemId:'old-2', grade:2, at:998 });
     t.objectStore('tombs').put({ id:'old-tomb', at: 5 });
-    t.oncomplete = () => { db.close(); resolve('seeded v3'); };
+    t.objectStore('notes').put({ id:'old-note', data:{ words:[] }, at: 7 });
+    t.oncomplete = () => { db.close(); resolve('seeded v4'); };
     t.onerror = () => resolve('SEED TX FAILED: ' + t.error);
   };
   req.onerror = () => resolve('SEED FAILED: ' + req.error);
 })`;
 
-// The try/catch is load-bearing, not decoration. `db.transaction([... 'tombs'])`
+// The try/catch is load-bearing, not decoration. `db.transaction([... 'dels'])`
 // throws SYNCHRONOUSLY when the store is missing — which is exactly what a botched
 // upgrade produces — and without this the throw escapes the .then, the promise never
 // settles, and the checker HANGS. A check that hangs is indistinguishable from one
@@ -78,20 +85,22 @@ const CHECK_NEXT = `new Promise((resolve) => {
   LearnStore.open().then((db) => {
    try {
     const out = { version: db.version, stores: [...db.objectStoreNames].sort() };
-    const t = db.transaction(['items','meta','reviews','tombs','notes'],'readwrite');
+    const t = db.transaction(['items','meta','reviews','tombs','notes','dels'],'readwrite');
     const gi = t.objectStore('items').getAll();
     const gm = t.objectStore('meta').getAll();
     const gr = t.objectStore('reviews').getAll();
     const gt = t.objectStore('tombs').getAll();
-    t.objectStore('notes').put({ id:'n1', data:{ words:[] }, at: 9 });
     const gn = t.objectStore('notes').getAll();
+    t.objectStore('dels').put({ id:'d1', at: 11 });
+    const gd = t.objectStore('dels').getAll();
     t.oncomplete = () => {
       out.items = gi.result.map(i => i.id).sort();
       out.itemText = (gi.result.find(i=>i.id==='old-1')||{}).text;
       out.meta = gm.result;
       out.reviews = gr.result.length;
       out.tombs = gt.result;
-      out.notes = gn.result;
+      out.notes = gn.result.map(n => n.id);
+      out.dels = gd.result;
       out.itemIndexes = [...db.transaction('items').objectStore('items').indexNames].sort();
       resolve(JSON.stringify(out));
     };
@@ -99,6 +108,21 @@ const CHECK_NEXT = `new Promise((resolve) => {
    } catch (e) { resolve('THREW: ' + (e && e.name) + ' ' + (e && e.message)); }
   }, (e) => resolve('OPEN REJECTED: ' + e));
 })`;
+
+// §7.4 against the UPGRADED database: the shipped deleteItems, not a retype.
+const CHECK_DELETE = `LearnStore.deleteItems(['old-1'], 50000)
+  .then((n) => Promise.all([
+    Promise.resolve(n),
+    LearnStore.allItems(), LearnStore.allReviews(), LearnStore.allDels(),
+    LearnStore.hasEverEvicted(),
+  ]))
+  .then(([n, items, reviews, dels, evicted]) => JSON.stringify({
+    deleted: n,
+    items: items.map(i => i.id).sort(),
+    reviews: reviews.map(r => r.itemId),
+    ledger: dels.map(d => d.id).sort(),
+    everEvicted: evicted,
+  }), (e) => 'DELETE FAILED: ' + e)`;
 
 setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.exit(2); }, 90000).unref();
 
@@ -131,27 +155,39 @@ setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.
     };
 
     console.log('  seed:', await evalIn(SEED_PREV));
-    // Load store.js exactly as the extension does: a plain script that defines a global.
-    await evalIn(STORE_SRC + '\n;"loaded"');
+    // Load exactly as the extension does: plain scripts defining globals.
+    // learn-model.js first — store.js's deleteItems reads LearnModel.touchedAt.
+    await evalIn(MODEL_SRC + '\n;' + STORE_SRC + '\n;"loaded"');
     const raw = await evalIn(CHECK_NEXT);
-    console.log('  v3  :', raw);
+    console.log('  v5  :', raw);
 
     if (typeof raw !== 'string' || raw[0] !== '{') {
       throw new Error('检查没有拿到结果，而是: ' + raw);
     }
     const o = JSON.parse(raw);
     const need = (cond, msg) => { if (!cond) { ok = false; console.log('  ✗ ' + msg); } };
-    need(o.version === 4, 'version 不是 4，是 ' + o.version);
-    need(o.stores.join(',') === 'audio,items,meta,notes,reviews,sources,tombs', '表集合不对: ' + o.stores);
-    need(o.items.join(',') === 'old-1,old-2', 'v2 的条目丢了: ' + o.items);
+    need(o.version === 5, 'version 不是 5，是 ' + o.version);
+    need(o.stores.join(',') === 'audio,dels,items,meta,notes,reviews,sources,tombs', '表集合不对: ' + o.stores);
+    need(o.items.join(',') === 'old-1,old-2', 'v4 的条目丢了: ' + o.items);
     need(o.itemText === 'kept across upgrade', '条目内容被改写了');
-    need(o.reviews === 1, '复习记录丢了');
+    need(o.reviews === 2, '复习记录丢了');
     need(JSON.stringify(o.meta) === '[{"k":"syncPushedAt","v":12345}]', 'meta 丢了/变了: ' + JSON.stringify(o.meta));
     need(o.itemIndexes.join(',') === 'createdAt,lang,salience,state', 'items 索引被改动了: ' + o.itemIndexes);
-    need(o.tombs.length === 1 && o.tombs[0].id === 'old-tomb', 'v3 的墓碑丢了: ' + JSON.stringify(o.tombs));
-    need(o.notes.length === 1 && o.notes[0].id === 'n1', 'notes 不可写');
+    need(o.tombs.length === 1 && o.tombs[0].id === 'old-tomb', 'v4 的墓碑丢了: ' + JSON.stringify(o.tombs));
+    need(o.notes.join(',') === 'old-note', 'v4 的 notes 丢了: ' + o.notes);
+    need(o.dels.length === 1 && o.dels[0].id === 'd1', 'dels 不可写');
+
+    const rawDel = await evalIn(CHECK_DELETE);
+    console.log('  del :', rawDel);
+    if (typeof rawDel !== 'string' || rawDel[0] !== '{') throw new Error('删除检查没有结果: ' + rawDel);
+    const d = JSON.parse(rawDel);
+    need(d.deleted === 1, 'deleteItems 报数不对: ' + d.deleted);
+    need(d.items.join(',') === 'old-2', '删错了条目: ' + d.items);
+    need(d.reviews.join(',') === 'old-2', '被删卡的复习行必须一并删: ' + d.reviews);
+    need(d.ledger.join(',') === 'd1,old-1', '台账没落: ' + d.ledger);
+    need(d.everEvicted === false, '用户删除绝不能碰 everEvicted（否则本机永久失去压实资格）');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
-  console.log(ok ? '\n✓ v3→v4：旧数据完整保留（含墓碑），notes 已建且可写' : '\n✗ 升级路径有问题');
+  console.log(ok ? '\n✓ v4→v5：旧数据完整保留（含墓碑/notes），dels 已建且 deleteItems 语义正确' : '\n✗ 升级路径有问题');
   process.exit(ok ? 0 : 1);
 })();

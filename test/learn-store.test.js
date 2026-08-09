@@ -103,6 +103,25 @@ describe('LearnStore — tombstones are bounded, and forget the oldest (§7.3)',
   });
 });
 
+describe('LearnStore — the user-delete ledger is bounded the same way (§7.4)', () => {
+  const S = store();
+
+  test('under the cap nothing is forgotten', () => {
+    eq(S.staleDels([{ id: 'a', at: 1 }, { id: 'b', at: 2 }], 5).length, 0);
+  });
+
+  test('the OLDEST deletes go first — a forgotten delete degrades to "the card returns once"', () => {
+    const rows = [{ id: 'new', at: 300 }, { id: 'old', at: 100 }, { id: 'mid', at: 200 }];
+    eq(S.staleDels(rows, 1).map((r) => r.id).join(','), 'old,mid');
+  });
+
+  test('trimming does not reorder the caller\'s array', () => {
+    const rows = [{ id: 'c', at: 3 }, { id: 'a', at: 1 }, { id: 'b', at: 2 }];
+    S.staleDels(rows, 1);
+    eq(rows.map((r) => r.id).join(','), 'c,a,b');
+  });
+});
+
 describe('LearnStore — the module is IO-free until you call it', () => {
   test('loading store.js does not open a database', () => {
     // If this ever regresses, store.js becomes unloadable in any context without

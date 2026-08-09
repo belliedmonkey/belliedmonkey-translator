@@ -49,9 +49,29 @@ function fakeStore(seed = {}) {
   const items = (seed.items || []).slice();
   const reviews = (seed.reviews || []).slice();
   const sources = (seed.sources || []).slice();
+  const dels = new Map(seed.dels || []);
   const bumps = [];
   return {
-    meta, items, reviews, sources, bumps,
+    meta, items, reviews, sources, dels, bumps,
+    // §7.4 ledger, mirrored from the real store (delete iff touchedAt <= at; the
+    // fake's items carry explicit timestamps, so touchedAt reduces to their max).
+    applyDels: (entries) => {
+      let deleted = 0;
+      for (const e of entries || []) {
+        if (!e || !e.id) continue;
+        const i = items.findIndex((x) => x.id === e.id);
+        if (i >= 0) {
+          const it = items[i];
+          const touched = Math.max(it.createdAt || 0, it.lastSeenAt || 0,
+            (it.sched && it.sched.lastReviewAt) || 0);
+          if (touched <= (e.at || 0)) { items.splice(i, 1); deleted++; }
+        }
+        dels.set(e.id, Math.max(dels.get(e.id) || 0, e.at || 0));
+      }
+      return Promise.resolve(deleted);
+    },
+    userDels: () => Promise.resolve(new Map(dels)),
+    allDels: () => Promise.resolve(Array.from(dels, ([id, at]) => ({ id, at }))),
     getMeta: (k, d) => Promise.resolve(k in meta ? meta[k] : d),
     setMeta: (k, v) => { meta[k] = v; return Promise.resolve(); },
     allItems: () => Promise.resolve(items.slice()),
@@ -799,5 +819,118 @@ describe('LearnSync — 离线预检不许把 autoSync 永久卡死（inflight �
     eq(await S.autoSync(Date.now(), { force: true }), null);
     eq(JSON.stringify(seen), JSON.stringify(['offline', 'offline']),
       '第二次也必须是新的一次运行（再报一次 offline），而不是尸体');
+  });
+});
+
+// ─── §7.4 / §8.9 — user deletes and governance rules ride the same log ───────
+// The failure modes these guard: a delete that never leaves the device (the other
+// phone keeps showing the cards), a delete swept away by compaction before a stale
+// device saw it (it comes back), and a push that thinks "no fresh cards" means
+// "nothing to say" while a delete is waiting.
+
+describe('LearnSync — 用户删除与规则随推送传播（§7.4/§8.9）', () => {
+  test('a push with ONLY a delete due still writes a chunk', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 100 },
+      items: [card('old')],                      // nothing fresh
+      dels: [['gone', T0 + 500]],                // but a delete happened
+    });
+    let body = null;
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { body = JSON.parse(i.body); return reply(201, [{ seq: 1 }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 1000);
+    eq(r.dels, 1, '「没有新卡」不等于「没话要说」——删除也在等着上行');
+    const back = C.fromJsonl(await C.inflate(S.fromHex(body.blob)));
+    eq(back.dels.length, 1);
+    eq(back.dels[0].id, 'gone');
+  });
+
+  test('a delete already pushed does not travel again', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 900 },
+      dels: [['gone', T0 + 500]],                // before the watermark
+    });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 1000);
+    eq(r.dels, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0);
+  });
+
+  test('deletes and rules ride the FINAL chunk of a multi-batch push', async () => {
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i, { lastSeenAt: T0 + 500 }));
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 100 },
+      items, dels: [['gone', T0 + 600]],
+    });
+    const bodies = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: bodies.length }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    await S.push(T0 + 1000);
+    ok(bodies.length >= 2, '450 张卡必须分批');
+    for (let i = 0; i < bodies.length; i++) {
+      const back = C.fromJsonl(await C.inflate(S.fromHex(bodies[i].blob)));
+      eq(back.dels.length, i === bodies.length - 1 ? 1 : 0,
+        'd 行只搭最后一节车厢，跟孤儿 review 同一规则');
+    }
+  });
+
+  test('a compaction snapshot ends with the FULL ledger — that is how deletion becomes permanent', async () => {
+    const items = [];
+    for (let i = 0; i < 250; i++) items.push(card('c' + i));
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items,
+      dels: [['old-del', T0 - 5000], ['new-del', T0 + 5]],   // BOTH, not just recent
+    });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const bodies = [];
+    const fetchFn = fakeFetch([
+      {
+        match: (u, i) => i && i.method === 'POST',
+        reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: 100 + bodies.length }]); },
+      },
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    const r = await S.compact(T0 + 10);
+    ok(r.compacted > 0);
+    ok(bodies.length >= 2, '250 张卡的快照要分批');
+    const parts = [];
+    for (const b of bodies) parts.push(C.fromJsonl(await C.inflate(S.fromHex(b.blob))));
+    for (let i = 0; i < parts.length - 1; i++) eq(parts[i].dels.length, 0);
+    eq(parts[parts.length - 1].dels.length, 2,
+      '快照必须携带完整台账 —— 游标落后的设备只靠它自愈，缺一条就复活一条');
+  });
+
+  test('a pulled d row deletes locally and reports it', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [card('doomed')] });
+    const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+    const LearnScheduler = loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
+    const C0 = loadModule('learn/chunk.js', {
+      window: {}, LearnStore: store, LearnModel, LearnScheduler,
+      TextEncoder, TextDecoder, Response, Date,
+    }).LearnChunk;
+    const blob = await C0.deflate(C0.toJsonl(C0.build([], [], [], T0 + 10, [{ id: 'doomed', at: T0 + 10 }])));
+    let hex = '\\x';
+    for (const b of blob) hex += b.toString(16).padStart(2, '0');
+    const fetchFn = fakeFetch([{
+      match: (u, i) => (!i || i.method === 'GET') && /seq=gt\./.test(u),
+      reply: (u) => (/seq=gt\.0/.test(u) ? reply(200, [{ seq: 1, blob: hex }]) : reply(200, [])),
+    }]);
+    const { S, store: st } = setup({ store, fetch: fetchFn });
+    const stats = await S.pull();
+    eq(stats.deleted, 1, '拉取要把删除落地并报数');
+    eq(st.items.length, 0);
+    eq(st.dels.get('doomed'), T0 + 10);
   });
 });

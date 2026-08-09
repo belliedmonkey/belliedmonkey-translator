@@ -4,7 +4,7 @@
 // miss: that only graduated cards travel, that replay is IDEMPOTENT, that a damaged
 // file loses only the damaged lines, and that a foreign file is refused outright.
 
-const { loadModule, describe, test, ok, eq, rejects } = require('./harness');
+const { loadModule, describe, test, ok, eq, deepEq, rejects } = require('./harness');
 
 function scheduler() {
   return loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
@@ -17,6 +17,9 @@ function setup(seed = {}) {
   const items = (seed.items || []).slice();
   const sources = (seed.sources || []).slice();
   const reviews = (seed.reviews || []).slice();
+  // §7.4 user-delete ledger, mirrored from the real store: delete iff
+  // touchedAt(item) <= at, always upsert the ledger with max(at).
+  const dels = new Map(seed.dels || []);
   const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
   const LearnScheduler = scheduler();
 
@@ -24,6 +27,22 @@ function setup(seed = {}) {
     allItems: () => Promise.resolve(items.slice()),
     allSources: () => Promise.resolve(sources.slice()),
     allReviews: () => Promise.resolve(reviews.slice()),
+    applyDels: (entries) => {
+      let deleted = 0;
+      for (const e of entries || []) {
+        if (!e || !e.id) continue;
+        const i = items.findIndex((x) => x.id === e.id);
+        if (i >= 0 && LearnModel.touchedAt(items[i]) <= (e.at || 0)) {
+          items.splice(i, 1);
+          deleted++;
+          for (let r = reviews.length - 1; r >= 0; r--) if (reviews[r].itemId === e.id) reviews.splice(r, 1);
+        }
+        dels.set(e.id, Math.max(dels.get(e.id) || 0, e.at || 0));
+      }
+      return Promise.resolve(deleted);
+    },
+    userDels: () => Promise.resolve(new Map(dels)),
+    allDels: () => Promise.resolve(Array.from(dels, ([id, at]) => ({ id, at }))),
     mergeBatch: (incoming, srcs) => {
       calls.merge.push({ items: incoming.length, sources: (srcs || []).length });
       let added = 0;
@@ -54,8 +73,9 @@ function setup(seed = {}) {
     TextEncoder, TextDecoder, Response, Date,
     // CompressionStream deliberately absent by default — chunk.js must work without
     // it (and this also keeps the tests synchronous-ish and deterministic).
+    // chrome deliberately absent too: the rules seam (§8.9) must degrade to a no-op.
   });
-  return { C: ctx.LearnChunk, items, sources, reviews, calls };
+  return { C: ctx.LearnChunk, items, sources, reviews, dels, calls };
 }
 
 const T0 = 1700000000000;
@@ -372,6 +392,130 @@ describe('LearnChunk — compression is optional, never a dependency', () => {
     const { C } = setup();
     const n = C.fileName(Date.UTC(2026, 7, 4, 12));
     ok(/^belliedmonkey-learn-2026080\d\.mtlearn$/.test(n), n);
+  });
+});
+
+// ─── §7.4 — user deletes propagate; §8.9 — rules ride the same log ───────────
+// The line all of these walk: a USER delete is account intent (applies on pull AND
+// import, suppresses copies, propagates), while EVICTION stays a device fact
+// (§7.3 suite above). Getting the two confused in either direction is silent.
+
+describe('LearnChunk — user-delete rows (§7.4)', () => {
+  const T1 = T0 + 1000;
+
+  test('d rows round-trip through JSONL, grouped by timestamp', () => {
+    const { C } = setup();
+    const b = C.build([card('a')], [], [], T0,
+      [{ id: 'x', at: T1 }, { id: 'y', at: T1 }, { id: 'z', at: T0 }]);
+    eq(b.header.counts.dels, 3);
+    const back = C.fromJsonl(C.toJsonl(b));
+    eq(back.dels.length, 3);
+    eq(back.skipped, 0);
+    deepEq(back.dels.find((d) => d.id === 'x'), { id: 'x', at: T1 });
+  });
+
+  test('replaying a d row deletes the item AND its reviews, on the SYNC path', async () => {
+    const { C, items, reviews, dels } = setup({
+      items: [card('doomed'), card('kept')],
+      reviews: [{ itemId: 'doomed', grade: 2, at: T0 }, { itemId: 'kept', grade: 2, at: T0 }],
+    });
+    const b = { header: {}, cards: [], sources: [], reviews: [], dels: [{ id: 'doomed', at: T1 }] };
+    const s = await C.replay(b, { fromServer: true });
+    eq(s.deleted, 1);
+    eq(items.map((i) => i.id).join(','), 'kept');
+    eq(reviews.length, 1, '被删卡的复习行要一并删（隐私意图 + 预算不虚高）');
+    eq(dels.get('doomed'), T1, '台账要落，防止拉取回灌');
+  });
+
+  test('a FILE IMPORT applies d rows too — intent travels with the corpus, unlike tombs', async () => {
+    const { C, items } = setup({ items: [card('doomed')] });
+    const b = C.build([], [], [], T1, [{ id: 'doomed', at: T1 }]);
+    await C.importBytes(new TextEncoder().encode(C.toJsonl(b)));
+    eq(items.length, 0, '导入的删除是用户意图，必须生效（对比：墓碑对导入无效）');
+  });
+
+  test('an item touched AFTER the delete survives replay — activity wins', async () => {
+    const { C, items } = setup({ items: [card('lively', { lastSeenAt: T1 + 5000 })] });
+    const b = { header: {}, cards: [], sources: [], reviews: [], dels: [{ id: 'lively', at: T1 }] };
+    const s = await C.replay(b, { fromServer: true });
+    eq(s.deleted, 0);
+    eq(items.length, 1, '删除之后又真实碰过的卡必须活下来（§7.4 判定规则）');
+  });
+
+  test('the ledger suppresses an incoming COPY of a deleted card, but re-admits real activity', async () => {
+    const { C, items } = setup({ dels: [['gone', T1]] });
+    const stale = card('gone');                                  // touchedAt = T0 < T1
+    const fresh = card('gone2', { lastSeenAt: T1 + 5000 });      // touched after any delete
+    const b = { header: {}, cards: [stale, fresh], sources: [], reviews: [], dels: [] };
+    const s = await C.replay(b, { fromServer: true });
+    eq(items.map((i) => i.id).join(','), 'gone2', '旧拷贝不得复活已删的卡');
+    eq(s.declined, 1);
+  });
+
+  test('an old export re-imported does NOT resurrect a delete (suppression on import too)', async () => {
+    const { C, items } = setup({ dels: [['gone', T1]] });
+    const b = C.build([card('gone')], [], [], T0);               // exported before the delete
+    await C.importBytes(new TextEncoder().encode(C.toJsonl(b)));
+    eq(items.length, 0, '导入旧备份把删过的卡带回来 = 删除不可信');
+  });
+
+  test('replaying the same d row twice is a no-op (idempotence)', async () => {
+    const { C, items, dels } = setup({ items: [card('doomed')] });
+    const b = { header: {}, cards: [], sources: [], reviews: [], dels: [{ id: 'doomed', at: T1 }] };
+    eq((await C.replay(b, { fromServer: true })).deleted, 1);
+    eq((await C.replay(b, { fromServer: true })).deleted, 0);
+    eq(items.length, 0);
+    eq(dels.get('doomed'), T1);
+  });
+
+  test('exportBytes carries the full ledger', async () => {
+    const src = setup({ items: [card('a')], dels: [['gone', T1]] });
+    const { bytes, header } = await src.C.exportBytes(T1);
+    eq(header.counts.dels, 1);
+    const dst = setup({ items: [card('gone')] });
+    await dst.C.importBytes(bytes);
+    eq(dst.items.map((i) => i.id).sort().join(','), 'a', '备份要带走删除意图');
+  });
+});
+
+describe('LearnChunk — governance rules rows (§8.9)', () => {
+  const RULES = { v: 1, block: ['reddit.com'], langs: ['en'], updatedAt: T0 + 7 };
+
+  test('g rows round-trip; several g rows in one chunk keep the newest', () => {
+    const { C } = setup();
+    const b = C.build([], [], [], T0, [], RULES);
+    const back = C.fromJsonl(C.toJsonl(b));
+    deepEq(back.rules, RULES);
+    const two = C.toJsonl(b).trimEnd() + '\n'
+      + JSON.stringify({ t: 'g', v: { ...RULES, block: [], updatedAt: T0 + 99 } }) + '\n';
+    eq(C.fromJsonl(two).rules.updatedAt, T0 + 99, '快照里多条 g 行取最新');
+  });
+
+  test('with no chrome in the host, a g row degrades to a no-op — never a throw', async () => {
+    const { C } = setup();
+    const b = { header: {}, cards: [], sources: [], reviews: [], dels: [], rules: RULES };
+    const s = await C.replay(b, { fromServer: true });
+    eq(s.rules, undefined, '无存储可写时不得谎报「已采纳」');
+  });
+
+  test('applyRules is LWW: newer incoming wins, older/equal loses', async () => {
+    const stored = {};
+    const chromeStub = { storage: { local: {
+      get: (_, cb) => cb({ learnRules: stored.rules || null }),
+      set: (obj, cb) => { stored.rules = obj.learnRules; cb && cb(); },
+    } } };
+    const ctx = require('./harness').loadModule('learn/chunk.js', {
+      window: {}, chrome: chromeStub,
+      LearnStore: { }, LearnModel: {}, TextEncoder, TextDecoder, Response, Date,
+    });
+    const C = ctx.LearnChunk;
+    eq(await C.applyRules(RULES), true, '本地为空 → 采纳');
+    eq(stored.rules.updatedAt, RULES.updatedAt);
+    eq(await C.applyRules({ ...RULES, updatedAt: T0 + 1 }), false, '更旧 → 拒绝');
+    eq(stored.rules.updatedAt, RULES.updatedAt);
+    eq(await C.applyRules({ ...RULES, updatedAt: T0 + 7 }), false, '同刻 → 保持本地，不空转');
+    eq(await C.applyRules({ ...RULES, block: [], updatedAt: T0 + 8 }), true, '更新 → 整组覆盖');
+    deepEq(stored.rules.block, []);
   });
 });
 
