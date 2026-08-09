@@ -1,0 +1,149 @@
+classDiagram
+direction LR
+
+class Item {
+  <<聚合根 · 内容寻址>>
+  +id  FNV-1a(lang+normText) 16hex
+  +text 原句（不可变）
+  +tr 译文（不可变）
+  +lang 学习语言=源语（可为und）
+  +targetLang
+  +kind  sentence 或 passage
+  +state  candidate丨learning丨known丨muted
+  +salience 0..1 采集时定死
+  +seenCount丨dwellMs丨starred
+  +skills 读听写徽章（并集合并）
+}
+
+class Anchor {
+  <<union（按k判别）>>
+  三种粒度一个类型
+  非三个平行Item
+}
+class DomAnchor {
+  k = dom
+  url丨title丨siteKind
+  quote 用于重定位原文
+}
+class MediaAnchor {
+  k = media
+  url丨mediaKey丨title
+  startMs丨endMs
+  回放=跳回原时间点（永不合成替代）
+}
+
+class Sched {
+  <<值对象 · FSRS参数化>>
+  s 稳定性(天)丨d 难度1..10
+  lastReviewAt丨dueAt丨reps丨lapses
+  R(t)=0.9^(t/S)
+  s≥180d ⇒ known
+  同步合并=lastReviewAt新者胜
+}
+
+class ReviewLog {
+  <<append-only台账>>
+  itemId丨grade 0..3丨at
+  mode  read丨listen丨write
+  practice=1 自由练习（不推进排程）
+  viaSync计入账户级日预算
+}
+
+class Source {
+  <<归一化出处>>
+  url丨title
+  同页约30卡共享（160B→5B）
+}
+
+class Tombstone {
+  <<设备本地 · 永不同步>>
+  itemId丨at
+  只过滤同步拉取
+  采集永远赢（重读即复活）
+}
+
+class Note {
+  <<衍生物 · 永不同步>>
+  itemId丨v 提示词版本
+  生词·短语·语法（句子卡的面）
+  用户自己的chat引擎按需生成
+}
+
+class LearnCollector {
+  <<Service · 纯下水道>>
+  IntersectionObserver 计dwell
+  闸门 salience≥0.45 且 dwell≥2.5s
+  垃圾过滤器，不是选择器
+  law1=运行时删掉它，翻译逐字节不变
+}
+
+class Outbox {
+  <<chrome.storage.local>>
+  lq:sessionId 每页一键
+  上限40会话，溢出丢最旧（可见）
+}
+
+class LearnScheduler {
+  <<纯函数 · now注入>>
+  applyReview(sched,g,now)
+  buildDeck  70学习丨20新卡丨10已掌握
+  previewIntervals 评分后果标在按钮上
+  introducedToday 账户级日预算(UTC日界)
+  dailyNew=15 才是真正的限流阀
+}
+
+class Reviewer {
+  <<同一份字节 · 双宿主>>
+  读→听→写 掌握阶梯（按s门控）
+  自由练习=错照算·对只记录
+  进入即强制sync并重建deck
+}
+
+class LearnTTS {
+  <<注册表 MT_TTS_ENGINES>>
+  browser丨speech-compat 两种format
+  音频=衍生物，只同步配置
+  无该语言语音⇒听档不存在（非失败）
+}
+
+class ExtCorpus {
+  <<扩展语料 · IndexedDB mt-learn v4>>
+  items丨sources丨reviews丨meta丨audio丨tombs丨notes
+  硬顶2万条，淘汰known→低salience→最旧
+  evicted过的设备永不compact
+}
+
+class AppCorpus {
+  <<App语料 · WKWebView origin>>
+  同一台iPhone也只经服务器相遇
+  未登录=空的（照这句话说）
+}
+
+class Server {
+  <<bt_chunks · append-only>>
+  RLS + 无UPDATE策略=数据库握不变量
+  deflate块 约200卡/块，明文（enc=none留门）
+  50MB配额=BEFORE INSERT触发器
+  服务器是档案馆，设备是工作集
+}
+
+Item *-- Anchor : 1
+Anchor <|-- DomAnchor
+Anchor <|-- MediaAnchor
+Item *-- Sched : 1
+ReviewLog "0..*" --> "1" Item : itemId
+Item "0..*" --> "1" Source : 出处
+Tombstone "0..1" ..> "1" Item : 本地墓碑
+Note "0..1" ..> "1" Item : 解析面
+LearnCollector ..> Item : 铸造（Renderer旁路sink）
+LearnCollector --> Outbox : flush（30s丨pagehide）
+Outbox --> ExtCorpus : drain合并=相加（新观察）
+Reviewer ..> LearnScheduler : 排程纯函数
+Reviewer --> ExtCorpus : 宿主一
+Reviewer --> AppCorpus : 宿主二
+Reviewer ..> LearnTTS : 朗读文本卡
+Reviewer ..> Note : 按需生成·缓存带版本
+ExtCorpus --> Server : push（水印syncedAt防回推）
+Server --> ExtCorpus : pull（seq>cursor，重放合并=取max）
+AppCorpus --> Server : push
+Server --> AppCorpus : pull
