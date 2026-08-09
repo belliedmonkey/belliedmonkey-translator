@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "Dominadas"
   },
+  "learn_count_total": {
+    "message": "Total"
+  },
   "learn_section": {
     "message": "Aprendizaje"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "Reproduciendo…"
   },
+  "tts_loading": {
+    "message": "Cargando audio…"
+  },
   "tts_no_voice": {
     "message": "Tu sistema no tiene voz para este idioma"
   },
@@ -567,7 +573,7 @@
     "message": "Sincronización entre dispositivos"
   },
   "sync_section_hint": {
-    "message": "Opcional. Todo funciona sin cuenta: la sincronización solo te permite repasar en el móvil lo que leíste en el ordenador. Se suben las tarjetas que ya están en repaso y tu historial; las candidatas que aún no han entrado en repaso nunca salen de este dispositivo."
+    "message": "Opcional. Todo funciona sin iniciar sesión — al iniciar sesión, tu biblioteca (incluidos los candidatos) y tu historial de repaso se sincronizan en ambos sentidos entre tus dispositivos."
   },
   "sync_email": {
     "message": "Correo electrónico"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "Sincronización completa · {in} recibidas · {out} subidas"
+  },
+  "sync_status_running": {
+    "message": "Sincronizando con el servidor…"
+  },
+  "sync_status_done_at": {
+    "message": "Sincronizado · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Sin conexión — se reintentará automáticamente. Tus datos de estudio están guardados en este dispositivo."
+  },
+  "sync_status_error": {
+    "message": "La sincronización falló — se reintentará automáticamente."
+  },
+  "sync_status_signed_out": {
+    "message": "Sin iniciar sesión — solo datos locales"
   },
   "sync_signed_out": {
     "message": "Sesión cerrada. Tu biblioteca sigue intacta en este dispositivo."

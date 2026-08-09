@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "習得済み"
   },
+  "learn_count_total": {
+    "message": "合計"
+  },
   "learn_section": {
     "message": "学習"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "再生中…"
   },
+  "tts_loading": {
+    "message": "音声を読み込み中…"
+  },
   "tts_no_voice": {
     "message": "この言語の音声が端末にありません"
   },
@@ -567,7 +573,7 @@
     "message": "デバイス間の同期"
   },
   "sync_section_hint": {
-    "message": "任意です。アカウントなしでもすべて使えます。同期は、パソコンで読んだ文をスマホで復習できるようにするだけのものです。復習に入ったカードと復習履歴だけがアップロードされ、まだ復習に入っていない候補はこの端末から出ません。"
+    "message": "任意です。ログインしなくても完全に使えます。ログインすると、学習ライブラリ（候補を含む）と復習記録が端末間で双方向に同期されます。"
   },
   "sync_email": {
     "message": "メールアドレス"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "同期完了 · 受信 {in} 枚 · 送信 {out} 枚"
+  },
+  "sync_status_running": {
+    "message": "サーバーと同期中…"
+  },
+  "sync_status_done_at": {
+    "message": "同期完了 · {time}"
+  },
+  "sync_status_offline": {
+    "message": "現在オフラインです。後で自動的に再試行します。学習記録はこの端末に保存されています。"
+  },
+  "sync_status_error": {
+    "message": "同期できませんでした。後で自動的に再試行します。"
+  },
+  "sync_status_signed_out": {
+    "message": "未ログイン — この端末のデータのみ"
   },
   "sync_signed_out": {
     "message": "ログアウトしました。この端末の学習ライブラリはそのまま残ります。"

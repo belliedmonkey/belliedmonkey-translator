@@ -27,12 +27,20 @@ function setup(opts = {}) {
     if (opts.fetchStatus && opts.fetchStatus !== 200) {
       return Promise.resolve({ ok: false, status: opts.fetchStatus });
     }
-    return Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve({ size: 1234 }) });
+    // Bytes + content type — the shape the module now stores. A Blob would be a
+    // regression: WebKit dangles IndexedDB blob handles across app updates.
+    return Promise.resolve({ ok: true, status: 200,
+      headers: { get: (h) => (String(h).toLowerCase() === 'content-type' ? 'audio/mpeg' : null) },
+      arrayBuffer: () => Promise.resolve(new Uint8Array([73, 68, 51, 4]).buffer) });
   };
 
   const LearnStore = {
     getAudio: (k) => { calls.get.push(k); return Promise.resolve(cache.get(k) || null); },
-    putAudio: (k, blob, meta) => { calls.put.push({ k, blob, meta }); cache.set(k, { blob }); return Promise.resolve(); },
+    putAudio: (k, payload, meta) => {
+      calls.put.push({ k, payload, meta });
+      cache.set(k, { buf: payload.buf, type: payload.type });
+      return Promise.resolve();
+    },
   };
 
   const ctx = loadModule('learn/tts.js', {
@@ -41,7 +49,7 @@ function setup(opts = {}) {
     fetch: fetchStub,
     speechSynthesis: opts.speechSynthesis,
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
-    URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} },
+    Uint8Array, btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     Audio: opts.Audio,
   });
   return { TTS: ctx.LearnTTS, calls, cache, LearnModel };
@@ -305,6 +313,20 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     eq(calls.put.length, 1, 'and must not rewrite the cache either');
   });
 
+  test('a LEGACY blob-handle record is a MISS — refetched, replaced with bytes', async () => {
+    // 真机定案 2026-08-09：WebKit 把 IndexedDB 里的 Blob 存成文件句柄，App 更新
+    // 搬容器后句柄悬空 —— 元数据健在、字节读不出，播放报 NotSupportedError。
+    // 旧格式记录必须按未命中处理，而不是把尸体端给播放器。
+    const { TTS, calls, cache } = setup();
+    TTS.configure(cfg);
+    const key = TTS.cacheKey('Hello world', 'en');
+    cache.set(key, { blob: { size: 126720, type: 'audio/mpeg' } });   // 旧格式：句柄
+    const got = await TTS.getAudio('Hello world', 'en');
+    eq(got.cached, false, '旧 blob 记录不能算命中');
+    eq(calls.fetch.length, 1, '必须重新合成');
+    ok(cache.get(key).buf instanceof ArrayBuffer, '替换成字节内联的新格式');
+  });
+
   test('changing the voice re-synthesizes rather than serving the old audio', async () => {
     const { TTS, calls } = setup();
     TTS.configure(cfg);
@@ -329,6 +351,65 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     const r = await TTS.speak('Hello world', 'en');
     eq(r.reason, 'no_base');
     eq(calls.fetch.length, 0);
+  });
+});
+
+describe('LearnTTS — done：播放收尾信号（交互规范「IO 在途，控件不可用」的依据）', () => {
+  // 调用方靠 done 决定何时恢复 ▶ 按钮：ended / error / stop() 三条路都必须落定，
+  // 否则按钮永远禁用 —— 比可以重复点击更糟。
+  function fakeAudio() {
+    const created = [];
+    function Audio(src) {
+      this.src = src; this.__on = {};
+      this.addEventListener = (t2, fn) => { this.__on[t2] = fn; };
+      this.play = () => Promise.resolve();
+      this.pause = () => {};
+      created.push(this);
+    }
+    return { Audio, created };
+  }
+
+  test('speak() ok carries `done`, and it resolves exactly when playback ends', async () => {
+    const { Audio, created } = fakeAudio();
+    const { TTS } = setup({ Audio });
+    TTS.configure({ engineId: 'local', baseUrl: 'https://tts.example' });
+    const r = await TTS.speak('Hello world', 'en');
+    eq(r.ok, true);
+    let finished = false;
+    r.done.then(() => { finished = true; });
+    await Promise.resolve(); await Promise.resolve();
+    eq(finished, false, '播放没结束，done 不能先到 —— 按钮会提前解锁');
+    created[0].__on.ended();
+    await Promise.resolve(); await Promise.resolve();
+    eq(finished, true, 'ended 之后 done 必须落定 —— 否则按钮永远禁用');
+  });
+
+  test('stop() resolves a pending done — interruption must never hang the caller', async () => {
+    const { Audio } = fakeAudio();
+    const { TTS } = setup({ Audio });
+    TTS.configure({ engineId: 'local', baseUrl: 'https://tts.example' });
+    const r = await TTS.speak('Hello world', 'en');
+    eq(r.ok, true);
+    let finished = false;
+    r.done.then(() => { finished = true; });
+    TTS.stop();
+    await Promise.resolve(); await Promise.resolve();
+    eq(finished, true, '被打断的播放必须落定，不能吊死等 ended');
+  });
+
+  test('the browser engine also reports done (utterance end)', async () => {
+    const sp = fakeSpeech([voice('Alex', 'en-US')]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.speak('Hello', 'en');
+    eq(r.ok, true);
+    let finished = false;
+    r.done.then(() => { finished = true; });
+    await Promise.resolve(); await Promise.resolve();
+    eq(finished, false, '还在读，done 不能先到');
+    if (sp.spoken[0].__on && sp.spoken[0].__on.end) sp.spoken[0].__on.end();
+    await Promise.resolve(); await Promise.resolve();
+    eq(finished, true, '读完（end 事件）后 done 必须落定');
   });
 });
 

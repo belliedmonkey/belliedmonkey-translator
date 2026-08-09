@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "Known"
   },
+  "learn_count_total": {
+    "message": "Total"
+  },
   "learn_section": {
     "message": "Learning"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "Playing…"
   },
+  "tts_loading": {
+    "message": "Loading audio…"
+  },
   "tts_no_voice": {
     "message": "Your system has no voice for this language"
   },
@@ -567,7 +573,7 @@
     "message": "Sync across devices"
   },
   "sync_section_hint": {
-    "message": "Optional. Everything works without an account — sync just lets you review on your phone what you read on your laptop. Cards already in review and your review history are uploaded; candidates that have not entered review never leave this device."
+    "message": "Optional. Everything works without signing in — once signed in, your library (including candidates) and review history sync both ways across your devices."
   },
   "sync_email": {
     "message": "Email"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "Sync complete · {in} received · {out} uploaded"
+  },
+  "sync_status_running": {
+    "message": "Syncing with server…"
+  },
+  "sync_status_done_at": {
+    "message": "Synced · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Currently offline — will retry automatically. Your learning data is saved on this device."
+  },
+  "sync_status_error": {
+    "message": "Sync failed — will retry automatically."
+  },
+  "sync_status_signed_out": {
+    "message": "Not signed in — local data only"
   },
   "sync_signed_out": {
     "message": "Signed out. Your learning library stays on this device, untouched."

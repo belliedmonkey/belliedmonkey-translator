@@ -66,11 +66,16 @@
   }
 
   async function paintCounts() {
-    const [stats, reviews, last] = await Promise.all([
+    // 总计 + 四状态 —— 与复习页头部同一口径（interaction-spec「多设备同步一致性」：
+    // 每设备显示总条目数与各状态数，同一账号同步后逐字一致）。待复习用调度器默认
+    // 配置，与 review.js 的有效 targetR/KNOWN_S 一致（dailyNew 不影响这两个数）。
+    const [stats, items, lastOk, lastLegacy] = await Promise.all([
       LearnStore.stats(),
-      LearnStore.allReviews(),
+      LearnStore.allItems(),
+      LearnStore.getMeta('lastSyncOkAt', 0),
       LearnStore.getMeta('appLastSync', 0),
     ]);
+    const due = LearnScheduler.dueCount(items, Date.now(), LearnScheduler.DEFAULTS);
     $('app-counts').innerHTML = '';
     const cell = (n, label) => {
       const d = document.createElement('div');
@@ -82,9 +87,13 @@
       return d;
     };
     $('app-counts').append(
-      cell(stats.total, t('app_unit_cards', '张卡')),
-      cell(reviews.length, t('app_unit_reviews', '条复习记录')),
-      cell(stats.sources, t('app_unit_sources', '个来源')));
+      cell(stats.total, t('learn_count_total', '总计')),
+      cell(due, t('learn_count_due', '待复习')),
+      cell(stats.by.learning || 0, t('learn_count_learning', '学习中')),
+      cell(stats.by.candidate || 0, t('learn_count_new', '候选')),
+      cell(stats.by.known || 0, t('learn_count_known', '已掌握')));
+    // 「上次同步」读统一成功戳；旧装机回退老键（只读回退，不迁移）。
+    const last = lastOk || lastLegacy;
     $('last').textContent = last
       ? new Date(last).toLocaleString()
       : t('app_never_synced', '还没有同步过');
@@ -186,7 +195,7 @@
       // (「上传 0」on the second run) proves.
       const { pulled, pushed } = await LearnSync.sync();
       const r = pulled;
-      await LearnStore.setMeta('appLastSync', Date.now());
+      // sync() 自己盖统一成功戳 lastSyncOkAt（手动/自动一视同仁）；老键不再写。
       await paintCounts();
       // Both directions get said, and the upload is not hidden when it is the only
       // thing that happened — 「收到 0」 alone after a review session would read as
@@ -231,21 +240,23 @@
 
   $('sync').addEventListener('click', doSync);
 
-  // §8.8 — launch and return-to-foreground are the app's heartbeats. Silent by
-  // contract: autoSync resolves null on signed-out / throttled / failed, and only a
-  // run that actually happened repaints. The loud path stays on the button above.
-  async function quietSync() {
+  // §8.8 修订版 — launch and return-to-foreground are ENTRIES, and every entry
+  // FORCES a sync (interaction-spec「多设备同步一致性」: 每次进 App 即同步，绕过
+  // 节流). Failures stay non-interruptive: the review header's status line carries
+  // the state; the loud path stays on the button above. 进复习视图不再额外触发 ——
+  // 启动/回前台已覆盖，且 inflight 会去重。
+  async function quietSync(extra) {
     if (!currentSession) return;
-    const r = await LearnSync.autoSync().catch(() => null);
-    if (r) {
-      await LearnStore.setMeta('appLastSync', Date.now());
-      await paintCounts();
-    }
+    const r = await LearnSync.autoSync(Date.now(), Object.assign({ force: true }, extra || {}))
+      .catch(() => null);
+    if (r) await paintCounts();
   }
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') quietSync();
   });
+  // 断网自愈：网络回来立刻补一次进入级同步。
+  window.addEventListener('online', () => { quietSync({ online: true }); });
 
   // ─── Review ───────────────────────────────────────────────────────────────
   // `review.js` runs its own boot on load and owns everything inside #review-view.

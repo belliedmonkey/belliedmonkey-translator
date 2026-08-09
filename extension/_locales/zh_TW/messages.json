@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "已掌握"
   },
+  "learn_count_total": {
+    "message": "總計"
+  },
   "learn_section": {
     "message": "學習"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "播放中…"
   },
+  "tts_loading": {
+    "message": "正在載入音訊…"
+  },
   "tts_no_voice": {
     "message": "系統裡沒有這門語言的語音"
   },
@@ -567,7 +573,7 @@
     "message": "多裝置同步"
   },
   "sync_section_hint": {
-    "message": "選用。不登入也能完整使用——同步只是讓你在手機上複習電腦上讀到的句子。上傳的是已進入複習的卡片與複習記錄，還沒進複習的候選永遠留在本裝置。"
+    "message": "可選。不登入也能完整使用——登入後，學習庫（含候選）與複習記錄會在你的裝置之間雙向同步。"
   },
   "sync_email": {
     "message": "電子郵件"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "同步完成 · 收到 {in} 張 · 上傳 {out} 張"
+  },
+  "sync_status_running": {
+    "message": "與伺服器同步中…"
+  },
+  "sync_status_done_at": {
+    "message": "同步完成 · {time}"
+  },
+  "sync_status_offline": {
+    "message": "目前網路離線，稍後會自動重試。學習記錄已保存在本機。"
+  },
+  "sync_status_error": {
+    "message": "同步未能完成，稍後會自動重試。"
+  },
+  "sync_status_signed_out": {
+    "message": "未登入，僅本機資料"
   },
   "sync_signed_out": {
     "message": "已登出。本機的學習庫原樣保留。"

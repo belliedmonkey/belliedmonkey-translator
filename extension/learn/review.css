@@ -45,10 +45,13 @@ body {
 
 .bar {
   display: flex; align-items: baseline; justify-content: space-between;
-  gap: 12px; margin-bottom: 16px;
+  flex-wrap: wrap;   /* the sync status line wraps to its own row */
+  gap: 4px 12px; margin-bottom: 16px;
 }
 .bar h1 { font-size: 20px; font-weight: 650; }
 .counts { color: var(--text-secondary); font-size: 13px; }
+/* 常驻同步状态行：小、弱色、占整行（.bar 是 flex，flex-basis:100% 换行）。 */
+.sync-line { flex-basis: 100%; color: var(--text-secondary); font-size: 12px; }
 
 /* 存储压力条。醒目到不会被忽略，但不是错误状态——库满了复习照常工作。 */
 .pressure {

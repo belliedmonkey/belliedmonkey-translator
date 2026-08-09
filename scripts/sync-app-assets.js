@@ -45,16 +45,63 @@ function appDirsIn(projRoot) {
 function patchViewController(sharedDir) {
   const f = path.join(sharedDir, 'ViewController.swift');
   if (!fs.existsSync(f)) return 'no ViewController.swift';
-  const src = fs.readFileSync(f, 'utf8');
-  const NEEDLE = 'self.webView.scrollView.isScrollEnabled = false';
-  if (!src.includes(NEEDLE)) {
-    return src.includes('isScrollEnabled = true') ? 'already patched' : 'nothing to patch';
+  let src = fs.readFileSync(f, 'utf8');
+  const notes = [];
+
+  // Patch 1: the converter template is a single non-scrolling screen; the
+  // review list is not.
+  const SCROLL_NEEDLE = 'self.webView.scrollView.isScrollEnabled = false';
+  if (src.includes(SCROLL_NEEDLE)) {
+    src = src.replace(SCROLL_NEEDLE,
+      '// Patched by scripts/sync-app-assets.js — the converter template is a single\n'
+      + '        // non-scrolling screen; the review list is not.\n'
+      + '        self.webView.scrollView.isScrollEnabled = true');
+    notes.push('scroll patched');
+  } else {
+    notes.push(src.includes('isScrollEnabled = true') ? 'scroll already patched' : 'scroll: nothing to patch');
   }
-  fs.writeFileSync(f, src.replace(NEEDLE,
-    '// Patched by scripts/sync-app-assets.js — the converter template is a single\n'
-    + '        // non-scrolling screen; the review list is not.\n'
-    + '        self.webView.scrollView.isScrollEnabled = true'));
-  return 'patched';
+
+  // Patch 2: lift WKWebView's media user-gesture gate. The default policy only
+  // allows play() inside a gesture's SYNCHRONOUS call stack, but the review
+  // page's speech playback is inherently "tap → async fetch/synthesis →
+  // play()" — first plays of a card were always rejected (surfaced as
+  // `blocked`), cache hits raced the gesture window and worked only sometimes.
+  //
+  // The web view must be RECREATED with the configuration: the storyboard
+  // instance copied its configuration at init, and mutating it afterwards is
+  // silently ignored (proved on-device 2026-08-09 — an in-place
+  // `webView.configuration.mediaTypes... = []` left the gate up). This is our
+  // own page; auto-read is a feature, not third-party abuse.
+  const MEDIA_LINE = 'mediaTypesRequiringUserActionForPlayback';
+  const VDL_ANCHOR = 'super.viewDidLoad()\n\n        self.webView.navigationDelegate = self';
+  if (src.includes(MEDIA_LINE)) {
+    notes.push('media gate already patched');
+  } else if (src.includes(VDL_ANCHOR)) {
+    src = src.replace(VDL_ANCHOR,
+      'super.viewDidLoad()\n\n'
+      + '#if os(iOS)\n'
+      + '        // Patched by scripts/sync-app-assets.js — lift the media user-gesture\n'
+      + '        // gate. The storyboard web view copied its configuration at init, so it\n'
+      + '        // must be recreated with the configuration the review page needs:\n'
+      + '        // speech playback is "tap → async fetch → play()", which the default\n'
+      + '        // policy rejects; auto-read is a feature here.\n'
+      + '        let mtConf = WKWebViewConfiguration()\n'
+      + '        mtConf.allowsInlineMediaPlayback = true\n'
+      + '        mtConf.mediaTypesRequiringUserActionForPlayback = []\n'
+      + '        let mtFresh = WKWebView(frame: self.webView.frame, configuration: mtConf)\n'
+      + '        mtFresh.autoresizingMask = [.flexibleWidth, .flexibleHeight]\n'
+      + '        self.webView.superview?.addSubview(mtFresh)\n'
+      + '        self.webView.removeFromSuperview()\n'
+      + '        self.webView = mtFresh\n'
+      + '#endif\n\n'
+      + '        self.webView.navigationDelegate = self');
+    notes.push('media gate patched (web view recreated)');
+  } else {
+    notes.push('media gate: viewDidLoad anchor missing');
+  }
+
+  fs.writeFileSync(f, src);
+  return notes.join(' · ');
 }
 
 function main() {

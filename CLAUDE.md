@@ -52,6 +52,10 @@ npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle +
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified
                          # tier/practice/notes flow. Cases: docs/learn-regression.md
+MT_SYNC=on node build.js # SELF-USE builds only: emits dist/ + dist-app/ with the sync switch ON
+                         # (source stays false, Gate B untouched, zip refused). The unpacked
+                         # Chrome extension and TestFlight self-use builds MUST use this — a
+                         # plain build silently turns sync back off in the output.
 ```
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.

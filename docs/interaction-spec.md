@@ -8,6 +8,16 @@ update this file in the same commit.
 Verify every item here with a **screenshot** of the built, loaded extension — a DOM
 element existing is not proof the user sees it (see AGENTS.md).
 
+## 全局原则 (global principles)
+
+- **IO 在途，控件不可用** *(2026-08-09，用户裁定)*。任何触发 IO 的操作（网络请求、
+  合成、读写存储、播放）在请求发出到结果落定之间，**触发它的控件必须处于
+  disabled 状态**，落定（成功收尾 / 失败 / 被打断）后恢复。两个目的：防止重复触发
+  重复扣费，以及让「正在干活」有一个不会说谎的物理信号。配套要求：在途期间要有
+  可见的状态文案（如「正在加载音频…」「播放中…」「解析中…」），失败要具名（见
+  各节的失败文案规则）。已落地的面：语音 ▶（加载 + 播放全程禁用）、解析这句
+  （请求期间禁用）。新增任何 IO 操作时，这条默认适用，不适用要在本文注明理由。
+
 ---
 
 ## YouTube bilingual subtitles
@@ -663,19 +673,42 @@ the browser extension, like capture — with one dated exception:
   hosts offer the voice picker: the extension's options page and the app's settings
   (the app's reconfigures TTS live — a picked voice works on the next card, no
   relaunch).
-- **Every failure names itself**: no voice for this language / no built-in speech in
-  this browser / no endpoint URL / no API key / the service returned an error. A
-  blocked autoplay is the one exception — the ▶ button is right there, so it is
-  handled silently rather than scolding the user for a browser policy.
+- **Loading is visible, and the ▶ control is disabled for the whole attempt**
+  *(2026-08-09, revised same day per 全局原则「IO 在途，控件不可用」)*. From the
+  moment a play is requested — auto or manual — the card shows 「正在加载音频…」
+  (`tts_loading`) and the ▶ button is DISABLED; once playback starts the note
+  becomes 「播放中…」(`tts_playing`) and the button STAYS disabled until playback
+  finishes (`speak()`'s `done` promise: ended / errored / interrupted), then
+  re-enables. A failed attempt re-enables immediately with its named reason.
+  *(The first 2026-08-09 revision kept the button live during auto attempts so a
+  tap could rescue a blocked autoplay; that mattered only while the app's
+  WKWebView media gate was still up — lifted the same day — and the user ruled
+  the IO rule wins. On hosts where autoplay is refused (iOS Safari extension
+  page), the auto attempt settles fast and the button returns with the blocked
+  message naming the tap as the fix.)*
+- **Every failure names itself — auto attempts included** *(revised 2026-08-09)*:
+  no voice for this language / no built-in speech in this browser / no endpoint
+  URL / no API key / the service returned an error / autoplay blocked. The
+  blocked-autoplay message doubles as the instruction (「点一下播放」), and with a
+  visible loading state the old silent handling would read as a loading line that
+  vanished into nothing. *(The pre-2026-08-09 rule kept auto-blocked silent; that
+  predates the loading state.)*
 - **Autoplay is a setting, and never blocks anything.** If the browser refuses it,
   the card is fully usable via the button.
-  - **On iOS, autoplay IS refused** — measured 2026-08-03 on the iPhone simulator
-    (iOS 17.2) in the real extension page: the card renders, the ▶ control is
-    enabled, and nothing is spoken until the user taps it. So on iPhone/iPad,
-    `audio-first` means *tap to listen, then reveal*, not *listen hands-free*. This
-    is a platform rule about user gestures, not a defect, and the UI must not
-    apologise for it on every card — the ▶ control being the only thing on screen
-    already says what to do.
+  - **On iOS Safari (the extension page), autoplay IS refused** — measured
+    2026-08-03 on the iPhone simulator (iOS 17.2): the card renders, the ▶
+    control is enabled, and nothing is spoken until the user taps it. So there,
+    `audio-first` means *tap to listen, then reveal*, not *listen hands-free*.
+    This is a platform rule about user gestures, not a defect.
+  - **In the APP, the gate is lifted** *(2026-08-09, 真机定案)*: the shell's
+    WKWebView sets `mediaTypesRequiringUserActionForPlayback = []` (patched by
+    `scripts/sync-app-assets.js` — the converter template never sets it). The
+    default policy only allows `play()` inside a gesture's SYNCHRONOUS call
+    stack, but endpoint-engine playback is inherently "tap → async fetch →
+    play()": first plays of every card were rejected (`blocked`), cache hits
+    raced the gesture window and worked only sometimes. The review page is our
+    own content; auto-read is a feature, not third-party abuse — so in the app,
+    autoplay genuinely plays.
   - **A blocked autoplay must be DETECTED, not assumed to have worked.** iOS ignores
     `speechSynthesis.speak()` without a gesture *silently*: no exception, no error
     event, no sound. Treating a non-throwing call as success made the card announce
@@ -733,20 +766,36 @@ The card's FORM changes as `s` grows; the grading flow does not:
   imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
   not configured ⇒ the entry point does not render, same as everywhere else.
 
-### App 内同步与时效 — 2026-08-08
+### 多设备同步一致性 — 2026-08-09（用户裁定，取代 2026-08-08「App 内同步与时效」）
 
-- **Opening is the heartbeat** (learning-design §8.8): the extension's review and
-  options pages auto-sync on open when signed in (throttled to 10 minutes); the app
-  auto-syncs on launch and on returning to the foreground. No timers, no background
-  tasks — on iOS those die with the service worker and become heartbeats that exist
-  on paper only.
-- **Auto-sync fails silently.** The user didn't initiate it, so its failure may not
-  interrupt; the 「上次同步」 line carries the state. The manual 同步 button keeps
-  its exact meaning: sync now, and tell me what happened — numbers on success,
-  reasons on failure.
-- **Entering the app's review view rebuilds the deck**, so freshly synced material
-  is reviewable without relaunching. The extension's review page reloads per open
-  and needs no change.
+> **原则（用户原话）：同一账号下，不管什么情况下，学习素材在多设备中一定要保持同步。**
+
+- **每个设备显示总条目数与各状态数。** 复习页头部的计数行为
+  「总计 N · 待复习 N · 学习中 N · 候选 N · 已掌握 N」，App 主屏同口径。同一账号
+  完成同步后，各设备的这一行**逐字一致**——这是可验证的验收条，不是愿景
+  （`verify-sync-consistency` 的王冠断言）。
+- **常驻同步状态行**（复习页头部，计数行下方，小字弱色，永不遮挡卡片）：
+  - 同步进行中 → 「与服务器同步中…」
+  - 成功落定 → 「同步完成 · {时间}」（用户词「同步完成」逐字保留；追加时间是因为
+    这行**常驻**，没有时间的「完成」放一小时就成了谎言）
+  - 网络不通 → 「当前网络离线，稍后自动重试。学习记录已保存在本机。」
+  - 其它失败 → 「同步没能完成，稍后自动重试。」
+  - 未登录 → 「未登录，仅本机数据」（用户裁定：提醒此设备计数可能与其它设备不同）
+  - 公开构建（同步未编入）→ 整行不渲染。不存在的功能不许长死状态条。
+- **每次进入即同步，绕过节流**：App 启动、App 回前台、扩展复习页每次打开，三者
+  都算「进入」，都强制触发一次完整 `sync()`（10 分钟节流只对被动面——设置页——
+  继续生效）。断网恢复（`online` 事件）视同进入，立刻补一次。No timers, no
+  background tasks — on iOS those die with the service worker（原 §8.8 约束不变）。
+- **自动同步可见，但不打断。** 这是全局原则「IO 在途，控件不可用」的**明确豁免**：
+  该规则约束的是*触发 IO 的控件*；自动同步没有触发控件，评分按钮永不因同步而
+  禁用，卡片永不被同步抢走（在屏卡片不重建，只有空态/收官态才因新素材重建）。
+  手动 同步 按钮维持响亮语义（成功报数字、失败报原因）且全程禁用（IO 规则照常）。
+- **每日新卡预算是账户级的**：今天已引入的新卡数从**同步的复习台账**推导（每卡
+  首条非练习复习落在 UTC 今天），不再是设备本地计数——手机上引入的新卡同样消耗
+  电脑侧的当日预算。日界取 UTC：一个账号一个日界，跨时区一致。
+- **一致性的边界（如实陈述）**：驱逐上限（单设备 2 万条）以内保证一致；设备时钟
+  漂移会让「待复习」短暂偏差（同一时刻同一数据必然同数）；收敛判据不变——
+  无活动时双向同步稳定「收到 0 · 上传 0」。
 
 ### 存储压力
 

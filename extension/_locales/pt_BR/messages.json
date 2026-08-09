@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "Dominadas"
   },
+  "learn_count_total": {
+    "message": "Total"
+  },
   "learn_section": {
     "message": "Aprendizado"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "Reproduzindo…"
   },
+  "tts_loading": {
+    "message": "Carregando áudio…"
+  },
   "tts_no_voice": {
     "message": "Seu sistema não tem voz para este idioma"
   },
@@ -567,7 +573,7 @@
     "message": "Sincronização entre dispositivos"
   },
   "sync_section_hint": {
-    "message": "Opcional. Tudo funciona sem conta — a sincronização apenas permite revisar no celular o que você leu no computador. São enviados os cartões já em revisão e o seu histórico; os candidatos que ainda não entraram em revisão nunca saem deste dispositivo."
+    "message": "Opcional. Tudo funciona sem login — ao entrar, sua biblioteca (incluindo candidatos) e o histórico de revisão sincronizam nos dois sentidos entre seus aparelhos."
   },
   "sync_email": {
     "message": "E-mail"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "Sincronização concluída · {in} recebidos · {out} enviados"
+  },
+  "sync_status_running": {
+    "message": "Sincronizando com o servidor…"
+  },
+  "sync_status_done_at": {
+    "message": "Sincronizado · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Sem conexão no momento — tentaremos novamente em breve. Seus dados de estudo estão salvos neste aparelho."
+  },
+  "sync_status_error": {
+    "message": "A sincronização falhou — tentaremos novamente em breve."
+  },
+  "sync_status_signed_out": {
+    "message": "Não conectado — apenas dados locais"
   },
   "sync_signed_out": {
     "message": "Você saiu. Sua biblioteca continua intacta neste dispositivo."

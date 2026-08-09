@@ -5,6 +5,8 @@
 #   bash build-safari.sh china              # 中国版 iOS   → com.belliedmonkeytranslator.cn
 #   bash build-safari.sh global macos       # 海外版 macOS  → 同一个 App 记录的 macOS 平台
 #   BUILD_NUMBER=11 bash build-safari.sh global macos
+#   MT_SYNC=on bash build-safari.sh         # 自用 TestFlight 包（同步开关在产物中打开，
+#                                           #  源码不动，Gate B 照守；见 build.js SYNC_ON）
 #
 # 两个 flavor 生成两个独立的 Xcode 项目 / bundle id —— 对应两个 App Store app 记录
 # (App Store 一个 app 记录只能对所有区发同一个二进制,合规隔离必须双分发)。

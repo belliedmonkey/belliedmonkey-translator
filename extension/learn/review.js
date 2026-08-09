@@ -21,8 +21,6 @@
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
-  function todayKey(now) { return new Date(now).toISOString().slice(0, 10); }
-
   async function loadSettings() {
     return new Promise((resolve) => {
       // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
@@ -120,27 +118,32 @@
     const item = deck[idx];
     if (!item || ttsMode === 'off') return;
     const btn = $('play');
-    // Only a MANUAL play locks the button and claims "playing…". An auto attempt
-    // on iOS sits blocked for the whole start-timeout — disabling ▶ for those
-    // seconds would lock out the very tap that can actually start audio.
-    if (!auto) {
-      btn.disabled = true;
-      setNote(t('tts_playing', '播放中…'));
-    }
+    // Interaction-spec rule (语音节, 2026-08-09 二): while an IO-bound operation
+    // is in flight, its control is DISABLED — loading (fetch/synthesis) and the
+    // playback that follows both count. The button re-enables only when the
+    // attempt settles: failure, interruption, or playback finishing.
+    btn.disabled = true;
+    setNote(t('tts_loading', '正在加载音频…'));
     const r = await LearnTTS.speak(item.text, item.lang);
-    btn.disabled = false;
     // This resolve may be seconds late (blocked speak resolves via timeout). If
     // the user has moved on, or a newer speak took over, it owns the UI — write
-    // nothing for this one.
+    // nothing for this one (card entry resets the button's state anyway).
     if (deck[idx] !== item || r.reason === 'superseded') return;
     if (r.ok) {
-      setNote('');
+      setNote(t('tts_playing', '播放中…'));
       btn.textContent = t('tts_replay', '▶ 再听一遍');
+      await (r.done || Promise.resolve());
+      if (deck[idx] !== item) return;
+      btn.disabled = false;
+      setNote('');
       return;
     }
-    // An autoplay block is not an error worth shouting about — the button is right
-    // there. Everything else gets a plain explanation.
-    setNote(auto && r.reason === 'blocked' ? '' : reasonText(r.reason));
+    btn.disabled = false;
+    // Every failure names itself — auto attempts included. A blocked autoplay's
+    // message already tells the user what to do (tap the button), and a failed
+    // network fetch must not dead-end as a silently cleared loading line.
+    // DBG-TEMP: raw diagnostics visible on-device
+    setNote(reasonText(r.reason) + (r.detail ? ' 〔' + r.detail + '〕' : ' 〔' + (r.reason || '?') + (r.status ? ' ' + r.status : '') + '〕'));
   }
 
   // Render the audio row for this card, and decide whether it can work at all
@@ -401,15 +404,11 @@
     lightSkill();
     await LearnStore.putItem(item);
     await LearnStore.recordReview(item.id, g, now, { mode: currentMode });
-
-    // The daily new-card cap has to survive page reloads, or "15 a day" silently
-    // becomes "15 per session".
-    if (wasNew) {
-      const key = todayKey(now);
-      const rec = (await LearnStore.getMeta('newToday', null)) || { day: key, n: 0 };
-      const next = rec.day === key ? { day: key, n: rec.n + 1 } : { day: key, n: 1 };
-      await LearnStore.setMeta('newToday', next);
-    }
+    // The daily new-card budget is no longer written here: the review row just
+    // recorded IS the ledger — introducedToday() derives today's spend from the
+    // synced review log, so every device under one account agrees on the budget
+    // (the old device-local `newToday` meta made each device promote its own
+    // dailyNew, the last systematic cross-device count divergence).
 
     doneThisRun++;
     idx++;
@@ -479,12 +478,43 @@
     const now = Date.now();
     const due = LearnScheduler.dueCount(items, now, sched);
     const st = await LearnStore.stats();
+    // 总计在前（interaction-spec「多设备同步一致性」：每设备显示总条目数 + 各状态数，
+    // 同一账号同步后逐字一致）。
     $('counts').textContent =
+      t('learn_count_total', '总计') + ' ' + (st.total || 0) + ' · ' +
       t('learn_count_due', '待复习') + ' ' + due + ' · ' +
       t('learn_count_learning', '学习中') + ' ' + (st.by.learning || 0) + ' · ' +
       t('learn_count_new', '候选') + ' ' + (st.by.candidate || 0) + ' · ' +
       t('learn_count_known', '已掌握') + ' ' + (st.by.known || 0);
     return { items, due, st };
+  }
+
+  // ─── 常驻同步状态行（interaction-spec「多设备同步一致性」，2026-08-09 用户裁定）──
+  // 五态：同步中 / 同步完成·时间 / 离线 / 失败 / 未登录（仅本机数据）。公开构建
+  // （MT_BACKEND 未编入或 enabled=false）整行隐藏——不存在的功能不许长死状态条。
+  // 自动同步「可见但不打断」：IO 规则约束的是触发它的控件；自动路径没有触发控件，
+  // 评分按钮永不因同步而禁用。
+  function fmtClock(at) {
+    try { return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch (_) { return ''; }
+  }
+  function renderSyncStatus(ev) {
+    const line = $('sync-line');
+    if (!line) return;
+    if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) { line.hidden = true; return; }
+    line.hidden = false;
+    switch (ev.state) {
+      case 'running':
+        line.textContent = t('sync_status_running', '与服务器同步中…'); break;
+      case 'done':
+        line.textContent = t('sync_status_done_at', '同步完成 · {time}').replace('{time}', fmtClock(ev.at)); break;
+      case 'offline':
+        line.textContent = t('sync_status_offline', '当前网络离线，稍后自动重试。学习记录已保存在本机。'); break;
+      case 'signed_out':
+        line.textContent = t('sync_status_signed_out', '未登录，仅本机数据'); break;
+      default:
+        line.textContent = t('sync_status_error', '同步没能完成，稍后自动重试。'); break;
+    }
   }
 
   function fmtWhen(ms) {
@@ -507,8 +537,10 @@
     const srcList = await LearnStore.allSources();
     const sources = new Map(srcList.map((s) => [s.id, s]));
 
-    const rec = await LearnStore.getMeta('newToday', null);
-    const newToday = rec && rec.day === todayKey(now) ? rec.n : 0;
+    // Account-level daily budget: derived from the SYNCED review log (first
+    // non-practice review per card, UTC day), not device-local meta — one
+    // account, one budget, every device (interaction-spec「多设备同步一致性」).
+    const newToday = LearnScheduler.introducedToday(await LearnStore.allReviews(), now);
 
     deck = LearnScheduler.buildDeck(items, now, sched, newToday);
     idx = 0;
@@ -675,17 +707,39 @@
   await refreshPressure();
   await start();
 
-  // §8.8 — opening this page is the heartbeat. Fire-and-forget AFTER the first
-  // deck is on screen: blocking start() on the network would hold the whole page
-  // hostage to a slow sync the user never asked for. If the pull actually brought
-  // something new AND no card is mid-review (empty / deck-done states — exactly
-  // where fresh material matters most), rebuild; a card on screen is never yanked.
+  // §8.8 修订版 — opening this page is an ENTRY, and entry FORCES a sync
+  // (interaction-spec「多设备同步一致性」: 每次进入即同步，绕过节流). Still
+  // fire-and-forget AFTER the first deck is on screen: blocking start() on the
+  // network would hold the whole page hostage to a slow sync the user never asked
+  // for. If the pull actually brought something new AND no card is mid-review
+  // (empty / deck-done states — exactly where fresh material matters most),
+  // rebuild; a card on screen is never yanked.
   if (typeof LearnSync !== 'undefined') {
-    LearnSync.autoSync().then(async (r) => {
-      if (r && r.pulled && (r.pulled.cards || r.pulled.reviews) && $('card').hidden) {
-        await start();
+    LearnSync.onStatus(async (ev) => {
+      renderSyncStatus(ev);
+      if (ev.state === 'done') {
+        await refreshCounts();
+        if (ev.pulled && (ev.pulled.cards || ev.pulled.reviews) && $('card').hidden) {
+          await start();
+        }
       }
-    }).catch(() => {});
+    });
+    // 初始态：还没跑同步之前，用上一次成功时间铺底；无记录且已登录则等首跑覆盖。
+    (async () => {
+      if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+        const lastOk = await LearnStore.getMeta(LearnSync.LAST_OK, 0);
+        const session = await LearnAuth.current().catch(() => null);
+        if (!session) renderSyncStatus({ state: 'signed_out', at: Date.now() });
+        else if (lastOk) renderSyncStatus({ state: 'done', at: lastOk });
+      }
+    })().catch(() => {});
+    LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+    // 断网自愈：网络回来立刻补一次进入级同步，而不是等下一次打开页面。
+    try {
+      window.addEventListener('online', () => {
+        LearnSync.autoSync(Date.now(), { force: true, online: true }).catch(() => {});
+      });
+    } catch (_) {}
   }
 
   // One-time explainer (§5.1): shown above the first card ever seen, non-blocking,

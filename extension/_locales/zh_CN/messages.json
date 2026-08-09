@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "已掌握"
   },
+  "learn_count_total": {
+    "message": "总计"
+  },
   "learn_section": {
     "message": "学习"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "播放中…"
   },
+  "tts_loading": {
+    "message": "正在加载音频…"
+  },
   "tts_no_voice": {
     "message": "系统里没有这门语言的语音"
   },
@@ -567,7 +573,7 @@
     "message": "多设备同步"
   },
   "sync_section_hint": {
-    "message": "可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。"
+    "message": "可选。不登录也能完整使用——登录后，学习库（含候选）与复习记录会在你的设备之间双向同步。"
   },
   "sync_email": {
     "message": "邮箱"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "同步完成 · 收到 {in} 张 · 上传 {out} 张"
+  },
+  "sync_status_running": {
+    "message": "与服务器同步中…"
+  },
+  "sync_status_done_at": {
+    "message": "同步完成 · {time}"
+  },
+  "sync_status_offline": {
+    "message": "当前网络离线，稍后自动重试。学习记录已保存在本机。"
+  },
+  "sync_status_error": {
+    "message": "同步没能完成，稍后自动重试。"
+  },
+  "sync_status_signed_out": {
+    "message": "未登录，仅本机数据"
   },
   "sync_signed_out": {
     "message": "已退出登录。本机的学习库原样保留。"

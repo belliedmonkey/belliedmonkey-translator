@@ -58,7 +58,8 @@ const MODULES = [
 
 const APP_JS = 'app/app.js';             // always last: it drives the modules above
 
-function buildAppBundle(outDir, log) {
+function buildAppBundle(outDir, log, opts) {
+  opts = opts || {};
   fs.mkdirSync(outDir, { recursive: true });
 
   const parts = [
@@ -74,8 +75,16 @@ function buildAppBundle(outDir, log) {
       // mode hardest to trace back to the build.
       throw new Error(`app bundle: missing source ${rel}`);
     }
+    let text = fs.readFileSync(abs, 'utf8');
+    // MT_SYNC=on: the bundle concatenates backend.config.js from SOURCE, so the
+    // self-use flip must happen here too — dist/ and dist-app/ are two separate
+    // emission paths and flipping only one shipped a phone build with sync on
+    // while the Chrome side silently reverted (2026-08-09).
+    if (opts.syncOn && rel === 'extension/learn/backend.config.js') {
+      text = opts.flipSyncFlag(text, rel + ' (app bundle)');
+    }
     parts.push(`// ─── ${rel} ${'─'.repeat(Math.max(0, 60 - rel.length))}`);
-    parts.push(fs.readFileSync(abs, 'utf8'));
+    parts.push(text);
     parts.push('');
   }
 

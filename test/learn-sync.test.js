@@ -82,10 +82,12 @@ function setup(opts = {}) {
     window: {}, MT_BACKEND: BACKEND, LearnStore, fetch: fetchFn, Date,
   }).LearnAuth;
 
-  const LearnSync = loadModule('learn/sync.js', {
+  const sandbox = {
     window: {}, MT_BACKEND: BACKEND, LearnStore, LearnAuth, LearnChunk, LearnModel,
     fetch: fetchFn, Date, Math, TextEncoder, TextDecoder, Response,
-  }).LearnSync;
+  };
+  if (opts.navigator) sandbox.navigator = opts.navigator;
+  const LearnSync = loadModule('learn/sync.js', sandbox).LearnSync;
 
   return { S: LearnSync, A: LearnAuth, C: LearnChunk, store: LearnStore, fetchFn };
 }
@@ -701,5 +703,101 @@ describe('LearnSync — autoSync（§8.8 页面打开即心跳）', () => {
     ok(r1 === r2, '两个并发调用应共享同一趟运行的结果');
     const pulls = fetchFn.calls.filter((c) => c.method === 'GET').length;
     eq(pulls, 1, `并发触发拉了 ${pulls} 次 —— 应当只有一次`);
+  });
+});
+
+describe('LearnSync — 进入即同步与状态通道（interaction-spec「多设备同步一致性」）', () => {
+  test('force 绕过 10 分钟节流；非强制照旧被节流', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    await S.autoSync(at);
+    const n = fetchFn.calls.length;
+    eq(await S.autoSync(at + 1000), null, '非强制在窗内必须节流');
+    ok(await S.autoSync(at + 2000, { force: true }) !== null,
+      '进入级同步必须穿透节流 —— 每次进入必同步是用户裁定');
+    ok(fetchFn.calls.length > n, 'force 却没发请求');
+  });
+
+  test('onStatus 成功序列 running → done，且统一盖 lastSyncOkAt', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    const at = Date.now();
+    await S.sync(at);
+    eq(JSON.stringify(seen), JSON.stringify(['running', 'done']));
+    eq(store.meta[S.LAST_OK], at, '手动 sync() 也必须盖统一成功戳');
+  });
+
+  test('fetch 抛错 ⇒ onStatus 报 offline（自动路径仍静默返回 null）', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const fetchFn = (() => {
+      const calls = []; const fn = async (url) => { calls.push({ url }); throw new Error('net down'); };
+      fn.calls = calls; return fn;
+    })();
+    const { S } = setup({ store, fetch: fetchFn });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['running', 'offline']),
+      '离线必须以状态事件可见 —— 「静默」的旧规则已被用户裁定修订');
+    eq(store.meta[S.LAST_OK], undefined, '失败不得盖成功戳');
+  });
+
+  test('navigator.onLine === false ⇒ 秒报 offline，零请求', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store, navigator: { onLine: false } });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['offline']), '预检必须直接报离线');
+    eq(fetchFn.calls.length, 0, '明知离线还发请求');
+  });
+
+  test('未登录 ⇒ onStatus 报 signed_out（头部据此显示「未登录，仅本机数据」）', async () => {
+    const { S } = setup();
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['signed_out']));
+  });
+
+  test('监听器抛错不许打断同步本身', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store });
+    S.onStatus(() => { throw new Error('listener bug'); });
+    const r = await S.autoSync(Date.now(), { force: true });
+    ok(r && r.pulled, '状态监听器的 bug 炸掉了同步');
+  });
+});
+
+describe('LearnSync — 离线预检不许把 autoSync 永久卡死（inflight 尸体回归）', () => {
+  test('离线命中一次后，网络恢复的下一次调用必须真的跑', async () => {
+    // 事故形状：预检路径没有 await，async 体同步跑完，finally 清掉 inflight 之后
+    // 赋值语句才把已解决的尸体 promise 盖回去 —— 此后每次 autoSync 都返回尸体，
+    // 同步静默至页面重开。
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const nav = { onLine: false };
+    const { S, fetchFn } = setup({ store, navigator: nav });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null, '离线时照旧返回 null');
+    nav.onLine = true;   // 网络回来了
+    const r = await S.autoSync(Date.now(), { force: true });
+    ok(r && r.pulled, '恢复后的调用吃到了 inflight 尸体 —— 同步被永久卡死');
+    ok(seen.indexOf('done') >= 0, '恢复后的运行必须真的发生（有 done 事件）');
+    ok(fetchFn.calls.length > 0, '恢复后必须真的发请求');
+  });
+
+  test('连续两次离线预检各自落定，互不粘连', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store, navigator: { onLine: false } });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['offline', 'offline']),
+      '第二次也必须是新的一次运行（再报一次 offline），而不是尸体');
   });
 });
