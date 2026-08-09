@@ -1495,6 +1495,15 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
 
 #### The exact replacement text (written 2026-08-08, ships WITH sync, not before)
 
+> **✅ Gate B LANDED 2026-08-09（v1.4.0）**：下表文案已逐字落进 README.md /
+> README.zh-CN.md（中文版同时补上了缺失的 Gate A bullet），`learn_section_hint`
+> ×11 locale 换为「除非你开启同步，否则不上传」口径，manifest 声明升为三项，
+> `backend.config.js enabled: true` —— 全部同一提交。build.js 的 Gate B 闸门
+> 反转为守护相反方向：enabled:true 时任何残存的旧句（英文/中文 README、11 locale
+> 的 hint、声明值不足三项）都拒绝构建；`MT_SYNC_E2E` 逃生口现会在 dist/ 写
+> `.not-shippable` 标记、`verify:ios` 见标记即拒 —— iOS 归档洞已闭合。
+> china flavor 的产物在构建时把开关翻回 false（PIPL/跨境合规未评估，另行开门）。
+
 This section used to describe the changes. Descriptions get re-interpreted under
 release pressure, which is the thing §10 exists to prevent — so here is the text.
 

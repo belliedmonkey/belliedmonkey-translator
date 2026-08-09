@@ -357,7 +357,7 @@
     "message": "Aprendizado"
   },
   "learn_section_hint": {
-    "message": "Quando ativado, as frases que você realmente leu são guardadas NESTE DISPOSITIVO junto com o endereço da página, o título e por quanto tempo o texto ficou na tela, e voltam a ser mostradas seguindo uma curva do esquecimento. O que você passa rolando não é guardado. Nada é enviado, e um botão apaga tudo."
+    "message": "Quando ativado, as frases que você realmente lê ficam NESTE DISPOSITIVO junto com o endereço da página, o título e o tempo em tela, e reaparecem numa curva do esquecimento. Rolar rápido não conta. Nada é enviado a menos que você ative a sincronização, e um botão apaga tudo."
   },
   "learn_enable": {
     "message": "Coletar material"

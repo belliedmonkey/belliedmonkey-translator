@@ -357,7 +357,7 @@
     "message": "Lernen"
   },
   "learn_section_hint": {
-    "message": "Wenn aktiviert, werden Sätze, die Sie wirklich gelesen haben, zusammen mit Seitenadresse, Titel und Anzeigedauer AUF DIESEM GERÄT gespeichert und Ihnen entlang einer Vergessenskurve erneut gezeigt. Überflogener Text wird nicht gespeichert. Nichts wird hochgeladen, und ein Knopf löscht alles."
+    "message": "Wenn aktiviert, werden tatsächlich gelesene Sätze AUF DIESEM GERÄT zusammen mit Seitenadresse, Titel und Anzeigedauer gespeichert und nach einer Vergessenskurve erneut gezeigt. Schnelles Vorbeiscrollen zählt nicht. Ohne aktivierte Synchronisierung wird nichts hochgeladen, und ein Knopf löscht alles."
   },
   "learn_enable": {
     "message": "Lernmaterial sammeln"

@@ -39,25 +39,30 @@ const ZIP = path.join(ROOT,
 // artifact is withheld — see the Gate B escape hatch in validateManifest().
 let SKIP_ZIP = null;
 
-// Self-use sync channel (`MT_SYNC=on node build.js`): the OUTPUT gets
-// `MT_BACKEND.enabled: true` while the SOURCE stays false, so Gate B keeps
-// guarding public builds untouched. Exists because hand-flipping dist/ was
-// silently undone by every rebuild — which is how the Chrome side stopped
-// uploading for two days while the phone starved at 11 cards (2026-08-09).
-// A sync-on build can never be zipped: it is for THIS user's devices only.
+// RETIRED as of Gate B (v1.4.0, 2026-08-09): the source switch is now true, so
+// `MT_SYNC=on` is a no-op kept only so old muscle memory / scripts don't fail.
+// It used to flip the OUTPUT's `enabled` while the source stayed false — the
+// self-use TestFlight channel for builds 14–23.
 const SYNC_ON = process.env.MT_SYNC === 'on';
 
 // Single-occurrence flip of the shipping switch inside a module's TEXT.
 // Refuses to guess: zero or multiple matches fail the build, so a reshaped
-// backend.config.js cannot be silently half-flipped.
-function flipSyncFlag(text, what) {
-  const NEEDLE = 'enabled: false,';
+// backend.config.js cannot be silently half-flipped. Since Gate B this runs in
+// the OPPOSITE direction, for the CHINA flavor only: the China app is
+// unreleased and its data-export compliance (PIPL, cross-border) has not been
+// evaluated, so its artifact ships with sync OFF until that is its own gated
+// release decision.
+function flipSyncFlag(text, what, direction) {
+  const on = direction === 'on';
+  const NEEDLE = on ? 'enabled: false,' : 'enabled: true,';
   const first = text.indexOf(NEEDLE);
   if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
-    console.error(`✗ MT_SYNC=on: expected exactly one \`${NEEDLE}\` in ${what}`);
+    console.error(`✗ sync flip: expected exactly one \`${NEEDLE}\` in ${what}`);
     process.exit(1);
   }
-  return text.replace(NEEDLE, 'enabled: true, // MT_SYNC=on self-use build — NOT SHIPPABLE');
+  return text.replace(NEEDLE, on
+    ? 'enabled: true, // flipped at build time — NOT SHIPPABLE'
+    : 'enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -379,15 +384,13 @@ function validateManifest(distDir, isFirefox) {
   if (!isFirefox && !m.background?.service_worker) { err('Chrome build missing background.service_worker'); process.exit(1); }
   if (!m.browser_specific_settings?.gecko?.id) { err('Missing gecko.id (required for AMO)'); process.exit(1); }
   // Firefox requires an explicit data-collection disclosure on every new AMO
-  // submission since 2025-11-03; AMO's validator hard-fails without it. The honest
-  // value here is `websiteContent`, NOT `none`: we send the text of the page (and of
-  // video/podcast transcripts) to whichever translation provider the user configured,
-  // i.e. it IS transmitted outside the extension for processing. That we operate no
-  // server of our own does not make it `none` — the field describes what leaves the
-  // extension, not who receives it. Requests carry text only: no URL, title,
-  // referrer, user agent or any user identifier, which is why `browsingActivity`
-  // is deliberately absent. Re-check this if translation-api.js ever starts sending
-  // more than text.
+  // submission since 2025-11-03; AMO's validator hard-fails without it. Since Gate B
+  // (v1.4.0, 2026-08-09) the honest value is THREE entries: `websiteContent` (page /
+  // transcript text goes to the user's chosen provider, and captured sentences go to
+  // sync), `browsingActivity` (the sync source table is URL + title + time — §8.6:
+  // "the sensitive column is the URL"), and `personallyIdentifyingInfo` (the account
+  // is an email address). The exact-value check lives in the Gate B block below —
+  // this one only guards presence, which AMO itself enforces.
   const dcp = m.browser_specific_settings?.gecko?.data_collection_permissions?.required;
   if (!Array.isArray(dcp) || dcp.length === 0) {
     err('Missing gecko.data_collection_permissions.required (AMO rejects the upload without it)');
@@ -421,26 +424,56 @@ function validateManifest(distDir, isFirefox) {
   // gets broken; this makes forgetting fail the build instead.
   const backend = require('./extension/learn/backend.config.js');
   if (backend.enabled) {
+    // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
+    // opposite direction — no stale "never uploaded / no account" sentence may
+    // survive anywhere the repo can see. Three checks, each a real incident
+    // class: the English README (the original gate), the Chinese README (was
+    // ungated and shipped without even the Gate A bullet), and the in-product
+    // learn_section_hint × 11 locales (README row 3's UI twin, was ungated).
+    const staleHits = [];
     const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
-    const stale = '**No account, no tracking, no telemetry.**';
-    if (readme.includes(stale)) {
-      // Escape hatch for end-to-end verification, and ONLY that. Without it the
-      // single way to build a sync-enabled bundle is to edit the README — i.e. to
-      // do the exact thing this gate exists to prevent. A gate with no test path
-      // does not survive: the first person who needs to test disables the gate.
-      //
-      // The escape does not weaken the release invariant, because it forbids the
-      // shippable artifact instead: MT_SYNC_E2E builds dist/ (loadable unpacked)
-      // and refuses to produce the .zip. You can test it; you cannot ship it.
+    if (readme.includes('**No account, no tracking, no telemetry.**')) {
+      staleHits.push('README.md: "No account, no tracking, no telemetry"');
+    }
+    if (readme.includes('it is never uploaded')) {
+      staleHits.push('README.md: "it is never uploaded"');
+    }
+    const readmeZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (readmeZh.includes('无账号、无追踪、无遥测')) {
+      staleHits.push('README.zh-CN.md: 「无账号、无追踪、无遥测」');
+    }
+    // The false-claim fingerprints across the 11 locales. Any hint that promises
+    // no-upload WITHOUT the sync qualifier is a lie the moment sync ships.
+    const FALSE_CLAIMS = [
+      /不会上传/, /不會上傳/, /Nothing is uploaded, and/, /アップロードは一切行われず/,
+      /Nichts wird hochgeladen, und/, /No se sube nada\./, /Rien n'est envoyé\./,
+    ];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const hint = String(JSON.parse(fs.readFileSync(f, 'utf8')).learn_section_hint?.message || '');
+      if (FALSE_CLAIMS.some((re) => re.test(hint))) {
+        staleHits.push(`_locales/${loc} learn_section_hint still claims no-upload`);
+      }
+    }
+    // The declaration must be the full Gate B value, not merely present.
+    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo'];
+    if (JSON.stringify((dcp || []).slice().sort()) !== JSON.stringify(WANT_DCP.slice().sort())) {
+      staleHits.push(`gecko.data_collection_permissions.required is [${dcp}] — Gate B requires exactly [${WANT_DCP}]`);
+    }
+    if (staleHits.length) {
+      // Escape hatch for end-to-end verification, and ONLY that: it forbids the
+      // shippable artifact instead of weakening the invariant — dist/ is built
+      // (loadable unpacked) but no .zip, and a .not-shippable marker blocks the
+      // iOS archive path via verify:ios.
       if (process.env.MT_SYNC_E2E === '1') {
-        SKIP_ZIP = 'sync enabled without the Gate B doc updates (MT_SYNC_E2E)';
+        SKIP_ZIP = 'sync enabled with stale privacy copy (MT_SYNC_E2E)';
         log(`\x1b[33mGate B bypassed for E2E testing — no .zip will be produced.\x1b[0m`);
       } else {
-        err(`sync is enabled (learn/backend.config.js) but README.md still says\n` +
-            `  ${stale}\n` +
-            `That sentence is false the moment an account exists. Update the README, ` +
-            `privacy.html on both sites, the store listings, and re-evaluate ` +
-            `gecko.data_collection_permissions — see docs/learning-design.md §10 Gate B.\n` +
+        err(`sync is enabled (learn/backend.config.js) but stale privacy copy survives:\n` +
+            staleHits.map((s) => `  · ${s}`).join('\n') + `\n` +
+            `Every one of these is false the moment an account exists — see ` +
+            `docs/learning-design.md §10 Gate B.\n` +
             `To build a test bundle without shipping one: MT_SYNC_E2E=1 node build.js`);
         process.exit(1);
       }
@@ -477,12 +510,10 @@ generateLangs(SRC);
 copyDir(SRC, DIST);
 log(`Copied extension sources → ${path.basename(DIST)}/`);
 
-// Self-use sync channel: flip the shipping switch in the OUTPUT only.
+// MT_SYNC=on retired (Gate B): sync is on in source. Warn instead of failing so
+// old scripts keep working, but make clear nothing special happened.
 if (SYNC_ON) {
-  const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
-  fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist/learn/backend.config.js'));
-  SKIP_ZIP = 'MT_SYNC=on self-use build (sync enabled in output; source untouched)';
-  log('\x1b[33m⚠ MT_SYNC=on — 同步开关已在产物中打开。仅限自用设备，禁止上架/分发。\x1b[0m');
+  log('\x1b[33mMT_SYNC=on is a no-op since v1.4.0 — sync is publicly enabled in source (Gate B).\x1b[0m');
 }
 
 // Flavor overrides applied to DIST only
@@ -491,6 +522,12 @@ if (FLAVOR === 'china') {
   generateI18nMessages(DIST);      // rebuild i18n table from the scrubbed China locales
   generateProviders(DIST, 'china'); // overwrite providers.gen.js with the China set
   generateTts(DIST, 'china');       // …and tts.gen.js with the China speech set
+  // Sync OFF in the China artifact (source stays true): the China app is
+  // unreleased and PIPL/cross-border compliance is unevaluated. Its own Gate,
+  // its own release decision — see backend.config.js header.
+  const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
+  fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
+  log('China flavor: sync disabled in artifact (enabled → false)');
 }
 
 // Firefox-specific patches
@@ -518,8 +555,20 @@ descriptionLengthGate(DIST);
 // would ship an untested target rather than a feature.
 if (FLAVOR === 'global') {
   const { buildAppBundle } = require('./build/app-bundle.js');
-  buildAppBundle(path.join(ROOT, 'dist-app'), log, { syncOn: SYNC_ON, flipSyncFlag });
+  // syncOn flip retired with Gate B — the source flag is true; the bundle
+  // concatenates it as-is.
+  buildAppBundle(path.join(ROOT, 'dist-app'), log, {});
 }
+
+// ─── .not-shippable marker — closes the iOS archive hole ───────────────────
+// release-checklist「Gate B 的缺口」: SKIP_ZIP withholds the .zip, but the iOS
+// shippable is an .xcarchive built FROM dist/, which SKIP_ZIP never touched —
+// so a bypassed build could still reach TestFlight/App Store unimpeded. The
+// marker travels with dist/; scripts/verify-ios-bundle.js refuses (exit 1) when
+// it is present, and a normal build removes it.
+const MARKER = path.join(DIST, '.not-shippable');
+if (SKIP_ZIP) fs.writeFileSync(MARKER, SKIP_ZIP + '\n');
+else if (fs.existsSync(MARKER)) fs.unlinkSync(MARKER);
 
 // Zip (Firefox .xpi is just a zip)
 if (SKIP_ZIP) {

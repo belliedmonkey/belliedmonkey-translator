@@ -19,6 +19,16 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const dd = process.argv[2] || '/tmp/bt-dd';
 
+// Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
+// (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
+// project reads dist/ directly — so this check is the archive path's zip-refusal.
+const marker = path.join(ROOT, 'dist', '.not-shippable');
+if (fs.existsSync(marker)) {
+  console.log('✗ dist/ 带 .not-shippable 标记（' + fs.readFileSync(marker, 'utf8').trim() + '）');
+  console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
+  process.exit(1);
+}
+
 function walk(dir, base = dir, out = new Set()) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);

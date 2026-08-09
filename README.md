@@ -196,18 +196,23 @@ Stated up front, because finding them yourself is worse.
 
 ## Privacy
 
-- **No servers of ours.** Requests go from your browser to the engine you picked. We never
-  handle, store or upload your data — there is no "we" in the path at all.
+- **No servers of ours in the translation path.** Requests go from your browser to the engine
+  you picked.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
-- **No account, no tracking, no telemetry.** Nothing to sign up for.
+- **No tracking, no telemetry — and no account unless you want one.** Syncing your learning
+  material between your own devices needs a free account; everything else works without one.
 - **Learning material is built on your device.** If you turn on the learning feature, the
   extension keeps the sentences you actually read — with the page URL, its title, and how long
   the text was on screen — in local storage on that device, so it can show them to you again
-  later. It is off until you turn it on, it is never uploaded, and one button erases all of it.
-- **What is sent** is the text to be translated. Not the URL, not the page title, not the
-  referrer, not your user agent, not any identifier. This is also what the extension declares
-  to Firefox under `data_collection_permissions`: `websiteContent`, and deliberately *not*
-  `browsingActivity`.
+  later. It is off until you turn it on, it stays on your device **unless you turn on sync**,
+  and one button erases all of it.
+- **What is sent for translation** is the text, and nothing else — not the URL, not the page
+  title, not the referrer, not any identifier. **What sync sends, if you turn it on, is
+  different and larger: every sentence the extension kept, the page URL and title it came
+  from, and when you reviewed it — in readable form on our servers.** Deleting learning
+  material by source is account-wide: the deletion syncs to all your devices. This is also
+  what the extension declares to Firefox under `data_collection_permissions`:
+  `websiteContent`, `browsingActivity`, and `personallyIdentifyingInfo` (your account email).
 
 Full policy: [belliedmonkey.cc/privacy.html](https://belliedmonkey.cc/privacy.html)
 

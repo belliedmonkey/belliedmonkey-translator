@@ -172,26 +172,30 @@ grep -rhoE 'BelliedMonkey[^"]*\.xcarchive|"cfBundleVersion" : "[0-9]+"' "$LATEST
 2026-08-07 实测确认：以 `MT_SYNC_E2E=1` 构建的 sync-enabled `dist/` 归档出的
 build 14 顺利导出并可上传。当时是**刻意**这么做的（见下），但缺口本身不该靠人记得。
 
-**待补**：`MT_SYNC_E2E=1` 时应同时在 `dist/` 里写一个标记文件（例如
-`.not-shippable`），并让 `verify:ios` 在检测到该标记时非零退出。这样归档前的必经
-门禁就能拦住它，而不必依赖构建者的自觉。
+**✅ 已补（2026-08-09，Gate B 落地同批）**：任何 `SKIP_ZIP` 路径现在都会在 `dist/`
+写 `.not-shippable` 标记（内容 = 不可发布的原因），`verify:ios` 见标记即非零退出并
+指路重跑正常构建；正常构建自动清除标记。实测：E2E 构建 → 标记落盘 → verify:ios 拒绝。
 
 > 已知例外（2026-08-07）：TestFlight build 14 是**明知故犯**地开着同步上传的，用于
 > 家庭范围内的真机测试。产品所有者在被告知承诺冲突后仍确认要这么做。这不构成先例，
 > 也不改变下面 Gate B 的发布前要求。
 
-## 打开同步之前必须改完的（Gate B 全清单）
+## 打开同步之前必须改完的（Gate B 全清单）—— v1.4.0 执行记录（2026-08-09）
 
 同步一旦对公众发布，下面每一项都必须先改完 —— 前四项是**承诺**，第五项是**登记**：
 
-1. `README.md` / `README.zh-CN.md`：「**No account, no tracking, no telemetry**」
-   （构建闸门会强制这一条，改不完 `node build.js` 直接失败）
-2. **两个官网**的隐私页：`.com` 与 `.cc`（`.cc` 是 i18n 的，**8 个语言逐个改**，
-   漏掉某个语言会在隐私页上留下一条空条目）
-3. **Chrome Web Store** 的数据用途声明
-4. **Firefox** 的 `gecko.data_collection_permissions`（当前只声明了 `websiteContent`）
+1. ✅ `README.md` / `README.zh-CN.md`（v1.4.0 同一提交；中文版顺带补上了缺失的
+   Gate A bullet。闸门已扩展：中文 README 与 11 locale 的 `learn_section_hint`
+   假句、声明值不足三项，任一残存都拒绝构建）
+2. **官网隐私页**：`.cc` 8 个语言逐个改（执行中）；**`.com` 不改** —— 它是中国版
+   站点，而 china flavor 的产物在构建时把同步翻回 false（合规未评估，另行开门），
+   中国版口径仍然为真。
+3. **Chrome Web Store** 的数据用途声明（提交 1.4.0 时后台更新）
+4. ✅ **Firefox** 的 `gecko.data_collection_permissions` → 三项（v1.4.0 manifest；
+   这是修改已公开声明，AMO 审核可见）
 5. **App Store Connect 的 App Privacy** —— 如实登记「收集邮箱」与「收集用户内容
    （学习语料）」，以及是否与身份关联。**这一项不是文案，是法律登记**，写错比写少更糟。
+   （提交 1.4.0 时在 ASC 填写）
 
 发布前的自检：把「我们不接收你的任何内容」这句话在整个仓库和两个站点里 grep 一遍，
 每一条命中都要能回答「同步开着的时候这句话还真吗」。

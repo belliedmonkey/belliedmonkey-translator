@@ -12,18 +12,22 @@
 
 var MT_BACKEND = {
   // ─── SHIPPING SWITCH ─────────────────────────────────────────────────────
-  // false ⇒ the 多设备同步 section is not rendered at all, so there is no path to
-  // an account or to our server. V1 ships with sync OFF: the release is capture +
-  // review + TTS, all local, which lets every privacy claim in README/privacy.html
-  // stay TRUE VERBATIM. Turning this on breaks four sentences at once
-  // ("no account", "we receive nothing", "never uploaded"), so it is a release
-  // decision, not a config tweak.
+  // true since v1.4.0 (Gate B, 2026-08-09): sync is PUBLIC. The flip landed in
+  // the same commit as the honest privacy copy — README ×2, the in-product
+  // learn_section_hint ×11 locales, and the Firefox data_collection_permissions
+  // growing to three entries — exactly as learning-design §10 required. The
+  // build gates that used to block this flag now guard the OPPOSITE direction:
+  // enabled:true with any stale "never uploaded / no account" sentence anywhere
+  // in the repo fails the build (see build.js validateManifest, Gate B block).
   //
-  // `build.js` refuses to build with this true while the README still carries the
-  // "No account, no tracking, no telemetry" line — see learning-design.md §10 Gate B.
-  // The flag and the promise are coupled mechanically because a promise that depends
-  // on someone remembering is the kind that gets broken.
-  enabled: false,
+  // The CHINA flavor ships with this flipped back to false at build time
+  // (build.js china override): the China app is unreleased and its data-export
+  // compliance (PIPL, cross-border) has not been evaluated. Enabling sync there
+  // is a separate release decision with its own gate.
+  //
+  // Sign-in stays optional: signed out, every feature except multi-device sync
+  // works fully and locally (§8.2 stance — sync is an upgrade, not a gate).
+  enabled: true,
 
   // Dedicated project, Tokyo (ap-northeast-1) — 2026-08-04. Tokyo rather than the
   // us-east-1 the other projects use: sync is not latency-critical, but the users
