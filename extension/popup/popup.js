@@ -232,18 +232,24 @@ async function init() {
   renderSiteSection(s.learnEnabled === true);
 
   $('site-capture').addEventListener('change', async (e) => {
-    const host = LearnRules.siteRuleFor(siteUrl);
-    if (!host) return;
-    if (e.target.checked) {
-      await writeSiteRules((r) => ({ block: (r.block || []).filter((p) => LearnRules.normalizePattern(p) !== host) }));
-      showToast(t('learn_src_unblock', '恢复收录'));
-    } else {
-      await writeSiteRules((r) => ({
-        block: (r.block || []).indexOf(host) >= 0 ? r.block : (r.block || []).concat([host]),
-      }));
-      showToast(t('learn_src_block', '不再收录'));
-    }
-    renderSiteSection(s.learnEnabled === true);
+    // interaction-spec 全局原则: the write + forced sync are in flight — the
+    // toggle locks so a rapid double-flip can't interleave two rule writes.
+    const ctl = e.target;
+    ctl.disabled = true;
+    try {
+      const host = LearnRules.siteRuleFor(siteUrl);
+      if (!host) return;
+      if (ctl.checked) {
+        await writeSiteRules((r) => ({ block: (r.block || []).filter((p) => LearnRules.normalizePattern(p) !== host) }));
+        showToast(t('learn_src_unblock', '恢复收录'));
+      } else {
+        await writeSiteRules((r) => ({
+          block: (r.block || []).indexOf(host) >= 0 ? r.block : (r.block || []).concat([host]),
+        }));
+        showToast(t('learn_src_block', '不再收录'));
+      }
+      renderSiteSection(s.learnEnabled === true);
+    } finally { ctl.disabled = false; }
   });
   $('site-blocked-row').addEventListener('click', () => chrome.runtime.openOptionsPage());
 
@@ -311,18 +317,29 @@ async function init() {
   });
 
   // Toggle: 翻译本页 ↔ 查看原文. Re-translating is cache-first (TranslationAPI cache).
-  $('btn-translate').addEventListener('click', async () => {
-    if (pageTranslated) {
-      await sendToPage('disablePage');
-      pageTranslated = false;
+  $('btn-translate').addEventListener('click', async (e) => {
+    // interaction-spec 全局原则: locked across the content-script roundtrip, and
+    // the status toast fires BEFORE the await — feedback that arrives only after
+    // the work settles tells the user nothing while they wait.
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      if (pageTranslated) {
+        const r = await sendToPage('disablePage');
+        // sendToPage never throws — it resolves null when no content script
+        // answered. Flipping state on null would paint a status the page is
+        // not in, so both branches gate the flip on a real response.
+        if (r == null) { showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return; }
+        pageTranslated = false;
+        showToast(t('toast_restored_original', '已恢复原文'));
+      } else {
+        showToast(t('toast_translating', '正在翻译…'));
+        const r = await sendToPage('translatePage');
+        if (r == null) { showToast(t('msg_translate_failed_retry', '⚠️ 翻译失败——点按重试')); return; }
+        pageTranslated = true;
+      }
       updateTranslateUI();
-      showToast(t('toast_restored_original', '已恢复原文'));
-    } else {
-      await sendToPage('translatePage');
-      pageTranslated = true;
-      updateTranslateUI();
-      showToast(t('toast_translating', '正在翻译…'));
-    }
+    } finally { btn.disabled = false; }
   });
 
   $('btn-settings').addEventListener('click', () => {

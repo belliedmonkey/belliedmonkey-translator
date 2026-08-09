@@ -250,6 +250,12 @@ body {
 
 .btn-primary:active, .btn-secondary:active { transform: scale(0.97); }
 
+/* interaction-spec 全局原则: in-flight (disabled) controls must look disabled. */
+button:disabled, input:disabled, select:disabled {
+  opacity: .55; cursor: default; pointer-events: none;
+}
+.switch input:disabled + .slider { opacity: .55; }
+
 .btn-primary {
   background: var(--green);
   color: #fff;

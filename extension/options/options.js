@@ -92,6 +92,17 @@ function showToast(msg, duration = 2500) {
   setTimeout(() => el.classList.remove('show'), duration);
 }
 
+// interaction-spec 全局原则 (IO 在途，控件不可用): shared wrapper — the triggering
+// control goes disabled before the first await and comes back only on settle
+// (success, failure, or throw). Re-entry while in flight is refused outright.
+function busy(el, fn) {
+  return async (...args) => {
+    if (el.disabled) return;
+    el.disabled = true;
+    try { return await fn(...args); } finally { el.disabled = false; }
+  };
+}
+
 // Say what to do BEFORE the first bad result, not after. Mirrors popup.js —
 // see the comment there for why both states exist.
 let _settingsReadFailed = false;
@@ -405,26 +416,35 @@ async function init() {
 
   // A test button, because every failure mode here is invisible until you try:
   // a voice the system does not have, a URL that is not serving, a wrong key.
-  $('btn-tts-test').addEventListener('click', async () => {
+  $('btn-tts-test').addEventListener('click', busy($('btn-tts-test'), async () => {
     applyTtsConfig();
     const note = $('tts-cache');
     const sample = t('tts_test_sample', 'This is what your review cards will sound like.');
     note.textContent = t('tts_testing', '正在合成…');
     const r = await LearnTTS.speak(sample, 'en');
     note.textContent = r.ok ? t('tts_test_ok', '播放中') : ttsReason(r.reason);
-    if (r.ok) setTimeout(refreshTtsCache, 1500);
-  });
-  $('btn-clear-tts').addEventListener('click', async () => {
+    if (r.ok) {
+      setTimeout(refreshTtsCache, 1500);
+      // 播放也算在途 (同 review ▶): the button stays down until the sample ends —
+      // bounded, because Chrome's speechSynthesis occasionally swallows `end`
+      // (backgrounded tab) and nothing on this page ever calls stop().
+      await Promise.race([
+        (r.done || Promise.resolve()).catch(() => {}),
+        new Promise((res) => setTimeout(res, 15000)),
+      ]);
+    }
+  }));
+  $('btn-clear-tts').addEventListener('click', busy($('btn-clear-tts'), async () => {
     try { await LearnStore.clearAudio(); showToast(t('toast_tts_cleared', '语音缓存已清空')); }
     catch (_) { showToast(t('toast_learn_clear_failed', '清空失败')); }
     refreshTtsCache();
-  });
+  }));
 
   // ─── 导出 / 导入 ────────────────────────────────────────────────────
   // Same chunk format sync will use, so this is not throwaway plumbing — and it
   // works today, with no account and no server (learning-design §8.2).
 
-  $('btn-export-learn').addEventListener('click', async () => {
+  $('btn-export-learn').addEventListener('click', busy($('btn-export-learn'), async () => {
     try {
       const { bytes, header } = await LearnChunk.exportBytes(Date.now());
       if (!header.counts.cards) { showToast(t('toast_export_empty', '还没有可导出的卡片')); return; }
@@ -438,10 +458,12 @@ async function init() {
     } catch (_) {
       showToast(t('toast_export_failed', '导出失败'));
     }
-  });
+  }));
 
   $('btn-import-learn').addEventListener('click', () => $('import-file').click());
-  $('import-file').addEventListener('change', async (e) => {
+  // The visible trigger is 选择文件 (#btn-import-learn), so THAT is what locks
+  // during the bulk import — the hidden input can't show a disabled state.
+  $('import-file').addEventListener('change', busy($('btn-import-learn'), async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';                       // so re-picking the same file re-fires
     if (!file) return;
@@ -459,9 +481,9 @@ async function init() {
         : c === 'enc_unsupported' ? t('toast_import_upgrade', '这个文件来自更新版本的扩展，升级后才能导入。文件本身没有问题。')
         : t('toast_import_failed', '导入失败'));
     }
-    refreshLearnStats();
-    refreshPressure();
-  });
+    await refreshLearnStats();
+    await refreshPressure();
+  }));
 
   // ─── Learning (记忆层) ──────────────────────────────────────────────
 
@@ -486,15 +508,15 @@ async function init() {
     }
   }
 
-  $('learn-enabled').addEventListener('change', async () => {
+  $('learn-enabled').addEventListener('change', busy($('learn-enabled'), async () => {
     await saveAll();
     // Turning capture OFF stops collecting; it does NOT delete what was already
     // collected. Say so, rather than letting the user assume either way.
     showToast($('learn-enabled').checked
       ? t('toast_learn_on', '已开始采集学习材料')
       : t('toast_learn_off', '已停止采集（已收集的内容保留）'));
-    refreshLearnStats();
-  });
+    await refreshLearnStats();
+  }));
   $('learn-daily-new').addEventListener('change', async () => {
     await saveAll();
     $('learn-daily-new').value = Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew));
@@ -541,17 +563,17 @@ async function init() {
     } catch (_) { el.textContent = ''; btn.hidden = true; }
   }
 
-  $('btn-clean-known').addEventListener('click', async () => {
+  $('btn-clean-known').addEventListener('click', busy($('btn-clean-known'), async () => {
     const n = await LearnStore.clearKnown().catch(() => -1);
     if (n < 0) { showToast(t('toast_learn_clear_failed', '清空失败')); }
     else {
       showToast(t('toast_learn_cleaned', '已清理 {n} 张已掌握的卡').replace('{n}', String(n)));
     }
-    refreshLearnStats();
-    refreshPressure();
-  });
+    await refreshLearnStats();
+    await refreshPressure();
+  }));
 
-  $('btn-clear-learn').addEventListener('click', async () => {
+  $('btn-clear-learn').addEventListener('click', busy($('btn-clear-learn'), async () => {
     if (!window.confirm(t('learn_clear_confirm', '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
     try {
       await LearnStore.clearAll();
@@ -561,9 +583,9 @@ async function init() {
     } catch (_) {
       showToast(t('toast_learn_clear_failed', '清空失败'));
     }
-    refreshLearnStats();
-    refreshPressure();
-  });
+    await refreshLearnStats();
+    await refreshPressure();
+  }));
   // §7.5 — 空库先从本地备份恢复，再画首屏统计（restore 与 drain 都幂等，但
   // 恢复在前才能让首屏直接看到完整语料）；随后打一次节流内的快照。
   await LearnBackup.restoreIfEmpty();
@@ -603,7 +625,11 @@ async function init() {
       registry: window.MT_LANGS || [],
       langs: learnRules && learnRules.langs,
       t,
-      onChange: (langs) => { writeRules(() => ({ langs })); showToast(t('toast_saved', '已保存')); },
+      // MUST return the promise: SourcesView's lock() holds the chip disabled
+      // until this settles. Dropping it re-enables mid-write and reopens the
+      // stale-closure lost-update race (two quick taps, first language lost).
+      onChange: (langs) => writeRules(() => ({ langs }))
+        .then(() => showToast(t('toast_saved', '已保存'))),
     });
   }
 
@@ -649,11 +675,11 @@ async function init() {
     renderSourcesManager();
   }
 
-  $('btn-manage-sources').addEventListener('click', () => {
+  $('btn-manage-sources').addEventListener('click', busy($('btn-manage-sources'), async () => {
     const box = $('sources-manager');
     box.hidden = !box.hidden;
-    renderSourcesManager();
-  });
+    await renderSourcesManager();
+  }));
   renderLangChipsUI();
 
   // A rules change from elsewhere (a sync pull's `g` row, the popup's 本站
@@ -725,7 +751,9 @@ async function init() {
   }
 
   if (MT_BACKEND.enabled) {
-  $('btn-sync-code').addEventListener('click', async () => {
+  // busy() on both auth buttons: the OTP endpoint is server-rate-limited, so a
+  // repeat tap here burns the user's OWN limit (sync_err_rate exists because of it).
+  $('btn-sync-code').addEventListener('click', busy($('btn-sync-code'), async () => {
     const email = $('sync-email').value.trim();
     if (!email) { syncSay(t('sync_need_email', '先填邮箱')); return; }
     syncSay(t('sync_sending', '发送中…'));
@@ -735,9 +763,9 @@ async function init() {
       $('sync-code').focus();
       syncSay(t('sync_code_sent', '验证码已发到 {email}，填在下面。').replace('{email}', email));
     } catch (e) { syncSay(syncError(e)); }
-  });
+  }));
 
-  $('btn-sync-verify').addEventListener('click', async () => {
+  $('btn-sync-verify').addEventListener('click', busy($('btn-sync-verify'), async () => {
     syncSay(t('sync_verifying', '验证中…'));
     try {
       await LearnAuth.verify($('sync-email').value.trim(), $('sync-code').value.trim());
@@ -751,7 +779,7 @@ async function init() {
         ? t('sync_bad_code', '验证码不对或已过期，重新发一个。')
         : syncError(e));
     }
-  });
+  }));
 
   async function runSync() {
     // interaction-spec 全局原则「IO 在途，控件不可用」——手动同步按钮全程禁用。
@@ -770,16 +798,18 @@ async function init() {
   }
   $('btn-sync-now').addEventListener('click', runSync);
 
-  $('btn-sync-out').addEventListener('click', async () => {
+  $('btn-sync-out').addEventListener('click', busy($('btn-sync-out'), async () => {
     await LearnAuth.signOut();
     // The corpus stays. Signing out is not a reason to lose what you learned, and a
     // user who expects otherwise is better surprised in this direction.
     await LearnSync.forget();
     await refreshSyncUI();
     syncSay(t('sync_signed_out', '已退出登录。本机的学习库原样保留。'));
-  });
+  }));
 
-  $('btn-sync-delete').addEventListener('click', async () => {
+  // busy() here is load-bearing: a double-click used to issue TWO account
+  // deletions against an irreversible endpoint.
+  $('btn-sync-delete').addEventListener('click', busy($('btn-sync-delete'), async () => {
     if (!window.confirm(t('sync_delete_confirm', '删除云端数据与账号？服务器上的所有内容与这个账号都会被删除，无法恢复。本机的学习库会保留。'))) return;
     syncSay(t('sync_deleting', '删除中…'));
     try {
@@ -793,7 +823,7 @@ async function init() {
         : t('sync_deleted_partial', '云端数据已删除，但账号没能删掉（{why}）。可以重试或联系我们。')
             .replace('{why}', String(r.reason || '')));
     } catch (e) { syncSay(syncError(e)); }
-  });
+  }));
 
   refreshSyncUI();
   // §8.8 — opening this page is the heartbeat (throttled + silent inside autoSync;
@@ -804,21 +834,25 @@ async function init() {
   }).catch(() => {});
   }   // end if (MT_BACKEND.enabled)
 
-  $('btn-clear-cache').addEventListener('click', async () => {
+  $('btn-clear-cache').addEventListener('click', busy($('btn-clear-cache'), async () => {
     const status = $('cache-status');
     status.textContent = t('toast_clearing', '清除中…');
-    chrome.storage.local.get(null, (items) => {
-      const keys = Object.keys(items || {}).filter(k => k.startsWith('tr:'));
-      if (keys.length === 0) {
-        status.textContent = t('toast_cache_empty', '缓存为空');
-        return;
-      }
-      chrome.storage.local.remove(keys, () => {
-        status.textContent = t('toast_cache_cleared', '缓存已清除') + ` (${keys.length})`;
-        showToast(t('toast_cache_cleared', '缓存已清除'));
+    await new Promise((done) => {
+      chrome.storage.local.get(null, (items) => {
+        const keys = Object.keys(items || {}).filter(k => k.startsWith('tr:'));
+        if (keys.length === 0) {
+          status.textContent = t('toast_cache_empty', '缓存为空');
+          done();
+          return;
+        }
+        chrome.storage.local.remove(keys, () => {
+          status.textContent = t('toast_cache_cleared', '缓存已清除') + ` (${keys.length})`;
+          showToast(t('toast_cache_cleared', '缓存已清除'));
+          done();
+        });
       });
     });
-  });
+  }));
 }
 
 // A bare `init()` turns any throw inside it into a silent unhandled rejection, which
