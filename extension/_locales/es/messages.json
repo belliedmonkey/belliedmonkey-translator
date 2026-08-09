@@ -357,7 +357,7 @@
     "message": "Aprendizaje"
   },
   "learn_section_hint": {
-    "message": "Al activarlo, las frases que realmente leíste se guardan EN ESTE DISPOSITIVO junto con la dirección de la página, su título y cuánto tiempo estuvo en pantalla, y se te vuelven a mostrar siguiendo una curva del olvido. Lo que pasas de largo no se guarda. Nada se sube, y un botón lo borra todo."
+    "message": "Al activarlo, las frases que realmente lees se guardan EN ESTE DISPOSITIVO junto con la dirección de la página, su título y el tiempo en pantalla, y se te vuelven a mostrar según una curva del olvido. Pasar deprisa no cuenta. No se sube nada a menos que actives la sincronización, y un botón lo borra todo."
   },
   "learn_enable": {
     "message": "Recopilar material"

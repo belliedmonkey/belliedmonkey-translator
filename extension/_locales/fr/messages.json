@@ -357,7 +357,7 @@
     "message": "Apprentissage"
   },
   "learn_section_hint": {
-    "message": "Une fois activé, les phrases que vous avez réellement lues sont conservées SUR CET APPAREIL avec l'adresse de la page, son titre et la durée d'affichage, puis vous sont représentées selon une courbe de l'oubli. Ce que vous faites défiler n'est pas conservé. Rien n'est téléversé, et un bouton efface tout."
+    "message": "Une fois activé, les phrases que vous lisez réellement sont conservées SUR CET APPAREIL avec l'adresse de la page, son titre et le temps d'affichage, puis représentées selon une courbe de l'oubli. Le survol rapide ne compte pas. Rien n'est envoyé tant que vous n'activez pas la synchronisation, et un bouton efface tout."
   },
   "learn_enable": {
     "message": "Collecter le matériel"

@@ -357,7 +357,7 @@
     "message": "Learning"
   },
   "learn_section_hint": {
-    "message": "When on, sentences you actually read are stored ON THIS DEVICE together with the page address, its title and how long the text was on screen, and shown to you again on a forgetting curve. Text you scroll straight past is not stored. Nothing is uploaded, and one button erases all of it."
+    "message": "When on, sentences you actually read are kept ON THIS DEVICE together with the page address, its title and how long the text was on screen, and resurfaced on a forgetting curve. Skimming past does not count. Nothing is uploaded unless you turn on sync, and one button erases all of it."
   },
   "learn_enable": {
     "message": "Collect learning material"
