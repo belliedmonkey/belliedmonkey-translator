@@ -1080,5 +1080,11 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "Impossible de lire l'état de connexion (échec de lecture du stockage) ; nouvelle tentative sous peu — cela ne signifie pas que vous avez été déconnecté."
+  },
+  "learn_backup_failed": {
+    "message": "La sauvegarde locale n'a pas pu être écrite ({why}). La bibliothèque d'apprentissage n'est pas affectée."
   }
 }

@@ -1080,5 +1080,11 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "Não foi possível ler o estado de login (falha de leitura do armazenamento); tentaremos novamente em breve — isso não significa que você foi desconectado."
+  },
+  "learn_backup_failed": {
+    "message": "Não foi possível gravar o backup local ({why}). A biblioteca de aprendizado em si não é afetada."
   }
 }

@@ -7,6 +7,35 @@
 // run never reaches and a user hits on their worst day.
 
 const { loadModule, describe, test, ok, eq, rejects } = require('./harness');
+const { makeChrome } = require('./stubs');
+
+// Auth persists in chrome.storage.local since §8.4.1 (2026-08-09). The stub can be
+// told to fail its next N reads/writes — the class of transient storage failure
+// load() must survive WITHOUT latching the signed-out state.
+function makeAuthChrome(seed = {}) {
+  const chrome = makeChrome({ store: Object.assign({}, seed) });
+  let failReads = 0, failWrites = 0;
+  const real = { get: chrome.storage.local.get, set: chrome.storage.local.set, remove: chrome.storage.local.remove };
+  chrome.storage.local.get = (keys, cb) => {
+    if (failReads > 0) { failReads--; return Promise.reject(new Error('storage read broke')); }
+    return real.get(keys, cb);
+  };
+  chrome.storage.local.set = (obj, cb) => {
+    if (failWrites > 0) { failWrites--; return Promise.reject(new Error('storage write broke')); }
+    return real.set(obj, cb);
+  };
+  chrome._failReads = (n) => { failReads = n; };
+  chrome._failWrites = (n) => { failWrites = n; };
+  return chrome;
+}
+
+function loadAuth({ chrome, store, fetchFn }) {
+  const PageSettings = loadModule('learn/page-settings.js', { window: {}, chrome }).PageSettings;
+  return loadModule('learn/auth.js', {
+    window: {}, MT_BACKEND: BACKEND, LearnStore: store, PageSettings, chrome,
+    fetch: fetchFn, Date,
+  }).LearnAuth;
+}
 
 const BACKEND = {
   url: 'https://example.supabase.co',
@@ -98,9 +127,8 @@ function setup(opts = {}) {
     TextEncoder, TextDecoder, Response, Date,
   }).LearnChunk;
 
-  const LearnAuth = opts.auth || loadModule('learn/auth.js', {
-    window: {}, MT_BACKEND: BACKEND, LearnStore, fetch: fetchFn, Date,
-  }).LearnAuth;
+  const authChrome = opts.chrome || makeAuthChrome();
+  const LearnAuth = opts.auth || loadAuth({ chrome: authChrome, store: LearnStore, fetchFn });
 
   const sandbox = {
     window: {}, MT_BACKEND: BACKEND, LearnStore, LearnAuth, LearnChunk, LearnModel,
@@ -119,13 +147,12 @@ const liveSession = () => ({
 });
 
 describe('LearnAuth — sessions', () => {
-  function authOnly(routes, meta) {
+  function authOnly(routes, meta, chromeSeed) {
     const store = fakeStore({ meta: meta || {} });
     const fetchFn = fakeFetch(routes);
-    const A = loadModule('learn/auth.js', {
-      window: {}, MT_BACKEND: BACKEND, LearnStore: store, fetch: fetchFn, Date,
-    }).LearnAuth;
-    return { A, store, fetchFn };
+    const chrome = makeAuthChrome(chromeSeed || {});
+    const A = loadAuth({ chrome, store, fetchFn });
+    return { A, store, fetchFn, chrome };
   }
 
   test('signed out yields a null token, which is not an error', async () => {
@@ -932,5 +959,98 @@ describe('LearnSync — 用户删除与规则随推送传播（§7.4/§8.9）', 
     eq(stats.deleted, 1, '拉取要把删除落地并报数');
     eq(st.items.length, 0);
     eq(st.dels.get('doomed'), T0 + 10);
+  });
+});
+
+// ─── §8.4.1 — 会话持久化（chrome.storage.local）与判死收紧 ───────────────────
+// 三类失败必须各归各位：存储读失败 ≠ 未登录（不闩死、可自愈）；网络/5xx/无 body
+// 4xx ≠ 会话失效（重试一次后抛出、绝不清会话）；只有带 GoTrue 错误体的 400/401
+// 才是判死。升级不重登的机制本体：会话在 bundle-id 落盘的 storage.local 里。
+
+describe('LearnAuth — 会话持久化与判死收紧（§8.4.1）', () => {
+  const live = () => ({ accessToken: 'AT', refreshToken: 'RT',
+    expiresAt: Date.now() + 3600e3, email: 'a@b.c', userId: 'u1' });
+  const expired = () => ({ accessToken: 'OLD', refreshToken: 'RT',
+    expiresAt: 1, email: 'a@b.c', userId: 'u1' });
+
+  function authOnly2(routes, meta, chromeSeed) {
+    const store = fakeStore({ meta: meta || {} });
+    const fetchFn = fakeFetch(routes);
+    const chrome = makeAuthChrome(chromeSeed || {});
+    const A = loadAuth({ chrome, store, fetchFn });
+    return { A, store, fetchFn, chrome };
+  }
+
+  test('verify 后会话落在 storage.local；同一 storage 新实例（=升级重载）直接可用，不重登', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /\/verify$/.test(u),
+      reply: () => reply(200, { access_token: 'AT', refresh_token: 'RT', expires_in: 3600, user: { id: 'u1', email: 'a@b.c' } }),
+    }]);
+    await A.verify('a@b.c', '123456');
+    ok(chrome._store.learnAuth && chrome._store.learnAuth.accessToken === 'AT',
+      '会话必须写进 storage.local 的 learnAuth');
+    // “升级”：同一份 storage，全新的 LearnAuth 模块实例（新的空 IDB 也一样）
+    const A2 = loadAuth({ chrome, store: fakeStore(), fetchFn: fakeFetch([]) });
+    const s = await A2.current();
+    eq(s && s.accessToken, 'AT', '重载后无需任何网络往返即恢复登录态');
+  });
+
+  test('legacy 迁移：IDB meta 的旧会话被采用、回写 learnAuth、旧位清空', async () => {
+    const { A, store, chrome } = authOnly2([], { auth: live() });
+    const s = await A.current();
+    eq(s && s.accessToken, 'AT');
+    eq(chrome._store.learnAuth && chrome._store.learnAuth.accessToken, 'AT', '必须回写新位');
+    eq(store.meta.auth, null, '回写成功后旧位必须清空（防复活分歧）');
+  });
+
+  test('存储读失败不闩死：当次报 lastLoadError，下次调用自愈且不重登', async () => {
+    const { A, chrome } = authOnly2([], {}, { learnAuth: live() });
+    chrome._failReads(1);
+    eq(await A.current(), null, '失败当次拿不到会话是诚实的');
+    ok(A.lastLoadError(), '但必须记下失败原因，界面据此说「存储读取失败」而非「未登录」');
+    const s2 = await A.current();
+    eq(s2 && s2.accessToken, 'AT', '存储恢复后的下一次调用必须自愈');
+    eq(A.lastLoadError(), null);
+  });
+
+  test('刷新遇网络失败：重试一次后抛出，会话保留（离线永不登出）', async () => {
+    const { A, chrome, fetchFn } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => { throw new Error('Failed to fetch'); },
+    }], {}, { learnAuth: expired() });
+    await rejects(A.token(), (e) => e.code === 'offline');
+    eq(fetchFn.calls.length, 2, '必须重试一次（GoTrue 复用宽限期覆盖此窗口）');
+    ok(chrome._store.learnAuth, '会话必须原样保留');
+    ok(A.cachedSession(), '内存中的会话也不许被清');
+  });
+
+  test('刷新 500 后重试成功：拿到新 token，无人被登出', async () => {
+    let calls = 0;
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => (++calls === 1
+        ? reply(500, { message: 'internal' })
+        : reply(200, { access_token: 'NEW', refresh_token: 'RT2', expires_in: 3600, user: { id: 'u1' } })),
+    }], {}, { learnAuth: expired() });
+    eq(await A.token(), 'NEW');
+    eq(chrome._store.learnAuth.accessToken, 'NEW');
+  });
+
+  test('无 body 的 400（代理/门户）不判死：抛出且会话保留', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => reply(400, null),
+    }], {}, { learnAuth: expired() });
+    await rejects(A.token());
+    ok(chrome._store.learnAuth, '没有 GoTrue 错误体就没有判死资格');
+  });
+
+  test('带 GoTrue 错误体的 400 才判死：会话清空', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => reply(400, { error_code: 'invalid_grant', msg: 'refresh token revoked' }),
+    }], {}, { learnAuth: expired() });
+    eq(await A.token(), null);
+    eq(chrome._store.learnAuth, undefined, '确定性拒绝后会话必须移除');
   });
 });

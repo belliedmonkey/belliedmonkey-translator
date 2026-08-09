@@ -523,6 +523,14 @@ async function init() {
         msg = t('learn_pressure_near', '学习库快满了（{n} / {cap}）。')
           .replace('{n}', String(p.total)).replace('{cap}', String(p.cap));
       }
+      // §7.5 — 备份失败不是丢失（语料还活着），但对开了学习的用户不许静默。
+      try {
+        const bm = await LearnBackup.meta();
+        if (bm && bm.lastError) {
+          msg += (msg ? ' ' : '') + t('learn_backup_failed', '本地备份未能写入（{why}）。学习库本身不受影响。')
+            .replace('{why}', String(bm.lastError));
+        }
+      } catch (_) {}
       el.textContent = msg;
       // Offering a cleanup that would free nothing is worse than offering none.
       btn.hidden = p.reclaimable === 0;
@@ -547,6 +555,8 @@ async function init() {
     if (!window.confirm(t('learn_clear_confirm', '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
     try {
       await LearnStore.clearAll();
+      // §7.5 清空守卫：用户要的清空不许下次打开由备份还魂。
+      await LearnBackup.clear();
       showToast(t('toast_learn_cleared', '学习库已清空'));
     } catch (_) {
       showToast(t('toast_learn_clear_failed', '清空失败'));
@@ -554,6 +564,10 @@ async function init() {
     refreshLearnStats();
     refreshPressure();
   });
+  // §7.5 — 空库先从本地备份恢复，再画首屏统计（restore 与 drain 都幂等，但
+  // 恢复在前才能让首屏直接看到完整语料）；随后打一次节流内的快照。
+  await LearnBackup.restoreIfEmpty();
+  LearnBackup.maybeRun();
   refreshLearnStats();
   refreshPressure();
 
@@ -691,7 +705,16 @@ async function init() {
     const s = await LearnAuth.current().catch(() => null);
     $('sync-out').hidden = !!s;
     $('sync-in').hidden = !s;
-    if (!s) { $('sync-usage').textContent = ''; return; }
+    if (!s) {
+      $('sync-usage').textContent = '';
+      // Storage-read failure ≠ signed out (§8.4.1). The sign-in form still
+      // shows (a real re-login always works), but the status line must name
+      // the failure instead of implying the session is gone.
+      if (LearnAuth.lastLoadError()) {
+        syncSay(t('sync_status_storage_error', '读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。'));
+      }
+      return;
+    }
     $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', s.email || '');
     try {
       const u = await LearnSync.usage();

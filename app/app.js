@@ -346,7 +346,13 @@
     });
 
     try {
-      await show(await LearnAuth.current());
+      const session = await LearnAuth.current();
+      await show(session);
+      // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
+      // as the recovery path, but the status line must name the real problem.
+      if (!session && LearnAuth.lastLoadError()) {
+        say(t('sync_status_storage_error', '读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。'), true);
+      }
       // Fire-and-forget: launch is a heartbeat (§8.8), and the sign-in screen or
       // counts must never wait on the network for a run the user didn't ask for.
       quietSync();

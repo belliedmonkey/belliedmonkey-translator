@@ -583,6 +583,10 @@
         line.textContent = t('sync_status_offline', '当前网络离线，稍后自动重试。学习记录已保存在本机。'); break;
       case 'signed_out':
         line.textContent = t('sync_status_signed_out', '未登录，仅本机数据'); break;
+      // A storage-read failure is NOT the signed-out state, and painting it as
+      // one is the page-settings incident all over again (§8.4.1). Name it.
+      case 'storage_error':
+        line.textContent = t('sync_status_storage_error', '读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。'); break;
       default:
         line.textContent = t('sync_status_error', '同步没能完成，稍后自动重试。'); break;
     }
@@ -774,7 +778,17 @@
     await start();
   });
 
+  // §7.5 — restore BEFORE drain and before the entry-forced sync: a UUID-rotated
+  // (or otherwise emptied) corpus comes back from the local backup for signed-out
+  // users; the pull below heals signed-in ones. Guarded: the app bundle
+  // deliberately ships without LearnBackup.
+  if (typeof LearnBackup !== 'undefined') {
+    try { await LearnBackup.restoreIfEmpty(); } catch (_) {}
+  }
   await LearnDrain.run();
+  if (typeof LearnBackup !== 'undefined') {
+    try { LearnBackup.maybeRun(); } catch (_) {}      // fire-and-forget snapshot
+  }
   await refreshPressure();
   await start();
 
@@ -793,14 +807,22 @@
         if (ev.pulled && (ev.pulled.cards || ev.pulled.reviews) && $('card').hidden) {
           await start();
         }
+        // A sync that just landed material is a good, already-quiet moment to
+        // refresh the local backup (§7.5) — throttled inside maybeRun.
+        if (typeof LearnBackup !== 'undefined') {
+          try { LearnBackup.maybeRun(); } catch (_) {}
+        }
       }
     });
     // 初始态：还没跑同步之前，用上一次成功时间铺底；无记录且已登录则等首跑覆盖。
     (async () => {
       if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
-        const lastOk = await LearnStore.getMeta(LearnSync.LAST_OK, 0);
+        const lastOk = await LearnStore.getMeta(LearnSync.LAST_OK, 0).catch(() => 0);
         const session = await LearnAuth.current().catch(() => null);
-        if (!session) renderSyncStatus({ state: 'signed_out', at: Date.now() });
+        // Storage-read failure ≠ signed out (§8.4.1): the session may be fine
+        // and merely unreadable this instant. Say that, never 「未登录」.
+        if (!session && LearnAuth.lastLoadError()) renderSyncStatus({ state: 'storage_error', at: Date.now() });
+        else if (!session) renderSyncStatus({ state: 'signed_out', at: Date.now() });
         else if (lastOk) renderSyncStatus({ state: 'done', at: lastOk });
       }
     })().catch(() => {});

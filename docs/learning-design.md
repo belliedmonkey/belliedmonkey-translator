@@ -583,7 +583,9 @@ App 的设置页**可以**配置：一个 chat 类引擎 + key（仅供 §9.2 �
    「没引擎 ⇒ 入口不渲染」；App 不配 key 就是这个状态，不是降级。
 3. **存放风险如实陈述**：App 的 `chrome.storage` 垫片背靠 `localStorage`，明文，
    与扩展侧 `chrome.storage.local` 的现状同级（都不加密）。这不是新增风险面，
-   但设置页的措辞不得暗示比扩展更安全。
+   但设置页的措辞不得暗示比扩展更安全。2026-08-09 起同步会话（`learnAuth`）也在
+   这一层与 API key 并排明文存放（§8.4.1 会话存储位置）—— 同暴露级、无新面，
+   换来的是跨升级不重登。
 
 ### 7.3 Eviction and compaction cancel each other out
 
@@ -728,6 +730,41 @@ Mechanism, all additive to the `mt-learn/1` format (§8.4):
 UI copy consequence (Gate B, §10): deletion is described as account-wide —
 「删除会同步到所有设备」 — and the 「删了又回来」 case has the explanation "you
 touched it again on another device", not a bug report.
+
+### 7.5 持久性与本地备份（2026-08-09）
+
+「升级后状态还在」不是感觉，是逐面测过的事实表（磁盘取证 2026-08-09，模拟器
+iPhone 17 Pro；重装 = install over-the-top）：
+
+| 面 | 存储 | 跨升级/重装 | 证据 |
+|---|---|---|---|
+| App 设置与 key | localStorage（`mt:*`，file:// origin） | ✅ 存活 | 8-07 出生的 `localstorage.sqlite3` 活过 8-09 重装 |
+| App 语料/会话 | IndexedDB（file:// origin） | ✅ 存活 | 同上；origin 序列化为 `("file","",nil)`，不含容器路径 |
+| 扩展设置与 key | `chrome.storage.local`（bundle id 目录） | ✅ 存活 | key 从未丢过 |
+| **扩展语料（+旧制会话）** | IndexedDB（`safari-web-extension://<UUID>`） | ❌ **UUID 轮换即孤儿** | 同一模拟器两个孤儿桶 |
+
+两条只能文档不能修的边界：**dev 构建的扩展存储目录带 `(UNSIGNED)` 后缀**，与
+TestFlight/商店签名版不同目录 —— 换签名形态必然分桶，属 OS 身份模型；WebKit 把
+IndexedDB Blob 存成文件句柄，容器搬家后句柄悬空（§audio 已用 ArrayBuffer 规避）。
+
+**本地备份（`learn/backup.js`，LearnBackup）** 是对最后一行 ❌ 的救生方案：
+
+- **格式零新增**：就是 `LearnChunk.exportBytes` 的 `mt-learn/1` 字节（含 dels 台账
+  与 learnRules），base64 后存 `chrome.storage.local` 单键 `learnBackup`；小键
+  `learnBackupMeta` 供节流判断，不反序列化大负载。
+- **节奏**：6 小时节流（无备份时必跑），fire-and-forget，空库跳过；体积上限 4MB
+  base64（§8.5 的 2 万条全量 ≈ 1.7MB 压缩，含裕量；不申请 `unlimitedStorage`），
+  超限跳过并记入 `learnBackupMeta.lastError`，在 options 学习区以 pressure 式一行
+  可见 —— 备份失败不是丢失（语料还活着），永不进浏览流。
+- **恢复**：扩展页启动时若语料为空且有备份 ⇒ `importBytes` 重放（幂等、应用 dels、
+  不打 `syncedAt` —— 恢复出的语料会重新上传，顺带治愈服务器），**先于 drain 与
+  进入即同步**：未登录用户由备份兜底，已登录用户随后的 pull 再补齐。
+- **清空守卫**：「清空学习库」在 `clearAll()` 后连带删除备份 —— 用户要的清空不许
+  下次打开还魂。
+- **只在扩展页跑**：App 的 IDB 已实证耐久，而 2–3MB base64 会压垮 shim 的
+  localStorage —— App 侧刻意不装（review.js 以 `typeof LearnBackup` 守卫，共享
+  字节保持 App 安全）。
+- 设置/API key **不进备份**：它们本就在耐久层，双份只添分歧风险，零收益。
 
 ## 8. Sync (V3) — hosted, with a fixed free quota
 
@@ -942,6 +979,34 @@ with the sync path untouched.
 a link needs a page we host to catch the redirect and we host nothing. The provider's
 email template must therefore render `{{ .Token }}`; the stock template sends a link,
 and a link cannot be completed from inside an extension.
+
+#### 会话存储位置 — `chrome.storage.local`（2026-08-09，取代旧裁定）
+
+会话（`{accessToken, refreshToken, expiresAt, email, userId}`）存 **`chrome.storage.local`
+键 `learnAuth`**，不再存 IndexedDB `meta['auth']`。这推翻了 auth.js 原头注「特意放
+IDB，因为内容脚本读得到 storage.local」的理由，依据是磁盘取证（2026-08-09）：
+
+> Safari 给扩展页的 origin 是 `safari-web-extension://<随机UUID>`，**重装/换签名时
+> 轮换** —— 装着语料与会话的 IndexedDB 整桶变孤儿，无迁移无报错（同一台模拟器上
+> 找到两个孤儿桶实证）。而 `chrome.storage.local` 落在**按扩展 bundle id 命名**的
+> 目录里，跨升级存活 —— API key 从来没丢过，正是因为它在这一层。
+> 「每次升级都要重新登录」的结构性根因就是会话放错了层。
+
+暴露面权衡，如实陈述：内容脚本理论上可读 `chrome.storage.local`，但本仓库的内容
+脚本**只读显式键列表**（`content-main.js` SETTINGS_KEYS，§7 的既有纪律），
+**`learnAuth` 永不加入任何 SETTINGS_KEYS / POPUP_KEYS**。页面自身的脚本在隔离世界
+之外，本就读不到扩展存储。净效果：会话与 API key 同层同暴露级（§7.2 第 3 条的
+风险陈述本来就覆盖明文存储），换来跨升级不重登。
+
+迁移语义（读穿式，一次性）：`load()` 先读 `learnAuth`；没有时读 legacy
+`meta['auth']`；读到则采用并回写 `learnAuth`，**回写成功后**才清空 legacy（清除
+失败留双份无害 —— 读序上 storage.local 优先，下会话重试清除）。已被 UUID 轮换
+孤儿化的旧桶自然迁移落空 = **最后一次重新登录**，此后不再发生。
+
+判死收紧（同日同因修复）：刷新令牌只在**确定性拒绝**（400/401 且带 GoTrue 错误体）
+时清会话；离线、5xx、无 body 的 4xx 一律重试一次后抛出而**不登出** —— 离线永远
+不是登出理由。存储读取失败也不是「未登录」：`load()` 失败不闩定、下次重试，界面
+按 §7 的 page-settings 事故准则显示「存储读取失败」，绝不静默画成登出态。
 
 ### 8.4.2 核心约束 — 合并有两种语义，混淆它们就是数据损坏
 

@@ -1080,5 +1080,11 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。"
+  },
+  "learn_backup_failed": {
+    "message": "本地备份未能写入（{why}）。学习库本身不受影响。"
   }
 }

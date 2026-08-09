@@ -66,7 +66,41 @@ var PageSettings = (() => {
     return { ok: true, data: out, error: null };
   }
 
-  return { read, rawGet };
+  // Writes with the same truthfulness contract as rawGet: {ok, error}, promise
+  // form preferred (it carries the real reason), lastError checked on the
+  // callback path, never throws. A write that silently failed is how a session
+  // "saves" and then is gone next launch — same incident class as the read side.
+  function mutate(run) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (r) => { if (!settled) { settled = true; resolve(r); } };
+      try {
+        const maybe = run(() => {
+          const le = (chrome.runtime && chrome.runtime.lastError) || null;
+          if (le) done({ ok: false, error: le.message || String(le) });
+          else done({ ok: true, error: null });
+        });
+        if (maybe && typeof maybe.then === 'function') {
+          maybe.then(
+            () => done({ ok: true, error: null }),
+            (e) => done({ ok: false, error: (e && e.message) || String(e) })
+          );
+        }
+      } catch (e) {
+        done({ ok: false, error: (e && e.message) || String(e) });
+      }
+    });
+  }
+
+  function write(items) {
+    return mutate((cb) => chrome.storage.local.set(items, cb));
+  }
+
+  function removeKeys(keys) {
+    return mutate((cb) => chrome.storage.local.remove(keys, cb));
+  }
+
+  return { read, rawGet, write, removeKeys };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = PageSettings;

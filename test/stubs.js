@@ -50,10 +50,13 @@ function makeChrome(opts = {}) {
     storage: {
       local: {
         get: (keys, cb) => {
+          // Mirror real chrome.storage.local: MISSING keys are OMITTED from the
+          // result, not included as undefined. `'k' in result` is load-bearing
+          // for auth.js's signed-out-vs-not-yet-loaded distinction.
           let out = {};
           if (keys == null) out = Object.assign({}, store);
-          else if (typeof keys === 'string') out[keys] = store[keys];
-          else if (Array.isArray(keys)) keys.forEach((k) => { out[k] = store[k]; });
+          else if (typeof keys === 'string') { if (keys in store) out[keys] = store[keys]; }
+          else if (Array.isArray(keys)) keys.forEach((k) => { if (k in store) out[k] = store[k]; });
           else Object.keys(keys).forEach((k) => { out[k] = k in store ? store[k] : keys[k]; });
           if (cb) cb(out);
           return Promise.resolve(out);

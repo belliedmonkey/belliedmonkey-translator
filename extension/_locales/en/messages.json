@@ -1080,5 +1080,11 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "Couldn't read the sign-in state (storage read failed); will retry shortly — this does not mean you were signed out."
+  },
+  "learn_backup_failed": {
+    "message": "Local backup could not be written ({why}). The learning library itself is unaffected."
   }
 }
