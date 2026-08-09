@@ -32,6 +32,15 @@
   }
 }
 
+/* Width pinned on <html> as well as body: once the popup's content grew past
+   Chrome's 600px height cap (来源治理 made it taller), the vertical scrollbar
+   made Blink report the UNSET html width as "max" and Chrome opened the popup
+   at its full 800px — body sat at 320 with a dead blank right half. Classic
+   extension-popup sizing trap; the explicit html width is the known fix. */
+html {
+  width: 320px;
+}
+
 body {
   width: 320px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
