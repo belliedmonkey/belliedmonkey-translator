@@ -27,7 +27,7 @@
       // cache and the `lq:` outbox, and reading the whole thing here would drag
       // both along. (docs/learning-design.md §7.)
       resolve(PageSettings.read([
-        'uiLang', 'learnEnabled', 'learnDailyNew',
+        'uiLang', 'learnEnabled', 'learnDailyNew', 'learnRules',
         'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
         // §9.2 — the translator's own engine config; the notes gate reads it.
         'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
@@ -46,6 +46,76 @@
     a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
     a.textContent = label;
     return a;
+  }
+
+  // ─── 来源操作 (interaction-spec「来源治理」) ──────────────────────────
+  // Law 2's fix-action surface: the place you NOTICE unwanted material is the
+  // place you can act on it. A ⋯ button on the source line reveals two actions —
+  // delete this site's cards (account-wide, §7.4) and stop capturing it (§8.9).
+
+  function appendSrcActions(srcEl, item, sources) {
+    const box = $('src-actions');
+    if (!box || typeof LearnRules === 'undefined') return;
+    box.hidden = true;
+    box.textContent = '';
+    const s = sources.get(item.sourceId);
+    const host = (() => {
+      try { return new URL(s && s.url).hostname.toLowerCase().replace(/^www\./, ''); }
+      catch (_) { return ''; }
+    })();
+    if (!host) return;
+
+    const more = document.createElement('button');
+    more.className = 'src-more';
+    more.textContent = '⋯';
+    more.setAttribute('aria-label', t('learn_card_src_actions', '来源操作'));
+    more.addEventListener('click', () => { box.hidden = !box.hidden; });
+    srcEl.appendChild(more);
+
+    const del = document.createElement('button');
+    del.textContent = t('learn_src_delete', '删除已存') + ' · ' + host;
+    del.addEventListener('click', async () => {
+      const [items, srcs] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+      const doomed = LearnRules.doomedFor(items, srcs, host);
+      if (!doomed.itemIds.length) return;
+      if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+        .replace('{host}', host).replace('{n}', String(doomed.itemIds.length)))) return;
+      await LearnStore.deleteItems(doomed.itemIds, Date.now());
+      await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
+      // Account intent must reach the server promptly (§7.4); then rebuild —
+      // the card on screen may no longer exist.
+      if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+        LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+      }
+      await refreshCounts();
+      await start();
+    });
+    box.appendChild(del);
+
+    const readRules = () => PageSettings.read(['learnRules']).then((r) => (r.data && r.data.learnRules) || null);
+    const blk = document.createElement('button');
+    readRules().then((rules) => {
+      const blocked = LearnRules.isBlocked((s && s.url) || ('https://' + host + '/'), rules);
+      blk.textContent = blocked ? t('learn_src_blocked', '已屏蔽') : (t('learn_src_block', '不再收录') + ' · ' + host);
+      blk.disabled = blocked;
+    });
+    blk.textContent = t('learn_src_block', '不再收录') + ' · ' + host;
+    blk.addEventListener('click', async () => {
+      const rules = await readRules();
+      const base = rules || { v: 1, block: [], langs: null };
+      if ((base.block || []).indexOf(host) < 0) {
+        const next = Object.assign({}, base, {
+          v: 1, block: (base.block || []).concat([host]), updatedAt: Date.now(),
+        });
+        await new Promise((r) => chrome.storage.local.set({ learnRules: next }, r));
+        if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+          LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+        }
+      }
+      blk.textContent = t('learn_src_blocked', '已屏蔽');
+      blk.disabled = true;
+    });
+    box.appendChild(blk);
   }
 
   function mediaUrl(item, source) {
@@ -346,6 +416,7 @@
     const src = $('src');
     src.textContent = '';
     src.appendChild(srcLine(item, sources));
+    appendSrcActions(src, item, sources);
 
     renderMedia(item, sources);
 

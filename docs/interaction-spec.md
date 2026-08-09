@@ -601,9 +601,10 @@ Three user-authored controls over *what enters and stays in* the learning layer
   「由规则 {pattern} 屏蔽」 plus a 管理 link — never a switch that lies. Hidden on
   pages the extension cannot read (chrome:// etc.).
 - **Review card source actions.** The ⓘ source line gains a 「⋯」 button revealing
-  two inline actions: 「删除此来源的卡片」 (same confirm-with-count flow, then the
-  deck rebuilds) and 「此站不再收录」. This is law 2's fix-action surface: the place
-  you notice unwanted material is the place you can act on it.
+  two inline actions: 「删除已存 · {host}」 (same confirm-with-count flow, then the
+  deck rebuilds) and 「不再收录 · {host}」 (already-blocked shows 已屏蔽, disabled).
+  This is law 2's fix-action surface: the place you notice unwanted material is the
+  place you can act on it.
 
 ### Entry points
 - **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
