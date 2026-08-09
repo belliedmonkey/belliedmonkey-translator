@@ -61,10 +61,14 @@ var LearnCollector = (() => {
     // The detector is INJECTED, never probed for (domain-design §5.3.2). Absent on
     // every Safari — in which case the language is simply unknown, and 'und' items
     // are grouped separately in the review UI rather than dropped.
+    // `r.lang`, not `r.language`: LangDetect.flatten returns {lang, percentage,
+    // isReliable}. Reading the wrong field stored EVERY item as 'und' on Chrome
+    // too — found on a real Chrome (2026-08-09) when the whitelist kept falling
+    // back to script inference on a browser that detects perfectly well.
     const det = cfg.detect;
     if (typeof det !== 'function') return 'und';
     const r = safe(() => det(text));
-    return (r && r.language) || 'und';
+    return (r && r.lang) || 'und';
   }
 
   function addDraft(d) {
@@ -200,17 +204,32 @@ var LearnCollector = (() => {
       try {
         harvestDwell();
         const now = nowFn();
-        const items = [];
+        // Keyed by FINAL item id: the detector is async, so a draft's first
+        // harvest often races the answer and keys itself under 'und'. Late
+        // answers re-resolve at flush time; the same sentence seen as both
+        // ('und', text) and ('en', text) collapses onto one item here — keep the
+        // higher-dwell copy, never sum (both drafts watched the SAME node, so
+        // summing would double-count the one reading session).
+        const byId = new Map();
         for (const d of drafts.values()) {
           if (!LearnModel.shouldCapture(d, cfg.model)) continue;
+          let lang = d.lang;
+          if (lang === 'und') {
+            const late = detectLang(d.text);
+            if (late !== 'und') lang = late;
+          }
           // Learning-language whitelist (learning-design §4.1). STARRED drafts
           // bypass it — an explicit long-press outranks a standing filter. The
           // typeof guard fails OPEN (capture), the documented failure direction.
           if (!d.starred && typeof LearnRules !== 'undefined'
-            && !LearnRules.langAllowed(d.lang, d.text,
+            && !LearnRules.langAllowed(lang, d.text,
               cfg.rules && cfg.rules.langs, cfg.langRegistry)) continue;
-          items.push(LearnModel.makeItem(d, now, cfg.model));
+          const item = LearnModel.makeItem(
+            lang === d.lang ? d : Object.assign({}, d, { lang }), now, cfg.model);
+          const prev = byId.get(item.id);
+          if (!prev || (item.dwellMs || 0) > (prev.dwellMs || 0)) byId.set(item.id, item);
         }
+        const items = Array.from(byId.values());
         if (!items.length) { done(0); return; }
 
         const src = meta();

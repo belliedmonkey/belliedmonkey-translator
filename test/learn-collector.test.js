@@ -378,3 +378,60 @@ describe('LearnCollector — disable({discard}) drops the backlog (本站不收�
     eq(capturedItems(store).length, 1);
   });
 });
+
+// ─── The detector's answer shape, and the race with it ───────────────────────
+// LangDetect returns {lang, percentage, isReliable}. The collector read
+// `r.language` for months — so EVERY item stored 'und', on Chrome too, and the
+// whitelist silently ran on script inference in a browser that detects fine.
+// Found on a real Chrome (2026-08-09). These pin the field AND the flush-time
+// re-resolution that covers the detector's async first answer.
+
+describe('LearnCollector — detector field + in-flight race (真机回归)', () => {
+  test('a detector answer {lang:"en"} lands on the item as "en", not "und"', async () => {
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN',
+      detect: () => ({ lang: 'en', percentage: 100, isReliable: true }) });
+    const node = el();
+    C.observe(node, LATIN, '一段足够长的中文译文。');
+    dwell(C, observers, node, 4000, clock);
+    eq(await C.flush(), 1);
+    eq(capturedItems(store)[0].lang, 'en', 'r.lang 才是检测器的字段 —— 读错就全库 und');
+  });
+
+  test('an IN-FLIGHT first answer (undefined) is re-resolved at flush time', async () => {
+    // Call #1 returns undefined (detection kicked off), later calls return the
+    // answer — exactly LangDetect's contract. The draft keys itself under 'und'
+    // at harvest; flush must upgrade it instead of freezing the race forever.
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    let calls = 0;
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN',
+      detect: () => (++calls === 1 ? undefined : { lang: 'en', percentage: 100, isReliable: true }) });
+    const node = el();
+    C.observe(node, LATIN, '一段足够长的中文译文。');
+    dwell(C, observers, node, 4000, clock);
+    eq(await C.flush(), 1);
+    eq(capturedItems(store)[0].lang, 'en', '迟到的检测答案要在 flush 时补上');
+  });
+
+  test('an und-draft and its later en-twin collapse onto ONE item (higher dwell wins)', async () => {
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    let calls = 0;
+    // First TWO calls in flight (draft created as 'und' by an early flush), then answers.
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN',
+      detect: () => (++calls <= 2 ? undefined : { lang: 'en', percentage: 100, isReliable: true }) });
+    const node = el();
+    C.observe(node, LATIN, '一段足够长的中文译文。');
+    dwell(C, observers, node, 4000, clock);
+    await C.flush();                      // draft harvested as 'und' (detector still silent)
+    const io = observers[observers.length - 1];
+    clock.t = 10000; io.fire([{ target: node, isIntersecting: true }]);
+    clock.t = 16000; io.fire([{ target: node, isIntersecting: false }]);
+    eq(await C.flush(), 1, '两个化身必须坍缩成一条');
+    const items = capturedItems(store);
+    eq(items.length, 1);
+    eq(items[0].lang, 'en');
+  });
+});
