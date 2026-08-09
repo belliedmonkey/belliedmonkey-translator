@@ -34,10 +34,23 @@ var SourcesView = (() => {
     .srcm-add button { flex:0 0 auto; width:auto; margin:0; }
     .srcm-empty { opacity:.65; font-size:.9em; padding:6px 0; }
     .srcm-lang-chip { cursor:pointer; user-select:none; }
-    .srcm-lang-chip[data-on="1"] { border-color:#0a7a3c; color:#0a7a3c; font-weight:600; }
-    button.srcm-chip { background:none; font:inherit; color:inherit; text-align:left; }
+    /* Chip buttons must NOT inherit host button chrome: the options host paints
+       every .card button green-on-white (specificity (0,3,1), beating a bare
+       button.srcm-chip), which made unselected chips identical to selected ones.
+       !important is deliberate — this widget owns its chip look in every host. */
+    button.srcm-chip { background:none !important; font:inherit !important;
+      color:inherit !important; font-weight:400 !important; text-align:left;
+      border:1px solid rgba(128,128,128,.45) !important; border-radius:999px !important;
+      padding:3px 10px !important; font-size:.85em !important; cursor:pointer; }
+    button.srcm-chip:hover { background:rgba(10,122,60,.08) !important; color:inherit !important; }
+    /* Selected = solid fill, unmistakable at a glance. */
+    button.srcm-lang-chip[data-on="1"] { background:#0a7a3c !important;
+      border-color:#0a7a3c !important; color:#fff !important; font-weight:600 !important; }
+    button.srcm-lang-chip[data-on="1"]:hover { background:#0a7a3c !important; color:#fff !important; }
+    .srcm-chip button { border:none !important; background:none !important;
+      padding:0 2px !important; width:auto !important; }
     .srcm-row button:disabled, .srcm-add button:disabled, .srcm-chip button:disabled,
-    button.srcm-chip:disabled { opacity:.55; cursor:default; }
+    button.srcm-chip:disabled { opacity:.55 !important; cursor:default; }
   `;
 
   function ensureStyle(doc) {
