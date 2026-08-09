@@ -64,6 +64,7 @@ function populateProviders() {
 const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
+  'learnRules',
 ];
 async function getSettings() {
   const r = await PageSettings.read(POPUP_KEYS);
@@ -137,9 +138,54 @@ async function sendToPage(action) {
   }
 }
 
-async function queryPageTranslated() {
-  const resp = await sendToPage('getPageStatus');
-  return !!(resp && resp.enabled);
+// ─── 本站 (interaction-spec 「来源治理」) ───────────────────────────────
+// The current page's capture switch. URL comes from the content script's own
+// getPageStatus (the same url the capture gate judged); chrome.tabs is the
+// fallback for a page whose content script predates this popup opening.
+
+let siteRules = null;      // the live learnRules object (or null)
+let siteUrl = '';
+
+function writeSiteRules(mutate) {
+  const base = siteRules || { v: 1, block: [], langs: null };
+  siteRules = Object.assign({}, base, mutate(base), { v: 1, updatedAt: Date.now() });
+  // No forced sync here: the popup closes too fast to babysit a request. The
+  // rules ride the next natural push/pull (§8.9) from any longer-lived surface.
+  return saveSettings({ learnRules: siteRules });
+}
+
+function renderSiteSection(learnEnabled) {
+  const section = $('site-section');
+  if (!section) return;
+  if (!learnEnabled || !siteUrl || !/^https?:/i.test(siteUrl)) { section.hidden = true; return; }
+  const host = LearnRules.siteRuleFor(siteUrl);
+  if (!host) { section.hidden = true; return; }
+  section.hidden = false;
+  $('site-host').textContent = host;
+
+  const blocked = LearnRules.isBlocked(siteUrl, siteRules);
+  const exact = ((siteRules && siteRules.block) || [])
+    .find((p) => LearnRules.normalizePattern(p) === host);
+  const switchRow = $('site-switch').closest('.row');
+  if (blocked && !exact) {
+    // Blocked by a BROADER wildcard rule: a switch here would lie (toggling it
+    // could not unblock the site). Name the rule and offer 管理 instead.
+    switchRow.style.display = 'none';
+    $('site-blocked-row').hidden = false;
+    $('site-blocked-by').textContent =
+      t('learn_src_blocked_by', '由规则 {pattern} 屏蔽').replace('{pattern}', findBlockingRule());
+  } else {
+    switchRow.style.display = '';
+    $('site-blocked-row').hidden = true;
+    $('site-capture').checked = !blocked;
+  }
+}
+
+function findBlockingRule() {
+  for (const p of (siteRules && siteRules.block) || []) {
+    if (LearnRules.matchesUrl(p, siteUrl)) return p;
+  }
+  return '';
 }
 
 async function init() {
@@ -167,8 +213,39 @@ async function init() {
   if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
 
   // Reflect the CURRENT page's translation state (not a stored default).
-  pageTranslated = await queryPageTranslated();
+  const pageStatus = await sendToPage('getPageStatus');
+  pageTranslated = !!(pageStatus && pageStatus.enabled);
   updateTranslateUI();
+
+  // 本站 section — only meaningful while capture is on at all.
+  siteRules = s.learnRules || null;
+  siteUrl = (pageStatus && pageStatus.url) || '';
+  if (!siteUrl) {
+    // Content script not present (page predates install, or a restricted page):
+    // fall back to the tab url; a chrome:// url fails the https? check and hides
+    // the section.
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      siteUrl = (tab && tab.url) || '';
+    } catch (_) {}
+  }
+  renderSiteSection(s.learnEnabled === true);
+
+  $('site-capture').addEventListener('change', async (e) => {
+    const host = LearnRules.siteRuleFor(siteUrl);
+    if (!host) return;
+    if (e.target.checked) {
+      await writeSiteRules((r) => ({ block: (r.block || []).filter((p) => LearnRules.normalizePattern(p) !== host) }));
+      showToast(t('learn_src_unblock', '恢复收录'));
+    } else {
+      await writeSiteRules((r) => ({
+        block: (r.block || []).indexOf(host) >= 0 ? r.block : (r.block || []).concat([host]),
+      }));
+      showToast(t('learn_src_block', '不再收录'));
+    }
+    renderSiteSection(s.learnEnabled === true);
+  });
+  $('site-blocked-row').addEventListener('click', () => chrome.runtime.openOptionsPage());
 
   // ─── Event listeners ────────────────────────────────────────────────
 
