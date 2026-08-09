@@ -799,6 +799,9 @@
     "message": "Falló el análisis — inténtalo más tarde",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "El modelo no devolvió texto — los modelos de razonamiento no sirven para el análisis de frases; elige un modelo de chat en los ajustes."
+  },
   "learn_notes_words": {
     "message": "Vocabulario",
     "description": "Notes section header: vocabulary"

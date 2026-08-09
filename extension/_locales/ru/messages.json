@@ -799,6 +799,9 @@
     "message": "Не удалось — попробуйте позже",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "Модель не вернула текст — «думающие» (reasoning) модели не подходят для разбора предложений; выберите чат-модель в настройках."
+  },
   "learn_notes_words": {
     "message": "Слова",
     "description": "Notes section header: vocabulary"

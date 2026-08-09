@@ -799,6 +799,9 @@
     "message": "Analyse fehlgeschlagen — später erneut versuchen",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "Das Modell hat keinen Antworttext geliefert — Reasoning-Modelle eignen sich nicht für die Satzanalyse; wähle in den Einstellungen ein Chat-Modell."
+  },
   "learn_notes_words": {
     "message": "Wörter",
     "description": "Notes section header: vocabulary"

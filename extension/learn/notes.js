@@ -112,10 +112,14 @@ var LearnNotes = (() => {
             'anthropic-version': '2023-06-01',
             'anthropic-dangerous-direct-browser-access': 'true' }
         : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
+      // 3000, not 1000: hybrid thinking models (observed on the DeepSeek default)
+      // spend their budget on the reasoning phase FIRST — at 1000 the budget died
+      // mid-think and `content` came back empty, indistinguishable from a broken
+      // endpoint. The notes JSON itself is small; the headroom is for thinking.
       body: JSON.stringify(msgFormat
-        ? { model, max_tokens: 1000, system: buildPrompt(explainLang),
+        ? { model, max_tokens: 3000, system: buildPrompt(explainLang),
             messages: [{ role: 'user', content: user }] }
-        : { model, temperature: 0.3, max_tokens: 1000,
+        : { model, temperature: 0.3, max_tokens: 3000,
             messages: [{ role: 'system', content: buildPrompt(explainLang) },
                        { role: 'user', content: user }] }),
     });
@@ -125,12 +129,32 @@ var LearnNotes = (() => {
       throw e;
     }
     const d = await resp.json();
+    const msg = !msgFormat && d && d.choices && d.choices[0] && d.choices[0].message;
     const text = msgFormat
       ? d && d.content && d.content[0] && d.content[0].text
-      : d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      : msg && msg.content;
+    // Empty content is its OWN failure, not "unparsable": a reasoning/thinking
+    // model that never reached its answer (or a model that only emits
+    // reasoning_content) needs the user to switch models — retrying is useless,
+    // so the UI names the fix instead of asking them to try again.
+    if (!String(text == null ? '' : text).trim()) {
+      const thinking = !!(msg && msg.reasoning_content);
+      try {
+        console.error('[learn/notes] empty content' + (thinking ? ' (reasoning_content present — thinking model)' : ''),
+          JSON.stringify(d).slice(0, 300));
+      } catch (_) {}
+      const e = new Error('model returned no content'); e.code = 'empty_output'; throw e;
+    }
     const parsed = parseNotes(text);
-    if (!parsed) { const e = new Error('unusable model output'); e.code = 'bad_output'; throw e; }
+    // Both gates share the user-facing code, so the console line is the only
+    // place that says WHICH gate rejected and what the model actually sent —
+    // without it every bad_output is an identical dead end.
+    if (!parsed) {
+      try { console.error('[learn/notes] bad_output (unparsable):', String(text).slice(0, 500)); } catch (_) {}
+      const e = new Error('unusable model output'); e.code = 'bad_output'; throw e;
+    }
     if (!notesMatchSentence(parsed, item.text)) {
+      try { console.error('[learn/notes] bad_output (not from sentence):', JSON.stringify(parsed).slice(0, 500), '| sentence:', String(item.text).slice(0, 200)); } catch (_) {}
       const e = new Error('notes not from the sentence'); e.code = 'bad_output'; throw e;
     }
     return parsed;

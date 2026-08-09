@@ -232,6 +232,13 @@ input[type="color"] {
 }
 .card button:not(.btn-danger):not(.icon-btn):hover { background: var(--green); color: #fff; }
 
+/* interaction-spec 全局原则: an in-flight (disabled) control must LOOK disabled.
+   Wins over the hover fill above — a disabled button lighting up green on hover
+   was the visual lie that made 立即同步's correct disable invisible. */
+button:disabled, input:disabled, select:disabled {
+  opacity: .55; cursor: default; pointer-events: none;
+}
+
 .btn-danger {
   background: #fee2e2;
   color: #b91c1c;

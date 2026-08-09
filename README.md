@@ -191,6 +191,11 @@ Stated up front, because finding them yourself is worse.
   implement. On Safari the request is still made. Holding every browser down to Safari's floor
   would mean permanently spending your quota on answers that get discarded, so the asymmetry
   was chosen deliberately and written down.
+- **Sentence notes (解析) want a chat model, not a reasoning model.** The notes feature asks
+  your configured chat engine for a small JSON answer in the message body. Thinking/reasoner
+  models spend their output budget on a reasoning phase first and can come back with no answer
+  text at all — the failure line names this when it happens. Pick a plain chat model for the
+  engine you use with notes.
 
 ---
 

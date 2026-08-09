@@ -799,6 +799,9 @@
     "message": "Échec de l’analyse — réessayez plus tard",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "Le modèle n'a renvoyé aucun texte — les modèles de raisonnement ne conviennent pas à l'analyse de phrases ; choisissez un modèle de chat dans les réglages."
+  },
   "learn_notes_words": {
     "message": "Vocabulaire",
     "description": "Notes section header: vocabulary"

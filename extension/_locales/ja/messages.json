@@ -799,6 +799,9 @@
     "message": "解析に失敗しました。後でもう一度",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "モデルが本文を返しませんでした——思考（推論）型モデルは文の解析に向きません。設定で会話型モデルに切り替えてください。"
+  },
   "learn_notes_words": {
     "message": "単語",
     "description": "Notes section header: vocabulary"

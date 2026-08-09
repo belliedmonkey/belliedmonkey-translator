@@ -166,12 +166,17 @@
     say('');
   });
 
-  $('signout').addEventListener('click', async () => {
-    await LearnAuth.signOut();
-    // The corpus deliberately survives sign-out, exactly as it does in the extension
-    // (`sync.js` `forget()` — "turning sync off leaves the local corpus untouched").
-    await show(null);
-    say('');
+  $('signout').addEventListener('click', async (e) => {
+    // interaction-spec 全局原则: network sign-out + repaint are in flight.
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await LearnAuth.signOut();
+      // The corpus deliberately survives sign-out, exactly as it does in the extension
+      // (`sync.js` `forget()` — "turning sync off leaves the local corpus untouched").
+      await show(null);
+      say('');
+    } finally { btn.disabled = false; }
   });
 
   // ─── Pull ─────────────────────────────────────────────────────────────────
@@ -274,12 +279,19 @@
     say('');
   });
 
-  $('review-back').addEventListener('click', async () => {
-    $('review-view').hidden = true;
-    $('signed-in').hidden = false;
-    // Grades given in there changed the corpus, so the counts on the way out must
-    // not be the ones from the way in.
-    await paintCounts();
+  $('review-back').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      $('review-view').hidden = true;
+      $('signed-in').hidden = false;
+      // Grades given in there changed the corpus, so the counts on the way out must
+      // not be the ones from the way in.
+      await paintCounts();
+    } catch (err) {
+      // 失败要具名: stale counts + silence would read as "nothing happened".
+      say(String((err && err.message) || err), true);
+    } finally { btn.disabled = false; }
   });
 
   // ─── Settings ─────────────────────────────────────────────────────────────

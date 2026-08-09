@@ -95,7 +95,9 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
   /* Comfortably past the 44pt touch target. */
   min-height: 48px;
 }
-:where(#signed-out, #signed-in, #app-settings) button:disabled { opacity: 0.45; cursor: default; }
+/* interaction-spec 全局原则: every in-flight control looks disabled — selects and
+   inputs included (the TTS engine picker locks during voice discovery). */
+:where(#signed-out, #signed-in, #app-settings) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
 
 :where(#signed-out, #signed-in, #app-settings) button.link {
   background: none;
