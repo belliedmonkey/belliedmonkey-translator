@@ -74,8 +74,9 @@ var LearnSync = (() => {
   async function push(now) {
     const at = now || Date.now();
     const since = (await LearnStore.getMeta(PUSHED, 0)) || 0;
-    const [items, sources, reviews] = await Promise.all([
+    const [items, sources, reviews, delsAll, rules] = await Promise.all([
       LearnStore.allItems(), LearnStore.allSources(), LearnStore.allReviews(),
+      LearnStore.allDels(), LearnChunk.readRules(),
     ]);
 
     // `> syncedAt` is what stops the echo: an item whose newest timestamp is exactly
@@ -87,9 +88,16 @@ var LearnSync = (() => {
       return t > since && t > (it.syncedAt || 0);
     });
     const revs = reviews.filter((r) => (r.at || 0) > since && !r.viaSync);
-    if (!fresh.length && !revs.length) {
+    // §7.4 / §8.9 — deletes and rules ride the same watermark. Unlike items there
+    // is no `syncedAt` twin, so intent that ARRIVED by pull can echo back up on
+    // the next push — once, until PUSHED passes its timestamp. Deliberate:
+    // replay is idempotent and a `d` row is bytes; cheap-and-redundant beats
+    // clever-and-lossy here exactly as it does for `lastSeenAt` above.
+    const delsDue = delsAll.filter((d) => (d.at || 0) > since);
+    const rulesDue = rules && (rules.updatedAt || 0) > since ? rules : null;
+    if (!fresh.length && !revs.length && !delsDue.length && !rulesDue) {
       await LearnStore.setMeta(PUSHED, at);
-      return { pushed: 0, reviews: 0, bytes: 0, chunks: 0 };
+      return { pushed: 0, reviews: 0, bytes: 0, chunks: 0, dels: 0, rules: 0 };
     }
 
     // ─── Batched, because the first push after signing in is the whole corpus ──
@@ -122,14 +130,18 @@ var LearnSync = (() => {
     const freshIds = new Set(fresh.map((it) => it.id));
     const orphans = revs.filter((r) => !freshIds.has(r.itemId));
 
-    const out = { pushed: 0, reviews: 0, bytes: 0, chunks: 0 };
+    const out = { pushed: 0, reviews: 0, bytes: 0, chunks: 0, dels: delsDue.length, rules: rulesDue ? 1 : 0 };
     for (let i = 0; i < batches.length; i++) {
-      const bundle = LearnChunk.build(batches[i], sources, revs, at);
-      if (i === batches.length - 1 && orphans.length) {
+      const last = i === batches.length - 1;
+      // Deletes and rules ride the FINAL chunk, like orphan reviews — one place,
+      // after every card they could refer to.
+      const bundle = LearnChunk.build(batches[i], sources, revs, at,
+        last ? delsDue : [], last ? rulesDue : null);
+      if (last && orphans.length) {
         bundle.reviews = bundle.reviews.concat(orphans);
         bundle.header.counts.reviews = bundle.reviews.length;
       }
-      if (!bundle.cards.length && !bundle.reviews.length) continue;
+      if (!bundle.cards.length && !bundle.reviews.length && !bundle.dels.length && !bundle.rules) continue;
       const blob = await LearnChunk.deflate(LearnChunk.toJsonl(bundle));
       await insert('bundle', blob, 0);
       out.pushed += bundle.cards.length;
@@ -207,6 +219,8 @@ var LearnSync = (() => {
         if (ours) {
           const s = await LearnChunk.replay(bundle, { fromServer: true });
           stats.cards += s.cards; stats.reviews += s.reviews; stats.chunks++;
+          if (s.deleted) stats.deleted = (stats.deleted || 0) + s.deleted;
+          if (s.rules) stats.rules = 1;
         } else {
           stats.skipped++;
         }
@@ -267,9 +281,18 @@ var LearnSync = (() => {
     // the SET of rows above the deletion point, not about there being exactly one. All
     // parts are written BEFORE anything is deleted, so a failure part-way leaves
     // redundant rows — which the next compaction sweeps — and never a gap.
+    // §7.4/§8.9 — every snapshot ENDS with the full delete ledger and the current
+    // rules. This is how a user delete becomes permanent server-side (the deleted
+    // cards simply are not in the snapshot) while still healing any device whose
+    // cursor was behind the swept `d` rows — including an old client that skipped
+    // them before updating. The ledger rides the FINAL part so it replays after
+    // every card in the snapshot.
+    const [delsAll, rules] = await Promise.all([LearnStore.allDels(), LearnChunk.readRules()]);
     let cards = 0;
     for (let i = 0; i < items.length; i += PUSH_BATCH) {
-      const part = LearnChunk.build(items.slice(i, i + PUSH_BATCH), sources, reviews, at);
+      const last = i + PUSH_BATCH >= items.length;
+      const part = LearnChunk.build(items.slice(i, i + PUSH_BATCH), sources, reviews, at,
+        last ? delsAll : [], last ? rules : null);
       await insert('bundle', await LearnChunk.deflate(LearnChunk.toJsonl(part)), gen);
       cards += part.cards.length;
     }

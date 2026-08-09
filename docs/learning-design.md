@@ -249,6 +249,26 @@ grouped separately in the review UI — capture is never blocked on detection.
 The user picks which languages to study; the default is *every* language that is not
 `targetLang`. No language is hard-coded anywhere in the learning layer.
 
+**Implemented (2026-08-09) as the whitelist half of `learnRules`** (`{v, block,
+langs, updatedAt}` in `chrome.storage.local`; §8.9 for how it syncs). `langs: null`
+is the default and means "everything ≠ targetLang"; a non-null array is the
+whitelist. The gate runs at capture (`LearnCollector.flush`) and again at drain —
+**never** on the corpus, so tightening the whitelist later does not delete what was
+already saved (deletion is §7.4's job, a separate user action).
+
+**On Safari every candidate is `'und'`** (no detector), so a literal whitelist would
+capture nothing on the product's primary platform. The fallback: when
+`lang === 'und'`, the gate passes iff the text's dominant Unicode script
+(`LearnRules.dominantScript`) is compatible with at least one whitelisted language,
+per the `scripts` table in the language registry (`build/langs.config.js` →
+`window.MT_LANGS`). The stored `lang` stays `'und'` — the script check is a capture
+gate only and never changes `itemId`. Known looseness, accepted and deliberate:
+scripts are shared across languages (whitelist `[zh]` admits pure-kanji Japanese;
+`[ja]` admits Han + Kana; `[en]` admits French). The gate errs toward capturing —
+per §3 law 2, over-capture is recoverable (delete), silent under-capture is not.
+A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
+gesture outranks a standing filter.
+
 ---
 
 ## 5. The scheduler (`learn-scheduler.js` — pure functions)
@@ -663,6 +683,52 @@ So the honest position, until something changes:
   sees the complete archive), not a smarter client. Recorded here so the next person
   does not re-derive the client-side version and re-discover why it deletes data.
 
+### 7.4 核心约束 — 用户删除 ≠ 淘汰：删除是账号级意图，必须传播（2026-08-09）
+
+§7.3 pinned eviction as a fact about one device. A **user-initiated delete** (整站
+清理 in 来源管理, per-card source actions in review) is the opposite kind of fact:
+a statement about what the corpus should contain. It therefore **propagates to every
+device and to the server**, and it must not reuse any part of the eviction path:
+
+> Eviction says "this device is full". User delete says "I don't want this".
+> The first must never leave the device; the second must never stay on it.
+
+Mechanism, all additive to the `mt-learn/1` format (§8.4):
+
+1. **A local delete ledger** — IndexedDB store `dels` `{id, at}` (v5), bounded at
+   20,000 like everything else, aged by the pure `staleDels`. Distinct from `tombs`
+   in every consequence: it syncs, it applies on import, and it **never touches
+   `everEvicted`** — after a user delete, "local minus deleted" *is* the intended
+   archive, so the device keeps its licence to compact.
+2. **A `{t:'d', v:{ids, at}}` row** in the chunk. **Concrete item ids only, never a
+   pattern** — a pattern replayed elsewhere would delete matches the user never saw.
+   Replay applies it on the sync pull **and** on file import (intent travels with
+   the corpus, unlike tombstones), then upserts the ledger with `max(at)`.
+3. **The resolution rule is per item and time-based**: an item dies iff
+   `touchedAt(item) <= del.at`; an incoming card is suppressed iff the ledger holds
+   `del.at >= touchedAt(incoming)`. A card genuinely re-touched *after* the delete
+   (re-read, reviewed elsewhere) wins and re-admits — same direction of travel as
+   §7.3's "capture always wins". The rule is commutative and idempotent over an
+   append-only log ordered by `seq`, so every device converges to the same set
+   regardless of replay interleaving.
+4. **Compaction is how a delete becomes permanent server-side.** Every snapshot part
+   ends with the **full** dels ledger (and the current `g` row, §8.9): the deleted
+   cards and their reviews are simply absent from the snapshot, and the riding
+   ledger heals any device — including an old client that skipped `d` rows before
+   updating — whose cursor was behind the swept rows. A local delete also removes
+   the item's local review rows (privacy intent; keeps `introducedToday` honest);
+   their copies in old server rows vanish at the next compaction.
+5. **Failure directions**, chosen to match §7.3: ledger overflow forgets the oldest
+   deletes and a very stale device may re-introduce those cards once. Old clients
+   count `d`/`g` rows as `skipped` and keep working. Rules read failure at capture
+   time fails **open** (capture proceeds unfiltered) — a genuinely broken storage
+   read also loses `learnEnabled === true`, so the realistic broken state captures
+   nothing rather than capturing wrongly.
+
+UI copy consequence (Gate B, §10): deletion is described as account-wide —
+「删除会同步到所有设备」 — and the 「删了又回来」 case has the explanation "you
+touched it again on another device", not a bug report.
+
 ## 8. Sync (V3) — hosted, with a fixed free quota
 
 *(Settled 2026-08-04, after two reversals. The design went: our server with E2E →
@@ -777,6 +843,14 @@ bt_chunks (
   generation int  not null default 0,
   created_at timestamptz not null default now())
 ```
+
+**Row kinds are additive (2026-08-09).** The JSONL body carries `{t, v}` rows;
+`fromJsonl` counts an unknown `t` as `skipped` and keeps going, which is what makes
+new kinds a compatible extension rather than a format break. The format stays
+`mt-learn/1` with five kinds: `s` (source), `c` (card), `r` (review), and since
+2026-08-09 `d` (user delete, §7.4) and `g` (governance rules, §8.9). An old client
+skips `d`/`g` rows — it merely lags on deletes/rules until it updates, then heals
+from the next compaction snapshot, which always carries the full ledger (§7.4).
 
 Two deliberate deviations from the earlier sketch, both discovered while applying it:
 
@@ -1154,6 +1228,21 @@ before any of it is published as a privacy claim.*
 这里把 UTC 日界升格为刻意约定：一个账号一个日界，跨时区一致）。`viaSync` 的复习
 **计入**——手机上引入的新卡消耗电脑侧的当日预算，这正是账户级的含义。
 
+### 8.9 治理规则同步（`g` 行）— LWW，整组覆盖（2026-08-09）
+
+`learnRules = {v, block, langs, updatedAt}`（`chrome.storage.local` 单键）随同步
+链路走：`push()` 在 `learnRules.updatedAt > PUSHED` 时于末批附一条
+`{t:'g', v:learnRules}`；重放（拉取与文件导入皆然）按 **last-writer-wins 整组
+覆盖** —— `incoming.updatedAt > local.updatedAt` 才采纳，不做逐条合并。规则集小
+（几十条封顶）、编辑是显式用户动作，逐条 CRDT 的复杂度买不来任何东西；两台设备
+同分钟内各改一次，后写的赢，先写的在下一次打开设置页时看得见结果并可改回。
+
+- **未登录用户规则留在本地**，功能完整（同步是增值，不是门槛 —— §8.2 同款立场）。
+- 规则**不**写入 IndexedDB meta：采集门在内容脚本里跑，内容脚本只有
+  `chrome.storage.local`（§7 origin 边界）。App 侧经 chrome-shim 落 localStorage。
+- 压实快照携带当前 `g` 行（§7.4 机制 4），游标落后的设备从快照拿到最新规则。
+- 读取失败（`PageSettings` `ok:false`）按 §7.4 机制 5 **失败开放**。
+
 ## 9. Module map additions
 
 These rows are mirrored into `docs/domain-design.md` §6.
@@ -1166,6 +1255,8 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnStore` | `learn/store.js` + `learn/drain.js` | extension-page-only IndexedDB corpus and the outbox→corpus drain/merge |
 | `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
 | `LearnNotes` | `learn/notes.js` *(planned, §9.2)* | 句子解析：生词 / 短语 / 语法点。调用用户配置的 chat 类引擎，结果落 IndexedDB `notes` 表（v4），永不同步 |
+| `LearnRules` | `content/learn-rules.js` | pure: URL/domain wildcard matcher, `dominantScript`, whitelist gate `langAllowed` (§4.1), delete selection `doomedFor`, rules LWW merge (§8.9). Registry-injected (`window.MT_LANGS`), zero storage access |
+| `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
 > **Why the app is exactly three files.** `safari-project/` is gitignored and gets
@@ -1361,6 +1452,12 @@ The last row is the one to get right. Per §8.6 the corpus is now the candidate 
 i.e. **everything you read**, not a flashcard deck — a disclosure calibrated to the
 narrower dataset would be inaccurate *in our favour*, which is the kind that costs
 trust when someone notices.
+
+**One sentence added with 来源治理 (2026-08-09), same gate:** deleting learning
+material by source is account-wide — 「删除会同步到所有设备」. It rides wherever the
+sync disclosure lives (options 学习/同步 copy and the README sync paragraph), because
+a delete that the user believes is local but that propagates — or the reverse — is a
+consent error in either direction.
 
 **`manifest.json` → `browser_specific_settings.gecko.data_collection_permissions`:**
 

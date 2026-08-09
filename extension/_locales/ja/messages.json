@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "自動（カードの言語に合わせる）"
+  },
+  "learn_langs_label": {
+    "message": "学習する言語"
+  },
+  "learn_langs_all": {
+    "message": "すべて（デフォルト）"
+  },
+  "learn_langs_hint": {
+    "message": "選択した言語の文だけを収集します。Safari で言語を判定できない場合は文字体系で判断します。長押し保存は制限されません。"
+  },
+  "learn_sources_manage": {
+    "message": "ソース管理"
+  },
+  "learn_sources_empty": {
+    "message": "まだソースがありません"
+  },
+  "learn_sources_count": {
+    "message": "{n} 枚"
+  },
+  "learn_src_delete": {
+    "message": "保存分を削除"
+  },
+  "learn_src_block": {
+    "message": "収集しない"
+  },
+  "learn_src_unblock": {
+    "message": "収集を再開"
+  },
+  "learn_src_blocked": {
+    "message": "ブロック中"
+  },
+  "learn_src_blocked_by": {
+    "message": "ルール {pattern} でブロック中"
+  },
+  "learn_block_title": {
+    "message": "ブロックルール"
+  },
+  "learn_block_hint": {
+    "message": "ワイルドカード対応：example.com はドメイン全体（サブドメイン含む）、*.example.com/news/* はパスに一致します。"
+  },
+  "learn_block_add": {
+    "message": "追加"
+  },
+  "learn_block_placeholder": {
+    "message": "例：*.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "ルールの形式が正しくありません"
+  },
+  "learn_delete_confirm": {
+    "message": "{host} の {n} 枚のカードを削除しますか？すべての端末に同期され、元に戻せません。"
+  },
+  "learn_delete_done": {
+    "message": "{n} 枚を削除しました"
+  },
+  "learn_delete_none": {
+    "message": "このソースに削除できるカードはありません"
+  },
+  "popup_site_section": {
+    "message": "このサイト"
+  },
+  "popup_site_capture": {
+    "message": "このサイトで収集"
+  },
+  "popup_site_manage": {
+    "message": "管理…"
+  },
+  "learn_card_src_actions": {
+    "message": "ソース操作"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

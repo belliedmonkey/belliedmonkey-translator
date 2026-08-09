@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "Automatisch (nach Kartensprache)"
+  },
+  "learn_langs_label": {
+    "message": "Zu lernende Sprachen"
+  },
+  "learn_langs_all": {
+    "message": "Alle (Standard)"
+  },
+  "learn_langs_hint": {
+    "message": "Nur Sätze in den gewählten Sprachen werden erfasst. Wenn Safari die Sprache nicht erkennen kann, entscheidet das Schriftsystem; per Langdruck Gespeichertes wird nie gefiltert."
+  },
+  "learn_sources_manage": {
+    "message": "Quellen verwalten"
+  },
+  "learn_sources_empty": {
+    "message": "Noch keine Quellen erfasst"
+  },
+  "learn_sources_count": {
+    "message": "{n} Karten"
+  },
+  "learn_src_delete": {
+    "message": "Gespeichertes löschen"
+  },
+  "learn_src_block": {
+    "message": "Nicht mehr erfassen"
+  },
+  "learn_src_unblock": {
+    "message": "Wieder erfassen"
+  },
+  "learn_src_blocked": {
+    "message": "Blockiert"
+  },
+  "learn_src_blocked_by": {
+    "message": "Blockiert durch Regel {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Blockierregeln"
+  },
+  "learn_block_hint": {
+    "message": "Platzhalter möglich: example.com trifft die ganze Domain (inkl. Subdomains); *.example.com/news/* trifft einen Pfad."
+  },
+  "learn_block_add": {
+    "message": "Hinzufügen"
+  },
+  "learn_block_placeholder": {
+    "message": "z. B. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Keine gültige Regel"
+  },
+  "learn_delete_confirm": {
+    "message": "{n} Karten von {host} löschen? Wird auf alle Geräte synchronisiert und kann nicht rückgängig gemacht werden."
+  },
+  "learn_delete_done": {
+    "message": "{n} Karten gelöscht"
+  },
+  "learn_delete_none": {
+    "message": "Nichts mehr zu löschen für diese Quelle"
+  },
+  "popup_site_section": {
+    "message": "Diese Website"
+  },
+  "popup_site_capture": {
+    "message": "Auf dieser Website erfassen"
+  },
+  "popup_site_manage": {
+    "message": "Verwalten…"
+  },
+  "learn_card_src_actions": {
+    "message": "Quellen-Aktionen"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

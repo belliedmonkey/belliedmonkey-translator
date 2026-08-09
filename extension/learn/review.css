@@ -82,6 +82,22 @@ body {
 }
 .src a { color: var(--text-secondary); text-decoration: underline; }
 
+/* 来源操作 (interaction-spec「来源治理」): the ⋯ toggle and its action row. */
+.src-more {
+  margin-left: 6px; padding: 0 8px; font-size: 14px; line-height: 1.4;
+  background: none; border: 1px solid var(--border, rgba(128,128,128,.35));
+  border-radius: 10px; color: var(--text-secondary); cursor: pointer;
+}
+.src-actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 14px;
+}
+.src-actions button {
+  font-size: 12px; padding: 4px 10px; cursor: pointer;
+  background: none; border: 1px solid var(--border, rgba(128,128,128,.35));
+  border-radius: 10px; color: var(--text-secondary);
+}
+.src-actions button:disabled { opacity: .55; cursor: default; }
+
 .orig {
   font-size: 21px; line-height: 1.5; font-weight: 500;
   overflow-wrap: anywhere;

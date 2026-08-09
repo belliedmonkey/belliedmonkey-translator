@@ -8,12 +8,16 @@
 
 var LearnStore = (() => {
   const DB_NAME = 'mt-learn';
-  // v2 adds the `audio` store; v3 adds `tombs` (§7.3); v4 adds `notes` (§9.2).
+  // v2 adds the `audio` store; v3 adds `tombs` (§7.3); v4 adds `notes` (§9.2);
+  // v5 adds `dels` (§7.4 user-delete ledger).
   // The upgrade path only ever ADDS (every create is guarded by `contains`), so
   // bumping the version never touches existing data. EVERY bump: npm run test:idb.
-  const DB_VERSION = 4;
+  const DB_VERSION = 5;
   const MAX_ITEMS = 20000;
   const MAX_TOMBS = 20000;   // same order as the corpus; oldest forgotten past this
+  const MAX_DELS = 20000;    // §7.4: oldest deletes forgotten first — a very stale
+                             // device may then re-introduce those cards once, the
+                             // same failure direction as tombs
   const MAX_AUDIO_BYTES = 200 * 1024 * 1024;   // 200 MB, LRU-evicted
 
   let dbp = null;
@@ -58,6 +62,14 @@ var LearnStore = (() => {
         // keeping it out of the chunk format is what keeps §8.5's cost model intact.
         if (!db.objectStoreNames.contains('notes')) {
           db.createObjectStore('notes', { keyPath: 'id' });
+        }
+        // §7.4 user-delete ledger. The OPPOSITE of `tombs` in every consequence:
+        // a user delete is account-level intent, so this ledger SYNCS (`d` rows),
+        // applies on file import too, and never touches `everEvicted` — after a
+        // user delete, "local minus deleted" IS the intended archive.
+        if (!db.objectStoreNames.contains('dels')) {
+          const d = db.createObjectStore('dels', { keyPath: 'id' });
+          d.createIndex('at', 'at');       // oldest forgotten first
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -299,6 +311,90 @@ var LearnStore = (() => {
     });
   }
 
+  // ─── User-delete ledger (§7.4) ───────────────────────────────────────────
+  //
+  // The rule: **a user delete is account intent, eviction is device pressure.**
+  // This path deletes the item AND its local review rows (the privacy meaning of
+  // "remove this source", and what keeps `introducedToday`'s account-level budget
+  // honest), writes the ledger, and touches NEITHER `tombs` NOR `everEvicted` NOR
+  // the pressure counters — none of those are about the user wanting less.
+
+  // Core: apply delete entries [{id, at}]. An item dies only if nothing about it
+  // moved after the delete (`touchedAt(item) <= at` — §7.4's resolution rule,
+  // which is what makes replaying the same `d` row twice a no-op and lets a card
+  // genuinely re-touched elsewhere survive). The ledger is upserted with max(at)
+  // regardless, so pull suppression works even for items this device never had.
+  function applyDels(entries) {
+    const rows = (entries || []).filter((e) => e && e.id);
+    if (!rows.length) return Promise.resolve(0);
+    let deleted = 0;
+    return tx(['items', 'reviews', 'dels'], 'readwrite', (s) => {
+      for (const e of rows) {
+        const at = e.at || 0;
+        const gi = s.items.get(e.id);
+        gi.onsuccess = () => {
+          const it = gi.result;
+          if (it && LearnModel.touchedAt(it) <= at) {
+            deleted++;
+            s.items.delete(e.id);
+            const rk = s.reviews.index('itemId').getAllKeys(e.id);
+            rk.onsuccess = () => { for (const seq of rk.result || []) s.reviews.delete(seq); };
+          }
+        };
+        const gd = s.dels.get(e.id);
+        gd.onsuccess = () => {
+          const prev = gd.result;
+          s.dels.put({ id: e.id, at: Math.max((prev && prev.at) || 0, at) });
+        };
+      }
+    }).then(() => trimDels()).then(() => deleted);
+  }
+
+  // The UI entry point: delete these ids NOW (来源管理 / review-card actions).
+  function deleteItems(ids, at) {
+    const t = at || Date.now();
+    return applyDels((ids || []).map((id) => ({ id, at: t })));
+  }
+
+  // After a source-scoped delete, drop source rows nothing references any more.
+  // NOT part of the delete tx: a leftover source row is harmless (161 bytes), a
+  // source deleted while an item still points at it breaks attribution.
+  function deleteSourcesIfOrphan(sourceIds) {
+    const cand = (sourceIds || []).filter(Boolean);
+    if (!cand.length) return Promise.resolve(0);
+    return allItems().then((items) => {
+      const referenced = new Set(items.map((it) => it.sourceId).filter(Boolean));
+      const doomed = cand.filter((id) => !referenced.has(id));
+      if (!doomed.length) return 0;
+      return tx(['sources'], 'readwrite', (s) => { for (const id of doomed) s.sources.delete(id); })
+        .then(() => doomed.length);
+    });
+  }
+
+  function userDels() {
+    return getAllFrom('dels')
+      .then((rows) => new Map(rows.map((r) => [r.id, r.at || 0])))
+      .catch(() => new Map());   // a broken ledger must never block a sync
+  }
+
+  function allDels() { return getAllFrom('dels').catch(() => []); }
+
+  // Same shape as staleTombs, same failure direction (§7.4.5).
+  function staleDels(rows, cap) {
+    if (rows.length <= cap) return [];
+    return rows.slice().sort((a, b) => (a.at || 0) - (b.at || 0)).slice(0, rows.length - cap);
+  }
+
+  function trimDels(limit) {
+    const cap = limit || MAX_DELS;
+    return getAllFrom('dels').then((rows) => {
+      const doomed = staleDels(rows, cap);
+      if (!doomed.length) return 0;
+      return tx(['dels'], 'readwrite', (s) => { for (const d of doomed) s.dels.delete(d.id); })
+        .then(() => doomed.length);
+    });
+  }
+
   // ─── Sentence-note cache (§9.2) ──────────────────────────────────────────
   // One generation per card per prompt version: the answer face renders from
   // here on every revisit. LearnNotes owns the version gate (`v` on the
@@ -398,9 +494,11 @@ var LearnStore = (() => {
     // `everEvicted`, and tombstones go with it: an empty corpus has not evicted
     // anything, and keeping the tombstones would make a fresh re-sync silently
     // refuse to restore the very cards the user just asked to start over with.
-    return tx(['items', 'sources', 'reviews', 'meta', 'audio', 'tombs'], 'readwrite', (s) => {
+    // `dels` goes too, for the same reason: a wiped device re-converges from the
+    // log's `d` rows on the next pull (§7.4) — it does not need a local copy.
+    return tx(['items', 'sources', 'reviews', 'meta', 'audio', 'tombs', 'dels'], 'readwrite', (s) => {
       s.items.clear(); s.sources.clear(); s.reviews.clear();
-      s.meta.clear(); s.audio.clear(); s.tombs.clear();
+      s.meta.clear(); s.audio.clear(); s.tombs.clear(); s.dels.clear();
     });
   }
 
@@ -417,12 +515,13 @@ var LearnStore = (() => {
   }
 
   return {
-    MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS,
+    MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS, MAX_DELS,
     open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
+    applyDels, deleteItems, deleteSourcesIfOrphan, userDels, allDels, trimDels,
     getNote, putNote,
-    doomedFor, staleTombs,          // pure — exported for the suite, see above
+    doomedFor, staleTombs, staleDels,   // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,
     getAudio, putAudio, evictAudioIfNeeded, audioStats, clearAudio,
   };

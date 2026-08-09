@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "자동(카드 언어에 따라)"
+  },
+  "learn_langs_label": {
+    "message": "학습할 언어"
+  },
+  "learn_langs_all": {
+    "message": "전체(기본값)"
+  },
+  "learn_langs_hint": {
+    "message": "선택한 언어의 문장만 수집합니다. Safari에서 언어를 판별할 수 없으면 문자 체계로 판단합니다. 길게 눌러 저장한 문장은 제한되지 않습니다."
+  },
+  "learn_sources_manage": {
+    "message": "출처 관리"
+  },
+  "learn_sources_empty": {
+    "message": "아직 수집된 출처가 없습니다"
+  },
+  "learn_sources_count": {
+    "message": "{n}장"
+  },
+  "learn_src_delete": {
+    "message": "저장된 것 삭제"
+  },
+  "learn_src_block": {
+    "message": "수집 안 함"
+  },
+  "learn_src_unblock": {
+    "message": "수집 재개"
+  },
+  "learn_src_blocked": {
+    "message": "차단됨"
+  },
+  "learn_src_blocked_by": {
+    "message": "규칙 {pattern}에 의해 차단됨"
+  },
+  "learn_block_title": {
+    "message": "차단 규칙"
+  },
+  "learn_block_hint": {
+    "message": "와일드카드 지원: example.com은 전체 도메인(하위 도메인 포함), *.example.com/news/*는 경로와 일치합니다."
+  },
+  "learn_block_add": {
+    "message": "추가"
+  },
+  "learn_block_placeholder": {
+    "message": "예: *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "규칙 형식이 올바르지 않습니다"
+  },
+  "learn_delete_confirm": {
+    "message": "{host}의 카드 {n}장을 삭제할까요? 모든 기기에 동기화되며 되돌릴 수 없습니다."
+  },
+  "learn_delete_done": {
+    "message": "{n}장을 삭제했습니다"
+  },
+  "learn_delete_none": {
+    "message": "이 출처에는 삭제할 카드가 없습니다"
+  },
+  "popup_site_section": {
+    "message": "이 사이트"
+  },
+  "popup_site_capture": {
+    "message": "이 사이트에서 수집"
+  },
+  "popup_site_manage": {
+    "message": "관리…"
+  },
+  "learn_card_src_actions": {
+    "message": "출처 작업"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

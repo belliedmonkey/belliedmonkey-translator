@@ -31,6 +31,23 @@
     </button>
   </div>
 
+  <!-- 本站（interaction-spec「来源治理」）：页内快速入口刻意放在弹窗里 ——
+       采集对浏览流必须零打扰。被规则挡住的页面在这里可见、可修复（法则 2）。
+       只在「采集学习材料」开着且页面可注入时显示。 -->
+  <div class="section" id="site-section" hidden>
+    <div class="row">
+      <span class="row-label"><span data-i18n="popup_site_capture">收录本站</span><br><span class="hint" id="site-host"></span></span>
+      <label class="switch" id="site-switch">
+        <input type="checkbox" id="site-capture">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <button class="row row-btn" id="site-blocked-row" hidden>
+      <span class="row-label hint" id="site-blocked-by"></span>
+      <span class="row-value" data-i18n="popup_site_manage">管理…</span>
+    </button>
+  </div>
+
   <div class="section">
     <div class="row">
       <span class="row-label" data-i18n="popup_target_lang">目标语言</span>
@@ -107,6 +124,7 @@
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/providers.gen.js"></script>
   <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-rules.js"></script>
   <script src="../content/learn-scheduler.js"></script>
   <script src="../learn/store.js"></script>
   <script src="../learn/drain.js"></script>

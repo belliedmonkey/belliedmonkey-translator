@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "自动（按卡片语言）"
+  },
+  "learn_langs_label": {
+    "message": "学习语言"
+  },
+  "learn_langs_all": {
+    "message": "全部（默认）"
+  },
+  "learn_langs_hint": {
+    "message": "只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。"
+  },
+  "learn_sources_manage": {
+    "message": "来源管理"
+  },
+  "learn_sources_empty": {
+    "message": "还没有采集到任何来源"
+  },
+  "learn_sources_count": {
+    "message": "{n} 张卡"
+  },
+  "learn_src_delete": {
+    "message": "删除已存"
+  },
+  "learn_src_block": {
+    "message": "不再收录"
+  },
+  "learn_src_unblock": {
+    "message": "恢复收录"
+  },
+  "learn_src_blocked": {
+    "message": "已屏蔽"
+  },
+  "learn_src_blocked_by": {
+    "message": "由规则 {pattern} 屏蔽"
+  },
+  "learn_block_title": {
+    "message": "屏蔽规则"
+  },
+  "learn_block_hint": {
+    "message": "支持通配符：example.com 匹配整个域名（含子域）；*.example.com/news/* 匹配路径。"
+  },
+  "learn_block_add": {
+    "message": "添加"
+  },
+  "learn_block_placeholder": {
+    "message": "例如 *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "规则格式不对"
+  },
+  "learn_delete_confirm": {
+    "message": "删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。"
+  },
+  "learn_delete_done": {
+    "message": "已删除 {n} 张卡"
+  },
+  "learn_delete_none": {
+    "message": "这个来源已没有可删的卡"
+  },
+  "popup_site_section": {
+    "message": "本站"
+  },
+  "popup_site_capture": {
+    "message": "收录本站"
+  },
+  "popup_site_manage": {
+    "message": "管理…"
+  },
+  "learn_card_src_actions": {
+    "message": "来源操作"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

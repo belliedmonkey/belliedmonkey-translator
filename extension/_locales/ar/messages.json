@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "تلقائي (حسب لغة البطاقة)"
+  },
+  "learn_langs_label": {
+    "message": "اللغات التي تتعلمها"
+  },
+  "learn_langs_all": {
+    "message": "الكل (افتراضي)"
+  },
+  "learn_langs_hint": {
+    "message": "تُلتقط فقط الجمل باللغات المحددة. عندما يتعذر على Safari تحديد اللغة، يُعتمد نظام الكتابة؛ ما تحفظه بالضغط المطوّل لا يُرشَّح أبدًا."
+  },
+  "learn_sources_manage": {
+    "message": "إدارة المصادر"
+  },
+  "learn_sources_empty": {
+    "message": "لا توجد مصادر ملتقطة بعد"
+  },
+  "learn_sources_count": {
+    "message": "{n} بطاقة"
+  },
+  "learn_src_delete": {
+    "message": "حذف المحفوظ"
+  },
+  "learn_src_block": {
+    "message": "إيقاف الالتقاط"
+  },
+  "learn_src_unblock": {
+    "message": "استئناف الالتقاط"
+  },
+  "learn_src_blocked": {
+    "message": "محظور"
+  },
+  "learn_src_blocked_by": {
+    "message": "محظور بالقاعدة {pattern}"
+  },
+  "learn_block_title": {
+    "message": "قواعد الحظر"
+  },
+  "learn_block_hint": {
+    "message": "تدعم أحرف البدل: example.com يطابق النطاق كاملًا (مع النطاقات الفرعية)؛ *.example.com/news/* يطابق مسارًا."
+  },
+  "learn_block_add": {
+    "message": "إضافة"
+  },
+  "learn_block_placeholder": {
+    "message": "مثال: *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "القاعدة غير صالحة"
+  },
+  "learn_delete_confirm": {
+    "message": "حذف {n} بطاقة من {host}؟ سيتزامن هذا مع جميع أجهزتك ولا يمكن التراجع عنه."
+  },
+  "learn_delete_done": {
+    "message": "تم حذف {n} بطاقة"
+  },
+  "learn_delete_none": {
+    "message": "لا يوجد ما يُحذف من هذا المصدر"
+  },
+  "popup_site_section": {
+    "message": "هذا الموقع"
+  },
+  "popup_site_capture": {
+    "message": "الالتقاط في هذا الموقع"
+  },
+  "popup_site_manage": {
+    "message": "إدارة…"
+  },
+  "learn_card_src_actions": {
+    "message": "إجراءات المصدر"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

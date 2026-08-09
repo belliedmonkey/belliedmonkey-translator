@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "Automatic (by card language)"
+  },
+  "learn_langs_label": {
+    "message": "Languages to learn"
+  },
+  "learn_langs_all": {
+    "message": "All (default)"
+  },
+  "learn_langs_hint": {
+    "message": "Only sentences in the selected languages are captured. Where Safari cannot detect the language, the writing system decides; long-press saves are never filtered."
+  },
+  "learn_sources_manage": {
+    "message": "Manage sources"
+  },
+  "learn_sources_empty": {
+    "message": "No sources captured yet"
+  },
+  "learn_sources_count": {
+    "message": "{n} cards"
+  },
+  "learn_src_delete": {
+    "message": "Delete saved"
+  },
+  "learn_src_block": {
+    "message": "Stop capturing"
+  },
+  "learn_src_unblock": {
+    "message": "Resume capturing"
+  },
+  "learn_src_blocked": {
+    "message": "Blocked"
+  },
+  "learn_src_blocked_by": {
+    "message": "Blocked by rule {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Block rules"
+  },
+  "learn_block_hint": {
+    "message": "Wildcards supported: example.com matches the whole domain (subdomains too); *.example.com/news/* matches a path."
+  },
+  "learn_block_add": {
+    "message": "Add"
+  },
+  "learn_block_placeholder": {
+    "message": "e.g. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Not a valid rule"
+  },
+  "learn_delete_confirm": {
+    "message": "Delete {n} cards from {host}? This syncs to all your devices and cannot be undone."
+  },
+  "learn_delete_done": {
+    "message": "Deleted {n} cards"
+  },
+  "learn_delete_none": {
+    "message": "Nothing left to delete from this source"
+  },
+  "popup_site_section": {
+    "message": "This site"
+  },
+  "popup_site_capture": {
+    "message": "Capture on this site"
+  },
+  "popup_site_manage": {
+    "message": "Manage…"
+  },
+  "learn_card_src_actions": {
+    "message": "Source actions"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

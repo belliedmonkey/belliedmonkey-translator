@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "自動（按卡片語言）"
+  },
+  "learn_langs_label": {
+    "message": "學習語言"
+  },
+  "learn_langs_all": {
+    "message": "全部（預設）"
+  },
+  "learn_langs_hint": {
+    "message": "只收錄選中語言的句子。Safari 無法精確識別語言時按文字系統判斷；長按收藏不受限制。"
+  },
+  "learn_sources_manage": {
+    "message": "來源管理"
+  },
+  "learn_sources_empty": {
+    "message": "還沒有採集到任何來源"
+  },
+  "learn_sources_count": {
+    "message": "{n} 張卡"
+  },
+  "learn_src_delete": {
+    "message": "刪除已存"
+  },
+  "learn_src_block": {
+    "message": "不再收錄"
+  },
+  "learn_src_unblock": {
+    "message": "恢復收錄"
+  },
+  "learn_src_blocked": {
+    "message": "已封鎖"
+  },
+  "learn_src_blocked_by": {
+    "message": "由規則 {pattern} 封鎖"
+  },
+  "learn_block_title": {
+    "message": "封鎖規則"
+  },
+  "learn_block_hint": {
+    "message": "支援萬用字元：example.com 匹配整個網域（含子網域）；*.example.com/news/* 匹配路徑。"
+  },
+  "learn_block_add": {
+    "message": "新增"
+  },
+  "learn_block_placeholder": {
+    "message": "例如 *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "規則格式不對"
+  },
+  "learn_delete_confirm": {
+    "message": "刪除 {host} 的 {n} 張卡？會同步到所有裝置，無法復原。"
+  },
+  "learn_delete_done": {
+    "message": "已刪除 {n} 張卡"
+  },
+  "learn_delete_none": {
+    "message": "這個來源已沒有可刪的卡"
+  },
+  "popup_site_section": {
+    "message": "本站"
+  },
+  "popup_site_capture": {
+    "message": "收錄本站"
+  },
+  "popup_site_manage": {
+    "message": "管理…"
+  },
+  "learn_card_src_actions": {
+    "message": "來源操作"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

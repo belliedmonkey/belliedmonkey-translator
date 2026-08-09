@@ -23,7 +23,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew',
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules',
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel'];
@@ -100,6 +100,11 @@ var AppSettings = (() => {
       o.value = p.id; o.textContent = p.label;
       sel.append(o);
     }
+    // 来源治理 (interaction-spec): rules follow the account (§8.9); the phone is a
+    // natural place to edit them even though the app itself never captures.
+    $('app-langs-title').textContent = t('learn_langs_label', '学习语言');
+    $('app-langs-note').textContent = t('learn_langs_hint', '只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。');
+    $('app-sources-title').textContent = t('learn_sources_manage', '来源管理');
     $('corpus-title').textContent = t('app_set_corpus', '学习库');
     $('clean-known').textContent = t('app_set_clean_known', '清理已掌握的卡');
     $('account-title').textContent = t('app_set_account', '账号');
@@ -171,6 +176,74 @@ var AppSettings = (() => {
     }));
   }
 
+  // ─── 来源治理 (§4.1/§7.4/§8.9) ─────────────────────────────────────────
+  // The shim has NO storage.onChanged, so every write repaints explicitly — the
+  // same pattern as liveTtsConfigure(). Rules ride the next push as a `g` row;
+  // a delete is account intent and gets a prompt forced sync (§7.4).
+
+  async function writeRules(mutate) {
+    const cur = await get(['learnRules']);
+    const base = cur.learnRules || { v: 1, block: [], langs: null };
+    const next = Object.assign({}, base, mutate(base), { v: 1, updatedAt: Date.now() });
+    await set({ learnRules: next });
+    if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+      LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+    }
+    return next;
+  }
+
+  async function paintGovernance(say) {
+    const cur = await get(['learnRules']);
+    const rules = cur.learnRules || null;
+    const langsBox = $('app-langs');
+    const srcBox = $('app-sources');
+    if (!langsBox || !srcBox) return;
+
+    SourcesView.renderLangChips(langsBox, {
+      registry: window.MT_LANGS || [],
+      langs: rules && rules.langs,
+      t,
+      onChange: async (langs) => {
+        await writeRules(() => ({ langs }));
+        paintGovernance(say);
+      },
+    });
+
+    const [items, sources] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+    SourcesView.render(srcBox, {
+      items, sources, rules, t,
+      onDelete: async ({ host, itemIds, sourceIds }) => {
+        if (!itemIds.length) { say(t('learn_delete_none', '这个来源已没有可删的卡')); return; }
+        if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+          .replace('{host}', host).replace('{n}', String(itemIds.length)))) return;
+        const n = await LearnStore.deleteItems(itemIds, Date.now()).catch(() => 0);
+        await LearnStore.deleteSourcesIfOrphan(sourceIds).catch(() => {});
+        say(t('learn_delete_done', '已删除 {n} 张卡').replace('{n}', String(n)));
+        if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+          LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+        }
+        paintGovernance(say);
+      },
+      onBlock: async (p) => {
+        await writeRules((r) => ({
+          block: (r.block || []).indexOf(p) >= 0 ? r.block : (r.block || []).concat([p]),
+        }));
+        paintGovernance(say);
+      },
+      onUnblock: async (p) => {
+        await writeRules((r) => ({ block: (r.block || []).filter((x) => x !== p) }));
+        paintGovernance(say);
+      },
+      onAddRule: async (p) => {
+        await writeRules((r) => ({
+          block: (r.block || []).indexOf(p) >= 0 ? r.block : (r.block || []).concat([p]),
+        }));
+        paintGovernance(say);
+      },
+      onInvalidRule: () => say(t('learn_block_invalid', '规则格式不对'), true),
+    });
+  }
+
   async function paint(session, say) {
     const cur = await get(KEYS);
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
@@ -196,6 +269,8 @@ var AppSettings = (() => {
       stats.total + ' ' + t('app_unit_cards', '张卡') + ' · '
       + reviews.length + ' ' + t('app_unit_reviews', '条复习记录')
       + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
+
+    await paintGovernance(say);
   }
 
   // Field visibility and placeholders follow the registry entry, not a hardcoded

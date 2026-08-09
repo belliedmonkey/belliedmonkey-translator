@@ -11,7 +11,7 @@ const $ = id => document.getElementById(id);
 const SETTINGS_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
   'textColor', 'ytTextColor', 'fontSize', 'showFab',
-  'learnEnabled', 'learnDailyNew',
+  'learnEnabled', 'learnDailyNew', 'learnRules',
   'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
 ];
 
@@ -556,6 +556,102 @@ async function init() {
   });
   refreshLearnStats();
   refreshPressure();
+
+  // ─── 来源治理 (interaction-spec 「来源治理」) ─────────────────────────
+  // learnRules is NOT part of saveAll(): it is a single JSON key written whole,
+  // stamped with updatedAt so the `g` row's LWW (§8.9) has something to compare.
+
+  let learnRules = s.learnRules || null;
+
+  async function writeRules(mutate) {
+    const base = learnRules || { v: 1, block: [], langs: null };
+    learnRules = Object.assign({}, base, mutate(base), { v: 1, updatedAt: Date.now() });
+    await new Promise((r) => chrome.storage.local.set({ learnRules }, r));
+    renderGovernance();
+    // A deliberate rules edit deserves a prompt push (rides the next chunk, §8.9).
+    // Signed out / disabled resolves to null — nothing to catch loudly.
+    if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+      LearnSync.autoSync(Date.now(), { force: true }).then((r) => {
+        if (r) refreshSyncAfterGovernance();
+      }).catch(() => {});
+    }
+  }
+
+  function refreshSyncAfterGovernance() {
+    refreshLearnStats();
+    refreshPressure();
+  }
+
+  function renderLangChipsUI() {
+    const box = $('learn-langs');
+    if (!box) return;
+    SourcesView.renderLangChips(box, {
+      registry: window.MT_LANGS || [],
+      langs: learnRules && learnRules.langs,
+      t,
+      onChange: (langs) => { writeRules(() => ({ langs })); showToast(t('toast_saved', '已保存')); },
+    });
+  }
+
+  async function renderSourcesManager() {
+    const box = $('sources-manager');
+    if (!box || box.hidden) return;
+    let items = [], sources = [];
+    try {
+      [items, sources] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+    } catch (_) {}
+    SourcesView.render(box, {
+      items, sources, rules: learnRules, t,
+      onDelete: async ({ host, itemIds, sourceIds }) => {
+        if (!itemIds.length) { showToast(t('learn_delete_none', '这个来源已没有可删的卡')); return; }
+        if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+          .replace('{host}', host).replace('{n}', String(itemIds.length)))) return;
+        try {
+          const n = await LearnStore.deleteItems(itemIds, Date.now());
+          await LearnStore.deleteSourcesIfOrphan(sourceIds);
+          showToast(t('learn_delete_done', '已删除 {n} 张卡').replace('{n}', String(n)));
+        } catch (_) { showToast(t('toast_learn_clear_failed', '清空失败')); }
+        renderSourcesManager();
+        refreshLearnStats();
+        refreshPressure();
+        // The delete must reach the server promptly — it is account intent (§7.4).
+        if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+          LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+        }
+      },
+      onBlock: (p) => writeRules((r) => ({
+        block: (r.block || []).indexOf(p) >= 0 ? r.block : (r.block || []).concat([p]),
+      })),
+      onUnblock: (p) => writeRules((r) => ({ block: (r.block || []).filter((x) => x !== p) })),
+      onAddRule: (p) => writeRules((r) => ({
+        block: (r.block || []).indexOf(p) >= 0 ? r.block : (r.block || []).concat([p]),
+      })),
+      onInvalidRule: () => showToast(t('learn_block_invalid', '规则格式不对')),
+    });
+  }
+
+  function renderGovernance() {
+    renderLangChipsUI();
+    renderSourcesManager();
+  }
+
+  $('btn-manage-sources').addEventListener('click', () => {
+    const box = $('sources-manager');
+    box.hidden = !box.hidden;
+    renderSourcesManager();
+  });
+  renderLangChipsUI();
+
+  // A rules change from elsewhere (a sync pull's `g` row, the popup's 本站
+  // toggle, the app) repaints this page while it is open.
+  try {
+    chrome.storage.onChanged.addListener((changes) => {
+      if ('learnRules' in changes) {
+        learnRules = changes.learnRules.newValue || null;
+        renderGovernance();
+      }
+    });
+  } catch (_) {}
 
   // ─── Sync (可选) ────────────────────────────────────────────────────
   // learning-design.md §8. Signed out is the DEFAULT, not a degraded mode, so

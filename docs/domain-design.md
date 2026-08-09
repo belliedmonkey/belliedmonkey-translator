@@ -691,6 +691,17 @@ source → Extractor → Engine → Renderer
    per-device branch to decide *what to capture* means the design has regressed into
    selector dependence — fix the salience model instead.
 
+   *Carve-out (2026-08-09): user-authored consent rules are not site knowledge.*
+   A source blocklist (来源屏蔽) or learning-language whitelist (学习语言白名单)
+   that the **user** writes is user governance — the same kind of consent as the
+   `learnEnabled` switch, scoped narrower. Such rules gate only *whether the sink
+   runs at all* for a page or a sentence (`learning-design.md` §4.1, §9): they never
+   reach the segmenter, never add a selector, and never influence what is translated
+   or rendered (law 1 holds byte-for-byte). What stays forbidden is **shipped**
+   per-site knowledge — a rule list we author and distribute. Per law 2, a page or
+   sentence where user rules stop capture must remain visible with a fix action; the
+   popup's 本站 section and the options 来源管理 are those surfaces.
+
 4. **Self-capture is forbidden.** Injected learning UI carries `translate="no"` **and**
    `data-mt-skip-region`; the Collector skips `.mt-translation` and every `#mt-*`
    subtree. Without this the extension translates its own translations and captures

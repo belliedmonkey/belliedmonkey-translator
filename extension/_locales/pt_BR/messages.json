@@ -978,5 +978,107 @@
   },
   "app_set_tts_voice_auto": {
     "message": "Automático (pelo idioma do cartão)"
+  },
+  "learn_langs_label": {
+    "message": "Idiomas que você aprende"
+  },
+  "learn_langs_all": {
+    "message": "Todos (padrão)"
+  },
+  "learn_langs_hint": {
+    "message": "Só frases nos idiomas selecionados são capturadas. Quando o Safari não consegue detectar o idioma, o sistema de escrita decide; o que for salvo com toque longo nunca é filtrado."
+  },
+  "learn_sources_manage": {
+    "message": "Gerenciar fontes"
+  },
+  "learn_sources_empty": {
+    "message": "Nenhuma fonte capturada ainda"
+  },
+  "learn_sources_count": {
+    "message": "{n} cartões"
+  },
+  "learn_src_delete": {
+    "message": "Excluir salvos"
+  },
+  "learn_src_block": {
+    "message": "Parar de capturar"
+  },
+  "learn_src_unblock": {
+    "message": "Retomar captura"
+  },
+  "learn_src_blocked": {
+    "message": "Bloqueado"
+  },
+  "learn_src_blocked_by": {
+    "message": "Bloqueado pela regra {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Regras de bloqueio"
+  },
+  "learn_block_hint": {
+    "message": "Aceita curingas: example.com cobre o domínio inteiro (subdomínios inclusos); *.example.com/news/* cobre um caminho."
+  },
+  "learn_block_add": {
+    "message": "Adicionar"
+  },
+  "learn_block_placeholder": {
+    "message": "ex.: *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Regra inválida"
+  },
+  "learn_delete_confirm": {
+    "message": "Excluir {n} cartões de {host}? Isso sincroniza em todos os seus dispositivos e não pode ser desfeito."
+  },
+  "learn_delete_done": {
+    "message": "{n} cartões excluídos"
+  },
+  "learn_delete_none": {
+    "message": "Nada mais para excluir desta fonte"
+  },
+  "popup_site_section": {
+    "message": "Este site"
+  },
+  "popup_site_capture": {
+    "message": "Capturar neste site"
+  },
+  "popup_site_manage": {
+    "message": "Gerenciar…"
+  },
+  "learn_card_src_actions": {
+    "message": "Ações da fonte"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
   }
 }

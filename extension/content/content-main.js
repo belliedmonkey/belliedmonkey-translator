@@ -14,7 +14,7 @@
   const SETTINGS_KEYS = [
     'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
-    'learnEnabled', 'learnDailyNew',
+    'learnEnabled', 'learnDailyNew', 'learnRules',
   ];
   const settings = await new Promise(resolve => {
     chrome.storage.local.get(SETTINGS_KEYS, (s) => resolve(s || {}));
@@ -36,7 +36,12 @@
     ytSubEnabled: false, // video subtitles also start off until the 译 button is turned on
     // Learning layer. OFF until the user turns it on once — capture never starts by
     // itself on upgrade (interaction-spec 「复习 / Review」 → Capture).
-    learnEnabled: settings.learnEnabled === true
+    learnEnabled: settings.learnEnabled === true,
+    // User-authored governance (learning-design §4.1/§8.9): source blocklist +
+    // learning-language whitelist. Missing/unreadable ⇒ null ⇒ no filtering
+    // (fail-open, §7.4.5 — a genuinely broken read also loses learnEnabled, which
+    // fails capture closed anyway).
+    learnRules: settings.learnRules || null,
   };
 
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
@@ -114,7 +119,13 @@
   // degraded translation.
   function syncCollector() {
     try {
-      if (cfg.learnEnabled) {
+      // The blocklist gates whether the sink RUNS AT ALL for this page — user
+      // governance, not shipped site knowledge (domain-design §9.1 law 3 carve-out).
+      // It never touches the translation path. The popup's 本站 section is the
+      // law-2 visibility surface for a page blocked here.
+      const blocked = typeof LearnRules !== 'undefined'
+        && LearnRules.isBlocked(location.href, cfg.learnRules);
+      if (cfg.learnEnabled && !blocked) {
         LearnCollector.enable({
           targetLang: cfg.targetLang,
           // The detector is INJECTED here, never probed for inside the collector
@@ -122,9 +133,15 @@
           // lang 'und' rather than dropped.
           detect: (typeof LangDetect !== 'undefined' && LangDetect.available())
             ? LangDetect.detect : null,
+          // Whitelist inputs for the flush gate (learning-design §4.1). The
+          // registry is generated (langs.gen.js) and injected like the detector.
+          rules: cfg.learnRules,
+          langRegistry: (typeof window !== 'undefined' && window.MT_LANGS) || null,
         });
       } else {
-        LearnCollector.disable();
+        // A site blocked MID-SESSION (rule added from the popup) must not flush
+        // its backlog on the way out — the user just said "not from here".
+        LearnCollector.disable(blocked ? { discard: true } : undefined);
       }
     } catch (_) {}
   }
@@ -165,7 +182,7 @@
       else WebpageTranslator.disable();
       if (drivesPodcast()) { if (cfg.enabled) PodcastTranslator.enable(cfg); else PodcastTranslator.disable(); }
       if (isMobileTwitter) { if (cfg.enabled) TwitterTranslator.enable(cfg); else TwitterTranslator.disable(); }
-    } else if ('learnEnabled' in changes || 'learnDailyNew' in changes) {
+    } else if ('learnEnabled' in changes || 'learnDailyNew' in changes || 'learnRules' in changes) {
       // A learning-settings change must NOT re-translate the page: capture is a
       // sink, so toggling it has no bearing on what is displayed.
       syncCollector();
@@ -205,7 +222,10 @@
     }
 
     if (msg.action === 'getPageStatus') {
-      sendResponse({ enabled: cfg.enabled, isYouTube });
+      // `url` feeds the popup's 本站 section. From here rather than chrome.tabs
+      // so the popup shows the SAME url the capture gate judged — and it works
+      // identically on Safari, where tabs.query quirks are not worth relying on.
+      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href });
     }
   });
 })();
