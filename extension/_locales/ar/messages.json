@@ -799,6 +799,9 @@
     "message": "فشل التحليل — حاول لاحقًا",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "لم يُرجِع النموذج أي نص — نماذج التفكير (الاستدلال) لا تناسب تحليل الجمل؛ اختر نموذج محادثة من الإعدادات."
+  },
   "learn_notes_words": {
     "message": "مفردات",
     "description": "Notes section header: vocabulary"

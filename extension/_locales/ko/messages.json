@@ -799,6 +799,9 @@
     "message": "분석 실패 — 나중에 다시 시도하세요",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "모델이 본문을 반환하지 않았습니다 — 사고(추론)형 모델은 문장 해석에 적합하지 않습니다. 설정에서 대화형 모델로 바꿔 주세요."
+  },
   "learn_notes_words": {
     "message": "단어",
     "description": "Notes section header: vocabulary"

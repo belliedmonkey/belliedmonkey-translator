@@ -799,6 +799,9 @@
     "message": "Analysis failed — try again later",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "The model returned no answer text — thinking/reasoner models don't suit sentence notes; pick a chat model in settings."
+  },
   "learn_notes_words": {
     "message": "Vocabulary",
     "description": "Notes section header: vocabulary"

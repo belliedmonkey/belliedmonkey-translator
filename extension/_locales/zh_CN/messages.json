@@ -799,6 +799,9 @@
     "message": "解析失败，稍后再试",
     "description": "Notes failure status"
   },
+  "learn_notes_failed_empty": {
+    "message": "模型没有返回正文——思考（推理）型模型不适合句子解析，请在设置中改用对话模型。"
+  },
   "learn_notes_words": {
     "message": "生词",
     "description": "Notes section header: vocabulary"
