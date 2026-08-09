@@ -40,11 +40,37 @@ var LearnDrain = (() => {
       .catch(() => {});
   }
 
+  // The drain re-checks learnRules (learning-design §4.1/§8.9): the outbox may
+  // hold batches captured BEFORE a rule landed (the 30s flush cadence, a rule set
+  // on another surface, a rules pull). Filtered items are the user's intent, not
+  // pressure — they are NOT counted into `lq:dropped`. A failed read filters
+  // nothing (fail-open, §7.4.5): draining under uncertainty beats losing captures.
+  function readRules() {
+    return new Promise((resolve) => {
+      try { chrome.storage.local.get(['learnRules'], (r) => resolve((r && r.learnRules) || null)); }
+      catch (_) { resolve(null); }
+    });
+  }
+
+  function ruleFilter(batches, rules) {
+    if (typeof LearnRules === 'undefined' || !rules) return batches;
+    const out = [];
+    for (const b of batches) {
+      if (b.url && LearnRules.isBlocked(b.url, rules)) continue;
+      const items = (b.items || []).filter((it) => it && (it.starred
+        || LearnRules.langAllowed(it.lang, it.text, rules.langs,
+          (typeof window !== 'undefined' && window.MT_LANGS) || null)));
+      if (items.length) out.push(Object.assign({}, b, { items }));
+    }
+    return out;
+  }
+
   // Returns the number of items merged. Never throws — a drain that fails leaves the
   // outbox untouched and simply reports 0, so the next page open retries it.
   function run() {
-    return readOutbox().then(({ keys, batches, dropped }) => {
+    return Promise.all([readOutbox(), readRules()]).then(([{ keys, batches, dropped }, rules]) => {
       if (!batches.length) return carryDropped(dropped).then(() => 0);
+      batches = ruleFilter(batches, rules);
       const items = [];
       const sources = [];
       const seenSrc = new Set();

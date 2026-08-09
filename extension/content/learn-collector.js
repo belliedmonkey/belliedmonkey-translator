@@ -203,6 +203,12 @@ var LearnCollector = (() => {
         const items = [];
         for (const d of drafts.values()) {
           if (!LearnModel.shouldCapture(d, cfg.model)) continue;
+          // Learning-language whitelist (learning-design §4.1). STARRED drafts
+          // bypass it — an explicit long-press outranks a standing filter. The
+          // typeof guard fails OPEN (capture), the documented failure direction.
+          if (!d.starred && typeof LearnRules !== 'undefined'
+            && !LearnRules.langAllowed(d.lang, d.text,
+              cfg.rules && cfg.rules.langs, cfg.langRegistry)) continue;
           items.push(LearnModel.makeItem(d, now, cfg.model));
         }
         if (!items.length) { done(0); return; }
@@ -259,9 +265,12 @@ var LearnCollector = (() => {
     safe(() => window.addEventListener('pagehide', flush));
   }
 
-  function disable() {
+  // `opts.discard` skips the farewell flush AND drops the backlog: a page the
+  // user just blocked (本站不收录 mid-session) must not sneak its drafts into the
+  // outbox on the way out. Default behaviour (flush) is unchanged for everyone else.
+  function disable(opts) {
     if (!on) return Promise.resolve(0);
-    const p = flush();
+    const p = (opts && opts.discard) ? Promise.resolve(0) : flush();
     on = false;
     // Resource lifetime matters as much as output (verification-spec §3.1.1 blind
     // spot 3): a leaked observer keeps every captured node alive for the life of
