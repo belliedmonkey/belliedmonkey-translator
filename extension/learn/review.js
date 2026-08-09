@@ -778,7 +778,17 @@
     await start();
   });
 
+  // §7.5 — restore BEFORE drain and before the entry-forced sync: a UUID-rotated
+  // (or otherwise emptied) corpus comes back from the local backup for signed-out
+  // users; the pull below heals signed-in ones. Guarded: the app bundle
+  // deliberately ships without LearnBackup.
+  if (typeof LearnBackup !== 'undefined') {
+    try { await LearnBackup.restoreIfEmpty(); } catch (_) {}
+  }
   await LearnDrain.run();
+  if (typeof LearnBackup !== 'undefined') {
+    try { LearnBackup.maybeRun(); } catch (_) {}      // fire-and-forget snapshot
+  }
   await refreshPressure();
   await start();
 
@@ -796,6 +806,11 @@
         await refreshCounts();
         if (ev.pulled && (ev.pulled.cards || ev.pulled.reviews) && $('card').hidden) {
           await start();
+        }
+        // A sync that just landed material is a good, already-quiet moment to
+        // refresh the local backup (§7.5) — throttled inside maybeRun.
+        if (typeof LearnBackup !== 'undefined') {
+          try { LearnBackup.maybeRun(); } catch (_) {}
         }
       }
     });

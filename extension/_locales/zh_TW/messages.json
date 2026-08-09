@@ -1083,5 +1083,8 @@
   },
   "sync_status_storage_error": {
     "message": "讀不到登入狀態（儲存讀取失敗），稍後自動重試 —— 這不代表已登出。"
+  },
+  "learn_backup_failed": {
+    "message": "本地備份未能寫入（{why}）。學習庫本身不受影響。"
   }
 }

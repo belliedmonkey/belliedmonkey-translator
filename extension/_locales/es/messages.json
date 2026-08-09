@@ -1083,5 +1083,8 @@
   },
   "sync_status_storage_error": {
     "message": "No se pudo leer el estado de sesión (fallo de lectura del almacenamiento); se reintentará en breve — esto no significa que hayas cerrado sesión."
+  },
+  "learn_backup_failed": {
+    "message": "No se pudo escribir la copia de seguridad local ({why}). La biblioteca de aprendizaje no se ve afectada."
   }
 }

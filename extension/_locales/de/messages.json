@@ -1083,5 +1083,8 @@
   },
   "sync_status_storage_error": {
     "message": "Anmeldestatus konnte nicht gelesen werden (Speicher-Lesefehler); es wird gleich erneut versucht — das bedeutet nicht, dass Sie abgemeldet wurden."
+  },
+  "learn_backup_failed": {
+    "message": "Lokales Backup konnte nicht geschrieben werden ({why}). Die Lernbibliothek selbst ist nicht betroffen."
   }
 }

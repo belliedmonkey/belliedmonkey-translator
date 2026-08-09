@@ -1083,5 +1083,8 @@
   },
   "sync_status_storage_error": {
     "message": "로그인 상태를 읽을 수 없습니다(저장소 읽기 실패). 곧 다시 시도합니다 — 로그아웃된 것이 아닙니다."
+  },
+  "learn_backup_failed": {
+    "message": "로컬 백업을 쓰지 못했습니다({why}). 학습 라이브러리 자체는 영향이 없습니다."
   }
 }

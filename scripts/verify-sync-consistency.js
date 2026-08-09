@@ -397,13 +397,35 @@ async function withHost(host, fn) {
     const rules = await ev(`new Promise((r) => chrome.storage.local.get(['learnRules'], (v) => r(v.learnRules || null)))`);
     need(rules && Array.isArray(rules.block) && rules.block.indexOf('example.org') >= 0,
       `规则没有传播到新设备: ${JSON.stringify(rules)}`);
+
+    // ─── §7.5 备份恢复幕：登出 + 删库，唯一救生通道是本地备份 ────────────
+    // 登出在先，故意堵死「同步治愈」这条路 —— 恢复出的计数只可能来自备份。
+    const countsPreWipe = await text('#counts');
+    const bk = await ev(`LearnBackup.maybeRun(Date.now() + 8 * 3600e3).then((r) => JSON.stringify(r))`);
+    need(/"ran":true/.test(bk), `强制快照没有落盘: ${bk}`);
+    await ev(`new Promise((r) => chrome.storage.local.remove(['learnAuth'], () => r('ok')))`);
+    await ev(`new Promise((res) => {
+      const q = indexedDB.deleteDatabase('mt-learn');
+      q.onsuccess = () => res('deleted');
+      q.onerror = () => res('error: ' + q.error);
+      q.onblocked = () => res('blocked-pending');   // 连接还开着：随导航关闭后完成
+    })`);
+    await nav();
+    const lineC = await waitLine('未登录', 6000);
+    need(lineC.includes('未登录'), `登出后状态行应为未登录（同步治愈已被堵死）: 「${lineC}」`);
+    await ev(`LearnReview.start().then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 300));
+    const countsRestored = await text('#counts');
+    console.log('  C 删库+登出后计数(仅备份可救): ' + countsRestored);
+    need(countsRestored === countsPreWipe,
+      `备份恢复失败 —— 删库前后计数不一致:\n    前: 「${countsPreWipe}」\n    后: 「${countsRestored}」`);
   });
 
   console.log('');
   if (ok) {
     console.log('✓ 多设备同步一致性回归全部通过：未登录态 · 进入即同步 · 上传/拉取 · '
       + '两端计数逐字一致 · 收敛零新上传 · 节流穿透 · 离线可见 · online 自愈 · '
-      + '删除跨设备传播（d 行）· 规则跨设备传播（g 行）');
+      + '删除跨设备传播（d 行）· 规则跨设备传播（g 行）· 备份恢复（登出+删库仅靠本地备份复原）');
     process.exit(0);
   }
   console.log(`✗ ${failures.length} 项失败`);
