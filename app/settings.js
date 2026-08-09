@@ -301,13 +301,19 @@ var AppSettings = (() => {
     // same reasoning as the notes key (review.js reads settings once at bundle
     // load, and "pick an engine, tap ▶, silence" would read as broken).
     $('tts-engine').addEventListener('change', async () => {
-      const id = $('tts-engine').value;
-      // Voice names don't carry across engines (a voiceURI means nothing to a
-      // speech endpoint, 'alloy' means nothing to the system) — reset it.
-      await set({ ttsEngine: id, ttsVoice: '' });
-      paintTtsFields(id);
-      await paintVoices('');
-      liveTtsConfigure();
+      // interaction-spec 全局原则: paintVoices can stall up to 1.5s on voice
+      // discovery — the select locks so a second change can't interleave.
+      const sel = $('tts-engine');
+      sel.disabled = true;
+      try {
+        const id = sel.value;
+        // Voice names don't carry across engines (a voiceURI means nothing to a
+        // speech endpoint, 'alloy' means nothing to the system) — reset it.
+        await set({ ttsEngine: id, ttsVoice: '' });
+        paintTtsFields(id);
+        await paintVoices('');
+        liveTtsConfigure();
+      } finally { sel.disabled = false; }
     });
     for (const id of ['tts-api-key', 'tts-base-url', 'tts-model']) {
       $(id).addEventListener('change', async () => {
@@ -369,14 +375,23 @@ var AppSettings = (() => {
     $('clean-known').addEventListener('click', async () => {
       // §7.1's targeted cleanup: drop what the scheduler itself concluded you no
       // longer need. Never a starred card, never one being actively learned.
-      const n = await LearnStore.clearKnown().catch(() => 0);
-      await paint(opts.session(), say);
-      say(n
-        ? t('app_set_cleaned', '已清理 {n} 张').replace('{n}', String(n))
-        : t('app_set_clean_none', '没有可清理的卡'));
+      // interaction-spec 全局原则: bulk delete + full repaint are in flight.
+      const btn = $('clean-known');
+      btn.disabled = true;
+      try {
+        const n = await LearnStore.clearKnown().catch(() => 0);
+        await paint(opts.session(), say);
+        say(n
+          ? t('app_set_cleaned', '已清理 {n} 张').replace('{n}', String(n))
+          : t('app_set_clean_none', '没有可清理的卡'));
+      } finally { btn.disabled = false; }
     });
 
-    $('settings-signout').addEventListener('click', opts.onSignOut);
+    $('settings-signout').addEventListener('click', async () => {
+      const btn = $('settings-signout');
+      btn.disabled = true;
+      try { await opts.onSignOut(); } finally { btn.disabled = false; }
+    });
 
     $('delete-account').addEventListener('click', async () => {
       // Destructive and irreversible, so it asks — and the question names what goes,
