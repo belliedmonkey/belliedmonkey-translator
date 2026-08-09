@@ -573,12 +573,44 @@ Domain model, scheduler math and storage live in
   long-press. A brief inline confirmation appears on the sibling itself — never a
   page-level toast.
 
+### 来源治理 (source governance) — 2026-08-09
+
+Three user-authored controls over *what enters and stays in* the learning layer
+(learning-design §4.1, §7.4, §8.9; the Collector-law carve-out is domain-design
+§9.1 law 3). All three sync with the account; signed out they work locally.
+
+- **学习语言 (language whitelist).** A chip row in options 学习 and in the app's
+  settings: first chip 「全部（默认）」, then one chip per registry language. Picking
+  chips means "only capture these"; on Safari the gate falls back to writing-system
+  compatibility (learning-design §4.1) — the hint under the row says so in one line.
+  Changing it never deletes what was already captured. A starred (long-pressed)
+  sentence bypasses the whitelist — an explicit gesture outranks a standing filter.
+- **来源管理 (sources manager).** In options 学习 and the app's settings: a list of
+  captured domains, one row per domain — `host · N 张卡` — with two actions,
+  「删除已存」 and 「不再收录」. A blocked domain shows 「已屏蔽」 and 「恢复收录」.
+  Below the list: the block-rule chips (each removable) and an *advanced* wildcard
+  input (`*.example.com/news/*`); the list is the primary path — nobody is required
+  to type a wildcard. Deleting asks for confirmation **with the count and the
+  consequence**: 「删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。」 A card
+  that later reappears was re-encountered on another device after the delete — the
+  docs and support copy say that plainly (learning-design §7.4).
+- **popup 「本站」 section.** The in-page quick entry, deliberately in the popup and
+  not on the page (capture must stay invisible in the browsing flow). Shows the
+  current host and a 「收录本站」 switch: off appends the site rule, on removes it.
+  If the site is blocked by a **broader** wildcard rule the switch is replaced by
+  「由规则 {pattern} 屏蔽」 plus a 管理 link — never a switch that lies. Hidden on
+  pages the extension cannot read (chrome:// etc.).
+- **Review card source actions.** The ⓘ source line gains a 「⋯」 button revealing
+  two inline actions: 「删除此来源的卡片」 (same confirm-with-count flow, then the
+  deck rebuilds) and 「此站不再收录」. This is law 2's fix-action surface: the place
+  you notice unwanted material is the place you can act on it.
+
 ### Entry points
 - **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
   still shows, reading 「复习」 with no count — never hidden, or the feature becomes
-  undiscoverable.
-- **options**: a 学习 section (master switch, languages being learned, daily new-card
-  cap, corpus size / usage, export, purge).
+  undiscoverable. Below it, the 「本站」 section (see 来源治理).
+- **options**: a 学习 section (master switch, 学习语言 whitelist, daily new-card
+  cap, corpus size / usage, 来源管理, export, purge).
 - **Never the action badge.** The service worker dies on Safari iOS, so a badge count
   would be silently wrong there (domain-design §5.3.1). Counts are rendered by the
   page that shows them.
