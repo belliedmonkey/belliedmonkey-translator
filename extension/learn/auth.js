@@ -14,18 +14,27 @@
 // must render the code itself (GoTrue: `{{ .Token }}`) — the stock template sends a
 // link, and a link cannot be completed from here.
 //
-// EXTENSION PAGES ONLY. The session lives in the extension's own IndexedDB rather
-// than `chrome.storage.local` on purpose: content scripts can read the latter (they
-// run in every page we translate), and a refresh token has no business being reachable
-// from there.
+// EXTENSION PAGES ONLY. The session lives in `chrome.storage.local` (key
+// `learnAuth`) since 2026-08-09 — learning-design §8.4.1「会话存储位置」. It used
+// to live in the extension's own IndexedDB, which on Safari sits on a
+// `safari-web-extension://<random-UUID>` origin that ROTATES on reinstall or
+// re-signing, orphaning the session (and forcing a re-login on every update).
+// `chrome.storage.local` is keyed by the extension bundle id and survives.
+// The exposure tradeoff is stated in the doc: our content scripts read EXPLICIT
+// key lists only, and `learnAuth` never joins them.
 
 var LearnAuth = (() => {
-  const KEY = 'auth';
+  const KEY = 'learnAuth';
+  // Pre-2026-08-09 location (IndexedDB meta). Read once for migration, then
+  // cleared after a successful forward-write. An orphaned legacy bucket simply
+  // migrates nothing — one final sign-in, never again.
+  const LEGACY_KEY = 'auth';
   // Refresh a minute early: a token that expires mid-request fails the request.
   const SKEW_MS = 60 * 1000;
 
   let cached = null;
   let loaded = false;
+  let loadError = null;                // last storage-read failure, for the UI
   let refreshing = null;               // single in-flight refresh, see token()
   const listeners = [];
 
@@ -36,11 +45,15 @@ var LearnAuth = (() => {
 
   // GoTrue reports failures in three different shapes depending on the endpoint and
   // the version. Normalising here keeps every caller from having to know that.
+  // `hasBody` marks a DEFINITIVE provider answer: a 400 with a GoTrue error body
+  // is "this refresh token is dead"; a body-less 400 from a proxy/captive portal
+  // is not, and must never sign anyone out (§8.4.1 判死收紧).
   function errorFrom(status, body) {
     const msg = (body && (body.error_description || body.msg || body.message ||
       body.error)) || ('HTTP ' + status);
     const e = new Error(msg);
     e.status = status;
+    e.hasBody = !!body;
     e.code = (body && body.error_code) ||
       (status === 429 ? 'rate_limited' : status === 401 ? 'unauthorized' : 'http_' + status);
     return e;
@@ -68,19 +81,64 @@ var LearnAuth = (() => {
     return json;
   }
 
-  // ─── Session persistence ─────────────────────────────────────────────────
+  // ─── Session persistence (chrome.storage.local, §8.4.1) ──────────────────
+  //
+  // The one rule both functions obey: a FAILED read/write is never latched as
+  // "signed out". The page-settings incident (2026-08-05) is the whole doctrine:
+  // a broken storage layer must present as a failure the UI can name, not as an
+  // empty profile silently painted over. `loaded` latches only on a truthful
+  // answer; a failure records `loadError` and retries on the next call.
 
   async function load() {
     if (loaded) return cached;
-    try { cached = await LearnStore.getMeta(KEY, null); } catch (_) { cached = null; }
+    const r = await PageSettings.read([KEY]);
+    if (!r.ok) {
+      loadError = r.error || 'storage read failed';
+      return cached;                       // NOT latched — next call retries
+    }
+    if (KEY in r.data) {
+      cached = r.data[KEY] || null;
+      loaded = true;
+      loadError = null;
+      return cached;
+    }
+    // No session in storage.local — migrate from the pre-2026-08-09 location
+    // (IndexedDB meta). A thrown legacy read also must not latch: the classic
+    // moment is first launch after an update, mid-onupgradeneeded.
+    let legacy;
+    try { legacy = await LearnStore.getMeta(LEGACY_KEY, null); }
+    catch (e) {
+      loadError = (e && e.message) || 'legacy storage read failed';
+      return cached;                       // retry next call
+    }
+    if (legacy) {
+      cached = legacy;
+      loaded = true;
+      loadError = null;
+      // Forward-write, and clear the legacy copy ONLY after the write is known
+      // good — a divergence window (both copies present) is harmless because
+      // storage.local wins the read order; a lost session is not.
+      const w = await PageSettings.write({ [KEY]: legacy });
+      if (w.ok) { try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {} }
+      return cached;
+    }
+    cached = null;
     loaded = true;
+    loadError = null;
     return cached;
   }
 
   async function store(next) {
     cached = next;
     loaded = true;
-    try { await LearnStore.setMeta(KEY, next); } catch (_) { /* stays in memory */ }
+    if (next) {
+      const w = await PageSettings.write({ [KEY]: next });
+      if (!w.ok) loadError = w.error || 'storage write failed';   // stays in memory
+    } else {
+      await PageSettings.removeKeys([KEY]);
+      // Best-effort: a sign-out must not leave a resurrectable legacy copy.
+      try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {}
+    }
     for (const fn of listeners.slice()) { try { fn(next); } catch (_) {} }
     return next;
   }
@@ -132,13 +190,26 @@ var LearnAuth = (() => {
     // tokens invalidates the others mid-flight — which presents as a random
     // signed-out, hard to reproduce and easy to blame on the network.
     if (!refreshing) {
-      refreshing = post('/token?grant_type=refresh_token', { refresh_token: s.refreshToken })
+      const attempt = () =>
+        post('/token?grant_type=refresh_token', { refresh_token: s.refreshToken });
+      refreshing = attempt()
+        .catch((e) => {
+          // Sign out ONLY on a definitive provider rejection: 400/401 WITH a
+          // GoTrue error body (invalid_grant and friends). Offline, 5xx, and
+          // body-less 4xx (proxies, captive portals, hiccups) get ONE immediate
+          // retry — GoTrue's refresh-reuse grace interval covers this window —
+          // and then throw WITHOUT killing the session. 判死收紧, §8.4.1: a
+          // server hiccup must never read as "you were signed out".
+          if ((e.status === 400 || e.status === 401) && e.hasBody) throw e;
+          return attempt();
+        })
         .then((json) => store(sessionFrom(json)))
         .catch(async (e) => {
-          // A rejected refresh token is terminal: the session is gone and pretending
-          // otherwise produces an app that retries forever while signed out.
-          if (e.status === 400 || e.status === 401) { await store(null); return null; }
-          throw e;
+          if ((e.status === 400 || e.status === 401) && e.hasBody) {
+            await store(null);
+            return null;
+          }
+          throw e;   // transient: session survives, caller sees offline/http error
         })
         .finally(() => { refreshing = null; });
     }
@@ -193,13 +264,16 @@ var LearnAuth = (() => {
 
   async function current() { return await load(); }
   function cachedSession() { return cached; }          // sync read for first paint
+  // Non-null when the LAST load/store hit a storage failure. The UI uses it to
+  // say 「存储读取失败」 instead of painting the signed-out state (law 2).
+  function lastLoadError() { return loadError; }
   function onChange(fn) {
     listeners.push(fn);
     return () => { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
   }
-  function _reset() { cached = null; loaded = false; refreshing = null; listeners.length = 0; }
+  function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
 
-  return { signIn, verify, token, signOut, deleteAccount, current, cachedSession, onChange, _reset };
+  return { signIn, verify, token, signOut, deleteAccount, current, cachedSession, lastLoadError, onChange, _reset };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnAuth;

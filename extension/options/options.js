@@ -691,7 +691,16 @@ async function init() {
     const s = await LearnAuth.current().catch(() => null);
     $('sync-out').hidden = !!s;
     $('sync-in').hidden = !s;
-    if (!s) { $('sync-usage').textContent = ''; return; }
+    if (!s) {
+      $('sync-usage').textContent = '';
+      // Storage-read failure ≠ signed out (§8.4.1). The sign-in form still
+      // shows (a real re-login always works), but the status line must name
+      // the failure instead of implying the session is gone.
+      if (LearnAuth.lastLoadError()) {
+        syncSay(t('sync_status_storage_error', '读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。'));
+      }
+      return;
+    }
     $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', s.email || '');
     try {
       const u = await LearnSync.usage();

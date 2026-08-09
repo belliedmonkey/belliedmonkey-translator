@@ -388,7 +388,17 @@ var LearnSync = (() => {
           emit('offline');
           return null;
         }
-        const t = await LearnAuth.token().catch(() => null);
+        // Token failure kinds are NOT interchangeable (§8.4.1 判死收紧): a thrown
+        // refresh (offline / 5xx / body-less 4xx) leaves the session alive and
+        // must render as offline/error — the old blanket `catch(() => null)`
+        // painted 「未登录」 over every network hiccup.
+        let t;
+        try { t = await LearnAuth.token(); }
+        catch (e) {
+          if (e && e.code === 'offline') emit('offline');
+          else emit('error', { code: (e && e.code) || 'token' });
+          return null;
+        }
         if (!t) { emit('signed_out'); return null; }   // signed out ⇒ nothing to do
         const last = (await LearnStore.getMeta(AUTO_AT, 0)) || 0;
         if (!opts.force && at - last < AUTO_MIN_MS) return null;   // heartbeat, not a drumroll

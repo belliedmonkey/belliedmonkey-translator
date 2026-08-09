@@ -129,3 +129,42 @@ describe('LearnStore — the module is IO-free until you call it', () => {
     ok(store().doomedFor, 'loaded without touching indexedDB');
   });
 });
+
+// ─── §8.4.1 — a rejected open() must not be memoized ─────────────────────────
+// One transient IndexedDB failure (first launch after an update, mid-
+// onupgradeneeded, is the classic moment) used to stick for the whole page
+// session: every later call failed instantly and the app painted "signed out /
+// empty" until relaunch. Success stays memoized; failure retries.
+
+describe('LearnStore — open() 拒绝不粘（§8.4.1）', () => {
+  const { rejects } = require('./harness');
+
+  function storeWithFlakyIdb() {
+    let calls = 0;
+    const fakeDb = { objectStoreNames: { contains: () => true } };
+    const indexedDB = {
+      open: () => {
+        calls++;
+        const req = {};
+        setTimeout(() => {
+          if (calls === 1) { req.error = new Error('transient idb failure'); req.onerror && req.onerror(); }
+          else { req.result = fakeDb; req.onsuccess && req.onsuccess(); }
+        }, 0);
+        return req;
+      },
+    };
+    const S = loadModule('learn/store.js', { window: {}, indexedDB, LearnModel: {}, LearnScheduler: {}, setTimeout, clearTimeout }).LearnStore;
+    return { S, fakeDb, callCount: () => calls };
+  }
+
+  test('第一次失败、第二次成功 —— 失败不被记忆，成功之后才记忆', async () => {
+    const { S, fakeDb, callCount } = storeWithFlakyIdb();
+    await rejects(S.open(), /transient idb failure/);
+    const db = await S.open();
+    eq(db, fakeDb, '存储恢复后的下一次调用必须自愈');
+    eq(callCount(), 2);
+    const again = await S.open();
+    eq(again, fakeDb);
+    eq(callCount(), 2, '成功路径的记忆保持不变 —— 不许每次都重开数据库');
+  });
+});

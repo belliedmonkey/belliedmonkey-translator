@@ -1080,5 +1080,8 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "Impossible de lire l'état de connexion (échec de lecture du stockage) ; nouvelle tentative sous peu — cela ne signifie pas que vous avez été déconnecté."
   }
 }

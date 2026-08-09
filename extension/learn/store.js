@@ -24,7 +24,23 @@ var LearnStore = (() => {
 
   function open() {
     if (dbp) return dbp;
-    dbp = new Promise((resolve, reject) => {
+    // Memoize SUCCESS only. A rejected open used to stay cached for the whole
+    // page session, so one transient IndexedDB failure — first launch after an
+    // update, mid-`onupgradeneeded`, is the classic moment — made every later
+    // call fail instantly and the app paint "signed out / empty" until relaunch.
+    // Clearing the memo on rejection (only if it is still ours) lets the next
+    // call retry. (The callback runs asynchronously, so `wrapped` is initialized
+    // by the time it fires.)
+    const wrapped = openOnce().catch((err) => {
+      if (dbp === wrapped) dbp = null;
+      throw err;
+    });
+    dbp = wrapped;
+    return dbp;
+  }
+
+  function openOnce() {
+    return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -75,7 +91,6 @@ var LearnStore = (() => {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    return dbp;
   }
 
   // Settles on the TRANSACTION's own lifecycle and nothing else.

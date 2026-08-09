@@ -95,10 +95,11 @@ const SEED_A = `(async () => {
   return 'seeded';
 })()`;
 
-const SEED_AUTH = `LearnStore.setMeta('auth', {
+// §8.4.1：会话在 chrome.storage.local 的 learnAuth —— 种在出货代码真正读的位置。
+const SEED_AUTH = `new Promise((r) => chrome.storage.local.set({ learnAuth: {
   accessToken: 't-e2e', refreshToken: 'r-e2e',
   expiresAt: Date.now() + 3600e3, email: 'e2e@example.org', userId: 'u-e2e',
-}).then(() => (LearnAuth._reset ? LearnAuth._reset() : null)).then(() => 'auth-seeded')`;
+} }, () => r(null))).then(() => (LearnAuth._reset ? LearnAuth._reset() : null)).then(() => 'auth-seeded')`;
 
 // ─── 服务器：REST 假云优先，静态文件兜底（发文件时改写 backend 配置） ────────
 function serve(host) {
