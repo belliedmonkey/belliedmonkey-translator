@@ -169,6 +169,28 @@
           <p class="hint" data-i18n="learn_langs_hint">只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。</p>
         </div>
 
+        <!-- 解析引擎（learning-design §9.2, 2026-08-09 二）：默认跟随翻译引擎；
+             选定后整组四字段覆盖，key/地址/模型都不再从翻译组借。 -->
+        <div class="field">
+          <label for="notes-provider" data-i18n="notes_engine">解析引擎</label>
+          <select id="notes-provider"></select>
+          <p class="hint" data-i18n="notes_engine_hint">「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。</p>
+        </div>
+        <div id="notes-config" hidden>
+          <div class="field" id="notes-key-field">
+            <label for="notes-api-key" data-i18n="notes_api_key">解析 API Key</label>
+            <input type="password" id="notes-api-key" placeholder="sk-…">
+          </div>
+          <div class="field" id="notes-baseurl-field">
+            <label for="notes-base-url"><span data-i18n="notes_base_url">解析 API 地址</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="text" id="notes-base-url" placeholder="https://…">
+          </div>
+          <div class="field" id="notes-model-field">
+            <label for="notes-model"><span data-i18n="notes_model">解析模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="text" id="notes-model">
+          </div>
+        </div>
+
         <!-- 来源管理（interaction-spec「来源治理」）：按域名列表点选是主路径，
              通配符输入是补充。删除会同步到所有设备。 -->
         <button id="btn-manage-sources" data-i18n="learn_sources_manage">来源管理</button>
@@ -322,6 +344,7 @@
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="../learn/sources-view.js"></script>
+  <script src="../learn/notes.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

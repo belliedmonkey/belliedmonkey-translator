@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "Lokales Backup konnte nicht geschrieben werden ({why}). Die Lernbibliothek selbst ist nicht betroffen."
+  },
+  "notes_engine": {
+    "message": "Analyse-Engine"
+  },
+  "notes_engine_hint": {
+    "message": "Chat-Engine für „Diesen Satz analysieren“. Folgt standardmäßig der Übersetzungs-Engine oben; Reasoning-Modelle eignen sich nicht."
+  },
+  "notes_follow": {
+    "message": "Übersetzungs-Engine folgen (Standard)"
+  },
+  "notes_api_key": {
+    "message": "Analyse-API-Key"
+  },
+  "notes_base_url": {
+    "message": "Analyse-API-Endpunkt"
+  },
+  "notes_model": {
+    "message": "Analyse-Modell"
   }
 }

@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "ローカルバックアップを書き込めませんでした（{why}）。学習ライブラリ自体は影響を受けません。"
+  },
+  "notes_engine": {
+    "message": "解析エンジン"
+  },
+  "notes_engine_hint": {
+    "message": "「この文を解析」で使う会話エンジン。既定では上の翻訳エンジンに従います。思考（推論）型モデルは解析に向きません。"
+  },
+  "notes_follow": {
+    "message": "翻訳エンジンに従う（既定）"
+  },
+  "notes_api_key": {
+    "message": "解析 API キー"
+  },
+  "notes_base_url": {
+    "message": "解析 API エンドポイント"
+  },
+  "notes_model": {
+    "message": "解析モデル"
   }
 }

@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "Não foi possível gravar o backup local ({why}). A biblioteca de aprendizado em si não é afetada."
+  },
+  "notes_engine": {
+    "message": "Motor de análise"
+  },
+  "notes_engine_hint": {
+    "message": "Motor de chat usado por “Analisar esta frase”. Por padrão segue o motor de tradução acima; modelos de raciocínio não servem."
+  },
+  "notes_follow": {
+    "message": "Seguir o motor de tradução (padrão)"
+  },
+  "notes_api_key": {
+    "message": "Chave de API de análise"
+  },
+  "notes_base_url": {
+    "message": "Endpoint da API de análise"
+  },
+  "notes_model": {
+    "message": "Modelo de análise"
   }
 }

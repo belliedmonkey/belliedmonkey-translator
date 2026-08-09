@@ -24,6 +24,7 @@
 | 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | 待评审 —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
+| 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
 
 **2026-08-08 的评审范围**由真机使用反馈驱动：评分按钮后果不可见、「学习好了」无
 标准、牌组耗尽后精力无处使。三个方向已由产品在设计前定下（AskUserQuestion）：
@@ -1413,6 +1414,18 @@ rather than reading the sentence in the wrong language.
   放宽及其三条边界），配了之后同一个能力门自然打开 —— `review.js` 是同一份字节，
   门控逻辑一行不改。App 侧需要把 `providers.gen.js` 进 bundle（注册表仍是唯一
   来源，App 不复述任何引擎名）。不配 key 的 App 维持现状：入口不渲染。
+- **解析引擎可独立于翻译引擎（2026-08-09，用户裁定）**。此前扩展端解析直接复用
+  翻译引擎四字段，翻译与解析被耦合在同一个模型上 —— 真机实测暴露了它们的要求
+  不同：思考型模型（如 DeepSeek 默认的 flash 系）翻译正常、解析却在推理段烧完
+  预算返回空正文。新增四个**覆盖键** `notesProvider` / `notesApiKey` /
+  `notesBaseUrl` / `notesModel`：**`notesProvider` 为空 = 跟随翻译引擎**（四字段
+  整组跟随，老用户零感知）；一旦选定解析引擎，解析只读 notes 组四字段（key/地址/
+  模型都不再从翻译组借 —— 半借半覆盖会出现 provider 与 key 错配）。解析引擎
+  候选仍从注册表按 `type` 过滤（chat 类），任何面不复述引擎名。App 侧存储与扩展
+  互不相通（§7.2 设备本地凭证），其「解析引擎」区块写的本就是 App 自己的引擎
+  四字段、无翻译功能可耦合，语义不变；两端在呈现上对齐：都有名为「解析引擎」的
+  设置面。回退解析逻辑收敛为一个纯函数（`LearnNotes.resolveConfig`），进 vm
+  测试。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 

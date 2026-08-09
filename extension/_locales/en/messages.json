@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "Local backup could not be written ({why}). The learning library itself is unaffected."
+  },
+  "notes_engine": {
+    "message": "Notes engine"
+  },
+  "notes_engine_hint": {
+    "message": "The chat engine used by “Explain this sentence”. Follows the translation engine above by default; thinking/reasoner models don't suit notes."
+  },
+  "notes_follow": {
+    "message": "Follow translation engine (default)"
+  },
+  "notes_api_key": {
+    "message": "Notes API Key"
+  },
+  "notes_base_url": {
+    "message": "Notes API endpoint"
+  },
+  "notes_model": {
+    "message": "Notes model"
   }
 }

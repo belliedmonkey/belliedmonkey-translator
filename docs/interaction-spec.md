@@ -808,6 +808,10 @@ The card's FORM changes as `s` grows; the grading flow does not:
   their own (learning-design §7.2 — device-local, never synced; the wording must not
   imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
   not configured ⇒ the entry point does not render, same as everywhere else.
+- **独立解析引擎** *(2026-08-09 二，用户裁定)*: options 学习区新增「解析引擎」——
+  默认「跟随翻译引擎」，选定后 key/地址/模型整组切换到解析组（learning-design
+  §9.2 的整组规则）。提示语点名思考（推理）型模型不适合解析。字段属 settings
+  即时本地保存，适用全局原则的豁免条款。
 
 ### 多设备同步一致性 — 2026-08-09（用户裁定，取代 2026-08-08「App 内同步与时效」）
 

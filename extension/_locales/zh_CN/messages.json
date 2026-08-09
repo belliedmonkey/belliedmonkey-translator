@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "本地备份未能写入（{why}）。学习库本身不受影响。"
+  },
+  "notes_engine": {
+    "message": "解析引擎"
+  },
+  "notes_engine_hint": {
+    "message": "「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。"
+  },
+  "notes_follow": {
+    "message": "跟随翻译引擎（默认）"
+  },
+  "notes_api_key": {
+    "message": "解析 API Key"
+  },
+  "notes_base_url": {
+    "message": "解析 API 地址"
+  },
+  "notes_model": {
+    "message": "解析模型"
   }
 }
