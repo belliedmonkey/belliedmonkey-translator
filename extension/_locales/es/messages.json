@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "No se pudo escribir la copia de seguridad local ({why}). La biblioteca de aprendizaje no se ve afectada."
+  },
+  "notes_engine": {
+    "message": "Motor de análisis"
+  },
+  "notes_engine_hint": {
+    "message": "Motor de chat usado por «Analizar esta frase». Por defecto sigue al motor de traducción de arriba; los modelos de razonamiento no sirven."
+  },
+  "notes_follow": {
+    "message": "Seguir al motor de traducción (predeterminado)"
+  },
+  "notes_api_key": {
+    "message": "Clave API de análisis"
+  },
+  "notes_base_url": {
+    "message": "Endpoint de API de análisis"
+  },
+  "notes_model": {
+    "message": "Modelo de análisis"
   }
 }

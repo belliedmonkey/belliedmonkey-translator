@@ -21,6 +21,21 @@ var LearnNotes = (() => {
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
+  // §9.2 (2026-08-09 二): the notes engine may be configured independently of
+  // the translator. `notesProvider` empty ⇒ follow the translation engine's
+  // WHOLE group; set ⇒ use the notes group ONLY. All-or-nothing on purpose —
+  // borrowing the translator's key under a different provider would pair a key
+  // with an endpoint it was never issued for.
+  function resolveConfig(s) {
+    s = s || {};
+    if (s.notesProvider) {
+      return { provider: s.notesProvider, apiKey: s.notesApiKey || '',
+        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '' };
+    }
+    return { provider: s.provider || '', apiKey: s.apiKey || '',
+      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '' };
+  }
+
   function providerInfo() {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
     return list.find((p) => p.id === cfg.provider) || null;
@@ -211,8 +226,8 @@ var LearnNotes = (() => {
       .catch(() => null);
   }
 
-  return { configure, capable, chatEngines, parseNotes, buildPrompt, get, cached,
-    notesMatchSentence, PROMPT_VERSION };
+  return { configure, resolveConfig, capable, chatEngines, parseNotes, buildPrompt,
+    get, cached, notesMatchSentence, PROMPT_VERSION };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnNotes;

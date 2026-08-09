@@ -13,6 +13,9 @@ const SETTINGS_KEYS = [
   'textColor', 'ytTextColor', 'fontSize', 'showFab',
   'learnEnabled', 'learnDailyNew', 'learnRules',
   'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+  // §9.2 (2026-08-09 二): dedicated notes engine — empty notesProvider = follow
+  // the translation engine's whole group (LearnNotes.resolveConfig owns the rule).
+  'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -269,7 +272,11 @@ async function saveAll() {
     ttsApiKey:   $('tts-api-key').value.trim(),
     ttsModel:    $('tts-model').value.trim(),
     ttsVoice:    $('tts-voice').value,
-    ttsRate:     $('tts-rate').value
+    ttsRate:     $('tts-rate').value,
+    notesProvider: $('notes-provider').value,
+    notesApiKey:   $('notes-api-key').value.trim(),
+    notesBaseUrl:  $('notes-base-url').value.trim(),
+    notesModel:    $('notes-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
 }
@@ -347,12 +354,54 @@ async function init() {
   populateTtsEngines(s.ttsEngine || LearnTTS.DEFAULTS.engineId);
   await updateTtsUI(s.ttsVoice || '');
 
+  // §9.2 (2026-08-09 二) — dedicated notes engine. Option "" = follow the
+  // translation engine (the default, and the pre-feature behaviour); the
+  // candidate list is the registry filtered by LearnNotes' own type rule, so
+  // "what counts as a chat engine" cannot drift between the gate and this picker.
+  function populateNotesEngines(selected) {
+    const sel = $('notes-provider');
+    sel.innerHTML = '';
+    const follow = document.createElement('option');
+    follow.value = '';
+    follow.textContent = t('notes_follow', '跟随翻译引擎（默认）');
+    sel.appendChild(follow);
+    for (const p of LearnNotes.chatEngines()) {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = providerLabel(p);
+      sel.appendChild(o);
+    }
+    sel.value = LearnNotes.chatEngines().some((p) => p.id === selected) ? selected : '';
+  }
+  function updateNotesUI(id) {
+    const p = (window.MT_PROVIDERS || []).find((x) => x.id === id) || null;
+    $('notes-config').hidden = !p;
+    if (!p) return;
+    $('notes-key-field').hidden = !p.needsKey;
+    $('notes-baseurl-field').hidden = !p.supportsBaseUrl;
+    $('notes-model-field').hidden = !p.supportsModel;
+  }
+  populateNotesEngines(s.notesProvider || '');
+  $('notes-api-key').value  = s.notesApiKey || '';
+  $('notes-base-url').value = s.notesBaseUrl || '';
+  $('notes-model').value    = s.notesModel || '';
+  updateNotesUI($('notes-provider').value);
+
   updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
   $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
   if (prov !== s.provider) await saveAll(); // migrate an out-of-flavor provider
 
   // ─── Listeners ──────────────────────────────────────────────────────
+
+  $('notes-provider').addEventListener('change', async (e) => {
+    updateNotesUI(e.target.value);
+    await saveAll();
+    showToast(t('toast_saved', '已保存'));
+  });
+  for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
+    $(id).addEventListener('change', async () => { await saveAll(); });
+  }
 
   $('provider').addEventListener('change', async (e) => {
     updateProviderUI(e.target.value);

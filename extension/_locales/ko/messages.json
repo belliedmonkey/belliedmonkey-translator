@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "로컬 백업을 쓰지 못했습니다({why}). 학습 라이브러리 자체는 영향이 없습니다."
+  },
+  "notes_engine": {
+    "message": "해석 엔진"
+  },
+  "notes_engine_hint": {
+    "message": "'이 문장 해석'에 쓰는 대화 엔진. 기본값은 위의 번역 엔진을 따릅니다. 사고(추론)형 모델은 해석에 적합하지 않습니다."
+  },
+  "notes_follow": {
+    "message": "번역 엔진 따르기(기본)"
+  },
+  "notes_api_key": {
+    "message": "해석 API 키"
+  },
+  "notes_base_url": {
+    "message": "해석 API 주소"
+  },
+  "notes_model": {
+    "message": "해석 모델"
   }
 }

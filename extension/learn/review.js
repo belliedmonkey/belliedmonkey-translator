@@ -29,8 +29,10 @@
       resolve(PageSettings.read([
         'uiLang', 'learnEnabled', 'learnDailyNew', 'learnRules',
         'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-        // §9.2 — the translator's own engine config; the notes gate reads it.
+        // §9.2 — the translator's engine config, plus the dedicated notes-engine
+        // override group (notesProvider set ⇒ notes group wins; resolveConfig).
         'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+        'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
       ]).then(function (r) { return r.data; }));
     });
   }
@@ -708,14 +710,11 @@
 
   ttsMode = settings.ttsMode || 'off';
   ttsAutoPlay = settings.ttsAutoPlay !== false;
-  // §9.2 — the notes gate reads the translator's own engine config. No chat-capable
-  // engine (or no key) ⇒ capable() stays false ⇒ the entry point never renders.
-  LearnNotes.configure({
-    provider: settings.provider || '',
-    apiKey: settings.apiKey || '',
-    baseUrl: settings.apiBaseUrl || '',
-    model: settings.apiModel || '',
-  });
+  // §9.2 — the notes gate follows the translator's engine unless a dedicated
+  // notes engine is configured (notesProvider set ⇒ whole notes group wins;
+  // resolveConfig owns that rule). No chat-capable engine (or no key) ⇒
+  // capable() stays false ⇒ the entry point never renders.
+  LearnNotes.configure(LearnNotes.resolveConfig(settings));
   const explainLang = settings.uiLang && settings.uiLang !== 'auto'
     ? settings.uiLang : (navigator.language || 'zh-CN');
   LearnTTS.configure({

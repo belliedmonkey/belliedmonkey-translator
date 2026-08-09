@@ -271,3 +271,44 @@ describe('LearnNotes — the key is charged AT MOST ONCE per card (§9.2)', () =
     eq(notesDb.size, 0, '坏输出被缓存 = 这张卡永远坏了');
   });
 });
+
+// §9.2 (2026-08-09 二) — the notes engine may override the translator's. The
+// rule is all-or-nothing on notesProvider: borrowing the translation key under
+// a different provider would pair a key with an endpoint it was never issued
+// for, so a set notesProvider switches the WHOLE group.
+describe('resolveConfig — notes-engine override (§9.2)', () => {
+  const TRANS = { provider: 'chat1', apiKey: 'k-trans', apiBaseUrl: 'https://t.example', apiModel: 'mt' };
+
+  test('empty notesProvider follows the translation group wholesale', () => {
+    const { N } = setup();
+    const r = N.resolveConfig(TRANS);
+    eq(r.provider, 'chat1');
+    eq(r.apiKey, 'k-trans');
+    eq(r.baseUrl, 'https://t.example');
+    eq(r.model, 'mt');
+  });
+
+  test('set notesProvider switches the whole group — nothing borrowed', () => {
+    const { N } = setup();
+    const r = N.resolveConfig(Object.assign({}, TRANS, {
+      notesProvider: 'msg1', notesApiKey: 'k-notes',
+    }));
+    eq(r.provider, 'msg1');
+    eq(r.apiKey, 'k-notes');
+    eq(r.baseUrl, '', '解析组没填地址就是空——绝不借翻译组的');
+    eq(r.model, '', '解析组没填模型就是空——用注册表默认，不借翻译组的');
+  });
+
+  test('empty settings resolve to all-empty (gate stays closed)', () => {
+    const { N } = setup();
+    const r = N.resolveConfig({});
+    eq(r.provider, '');
+    eq(r.apiKey, '');
+  });
+
+  test('override feeds capable(): reasoner-on-translation, chat-on-notes opens the gate', () => {
+    const { N } = setup();
+    N.configure(N.resolveConfig({ provider: 'google', notesProvider: 'chat1', notesApiKey: 'k' }));
+    ok(N.capable(), '翻译用非 chat 引擎时，独立解析引擎照样开门');
+  });
+});

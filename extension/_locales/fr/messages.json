@@ -1089,5 +1089,23 @@
   },
   "learn_backup_failed": {
     "message": "La sauvegarde locale n'a pas pu être écrite ({why}). La bibliothèque d'apprentissage n'est pas affectée."
+  },
+  "notes_engine": {
+    "message": "Moteur d'analyse"
+  },
+  "notes_engine_hint": {
+    "message": "Moteur de chat utilisé par « Analyser cette phrase ». Suit par défaut le moteur de traduction ci-dessus ; les modèles de raisonnement ne conviennent pas."
+  },
+  "notes_follow": {
+    "message": "Suivre le moteur de traduction (défaut)"
+  },
+  "notes_api_key": {
+    "message": "Clé API d'analyse"
+  },
+  "notes_base_url": {
+    "message": "Point d'accès API d'analyse"
+  },
+  "notes_model": {
+    "message": "Modèle d'analyse"
   }
 }
