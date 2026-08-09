@@ -8,6 +8,11 @@
 // （未登录 / 同步中 / 同步完成·时间 / 离线 / 恢复）、断网自愈（online 事件）、
 // 收敛（无活动的第二次同步不再产生新上传）。
 //
+// 2026-08-09 增两幕（learning-design §7.4/§8.9）：设备 B 按域名删除 example.org
+// 的卡并设屏蔽规则 → 强制同步（d 行 + g 行上行）→ 设备 C（全新空库）拉取后，
+// 计数与 B 删除后逐字相等、learnRules 里有 B 设的规则 —— 用户删除与治理规则
+// 都必须传播，否则「多设备一致」对删除是假话。
+//
 // 假后端是 Node 进程级的 `cloud` 对象，blob 存 hex 原样转发、从不解包 —— 两个宿主
 // 先后启动、共享同一片云，正是「两台设备一个账号」的形状。静态路由在发文件时就地
 // 把 backend.config 的 url 指向本服务器、enabled 翻 true —— 页面的进入级同步走的是
@@ -73,12 +78,18 @@ const SEED_A = `(async () => {
     { id: 'cand2', text: 'Another waiting candidate.', tr: '又一句候选。',
       lang: 'en', sourceId: 'src1', state: 'candidate', createdAt: now - day, lastSeenAt: now - 3600e3,
       seenCount: 1, salience: 0.8 },
+    // 第二来源：§7.4 删除幕删掉 example.org 之后，它是必须幸存的对照组。
+    { id: 'other1', text: 'A sentence from another site.', tr: '来自另一个站点的句子。',
+      lang: 'en', sourceId: 'src2', state: 'candidate', createdAt: now - day, lastSeenAt: now - day,
+      seenCount: 1, salience: 0.7 },
   ];
+  const src2 = { id: 'src2', url: 'https://other.io/post', title: 'Other Post' };
   const db = await LearnStore.open();
   await new Promise((res, rej) => {
     const t = db.transaction(['items', 'sources'], 'readwrite');
     for (const it of items) t.objectStore('items').put(it);
     t.objectStore('sources').put(src);
+    t.objectStore('sources').put(src2);
     t.oncomplete = res; t.onerror = () => rej(t.error);
   });
   return 'seeded';
@@ -248,6 +259,7 @@ async function withHost(host, fn) {
   }
 
   let countsA = '';
+  let countsB2 = '';
 
   // ─── 设备 A：扩展复习页 —— 未登录态 → 登录 → 进入即同步 → 评分 → 上传 ─────
   await withHost(HOSTS.ext, async ({ nav, ev, text, waitLine }) => {
@@ -267,7 +279,7 @@ async function withHost(host, fn) {
 
     // 3 · 计数行含总计与四状态
     const counts0 = await text('#counts');
-    need(/总计 4/.test(counts0), `总计缺失或不对: 「${counts0}」`);
+    need(/总计 5/.test(counts0), `总计缺失或不对: 「${counts0}」`);
     for (const label of ['待复习', '学习中', '候选', '已掌握']) {
       need(counts0.includes(label), `计数行缺「${label}」: 「${counts0}」`);
     }
@@ -317,9 +329,35 @@ async function withHost(host, fn) {
     await new Promise((r) => setTimeout(r, 800));
     need(cloud.gets > gets1, '第二次进入没有再同步 —— 节流没有被进入穿透');
 
-    // 离线：断网强制同步 → 状态行报离线；恢复 + online 事件 → 回到同步完成
+    // ─── §7.4/§8.9 两幕：B 按域名删除 + 设屏蔽规则，随同步上行 ────────────
     await ev(`document.getElementById('review-view').hidden = false; 'ok'`);
     await ev(`LearnReview.start().then(() => 'ok')`);
+    await waitLine('同步完成');
+
+    // 删除 example.org 的全部卡（与 options/复习页 ⋯ 走完全相同的模块路径）。
+    const deleted = await ev(`(async () => {
+      const [items, srcs] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+      const doomed = LearnRules.doomedFor(items, srcs, 'example.org');
+      const n = await LearnStore.deleteItems(doomed.itemIds, Date.now());
+      await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
+      return n;
+    })()`);
+    need(deleted === 4, `按域名删除应删 4 张，实际 ${deleted}`);
+    // 屏蔽规则（弹窗「本站」写的就是这同一个键）。
+    await ev(`new Promise((r) => chrome.storage.local.set({ learnRules:
+      { v: 1, block: ['example.org'], langs: null, updatedAt: Date.now() } }, () => r('ok')))`);
+    const rowsBeforeDel = cloud.rows.length;
+    await ev(`LearnSync.autoSync(Date.now(), { force: true }).then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 500));
+    need(cloud.rows.length > rowsBeforeDel, '删除与规则没有上传（d/g 行缺席）');
+
+    await ev(`LearnReview.start().then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 300));
+    countsB2 = await text('#counts');
+    console.log('  B 删除后计数: ' + countsB2);
+    need(/总计 1/.test(countsB2), `删除后应剩 1 张（other.io 幸存）: 「${countsB2}」`);
+
+    // 离线：断网强制同步 → 状态行报离线；恢复 + online 事件 → 回到同步完成
     await waitLine('同步完成');
     await offline(true);
     await ev(`LearnSync.autoSync(Date.now(), { force: true }).then(() => 'ok')`);
@@ -341,10 +379,30 @@ async function withHost(host, fn) {
     need(bad.length === 0, '表面扫描: ' + bad.join(' | '));
   });
 
+  // ─── 设备 C：全新空库 —— 只靠日志重放，必须收敛到 B 删除后的世界 ──────────
+  // 这是 §7.4 的收敛论证落地成断言：卡片行、复习行、d 行、g 行按 seq 依次重放，
+  // 终态 = 删除后的语料 + B 设的规则。少删一张或规则缺席，删除传播就是假的。
+  await withHost(HOSTS.ext, async ({ ev, nav, text, waitLine }) => {
+    console.log('  auth:', await ev(SEED_AUTH));
+    await nav();
+    const done = await waitLine('同步完成');
+    need(done.includes('同步完成'), `C 进入后状态行未到「同步完成」: 「${done}」`);
+    await ev(`LearnReview.start().then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 300));
+    const countsC = await text('#counts');
+    console.log('  C 计数: ' + countsC);
+    need(countsC === countsB2,
+      `删除没有传播到新设备：\n    B(删后): 「${countsB2}」\n    C:      「${countsC}」`);
+    const rules = await ev(`new Promise((r) => chrome.storage.local.get(['learnRules'], (v) => r(v.learnRules || null)))`);
+    need(rules && Array.isArray(rules.block) && rules.block.indexOf('example.org') >= 0,
+      `规则没有传播到新设备: ${JSON.stringify(rules)}`);
+  });
+
   console.log('');
   if (ok) {
     console.log('✓ 多设备同步一致性回归全部通过：未登录态 · 进入即同步 · 上传/拉取 · '
-      + '两端计数逐字一致 · 收敛零新上传 · 节流穿透 · 离线可见 · online 自愈');
+      + '两端计数逐字一致 · 收敛零新上传 · 节流穿透 · 离线可见 · online 自愈 · '
+      + '删除跨设备传播（d 行）· 规则跨设备传播（g 行）');
     process.exit(0);
   }
   console.log(`✗ ${failures.length} 项失败`);
