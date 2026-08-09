@@ -376,3 +376,59 @@ describe('LearnScheduler — tierFor (§5.2)', () => {
     eq(S.tierFor(at(10), { listen: true }, { TIER_WRITE_S: 8 }), 'write');
   });
 });
+
+describe('LearnScheduler — introducedToday（账户级每日新卡预算，interaction-spec「多设备同步一致性」）', () => {
+  const load = () => loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
+  // 固定一个 UTC 正午，避开日界的偶然性；日界断言单独测。
+  const NOON = Date.parse('2026-08-09T12:00:00Z');
+  const D = 24 * 3600 * 1000;
+
+  test('今天首评的卡计入；昨天首评的不计；今天对老卡的再评不计', () => {
+    const S = load();
+    const reviews = [
+      { itemId: 'a', grade: 2, at: NOON - 3600e3 },          // a 首评：今天 ⇒ 计
+      { itemId: 'b', grade: 2, at: NOON - D - 3600e3 },      // b 首评：昨天
+      { itemId: 'b', grade: 3, at: NOON - 1800e3 },          // b 今天再评 ⇒ 不计
+      { itemId: 'c', grade: 1, at: NOON - 600e3 },           // c 首评：今天 ⇒ 计
+    ];
+    eq(S.introducedToday(reviews, NOON), 2);
+  });
+
+  test('练习复习不算引入 —— 只练不评分的卡不消耗预算', () => {
+    const S = load();
+    const reviews = [
+      { itemId: 'a', at: NOON - 3600e3, practice: 1 },       // 只有练习
+      { itemId: 'b', at: NOON - 3600e3, practice: 1 },
+      { itemId: 'b', at: NOON - 1800e3 },                    // 练习后真评分 ⇒ 首条非练习在今天
+    ];
+    eq(S.introducedToday(reviews, NOON), 1);
+  });
+
+  test('viaSync 的复习计入 —— 手机引入的新卡消耗电脑侧的当日预算（账户级的意义）', () => {
+    const S = load();
+    const reviews = [
+      { itemId: 'phone1', at: NOON - 3600e3, viaSync: 1 },
+      { itemId: 'phone2', at: NOON - 1800e3, viaSync: 1 },
+    ];
+    eq(S.introducedToday(reviews, NOON), 2);
+  });
+
+  test('UTC 日界：23:59Z 与次日 00:01Z 分属两天，与设备时区无关', () => {
+    const S = load();
+    const lateYesterday = Date.parse('2026-08-08T23:59:00Z');
+    const earlyToday = Date.parse('2026-08-09T00:01:00Z');
+    const reviews = [
+      { itemId: 'x', at: lateYesterday },
+      { itemId: 'y', at: earlyToday },
+    ];
+    eq(S.introducedToday(reviews, NOON), 1, '只有 00:01Z 的算今天');
+    eq(S.introducedToday(reviews, lateYesterday), 1, '在昨天看，只有 23:59Z 的算当天');
+  });
+
+  test('空台账 / 缺 itemId 的脏行都安全归零', () => {
+    const S = load();
+    eq(S.introducedToday([], NOON), 0);
+    eq(S.introducedToday(null, NOON), 0);
+    eq(S.introducedToday([{ at: NOON }], NOON), 0, '缺 itemId 的行不许计入也不许炸');
+  });
+});

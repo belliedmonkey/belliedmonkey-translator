@@ -242,6 +242,29 @@ var LearnScheduler = (() => {
     return null;
   }
 
+  // How many brand-new cards entered review TODAY — derived from the SYNCED
+  // review log, not from device-local meta, so every device under one account
+  // agrees on how much of the daily-new budget is spent (interaction-spec
+  // 「多设备同步一致性」). Introduction = an item's FIRST non-practice review.
+  // Reviews that arrived via sync COUNT — that is the whole point: a card
+  // introduced on the phone spends the laptop's budget too. Day boundary is
+  // UTC on purpose: one account, one day, every timezone (todayKey has always
+  // been toISOString-based; documented in learning-design §5).
+  function introducedToday(reviews, now) {
+    const day = new Date(now).toISOString().slice(0, 10);
+    const first = new Map();   // itemId → earliest non-practice review time
+    for (const r of reviews || []) {
+      if (!r || r.practice || !r.itemId) continue;
+      const prev = first.get(r.itemId);
+      if (prev === undefined || r.at < prev) first.set(r.itemId, r.at);
+    }
+    let n = 0;
+    for (const at of first.values()) {
+      if (new Date(at).toISOString().slice(0, 10) === day) n++;
+    }
+    return n;
+  }
+
   // How many cards are waiting right now (for the popup / options counter).
   function dueCount(items, now, cfg) {
     const c = cfgOf(cfg);
@@ -257,7 +280,7 @@ var LearnScheduler = (() => {
   return {
     DEFAULTS, DAY,
     freshSched, retrievability, nextDue, applyReview, previewIntervals, tierFor, stateFor,
-    buildDeck, buildPracticeDeck, practiceOutcome, dueCount, spreadBySource,
+    buildDeck, buildPracticeDeck, practiceOutcome, dueCount, introducedToday, spreadBySource,
   };
 })();
 

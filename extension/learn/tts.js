@@ -49,6 +49,10 @@ var LearnTTS = (() => {
   // When a cancel() actually interrupted live or queued speech — set by stop()
   // itself so an interrupt from a previous call (card change) still counts.
   let lastInterruptAt = 0;
+  // Resolver for the in-flight playback's `done` promise (see speak()). stop()
+  // fires it so a caller waiting for "playback finished" can never hang on a
+  // playback that was interrupted instead of ending.
+  let currentDone = null;
   let voicesCache = null;
   const voiceSubs = [];
   let voiceHookInstalled = false;
@@ -174,19 +178,39 @@ var LearnTTS = (() => {
       err.code = 'http';
       throw err;
     }
-    return await resp.blob();
+    // Bytes + declared type, never a Blob: Blobs round-tripped through WebKit's
+    // IndexedDB are file-backed handles that dangle after an app update moves
+    // the container (see LearnStore.putAudio). ArrayBuffers carry their bytes.
+    const ct = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
+    return { buf: await resp.arrayBuffer(), type: String(ct).split(';')[0] || 'audio/mpeg' };
   }
 
-  // Returns { blob, cached } — `cached` exists so a test can assert the SECOND play
-  // issues no request at all, which is the whole point of the cache and is invisible
-  // in the audio itself.
+  // Returns { buf, type, cached } — `cached` exists so a test can assert the SECOND
+  // play issues no request at all, which is the whole point of the cache and is
+  // invisible in the audio itself.
   async function getAudio(text, lang) {
     const key = cacheKey(text, lang);
     const hit = await LearnStore.getAudio(key);
-    if (hit && hit.blob) return { blob: hit.blob, cached: true, key };
-    const blob = await fetchAudio(text, lang);
-    try { await LearnStore.putAudio(key, blob, { lang, engineId: engine().id }); } catch (_) {}
-    return { blob, cached: false, key };
+    // Only byte-inline records count. A legacy record holds a Blob HANDLE that
+    // may be a corpse (dangling after any app update) — refetch and replace it
+    // rather than serve bytes nobody can read.
+    if (hit && hit.buf && hit.buf.byteLength) {
+      return { buf: hit.buf, type: hit.type || 'audio/mpeg', cached: true, key };
+    }
+    const got = await fetchAudio(text, lang);
+    try { await LearnStore.putAudio(key, got, { lang, engineId: engine().id }); } catch (_) {}
+    return { buf: got.buf, type: got.type, cached: false, key };
+  }
+
+  // Chunked to keep the argument list finite; a speech clip is ~100-500KB, so the
+  // base64 copy is noise.
+  function bufToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
   }
 
   // ─── Public: speak / stop ────────────────────────────────────────────────
@@ -201,16 +225,17 @@ var LearnTTS = (() => {
     } catch (_) {}
     if (current) {
       try { current.pause(); } catch (_) {}
-      if (current.src && current.src.startsWith('blob:')) {
-        try { URL.revokeObjectURL(current.src); } catch (_) {}
-      }
       current = null;
     }
+    if (currentDone) { const r = currentDone; currentDone = null; r(); }
   }
 
-  // Resolves { ok: true } when playback STARTED, or { ok: false, reason } when it
-  // could not — never a silent no-op. `reason` is a code the caller turns into a
-  // localized line: 'no_voice' | 'unsupported' | 'no_base' | 'http' | 'blocked'.
+  // Resolves { ok: true, done } when playback STARTED, or { ok: false, reason }
+  // when it could not — never a silent no-op. `reason` is a code the caller turns
+  // into a localized line: 'no_voice' | 'unsupported' | 'no_base' | 'http' |
+  // 'blocked'. `done` resolves when the playback FINISHES (ended, errored, or
+  // interrupted by stop()) — the caller keeps its control disabled until then
+  // (interaction-spec: IO 在途，控件不可用).
   // Resolves { ok: false, reason: 'superseded' } when another speak()/stop()
   // took over while this one was in flight — the caller should show NOTHING for
   // it (the newer call owns the UI).
@@ -276,7 +301,14 @@ var LearnTTS = (() => {
         try { speechSynthesis.cancel(); } catch (_) {}
         return { ok: false, reason: 'blocked' };
       }
-      return { ok: true, engine: 'browser', voice: v.voiceURI };
+      const done = new Promise((resolve) => {
+        currentDone = resolve;
+        try {
+          u.addEventListener('end', resolve, { once: true });
+          u.addEventListener('error', resolve, { once: true });
+        } catch (_) { resolve(); }
+      });
+      return { ok: true, engine: 'browser', voice: v.voiceURI, done };
     }
 
     let got;
@@ -286,21 +318,34 @@ var LearnTTS = (() => {
       return { ok: false, reason: err.code || 'http', status: err.status };
     }
     if (stale()) return { ok: false, reason: 'superseded' };
-    const url = URL.createObjectURL(got.blob);
+    // data: URL from the raw bytes — never URL.createObjectURL: blob-URL media
+    // is refused by the app's WKWebView (NotSupportedError), and a Blob restored
+    // from IndexedDB may be a dangling file handle anyway. Inline base64 decodes
+    // in every host we ship to.
+    const url = 'data:' + (got.type || 'audio/mpeg') + ';base64,' + bufToBase64(got.buf);
     const audio = new Audio(url);
     audio.playbackRate = cfg.rate || 1;
     current = audio;
+    let doneResolve;
+    const done = new Promise((resolve) => { doneResolve = resolve; });
     audio.addEventListener('ended', () => {
-      if (current === audio) { try { URL.revokeObjectURL(url); } catch (_) {} current = null; }
+      if (current === audio) current = null;
+      doneResolve();
     }, { once: true });
+    audio.addEventListener('error', () => doneResolve(), { once: true });
     try {
       await audio.play();
-    } catch (_) {
+    } catch (err) {
       // Autoplay policy, almost always. The caller keeps a visible ▶ button, so a
       // blocked autoplay is recoverable rather than a dead end.
-      return { ok: false, reason: 'blocked', cached: got.cached };
+      // DBG-TEMP: name the real rejection + what we tried to play
+      return { ok: false, reason: 'blocked', cached: got.cached,
+        detail: String(err && err.name) + ' ' + String(err && err.message).slice(0, 100)
+          + ' | ' + (got.type || '?') + ' ' + (got.buf ? got.buf.byteLength : 0) + 'B'
+          + (got.cached ? ' cached' : ' fresh') };
     }
-    return { ok: true, engine: e.id, cached: got.cached };
+    currentDone = doneResolve;
+    return { ok: true, engine: e.id, cached: got.cached, done };
   }
 
   // Is speech usable at all right now, without trying to play anything? Used to

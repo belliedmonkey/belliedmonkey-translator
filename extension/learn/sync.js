@@ -283,16 +283,44 @@ var LearnSync = (() => {
 
   // ─── Public ──────────────────────────────────────────────────────────────
 
+  // Status channel (interaction-spec「多设备同步一致性」): the review header keeps a
+  // persistent line fed by these events. States: 'running' | 'done'{pulled,pushed}
+  // | 'offline' | 'error'{code} | 'signed_out'. Listeners must never break a sync.
+  const statusListeners = [];
+  function onStatus(fn) {
+    if (typeof fn === 'function') statusListeners.push(fn);
+    return () => {
+      const i = statusListeners.indexOf(fn);
+      if (i >= 0) statusListeners.splice(i, 1);
+    };
+  }
+  function emit(state, extra) {
+    const ev = Object.assign({ state, at: Date.now() }, extra || {});
+    for (const fn of statusListeners.slice()) { try { fn(ev); } catch (_) {} }
+  }
+
+  // The one timestamp every surface's 「同步完成 · {time}」 reads. Stamped by BOTH
+  // the manual and the auto path — a success is a success regardless of who asked.
+  const LAST_OK = 'lastSyncOkAt';
+
   // Pull before push so that a review recorded on another device is folded in before
   // this device uploads its own view of the same card.
   async function sync(now) {
-    const pulled = await pull();
-    // Do not push on top of material we could not read. Our push would land at a
-    // higher `seq` than the chunk we stalled on, and a later compaction — ours or
-    // another device's — could then sweep it away before we ever caught up.
-    if (pulled.needsUpgrade) return { pulled, pushed: null };
-    const pushed = await push(now);
-    return { pulled, pushed };
+    emit('running');
+    try {
+      const pulled = await pull();
+      // Do not push on top of material we could not read. Our push would land at a
+      // higher `seq` than the chunk we stalled on, and a later compaction — ours or
+      // another device's — could then sweep it away before we ever caught up.
+      if (pulled.needsUpgrade) { emit('error', { code: 'enc_unsupported' }); return { pulled, pushed: null }; }
+      const pushed = await push(now);
+      await LearnStore.setMeta(LAST_OK, now || Date.now());
+      emit('done', { pulled, pushed });
+      return { pulled, pushed };
+    } catch (e) {
+      emit(e && e.code === 'offline' ? 'offline' : 'error', { code: e && e.code });
+      throw e;
+    }
   }
 
   // ─── Auto-sync (§8.8) — the page-open heartbeat ──────────────────────────
@@ -309,15 +337,38 @@ var LearnSync = (() => {
   const AUTO_MIN_MS = 10 * 60 * 1000;
   let inflight = null;
 
-  function autoSync(now) {
+  // `opts.force` — an ENTRY sync (app launch/foreground, review page open): the
+  // user just arrived, so the throttle yields (interaction-spec「多设备同步一致性」:
+  // 每次进入即同步). Passive surfaces (options page) stay throttled. A successful
+  // forced run still stamps AUTO_AT so the passive throttle keeps its meaning.
+  function autoSync(now, opts) {
+    opts = opts || {};
     if (inflight) return inflight;
     inflight = (async () => {
       try {
+        // Yield one microtask BEFORE any return path. Without this, a path with
+        // no await (the offline pre-check) runs the whole body — including the
+        // finally that clears `inflight` — synchronously DURING the assignment's
+        // right-hand side, and the assignment then parks the already-settled
+        // promise in `inflight` forever: every later autoSync returns the corpse
+        // and sync goes silent until the page reloads. Found by
+        // verify-sync-consistency's offline-recovery step (2026-08-09).
+        await Promise.resolve();
         const at = now || Date.now();
+        // navigator.onLine === false is definitive ("definitely offline"); true
+        // proves nothing — the fetch-throw → code 'offline' path stays the real
+        // detector. This pre-check just makes the offline state instant and free.
+        // `opts.online` skips it: a sync triggered BY the 'online' event carries
+        // the platform's own "we are connected" assertion, and the flag can lag
+        // behind reality (observed stuck-false after emulated offline).
+        if (!opts.online && typeof navigator !== 'undefined' && navigator.onLine === false) {
+          emit('offline');
+          return null;
+        }
         const t = await LearnAuth.token().catch(() => null);
-        if (!t) return null;                        // signed out ⇒ nothing to do
+        if (!t) { emit('signed_out'); return null; }   // signed out ⇒ nothing to do
         const last = (await LearnStore.getMeta(AUTO_AT, 0)) || 0;
-        if (at - last < AUTO_MIN_MS) return null;   // heartbeat, not a drumroll
+        if (!opts.force && at - last < AUTO_MIN_MS) return null;   // heartbeat, not a drumroll
         const r = await sync(at);
         await LearnStore.setMeta(AUTO_AT, at);
         return r;
@@ -348,7 +399,7 @@ var LearnSync = (() => {
     await LearnStore.setMeta(PUSHED, 0);
   }
 
-  return { push, pull, sync, autoSync, compact, usage, forget, toHex, fromHex, touchedAt, COMPACT_AT, AUTO_MIN_MS };
+  return { push, pull, sync, autoSync, compact, usage, forget, onStatus, toHex, fromHex, touchedAt, COMPACT_AT, AUTO_MIN_MS, LAST_OK };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnSync;

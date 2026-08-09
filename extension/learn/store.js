@@ -128,11 +128,18 @@ var LearnStore = (() => {
           const prev = r.result;
           if (!prev) added++;
           const merged = prev ? LearnModel.mergeItem(prev, inc, opts) : inc;
-          // Watermark: this state came from the server, so push must not send it
-          // back. Only a LOCAL change (a review, a re-read) lifts touchedAt above
-          // it again. Not set on file import — an imported corpus does belong on
-          // the server, and stamping it would silently keep it off.
-          if (opts && opts.markSynced) merged.syncedAt = LearnModel.touchedAt(merged);
+          // Watermark: what the SERVER knows — touchedAt(inc), never touchedAt of
+          // the merged record. Stamping the merged state was a real bug: pulling
+          // your OWN older chunk while holding a newer local review stamped the
+          // watermark up to the local state, and the freshly-graded card never
+          // uploaded again (the review ROW travels, but rows don't move the other
+          // device's sched — found by verify-sync-consistency's 王冠断言,
+          // 2026-08-09). Max with the previous stamp so an earlier pull of newer
+          // server state is not regressed. Not set on file import — an imported
+          // corpus does belong on the server, and stamping it would keep it off.
+          if (opts && opts.markSynced) {
+            merged.syncedAt = Math.max(merged.syncedAt || 0, LearnModel.touchedAt(inc));
+          }
           s.items.put(merged);
         };
       }
@@ -333,8 +340,16 @@ var LearnStore = (() => {
     });
   }
 
-  function putAudio(k, blob, meta) {
-    const rec = Object.assign({ k, blob, bytes: blob.size || 0, at: Date.now() }, meta || {});
+  // `payload` is { buf: ArrayBuffer, type: string } — BYTES, never a Blob.
+  // WebKit stores an IndexedDB Blob as a file-backed HANDLE, and an app
+  // update/reinstall moves the container: the record survives, the handle
+  // dangles — metadata intact, bytes unreadable (真机定案 2026-08-09: a
+  // "healthy" cached audio/mpeg blob that refused both play() and FileReader).
+  // ArrayBuffers are structured-cloned INTO the record and survive anything.
+  function putAudio(k, payload, meta) {
+    const rec = Object.assign(
+      { k, buf: payload.buf, type: payload.type || '', bytes: (payload.buf && payload.buf.byteLength) || 0, at: Date.now() },
+      meta || {});
     return tx(['audio'], 'readwrite', (s) => { s.audio.put(rec); })
       .then(() => evictAudioIfNeeded());
   }

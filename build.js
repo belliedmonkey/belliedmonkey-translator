@@ -39,6 +39,27 @@ const ZIP = path.join(ROOT,
 // artifact is withheld — see the Gate B escape hatch in validateManifest().
 let SKIP_ZIP = null;
 
+// Self-use sync channel (`MT_SYNC=on node build.js`): the OUTPUT gets
+// `MT_BACKEND.enabled: true` while the SOURCE stays false, so Gate B keeps
+// guarding public builds untouched. Exists because hand-flipping dist/ was
+// silently undone by every rebuild — which is how the Chrome side stopped
+// uploading for two days while the phone starved at 11 cards (2026-08-09).
+// A sync-on build can never be zipped: it is for THIS user's devices only.
+const SYNC_ON = process.env.MT_SYNC === 'on';
+
+// Single-occurrence flip of the shipping switch inside a module's TEXT.
+// Refuses to guess: zero or multiple matches fail the build, so a reshaped
+// backend.config.js cannot be silently half-flipped.
+function flipSyncFlag(text, what) {
+  const NEEDLE = 'enabled: false,';
+  const first = text.indexOf(NEEDLE);
+  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
+    console.error(`✗ MT_SYNC=on: expected exactly one \`${NEEDLE}\` in ${what}`);
+    process.exit(1);
+  }
+  return text.replace(NEEDLE, 'enabled: true, // MT_SYNC=on self-use build — NOT SHIPPABLE');
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function copyDir(src, dst) {
@@ -440,6 +461,14 @@ generateTts(SRC, 'global');
 copyDir(SRC, DIST);
 log(`Copied extension sources → ${path.basename(DIST)}/`);
 
+// Self-use sync channel: flip the shipping switch in the OUTPUT only.
+if (SYNC_ON) {
+  const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
+  fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist/learn/backend.config.js'));
+  SKIP_ZIP = 'MT_SYNC=on self-use build (sync enabled in output; source untouched)';
+  log('\x1b[33m⚠ MT_SYNC=on — 同步开关已在产物中打开。仅限自用设备，禁止上架/分发。\x1b[0m');
+}
+
 // Flavor overrides applied to DIST only
 if (FLAVOR === 'china') {
   applyChinaLocales(DIST);
@@ -473,7 +502,7 @@ descriptionLengthGate(DIST);
 // would ship an untested target rather than a feature.
 if (FLAVOR === 'global') {
   const { buildAppBundle } = require('./build/app-bundle.js');
-  buildAppBundle(path.join(ROOT, 'dist-app'), log);
+  buildAppBundle(path.join(ROOT, 'dist-app'), log, { syncOn: SYNC_ON, flipSyncFlag });
 }
 
 // Zip (Firefox .xpi is just a zip)

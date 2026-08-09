@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "Acquises"
   },
+  "learn_count_total": {
+    "message": "Total"
+  },
   "learn_section": {
     "message": "Apprentissage"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "Lecture…"
   },
+  "tts_loading": {
+    "message": "Chargement de l'audio…"
+  },
   "tts_no_voice": {
     "message": "Votre système n'a pas de voix pour cette langue"
   },
@@ -567,7 +573,7 @@
     "message": "Synchronisation entre appareils"
   },
   "sync_section_hint": {
-    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Seules les cartes déjà en révision et votre historique sont envoyés ; les candidates qui ne sont pas encore en révision ne quittent jamais cet appareil."
+    "message": "Facultatif. Tout fonctionne sans connexion — une fois connecté, votre bibliothèque (candidats inclus) et votre historique de révision se synchronisent entre vos appareils."
   },
   "sync_email": {
     "message": "E-mail"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "Synchronisation terminée · {in} reçues · {out} envoyées"
+  },
+  "sync_status_running": {
+    "message": "Synchronisation avec le serveur…"
+  },
+  "sync_status_done_at": {
+    "message": "Synchronisé · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Hors ligne — nouvelle tentative automatique plus tard. Vos données restent sur cet appareil."
+  },
+  "sync_status_error": {
+    "message": "Échec de la synchronisation — nouvelle tentative automatique plus tard."
+  },
+  "sync_status_signed_out": {
+    "message": "Non connecté — données locales uniquement"
   },
   "sync_signed_out": {
     "message": "Déconnecté. Votre bibliothèque reste intacte sur cet appareil."

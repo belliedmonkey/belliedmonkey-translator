@@ -635,6 +635,8 @@ async function init() {
   });
 
   async function runSync() {
+    // interaction-spec 全局原则「IO 在途，控件不可用」——手动同步按钮全程禁用。
+    $('btn-sync-now').disabled = true;
     syncSay(t('sync_running', '同步中…'));
     try {
       const r = await LearnSync.sync(Date.now());
@@ -645,6 +647,7 @@ async function init() {
         .replace('{in}', String(r.pulled.cards)).replace('{out}', String((r.pushed && r.pushed.pushed) || 0)));
       await Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
     } catch (e) { syncSay(syncError(e)); }
+    finally { $('btn-sync-now').disabled = false; }
   }
   $('btn-sync-now').addEventListener('click', runSync);
 

@@ -350,6 +350,9 @@
   "learn_count_known": {
     "message": "Beherrscht"
   },
+  "learn_count_total": {
+    "message": "Gesamt"
+  },
   "learn_section": {
     "message": "Lernen"
   },
@@ -479,6 +482,9 @@
   "tts_playing": {
     "message": "Wiedergabe…"
   },
+  "tts_loading": {
+    "message": "Audio wird geladen…"
+  },
   "tts_no_voice": {
     "message": "Ihr System hat keine Stimme für diese Sprache"
   },
@@ -567,7 +573,7 @@
     "message": "Geräteübergreifende Synchronisierung"
   },
   "sync_section_hint": {
-    "message": "Optional. Alles funktioniert auch ohne Konto — die Synchronisierung lässt dich nur auf dem Handy wiederholen, was du am Rechner gelesen hast. Hochgeladen werden Karten, die bereits in der Wiederholung sind, sowie dein Wiederholungsverlauf; Kandidaten, die noch nicht in der Wiederholung sind, verlassen dieses Gerät nie."
+    "message": "Optional. Alles funktioniert ohne Anmeldung — nach der Anmeldung werden deine Bibliothek (einschließlich Kandidaten) und dein Wiederholungsverlauf in beide Richtungen zwischen deinen Geräten synchronisiert."
   },
   "sync_email": {
     "message": "E-Mail"
@@ -634,6 +640,21 @@
   },
   "sync_done": {
     "message": "Synchronisierung abgeschlossen · {in} empfangen · {out} hochgeladen"
+  },
+  "sync_status_running": {
+    "message": "Synchronisierung mit dem Server…"
+  },
+  "sync_status_done_at": {
+    "message": "Synchronisiert · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Derzeit offline — es wird später automatisch erneut versucht. Deine Lerndaten bleiben auf diesem Gerät."
+  },
+  "sync_status_error": {
+    "message": "Synchronisierung fehlgeschlagen — es wird später automatisch erneut versucht."
+  },
+  "sync_status_signed_out": {
+    "message": "Nicht angemeldet — nur lokale Daten"
   },
   "sync_signed_out": {
     "message": "Abgemeldet. Deine Lernbibliothek bleibt unverändert auf diesem Gerät."
