@@ -35,6 +35,9 @@ var SourcesView = (() => {
     .srcm-empty { opacity:.65; font-size:.9em; padding:6px 0; }
     .srcm-lang-chip { cursor:pointer; user-select:none; }
     .srcm-lang-chip[data-on="1"] { border-color:#0a7a3c; color:#0a7a3c; font-weight:600; }
+    button.srcm-chip { background:none; font:inherit; color:inherit; text-align:left; }
+    .srcm-row button:disabled, .srcm-add button:disabled, .srcm-chip button:disabled,
+    button.srcm-chip:disabled { opacity:.55; cursor:default; }
   `;
 
   function ensureStyle(doc) {
@@ -80,6 +83,22 @@ var SourcesView = (() => {
     return e;
   }
 
+  // interaction-spec 全局原则 (IO 在途，控件不可用): every callback below reaches
+  // storage and often a forced network sync in the HOST — the host usually
+  // re-renders the whole view on success, but the disable must not depend on
+  // that: restore in finally so a failed callback hands the control back.
+  function lock(ctl, fn) {
+    return (...args) => {
+      if (ctl.disabled) return;
+      ctl.disabled = true;
+      Promise.resolve().then(() => fn && fn(...args))
+        // 失败要具名 (same 全局原则): the host owns user-facing failure copy, but
+        // a swallowed throw here would vanish entirely — name it in the console.
+        .catch((e) => { try { console.error('[sources-view] callback failed:', e); } catch (_) {} })
+        .then(() => { ctl.disabled = false; });
+    };
+  }
+
   // opts: { items, sources, rules, t, onDelete({host, pattern, itemIds, sourceIds}),
   //         onBlock(pattern), onUnblock(pattern), onAddRule(normalizedPattern),
   //         onInvalidRule() }
@@ -103,23 +122,23 @@ var SourcesView = (() => {
         t('learn_sources_count', '{n} 张卡').replace('{n}', String(r.count))));
 
       const del = el(doc, 'button', '', t('learn_src_delete', '删除已存'));
-      del.addEventListener('click', () => {
+      del.addEventListener('click', lock(del, () => {
         const doomed = LearnRules.doomedFor(opts.items, opts.sources, r.host);
-        opts.onDelete && opts.onDelete({
+        return opts.onDelete && opts.onDelete({
           host: r.host, pattern: r.host,
           itemIds: doomed.itemIds, sourceIds: doomed.sourceIds,
         });
-      });
+      }));
       row.appendChild(del);
 
       if (!r.blocked) {
         const blk = el(doc, 'button', '', t('learn_src_block', '不再收录'));
-        blk.addEventListener('click', () => opts.onBlock && opts.onBlock(r.host));
+        blk.addEventListener('click', lock(blk, () => opts.onBlock && opts.onBlock(r.host)));
         row.appendChild(blk);
       } else if (r.exactRule) {
         row.appendChild(el(doc, 'span', 'srcm-blocked', t('learn_src_blocked', '已屏蔽')));
         const un = el(doc, 'button', '', t('learn_src_unblock', '恢复收录'));
-        un.addEventListener('click', () => opts.onUnblock && opts.onUnblock(r.exactRule));
+        un.addEventListener('click', lock(un, () => opts.onUnblock && opts.onUnblock(r.exactRule)));
         row.appendChild(un);
       } else {
         // Blocked by a BROADER wildcard rule: name the rule instead of offering
@@ -143,7 +162,7 @@ var SourcesView = (() => {
       chip.appendChild(el(doc, 'span', '', p));
       const x = el(doc, 'button', '', '✕');
       x.setAttribute('aria-label', t('learn_src_unblock', '恢复收录'));
-      x.addEventListener('click', () => opts.onUnblock && opts.onUnblock(p));
+      x.addEventListener('click', lock(x, () => opts.onUnblock && opts.onUnblock(p)));
       chip.appendChild(x);
       chips.appendChild(chip);
     }
@@ -157,13 +176,15 @@ var SourcesView = (() => {
     input.placeholder = t('learn_block_placeholder', '例如 *.example.com/news/*');
     const btn = el(doc, 'button', '', t('learn_block_add', '添加'));
     btn.id = 'srcm-add-btn';
-    const submit = () => {
+    const submit = lock(btn, () => {
       const norm = LearnRules.normalizePattern(input.value);
       if (!norm) { opts.onInvalidRule && opts.onInvalidRule(); return; }
       input.value = '';
-      opts.onAddRule && opts.onAddRule(norm);
-    };
+      return opts.onAddRule && opts.onAddRule(norm);
+    });
     btn.addEventListener('click', submit);
+    // Enter routes through the same lock: while the button is disabled the
+    // keyboard path is refused too, not just the pointer one.
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     add.appendChild(input);
     add.appendChild(btn);
@@ -184,13 +205,14 @@ var SourcesView = (() => {
     container.textContent = '';
     const chips = el(doc, 'div', 'srcm-chips');
 
+    // Real <button>s, not span[role=button]: the 全局原则 requires a disabled
+    // state during the storage write + forced sync the host runs from onChange,
+    // and a span cannot express one. Native buttons also give Enter/Space for free.
     const mk = (label, on, fn) => {
-      const c = el(doc, 'span', 'srcm-chip srcm-lang-chip', label);
+      const c = el(doc, 'button', 'srcm-chip srcm-lang-chip', label);
+      c.type = 'button';
       c.dataset.on = on ? '1' : '0';
-      c.setAttribute('role', 'button');
-      c.setAttribute('tabindex', '0');
-      c.addEventListener('click', fn);
-      c.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+      c.addEventListener('click', lock(c, fn));
       chips.appendChild(c);
     };
 

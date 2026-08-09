@@ -11,6 +11,10 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* interaction-spec 全局原则: IO 在途的 disabled 必须看得见。Base rule so every
+   button gets a visible disabled state; element-specific rules below override. */
+button:disabled { opacity: .55; cursor: default; }
+
 :root {
   --green: #0a7a3c;
   --text: #111827;

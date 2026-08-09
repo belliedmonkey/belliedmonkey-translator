@@ -75,20 +75,25 @@
     const del = document.createElement('button');
     del.textContent = t('learn_src_delete', '删除已存') + ' · ' + host;
     del.addEventListener('click', async () => {
-      const [items, srcs] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
-      const doomed = LearnRules.doomedFor(items, srcs, host);
-      if (!doomed.itemIds.length) return;
-      if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
-        .replace('{host}', host).replace('{n}', String(doomed.itemIds.length)))) return;
-      await LearnStore.deleteItems(doomed.itemIds, Date.now());
-      await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
-      // Account intent must reach the server promptly (§7.4); then rebuild —
-      // the card on screen may no longer exist.
-      if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
-        LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
-      }
-      await refreshCounts();
-      await start();
+      // interaction-spec 全局原则: the whole handler is IDB reads + a bulk delete —
+      // a second tap mid-flight would re-confirm and re-delete against a moving store.
+      del.disabled = true;
+      try {
+        const [items, srcs] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+        const doomed = LearnRules.doomedFor(items, srcs, host);
+        if (!doomed.itemIds.length) return;
+        if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+          .replace('{host}', host).replace('{n}', String(doomed.itemIds.length)))) return;
+        await LearnStore.deleteItems(doomed.itemIds, Date.now());
+        await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
+        // Account intent must reach the server promptly (§7.4); then rebuild —
+        // the card on screen may no longer exist.
+        if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+          LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+        }
+        await refreshCounts();
+        await start();
+      } finally { del.disabled = false; }
     });
     box.appendChild(del);
 
@@ -101,19 +106,23 @@
     });
     blk.textContent = t('learn_src_block', '不再收录') + ' · ' + host;
     blk.addEventListener('click', async () => {
-      const rules = await readRules();
-      const base = rules || { v: 1, block: [], langs: null };
-      if ((base.block || []).indexOf(host) < 0) {
-        const next = Object.assign({}, base, {
-          v: 1, block: (base.block || []).concat([host]), updatedAt: Date.now(),
-        });
-        await new Promise((r) => chrome.storage.local.set({ learnRules: next }, r));
-        if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
-          LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
-        }
-      }
-      blk.textContent = t('learn_src_blocked', '已屏蔽');
+      // interaction-spec 全局原则: disabled from the first await. On success it
+      // STAYS disabled (已屏蔽 is a terminal state); restore only on failure.
       blk.disabled = true;
+      try {
+        const rules = await readRules();
+        const base = rules || { v: 1, block: [], langs: null };
+        if ((base.block || []).indexOf(host) < 0) {
+          const next = Object.assign({}, base, {
+            v: 1, block: (base.block || []).concat([host]), updatedAt: Date.now(),
+          });
+          await new Promise((r) => chrome.storage.local.set({ learnRules: next }, r));
+          if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+            LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
+          }
+        }
+        blk.textContent = t('learn_src_blocked', '已屏蔽');
+      } catch (e) { blk.disabled = false; throw e; }
     });
     box.appendChild(blk);
   }
@@ -184,9 +193,16 @@
 
   function setNote(msg) { $('audio-note').textContent = msg || ''; }
 
+  // Play epoch: each playCurrent invocation takes a ticket; only the LATEST
+  // invocation may re-enable ▶ on a superseded resolve. Without it, a voices-
+  // changed re-play for the same card supersedes the first call, whose resolve
+  // would hand the button back while the newer speak is still in flight.
+  let playEpoch = 0;
+
   async function playCurrent(auto) {
     const item = deck[idx];
     if (!item || ttsMode === 'off') return;
+    const myEpoch = ++playEpoch;
     const btn = $('play');
     // Interaction-spec rule (语音节, 2026-08-09 二): while an IO-bound operation
     // is in flight, its control is DISABLED — loading (fetch/synthesis) and the
@@ -196,9 +212,15 @@
     setNote(t('tts_loading', '正在加载音频…'));
     const r = await LearnTTS.speak(item.text, item.lang);
     // This resolve may be seconds late (blocked speak resolves via timeout). If
-    // the user has moved on, or a newer speak took over, it owns the UI — write
-    // nothing for this one (card entry resets the button's state anyway).
-    if (deck[idx] !== item || r.reason === 'superseded') return;
+    // the user has moved on, card entry resets the button's state anyway. But a
+    // supersede while the SAME card stays on screen must give the button back —
+    // the superseding speak was not started from this (disabled) button, so
+    // nothing else will re-enable it.
+    if (deck[idx] !== item) return;
+    if (r.reason === 'superseded') {
+      if (myEpoch === playEpoch) btn.disabled = false;
+      return;
+    }
     if (r.ok) {
       setNote(t('tts_playing', '播放中…'));
       btn.textContent = t('tts_replay', '▶ 再听一遍');
@@ -429,6 +451,24 @@
   async function grade(g, sources) {
     const item = deck[idx];
     if (!item) return;
+    // interaction-spec 全局原则: the review-row write is IO — a double-tap on the
+    // same grade would record the review twice and advance two cards. Disabled
+    // here; the next card's render re-enables the whole row (show() does it).
+    // The catch restores each button's PRIOR disabled state, not a blanket
+    // enable: on a write-tier card 检查 left only the evidence-consistent grades
+    // enabled, and a failure must not widen that gate.
+    const gradeBtns = Array.from(document.querySelectorAll('.grade'));
+    const wasDisabled = gradeBtns.map((b) => b.disabled);
+    gradeBtns.forEach((b) => { b.disabled = true; });
+    try {
+      await gradeInner(g, sources, item);
+    } catch (e) {
+      gradeBtns.forEach((b, i) => { b.disabled = wasDisabled[i]; });
+      throw e;
+    }
+  }
+
+  async function gradeInner(g, sources, item) {
     LearnTTS.stop();
     const now = Date.now();
 
@@ -719,7 +759,14 @@
     $('practice-setup').hidden = false;
     $('practice-setup').scrollIntoView({ block: 'nearest' });
   });
-  $('practice-start').addEventListener('click', () => { startPractice(); });
+  $('practice-start').addEventListener('click', async (e) => {
+    // Full-corpus IDB read (全局原则) — and startPractice() may settle to "pool
+    // is empty, setup stays visible", which without the disable flicker was
+    // indistinguishable from the click having done nothing at all.
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try { await startPractice(); } finally { btn.disabled = false; }
+  });
 
   // §9.2 — generate on demand. One call, cached per prompt version (LearnNotes
   // regenerates only when a prompt fix invalidates the old output); failures
@@ -732,11 +779,21 @@
     try {
       const r = await LearnNotes.get(item, explainLang);
       if (deck[idx] === item) renderNotes(r.data);
-    } catch (_) {
+    } catch (e) {
       // Same guard as the success branch: a failure landing after the user moved
       // on must not stamp the previous card's error onto the current card.
       if (deck[idx] !== item) return;
-      $('notes-cost').textContent = t('learn_notes_failed', '解析失败，稍后再试');
+      // The failure line names its cause — "HTTP 401" and "bad_output" call for
+      // opposite fixes (key vs retry), and a bare 解析失败 hides which one this is.
+      const why = e && e.code === 'http' ? 'HTTP ' + e.status
+        : e && e.code ? e.code
+        : (e && e.name === 'TypeError' ? 'network' : 'error');
+      console.error('[learn/notes] generation failed:', why, e);
+      // empty_output gets its own sentence: "稍后再试" is a lie there — the fix
+      // is switching to a chat model, and this line is where users will look.
+      $('notes-cost').textContent = e && e.code === 'empty_output'
+        ? t('learn_notes_failed_empty', '模型没有返回正文——思考（推理）型模型不适合句子解析，请在设置中改用对话模型。')
+        : t('learn_notes_failed', '解析失败，稍后再试') + ' (' + why + ')';
       $('notes-btn').disabled = false;
     }
   });
@@ -768,14 +825,20 @@
   // Drain the outbox first — this page is one of the few places that can, since the
   // corpus lives in the extension origin and the service worker cannot be trusted
   // on Safari iOS.
-  $('pressure-fix').addEventListener('click', async () => {
-    const n = await LearnStore.clearKnown().catch(() => 0);
-    await refreshPressure();
-    await refreshCounts();
-    if (!n) return;
-    // The corpus changed underneath the deck, so rebuild rather than leaving a
-    // card on screen that no longer exists.
-    await start();
+  $('pressure-fix').addEventListener('click', async (e) => {
+    // interaction-spec 全局原则: bulk IDB delete + three refreshes — disabled
+    // until the whole settle, else a second tap races the rebuild.
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const n = await LearnStore.clearKnown().catch(() => 0);
+      await refreshPressure();
+      await refreshCounts();
+      if (!n) return;
+      // The corpus changed underneath the deck, so rebuild rather than leaving a
+      // card on screen that no longer exists.
+      await start();
+    } finally { btn.disabled = false; }
   });
 
   // §7.5 — restore BEFORE drain and before the entry-forced sync: a UUID-rotated
@@ -841,7 +904,10 @@
   if (!$('card').hidden && !(await LearnStore.getMeta('howtoSeen', 0))) {
     $('howto').hidden = false;
   }
-  $('howto-ok').addEventListener('click', async () => {
+  $('howto-ok').addEventListener('click', async (e) => {
+    // Meta write is IO too (全局原则) — though the panel hides first, so this is
+    // belt-and-braces against a double-fire of the write.
+    e.currentTarget.disabled = true;
     $('howto').hidden = true;
     await LearnStore.setMeta('howtoSeen', 1);
   });
