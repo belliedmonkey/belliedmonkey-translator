@@ -33,11 +33,13 @@ const MODULES = [
   'extension/content/i18n-messages.js',  // MT_I18N_MESSAGES
   'extension/learn/i18n.js',             // t() / applyI18n()
   'extension/content/learn-model.js',    // LearnModel — ids, merge semantics, touchedAt
+  'extension/content/learn-rules.js',    // LearnRules — 来源治理 pure logic (§4.1/§7.4/§8.9)
   'extension/content/learn-scheduler.js',// LearnScheduler — retrievability / buildDeck
   'extension/content/tts.gen.js',        // generated speech-engine registry
   'extension/content/providers.gen.js',  // generated provider registry — the notes
                                          // gate and the app's engine picker both
                                          // read it (§7.2 / §9.2)
+  'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS
   'extension/learn/drain.js',            // LearnDrain — a no-op here (no outbox), see below
@@ -47,6 +49,7 @@ const MODULES = [
   'extension/learn/notes.js',            // LearnNotes — review.js references it; the
                                          // app's own settings may hold a chat engine
                                          // + key (§7.2), else the gate stays closed
+  'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs
 ];
