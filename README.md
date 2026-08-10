@@ -32,11 +32,23 @@ Install from a store — building from source is for contributors, not for using
 | Platform | |
 |---|---|
 | **iPhone · iPad · Mac** (Safari) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three |
-| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) |
-| **Firefox** (desktop · Android) | Store review is pending. Until it clears, grab the `.xpi` from [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases) and load it via `about:debugging` → This Firefox → Load Temporary Add-on |
+| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) (currently v1.4.1); steps below |
+| **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
+
+<details>
+<summary><b>Installing the ZIP directly (Chrome / Edge)</b></summary>
+
+Chrome Web Store review can lag a version behind; the [latest ZIP](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) is always the newest release, built from the same source submitted to the store. Illustrated guide: [belliedmonkey.cc/#install](https://belliedmonkey.cc/#install).
+
+1. Unzip the download. You get a folder — keep it; Chrome runs the extension from that folder.
+2. Open `chrome://extensions` (`edge://extensions` on Edge) and switch on **Developer mode** in the top corner.
+3. Click **Load unpacked** and pick the unzipped folder.
+4. Pin the icon from the puzzle menu 🧩. Direct installs don't auto-update — grab new versions from [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases), or use the store build for automatic updates.
+
+</details>
 
 <details>
 <summary><b>Building from source</b></summary>
