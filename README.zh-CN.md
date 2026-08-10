@@ -1,8 +1,9 @@
 <h1 align="center">大肚猴翻译 · BelliedMonkey Translator</h1>
 
 <p align="center">
-  <b>读世界的网页 —— 两种语言同时读。</b><br>
+  <b>读世界的网页 —— 两种语言同时读，读过的还能记住。</b><br>
   网页双语对照，视频与播客双语字幕。<br>
+  真正读过的句子自动变成复习卡 —— 开同步后，手机上随时复习。<br>
   用你自己的 LLM key，中间没有我们的服务器。
 </p>
 
@@ -31,11 +32,23 @@
 | 平台 | |
 |---|---|
 | **iPhone · iPad · Mac**（Safari） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录 |
-| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) |
-| **Firefox**（桌面 · Android） | 商店审核中。通过之前可从 [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases) 下载 `.xpi`，用 `about:debugging` → 此 Firefox → 临时载入附加组件 |
+| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)（当前 v1.4.1），步骤见下 |
+| **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
+
+<details>
+<summary><b>直接安装 ZIP（Chrome / Edge）</b></summary>
+
+商店审核可能落后一个版本；[最新 ZIP](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) 始终是最新发布版，与提交商店的源码一致。图文教程：[belliedmonkey.cc/#install](https://belliedmonkey.cc/#install)。
+
+1. 解压下载的文件，得到一个文件夹——请保留它，Chrome 会从这个文件夹运行扩展。
+2. 打开 `chrome://extensions`（Edge 为 `edge://extensions`），开启右上角的**开发者模式**。
+3. 点击**加载已解压的扩展程序**，选择刚才解压出的文件夹。
+4. 在拼图菜单 🧩 里固定图标。直接安装不会自动更新——新版本请到 [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases) 下载，或使用商店版获得自动更新。
+
+</details>
 
 <details>
 <summary><b>从源码构建</b></summary>

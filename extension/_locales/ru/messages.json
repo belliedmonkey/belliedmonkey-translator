@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Двуязычный перевод + субтитры YouTube. Несколько ИИ-движков или своя конечная точка."
+    "message": "Двуязычные страницы + двойные субтитры. Включите обучение — прочитанные фразы станут карточками для повторения."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
@@ -186,7 +186,7 @@
     "message": "О программе"
   },
   "options_about_desc": {
-    "message": "Двуязычный перевод всей страницы + субтитры YouTube."
+    "message": "Двуязычный перевод + учебный цикл: прочитанные фразы становятся карточками."
   },
   "options_about_safari": {
     "message": "Safari iOS: включите в Настройки → Safari → Расширения."

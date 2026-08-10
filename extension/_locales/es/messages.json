@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Traducción bilingüe + subtítulos bilingües de YouTube. Varios motores de IA o tu propio endpoint."
+    "message": "Páginas bilingües + subtítulos dobles. Con el aprendizaje, las frases que lees se vuelven tarjetas de repaso."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
@@ -186,7 +186,7 @@
     "message": "Acerca de"
   },
   "options_about_desc": {
-    "message": "Traducción bilingüe de página completa + subtítulos de YouTube."
+    "message": "Traducción bilingüe + bucle de aprendizaje: las frases que lees se vuelven tarjetas de repaso."
   },
   "options_about_safari": {
     "message": "Safari iOS: actívalo en Ajustes → Safari → Extensiones."

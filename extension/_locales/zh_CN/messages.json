@@ -3,7 +3,7 @@
     "message": "大肚猴翻译"
   },
   "extension_description": {
-    "message": "网页双语对照翻译 + YouTube 双语字幕。内置多种 AI 翻译引擎，也可填入你自己的接口与 API Key。"
+    "message": "网页双语对照 + 视频双语字幕。开启学习后，真正读过的句子自动变成复习卡——翻译与学习，一个闭环。"
   },
   "action_title": {
     "message": "大肚猴翻译"
@@ -186,7 +186,7 @@
     "message": "关于"
   },
   "options_about_desc": {
-    "message": "支持网页全文双语对照翻译 + YouTube 双语字幕。"
+    "message": "双语对照翻译 + 学习闭环：真正读过的句子变成复习卡。"
   },
   "options_about_safari": {
     "message": "Safari iOS：在设置 → Safari → 扩展 中启用。"

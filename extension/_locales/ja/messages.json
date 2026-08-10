@@ -3,7 +3,7 @@
     "message": "大肚猴翻訳"
   },
   "extension_description": {
-    "message": "ウェブページの対訳翻訳 + YouTube バイリンガル字幕。複数のAI翻訳エンジンを内蔵、独自のエンドポイントとAPIキーも利用可能。"
+    "message": "ウェブ対訳 + 動画の二言語字幕。学習をオンにすると、実際に読んだ文が復習カードになります——翻訳と学習がひとつのループに。"
   },
   "action_title": {
     "message": "大肚猴翻訳"
@@ -186,7 +186,7 @@
     "message": "このアプリについて"
   },
   "options_about_desc": {
-    "message": "ウェブページ全文の対訳翻訳 + YouTube バイリンガル字幕に対応。"
+    "message": "対訳翻訳 + 学習ループ：実際に読んだ文が復習カードになります。"
   },
   "options_about_safari": {
     "message": "Safari iOS：設定 → Safari → 機能拡張 で有効化。"
