@@ -1,8 +1,9 @@
 <h1 align="center">BelliedMonkey Translator</h1>
 
 <p align="center">
-  <b>Read the world's web — both languages at once.</b><br>
+  <b>Read the world's web — both languages at once. And actually remember it.</b><br>
   Bilingual pages, plus dual subtitles for video and podcasts.<br>
+  Sentences you actually read become review cards — on your phone too, if you turn on sync.<br>
   Bring your own LLM key. No servers of ours in the middle.
 </p>
 

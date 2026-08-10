@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Tradução bilíngue + legendas bilíngues do YouTube. Vários motores de IA ou seu próprio endpoint."
+    "message": "Páginas bilíngues + legendas duplas. Com o aprendizado, as frases que você lê viram cartões de revisão."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
@@ -186,7 +186,7 @@
     "message": "Sobre"
   },
   "options_about_desc": {
-    "message": "Tradução bilíngue da página inteira + legendas do YouTube."
+    "message": "Tradução bilíngue + ciclo de aprendizado: as frases que você lê viram cartões de revisão."
   },
   "options_about_safari": {
     "message": "Safari iOS: ative em Ajustes → Safari → Extensões."

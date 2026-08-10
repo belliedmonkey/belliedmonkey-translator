@@ -3,7 +3,7 @@
     "message": "BelliedMonkey Translator"
   },
   "extension_description": {
-    "message": "Bilingual webpage translation + YouTube dual subtitles. Built-in AI engines, or your own endpoint."
+    "message": "Bilingual pages + dual video subtitles. Turn on learning and the sentences you read become review cards."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
@@ -186,7 +186,7 @@
     "message": "About"
   },
   "options_about_desc": {
-    "message": "Bilingual full-page translation + YouTube dual subtitles."
+    "message": "Bilingual translation + a learning loop: sentences you actually read become review cards."
   },
   "options_about_safari": {
     "message": "Safari iOS: enable it in Settings → Safari → Extensions."

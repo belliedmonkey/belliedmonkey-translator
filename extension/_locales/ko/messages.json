@@ -3,7 +3,7 @@
     "message": "대두원숭이 번역"
   },
   "extension_description": {
-    "message": "웹페이지 이중 번역 + YouTube 이중 자막. 여러 AI 번역 엔진 내장, 직접 만든 엔드포인트와 API 키도 사용 가능."
+    "message": "웹 대역 번역 + 영상 이중 자막. 학습을 켜면 실제로 읽은 문장이 복습 카드가 됩니다 — 번역과 학습이 하나의 루프로."
   },
   "action_title": {
     "message": "대두원숭이 번역"
@@ -186,7 +186,7 @@
     "message": "정보"
   },
   "options_about_desc": {
-    "message": "웹페이지 전체 이중 번역 + YouTube 이중 자막 지원."
+    "message": "대역 번역 + 학습 루프: 실제로 읽은 문장이 복습 카드가 됩니다."
   },
   "options_about_safari": {
     "message": "Safari iOS: 설정 → Safari → 확장 프로그램에서 활성화하세요."
