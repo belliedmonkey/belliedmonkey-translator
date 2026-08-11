@@ -32,7 +32,7 @@
 | 平台 | |
 |---|---|
 | **iPhone · iPad · Mac**（Safari） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录 |
-| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)（当前 v1.4.1），步骤见下 |
+| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)（当前 v1.4.2），步骤见下 |
 | **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 

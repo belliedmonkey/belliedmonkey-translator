@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- store-assets/src/scene.html — 全球版商店合成图模板（学习闭环连环画）。
+     用法: scene.html?f=1..5&lang=zh|en&w=1242&h=2688
+     render.sh 用 headless Chrome 按精确分辨率截图（仿 screenshots-cn 流水线）。
+     门禁注意：标注文案不点任何供应商名（global descriptionBrandGate 的精神）。 -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --green: #0a7a3c; --green-dark: #065f2e; --ink: #10231a; --paper: #f2f7f4;
+  }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
+    background: linear-gradient(160deg, #eaf4ee 0%, #f6faf7 45%, #dcefe3 100%);
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--ink);
+  }
+  .headline {
+    text-align: center; font-weight: 800; letter-spacing: .01em;
+    padding: 6% 6% 2%; line-height: 1.22;
+  }
+  .headline .big { font-size: var(--h1); display: block; }
+  .headline .sub { font-size: var(--h2); display: block; margin-top: .55em; font-weight: 500; color: #3a5747; }
+  .stage { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 0 5% 6%; position: relative; }
+  /* 桌面窗口框 */
+  .mac { background: #fff; border-radius: 18px; box-shadow: 0 30px 80px rgba(16,35,26,.28); overflow: hidden; max-width: 100%; max-height: 100%; }
+  .mac .bar { height: 34px; background: #ececec; display: flex; align-items: center; padding-left: 14px; gap: 7px; }
+  .mac .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .mac img { display: block; width: 100%; height: auto; }
+  /* 手机框 */
+  .phone { background: #111; border-radius: 46px; padding: 12px; box-shadow: 0 30px 80px rgba(16,35,26,.32); max-height: 100%; }
+  .phone img { display: block; border-radius: 36px; width: 100%; height: auto; }
+  /* 双设备同框 */
+  .duo { position: relative; width: 100%; height: 100%; }
+  .duo .mac { position: absolute; left: 1%; top: 6%; width: 72% !important; }
+  .duo .phone { position: absolute; right: 1%; bottom: 0; width: 27%; z-index: 2; }
+  .arrow {
+    position: absolute; z-index: 3; left: 66%; top: 20%;
+    font-size: calc(var(--h1) * 1.3); color: var(--green); font-weight: 800;
+    text-shadow: 0 2px 12px rgba(255,255,255,.9);
+  }
+  .badge {
+    display: inline-block; background: var(--green); color: #fff; border-radius: 999px;
+    padding: .35em 1em; font-size: calc(var(--h2) * .9); font-weight: 700; margin-top: .8em;
+  }
+</style>
+</head>
+<body>
+<div class="headline"><span class="big" id="big"></span><span class="sub" id="sub"></span></div>
+<div class="stage" id="stage"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const f = q.get('f') || '1';
+const lang = q.get('lang') || 'zh';
+const W = +q.get('w') || 1242, H = +q.get('h') || 2688;
+const portrait = H > W;
+document.documentElement.style.setProperty('--h1', Math.round((portrait ? W : H) * (portrait ? 0.058 : 0.075)) + 'px');
+document.documentElement.style.setProperty('--h2', Math.round((portrait ? W : H) * (portrait ? 0.031 : 0.040)) + 'px');
+
+const COPY = {
+  zh: {
+    1: ['照常读外网', '原文与译文，同屏对照'],
+    2: ['看视频，字幕跟着走', '原文在上，译文在下，逐句对齐'],
+    3: ['读过的句子，自动变成复习卡', '快速滚过的不算——只留下你真正读过的'],
+    4: ['手机上复习', '读 · 听 · 写 三档 + 句子解析 + 朗读'],
+    5: ['电脑上读，手机上复习', '翻译与学习，一个闭环'],
+  },
+  en: {
+    1: ['Browse like you always do', 'Original and translation, side by side'],
+    2: ['Watch with dual subtitles', 'Matched sentence by sentence'],
+    3: ['Sentences you read become review cards', 'Only what you actually read — skimming doesn\'t count'],
+    4: ['Review on your phone', 'Read · Listen · Write + sentence notes + read-aloud'],
+    5: ['Read on your computer, review on your phone', 'Translation and learning, one loop'],
+  },
+};
+const [big, sub] = COPY[lang][f];
+document.getElementById('big').textContent = big;
+document.getElementById('sub').textContent = sub;
+
+// 横版时按 stage 可用高反推 mac 宽度（帧图 1728×868 + 34px bar），铺满舞台
+const macW = (() => {
+  if (portrait) return '96%';
+  const stageH = H * 0.68, imgH = stageH - 34;
+  return Math.min(W * 0.9, imgH * 1728 / 868) + 'px';
+})();
+const mac = (src) => `<div class="mac" style="width:${macW}"><div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div><img src="${src}"></div>`;
+const phone = (src) => `<div class="phone"><img src="${src}"></div>`;
+
+const stage = document.getElementById('stage');
+if (f === '1') stage.innerHTML = mac('assets/f1-article.png');
+else if (f === '2') stage.innerHTML = mac('assets/f2-video.png');
+else if (f === '3') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f4-phone-card.png')}</div>`;
+else if (f === '4') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f3-phone-stats.png')}</div>`;
+else if (f === '5') {
+  if (portrait) {
+    stage.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:2%;height:100%;width:100%;justify-content:center">
+      <div style="width:96%">${mac('assets/f1-article.png')}</div>
+      <div class="arrow" style="position:static;transform:rotate(90deg)">⟶</div>
+      <div style="width:46%">${phone('assets/f4-phone-card.png')}</div></div>`;
+    document.querySelectorAll('.mac').forEach((m) => { m.style.width = '100%'; });
+    document.querySelectorAll('.phone').forEach((p) => { p.style.width = '100%'; });
+  } else {
+    stage.innerHTML = `<div class="duo">${mac('assets/f1-article.png')}<div class="arrow">⟶</div>${phone('assets/f4-phone-card.png')}</div>`;
+  }
+}
+
+// 竖版（手机截图）时限制 phone 宽度
+if (portrait && (f === '3' || f === '4')) {
+  document.querySelectorAll('.phone').forEach((p) => { p.style.width = '78%'; });
+}
+</script>
+</body>
+</html>
