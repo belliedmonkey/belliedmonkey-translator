@@ -290,11 +290,14 @@
     },
     // The data-mt-hidden attribute VALUE carries the page's prior inline
     // `display` ('1' = none). Asserting it equals the fixture's inline value
-    // proves BOTH halves of the record-and-restore contract in one probe:
-    // at base settle, repeated re-renders must not clobber the recorded value
-    // with 'none' (the hasAttribute guard); after the rerender phase
-    // (disable→enable), the value re-recorded from the RESTORED inline style
-    // is only still correct if disable put the original value back.
+    // proves the record-and-restore contract across the phases that re-run it:
+    // after the RERENDER phase (disable→enable), the value re-recorded from
+    // the RESTORED inline style is only correct if disable put the original
+    // back; after the RESIZE phase, invalidateGeometry re-renders the unit
+    // WHILE HIDDEN — that is the double-hide that would clobber the record
+    // with 'none' without hideOriginal's hasAttribute guard (verified
+    // empirically: removing the guard reds THIS assert in the resize phase,
+    // not at base settle — base-settle renders hide only once).
     hiddenAttrEquals(node, trans, arg) {
       const v = node.getAttribute('data-mt-hidden');
       return v === arg || `data-mt-hidden="${v}", expected "${arg}"`;
