@@ -115,6 +115,16 @@
       <button class="reveal" id="ex-check" hidden data-i18n="learn_check_pick">确认选择</button>
       <p class="shadow-hint" id="ex-status" hidden></p>
 
+      <!-- §9.4 说题卡: record → the USER'S OWN transcription endpoint → local
+           score. The recording is discarded after the transcript returns — never
+           stored, never synced (§10 Gate C). Transcript renders textContent-only. -->
+      <div class="speak-box" id="speak-box" hidden>
+        <button class="reveal" id="speak-record" data-i18n="learn_speak_record">🎙 开始录音</button>
+        <p class="shadow-hint" id="speak-status"></p>
+        <p class="speak-transcript" id="speak-transcript" hidden></p>
+        <p class="shadow-hint" id="speak-score" hidden></p>
+      </div>
+
       <!-- §5.2 write tier: translation shown, the original with blanks. The inputs
            are checked automatically — the one objectively verified skill. -->
       <p class="shadow-hint" id="write-prompt" hidden data-i18n="learn_write_prompt">把原句补全</p>
@@ -174,9 +184,11 @@
   <script src="../content/learn-scheduler.js"></script>
   <script src="../content/learn-exercises.js"></script>
   <script src="../content/tts.gen.js"></script>
+  <script src="../content/stt.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
   <script src="store.js"></script>
   <script src="tts.js"></script>
+  <script src="speech-input.js"></script>
   <script src="notes.js"></script>
   <script src="exercise-pack.js"></script>
   <script src="drain.js"></script>

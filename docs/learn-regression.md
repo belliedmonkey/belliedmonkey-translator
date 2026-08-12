@@ -29,6 +29,7 @@
 | 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
 | 题型生成 | `learn-exercises.test.js` | pickExercise 同 (id,reps,skill) 确定且跨 reps 轮换、AI 变体仅门开时入轮换、mcqFrom 答案恰一次/排归一等值干扰、listenPickFrom 正确⊆句/干扰∩句=∅（含子串）、speakScore 密疏两路+漏读点名、gradeGate 与挖空规则对齐 |
 | 题包 | `learn-pack.test.js` | 能力随解析引擎门、干扰项复述译文被拒（等值+包含双向）、句内词/子串不作听力干扰、理解题结构校验、accept 键必须句内且替代≠原词、部分题包逐项降级/全废 bad_output、**每卡每 PACK_VERSION 至多一次扣费**（调用计数）、并发去重、缓存写失败不重扣 |
+| 语音输入 | `learn-speech.test.js` | capable() 各门控（引擎条件 × mic API 存在）、multipart 构造（und 永不硬报语言、Bearer 仅在有 key、模型默认值来自注册表）、每条路径都释放麦克风轨道、JSON 与 text/plain 响应、具名错误码（no_base/no_key 不发请求、http 带 status、empty_transcript） |
 | 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡每提示词版本至多扣一次费**（调用计数；版本升级只为纠错，见 learning-design §9.2）、生词必须逐字来自原句（v2 提示词 + 零匹配判 bad_output）、并发去重、缓存写失败不重复扣费、两种线格式 |
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
 | 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
@@ -37,18 +38,6 @@
 
 **纪律**：每条新断言做变异反向验证（杀不死的变异 = 测试缺口，先补齐再合并）。
 
-**说（learning-design §9.4）落地时本表再新增的行（骨架，随代码 PR 补齐——本文档
-与 runner 同 PR 演进）：**
-
-| 域 | 测试文件 | 关键性质（规划） |
-|---|---|---|
-| 语音输入 | `learn-speech.test.js`（新） | capable() 各门控（注册表条件 × mic API 存在）；multipart 构造（und 不带 language）；JSON 与 text/plain 响应；具名错误码 |
-
-届时 §2.1 走查再新增：说题（录→停→「识别中」禁用态→transcript+评分→约束评分→
-行带 `mode:'speak'`；mock `/v1/audio/transcriptions` + 页内 stub getUserMedia/
-MediaRecorder）。真机矩阵新增：扩展页与 App 两宿主的真麦克风门控（iOS Safari
-扩展页 getUserMedia 历史受限——门控应表现为「说档不存在」而非报错）、Safari
-MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
 
 ## 2. 真实引擎（改动学习面必跑）
 
@@ -64,6 +53,7 @@ MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
 | 2 | 产出档 | 先见译文、挖空输入在、检查前评分隐藏；全对后「不记得」被禁用（客观结果约束评分） |
 | 3 | 听懂档 | 原文先隐藏、「显示原文」与播放按钮有字；点开原文 → 答案 → 评分 |
 | 3a | 盲听选词（§9.3，种子钉 reps 保证出现） | 原文在确认前不露、选项 ≥3 且非空；全对确认后原文出现、「不记得」被禁用 |
+| 3c | 说题卡（§9.4，speak1 种子 + mock 转写端点 + 页内 stub 麦克风） | 原句可见（朗读非回忆）；录→停→「识别中」→transcript+匹配度渲染；完美朗读禁用「不记得」；复习行带 `mode:'speak'` |
 | 3b | 译文选择题（§9.3，种子钉 reps 保证出现） | 题干与选项非空；选对后答案面出现、「不记得」被禁用（客观结果约束评分） |
 | 4 | und 卡 | 播放禁用、提示指路到**我们的**语音设置（不是系统设置） |
 | 5 | 评分落库 | 「记得」后 s 上升、对应技能**时间戳**落库（读 IndexedDB，不信界面） |
@@ -95,6 +85,8 @@ MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
 | M6 | 阶梯升降真机手感 | iPhone App | 认读→听懂→产出随强度切换；阈值 4/30 手感不对就调（设计文档标了「调整便宜」） |
 | M7 | TestFlight 特查 | ASC | 新 build 处理完 **必须手动加进「天使」组**（16 的教训）；出口合规无警告 |
 | M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读（表面扫描只跑浅色引擎） |
+| M9 | 真麦克风门控（§9.4） | iPhone App + iOS Safari 扩展页 | App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
+| M10 | 真转写端到端（§9.4） | iPhone App | Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 另需 `com.apple.security.device.audio-input` entitlement（sync 脚本未补，见其注释） |
 
 ## 4. 治理
 

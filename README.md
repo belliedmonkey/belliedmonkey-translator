@@ -224,6 +224,11 @@ Stated up front, because finding them yourself is worse.
   the text was on screen — in local storage on that device, so it can show them to you again
   later. It is off until you turn it on, it stays on your device **unless you turn on sync**,
   and one button erases all of it.
+- **Speaking practice sends your recording only where you point it.** If you configure a
+  transcription engine and use the speaking exercise, your recording is sent to that endpoint
+  you chose — and nowhere else — then discarded once the transcript comes back. It is never
+  stored, never synced, and never touches a server of ours. No engine configured means the
+  speaking exercise simply doesn't appear.
 - **What is sent for translation** is the text, and nothing else — not the URL, not the page
   title, not the referrer, not any identifier. **What sync sends, if you turn it on, is
   different and larger: every sentence the extension kept, the page URL and title it came

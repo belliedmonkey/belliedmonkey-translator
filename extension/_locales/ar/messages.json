@@ -1135,5 +1135,101 @@
   "learn_pack_failed": {
     "message": "فشل إنشاء الأسئلة — تم استخدام التمرين المحلي بدلاً منه",
     "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "محرك التفريغ الصوتي",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "غير مضبوط (بدون تمرين تحدث)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "نقطة تفريغ محلية / مستضافة ذاتيًا",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "مفتاح API للتفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "عنوان نقطة التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "نموذج التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "اقرأ هذه الجملة بصوت عالٍ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 بدء التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 إعادة التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ إيقاف",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "جارٍ التسجيل — اقرأ الجملة أعلاه",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "جارٍ التفريغ…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "مطابقة الجملة {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "فائت: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "يستخدم نقطة النهاية التي ضبطتها — استدعاء واحد لكل تسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "لم تُضبط نقطة تفريغ بعد",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "لم يُدخل مفتاح API للتفريغ بعد",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "لا يستطيع هذا المتصفح الوصول إلى الميكروفون",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "رُفض إذن الميكروفون — سنستخدم تمارين أخرى في هذه الجلسة",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "أعادت خدمة التفريغ خطأً",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "لم يُتعرَّف على كلام — حاول مرة أخرى",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "هذا المتصفح لا يدعم التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "فشل التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
   }
 }

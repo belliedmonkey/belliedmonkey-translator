@@ -37,12 +37,14 @@ const MODULES = [
   'extension/content/learn-scheduler.js',// LearnScheduler — retrievability / buildDeck
   'extension/content/learn-exercises.js',// LearnExercises — §9.3 variant generation (pure)
   'extension/content/tts.gen.js',        // generated speech-engine registry
+  'extension/content/stt.gen.js',        // generated transcription-engine registry (§9.4)
   'extension/content/providers.gen.js',  // generated provider registry — the notes
                                          // gate and the app's engine picker both
                                          // read it (§7.2 / §9.2)
   'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS
+  'extension/learn/speech-input.js',     // LearnSpeech — §9.4 录音 + BYO 转写
   'extension/learn/drain.js',            // LearnDrain — a no-op here (no outbox), see below
   'extension/learn/auth.js',             // LearnAuth
   'extension/learn/chunk.js',            // LearnChunk

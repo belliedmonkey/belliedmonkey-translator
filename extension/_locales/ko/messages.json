@@ -1135,5 +1135,101 @@
   "learn_pack_failed": {
     "message": "문제 생성 실패 — 로컬 문제 유형으로 대체했습니다",
     "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "전사 엔진",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "미설정(말하기 문제 없음)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "로컬 / 자체 호스팅 전사 엔드포인트",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "말하기 문제의 녹음은 여기서 설정한 엔드포인트로 전송되어 전사 후 즉시 폐기됩니다(저장·동기화 없음). 미설정 시 말하기 문제가 나오지 않습니다. 키는 이 기기에만 저장됩니다.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "전사 API 키",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "전사 엔드포인트 URL",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "전사 모델",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "이 문장을 소리 내어 읽으세요",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 녹음 시작",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 다시 녹음",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ 정지",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "녹음 중 — 위 문장을 읽으세요",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "인식 중…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "원문과 {n}% 일치",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "누락: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "설정한 전사 엔드포인트 사용 — 녹음당 1회 호출",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "전사 엔드포인트가 아직 설정되지 않았습니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "전사 API 키가 아직 없습니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "이 브라우저에서는 마이크를 사용할 수 없습니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "마이크 권한이 거부되었습니다 — 이번 세션에는 다른 문제 유형을 사용합니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "전사 서비스가 오류를 반환했습니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "음성이 인식되지 않았습니다 — 다시 시도하세요",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "이 브라우저는 녹음을 지원하지 않습니다",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "전사 실패",
+    "description": "Speak exercise / transcription engine (§9.4)"
   }
 }

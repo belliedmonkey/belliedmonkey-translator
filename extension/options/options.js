@@ -16,6 +16,8 @@ const SETTINGS_KEYS = [
   // §9.2 (2026-08-09 二): dedicated notes engine — empty notesProvider = follow
   // the translation engine's whole group (LearnNotes.resolveConfig owns the rule).
   'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
+  // §9.4: transcription engine for the 说 exercise — never follows any group.
+  'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -277,6 +279,10 @@ async function saveAll() {
     notesApiKey:   $('notes-api-key').value.trim(),
     notesBaseUrl:  $('notes-base-url').value.trim(),
     notesModel:    $('notes-model').value.trim(),
+    sttEngine:     $('stt-engine').value,
+    sttApiKey:     $('stt-api-key').value.trim(),
+    sttBaseUrl:    $('stt-base-url').value.trim(),
+    sttModel:      $('stt-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
 }
@@ -387,6 +393,41 @@ async function init() {
   $('notes-model').value    = s.notesModel || '';
   updateNotesUI($('notes-provider').value);
 
+  // §9.4 — transcription engine for the 说 exercise. Option "" = not configured =
+  // the speak form does not exist (the correct default; there is no zero-config
+  // transcription engine and never will be — §12). Candidates come from the
+  // generated registry; nothing engine-specific is restated here.
+  function populateSttEngines(selected) {
+    const sel = $('stt-engine');
+    sel.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = t('stt_engine_none', '未配置（不出「说」题）');
+    sel.appendChild(none);
+    for (const e of (window.MT_STT_ENGINES || [])) {
+      const o = document.createElement('option');
+      o.value = e.id;
+      o.textContent = e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id);
+      sel.appendChild(o);
+    }
+    sel.value = (window.MT_STT_ENGINES || []).some((e) => e.id === selected) ? selected : '';
+  }
+  function updateSttUI(id) {
+    const e = (window.MT_STT_ENGINES || []).find((x) => x.id === id) || null;
+    $('stt-config').hidden = !e;
+    if (!e) return;
+    $('stt-key-field').hidden = !e.needsKey;
+    $('stt-baseurl-field').hidden = !e.supportsBaseUrl;
+    $('stt-model-field').hidden = !e.supportsModel;
+    $('stt-base-url').placeholder = e.defaultBase || 'https://…';
+    $('stt-model').placeholder = e.defaultModel || '';
+  }
+  populateSttEngines(s.sttEngine || '');
+  $('stt-api-key').value  = s.sttApiKey || '';
+  $('stt-base-url').value = s.sttBaseUrl || '';
+  $('stt-model').value    = s.sttModel || '';
+  updateSttUI($('stt-engine').value);
+
   updateProviderUI(prov);
   updateColorPreview(s.textColor || '#0a7a3c');
   $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
@@ -400,6 +441,15 @@ async function init() {
     showToast(t('toast_saved', '已保存'));
   });
   for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
+    $(id).addEventListener('change', async () => { await saveAll(); });
+  }
+
+  $('stt-engine').addEventListener('change', async (e) => {
+    updateSttUI(e.target.value);
+    await saveAll();
+    showToast(t('toast_saved', '已保存'));
+  });
+  for (const id of ['stt-api-key', 'stt-base-url', 'stt-model']) {
     $(id).addEventListener('change', async () => { await saveAll(); });
   }
 
