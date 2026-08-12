@@ -26,7 +26,9 @@ var AppSettings = (() => {
   const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules',
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
-    'provider', 'apiKey', 'apiBaseUrl', 'apiModel'];
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    // §9.4 — the transcription group review.js reads. Device-local (§7.2).
+    'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -99,6 +101,26 @@ var AppSettings = (() => {
       const o = document.createElement('option');
       o.value = p.id; o.textContent = p.label;
       sel.append(o);
+    }
+    // §9.4 — transcription engine for the 说 exercise. Empty = not configured =
+    // the speak form does not exist. Candidates come from the generated registry.
+    $('stt-title').textContent = t('stt_engine', '转写引擎');
+    $('stt-engine-label').textContent = t('stt_engine', '转写引擎');
+    $('stt-key-label').textContent = t('stt_api_key', '转写 API Key');
+    $('stt-base-label').textContent = t('stt_base_url', '转写端点地址');
+    $('stt-model-label').textContent = t('stt_model', '转写模型');
+    $('stt-note').textContent = t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。');
+    const ssel = $('stt-engine');
+    ssel.textContent = '';
+    const snone = document.createElement('option');
+    snone.value = '';
+    snone.textContent = t('stt_engine_none', '未配置（不出「说」题）');
+    ssel.append(snone);
+    for (const e of (window.MT_STT_ENGINES || [])) {
+      const o = document.createElement('option');
+      o.value = e.id;
+      o.textContent = e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id);
+      ssel.append(o);
     }
     // 来源治理 (interaction-spec): rules follow the account (§8.9); the phone is a
     // natural place to edit them even though the app itself never captures.
@@ -262,6 +284,12 @@ var AppSettings = (() => {
     $('notes-base').value = cur.apiBaseUrl || '';
     $('notes-model').value = cur.apiModel || '';
     paintNotesFields(cur.provider || '');
+    $('stt-engine').value = (window.MT_STT_ENGINES || []).some((e) => e.id === cur.sttEngine)
+      ? cur.sttEngine : '';
+    $('stt-key').value = cur.sttApiKey || '';
+    $('stt-base').value = cur.sttBaseUrl || '';
+    $('stt-model').value = cur.sttModel || '';
+    paintSttFields($('stt-engine').value);
     $('account-who').textContent = (session && session.email) || '';
 
     const [stats, reviews] = await Promise.all([LearnStore.stats(), LearnStore.allReviews()]);
@@ -271,6 +299,18 @@ var AppSettings = (() => {
       + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
 
     await paintGovernance(say);
+  }
+
+  // §9.4 — STT field visibility follows the registry entry, same rule as TTS.
+  function paintSttFields(engineId) {
+    const e = (window.MT_STT_ENGINES || []).find((x) => x.id === engineId) || null;
+    $('stt-key-field').hidden = !(e && e.needsKey);
+    $('stt-base-field').hidden = !(e && e.supportsBaseUrl);
+    $('stt-model-field').hidden = !(e && e.supportsModel);
+    if (e) {
+      $('stt-base').placeholder = e.defaultBase || 'https://…';
+      $('stt-model').placeholder = e.defaultModel || '';
+    }
   }
 
   // Field visibility and placeholders follow the registry entry, not a hardcoded
@@ -370,6 +410,32 @@ var AppSettings = (() => {
     });
     for (const id of ['notes-key', 'notes-base', 'notes-model']) {
       $(id).addEventListener('change', saveNotesCfg);
+    }
+
+    // §9.4 in the app: write the SAME keys review.js reads and reconfigure
+    // LearnSpeech immediately — capable() is re-asked per card, so the next card
+    // picks a freshly configured engine up live (same reasoning as the notes key).
+    async function saveSttCfg() {
+      const c = {
+        sttEngine: $('stt-engine').value,
+        sttApiKey: $('stt-key').value.trim(),
+        sttBaseUrl: $('stt-base').value.trim(),
+        sttModel: $('stt-model').value.trim(),
+      };
+      await set(c);
+      if (typeof LearnSpeech !== 'undefined') {
+        LearnSpeech.configure({
+          engineId: c.sttEngine, apiKey: c.sttApiKey,
+          baseUrl: c.sttBaseUrl, model: c.sttModel,
+        });
+      }
+    }
+    $('stt-engine').addEventListener('change', async () => {
+      paintSttFields($('stt-engine').value);
+      await saveSttCfg();
+    });
+    for (const id of ['stt-key', 'stt-base', 'stt-model']) {
+      $(id).addEventListener('change', saveSttCfg);
     }
 
     $('clean-known').addEventListener('click', async () => {

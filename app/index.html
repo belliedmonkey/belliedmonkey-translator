@@ -139,6 +139,30 @@
       </label>
       <p class="note" id="notes-note"></p>
 
+      <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的端点，
+           识别后即弃；不配置则说题不存在。设备本地凭证（§7.2），永不同步。 -->
+      <h3 id="stt-title"></h3>
+      <label class="field">
+        <span id="stt-engine-label"></span>
+        <select id="stt-engine"></select>
+      </label>
+      <label class="field" id="stt-key-field">
+        <span id="stt-key-label"></span>
+        <input id="stt-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" id="stt-base-field">
+        <span id="stt-base-label"></span>
+        <input id="stt-base" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" id="stt-model-field">
+        <span id="stt-model-label"></span>
+        <input id="stt-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <p class="note" id="stt-note"></p>
+
       <!-- 来源治理（interaction-spec）：规则随账号同步（§8.9），在手机上改是
            自然场景。App 自身不采集 —— 这里改的是浏览器扩展那头的采集行为。 -->
       <h3 id="app-langs-title"></h3>

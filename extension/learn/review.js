@@ -22,6 +22,9 @@
   let clozeState = null;    // write tier: { answers, inputs, checked, accept }
   let exState = null;       // §9.3 — current choice/pick exercise, or null (recall/cloze)
   let poolItems = [];       // §9.3 — corpus snapshot: local distractor/foil material
+  let speakRec = null;      // §9.4 — live recording handle, or null
+  let speakTimer = 0;       // §9.4 — elapsed-seconds repaint while recording
+  let speakDenied = false;  // §9.4 — mic denied this session ⇒ the 说 form stops existing
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
@@ -37,6 +40,9 @@
         // override group (notesProvider set ⇒ notes group wins; resolveConfig).
         'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
         'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
+        // §9.4 — the transcription engine group. NEVER follows the translation or
+        // notes group: where a recording goes is an explicit choice.
+        'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
       ]).then(function (r) { return r.data; }));
     });
   }
@@ -343,6 +349,50 @@
     $('ex-check').hidden = true;
     $('ex-status').hidden = true;
     $('ex-status').textContent = '';
+    // §9.4 — leaving a card mid-recording releases the mic; the blob is discarded
+    // unheard. A recording indicator that outlives its card is a trust bug.
+    if (speakRec) { try { speakRec.cancel(); } catch (_) {} speakRec = null; }
+    if (speakTimer) { clearInterval(speakTimer); speakTimer = 0; }
+    $('speak-box').hidden = true;
+    $('speak-status').textContent = '';
+    $('speak-transcript').hidden = true;
+    $('speak-transcript').textContent = '';
+    $('speak-score').hidden = true;
+    $('speak-score').textContent = '';
+  }
+
+  // §9.4 — why the speak attempt failed, in the user's words (reason convention
+  // shared with reasonText above).
+  function sttReasonText(code) {
+    switch (code) {
+      case 'no_engine':
+      case 'no_base': return t('stt_no_base', '还没配置转写端点');
+      case 'no_key': return t('stt_no_key', '还没填转写 API Key');
+      case 'no_mic': return t('stt_no_mic', '这个浏览器拿不到麦克风');
+      case 'mic_denied': return t('stt_mic_denied', '麦克风权限被拒绝——本次会话改用其他题型');
+      case 'http': return t('stt_http', '转写服务返回了错误');
+      case 'empty_transcript': return t('stt_empty', '没有识别到语音，再试一次');
+      case 'unsupported': return t('stt_unsupported', '这个浏览器不支持录音');
+      default: return t('stt_failed', '转写失败');
+    }
+  }
+
+  // §9.4 说题卡: the original stays VISIBLE (this is reading aloud, not recall);
+  // record → the user's own endpoint → speakScore constrains the grades.
+  function renderSpeak(item) {
+    exState = { kind: 'speak', decided: false };
+    $('speak-box').hidden = false;
+    $('ex-prompt').hidden = false;
+    $('ex-prompt').textContent = t('learn_speak_prompt', '朗读这一句');
+    $('speak-status').textContent = t('learn_speak_cost', '使用你配置的转写端点，每次录音一次调用');
+    const btn = $('speak-record');
+    btn.disabled = false;
+    btn.textContent = t('learn_speak_record', '🎙 开始录音');
+    $('orig').hidden = false;
+    $('reveal').hidden = true;
+    $('reveal-orig').hidden = true;
+    $('answer').hidden = true;
+    $('grades').hidden = true;
   }
 
   // §9.3 — one place turns an objective result into the allowed grade set,
@@ -568,7 +618,12 @@
     // is a read card, not a broken one. `caps.speak` stays false until the speak
     // pipeline lands (§9.4).
     const av = ttsMode !== 'off' ? await LearnTTS.available(item.lang) : { ok: false };
-    const caps = { listen: av.ok, speak: false };
+    // §9.4 — speak exists only while an engine is configured AND the mic API is
+    // present AND this session has not been denied the mic.
+    const caps = {
+      listen: av.ok,
+      speak: !speakDenied && typeof LearnSpeech !== 'undefined' && LearnSpeech.capable(),
+    };
     if (extraMode && skillQueue.length) {
       // Second exercise: same card, next queued skill — never recomputed, so the
       // queue the FIRST render promised is the queue the card delivers.
@@ -618,6 +673,8 @@
         renderChoice(item, variant);
       } else if (variant.kind === 'listen-pick') {
         renderListenPick(item, variant);
+      } else if (variant.kind === 'speak') {
+        renderSpeak(item);
       } else {
         applyStage(currentMode === 'listen' || ttsMode === 'audio-first' ? 0 : 1);
       }
@@ -948,6 +1005,17 @@
   LearnNotes.configure(LearnNotes.resolveConfig(settings));
   const explainLang = settings.uiLang && settings.uiLang !== 'auto'
     ? settings.uiLang : (navigator.language || 'zh-CN');
+  // §9.4 — the transcription engine group. Empty engine ⇒ capable() false ⇒ the
+  // speak form does not exist. Guarded: content-script-less test hosts may load
+  // review.js without the speech module.
+  if (typeof LearnSpeech !== 'undefined') {
+    LearnSpeech.configure({
+      engineId: settings.sttEngine || '',
+      baseUrl: settings.sttBaseUrl || '',
+      apiKey: settings.sttApiKey || '',
+      model: settings.sttModel || '',
+    });
+  }
   LearnTTS.configure({
     engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
     baseUrl: settings.ttsBaseUrl || '',
@@ -1054,6 +1122,91 @@
       const g = Number(b.dataset.grade);
       b.disabled = allOk ? g === 0 : g > 0;
     });
+  });
+
+  // §9.4 说题卡 — one button, three states: start → stop(+elapsed) → 识别中.
+  // IO 在途，控件不可用: from stop to the transcription settling, the whole speak
+  // control is disabled with a named status. A mic denial collapses the speak
+  // capability for the session and re-renders the card on its next eligible
+  // skill — never a dead card. The recording blob is discarded after transcribe.
+  const speakFail = (item, code) => {
+    $('speak-status').textContent = sttReasonText(code) + ' (' + code + ')';
+    if (code === 'mic_denied' || code === 'no_mic') {
+      speakDenied = true;
+      extraMode = false;
+      skillQueue = [];
+      show(currentSources);
+      return true;
+    }
+    return false;
+  };
+  $('speak-record').addEventListener('click', async () => {
+    const item = deck[idx];
+    if (!item || !exState || exState.kind !== 'speak') return;
+    const btn = $('speak-record');
+
+    if (!speakRec) {
+      // Start. Any TTS playback stops first — one audio channel at a time.
+      LearnTTS.stop();
+      btn.disabled = true;
+      let rec;
+      try {
+        rec = await LearnSpeech.startRecording();
+      } catch (e) {
+        if (deck[idx] !== item) return;
+        if (!speakFail(item, (e && e.code) || 'error')) btn.disabled = false;
+        return;
+      }
+      if (deck[idx] !== item) { try { rec.cancel(); } catch (_) {} return; }
+      speakRec = rec;
+      const t0 = Date.now();
+      const paint = () => {
+        btn.textContent = t('learn_speak_stop', '■ 停止')
+          + ' ' + Math.round((Date.now() - t0) / 1000) + 's';
+      };
+      paint();
+      speakTimer = setInterval(paint, 1000);
+      $('speak-status').textContent = t('learn_speak_recording', '录音中——读出上面的句子');
+      btn.disabled = false;
+      return;
+    }
+
+    // Stop → transcribe → score. Whole control disabled until the attempt settles.
+    const rec = speakRec;
+    speakRec = null;
+    clearInterval(speakTimer);
+    speakTimer = 0;
+    btn.disabled = true;
+    $('speak-status').textContent = t('learn_speak_busy', '识别中…');
+    try {
+      const out = await rec.stop();
+      const transcript = await LearnSpeech.transcribe(out.blob, out.ext, item.lang);
+      if (deck[idx] !== item) return;
+      const r = LearnExercises.speakScore(item.text, transcript);
+      exState.decided = true;
+      $('speak-transcript').hidden = false;
+      $('speak-transcript').textContent = transcript;
+      $('speak-score').hidden = false;
+      $('speak-score').textContent = t('learn_speak_score', '与原句匹配 {n}%')
+          .replace('{n}', String(Math.round(r.score * 100)))
+        + (r.missed.length
+          ? ' · ' + t('learn_speak_missed', '漏读：') + r.missed.slice(0, 5).join(' ')
+          : '');
+      applyStage(2);
+      $('grades').hidden = false;
+      applyGradeGate(LearnExercises.gradeGate('speak', r));
+      // Re-recording is allowed once the attempt settles (a better read re-gates);
+      // the cost line returns so the next call is never a surprise charge.
+      btn.textContent = t('learn_speak_again', '🎙 再录一次');
+      btn.disabled = false;
+      $('speak-status').textContent = t('learn_speak_cost', '使用你配置的转写端点，每次录音一次调用');
+    } catch (e) {
+      if (deck[idx] !== item) return;
+      if (!speakFail(item, (e && e.code) || 'error')) {
+        btn.textContent = t('learn_speak_again', '🎙 再录一次');
+        btn.disabled = false;
+      }
+    }
   });
 
   // §9.3 盲听选词 — 确认 locks the selection, reveals, and gates the grades on

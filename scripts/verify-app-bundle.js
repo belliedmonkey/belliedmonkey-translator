@@ -127,6 +127,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'tts-voice','tts-auto','tts-rate',
           // §7.2 device-local credential for §9.2 notes
           'notes-provider','notes-key','notes-base','notes-model',
+          // §7.2 device-local credential for the §9.4 transcription engine
+          'stt-engine','stt-key','stt-base','stt-model',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus
@@ -142,6 +144,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // MT_TTS_ENGINES entry, counted against the live registry.
         ttsEngineCount: document.getElementById('tts-engine').options.length,
         ttsEngineWant: (window.MT_TTS_ENGINES || []).length,
+        // The transcription-engine picker (§9.4): one 未配置 row (the correct
+        // default — no zero-config STT engine exists) plus the live registry.
+        sttEngineCount: document.getElementById('stt-engine').options.length,
+        sttEngineWant: 1 + (window.MT_STT_ENGINES || []).length,
         // chrome-shim seeds ttsMode='assist' SYNCHRONOUSLY, before review.js's
         // one-shot boot read — the async ensureDefaults path loses that race, which
         // is exactly how the app shipped with speech permanently off. Assert the
@@ -213,6 +219,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     need(!o.notesPickerHasNonChat, '解析引擎选择器混入了非 chat 类引擎 —— 门控按 type，选择器也必须');
     need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 0,
       '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant);
+    need(o.sttEngineCount === o.sttEngineWant && o.sttEngineWant > 1,
+      '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');

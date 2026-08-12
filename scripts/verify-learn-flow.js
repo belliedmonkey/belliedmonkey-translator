@@ -77,13 +77,17 @@ const SEED = `(async () => {
       lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 9 * day, lastSeenAt: now - day,
       seenCount: 3, salience: 0.6,
       sched: { s: 1.5, d: 5, lastReviewAt: now - 2 * day, dueAt: now - 3600e3, reps: 2, lapses: 0 } },
+    // listen1/write1 carry a FRESH speak stamp: with the speak capability open
+    // (§9.4 mocks below), an unstamped speak would win their rotations and the
+    // pinned listen-pick / write assertions would never render. speak coverage
+    // has its own dedicated card (speak1).
     { id: 'listen1', text: 'Practice makes memories durable.', tr: '练习让记忆持久。',
       lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 30 * day, lastSeenAt: now - day,
-      seenCount: 8, salience: 0.5, skills: { read: 1 },
+      seenCount: 8, salience: 0.5, skills: { read: 1, speak: now - 3600e3 },
       sched: { s: 10, d: 5, lastReviewAt: now - 11 * day, dueAt: now - day, reps: 6, lapses: 0 } },
     { id: 'write1', text: 'Spaced repetition beats cramming easily.', tr: '间隔重复轻松胜过临时抱佛脚。',
       lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 90 * day, lastSeenAt: now - day,
-      seenCount: 20, salience: 0.5, skills: { read: 1, listen: 1 },
+      seenCount: 20, salience: 0.5, skills: { read: 1, listen: 1, speak: now - 3600e3 },
       sched: { s: 60, d: 4, lastReviewAt: now - 65 * day, dueAt: now - 5 * day, reps: 12, lapses: 0 } },
     { id: 'und1', text: 'Unknown language sentence here.', tr: '未知语言的句子。',
       lang: 'und', sourceId: 'src1', state: 'learning', createdAt: now - 9 * day, lastSeenAt: now - day,
@@ -92,6 +96,12 @@ const SEED = `(async () => {
     { id: 'cand1', text: 'A fresh candidate sentence.', tr: '一句新候选。',
       lang: 'en', sourceId: 'src1', state: 'candidate', createdAt: now - day, lastSeenAt: now - day,
       seenCount: 1, salience: 0.9 },
+    // §9.4 — read/listen stamped FRESH so the rotation's least-recently-verified
+    // rule lands on speak (never stamped), and no second exercise queues.
+    { id: 'speak1', text: 'Reading aloud cements pronunciation.', tr: '朗读巩固发音。',
+      lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 30 * day, lastSeenAt: now - day,
+      seenCount: 5, salience: 0.5, skills: { read: now - 3600e3, listen: now - 3600e3 },
+      sched: { s: 10, d: 5, lastReviewAt: now - 11 * day, dueAt: now - day, reps: 4, lapses: 0 } },
   ];
   // §9.3 — pin each card's exercise VARIANT by choosing reps: the rotation is
   // deterministic in (id, reps, skill), so the walk can assert specific variants
@@ -185,7 +195,33 @@ async function runHost(host) {
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `
       ${SHIM_SRC}
       try { localStorage.setItem('mt:learnEnabled', 'true'); } catch (_) {}
+      // §9.4 — a configured transcription engine, so the speak capability gate is
+      // open in both hosts (the engine itself is mocked at the fetch layer below).
+      try {
+        localStorage.setItem('mt:sttEngine', JSON.stringify('local'));
+        localStorage.setItem('mt:sttBaseUrl', JSON.stringify('https://stt.example'));
+      } catch (_) {}
       (() => {
+        // Mic + recorder stubs: tier behavior is what's under test, never real audio.
+        try {
+          Object.defineProperty(navigator, 'mediaDevices', {
+            value: { getUserMedia: () => Promise.resolve({ getTracks: () => [] }) },
+            configurable: true,
+          });
+        } catch (_) {}
+        class FakeRecorder {
+          static isTypeSupported() { return true; }
+          constructor() { this.state = 'recording'; this.ondataavailable = null; this.onstop = null; }
+          start() {}
+          stop() {
+            this.state = 'inactive';
+            setTimeout(() => {
+              this.ondataavailable && this.ondataavailable({ data: new Blob(['x'], { type: 'audio/mp4' }) });
+              this.onstop && this.onstop();
+            }, 0);
+          }
+        }
+        window.MediaRecorder = FakeRecorder;
         const voices = [{ name: 'TestVoice', lang: 'en-US', voiceURI: 'TestVoice|en-US', default: true, localService: true }];
         window.speechSynthesis = {
           getVoices: () => voices,
@@ -199,6 +235,12 @@ async function runHost(host) {
         // fetch mock for the notes engine only — everything else passes through.
         const realFetch = window.fetch.bind(window);
         window.fetch = (u2, init) => {
+          // §9.4 mock transcription: echo the on-screen sentence, so speakScore
+          // is 100% and the grade gate's "perfect read disables 不记得" is testable.
+          if (String(u2).includes('/v1/audio/transcriptions')) {
+            return Promise.resolve({ ok: true, status: 200,
+              text: async () => JSON.stringify({ text: document.getElementById('orig').textContent }) });
+          }
           if (String(u2).includes('/v1/chat/completions')) {
             return Promise.resolve({ ok: true, status: 200, json: async () => ({
               choices: [{ message: { content: JSON.stringify({
@@ -255,8 +297,9 @@ async function runHost(host) {
       const orig = await ev(`document.getElementById('orig').textContent.trim()`);
       const writeMode = !(await hidden('#write-prompt'));
       const listenStage = !(await hidden('#reveal-orig'));
+      const speakMode = !(await hidden('#speak-box'));
       const pickMode = !(await hidden('#ex-check'));
-      const choiceMode = !pickMode && !(await hidden('#ex-options'));
+      const choiceMode = !pickMode && !speakMode && !(await hidden('#ex-options'));
       // §5.4 — the extra-note attribute is set at render time (its parent may still
       // be pre-reveal), so read the attribute, not the computed visibility.
       if (await ev(`!document.getElementById('extra-note').hidden`)) sawExtra = true;
@@ -300,6 +343,25 @@ async function runHost(host) {
         const g0disabled = await ev(`document.querySelector('.grade.g0').disabled`);
         need(g0disabled === true, '全对之后「不记得」竟然还能点 —— 客观结果没有约束评分');
         await sweep('产出档·已检查');
+        await click('.grade[data-grade="2"]');
+      } else if (speakMode) {
+        // 3c · 说题卡 (§9.4): record → stop → 「识别中」 → transcript + score →
+        // the score constrains the grades. The mock endpoint echoes the sentence,
+        // so the score is 100% and 不记得 must be disabled.
+        seen.add('speak');
+        need(!(await ev(`document.getElementById('orig').hidden`)), '说题卡应显示原句（朗读非回忆）');
+        need((await text('#speak-record')).length > 0, '录音按钮无文字');
+        await sweep('说题卡');
+        await click('#speak-record');                 // start recording (stubbed)
+        await new Promise((r) => setTimeout(r, 250));
+        need((await text('#speak-record')).length > 0, '录音态按钮无文字');
+        await click('#speak-record');                 // stop → transcribe (mocked)
+        await new Promise((r) => setTimeout(r, 600));
+        need(!(await hidden('#speak-transcript')), '转写文本没有渲染');
+        need((await text('#speak-score')).length > 0, '匹配度没有渲染');
+        need(await ev(`document.querySelector('.grade.g0').disabled`) === true,
+          '完美朗读后「不记得」竟然还能点 —— 客观结果没有约束评分');
+        await sweep('说题卡·已评分');
         await click('.grade[data-grade="2"]');
       } else if (pickMode) {
         // 3a · 盲听选词 (§9.3): original hidden until 确认, options are real
@@ -400,6 +462,9 @@ async function runHost(host) {
     need(seen.has('und1'), 'und 卡从未出现');
     need(seen.has('mcq'), '译文选择题从未出现（种子已把 read1 的 reps 钉在 mcq 上）');
     need(seen.has('pick'), '盲听选词从未出现（种子已把 listen1 的 reps 钉在 listen-pick 上）');
+    need(seen.has('speak'), '说题卡从未出现（speak1 已种子化且转写引擎已配置）');
+    const spoke = await ev(`LearnStore.allReviews().then((rs) => rs.some((r) => r.mode === 'speak'))`);
+    need(spoke === true, '复习行里没有 mode:speak');
 
     // 5 · Grading wrote the schedule and stamped the skill — the DB is the truth.
     // §5.4: stamps are TIMESTAMPS now (legacy 1 = ancient); a pass must write a

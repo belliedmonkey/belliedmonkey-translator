@@ -191,6 +191,29 @@
           </div>
         </div>
 
+        <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的
+             端点，识别后即弃；不配置则说题不存在。永不跟随翻译或解析组——
+             录音去哪儿必须是一次显式选择。 -->
+        <div class="field">
+          <label for="stt-engine" data-i18n="stt_engine">转写引擎</label>
+          <select id="stt-engine"></select>
+          <p class="hint" data-i18n="stt_hint">「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。</p>
+        </div>
+        <div id="stt-config" hidden>
+          <div class="field" id="stt-key-field">
+            <label for="stt-api-key" data-i18n="stt_api_key">转写 API Key</label>
+            <input type="password" id="stt-api-key" placeholder="sk-…">
+          </div>
+          <div class="field" id="stt-baseurl-field">
+            <label for="stt-base-url"><span data-i18n="stt_base_url">转写端点地址</span></label>
+            <input type="text" id="stt-base-url" placeholder="https://…">
+          </div>
+          <div class="field" id="stt-model-field">
+            <label for="stt-model"><span data-i18n="stt_model">转写模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="text" id="stt-model">
+          </div>
+        </div>
+
         <!-- 来源管理（interaction-spec「来源治理」）：按域名列表点选是主路径，
              通配符输入是补充。删除会同步到所有设备。 -->
         <button id="btn-manage-sources" data-i18n="learn_sources_manage">来源管理</button>
@@ -335,6 +358,7 @@
   <script src="../content/learn-rules.js"></script>
   <script src="../content/learn-scheduler.js"></script>
   <script src="../content/tts.gen.js"></script>
+  <script src="../content/stt.gen.js"></script>
   <script src="../learn/store.js"></script>
   <script src="../learn/chunk.js"></script>
   <script src="../learn/backup.js"></script>

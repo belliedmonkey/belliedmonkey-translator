@@ -104,6 +104,39 @@ function patchViewController(sharedDir) {
   return notes.join(' · ');
 }
 
+// Patch 3 (§9.4): the 说 exercise records the microphone inside the WKWebView.
+// iOS requires NSMicrophoneUsageDescription in the APP target's Info.plist or the
+// process is killed at getUserMedia time — and the converter's template does not
+// carry it. `safari-project*/` is regenerated (and this key wiped) routinely, so
+// the patch lives here, like every other thing the converter gets wrong for us.
+// The string names the §10 Gate C contract, not a generic "needs the mic".
+//
+// macOS note: the sandboxed macOS app would ALSO need the
+// com.apple.security.device.audio-input entitlement; that file is not patched
+// here — verify on the real Mac before shipping the speak exercise there
+// (docs/learn-regression.md §3, 真机矩阵).
+const MIC_KEY = 'NSMicrophoneUsageDescription';
+const MIC_TEXT = '朗读练习需要使用麦克风录音；录音只发送到你自己配置的转写端点，识别后立即丢弃，绝不存储或上传到我们的服务器。';
+function patchInfoPlists(sharedDir) {
+  const appRoot = path.dirname(sharedDir);   // …/<name>/, holding "iOS (App)" etc.
+  const notes = [];
+  for (const entry of fs.readdirSync(appRoot)) {
+    if (!/\(App\)$/.test(entry) || entry.startsWith('Shared')) continue;
+    const plist = path.join(appRoot, entry, 'Info.plist');
+    if (!fs.existsSync(plist)) continue;
+    let src = fs.readFileSync(plist, 'utf8');
+    if (src.includes(MIC_KEY)) { notes.push(entry + ': mic key already present'); continue; }
+    const anchor = src.lastIndexOf('</dict>');
+    if (anchor < 0) { notes.push(entry + ': no </dict> anchor'); continue; }
+    src = src.slice(0, anchor)
+      + `\t<key>${MIC_KEY}</key>\n\t<string>${MIC_TEXT}</string>\n`
+      + src.slice(anchor);
+    fs.writeFileSync(plist, src);
+    notes.push(entry + ': mic key patched');
+  }
+  return notes.length ? notes.join(' · ') : 'no app Info.plist found';
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error('✗ no dist-app/ — run `node build.js` first');
@@ -131,7 +164,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)}`);
       touched++;
     }
   }

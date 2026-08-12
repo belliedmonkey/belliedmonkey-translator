@@ -1135,5 +1135,101 @@
   "learn_pack_failed": {
     "message": "Generierung fehlgeschlagen — lokale Übungsform wird verwendet",
     "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "Transkriptions-Engine",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "Nicht konfiguriert (keine Sprechübung)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "Lokaler / selbst gehosteter Transkriptions-Endpunkt",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "Aufnahmen der Sprechübung gehen an den hier konfigurierten Endpunkt und werden danach verworfen — nie gespeichert, nie synchronisiert. Ohne Engine keine Sprechübung. Der Schlüssel bleibt auf diesem Gerät.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "Transkriptions-API-Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "Transkriptions-Endpunkt-URL",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "Transkriptionsmodell",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "Lies diesen Satz laut vor",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 Aufnahme starten",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 Erneut aufnehmen",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ Stopp",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "Aufnahme läuft — lies den Satz oben",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "Wird transkribiert …",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "{n} % Übereinstimmung mit dem Satz",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "Ausgelassen: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "Nutzt deinen konfigurierten Endpunkt — ein Aufruf pro Aufnahme",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "Noch kein Transkriptions-Endpunkt konfiguriert",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "Noch kein Transkriptions-API-Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "Dieser Browser hat keinen Mikrofonzugriff",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "Mikrofon verweigert — diese Sitzung nutzt andere Übungen",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "Der Transkriptionsdienst meldete einen Fehler",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "Keine Sprache erkannt — versuch es erneut",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "Dieser Browser unterstützt keine Aufnahme",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "Transkription fehlgeschlagen",
+    "description": "Speak exercise / transcription engine (§9.4)"
   }
 }

@@ -243,6 +243,13 @@ button:hover { border-color: var(--green); }
    verdict colors are the content — the base :disabled fade would wash them out. */
 .ex-option.ok:disabled { border-color: var(--green); color: var(--green); font-weight: 600; opacity: 1; }
 .ex-option.bad:disabled { border-color: #c0392b; color: #c0392b; opacity: 1; }
+
+/* ─── §9.4 说题卡 ──────────────────────────────────────────────────────────── */
+.speak-box { margin: 8px 0 12px; }
+.speak-transcript {
+  margin: 8px 0 0; padding: 8px 10px; border-radius: 8px;
+  border: 1px dashed var(--border); color: var(--text); font-size: 15px;
+}
 .grade:disabled { opacity: 0.35; cursor: default; }
 
 /* ─── §9.2 sentence notes ──────────────────────────────────────────────────── */
