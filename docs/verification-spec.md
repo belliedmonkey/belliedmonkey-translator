@@ -786,7 +786,8 @@ viewport change** (`resize` in its manifest — `Emulation.setDeviceMetricsOverr
 which re-runs every assert after the renderer's debounced re-measure: that is the
 rotation / window-resize / media-query-breakpoint path. Screenshots land in
 `test/layout/artifacts/` (gitignored, pid-locked so concurrent runs don't clobber
-each other) for human eyeballing. ~50s wall time (headless Chrome).
+each other) for human eyeballing. ~80s wall time (headless Chrome — the behavioral
+phases' in-page settles account for the growth past the old ~50s).
 
 Five manifest keys reach beyond geometry, because some behaviour is **invisible in the
 DOM**:
