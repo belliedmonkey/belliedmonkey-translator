@@ -161,10 +161,34 @@ var TwitterTranslator = (() => {
       positionedAncestor(v) || v.parentElement;
   }
   // Re-parent an element into the active video's container each tick (idempotent),
-  // ensuring the container can anchor absolutely-positioned children.
+  // ensuring the container can anchor absolutely-positioned children. The prior
+  // inline `position` is recorded on the container ('1' = none, the flow-fix
+  // pattern) so disable can put back exactly what the page had — a leaked
+  // static→relative flip re-parents the page's own absolutely-positioned
+  // descendants (interaction-spec: 插入不得改变页面原有内容的行为).
+  const posFixed = new Set(); // containers we flipped — the doc sweep misses ones DETACHED at disable time
   function anchorInto(el, container) {
     if (el.parentElement !== container) container.appendChild(el);
-    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+    if (getComputedStyle(container).position === 'static') {
+      if (!container.hasAttribute('data-mt-pos-fix')) container.setAttribute('data-mt-pos-fix', container.style.position || '1');
+      container.style.position = 'relative';
+      posFixed.add(container);
+    }
+  }
+  // The container changes across videos / fullscreen flips, so several may carry
+  // the fix. Sweep the live document AND the tracked set: a container React
+  // unmounted before disable is detached but may be recycled later — it must not
+  // come back with a leaked position:relative. Style writes work on detached nodes.
+  function undoPosFix() {
+    const undo = (el) => {
+      if (!el.hasAttribute('data-mt-pos-fix')) return;
+      const prev = el.getAttribute('data-mt-pos-fix');
+      el.style.position = (prev && prev !== '1') ? prev : '';
+      el.removeAttribute('data-mt-pos-fix');
+    };
+    document.querySelectorAll('[data-mt-pos-fix]').forEach(undo);
+    posFixed.forEach(undo);
+    posFixed.clear();
   }
 
   // ─── Overlay anchor: absolute, INSIDE the active video's container (§2.3.6) ──
@@ -248,7 +272,7 @@ var TwitterTranslator = (() => {
   return {
     init: (s) => { bindFs(); return ui.init(s); },
     enable: ui.enable,
-    disable: () => { unbindFs(); return ui.disable(); },
+    disable: () => { unbindFs(); undoPosFix(); return ui.disable(); },
     updateSettings: ui.updateSettings,
   };
 })();

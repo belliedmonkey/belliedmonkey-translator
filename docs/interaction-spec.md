@@ -316,6 +316,36 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   remain the backstop for genuinely replaced nodes. The observer ignores mutations
   involving only our own `mt-` nodes to avoid the YouTube observer-feedback-loop
   gotcha.)
+- **…and never destroy the user's text selection.** The same re-render MOVES the
+  page's own paragraph nodes (remove+insert of the same objects) — verified live on
+  lennysnewsletter.com 2026-08-12: selecting text triggers a React commit that
+  performs **zero** paragraph mutations without our siblings and **hundreds** with
+  them, and any move containing a selection endpoint kills or half-kills the
+  selection（用户症状：「高亮闪一下就没」）. The renderer snapshots the live
+  selection (`selectionchange`) and, in the **same pre-paint microtask** as the
+  re-anchor pass, restores it via `setBaseAndExtent` when a real mutation batch
+  damaged it. Restore never fights intent: a user gesture after the snapshot, a
+  programmatic `removeAllRanges()` (no mutation batch), or endpoints that are no
+  longer connected all suppress it, and it is bounded per gesture (page wins after
+  8 rounds — the FAB-remount philosophy). Regression: layout fixture 33.
+- **…and never change how the page's own content behaves.**（翻译文字插入后不要
+  影响网页原有内容的交互动作。）The page's links, buttons, handlers, context
+  menu and selection must behave exactly as they would without the extension —
+  only our own injected UI (the `.mt-translation` sibling, FAB, subtitle
+  controls) is ever interactive on our behalf. Concretely: the interleave redraw
+  is plain text with the source hidden, so it **bails to sibling rendering**
+  whenever the original contains interactive or non-text content (links,
+  buttons, media, code — the original stays visible and fully clickable; fewer
+  interleaves is the accepted price). Timestamp→seek anchors are created on
+  **YouTube hosts only** — a hero `<video>` elsewhere must never be scrubbed by
+  a translation. The selection keeper never overrides a selection the page set
+  itself (a damaged selection is collapsed, keeps a snapshot endpoint, or clamps
+  onto its ancestor; a page-set one shares none), never snapshots selections
+  inside editors, and counts IME / dictation / paste (`beforeinput`,
+  `compositionstart`) as user gestures. Every inline-style mutation on a page
+  element records the prior value and restores it on disable (`data-mt-hidden`
+  carries the prior `display`, `data-mt-pos-fix` the prior `position` — the
+  `data-mt-flow-fix` pattern). Regression: layout fixtures 34–36.
 - **Flex / grid rows: translation takes its own full-width line.** When the
   original's parent is a flex or grid container (mobile YouTube video metadata
   `次点赞/观看/年前`, the top nav, comment counts), the sibling translation would
@@ -578,8 +608,9 @@ Domain model, scheduler math and storage live in
   it does **not** silently delete what was already collected (say so on the switch).
 - **Saving a sentence deliberately** is a long-press / right-click on an injected
   `.mt-translation`, which stars it and bypasses the salience gate. A plain tap on
-  body text still produces **no perceptible action** (see "Text translation —
-  universal rules"); only the translation sibling is interactive, and only on
+  body text still produces **no perceptible action** (see "Webpage bilingual
+  translation → One unified path" — the SPA / selection / interaction triad); only
+  the translation sibling is interactive, and only on
   long-press. A brief inline confirmation appears on the sibling itself — never a
   page-level toast.
 

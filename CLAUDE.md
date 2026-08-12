@@ -34,7 +34,10 @@ Safari iOS browser extension for bilingual translation — fully open source and
 node build.js            # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
 npm test                 # Pure-logic suite (zero-dep vm harness, Node ≥18 — learn/chunk.js uses CompressionStream/Response) — every push
 npm run test:layout      # Layout regression corpus (real headless Chrome via raw CDP,
-                         # Node ≥22) — mandatory when extension/content/** or styles/** change.
+                         # Node ≥22) — geometry asserts + in-page behavioral phases
+                         # (selection / interaction / keeperGuards manifest keys: selection
+                         # keeper + page-interaction invariance, fixtures 33-36).
+                         # Mandatory when extension/content/** or styles/** change.
                          # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
                          # contract: new site fix ⇒ new fixture red-before-fix, old fixtures stay green)
 npm run app:sync         # Push dist-app/ into the generated Xcode project + patch ViewController.
@@ -178,6 +181,7 @@ Acquisition (must work on Safari iOS, where `world:"MAIN"` is unsupported):
 - `.mt-translation` — injected bilingual translation div
 - `data-mt-processed` — marks a node as already translated (skip on re-run)
 - `data-mt-translatable` — marks detected paragraph nodes (for tap-to-translate)
+- `data-mt-hidden` — original hidden by the interleave path; the attribute VALUE stores the page's prior inline `display` (`1` = none) so disable restores it exactly (same prior-value family: `data-mt-flow-fix` for `flex-wrap`, `data-mt-pos-fix` for `position` on video containers)
 - `#mt-yt-overlay` — YouTube subtitle overlay; `.mt-yt-orig` (original) / `.mt-yt-trans` (translation) lines inside it
 - `#mt-fab` — floating action button
 

@@ -786,9 +786,10 @@ viewport change** (`resize` in its manifest — `Emulation.setDeviceMetricsOverr
 which re-runs every assert after the renderer's debounced re-measure: that is the
 rotation / window-resize / media-query-breakpoint path. Screenshots land in
 `test/layout/artifacts/` (gitignored, pid-locked so concurrent runs don't clobber
-each other) for human eyeballing. ~50s wall time (headless Chrome).
+each other) for human eyeballing. ~80s wall time (headless Chrome — the behavioral
+phases' in-page settles account for the growth past the old ~50s).
 
-Two manifest keys reach beyond geometry, because some behaviour is **invisible in the
+Five manifest keys reach beyond geometry, because some behaviour is **invisible in the
 DOM**:
 
 - `"cfg": {…}` overlays the run's settings for that fixture — `targetLang` above all.
@@ -801,6 +802,29 @@ DOM**:
   without the skip — what changes is the request that was never sent, i.e. the user's
   quota. A DOM-only fixture for such a change passes for the wrong reason and would
   stay green if the feature were deleted.
+- `"selection": { from, to, movesFrom? }` drives a real drag-shaped selection and
+  asserts it survives the page's SPA re-render (interaction-spec: 「…never destroy
+  the user's text selection」, fixture 33). Async in-page phase; outcomes cross the
+  isolated/main world boundary via DOM `dataset` attributes written by the
+  fixture's main-world script, with an anti-vacuous guard (the fixture must prove
+  its reconciler actually moved nodes — `movesFrom` names the container whose
+  child moves are counted, default `#article`).
+- `"interaction": { counters, clicks, contextmenu, pageSelection }` asserts the
+  page's OWN content still behaves as the page wrote it after translation
+  (interaction-spec: 翻译文字插入后不要影响网页原有内容的交互动作 — fixtures
+  34–35): page links stay visible and their listeners still fire, `contextmenu`
+  on originals is not default-prevented, and a page-programmatic selection is
+  never overridden by the selection keeper. Same dataset channel; the fixture
+  seeds every counter with a pre-enable self-test, so a listener that never
+  worked fails the run instead of passing vacuously.
+- `"keeperGuards": { from, to, movePartial, editor, moveEditor, moveOther,
+  moveOther2 }` pins the selection keeper's load-bearing behaviors that no
+  geometry can see (fixture 36): the partial-kill repair restores the EXACT
+  text, selections inside editors are never snapshotted or restored, a gesture
+  deselect and a quiet programmatic `removeAllRanges()` both stay deselected
+  across later mutation batches. Verified to bite: neutering the keeper turns
+  the partial-kill case red; removing the hideOriginal no-clobber guard turns
+  fixture 34's resize-phase `hiddenAttrEquals` red.
 
 **Mandatory before every push that touches `extension/content/**` or
 `extension/styles/**`; recommended otherwise.** No Chrome on the machine is a hard

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>translation insertion leaves page interactions untouched</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  main { max-width: 640px; margin: 24px auto; line-height: 1.6; }
+  .blob { white-space: pre-wrap; }
+</style>
+<body>
+<main>
+  <p id="p-plain">Founders who lived the problem speak with credibility, and the
+    <a id="link-direct" href="#x">full methodology guide</a> explains why that matters.</p>
+
+  <div id="blob-links" class="blob">Chapter one covers the origin story of the product
+Chapter two explains the customer discovery process
+The <a data-count href="#c3">chapter three deep dive</a> covers distribution strategy
+Chapter four closes with the retention playbook</div>
+
+  <!-- inline display recorded into data-mt-hidden and restored on disable —
+       the rerender phase (disable→enable) round-trips it; hiddenAttrEquals
+       proves the value survives repeated re-renders AND the restore. -->
+  <div id="blob-plain" class="blob" style="display:block">Verse one about the road that never ended
+Verse two about the city lights at midnight
+Verse three about the letters never sent home
+Verse four about the quiet after everything</div>
+
+  <!-- the blob ITSELF matches INTERLEAVE_UNSAFE ([onclick]) — self-match prong -->
+  <div id="blob-self" class="blob" onclick="document.body.dataset.selfclick = String(parseInt(document.body.dataset.selfclick || '0', 10) + 1)">Step one prepares the workspace for the migration
+Step two runs the schema conversion in a sandbox
+Step three verifies the converted rows byte by byte</div>
+
+  <!-- a media descendant (excluded tag: its content would be DELETED by an
+       interleave redraw, not just de-interactived) — descendant media prong -->
+  <div id="blob-img" class="blob">Figure caption line one about the architecture
+Figure caption line two about the data flow
+<img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" width="24" height="24" alt="">Figure caption line three about the deployment</div>
+
+  <p id="ts-para">The keynote moment arrives at 12:34 and the demo starts right after it.</p>
+</main>
+<!-- Outside <main>: a bare <video> makes its PARENT a player region (dom-processor
+     computePlayerRegions falls back to parentElement), which would hard-skip every
+     sibling unit — so it gets its own wrapper. The video is the F2 scenario's prop:
+     a page-owned media element a translation timestamp must never scrub. -->
+<div><video id="v" width="120" height="60"></video></div>
+<script>
+  // MAIN-world listeners counting into body.dataset — the cross-world signal
+  // (the assert lib runs in the extension's isolated world). Never preventDefault
+  // on contextmenu: the assert checks the page's default is NOT prevented.
+  const bump = (key) => {
+    document.body.dataset[key] = String(parseInt(document.body.dataset[key] || '0', 10) + 1);
+  };
+  document.getElementById('link-direct').addEventListener('click', (e) => { e.preventDefault(); bump('direct'); });
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[data-count]');
+    if (a) { e.preventDefault(); bump('delegated'); }
+  });
+  document.addEventListener('contextmenu', () => bump('ctx'));
+
+  // Pre-enable self-test: seed every counter so the interaction phase can tell
+  // "listener still works" apart from "listener never worked" (anti-vacuous).
+  document.getElementById('link-direct').click();
+  document.querySelector('a[data-count]').click();
+  document.getElementById('p-plain').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "interaction-preserved",
+  "unitCount": 6,
+  "rerender": true,
+  "resize": { "width": 1100, "height": 800 },
+  "skipUniversal": {
+    "belowOriginal": ["#blob-plain"],
+    "originalGeometryStable": ["#blob-plain"]
+  },
+  "targets": [
+    { "sel": "#blob-links", "assert": ["siblingNotInterleaved", "translationMarked"] },
+    { "sel": "#blob-self", "assert": ["siblingNotInterleaved", "translationMarked"] },
+    { "sel": "#blob-img", "assert": ["siblingNotInterleaved", "translationMarked"] },
+    { "sel": "#blob-plain", "assert": ["holderReplacesOriginal", "interleaveAlternates:4", "hiddenAttrEquals:block"] },
+    { "sel": "#ts-para", "assert": ["noAnchorsInTranslation"] }
+  ],
+  "interaction": {
+    "counters": ["direct", "delegated", "ctx"],
+    "clicks": [
+      { "sel": "#link-direct", "counter": "direct" },
+      { "sel": "#blob-links a", "counter": "delegated" },
+      { "sel": "#blob-self", "counter": "selfclick" }
+    ],
+    "contextmenu": [
+      { "sel": "#p-plain", "counter": "ctx" },
+      { "sel": ".mt-translation", "counter": "ctx" }
+    ]
+  }
+}
+</script>
+</body>
+</html>

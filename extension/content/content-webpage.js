@@ -74,6 +74,11 @@ var WebpageTranslator = (() => {
         && !u.node.hasAttribute('data-mt-hidden') && u.tr;
       if (reusable && !orphans.has(u.text)) orphans.set(u.text, { div, tr: u.tr });
       else if (div && div.remove) div.remove(); // real removal / dup / interleave → prune now
+      // An interleaved original pruned here is DETACHED but may be the very node
+      // a time-sliced SPA re-inserts a task later — without this it would come
+      // back display:none, invisible to collectUnits forever (silent content
+      // loss). Attribute/style writes are fine on detached nodes.
+      restoreOriginal(u.node);
       // A time-sliced SPA (React 18, virtualized feeds) can detach a node in one
       // task and re-insert the SAME node a task later. Without this cleanup the
       // returning node is blocked forever (known + data-mt-processed) and its
@@ -107,6 +112,13 @@ var WebpageTranslator = (() => {
   }
 
   // ─── Rich text: clickable URLs + seekable timestamps (Trusted-Types safe) ──
+  // Timestamp→seek anchors are a YOUTUBE-ONLY feature (descriptions/comments):
+  // the click handler scrubs the page's first <video>, and on any other site
+  // that is someone ELSE's media element — a hero video, an inline ad — which a
+  // translation must never touch (interaction-spec: 翻译文字插入后不要影响网页
+  // 原有内容的交互动作). Anchored host regex — an unanchored /youtube\.com/
+  // would also match "notyoutube.com.evil.example".
+  const SEEKABLE_HOST = /(^|\.)youtube(-nocookie)?\.com$/.test(location.hostname);
   function tsToSeconds(ts) { const p = ts.split(':').map(Number); return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1]; }
   function buildRichText(text, el) {
     el.textContent = '';
@@ -116,13 +128,16 @@ var WebpageTranslator = (() => {
         a.href = part; a.target = '_blank'; a.rel = 'noopener'; a.textContent = part; a.style.color = '#3ea6ff';
         el.appendChild(a); return;
       }
-      let last = 0; const re = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g; let m;
-      while ((m = re.exec(part))) {
-        if (m.index > last) el.appendChild(document.createTextNode(part.slice(last, m.index)));
-        const ts = m[0]; const a = document.createElement('a');
-        a.textContent = ts; a.style.cssText = 'color:#3ea6ff;cursor:pointer;';
-        a.addEventListener('click', (e) => { e.preventDefault(); const v = document.querySelector('video'); if (v) v.currentTime = tsToSeconds(ts); });
-        el.appendChild(a); last = m.index + ts.length;
+      let last = 0;
+      if (SEEKABLE_HOST) {
+        const re = /\b\d{1,2}:\d{2}(?::\d{2})?\b/g; let m;
+        while ((m = re.exec(part))) {
+          if (m.index > last) el.appendChild(document.createTextNode(part.slice(last, m.index)));
+          const ts = m[0]; const a = document.createElement('a');
+          a.textContent = ts; a.style.cssText = 'color:#3ea6ff;cursor:pointer;';
+          a.addEventListener('click', (e) => { e.preventDefault(); const v = document.querySelector('video'); if (v) v.currentTime = tsToSeconds(ts); });
+          el.appendChild(a); last = m.index + ts.length;
+        }
       }
       if (last < part.length) el.appendChild(document.createTextNode(part.slice(last)));
     });
@@ -387,7 +402,32 @@ var WebpageTranslator = (() => {
     anchor(node, d);
     return d;
   }
-  function restoreOriginal(node) { if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); } }
+  // Hide/restore the original for the interleave path. The attribute VALUE
+  // carries the page's own prior inline `display` ('1' = none), mirroring the
+  // data-mt-flow-fix pattern — so restore puts back exactly what the page had,
+  // never a blanket ''. The hasAttribute guard in hideOriginal matters: a
+  // re-render hides an already-hidden node and must not clobber the recorded
+  // value with 'none'.
+  function hideOriginal(node) {
+    if (!node.hasAttribute('data-mt-hidden')) {
+      node.setAttribute('data-mt-hidden', node.style.display || '1');
+      // Expando twin: the attribute is page-writable — a framework that
+      // reconciles attributes can strip it mid-session, which would turn
+      // restoreOriginal into a no-op and leave the original display:none
+      // forever. The JS property survives attribute stripping.
+      node.__mtPrevDisplay = node.style.display || '1';
+    }
+    node.style.display = 'none';
+  }
+  function restoreOriginal(node) {
+    const prev = node.hasAttribute('data-mt-hidden')
+      ? node.getAttribute('data-mt-hidden')
+      : node.__mtPrevDisplay; // attribute stripped by the page — expando fallback
+    if (prev == null) return;
+    node.style.display = (prev && prev !== '1') ? prev : '';
+    node.removeAttribute('data-mt-hidden');
+    delete node.__mtPrevDisplay;
+  }
 
   // Long-press (or right-click) a translation to save that sentence to the learning
   // corpus, bypassing the dwell/salience gate. Deliberately NOT a plain click:
@@ -413,7 +453,10 @@ var WebpageTranslator = (() => {
     d.addEventListener('pointerup', cancel);
     d.addEventListener('pointerleave', cancel);
     d.addEventListener('pointercancel', cancel);
-    d.addEventListener('contextmenu', (e) => { if (LearnCollector.isOn) { e.preventDefault(); confirm(); } });
+    // typeof guard: this runs inside the PAGE's contextmenu dispatch — if
+    // learn-collector failed to load, a bare reference would throw mid-dispatch
+    // (the try around attachStarGesture only guards the wiring, not invocation).
+    d.addEventListener('contextmenu', (e) => { if (typeof LearnCollector !== 'undefined' && LearnCollector.isOn) { e.preventDefault(); confirm(); } });
   }
 
   function renderUnit(u, st) {
@@ -480,6 +523,36 @@ var WebpageTranslator = (() => {
   // attach a translation to the wrong original, which is worse than the whole-block
   // rendering we fall back to — fewer interleaves is acceptable, mis-pairing is not.
   // Blank lines are dropped on both sides before counting so they can't skew it.
+  // Interaction rule (interaction-spec): the interleave redraw is PLAIN TEXT with
+  // the source hidden — anything interactive or non-text inside the original
+  // (links, buttons, media, code) would become unreachable, and EXCLUDE_TAGS
+  // content (whose text never enters u.text) would vanish outright. Bail to the
+  // plain sibling rendering for those blobs: the original stays visible and fully
+  // clickable — fewer interleaves is the accepted price. Bare `a` (not `a[href]`):
+  // an href-less anchor is almost always JS-wired. Residual blind spot, accepted:
+  // an addEventListener-wired plain <span> carries no attribute signature and
+  // cannot be detected.
+  const INTERLEAVE_UNSAFE =
+    'a,button,input,select,textarea,label,summary,details,' +
+    '[onclick],[onmousedown],[onmouseup],[onpointerdown],[ontouchstart],[onkeydown],' +
+    '[tabindex],[contenteditable],' +
+    '[role="button"],[role="link"],[role="tab"],[role="menuitem"],[role="checkbox"],' +
+    '[role="option"],[role="switch"],[role="slider"],[role="menuitemcheckbox"],[role="radio"],' +
+    'img,svg,picture,video,audio,canvas,iframe,embed,object,' +
+    'code,pre,kbd,samp,var,math';
+  // Custom elements are invisible to the selector (their interactivity lives in
+  // shadow DOM, which matches()/querySelector() never cross) — a Lit/Stencil
+  // widget inside a blob would be content-vanished by the plain-text redraw.
+  // A dash in the tag name IS the custom-element signature; an attached
+  // shadowRoot catches built-ins upgraded via attachShadow.
+  function interleaveUnsafe(node) {
+    if (node.matches(INTERLEAVE_UNSAFE) || node.querySelector(INTERLEAVE_UNSAFE)) return true;
+    if (node.tagName.indexOf('-') >= 0 || node.shadowRoot) return true;
+    for (const el of node.querySelectorAll('*')) {
+      if (el.tagName.indexOf('-') >= 0 || el.shadowRoot) return true;
+    }
+    return false;
+  }
   function pairForInterleave(node, orig, trans) {
     // The interleave path HIDES the original and draws its own holder. A cell holds
     // its translation as a CHILD (see isCell), so hiding the cell would hide the
@@ -487,6 +560,7 @@ var WebpageTranslator = (() => {
     // one-child rendering; a table cell carrying a multi-paragraph blob is rare
     // enough that this is a cheaper guarantee than making interleave cell-aware.
     if (isCell(node)) return null;
+    if (interleaveUnsafe(node)) return null;
     const paras = (s) => s.split(/\n{2,}/).filter((x) => x.trim());
     const lines = (s) => s.split('\n').filter((x) => x.trim());
     // Line-wise slicing is valid ONLY where the newlines are real. In normal HTML a
@@ -568,8 +642,7 @@ var WebpageTranslator = (() => {
       if (norm(p.t) === norm(p.o)) continue;
       const t = document.createElement('div'); t.style.cssText = transStyle(node); buildRichText(p.t, t); holder.appendChild(t);
     }
-    node.setAttribute('data-mt-hidden', '1');
-    node.style.display = 'none';
+    hideOriginal(node);
   }
 
   // ─── SPA re-render fix-up (paint-safe) ─────────────────────────────────
@@ -618,6 +691,160 @@ var WebpageTranslator = (() => {
       if (t && t.isConnected) anchor(u.node, t); // reads the cached side — no style recalc
     }
   }
+  // ─── Selection preservation across SPA re-renders ──────────────────────
+  // The same re-render that displaces our divs MOVES the page's own paragraph
+  // nodes (remove+insert of the same objects) — and a move that contains a
+  // selection endpoint DESTROYS the user's live selection. Verified on
+  // lennysnewsletter.com (2026-08-12): selecting text triggers a React commit
+  // that performs ZERO paragraph mutations without our siblings and hundreds
+  // with them; the user-visible symptom is 「高亮闪一下就没」. reanchorAll repairs
+  // the visual order pre-paint; this repairs the selection in the SAME
+  // microtask. React re-inserts the same node objects, so the snapshot's
+  // endpoints are still connected and setBaseAndExtent restores the identical
+  // range before the collapsed state can paint.
+  //
+  // Guards (each one is load-bearing):
+  //   • restore runs ONLY in the mutation-observer microtask — a page script
+  //     calling removeAllRanges() produces no childList batch, so a deliberate
+  //     programmatic deselect is never fought;
+  //   • a user gesture (pointerdown/keydown) AFTER the snapshot means the user
+  //     deselected on purpose — never restore over that;
+  //   • bounded per gesture (MAX_SEL_RESTORES) — a page whose re-render keeps
+  //     re-killing the restored selection wins after that, the FAB-remount
+  //     philosophy (issue #30). Convergence on real pages comes from their
+  //     render being memoized on the selection: re-asserting the same range is
+  //     a state bailout, not another commit.
+  const MAX_SEL_RESTORES = 8;
+  // The two suppression windows the quiet-collapse drop depends on. A collapse
+  // within BATCH_ADJACENT_MS of a real childList batch is (or is about to be)
+  // the SPA kill — keep the snapshot so the microtask repair can use it. A
+  // collapse within GESTURE_RECENT_MS of a pointer/key/input gesture is the
+  // user deselecting. Outside both windows the page cleared the selection
+  // programmatically on purpose — drop the snapshot. 200ms covers task-queue
+  // lag between a mutation and its selectionchange event; 800ms covers the
+  // gesture→collapse gap of a slow tap. Fixture 36's quiet-clear case pins this.
+  const BATCH_ADJACENT_MS = 200;
+  const GESTURE_RECENT_MS = 800;
+  let selSnap = null;        // { a, aOff, f, fOff, at, dc }
+  let selRestores = 0;
+  let lastGestureAt = 0;
+  let lastRealBatchAt = 0;   // set by onDomMutations on every REAL batch
+  // Predicates shared by restore and snapshot-overwrite decisions. A damaged
+  // selection either keeps a snapshot endpoint (partial kill) or has an
+  // endpoint clamped onto an ancestor of one (whole-container storm).
+  function atSnapEndpoint(n, o) {
+    return (n === selSnap.a && o === selSnap.aOff) || (n === selSnap.f && o === selSnap.fOff);
+  }
+  function clampedOntoSnap(n) {
+    return !!(n && n.nodeType === 1 && (n.contains(selSnap.a) || n.contains(selSnap.f)));
+  }
+  function matchesSnap(s) {
+    return !!(selSnap && s.rangeCount && !s.isCollapsed
+      && atSnapEndpoint(s.anchorNode, s.anchorOffset) && atSnapEndpoint(s.focusNode, s.focusOffset));
+  }
+  function onUserGesture() { lastGestureAt = Date.now(); selRestores = 0; }
+  // Keys are gestures only when they change the selection. Ctrl+C, PageDown,
+  // arrow-scrolling all fire keydown while the selection stays exactly the
+  // snapshot — disarming there would kill the repair precisely when the user
+  // is USING the selection (copying it). A key that genuinely deselects still
+  // lands in the quiet-collapse drop in onSelectionChange.
+  function onKeyGesture() {
+    if (matchesSnap(document.getSelection())) return;
+    onUserGesture();
+  }
+  // Editors (input/textarea/contenteditable) manage their own selection — the
+  // keeper must never snapshot there, or a stale restore moves the user's caret
+  // (IME, dictation, async framework commits). isContentEditable handles both
+  // inheritance and ="false"; element-node endpoints matter because an
+  // input-internal selection can surface the <input> itself as the boundary.
+  function inEditor(n) {
+    const el = n ? (n.nodeType === 1 ? n : n.parentElement) : null;
+    return !!el && (el.isContentEditable || !!(el.closest && el.closest('input,textarea')));
+  }
+  function onSelectionChange() {
+    const s = document.getSelection();
+    if (!s) return;
+    if (s.rangeCount === 0 || s.isCollapsed) {
+      // A collapse right after a real mutation batch is the SPA kill — already
+      // repaired pre-paint by the time this (task-queued) event fires, or about
+      // to be on the next batch. A collapse with NO recent batch and NO recent
+      // gesture is the page or the user deselecting on purpose: drop the
+      // snapshot so a later unrelated batch can never resurrect a selection
+      // that was deliberately cleared.
+      if (Date.now() - lastRealBatchAt > BATCH_ADJACENT_MS && Date.now() - lastGestureAt > GESTURE_RECENT_MS) selSnap = null;
+      return;
+    }
+    if (inEditor(s.anchorNode) || inEditor(s.focusNode)) { selSnap = null; return; }
+    // A batch storm heavier than the per-frame fix-up cap can land a kill that
+    // never got repaired — the damaged selection then arrives HERE and must not
+    // overwrite the good snapshot (later batches would "repair" to the damaged
+    // state). Only batch-adjacent damage-shaped selections are refused; a user
+    // extending a selection (shares the anchor) on a quiet page still updates.
+    if (selSnap && Date.now() - lastRealBatchAt < BATCH_ADJACENT_MS && !matchesSnap(s)
+        && (atSnapEndpoint(s.anchorNode, s.anchorOffset) || atSnapEndpoint(s.focusNode, s.focusOffset)
+          || clampedOntoSnap(s.anchorNode) || clampedOntoSnap(s.focusNode))) {
+      return;
+    }
+    selSnap = { a: s.anchorNode, aOff: s.anchorOffset, f: s.focusNode, fOff: s.focusOffset, at: Date.now(), dc: 0 };
+  }
+  function restoreSelection() {
+    if (!selSnap || selRestores >= MAX_SEL_RESTORES) return;
+    if (lastGestureAt > selSnap.at) return;                   // deliberate deselect
+    const s = document.getSelection();
+    if (!s) return;
+    // A node move damages the selection three ways: full collapse, a PARTIAL
+    // kill (Chrome's range fix-up slides ONE endpoint to a neighbour — half the
+    // highlight silently gone), or a CLAMP (both endpoints re-anchored onto an
+    // ancestor when every containing node moved — fixture 33's whole-article
+    // storm produces exactly this). Identical-to-snapshot means intact. A
+    // non-collapsed selection that is NOT damage-shaped — shares no snapshot
+    // endpoint and no endpoint is an ancestor of one — is the PAGE's own
+    // programmatic selection made in the same task as its DOM work (a "copy
+    // code" button, select-all in a viewer): never stomp it, and DROP the
+    // snapshot so a later batch cannot resurrect the stale range either.
+    if (s.rangeCount && !s.isCollapsed) {
+      if (matchesSnap(s)) return;
+      const damage = atSnapEndpoint(s.anchorNode, s.anchorOffset) || atSnapEndpoint(s.focusNode, s.focusOffset)
+        || clampedOntoSnap(s.anchorNode) || clampedOntoSnap(s.focusNode);
+      if (!damage) { selSnap = null; return; }
+    }
+    const { a, f, aOff, fOff } = selSnap;
+    // Endpoints disconnected NOW — KEEP the snapshot briefly: a time-sliced SPA
+    // (React 18) can detach a node in one task and re-insert the SAME node a
+    // task later (see recollect), so the next batch may find them reconnected
+    // and still repair. But BOUNDED — content genuinely replaced never
+    // reconnects, and an unbounded snapshot pins the whole detached subtree in
+    // memory: after 20 disconnected batches or 60s of age, drop it.
+    if (!a || !f || !a.isConnected || !f.isConnected) {
+      selSnap.dc = (selSnap.dc || 0) + 1;
+      if (selSnap.dc > 20 || Date.now() - selSnap.at > 60000) selSnap = null;
+      return;
+    }
+    // The page may have MOVED the endpoints inside an editor since the snapshot
+    // (click-to-edit conversion adopting the text nodes) — restoring there would
+    // stomp the editor framework's caret.
+    if (inEditor(a) || inEditor(f)) { selSnap = null; return; }
+    selRestores++;
+    try { s.setBaseAndExtent(a, aOff, f, fOff); } catch (_) { /* offsets stale — content changed */ }
+  }
+  function installSelectionKeeper() {
+    document.addEventListener('selectionchange', onSelectionChange);
+    document.addEventListener('pointerdown', onUserGesture, true);
+    document.addEventListener('keydown', onKeyGesture, true);
+    // IME composition, dictation and context-menu paste produce NO keydown —
+    // they must still count as user gestures or a stale restore fights them.
+    document.addEventListener('beforeinput', onUserGesture, true);
+    document.addEventListener('compositionstart', onUserGesture, true);
+  }
+  function removeSelectionKeeper() {
+    document.removeEventListener('selectionchange', onSelectionChange);
+    document.removeEventListener('pointerdown', onUserGesture, true);
+    document.removeEventListener('keydown', onKeyGesture, true);
+    document.removeEventListener('beforeinput', onUserGesture, true);
+    document.removeEventListener('compositionstart', onUserGesture, true);
+    selSnap = null; selRestores = 0;
+  }
+
   let obsScheduled = false;
   let obsFixupsThisFrame = 0;
   let obsFrameReset = false;
@@ -631,6 +858,7 @@ var WebpageTranslator = (() => {
       if (real) break;
     }
     if (!real) return;
+    lastRealBatchAt = Date.now(); // selection keeper: batch-adjacency signal
     // Coalesce all callbacks of the current task into ONE trailing fix-up via
     // queueMicrotask — still ahead of the paint. ONLY the cheap O(units)
     // re-anchor runs here: no DOM walk, no computed styles, so a mutation-chatty
@@ -655,6 +883,7 @@ var WebpageTranslator = (() => {
         requestAnimationFrame(() => { obsFrameReset = false; obsFixupsThisFrame = 0; });
       }
       reanchorAll(); // the anti-flash repair — bounded, loop-proof
+      restoreSelection(); // the anti-selection-kill repair — same paint, same bounds
     });
   }
   function installDomObserver() {
@@ -721,6 +950,7 @@ var WebpageTranslator = (() => {
     if (tickCount % 3 === 1) recollect(document.body); // SPA poll ~every 3rd tick
     engine.pump();
     reanchorAll(); // SPA re-anchor backstop (the observer already fixed order pre-paint)
+    restoreSelection(); // backstop for kills the capped observer microtask missed (>8 batches/frame)
     for (const u of engine.units) {
       if (!u.node.isConnected) continue;
       const near = inViewport(u.node);
@@ -743,8 +973,17 @@ var WebpageTranslator = (() => {
     active = true;
     engine = makeEngine();
     units = []; known = new WeakSet();
+    // Self-heal orphaned hide markers: a content-script reload (extension
+    // update, dev reload) loses all in-memory state while data-mt-hidden +
+    // display:none persist in the DOM — the fresh collector would then skip
+    // those invisible originals forever. Also neutralizes any marker a page
+    // PRE-SET to poison the record-restore round-trip (an invalid recorded
+    // value is a no-op CSSOM write). Runs before recollect so healed nodes are
+    // collectable again.
+    document.querySelectorAll('[data-mt-hidden]').forEach(restoreOriginal);
     recollect(document.body);
     installDomObserver();
+    installSelectionKeeper();
     installViewportListeners();
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(tick, 350);
@@ -754,6 +993,7 @@ var WebpageTranslator = (() => {
   function disable() {
     active = false;
     removeDomObserver();
+    removeSelectionKeeper();
     removeViewportListeners();
     if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     // Per-unit cleanup first — reaches translations injected inside shadow roots
@@ -765,12 +1005,12 @@ var WebpageTranslator = (() => {
       node.__mtTrans = null;
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
-      if (node.hasAttribute('data-mt-hidden')) { node.style.display = ''; node.removeAttribute('data-mt-hidden'); }
+      restoreOriginal(node); // puts back the page's own prior inline display
       undoFlowFix(node.parentElement); // undo the flex-row wrap fix (see flowFixCss)
     }
     document.querySelectorAll('.' + CLASS).forEach((e) => e.remove());
     document.querySelectorAll('[' + PROCESSED + ']').forEach((e) => e.removeAttribute(PROCESSED));
-    document.querySelectorAll('[data-mt-hidden]').forEach((e) => { e.style.display = ''; e.removeAttribute('data-mt-hidden'); });
+    document.querySelectorAll('[data-mt-hidden]').forEach(restoreOriginal);
     document.querySelectorAll('[' + DOMProcessor.TRANSLATABLE_ATTR + ']').forEach((e) => e.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR));
     document.querySelectorAll('[data-mt-flow-fix]').forEach(undoFlowFix);
     units = [];
