@@ -242,6 +242,70 @@ describe('LearnModel — clozeCheck (§5.2)', () => {
   });
 });
 
+// ─── §5.4 — knowledge-point cloze: blanks drawn from parsed 生词/短语 ─────────
+
+describe('LearnModel — clozeFor with knowledge-point targets (§5.4)', () => {
+  const M = () => loadModule('learn-model.js', { window: {} }).LearnModel;
+  const SENT = 'The forgetting curve shows how memories fade over time.';
+  const rejoin = (c) => c.parts.map((p) => (p.t === 'text' ? p.v : p.answer)).join('');
+  const answers = (c) => c.parts.filter((p) => p.t === 'blank').map((p) => p.answer);
+
+  test('blanks come FROM the targets, and the parts still rejoin exactly', () => {
+    const m = M();
+    const c = m.clozeFor(SENT, { targets: ['forgetting curve', 'memories'], seed: 0 });
+    eq(rejoin(c), SENT, '知识点挖空破坏了还原不变量');
+    ok(c.blanks >= 1);
+    for (const a of answers(c)) {
+      ok(['forgetting curve', 'memories'].indexOf(a) >= 0, '挖出了目标之外的答案: ' + a);
+    }
+  });
+
+  test('deterministic per (sentence, targets, seed); the seed rotates WHICH point is asked', () => {
+    const m = M();
+    const opts = { targets: ['forgetting curve', 'memories', 'fade'], seed: 1 };
+    deepEq(m.clozeFor(SENT, opts), m.clozeFor(SENT, opts));
+    const first = new Set();
+    for (let seed = 0; seed < 3; seed++) {
+      first.add(answers(m.clozeFor(SENT, { targets: opts.targets, seed }))[0]);
+    }
+    ok(first.size > 1, '换 seed 挖的还是同一个点（' + [...first].join(',') + '）——知识点没有轮换');
+  });
+
+  test('a target absent from the sentence is skipped; none present ⇒ classic selection', () => {
+    const m = M();
+    const c = m.clozeFor(SENT, { targets: ['banana', 'memories'], seed: 0 });
+    ok(answers(c).indexOf('banana') < 0);
+    ok(answers(c).indexOf('memories') >= 0, '在句中的目标反而没被挖');
+    deepEq(m.clozeFor(SENT, { targets: ['banana', 'apple'], seed: 0 }), m.clozeFor(SENT),
+      '目标全不在句中时必须回落到经典选择');
+    deepEq(m.clozeFor(SENT, { targets: [], seed: 0 }), m.clozeFor(SENT));
+  });
+
+  test('overlapping targets never produce overlapping blanks', () => {
+    const m = M();
+    const c = m.clozeFor(SENT, { targets: ['forgetting curve', 'curve', 'forgetting'], seed: 0 });
+    eq(rejoin(c), SENT);
+    // partsFrom would garble the sentence on overlap — rejoin above is the proof,
+    // and each answer must be a verbatim slice of the sentence.
+    for (const a of answers(c)) ok(SENT.indexOf(a) >= 0);
+  });
+
+  test('dense-script phrase targets work too (CJK, no word boundaries)', () => {
+    const m = M();
+    const zh = '间隔重复让记忆更加持久也更加可靠。';
+    const c = m.clozeFor(zh, { targets: ['间隔重复', '记忆'], seed: 0 });
+    eq(rejoin(c), zh);
+    for (const a of answers(c)) ok(['间隔重复', '记忆'].indexOf(a) >= 0, '挖了目标外的字段: ' + a);
+  });
+
+  test('case-insensitive match, but the ANSWER keeps the sentence’s own casing', () => {
+    const m = M();
+    const c = m.clozeFor(SENT, { targets: ['THE FORGETTING CURVE'], seed: 0 });
+    eq(answers(c)[0], 'The forgetting curve', '答案必须是句中原样切片，不是目标串');
+    eq(rejoin(c), SENT);
+  });
+});
+
 // ─── §4/§5.4 — skills merge per-key by MAX, in both merge semantics ──────────
 // (Was a boolean union; max is the same operation once values are timestamps,
 // and the legacy-boolean cases below are what keep old corpora convergent.)

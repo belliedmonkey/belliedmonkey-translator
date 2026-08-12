@@ -813,8 +813,10 @@ change: four grades, consequence previews, strength bar.
   - **听**: audio-first recall (existing) / **盲听选词** — the audio plays FIRST;
     the options render only after playback has started. Replay is allowed and the
     card says so. Pick the words actually heard; objective result constrains grades.
-  - **写**: cloze (existing); pack-provided `accept` alternates widen the checker
-    — the sentence's own answer stays the answer of record and the correction shown.
+  - **写**: cloze (existing); when the card has cached 解析, the blanks are drawn
+    from its 生词/短语 and rotate across reviews (§5.4 — 这次挖这个词).
+    Pack-provided `accept` alternates widen the checker — the sentence's own
+    answer stays the answer of record and the correction shown.
   - **说**: see 说题卡 below. Capability-gated: no microphone or no transcription
     engine ⇒ the form does not exist; the 「跟着读一遍」 shadowing hint stays at the
     listen tier, still labelled 练习，不验证.
