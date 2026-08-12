@@ -377,6 +377,95 @@ describe('LearnScheduler — tierFor (§5.2)', () => {
   });
 });
 
+// ─── §5.4 — skill rotation over a single schedule ─────────────────────────────
+// The rotation NEVER creates a second timetable: pickSkills only chooses what one
+// due date asks; the second entry is graded via practiceOutcome by the caller.
+
+describe('LearnScheduler — pickSkills / skillFresh / fullyMastered (§5.4)', () => {
+  const at = (s, skills) => ({
+    sched: s == null ? null : { s, d: 5, lastReviewAt: T0 },
+    skills,
+  });
+  const ALL = { listen: true, speak: true };
+  const NOSPEAK = { listen: true, speak: false };
+
+  test('least-recently-verified eligible skill first; a missing stamp is most urgent', () => {
+    const S = load();
+    const it = at(60, { read: T0 - DAY, listen: T0 - 3 * DAY, write: T0 - 10 * DAY });
+    eq(S.pickSkills(it, ALL, T0, null)[0], 'speak', '没考过的技能排最前');
+    eq(S.pickSkills(it, NOSPEAK, T0, null)[0], 'write', '其余按时间戳升序');
+  });
+
+  test('legacy boolean 1 sorts ahead of every real timestamp — ancient ⇒ re-verify first', () => {
+    const S = load();
+    const it = at(60, { read: 1, listen: T0 - DAY, write: T0 - DAY });
+    eq(S.pickSkills(it, NOSPEAK, T0, null)[0], 'read');
+  });
+
+  test('capability filter: a skill with no capability is NEVER returned', () => {
+    const S = load();
+    const picks = S.pickSkills(at(60, {}), { listen: false, speak: false }, T0, null);
+    ok(picks.indexOf('listen') < 0 && picks.indexOf('speak') < 0,
+      '无能力技能出现在轮换里: ' + JSON.stringify(picks));
+  });
+
+  test('ladder gate: strength below the write bar never yields write', () => {
+    const S = load();
+    ok(S.pickSkills(at(10, {}), ALL, T0, null).indexOf('write') < 0);
+  });
+
+  test('ties break toward the hardest form — tierFor’s old contract, preserved exactly', () => {
+    const S = load();
+    eq(S.pickSkills(at(60, null), NOSPEAK, T0, null)[0], 'write');
+    eq(S.pickSkills(at(10, null), NOSPEAK, T0, null)[0], 'listen');
+    eq(S.pickSkills(at(1, null), ALL, T0, null)[0], 'read');
+  });
+
+  test('at most two skills, and the second only when it too is past the freshness window', () => {
+    const S = load();
+    // s=60 ⇒ window 60 × 1.5 = 90 days.
+    const bothStale = at(60, { read: T0 - 100 * DAY, write: T0 - 120 * DAY });
+    const p1 = S.pickSkills(bothStale, { listen: false, speak: false }, T0, null);
+    eq(p1.length, 2); eq(p1[0], 'write'); eq(p1[1], 'read');
+    const secondFresh = at(60, { read: T0 - DAY });
+    const p2 = S.pickSkills(secondFresh, { listen: false, speak: false }, T0, null);
+    eq(p2.length, 1, '第二顺位仍新鲜 ⇒ 不追加（一次到期不许变成考试）');
+    ok(S.pickSkills(at(300, { read: T0, listen: T0, speak: T0, write: T0 }), ALL, T0, null).length <= 2);
+  });
+
+  test('skillFresh: the window scales with strength, is configurable, and legacy 1 is always stale', () => {
+    const S = load();
+    const it = at(10, { read: T0 - 14 * DAY });   // window = 10 × 1.5 = 15 days
+    eq(S.skillFresh(it, 'read', T0, null), true);
+    eq(S.skillFresh(it, 'read', T0 + 2 * DAY, null), false, '过窗即待重验');
+    eq(S.skillFresh(it, 'read', T0, { FRESH_MULT: 1.0 }), false, '窗口从配置合并');
+    eq(S.skillFresh(at(10, { read: 1 }), 'read', T0, null), false);
+    eq(S.skillFresh(at(10, {}), 'read', T0, null), false, '没考过 = 不新鲜');
+  });
+
+  test('fullyMastered: known-bar strength AND every AVAILABLE skill fresh', () => {
+    const S = load();
+    const fresh = { read: T0 - DAY, listen: T0 - DAY, write: T0 - DAY };
+    const strong = at(200, fresh);
+    eq(S.fullyMastered(strong, NOSPEAK, T0, null), true, '说不可用 ⇒ 不算缺失技能');
+    eq(S.fullyMastered(strong, ALL, T0, null), false, '说可用但从没考过 ⇒ 不算全面掌握');
+    eq(S.fullyMastered(at(100, fresh), NOSPEAK, T0, null), false, '强度不到 KNOWN_S');
+    const staleWrite = at(200, Object.assign({}, fresh, { write: 1 }));
+    eq(S.fullyMastered(staleWrite, NOSPEAK, T0, null), false, '过窗技能挡住全面掌握');
+  });
+
+  test('an extra row (§5.4 second exercise) never counts as an introduction', () => {
+    const S = load();
+    const NOON = Date.parse('2026-08-09T12:00:00Z');
+    eq(S.introducedToday([{ itemId: 'a', grade: 2, at: NOON, extra: 1 }], NOON), 0,
+      '第二题的行不得消耗每日新卡预算');
+    eq(S.introducedToday([
+      { itemId: 'a', grade: 2, at: NOON },
+      { itemId: 'a', grade: 2, at: NOON + 1, extra: 1 },
+    ], NOON), 1);
+  });
+});
+
 describe('LearnScheduler — introducedToday（账户级每日新卡预算，interaction-spec「多设备同步一致性」）', () => {
   const load = () => loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
   // 固定一个 UTC 正午，避开日界的偶然性；日界断言单独测。

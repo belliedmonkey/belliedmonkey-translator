@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "解析モデル"
+  },
+  "learn_badge_speak": {
+    "message": "話す",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "もう一問 · 復習間隔には影響しません",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }

@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "解析模型"
+  },
+  "learn_badge_speak": {
+    "message": "说",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "再练一项 · 不再计入复习间隔",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }

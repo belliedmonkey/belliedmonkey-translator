@@ -17,6 +17,8 @@
   let practicing = false;   // §5.3 — free practice: same card flow, asymmetric rule
   let donePractice = 0;
   let currentMode = 'read'; // §5.2 — which exercise form the card on screen is using
+  let skillQueue = [];      // §5.4 — the skills this due date tests (1–2, rotation order)
+  let extraMode = false;    // §5.4 — true while the appended second exercise is on screen
   let clozeState = null;    // write tier: { answers, inputs, checked }
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
@@ -285,34 +287,47 @@
   // prevent. Their labels go blank and the one-line rule above the grades explains;
   // grade 0 keeps 「重新学」 only when the card has a schedule to lapse.
   function renderGradePreviews(item) {
-    const iv = practicing ? null
+    // §5.3 practice and §5.4's second exercise share the same honesty problem:
+    // grades 1–3 will not be granted an interval, so promising one would be the
+    // lie §5.1 exists to prevent. Grade 0 keeps 「重新学」 — practiceOutcome does
+    // lapse a scheduled card on a fail, on both paths.
+    const noAdvance = practicing || extraMode;
+    const iv = noAdvance ? null
       : LearnScheduler.previewIntervals(item.sched, Date.now(), sched);
     const hadSched = !!(item.sched && item.sched.s);
     document.querySelectorAll('.grade').forEach((b) => {
       const el = b.querySelector('.when');
       if (!el) return;
       const g = Number(b.dataset.grade);
-      if (practicing) {
+      if (noAdvance) {
         el.textContent = g === 0 && hadSched ? t('learn_relearn', '重新学') : '';
       } else {
         el.textContent = g === 0 ? t('learn_relearn', '重新学') : fmtWhen(iv[g]);
       }
     });
     $('practice-note').hidden = !practicing;
+    $('extra-note').hidden = !extraMode;
   }
 
-  // §5.2 skill badges. `listenPossible` feeds the 全面掌握 gate: a skill whose form
-  // does not exist for this card (no voice for its language) is not a missing skill.
-  function renderBadges(item, listenPossible) {
+  // §5.2/§5.4 skill badges. `caps` feeds the 全面掌握 gate: a skill whose form does
+  // not exist for this card (no voice for its language / no mic+engine) is not a
+  // missing skill. Lit = ever verified; lit but past the freshness window = 待重验
+  // (stale), never dark again — a badge that un-lights reads as a demotion.
+  function renderBadges(item, caps) {
+    const now = Date.now();
     const sk = item.skills || {};
-    $('badge-read').classList.toggle('lit', !!sk.read);
-    $('badge-listen').classList.toggle('lit', !!sk.listen);
-    $('badge-listen').hidden = !listenPossible && !sk.listen;
-    $('badge-write').classList.toggle('lit', !!sk.write);
-    const cap = sched.KNOWN_S || LearnScheduler.DEFAULTS.KNOWN_S;
-    const full = !!(item.sched && item.sched.s >= cap)
-      && !!sk.read && !!sk.write && (!!sk.listen || !listenPossible);
-    $('badge-full').hidden = !full;
+    const one = (id, key, possible) => {
+      const el = $(id);
+      el.classList.toggle('lit', !!sk[key]);
+      el.classList.toggle('stale',
+        !!sk[key] && !LearnScheduler.skillFresh(item, key, now, sched));
+      el.hidden = !possible && !sk[key];
+    };
+    one('badge-read', 'read', true);
+    one('badge-listen', 'listen', !!(caps && caps.listen));
+    one('badge-speak', 'speak', !!(caps && caps.speak));
+    one('badge-write', 'write', true);
+    $('badge-full').hidden = !LearnScheduler.fullyMastered(item, caps, now, sched);
   }
 
   // §5.2 write tier: the cloze UI, from the pure builder. Inputs in document order;
@@ -403,14 +418,27 @@
     $('orig').textContent = item.text;
     $('tr').textContent = item.tr;
 
-    // The exercise form comes from the ladder (§5.2). Availability must be known
-    // BEFORE staging: a listen card whose language cannot be spoken is a read card,
-    // not a broken one.
+    // The exercise form comes from the ladder + rotation (§5.2/§5.4). Availability
+    // must be known BEFORE staging: a listen card whose language cannot be spoken
+    // is a read card, not a broken one. `caps.speak` stays false until the speak
+    // pipeline lands (§9.4).
     const av = ttsMode !== 'off' ? await LearnTTS.available(item.lang) : { ok: false };
-    currentMode = LearnScheduler.tierFor(item, { listen: av.ok }, sched);
+    const caps = { listen: av.ok, speak: false };
+    if (extraMode && skillQueue.length) {
+      // Second exercise: same card, next queued skill — never recomputed, so the
+      // queue the FIRST render promised is the queue the card delivers.
+      currentMode = skillQueue[0];
+    } else {
+      extraMode = false;
+      skillQueue = LearnScheduler.pickSkills(item, caps, Date.now(), sched);
+      // §5.3 — practice reps stay single-exercise: the pool is user-sized and the
+      // asymmetric rule already runs every rep; doubling them doubles nothing.
+      if (practicing) skillQueue = skillQueue.slice(0, 1);
+      currentMode = skillQueue[0];
+    }
 
     renderStrength(item);
-    renderBadges(item, av.ok);
+    renderBadges(item, caps);
     renderGradePreviews(item);
 
     const write = currentMode === 'write';
@@ -474,15 +502,16 @@
     LearnTTS.stop();
     const now = Date.now();
 
-    // §5.2 — a pass at ≥「记得」 lights this form's skill badge, on either path:
+    // §5.2/§5.4 — a pass at ≥「记得」 stamps this form's skill timestamp, on every
+    // path and EVERY time (the freshness window reads the stamp, so refreshing it
+    // is the point — the old light-once behavior would make 待重验 permanent):
     // practice proves nothing about long-term MEMORY (§5.3), but demonstrating a
-    // skill is demonstrating a skill. `lastSeenAt` bumps with it so the union
+    // skill is demonstrating a skill. `lastSeenAt` bumps with it so the stamp
     // reaches other devices — `touchedAt` reads timestamps, not badge bits.
-    const lightSkill = () => {
+    const stampSkill = () => {
       if (g < 2) return false;
-      if (item.skills && item.skills[currentMode]) return false;
       item.skills = Object.assign({}, item.skills);
-      item.skills[currentMode] = 1;
+      item.skills[currentMode] = now;
       item.lastSeenAt = now;
       return true;
     };
@@ -499,7 +528,7 @@
         item.state = LearnScheduler.stateFor(item, sched);
         dirty = true;
       }
-      if (lightSkill()) dirty = true;
+      if (stampSkill()) dirty = true;
       if (dirty) await LearnStore.putItem(item);
       await LearnStore.recordReview(item.id, g, now, { practice: 1, mode: currentMode });
       donePractice++;
@@ -510,11 +539,36 @@
       return;
     }
 
+    // §5.4 — the appended second exercise. Asymmetric like practice (§5.3): a fail
+    // is a real lapse, a pass refreshes the skill stamp and writes no schedule —
+    // one due date advances one curve exactly once, which is the recorded boundary
+    // against the rejected per-skill scheduling (§12).
+    if (extraMode) {
+      const next = LearnScheduler.practiceOutcome(item.sched, g, now, sched);
+      let dirty = false;
+      if (next) {
+        item.sched = next;
+        item.state = LearnScheduler.stateFor(item, sched);
+        dirty = true;
+      }
+      if (stampSkill()) dirty = true;
+      if (dirty) await LearnStore.putItem(item);
+      await LearnStore.recordReview(item.id, g, now, { mode: currentMode, extra: 1 });
+      extraMode = false;
+      skillQueue = [];
+      idx++;
+      refreshPressure();
+      if (idx >= deck.length) { await start(); return; }
+      show(sources);
+      await refreshCounts();
+      return;
+    }
+
     const wasNew = !item.sched || !item.sched.s;
 
     item.sched = LearnScheduler.applyReview(item.sched, g, now, sched);
     item.state = LearnScheduler.stateFor(item, sched);
-    lightSkill();
+    stampSkill();
     await LearnStore.putItem(item);
     await LearnStore.recordReview(item.id, g, now, { mode: currentMode });
     // The daily new-card budget is no longer written here: the review row just
@@ -524,6 +578,19 @@
     // dailyNew, the last systematic cross-device count divergence).
 
     doneThisRun++;
+
+    // §5.4 — a second stale skill re-renders the SAME card once more before the
+    // deck moves on. Skipped after a fail: the card just lapsed and is coming back
+    // soon anyway — piling a second test onto a lapse teaches only frustration.
+    if (g > 0 && skillQueue.length > 1) {
+      skillQueue = skillQueue.slice(1);
+      extraMode = true;
+      show(sources);
+      await refreshCounts();
+      return;
+    }
+
+    skillQueue = [];
     idx++;
     refreshPressure();
     if (idx >= deck.length) { await start(); return; }
@@ -647,6 +714,8 @@
     // else that rebuilds) can fire mid-practice; leaving the flag up would apply the
     // practice rule to scheduled cards.
     practicing = false;
+    extraMode = false;         // §5.4 — a rebuild abandons any pending second exercise
+    skillQueue = [];
     $('practice-note').hidden = true;
     const { items } = await refreshCounts();
     const now = Date.now();

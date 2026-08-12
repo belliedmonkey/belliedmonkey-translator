@@ -232,13 +232,19 @@ async function runHost(host) {
     await sweep('首卡');
 
     // The deck orders by due-ness; we don't assume which card is first. Walk up
-    // to 8 cards, dispatching per-card assertions by which item is on screen.
+    // to 10 screens (§5.4 appends a second exercise to cards with a stale second
+    // skill, so 5 cards can be more than 5 screens), dispatching per-card
+    // assertions by which item is on screen.
     const seen = new Set();
-    for (let i = 0; i < 8; i++) {
+    let sawExtra = false;
+    for (let i = 0; i < 10; i++) {
       if (await hidden('#card')) break;
       const orig = await ev(`document.getElementById('orig').textContent.trim()`);
       const writeMode = !(await hidden('#write-prompt'));
       const listenStage = !(await hidden('#reveal-orig'));
+      // §5.4 — the extra-note attribute is set at render time (its parent may still
+      // be pre-reveal), so read the attribute, not the computed visibility.
+      if (await ev(`!document.getElementById('extra-note').hidden`)) sawExtra = true;
       if (process.env.DEBUG_FLOW) {
         console.log('  [card', i, ']', JSON.stringify(await ev(`(async () => ({
           orig: document.getElementById('orig').textContent.trim().slice(0, 24),
@@ -321,12 +327,29 @@ async function runHost(host) {
     need(seen.has('listen1'), '听懂档卡从未出现');
     need(seen.has('und1'), 'und 卡从未出现');
 
-    // 5 · Grading wrote the schedule and lit the skill — the DB is the truth.
+    // 5 · Grading wrote the schedule and stamped the skill — the DB is the truth.
+    // §5.4: stamps are TIMESTAMPS now (legacy 1 = ancient); a pass must write a
+    // real clock value, or the freshness window can never open.
     const read1 = await item('read1');
     need(read1 && read1.sched.s > 1.5, '评「记得」后强度没有上升（' + (read1 && read1.sched.s) + '）');
-    need(read1 && read1.skills && read1.skills.read === 1, '认读通过没点亮「读」徽章');
+    need(read1 && read1.skills && read1.skills.read > 1e12,
+      '认读通过没盖「读」技能时间戳（got ' + (read1 && read1.skills && read1.skills.read) + '）');
     const listen1 = await item('listen1');
-    need(listen1 && listen1.skills && listen1.skills.listen === 1, '听懂通过没点亮「听」徽章');
+    need(listen1 && listen1.skills && listen1.skills.listen > 1e12,
+      '听懂通过没盖「听」技能时间戳');
+
+    // 5.5 · §5.4 — the rotation appended a second exercise for a stale second
+    // skill; its rows carry extra:1 + mode and never practice; and a PASSED extra
+    // advanced no schedule — exactly one applyReview per due card, so listen1's
+    // reps moved 6 → 7 even though its card produced two graded screens.
+    need(sawExtra, '第二题（extra-note）从未出现 —— 轮换没有为过期技能追加练习');
+    const extras = await ev(`LearnStore.allReviews().then((rs) => JSON.stringify(rs.filter((r) => r.extra)))`).then(JSON.parse);
+    need(extras.length >= 1 && extras.every((r) => r.mode && !r.practice),
+      'extra 复习行缺 mode 或误标 practice: ' + JSON.stringify(extras));
+    need(listen1 && listen1.sched.reps === 7,
+      '第二题推进了排程（listen1 reps ' + (listen1 && listen1.sched && listen1.sched.reps) + ' ≠ 7）');
+    need(listen1 && listen1.skills && listen1.skills.read > 1e12,
+      '第二题（读）通过没刷新「读」的技能时间戳');
 
     // 6 · Deck done → practice offered; the dead end is gone.
     need(!(await hidden('#practice-setup')) || !(await hidden('#nothing-due')), '牌组结束后既无完成页也无练习入口');

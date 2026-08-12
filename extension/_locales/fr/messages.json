@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "Modèle d'analyse"
+  },
+  "learn_badge_speak": {
+    "message": "Parler",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "Un exercice de plus · sans effet sur l’intervalle",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }
