@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "One more skill · does not affect the interval",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Pick the correct translation",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Listen first, then pick the words you heard",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Confirm choices",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Generating this card's questions with your API (one call, cached forever)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Question generation failed — using the local exercise instead",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

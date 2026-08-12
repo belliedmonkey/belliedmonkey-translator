@@ -25,8 +25,10 @@
 
 | 域 | 测试文件 | 关键性质 |
 |---|---|---|
-| 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限 |
-| 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、mergeItem skills 并集幂等 |
+| 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限；§5.4：pickSkills 最久未验证优先 / legacy `1` 排最前 / 能力过滤 / ≤2 且第二个仅过窗时、skillFresh 随强度伸缩（legacy `1` 恒过窗）、fullyMastered 缺能力语义、extra 行不消耗每日预算 |
+| 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
+| 题型生成 | `learn-exercises.test.js` | pickExercise 同 (id,reps,skill) 确定且跨 reps 轮换、AI 变体仅门开时入轮换、mcqFrom 答案恰一次/排归一等值干扰、listenPickFrom 正确⊆句/干扰∩句=∅（含子串）、speakScore 密疏两路+漏读点名、gradeGate 与挖空规则对齐 |
+| 题包 | `learn-pack.test.js` | 能力随解析引擎门、干扰项复述译文被拒（等值+包含双向）、句内词/子串不作听力干扰、理解题结构校验、accept 键必须句内且替代≠原词、部分题包逐项降级/全废 bad_output、**每卡每 PACK_VERSION 至多一次扣费**（调用计数）、并发去重、缓存写失败不重扣 |
 | 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡每提示词版本至多扣一次费**（调用计数；版本升级只为纠错，见 learning-design §9.2）、生词必须逐字来自原句（v2 提示词 + 零匹配判 bad_output）、并发去重、缓存写失败不重复扣费、两种线格式 |
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
 | 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
@@ -35,24 +37,18 @@
 
 **纪律**：每条新断言做变异反向验证（杀不死的变异 = 测试缺口，先补齐再合并）。
 
-**四技能题型（learning-design §5.4/§9.3/§9.4）落地时本表新增的行（骨架，随代码
-PR 补齐断言细节——本文档与 runner 同 PR 演进）：**
+**说（learning-design §9.4）落地时本表再新增的行（骨架，随代码 PR 补齐——本文档
+与 runner 同 PR 演进）：**
 
 | 域 | 测试文件 | 关键性质（规划） |
 |---|---|---|
-| 技能轮换 | `learn-scheduler.test.js`（扩） | pickSkills 最久未验证优先、legacy `1` 排最前、能力过滤（无 cap 的技能永不返回）、阶梯门、≤2 且第二个仅 stale 时；skillFresh 窗口（含 legacy `1`）；fullyMastered 缺能力语义；tierFor 向后兼容 |
-| skills 合并 | `learn-model.test.js`（扩） | mergeSkills 逐键 max 幂等/可交换；`{read:1} × {read:ts} ⇒ ts`；重放不放大 |
-| 题型生成 | `learn-exercises.test.js`（新） | pickExercise 同 (id,reps) 确定、跨 reps 轮换；mcqFrom 干扰项排除归一等值 tr；listenPickFrom 正确⊆句、干扰∩句=∅；speakScore 精确=1/空=0/密疏两路/漏词表；gradeGate 矩阵与挖空规则对齐 |
-| 题包 | `learn-pack.test.js`（新） | 能力随解析引擎门；干扰项复述 tr 被拒；干扰词在句中被拒；部分题包逐项降级、全废 bad_output；**每卡每 PACK_VERSION 至多一次扣费**（调用计数）；在途去重；缓存写失败不重扣 |
 | 语音输入 | `learn-speech.test.js`（新） | capable() 各门控（注册表条件 × mic API 存在）；multipart 构造（und 不带 language）；JSON 与 text/plain 响应；具名错误码 |
 
-同理 §2.1 的走查步骤届时新增：选择题（选项非空、对/错选各自约束评分）、盲听选词
-（播放后才出选项）、同卡第二题（通过不动排程、挂科 lapse、行带 `extra:1`，读
-IndexedDB 验证）、说题（录→停→「识别中」禁用态→transcript+评分→约束评分→行带
-`mode:'speak'`；mock `/v1/audio/transcriptions` + 页内 stub getUserMedia/
-MediaRecorder）、题包失败回落本地题型（永不死卡）。真机矩阵新增：扩展页与 App
-两宿主的真麦克风门控（iOS Safari 扩展页 getUserMedia 历史受限——门控应表现为
-「说档不存在」而非报错）、Safari MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
+届时 §2.1 走查再新增：说题（录→停→「识别中」禁用态→transcript+评分→约束评分→
+行带 `mode:'speak'`；mock `/v1/audio/transcriptions` + 页内 stub getUserMedia/
+MediaRecorder）。真机矩阵新增：扩展页与 App 两宿主的真麦克风门控（iOS Safari
+扩展页 getUserMedia 历史受限——门控应表现为「说档不存在」而非报错）、Safari
+MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
 
 ## 2. 真实引擎（改动学习面必跑）
 
@@ -67,8 +63,11 @@ MediaRecorder）、题包失败回落本地题型（永不死卡）。真机矩�
 | 1 | 种子后重建牌组 | 首卡出现、计数行非空 |
 | 2 | 产出档 | 先见译文、挖空输入在、检查前评分隐藏；全对后「不记得」被禁用（客观结果约束评分） |
 | 3 | 听懂档 | 原文先隐藏、「显示原文」与播放按钮有字；点开原文 → 答案 → 评分 |
+| 3a | 盲听选词（§9.3，种子钉 reps 保证出现） | 原文在确认前不露、选项 ≥3 且非空；全对确认后原文出现、「不记得」被禁用 |
+| 3b | 译文选择题（§9.3，种子钉 reps 保证出现） | 题干与选项非空；选对后答案面出现、「不记得」被禁用（客观结果约束评分） |
 | 4 | und 卡 | 播放禁用、提示指路到**我们的**语音设置（不是系统设置） |
-| 5 | 评分落库 | 「记得」后 s 上升、对应技能徽章点亮（读 IndexedDB，不信界面） |
+| 5 | 评分落库 | 「记得」后 s 上升、对应技能**时间戳**落库（读 IndexedDB，不信界面） |
+| 5.5 | 同卡第二题（§5.4） | extra-note 出现过；extra 行带 mode 不带 practice；listen1 的 reps 恰 +1（第二题不推进排程）；第二题通过刷新技能时间戳 |
 | 6 | 做完态 | 练习入口出现（死路已removed） |
 | 7 | 自由练习 | 答错 → sched 打回；答对 → sched 一字不动（§5.3 不对称）；候选不建 sched；练习记录带 practice/mode |
 | 8 | 句子解析 | 门随 configure 即刻打开、mock 引擎结果渲染生词、结果落缓存 |

@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "再練一項 · 不再計入複習間隔",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "選出正確的譯文",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "先聽一遍，再選出你聽到的詞",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "確認選擇",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "正在用你配置的 API 生成本卡題目（一次調用，永久快取）…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "題目生成失敗，已換用本地題型",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

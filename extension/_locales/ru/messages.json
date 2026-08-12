@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "Ещё одно упражнение · не влияет на интервал",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Выберите правильный перевод",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Сначала прослушайте, затем выберите услышанные слова",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Подтвердить выбор",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Генерация вопросов этой карточки через ваш API (один вызов, кэш навсегда)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Не удалось сгенерировать — используется локальное упражнение",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "Un ejercicio más · no afecta al intervalo",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Elige la traducción correcta",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Escucha primero y elige las palabras que oíste",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Confirmar selección",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Generando las preguntas de esta tarjeta con tu API (una llamada, caché permanente)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Falló la generación — se usa el ejercicio local",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

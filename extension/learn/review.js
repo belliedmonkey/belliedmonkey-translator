@@ -19,7 +19,9 @@
   let currentMode = 'read'; // §5.2 — which exercise form the card on screen is using
   let skillQueue = [];      // §5.4 — the skills this due date tests (1–2, rotation order)
   let extraMode = false;    // §5.4 — true while the appended second exercise is on screen
-  let clozeState = null;    // write tier: { answers, inputs, checked }
+  let clozeState = null;    // write tier: { answers, inputs, checked, accept }
+  let exState = null;       // §9.3 — current choice/pick exercise, or null (recall/cloze)
+  let poolItems = [];       // §9.3 — corpus snapshot: local distractor/foil material
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
@@ -330,13 +332,156 @@
     $('badge-full').hidden = !LearnScheduler.fullyMastered(item, caps, now, sched);
   }
 
+  // ─── §9.3 exercise variants (MCQ / 盲听选词 / 理解题) ─────────────────────
+
+  function resetExercise() {
+    exState = null;
+    $('ex-prompt').hidden = true;
+    $('ex-options').hidden = true;
+    $('ex-options').textContent = '';
+    $('ex-options').classList.remove('chips');
+    $('ex-check').hidden = true;
+    $('ex-status').hidden = true;
+    $('ex-status').textContent = '';
+  }
+
+  // §9.3 — one place turns an objective result into the allowed grade set,
+  // mirroring the cloze 检查 rule.
+  function applyGradeGate(allowed) {
+    document.querySelectorAll('.grade').forEach((b) => {
+      b.disabled = allowed.indexOf(Number(b.dataset.grade)) < 0;
+    });
+  }
+
+  // §9.3 — which variant this render shows. Deterministic by (id, reps, skill) —
+  // a reload re-asks the same question. Only 'comprehension' may charge (once per
+  // card per PACK_VERSION, status line visible); every failure falls back to the
+  // local variant of the same skill — a pack error never blocks a review.
+  async function chooseVariant(item) {
+    const reps = (item.sched && item.sched.reps) || 0;
+    const canAI = typeof LearnExercisePack !== 'undefined' && LearnExercisePack.capable();
+    const cachedPack = canAI ? await LearnExercisePack.cached(item.id) : null;
+    let pack = cachedPack && cachedPack.data;
+    const pick = LearnExercises.pickExercise(currentMode, item,
+      { reps, poolSize: poolItems.length, hasAI: canAI });
+
+    if (pick.needsPack && !pack) {
+      $('ex-status').hidden = false;
+      $('ex-status').textContent = t('learn_pack_loading',
+        '正在用你配置的 API 生成本卡题目（一次调用，永久缓存）…');
+      try {
+        const r = await LearnExercisePack.get(item, explainLang);
+        pack = r.data;
+        if (deck[idx] === item) $('ex-status').hidden = true;
+      } catch (e) {
+        if (deck[idx] !== item) return null;
+        // Named failure, then the LOCAL variant of the same skill renders below.
+        $('ex-status').textContent = t('learn_pack_failed', '题目生成失败，已换用本地题型')
+          + ' (' + ((e && e.code) || 'error') + ')';
+      }
+    }
+    if (deck[idx] !== item) return null;
+
+    if (pick.kind === 'mcq') {
+      const q = LearnExercises.mcqFrom(item, poolItems,
+        pack && pack.mcq && pack.mcq.distractors, reps);
+      return q ? { kind: 'mcq', q } : { kind: 'recall' };
+    }
+    if (pick.kind === 'comprehension') {
+      const qs = pack && pack.comprehension;
+      if (qs && qs.length) return { kind: 'comprehension', q: qs[reps % qs.length] };
+      return { kind: 'recall' };
+    }
+    if (pick.kind === 'listen-pick') {
+      const q = LearnExercises.listenPickFrom(item, poolItems,
+        pack && pack.listen && pack.listen.foils, reps);
+      return q ? { kind: 'listen-pick', q } : { kind: 'listen-recall' };
+    }
+    return { kind: pick.kind };
+  }
+
+  // Single-tap choice exercises (译文选择题 / 理解题). The tap is both the answer
+  // and the reveal; the objective result then constrains the grades — the cloze
+  // rule, reused. Options are BUTTONS built with textContent: model output is
+  // untrusted (§9.2), and so is corpus text on principle.
+  function renderChoice(item, variant) {
+    const isMcq = variant.kind === 'mcq';
+    exState = { kind: variant.kind, decided: false };
+    $('ex-prompt').hidden = false;
+    $('ex-prompt').textContent = isMcq
+      ? t('learn_mcq_prompt', '选出正确的译文')
+      : variant.q.q;
+    const box = $('ex-options');
+    box.hidden = false;
+    box.textContent = '';
+    variant.q.options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'ex-option';
+      b.textContent = opt;
+      b.addEventListener('click', () => {
+        if (!exState || exState.decided) return;
+        exState.decided = true;
+        const okPick = i === variant.q.correct;
+        Array.from(box.children).forEach((el, j) => {
+          el.disabled = true;
+          if (j === variant.q.correct) el.classList.add('ok');
+        });
+        if (!okPick) b.classList.add('bad');
+        applyStage(2);
+        $('orig').hidden = false;
+        $('grades').hidden = false;
+        applyGradeGate(LearnExercises.gradeGate(exState.kind, { correct: okPick }));
+      });
+      box.appendChild(b);
+    });
+    // The original stays visible (both variants test understanding OF it); the
+    // translation stays hidden until the tap — the choice IS the reveal.
+    $('orig').hidden = false;
+    $('reveal').hidden = true;
+    $('reveal-orig').hidden = true;
+    $('answer').hidden = true;
+    $('grades').hidden = true;
+  }
+
+  // 盲听选词: audio first, the original hidden; multi-select the words heard,
+  // then 确认 locks the row, reveals, and gates the grades.
+  function renderListenPick(item, variant) {
+    exState = { kind: 'listen-pick', decided: false, sel: new Set(), q: variant.q };
+    $('ex-prompt').hidden = false;
+    $('ex-prompt').textContent = t('learn_listen_once', '先听一遍，再选出你听到的词');
+    const box = $('ex-options');
+    box.hidden = false;
+    box.classList.add('chips');
+    box.textContent = '';
+    variant.q.options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'ex-option chip';
+      b.textContent = opt.w;
+      b.addEventListener('click', () => {
+        if (!exState || exState.decided) return;
+        if (exState.sel.has(i)) { exState.sel.delete(i); b.classList.remove('sel'); }
+        else { exState.sel.add(i); b.classList.add('sel'); }
+      });
+      box.appendChild(b);
+    });
+    $('ex-check').hidden = false;
+    $('ex-check').disabled = false;
+    $('orig').hidden = true;
+    $('reveal-orig').hidden = true;
+    $('reveal').hidden = true;
+    $('answer').hidden = true;
+    $('grades').hidden = true;
+  }
+
   // §5.2 write tier: the cloze UI, from the pure builder. Inputs in document order;
   // sizes track their answers so the layout does not telegraph less than it must.
-  function buildClozeUI(item) {
+  // `accept` (§9.3, cached pack only — never generated for a cloze) widens the
+  // checker with alternative forms; the answer of record stays the sentence's.
+  function buildClozeUI(item, accept) {
     const c = LearnModel.clozeFor(item.text);
     const box = $('cloze');
     box.textContent = '';
-    clozeState = { answers: [], inputs: [], checked: false };
+    clozeState = { answers: [], inputs: [], checked: false, accept: accept || null };
     for (const p of c.parts) {
       if (p.t === 'text') { box.appendChild(document.createTextNode(p.v)); continue; }
       const inp = document.createElement('input');
@@ -443,6 +588,7 @@
 
     const write = currentMode === 'write';
     clozeState = null;
+    resetExercise();
     $('cloze').hidden = !write;
     $('write-prompt').hidden = !write;
     $('write-replaced').hidden = true;
@@ -454,13 +600,27 @@
 
     if (write) {
       // Translation up front, blanks to fill, no reveal step — 检查 is the reveal.
-      buildClozeUI(item);
+      // A CACHED pack's accept alternates widen the checker (§9.3); the local
+      // exercise never triggers a generation.
+      const packHit = (typeof LearnExercisePack !== 'undefined' && LearnExercisePack.capable())
+        ? await LearnExercisePack.cached(item.id) : null;
+      buildClozeUI(item, packHit && packHit.data && packHit.data.accept);
       $('orig').hidden = true;
       $('reveal').hidden = true;
       $('reveal-orig').hidden = true;
       $('answer').hidden = false;
     } else {
-      applyStage(currentMode === 'listen' || ttsMode === 'audio-first' ? 0 : 1);
+      // §9.3 — the variant rotation. A choice/pick variant replaces the recall
+      // staging; the recall variants keep the staging exactly as before.
+      const variant = await chooseVariant(item);
+      if (!variant || deck[idx] !== item) return;
+      if (variant.kind === 'mcq' || variant.kind === 'comprehension') {
+        renderChoice(item, variant);
+      } else if (variant.kind === 'listen-pick') {
+        renderListenPick(item, variant);
+      } else {
+        applyStage(currentMode === 'listen' || ttsMode === 'audio-first' ? 0 : 1);
+      }
     }
     setupAudio(item);
     setupNotes(item);
@@ -602,6 +762,7 @@
 
   async function startPractice() {
     const items = await LearnStore.allItems();
+    poolItems = items;   // §9.3 — same variant material on the practice path
     const srcList = await LearnStore.allSources();
     const sources = new Map(srcList.map((s) => [s.id, s]));
     const pool = $('practice-pool').value;
@@ -718,6 +879,7 @@
     skillQueue = [];
     $('practice-note').hidden = true;
     const { items } = await refreshCounts();
+    poolItems = items;   // §9.3 — local distractor/foil material for the variants
     const now = Date.now();
 
     const srcList = await LearnStore.allSources();
@@ -874,7 +1036,11 @@
     if (!clozeState || clozeState.checked) return;
     let allOk = true;
     clozeState.inputs.forEach((inp, i) => {
-      const okOne = LearnModel.clozeCheck(clozeState.answers[i], inp.value);
+      // §9.3 — pack `accept` alternates widen the check; the sentence's own
+      // answer stays the answer of record (and the correction shown).
+      const alts = (clozeState.accept && clozeState.accept[clozeState.answers[i]]) || [];
+      const okOne = LearnModel.clozeCheck(clozeState.answers[i], inp.value)
+        || alts.some((a) => LearnModel.clozeCheck(a, inp.value));
       inp.classList.add(okOne ? 'ok' : 'bad');
       if (!okOne) { allOk = false; inp.value = clozeState.answers[i]; }
       inp.disabled = true;
@@ -888,6 +1054,30 @@
       const g = Number(b.dataset.grade);
       b.disabled = allOk ? g === 0 : g > 0;
     });
+  });
+
+  // §9.3 盲听选词 — 确认 locks the selection, reveals, and gates the grades on
+  // the objective result (exact set match: every heard word picked, no foil).
+  $('ex-check').addEventListener('click', () => {
+    if (!exState || exState.kind !== 'listen-pick' || exState.decided) return;
+    exState.decided = true;
+    $('ex-check').disabled = true;
+    const q = exState.q;
+    let allOk = true;
+    Array.from($('ex-options').children).forEach((el, i) => {
+      el.disabled = true;
+      const hit = !!q.options[i].hit;
+      const chosen = exState.sel.has(i);
+      if (hit) el.classList.add('ok');
+      if (chosen !== hit) {
+        allOk = false;
+        if (chosen && !hit) el.classList.add('bad');
+      }
+    });
+    $('orig').hidden = false;
+    applyStage(2);
+    $('grades').hidden = false;
+    applyGradeGate(LearnExercises.gradeGate('listen-pick', { correct: allOk }));
   });
 
   // Drain the outbox first — this page is one of the few places that can, since the
