@@ -707,6 +707,12 @@ source → Extractor → Engine → Renderer
    subtree. Without this the extension translates its own translations and captures
    the result — an unbounded loop that corrupts the corpus.
 
+> *Scope note (2026-08-12):* the learning layer's 说 exercise records the **user's
+> own voice** at their explicit tap and sends it only to the transcription endpoint
+> they configured (`learning-design.md` §9.4). This does not touch §2's subtitle
+> rule ("No ASR / no self-generated transcripts"): the translation pipeline still
+> only consumes transcripts that already exist and never transcribes page media.
+
 ### 9.2 Where it attaches (the only three touch points)
 
 | Surface | Attachment | Why there |

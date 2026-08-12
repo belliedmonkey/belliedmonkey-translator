@@ -215,15 +215,21 @@ Item = {
   state: 'candidate' | 'learning' | 'known' | 'muted',
   sched: { s, d, lastReviewAt, dueAt, reps, lapses },
   starred,         // explicit user save → bypasses the salience gate
-  skills,          // {read?:1, listen?:1, write?:1} — tiers passed at grade ≥ 2 (§5.2)
+  skills,          // {read?, listen?, write?, speak?} — per-skill last-verified
+                   // timestamp in ms (§5.4). Legacy value `1` (pre-2026-08-12
+                   // boolean) is a valid-but-ancient timestamp: truthy ⇒ badge
+                   // stays lit; ancient ⇒ rotation re-verifies it first.
 }
 ```
 
 A review-log row is `{ itemId, grade, at }` plus, since 2026-08-08, two optional
-fields: `mode: 'read' | 'listen' | 'write'` (which exercise form was graded, §5.2)
-and `practice: 1` (a free-practice rep, §5.3 — logged but not schedule-advancing).
-Both are additive: the log is append-only and JSONL carries unknown fields through
-old readers untouched, so the chunk format (§8.4) does not version-bump for this.
+fields: `mode: 'read' | 'listen' | 'write'` (which exercise form was graded, §5.2;
+`'speak'` joins the union with §5.4) and `practice: 1` (a free-practice rep, §5.3 —
+logged but not schedule-advancing). Since 2026-08-12 a third: `extra: 1` (the
+same-card second exercise of §5.4 — logged, badge-refreshing, never
+schedule-advancing on a pass). All are additive: the log is append-only and JSONL
+carries unknown fields through old readers untouched, so the chunk format (§8.4)
+does not version-bump for any of them.
 
 - **`id` is content-addressed.** The same sentence met on a second device, or on a
   second site, collapses onto one item and increments `seenCount`. This is what makes
@@ -234,10 +240,16 @@ old readers untouched, so the chunk format (§8.4) does not version-bump for thi
 - **`text` / `tr` / `anchor` are immutable after creation.** Only `sched`, `state`,
   `starred`, `skills` and the counters mutate. This is what shrinks the sync conflict
   surface to almost nothing (§8.3).
-- **`skills` merges as a UNION** — a skill once passed anywhere is passed everywhere.
-  Union (max per key) is idempotent under *both* of §8.4.2's merge semantics, so it
-  needs no accumulate/copy branch and cannot echo-amplify: the same reasoning that
-  made `starred` safe to sync applies unchanged.
+- **`skills` merges per-key by `Math.max`** *(2026-08-12; previously boolean UNION —
+  max is the same operation once the values are timestamps)*. A skill verified
+  anywhere is verified everywhere, and the LATEST verification wins. Per-key max is
+  idempotent and commutative under *both* of §8.4.2's merge semantics, so it needs
+  no accumulate/copy branch and cannot echo-amplify — the union argument carries
+  over unchanged, and legacy `1` values participate as ancient timestamps that lose
+  to any real one. Known, accepted looseness: a device still running the union code
+  merges with `Object.assign` (incoming wins), which can briefly regress a timestamp
+  to `1`; the next merge on an updated device heals it (max), and the visible effect
+  meanwhile is only "stale, re-verify sooner" — failure in the safe direction.
 
 ### 4.1 The learned language is the source language
 
@@ -370,20 +382,26 @@ TIER_WRITE_S: 30,
   三份、同步合并的「按 lastReviewAt 取新」拆成三路、复习债×3，而换来的精度建立在
   两个本就未经验证的阈值上（§12 已否决）。强度本身就是难度的正确门控——记忆越牢，
   测试越苛刻，这正是「拉通听说读写」在间隔重复框架里的诚实实现。
-- **验证的诚实边界，写明而不是含混**：**写是唯一客观判定的技能**——挖空答案归一化
-  （大小写、标点、空白）后精确比对；读与听仍是自评。宣称「科学验证」时只有产出
-  阶段配得上这四个字，文档与界面都不夸大。
+- **验证的诚实边界，写明而不是含混** *(2026-08-12 更新)*：**客观判定的是「有确定
+  性判分函数」的题型**——写（挖空归一化后精确比对）、说（转写重合度，§5.4/§9.4）、
+  读与听的选择题变体（选项对错，§9.3）；读与听的自评回忆变体仍是自评。宣称
+  「科学验证」只覆盖客观判定的部分，文档与界面都不夸大。
 - **挖空是本地纯函数** `LearnModel.clozeFor(text, lang)`：脚本感知选实词（沿用
   §6 长度带的 CJK/Latin 区分），不调用任何模型。放 `learn-model.js` 因为两个宿主
   （扩展页 + App）都已加载它。
-- **说 = 跟读，自评，不作验证。** 听懂阶段附「跟着读一遍」提示。浏览器的语音识别
-  API（SpeechRecognition）把录音送往厂商服务器，与「无遥测」承诺正面冲突，ASR
-  维持 §11 排除（本次重审后二次否决，§12）。界面明说这是练习不是测验。
-- **技能徽章**：每张卡显示 读 / 听 / 写 三枚徽章，各自在该题型下拿过 ≥「记得」
-  即点亮，落 `item.skills`（并集合并，§4）。
-- **「全面掌握」= `s ≥ KNOWN_S` 且该卡可用技能全部点亮。** 这是**展示层**概念：
-  `stateFor` / `known` 保持纯 `s` 判定不动——调度器状态机零迁移，已有用户的
-  「已掌握」不回退，只是徽章未满的卡在界面上标为「记忆已牢，技能未全」。
+- **说（2026-08-12 三审改判，§12）：转写引擎配好且有麦克风时，是第四种题型。**
+  朗读原句 → 录音发到**用户自己配置的** `/v1/audio/transcriptions` 端点 → 本地
+  纯函数比对转写与原句、客观约束评分（§5.4、§9.4）。浏览器自带的
+  SpeechRecognition（录音送 Chrome→Google / Safari→Apple）维持永久否决。能力门
+  关着时说档**不存在**；听懂阶段的「跟着读一遍」跟读提示保留为无验证的兜底练习，
+  界面仍明标「练习，不验证」。
+- **技能徽章**：每张卡显示 读 / 听 / 写（说档开着时加 说）徽章，各自在该题型下
+  拿过 ≥「记得」即点亮并刷新时间戳，落 `item.skills`（逐键 max 合并，§4）。点亮
+  但超出 §5.4 新鲜窗的徽章标「待重验」，不熄灭。
+- **「全面掌握」= `s ≥ KNOWN_S` 且该卡每个可用技能都新鲜（§5.4 `skillFresh`）。**
+  这是**展示层**概念：`stateFor` / `known` 保持纯 `s` 判定不动——调度器状态机零
+  迁移，已有用户的「已掌握」不回退，只是技能未全/过窗的卡在界面上标为
+  「记忆已牢，技能待验」。
 - **TTS 不可用（无引擎 / 无该语言语音）的卡自动跳过听懂档**：能力缺失意味着该档
   *不存在*，不是该卡失败——同 domain-design §5.3 规则 1 的能力语义。
 - **生词 / 语法 / 短语不进掌握标准。** 学习单位是句子（§1、§11 不变）；词汇与
@@ -409,6 +427,40 @@ TIER_WRITE_S: 30,
 - 练习记录带 `practice: 1` 与 `mode`（§4），照常进 append-only 日志、照常同步；
   重放端不因它推进任何排程（排程本来就随条目走、不由日志重建，§8.4.2 的机制
   天然覆盖）。收敛判据不变：无活动时双向同步仍须稳定 0 / 0。
+
+### 5.4 核心约束 — 技能轮换与四技能矩阵（2026-08-12，用户裁定）
+
+**「学好」的完整定义：同一个句子，读、听、写、说四项能力都被验证过，且到期重测
+时都还在。** §5.2 的阶梯不变（强度门控题型难度）；本节在它之上补两件事：每次到期
+测**哪个**技能，以及「全面掌握」怎样随时间失效再重验。
+
+- **`skills` 从布尔升级为时间戳**：`{read?, listen?, write?, speak?}`，值为该技能
+  最近一次拿到 ≥「记得」的时刻（ms）。旧数据的 `1` 是合法但极旧的时间戳——truthy
+  所以徽章不回退，极旧所以轮换把它排最前（恰是「该重验」的语义）——**零迁移**。
+  合并规则见 §4（逐键 max）。
+- **`pickSkills(item, caps, now, cfg)`（纯函数）**：先按 §5.2 阶梯过滤出该卡存在
+  的技能——read 恒在；listen / speak 需 `s ≥ TIER_LISTEN_S` 且各自能力开着
+  （`TIER_SPEAK_S` 与 `TIER_LISTEN_S` 同值 4，独立命名以便单独重调）；write 需
+  `s ≥ TIER_WRITE_S`——再按 `skills[k] || 0` 升序取最久未验证的 1–2 个。
+- **一次到期，一条曲线，至多两题**：第 1 题照常 `applyReview` 推进排程；第 2 题
+  仅当其技能也已过新鲜窗时追加，走 §5.3 的 `practiceOutcome`（答错 lapse——遗忘
+  证据任何时刻有效；答对只刷新技能时间戳、不写排程），复习行记 `{mode, extra: 1}`。
+  这就是它与 §12 已否决的「独立排程」的边界：**到期永远只由一条曲线决定，第二题
+  改变的只是技能矩阵，从不制造第二张时间表**。
+- **新鲜窗 `skillFresh(item, k, now, cfg)`**：`now − skills[k] ≤ max(s, 1) ×
+  FRESH_MULT × DAY`（`FRESH_MULT: 1.5`，与 §5.2 阈值同一句话：未经验证、调整
+  便宜）。窗口随强度伸缩：强度越高，一次技能验证的有效期越长——与遗忘曲线同构。
+- **「全面掌握」= `s ≥ KNOWN_S` 且该卡每个可用技能都新鲜**（§5.2 的定义由此收紧
+  为带时效的版本）。仍是展示层概念：`stateFor` / `known` 不动，已有用户的
+  「已掌握」不回退；徽章点亮但过窗时标「待重验」，不熄灭。
+- **知识点轮换取材，不单独记账**：出题时从该句的解析面（§9.2 的 words / phrases /
+  grammar）轮流取材——这次挖这个词、下次听力考那个短语——由确定性种子
+  （`hash16(itemId | reps)`）驱动，保证每个知识点被轮到而无需知识点级存储。掌握
+  矩阵的粒度是**句子 × 技能**（4 格）；知识点 × 技能全矩阵已否决（§12）。词汇不
+  单独考、不单独排程的边界（§5.2 末条、§11）不动。
+- **每个技能先有确定性本地题型，AI 题包只是增强**——分工与成本纪律见 §9.3。
+- **能力语义照旧**：无 TTS 的卡没有听档，无麦克风或无转写引擎的卡没有说档——
+  缺失的技能不进「可用技能」集合，不拦「全面掌握」（同 domain-design §5.3 规则 1）。
 
 ---
 
@@ -1322,6 +1374,9 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
 | `LearnNotes` | `learn/notes.js` *(planned, §9.2)* | 句子解析：生词 / 短语 / 语法点。调用用户配置的 chat 类引擎，结果落 IndexedDB `notes` 表（v4），永不同步 |
 | `LearnRules` | `content/learn-rules.js` | pure: URL/domain wildcard matcher, `dominantScript`, whitelist gate `langAllowed` (§4.1), delete selection `doomedFor`, rules LWW merge (§8.9). Registry-injected (`window.MT_LANGS`), zero storage access |
+| `LearnExercises` | `content/learn-exercises.js` *(planned, §5.4/§9.3)* | pure: 题型注册表、确定性轮换与知识点取材、译文选择题 / 盲听选词生成、`speakScore` 转写重合度、`gradeGate` 客观结果→评分约束 |
+| `ExercisePack` | `learn/exercise-pack.js` *(planned, §9.3)* | AI 题包：按卡生成/缓存/合规检查，`PACK_VERSION`，复用 §9.2 的引擎门与传输 |
+| `LearnSpeech` | `learn/speech-input.js` *(planned, §9.4)* | 录音 + BYO 转写：`getUserMedia`/`MediaRecorder`，multipart `/v1/audio/transcriptions`，录音用后即弃 |
 | `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
@@ -1426,6 +1481,66 @@ rather than reading the sentence in the wrong language.
   四字段、无翻译功能可耦合，语义不变；两端在呈现上对齐：都有名为「解析引擎」的
   设置面。回退解析逻辑收敛为一个纯函数（`LearnNotes.resolveConfig`），进 vm
   测试。
+
+## 9.3 题包 (exercise packs) — AI 生成的题面素材（2026-08-12）
+
+§5.4 的题型分两类：**本地确定性**（恒存在、零成本）与 **AI 题包增强**（门控、
+缓存）。每个技能必须先有本地题型，AI 只做本地做不出的部分——§2.1 本地先行门的
+直接应用：
+
+| 技能 | 本地（纯函数，恒存在） | 题包增强 |
+|---|---|---|
+| 读 | 认读自评；译文选择题（干扰项确定性取自语料库其他条目的 `tr`） | 更像样的干扰项；理解题 |
+| 听 | 音频先行自评；盲听选词（正确项 = 句中实词，干扰项 = 其他条目的词） | 听感相近的干扰词；听力理解题 |
+| 写 | 挖空（`clozeFor`，§5.2） | `accept` 替代答案集；答错后按需「AI 复核」 |
+| 说 | —（能力门控题型，§9.4；门关着即不存在，不需要本地兜底题） | 录音 → 转写 → 本地重合度评分 |
+
+- **独立模块、独立版本，不并入解析 prompt。** 并入会 bump notes 的
+  `PROMPT_VERSION`、全量作废已缓存解析并重复扣费——§9.2 的版本纪律只允许纠错时
+  升版（§12 记录了这次否决）。题包自有 `PACK_VERSION`，缓存记录同 §9.2 形状
+  `{id, data, at, provider, v}`，key 为 `itemId + '\0pack'`，落现有 `notes` 表
+  （无新表、无索引变更 ⇒ 无 DB_VERSION bump）。
+- **能力门 = 解析引擎的门**（chat 类引擎 + key，§9.2 的 `resolveConfig` 原样
+  复用），传输共用同一条链路。没配引擎时 AI 题型不存在，本地题型照常——题包永远
+  只是增强，不是依赖。
+- **成本上界写死**：每卡每版本至多一次调用；仅当轮换命中 AI 题型且缓存未命中时
+  生成（用到才生成，不预热、不批量）；最坏情形 ≤ deckSize 次/天。在途去重、缓存
+  写失败不得二次扣费——与 §9.2 同一组契约、同一组测试形状。成本文案在生成前
+  可见（同「解析这句」的成本行惯例）。
+- **模型输出不可信是前提**：防御性解析 + 机械合规检查——`mcq.distractors[]`
+  归一化后不得等于/包含 `item.tr`；`listen.foils[]` 不得出现在原句中、
+  `listen.heard[]` 必须逐字来自原句（§9.2 verbatim 检查同款）；`comprehension[]`
+  结构校验（2–4 个选项、`correct` 在界内）；`accept` 替代答案归一化后必须 ≠ 原
+  答案。违规逐项丢弃、部分可用照用；全废判 `bad_output`。
+- **题包失败永不挡复习**：任何失败（无引擎、HTTP、bad_output）都回落到同技能的
+  本地题型。失败具名，走 §9.2 的错误码惯例。
+- **不同步**，同 §9.2 的理由：可再生的衍生物，换设备按需重造。
+
+## 9.4 语音输入 (speech input) — 说题型的转写引擎（2026-08-12）
+
+§12 三审的裁定：被否的从来是「录音离开用户自选的端点」。浏览器 SpeechRecognition
+维持永久否决；解禁的是与 §9.1 语音（TTS）完全同构的 BYO 路径。
+
+- **第三个注册表**：`build/stt.config.js` → `content/stt.gen.js`
+  （`window.MT_STT_ENGINES`），理由同 §9.1 的第二注册表——不同能力不合并进翻译
+  注册表。一种格式覆盖全空间：`transcribe-compat`（OpenAI
+  `/v1/audio/transcriptions` 的 multipart 形状，自托管 whisper 服务器同样实现它）
+  ——「我自己的机器」与「一朵云上的 key」共用一条传输，本地优先要的正是这个。
+  china flavor 合规扫描照跑（注册表是唯一出处，别处永不复述引擎名/端点）。
+- **设置键** `sttEngine / sttBaseUrl / sttApiKey / sttModel`，**不跟随**翻译组或
+  解析组——录音去哪儿必须是一次显式选择，没有「顺便」。两宿主同面（options 学习
+  区 + App 设置），App 侧是 §7.2 的设备本地凭证。
+- **隐私契约（§10 Gate C，披露与代码同 PR）**：录音只发往用户配置的端点；转写
+  返回即弃——不落 IndexedDB、不进 chunk、不同步、我们的服务器永远收不到。未配置
+  引擎或无麦克风时说档**不存在**（能力语义，§5.2/§5.4），永远不是灰按钮加道歉。
+- **评分在本地**：转写文本与原句的重合度是纯函数（§5.4 引用的 `speakScore`——
+  密集文字字符二元组、稀疏文字词多重集），客观约束评分的方式与挖空同款。模型只
+  做转写、不做裁判——裁判必须可测、可重放。
+- **失败具名**：`no_base / no_key / no_mic / mic_denied / http /
+  empty_transcript / unsupported`，界面文案逐一对应（§9.1 reason 惯例）。
+  会话中途 `mic_denied` ⇒ 本会话说档关闭、卡片按下一顺位技能重渲——不出死卡。
+- **IO 在途，控件不可用**（interaction-spec 全局原则）：录音与转写全程，说题
+  控件整体禁用并给具名状态文案。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
@@ -1560,6 +1675,29 @@ consent error in either direction.
   is a change to a published declaration, not a first submission. Growing it is a
   review-visible event; budget for it.
 
+### Gate C — ships with the 说 exercise (§5.4 / §9.4)
+
+One disclosure, same PR as the code that makes it true (never before, never after):
+
+> **If you configure a transcription engine and use the speaking exercise, your
+> recording is sent to that endpoint you chose — and nowhere else — then discarded
+> once the transcript comes back.** It is never stored, never synced, and never
+> touches a server of ours.
+
+- README.md / README.zh-CN.md gain that sentence next to the learning-feature
+  disclosure; the options 学习 hint and the App settings 「转写引擎」 hint carry the
+  same sentence at the point of configuration.
+- The translation-path sentences ("No servers of ours in the translation path", "your
+  API key never leaves your device") stay verbatim — §10's rule against weakening a
+  true statement to cover a different thing applies here too; the speak path gets its
+  **own** sentence, named for what it sends (a voice recording), to the endpoint the
+  user picked.
+- App Store privacy labels and the Firefox `data_collection_permissions` do **not**
+  grow for this: nothing new reaches us or any party the user did not explicitly
+  configure — same shape as BYO-key translation. Re-verify that reading against the
+  stores' current definitions at PR4 time; if a store's definition counts
+  user-configured endpoints, grow the declaration rather than argue with the form.
+
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
@@ -1577,12 +1715,17 @@ consent error in either direction.
 - **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
   server-side model is a *new* capability, not a conversion, which is the only reason
   it is permitted.
-- **ASR** remains out of scope, unchanged from domain-design §8: the learning layer
-  consumes transcripts that already exist, it never creates them.
-  *(Re-examined 2026-08-08 for the 说 skill and rejected a second time — §12. The
-  browser's `SpeechRecognition` ships the user's recordings to vendor servers, which
-  the no-telemetry promise cannot absorb. 说 is offered as shadowing with
-  self-assessment at the listen tier, labelled as practice, never as verification.)*
+- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** — it ships the
+  user's recordings to vendor servers (Chrome→Google, Safari→Apple), which the
+  no-telemetry promise cannot absorb. **The page-media rule is also unchanged**: the
+  learning layer consumes transcripts that already exist; it never transcribes page
+  audio or video (domain-design §2's "No ASR / no self-generated transcripts").
+  *(Re-scoped 2026-08-12 on third review — §12. What was rejected twice was
+  "recordings leave for a server the user did not choose". The BYO-key path —
+  recording the user's own voice at their explicit tap, sent only to the
+  `/v1/audio/transcriptions` endpoint they configured, discarded after the
+  response — is the same trust shape as BYO-key translation and TTS, and is now in
+  scope as the 说 exercise: §5.4, §9.4, §10 Gate C.)*
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
   and can be disabled and purged from settings at any time. See `README.md` — the
   privacy statement is part of the product, not marketing copy.
@@ -1612,8 +1755,11 @@ matters more than the detail.
 | 2026-08-07 | 扩展经 `sendNativeMessage` 把外发箱排空给 App，由 **App 负责上传** | **不是不可行——尖刺跑通了**（`verification-spec.md` Stage 0，提交 `1f4113a`：内容脚本没有这个 API；background 有，200KB 往返 10ms、热态 ~0.8ms/次，但**冷启动第一次调用必然失败**）。否决理由是**上传进度会落到 App 手里**：用户不打开 App 就可能永远不上传，而扩展连数据到没到服务器都无从得知。改为扩展直传服务器、自己持有 `syncPushedAt`。连带省掉了原生桥、App Group，以及 `safari-project` 重新生成会抹掉手写 Swift 的整个冲突 |
 | 2026-08-07 | 扩展退成纯采集器，删掉浏览器端复习页，全部学习入口引导到 App | 未登录用户就没有复习面了，与 `AGENTS.md` 规约 2（不付费不登录也有完整产品）和规约 3（对未登录用户必须完整）正面冲突。保留浏览器复习页之后，登录换来的是**多端同步 + 一个一键可达的面**，而不是功能本身 |
 | 2026-08-07 | 用导出/导入文件做扩展↔App 的无账号通道 | **产品判断，不是原则妥协**：没有人会为了继续学习，每周手动导入导出几次。造出来就是没人用的功能，而没人用的功能不叫合规，叫装饰。规约要靠**用户真会走的那条路**来守——那条路是浏览器端自己的复习页（§8.2） |
-| 2026-08-08 | 读 / 听 / 写各自独立排程 | `sched` 变三份、同步「按 lastReviewAt 取新」拆三路、复习债 ×3，换来的精度建立在两个本就未经验证的阈值上。一套排程 + 按强度门控题型（§5.2）以十分之一的复杂度覆盖同一目标 |
+| 2026-08-08 | 读 / 听 / 写各自独立排程 | `sched` 变三份、同步「按 lastReviewAt 取新」拆三路、复习债 ×3，换来的精度建立在两个本就未经验证的阈值上。一套排程 + 按强度门控题型（§5.2）以十分之一的复杂度覆盖同一目标。**2026-08-12 复审维持否决**：§5.4 的技能轮换发生在单一 `sched` 的每次到期之内——到期只由一条曲线决定，第二题走 `practiceOutcome`（答错 lapse、答对不写排程），不是第二张时间表 |
 | 2026-08-08 | 自由练习正常推进排程 | 连点两遍「记得」就能把间隔刷到几个月——掌握变成可以刷出来的假象，恰是「科学验证」的反面。改为不对称规则：答错照实算（遗忘证据任何时刻有效），答对只记录（刚见过就答对证明不了长期记忆）。Anki 对 cram 的处理同理（§5.3） |
 | 2026-08-08 | ASR 语音评测（为「说」）——二次否决 | 浏览器 `SpeechRecognition` 把录音送厂商服务器（Chrome→Google、Safari→Apple），与「无遥测」承诺正面冲突；本地 ASR 模型则破坏零依赖。说 = 听懂档的跟读自评，界面明标「练习，不验证」（§5.2） |
 | 2026-08-08 (二) | API key 走账号同步通道（凭证进 chunk / 服务器），让 App「登录即有解析」 | §8.6 已裁定服务器无 E2E —— 凭证上服务器等于把泄露半径从一台设备扩到整个服务端，且解析本身是可再生衍生物（§9.2 本来就不同步）。换设备重填一次 key 的代价与收益相称。App 侧改为本地配置（§7.2） |
 | 2026-08-08 (二) | 后台定时自动同步（`chrome.alarms` / 周期任务 / App 后台刷新） | Safari iOS 的后台 SW 锁屏后永久 `undefined`（Critical Safari Bug），主力面上定时器就是假心跳 —— 表上有、实际不跑，比没有更糟（用户以为在同步）。页面打开事件才是真实可靠的「用户在用」信号，且免去一整类不可见失败面（§8.8） |
+| 2026-08-12 | 浏览器原生 `SpeechRecognition` 做说题评测（三审） | 维持否决：录音送厂商服务器（Chrome→Google、Safari→Apple）不可接受，永不使用。但三审把「ASR 一律出局」收窄为「录音离开用户自选端点即出局」——**BYO-key 转写路径解禁**：录音只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃，与 BYO-key 翻译/TTS 同一信任形状（§5.4、§9.4、§10 Gate C、§11） |
+| 2026-08-12 | 知识点 × 技能全矩阵掌握标准 | 解析面每句最多 8 词 + 4 短语 + 1 语法点，×4 技能 ≈ 50 格——实际不可达，且需要知识点级存储与同步。改为句子 × 四技能矩阵（4 格）+ 出题时知识点确定性轮换取材（§5.4）；词汇不单独考排的边界（§5.2、§11）不动 |
+| 2026-08-12 | 题包并入解析 prompt（一次调用两用） | 会 bump notes 的 `PROMPT_VERSION`、全量作废所有用户已付费缓存的解析并重复扣费——§9.2 的版本纪律只允许纠错时升版。题包独立模块、独立 `PACK_VERSION`（§9.3） |

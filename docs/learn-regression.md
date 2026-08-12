@@ -35,6 +35,25 @@
 
 **纪律**：每条新断言做变异反向验证（杀不死的变异 = 测试缺口，先补齐再合并）。
 
+**四技能题型（learning-design §5.4/§9.3/§9.4）落地时本表新增的行（骨架，随代码
+PR 补齐断言细节——本文档与 runner 同 PR 演进）：**
+
+| 域 | 测试文件 | 关键性质（规划） |
+|---|---|---|
+| 技能轮换 | `learn-scheduler.test.js`（扩） | pickSkills 最久未验证优先、legacy `1` 排最前、能力过滤（无 cap 的技能永不返回）、阶梯门、≤2 且第二个仅 stale 时；skillFresh 窗口（含 legacy `1`）；fullyMastered 缺能力语义；tierFor 向后兼容 |
+| skills 合并 | `learn-model.test.js`（扩） | mergeSkills 逐键 max 幂等/可交换；`{read:1} × {read:ts} ⇒ ts`；重放不放大 |
+| 题型生成 | `learn-exercises.test.js`（新） | pickExercise 同 (id,reps) 确定、跨 reps 轮换；mcqFrom 干扰项排除归一等值 tr；listenPickFrom 正确⊆句、干扰∩句=∅；speakScore 精确=1/空=0/密疏两路/漏词表；gradeGate 矩阵与挖空规则对齐 |
+| 题包 | `learn-pack.test.js`（新） | 能力随解析引擎门；干扰项复述 tr 被拒；干扰词在句中被拒；部分题包逐项降级、全废 bad_output；**每卡每 PACK_VERSION 至多一次扣费**（调用计数）；在途去重；缓存写失败不重扣 |
+| 语音输入 | `learn-speech.test.js`（新） | capable() 各门控（注册表条件 × mic API 存在）；multipart 构造（und 不带 language）；JSON 与 text/plain 响应；具名错误码 |
+
+同理 §2.1 的走查步骤届时新增：选择题（选项非空、对/错选各自约束评分）、盲听选词
+（播放后才出选项）、同卡第二题（通过不动排程、挂科 lapse、行带 `extra:1`，读
+IndexedDB 验证）、说题（录→停→「识别中」禁用态→transcript+评分→约束评分→行带
+`mode:'speak'`；mock `/v1/audio/transcriptions` + 页内 stub getUserMedia/
+MediaRecorder）、题包失败回落本地题型（永不死卡）。真机矩阵新增：扩展页与 App
+两宿主的真麦克风门控（iOS Safari 扩展页 getUserMedia 历史受限——门控应表现为
+「说档不存在」而非报错）、Safari MediaRecorder mp4/m4a 与真 whisper 端点兼容性。
+
 ## 2. 真实引擎（改动学习面必跑）
 
 ### 2.1 `npm run test:learn` —— 双宿主全流程走查（本套件的主干）
