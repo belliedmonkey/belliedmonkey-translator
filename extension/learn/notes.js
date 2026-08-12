@@ -111,13 +111,15 @@ var LearnNotes = (() => {
     return out;
   }
 
-  async function callEngine(item, explainLang) {
+  // The shared chat transport (§9.2 / §9.3): the ONE place that knows the two
+  // wire formats. Returns the model's raw text; throws with a named code
+  // (no_base / http / empty_output). exercise-pack.js rides this same function —
+  // a third copy of the format branch is exactly how the formats would drift.
+  async function chat(system, user) {
     const p = providerInfo();
     const base = cfg.baseUrl || p.defaultBase;
     if (!base) { const e = new Error('missing base URL'); e.code = 'no_base'; throw e; }
     const model = cfg.model || p.defaultModel;
-    const user = 'Sentence (' + (item.lang || 'und') + '): ' + item.text
-      + '\nTranslation: ' + item.tr;
 
     const msgFormat = p.type === 'messages-compat';
     const resp = await fetch(base + p.path, {
@@ -130,12 +132,12 @@ var LearnNotes = (() => {
       // 3000, not 1000: hybrid thinking models (observed on the DeepSeek default)
       // spend their budget on the reasoning phase FIRST — at 1000 the budget died
       // mid-think and `content` came back empty, indistinguishable from a broken
-      // endpoint. The notes JSON itself is small; the headroom is for thinking.
+      // endpoint. The JSON itself is small; the headroom is for thinking.
       body: JSON.stringify(msgFormat
-        ? { model, max_tokens: 3000, system: buildPrompt(explainLang),
+        ? { model, max_tokens: 3000, system,
             messages: [{ role: 'user', content: user }] }
         : { model, temperature: 0.3, max_tokens: 3000,
-            messages: [{ role: 'system', content: buildPrompt(explainLang) },
+            messages: [{ role: 'system', content: system },
                        { role: 'user', content: user }] }),
     });
     if (!resp.ok) {
@@ -160,6 +162,13 @@ var LearnNotes = (() => {
       } catch (_) {}
       const e = new Error('model returned no content'); e.code = 'empty_output'; throw e;
     }
+    return text;
+  }
+
+  async function callEngine(item, explainLang) {
+    const user = 'Sentence (' + (item.lang || 'und') + '): ' + item.text
+      + '\nTranslation: ' + item.tr;
+    const text = await chat(buildPrompt(explainLang), user);
     const parsed = parseNotes(text);
     // Both gates share the user-facing code, so the console line is the only
     // place that says WHICH gate rejected and what the model actually sent —
@@ -227,7 +236,7 @@ var LearnNotes = (() => {
   }
 
   return { configure, resolveConfig, capable, chatEngines, parseNotes, buildPrompt,
-    get, cached, notesMatchSentence, PROMPT_VERSION };
+    chat, get, cached, notesMatchSentence, PROMPT_VERSION };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnNotes;

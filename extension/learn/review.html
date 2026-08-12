@@ -106,6 +106,15 @@
 
       <p class="orig" id="orig"></p>
 
+      <!-- §9.3 exercise variants: 译文选择题 / 盲听选词 / 理解题 render here. One
+           tap (or 确认 for the multi-select pick) locks the options, reveals, and
+           the objective result constrains the grades — the cloze rule, reused.
+           #ex-status doubles as the pack cost/status line (§9.3 cost contract). -->
+      <p class="shadow-hint" id="ex-prompt" hidden></p>
+      <div class="ex-options" id="ex-options" hidden></div>
+      <button class="reveal" id="ex-check" hidden data-i18n="learn_check_pick">确认选择</button>
+      <p class="shadow-hint" id="ex-status" hidden></p>
+
       <!-- §5.2 write tier: translation shown, the original with blanks. The inputs
            are checked automatically — the one objectively verified skill. -->
       <p class="shadow-hint" id="write-prompt" hidden data-i18n="learn_write_prompt">把原句补全</p>
@@ -163,11 +172,13 @@
   <script src="../content/learn-model.js"></script>
   <script src="../content/learn-rules.js"></script>
   <script src="../content/learn-scheduler.js"></script>
+  <script src="../content/learn-exercises.js"></script>
   <script src="../content/tts.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
   <script src="store.js"></script>
   <script src="tts.js"></script>
   <script src="notes.js"></script>
+  <script src="exercise-pack.js"></script>
   <script src="drain.js"></script>
   <!-- §8.8 auto-sync: opening this page is the heartbeat. These three (plus the
        backend config) exist here ONLY for that — review.js itself never pushes. -->

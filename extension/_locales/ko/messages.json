@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "한 문제 더 · 복습 간격에는 반영되지 않습니다",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "올바른 번역을 고르세요",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "먼저 듣고, 들린 단어를 고르세요",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "선택 확인",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "설정한 API로 이 카드의 문제를 생성 중(1회 호출, 영구 캐시)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "문제 생성 실패 — 로컬 문제 유형으로 대체했습니다",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

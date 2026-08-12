@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "もう一問 · 復習間隔には影響しません",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "正しい訳文を選んでください",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "まず聞いてから、聞こえた単語を選んでください",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "選択を確定",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "設定した API でこのカードの問題を生成中（1 回の呼び出し、永久キャッシュ）…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "問題の生成に失敗したため、ローカルの問題形式に切り替えました",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }

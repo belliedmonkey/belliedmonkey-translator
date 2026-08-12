@@ -93,6 +93,18 @@ const SEED = `(async () => {
       lang: 'en', sourceId: 'src1', state: 'candidate', createdAt: now - day, lastSeenAt: now - day,
       seenCount: 1, salience: 0.9 },
   ];
+  // §9.3 — pin each card's exercise VARIANT by choosing reps: the rotation is
+  // deterministic in (id, reps, skill), so the walk can assert specific variants
+  // instead of guessing which one the seed produced.
+  const pickReps = (skill, id, want) => {
+    for (let r = 0; r < 64; r++) {
+      if (LearnExercises.pickExercise(skill, { id }, { reps: r, poolSize: items.length, hasAI: false }).kind === want) return r;
+    }
+    return 0;
+  };
+  items[0].sched.reps = pickReps('read', 'read1', 'mcq');
+  items[1].sched.reps = pickReps('listen', 'listen1', 'listen-pick');
+  items[3].sched.reps = pickReps('read', 'und1', 'recall');
   const db = await LearnStore.open();
   await new Promise((res, rej) => {
     const t = db.transaction(['items', 'sources'], 'readwrite');
@@ -100,7 +112,7 @@ const SEED = `(async () => {
     t.objectStore('sources').put(src);
     t.oncomplete = res; t.onerror = () => rej(t.error);
   });
-  return 'seeded';
+  return JSON.stringify({ listenReps: items[1].sched.reps });
 })()`;
 
 // ─── The per-step surface sweep ──────────────────────────────────────────────
@@ -221,7 +233,8 @@ async function runHost(host) {
     const item = (id) => ev(`LearnStore.allItems().then((a) => JSON.stringify(a.find((i) => i.id === '${id}') || null))`).then(JSON.parse);
 
     // ─── Seed, then rebuild through the same entry the app uses ──────────────
-    console.log('  seed:', await ev(SEED));
+    const seedInfo = JSON.parse(await ev(SEED));
+    console.log('  seed: seeded', JSON.stringify(seedInfo));
     if (host.isApp) await ev(`document.getElementById('review-view').hidden = false; 'ok'`);
     await ev(`LearnReview.start().then(() => 'ok')`);
     await new Promise((r) => setTimeout(r, 400));
@@ -242,6 +255,8 @@ async function runHost(host) {
       const orig = await ev(`document.getElementById('orig').textContent.trim()`);
       const writeMode = !(await hidden('#write-prompt'));
       const listenStage = !(await hidden('#reveal-orig'));
+      const pickMode = !(await hidden('#ex-check'));
+      const choiceMode = !pickMode && !(await hidden('#ex-options'));
       // §5.4 — the extra-note attribute is set at render time (its parent may still
       // be pre-reveal), so read the attribute, not the computed visibility.
       if (await ev(`!document.getElementById('extra-note').hidden`)) sawExtra = true;
@@ -286,6 +301,63 @@ async function runHost(host) {
         need(g0disabled === true, '全对之后「不记得」竟然还能点 —— 客观结果没有约束评分');
         await sweep('产出档·已检查');
         await click('.grade[data-grade="2"]');
+      } else if (pickMode) {
+        // 3a · 盲听选词 (§9.3): original hidden until 确认, options are real
+        // buttons, exact-set correctness constrains the grades.
+        seen.add('pick');
+        need(await ev(`document.getElementById('orig').hidden`), '盲听选词把原文露出来了');
+        const nOpts = await ev(`document.querySelectorAll('#ex-options button').length`);
+        need(nOpts >= 3, '选词题选项只有 ' + nOpts + ' 个');
+        await sweep('盲听选词');
+        // Identify the on-screen card by which item's text matches the most
+        // options, select exactly its words, confirm.
+        const pickedId = await ev(`(async () => {
+          const btns = [...document.querySelectorAll('#ex-options button')];
+          const items = await LearnStore.allItems();
+          let best = null, bestN = -1;
+          for (const it of items) {
+            const low = it.text.toLowerCase();
+            const n = btns.filter((b) => low.includes(b.textContent.toLowerCase())).length;
+            if (n > bestN) { bestN = n; best = it; }
+          }
+          for (const b of btns) {
+            if (best.text.toLowerCase().includes(b.textContent.toLowerCase())) b.click();
+          }
+          document.getElementById('ex-check').click();
+          return best.id;
+        })()`);
+        await new Promise((r) => setTimeout(r, 150));
+        need(!(await hidden('#orig')), '确认后原文没出现');
+        need(await ev(`document.querySelector('.grade.g0').disabled`) === true,
+          '选词全对后「不记得」竟然还能点 —— 客观结果没有约束评分');
+        await sweep('盲听选词·已确认');
+        if (pickedId === 'listen1') seen.add('listen1');
+        await click('.grade[data-grade="2"]');
+      } else if (choiceMode) {
+        // 3b · 译文选择题 / 理解题 (§9.3): the tap is the reveal; correct pick
+        // disables 「不记得」.
+        seen.add('mcq');
+        const nOpts = await ev(`document.querySelectorAll('#ex-options button').length`);
+        need(nOpts >= 2, '选择题选项只有 ' + nOpts + ' 个');
+        need((await text('#ex-prompt')).length > 0, '选择题没有题干');
+        await sweep('译文选择题');
+        const pickedId = await ev(`(async () => {
+          const t = document.getElementById('orig').textContent.trim();
+          const items = await LearnStore.allItems();
+          const it = items.find((i) => t.startsWith(i.text.slice(0, 12)));
+          const btns = [...document.querySelectorAll('#ex-options button')];
+          const right = btns.find((b) => b.textContent === it.tr);
+          (right || btns[0]).click();
+          return it.id;
+        })()`);
+        await new Promise((r) => setTimeout(r, 150));
+        need(!(await hidden('#answer')), '选择后答案面没出现');
+        need(await ev(`document.querySelector('.grade.g0').disabled`) === true,
+          '选对之后「不记得」竟然还能点 —— 客观结果没有约束评分');
+        await sweep('选择题·已选');
+        if (pickedId === 'read1') seen.add('read1');
+        if (pickedId === 'und1') seen.add('und1');
+        await click('.grade[data-grade="2"]');
       } else if (listenStage) {
         seen.add('listen1');
         // 3 · Listen tier: original hidden first, its reveal labeled, play labeled.
@@ -326,6 +398,8 @@ async function runHost(host) {
     need(seen.has('write1'), '产出档卡从未出现');
     need(seen.has('listen1'), '听懂档卡从未出现');
     need(seen.has('und1'), 'und 卡从未出现');
+    need(seen.has('mcq'), '译文选择题从未出现（种子已把 read1 的 reps 钉在 mcq 上）');
+    need(seen.has('pick'), '盲听选词从未出现（种子已把 listen1 的 reps 钉在 listen-pick 上）');
 
     // 5 · Grading wrote the schedule and stamped the skill — the DB is the truth.
     // §5.4: stamps are TIMESTAMPS now (legacy 1 = ancient); a pass must write a
@@ -346,8 +420,9 @@ async function runHost(host) {
     const extras = await ev(`LearnStore.allReviews().then((rs) => JSON.stringify(rs.filter((r) => r.extra)))`).then(JSON.parse);
     need(extras.length >= 1 && extras.every((r) => r.mode && !r.practice),
       'extra 复习行缺 mode 或误标 practice: ' + JSON.stringify(extras));
-    need(listen1 && listen1.sched.reps === 7,
-      '第二题推进了排程（listen1 reps ' + (listen1 && listen1.sched && listen1.sched.reps) + ' ≠ 7）');
+    need(listen1 && listen1.sched.reps === seedInfo.listenReps + 1,
+      '第二题推进了排程（listen1 reps ' + (listen1 && listen1.sched && listen1.sched.reps)
+      + ' ≠ ' + (seedInfo.listenReps + 1) + '）');
     need(listen1 && listen1.skills && listen1.skills.read > 1e12,
       '第二题（读）通过没刷新「读」的技能时间戳');
 
@@ -367,9 +442,45 @@ async function runHost(host) {
       const hit = items.find((i) => t.startsWith(i.text.slice(0, 12)));
       return hit ? hit.id : '';
     })()`);
+    // §9.3 — a choice/pick exercise may be on screen in practice too; answer it
+    // aiming right or wrong so the gated grade we need stays clickable.
+    const answerExercise = async (id, wantCorrect) => {
+      if (!(await hidden('#ex-check'))) {
+        await ev(`(async () => {
+          const it = (await LearnStore.allItems()).find((x) => x.id === '${id}');
+          const low = it.text.toLowerCase();
+          const btns = [...document.querySelectorAll('#ex-options button')];
+          if (${wantCorrect}) {
+            for (const b of btns) if (low.includes(b.textContent.toLowerCase())) b.click();
+          } else {
+            const foil = btns.find((b) => !low.includes(b.textContent.toLowerCase()));
+            (foil || btns[0]).click();
+          }
+          document.getElementById('ex-check').click();
+          return 'ok';
+        })()`);
+        await new Promise((r) => setTimeout(r, 150));
+        return true;
+      }
+      if (!(await hidden('#ex-options'))) {
+        await ev(`(async () => {
+          const it = (await LearnStore.allItems()).find((x) => x.id === '${id}');
+          const btns = [...document.querySelectorAll('#ex-options button')];
+          const right = btns.find((b) => b.textContent === it.tr);
+          const wrong = btns.find((b) => b.textContent !== it.tr);
+          ((${wantCorrect} ? right : wrong) || btns[0]).click();
+          return 'ok';
+        })()`);
+        await new Promise((r) => setTimeout(r, 150));
+        return true;
+      }
+      return false;
+    };
+
     const before = await item(firstId);
-    if (!(await hidden('#reveal-orig'))) await click('#reveal-orig');
-    if (!(await hidden('#reveal'))) await click('#reveal');
+    const answeredWrong = await answerExercise(firstId, false);
+    if (!answeredWrong && !(await hidden('#reveal-orig'))) await click('#reveal-orig');
+    if (!answeredWrong && !(await hidden('#reveal'))) await click('#reveal');
     // Write-tier practice cards need the check first; take the cheap path if so.
     if (!(await hidden('#cloze-check'))) {
       await ev(`(async () => {
@@ -401,7 +512,8 @@ async function runHost(host) {
         return hit ? hit.id : '';
       })()`);
       const b2 = await item(secondId);
-      if (!(await hidden('#reveal-orig'))) await click('#reveal-orig');
+      const answeredRight = await answerExercise(secondId, true);
+      if (!answeredRight && !(await hidden('#reveal-orig'))) await click('#reveal-orig');
       if (!(await hidden('#cloze-check'))) {
         await ev(`(async () => {
           const items = await LearnStore.allItems();

@@ -1115,5 +1115,25 @@
   "learn_second_exercise": {
     "message": "تمرين إضافي · لا يؤثر على الفاصل الزمني",
     "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "اختر الترجمة الصحيحة",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "استمع أولاً ثم اختر الكلمات التي سمعتها",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "تأكيد الاختيار",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "يجري إنشاء أسئلة هذه البطاقة عبر واجهة API الخاصة بك (استدعاء واحد، تخزين دائم)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "فشل إنشاء الأسئلة — تم استخدام التمرين المحلي بدلاً منه",
+    "description": "Pack failure line — local fallback used (§9.3)"
   }
 }
