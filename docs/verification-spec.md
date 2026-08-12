@@ -801,12 +801,13 @@ DOM**:
   without the skip — what changes is the request that was never sent, i.e. the user's
   quota. A DOM-only fixture for such a change passes for the wrong reason and would
   stay green if the feature were deleted.
-- `"selection": { from, to }` drives a real drag-shaped selection and asserts it
-  survives the page's SPA re-render (interaction-spec: 「…never destroy the user's
-  text selection」, fixture 33). Async in-page phase; outcomes cross the
+- `"selection": { from, to, movesFrom? }` drives a real drag-shaped selection and
+  asserts it survives the page's SPA re-render (interaction-spec: 「…never destroy
+  the user's text selection」, fixture 33). Async in-page phase; outcomes cross the
   isolated/main world boundary via DOM `dataset` attributes written by the
   fixture's main-world script, with an anti-vacuous guard (the fixture must prove
-  its reconciler actually moved nodes).
+  its reconciler actually moved nodes — `movesFrom` names the container whose
+  child moves are counted, default `#article`).
 - `"interaction": { counters, clicks, contextmenu, pageSelection }` asserts the
   page's OWN content still behaves as the page wrote it after translation
   (interaction-spec: 翻译文字插入后不要影响网页原有内容的交互动作 — fixtures

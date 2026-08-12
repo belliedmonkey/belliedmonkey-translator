@@ -181,7 +181,7 @@ Acquisition (must work on Safari iOS, where `world:"MAIN"` is unsupported):
 - `.mt-translation` — injected bilingual translation div
 - `data-mt-processed` — marks a node as already translated (skip on re-run)
 - `data-mt-translatable` — marks detected paragraph nodes (for tap-to-translate)
-- `data-mt-hidden` — original hidden by the interleave path; the attribute VALUE stores the page's prior inline `display` (`1` = none) so disable restores it exactly (same pattern: `data-mt-pos-fix` records prior `position` on video containers)
+- `data-mt-hidden` — original hidden by the interleave path; the attribute VALUE stores the page's prior inline `display` (`1` = none) so disable restores it exactly (same prior-value family: `data-mt-flow-fix` for `flex-wrap`, `data-mt-pos-fix` for `position` on video containers)
 - `#mt-yt-overlay` — YouTube subtitle overlay; `.mt-yt-orig` (original) / `.mt-yt-trans` (translation) lines inside it
 - `#mt-fab` — floating action button
 
