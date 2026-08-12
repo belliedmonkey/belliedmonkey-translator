@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "Модель разбора"
+  },
+  "learn_badge_speak": {
+    "message": "Говорение",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "Ещё одно упражнение · не влияет на интервал",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }

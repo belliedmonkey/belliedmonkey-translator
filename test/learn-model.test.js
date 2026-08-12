@@ -242,7 +242,9 @@ describe('LearnModel — clozeCheck (§5.2)', () => {
   });
 });
 
-// ─── §4 — skills merge as a UNION, in both merge semantics ───────────────────
+// ─── §4/§5.4 — skills merge per-key by MAX, in both merge semantics ──────────
+// (Was a boolean union; max is the same operation once values are timestamps,
+// and the legacy-boolean cases below are what keep old corpora convergent.)
 
 describe('LearnModel — skills union (§4)', () => {
   const M = () => loadModule('learn-model.js', { window: {} }).LearnModel;
@@ -273,5 +275,37 @@ describe('LearnModel — skills union (§4)', () => {
   test('both sides absent stays absent — no phantom object on every merge', () => {
     const m = M();
     eq(m.mergeItem(item({}), item({})).skills, undefined);
+  });
+
+  test('§5.4 — a legacy boolean 1 loses to any real timestamp, both directions and both modes', () => {
+    const m = M();
+    const TS = 1700000000000;
+    for (const opts of [undefined, { accumulate: false }]) {
+      const a = m.mergeItem(item({ skills: { read: 1 } }), item({ skills: { read: TS } }), opts);
+      eq(JSON.stringify(a.skills), JSON.stringify({ read: TS }), '老徽章不得压过真时间戳');
+      const b = m.mergeItem(item({ skills: { read: TS } }), item({ skills: { read: 1 } }), opts);
+      eq(JSON.stringify(b.skills), JSON.stringify({ read: TS }), '真时间戳不得被老徽章回退');
+    }
+  });
+
+  test('§5.4 — per-key max: the LATEST verification wins, other keys union through', () => {
+    const m = M();
+    const out = m.mergeSkills({ read: 100, write: 900 }, { read: 500, listen: 300 });
+    eq(JSON.stringify(out), JSON.stringify({ read: 500, write: 900, listen: 300 }));
+  });
+
+  test('§5.4 — mergeSkills is idempotent and commutative (replay cannot amplify)', () => {
+    const m = M();
+    const a = { read: 100, listen: 1 }, b = { read: 200 };
+    const ab = m.mergeSkills(a, b);
+    eq(JSON.stringify(m.mergeSkills(ab, b)), JSON.stringify(ab), '重放同一份不变');
+    eq(JSON.stringify(m.mergeSkills(b, a)), JSON.stringify(ab), '两个方向同一结果');
+  });
+
+  test('§5.4 — non-numeric garbage counts as absent, never NaN', () => {
+    const m = M();
+    eq(JSON.stringify(m.mergeSkills({ read: 'x' }, { read: 5 })), JSON.stringify({ read: 5 }));
+    eq(JSON.stringify(m.mergeSkills({ read: 'x' }, null)), JSON.stringify({}));
+    eq(m.mergeSkills(null, undefined), undefined);
   });
 });

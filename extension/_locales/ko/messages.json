@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "해석 모델"
+  },
+  "learn_badge_speak": {
+    "message": "말하기",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "한 문제 더 · 복습 간격에는 반영되지 않습니다",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }

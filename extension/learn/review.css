@@ -211,6 +211,8 @@ button:hover { border-color: var(--green); }
   border: 1px solid var(--border); color: var(--text-secondary);
 }
 .badge.lit { border-color: var(--green); color: var(--green); font-weight: 600; }
+/* §5.4 — verified once but past the freshness window: dashed, never dark again. */
+.badge.lit.stale { border-style: dashed; opacity: 0.75; }
 .badge.full { border-color: var(--green); background: var(--green); color: #fff; }
 
 .shadow-hint { font-size: 12px; color: var(--text-secondary); margin: -4px 0 8px; }

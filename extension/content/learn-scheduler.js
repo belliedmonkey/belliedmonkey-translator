@@ -16,7 +16,9 @@ var LearnScheduler = (() => {
     KNOWN_S: 180,                   // s ≥ this ⇒ state 'known'
     // §5.2 mastery-ladder gates — same "unvalidated, cheap to retune" caveat as §6.
     TIER_LISTEN_S: 4,               // s ≥ this ⇒ the listen form (when TTS can speak it)
+    TIER_SPEAK_S: 4,                // s ≥ this ⇒ the speak form (mic + transcription engine, §5.4)
     TIER_WRITE_S: 30,               // s ≥ this ⇒ the write form (cloze, auto-checked)
+    FRESH_MULT: 1.5,                // §5.4 — a skill verification stays fresh for s × this (days)
     SPACING_GAIN: 1.0,              // a late-but-correct review earns extra
     dailyNew: 15,
     deckSize: 20,
@@ -86,17 +88,66 @@ var LearnScheduler = (() => {
     return out;
   }
 
-  // §5.2 — one schedule, three exercise forms, gated by memory strength: the
-  // stronger the memory, the harsher the test. `caps.listen` says whether THIS card
-  // can be spoken (engine + a voice for its language); a missing capability means
-  // the listen form DOES NOT EXIST for it — never that the card failed — so the
-  // ladder steps over it to whatever strength still earns.
-  function tierFor(item, caps, cfg) {
+  // §5.2/§5.4 — which skills EXIST for this card right now, in ladder order. The
+  // strength ladder gates difficulty; capabilities gate existence — a missing
+  // capability (`caps.listen`: a voice for this language; `caps.speak`: mic +
+  // transcription engine) means the form DOES NOT EXIST for the card, never that
+  // the card failed.
+  function eligibleSkills(item, caps, cfg) {
     const c = cfgOf(cfg);
     const s = item && item.sched && item.sched.s ? item.sched.s : 0;
-    if (s >= c.TIER_WRITE_S) return 'write';
-    if (s >= c.TIER_LISTEN_S && caps && caps.listen) return 'listen';
-    return 'read';
+    const out = ['read'];
+    if (s >= c.TIER_LISTEN_S && caps && caps.listen) out.push('listen');
+    if (s >= c.TIER_SPEAK_S && caps && caps.speak) out.push('speak');
+    if (s >= c.TIER_WRITE_S) out.push('write');
+    return out;
+  }
+
+  // §5.4 — a skill verification has a shelf life that scales with memory strength:
+  // the stronger the card, the longer one verification stays fresh — same curve
+  // shape as forgetting itself. Legacy boolean `1` values (pre-timestamp) are
+  // ancient timestamps and therefore always stale, which is exactly what a badge
+  // lit under the old regime deserves: re-verify first, never un-light.
+  function skillFresh(item, skill, now, cfg) {
+    const c = cfgOf(cfg);
+    const at = item && item.skills ? Number(item.skills[skill]) || 0 : 0;
+    if (!at) return false;
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    return now - at <= Math.max(s, 1) * c.FRESH_MULT * DAY;
+  }
+
+  // §5.4 — the rotation: least-recently-verified eligible skill first (missing = 0
+  // = most urgent); ties break toward the HARDEST form, preserving §5.2's "the
+  // stronger the memory, the harsher the test" for cards with no per-skill history.
+  // A SECOND skill is appended only when it too is past its freshness window — one
+  // due date never turns into an exam, and the second exercise advances no
+  // schedule (the caller applies practiceOutcome to it, §5.3's asymmetric rule).
+  const SKILL_RANK = { read: 0, listen: 1, speak: 2, write: 3 };
+  function pickSkills(item, caps, now, cfg) {
+    const c = cfgOf(cfg);
+    const sk = (item && item.skills) || {};
+    const list = eligibleSkills(item, caps, c).sort((a, b) =>
+      ((Number(sk[a]) || 0) - (Number(sk[b]) || 0)) || (SKILL_RANK[b] - SKILL_RANK[a]));
+    const out = [list[0]];
+    if (list[1] && !skillFresh(item, list[1], now, c)) out.push(list[1]);
+    return out;
+  }
+
+  // §5.4 — 「全面掌握」: strength at the known bar AND every skill that exists for
+  // this card verified recently. Display-layer only — stateFor stays pure-s, so no
+  // existing user's 已掌握 ever regresses.
+  function fullyMastered(item, caps, now, cfg) {
+    const c = cfgOf(cfg);
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    if (s < c.KNOWN_S) return false;
+    return eligibleSkills(item, caps, c).every((k) => skillFresh(item, k, now, c));
+  }
+
+  // §5.2's original single-form view, kept as pickSkills' first pick: for an item
+  // with no per-skill history the tie-break reproduces the old ladder exactly
+  // (hardest eligible form), so pre-§5.4 callers and tests keep their contract.
+  function tierFor(item, caps, cfg) {
+    return pickSkills(item, caps, 0, cfg)[0];
   }
 
   // §5.1 — every grade button previews its own consequence. This runs the SAME
@@ -254,7 +305,10 @@ var LearnScheduler = (() => {
     const day = new Date(now).toISOString().slice(0, 10);
     const first = new Map();   // itemId → earliest non-practice review time
     for (const r of reviews || []) {
-      if (!r || r.practice || !r.itemId) continue;
+      // `extra` rows (§5.4 second exercise) never advance a schedule, so they are
+      // not an introduction either — skipped explicitly rather than relying on the
+      // first exercise's row always sorting earlier.
+      if (!r || r.practice || r.extra || !r.itemId) continue;
       const prev = first.get(r.itemId);
       if (prev === undefined || r.at < prev) first.set(r.itemId, r.at);
     }
@@ -280,6 +334,7 @@ var LearnScheduler = (() => {
   return {
     DEFAULTS, DAY,
     freshSched, retrievability, nextDue, applyReview, previewIntervals, tierFor, stateFor,
+    eligibleSkills, pickSkills, skillFresh, fullyMastered,
     buildDeck, buildPracticeDeck, practiceOutcome, dueCount, introducedToday, spreadBySource,
   };
 })();

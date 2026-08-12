@@ -1107,5 +1107,13 @@
   },
   "notes_model": {
     "message": "Notes model"
+  },
+  "learn_badge_speak": {
+    "message": "Speak",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "One more skill · does not affect the interval",
+    "description": "Note above grades during the appended second exercise (§5.4)"
   }
 }
