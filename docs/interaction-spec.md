@@ -762,25 +762,62 @@ the browser extension, like capture — with one dated exception:
   in settings, because a cache the user cannot see is a cache they will one day be
   surprised by.
 
-### 掌握阶梯 (mastery ladder) — 2026-08-08
+### 掌握阶梯与技能轮换 (mastery ladder & skill rotation) — 2026-08-08 / 2026-08-12
 
-One schedule, three exercise forms, gated by memory strength (learning-design §5.2).
-The card's FORM changes as `s` grows; the grading flow does not:
+One schedule; the exercise FORM is gated by memory strength (learning-design §5.2)
+and rotated across the four skills (learning-design §5.4). The grading flow does not
+change: four grades, consequence previews, strength bar.
 
-- **认读** (`s < 4`): the existing card — source sentence, reveal translation, grade.
-- **听懂** (`4 ≤ s < 30`, TTS available for the card's language): the existing
-  `audio-first` staging — listen → 显示原文 → 显示译文 → grade. A 「跟着读一遍」
-  line invites shadowing, labelled **练习，不验证** — never graded by machine.
-- **产出** (`s ≥ 30`): translation shown, the original with 1–3 blanks
-  (`clozeFor`), a text input per blank. **Checked automatically** after
-  normalization (case / punctuation / whitespace) — the one objectively verified
-  skill, and the UI says so rather than overclaiming the other two.
-- **Skill badges 读 / 听 / 写** on every card — lit when that form was passed at
-  ≥「记得」. All available badges lit + strength full ⇒ 「全面掌握」. A card with
-  full strength but unlit badges reads 「记忆已牢，技能未全」, never a demotion.
-- **A card whose language has no TTS skips the 听懂 form entirely** — a missing
+- **What a due card asks** is the eligible skill verified longest ago: 读 always
+  exists; 听 / 说 from `s ≥ 4` (each behind its own capability); 写 from `s ≥ 30`.
+  One review may append ONE extra exercise for a second stale skill, labelled
+  「再练一项 · 不再计入间隔」 — it refreshes that skill's badge; a fail lapses the
+  card, a pass never lengthens the interval (the §5.3 asymmetry, reused verbatim).
+- **Exercise variants per skill** — deterministic local ones always exist; AI ones
+  appear only when the 解析引擎 gate is open (learning-design §9.3), and **any AI
+  failure falls back to the local variant of the same skill** — never a dead card:
+  - **读**: recall (existing) / **译文选择题** — 4 options as real buttons, one tap
+    locks the option row, the objective result constrains the grades (same rule as
+    cloze: all-correct disables 不记得, a wrong pick disables the passing grades).
+  - **听**: audio-first recall (existing) / **盲听选词** — the audio plays FIRST;
+    the options render only after playback has started. Replay is allowed and the
+    card says so. Pick the words actually heard; objective result constrains grades.
+  - **写**: cloze (existing; pack-provided `accept` alternates widen the checker) /
+    an optional 「AI 复核」 after a failed blank — user-initiated, cost-labelled.
+  - **说**: see 说题卡 below. Capability-gated: no microphone or no transcription
+    engine ⇒ the form does not exist; the 「跟着读一遍」 shadowing hint stays at the
+    listen tier, still labelled 练习，不验证.
+- **Skill badges 读 / 听 / 写（/ 说 when its gate is open）** on every card — lit
+  when that form was passed at ≥「记得」. A lit badge past its freshness window
+  (learning-design §5.4) shows a 「待重验」 style, never goes dark. All available
+  skills fresh + strength full ⇒ 「全面掌握」; full strength with stale or unlit
+  badges reads 「记忆已牢，技能待验」, never a demotion.
+- **A card whose language has no TTS skips the 听 forms entirely** — a missing
   capability means the form does not exist, not that the card failed (same
-  semantics as domain-design §5.3 rule 1).
+  semantics as domain-design §5.3 rule 1). The same sentence covers 说.
+
+### 说题卡 (speaking exercise) — 2026-08-12
+
+- **Anatomy**: the original sentence stays VISIBLE (this is reading aloud, not
+  recall) → 🎙 「朗读这句」 → recording state (the button becomes 停止 with elapsed
+  seconds; any TTS playback is stopped before recording starts) → on stop the whole
+  speak control is DISABLED with 「识别中…」 (全局原则「IO 在途，控件不可用」) →
+  the transcript renders (textContent only — model output is untrusted) with a
+  score line 「与原句匹配 {n}%」 and the missed words → the score constrains the
+  grades (≥90% disables 不记得; <50% leaves only 不记得/有点难).
+- **Cost is stated at the point of use**: 「使用你配置的转写端点，每次录音一次
+  调用」. Re-recording is allowed once the attempt settles.
+- **Every failure names itself**: no endpoint URL / no API key / no microphone /
+  microphone denied / the service returned an error / empty transcript. A mic
+  denial mid-session removes the 说 form for the session and the card re-renders on
+  its next eligible skill.
+- **Recordings are never stored** — sent only to the user-configured endpoint and
+  discarded when the transcript returns (learning-design §9.4, §10 Gate C).
+- **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
+  engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no
+  on-device engine), base URL / key / model per registry flags. It never follows
+  the translation or 解析 group: where a recording goes is an explicit choice. The
+  hint under the block carries the Gate C sentence.
 
 ### 自由练习 (free practice) — 2026-08-08
 
