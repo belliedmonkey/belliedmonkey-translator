@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>page-programmatic selection is never overridden by the keeper</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  #article { max-width: 640px; margin: 24px auto; line-height: 1.6; }
+</style>
+<body>
+<div id="article">
+  <p id="p0">Founders who lived the problem speak with unmatched credibility to every customer.</p>
+  <p id="p1">When a problem rearranged your life, you carry a unique kind of narrative power.</p>
+  <p id="p2">That narrative is one of the strongest tools for building brand loyalty over time.</p>
+  <p id="p3">Problem founders position themselves as the customer first and owner second.</p>
+  <p id="out">Result of applying the framework to your own communications strategy.</p>
+</div>
+<button id="trigger" translate="no">apply</button>
+<script>
+  // The "copy code button" pattern: one task both mutates the DOM (a real
+  // childList batch — a page-owned node moves) AND sets the page's OWN
+  // selection. The extension's selection keeper runs in that task's microtask
+  // checkpoint with a stale snapshot (selectionchange is a later task) — it
+  // must recognise this selection as page-set, not as damage, and leave it be.
+  document.getElementById('trigger').addEventListener('click', () => {
+    const article = document.getElementById('article');
+    article.appendChild(document.getElementById('p1'));       // real page-node move
+    const t = document.getElementById('out').firstChild;
+    getSelection().setBaseAndExtent(t, 0, t, 6);              // the page's own selection
+    document.body.dataset.pageSelSet = '1';
+    document.body.dataset.pageSelExpected = t.textContent.slice(0, 6);
+  });
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "page-sets-own-selection",
+  "unitCount": 5,
+  "targets": [
+    { "sel": "#article > p", "assert": ["sameLeft:2", "sameWidth:2"] }
+  ],
+  "interaction": {
+    "pageSelection": { "from": "#p0", "to": "#p2", "trigger": "#trigger" }
+  }
+}
+</script>
+</body>
+</html>

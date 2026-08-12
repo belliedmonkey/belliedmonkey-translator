@@ -315,6 +315,22 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
     let result = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.runAsserts(${manifestJs})`);
     result = mergeFailures(result, checkRequests(manifest, requested));
 
+    // Async in-page behavioral phases (assert-lib): each one drives real
+    // gestures/selections in the page and tags its failures with a phase name.
+    //   selection    — SPA re-renders never destroy a live selection (fixture 33)
+    //   interaction  — page content keeps behaving as the page wrote it
+    //                  (interaction-spec: 翻译文字插入后不要影响网页原有内容的
+    //                  交互动作 — fixtures 34–35)
+    //   keeperGuards — the selection keeper's non-behaviors (fixture 36)
+    const inPagePhase = async (res, spec, fn, phase) => {
+      if (!res.pass || !spec) return res;
+      const r = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.${fn}(${JSON.stringify(spec)})`);
+      return r.pass ? res : { ...r, failures: r.failures.map((f) => ({ ...f, phase })) };
+    };
+    result = await inPagePhase(result, manifest.selection, 'checkSelectionPreserved', 'selection');
+    result = await inPagePhase(result, manifest.interaction, 'checkInteractionPreserved', 'interaction');
+    result = await inPagePhase(result, manifest.keeperGuards, 'checkKeeperGuards', 'keeperGuards');
+
     if (result.pass && manifest.rerender) {
       // Settings-change path: updateSettings() = disable() + enable() — geometry
       // must come out identical (exercises revert + the __mtLayoutCss re-measure).

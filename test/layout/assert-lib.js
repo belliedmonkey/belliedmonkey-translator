@@ -271,6 +271,34 @@
     translationMarked(node, trans) {
       return trans.textContent.includes('【译】') || 'translation text lacks the 【译】 marker';
     },
+    // Interaction rule (interaction-spec): a blob containing interactive or
+    // non-text content must NOT interleave — the redraw is plain text and the
+    // original is hidden, so its links/buttons/media would die. The fallback
+    // shape is the plain sibling: original visible, sibling not a holder.
+    siblingNotInterleaved(node, trans) {
+      if (node.hasAttribute('data-mt-hidden')) return 'original is data-mt-hidden (interleaved)';
+      if (csOf(node).display === 'none') return 'original is display:none';
+      if (trans.dataset.interleave === '1') return 'sibling is an interleave holder';
+      return true;
+    },
+    // Timestamp→seek anchors are a YouTube-only feature: on any other host a
+    // translation must contain no <a> at all (bare-URL linkification would also
+    // fail this — the target text must therefore carry no URLs).
+    noAnchorsInTranslation(node, trans) {
+      const a = trans.querySelector('a');
+      return !a || `translation contains <a> "${a.textContent.slice(0, 20)}"`;
+    },
+    // The data-mt-hidden attribute VALUE carries the page's prior inline
+    // `display` ('1' = none). Asserting it equals the fixture's inline value
+    // proves BOTH halves of the record-and-restore contract in one probe:
+    // at base settle, repeated re-renders must not clobber the recorded value
+    // with 'none' (the hasAttribute guard); after the rerender phase
+    // (disable→enable), the value re-recorded from the RESTORED inline style
+    // is only still correct if disable put the original value back.
+    hiddenAttrEquals(node, trans, arg) {
+      const v = node.getAttribute('data-mt-hidden');
+      return v === arg || `data-mt-hidden="${v}", expected "${arg}"`;
+    },
   };
 
   // Assertions whose subject is the ABSENCE of a translation — they must still run
@@ -414,5 +442,179 @@
     };
   }
 
-  window.__mtLayout = { captureBaseline, runAsserts };
+  // ─── Selection-preservation phase (manifest key `selection`) ───────────
+  // Two load-bearing waits, named because they are CROSS-FILE contracts, not
+  // arbitrary settles: SNAPSHOT_SETTLE_MS must outlast the renderer's
+  // selectionchange task (the keeper snapshots in a task, not synchronously);
+  // SPA_STORM_SETTLE_MS must outlast the fixture reconciler's commit delay
+  // (~30ms) plus its re-render rounds plus the pre-paint repair. Tightening a
+  // fixture or the keeper without revisiting these turns the phase flaky.
+  const SNAPSHOT_SETTLE_MS = 300;
+  const SPA_STORM_SETTLE_MS = 500;
+  const settle = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Async on purpose: the check must span the fixture's SPA commit (a task ~30ms
+  // out) plus the renderer's pre-paint repair microtask. Drives a real
+  // programmatic selection (fires `selectionchange` exactly like a drag) from
+  // `spec.from`'s first text node to `spec.to`'s, waits for the storm, then
+  // requires the selection to still cover EXACTLY what it covered (a clamp onto
+  // an ancestor can make the selection LONGER — a length-only oracle would wave
+  // that damage through). The moves guard keeps the fixture honest: if the
+  // reconciler never moved a node, the pass would be vacuous.
+  async function checkSelectionPreserved(spec) {
+    const failures = [];
+    const from = document.querySelector(spec.from);
+    const to = document.querySelector(spec.to);
+    if (!from || !to || !from.firstChild || !to.firstChild) {
+      return { pass: false, failures: [{ name: 'selectionPreserved', sel: spec.from, detail: 'selection endpoints missing' }] };
+    }
+    const sel = getSelection();
+    sel.setBaseAndExtent(from.firstChild, 0, to.firstChild, Math.min(10, to.firstChild.textContent.length));
+    const beforeText = sel.toString();
+    if (beforeText.length < 1) {
+      return { pass: false, failures: [{ name: 'selectionPreserved', sel: spec.from, detail: 'programmatic selection failed to take' }] };
+    }
+    await settle(SPA_STORM_SETTLE_MS);
+    const afterText = getSelection().toString();
+    // Cross-world signal: the fixture's reconciler mirrors its move counter onto
+    // a DOM attribute — this code runs in the ISOLATED world and cannot read the
+    // page world's `window.__moves`. The container is spec-declared
+    // (`movesFrom`, default '#article') so the shared library isn't coupled to
+    // one fixture's DOM.
+    const movesEl = document.querySelector(spec.movesFrom || '#article');
+    const moves = parseInt((movesEl && movesEl.dataset.moves) || '0', 10);
+    if (!moves) {
+      failures.push({ name: 'selectionPreserved', sel: spec.from, detail: 'fixture reconciler never moved a node — vacuously green' });
+    }
+    if (afterText !== beforeText) {
+      failures.push({ name: 'selectionPreserved', sel: spec.from,
+        detail: `selection "${afterText.slice(0, 40)}" (${afterText.length}) != "${beforeText.slice(0, 40)}" (${beforeText.length}) after the SPA re-render (moves=${moves})` });
+    }
+    return { pass: failures.length === 0, failures };
+  }
+
+  // ─── Interaction-preservation phase (manifest key `interaction`) ────────
+  // The page's own content must keep behaving as the page wrote it after the
+  // translation is injected (interaction-spec: 翻译文字插入后不要影响网页原有内容
+  // 的交互动作). Outcomes cross the world boundary via body.dataset counters
+  // written by the fixture's MAIN-world listeners (fixture 33's dataset.moves
+  // pattern). Anti-vacuous guard: the fixture seeds every counter with a
+  // pre-enable self-test, so a counter still at 0 means the fixture itself is
+  // broken — fail loudly, never pass on a listener that never fired.
+  async function checkInteractionPreserved(spec) {
+    const failures = [];
+    const fail = (name, sel, detail) => failures.push({ name, sel, detail });
+    const count = (key) => parseInt(document.body.dataset[key] || '0', 10);
+    for (const key of (spec.counters || [])) {
+      if (count(key) < 1) fail('interactionCounters', key, 'pre-enable self-test never incremented this counter — fixture is vacuous');
+    }
+    for (const c of (spec.clicks || [])) {
+      const el = document.querySelector(c.sel);
+      if (!el) { fail('interactionClick', c.sel, 'matches no element'); continue; }
+      // el.click() dispatches even inside display:none — visibility is the
+      // actual user-facing contract and is asserted separately.
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) { fail('interactionClick', c.sel, `target is invisible (${r.width.toFixed(1)}x${r.height.toFixed(1)})`); continue; }
+      const before = count(c.counter);
+      el.click();
+      await new Promise((res) => setTimeout(res, 50));
+      const after = count(c.counter);
+      if (after <= before) fail('interactionClick', c.sel, `click did not reach the page's listener (${c.counter}: ${before} -> ${after})`);
+    }
+    for (const c of (spec.contextmenu || [])) {
+      const el = document.querySelector(c.sel);
+      if (!el) { fail('interactionContextmenu', c.sel, 'matches no element'); continue; }
+      const before = count(c.counter);
+      const ok = el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      await new Promise((res) => setTimeout(res, 50));
+      if (!ok) fail('interactionContextmenu', c.sel, 'contextmenu was defaultPrevented on page content');
+      if (count(c.counter) <= before) fail('interactionContextmenu', c.sel, `page's contextmenu listener never fired (${c.counter})`);
+    }
+    if (spec.pageSelection) {
+      const ps = spec.pageSelection;
+      const from = document.querySelector(ps.from), to = document.querySelector(ps.to);
+      const trigger = document.querySelector(ps.trigger);
+      if (!from || !to || !trigger || !from.firstChild || !to.firstChild) {
+        fail('pageSelection', ps.trigger, 'selection endpoints or trigger missing');
+      } else {
+        getSelection().setBaseAndExtent(from.firstChild, 0, to.firstChild, Math.min(10, to.firstChild.textContent.length));
+        await settle(SNAPSHOT_SETTLE_MS); // snapshot settles (selectionchange is a task)
+        trigger.click();  // main-world handler: moves a page node AND sets the page's own selection, same task
+        await settle(SPA_STORM_SETTLE_MS);
+        if (document.body.dataset.pageSelSet !== '1') {
+          fail('pageSelection', ps.trigger, 'fixture trigger never ran — vacuous');
+        } else {
+          const want = document.body.dataset.pageSelExpected || '';
+          const got = String(getSelection());
+          if (got !== want) fail('pageSelection', ps.trigger, `page-set selection was overridden: "${got.slice(0, 40)}" != "${want}"`);
+        }
+      }
+    }
+    return { pass: failures.length === 0, failures };
+  }
+
+  // ─── Selection-keeper guard phase (manifest key `keeperGuards`) ─────────
+  // Pins the keeper's LOAD-BEARING NON-behaviors and its partial-kill repair
+  // (fixture 36). Each case is sequential in one tab; the waits between cases
+  // double as the gesture/batch quiet windows the keeper's drop logic needs.
+  async function checkKeeperGuards(spec) {
+    const failures = [];
+    const $ = (s) => document.querySelector(s);
+    const selectText = (fromSel, toSel) => {
+      const f = $(fromSel), t = $(toSel);
+      getSelection().setBaseAndExtent(f.firstChild, 0, t.firstChild, Math.min(10, t.firstChild.textContent.length));
+    };
+    // 1. Partial kill repaired EXACTLY: the trigger remove+reinserts the FOCUS
+    //    endpoint's paragraph at the same position (Chrome clamps the endpoint —
+    //    the half-kill damage shape). The keeper must restore the identical text.
+    selectText(spec.from, spec.to);
+    await settle(SNAPSHOT_SETTLE_MS);
+    const want = String(getSelection());
+    $(spec.movePartial).click();
+    await settle(SPA_STORM_SETTLE_MS);
+    const got = String(getSelection());
+    if (got !== want) {
+      failures.push({ name: 'keeperPartialKill', sel: spec.movePartial,
+        detail: `"${got.slice(0, 40)}" (${got.length}) != "${want.slice(0, 40)}" (${want.length})` });
+    }
+    // 2. Editors are off-limits: a selection inside contenteditable is never
+    //    snapshotted, so when the editor node itself is moved (killing the
+    //    selection) the keeper must NOT restore into it — editor frameworks
+    //    manage their own selection.
+    const ed = $(spec.editor);
+    getSelection().setBaseAndExtent(ed.firstChild, 0, ed.firstChild, Math.min(5, ed.firstChild.textContent.length));
+    await settle(SNAPSHOT_SETTLE_MS);
+    $(spec.moveEditor).click();
+    await settle(SPA_STORM_SETTLE_MS);
+    if (!getSelection().isCollapsed && String(getSelection()).length) {
+      failures.push({ name: 'keeperEditorMeddled', sel: spec.editor,
+        detail: `selection "${String(getSelection()).slice(0, 30)}" survived an editor move — keeper restored inside an editor` });
+    }
+    // 3. A deliberate deselect (gesture, then collapse) is honored across a
+    //    later real mutation batch.
+    selectText(spec.from, spec.to);
+    await settle(SNAPSHOT_SETTLE_MS);
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    getSelection().removeAllRanges();
+    $(spec.moveOther).click();
+    await settle(SPA_STORM_SETTLE_MS);
+    if (!getSelection().isCollapsed) {
+      failures.push({ name: 'keeperGestureDeselect', sel: 'body', detail: `selection resurrected after a gesture deselect: "${String(getSelection()).slice(0, 30)}"` });
+    }
+    // 4. A quiet programmatic removeAllRanges (no batch, no gesture in the
+    //    keeper's suppression windows) drops the snapshot: a later unrelated
+    //    batch must not resurrect the cleared selection.
+    selectText(spec.from, spec.to);
+    await settle(1000); // exceed GESTURE_RECENT_MS since case 3's pointerdown AND BATCH_ADJACENT_MS since its batch
+    getSelection().removeAllRanges();
+    await settle(SNAPSHOT_SETTLE_MS);
+    $(spec.moveOther2).click();
+    await settle(SPA_STORM_SETTLE_MS);
+    if (!getSelection().isCollapsed) {
+      failures.push({ name: 'keeperQuietClear', sel: 'body', detail: 'selection resurrected after a programmatic removeAllRanges' });
+    }
+    return { pass: failures.length === 0, failures };
+  }
+
+  window.__mtLayout = { captureBaseline, runAsserts, checkSelectionPreserved, checkInteractionPreserved, checkKeeperGuards };
 })();
