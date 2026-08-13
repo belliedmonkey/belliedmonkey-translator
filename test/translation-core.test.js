@@ -211,6 +211,55 @@ describe('TranslationCore — createEngine (state machine)', () => {
     deepEq(eng.stateOf(units[0]), { state: '', translation: 'A' });
   });
 
+  // 2026-08-13 真机 bug：一个段落什么都不显示——没有译文、没有报错、没有重试。
+  // 根因是引擎把「模型返回空正文」当成了「这段没东西可翻」（终态且静默），
+  // 于是渲染器走「nothing to translate → 删掉兄弟节点」那条路。
+  //
+  // 这两件事必须分开：**请求发出之前**判定不用翻（同语言跳过）才可以静默；
+  // **请求发出之后**拿回空正文是失败，必须显示失败并给重试。解析路径 2026-08-08
+  // 就为同一形状加过 empty_output（思考型模型烧光预算返回空正文），翻译这条漏了。
+  test('空正文 = 失败（可重试），不是「没东西可翻」', async () => {
+    const { TC } = loadCore();
+    const eng = TC.createEngine({ translate: async () => '', window: FAST });
+    const units = [{ text: 'The Problem founder has one of the best excuses.' }];
+    eng.setUnits(units);
+    eng.pump();
+    await tick(10);
+    const st = eng.stateOf(units[0]);
+    eq(st.state, 'error', '空正文必须落到 error（渲染器据此给出重试按钮）');
+    ok(!units[0].tr, '不应写入译文');
+  });
+
+  test('空正文之后，retry() 能让它重新排队（否则重试按钮是摆设）', async () => {
+    const { TC } = loadCore();
+    let answer = '';
+    const eng = TC.createEngine({ translate: async () => answer, window: FAST });
+    const units = [{ text: 'hello' }];
+    eng.setUnits(units);
+    eng.pump(); await tick(10);
+    eq(eng.stateOf(units[0]).state, 'error');
+    answer = '你好';
+    eng.retry(units[0]);
+    eq(eng.stateOf(units[0]).state, 'pending', 'retry 后应回到 pending 而不是卡在 error');
+    eng.pump(); await tick(10);
+    deepEq(eng.stateOf(units[0]), { state: '', translation: '你好' });
+  });
+
+  test('请求之前的同语言跳过仍然静默（不能被这次修复带成 error）', async () => {
+    const { TC } = loadCore();
+    let called = 0;
+    const eng = TC.createEngine({
+      translate: async (t) => { called++; return t; },
+      window: FAST, targetLang: 'zh-CN',
+      detector: { detect: async () => [{ languageCode: 'zh', confidence: 0.99 }] },
+    });
+    const units = [{ text: '这段本来就是中文。' }];
+    eng.setUnits(units);
+    eng.pump(); await tick(20);
+    eq(eng.stateOf(units[0]).state, '', '同语言跳过应保持静默终态');
+    eq(called, 0, '同语言不该发请求');
+  });
+
   test('respects MAX_PER_TICK per pump', () => {
     const { TC } = loadCore();
     let calls = 0;
@@ -223,7 +272,11 @@ describe('TranslationCore — createEngine (state machine)', () => {
     eq(calls, 2, 'only MAX_PER_TICK translations kick off in one tick');
   });
 
-  test('empty output marks done, never retries', async () => {
+  // 改判（2026-08-13，真机 bug）：这条断言原本写的是「空正文 marks done, never
+  // retries」，把静默终结固化成了契约——正是那个「段落什么都不显示」的化石。
+  // 保留其中仍然正确的一半：**不自动重试**（持续返回空正文的模型会烧配额）；
+  // 推翻另一半：终态从静默改为 error，用户能看见失败、能点重试。
+  test('空正文：不自动重试，但落到 error 而不是静默', async () => {
     const { TC } = loadCore();
     let calls = 0;
     const eng = TC.createEngine({ translate: async () => { calls++; return ''; }, window: FAST });
@@ -231,11 +284,10 @@ describe('TranslationCore — createEngine (state machine)', () => {
     eng.setUnits(units);
     eng.pump();
     await tick(10);
-    eq(units[0]._done, true);
-    deepEq(eng.stateOf(units[0]), { state: '', translation: '' });
+    deepEq(eng.stateOf(units[0]), { state: 'error', translation: '' });
     await tick(10);
     eng.pump();
-    eq(calls, 1, 'a done unit is not translated again');
+    eq(calls, 1, '不自动重试——重试是用户点出来的');
   });
 
   test('error after MAX_RETRIES, then retry() clears it', async () => {

@@ -367,8 +367,18 @@ var TranslationCore = (() => {
         it._fetching = true;
         started++;
         translate(it.text).then((t) => {
-          if (isTranslated(it.text, t)) it.tr = t;
-          else it._done = true; // empty output → nothing to show, don't retry
+          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; return; }
+          // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
+          // 请求发出**之前**判定不用翻（同语言跳过）才可以静默终结；请求发出**之后**
+          // 拿回空正文，说明这一段确实需要译文而我们没拿到。此前这里写的是
+          // `it._done = true`（注释还写着「nothing to show, don't retry」），于是渲染器
+          // 走「nothing to translate → 删掉兄弟节点」，段落永久空白、无提示、无重试
+          // ——用户看到的是「漏译」，且没有任何补救入口。
+          //
+          // 不自动重试是刻意的：一个持续返回空正文的模型（典型是思考型模型烧光
+          // 预算，解析路径 2026-08-08 已为同一形状加过 empty_output）自动重试只会
+          // 烧配额。所以直接进 error 态，把重试交给用户点一下。
+          it._err = true;
           it._tries = 0;
         }).catch(() => {
           it._tries = (it._tries || 0) + 1;

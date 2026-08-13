@@ -297,6 +297,15 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 - **At most 5 paragraphs translate in parallel** (`TranslationAPI` concurrency cap).
 - **Error + retry.** If a paragraph's translation fails after retries, it shows a
   clickable **`⚠️ 翻译失败,点此重试`** (same state machine as subtitles).
+- **一个需要译文的段落，永远不会「什么都不显示」** *(2026-08-13，真机 bug 定案)*。
+  静默终结**只允许**发生在请求发出**之前**——同语言跳过（本来就不该翻）。请求发出
+  **之后**没拿到可用译文，无论原因（网络失败、重试耗尽、或**模型回了空正文**），
+  一律进失败态并给重试入口。
+  此前空正文被当作「这段没东西可翻」而静默终结（引擎里那行注释写着 "nothing to
+  show, don't retry"），渲染器于是走「nothing to translate → 删掉兄弟节点」，
+  段落永久空白、无提示、无补救——用户看到的就是漏译。解析路径 2026-08-08 已为同一
+  形状加过 `empty_output`（思考型模型烧光预算返回空正文），翻译这条当时漏了。
+  **不自动重试仍然保留**：持续返回空正文的模型自动重试只会烧配额，重试交给用户点。
 - Skip non-content regions and non-text (nav/header/footer/aside, buttons, code,
   scripts, hidden elements). Idempotent (never duplicate if injected twice).
 
