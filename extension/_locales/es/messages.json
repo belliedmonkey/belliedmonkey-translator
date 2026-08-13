@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Las grabaciones del ejercicio oral van al endpoint configurado aquí y luego se descartan — nunca se guardan ni sincronizan. Sin motor no hay ejercicio oral. La clave se queda en este dispositivo.",
+    "message": "Las grabaciones del ejercicio oral van al endpoint configurado aquí y luego se descartan — nunca se guardan ni sincronizan. Sin motor no hay ejercicio oral. La clave se queda en este dispositivo. Un servidor autoalojado debe permitir CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "Falló la transcripción",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "No se puede conectar con el endpoint — comprueba la URL; un servidor autoalojado también debe permitir CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

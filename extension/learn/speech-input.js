@@ -107,7 +107,9 @@ var LearnSpeech = (() => {
     const ready = engineReady();
     if (!ready.ok) { const e = new Error(ready.reason); e.code = ready.reason; throw e; }
     const eng = engineInfo();
-    const base = cfg.baseUrl || eng.defaultBase;
+    // Trailing slash on a user-typed base URL would produce `…//v1/audio/…`.
+    // Our own dev bridge tolerates it; a real server need not.
+    const base = String(cfg.baseUrl || eng.defaultBase).replace(/\/+$/, '');
     const fd = new FormData();
     fd.append('file', blob, 'speech.' + (ext || 'webm'));
     const model = cfg.model || eng.defaultModel;
@@ -116,7 +118,22 @@ var LearnSpeech = (() => {
     if (l && l !== 'und') fd.append('language', l);
     const headers = {};
     if (cfg.apiKey) headers['Authorization'] = 'Bearer ' + cfg.apiKey;
-    const resp = await fetch(base + eng.path, { method: 'POST', headers, body: fd });
+    // A cross-origin POST to a SELF-HOSTED endpoint is the normal case here (the
+    // review page's origin is never the transcription server's). If that server
+    // omits `Access-Control-Allow-Origin`, WebKit rejects the response before any
+    // status is visible to us — `fetch` throws a bare TypeError ("Load failed"),
+    // which is indistinguishable from "host unreachable" unless we name it.
+    // Measured 2026-08-13 on the iOS simulator: the server received and processed
+    // the upload, and the page still saw only a TypeError. So: name it, and point
+    // at the two causes a user can actually act on (reachability, CORS).
+    let resp;
+    try {
+      resp = await fetch(base + eng.path, { method: 'POST', headers, body: fd });
+    } catch (err) {
+      const e = new Error('cannot reach the transcription endpoint');
+      e.code = 'network';
+      throw e;
+    }
     if (!resp.ok) {
       const e = new Error('HTTP ' + resp.status);
       e.code = 'http'; e.status = resp.status;

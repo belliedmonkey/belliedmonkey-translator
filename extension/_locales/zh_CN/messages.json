@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。",
+    "message": "「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。自建服务需允许跨域（CORS）。",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "转写失败",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "连不上转写端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

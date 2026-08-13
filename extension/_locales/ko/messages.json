@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "말하기 문제의 녹음은 여기서 설정한 엔드포인트로 전송되어 전사 후 즉시 폐기됩니다(저장·동기화 없음). 미설정 시 말하기 문제가 나오지 않습니다. 키는 이 기기에만 저장됩니다.",
+    "message": "말하기 문제의 녹음은 여기서 설정한 엔드포인트로 전송되어 전사 후 즉시 폐기됩니다(저장·동기화 없음). 미설정 시 말하기 문제가 나오지 않습니다. 키는 이 기기에만 저장됩니다.자체 서버는 CORS 허용이 필요합니다.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "전사 실패",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "전사 엔드포인트에 연결할 수 없습니다 — 주소를 확인하세요. 자체 서버는 CORS 허용도 필요합니다",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

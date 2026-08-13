@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Les enregistrements de l’exercice oral vont au point de terminaison configuré ici, puis sont supprimés — jamais stockés ni synchronisés. Sans moteur, pas d’exercice oral. La clé reste sur cet appareil.",
+    "message": "Les enregistrements de l’exercice oral vont au point de terminaison configuré ici, puis sont supprimés — jamais stockés ni synchronisés. Sans moteur, pas d’exercice oral. La clé reste sur cet appareil. Un serveur auto-hébergé doit autoriser le CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "Échec de la transcription",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Impossible de joindre le point de terminaison — vérifiez l’URL ; un serveur auto-hébergé doit aussi autoriser le CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

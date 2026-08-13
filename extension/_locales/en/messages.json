@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Speaking-exercise recordings go to the endpoint configured here for transcription, then are discarded — never stored, never synced. No engine means no speaking exercise. The key stays on this device.",
+    "message": "Speaking-exercise recordings go to the endpoint configured here for transcription, then are discarded — never stored, never synced. No engine means no speaking exercise. The key stays on this device. A self-hosted server must allow cross-origin requests (CORS).",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "Transcription failed",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Cannot reach the transcription endpoint — check the URL, and note a self-hosted server must allow cross-origin requests (CORS)",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

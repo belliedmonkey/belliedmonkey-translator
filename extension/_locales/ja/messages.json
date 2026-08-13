@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "「話す」問題の録音はここで設定したエンドポイントに送られ、文字起こし後すぐ破棄されます（保存も同期もされません）。未設定なら「話す」問題は出ません。キーはこの端末にのみ保存。",
+    "message": "「話す」問題の録音はここで設定したエンドポイントに送られ、文字起こし後すぐ破棄されます（保存も同期もされません）。未設定なら「話す」問題は出ません。キーはこの端末にのみ保存。自前サーバーは CORS の許可が必要です。",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "文字起こしに失敗しました",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "文字起こしエンドポイントに接続できません——URL を確認してください。自前サーバーは CORS の許可も必要です",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

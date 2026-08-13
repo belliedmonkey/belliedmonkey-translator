@@ -29,7 +29,7 @@
 | 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、知识点挖空（§5.4：答案⊆目标、seed 轮换被挖点、目标不在句中回落经典、重叠目标不出重叠空、CJK 短语、大小写不敏感匹配但答案保留句中原样）、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
 | 题型生成 | `learn-exercises.test.js` | pickExercise 同 (id,reps,skill) 确定且跨 reps 轮换、AI 变体仅门开时入轮换、mcqFrom 答案恰一次/排归一等值干扰、listenPickFrom 正确⊆句/干扰∩句=∅（含子串）、speakScore 密疏两路+漏读点名、gradeGate 与挖空规则对齐 |
 | 题包 | `learn-pack.test.js` | 能力随解析引擎门、干扰项复述译文被拒（等值+包含双向）、句内词/子串不作听力干扰、理解题结构校验、accept 键必须句内且替代≠原词、部分题包逐项降级/全废 bad_output、**每卡每 PACK_VERSION 至多一次扣费**（调用计数）、并发去重、缓存写失败不重扣 |
-| 语音输入 | `learn-speech.test.js` | capable() 各门控（引擎条件 × mic API 存在）、multipart 构造（und 永不硬报语言、Bearer 仅在有 key、模型默认值来自注册表）、每条路径都释放麦克风轨道、JSON 与 text/plain 响应、具名错误码（no_base/no_key 不发请求、http 带 status、empty_transcript） |
+| 语音输入 | `learn-speech.test.js` | CORS/网络拒绝具名为 `network`（不吞成通用错）、baseUrl 尾斜杠不产生双斜杠、capable() 各门控（引擎条件 × mic API 存在）、multipart 构造（und 永不硬报语言、Bearer 仅在有 key、模型默认值来自注册表）、每条路径都释放麦克风轨道、JSON 与 text/plain 响应、具名错误码（no_base/no_key 不发请求、http 带 status、empty_transcript） |
 | 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡每提示词版本至多扣一次费**（调用计数；版本升级只为纠错，见 learning-design §9.2）、生词必须逐字来自原句（v2 提示词 + 零匹配判 bad_output）、并发去重、缓存写失败不重复扣费、两种线格式 |
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
 | 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
@@ -85,8 +85,8 @@
 | M6 | 阶梯升降真机手感 | iPhone App | 认读→听懂→产出随强度切换；阈值 4/30 手感不对就调（设计文档标了「调整便宜」） |
 | M7 | TestFlight 特查 | ASC | 新 build 处理完 **必须手动加进「天使」组**（16 的教训）；出口合规无警告 |
 | M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读（表面扫描只跑浅色引擎） |
-| M9 | 真麦克风门控（§9.4） | iPhone App + iOS Safari 扩展页 | App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
-| M10 | 真转写端到端（§9.4） | iPhone App | Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 的 `com.apple.security.device.audio-input` entitlement 由 `app:sync` 的 pbxproj 补丁写入（`ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`，2026-08-12 已实证进入签名后的 entitlements）——工程重新生成后记得重跑 app:sync |
+| M9 | 真麦克风门控（§9.4）**✅ 2026-08-13 模拟器实证** | iPhone App + iOS Safari 扩展页 | 实测通过：App 里配好转写引擎后**说徽章出现**（capable() 在真 WKWebView 为真）、iOS 麦克风授权弹窗正常弹出并可授权；WebKit `isTypeSupported('audio/mp4')`=true，选中 m4a 符合设计。**模拟器无法完成真录音**：授权后拿到的音轨立刻 `readyState=ended`、MediaRecorder 产出 0 字节（Simulator 无可用音频输入，非代码问题——原始 MediaRecorder 诊断确认 `dataavailable` 先于 `stop`，出货代码在 onstop 读 chunks 的假设在 WebKit 成立）。**真录音改到真机上做。** 原步骤：| App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
+| M10 | 真转写端到端（§9.4）**⚠️ 部分完成** | iPhone App | 已证：出货 speech-input.js 在真 WebKit 里跑通到上传（服务器实收并处理），**且揪出真 bug——自建端点缺 CORS 时 WebKit 在读状态码前就判死 fetch，只抛裸 TypeError**（已修：具名 `network` + 文案点出可达性与 CORS + 尾斜杠裁剪）。**未证**：真语音→真 transcript→匹配度（模拟器无麦，见 M9）。原步骤：| Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 的 `com.apple.security.device.audio-input` entitlement 由 `app:sync` 的 pbxproj 补丁写入（`ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`，2026-08-12 已实证进入签名后的 entitlements）——工程重新生成后记得重跑 app:sync |
 
 ## 4. 治理
 

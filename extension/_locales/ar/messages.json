@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز.",
+    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز. يجب أن يسمح الخادم المستضاف ذاتيًا بطلبات CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "فشل التفريغ",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "تعذّر الوصول إلى نقطة التفريغ — تحقّق من العنوان؛ والخادم المستضاف ذاتيًا يجب أن يسمح بطلبات CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }

@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Aufnahmen der Sprechübung gehen an den hier konfigurierten Endpunkt und werden danach verworfen — nie gespeichert, nie synchronisiert. Ohne Engine keine Sprechübung. Der Schlüssel bleibt auf diesem Gerät.",
+    "message": "Aufnahmen der Sprechübung gehen an den hier konfigurierten Endpunkt und werden danach verworfen — nie gespeichert, nie synchronisiert. Ohne Engine keine Sprechübung. Der Schlüssel bleibt auf diesem Gerät. Ein selbst gehosteter Server muss CORS erlauben.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,9 @@
   "stt_failed": {
     "message": "Transkription fehlgeschlagen",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Transkriptions-Endpunkt nicht erreichbar — URL prüfen; ein selbst gehosteter Server muss außerdem CORS erlauben",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
   }
 }
