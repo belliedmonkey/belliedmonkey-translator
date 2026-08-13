@@ -26,3 +26,6 @@ test/layout/artifacts-*/
 .env
 .env.*
 dist-app/
+
+# 本地凭证（scripts/local-keys.js 生成，永不提交）
+.local/
