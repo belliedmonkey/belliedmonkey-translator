@@ -86,7 +86,7 @@
 | M7 | TestFlight 特查 | ASC | 新 build 处理完 **必须手动加进「天使」组**（16 的教训）；出口合规无警告 |
 | M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读（表面扫描只跑浅色引擎） |
 | M9 | 真麦克风门控（§9.4） | iPhone App + iOS Safari 扩展页 | App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
-| M10 | 真转写端到端（§9.4） | iPhone App | Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 另需 `com.apple.security.device.audio-input` entitlement（sync 脚本未补，见其注释） |
+| M10 | 真转写端到端（§9.4） | iPhone App | Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 的 `com.apple.security.device.audio-input` entitlement 由 `app:sync` 的 pbxproj 补丁写入（`ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`，2026-08-12 已实证进入签名后的 entitlements）——工程重新生成后记得重跑 app:sync |
 
 ## 4. 治理
 

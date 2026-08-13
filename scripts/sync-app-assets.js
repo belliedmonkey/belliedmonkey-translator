@@ -111,10 +111,6 @@ function patchViewController(sharedDir) {
 // the patch lives here, like every other thing the converter gets wrong for us.
 // The string names the §10 Gate C contract, not a generic "needs the mic".
 //
-// macOS note: the sandboxed macOS app would ALSO need the
-// com.apple.security.device.audio-input entitlement; that file is not patched
-// here — verify on the real Mac before shipping the speak exercise there
-// (docs/learn-regression.md §3, 真机矩阵).
 const MIC_KEY = 'NSMicrophoneUsageDescription';
 const MIC_TEXT = '朗读练习需要使用麦克风录音；录音只发送到你自己配置的转写端点，识别后立即丢弃，绝不存储或上传到我们的服务器。';
 function patchInfoPlists(sharedDir) {
@@ -135,6 +131,37 @@ function patchInfoPlists(sharedDir) {
     notes.push(entry + ': mic key patched');
   }
   return notes.length ? notes.join(' · ') : 'no app Info.plist found';
+}
+
+// Patch 4 (§9.4): the sandboxed macOS App also needs the audio-input sandbox
+// entitlement, or getUserMedia is denied regardless of the Info.plist string. The
+// converter uses Xcode 15+ build-settings-based entitlements (no .entitlements
+// file — `ENABLE_APP_SANDBOX = YES` in the pbxproj), so the grant is the sibling
+// build setting `ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`, inserted ONLY into build
+// configurations that belong to the macOS APP target (matched by its
+// INFOPLIST_FILE — the extension target never records audio and stays ungranted).
+// Idempotent, like every patch here; regeneration wipes it, app:sync restores it.
+function patchPbxproj(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return 'no xcodeproj';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return 'no project.pbxproj';
+  let src = fs.readFileSync(f, 'utf8');
+  if (src.includes('ENABLE_RESOURCE_ACCESS_AUDIO_INPUT')) return 'audio-input entitlement already patched';
+  // The sandbox line and the INFOPLIST_FILE line that identifies the target sit a
+  // few (alphabetically sorted) settings apart — match the span WITHIN one build
+  // configuration block (no `}` may intervene), so an extension target's sandbox
+  // line can never borrow the app target's identifier line.
+  const NEEDLE = /ENABLE_APP_SANDBOX = YES;((?:\n[^\n}]*){0,10}?\n\s*INFOPLIST_FILE = "macOS \(App\)\/Info\.plist";)/g;
+  let hits = 0;
+  src = src.replace(NEEDLE, (m, tail) => {
+    hits++;
+    return 'ENABLE_APP_SANDBOX = YES;\n\t\t\t\tENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;' + tail;
+  });
+  if (!hits) return 'audio-input: macOS (App) sandbox block not found — converter layout changed?';
+  fs.writeFileSync(f, src);
+  return `audio-input entitlement patched (${hits} configs)`;
 }
 
 function main() {
@@ -164,7 +191,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)}`);
       touched++;
     }
   }
