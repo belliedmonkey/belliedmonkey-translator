@@ -9,14 +9,19 @@
 // source is `app/` in the repo, `build/app-bundle.js` builds it to `dist-app/`, and
 // this script copies it in.
 //
-// Two things get written, and the second one is easy to forget:
+// The assets get written, and so does every place the converter's template assumes
+// something our app is not. The patches are easy to forget precisely because each one
+// looks like a layout bug rather than a one-line setting:
 //
 //   1. `Main.html` / `Script.js` / `Style.css` — the three filenames the converter's
 //      App target ALREADY references, so the pbxproj never needs touching.
-//   2. A one-line patch to `ViewController.swift`. The converter disables scrolling on
-//      iOS (`isScrollEnabled = false`) because its template is a single non-scrolling
-//      screen. Left in place, a review list simply cannot be scrolled — and it looks
-//      like a layout bug, not a two-word Swift setting.
+//   2. `ViewController.swift` — scrolling (the template is one non-scrolling screen,
+//      a review list is not) and the iOS media user-gesture gate.
+//   3. `Info.plist` — the microphone usage string the 说 exercise needs.
+//   4. `project.pbxproj` — the macOS audio-input sandbox entitlement.
+//   5. the macOS `Main.storyboard` — a window the user can actually resize.
+//
+// Each is written against the converter's template shape and is idempotent.
 //
 // Idempotent: safe to run repeatedly, and a no-op patch is reported as such.
 
@@ -178,6 +183,72 @@ function patchPbxproj(sharedDir) {
   return `audio-input entitlement patched (${hits} configs)`;
 }
 
+// Patch 5: the macOS host window. The converter's storyboard gives it
+// `styleMask titled+closable` and nothing else — no resize, no zoom, no
+// miniaturize — plus `fullScreenNone`, at a fixed 425×325. That is a sane window
+// for what the template puts inside it (the 979-byte "this is your extension"
+// placeholder). It is the wrong window for a reading app.
+//
+// Nobody saw it for three releases because nobody could see the content either:
+// the same tree that never got its resources (see classifyProject above) shipped
+// the placeholder, and a placeholder does not care how big it is. build 16 put
+// the real review app in that window for the first time, and the smoke test
+// walked straight into a 425pt box the user cannot enlarge — no drag, no zoom,
+// not even full screen.
+//
+// Only the window is wrong: the wkWebView already carries
+// `widthSizable/heightSizable`, so it follows the frame once the frame can move.
+//
+// The three template rects (contentRect, the view, the web view) all agree on
+// the same size, and IB keeps them in sync when a human resizes the window — so
+// the patch reads the size off contentRect and moves all of them together,
+// instead of hardcoding a number the converter is free to change.
+const WIN_W = 820;
+const WIN_H = 640;
+function patchMacWindowXml(src) {
+  const STYLE_RE = /<windowStyleMask key="styleMask"((?:\s+[\w-]+="[^"]*")*)\s*\/>/;
+  const style = src.match(STYLE_RE);
+  if (!style) return { xml: src, note: 'window: styleMask not found — converter layout changed?' };
+  if (/\bresizable="YES"/.test(style[1])) return { xml: src, note: 'window already patched' };
+
+  const notes = [];
+  // Keep whatever the converter set, add what a document window needs.
+  let out = src.replace(STYLE_RE,
+    `<windowStyleMask key="styleMask"${style[1]} miniaturizable="YES" resizable="YES"/>`);
+  notes.push('resizable');
+
+  const FULLSCREEN_RE = /(<windowCollectionBehavior key="collectionBehavior")\s+fullScreenNone="YES"\s*\/>/;
+  if (FULLSCREEN_RE.test(out)) {
+    out = out.replace(FULLSCREEN_RE, '$1 fullScreenPrimary="YES"/>');
+    notes.push('fullscreen');
+  }
+
+  const rect = out.match(/<rect key="contentRect"[^/]*?width="([\d.]+)" height="([\d.]+)"\s*\/>/);
+  if (rect) {
+    const w = rect[1].replace(/\./g, '\\.');
+    const h = rect[2].replace(/\./g, '\\.');
+    // screenRect is a different size, so it is untouched; the view and the web
+    // view share the template's content size and move with it.
+    out = out.replace(new RegExp(`width="${w}" height="${h}"`, 'g'),
+      `width="${WIN_W}" height="${WIN_H}"`);
+    notes.push(`${WIN_W}×${WIN_H}`);
+  } else {
+    notes.push('contentRect not found — size left alone');
+  }
+
+  return { xml: out, note: `window patched (${notes.join(' · ')})` };
+}
+
+function patchMacWindow(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const f = path.join(appRoot, 'macOS (App)', 'Base.lproj', 'Main.storyboard');
+  if (!fs.existsSync(f)) return 'no macOS storyboard';
+  const src = fs.readFileSync(f, 'utf8');
+  const { xml, note } = patchMacWindowXml(src);
+  if (xml !== src) fs.writeFileSync(f, xml);
+  return note;
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error('✗ no dist-app/ — run `node build.js` first');
@@ -214,7 +285,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)}`);
       touched++;
     }
   }
@@ -228,4 +299,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { classifyProject };
+module.exports = { classifyProject, patchMacWindowXml };
