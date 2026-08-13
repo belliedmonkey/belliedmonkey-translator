@@ -203,18 +203,37 @@ node build.js --flavor china      # china build → dist-china/ (+ -china.zip); 
 node build.js firefox             # Firefox build → dist-firefox/ + .xpi
 bash build-safari.sh              # global Safari iOS Xcode project (needs FULL Xcode)
 bash build-safari.sh china        # china Safari iOS Xcode project (bundle id …​.cn)
-bash build-safari.sh global macos # global Safari macOS project → safari-project-macos/
+bash build-safari.sh global macos # global Safari macOS — the SAME tree as iOS (see below)
 BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build number
 ```
 
 - Source lives in `extension/`; `build.js` copies it to `dist/` and validates.
 - Icons: real PNGs in `extension/icons/` (source `icon.svg`). The build FAILS if
   they aren't genuine PNGs — don't emit SVG renamed to `.png`.
+- **One flavor, one tree — both platforms share it.** The converter emits a
+  dual-platform project (targets/schemes `… (iOS)` and `… (macOS)`, folders
+  `Shared (App)` / `iOS (App)` / `macOS (App)`), and `platform` only selects which
+  archive instructions you get plus the macOS-only Info.plist keys. Do **not**
+  generate a `--macos-only` tree: its flat layout has no `Shared (App)`, which is
+  the exact thing `scripts/sync-app-assets.js` patches, so nothing reaches it —
+  the host app then ships the converter's 979-byte template instead of ours
+  (`dist-app/Main.html` is ~19.5 KB). That shipped in macOS 1.4.0/1.4.1/1.4.2.
+  `app:sync` now **fails loudly** on such a tree instead of printing "未生成，跳过".
+- Archive from the command line with the platform's scheme (the script prints the
+  exact invocation). Build numbers count per platform, but
+  `CURRENT_PROJECT_VERSION` is written project-wide, so pass
+  `CURRENT_PROJECT_VERSION=<n>` to `xcodebuild` when archiving the other platform
+  without re-running the script.
+- `npm run verify:ios` works on macOS archives too — it reads the resource root off
+  the bundle (`Contents/Resources/` on macOS, bundle root on iOS). It used to
+  assume iOS and report all 71 dist files missing.
 - `build-safari.sh <flavor> <platform>`: flavor `global|china`, platform
   `ios|macos`. **Every run re-applies** the project settings — version (from
   `package.json`), both bundle ids, display name, and the Info.plist keys the
-  stores require (`ITSAppUsesNonExemptEncryption`, plus
-  `LSApplicationCategoryType` on macOS). Only your signing config is preserved.
+  stores require (`ITSAppUsesNonExemptEncryption` and `LSApplicationCategoryType`;
+  the latter is macOS-only in effect but written always, because one tree serves
+  both platforms and a missing category fails macOS upload with 90242).
+  Only your signing config is preserved.
   `safari-project*/` is gitignored, i.e. purely local state, so the script is the
   only thing keeping it from drifting — an earlier version skipped all
   post-processing when the project already existed, and `MARKETING_VERSION` sat

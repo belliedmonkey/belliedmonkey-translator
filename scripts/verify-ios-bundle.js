@@ -19,16 +19,6 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const dd = process.argv[2] || '/tmp/bt-dd';
 
-// Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
-// (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
-// project reads dist/ directly — so this check is the archive path's zip-refusal.
-const marker = path.join(ROOT, 'dist', '.not-shippable');
-if (fs.existsSync(marker)) {
-  console.log('✗ dist/ 带 .not-shippable 标记（' + fs.readFileSync(marker, 'utf8').trim() + '）');
-  console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
-  process.exit(1);
-}
-
 function walk(dir, base = dir, out = new Set()) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
@@ -36,6 +26,15 @@ function walk(dir, base = dir, out = new Set()) {
     else out.add(path.relative(base, p));
   }
   return out;
+}
+
+// An iOS .appex keeps its resources at the bundle root; a macOS one puts them under
+// `Contents/Resources/`. Comparing a macOS bundle against the iOS assumption reports
+// every dist file as missing — 71 of 71, which reads as a catastrophic packaging
+// failure and is really just the wrong root. Read the layout off the bundle.
+function resourceRoot(appex) {
+  const mac = path.join(appex, 'Contents', 'Resources');
+  return fs.existsSync(mac) ? mac : appex;
 }
 
 function findAppex(root) {
@@ -54,30 +53,46 @@ function findAppex(root) {
   return null;
 }
 
-const distDir = path.join(ROOT, 'dist');
-if (!fs.existsSync(distDir)) {
-  console.error('✗ no dist/ — run `node build.js` first');
-  process.exit(1);
-}
-const appex = findAppex(dd);
-if (!appex) {
-  console.error(`✗ no .appex under ${dd} — build the iOS scheme first:\n` +
-    `    xcodebuild -scheme "BelliedMonkey Translator (iOS)" -derivedDataPath ${dd} ... build`);
-  process.exit(1);
+function main() {
+  // Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
+  // (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
+  // project reads dist/ directly — so this check is the archive path's zip-refusal.
+  const marker = path.join(ROOT, 'dist', '.not-shippable');
+  if (fs.existsSync(marker)) {
+    console.log('✗ dist/ 带 .not-shippable 标记（' + fs.readFileSync(marker, 'utf8').trim() + '）');
+    console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
+    process.exit(1);
+  }
+
+  const distDir = path.join(ROOT, 'dist');
+  if (!fs.existsSync(distDir)) {
+    console.error('✗ no dist/ — run `node build.js` first');
+    process.exit(1);
+  }
+  const appex = findAppex(dd);
+  if (!appex) {
+    console.error(`✗ no .appex under ${dd} — build the iOS scheme first:\n` +
+      `    xcodebuild -scheme "BelliedMonkey Translator (iOS)" -derivedDataPath ${dd} ... build`);
+    process.exit(1);
+  }
+
+  const inDist = walk(distDir);
+  const inAppex = walk(resourceRoot(appex));
+  const missing = [...inDist].filter((f) => !inAppex.has(f)).sort();
+
+  if (missing.length) {
+    console.error(`✗ ${missing.length} file(s) in dist/ are NOT in the built extension:`);
+    for (const f of missing) console.error('    ' + f);
+    console.error('\nThe Xcode project references a file list captured when it was generated.\n' +
+      'Regenerate it, then rebuild:\n' +
+      '    xcrun safari-web-extension-converter dist --project-location ./safari-project \\\n' +
+      '      --app-name "BelliedMonkey Translator" --bundle-identifier com.belliedmonkeytranslator \\\n' +
+      '      --swift --no-open --no-prompt --force');
+    process.exit(1);
+  }
+  console.log(`✓ Safari bundle complete — all ${inDist.size} dist files present in ${path.basename(appex)}`);
 }
 
-const inDist = walk(distDir);
-const inAppex = walk(appex);
-const missing = [...inDist].filter((f) => !inAppex.has(f)).sort();
+if (require.main === module) main();
 
-if (missing.length) {
-  console.error(`✗ ${missing.length} file(s) in dist/ are NOT in the built extension:`);
-  for (const f of missing) console.error('    ' + f);
-  console.error('\nThe Xcode project references a file list captured when it was generated.\n' +
-    'Regenerate it, then rebuild:\n' +
-    '    xcrun safari-web-extension-converter dist --project-location ./safari-project \\\n' +
-    '      --app-name "BelliedMonkey Translator" --bundle-identifier com.belliedmonkeytranslator \\\n' +
-    '      --swift --no-open --no-prompt --force');
-  process.exit(1);
-}
-console.log(`✓ Safari bundle complete — all ${inDist.size} dist files present in ${path.basename(appex)}`);
+module.exports = { resourceRoot };
