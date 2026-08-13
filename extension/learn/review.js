@@ -368,6 +368,7 @@
       case 'no_engine':
       case 'no_base': return t('stt_no_base', '还没配置转写端点');
       case 'no_key': return t('stt_no_key', '还没填转写 API Key');
+      case 'network': return t('stt_network', '连不上转写端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
       case 'no_mic': return t('stt_no_mic', '这个浏览器拿不到麦克风');
       case 'mic_denied': return t('stt_mic_denied', '麦克风权限被拒绝——本次会话改用其他题型');
       case 'http': return t('stt_http', '转写服务返回了错误');

@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز.",
+    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز. يجب أن يسمح الخادم المستضاف ذاتيًا بطلبات CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,65 @@
   "stt_failed": {
     "message": "فشل التفريغ",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "تعذّر الوصول إلى نقطة التفريغ — تحقّق من العنوان؛ والخادم المستضاف ذاتيًا يجب أن يسمح بطلبات CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "اختبار الاتصال",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "جارٍ الاختبار…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ يعمل · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "الرد: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "لم ينجح",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "لم يُدخل عنوان نقطة النهاية",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "لم يُدخل مفتاح API",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "لم يُختر محرك",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "استجابت نقطة النهاية لكن تعذّر تحليل المحتوى",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "المفتاح خاطئ أو بلا صلاحية",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "العنوان أو اسم النموذج خاطئ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "رفض الخادم هذا الطلب",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
+    "description": "Engine self-test (settings)"
   }
 }

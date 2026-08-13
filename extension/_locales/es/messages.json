@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Las grabaciones del ejercicio oral van al endpoint configurado aquí y luego se descartan — nunca se guardan ni sincronizan. Sin motor no hay ejercicio oral. La clave se queda en este dispositivo.",
+    "message": "Las grabaciones del ejercicio oral van al endpoint configurado aquí y luego se descartan — nunca se guardan ni sincronizan. Sin motor no hay ejercicio oral. La clave se queda en este dispositivo. Un servidor autoalojado debe permitir CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,65 @@
   "stt_failed": {
     "message": "Falló la transcripción",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "No se puede conectar con el endpoint — comprueba la URL; un servidor autoalojado también debe permitir CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Probar conexión",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Probando…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Funciona · {ms} ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "respuesta: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "No funcionó",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Aún no hay URL del endpoint",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "Aún no hay clave API",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "No hay motor seleccionado",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "El endpoint respondió, pero no se pudo interpretar el contenido",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "la clave es incorrecta o sin permisos",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "la URL o el nombre del modelo es incorrecto",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "el servidor rechazó la solicitud",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "El modelo no devolvió contenido — los modelos de razonamiento no sirven aquí; usa un modelo de chat",
+    "description": "Engine self-test (settings)"
   }
 }

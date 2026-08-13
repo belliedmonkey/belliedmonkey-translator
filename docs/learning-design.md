@@ -1536,7 +1536,15 @@ rather than reading the sentence in the wrong language.
 - **评分在本地**：转写文本与原句的重合度是纯函数（§5.4 引用的 `speakScore`——
   密集文字字符二元组、稀疏文字词多重集），客观约束评分的方式与挖空同款。模型只
   做转写、不做裁判——裁判必须可测、可重放。
-- **失败具名**：`no_base / no_key / no_mic / mic_denied / http /
+- **自建端点必须允许跨域（CORS）**（2026-08-13 iOS 模拟器实测）。复习页的 origin 永远
+  不等于转写服务器的 origin，所以这总是一个跨域 POST；服务器若不回
+  `Access-Control-Allow-Origin`，WebKit 在我们看到任何状态码之前就判死 fetch——
+  抛一个光秃秃的 TypeError（Safari 文案 “Load failed”），与「地址不通」无法区分。
+  实测那次服务器其实已经收下并处理了上传，页面却只看见 TypeError。因此：传输层
+  捕获它并具名为 `network`，文案同时点出**可达性**与 **CORS** 两个用户能动手的原因；
+  设置面的提示也写明这条要求。云端点（OpenAI 一类）本就为浏览器开了 CORS，不受影响。
+- **用户填的地址尾斜杠要裁掉**，否则拼出 `…//v1/audio/transcriptions`。
+- **失败具名**：`no_base / no_key / no_mic / mic_denied / network / http /
   empty_transcript / unsupported`，界面文案逐一对应（§9.1 reason 惯例）。
   会话中途 `mic_denied` ⇒ 本会话说档关闭、卡片按下一顺位技能重渲——不出死卡。
 - **IO 在途，控件不可用**（interaction-spec 全局原则）：录音与转写全程，说题

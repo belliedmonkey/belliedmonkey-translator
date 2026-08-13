@@ -1149,7 +1149,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_hint": {
-    "message": "Les enregistrements de l’exercice oral vont au point de terminaison configuré ici, puis sont supprimés — jamais stockés ni synchronisés. Sans moteur, pas d’exercice oral. La clé reste sur cet appareil.",
+    "message": "Les enregistrements de l’exercice oral vont au point de terminaison configuré ici, puis sont supprimés — jamais stockés ni synchronisés. Sans moteur, pas d’exercice oral. La clé reste sur cet appareil. Un serveur auto-hébergé doit autoriser le CORS.",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_api_key": {
@@ -1231,5 +1231,65 @@
   "stt_failed": {
     "message": "Échec de la transcription",
     "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Impossible de joindre le point de terminaison — vérifiez l’URL ; un serveur auto-hébergé doit aussi autoriser le CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Tester la connexion",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Test en cours…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ OK · {ms} ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "réponse : ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Échec",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Pas encore d’URL de point de terminaison",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "Pas encore de clé API",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "Aucun moteur sélectionné",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "Le point de terminaison a répondu, mais le contenu est illisible",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "la clé est incorrecte ou sans droits",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "l’URL ou le nom du modèle est incorrect",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "le serveur a refusé cette requête",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "Le modèle n’a renvoyé aucun contenu — un modèle de raisonnement ne convient pas ; choisissez un modèle de chat",
+    "description": "Engine self-test (settings)"
   }
 }

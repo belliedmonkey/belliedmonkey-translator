@@ -153,6 +153,24 @@ describe('LearnSpeech — transcribe: the multipart shape and named failures', (
     eq(await b.S.transcribe(blob(), 'm4a', 'en'), 'raw transcript line');
   });
 
+  test('a CORS/network rejection is named `network`, not swallowed as a generic error', async () => {
+    // WebKit rejects a cross-origin response that lacks Access-Control-Allow-Origin
+    // BEFORE any status is readable — fetch throws a bare TypeError. Measured on the
+    // iOS simulator 2026-08-13: the server had already processed the upload. Without
+    // this mapping the UI can only say 「转写失败」, which points at nothing.
+    const { S } = setup({ fetch: async () => { throw new TypeError('Load failed'); } });
+    S.configure({ engineId: 'cloud', apiKey: 'k' });
+    try { await S.transcribe(new Blob(['x']), 'm4a', 'en'); ok(false, '应当抛错'); }
+    catch (e) { eq(e.code, 'network'); }
+  });
+
+  test('a trailing slash on the base URL does not produce a double slash', async () => {
+    const { S, calls } = setup();
+    S.configure({ engineId: 'local', baseUrl: 'http://127.0.0.1:18790/' });
+    await S.transcribe(new Blob(['x']), 'm4a', 'en');
+    eq(calls.fetch[0].url, 'http://127.0.0.1:18790/v1/audio/transcriptions');
+  });
+
   test('failures carry their names: no_base / no_key before any network, http / empty after', async () => {
     const a = setup();
     a.S.configure({ engineId: 'local', baseUrl: '' });

@@ -841,7 +841,11 @@ change: four grades, consequence previews, strength bar.
 - **Cost is stated at the point of use**: 「使用你配置的转写端点，每次录音一次
   调用」. Re-recording is allowed once the attempt settles.
 - **Every failure names itself**: no endpoint URL / no API key / no microphone /
-  microphone denied / the service returned an error / empty transcript. A mic
+  microphone denied / **endpoint unreachable — including the CORS case** / the
+  service returned an error / empty transcript. The unreachable message names
+  BOTH causes a user can act on (address, and that a self-hosted server must
+  allow cross-origin requests) — WebKit reports a blocked-by-CORS response as an
+  indistinguishable network error, so guessing one cause would mislead half the time. A mic
   denial mid-session removes the 说 form for the session and the card re-renders on
   its next eligible skill.
 - **Recordings are never stored** — sent only to the user-configured endpoint and
