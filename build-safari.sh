@@ -5,6 +5,13 @@
 #   bash build-safari.sh china              # 中国版 iOS   → com.belliedmonkeytranslator.cn
 #   bash build-safari.sh global macos       # 海外版 macOS  → 同一个 App 记录的 macOS 平台
 #   BUILD_NUMBER=11 bash build-safari.sh global macos
+#
+# ⚠️ iOS 与 macOS 共用同一棵工程树。转换器出的工程本来就是双平台的（4 个 target、
+#    两个 scheme），platform 参数只决定「给你哪条归档指引 + 写不写 macOS 专属的
+#    Info.plist 键」，不再另生成 --macos-only 的树。
+#    为什么：--macos-only 出的是扁平布局（没有 Shared (App)），而 app:sync 的四个补丁
+#    全按双平台布局写死，于是它只会打印「未生成，跳过」然后什么都不做 —— 已上架的
+#    macOS 1.4.1 (14) 因此带的是转换器 979 字节的模板页，不是我们的学习 App。
 #   MT_SYNC=on bash build-safari.sh         # 自用 TestFlight 包（同步开关在产物中打开，
 #                                           #  源码不动，Gate B 照守；见 build.js SYNC_ON）
 #
@@ -54,12 +61,16 @@ else
   PROJ_BASE="$(pwd)/safari-project"
 fi
 
-if [ "$PLATFORM" = "macos" ]; then
-  SAFARI_PROJECT="${PROJ_BASE}-macos"
-  CONVERTER_PLATFORM="--macos-only"
-else
-  SAFARI_PROJECT="$PROJ_BASE"
-  CONVERTER_PLATFORM="--ios-only"
+# 一个 flavor 一棵树，两个平台共用（见文件头的告示）。转换器不带平台参数时出的就是
+# 双平台工程：target 有 (iOS) 与 (macOS) 两套，布局是 Shared (App) / iOS (App) /
+# macOS (App) —— 也正是 scripts/sync-app-assets.js 的补丁认得的那个布局。
+SAFARI_PROJECT="$PROJ_BASE"
+CONVERTER_PLATFORM=""
+if [ "$PLATFORM" = "macos" ] && [ -d "${PROJ_BASE}-macos" ]; then
+  echo ""
+  echo "⚠️  发现遗留的 $(basename "${PROJ_BASE}-macos")/ —— 那是 --macos-only 的扁平布局，"
+  echo "    app:sync 打不了补丁（装出来的 App 是转换器模板页）。它是 gitignored 的一次性"
+  echo "    产物，删掉即可：rm -rf ${PROJ_BASE}-macos"
 fi
 
 # 版本号的唯一真源是 package.json(build.js 已强制 manifest.json 与它一致)。
@@ -132,20 +143,23 @@ sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" "$PBX"
 # ⚠️ 哪天真加了自有加密（本地缓存加密、请求签名等），必须回来改掉这一行。
 set_app_key "INFOPLIST_KEY_ITSAppUsesNonExemptEncryption" "NO"
 
-if [ "$PLATFORM" = "macos" ]; then
-  set_app_key "INFOPLIST_KEY_LSApplicationCategoryType" "\"$APP_CATEGORY\""
-fi
+# 类别键无条件写：两个平台共用一棵树，只在 macos 那次运行里写的话，先跑 ios 再归档
+# macOS 就会缺它 —— 上传直接 90242 失败。iOS 侧带着它无害（系统忽略）。
+set_app_key "INFOPLIST_KEY_LSApplicationCategoryType" "\"$APP_CATEGORY\""
 
 echo "   ✓ bundle id = $BUNDLE_ID(.extension)　显示名「$DISPLAY_NAME」"
 echo "   ✓ MARKETING_VERSION = $VERSION（跟随 package.json）"
 echo "   ✓ 出口合规豁免已声明（ITSAppUsesNonExemptEncryption = NO）"
-[ "$PLATFORM" = "macos" ] && echo "   ✓ App 类别 = $APP_CATEGORY"
+echo "   ✓ App 类别 = $APP_CATEGORY（macOS 必需，iOS 侧忽略）"
 
 # build 号：App Store 要求同一平台每次上传都必须递增，且 iOS 与 macOS 各自独立计数。
 # 仓库无从得知商店现状，所以只在显式给出时才写，否则原样保留并提醒。
 if [ -n "$BUILD_NUMBER" ]; then
   sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" "$PBX"
   echo "   ✓ CURRENT_PROJECT_VERSION = $BUILD_NUMBER"
+  echo "   ⚠️ 这行是全局替换，两个平台的 target 都被写成了 $BUILD_NUMBER。"
+  echo "      两个平台的 build 号各自计数，所以归档另一个平台前要么重跑本脚本，"
+  echo "      要么在 xcodebuild 上加 CURRENT_PROJECT_VERSION=<n> 覆盖（不动工程文件）。"
 else
   CUR=$(grep -ohE "CURRENT_PROJECT_VERSION = [^;]*" "$PBX" | head -1 | sed 's/.*= //')
   echo "   ⚠️ build 号保持 $CUR —— 上传前请确认它大于 App Store Connect 里"
@@ -162,10 +176,28 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo " Xcode 项目： $XCODEPROJ"
 echo ""
+if [ "$PLATFORM" = "macos" ]; then
+  SCHEME="$APP_NAME (macOS)"
+  DEST="generic/platform=macOS"
+else
+  SCHEME="$APP_NAME (iOS)"
+  DEST="generic/platform=iOS"
+fi
+echo " 这棵树是双平台的，scheme 有两个；本次要归档的是："
+echo "   $SCHEME"
+echo ""
+echo " 命令行归档 + 直传（不用开 Xcode，登录态自动过 2FA）："
+echo "   npm run app:sync      # 必须先跑：宿主 App 资源 + 四个补丁都在这一步"
+echo "   xcodebuild -project \"$XCODEPROJ\" -scheme \"$SCHEME\" \\"
+echo "     -configuration Release -destination \"$DEST\" \\"
+echo "     -archivePath /tmp/archive.xcarchive DEVELOPMENT_TEAM=<TEAM> \\"
+echo "     -allowProvisioningUpdates archive"
+echo ""
+echo " 或者用 Xcode："
 echo " 1. open \"$XCODEPROJ\""
 echo " 2. 每个 Target（app + Extension）→ Signing & Capabilities → 选 Team"
 if [ "$PLATFORM" = "macos" ]; then
-  echo "    macOS 还需确认已启用 App Sandbox"
+  echo "    macOS 还需确认已启用 App Sandbox（说题录音还需 audio-input，app:sync 会补）"
   echo " 3. 顶部选 My Mac → Product ▸ Archive"
 else
   echo " 3. 顶部选真机或 Any iOS Device → Product ▸ Archive"

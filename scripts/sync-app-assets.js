@@ -32,14 +32,28 @@ const FILES = ['Main.html', 'Script.js', 'Style.css'];
 // here would silently keep stale assets, so missing ones are reported, not skipped.
 const PROJECTS = ['safari-project', 'safari-project-china', 'safari-project-macos'];
 
-function appDirsIn(projRoot) {
-  const out = [];
-  if (!fs.existsSync(projRoot)) return out;
+// Every patch below is written against the converter's DUAL-platform layout
+// (`Shared (App)` beside `iOS (App)` / `macOS (App)`). `--macos-only` produces a
+// different, flat one, and the old code just looked for `Shared (App)`, found
+// nothing, and said "未生成，跳过" — which reads as "there is no project" when the
+// project is sitting right there. Nothing patched it for months: the shipped macOS
+// 1.4.1 (14) host app carried the converter's 979-byte template Main.html instead of
+// our 19543-byte learning app, and no output ever said so.
+//
+// So the three states are now distinct, and only one of them is silent:
+//   absent       — nothing generated yet. Fine, skip.
+//   ok           — dual layout found. Patch it.
+//   unrecognized — a project IS there but has no `Shared (App)`. Hard failure:
+//                  patching it is exactly what we cannot do, so saying nothing is
+//                  the one unacceptable answer.
+function classifyProject(projRoot) {
+  if (!fs.existsSync(projRoot)) return { state: 'absent', dirs: [] };
+  const dirs = [];
   for (const name of fs.readdirSync(projRoot)) {
     const shared = path.join(projRoot, name, 'Shared (App)');
-    if (fs.existsSync(shared)) out.push(shared);
+    if (fs.existsSync(shared)) dirs.push(shared);
   }
-  return out;
+  return dirs.length ? { state: 'ok', dirs } : { state: 'unrecognized', dirs: [] };
 }
 
 function patchViewController(sharedDir) {
@@ -178,8 +192,17 @@ function main() {
 
   let touched = 0;
   for (const proj of PROJECTS) {
-    const dirs = appDirsIn(path.join(ROOT, proj));
-    if (!dirs.length) { console.log(`  – ${proj}: 未生成，跳过`); continue; }
+    const { state, dirs } = classifyProject(path.join(ROOT, proj));
+    if (state === 'absent') { console.log(`  – ${proj}: 未生成，跳过`); continue; }
+    if (state === 'unrecognized') {
+      console.error(`✗ ${proj}/ 存在，但里面找不到 "Shared (App)" —— 这个工程无法打补丁。`);
+      console.error('  这是单平台的扁平布局（--ios-only / --macos-only，或旧版转换器生成的树）。');
+      console.error('  它拿不到宿主 App 的资源，也拿不到滚动 / 媒体门 / 麦克风声明 /');
+      console.error('  audio-input 四个补丁 —— 装出来的 App 是转换器的模板页，不是我们的 App。');
+      console.error(`  修法：删掉重生成 —— rm -rf ${proj} && bash build-safari.sh <flavor> <platform>`);
+      console.error('  （现在的脚本一个 flavor 只出一棵双平台树，iOS 与 macOS 共用。）');
+      process.exit(1);
+    }
     for (const shared of dirs) {
       const res = path.join(shared, 'Resources');
       const lproj = path.join(res, 'Base.lproj');
@@ -203,4 +226,6 @@ function main() {
   console.log('\n注意：Xcode 增量构建不一定会重拷改动过的资源。测 App 资源前先 rm -rf derivedData。');
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { classifyProject };
