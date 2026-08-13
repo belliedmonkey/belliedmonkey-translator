@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "Не удаётся связаться с сервером транскрипции — проверьте адрес; собственный сервер должен также разрешать CORS",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Проверить соединение",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Проверка…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Работает · {ms} мс",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "ответ: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Не сработало",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Адрес сервера ещё не указан",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "API-ключ ещё не указан",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "Движок не выбран",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "Сервер ответил, но содержимое не разобрать",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "ключ неверен или без прав",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "неверный адрес или имя модели",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "сервер отклонил запрос",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "Модель не вернула текст — рассуждающие модели здесь не подходят, выберите чат-модель",
+    "description": "Engine self-test (settings)"
   }
 }

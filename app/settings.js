@@ -109,6 +109,9 @@ var AppSettings = (() => {
     $('stt-key-label').textContent = t('stt_api_key', '转写 API Key');
     $('stt-base-label').textContent = t('stt_base_url', '转写端点地址');
     $('stt-model-label').textContent = t('stt_model', '转写模型');
+    $('btn-test-notes').textContent = t('engine_test', '测试连接');
+    $('btn-test-stt').textContent = t('engine_test', '测试连接');
+    $('btn-tts-test').textContent = t('tts_test', '试听一句');
     $('stt-note').textContent = t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。');
     const ssel = $('stt-engine');
     ssel.textContent = '';
@@ -437,6 +440,61 @@ var AppSettings = (() => {
     for (const id of ['stt-key', 'stt-base', 'stt-model']) {
       $(id).addEventListener('change', saveSttCfg);
     }
+
+    // ── 引擎自检 ×3（与扩展 options 同一套语义：走功能真正用的传输、
+    // 在途禁用、失败具名）。App 端的 key 是设备本地凭证（§7.2），
+    // 能当场自检尤其重要——这里配错了，用户在复习页只会看到功能「不出现」。
+    function engineTestReason(e) {
+      const code = (e && e.code) || '';
+      if (code === 'no_base') return t('engine_test_no_base', '还没填端点地址');
+      if (code === 'no_key') return t('engine_test_no_key', '还没填 API Key');
+      if (code === 'no_engine') return t('engine_test_no_engine', '还没选引擎');
+      if (code === 'network') return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+      if (code === 'empty_output') return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
+      if (code === 'bad_output') return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
+      if (code === 'http') {
+        const hint = (e.status === 401 || e.status === 403)
+          ? t('engine_test_hint_key', 'key 不对或没有权限')
+          : e.status === 404 ? t('engine_test_hint_404', '地址或模型名不对')
+          : t('engine_test_hint_other', '服务端拒绝了这次请求');
+        return t('engine_test_http', 'HTTP {n} —— {hint}').replace('{n}', String(e.status || '?')).replace('{hint}', hint);
+      }
+      return (e && e.message) || t('engine_test_failed', '没通');
+    }
+    const runTest = (btnId, noteId, fn) => async () => {
+      const btn = $(btnId), note = $(noteId);
+      btn.disabled = true;
+      note.textContent = t('engine_test_running', '测试中…');
+      try {
+        const r = await fn();
+        note.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+          + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+      } catch (e) {
+        note.textContent = '✗ ' + engineTestReason(e);
+      } finally { btn.disabled = false; }
+    };
+    $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
+      await saveNotesCfg();
+      return LearnNotes.test();
+    }));
+    $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
+      await saveSttCfg();
+      if (typeof LearnSpeech === 'undefined') { const e = new Error('no module'); e.code = 'no_engine'; throw e; }
+      return LearnSpeech.test();
+    }));
+    // 语音是「听得见才算通」，所以试听而不是探活——与扩展 options 的试听同义。
+    $('btn-tts-test').addEventListener('click', async () => {
+      const btn = $('btn-tts-test'), note = $('test-tts-note');
+      btn.disabled = true;
+      note.textContent = t('tts_testing', '正在合成…');
+      try {
+        liveTtsConfigure();
+        const r = await LearnTTS.speak(t('tts_test_sample', 'This is what your review cards will sound like.'), 'en');
+        note.textContent = r.ok ? t('tts_test_ok', '播放中') : ('✗ ' + (r.reason || ''));
+        if (r.ok) await Promise.race([(r.done || Promise.resolve()).catch(() => {}),
+          new Promise((res) => setTimeout(res, 15000))]);
+      } finally { btn.disabled = false; }
+    });
 
     $('clean-known').addEventListener('click', async () => {
       // §7.1's targeted cleanup: drop what the scheduler itself concluded you no

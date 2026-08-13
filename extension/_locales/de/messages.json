@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "Transkriptions-Endpunkt nicht erreichbar — URL prüfen; ein selbst gehosteter Server muss außerdem CORS erlauben",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Verbindung testen",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Wird getestet …",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Funktioniert · {ms} ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "Antwort: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Fehlgeschlagen",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Noch keine Endpunkt-URL",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "Noch kein API-Key",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "Keine Engine ausgewählt",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "Der Endpunkt antwortete, aber der Inhalt war nicht lesbar",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "der Key ist falsch oder ohne Berechtigung",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "URL oder Modellname ist falsch",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "der Server hat die Anfrage abgelehnt",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "Das Modell lieferte keinen Inhalt — Reasoning-Modelle passen hier nicht; nimm ein Chat-Modell",
+    "description": "Engine self-test (settings)"
   }
 }

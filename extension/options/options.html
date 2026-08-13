@@ -176,6 +176,13 @@
           <select id="notes-provider"></select>
           <p class="hint" data-i18n="notes_engine_hint">「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。</p>
         </div>
+        <!-- 引擎自检（interaction-spec「配置即可自检」）：走的是功能本身用的那条
+             传输，所以「通了」意味着真的能用，不只是字段填了。 -->
+        <div class="field">
+          <button id="btn-test-provider" data-i18n="engine_test">测试连接</button>
+          <p class="hint" id="test-provider-note"></p>
+        </div>
+
         <div id="notes-config" hidden>
           <div class="field" id="notes-key-field">
             <label for="notes-api-key" data-i18n="notes_api_key">解析 API Key</label>
@@ -188,6 +195,10 @@
           <div class="field" id="notes-model-field">
             <label for="notes-model"><span data-i18n="notes_model">解析模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
             <input type="text" id="notes-model">
+          </div>
+          <div class="field">
+            <button id="btn-test-notes" data-i18n="engine_test">测试连接</button>
+            <p class="hint" id="test-notes-note"></p>
           </div>
         </div>
 
@@ -211,6 +222,10 @@
           <div class="field" id="stt-model-field">
             <label for="stt-model"><span data-i18n="stt_model">转写模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
             <input type="text" id="stt-model">
+          </div>
+          <div class="field">
+            <button id="btn-test-stt" data-i18n="engine_test">测试连接</button>
+            <p class="hint" id="test-stt-note"></p>
           </div>
         </div>
 
@@ -369,6 +384,9 @@
   <script src="../learn/drain.js"></script>
   <script src="../learn/sources-view.js"></script>
   <script src="../learn/notes.js"></script>
+  <!-- 引擎自检要走功能本身的传输：翻译用 TranslationAPI，转写用 LearnSpeech。 -->
+  <script src="../content/translation-api.js"></script>
+  <script src="../learn/speech-input.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

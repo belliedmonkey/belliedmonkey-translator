@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "文字起こしエンドポイントに接続できません——URL を確認してください。自前サーバーは CORS の許可も必要です",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "接続をテスト",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "テスト中…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ 成功 · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "応答：",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "失敗しました",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "エンドポイント URL が未入力です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "API キーが未入力です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "エンジンが未選択です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "エンドポイントは応答しましたが、内容を解析できません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "キーが違うか権限がありません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "URL かモデル名が違います",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "サーバーがこのリクエストを拒否しました",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
+    "description": "Engine self-test (settings)"
   }
 }

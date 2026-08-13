@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "Cannot reach the transcription endpoint — check the URL, and note a self-hosted server must allow cross-origin requests (CORS)",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Test connection",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Testing…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Works · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "reply: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Did not work",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "No endpoint URL yet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "No API key yet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "No engine selected",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "The endpoint answered, but the content could not be parsed",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "the key is wrong or lacks permission",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "the URL or model name is wrong",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "the server refused this request",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "The model returned no content — reasoning models do not fit here; switch to a chat model",
+    "description": "Engine self-test (settings)"
   }
 }

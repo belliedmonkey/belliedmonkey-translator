@@ -235,8 +235,21 @@ var LearnNotes = (() => {
       .catch(() => null);
   }
 
+  // 连通性自检（设置页的「测试」按钮）。走同一个 chat() 传输，所以它通过就代表
+  // 解析与 AI 题包用的那条路真的能通。刻意要一个极短的回答：这是连通性检查，
+  // 不是能力评测，跑 20 秒的题包提示词只会让人以为坏了。
+  //
+  // 顺带白捡一个诊断：思考（推理）型模型会在这里就暴露 —— 它们把预算烧在推理段、
+  // 正文为空，chat() 抛 empty_output。那正是 2026-08-08 真机上咬过一次的坑，
+  // 现在配的时候就能发现，而不是等复习到一半点解析才发现。
+  async function test() {
+    const t0 = Date.now();
+    const text = await chat('You are a connectivity check. Reply with exactly: OK', 'ping');
+    return { ok: true, ms: Date.now() - t0, sample: String(text).trim().slice(0, 40) };
+  }
+
   return { configure, resolveConfig, capable, chatEngines, parseNotes, buildPrompt,
-    chat, get, cached, notesMatchSentence, PROMPT_VERSION };
+    chat, test, get, cached, notesMatchSentence, PROMPT_VERSION };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnNotes;

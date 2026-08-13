@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "전사 엔드포인트에 연결할 수 없습니다 — 주소를 확인하세요. 자체 서버는 CORS 허용도 필요합니다",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "연결 테스트",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "테스트 중…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ 정상 · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "응답: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "실패",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "엔드포인트 URL이 없습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "API 키가 없습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "엔진이 선택되지 않았습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "엔드포인트는 응답했지만 내용을 해석할 수 없습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "키가 틀렸거나 권한이 없습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "주소 또는 모델명이 틀렸습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "서버가 이 요청을 거부했습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "모델이 본문을 반환하지 않았습니다 — 추론형 모델은 부적합하니 대화 모델로 바꾸세요",
+    "description": "Engine self-test (settings)"
   }
 }

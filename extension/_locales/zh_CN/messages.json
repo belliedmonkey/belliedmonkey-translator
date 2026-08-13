@@ -1235,5 +1235,61 @@
   "stt_network": {
     "message": "连不上转写端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）",
     "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "测试连接",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "测试中…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ 通了 · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "返回：",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "没通",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "还没填端点地址",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "还没填 API Key",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "还没选引擎",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "端点通了，但返回的内容无法解析",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} —— {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "key 不对或没有权限",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "地址或模型名不对",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "服务端拒绝了这次请求",
+    "description": "Engine self-test (settings)"
+  },
+  "notes_test_empty": {
+    "message": "模型没有返回正文——思考（推理）型模型不适合，请换对话模型",
+    "description": "Engine self-test (settings)"
   }
 }

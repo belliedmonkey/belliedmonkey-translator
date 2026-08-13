@@ -165,6 +165,27 @@ function populateTtsEngines(selected) {
   sel.value = ttsEngineById(selected) ? selected : (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser';
 }
 
+// 引擎自检的失败具名。三个引擎共用一张表：用户看到的应该是「哪里不对、
+// 怎么改」，而不是一句「测试失败」。code 由各模块抛出（transport 层已具名）。
+function engineTestReason(e) {
+  const code = (e && e.code) || '';
+  switch (code) {
+    case 'no_base': return t('engine_test_no_base', '还没填端点地址');
+    case 'no_key': return t('engine_test_no_key', '还没填 API Key');
+    case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
+    case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+    case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
+    case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
+    case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
+      .replace('{n}', String(e.status || '?'))
+      .replace('{hint}', e.status === 401 || e.status === 403
+        ? t('engine_test_hint_key', 'key 不对或没有权限')
+        : e.status === 404 ? t('engine_test_hint_404', '地址或模型名不对')
+        : t('engine_test_hint_other', '服务端拒绝了这次请求'));
+    default: return (e && e.message) || t('engine_test_failed', '没通');
+  }
+}
+
 function ttsReason(reason) {
   switch (reason) {
     case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
@@ -515,6 +536,48 @@ async function init() {
 
   // A test button, because every failure mode here is invisible until you try:
   // a voice the system does not have, a URL that is not serving, a wrong key.
+  // ── 引擎自检 ×3（interaction-spec 全局原则：在途禁用 + 具名失败）──────
+  // 每个测试都走该功能真正用的传输：翻译走 TranslationAPI.translate，解析走
+  // LearnNotes.chat，转写走 LearnSpeech 的 postAudio。自己另写一遍请求，
+  // 测出来的「通了」就不代表功能能用。
+  const runTest = (btn, note, fn) => busy($(btn), async () => {
+    const el = $(note);
+    el.textContent = t('engine_test_running', '测试中…');
+    try {
+      const r = await fn();
+      el.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+        + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+    } catch (e) {
+      console.error('[engine-test]', e);
+      el.textContent = '✗ ' + engineTestReason(e);
+    }
+  });
+
+  $('btn-test-provider').addEventListener('click', runTest('btn-test-provider', 'test-provider-note', async () => {
+    await saveAll();
+    const t0 = Date.now();
+    const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
+      $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim());
+    if (!out || !String(out).trim()) { const e = new Error('empty'); e.code = 'bad_output'; throw e; }
+    return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40) };
+  }));
+
+  $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
+    await saveAll();
+    LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((r) =>
+      chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {})))));
+    return LearnNotes.test();
+  }));
+
+  $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
+    await saveAll();
+    LearnSpeech.configure({
+      engineId: $('stt-engine').value, apiKey: $('stt-api-key').value.trim(),
+      baseUrl: $('stt-base-url').value.trim(), model: $('stt-model').value.trim(),
+    });
+    return LearnSpeech.test();
+  }));
+
   $('btn-tts-test').addEventListener('click', busy($('btn-tts-test'), async () => {
     applyTtsConfig();
     const note = $('tts-cache');
