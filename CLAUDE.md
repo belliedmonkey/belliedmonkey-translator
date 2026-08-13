@@ -55,11 +55,18 @@ npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle +
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified
                          # tier/practice/notes flow. Cases: docs/learn-regression.md
-MT_SYNC=on node build.js # SELF-USE builds only: emits dist/ + dist-app/ with the sync switch ON
-                         # (source stays false, Gate B untouched, zip refused). The unpacked
-                         # Chrome extension and TestFlight self-use builds MUST use this — a
-                         # plain build silently turns sync back off in the output.
 ```
+
+**Sync ships ON, and a plain `node build.js` is what you want.** `MT_SYNC=on` was the
+self-use channel for TestFlight builds 14–23, when the source switch was `false` and the
+flag flipped it in the OUTPUT only. Gate B (v1.4.0) made the source switch `true`, so the
+flag has been a **no-op** ever since — `build.js` accepts it and prints a yellow "no-op"
+line so old muscle memory doesn't break. Nothing about a build changes if you pass it, and
+nothing turns sync off if you don't. The live escape hatch is a different flag,
+`MT_SYNC_E2E=1`, which is **not for shipping**: it bypasses Gate B's stale-privacy-copy
+check for end-to-end testing and pays for it by withholding the artifact — `dist/` is
+built and loadable unpacked, but no `.zip` is produced and a `.not-shippable` marker
+blocks the iOS archive path via `verify:ios`. See `docs/learning-design.md` §10.
 
 No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.
 
