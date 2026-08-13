@@ -527,8 +527,10 @@
   // sizes track their answers so the layout does not telegraph less than it must.
   // `accept` (§9.3, cached pack only — never generated for a cloze) widens the
   // checker with alternative forms; the answer of record stays the sentence's.
-  function buildClozeUI(item, accept) {
-    const c = LearnModel.clozeFor(item.text);
+  // `kpOpts` (§5.4, cached notes only) makes the blanks rotate through the
+  // card's knowledge points instead of the generic longest-word pick.
+  function buildClozeUI(item, accept, kpOpts) {
+    const c = LearnModel.clozeFor(item.text, kpOpts || undefined);
     const box = $('cloze');
     box.textContent = '';
     clozeState = { answers: [], inputs: [], checked: false, accept: accept || null };
@@ -656,10 +658,21 @@
     if (write) {
       // Translation up front, blanks to fill, no reveal step — 检查 is the reveal.
       // A CACHED pack's accept alternates widen the checker (§9.3); the local
-      // exercise never triggers a generation.
+      // exercise never triggers a generation. CACHED notes (never generated here
+      // either) supply the knowledge-point targets: the blanks rotate through the
+      // card's parsed 生词/短语 as reps grow (§5.4 — 这次挖这个词).
       const packHit = (typeof LearnExercisePack !== 'undefined' && LearnExercisePack.capable())
         ? await LearnExercisePack.cached(item.id) : null;
-      buildClozeUI(item, packHit && packHit.data && packHit.data.accept);
+      const noteHit = await LearnNotes.cached(item.id);
+      const kp = noteHit && noteHit.data
+        ? [].concat(
+            (noteHit.data.phrases || []).map((x) => x.p),   // phrases first: the
+            (noteHit.data.words || []).map((x) => x.w))     // longer unit wins overlaps
+        : null;
+      buildClozeUI(item, packHit && packHit.data && packHit.data.accept,
+        kp && kp.length
+          ? { targets: kp, seed: (item.sched && item.sched.reps) || 0 }
+          : null);
       $('orig').hidden = true;
       $('reveal').hidden = true;
       $('reveal-orig').hidden = true;

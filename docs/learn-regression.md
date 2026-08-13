@@ -26,7 +26,7 @@
 | 域 | 测试文件 | 关键性质 |
 |---|---|---|
 | 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限；§5.4：pickSkills 最久未验证优先 / legacy `1` 排最前 / 能力过滤 / ≤2 且第二个仅过窗时、skillFresh 随强度伸缩（legacy `1` 恒过窗）、fullyMastered 缺能力语义、extra 行不消耗每日预算 |
-| 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
+| 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、知识点挖空（§5.4：答案⊆目标、seed 轮换被挖点、目标不在句中回落经典、重叠目标不出重叠空、CJK 短语、大小写不敏感匹配但答案保留句中原样）、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
 | 题型生成 | `learn-exercises.test.js` | pickExercise 同 (id,reps,skill) 确定且跨 reps 轮换、AI 变体仅门开时入轮换、mcqFrom 答案恰一次/排归一等值干扰、listenPickFrom 正确⊆句/干扰∩句=∅（含子串）、speakScore 密疏两路+漏读点名、gradeGate 与挖空规则对齐 |
 | 题包 | `learn-pack.test.js` | 能力随解析引擎门、干扰项复述译文被拒（等值+包含双向）、句内词/子串不作听力干扰、理解题结构校验、accept 键必须句内且替代≠原词、部分题包逐项降级/全废 bad_output、**每卡每 PACK_VERSION 至多一次扣费**（调用计数）、并发去重、缓存写失败不重扣 |
 | 语音输入 | `learn-speech.test.js` | capable() 各门控（引擎条件 × mic API 存在）、multipart 构造（und 永不硬报语言、Bearer 仅在有 key、模型默认值来自注册表）、每条路径都释放麦克风轨道、JSON 与 text/plain 响应、具名错误码（no_base/no_key 不发请求、http 带 status、empty_transcript） |
