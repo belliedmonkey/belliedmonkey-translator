@@ -19,9 +19,9 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { describe, test, eq, deepEq } = require('./harness');
+const { describe, test, ok, eq, deepEq, match } = require('./harness');
 
-const { classifyProject } = require('../scripts/sync-app-assets.js');
+const { classifyProject, patchMacWindowXml } = require('../scripts/sync-app-assets.js');
 const { resourceRoot } = require('../scripts/verify-ios-bundle.js');
 
 function tmpdir() {
@@ -65,6 +65,97 @@ describe('sync-app-assets: project layout classification', () => {
   test('an empty project root is unrecognized too — something made it, nothing usable in it', () => {
     const root = mk(tmpdir(), 'safari-project');
     eq(classifyProject(root).state, 'unrecognized');
+  });
+});
+
+// Verbatim from `safari-web-extension-converter` (macOS (App)/Base.lproj/Main.storyboard,
+// 2026-08-13). Copied rather than summarised: every needle below is an assumption about
+// the converter's exact output, and a paraphrase would test the paraphrase.
+const TEMPLATE_STORYBOARD = `<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB">
+    <scenes>
+        <scene sceneID="R2V-B0-nI4">
+            <objects>
+                <windowController showSeguePresentationStyle="single" id="B8D-0N-5wS" sceneMemberID="viewController">
+                    <window key="window" title="BelliedMonkey Translator" restorable="NO" id="IQv-IB-iLA">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
+                        <windowCollectionBehavior key="collectionBehavior" fullScreenNone="YES"/>
+                        <rect key="contentRect" x="196" y="240" width="425" height="325"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1027"/>
+                    </window>
+                </windowController>
+            </objects>
+        </scene>
+        <scene sceneID="hIz-AP-VOD">
+            <objects>
+                <viewController id="XfG-lQ-9wD" customClass="ViewController">
+                    <view key="view" id="m2S-Jp-Qdl">
+                        <rect key="frame" x="0.0" y="0.0" width="425" height="325"/>
+                        <subviews>
+                            <wkWebView wantsLayer="YES" fixedFrame="YES" id="eOr-cG-IQY">
+                                <rect key="frame" x="0.0" y="0.0" width="425" height="325"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            </wkWebView>
+                        </subviews>
+                    </view>
+                </viewController>
+            </objects>
+        </scene>
+    </scenes>
+</document>
+`;
+
+// The window the converter hands us is right for its 979-byte placeholder and wrong for
+// a reading app: fixed 425×325, no zoom, no full screen. It went unnoticed for three
+// releases because the same tree also never got its resources — the placeholder does not
+// care how big it is. Nothing here asserts a pretty size; it asserts the user can change it.
+describe('sync-app-assets: macOS host window', () => {
+  test('the template window becomes resizable and miniaturizable', () => {
+    const { xml } = patchMacWindowXml(TEMPLATE_STORYBOARD);
+    match(xml, /<windowStyleMask key="styleMask"[^/]*\bresizable="YES"/);
+    match(xml, /<windowStyleMask key="styleMask"[^/]*\bminiaturizable="YES"/);
+    // What the converter already set must survive — dropping `titled` loses the title
+    // bar, and with it the close button.
+    match(xml, /<windowStyleMask key="styleMask"[^/]*\btitled="YES"/);
+    match(xml, /<windowStyleMask key="styleMask"[^/]*\bclosable="YES"/);
+  });
+
+  test('full screen is allowed, not merely left alone', () => {
+    const { xml } = patchMacWindowXml(TEMPLATE_STORYBOARD);
+    ok(!/fullScreenNone/.test(xml), 'fullScreenNone keeps the green button dead');
+    match(xml, /<windowCollectionBehavior key="collectionBehavior" fullScreenPrimary="YES"\/>/);
+  });
+
+  // contentRect, the view and the web view all carry the template's content size, and IB
+  // keeps them in step. Moving one and not the others is how you get a window with a grey
+  // margin where the web view used to end.
+  test('all three content rects move together, and screenRect does not', () => {
+    const { xml } = patchMacWindowXml(TEMPLATE_STORYBOARD);
+    eq((xml.match(/width="820" height="640"/g) || []).length, 3);
+    ok(!/width="425" height="325"/.test(xml), 'a stale 425×325 rect would fight the new size');
+    match(xml, /screenRect" x="0.0" y="0.0" width="1680" height="1027"/);
+  });
+
+  test('running twice changes nothing the second time', () => {
+    const once = patchMacWindowXml(TEMPLATE_STORYBOARD).xml;
+    const { xml: twice, note } = patchMacWindowXml(once);
+    eq(twice, once);
+    match(note, /already patched/);
+  });
+
+  // The #132 rule, applied to this patch: a shape we do not recognise must say so. The
+  // note is the only place it can — app:sync prints it on the ✓ line.
+  test('a storyboard without the styleMask says so instead of silently passing', () => {
+    const { xml, note } = patchMacWindowXml('<document><scenes></scenes></document>');
+    eq(xml, '<document><scenes></scenes></document>');
+    match(note, /not found/);
+  });
+
+  test('a template at a different size still gets patched — the size is read, not assumed', () => {
+    const resized = TEMPLATE_STORYBOARD.replace(/width="425" height="325"/g, 'width="500" height="400"');
+    const { xml } = patchMacWindowXml(resized);
+    eq((xml.match(/width="820" height="640"/g) || []).length, 3);
+    match(xml, /\bresizable="YES"/);
   });
 });
 
