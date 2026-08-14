@@ -19,7 +19,8 @@
 //      a review list is not) and the iOS media user-gesture gate.
 //   3. `Info.plist` — the microphone usage string the 说 exercise needs.
 //   4. `project.pbxproj` — the macOS audio-input sandbox entitlement.
-//   5. the macOS `Main.storyboard` — a window the user can actually resize.
+//   5. the macOS `Main.storyboard` — a window the user can actually resize, and a
+//      menu bar with an Edit menu, without which ⌘V does not paste.
 //
 // Each is written against the converter's template shape and is idempotent.
 //
@@ -249,6 +250,103 @@ function patchMacWindow(sharedDir) {
   return note;
 }
 
+// Patch 6: the macOS menu bar. The converter's storyboard gives the app exactly two
+// top-level menus — the app menu and Help — and `AppDelegate.swift` builds none, so
+// there is no Edit menu anywhere.
+//
+// That is not cosmetic. AppKit routes ⌘V as a key equivalent: NSApplication offers it
+// to the main menu FIRST, and only a menu item carrying `paste:` claims it. With no
+// such item the keystroke falls through as a plain keyDown, and a plain keyDown does
+// not paste — WKWebView pastes in response to the `paste:` NSResponder action, which
+// nothing ever sends. So ⌘V / ⌘C / ⌘X / ⌘A / ⌘Z are all dead, and ⌘W / ⌘M with them.
+//
+// It has never hurt a user, because every shipped macOS build so far carried the
+// converter's 979-byte placeholder — no text field to paste into. 1.5.0 is the first
+// build where it bites, and it bites on the FIRST screen: pasting an email address and
+// then a verification code is the whole of onboarding.
+//
+// The menu is data here, not a 70-line string literal: hand-indented IB XML is where
+// this kind of patch rots.
+const MAC_MENUS = [
+  { title: 'File', items: [
+    { title: 'Close', key: 'w', sel: 'performClose:' },
+  ] },
+  { title: 'Edit', items: [
+    { title: 'Undo', key: 'z', sel: 'undo:' },
+    { title: 'Redo', key: 'Z', sel: 'redo:', mods: 'shift="YES" command="YES"' },
+    { sep: true },
+    { title: 'Cut', key: 'x', sel: 'cut:' },
+    { title: 'Copy', key: 'c', sel: 'copy:' },
+    { title: 'Paste', key: 'v', sel: 'paste:' },
+    { title: 'Delete', sel: 'delete:' },
+    { sep: true },
+    { title: 'Select All', key: 'a', sel: 'selectAll:' },
+  ] },
+  // systemMenu="window" hands the window list to AppKit, same as the app/help menus.
+  { title: 'Window', systemMenu: 'window', items: [
+    { title: 'Minimize', key: 'm', sel: 'performMiniaturize:' },
+    { title: 'Zoom', sel: 'performZoom:' },
+  ] },
+];
+
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+function renderMacMenus(target, pad) {
+  const L = [];
+  const at = (n, s) => L.push(' '.repeat(pad + n) + s);
+  for (const menu of MAC_MENUS) {
+    const m = slug(menu.title);
+    at(0, `<menuItem title="${menu.title}" id="mt-mi-${m}">`);
+    at(4, '<modifierMask key="keyEquivalentModifierMask"/>');
+    at(4, `<menu key="submenu" title="${menu.title}"`
+      + (menu.systemMenu ? ` systemMenu="${menu.systemMenu}"` : '') + ` id="mt-menu-${m}">`);
+    at(8, '<items>');
+    let sepN = 0;
+    for (const it of menu.items) {
+      if (it.sep) { at(12, `<menuItem isSeparatorItem="YES" id="mt-sep-${m}-${++sepN}"/>`); continue; }
+      const s = slug(it.title);
+      at(12, `<menuItem title="${it.title}"${it.key ? ` keyEquivalent="${it.key}"` : ''} id="mt-it-${m}-${s}">`);
+      // Mirror the converter's own convention: a bare keyEquivalent means ⌘, an item
+      // with no shortcut still carries an empty mask, and anything else spells it out.
+      if (it.mods) at(16, `<modifierMask key="keyEquivalentModifierMask" ${it.mods}/>`);
+      else if (!it.key) at(16, '<modifierMask key="keyEquivalentModifierMask"/>');
+      at(16, '<connections>');
+      at(20, `<action selector="${it.sel}" target="${target}" id="mt-ac-${m}-${s}"/>`);
+      at(16, '</connections>');
+      at(12, '</menuItem>');
+    }
+    at(8, '</items>');
+    at(4, '</menu>');
+    at(0, '</menuItem>');
+  }
+  return L.join('\n') + '\n';
+}
+
+function patchMacMenuXml(src) {
+  if (/selector="paste:"/.test(src)) return { xml: src, note: 'menu already patched' };
+  const HELP_RE = /^([ \t]*)<menuItem title="Help"/m;
+  const anchor = src.match(HELP_RE);
+  if (!anchor) return { xml: src, note: 'menu: Help anchor not found — converter layout changed?' };
+  // The First Responder object id is generated per project, so read it off an action
+  // the converter already wired instead of hardcoding one (same reflex as Patch 5
+  // reading the size off contentRect).
+  const fr = src.match(/<action selector="terminate:" target="([^"]+)"/);
+  if (!fr) return { xml: src, note: 'menu: First Responder target not found — converter layout changed?' };
+  const pad = anchor[1].length;
+  const xml = src.replace(HELP_RE, renderMacMenus(fr[1], pad) + anchor[1] + '<menuItem title="Help"');
+  return { xml, note: `menu patched (${MAC_MENUS.map((m) => m.title).join(' · ')})` };
+}
+
+function patchMacMenu(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const f = path.join(appRoot, 'macOS (App)', 'Base.lproj', 'Main.storyboard');
+  if (!fs.existsSync(f)) return 'no macOS storyboard';
+  const src = fs.readFileSync(f, 'utf8');
+  const { xml, note } = patchMacMenuXml(src);
+  if (xml !== src) fs.writeFileSync(f, xml);
+  return note;
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error('✗ no dist-app/ — run `node build.js` first');
@@ -285,7 +383,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)}`);
       touched++;
     }
   }
@@ -299,4 +397,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { classifyProject, patchMacWindowXml };
+module.exports = { classifyProject, patchMacWindowXml, patchMacMenuXml };

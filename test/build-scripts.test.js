@@ -21,7 +21,7 @@ const os = require('os');
 const path = require('path');
 const { describe, test, ok, eq, deepEq, match } = require('./harness');
 
-const { classifyProject, patchMacWindowXml } = require('../scripts/sync-app-assets.js');
+const { classifyProject, patchMacWindowXml, patchMacMenuXml } = require('../scripts/sync-app-assets.js');
 const { resourceRoot } = require('../scripts/verify-ios-bundle.js');
 
 function tmpdir() {
@@ -156,6 +156,109 @@ describe('sync-app-assets: macOS host window', () => {
     const { xml } = patchMacWindowXml(resized);
     eq((xml.match(/width="820" height="640"/g) || []).length, 3);
     match(xml, /\bresizable="YES"/);
+  });
+});
+
+// The menu half of the same storyboard, again verbatim. The converter ships exactly two
+// top-level menus — the app menu and Help — so ⌘V has no `paste:` item to claim it and
+// does nothing. Note the two conventions this fixture pins: a bare `keyEquivalent` means
+// ⌘, and the First Responder object id is generated per project (`Ady-hI-5gd` here).
+const TEMPLATE_MENU = `<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB">
+    <scenes>
+        <scene sceneID="JPo-4y-FX3">
+            <objects>
+                <application id="hnw-xV-0zn" sceneMemberID="viewController">
+                    <menu key="mainMenu" title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
+                        <items>
+                            <menuItem title="BelliedMonkey Translator" id="1Xt-HY-uBw">
+                                <menu key="submenu" title="BelliedMonkey Translator" systemMenu="apple" id="uQy-DD-JDr">
+                                    <items>
+                                        <menuItem title="Quit BelliedMonkey Translator" keyEquivalent="q" id="4sb-4s-VLi">
+                                            <connections>
+                                                <action selector="terminate:" target="Ady-hI-5gd" id="Te7-pn-YzF"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                            <menuItem title="Help" id="wpr-3q-Mcd">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Help" systemMenu="help" id="F2S-fz-NVQ">
+                                    <items/>
+                                </menu>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </application>
+                <customObject id="Ady-hI-5gd" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+</document>
+`;
+
+// Paste is not cosmetic here. AppKit offers ⌘V to the main menu first, and only an item
+// carrying `paste:` claims it; without one the keystroke arrives as a plain keyDown, and
+// a plain keyDown does not paste. It bites on the app's FIRST screen — pasting an email
+// and then a verification code is the whole of onboarding.
+describe('sync-app-assets: macOS menu bar', () => {
+  test('the editing commands exist and carry their standard shortcuts', () => {
+    const { xml } = patchMacMenuXml(TEMPLATE_MENU);
+    for (const [sel, key] of [['paste:', 'v'], ['copy:', 'c'], ['cut:', 'x'], ['selectAll:', 'a'], ['undo:', 'z']]) {
+      match(xml, new RegExp(`keyEquivalent="${key}"[^>]*>\\s*(<[^>]*>\\s*)*<connections>\\s*<action selector="${sel}"`));
+    }
+    match(xml, /selector="delete:"/);
+  });
+
+  test('⌘W and ⌘M come too — same root cause, both dead in the template', () => {
+    const { xml } = patchMacMenuXml(TEMPLATE_MENU);
+    match(xml, /keyEquivalent="w"[\s\S]{0,200}?selector="performClose:"/);
+    match(xml, /keyEquivalent="m"[\s\S]{0,200}?selector="performMiniaturize:"/);
+    match(xml, /<menu key="submenu" title="Window" systemMenu="window"/);
+  });
+
+  // Redo is the one shortcut that is not a bare ⌘: dropping the mask would silently
+  // bind it to ⌘Z and shadow Undo.
+  test('Redo spells out its shift modifier', () => {
+    const { xml } = patchMacMenuXml(TEMPLATE_MENU);
+    match(xml, /title="Redo" keyEquivalent="Z"[\s\S]{0,120}?shift="YES" command="YES"/);
+  });
+
+  // The converter regenerates this id every time; a hardcoded one would wire every new
+  // menu item to nothing on the next regeneration — and silently, since IB accepts it.
+  test('the First Responder target is read from the file, not assumed', () => {
+    const moved = TEMPLATE_MENU.replace(/Ady-hI-5gd/g, 'zZz-99-qQq');
+    const { xml } = patchMacMenuXml(moved);
+    match(xml, /<action selector="paste:" target="zZz-99-qQq"/);
+    ok(!/Ady-hI-5gd/.test(xml), 'the old id must not survive as a literal');
+  });
+
+  test('what the converter already shipped survives', () => {
+    const { xml } = patchMacMenuXml(TEMPLATE_MENU);
+    match(xml, /<menuItem title="Help" id="wpr-3q-Mcd">/);
+    match(xml, /systemMenu="apple"/);
+    match(xml, /selector="terminate:"/);
+  });
+
+  test('running twice changes nothing the second time', () => {
+    const once = patchMacMenuXml(TEMPLATE_MENU).xml;
+    const { xml: twice, note } = patchMacMenuXml(once);
+    eq(twice, once);
+    match(note, /already patched/);
+  });
+
+  test('a storyboard without the Help anchor says so instead of silently passing', () => {
+    const { xml, note } = patchMacMenuXml('<document><scenes></scenes></document>');
+    eq(xml, '<document><scenes></scenes></document>');
+    match(note, /not found/);
+  });
+
+  test('a storyboard with no wired action says so rather than guessing a target', () => {
+    const noFR = TEMPLATE_MENU.replace(/<action selector="terminate:"[^>]*\/>/, '');
+    const { xml, note } = patchMacMenuXml(noFR);
+    eq(xml, noFR);
+    match(note, /First Responder target not found/);
   });
 });
 
