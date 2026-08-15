@@ -44,6 +44,7 @@
       ],
       "js": [
         "content/i18n-messages.js",
+        "content/palette.gen.js",
         "content/providers.gen.js",
         "content/langs.gen.js",
         "content/translation-core.js",
@@ -89,6 +90,7 @@
       ],
       "js": [
         "content/i18n-messages.js",
+        "content/palette.gen.js",
         "content/providers.gen.js",
         "content/langs.gen.js",
         "content/translation-core.js",
