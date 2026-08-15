@@ -347,6 +347,29 @@ function patchMacMenu(sharedDir) {
   return note;
 }
 
+
+// ─── Patch 7: App 图标 —— 转换器的白框病（2026-08-15 真机截图坐实） ─────────
+// safari-web-extension-converter 生成 AppIcon.appiconset 时，把扩展的 128px
+// 圆角图标放大后【居中贴在白底画布】上：iOS 主屏图标要求满幅不透明正方形
+// （圆角 iOS 自己裁），于是主屏上出现一圈白框，图还是糊的。
+// 修法：仓库 app/appicon/ 里存两套定稿 —— ios-1024.png（满幅、不圆角、不透明）
+// 与 mac-icon-*（圆角稿 + Apple 网格 824/1024 留白、四角透明，macOS 规范）——
+// 每次 app:sync 原样覆写转换器的同名文件。文件名与 Contents.json 保持转换器
+// 的命名，所以 pbxproj / json 都不用动。
+function patchAppIcon(sharedDir) {
+  const iconSrc = path.join(ROOT, 'app', 'appicon');
+  if (!fs.existsSync(iconSrc)) return 'appicon: no app/appicon/, skipped';
+  const set = path.join(sharedDir, 'Assets.xcassets', 'AppIcon.appiconset');
+  if (!fs.existsSync(set)) return 'appicon: no AppIcon.appiconset';
+  let n = 0;
+  fs.copyFileSync(path.join(iconSrc, 'ios-1024.png'), path.join(set, 'universal-icon-1024@1x.png')); n++;
+  for (const f of fs.readdirSync(iconSrc)) {
+    if (!f.startsWith('mac-icon-')) continue;
+    fs.copyFileSync(path.join(iconSrc, f), path.join(set, f)); n++;
+  }
+  return `appicon replaced (${n} files, full-bleed iOS + margined mac)`;
+}
+
 function main() {
   if (!fs.existsSync(SRC)) {
     console.error('✗ no dist-app/ — run `node build.js` first');
@@ -383,7 +406,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
