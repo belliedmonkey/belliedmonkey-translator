@@ -253,6 +253,19 @@ var LearnStore = (() => {
   // The DECISION half is pure and exported (same doctrine as doomedFor below):
   // which items split, into what children, and how many multi-sentence items were
   // left whole because their translation would not align.
+  function childrenFor(it, pairs) {
+    return pairs.map((p) => Object.assign({}, it, {
+      id: LearnModel.itemId(it.lang, p.text),
+      text: p.text, tr: p.tr,
+      // they were genuinely reviewed as part of the paragraph — the
+      // schedule/skills they earned carry over per child
+      sched: it.sched ? Object.assign({}, it.sched) : it.sched,
+      skills: it.skills ? Object.assign({}, it.skills) : it.skills,
+      anchor: Object.assign({}, it.anchor,
+        { quote: LearnModel.normText(p.text).slice(0, 120) }),
+    }));
+  }
+
   function splitPlanFor(items) {
     const parents = [];
     const children = [];
@@ -267,20 +280,38 @@ var LearnStore = (() => {
         continue;
       }
       parents.push(it);
-      for (const p of pairs) {
-        children.push(Object.assign({}, it, {
-          id: LearnModel.itemId(it.lang, p.text),
-          text: p.text, tr: p.tr,
-          // they were genuinely reviewed as part of the paragraph — the
-          // schedule/skills they earned carry over per child
-          sched: it.sched ? Object.assign({}, it.sched) : it.sched,
-          skills: it.skills ? Object.assign({}, it.skills) : it.skills,
-          anchor: Object.assign({}, it.anchor,
-            { quote: LearnModel.normText(p.text).slice(0, 120) }),
-        }));
-      }
+      children.push.apply(children, childrenFor(it, pairs));
     }
     return { parents, children, skipped };
+  }
+
+  // §4.2c: the items the structural reconciler refused that an external
+  // adjudicator could still align — multi-sentence on BOTH sides (a grouping
+  // needs ≥2 groups per side), dom-anchored, under the splitter's input cap.
+  // Pure and exported so the candidate decision can be asserted on directly.
+  function llmCandidatesFor(items) {
+    const out = [];
+    for (const it of items || []) {
+      if (!it || !it.anchor || it.anchor.k !== 'dom') continue;
+      if ((it.text || '').length > LearnModel.MAX_SPLIT_INPUT
+        || (it.tr || '').length > LearnModel.MAX_SPLIT_INPUT) continue;
+      if (LearnModel.splitPair(it.text, it.tr, it.lang, it.targetLang).length > 1) continue;
+      if (LearnModel.splitSentences(it.text, it.lang).length < 2) continue;
+      if (LearnModel.splitSentences(it.tr, it.targetLang).length < 2) continue;
+      out.push(it);
+    }
+    return out;
+  }
+
+  // §4.2c: apply ONE adjudicated split — same child construction and the same
+  // insert-children-then-retire-parent order as splitLongItems (a crash between
+  // the two leaves harmless content-addressed duplicates; the other order loses
+  // data). The pairs come from LearnModel.alignByGroups, already verified.
+  function applySplit(it, pairs, now) {
+    const kids = childrenFor(it, pairs);
+    return mergeBatch(kids, [])
+      .then(() => deleteItems([it.id], now || Date.now()))
+      .then(() => kids.length);
   }
 
   function splitLongItems(now) {
@@ -589,7 +620,7 @@ var LearnStore = (() => {
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
     applyDels, deleteItems, deleteSourcesIfOrphan, userDels, allDels, trimDels,
-    splitLongItems, splitPlanFor,
+    splitLongItems, splitPlanFor, llmCandidatesFor, applySplit,
     getNote, putNote,
     doomedFor, staleTombs, staleDels,   // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,

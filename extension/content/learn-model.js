@@ -358,6 +358,17 @@ var LearnModel = (() => {
   // eye, and an invisible wrong character here silently disables a repair rule.
   // closers: ” ’ » › 」 』 ) ] "
   const STERM = /[.!?。！？…‽؟।](?=[”’»›」』)\]"]*$)/u;
+  // A citation cluster AFTER the terminal also ends a sentence (`…uptake.[16][17][a]`).
+  // Without this, the segment CITE_SPLIT just cut off fails the STERM check and
+  // rule ② glues it straight back on (real-library regression: the espresso
+  // etymology paragraph never split).
+  // The cluster subpattern `(?:\[[^\[\]\s]{1,6}\])` is the canonical citation
+  // shape; it also appears in CITE_SPLIT, CITE_HEAD and SOFT_SPLIT below — regex
+  // literals cannot be composed (零硬编码 guard), so a cap change must edit all
+  // four. `[` is excluded from the inner class on purpose: allowing it lets the
+  // `+` loop restart INSIDE a unit and turns a `[.[aa]`-repeated page into a
+  // quadratic scan (red-team measured 759ms at 48K chars).
+  const CITE_TAIL = /[.!?。！？…‽؟।][”’»›」』)\]"]*(?:\[[^\[\]\s]{1,6}\])+$/u;
   // openers: “ ‘ 『 「 《 〈 ( [ « ‹ （ 【 "
   const OPENERS = /[“‘『「《〈(\[«‹（【"]+$/u;
 
@@ -381,8 +392,8 @@ var LearnModel = (() => {
     // sentence's citation. Add a citation-aware split pass, then repair heads.
     // (regex literals, not string-built RegExps — the 零硬编码 guard exempts CJK
     // only inside regex literals, and these need CJK punctuation classes)
-    const CITE_SPLIT = /(?<=[.!?。！？…][”’»›」』)\]"]*(?:\[[^\]\s]{1,6}\])+)\s*(?=[A-Z0-9"“‘『「《（(«一-鿿])/gu;
-    const CITE_HEAD = /^\s*(?:\[[^\]\s]{1,6}\])+\s*/u;
+    const CITE_SPLIT = /(?<=[.!?。！？…][”’»›」』)\]"]*(?:\[[^\[\]\s]{1,6}\])+)\s*(?=[A-Z0-9"“‘『「《（(«一-鿿])/gu;
+    const CITE_HEAD = /^\s*(?:\[[^\[\]\s]{1,6}\])+\s*/u;
     parts = parts.flatMap((p) => p.split(CITE_SPLIT));
 
     // Post-process the known segmenter faults (learning-design §4.2). All
@@ -421,7 +432,7 @@ var LearnModel = (() => {
                  // (Cost: a sentence genuinely ending "…plan B." merges forward —
                  // far rarer than z. B. in running German text.)
                  || (!dense && /\s[A-Za-z]\.$/.test(s))
-                 || (!STERM.test(s) && !OPENERS.test(s));
+                 || (!STERM.test(s) && !CITE_TAIL.test(s) && !OPENERS.test(s));
       // ②b a Latin segment STARTING lowercase continues the previous one
       //    (dialogue attribution: `"…?" asks Matthew.`) — merge backward.
       if (!carry && prev && !prev._carry && !dense && /^[a-z]/.test(s)) {
@@ -442,14 +453,312 @@ var LearnModel = (() => {
     return out.map((e) => (e._hand ? e.raw + e._hand : e.raw).trim()).filter(Boolean);
   }
 
-  // Pair source/translation sentence-by-sentence — by COUNT EQUALITY only.
-  // A count mismatch returns the pair WHOLE: a long card is a nuisance, a
-  // misaligned immutable (text, tr) is permanent corpus corruption. Never guess.
-  function splitPair(text, tr, lang, targetLang) {
-    const whole = [{ text: normText(text), tr: normText(tr) }];
+  // ─── §4.2b count reconciliation ────────────────────────────────────────────
+  // When the two sides disagree by a small count, the cause is usually ONE of a
+  // handful of KNOWN segmenter coin-flips, and the OTHER language's count is the
+  // evidence that resolves the flip (real-library survey of every kept-whole
+  // mismatch, 2026-08). Reconciliation stays inside the never-guess doctrine
+  // three ways: operations happen only at these candidate boundaries (never an
+  // arbitrary one), the op-subset must land counts EXACTLY equal with exactly
+  // one surviving pairing, and a per-pair length-ratio guard rejects anything
+  // that looks misaligned. Anything else keeps the pair whole, honestly.
+
+  // Merge candidates — the boundary AFTER a part matching one of these:
+  //  · terminal INSIDE a closing quote (`…发一次帖？”` + `这类问题的答案。`) — an
+  //    embedded quoted question the zh segmenter over-eagerly ends the sentence at
+  //  · a bare ellipsis tail (`…for a person ...` + `The first machines…`)
+  // …unless the NEXT part opens with a quote/dash (then the break is likely real).
+  const SOFT_MERGE_TAIL = /[!?。！？…][”’』」]$/u;
+  const SOFT_MERGE_ELLIPSIS = /(?:\.\.\.|…)$/u;
+  // same opener set as OPENERS plus dashes incl. the poor-typography ASCII `-`
+  // (a dash also opens a new turn) — keep the shared characters in sync with
+  // OPENERS and the rule-③ replace.
+  const OPENER_HEAD = /^[“‘『「《〈(\[«‹（【"—–―-]/u;
+  // Split candidates — positions INSIDE a part where the segmenter refused a
+  // break it plausibly should have made (Latin terminals only — on the CJK side
+  // the same evidence is ambiguous, see the doctrine note above):
+  //  · before an @handle (`…lengthen. @jaminball says…`)
+  //  · before a digit (`…in the blend. 2009 is one direction…`)
+  //  · after a single-letter initial before a capital (`…one being Comando G. My
+  //    cellar…`) — the exact ambiguity rule ①b resolves the other way
+  const SOFT_SPLIT = /[.!?][”’)\]"]*(?:\[[^\[\]\s]{1,6}\])*\s+(?=@[A-Za-z0-9_]|\d)|\s[A-Za-z]\.\s+(?=[A-Z“"])/gu;
+
+  // Parts are NEARLY always verbatim slices of the normalized whole (splitSentences
+  // trims and re-concatenates raw segments) — merges/splits below are done by
+  // SLICING the whole, so a joining character can never be invented. The one known
+  // exception: rule ③'s hand reattachment drops the whitespace between an orphan
+  // opener and its next segment; offsetsOf then fails to locate the part and
+  // reconciliation bails to keep-whole — the safe direction.
+  function offsetsOf(parts, whole) {
+    const res = []; let cur = 0;
+    for (const p of parts) {
+      const i = whole.indexOf(p, cur);
+      if (i < 0) return null;
+      res.push([i, i + p.length]); cur = i + p.length;
+    }
+    return res;
+  }
+
+  function mergeCandidatesOf(parts) {
+    const out = [];
+    for (let i = 0; i + 1 < parts.length; i++) {
+      if (OPENER_HEAD.test(parts[i + 1])) continue;
+      // Quote-terminal candidates additionally require the continuation NOT to
+      // start with an uppercase letter: in a bicameral script, `?” He said` is
+      // a normally-cased REAL sentence break (the observed segmenter coin-flip
+      // is the CJK `？”这类` continuation, which has no case). Without this,
+      // an incidental `?”` boundary can bridge a translator-restructured gap
+      // (the reviewers' poison family). Ellipsis candidates stay case-blind —
+      // `... The first machines` is a real corpus win — and rely on the
+      // internal-ellipsis corroboration instead.
+      if (SOFT_MERGE_TAIL.test(parts[i]) && !/^\p{Lu}/u.test(parts[i + 1])) out.push(i);
+      else if (SOFT_MERGE_ELLIPSIS.test(parts[i])) out.push(i);
+    }
+    return out;
+  }
+
+  function splitCandidatesOf(parts, offsets) {
+    const out = [];
+    for (let i = 0; i < parts.length; i++) {
+      for (const m of parts[i].matchAll(SOFT_SPLIT)) {
+        out.push(offsets[i][0] + m.index + m[0].length); // global cut position
+      }
+    }
+    return out;
+  }
+
+  // Apply a chosen op-subset: drop the cuts being merged over, add the new split
+  // cuts, re-slice the whole. Returns trimmed parts.
+  function resegment(whole, offsets, mergeSet, splitPts) {
+    const cuts = [];
+    for (let i = 0; i + 1 < offsets.length; i++) {
+      if (!mergeSet.has(i)) cuts.push([offsets[i][1], offsets[i + 1][0]]);
+    }
+    for (const p of splitPts) cuts.push([p, p]);
+    cuts.sort((x, y) => x[0] - y[0]);
+    const parts = []; let cur = 0;
+    for (const [from, to] of cuts) {
+      parts.push(whole.slice(cur, from).trim());
+      cur = to;
+    }
+    parts.push(whole.slice(cur).trim());
+    return parts.filter(Boolean);
+  }
+
+  function subsetsOf(arr, k) {
+    if (k === 0) return [[]];
+    if (k > arr.length) return [];
+    const out = [];
+    const rec = (start, acc) => {
+      if (acc.length === k) { out.push(acc.slice()); return; }
+      for (let i = start; i <= arr.length - (k - acc.length); i++) {
+        acc.push(arr[i]); rec(i + 1, acc); acc.pop();
+      }
+    };
+    rec(0, []);
+    return out;
+  }
+
+  // ─── op corroboration (cross-side evidence) ────────────────────────────────
+  // A candidate op explains the count gap only if its footprint shows on BOTH
+  // sides of the pairing it produces. Three independent adversarial reviews
+  // (2026-08-15) each constructed a natural paragraph where translator
+  // restructuring at a NON-candidate boundary was "uniquely" bridged by an
+  // incidental candidate elsewhere — a wrong-but-unique pairing that passed the
+  // ratio guard. Literal cross-lingual anchors (@handles, digit runs,
+  // untranslated names) and same-shape punctuation echoes are evidence the op
+  // is the true cause of the mismatch; their absence keeps the pair whole.
+  function mergeCorroborated(tail, counterpart) {
+    const m = tail.match(/([!?。！？…])[”’』」]$/u);
+    if (m) {
+      // quote-terminal merge: the counterpart must contain the SAME terminal
+      // class inside a closing quote (`？”` ↔ `?”`; a `。”` does not vouch for
+      // a `？”` — that mismatch was exactly the reviewers' poison case).
+      const t = m[1];
+      const cls = /[?？]/.test(t) ? /[?？](?=[”’』」"])/u
+                : /[!！]/.test(t) ? /[!！](?=[”’』」"])/u
+                : /[.。]/.test(t) ? /[.。](?=[”’』」"])/u
+                : /…(?=[”’』」"])/u;
+      return cls.test(counterpart);
+    }
+    // ellipsis merge: the counterpart must run the sentences together too — an
+    // INTERNAL ellipsis. A sentence that merely ENDS with one proves nothing.
+    for (const em of counterpart.matchAll(/(\.\.\.|…+)/gu)) {
+      if (em.index > 0 && em.index + em[0].length < counterpart.length) return true;
+    }
+    return false;
+  }
+  // A merge candidate's punctuation evidence is not positional — an incidental
+  // `？”`/`...` elsewhere in the paragraph can bridge a gap whose true cause is
+  // translator restructuring at a NON-candidate boundary (three generations of
+  // reviewer poison constructions, each passing echo corroboration + the ratio
+  // guard). The separator that held on every real win vs every poison: in a
+  // TRUE over-split the candidate boundary is the strictly BEST-fitting single
+  // merge under the pair-ratio metric (real wins 1.05–1.60 at the candidate,
+  // alternatives worse); in a poison the true, non-candidate boundary fits
+  // better (1.04–1.16 vs the candidate's 1.42–1.59). So merges fly solo (only
+  // in need=1 reconciliations) and must dominate EVERY alternative position.
+  function mergeDominates(i, longP, longOff, shortP, longIsA, wholeA, wholeB) {
+    const R = (wholeB.length + 20) / (wholeA.length + 20);
+    const devFor = (x) => {
+      let mx = 0;
+      for (let s = 0; s < shortP.length; s++) {
+        const ll = s < x ? longP[s].length
+                 : s === x ? (longOff[x + 1][1] - longOff[x][0])
+                 : longP[s + 1].length;
+        const [al, bl] = longIsA ? [ll, shortP[s].length] : [shortP[s].length, ll];
+        const r = ((bl + 8) / (al + 8)) / R;
+        mx = Math.max(mx, r, 1 / r);
+      }
+      return mx;
+    };
+    const mine = devFor(i);
+    for (let x = 0; x + 1 < longP.length; x++) {
+      if (x !== i && devFor(x) <= mine) return false;
+    }
+    return true;
+  }
+
+  function splitCorroborated(shortW, p, before, after) {
+    const at = shortW.slice(p);
+    let m = at.match(/^@[A-Za-z0-9_]+/);
+    if (m) return after.includes(m[0]);      // the handle survives translation
+    m = at.match(/^\d+/);
+    if (m) return after.includes(m[0]);      // so does the digit run (750/2009)
+    m = shortW.slice(0, p).match(/(\S+)\s+[A-Za-z]\.\s*$/u);
+    if (m) return before.includes(m[1]);     // initial split: `Comando G.` — the
+    return false;                            // preceding name anchors the cut
+  }
+
+  // Per-pair length-ratio guard: in a correctly aligned pair, tr/text length
+  // ratios cluster around the paragraph's own global ratio; an off-by-one
+  // misalignment throws at least one pair far off it. Band calibrated on the
+  // real library's 1300+ known-good sentence pairs (max observed deviation 2.37×,
+  // a legitimately short `Why didn’t I?`; smoothing constants damp that noise).
+  const RATIO_BAND = 3.2;
+  function ratioGuardOk(as, bs, wholeA, wholeB) {
+    const R = (wholeB.length + 20) / (wholeA.length + 20);
+    for (let i = 0; i < as.length; i++) {
+      const r = ((bs[i].length + 8) / (as[i].length + 8)) / R;
+      if (r > RATIO_BAND || r < 1 / RATIO_BAND) return false;
+    }
+    return true;
+  }
+
+  // Beyond a 3-count gap the pair is translator restructuring, not segmenter
+  // noise — every real-library coin-flip case was off by 1 or 2.
+  const MAX_RECONCILE_DIFF = 3;
+  function reconcile(a, b, wholeA, wholeB) {
+    const diff = a.length - b.length;
+    if (diff === 0 || Math.abs(diff) > MAX_RECONCILE_DIFF) return null;
+    // longer side offers merges, shorter side offers splits
+    const [longP, longW, shortP, shortW] = diff > 0 ? [a, wholeA, b, wholeB] : [b, wholeB, a, wholeA];
+    const longOff = offsetsOf(longP, longW);
+    const shortOff = offsetsOf(shortP, shortW);
+    if (!longOff || !shortOff) return null;
+    const merges = mergeCandidatesOf(longP);
+    const splits = splitCandidatesOf(shortP, shortOff);
+    // more than a few candidates means the paragraph is genuinely ambiguous
+    if (merges.length > 4 || splits.length > 4) return null;
+    const need = Math.abs(diff);
+    // original short-side boundary positions — index math for split ops below
+    const origFroms = shortOff.slice(0, -1).map((o) => o[1]);
+    const seen = new Set(); let winner = null;
+    for (let j = Math.min(need, merges.length); j >= 0; j--) {
+      const k = need - j;
+      if (j > 0 && need > 1) continue; // merges fly solo — see mergeDominates
+      for (const ms of subsetsOf(merges, j)) {
+        const L = resegment(longW, longOff, new Set(ms), []); // depends on ms only
+        if (L.length !== longP.length - ms.length) continue;  // a slice trimmed empty — index math off, bail
+        for (const ss of subsetsOf(splits, k)) {
+          const S = resegment(shortW, shortOff, new Set(), ss);
+          if (S.length !== shortP.length + ss.length) continue;
+          if (L.length !== S.length || L.length < 2) continue;
+          // every op must be corroborated by the pairing it produces
+          let ok = true;
+          for (const i of ms) {
+            const q = i - ms.filter((x) => x < i).length;   // merged part's index in L
+            if (!mergeCorroborated(longP[i], S[q])
+                || !mergeDominates(i, longP, longOff, shortP, diff > 0, wholeA, wholeB)) { ok = false; break; }
+          }
+          if (ok) for (const p of ss) {
+            const q1 = 1 + origFroms.filter((f) => f < p).length
+                         + ss.filter((x) => x < p).length;  // part starting at p
+            if (!splitCorroborated(shortW, p, L[q1 - 1], L[q1])) { ok = false; break; }
+          }
+          if (!ok) continue;
+          const [as, bs] = diff > 0 ? [L, S] : [S, L];
+          if (!ratioGuardOk(as, bs, wholeA, wholeB)) continue;
+          const key = JSON.stringify([as, bs]);
+          if (!seen.has(key)) { seen.add(key); winner = { as, bs }; }
+          if (seen.size > 1) return null; // two survivors — already ambiguous
+        }
+      }
+    }
+    // exactly ONE surviving pairing, or nothing — two different survivors means
+    // the count evidence cannot tell them apart, and picking one would be a guess
+    return seen.size === 1 ? winner : null;
+  }
+
+  // ─── §4.2c externally-adjudicated grouping ────────────────────────────────
+  // Applies a sentence grouping PROPOSED from outside (the LLM adjudicator in
+  // learn/align.js). The proposal is data, not authority: both sides must
+  // partition their sentence indices IN ORDER into the same number of groups,
+  // pairs are built by SLICING the normalized paragraph (verbatim — the
+  // proposer can group, never rewrite), and the result must pass the same
+  // ratio guard as §4.2b. Anything else → null, caller keeps the pair whole.
+  function alignByGroups(text, tr, lang, targetLang, groups) {
+    const wholeA = normText(text);
+    const wholeB = normText(tr);
     const a = splitSentences(text, lang);
     const b = splitSentences(tr, targetLang);
-    if (a.length < 2 || a.length !== b.length) return whole;
+    const ga = groups && groups.a;
+    const gb = groups && groups.b;
+    const okPart = (g, n) => Array.isArray(g) && g.length >= 2
+      && g.every((x) => Array.isArray(x) && x.length >= 1)
+      && g.flat().length === n && g.flat().every((v, i) => v === i);
+    if (!okPart(ga, a.length) || !okPart(gb, b.length) || ga.length !== gb.length) return null;
+    const offA = offsetsOf(a, wholeA);
+    const offB = offsetsOf(b, wholeB);
+    if (!offA || !offB) return null;
+    const cut = (whole, off, g) => g.map((idx) =>
+      whole.slice(off[idx[0]][0], off[idx[idx.length - 1]][1]).trim());
+    const as = cut(wholeA, offA, ga);
+    const bs = cut(wholeB, offB, gb);
+    if (!ratioGuardOk(as, bs, wholeA, wholeB)) return null;
+    const pairs = [];
+    for (let i = 0; i < as.length; i++) {
+      if (!as[i] || !bs[i]) return null;
+      pairs.push({ text: as[i], tr: bs[i] });
+    }
+    return pairs;
+  }
+
+  // Pair source/translation sentence-by-sentence — by COUNT EQUALITY only.
+  // A count mismatch first gets ONE bounded reconciliation attempt (§4.2b above);
+  // failing that the pair returns WHOLE: a long card is a nuisance, a misaligned
+  // immutable (text, tr) is permanent corpus corruption. Never guess.
+  // No sane card comes from a paragraph this long, and the citation regexes are
+  // super-linear on pathological no-whitespace runs (red-team, 2026-08-15) —
+  // cap the input before any regex touches it.
+  const MAX_SPLIT_INPUT = 10000;
+  function splitPair(text, tr, lang, targetLang) {
+    const wholeA = normText(text);
+    const wholeB = normText(tr);
+    const whole = [{ text: wholeA, tr: wholeB }];
+    if (wholeA.length > MAX_SPLIT_INPUT || wholeB.length > MAX_SPLIT_INPUT) return whole;
+    let a = splitSentences(text, lang);
+    let b = splitSentences(tr, targetLang);
+    if (a.length !== b.length) {
+      const fixed = reconcile(a, b, wholeA, wholeB);
+      if (!fixed) return whole;
+      a = fixed.as; b = fixed.bs;
+    }
+    if (a.length < 2) return whole;
+    // Equal counts can still be a coincidence of translator restructuring — the
+    // same ratio guard that protects reconciled pairings protects the fast path
+    // (0 rejections across the 1300+-pair calibration library).
+    if (!ratioGuardOk(a, b, wholeA, wholeB)) return whole;
     const pairs = [];
     for (let i = 0; i < a.length; i++) {
       if (!a[i] || !b[i]) return whole;
@@ -462,7 +771,8 @@ var LearnModel = (() => {
     DEFAULTS, OUTBOX_PREFIX, OUTBOX_INDEX, OUTBOX_DROPPED, MAX_OUTBOX_SESSIONS,
     normText, hash16, itemId, sourceId, isDense, lengthScore,
     salience, shouldCapture, makeItem, mergeItem, mergeSkills, touchedAt,
-    clozeFor, clozeCheck, contentWords, splitSentences, splitPair,
+    clozeFor, clozeCheck, contentWords, splitSentences, splitPair, alignByGroups,
+    MAX_SPLIT_INPUT,
   };
 })();
 
