@@ -119,7 +119,7 @@ content-main.js
 
 | adapter | kind | match | 解析 | 排版 |
 |---|---|---|---|---|
-| `GenericAdapter` | document | 兜底（永远 true） | 改进版 `collectParagraphs`（祖先只按语义区域跳过，不按 class 子串） | `.mt-translation` 绿色译文插在节点内末尾 |
+| `GenericAdapter` | document | 兜底（永远 true） | 改进版 `collectParagraphs`（祖先只按语义区域跳过，不按 class 子串） | `.mt-translation` 译文（品牌译文色）插在节点内末尾 |
 | `YouTubeAdapter` | stream | `youtube.com` | 观察 `.ytp-caption-segment` | `.mt-yt-dual` 追加在字幕下方 |
 | `SubstackAdapter` | document | `*.substack.com` 或含 `.available-content` | 正文根锁定 `.available-content`，段落取其中 `p,h1..h3,li,blockquote` | 同 `.mt-translation` |
 
