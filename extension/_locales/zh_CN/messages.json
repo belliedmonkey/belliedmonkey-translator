@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "模型没有返回正文——思考（推理）型模型不适合，请换对话模型",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "拆分长段卡"
+  },
+  "learn_split_failed": {
+    "message": "拆分失败"
+  },
+  "learn_split_none": {
+    "message": "没有可拆分的长段卡"
+  },
+  "learn_split_done": {
+    "message": "已把 {p} 张长段卡拆成 {c} 张句子卡"
+  },
+  "learn_split_skipped": {
+    "message": "（{k} 张译文对不齐，保持原样）"
   }
 }

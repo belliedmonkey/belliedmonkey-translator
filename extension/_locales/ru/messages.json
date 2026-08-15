@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "Модель не вернула текст — рассуждающие модели здесь не подходят, выберите чат-модель",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Разделить длинные карточки"
+  },
+  "learn_split_failed": {
+    "message": "Не удалось разделить"
+  },
+  "learn_split_none": {
+    "message": "Нет длинных карточек для разделения"
+  },
+  "learn_split_done": {
+    "message": "{p} длинных карточек разделено на {c} карточек-предложений"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} оставлено как есть — перевод не выравнивается)"
   }
 }

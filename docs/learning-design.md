@@ -22,6 +22,7 @@
 | 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | 待评审 —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
 | 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | 待评审 —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
 | 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | 待评审 —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
+| 2026-08-15 | belliedmonkey | §4.2 采集单位改为句子：捕获时按句对齐拆分（数量相等才配对，绝不猜对齐）；存量长段卡走显式「拆分长段卡」动作经删除台账传播 | 待评审 —— 见 §4.2 |
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
 | 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
@@ -281,6 +282,58 @@ scripts are shared across languages (whitelist `[zh]` admits pure-kanji Japanese
 per §3 law 2, over-capture is recoverable (delete), silent under-capture is not.
 A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
 gesture outranks a standing filter.
+
+### 4.2 The capture unit is the SENTENCE — split at capture (2026-08-15)
+
+§3's first law of material ("The unit of study is the sentence the user actually
+read") was never enforced: the Collector stored whatever unit the RENDERER handed
+it, which for webpages is the paragraph. A five-sentence Lenny's-Newsletter
+paragraph became one 700-character card — unmemorizable, and `kind: 'sentence'`
+was a lie. Real-device screenshot, 2026-08-15.
+
+**Rule: a webpage (text, tr) pair is split into aligned sentence pairs at capture
+time, in the Collector, before ids are computed.**
+
+- **Mechanism** (`LearnModel.splitPair`, pure): both sides are segmented with
+  `Intl.Segmenter` (granularity `sentence`; available on every engine we ship to —
+  Chrome 87+, Safari 14.1+, Firefox 125+ — with a terminal-punctuation regex
+  fallback), then post-processed with repairs each earned by a real-corpus find
+  (2026-08-15, 869-item library): a SHORT (≤5 chars) whitespace-free segment
+  ending in `.` merges forward (`Dr.` / `e.g.` — the cap keeps `Apparently.` its
+  own sentence), a segment ending in a lone letter + `.` merges forward (German
+  `z. B.`), a segment lacking any sentence terminal merges forward (mid-token
+  cuts, including the segmenter breaking INSIDE `[2]`), a Latin segment starting
+  lowercase merges backward (dialogue attribution `…?" asks Matthew`), wiki
+  citation clusters split after `terminal+[n]` and a leading `[n]` cluster moves
+  back to the sentence it cites, and an orphan OPENING quote/bracket at a
+  segment's tail moves to the head of the next (the `他睡了。“` case). All
+  merging concatenates RAW segments — inserting even one joining character would
+  put text into a sentence the paragraph never had. Regression-tested across
+  every registry language (en/ja/ko/zh/fr/de/es/pt/it/ru/ar + und).
+- **Pairing is by COUNT equality only.** If source and translation split into the
+  same number (>1) of sentences, they pair 1:1 and each pair becomes its own item
+  (content-addressed id per sentence — the same sentence met in two different
+  paragraphs collapses, which is the §4 id property working as designed). If the
+  counts differ, the pair is kept WHOLE. A long card is a nuisance; a *misaligned*
+  (text, tr) pair is silent corpus corruption that `text`/`tr` immutability makes
+  permanent. Never guess an alignment.
+- Sentences inherit the paragraph's dwell/seen/starred (reading the paragraph is
+  reading its sentences); each gets its own per-sentence `anchor.quote`. The
+  salience gate then runs per sentence, unchanged.
+- **Subtitle/media captures are NOT split**: the engine's cue merge already emits
+  sentence units, and the media anchor's `startMs/endMs` describes the whole cue.
+- Still a sink: splitting is pure local computation. Law 1 intact.
+
+**Existing long cards** (captured before this rule) are healed by an EXPLICIT
+maintenance action, never silently on upgrade (§3 law 2: anything touching
+collected material must be visible): `LearnStore.splitLongItems()` — offered as
+「拆分长段卡」 in the options 学习 card and the App's settings. It walks
+`anchor.k === 'dom'` items whose pair splits alignably, creates the children
+(inheriting `sched`/`state`/`skills`/counters — they were genuinely reviewed as
+part of the paragraph), and deletes the parent through the §7.4 deletion ledger so
+the split propagates to every synced device exactly like a user deletion. Children
+sync as ordinary new items. Media items and unalignable items are left untouched
+and counted in the result surface ("拆 N 张为 M 张，跳过 K 张").
 
 ---
 

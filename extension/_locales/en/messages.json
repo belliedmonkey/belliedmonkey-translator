@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "The model returned no content — reasoning models do not fit here; switch to a chat model",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Split long cards"
+  },
+  "learn_split_failed": {
+    "message": "Split failed"
+  },
+  "learn_split_none": {
+    "message": "No long cards to split"
+  },
+  "learn_split_done": {
+    "message": "Split {p} long cards into {c} sentence cards"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} kept whole — translation did not align)"
   }
 }

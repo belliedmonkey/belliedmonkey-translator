@@ -130,25 +130,31 @@ var LearnCollector = (() => {
       if (!w) return false;
       const lang = detectLang(w.text);
       const m = meta();
-      addDraft(Object.assign(draftFrom(w, lang, m), { starred: true }));
+      for (const d of draftsFrom(w, lang, m)) addDraft(Object.assign(d, { starred: true }));
       flush();
       return true;
     });
   }
 
-  function draftFrom(w, lang, m) {
-    return {
-      id: LearnModel.itemId(lang, w.text),
-      text: w.text, tr: w.tr, lang,
+  // §4.2: the renderer hands us PARAGRAPHS, but the unit of study is the
+  // sentence — split the (text, tr) pair here, before ids are computed.
+  // splitPair pairs by count equality ONLY and returns the pair whole on any
+  // mismatch (a misaligned immutable pair would be permanent corpus corruption).
+  // Sentences inherit the paragraph's dwell — reading the paragraph IS reading
+  // its sentences; the salience gate then judges each sentence on its own.
+  function draftsFrom(w, lang, m) {
+    return LearnModel.splitPair(w.text, w.tr, lang, cfg.targetLang).map((p) => ({
+      id: LearnModel.itemId(lang, p.text),
+      text: p.text, tr: p.tr, lang,
       targetLang: cfg.targetLang || '',
       kind: 'sentence',
       sourceId: m.sourceId,
-      anchor: { k: 'dom', quote: LearnModel.normText(w.text).slice(0, 120) },
+      anchor: { k: 'dom', quote: LearnModel.normText(p.text).slice(0, 120) },
       dwellMs: w.dwellMs || 0,
       seenCount: 1,
       lastSeenAt: nowFn(),
       starred: false,
-    };
+    }));
   }
 
   // ─── Subtitles: "dwell" is the playhead actually crossing the sentence ────
@@ -189,7 +195,7 @@ var LearnCollector = (() => {
       if (w.visibleSince) { w.dwellMs += t - w.visibleSince; w.visibleSince = t; }
       if (!w.dwellMs) continue;
       if (!node.isConnected) continue;
-      addDraft(draftFrom(w, detectLang(w.text), m));
+      for (const d of draftsFrom(w, detectLang(w.text), m)) addDraft(d);
     }
   }
 

@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "Le modèle n’a renvoyé aucun contenu — un modèle de raisonnement ne convient pas ; choisissez un modèle de chat",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Scinder les cartes longues"
+  },
+  "learn_split_failed": {
+    "message": "Échec de la scission"
+  },
+  "learn_split_none": {
+    "message": "Aucune carte longue à scinder"
+  },
+  "learn_split_done": {
+    "message": "{p} cartes longues scindées en {c} cartes-phrases"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} conservées entières — traduction non alignée)"
   }
 }

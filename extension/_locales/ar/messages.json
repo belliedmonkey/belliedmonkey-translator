@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "تقسيم البطاقات الطويلة"
+  },
+  "learn_split_failed": {
+    "message": "فشل التقسيم"
+  },
+  "learn_split_none": {
+    "message": "لا توجد بطاقات طويلة للتقسيم"
+  },
+  "learn_split_done": {
+    "message": "تم تقسيم {p} بطاقة طويلة إلى {c} بطاقة جملة"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} بقيت كما هي — الترجمة غير متوافقة)"
   }
 }
