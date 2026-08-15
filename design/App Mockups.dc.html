@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/organic-3a5ce71b-e7ca-43e4-a746-002b04f3a674/styles.css">
+<script src="_ds/organic-3a5ce71b-e7ca-43e4-a746-002b04f3a674/_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--color-bg,#f0eee9);font-family:var(--font-body,system-ui),sans-serif}a{color:var(--color-accent-700,#8a4a20)}a:hover{color:var(--color-accent-800,#6b3715)}.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#201e1d;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 var(--font-body,system-ui);color:#201e1d}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#201e1d;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 var(--font-body,system-ui);color:rgba(0,0,0,.55)}.dv-opt:target .dv-oid{background:var(--color-accent,#c67139);color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 var(--font-body,system-ui);color:rgba(0,0,0,.5)}</style>
+</helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">App mockup — 1a 形象 + 2b FAB，Organic 色板，六屏</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>登录（首次打开）</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:var(--color-bg);display:flex;flex-direction:column;padding:64px 28px 40px;gap:0;overflow:hidden">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:20px">
+<svg width="104" height="104" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="var(--color-accent)"></rect><circle cx="26" cy="36" r="11" fill="var(--color-bg)"></circle><circle cx="102" cy="36" r="11" fill="var(--color-bg)"></circle><circle cx="26" cy="36" r="5" fill="var(--color-accent-300)"></circle><circle cx="102" cy="36" r="5" fill="var(--color-accent-300)"></circle><circle cx="64" cy="42" r="26" fill="var(--color-bg)"></circle><circle cx="55" cy="38" r="3.4" fill="#201e1d"></circle><circle cx="73" cy="38" r="3.4" fill="#201e1d"></circle><path d="M58 48c3.5 3.4 8.5 3.4 12 0" stroke="#201e1d" stroke-width="2.75" stroke-linecap="round" fill="none"></path><circle cx="64" cy="89" r="33" fill="var(--color-bg)"></circle><g fill="var(--color-accent-700)" transform="translate(64 91) scale(0.72) translate(-45 -51)"><rect x="28" y="34" width="34" height="7" rx="2"></rect><rect x="41.5" y="26" width="7" height="11" rx="2"></rect><path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"></path></g></svg>
+<h1 style="margin:0;font-family:var(--font-heading);font-weight:400;font-size:34px;line-height:1.15;color:#201e1d">大肚猴翻译</h1>
+<p style="margin:0;font-size:16px;line-height:1.6;color:rgba(32,30,29,.62)">你在浏览器里<b style="color:var(--color-accent-700)">真正读过</b>的句子，会同步到这里变成复习卡。登录同一个账号就行。</p>
+<div style="width:100%;display:flex;flex-direction:column;gap:12px;margin-top:8px">
+<input placeholder="邮箱地址" style="width:100%;font:inherit;font-size:16px;padding:15px 20px;border-radius:999px;border:1.5px solid var(--color-neutral-300);background:#fff;color:#201e1d;outline:none">
+<button style="width:100%;font:inherit;font-size:16px;font-weight:700;padding:15px 20px;border-radius:999px;border:0;background:var(--color-accent);color:#fff;box-shadow:var(--shadow-sm)">发送验证码</button>
+</div>
+<p style="margin:0;font-size:13px;line-height:1.6;color:rgba(32,30,29,.45)">没有账号也能在浏览器扩展里正常翻译——账号只用来同步学习材料。</p>
+</div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>首页（今日到期）</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:var(--color-bg);display:flex;flex-direction:column;padding:64px 24px 40px;gap:22px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:12px">
+<svg width="40" height="40" viewBox="0 0 128 128"><rect width="128" height="128" rx="32" fill="var(--color-accent)"></rect><circle cx="26" cy="36" r="11" fill="var(--color-bg)"></circle><circle cx="102" cy="36" r="11" fill="var(--color-bg)"></circle><circle cx="64" cy="42" r="26" fill="var(--color-bg)"></circle><circle cx="55" cy="38" r="4" fill="#201e1d"></circle><circle cx="73" cy="38" r="4" fill="#201e1d"></circle><circle cx="64" cy="89" r="33" fill="var(--color-bg)"></circle><g fill="var(--color-accent-700)" transform="translate(64 91) scale(0.72) translate(-45 -51)"><rect x="28" y="34" width="34" height="7" rx="2"></rect><rect x="41.5" y="26" width="7" height="11" rx="2"></rect><path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"></path></g></svg>
+<span style="font-family:var(--font-heading);font-size:20px;color:#201e1d;flex:1">大肚猴翻译</span>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(32,30,29,.55)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+</div>
+<div style="background:var(--color-accent-2-200);border-radius:28px;padding:26px 24px;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;font-weight:600;color:var(--color-accent-2-800);letter-spacing:.04em">今日到期</span>
+<div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:var(--font-heading);font-size:56px;line-height:1;color:#201e1d">12</span><span style="font-size:14px;color:rgba(32,30,29,.55)">张卡 · 约 6 分钟</span></div>
+<button style="margin-top:14px;font:inherit;font-size:16px;font-weight:700;padding:14px 20px;border-radius:999px;border:0;background:var(--color-accent);color:#fff;box-shadow:var(--shadow-sm)">开始复习</button>
+</div>
+<div style="display:flex;gap:14px">
+<div style="flex:1;background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow-sm)"><b style="display:block;font-family:var(--font-heading);font-weight:400;font-size:26px;color:var(--color-accent-700)">5</b><span style="font-size:12px;color:rgba(32,30,29,.55)">今日新卡</span></div>
+<div style="flex:1;background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow-sm)"><b style="display:block;font-family:var(--font-heading);font-weight:400;font-size:26px;color:var(--color-accent-2-700)">87</b><span style="font-size:12px;color:rgba(32,30,29,.55)">学习中</span></div>
+<div style="flex:1;background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow-sm)"><b style="display:block;font-family:var(--font-heading);font-weight:400;font-size:26px;color:#201e1d">31</b><span style="font-size:12px;color:rgba(32,30,29,.55)">已掌握</span></div>
+</div>
+<div style="background:#fff;border-radius:22px;padding:6px 4px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column">
+<button style="display:flex;align-items:center;gap:12px;font:inherit;font-size:15px;color:#201e1d;background:none;border:0;padding:13px 16px;text-align:left"><span style="width:30px;height:30px;border-radius:12px;background:var(--color-accent-200);display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" stroke-width="2.75" stroke-linecap="round"><path d="M14 4h6v6"></path><path d="M20 4 9 15"></path><path d="M20 14v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg></span><span style="flex:1">自由练习</span><span style="color:rgba(32,30,29,.35)">›</span></button>
+<button style="display:flex;align-items:center;gap:12px;font:inherit;font-size:15px;color:#201e1d;background:none;border:0;padding:13px 16px;text-align:left;border-top:1px solid var(--color-neutral-200)"><span style="width:30px;height:30px;border-radius:12px;background:var(--color-accent-2-200);display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-800)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></span><span style="flex:1">立即同步</span><span style="font-size:12px;color:rgba(32,30,29,.4)">2 分钟前</span></button>
+</div>
+<p style="margin:auto 0 0;font-size:12px;color:rgba(32,30,29,.4);text-align:center">已登录 hong@example.com · 材料来自你的浏览器扩展</p>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>复习卡 — 问题面</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:var(--color-bg);display:flex;flex-direction:column;padding:60px 20px 36px;gap:16px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:10px">
+<button style="font:inherit;background:none;border:0;color:var(--color-accent-700);font-size:15px;padding:6px 2px">‹ 返回</button>
+<div style="flex:1;height:8px;border-radius:4px;background:var(--color-accent-2-200);overflow:hidden"><div style="width:33%;height:100%;border-radius:4px;background:var(--color-accent-2-600)"></div></div>
+<span style="font-size:13px;color:rgba(32,30,29,.5);font-variant-numeric:tabular-nums">4 / 12</span>
+</div>
+<div style="background:#fff;border-radius:28px;padding:24px 22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:16px;flex:1">
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+<span style="font-size:12px;color:rgba(32,30,29,.5);background:var(--color-neutral-100);border-radius:999px;padding:4px 12px">youtube.com · 3 天前</span>
+<span style="font-size:12px;color:rgba(32,30,29,.35)">⋯</span>
+</div>
+<div style="display:flex;align-items:center;gap:10px">
+<div style="flex:1;height:6px;border-radius:3px;background:var(--color-accent-200)"><div style="width:38%;height:100%;border-radius:3px;background:var(--color-accent)"></div></div>
+<span style="font-size:12px;color:rgba(32,30,29,.5);white-space:nowrap">记忆强度 68 天 / 180</span>
+</div>
+<div style="display:flex;gap:6px">
+<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;border:1.5px solid var(--color-accent-2-600);color:var(--color-accent-2-800)">读</span>
+<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:999px;border:1.5px dashed var(--color-accent-2-500);color:var(--color-accent-2-700);opacity:.75">听</span>
+<span style="font-size:12px;padding:3px 12px;border-radius:999px;border:1.5px solid var(--color-neutral-300);color:rgba(32,30,29,.45)">写</span>
+</div>
+<p style="margin:14px 0 0;font-size:23px;line-height:1.5;font-weight:500;color:#201e1d;overflow-wrap:anywhere">The best way to predict the future is to invent it.</p>
+<button style="align-self:flex-start;font:inherit;font-size:14px;font-weight:700;color:var(--color-accent-2-800);background:none;border:1.5px solid var(--color-accent-2-600);border-radius:999px;padding:9px 18px;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--color-accent-2-800)"><path d="M6 4l14 8-14 8z"></path></svg>听一遍</button>
+<div style="flex:1"></div>
+<button style="width:100%;font:inherit;font-size:16px;font-weight:700;padding:15px;border-radius:999px;border:0;background:var(--color-accent);color:#fff;box-shadow:var(--shadow-sm)">显示译文</button>
+</div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>复习卡 — 答案面 + 打分</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:var(--color-bg);display:flex;flex-direction:column;padding:60px 20px 36px;gap:16px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:10px">
+<button style="font:inherit;background:none;border:0;color:var(--color-accent-700);font-size:15px;padding:6px 2px">‹ 返回</button>
+<div style="flex:1;height:8px;border-radius:4px;background:var(--color-accent-2-200);overflow:hidden"><div style="width:33%;height:100%;border-radius:4px;background:var(--color-accent-2-600)"></div></div>
+<span style="font-size:13px;color:rgba(32,30,29,.5);font-variant-numeric:tabular-nums">4 / 12</span>
+</div>
+<div style="background:#fff;border-radius:28px;padding:24px 22px;box-shadow:var(--shadow-md);display:flex;flex-direction:column;gap:14px;flex:1">
+<span style="font-size:12px;color:rgba(32,30,29,.5);background:var(--color-neutral-100);border-radius:999px;padding:4px 12px;align-self:flex-start">youtube.com · 3 天前</span>
+<p style="margin:6px 0 0;font-size:23px;line-height:1.5;font-weight:500;color:#201e1d;overflow-wrap:anywhere">The best way to predict the future is to invent it.</p>
+<div style="border-top:1.5px solid var(--color-neutral-200);padding-top:14px">
+<p style="margin:0;font-size:19px;line-height:1.55;color:var(--color-accent-2-800)">预测未来的最好方式，就是亲手创造它。</p>
+</div>
+<button style="align-self:flex-start;font:inherit;font-size:14px;font-weight:700;color:var(--color-accent-700);background:none;border:1.5px solid var(--color-accent);border-radius:999px;padding:9px 18px">✳ 解析这句</button>
+<span style="font-size:12px;color:rgba(32,30,29,.4);margin-top:-6px">使用你配置的 API，一次调用，永久缓存</span>
+<div style="flex:1"></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+<button style="font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:18px;border:1.5px solid var(--color-neutral-300);background:#fff;color:#201e1d;font-size:14px;font-weight:600">不记得<small style="font-size:11px;font-weight:400;color:rgba(32,30,29,.45)">10 分钟</small></button>
+<button style="font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:18px;border:1.5px solid var(--color-neutral-300);background:#fff;color:#201e1d;font-size:14px;font-weight:600">有点难<small style="font-size:11px;font-weight:400;color:rgba(32,30,29,.45)">2 天</small></button>
+<button style="font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:18px;border:2px solid var(--color-accent-2-600);background:var(--color-accent-2-200);color:var(--color-accent-2-900);font-size:14px;font-weight:700">记得<small style="font-size:11px;font-weight:400;color:var(--color-accent-2-800)">6 天</small></button>
+<button style="font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px;border-radius:18px;border:1.5px solid var(--color-neutral-300);background:#fff;color:#201e1d;font-size:14px;font-weight:600">太简单<small style="font-size:11px;font-weight:400;color:rgba(32,30,29,.45)">14 天</small></button>
+</div>
+</div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1e"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>设置</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:var(--color-bg);display:flex;flex-direction:column;padding:60px 24px 36px;gap:18px;overflow:hidden">
+<div style="display:flex;align-items:center;gap:10px">
+<button style="font:inherit;background:none;border:0;color:var(--color-accent-700);font-size:15px;padding:6px 2px">‹ 返回</button>
+<h2 style="margin:0;font-family:var(--font-heading);font-weight:400;font-size:24px;color:#201e1d">设置</h2>
+</div>
+<span style="font-size:12px;font-weight:700;letter-spacing:.08em;color:rgba(32,30,29,.45)">复习</span>
+<div style="background:#fff;border-radius:22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;margin-top:-8px">
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d"><span style="flex:1">每日新卡上限</span><span style="color:rgba(32,30,29,.45)">20 ›</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">朗读（TTS）</span><span style="color:rgba(32,30,29,.45)">先听后看 ›</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">解析引擎</span><span style="color:rgba(32,30,29,.45)">已配置 ›</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">转写引擎（说题）</span><span style="color:rgba(32,30,29,.45)">未配置 ›</span></div>
+</div>
+<span style="font-size:12px;font-weight:700;letter-spacing:.08em;color:rgba(32,30,29,.45)">采集来源</span>
+<div style="background:#fff;border-radius:22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;margin-top:-8px">
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d"><span style="flex:1">收录语言</span><span style="color:rgba(32,30,29,.45)">英语 ›</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">来源管理</span><span style="color:rgba(32,30,29,.45)">3 条规则 ›</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">语料库</span><span style="color:rgba(32,30,29,.45)">124 句 · 2.1 MB ›</span></div>
+</div>
+<span style="font-size:12px;font-weight:700;letter-spacing:.08em;color:rgba(32,30,29,.45)">账号</span>
+<div style="background:#fff;border-radius:22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;margin-top:-8px">
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#201e1d"><span style="flex:1">hong@example.com</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:var(--color-accent-700);border-top:1px solid var(--color-neutral-200)"><span style="flex:1">退出登录</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;font-size:15px;color:#b3261e;border-top:1px solid var(--color-neutral-200)"><span style="flex:1">删除账号及全部数据…</span></div>
+</div>
+</div>
+</x-import></div>
+
+<div class="dv-opt" id="1f"><div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>浏览器扩展 — 双语页 + 2b FAB</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+<div style="height:100%;background:#fff;display:flex;flex-direction:column;overflow:hidden;position:relative">
+<div style="padding:60px 20px 12px;border-bottom:1px solid var(--color-neutral-200);display:flex;align-items:center;gap:10px"><span style="flex:1;background:var(--color-neutral-100);border-radius:999px;padding:8px 16px;font-size:13px;color:rgba(32,30,29,.6);text-align:center">stratechery.com</span></div>
+<div style="flex:1;padding:24px 24px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+<h2 style="margin:0;font-size:24px;line-height:1.3;font-weight:800;color:#111;font-family:Georgia,serif">The Innovator's Dilemma, Revisited</h2>
+<p style="margin:0;font-size:16px;line-height:1.55;color:#222">Disruption happens when incumbents optimize for their best customers.</p>
+<p style="margin:-6px 0 0;font-size:16px;line-height:1.55;color:var(--color-accent-2-700)">当在位者只为最优质客户做优化时，颠覆就发生了。</p>
+<p style="margin:0;font-size:16px;line-height:1.55;color:#222">The entrant wins by serving the customers nobody wants.</p>
+<p style="margin:-6px 0 0;font-size:16px;line-height:1.55;color:var(--color-accent-2-700)">新进入者靠服务没人想要的客户取胜。</p>
+<p style="margin:0;font-size:16px;line-height:1.55;color:#222">By the time the threat is obvious, it is too late to respond.</p>
+<p style="margin:-6px 0 0;font-size:16px;line-height:1.55;color:var(--color-accent-2-700)">等威胁变得明显时，再回应已经太迟了。</p>
+</div>
+<svg width="64" height="64" viewBox="0 0 64 64" style="position:absolute;right:16px;bottom:96px"><circle cx="13" cy="13" r="8" fill="var(--color-bg)" stroke="var(--color-accent-2-600)" stroke-width="2"></circle><circle cx="51" cy="13" r="8" fill="var(--color-bg)" stroke="var(--color-accent-2-600)" stroke-width="2"></circle><circle cx="13" cy="13" r="3.4" fill="var(--color-accent-2-300)"></circle><circle cx="51" cy="13" r="3.4" fill="var(--color-accent-2-300)"></circle><circle cx="32" cy="36" r="26" fill="var(--color-accent-2-600)" style="filter:drop-shadow(0 4px 10px rgba(122,138,94,.45))"></circle><circle cx="32" cy="30" r="15" fill="var(--color-bg)"></circle><path d="M23.5 28c1.3-1.9 3.9-1.9 5.2 0M35.3 28c1.3-1.9 3.9-1.9 5.2 0" stroke="#201e1d" stroke-width="2" stroke-linecap="round" fill="none"></path><path d="M28.5 33c2 1.9 5 1.9 7 0" stroke="#201e1d" stroke-width="2" stroke-linecap="round" fill="none"></path><circle cx="32" cy="50" r="10" fill="var(--color-bg)"></circle><rect x="26" y="46.5" width="12" height="2.8" rx="1.4" fill="#201e1d"></rect><rect x="26" y="51.5" width="8.5" height="2.8" rx="1.4" fill="var(--color-accent)"></rect></svg>
+</div>
+</x-import></div>
+
+</div>
+<p class="dv-next">Try next: "把 <a class="dv-oid" href="#1b">1b</a> 做成可点的交互原型" · "加空状态 / 全部复习完 的画面" · "译文颜色换成陶土试试"</p>
+</section>
+</x-dc>
+</body>
+</html>
