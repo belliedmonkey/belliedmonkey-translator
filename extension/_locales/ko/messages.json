@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "모델이 본문을 반환하지 않았습니다 — 추론형 모델은 부적합하니 대화 모델로 바꾸세요",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "긴 카드 분할"
+  },
+  "learn_split_failed": {
+    "message": "분할 실패"
+  },
+  "learn_split_none": {
+    "message": "분할할 긴 카드가 없습니다"
+  },
+  "learn_split_done": {
+    "message": "긴 카드 {p}장을 문장 카드 {c}장으로 분할했습니다"
+  },
+  "learn_split_skipped": {
+    "message": " ({k}장은 번역이 맞지 않아 그대로 유지)"
   }
 }

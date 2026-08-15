@@ -131,6 +131,7 @@ var AppSettings = (() => {
     $('app-langs-note').textContent = t('learn_langs_hint', '只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。');
     $('app-sources-title').textContent = t('learn_sources_manage', '来源管理');
     $('corpus-title').textContent = t('app_set_corpus', '学习库');
+    $('split-long').textContent = t('learn_split_long', '拆分长段卡');
     $('clean-known').textContent = t('app_set_clean_known', '清理已掌握的卡');
     $('account-title').textContent = t('app_set_account', '账号');
     $('settings-signout').textContent = t('app_set_signout', '退出登录');
@@ -493,6 +494,24 @@ var AppSettings = (() => {
         note.textContent = r.ok ? t('tts_test_ok', '播放中') : ('✗ ' + (r.reason || ''));
         if (r.ok) await Promise.race([(r.done || Promise.resolve()).catch(() => {}),
           new Promise((res) => setTimeout(res, 15000))]);
+      } finally { btn.disabled = false; }
+    });
+
+    $('split-long').addEventListener('click', async () => {
+      // §4.2 存量长段卡治愈。批量写 + 全量重画在途,按钮可见地禁用。
+      const btn = $('split-long');
+      btn.disabled = true;
+      try {
+        const r = await LearnStore.splitLongItems().catch(() => null);
+        await paint(opts.session(), say);
+        if (!r || (!r.parents && !r.skipped)) say(t('learn_split_none', '没有可拆分的长段卡'));
+        else {
+          let msg = t('learn_split_done', '已把 {p} 张长段卡拆成 {c} 张句子卡')
+            .replace('{p}', String(r.parents)).replace('{c}', String(r.children));
+          if (r.skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
+            .replace('{k}', String(r.skipped));
+          say(msg);
+        }
       } finally { btn.disabled = false; }
     });
 

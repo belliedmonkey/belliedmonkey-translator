@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "長文カードを分割"
+  },
+  "learn_split_failed": {
+    "message": "分割に失敗しました"
+  },
+  "learn_split_none": {
+    "message": "分割できる長文カードはありません"
+  },
+  "learn_split_done": {
+    "message": "{p} 枚の長文カードを {c} 枚の文カードに分割しました"
+  },
+  "learn_split_skipped": {
+    "message": "（{k} 枚は訳文が揃わないためそのまま）"
   }
 }

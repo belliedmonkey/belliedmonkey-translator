@@ -1291,5 +1291,20 @@
   "notes_test_empty": {
     "message": "O modelo não retornou conteúdo — modelos de raciocínio não servem aqui; use um modelo de chat",
     "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Dividir cartões longos"
+  },
+  "learn_split_failed": {
+    "message": "Falha ao dividir"
+  },
+  "learn_split_none": {
+    "message": "Nenhum cartão longo para dividir"
+  },
+  "learn_split_done": {
+    "message": "{p} cartões longos divididos em {c} cartões de frase"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} mantidos inteiros — tradução não alinhada)"
   }
 }

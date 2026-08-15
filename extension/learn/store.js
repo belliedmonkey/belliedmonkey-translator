@@ -243,6 +243,57 @@ var LearnStore = (() => {
     });
   }
 
+  // §4.2: heal pre-rule long cards — split an alignable multi-sentence dom item
+  // into per-sentence children and retire the parent through the deletion ledger
+  // (so the split propagates to every synced device exactly like a user delete).
+  // EXPLICIT user action only, never run on upgrade: it rewrites collected
+  // material, and §3 law 2 says that must be visible. Children are inserted
+  // BEFORE the parent is deleted — a crash between the two leaves duplicates,
+  // which the content-addressed ids make harmless; the other order loses data.
+  // The DECISION half is pure and exported (same doctrine as doomedFor below):
+  // which items split, into what children, and how many multi-sentence items were
+  // left whole because their translation would not align.
+  function splitPlanFor(items) {
+    const parents = [];
+    const children = [];
+    let skipped = 0;
+    for (const it of items || []) {
+      if (!it || !it.anchor || it.anchor.k !== 'dom') continue;  // media cues stay whole
+      const pairs = LearnModel.splitPair(it.text, it.tr, it.lang, it.targetLang);
+      if (pairs.length < 2) {
+        // multi-sentence but unalignable → left whole, and counted (§3 law 2:
+        // the surface says how many it could not split, not nothing).
+        if (LearnModel.splitSentences(it.text, it.lang).length > 1) skipped++;
+        continue;
+      }
+      parents.push(it);
+      for (const p of pairs) {
+        children.push(Object.assign({}, it, {
+          id: LearnModel.itemId(it.lang, p.text),
+          text: p.text, tr: p.tr,
+          // they were genuinely reviewed as part of the paragraph — the
+          // schedule/skills they earned carry over per child
+          sched: it.sched ? Object.assign({}, it.sched) : it.sched,
+          skills: it.skills ? Object.assign({}, it.skills) : it.skills,
+          anchor: Object.assign({}, it.anchor,
+            { quote: LearnModel.normText(p.text).slice(0, 120) }),
+        }));
+      }
+    }
+    return { parents, children, skipped };
+  }
+
+  function splitLongItems(now) {
+    const t = now || Date.now();
+    return allItems().then((items) => {
+      const plan = splitPlanFor(items);
+      if (!plan.parents.length) return { parents: 0, children: 0, skipped: plan.skipped };
+      return mergeBatch(plan.children, [])
+        .then(() => deleteItems(plan.parents.map((p) => p.id), t))
+        .then(() => ({ parents: plan.parents.length, children: plan.children.length, skipped: plan.skipped }));
+    });
+  }
+
   // ─── What gets dropped: pure, and exported so it can be tested ───────────
   //
   // These two decide what this device forgets. Everything around them is IndexedDB
@@ -538,6 +589,7 @@ var LearnStore = (() => {
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
     applyDels, deleteItems, deleteSourcesIfOrphan, userDels, allDels, trimDels,
+    splitLongItems, splitPlanFor,
     getNote, putNote,
     doomedFor, staleTombs, staleDels,   // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,

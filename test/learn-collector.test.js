@@ -435,3 +435,53 @@ describe('LearnCollector — detector field + in-flight race (真机回归)', ()
     eq(items[0].lang, 'en');
   });
 });
+
+describe('LearnCollector — §4.2 the capture unit is the sentence', () => {
+  const PARA = 'It rained hard all afternoon yesterday. We stayed inside our home. The old roof leaked badly again.';
+  const PARA_TR = '昨天下午雨下得很大。我们一直待在家里。老屋顶又漏得厉害。';
+
+  test('a read paragraph is captured as ONE ITEM PER SENTENCE, aligned', async () => {
+    const { C, store, observers, model } = setup();
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN' });
+    const node = el();
+    C.observe(node, PARA, PARA_TR);
+    dwell(C, observers, node, 6000, clock);
+    eq(await C.flush(), 3);
+    const items = capturedItems(store);
+    eq(items.length, 3);
+    eq(items[0].text, 'It rained hard all afternoon yesterday.');
+    eq(items[0].tr, '昨天下午雨下得很大。');
+    eq(items[2].tr, '老屋顶又漏得厉害。');
+    // each carries its OWN per-sentence quote anchor and content-addressed id
+    eq(items[1].anchor.quote, model.normText(items[1].text).slice(0, 120));
+    eq(items[1].id, model.itemId(items[1].lang, items[1].text));
+  });
+
+  test('a count-mismatched pair stays WHOLE — never a guessed alignment', async () => {
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN' });
+    const node = el();
+    const tr2 = '昨天下午雨很大，我们待在家里。老屋顶又漏得厉害。'; // 2 句 vs 3 句
+    C.observe(node, PARA, tr2);
+    dwell(C, observers, node, 6000, clock);
+    eq(await C.flush(), 1);
+    eq(capturedItems(store)[0].text, PARA);
+    eq(capturedItems(store)[0].tr, tr2);
+  });
+
+  test('star() promotes EVERY sentence of the pressed paragraph', async () => {
+    const { C, store, observers } = setup();
+    const clock = { t: 0 };
+    C.enable({ now: () => clock.t, targetLang: 'zh-CN' });
+    const node = el();
+    C.observe(node, PARA, PARA_TR);
+    dwell(C, observers, node, 100, clock);           // barely seen — gate would refuse
+    ok(C.star(node));
+    await new Promise((r) => setTimeout(r, 20));     // star() flushes async
+    const items = capturedItems(store);
+    eq(items.length, 3);
+    ok(items.every((i) => i.starred), 'starred bypasses the salience gate per sentence');
+  });
+});

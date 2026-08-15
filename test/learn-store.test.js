@@ -168,3 +168,50 @@ describe('LearnStore — open() 拒绝不粘（§8.4.1）', () => {
     eq(callCount(), 2, '成功路径的记忆保持不变 —— 不许每次都重开数据库');
   });
 });
+
+describe('LearnStore.splitPlanFor — §4.2 healing pre-rule long cards (pure half)', () => {
+  const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+  const Store = loadModule('learn/store.js',
+    { window: {}, indexedDB: {}, LearnModel, LearnScheduler: {} }).LearnStore;
+  const mk = (over) => Object.assign({
+    id: 'p1', lang: 'en', targetLang: 'zh-CN',
+    text: 'It rained. We stayed home.', tr: '下雨了。我们待在家里。',
+    anchor: { k: 'dom', quote: 'It rained. We stayed home.' },
+    state: 'learning', starred: false, seenCount: 4,
+    sched: { s: 9, d: 5, lastReviewAt: 100, dueAt: 200, reps: 3, lapses: 1 },
+    skills: { read: 50 },
+  }, over);
+
+  test('an alignable dom paragraph splits; children inherit sched/skills, get own id+quote', () => {
+    const plan = Store.splitPlanFor([mk()]);
+    eq(plan.parents.length, 1);
+    eq(plan.children.length, 2);
+    eq(plan.skipped, 0);
+    const c = plan.children[0];
+    eq(c.text, 'It rained.');
+    eq(c.tr, '下雨了。');
+    eq(c.id, LearnModel.itemId('en', 'It rained.'));
+    eq(c.anchor.quote, 'It rained.');
+    eq(c.sched.s, 9, 'the schedule the paragraph earned carries over');
+    eq(c.skills.read, 50);
+    ok(c.sched !== plan.parents[0].sched, 'sched is a copy, not shared mutable state');
+  });
+
+  test('media items are never split — the cue anchor describes the whole clip', () => {
+    const plan = Store.splitPlanFor([mk({ anchor: { k: 'media', mediaKey: 'x', startMs: 0, endMs: 5000 } })]);
+    eq(plan.parents.length, 0);
+    eq(plan.children.length, 0);
+  });
+
+  test('an unalignable multi-sentence item is left whole AND counted as skipped', () => {
+    const plan = Store.splitPlanFor([mk({ tr: '下雨了，我们待在家里。' })]); // 1 句 vs 2 句
+    eq(plan.parents.length, 0);
+    eq(plan.skipped, 1, 'the surface can say how many it could not split');
+  });
+
+  test('single-sentence items are untouched and not counted', () => {
+    const plan = Store.splitPlanFor([mk({ text: 'One sentence.', tr: '一句话。' })]);
+    eq(plan.parents.length, 0);
+    eq(plan.skipped, 0);
+  });
+});

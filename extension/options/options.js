@@ -725,6 +725,22 @@ async function init() {
     } catch (_) { el.textContent = ''; btn.hidden = true; }
   }
 
+  // §4.2: heal pre-rule long cards. Explicit, visible, propagates like a delete.
+  $('btn-split-long').addEventListener('click', busy($('btn-split-long'), async () => {
+    const r = await LearnStore.splitLongItems().catch(() => null);
+    if (!r) { showToast(t('learn_split_failed', '拆分失败')); }
+    else if (!r.parents && !r.skipped) { showToast(t('learn_split_none', '没有可拆分的长段卡')); }
+    else {
+      let msg = t('learn_split_done', '已把 {p} 张长段卡拆成 {c} 张句子卡')
+        .replace('{p}', String(r.parents)).replace('{c}', String(r.children));
+      if (r.skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
+        .replace('{k}', String(r.skipped));
+      showToast(msg, 4000);
+    }
+    await refreshLearnStats();
+    await refreshPressure();
+  }));
+
   $('btn-clean-known').addEventListener('click', busy($('btn-clean-known'), async () => {
     const n = await LearnStore.clearKnown().catch(() => -1);
     if (n < 0) { showToast(t('toast_learn_clear_failed', '清空失败')); }
