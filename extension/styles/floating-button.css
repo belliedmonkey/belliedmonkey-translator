@@ -1,4 +1,7 @@
-/* floating-button.css — 悬浮翻译按钮 */
+/* floating-button.css — 悬浮翻译按钮（大肚猴 mascot, design/handoff.md §4）
+   The button itself is transparent: the SVG draws everything (colored disc,
+   ears breaking the circle, face, belly). Two <g> states live in the one SVG
+   (see floating-button.js) and this class toggle is the whole state switch. */
 
 #mt-fab {
   position: fixed;
@@ -7,8 +10,7 @@
   width: 52px;
   height: 52px;
   border-radius: 26px;
-  background: #0a7a3c;
-  color: #fff;
+  background: transparent;
   border: none;
   padding: 0;
   display: flex;
@@ -16,40 +18,49 @@
   justify-content: center;
   z-index: 2147483645;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 1px 4px rgba(0, 0, 0, 0.15);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
 }
 
 #mt-fab:active {
   transform: scale(0.91);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-#mt-fab.mt-fab-active {
-  background: #065f46;
-  box-shadow: 0 4px 16px rgba(6, 95, 70, 0.4), 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 #mt-fab svg {
-  width: 22px;
-  height: 22px;
+  width: 52px;
+  height: 52px;
+  overflow: visible; /* ears extend past the disc */
   pointer-events: none;
   flex-shrink: 0;
+  /* Shadow lives on the SVG (the button is transparent): terracotta when off… */
+  filter: drop-shadow(0 4px 10px rgba(198, 113, 57, 0.4));
 }
 
-/* Status dot when active */
-#mt-fab.mt-fab-active::after {
-  content: '';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  background: #86efac;
-  border-radius: 50%;
-  border: 2px solid #065f46;
+/* …sage when translating. */
+#mt-fab.mt-fab-active svg {
+  filter: drop-shadow(0 4px 10px rgba(114, 129, 87, 0.45));
 }
+
+/* ── Mascot colours — the SVG in floating-button.js is pure geometry; every
+   fill/stroke lives here so a recolour never touches the JS. ──────────────── */
+#mt-fab .mt-fab-ear { fill: #f5ead8; stroke: #c67139; }
+#mt-fab .mt-fab-ear-inner { fill: #ffc6a5; }
+#mt-fab .mt-fab-disc { fill: #c67139; }
+#mt-fab .mt-fab-cream { fill: #f5ead8; }
+#mt-fab .mt-fab-ink { fill: #201e1d; }
+#mt-fab .mt-fab-accent { fill: #c67139; }
+#mt-fab .mt-fab-glyph { fill: #8c491a; }
+#mt-fab .mt-fab-stroke { fill: none; stroke: #201e1d; stroke-width: 2; stroke-linecap: round; }
+
+/* 开 (translating): the disc and ear rings go sage, inner ears go sage-light. */
+#mt-fab.mt-fab-active .mt-fab-ear { stroke: #728157; }
+#mt-fab.mt-fab-active .mt-fab-ear-inner { fill: #ccdbb2; }
+#mt-fab.mt-fab-active .mt-fab-disc { fill: #728157; }
+
+/* State switch: exactly one face/belly variant visible at a time. */
+#mt-fab .mt-fab-on { display: none; }
+#mt-fab.mt-fab-active .mt-fab-on { display: block; }
+#mt-fab.mt-fab-active .mt-fab-off { display: none; }

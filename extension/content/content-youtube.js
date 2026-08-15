@@ -170,8 +170,8 @@ var YouTubeTranslator = (() => {
   function textWidth() { const p = document.querySelector(PLAYER); return Math.max(200, Math.round((p ? p.clientWidth : 800) * 0.82) - 24); }
 
   function floatingBtnCss(bottomPx) {
-    return `position:fixed;right:18px;bottom:${bottomPx}px;width:40px;height:40px;border-radius:50%;border:none;` +
-      'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
+    return `position:fixed;right:18px;bottom:${bottomPx}px;width:40px;height:40px;border-radius:50%;` +
+      window.MT_PALETTE.roundBtnCss(15) +
       'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
   }
   function adShowing() {

@@ -112,7 +112,7 @@ var SubtitleAdapter = (() => {
       else { enEl.style.cssText = lineCss(fp, '#fff'); enEl.textContent = en; }
       zhEl.onclick = null;
       if (displayMode === 'orig') { zhEl.style.display = 'none'; zhEl.textContent = ''; }
-      else if (zh) { zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || '#fff'); zhEl.textContent = zh; }
+      else if (zh) { zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || window.MT_PALETTE.ytTextColor); zhEl.textContent = zh; }
       else if (state === 'error') {
         zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
         zhEl.textContent = TranslationCore.MSG.error;
@@ -234,8 +234,8 @@ var SubtitleAdapter = (() => {
         btn.title = spec.labels.btnTitle;
         btn.textContent = '译';
         btn.style.cssText = spec.buttonCss ? spec.buttonCss() :
-          'position:fixed;right:18px;bottom:150px;width:40px;height:40px;border-radius:50%;border:none;' +
-          'cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:15px;font-weight:700;' +
+          'position:fixed;right:18px;bottom:150px;width:40px;height:40px;border-radius:50%;' +
+          window.MT_PALETTE.roundBtnCss(15) +
           'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
         btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(btn); });
         document.body.appendChild(btn);

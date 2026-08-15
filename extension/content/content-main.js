@@ -29,8 +29,8 @@
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
     apiModel: settings.apiModel || '',
-    textColor: settings.textColor || '#0a7a3c',
-    ytTextColor: settings.ytTextColor || '#ffffff',
+    textColor: settings.textColor || window.MT_PALETTE.textColor,
+    ytTextColor: settings.ytTextColor || window.MT_PALETTE.ytTextColor,
     fontSize: settings.fontSize || '1.0',
     showFab: settings.showFab !== false,
     ytSubEnabled: false, // video subtitles also start off until the 译 button is turned on

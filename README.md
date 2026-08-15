@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
-  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-0a7a3c"></a>
+  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/hero-bilingual.gif" alt="A Substack podcast page: every paragraph carries a green translation beneath it, and a bilingual subtitle pair tracks the audio at the bottom of the screen." width="720">
+  <img src="docs/media/hero-bilingual.gif" alt="A Substack podcast page: every paragraph carries a translation beneath it, and a bilingual subtitle pair tracks the audio at the bottom of the screen." width="720">
 </p>
 
 <p align="center"><sub>Page text and audio subtitles at the same time. The original stays; the translation goes underneath.</sub></p>

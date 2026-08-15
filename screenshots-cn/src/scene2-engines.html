@@ -7,7 +7,7 @@
   html,body{width:100%;height:100%;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',system-ui,sans-serif;
-    background:linear-gradient(160deg,#0a7a3c 0%,#0e8a45 45%,#12a152 100%);
+    background:linear-gradient(160deg,#b2622d 0%,#c67139 45%,#d67f48 100%);
     display:flex;flex-direction:column;align-items:center;overflow:hidden;
   }
   .caption{text-align:center;color:#fff;padding:6.5vh 8vw 0;flex:0 0 auto;}
@@ -21,32 +21,33 @@
     border:1.1vw solid #1a1a1a;border-bottom:none;
     overflow:hidden;display:flex;flex-direction:column;
   }
-  .pop{--green:#0a7a3c;--green-dark:#065f46;--green-light:#dcfce7;--text:#1a1a1a;
-    --text-secondary:#6b7280;--border:#e5e7eb;--section-bg:#f9fafb;
-    flex:1;display:flex;flex-direction:column;}
-  .phead{display:flex;align-items:center;gap:2.6%;padding:4vh 5.5% 3.4vh;border-bottom:1px solid var(--border);}
-  .logo{flex-shrink:0;width:11vw;height:11vw;background:var(--green-light);border-radius:2.6vw;display:flex;align-items:center;justify-content:center;}
-  .logo svg{width:7vw;height:7vw;}
+  /* Organic palette (design/handoff.md §1) — mirrors the real popup. */
+  .pop{--accent:#c67139;--sage:#728157;--sage-light:#e1eecc;--sage-deep:#272e1b;--text:#201e1d;
+    --text-secondary:#82796a;--border:#dcd3c4;--section-bg:#f9f4ed;
+    flex:1;display:flex;flex-direction:column;background:#f5ead8;}
+  .phead{display:flex;align-items:center;gap:2.6%;padding:4vh 5.5% 3.4vh;}
+  .logo{flex-shrink:0;width:11vw;height:11vw;display:flex;align-items:center;justify-content:center;}
+  .logo svg{width:11vw;height:11vw;}
   .phead h1{font-size:4.4vw;font-weight:600;color:var(--text);flex:1;}
-  .badge{font-size:2.7vw;font-weight:600;padding:0.9vh 3vw;border-radius:5vw;background:var(--green-light);color:var(--green-dark);}
-  .section{padding:1.2vh 5.5%;border-bottom:1px solid var(--border);}
+  .badge{font-size:2.7vw;font-weight:700;padding:0.9vh 3vw;border-radius:99vw;background:var(--sage-light);color:var(--sage-deep);}
+  .section{background:#fff;margin:0 4.5% 1.6vh;padding:0.6vh 4%;border-radius:4vw;box-shadow:0 1px 2px rgba(46,43,37,.14);}
   .row{display:flex;align-items:center;justify-content:space-between;min-height:6.2vh;gap:4%;}
   .row-label{font-size:3.5vw;color:var(--text);flex-shrink:0;}
-  .select{font-size:3.4vw;color:var(--text);background:var(--section-bg);border:1px solid var(--border);border-radius:2.2vw;padding:1.2vh 3.6vw;display:flex;align-items:center;gap:2vw;}
-  .select.active{border-color:var(--green);color:var(--green);font-weight:600;background:#fff;box-shadow:0 0 0 3px rgba(10,122,60,.12);}
+  .select{font-size:3.4vw;color:var(--text);background:var(--section-bg);border:1px solid var(--border);border-radius:99vw;padding:1.2vh 3.6vw;display:flex;align-items:center;gap:2vw;}
+  .select.active{border-color:var(--accent);color:#8c491a;font-weight:600;background:#fff;box-shadow:0 0 0 3px rgba(198,113,57,.14);}
   .caret{font-size:2.6vw;opacity:.6;}
   /* open dropdown */
-  .menu-wrap{padding:0 5.5% 1.6vh;}
+  .menu-wrap{padding:0 4.5% 1.6vh;}
   .menu-label{font-size:3.1vw;color:var(--text-secondary);margin:1.6vh 0 1.1vh;font-weight:500;}
-  .menu{border:1px solid var(--border);border-radius:3vw;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.08);}
-  .opt{display:flex;align-items:center;gap:3vw;padding:2.15vh 4.5vw;font-size:3.5vw;color:var(--text);border-bottom:1px solid #f0f1f3;}
+  .menu{background:#fff;border:1px solid var(--border);border-radius:4vw;overflow:hidden;box-shadow:0 8px 26px rgba(46,43,37,.1);}
+  .opt{display:flex;align-items:center;gap:3vw;padding:2.15vh 4.5vw;font-size:3.5vw;color:var(--text);border-bottom:1px solid #eee7db;}
   .opt:last-child{border-bottom:none;}
-  .opt .dot{width:2.6vw;height:2.6vw;border-radius:50%;background:#12a152;flex-shrink:0;}
-  .opt.sel{background:var(--green-light);font-weight:600;color:var(--green-dark);}
-  .opt.sel .check{margin-left:auto;color:var(--green);font-size:3.8vw;font-weight:700;}
+  .opt .dot{width:2.6vw;height:2.6vw;border-radius:50%;background:var(--sage);flex-shrink:0;}
+  .opt.sel{background:var(--sage-light);font-weight:600;color:var(--sage-deep);}
+  .opt.sel .check{margin-left:auto;color:#56633f;font-size:3.8vw;font-weight:700;}
   .opt .sub{margin-left:auto;font-size:2.7vw;color:var(--text-secondary);}
-  .actions{padding:2.6vh 5.5% 3vh;margin-top:auto;}
-  .btn{width:100%;background:var(--green);color:#fff;border:none;border-radius:3vw;padding:2.4vh 0;font-size:4vw;font-weight:600;text-align:center;box-shadow:0 4px 16px rgba(10,122,60,.28);}
+  .actions{padding:2.6vh 4.5% 3vh;margin-top:auto;}
+  .btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:99vw;padding:2.4vh 0;font-size:4vw;font-weight:700;text-align:center;box-shadow:0 4px 16px rgba(198,113,57,.28);}
 </style>
 </head>
 <body>
@@ -59,7 +60,7 @@
       <div class="pop">
         <div class="phead">
           <div class="logo">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="#0a7a3c"/></svg>
+            <img src="../../extension/icons/icon.svg" style="width:11vw;height:11vw" alt="">
           </div>
           <h1>大肚猴翻译</h1>
           <span class="badge">已开启</span>
@@ -73,7 +74,7 @@
         <div class="menu-wrap">
           <div class="menu">
             <div class="opt"><span class="dot"></span>DeepSeek</div>
-            <div class="opt sel"><span class="dot" style="background:#065f46;"></span>智谱 GLM<span class="check">✓</span></div>
+            <div class="opt sel"><span class="dot" style="background:#56633f;"></span>智谱 GLM<span class="check">✓</span></div>
             <div class="opt"><span class="dot"></span>通义千问</div>
             <div class="opt"><span class="dot"></span>Kimi</div>
             <div class="opt"><span class="dot" style="background:#9aa0a6;"></span>自定义接口<span class="sub">Chat / Messages</span></div>

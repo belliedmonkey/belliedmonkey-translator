@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:
 - **Webpage translation**: bilingual display — original paragraph + translated text below, in green
-- **YouTube dual subtitles**: original subtitle on top, translation appended below in yellow
+- **YouTube dual subtitles**: original subtitle on top, translation appended below (sage by default, user-configurable)
 - **Multi-provider LLM**: Google (free), OpenAI, Claude, DeepSeek, GLM (智谱)
 
 ## Build & Test
@@ -126,6 +126,13 @@ Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `t
 ## Content Script Load Order
 
 Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
+0. Generated registries load ahead of everything: `i18n-messages.js`,
+   `palette.gen.js` (→ `window.MT_PALETTE`, the brand palette + shared round-button
+   style from `build/palette.config.js` — **never restate a brand hex in JS**, same
+   one-registry rule as the providers; the carve-out is page-injected CSS and the
+   mascot SVG, which cannot read a JS registry and instead are PINNED by build.js's
+   palette gate: any hex there that the registry doesn't know fails the build),
+   `providers.gen.js`, `langs.gen.js`.
 1. `translation-core.js` → exposes `window.TranslationCore` (platform-agnostic engine:
    subtitle state machine + sliding-window preload, pager, cue merge, language-aware
    helpers, i18n `t()`, MSG). Must load first — others depend on it.

@@ -7,8 +7,8 @@
   display: block;
   margin-top: 4px;
   padding: 3px 0 2px;
-  border-top: 1px solid rgba(10, 122, 60, 0.18);
-  color: #0a7a3c;
+  border-top: 1px solid rgba(86, 99, 63, 0.18);
+  color: #56633f;
   word-break: break-word;
   overflow-wrap: anywhere;
   -webkit-user-select: text;
@@ -29,8 +29,8 @@
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .mt-translation {
-    color: #4ade80;
-    border-top-color: rgba(74, 222, 128, 0.2);
+    color: #aebf92;
+    border-top-color: rgba(174, 191, 146, 0.18);
   }
 }
 
@@ -41,7 +41,7 @@
   left: 0;
   height: 3px;
   width: 0%;
-  background: linear-gradient(90deg, #0a7a3c, #16a34a);
+  background: linear-gradient(90deg, #c67139, #f6a06b);
   z-index: 2147483647;
   pointer-events: none;
   transition: width 0.25s ease, opacity 0.5s ease;
@@ -51,10 +51,10 @@
 /* Tap-to-translate chip */
 .mt-translate-chip {
   position: fixed;
-  background: #0a7a3c;
+  background: #c67139;
   color: #fff;
   border: none;
-  border-radius: 20px;
+  border-radius: 999px;
   padding: 7px 16px;
   font-size: 14px;
   font-weight: 500;

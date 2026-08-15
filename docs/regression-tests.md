@@ -39,7 +39,7 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   bilingual — FAB turns it on per page load.)*
 
 - [ ] **In-player 译 button toggles VIDEO subtitles independently.** On
-  `youtube.com` desktop: toggle the green 译 button's `开启视频字幕翻译 / 关闭视频字幕翻译`.
+  `youtube.com` desktop: toggle the terracotta 译 button's `开启视频字幕翻译 / 关闭视频字幕翻译`.
   **Expected:** only the `#mt-yt-overlay` subtitles change; page text (title /
   description / comments) is unaffected; and toggling the FAB does not change the
   video subtitles. *(Spec: YouTube "Two independent controls" — 译 = video, FAB =
@@ -53,7 +53,7 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
   `isMobileYouTube`.)*
 
 - [ ] **Embed = subtitles only, no FAB / no page text.** Load a page with a
-  third-party YouTube `embed` iframe. **Expected:** the green 译 button appears over
+  third-party YouTube `embed` iframe. **Expected:** the terracotta 译 button appears over
   the embed and controls subtitles; **no** `#mt-fab`, **no** `.mt-translation` on
   the host page. *(Spec: content-main `isEmbed` → `YouTubeTranslator.init` only.)*
 
@@ -63,7 +63,7 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 
 - [ ] **Bilingual line injected under each paragraph.** FAB on, scroll a text page.
   **Expected:** each paragraph keeps the original above and a `.mt-translation`
-  sibling below, in the configured color (default green `#0a7a3c` / dark `#4ade80`).
+  sibling below, in the configured color (default from build/palette.config.js — sage, dark-mode light step).
   *(Spec: "injected under each original paragraph" + Universal "Interleaved,
   paragraph by paragraph".)*
 
@@ -133,9 +133,9 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 
 ## 3. YouTube dual subtitles
 
-- [ ] **译 button is one consistent green circular widget everywhere.** Compare
+- [ ] **译 button is one consistent terracotta circular widget everywhere.** Compare
   `youtube.com` desktop, `youtube.com` touch / Request-Desktop, and a third-party
-  embed. **Expected:** identical always-visible green circular floating `#mt-yt-btn`
+  embed. **Expected:** identical always-visible terracotta circular floating `#mt-yt-btn`
   labelled `译` — **not** mounted in YouTube's auto-hiding control bar. *(Spec:
   YouTube "The 译 button is one consistent widget everywhere".)*
 
@@ -206,7 +206,7 @@ Markers referenced: `#mt-fab` (FAB), `#mt-yt-btn` / `#mt-yt-overlay` (YouTube),
 Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn` (译).
 
 - [ ] **译 button embedded INSIDE the video component.** Desktop x.com status page with a
-  video. Enable subtitles. **Expected:** the green `译` button sits **inside the active
+  video. Enable subtitles. **Expected:** the terracotta `译` button sits **inside the active
   video's player container** (top-right corner), NOT floating fixed at the page's
   bottom-right. *(Spec: domain-design §5 Twitter control placement; §2.3.6.)*
 
@@ -275,7 +275,7 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   Substack video post with the player's Subtitles ON (Substack settings menu →
   Subtitles → English; auto-on on WebKit), FAB on. **Expected:** 0 `.mt-translation`
   and 0 `data-mt-processed` inside the marked shell (`[data-mt-player-region]`) — no
-  green lines inside the caption box or transcript scroller, no `⏳翻译中…` churn.
+  translation lines inside the caption box or transcript scroller, no `⏳翻译中…` churn.
   *(Spec: Podcast "Adapter-marked player regions"; domain-design §3.)*
 
 - [ ] **Player-drawn caption box hidden while our overlay drives.** Same setup, play.

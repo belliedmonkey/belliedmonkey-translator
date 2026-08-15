@@ -42,12 +42,12 @@ element existing is not proof the user sees it (see AGENTS.md).
 - **Mobile — ONE button drives everything.** On **any touch device** — both
   `m.youtube.com` *and* a phone / iPad on the desktop-layout `www.youtube.com` — there is
   **no separate 译 button**; the page **FAB** drives BOTH the video subtitles and the page
-  text. This prevents two near-identical green circles colliding on a small screen.
+  text. This prevents two near-identical brand-coloured circles colliding on a small screen.
   "Mobile" is a single shared signal, `TranslationCore.isMobileLayout()`
   (`navigator.maxTouchPoints > 0` or a mobile UA), used by both the router
   (`content-main`) and the button gate (`content-youtube`) so they can never disagree.
 - **The 译 button widget (desktop + embed only).** Where it IS shown it is an
-  **always-visible green circular floating button**, identical on desktop `youtube.com`
+  **always-visible terracotta circular floating button**, identical on desktop `youtube.com`
   and third-party **embeds** — NOT mounted inside YouTube's auto-hiding control bar. On
   desktop `youtube.com` it sits **above the page FAB** (`bottom:150px`); in an embed (no
   page FAB) it sits at the corner (`bottom:10px`). The menu anchors just above it.
@@ -83,7 +83,7 @@ element existing is not proof the user sees it (see AGENTS.md).
   time span. Line capping is **measured** at the current width (responsive — works on
   desktop and narrow mobile alike), never a fixed character count.
 - **Width cap.** `max-width: ~82%` of the player so it never covers too much of the frame.
-- Translation line color follows the `ytTextColor` setting (default white).
+- Translation line color follows the `ytTextColor` setting (default from build/palette.config.js — sage-light since 2026-08).
 
 ### Loading state
 - When the active sentence's translation is **not ready yet**, show a hint
@@ -91,7 +91,7 @@ element existing is not proof the user sees it (see AGENTS.md).
   arrives, the next tick **auto-swaps** it in. Never show a blank or stuck line.
 
 ### In-player control button + menu
-- A **`译` button** is an always-visible **green circular floating button** (same widget
+- A **`译` button** is an always-visible **terracotta circular floating button** (same widget
   on youtube.com desktop/touch and on embeds — see Controls & activation above), not an
   in-control-bar button.
 - Clicking opens a menu with:
@@ -264,7 +264,7 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   survives fullscreen, and in a feed of many videos it is unambiguous **which** video it
   controls. (This differs from YouTube's floating button — see domain-design §5.2.)
 - **Mobile (any touch device): no separate `译` button.** The page **FAB drives both**
-  the video subtitles and the page text — one green circle, never two.
+  the video subtitles and the page text — one brand-coloured circle, never two.
 - The button's menu is the shared one: **开启/关闭视频字幕翻译**, **双语字幕 / 仅译文 /
   仅原文**, **下载字幕 (.srt)**, **设置**.
 - **A feed holds many videos.** The subtitles follow the *active* one (playing, or
@@ -513,8 +513,8 @@ These apply to every webpage text translation, on every platform:
   `font-style`, `line-height`, `letter-spacing` — read via `getComputedStyle(original)`
   at render time. So a bold heading gets a bold heading-sized translation, body text
   gets body text, a caption gets a caption. The **only** font-related property that
-  stays distinct is the **color** (configurable, default green `#0a7a3c` / dark-mode
-  `#4ade80`) so the bilingual pair is still tellable apart. The 「字号」 setting is a
+  stays distinct is the **color** (configurable; the default lives in
+  `build/palette.config.js` — 2026-08 之后是鼠尾草 sage, dark-mode 用浅阶) so the bilingual pair is still tellable apart. The 「字号」 setting is a
   **relative scale** applied on top (default `1.0×` = identical to the original;
   `0.8×`–`1.25×` to tune all translations up/down; legacy unit values migrate to
   `1.0×`). Applies to the sibling translation and to the re-rendered originals +
@@ -524,7 +524,7 @@ These apply to every webpage text translation, on every platform:
   single-blob paragraph is re-drawn as alternating original / translation rows, the
   re-drawn original rows carry the **source element's own color**, not the
   translation color. The holder we draw them into is itself a `.mt-translation`
-  element, so without that the originals inherit the green and the whole block
+  element, so without that the originals inherit the translation colour and the whole block
   renders in one solid color — the bilingual pair stops being tellable apart, which
   is the single thing color exists to do here. (Regression-tested by fixture 25.)
 
@@ -673,7 +673,7 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 ①  source sentence, large                ← media card: a 「▶ 重听这个片段」 button below
     [ 显示译文 ]                            one reveal button, nothing else on screen
 ─────────────────────────────  after reveal
-②  translation, in the bilingual green (same visual language as .mt-translation)
+②  translation, in the bilingual sage (same visual language as .mt-translation)
     [不记得] [有点难] [记得] [太简单]        ← grades 0/1/2/3, always four, never two
     ⓘ source: site · title · 打开原文
 ```

@@ -4,27 +4,22 @@
  * target already references, so regenerating the Xcode project never needs a pbxproj
  * edit (see scripts/sync-app-assets.js).
  *
- * System font and system colours throughout: this ships inside an App Store app on
- * two platforms, and anything hand-picked here is a thing that looks wrong in dark
- * mode, at accessibility text sizes, or on the OS we did not check. */
+ * System font throughout: this ships inside an App Store app on two platforms, and
+ * a hand-picked font is a thing that looks wrong at accessibility text sizes or on
+ * the OS we did not check. Colours are the Organic palette (design/handoff.md §1):
+ * --accent terracotta = 主操作, sage family = 状态/译文.
+ *
+ * ALL colour values come from the shared token sheet (build/palette.config.js →
+ * organic-tokens.gen.css, prepended into Style.css by build/app-bundle.js ahead of
+ * review.css and this file). This block may only ALIAS shared tokens — a raw hex
+ * here would re-open the concatenation trap where a same-named :root variable
+ * (e.g. --sage) redefines review.css's meaning document-wide. */
 
 :root {
-  --green: #0a7a3c;
-  --fg: #1c1c1e;
-  --dim: #6b6b70;
-  --line: rgba(0, 0, 0, 0.12);
-  --bg: #fff;
-  --field: #fff;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --green: #4ec98a;
-    --fg: #f2f2f7;
-    --dim: #9a9aa0;
-    --line: rgba(255, 255, 255, 0.18);
-    --bg: #1c1c1e;
-    --field: #2c2c2e;
-  }
+  --fg: var(--text);
+  --dim: var(--text-secondary);
+  --line: var(--border);
+  --field: var(--card-bg);
 }
 
 * { box-sizing: border-box; }
@@ -75,33 +70,34 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
   font: inherit;
   color: var(--fg);
   background: var(--field);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 12px 16px;
   /* 16px minimum or iOS zooms the whole page on focus. */
   font-size: max(16px, 1rem);
 }
-:where(#signed-out, #signed-in, #app-settings) input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+:where(#signed-out, #signed-in, #app-settings) input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
 :where(#signed-out, #signed-in, #app-settings) button {
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  background: var(--green);
+  background: var(--accent);
   border: 0;
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: 999px;
+  padding: 12px 18px;
   cursor: pointer;
   /* Comfortably past the 44pt touch target. */
   min-height: 48px;
 }
 /* interaction-spec 全局原则: every in-flight control looks disabled — selects and
-   inputs included (the TTS engine picker locks during voice discovery). */
+   inputs included (the TTS engine picker locks during voice discovery).
+   45% — the Organic spec value (handoff §2). */
 :where(#signed-out, #signed-in, #app-settings) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
 
 :where(#signed-out, #signed-in, #app-settings) button.link {
   background: none;
-  color: var(--green);
+  color: var(--accent-deep);
   font-weight: 400;
   min-height: 0;
   padding: 6px;
@@ -119,18 +115,22 @@ header {
 #who { color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
 
 .counts { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 4px; }
-.counts b { display: block; font-size: 1.7rem; color: var(--green); font-variant-numeric: tabular-nums; }
+.counts b { display: block; font-size: 1.7rem; color: var(--fg); font-variant-numeric: tabular-nums; }
 .counts span { font-size: 0.8rem; color: var(--dim); }
+/* Mock 1b 的三色思路映射到五格：待复习陶土深、学习中鼠尾草，其余墨色。
+   语义类由 app.js 的 cell() 打上——按位置 (nth-child) 上色的话，格子一旦
+   重排/隐藏，颜色就静默错位。 */
+.counts .count-due b { color: var(--accent-deep); }
+.counts .count-learning b { color: var(--sage-strong); }
 
 #status { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--dim); }
-#status.err { color: #c1121f; }
-@media (prefers-color-scheme: dark) { #status.err { color: #ff6b6b; } }
+#status.err { color: var(--danger); }
 
 /* ─── App shell on top of review.css ─────────────────────────────────────── */
 /* review.css owns everything inside #review-view; these only place the shell. */
 .row { display: flex; gap: 10px; align-items: stretch; }
 .row button { flex: 1; }
-:where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--green); border: 1px solid var(--line); }
+:where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
 /* The one shell-owned control INSIDE the review surface, so the scoped rules
    above no longer reach it — it carries its link styling by id (which also
@@ -140,7 +140,7 @@ header {
   font: inherit;
   background: none;
   border: 0;
-  color: var(--green);
+  color: var(--accent-deep);
   font-weight: 400;
   min-height: 0;
   padding: 6px;
@@ -162,9 +162,8 @@ header {
 .check input { width: 22px; height: 22px; }
 /* Range and checkbox render in the SYSTEM accent (blue) otherwise — the only
    off-brand pixels on the page, and the kind of detail that reads as unfinished. */
-.field input[type=range], .check input { accent-color: var(--green); }
+.field input[type=range], .check input { accent-color: var(--sage); }
 #settings-counts { display: block; color: var(--dim); font-size: 0.9rem; }
 /* Destructive, and it must LOOK destructive — a delete that shares the primary
    button style is a delete someone presses by muscle memory. */
-button.danger { background: none; color: #c1121f; border: 1px solid currentColor; }
-@media (prefers-color-scheme: dark) { button.danger { color: #ff6b6b; } }
+button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }

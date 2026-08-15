@@ -398,6 +398,28 @@
       const fab = document.getElementById('mt-fab');
       if (!fab || !fab.isConnected) {
         fail('fabMounted', '#mt-fab', fab ? 'exists but disconnected' : 'not in the DOM (hydration sweep not survived — issue #30)');
+      } else {
+        // Two-state mascot contract (2026-08 rebrand): the state switch is purely
+        // CSS keyed on .mt-fab-active — a class-name drift between the SVG's
+        // <g class="mt-fab-off|on"> (floating-button.js) and floating-button.css
+        // stacks both monkeys (or shows neither) while everything else stays green.
+        const gOff = fab.querySelector('.mt-fab-off'), gOn = fab.querySelector('.mt-fab-on');
+        if (!gOff || !gOn) {
+          fail('fabStates', '#mt-fab', 'missing .mt-fab-off / .mt-fab-on group(s) in the FAB SVG');
+        } else {
+          const vis = (el) => getComputedStyle(el).display !== 'none';
+          const wasActive = fab.classList.contains('mt-fab-active');
+          const check = (activeExpected, label) => {
+            if (vis(gOn) !== activeExpected || vis(gOff) === activeExpected) {
+              fail('fabStates', '#mt-fab',
+                `${label}: off visible=${vis(gOff)} on visible=${vis(gOn)} — exactly one state must show`);
+            }
+          };
+          check(wasActive, wasActive ? 'active state' : 'idle state');
+          fab.classList.toggle('mt-fab-active');   // drive the OTHER state…
+          check(!wasActive, 'after toggle');
+          fab.classList.toggle('mt-fab-active');   // …and restore exactly what was there
+        }
       }
     }
     // Document-scoped invariant — opt out with skipUniversal.noHorizontalOverflow: ["*"]

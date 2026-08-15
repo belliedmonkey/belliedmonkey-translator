@@ -42,11 +42,11 @@ var SourcesView = (() => {
       color:inherit !important; font-weight:400 !important; text-align:left;
       border:1px solid rgba(128,128,128,.45) !important; border-radius:999px !important;
       padding:3px 10px !important; font-size:.85em !important; cursor:pointer; }
-    button.srcm-chip:hover { background:rgba(10,122,60,.08) !important; color:inherit !important; }
+    button.srcm-chip:hover { background:${window.MT_PALETTE.chipOnHover} !important; color:inherit !important; }
     /* Selected = solid fill, unmistakable at a glance. */
-    button.srcm-lang-chip[data-on="1"] { background:#0a7a3c !important;
-      border-color:#0a7a3c !important; color:#fff !important; font-weight:600 !important; }
-    button.srcm-lang-chip[data-on="1"]:hover { background:#0a7a3c !important; color:#fff !important; }
+    button.srcm-lang-chip[data-on="1"] { background:${window.MT_PALETTE.chipOn} !important;
+      border-color:${window.MT_PALETTE.chipOn} !important; color:#fff !important; font-weight:600 !important; }
+    button.srcm-lang-chip[data-on="1"]:hover { background:${window.MT_PALETTE.chipOn} !important; color:#fff !important; }
     .srcm-chip button { border:none !important; background:none !important;
       padding:0 2px !important; width:auto !important; }
     .srcm-row button:disabled, .srcm-add button:disabled, .srcm-chip button:disabled,

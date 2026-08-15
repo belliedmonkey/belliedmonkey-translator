@@ -77,8 +77,11 @@
     ]);
     const due = LearnScheduler.dueCount(items, Date.now(), LearnScheduler.DEFAULTS);
     $('app-counts').innerHTML = '';
-    const cell = (n, label) => {
+    // cls = semantic hook for style.css's stat-tile colors (never color by
+    // position — a reordered/hidden tile would silently mis-color).
+    const cell = (n, label, cls) => {
       const d = document.createElement('div');
+      if (cls) d.className = cls;
       const b = document.createElement('b');
       b.textContent = String(n);
       const s = document.createElement('span');
@@ -88,8 +91,8 @@
     };
     $('app-counts').append(
       cell(stats.total, t('learn_count_total', '总计')),
-      cell(due, t('learn_count_due', '待复习')),
-      cell(stats.by.learning || 0, t('learn_count_learning', '学习中')),
+      cell(due, t('learn_count_due', '待复习'), 'count-due'),
+      cell(stats.by.learning || 0, t('learn_count_learning', '学习中'), 'count-learning'),
       cell(stats.by.candidate || 0, t('learn_count_new', '候选')),
       cell(stats.by.known || 0, t('learn_count_known', '已掌握')));
     // 「上次同步」读统一成功戳；旧装机回退老键（只读回退，不迁移）。

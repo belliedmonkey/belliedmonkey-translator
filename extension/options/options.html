@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>大肚猴翻译 — 设置</title>
+  <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="page">
     <header class="page-header">
       <h1>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="#0a7a3c"/></svg>
+<!-- 大肚猴 mark — the canonical icons/icon.svg, referenced not restated (design/handoff.md §3) --><img src="../icons/icon.svg" width="40" height="40" alt="">
         <span data-i18n="options_title">大肚猴翻译 · 设置</span>
       </h1>
     </header>
@@ -102,7 +103,7 @@
         <div class="field">
           <label for="text-color" data-i18n="options_webpage_color">网页译文颜色</label>
           <div class="color-row">
-            <input type="color" id="text-color" value="#0a7a3c">
+            <input type="color" id="text-color" value="#56633f">
             <span id="color-preview" class="color-preview" data-i18n="options_color_preview">这是译文的样式预览</span>
           </div>
         </div>
@@ -110,7 +111,7 @@
         <div class="field">
           <label for="yt-text-color" data-i18n="options_yt_color">YouTube 字幕颜色</label>
           <div class="color-row">
-            <input type="color" id="yt-text-color" value="#ffffff">
+            <input type="color" id="yt-text-color" value="#ccdbb2">
             <span id="yt-color-preview" class="color-preview" style="background:#000;padding:2px 6px;border-radius:2px" data-i18n="options_yt_preview">双语字幕预览</span>
           </div>
         </div>
@@ -367,6 +368,7 @@
   <script src="../learn/page-settings.js"></script>
 
   <script src="../content/i18n-messages.js"></script>
+  <script src="../content/palette.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
   <script src="../content/langs.gen.js"></script>
   <script src="../content/learn-model.js"></script>

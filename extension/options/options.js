@@ -365,8 +365,8 @@ async function init() {
   $('api-model').value      = s.apiModel    || '';
   $('target-lang').value    = s.targetLang  || 'zh-CN';
   $('ui-lang').value        = s.uiLang      || 'auto';
-  $('text-color').value     = s.textColor   || '#0a7a3c';
-  $('yt-text-color').value  = s.ytTextColor || '#ffffff';
+  $('text-color').value     = s.textColor   || window.MT_PALETTE.textColor;
+  $('yt-text-color').value  = s.ytTextColor || window.MT_PALETTE.ytTextColor;
   $('font-size').value      = scaleValue(s.fontSize);
   $('show-fab').checked     = s.showFab !== false;
   // Capture is OFF until the user turns it on once — never default-on on upgrade.
@@ -450,8 +450,8 @@ async function init() {
   updateSttUI($('stt-engine').value);
 
   updateProviderUI(prov);
-  updateColorPreview(s.textColor || '#0a7a3c');
-  $('yt-color-preview').style.color = s.ytTextColor || '#ffffff';
+  updateColorPreview(s.textColor || window.MT_PALETTE.textColor);
+  $('yt-color-preview').style.color = s.ytTextColor || window.MT_PALETTE.ytTextColor;
   if (prov !== s.provider) await saveAll(); // migrate an out-of-flavor provider
 
   // ─── Listeners ──────────────────────────────────────────────────────
