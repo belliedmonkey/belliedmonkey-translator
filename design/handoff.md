@@ -102,3 +102,11 @@ SVG 逐段代码见 `Extension Mockups.dc.html` 1f / `Logo & FAB.dc.html` 2b（�
 
 颜色的唯一真源是 `build/palette.config.js`(→ `content/palette.gen.js` + `styles/organic-tokens.gen.css`);
 页面注入 CSS 与 icon.svg 里的字面 hex 由 build.js 的 palette gate 钉住——注册表不认识的 hex 直接拒绝构建。
+
+### §8 补:App 图标槽位(2026-08-15 白框病修复)
+
+主屏/程序坞图标与商店图标是**不同交付物**:
+- **iOS App 图标** = `app/appicon/ios-1024.png`,**满幅、不圆角、不透明**(圆角 iOS 自己裁;带透明角的圆角稿会被垫白 → 白框);
+- **macOS App 图标** = `app/appicon/mac-icon-*`,圆角稿按 Apple 网格 824/1024 居中、四周透明;
+- 商店/网页继续用 `extension/icons/icon.svg` 圆角稿。
+`scripts/sync-app-assets.js` Patch 7 每次把这套覆写进转换器的 AppIcon.appiconset——转换器默认会把扩展图标贴在白底上,这就是白框的来源。
