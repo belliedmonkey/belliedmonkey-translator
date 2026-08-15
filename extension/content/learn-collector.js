@@ -138,8 +138,9 @@ var LearnCollector = (() => {
 
   // §4.2: the renderer hands us PARAGRAPHS, but the unit of study is the
   // sentence — split the (text, tr) pair here, before ids are computed.
-  // splitPair pairs by count equality ONLY and returns the pair whole on any
-  // mismatch (a misaligned immutable pair would be permanent corpus corruption).
+  // splitPair pairs by count equality; a mismatch gets one bounded §4.2b
+  // reconciliation attempt and otherwise returns the pair whole (a misaligned
+  // immutable pair would be permanent corpus corruption).
   // Sentences inherit the paragraph's dwell — reading the paragraph IS reading
   // its sentences; the salience gate then judges each sentence on its own.
   function draftsFrom(w, lang, m) {

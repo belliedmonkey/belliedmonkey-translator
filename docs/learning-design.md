@@ -23,6 +23,7 @@
 | 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | 待评审 —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
 | 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | 待评审 —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
 | 2026-08-15 | belliedmonkey | §4.2 采集单位改为句子：捕获时按句对齐拆分（数量相等才配对，绝不猜对齐）；存量长段卡走显式「拆分长段卡」动作经删除台账传播 | 待评审 —— 见 §4.2 |
+| 2026-08-15 | belliedmonkey | §4.2b 计数和解：数不等时只在已知分词歧义点（嵌入引号问句/省略号/`. @handle`/`. 数字`/单字母缩写）做有界修复，须恰好补平、结果唯一、**每个操作有跨侧佐证**、过长度比守卫（等数快路径同守卫），否则仍保整；输入 >10K 直接保整；另修引注簇结尾被规则②回粘的 bug 与引注内类二次方回溯（真机第二轮 + 三路对抗评审毒例全数钉死） | 待评审 —— 见 §4.2b |
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
 | 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
@@ -317,6 +318,56 @@ time, in the Collector, before ids are computed.**
   counts differ, the pair is kept WHOLE. A long card is a nuisance; a *misaligned*
   (text, tr) pair is silent corpus corruption that `text`/`tr` immutability makes
   permanent. Never guess an alignment.
+- **§4.2b Count reconciliation (2026-08-15, second real-device pass).** A survey
+  of every kept-whole mismatch in the real library showed most were not translator
+  restructuring but ONE of a handful of known segmenter coin-flips, where the
+  *other* language's count is exactly the evidence that resolves the flip. Before
+  keeping a mismatched pair whole, `splitPair` makes one bounded reconciliation
+  attempt: **merge candidates** on the over-count side (a segment ending with a
+  terminal *inside* a closing quote — the zh `…发一次帖？”` + `这类问题的答案。`
+  embedded-question over-split — or a bare-ellipsis tail, unless the next segment
+  opens with a quote/dash) and **split candidates** on the under-count side
+  (Latin-terminal positions the segmenter refused: before an `@handle`, before a
+  digit `…by volume. 750ml bottles…`, after a single-letter initial `…Comando G.
+  My cellar…`). The never-guess doctrine holds four ways: operations happen ONLY
+  at candidate boundaries; **every op must be corroborated by cross-side
+  evidence in the pairing it produces** (see below); the chosen subset must land
+  the counts exactly equal with **exactly one** surviving pairing (two distinct
+  survivors = the evidence cannot tell them apart = keep whole); and every
+  surviving pair must pass a per-pair length-ratio guard (band 3.2×, calibrated
+  on the library's 1300+ known-good pairs whose worst legitimate deviation is
+  2.37×) — a guard the equal-count fast path now also runs (0 rejections across
+  the calibration library). Merges and splits are performed by SLICING the
+  normalized paragraph at recorded offsets, so a joining character can never be
+  invented, and inputs over 10K chars skip splitting entirely (no sane card, and
+  the citation regexes are super-linear on pathological no-whitespace runs).
+  Split candidates are Latin-terminal only by design: on the CJK side the same
+  punctuation evidence is ambiguous, and offering both sides' candidates makes
+  genuinely fixable cases fail the uniqueness rule.
+  **Corroboration** exists because three independent adversarial reviews each
+  constructed a natural paragraph where translator restructuring at a
+  NON-candidate boundary was "uniquely" bridged by an incidental candidate
+  elsewhere — uniqueness among candidates is not evidence of correctness. Each
+  op class carries its own cross-side check: a quote-terminal merge requires the
+  counterpart sentence to contain the SAME terminal class inside a closing quote
+  (`？”` ↔ `?”`; a `。”` does not vouch for a `？”`) and its continuation must
+  not start with an uppercase letter (`?” He said` is a normally-cased REAL
+  break — the observed coin-flip is the caseless CJK `？”这类` continuation); an
+  ellipsis merge requires the counterpart to contain an INTERNAL (non-final)
+  ellipsis — proof the translator ran the sentences together too; `@handle` and
+  digit splits require the literal anchor in the counterpart (handles and digit
+  runs survive translation); an initial split requires the preceding name
+  (`Comando`). Because punctuation echoes can themselves be incidental (the
+  third-generation poison had the same-class echo on BOTH sides), merges carry
+  one further requirement: they fly solo (only in 1-count reconciliations) and
+  must **dominate** — the candidate boundary must be the strictly best-fitting
+  single merge under the pair-ratio metric across every alternative position
+  (measured: real wins 1.05–1.60 at the candidate with alternatives worse;
+  every poison's true non-candidate boundary fit better, 1.04–1.16 vs the
+  candidate's 1.42–1.59). No corroboration or no dominance → keep whole,
+  honestly. Corpus regression after all guards: 1050 items, 1040 byte-identical,
+  10 whole→split (every pairing hand-verified), 0 split→whole, 0 pairings
+  changed; all five reviewer poison constructions keep whole (pinned as tests).
 - Sentences inherit the paragraph's dwell/seen/starred (reading the paragraph is
   reading its sentences); each gets its own per-sentence `anchor.quote`. The
   salience gate then runs per sentence, unchanged.
