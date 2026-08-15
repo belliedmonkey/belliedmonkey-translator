@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS = {
   provider: 'google',
   apiKey: '',
   apiBaseUrl: '',
-  textColor: '#0a7a3c',
+  textColor: '#56633f',
   fontSize: '1.0',       // translation font size as a scale relative to the original
   showFab: true,
   bilingualMode: 'below'
@@ -23,11 +23,23 @@ if (typeof self !== 'undefined' && self.addEventListener) {
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
-  chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (existing) => {
+  chrome.storage.local.get([...Object.keys(DEFAULT_SETTINGS), 'ytTextColor', 'colorMigrated2026'], (existing) => {
     const have = existing || {};          // Safari hands callbacks undefined
     const toSet = {};
     for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
       if (have[k] === undefined) toSet[k] = v;
+    }
+    // 2026-08 rebrand (design/handoff.md): install wrote the old defaults into
+    // storage, so "still on the default" is only detectable by value. ONE-SHOT,
+    // gated by a marker — a value match alone would also rewrite a user who
+    // deliberately picks plain white subtitles AFTER the rebrand, forever.
+    // `existing` (not `have`) in the guard: when Safari hands the callback
+    // undefined, we never SAW real values — spending the one-shot marker on a
+    // failed read would strand that user on the old colours permanently.
+    if (existing && !have.colorMigrated2026) {
+      if (have.textColor === '#0a7a3c') toSet.textColor = '#56633f';
+      if (have.ytTextColor === '#ffffff') toSet.ytTextColor = '#ccdbb2';
+      toSet.colorMigrated2026 = true;
     }
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
@@ -53,7 +65,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   if (details && details.reason === 'install') {
     try {
       chrome.action.setBadgeText({ text: '•' });
-      chrome.action.setBadgeBackgroundColor({ color: '#0a7a3c' });
+      chrome.action.setBadgeBackgroundColor({ color: '#c67139' });
     } catch (_) { /* onboarding is best-effort */ }
   }
 });
@@ -106,7 +118,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.local.set({ enabled: msg.value }, () => {
       if (sender.tab?.id) {
         chrome.action.setBadgeText({ text: msg.value ? 'ON' : '', tabId: sender.tab.id });
-        chrome.action.setBadgeBackgroundColor({ color: '#0a7a3c', tabId: sender.tab.id });
+        chrome.action.setBadgeBackgroundColor({ color: '#c67139', tabId: sender.tab.id });
       }
       sendResponse({ ok: true });
     });

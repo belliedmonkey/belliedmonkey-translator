@@ -16,8 +16,33 @@ var FloatingButton = (() => {
     fab.setAttribute('translate', 'no'); // own UI — dom-processor hardSkip
     fab.title = TranslationCore.t('fab_translate', '翻译');
     fab.setAttribute('aria-label', TranslationCore.t('fab_toggle', '切换翻译'));
-    fab.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" fill="white"/>
+    // 大肚猴 mascot, design/handoff.md §4 (定稿 2b). ONE shared geometry (ears /
+    // disc / face / mouth / belly) whose colours live entirely in
+    // floating-button.css keyed on .mt-fab-active — recolouring the brand never
+    // touches this file again. Only what genuinely DIFFERS between states stays
+    // in the two toggled <g>s: 关 = round awake eyes + 文 in the belly;
+    // 开 = smiling eye arcs + the bilingual pair (ink line over terracotta line).
+    fab.innerHTML = `<svg width="52" height="52" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <circle class="mt-fab-ear" cx="13" cy="13" r="8" stroke-width="2"/>
+      <circle class="mt-fab-ear" cx="51" cy="13" r="8" stroke-width="2"/>
+      <circle class="mt-fab-ear-inner" cx="13" cy="13" r="3.4"/>
+      <circle class="mt-fab-ear-inner" cx="51" cy="13" r="3.4"/>
+      <circle class="mt-fab-disc" cx="32" cy="36" r="26"/>
+      <circle class="mt-fab-cream" cx="32" cy="30" r="15"/>
+      <path class="mt-fab-stroke" d="M28.5 33c2 1.9 5 1.9 7 0"/>
+      <circle class="mt-fab-cream" cx="32" cy="50" r="10"/>
+      <g class="mt-fab-off">
+        <circle class="mt-fab-ink" cx="27" cy="28" r="2.2"/><circle class="mt-fab-ink" cx="37" cy="28" r="2.2"/>
+        <g class="mt-fab-glyph" transform="translate(32 50.5) scale(0.22) translate(-45 -51)">
+          <rect x="28" y="34" width="34" height="7" rx="2"/><rect x="41.5" y="26" width="7" height="11" rx="2"/>
+          <path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"/>
+        </g>
+      </g>
+      <g class="mt-fab-on">
+        <path class="mt-fab-stroke" d="M23.5 28c1.3-1.9 3.9-1.9 5.2 0M35.3 28c1.3-1.9 3.9-1.9 5.2 0"/>
+        <rect class="mt-fab-ink" x="26" y="46.5" width="12" height="2.8" rx="1.4"/>
+        <rect class="mt-fab-accent" x="26" y="51.5" width="8.5" height="2.8" rx="1.4"/>
+      </g>
     </svg>`;
 
     fab.addEventListener('click', handleClick);

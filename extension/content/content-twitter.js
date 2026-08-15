@@ -211,7 +211,7 @@ var TwitterTranslator = (() => {
     if (!container) return;
     anchorInto(btn, container);
     btn.style.cssText = 'position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;' +
-      'border:none;cursor:pointer;background:rgba(10,122,60,.92);color:#fff;font-size:14px;font-weight:700;' +
+      window.MT_PALETTE.roundBtnCss(14) +
       'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;pointer-events:auto;';
   }
   function fontPx() { const v = activeVideo(); const h = (v && v.getBoundingClientRect().height) || 360; return Math.max(15, Math.min(34, Math.round(h * 0.05))); }

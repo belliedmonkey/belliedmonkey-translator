@@ -164,7 +164,7 @@ var WebpageTranslator = (() => {
     const ta = (cs.textAlign && cs.textAlign !== 'start') ? `text-align:${cs.textAlign};` : '';
     return `font-family:${cs.fontFamily};font-size:${px.toFixed(1)}px;font-weight:${cs.fontWeight};font-style:${cs.fontStyle};line-height:${lh};${ls}${ta}`;
   }
-  function transStyle(node) { return `color:${settings.textColor || '#0a7a3c'};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
+  function transStyle(node) { return `color:${settings.textColor || window.MT_PALETTE.textColor};margin:2px 0;display:block;white-space:pre-wrap;` + fontCss(node); }
   // Whitespace-insensitive comparison, used to recognise "the response is the original
   // text back again". Strict equality only — never a similarity guess.
   //

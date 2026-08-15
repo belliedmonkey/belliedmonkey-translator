@@ -34,8 +34,12 @@ function loadAdapter() {
   // updateSettings() calls clearOverlay(), and init() starts the 250ms display
   // loop — neither is what we're testing, so give them somewhere harmless to land.
   const document = { getElementById: () => null };
+  // window.MT_PALETTE comes from the SAME registry the build emits — the test
+  // sandbox must not restate colour values (build/palette.config.js is the
+  // single source; palette.gen.js is its runtime emission).
+  const { runtime: MT_PALETTE } = require('../build/palette.config.js');
   const ctx = loadModule('subtitle-adapter.js', {
-    window: {}, TranslationCore, document,
+    window: { MT_PALETTE }, TranslationCore, document,
     setInterval: () => 0, clearInterval: () => {},
   });
   return { SubtitleAdapter: ctx.SubtitleAdapter, seen, TranslationCore };
