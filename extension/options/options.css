@@ -9,27 +9,13 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Organic palette (design/handoff.md §1): terracotta = primary action,
+   sage = 译文/state, cream ground with white 24px cards.
+   All colour tokens (light + dark) come from ../styles/organic-tokens.gen.css
+   (emitted from build/palette.config.js — the single source of truth). This
+   file keeps only what is options-specific. */
 :root {
-  --green: #0a7a3c;
-  --green-dark: #065f46;
-  --text: #111827;
-  --text-secondary: #6b7280;
-  --border: #e5e7eb;
-  --bg: #f3f4f6;
-  --card-bg: #ffffff;
-  --input-bg: #f9fafb;
-  --radius: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #f9fafb;
-    --text-secondary: #9ca3af;
-    --border: #374151;
-    --bg: #0f172a;
-    --card-bg: #1e293b;
-    --input-bg: #273549;
-  }
+  --radius: var(--radius-lg);   /* options cards are the 24px step */
 }
 
 body {
@@ -52,8 +38,8 @@ body {
 .page-header h1 {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 20px;
+  gap: 12px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
 }
@@ -63,17 +49,16 @@ body {
 .card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border);
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .card h2 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text);
   margin-bottom: 16px;
 }
 
@@ -93,13 +78,13 @@ body {
 
 .field label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   margin-bottom: 6px;
-  color: var(--text);
+  color: var(--text-secondary);
 }
 
-.field.row label { margin-bottom: 0; }
+.field.row label { margin-bottom: 0; color: var(--text); font-size: 14px; }
 
 .optional {
   font-size: 12px;
@@ -125,16 +110,16 @@ input:not([type="checkbox"]):not([type="color"]):not([type="file"]),
 select {
   width: 100%;
   background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 16px;
   font-size: 14px;
   color: var(--text);
   outline: none;
   transition: border-color 0.15s;
 }
 
-input:focus, select:focus { border-color: var(--green); }
+input:focus, select:focus { border-color: var(--accent); }
 
 .input-row {
   display: flex;
@@ -146,9 +131,9 @@ input:focus, select:focus { border-color: var(--green); }
 
 .icon-btn {
   background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 11px;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -168,7 +153,7 @@ input[type="color"] {
   width: 44px;
   height: 36px;
   padding: 3px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -195,7 +180,7 @@ input[type="color"] {
   position: absolute;
   inset: 0;
   background: var(--border);
-  border-radius: 13px;
+  border-radius: 999px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -213,45 +198,46 @@ input[type="color"] {
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
-.switch input:checked + .slider { background: var(--green); }
+.switch input:checked + .slider { background: var(--sage); }
 .switch input:checked + .slider::before { transform: translateX(18px); }
 
 /* ─── Buttons ────────────────────────────────────────────── */
 
 /* Plain action buttons. There was no base rule, so every unclassed <button> in a
-   card rendered as a raw UA control next to properly styled ones. */
+   card rendered as a raw UA control next to properly styled ones.
+   Organic: terracotta-outline pills (mock 1e). */
 .card button:not(.btn-danger):not(.icon-btn) {
-  background: var(--card-bg);
-  color: var(--green);
-  border: 1px solid var(--green);
-  border-radius: 8px;
-  padding: 9px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  background: none;
+  color: var(--accent-deep);
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
-.card button:not(.btn-danger):not(.icon-btn):hover { background: var(--green); color: #fff; }
+.card button:not(.btn-danger):not(.icon-btn):hover { background: var(--accent); color: #fff; }
 
 /* interaction-spec 全局原则: an in-flight (disabled) control must LOOK disabled.
-   Wins over the hover fill above — a disabled button lighting up green on hover
-   was the visual lie that made 立即同步's correct disable invisible. */
+   Wins over the hover fill above — a disabled button lighting up on hover was the
+   visual lie that made 立即同步's correct disable invisible. 45% = Organic value. */
 button:disabled, input:disabled, select:disabled {
-  opacity: .55; cursor: default; pointer-events: none;
+  opacity: .45; cursor: default; pointer-events: none;
 }
 
 .btn-danger {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 9px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  background: none;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.btn-danger:hover { background: #fecaca; }
+.btn-danger:hover { background: var(--danger); color: #fff; }
 
 .cache-status {
   font-size: 13px;
@@ -275,10 +261,10 @@ button:disabled, input:disabled, select:disabled {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(16px);
-  background: #111827;
+  background: #201e1d;
   color: #fff;
   padding: 8px 18px;
-  border-radius: 24px;
+  border-radius: 999px;
   font-size: 13px;
   opacity: 0;
   transition: opacity 0.2s, transform 0.2s;
@@ -294,23 +280,24 @@ button:disabled, input:disabled, select:disabled {
 
 /* ─── Onboarding note ────────────────────────────────────────────────
    Same two states as the popup (see popup.css). This is the surface the
-   first-run open lands on, so it carries the same text with more room. */
+   first-run open lands on, so it carries the same text with more room.
+   Warn = terracotta 100/400/800; plain = sage 100/300/900 (handoff §1). */
 .setup-note {
   margin: 0 0 18px;
   padding: 13px 15px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 13.5px;
   line-height: 1.6;
-  border: 1px solid #cfe3d6;
-  background: #f2f8f4;
-  color: #35543f;
+  border: 1px solid #ccdbb2;
+  background: #f0fae1;
+  color: #272e1b;
 }
 .setup-note.warn {
-  border-color: #e8d3a8;
-  background: #fdf6e7;
-  color: #6b5320;
+  border: 1.5px solid #f6a06b;
+  background: #fff2eb;
+  color: #643312;
 }
 @media (prefers-color-scheme: dark) {
-  .setup-note { border-color: #24503a; background: #10201a; color: #a8d8bd; }
-  .setup-note.warn { border-color: #5c4a1e; background: #241f10; color: #e3c98a; }
+  .setup-note { border-color: #3d472b; background: #1c2114; color: #ccdbb2; }
+  .setup-note.warn { border-color: #8c491a; background: #2b1c10; color: #ffc6a5; }
 }

@@ -9,27 +9,13 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Organic palette (design/handoff.md §1): terracotta = primary action,
+   sage = 译文/开启 state, cream ground with white cards.
+   All colour tokens (light + dark) come from ../styles/organic-tokens.gen.css
+   — the build-time emission of build/palette.config.js, the single source of
+   truth. This file keeps only what is popup-specific. */
 :root {
-  --green: #0a7a3c;
-  --green-dark: #065f46;
-  --green-light: #dcfce7;
-  --text: #1a1a1a;
-  --text-secondary: #6b7280;
-  --border: #e5e7eb;
-  --bg: #ffffff;
-  --section-bg: #f9fafb;
-  --radius: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --border: #374151;
-    --bg: #111827;
-    --section-bg: #1f2937;
-    --green-light: #064e3b;
-  }
+  --radius: var(--radius-md);   /* popup cards are the 16px step */
 }
 
 /* Width pinned on <html> as well as body: once the popup's content grew past
@@ -58,15 +44,12 @@ body {
   align-items: center;
   gap: 10px;
   padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--border);
 }
 
 .logo {
   flex-shrink: 0;
   width: 36px;
   height: 36px;
-  background: var(--green-light);
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,28 +64,29 @@ body {
 
 .badge {
   font-size: 11px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 20px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
   background: var(--section-bg);
   color: var(--text-secondary);
   border: 1px solid var(--border);
 }
 
 .badge.on {
-  background: var(--green-light);
-  color: var(--green-dark);
+  background: var(--sage-light);
+  color: var(--sage-deep);
   border-color: transparent;
 }
 
-/* ─── Section ─────────────────────────────────────────────────── */
+/* ─── Section — white cards on the cream ground (mock 1a) ─────── */
 
 .section {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+  margin: 0 14px 12px;
+  padding: 4px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
-
-.section:last-child { border-bottom: none; }
 
 /* ─── Rows ────────────────────────────────────────────────────── */
 
@@ -125,10 +109,10 @@ body {
   padding: 0;
   color: inherit;
 }
-.row-btn:hover .row-label { color: var(--green, #0a7a3c); }
+.row-btn:hover .row-label { color: var(--accent); }
 .row-value {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, #82796a);
   font-variant-numeric: tabular-nums;
 }
 
@@ -166,7 +150,7 @@ body {
   position: absolute;
   inset: 0;
   background: var(--border);
-  border-radius: 13px;
+  border-radius: 999px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -184,7 +168,7 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
-.switch input:checked + .slider { background: var(--green); }
+.switch input:checked + .slider { background: var(--sage); }
 .switch input:checked + .slider::before { transform: translateX(18px); }
 
 /* ─── Select ──────────────────────────────────────────────────── */
@@ -194,8 +178,8 @@ body {
   color: var(--text);
   background: var(--section-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
+  border-radius: 999px;
+  padding: 6px 14px;
   outline: none;
   cursor: pointer;
   max-width: 180px;
@@ -208,14 +192,14 @@ body {
   font-size: 13px;
   color: var(--text);
   background: var(--section-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 14px;
   outline: none;
   transition: border-color 0.15s;
 }
 
-.input:focus { border-color: var(--green); }
+.input:focus { border-color: var(--accent); }
 
 .api-key-wrap {
   position: relative;
@@ -240,40 +224,48 @@ body {
 
 /* ─── Action buttons ──────────────────────────────────────────── */
 
+/* The buttons sit directly on the cream ground (mock 1a) — .actions is also a
+   .section in the markup, so undo the card chrome here. */
 .actions {
   display: flex;
   gap: 8px;
-  padding: 12px;
+  background: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 2px 14px 16px;
 }
 
 .btn-primary, .btn-secondary {
   flex: 1;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 11px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   border: none;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: opacity 0.15s, transform 0.1s, background 0.15s;
 }
 
 .btn-primary:active, .btn-secondary:active { transform: scale(0.97); }
 
-/* interaction-spec 全局原则: in-flight (disabled) controls must look disabled. */
+/* interaction-spec 全局原则: in-flight (disabled) controls must look disabled.
+   45% — the Organic spec value (handoff §2). */
 button:disabled, input:disabled, select:disabled {
-  opacity: .55; cursor: default; pointer-events: none;
+  opacity: .45; cursor: default; pointer-events: none;
 }
-.switch input:disabled + .slider { opacity: .55; }
+.switch input:disabled + .slider { opacity: .45; }
 
 .btn-primary {
-  background: var(--green);
+  background: var(--accent);
   color: #fff;
+  box-shadow: var(--shadow-sm);
 }
+.btn-primary:hover { background: var(--accent-hover); }
 
 .btn-secondary {
-  background: var(--section-bg);
+  background: var(--card-bg);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
 }
 
 /* ─── Toast ───────────────────────────────────────────────────── */
@@ -283,10 +275,10 @@ button:disabled, input:disabled, select:disabled {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: #1a1a1a;
+  background: #201e1d;
   color: #fff;
   padding: 7px 14px;
-  border-radius: 20px;
+  border-radius: 999px;
   font-size: 12px;
   opacity: 0;
   transition: opacity 0.2s, transform 0.2s;
@@ -303,23 +295,24 @@ button:disabled, input:disabled, select:disabled {
    Two states, never both: `warn` = the chosen engine needs a key and none
    is set (translation will fail); the plain state = the free no-key engine
    is selected, which works but is not a stable endpoint. Both exist so the
-   user learns what to expect BEFORE a bad first result, not after. */
+   user learns what to expect BEFORE a bad first result, not after.
+   Warn = terracotta 100/400/800; plain = sage 100/300/900 (handoff §1). */
 .setup-note {
-  margin: 0 14px 10px;
-  padding: 9px 11px;
-  border-radius: 8px;
+  margin: 0 14px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   line-height: 1.5;
-  border: 1px solid #cfe3d6;
-  background: #f2f8f4;
-  color: #35543f;
+  border: 1px solid #ccdbb2;
+  background: #f0fae1;
+  color: #272e1b;
 }
 .setup-note.warn {
-  border-color: #e8d3a8;
-  background: #fdf6e7;
-  color: #6b5320;
+  border: 1.5px solid #f6a06b;
+  background: #fff2eb;
+  color: #643312;
 }
 @media (prefers-color-scheme: dark) {
-  .setup-note { border-color: #24503a; background: #10201a; color: #a8d8bd; }
-  .setup-note.warn { border-color: #5c4a1e; background: #241f10; color: #e3c98a; }
+  .setup-note { border-color: #3d472b; background: #1c2114; color: #ccdbb2; }
+  .setup-note.warn { border-color: #8c491a; background: #2b1c10; color: #ffc6a5; }
 }

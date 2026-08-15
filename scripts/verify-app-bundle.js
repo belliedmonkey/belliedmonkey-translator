@@ -88,7 +88,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         inShown: getComputedStyle(document.getElementById('signed-in')).display !== 'none',
         lede: (document.getElementById('lede').textContent || '').length,
         sendLabel: (document.getElementById('send').textContent || '').length,
-        styled: getComputedStyle(document.body).getPropertyValue('--green').trim(),
+        styled: getComputedStyle(document.body).getPropertyValue('--accent').trim(),
         globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync',
           'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings',
           // §8.8 — app.js rebuilds the deck through this on every review-view entry;
