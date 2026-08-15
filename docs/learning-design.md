@@ -23,7 +23,8 @@
 | 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | 待评审 —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
 | 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | 待评审 —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
 | 2026-08-15 | belliedmonkey | §4.2 采集单位改为句子：捕获时按句对齐拆分（数量相等才配对，绝不猜对齐）；存量长段卡走显式「拆分长段卡」动作经删除台账传播 | 待评审 —— 见 §4.2 |
-| 2026-08-15 | belliedmonkey | §4.2b 计数和解：数不等时只在已知分词歧义点（嵌入引号问句/省略号/`. @handle`/`. 数字`/单字母缩写）做有界修复，须恰好补平、结果唯一、**每个操作有跨侧佐证**、过长度比守卫（等数快路径同守卫），否则仍保整；输入 >10K 直接保整；另修引注簇结尾被规则②回粘的 bug 与引注内类二次方回溯（真机第二轮 + 三路对抗评审毒例全数钉死） | 待评审 —— 见 §4.2b |
+| 2026-08-15 | belliedmonkey | §4.2b 计数和解：数不等时只在已知分词歧义点（嵌入引号问句/省略号/`. @handle`/`. 数字`/单字母缩写）做有界修复，须恰好补平、结果唯一、**每个操作有跨侧佐证 + 合并须单飞且支配所有替代位置**、过长度比守卫（等数快路径同守卫），否则仍保整；输入 >10K 直接保整；另修引注簇结尾被规则②回粘的 bug 与引注内类二次方回溯（真机第二轮 + 五代对抗毒例全数钉死） | 待评审 —— 见 §4.2b |
+| 2026-08-15 | belliedmonkey | §4.2c LLM 对齐裁决：结构证据拒绝的失配对，在「拆分长段卡」显式动作里交用户自己的聊天引擎分组——LLM 只提议、代码机械验证（分区+逐字切片+比值守卫），失败只会保整；每次按键至多 40 次调用；采集路径仍纯本地零花费 | 待评审 —— 见 §4.2c |
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
 | 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
@@ -374,6 +375,25 @@ time, in the Collector, before ids are computed.**
 - **Subtitle/media captures are NOT split**: the engine's cue merge already emits
   sentence units, and the media anchor's `startMs/endMs` describes the whole cue.
 - Still a sink: splitting is pure local computation. Law 1 intact.
+
+**§4.2c LLM alignment adjudication (2026-08-15).** What §4.2b's structural
+evidence cannot certify — translator restructuring above all — can still be a
+perfectly alignable pair. For those refusals only, the 拆分长段卡 action gains a
+second phase: the user's OWN configured chat engine (the §9.2 notes engine,
+riding the same `LearnNotes.chat` transport) is shown both numbered sentence
+lists and asked to GROUP consecutive sentences 1:1 — it never rewrites text.
+**The LLM proposes, the code disposes**: `LearnModel.alignByGroups` verifies the
+proposal mechanically (both sides partition their indices in order into the same
+number of groups; pairs are built by verbatim slicing of the normalized
+paragraph; the §4.2b ratio guard applies), so a hallucinating or misaligned
+model can only fail closed to keep-whole. Bounded spend: at most 40 adjudication
+calls per press (`LearnAlign.MAX_CALLS`), candidates chosen by the pure
+`LearnStore.llmCandidatesFor` (dom-anchored, both sides ≥2 sentences, under the
+splitter input cap, structurally refused). Runs ONLY behind the explicit button
+press that already consented to rewriting collected material — never at capture
+(capture stays a free, pure, local sink; law 1 intact). No engine configured →
+the phase is skipped and the count surface reports the un-split remainder as
+before.
 
 **Existing long cards** (captured before this rule) are healed by an EXPLICIT
 maintenance action, never silently on upgrade (§3 law 2: anything touching

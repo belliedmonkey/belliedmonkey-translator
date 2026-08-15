@@ -54,6 +54,8 @@ const MODULES = [
   'extension/learn/notes.js',            // LearnNotes — review.js references it; the
                                          // app's own settings may hold a chat engine
                                          // + key (§7.2), else the gate stays closed
+  'extension/learn/align.js',            // LearnAlign — §4.2c LLM 对齐裁决 (rides
+                                         // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
                                          // LearnNotes.chat; gate follows the notes gate)
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer

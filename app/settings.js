@@ -499,17 +499,26 @@ var AppSettings = (() => {
 
     $('split-long').addEventListener('click', async () => {
       // §4.2 存量长段卡治愈。批量写 + 全量重画在途,按钮可见地禁用。
+      // 结构性拆分之后,配了解析引擎的话再跑 §4.2c LLM 裁决(走用户自己的
+      // key,输出受机械验证,失败只会保整)。
       const btn = $('split-long');
       btn.disabled = true;
       try {
         const r = await LearnStore.splitLongItems().catch(() => null);
+        let llm = null;
+        if (r && r.skipped && LearnNotes.capable()) {
+          try { llm = await LearnAlign.healUnalignable(); } catch (_) { llm = null; }
+        }
         await paint(opts.session(), say);
-        if (!r || (!r.parents && !r.skipped)) say(t('learn_split_none', '没有可拆分的长段卡'));
+        const parents = r ? r.parents + (llm ? llm.split : 0) : 0;
+        const children = r ? r.children + (llm ? llm.children : 0) : 0;
+        const skipped = r ? Math.max(0, r.skipped - (llm ? llm.split : 0)) : 0;
+        if (!r || (!parents && !skipped)) say(t('learn_split_none', '没有可拆分的长段卡'));
         else {
           let msg = t('learn_split_done', '已把 {p} 张长段卡拆成 {c} 张句子卡')
-            .replace('{p}', String(r.parents)).replace('{c}', String(r.children));
-          if (r.skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
-            .replace('{k}', String(r.skipped));
+            .replace('{p}', String(parents)).replace('{c}', String(children));
+          if (skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
+            .replace('{k}', String(skipped));
           say(msg);
         }
       } finally { btn.disabled = false; }

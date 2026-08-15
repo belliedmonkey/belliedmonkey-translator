@@ -726,15 +726,29 @@ async function init() {
   }
 
   // §4.2: heal pre-rule long cards. Explicit, visible, propagates like a delete.
+  // Two phases behind the one consented press: the free structural pass, then —
+  // when a chat engine is configured — the §4.2c LLM adjudication of what the
+  // structural pass refused (rides the user's own key, mechanically verified).
   $('btn-split-long').addEventListener('click', busy($('btn-split-long'), async () => {
     const r = await LearnStore.splitLongItems().catch(() => null);
-    if (!r) { showToast(t('learn_split_failed', '拆分失败')); }
-    else if (!r.parents && !r.skipped) { showToast(t('learn_split_none', '没有可拆分的长段卡')); }
+    if (!r) { showToast(t('learn_split_failed', '拆分失败')); await refreshLearnStats(); await refreshPressure(); return; }
+    let llm = null;
+    if (r.skipped) {
+      try {
+        LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((res) =>
+          chrome.storage.local.get(SETTINGS_KEYS, (v) => res(v || {})))));
+        if (LearnNotes.capable()) llm = await LearnAlign.healUnalignable();
+      } catch (_) { llm = null; }
+    }
+    const parents = r.parents + (llm ? llm.split : 0);
+    const children = r.children + (llm ? llm.children : 0);
+    const skipped = Math.max(0, r.skipped - (llm ? llm.split : 0));
+    if (!parents && !skipped) { showToast(t('learn_split_none', '没有可拆分的长段卡')); }
     else {
       let msg = t('learn_split_done', '已把 {p} 张长段卡拆成 {c} 张句子卡')
-        .replace('{p}', String(r.parents)).replace('{c}', String(r.children));
-      if (r.skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
-        .replace('{k}', String(r.skipped));
+        .replace('{p}', String(parents)).replace('{c}', String(children));
+      if (skipped) msg += t('learn_split_skipped', '（{k} 张译文对不齐，保持原样）')
+        .replace('{k}', String(skipped));
       showToast(msg, 4000);
     }
     await refreshLearnStats();

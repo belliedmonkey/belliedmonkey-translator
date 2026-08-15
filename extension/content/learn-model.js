@@ -700,6 +700,40 @@ var LearnModel = (() => {
     return seen.size === 1 ? winner : null;
   }
 
+  // ─── §4.2c externally-adjudicated grouping ────────────────────────────────
+  // Applies a sentence grouping PROPOSED from outside (the LLM adjudicator in
+  // learn/align.js). The proposal is data, not authority: both sides must
+  // partition their sentence indices IN ORDER into the same number of groups,
+  // pairs are built by SLICING the normalized paragraph (verbatim — the
+  // proposer can group, never rewrite), and the result must pass the same
+  // ratio guard as §4.2b. Anything else → null, caller keeps the pair whole.
+  function alignByGroups(text, tr, lang, targetLang, groups) {
+    const wholeA = normText(text);
+    const wholeB = normText(tr);
+    const a = splitSentences(text, lang);
+    const b = splitSentences(tr, targetLang);
+    const ga = groups && groups.a;
+    const gb = groups && groups.b;
+    const okPart = (g, n) => Array.isArray(g) && g.length >= 2
+      && g.every((x) => Array.isArray(x) && x.length >= 1)
+      && g.flat().length === n && g.flat().every((v, i) => v === i);
+    if (!okPart(ga, a.length) || !okPart(gb, b.length) || ga.length !== gb.length) return null;
+    const offA = offsetsOf(a, wholeA);
+    const offB = offsetsOf(b, wholeB);
+    if (!offA || !offB) return null;
+    const cut = (whole, off, g) => g.map((idx) =>
+      whole.slice(off[idx[0]][0], off[idx[idx.length - 1]][1]).trim());
+    const as = cut(wholeA, offA, ga);
+    const bs = cut(wholeB, offB, gb);
+    if (!ratioGuardOk(as, bs, wholeA, wholeB)) return null;
+    const pairs = [];
+    for (let i = 0; i < as.length; i++) {
+      if (!as[i] || !bs[i]) return null;
+      pairs.push({ text: as[i], tr: bs[i] });
+    }
+    return pairs;
+  }
+
   // Pair source/translation sentence-by-sentence — by COUNT EQUALITY only.
   // A count mismatch first gets ONE bounded reconciliation attempt (§4.2b above);
   // failing that the pair returns WHOLE: a long card is a nuisance, a misaligned
@@ -737,7 +771,8 @@ var LearnModel = (() => {
     DEFAULTS, OUTBOX_PREFIX, OUTBOX_INDEX, OUTBOX_DROPPED, MAX_OUTBOX_SESSIONS,
     normText, hash16, itemId, sourceId, isDense, lengthScore,
     salience, shouldCapture, makeItem, mergeItem, mergeSkills, touchedAt,
-    clozeFor, clozeCheck, contentWords, splitSentences, splitPair,
+    clozeFor, clozeCheck, contentWords, splitSentences, splitPair, alignByGroups,
+    MAX_SPLIT_INPUT,
   };
 })();
 
