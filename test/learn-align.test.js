@@ -94,6 +94,81 @@ describe('LearnAlign — parse strictly, adjudicate through the verifier', () =>
   });
 });
 
+describe('LearnAlign.healByRetranslate — §4.2d per-sentence re-translation fallback', () => {
+  const EN = 'It rained. We stayed home. The roof leaked.';
+  function rig(items, translate) {
+    const applied = [];
+    const LearnStore = {
+      allItems: async () => items,
+      retranslateCandidatesFor: (its) => {
+        // delegate to the REAL pure decision so the rig cannot drift from it
+        const indexedDB = { open: () => { throw new Error('idb'); } };
+        const S = loadModule('learn/store.js', { window: {}, indexedDB, LearnModel: LM, LearnScheduler: {} }).LearnStore;
+        return S.retranslateCandidatesFor(its);
+      },
+      applySplit: async (it, pairs) => { applied.push({ id: it.id, pairs }); return pairs.length; },
+    };
+    const A = loadModule('learn/align.js', { window: {}, LearnModel: LM, LearnNotes: {}, LearnStore }).LearnAlign;
+    return { A, applied };
+  }
+  const item = (over) => Object.assign({
+    id: 'p1', anchor: { k: 'dom' }, lang: 'en', targetLang: 'zh-CN',
+    text: EN, tr: '下雨了，我们待在家里。屋顶漏了。',
+  }, over);
+
+  test('a truncated translation is rescued — pairs aligned by construction', async () => {
+    const { A, applied } = rig([item({ tr: '下雨' })], null);
+    const r = await A.healByRetranslate(async (s) => '译:' + s);
+    eq(r.split, 1); eq(r.children, 3);
+    eq(applied[0].pairs.length, 3);
+    deepEq(applied[0].pairs[1], { text: 'We stayed home.', tr: '译:We stayed home.' });
+  });
+
+  test('an empty translation for ANY sentence keeps the item whole', async () => {
+    const { A, applied } = rig([item({})], null);
+    const r = await A.healByRetranslate(async (s) => (s.startsWith('We') ? '' : '译:' + s));
+    eq(r.split, 0); eq(applied.length, 0);
+  });
+
+  test('a throwing engine keeps the item whole and the run alive', async () => {
+    const { A } = rig([item({ id: 'a' }), item({ id: 'b' })], null);
+    let n = 0;
+    // the first item aborts on its FIRST sentence call; the second item's calls all succeed
+    const r = await A.healByRetranslate(async (s) => { n++; if (n <= 1) throw new Error('http'); return '译:' + s; });
+    eq(r.split, 1, 'second item still healed');
+  });
+
+  test('the sentence budget caps spend and reports the capped remainder', async () => {
+    const big = 'A rain fell. '.repeat(90).trim(); // 90 sentences > 80 budget
+    const { A } = rig([item({ text: big, tr: '雨。' })], null);
+    const r = await A.healByRetranslate(async (s) => '译:' + s);
+    eq(r.asked, 0); eq(r.capped, 1);
+  });
+});
+
+describe('LearnStore.retranslateCandidatesFor — §4.2d candidate decision', () => {
+  const S = (() => {
+    const indexedDB = { open: () => { throw new Error('idb'); } };
+    return loadModule('learn/store.js', { window: {}, indexedDB, LearnModel: LM, LearnScheduler: {} }).LearnStore;
+  })();
+  const EN = 'It rained. We stayed home. The roof leaked.';
+  const dom = (over) => Object.assign({
+    id: 'x', anchor: { k: 'dom' }, lang: 'en', targetLang: 'zh-CN',
+    text: EN, tr: '下雨了，我们待在家里。屋顶漏了。',
+  }, over);
+
+  test('a truncated-tr multi-sentence item IS a candidate (unlike the LLM path)', () => {
+    eq(S.retranslateCandidatesFor([dom({ tr: '下雨' })]).length, 1);
+    eq(S.llmCandidatesFor([dom({ tr: '下雨' })]).length, 0, 'grouping needs ≥2 tr sentences');
+  });
+
+  test('aligned pairs, media, and single-sentence sources are NOT candidates', () => {
+    eq(S.retranslateCandidatesFor([dom({ tr: '下雨了。我们待在家里。屋顶漏了。' })]).length, 0);
+    eq(S.retranslateCandidatesFor([dom({ anchor: { k: 'media' } })]).length, 0);
+    eq(S.retranslateCandidatesFor([dom({ text: 'One sentence only.' })]).length, 0);
+  });
+});
+
 describe('LearnStore.llmCandidatesFor — who gets an adjudication attempt', () => {
   const S = (() => {
     const indexedDB = { open: () => { throw new Error('touched indexedDB at load'); } };

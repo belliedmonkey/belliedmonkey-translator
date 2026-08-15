@@ -25,6 +25,7 @@
 | 2026-08-15 | belliedmonkey | §4.2 采集单位改为句子：捕获时按句对齐拆分（数量相等才配对，绝不猜对齐）；存量长段卡走显式「拆分长段卡」动作经删除台账传播 | 待评审 —— 见 §4.2 |
 | 2026-08-15 | belliedmonkey | §4.2b 计数和解：数不等时只在已知分词歧义点（嵌入引号问句/省略号/`. @handle`/`. 数字`/单字母缩写）做有界修复，须恰好补平、结果唯一、**每个操作有跨侧佐证 + 合并须单飞且支配所有替代位置**、过长度比守卫（等数快路径同守卫），否则仍保整；输入 >10K 直接保整；另修引注簇结尾被规则②回粘的 bug 与引注内类二次方回溯（真机第二轮 + 五代对抗毒例全数钉死） | 待评审 —— 见 §4.2b |
 | 2026-08-15 | belliedmonkey | §4.2c LLM 对齐裁决：结构证据拒绝的失配对，在「拆分长段卡」显式动作里交用户自己的聊天引擎分组——LLM 只提议、代码机械验证（分区+逐字切片+比值守卫），失败只会保整；每次按键至多 40 次调用；采集路径仍纯本地零花费 | 待评审 —— 见 §4.2c |
+| 2026-08-16 | belliedmonkey | §4.2d 按句重译兜底（用户提议）：分组也救不了的失配对（含译文残缺），按源句重调翻译引擎——句对天然对齐；唯一允许 `tr` 偏离页面所见之处；每次按键 ≤80 句、走翻译缓存；仅扩展 options 侧（App 永不翻译） | 待评审 —— 见 §4.2d |
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
 | 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
@@ -394,6 +395,21 @@ press that already consented to rewriting collected material — never at captur
 (capture stays a free, pure, local sink; law 1 intact). No engine configured →
 the phase is skipped and the count surface reports the un-split remainder as
 before.
+
+**§4.2d Re-translation fallback (2026-08-16, 用户提议).** When even grouping
+cannot rescue a pair — the translation was restructured beyond recognition, or
+truncated/garbled outright — the SOURCE side still splits reliably, so the last
+resort is to re-translate it per sentence through the user's configured
+translation engine: the resulting pairs are aligned **by construction**, and a
+broken stored translation (unfixable by any alignment) is rescued outright.
+This is the ONE place a card's `tr` deviates from what the page showed —
+acceptable because the paragraph-level translation is discarded on split anyway,
+and the alternative is an unmemorizable (or broken) card. Bounded spend: 80
+sentence calls per press (`LearnAlign.MAX_RETRANSLATE_SENTENCES`, riding the
+translation cache), candidates by the pure `LearnStore.retranslateCandidatesFor`
+(a superset of §4.2c's: no tr-side sentence requirement). Runs in the extension
+options page only — the app never translates (its own first law), so there the
+phase simply never runs; sync carries the healed cards over.
 
 **Existing long cards** (captured before this rule) are healed by an EXPLICIT
 maintenance action, never silently on upgrade (§3 law 2: anything touching
