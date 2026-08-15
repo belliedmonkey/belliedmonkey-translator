@@ -733,16 +733,26 @@ async function init() {
     const r = await LearnStore.splitLongItems().catch(() => null);
     if (!r) { showToast(t('learn_split_failed', '拆分失败')); await refreshLearnStats(); await refreshPressure(); return; }
     let llm = null;
+    let rt = null;
     if (r.skipped) {
       try {
         LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((res) =>
           chrome.storage.local.get(SETTINGS_KEYS, (v) => res(v || {})))));
         if (LearnNotes.capable()) llm = await LearnAlign.healUnalignable();
       } catch (_) { llm = null; }
+      // §4.2d last resort: re-translate per source sentence — aligned by
+      // construction, and the only rescue for a truncated stored translation.
+      try {
+        rt = await LearnAlign.healByRetranslate((s, target) =>
+          TranslationAPI.translate(s, target || $('target-lang').value || 'zh-CN',
+            $('provider').value, $('api-key').value.trim(),
+            $('api-base-url').value.trim(), $('api-model').value.trim()));
+      } catch (_) { rt = null; }
     }
-    const parents = r.parents + (llm ? llm.split : 0);
-    const children = r.children + (llm ? llm.children : 0);
-    const skipped = Math.max(0, r.skipped - (llm ? llm.split : 0));
+    const healed = (llm ? llm.split : 0) + (rt ? rt.split : 0);
+    const parents = r.parents + healed;
+    const children = r.children + (llm ? llm.children : 0) + (rt ? rt.children : 0);
+    const skipped = Math.max(0, r.skipped - healed);
     if (!parents && !skipped) { showToast(t('learn_split_none', '没有可拆分的长段卡')); }
     else {
       let msg = t('learn_split_done', '已把 {p} 张长段卡拆成 {c} 张句子卡')

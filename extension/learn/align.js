@@ -76,7 +76,46 @@ var LearnAlign = (() => {
     return out;
   }
 
-  return { adjudicate, healUnalignable, parseGroups, buildUser, SYSTEM, MAX_CALLS };
+  // §4.2d — the last-resort fallback (用户提议 2026-08-16): when even grouping
+  // cannot rescue a pair, RE-TRANSLATE the source per sentence. The source side
+  // splits reliably; per-sentence pairs are aligned BY CONSTRUCTION, and a
+  // truncated/garbled stored translation — unfixable by any alignment — is
+  // rescued outright. This is the one place a card's `tr` deviates from what
+  // the page showed: acceptable because the paragraph-level translation is
+  // discarded on split anyway, and the alternative is an unmemorizable card.
+  // `translate(sentence, targetLang)` is injected by the OPTIONS page only —
+  // the app never translates (its own first law), so there it simply never runs.
+  const MAX_RETRANSLATE_SENTENCES = 80; // per press — bounded spend, cache-backed
+  async function healByRetranslate(translate) {
+    const items = await LearnStore.allItems();
+    const cands = LearnStore.retranslateCandidatesFor(items);
+    const out = { asked: 0, split: 0, children: 0, capped: 0 };
+    let budget = MAX_RETRANSLATE_SENTENCES;
+    for (const it of cands) {
+      const sents = LearnModel.splitSentences(it.text, it.lang);
+      if (sents.length < 2) continue;
+      if (sents.length > budget) { out.capped++; continue; }
+      out.asked++;
+      let pairs = [];
+      try {
+        for (const s of sents) {
+          const tr = await translate(s, it.targetLang);
+          if (!tr || !String(tr).trim()) { pairs = null; break; }
+          pairs.push({ text: s, tr: String(tr).trim() });
+        }
+      } catch (_) { pairs = null; }
+      if (!pairs || pairs.length < 2) continue;
+      budget -= sents.length;
+      try {
+        out.children += await LearnStore.applySplit(it, pairs);
+        out.split++;
+      } catch (_) { /* storage failure: stays whole, next press retries */ }
+    }
+    return out;
+  }
+
+  return { adjudicate, healUnalignable, healByRetranslate, parseGroups, buildUser,
+    SYSTEM, MAX_CALLS, MAX_RETRANSLATE_SENTENCES };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnAlign;

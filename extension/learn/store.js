@@ -303,6 +303,24 @@ var LearnStore = (() => {
     return out;
   }
 
+  // §4.2d: the re-translation fallback's candidates — the SOURCE side splits
+  // reliably even when the translation side is restructured or truncated, so
+  // the only requirements are a splittable source and a structural refusal.
+  // (Superset of llmCandidatesFor: no tr-side sentence-count requirement — a
+  // truncated translation is exactly what re-translation rescues.)
+  function retranslateCandidatesFor(items) {
+    const out = [];
+    for (const it of items || []) {
+      if (!it || !it.anchor || it.anchor.k !== 'dom') continue;
+      if ((it.text || '').length > LearnModel.MAX_SPLIT_INPUT
+        || (it.tr || '').length > LearnModel.MAX_SPLIT_INPUT) continue;
+      if (LearnModel.splitPair(it.text, it.tr, it.lang, it.targetLang).length > 1) continue;
+      if (LearnModel.splitSentences(it.text, it.lang).length < 2) continue;
+      out.push(it);
+    }
+    return out;
+  }
+
   // §4.2c: apply ONE adjudicated split — same child construction and the same
   // insert-children-then-retire-parent order as splitLongItems (a crash between
   // the two leaves harmless content-addressed duplicates; the other order loses
@@ -620,7 +638,7 @@ var LearnStore = (() => {
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
     applyDels, deleteItems, deleteSourcesIfOrphan, userDels, allDels, trimDels,
-    splitLongItems, splitPlanFor, llmCandidatesFor, applySplit,
+    splitLongItems, splitPlanFor, llmCandidatesFor, retranslateCandidatesFor, applySplit,
     getNote, putNote,
     doomedFor, staleTombs, staleDels,   // pure — exported for the suite, see above
     pressure, bumpPressure, clearPressure, clearKnown,
