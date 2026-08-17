@@ -1,11 +1,11 @@
 // learn/auth.js — the ONLY module that knows what an identity provider is.
 // See docs/learning-design.md §8.4.1.
 //
-// Surface is deliberately five functions wide — signIn / verify / token / signOut /
-// deleteAccount. `sync.js` speaks PostgREST and never learns how the token was
-// obtained, so changing identity provider is a one-file change. That is not
-// speculative tidiness: the current backend is shared with another product and is
-// expected to move (§8.4.1).
+// Surface is deliberately narrow — signIn / verify / signInPassword / token /
+// signOut / deleteAccount. `sync.js` speaks PostgREST and never learns how the
+// token was obtained, so changing identity provider is a one-file change. That is
+// not speculative tidiness: the current backend is shared with another product and
+// is expected to move (§8.4.1).
 //
 // Sign-in is a 6-DIGIT CODE, not a magic link. A link needs a page we host to catch
 // the redirect, and we host nothing; a code is typed into the extension and needs no
@@ -177,6 +177,21 @@ var LearnAuth = (() => {
     return store(sessionFrom(json));
   }
 
+  // Password sign-in (2026-08-17, §8.4.1) — the SAME provider, a second grant
+  // type, so sync.js still never learns how the token was obtained. Added for
+  // App Review: reviewers need a username+password demo account, and an
+  // OTP-only flow cannot hand one over (the code lands in a mailbox they don't
+  // have). Passwords are set server-side per account for now — there is no
+  // in-product "set password" surface, so OTP remains the path every real user
+  // takes; this grant simply accepts an account that HAS one.
+  async function signInPassword(email, password) {
+    const json = await post('/token?grant_type=password', {
+      email: String(email || '').trim(),
+      password: String(password || ''),
+    });
+    return store(sessionFrom(json));
+  }
+
   // Returns a currently-valid access token, refreshing if needed, or null when signed
   // out. Callers treat null as "sync is off", never as an error.
   async function token() {
@@ -273,7 +288,7 @@ var LearnAuth = (() => {
   }
   function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
 
-  return { signIn, verify, token, signOut, deleteAccount, current, cachedSession, lastLoadError, onChange, _reset };
+  return { signIn, verify, signInPassword, token, signOut, deleteAccount, current, cachedSession, lastLoadError, onChange, _reset };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnAuth;

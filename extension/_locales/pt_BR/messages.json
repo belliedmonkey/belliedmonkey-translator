@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k} mantidos inteiros — tradução não alinhada)"
+  },
+  "app_use_pw": {
+    "message": "Entrar com senha",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Senha",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Usar um código",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "E-mail ou senha incorretos — tente de novo.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

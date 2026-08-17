@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k} kept whole — translation did not align)"
+  },
+  "app_use_pw": {
+    "message": "Sign in with a password",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Password",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Use a code instead",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "Wrong email or password — try again.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

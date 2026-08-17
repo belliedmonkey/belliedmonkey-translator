@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": "（{k} 枚は訳文が揃わないためそのまま）"
+  },
+  "app_use_pw": {
+    "message": "パスワードでサインイン",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "パスワード",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "確認コードでサインイン",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "メールアドレスまたはパスワードが正しくありません。もう一度お試しください。",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

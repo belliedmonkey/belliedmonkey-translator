@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k} оставлено как есть — перевод не выравнивается)"
+  },
+  "app_use_pw": {
+    "message": "Войти по паролю",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Пароль",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Войти по коду",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "Неверная почта или пароль — попробуйте ещё раз.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }
