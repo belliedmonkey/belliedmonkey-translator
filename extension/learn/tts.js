@@ -160,7 +160,8 @@ var LearnTTS = (() => {
     const e = engine();
     const base = cfg.baseUrl || e.defaultBase;
     if (!base) { const err = new Error('missing base URL'); err.code = 'no_base'; throw err; }
-    const resp = await fetch(base.replace(/\/+$/, '') + e.path, {
+    const url = base.replace(/\/+$/, '') + e.path;
+    const init = {
       method: 'POST',
       headers: Object.assign(
         { 'Content-Type': 'application/json' },
@@ -171,11 +172,26 @@ var LearnTTS = (() => {
         voice: cfg.voice || (e.voices && e.voices[0]) || 'alloy',
         response_format: cfg.format || 'mp3',
       }),
-    });
+    };
+    // A self-hosted speech endpoint that omits `Access-Control-Allow-Origin` makes
+    // WebKit kill the fetch before any status is visible — a bare TypeError ("Load
+    // failed") that reads exactly like "host unreachable" (measured 2026-08-13,
+    // learning-design §9.4). Named here for the same reason speech-input.js names it,
+    // and carrying the URL so the settings page can echo what it actually requested.
+    let resp;
+    try {
+      resp = await fetch(url, init);
+    } catch (netErr) {
+      const err = new Error(String((netErr && netErr.message) || netErr));
+      err.code = 'network';
+      err.url = url;
+      throw err;
+    }
     if (!resp.ok) {
       const err = new Error('speech ' + resp.status);
       err.status = resp.status;
       err.code = 'http';
+      err.url = url;
       throw err;
     }
     // Bytes + declared type, never a Blob: Blobs round-tripped through WebKit's

@@ -77,6 +77,30 @@ describe('TranslationAPI — OpenAI-compatible providers', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// A failure that never reached a status code used to arrive at the settings page as
+// the raw string "Load failed" — WebKit's text for a CORS rejection, which is also
+// what it says for an unreachable host (learning-design §9.4, measured 2026-08-13).
+// speech-input.js has named this since #130; this transport did not. The URL rides
+// along because "which address did we call" is the fact that separates a wrong
+// endpoint from an unreachable one, and no error text can supply it.
+describe('TranslationAPI — failures are named, and carry the URL', () => {
+  test('a bare fetch rejection is named `network`, not surfaced as its raw message', async () => {
+    const { API } = loadAPI(() => { throw new TypeError('Load failed'); });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.code, 'network');
+    eq(e.url, 'https://api.deepseek.com/v1/chat/completions');
+  });
+
+  test('an HTTP failure carries code `http` and the URL, so 404 gets the named hint', async () => {
+    const { API } = loadAPI([errJson(404)]);
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.code, 'http');
+    eq(e.status, 404);
+    eq(e.url, 'https://api.deepseek.com/v1/chat/completions');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 describe('TranslationAPI — Claude', () => {
   test('messages endpoint, x-api-key header, haiku model, content parse', async () => {
     const { API, fetch } = loadAPI([okJson({ content: [{ text: '你好' }] })]);

@@ -1288,6 +1288,14 @@
     "message": "サーバーがこのリクエストを拒否しました",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "タイムアウトまでにエンドポイントから応答がありませんでした",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "リクエスト先：{url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
     "description": "Engine self-test (settings)"

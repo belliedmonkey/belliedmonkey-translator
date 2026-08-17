@@ -1288,6 +1288,14 @@
     "message": "der Server hat die Anfrage abgelehnt",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "Der Endpunkt hat vor dem Timeout nicht geantwortet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Angefragt: {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "Das Modell lieferte keinen Inhalt — Reasoning-Modelle passen hier nicht; nimm ein Chat-Modell",
     "description": "Engine self-test (settings)"

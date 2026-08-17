@@ -1289,6 +1289,14 @@
     "message": "服务端拒绝了这次请求",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "端点没有在超时前回应",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "请求地址：{url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "模型没有返回正文——思考（推理）型模型不适合，请换对话模型",
     "description": "Engine self-test (settings)"

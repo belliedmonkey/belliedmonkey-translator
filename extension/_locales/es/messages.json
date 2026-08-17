@@ -1288,6 +1288,14 @@
     "message": "el servidor rechazó la solicitud",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "El endpoint no respondió antes del tiempo de espera",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Dirección solicitada: {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "El modelo no devolvió contenido — los modelos de razonamiento no sirven aquí; usa un modelo de chat",
     "description": "Engine self-test (settings)"

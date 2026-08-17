@@ -133,17 +133,23 @@ var LearnSpeech = (() => {
     // Measured 2026-08-13 on the iOS simulator: the server received and processed
     // the upload, and the page still saw only a TypeError. So: name it, and point
     // at the two causes a user can actually act on (reachability, CORS).
+    // `url` rides on the error so the settings page can echo the address it actually
+    // requested — with a user-supplied endpoint, "which URL did we call" is the fact
+    // that separates a wrong address from an unreachable one, and no error text can
+    // supply it.
+    const url = base + eng.path;
     let resp;
     try {
-      resp = await fetch(base + eng.path, { method: 'POST', headers, body: fd });
+      resp = await fetch(url, { method: 'POST', headers, body: fd });
     } catch (err) {
       const e = new Error('cannot reach the transcription endpoint');
       e.code = 'network';
+      e.url = url;
       throw e;
     }
     if (!resp.ok) {
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status;
+      e.code = 'http'; e.status = resp.status; e.url = url;
       throw e;
     }
     return resp;

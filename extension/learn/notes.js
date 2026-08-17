@@ -111,10 +111,28 @@ var LearnNotes = (() => {
     return out;
   }
 
+  // A cross-origin POST to a user-configured endpoint is the normal case here, and a
+  // server that omits `Access-Control-Allow-Origin` makes WebKit reject the response
+  // before any status is visible to us — `fetch` throws a bare TypeError ("Load
+  // failed"), indistinguishable from "host unreachable" unless we name it (measured
+  // 2026-08-13, learning-design §9.4). speech-input.js has named this since #130;
+  // this transport did not, so every such failure reached the UI as the raw string.
+  // `url` rides along so the settings page can echo the address it actually requested.
+  async function fetchNamed(url, init) {
+    try {
+      return await fetch(url, init);
+    } catch (netErr) {
+      const e = new Error(String((netErr && netErr.message) || netErr));
+      e.code = 'network';
+      e.url = url;
+      throw e;
+    }
+  }
+
   // The shared chat transport (§9.2 / §9.3): the ONE place that knows the two
   // wire formats. Returns the model's raw text; throws with a named code
-  // (no_base / http / empty_output). exercise-pack.js rides this same function —
-  // a third copy of the format branch is exactly how the formats would drift.
+  // (no_base / network / http / empty_output). exercise-pack.js rides this same
+  // function — a third copy of the format branch is exactly how the formats would drift.
   async function chat(system, user) {
     const p = providerInfo();
     const base = cfg.baseUrl || p.defaultBase;
@@ -122,7 +140,8 @@ var LearnNotes = (() => {
     const model = cfg.model || p.defaultModel;
 
     const msgFormat = p.type === 'messages-compat';
-    const resp = await fetch(base + p.path, {
+    const url = base + p.path;
+    const resp = await fetchNamed(url, {
       method: 'POST',
       headers: msgFormat
         ? { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey,
@@ -142,7 +161,7 @@ var LearnNotes = (() => {
     });
     if (!resp.ok) {
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status;
+      e.code = 'http'; e.status = resp.status; e.url = url;
       throw e;
     }
     const d = await resp.json();
@@ -160,7 +179,7 @@ var LearnNotes = (() => {
         console.error('[learn/notes] empty content' + (thinking ? ' (reasoning_content present — thinking model)' : ''),
           JSON.stringify(d).slice(0, 300));
       } catch (_) {}
-      const e = new Error('model returned no content'); e.code = 'empty_output'; throw e;
+      const e = new Error('model returned no content'); e.code = 'empty_output'; e.url = url; throw e;
     }
     return text;
   }

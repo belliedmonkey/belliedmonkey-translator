@@ -174,6 +174,7 @@ function engineTestReason(e) {
     case 'no_key': return t('engine_test_no_key', '还没填 API Key');
     case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
     case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+    case 'timeout': return t('engine_test_timeout', '端点没有在超时前回应');
     case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
     case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
     case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
@@ -540,16 +541,33 @@ async function init() {
   // 每个测试都走该功能真正用的传输：翻译走 TranslationAPI.translate，解析走
   // LearnNotes.chat，转写走 LearnSpeech 的 postAudio。自己另写一遍请求，
   // 测出来的「通了」就不代表功能能用。
+  // The URL line is the point of this whole surface. With a user-supplied endpoint the
+  // most common failure is a wrong ADDRESS, and no error text can say which address we
+  // called — a 404 and a CORS rejection read identically to the user. Echoing it turns
+  // "it says Load failed" into a screenshot we can act on in one round trip (both of
+  // PR #145's bugs arrived as a settings-page screenshot). The key is never in this
+  // line — only the URL the transport actually requested.
+  //
+  // The success branch reads `r.url` for the same reason (an endpoint that answers but
+  // is not the one the user meant is invisible otherwise), but no test callback returns
+  // it yet: on success the URL lives inside the transport and recomputing it here would
+  // be a second copy that drifts. It arrives with the shared endpoint resolver (#147).
+  const withUrl = (text, url) => text + (url
+    ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
+    : '');
+
   const runTest = (btn, note, fn) => busy($(btn), async () => {
     const el = $(note);
     el.textContent = t('engine_test_running', '测试中…');
     try {
       const r = await fn();
-      el.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
-        + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+      el.textContent = withUrl(
+        t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+          + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
+        r.url);
     } catch (e) {
-      console.error('[engine-test]', e);
-      el.textContent = '✗ ' + engineTestReason(e);
+      console.error('[engine-test]', (e && e.url) || '', e);
+      el.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
     }
   });
 

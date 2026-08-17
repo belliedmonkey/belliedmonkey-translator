@@ -24,6 +24,9 @@ function setup(opts = {}) {
 
   const fetchStub = (url, init) => {
     calls.fetch.push({ url, init });
+    // A REJECTION, not a status: WebKit's CORS rejection never produces a status at
+    // all, and that difference is exactly what the `network` naming exists to capture.
+    if (opts.fetchThrows) return Promise.reject(new TypeError('Load failed'));
     if (opts.fetchStatus && opts.fetchStatus !== 200) {
       return Promise.resolve({ ok: false, status: opts.fetchStatus });
     }
@@ -291,6 +294,20 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     TTS.configure(Object.assign({}, cfg, { baseUrl: 'http://127.0.0.1:8880///' }));
     await TTS.getAudio('Hi there', 'en');
     ok(!calls.fetch[0].url.includes('//v1'), `doubled slash in ${calls.fetch[0].url}`);
+  });
+
+  // Same story as speech-input.js #130 and notes.js: a self-hosted speech server that
+  // omits CORS headers makes WebKit throw a bare TypeError before any status exists,
+  // which reads exactly like an unreachable host. Named here so the settings page can
+  // name the two fixable causes, and carrying the URL so it can show which address.
+  test('a bare fetch rejection is named `network` and carries the URL', async () => {
+    const { TTS } = setup({ fetchThrows: true });
+    TTS.configure(cfg);
+    let e = null;
+    try { await TTS.getAudio('Hello world', 'en'); } catch (err) { e = err; }
+    eq(e && e.code, 'network');
+    const local = REGISTRY.find((x) => x.id === 'local');
+    eq(e && e.url, 'http://127.0.0.1:8880' + local.path);
   });
 
   test('no Authorization header when the engine needs no key', async () => {

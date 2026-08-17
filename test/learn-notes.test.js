@@ -172,6 +172,30 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     eq(notesDb.get(ITEM.id).v, undefined, '失败不得写入当前版本号 —— 否则错误笔记被洗白成 v2');
   });
 
+  // A user-configured chat endpoint is always a cross-origin POST. If it omits
+  // `Access-Control-Allow-Origin`, WebKit kills the fetch before any status exists and
+  // throws a bare TypeError ("Load failed") — identical to "host unreachable"
+  // (learning-design §9.4, measured 2026-08-13). Unnamed, that reached the settings
+  // page as the raw string; the settings page can only say what to fix if the
+  // transport says what happened, and can only show WHERE if the error carries it.
+  test('a bare fetch rejection is named `network` and carries the URL', async () => {
+    const { N } = setup({ fetch: async () => { throw new TypeError('Load failed'); } });
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    let e = null;
+    try { await N.get(ITEM, 'zh-CN'); } catch (err) { e = err; }
+    eq(e && e.code, 'network');
+    eq(e && e.url, 'https://chat.example/v1/chat/completions');
+  });
+
+  test('an HTTP failure carries the URL too', async () => {
+    const { N } = setup({ fetch: async () => ({ ok: false, status: 404 }) });
+    N.configure({ provider: 'chat1', apiKey: 'k' });
+    let e = null;
+    try { await N.get(ITEM, 'zh-CN'); } catch (err) { e = err; }
+    eq(e && e.code, 'http');
+    eq(e && e.url, 'https://chat.example/v1/chat/completions');
+  });
+
   test('a failed cache WRITE after a successful (paid) call still returns the data', async () => {
     // 扣费已经发生、数据已经在手 —— IndexedDB 写失败不能表现成「解析失败」
     // 引诱用户再点一次、再扣一次。

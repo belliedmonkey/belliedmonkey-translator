@@ -451,6 +451,7 @@ var AppSettings = (() => {
       if (code === 'no_key') return t('engine_test_no_key', '还没填 API Key');
       if (code === 'no_engine') return t('engine_test_no_engine', '还没选引擎');
       if (code === 'network') return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+      if (code === 'timeout') return t('engine_test_timeout', '端点没有在超时前回应');
       if (code === 'empty_output') return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
       if (code === 'bad_output') return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
       if (code === 'http') {
@@ -462,16 +463,27 @@ var AppSettings = (() => {
       }
       return (e && e.message) || t('engine_test_failed', '没通');
     }
+    // Second line: the URL the transport actually requested. Same reason as the
+    // extension's options page — with a user-supplied endpoint the commonest failure is
+    // a wrong ADDRESS, and a 404 and a CORS rejection read identically without it. The
+    // key never appears here. (`r.url` on success is wired for the shared endpoint
+    // resolver in #147; no test callback returns it yet.)
+    const withUrl = (text, url) => text + (url
+      ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
+      : '');
     const runTest = (btnId, noteId, fn) => async () => {
       const btn = $(btnId), note = $(noteId);
       btn.disabled = true;
       note.textContent = t('engine_test_running', '测试中…');
       try {
         const r = await fn();
-        note.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
-          + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+        note.textContent = withUrl(
+          t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+            + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
+          r.url);
       } catch (e) {
-        note.textContent = '✗ ' + engineTestReason(e);
+        console.error('[engine-test]', (e && e.url) || '', e);
+        note.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
       } finally { btn.disabled = false; }
     };
     $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {

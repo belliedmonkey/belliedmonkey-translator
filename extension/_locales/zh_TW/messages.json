@@ -1289,6 +1289,14 @@
     "message": "伺服器拒絕了這次請求",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "端點沒有在逾時前回應",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "請求位址：{url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "模型沒有返回正文——思考（推理）型模型不適合，請換對話模型",
     "description": "Engine self-test (settings)"

@@ -1288,6 +1288,14 @@
     "message": "o servidor recusou a solicitação",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "O endpoint não respondeu antes do tempo limite",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Endereço solicitado: {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "O modelo não retornou conteúdo — modelos de raciocínio não servem aqui; use um modelo de chat",
     "description": "Engine self-test (settings)"

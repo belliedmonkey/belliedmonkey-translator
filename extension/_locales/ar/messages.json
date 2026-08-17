@@ -1288,6 +1288,14 @@
     "message": "رفض الخادم هذا الطلب",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "لم تستجب نقطة النهاية قبل انتهاء المهلة",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "العنوان المطلوب: {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
     "description": "Engine self-test (settings)"

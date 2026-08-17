@@ -1288,6 +1288,14 @@
     "message": "the server refused this request",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "The endpoint did not answer before the timeout",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Requested: {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "The model returned no content — reasoning models do not fit here; switch to a chat model",
     "description": "Engine self-test (settings)"

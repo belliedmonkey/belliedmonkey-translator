@@ -1288,6 +1288,14 @@
     "message": "le serveur a refusé cette requête",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_timeout": {
+    "message": "Le point de terminaison n’a pas répondu avant le délai d’expiration",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Adresse appelée : {url}",
+    "description": "Engine self-test (settings)"
+  },
   "notes_test_empty": {
     "message": "Le modèle n’a renvoyé aucun contenu — un modèle de raisonnement ne convient pas ; choisissez un modèle de chat",
     "description": "Engine self-test (settings)"

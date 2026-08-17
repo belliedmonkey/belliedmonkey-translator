@@ -82,6 +82,22 @@ Rules:
     };
   }
 
+  // A transport failure that never reached a status code. WebKit rejects a
+  // cross-origin response with no `Access-Control-Allow-Origin` BEFORE any status is
+  // visible to us — `fetch` throws a bare TypeError ("Load failed"), indistinguishable
+  // from "host unreachable" unless we name it. Measured 2026-08-13 on the iOS
+  // simulator (learning-design §9.4): the server had received and processed the
+  // request, and the page still saw only a TypeError. speech-input.js has named this
+  // since #130; the other three transports did not, so every CORS/DNS failure here
+  // surfaced as the raw string "Load failed". `url` rides along because the settings
+  // page echoes it — the single most useful fact when an endpoint is misconfigured.
+  function transportError(e, url) {
+    const err = new Error(String((e && e.message) || e));
+    err.code = (e && e.name === 'AbortError') ? 'timeout' : 'network';
+    err.url = url;
+    return err;
+  }
+
   async function apiFetch(url, opts, label) {
     let resp;
     if (IS_FIREFOX) {
@@ -89,12 +105,18 @@ Rules:
       // CSP-free pages and fail elsewhere — restoring exactly the site-dependent
       // unpredictability this removes (and #74 already ruled that a silent fallback
       // hiding a real failure is worse than a visible one).
-      resp = await proxyFetch(url, opts);
+      try {
+        resp = await proxyFetch(url, opts);
+      } catch (e) {
+        throw transportError(e, url);
+      }
     } else {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
       try {
         resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+      } catch (e) {
+        throw transportError(e, url);
       } finally {
         clearTimeout(timer);
       }
@@ -103,6 +125,11 @@ Rules:
       const err = await resp.json().catch(() => ({}));
       const e = new Error(`${label} ${resp.status}: ${(err.error && err.error.message) || resp.statusText}`);
       e.status = resp.status;
+      // `code`/`url` are for the settings page's engine self-check: without a code it
+      // fell through to the raw message, so a 404 never got the "the endpoint URL or
+      // the model name is wrong" hint the learning engines already had.
+      e.code = 'http';
+      e.url = url;
       e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
       throw e;
     }
