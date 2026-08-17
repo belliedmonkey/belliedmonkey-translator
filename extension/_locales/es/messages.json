@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Motor guardado"
   },
+  "toast_endpoint_cleared": {
+    "message": "Motor cambiado: se borró la URL del endpoint",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API Key guardada"
   },

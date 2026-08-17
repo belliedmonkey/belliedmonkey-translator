@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "翻译引擎已保存"
   },
+  "toast_endpoint_cleared": {
+    "message": "换引擎了，接口地址已清空",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API Key 已保存"
   },

@@ -426,9 +426,22 @@ var AppSettings = (() => {
         baseUrl: cfgNow.apiBaseUrl, baseUrlVerbatim: true, model: cfgNow.apiModel,
       });
     }
+    // 换引擎时清空非空的接口地址，并说出来（interaction-spec 「接口地址字段」）。
+    // 地址不能跨端点携带 —— 与下面 tts-engine 重置 voice 是同一条理由。对有默认端点的
+    // 条目，清空恰好回到一个能工作的配置。返回是否真的清了，好让调用方给出提示：
+    // 静默丢掉用户敲过的东西，正是这条规则要避免的那种失败。
+    function clearEndpointOnEngineSwitch(inputId) {
+      const el = $(inputId);
+      if (!el || !el.value.trim()) return false;
+      el.value = '';
+      return true;
+    }
+
     $('notes-provider').addEventListener('change', async () => {
+      const cleared = clearEndpointOnEngineSwitch('notes-base');
       paintNotesFields($('notes-provider').value);
       await saveNotesCfg();
+      if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
     for (const id of ['notes-key', 'notes-base', 'notes-model']) {
       $(id).addEventListener('change', saveNotesCfg);
@@ -454,8 +467,10 @@ var AppSettings = (() => {
       }
     }
     $('stt-engine').addEventListener('change', async () => {
+      const cleared = clearEndpointOnEngineSwitch('stt-base');
       paintSttFields($('stt-engine').value);
       await saveSttCfg();
+      if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
     for (const id of ['stt-key', 'stt-base', 'stt-model']) {
       $(id).addEventListener('change', saveSttCfg);

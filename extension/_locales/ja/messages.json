@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "エンジンを保存しました"
   },
+  "toast_endpoint_cleared": {
+    "message": "エンジンを変更したため、エンドポイント URL をクリアしました",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API キーを保存しました"
   },

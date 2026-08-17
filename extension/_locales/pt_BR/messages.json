@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Mecanismo salvo"
   },
+  "toast_endpoint_cleared": {
+    "message": "Mecanismo alterado — a URL do endpoint foi limpa",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API Key salva"
   },

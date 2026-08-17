@@ -237,7 +237,7 @@ host-key delivery. But typing was never actually required: **stop configuring th
 and configure the build.**
 
 1. Copy `dist/` to a throwaway dir and instrument the COPY only — never the repo:
-   - `content/providers.gen.js` → point the provider's `defaultBase` at a local
+   - `content/providers.gen.js` → point the provider's `defaultEndpoint` at a local
      logging endpoint. Leaving 自定义 API 地址 empty then resolves to it, no typing.
    - `background.js` `DEFAULT_SETTINGS` → preset `targetLang` / `provider` / `apiKey`.
    - `content/translation-api.js` → `apiKey = apiKey || '<key>'`, because storage may
@@ -261,7 +261,7 @@ uninterpretable. A fixed banner painted by a content script works:
 
 ```js
 var b = document.createElement('div');
-b.textContent = 'BUILD=instrumented base=' + provider.defaultBase;
+b.textContent = 'BUILD=instrumented base=' + provider.defaultEndpoint;
 b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b00;color:#fff';
 (document.body || document.documentElement).appendChild(b);
 ```

@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Moteur enregistré"
   },
+  "toast_endpoint_cleared": {
+    "message": "Moteur changé — l’URL du point de terminaison a été effacée",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "Clé API enregistrée"
   },

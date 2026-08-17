@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "تم حفظ المحرك"
   },
+  "toast_endpoint_cleared": {
+    "message": "تم تغيير المحرك — وأُفرِغ عنوان نقطة النهاية",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "تم حفظ مفتاح API"
   },

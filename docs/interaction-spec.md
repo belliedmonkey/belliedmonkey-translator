@@ -861,9 +861,29 @@ change: four grades, consequence previews, strength bar.
   its next eligible skill.
 - **Recordings are never stored** — sent only to the user-configured endpoint and
   discarded when the transcript returns (learning-design §9.4, §10 Gate C).
+### 接口地址字段（所有引擎共用一条规则）
+
+- **字段的语义是「完整的接口地址」**，不是主机名。用户填什么我们就请求什么，一个字符都不
+  加（domain-design §7 零拼接）。空着表示「用这个引擎的默认端点」——那仍然是最常见、也最
+  该鼓励的状态，占位符显示的就是那个完整默认地址。
+- **占位符来自注册表**（`defaultEndpoint` 或 `placeholder`），不来自文案。一条路径写进
+  十一种语言的翻译串就是十一份会过时的拷贝。
+- **切换引擎时，若地址框非空则清空它**，并给一条可见提示。地址不能跨端点携带——理由与
+  语音那条一样（`app/settings.js` 换引擎会重置 voice：「Voice names don't carry across
+  engines」）。对有默认端点的条目，清空恰好回到一个能工作的配置；对必须自填的条目，本来
+  就得重填。**不许静默清空**。
+- **失败要分得开。** 「测试连接」在发请求之前做一次离线形状检查：地址缺协议头 ⇒
+  `bad_url`；只有主机名没有路径 ⇒ `no_path`。这两条**只在自检里硬失败，运行时不拦**——
+  逐字发送是承诺，而根路径端点虽罕见却合法。之所以要单独具名：缺路径造成的失败与 CORS
+  失败在 WebKit 里表征完全相同（learning-design §9.4，2026-08-13 实测的裸 TypeError），
+  运行时无法区分，只有离线检查能。
+- **结果行回显真正请求的地址**（成功与失败都回显，key 永不出现在这一行）。用户填了自定义
+  端点时最常见的故障就是地址错，而「我们调用了哪个地址」是唯一能把它和「连不上」分开的
+  事实，没有任何错误文案能提供它。
+
 - **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
   engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no
-  on-device engine), base URL / key / model per registry flags. It never follows
+  on-device engine), endpoint URL / key / model per registry flags. It never follows
   the translation or 解析 group: where a recording goes is an explicit choice. The
   hint under the block carries the Gate C sentence.
 

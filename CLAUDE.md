@@ -112,14 +112,20 @@ single registry (`docs/domain-design.md` §7); the build emits
 `content/providers.gen.js` (`window.MT_PROVIDERS`), and every runtime surface reads
 it — `translation-api.js` (dispatch), `options.js` / `popup.js` (UI). Read the
 registry for the current ids, endpoints, `defaultModel`s and which flavor each ships
-in. **Never re-state a model name, endpoint or provider list in docs, UI strings or
-code** — each copy is a consumer that stops tracking the registry and drifts (the
-DeepSeek hint kept saying `deepseek-chat` long after the API rejected it).
+in. **Outside the registry, never re-state a model name, endpoint or provider list —
+not in docs, not in UI strings, not in code** — each copy is a consumer that stops
+tracking the registry and drifts (the DeepSeek hint kept saying `deepseek-chat` long
+after the API rejected it). The registry's `placeholder` field exists so the settings
+UI can show an example address without becoming such a copy.
 
-Transport is keyed by request **format**, not vendor: `google`, `chat-compat`
-(OpenAI Chat-Completions shape) or `messages-compat` (Anthropic Messages shape), read
-from each entry's `type`. A custom base URL (`apiBaseUrl`) / model (`apiModel`) is
-available on any entry whose `supportsBaseUrl` / `supportsModel` is set.
+**The endpoint is used EXACTLY as stored — we concatenate nothing.** `defaultEndpoint`
+is a complete request URL, path included; `content/wire-format.js` is the one place an
+address is resolved, and all four transports go through it. Transport is keyed by
+request **format**, declared by the endpoint URL's path suffix first
+(`/chat/completions`, `/responses`, `/messages`, `/audio/speech`,
+`/audio/transcriptions`) and the registry `type` second — family-closed, so a suffix
+only picks a variant within one capability. See `docs/domain-design.md` §7 for why the
+URL outranks `type` and why the pre-2026-08 legacy branch is permanent.
 
 Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `tr:{provider}:{lang}:{text}`.
 

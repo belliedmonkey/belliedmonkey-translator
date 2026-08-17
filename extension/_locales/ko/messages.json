@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "엔진 저장됨"
   },
+  "toast_endpoint_cleared": {
+    "message": "엔진을 변경하여 엔드포인트 URL을 비웠습니다",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API 키 저장됨"
   },

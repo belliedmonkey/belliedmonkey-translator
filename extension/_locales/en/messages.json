@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Engine saved"
   },
+  "toast_endpoint_cleared": {
+    "message": "Engine changed — the endpoint URL was cleared",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API Key saved"
   },

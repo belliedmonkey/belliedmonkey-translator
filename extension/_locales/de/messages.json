@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Modul gespeichert"
   },
+  "toast_endpoint_cleared": {
+    "message": "Engine gewechselt — die Endpunkt-URL wurde geleert",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API-Schlüssel gespeichert"
   },

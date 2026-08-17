@@ -194,6 +194,10 @@
   "toast_provider_saved": {
     "message": "Движок сохранён"
   },
+  "toast_endpoint_cleared": {
+    "message": "Движок изменён — URL эндпоинта очищен",
+    "description": "Settings toast"
+  },
   "toast_apikey_saved": {
     "message": "API-ключ сохранён"
   },

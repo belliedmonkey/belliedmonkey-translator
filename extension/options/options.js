@@ -121,6 +121,21 @@ async function migrateEndpointsOnce(read) {
   return patch;
 }
 
+
+// Switching engines clears a non-empty endpoint, visibly (interaction-spec 「接口地址
+// 字段」). An address cannot carry across endpoints — the same reason app/settings.js
+// already resets the chosen voice when the speech engine changes ("Voice names don't
+// carry across engines"). For an entry that ships a default this lands on a WORKING
+// configuration; for one that requires its own address it had to be retyped anyway.
+// Returns true when something was cleared, so the caller can say so — silently
+// discarding what someone typed is the failure this rule exists to avoid.
+function clearEndpointOnEngineSwitch(inputId) {
+  const el = $(inputId);
+  if (!el || !el.value.trim()) return false;
+  el.value = '';
+  return true;
+}
+
 function showToast(msg, duration = 2500) {
   const el = $('toast');
   el.textContent = msg;
@@ -501,27 +516,31 @@ async function init() {
   // ─── Listeners ──────────────────────────────────────────────────────
 
   $('notes-provider').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('notes-base-url');
     updateNotesUI(e.target.value);
     await saveAll();
-    showToast(t('toast_saved', '已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
   });
   for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
     $(id).addEventListener('change', async () => { await saveAll(); });
   }
 
   $('stt-engine').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('stt-base-url');
     updateSttUI(e.target.value);
     await saveAll();
-    showToast(t('toast_saved', '已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
   });
   for (const id of ['stt-api-key', 'stt-base-url', 'stt-model']) {
     $(id).addEventListener('change', async () => { await saveAll(); });
   }
 
   $('provider').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('api-base-url');
     updateProviderUI(e.target.value);
     await saveAll();
-    showToast(t('toast_provider_saved', '翻译引擎已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
+      : t('toast_provider_saved', '翻译引擎已保存'));
   });
 
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });

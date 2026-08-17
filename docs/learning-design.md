@@ -1700,7 +1700,12 @@ rather than reading the sentence in the wrong language.
   实测那次服务器其实已经收下并处理了上传，页面却只看见 TypeError。因此：传输层
   捕获它并具名为 `network`，文案同时点出**可达性**与 **CORS** 两个用户能动手的原因；
   设置面的提示也写明这条要求。云端点（OpenAI 一类）本就为浏览器开了 CORS，不受影响。
-- **用户填的地址尾斜杠要裁掉**，否则拼出 `…//v1/audio/transcriptions`。
+- **用户填的是完整的接口地址，我们原样请求**（2026-08 起，domain-design §7 零拼接）。
+  从前这里写的是「尾斜杠要裁掉，否则拼出 `…//v1/audio/transcriptions`」——那条规则的前提
+  是我们会往用户填的地址后面接一段路径，而现在不接了，所以它连同它防的那个 bug 一起消失。
+  尾斜杠现在是用户自己敲进去的字符，我们不替他修：真要修，也该是他在看得见完整地址的
+  输入框里修，而不是我们在他看不见的地方猜。老装机的地址由 `content/wire-format.js` 的
+  legacy 分支按当年的规则（转写这一路是**裁**）逐字节复刻，升级不改变任何出网地址。
 - **失败具名**：`no_base / no_key / no_mic / mic_denied / network / http /
   empty_transcript / unsupported`，界面文案逐一对应（§9.1 reason 惯例）。
   会话中途 `mic_denied` ⇒ 本会话说档关闭、卡片按下一顺位技能重渲——不出死卡。

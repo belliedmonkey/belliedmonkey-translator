@@ -285,10 +285,18 @@ async function init() {
 
   $('provider').addEventListener('change', async (e) => {
     const provider = e.target.value;
-    await saveSettings({ provider });
+    // See options.js: an endpoint address cannot carry across engines, and clearing it
+    // lands on a working default rather than on the previous engine's address.
+    const url = $('api-base-url');
+    const cleared = !!(url && url.value.trim());
+    if (cleared) { url.value = ''; }
+    await saveSettings(cleared
+      ? { provider, apiBaseUrl: '', apiBaseUrlVerbatim: true }
+      : { provider });
     updateApiKeySection(provider);
     updateSetupNote(provider, $('api-key').value);
-    showToast(t('toast_provider_switched', '翻译引擎已切换'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
+      : t('toast_provider_switched', '翻译引擎已切换'));
   });
 
   $('api-key').addEventListener('change', async (e) => {

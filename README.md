@@ -102,8 +102,11 @@ whole-sentence pairs, never word-by-word fragments, and no stutter even with a s
 a viewport-anchored overlay tracks the audio clock.
 
 **Any LLM you want, or none.** Transport is keyed by request *format* rather than by vendor —
-Google, OpenAI-compatible chat completions, and Anthropic-compatible messages — so any
-endpoint speaking one of those shapes works, including your own. The list of built-in engines
+Google, OpenAI-compatible chat completions, OpenAI-compatible responses, and
+Anthropic-compatible messages — so any endpoint speaking one of those shapes works,
+including your own. You give it the **complete endpoint URL** and that exact address is
+what gets requested; nothing is appended. The path you write is also what picks the
+request shape, so one host serving two of them is a matter of typing a different address. The list of built-in engines
 lives in the extension's settings page; the single source of truth in this repo is
 [`build/providers.config.js`](build/providers.config.js), and it is deliberately not
 duplicated here — every copy of it is one more thing that goes stale.
