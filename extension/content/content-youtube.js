@@ -205,7 +205,8 @@ var YouTubeTranslator = (() => {
     srtName: () => document.title.replace(/ - YouTube$/, ''),
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
+      s.apiBaseUrlVerbatim === true),
     labels: {
       btnTitle: T('yt_btn_title', '大肚猴翻译 · 视频字幕'),
       subOn: T('yt_sub_on', '开启视频字幕翻译'),

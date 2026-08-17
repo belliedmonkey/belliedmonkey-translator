@@ -90,7 +90,7 @@
     "message": "Anzeigen/Verbergen"
   },
   "label_custom_api": {
-    "message": "Eigene API-URL"
+    "message": "Endpunkt-URL (vollständig)"
   },
   "label_optional": {
     "message": "(optional)"
@@ -135,7 +135,7 @@
     "message": "Google Übersetzer (kostenlos, kein API-Schlüssel)"
   },
   "options_custom_api_hint": {
-    "message": "Leer lassen für die Standardadresse. Nützlich für Proxys oder selbst gehostete Dienste."
+    "message": "Leer lassen, um den Standard-Endpunkt dieser Engine zu verwenden. Wenn Sie etwas eintragen, geben Sie die vollständige Anfrage-URL samt Pfad an — wir senden sie exakt so und hängen nichts an. Geeignet für Proxys und selbst gehostete Dienste."
   },
   "options_lang_section": {
     "message": "Sprache"
@@ -255,10 +255,10 @@
     "message": "Standardmodell:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Beliebiger Chat-Endpunkt im Chat-Completions-Format. Vollständige Endpunkt-URL, Modell und Schlüssel eintragen. Endet die Adresse auf responses, wird das Responses-Format gesendet."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Beliebiger Chat-Endpunkt im Messages-Format. Vollständige Endpunkt-URL, Modell und Schlüssel eintragen."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "Nutzt die Stimmen, die Ihr Betriebssystem bereits hat. Es wird nichts gesendet und nichts zwischengespeichert — diese Engine spricht nur, sie kann kein Audio zurückgeben."
   },
   "tts_hint_local": {
-    "message": "Jeder Sprachserver, der die Schnittstelle /v1/audio/speech implementiert — auf Ihrem Rechner oder im LAN. Synthesen werden lokal zwischengespeichert, ein Satz kostet also nur einmal."
+    "message": "Ein Sprachserver auf Ihrem Rechner oder im LAN — geben Sie die vollständige Adresse ein, wie im Beispiel im Feld. Die Synthese wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
   },
   "tts_hint_openai": {
     "message": "Nutzt Ihren eigenen API-Schlüssel. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "URL oder Modellname ist falsch",
+    "message": "die Endpunkt-URL (samt Pfad) oder der Modellname ist falsch",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "der Server hat die Anfrage abgelehnt",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Diese Adresse enthält nur einen Host und keinen Endpunkt-Pfad — geben Sie die vollständige Anfrage-URL ein (siehe Beispiel im Feld)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "Die Adresse beginnt nicht mit http:// oder https:// — ohne Schema wird sie als relativer Pfad behandelt und es wird gar keine Anfrage gesendet",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

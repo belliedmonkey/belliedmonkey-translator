@@ -90,7 +90,7 @@
     "message": "Afficher/Masquer"
   },
   "label_custom_api": {
-    "message": "URL d’API personnalisée"
+    "message": "URL du point de terminaison (complète)"
   },
   "label_optional": {
     "message": "(facultatif)"
@@ -135,7 +135,7 @@
     "message": "Google Traduction (gratuit, sans clé API)"
   },
   "options_custom_api_hint": {
-    "message": "Laisser vide pour l’adresse par défaut. Utile pour les proxys ou services auto-hébergés."
+    "message": "Laissez vide pour utiliser le point de terminaison par défaut de ce moteur. Si vous le renseignez, saisissez l’URL de requête complète, chemin compris — nous l’envoyons telle quelle, sans rien ajouter. Convient aux proxys et aux services auto-hébergés."
   },
   "options_lang_section": {
     "message": "Langue"
@@ -255,10 +255,10 @@
     "message": "Modèle par défaut :"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Tout point de terminaison de conversation au format Chat Completions. Saisissez l’URL complète, le modèle et la clé. Si l’adresse se termine par responses, le format Responses est utilisé."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Tout point de terminaison de conversation au format Messages. Saisissez l’URL complète, le modèle et la clé."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "Utilise les voix déjà présentes dans votre système. Rien n'est envoyé ni mis en cache — ce moteur ne fait que parler, il ne peut pas restituer l'audio."
   },
   "tts_hint_local": {
-    "message": "Tout serveur vocal implémentant l’interface /v1/audio/speech, sur votre machine ou votre réseau local. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
+    "message": "Un serveur vocal sur votre machine ou votre réseau local — saisissez l’adresse complète, en suivant l’exemple affiché dans le champ. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
   },
   "tts_hint_openai": {
     "message": "Utilise votre propre clé API. L'audio synthétisé est mis en cache localement : une phrase n'est payée qu'une fois."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "l’URL ou le nom du modèle est incorrect",
+    "message": "l’URL du point de terminaison (chemin compris) ou le nom du modèle est incorrect",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "le serveur a refusé cette requête",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Cette adresse ne contient qu’un hôte, sans chemin de point de terminaison — saisissez l’URL de requête complète (voir l’exemple dans le champ)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "L’adresse ne commence pas par http:// ou https:// — sans schéma, elle est traitée comme un chemin relatif et aucune requête n’est envoyée",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

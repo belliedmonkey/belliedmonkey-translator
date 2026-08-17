@@ -90,7 +90,7 @@
     "message": "Show/Hide"
   },
   "label_custom_api": {
-    "message": "Custom API URL"
+    "message": "Endpoint URL (complete)"
   },
   "label_optional": {
     "message": "(optional)"
@@ -135,7 +135,7 @@
     "message": "Google Translate (free, no API Key)"
   },
   "options_custom_api_hint": {
-    "message": "Leave blank to use the default endpoint. Useful for proxies or self-hosted services."
+    "message": "Leave blank to use this engine's default endpoint. If you fill it in, enter the complete request URL including its path — we send it exactly as typed and never append anything. Works for proxies and self-hosted services."
   },
   "options_lang_section": {
     "message": "Language"
@@ -255,10 +255,10 @@
     "message": "Default model:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Any Chat-Completions-format chat endpoint. Enter the complete endpoint URL, model and key. If the address ends in responses, the Responses format is sent instead."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Any Messages-format chat endpoint. Enter the complete endpoint URL, model and key."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "Uses the voices your operating system already has. Nothing is sent anywhere and nothing is cached — this engine only speaks, it cannot hand back audio."
   },
   "tts_hint_local": {
-    "message": "Any speech server implementing the /v1/audio/speech interface, running on your machine or LAN. Synthesis is cached locally, so a sentence costs you only once."
+    "message": "A speech server on your own machine or LAN — enter the complete address, following the example shown in the field. Synthesis is cached locally, so a sentence costs you only once."
   },
   "tts_hint_openai": {
     "message": "Uses your own API key. Synthesized audio is cached locally so a card is only paid for once."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "the URL or model name is wrong",
+    "message": "the endpoint URL (including its path) or the model name is wrong",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "the server refused this request",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "This address has only a host and no endpoint path — enter the complete request URL (see the example in the field)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "The address does not start with http:// or https:// — without a scheme it is treated as a relative path and no request leaves at all",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

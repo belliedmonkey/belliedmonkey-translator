@@ -90,7 +90,7 @@
     "message": "顯示/隱藏"
   },
   "label_custom_api": {
-    "message": "自訂 API 地址"
+    "message": "介面位址（完整）"
   },
   "label_optional": {
     "message": "（可選）"
@@ -135,7 +135,7 @@
     "message": "Google 翻譯（免費，無需 API Key）"
   },
   "options_custom_api_hint": {
-    "message": "留空則使用預設地址。適用於中轉代理或自建服務。"
+    "message": "留空則使用該引擎的預設端點。要自己填就填**完整的介面位址（含路徑）**——我們原樣請求，不會自動補路徑。中轉代理與自建服務都適用。"
   },
   "options_lang_section": {
     "message": "語言"
@@ -255,10 +255,10 @@
     "message": "預設模型："
   },
   "hint_custom_chat": {
-    "message": "任意 Chat Completions 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+    "message": "任意 Chat Completions 格式的對話介面。填寫完整的介面位址、模型與 Key。位址末段是 responses 時按 Responses 格式傳送。"
   },
   "hint_custom_msg": {
-    "message": "任意 Messages 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+    "message": "任意 Messages 格式的對話介面。填寫完整的介面位址、模型與 Key。"
   },
   "label_custom_model": {
     "message": "模型"
@@ -433,7 +433,7 @@
     "message": "使用你作業系統既有的語音。不傳送任何資料，也不產生快取 —— 這個引擎只能朗讀，拿不到音訊資料。"
   },
   "tts_hint_local": {
-    "message": "任何實作了 /v1/audio/speech 介面的語音服務，跑在你自己的機器或區域網路上。合成結果會快取在本機，同一句只花一次代價。"
+    "message": "跑在你自己的機器或區域網路上的語音服務，按輸入框裡的範例填完整位址。合成結果會快取在本機，同一句只花一次代價。"
   },
   "tts_hint_openai": {
     "message": "用你自己的 API Key。合成結果會快取在本機，同一句只花一次錢。"
@@ -1282,11 +1282,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "位址或模型名不對",
+    "message": "介面位址（含路徑）或模型名不對",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "伺服器拒絕了這次請求",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "這個位址只有主機名稱，沒有介面路徑 —— 請填完整的介面位址（參考輸入框裡的範例）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "位址不是以 http:// 或 https:// 開頭 —— 缺協定前綴會被當成相對路徑，請求根本發不出去",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

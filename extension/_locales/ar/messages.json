@@ -90,7 +90,7 @@
     "message": "إظهار/إخفاء"
   },
   "label_custom_api": {
-    "message": "عنوان API مخصص"
+    "message": "عنوان نقطة النهاية (كامل)"
   },
   "label_optional": {
     "message": "(اختياري)"
@@ -135,7 +135,7 @@
     "message": "ترجمة Google (مجانية، بدون مفتاح API)"
   },
   "options_custom_api_hint": {
-    "message": "اتركه فارغًا لاستخدام العنوان الافتراضي. مفيد للوكلاء أو الخدمات الذاتية."
+    "message": "اتركه فارغًا لاستخدام نقطة النهاية الافتراضية لهذا المحرك. وإذا ملأته فاكتب عنوان الطلب الكامل بما في ذلك مساره — نرسله كما هو تمامًا ولا نضيف إليه شيئًا. يصلح للوسطاء وللخدمات المستضافة ذاتيًا."
   },
   "options_lang_section": {
     "message": "اللغة"
@@ -255,10 +255,10 @@
     "message": "النموذج الافتراضي:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "أي نقطة نهاية محادثة بصيغة Chat Completions. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح. وإذا انتهى العنوان بـ responses فسنرسل بصيغة Responses."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "أي نقطة نهاية محادثة بصيغة Messages. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "يستخدم الأصوات الموجودة في نظام تشغيلك. لا يُرسَل شيء ولا يُخزَّن شيء — هذا المحرّك ينطق فقط ولا يمكنه إعادة بيانات صوتية."
   },
   "tts_hint_local": {
-    "message": "أي خادم صوت يطبّق واجهة ‎/v1/audio/speech‎، على جهازك أو شبكتك المحلية. يُخزَّن الصوت المُركَّب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
+    "message": "خادم تحويل نص إلى كلام على جهازك أو شبكتك المحلية — اكتب العنوان الكامل وفق المثال الظاهر في الحقل. تُخزَّن نتائج التركيب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
   },
   "tts_hint_openai": {
     "message": "يستخدم مفتاح API الخاص بك. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "العنوان أو اسم النموذج خاطئ",
+    "message": "عنوان نقطة النهاية (بما في ذلك مساره) أو اسم النموذج غير صحيح",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "رفض الخادم هذا الطلب",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "هذا العنوان يحتوي على المضيف فقط دون مسار نقطة النهاية — اكتب عنوان الطلب الكامل (انظر المثال في الحقل)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "لا يبدأ العنوان بـ http:// أو https:// — وبدون المخطَّط يُعامَل كمسار نسبي فلا يُرسَل أي طلب",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

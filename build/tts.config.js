@@ -27,7 +27,12 @@
 //                                     bytes). This is the de-facto shape local TTS
 //                                     servers implement, so ONE format covers both
 //                                     self-hosted and cloud.
-//   defaultBase     string | null. null + requiresBaseUrl ⇒ the user supplies it.
+//   defaultEndpoint string | null. The COMPLETE request URL, path included — never an
+//                   origin to append to (domain-design §7 zero-concatenation).
+//                   null + requiresEndpoint ⇒ the user supplies the whole address.
+//   placeholder     string | null. Example address for the empty input; only meaningful
+//                   when defaultEndpoint is null. Endpoints live in the registry, never
+//                   in UI copy, so the hint text can stop naming a path.
 //   voices          string[] | null. null ⇒ voices are discovered at runtime
 //                   (browser) or free-form (self-hosted).
 //   returnsAudio    whether this engine yields bytes we can cache locally and,
@@ -36,30 +41,33 @@
 module.exports = [
   {
     id: 'browser', type: 'browser', flavors: ['global', 'china'],
-    needsKey: false, supportsBaseUrl: false, supportsModel: false, requiresBaseUrl: false,
-    defaultBase: null, path: null, defaultModel: '', voices: null,
+    needsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    // The system voice engine speaks no HTTP at all. Explicitly null, not absent.
+    defaultEndpoint: null, placeholder: null, defaultModel: '', voices: null,
     returnsAudio: false,
     labelKey: 'tts_engine_browser', label: '设备内置语音（免费 · 离线）',
     hintKey: 'tts_hint_browser',
   },
   {
     // Any server implementing the /v1/audio/speech request shape on the user's own
-    // machine or LAN. Brand-free by design — the user supplies the base URL, and the
-    // user-visible hint names the interface, never the vendor that first shipped it.
+    // machine or LAN. Brand-free by design — the user supplies the complete endpoint
+    // URL, and the placeholder below is what tells them its shape (the hint copy used
+    // to name the path itself, which put an endpoint in eleven translated strings).
     id: 'local', type: 'speech-compat', flavors: ['global', 'china'],
-    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: true,
-    defaultBase: null, path: '/v1/audio/speech', defaultModel: '', voices: null,
+    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    defaultEndpoint: null, placeholder: 'http://127.0.0.1:8880/v1/audio/speech',
+    defaultModel: '', voices: null,
     returnsAudio: true,
     labelKey: 'tts_engine_local', label: '本地 / 自建语音端点',
     hintKey: 'tts_hint_local',
   },
   {
-    // GLOBAL ONLY. Its label, defaultBase and hint key all carry a brand the China
+    // GLOBAL ONLY. Its label, defaultEndpoint and hint key all carry a brand the China
     // bundle may not ship; `flavors` is what keeps it out. Without this field the
     // China compliance gate fails the build — which is how the omission was caught.
     id: 'openai_speech', type: 'speech-compat', flavors: ['global'],
-    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: false,
-    defaultBase: 'https://api.openai.com', path: '/v1/audio/speech',
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://api.openai.com/v1/audio/speech', placeholder: null,
     defaultModel: 'gpt-4o-mini-tts',
     voices: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer'],
     returnsAudio: true,

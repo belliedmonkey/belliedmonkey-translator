@@ -44,6 +44,52 @@
     try { localStorage.setItem(PREFIX + 'ttsMode', JSON.stringify('assist')); } catch (_) {}
   }
 
+  // ─── One-time endpoint migration (#147) ─────────────────────────────────
+  // Same reason this sits here rather than in AppSettings.ensureDefaults: review.js
+  // reads settings ONCE at bundle load, and an async fixup loses that race. Synchronous,
+  // and this shim is the second module in the bundle — WireFormat is the first,
+  // precisely so its frozen LEGACY_PATHS is available right here.
+  //
+  // The app has no `onInstalled`, so the marker is the whole mechanism. Anything that
+  // throws (private mode, quota) leaves the marker unset and retries next launch:
+  // a failed read must never be spent as if it had succeeded (learn/page-settings.js's
+  // ok:false ≠ {} contract, and the 2026-08-05 incident behind it).
+  //
+  // Only three pairs matter here — the app has no `notesBaseUrl`; its 解析引擎 writes
+  // the same `provider` + `apiBaseUrl` the extension's translator uses. The loop runs
+  // over all four anyway: the missing key is skipped by the empty-value guard, and
+  // symmetry beats a special case.
+  try {
+    if (localStorage.getItem(PREFIX + 'endpointMigrated2026') == null
+        && typeof WireFormat !== 'undefined') {
+      const rd = (k) => {
+        const s = localStorage.getItem(PREFIX + k);
+        if (s == null) return undefined;
+        try { return JSON.parse(s); } catch (_) { return undefined; }
+      };
+      const wr = (k, v) => localStorage.setItem(PREFIX + k, JSON.stringify(v));
+      const PAIRS = [
+        ['apiBaseUrl', 'provider', 'chat'],
+        ['notesBaseUrl', 'notesProvider', 'chat'],
+        ['ttsBaseUrl', 'ttsEngine', 'tts'],
+        ['sttBaseUrl', 'sttEngine', 'stt'],
+      ];
+      for (const [urlKey, idKey, cap] of PAIRS) {
+        const stored = rd(urlKey);
+        if (typeof stored !== 'string' || !stored.trim()) continue;
+        const path = WireFormat.LEGACY_PATHS[cap] && WireFormat.LEGACY_PATHS[cap][rd(idKey)];
+        if (!path) continue;
+        const s = stored.trim();
+        if (s.endsWith(path)) continue;                       // idempotent
+        const base = WireFormat.LEGACY_STRIPS_SLASH[cap] ? s.replace(/\/+$/, '') : s;
+        wr(urlKey + 'PreVerbatim', stored);                   // written first: the value
+        wr(urlKey, base + path);                              // it protects comes second
+        wr(urlKey + 'Verbatim', true);
+      }
+      wr('endpointMigrated2026', true);
+    }
+  } catch (_) { /* nothing written, marker unset — next launch tries again */ }
+
   const storage = {
     get(query, cb) {
       const all = readAll();

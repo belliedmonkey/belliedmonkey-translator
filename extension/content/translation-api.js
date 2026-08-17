@@ -172,7 +172,7 @@ Rules:
   // Chat Completions request format (DeepSeek / GLM / Qwen / Kimi / custom / etc.).
   function translateChatCompat(text, targetLang, apiKey, cfg, model) {
     return callChatAPI({
-      url: cfg.base + cfg.path,
+      url: cfg.url,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: {
         model: model || cfg.defaultModel,
@@ -193,7 +193,7 @@ Rules:
   // API-format requirement, not a vendor brand reference.
   function translateMessagesFormat(text, targetLang, apiKey, cfg, model) {
     return callChatAPI({
-      url: cfg.base + cfg.path,
+      url: cfg.url,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
@@ -211,15 +211,66 @@ Rules:
     });
   }
 
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model) {
+  // The Responses request format. Same host and the same Bearer auth as Chat
+  // Completions — what differs is the shape, which is why the ENDPOINT has to be the
+  // thing that selects it: one provider serves both from one origin, and before this
+  // the user had no way to say which one they wanted.
+  //
+  // `instructions` rather than a system message inside `input`: it lines up 1:1 with
+  // buildSystemPrompt() and with the Messages format's top-level `system`, and it
+  // sidesteps the system-vs-developer role rename. `max_output_tokens`, not
+  // `max_tokens` — a different name AND a different meaning, since reasoning tokens
+  // are charged against it (notes.js:132 records what a too-small budget looks like:
+  // an empty body that is indistinguishable from a broken endpoint).
+  function translateResponsesFormat(text, targetLang, apiKey, cfg, model) {
+    return callChatAPI({
+      url: cfg.url,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: {
+        model: model || cfg.defaultModel,
+        instructions: buildSystemPrompt(targetLang),
+        input: text,
+        max_output_tokens: 2000,
+        temperature: 0.3,
+      },
+      label: cfg.label,
+      extract: extractResponses,
+    });
+  }
+
+  // NEVER `output[0]`: a reasoning model puts a `{type:'reasoning'}` item first and the
+  // answer after it, so index 0 is empty on exactly the models people reach for. Walk
+  // for the message item instead. `output_text` is tried first because it is the flat
+  // convenience field; it may not exist in the raw HTTP body, so the walk is the real
+  // implementation and the fast path is the optimisation.
+  function extractResponses(d) {
+    if (d && typeof d.output_text === 'string' && d.output_text.trim()) return d.output_text;
+    let out = '';
+    const items = (d && Array.isArray(d.output)) ? d.output : [];
+    for (const it of items) {
+      if (!it || it.type !== 'message') continue;
+      for (const c of (Array.isArray(it.content) ? it.content : [])) {
+        if (c && (c.type === 'output_text' || typeof c.text === 'string')) out += (c.text || '');
+      }
+    }
+    return out;
+  }
+
+  // The endpoint is used EXACTLY as stored — no path is appended, ever. See
+  // content/wire-format.js for why, and for the legacy branch that keeps a device
+  // whose one-time migration never ran working on the old semantics.
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, verbatim) {
     const p = providerById(provider);
     if (!p || p.type === 'google') return translateGoogle(text, targetLang);
-    const base = baseUrl || p.defaultBase;
-    if (!base) { const e = new Error(`${p.label || provider}: missing base URL`); e.status = 0; throw e; }
-    const cfg = { base, path: p.path, defaultModel: p.defaultModel, label: p.label || provider };
-    return p.type === 'messages-compat'
-      ? translateMessagesFormat(text, targetLang, apiKey, cfg, model)
-      : translateChatCompat(text, targetLang, apiKey, cfg, model);
+    const url = WireFormat.resolveEndpoint(baseUrl, p, { cap: 'chat', verbatim });
+    if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+    const cfg = { url, defaultModel: p.defaultModel, label: p.label || provider };
+    // Registry `type` is the default shape; the address refines it (domain-design §7).
+    switch (WireFormat.formatFor(url, p.type)) {
+      case 'messages-compat': return translateMessagesFormat(text, targetLang, apiKey, cfg, model);
+      case 'responses-compat': return translateResponsesFormat(text, targetLang, apiKey, cfg, model);
+      default: return translateChatCompat(text, targetLang, apiKey, cfg, model);
+    }
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -281,7 +332,12 @@ Rules:
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
   // final fallback to Google for non-google providers). Applies to ALL providers. ─
-  async function translate(text, targetLang, provider, apiKey, baseUrl, model) {
+  // `verbatim` is the per-field 「这个地址是按新语义存的」 stamp (settings key
+  // `apiBaseUrlVerbatim`). Absent ⇒ falsy ⇒ wire-format.js falls back to the legacy
+  // branch, i.e. a caller that has not been taught the flag keeps the OLD behaviour
+  // rather than a broken one — which is the only safe default for a positional
+  // parameter added to a signature four adapters already call.
+  async function translate(text, targetLang, provider, apiKey, baseUrl, model, verbatim) {
     if (!text || text.trim().length < 2) return text;
     const key = `${provider}:${targetLang}:${text}`;
 
@@ -294,7 +350,7 @@ Rules:
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, verbatim);
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
@@ -330,7 +386,7 @@ Rules:
   }
 
   // ─── Batch translate ──────────────────────────────────────────────────
-  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model) {
+  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model, verbatim) {
     if (!texts.length) return [];
 
     if (provider === 'google') {

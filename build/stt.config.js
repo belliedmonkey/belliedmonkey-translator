@@ -29,19 +29,22 @@ module.exports = [
   {
     // Any server implementing the /v1/audio/transcriptions request shape on the
     // user's own machine or LAN. Brand-free by design — the user supplies the
-    // base URL, and the hint names the interface, never a vendor.
+    // complete endpoint URL, and the placeholder below is what tells them its shape.
+    // The example port matches scripts/dev-whisper-server.js, so the in-repo bridge
+    // is a copy-paste away rather than a number to look up.
     id: 'local', type: 'transcribe-compat', flavors: ['global', 'china'],
-    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: true,
-    defaultBase: null, path: '/v1/audio/transcriptions', defaultModel: '',
+    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    defaultEndpoint: null, placeholder: 'http://127.0.0.1:18790/v1/audio/transcriptions',
+    defaultModel: '',
     labelKey: 'stt_engine_local', label: '本地 / 自建转写端点',
     hintKey: 'stt_hint',
   },
   {
-    // GLOBAL ONLY: label and defaultBase carry a brand the China bundle may not
+    // GLOBAL ONLY: label and defaultEndpoint carry a brand the China bundle may not
     // ship; `flavors` keeps it out and the compliance gate enforces that.
     id: 'openai_transcribe', type: 'transcribe-compat', flavors: ['global'],
-    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: false,
-    defaultBase: 'https://api.openai.com', path: '/v1/audio/transcriptions',
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://api.openai.com/v1/audio/transcriptions', placeholder: null,
     defaultModel: 'whisper-1',
     labelKey: null, label: 'OpenAI Transcribe',
     hintKey: 'stt_hint',

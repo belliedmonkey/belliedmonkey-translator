@@ -27,7 +27,11 @@ const ROOT = path.join(__dirname, '..');
 // with what `app/app.js` actually uses; an unused module here is dead weight shipped
 // to a phone, and a missing one is a blank screen.
 const MODULES = [
-  'app/chrome-shim.js',                  // FIRST — the rest read `chrome` at load time
+  // FIRST of all: pure, depends on nothing at load time (it reads its globals
+  // lazily), and chrome-shim.js — which runs before every other module — needs its
+  // frozen LEGACY_PATHS for the one-time endpoint migration.
+  'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape
+  'app/chrome-shim.js',                  // SECOND — the rest read `chrome` at load time
   'extension/learn/backend.config.js',   // MT_BACKEND
   'extension/learn/page-settings.js',    // settings reader (uses chrome.storage)
   'extension/content/i18n-messages.js',  // MT_I18N_MESSAGES

@@ -21,6 +21,8 @@ var LearnTTS = (() => {
   const DEFAULTS = {
     engineId: 'browser',
     baseUrl: '', apiKey: '', model: '', voice: '',
+    // 「这个地址是按新语义（原样使用）存的」的戳；缺席 ⇒ 走 wire-format 的 legacy 分支。
+    baseUrlVerbatim: false,
     rate: 1, pitch: 1,
     format: 'mp3',
     // How long to wait for the utterance's `start` before calling it blocked.
@@ -158,9 +160,12 @@ var LearnTTS = (() => {
   // ─── speech-compat transport ─────────────────────────────────────────────
   async function fetchAudio(text, lang) {
     const e = engine();
-    const base = cfg.baseUrl || e.defaultBase;
-    if (!base) { const err = new Error('missing base URL'); err.code = 'no_base'; throw err; }
-    const url = base.replace(/\/+$/, '') + e.path;
+    // Used EXACTLY as stored — no path appended, no trailing slash trimmed. The trim
+    // that used to live here is now part of the legacy branch in wire-format.js, which
+    // is where it belongs: it was never a correction, it was a reproduction of what the
+    // old code did to that user's saved value.
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, e, { cap: 'tts', verbatim: cfg.baseUrlVerbatim });
+    if (!url) { const err = new Error('missing endpoint URL'); err.code = 'no_base'; throw err; }
     const init = {
       method: 'POST',
       headers: Object.assign(
@@ -379,7 +384,7 @@ var LearnTTS = (() => {
       }
       return { ok: true };
     }
-    if (e.requiresBaseUrl && !cfg.baseUrl) return { ok: false, reason: 'no_base' };
+    if (e.requiresEndpoint && !cfg.baseUrl) return { ok: false, reason: 'no_base' };
     if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
     return { ok: true };
   }

@@ -10,6 +10,7 @@
 const { loadModule, describe, test, ok, eq } = require('./harness');
 
 const REGISTRY = require('../build/tts.config.js');
+const WireFormat = require('../extension/content/wire-format.js');
 
 function voice(name, lang, extra) {
   return Object.assign({ name, lang, voiceURI: name + '|' + lang, default: false }, extra || {});
@@ -48,7 +49,7 @@ function setup(opts = {}) {
 
   const ctx = loadModule('learn/tts.js', {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
-    LearnModel, LearnStore,
+    LearnModel, LearnStore, WireFormat,
     fetch: fetchStub,
     speechSynthesis: opts.speechSynthesis,
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
@@ -280,9 +281,11 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     TTS.configure(cfg);
     await TTS.getAudio('Hello world', 'en');
     eq(calls.fetch.length, 1);
-    const local = REGISTRY.find((e) => e.id === 'local');
-    // Path comes from the production registry — not a literal repeated in the test.
-    eq(calls.fetch[0].url, 'http://127.0.0.1:8880' + local.path);
+    // The address is what the user stored — VERBATIM, with nothing appended. It is a
+    // literal here on purpose: the point of the assertion is that no registry value
+    // reaches the URL at all any more, so deriving the expectation from the registry
+    // would defeat it. (The old form was `base + local.path`; `path` no longer exists.)
+    eq(calls.fetch[0].url, 'http://127.0.0.1:8880/v1/audio/speech');
     const body = JSON.parse(calls.fetch[0].init.body);
     eq(body.model, 'kokoro');
     eq(body.voice, 'af');
@@ -306,8 +309,7 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     let e = null;
     try { await TTS.getAudio('Hello world', 'en'); } catch (err) { e = err; }
     eq(e && e.code, 'network');
-    const local = REGISTRY.find((x) => x.id === 'local');
-    eq(e && e.url, 'http://127.0.0.1:8880' + local.path);
+    eq(e && e.url, 'http://127.0.0.1:8880/v1/audio/speech');
   });
 
   test('no Authorization header when the engine needs no key', async () => {

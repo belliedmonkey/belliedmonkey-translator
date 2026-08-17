@@ -90,7 +90,7 @@
     "message": "表示/非表示"
   },
   "label_custom_api": {
-    "message": "カスタム API URL"
+    "message": "エンドポイント URL（完全）"
   },
   "label_optional": {
     "message": "（任意）"
@@ -135,7 +135,7 @@
     "message": "Google 翻訳（無料・API キー不要）"
   },
   "options_custom_api_hint": {
-    "message": "空欄でデフォルトの URL を使用。プロキシや自前のサービスに便利。"
+    "message": "空欄ならこのエンジンの既定エンドポイントを使います。入力する場合はパスを含む完全なリクエスト URL を書いてください——入力どおりに送信し、パスを補完しません。プロキシや自前サーバーにも使えます。"
   },
   "options_lang_section": {
     "message": "言語"
@@ -255,10 +255,10 @@
     "message": "既定モデル："
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Chat Completions 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。末尾が responses の場合は Responses 形式で送信します。"
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Messages 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。"
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "OS が既に持っている音声を使います。何も送信せず、キャッシュも作りません — このエンジンは読み上げるだけで、音声データを返せません。"
   },
   "tts_hint_local": {
-    "message": "/v1/audio/speech インターフェースに対応した音声サーバー（自分のマシンや LAN 上）。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+    "message": "自分のマシンや LAN 上の音声サーバー。入力欄の例にならって完全なアドレスを入力してください。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
   },
   "tts_hint_openai": {
     "message": "あなた自身の API キーを使います。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "URL かモデル名が違います",
+    "message": "エンドポイント URL（パスを含む）かモデル名が違います",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "サーバーがこのリクエストを拒否しました",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "このアドレスはホスト名だけでエンドポイントのパスがありません — 完全なリクエスト URL を入力してください（入力欄の例を参照）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "アドレスが http:// または https:// で始まっていません — スキームがないと相対パスとして扱われ、リクエストは送信されません",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

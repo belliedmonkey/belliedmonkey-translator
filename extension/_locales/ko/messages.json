@@ -90,7 +90,7 @@
     "message": "표시/숨기기"
   },
   "label_custom_api": {
-    "message": "사용자 지정 API 주소"
+    "message": "엔드포인트 URL(전체)"
   },
   "label_optional": {
     "message": "(선택)"
@@ -135,7 +135,7 @@
     "message": "Google 번역(무료, API 키 불필요)"
   },
   "options_custom_api_hint": {
-    "message": "비워 두면 기본 주소 사용. 프록시나 자체 호스팅에 유용."
+    "message": "비워 두면 이 엔진의 기본 엔드포인트를 사용합니다. 직접 입력할 때는 경로까지 포함한 완전한 요청 URL을 적어 주세요 — 입력한 그대로 보내며 경로를 덧붙이지 않습니다. 프록시나 자체 호스팅 서버에도 사용할 수 있습니다."
   },
   "options_lang_section": {
     "message": "언어"
@@ -255,10 +255,10 @@
     "message": "기본 모델:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Chat Completions 형식의 대화 엔드포인트. 완전한 엔드포인트 URL, 모델, 키를 입력하세요. 주소가 responses로 끝나면 Responses 형식으로 보냅니다."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Messages 형식의 대화 엔드포인트. 완전한 엔드포인트 URL, 모델, 키를 입력하세요."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "운영체제에 이미 있는 음성을 사용합니다. 아무것도 전송하지 않고 캐시도 만들지 않습니다 — 이 엔진은 읽어주기만 할 뿐 오디오 데이터를 돌려주지 못합니다."
   },
   "tts_hint_local": {
-    "message": "/v1/audio/speech 인터페이스를 구현한 음성 서버(내 컴퓨터나 LAN). 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다。"
+    "message": "내 컴퓨터나 LAN에서 실행하는 음성 서버. 입력란의 예시를 따라 완전한 주소를 입력하세요. 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다."
   },
   "tts_hint_openai": {
     "message": "본인의 API 키를 사용합니다. 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "주소 또는 모델명이 틀렸습니다",
+    "message": "엔드포인트 URL(경로 포함) 또는 모델 이름이 잘못되었습니다",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "서버가 이 요청을 거부했습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "이 주소에는 호스트만 있고 엔드포인트 경로가 없습니다 — 완전한 요청 URL을 입력하세요(입력란의 예시 참고)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "주소가 http:// 또는 https://로 시작하지 않습니다 — 스킴이 없으면 상대 경로로 처리되어 요청이 아예 나가지 않습니다",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

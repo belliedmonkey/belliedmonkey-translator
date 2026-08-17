@@ -22,8 +22,71 @@ if (typeof self !== 'undefined' && self.addEventListener) {
   self.addEventListener('activate', (e) => e.waitUntil?.(self.clients?.claim()));
 }
 
+// ─── Frozen endpoint snapshot, 2026-08 (#147) ──────────────────────────────
+//
+// This is HISTORY, not configuration. Before the zero-concatenation change, every
+// stored base URL was consumed as `base + path`, where `path` came from the registry.
+// That makes "which URL did the old code request" exactly computable, so the migration
+// below needs no guess about what a stored value meant.
+//
+// Three rules: never read this from the registry (the registry now holds complete
+// endpoints); never change an existing value; never add an entry created afterwards
+// (a new entry has no "before").
+//
+// It is a LITERAL COPY of WireFormat.LEGACY_PATHS. This service worker is declared
+// `"type": "module"`, so `importScripts` is unavailable, and wire-format.js is a
+// classic IIFE that assigns to `window` — it can be neither imported nor imported-from.
+// background.js already keeps literals for exactly this reason (build.js grants it a
+// palette exemption; test/background.test.js:17 records that an MV3 worker cannot
+// <script>-load a .gen.js). test/base-url-migration.test.js pins the two copies equal.
+const LEGACY_ENDPOINTS_2026_08 = {
+  chat: {
+    openai: '/v1/chat/completions',
+    claude: '/v1/messages',
+    deepseek: '/v1/chat/completions',
+    glm: '/api/paas/v4/chat/completions',
+    qwen: '/v1/chat/completions',
+    kimi: '/v1/chat/completions',
+    custom_chat: '/v1/chat/completions',
+    custom_msg: '/v1/messages',
+  },
+  tts: { local: '/v1/audio/speech', openai_speech: '/v1/audio/speech' },
+  stt: { local: '/v1/audio/transcriptions', openai_transcribe: '/v1/audio/transcriptions' },
+};
+// Trailing-slash policy AS IT WAS per capability: translation and notes concatenated
+// directly, speech and transcription trimmed first. Reproducing the difference is the
+// point — that `//` is what those users are running today, and "fixing" it here would
+// change behaviour on no evidence.
+const LEGACY_STRIPS_SLASH_2026_08 = { chat: false, tts: true, stt: true };
+
+// Which stored address pairs with which stored engine id. Identical in both hosts:
+// the app's 解析引擎 writes the same `provider` + `apiBaseUrl` pair the extension's
+// translator uses (app/settings.js) — the two mean different features but the same
+// keys, so the migration never has to know which host it is running in.
+const ENDPOINT_KEY_PAIRS = [
+  ['apiBaseUrl', 'provider', 'chat'],
+  ['notesBaseUrl', 'notesProvider', 'chat'],
+  ['ttsBaseUrl', 'ttsEngine', 'tts'],
+  ['sttBaseUrl', 'sttEngine', 'stt'],
+];
+
+// Returns the complete endpoint the OLD code would have requested, or null when there
+// is nothing to do. Pure, and exported for the test that pins it against the app's copy.
+function migrateEndpoint(stored, entryId, cap) {
+  if (typeof stored !== 'string' || !stored.trim()) return null;   // empty = follow the default
+  const table = LEGACY_ENDPOINTS_2026_08[cap];
+  const path = table && table[entryId];
+  if (!path) return null;                       // unknown/absent id, or an entry with no path
+  const s = stored.trim();
+  if (s.endsWith(path)) return null;            // already migrated — idempotent
+  const base = LEGACY_STRIPS_SLASH_2026_08[cap] ? s.replace(/\/+$/, '') : s;
+  return base + path;
+}
+
 chrome.runtime.onInstalled.addListener((details) => {
-  chrome.storage.local.get([...Object.keys(DEFAULT_SETTINGS), 'ytTextColor', 'colorMigrated2026'], (existing) => {
+  chrome.storage.local.get([...Object.keys(DEFAULT_SETTINGS), 'ytTextColor', 'colorMigrated2026',
+    'notesBaseUrl', 'ttsBaseUrl', 'sttBaseUrl',
+    'notesProvider', 'ttsEngine', 'sttEngine', 'endpointMigrated2026'], (existing) => {
     const have = existing || {};          // Safari hands callbacks undefined
     const toSet = {};
     for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
@@ -41,6 +104,31 @@ chrome.runtime.onInstalled.addListener((details) => {
       if (have.ytTextColor === '#ffffff') toSet.ytTextColor = '#ccdbb2';
       toSet.colorMigrated2026 = true;
     }
+
+    // Endpoints become verbatim (#147). Same two hard lessons as the colour migration
+    // above: a one-shot MARKER rather than a value match, and `existing` (not `have`)
+    // in the guard — when Safari hands the callback undefined we never SAW the values,
+    // and spending the one-shot marker on a failed read would strand that install.
+    //
+    // Only NON-EMPTY values are touched. Empty means "follow the registry default", and
+    // freezing today's default host into storage would both break the debugging recipe
+    // in verification-spec §1 (point defaultEndpoint at a local logger, leave the field
+    // blank) and permanently pin users to an endpoint we may later change.
+    //
+    // The backup keys are cheap insurance for the one irreversible write in this
+    // change, and they go in the SAME set() as the values: two writes could be
+    // interrupted between them, leaving a value changed with no way back.
+    if (existing && !have.endpointMigrated2026) {
+      for (const [urlKey, idKey, cap] of ENDPOINT_KEY_PAIRS) {
+        const next = migrateEndpoint(have[urlKey], have[idKey], cap);
+        if (!next) continue;
+        toSet[urlKey] = next;
+        toSet[urlKey + 'PreVerbatim'] = have[urlKey];
+        toSet[urlKey + 'Verbatim'] = true;
+      }
+      toSet.endpointMigrated2026 = true;
+    }
+
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
 
@@ -138,3 +226,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 });
+
+// For test/base-url-migration.test.js only. `module` is undefined in a service worker,
+// so this is inert at runtime — the same guard every pure module in this repo carries.
+// The test pins this frozen table byte-for-byte against WireFormat.LEGACY_PATHS and
+// runs both implementations over one shared case table: what has to stay true is that
+// the two HOSTS behave identically, and only a test can hold that.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { LEGACY_ENDPOINTS_2026_08, LEGACY_STRIPS_SLASH_2026_08, ENDPOINT_KEY_PAIRS, migrateEndpoint };
+}

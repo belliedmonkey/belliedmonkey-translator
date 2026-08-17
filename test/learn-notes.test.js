@@ -7,16 +7,17 @@
 // §3.1.1 blind spot 2).
 
 const { loadModule, describe, test, ok, eq } = require('./harness');
+const WireFormat = require('../extension/content/wire-format.js');
 
 const PROVIDERS = [
   { id: 'google', type: 'google', label: 'G' },
-  { id: 'chat1', type: 'chat-compat', label: 'C', defaultBase: 'https://chat.example', path: '/v1/chat/completions', defaultModel: 'm1' },
-  { id: 'msg1', type: 'messages-compat', label: 'M', defaultBase: 'https://msg.example', path: '/v1/messages', defaultModel: 'm2' },
+  { id: 'chat1', type: 'chat-compat', label: 'C', defaultEndpoint: 'https://chat.example/v1/chat/completions', defaultModel: 'm1' },
+  { id: 'msg1', type: 'messages-compat', label: 'M', defaultEndpoint: 'https://msg.example/v1/messages', defaultModel: 'm2' },
   // Neither google nor chat-capable. Without this row, "exclude by name" and
   // "exclude by type" are indistinguishable — the fixture's only non-chat engine
   // WAS google, and the whole point of type-gating is that a future non-chat type
   // stays excluded without anyone editing a name list.
-  { id: 'other', type: 'speech-compat', label: 'S', defaultBase: 'https://s.example', path: '/v1/speech' },
+  { id: 'other', type: 'speech-compat', label: 'S', defaultEndpoint: 'https://s.example/v1/audio/speech' },
 ];
 
 function setup(over) {
@@ -35,7 +36,7 @@ function setup(over) {
     putNote: (id, data, meta) => { notesDb.set(id, Object.assign({ id, data }, meta)); return Promise.resolve(); },
   };
   const ctx = loadModule('learn/notes.js', {
-    window: { MT_PROVIDERS: PROVIDERS }, LearnStore, fetch: fetchImpl,
+    window: { MT_PROVIDERS: PROVIDERS }, LearnStore, fetch: fetchImpl, WireFormat,
   });
   return { N: ctx.LearnNotes, notesDb, calls };
 }
@@ -130,7 +131,7 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     // 再用一个 getNote 会拒绝的 store 加载一份新模块实例
     const { loadModule } = require('./harness');
     const c = loadModule('learn/notes.js', {
-      window: { MT_PROVIDERS: PROVIDERS },
+      window: { MT_PROVIDERS: PROVIDERS }, WireFormat,
       LearnStore: { getNote: () => Promise.reject(new Error('idb gone')) },
       fetch: async () => { throw new Error('unused'); },
     });
@@ -202,7 +203,7 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     const notesDb = new Map();
     const { loadModule } = require('./harness');
     const c = loadModule('learn/notes.js', {
-      window: { MT_PROVIDERS: PROVIDERS },
+      window: { MT_PROVIDERS: PROVIDERS }, WireFormat,
       LearnStore: {
         getNote: () => Promise.resolve(null),
         putNote: () => Promise.reject(new Error('quota')),

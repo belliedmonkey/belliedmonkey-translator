@@ -90,7 +90,7 @@
     "message": "Mostrar/Ocultar"
   },
   "label_custom_api": {
-    "message": "URL de API personalizada"
+    "message": "URL del endpoint (completa)"
   },
   "label_optional": {
     "message": "(opcional)"
@@ -135,7 +135,7 @@
     "message": "Google Traductor (gratis, sin API Key)"
   },
   "options_custom_api_hint": {
-    "message": "Déjalo en blanco para la dirección predeterminada. Útil para proxies o servicios propios."
+    "message": "Déjalo en blanco para usar el endpoint predeterminado de este motor. Si lo rellenas, escribe la URL de solicitud completa, incluida su ruta: la enviamos tal cual y nunca añadimos nada. Sirve para proxies y servicios autoalojados."
   },
   "options_lang_section": {
     "message": "Idioma"
@@ -255,10 +255,10 @@
     "message": "Modelo predeterminado:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Cualquier endpoint de chat en formato Chat Completions. Escribe la URL completa, el modelo y la clave. Si la dirección termina en responses, se envía el formato Responses."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Cualquier endpoint de chat en formato Messages. Escribe la URL completa, el modelo y la clave."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +432,7 @@
     "message": "Usa las voces que ya tiene tu sistema operativo. No se envía nada ni se almacena en caché: este motor solo habla, no puede devolver audio."
   },
   "tts_hint_local": {
-    "message": "Cualquier servidor de voz que implemente la interfaz /v1/audio/speech, en tu máquina o red local. La síntesis se almacena en caché localmente: una frase solo cuesta una vez."
+    "message": "Un servidor de voz en tu equipo o red local: escribe la dirección completa siguiendo el ejemplo del campo. La síntesis se guarda en caché localmente, así que una frase solo cuesta una vez."
   },
   "tts_hint_openai": {
     "message": "Usa tu propia clave API. El audio sintetizado se cachea localmente: cada frase se paga una sola vez."
@@ -1281,11 +1281,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "la URL o el nombre del modelo es incorrecto",
+    "message": "la URL del endpoint (incluida su ruta) o el nombre del modelo es incorrecto",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "el servidor rechazó la solicitud",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Esta dirección solo tiene un host y ninguna ruta de endpoint: escribe la URL de solicitud completa (mira el ejemplo del campo)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "La dirección no empieza por http:// ni https://: sin esquema se trata como una ruta relativa y no se envía ninguna solicitud",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

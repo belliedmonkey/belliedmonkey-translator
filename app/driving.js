@@ -57,12 +57,14 @@ var AppDriving = (() => {
     // user may have changed settings since; configure() is cheap and idempotent.
     LearnTTS.configure({
       engineId: s.ttsEngine || LearnTTS.DEFAULTS.engineId,
-      baseUrl: s.ttsBaseUrl || '', apiKey: s.ttsApiKey || '', model: s.ttsModel || '',
+      baseUrl: s.ttsBaseUrl || '', baseUrlVerbatim: s.ttsBaseUrlVerbatim === true,
+      apiKey: s.ttsApiKey || '', model: s.ttsModel || '',
       voice: s.ttsVoice || '', rate: Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1,
     });
     if (typeof LearnSpeech !== 'undefined') {
       LearnSpeech.configure({
         engineId: s.sttEngine || '', baseUrl: s.sttBaseUrl || '',
+        baseUrlVerbatim: s.sttBaseUrlVerbatim === true,
         apiKey: s.sttApiKey || '', model: s.sttModel || '',
       });
     }

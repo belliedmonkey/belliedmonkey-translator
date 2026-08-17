@@ -63,6 +63,7 @@ function populateProviders() {
 // been translated by the user's own DeepSeek key.
 const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'apiBaseUrlVerbatim',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
 ];
@@ -115,7 +116,8 @@ function updateApiKeySection(provider) {
   $('apikey-section').style.display = p.needsKey ? 'block' : 'none';
   $('baseurl-row').style.display = p.supportsBaseUrl ? 'flex' : 'none';
   $('model-row').style.display = p.supportsModel ? 'flex' : 'none';
-  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  // 完整端点地址（registry 的 defaultEndpoint / placeholder）——见 options.js 的同名助手。
+  $('api-base-url').placeholder = (p.defaultEndpoint || p.placeholder) || 'https://…';
   $('api-model').placeholder = p.defaultModel || '';
 }
 
@@ -303,7 +305,9 @@ async function init() {
   })();
 
   $('api-base-url').addEventListener('change', async (e) => {
-    await saveSettings({ apiBaseUrl: e.target.value.trim() });
+    // 见 options.js：保存即新语义，戳与值同写，否则下次读会被当成未迁移的旧值
+    // 再补一次路径。
+    await saveSettings({ apiBaseUrl: e.target.value.trim(), apiBaseUrlVerbatim: true });
   });
 
   $('api-model').addEventListener('change', async (e) => {

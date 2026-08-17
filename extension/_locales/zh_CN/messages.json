@@ -90,7 +90,7 @@
     "message": "显示/隐藏"
   },
   "label_custom_api": {
-    "message": "自定义 API 地址"
+    "message": "接口地址（完整）"
   },
   "label_optional": {
     "message": "（可选）"
@@ -135,7 +135,7 @@
     "message": "Google 翻译（免费，无需 API Key）"
   },
   "options_custom_api_hint": {
-    "message": "留空则使用默认地址。适用于中转代理或自建服务。"
+    "message": "留空则使用该引擎的默认端点。要自己填就填**完整的接口地址（含路径）**——我们原样请求，不会自动补路径。中转代理与自建服务都适用。"
   },
   "options_lang_section": {
     "message": "语言"
@@ -255,10 +255,10 @@
     "message": "默认模型："
   },
   "hint_custom_chat": {
-    "message": "任意 Chat Completions 格式的对话接口。填写接口地址（base URL）、模型与 Key。"
+    "message": "任意 Chat Completions 格式的对话接口。填写完整的接口地址、模型与 Key。地址末段是 responses 时按 Responses 格式发送。"
   },
   "hint_custom_msg": {
-    "message": "任意 Messages 格式的对话接口。填写接口地址（base URL）、模型与 Key。"
+    "message": "任意 Messages 格式的对话接口。填写完整的接口地址、模型与 Key。"
   },
   "label_custom_model": {
     "message": "模型"
@@ -433,7 +433,7 @@
     "message": "用你操作系统里已有的语音。不发送任何数据，也不产生缓存 —— 这个引擎只能朗读，拿不到音频数据。"
   },
   "tts_hint_local": {
-    "message": "任何实现了 /v1/audio/speech 接口的语音服务，跑在你自己的机器或局域网上。合成结果会缓存在本地，同一句只花一次代价。"
+    "message": "跑在你自己的机器或局域网上的语音服务，按输入框里的示例填完整地址。合成结果会缓存在本地，同一句只花一次代价。"
   },
   "tts_hint_openai": {
     "message": "用你自己的 API Key。合成结果会缓存在本地，同一句只花一次钱。"
@@ -1282,11 +1282,19 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "地址或模型名不对",
+    "message": "接口地址（含路径）或模型名不对",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "服务端拒绝了这次请求",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去",
     "description": "Engine self-test (settings)"
   },
   "engine_test_timeout": {

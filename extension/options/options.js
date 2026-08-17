@@ -6,6 +6,14 @@ const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
 const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
+// The empty input's example address. `defaultEndpoint` when we ship one, else the
+// registry's `placeholder` — endpoints live in the registry and nowhere else, so the
+// hint copy no longer has to name a path (it used to, in eleven translated strings).
+function endpointPlaceholder(e) {
+  return (e && (e.defaultEndpoint || e.placeholder)) || 'https://…';
+}
+
+
 const $ = id => document.getElementById(id);
 
 const SETTINGS_KEYS = [
@@ -18,6 +26,8 @@ const SETTINGS_KEYS = [
   'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
   // §9.4: transcription engine for the 说 exercise — never follows any group.
   'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
+  // 「地址按新语义（原样使用）存的」的戳，每个地址字段一个（content/wire-format.js）。
+  'apiBaseUrlVerbatim', 'notesBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -138,7 +148,7 @@ function updateProviderUI(provider) {
   $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
   $('baseurl-field').style.display = p.supportsBaseUrl ? 'block' : 'none';
   $('model-field').style.display = p.supportsModel ? 'block' : 'none';
-  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  $('api-base-url').placeholder = endpointPlaceholder(p);
   $('api-model').placeholder = p.defaultModel || '';
   $('api-hint').textContent = apiHint(provider);
   // Hooked here rather than at each call site: updateProviderUI already re-runs on
@@ -175,6 +185,8 @@ function engineTestReason(e) {
     case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
     case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
     case 'timeout': return t('engine_test_timeout', '端点没有在超时前回应');
+    case 'no_path': return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
+    case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
     case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
     case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
     case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
@@ -204,6 +216,8 @@ function applyTtsConfig() {
   LearnTTS.configure({
     engineId: $('tts-engine').value,
     baseUrl: $('tts-base-url').value.trim(),
+    // Read straight off the form, so it is by definition the new semantics.
+    baseUrlVerbatim: true,
     apiKey: $('tts-api-key').value.trim(),
     model: $('tts-model').value.trim(),
     voice: $('tts-voice').value,
@@ -279,7 +293,10 @@ async function saveAll() {
   const settings = {
     provider:    $('provider').value,
     apiKey:      $('api-key').value.trim(),
+    // 这一次保存**就是**新语义：用户在「完整接口地址」这个语义下填的框。
+    // 戳写下去之后 wire-format.js 便逐字使用它，永不再补路径。
     apiBaseUrl:  $('api-base-url').value.trim(),
+    apiBaseUrlVerbatim: true,
     apiModel:    $('api-model').value.trim(),
     targetLang:  $('target-lang').value,
     uiLang:      $('ui-lang').value,
@@ -293,6 +310,7 @@ async function saveAll() {
     ttsAutoPlay: $('tts-autoplay').checked,
     ttsEngine:   $('tts-engine').value,
     ttsBaseUrl:  $('tts-base-url').value.trim(),
+    ttsBaseUrlVerbatim: true,
     ttsApiKey:   $('tts-api-key').value.trim(),
     ttsModel:    $('tts-model').value.trim(),
     ttsVoice:    $('tts-voice').value,
@@ -300,10 +318,12 @@ async function saveAll() {
     notesProvider: $('notes-provider').value,
     notesApiKey:   $('notes-api-key').value.trim(),
     notesBaseUrl:  $('notes-base-url').value.trim(),
+    notesBaseUrlVerbatim: true,
     notesModel:    $('notes-model').value.trim(),
     sttEngine:     $('stt-engine').value,
     sttApiKey:     $('stt-api-key').value.trim(),
     sttBaseUrl:    $('stt-base-url').value.trim(),
+    sttBaseUrlVerbatim: true,
     sttModel:      $('stt-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
@@ -441,7 +461,7 @@ async function init() {
     $('stt-key-field').hidden = !e.needsKey;
     $('stt-baseurl-field').hidden = !e.supportsBaseUrl;
     $('stt-model-field').hidden = !e.supportsModel;
-    $('stt-base-url').placeholder = e.defaultBase || 'https://…';
+    $('stt-base-url').placeholder = endpointPlaceholder(e);
     $('stt-model').placeholder = e.defaultModel || '';
   }
   populateSttEngines(s.sttEngine || '');
@@ -556,6 +576,17 @@ async function init() {
     ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
     : '');
 
+
+  // 发请求之前的离线形状检查。运行时不做这件事：逐字发送是本次改动的承诺，而一个根路径
+  // 端点虽然罕见却是合法的。但自检是用户「东西坏了」时会来的地方，把「地址少了路径」从
+  // CORS / 不可达里切出来，命中率最高的位置就在这里 —— 那两种失败在 WebKit 里长得一模
+  // 一样（2026-08-13 实测），只有离线检查能确定地区分。
+  function assertEndpointShape(url) {
+    const u = String(url || '').trim();
+    if (!u) return;                                   // 空 = 用默认端点，不是错误
+    if (!WireFormat.isAbsolute(u)) { const e = new Error('not absolute'); e.code = 'bad_url'; e.url = u; throw e; }
+    if (!WireFormat.hasPath(u)) { const e = new Error('no path'); e.code = 'no_path'; e.url = u; throw e; }
+  }
   const runTest = (btn, note, fn) => busy($(btn), async () => {
     const el = $(note);
     el.textContent = t('engine_test_running', '测试中…');
@@ -573,6 +604,7 @@ async function init() {
 
   $('btn-test-provider').addEventListener('click', runTest('btn-test-provider', 'test-provider-note', async () => {
     await saveAll();
+    assertEndpointShape($('api-base-url').value);
     const t0 = Date.now();
     const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
       $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim());
@@ -582,6 +614,9 @@ async function init() {
 
   $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
     await saveAll();
+    // The notes group may be empty and follow the translation group instead
+    // (LearnNotes.resolveConfig owns that rule) — check whichever field is in play.
+    assertEndpointShape($('notes-provider').value ? $('notes-base-url').value : $('api-base-url').value);
     LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((r) =>
       chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {})))));
     return LearnNotes.test();
@@ -589,9 +624,11 @@ async function init() {
 
   $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
     await saveAll();
+    assertEndpointShape($('stt-base-url').value);
     LearnSpeech.configure({
       engineId: $('stt-engine').value, apiKey: $('stt-api-key').value.trim(),
-      baseUrl: $('stt-base-url').value.trim(), model: $('stt-model').value.trim(),
+      baseUrl: $('stt-base-url').value.trim(), baseUrlVerbatim: true,
+      model: $('stt-model').value.trim(),
     });
     return LearnSpeech.test();
   }));

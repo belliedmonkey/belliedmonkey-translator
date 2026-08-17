@@ -286,7 +286,8 @@ var PodcastTranslator = (() => {
     srtName: () => document.title,
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || '',
+      s.apiBaseUrlVerbatim === true),
     labels: { btnTitle: T('podcast_sub_off', '关闭播客字幕翻译') },
   });
 

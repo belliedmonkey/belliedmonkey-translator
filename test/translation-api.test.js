@@ -4,6 +4,9 @@
 const { describe, test, ok, eq, deepEq, match, rejects } = require('./harness');
 const { loadModule } = require('./harness');
 const { makeChrome, makeFetch } = require('./stubs');
+// The transports resolve their endpoint through this shared pure module; it is a
+// dependency, not a stub, so the real one is injected rather than faked.
+const WireFormat = require('../extension/content/wire-format.js');
 
 // The transport reads the provider registry off `window.MT_PROVIDERS`, which the
 // build generates per flavor into providers.gen.js. Load that real (global-flavor)
@@ -21,7 +24,7 @@ function loadAPI(program, chromeOpts = {}, flavor) {
   const fetch = makeFetch(program);
   const window = loadRegistry();
   if (flavor) window.MT_FLAVOR = flavor;
-  const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window });
+  const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
 
@@ -73,6 +76,70 @@ describe('TranslationAPI — OpenAI-compatible providers', () => {
     const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })]);
     await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example');
     eq(fetch.calls[0].url, 'https://proxy.example/v1/chat/completions');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// The endpoint is used exactly as stored, and the ADDRESS chooses the wire shape
+// (domain-design §7). Before this, one host serving both Chat Completions and
+// Responses was unreachable: the registry appended one path and the user had no say.
+describe('TranslationAPI — the address is the request, and it picks the shape', () => {
+  test('a stamped endpoint is requested verbatim — nothing appended, not even a path', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })]);
+    await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example/weird/route', '', true);
+    eq(fetch.calls[0].url, 'https://proxy.example/weird/route');
+  });
+
+  test('a stamped endpoint keeps its trailing slash — verbatim means verbatim', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })]);
+    await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example/v1/chat/completions/', '', true);
+    eq(fetch.calls[0].url, 'https://proxy.example/v1/chat/completions/');
+  });
+
+  test('an UNSTAMPED endpoint still gets the old path appended — old installs unchanged', async () => {
+    // The whole safety story of #147 in one assertion: a device whose one-time
+    // migration never ran keeps requesting exactly what it requested before.
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })]);
+    await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example');
+    eq(fetch.calls[0].url, 'https://proxy.example/v1/chat/completions');
+  });
+
+  test('/v1/responses selects the Responses shape on a chat-compat entry', async () => {
+    const { API, fetch } = loadAPI([okJson({ output_text: '你好' })]);
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://api.openai.com/v1/responses', '', true), '你好');
+    const b = bodyOf(fetch.calls[0]);
+    ok(b.input === 'hello', 'Responses 用 input，不是 messages');
+    ok(!('messages' in b), 'Chat Completions 的 messages 不该出现');
+    ok(typeof b.instructions === 'string' && b.instructions.length > 0, 'system prompt 走顶层 instructions');
+    eq(b.max_output_tokens, 2000);
+    ok(!('max_tokens' in b), 'Responses 拒收 max_tokens —— 名字和含义都变了');
+    eq(fetch.calls[0].opts.headers['Authorization'], 'Bearer KEY');
+  });
+
+  test('Responses extraction walks output[] — a reasoning item must not be read as the answer', async () => {
+    // output[0] 是 {type:'reasoning'}，正是推理模型的真实形状；取 [0] 会得到空。
+    const { API } = loadAPI([okJson({
+      output: [
+        { type: 'reasoning', summary: [] },
+        { type: 'message', content: [{ type: 'output_text', text: '你好' }] },
+      ],
+    })]);
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://api.openai.com/v1/responses', '', true), '你好');
+  });
+
+  test('/v1/messages on a chat-compat entry selects the Messages shape', async () => {
+    // 形状由地址声明，不由我们对这个 id 的猜测声明。
+    const { API, fetch } = loadAPI([okJson({ content: [{ text: '你好' }] })]);
+    eq(await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example/v1/messages', '', true), '你好');
+    eq(fetch.calls[0].opts.headers['x-api-key'], 'KEY');
+    eq(fetch.calls[0].opts.headers['anthropic-version'], '2023-06-01');
+  });
+
+  test('an unrecognised path falls back to the registry type — unknown endpoints behave as today', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })]);
+    await API.translate('hello', 'zh-CN', 'openai', 'KEY', 'https://proxy.example/api/llm', '', true);
+    const b = bodyOf(fetch.calls[0]);
+    ok(Array.isArray(b.messages), '认不出后缀时必须回落到注册表说的 chat-compat');
   });
 });
 
@@ -171,7 +238,7 @@ describe('TranslationAPI — a storage callback that hands back undefined (Safar
     };
     const window = loadRegistry();   // same registry as loadAPI, or we'd hit the
                                      // google branch instead of the code under test
-    const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window });
+    const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
     return { API: ctx.TranslationAPI, fetch };
   }
 

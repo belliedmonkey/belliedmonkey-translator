@@ -17,10 +17,31 @@
 
 const { describe, test, ok, eq } = require('./harness');
 
+// stt was missing from this list until #147. It went unnoticed only because its one
+// branded entry happens to be global-only — i.e. the exact silent-default failure this
+// file was written to catch, one registry over.
 const REGISTRIES = [
-  { name: 'providers', entries: require('../build/providers.config.js') },
-  { name: 'tts', entries: require('../build/tts.config.js') },
+  { name: 'providers', entries: require('../build/providers.config.js'), cap: 'chat' },
+  { name: 'tts', entries: require('../build/tts.config.js'), cap: 'tts' },
+  { name: 'stt', entries: require('../build/stt.config.js'), cap: 'stt' },
 ];
+
+// Every key an entry of each registry is allowed to carry. Enumerating the ALLOWED set
+// rather than the required one is what turns "a field was silently dropped or renamed"
+// into a red test instead of a quiet gap — the gate below used to name the fields it
+// checked, so renaming one made the check disappear rather than fail.
+const KNOWN_KEYS = {
+  providers: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
+    'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
+    'labelKey', 'hintKey'],
+  tts: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
+    'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'voices',
+    'returnsAudio', 'label', 'labelKey', 'hintKey'],
+  stt: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
+    'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
+    'labelKey', 'hintKey'],
+};
+const REQUIRED_KEYS = ['id', 'type', 'flavors', 'defaultEndpoint'];
 
 const KNOWN_FLAVORS = ['global', 'china'];
 
@@ -42,18 +63,60 @@ describe('capability registries', () => {
       }
     });
 
+    // Walks EVERY string an entry carries instead of naming the fields to check. The
+    // enumerated version missed a field the moment one was added or renamed, and this
+    // gate's whole reason for existing is that a silently-absent field is how a brand
+    // reaches a bundle that may not carry one. Per-flavor maps yield only the china
+    // branch — the global branch never ships there.
+    function* chinaStrings(v, path) {
+      if (v == null) return;
+      if (typeof v === 'string') { yield [path, v]; return; }
+      if (Array.isArray(v)) {
+        for (let i = 0; i < v.length; i++) yield* chinaStrings(v[i], `${path}[${i}]`);
+        return;
+      }
+      if (typeof v !== 'object') return;
+      // A { china, global } map: only the china side reaches a China build.
+      if ('china' in v || 'global' in v) { yield* chinaStrings(v.china, path + '.china'); return; }
+      for (const k of Object.keys(v)) yield* chinaStrings(v[k], path ? `${path}.${k}` : k);
+    }
+
     test(`${name}: nothing shipped to China carries a brand reference`, () => {
       for (const e of entries) {
         if (!e.flavors || !e.flavors.includes('china')) continue;
-        // Labels can be per-flavor objects; only the China one would ship.
-        const label = (e.label && typeof e.label === 'object') ? e.label.china : e.label;
-        const base = (e.defaultBase && typeof e.defaultBase === 'object')
-          ? e.defaultBase.china : e.defaultBase;
-        for (const [field, v] of [['label', label], ['labelKey', e.labelKey],
-          ['hintKey', e.hintKey], ['defaultBase', base], ['defaultModel', e.defaultModel]]) {
-          if (!v) continue;
-          ok(!FORBIDDEN.test(String(v)),
+        for (const [field, v] of chinaStrings(e, '')) {
+          ok(!FORBIDDEN.test(v),
             `${name}/${e.id}.${field} would ship a brand reference to China: ${v}`);
+        }
+      }
+    });
+
+    test(`${name}: entries carry exactly the known keys, no more and no fewer`, () => {
+      const known = KNOWN_KEYS[name];
+      for (const e of entries) {
+        for (const k of Object.keys(e)) {
+          ok(known.indexOf(k) >= 0,
+            `${name}/${e.id} carries unknown key \`${k}\` — a leftover from a rename?`);
+        }
+        for (const k of REQUIRED_KEYS) {
+          ok(k in e, `${name}/${e.id} is missing \`${k}\` — an absent field is an error, not a default`);
+        }
+        // The two fields the zero-concatenation change removed. Named explicitly so a
+        // half-applied revert fails here rather than producing `…undefined` URLs on a
+        // user's device.
+        ok(!('path' in e), `${name}/${e.id} still has \`path\` — endpoints are complete now`);
+        ok(!('defaultBase' in e), `${name}/${e.id} still has \`defaultBase\``);
+      }
+    });
+
+    test(`${name}: every defaultEndpoint is a complete, absolute request URL`, () => {
+      for (const e of entries) {
+        for (const f of (e.flavors || [])) {
+          const v = (e.defaultEndpoint && typeof e.defaultEndpoint === 'object')
+            ? e.defaultEndpoint[f] : e.defaultEndpoint;
+          if (v == null) continue;                       // user supplies the whole address
+          ok(/^https?:\/\/[^/]+\/.+/.test(v),
+            `${name}/${e.id} (${f}) is not an absolute URL WITH a path: ${v}`);
         }
       }
     });
