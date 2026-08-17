@@ -537,6 +537,7 @@ default path" is untouched; nothing about Firefox's exception is load-bearing fo
 | `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
+| `NativeProviderBridge` *(proposed #149)* | `content/native-provider-bridge.js` + Safari extension bridge page + generated native extension handler | optional `native-request` transport (§7): content-side request → authenticated local `MessageChannel` → extension page → Safari native messaging. OAuth/provider credentials remain native; background worker is not involved |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
 | `LearnModel` | `content/learn-model.js` | learning layer (§9): pure — content-addressed id (FNV-1a, **not** `crypto.subtle`, which is absent on plain-`http` pages), text normalization, script-aware salience scoring, `Item` factory |
 | `LearnScheduler` | `content/learn-scheduler.js` | learning layer (§9): pure Ebbinghaus scheduler — `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
@@ -547,8 +548,10 @@ default path" is untouched; nothing about Firefox's exception is load-bearing fo
 
 ## 7. Provider transport & region flavors (合规双分发)
 
-The transport is **provider-agnostic and format-keyed**, and the provider *list*
-is a build-time concern, not a runtime one.
+The transport is **provider-agnostic**. Browser-network adapters remain
+format-keyed; a provider may additionally require a **local native-host capability**
+when its credentials must not live in browser JavaScript. The provider *list* remains
+a build-time concern, not a runtime one.
 
 - **Single source of truth.** `build/providers.config.js` is the one registry of
   translation providers. Each entry declares `{ id, type, flavors, needsKey,
@@ -560,12 +563,77 @@ is a build-time concern, not a runtime one.
   `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), so they can never
   drift.
 
-- **Transport is keyed by request FORMAT, not vendor.** `type` is one of
-  `google`, `chat-compat` (OpenAI Chat-Completions request shape), or
-  `messages-compat` (Anthropic Messages request shape). No adapter names a vendor;
-  a self-hosted or third-party endpoint is reached by picking the matching format +
-  a custom `baseUrl`/`model`. `anthropic-version` is sent for `messages-compat` as a
-  required *protocol* header, not a brand reference.
+- **Browser-network transport is keyed by request FORMAT, not vendor.** `type` is
+  `google`, `chat-compat` (Chat-Completions request shape), or `messages-compat`
+  (Messages request shape). No browser-network adapter names a vendor; a self-hosted
+  or third-party endpoint is reached by picking the matching format + a custom
+  `baseUrl`/`model`. `anthropic-version` is sent for `messages-compat` as a required
+  *protocol* header, not a brand reference. A fourth generic type, `native-request`,
+  is reserved for a request that is executed by the Safari containing app / native
+  app extension; it describes the **transport boundary**, never a vendor.
+
+### Native-host transport — optional local capability, never a backend
+
+A native-host provider is still a direct local path: browser → the app packaged with
+the extension → the provider. It is **not** a server of ours and it does not weaken the
+existing BYO-key path. The direct browser transports above remain the default and stay
+fully capable on every current browser.
+
+The boundary has seven load-bearing rules:
+
+1. **The registry remains the only provider list.** A provider may declare a generic
+   `requiresCapability` (first value: `native-request`) in addition to the existing
+   fields. Runtime capability filtering may only **remove** an entry that the current
+   binary cannot execute; it may never add a provider absent from the build flavor.
+   That makes Safari-vs-Chrome availability a projection of the same registry, not a
+   second hard-coded list.
+2. **No provider credential enters WebExtension storage or page JavaScript.** OAuth
+   access/refresh tokens live only in the native credential store (Keychain / shared
+   access group as required by the containing app and native extension). Native replies
+   expose status, plan/model metadata needed by UI, translated text, and normalized
+   errors — never raw credentials.
+3. **Safari iOS's background service worker remains off the critical path.** Apple
+   permits native messaging from a background script or an extension page, but not
+   from an injected content script. Because this project cannot depend on the iOS
+   background worker after device lock (§5.4), a selected native provider uses a tiny
+   extension-origin bridge page instead: content script → `MessageChannel` → bridge
+   page → `runtime.sendNativeMessage()` → native extension. No translation request
+   passes through `background.js`.
+4. **A web-accessible bridge is capability-authenticated.** The bridge is instantiated
+   only while a native provider is selected. Its first transferred `MessagePort` must
+   present a high-entropy local bridge capability generated by the extension and kept
+   in `chrome.storage.local`; the host page cannot read extension storage. The bridge
+   accepts only that authenticated port and a fixed operation schema. This random IPC
+   capability is not an OpenAI/provider credential and never leaves the device.
+5. **One error/retry contract.** `native-request` returns the same semantic error data
+   the existing retry loop consumes (`status`, optional `retryAfter`, message). It does
+   not grow its own retry/fallback policy. In particular, auth failure is visible and
+   never silently falls back to an API-key provider or Google.
+6. **Interactive auth belongs to an extension/app surface, never the page.** The
+   options page (an extension page, therefore allowed to use native messaging) owns
+   sign-in/status/logout UI. The first ChatGPT implementation uses Codex device-code
+   login because it does not require a localhost callback; unavailable/disabled device
+   login is a visible setup error, not a reason to leak tokens into JavaScript. Dynamic
+   account/model availability returned by the native side is runtime metadata and must
+   not be copied into locale strings or a second provider registry.
+7. **Provider-specific native code is flavor-gated at build time.** Generic bridge
+   plumbing may be brand-free, but a global-only provider's UI, auth endpoints, native
+   handler code, credentials and branding must not enter the China Safari project.
+   `build-safari.sh` / `app:sync` is responsible for preserving the same global-vs-China
+   isolation already enforced for web assets.
+
+**First instance — ChatGPT/Codex subscription (`global` Safari only).** The registry
+entry is global-only and requires `native-request`; therefore it is visible on iPhone,
+iPad and macOS Safari builds with the native capability, and absent from Chrome/Edge,
+Firefox and the China flavor. Existing OpenAI API-key support remains a separate
+provider and is unchanged. OpenAI documents ChatGPT sign-in as the subscription-access
+mode for Codex clients and documents device-code login for clients where the localhost
+callback is brittle; device-code availability can itself be disabled by a personal
+security setting or workspace policy. This provider may ship only while the chosen
+ChatGPT/Codex auth path remains publicly supported for this client shape.
+
+Implementation of this section is deliberately gated by the repository's mandatory
+human domain-design review. See #149.
 
 - **Region flavor is a build/distribution concern, decided at build time — never a
   runtime per-request branch.** `node build.js --flavor global|china` filters the
