@@ -11,6 +11,17 @@
 const { describe, test, ok, eq } = require('./harness');
 const WF = require('../extension/content/wire-format.js');
 
+// 冻结表现在由 build.js 按 flavor 过滤后 emit 进 providers.gen.js，运行时从
+// `window.MT_LEGACY_ENDPOINTS` 懒读。Node 里没有 window，所以测试自己装一个 —— 用的是
+// **构建源**（build/legacy-endpoints.config.js），于是这份测试同时也在盯着源与运行时
+// 之间的一致性。
+const LEGACY_SRC = require('../build/legacy-endpoints.config.js');
+global.window = global.window || {};
+global.window.MT_LEGACY_ENDPOINTS = {
+  paths: LEGACY_SRC.paths, stripsSlash: LEGACY_SRC.stripsSlash, keyPairs: LEGACY_SRC.keyPairs,
+};
+
+
 // ─── 改动前那四行表达式的冻结副本，作为 legacy 分支的 oracle ────────────────
 // 照抄自：translation-api.js 的 `base = baseUrl || p.defaultBase` → `cfg.base + cfg.path`
 // （不裁尾斜杠）、notes.js 的 `base + p.path`（不裁）、tts.js 的
@@ -156,8 +167,8 @@ describe('WireFormat — 无戳时与改动前逐字节等价（验收判据）'
 
   test('四个能力 × 每个 legacy 条目 × 五种存值形态', () => {
     let checked = 0;
-    for (const cap of Object.keys(WF.LEGACY_PATHS)) {
-      for (const [id, path] of Object.entries(WF.LEGACY_PATHS[cap])) {
+    for (const cap of Object.keys(LEGACY_SRC.paths)) {
+      for (const [id, path] of Object.entries(LEGACY_SRC.paths[cap])) {
         const entry = { id, type: 'chat-compat', defaultEndpoint: null };
         for (const stored of SHAPES) {
           const got = WF.resolveEndpoint(stored, entry, { cap });
@@ -172,7 +183,7 @@ describe('WireFormat — 无戳时与改动前逐字节等价（验收判据）'
 
   test('每个能力至少有一个条目，否则这张表是空转的', () => {
     for (const cap of ['chat', 'tts', 'stt']) {
-      ok(Object.keys(WF.LEGACY_PATHS[cap]).length > 0, cap + ' 的冻结表空了');
+      ok(Object.keys(LEGACY_SRC.paths[cap]).length > 0, cap + ' 的冻结表空了');
     }
   });
 });

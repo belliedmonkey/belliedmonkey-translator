@@ -274,8 +274,19 @@ var AppSettings = (() => {
     });
   }
 
+  // 端点迁移（#147）。跑在这里而不是 chrome-shim：wire-format.js 的 legacy 分支已经保证
+  // 没迁移的设备行为不变，所以它没有要抢的竞速，也不需要在 bundle 启动时就位；而它要用
+  // 的按 flavor 过滤的冻结表在 providers.gen.js 里，那是 shim 之后才加载的。
+  // 迁移只做两件事：让输入框里显示的就是真正会被请求的地址，以及少算一次。
+  async function migrateEndpointsOnce(cur) {
+    const patch = WireFormat.migrationPatch(cur);
+    if (!Object.keys(patch).length) return cur;
+    await set(patch);                    // 值与备份、戳同写一次 —— 覆盖是唯一不可逆的动作
+    return Object.assign({}, cur, patch);
+  }
+
   async function paint(session, say) {
-    const cur = await get(KEYS);
+    const cur = await migrateEndpointsOnce(await get(KEYS));
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'assist';
     $('tts-engine').value = engineById(cur.ttsEngine).id;

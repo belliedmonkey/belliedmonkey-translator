@@ -21,36 +21,19 @@
 var WireFormat = (() => {
   // ─── 冻结的历史快照（2026-08）──────────────────────────────────────────
   //
-  // 这是**历史**，不是配置。三条规矩，违反任何一条都会悄悄改变老用户的出网地址：
-  //   1. 永远不要从注册表读——注册表已经改成完整端点了，这里记的是改之前的样子。
-  //   2. 已有条目的值永不可修改。
-  //   3. 之后新增的注册表条目永不可加进来（新条目没有「改之前」）。
+  // 由 build.js 从 build/legacy-endpoints.config.js **按 flavor 过滤后**生成，和三张
+  // 注册表走同一条路，emit 在同一个 providers.gen.js 里（那个文件已经在每一个要解析
+  // 端点的加载清单里，所以这份数据不额外占任何挂载点）。
   //
-  // 它有两个用途：`resolveEndpoint` 的 legacy 分支（迁移没跑成的设备继续按老语义
-  // 工作），以及 background.js / chrome-shim.js 的一次性迁移。background.js 是
-  // `type: module` 的 service worker，既不能 importScripts 也不能 import 这个写
-  // `window` 的 IIFE，所以那边有一份字面量副本，由 test/base-url-migration.test.js
-  // 逐字段钉死。
-  const LEGACY_PATHS = {
-    chat: {
-      openai: '/v1/chat/completions',
-      claude: '/v1/messages',
-      deepseek: '/v1/chat/completions',
-      glm: '/api/paas/v4/chat/completions',
-      qwen: '/v1/chat/completions',
-      kimi: '/v1/chat/completions',
-      custom_chat: '/v1/chat/completions',
-      custom_msg: '/v1/messages',
-    },
-    tts: { local: '/v1/audio/speech', openai_speech: '/v1/audio/speech' },
-    stt: { local: '/v1/audio/transcriptions', openai_transcribe: '/v1/audio/transcriptions' },
-  };
-
-  // 改动之前四条传输对尾斜杠的处理并不一致：翻译（translation-api.js）与解析
-  // （notes.js）直接相加，语音（tts.js）与转写（speech-input.js）先裁掉尾斜杠。
-  // 那个 `//` 看起来像 bug，但它正是那批用户当时在跑的东西——legacy 分支的职责是
-  // **逐字节复刻**，不是顺手修正。修正交给用户：完整地址现在在输入框里看得见了。
-  const LEGACY_STRIPS_SLASH = { chat: false, tts: true, stt: true };
+  // 为什么必须过滤而不是写死在这里：表的键名是引擎 id，其中四个本身就是品牌词，而它们
+  // 是 global-only。写死会被中国合规门逐行扫到并 fail build——那道门是对的。
+  //
+  // 懒读，不在加载期取值：这个模块排在 app bundle 的最前面（它纯、无加载期依赖），
+  // 而 providers.gen.js 在它后面。
+  function legacy() {
+    return (typeof window !== 'undefined' && window.MT_LEGACY_ENDPOINTS)
+      || { paths: {}, stripsSlash: {}, keyPairs: [] };
+  }
 
   // ─── 后缀 → wire shape ──────────────────────────────────────────────────
   const FAMILY = {
@@ -92,7 +75,8 @@ var WireFormat = (() => {
 
   // 末尾锚定匹配，不是 `includes`。`includes` 会把
   // `https://api.example/messages/v1/chat/completions` 判成 Messages 形状；而末尾
-  // 锚定既能正确判成 chat，又能命中带中转前缀的 `https://proxy/openai/v1/chat/completions`。
+  // 锚定既能正确判成 chat，又能命中带中转前缀的 `https://proxy/upstream/v1/chat/completions`。
+  // （示例地址刻意不写厂商名：这个文件进出货包，而中国合规门连注释一起扫。）
   //
   // `fallbackType` 不在 FAMILY 里（google / browser）时直接原样返回：那两个条目
   // 根本没有用户可填的地址，判定无从谈起。
@@ -131,12 +115,46 @@ var WireFormat = (() => {
   // 改动那一刻，每个已存的地址都**必然**是被当作 base + path 消费的，所以「老代码
   // 会请求哪个 URL」是可以精确算出来的，不需要任何关于 URL 形状的猜测。
   function legacyCompose(stored, cap, entryId) {
-    const table = LEGACY_PATHS[cap];
+    const L = legacy();
+    const table = L.paths[cap];
     const path = table && table[entryId];
     // google / browser 这类条目当年就没有 path 可接——原样返回，别凭空造一个。
     if (!path) return stored;
-    const base = LEGACY_STRIPS_SLASH[cap] ? stored.replace(/\/+$/, '') : stored;
+    const base = L.stripsSlash[cap] ? stored.replace(/\/+$/, '') : stored;
     return base + path;
+  }
+
+  // 一次性迁移的纯逻辑：把一个按老语义存的地址补成完整端点，或者返回 null 表示无事可做。
+  //
+  // 它**不是正确性的一部分**——legacy 分支已经保证了迁移没跑成的设备继续按老代码的语义
+  // 工作。迁移只做两件事：让输入框里显示的是真正会被请求的地址，以及把这条判断固化下来
+  // 不必每次请求重算。正因为如此，它跑在哪里、什么时候跑都不要紧，所以它待在设置页的
+  // 加载路径上，而不是抢在 service worker 或 bundle 启动里跟别人赛跑。
+  function migrateStored(stored, entryId, cap) {
+    if (typeof stored !== 'string' || !stored.trim()) return null;   // 空 = 跟随默认，别动
+    const L = legacy();
+    const path = L.paths[cap] && L.paths[cap][entryId];
+    if (!path) return null;                     // 未知/缺席的 id，或当年就没有 path 的条目
+    const s = stored.trim();
+    if (s.endsWith(path)) return null;          // 已经迁移过——幂等
+    return (L.stripsSlash[cap] ? s.replace(/\/+$/, '') : s) + path;
+  }
+
+  // 设置页加载时跑一遍。传入刚读到的 settings，拿回要写回去的补丁（空对象 = 无事可做）。
+  // 每个被改写的字段同时落下戳与备份：地址被覆盖是这次改动里唯一不可逆的写，而备份是
+  // 唯一的救援手段，所以它必须和值写在同一次 set() 里——两次写之间被杀会留下「改了但
+  // 没备份」的状态。
+  function migrationPatch(settings) {
+    const s = settings || {};
+    const patch = {};
+    for (const pair of legacy().keyPairs) {
+      const next = migrateStored(s[pair[0]], s[pair[1]], pair[2]);
+      if (!next) continue;
+      patch[pair[0]] = next;
+      patch[pair[0] + 'PreVerbatim'] = s[pair[0]];
+      patch[pair[0] + 'Verbatim'] = true;
+    }
+    return patch;
   }
 
   // 最终地址。三个分支，**分支只看戳，永不检查 URL 形状**：
@@ -169,8 +187,9 @@ var WireFormat = (() => {
   }
 
   return {
-    LEGACY_PATHS, LEGACY_STRIPS_SLASH,
+    legacy,
     formatFor, hasPath, isAbsolute, looksComplete, resolveEndpoint, legacyCompose, normalize,
+    migrateStored, migrationPatch,
   };
 })();
 

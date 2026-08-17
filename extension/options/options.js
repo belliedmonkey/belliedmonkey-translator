@@ -100,6 +100,27 @@ function apiHint(provider) {
   return `${hint}${hint ? gap : ''}${label}${p.defaultModel}`;
 }
 
+
+// The 2026-08 endpoint migration (#147), run wherever settings are read for editing.
+//
+// NOT part of correctness: wire-format.js's legacy branch already keeps a device that
+// never migrated requesting exactly what it requested before, so this has no race to
+// win and no deadline. What it buys is honesty — after it runs, the address in the
+// field IS the address we request — plus one less thing to recompute per request.
+//
+// Gated on `ok`: a FAILED read is not an empty profile (PageSettings' contract, and the
+// 2026-08-05 incident behind it). Migrating from values we never actually saw would
+// write a wrong endpoint over a right one, which is the one mistake here that cannot be
+// walked back — hence also the `*PreVerbatim` backup written in the same set().
+async function migrateEndpointsOnce(read) {
+  if (!read || !read.ok) return {};
+  const patch = WireFormat.migrationPatch(read.data);
+  if (!Object.keys(patch).length) return {};
+  const w = await PageSettings.write(patch);
+  if (!w.ok) return {};              // 下次再来；legacy 分支照常兜着
+  return patch;
+}
+
 function showToast(msg, duration = 2500) {
   const el = $('toast');
   el.textContent = msg;
@@ -351,7 +372,9 @@ async function init() {
   // A failed read is NOT an empty profile. Painting defaults over a storage failure
   // is how "your API key silently reverted to the free channel" happened.
   const _s = await PageSettings.read(SETTINGS_KEYS);
-  const s0 = _s.data;
+  // Fold the migration's result into the values we are about to paint, so the field
+  // shows the complete address on THIS visit rather than the next one.
+  const s0 = Object.assign({}, _s.data, await migrateEndpointsOnce(_s));
   if (!_s.ok) {
     _settingsReadFailed = true;
     try {
