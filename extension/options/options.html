@@ -54,6 +54,16 @@
             <p class="hint" data-i18n="options_custom_model_hint">留空则使用该引擎的默认模型。</p>
           </div>
         </div>
+
+        <!-- 引擎自检（interaction-spec「配置即可自检」）：走的是翻译功能真正用的
+             那条传输（TranslationAPI.translate），所以「通了」意味着真的能翻，
+             不只是字段填了。放在这张卡里 —— 测试按钮要紧挨它测的那组字段；
+             解析引擎跟随翻译引擎时，测这一个就够（notes 组自选后另有自己的按钮）。
+             免费通道也要测：它不需要 Key，但响应不稳定，测一下才知道此刻通不通。 -->
+        <div class="field">
+          <button id="btn-test-provider" data-i18n="engine_test">测试连接</button>
+          <p class="hint" id="test-provider-note"></p>
+        </div>
       </section>
 
       <!-- 翻译语言 -->
@@ -177,13 +187,6 @@
           <select id="notes-provider"></select>
           <p class="hint" data-i18n="notes_engine_hint">「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。</p>
         </div>
-        <!-- 引擎自检（interaction-spec「配置即可自检」）：走的是功能本身用的那条
-             传输，所以「通了」意味着真的能用，不只是字段填了。 -->
-        <div class="field">
-          <button id="btn-test-provider" data-i18n="engine_test">测试连接</button>
-          <p class="hint" id="test-provider-note"></p>
-        </div>
-
         <div id="notes-config" hidden>
           <div class="field" id="notes-key-field">
             <label for="notes-api-key" data-i18n="notes_api_key">解析 API Key</label>
