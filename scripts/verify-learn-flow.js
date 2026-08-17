@@ -223,13 +223,24 @@ async function runHost(host) {
         }
         window.MediaRecorder = FakeRecorder;
         const voices = [{ name: 'TestVoice', lang: 'en-US', voiceURI: 'TestVoice|en-US', default: true, localService: true }];
-        window.speechSynthesis = {
+        // defineProperty, NOT assignment: window.speechSynthesis is a readonly
+        // accessor, so a plain assignment of the mock fails SILENTLY and the
+        // real engine leaks through — real system voices in getVoices(), and
+        // speak() dying with gesture-policy 'not-allowed' (measured 2026-08-17).
+        // The suite ran that way for weeks and passed only because nothing
+        // awaited a successful playback; the driving session (§9.5) chains on
+        // the done promise, which made the leak visible.
+        Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: {
           getVoices: () => voices,
           addEventListener: () => {},
           cancel: () => {},
+          // 'start' then 'end': speak()'s ok gate waits for start, and its done
+          // promise resolves on end — a mock that never ends would wedge the
+          // whole hands-free loop.
           speak: (u) => { setTimeout(() => u.dispatchEvent ? u.dispatchEvent(new Event('start')) : (u.onstart && u.onstart()), 0);
+            setTimeout(() => u.dispatchEvent ? u.dispatchEvent(new Event('end')) : (u.onend && u.onend()), 30);
             try { const ev = new Event('start'); (u._l && u._l.forEach((f) => f(ev))); } catch (_) {} },
-        };
+        } });
         class U extends EventTarget { constructor(text) { super(); this.text = text; } }
         window.SpeechSynthesisUtterance = U;
         // fetch mock for the notes engine only — everything else passes through.
@@ -237,11 +248,17 @@ async function runHost(host) {
         window.fetch = (u2, init) => {
           // §9.4 mock transcription: echo the on-screen sentence, so speakScore
           // is 100% and the grade gate's "perfect read disables 不记得" is testable.
+          // The driving steps (§9.5) steer it via __mtSttText — a string, or a
+          // function returning one; undefined keeps the review-card echo.
           if (String(u2).includes('/v1/audio/transcriptions')) {
             return Promise.resolve({ ok: true, status: 200,
-              text: async () => JSON.stringify({ text: document.getElementById('orig').textContent }) });
+              text: async () => JSON.stringify({ text:
+                typeof window.__mtSttText === 'function' ? window.__mtSttText()
+                : window.__mtSttText !== undefined ? window.__mtSttText
+                : document.getElementById('orig').textContent }) });
           }
           if (String(u2).includes('/v1/chat/completions')) {
+            (window.__mtChatBodies = window.__mtChatBodies || []).push(init && init.body);
             return Promise.resolve({ ok: true, status: 200, json: async () => ({
               choices: [{ message: { content: JSON.stringify({
                 words: [{ w: 'durable', g: '持久的' }], phrases: [{ p: 'spaced repetition', g: '间隔重复' }],
@@ -639,6 +656,166 @@ async function runHost(host) {
       await sweep('设置页', '#app-settings');
       need((await ev(`document.getElementById('tts-voice').options.length`)) >= 2,
         '语音选择器没有装入 mock 的系统语音');
+
+      // ─── 10 · 驾车模式（§9.5，App 专属）────────────────────────────────────
+      // Shrink the fixed recording windows so a whole session fits a test run,
+      // and pin the ui language to the mock voice's language — the spoken
+      // prompts are uiLang text, and the machine's locale must not decide the
+      // suite's outcome.
+      await ev(`(LearnDriving.DEFAULTS.SPEAK_REC_MS = 200, LearnDriving.DEFAULTS.REPLY_REC_MS = 150, 'ok')`);
+      await ev(`(localStorage.setItem('mt:uiLang', JSON.stringify('en')), 'ok')`);
+      const driveWait = async (ms) => {
+        const until = Date.now() + ms;
+        while (Date.now() < until) {
+          if (!(await ev(`document.getElementById('app-drive-more').hidden`))) return true;
+          await new Promise((r) => setTimeout(r, 300));
+        }
+        return false;
+      };
+
+      // 10 · Entry gating: exists with a usable voice, DOES NOT EXIST without one.
+      await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
+      need((await ev(`document.getElementById('app-drive-start').hidden`)) === false,
+        '驾车入口没有出现（mock 语音在，uiLang 可读）');
+      await ev(`(() => { const e = (window.MT_TTS_ENGINES || []).find((x) => x.id !== 'browser');
+        localStorage.setItem('mt:ttsEngine', JSON.stringify(e ? e.id : 'no-such-engine')); return 'ok'; })()`);
+      await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
+      need((await ev(`document.getElementById('app-drive-start').hidden`)) === true,
+        'TTS 不可用时驾车入口应不存在（门控而非禁用）');
+      await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')), 'ok')`);
+      await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
+
+      // The main walk graded every card into the future — make the corpus DUE
+      // again so the driving deck has material (the driving mode never fabricates
+      // due-ness on its own; the reviewer wouldn't either).
+      await ev(`(async () => {
+        const items = await LearnStore.allItems();
+        const day = 86400e3;
+        for (const it of items) {
+          if (!it.sched || !it.sched.s) continue;
+          it.sched.lastReviewAt = Date.now() - Math.max(2 * it.sched.s, 1) * day;
+          it.sched.dueAt = it.sched.lastReviewAt;
+          await LearnStore.putItem(it);
+        }
+        return 'ok';
+      })()`);
+
+      // Instrument: record every spoken text + every LearnTTS.stop call.
+      await ev(`(() => {
+        window.__spoken = []; window.__stops = 0;
+        const s = LearnTTS.speak.bind(LearnTTS), st = LearnTTS.stop.bind(LearnTTS);
+        LearnTTS.speak = (text, lang) => { window.__spoken.push(text); return s(text, lang); };
+        LearnTTS.stop = () => { window.__stops++; return st(); };
+        return 'ok';
+      })()`);
+      await ev(`(document.getElementById('app-settings').hidden = true,
+                document.getElementById('app-drive').hidden = false, 'ok')`);
+
+      // 10a/10b · Session A — silence everywhere: the listen-read chain runs in
+      // order, silence skips every 跟读 (no attempt ≠ failed attempt), and the
+      // WHOLE listen-only session writes NOTHING (the load-bearing negative).
+      // No notes engine is in storage yet, so the voice loop is naturally closed.
+      const rowsBefore = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      const speakBefore = await item('speak1');
+      await ev(`(window.__mtSttText = '', 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 500));
+      if (process.env.DEBUG_FLOW) {
+        console.log('  [drive A]', JSON.stringify(await ev(`AppDriving._debug()`)));
+      }
+      await sweep('驾车·会话中', '#app-drive');
+      need(await driveWait(40000), '驾车会话 A（全静默）没有在 40s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      const spoken = await ev(`JSON.stringify(window.__spoken)`).then(JSON.parse);
+      const firstCard = await ev(`(async () => {
+        const items = await LearnStore.allItems();
+        const hit = items.find((i) => i.text === window.__spoken[0]);
+        return hit ? JSON.stringify({ text: hit.text, tr: hit.tr }) : 'null';
+      })()`).then(JSON.parse);
+      need(firstCard !== null, '第一段朗读不是任何卡的原文: ' + JSON.stringify(spoken[0]));
+      need(firstCard && spoken[1] === firstCard.tr, '原文之后没有紧跟译文（' + JSON.stringify(spoken.slice(0, 3)) + '）');
+      const rowsAfterA = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      need(rowsAfterA === rowsBefore, '纯听会话写了 ' + (rowsAfterA - rowsBefore) + ' 条复习行 —— 听不是证据，必须零写入');
+      const speakAfterA = await item('speak1');
+      need(JSON.stringify(speakAfterA.sched) === JSON.stringify(speakBefore.sched),
+        '纯听会话动了 speak1 的排程');
+      await sweep('驾车·做完态', '#app-drive');
+
+      // 10c · Session B — perfect shadowing (voice loop still closed): due
+      // speak-eligible cards auto-grade through the REVIEW path.
+      await ev(`(window.__mtSttText = () => document.getElementById('app-drive-text').textContent, 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      need(await driveWait(40000), '驾车会话 B（完美跟读）没有在 40s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      const speakAfterB = await item('speak1');
+      need(speakAfterB.sched.reps === speakBefore.sched.reps + 1,
+        '到期卡跟读没有走正式复习（speak1 reps ' + speakBefore.sched.reps + '→' + speakAfterB.sched.reps + '）');
+      need(speakAfterB.sched.s > speakBefore.sched.s, '完美跟读后 s 没有上升');
+      need(speakAfterB.skills && speakAfterB.skills.speak > 1e12, '跟读通过没盖「说」技能时间戳');
+      const rowsAfterB = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      need(rowsAfterB > rowsAfterA, '完美跟读会话没有留下任何复习行');
+      const driveRows = await ev(`LearnStore.allReviews().then((rs) =>
+        JSON.stringify(rs.slice(${rowsAfterA}).filter((r) => r.mode === 'speak' && !r.practice)))`).then(JSON.parse);
+      need(driveRows.length >= 1 && driveRows.every((r) => typeof r.grade === 'number'),
+        '驾车跟读没有留下 mode:speak 复习行: ' + JSON.stringify(driveRows));
+
+      // 10c(续) · Practice round — the deck is spent (nothing due), so 继续练习
+      // draws the practice pool: a perfect 跟读 there writes a {practice:1,
+      // mode:'speak'} row and moves NO schedule (§5.3's asymmetry, driving flavor).
+      const schedAfterB = JSON.stringify(speakAfterB.sched);
+      await click('#app-drive-more');
+      await new Promise((r) => setTimeout(r, 500));
+      need(await driveWait(40000), '驾车练习轮没有在 40s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      const practiceRows = await ev(`LearnStore.allReviews().then((rs) =>
+        JSON.stringify(rs.slice(${rowsAfterA}).filter((r) => r.practice && r.mode === 'speak')))`).then(JSON.parse);
+      need(practiceRows.length >= 1, '驾车练习轮没有留下 practice+mode:speak 行');
+      need(JSON.stringify((await item('speak1')).sched) === schedAfterB,
+        '驾车练习轮的通过动了排程（§5.3 不对称被破坏）');
+      const rowsAfterPractice = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+
+      // 10d · Session C — the voice Q&A loop: a chat engine lands in STORAGE
+      // (AppDriving reconfigures from settings at session start, so an in-memory
+      // configure would be wiped), exercises are tiered out so every recording
+      // window is a reply window, and the reply sequence is deterministic: first
+      // a real question, then 「没有」 forever.
+      await ev(`(localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
+      await ev(`(() => { window.__mtTier = LearnScheduler.DEFAULTS.TIER_SPEAK_S;
+        LearnScheduler.DEFAULTS.TIER_SPEAK_S = 99999; return 'ok'; })()`);
+      await ev(`(() => { let n = 0;
+        window.__mtSttText = () => (++n === 1 ? 'why is this past tense here' : '没有');
+        window.__mtChatBodies = []; return 'ok'; })()`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      if (process.env.DEBUG_FLOW) {
+        console.log('  [drive C]', JSON.stringify(await ev(`AppDriving._debug()`)));
+      }
+      need(await driveWait(40000), '驾车会话 C（语音问答）没有在 40s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      const chatBodies = await ev(`JSON.stringify(window.__mtChatBodies || [])`).then(JSON.parse);
+      need(chatBodies.length >= 1, '语音提问没有到达问答引擎');
+      need(chatBodies.some((b) => /past tense/.test(b) && /Sentence/.test(b)),
+        '问答请求缺问题或缺卡上下文: ' + String(chatBodies[0]).slice(0, 160));
+      const spokeAnswer = await ev(`window.__spoken.some((s) => s.includes('durable'))`);
+      need(spokeAnswer === true, '答案没有被朗读出来');
+      need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsAfterPractice,
+        '问答会话写了复习行 —— 听和问都不是证据');
+      await ev(`(() => { LearnScheduler.DEFAULTS.TIER_SPEAK_S = window.__mtTier; return 'ok'; })()`);
+
+      // 10e · Pause: TTS stops, and NOTHING is written after the pause.
+      await ev(`(window.__mtSttText = '', 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+      const stopsBefore = await ev(`window.__stops`);
+      const rowsBeforePause = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      await click('#app-drive-pause');
+      need((await ev(`window.__stops`)) > stopsBefore, '暂停没有调用 LearnTTS.stop');
+      need((await text('#app-drive-pause')).length > 0, '暂停后按钮无文字（应转为「继续」）');
+      await sweep('驾车·暂停态', '#app-drive');
+      await new Promise((r) => setTimeout(r, 700));
+      need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsBeforePause,
+        '暂停之后仍有写入');
+      await ev(`(AppDriving.stop(), document.getElementById('app-drive').hidden = true, 'ok')`);
     }
 
     need(problems.length === 0, '控制台异常: ' + problems.join(' | '));

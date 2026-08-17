@@ -130,6 +130,10 @@ header {
 /* review.css owns everything inside #review-view; these only place the shell. */
 .row { display: flex; gap: 10px; align-items: stretch; }
 .row button { flex: 1; }
+/* Stacked rows need the same breathing room as the buttons inside one row —
+   without this the 驾车模式 row sits flush against 开始复习/同步 and the two read
+   as one control block (真机实测 2026-08-17). Same 10px as the intra-row gap. */
+.row + .row { margin-top: 10px; }
 :where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
 /* The one shell-owned control INSIDE the review surface, so the scoped rules
@@ -167,3 +171,53 @@ header {
 /* Destructive, and it must LOOK destructive — a delete that shares the primary
    button style is a delete someone presses by muscle memory. */
 button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }
+
+/* ─── 驾车模式 (§9.5) ─────────────────────────────────────────────────────
+   Same scoping discipline as the shell rules above: #app-drive is shell-owned
+   markup, so its rules are scoped to it and never reach review.css's surface.
+   Everything is BIG on purpose — glanceable text, ≥64px touch targets: the one
+   sanctioned reader is a passenger or a parked driver. */
+#app-drive { display: flex; flex-direction: column; gap: 12px; }
+#app-drive h2 { font-size: 1.25rem; margin: 0; }
+#app-drive-back {
+  align-self: flex-start;
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--accent-deep);
+  font-weight: 400;
+  min-height: 0;
+  padding: 6px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.drive-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.drive-card p { margin: 0; }
+#app-drive-text { font-size: 1.25rem; line-height: 1.5; }
+#app-drive-tr { color: var(--sage-strong); font-size: 1.05rem; }
+#app-drive-answer { color: var(--dim); font-size: 0.95rem; }
+#app-drive-note { color: var(--danger); }
+.drive-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+:where(#app-drive) button:not(.link):not(#app-drive-back) {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 12px;
+  cursor: pointer;
+  min-height: 64px;
+}
+:where(#app-drive) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
+/* interaction-spec 全局原则: disabled must be VISIBLE (same 45% as the shell). */
+:where(#app-drive) button:disabled { opacity: 0.45; cursor: default; }

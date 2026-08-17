@@ -120,6 +120,30 @@ function patchViewController(sharedDir) {
     notes.push('media gate: viewDidLoad anchor missing');
   }
 
+  // Patch 8 (§9.5 驾车模式): keep the screen awake. A driving session is
+  // continuous foreground audio with no touches; the default idle timer locks
+  // the phone mid-card and (with no background audio session) kills the speech.
+  // App-wide, not per-mode, on purpose: a per-mode toggle needs a JS↔Swift
+  // message bridge, which grows the Swift patch surface the converter
+  // regenerates (learning-design §12). This is a study app the user opened —
+  // same shape as a navigation app keeping its screen on.
+  const IDLE_NEEDLE = 'isIdleTimerDisabled';
+  if (src.includes(IDLE_NEEDLE)) {
+    notes.push('idle timer already patched');
+  } else if (src.includes('self.webView.navigationDelegate = self')) {
+    src = src.replace('self.webView.navigationDelegate = self',
+      'self.webView.navigationDelegate = self\n'
+      + '#if os(iOS)\n'
+      + '        // Patched by scripts/sync-app-assets.js — 驾车模式 (§9.5) is continuous\n'
+      + '        // foreground audio with no touches; the idle timer would lock the phone\n'
+      + '        // mid-card and stop the speech.\n'
+      + '        UIApplication.shared.isIdleTimerDisabled = true\n'
+      + '#endif');
+    notes.push('idle timer patched');
+  } else {
+    notes.push('idle timer: anchor missing');
+  }
+
   fs.writeFileSync(f, src);
   return notes.join(' · ');
 }
@@ -420,4 +444,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { classifyProject, patchMacWindowXml, patchMacMenuXml };
+module.exports = { classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml };

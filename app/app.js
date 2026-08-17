@@ -70,6 +70,7 @@
     $('review').textContent = t('app_review_start', '开始复习');
     $('review-back').textContent = t('app_review_back', '← 返回');
     $('sync').textContent = t('app_sync', '同步');
+    AppDriving.paintStatic();
   }
 
   async function paintCounts() {
@@ -127,6 +128,9 @@
     if (session) {
       $('who').textContent = session.email || '';
       await paintCounts();
+      // 驾车模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
+      // 计数与登录绝不等一次语音列表加载。
+      AppDriving.refreshEntry();
     }
   }
 
@@ -339,6 +343,30 @@
     say('');
   });
 
+  // ─── 驾车模式（§9.5）────────────────────────────────────────────────────
+  // Same split as #review-view: the shell owns view switching, AppDriving owns
+  // everything inside #app-drive.
+  $('app-drive-start').addEventListener('click', () => {
+    $('signed-in').hidden = true;
+    $('app-drive').hidden = false;
+    AppDriving.start();
+    say('');
+  });
+
+  $('app-drive-back').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      AppDriving.stop();
+      $('app-drive').hidden = true;
+      $('signed-in').hidden = false;
+      // 跟读评分改了语料，出门时的计数不能还是进门时的。
+      await paintCounts();
+    } catch (err) {
+      say(String((err && err.message) || err), true);
+    } finally { btn.disabled = false; }
+  });
+
   $('review-back').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -408,6 +436,7 @@
     }
 
     await AppSettings.ensureDefaults();
+    AppDriving.wire();
     AppSettings.wire({
       say,
       session: () => currentSession,

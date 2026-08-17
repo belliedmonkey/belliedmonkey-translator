@@ -21,7 +21,7 @@ const os = require('os');
 const path = require('path');
 const { describe, test, ok, eq, deepEq, match } = require('./harness');
 
-const { classifyProject, patchMacWindowXml, patchMacMenuXml } = require('../scripts/sync-app-assets.js');
+const { classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml } = require('../scripts/sync-app-assets.js');
 const { resourceRoot } = require('../scripts/verify-ios-bundle.js');
 
 function tmpdir() {
@@ -109,6 +109,48 @@ const TEMPLATE_STORYBOARD = `<?xml version="1.0" encoding="UTF-8"?>
 // a reading app: fixed 425×325, no zoom, no full screen. It went unnoticed for three
 // releases because the same tree also never got its resources — the placeholder does not
 // care how big it is. Nothing here asserts a pretty size; it asserts the user can change it.
+describe('sync-app-assets: ViewController patches', () => {
+  // A minimal converter-shaped template: the two anchors the patches key on.
+  const TEMPLATE = 'import WebKit\n\nclass ViewController {\n'
+    + '    func viewDidLoad() {\n'
+    + '        super.viewDidLoad()\n\n'
+    + '        self.webView.navigationDelegate = self\n'
+    + '        self.webView.scrollView.isScrollEnabled = false\n'
+    + '    }\n}\n';
+
+  function run(dir) {
+    return patchViewController(dir);
+  }
+
+  test('idle timer (§9.5): patched once, iOS-guarded, after the delegate line', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE);
+    const notes = run(dir);
+    ok(/idle timer patched/.test(notes), notes);
+    const out = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    ok(out.includes('UIApplication.shared.isIdleTimerDisabled = true'), '补丁行在');
+    ok(/#if os\(iOS\)[\s\S]*isIdleTimerDisabled/.test(out), '必须 iOS 门内 — UIApplication 在 macOS 不存在');
+  });
+
+  test('running twice changes nothing the second time (idempotent, like every patch)', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE);
+    run(dir);
+    const once = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    const notes = run(dir);
+    ok(/idle timer already patched/.test(notes), notes);
+    const twice = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    eq(once, twice, '第二次必须一字不改');
+    eq((twice.match(/isIdleTimerDisabled/g) || []).length, 1, '只插一次');
+  });
+
+  test('a template without the anchor says so instead of silently passing', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), 'class ViewController {}\n');
+    ok(/idle timer: anchor missing/.test(run(dir)));
+  });
+});
+
 describe('sync-app-assets: macOS host window', () => {
   test('the template window becomes resizable and miniaturizable', () => {
     const { xml } = patchMacWindowXml(TEMPLATE_STORYBOARD);
