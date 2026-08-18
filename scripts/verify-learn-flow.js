@@ -657,7 +657,7 @@ async function runHost(host) {
       need((await ev(`document.getElementById('tts-voice').options.length`)) >= 2,
         '语音选择器没有装入 mock 的系统语音');
 
-      // ─── 10 · 驾车模式（§9.5，App 专属）────────────────────────────────────
+      // ─── 10 · 播客模式（§9.5，App 专属）────────────────────────────────────
       // 这个模式是**播放器**：一张卡播完自动进下一张，全程没有等用户的环节，而且
       // **什么都不写**。所以这一节最要紧的断言是反向的——整场跑完，复习行数与排程
       // 一个字节都不能变。
@@ -679,16 +679,16 @@ async function runHost(host) {
       // 10 · Entry gating: exists with a usable voice, DOES NOT EXIST without one.
       await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
       need((await ev(`document.getElementById('app-drive-start').hidden`)) === false,
-        '驾车入口没有出现（mock 语音在，uiLang 可读）');
+        '播客入口没有出现（mock 语音在，uiLang 可读）');
       await ev(`(() => { const e = (window.MT_TTS_ENGINES || []).find((x) => x.id !== 'browser');
         localStorage.setItem('mt:ttsEngine', JSON.stringify(e ? e.id : 'no-such-engine')); return 'ok'; })()`);
       await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
       need((await ev(`document.getElementById('app-drive-start').hidden`)) === true,
-        'TTS 不可用时驾车入口应不存在（门控而非禁用）');
+        'TTS 不可用时播客入口应不存在（门控而非禁用）');
       await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')), 'ok')`);
       await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
 
-      // 让语料重新到期，驾车牌库才有料（驾车模式自己从不制造到期）。
+      // 让语料重新到期，播客牌库才有料（播客模式自己从不制造到期）。
       await ev(`(async () => {
         const items = await LearnStore.allItems();
         const day = 86400e3;
@@ -720,8 +720,8 @@ async function runHost(host) {
       if (process.env.DEBUG_FLOW) {
         console.log('  [drive A]', JSON.stringify(await ev(`AppDriving._debug()`)));
       }
-      await sweep('驾车·会话中', '#app-drive');
-      need(await driveWait(40000), '驾车会话没有在 40s 内自动走完 '
+      await sweep('播客·会话中', '#app-drive');
+      need(await driveWait(40000), '播客会话没有在 40s 内自动走完 '
         + JSON.stringify(await ev(`AppDriving._debug()`)));
       const spoken = await ev(`JSON.stringify(window.__spoken)`).then(JSON.parse);
       const firstCard = await ev(`(async () => {
@@ -743,13 +743,13 @@ async function runHost(host) {
       // 这一条是本模式的核心契约，反向断言，load-bearing。
       const rowsAfterA = await ev(`LearnStore.allReviews().then((r) => r.length)`);
       need(rowsAfterA === rowsBefore,
-        '驾车模式写了 ' + (rowsAfterA - rowsBefore) + ' 条复习行 —— 它只曝光，永不评分');
+        '播客模式写了 ' + (rowsAfterA - rowsBefore) + ' 条复习行 —— 它只曝光，永不评分');
       const speakAfterA = await item('speak1');
       need(JSON.stringify(speakAfterA.sched) === JSON.stringify(speakBefore.sched),
-        '驾车模式动了 speak1 的排程');
+        '播客模式动了 speak1 的排程');
       need(!speakAfterA.skills || speakAfterA.skills.speak === (speakBefore.skills || {}).speak,
-        '驾车模式盖了技能戳 —— 听不是证据');
-      await sweep('驾车·做完态', '#app-drive');
+        '播客模式盖了技能戳 —— 听不是证据');
+      await sweep('播客·做完态', '#app-drive');
 
       // 10b · 播放模式按钮：轮换、落盘、且不打断正在播的音频。
       await ev(`AppDriving.start().then(() => 'ok')`);
@@ -802,7 +802,7 @@ async function runHost(host) {
         + JSON.stringify((await ev(`JSON.stringify(window.__spoken.slice(0, 8))`).then(JSON.parse))));
       need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsBeforeNotes,
         '播放解析的会话写了复习行 —— 解析也不是证据');
-      await sweep('驾车·播放解析', '#app-drive');
+      await sweep('播客·播放解析', '#app-drive');
       await ev(`(localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
 
       // 10d′ · **本次真机 bug 的回归用例。** 解析引擎**没配**时打开播放解析：
@@ -823,7 +823,7 @@ async function runHost(host) {
       need((await text('#app-drive-cost')).length > 0,
         '开关开着、引擎没配 —— 界面上一个字都没说。这正是 build 38 的症状');
       need((await ev(`window.__mtChatBodies.length`)) === 0, '引擎没配却发出了解析请求');
-      await sweep('驾车·解析引擎缺失', '#app-drive');
+      await sweep('播客·解析引擎缺失', '#app-drive');
       await ev(`(AppDriving.stop(), 'ok')`);
 
       // 10d″ · 暂停 → 「解析这句」 → 解析被读出来 → **回到暂停且 seg 不变**。
@@ -867,7 +867,7 @@ async function runHost(host) {
       need((await ev(`AppDriving._debug()`)).seg === segAtPause,
         'seg 变了 —— 「继续」会从错的那一段重来');
       need((await text('#app-drive-notes')).length > 0, '按需解析的文字没有显示出来');
-      await sweep('驾车·按需解析', '#app-drive');
+      await sweep('播客·按需解析', '#app-drive');
       await ev(`(AppDriving.stop(), 'ok')`);
 
       // 10e · Pause: TTS stops, and NOTHING is written after the pause.
@@ -878,7 +878,7 @@ async function runHost(host) {
       await click('#app-drive-pause');
       need((await ev(`window.__stops`)) > stopsBefore, '暂停没有调用 LearnTTS.stop');
       need((await text('#app-drive-pause')).length > 0, '暂停后按钮无文字（应转为「继续」）');
-      await sweep('驾车·暂停态', '#app-drive');
+      await sweep('播客·暂停态', '#app-drive');
       await new Promise((r) => setTimeout(r, 700));
       need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsBeforePause,
         '暂停之后仍有写入');

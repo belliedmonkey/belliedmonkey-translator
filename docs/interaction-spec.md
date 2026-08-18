@@ -782,7 +782,7 @@ the browser extension, like capture — with one dated exception:
     2026-08-03 on the iPhone simulator (iOS 17.2): the card renders, the ▶
     control is enabled, and nothing is spoken until the user taps it. So there,
     `audio-first` means *tap to listen, then reveal*, not *listen hands-free*.
-    This is a platform rule about user gestures, not a defect. *(The app's 驾车模式
+    This is a platform rule about user gestures, not a defect. *(The app's 播客模式
     is the one sanctioned hands-free regime — see its section below; it cannot and
     does not exist on the extension page.)*
   - **In the APP, the gate is lifted** *(2026-08-09, 真机定案)*: the shell's
@@ -887,7 +887,7 @@ change: four grades, consequence previews, strength bar.
   the translation or 解析 group: where a recording goes is an explicit choice. The
   hint under the block carries the Gate C sentence.
 
-### 驾车模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
+### 播客模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
 
 An app-only **player** for the deck (learning-design §9.5): TTS reads each card
 原文 → 译文 (→ 解析, if the user turned that on), one card runs straight into the
@@ -906,7 +906,7 @@ out follows the standing rules unchanged)*:
 1. **Amends 「reveal is always user-initiated; nothing auto-advances」 and the
    `audio-first` ruling above.** Inside a driving session only, the translation is
    spoken without a reveal tap and cards auto-advance. The single entry tap
-   (「驾车模式」) is the consent for the whole session — same shape as the
+   (「播客模式」) is the consent for the whole session — same shape as the
    audio-first exception: what the rule protects is the *user's* pacing, and the
    user chose this pacing by entering the mode. 暂停/退出 returns to the normal
    regime instantly; nothing outside the session changes behaviour.
@@ -921,7 +921,7 @@ out follows the standing rules unchanged)*:
    moving.
 
 - **The gate ladder (capability semantics, never disabled buttons)**:
-  - the 「驾车模式」 entry button exists ⇔ TTS is usable at all;
+  - the 「播客模式」 entry button exists ⇔ TTS is usable at all;
   - the 解析 segment exists ⇔ the user turned it on AND the 解析引擎 gate is open
     (§9.2). Engine not configured ⇒ the segment does not exist, it is not greyed.
 - **What is spoken per card — THREE passes** (2026-08-18): 原句 / 原句 + 译句 +

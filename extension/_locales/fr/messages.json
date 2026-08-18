@@ -1344,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "Mode conduite",
+    "message": "Mode podcast",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {

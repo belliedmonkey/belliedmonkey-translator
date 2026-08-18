@@ -1,5 +1,13 @@
-// learn-driving.js — pure logic for 驾车模式 (driving mode, 记忆层).
-// See docs/learning-design.md §9.5 and docs/interaction-spec.md 「驾车模式」.
+// learn-driving.js — pure logic for 播客模式 (podcast mode, 记忆层).
+//
+// ─── 名字：用户看到的是「播客模式」，代码里仍叫 drive/driving ────────────────
+// 2026-08-18 改的只是**产品名**。标识符没跟着改，是权衡后的结果，不是偷懒：
+//   · `drivePlaybackMode` / `drivePlayNotes` 是**已经落在用户设备上的存储键**。改名
+//     等于再来一次迁移，而收益是零 —— 用户永远看不到键名。
+//   · 这个仓库里 `podcast` 已经有主了：`content/content-podcast.js` 是扩展在播客网站上
+//     的字幕翻译。把学习层这个模块也叫 podcast，两个不同的东西就会在代码里同名。
+// 要读的人记住一件事就够：**drive* = 播客模式**。
+// See docs/learning-design.md §9.5 and docs/interaction-spec.md 「播客模式」.
 //
 // PURE, like learn-exercises.js: the playlist order (`buildOrder` / `advance`), the
 // per-card plan, the notes-to-speech rendering and the session state machine
@@ -166,7 +174,7 @@ var LearnDriving = (() => {
 
     // ── Controls that work from anywhere ────────────────────────────────────
     // Stop and pause are INTERRUPTS, not second triggers, so they are exempt from
-    // the "IO in flight ⇒ controls disabled" rule (interaction-spec 「驾车模式」).
+    // the "IO in flight ⇒ controls disabled" rule (interaction-spec 「播客模式」).
     if (ev === 'tap_stop') return S('idle', [{ t: 'stop_tts' }]);
     if (ev === 'hidden' || ev === 'tap_pause') {
       if (st === 'paused' || st === 'idle') return { state: state, effects: [] };

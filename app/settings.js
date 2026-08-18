@@ -31,7 +31,7 @@ var AppSettings = (() => {
     'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
     // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
     'apiBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
-    // §9.5 驾车模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关。
+    // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关。
     'drivePlayNotes'];
 
   function get(keys) {
@@ -108,7 +108,7 @@ var AppSettings = (() => {
     }
     // §9.4 — transcription engine for the 说 exercise. Empty = not configured =
     // the speak form does not exist. Candidates come from the generated registry.
-    $('drive-title').textContent = t('drive_entry', '驾车模式');
+    $('drive-title').textContent = t('drive_entry', '播客模式');
     $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
     $('drive-play-notes-note').textContent = t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。');
     $('stt-title').textContent = t('stt_engine', '转写引擎');

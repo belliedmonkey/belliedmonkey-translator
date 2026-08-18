@@ -1,4 +1,12 @@
-// app/driving.js — 驾车模式 orchestrator (§9.5, interaction-spec 「驾车模式」).
+// app/driving.js — 播客模式 (podcast mode) orchestrator (§9.5, interaction-spec 「播客模式」).
+//
+// ─── 名字：用户看到的是「播客模式」，代码里仍叫 drive/driving ────────────────
+// 2026-08-18 改的只是**产品名**。标识符没跟着改，是权衡后的结果，不是偷懒：
+//   · `drivePlaybackMode` / `drivePlayNotes` 是**已经落在用户设备上的存储键**。改名
+//     等于再来一次迁移，而收益是零 —— 用户永远看不到键名。
+//   · 这个仓库里 `podcast` 已经有主了：`content/content-podcast.js` 是扩展在播客网站上
+//     的字幕翻译。把学习层这个模块也叫 podcast，两个不同的东西就会在代码里同名。
+// 要读的人记住一件事就够：**drive* = 播客模式**。
 //
 // APP-ONLY on purpose: the extension page on iOS Safari refuses gesture-less
 // playback, so continuous hands-free audio cannot exist there — this module ships in
@@ -431,9 +439,9 @@ var AppDriving = (() => {
   }
 
   function paintStatic() {
-    $('app-drive-start').textContent = t('drive_entry', '驾车模式');
+    $('app-drive-start').textContent = t('drive_entry', '播客模式');
     $('app-drive-back').textContent = t('app_review_back', '← 返回');
-    $('app-drive-title').textContent = t('drive_entry', '驾车模式');
+    $('app-drive-title').textContent = t('drive_entry', '播客模式');
     $('app-drive-next').textContent = t('drive_next', '⏭ 下一张');
     $('app-drive-repeat').textContent = t('drive_repeat', '🔁 再听一遍');
     $('app-drive-more').textContent = t('drive_restart', '再来一轮');

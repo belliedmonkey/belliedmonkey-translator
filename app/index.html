@@ -67,7 +67,7 @@
         <button id="review" type="button"></button>
         <button id="sync" type="button" class="secondary"></button>
       </div>
-      <!-- 驾车模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
+      <!-- 播客模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
            渲染；门不过就不存在，绝不是灰按钮（AppDriving.refreshEntry）。 -->
       <div class="row">
         <button id="app-drive-start" type="button" class="secondary" hidden></button>
@@ -75,7 +75,7 @@
       <p class="note" id="last"></p>
     </section>
 
-    <!-- 驾车模式（learning-design §9.5 / interaction-spec 「驾车模式」）：App 专属
+    <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
          免提听读会话。文本全程可见（音频优先，从不藏字）；超大按钮；语音问答环
          仅在 STT + 解析引擎 + uiLang 音色三门全开时存在。视图切换归 app.js（同
          #review-view 的分工），内部全归 app/driving.js。 -->
@@ -199,7 +199,7 @@
 
       <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的端点，
            识别后即弃；不配置则说题不存在。设备本地凭证（§7.2），永不同步。 -->
-      <!-- 驾车模式（learning-design §9.5）。播放顺序是播放器里的按钮；这里只放
+      <!-- 播客模式（learning-design §9.5）。播放顺序是播放器里的按钮；这里只放
            **要花钱**的那个开关，因为它需要一句解释，而解释属于设置页。 -->
       <h3 id="drive-title"></h3>
       <label class="check">

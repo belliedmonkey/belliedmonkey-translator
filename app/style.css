@@ -135,7 +135,7 @@ header {
 .row { display: flex; gap: 10px; align-items: stretch; }
 .row button { flex: 1; }
 /* Stacked rows need the same breathing room as the buttons inside one row —
-   without this the 驾车模式 row sits flush against 开始复习/同步 and the two read
+   without this the 播客模式 row sits flush against 开始复习/同步 and the two read
    as one control block (真机实测 2026-08-17). Same 10px as the intra-row gap. */
 .row + .row { margin-top: 10px; }
 :where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
@@ -176,7 +176,7 @@ header {
    button style is a delete someone presses by muscle memory. */
 button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }
 
-/* ─── 驾车模式 (§9.5) ─────────────────────────────────────────────────────
+/* ─── 播客模式 (§9.5) ─────────────────────────────────────────────────────
    Same scoping discipline as the shell rules above: #app-drive is shell-owned
    markup, so its rules are scoped to it and never reach review.css's surface.
    Everything is BIG on purpose — glanceable text, ≥64px touch targets: the one

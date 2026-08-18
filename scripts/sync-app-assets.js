@@ -120,7 +120,7 @@ function patchViewController(sharedDir) {
     notes.push('media gate: viewDidLoad anchor missing');
   }
 
-  // Patch 8 (§9.5 驾车模式): keep the screen awake. A driving session is
+  // Patch 8 (§9.5 播客模式): keep the screen awake. A driving session is
   // continuous foreground audio with no touches; the default idle timer locks
   // the phone mid-card and (with no background audio session) kills the speech.
   // App-wide, not per-mode, on purpose: a per-mode toggle needs a JS↔Swift
@@ -134,7 +134,7 @@ function patchViewController(sharedDir) {
     src = src.replace('self.webView.navigationDelegate = self',
       'self.webView.navigationDelegate = self\n'
       + '#if os(iOS)\n'
-      + '        // Patched by scripts/sync-app-assets.js — 驾车模式 (§9.5) is continuous\n'
+      + '        // Patched by scripts/sync-app-assets.js — 播客模式 (§9.5) is continuous\n'
       + '        // foreground audio with no touches; the idle timer would lock the phone\n'
       + '        // mid-card and stop the speech.\n'
       + '        UIApplication.shared.isIdleTimerDisabled = true\n'

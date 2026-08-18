@@ -1345,7 +1345,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "駕車模式",
+    "message": "播客模式",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {

@@ -1,4 +1,4 @@
-// test/learn-driving.test.js — 驾车模式 (§9.5) 的纯逻辑.
+// test/learn-driving.test.js — 播客模式 (§9.5) 的纯逻辑.
 //
 // 这个模式**什么都不写**——没有 review 行、没有技能戳、不动 lastSeenAt、不碰调度器。
 // 所以这份测试守的不是「进度算得对不对」，而是三件播放器该做对的事：
@@ -328,10 +328,10 @@ describe('LearnDriving — 暂停时的「解析这句」(§9.5)', () => {
 
 describe('LearnDriving — 这个模式不写任何进度 (§9.5)', () => {
   test('模块表面上没有任何写进度的东西', () => {
-    // 反向断言，load-bearing：这些函数存在过，是上一版驾车模式推进度用的。
+    // 反向断言，load-bearing：这些函数存在过，是上一版播客模式推进度用的。
     // 它们的消失就是「这个模式只曝光、不评分」这条契约本身。
     for (const gone of ['speakRepOutcome', 'drivingGradeFor', 'classifyReply']) {
-      eq(typeof D[gone], 'undefined', gone + ' 还在 —— 驾车模式不该有写进度的路径');
+      eq(typeof D[gone], 'undefined', gone + ' 还在 —— 播客模式不该有写进度的路径');
     }
   });
 
