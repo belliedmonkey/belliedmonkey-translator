@@ -601,6 +601,9 @@ TIER_WRITE_S: 30,
 - **每个技能先有确定性本地题型，AI 题包只是增强**——分工与成本纪律见 §9.3。
 - **能力语义照旧**：无 TTS 的卡没有听档，无麦克风或无转写引擎的卡没有说档——
   缺失的技能不进「可用技能」集合，不拦「全面掌握」（同 domain-design §5.3 规则 1）。
+- **驾车模式（§9.5，2026-08-17）原样复用本节与 §5.3，不加任何新计分规则**：
+  到期卡的说题走正常 `applyReview`；未到期卡的说题走 `practiceOutcome` 的不对称
+  规则；纯听什么都不写。驾车模式只是既有写路径的一个新驱动者，见 §9.5。
 
 ---
 
@@ -1528,6 +1531,9 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnExercises` | `content/learn-exercises.js` *(planned, §5.4/§9.3)* | pure: 题型注册表、确定性轮换与知识点取材、译文选择题 / 盲听选词生成、`speakScore` 转写重合度、`gradeGate` 客观结果→评分约束 |
 | `ExercisePack` | `learn/exercise-pack.js` *(planned, §9.3)* | AI 题包：按卡生成/缓存/合规检查，`PACK_VERSION`，复用 §9.2 的引擎门与传输 |
 | `LearnSpeech` | `learn/speech-input.js` *(planned, §9.4)* | 录音 + BYO 转写：`getUserMedia`/`MediaRecorder`，multipart `/v1/audio/transcriptions`，录音用后即弃 |
+| `LearnDriving` | `content/learn-driving.js` *(§9.5)* | pure: 驾车会话状态机 `reduce`、语音回复意图分类 `classifyReply`、跟读评分→写入裁决 `speakRepOutcome`（恒在 `gradeGate('speak')` 允许集内）、`cardPlan` 题面规划 |
+| `DrivingQA` | `learn/driving-qa.js` *(§9.5)* | 驾车问答：骑 `LearnNotes.chat` 传输与能力门，自有 `QA_PROMPT_VERSION`（**永不碰 notes 的 `PROMPT_VERSION`**），口播风格短回答，**不缓存** |
+| `AppDriving` | `app/driving.js` *(§9.5)* | App 专属编排器：执行状态机 effects（TTS 链 / 定长录音 / 进度写入 / 视图），进 bundle 不进扩展 |
 | `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
@@ -1700,6 +1706,57 @@ rather than reading the sentence in the wrong language.
   会话中途 `mic_denied` ⇒ 本会话说档关闭、卡片按下一顺位技能重渲——不出死卡。
 - **IO 在途，控件不可用**（interaction-spec 全局原则）：录音与转写全程，说题
   控件整体禁用并给具名状态文案。
+
+## 9.5 驾车模式 (driving mode) — App 免提听读会话（2026-08-17）
+
+把一次复习会话变成「放在支架上听」：对牌组里的每张卡，TTS 依次朗读**原文 → 译文**；
+到说档的到期卡追加一道**跟读题**（录音 → BYO 转写 → 本地 `speakScore`，§9.4 原样）；
+每张卡末尾口播「有没有疑问？」，用户可以开口提问，由问答引擎回答并播报；静默或
+「没有 / 下一个」即进下一张。目标场景：司机偶尔练口语、随口提问，全程尽量免提。
+
+- **前台 only（v1）**。App 无原生音频会话，锁屏即停；屏幕常亮由 `app:sync` 的
+  `isIdleTimerDisabled` 补丁保证（App 级开关，按模式开关需 JS↔Swift 桥，缓做——
+  §12）。锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes`）
+  整体后置（§12）。**App 专属**：iOS Safari 扩展页拒绝无手势播放（§9.1 实测），
+  免提环路在那里不可能存在——按能力语义，驾车模式不进扩展任何字节。
+- **进度规则：零新规**。本节不加曲线规则、不加复习行字段、不动 `DB_VERSION`——
+  驾车模式只是既有写路径（`putItem` + `recordReview`）的一个新驱动者：
+  - **纯听什么都不写**：无复习行、无技能戳、不动 `lastSeenAt`。听不是证据。
+  - **到期卡的跟读 = 正式复习**：`speakScore` 自动折算评分——**≥0.9 → 2（记得）、
+    <0.5 → 0（不记得）、中间 → 1（有点难）**，每个值都落在 `gradeGate('speak')`
+    对应允许集内（§5.2 诚实规则由性质测试钉死）——走正常 `applyReview`，复习行
+    记 `{mode:'speak'}`。
+  - **未到期卡的跟读 = 自由练习**：§5.3 不对称原样——答错 lapse，答对只记
+    `{practice:1, mode:'speak'}` 行、不写 `sched`。
+  - **候选卡只曝光**：听读不写任何东西，也不出跟读题——新卡引入只走每日牌组，
+    驾车不绕开 `dailyNew`（§5.3；§12）。
+- **唯一题型是跟读**。它是四技能中唯一手眼全免提的形态；选择题/挖空的语音化
+  （念四个选项让人记住再作答）不可比对、不诚实，已否决（§12）。说档门关着
+  （无麦/无转写引擎/无到期说档）时该卡纯听读，不出死卡。
+- **问答引擎（`DrivingQA`）**：骑 §9.2 的 `LearnNotes.chat` 传输与能力门（chat 类
+  引擎 + key），同 §9.3 题包的搭车形状——独立模块、独立 `QA_PROMPT_VERSION`，
+  **永不 bump notes 的 `PROMPT_VERSION`**（§12 的版本纪律）。提示词英文，要求以
+  `uiLang` 回答 2–4 个适合口播的短句（纯文本，无 markdown/列表/JSON）。
+  **不缓存**：自由问答的缓存命中率趋零，成本合同改为在入口写明
+  「使用你配置的解析引擎，每问一次调用，不缓存」（§9.2「一次缓存」惯例的
+  一个明示例外，理由如上）。回答 `textContent` 渲染——模型输出不可信是前提。
+- **语音环路（免提问答）的门 = STT 门 × 问答门 × UI 语言音色**：
+  `LearnSpeech.capable()` 且 `LearnNotes.capable()` 且 UI 语言有可用音色
+  （口播提示「有没有疑问？」是 `uiLang` 文本，读不出来就没有语音环路）。
+  门开：卡末自动录音一个定长窗（无 VAD，v1 限制——定长窗常量标「未经验证、
+  调整便宜」），`empty_transcript` / 静默 / 「没有 / 下一个」类回复 → 下一张；
+  其余转写文本视为问题送问答引擎。门关（含会话中途 `mic_denied` 降级）：
+  语音环路与提问入口**不存在**（能力语义，绝不是灰按钮），会话退为
+  纯按钮听读（暂停 / 下一张 / 再听一遍）。
+- **中断与失败具名**（§9.1/§9.4 reason 惯例）：TTS 中途失败 → 会话停在具名原因上，
+  绝不静默跳卡空转；转写失败 → 本卡跳过跟读、状态自报、会话继续；
+  `visibilitychange` 隐藏 → 暂停（停 TTS、撤录音、放麦），恢复只能手点。
+- **隐私走查**：录音仍只发用户自配端点、用后即弃（§9.4/§10 Gate C 原样，无新披露
+  面）；问答用用户自己的 key、设备发起、结果不落我们的服务器；无遥测。媒体卡
+  §11 边界不动：驾车模式只朗读文本卡，媒体卡在驾车队列里跳过（合成音永不替代
+  原声，开车也不该去开原片）。
+
+---
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
@@ -1922,3 +1979,7 @@ matters more than the detail.
 | 2026-08-12 | 浏览器原生 `SpeechRecognition` 做说题评测（三审） | 维持否决：录音送厂商服务器（Chrome→Google、Safari→Apple）不可接受，永不使用。但三审把「ASR 一律出局」收窄为「录音离开用户自选端点即出局」——**BYO-key 转写路径解禁**：录音只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃，与 BYO-key 翻译/TTS 同一信任形状（§5.4、§9.4、§10 Gate C、§11） |
 | 2026-08-12 | 知识点 × 技能全矩阵掌握标准 | 解析面每句最多 8 词 + 4 短语 + 1 语法点，×4 技能 ≈ 50 格——实际不可达，且需要知识点级存储与同步。改为句子 × 四技能矩阵（4 格）+ 出题时知识点确定性轮换取材（§5.4）；词汇不单独考排的边界（§5.2、§11）不动 |
 | 2026-08-12 | 题包并入解析 prompt（一次调用两用） | 会 bump notes 的 `PROMPT_VERSION`、全量作废所有用户已付费缓存的解析并重复扣费——§9.2 的版本纪律只允许纠错时升版。题包独立模块、独立 `PACK_VERSION`（§9.3） |
+| 2026-08-17 | 驾车模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`） | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖驾车主场景；后台桥列为后续独立议题（§9.5） |
+| 2026-08-17 | 驾车模式朗读选择题/挖空题（念选项作答） | 念四个选项让人凭记忆比对，测的是短时记忆不是技能，客观结果也无从约束评分——不诚实。v1 唯一题型是跟读，它是四技能中唯一手眼全免提的形态（§9.5） |
+| 2026-08-17 | 驾车问答复用浏览器 `SpeechRecognition`（四审） | 维持三审裁定不重开：录音离开用户自选端点即出局。驾车问答的录音同样只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃（§9.4 同一信任形状） |
+| 2026-08-17 | 驾车会话引入新卡 / 问答结果缓存 | 引新卡会绕开 `dailyNew`（§5.3 候选只曝光的原则不因换个面失效）；问答是自由文本、缓存命中率趋零，缓存只会让「一次缓存永不重复扣费」的承诺在这里变成谎言——改为入口明示「每问一次调用，不缓存」（§9.5） |

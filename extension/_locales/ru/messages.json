@@ -1322,5 +1322,93 @@
   "app_pw_bad": {
     "message": "Неверная почта или пароль — попробуйте ещё раз.",
     "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "Режим вождения",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ Пауза",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ Продолжить",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ Дальше",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 Ещё раз",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_ask": {
+    "message": "🎙 Задать вопрос",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "Карточка {i} из {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_speak": {
+    "message": "Повторите предложение вслух",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_question": {
+    "message": "Есть вопросы?",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_source": {
+    "message": "Читаю оригинал…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "Читаю перевод…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_recording": {
+    "message": "Идёт запись — говорите…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_answering": {
+    "message": "Отвечаю…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "На паузе",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_cost": {
+    "message": "Вопросы используют настроенный вами движок разбора — один вызов на вопрос, без кэширования",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "Этот круг закончен",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_practice_more": {
+    "message": "Продолжить практику",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_stt_gone": {
+    "message": "Микрофон недоступен — сессия продолжится только на прослушивание",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skip_speak": {
+    "message": "Повтор вслух для этой карточки пропущен",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skipped": {
+    "message": "Пропущено карточек: {n} (медиакарточки или нет голоса)",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "Нет карточек для чтения вслух",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_fail": {
+    "message": "Ответ не получился — спросите ещё раз",
+    "description": "Driving mode (learning-design §9.5)"
   }
 }

@@ -1322,5 +1322,93 @@
   "app_pw_bad": {
     "message": "البريد الإلكتروني أو كلمة المرور غير صحيحة — حاول مرة أخرى.",
     "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "وضع القيادة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ إيقاف مؤقت",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ متابعة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ التالي",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 إعادة الاستماع",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_ask": {
+    "message": "🎙 اسأل",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "البطاقة {i} من {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_speak": {
+    "message": "كرر الجملة بصوت عالٍ",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_question": {
+    "message": "هل لديك أي سؤال؟",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_source": {
+    "message": "تشغيل النص الأصلي…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "تشغيل الترجمة…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_recording": {
+    "message": "جارٍ التسجيل — تحدث الآن…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_answering": {
+    "message": "جارٍ الإجابة…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "متوقف مؤقتًا",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_cost": {
+    "message": "تستخدم الأسئلة محرك التحليل الذي أعددته — استدعاء واحد لكل سؤال، دون تخزين مؤقت",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "انتهت هذه الجولة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_practice_more": {
+    "message": "متابعة التدريب",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_stt_gone": {
+    "message": "الميكروفون غير متاح — تستمر هذه الجلسة بالاستماع فقط",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skip_speak": {
+    "message": "تم تخطي القراءة بصوت عالٍ لهذه البطاقة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skipped": {
+    "message": "تم تخطي {n} بطاقة يتعذر قراءتها (بطاقات وسائط أو بدون صوت)",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "لا توجد بطاقات يمكن قراءتها",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_fail": {
+    "message": "فشلت الإجابة — اسأل مرة أخرى",
+    "description": "Driving mode (learning-design §9.5)"
   }
 }

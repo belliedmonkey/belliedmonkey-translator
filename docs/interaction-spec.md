@@ -782,7 +782,9 @@ the browser extension, like capture — with one dated exception:
     2026-08-03 on the iPhone simulator (iOS 17.2): the card renders, the ▶
     control is enabled, and nothing is spoken until the user taps it. So there,
     `audio-first` means *tap to listen, then reveal*, not *listen hands-free*.
-    This is a platform rule about user gestures, not a defect.
+    This is a platform rule about user gestures, not a defect. *(The app's 驾车模式
+    is the one sanctioned hands-free regime — see its section below; it cannot and
+    does not exist on the extension page.)*
   - **In the APP, the gate is lifted** *(2026-08-09, 真机定案)*: the shell's
     WKWebView sets `mediaTypesRequiringUserActionForPlayback = []` (patched by
     `scripts/sync-app-assets.js` — the converter template never sets it). The
@@ -864,6 +866,60 @@ change: four grades, consequence previews, strength bar.
   on-device engine), base URL / key / model per registry flags. It never follows
   the translation or 解析 group: where a recording goes is an explicit choice. The
   hint under the block carries the Gate C sentence.
+
+### 驾车模式 (driving mode) — 2026-08-17（App 专属）
+
+An app-only hands-free session (learning-design §9.5): TTS reads each card 原文 →
+译文, appends a 跟读 exercise when the card's speak form is due-eligible, then asks
+「有没有疑问？」aloud — a spoken question is answered by the 问答引擎 and read back;
+silence or 「没有 / 下一个」 advances. Foreground only; the screen is kept awake by
+the `app:sync` idle-timer patch.
+
+**Two explicit carve-outs, each naming the rule it amends** *(anything not carved
+out follows the standing rules unchanged)*:
+
+1. **Amends 「reveal is always user-initiated; nothing auto-advances」 and the
+   `audio-first` ruling above.** Inside a driving session only, the translation is
+   spoken without a reveal tap and cards auto-advance. The single entry tap
+   (「开始驾车」) is the consent for the whole session — same shape as the
+   audio-first exception: what the rule protects is the *user's* pacing, and the
+   user chose this pacing by entering the mode. 暂停/退出 returns to the normal
+   regime instantly; nothing outside the session changes behaviour.
+2. **Amends 全局原则「IO 在途，控件不可用」.** A driving session is one continuous
+   IO chain; disabling controls for its duration would mean *no* controls.
+   Carve-out: **⏸ 暂停/停止 is enabled at all times** (it is the interrupt for the
+   in-flight IO, not a second trigger — double-fire is impossible by construction:
+   `LearnTTS.stop()` is idempotent and epoch-guarded); ⏭ 下一张 / 🔁 再听一遍 are
+   enabled between segments and debounced by the TTS epoch. Controls that *trigger*
+   IO inside a segment (🎙 提问 while a QA call is in flight) follow the standing
+   rule and disable.
+
+- **The gate ladder (capability semantics, never disabled buttons)**:
+  - the 「驾车模式」 entry button exists ⇔ TTS is usable at all;
+  - the voice loop (auto-record after 「有没有疑问？」, spoken Q&A) exists ⇔
+    `LearnSpeech.capable()` AND the 解析引擎 gate is open AND the UI language has a
+    usable voice (the spoken prompts are `uiLang` text);
+  - no STT ⇒ the session is buttons-only — 暂停 / 下一张 / 再听一遍 — and **no ask
+    affordance exists at all** (there is no way to ask by voice without a
+    transcription engine; a typed-question flow is a different feature).
+- **What is spoken per card**: 原文 (card language voice) → 译文 (target-language
+  voice) → for due speak-eligible cards: 「请跟着读一遍」 → fixed recording window
+  → score line spoken back. Text stays **visible** throughout — audio-first, never
+  text-hidden (passengers and parked use exist).
+- **Progress accounting is §5.3 verbatim** (learning-design §9.5): listening writes
+  nothing; a due-card 跟读 auto-grades from `speakScore` (≥0.9→记得, <0.5→不记得,
+  middle→有点难 — always inside `gradeGate('speak')`'s allowed set) through the
+  normal review path; a non-due 跟读 follows the practice asymmetry; candidates are
+  exposure only. Media cards are skipped in the driving queue (合成音永不替代原声).
+- **Q&A cost is stated at the point of use**: 「使用你配置的解析引擎，每问一次调用，
+  不缓存」. Answers render via `textContent` and are spoken in `uiLang`.
+- **Every stop names itself** (TTS reason codes + driving lines): a mid-session TTS
+  failure pauses the session on its named reason — never a silent skip, never an
+  idle loop; a transcription failure skips this card's 跟读, says so, and continues;
+  `mic_denied` mid-session degrades the session to buttons-only listening (the voice
+  loop's form ceases to exist, same semantics as the 说 form). `visibilitychange` →
+  paused (TTS stopped, recording cancelled, microphone released); resuming is always
+  a tap, never automatic.
 
 ### 自由练习 (free practice) — 2026-08-08
 

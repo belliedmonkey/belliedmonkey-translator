@@ -67,7 +67,38 @@
         <button id="review" type="button"></button>
         <button id="sync" type="button" class="secondary"></button>
       </div>
+      <!-- 驾车模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
+           渲染；门不过就不存在，绝不是灰按钮（AppDriving.refreshEntry）。 -->
+      <div class="row">
+        <button id="app-drive-start" type="button" class="secondary" hidden></button>
+      </div>
       <p class="note" id="last"></p>
+    </section>
+
+    <!-- 驾车模式（learning-design §9.5 / interaction-spec 「驾车模式」）：App 专属
+         免提听读会话。文本全程可见（音频优先，从不藏字）；超大按钮；语音问答环
+         仅在 STT + 解析引擎 + uiLang 音色三门全开时存在。视图切换归 app.js（同
+         #review-view 的分工），内部全归 app/driving.js。 -->
+    <section id="app-drive" hidden>
+      <button id="app-drive-back" type="button" class="link"></button>
+      <h2 id="app-drive-title"></h2>
+      <p class="note" id="app-drive-progress"></p>
+      <div class="drive-card">
+        <p id="app-drive-text"></p>
+        <p id="app-drive-tr"></p>
+        <p class="note" id="app-drive-score"></p>
+        <p id="app-drive-answer"></p>
+      </div>
+      <p class="note" id="app-drive-status" role="status" aria-live="polite"></p>
+      <p class="note err" id="app-drive-note"></p>
+      <div class="drive-grid">
+        <button id="app-drive-pause" type="button" hidden></button>
+        <button id="app-drive-next" type="button" hidden></button>
+        <button id="app-drive-repeat" type="button" hidden></button>
+        <button id="app-drive-ask" type="button" hidden></button>
+      </div>
+      <button id="app-drive-more" type="button" class="secondary" hidden></button>
+      <p class="note" id="app-drive-cost"></p>
     </section>
 
     <!-- Settings. Only what the LEARNING layer owns (plan §F): the review loop's own

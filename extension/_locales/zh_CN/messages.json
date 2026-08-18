@@ -1322,5 +1322,93 @@
   "app_pw_bad": {
     "message": "邮箱或密码不对，重新试一次。",
     "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "驾车模式",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ 暂停",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ 继续",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ 下一张",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 再听一遍",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_ask": {
+    "message": "🎙 提问",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "第 {i} / {n} 张",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_speak": {
+    "message": "请跟着读一遍",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_question": {
+    "message": "有没有疑问？",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_source": {
+    "message": "播放原文…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "播放译文…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_recording": {
+    "message": "录音中，请说话…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_answering": {
+    "message": "正在回答…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "已暂停",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_cost": {
+    "message": "提问使用你配置的解析引擎，每问一次调用，不缓存",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "本轮听完了",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_practice_more": {
+    "message": "继续练习",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_stt_gone": {
+    "message": "麦克风不可用，本次会话改为纯听读",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skip_speak": {
+    "message": "这张卡的跟读已跳过",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skipped": {
+    "message": "跳过 {n} 张读不出来的卡（媒体卡或无语音）",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "没有可听读的卡",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_fail": {
+    "message": "回答失败，可以再问一次",
+    "description": "Driving mode (learning-design §9.5)"
   }
 }

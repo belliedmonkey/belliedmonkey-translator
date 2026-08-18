@@ -1322,5 +1322,93 @@
   "app_pw_bad": {
     "message": "E-mail ou senha incorretos — tente de novo.",
     "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "Modo direção",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ Pausar",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ Continuar",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ Próximo",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 Ouvir de novo",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_ask": {
+    "message": "🎙 Perguntar",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "Cartão {i} de {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_speak": {
+    "message": "Repita a frase em voz alta",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_prompt_question": {
+    "message": "Alguma pergunta?",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_source": {
+    "message": "Lendo o original…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "Lendo a tradução…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_recording": {
+    "message": "Gravando — fale agora…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_answering": {
+    "message": "Respondendo…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "Pausado",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_cost": {
+    "message": "As perguntas usam o motor de análise configurado — uma chamada por pergunta, sem cache",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "Fim desta rodada",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_practice_more": {
+    "message": "Continuar praticando",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_stt_gone": {
+    "message": "Microfone indisponível — esta sessão continua só de escuta",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skip_speak": {
+    "message": "Leitura em voz alta desta carta ignorada",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_skipped": {
+    "message": "{n} cartões que não podem ser lidos foram ignorados (cartões de mídia ou sem voz)",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "Nenhum cartão para ler",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_qa_fail": {
+    "message": "A resposta falhou — pergunte de novo",
+    "description": "Driving mode (learning-design §9.5)"
   }
 }

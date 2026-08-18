@@ -38,6 +38,8 @@ const MODULES = [
   'extension/content/learn-rules.js',    // LearnRules — 来源治理 pure logic (§4.1/§7.4/§8.9)
   'extension/content/learn-scheduler.js',// LearnScheduler — retrievability / buildDeck
   'extension/content/learn-exercises.js',// LearnExercises — §9.3 variant generation (pure)
+  'extension/content/learn-driving.js',  // LearnDriving — §9.5 driving-session state
+                                         // machine + reply intents + write decision (pure)
   'extension/content/tts.gen.js',        // generated speech-engine registry
   'extension/content/stt.gen.js',        // generated transcription-engine registry (§9.4)
   'extension/content/providers.gen.js',  // generated provider registry — the notes
@@ -58,9 +60,13 @@ const MODULES = [
                                          // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
                                          // LearnNotes.chat; gate follows the notes gate)
+  'extension/learn/driving-qa.js',       // DrivingQA — §9.5 驾车问答 (rides
+                                         // LearnNotes.chat; uncached, own version)
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs
+  'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
+                                         // the extension page cannot autoplay)
 ];
 
 // `drain.js` ships even though the app has no outbox: with the shim's empty

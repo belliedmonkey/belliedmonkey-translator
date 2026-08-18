@@ -34,6 +34,7 @@
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
 | 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
 | 块格式 | `learn-chunk.test.js` | 往返无损、replay 幂等、复习记录带 mode/practice 通过重放 |
+| 驾车模式 | `learn-driving.test.js` | §9.5：`drivingGradeFor(s) ∈ gradeGate('speak',{score:s})` 全 score 扫描（含 0.5/0.9 边界）、`speakRepOutcome` 五分支（到期高分=review 推进 / 到期低分=lapse / 未到期高分=practice 不写 sched / 未到期低分=practice lapse / 候选=什么都不写）、`classifyReply` 意图表（空白/静默=none、「没有」「next」=前进、未命中=question）、`reduce` 状态机走查（纯听卡与跟读卡 happy path、tts_fail→具名停、录音中 mic_denied 降级续听、各录音态 hidden 都撤录音） |
 | 文案纪律 | `no-hardcoded-copy.test.js` | CJK 字面量只许在 t() fallback 位（逐出货文件） |
 
 **纪律**：每条新断言做变异反向验证（杀不死的变异 = 测试缺口，先补齐再合并）。
@@ -62,6 +63,12 @@
 | 7 | 自由练习 | 答错 → sched 打回；答对 → sched 一字不动（§5.3 不对称）；候选不建 sched；练习记录带 practice/mode |
 | 8 | 句子解析 | 门随 configure 即刻打开、mock 引擎结果渲染生词、结果落缓存 |
 | 9 | App 设置页 | 标签全非空、语音选择器装入系统语音（仅 App 宿主） |
+| 10 | 驾车入口门控（§9.5，仅 App 宿主） | mock 音色在 ⇒ 「驾车模式」入口出现；无音色 ⇒ 入口**不存在**（门控而非禁用） |
+| 10a | 驾车听读链 | 开始后按序 speak 原文、译文（断言 mock speak 调用顺序）；文本全程可见 |
+| 10b | 驾车纯听不写 | 纯听卡走完 ⇒ IndexedDB **零新复习行**、`sched`/`skills` 一字不动（load-bearing 反向断言） |
+| 10c | 驾车跟读计分 | 到期说档卡：录→转写（mock）→ 复习行带 `{mode:'speak'}`、`s` 上升、`skills.speak` 有戳；未到期卡走 practice 支（行带 practice、sched 不动） |
+| 10d | 驾车问答环 | 「有没有疑问」后 mock 静默 ⇒ 自动下一张；mock 问题 ⇒ QA 请求带卡上下文（原文+译文+问题）、回答被 speak 且 textContent 渲染 |
+| 10e | 驾车暂停 | 暂停 ⇒ `LearnTTS.stop` 被调、录音撤销，此后零写入；恢复须手点 |
 | * | **每步表面扫描** | 可见 button/a/select：文字非空 **且前景色≠背景色**（绿字绿底类 bug 整类击杀） |
 
 ### 2.2 其余真实引擎门禁（既有，此处挂名）
@@ -87,6 +94,10 @@
 | M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读（表面扫描只跑浅色引擎） |
 | M9 | 真麦克风门控（§9.4）**✅ 2026-08-13 模拟器实证** | iPhone App + iOS Safari 扩展页 | 实测通过：App 里配好转写引擎后**说徽章出现**（capable() 在真 WKWebView 为真）、iOS 麦克风授权弹窗正常弹出并可授权；WebKit `isTypeSupported('audio/mp4')`=true，选中 m4a 符合设计。**模拟器无法完成真录音**：授权后拿到的音轨立刻 `readyState=ended`、MediaRecorder 产出 0 字节（Simulator 无可用音频输入，非代码问题——原始 MediaRecorder 诊断确认 `dataavailable` 先于 `stop`，出货代码在 onstop 读 chunks 的假设在 WebKit 成立）。**真录音改到真机上做。** 原步骤：| App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
 | M10 | 真转写端到端（§9.4）**⚠️ 部分完成** | iPhone App | 已证：出货 speech-input.js 在真 WebKit 里跑通到上传（服务器实收并处理），**且揪出真 bug——自建端点缺 CORS 时 WebKit 在读状态码前就判死 fetch，只抛裸 TypeError**（已修：具名 `network` + 文案点出可达性与 CORS + 尾斜杠裁剪）。**未证**：真语音→真 transcript→匹配度（模拟器无麦，见 M9）。原步骤：| Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 的 `com.apple.security.device.audio-input` entitlement 由 `app:sync` 的 pbxproj 补丁写入（`ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`，2026-08-12 已实证进入签名后的 entitlements）——工程重新生成后记得重跑 app:sync |
+
+| M11 | 驾车连播真跑（§9.5） | iPhone App | 进驾车模式 → 多张卡连续原文/译文朗读**无需逐句手势**（tts.js 的 epoch/settle 只被逐点播放验证过，长链是新面）；TTS 中途失败必须停在具名原因上，绝不静默空转 |
+| M12 | TTS→麦克风交接（§9.5，最高风险） | iPhone App | 跟读题：译文朗读结束后立刻自动开录 → 真录到声（iOS 音频会话从播放切采集的交接未经验证；若首录空白，在 `done` 后加 settle 再录）；来电/切后台落在暂停态，恢复须手点 |
+| M13 | 屏幕常亮 + 音频路由 | iPhone App | 驾车会话中屏幕不自动锁（idle-timer 补丁生效）；蓝牙/CarPlay 路由下声音走车机、录音仍可用（sanity，不追求完美） |
 
 ## 4. 治理
 
