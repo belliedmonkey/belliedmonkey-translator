@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k} sin cambios: la traducción no se alinea)"
+  },
+  "app_use_pw": {
+    "message": "Iniciar sesión con contraseña",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Contraseña",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Usar un código en su lugar",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "Correo o contraseña incorrectos: inténtalo de nuevo.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

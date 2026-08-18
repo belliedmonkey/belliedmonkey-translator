@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": "（{k} 張譯文對不齊，保持原樣）"
+  },
+  "app_use_pw": {
+    "message": "使用密碼登入",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "密碼",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "改用驗證碼登入",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "信箱或密碼不對，重新試一次。",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

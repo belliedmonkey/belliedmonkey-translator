@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k} بقيت كما هي — الترجمة غير متوافقة)"
+  },
+  "app_use_pw": {
+    "message": "تسجيل الدخول بكلمة مرور",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "كلمة المرور",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "استخدام رمز بدلًا من ذلك",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "البريد الإلكتروني أو كلمة المرور غير صحيحة — حاول مرة أخرى.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

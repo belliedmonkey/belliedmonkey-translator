@@ -41,9 +41,11 @@
     const offline = () => t('app_offline', '连不上服务器，检查网络后重试。');
     const codeBad = () => t('app_code_bad', '验证码不对或已过期，重新试一次。');
     const code = e && e.code;
-    if (code === 'network') return offline();
+    if (code === 'network' || code === 'offline') return offline();
+    if (code === 'invalid_credentials') return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (code === 'signed_out') return codeBad();
     const msg = String((e && e.message) || e);
+    if (/invalid login credentials/i.test(msg)) return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (/expired|invalid|otp/i.test(msg)) return codeBad();
     if (/network|fetch|load failed/i.test(msg)) return offline();
     return msg;
@@ -57,6 +59,11 @@
     $('verify').textContent = t('app_verify', '登录');
     $('back').textContent = t('app_back_email', '换一个邮箱');
     $('local-note').textContent = t('app_local_note', '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。');
+    $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
+    $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
+    $('app-pw-label').textContent = t('app_pw_label', '密码');
+    $('app-pw-login').textContent = t('app_verify', '登录');
+    $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
     AppSettings.paintStatic();
@@ -108,7 +115,15 @@
     $('signed-in').hidden = !session;
     // Signing out from inside settings or review must not leave that view on screen
     // over the sign-in form.
-    if (!session) { $('app-settings').hidden = true; $('review-view').hidden = true; }
+    if (!session) {
+      $('app-settings').hidden = true;
+      $('review-view').hidden = true;
+      // And the sign-in surface resets to its default (OTP) path.
+      $('app-pw-form').hidden = true;
+      $('app-use-pw').hidden = false;
+      $('email-form').hidden = false;
+      $('code-form').hidden = true;
+    }
     if (session) {
       $('who').textContent = session.email || '';
       await paintCounts();
@@ -167,6 +182,48 @@
     $('email-form').hidden = false;
     $('email').focus();
     say('');
+  });
+
+  // ─── Password sign-in (§8.4.1 second grant, 2026-08-17) ──────────────────
+  // OTP stays the default path; this form serves accounts that HAVE a password
+  // (set server-side — e.g. the App Review demo account). Same session shape,
+  // same downstream flow as verify().
+  $('app-use-pw').addEventListener('click', () => {
+    $('email-form').hidden = true;
+    $('code-form').hidden = true;
+    $('app-use-pw').hidden = true;
+    $('app-pw-form').hidden = false;
+    $('app-pw-email').value = $('email').value;
+    $('app-pw-email').focus();
+    say('');
+  });
+
+  $('app-pw-back').addEventListener('click', () => {
+    $('app-pw-form').hidden = true;
+    $('app-use-pw').hidden = false;
+    $('email-form').hidden = false;
+    $('email').focus();
+    say('');
+  });
+
+  $('app-pw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('app-pw-login').disabled = true;
+    $('app-pw-login').textContent = t('app_verifying', '正在登录…');
+    say('');
+    try {
+      const session = await LearnAuth.signInPassword($('app-pw-email').value, $('app-pw').value);
+      $('app-pw').value = '';
+      await show(session);
+      // Same as the OTP path: a user who just signed in is asking for their
+      // material — pull immediately.
+      await doSync();
+    } catch (err) {
+      say(humanError(err), true);
+    } finally {
+      $('app-pw-login').disabled = false;
+      $('app-pw-login').textContent = t('app_verify', '登录');
+    }
   });
 
   $('signout').addEventListener('click', async (e) => {

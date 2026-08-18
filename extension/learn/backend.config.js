@@ -20,10 +20,14 @@ var MT_BACKEND = {
   // enabled:true with any stale "never uploaded / no account" sentence anywhere
   // in the repo fails the build (see build.js validateManifest, Gate B block).
   //
-  // The CHINA flavor ships with this flipped back to false at build time
-  // (build.js china override): the China app is unreleased and its data-export
-  // compliance (PIPL, cross-border) has not been evaluated. Enabling sync there
-  // is a separate release decision with its own gate.
+  // The CHINA flavor's EXTENSION ships with this flipped back to false at build
+  // time (build.js china override). The China HOST APP, however, ships the one
+  // shared app bundle — enabled:true, sign-in included — by explicit decision
+  // (2026-08-17, App Review Route A: reviewers require a username+password demo
+  // account, so the login stays). Known asymmetry: a China user's extension does
+  // not upload, so the app's sync only pulls what other (global-flavor) devices
+  // pushed. Unifying the china extension's sync is a separate decision with its
+  // own PIPL/cross-border gate.
   //
   // Sign-in stays optional: signed out, every feature except multi-device sync
   // works fully and locally (§8.2 stance — sync is an upgrade, not a gate).

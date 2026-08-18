@@ -1306,5 +1306,21 @@
   },
   "learn_split_skipped": {
     "message": " ({k}장은 번역이 맞지 않아 그대로 유지)"
+  },
+  "app_use_pw": {
+    "message": "비밀번호로 로그인",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "비밀번호",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "인증 코드로 로그인",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "이메일 또는 비밀번호가 올바르지 않습니다. 다시 시도해 주세요.",
+    "description": "Password sign-in (learning-design §8.4.1)"
   }
 }

@@ -33,6 +33,20 @@
         <button id="back" type="button" class="link"></button>
       </form>
 
+      <!-- 密码登录（§8.4.1 第二种 grant，2026-08-17）：验证码仍是默认路径；密码
+           面向已在服务端设置过密码的账号（如审核演示账号）。 -->
+      <form id="app-pw-form" hidden>
+        <label for="app-pw-email" id="app-pw-email-label"></label>
+        <input id="app-pw-email" type="email" inputmode="email" autocomplete="email"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <label for="app-pw" id="app-pw-label"></label>
+        <input id="app-pw" type="password" autocomplete="current-password"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <button id="app-pw-login" type="submit"></button>
+        <button id="app-pw-back" type="button" class="link"></button>
+      </form>
+      <button id="app-use-pw" type="button" class="link"></button>
+
       <p class="note" id="local-note"></p>
     </section>
 
