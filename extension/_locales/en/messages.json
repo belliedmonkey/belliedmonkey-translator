@@ -1363,21 +1363,73 @@
     "message": "🔁 Replay",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 Ask",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "Card {i} of {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "Now repeat the sentence aloud",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_shuffle": {
+    "message": "🔀 Shuffle",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "Any questions?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_sequential": {
+    "message": "⏭ In order",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Repeat all",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Repeat one",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Play again",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Playing the notes…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Analysing this sentence…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Read the sentence notes aloud",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "With this on, each card is followed by its notes (words, phrases, one grammar point). A card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Off, only the sentence and its translation are read.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Reading notes: a card that has never been analysed calls your configured engine — charged once per card",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Words: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Phrases: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Grammar: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Could not analyse this card — skipped",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "The notes engine is not configured — skipped the notes for this card",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "This card cannot be read aloud — skipped to the next",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "Playing the original…",
@@ -1387,36 +1439,12 @@
     "message": "Playing the translation…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "Recording — speak now…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "Answering…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "Paused",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "Questions use your configured notes engine — one call per question, never cached",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "That's the end of this round",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "Keep practicing",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "Microphone unavailable — this session continues listen-only",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "Skipped this card's shadowing",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1425,10 +1453,6 @@
   },
   "drive_empty": {
     "message": "No cards can be read aloud",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "The answer failed — ask again",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

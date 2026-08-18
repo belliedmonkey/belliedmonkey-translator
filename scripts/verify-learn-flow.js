@@ -658,12 +658,14 @@ async function runHost(host) {
         '语音选择器没有装入 mock 的系统语音');
 
       // ─── 10 · 驾车模式（§9.5，App 专属）────────────────────────────────────
-      // Shrink the fixed recording windows so a whole session fits a test run,
-      // and pin the ui language to the mock voice's language — the spoken
-      // prompts are uiLang text, and the machine's locale must not decide the
-      // suite's outcome.
-      await ev(`(LearnDriving.DEFAULTS.SPEAK_REC_MS = 200, LearnDriving.DEFAULTS.REPLY_REC_MS = 150, 'ok')`);
-      await ev(`(localStorage.setItem('mt:uiLang', JSON.stringify('en')), 'ok')`);
+      // 这个模式是**播放器**：一张卡播完自动进下一张，全程没有等用户的环节，而且
+      // **什么都不写**。所以这一节最要紧的断言是反向的——整场跑完，复习行数与排程
+      // 一个字节都不能变。
+      //
+      // 走查用「顺序播放」：默认是随机，而随机永不结束（绕圈重洗），没有可等的终点。
+      await ev(`(localStorage.setItem('mt:uiLang', JSON.stringify('en')),
+                localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
       const driveWait = async (ms) => {
         const until = Date.now() + ms;
         while (Date.now() < until) {
@@ -685,9 +687,7 @@ async function runHost(host) {
       await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')), 'ok')`);
       await ev(`AppDriving.refreshEntry().then(() => 'ok')`);
 
-      // The main walk graded every card into the future — make the corpus DUE
-      // again so the driving deck has material (the driving mode never fabricates
-      // due-ness on its own; the reviewer wouldn't either).
+      // 让语料重新到期，驾车牌库才有料（驾车模式自己从不制造到期）。
       await ev(`(async () => {
         const items = await LearnStore.allItems();
         const day = 86400e3;
@@ -711,20 +711,16 @@ async function runHost(host) {
       await ev(`(document.getElementById('app-settings').hidden = true,
                 document.getElementById('app-drive').hidden = false, 'ok')`);
 
-      // 10a/10b · Session A — silence everywhere: the listen-read chain runs in
-      // order, silence skips every 跟读 (no attempt ≠ failed attempt), and the
-      // WHOLE listen-only session writes NOTHING (the load-bearing negative).
-      // No notes engine is in storage yet, so the voice loop is naturally closed.
+      // 10a · 一整场顺序播放：原文紧跟译文，自动推进到底，且**零写入**。
       const rowsBefore = await ev(`LearnStore.allReviews().then((r) => r.length)`);
       const speakBefore = await item('speak1');
-      await ev(`(window.__mtSttText = '', 'ok')`);
       await ev(`AppDriving.start().then(() => 'ok')`);
       await new Promise((r) => setTimeout(r, 500));
       if (process.env.DEBUG_FLOW) {
         console.log('  [drive A]', JSON.stringify(await ev(`AppDriving._debug()`)));
       }
       await sweep('驾车·会话中', '#app-drive');
-      need(await driveWait(40000), '驾车会话 A（全静默）没有在 40s 内走完 '
+      need(await driveWait(40000), '驾车会话没有在 40s 内自动走完 '
         + JSON.stringify(await ev(`AppDriving._debug()`)));
       const spoken = await ev(`JSON.stringify(window.__spoken)`).then(JSON.parse);
       const firstCard = await ev(`(async () => {
@@ -733,77 +729,77 @@ async function runHost(host) {
         return hit ? JSON.stringify({ text: hit.text, tr: hit.tr }) : 'null';
       })()`).then(JSON.parse);
       need(firstCard !== null, '第一段朗读不是任何卡的原文: ' + JSON.stringify(spoken[0]));
-      need(firstCard && spoken[1] === firstCard.tr, '原文之后没有紧跟译文（' + JSON.stringify(spoken.slice(0, 3)) + '）');
+      need(firstCard && spoken[1] === firstCard.tr,
+        '原文之后没有紧跟译文（' + JSON.stringify(spoken.slice(0, 3)) + '）');
+      const deckLen = (await ev(`AppDriving._debug()`)).deck;
+      need(spoken.length >= deckLen * 2,
+        '播放段数少于「每张卡原文+译文」—— 有卡没被自动播到: ' + spoken.length + ' vs ' + deckLen * 2);
+      // 这一条是本模式的核心契约，反向断言，load-bearing。
       const rowsAfterA = await ev(`LearnStore.allReviews().then((r) => r.length)`);
-      need(rowsAfterA === rowsBefore, '纯听会话写了 ' + (rowsAfterA - rowsBefore) + ' 条复习行 —— 听不是证据，必须零写入');
+      need(rowsAfterA === rowsBefore,
+        '驾车模式写了 ' + (rowsAfterA - rowsBefore) + ' 条复习行 —— 它只曝光，永不评分');
       const speakAfterA = await item('speak1');
       need(JSON.stringify(speakAfterA.sched) === JSON.stringify(speakBefore.sched),
-        '纯听会话动了 speak1 的排程');
+        '驾车模式动了 speak1 的排程');
+      need(!speakAfterA.skills || speakAfterA.skills.speak === (speakBefore.skills || {}).speak,
+        '驾车模式盖了技能戳 —— 听不是证据');
       await sweep('驾车·做完态', '#app-drive');
 
-      // 10c · Session B — perfect shadowing (voice loop still closed): due
-      // speak-eligible cards auto-grade through the REVIEW path.
-      await ev(`(window.__mtSttText = () => document.getElementById('app-drive-text').textContent, 'ok')`);
+      // 10b · 播放模式按钮：轮换、落盘、且不打断正在播的音频。
       await ev(`AppDriving.start().then(() => 'ok')`);
-      need(await driveWait(40000), '驾车会话 B（完美跟读）没有在 40s 内走完 '
-        + JSON.stringify(await ev(`AppDriving._debug()`)));
-      const speakAfterB = await item('speak1');
-      need(speakAfterB.sched.reps === speakBefore.sched.reps + 1,
-        '到期卡跟读没有走正式复习（speak1 reps ' + speakBefore.sched.reps + '→' + speakAfterB.sched.reps + '）');
-      need(speakAfterB.sched.s > speakBefore.sched.s, '完美跟读后 s 没有上升');
-      need(speakAfterB.skills && speakAfterB.skills.speak > 1e12, '跟读通过没盖「说」技能时间戳');
-      const rowsAfterB = await ev(`LearnStore.allReviews().then((r) => r.length)`);
-      need(rowsAfterB > rowsAfterA, '完美跟读会话没有留下任何复习行');
-      const driveRows = await ev(`LearnStore.allReviews().then((rs) =>
-        JSON.stringify(rs.slice(${rowsAfterA}).filter((r) => r.mode === 'speak' && !r.practice)))`).then(JSON.parse);
-      need(driveRows.length >= 1 && driveRows.every((r) => typeof r.grade === 'number'),
-        '驾车跟读没有留下 mode:speak 复习行: ' + JSON.stringify(driveRows));
+      await new Promise((r) => setTimeout(r, 400));
+      const modeBefore = (await ev(`AppDriving._debug()`)).mode;
+      const stopsBeforeMode = await ev(`window.__stops`);
+      await click('#app-drive-mode');
+      await new Promise((r) => setTimeout(r, 300));
+      const modeAfter = (await ev(`AppDriving._debug()`)).mode;
+      need(modeAfter !== modeBefore, '模式按钮没换模式（' + modeBefore + '）');
+      need((await ev(`window.__stops`)) === stopsBeforeMode,
+        '换播放模式打断了正在播的音频 —— 它只该改变这张卡结束之后的事');
+      need((await ev(`JSON.parse(localStorage.getItem('mt:drivePlaybackMode'))`)) === modeAfter,
+        '播放模式没有落盘');
+      need((await text('#app-drive-mode')).length > 0, '模式按钮没有文字');
 
-      // 10c(续) · Practice round — the deck is spent (nothing due), so 继续练习
-      // draws the practice pool: a perfect 跟读 there writes a {practice:1,
-      // mode:'speak'} row and moves NO schedule (§5.3's asymmetry, driving flavor).
-      const schedAfterB = JSON.stringify(speakAfterB.sched);
-      await click('#app-drive-more');
-      await new Promise((r) => setTimeout(r, 500));
-      need(await driveWait(40000), '驾车练习轮没有在 40s 内走完 '
-        + JSON.stringify(await ev(`AppDriving._debug()`)));
-      const practiceRows = await ev(`LearnStore.allReviews().then((rs) =>
-        JSON.stringify(rs.slice(${rowsAfterA}).filter((r) => r.practice && r.mode === 'speak')))`).then(JSON.parse);
-      need(practiceRows.length >= 1, '驾车练习轮没有留下 practice+mode:speak 行');
-      need(JSON.stringify((await item('speak1')).sched) === schedAfterB,
-        '驾车练习轮的通过动了排程（§5.3 不对称被破坏）');
-      const rowsAfterPractice = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      // 10c · 随机播放：每张卡恰好一次，不是「每次随机抽一张」。
+      await ev(`(localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('shuffle')), 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 400));
+      const dbg = await ev(`AppDriving._debug()`);
+      need(dbg.mode === 'shuffle', '没有切到随机播放');
+      const sorted = dbg.order.slice().sort((a, b) => a - b);
+      need(sorted.length === dbg.deck && sorted.every((v, i) => v === i),
+        '随机播放的顺序不是一个排列（有重复或遗漏）: ' + JSON.stringify(dbg.order));
 
-      // 10d · Session C — the voice Q&A loop: a chat engine lands in STORAGE
-      // (AppDriving reconfigures from settings at session start, so an in-memory
-      // configure would be wiped), exercises are tiered out so every recording
-      // window is a reply window, and the reply sequence is deterministic: first
-      // a real question, then 「没有」 forever.
-      await ev(`(localStorage.setItem('mt:provider', JSON.stringify('openai')),
+      // 10d · 播放解析：未解析过的卡当场补解析并读出来（§9.2 的一次收费落在这里）。
+      await ev(`(localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(true)),
+                localStorage.setItem('mt:provider', JSON.stringify('openai')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
-      await ev(`(() => { window.__mtTier = LearnScheduler.DEFAULTS.TIER_SPEAK_S;
-        LearnScheduler.DEFAULTS.TIER_SPEAK_S = 99999; return 'ok'; })()`);
-      await ev(`(() => { let n = 0;
-        window.__mtSttText = () => (++n === 1 ? 'why is this past tense here' : '没有');
-        window.__mtChatBodies = []; return 'ok'; })()`);
+      await ev(`(async () => { for (const it of await LearnStore.allItems()) {
+        try { await LearnStore.putNote(it.id, null, {}); } catch (_) {}
+      } return 'ok'; })()`);
+      await ev(`(window.__spoken = [], window.__mtChatBodies = [], 'ok')`);
+      const rowsBeforeNotes = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      // 费用提示是「正在发生」的话，只在会话进行中显示。start() 的 promise 落定时
+      // 第一张卡已经开播、第一帧已经画过，所以这里查是确定的 —— 而多睡哪怕 500ms，
+      // 这个 5 张卡的 mock 会话就已经跑完了（真机上不会，但测试不能赌时序）。
       await ev(`AppDriving.start().then(() => 'ok')`);
-      if (process.env.DEBUG_FLOW) {
-        console.log('  [drive C]', JSON.stringify(await ev(`AppDriving._debug()`)));
-      }
-      need(await driveWait(40000), '驾车会话 C（语音问答）没有在 40s 内走完 '
+      need((await text('#app-drive-cost')).length > 0, '播放解析时没有显示费用提示 · debug='
         + JSON.stringify(await ev(`AppDriving._debug()`)));
-      const chatBodies = await ev(`JSON.stringify(window.__mtChatBodies || [])`).then(JSON.parse);
-      need(chatBodies.length >= 1, '语音提问没有到达问答引擎');
-      need(chatBodies.some((b) => /past tense/.test(b) && /Sentence/.test(b)),
-        '问答请求缺问题或缺卡上下文: ' + String(chatBodies[0]).slice(0, 160));
-      const spokeAnswer = await ev(`window.__spoken.some((s) => s.includes('durable'))`);
-      need(spokeAnswer === true, '答案没有被朗读出来');
-      need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsAfterPractice,
-        '问答会话写了复习行 —— 听和问都不是证据');
-      await ev(`(() => { LearnScheduler.DEFAULTS.TIER_SPEAK_S = window.__mtTier; return 'ok'; })()`);
+      need(await driveWait(60000), '开了播放解析的会话没有在 60s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      const notesBodies = await ev(`JSON.stringify(window.__mtChatBodies || [])`).then(JSON.parse);
+      need(notesBodies.length >= 1, '没解析过的卡没有触发自动解析');
+      const spokeNotes = await ev(`window.__spoken.some((s) => s.indexOf('durable') >= 0
+        && s.indexOf('持久的') >= 0)`);
+      need(spokeNotes === true, '解析内容没有被读出来: '
+        + JSON.stringify((await ev(`JSON.stringify(window.__spoken.slice(0, 8))`).then(JSON.parse))));
+      need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsBeforeNotes,
+        '播放解析的会话写了复习行 —— 解析也不是证据');
+      await sweep('驾车·播放解析', '#app-drive');
+      await ev(`(localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
 
       // 10e · Pause: TTS stops, and NOTHING is written after the pause.
-      await ev(`(window.__mtSttText = '', 'ok')`);
       await ev(`AppDriving.start().then(() => 'ok')`);
       await new Promise((r) => setTimeout(r, 300));
       const stopsBefore = await ev(`window.__stops`);

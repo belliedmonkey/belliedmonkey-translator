@@ -1,13 +1,18 @@
 // app/driving.js — 驾车模式 orchestrator (§9.5, interaction-spec 「驾车模式」).
 //
 // APP-ONLY on purpose: the extension page on iOS Safari refuses gesture-less
-// playback, so a hands-free loop cannot exist there — this module ships in the
-// app bundle and never in the extension manifest. The session LOGIC lives in
-// LearnDriving (content/learn-driving.js, pure); this file only executes its
-// effects — TTS chaining, fixed-window recording, progress writes, the view —
-// and feeds events back. Progress writes use the SAME primitives review.js's
-// gradeInner uses (putItem + recordReview, no new row fields), so the mode's
-// §5.3/§5.4 story is the reviewer's, not a second implementation.
+// playback, so continuous hands-free audio cannot exist there — this module ships in
+// the app bundle and never in the extension manifest. The session LOGIC lives in
+// LearnDriving (content/learn-driving.js, pure); this file only executes its effects
+// — TTS chaining, notes fetching, the view — and feeds events back.
+//
+// ─── It is a PLAYER, and it writes nothing ──────────────────────────────────
+// No review row, no skill stamp, no `lastSeenAt`, no scheduler call. The earlier
+// version asked a question after every card and offered a 跟读 exercise so a driver
+// could push real progress; both are gone, because a recording window has to
+// interrupt continuous playback to exist and continuous playback is the point. The
+// learning layer's write paths stay on the review surface, where the user can see
+// what they are grading. §12 keeps the record.
 //
 // The app shell owns view SWITCHING (app/app.js, same split as #review-view);
 // everything inside #app-drive is owned here.
@@ -19,40 +24,43 @@ var AppDriving = (() => {
   // ─── Session state (one live session at most) ─────────────────────────────
   let state = { name: 'idle' };
   let deck = [];             // speakable text cards only (media + voiceless filtered)
-  let dueSet = new Set();    // ids drawn while actually due — the §5.3 fork
-  let idx = 0;
-  let practicing = false;    // deck exhausted → optional practice round
+  let order = [];            // deck indices, in playback order
+  let pos = 0;               // index INTO deck (not into order)
+  let mode = LearnDriving.DEFAULT_MODE;
+  let playNotes = false;
+  let notesOk = false;       // a chat engine is configured — the notes gate (§9.2)
   let schedCfg = LearnScheduler.DEFAULTS;
   let uiLang = 'zh-CN';
-  let sttOk = false;         // LearnSpeech.capable() and not denied this session
-  let uiVoiceOk = false;     // the uiLang prompts themselves can be spoken
-  let voiceLoop = false;     // sttOk && uiVoiceOk && DrivingQA.capable()
-  let plan = { segments: [], exercise: null };
-  let lastAnswer = '';
-  let lastScoreLine = '';
+  let plan = { segments: [] };
+  let notesText = '';        // rendered notes for the current card, if fetched
   // Generation counters: `gen` invalidates every async continuation on session
-  // start/stop; speakSeq/recSeq invalidate a superseded speak/recording so an
-  // interrupted utterance's `done` can never advance the NEW state (the same
-  // epoch discipline tts.js uses internally).
+  // start/stop; `speakSeq` invalidates a superseded utterance so an interrupted
+  // speak's `done` can never advance the NEW state (the epoch discipline tts.js
+  // uses internally); `notesSeq` does the same for an in-flight notes fetch, which
+  // outlives the card that asked for it whenever the user taps 下一张.
   let gen = 0;
   let speakSeq = 0;
-  let recSeq = 0;
-  let rec = null;            // live recorder handle
-  let recTimer = 0;
+  let notesSeq = 0;
+
+  const SETTINGS_KEYS = [
+    'uiLang', 'learnDailyNew',
+    'ttsEngine', 'ttsBaseUrl', 'ttsBaseUrlVerbatim', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+    'provider', 'apiKey', 'apiBaseUrl', 'apiBaseUrlVerbatim', 'apiModel',
+    'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesBaseUrlVerbatim', 'notesModel',
+    // §9.5 — this mode's own two knobs. Both persist: a driver sets them once.
+    'drivePlaybackMode', 'drivePlayNotes',
+  ];
 
   function loadSettings() {
-    // Explicit keys, never get(null) — same list and same reason as review.js.
-    return PageSettings.read([
-      'uiLang', 'learnDailyNew',
-      'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-      'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-      'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-      'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-    ]).then((r) => r.data);
+    // Explicit keys, never get(null) — same list discipline as review.js.
+    return PageSettings.read(SETTINGS_KEYS).then((r) => r.data);
   }
 
   function applySettings(s) {
     uiLang = s.uiLang && s.uiLang !== 'auto' ? s.uiLang : (navigator.language || 'zh-CN');
+    mode = LearnDriving.MODES.indexOf(s.drivePlaybackMode) >= 0
+      ? s.drivePlaybackMode : LearnDriving.DEFAULT_MODE;
+    playNotes = s.drivePlayNotes === true;
     // Defensive reconfigure — review.js configured these at bundle load, but the
     // user may have changed settings since; configure() is cheap and idempotent.
     LearnTTS.configure({
@@ -61,22 +69,16 @@ var AppDriving = (() => {
       apiKey: s.ttsApiKey || '', model: s.ttsModel || '',
       voice: s.ttsVoice || '', rate: Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1,
     });
-    if (typeof LearnSpeech !== 'undefined') {
-      LearnSpeech.configure({
-        engineId: s.sttEngine || '', baseUrl: s.sttBaseUrl || '',
-        baseUrlVerbatim: s.sttBaseUrlVerbatim === true,
-        apiKey: s.sttApiKey || '', model: s.sttModel || '',
-      });
-    }
     LearnNotes.configure(LearnNotes.resolveConfig(s));
+    notesOk = LearnNotes.capable();
     schedCfg = Object.assign({}, LearnScheduler.DEFAULTS, {
       dailyNew: Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew,
     });
   }
 
   // ─── Entry gating (capability semantics: exists or doesn't, never disabled) ─
-  // The entry button renders only when the session could actually speak — the
-  // uiLang prompts are its floor. Voices land asynchronously, so wait a moment.
+  // The entry button renders only when the session could actually speak.
+  // Voices land asynchronously, so wait a moment.
   async function refreshEntry() {
     const btn = $('app-drive-start');
     if (!btn) return;
@@ -103,19 +105,24 @@ var AppDriving = (() => {
     }
   }
 
+  function modeLabel(m) {
+    switch (m) {
+      case 'sequential': return t('drive_mode_sequential', '⏭ 顺序播放');
+      case 'loop': return t('drive_mode_loop', '🔁 循环播放');
+      case 'repeat-one': return t('drive_mode_repeat_one', '🔂 单曲循环');
+      default: return t('drive_mode_shuffle', '🔀 随机播放');
+    }
+  }
+
   function statusText() {
     switch (state.name) {
-      case 'speaking_source': return t('drive_status_source', '播放原文…');
-      case 'speaking_tr': return t('drive_status_tr', '播放译文…');
-      case 'prompt_speak':
-      case 'announcing_result':
-      case 'asking':
-      case 'speaking_answer': return t('tts_playing', '播放中…');
-      case 'recording_speak':
-      case 'recording_reply': return t('drive_status_recording', '录音中，请说话…');
-      case 'scoring':
-      case 'classifying': return t('learn_speak_busy', '识别中…');
-      case 'answering': return t('drive_status_answering', '正在回答…');
+      case 'speaking': {
+        const what = (plan.segments || [])[state.seg || 0];
+        if (what === 'tr') return t('drive_status_tr', '播放译文…');
+        if (what === 'notes') return t('drive_status_notes', '播放解析…');
+        return t('drive_status_source', '播放原文…');
+      }
+      case 'fetching_notes': return t('drive_status_parsing', '正在解析这一句…');
       case 'paused': return t('drive_status_paused', '已暂停');
       case 'stopped_error': return ttsReason(state.reasonCode);
       case 'session_done': return t('drive_done', '本轮听完了');
@@ -132,22 +139,22 @@ var AppDriving = (() => {
     $('app-drive-pause').hidden = !active;
     $('app-drive-next').hidden = !active;
     $('app-drive-repeat').hidden = !active;
-    // The ask button EXISTS only while the voice loop does (capability rule) and
-    // follows the standing IO rule inside a segment: disabled while its own IO
-    // (recording / transcribing / answering) is in flight.
-    const askBusy = state.name === 'recording_reply' || state.name === 'classifying'
-      || state.name === 'answering' || state.name === 'speaking_answer'
-      || state.name === 'recording_speak' || state.name === 'scoring';
-    $('app-drive-ask').hidden = !(active && voiceLoop);
-    $('app-drive-ask').disabled = askBusy;
+    // The mode button stays live at all times — it changes what happens at the END
+    // of the current card, never interrupting what is playing, which is exactly why
+    // it is safe to press while moving.
+    $('app-drive-mode').hidden = !active;
+    $('app-drive-mode').textContent = modeLabel(mode);
+    // `session_done` is reachable only in 顺序播放; the other three never end.
     $('app-drive-more').hidden = state.name !== 'session_done';
     $('app-drive-status').textContent = statusText();
     $('app-drive-progress').textContent = deck.length
       ? t('drive_progress', '第 {i} / {n} 张')
-          .replace('{i}', String(Math.min(idx + 1, deck.length))).replace('{n}', String(deck.length))
+          .replace('{i}', String(Math.min(pos + 1, deck.length))).replace('{n}', String(deck.length))
       : '';
-    $('app-drive-cost').textContent = voiceLoop
-      ? t('drive_qa_cost', '提问使用你配置的解析引擎，每问一次调用，不缓存') : '';
+    // Say the cost while it is being incurred, not only in settings: the charge is
+    // per un-parsed card, and it happens while the user is driving and not looking.
+    $('app-drive-cost').textContent = (active && playNotes && notesOk)
+      ? t('drive_notes_cost', '播放解析：没解析过的卡会调用你配置的解析引擎，每张卡只收一次费') : '';
   }
 
   function note(msg) { $('app-drive-note').textContent = msg || ''; }
@@ -155,202 +162,131 @@ var AppDriving = (() => {
   function renderCard(item) {
     $('app-drive-text').textContent = item ? item.text : '';
     $('app-drive-tr').textContent = item ? (item.tr || '') : '';
-    $('app-drive-answer').textContent = '';
-    $('app-drive-score').textContent = '';
-    lastAnswer = '';
-    lastScoreLine = '';
+    $('app-drive-notes').textContent = '';
+    notesText = '';
     note('');
   }
 
   // ─── Effects ──────────────────────────────────────────────────────────────
-  function speechFor(what, item) {
+  function speechFor(what, item, fx) {
     switch (what) {
       case 'source': return { text: item.text, lang: item.lang || '' };
       case 'tr': return { text: item.tr || '', lang: item.targetLang || uiLang };
-      case 'prompt_speak': return { text: t('drive_prompt_speak', '请跟着读一遍'), lang: uiLang };
-      case 'score': return { text: lastScoreLine, lang: uiLang };
-      case 'ask': return { text: t('drive_prompt_question', '有没有疑问？'), lang: uiLang };
-      case 'answer': return { text: lastAnswer, lang: uiLang };
+      // The notes text was rendered by the fetch effect and travels on the effect,
+      // so the utterance can never disagree with what is shown.
+      case 'notes': return { text: (fx && fx.text) || notesText, lang: uiLang };
       default: return { text: '', lang: uiLang };
     }
   }
 
-  async function execSpeak(what) {
+  async function execSpeak(fx) {
     const myGen = gen, mySeq = ++speakSeq;
-    const item = deck[idx];
-    const { text, lang } = speechFor(what, item || {});
-    if (!text) { dispatch({ type: 'tts_done' }); return; }
+    const item = deck[pos];
+    const { text, lang } = speechFor(fx.what, item || {}, fx);
+    if (!text) { dispatch('tts_done'); return; }
     const r = await LearnTTS.speak(text, lang);
     if (myGen !== gen || mySeq !== speakSeq) return;
     if (!r.ok) {
       // `superseded` means a newer speak owns the session — not a failure here.
-      if (r.reason !== 'superseded') dispatch({ type: 'tts_fail', reason: r.reason });
+      if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
       return;
     }
     await (r.done || Promise.resolve());
     if (myGen !== gen || mySeq !== speakSeq) return;
-    dispatch({ type: 'tts_done' });
+    dispatch('tts_done');
   }
 
-  function cancelRecording() {
-    recSeq++;
-    if (recTimer) { clearTimeout(recTimer); recTimer = 0; }
-    if (rec) { try { rec.cancel(); } catch (_) {} rec = null; }
-  }
-
-  // Fixed-window recording: no VAD exists in this codebase, so the window is
-  // time-boxed (LearnDriving.DEFAULTS, unvalidated / cheap to retune). Silence
-  // surfaces as rec_empty (empty blob or empty_transcript), which the state
-  // machine treats as "no attempt" / "no question" — never as a failed answer.
-  async function execRecord(what) {
-    const myGen = gen, mySeq = ++recSeq;
-    const item = deck[idx];
-    let handle;
+  // Fetch (generating if necessary) and render this card's notes for speech.
+  //
+  // §9.2's contract is unchanged: `LearnNotes.get` is cache-first and charges the
+  // user's key AT MOST ONCE per card, ever. What is new is that the driving session
+  // can be the thing that triggers that one charge, silently, while the phone is in
+  // a cradle — hence the cost line in the view and the sentence beside the setting.
+  async function execFetchNotes() {
+    const myGen = gen, mySeq = ++notesSeq;
+    const item = deck[pos];
+    if (!item || !notesOk) { dispatch('notes_ready', ''); return; }
+    let data = null;
     try {
-      handle = await LearnSpeech.startRecording();
+      const r = await LearnNotes.get(item, uiLang);
+      data = r && r.data;
     } catch (e) {
-      if (myGen === gen && mySeq === recSeq) dispatch({ type: 'rec_fail', code: (e && e.code) || 'unsupported' });
+      if (myGen !== gen || mySeq !== notesSeq) return;
+      dispatch('notes_fail', (e && e.code) || 'notes_failed');
       return;
     }
-    if (myGen !== gen || mySeq !== recSeq) { try { handle.cancel(); } catch (_) {} return; }
-    rec = handle;
-    const winMs = what === 'speak' ? LearnDriving.DEFAULTS.SPEAK_REC_MS : LearnDriving.DEFAULTS.REPLY_REC_MS;
-    recTimer = setTimeout(async () => {
-      recTimer = 0;
-      if (rec !== handle) return;
-      rec = null;
-      let out = null;
-      try { out = await handle.stop(); } catch (_) { out = null; }
-      if (myGen !== gen || mySeq !== recSeq) return;
-      if (!out || !out.blob || !out.blob.size) { dispatch({ type: 'rec_empty' }); return; }
-      // Transcription language: shadowing is in the CARD's language; a question
-      // reply is in the user's own (§9.4: 'und' is never asserted as a language).
-      const lang = what === 'speak' ? (item && item.lang) || '' : uiLang;
-      try {
-        const text = await LearnSpeech.transcribe(out.blob, out.ext, lang);
-        if (myGen !== gen || mySeq !== recSeq) return;
-        dispatch({ type: 'rec_done', transcript: text });
-      } catch (e) {
-        if (myGen !== gen || mySeq !== recSeq) return;
-        const code = (e && e.code) || 'http';
-        dispatch(code === 'empty_transcript' ? { type: 'rec_empty' } : { type: 'rec_fail', code });
-      }
-    }, winMs);
-  }
-
-  // The write, using gradeInner's exact primitives — no new row fields, so sync
-  // replay is untouched (§9.5: driving is a new DRIVER of existing write paths).
-  async function commitOutcome(item, out, now) {
-    if (out.kind === 'none') return;
-    let dirty = false;
-    if (out.sched) {
-      item.sched = out.sched;
-      item.state = LearnScheduler.stateFor(item, schedCfg);
-      dirty = true;
-    }
-    if (out.stampSkill) {
-      item.skills = Object.assign({}, item.skills);
-      item.skills.speak = now;
-      item.lastSeenAt = now;
-      dirty = true;
-    }
-    if (dirty) await LearnStore.putItem(item);
-    await LearnStore.recordReview(item.id, out.grade, now,
-      out.kind === 'review' ? { mode: 'speak' } : { practice: 1, mode: 'speak' });
-  }
-
-  async function execScore(transcript) {
-    const myGen = gen;
-    const item = deck[idx];
-    const now = Date.now();
-    const { score } = LearnExercises.speakScore(item.text, transcript);
-    const isDue = !practicing && dueSet.has(item.id);
-    const out = LearnDriving.speakRepOutcome(item.sched, isDue, score, now, schedCfg);
-    try {
-      await commitOutcome(item, out, now);
-    } catch (_) { /* a storage failure loses one rep, never the session */ }
-    if (myGen !== gen) return;
-    lastScoreLine = t('learn_speak_score', '与原句匹配 {n}%').replace('{n}', String(Math.round(score * 100)));
-    $('app-drive-score').textContent = lastScoreLine;
-    dispatch({ type: 'score_ready' });
-  }
-
-  async function execQA(question) {
-    const myGen = gen;
-    const item = deck[idx];
-    try {
-      const answer = await DrivingQA.ask(item, question, uiLang);
-      if (myGen !== gen) return;
-      lastAnswer = answer;
-      // textContent only — model output is untrusted.
-      $('app-drive-answer').textContent = answer;
-      dispatch({ type: 'qa_ok' });
-    } catch (e) {
-      if (myGen !== gen) return;
-      dispatch({ type: 'qa_fail', code: (e && e.code) || 'http' });
-    }
+    if (myGen !== gen || mySeq !== notesSeq) return;
+    const text = LearnDriving.notesToSpeech(data, {
+      words: t('drive_notes_words', '生词：'),
+      phrases: t('drive_notes_phrases', '短语：'),
+      grammar: t('drive_notes_grammar', '语法：'),
+    });
+    notesText = text;
+    $('app-drive-notes').textContent = text;
+    dispatch('notes_ready', text);
   }
 
   function noteFor(code) {
-    if (code === 'speak_skipped') return t('drive_skip_speak', '这张卡的跟读已跳过');
-    if (code === 'qa' || code === 'http' || code === 'no_base' || code === 'empty_output') {
-      return t('drive_qa_fail', '回答失败，可以再问一次');
+    switch (code) {
+      case 'no_base': return t('drive_notes_no_base', '解析引擎还没配置好，这张卡的解析跳过了');
+      case 'no_voice':
+      case 'no_voice_und': return t('drive_skip_card', '这张卡读不出来，已跳到下一张');
+      case 'notes_failed':
+      default: return t('drive_notes_failed', '这张卡的解析没成功，已跳过');
     }
-    return t('drive_skip_speak', '这张卡的跟读已跳过');
   }
 
-  function advance() {
-    idx++;
-    nextCard();
+  // Move to the next card per the playback mode. `force` is the 下一张 button: a
+  // manual skip moves on even in 单曲循环.
+  function advance(force) {
+    const r = LearnDriving.advance(pos, order, mode, Math.random, force);
+    order = r.order;
+    if (r.done) { dispatch('deck_done'); return; }
+    pos = r.pos;
+    openCard();
   }
 
-  function nextCard() {
-    if (idx >= deck.length) { dispatch({ type: 'deck_done' }); return; }
-    const item = deck[idx];
-    // caps.speak feeds §5.4 eligibility; the exercise additionally needs the
-    // uiLang prompts to be speakable (they carry the 请跟着读一遍 / score lines).
-    plan = LearnDriving.cardPlan(item, { listen: true, speak: sttOk }, sttOk && uiVoiceOk, schedCfg);
+  function openCard() {
+    const item = deck[pos];
+    if (!item) { dispatch('deck_done'); return; }
+    plan = LearnDriving.cardPlan(item, { playNotes: playNotes && notesOk });
     renderCard(item);
-    dispatch({ type: 'card' });
+    dispatch('card_ready');
   }
 
   async function execDone() {
-    // Spoken AND shown — the whole mode is ears-first (fire-and-forget: a
-    // missing uiLang voice here must not wedge the done screen).
+    // Spoken AND shown — the whole mode is ears-first (fire-and-forget: a missing
+    // uiLang voice here must not wedge the done screen).
     const myGen = gen, mySeq = ++speakSeq;
     const r = await LearnTTS.speak(t('drive_done', '本轮听完了'), uiLang);
     if (myGen === gen && mySeq === speakSeq && r.ok) await (r.done || Promise.resolve());
   }
 
+  async function cycleMode() {
+    mode = LearnDriving.nextMode(mode);
+    // Changing to/from 随机 re-derives the order, but never the CURRENT card: the
+    // card that is playing keeps playing. Only what comes next changes.
+    order = LearnDriving.buildOrder(deck.length, mode, Math.random);
+    paint();
+    try { await PageSettings.write({ drivePlaybackMode: mode }); } catch (_) {}
+  }
+
   function exec(fx) {
     switch (fx.t) {
       case 'stop_tts': speakSeq++; LearnTTS.stop(); return;
-      case 'cancel_rec': cancelRecording(); return;
-      case 'speak': execSpeak(fx.what); return;
-      case 'record': execRecord(fx.what); return;
-      case 'score': execScore(fx.transcript); return;
-      case 'classify':
-        dispatch({ type: 'reply', intent: LearnDriving.classifyReply(fx.transcript), transcript: fx.transcript });
-        return;
-      case 'qa': execQA(fx.question); return;
-      case 'advance': advance(); return;
+      case 'speak': execSpeak(fx); return;
+      case 'fetch_notes': execFetchNotes(); return;
+      case 'advance': advance(!!fx.force); return;
+      case 'mode_next': cycleMode(); return;
       case 'done': execDone(); return;
       case 'note': note(noteFor(fx.code)); return;
-      case 'stt_gone':
-        // The voice loop's form ceases to exist for this session — degrade to
-        // buttons-only listening, visibly (§9.4 mic_denied semantics).
-        sttOk = false;
-        voiceLoop = false;
-        note(t('drive_stt_gone', '麦克风不可用，本次会话改为纯听读'));
-        return;
     }
   }
 
-  function dispatch(ev) {
-    const r = LearnDriving.reduce(state, ev, { voiceLoop, exercise: !!plan.exercise });
+  function dispatch(ev, arg) {
+    const r = LearnDriving.reduce(state, ev, arg, { plan });
     state = r.state;
-    if (r.reason) state = Object.assign({}, state, { reasonCode: r.reason });
-    if (r.note) note(noteFor(r.note));
+    if (ev === 'tts_fail') state = Object.assign({}, state, { reasonCode: arg });
     for (const fx of r.effects) exec(fx);
     paint();
   }
@@ -359,15 +295,8 @@ var AppDriving = (() => {
   async function buildSession() {
     const [items, reviews] = await Promise.all([LearnStore.allItems(), LearnStore.allReviews()]);
     const now = Date.now();
-    const full = practicing
-      ? LearnScheduler.buildPracticeDeck(items, now, schedCfg, { pool: 'learning' })
-      : LearnScheduler.buildDeck(items, now, schedCfg, LearnScheduler.introducedToday(reviews, now));
-    // Mark what was actually DUE at build time — the §5.3 fork in speakRepOutcome.
-    dueSet = new Set();
-    for (const it of items) {
-      if (LearnScheduler.stateFor(it, schedCfg) !== 'learning') continue;
-      if (LearnScheduler.retrievability(it.sched, now) <= schedCfg.targetR) dueSet.add(it.id);
-    }
+    const full = LearnScheduler.buildDeck(items, now, schedCfg,
+      LearnScheduler.introducedToday(reviews, now));
     // Media cards never enter (synthetic speech never replaces real speech, §11);
     // cards whose language — either side — has no voice are skipped too, COUNTED,
     // never silently (no silent caps).
@@ -384,20 +313,16 @@ var AppDriving = (() => {
       if (!(await can(it.lang)) || (it.tr && !(await can(it.targetLang || uiLang)))) { skipped++; continue; }
       deck.push(it);
     }
+    order = LearnDriving.buildOrder(deck.length, mode, Math.random);
+    pos = order.length ? order[0] : 0;
     return skipped;
   }
 
   async function start() {
     gen++;
-    cancelRecording();
     LearnTTS.stop();
     state = { name: 'idle' };
-    idx = 0;
-    practicing = false;
     applySettings(await loadSettings());
-    sttOk = typeof LearnSpeech !== 'undefined' && LearnSpeech.capable();
-    uiVoiceOk = (await LearnTTS.available(uiLang, 2000)).ok;
-    voiceLoop = sttOk && uiVoiceOk && DrivingQA.capable();
     const skipped = await buildSession();
     renderCard(null);
     if (skipped) {
@@ -409,53 +334,33 @@ var AppDriving = (() => {
       $('app-drive-status').textContent = t('drive_empty', '没有可听读的卡');
       return;
     }
-    nextCard();
-  }
-
-  async function startPractice() {
-    gen++;
-    cancelRecording();
-    LearnTTS.stop();
-    state = { name: 'idle' };
-    idx = 0;
-    practicing = true;
-    const skipped = await buildSession();
-    renderCard(null);
-    if (skipped) {
-      note(t('drive_skipped', '跳过 {n} 张读不出来的卡（媒体卡或无语音）').replace('{n}', String(skipped)));
-    }
-    if (!deck.length) {
-      state = { name: 'session_done' };
-      paint();
-      $('app-drive-status').textContent = t('drive_empty', '没有可听读的卡');
-      return;
-    }
-    nextCard();
+    openCard();
   }
 
   // Full stop: exit the session entirely (view switching is the app shell's).
   function stop() {
     gen++;
-    dispatch({ type: 'tap_stop' });
+    dispatch('tap_stop');
     deck = [];
-    dueSet = new Set();
+    order = [];
     state = { name: 'idle' };
   }
 
   // ─── Wiring (everything inside #app-drive) ────────────────────────────────
   function wire() {
     $('app-drive-pause').addEventListener('click', () => {
-      dispatch({ type: state.name === 'paused' || state.name === 'stopped_error' ? 'tap_resume' : 'tap_pause' });
+      dispatch(state.name === 'paused' || state.name === 'stopped_error' ? 'tap_resume' : 'tap_pause');
     });
-    $('app-drive-next').addEventListener('click', () => dispatch({ type: 'tap_next' }));
-    $('app-drive-repeat').addEventListener('click', () => dispatch({ type: 'tap_repeat' }));
-    $('app-drive-ask').addEventListener('click', () => dispatch({ type: 'tap_ask' }));
-    $('app-drive-more').addEventListener('click', () => { startPractice(); });
-    // A hidden app (lock, call, app switch) pauses: TTS stops, the recording is
-    // cancelled, the mic is released. Resuming is always a tap, never automatic.
+    $('app-drive-next').addEventListener('click', () => dispatch('tap_next'));
+    $('app-drive-repeat').addEventListener('click', () => dispatch('tap_repeat'));
+    $('app-drive-mode').addEventListener('click', () => dispatch('tap_mode'));
+    $('app-drive-more').addEventListener('click', () => { start(); });
+    // A hidden app (lock, call, app switch) pauses: TTS stops. Resuming is always a
+    // tap, never automatic — a car that starts talking again on its own is worse
+    // than one that waits.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible' && !$('app-drive').hidden) {
-        dispatch({ type: 'hidden' });
+        dispatch('hidden');
       }
     });
   }
@@ -466,15 +371,16 @@ var AppDriving = (() => {
     $('app-drive-title').textContent = t('drive_entry', '驾车模式');
     $('app-drive-next').textContent = t('drive_next', '⏭ 下一张');
     $('app-drive-repeat').textContent = t('drive_repeat', '🔁 再听一遍');
-    $('app-drive-ask').textContent = t('drive_ask', '🎙 提问');
-    $('app-drive-more').textContent = t('drive_practice_more', '继续练习');
+    $('app-drive-more').textContent = t('drive_restart', '再来一轮');
     $('app-drive-pause').textContent = t('drive_pause', '⏸ 暂停');
+    $('app-drive-mode').textContent = modeLabel(mode);
   }
 
   // Test-only introspection (verify-learn-flow.js): the session's moving parts,
   // read-only. Not a public surface.
   function _debug() {
-    return { state: state.name, deck: deck.length, idx, voiceLoop, sttOk, uiVoiceOk, uiLang };
+    return { state: state.name, seg: state.seg || 0, deck: deck.length, pos, mode,
+      playNotes, notesOk, uiLang, order: order.slice() };
   }
 
   return { start, stop, wire, paintStatic, refreshEntry, _debug };

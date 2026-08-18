@@ -63,8 +63,6 @@ const MODULES = [
                                          // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
                                          // LearnNotes.chat; gate follows the notes gate)
-  'extension/learn/driving-qa.js',       // DrivingQA — §9.5 驾车问答 (rides
-                                         // LearnNotes.chat; uncached, own version)
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs

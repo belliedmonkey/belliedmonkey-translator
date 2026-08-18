@@ -1364,21 +1364,73 @@
     "message": "🔁 再聽一遍",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 提問",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "第 {i} / {n} 張",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "請跟著讀一遍",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_shuffle": {
+    "message": "🔀 隨機播放",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "有沒有疑問？",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_sequential": {
+    "message": "⏭ 順序播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 循環播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 單曲循環",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "再來一輪",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "播放解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "正在解析這一句…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "播放時朗讀句子解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "開啟後每張卡在原文和譯文之後再讀一遍解析（生詞 / 片語 / 文法）。沒解析過的卡會自動呼叫你設定的解析引擎——每張卡只收一次費，之後一直用快取。不開則只讀原文和譯文。",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "播放解析：沒解析過的卡會呼叫你設定的解析引擎，每張卡只收一次費",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "生詞：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "片語：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "文法：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "這張卡的解析沒成功，已跳過",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "解析引擎還沒設定好，這張卡的解析跳過了",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "這張卡讀不出來，已跳到下一張",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "播放原文…",
@@ -1388,36 +1440,12 @@
     "message": "播放譯文…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "錄音中，請說話…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "正在回答…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "已暫停",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "提問使用你配置的解析引擎，每問一次調用，不快取",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "本輪聽完了",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "繼續練習",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "麥克風不可用，本次會話改為純聽讀",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "這張卡的跟讀已跳過",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1426,10 +1454,6 @@
   },
   "drive_empty": {
     "message": "沒有可聽讀的卡",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "回答失敗，可以再問一次",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

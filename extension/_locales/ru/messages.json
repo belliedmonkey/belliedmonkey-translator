@@ -1363,21 +1363,73 @@
     "message": "🔁 Ещё раз",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 Задать вопрос",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "Карточка {i} из {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "Повторите предложение вслух",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_shuffle": {
+    "message": "🔀 Вперемешку",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "Есть вопросы?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_sequential": {
+    "message": "⏭ По порядку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Повтор всех",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Повтор одной",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Ещё круг",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Читаю разбор…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Разбираю предложение…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Читать вслух разбор предложения",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "Включено — после каждой карточки читается её разбор (слова, выражения, один пункт грамматики). Ни разу не разобранная карточка разбирается на месте, вашим настроенным движком: списывается один раз за карточку, дальше из кэша. Выключено — читаются только фраза и перевод.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Чтение разбора: неразобранная карточка вызывает ваш движок — списывается один раз за карточку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Слова: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Выражения: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Грамматика: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Не удалось разобрать карточку — пропущено",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "Движок разбора не настроен — разбор этой карточки пропущен",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Эту карточку не удаётся прочитать — перешли к следующей",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "Читаю оригинал…",
@@ -1387,36 +1439,12 @@
     "message": "Читаю перевод…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "Идёт запись — говорите…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "Отвечаю…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "На паузе",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "Вопросы используют настроенный вами движок разбора — один вызов на вопрос, без кэширования",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "Этот круг закончен",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "Продолжить практику",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "Микрофон недоступен — сессия продолжится только на прослушивание",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "Повтор вслух для этой карточки пропущен",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1425,10 +1453,6 @@
   },
   "drive_empty": {
     "message": "Нет карточек для чтения вслух",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "Ответ не получился — спросите ещё раз",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

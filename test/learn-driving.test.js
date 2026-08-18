@@ -1,251 +1,271 @@
-// test/learn-driving.test.js — §9.5 driving mode pure logic.
+// test/learn-driving.test.js — 驾车模式 (§9.5) 的纯逻辑.
 //
-// The load-bearing properties: the auto-grade can NEVER contradict
-// gradeGate('speak')'s allowed set (§5.2 honesty — swept across the whole score
-// range), the write decision is §5.3's asymmetry verbatim (due=review /
-// non-due=practice / candidate=nothing), the reply classifier never turns
-// silence into a question, and the state machine stops on NAMED reasons and
-// cancels recordings on every interrupt.
+// 这个模式**什么都不写**——没有 review 行、没有技能戳、不动 lastSeenAt、不碰调度器。
+// 所以这份测试守的不是「进度算得对不对」，而是三件播放器该做对的事：
+//
+//   1. **播放顺序**。随机必须是「每张一次的随机排列」，不是「每次随机抽一张」——
+//      后者会重复播某些卡而另一些永远轮不到，在十几张的牌库上一眼就看得出来。
+//   2. **一张卡播完自动进下一张**，中间没有任何等待用户的环节。
+//   3. **失败要分得开**：整机级失败（自动播放被拦、不支持语音）该停下并说明，
+//      单卡级失败（这张卡的语言没有音色）该说一声然后跳过——用一条规则处理两者，
+//      要么一张坏卡毁掉整场，要么整机故障被当成跳卡而空转。
 
 const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
 
-function load() {
-  const m = loadModule('learn-model.js', { window: {} });
-  const s = loadModule('learn-scheduler.js', { window: {} });
-  const e = loadModule('learn-exercises.js', { window: {}, LearnModel: m.LearnModel });
-  const d = loadModule('learn-driving.js', {
-    window: {}, LearnModel: m.LearnModel, LearnScheduler: s.LearnScheduler,
-  });
-  return { D: d.LearnDriving, S: s.LearnScheduler, E: e.LearnExercises };
+const D = loadModule('learn-driving.js', { window: {} }).LearnDriving;
+
+// 可预测的 rand：按给定序列返回，用完循环。Fisher-Yates 的输出因此完全确定。
+function seq(values) {
+  let i = 0;
+  return () => values[i++ % values.length];
 }
 
-const NOW = 1755400000000;
-
-describe('LearnDriving — drivingGradeFor (§9.5 auto-grade)', () => {
-  test('always inside gradeGate("speak")\'s allowed set — full score sweep incl. boundaries', () => {
-    const { D, E } = load();
-    for (let i = 0; i <= 100; i++) {
-      const sc = i / 100;
-      const g = D.drivingGradeFor(sc);
-      const allowed = E.gradeGate('speak', { score: sc });
-      ok(allowed.indexOf(g) >= 0, 'score=' + sc + ' grade=' + g + ' 不在允许集 [' + allowed + ']');
-    }
-    eq(D.drivingGradeFor(0.9), 2, '0.9 边界应为记得');
-    eq(D.drivingGradeFor(0.5), 1, '0.5 边界应为有点难');
-    eq(D.drivingGradeFor(0.49), 0, '0.49 应为不记得');
-    eq(D.drivingGradeFor(undefined), 0, '无分数按 0 处理');
-  });
-});
-
-describe('LearnDriving — speakRepOutcome (§5.3 asymmetry verbatim)', () => {
-  function sched(S) { return S.applyReview(null, 2, NOW - 10 * 86400000); }
-
-  test('due card + high score → a real review: grade 2, reps advance, skill stamped', () => {
-    const { D, S } = load();
-    const sc = sched(S);
-    const out = D.speakRepOutcome(sc, true, 0.95, NOW);
-    eq(out.kind, 'review');
-    eq(out.grade, 2);
-    eq(out.sched.reps, sc.reps + 1, 'reps 应 +1');
-    ok(out.sched.s > sc.s, '记得后 s 应上升');
-    ok(out.stampSkill, '到期通过应打技能戳');
+describe('LearnDriving — 播放顺序 (§9.5)', () => {
+  test('默认是随机播放', () => {
+    eq(D.DEFAULT_MODE, 'shuffle');
+    eq(D.DEFAULTS.mode, 'shuffle');
   });
 
-  test('due card + low score → a real lapse', () => {
-    const { D, S } = load();
-    const sc = sched(S);
-    const out = D.speakRepOutcome(sc, true, 0.3, NOW);
-    eq(out.kind, 'review');
-    eq(out.grade, 0);
-    eq(out.sched.lapses, sc.lapses + 1, 'lapse 应 +1');
-    ok(out.sched.s < sc.s, '不记得后 s 应下降');
-    ok(!out.stampSkill, '失败不打技能戳');
+  test('模式按钮循环走完四种再回到起点', () => {
+    const seen = [];
+    let m = D.DEFAULT_MODE;
+    for (let i = 0; i < D.MODES.length; i++) { seen.push(m); m = D.nextMode(m); }
+    deepEq(seen.slice().sort(), D.MODES.slice().sort(), '四种模式都要能轮到');
+    eq(m, D.DEFAULT_MODE, '轮一圈要回到起点');
+    eq(D.nextMode('nonsense'), D.DEFAULT_MODE, '未知模式按一下要回到默认，不能卡住按钮');
   });
 
-  test('non-due card + pass → practice, sched writes NOTHING', () => {
-    const { D, S } = load();
-    const sc = sched(S);
-    const out = D.speakRepOutcome(sc, false, 0.95, NOW);
-    eq(out.kind, 'practice');
-    eq(out.sched, null, '练习答对不写 sched（§5.3）');
-    ok(out.stampSkill, '练习通过仍打技能戳（镜像 gradeInner：技能戳所有路径都打）');
-  });
-
-  test('non-due card + fail → practice lapse (forgetting is evidence any time)', () => {
-    const { D, S } = load();
-    const sc = sched(S);
-    const out = D.speakRepOutcome(sc, false, 0.2, NOW);
-    eq(out.kind, 'practice');
-    ok(out.sched && out.sched.lapses === sc.lapses + 1, '练习答错应照实 lapse');
-  });
-
-  test('candidate (no sched) → writes nothing at all, either way', () => {
-    const { D } = load();
-    for (const sc of [0.95, 0.2]) {
-      const out = D.speakRepOutcome(null, false, sc, NOW);
-      eq(out.kind, 'none', 'score=' + sc);
-      eq(out.sched, null);
-      ok(!out.stampSkill);
-    }
-  });
-});
-
-describe('LearnDriving — classifyReply (§9.5 intent table)', () => {
-  test('silence and whitespace are none — never a question', () => {
-    const { D } = load();
-    for (const t of ['', '   ', null, undefined, '.', '嗯']) {
-      const got = D.classifyReply(t);
-      ok(got === 'none', JSON.stringify(t) + ' → ' + got + '（应为 none）');
+  test('非随机模式的顺序就是原序', () => {
+    for (const m of ['sequential', 'loop', 'repeat-one']) {
+      deepEq(D.buildOrder(4, m), [0, 1, 2, 3], m);
     }
   });
 
-  test('no-question phrases advance (none), zh + en', () => {
-    const { D } = load();
-    for (const t of ['没有', '没有了', '不用了', 'no', 'Nope', 'no questions', '没问题']) {
-      eq(D.classifyReply(t), 'none', t);
-    }
+  test('随机是「每张一次的排列」，不是「每次抽一张」', () => {
+    const o = D.buildOrder(5, 'shuffle', seq([0.9, 0.1, 0.7, 0.3, 0.5]));
+    eq(o.length, 5);
+    deepEq(o.slice().sort((a, b) => a - b), [0, 1, 2, 3, 4],
+      '每张卡必须恰好出现一次 —— 重复或遗漏就是「每次抽一张」的症状');
   });
 
-  test('explicit next / repeat commands', () => {
-    const { D } = load();
-    for (const t of ['下一个', '下一张', '继续', 'next', 'Skip']) eq(D.classifyReply(t), 'next', t);
-    for (const t of ['再来一遍', '再听一遍', '重听', 'again', 'Repeat', 'one more time']) {
-      eq(D.classifyReply(t), 'repeat', t);
-    }
+  test('顺序播放走到头就结束，其余三种永不结束', () => {
+    const order = [0, 1, 2];
+    eq(D.advance(2, order, 'sequential').done, true);
+    eq(D.advance(1, order, 'sequential').pos, 2);
+    eq(D.advance(2, order, 'loop').done, false);
+    eq(D.advance(2, order, 'loop').pos, 0, '循环播放要绕回开头');
+    eq(D.advance(0, order, 'repeat-one').pos, 0, '单曲循环停在原地');
+    eq(D.advance(0, order, 'repeat-one').done, false);
   });
 
-  test('anything substantive is a question — the mode\'s promise is you can just talk', () => {
-    const { D } = load();
-    for (const t of ['这个词是什么意思', 'why is it past tense here', '第二个单词怎么拼']) {
-      eq(D.classifyReply(t), 'question', t);
-    }
-  });
-});
-
-describe('LearnDriving — reduce (§9.5 session state machine)', () => {
-  function drive(D, state, events, ctx) {
-    const fx = [];
-    for (const ev of events) {
-      const r = D.reduce(state, ev, ctx);
-      state = r.state;
-      fx.push(r.effects.map((e) => e.t + (e.what ? ':' + e.what : '')).join(','));
-    }
-    return { state, fx };
-  }
-
-  test('happy path, listen-only card, no voice loop: source → tr → advance', () => {
-    const { D } = load();
-    const { state, fx } = drive(D, { name: 'idle' }, [
-      { type: 'card' }, { type: 'tts_done' }, { type: 'tts_done' },
-    ], { voiceLoop: false, exercise: false });
-    eq(state.name, 'advancing');
-    deepEq(fx, ['speak:source', 'speak:tr', 'advance']);
+  test('随机播放绕圈时重新洗牌 —— 第二轮不是第一轮的重播', () => {
+    // 第一轮的排列固定；走到最后一张再 advance 会拿到一份新排列。
+    const first = D.buildOrder(4, 'shuffle', seq([0.99, 0.01, 0.99, 0.01]));
+    const r = D.advance(first[3], first, 'shuffle', seq([0.01, 0.99, 0.01, 0.99]));
+    eq(r.done, false);
+    eq(r.order.length, 4);
+    deepEq(r.order.slice().sort((a, b) => a - b), [0, 1, 2, 3]);
+    eq(r.pos, r.order[0], '新一轮要从新排列的第一张开始');
   });
 
-  test('happy path, speak card + voice loop: full chain through Q&A re-ask', () => {
-    const { D } = load();
-    const ctx = { voiceLoop: true, exercise: true };
-    const { state, fx } = drive(D, { name: 'idle' }, [
-      { type: 'card' },
-      { type: 'tts_done' },                                // source → tr
-      { type: 'tts_done' },                                // tr → prompt
-      { type: 'tts_done' },                                // prompt → record
-      { type: 'rec_done', transcript: 'the forgetting curve' },
-      { type: 'score_ready' },
-      { type: 'tts_done' },                                // score line → asking
-      { type: 'tts_done' },                                // ask → record reply
-      { type: 'rec_done', transcript: 'why past tense' },
-      { type: 'reply', intent: 'question', transcript: 'why past tense' },
-      { type: 'qa_ok' },
-      { type: 'tts_done' },                                // answer spoken → re-ask
-      { type: 'tts_done' },                                // ask → record reply
-      { type: 'rec_empty' },                               // silence → advance
-    ], ctx);
-    eq(state.name, 'advancing');
-    deepEq(fx, [
-      'speak:source', 'speak:tr', 'speak:prompt_speak', 'record:speak',
-      'score', 'speak:score', 'speak:ask', 'record:reply', 'classify',
-      'qa', 'speak:answer', 'speak:ask', 'record:reply', 'advance',
-    ]);
-  });
-
-  test('tts_fail stops on a NAMED reason — never a silent skip', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'speaking_tr' }, { type: 'tts_fail', reason: 'no_voice' }, {});
-    eq(r.state.name, 'stopped_error');
-    eq(r.reason, 'no_voice');
-  });
-
-  test('mic_denied mid-recording degrades and continues — the drive does not end', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'recording_speak' }, { type: 'rec_fail', code: 'mic_denied' }, { voiceLoop: true, exercise: true });
-    eq(r.state.name, 'advancing');
-    ok(r.effects.some((e) => e.t === 'stt_gone'), '应发出 stt_gone 让编排器降级');
-    ok(r.effects.some((e) => e.t === 'advance'));
-  });
-
-  test('transport-shaped rec_fail skips this card\'s exercise and continues', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'recording_speak' }, { type: 'rec_fail', code: 'network' }, { voiceLoop: false, exercise: true });
-    eq(r.state.name, 'advancing', '无语音环路时直接前进');
-    eq(r.note, 'network', '失败具名');
-  });
-
-  test('speak-window silence is NO ATTEMPT — skip, never grade 0', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'recording_speak' }, { type: 'rec_empty' }, { voiceLoop: false, exercise: true });
-    eq(r.state.name, 'advancing');
-    eq(r.note, 'speak_skipped');
-    ok(!r.effects.some((e) => e.t === 'score'), '静默绝不进评分');
-  });
-
-  test('hidden from every recording state cancels the recorder and pauses', () => {
-    const { D } = load();
-    for (const st of ['recording_speak', 'recording_reply']) {
-      const r = D.reduce({ name: st }, { type: 'hidden' }, { voiceLoop: true, exercise: true });
-      eq(r.state.name, 'paused', st);
-      ok(r.effects.some((e) => e.t === 'cancel_rec'), st + ' 应撤录音');
-      ok(r.effects.some((e) => e.t === 'stop_tts'), st + ' 应停 TTS');
-    }
-  });
-
-  test('pause / resume / next / repeat interrupts from active states', () => {
-    const { D } = load();
-    let r = D.reduce({ name: 'speaking_tr' }, { type: 'tap_pause' }, {});
-    eq(r.state.name, 'paused');
-    r = D.reduce(r.state, { type: 'tap_resume' }, {});
-    eq(r.state.name, 'speaking_source', '恢复从当前卡原文重来');
-    r = D.reduce({ name: 'asking' }, { type: 'tap_next' }, { voiceLoop: true });
-    eq(r.state.name, 'advancing');
-    ok(r.effects.some((e) => e.t === 'stop_tts'));
-    r = D.reduce({ name: 'announcing_result' }, { type: 'tap_repeat' }, {});
-    eq(r.state.name, 'speaking_source');
-  });
-
-  test('qa_fail names itself and re-asks — the question still stands', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'answering' }, { type: 'qa_fail', code: 'http' }, { voiceLoop: true });
-    eq(r.state.name, 'asking');
-    ok(r.effects.some((e) => e.t === 'note' && e.code === 'http'));
-  });
-
-  test('deck exhaustion → session_done', () => {
-    const { D } = load();
-    const r = D.reduce({ name: 'advancing' }, { type: 'deck_done' }, {});
-    eq(r.state.name, 'session_done');
+  test('下一张按钮在单曲循环里也必须能跳走', () => {
+    // 一个不理会自己「下一张」按钮的播放器是坏的。
+    const order = [0, 1, 2];
+    eq(D.advance(0, order, 'repeat-one', null, true).pos, 1);
   });
 });
 
 describe('LearnDriving — cardPlan (§9.5)', () => {
-  test('speak exercise only when the form exists AND STT is capable', () => {
-    const { D } = load();
-    const strong = { id: 'a', text: 'x', tr: 'y', sched: { s: 10, lastReviewAt: NOW, reps: 3, lapses: 0, d: 5, dueAt: 0 } };
-    const weak = { id: 'b', text: 'x', tr: 'y', sched: { s: 1, lastReviewAt: NOW, reps: 1, lapses: 0, d: 5, dueAt: 0 } };
-    const caps = { listen: true, speak: true };
-    eq(D.cardPlan(strong, caps, true).exercise, 'speak');
-    eq(D.cardPlan(strong, caps, false).exercise, null, '无 STT ⇒ 形态不存在');
-    eq(D.cardPlan(strong, { listen: true, speak: false }, true).exercise, null, '说档能力关 ⇒ 无题');
-    eq(D.cardPlan(weak, caps, true).exercise, null, 's < TIER_SPEAK_S ⇒ 无题');
-    deepEq(D.cardPlan(strong, caps, true).segments, ['source', 'tr']);
+  const item = { id: 'a', text: 'Hello', tr: '你好', lang: 'en' };
+
+  test('默认只读原文和译文 —— 解析要花钱，不能默认开', () => {
+    deepEq(D.cardPlan(item).segments, ['source', 'tr']);
+    eq(D.DEFAULTS.playNotes, false);
+  });
+
+  test('开了播放解析才多一段', () => {
+    deepEq(D.cardPlan(item, { playNotes: true }).segments, ['source', 'tr', 'notes']);
+  });
+
+  test('没有译文的卡不会凭空多出一段空音频', () => {
+    deepEq(D.cardPlan({ id: 'b', text: 'Solo' }).segments, ['source']);
+  });
+});
+
+describe('LearnDriving — notesToSpeech (§9.5)', () => {
+  const labels = { words: '生词：', phrases: '短语：', grammar: '语法：' };
+
+  test('三段都在时读成一段话，标签由调用方给', () => {
+    const s = D.notesToSpeech({
+      words: [{ w: 'curve', g: '曲线' }, { w: 'bend', g: '弯曲' }],
+      phrases: [{ p: 'over time', g: '随时间' }],
+      grammar: '一般现在时',
+    }, labels);
+    ok(s.indexOf('生词：curve，曲线') === 0, s);
+    ok(s.indexOf('短语：over time，随时间') > 0, s);
+    ok(s.indexOf('语法：一般现在时') > 0, s);
+  });
+
+  test('缺项只是少一段，不是空串', () => {
+    const s = D.notesToSpeech({ words: [], phrases: [], grammar: '只有语法' }, labels);
+    eq(s, '语法：只有语法');
+  });
+
+  test('没有可说的内容返回空串 —— 调用方据此跳过，而不是播一段静音', () => {
+    // 播空字符串会让界面停在一个和「卡住了」完全一样的状态上。
+    eq(D.notesToSpeech(null, labels), '');
+    eq(D.notesToSpeech({ words: [], phrases: [], grammar: '' }, labels), '');
+    eq(D.notesToSpeech({ words: [{ w: 'x' }], phrases: [{ g: 'y' }], grammar: '  ' }, labels), '',
+      '半截条目不算内容');
+  });
+});
+
+describe('LearnDriving — reduce：一张卡播完自动进下一张 (§9.5)', () => {
+  const ctx = { plan: { segments: ['source', 'tr'] } };
+  const ctxN = { plan: { segments: ['source', 'tr', 'notes'] } };
+  const run = (st, ev, arg, c) => D.reduce(st, ev, arg, c || ctx);
+
+  test('原文 → 译文 → 直接推进，中间没有任何等用户的环节', () => {
+    let r = run({ name: 'idle' }, 'card_ready');
+    eq(r.state.name, 'speaking');
+    deepEq(r.effects, [{ t: 'speak', what: 'source' }]);
+
+    r = run(r.state, 'tts_done');
+    eq(r.state.name, 'speaking');
+    eq(r.effects[0].what, 'tr');
+
+    r = run(r.state, 'tts_done');
+    eq(r.state.name, 'advancing', '译文播完必须直接推进 —— 不再有「有没有疑问」');
+    deepEq(r.effects, [{ t: 'advance' }]);
+  });
+
+  test('开了解析时，译文之后先取解析再播，然后才推进', () => {
+    let r = run({ name: 'speaking', seg: 1 }, 'tts_done', null, ctxN);
+    eq(r.state.name, 'fetching_notes');
+    deepEq(r.effects, [{ t: 'fetch_notes' }]);
+
+    r = run(r.state, 'notes_ready', '生词：curve，曲线', ctxN);
+    eq(r.state.name, 'speaking');
+    eq(r.effects[0].what, 'notes');
+    eq(r.effects[0].text, '生词：curve，曲线', '要播的文本随效果一起走，不能和显示的不一致');
+
+    r = run(r.state, 'tts_done', null, ctxN);
+    eq(r.state.name, 'advancing');
+  });
+
+  test('解析为空 = 跳过这一段，不是播一段空音频', () => {
+    const r = run({ name: 'fetching_notes', seg: 2 }, 'notes_ready', '   ', ctxN);
+    eq(r.state.name, 'advancing');
+  });
+
+  test('解析失败只跳过这一段，整场继续，并说清楚', () => {
+    const r = run({ name: 'fetching_notes', seg: 2 }, 'notes_fail', 'no_base', ctxN);
+    eq(r.state.name, 'advancing');
+    eq(r.effects[0].t, 'note');
+    eq(r.effects[0].code, 'no_base', '要说是哪一种失败，不能默默跳过');
+  });
+});
+
+describe('LearnDriving — reduce：失败要分得开 (§9.5)', () => {
+  const ctx = { plan: { segments: ['source', 'tr'] } };
+
+  test('整机级失败停下并报原因 —— 它在每张卡上都会重演', () => {
+    for (const code of ['blocked', 'unsupported']) {
+      const r = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', code, ctx);
+      eq(r.state.name, 'stopped_error', code);
+      ok(r.effects.some((f) => f.t === 'note' && f.code === code), code);
+    }
+  });
+
+  test('单卡级失败说一声然后跳过 —— 别让一张坏卡毁掉整场', () => {
+    const r = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', 'no_voice', ctx);
+    eq(r.state.name, 'advancing');
+    ok(r.effects.some((f) => f.t === 'note' && f.code === 'no_voice'));
+    ok(r.effects.some((f) => f.t === 'advance'));
+  });
+});
+
+describe('LearnDriving — reduce：控制键 (§9.5)', () => {
+  const ctx = { plan: { segments: ['source', 'tr'] } };
+
+  test('暂停/停止在任何状态下都可用 —— 它们是中断，不是二次触发', () => {
+    for (const st of ['speaking', 'fetching_notes']) {
+      const p = D.reduce({ name: st, seg: 0 }, 'tap_pause', null, ctx);
+      eq(p.state.name, 'paused', st);
+      ok(p.effects.some((f) => f.t === 'stop_tts'), st);
+      eq(D.reduce({ name: st, seg: 0 }, 'tap_stop', null, ctx).state.name, 'idle', st);
+    }
+  });
+
+  test('暂停记住是哪一段，继续时从那一段重来', () => {
+    const paused = D.reduce({ name: 'speaking', seg: 1 }, 'tap_pause', null, ctx);
+    eq(paused.state.seg, 1);
+    const r = D.reduce(paused.state, 'tap_resume', null, ctx);
+    eq(r.state.name, 'speaking');
+    eq(r.effects[0].what, 'tr', '继续要回到译文，而不是从原文重头念');
+  });
+
+  test('切到后台（锁屏、来电、切 App）= 暂停，恢复只能靠手点', () => {
+    const r = D.reduce({ name: 'speaking', seg: 0 }, 'hidden', null, ctx);
+    eq(r.state.name, 'paused');
+    ok(r.effects.some((f) => f.t === 'stop_tts'));
+    // 已经暂停时再收到 hidden 必须是 no-op，否则会把 seg 冲掉。
+    const again = D.reduce(r.state, 'hidden', null, ctx);
+    eq(again.state.seg, 0);
+    deepEq(again.effects, []);
+  });
+
+  test('换播放模式不打断正在播的音频 —— 这是开车时能按它的全部理由', () => {
+    const r = D.reduce({ name: 'speaking', seg: 0 }, 'tap_mode', null, ctx);
+    eq(r.state.name, 'speaking', '状态不能变');
+    eq(r.state.seg, 0);
+    deepEq(r.effects, [{ t: 'mode_next' }], '只发一个换模式的效果，不发 stop_tts');
+  });
+
+  test('下一张会先停掉当前音频，再强制推进', () => {
+    const r = D.reduce({ name: 'speaking', seg: 0 }, 'tap_next', null, ctx);
+    eq(r.state.name, 'advancing');
+    ok(r.effects.some((f) => f.t === 'stop_tts'));
+    const adv = r.effects.find((f) => f.t === 'advance');
+    eq(adv.force, true, '手动跳过要能越过单曲循环');
+  });
+
+  test('再听一遍从这张卡的第一段重来', () => {
+    const r = D.reduce({ name: 'speaking', seg: 1 }, 'tap_repeat', null, ctx);
+    eq(r.effects[0].what, 'source');
+    eq(r.state.seg, 0);
+  });
+
+  test('只有顺序播放会走到 session_done', () => {
+    const r = D.reduce({ name: 'advancing' }, 'deck_done', null, ctx);
+    eq(r.state.name, 'session_done');
+    deepEq(r.effects, [{ t: 'done' }]);
+  });
+});
+
+describe('LearnDriving — 这个模式不写任何进度 (§9.5)', () => {
+  test('模块表面上没有任何写进度的东西', () => {
+    // 反向断言，load-bearing：这些函数存在过，是上一版驾车模式推进度用的。
+    // 它们的消失就是「这个模式只曝光、不评分」这条契约本身。
+    for (const gone of ['speakRepOutcome', 'drivingGradeFor', 'classifyReply']) {
+      eq(typeof D[gone], 'undefined', gone + ' 还在 —— 驾车模式不该有写进度的路径');
+    }
+  });
+
+  test('reduce 产生的效果里没有任何写操作', () => {
+    const ctx = { plan: { segments: ['source', 'tr', 'notes'] } };
+    const evs = [['card_ready'], ['tts_done'], ['tts_done'], ['notes_ready', 'x'],
+      ['tts_done'], ['tap_next'], ['tap_repeat'], ['tap_pause'], ['tap_resume']];
+    let st = { name: 'idle' };
+    const kinds = new Set();
+    for (const [ev, arg] of evs) {
+      const r = D.reduce(st, ev, arg, ctx);
+      st = r.state;
+      for (const f of r.effects) kinds.add(f.t);
+    }
+    const ALLOWED = ['speak', 'fetch_notes', 'advance', 'stop_tts', 'note', 'done', 'mode_next'];
+    for (const k of kinds) {
+      ok(ALLOWED.indexOf(k) >= 0, '出现了计划外的效果 ' + k + ' —— 写路径是从这里溜进来的');
+    }
   });
 });

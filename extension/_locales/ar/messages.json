@@ -1363,21 +1363,73 @@
     "message": "🔁 إعادة الاستماع",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 اسأل",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "البطاقة {i} من {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "كرر الجملة بصوت عالٍ",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_shuffle": {
+    "message": "🔀 عشوائي",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "هل لديك أي سؤال؟",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_mode_sequential": {
+    "message": "⏭ بالترتيب",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 تكرار الكل",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 تكرار واحدة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "جولة أخرى",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "جارٍ تشغيل الشرح…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "جارٍ تحليل هذه الجملة…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "قراءة شرح الجملة بصوت عالٍ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "عند التفعيل، تُقرأ بعد كل بطاقة شروحها (مفردات وعبارات ونقطة نحوية). والبطاقة التي لم تُحلَّل من قبل تُحلَّل فورًا بالمحرك الذي أعددته — تُحتسب التكلفة مرة واحدة لكل بطاقة ثم تُقرأ من الذاكرة المؤقتة. وعند الإيقاف تُقرأ الجملة وترجمتها فقط.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "قراءة الشرح: البطاقة غير المحلَّلة تستدعي محركك — وتُحتسب مرة واحدة لكل بطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "مفردات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "عبارات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "نحو: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "تعذَّر تحليل هذه البطاقة — تم تخطّيها",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "محرّك الشرح غير مُعد — تم تخطّي شرح هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "تعذَّرت قراءة هذه البطاقة — انتقلنا إلى التالية",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "تشغيل النص الأصلي…",
@@ -1387,36 +1439,12 @@
     "message": "تشغيل الترجمة…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "جارٍ التسجيل — تحدث الآن…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "جارٍ الإجابة…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "متوقف مؤقتًا",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "تستخدم الأسئلة محرك التحليل الذي أعددته — استدعاء واحد لكل سؤال، دون تخزين مؤقت",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "انتهت هذه الجولة",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "متابعة التدريب",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "الميكروفون غير متاح — تستمر هذه الجلسة بالاستماع فقط",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "تم تخطي القراءة بصوت عالٍ لهذه البطاقة",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1425,10 +1453,6 @@
   },
   "drive_empty": {
     "message": "لا توجد بطاقات يمكن قراءتها",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "فشلت الإجابة — اسأل مرة أخرى",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

@@ -1,258 +1,214 @@
 // learn-driving.js — pure logic for 驾车模式 (driving mode, 记忆层).
 // See docs/learning-design.md §9.5 and docs/interaction-spec.md 「驾车模式」.
 //
-// PURE, like learn-exercises.js: the session state machine (`reduce`), the spoken
-// reply intent classifier (`classifyReply`), and the speak-rep write decision
-// (`speakRepOutcome`) are all deterministic functions of their inputs — the app
-// orchestrator (app/driving.js) executes the effects and feeds events back. That
-// split is what lets the vm harness walk the whole hands-free loop without a DOM,
-// a voice, or a microphone. Depends only on LearnModel and LearnScheduler.
+// PURE, like learn-exercises.js: the playlist order (`buildOrder` / `advance`), the
+// per-card plan, the notes-to-speech rendering and the session state machine
+// (`reduce`) are all deterministic functions of their inputs — the app orchestrator
+// (app/driving.js) executes the effects and feeds events back. That split is what lets
+// the vm harness walk the whole session without a DOM or a voice.
+//
+// ─── What this mode is, and what it is NOT ──────────────────────────────────
+// It is a PLAYER for the deck: it reads cards aloud, back to back, in one of four
+// playback orders, and it **writes nothing at all** — no review row, no skill stamp,
+// no `lastSeenAt`, no scheduler call. Nothing here can move a card's curve.
+//
+// That is a deliberate reversal. The first version asked 「有没有疑问？」 after every
+// card and offered a 跟读 exercise, so that a driver could push real progress
+// hands-free. Both are gone: a recording window has to interrupt continuous playback
+// to exist, and continuous playback is the entire point of listening while driving.
+// The learning layer's write paths stay where a user can see what they are grading
+// (the review surface); this surface only exposes material. See §12 for the record.
+//
+// Depends only on LearnModel (nothing from LearnScheduler any more — no write path
+// means no scheduler contact).
 
 var LearnDriving = (() => {
+  // Playback orders, in the order the toggle cycles them. `shuffle` leads because it
+  // is the default: a driver revisiting the same deck daily hears the same opening
+  // three cards forever under any in-order mode, and that is precisely the material
+  // they already know best.
+  const MODES = ['shuffle', 'sequential', 'loop', 'repeat-one'];
+  const DEFAULT_MODE = 'shuffle';
+
   const DEFAULTS = {
-    // Fixed recording windows — there is no VAD in this codebase, so the window is
-    // time-boxed. Unvalidated, cheap to retune (same caveat family as §5.2 tiers).
-    SPEAK_REC_MS: 6000,   // 跟读 window
-    REPLY_REC_MS: 5000,   // 「有没有疑问？」 reply window
+    mode: DEFAULT_MODE,
+    // Reading the notes aloud is OFF by default because it can COST MONEY: a card
+    // that has never been parsed gets generated on the spot, against the user's own
+    // key. §9.2's "one generation per card, ever" still holds — the charge happens
+    // once and every later pass is cached — but a silent first charge while someone
+    // is driving is not something to opt them into.
+    playNotes: false,
   };
 
   function cfgOf(cfg) { return Object.assign({}, DEFAULTS, cfg || {}); }
-
-  // Same normalization contract as LearnExercises: case, punctuation and
-  // whitespace are noise, not meaning.
-  function norm(s) {
-    return String(s == null ? '' : s).toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+  function nextMode(mode) {
+    const i = MODES.indexOf(mode);
+    return MODES[(i < 0 ? 0 : i + 1) % MODES.length];
   }
 
-  // ─── Reply intent (§9.5) ───────────────────────────────────────────────────
-  // The transcript of the reply window maps to one of four intents. Unmatched
-  // speech is a QUESTION — the mode's promise is that the user can just talk.
-  // 'none' and 'next' both advance; they are distinguished so the surface can
-  // phrase itself honestly (silence vs an explicit 下一个).
-  // These patterns match NORMALIZED text — norm() has already stripped spaces
-  // and punctuation, so multi-word English phrases appear fused ("noquestions").
-  const NONE_RE = /^(没有了?|没|不用了?|没问题|没疑问|好了?|嗯|哦|no|nope|nothing|imgood|allgood|noquestions?)$/;
-  const NEXT_RE = /^(下一个|下一张|下一句|继续|跳过|过|next|skip|continue|moveon|goon)$/;
-  const REPEAT_RE = /^(再来一遍|再听一遍|再放一遍|重听|重复|重来|再一遍|again|repeat|onemoretime|play(it)?again|say(it)?again)$/;
-  function classifyReply(transcript) {
-    const t = norm(transcript);
-    if (t.length < 2 && !/^[没过嗯哦no]$/.test(t)) return 'none';
-    if (NONE_RE.test(t)) return 'none';
-    if (NEXT_RE.test(t)) return 'next';
-    if (REPEAT_RE.test(t)) return 'repeat';
-    return t ? 'question' : 'none';
-  }
-
-  // ─── Score → grade (§9.5) ──────────────────────────────────────────────────
-  // Hands-free means nobody taps a grade button, so the speakScore band picks the
-  // grade. Each value sits inside gradeGate('speak')'s allowed set for its band
-  // (≥0.9 → [1,2,3] ∋ 2; <0.5 → [0,1] ∋ 0; middle → [0,1,2,3] ∋ 1), so the
-  // auto-grade can never contradict §5.2's honesty rule — pinned by a property
-  // test that sweeps the whole score range.
-  function drivingGradeFor(score) {
-    const sc = Number(score) || 0;
-    if (sc >= 0.9) return 2;
-    if (sc < 0.5) return 0;
-    return 1;
-  }
-
-  // ─── The write decision (§9.5 = §5.3 verbatim) ─────────────────────────────
-  // One pure function decides what a speak rep writes, so the mode's whole
-  // progress story is testable in isolation:
-  //   · due card       → a real review: applyReview, row {mode:'speak'}
-  //   · non-due card   → §5.3 asymmetry via practiceOutcome: fail lapses,
-  //                      pass writes only a {practice:1, mode:'speak'} row
-  //   · candidate      → nothing at all (introduction belongs to the daily deck;
-  //                      unreachable in practice — cardPlan gates the exercise on
-  //                      s ≥ TIER_SPEAK_S, which a candidate never has)
-  // stampSkill mirrors gradeInner's rule EXACTLY: a pass at ≥「记得」 stamps on
-  // every path, practice included — practice proves nothing about long-term
-  // memory (§5.3), but demonstrating a skill is demonstrating a skill (§5.4).
-  function speakRepOutcome(sched, isDue, score, now, cfg) {
-    const grade = drivingGradeFor(score);
-    const hadSched = !!(sched && sched.s);
-    if (!hadSched) return { kind: 'none', grade, sched: null, stampSkill: false };
-    if (isDue) {
-      return {
-        kind: 'review',
-        grade,
-        sched: LearnScheduler.applyReview(sched, grade, now, cfg),
-        stampSkill: grade >= 2,
-      };
+  // ─── Playlist order ────────────────────────────────────────────────────────
+  // The order is materialised once rather than computed per step, so `shuffle` means
+  // "every card once, in a random order" instead of "a random card each time" — the
+  // latter replays cards while others never come up, which on a 15-card deck is
+  // immediately noticeable and reads as a bug.
+  //
+  // `rand` is injected (defaults to Math.random) so a test can pin an exact order.
+  function buildOrder(n, mode, rand) {
+    const order = [];
+    for (let i = 0; i < n; i++) order.push(i);
+    if (mode !== 'shuffle') return order;
+    const r = rand || Math.random;
+    for (let i = order.length - 1; i > 0; i--) {          // Fisher-Yates
+      const j = Math.floor(r() * (i + 1));
+      const t = order[i]; order[i] = order[j]; order[j] = t;
     }
-    return {
-      kind: 'practice',
-      grade,
-      sched: LearnScheduler.practiceOutcome(sched, grade, now, cfg),
-      stampSkill: grade >= 2,
-    };
+    return order;
   }
 
-  // ─── Per-card plan (§9.5) ──────────────────────────────────────────────────
-  // What the session does with one card. Media cards never reach this (the
+  // Advance one step. Returns the new position, possibly a NEW order (shuffle
+  // reshuffles when it wraps, so the second lap is not the first lap again), and
+  // `done` — true only for `sequential`, the one mode that ends.
+  //
+  // `force` is what the 下一张 button passes: a manual skip moves on even in
+  // repeat-one, because a player that ignores its own next button is broken.
+  function advance(pos, order, mode, rand, force) {
+    if (mode === 'repeat-one' && !force) return { pos, order, done: false };
+    const at = order.indexOf(pos);
+    const next = at + 1;
+    if (next < order.length) return { pos: order[next], order, done: false };
+    if (mode === 'sequential') return { pos, order, done: true };
+    const reshuffled = buildOrder(order.length, mode, rand);
+    return { pos: reshuffled[0], order: reshuffled, done: false };
+  }
+
+  // ─── Per-card plan ─────────────────────────────────────────────────────────
+  // What gets read aloud for one card, in order. Media cards never reach this (the
   // orchestrator skips them — synthetic speech never replaces real speech, §11).
-  // The speak exercise exists only when the card's speak form exists (§5.4
-  // eligibility incl. caps) AND a transcription engine is configured — missing
-  // capability means the form does not exist, never a degraded version of it.
-  function cardPlan(item, caps, sttCapable, cfg) {
+  function cardPlan(item, cfg) {
+    const c = cfgOf(cfg);
     const segments = ['source'];
     if (item && item.tr) segments.push('tr');
-    const eligible = !!(item && LearnScheduler.eligibleSkills(item, caps, cfg).indexOf('speak') >= 0);
-    return { segments, exercise: eligible && !!sttCapable ? 'speak' : null };
+    if (c.playNotes) segments.push('notes');
+    return { segments };
+  }
+
+  // ─── Notes → one spoken paragraph ──────────────────────────────────────────
+  // The notes object is built for the EYE (three labelled lists). Spoken, that
+  // structure has to become sentences, and the labels have to come from the caller:
+  // this file holds no copy, in any language.
+  //
+  // Returns '' when there is nothing worth saying, and the caller then skips the
+  // segment rather than speaking an empty string — a silent "playing notes" state is
+  // indistinguishable from a stall.
+  function notesToSpeech(notes, labels) {
+    if (!notes) return '';
+    const L = labels || {};
+    const parts = [];
+    const words = (notes.words || []).filter((w) => w && w.w && w.g);
+    const phrases = (notes.phrases || []).filter((p) => p && p.p && p.g);
+    if (words.length) {
+      parts.push((L.words || '') + words.map((w) => w.w + '，' + w.g).join('。'));
+    }
+    if (phrases.length) {
+      parts.push((L.phrases || '') + phrases.map((p) => p.p + '，' + p.g).join('。'));
+    }
+    if (notes.grammar && String(notes.grammar).trim()) {
+      parts.push((L.grammar || '') + String(notes.grammar).trim());
+    }
+    return parts.join('。');
   }
 
   // ─── The session state machine ─────────────────────────────────────────────
   // reduce(state, event, ctx) → { state, effects } — a deterministic transition
-  // table. `ctx` carries the two capability axes the orchestrator owns:
-  //   ctx.voiceLoop — the spoken Q&A loop exists (STT + chat gate + uiLang voice)
-  //   ctx.exercise  — the current card has a speak exercise (from cardPlan)
-  // Effects are descriptors the orchestrator executes:
-  //   speak(what) · record(what) · score(transcript) · classify(transcript) ·
-  //   qa(question) · commit(outcome…) is NOT an effect — the orchestrator commits
-  //   inside its score handler so the write and the score_ready event can't drift
-  //   apart · advance · stop_tts · cancel_rec · note(code) · done
-  const ACTIVE = {
-    speaking_source: 1, speaking_tr: 1, prompt_speak: 1, recording_speak: 1,
-    scoring: 1, announcing_result: 1, asking: 1, recording_reply: 1,
-    classifying: 1, answering: 1, speaking_answer: 1,
-  };
-  const RECORDING = { recording_speak: 1, recording_reply: 1 };
+  // table. Effects are descriptors the orchestrator executes:
+  //   speak(what) · fetch_notes · advance(force) · stop_tts · note(code) · done
+  //
+  // `ctx.plan.segments` is the current card's plan; the machine walks it by index so
+  // that adding a segment later is a data change, not a new pair of states.
+  const ACTIVE = { speaking: 1, fetching_notes: 1 };
 
   function S(name, effects, extra) {
-    return Object.assign({ state: { name }, effects: effects || [] }, extra || {});
+    return Object.assign({ state: Object.assign({ name }, extra || {}) }, { effects: effects || [] });
   }
 
-  // After the card's own audio is done: ask (voice loop) or just move on.
-  function afterCard(ctx) {
-    return ctx && ctx.voiceLoop
-      ? S('asking', [{ t: 'speak', what: 'ask' }])
-      : S('advancing', [{ t: 'advance' }]);
+  // Start (or restart) the segment at `seg` of the current card. `notes` needs its
+  // text fetched first; everything else is already in hand.
+  function playSegment(ctx, seg) {
+    const segments = (ctx && ctx.plan && ctx.plan.segments) || ['source'];
+    if (seg >= segments.length) return S('advancing', [{ t: 'advance' }]);
+    const what = segments[seg];
+    if (what === 'notes') return S('fetching_notes', [{ t: 'fetch_notes' }], { seg });
+    return S('speaking', [{ t: 'speak', what }], { seg });
   }
 
-  function reduce(state, event, ctx) {
+  function reduce(state, ev, arg, ctx) {
     const st = (state && state.name) || 'idle';
-    const ev = (event && event.type) || '';
-    ctx = ctx || {};
+    const seg = (state && state.seg) || 0;
 
-    // ── Global interrupts first — legal from any active state ──
-    if (ev === 'tap_stop') return S('idle', [{ t: 'stop_tts' }, { t: 'cancel_rec' }]);
-    if (ev === 'tap_pause' || ev === 'hidden') {
-      if (st === 'idle' || st === 'session_done') return { state, effects: [] };
-      if (st === 'paused') return { state, effects: [] };
-      return S('paused', [{ t: 'stop_tts' }, { t: 'cancel_rec' }]);
+    // ── Controls that work from anywhere ────────────────────────────────────
+    // Stop and pause are INTERRUPTS, not second triggers, so they are exempt from
+    // the "IO in flight ⇒ controls disabled" rule (interaction-spec 「驾车模式」).
+    if (ev === 'tap_stop') return S('idle', [{ t: 'stop_tts' }]);
+    if (ev === 'hidden' || ev === 'tap_pause') {
+      if (st === 'paused' || st === 'idle') return { state: state, effects: [] };
+      return S('paused', [{ t: 'stop_tts' }], { seg });
     }
-    if (ev === 'tap_next') {
-      if (ACTIVE[st] || st === 'paused' || st === 'stopped_error') {
-        return S('advancing', [{ t: 'stop_tts' }, { t: 'cancel_rec' }, { t: 'advance' }]);
-      }
-      return { state, effects: [] };
-    }
-    if (ev === 'tap_repeat') {
-      if (ACTIVE[st] || st === 'paused' || st === 'stopped_error') {
-        return S('speaking_source', [{ t: 'stop_tts' }, { t: 'cancel_rec' }, { t: 'speak', what: 'source' }]);
-      }
-      return { state, effects: [] };
-    }
-    if (ev === 'tap_resume' && (st === 'paused' || st === 'stopped_error')) {
-      // Resume restarts the CURRENT card from its source — a mid-sentence resume
-      // point would need utterance offsets the Web Speech API doesn't give us.
-      return S('speaking_source', [{ t: 'speak', what: 'source' }]);
-    }
-    if (ev === 'tap_ask' && ctx.voiceLoop && ACTIVE[st] && !RECORDING[st]) {
-      return S('recording_reply', [{ t: 'stop_tts' }, { t: 'record', what: 'reply' }]);
-    }
+    if (ev === 'tap_resume' && st === 'paused') return playSegment(ctx, seg);
+    // The mode toggle never interrupts audio — it only changes what happens at the
+    // END of this card, which is the whole reason it is safe to press while moving.
+    if (ev === 'tap_mode') return { state: state, effects: [{ t: 'mode_next' }] };
 
-    // ── A TTS failure anywhere active stops the session on a NAMED reason —
-    // never a silent skip, never an idle loop (§9.1 reason discipline). ──
-    if (ev === 'tts_fail' && ACTIVE[st]) {
-      return S('stopped_error', [{ t: 'cancel_rec' }], { reason: (event && event.reason) || 'tts' });
-    }
-
-    // ── STT capability dying mid-session (mic revoked, engine gone) degrades
-    // the session to buttons-only listening and keeps going — the voice loop's
-    // form ceases to exist, same semantics as the 说 form (§9.4). ──
-    if (ev === 'rec_fail' && RECORDING[st]) {
-      const code = (event && event.code) || '';
-      if (code === 'mic_denied' || code === 'no_mic') {
-        return S('advancing', [{ t: 'stt_gone', code }, { t: 'advance' }]);
-      }
-      // Transport-shaped failures skip this card's exercise / question, say so,
-      // and continue — a flaky endpoint must not end the drive.
-      return st === 'recording_speak'
-        ? Object.assign(afterCard(ctx), { note: code })
-        : S('advancing', [{ t: 'note', code }, { t: 'advance' }]);
-    }
+    if (ev === 'tap_next') return S('advancing', [{ t: 'stop_tts' }, { t: 'advance', force: true }]);
+    if (ev === 'tap_repeat' && st !== 'idle') return playSegment(ctx, 0);
 
     switch (st) {
       case 'idle':
       case 'advancing':
-        if (ev === 'card') return S('speaking_source', [{ t: 'speak', what: 'source' }]);
+        if (ev === 'card_ready') return playSegment(ctx, 0);
         if (ev === 'deck_done') return S('session_done', [{ t: 'done' }]);
-        break;
+        return { state: state, effects: [] };
 
-      case 'speaking_source':
-        if (ev === 'tts_done') return S('speaking_tr', [{ t: 'speak', what: 'tr' }]);
-        break;
-
-      case 'speaking_tr':
-        if (ev === 'tts_done') {
-          return ctx.exercise
-            ? S('prompt_speak', [{ t: 'speak', what: 'prompt_speak' }])
-            : afterCard(ctx);
+      case 'speaking':
+        if (ev === 'tts_done') return playSegment(ctx, seg + 1);
+        if (ev === 'tts_fail') {
+          // A whole-engine failure (autoplay blocked, no speech support) will fail on
+          // every card, so stopping is the honest response. A per-CARD failure — no
+          // voice for THIS language — must not end a session whose other cards are
+          // readable: say which card was skipped and keep going. Never silent either
+          // way; a card that vanishes with no explanation reads as data loss.
+          const fatal = arg === 'blocked' || arg === 'unsupported';
+          return fatal
+            ? S('stopped_error', [{ t: 'stop_tts' }, { t: 'note', code: arg }])
+            : S('advancing', [{ t: 'note', code: arg }, { t: 'advance' }]);
         }
-        break;
+        return { state: state, effects: [] };
 
-      case 'prompt_speak':
-        if (ev === 'tts_done') return S('recording_speak', [{ t: 'record', what: 'speak' }]);
-        break;
-
-      case 'recording_speak':
-        if (ev === 'rec_done') return S('scoring', [{ t: 'score', transcript: event.transcript }]);
-        // Silence is NO ATTEMPT, not a failed attempt — grading it would lapse a
-        // card because the driver was merging lanes. Skip, say so, move on.
-        if (ev === 'rec_empty') return Object.assign(afterCard(ctx), { note: 'speak_skipped' });
-        break;
-
-      case 'scoring':
-        if (ev === 'score_ready') return S('announcing_result', [{ t: 'speak', what: 'score' }]);
-        break;
-
-      case 'announcing_result':
-        if (ev === 'tts_done') return afterCard(ctx);
-        break;
-
-      case 'asking':
-        if (ev === 'tts_done') return S('recording_reply', [{ t: 'record', what: 'reply' }]);
-        break;
-
-      case 'recording_reply':
-        if (ev === 'rec_done') return S('classifying', [{ t: 'classify', transcript: event.transcript }]);
-        if (ev === 'rec_empty') return S('advancing', [{ t: 'advance' }]);
-        break;
-
-      case 'classifying':
-        if (ev === 'reply') {
-          const intent = event.intent;
-          if (intent === 'question') return S('answering', [{ t: 'qa', question: event.transcript }]);
-          if (intent === 'repeat') return S('speaking_source', [{ t: 'speak', what: 'source' }]);
-          return S('advancing', [{ t: 'advance' }]);
+      case 'fetching_notes':
+        // Empty text is a skip, not a stall: speaking '' leaves the UI sitting in a
+        // state that looks identical to a hang.
+        if (ev === 'notes_ready') {
+          return arg && String(arg).trim()
+            ? S('speaking', [{ t: 'speak', what: 'notes', text: arg }], { seg })
+            : playSegment(ctx, seg + 1);
         }
-        break;
+        if (ev === 'notes_fail') {
+          // The card itself was already read; a missing analysis is a reason to move
+          // on, not to end the drive. Named so the surface can say which one failed.
+          return S('advancing', [{ t: 'note', code: arg || 'notes_failed' }, { t: 'advance' }]);
+        }
+        return { state: state, effects: [] };
 
-      case 'answering':
-        if (ev === 'qa_ok') return S('speaking_answer', [{ t: 'speak', what: 'answer' }]);
-        // A failed answer names itself and re-asks — the question still stands.
-        if (ev === 'qa_fail') return S('asking', [{ t: 'note', code: (event && event.code) || 'qa' }, { t: 'speak', what: 'ask' }]);
-        break;
-
-      case 'speaking_answer':
-        if (ev === 'tts_done') return S('asking', [{ t: 'speak', what: 'ask' }]);
-        break;
+      default:
+        return { state: state, effects: [] };
     }
-    return { state, effects: [] };
   }
 
-  return { DEFAULTS, reduce, classifyReply, drivingGradeFor, speakRepOutcome, cardPlan };
+  return {
+    DEFAULTS, MODES, DEFAULT_MODE, nextMode,
+    buildOrder, advance, cardPlan, notesToSpeech, reduce,
+    ACTIVE,
+  };
 })();
 
+if (typeof window !== 'undefined') window.LearnDriving = LearnDriving;
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnDriving;
