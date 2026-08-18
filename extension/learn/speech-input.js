@@ -15,7 +15,7 @@
 // EXTENSION PAGES ONLY (and the app's WKWebView) — same hosts as tts.js.
 
 var LearnSpeech = (() => {
-  let cfg = { engineId: '', baseUrl: '', apiKey: '', model: '', baseUrlVerbatim: false };
+  let cfg = { engineId: '', baseUrl: '', apiKey: '', model: '' };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -119,7 +119,7 @@ var LearnSpeech = (() => {
     // belongs: it was never a correction, it was a reproduction of what the old code
     // did to this user's saved value, and reproducing it is how a device whose
     // one-time migration never ran keeps working.
-    const url = WireFormat.resolveEndpoint(cfg.baseUrl, eng, { cap: 'stt', verbatim: cfg.baseUrlVerbatim });
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, eng);
     const fd = new FormData();
     fd.append('file', blob, 'speech.' + (ext || 'webm'));
     const model = cfg.model || eng.defaultModel;

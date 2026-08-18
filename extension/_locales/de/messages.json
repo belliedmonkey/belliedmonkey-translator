@@ -1308,6 +1308,10 @@
     "message": "Angefragt: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_server_said": {
+    "message": "Antwort des Servers: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
   "notes_test_empty": {
     "message": "Das Modell lieferte keinen Inhalt — Reasoning-Modelle passen hier nicht; nimm ein Chat-Modell",
     "description": "Engine self-test (settings)"

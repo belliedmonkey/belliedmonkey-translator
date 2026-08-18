@@ -603,6 +603,48 @@ is a build-time concern, not a runtime one.
   recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
   what keeps every unknown third-party endpoint behaving exactly as it does today.
 
+- **The request BODY negotiates; we do not keep a table of which model accepts what.**
+  Picking the right address and the right shape still leaves a third variable: the
+  optional fields inside the body. `chat-compat` faces the entire compatibility zoo —
+  every proxy, gateway and self-hosted server speaks it, and they disagree about
+  `temperature`, `max_tokens`, the `system` role, and whether a non-streaming request
+  is accepted at all. Newer models reject several of these outright with HTTP 400.
+
+  The diagnostic that isolates this: **same address, same key, works in another
+  client.** That rules out the URL and the credential and leaves the body — and the
+  clients it works in are the ones that send none of the fields in question (they use
+  the Responses / Messages shapes, where the budget field has a different name and the
+  system prompt is a top-level string, and they stream).
+
+  Two rules follow, and the second depends on the first:
+
+  1. **The server's own sentence is carried, never replaced.** A 400 names the exact
+     parameter it will not accept. `apiFetch` reads the error body as **text** (so a
+     gateway answering HTML or plain text survives), extracts the message across the
+     four shapes seen in the wild, and puts it on `err.serverMessage`. The settings
+     page prints it verbatim under our own hint: our hint is a guess, that sentence is
+     evidence, and paraphrasing evidence makes it un-searchable.
+  2. **On a 400/422 we concede the named field and retry.** `relaxBody` renames
+     `max_tokens` → `max_completion_tokens` when the server asks for that spelling,
+     otherwise drops it; drops `temperature`; rewrites the `system` role to
+     `developer`; and sets `stream: true` for endpoints that only serve streams (the
+     body is then merged back with `sseMerge` — we never need incremental delivery, so
+     a stream is just a different encoding of the same answer). Every concession is a
+     field that is optional by definition.
+
+  Bounded so it can never become a loop that grinds a real error away: only 400/422,
+  at most two concessions, each of which must actually change the body, and only when
+  the server said something. A 401, a 404 or 「insufficient balance」 is reported as-is.
+  The alternative — a table of model names and their accepted parameters — is the same
+  mistake as a vendor list: it is a copy of someone else's decisions and it starts
+  rotting the day it is written.
+
+  Retry policy follows the same logic: the outer retry loop only retries failures that
+  might resolve themselves (network, timeout, 408, 429, 5xx). It used to retry
+  everything three times, so one wrong key cost three doomed requests **per paragraph**
+  — 150 on a 50-paragraph page — delaying the user's error message and burning the
+  endpoint's rate limit for nothing.
+
 - **`google` is an explicit carve-out.** Its two endpoints are built with query
   parameters at call time and cannot be expressed as one stored address; the user can
   never supply one either (`supportsBaseUrl: false`). It therefore declares
@@ -611,24 +653,41 @@ is a build-time concern, not a runtime one.
   palette carve-out for page-injected CSS: the exception is written down and gated,
   never left as an unmentioned gap.
 
-- **Upgrading an existing install never changes which URL goes out.** Every address
-  stored before this change was consumed as `base + path`, so what the old code would
-  have requested is exactly computable — no guessing about what a stored value meant.
-  `build/legacy-endpoints.config.js` freezes that history (per flavor, emitted into
-  `providers.gen.js`), and `resolveEndpoint` branches on a per-field
-  `{key}Verbatim` stamp: stamped ⇒ verbatim, unstamped ⇒ reproduce the old expression
-  including its capability's original trailing-slash policy. **The unstamped branch is
-  permanent.** There is no telemetry here, so evidence that it is safe to delete will
-  never arrive — and keeping it means a device whose one-time migration never ran
-  degrades to "unchanged", not to "broken". The migration itself is therefore not part
-  of correctness; it runs on the settings pages, where it buys honesty (the address in
-  the field is the address we request) rather than function.
+- **`resolveEndpoint` has exactly two branches, and neither of them concatenates.**
+  Empty stored value ⇒ the registry's `defaultEndpoint`; anything else ⇒ that value,
+  trimmed and otherwise untouched. There is no capability argument, no stamp, no table.
+
+  1.5.2 shipped a weaker version of this rule: verbatim *when a per-field
+  `{key}Verbatim` stamp was present*, and otherwise a "legacy" branch that reproduced
+  the old `base + path` expression from a frozen table, so that a device whose one-time
+  migration had not run would keep working. That design was withdrawn in 1.5.3 after it
+  produced two field failures in one session, and the lesson generalises past this
+  module:
+
+  - **A conditional promise is not a promise.** The condition travelled as a positional
+    `verbatim` argument through six call sites. The settings page's 「测试连接」 did not
+    pass it, so the self-check silently fell back to concatenation and reported a 404
+    against `…/v1` + `/v1/chat/completions` while the address the user had typed was
+    correct. Concatenation was not the exception; it was whatever happened when someone
+    forgot an argument.
+  - **A safety net that writes is not a safety net.** The same frozen table drove the
+    one-time migration, and the migration did not consult the stamp — so it would append
+    a path to an address the user had *just saved as complete*, corrupting a correct
+    configuration on the next settings-page load.
+
+  The exception would always have landed exactly where the user most needed us not to
+  improvise: on an address whose shape we do not recognise. So the cost is accepted
+  instead: an install upgrading from ≤1.5.2 that stored an old-style base address and
+  never reopens settings will request that base and fail. It fails **loudly** — the
+  transport names the failure and the settings page echoes the URL actually requested —
+  and the field's own hint says to enter the full path. Trading a mechanism that
+  corrupts correct configurations for one that inconveniences stale ones is the right
+  direction of trade.
 
 - **Region flavor is a build/distribution concern, decided at build time — never a
   runtime per-request branch.** `node build.js --flavor global|china` filters the
   registry by each entry's `flavors` and resolves flavor-varying `defaultEndpoint` /
-  `label` to a single value (and filters the frozen legacy-endpoint table the same way —
-  four of its keys are engine ids that are themselves brand words):
+  `label` to a single value:
   - **global** (`dist/`, `com.belliedmonkeytranslator`): Google, OpenAI, Claude,
     DeepSeek, GLM, Qwen, Kimi + custom (Chat / Messages). International endpoints
     (`api.z.ai`, `dashscope-intl…`, `api.moonshot.ai`). **Not available in China.**

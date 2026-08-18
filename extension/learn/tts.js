@@ -22,7 +22,6 @@ var LearnTTS = (() => {
     engineId: 'browser',
     baseUrl: '', apiKey: '', model: '', voice: '',
     // 「这个地址是按新语义（原样使用）存的」的戳；缺席 ⇒ 走 wire-format 的 legacy 分支。
-    baseUrlVerbatim: false,
     rate: 1, pitch: 1,
     format: 'mp3',
     // How long to wait for the utterance's `start` before calling it blocked.
@@ -164,7 +163,7 @@ var LearnTTS = (() => {
     // that used to live here is now part of the legacy branch in wire-format.js, which
     // is where it belongs: it was never a correction, it was a reproduction of what the
     // old code did to that user's saved value.
-    const url = WireFormat.resolveEndpoint(cfg.baseUrl, e, { cap: 'tts', verbatim: cfg.baseUrlVerbatim });
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, e);
     if (!url) { const err = new Error('missing endpoint URL'); err.code = 'no_base'; throw err; }
     const init = {
       method: 'POST',

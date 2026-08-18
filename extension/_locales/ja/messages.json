@@ -1308,6 +1308,10 @@
     "message": "リクエスト先：{url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_server_said": {
+    "message": "サーバーの応答: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
   "notes_test_empty": {
     "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
     "description": "Engine self-test (settings)"

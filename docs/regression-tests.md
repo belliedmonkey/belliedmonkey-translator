@@ -393,11 +393,24 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   **Expected:** the request body carries `input` + `instructions` (not `messages`), and
   translation still works. Switch the address back to `…/v1/chat/completions` and it
   returns to the Chat Completions shape — the ADDRESS is what chooses, nothing else.
-- [ ] **Upgrade drill (do this on a profile that predates 2026-08).** Install the old
+- [ ] **Upgrade drill (do this on a profile that predates 1.5.3).** Install the old
   build, fill all four endpoint fields with host-only values, then install this build.
-  **Expected:** translation/notes/speech/transcription all keep working BEFORE you open
-  settings (the legacy branch), and after opening settings each field shows the complete
-  address, with the original preserved in `{key}PreVerbatim`.
+  **Expected:** each transport requests the host-only address **verbatim** and fails
+  with a NAMED error whose line echoes that exact URL — no path is appended, and no
+  stored value is rewritten. This is the accepted cost of unconditional zero
+  concatenation (domain-design §7); the failure must be loud and the address visible,
+  which is what makes it one edit to fix.
+- [ ] **A complete address survives a settings reload.** Save a complete endpoint whose
+  shape we do not recognise (e.g. `…/api/openai/v1`), close the settings page, reopen it.
+  **Expected:** the field still shows exactly what you typed. The 1.5.2 migration
+  appended a path here on every reload — a correct configuration corrupted by a
+  mechanism meant to protect stale ones.
+- [ ] **A rejected body says which field.** Point a chat endpoint at a model that
+  refuses `temperature` or `max_tokens` and press 「测试连接」.
+  **Expected:** the result shows our hint AND a second line 「服务端原话：…」 quoting the
+  server verbatim. If the server named a field we send, the retry concedes it and the
+  test PASSES on the second attempt (see §7 「请求体协商」); if not, the failure is
+  reported unchanged.
 - [ ] **Host-only address is named, not blamed on CORS.** Put `https://api.deepseek.com`
   (no path) in the field and press 「测试连接」.
   **Expected:** 「这个地址只有主机名，没有接口路径」 — NOT the CORS/unreachable copy.

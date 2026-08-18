@@ -122,25 +122,162 @@ Rules:
       }
     }
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      const e = new Error(`${label} ${resp.status}: ${(err.error && err.error.message) || resp.statusText}`);
+      const said = serverSays(await resp.text().catch(() => ''));
+      const e = new Error(`${label} ${resp.status}: ${said || resp.statusText}`);
       e.status = resp.status;
       // `code`/`url` are for the settings page's engine self-check: without a code it
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.
       e.code = 'http';
       e.url = url;
+      // The server's OWN sentence, kept separate from `message` so the UI can show it
+      // verbatim next to our hint. Withholding it was a real cost: a gateway rejecting
+      // `max_tokens` / `temperature` for a newer model answers 400 with a sentence
+      // naming the exact parameter, and we replaced
+      // that with 「服务端拒绝了这次请求」—— which sends the user hunting the URL and
+      // the key, the two things that were already right (2026-08-18 真机).
+      e.serverMessage = said;
       e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
       throw e;
     }
     return resp;
   }
 
+  // What the server said, out of a body we do not control the shape of. Four shapes
+  // in the wild: `{error:{message}}`, `{error:"…"}`, `{message}`, `{detail}` — plus
+  // gateways that answer HTML or plain text, which is why this takes TEXT, not JSON.
+  // A non-JSON body used to be dropped entirely (`resp.json().catch(() => ({}))`),
+  // and a reverse proxy's "upstream connect error" is exactly the sentence you need.
+  const SERVER_MSG_MAX = 300;
+  function serverSays(bodyText) {
+    const raw = String(bodyText == null ? '' : bodyText).trim();
+    if (!raw) return '';
+    let msg = '';
+    try {
+      const d = JSON.parse(raw);
+      const err = d && d.error;
+      msg = (err && typeof err === 'object' && err.message)
+        || (typeof err === 'string' && err)
+        || (d && d.message) || (d && d.detail) || '';
+      if (msg && typeof msg !== 'string') msg = JSON.stringify(msg);
+    } catch (_) {
+      // Not JSON. Strip tags so an HTML error page collapses to its text, and let the
+      // length cap below deal with whatever is left.
+      msg = raw.replace(/<[^>]*>/g, ' ');
+    }
+    msg = String(msg || '').replace(/\s+/g, ' ').trim();
+    return msg.length > SERVER_MSG_MAX ? msg.slice(0, SERVER_MSG_MAX) + '…' : msg;
+  }
+
   async function callChatAPI(o) {
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
     }, o.label);
-    return o.extract(await resp.json()).trim();
+    const text = await resp.text();
+    // A streaming answer is still just a body once it has all arrived. We never ask
+    // for one, but the negotiation below may end up asking, and then the body is SSE.
+    return o.extract(o.body && o.body.stream ? sseMerge(text) : JSON.parse(text)).trim();
+  }
+
+  // ─── 请求体协商 (§7.1) ────────────────────────────────────────────────────
+  //
+  // 「同一个地址、同一把 key，别的客户端能用，我们 400」的通用解释是：**地址和 key 都
+  // 对，是我们请求体里多了点东西**。2026-08-18 的真机对照把这件事说得很干净——把同一个
+  // 网关配到两个命令行客户端都能用，而它们在 chat/completions 这条路上恰好都不发我们
+  // 发的那几个字段：
+  //
+  //   我们发                     两个命令行客户端                  新模型的态度
+  //   ─────────────────────────  ────────────────────────────────  ──────────────────
+  //   temperature: 0.3           不发                              只接受默认值 ⇒ 400
+  //   max_tokens: 2000           走 Responses 的 max_output_tokens  改名了 ⇒ 400
+  //     ↑ 或 Messages 的 max_tokens（那里它是合法的）
+  //   messages[0].role='system'  走顶层 instructions / system      要求 developer ⇒ 400
+  //   （不发 stream）            stream: true                      SSE 网关只收流式 ⇒ 400
+  //
+  // 四个嫌疑人，我们不知道是哪一个——**也不需要知道**。服务端在 400 的响应体里会把它
+  // 不接受的字段名点出来，所以正确的做法不是维护一张「哪个模型不吃哪个参数」的名单
+  // （那张表和厂商名单一样，注定过期），而是**照着服务端说的那句话把对应字段让掉，再试
+  // 一次**。让掉的全是可选字段：temperature 和 max_tokens 只影响成本与风格，system 换成
+  // developer 语义等价，stream 只改变同一份内容的到达方式。
+  //
+  // 边界：只在 400/422（服务端在挑请求体的毛病）时协商，401/404/429/5xx 一律照旧报错；
+  // 每次协商必须真的改动了什么，否则立刻停；总共最多三次请求。这样它不可能变成一个把
+  // 真实错误磨掉的重试循环。
+  const NEGOTIABLE_STATUS = [400, 422];
+  const MAX_RELAX = 2;
+
+  function relaxBody(body, said) {
+    const msg = String(said || '');
+    if (!msg) return null;                    // 服务端没说话，就没有可照着让的东西
+    const next = Object.assign({}, body);
+    let changed = false;
+
+    // 顺序重要：先认「改名」再认「不支持」，否则 'use max_completion_tokens instead'
+    // 会被当成单纯的「不支持 max_tokens」而把预算整个丢掉。
+    if ('max_tokens' in next && /max_completion_tokens/i.test(msg)) {
+      next.max_completion_tokens = next.max_tokens; delete next.max_tokens; changed = true;
+    } else if ('max_tokens' in next && /max_tokens/i.test(msg)) {
+      delete next.max_tokens; changed = true;
+    }
+    if ('temperature' in next && /temperature/i.test(msg)) { delete next.temperature; changed = true; }
+
+    // system → developer。新模型把这个角色改了名，含义没变。
+    if (Array.isArray(next.messages) && /\bsystem\b|\bdeveloper\b/i.test(msg)) {
+      const i = next.messages.findIndex((m) => m && m.role === 'system');
+      if (i >= 0) {
+        next.messages = next.messages.slice();
+        next.messages[i] = Object.assign({}, next.messages[i], { role: 'developer' });
+        changed = true;
+      }
+    }
+
+    // 只收流式的网关。我们不需要边收边显示，所以「流式」对我们只是响应体换了个编码，
+    // 整包收完再解析即可 —— 见 sseMerge。
+    if (!next.stream && /\bstream/i.test(msg)) { next.stream = true; changed = true; }
+
+    return changed ? next : null;
+  }
+
+  // 把一段 SSE 响应体合并回一个 Chat Completions 形状的对象，好让上层的 extract 不必
+  // 知道流式这回事。只认 `data:` 行，`[DONE]` 忽略，坏帧跳过——半个 JSON 帧不该让
+  // 整次翻译失败。
+  function sseMerge(text) {
+    let out = '';
+    let last = null;
+    for (const line of String(text || '').split(/\r?\n/)) {
+      const s = line.trim();
+      if (!s.startsWith('data:')) continue;
+      const payload = s.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      let d = null;
+      try { d = JSON.parse(payload); } catch (_) { continue; }
+      last = d;
+      const ch = d && Array.isArray(d.choices) && d.choices[0];
+      if (!ch) continue;
+      const delta = ch.delta || {};
+      if (typeof delta.content === 'string') out += delta.content;
+      else if (ch.message && typeof ch.message.content === 'string') out += ch.message.content;
+    }
+    // 一帧都没解析出内容时把最后一帧原样交上去：它可能本来就是个非流式响应（网关忽略了
+    // stream），让上层的 extract 去处理，而不是在这里把它变成空串。
+    if (!out && last) return last;
+    return { choices: [{ message: { content: out } }] };
+  }
+
+  // 发一次；被挑请求体的毛病就照着服务端的话让一步，最多让 MAX_RELAX 次。
+  async function callChatNegotiating(o) {
+    let body = o.body;
+    for (let relaxed = 0; ; relaxed++) {
+      try {
+        return await callChatAPI(Object.assign({}, o, { body }));
+      } catch (e) {
+        const negotiable = e && e.code === 'http' && NEGOTIABLE_STATUS.includes(e.status)
+          && relaxed < MAX_RELAX;
+        const next = negotiable ? relaxBody(body, e.serverMessage) : null;
+        if (!next) throw e;                   // 没得让了 —— 原样把服务端那句话报上去
+        body = next;
+      }
+    }
   }
 
   // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
@@ -170,8 +307,11 @@ Rules:
   }
 
   // Chat Completions request format (DeepSeek / GLM / Qwen / Kimi / custom / etc.).
+  // The one shape that faces the whole compatibility zoo — every proxy, gateway and
+  // self-hosted server speaks it, and they disagree about the optional fields. Hence
+  // callChatNegotiating rather than callChatAPI: see 请求体协商 above.
   function translateChatCompat(text, targetLang, apiKey, cfg, model) {
-    return callChatAPI({
+    return callChatNegotiating({
       url: cfg.url,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: {
@@ -256,13 +396,12 @@ Rules:
     return out;
   }
 
-  // The endpoint is used EXACTLY as stored — no path is appended, ever. See
-  // content/wire-format.js for why, and for the legacy branch that keeps a device
-  // whose one-time migration never ran working on the old semantics.
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, verbatim) {
+  // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
+  // condition. See content/wire-format.js.
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model) {
     const p = providerById(provider);
     if (!p || p.type === 'google') return translateGoogle(text, targetLang);
-    const url = WireFormat.resolveEndpoint(baseUrl, p, { cap: 'chat', verbatim });
+    const url = WireFormat.resolveEndpoint(baseUrl, p);
     if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
     const cfg = { url, defaultModel: p.defaultModel, label: p.label || provider };
     // Registry `type` is the default shape; the address refines it (domain-design §7).
@@ -332,25 +471,43 @@ Rules:
 
   // ─── Public translate (uniform retry: backoff honors Retry-After + jitter;
   // final fallback to Google for non-google providers). Applies to ALL providers. ─
-  // `verbatim` is the per-field 「这个地址是按新语义存的」 stamp (settings key
-  // `apiBaseUrlVerbatim`). Absent ⇒ falsy ⇒ wire-format.js falls back to the legacy
-  // branch, i.e. a caller that has not been taught the flag keeps the OLD behaviour
-  // rather than a broken one — which is the only safe default for a positional
-  // parameter added to a signature four adapters already call.
-  async function translate(text, targetLang, provider, apiKey, baseUrl, model, verbatim) {
-    if (!text || text.trim().length < 2) return text;
-    const key = `${provider}:${targetLang}:${text}`;
+  // 可重试 = 网络/超时（瞬时），或服务端明说「稍后再来」（408/429/5xx）。
+  // 没有 status 的错误一律当可重试：那是 transportError 那一类，本来就是瞬时的。
+  function isRetryable(err) {
+    const s = err && err.status;
+    if (!s) return true;
+    if (s === 408 || s === 429) return true;
+    return s >= 500;
+  }
 
-    const mem = cacheGet(key);
-    if (mem) return mem;
-    const stored = await cacheGetStorage(key);
-    if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
+  // 缓存键必须包含**端点与模型**，不只是引擎 id。`custom_chat` 这个 id 下，地址和模型
+  // 才是「哪个模型在回答」的全部信息——只按 id 记，把同一个 id 的两套配置当成同一个东西：
+  // 用户把地址从 /chat/completions 改成 /v1/responses、或者换个模型，12 小时内拿到的
+  // 仍然是旧配置的译文，而界面上没有任何迹象。2026-08-19 实测就是这样：换完地址点
+  // 「测试连接」，1ms 返回「通了」，一个请求都没发出去。
+  function cacheKey(provider, targetLang, baseUrl, model, text) {
+    return `${provider}:${baseUrl || ''}:${model || ''}:${targetLang}:${text}`;
+  }
+
+  // opts.noCache —— 「测试连接」用。一个不发请求的连通性测试是**有害的**，不是省事：
+  // 它会在端点其实是坏的时候报「通了」。所以自检读写都绕开缓存，宁可慢几秒。
+  async function translate(text, targetLang, provider, apiKey, baseUrl, model, opts) {
+    if (!text || text.trim().length < 2) return text;
+    const noCache = !!(opts && opts.noCache);
+    const key = cacheKey(provider, targetLang, baseUrl, model, text);
+
+    if (!noCache) {
+      const mem = cacheGet(key);
+      if (mem) return mem;
+      const stored = await cacheGetStorage(key);
+      if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
+    }
 
     const result = await enqueue(async () => {
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, verbatim);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model);
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
@@ -375,18 +532,25 @@ Rules:
             // it is no longer a silent understudy for the one you picked.
             throw err;
           }
+          // 重试只对**可能自己好起来**的失败有意义。这个循环原来对任何错误都退避重试
+          // 三次，于是一个「key 不对」或「余额不足」会被整页每一段各请求三次——一页
+          // 50 段就是 150 次注定失败的请求，把用户的报错延后了十几秒，也把服务端的
+          // 限流白白撞满。请求体协商（见上）会让这件事更糟：3 × 3 = 9。
+          // 4xx 里只有 408（超时）和 429（限流）值得再试，其余是我们发错了，重发一遍
+          // 还是错。
+          if (!isRetryable(err)) throw err;
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
           await new Promise(r => setTimeout(r, backoff + Math.random() * JITTER_MS));
         }
       }
     });
 
-    cacheSet(key, result);
+    if (!noCache) cacheSet(key, result);
     return result;
   }
 
   // ─── Batch translate ──────────────────────────────────────────────────
-  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model, verbatim) {
+  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model) {
     if (!texts.length) return [];
 
     if (provider === 'google') {
@@ -394,13 +558,15 @@ Rules:
       const results = [];
       for (let i = 0; i < texts.length; i += CHUNK) {
         const chunk = texts.slice(i, i + CHUNK);
-        const cached = chunk.map(t => cacheGet(`google:${targetLang}:${t}`));
+        // 必须走同一个 cacheKey()：这里曾经自己拼 `google:${lang}:${text}`，
+        // 键格式一改，批量写进去的条目单条读永远命中不了，两边各刷各的。
+        const cached = chunk.map(t => cacheGet(cacheKey('google', targetLang, '', '', t)));
         const missingIdx = cached.map((v, idx) => v === null ? idx : -1).filter(idx => idx >= 0);
         if (missingIdx.length > 0) {
           try {
             const missing = missingIdx.map(idx => chunk[idx]);
             const translated = await translateGoogleBatch(missing, targetLang);
-            missingIdx.forEach((idx, j) => { cacheSet(`google:${targetLang}:${chunk[idx]}`, translated[j]); cached[idx] = translated[j]; });
+            missingIdx.forEach((idx, j) => { cacheSet(cacheKey('google', targetLang, '', '', chunk[idx]), translated[j]); cached[idx] = translated[j]; });
           } catch (_) {
             for (const idx of missingIdx) cached[idx] = await translate(chunk[idx], targetLang, 'google', '', '');
           }
@@ -413,5 +579,5 @@ Rules:
     return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl, model)));
   }
 
-  return { translate, translateBatch, LANG_NAMES };
+  return { translate, translateBatch, serverSays, relaxBody, sseMerge, LANG_NAMES };
 })();

@@ -109,10 +109,26 @@ same endpoint in both flavors and is therefore one row.
 
 **How the two brand-free custom entries are verified.** `custom_chat` / `custom_msg`
 have no endpoint of their own — the thing under test is "user supplies a complete
-endpoint URL of this wire shape, and we speak it". Point `custom_chat` at any
-Chat-Completions-shaped endpoint we already hold a key for, and `custom_msg` at any
-Messages-shaped one. That is a real verification of the code path; it needs no
-additional account.
+endpoint URL of this wire shape, and we speak it".
+
+Pointing `custom_chat` at an endpoint that ALSO ships as its own registry row (say
+DeepSeek's) exercises the code path but proves almost nothing that row 4 does not
+already prove: same host, same body, same response shape, and an address we ourselves
+chose. The feature being claimed is different — **someone else's endpoint, whose path
+convention we do not control**. So the driver for row 11 is a third-party aggregator:
+
+> `custom_chat` → **OpenRouter**, `https://openrouter.ai/api/v1/chat/completions`
+> (`base_chat_custom_chat` / `key_chat_custom_chat` in `.local/keys.md`; the model is
+> a required field here — OpenRouter ids are namespaced, e.g. `openai/gpt-4o-mini`).
+
+Why this one specifically: it is a real aggregator in front of many vendors, its path
+is not any single vendor's, its model ids are not any single vendor's, and it is
+reachable without a corporate network — so it is the row that actually stands behind
+the sentence 「中转代理与自建服务都适用」 in the settings hint. It also exercises the
+address→shape rule end to end: the suffix `/chat/completions` is what selects the
+transport, and nothing in the registry names OpenRouter at all.
+
+`custom_msg` still reuses any Messages-shaped endpoint we hold a key for (row 3).
 
 **Self-hosted rows need a server, not a key.** `local` (TTS) needs any
 `/v1/audio/speech`-shaped server; `local` (STT) has one in-repo already —
@@ -133,7 +149,7 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 8 | `qwen` | china (`dashscope`) | `chat-compat` | DashScope 国内版 key | ❌ **缺 key** |
 | 9 | `kimi` | global (`api.moonshot.ai`) | `chat-compat` | Moonshot 海外 key | ❌ **缺 key** |
 | 10 | `kimi` | china (`api.moonshot.cn`) | `chat-compat` | Moonshot 国内 key | ❌ **缺 key** |
-| 11 | `custom_chat` | global + china | `chat-compat` | 复用任一 Chat 形状端点 | ❌ 未记录 |
+| 11 | `custom_chat` | global + china | `chat-compat` | OpenRouter key（第三方中转，见上） | ✅ 2026-08-18 Chrome 真机（`qwen/qwen3.8-27b`；`/v1/chat/completions` 自检 3538ms + 整页翻译；**同 host 换 `/v1/responses` 后自检 10317ms 通过**，同一把 key，形状由后缀判定） |
 | 12 | `custom_msg` | global + china | `messages-compat` | 需一个 Messages 形状端点 | ❌ **依赖第 3 行的 key** |
 | 13 | `browser` (TTS) | global + china | `browser` | — (系统语音) | ✅ 随复习流程长期在跑 |
 | 14 | `local` (TTS) | global + china | `speech-compat` | 自建 `/v1/audio/speech` 服务 | ❌ **缺服务** |
