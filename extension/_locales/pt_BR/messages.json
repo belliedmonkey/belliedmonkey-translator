@@ -1367,6 +1367,30 @@
     "message": "Cartão {i} de {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Explicar",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Passagem {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analisando…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Para ler a análise é preciso configurar antes um mecanismo de análise (Ajustes → Análise da frase)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Este cartão não tem análise para ler",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Não foi possível ler suas configurações salvas — tente novamente em instantes",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Aleatório",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Ligado, cada cartão é seguido da sua análise (palavras, expressões, um ponto de gramática). Um cartão nunca analisado é analisado na hora, com o mecanismo que você configurou — cobrado uma única vez por cartão e depois em cache. Desligado, só a frase e a tradução são lidas.",
+    "message": "Cada cartão é seguido da sua análise (palavras, expressões, um ponto de gramática). **Ligado por padrão**: um cartão nunca analisado é analisado na hora, com o mecanismo que você configurou — cobrado uma única vez por cartão e depois em cache. Desligue se preferir não gastar; desligado, só a frase e a tradução são lidas.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

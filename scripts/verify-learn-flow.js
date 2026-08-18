@@ -665,6 +665,7 @@ async function runHost(host) {
       // 走查用「顺序播放」：默认是随机，而随机永不结束（绕圈重洗），没有可等的终点。
       await ev(`(localStorage.setItem('mt:uiLang', JSON.stringify('en')),
                 localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
+                // 解析默认是**开**的（2026-08-18）；前几步要的是纯听读，所以显式关掉。
                 localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
       const driveWait = async (ms) => {
         const until = Date.now() + ms;
@@ -729,11 +730,16 @@ async function runHost(host) {
         return hit ? JSON.stringify({ text: hit.text, tr: hit.tr }) : 'null';
       })()`).then(JSON.parse);
       need(firstCard !== null, '第一段朗读不是任何卡的原文: ' + JSON.stringify(spoken[0]));
-      need(firstCard && spoken[1] === firstCard.tr,
-        '原文之后没有紧跟译文（' + JSON.stringify(spoken.slice(0, 3)) + '）');
+      // 三遍结构：第一遍只有原句，第二遍才是 原句 → 译句。所以译句在第 3 段。
+      need(firstCard && spoken[1] === firstCard.text && spoken[2] === firstCard.tr,
+        '三遍结构不对，应为 原句/原句/译句（' + JSON.stringify(spoken.slice(0, 4)) + '）');
       const deckLen = (await ev(`AppDriving._debug()`)).deck;
-      need(spoken.length >= deckLen * 2,
-        '播放段数少于「每张卡原文+译文」—— 有卡没被自动播到: ' + spoken.length + ' vs ' + deckLen * 2);
+      // 一张卡三遍（§9.5）：原句读三次、译句一次。段数下限因此是 卡数×4，而不是 ×2。
+      need(spoken.length >= deckLen * 4,
+        '播放段数少于「每张卡三遍」—— 三遍结构没生效或有卡没播到: ' + spoken.length + ' vs ' + deckLen * 4);
+      const firstCardSpokenCount = spoken.filter((x) => x === firstCard.text).length;
+      need(firstCardSpokenCount >= 3,
+        '第一张卡的原句只被读了 ' + firstCardSpokenCount + ' 次，应当是三次（第一/二/三遍）');
       // 这一条是本模式的核心契约，反向断言，load-bearing。
       const rowsAfterA = await ev(`LearnStore.allReviews().then((r) => r.length)`);
       need(rowsAfterA === rowsBefore,
@@ -798,6 +804,71 @@ async function runHost(host) {
         '播放解析的会话写了复习行 —— 解析也不是证据');
       await sweep('驾车·播放解析', '#app-drive');
       await ev(`(localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
+
+      // 10d′ · **本次真机 bug 的回归用例。** 解析引擎**没配**时打开播放解析：
+      // 必须出现一句具名说明，而不是像 build 38 那样静默无事发生。
+      //
+      // 现有的 10d 永远抓不到这个 bug —— 它在打开开关的同一次写入里把 provider/apiKey
+      // 也喂好了，自己造出了真机上不成立的前提。这条用例把那两个键**清掉**。
+      await ev(`(localStorage.removeItem('mt:provider'),
+                localStorage.removeItem('mt:apiKey'),
+                localStorage.removeItem('mt:notesProvider'),
+                localStorage.removeItem('mt:notesApiKey'),
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(true)), 'ok')`);
+      await ev(`(window.__spoken = [], window.__mtChatBodies = [], 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      const dbgNoEngine = await ev(`AppDriving._debug()`);
+      need(dbgNoEngine.playNotes === true && dbgNoEngine.notesOk === false,
+        '这条用例要的正是「开关开着但引擎没配」，实际 ' + JSON.stringify(dbgNoEngine));
+      need((await text('#app-drive-cost')).length > 0,
+        '开关开着、引擎没配 —— 界面上一个字都没说。这正是 build 38 的症状');
+      need((await ev(`window.__mtChatBodies.length`)) === 0, '引擎没配却发出了解析请求');
+      await sweep('驾车·解析引擎缺失', '#app-drive');
+      await ev(`(AppDriving.stop(), 'ok')`);
+
+      // 10d″ · 暂停 → 「解析这句」 → 解析被读出来 → **回到暂停且 seg 不变**。
+      await ev(`(localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:apiKey', JSON.stringify('k-test')),
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
+      // 给每张卡种一份**合法**的缓存解析（生词取自该卡自己的原句），这样按需解析走的是
+      // 缓存命中、不经过「生词必须出自原句」那道回验门。否则这条用例的成败取决于 mock
+      // 返回的生词碰巧出现在哪张卡里 —— 那是运气，不是断言。
+      await ev(`(async () => {
+        for (const it of await LearnStore.allItems()) {
+          const w = String(it.text || '').split(/\s+/).find((x) => x.length > 3) || it.text;
+          await LearnStore.putNote(it.id, { words: [{ w, g: 'durable-marker' }], phrases: [], grammar: '' },
+            { v: LearnNotes.PROMPT_VERSION });
+        }
+        return 'ok';
+      })()`);
+      await ev(`(window.__spoken = [], 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 200));
+      await click('#app-drive-pause');
+      const segAtPause = (await ev(`AppDriving._debug()`)).seg;
+      need((await ev(`document.getElementById('app-drive-explain').hidden`)) === false,
+        '暂停时没有出现「解析这句」按钮');
+      await ev(`(window.__spoken = [], 'ok')`);
+      await click('#app-drive-explain');
+      const explained = await (async () => {
+        const until = Date.now() + 20000;
+        while (Date.now() < until) {
+          if ((await ev(`AppDriving._debug()`)).state === 'paused'
+              && (await ev(`window.__spoken.length`)) > 0) return true;
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        return false;
+      })();
+      need(explained, '按需解析没有在 20s 内读完并回到暂停 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      need(await ev(`window.__spoken.some((s) => s.indexOf('durable-marker') >= 0)`),
+        '按需解析的内容没有被读出来: ' + JSON.stringify(await ev(`JSON.stringify(window.__spoken)`))
+        + ' note=' + JSON.stringify(await text('#app-drive-note')));
+      need((await ev(`AppDriving._debug()`)).seg === segAtPause,
+        'seg 变了 —— 「继续」会从错的那一段重来');
+      need((await text('#app-drive-notes')).length > 0, '按需解析的文字没有显示出来');
+      await sweep('驾车·按需解析', '#app-drive');
+      await ev(`(AppDriving.stop(), 'ok')`);
 
       // 10e · Pause: TTS stops, and NOTHING is written after the pause.
       await ev(`AppDriving.start().then(() => 'ok')`);

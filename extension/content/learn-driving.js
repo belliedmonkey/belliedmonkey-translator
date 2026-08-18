@@ -32,12 +32,14 @@ var LearnDriving = (() => {
 
   const DEFAULTS = {
     mode: DEFAULT_MODE,
-    // Reading the notes aloud is OFF by default because it can COST MONEY: a card
-    // that has never been parsed gets generated on the spot, against the user's own
-    // key. §9.2's "one generation per card, ever" still holds — the charge happens
-    // once and every later pass is cached — but a silent first charge while someone
-    // is driving is not something to opt them into.
-    playNotes: false,
+    // Reading the notes aloud is ON by default (user's call, 2026-08-18). It can COST
+    // MONEY: a card that has never been parsed gets generated on the spot, against the
+    // user's own key. §9.2's "one generation per card, ever" still holds — the charge
+    // happens once and every later pass is cached — but with the default flipped on,
+    // the FIRST session through a fresh deck parses every card in it. That is why the
+    // cost sentence appears twice (beside the setting, and standing in the player
+    // while it happens) rather than once.
+    playNotes: true,
   };
 
   function cfgOf(cfg) { return Object.assign({}, DEFAULTS, cfg || {}); }
@@ -81,15 +83,32 @@ var LearnDriving = (() => {
     return { pos: reshuffled[0], order: reshuffled, done: false };
   }
 
-  // ─── Per-card plan ─────────────────────────────────────────────────────────
-  // What gets read aloud for one card, in order. Media cards never reach this (the
-  // orchestrator skips them — synthetic speech never replaces real speech, §11).
+  // ─── Per-card plan: THREE passes ───────────────────────────────────────────
+  //   1st  原句
+  //   2nd  原句 + 译句 + 解析（解析可选）
+  //   3rd  原句
+  //
+  // Returned FLAT — one array the state machine walks by index — but every segment
+  // carries its `pass`, because once flattened the surface can no longer tell the
+  // first pass's 原句 from the third's, and the status line has to say which one it
+  // is. Adding or reordering a pass is therefore a data change, never a new state.
+  //
+  // A card with no translation gets three bare readings of its sentence. That is the
+  // correct reading of "play it three times", not a degenerate case to special-case.
+  //
+  // Media cards never reach this (the orchestrator skips them — synthetic speech
+  // never replaces real speech, §11).
+  const PASSES = 3;
+
   function cardPlan(item, cfg) {
     const c = cfgOf(cfg);
-    const segments = ['source'];
-    if (item && item.tr) segments.push('tr');
-    if (c.playNotes) segments.push('notes');
-    return { segments };
+    const seg = (what, pass) => ({ what, pass });
+    const segments = [seg('source', 1)];
+    segments.push(seg('source', 2));
+    if (item && item.tr) segments.push(seg('tr', 2));
+    if (c.playNotes) segments.push(seg('notes', 2));
+    segments.push(seg('source', 3));
+    return { segments, passes: PASSES };
   }
 
   // ─── Notes → one spoken paragraph ──────────────────────────────────────────
@@ -134,9 +153,9 @@ var LearnDriving = (() => {
   // Start (or restart) the segment at `seg` of the current card. `notes` needs its
   // text fetched first; everything else is already in hand.
   function playSegment(ctx, seg) {
-    const segments = (ctx && ctx.plan && ctx.plan.segments) || ['source'];
+    const segments = (ctx && ctx.plan && ctx.plan.segments) || [{ what: 'source', pass: 1 }];
     if (seg >= segments.length) return S('advancing', [{ t: 'advance' }]);
-    const what = segments[seg];
+    const what = segments[seg].what;
     if (what === 'notes') return S('fetching_notes', [{ t: 'fetch_notes' }], { seg });
     return S('speaking', [{ t: 'speak', what }], { seg });
   }
@@ -154,6 +173,11 @@ var LearnDriving = (() => {
       return S('paused', [{ t: 'stop_tts' }], { seg });
     }
     if (ev === 'tap_resume' && st === 'paused') return playSegment(ctx, seg);
+    // 暂停时的「解析这句」。只从 paused 进得去，且**读完回到 paused、seg 原样带回**：
+    // 暂停的语义是「我在控制」，读完一段解析不该顺势把整场恢复。
+    if (ev === 'tap_explain' && st === 'paused') {
+      return S('explain_fetch', [{ t: 'fetch_notes', onDemand: true }], { seg });
+    }
     // The mode toggle never interrupts audio — it only changes what happens at the
     // END of this card, which is the whole reason it is safe to press while moving.
     if (ev === 'tap_mode') return { state: state, effects: [{ t: 'mode_next' }] };
@@ -198,13 +222,33 @@ var LearnDriving = (() => {
         }
         return { state: state, effects: [] };
 
+      // ── 按需解析（暂停中）───────────────────────────────────────────────
+      // 与 fetching_notes 刻意分开而不是加一个 flag：两条路径的**去处**不同
+      // （一个继续播下一段，一个回到暂停），用一个状态加布尔量表达，就是把「回哪里」
+      // 藏进了一个容易被后来者漏掉的字段里。
+      case 'explain_fetch':
+        if (ev === 'notes_ready') {
+          return arg && String(arg).trim()
+            ? S('explain_speak', [{ t: 'speak', what: 'notes', text: arg }], { seg })
+            : S('paused', [{ t: 'note', code: 'notes_empty' }], { seg });
+        }
+        if (ev === 'notes_fail') {
+          return S('paused', [{ t: 'note', code: arg || 'notes_failed' }], { seg });
+        }
+        return { state: state, effects: [] };
+
+      case 'explain_speak':
+        if (ev === 'tts_done') return S('paused', [], { seg });
+        if (ev === 'tts_fail') return S('paused', [{ t: 'note', code: arg }], { seg });
+        return { state: state, effects: [] };
+
       default:
         return { state: state, effects: [] };
     }
   }
 
   return {
-    DEFAULTS, MODES, DEFAULT_MODE, nextMode,
+    DEFAULTS, MODES, DEFAULT_MODE, PASSES, nextMode,
     buildOrder, advance, cardPlan, notesToSpeech, reduce,
     ACTIVE,
   };

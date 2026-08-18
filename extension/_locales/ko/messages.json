@@ -1367,6 +1367,30 @@
     "message": "{n}장 중 {i}장",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 이 문장 해설",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "{i}회차",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "분석 중…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "해설을 읽으려면 먼저 해설 엔진을 설정하세요(설정 → 문장 해설)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "이 카드에는 읽을 해설이 없습니다",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "저장된 설정을 읽을 수 없습니다 — 잠시 후 다시 시도하세요",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 셔플",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "켜면 각 카드의 원문과 번역 뒤에 해설(단어 · 표현 · 문법)까지 읽습니다. 아직 분석하지 않은 카드는 그 자리에서 설정한 엔진으로 분석합니다 — 카드당 한 번만 과금되고 이후에는 캐시를 씁니다. 끄면 원문과 번역만 읽습니다.",
+    "message": "각 카드의 원문과 번역 뒤에 해설(단어 · 표현 · 문법)까지 읽습니다. **기본값은 켜짐**: 아직 분석하지 않은 카드는 그 자리에서 설정한 엔진으로 분석합니다 — 카드당 한 번만 과금되고 이후에는 캐시를 씁니다. 비용이 부담되면 끄세요. 끄면 원문과 번역만 읽습니다.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

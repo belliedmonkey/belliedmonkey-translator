@@ -98,6 +98,9 @@
         <!-- 播放顺序：随机 / 顺序 / 循环 / 单曲循环，点一下轮换。它只改变**这张卡
              结束之后**发生什么，永不打断正在播的音频 —— 所以开车时按它是安全的。 -->
         <button id="app-drive-mode" type="button" hidden></button>
+        <!-- 「解析这句」：只在暂停时出现。解析 + 显示 + 朗读，读完回到暂停 ——
+             暂停的语义是「我在控制」，读完一段解析不该顺势把整场恢复。 -->
+        <button id="app-drive-explain" type="button" hidden></button>
       </div>
       <button id="app-drive-more" type="button" class="secondary" hidden></button>
       <p class="note" id="app-drive-cost"></p>

@@ -1367,6 +1367,30 @@
     "message": "البطاقة {i} من {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 اشرح هذه",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "الجولة {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "جارٍ التحليل…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "قراءة الشرح تحتاج أولًا إلى إعداد محرّك شرح (الإعدادات ← شرح الجملة)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "لا يوجد شرح لقراءته في هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "تعذّرت قراءة إعداداتك المحفوظة — أعد المحاولة بعد قليل",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 عشوائي",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "عند التفعيل، تُقرأ بعد كل بطاقة شروحها (مفردات وعبارات ونقطة نحوية). والبطاقة التي لم تُحلَّل من قبل تُحلَّل فورًا بالمحرك الذي أعددته — تُحتسب التكلفة مرة واحدة لكل بطاقة ثم تُقرأ من الذاكرة المؤقتة. وعند الإيقاف تُقرأ الجملة وترجمتها فقط.",
+    "message": "تُقرأ بعد كل بطاقة شروحها (مفردات وعبارات ونقطة نحوية). **مفعَّل افتراضيًا**: البطاقة التي لم تُحلَّل من قبل تُحلَّل فورًا بالمحرك الذي أعددته — تُحتسب التكلفة مرة واحدة لكل بطاقة ثم تُقرأ من الذاكرة المؤقتة. أوقفه إن كنت تفضّل عدم الإنفاق؛ وعند الإيقاف تُقرأ الجملة وترجمتها فقط.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

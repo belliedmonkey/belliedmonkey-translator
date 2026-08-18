@@ -33,6 +33,9 @@ var AppDriving = (() => {
   let uiLang = 'zh-CN';
   let plan = { segments: [] };
   let notesText = '';        // rendered notes for the current card, if fetched
+  // 会话级的一句话（例如「开关开着但引擎没配」）。它必须由 paint() 渲染进**常驻行**：
+  // 写进 #app-drive-note 会被 renderCard() 每张卡的 note('') 抹掉 —— 提示话音未落就没了。
+  let sessionNote = '';
   // Generation counters: `gen` invalidates every async continuation on session
   // start/stop; `speakSeq` invalidates a superseded utterance so an interrupted
   // speak's `done` can never advance the NEW state (the epoch discipline tts.js
@@ -51,16 +54,23 @@ var AppDriving = (() => {
     'drivePlaybackMode', 'drivePlayNotes',
   ];
 
+  // Returns { ok, data }. The `ok` is NOT decoration: `page-settings.js`'s whole
+  // contract is that a FAILED read is not an empty profile, and this used to throw
+  // that away — a storage failure came back as "every setting is at its default",
+  // which is exactly the 2026-08-05 incident shape (settings appearing to revert).
+  // A driving session started on defaults would silently drop the user's engine, so
+  // the caller refuses to start instead.
   function loadSettings() {
-    // Explicit keys, never get(null) — same list discipline as review.js.
-    return PageSettings.read(SETTINGS_KEYS).then((r) => r.data);
+    return PageSettings.read(SETTINGS_KEYS);
   }
 
   function applySettings(s) {
     uiLang = s.uiLang && s.uiLang !== 'auto' ? s.uiLang : (navigator.language || 'zh-CN');
     mode = LearnDriving.MODES.indexOf(s.drivePlaybackMode) >= 0
       ? s.drivePlaybackMode : LearnDriving.DEFAULT_MODE;
-    playNotes = s.drivePlayNotes === true;
+    // `!== false`，不是 `=== true`：默认开，且**不需要往存储里播种默认值** ——
+    // 老装机（键不存在）与新装机因此行为一致。
+    playNotes = s.drivePlayNotes !== false;
     // Defensive reconfigure — review.js configured these at bundle load, but the
     // user may have changed settings since; configure() is cheap and idempotent.
     LearnTTS.configure({
@@ -83,7 +93,9 @@ var AppDriving = (() => {
     const btn = $('app-drive-start');
     if (!btn) return;
     try {
-      applySettings(await loadSettings());
+      const r = await loadSettings();
+      if (!r.ok) { btn.hidden = true; return; }   // 读不到设置就不假装入口可用
+      applySettings(r.data);
       const av = await LearnTTS.available(uiLang, 2000);
       btn.hidden = !av.ok;
     } catch (_) { btn.hidden = true; }
@@ -114,15 +126,27 @@ var AppDriving = (() => {
     }
   }
 
+  // 段带着 pass 就是为了这一行：摊平之后，界面无法从 `what` 区分「第一遍的原句」和
+  // 「第三遍的原句」，而听的人需要知道自己在第几遍。
+  function passPrefix(seg) {
+    const s = (plan.segments || [])[seg];
+    if (!s || !s.pass) return '';
+    return t('drive_pass', '第 {i} 遍').replace('{i}', String(s.pass)) + ' · ';
+  }
+
   function statusText() {
     switch (state.name) {
       case 'speaking': {
-        const what = (plan.segments || [])[state.seg || 0];
-        if (what === 'tr') return t('drive_status_tr', '播放译文…');
-        if (what === 'notes') return t('drive_status_notes', '播放解析…');
-        return t('drive_status_source', '播放原文…');
+        const seg = state.seg || 0;
+        const s = (plan.segments || [])[seg] || {};
+        const body = s.what === 'tr' ? t('drive_status_tr', '播放译文…')
+          : s.what === 'notes' ? t('drive_status_notes', '播放解析…')
+          : t('drive_status_source', '播放原文…');
+        return passPrefix(seg) + body;
       }
-      case 'fetching_notes': return t('drive_status_parsing', '正在解析这一句…');
+      case 'fetching_notes': return passPrefix(state.seg || 0) + t('drive_status_parsing', '正在解析这一句…');
+      case 'explain_fetch': return t('drive_status_explaining', '正在解析…');
+      case 'explain_speak': return t('drive_status_notes', '播放解析…');
       case 'paused': return t('drive_status_paused', '已暂停');
       case 'stopped_error': return ttsReason(state.reasonCode);
       case 'session_done': return t('drive_done', '本轮听完了');
@@ -130,12 +154,22 @@ var AppDriving = (() => {
     }
   }
 
+  // 按需解析这两个态在**用户看来仍然是暂停中**（他没点继续），所以按钮显隐按暂停处理。
+  function pausedLike() {
+    return state.name === 'paused' || state.name === 'stopped_error'
+      || state.name === 'explain_fetch' || state.name === 'explain_speak';
+  }
+
   // ─── View ─────────────────────────────────────────────────────────────────
   function paint() {
     const active = state.name !== 'idle' && state.name !== 'session_done';
-    const pauseLike = state.name === 'paused' || state.name === 'stopped_error';
+    const pauseLike = pausedLike();
     $('app-drive-pause').textContent = pauseLike
       ? t('drive_resume', '▶ 继续') : t('drive_pause', '⏸ 暂停');
+    // 「解析这句」只在暂停时出现，且只在解析引擎可用时出现（能力语义）。引擎不可用时
+    // 它不存在 —— 但**为什么不存在**由 sessionNote() 那行说出来，而不是留一个空位。
+    $('app-drive-explain').hidden = !(pauseLike && notesOk);
+    $('app-drive-explain').disabled = state.name === 'explain_fetch' || state.name === 'explain_speak';
     $('app-drive-pause').hidden = !active;
     $('app-drive-next').hidden = !active;
     $('app-drive-repeat').hidden = !active;
@@ -153,8 +187,9 @@ var AppDriving = (() => {
       : '';
     // Say the cost while it is being incurred, not only in settings: the charge is
     // per un-parsed card, and it happens while the user is driving and not looking.
-    $('app-drive-cost').textContent = (active && playNotes && notesOk)
-      ? t('drive_notes_cost', '播放解析：没解析过的卡会调用你配置的解析引擎，每张卡只收一次费') : '';
+    // 常驻行：会话级说明优先于费用提示 —— 「引擎没配」比「会花钱」更该先被看到。
+    $('app-drive-cost').textContent = sessionNote || ((active && playNotes && notesOk)
+      ? t('drive_notes_cost', '播放解析：没解析过的卡会调用你配置的解析引擎，每张卡只收一次费') : '');
   }
 
   function note(msg) { $('app-drive-note').textContent = msg || ''; }
@@ -205,7 +240,11 @@ var AppDriving = (() => {
   async function execFetchNotes() {
     const myGen = gen, mySeq = ++notesSeq;
     const item = deck[pos];
-    if (!item || !notesOk) { dispatch('notes_ready', ''); return; }
+    // 具名，不是静默成功。这里原本 dispatch 一个空串（= 悄悄跳过这一段），于是
+    // 「开了播放解析但没配解析引擎」在整个 App 里没有一个字告诉用户发生了什么 ——
+    // 真机上表现得和功能没做完全一样。走 notes_fail 之后，它至少会说话。
+    if (!item) { dispatch('notes_fail', 'notes_failed'); return; }
+    if (!notesOk) { dispatch('notes_fail', 'no_engine'); return; }
     let data = null;
     try {
       const r = await LearnNotes.get(item, uiLang);
@@ -228,6 +267,9 @@ var AppDriving = (() => {
 
   function noteFor(code) {
     switch (code) {
+      case 'no_engine': return t('drive_notes_engine_missing',
+        '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）');
+      case 'notes_empty': return t('drive_notes_empty', '这张卡没有可播的解析');
       case 'no_base': return t('drive_notes_no_base', '解析引擎还没配置好，这张卡的解析跳过了');
       case 'no_voice':
       case 'no_voice_und': return t('drive_skip_card', '这张卡读不出来，已跳到下一张');
@@ -251,6 +293,13 @@ var AppDriving = (() => {
     if (!item) { dispatch('deck_done'); return; }
     plan = LearnDriving.cardPlan(item, { playNotes: playNotes && notesOk });
     renderCard(item);
+    // 预取解析：三遍结构白送的一个改进。走到第二遍的解析段才发起请求，会在
+    // 「原句 → 译句 → ★几秒静默★ → 解析」中间留一个听起来像卡住的空档；开卡就发起，
+    // 通常等走到那一段时已经在手。**不会重复扣费**：notes.js 的 inflight map 按
+    // item.id 去重，两次调用拿到的是同一个 promise。失败留给正式那次去具名处理。
+    if (playNotes && notesOk) {
+      try { LearnNotes.get(item, uiLang).catch(() => {}); } catch (_) {}
+    }
     dispatch('card_ready');
   }
 
@@ -322,9 +371,24 @@ var AppDriving = (() => {
     gen++;
     LearnTTS.stop();
     state = { name: 'idle' };
-    applySettings(await loadSettings());
+    sessionNote = '';
+    const read = await loadSettings();
+    if (!read.ok) {
+      // 读失败绝不降级成「全用默认值」——那会把用户配好的引擎悄悄换掉。
+      state = { name: 'session_done' };
+      paint();
+      $('app-drive-status').textContent = t('settings_read_failed_short', '读不到已保存的设置，请稍后再试');
+      return;
+    }
+    applySettings(read.data);
     const skipped = await buildSession();
     renderCard(null);
+    // 开关开着、引擎没配 ⇒ 说一次，会话级，不是每张卡。这不是「能力语义下的形态不
+    // 存在」——用户**明确打开了一个开关**，什么都不发生就必须给出理由，而且要点名去哪配。
+    // 真机 build 38 上这条路径静默无声，表现得和功能没做一模一样。
+    sessionNote = (playNotes && !notesOk)
+      ? t('drive_notes_engine_missing', '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）')
+      : '';
     if (skipped) {
       note(t('drive_skipped', '跳过 {n} 张读不出来的卡（媒体卡或无语音）').replace('{n}', String(skipped)));
     }
@@ -354,6 +418,7 @@ var AppDriving = (() => {
     $('app-drive-next').addEventListener('click', () => dispatch('tap_next'));
     $('app-drive-repeat').addEventListener('click', () => dispatch('tap_repeat'));
     $('app-drive-mode').addEventListener('click', () => dispatch('tap_mode'));
+    $('app-drive-explain').addEventListener('click', () => dispatch('tap_explain'));
     $('app-drive-more').addEventListener('click', () => { start(); });
     // A hidden app (lock, call, app switch) pauses: TTS stops. Resuming is always a
     // tap, never automatic — a car that starts talking again on its own is worse
@@ -374,12 +439,16 @@ var AppDriving = (() => {
     $('app-drive-more').textContent = t('drive_restart', '再来一轮');
     $('app-drive-pause').textContent = t('drive_pause', '⏸ 暂停');
     $('app-drive-mode').textContent = modeLabel(mode);
+    $('app-drive-explain').textContent = t('drive_explain', '🔍 解析这句');
   }
 
   // Test-only introspection (verify-learn-flow.js): the session's moving parts,
   // read-only. Not a public surface.
   function _debug() {
-    return { state: state.name, seg: state.seg || 0, deck: deck.length, pos, mode,
+    const cur = (plan.segments || [])[state.seg || 0] || {};
+    return { state: state.name, seg: state.seg || 0, pass: cur.pass || 0,
+      segments: (plan.segments || []).map((x) => x.what + x.pass),
+      deck: deck.length, pos, mode,
       playNotes, notesOk, uiLang, order: order.slice() };
   }
 

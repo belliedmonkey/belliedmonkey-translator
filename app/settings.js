@@ -308,7 +308,8 @@ var AppSettings = (() => {
     $('notes-base').value = cur.apiBaseUrl || '';
     $('notes-model').value = cur.apiModel || '';
     paintNotesFields(cur.provider || '');
-    $('drive-play-notes').checked = cur.drivePlayNotes === true;
+    // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
+    $('drive-play-notes').checked = cur.drivePlayNotes !== false;
     $('stt-engine').value = (window.MT_STT_ENGINES || []).some((e) => e.id === cur.sttEngine)
       ? cur.sttEngine : '';
     $('stt-key').value = cur.sttApiKey || '';

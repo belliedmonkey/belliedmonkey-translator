@@ -1368,6 +1368,30 @@
     "message": "第 {i} / {n} 張",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 解析這句",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "第 {i} 遍",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "正在解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "「播放解析」需要先在設定裡配好解析引擎（設定 → 句子解析）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "這張卡沒有可播的解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "讀不到已儲存的設定，請稍後再試",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 隨機播放",
     "description": "Driving mode (§9.5)"
@@ -1401,7 +1425,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "開啟後每張卡在原文和譯文之後再讀一遍解析（生詞 / 片語 / 文法）。沒解析過的卡會自動呼叫你設定的解析引擎——每張卡只收一次費，之後一直用快取。不開則只讀原文和譯文。",
+    "message": "每張卡在原文和譯文之後再讀一遍解析（生詞 / 片語 / 文法）。**預設開著**：沒解析過的卡會自動呼叫你設定的解析引擎——每張卡只收一次費，之後一直用快取。不想讓它花錢就關掉，關掉後只讀原文和譯文。",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

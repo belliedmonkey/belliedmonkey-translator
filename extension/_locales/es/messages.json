@@ -1367,6 +1367,30 @@
     "message": "Tarjeta {i} de {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Explicar",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Pasada {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analizando…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Para leer el análisis hace falta configurar antes un motor de análisis (Ajustes → Análisis de la frase)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Esta tarjeta no tiene análisis que leer",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "No se pueden leer tus ajustes guardados: inténtalo en un momento",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Aleatorio",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Activado, cada tarjeta va seguida de su análisis (palabras, expresiones, un punto de gramática). Una tarjeta nunca analizada se analiza en el momento con el motor que configuraste: se cobra una sola vez por tarjeta y luego queda en caché. Desactivado, solo se leen la frase y su traducción.",
+    "message": "Cada tarjeta va seguida de su análisis (palabras, expresiones, un punto de gramática). **Activado por defecto**: una tarjeta nunca analizada se analiza en el momento con el motor que configuraste — se cobra una sola vez por tarjeta y luego queda en caché. Desactívalo si prefieres no gastar; desactivado, solo se leen la frase y su traducción.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

@@ -924,19 +924,32 @@ out follows the standing rules unchanged)*:
   - the 「驾车模式」 entry button exists ⇔ TTS is usable at all;
   - the 解析 segment exists ⇔ the user turned it on AND the 解析引擎 gate is open
     (§9.2). Engine not configured ⇒ the segment does not exist, it is not greyed.
-- **What is spoken per card**: 原文 (card-language voice) → 译文 (target-language
-  voice) → 解析 (uiLang voice, only when enabled). Text stays **visible**
-  throughout — audio-first, never text-hidden (passengers and parked use exist).
+- **What is spoken per card — THREE passes** (2026-08-18): 原句 / 原句 + 译句 +
+  解析 / 原句. The plan is flat but every segment carries its pass, because once
+  flattened nothing else can tell the first pass's 原句 from the third's, and the
+  status line says which one is playing. Text stays **visible** throughout —
+  audio-first, never text-hidden (passengers and parked use exist).
+- **暂停时出现「解析这句」**: analyse (generating if needed), show, read aloud, then
+  **return to paused on the same segment**. Pausing means "I am in control", so
+  finishing a piece of analysis must not decide to resume for the user; 继续 stays a
+  tap. The button exists only when the notes engine is usable.
 - **Playback order** — 随机 (default) / 顺序 / 循环 / 单曲循环, cycled by one button
   and persisted. 随机 is a *permutation*, not per-step sampling, and reshuffles when
   it wraps. ⏭ 下一张 moves on even in 单曲循环 — a player that ignores its own next
   button is broken. Only 顺序 ever reaches 「本轮听完了」.
-- **Reading the 解析 aloud is OFF by default and its cost is stated twice**: beside
+- **Reading the 解析 aloud is ON by default and its cost is stated twice**: beside
   the setting ("a card that has never been analysed is analysed on the spot, using
   your engine — charged once per card, cached from then on") and as a standing line
-  in the player while it is happening. No per-session cap: a cap makes the analysis
-  stop appearing partway through a session for no visible reason, which is harder to
+  in the player while it is happening. Default-on means the FIRST session through a
+  fresh deck analyses every card in it, which is exactly why the cost sentence is in
+  two places rather than one. No per-session cap: a cap makes the analysis stop
+  appearing partway through a session for no visible reason, which is harder to
   understand than the cost itself.
+- **A switch the user turned ON must never do nothing in silence.** If 播放解析 is on
+  while no notes engine is configured, the player says so once, in the standing line,
+  and names where to configure it — this is NOT the "capability semantics" case
+  (that covers forms the user never asked for). Shipped 2026-08-17 without it and the
+  feature was indistinguishable from unimplemented on a real device.
 - **Failures are told apart** (§9.1/§9.4 reason conventions): a whole-engine failure
   (`blocked`, `unsupported`) stops the session on a named reason, because it will
   recur on every card; a per-card failure (`no_voice`) says so and skips to the next,

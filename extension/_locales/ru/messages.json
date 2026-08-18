@@ -1367,6 +1367,30 @@
     "message": "Карточка {i} из {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Разобрать",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Проход {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Разбираю…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Чтобы читать разбор, сначала настройте движок разбора (Настройки → Разбор предложения)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "У этой карточки нет разбора для чтения",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Не удаётся прочитать сохранённые настройки — попробуйте чуть позже",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Вперемешку",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Включено — после каждой карточки читается её разбор (слова, выражения, один пункт грамматики). Ни разу не разобранная карточка разбирается на месте, вашим настроенным движком: списывается один раз за карточку, дальше из кэша. Выключено — читаются только фраза и перевод.",
+    "message": "После каждой карточки читается её разбор (слова, выражения, один пункт грамматики). **По умолчанию включено**: ни разу не разобранная карточка разбирается на месте вашим настроенным движком — списывается один раз за карточку, дальше из кэша. Выключите, если не хотите тратить; выключено — читаются только фраза и перевод.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

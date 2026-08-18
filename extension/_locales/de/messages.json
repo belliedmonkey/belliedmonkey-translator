@@ -1367,6 +1367,30 @@
     "message": "Karte {i} von {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Erklären",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Durchgang {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Wird analysiert…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Zum Vorlesen der Erläuterung braucht es zuerst eine Erläuterungs-Engine — unter Einstellungen → Satz-Erläuterung einrichten",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Diese Karte hat keine Erläuterung zum Vorlesen",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Gespeicherte Einstellungen nicht lesbar — bitte gleich noch einmal versuchen",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Zufällig",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Eingeschaltet folgt auf jede Karte ihre Erläuterung (Wörter, Wendungen, ein Grammatikpunkt). Eine noch nie analysierte Karte wird sofort analysiert, mit der von Ihnen eingerichteten Engine — einmal pro Karte berechnet, danach aus dem Cache. Aus werden nur Satz und Übersetzung gelesen.",
+    "message": "Auf jede Karte folgt ihre Erläuterung (Wörter, Wendungen, ein Grammatikpunkt). **Standardmäßig an**: Eine noch nie analysierte Karte wird sofort analysiert, mit der von Ihnen eingerichteten Engine — einmal pro Karte berechnet, danach aus dem Cache. Ausschalten, wenn Sie das nicht ausgeben möchten; aus werden nur Satz und Übersetzung gelesen.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

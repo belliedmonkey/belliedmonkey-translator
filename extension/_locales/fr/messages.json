@@ -1367,6 +1367,30 @@
     "message": "Carte {i} sur {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Expliquer",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Passage {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analyse…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Lire les notes exige d’abord un moteur de notes — configurez-le dans Réglages → Notes de phrase",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Cette carte n’a pas de notes à lire",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Impossible de lire vos réglages enregistrés — réessayez dans un instant",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Aléatoire",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Activé, chaque carte est suivie de ses notes (mots, expressions, un point de grammaire). Une carte jamais analysée l’est sur-le-champ, avec le moteur que vous avez configuré — facturé une seule fois par carte, puis mis en cache. Désactivé, seules la phrase et sa traduction sont lues.",
+    "message": "Chaque carte est suivie de ses notes (mots, expressions, un point de grammaire). **Activé par défaut** : une carte jamais analysée l’est sur-le-champ, avec le moteur que vous avez configuré — facturé une seule fois par carte, puis mis en cache. Désactivez si vous préférez ne pas dépenser ; désactivé, seules la phrase et sa traduction sont lues.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

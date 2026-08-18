@@ -1367,6 +1367,30 @@
     "message": "Card {i} of {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
+  "drive_explain": {
+    "message": "🔍 Explain this",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Pass {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analysing…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Reading the notes aloud needs a notes engine first — set one up in Settings → Sentence notes",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "This card has no notes to read",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Cannot read your saved settings — try again in a moment",
+    "description": "Driving mode (§9.5)"
+  },
   "drive_mode_shuffle": {
     "message": "🔀 Shuffle",
     "description": "Driving mode (§9.5)"
@@ -1400,7 +1424,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "With this on, each card is followed by its notes (words, phrases, one grammar point). A card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Off, only the sentence and its translation are read.",
+    "message": "Each card is followed by its notes (words, phrases, one grammar point). **On by default**: a card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Turn it off if you would rather not spend that; off, only the sentence and its translation are read.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {
