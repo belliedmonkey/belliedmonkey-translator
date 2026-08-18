@@ -128,7 +128,7 @@
     if (session) {
       $('who').textContent = session.email || '';
       await paintCounts();
-      // 驾车模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
+      // 播客模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
       // 计数与登录绝不等一次语音列表加载。
       AppDriving.refreshEntry();
     }
@@ -343,7 +343,7 @@
     say('');
   });
 
-  // ─── 驾车模式（§9.5）────────────────────────────────────────────────────
+  // ─── 播客模式（§9.5）────────────────────────────────────────────────────
   // Same split as #review-view: the shell owns view switching, AppDriving owns
   // everything inside #app-drive.
   $('app-drive-start').addEventListener('click', () => {

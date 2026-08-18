@@ -90,7 +90,7 @@
     "message": "Показать/Скрыть"
   },
   "label_custom_api": {
-    "message": "Свой URL API"
+    "message": "URL эндпоинта (полный)"
   },
   "label_optional": {
     "message": "(необязательно)"
@@ -135,7 +135,7 @@
     "message": "Google Переводчик (бесплатно, без ключа)"
   },
   "options_custom_api_hint": {
-    "message": "Оставьте пустым для адреса по умолчанию. Полезно для прокси или своих сервисов."
+    "message": "Оставьте пустым, чтобы использовать эндпоинт этого движка по умолчанию. Если заполняете — укажите полный URL запроса вместе с путём: мы отправляем его ровно так, как введено, и ничего не добавляем. Подходит для прокси и самостоятельно размещённых сервисов."
   },
   "options_lang_section": {
     "message": "Язык"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "Движок сохранён"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Движок изменён — URL эндпоинта очищен",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "API-ключ сохранён"
@@ -255,10 +259,10 @@
     "message": "Модель по умолчанию:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Любой чат-эндпоинт формата Chat Completions. Укажите полный URL, модель и ключ. Если адрес заканчивается на responses, отправляется формат Responses."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Любой чат-эндпоинт формата Messages. Укажите полный URL, модель и ключ."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "Использует голоса, уже установленные в вашей системе. Ничего не отправляется и не кэшируется — этот движок только произносит и не отдаёт аудиоданные."
   },
   "tts_hint_local": {
-    "message": "Любой голосовой сервер, реализующий интерфейс /v1/audio/speech — на вашей машине или в локальной сети. Синтез кэшируется локально, поэтому фраза стоит только один раз."
+    "message": "Речевой сервер на вашей машине или в локальной сети — укажите полный адрес по образцу в поле. Синтез кэшируется локально, поэтому фраза оплачивается лишь один раз."
   },
   "tts_hint_openai": {
     "message": "Использует ваш собственный API-ключ. Синтезированное аудио кэшируется локально, поэтому фраза оплачивается один раз."
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "неверный адрес или имя модели",
+    "message": "неверный URL эндпоинта (включая путь) или название модели",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "сервер отклонил запрос",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "В этом адресе есть только хост и нет пути эндпоинта — укажите полный URL запроса (см. пример в поле)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "Адрес не начинается с http:// или https:// — без схемы он считается относительным путём, и запрос вообще не уходит",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "Эндпоинт не ответил до истечения тайм-аута",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Запрошенный адрес: {url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "Режим вождения",
+    "message": "Режим подкаста",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 Ещё раз",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 Задать вопрос",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "Карточка {i} из {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "Повторите предложение вслух",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 Разобрать",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "Есть вопросы?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "Проход {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Разбираю…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Чтобы читать разбор, сначала настройте движок разбора (Настройки → Разбор предложения)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "У этой карточки нет разбора для чтения",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Не удаётся прочитать сохранённые настройки — попробуйте чуть позже",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Вперемешку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ По порядку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Повтор всех",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Повтор одной",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Ещё круг",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Читаю разбор…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Разбираю предложение…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Читать вслух разбор предложения",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "После каждой карточки читается её разбор (слова, выражения, один пункт грамматики). **По умолчанию включено**: ни разу не разобранная карточка разбирается на месте вашим настроенным движком — списывается один раз за карточку, дальше из кэша. Выключите, если не хотите тратить; выключено — читаются только фраза и перевод.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Чтение разбора: неразобранная карточка вызывает ваш движок — списывается один раз за карточку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Слова: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Выражения: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Грамматика: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Не удалось разобрать карточку — пропущено",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "Движок разбора не настроен — разбор этой карточки пропущен",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Эту карточку не удаётся прочитать — перешли к следующей",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "Читаю оригинал…",
@@ -1367,36 +1463,12 @@
     "message": "Читаю перевод…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "Идёт запись — говорите…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "Отвечаю…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "На паузе",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "Вопросы используют настроенный вами движок разбора — один вызов на вопрос, без кэширования",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "Этот круг закончен",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "Продолжить практику",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "Микрофон недоступен — сессия продолжится только на прослушивание",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "Повтор вслух для этой карточки пропущен",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "Нет карточек для чтения вслух",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "Ответ не получился — спросите ещё раз",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

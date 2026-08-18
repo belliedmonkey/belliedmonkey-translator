@@ -15,7 +15,7 @@
 // EXTENSION PAGES ONLY (and the app's WKWebView) — same hosts as tts.js.
 
 var LearnSpeech = (() => {
-  let cfg = { engineId: '', baseUrl: '', apiKey: '', model: '' };
+  let cfg = { engineId: '', baseUrl: '', apiKey: '', model: '', baseUrlVerbatim: false };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -28,7 +28,7 @@ var LearnSpeech = (() => {
   function engineReady() {
     const e = engineInfo();
     if (!e) return { ok: false, reason: 'no_engine' };
-    if (!(cfg.baseUrl || e.defaultBase)) return { ok: false, reason: 'no_base' };
+    if (!(cfg.baseUrl || e.defaultEndpoint)) return { ok: false, reason: 'no_base' };
     if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
     return { ok: true };
   }
@@ -114,9 +114,12 @@ var LearnSpeech = (() => {
     const ready = engineReady();
     if (!ready.ok) { const e = new Error(ready.reason); e.code = ready.reason; throw e; }
     const eng = engineInfo();
-    // Trailing slash on a user-typed base URL would produce `…//v1/audio/…`.
-    // Our own dev bridge tolerates it; a real server need not.
-    const base = String(cfg.baseUrl || eng.defaultBase).replace(/\/+$/, '');
+    // Used EXACTLY as stored — no path appended, no trailing slash trimmed. The trim
+    // that used to live here has moved into wire-format.js's legacy branch, where it
+    // belongs: it was never a correction, it was a reproduction of what the old code
+    // did to this user's saved value, and reproducing it is how a device whose
+    // one-time migration never ran keeps working.
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, eng, { cap: 'stt', verbatim: cfg.baseUrlVerbatim });
     const fd = new FormData();
     fd.append('file', blob, 'speech.' + (ext || 'webm'));
     const model = cfg.model || eng.defaultModel;
@@ -133,17 +136,22 @@ var LearnSpeech = (() => {
     // Measured 2026-08-13 on the iOS simulator: the server received and processed
     // the upload, and the page still saw only a TypeError. So: name it, and point
     // at the two causes a user can actually act on (reachability, CORS).
+    // `url` rides on the error so the settings page can echo the address it actually
+    // requested — with a user-supplied endpoint, "which URL did we call" is the fact
+    // that separates a wrong address from an unreachable one, and no error text can
+    // supply it.
     let resp;
     try {
-      resp = await fetch(base + eng.path, { method: 'POST', headers, body: fd });
+      resp = await fetch(url, { method: 'POST', headers, body: fd });
     } catch (err) {
       const e = new Error('cannot reach the transcription endpoint');
       e.code = 'network';
+      e.url = url;
       throw e;
     }
     if (!resp.ok) {
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status;
+      e.code = 'http'; e.status = resp.status; e.url = url;
       throw e;
     }
     return resp;

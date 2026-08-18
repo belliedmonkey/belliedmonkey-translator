@@ -98,6 +98,18 @@ body {
   margin-top: 4px;
 }
 
+/* The three engine self-check results, and only those: they print a second line
+   carrying the URL the transport actually requested. `.hint` collapses newlines, so
+   without pre-line the address would run into the reason as one sentence — and an
+   endpoint URL is long, so it also has to be allowed to break mid-token rather than
+   push the settings column sideways. */
+#test-provider-note,
+#test-notes-note,
+#test-stt-note {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
 /* ─── Inputs ─────────────────────────────────────────────── */
 
 /* Styled by EXCLUSION, not by enumeration. The rule used to list

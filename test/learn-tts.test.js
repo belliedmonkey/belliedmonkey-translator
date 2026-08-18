@@ -10,6 +10,7 @@
 const { loadModule, describe, test, ok, eq } = require('./harness');
 
 const REGISTRY = require('../build/tts.config.js');
+const WireFormat = require('../extension/content/wire-format.js');
 
 function voice(name, lang, extra) {
   return Object.assign({ name, lang, voiceURI: name + '|' + lang, default: false }, extra || {});
@@ -24,6 +25,9 @@ function setup(opts = {}) {
 
   const fetchStub = (url, init) => {
     calls.fetch.push({ url, init });
+    // A REJECTION, not a status: WebKit's CORS rejection never produces a status at
+    // all, and that difference is exactly what the `network` naming exists to capture.
+    if (opts.fetchThrows) return Promise.reject(new TypeError('Load failed'));
     if (opts.fetchStatus && opts.fetchStatus !== 200) {
       return Promise.resolve({ ok: false, status: opts.fetchStatus });
     }
@@ -45,7 +49,7 @@ function setup(opts = {}) {
 
   const ctx = loadModule('learn/tts.js', {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
-    LearnModel, LearnStore,
+    LearnModel, LearnStore, WireFormat,
     fetch: fetchStub,
     speechSynthesis: opts.speechSynthesis,
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
@@ -277,9 +281,11 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     TTS.configure(cfg);
     await TTS.getAudio('Hello world', 'en');
     eq(calls.fetch.length, 1);
-    const local = REGISTRY.find((e) => e.id === 'local');
-    // Path comes from the production registry — not a literal repeated in the test.
-    eq(calls.fetch[0].url, 'http://127.0.0.1:8880' + local.path);
+    // The address is what the user stored — VERBATIM, with nothing appended. It is a
+    // literal here on purpose: the point of the assertion is that no registry value
+    // reaches the URL at all any more, so deriving the expectation from the registry
+    // would defeat it. (The old form was `base + local.path`; `path` no longer exists.)
+    eq(calls.fetch[0].url, 'http://127.0.0.1:8880/v1/audio/speech');
     const body = JSON.parse(calls.fetch[0].init.body);
     eq(body.model, 'kokoro');
     eq(body.voice, 'af');
@@ -291,6 +297,19 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     TTS.configure(Object.assign({}, cfg, { baseUrl: 'http://127.0.0.1:8880///' }));
     await TTS.getAudio('Hi there', 'en');
     ok(!calls.fetch[0].url.includes('//v1'), `doubled slash in ${calls.fetch[0].url}`);
+  });
+
+  // Same story as speech-input.js #130 and notes.js: a self-hosted speech server that
+  // omits CORS headers makes WebKit throw a bare TypeError before any status exists,
+  // which reads exactly like an unreachable host. Named here so the settings page can
+  // name the two fixable causes, and carrying the URL so it can show which address.
+  test('a bare fetch rejection is named `network` and carries the URL', async () => {
+    const { TTS } = setup({ fetchThrows: true });
+    TTS.configure(cfg);
+    let e = null;
+    try { await TTS.getAudio('Hello world', 'en'); } catch (err) { e = err; }
+    eq(e && e.code, 'network');
+    eq(e && e.url, 'http://127.0.0.1:8880/v1/audio/speech');
   });
 
   test('no Authorization header when the engine needs no key', async () => {

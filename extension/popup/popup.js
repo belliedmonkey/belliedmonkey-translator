@@ -63,16 +63,28 @@ function populateProviders() {
 // been translated by the user's own DeepSeek key.
 const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'apiBaseUrlVerbatim',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
 ];
+// See options.js for why this runs at read time rather than in the service worker:
+// the legacy branch in wire-format.js means the migration has no race to win, and the
+// frozen table it needs ships in providers.gen.js, which an MV3 worker cannot load.
+async function migrateEndpointsOnce(read) {
+  if (!read || !read.ok) return {};                // a failed read is not an empty profile
+  const patch = WireFormat.migrationPatch(read.data);
+  if (!Object.keys(patch).length) return {};
+  const w = await PageSettings.write(patch);
+  return w.ok ? patch : {};
+}
+
 async function getSettings() {
   const r = await PageSettings.read(POPUP_KEYS);
   // The popup has no room for an explanation; it must at least not lie. When the
   // read failed we show what we have and mark it, rather than presenting defaults
   // as if they were the user's configuration.
   if (!r.ok) { try { document.body.dataset.settingsUnavailable = '1'; } catch (_) {} }
-  return r.data;
+  return Object.assign({}, r.data, await migrateEndpointsOnce(r));
 }
 
 function showToast(msg, duration = 2000) {
@@ -115,7 +127,8 @@ function updateApiKeySection(provider) {
   $('apikey-section').style.display = p.needsKey ? 'block' : 'none';
   $('baseurl-row').style.display = p.supportsBaseUrl ? 'flex' : 'none';
   $('model-row').style.display = p.supportsModel ? 'flex' : 'none';
-  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  // 完整端点地址（registry 的 defaultEndpoint / placeholder）——见 options.js 的同名助手。
+  $('api-base-url').placeholder = (p.defaultEndpoint || p.placeholder) || 'https://…';
   $('api-model').placeholder = p.defaultModel || '';
 }
 
@@ -272,10 +285,18 @@ async function init() {
 
   $('provider').addEventListener('change', async (e) => {
     const provider = e.target.value;
-    await saveSettings({ provider });
+    // See options.js: an endpoint address cannot carry across engines, and clearing it
+    // lands on a working default rather than on the previous engine's address.
+    const url = $('api-base-url');
+    const cleared = !!(url && url.value.trim());
+    if (cleared) { url.value = ''; }
+    await saveSettings(cleared
+      ? { provider, apiBaseUrl: '', apiBaseUrlVerbatim: true }
+      : { provider });
     updateApiKeySection(provider);
     updateSetupNote(provider, $('api-key').value);
-    showToast(t('toast_provider_switched', '翻译引擎已切换'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
+      : t('toast_provider_switched', '翻译引擎已切换'));
   });
 
   $('api-key').addEventListener('change', async (e) => {
@@ -303,7 +324,9 @@ async function init() {
   })();
 
   $('api-base-url').addEventListener('change', async (e) => {
-    await saveSettings({ apiBaseUrl: e.target.value.trim() });
+    // 见 options.js：保存即新语义，戳与值同写，否则下次读会被当成未迁移的旧值
+    // 再补一次路径。
+    await saveSettings({ apiBaseUrl: e.target.value.trim(), apiBaseUrlVerbatim: true });
   });
 
   $('api-model').addEventListener('change', async (e) => {

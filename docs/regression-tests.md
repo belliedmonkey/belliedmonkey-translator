@@ -383,9 +383,24 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   a copy here is one more consumer that drifts. *(This is how the stale
   `deepseek-chat` hint survived a model rename.)*
 
-- [ ] **Custom base URL.** For each entry with `supportsBaseUrl`, set `apiBaseUrl`.
-  **Expected:** requests go to the custom endpoint instead of `defaultBase`.
-
+- [ ] **Custom endpoint URL.** For each entry with `supportsBaseUrl`, set `apiBaseUrl`
+  to a COMPLETE request URL (path included).
+  **Expected:** the request goes to exactly that address — nothing appended, trailing
+  slash preserved. Read the address back off the 「测试连接」 result line, which echoes
+  the URL actually requested.
+- [ ] **Responses vs Chat Completions on one host.** Point the endpoint at
+  `…/v1/responses` and translate.
+  **Expected:** the request body carries `input` + `instructions` (not `messages`), and
+  translation still works. Switch the address back to `…/v1/chat/completions` and it
+  returns to the Chat Completions shape — the ADDRESS is what chooses, nothing else.
+- [ ] **Upgrade drill (do this on a profile that predates 2026-08).** Install the old
+  build, fill all four endpoint fields with host-only values, then install this build.
+  **Expected:** translation/notes/speech/transcription all keep working BEFORE you open
+  settings (the legacy branch), and after opening settings each field shows the complete
+  address, with the original preserved in `{key}PreVerbatim`.
+- [ ] **Host-only address is named, not blamed on CORS.** Put `https://api.deepseek.com`
+  (no path) in the field and press 「测试连接」.
+  **Expected:** 「这个地址只有主机名，没有接口路径」 — NOT the CORS/unreachable copy.
 - [ ] **Provider switch re-translates active content.** With page text (and video
   subtitles) on, change provider in the popup. **Expected:** the storage change fires
   and active content re-translates via the new provider (no full reload). *(content-main

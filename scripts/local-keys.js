@@ -39,10 +39,56 @@ function describe(e) {
   return `${e.id}${want.length ? '（' + want.join(' · ') + '）' : ''}`;
 }
 
+// ─── 逐引擎槽位（verification-spec §1.0 provider matrix）────────────────────
+// 一个 `apiKey` 槽位只能验证一个 provider，而 §1.0 要求每个出货条目都被真实端点
+// 驱动过至少一次。所以除了上面那组「当前在用的配置」，再按注册表展开出逐条槽位。
+//
+// 行是 (条目 × flavor)，不是条目：glm / qwen / kimi 在 china 与 global 里是**不同的
+// 端点**，DashScope 的 key 还是分区的——两个端点是两件会各自坏掉的事。同端点的
+// （如 deepseek）只出一个槽位。
+function slotsFor(list, cap, ns) {
+  const rows = [];
+  for (const e of list) {
+    if (!e.needsKey && !e.requiresBaseUrl) continue;      // 零配置引擎不占槽位
+    const db = e.defaultBase;
+    const isMap = db && typeof db === 'object' && !Array.isArray(db);
+    // 只有「两个 flavor 都发、且端点不同」才拆成两行。单 flavor 的条目 defaultBase
+    // 也可能是 {global: …} 这种单键对象，那只是写法，不是两个端点。
+    const perFlavor = isMap && e.flavors.length > 1 && db.china !== db.global;
+    const variants = perFlavor ? e.flavors.slice() : [null];
+    for (const f of variants) {
+      // 槽位名带能力前缀：TTS 与 STT 都有一个叫 `local` 的条目，不加前缀会撞成
+      // 同一个槽位，两条引擎共用一个值——正是这张表要防的那种静默合并。
+      const id = `${ns}_${e.id}${f ? '_' + f : ''}`;
+      const host = perFlavor ? db[f]
+        : (isMap ? (db[e.flavors[0]] || Object.values(db)[0]) : db) || '(自填)';
+      rows.push({
+        cap,
+        keySlot: e.needsKey ? `key_${id}` : null,
+        baseSlot: e.requiresBaseUrl ? `base_${id}` : null,
+        note: `${e.id}${f ? '（' + f + '）' : ''} · ${host}`,
+      });
+    }
+  }
+  return rows;
+}
+function allSlots() {
+  return [].concat(
+    slotsFor(reg('providers.config.js'), '翻译/解析', 'chat'),
+    slotsFor(reg('tts.config.js'), 'TTS', 'tts'),
+    slotsFor(reg('stt.config.js'), 'STT', 'stt'));
+}
+
 function template() {
   const P = reg('providers.config.js').filter(needsInput).map(describe);
   const T = reg('tts.config.js').filter(needsInput).map(describe);
   const S = reg('stt.config.js').filter(needsInput).map(describe);
+  const matrix = allSlots().map((r) => {
+    const lines = [`# ${r.cap} · ${r.note}`];
+    if (r.keySlot) lines.push(`${r.keySlot.padEnd(24)}=`);
+    if (r.baseSlot) lines.push(`${r.baseSlot.padEnd(24)}=`);
+    return lines.join('\n');
+  }).join('\n');
   const chat = reg('providers.config.js')
     .filter((e) => e.type === 'chat-compat' || e.type === 'messages-compat')
     .map((e) => e.id);
@@ -95,6 +141,15 @@ sttModel   =
 ascKeyId     =
 ascIssuerId  =
 ascKeyPath   =
+
+# ── 逐引擎凭证（verification-spec §1.0 provider matrix）─────────────────
+# 上面那组是「此刻在用的配置」；下面这组是「每个出货引擎各自的凭证」。
+# §1.0 要求每个引擎都被真实端点驱动过至少一次，而一个 apiKey 槽位只能验证一个
+# 引擎——所以逐条各占一行。填了哪条就能验哪条，不填不影响日常使用。
+#
+# 行是 (引擎 × flavor)：glm / qwen / kimi 在国内版与国际版是不同端点、不同账号，
+# 各算一件会独立坏掉的事。deepseek 两个 flavor 同端点，只有一行。
+${matrix}
 \`\`\`
 
 ## 我（Claude）以后怎么用它
@@ -121,13 +176,35 @@ const cmd = process.argv[2] || 'check';
 
 if (cmd === 'init') {
   fs.mkdirSync(DIR, { recursive: true });
-  if (fs.existsSync(FILE)) {
-    console.log('已存在，未覆盖：' + path.relative(ROOT, FILE));
-    console.log('（要按最新注册表重生成模板：先备份再删除该文件）');
-  } else {
+  if (!fs.existsSync(FILE)) {
     fs.writeFileSync(FILE, template());
     console.log('已生成：' + path.relative(ROOT, FILE));
+    process.exit(0);
   }
+  // 已存在时**补齐缺失槽位**，而不是拒绝。注册表加一个引擎就多一个槽位，如果这里
+  // 只会说「已存在」，唯一的出路是备份+删除+重填——那代价高到没人会做，于是新引擎
+  // 永远没有凭证、永远进不了 verification-spec §1.0 的表。追加是幂等的：已填的值
+  // 一个字都不碰，只把没有的行加到末尾。
+  const text = fs.readFileSync(FILE, 'utf8');
+  const missing = [];
+  for (const r of allSlots()) {
+    const need = [r.keySlot, r.baseSlot].filter(Boolean)
+      .filter((k) => !new RegExp('^\\s*' + k + '\\s*=', 'm').test(text));
+    if (need.length) missing.push({ note: `${r.cap} · ${r.note}`, need });
+  }
+  if (!missing.length) {
+    console.log('已是最新：' + path.relative(ROOT, FILE) + '（注册表里的引擎都有槽位了）');
+    process.exit(0);
+  }
+  const block = '\n<!-- 由 local-keys.js init 追加：注册表里还没有槽位的引擎 -->\n```ini\n'
+    + '# ── 逐引擎凭证（verification-spec §1.0 provider matrix）─────────────────\n'
+    + '# 每个出货引擎各自的凭证。填了哪条就能验哪条，不填不影响日常使用。\n'
+    + '# 行是 (引擎 × flavor)：同一引擎的国内/国际端点是两件会各自坏掉的事。\n'
+    + missing.map((m) => `# ${m.note}\n` + m.need.map((k) => `${k.padEnd(26)}=`).join('\n')).join('\n')
+    + '\n```\n';
+  fs.appendFileSync(FILE, block);
+  console.log(`已追加 ${missing.reduce((n, m) => n + m.need.length, 0)} 个空槽位到 `
+    + path.relative(ROOT, FILE) + '（已填的值未改动）');
   process.exit(0);
 }
 
@@ -152,7 +229,9 @@ const GROUPS = {
   '转写（说题）': ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel'],
   'ASC 上传': ['ascKeyId', 'ascIssuerId', 'ascKeyPath'],
 };
-const SECRET = /key$/i;
+// 掩码规则：以 `key_` 开头（逐引擎槽位）或以 key 结尾（apiKey 一族）。
+// `ascKeyId` / `ascKeyPath` 刻意不在内——它们不是密钥，看得见才有用。
+const SECRET = /^key_|key$/i;
 for (const [name, keys] of Object.entries(GROUPS)) {
   const parts = keys.map((k) => {
     const v = all[k];
@@ -160,4 +239,24 @@ for (const [name, keys] of Object.entries(GROUPS)) {
     return SECRET.test(k) ? `${k}: ‹已填 ${v.length} 字符›` : `${k}: ${v}`;
   });
   console.log(`${name}\n  ` + parts.join('\n  '));
+}
+
+// 逐引擎槽位的覆盖率——verification-spec §1.0 要的就是这个数字。清单从注册表
+// 生成，所以「注册表加了引擎但没人验」会自动变成这里的一条 ✗，不靠人记得。
+const slots = allSlots();
+if (slots.length) {
+  console.log('\n逐引擎凭证（§1.0 provider matrix）');
+  let have = 0;
+  for (const r of slots) {
+    const need = [r.keySlot, r.baseSlot].filter(Boolean);
+    const filled = need.filter((k) => all[k]);
+    if (filled.length === need.length) have++;
+    const mark = filled.length === need.length ? '✓' : (filled.length ? '◐' : '✗');
+    console.log(`  ${mark} ${r.note}\n      ` + need.map((k) => {
+      const v = all[k];
+      if (!v) return `${k}: —`;
+      return SECRET.test(k) ? `${k}: ‹已填 ${v.length} 字符›` : `${k}: ${v}`;
+    }).join('\n      '));
+  }
+  console.log(`  —— ${have}/${slots.length} 个引擎具备验证条件`);
 }

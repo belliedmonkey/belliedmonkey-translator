@@ -90,7 +90,7 @@
     "message": "Mostrar/Ocultar"
   },
   "label_custom_api": {
-    "message": "URL de API personalizada"
+    "message": "URL do endpoint (completa)"
   },
   "label_optional": {
     "message": "(opcional)"
@@ -135,7 +135,7 @@
     "message": "Google Tradutor (grátis, sem API Key)"
   },
   "options_custom_api_hint": {
-    "message": "Deixe em branco para o endereço padrão. Útil para proxies ou serviços próprios."
+    "message": "Deixe em branco para usar o endpoint padrão deste mecanismo. Se preencher, informe a URL de requisição completa, incluindo o caminho — enviamos exatamente como digitado e nunca acrescentamos nada. Serve para proxies e serviços auto-hospedados."
   },
   "options_lang_section": {
     "message": "Idioma"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "Mecanismo salvo"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Mecanismo alterado — a URL do endpoint foi limpa",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "API Key salva"
@@ -255,10 +259,10 @@
     "message": "Modelo padrão:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Qualquer endpoint de conversa no formato Chat Completions. Informe a URL completa, o modelo e a chave. Se o endereço terminar em responses, o formato Responses é enviado."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Qualquer endpoint de conversa no formato Messages. Informe a URL completa, o modelo e a chave."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "Usa as vozes que seu sistema operacional já tem. Nada é enviado nem armazenado em cache — este mecanismo apenas fala, não devolve áudio."
   },
   "tts_hint_local": {
-    "message": "Qualquer servidor de voz que implemente a interface /v1/audio/speech, na sua máquina ou rede local. A síntese fica em cache local, então uma frase custa apenas uma vez."
+    "message": "Um servidor de voz na sua máquina ou rede local — informe o endereço completo, seguindo o exemplo mostrado no campo. A síntese fica em cache local, então uma frase custa apenas uma vez."
   },
   "tts_hint_openai": {
     "message": "Usa sua própria chave de API. O áudio sintetizado fica em cache local: cada frase só custa uma vez."
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "a URL ou o nome do modelo está errado",
+    "message": "a URL do endpoint (incluindo o caminho) ou o nome do modelo está errado",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "o servidor recusou a solicitação",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Este endereço tem apenas um host e nenhum caminho de endpoint — informe a URL de requisição completa (veja o exemplo no campo)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "O endereço não começa com http:// ou https:// — sem esquema ele é tratado como caminho relativo e nenhuma requisição é enviada",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "O endpoint não respondeu antes do tempo limite",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Endereço solicitado: {url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "Modo direção",
+    "message": "Modo podcast",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 Ouvir de novo",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 Perguntar",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "Cartão {i} de {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "Repita a frase em voz alta",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 Explicar",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "Alguma pergunta?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "Passagem {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analisando…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Para ler a análise é preciso configurar antes um mecanismo de análise (Ajustes → Análise da frase)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Este cartão não tem análise para ler",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Não foi possível ler suas configurações salvas — tente novamente em instantes",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Aleatório",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ Em ordem",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Repetir tudo",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Repetir uma",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Mais uma rodada",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Reproduzindo a análise…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Analisando esta frase…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Ler também a análise da frase",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "Cada cartão é seguido da sua análise (palavras, expressões, um ponto de gramática). **Ligado por padrão**: um cartão nunca analisado é analisado na hora, com o mecanismo que você configurou — cobrado uma única vez por cartão e depois em cache. Desligue se preferir não gastar; desligado, só a frase e a tradução são lidas.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Lendo a análise: um cartão nunca analisado chama o seu mecanismo — cobrado uma vez por cartão",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Palavras: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Expressões: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Gramática: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Não foi possível analisar este cartão — ignorado",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "O mecanismo de análise não está configurado — análise ignorada neste cartão",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Este cartão não pode ser lido — passamos ao próximo",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "Lendo o original…",
@@ -1367,36 +1463,12 @@
     "message": "Lendo a tradução…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "Gravando — fale agora…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "Respondendo…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "Pausado",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "As perguntas usam o motor de análise configurado — uma chamada por pergunta, sem cache",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "Fim desta rodada",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "Continuar praticando",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "Microfone indisponível — esta sessão continua só de escuta",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "Leitura em voz alta desta carta ignorada",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "Nenhum cartão para ler",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "A resposta falhou — pergunte de novo",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

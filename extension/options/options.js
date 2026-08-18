@@ -6,6 +6,14 @@ const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
 const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
+// The empty input's example address. `defaultEndpoint` when we ship one, else the
+// registry's `placeholder` — endpoints live in the registry and nowhere else, so the
+// hint copy no longer has to name a path (it used to, in eleven translated strings).
+function endpointPlaceholder(e) {
+  return (e && (e.defaultEndpoint || e.placeholder)) || 'https://…';
+}
+
+
 const $ = id => document.getElementById(id);
 
 const SETTINGS_KEYS = [
@@ -18,6 +26,8 @@ const SETTINGS_KEYS = [
   'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
   // §9.4: transcription engine for the 说 exercise — never follows any group.
   'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
+  // 「地址按新语义（原样使用）存的」的戳，每个地址字段一个（content/wire-format.js）。
+  'apiBaseUrlVerbatim', 'notesBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -90,6 +100,42 @@ function apiHint(provider) {
   return `${hint}${hint ? gap : ''}${label}${p.defaultModel}`;
 }
 
+
+// The 2026-08 endpoint migration (#147), run wherever settings are read for editing.
+//
+// NOT part of correctness: wire-format.js's legacy branch already keeps a device that
+// never migrated requesting exactly what it requested before, so this has no race to
+// win and no deadline. What it buys is honesty — after it runs, the address in the
+// field IS the address we request — plus one less thing to recompute per request.
+//
+// Gated on `ok`: a FAILED read is not an empty profile (PageSettings' contract, and the
+// 2026-08-05 incident behind it). Migrating from values we never actually saw would
+// write a wrong endpoint over a right one, which is the one mistake here that cannot be
+// walked back — hence also the `*PreVerbatim` backup written in the same set().
+async function migrateEndpointsOnce(read) {
+  if (!read || !read.ok) return {};
+  const patch = WireFormat.migrationPatch(read.data);
+  if (!Object.keys(patch).length) return {};
+  const w = await PageSettings.write(patch);
+  if (!w.ok) return {};              // 下次再来；legacy 分支照常兜着
+  return patch;
+}
+
+
+// Switching engines clears a non-empty endpoint, visibly (interaction-spec 「接口地址
+// 字段」). An address cannot carry across endpoints — the same reason app/settings.js
+// already resets the chosen voice when the speech engine changes ("Voice names don't
+// carry across engines"). For an entry that ships a default this lands on a WORKING
+// configuration; for one that requires its own address it had to be retyped anyway.
+// Returns true when something was cleared, so the caller can say so — silently
+// discarding what someone typed is the failure this rule exists to avoid.
+function clearEndpointOnEngineSwitch(inputId) {
+  const el = $(inputId);
+  if (!el || !el.value.trim()) return false;
+  el.value = '';
+  return true;
+}
+
 function showToast(msg, duration = 2500) {
   const el = $('toast');
   el.textContent = msg;
@@ -138,7 +184,7 @@ function updateProviderUI(provider) {
   $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
   $('baseurl-field').style.display = p.supportsBaseUrl ? 'block' : 'none';
   $('model-field').style.display = p.supportsModel ? 'block' : 'none';
-  $('api-base-url').placeholder = p.defaultBase || 'https://…';
+  $('api-base-url').placeholder = endpointPlaceholder(p);
   $('api-model').placeholder = p.defaultModel || '';
   $('api-hint').textContent = apiHint(provider);
   // Hooked here rather than at each call site: updateProviderUI already re-runs on
@@ -174,6 +220,9 @@ function engineTestReason(e) {
     case 'no_key': return t('engine_test_no_key', '还没填 API Key');
     case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
     case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+    case 'timeout': return t('engine_test_timeout', '端点没有在超时前回应');
+    case 'no_path': return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
+    case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
     case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
     case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
     case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
@@ -203,6 +252,8 @@ function applyTtsConfig() {
   LearnTTS.configure({
     engineId: $('tts-engine').value,
     baseUrl: $('tts-base-url').value.trim(),
+    // Read straight off the form, so it is by definition the new semantics.
+    baseUrlVerbatim: true,
     apiKey: $('tts-api-key').value.trim(),
     model: $('tts-model').value.trim(),
     voice: $('tts-voice').value,
@@ -278,7 +329,10 @@ async function saveAll() {
   const settings = {
     provider:    $('provider').value,
     apiKey:      $('api-key').value.trim(),
+    // 这一次保存**就是**新语义：用户在「完整接口地址」这个语义下填的框。
+    // 戳写下去之后 wire-format.js 便逐字使用它，永不再补路径。
     apiBaseUrl:  $('api-base-url').value.trim(),
+    apiBaseUrlVerbatim: true,
     apiModel:    $('api-model').value.trim(),
     targetLang:  $('target-lang').value,
     uiLang:      $('ui-lang').value,
@@ -292,6 +346,7 @@ async function saveAll() {
     ttsAutoPlay: $('tts-autoplay').checked,
     ttsEngine:   $('tts-engine').value,
     ttsBaseUrl:  $('tts-base-url').value.trim(),
+    ttsBaseUrlVerbatim: true,
     ttsApiKey:   $('tts-api-key').value.trim(),
     ttsModel:    $('tts-model').value.trim(),
     ttsVoice:    $('tts-voice').value,
@@ -299,10 +354,12 @@ async function saveAll() {
     notesProvider: $('notes-provider').value,
     notesApiKey:   $('notes-api-key').value.trim(),
     notesBaseUrl:  $('notes-base-url').value.trim(),
+    notesBaseUrlVerbatim: true,
     notesModel:    $('notes-model').value.trim(),
     sttEngine:     $('stt-engine').value,
     sttApiKey:     $('stt-api-key').value.trim(),
     sttBaseUrl:    $('stt-base-url').value.trim(),
+    sttBaseUrlVerbatim: true,
     sttModel:      $('stt-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
@@ -330,7 +387,9 @@ async function init() {
   // A failed read is NOT an empty profile. Painting defaults over a storage failure
   // is how "your API key silently reverted to the free channel" happened.
   const _s = await PageSettings.read(SETTINGS_KEYS);
-  const s0 = _s.data;
+  // Fold the migration's result into the values we are about to paint, so the field
+  // shows the complete address on THIS visit rather than the next one.
+  const s0 = Object.assign({}, _s.data, await migrateEndpointsOnce(_s));
   if (!_s.ok) {
     _settingsReadFailed = true;
     try {
@@ -440,7 +499,7 @@ async function init() {
     $('stt-key-field').hidden = !e.needsKey;
     $('stt-baseurl-field').hidden = !e.supportsBaseUrl;
     $('stt-model-field').hidden = !e.supportsModel;
-    $('stt-base-url').placeholder = e.defaultBase || 'https://…';
+    $('stt-base-url').placeholder = endpointPlaceholder(e);
     $('stt-model').placeholder = e.defaultModel || '';
   }
   populateSttEngines(s.sttEngine || '');
@@ -457,27 +516,31 @@ async function init() {
   // ─── Listeners ──────────────────────────────────────────────────────
 
   $('notes-provider').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('notes-base-url');
     updateNotesUI(e.target.value);
     await saveAll();
-    showToast(t('toast_saved', '已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
   });
   for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
     $(id).addEventListener('change', async () => { await saveAll(); });
   }
 
   $('stt-engine').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('stt-base-url');
     updateSttUI(e.target.value);
     await saveAll();
-    showToast(t('toast_saved', '已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
   });
   for (const id of ['stt-api-key', 'stt-base-url', 'stt-model']) {
     $(id).addEventListener('change', async () => { await saveAll(); });
   }
 
   $('provider').addEventListener('change', async (e) => {
+    const cleared = clearEndpointOnEngineSwitch('api-base-url');
     updateProviderUI(e.target.value);
     await saveAll();
-    showToast(t('toast_provider_saved', '翻译引擎已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
+      : t('toast_provider_saved', '翻译引擎已保存'));
   });
 
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });
@@ -540,21 +603,50 @@ async function init() {
   // 每个测试都走该功能真正用的传输：翻译走 TranslationAPI.translate，解析走
   // LearnNotes.chat，转写走 LearnSpeech 的 postAudio。自己另写一遍请求，
   // 测出来的「通了」就不代表功能能用。
+  // The URL line is the point of this whole surface. With a user-supplied endpoint the
+  // most common failure is a wrong ADDRESS, and no error text can say which address we
+  // called — a 404 and a CORS rejection read identically to the user. Echoing it turns
+  // "it says Load failed" into a screenshot we can act on in one round trip (both of
+  // PR #145's bugs arrived as a settings-page screenshot). The key is never in this
+  // line — only the URL the transport actually requested.
+  //
+  // The success branch reads `r.url` for the same reason (an endpoint that answers but
+  // is not the one the user meant is invisible otherwise), but no test callback returns
+  // it yet: on success the URL lives inside the transport and recomputing it here would
+  // be a second copy that drifts. It arrives with the shared endpoint resolver (#147).
+  const withUrl = (text, url) => text + (url
+    ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
+    : '');
+
+
+  // 发请求之前的离线形状检查。运行时不做这件事：逐字发送是本次改动的承诺，而一个根路径
+  // 端点虽然罕见却是合法的。但自检是用户「东西坏了」时会来的地方，把「地址少了路径」从
+  // CORS / 不可达里切出来，命中率最高的位置就在这里 —— 那两种失败在 WebKit 里长得一模
+  // 一样（2026-08-13 实测），只有离线检查能确定地区分。
+  function assertEndpointShape(url) {
+    const u = String(url || '').trim();
+    if (!u) return;                                   // 空 = 用默认端点，不是错误
+    if (!WireFormat.isAbsolute(u)) { const e = new Error('not absolute'); e.code = 'bad_url'; e.url = u; throw e; }
+    if (!WireFormat.hasPath(u)) { const e = new Error('no path'); e.code = 'no_path'; e.url = u; throw e; }
+  }
   const runTest = (btn, note, fn) => busy($(btn), async () => {
     const el = $(note);
     el.textContent = t('engine_test_running', '测试中…');
     try {
       const r = await fn();
-      el.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
-        + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+      el.textContent = withUrl(
+        t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+          + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
+        r.url);
     } catch (e) {
-      console.error('[engine-test]', e);
-      el.textContent = '✗ ' + engineTestReason(e);
+      console.error('[engine-test]', (e && e.url) || '', e);
+      el.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
     }
   });
 
   $('btn-test-provider').addEventListener('click', runTest('btn-test-provider', 'test-provider-note', async () => {
     await saveAll();
+    assertEndpointShape($('api-base-url').value);
     const t0 = Date.now();
     const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
       $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim());
@@ -564,6 +656,9 @@ async function init() {
 
   $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
     await saveAll();
+    // The notes group may be empty and follow the translation group instead
+    // (LearnNotes.resolveConfig owns that rule) — check whichever field is in play.
+    assertEndpointShape($('notes-provider').value ? $('notes-base-url').value : $('api-base-url').value);
     LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((r) =>
       chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {})))));
     return LearnNotes.test();
@@ -571,9 +666,11 @@ async function init() {
 
   $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
     await saveAll();
+    assertEndpointShape($('stt-base-url').value);
     LearnSpeech.configure({
       engineId: $('stt-engine').value, apiKey: $('stt-api-key').value.trim(),
-      baseUrl: $('stt-base-url').value.trim(), model: $('stt-model').value.trim(),
+      baseUrl: $('stt-base-url').value.trim(), baseUrlVerbatim: true,
+      model: $('stt-model').value.trim(),
     });
     return LearnSpeech.test();
   }));

@@ -28,7 +28,11 @@ var AppSettings = (() => {
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
     // §9.4 — the transcription group review.js reads. Device-local (§7.2).
-    'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel'];
+    'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
+    // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
+    'apiBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
+    // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关。
+    'drivePlayNotes'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -104,6 +108,9 @@ var AppSettings = (() => {
     }
     // §9.4 — transcription engine for the 说 exercise. Empty = not configured =
     // the speak form does not exist. Candidates come from the generated registry.
+    $('drive-title').textContent = t('drive_entry', '播客模式');
+    $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
+    $('drive-play-notes-note').textContent = t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。');
     $('stt-title').textContent = t('stt_engine', '转写引擎');
     $('stt-engine-label').textContent = t('stt_engine', '转写引擎');
     $('stt-key-label').textContent = t('stt_api_key', '转写 API Key');
@@ -151,7 +158,7 @@ var AppSettings = (() => {
     $('tts-base-field').hidden = !(e && e.supportsBaseUrl);
     $('tts-model-field').hidden = !(e && e.supportsModel);
     if (e) {
-      $('tts-base-url').placeholder = e.defaultBase || 'https://…';
+      $('tts-base-url').placeholder = (e.defaultEndpoint || e.placeholder) || 'https://…';
       $('tts-model').placeholder = e.defaultModel || '';
     }
   }
@@ -197,6 +204,8 @@ var AppSettings = (() => {
       engineId: $('tts-engine').value || 'browser',
       apiKey: $('tts-api-key').value.trim(),
       baseUrl: $('tts-base-url').value.trim(),
+      // Read straight off the form, so it is by definition the new semantics.
+      baseUrlVerbatim: true,
       model: $('tts-model').value.trim(),
       voice: $('tts-voice').value,
     }));
@@ -270,8 +279,19 @@ var AppSettings = (() => {
     });
   }
 
+  // 端点迁移（#147）。跑在这里而不是 chrome-shim：wire-format.js 的 legacy 分支已经保证
+  // 没迁移的设备行为不变，所以它没有要抢的竞速，也不需要在 bundle 启动时就位；而它要用
+  // 的按 flavor 过滤的冻结表在 providers.gen.js 里，那是 shim 之后才加载的。
+  // 迁移只做两件事：让输入框里显示的就是真正会被请求的地址，以及少算一次。
+  async function migrateEndpointsOnce(cur) {
+    const patch = WireFormat.migrationPatch(cur);
+    if (!Object.keys(patch).length) return cur;
+    await set(patch);                    // 值与备份、戳同写一次 —— 覆盖是唯一不可逆的动作
+    return Object.assign({}, cur, patch);
+  }
+
   async function paint(session, say) {
-    const cur = await get(KEYS);
+    const cur = await migrateEndpointsOnce(await get(KEYS));
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'assist';
     $('tts-engine').value = engineById(cur.ttsEngine).id;
@@ -288,6 +308,8 @@ var AppSettings = (() => {
     $('notes-base').value = cur.apiBaseUrl || '';
     $('notes-model').value = cur.apiModel || '';
     paintNotesFields(cur.provider || '');
+    // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
+    $('drive-play-notes').checked = cur.drivePlayNotes !== false;
     $('stt-engine').value = (window.MT_STT_ENGINES || []).some((e) => e.id === cur.sttEngine)
       ? cur.sttEngine : '';
     $('stt-key').value = cur.sttApiKey || '';
@@ -312,7 +334,7 @@ var AppSettings = (() => {
     $('stt-base-field').hidden = !(e && e.supportsBaseUrl);
     $('stt-model-field').hidden = !(e && e.supportsModel);
     if (e) {
-      $('stt-base').placeholder = e.defaultBase || 'https://…';
+      $('stt-base').placeholder = (e.defaultEndpoint || e.placeholder) || 'https://…';
       $('stt-model').placeholder = e.defaultModel || '';
     }
   }
@@ -325,7 +347,7 @@ var AppSettings = (() => {
     $('notes-base-field').hidden = !(p && p.supportsBaseUrl);
     $('notes-model-field').hidden = !(p && p.supportsModel);
     if (p) {
-      $('notes-base').placeholder = p.defaultBase || '';
+      $('notes-base').placeholder = (p.defaultEndpoint || p.placeholder) || 'https://…';
       $('notes-model').placeholder = p.defaultModel || '';
     }
   }
@@ -364,6 +386,8 @@ var AppSettings = (() => {
         await set({
           ttsApiKey: $('tts-api-key').value.trim(),
           ttsBaseUrl: $('tts-base-url').value.trim(),
+          // 保存即新语义（见 content/wire-format.js）。
+          ttsBaseUrlVerbatim: true,
           ttsModel: $('tts-model').value.trim(),
         });
         liveTtsConfigure();
@@ -400,17 +424,31 @@ var AppSettings = (() => {
         provider: $('notes-provider').value,
         apiKey: $('notes-key').value.trim(),
         apiBaseUrl: $('notes-base').value.trim(),
+        apiBaseUrlVerbatim: true,
         apiModel: $('notes-model').value.trim(),
       };
       await set(cfgNow);
       LearnNotes.configure({
         provider: cfgNow.provider, apiKey: cfgNow.apiKey,
-        baseUrl: cfgNow.apiBaseUrl, model: cfgNow.apiModel,
+        baseUrl: cfgNow.apiBaseUrl, baseUrlVerbatim: true, model: cfgNow.apiModel,
       });
     }
+    // 换引擎时清空非空的接口地址，并说出来（interaction-spec 「接口地址字段」）。
+    // 地址不能跨端点携带 —— 与下面 tts-engine 重置 voice 是同一条理由。对有默认端点的
+    // 条目，清空恰好回到一个能工作的配置。返回是否真的清了，好让调用方给出提示：
+    // 静默丢掉用户敲过的东西，正是这条规则要避免的那种失败。
+    function clearEndpointOnEngineSwitch(inputId) {
+      const el = $(inputId);
+      if (!el || !el.value.trim()) return false;
+      el.value = '';
+      return true;
+    }
+
     $('notes-provider').addEventListener('change', async () => {
+      const cleared = clearEndpointOnEngineSwitch('notes-base');
       paintNotesFields($('notes-provider').value);
       await saveNotesCfg();
+      if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
     for (const id of ['notes-key', 'notes-base', 'notes-model']) {
       $(id).addEventListener('change', saveNotesCfg);
@@ -424,19 +462,24 @@ var AppSettings = (() => {
         sttEngine: $('stt-engine').value,
         sttApiKey: $('stt-key').value.trim(),
         sttBaseUrl: $('stt-base').value.trim(),
+        sttBaseUrlVerbatim: true,
         sttModel: $('stt-model').value.trim(),
       };
       await set(c);
       if (typeof LearnSpeech !== 'undefined') {
         LearnSpeech.configure({
           engineId: c.sttEngine, apiKey: c.sttApiKey,
-          baseUrl: c.sttBaseUrl, model: c.sttModel,
+          baseUrl: c.sttBaseUrl, baseUrlVerbatim: true, model: c.sttModel,
         });
       }
     }
+    $('drive-play-notes').addEventListener('change', () =>
+      set({ drivePlayNotes: $('drive-play-notes').checked }));
     $('stt-engine').addEventListener('change', async () => {
+      const cleared = clearEndpointOnEngineSwitch('stt-base');
       paintSttFields($('stt-engine').value);
       await saveSttCfg();
+      if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
     for (const id of ['stt-key', 'stt-base', 'stt-model']) {
       $(id).addEventListener('change', saveSttCfg);
@@ -451,6 +494,9 @@ var AppSettings = (() => {
       if (code === 'no_key') return t('engine_test_no_key', '还没填 API Key');
       if (code === 'no_engine') return t('engine_test_no_engine', '还没选引擎');
       if (code === 'network') return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+      if (code === 'timeout') return t('engine_test_timeout', '端点没有在超时前回应');
+      if (code === 'no_path') return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
+      if (code === 'bad_url') return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
       if (code === 'empty_output') return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
       if (code === 'bad_output') return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
       if (code === 'http') {
@@ -462,16 +508,27 @@ var AppSettings = (() => {
       }
       return (e && e.message) || t('engine_test_failed', '没通');
     }
+    // Second line: the URL the transport actually requested. Same reason as the
+    // extension's options page — with a user-supplied endpoint the commonest failure is
+    // a wrong ADDRESS, and a 404 and a CORS rejection read identically without it. The
+    // key never appears here. (`r.url` on success is wired for the shared endpoint
+    // resolver in #147; no test callback returns it yet.)
+    const withUrl = (text, url) => text + (url
+      ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
+      : '');
     const runTest = (btnId, noteId, fn) => async () => {
       const btn = $(btnId), note = $(noteId);
       btn.disabled = true;
       note.textContent = t('engine_test_running', '测试中…');
       try {
         const r = await fn();
-        note.textContent = t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
-          + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : '');
+        note.textContent = withUrl(
+          t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
+            + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
+          r.url);
       } catch (e) {
-        note.textContent = '✗ ' + engineTestReason(e);
+        console.error('[engine-test]', (e && e.url) || '', e);
+        note.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
       } finally { btn.disabled = false; }
     };
     $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {

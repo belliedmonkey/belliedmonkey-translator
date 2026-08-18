@@ -69,7 +69,11 @@ async function rejects(promiseOrFn, msgOrPattern) {
         throw new AssertionError(`rejected, but with ${JSON.stringify(text)} — expected to match ${pattern}`);
       }
     }
-    return; // expected
+    // The error itself, so a caller can go on to assert its `code`/`status`/`url`.
+    // A named failure is half of this project's error contract (transport layers name
+    // their codes so the UI can say what to fix); asserting only that SOMETHING was
+    // thrown checks the weaker half.
+    return e; // expected
   }
   throw new AssertionError(msg || 'expected promise to reject, but it resolved');
 }

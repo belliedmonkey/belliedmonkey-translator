@@ -782,7 +782,7 @@ the browser extension, like capture — with one dated exception:
     2026-08-03 on the iPhone simulator (iOS 17.2): the card renders, the ▶
     control is enabled, and nothing is spoken until the user taps it. So there,
     `audio-first` means *tap to listen, then reveal*, not *listen hands-free*.
-    This is a platform rule about user gestures, not a defect. *(The app's 驾车模式
+    This is a platform rule about user gestures, not a defect. *(The app's 播客模式
     is the one sanctioned hands-free regime — see its section below; it cannot and
     does not exist on the extension page.)*
   - **In the APP, the gate is lifted** *(2026-08-09, 真机定案)*: the shell's
@@ -861,19 +861,44 @@ change: four grades, consequence previews, strength bar.
   its next eligible skill.
 - **Recordings are never stored** — sent only to the user-configured endpoint and
   discarded when the transcript returns (learning-design §9.4, §10 Gate C).
+### 接口地址字段（所有引擎共用一条规则）
+
+- **字段的语义是「完整的接口地址」**，不是主机名。用户填什么我们就请求什么，一个字符都不
+  加（domain-design §7 零拼接）。空着表示「用这个引擎的默认端点」——那仍然是最常见、也最
+  该鼓励的状态，占位符显示的就是那个完整默认地址。
+- **占位符来自注册表**（`defaultEndpoint` 或 `placeholder`），不来自文案。一条路径写进
+  十一种语言的翻译串就是十一份会过时的拷贝。
+- **切换引擎时，若地址框非空则清空它**，并给一条可见提示。地址不能跨端点携带——理由与
+  语音那条一样（`app/settings.js` 换引擎会重置 voice：「Voice names don't carry across
+  engines」）。对有默认端点的条目，清空恰好回到一个能工作的配置；对必须自填的条目，本来
+  就得重填。**不许静默清空**。
+- **失败要分得开。** 「测试连接」在发请求之前做一次离线形状检查：地址缺协议头 ⇒
+  `bad_url`；只有主机名没有路径 ⇒ `no_path`。这两条**只在自检里硬失败，运行时不拦**——
+  逐字发送是承诺，而根路径端点虽罕见却合法。之所以要单独具名：缺路径造成的失败与 CORS
+  失败在 WebKit 里表征完全相同（learning-design §9.4，2026-08-13 实测的裸 TypeError），
+  运行时无法区分，只有离线检查能。
+- **结果行回显真正请求的地址**（成功与失败都回显，key 永不出现在这一行）。用户填了自定义
+  端点时最常见的故障就是地址错，而「我们调用了哪个地址」是唯一能把它和「连不上」分开的
+  事实，没有任何错误文案能提供它。
+
 - **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
   engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no
-  on-device engine), base URL / key / model per registry flags. It never follows
+  on-device engine), endpoint URL / key / model per registry flags. It never follows
   the translation or 解析 group: where a recording goes is an explicit choice. The
   hint under the block carries the Gate C sentence.
 
-### 驾车模式 (driving mode) — 2026-08-17（App 专属）
+### 播客模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
 
-An app-only hands-free session (learning-design §9.5): TTS reads each card 原文 →
-译文, appends a 跟读 exercise when the card's speak form is due-eligible, then asks
-「有没有疑问？」aloud — a spoken question is answered by the 问答引擎 and read back;
-silence or 「没有 / 下一个」 advances. Foreground only; the screen is kept awake by
-the `app:sync` idle-timer patch.
+An app-only **player** for the deck (learning-design §9.5): TTS reads each card
+原文 → 译文 (→ 解析, if the user turned that on), one card runs straight into the
+next with nothing waiting on the user, in one of four playback orders. Foreground
+only; the screen is kept awake by the `app:sync` idle-timer patch.
+
+**It writes nothing** — no review row, no skill stamp, no `lastSeenAt`, no scheduler
+call. The 跟读 exercise and the spoken 「有没有疑问？」 loop that v1 had are gone: a
+recording window has to interrupt continuous playback to exist, and continuous
+playback is the whole content of "listening while driving". Every write path stays on
+the review surface, where the user can see what they are grading.
 
 **Two explicit carve-outs, each naming the rule it amends** *(anything not carved
 out follows the standing rules unchanged)*:
@@ -881,7 +906,7 @@ out follows the standing rules unchanged)*:
 1. **Amends 「reveal is always user-initiated; nothing auto-advances」 and the
    `audio-first` ruling above.** Inside a driving session only, the translation is
    spoken without a reveal tap and cards auto-advance. The single entry tap
-   (「开始驾车」) is the consent for the whole session — same shape as the
+   (「播客模式」) is the consent for the whole session — same shape as the
    audio-first exception: what the rule protects is the *user's* pacing, and the
    user chose this pacing by entering the mode. 暂停/退出 returns to the normal
    regime instantly; nothing outside the session changes behaviour.
@@ -890,36 +915,47 @@ out follows the standing rules unchanged)*:
    Carve-out: **⏸ 暂停/停止 is enabled at all times** (it is the interrupt for the
    in-flight IO, not a second trigger — double-fire is impossible by construction:
    `LearnTTS.stop()` is idempotent and epoch-guarded); ⏭ 下一张 / 🔁 再听一遍 are
-   enabled between segments and debounced by the TTS epoch. Controls that *trigger*
-   IO inside a segment (🎙 提问 while a QA call is in flight) follow the standing
-   rule and disable.
+   enabled between segments and debounced by the TTS epoch; the **playback-order
+   button is enabled at all times and never interrupts audio** — it changes only what
+   happens after the current card, which is exactly why it is safe to press while
+   moving.
 
 - **The gate ladder (capability semantics, never disabled buttons)**:
-  - the 「驾车模式」 entry button exists ⇔ TTS is usable at all;
-  - the voice loop (auto-record after 「有没有疑问？」, spoken Q&A) exists ⇔
-    `LearnSpeech.capable()` AND the 解析引擎 gate is open AND the UI language has a
-    usable voice (the spoken prompts are `uiLang` text);
-  - no STT ⇒ the session is buttons-only — 暂停 / 下一张 / 再听一遍 — and **no ask
-    affordance exists at all** (there is no way to ask by voice without a
-    transcription engine; a typed-question flow is a different feature).
-- **What is spoken per card**: 原文 (card language voice) → 译文 (target-language
-  voice) → for due speak-eligible cards: 「请跟着读一遍」 → fixed recording window
-  → score line spoken back. Text stays **visible** throughout — audio-first, never
-  text-hidden (passengers and parked use exist).
-- **Progress accounting is §5.3 verbatim** (learning-design §9.5): listening writes
-  nothing; a due-card 跟读 auto-grades from `speakScore` (≥0.9→记得, <0.5→不记得,
-  middle→有点难 — always inside `gradeGate('speak')`'s allowed set) through the
-  normal review path; a non-due 跟读 follows the practice asymmetry; candidates are
-  exposure only. Media cards are skipped in the driving queue (合成音永不替代原声).
-- **Q&A cost is stated at the point of use**: 「使用你配置的解析引擎，每问一次调用，
-  不缓存」. Answers render via `textContent` and are spoken in `uiLang`.
-- **Every stop names itself** (TTS reason codes + driving lines): a mid-session TTS
-  failure pauses the session on its named reason — never a silent skip, never an
-  idle loop; a transcription failure skips this card's 跟读, says so, and continues;
-  `mic_denied` mid-session degrades the session to buttons-only listening (the voice
-  loop's form ceases to exist, same semantics as the 说 form). `visibilitychange` →
-  paused (TTS stopped, recording cancelled, microphone released); resuming is always
-  a tap, never automatic.
+  - the 「播客模式」 entry button exists ⇔ TTS is usable at all;
+  - the 解析 segment exists ⇔ the user turned it on AND the 解析引擎 gate is open
+    (§9.2). Engine not configured ⇒ the segment does not exist, it is not greyed.
+- **What is spoken per card — THREE passes** (2026-08-18): 原句 / 原句 + 译句 +
+  解析 / 原句. The plan is flat but every segment carries its pass, because once
+  flattened nothing else can tell the first pass's 原句 from the third's, and the
+  status line says which one is playing. Text stays **visible** throughout —
+  audio-first, never text-hidden (passengers and parked use exist).
+- **暂停时出现「解析这句」**: analyse (generating if needed), show, read aloud, then
+  **return to paused on the same segment**. Pausing means "I am in control", so
+  finishing a piece of analysis must not decide to resume for the user; 继续 stays a
+  tap. The button exists only when the notes engine is usable.
+- **Playback order** — 随机 (default) / 顺序 / 循环 / 单曲循环, cycled by one button
+  and persisted. 随机 is a *permutation*, not per-step sampling, and reshuffles when
+  it wraps. ⏭ 下一张 moves on even in 单曲循环 — a player that ignores its own next
+  button is broken. Only 顺序 ever reaches 「本轮听完了」.
+- **Reading the 解析 aloud is ON by default and its cost is stated twice**: beside
+  the setting ("a card that has never been analysed is analysed on the spot, using
+  your engine — charged once per card, cached from then on") and as a standing line
+  in the player while it is happening. Default-on means the FIRST session through a
+  fresh deck analyses every card in it, which is exactly why the cost sentence is in
+  two places rather than one. No per-session cap: a cap makes the analysis stop
+  appearing partway through a session for no visible reason, which is harder to
+  understand than the cost itself.
+- **A switch the user turned ON must never do nothing in silence.** If 播放解析 is on
+  while no notes engine is configured, the player says so once, in the standing line,
+  and names where to configure it — this is NOT the "capability semantics" case
+  (that covers forms the user never asked for). Shipped 2026-08-17 without it and the
+  feature was indistinguishable from unimplemented on a real device.
+- **Failures are told apart** (§9.1/§9.4 reason conventions): a whole-engine failure
+  (`blocked`, `unsupported`) stops the session on a named reason, because it will
+  recur on every card; a per-card failure (`no_voice`) says so and skips to the next,
+  because one unreadable card must not end a session whose other cards are fine.
+  Never silent either way. Hiding the app pauses; resuming is always a tap.
+
 
 ### 自由练习 (free practice) — 2026-08-08
 

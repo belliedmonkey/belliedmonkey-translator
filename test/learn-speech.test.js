@@ -6,14 +6,16 @@
 // released on EVERY path, and named error codes end to end.
 
 const { loadModule, describe, test, ok, eq } = require('./harness');
+const WireFormat = require('../extension/content/wire-format.js');
 
 const ENGINES = [
-  { id: 'local', type: 'transcribe-compat', label: 'L', defaultBase: null,
-    path: '/v1/audio/transcriptions', defaultModel: '',
-    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: true },
-  { id: 'cloud', type: 'transcribe-compat', label: 'C', defaultBase: 'https://stt.example',
-    path: '/v1/audio/transcriptions', defaultModel: 'whisper-1',
-    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresBaseUrl: false },
+  { id: 'local', type: 'transcribe-compat', label: 'L', defaultEndpoint: null,
+    placeholder: 'http://127.0.0.1:18790/v1/audio/transcriptions', defaultModel: '',
+    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true },
+  { id: 'cloud', type: 'transcribe-compat', label: 'C',
+    defaultEndpoint: 'https://stt.example/v1/audio/transcriptions',
+    placeholder: null, defaultModel: 'whisper-1',
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false },
 ];
 
 function fakeStream() {
@@ -55,7 +57,7 @@ function setup(over) {
       },
     },
     MediaRecorder: over.noRecorder ? undefined : FakeRecorder,
-    FormData, Blob, fetch: fetchImpl, console,
+    FormData, Blob, fetch: fetchImpl, console, WireFormat,
   };
   const ctx = loadModule('learn/speech-input.js', sandbox);
   return { S: ctx.LearnSpeech, calls, stream };

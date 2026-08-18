@@ -74,6 +74,81 @@ construction, not by exemption.
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
+### 1.0 Provider matrix — every shipped engine must have been reached at least once
+
+> **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been
+> driven against its REAL endpoint at least once, and the result recorded in §1.0's
+> table. An engine nobody has ever reached is an untested claim in the settings list.**
+
+This matrix is **orthogonal to the surface matrix above**, and deliberately so. Which
+provider answers, and whether we speak its wire format correctly, is a **transport**
+property — it does not vary by device, so verifying it on all seven surfaces would be
+7× the cost for zero extra information. The two rules compose like this:
+
+- **Per surface (§1, every regression):** DeepSeek, per §0. It is the stable baseline;
+  that rule is unchanged.
+- **Per provider (§1.0, once per entry, and again whenever its transport changes):** one
+  live call on any ONE surface, recorded below.
+
+**A row is per (entry × flavor), not per entry.** `glm`, `qwen` and `kimi` ship
+*different endpoints* in the china and global builds (`build/providers.config.js`), and
+in at least the DashScope case a key issued for one region is not valid for the other.
+Two endpoints are two things that can be broken; they are two rows. `deepseek` ships the
+same endpoint in both flavors and is therefore one row.
+
+**What a row's pass means** — all four, or it is not a pass:
+
+1. The endpoint answered `200` and we extracted non-empty text/audio from its response
+   shape (i.e. the `type`'s wire format is right, not merely that the host is up).
+2. **The URL actually requested was the one intended.** Read it off the 「测试连接」
+   result line, which echoes it (`options.js` `runTest`). This is the check that would
+   have caught a mis-folded endpoint, and it costs one glance.
+3. The failure paths are named, not raw: a wrong key gives `http 401/403` with the
+   key hint, a wrong address gives something other than the bare CORS copy.
+4. Recorded here with a date. An undated "works" is not a verification (§4).
+
+**How the two brand-free custom entries are verified.** `custom_chat` / `custom_msg`
+have no endpoint of their own — the thing under test is "user supplies a complete
+endpoint URL of this wire shape, and we speak it". Point `custom_chat` at any
+Chat-Completions-shaped endpoint we already hold a key for, and `custom_msg` at any
+Messages-shaped one. That is a real verification of the code path; it needs no
+additional account.
+
+**Self-hosted rows need a server, not a key.** `local` (TTS) needs any
+`/v1/audio/speech`-shaped server; `local` (STT) has one in-repo already —
+`scripts/dev-whisper-server.js` on `127.0.0.1:18790`. Both must be reached from the
+surface under test, which on a real device means the Mac's LAN IP and a server that
+**allows cross-origin requests** — without CORS, WebKit reports only a bare
+`TypeError` and the run looks like "unreachable" (§9.4 of `learning-design.md`).
+
+| # | Entry | Flavor | Wire format | Needs | Last verified |
+|---|---|---|---|---|---|
+| 1 | `google` | global | `google` | — (free endpoint, no key) | ❌ 未记录 |
+| 2 | `openai` | global | `chat-compat` | OpenAI key | ❌ 未记录（key 在手） |
+| 3 | `claude` | global | `messages-compat` | Anthropic key | ❌ **缺 key** |
+| 4 | `deepseek` | global + china（同一端点） | `chat-compat` | DeepSeek key | ✅ 长期基线（§0） |
+| 5 | `glm` | global (`api.z.ai`) | `chat-compat` | Z.ai key | ❌ **缺 key** |
+| 6 | `glm` | china (`open.bigmodel.cn`) | `chat-compat` | 智谱 key | ❌ **缺 key** |
+| 7 | `qwen` | global (`dashscope-intl`) | `chat-compat` | DashScope 国际版 key | ❌ **缺 key** |
+| 8 | `qwen` | china (`dashscope`) | `chat-compat` | DashScope 国内版 key | ❌ **缺 key** |
+| 9 | `kimi` | global (`api.moonshot.ai`) | `chat-compat` | Moonshot 海外 key | ❌ **缺 key** |
+| 10 | `kimi` | china (`api.moonshot.cn`) | `chat-compat` | Moonshot 国内 key | ❌ **缺 key** |
+| 11 | `custom_chat` | global + china | `chat-compat` | 复用任一 Chat 形状端点 | ❌ 未记录 |
+| 12 | `custom_msg` | global + china | `messages-compat` | 需一个 Messages 形状端点 | ❌ **依赖第 3 行的 key** |
+| 13 | `browser` (TTS) | global + china | `browser` | — (系统语音) | ✅ 随复习流程长期在跑 |
+| 14 | `local` (TTS) | global + china | `speech-compat` | 自建 `/v1/audio/speech` 服务 | ❌ **缺服务** |
+| 15 | `openai_speech` | global | `speech-compat` | OpenAI key | ✅ 已在用 |
+| 16 | `local` (STT) | global + china | `transcribe-compat` | `scripts/dev-whisper-server.js` | ✅ M10 真机跑通 |
+| 17 | `openai_transcribe` | global | `transcribe-compat` | OpenAI key | ✅ M10 真机跑通（1.3MB 音频） |
+
+**这张表是活的**：注册表加一个条目就加一行（`node scripts/local-keys.js init` 会从注册表
+重新生成本地凭证模板，不要手抄引擎清单）。一个条目在没有任何一行记录之前**不得出现在
+出货的引擎列表里**——那是在向用户承诺一件我们从没试过的事。
+
+**凭证从哪来**：`.local/keys.md`（`node scripts/local-keys.js init` 生成，在 `.gitignore`
+里，永不提交）。每个需要 key 的条目在那里各占一个槽位——一个 `apiKey` 槽位只能验证一个
+provider，逐条验证要求逐条填。
+
 **Mandatory: desktop fullscreen playback with bilingual subtitles.** For any change
 touching video subtitles, **entering native fullscreen on every desktop browser × every
 video site is a required check** — the bilingual overlay must remain inside the
@@ -162,7 +237,7 @@ host-key delivery. But typing was never actually required: **stop configuring th
 and configure the build.**
 
 1. Copy `dist/` to a throwaway dir and instrument the COPY only — never the repo:
-   - `content/providers.gen.js` → point the provider's `defaultBase` at a local
+   - `content/providers.gen.js` → point the provider's `defaultEndpoint` at a local
      logging endpoint. Leaving 自定义 API 地址 empty then resolves to it, no typing.
    - `background.js` `DEFAULT_SETTINGS` → preset `targetLang` / `provider` / `apiKey`.
    - `content/translation-api.js` → `apiKey = apiKey || '<key>'`, because storage may
@@ -186,7 +261,7 @@ uninterpretable. A fixed banner painted by a content script works:
 
 ```js
 var b = document.createElement('div');
-b.textContent = 'BUILD=instrumented base=' + provider.defaultBase;
+b.textContent = 'BUILD=instrumented base=' + provider.defaultEndpoint;
 b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b00;color:#fff';
 (document.body || document.documentElement).appendChild(b);
 ```

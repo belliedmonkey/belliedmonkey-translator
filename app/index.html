@@ -67,7 +67,7 @@
         <button id="review" type="button"></button>
         <button id="sync" type="button" class="secondary"></button>
       </div>
-      <!-- 驾车模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
+      <!-- 播客模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
            渲染；门不过就不存在，绝不是灰按钮（AppDriving.refreshEntry）。 -->
       <div class="row">
         <button id="app-drive-start" type="button" class="secondary" hidden></button>
@@ -75,7 +75,7 @@
       <p class="note" id="last"></p>
     </section>
 
-    <!-- 驾车模式（learning-design §9.5 / interaction-spec 「驾车模式」）：App 专属
+    <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
          免提听读会话。文本全程可见（音频优先，从不藏字）；超大按钮；语音问答环
          仅在 STT + 解析引擎 + uiLang 音色三门全开时存在。视图切换归 app.js（同
          #review-view 的分工），内部全归 app/driving.js。 -->
@@ -86,8 +86,8 @@
       <div class="drive-card">
         <p id="app-drive-text"></p>
         <p id="app-drive-tr"></p>
-        <p class="note" id="app-drive-score"></p>
-        <p id="app-drive-answer"></p>
+        <!-- 解析文本：耳朵优先，但从不藏起来 —— 停车时看得见刚才播的是什么。 -->
+        <p class="note" id="app-drive-notes"></p>
       </div>
       <p class="note" id="app-drive-status" role="status" aria-live="polite"></p>
       <p class="note err" id="app-drive-note"></p>
@@ -95,7 +95,12 @@
         <button id="app-drive-pause" type="button" hidden></button>
         <button id="app-drive-next" type="button" hidden></button>
         <button id="app-drive-repeat" type="button" hidden></button>
-        <button id="app-drive-ask" type="button" hidden></button>
+        <!-- 播放顺序：随机 / 顺序 / 循环 / 单曲循环，点一下轮换。它只改变**这张卡
+             结束之后**发生什么，永不打断正在播的音频 —— 所以开车时按它是安全的。 -->
+        <button id="app-drive-mode" type="button" hidden></button>
+        <!-- 「解析这句」：只在暂停时出现。解析 + 显示 + 朗读，读完回到暂停 ——
+             暂停的语义是「我在控制」，读完一段解析不该顺势把整场恢复。 -->
+        <button id="app-drive-explain" type="button" hidden></button>
       </div>
       <button id="app-drive-more" type="button" class="secondary" hidden></button>
       <p class="note" id="app-drive-cost"></p>
@@ -194,6 +199,15 @@
 
       <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的端点，
            识别后即弃；不配置则说题不存在。设备本地凭证（§7.2），永不同步。 -->
+      <!-- 播客模式（learning-design §9.5）。播放顺序是播放器里的按钮；这里只放
+           **要花钱**的那个开关，因为它需要一句解释，而解释属于设置页。 -->
+      <h3 id="drive-title"></h3>
+      <label class="check">
+        <input id="drive-play-notes" type="checkbox">
+        <span id="drive-play-notes-label"></span>
+      </label>
+      <p class="note" id="drive-play-notes-note"></p>
+
       <h3 id="stt-title"></h3>
       <label class="field">
         <span id="stt-engine-label"></span>

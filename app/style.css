@@ -52,6 +52,10 @@ body {
 h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
 .note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; }
+/* The engine self-check results print a second line carrying the URL actually
+   requested; `.note` collapses newlines, and an endpoint URL is long enough to push
+   the column sideways unless it may break mid-token. */
+#test-notes-note, #test-stt-note, #test-tts-note { white-space: pre-line; overflow-wrap: anywhere; }
 
 /* ─── Shell element styling — SCOPED, because the cascade doesn't know about
    ownership. This file is concatenated AFTER review.css, so any bare element
@@ -131,7 +135,7 @@ header {
 .row { display: flex; gap: 10px; align-items: stretch; }
 .row button { flex: 1; }
 /* Stacked rows need the same breathing room as the buttons inside one row —
-   without this the 驾车模式 row sits flush against 开始复习/同步 and the two read
+   without this the 播客模式 row sits flush against 开始复习/同步 and the two read
    as one control block (真机实测 2026-08-17). Same 10px as the intra-row gap. */
 .row + .row { margin-top: 10px; }
 :where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
@@ -172,7 +176,7 @@ header {
    button style is a delete someone presses by muscle memory. */
 button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }
 
-/* ─── 驾车模式 (§9.5) ─────────────────────────────────────────────────────
+/* ─── 播客模式 (§9.5) ─────────────────────────────────────────────────────
    Same scoping discipline as the shell rules above: #app-drive is shell-owned
    markup, so its rules are scoped to it and never reach review.css's surface.
    Everything is BIG on purpose — glanceable text, ≥64px touch targets: the one

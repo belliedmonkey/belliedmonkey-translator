@@ -552,25 +552,83 @@ is a build-time concern, not a runtime one.
 
 - **Single source of truth.** `build/providers.config.js` is the one registry of
   translation providers. Each entry declares `{ id, type, flavors, needsKey,
-  supportsBaseUrl, supportsModel, requiresBaseUrl, defaultBase, path, defaultModel,
-  label, labelKey, hintKey }`. It replaces the four previously-duplicated lists
-  (the two HTML `<select>`s, the two settings scripts, and the transport's own
+  supportsBaseUrl, supportsModel, requiresEndpoint, defaultEndpoint, placeholder,
+  defaultModel, label, labelKey, hintKey }`. It replaces the four previously-duplicated
+  lists (the two HTML `<select>`s, the two settings scripts, and the transport's own
   provider table). The build generates `content/providers.gen.js`
   (`window.MT_FLAVOR` + `window.MT_PROVIDERS`), which every runtime surface reads —
   `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), so they can never
   drift.
 
-- **Transport is keyed by request FORMAT, not vendor.** `type` is one of
-  `google`, `chat-compat` (OpenAI Chat-Completions request shape), or
-  `messages-compat` (Anthropic Messages request shape). No adapter names a vendor;
-  a self-hosted or third-party endpoint is reached by picking the matching format +
-  a custom `baseUrl`/`model`. `anthropic-version` is sent for `messages-compat` as a
-  required *protocol* header, not a brand reference.
+- **The endpoint is used EXACTLY as stored. We concatenate nothing, ever.**
+  `defaultEndpoint` is a COMPLETE request URL, path included, and a user-supplied
+  address is sent verbatim — the only processing permitted is trimming surrounding
+  whitespace on save. `content/wire-format.js` is the one place that resolves an
+  address, and all four transports (translation, notes, speech, transcription) go
+  through it.
+
+  This replaced a `defaultBase + path` model, and the reason is not tidiness. That
+  model assumed a regularity that never existed: `qwen`'s own default already carried
+  a `/compatible-mode` path segment and `google` had no path at all, so "base = origin"
+  was already false inside our own registry. Worse, it made a real configuration
+  unreachable — one host can serve **two different request shapes** from two paths
+  (Chat Completions and Responses), and appending a registry-chosen path meant the user
+  had no way to say which one they wanted. Third-party proxies compound this: their
+  path conventions need not match the vendor's, so anything we append is a guess about
+  someone else's routing.
+
+  `placeholder` carries the example address for entries with no default. It lives in
+  the registry rather than in UI copy for the same reason every other endpoint does:
+  a path written into eleven translated strings is a second copy that drifts.
+
+- **Transport is keyed by request FORMAT, and the format is declared in two places,
+  in this order:**
+
+  1. **The endpoint URL's path suffix** — `/chat/completions`, `/responses`,
+     `/messages`, `/audio/speech`, `/audio/transcriptions`. A path is part of an API
+     contract, not part of a vendor's identity.
+  2. **The registry entry's `type`** — the default shape, used when the address says
+     nothing we recognise.
+
+  The URL wins because `type` is our *guess* about an id, while the URL is the user's
+  *statement* about their endpoint. Vendors participate in neither: no adapter names
+  one, and the suffix table contains only protocol paths. `anthropic-version` is sent
+  for `messages-compat` as a required *protocol* header, not a brand reference.
+
+  Matching is **family-closed**: the suffix only selects a variant *within the same
+  capability* (chat / speech / transcription), so a speech endpoint that happens to end
+  in `/messages` can never be turned into a chat transport. It is also **end-anchored
+  on the path** with the query string stripped first — `…/messages/v1/chat/completions`
+  is Chat Completions, and an Azure-shaped `…/chat/completions?api-version=…` is
+  recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
+  what keeps every unknown third-party endpoint behaving exactly as it does today.
+
+- **`google` is an explicit carve-out.** Its two endpoints are built with query
+  parameters at call time and cannot be expressed as one stored address; the user can
+  never supply one either (`supportsBaseUrl: false`). It therefore declares
+  `defaultEndpoint: null` **explicitly** — an absent field is the failure mode
+  `test/registry.test.js` exists to catch, not a permitted default. Same shape as the
+  palette carve-out for page-injected CSS: the exception is written down and gated,
+  never left as an unmentioned gap.
+
+- **Upgrading an existing install never changes which URL goes out.** Every address
+  stored before this change was consumed as `base + path`, so what the old code would
+  have requested is exactly computable — no guessing about what a stored value meant.
+  `build/legacy-endpoints.config.js` freezes that history (per flavor, emitted into
+  `providers.gen.js`), and `resolveEndpoint` branches on a per-field
+  `{key}Verbatim` stamp: stamped ⇒ verbatim, unstamped ⇒ reproduce the old expression
+  including its capability's original trailing-slash policy. **The unstamped branch is
+  permanent.** There is no telemetry here, so evidence that it is safe to delete will
+  never arrive — and keeping it means a device whose one-time migration never ran
+  degrades to "unchanged", not to "broken". The migration itself is therefore not part
+  of correctness; it runs on the settings pages, where it buys honesty (the address in
+  the field is the address we request) rather than function.
 
 - **Region flavor is a build/distribution concern, decided at build time — never a
   runtime per-request branch.** `node build.js --flavor global|china` filters the
-  registry by each entry's `flavors` and resolves flavor-varying `defaultBase` /
-  `label` to a single value:
+  registry by each entry's `flavors` and resolves flavor-varying `defaultEndpoint` /
+  `label` to a single value (and filters the frozen legacy-endpoint table the same way —
+  four of its keys are engine ids that are themselves brand words):
   - **global** (`dist/`, `com.belliedmonkeytranslator`): Google, OpenAI, Claude,
     DeepSeek, GLM, Qwen, Kimi + custom (Chat / Messages). International endpoints
     (`api.z.ai`, `dashscope-intl…`, `api.moonshot.ai`). **Not available in China.**

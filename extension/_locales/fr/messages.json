@@ -90,7 +90,7 @@
     "message": "Afficher/Masquer"
   },
   "label_custom_api": {
-    "message": "URL d’API personnalisée"
+    "message": "URL du point de terminaison (complète)"
   },
   "label_optional": {
     "message": "(facultatif)"
@@ -135,7 +135,7 @@
     "message": "Google Traduction (gratuit, sans clé API)"
   },
   "options_custom_api_hint": {
-    "message": "Laisser vide pour l’adresse par défaut. Utile pour les proxys ou services auto-hébergés."
+    "message": "Laissez vide pour utiliser le point de terminaison par défaut de ce moteur. Si vous le renseignez, saisissez l’URL de requête complète, chemin compris — nous l’envoyons telle quelle, sans rien ajouter. Convient aux proxys et aux services auto-hébergés."
   },
   "options_lang_section": {
     "message": "Langue"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "Moteur enregistré"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Moteur changé — l’URL du point de terminaison a été effacée",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "Clé API enregistrée"
@@ -255,10 +259,10 @@
     "message": "Modèle par défaut :"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Tout point de terminaison de conversation au format Chat Completions. Saisissez l’URL complète, le modèle et la clé. Si l’adresse se termine par responses, le format Responses est utilisé."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Tout point de terminaison de conversation au format Messages. Saisissez l’URL complète, le modèle et la clé."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "Utilise les voix déjà présentes dans votre système. Rien n'est envoyé ni mis en cache — ce moteur ne fait que parler, il ne peut pas restituer l'audio."
   },
   "tts_hint_local": {
-    "message": "Tout serveur vocal implémentant l’interface /v1/audio/speech, sur votre machine ou votre réseau local. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
+    "message": "Un serveur vocal sur votre machine ou votre réseau local — saisissez l’adresse complète, en suivant l’exemple affiché dans le champ. La synthèse est mise en cache localement : une phrase ne coûte qu’une fois."
   },
   "tts_hint_openai": {
     "message": "Utilise votre propre clé API. L'audio synthétisé est mis en cache localement : une phrase n'est payée qu'une fois."
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "l’URL ou le nom du modèle est incorrect",
+    "message": "l’URL du point de terminaison (chemin compris) ou le nom du modèle est incorrect",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "le serveur a refusé cette requête",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Cette adresse ne contient qu’un hôte, sans chemin de point de terminaison — saisissez l’URL de requête complète (voir l’exemple dans le champ)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "L’adresse ne commence pas par http:// ou https:// — sans schéma, elle est traitée comme un chemin relatif et aucune requête n’est envoyée",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "Le point de terminaison n’a pas répondu avant le délai d’expiration",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Adresse appelée : {url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "Mode conduite",
+    "message": "Mode podcast",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 Réécouter",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 Poser une question",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "Carte {i} sur {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "Répétez la phrase à voix haute",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 Expliquer",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "Des questions ?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "Passage {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analyse…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Lire les notes exige d’abord un moteur de notes — configurez-le dans Réglages → Notes de phrase",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "Cette carte n’a pas de notes à lire",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Impossible de lire vos réglages enregistrés — réessayez dans un instant",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Aléatoire",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ Dans l’ordre",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Tout répéter",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Répéter une",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Rejouer",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Lecture des notes…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Analyse de cette phrase…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Lire aussi les notes de la phrase",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "Chaque carte est suivie de ses notes (mots, expressions, un point de grammaire). **Activé par défaut** : une carte jamais analysée l’est sur-le-champ, avec le moteur que vous avez configuré — facturé une seule fois par carte, puis mis en cache. Désactivez si vous préférez ne pas dépenser ; désactivé, seules la phrase et sa traduction sont lues.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Lecture des notes : une carte jamais analysée appelle votre moteur — facturé une fois par carte",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Mots : ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Expressions : ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Grammaire : ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Analyse impossible pour cette carte — ignorée",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "Le moteur de notes n’est pas configuré — notes ignorées pour cette carte",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Cette carte ne peut pas être lue — passage à la suivante",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "Lecture de l'original…",
@@ -1367,36 +1463,12 @@
     "message": "Lecture de la traduction…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "Enregistrement — parlez…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "Réponse en cours…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "En pause",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "Les questions passent par votre moteur d'analyse : un appel par question, jamais mis en cache",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "Fin de cette série",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "Continuer à pratiquer",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "Micro indisponible — la session continue en écoute seule",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "Répétition orale de cette carte ignorée",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "Aucune carte à lire",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "La réponse a échoué — reposez la question",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

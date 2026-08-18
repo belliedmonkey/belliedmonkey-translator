@@ -90,7 +90,7 @@
     "message": "顯示/隱藏"
   },
   "label_custom_api": {
-    "message": "自訂 API 地址"
+    "message": "介面位址（完整）"
   },
   "label_optional": {
     "message": "（可選）"
@@ -135,7 +135,7 @@
     "message": "Google 翻譯（免費，無需 API Key）"
   },
   "options_custom_api_hint": {
-    "message": "留空則使用預設地址。適用於中轉代理或自建服務。"
+    "message": "留空則使用該引擎的預設端點。要自己填就填**完整的介面位址（含路徑）**——我們原樣請求，不會自動補路徑。中轉代理與自建服務都適用。"
   },
   "options_lang_section": {
     "message": "語言"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "翻譯引擎已儲存"
+  },
+  "toast_endpoint_cleared": {
+    "message": "換引擎了，介面位址已清空",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "API Key 已儲存"
@@ -255,10 +259,10 @@
     "message": "預設模型："
   },
   "hint_custom_chat": {
-    "message": "任意 Chat Completions 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+    "message": "任意 Chat Completions 格式的對話介面。填寫完整的介面位址、模型與 Key。位址末段是 responses 時按 Responses 格式傳送。"
   },
   "hint_custom_msg": {
-    "message": "任意 Messages 格式的對話介面。填寫介面位址（base URL）、模型與 Key。"
+    "message": "任意 Messages 格式的對話介面。填寫完整的介面位址、模型與 Key。"
   },
   "label_custom_model": {
     "message": "模型"
@@ -433,7 +437,7 @@
     "message": "使用你作業系統既有的語音。不傳送任何資料，也不產生快取 —— 這個引擎只能朗讀，拿不到音訊資料。"
   },
   "tts_hint_local": {
-    "message": "任何實作了 /v1/audio/speech 介面的語音服務，跑在你自己的機器或區域網路上。合成結果會快取在本機，同一句只花一次代價。"
+    "message": "跑在你自己的機器或區域網路上的語音服務，按輸入框裡的範例填完整位址。合成結果會快取在本機，同一句只花一次代價。"
   },
   "tts_hint_openai": {
     "message": "用你自己的 API Key。合成結果會快取在本機，同一句只花一次錢。"
@@ -1282,11 +1286,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "位址或模型名不對",
+    "message": "介面位址（含路徑）或模型名不對",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "伺服器拒絕了這次請求",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "這個位址只有主機名稱，沒有介面路徑 —— 請填完整的介面位址（參考輸入框裡的範例）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "位址不是以 http:// 或 https:// 開頭 —— 缺協定前綴會被當成相對路徑，請求根本發不出去",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "端點沒有在逾時前回應",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "請求位址：{url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1325,7 +1345,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "駕車模式",
+    "message": "播客模式",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1344,21 +1364,97 @@
     "message": "🔁 再聽一遍",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 提問",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "第 {i} / {n} 張",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "請跟著讀一遍",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 解析這句",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "有沒有疑問？",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "第 {i} 遍",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "正在解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "「播放解析」需要先在設定裡配好解析引擎（設定 → 句子解析）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "這張卡沒有可播的解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "讀不到已儲存的設定，請稍後再試",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 隨機播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ 順序播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 循環播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 單曲循環",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "再來一輪",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "播放解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "正在解析這一句…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "播放時朗讀句子解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "每張卡在原文和譯文之後再讀一遍解析（生詞 / 片語 / 文法）。**預設開著**：沒解析過的卡會自動呼叫你設定的解析引擎——每張卡只收一次費，之後一直用快取。不想讓它花錢就關掉，關掉後只讀原文和譯文。",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "播放解析：沒解析過的卡會呼叫你設定的解析引擎，每張卡只收一次費",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "生詞：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "片語：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "文法：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "這張卡的解析沒成功，已跳過",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "解析引擎還沒設定好，這張卡的解析跳過了",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "這張卡讀不出來，已跳到下一張",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "播放原文…",
@@ -1368,36 +1464,12 @@
     "message": "播放譯文…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "錄音中，請說話…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "正在回答…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "已暫停",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "提問使用你配置的解析引擎，每問一次調用，不快取",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "本輪聽完了",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "繼續練習",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "麥克風不可用，本次會話改為純聽讀",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "這張卡的跟讀已跳過",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1406,10 +1478,6 @@
   },
   "drive_empty": {
     "message": "沒有可聽讀的卡",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "回答失敗，可以再問一次",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

@@ -90,7 +90,7 @@
     "message": "表示/非表示"
   },
   "label_custom_api": {
-    "message": "カスタム API URL"
+    "message": "エンドポイント URL（完全）"
   },
   "label_optional": {
     "message": "（任意）"
@@ -135,7 +135,7 @@
     "message": "Google 翻訳（無料・API キー不要）"
   },
   "options_custom_api_hint": {
-    "message": "空欄でデフォルトの URL を使用。プロキシや自前のサービスに便利。"
+    "message": "空欄ならこのエンジンの既定エンドポイントを使います。入力する場合はパスを含む完全なリクエスト URL を書いてください——入力どおりに送信し、パスを補完しません。プロキシや自前サーバーにも使えます。"
   },
   "options_lang_section": {
     "message": "言語"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "エンジンを保存しました"
+  },
+  "toast_endpoint_cleared": {
+    "message": "エンジンを変更したため、エンドポイント URL をクリアしました",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "API キーを保存しました"
@@ -255,10 +259,10 @@
     "message": "既定モデル："
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Chat Completions 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。末尾が responses の場合は Responses 形式で送信します。"
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Messages 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。"
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "OS が既に持っている音声を使います。何も送信せず、キャッシュも作りません — このエンジンは読み上げるだけで、音声データを返せません。"
   },
   "tts_hint_local": {
-    "message": "/v1/audio/speech インターフェースに対応した音声サーバー（自分のマシンや LAN 上）。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+    "message": "自分のマシンや LAN 上の音声サーバー。入力欄の例にならって完全なアドレスを入力してください。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
   },
   "tts_hint_openai": {
     "message": "あなた自身の API キーを使います。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "URL かモデル名が違います",
+    "message": "エンドポイント URL（パスを含む）かモデル名が違います",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "サーバーがこのリクエストを拒否しました",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "このアドレスはホスト名だけでエンドポイントのパスがありません — 完全なリクエスト URL を入力してください（入力欄の例を参照）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "アドレスが http:// または https:// で始まっていません — スキームがないと相対パスとして扱われ、リクエストは送信されません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "タイムアウトまでにエンドポイントから応答がありませんでした",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "リクエスト先：{url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "ドライブモード",
+    "message": "ポッドキャストモード",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 もう一度聞く",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 質問する",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "{n} 枚中 {i} 枚目",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "声に出して読んでみてください",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 この文を解説",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "質問はありますか？",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "{i} 回目",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "解析中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "解説の読み上げには解説エンジンの設定が必要です（設定 → 文の解説）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "このカードには読み上げる解説がありません",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "保存済みの設定を読み込めません。少し後でもう一度お試しください",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 シャッフル",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ 順番に再生",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 全曲リピート",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 1件リピート",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "もう一周",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "解説を再生中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "この文を解析中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "再生時に文の解説も読み上げる",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "各カードの原文と訳文のあとに解説（単語・フレーズ・文法）も読み上げます。**既定でオン**：未解析のカードはその場で解析され、設定したエンジンを使います（カードごとに一度だけ課金、以降はキャッシュ）。費用をかけたくなければオフに。オフなら原文と訳文だけです。",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "解説の読み上げ中：未解析のカードは設定したエンジンを呼び出します（カードごとに一度だけ課金）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "単語：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "フレーズ：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "文法：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "このカードは解析できませんでした（スキップ）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "解説エンジンが未設定のため、このカードの解説は飛ばしました",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "このカードは読み上げられないため、次に進みました",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "原文を再生中…",
@@ -1367,36 +1463,12 @@
     "message": "訳文を再生中…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "録音中です。話してください…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "回答中…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "一時停止中",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "質問はあなたが設定した解析エンジンを使います。1 つの質問につき 1 回呼び出し、キャッシュされません",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "今回の分はここまでです",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "練習を続ける",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "マイクが使えないため、今回のセッションは聞くだけになります",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "このカードの音読はスキップしました",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "読み上げられるカードがありません",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "回答に失敗しました。もう一度質問できます",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

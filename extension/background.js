@@ -41,6 +41,14 @@ chrome.runtime.onInstalled.addListener((details) => {
       if (have.ytTextColor === '#ffffff') toSet.ytTextColor = '#ccdbb2';
       toSet.colorMigrated2026 = true;
     }
+
+    // The 2026-08 endpoint migration (#147) deliberately does NOT live here. It is not
+    // part of correctness — wire-format.js's legacy branch already keeps a device that
+    // never migrated requesting exactly what it requested before — so it has no race to
+    // win, and it needs the flavor-filtered frozen table that ships in providers.gen.js,
+    // which a `type: module` service worker cannot load. It runs on the settings pages
+    // instead, where both facts are comfortable.
+
     if (Object.keys(toSet).length > 0) chrome.storage.local.set(toSet);
   });
 

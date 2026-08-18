@@ -90,7 +90,7 @@
     "message": "إظهار/إخفاء"
   },
   "label_custom_api": {
-    "message": "عنوان API مخصص"
+    "message": "عنوان نقطة النهاية (كامل)"
   },
   "label_optional": {
     "message": "(اختياري)"
@@ -135,7 +135,7 @@
     "message": "ترجمة Google (مجانية، بدون مفتاح API)"
   },
   "options_custom_api_hint": {
-    "message": "اتركه فارغًا لاستخدام العنوان الافتراضي. مفيد للوكلاء أو الخدمات الذاتية."
+    "message": "اتركه فارغًا لاستخدام نقطة النهاية الافتراضية لهذا المحرك. وإذا ملأته فاكتب عنوان الطلب الكامل بما في ذلك مساره — نرسله كما هو تمامًا ولا نضيف إليه شيئًا. يصلح للوسطاء وللخدمات المستضافة ذاتيًا."
   },
   "options_lang_section": {
     "message": "اللغة"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "تم حفظ المحرك"
+  },
+  "toast_endpoint_cleared": {
+    "message": "تم تغيير المحرك — وأُفرِغ عنوان نقطة النهاية",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "تم حفظ مفتاح API"
@@ -255,10 +259,10 @@
     "message": "النموذج الافتراضي:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "أي نقطة نهاية محادثة بصيغة Chat Completions. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح. وإذا انتهى العنوان بـ responses فسنرسل بصيغة Responses."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "أي نقطة نهاية محادثة بصيغة Messages. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "يستخدم الأصوات الموجودة في نظام تشغيلك. لا يُرسَل شيء ولا يُخزَّن شيء — هذا المحرّك ينطق فقط ولا يمكنه إعادة بيانات صوتية."
   },
   "tts_hint_local": {
-    "message": "أي خادم صوت يطبّق واجهة ‎/v1/audio/speech‎، على جهازك أو شبكتك المحلية. يُخزَّن الصوت المُركَّب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
+    "message": "خادم تحويل نص إلى كلام على جهازك أو شبكتك المحلية — اكتب العنوان الكامل وفق المثال الظاهر في الحقل. تُخزَّن نتائج التركيب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
   },
   "tts_hint_openai": {
     "message": "يستخدم مفتاح API الخاص بك. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "العنوان أو اسم النموذج خاطئ",
+    "message": "عنوان نقطة النهاية (بما في ذلك مساره) أو اسم النموذج غير صحيح",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "رفض الخادم هذا الطلب",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "هذا العنوان يحتوي على المضيف فقط دون مسار نقطة النهاية — اكتب عنوان الطلب الكامل (انظر المثال في الحقل)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "لا يبدأ العنوان بـ http:// أو https:// — وبدون المخطَّط يُعامَل كمسار نسبي فلا يُرسَل أي طلب",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "لم تستجب نقطة النهاية قبل انتهاء المهلة",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "العنوان المطلوب: {url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "وضع القيادة",
+    "message": "وضع البودكاست",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 إعادة الاستماع",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 اسأل",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "البطاقة {i} من {n}",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "كرر الجملة بصوت عالٍ",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 اشرح هذه",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "هل لديك أي سؤال؟",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "الجولة {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "جارٍ التحليل…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "قراءة الشرح تحتاج أولًا إلى إعداد محرّك شرح (الإعدادات ← شرح الجملة)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "لا يوجد شرح لقراءته في هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "تعذّرت قراءة إعداداتك المحفوظة — أعد المحاولة بعد قليل",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 عشوائي",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ بالترتيب",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 تكرار الكل",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 تكرار واحدة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "جولة أخرى",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "جارٍ تشغيل الشرح…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "جارٍ تحليل هذه الجملة…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "قراءة شرح الجملة بصوت عالٍ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "تُقرأ بعد كل بطاقة شروحها (مفردات وعبارات ونقطة نحوية). **مفعَّل افتراضيًا**: البطاقة التي لم تُحلَّل من قبل تُحلَّل فورًا بالمحرك الذي أعددته — تُحتسب التكلفة مرة واحدة لكل بطاقة ثم تُقرأ من الذاكرة المؤقتة. أوقفه إن كنت تفضّل عدم الإنفاق؛ وعند الإيقاف تُقرأ الجملة وترجمتها فقط.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "قراءة الشرح: البطاقة غير المحلَّلة تستدعي محركك — وتُحتسب مرة واحدة لكل بطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "مفردات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "عبارات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "نحو: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "تعذَّر تحليل هذه البطاقة — تم تخطّيها",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "محرّك الشرح غير مُعد — تم تخطّي شرح هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "تعذَّرت قراءة هذه البطاقة — انتقلنا إلى التالية",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "تشغيل النص الأصلي…",
@@ -1367,36 +1463,12 @@
     "message": "تشغيل الترجمة…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "جارٍ التسجيل — تحدث الآن…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "جارٍ الإجابة…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "متوقف مؤقتًا",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "تستخدم الأسئلة محرك التحليل الذي أعددته — استدعاء واحد لكل سؤال، دون تخزين مؤقت",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "انتهت هذه الجولة",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "متابعة التدريب",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "الميكروفون غير متاح — تستمر هذه الجلسة بالاستماع فقط",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "تم تخطي القراءة بصوت عالٍ لهذه البطاقة",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "لا توجد بطاقات يمكن قراءتها",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "فشلت الإجابة — اسأل مرة أخرى",
     "description": "Driving mode (learning-design §9.5)"
   }
 }

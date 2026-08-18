@@ -17,7 +17,7 @@
 // key configured ⇒ the gate simply stays closed).
 
 var LearnNotes = (() => {
-  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '' };
+  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '', baseUrlVerbatim: false };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -30,10 +30,12 @@ var LearnNotes = (() => {
     s = s || {};
     if (s.notesProvider) {
       return { provider: s.notesProvider, apiKey: s.notesApiKey || '',
-        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '' };
+        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '',
+        baseUrlVerbatim: s.notesBaseUrlVerbatim === true };
     }
     return { provider: s.provider || '', apiKey: s.apiKey || '',
-      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '' };
+      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '',
+      baseUrlVerbatim: s.apiBaseUrlVerbatim === true };
   }
 
   function providerInfo() {
@@ -111,45 +113,109 @@ var LearnNotes = (() => {
     return out;
   }
 
-  // The shared chat transport (§9.2 / §9.3): the ONE place that knows the two
-  // wire formats. Returns the model's raw text; throws with a named code
-  // (no_base / http / empty_output). exercise-pack.js rides this same function —
-  // a third copy of the format branch is exactly how the formats would drift.
+  // A cross-origin POST to a user-configured endpoint is the normal case here, and a
+  // server that omits `Access-Control-Allow-Origin` makes WebKit reject the response
+  // before any status is visible to us — `fetch` throws a bare TypeError ("Load
+  // failed"), indistinguishable from "host unreachable" unless we name it (measured
+  // 2026-08-13, learning-design §9.4). speech-input.js has named this since #130;
+  // this transport did not, so every such failure reached the UI as the raw string.
+  // `url` rides along so the settings page can echo the address it actually requested.
+  async function fetchNamed(url, init) {
+    try {
+      return await fetch(url, init);
+    } catch (netErr) {
+      const e = new Error(String((netErr && netErr.message) || netErr));
+      e.code = 'network';
+      e.url = url;
+      throw e;
+    }
+  }
+
+  // The three wire formats, one branch each. Extracted rather than written as nested
+  // ternaries: at two shapes the ternary was already the hardest thing to read here,
+  // and a third would have made the headers, the body and the extraction disagree
+  // about which shape they were building without anyone noticing.
+  //
+  // 3000, not 1000: hybrid thinking models (observed on the DeepSeek default) spend
+  // their budget on the reasoning phase FIRST — at 1000 the budget died mid-think and
+  // the content came back empty, indistinguishable from a broken endpoint. The JSON
+  // itself is small; the headroom is for thinking. The Responses shape needs it MORE,
+  // not less: there the reasoning tokens are charged against the same ceiling.
+  const MAX_OUT = 3000;
+
+  function buildRequest(fmt, o) {
+    if (fmt === 'messages-compat') {
+      return {
+        headers: { 'Content-Type': 'application/json', 'x-api-key': o.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true' },
+        body: { model: o.model, max_tokens: MAX_OUT, system: o.system,
+          messages: [{ role: 'user', content: o.user }] },
+        extract: (d) => d && d.content && d.content[0] && d.content[0].text,
+      };
+    }
+    if (fmt === 'responses-compat') {
+      return {
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey },
+        // `instructions` is where the system prompt goes; `max_output_tokens` is a
+        // different NAME and a different meaning from max_tokens. Never streamed.
+        body: { model: o.model, instructions: o.system, input: o.user,
+          temperature: 0.3, max_output_tokens: MAX_OUT },
+        // NEVER output[0] — a reasoning model puts its reasoning item there and the
+        // answer after it, so index 0 is empty on exactly the models people reach for.
+        extract: (d) => {
+          if (d && typeof d.output_text === 'string' && d.output_text.trim()) return d.output_text;
+          let out = '';
+          for (const it of (d && Array.isArray(d.output) ? d.output : [])) {
+            if (!it || it.type !== 'message') continue;
+            for (const c of (Array.isArray(it.content) ? it.content : [])) {
+              if (c && (c.type === 'output_text' || typeof c.text === 'string')) out += (c.text || '');
+            }
+          }
+          return out;
+        },
+      };
+    }
+    return {
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey },
+      body: { model: o.model, temperature: 0.3, max_tokens: MAX_OUT,
+        messages: [{ role: 'system', content: o.system }, { role: 'user', content: o.user }] },
+      extract: (d) => d && d.choices && d.choices[0] && d.choices[0].message
+        && d.choices[0].message.content,
+    };
+  }
+
+  // The shared chat transport (§9.2 / §9.3): the ONE place that knows the wire
+  // formats. Returns the model's raw text; throws with a named code
+  // (no_base / network / http / empty_output). exercise-pack.js rides this same
+  // function — a third copy of the format branch is exactly how the formats would drift.
   async function chat(system, user) {
     const p = providerInfo();
-    const base = cfg.baseUrl || p.defaultBase;
-    if (!base) { const e = new Error('missing base URL'); e.code = 'no_base'; throw e; }
-    const model = cfg.model || p.defaultModel;
+    // The endpoint is used EXACTLY as stored — see content/wire-format.js. `p` may be
+    // null when the stored provider id is not in this flavor's registry; resolving
+    // against `null` yields '' and lands on the no_base error below, where it used to
+    // throw a TypeError with no code at all.
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, p, { cap: 'chat', verbatim: cfg.baseUrlVerbatim });
+    if (!url) { const e = new Error('missing endpoint URL'); e.code = 'no_base'; throw e; }
+    const model = cfg.model || (p && p.defaultModel) || '';
 
-    const msgFormat = p.type === 'messages-compat';
-    const resp = await fetch(base + p.path, {
-      method: 'POST',
-      headers: msgFormat
-        ? { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true' }
-        : { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
-      // 3000, not 1000: hybrid thinking models (observed on the DeepSeek default)
-      // spend their budget on the reasoning phase FIRST — at 1000 the budget died
-      // mid-think and `content` came back empty, indistinguishable from a broken
-      // endpoint. The JSON itself is small; the headroom is for thinking.
-      body: JSON.stringify(msgFormat
-        ? { model, max_tokens: 3000, system,
-            messages: [{ role: 'user', content: user }] }
-        : { model, temperature: 0.3, max_tokens: 3000,
-            messages: [{ role: 'system', content: system },
-                       { role: 'user', content: user }] }),
+    // Registry `type` is the default shape; the endpoint's path suffix refines it
+    // (content/wire-format.js) — one host can serve more than one request shape, and
+    // which one the user wants is something only their address can say.
+    const req = buildRequest(WireFormat.formatFor(url, p && p.type), {
+      apiKey: cfg.apiKey, model, system, user,
+    });
+    const resp = await fetchNamed(url, {
+      method: 'POST', headers: req.headers, body: JSON.stringify(req.body),
     });
     if (!resp.ok) {
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status;
+      e.code = 'http'; e.status = resp.status; e.url = url;
       throw e;
     }
     const d = await resp.json();
-    const msg = !msgFormat && d && d.choices && d.choices[0] && d.choices[0].message;
-    const text = msgFormat
-      ? d && d.content && d.content[0] && d.content[0].text
-      : msg && msg.content;
+    const msg = d && d.choices && d.choices[0] && d.choices[0].message;
+    const text = req.extract(d);
     // Empty content is its OWN failure, not "unparsable": a reasoning/thinking
     // model that never reached its answer (or a model that only emits
     // reasoning_content) needs the user to switch models — retrying is useless,
@@ -160,7 +226,7 @@ var LearnNotes = (() => {
         console.error('[learn/notes] empty content' + (thinking ? ' (reasoning_content present — thinking model)' : ''),
           JSON.stringify(d).slice(0, 300));
       } catch (_) {}
-      const e = new Error('model returned no content'); e.code = 'empty_output'; throw e;
+      const e = new Error('model returned no content'); e.code = 'empty_output'; e.url = url; throw e;
     }
     return text;
   }

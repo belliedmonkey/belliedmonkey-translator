@@ -133,7 +133,15 @@ governed by the same human-review rule above. Key invariants:
   (`window.MT_FLAVOR` + `window.MT_PROVIDERS`) read by the transport, options, and
   popup. Do **not** re-introduce a hardcoded provider list anywhere.
 - **Transport is format-keyed, not vendor-keyed** (`google` / `chat-compat` /
-  `messages-compat`). Never hardcode a vendor endpoint in `translation-api.js`.
+  `messages-compat` / `responses-compat`). The format is declared by the endpoint URL's
+  path suffix first and the registry `type` second, family-closed so a suffix only picks
+  a variant within one capability — see `docs/domain-design.md` §7. Never hardcode a
+  vendor endpoint in `translation-api.js`.
+- **Never concatenate anything onto a user-supplied URL.** `defaultEndpoint` is a complete
+  request URL; `content/wire-format.js` is the only place an address is resolved, and its
+  legacy branch (which reproduces the pre-2026-08 `base + path` behaviour for installs
+  that never migrated) is permanent — we have no telemetry that could ever justify
+  deleting it.
 - **Region flavor is decided at build time, never at runtime.**
   `node build.js --flavor global|china` and `bash build-safari.sh [china]` produce
   two independent binaries / bundle ids (`com.belliedmonkeytranslator` vs

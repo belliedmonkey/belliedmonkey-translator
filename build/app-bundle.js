@@ -45,6 +45,9 @@ const MODULES = [
   'extension/content/providers.gen.js',  // generated provider registry — the notes
                                          // gate and the app's engine picker both
                                          // read it (§7.2 / §9.2)
+  'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape.
+                                         // After providers.gen.js only for readability;
+                                         // it reads its globals lazily, at call time.
   'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS
@@ -60,8 +63,6 @@ const MODULES = [
                                          // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
                                          // LearnNotes.chat; gate follows the notes gate)
-  'extension/learn/driving-qa.js',       // DrivingQA — §9.5 驾车问答 (rides
-                                         // LearnNotes.chat; uncached, own version)
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs

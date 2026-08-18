@@ -90,7 +90,7 @@
     "message": "표시/숨기기"
   },
   "label_custom_api": {
-    "message": "사용자 지정 API 주소"
+    "message": "엔드포인트 URL(전체)"
   },
   "label_optional": {
     "message": "(선택)"
@@ -135,7 +135,7 @@
     "message": "Google 번역(무료, API 키 불필요)"
   },
   "options_custom_api_hint": {
-    "message": "비워 두면 기본 주소 사용. 프록시나 자체 호스팅에 유용."
+    "message": "비워 두면 이 엔진의 기본 엔드포인트를 사용합니다. 직접 입력할 때는 경로까지 포함한 완전한 요청 URL을 적어 주세요 — 입력한 그대로 보내며 경로를 덧붙이지 않습니다. 프록시나 자체 호스팅 서버에도 사용할 수 있습니다."
   },
   "options_lang_section": {
     "message": "언어"
@@ -193,6 +193,10 @@
   },
   "toast_provider_saved": {
     "message": "엔진 저장됨"
+  },
+  "toast_endpoint_cleared": {
+    "message": "엔진을 변경하여 엔드포인트 URL을 비웠습니다",
+    "description": "Settings toast"
   },
   "toast_apikey_saved": {
     "message": "API 키 저장됨"
@@ -255,10 +259,10 @@
     "message": "기본 모델:"
   },
   "hint_custom_chat": {
-    "message": "Any Chat-Completions-format chat endpoint. Enter the base URL, model and key."
+    "message": "Chat Completions 형식의 대화 엔드포인트. 완전한 엔드포인트 URL, 모델, 키를 입력하세요. 주소가 responses로 끝나면 Responses 형식으로 보냅니다."
   },
   "hint_custom_msg": {
-    "message": "Any Messages-format chat endpoint. Enter the base URL, model and key."
+    "message": "Messages 형식의 대화 엔드포인트. 완전한 엔드포인트 URL, 모델, 키를 입력하세요."
   },
   "label_custom_model": {
     "message": "Model"
@@ -432,7 +436,7 @@
     "message": "운영체제에 이미 있는 음성을 사용합니다. 아무것도 전송하지 않고 캐시도 만들지 않습니다 — 이 엔진은 읽어주기만 할 뿐 오디오 데이터를 돌려주지 못합니다."
   },
   "tts_hint_local": {
-    "message": "/v1/audio/speech 인터페이스를 구현한 음성 서버(내 컴퓨터나 LAN). 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다。"
+    "message": "내 컴퓨터나 LAN에서 실행하는 음성 서버. 입력란의 예시를 따라 완전한 주소를 입력하세요. 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다."
   },
   "tts_hint_openai": {
     "message": "본인의 API 키를 사용합니다. 합성 결과는 로컬에 캐시되어 같은 문장은 한 번만 비용이 듭니다."
@@ -1281,11 +1285,27 @@
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_404": {
-    "message": "주소 또는 모델명이 틀렸습니다",
+    "message": "엔드포인트 URL(경로 포함) 또는 모델 이름이 잘못되었습니다",
     "description": "Engine self-test (settings)"
   },
   "engine_test_hint_other": {
     "message": "서버가 이 요청을 거부했습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "이 주소에는 호스트만 있고 엔드포인트 경로가 없습니다 — 완전한 요청 URL을 입력하세요(입력란의 예시 참고)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "주소가 http:// 또는 https://로 시작하지 않습니다 — 스킴이 없으면 상대 경로로 처리되어 요청이 아예 나가지 않습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "제한 시간 내에 엔드포인트가 응답하지 않았습니다",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "요청 주소: {url}",
     "description": "Engine self-test (settings)"
   },
   "notes_test_empty": {
@@ -1324,7 +1344,7 @@
     "description": "Password sign-in (learning-design §8.4.1)"
   },
   "drive_entry": {
-    "message": "운전 모드",
+    "message": "팟캐스트 모드",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_pause": {
@@ -1343,21 +1363,97 @@
     "message": "🔁 다시 듣기",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_ask": {
-    "message": "🎙 질문하기",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_progress": {
     "message": "{n}장 중 {i}장",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_prompt_speak": {
-    "message": "따라 읽어 보세요",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_explain": {
+    "message": "🔍 이 문장 해설",
+    "description": "Driving mode (§9.5)"
   },
-  "drive_prompt_question": {
-    "message": "질문 있나요?",
-    "description": "Driving mode (learning-design §9.5)"
+  "drive_pass": {
+    "message": "{i}회차",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "분석 중…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "해설을 읽으려면 먼저 해설 엔진을 설정하세요(설정 → 문장 해설)",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_empty": {
+    "message": "이 카드에는 읽을 해설이 없습니다",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "저장된 설정을 읽을 수 없습니다 — 잠시 후 다시 시도하세요",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 셔플",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ 순서대로",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 전체 반복",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 한 장 반복",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "한 번 더",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "해설 재생 중…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "이 문장을 분석하는 중…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "재생할 때 문장 해설도 읽어 주기",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "각 카드의 원문과 번역 뒤에 해설(단어 · 표현 · 문법)까지 읽습니다. **기본값은 켜짐**: 아직 분석하지 않은 카드는 그 자리에서 설정한 엔진으로 분석합니다 — 카드당 한 번만 과금되고 이후에는 캐시를 씁니다. 비용이 부담되면 끄세요. 끄면 원문과 번역만 읽습니다.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "해설 읽는 중: 분석하지 않은 카드는 설정한 엔진을 호출합니다 — 카드당 한 번만 과금",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "단어: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "표현: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "문법: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "이 카드는 분석하지 못해 건너뛰었습니다",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "해설 엔진이 설정되지 않아 이 카드의 해설을 건너뛰었습니다",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "이 카드는 읽을 수 없어 다음으로 넘어갔습니다",
+    "description": "Driving mode (§9.5)"
   },
   "drive_status_source": {
     "message": "원문 재생 중…",
@@ -1367,36 +1463,12 @@
     "message": "번역 재생 중…",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_status_recording": {
-    "message": "녹음 중 — 말씀하세요…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_status_answering": {
-    "message": "답변 중…",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_status_paused": {
     "message": "일시정지됨",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_qa_cost": {
-    "message": "질문은 설정한 해석 엔진을 사용합니다 — 질문마다 한 번 호출되며 캐시되지 않습니다",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_done": {
     "message": "이번 라운드를 다 들었어요",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_practice_more": {
-    "message": "계속 연습하기",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_stt_gone": {
-    "message": "마이크를 사용할 수 없어 이번 세션은 듣기 전용으로 진행됩니다",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_skip_speak": {
-    "message": "이 카드의 따라 읽기를 건너뛰었어요",
     "description": "Driving mode (learning-design §9.5)"
   },
   "drive_skipped": {
@@ -1405,10 +1477,6 @@
   },
   "drive_empty": {
     "message": "읽을 수 있는 카드가 없어요",
-    "description": "Driving mode (learning-design §9.5)"
-  },
-  "drive_qa_fail": {
-    "message": "답변에 실패했어요 — 다시 질문할 수 있어요",
     "description": "Driving mode (learning-design §9.5)"
   }
 }
