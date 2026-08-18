@@ -199,7 +199,9 @@ async function runHost(host) {
       // open in both hosts (the engine itself is mocked at the fetch layer below).
       try {
         localStorage.setItem('mt:sttEngine', JSON.stringify('local'));
-        localStorage.setItem('mt:sttBaseUrl', JSON.stringify('https://stt.example'));
+        // 完整接口地址（含路径）。以前这里存的是 base，靠注册表补出 /v1/audio/transcriptions
+        // —— 那个拼接已经删掉了（零拼接无条件），所以夹具必须存用户真正会填的东西。
+        localStorage.setItem('mt:sttBaseUrl', JSON.stringify('https://stt.example/v1/audio/transcriptions'));
       } catch (_) {}
       (() => {
         // Mic + recorder stubs: tier behavior is what's under test, never real audio.

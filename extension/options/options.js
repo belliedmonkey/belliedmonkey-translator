@@ -26,8 +26,6 @@ const SETTINGS_KEYS = [
   'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
   // §9.4: transcription engine for the 说 exercise — never follows any group.
   'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-  // 「地址按新语义（原样使用）存的」的戳，每个地址字段一个（content/wire-format.js）。
-  'apiBaseUrlVerbatim', 'notesBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -98,27 +96,6 @@ function apiHint(provider) {
   const label = t('label_default_model', '默认模型：');
   const gap = /[。．！？]$/.test(hint) ? '' : ' ';   // CJK sentences don't take a space
   return `${hint}${hint ? gap : ''}${label}${p.defaultModel}`;
-}
-
-
-// The 2026-08 endpoint migration (#147), run wherever settings are read for editing.
-//
-// NOT part of correctness: wire-format.js's legacy branch already keeps a device that
-// never migrated requesting exactly what it requested before, so this has no race to
-// win and no deadline. What it buys is honesty — after it runs, the address in the
-// field IS the address we request — plus one less thing to recompute per request.
-//
-// Gated on `ok`: a FAILED read is not an empty profile (PageSettings' contract, and the
-// 2026-08-05 incident behind it). Migrating from values we never actually saw would
-// write a wrong endpoint over a right one, which is the one mistake here that cannot be
-// walked back — hence also the `*PreVerbatim` backup written in the same set().
-async function migrateEndpointsOnce(read) {
-  if (!read || !read.ok) return {};
-  const patch = WireFormat.migrationPatch(read.data);
-  if (!Object.keys(patch).length) return {};
-  const w = await PageSettings.write(patch);
-  if (!w.ok) return {};              // 下次再来；legacy 分支照常兜着
-  return patch;
 }
 
 
@@ -225,14 +202,26 @@ function engineTestReason(e) {
     case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
     case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
     case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
+    // 我们的提示是**猜**，服务端那句话是**事实**——所以两句都给，事实在后面单起一行。
+    // 只给提示的代价是实测过的：一个网关因为 body 里的 `max_tokens` / `temperature`
+    // 对新模型不合法而回 400，它在响应体里把参数名点得清清楚楚，而我们只显示
+    // 「服务端拒绝了这次请求」，把用户支去查地址和 key——那两样本来就是对的。
     case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
       .replace('{n}', String(e.status || '?'))
       .replace('{hint}', e.status === 401 || e.status === 403
         ? t('engine_test_hint_key', 'key 不对或没有权限')
         : e.status === 404 ? t('engine_test_hint_404', '地址或模型名不对')
-        : t('engine_test_hint_other', '服务端拒绝了这次请求'));
-    default: return (e && e.message) || t('engine_test_failed', '没通');
+        : t('engine_test_hint_other', '服务端拒绝了这次请求'))
+      + serverLine(e);
+    default: return ((e && e.message) || t('engine_test_failed', '没通')) + serverLine(e);
   }
+}
+
+// 服务端原话，原样附上，不翻译也不改写：它是**证据**，任何加工都会让它对不上用户
+// 去搜的那段文字。`serverMessage` 由传输层填（translation-api.js 的 serverSays）。
+function serverLine(e) {
+  const said = e && e.serverMessage;
+  return said ? '\n' + t('engine_test_server_said', '服务端原话：{msg}').replace('{msg}', String(said)) : '';
 }
 
 function ttsReason(reason) {
@@ -253,7 +242,6 @@ function applyTtsConfig() {
     engineId: $('tts-engine').value,
     baseUrl: $('tts-base-url').value.trim(),
     // Read straight off the form, so it is by definition the new semantics.
-    baseUrlVerbatim: true,
     apiKey: $('tts-api-key').value.trim(),
     model: $('tts-model').value.trim(),
     voice: $('tts-voice').value,
@@ -329,10 +317,7 @@ async function saveAll() {
   const settings = {
     provider:    $('provider').value,
     apiKey:      $('api-key').value.trim(),
-    // 这一次保存**就是**新语义：用户在「完整接口地址」这个语义下填的框。
-    // 戳写下去之后 wire-format.js 便逐字使用它，永不再补路径。
     apiBaseUrl:  $('api-base-url').value.trim(),
-    apiBaseUrlVerbatim: true,
     apiModel:    $('api-model').value.trim(),
     targetLang:  $('target-lang').value,
     uiLang:      $('ui-lang').value,
@@ -346,7 +331,6 @@ async function saveAll() {
     ttsAutoPlay: $('tts-autoplay').checked,
     ttsEngine:   $('tts-engine').value,
     ttsBaseUrl:  $('tts-base-url').value.trim(),
-    ttsBaseUrlVerbatim: true,
     ttsApiKey:   $('tts-api-key').value.trim(),
     ttsModel:    $('tts-model').value.trim(),
     ttsVoice:    $('tts-voice').value,
@@ -354,12 +338,10 @@ async function saveAll() {
     notesProvider: $('notes-provider').value,
     notesApiKey:   $('notes-api-key').value.trim(),
     notesBaseUrl:  $('notes-base-url').value.trim(),
-    notesBaseUrlVerbatim: true,
     notesModel:    $('notes-model').value.trim(),
     sttEngine:     $('stt-engine').value,
     sttApiKey:     $('stt-api-key').value.trim(),
     sttBaseUrl:    $('stt-base-url').value.trim(),
-    sttBaseUrlVerbatim: true,
     sttModel:      $('stt-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
@@ -389,7 +371,7 @@ async function init() {
   const _s = await PageSettings.read(SETTINGS_KEYS);
   // Fold the migration's result into the values we are about to paint, so the field
   // shows the complete address on THIS visit rather than the next one.
-  const s0 = Object.assign({}, _s.data, await migrateEndpointsOnce(_s));
+  const s0 = _s.data;
   if (!_s.ok) {
     _settingsReadFailed = true;
     try {
@@ -648,8 +630,12 @@ async function init() {
     await saveAll();
     assertEndpointShape($('api-base-url').value);
     const t0 = Date.now();
+    // noCache: 一个可能不发请求的「测试连接」是有害的。缓存键里带了端点与模型之后
+    // 同配置重测仍然会命中，而重测的全部意义就是**再打一次**（2026-08-19 实测：改完
+    // 地址点测试，1ms 返回「通了」，一个包都没出去）。
     const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
-      $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim());
+      $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim(),
+      { noCache: true });
     if (!out || !String(out).trim()) { const e = new Error('empty'); e.code = 'bad_output'; throw e; }
     return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40) };
   }));
@@ -669,7 +655,7 @@ async function init() {
     assertEndpointShape($('stt-base-url').value);
     LearnSpeech.configure({
       engineId: $('stt-engine').value, apiKey: $('stt-api-key').value.trim(),
-      baseUrl: $('stt-base-url').value.trim(), baseUrlVerbatim: true,
+      baseUrl: $('stt-base-url').value.trim(),
       model: $('stt-model').value.trim(),
     });
     return LearnSpeech.test();

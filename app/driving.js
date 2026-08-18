@@ -55,9 +55,9 @@ var AppDriving = (() => {
 
   const SETTINGS_KEYS = [
     'uiLang', 'learnDailyNew',
-    'ttsEngine', 'ttsBaseUrl', 'ttsBaseUrlVerbatim', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-    'provider', 'apiKey', 'apiBaseUrl', 'apiBaseUrlVerbatim', 'apiModel',
-    'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesBaseUrlVerbatim', 'notesModel',
+    'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
     // §9.5 — this mode's own two knobs. Both persist: a driver sets them once.
     'drivePlaybackMode', 'drivePlayNotes',
   ];
@@ -83,7 +83,7 @@ var AppDriving = (() => {
     // user may have changed settings since; configure() is cheap and idempotent.
     LearnTTS.configure({
       engineId: s.ttsEngine || LearnTTS.DEFAULTS.engineId,
-      baseUrl: s.ttsBaseUrl || '', baseUrlVerbatim: s.ttsBaseUrlVerbatim === true,
+      baseUrl: s.ttsBaseUrl || '',
       apiKey: s.ttsApiKey || '', model: s.ttsModel || '',
       voice: s.ttsVoice || '', rate: Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1,
     });

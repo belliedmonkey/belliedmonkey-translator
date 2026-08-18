@@ -1308,6 +1308,10 @@
     "message": "العنوان المطلوب: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_server_said": {
+    "message": "رد الخادم: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
   "notes_test_empty": {
     "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
     "description": "Engine self-test (settings)"

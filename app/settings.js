@@ -30,7 +30,6 @@ var AppSettings = (() => {
     // §9.4 — the transcription group review.js reads. Device-local (§7.2).
     'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
     // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
-    'apiBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
     // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关。
     'drivePlayNotes'];
 
@@ -204,8 +203,6 @@ var AppSettings = (() => {
       engineId: $('tts-engine').value || 'browser',
       apiKey: $('tts-api-key').value.trim(),
       baseUrl: $('tts-base-url').value.trim(),
-      // Read straight off the form, so it is by definition the new semantics.
-      baseUrlVerbatim: true,
       model: $('tts-model').value.trim(),
       voice: $('tts-voice').value,
     }));
@@ -279,19 +276,8 @@ var AppSettings = (() => {
     });
   }
 
-  // 端点迁移（#147）。跑在这里而不是 chrome-shim：wire-format.js 的 legacy 分支已经保证
-  // 没迁移的设备行为不变，所以它没有要抢的竞速，也不需要在 bundle 启动时就位；而它要用
-  // 的按 flavor 过滤的冻结表在 providers.gen.js 里，那是 shim 之后才加载的。
-  // 迁移只做两件事：让输入框里显示的就是真正会被请求的地址，以及少算一次。
-  async function migrateEndpointsOnce(cur) {
-    const patch = WireFormat.migrationPatch(cur);
-    if (!Object.keys(patch).length) return cur;
-    await set(patch);                    // 值与备份、戳同写一次 —— 覆盖是唯一不可逆的动作
-    return Object.assign({}, cur, patch);
-  }
-
   async function paint(session, say) {
-    const cur = await migrateEndpointsOnce(await get(KEYS));
+    const cur = await get(KEYS);
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'assist';
     $('tts-engine').value = engineById(cur.ttsEngine).id;
@@ -386,8 +372,6 @@ var AppSettings = (() => {
         await set({
           ttsApiKey: $('tts-api-key').value.trim(),
           ttsBaseUrl: $('tts-base-url').value.trim(),
-          // 保存即新语义（见 content/wire-format.js）。
-          ttsBaseUrlVerbatim: true,
           ttsModel: $('tts-model').value.trim(),
         });
         liveTtsConfigure();
@@ -424,13 +408,12 @@ var AppSettings = (() => {
         provider: $('notes-provider').value,
         apiKey: $('notes-key').value.trim(),
         apiBaseUrl: $('notes-base').value.trim(),
-        apiBaseUrlVerbatim: true,
         apiModel: $('notes-model').value.trim(),
       };
       await set(cfgNow);
       LearnNotes.configure({
         provider: cfgNow.provider, apiKey: cfgNow.apiKey,
-        baseUrl: cfgNow.apiBaseUrl, baseUrlVerbatim: true, model: cfgNow.apiModel,
+        baseUrl: cfgNow.apiBaseUrl, model: cfgNow.apiModel,
       });
     }
     // 换引擎时清空非空的接口地址，并说出来（interaction-spec 「接口地址字段」）。
@@ -462,14 +445,13 @@ var AppSettings = (() => {
         sttEngine: $('stt-engine').value,
         sttApiKey: $('stt-key').value.trim(),
         sttBaseUrl: $('stt-base').value.trim(),
-        sttBaseUrlVerbatim: true,
         sttModel: $('stt-model').value.trim(),
       };
       await set(c);
       if (typeof LearnSpeech !== 'undefined') {
         LearnSpeech.configure({
           engineId: c.sttEngine, apiKey: c.sttApiKey,
-          baseUrl: c.sttBaseUrl, baseUrlVerbatim: true, model: c.sttModel,
+          baseUrl: c.sttBaseUrl, model: c.sttModel,
         });
       }
     }

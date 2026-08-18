@@ -274,7 +274,7 @@ describe('LearnTTS — cache key', () => {
 });
 
 describe('LearnTTS — speech-compat transport & cache', () => {
-  const cfg = { engineId: 'local', baseUrl: 'http://127.0.0.1:8880/', model: 'kokoro', voice: 'af' };
+  const cfg = { engineId: 'local', baseUrl: 'http://127.0.0.1:8880/v1/audio/speech', model: 'kokoro', voice: 'af' };
 
   test('request goes to the registry path with the registry-shaped body', async () => {
     const { TTS, calls } = setup();
@@ -292,11 +292,13 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     eq(body.input, 'Hello world');
   });
 
-  test('a trailing slash on the base URL does not produce a doubled path', async () => {
+  test('尾斜杠原样保留 —— 我们既不补路径，也不替用户裁字符', async () => {
+    // 这条以前叫「尾斜杠不会拼出双斜杠」，因为当年我们真的会拼。现在没有可拼的东西了，
+    // 剩下的唯一问题是我们会不会自作主张去改用户敲进去的字符 —— 答案必须是不会。
     const { TTS, calls } = setup();
-    TTS.configure(Object.assign({}, cfg, { baseUrl: 'http://127.0.0.1:8880///' }));
+    TTS.configure(Object.assign({}, cfg, { baseUrl: 'http://127.0.0.1:8880/v1/audio/speech/' }));
     await TTS.getAudio('Hi there', 'en');
-    ok(!calls.fetch[0].url.includes('//v1'), `doubled slash in ${calls.fetch[0].url}`);
+    eq(calls.fetch[0].url, 'http://127.0.0.1:8880/v1/audio/speech/');
   });
 
   // Same story as speech-input.js #130 and notes.js: a self-hosted speech server that

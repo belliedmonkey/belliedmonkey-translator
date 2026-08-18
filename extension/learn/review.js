@@ -43,9 +43,6 @@
         // §9.4 — the transcription engine group. NEVER follows the translation or
         // notes group: where a recording goes is an explicit choice.
         'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-        // 「这个地址是按新语义（原样使用、零拼接）存的」的戳，每个地址字段一个。
-        // 缺席不是错误，是「还没迁移」——wire-format.js 会走 legacy 分支复刻老行为。
-        'apiBaseUrlVerbatim', 'notesBaseUrlVerbatim', 'ttsBaseUrlVerbatim', 'sttBaseUrlVerbatim',
       ]).then(function (r) { return r.data; }));
     });
   }
@@ -1029,7 +1026,6 @@
     LearnSpeech.configure({
       engineId: settings.sttEngine || '',
       baseUrl: settings.sttBaseUrl || '',
-      baseUrlVerbatim: settings.sttBaseUrlVerbatim === true,
       apiKey: settings.sttApiKey || '',
       model: settings.sttModel || '',
     });
@@ -1037,7 +1033,6 @@
   LearnTTS.configure({
     engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
     baseUrl: settings.ttsBaseUrl || '',
-    baseUrlVerbatim: settings.ttsBaseUrlVerbatim === true,
     apiKey: settings.ttsApiKey || '',
     model: settings.ttsModel || '',
     voice: settings.ttsVoice || '',

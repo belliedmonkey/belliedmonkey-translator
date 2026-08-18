@@ -17,7 +17,7 @@
 // key configured ⇒ the gate simply stays closed).
 
 var LearnNotes = (() => {
-  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '', baseUrlVerbatim: false };
+  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '' };
 
   function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
 
@@ -30,12 +30,10 @@ var LearnNotes = (() => {
     s = s || {};
     if (s.notesProvider) {
       return { provider: s.notesProvider, apiKey: s.notesApiKey || '',
-        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '',
-        baseUrlVerbatim: s.notesBaseUrlVerbatim === true };
+        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '' };
     }
     return { provider: s.provider || '', apiKey: s.apiKey || '',
-      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '',
-      baseUrlVerbatim: s.apiBaseUrlVerbatim === true };
+      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '' };
   }
 
   function providerInfo() {
@@ -195,7 +193,7 @@ var LearnNotes = (() => {
     // null when the stored provider id is not in this flavor's registry; resolving
     // against `null` yields '' and lands on the no_base error below, where it used to
     // throw a TypeError with no code at all.
-    const url = WireFormat.resolveEndpoint(cfg.baseUrl, p, { cap: 'chat', verbatim: cfg.baseUrlVerbatim });
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, p);
     if (!url) { const e = new Error('missing endpoint URL'); e.code = 'no_base'; throw e; }
     const model = cfg.model || (p && p.defaultModel) || '';
 

@@ -13,9 +13,6 @@
   // every page load would drag both along. (docs/learning-design.md §7.)
   const SETTINGS_KEYS = [
     'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-    // 「这个地址是按新语义（原样使用、零拼接）存的」的戳。缺席不是错误，是「还没
-    // 迁移」——wire-format.js 会走 legacy 分支，按老代码的语义补路径。
-    'apiBaseUrlVerbatim',
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
     'learnEnabled', 'learnDailyNew', 'learnRules',
   ];
@@ -31,7 +28,6 @@
     provider: settings.provider || 'google',
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
-    apiBaseUrlVerbatim: settings.apiBaseUrlVerbatim === true,
     apiModel: settings.apiModel || '',
     textColor: settings.textColor || window.MT_PALETTE.textColor,
     ytTextColor: settings.ytTextColor || window.MT_PALETTE.ytTextColor,

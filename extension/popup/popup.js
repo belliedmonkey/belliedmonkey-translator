@@ -63,28 +63,16 @@ function populateProviders() {
 // been translated by the user's own DeepSeek key.
 const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-  'apiBaseUrlVerbatim',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
 ];
-// See options.js for why this runs at read time rather than in the service worker:
-// the legacy branch in wire-format.js means the migration has no race to win, and the
-// frozen table it needs ships in providers.gen.js, which an MV3 worker cannot load.
-async function migrateEndpointsOnce(read) {
-  if (!read || !read.ok) return {};                // a failed read is not an empty profile
-  const patch = WireFormat.migrationPatch(read.data);
-  if (!Object.keys(patch).length) return {};
-  const w = await PageSettings.write(patch);
-  return w.ok ? patch : {};
-}
-
 async function getSettings() {
   const r = await PageSettings.read(POPUP_KEYS);
   // The popup has no room for an explanation; it must at least not lie. When the
   // read failed we show what we have and mark it, rather than presenting defaults
   // as if they were the user's configuration.
   if (!r.ok) { try { document.body.dataset.settingsUnavailable = '1'; } catch (_) {} }
-  return Object.assign({}, r.data, await migrateEndpointsOnce(r));
+  return r.data;
 }
 
 function showToast(msg, duration = 2000) {
@@ -291,7 +279,7 @@ async function init() {
     const cleared = !!(url && url.value.trim());
     if (cleared) { url.value = ''; }
     await saveSettings(cleared
-      ? { provider, apiBaseUrl: '', apiBaseUrlVerbatim: true }
+      ? { provider, apiBaseUrl: '' }
       : { provider });
     updateApiKeySection(provider);
     updateSetupNote(provider, $('api-key').value);
@@ -324,9 +312,7 @@ async function init() {
   })();
 
   $('api-base-url').addEventListener('change', async (e) => {
-    // 见 options.js：保存即新语义，戳与值同写，否则下次读会被当成未迁移的旧值
-    // 再补一次路径。
-    await saveSettings({ apiBaseUrl: e.target.value.trim(), apiBaseUrlVerbatim: true });
+    await saveSettings({ apiBaseUrl: e.target.value.trim() });
   });
 
   $('api-model').addEventListener('change', async (e) => {

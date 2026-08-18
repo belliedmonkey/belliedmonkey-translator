@@ -3,14 +3,18 @@
 // See docs/domain-design.md §7. 三条传输（翻译、解析、语音、转写）全部经过这里，
 // 所以「怎么得到最终 URL」在整个产品里只有一份实现。
 //
-// ── 零拼接 ────────────────────────────────────────────────────────────────
-// 用户填的地址**原样使用**，我们一个字符都不加。旧模型是「注册表写死一段 path +
-// 用户填的 base」，它有两个真实后果：同一个对话端点今天分成 /v1/chat/completions 与
-// /v1/responses 两套请求形状而用户无从选择；中转代理的路径约定与官方不一致时，
-// 用户填的地址被我们二次加工之后就不是他要的那个端点了。
+// ── 零拼接，无条件 ────────────────────────────────────────────────────────
+// 用户填的地址**原样使用**，我们一个字符都不加，**没有任何例外分支**。旧模型是
+// 「注册表写死一段 path + 用户填的 base」，它有两个真实后果：同一个对话端点今天分成
+// /v1/chat/completions 与 /v1/responses 两套请求形状而用户无从选择；中转代理的路径
+// 约定与官方不一致时，用户填的地址被我们二次加工之后就不是他要的那个端点了。
 //
 // 「base 是 origin」这个前提本来也不成立：qwen 的默认地址本身就带 /compatible-mode
 // 路径段，而 google 条目根本没有 path。旧模型是在描述一个并不存在的规整世界。
+//
+// 1.5.2 只做到了「有戳时逐字」——留了一条无戳时按老语义拼接的兜底路径，代价是拼接
+// 变成了默认行为，只要哪个调用点忘了传戳就悄悄回去了。1.5.3 把那条路径连同它依赖
+// 的冻结表、一次性迁移一起删掉：**没有戳，没有表，没有条件**。理由见 resolveEndpoint。
 //
 // ── 形状由地址声明 ────────────────────────────────────────────────────────
 // wire shape 优先看 URL 的路径后缀，认不出来才回落到注册表 `type`。理由：`type` 是
@@ -19,22 +23,6 @@
 // 被翻译成对话传输。厂商在两处都不参与：后缀表里全是协议路径，没有一个是厂商名。
 
 var WireFormat = (() => {
-  // ─── 冻结的历史快照（2026-08）──────────────────────────────────────────
-  //
-  // 由 build.js 从 build/legacy-endpoints.config.js **按 flavor 过滤后**生成，和三张
-  // 注册表走同一条路，emit 在同一个 providers.gen.js 里（那个文件已经在每一个要解析
-  // 端点的加载清单里，所以这份数据不额外占任何挂载点）。
-  //
-  // 为什么必须过滤而不是写死在这里：表的键名是引擎 id，其中四个本身就是品牌词，而它们
-  // 是 global-only。写死会被中国合规门逐行扫到并 fail build——那道门是对的。
-  //
-  // 懒读，不在加载期取值：这个模块排在 app bundle 的最前面（它纯、无加载期依赖），
-  // 而 providers.gen.js 在它后面。
-  function legacy() {
-    return (typeof window !== 'undefined' && window.MT_LEGACY_ENDPOINTS)
-      || { paths: {}, stripsSlash: {}, keyPairs: [] };
-  }
-
   // ─── 后缀 → wire shape ──────────────────────────────────────────────────
   const FAMILY = {
     'chat-compat': 'chat',
@@ -101,96 +89,36 @@ var WireFormat = (() => {
     return /^https?:\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
   }
 
-  // 所有家族的后缀并成一张表，只回答一个问题：这个地址**看起来已经是完整端点**吗。
-  // 这是 resolveEndpoint 的安全网，不是它的判据——判据是戳。
-  const ALL_SUFFIXES = Object.keys(RULES)
-    .reduce((acc, fam) => acc.concat(RULES[fam].map((r) => r[0])), [])
-    .sort((a, b) => b.length - a.length);
-
-  function looksComplete(url) {
-    const n = normalize(url);
-    return ALL_SUFFIXES.some((s) => n.endsWith(s));
-  }
-
-  // 改动那一刻，每个已存的地址都**必然**是被当作 base + path 消费的，所以「老代码
-  // 会请求哪个 URL」是可以精确算出来的，不需要任何关于 URL 形状的猜测。
-  function legacyCompose(stored, cap, entryId) {
-    const L = legacy();
-    const table = L.paths[cap];
-    const path = table && table[entryId];
-    // google / browser 这类条目当年就没有 path 可接——原样返回，别凭空造一个。
-    if (!path) return stored;
-    const base = L.stripsSlash[cap] ? stored.replace(/\/+$/, '') : stored;
-    return base + path;
-  }
-
-  // 一次性迁移的纯逻辑：把一个按老语义存的地址补成完整端点，或者返回 null 表示无事可做。
+  // 最终地址。**两个分支，没有第三个**：
   //
-  // 它**不是正确性的一部分**——legacy 分支已经保证了迁移没跑成的设备继续按老代码的语义
-  // 工作。迁移只做两件事：让输入框里显示的是真正会被请求的地址，以及把这条判断固化下来
-  // 不必每次请求重算。正因为如此，它跑在哪里、什么时候跑都不要紧，所以它待在设置页的
-  // 加载路径上，而不是抢在 service worker 或 bundle 启动里跟别人赛跑。
-  function migrateStored(stored, entryId, cap) {
-    if (typeof stored !== 'string' || !stored.trim()) return null;   // 空 = 跟随默认，别动
-    const L = legacy();
-    const path = L.paths[cap] && L.paths[cap][entryId];
-    if (!path) return null;                     // 未知/缺席的 id，或当年就没有 path 的条目
-    const s = stored.trim();
-    if (s.endsWith(path)) return null;          // 已经迁移过——幂等
-    return (L.stripsSlash[cap] ? s.replace(/\/+$/, '') : s) + path;
-  }
-
-  // 设置页加载时跑一遍。传入刚读到的 settings，拿回要写回去的补丁（空对象 = 无事可做）。
-  // 每个被改写的字段同时落下戳与备份：地址被覆盖是这次改动里唯一不可逆的写，而备份是
-  // 唯一的救援手段，所以它必须和值写在同一次 set() 里——两次写之间被杀会留下「改了但
-  // 没备份」的状态。
-  function migrationPatch(settings) {
-    const s = settings || {};
-    const patch = {};
-    for (const pair of legacy().keyPairs) {
-      const next = migrateStored(s[pair[0]], s[pair[1]], pair[2]);
-      if (!next) continue;
-      patch[pair[0]] = next;
-      patch[pair[0] + 'PreVerbatim'] = s[pair[0]];
-      patch[pair[0] + 'Verbatim'] = true;
-    }
-    return patch;
-  }
-
-  // 最终地址。三个分支，**分支只看戳，永不检查 URL 形状**：
+  //   存值为空   → 注册表的 defaultEndpoint
+  //   存值非空   → 逐字使用（只 trim 首尾空白）
   //
-  //   存值为空          → 注册表的 defaultEndpoint
-  //   存值非空 + 有戳    → 逐字使用
-  //   存值非空 + 无戳    → legacy 分支，复刻老代码那一行
+  // 这里曾经有第三个分支：无戳时按「注册表 path + 用户填的 base」复刻老代码，好让
+  // 一次性迁移没跑成的设备继续工作。它是 2026-08-18 两次真机故障的共同原因，删除的
+  // 理由不是它写错了，而是**它存在本身就是错的**：
   //
-  // 为什么不是「迁移一次之后只走 verbatim」：那条路把「迁移必须成功」变成正确性前提，
-  // 而这个仓库有两处证据表明存储读取会骗人（Safari 把 storage 回调喂 undefined；
-  // page-settings.js 的 ok:false ≠ {} 契约与 2026-08-05 事故）。有了 legacy 分支，
-  // **迁移没跑成 = 这台设备继续按老代码的语义工作**，而不是一批用户被改坏。
-  // 我们没有遥测，永远拿不到「可以删了」的证据，所以这个分支永不删除。
+  //   · 它是条件性的，而条件靠一个叫 `verbatim` 的位参数在六个调用点之间传递。少传
+  //     一处就静默回到拼接——设置页的「测试连接」正是少传的那一处，于是自检对着
+  //     `…/upstream/v1/v1/chat/completions` 报 404，而用户框里填的地址完全正确。
+  //   · 同一张表还驱动着一次性迁移，而迁移不看戳，会把用户**刚存好的完整地址**再接
+  //     一次路径写回存储。也就是说这条兜底路径不只是没帮上忙，它会主动改坏正确配置。
   //
-  // `looksComplete` 是第三道分支，安全网而非判据：戳没被读到（新键还没传到某个调用
-  // 点、或存储读失败）而存值其实已经迁移过时，legacy 分支会给一个完整地址再接一次
-  // 路径，拼出 `…/v1/chat/completions/v1/chat/completions`。这一条挡住它。
+  // 「原样请求」是对用户的承诺，而一个有例外的承诺不是承诺——例外恰恰会落在用户填了
+  // 我们认不出的地址那一刻，也就是他最需要我们别自作主张的那一刻。所以这里不做任何
+  // 形状判断：不看后缀、不看戳、不查表。地址是用户的陈述，我们只负责发出去。
   //
-  // 它为什么对**今天能用的**配置是安全的：迁移之前，一个以已知接口后缀结尾的存值
-  // 必然会被老代码再接一次路径而 404 —— 也就是说它从来没工作过。所以「能工作过的
-  // 存值」与「看起来已完整的存值」是不相交的两个集合，这条捷径不会误伤任何人。
-  //
-  // opts: { cap: 'chat'|'tts'|'stt', verbatim: boolean }
-  function resolveEndpoint(stored, entry, opts) {
+  // 代价说清楚：从 ≤1.5.2 升上来、存的是老语义 base 地址、且升级后从未打开过设置页
+  // 的设备，会拿这个 base 去请求而失败。这不是静默失败——失败具名，并且把真正请求的
+  // 地址回显出来（options.js 的 withUrl），用户照着输入框的提示补上路径即可。用一个
+  // 会改坏正确配置的机制去救这批人，是拿多数人的正确性换少数人的方便。
+  function resolveEndpoint(stored, entry) {
     const s = String(stored == null ? '' : stored).trim();
     if (!s) return (entry && entry.defaultEndpoint) || '';
-    if (opts && opts.verbatim) return s;
-    if (looksComplete(s)) return s;
-    return legacyCompose(s, opts && opts.cap, entry && entry.id);
+    return s;
   }
 
-  return {
-    legacy,
-    formatFor, hasPath, isAbsolute, looksComplete, resolveEndpoint, legacyCompose, normalize,
-    migrateStored, migrationPatch,
-  };
+  return { formatFor, hasPath, isAbsolute, resolveEndpoint, normalize };
 })();
 
 if (typeof window !== 'undefined') window.WireFormat = WireFormat;

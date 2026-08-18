@@ -1309,6 +1309,10 @@
     "message": "请求地址：{url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_server_said": {
+    "message": "服务端原话：{msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
   "notes_test_empty": {
     "message": "模型没有返回正文——思考（推理）型模型不适合，请换对话模型",
     "description": "Engine self-test (settings)"

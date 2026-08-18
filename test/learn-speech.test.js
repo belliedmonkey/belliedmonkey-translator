@@ -166,11 +166,11 @@ describe('LearnSpeech — transcribe: the multipart shape and named failures', (
     catch (e) { eq(e.code, 'network'); }
   });
 
-  test('a trailing slash on the base URL does not produce a double slash', async () => {
+  test('尾斜杠原样保留 —— 地址是用户的陈述，我们不裁也不补', async () => {
     const { S, calls } = setup();
-    S.configure({ engineId: 'local', baseUrl: 'http://127.0.0.1:18790/' });
+    S.configure({ engineId: 'local', baseUrl: 'http://127.0.0.1:18790/v1/audio/transcriptions/' });
     await S.transcribe(new Blob(['x']), 'm4a', 'en');
-    eq(calls.fetch[0].url, 'http://127.0.0.1:18790/v1/audio/transcriptions');
+    eq(calls.fetch[0].url, 'http://127.0.0.1:18790/v1/audio/transcriptions/');
   });
 
   test('failures carry their names: no_base / no_key before any network, http / empty after', async () => {

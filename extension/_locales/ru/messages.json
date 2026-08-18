@@ -1308,6 +1308,10 @@
     "message": "Запрошенный адрес: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_server_said": {
+    "message": "Ответ сервера: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
   "notes_test_empty": {
     "message": "Модель не вернула текст — рассуждающие модели здесь не подходят, выберите чат-модель",
     "description": "Engine self-test (settings)"

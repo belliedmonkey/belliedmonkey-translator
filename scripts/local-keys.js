@@ -29,11 +29,11 @@ function reg(name) {
 }
 // 只列出「需要用户填点什么」的条目——零配置引擎（浏览器语音、免费翻译通道）
 // 不需要槽位，列出来只会让人以为漏填了。
-function needsInput(e) { return e.needsKey || e.requiresBaseUrl || e.supportsBaseUrl; }
+function needsInput(e) { return e.needsKey || e.requiresEndpoint || e.supportsBaseUrl; }
 function describe(e) {
   const want = [];
   if (e.needsKey) want.push('要 key');
-  if (e.requiresBaseUrl) want.push('必填地址');
+  if (e.requiresEndpoint) want.push('必填地址');
   else if (e.supportsBaseUrl) want.push('地址可选');
   if (e.supportsModel) want.push('模型可选');
   return `${e.id}${want.length ? '（' + want.join(' · ') + '）' : ''}`;
@@ -49,8 +49,8 @@ function describe(e) {
 function slotsFor(list, cap, ns) {
   const rows = [];
   for (const e of list) {
-    if (!e.needsKey && !e.requiresBaseUrl) continue;      // 零配置引擎不占槽位
-    const db = e.defaultBase;
+    if (!e.needsKey && !e.requiresEndpoint) continue;     // 零配置引擎不占槽位
+    const db = e.defaultEndpoint;
     const isMap = db && typeof db === 'object' && !Array.isArray(db);
     // 只有「两个 flavor 都发、且端点不同」才拆成两行。单 flavor 的条目 defaultBase
     // 也可能是 {global: …} 这种单键对象，那只是写法，不是两个端点。
@@ -65,7 +65,8 @@ function slotsFor(list, cap, ns) {
       rows.push({
         cap,
         keySlot: e.needsKey ? `key_${id}` : null,
-        baseSlot: e.requiresBaseUrl ? `base_${id}` : null,
+        baseSlot: e.requiresEndpoint ? `base_${id}` : null,
+        modelSlot: (e.requiresEndpoint && e.supportsModel) ? `model_${id}` : null,
         note: `${e.id}${f ? '（' + f + '）' : ''} · ${host}`,
       });
     }
@@ -188,7 +189,7 @@ if (cmd === 'init') {
   const text = fs.readFileSync(FILE, 'utf8');
   const missing = [];
   for (const r of allSlots()) {
-    const need = [r.keySlot, r.baseSlot].filter(Boolean)
+    const need = [r.keySlot, r.baseSlot, r.modelSlot].filter(Boolean)
       .filter((k) => !new RegExp('^\\s*' + k + '\\s*=', 'm').test(text));
     if (need.length) missing.push({ note: `${r.cap} · ${r.note}`, need });
   }
@@ -248,7 +249,7 @@ if (slots.length) {
   console.log('\n逐引擎凭证（§1.0 provider matrix）');
   let have = 0;
   for (const r of slots) {
-    const need = [r.keySlot, r.baseSlot].filter(Boolean);
+    const need = [r.keySlot, r.baseSlot, r.modelSlot].filter(Boolean);
     const filled = need.filter((k) => all[k]);
     if (filled.length === need.length) have++;
     const mark = filled.length === need.length ? '✓' : (filled.length ? '◐' : '✗');

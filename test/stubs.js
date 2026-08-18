@@ -132,6 +132,11 @@ function makeFetch(program) {
       status,
       statusText: r.statusText || '',
       json: async () => (typeof r.json === 'function' ? r.json() : r.json),
+      // A real Response has BOTH. apiFetch reads error bodies as text (so a gateway's
+      // HTML/plain-text rejection survives), and a fake without text() turned every
+      // HTTP-error assertion into a TypeError instead.
+      text: async () => (typeof r.text === 'string' ? r.text
+        : JSON.stringify(typeof r.json === 'function' ? r.json() : r.json)),
       headers: { get: (h) => (r.headers && r.headers[h.toLowerCase()]) || null },
     };
   }
