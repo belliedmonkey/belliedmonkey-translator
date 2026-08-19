@@ -78,20 +78,28 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// ─── Firefox only: proxy the translation fetch (domain-design §5.4) ─────────
+// ─── Proxy a transport fetch on request (domain-design §5.4 + §5.5) ─────────
 //
-// The Safari rule stands everywhere else — translation NEVER goes through the
-// background, because Safari iOS's service worker is permanently `undefined` after
-// device lock. Firefox is the one exception: it applies the HOST PAGE's CSP to a
-// content script's fetch, so a provider the visited site does not allowlist simply
-// cannot be reached from there. This listener is registered ONLY on Firefox, so the
-// Safari rule holds by construction rather than by everyone remembering it.
-const IS_FIREFOX = (() => {
-  try { return chrome.runtime.getURL('').indexOf('moz-extension://') === 0; } catch (_) { return false; }
-})();
-
-if (IS_FIREFOX) {
-  const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-api.js
+// Two different callers need this, on two different browsers:
+//   · Firefox (§5.4) applies the HOST PAGE's CSP to a content script's fetch, so a
+//     provider the visited site does not allowlist cannot be reached from there at all.
+//     Firefox therefore uses this path for EVERY request.
+//   · Everywhere else (§5.5) a content script's fetch goes out AS THE PAGE, so an
+//     endpoint that validates `Origin` refuses the OPTIONS preflight and the request
+//     never leaves the browser. Those callers use this path only AFTER a direct fetch
+//     has already failed.
+//
+// ⚠️ **This listener is registered unconditionally, and that is load-bearing.** It was
+// once gated behind `IS_FIREFOX` on the theory that a Firefox-only handler made the
+// Safari rule ("translation never depends on the background") true by construction.
+// That was the wrong place to enforce it: 2026-08-19, §5.5's caller-side fallback
+// shipped for Chrome and did nothing, because the message it sent had no listener —
+// the settings page passed its self-check (an extension page is CORS-exempt) while
+// every paragraph on a real page still failed. The invariant lives on the CALLER side,
+// where `apiFetch` always tries direct first; registering a handler nobody calls costs
+// nothing and creates no dependency.
+const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-api.js
+{
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || msg.action !== 'proxyFetch') return;
     (async () => {
