@@ -556,34 +556,56 @@ command-line clients (no `Origin`, no preflight) and in other extensions (which 
 from the background), while our public-API providers were unaffected because they answer
 `Access-Control-Allow-Origin: *`.
 
-#### The rule
+#### The rule — one request, one route
 
-1. **Direct-from-content-script stays the default** — unchanged, and for the unchanged
-   reason (§5.4 rule 1: Safari iOS's service worker is unreliable, so translation may
-   not *depend* on the background).
-2. **A `network`-class failure earns one retry through the background**, which — with
-   `host_permissions` — is exempt from CORS and sends no preflight. Same chokepoint as
-   §5.4 (`apiFetch`), same request, same URL.
-3. **`timeout` does not qualify.** An abort means the request did reach the network;
-   resending only doubles the wait.
-4. **Remember the origin for the session.** A CORS refusal is deterministic per origin;
-   without memory every paragraph on the page pays another doomed preflight (the
-   measured page issued 283 requests, dozens of them these wasted pairs).
-5. **If both paths fail, report the DIRECT error** — that is the path the user
-   configured — and mark it `viaProxy` so the settings page can say we already tried the
-   background. Otherwise the CORS hint sends the user chasing a cause we have already
-   ruled out.
+The first attempt at this shipped as "direct first, fall back to the background on a
+CORS failure". It worked, and it was wrong in two ways that only real use showed:
+
+- **Every paragraph paid two round trips.** With translation running concurrently across
+  a page, the whole first batch each hit a doomed preflight before discovering the
+  fallback. The user's word for it was simply "slower".
+- **It needed a memory of failure, and that memory poisoned the page.** Remembering
+  "this origin cannot be reached either way" meant one transient miss — an MV3 worker
+  mid-wake under concurrency — latched the origin into direct-only, and every later
+  paragraph then skipped the background and failed outright. Symptom: the first few
+  paragraphs translate, the rest all fail.
+
+So the routing is chosen up front, per runtime, and the retry is only insurance:
+
+| Runtime | Route | Why |
+|---|---|---|
+| Firefox | background **only**, no fallback | §5.4: the page's CSP governs a content script's fetch, and falling back would make success depend on which site you are reading |
+| Safari | direct first, background as fallback | the one runtime whose service worker goes permanently `undefined` after device lock, so it must not *depend* on the background |
+| everything else | background first, direct as fallback | one request, no preflight, and it works against permissive and strict endpoints alike |
+
+Runtime is decided by a **fact** — `chrome.runtime.getURL('')` is `moz-extension://` on
+Firefox and `safari-web-extension://` on Safari — never by a UA string (§5.3 rule 2).
+
+**The memory only ever records success.** `originRoute` stores the route that worked for
+an origin; a failure never writes to it. A failure is a moment, a success is a fact about
+the endpoint — and the version that recorded failures is the one that broke the page.
+`timeout` never switches routes either: an abort means the request did reach the network,
+so resending only doubles the wait.
 
 #### Why this is not the fallback §5.4 rule 4 forbids
 
 The two run in opposite directions. §5.4 rule 4 forbids falling back **to the blocked
 path** (Firefox → direct fetch): it would succeed on CSP-free pages and fail elsewhere,
-reintroducing site-dependent unpredictability. This rule falls back **away from** the
-blocked path, to one with strictly broader standing. It is also not the #74 pattern:
-#74 was a silent switch to a *different provider*, which produced a plausible answer and
-hid a broken key. Here the endpoint, the credential and the body are identical — only
-the sender changes — so a success is still the user's own engine answering, and a
-failure is still reported.
+reintroducing site-dependent unpredictability. Nothing here falls back to a blocked path;
+each runtime's fallback is the path the *other* runtimes use as their default. It is also
+not the #74 pattern: #74 was a silent switch to a *different provider*, which produced a
+plausible answer and hid a broken key. Here the endpoint, the credential and the body are
+identical — only the sender changes.
+
+#### What this costs the test harness
+
+CDP's `Fetch` domain is scoped **per target**, so intercepting on the page session no
+longer sees the traffic: it now originates in the extension's service worker. The layout
+suite must attach to that target for **every** fixture, not just the error-path ones —
+without it the mocked provider is bypassed entirely and the fixtures hit the real
+network (measured: 1/36 green, 559s). A paused request must also be answered on **its
+own** session; replying on the page's session leaves it pending forever, which surfaces
+as units stuck at 「翻译中…」 rather than as a clean failure.
 
 **Scope, stated plainly:** only the translation transport is covered today. Notes, TTS
 and transcription each own their own `fetch` and would hit the same wall against the

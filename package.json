@@ -1,6 +1,6 @@
 {
   "name": "belliedmonkeytranslator",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "Safari iOS browser extension for bilingual translation — fully open source, free, configurable LLM APIs",
   "license": "GPL-3.0-or-later",
   "scripts": {

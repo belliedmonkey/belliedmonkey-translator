@@ -495,11 +495,14 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     match(proxied[0].url, /translate\.googleapis\.com/);
   });
 
-  test('everywhere else the direct fetch is untouched', async () => {
-    const { API, fetch, chrome } = loadAPI([okJson([[['你好', 'hello']]])]);
+  // 从 #153 起「非 Firefox 就直连」不再成立：非 Safari 一律首选后台（一次请求、无预检）。
+  // 唯一仍然直连优先的是 Safari —— 它的 worker 锁屏后会永久失效。
+  test('Safari 仍然直连优先，且直连成功时不惊动 background', async () => {
+    const { API, fetch, chrome } = loadAPI([okJson([[['你好', 'hello']]])],
+      { extensionOrigin: 'safari-web-extension://uuid/' });
     eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
     eq(fetch.calls.length, 1);
-    eq(chrome.runtime._sent.length, 0, '非 Firefox 不该绕道 background');
+    eq(chrome.runtime._sent.length, 0, 'Safari 直连成功后不该绕道 background');
   });
 
   test('a proxied HTTP error keeps status and retry-after, same shape as direct', async () => {
@@ -511,44 +514,86 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
   });
 
   // 2026-08-19 真机：内容脚本的 fetch 以**网页**的身份发出（Origin = en.wikipedia.org），
-  // 企业网关的 OPTIONS 预检回 403 ⇒ 浏览器连 POST 都不发，fetch 抛裸 TypeError。
-  // 后台带 host_permissions，不受 CORS 约束也不发预检 —— 直连失败后改走那条 (#151).
-  test('非 Firefox：直连被 CORS 挡住 ⇒ 同一个请求改从后台发', async () => {
+  // 企业网关的 OPTIONS 预检回 403 ⇒ 浏览器连 POST 都不发。后台带 host_permissions，
+  // 不受 CORS 约束也不发预检 —— 所以非 Safari 一律**首选后台**：一次请求，无预检 (#153)。
+  const okBody = JSON.stringify({ choices: [{ message: { content: '你好' } }] });
+  const proxyOk = () => ({ ok: true, status: 200, text: okBody });
+
+  test('非 Safari：第一次就走后台 —— 一次请求，不先撞一次注定失败的预检', async () => {
     const proxied = [];
-    const { API, fetch } = loadAPI(() => { throw new TypeError('Load failed'); }, {
-      onMessage: (msg) => { proxied.push(msg); return { ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: '你好' } }] }) }; },
+    const { API, fetch } = loadAPI([], { onMessage: (m) => { proxied.push(m); return proxyOk(); } });
+    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
+    eq(fetch.calls.length, 0, '不该有直连 —— 那正是「慢一倍」的来源');
+    eq(proxied.length, 1, '总共只发了一次');
+    eq(proxied[0].url, 'https://api.deepseek.com/v1/chat/completions');
+  });
+
+  test('后台不可用 ⇒ 回退直连（公共 API 仍然能用，后台不是单点）', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })],
+      { onMessage: () => ({ error: 'background unreachable' }) });
+    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
+    eq(fetch.calls.length, 1, '回退到直连并成功');
+  });
+
+  // 这一条盯的是 1.5.5 的真机症状：「前面几段成功，后面全挂」。旧实现记过「这个 origin
+  // 两条路都不通」，于是 MV3 worker 在并发下偶尔来不及响应的那一次失败，把整个 origin
+  // 永久钉成 direct-only。记忆只许记成功。
+  test('失败永远不改变路线 —— 后台仍会被继续尝试', async () => {
+    // 1.5.5 真机症状：「前面几段成功，后面全挂」。那一版记过「这个 origin 两条路都不通」
+    // 并据此**跳过**后台，于是 MV3 worker 在并发下偶尔来不及响应的一次失败，就把整个
+    // origin 永久钉死。现在没有「跳过」这条分支了 —— 失败模式是由构造消除的，不是靠
+    // 断言挡住的，所以这里钉的是那个构造：**每次请求都仍然会去试首选的那条路**。
+    let nth = 0;
+    const { API } = loadAPI(
+      () => { throw new TypeError('Load failed'); },      // 直连恒被 CORS 挡（严格端点）
+      { onMessage: () => { nth += 1; return nth === 1 ? { error: 'worker waking up' } : proxyOk(); } });
+    eq(await API.translate('alpha alpha', 'zh-CN', 'deepseek', 'K', ''), '你好',
+      '第一段：后台第一次没起来，外层重试时该再走一次后台');
+    const afterFirst = nth;
+    eq(await API.translate('beta beta', 'zh-CN', 'deepseek', 'K', ''), '你好');
+    ok(nth > afterFirst, '第二段完全没有再尝试后台 —— 说明失败被记成了路线');
+  });
+
+  test('Safari：直连优先 —— 它的 worker 锁屏后会永久失效，不能依赖', async () => {
+    const proxied = [];
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })], {
+      extensionOrigin: 'safari-web-extension://uuid/',
+      onMessage: (m) => { proxied.push(m); return proxyOk(); },
     });
     eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    eq(fetch.calls.length, 1, '直连试过一次');
-    eq(proxied.length, 1, '然后走了后台');
-    eq(proxied[0].action, 'proxyFetch');
-    eq(proxied[0].url, 'https://api.deepseek.com/v1/chat/completions', '同一个地址，不是别的端点');
-    eq(JSON.parse(proxied[0].init.body).messages[1].content, 'hello', '同一个请求体');
+    eq(fetch.calls.length, 1, 'Safari 必须先直连');
+    eq(proxied.length, 0, '直连成功就不该惊动后台');
   });
 
-  test('同一个 origin 的后续请求直接走后台 —— 不再每段白撞一次预检', async () => {
-    const { API, fetch } = loadAPI(() => { throw new TypeError('Load failed'); }, {
-      onMessage: () => ({ ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: 'x' } }] }) }),
+  test('Safari：直连被挡时仍可用后台兜底', async () => {
+    const { API } = loadAPI(() => { throw new TypeError('Load failed'); }, {
+      extensionOrigin: 'safari-web-extension://uuid/',
+      onMessage: () => proxyOk(),
     });
-    await API.translate('alpha alpha', 'zh-CN', 'deepseek', 'K', '');
-    await API.translate('beta beta', 'zh-CN', 'deepseek', 'K', '');
-    eq(fetch.calls.length, 1, '第二次不该再直连一遍 —— CORS 拒绝是确定性的');
+    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
   });
 
-  test('timeout 不触发回退 —— 请求确实出去了，再发一遍只是把等待翻倍', async () => {
-    const abort = () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
+  test('timeout 不换路 —— 请求确实出去了，再发一遍只是把等待翻倍', async () => {
     const proxied = [];
-    const { API } = loadAPI(abort, { onMessage: (m) => { proxied.push(m); return { ok: true, status: 200, text: '{}' }; } });
-    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    const { API } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })], {
+      extensionOrigin: 'safari-web-extension://uuid/',   // 直连优先，才能让 timeout 发生在第一条
+      onMessage: (m) => { proxied.push(m); return proxyOk(); },
+    });
+    // 用 Safari 路线 + 直连 abort
+    const abort = loadAPI(() => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; }, {
+      extensionOrigin: 'safari-web-extension://uuid/',
+      onMessage: (m) => { proxied.push(m); return proxyOk(); },
+    });
+    const e = await rejects(abort.API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
     eq(e.code, 'timeout');
-    eq(proxied.length, 0, 'timeout 走了后台');
+    eq(proxied.length, 0, 'timeout 换路了');
   });
 
-  test('两条路都不通 ⇒ 报直连那个错，并标记已替用户试过后台', async () => {
+  test('两条路都不通 ⇒ 报第一条的错，并标记已替用户试过另一条', async () => {
     const { API } = loadAPI(() => { throw new TypeError('Load failed'); },
       { onMessage: () => ({ error: 'background unreachable' }) });
     const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
-    eq(e.code, 'network', '报的是直连那条路的错 —— 那才是用户配置的路');
+    eq(e.code, 'network');
     eq(e.viaProxy, true);
     eq(e.url, 'https://api.deepseek.com/v1/chat/completions');
   });
