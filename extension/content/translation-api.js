@@ -61,13 +61,38 @@ Rules:
     try { return chrome.runtime.getURL('').indexOf('moz-extension://') === 0; } catch (_) { return false; }
   })();
 
-  // Same kind of fact, for the browser whose background we may NOT lean on: a Safari
-  // web extension's URLs are `safari-web-extension://`. This is the one runtime where
-  // the service worker goes permanently `undefined` after device lock, so it is the one
-  // runtime that must keep sending directly from the content script.
-  const IS_SAFARI = (() => {
-    try { return chrome.runtime.getURL('').indexOf('safari-web-extension://') === 0; } catch (_) { return false; }
-  })();
+  // 「后台在吗」——一次探针，按页缓存 (§5.5)。
+  //
+  // 选路以前是按运行时猜的（Safari 一律直连优先，因为它的 worker 锁屏后会永久
+  // undefined）。用户 2026-08-19 裁定统一走后台优先，不再为锁屏留特例。直接删掉那个
+  // 分支会留一个坑：proxyFetch 的等待上限必须覆盖**整个往返**（后台替我们打完 API 才
+  // 回话，20 秒量级），所以它没法用来判断「worker 是不是死了」——真死了的话每段都要
+  // 干等 20 秒，比按运行时猜还糟。
+  //
+  // 探针把这件事变成可测量的：问一句 ping，纯本地 IPC，毫秒级，1.5 秒还没回就当不可达。
+  // 于是不必再猜是哪个浏览器、也不必再假设锁屏会不会发生——**问一次就知道**。
+  // 结果按页缓存；proxy 出现传输级失败时作废，下一次请求重新问，所以它能自愈，不会
+  // 变成又一个被一次偶发失败钉死的记忆。
+  const PROBE_TIMEOUT_MS = 1500;
+  let proxyProbe = null;
+  function probeProxy() {
+    if (proxyProbe) return proxyProbe;
+    proxyProbe = (async () => {
+      let timer = null;
+      try {
+        const r = await Promise.race([
+          chrome.runtime.sendMessage({ action: 'ping' }),
+          new Promise((resolve) => { timer = setTimeout(() => resolve(null), PROBE_TIMEOUT_MS); }),
+        ]);
+        return !!(r && r.ok);
+      } catch (_) {
+        return false;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    })();
+    return proxyProbe;
+  }
 
   // Same request from the background page, which no page's CSP can reach. A Response
   // cannot cross the message boundary, so the parts `apiFetch` actually reads are sent
@@ -172,7 +197,7 @@ Rules:
     const origin = originOf(url);
     // 已经成功过的那条优先；否则按运行时的默认顺序。
     const known = originRoute.get(origin);
-    const proxyFirst = known ? known === 'proxy' : !IS_SAFARI;
+    const proxyFirst = known ? known === 'proxy' : await probeProxy();
 
     if (IS_FIREFOX) {
       try { resp = await proxyFetch(url, opts); }
@@ -191,10 +216,12 @@ Rules:
         const firstErr = transportError(e, url);
         // `timeout` 说明请求确实出去了，只是没回来——换条路再发一遍只会把等待翻倍。
         if (firstErr.code !== 'network') throw firstErr;
+        if (first.tag === 'proxy') proxyProbe = null;   // 后台这次不灵，下次重新问
         try {
           resp = await second.run();
           originRoute.set(origin, second.tag);
         } catch (_) {
+          if (second.tag === 'proxy') proxyProbe = null;
           // 两条都不通 ⇒ 报第一条的错，并标记我们已经替用户试过另一条，免得提示里
           // 再让他去查跨域——后台那条本来就不受跨域约束。**不写入 originRoute**：
           // 失败是暂时的，写进去就会毒化后面所有请求。

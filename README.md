@@ -32,7 +32,7 @@ Install from a store — building from source is for contributors, not for using
 | Platform | |
 |---|---|
 | **iPhone · iPad · Mac** (Safari) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three |
-| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) (currently v1.5.6); steps below |
+| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) (currently v1.5.7); steps below |
 | **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
