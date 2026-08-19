@@ -18,6 +18,31 @@ const { loadModule } = require('./harness');
 // worker can't <script>-load palette.gen.js.)
 const { runtime: PALETTE, migration: LEGACY } = require('../build/palette.config.js');
 
+// 2026-08-19: §5.5 的回退在 Chrome 上整整一版没有生效——调用方开了，**接收方**还锁在
+// `if (IS_FIREFOX)` 里，于是内容脚本发出的 proxyFetch 没人接。单测当时是绿的，因为
+// stub 的 onMessage 是个黑洞，等于假装总有接收方。这个 helper 记录真实注册情况，
+// 让「处理器有没有注册」变成可断言的事。
+function loadWithListeners(extensionOrigin) {
+  const listeners = [];
+  const chrome = makeChrome({ store: {}, extensionOrigin });
+  chrome.runtime.onInstalled = { addListener: () => {} };
+  chrome.runtime.onMessage = { addListener: (fn) => listeners.push(fn) };
+  chrome.action = { setBadgeText: () => {}, setBadgeBackgroundColor: () => {}, onClicked: { addListener: () => {} } };
+  chrome.tabs = { onUpdated: { addListener: () => {} }, onActivated: { addListener: () => {} }, query: () => {}, sendMessage: () => {} };
+  loadModule('./background.js', { chrome, fetch: async () => ({ ok: true, status: 200, statusText: '', headers: { get: () => null }, text: async () => '{}' }), AbortController, setTimeout, clearTimeout });
+  return listeners;
+}
+
+// 判据不是「注册了几个」，而是「proxyFetch 这条消息有人接」——直接问行为。
+function handlesProxyFetch(listeners) {
+  return listeners.some((fn) => {
+    let answered = false;
+    const r = fn({ action: 'proxyFetch', url: 'https://x.example/v1/chat/completions', init: {} },
+      {}, () => { answered = true; });
+    return r === true || answered;   // 返回 true = 会异步回话
+  });
+}
+
 function load(store = {}) {
   const chrome = makeChrome({ store });
   // background.js needs the event surfaces the content-script stub doesn't carry.
@@ -103,5 +128,25 @@ describe('background — onInstalled defaults + rebrand migration', () => {
     fire({ reason: 'update' });
     eq(store.textColor, PALETTE.textColor);
     ok(!('ytTextColor' in store), 'no phantom ytTextColor is written for users who never had one');
+  });
+});
+
+describe('background — proxyFetch 处理器在每个浏览器上都注册（§5.4 + §5.5）', () => {
+  test('Chrome 上也接 proxyFetch —— 这一条正是 2026-08-19 那次漏掉的', () => {
+    ok(handlesProxyFetch(loadWithListeners('chrome-extension://abcdef/')),
+      'Chrome 上没人接 proxyFetch ——§5.5 的回退会静默失效，' +
+      '而设置页自检照样通过（扩展页面不受 CORS 约束），最难查的那种形状');
+  });
+
+  test('Firefox 上照旧接（§5.4 的唯一通路，不能被这次改动碰坏）', () => {
+    ok(handlesProxyFetch(loadWithListeners('moz-extension://uuid/')));
+  });
+
+  test('不认识的消息不占用回话权 —— 否则会挡住后面那个 onMessage 监听器', () => {
+    const listeners = loadWithListeners('chrome-extension://abcdef/');
+    const proxy = listeners.find((fn) => fn({ action: 'proxyFetch', url: 'https://x.example/', init: {} }, {}, () => {}) === true);
+    ok(proxy, '找不到 proxyFetch 监听器');
+    eq(proxy({ action: 'getSettings' }, {}, () => {}), undefined,
+      'proxyFetch 监听器对别的消息返回了 true —— 会让 getSettings 一类的回话被吞');
   });
 });

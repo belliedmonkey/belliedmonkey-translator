@@ -511,9 +511,15 @@ not. This is not a capability we can decline to use. It breaks the product.
    fail on others, i.e. it would restore exactly the site-dependent unpredictability
    this exists to remove — and §7.1 / the #74 decision already ruled that a silent
    fallback that hides a misconfiguration is worse than a visible failure.
-5. **The background stays state-only everywhere else.** The proxy handler is
-   registered *only* when the background itself is running on Firefox, so the Safari
-   rule remains true by construction rather than by everyone remembering it.
+5. **The background stays state-only everywhere else — but that is enforced on the
+   CALLER side, not by withholding the handler.** The proxy handler used to be
+   registered only when the background was running on Firefox, on the theory that this
+   made the Safari rule true by construction. It did not; it made §5.5's fallback a
+   no-op instead (2026-08-19: the caller shipped for Chrome, the message had no
+   listener, and the settings self-check still passed because an extension page is
+   CORS-exempt — so the failure only appeared on real pages). The handler is now
+   registered unconditionally. What actually holds the rule is that `apiFetch` always
+   attempts the direct fetch first; a handler nobody calls creates no dependency.
 
 #### Why this does not reopen §5.3 rule 1
 

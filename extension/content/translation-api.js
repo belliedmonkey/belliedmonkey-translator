@@ -64,12 +64,28 @@ Rules:
   // Same request from the background page, which no page's CSP can reach. A Response
   // cannot cross the message boundary, so the parts `apiFetch` actually reads are sent
   // and a minimal stand-in is rebuilt here — keeping ONE error shape for both paths.
+  // The wait is bounded HERE, on the caller side, and that is not belt-and-braces:
+  // `chrome.runtime.sendMessage` can simply never settle. On Safari iOS the worker is
+  // permanently `undefined` after device lock and the call "fails silently" — no
+  // rejection, no answer. An unsettled promise is the worst possible outcome, because
+  // it is the 「翻译中…」-forever shape this file already carries one scar from (see
+  // cacheGetStorage). The handler has its own timeout, but a dead worker never runs the
+  // handler, so its timeout cannot help. Caught by layout fixture 12 (error-state-column)
+  // when §5.5's fallback shipped without this: units stopped settling entirely.
+  const PROXY_ANSWER_TIMEOUT_MS = REQUEST_TIMEOUT_MS;
   async function proxyFetch(url, opts) {
     const o = opts || {};
-    const r = await chrome.runtime.sendMessage({
-      action: 'proxyFetch', url,
-      init: { method: o.method || 'GET', headers: o.headers, body: o.body },
-    });
+    let timer = null;
+    const r = await Promise.race([
+      chrome.runtime.sendMessage({
+        action: 'proxyFetch', url,
+        init: { method: o.method || 'GET', headers: o.headers, body: o.body },
+      }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('background did not answer in time')),
+          PROXY_ANSWER_TIMEOUT_MS);
+      }),
+    ]).finally(() => { if (timer) clearTimeout(timer); });
     if (!r) throw new Error('background did not answer the proxied request');
     if (r.error) throw new Error(r.error);
     return {
@@ -119,7 +135,15 @@ Rules:
   // 这也不是 #74 否决的那种「静默回退」：#74 是把失败的引擎悄悄换成 Google，产生一个
   // 貌似正确的答案并掩盖坏掉的 key。这里是**同一个请求、同一个端点**换一条 CORS 立场
   // 不同的通道；成功就是用户自己的引擎答的，没有任何东西被掩盖。
-  const proxyOrigins = new Set();
+  // origin → 这个源该走哪条路。'proxy' = 直连被挡过、后台可用；'direct-only' = 后台
+  // 也不通，别再试了。
+  //
+  // 后者不是优化，是正确性：回退是**每次请求**都试的话，一个真正不可达的端点会让
+  // 每次翻译付两趟往返，再乘以 MAX_RETRIES，再乘以整页的段数——用户要多等一倍才看到
+  // 那条本来就确定的报错。判一次就够：直连和后台同时不通，说明是端点的问题，不是通路
+  // 的问题。刷新页面即重置。（layout fixture 12 抓到的正是这个：加了回退之后错误路径
+  // 慢到单元在断言窗口内还没 settle。）
+  const originRoute = new Map();
   function originOf(url) {
     const m = /^https?:\/\/[^/?#]+/i.exec(String(url == null ? '' : url).trim());
     return m ? m[0].toLowerCase() : '';
@@ -138,7 +162,7 @@ Rules:
   async function apiFetch(url, opts, label) {
     let resp;
     const origin = originOf(url);
-    if (IS_FIREFOX || proxyOrigins.has(origin)) {
+    if (IS_FIREFOX || originRoute.get(origin) === 'proxy') {
       // Firefox: 页面 CSP 会管住内容脚本的 fetch（§5.4），后台是唯一可靠的路。
       // proxyOrigins: 这个 origin 上一次已经被证明要走后台——CORS 拒绝是确定性的，
       // 记住它，否则整页每一段都要先白撞一次注定失败的预检（实测一页 283 个请求，
@@ -156,10 +180,12 @@ Rules:
         // 只对 `network` 回退。`timeout` 说明请求确实出去了、只是没回来——再发一遍
         // 只会把等待时间翻倍。
         if (direct.code !== 'network') throw direct;
+        if (originRoute.get(origin) === 'direct-only') { direct.viaProxy = true; throw direct; }
         try {
           resp = await proxyFetch(url, opts);
-          proxyOrigins.add(origin);
+          originRoute.set(origin, 'proxy');
         } catch (_) {
+          originRoute.set(origin, 'direct-only');
           // 两条路都不通 ⇒ 报**直连**那个错（它才是用户配置的那条路），并标记我们
           // 已经替他试过后台，免得建议里再让他去查跨域。
           direct.viaProxy = true;

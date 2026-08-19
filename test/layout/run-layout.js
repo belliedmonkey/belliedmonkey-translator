@@ -153,6 +153,23 @@ function serveFixtures() {
   });
 }
 
+// 把扩展的 service worker 也纳入 Fetch 拦截。§5.5 让后台成了翻译的第二条通路，
+// 而 CDP 的 Fetch 域是按 target 生效的——页面那份管不到它。SW 是懒启动的，可能此刻
+// 还没跑起来；拿不到就算了，返回值不作断言：真正的判据是 fixture 自己的期望，这里
+// 多挂一层只是让「不可达」这个模拟重新变得诚实。
+async function attachServiceWorkers(cdp, swSessions) {
+  let targets = [];
+  try { ({ targetInfos: targets = [] } = await cdp.send('Target.getTargets')); } catch (_) { return; }
+  for (const t of targets) {
+    if (t.type !== 'service_worker' || !/^chrome-extension:\/\//.test(t.url || '')) continue;
+    try {
+      const { sessionId: sid } = await cdp.send('Target.attachToTarget', { targetId: t.targetId, flatten: true });
+      await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*translate.googleapis.com*' }] }, sid);
+      swSessions.add(sid);
+    } catch (_) { /* SW 正好被回收，跳过 */ }
+  }
+}
+
 // ─── per-fixture drive ─────────────────────────────────────────────────
 async function evalIn(cdp, sessionId, contextId, expression) {
   const r = await cdp.send('Runtime.evaluate',
@@ -245,6 +262,9 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
   // unregisters listeners and closes the tab (a stale Fetch listener would keep
   // answering for a dead session on every later fixture).
   let targetId = null, sessionId = null;
+  // 扩展 service worker 的 session（可能不止一个：SW 会被回收再起）。只有 failTranslate
+  // 的 fixture 需要它——其余 fixture 的后台从不发翻译请求，挂上去只是空转。
+  const swSessions = new Set();
   let offCtx = () => {}, offClear = () => {}, offFetch = () => {};
   // Per-fixture settings overlay. Almost every fixture wants the default zh-CN target;
   // the ones exercising a Latin target (where the same-language skip depends on the
@@ -275,11 +295,18 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
       if (sid === sessionId) isolatedCtxs.clear();
     });
     offFetch = cdp.on('Fetch.requestPaused', (p, sid) => {
-      if (sid !== sessionId) return;
+      // sid 既可能是页面的，也可能是扩展 service worker 的（见下面的 swSessions）。
+      // §5.5 之后 error-path fixture 必须两条路一起挡：内容脚本直连失败后会把同一个
+      // 请求交给后台重发，只挡页面这一条的话，后台会绕过注入把它翻译成功——2026-08-19
+      // fixture 12 就是这么由红变「35/36」的。
+      if (sid !== sessionId && !swSessions.has(sid)) return;
       if (manifest.failTranslate) {
         // Error-path fixtures: every translate request fails hard so units reach
         // the terminal error chip (retries: ~4s with backoff).
-        cdp.send('Fetch.failRequest', { requestId: p.requestId, errorReason: 'Failed' }, sessionId)
+        // 必须回到**请求所在的那个 session**（sid），不是页面的。回错了那条被暂停的
+        // 请求永远不会被解决，于是 proxyFetch 一直挂到超时——症状是单元停在「翻译中…」
+        // 而不是变成错误芯片。
+        cdp.send('Fetch.failRequest', { requestId: p.requestId, errorReason: 'Failed' }, sid)
           .catch(() => { /* tab already closing */ });
         return;
       }
@@ -292,7 +319,7 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
           { name: 'Access-Control-Allow-Origin', value: '*' },
         ],
         body: Buffer.from(body, 'utf8').toString('base64'),
-      }, sessionId).catch(() => { /* tab already closing */ });
+      }, sid).catch(() => { /* tab already closing */ });
     });
 
     await cdp.send('Page.enable', {}, sessionId);
@@ -301,6 +328,7 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
       { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId);
     await cdp.send('Fetch.enable',
       { patterns: [{ urlPattern: '*translate.googleapis.com*' }] }, sessionId);
+    if (manifest.failTranslate) await attachServiceWorkers(cdp, swSessions);
     await cdp.send('Page.navigate', { url: `${baseUrl}/${file}` }, sessionId);
 
     const ctxId = await findExtensionContext(cdp, sessionId, isolatedCtxs);
