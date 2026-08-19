@@ -1312,6 +1312,10 @@
     "message": "Réponse du serveur : {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "(Réessayé automatiquement depuis l'arrière-plan de l'extension, sans succès — ce n'est donc pas un problème de CORS : l'adresse est réellement injoignable depuis cette machine.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "Le modèle n’a renvoyé aucun contenu — un modèle de raisonnement ne convient pas ; choisissez un modèle de chat",
     "description": "Engine self-test (settings)"

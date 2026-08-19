@@ -1312,6 +1312,10 @@
     "message": "رد الخادم: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "(أُعيدت المحاولة تلقائيًا عبر خلفية الإضافة أيضًا وفشلت — إذن ليست مشكلة CORS، بل العنوان غير قابل للوصول فعليًا من هذا الجهاز.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
     "description": "Engine self-test (settings)"

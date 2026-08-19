@@ -1313,6 +1313,10 @@
     "message": "服务端原话：{msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "（已自动改从扩展后台重试，仍未通——所以不是跨域问题，是这个地址从这台机器真的够不着）",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "模型没有返回正文——思考（推理）型模型不适合，请换对话模型",
     "description": "Engine self-test (settings)"

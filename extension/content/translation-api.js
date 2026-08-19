@@ -98,27 +98,73 @@ Rules:
     return err;
   }
 
+  // ─── 严格 CORS 的端点：直连打不通，走后台 (§5.5) ─────────────────────────
+  //
+  // 内容脚本的 fetch 是**以当前网页的身份**发出的：`Origin` 是 en.wikipedia.org，
+  // 而不是扩展。带 Authorization + JSON body 的请求还是非简单请求，浏览器会先发一个
+  // OPTIONS 预检。企业网关看到一个陌生第三方站点来源，预检回 403 —— 浏览器于是连
+  // POST 都不发，`fetch` 抛裸 TypeError。2026-08-19 真机实证：Network 面板里成对的
+  // `403 preflight` + `CORS error fetch`，请求头写着「Provisional headers are shown」
+  // 与 `Referer: https://en.wikipedia.org/`。
+  //
+  // 扩展后台没有这个问题：带 `host_permissions` 的 service worker 发请求不受 CORS
+  // 约束，也不发预检。`background.js` 的 proxyFetch 早就在了（为 Firefox 的 CSP 写的），
+  // 这里只是让它在**直连失败后**也能被用上。
+  //
+  // 为什么是「失败后回退」而不是「一律走后台」：仓库根部说明里的硬规矩——Safari iOS 的
+  // service worker 在设备锁屏后会永久 undefined，所以翻译**不能依赖**后台。回退只在
+  // 直连已经失败时发生，后台若也不可用（正是 Safari 那种情况），我们报的还是原来那个
+  // 错，行为与今天完全一致。
+  //
+  // 这也不是 #74 否决的那种「静默回退」：#74 是把失败的引擎悄悄换成 Google，产生一个
+  // 貌似正确的答案并掩盖坏掉的 key。这里是**同一个请求、同一个端点**换一条 CORS 立场
+  // 不同的通道；成功就是用户自己的引擎答的，没有任何东西被掩盖。
+  const proxyOrigins = new Set();
+  function originOf(url) {
+    const m = /^https?:\/\/[^/?#]+/i.exec(String(url == null ? '' : url).trim());
+    return m ? m[0].toLowerCase() : '';
+  }
+
+  async function directFetch(url, opts) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function apiFetch(url, opts, label) {
     let resp;
-    if (IS_FIREFOX) {
-      // No fallback to the direct fetch when this fails. A fallback would succeed on
-      // CSP-free pages and fail elsewhere — restoring exactly the site-dependent
-      // unpredictability this removes (and #74 already ruled that a silent fallback
-      // hiding a real failure is worse than a visible one).
+    const origin = originOf(url);
+    if (IS_FIREFOX || proxyOrigins.has(origin)) {
+      // Firefox: 页面 CSP 会管住内容脚本的 fetch（§5.4），后台是唯一可靠的路。
+      // proxyOrigins: 这个 origin 上一次已经被证明要走后台——CORS 拒绝是确定性的，
+      // 记住它，否则整页每一段都要先白撞一次注定失败的预检（实测一页 283 个请求，
+      // 其中几十对是这么浪费掉的）。
       try {
         resp = await proxyFetch(url, opts);
       } catch (e) {
         throw transportError(e, url);
       }
     } else {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
       try {
-        resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+        resp = await directFetch(url, opts);
       } catch (e) {
-        throw transportError(e, url);
-      } finally {
-        clearTimeout(timer);
+        const direct = transportError(e, url);
+        // 只对 `network` 回退。`timeout` 说明请求确实出去了、只是没回来——再发一遍
+        // 只会把等待时间翻倍。
+        if (direct.code !== 'network') throw direct;
+        try {
+          resp = await proxyFetch(url, opts);
+          proxyOrigins.add(origin);
+        } catch (_) {
+          // 两条路都不通 ⇒ 报**直连**那个错（它才是用户配置的那条路），并标记我们
+          // 已经替他试过后台，免得建议里再让他去查跨域。
+          direct.viaProxy = true;
+          throw direct;
+        }
       }
     }
     if (!resp.ok) {

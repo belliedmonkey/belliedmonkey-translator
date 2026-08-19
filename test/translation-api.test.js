@@ -510,6 +510,49 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     await rejects(() => API.translate('hello there', 'zh-CN', 'deepseek', 'k', ''), /429/);
   });
 
+  // 2026-08-19 真机：内容脚本的 fetch 以**网页**的身份发出（Origin = en.wikipedia.org），
+  // 企业网关的 OPTIONS 预检回 403 ⇒ 浏览器连 POST 都不发，fetch 抛裸 TypeError。
+  // 后台带 host_permissions，不受 CORS 约束也不发预检 —— 直连失败后改走那条 (#151).
+  test('非 Firefox：直连被 CORS 挡住 ⇒ 同一个请求改从后台发', async () => {
+    const proxied = [];
+    const { API, fetch } = loadAPI(() => { throw new TypeError('Load failed'); }, {
+      onMessage: (msg) => { proxied.push(msg); return { ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: '你好' } }] }) }; },
+    });
+    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
+    eq(fetch.calls.length, 1, '直连试过一次');
+    eq(proxied.length, 1, '然后走了后台');
+    eq(proxied[0].action, 'proxyFetch');
+    eq(proxied[0].url, 'https://api.deepseek.com/v1/chat/completions', '同一个地址，不是别的端点');
+    eq(JSON.parse(proxied[0].init.body).messages[1].content, 'hello', '同一个请求体');
+  });
+
+  test('同一个 origin 的后续请求直接走后台 —— 不再每段白撞一次预检', async () => {
+    const { API, fetch } = loadAPI(() => { throw new TypeError('Load failed'); }, {
+      onMessage: () => ({ ok: true, status: 200, text: JSON.stringify({ choices: [{ message: { content: 'x' } }] }) }),
+    });
+    await API.translate('alpha alpha', 'zh-CN', 'deepseek', 'K', '');
+    await API.translate('beta beta', 'zh-CN', 'deepseek', 'K', '');
+    eq(fetch.calls.length, 1, '第二次不该再直连一遍 —— CORS 拒绝是确定性的');
+  });
+
+  test('timeout 不触发回退 —— 请求确实出去了，再发一遍只是把等待翻倍', async () => {
+    const abort = () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
+    const proxied = [];
+    const { API } = loadAPI(abort, { onMessage: (m) => { proxied.push(m); return { ok: true, status: 200, text: '{}' }; } });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.code, 'timeout');
+    eq(proxied.length, 0, 'timeout 走了后台');
+  });
+
+  test('两条路都不通 ⇒ 报直连那个错，并标记已替用户试过后台', async () => {
+    const { API } = loadAPI(() => { throw new TypeError('Load failed'); },
+      { onMessage: () => ({ error: 'background unreachable' }) });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.code, 'network', '报的是直连那条路的错 —— 那才是用户配置的路');
+    eq(e.viaProxy, true);
+    eq(e.url, 'https://api.deepseek.com/v1/chat/completions');
+  });
+
   test('a failing proxy surfaces the error and does NOT fall back to the blocked path', async () => {
     // 有回退的话，能不能翻译就又取决于页面有没有 CSP —— 正是这条改动要消灭的不确定性。
     const { API, fetch } = loadAPI([okJson([[['不该用到', 'x']]])],

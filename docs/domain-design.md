@@ -523,6 +523,66 @@ default path and works. What is broken is a surface *above* the floor, and the
 compensation is confined to that surface. The invariant "Safari iOS is complete on the
 default path" is untouched; nothing about Firefox's exception is load-bearing for it.
 
+### 5.5 The same axis, second instance — a strict-CORS endpoint
+
+§5.4's restriction came from the *browser*. This one comes from the *endpoint*, and it
+is worth writing down separately because the compensating path is the same one and the
+naive reading is that it contradicts §5.4 rule 4.
+
+**The instance (measured 2026-08-19, real machine, corporate gateway).** A content
+script's `fetch` goes out **as the page**: with the user reading `en.wikipedia.org`, the
+request carries `Origin: https://en.wikipedia.org`. Our request also carries
+`Authorization` and a JSON body, so it is not a *simple* request — the browser must send
+an `OPTIONS` preflight first. The gateway answered that preflight **403**, so the browser
+never sent the POST at all and `fetch` rejected with a bare `TypeError`.
+
+The DevTools evidence is unambiguous and worth knowing by sight, because none of it
+appears in our own error text:
+
+| Symptom | What it means |
+|---|---|
+| paired rows: `403 · preflight` then `CORS error · fetch` | the preflight was refused; the real request never happened |
+| `Provisional headers are shown` | the request was stopped locally and never hit the network |
+| `Referer: https://en.wikipedia.org/` | it was being sent **as the page**, not as the extension |
+
+This also explains the reports that preceded it: the same URL and key work in
+command-line clients (no `Origin`, no preflight) and in other extensions (which send
+from the background), while our public-API providers were unaffected because they answer
+`Access-Control-Allow-Origin: *`.
+
+#### The rule
+
+1. **Direct-from-content-script stays the default** — unchanged, and for the unchanged
+   reason (§5.4 rule 1: Safari iOS's service worker is unreliable, so translation may
+   not *depend* on the background).
+2. **A `network`-class failure earns one retry through the background**, which — with
+   `host_permissions` — is exempt from CORS and sends no preflight. Same chokepoint as
+   §5.4 (`apiFetch`), same request, same URL.
+3. **`timeout` does not qualify.** An abort means the request did reach the network;
+   resending only doubles the wait.
+4. **Remember the origin for the session.** A CORS refusal is deterministic per origin;
+   without memory every paragraph on the page pays another doomed preflight (the
+   measured page issued 283 requests, dozens of them these wasted pairs).
+5. **If both paths fail, report the DIRECT error** — that is the path the user
+   configured — and mark it `viaProxy` so the settings page can say we already tried the
+   background. Otherwise the CORS hint sends the user chasing a cause we have already
+   ruled out.
+
+#### Why this is not the fallback §5.4 rule 4 forbids
+
+The two run in opposite directions. §5.4 rule 4 forbids falling back **to the blocked
+path** (Firefox → direct fetch): it would succeed on CSP-free pages and fail elsewhere,
+reintroducing site-dependent unpredictability. This rule falls back **away from** the
+blocked path, to one with strictly broader standing. It is also not the #74 pattern:
+#74 was a silent switch to a *different provider*, which produced a plausible answer and
+hid a broken key. Here the endpoint, the credential and the body are identical — only
+the sender changes — so a success is still the user's own engine answering, and a
+failure is still reported.
+
+**Scope, stated plainly:** only the translation transport is covered today. Notes, TTS
+and transcription each own their own `fetch` and would hit the same wall against the
+same endpoint.
+
 ## 6. Module map
 
 | Module | File | Role |

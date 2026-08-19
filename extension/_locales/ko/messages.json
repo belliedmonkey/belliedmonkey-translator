@@ -1312,6 +1312,10 @@
     "message": "서버 응답: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "(확장 프로그램 백그라운드로도 자동 재시도했지만 실패했습니다 — CORS 문제가 아니라 이 컴퓨터에서 해당 주소에 실제로 접근할 수 없습니다.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "모델이 본문을 반환하지 않았습니다 — 추론형 모델은 부적합하니 대화 모델로 바꾸세요",
     "description": "Engine self-test (settings)"
