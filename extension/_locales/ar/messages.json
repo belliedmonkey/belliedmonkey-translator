@@ -1308,6 +1308,18 @@
     "message": "العنوان المطلوب: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_route": {
+    "message": "أُرسل عبر: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "خلفية الإضافة (لا تخضع لـ CORS ولا ترسل preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "الصفحة نفسها (ترسل preflight من نوع OPTIONS أولًا)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
   "engine_test_server_said": {
     "message": "رد الخادم: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."

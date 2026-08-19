@@ -1308,6 +1308,18 @@
     "message": "リクエスト先：{url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_route": {
+    "message": "経路: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "拡張機能のバックグラウンド（CORS の対象外、プリフライトなし）",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "ページから直接（先に OPTIONS プリフライトを送信）",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
   "engine_test_server_said": {
     "message": "サーバーの応答: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."

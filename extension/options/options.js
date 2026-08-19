@@ -604,6 +604,16 @@ async function init() {
     ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
     : '');
 
+  // 「这次是从哪儿发出去的」。浏览器扩展有两条通路，它们的跨域待遇完全不同：内容脚本
+  // 以**当前网页的身份**发送（会触发 OPTIONS 预检，严格网关会拒），扩展后台则不受
+  // 跨域约束、不发预检。两条路失败起来长得一模一样，不说出来就只能靠 DevTools 里
+  // 有没有 preflight 行去倒推——而那需要用户会看 Network 面板。
+  const withRoute = (text, route) => text + (route
+    ? '\n' + t('engine_test_route', '通路：{route}').replace('{route}',
+        route === 'proxy' ? t('engine_test_route_proxy', '扩展后台（不受跨域限制，不发预检）')
+          : t('engine_test_route_direct', '直连（从页面发出，会先发 OPTIONS 预检）'))
+    : '');
+
 
   // 发请求之前的离线形状检查。运行时不做这件事：逐字发送是本次改动的承诺，而一个根路径
   // 端点虽然罕见却是合法的。但自检是用户「东西坏了」时会来的地方，把「地址少了路径」从
@@ -620,13 +630,13 @@ async function init() {
     el.textContent = t('engine_test_running', '测试中…');
     try {
       const r = await fn();
-      el.textContent = withUrl(
+      el.textContent = withRoute(withUrl(
         t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
           + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
-        r.url);
+        r.url), r.route);
     } catch (e) {
       console.error('[engine-test]', (e && e.url) || '', e);
-      el.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
+      el.textContent = withRoute(withUrl('✗ ' + engineTestReason(e), e && e.url), e && e.route);
     }
   });
 
@@ -637,11 +647,15 @@ async function init() {
     // noCache: 一个可能不发请求的「测试连接」是有害的。缓存键里带了端点与模型之后
     // 同配置重测仍然会命中，而重测的全部意义就是**再打一次**（2026-08-19 实测：改完
     // 地址点测试，1ms 返回「通了」，一个包都没出去）。
+    // `diag` 是出参：传输层把**真正请求的地址**和**走了哪条通路**填进来。这两样以前
+    // 只有失败时才看得见（错误对象上带着），成功时反而什么都没有——于是「它到底走的
+    // 哪条路、打的哪个地址」只能靠版本号和时间戳倒推，2026-08-19 为此来回了三轮。
+    const diag = {};
     const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
       $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim(),
-      { noCache: true });
+      { noCache: true, diag });
     if (!out || !String(out).trim()) { const e = new Error('empty'); e.code = 'bad_output'; throw e; }
-    return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40) };
+    return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40), url: diag.url, route: diag.route };
   }));
 
   $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
