@@ -575,11 +575,23 @@ So the routing is chosen up front, per runtime, and the retry is only insurance:
 | Runtime | Route | Why |
 |---|---|---|
 | Firefox | background **only**, no fallback | §5.4: the page's CSP governs a content script's fetch, and falling back would make success depend on which site you are reading |
-| Safari | direct first, background as fallback | the one runtime whose service worker goes permanently `undefined` after device lock, so it must not *depend* on the background |
 | everything else | background first, direct as fallback | one request, no preflight, and it works against permissive and strict endpoints alike |
 
-Runtime is decided by a **fact** — `chrome.runtime.getURL('')` is `moz-extension://` on
-Firefox and `safari-web-extension://` on Safari — never by a UA string (§5.3 rule 2).
+**Whether the background is usable is measured, not guessed.** An earlier version split
+Safari out by runtime (`safari-web-extension://`) because its worker goes permanently
+`undefined` after device lock. That carve-out was withdrawn on request, and removing it
+needed something to replace it — the proxy's own timeout cannot serve, because it has to
+cover the whole round trip (the background performs the API call before answering, so it
+is a ~20s budget), and a dead worker would then cost 20s *per paragraph*.
+
+So the content script asks the background one cheap question — `{action:'ping'}`, local
+IPC, 1.5s ceiling — and routes on the answer. This is strictly better than the runtime
+guess it replaced: it covers *every* reason a background can be unavailable, not just the
+one we happened to know about, and it needs no assumption about whether a device has been
+locked. The result is cached per page and **invalidated whenever a proxy attempt fails at
+the transport level**, so a worker that was merely mid-wake is used again on the next
+request rather than written off — the same self-healing discipline as the route memory
+below, and for the same reason.
 
 **The memory only ever records success.** `originRoute` stores the route that worked for
 an origin; a failure never writes to it. A failure is a moment, a success is a fact about

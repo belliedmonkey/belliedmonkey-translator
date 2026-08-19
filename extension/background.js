@@ -101,6 +101,11 @@ chrome.runtime.onInstalled.addListener((details) => {
 const PROXY_TIMEOUT_MS = 20000;   // matches REQUEST_TIMEOUT_MS in translation-api.js
 {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // 「在吗」探针。内容脚本用它在**发第一个请求之前**判断后台是否可达，从而选路
+    // （domain-design §5.5）。为什么需要它：proxyFetch 的等待上限必须覆盖整个往返
+    // （后台替调用方打完 API 才回话，20 秒量级），所以那个超时没法用来判断「worker
+    // 是不是死了」——真死了的话每段都要干等 20 秒。探针是纯本地 IPC，毫秒级。
+    if (msg && msg.action === 'ping') { sendResponse({ ok: true }); return; }
     if (!msg || msg.action !== 'proxyFetch') return;
     (async () => {
       const ctrl = new AbortController();

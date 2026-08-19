@@ -490,19 +490,20 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     }));
     eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
     eq(fetch.calls.length, 0, '内容脚本仍然直接 fetch —— 正是被 CSP 拦掉的那条路');
-    eq(proxied.length, 1);
-    eq(proxied[0].action, 'proxyFetch');
-    match(proxied[0].url, /translate\.googleapis\.com/);
+    // 探针（action:'ping'）也走同一条消息通道，按 action 过滤才问得准。
+    const fetches = proxied.filter((m) => m.action === 'proxyFetch');
+    eq(fetches.length, 1);
+    match(fetches[0].url, /translate\.googleapis\.com/);
   });
 
-  // 从 #153 起「非 Firefox 就直连」不再成立：非 Safari 一律首选后台（一次请求、无预检）。
-  // 唯一仍然直连优先的是 Safari —— 它的 worker 锁屏后会永久失效。
-  test('Safari 仍然直连优先，且直连成功时不惊动 background', async () => {
-    const { API, fetch, chrome } = loadAPI([okJson([[['你好', 'hello']]])],
-      { extensionOrigin: 'safari-web-extension://uuid/' });
+  // 选路不再按浏览器猜（#154 曾按 IS_SAFARI 分流），改为**问一次后台在不在**。
+  // 后台答不上来 ⇒ 直连优先，这一条覆盖「worker 已死」的所有成因，包括 iOS 锁屏。
+  test('后台不可达 ⇒ 直连优先，且不为每段白等一次超时', async () => {
+    const { API, fetch, chrome } = loadAPI([okJson([[['你好', 'hello']]])]);  // 无 onMessage = 探针答不上来
     eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
-    eq(fetch.calls.length, 1);
-    eq(chrome.runtime._sent.length, 0, 'Safari 直连成功后不该绕道 background');
+    eq(fetch.calls.length, 1, '直连一次成功');
+    eq(chrome.runtime._sent.filter((m) => m.action === 'proxyFetch').length, 0,
+      '探针已经说了后台不可达，就不该再往后台发真请求');
   });
 
   test('a proxied HTTP error keeps status and retry-after, same shape as direct', async () => {
@@ -519,13 +520,16 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
   const okBody = JSON.stringify({ choices: [{ message: { content: '你好' } }] });
   const proxyOk = () => ({ ok: true, status: 200, text: okBody });
 
-  test('非 Safari：第一次就走后台 —— 一次请求，不先撞一次注定失败的预检', async () => {
+  test('后台可达 ⇒ 第一次就走后台，一次请求，不先撞一次注定失败的预检', async () => {
     const proxied = [];
-    const { API, fetch } = loadAPI([], { onMessage: (m) => { proxied.push(m); return proxyOk(); } });
+    const { API, fetch } = loadAPI([], {
+      onMessage: (m) => { proxied.push(m); return m.action === 'ping' ? { ok: true } : proxyOk(); },
+    });
     eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
     eq(fetch.calls.length, 0, '不该有直连 —— 那正是「慢一倍」的来源');
-    eq(proxied.length, 1, '总共只发了一次');
-    eq(proxied[0].url, 'https://api.deepseek.com/v1/chat/completions');
+    const fetches = proxied.filter((m) => m.action === 'proxyFetch');
+    eq(fetches.length, 1, '真请求只发了一次（探针不算，它是本地 IPC）');
+    eq(fetches[0].url, 'https://api.deepseek.com/v1/chat/completions');
   });
 
   test('后台不可用 ⇒ 回退直连（公共 API 仍然能用，后台不是单点）', async () => {
@@ -554,39 +558,30 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     ok(nth > afterFirst, '第二段完全没有再尝试后台 —— 说明失败被记成了路线');
   });
 
-  test('Safari：直连优先 —— 它的 worker 锁屏后会永久失效，不能依赖', async () => {
-    const proxied = [];
-    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })], {
-      extensionOrigin: 'safari-web-extension://uuid/',
-      onMessage: (m) => { proxied.push(m); return proxyOk(); },
-    });
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    eq(fetch.calls.length, 1, 'Safari 必须先直连');
-    eq(proxied.length, 0, '直连成功就不该惊动后台');
-  });
-
-  test('Safari：直连被挡时仍可用后台兜底', async () => {
-    const { API } = loadAPI(() => { throw new TypeError('Load failed'); }, {
-      extensionOrigin: 'safari-web-extension://uuid/',
-      onMessage: () => proxyOk(),
-    });
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-  });
-
   test('timeout 不换路 —— 请求确实出去了，再发一遍只是把等待翻倍', async () => {
     const proxied = [];
-    const { API } = loadAPI([okJson({ choices: [{ message: { content: 'x' } }] })], {
-      extensionOrigin: 'safari-web-extension://uuid/',   // 直连优先，才能让 timeout 发生在第一条
-      onMessage: (m) => { proxied.push(m); return proxyOk(); },
-    });
-    // 用 Safari 路线 + 直连 abort
-    const abort = loadAPI(() => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; }, {
-      extensionOrigin: 'safari-web-extension://uuid/',
-      onMessage: (m) => { proxied.push(m); return proxyOk(); },
-    });
-    const e = await rejects(abort.API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    // 后台不可达 ⇒ 直连优先；直连 abort 之后不该改走后台。
+    const { API } = loadAPI(() => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; },
+      { onMessage: (m) => { proxied.push(m); return m.action === 'ping' ? null : proxyOk(); } });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
     eq(e.code, 'timeout');
-    eq(proxied.length, 0, 'timeout 换路了');
+    eq(proxied.filter((m) => m.action === 'proxyFetch').length, 0, 'timeout 换路了');
+  });
+
+  test('探针会自愈 —— 后台一次不灵之后，下一次请求重新问，而不是就此不再用它', async () => {
+    // 这是「记住失败」那个 bug 的一般形式：任何把暂时状态记成永久判断的地方都会把
+    // 整页搞坏。探针的缓存在 proxy 传输级失败时作废，所以 worker 只是正在唤醒的话，
+    // 下一段就能重新用上后台。
+    let ping = 0, fetches = 0;
+    const { API } = loadAPI(
+      () => { throw new TypeError('Load failed'); },        // 直连恒被 CORS 挡
+      { onMessage: (m) => {
+          if (m.action === 'ping') { ping += 1; return { ok: true }; }
+          fetches += 1;
+          return fetches === 1 ? { error: 'worker waking up' } : proxyOk();
+        } });
+    eq(await API.translate('alpha alpha', 'zh-CN', 'deepseek', 'K', ''), '你好');
+    ok(ping >= 2, `后台失败后没有重新探测（ping=${ping}）—— 缓存被钉死了`);
   });
 
   test('两条路都不通 ⇒ 报第一条的错，并标记已替用户试过另一条', async () => {
