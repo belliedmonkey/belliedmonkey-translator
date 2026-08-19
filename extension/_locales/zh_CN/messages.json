@@ -1309,6 +1309,18 @@
     "message": "请求地址：{url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_route": {
+    "message": "通路：{route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "扩展后台（不受跨域限制，不发预检）",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "直连（从页面发出，会先发 OPTIONS 预检）",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
   "engine_test_server_said": {
     "message": "服务端原话：{msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."

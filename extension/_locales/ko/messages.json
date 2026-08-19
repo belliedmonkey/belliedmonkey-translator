@@ -1308,6 +1308,18 @@
     "message": "요청 주소: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_route": {
+    "message": "경로: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "확장 프로그램 백그라운드(CORS 대상 아님, 프리플라이트 없음)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "페이지에서 직접(먼저 OPTIONS 프리플라이트를 보냄)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
   "engine_test_server_said": {
     "message": "서버 응답: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."

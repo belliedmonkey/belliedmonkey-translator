@@ -568,6 +568,36 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     eq(proxied.filter((m) => m.action === 'proxyFetch').length, 0, 'timeout 换路了');
   });
 
+  // 「哪个版本、走了哪条路、服务端说了什么」——2026-08-19 为这三个问题来回了三轮，
+  // 全靠版本号和时间戳倒推。诊断出参让一张截图就能回答后两个 (#156)。
+  test('diag 出参报告真正请求的地址与走的通路（成功时）', async () => {
+    const diag = {};
+    const { API } = loadAPI([], {
+      onMessage: (m) => (m.action === 'ping' ? { ok: true } : proxyOk()),
+    });
+    await API.translate('hello', 'zh-CN', 'deepseek', 'K', '', '', { noCache: true, diag });
+    eq(diag.url, 'https://api.deepseek.com/v1/chat/completions', '成功时也要报地址 —— 以前只有失败才看得见');
+    eq(diag.route, 'proxy');
+  });
+
+  test('后台不可达时 diag 报 direct —— 两条路的失败长得一样，必须说出来', async () => {
+    const diag = {};
+    const { API } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })]);  // 无 onMessage = 探针失败
+    await API.translate('hello', 'zh-CN', 'deepseek', 'K', '', '', { noCache: true, diag });
+    eq(diag.route, 'direct');
+  });
+
+  test('HTTP 错误也带上通路 —— 「403 但没有预检」和「403 且有预检」是两回事', async () => {
+    const { API } = loadAPI([], {
+      onMessage: (m) => (m.action === 'ping' ? { ok: true }
+        : { ok: false, status: 403, statusText: 'Forbidden', text: JSON.stringify({ error: { message: 'origin not allowed' } }) }),
+    });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.status, 403);
+    eq(e.route, 'proxy', '走后台还被 403 ⇒ 网关按来源挡的，不是跨域问题');
+    match(e.serverMessage, /origin not allowed/);
+  });
+
   test('探针会自愈 —— 后台一次不灵之后，下一次请求重新问，而不是就此不再用它', async () => {
     // 这是「记住失败」那个 bug 的一般形式：任何把暂时状态记成永久判断的地方都会把
     // 整页搞坏。探针的缓存在 proxy 传输级失败时作废，所以 worker 只是正在唤醒的话，

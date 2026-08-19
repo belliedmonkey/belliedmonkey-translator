@@ -1308,6 +1308,18 @@
     "message": "Angefragt: {url}",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_route": {
+    "message": "Gesendet über: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "den Hintergrund der Erweiterung (nicht CORS-pflichtig, kein Preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "die Seite selbst (sendet zuerst einen OPTIONS-Preflight)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
   "engine_test_server_said": {
     "message": "Antwort des Servers: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."

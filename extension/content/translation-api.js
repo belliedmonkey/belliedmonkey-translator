@@ -192,16 +192,19 @@ Rules:
     }
   }
 
-  async function apiFetch(url, opts, label) {
+  // `diag` 是可选的诊断出参（设置页的「测试连接」传它）。放在这里而不是改返回值：
+  // 返回值是 Response，四个适配器都在解它；而「走了哪条路」只有这一层知道。
+  async function apiFetch(url, opts, label, diag) {
     let resp;
+    let usedRoute = null;
     const origin = originOf(url);
     // 已经成功过的那条优先；否则按运行时的默认顺序。
     const known = originRoute.get(origin);
     const proxyFirst = known ? known === 'proxy' : await probeProxy();
 
     if (IS_FIREFOX) {
-      try { resp = await proxyFetch(url, opts); }
-      catch (e) { throw transportError(e, url); }
+      try { resp = await proxyFetch(url, opts); usedRoute = 'proxy'; if (diag) diag.route = 'proxy'; }
+      catch (e) { const e2 = transportError(e, url); e2.route = 'proxy'; throw e2; }
     } else {
       const first = proxyFirst
         ? { run: () => proxyFetch(url, opts), tag: 'proxy' }
@@ -212,20 +215,25 @@ Rules:
       try {
         resp = await first.run();
         originRoute.set(origin, first.tag);
+        usedRoute = first.tag;
+        if (diag) diag.route = first.tag;
       } catch (e) {
         const firstErr = transportError(e, url);
         // `timeout` 说明请求确实出去了，只是没回来——换条路再发一遍只会把等待翻倍。
-        if (firstErr.code !== 'network') throw firstErr;
+        if (firstErr.code !== 'network') { firstErr.route = first.tag; throw firstErr; }
         if (first.tag === 'proxy') proxyProbe = null;   // 后台这次不灵，下次重新问
         try {
           resp = await second.run();
           originRoute.set(origin, second.tag);
+          usedRoute = second.tag;
+          if (diag) diag.route = second.tag;
         } catch (_) {
           if (second.tag === 'proxy') proxyProbe = null;
           // 两条都不通 ⇒ 报第一条的错，并标记我们已经替用户试过另一条，免得提示里
           // 再让他去查跨域——后台那条本来就不受跨域约束。**不写入 originRoute**：
           // 失败是暂时的，写进去就会毒化后面所有请求。
           firstErr.viaProxy = true;
+          firstErr.route = first.tag;
           throw firstErr;
         }
       }
@@ -246,6 +254,7 @@ Rules:
       // that with 「服务端拒绝了这次请求」—— which sends the user hunting the URL and
       // the key, the two things that were already right (2026-08-18 真机).
       e.serverMessage = said;
+      e.route = usedRoute;
       e.retryAfter = parseRetryAfter(resp.headers.get('retry-after'));
       throw e;
     }
@@ -281,7 +290,7 @@ Rules:
   async function callChatAPI(o) {
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
-    }, o.label);
+    }, o.label, o.diag);
     const text = await resp.text();
     // A streaming answer is still just a body once it has all arrived. We never ask
     // for one, but the negotiation below may end up asking, and then the body is SSE.
@@ -419,8 +428,9 @@ Rules:
   // The one shape that faces the whole compatibility zoo — every proxy, gateway and
   // self-hosted server speaks it, and they disagree about the optional fields. Hence
   // callChatNegotiating rather than callChatAPI: see 请求体协商 above.
-  function translateChatCompat(text, targetLang, apiKey, cfg, model) {
+  function translateChatCompat(text, targetLang, apiKey, cfg, model, diag) {
     return callChatNegotiating({
+      diag,
       url: cfg.url,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: {
@@ -440,8 +450,9 @@ Rules:
   // Messages request format (custom / self-hosted). `anthropic-version` is a
   // required protocol header for ANY Messages-compatible endpoint — a technical
   // API-format requirement, not a vendor brand reference.
-  function translateMessagesFormat(text, targetLang, apiKey, cfg, model) {
+  function translateMessagesFormat(text, targetLang, apiKey, cfg, model, diag) {
     return callChatAPI({
+      diag,
       url: cfg.url,
       headers: {
         'Content-Type': 'application/json',
@@ -471,8 +482,9 @@ Rules:
   // `max_tokens` — a different name AND a different meaning, since reasoning tokens
   // are charged against it (notes.js:132 records what a too-small budget looks like:
   // an empty body that is indistinguishable from a broken endpoint).
-  function translateResponsesFormat(text, targetLang, apiKey, cfg, model) {
+  function translateResponsesFormat(text, targetLang, apiKey, cfg, model, diag) {
     return callChatAPI({
+      diag,
       url: cfg.url,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: {
@@ -507,17 +519,18 @@ Rules:
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
-  function callProvider(provider, text, targetLang, apiKey, baseUrl, model) {
+  function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag) {
     const p = providerById(provider);
     if (!p || p.type === 'google') return translateGoogle(text, targetLang);
     const url = WireFormat.resolveEndpoint(baseUrl, p);
+    if (diag) diag.url = url;
     if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
     const cfg = { url, defaultModel: p.defaultModel, label: p.label || provider };
     // Registry `type` is the default shape; the address refines it (domain-design §7).
     switch (WireFormat.formatFor(url, p.type)) {
-      case 'messages-compat': return translateMessagesFormat(text, targetLang, apiKey, cfg, model);
-      case 'responses-compat': return translateResponsesFormat(text, targetLang, apiKey, cfg, model);
-      default: return translateChatCompat(text, targetLang, apiKey, cfg, model);
+      case 'messages-compat': return translateMessagesFormat(text, targetLang, apiKey, cfg, model, diag);
+      case 'responses-compat': return translateResponsesFormat(text, targetLang, apiKey, cfg, model, diag);
+      default: return translateChatCompat(text, targetLang, apiKey, cfg, model, diag);
     }
   }
 
@@ -616,7 +629,7 @@ Rules:
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
-          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model);
+          return await callProvider(provider, text, targetLang, apiKey, baseUrl, model, opts && opts.diag);
         } catch (err) {
           retries++;
           if (retries >= MAX_RETRIES) {
