@@ -1312,6 +1312,10 @@
     "message": "The server said: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "(Automatically retried from the extension background too, and that failed as well — so this is not a CORS problem; the address is genuinely unreachable from this machine.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "The model returned no content — reasoning models do not fit here; switch to a chat model",
     "description": "Engine self-test (settings)"

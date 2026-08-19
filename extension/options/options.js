@@ -196,7 +196,11 @@ function engineTestReason(e) {
     case 'no_base': return t('engine_test_no_base', '还没填端点地址');
     case 'no_key': return t('engine_test_no_key', '还没填 API Key');
     case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
-    case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
+    // `viaProxy` = 直连失败后我们已经自动改走扩展后台再试过一次（translation-api.js
+    // 的 §5.5 回退）。两条路都不通时说出来，否则用户会照着提示第二次去查跨域——而
+    // 后台那条路本来就不受跨域约束，查了也白查。
+    case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）')
+      + (e && e.viaProxy ? '\n' + t('engine_test_via_proxy', '（已自动改从扩展后台重试，仍未通——所以不是跨域问题，是这个地址从这台机器真的够不着）') : '');
     case 'timeout': return t('engine_test_timeout', '端点没有在超时前回应');
     case 'no_path': return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
     case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');

@@ -1312,6 +1312,10 @@
     "message": "サーバーの応答: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "（拡張機能のバックグラウンド経由でも自動的に再試行しましたが失敗しました。CORS の問題ではなく、このマシンからこのアドレスに到達できません）",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
     "description": "Engine self-test (settings)"

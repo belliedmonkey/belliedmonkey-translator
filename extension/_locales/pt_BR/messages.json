@@ -1312,6 +1312,10 @@
     "message": "O servidor respondeu: {msg}",
     "description": "The server's own error sentence, shown verbatim under the engine self-check result."
   },
+  "engine_test_via_proxy": {
+    "message": "(Também tentamos automaticamente pelo segundo plano da extensão e falhou — portanto não é problema de CORS: o endereço está realmente inacessível a partir desta máquina.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
   "notes_test_empty": {
     "message": "O modelo não retornou conteúdo — modelos de raciocínio não servem aqui; use um modelo de chat",
     "description": "Engine self-test (settings)"
