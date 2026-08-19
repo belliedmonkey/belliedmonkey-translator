@@ -153,20 +153,29 @@ function serveFixtures() {
   });
 }
 
-// 把扩展的 service worker 也纳入 Fetch 拦截。§5.5 让后台成了翻译的第二条通路，
-// 而 CDP 的 Fetch 域是按 target 生效的——页面那份管不到它。SW 是懒启动的，可能此刻
-// 还没跑起来；拿不到就算了，返回值不作断言：真正的判据是 fixture 自己的期望，这里
-// 多挂一层只是让「不可达」这个模拟重新变得诚实。
-async function attachServiceWorkers(cdp, swSessions) {
-  let targets = [];
-  try { ({ targetInfos: targets = [] } = await cdp.send('Target.getTargets')); } catch (_) { return; }
-  for (const t of targets) {
-    if (t.type !== 'service_worker' || !/^chrome-extension:\/\//.test(t.url || '')) continue;
-    try {
-      const { sessionId: sid } = await cdp.send('Target.attachToTarget', { targetId: t.targetId, flatten: true });
-      await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*translate.googleapis.com*' }] }, sid);
-      swSessions.add(sid);
-    } catch (_) { /* SW 正好被回收，跳过 */ }
+// 把扩展的 service worker 纳入 Fetch 拦截。CDP 的 Fetch 域是**按 target 生效**的，
+// 页面那份管不到 SW —— 而 #153 之后翻译默认就是从 SW 发出的，所以不挂它等于整套
+// mock 失效（实测：1/36 通过，还打了真网络，跑了 559 秒）。
+//
+// SW 是懒启动的，扩展刚加载时可能还没起来；这里带重试地等一会儿。等不到就放行，
+// 让 fixture 自己的断言去报错——在这里 throw 只会把「SW 没起来」伪装成别的失败。
+async function attachServiceWorkers(cdp, swSessions, tries = 20) {
+  const attached = new Set();
+  for (let i = 0; i < tries; i++) {
+    let targets = [];
+    try { ({ targetInfos: targets = [] } = await cdp.send('Target.getTargets')); } catch (_) { return; }
+    const sws = targets.filter((t) => t.type === 'service_worker' && /^chrome-extension:\/\//.test(t.url || ''));
+    for (const t of sws) {
+      if (attached.has(t.targetId)) continue;
+      attached.add(t.targetId);
+      try {
+        const { sessionId: sid } = await cdp.send('Target.attachToTarget', { targetId: t.targetId, flatten: true });
+        await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*translate.googleapis.com*' }] }, sid);
+        swSessions.add(sid);
+      } catch (_) { /* SW 正好被回收，跳过 */ }
+    }
+    if (swSessions.size) return;
+    await new Promise((r) => setTimeout(r, 150));
   }
 }
 
@@ -262,8 +271,9 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
   // unregisters listeners and closes the tab (a stale Fetch listener would keep
   // answering for a dead session on every later fixture).
   let targetId = null, sessionId = null;
-  // 扩展 service worker 的 session（可能不止一个：SW 会被回收再起）。只有 failTranslate
-  // 的 fixture 需要它——其余 fixture 的后台从不发翻译请求，挂上去只是空转。
+  // 扩展 service worker 的 session。**每个 fixture 都要挂**：#153 之后翻译默认从后台
+  // 发出（一次请求、无预检），所以 mock 若只拦页面这一条，整套 fixture 的假翻译全部
+  // 落空、还会打到真网络上去。SW 会被回收再起，所以每个 fixture 都重新认一次。
   const swSessions = new Set();
   let offCtx = () => {}, offClear = () => {}, offFetch = () => {};
   // Per-fixture settings overlay. Almost every fixture wants the default zh-CN target;
@@ -328,7 +338,7 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
       { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId);
     await cdp.send('Fetch.enable',
       { patterns: [{ urlPattern: '*translate.googleapis.com*' }] }, sessionId);
-    if (manifest.failTranslate) await attachServiceWorkers(cdp, swSessions);
+    await attachServiceWorkers(cdp, swSessions);
     await cdp.send('Page.navigate', { url: `${baseUrl}/${file}` }, sessionId);
 
     const ctxId = await findExtensionContext(cdp, sessionId, isolatedCtxs);

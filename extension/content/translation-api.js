@@ -61,6 +61,14 @@ Rules:
     try { return chrome.runtime.getURL('').indexOf('moz-extension://') === 0; } catch (_) { return false; }
   })();
 
+  // Same kind of fact, for the browser whose background we may NOT lean on: a Safari
+  // web extension's URLs are `safari-web-extension://`. This is the one runtime where
+  // the service worker goes permanently `undefined` after device lock, so it is the one
+  // runtime that must keep sending directly from the content script.
+  const IS_SAFARI = (() => {
+    try { return chrome.runtime.getURL('').indexOf('safari-web-extension://') === 0; } catch (_) { return false; }
+  })();
+
   // Same request from the background page, which no page's CSP can reach. A Response
   // cannot cross the message boundary, so the parts `apiFetch` actually reads are sent
   // and a minimal stand-in is rebuilt here — keeping ONE error shape for both paths.
@@ -114,36 +122,36 @@ Rules:
     return err;
   }
 
-  // ─── 严格 CORS 的端点：直连打不通，走后台 (§5.5) ─────────────────────────
+  // ─── 一次请求，一条通路 (§5.5) ────────────────────────────────────────────
   //
-  // 内容脚本的 fetch 是**以当前网页的身份**发出的：`Origin` 是 en.wikipedia.org，
-  // 而不是扩展。带 Authorization + JSON body 的请求还是非简单请求，浏览器会先发一个
-  // OPTIONS 预检。企业网关看到一个陌生第三方站点来源，预检回 403 —— 浏览器于是连
-  // POST 都不发，`fetch` 抛裸 TypeError。2026-08-19 真机实证：Network 面板里成对的
-  // `403 preflight` + `CORS error fetch`，请求头写着「Provisional headers are shown」
-  // 与 `Referer: https://en.wikipedia.org/`。
+  // 病因（2026-08-19 真机实测，企业网关）：内容脚本的 fetch 是**以当前网页的身份**发出
+  // 的——`Origin` 是 en.wikipedia.org。带 Authorization + JSON body 属非简单请求，浏览器
+  // 必须先发 OPTIONS 预检；网关看到陌生第三方来源回 403，于是 POST 根本没发出去，
+  // `fetch` 抛裸 TypeError。DevTools 里的形状是成对的 `403 preflight` + `CORS error
+  // fetch`，请求头写着「Provisional headers are shown」。
   //
-  // 扩展后台没有这个问题：带 `host_permissions` 的 service worker 发请求不受 CORS
-  // 约束，也不发预检。`background.js` 的 proxyFetch 早就在了（为 Firefox 的 CSP 写的），
-  // 这里只是让它在**直连失败后**也能被用上。
+  // 扩展后台没有这个问题：带 `host_permissions` 的 worker 发请求不受 CORS 约束，也不
+  // 发预检。所以问题不是「能不能绕过去」，而是**先走哪条**。
   //
-  // 为什么是「失败后回退」而不是「一律走后台」：仓库根部说明里的硬规矩——Safari iOS 的
-  // service worker 在设备锁屏后会永久 undefined，所以翻译**不能依赖**后台。回退只在
-  // 直连已经失败时发生，后台若也不可用（正是 Safari 那种情况），我们报的还是原来那个
-  // 错，行为与今天完全一致。
+  // ── 为什么是「首选后台」而不是「直连失败再回退」 ──────────────────────────
+  // 先直连再回退每段要付两趟往返：整页并发起跑时，第一批全都各撞一次注定失败的预检，
+  // 用户直接感受到变慢。而且那个方案还需要记住「这个 origin 要走后台」，那份记忆就是
+  // 第二个 bug 的来源——见下。首选后台则是**一次请求**，对宽松和严格的端点都一样快。
   //
-  // 这也不是 #74 否决的那种「静默回退」：#74 是把失败的引擎悄悄换成 Google，产生一个
-  // 貌似正确的答案并掩盖坏掉的 key。这里是**同一个请求、同一个端点**换一条 CORS 立场
-  // 不同的通道；成功就是用户自己的引擎答的，没有任何东西被掩盖。
-  // origin → 这个源该走哪条路。'proxy' = 直连被挡过、后台可用；'direct-only' = 后台
-  // 也不通，别再试了。
+  // ── 三条路线，判据是运行时事实而不是 UA (§5.3 rule 2) ────────────────────
+  //   Firefox  → 只走后台，**不回退**。页面 CSP 会管住内容脚本的 fetch（§5.4），回退到
+  //              直连会在无 CSP 的页面上成功、别处失败，重新引入站点相关的不确定性。
+  //   Safari   → 直连优先，后台兜底。这是唯一 service worker 会在锁屏后永久 undefined
+  //              的运行时，所以它必须保持「不依赖后台」，那条硬规矩一个字没动。
+  //   其余     → 后台优先，直连兜底。一次请求，无预检。
   //
-  // 后者不是优化，是正确性：回退是**每次请求**都试的话，一个真正不可达的端点会让
-  // 每次翻译付两趟往返，再乘以 MAX_RETRIES，再乘以整页的段数——用户要多等一倍才看到
-  // 那条本来就确定的报错。判一次就够：直连和后台同时不通，说明是端点的问题，不是通路
-  // 的问题。刷新页面即重置。（layout fixture 12 抓到的正是这个：加了回退之后错误路径
-  // 慢到单元在断言窗口内还没 settle。）
-  const originRoute = new Map();
+  // ── 只记住成功，永不记住失败 ─────────────────────────────────────────────
+  // 上一版记过「这个 origin 两条路都不通」，结果被**一次偶发失败毒化**：MV3 的 worker
+  // 在并发下偶尔来不及响应（正在唤醒或回收），那一次 sendMessage 失败就把整个 origin
+  // 永久钉成 direct-only，之后每一段都跳过后台直接失败。症状正是「前面几段成功，后面
+  // 全挂」。所以这份记忆只记**哪条路成功过**，永远不记「都不行」——失败是暂时的，
+  // 成功才是关于这个端点的事实。
+  const originRoute = new Map();   // origin → 'proxy' | 'direct'（只写成功过的那条）
   function originOf(url) {
     const m = /^https?:\/\/[^/?#]+/i.exec(String(url == null ? '' : url).trim());
     return m ? m[0].toLowerCase() : '';
@@ -162,34 +170,36 @@ Rules:
   async function apiFetch(url, opts, label) {
     let resp;
     const origin = originOf(url);
-    if (IS_FIREFOX || originRoute.get(origin) === 'proxy') {
-      // Firefox: 页面 CSP 会管住内容脚本的 fetch（§5.4），后台是唯一可靠的路。
-      // proxyOrigins: 这个 origin 上一次已经被证明要走后台——CORS 拒绝是确定性的，
-      // 记住它，否则整页每一段都要先白撞一次注定失败的预检（实测一页 283 个请求，
-      // 其中几十对是这么浪费掉的）。
-      try {
-        resp = await proxyFetch(url, opts);
-      } catch (e) {
-        throw transportError(e, url);
-      }
+    // 已经成功过的那条优先；否则按运行时的默认顺序。
+    const known = originRoute.get(origin);
+    const proxyFirst = known ? known === 'proxy' : !IS_SAFARI;
+
+    if (IS_FIREFOX) {
+      try { resp = await proxyFetch(url, opts); }
+      catch (e) { throw transportError(e, url); }
     } else {
+      const first = proxyFirst
+        ? { run: () => proxyFetch(url, opts), tag: 'proxy' }
+        : { run: () => directFetch(url, opts), tag: 'direct' };
+      const second = proxyFirst
+        ? { run: () => directFetch(url, opts), tag: 'direct' }
+        : { run: () => proxyFetch(url, opts), tag: 'proxy' };
       try {
-        resp = await directFetch(url, opts);
+        resp = await first.run();
+        originRoute.set(origin, first.tag);
       } catch (e) {
-        const direct = transportError(e, url);
-        // 只对 `network` 回退。`timeout` 说明请求确实出去了、只是没回来——再发一遍
-        // 只会把等待时间翻倍。
-        if (direct.code !== 'network') throw direct;
-        if (originRoute.get(origin) === 'direct-only') { direct.viaProxy = true; throw direct; }
+        const firstErr = transportError(e, url);
+        // `timeout` 说明请求确实出去了，只是没回来——换条路再发一遍只会把等待翻倍。
+        if (firstErr.code !== 'network') throw firstErr;
         try {
-          resp = await proxyFetch(url, opts);
-          originRoute.set(origin, 'proxy');
+          resp = await second.run();
+          originRoute.set(origin, second.tag);
         } catch (_) {
-          originRoute.set(origin, 'direct-only');
-          // 两条路都不通 ⇒ 报**直连**那个错（它才是用户配置的那条路），并标记我们
-          // 已经替他试过后台，免得建议里再让他去查跨域。
-          direct.viaProxy = true;
-          throw direct;
+          // 两条都不通 ⇒ 报第一条的错，并标记我们已经替用户试过另一条，免得提示里
+          // 再让他去查跨域——后台那条本来就不受跨域约束。**不写入 originRoute**：
+          // 失败是暂时的，写进去就会毒化后面所有请求。
+          firstErr.viaProxy = true;
+          throw firstErr;
         }
       }
     }
