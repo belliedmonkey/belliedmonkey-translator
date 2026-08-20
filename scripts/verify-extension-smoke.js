@@ -41,8 +41,24 @@ function serve() {
         let body = '';
         req.on('data', (d) => { body += d; });
         req.on('end', () => {
-          let text = '';
-          try { text = (JSON.parse(body).messages || []).slice(-1)[0].content; } catch (_) {}
+          let parsed = {};
+          try { parsed = JSON.parse(body); } catch (_) {}
+          // 带 temperature 就拒 —— 而且**照企业网关的形状层层包裹**（真机 2026-08-20
+          // 拿到的就是三层）。这样这条冒烟同时验了两件事：请求体协商真的会让掉被点名
+          // 的字段，以及 serverSays 能从这么深的嵌套里把字段名读出来。手写一个平坦的
+          // 错误体测不到后者，而后者正是差点让协商静默失效的地方。
+          if ('temperature' in parsed) {
+            res.writeHead(400, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ object: 'response', error: {
+              code: 'MPE-001',
+              message: JSON.stringify({ error: { type: 'llm_call_failed', treace_id: 'x'.repeat(30),
+                message: JSON.stringify({ error: {
+                  message: "Unsupported parameter: 'temperature' is not supported with this model.",
+                  type: 'invalid_request_error', param: 'temperature', code: null } }) } }),
+            } }));
+            return;
+          }
+          const text = ((parsed.messages || []).slice(-1)[0] || {}).content || '';
           res.writeHead(200, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ choices: [{ message: { content: MARK + text.slice(0, 12) } }] }));
         });
@@ -79,7 +95,15 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     const loaded = await cdp.send('Extensions.loadUnpacked', { path: DIST });
     const extId = loaded && loaded.id;
     if (!extId) throw new Error('Extensions.loadUnpacked 没有回 id');
+    // 装的到底是哪个版本 —— 一天下来「你测的是哪版」问了三次，让产物自己说。
+    // 同时对照 package.json:两者不一致 = dist/ 是旧的,这条冒烟就在验一个过期的包。
+    const distManifest = JSON.parse(require('fs').readFileSync(path.join(DIST, 'manifest.json'), 'utf8'));
+    const pkgVersion = require(path.join(__dirname, '..', 'package.json')).version;
     notes.push(`扩展 id ${extId}`);
+    notes.push(`装入版本 ${distManifest.version}（package.json 是 ${pkgVersion}，来源 ${DIST}）`);
+    if (distManifest.version !== pkgVersion) {
+      problems.push(`dist/ 是 ${distManifest.version}、package.json 是 ${pkgVersion} —— 这次冒烟验的是一个过期的包，先 node build.js`);
+    }
 
     // ── 1. service worker 起得来吗（background.js 加载期是否炸掉）────────────
     let swSession = null;
@@ -184,5 +208,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 自定义端点 → 页面出译文，全通（且确认走的是扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 请求体协商 → 页面出译文，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });
