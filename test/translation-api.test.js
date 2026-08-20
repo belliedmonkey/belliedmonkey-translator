@@ -185,6 +185,46 @@ describe('TranslationAPI — failures are named, and carry the URL', () => {
 // 「同一个地址、同一把 key，别的客户端能用，我们 400」= 地址和 key 都对，是请求体多了
 // 东西。不去猜是哪个字段，照服务端点名的那个让掉再试 (#151).
 describe('TranslationAPI — 请求体协商', () => {
+  // 2026-08-20 真机（idealab 网关）原样拿到的 400 正文。网关把上游错误**层层转发**，
+  // 每层都把下一层整个塞进自己的 message 字符串里，这条是三层。留着原样是因为:
+  // 手写的简化版会把「三层」这个真正的难点抹掉,而那正是差点让协商静默失效的地方。
+  const REAL_NESTED_400 = JSON.stringify({
+    object: 'response',
+    error: {
+      message: JSON.stringify({
+        error: {
+          type: 'llm_call_failed',
+          message: '{\n  "error": {\n    "message": "Unsupported parameter: \'temperature\' is not supported with this model.",\n    "type": "invalid_request_error",\n    "param": "temperature",\n    "code": null\n  }\n}\n',
+          treace_id: '0b522d6217871977087566606e0ca6',
+        },
+      }),
+      code: 'MPE-001',
+    },
+  });
+
+  test('三层嵌套的错误被剥到最里面那句人话', () => {
+    const { API } = loadAPI([]);
+    const said = API.serverSays(REAL_NESTED_400);
+    eq(said, "Unsupported parameter: 'temperature' is not supported with this model.");
+    ok(said.length < 100, `原话 ${said.length} 字符 —— 不剥壳的话是 296，逼近 300 上限；` +
+      '字段名排在第 100 个字符，网关的 trace_id 再长一点就会被截掉，' +
+      '于是协商既不报错也不触发（最难查的那种失效）');
+  });
+
+  test('真机那条 400 会触发协商并最终成功', async () => {
+    const { API, fetch } = loadAPI([
+      { status: 400, text: REAL_NESTED_400 },
+      okJson({ choices: [{ message: { content: '间隔重复' } }] }),
+    ]);
+    eq(await API.translate('Spaced repetition', 'zh-CN', 'custom_chat', 'K',
+      'https://gw.example/api/openai/v1/chat/completions'), '间隔重复');
+    eq(fetch.calls.length, 2);
+    const retried = bodyOf(fetch.calls[1]);
+    ok(!('temperature' in retried), '第二次请求还带着 temperature —— 没让掉');
+    eq(retried.max_tokens, 2000, '没被点名的字段不该受牵连');
+  });
+
+
   const okBody = { choices: [{ message: { content: '你好' } }] };
   const reject = (msg) => ({ status: 400, text: JSON.stringify({ error: { message: msg } }) });
 

@@ -267,17 +267,39 @@ Rules:
   // A non-JSON body used to be dropped entirely (`resp.json().catch(() => ({}))`),
   // and a reverse proxy's "upstream connect error" is exactly the sentence you need.
   const SERVER_MSG_MAX = 300;
+  // 网关会**层层转发**上游的错误，每一层都把下一层整个塞进自己的 `message` 字符串里。
+  // 2026-08-20 真机拿到的那条是三层：外层 `{object,error:{message,code}}`，里面是
+  // 一段 JSON 文本，再里面又是一段。不拆的话「服务端原话」就是一坨转义反斜杠，而且
+  // ——更要命——**拿去做字段匹配的也是那坨**：真正的字段名 `temperature` 排在第 100
+  // 个字符，只要网关的 trace_id 再长一点就会被 300 字符上限截掉，协商于是既不报错
+  // 也不触发。所以这里剥到最里面那句人话为止。
+  const UNWRAP_MAX = 4;
+  function pickMessage(d) {
+    const err = d && d.error;
+    let m = (err && typeof err === 'object' && err.message)
+      || (typeof err === 'string' && err)
+      || (d && d.message) || (d && d.detail) || '';
+    if (m && typeof m !== 'string') m = JSON.stringify(m);
+    return m || '';
+  }
   function serverSays(bodyText) {
     const raw = String(bodyText == null ? '' : bodyText).trim();
     if (!raw) return '';
     let msg = '';
     try {
-      const d = JSON.parse(raw);
-      const err = d && d.error;
-      msg = (err && typeof err === 'object' && err.message)
-        || (typeof err === 'string' && err)
-        || (d && d.message) || (d && d.detail) || '';
-      if (msg && typeof msg !== 'string') msg = JSON.stringify(msg);
+      let d = JSON.parse(raw);
+      msg = pickMessage(d);
+      // 剥壳：只要取出来的还是一段 JSON，就再取一层。上限 4 层,免得畸形输入把这里
+      // 变成一个循环。
+      for (let i = 0; i < UNWRAP_MAX; i++) {
+        const t = String(msg).trim();
+        if (!(t.startsWith('{') || t.startsWith('['))) break;
+        let inner;
+        try { inner = JSON.parse(t); } catch (_) { break; }
+        const deeper = pickMessage(inner);
+        if (!deeper) break;
+        msg = deeper;
+      }
     } catch (_) {
       // Not JSON. Strip tags so an HTML error page collapses to its text, and let the
       // length cap below deal with whatever is left.
