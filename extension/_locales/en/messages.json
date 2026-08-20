@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "Qwen (DashScope) API Key."
   },
+  "hint_qwen_mt": {
+    "message": "Qwen MT (DashScope) API Key. A translation-specialised model — cheaper and faster than a general chat model. Same key as Qwen."
+  },
   "hint_kimi": {
     "message": "Kimi (Moonshot) API Key from the matching region platform."
   },
@@ -269,6 +272,36 @@
   },
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
+  },
+  "options_advanced": {
+    "message": "Advanced parameters"
+  },
+  "label_adv_temperature": {
+    "message": "Randomness (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Blank uses 0.3. Lower is steadier."
+  },
+  "label_adv_max_tokens": {
+    "message": "Max output per request"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Blank uses 2000. Raise it if long paragraphs get cut off."
+  },
+  "label_adv_timeout": {
+    "message": "Request timeout (seconds)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Blank uses 20s. Raise it for slow self-hosted or reasoning models."
+  },
+  "label_adv_concurrency": {
+    "message": "Parallel requests"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Blank uses 5. Lower it if you are being rate-limited; raising it will not speed up requests already waiting."
+  },
+  "options_adv_unsupported": {
+    "message": "This model does not accept this parameter, so it will not be sent."
   },
   "toast_model_saved": {
     "message": "Model saved"

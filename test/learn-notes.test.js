@@ -35,7 +35,7 @@ function setup(over) {
     getNote: (id) => Promise.resolve(notesDb.get(id) || null),
     putNote: (id, data, meta) => { notesDb.set(id, Object.assign({ id, data }, meta)); return Promise.resolve(); },
   };
-  const ctx = loadModule('learn/notes.js', {
+  const ctx = loadModule(['content/request-shape.js', 'learn/notes.js'], {
     window: { MT_PROVIDERS: PROVIDERS }, LearnStore, fetch: fetchImpl, WireFormat,
   });
   return { N: ctx.LearnNotes, notesDb, calls };
@@ -130,7 +130,7 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     eq(await N.cached('c8'), null, '没 data 的记录不能进渲染路径');
     // 再用一个 getNote 会拒绝的 store 加载一份新模块实例
     const { loadModule } = require('./harness');
-    const c = loadModule('learn/notes.js', {
+    const c = loadModule(['content/request-shape.js', 'learn/notes.js'], {
       window: { MT_PROVIDERS: PROVIDERS }, WireFormat,
       LearnStore: { getNote: () => Promise.reject(new Error('idb gone')) },
       fetch: async () => { throw new Error('unused'); },
@@ -202,7 +202,7 @@ describe('LearnNotes — 生词只取自原句，缓存带提示词版本 (§9.2
     // 引诱用户再点一次、再扣一次。
     const notesDb = new Map();
     const { loadModule } = require('./harness');
-    const c = loadModule('learn/notes.js', {
+    const c = loadModule(['content/request-shape.js', 'learn/notes.js'], {
       window: { MT_PROVIDERS: PROVIDERS }, WireFormat,
       LearnStore: {
         getNote: () => Promise.resolve(null),

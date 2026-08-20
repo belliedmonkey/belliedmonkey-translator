@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "通義千問（DashScope）API Key。"
   },
+  "hint_qwen_mt": {
+    "message": "通義千問·翻譯版（DashScope）API Key。翻譯專用模型，比通用對話模型更便宜也更快，與通義千問共用同一把 Key。"
+  },
   "hint_kimi": {
     "message": "Kimi（Moonshot）API Key，請在對應區域平台申請（國內 moonshot.cn / 國際 moonshot.ai）。"
   },
@@ -269,6 +272,36 @@
   },
   "options_custom_model_hint": {
     "message": "留空則使用該引擎的預設模型。"
+  },
+  "options_advanced": {
+    "message": "進階參數"
+  },
+  "label_adv_temperature": {
+    "message": "隨機度 temperature"
+  },
+  "options_adv_temperature_hint": {
+    "message": "留空使用 0.3。數值越低譯文越穩定。"
+  },
+  "label_adv_max_tokens": {
+    "message": "單次最大輸出長度"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "留空使用 2000。長段落被截斷時可調高。"
+  },
+  "label_adv_timeout": {
+    "message": "單次請求逾時（秒）"
+  },
+  "options_adv_timeout_hint": {
+    "message": "留空使用 20 秒。自建或推理模型較慢時可調高。"
+  },
+  "label_adv_concurrency": {
+    "message": "並行請求數"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "留空使用 5。被限流時調低；調高不會加速已經在等的請求。"
+  },
+  "options_adv_unsupported": {
+    "message": "目前模型不接受此參數，本次不會送出。"
   },
   "toast_model_saved": {
     "message": "模型已儲存"

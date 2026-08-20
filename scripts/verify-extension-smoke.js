@@ -33,6 +33,10 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 // 端点**故意不带** Access-Control-Allow-Origin：这正是用户那个企业网关的形状。
 // 直连会被浏览器挡在预检那一步，只有走扩展后台才通得过 —— 于是这个 fixture 同时
 // 验证了「后台优先」这条路是真的活着，而不是只在单测里活着。
+// 陷阱被打中的记录。数组而不是布尔：打中时要能说出**当时发了哪些字段**，
+// 「多发了一个」和「整套乐观请求体又回来了」是两种不同的回归。
+const trapHits = [];
+
 function serve() {
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
@@ -43,11 +47,19 @@ function serve() {
         req.on('end', () => {
           let parsed = {};
           try { parsed = JSON.parse(body); } catch (_) {}
-          // 带 temperature 就拒 —— 而且**照企业网关的形状层层包裹**（真机 2026-08-20
-          // 拿到的就是三层）。这样这条冒烟同时验了两件事：请求体协商真的会让掉被点名
-          // 的字段，以及 serverSays 能从这么深的嵌套里把字段名读出来。手写一个平坦的
-          // 错误体测不到后者，而后者正是差点让协商静默失效的地方。
+          // 这条 400 是**一个永远不该被打中的陷阱**。
+          //
+          // 它以前是相反的意思：带 temperature 就拒，靠请求体协商让掉再发才拿得到
+          // 200 —— 于是它证明的是「被拒之后能自愈」。协商已随 #159 删除，因为它取决
+          // 于对方的错误信息长什么样（那条真实的三层嵌套里，字段名排在第 100 个字符，
+          // 而截断上限是 300）。现在的契约强得多：127.0.0.1 不在能力表里 ⇒ 最小必要集
+          // ⇒ temperature 从一开始就不会发出去。语义从「犯了错能改」变成「从一开始
+          // 就没犯」，所以命中次数必须是 0，收尾处断言。
+          //
+          // 响应体照原样保留企业网关那三层包裹：万一哪天陷阱真的被打中，报错要长得跟
+          // 真机上那条一模一样，而不是一个手写的平坦错误。
           if ('temperature' in parsed) {
+            trapHits.push(Object.keys(parsed).join(','));
             res.writeHead(400, { 'content-type': 'application/json' });
             res.end(JSON.stringify({ object: 'response', error: {
               code: 'MPE-001',
@@ -135,6 +147,86 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       await cdp.send('Target.closeTarget', { targetId });
     }
 
+    // ── 2b. 设置页真的能用：面板展开、值存得住、重开还在 ─────────────────────
+    //
+    // 上面那一轮只证明页面没炸。它证明不了 saveAll() 这条路 —— 那是**整体覆盖式**的：
+    // 每次从 DOM 读全部字段写回存储，所以任何一个新控件只要 init() 里漏了回填，用户
+    // 下一次改别的字段就会把它悄悄清空。这种坏法在「页面能打开」这个断言下完全隐形，
+    // 而它正是 1.5.4 那种「全门禁绿着发出去、结果是空转」的形状。
+    {
+      const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+      const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+      await cdp.send('Runtime.enable', {}, sessionId);
+      const errs = [];
+      const off = cdp.on('Runtime.exceptionThrown', (ev, sid) => {
+        if (sid === sessionId) errs.push((ev.exceptionDetails || {}).text || 'exception');
+      });
+      await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
+      await sleep(2500);
+
+      // 新引擎条目真的出现在下拉里 —— 注册表加一条却渲染不出来，是另一种全绿的空转。
+      const engines = await evalIn(cdp, sessionId,
+        `JSON.stringify([...document.getElementById('provider').options].map(o => o.value))`);
+      if (!JSON.parse(engines).includes('qwen_mt')) {
+        problems.push(`引擎下拉里没有 qwen_mt：${engines}`);
+      }
+      notes.push(`引擎下拉 ${JSON.parse(engines).length} 项，含 qwen_mt: ${JSON.parse(engines).includes('qwen_mt')}`);
+
+      // 默认必须是折叠的 —— 「默认不设置」这件事，界面上的对应物就是它不占地方。
+      const hidden0 = await evalIn(cdp, sessionId, `document.getElementById('advanced-config').hidden`);
+      if (hidden0 !== true) problems.push('高级参数面板默认不是折叠的');
+
+      // 点开 → 填值 → 触发 change（saveAll 挂在 change 上，不是 input）
+      await evalIn(cdp, sessionId, `(() => {
+        document.getElementById('btn-advanced').click();
+        const t = document.getElementById('adv-temperature');
+        t.value = '0.7';
+        t.dispatchEvent(new Event('change', { bubbles: true }));
+        const c = document.getElementById('adv-concurrency');
+        c.value = '3';
+        c.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(1200);
+      const hidden1 = await evalIn(cdp, sessionId, `document.getElementById('advanced-config').hidden`);
+      if (hidden1 !== false) problems.push('点了「高级参数」面板没有展开');
+
+      // 落到存储里没有 —— 只看输入框的值等于什么都没验。
+      const stored = await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['reqTemperature','reqConcurrency'], v => r(JSON.stringify(v))))`);
+      const sv = JSON.parse(stored);
+      if (Number(sv.reqTemperature) !== 0.7) problems.push(`reqTemperature 没存住: ${stored}`);
+      if (Number(sv.reqConcurrency) !== 3) problems.push(`reqConcurrency 没存住: ${stored}`);
+
+      // 重开页面 —— init() 的回填。漏了这步，值还在存储里，但下一次任何 change 都会
+      // 把它写成空。所以这里再改一个**别的**字段，然后回来看这两个键还在不在。
+      await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
+      await sleep(2500);
+      const back = await evalIn(cdp, sessionId, `document.getElementById('adv-temperature').value`);
+      if (String(back) !== '0.7') problems.push(`重开后高级参数没回填（读到 ${JSON.stringify(back)}）`);
+      await evalIn(cdp, sessionId, `(() => {
+        const f = document.getElementById('font-size');
+        f.value = f.options[f.options.length - 1].value;
+        f.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(1200);
+      const after = JSON.parse(await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['reqTemperature','reqConcurrency'], v => r(JSON.stringify(v))))`));
+      if (Number(after.reqTemperature) !== 0.7 || Number(after.reqConcurrency) !== 3) {
+        problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— saveAll 是整体覆盖式的，回填漏了`);
+      }
+      notes.push(`高级参数 存→重开→改别的字段后仍是 ${JSON.stringify(after)}`);
+      for (const e of errs) problems.push(`options 交互期异常: ${e}`);
+      off();
+      await cdp.send('Target.closeTarget', { targetId });
+      // 这一段往存储里写了东西，后面那段翻译要的是干净配置，所以清掉。
+      if (swSession) {
+        await evalIn(cdp, swSession,
+          `new Promise(r => chrome.storage.local.remove(['reqTemperature','reqConcurrency'], () => r(1)))`);
+      }
+    }
+
     // ── 3. 配置成用户那种形状：custom_chat + 自填完整端点 ────────────────────
     if (swSession) {
       await evalIn(cdp, swSession, `new Promise(r => chrome.storage.local.set(${JSON.stringify({
@@ -193,12 +285,23 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (d.route !== 'proxy') {
         problems.push(`通路是 ${JSON.stringify(d.route)}，期望 proxy —— 端点没有 CORS 头，直连本就该被挡`);
       }
+      // 表外的 host 只该发协议要求的最小必要字段。这一行报的是真实发出的键，
+      // 所以「多发了什么」在失败时是直接可读的，不用回去翻服务端日志。
+      notes.push(`请求体字段: ${JSON.stringify(d.bodyKeys)}（能力表命中: ${d.paramRow || '无 —— 走最小必要集'}）`);
+      if (d.bodyKeys && d.bodyKeys.some((k) => k !== 'model' && k !== 'messages')) {
+        problems.push(`表外端点收到了可选字段: ${d.bodyKeys.join(',')} —— 最小必要集只该有 model 与 messages`);
+      }
     }
     offCtx();
   } finally {
     try { await cdp.close(); } catch (_) {}
     chrome.cleanup();
     srv.close();
+  }
+
+  if (trapHits.length) {
+    problems.push(`带 temperature 的请求被发了 ${trapHits.length} 次（字段: ${trapHits.join(' | ')}）`
+      + ' —— 127.0.0.1 不在能力表里，一个可选字段都不该发');
   }
 
   console.log(notes.join('\n'));
@@ -208,5 +311,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 严格 CORS 端点 → 请求体协商 → 页面出译文，全通（通路：扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });

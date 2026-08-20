@@ -408,9 +408,19 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 - [ ] **A rejected body says which field.** Point a chat endpoint at a model that
   refuses `temperature` or `max_tokens` and press 「测试连接」.
   **Expected:** the result shows our hint AND a second line 「服务端原话：…」 quoting the
-  server verbatim. If the server named a field we send, the retry concedes it and the
-  test PASSES on the second attempt (see §7 「请求体协商」); if not, the failure is
-  reported unchanged.
+  server verbatim — one request, one failure, no silent retry. (Before #159 this
+  case was expected to self-heal on a second attempt; that mechanism is gone, so a
+  second request here is now itself the bug.)
+- [ ] **An unknown endpoint gets the minimum body.** Configure a gateway on a domain
+  that is not in `build/model-params.config.js` and translate a page.
+  **Expected:** it works, and DevTools → Network shows a request body of exactly
+  `{model, messages}` — no `temperature`, no `max_tokens`. This is the case that made
+  a real corporate gateway return 400 for a whole day.
+- [ ] **The table wins over the panel, visibly.** Open 高级参数, set 随机度 to 0.9,
+  then set the model to one the table marks as refusing it (e.g. an `api.openai.com`
+  reasoning model). **Expected:** the input greys out and the line under it says the
+  parameter will not be sent. Silently dropping it is the failure this line prevents —
+  the server never complains about a parameter it did not receive.
 - [ ] **Host-only address is named, not blamed on CORS.** Put `https://api.deepseek.com`
   (no path) in the field and press 「测试连接」.
   **Expected:** 「这个地址只有主机名，没有接口路径」 — NOT the CORS/unreachable copy.

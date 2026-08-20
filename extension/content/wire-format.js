@@ -1,5 +1,9 @@
 // content/wire-format.js — 端点地址的两个纯问题：**请求哪个地址**，和**用哪种请求形状**。
 //
+// 第三个问题「这种形状的请求体长什么样」在 content/request-shape.js —— 它要读
+// chrome.storage（用户的高级参数），而本文件刻意保持纯函数、零加载期依赖，测试把它
+// 当依赖直接注入而不是打桩。把一次存储读塞进来会毁掉那个性质。
+//
 // See docs/domain-design.md §7. 三条传输（翻译、解析、语音、转写）全部经过这里，
 // 所以「怎么得到最终 URL」在整个产品里只有一份实现。
 //
@@ -26,6 +30,7 @@ var WireFormat = (() => {
   // ─── 后缀 → wire shape ──────────────────────────────────────────────────
   const FAMILY = {
     'chat-compat': 'chat',
+    'translate-compat': 'chat',
     'messages-compat': 'chat',
     'responses-compat': 'chat',
     'speech-compat': 'speech',
@@ -46,6 +51,22 @@ var WireFormat = (() => {
   };
   // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。
   for (const fam of Object.keys(RULES)) RULES[fam].sort((a, b) => b[0].length - a[0].length);
+
+  // ─── 同一地址内，模型家族自带形状 ────────────────────────────────────────
+  // 翻译专用模型跟普通对话模型共用同一个地址，所以地址区分不了它们，只有模型名能。
+  // 判据是 **host + 模型前缀两者都命中**，而且刻意窄——两个方向都会**静默**出错：
+  //
+  //   该用 translate 形状却没用 ⇒ 服务端 200，把原文原样吐回来（实测 2026-08-20）。
+  //                                isTranslated 只看非空，于是英文段落下面渲染出同一
+  //                                句英文，没有任何报错，还会进 12 小时缓存。
+  //   不该用却用了           ⇒ 发出去的是一句没有任何指令的裸文本，同样是个像模像样
+  //                                的 200。
+  //
+  // 所以这里不做通配、不按 host 通行、不按模型名单独匹配。表外 = 今天的行为，一字不变。
+  const MODEL_SHAPES = [
+    { hosts: ['dashscope.aliyuncs.com', 'dashscope-intl.aliyuncs.com'],
+      prefixes: ['qwen-mt'], shape: 'translate-compat' },
+  ];
 
   // 归一化**只用于判定**，绝不影响真正发出去的 URL。
   //   · 丢 query：Azure 形态是 `…/chat/completions?api-version=2024-…`，不丢就永远认不出。
@@ -68,9 +89,19 @@ var WireFormat = (() => {
   //
   // `fallbackType` 不在 FAMILY 里（google / browser）时直接原样返回：那两个条目
   // 根本没有用户可填的地址，判定无从谈起。
-  function formatFor(url, fallbackType) {
+  function formatFor(url, fallbackType, model) {
     const fam = FAMILY[fallbackType];
     if (!fam) return fallbackType;
+    // 模型自带的形状只在 chat 家族内生效，且要 host 与模型前缀同时命中。放在后缀判定
+    // **之前**：后缀会把 qwen-mt 判成 chat-compat，而那正是要覆盖掉的结论。
+    if (fam === 'chat' && model) {
+      const h = hostOf(url);
+      const m = String(model).trim().toLowerCase();
+      for (const r of MODEL_SHAPES) {
+        if (r.hosts.indexOf(h) < 0) continue;
+        if (r.prefixes.some((pre) => m.indexOf(pre) === 0)) return r.shape;
+      }
+    }
     const n = normalize(url);
     for (const rule of RULES[fam]) if (n.endsWith(rule[0])) return rule[1];
     return fallbackType;
@@ -87,6 +118,19 @@ var WireFormat = (() => {
 
   function isAbsolute(url) {
     return /^https?:\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
+  }
+
+  // 主机名，小写，**不带端口、不带用户信息段**。
+  //   · 端口不参与匹配：没有任何厂商靠端口区分模型能力，而带上端口会让
+  //     `https://api.example.com:443/…` 匹配不到 `api.example.com` 那一行。
+  //   · `user:pass@` 一并丢掉 —— 那是凭证，不该出现在任何比较里，更不该被
+  //     哪天有人打进日志。
+  // request-shape.js 的参数表按它匹配；translation-api.js 的路由记忆按 origin
+  // 记，两者都从这里取，免得同一个「地址的哪一部分算数」有两份实现。
+  function hostOf(url) {
+    const m = /^https?:\/\/([^/?#]+)/i.exec(String(url == null ? '' : url).trim());
+    if (!m) return '';
+    return m[1].split('@').pop().split(':')[0].toLowerCase();
   }
 
   // 最终地址。**两个分支，没有第三个**：
@@ -118,7 +162,7 @@ var WireFormat = (() => {
     return s;
   }
 
-  return { formatFor, hasPath, isAbsolute, resolveEndpoint, normalize };
+  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize };
 })();
 
 if (typeof window !== 'undefined') window.WireFormat = WireFormat;

@@ -48,6 +48,9 @@ const MODULES = [
   'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape.
                                          // After providers.gen.js only for readability;
                                          // it reads its globals lazily, at call time.
+  'extension/content/request-shape.js',  // RequestShape — 请求体：发哪些可选字段 + 怎么
+                                         // 解回来。必须在 wire-format.js 之后（用它的
+                                         // hostOf）、在四条传输之前。
   'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS

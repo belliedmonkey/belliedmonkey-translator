@@ -55,6 +55,39 @@
           </div>
         </div>
 
+        <!-- 高级参数：默认折叠、默认全部不设置（存储里没有这些键）。
+             「不设置」与「设成了默认值」必须可区分，所以它们不进 background.js 的
+             DEFAULT_SETTINGS —— 空着就是空着，由 request-shape.js 决定发不发。
+             前两项还受能力表约束：表说当前模型不收，就算填了也不会发送，
+             adv-*-note 会当场说明原因（那是「表赢」在界面上的落点）。 -->
+        <div class="field">
+          <button id="btn-advanced" class="secondary" data-i18n="options_advanced">高级参数</button>
+        </div>
+        <div id="advanced-config" hidden>
+          <div class="field">
+            <label for="adv-temperature"><span data-i18n="label_adv_temperature">随机度 temperature</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="number" id="adv-temperature" step="0.1" min="0.01" max="2" placeholder="0.3">
+            <p class="hint" data-i18n="options_adv_temperature_hint">留空使用 0.3。数值越低译文越稳定。</p>
+            <p class="hint" id="adv-temperature-note"></p>
+          </div>
+          <div class="field">
+            <label for="adv-max-tokens"><span data-i18n="label_adv_max_tokens">单次最大输出长度</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="number" id="adv-max-tokens" step="100" min="16" max="32000" placeholder="2000">
+            <p class="hint" data-i18n="options_adv_max_tokens_hint">留空使用 2000。长段落被截断时可调高。</p>
+            <p class="hint" id="adv-max-tokens-note"></p>
+          </div>
+          <div class="field">
+            <label for="adv-timeout"><span data-i18n="label_adv_timeout">单次请求超时（秒）</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="number" id="adv-timeout" step="5" min="5" max="120" placeholder="20">
+            <p class="hint" data-i18n="options_adv_timeout_hint">留空使用 20 秒。自建或推理模型较慢时可调高。</p>
+          </div>
+          <div class="field">
+            <label for="adv-concurrency"><span data-i18n="label_adv_concurrency">并发请求数</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
+            <input type="number" id="adv-concurrency" step="1" min="1" max="16" placeholder="5">
+            <p class="hint" data-i18n="options_adv_concurrency_hint">留空使用 5。被限流时调低；调高不会加速已经在等的请求。</p>
+          </div>
+        </div>
+
         <!-- 引擎自检（interaction-spec「配置即可自检」）：走的是翻译功能真正用的
              那条传输（TranslationAPI.translate），所以「通了」意味着真的能翻，
              不只是字段填了。放在这张卡里 —— 测试按钮要紧挨它测的那组字段；
@@ -377,6 +410,7 @@
   <script src="../content/providers.gen.js"></script>
   <script src="../content/langs.gen.js"></script>
   <script src="../content/wire-format.js"></script>
+  <script src="../content/request-shape.js"></script>
   <script src="../content/learn-model.js"></script>
   <script src="../content/learn-rules.js"></script>
   <script src="../content/learn-scheduler.js"></script>

@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "Qwen (DashScope) API Key."
   },
+  "hint_qwen_mt": {
+    "message": "Qwen MT(DashScope) API 키. 번역 전용 모델로 범용 채팅 모델보다 저렴하고 빠릅니다. Qwen과 같은 키를 사용합니다."
+  },
   "hint_kimi": {
     "message": "Kimi (Moonshot) API Key from the matching region platform."
   },
@@ -269,6 +272,36 @@
   },
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
+  },
+  "options_advanced": {
+    "message": "고급 매개변수"
+  },
+  "label_adv_temperature": {
+    "message": "무작위성(temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "비워 두면 0.3입니다. 낮을수록 번역이 안정적입니다."
+  },
+  "label_adv_max_tokens": {
+    "message": "요청당 최대 출력 길이"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "비워 두면 2000입니다. 긴 문단이 잘리면 높이세요."
+  },
+  "label_adv_timeout": {
+    "message": "요청 제한 시간(초)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "비워 두면 20초입니다. 자체 호스팅이나 추론 모델이 느리면 높이세요."
+  },
+  "label_adv_concurrency": {
+    "message": "동시 요청 수"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "비워 두면 5입니다. 속도 제한이 걸리면 낮추세요. 높여도 대기 중인 요청이 빨라지지는 않습니다."
+  },
+  "options_adv_unsupported": {
+    "message": "현재 모델이 이 매개변수를 받지 않으므로 전송되지 않습니다."
   },
   "toast_model_saved": {
     "message": "Model saved"

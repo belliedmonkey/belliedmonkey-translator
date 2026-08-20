@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "Qwen (DashScope) API Key."
   },
+  "hint_qwen_mt": {
+    "message": "مفتاح API لـ Qwen MT (DashScope). نموذج متخصص في الترجمة، أرخص وأسرع من نموذج المحادثة العام. نفس مفتاح Qwen."
+  },
   "hint_kimi": {
     "message": "Kimi (Moonshot) API Key from the matching region platform."
   },
@@ -269,6 +272,36 @@
   },
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
+  },
+  "options_advanced": {
+    "message": "إعدادات متقدمة"
+  },
+  "label_adv_temperature": {
+    "message": "العشوائية (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "اتركه فارغًا لاستخدام 0.3. القيمة الأقل تعطي ترجمة أكثر ثباتًا."
+  },
+  "label_adv_max_tokens": {
+    "message": "أقصى طول للمخرجات لكل طلب"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "اتركه فارغًا لاستخدام 2000. ارفعه إذا كانت الفقرات الطويلة تُقتطع."
+  },
+  "label_adv_timeout": {
+    "message": "مهلة الطلب (بالثواني)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "اتركه فارغًا لاستخدام 20 ثانية. ارفعه إذا كانت الخدمة الذاتية أو نموذج الاستدلال بطيئًا."
+  },
+  "label_adv_concurrency": {
+    "message": "الطلبات المتوازية"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "اتركه فارغًا لاستخدام 5. اخفضه عند تقييد المعدل؛ رفعه لن يُسرّع الطلبات المنتظرة بالفعل."
+  },
+  "options_adv_unsupported": {
+    "message": "هذا النموذج لا يقبل هذا الإعداد، لذلك لن يُرسل."
   },
   "toast_model_saved": {
     "message": "Model saved"

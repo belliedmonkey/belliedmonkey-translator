@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "Qwen (DashScope) API Key."
   },
+  "hint_qwen_mt": {
+    "message": "Clé API Qwen MT (DashScope). Modèle spécialisé en traduction, moins cher et plus rapide qu’un modèle de conversation généraliste. Même clé que Qwen."
+  },
   "hint_kimi": {
     "message": "Kimi (Moonshot) API Key from the matching region platform."
   },
@@ -269,6 +272,36 @@
   },
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
+  },
+  "options_advanced": {
+    "message": "Paramètres avancés"
+  },
+  "label_adv_temperature": {
+    "message": "Aléa (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Vide = 0,3. Plus la valeur est basse, plus la traduction est stable."
+  },
+  "label_adv_max_tokens": {
+    "message": "Longueur de sortie max par requête"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Vide = 2000. Augmentez si les longs paragraphes sont coupés."
+  },
+  "label_adv_timeout": {
+    "message": "Délai d’expiration (secondes)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Vide = 20 s. Augmentez pour un service auto-hébergé ou un modèle de raisonnement lent."
+  },
+  "label_adv_concurrency": {
+    "message": "Requêtes en parallèle"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Vide = 5. Baissez en cas de limitation de débit ; augmenter n’accélère pas les requêtes déjà en attente."
+  },
+  "options_adv_unsupported": {
+    "message": "Ce modèle n’accepte pas ce paramètre : il ne sera pas envoyé."
   },
   "toast_model_saved": {
     "message": "Model saved"
