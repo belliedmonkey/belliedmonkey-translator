@@ -30,6 +30,30 @@
 //                             不思考）。**这一类必须记**，否则下一个人会照文档补上它。
 //            'unreachable' —— 打不到（没 key、余额不足、模型 id 拿不到）。这是一张
 //                             带日期的欠条，不是免责声明。
+//            'inferred'    —— **没打这个 host，按同厂另一个域的实测结论处理**。见下。
+//  from      `inferred` 必填：结论继承自哪个 host。
+//
+// ── 继承规则：同厂不同域可以，网关与第一方之间不行 ──────────────────────────
+//
+// 一个厂商常有国内外两个域（open.bigmodel.cn / api.z.ai、api.moonshot.cn / .ai、
+// dashscope 国内外、minimax 两域），逐一实测等于把成本翻倍，而它们是同一套 API。
+// 所以允许继承 —— 但**只在共享同一个 model-params 行的 hosts 之间**。
+//
+// 那条判据不是随手划的，它恰好等价于「同厂不同域」，因为能力表本来就把同厂的两个域
+// 写在一行，而 openrouter.ai 独占一行。于是网关继承在结构上不可能发生，且不需要另外
+// 维护一张需要人记得去更新的网关名单。
+//
+// ⚠️ 为什么网关不能继承 —— 有实测反例（2026-08-20/21，同一个 deepseek-v4-flash）：
+//     api.deepseek.com（第一方）  基线 278 tok（**默认在思考**），thinking:disabled → 0
+//     openrouter.ai（网关）       基线 0 tok（**默认不思考**），reasoning:{effort:'low'}
+//                                 反而把思考**开启**到 78–233 tok
+// 同一个模型、两个端点、默认行为相反。把任一边赋给另一边都是错的。而 api.openai.com
+// 对 thinking / reasoning / enable_thinking 三种拼法一律 400 Unknown parameter ——
+// 拼法本身也不通用。
+//
+// 另外两条，由 test/perf-ledger.test.js 钉住：
+//   · 不许继承自另一条 inferred（推测值链式传播，会越传越远离证据）
+//   · 同一个 (host, model) 一旦有实测行，就不许再有 inferred 行 —— **实测永远优先**
 //  baseline  不发任何推理字段时的观测：{ ms, thinkTokens, outChars, finish }
 //            adopted / rejected 必填。ms 是墙钟时间，**证据力最弱**（端点会抖、会 503），
 //            所以判断优先看 thinkTokens 与 outChars。
@@ -479,9 +503,34 @@ module.exports = [
     verdict: 'rejected', why: '同 haiku：默认不思考。三个档位（haiku/sonnet/opus）一致',
   },
   {
-    host: 'api.minimax.chat', model: 'MiniMax-M2', date: '2026-08-20',
+    host: 'api.minimax.io', model: 'MiniMax-M2', date: '2026-08-21',
+    baseline: { ms: 4777, thinkTokens: 1082, outChars: 165, finish: 'end_turn',
+      note: 'messages 形状（/anthropic/v1/messages），两遍：944/1220 字思考、4104/5449ms' },
+    tried: [
+      { params: { thinking: { type: 'disabled' } }, ms: 6417, thinkTokens: 1252, outChars: 175,
+        note: '两遍：1981/522 字 —— 与基线的 944–1220 完全重叠，**证明不了有效果**' },
+      { params: { thinking: { type: 'enabled', budget_tokens: 1024 } }, ms: 3596,
+        thinkTokens: 529, outChars: 184, note: '对照组：确认思考字段确实读得到' },
+    ],
+    verdict: 'rejected',
+    why: '区间重叠，分不出。⚠️ 但这一轮挖出两个**产品 bug**（都已修 + 加回归）：'
+      + '① OpenAI 兼容口上该模型把思考写进正文（<think>…</think>），261 字符输入换回 '
+      + '693 字符 —— 不剥就会把一段英文思考独白当译文渲染，而 isTranslated 只看非空，'
+      + '没有任何一方会报错；② messages 形状上 thinking 是 content 的第 0 块，而 '
+      + 'extractMessages 原来只取 content[0].text ⇒ 一律取到空串 ⇒ 用户看到「翻译失败」，'
+      + '而响应里明明有译文。'
+      + ' 另注：真正能用的 host 是 api.minimax.io（用户给出），不是表里原先写的 '
+      + 'api.minimax.chat / api.minimaxi.com —— 后两者本轮 key 被拒，未能打通。',
+  },
+  {
+    host: 'api.minimax.chat', model: 'MiniMax-M2', date: '2026-08-21',
     verdict: 'unreachable',
-    why: 'key 被拒：base_resp.status_code 2049 invalid api key。'
+    why: 'key 被拒：2049 invalid api key。**充值不能解决 —— 是鉴权不是余额。** '
+      + '2026-08-21 复测（用户充值后）三个端点仍全拒，且已定位到是 key 值本身的问题：'
+      + '带 Bearer 时报 2049（说明头的写法正确、值不被认），改用裸 key / api-key / '
+      + 'x-api-key 三种写法则报 login fail: Please carry the…（头就不对）。'
+      + '另：该 key 126 字符、单段、以 sk-api 开头，而 MiniMax 官方 key 是 eyJ… 三段式 JWT '
+      + '—— 形状就对不上，多半不是 MiniMax 的 key。需要用户从 MiniMax 控制台重新取。'
       + '⚠️ 顺带记一个真陷阱：/v1/text/chatcompletion_v2 把错误包在 HTTP 200 里（无效 key '
       + '也返回 200 + 空正文），只有 /v1/chat/completions 才正常 401 —— 我们的代码会把它'
       + '当成一次「翻译失败」，且拿不到任何服务端原话',
@@ -503,9 +552,13 @@ module.exports = [
     verdict: 'unreachable', why: '同上（global 侧同样没有 key）',
   },
   {
-    host: 'dashscope-intl.aliyuncs.com', model: 'qwen-plus', date: '2026-08-20',
-    verdict: 'unreachable',
-    why: '只有 china 侧的 dashscope key。同一套 compatible-mode 接口，预期与 '
-      + 'dashscope.aliyuncs.com 一致（默认不思考），但未证实',
+    // 欠条 → 推测值：与 dashscope.aliyuncs.com 共享同一个 model-params 行（同厂不同域），
+    // 源端两个模型都实测过「默认不思考、没有可关的东西」。拿到该域 key 之后应回头实测，
+    // `npm run perf:status` 会一直把它列在「推测值」一节里提醒。
+    host: 'dashscope-intl.aliyuncs.com', model: 'qwen-plus', date: '2026-08-21',
+    verdict: 'inferred', from: 'dashscope.aliyuncs.com',
+    why: '同一套 compatible-mode 接口，与源 host 共享 model-params 行。源端实测 rejected'
+      + '（qwen-plus 与 qwen3-max 基线思考均为 0，加 enable_thinking:false 无变化），'
+      + '本域按同结论处理 —— 即 reasoning 一列留空 —— 直到拿到该域的 key 实测',
   },
 ];

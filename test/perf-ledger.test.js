@@ -28,7 +28,7 @@ const LEDGER = require('../build/perf-ledger.config.js');
 const PARAMS = require('../build/model-params.config.js');
 const PROVIDERS = require('../build/providers.config.js');
 
-const VERDICTS = ['adopted', 'rejected', 'unreachable'];
+const VERDICTS = ['adopted', 'rejected', 'unreachable', 'inferred'];
 const hostOf = (u) => {
   const m = /^https?:\/\/([^/?#]+)/i.exec(String(u || ''));
   return m ? m[1].split('@').pop().split(':')[0].toLowerCase() : '';
@@ -67,6 +67,7 @@ describe('性能台账：形状', () => {
   });
 
   test('adopted 必须有基线、有候选、有采纳值 —— 空口不算测过', () => {
+    // 注：inferred 不在此列 —— 它按定义就没有自己的基线，那正是它叫「推测」的原因。
     for (const r of LEDGER.filter((x) => x.verdict === 'adopted')) {
       const id = `${r.host}·${r.model}`;
       ok(r.baseline && typeof r.baseline === 'object', `${id} adopted 却没有 baseline`);
@@ -93,6 +94,72 @@ describe('性能台账：形状', () => {
   test('unreachable 是一张带日期的欠条，必须写清打不到的原因', () => {
     for (const r of LEDGER.filter((x) => x.verdict === 'unreachable')) {
       ok(String(r.why || '').trim().length > 8, `${r.host}·${r.model} 缺 why`);
+    }
+  });
+});
+
+// ─── 继承：同厂不同域可以，网关与第一方之间不行 ──────────────────────────────
+//
+// 成本是真的：一个厂常有国内外两个域，逐一实测把测试量翻倍，而它们是同一套 API。
+// 但**跨网关**继承有实测反例：同一个 deepseek-v4-flash 在 api.deepseek.com 上默认思考
+// 278 tok（disabled 关掉），在 openrouter.ai 上默认 0 tok 而 reasoning:{effort:'low'}
+// 反而把它开到 78–233。同一个模型、两个端点、默认行为相反。
+//
+// 判据用「共享同一个 model-params 行」，而不是另立一张网关名单 —— 那张名单需要人记得
+// 去更新，而能力表本来就把同厂的两个域写在一行、把 openrouter 独立成一行。
+describe('性能台账：推测值只许在同厂不同域之间流动', () => {
+  const INFERRED = LEDGER.filter((r) => r.verdict === 'inferred');
+  const byKey = (h, m) => LEDGER.filter((r) => r.host === h && r.model === m);
+
+  test('inferred 必须写清继承自哪个 host，以及为什么可以继承', () => {
+    for (const r of INFERRED) {
+      const id = `${r.host}·${r.model}`;
+      ok(r.from && typeof r.from === 'string', `${id} 是 inferred 却没写 from`);
+      ok(r.from !== r.host, `${id} 的 from 指向自己`);
+      ok(String(r.why || '').trim().length > 8, `${id} 缺 why`);
+    }
+  });
+
+  test('只能继承自**实测**结论，不能继承自另一条推测 —— 否则推测值会链式传播', () => {
+    for (const r of INFERRED) {
+      const src = LEDGER.filter((x) => x.host === r.from);
+      ok(src.length > 0, `${r.host} 继承自 ${r.from}，但台账里没有这个 host`);
+      const measured = src.filter((x) => x.verdict === 'adopted' || x.verdict === 'rejected');
+      ok(measured.length > 0,
+        `${r.host} 继承自 ${r.from}，但那个 host 没有任何实测结论`
+        + `（只有 ${src.map((x) => x.verdict).join('/')}）—— 推测不能建立在推测上`);
+    }
+  });
+
+  test('继承双方必须共享同一个 model-params 行 —— 这道墙挡住网关', () => {
+    for (const r of INFERRED) {
+      const shared = PARAMS.some((p) => p.hosts.includes(r.host) && p.hosts.includes(r.from));
+      ok(shared,
+        `${r.host} 想继承 ${r.from}，但两者不在同一个 model-params 行里。`
+        + ' 同厂不同域才可继承；网关（openrouter 等）与第一方端点之间**不可以**。'
+        + ' 实测反例：同一个 deepseek-v4-flash 在第一方默认思考 278tok、在网关默认 0tok，'
+        + " 而网关上的 reasoning:{effort:'low'} 是「开启」不是「降档」。");
+    }
+  });
+
+  test('实测永远优先：有实测行的 (host, model) 不许再有 inferred 行', () => {
+    // 用户策略里「有官方值以官方为准」的落点。推测值是占位，实测一到就该被替掉，
+    // 而不是两条并存 —— 并存时没有任何机制决定用哪条。
+    for (const r of INFERRED) {
+      const rivals = byKey(r.host, r.model).filter((x) => x !== r
+        && (x.verdict === 'adopted' || x.verdict === 'rejected'));
+      eq(rivals.length, 0,
+        `${r.host}·${r.model} 既有实测行又有 inferred 行 —— 实测到了就该把推测删掉`);
+    }
+  });
+
+  test('继承来的参数值必须与源行逐字相等', () => {
+    for (const r of INFERRED) {
+      if (!r.adopted) continue;
+      const src = LEDGER.find((x) => x.host === r.from && x.verdict === 'adopted');
+      ok(src, `${r.host} 带了 adopted 值，但源 host ${r.from} 没有 adopted 结论`);
+      eq(JSON.stringify(r.adopted), JSON.stringify(src.adopted),
+        `${r.host} 的继承值与源行不一致`);
     }
   });
 });

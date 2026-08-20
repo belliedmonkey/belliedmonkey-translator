@@ -169,15 +169,25 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
     const PROVIDERS = require(path.join(ROOT, 'build', 'providers.config.js'));
     const covered = new Set(LEDGER.map((r) => r.host));
     const owed = LEDGER.filter((r) => r.verdict === 'unreachable');
+    const guessed = LEDGER.filter((r) => r.verdict === 'inferred');
     const byVerdict = (v) => LEDGER.filter((r) => r.verdict === v).length;
 
     console.log(`\n台账 ${LEDGER.length} 行： adopted ${byVerdict('adopted')} ·`
-      + ` rejected ${byVerdict('rejected')} · unreachable ${byVerdict('unreachable')}`);
+      + ` rejected ${byVerdict('rejected')} · inferred ${byVerdict('inferred')}`
+      + ` · unreachable ${byVerdict('unreachable')}`);
 
     if (owed.length) {
       console.log('\n欠条（打不到，带日期）:');
       for (const r of owed) {
         console.log(`  ${r.date}  ${r.host}`.padEnd(48) + String(r.why).slice(0, 88));
+      }
+    }
+    // 推测值与欠条的紧急度不同：欠条是「完全不知道」，推测值是「按同厂另一个域的结论在跑」。
+    // 前者要补测才有知识，后者已经在起作用 —— 一旦拿到该域的 key，应该回头把它换成实测。
+    if (guessed.length) {
+      console.log('\n推测值（按同厂另一域的实测结论在跑，拿到 key 后应回头实测）:');
+      for (const r of guessed) {
+        console.log(`  ${r.date}  ${r.host}`.padEnd(48) + `← ${r.from}`);
       }
     }
     const gaps = [];
@@ -222,19 +232,6 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   console.log('');
   if (starved) console.log('  ⚠️  基线出现「200 但正文 0 字」—— 预算被思考吃光，这是必须修的 bug，不只是慢');
 
-  // 反方向的坑，2026-08-21 全家扫时才看见:某些网关上「降档」参数其实是**开关**。
-  // openrouter 的 reasoning:{effort:'low'} 对本来不思考的模型是「以低档**开启**推理」——
-  // deepseek-v4-flash 基线 0 tok，加了之后 78–233 tok；baidu、mistral 同样从 0 变成几百。
-  // 把它当成「优化」加到 host 通行行上，会让大多数模型变慢变贵。所以候选一律也要看
-  // **思考有没有变多**，不是只看有没有变少。
-  const grew = results.filter(({ runs }) => {
-    const t = runs.map((r) => r.think).filter((v) => v != null);
-    return t.length && bt != null && Math.min(...t) > bt;
-  });
-  if (grew.length) {
-    console.log('  ⚠️  这些候选让思考**变多**了 —— 在这个端点上它们是「开启」而不是「降档」:');
-    for (const g of grew) console.log(`        ${g.c.label}`);
-  }
   if (!thinks && !starved) {
     console.log('  ⓘ  基线看不到思考。若该端点不单独报推理 token（如 gemini 兼容端点），'
       + '改看出参 tok 与耗时；若确实不思考，结论就是 rejected —— 记下来，别留白。');
@@ -268,6 +265,21 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
     .map(({ c, runs }) => ({ c, think: avg(runs.map((r) => r.think).filter((v) => v != null)), ms: avg(runs.map((r) => r.ms)) }))
     .filter((w) => bt == null || w.think == null || w.think < bt)
     .sort((a, b) => (a.think ?? 1e9) - (b.think ?? 1e9));
+
+  // 反方向的坑，2026-08-21 全家扫时才看见：某些网关上「降档」参数其实是**开关**。
+  // openrouter 的 reasoning:{effort:'low'} 对本来不思考的模型是「以低档**开启**推理」——
+  // deepseek-v4-flash 基线 0 tok、加了之后 78–233 tok；baidu、mistral 同样从 0 变成几百。
+  // 所以候选一律也要看**思考有没有变多**，不是只看有没有变少。
+  // （这段原本写在基线段里，引用了还没声明的 results，直接把工具跑崩 —— 2026-08-21
+  //   打 minimax 时炸的。放在这里是因为它本来就依赖候选结果。）
+  const grew = results.filter(({ runs }) => {
+    const t = runs.map((r) => r.think).filter((v) => v != null);
+    return t.length && bt != null && Math.min(...t) > bt;
+  });
+  if (grew.length) {
+    console.log('\n  ⚠️  这些候选让思考**变多**了 —— 在这个端点上它们是「开启」而不是「降档」:');
+    for (const g of grew) console.log(`        ${g.c.label}`);
+  }
 
   console.log('\n── 结论草稿（粘进 build/perf-ledger.config.js 前请自己复核）──');
 

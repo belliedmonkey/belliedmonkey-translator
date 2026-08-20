@@ -268,12 +268,21 @@ module.exports = [
   },
   {
     id: 'minimax', flavors: ['global', 'china'],
-    hosts: ['api.minimax.chat', 'api.minimaxi.com'],
+    // ⚠️ 2026-08-21 实测才知道真正能用的是 api.minimax.io（用户给出）：
+    // 同一个 host 上既有 chat-compat 口 /v1/chat/completions，也有 messages-compat 口
+    // /anthropic/v1/messages，两条都通。另外两个域是历史地址，本次未能打通（key 被拒），
+    // 留在表里只是因为老用户可能还填着它们 —— 它们与 .io 参数能力一致这一点**未证实**。
+    hosts: ['api.minimax.io', 'api.minimax.chat', 'api.minimaxi.com'],
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。'
-      + ' reasoning 一列未测：2026-08-20 手上的 key 被拒（base_resp.status_code 2049'
-      + ' invalid api key）。⚠️ 顺带记一个真陷阱：它在 /v1/text/chatcompletion_v2 上'
-      + '**把错误包在 HTTP 200 里**（无效 key 也返回 200 + 空正文），只有新路径'
-      + ' /v1/chat/completions 才正常返回 401。',
+      + ' reasoning 一列**测过之后决定留空**（2026-08-21，api.minimax.io，真 key）：'
+      + 'MiniMax-M2 在 messages 形状上基线思考 944/1220 字，thinking:{type:\'disabled\'}'
+      + ' 之后是 1981/522 字 —— 区间完全重叠，证明不了有效果。'
+      + ' ⚠️ 两个真陷阱：① 该模型在 chat-compat 那条口上**把思考写进正文**（<think>…</think>），'
+      + '不进 reasoning_content —— 261 字符输入换回 693 字符，不剥就会把英文思考独白当译文'
+      + '渲染出去；② 它在 messages 形状上把 thinking 放在 content 的**第 0 块**。'
+      + '两处都已在 request-shape.js 的 extractChat / extractMessages 修掉并加了回归。'
+      + ' ③ 老域名 /v1/text/chatcompletion_v2 把错误包在 HTTP 200 里（无效 key 也返回'
+      + ' 200 + 空正文）。',
   },
 ];

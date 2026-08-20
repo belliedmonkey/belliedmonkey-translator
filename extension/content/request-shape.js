@@ -136,12 +136,45 @@ var RequestShape = (() => {
   // ─── 解析：三份逐字重复合并成三个函数 ──────────────────────────────────
   // 一律 null-safe。translation-api 原来是裸 `d.choices[0].message.content`，一个畸形
   // 响应就抛 TypeError，被上层当成「网络错误」——空正文该由调用方具名成 empty_output。
-  function extractChat(d) {
-    return (d && d.choices && d.choices[0] && d.choices[0].message
-      && d.choices[0].message.content) || '';
+  // 有一类模型把思考**写进正文**，用 <think>…</think> 包着，而不是放进单独的
+  // reasoning_content 字段。实测 2026-08-21：MiniMax-M2 经 api.minimax.io 的 chat-compat
+  // 那条口就是这样 —— 261 字符的输入换回 693 字符，其中大半是一段英文思考独白。
+  // （这个文件进出货包，中国合规门连注释一起逐行扫，所以这里只写协议名不写厂商名。）
+  //
+  // 不剥的话，那整块会被当成译文渲染到页面上（isTranslated 只看非空，刻意如此），
+  // **没有任何一方会报错**。这是这套设计里最坏的一种失败：看起来成功，实际全错。
+  //
+  // 剥干净之后若只剩空串，就落到 callChatAPI 的空正文分支 —— 那是一条具名失败，
+  // 正是我们要的：思考被截断而没吐出答案，跟「预算被吃光」是同一种病。
+  function stripThink(text) {
+    const t = String(text == null ? '' : text);
+    if (t.indexOf('<think') < 0) return t.trim();
+    // 未闭合也要处理：被 max_tokens 截断时只有开标签，此时后面全是思考，一并丢掉。
+    return t.replace(/<think[^>]*>[\s\S]*?<\/think\s*>/gi, '')
+      .replace(/<think[^>]*>[\s\S]*$/i, '')
+      .trim();
   }
+
+  function extractChat(d) {
+    return stripThink((d && d.choices && d.choices[0] && d.choices[0].message
+      && d.choices[0].message.content) || '');
+  }
+
+  // 与上面方向相反的同一个毛病：这条形状把思考放在**独立的块**里，而思考块排在第 0 位。
+  // 原来写的是 content[0].text —— 于是带 thinking 的响应一律取到空串，翻译「失败」。
+  // 实测 2026-08-21（api.minimax.io/anthropic，MiniMax-M2）：块序 thinking → text，
+  // 旧实现取到 ""，正确实现取到「间隔重复有效。」。Anthropic 自家模型一旦打开
+  // extended thinking 也是同样的块序。
+  //
+  // 这条教训在下面 extractResponses 的注释里已经写过一次（「NEVER output[0]」），
+  // 只是当时没有同时用到这条形状上。
   function extractMessages(d) {
-    return (d && d.content && d.content[0] && d.content[0].text) || '';
+    const blocks = (d && Array.isArray(d.content)) ? d.content : [];
+    // 收所有文本块。对 `type` 宽容（缺省也算文本）——中转网关未必带上它，而缺了 type
+    // 的思考块没有 `text` 字段，所以宽容不会把思考误当正文。
+    return blocks.filter((b) => b && typeof b.text === 'string'
+        && (b.type === undefined || b.type === 'text'))
+      .map((b) => b.text).join('').trim();
   }
   // NEVER output[0]：推理模型把 `{type:'reasoning'}` 放在第 0 位、答案在其后，所以
   // 索引 0 在人们最常用的那批模型上恰好是空的。`output_text` 是扁平便利字段，可能
@@ -332,7 +365,7 @@ var RequestShape = (() => {
 
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
-    extractChat, extractMessages, extractResponses,
+    extractChat, extractMessages, extractResponses, stripThink,
     DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
   };
 })();

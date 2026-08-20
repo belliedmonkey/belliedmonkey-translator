@@ -78,6 +78,36 @@ node scripts/perf-probe.js key_chat_openai \
 4. **它会打断别的模型吗** —— `--safe <不思考的模型>` 那一段里，你打算写进表的那个值
    必须在它身上也是 200。这一条是 `o3-mini` 那个 400 教的，**没有它就不要写表**。
 
+### 2.5 什么时候可以不测（继承规则）
+
+一个厂常有国内外两个域，逐一实测把成本翻倍，而它们是同一套 API。所以允许继承 ——
+**但只在共享同一个 `model-params` 行的 hosts 之间**：
+
+```js
+{ host: 'dashscope-intl.aliyuncs.com', model: 'qwen-plus', date: '…',
+  verdict: 'inferred', from: 'dashscope.aliyuncs.com', why: '…' }
+```
+
+那条判据恰好等价于「同厂不同域」，因为能力表本来就把同厂的两个域写在一行，而
+`openrouter.ai` 独占一行 —— 于是**网关继承在结构上不可能发生**，也不需要另外维护一张
+需要人记得更新的网关名单。
+
+⚠️ **为什么网关不能继承**，实测反例（同一个 `deepseek-v4-flash`）：
+
+| 端点 | 基线思考 | 有效参数 |
+|---|---|---|
+| `api.deepseek.com`（第一方） | **278 tok（默认在思考）** | `thinking:{type:'disabled'}` → 0 |
+| `openrouter.ai`（网关） | **0 tok（默认不思考）** | `reasoning:{effort:'low'}` → **0 → 78–233**（反而开启） |
+
+同一个模型、两个端点、默认行为相反。而 `api.openai.com` 对 `thinking` / `reasoning` /
+`enable_thinking` 三种拼法一律 400 `Unknown parameter` —— 拼法本身也不通用。
+
+另两条由门禁钉住：**不许继承自另一条 `inferred`**（推测值会链式传播，越传越远离证据）；
+**同一个 (host, model) 有实测行就不许再有 `inferred` 行** —— 实测永远优先。
+
+`npm run perf:status` 把推测值单列一节：它与欠条的紧急度不同，欠条是「完全不知道」，
+推测值是「已经在按别人的结论跑」，拿到该域 key 后应回头实测。
+
 ### 3. 落台账 —— 三种结论都要写
 
 `build/perf-ledger.config.js`。**否定结果和肯定结果一样重要**：
@@ -87,6 +117,7 @@ node scripts/perf-probe.js key_chat_openai \
 | `adopted` | 找到更好的参数 | —— |
 | `rejected` | 打通了，但没有值得写的参数（没收益 / 效果不稳定 / 本来就不思考） | 下一个人会照厂商文档把它补上，而我们实测的结论恰恰是「不写」 |
 | `unreachable` | 打不到（没 key / 余额不足 / 模型 id 拿不到） | 门会红；而且这个缺口会被忘掉 |
+| `inferred` | 没打这个 host，按同厂另一域的实测处理（见 §2.5） | —— |
 
 `rejected` 的实例：`api.x.ai` —— `reasoning_effort:'low'` 全型号都收，但 grok-4-fast 长段
 858→602 tok 变好、grok-3-mini 长段 624→**969** tok 变差。**效果不稳定的值是维护负担，

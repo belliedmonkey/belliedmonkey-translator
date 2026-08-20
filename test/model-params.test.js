@@ -401,3 +401,66 @@ describe('推理片段：三家三种拼法，这就是它存片段而非枚举�
     }
   });
 });
+
+// ─── 解析：两个静默错误，方向相反 ──────────────────────────────────────────
+// 2026-08-21 打 MiniMax 时撞见的两个真 bug。它们都不是「报错」，一个是把思考当译文
+// 渲染出去，一个是把有译文的响应读成空 —— 前者用户看到一段英文独白，后者看到
+// 「翻译失败」，而服务端两次都答了 200。
+describe('extractChat：思考写在正文里时要剥掉', () => {
+  const RS = () => shapeWith(TABLE);
+
+  test('<think>…</think> 被剥掉，只留译文', () => {
+    // 实测形状（api.minimax.io 的 OpenAI 兼容口，MiniMax-M2）：思考不进
+    // reasoning_content，而是用 <think> 包在 content 里。不剥的话整块会被当成译文
+    // 渲染，而 isTranslated 只看非空（刻意如此）—— 没有任何一方会报错。
+    const raw = '<think>\nThe user wants me to translate this text. Let me think:\n'
+      + '"Rendered obsolete" - 使其过时\nOK here is my translation:\n</think>\n\n间隔重复有效。';
+    eq(RS().extractChat({ choices: [{ message: { content: raw } }] }), '间隔重复有效。');
+  });
+
+  test('未闭合的 <think> 也要处理 —— 被 max_tokens 截断时只有开标签', () => {
+    const RS2 = RS();
+    eq(RS2.extractChat({ choices: [{ message: { content: '<think>thinking forever…' } }] }), '');
+    // 剥完为空 ⇒ 落到具名的空正文分支，而不是把一段思考渲染成译文。
+    eq(RS2.stripThink('<think>abc'), '');
+  });
+
+  test('不含 think 标签的正文一字不动', () => {
+    const RS2 = RS();
+    eq(RS2.extractChat({ choices: [{ message: { content: '  间隔重复有效。  ' } }] }), '间隔重复有效。');
+    eq(RS2.stripThink('a < b and c > d'), 'a < b and c > d');
+  });
+});
+
+describe('extractMessages：思考是独立的块，且排在第 0 位', () => {
+  const RS = () => shapeWith(TABLE);
+
+  test('thinking 块在前时仍能取到译文 —— 旧实现在这里返回空串', () => {
+    // 实测块序（api.minimax.io/anthropic，MiniMax-M2）：thinking → text。
+    // 旧实现取 content[0].text ⇒ undefined ⇒ ''，用户看到「翻译失败」，而响应里
+    // 明明有译文。Anthropic 自家模型打开 extended thinking 后也是同样的块序。
+    const d = { content: [
+      { type: 'thinking', thinking: 'Let me translate this carefully…' },
+      { type: 'text', text: '间隔重复有效。' },
+    ] };
+    eq(RS().extractMessages(d), '间隔重复有效。');
+  });
+
+  test('多个文本块要拼起来，思考块永远不进正文', () => {
+    const d = { content: [
+      { type: 'thinking', thinking: 'aaa' },
+      { type: 'text', text: '前半' },
+      { type: 'redacted_thinking', data: 'zzz' },
+      { type: 'text', text: '后半' },
+    ] };
+    eq(RS().extractMessages(d), '前半后半');
+  });
+
+  test('缺 type 的块按文本处理 —— 中转网关未必带上它', () => {
+    eq(RS().extractMessages({ content: [{ text: '你好' }] }), '你好');
+  });
+
+  test('只有思考块（被截断）⇒ 空串 ⇒ 具名失败，而不是把思考当译文', () => {
+    eq(RS().extractMessages({ content: [{ type: 'thinking', thinking: '…' }] }), '');
+  });
+});

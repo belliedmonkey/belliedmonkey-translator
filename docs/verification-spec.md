@@ -105,6 +105,23 @@ must stay distinguishable:
 | `adopted` | a better parameter was found and shipped | — |
 | `rejected` | reached it; nothing worth writing (no gain, unstable, doesn't think) | the next person adds it back from vendor docs, undoing a measured decision |
 | `unreachable` | no key / no balance / no usable model id | the gap is silently forgotten |
+| `inferred` | not measured on this host; carries the conclusion from another domain of the **same vendor** | — |
+
+**Inheritance is bounded by one rule** (#161): a conclusion may be carried from one host
+to another **only when both hosts share a `model-params` row**. That test is exactly
+equivalent to "same vendor, different domain" — the capability table already groups a
+vendor's regional domains into one row and gives `openrouter.ai` a row of its own — so
+gateway-to-first-party inheritance is structurally impossible, and no hand-maintained
+gateway list exists to go stale.
+
+Why gateways are excluded is measured, not assumed. The same `deepseek-v4-flash` thinks
+278 tokens by default on `api.deepseek.com` (silenced by `thinking:{type:'disabled'}`)
+and **zero** by default through `openrouter.ai`, where `reasoning:{effort:'low'}` *raises*
+it to 78–233. Same model, two endpoints, opposite defaults — and the spellings are not
+portable either (`api.openai.com` answers 400 `Unknown parameter` to all three of the
+others' spellings). Two further limits: an `inferred` row may not descend from another
+`inferred` row, and a measured row always displaces an inferred one for the same
+(host, model).
 
 `test/perf-ledger.test.js` locks the ledger to `model-params.config.js` in both
 directions: a shipped parameter with no `adopted` evidence is red, and an `adopted`
