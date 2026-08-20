@@ -148,6 +148,19 @@ a quoted server rejection (`docs/verification-spec.md` §1.0); writing `true` ma
 docs. There is no trial-and-error retry — see §7 for why the 1.5.3–1.5.9 negotiation
 was removed.
 
+**Adding a provider means measuring it, not reading its docs.** Every entry you add to
+`build/providers.config.js` must have a row in `build/perf-ledger.config.js` — the
+evidence ledger behind the capability table — or `npm test` goes red. Produce one with
+**`/perf-tune`** (`.claude/skills/perf-tune/SKILL.md`): drive every model of that
+provider that can translate, through `scripts/perf-probe.js`, against the real endpoint.
+Record all three outcomes — `adopted`, `rejected` (measured, nothing worth writing), and
+`unreachable` (a dated IOU) — because "measured and decided against" and "never measured"
+are different facts, and only the ledger can tell them apart. `npm run perf:status`
+lists what is still owed. Why measurement beats docs, in one line each: a documented
+value 400s on `o3-mini`; GLM returns 200 and ignores the parameter; OpenRouter accepts
+both spellings but one is twice as expensive; MiniMax returns an auth error inside an
+HTTP 200.
+
 Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `tr:{provider}:{lang}:{text}`.
 
 ## Content Script Load Order

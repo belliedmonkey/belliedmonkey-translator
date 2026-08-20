@@ -95,6 +95,25 @@ deliberate**, spelled out in the file's own header:
 An undated 「能用」 still is not a verification. A `false` with no quoted rejection is
 not one either.
 
+**The ledger (#160).** `build/perf-ledger.config.js` records what was actually observed
+per (host, model): baseline, every candidate tried, and the verdict. It exists because a
+conclusion without its evidence rots into a docs excerpt — and because the three outcomes
+must stay distinguishable:
+
+| verdict | means | cost of not recording it |
+|---|---|---|
+| `adopted` | a better parameter was found and shipped | — |
+| `rejected` | reached it; nothing worth writing (no gain, unstable, doesn't think) | the next person adds it back from vendor docs, undoing a measured decision |
+| `unreachable` | no key / no balance / no usable model id | the gap is silently forgotten |
+
+`test/perf-ledger.test.js` locks the ledger to `model-params.config.js` in both
+directions: a shipped parameter with no `adopted` evidence is red, and an `adopted`
+measurement nobody shipped is red too. Adding a provider without any ledger row is red,
+naming the engine and pointing at `/perf-tune`. CI has neither network nor keys, so the
+gate checks that the measurement was recorded and landed — it cannot check that it was
+done carefully. That is the right division: 2026-08-20's failure was not a careless
+measurement, it was **no measurement at all**.
+
 This matrix is **orthogonal to the surface matrix above**, and deliberately so. Which
 provider answers, and whether we speak its wire format correctly, is a **transport**
 property — it does not vary by device, so verifying it on all seven surfaces would be

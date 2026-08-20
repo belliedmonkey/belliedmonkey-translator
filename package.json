@@ -13,6 +13,8 @@
     "test:idb": "node scripts/verify-idb-upgrade.js",
     "app:sync": "node scripts/sync-app-assets.js",
     "test:app": "node scripts/verify-app-bundle.js",
+    "perf:probe": "node scripts/perf-probe.js",
+    "perf:status": "node scripts/perf-probe.js --status",
     "test:smoke": "node scripts/verify-extension-smoke.js",
     "test:learn": "node scripts/verify-learn-flow.js",
     "test:sync": "node scripts/verify-sync-consistency.js"
