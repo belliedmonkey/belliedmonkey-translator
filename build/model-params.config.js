@@ -92,6 +92,19 @@ module.exports = [
     note: 'Messages 形状：max_tokens 必填、temperature 合法、system 走顶层（文档 + 长期在用）。',
   },
 
+  // ── Gemini 的 chat-compat 端点 ──────────────────────────────────────────
+  // 注册表里的 `google` 条目走的是 Gemini 自己的原生形状（generateContent，body 是
+  // contents/generationConfig），那条路**根本不经过这张表**。这一行管的是另一件事：
+  // 用户把 custom_chat 指向 Gemini 的 Chat Completions 兼容端点时发什么。
+  // global-only —— 这个域名在中国大陆不可达，注册表里的 google 条目同样是 global-only。
+  {
+    id: 'gemini-compat', flavors: ['global'],
+    hosts: ['generativelanguage.googleapis.com'],
+    temperature: true, budget: true, systemRole: 'system',
+    note: '兼容端点 /v1beta/openai/chat/completions 收 temperature 与 max_tokens'
+      + '（后者映射到原生的 maxOutputTokens），系统消息按 system 角色收（文档）。',
+  },
+
   // ── 聚合网关 ────────────────────────────────────────────────────────────
   {
     id: 'openrouter', flavors: ['global', 'china'],
@@ -133,6 +146,17 @@ module.exports = [
     hosts: ['api.moonshot.cn', 'api.moonshot.ai'],
     temperature: true, budget: true, systemRole: 'system',
     note: 'moonshot-v1 系收 temperature 与 max_tokens（文档）。',
+  },
+  {
+    id: 'ark', flavors: ['global', 'china'],
+    hosts: ['ark.cn-beijing.volces.com'],
+    // models 省略 = host 通行。这一行**必须**是通行行：Ark 的 `model` 字段收的既可以是
+    // 模型名（doubao-…），也可以是用户自己在控制台建的推理接入点 id（ep-…），后者是一
+    // 串与模型无关的编号 —— 按模型名前缀去匹配它永远匹配不上，写前缀等于写了个死条目。
+    temperature: true, budget: true, systemRole: 'system',
+    note: 'Chat Completions 兼容，收 temperature 与 max_tokens（文档）。'
+      + ' 其它地域的 ark 域名（非 cn-beijing）不在本表内，会落到最小必要集 —— 那是'
+      + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。',
   },
   {
     id: 'grok', flavors: ['global'],
