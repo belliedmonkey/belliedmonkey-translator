@@ -52,7 +52,7 @@ const KNOWN_KEYS = {
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
-    'systemRole', 'note'],
+    'systemRole', 'reasoning', 'note'],
 };
 
 const KNOWN_FLAVORS = ['global', 'china'];
@@ -135,6 +135,27 @@ describe('capability registries', () => {
       }
     });
   }
+
+  // 片段比枚举强大得多,而这张表的许可证建立在「没有一个字段是缺了就会错的」之上。
+  // 白名单是那条边界的守卫:任何人想往请求体里塞一个新字段,得先过这里,也就得先解释
+  // 它缺了会怎样。没有这道门,`reasoning` 就是一个可以往请求体里写任意东西的口子。
+  test('model-params: reasoning 片段只许用白名单里的顶层键', () => {
+    // 三种拼法,三家各不相同 —— 这正是这一列要存片段而不是枚举的原因:
+    //   reasoning_effort  OpenAI（顶层字符串）
+    //   thinking          DeepSeek / GLM（开关对象）
+    //   reasoning         OpenRouter（嵌套 effort），也是 responses-compat 的写法
+    const ALLOWED = ['reasoning_effort', 'thinking', 'reasoning'];
+    for (const e of require('../build/model-params.config.js')) {
+      if (!('reasoning' in e)) continue;
+      ok(e.reasoning && typeof e.reasoning === 'object' && !Array.isArray(e.reasoning),
+        `model-params/${e.id}.reasoning 必须是对象（按 chat-compat 写法的请求体片段）`);
+      for (const k of Object.keys(e.reasoning)) {
+        ok(ALLOWED.indexOf(k) >= 0,
+          `model-params/${e.id}.reasoning 用了白名单外的键 \`${k}\` —— `
+          + '要加新键,先说清它缺了会怎样(这张表不收「缺了就会错」的字段)');
+      }
+    }
+  });
 
   test('at least one entry is global-only, or these tests prove nothing', () => {
     // A guard on the guard: if every entry shipped everywhere, the China assertions

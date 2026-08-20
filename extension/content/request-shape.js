@@ -34,7 +34,8 @@ var RequestShape = (() => {
 
   // 表外 = 三个字段全是「不知道」，**不是「不支持」**。这个区别撑起上面那张三态表。
   const UNKNOWN = Object.freeze({
-    id: null, temperature: undefined, budget: undefined, systemRole: undefined, matched: false,
+    id: null, temperature: undefined, budget: undefined, systemRole: undefined,
+    reasoning: undefined, matched: false,
   });
 
   // ─── 表：host + 模型前缀 ────────────────────────────────────────────────
@@ -66,6 +67,7 @@ var RequestShape = (() => {
       temperature: best.temperature,
       budget: best.budget,
       systemRole: best.systemRole,
+      reasoning: best.reasoning,
       matched: true,
     });
   }
@@ -174,6 +176,32 @@ var RequestShape = (() => {
     return TRANSLATE_LANG[k] || String(code).trim();
   }
 
+  // 「模型把预算全用在思考上了」。两条形状各有各的信号，但后果一样：HTTP 200、
+  // 正文为空。不认出来的话它只是一个泛泛的「翻译失败」，而用户重试多少次都一样失败 ——
+  // 那是这套设计里最坏的一种失败：看起来可恢复，实际上永远不会恢复。
+  function starvedByReasoning(d) {
+    if (!d || typeof d !== 'object') return false;
+    const c = d.choices && d.choices[0];
+    if (c && c.finish_reason === 'length') return true;           // chat-compat
+    if (d.status === 'incomplete') return true;                    // responses-compat
+    const ic = d.incomplete_details;
+    if (ic && ic.reason === 'max_output_tokens') return true;
+    return false;
+  }
+
+  // 把表里的推理片段合并进请求体。只有一条形状差异需要翻译（见下），其余原样带过去。
+  // 白名单在 registry.test.js 那一侧钉住 —— 这里不做校验，是因为运行时悄悄丢掉一个
+  // 字段比发出去更难查：发错了服务端会说话，丢掉了没有任何一方会说话。
+  function applyReasoning(body, frag, shape) {
+    if (!frag || typeof frag !== 'object') return;
+    for (const k of Object.keys(frag)) {
+      const v = frag[k];
+      if (v === undefined) continue;
+      if (shape === 'responses' && k === 'reasoning_effort') { body.reasoning = { effort: v }; continue; }
+      body[k] = v;
+    }
+  }
+
   function optional(cap, want, tuned) {
     if (cap === false) return undefined;                    // 表明确否决 ⇒ 无条件不发
     if (want !== undefined && want !== null && want !== '') return want;  // 用户明说
@@ -219,6 +247,10 @@ var RequestShape = (() => {
       put(body, 'max_output_tokens',
         optional(caps.budget === undefined ? undefined : caps.budget !== false,
           p.reqMaxTokens, o.budget));
+      // 表存的是 chat-compat 的写法，这条形状只有一处不同：reasoning_effort 要写成
+      // 嵌套的 reasoning.effort，顶层写法会 400，原话为证：「In the Responses API,
+      // this parameter has moved to 'reasoning.effort'」（实测）。其余字段原样带过去。
+      applyReasoning(body, caps.reasoning, 'responses');
       return { headers: bearer, body, extract: extractResponses, caps };
     }
 
@@ -284,6 +316,13 @@ var RequestShape = (() => {
       ],
     };
     put(body, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE));
+    // 把思考压下去。表存的就是这条形状的写法，所以这里原样合并。
+    //
+    // 为什么翻译要主动压它：推理开销**不随输入变小而变小**，而它算在同一个输出预算里。
+    // 实测 2026-08-20：gpt-5-mini 对一段 870 字正文 27.8 秒烧光 2000 预算、正文 0 字；
+    // glm-4.6 同一种坏法（24 秒、1995 tok、0 字）；连不以推理著称的 deepseek-v4-flash
+    // 也在为每个段落思考 278 tok。三家的字段各不相同，所以表里存的是字段本身。
+    applyReasoning(body, caps.reasoning, 'chat');
     const budgetName = (typeof caps.budget === 'string') ? caps.budget : 'max_tokens';
     put(body, budgetName,
       optional(caps.budget === undefined ? undefined : caps.budget !== false,
@@ -294,7 +333,7 @@ var RequestShape = (() => {
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
     extractChat, extractMessages, extractResponses,
-    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang,
+    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
   };
 })();
 

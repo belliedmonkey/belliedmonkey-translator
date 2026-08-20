@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "目前模型不接受此參數，本次不會送出。"
   },
+  "err_reasoning_starved": {
+    "message": "模型把整個輸出預算用在了思考上，沒有產出譯文。請在設定的「進階參數」裡調高「單次最大輸出長度」，或改用非推理模型。"
+  },
   "toast_model_saved": {
     "message": "模型已儲存"
   },

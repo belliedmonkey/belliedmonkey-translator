@@ -42,6 +42,30 @@
 //                缺省                     不知道
 //              ⚠️ messages-compat 例外：那条链路上 max_tokens 是 **API 必填**，
 //              表说 false 也照发。一行观测表不能推翻一条协议契约。
+//  reasoning   「把思考压下去」的那组字段，**按 chat-compat 的写法存一个请求体片段**。
+//              缺省 = 不发 = 用模型自己的默认行为 = 今天的行为。
+//
+//              为什么是片段而不是一个档位字符串:各家根本不是同一种机制,实测 2026-08-20:
+//                api.openai.com   reasoning_effort: 'minimal' / 'low'   —— 档位
+//                api.deepseek.com thinking: { type: 'disabled' }        —— 开关
+//                open.bigmodel.cn thinking: { type: 'disabled' }        —— 开关
+//              而 `reasoning_effort` 在后两家是**被接受但完全无效**(GLM 加了
+//              reasoning_effort:'low' 仍然 38 秒、思考 1991 tok、正文 0 字)。一个枚举
+//              字符串表达不了这两种东西,所以这里存的就是要合并进请求体的字段本身。
+//
+//              形状差异仍由 request-shape.js 处理:responses-compat 上 reasoning_effort
+//              要写成 reasoning:{effort},写成顶层会 400,原话「In the Responses API,
+//              this parameter has moved to 'reasoning.effort'」(实测)。
+//
+//              ⚠️ 允许的顶层键是一份**白名单**(registry.test.js 钉住),不是任意字段。
+//              这一列写的是我们真的会发出去的东西,片段比枚举强大得多,而这张表的许可证
+//              建立在「表里没有一个字段是缺了就会错的」之上 —— 白名单是那条边界的守卫。
+//
+//              ⚠️ 它**不是**「缺了就会错」的字段:不发 = 模型默认行为 = 今天的行为。
+//              它省的是时间和一次失败,不是请求的正确性 —— 许可证仍然成立。
+//
+//              ⚠️ 关掉思考是一个**质量取舍**,不只是速度。对翻译这个任务实测下来译文
+//              长度与可读性相当(见各行 note),但那是这个任务的结论,不是普适结论。
 //  systemRole  chat-compat 里系统消息的 role：'system'（默认）| 'developer'。
 //              只对 chat-compat 有意义 —— messages-compat 走顶层 system、
 //              responses-compat 走顶层 instructions，那是**形状**的属性，不是模型的。
@@ -75,11 +99,35 @@ module.exports = [
     // 例外行：前缀更长者赢，所以它盖住上面那条家族行。
     id: 'openai-reasoning', flavors: ['global'],
     hosts: ['api.openai.com'],
-    models: ['gpt-5', 'o1', 'o3', 'o4'],
+    models: ['gpt-5'],
     temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
+    reasoning: { reasoning_effort: 'minimal' },
     note: '实测 2026-08-20，经企业网关转发 gpt-5.6-sol 的 400 原话：'
       + "Unsupported parameter: 'temperature' is not supported with this model."
-      + ' param=temperature。同族的改名与 developer 角色为官方文档所载。',
+      + ' param=temperature。同族的改名与 developer 角色为官方文档所载。'
+      + ' reasoning:minimal 为实测所迫（2026-08-20，gpt-5-mini，真 key，用户真机同款配置）：'
+      + '不发这个档位时，一段 870 字的维基正文 27.8 秒烧光 2000 预算全部用于思考，'
+      + 'finish_reason=length、正文 0 字 —— 用户看到的就是「翻译失败,点此重试」，而重试'
+      + '永远同样失败。加上 minimal 后同一段 5.6 秒成功、推理 0 tok；23 字的小标题'
+      + '从 9.3 秒降到 1.3 秒。',
+  },
+
+  {
+    // o 系与 gpt-5 系分成两行，唯一的原因是**档位取值不同**，而这是实测逼出来的：
+    // o3-mini / o4-mini 收到 'minimal' 直接 400，原话
+    //   Unsupported value: 'reasoning_effort' does not support 'minimal' with this
+    //   model. Supported values are: 'low', …
+    // 合成一行写 'minimal' 会打断一条今天能用的路 —— 这两个型号不发档位时本来是 200。
+    id: 'openai-o-series', flavors: ['global'],
+    hosts: ['api.openai.com'],
+    models: ['o1', 'o3', 'o4'],
+    temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
+    reasoning: { reasoning_effort: 'low' },
+    note: '实测 2026-08-20（真 key）：o3-mini / o4-mini 拒收 minimal，原话 '
+      + "「Unsupported value: 'reasoning_effort' does not support 'minimal' with this "
+      + "model. Supported values are: 'low', …」；改用 low 后两者均 200"
+      + '（o3-mini 2785ms、o4-mini 2642ms，对照不发档位时 5782ms / 3332ms）。'
+      + ' temperature 与 developer 角色同 gpt-5 系。',
   },
 
   // ── Anthropic 官方域（messages-compat）──────────────────────────────────
@@ -102,7 +150,14 @@ module.exports = [
     hosts: ['generativelanguage.googleapis.com'],
     temperature: true, budget: true, systemRole: 'system',
     note: '兼容端点 /v1beta/openai/chat/completions 收 temperature 与 max_tokens'
-      + '（后者映射到原生的 maxOutputTokens），系统消息按 system 角色收（文档）。',
+      + '（后者映射到原生的 maxOutputTokens），系统消息按 system 角色收（文档）。'
+      + ' **reasoning 一列刻意留空,是实测之后的决定,不是没测**（2026-08-20，真 key，'
+      + 'gemini-3.6-flash，基线与 low 交替各两遍以摊掉抖动）：出参 token 基本不变'
+      + '（基线 113·129 → low 130·139 → minimal 139），四次全部 finish=stop、149–199 字、'
+      + "没有饿死风险；effort:'none' 被拒（400 Request contains an invalid argument）。"
+      + ' 没有可测量的收益就不写 —— 写进来只会变成一个要跟着厂商改的负担。'
+      + ' 另注：该端点期间多次返回 503（This model is currently experiencing high demand），'
+      + '所以单次耗时不能当证据，这也是这一行按出参 token 而非墙钟时间下结论的原因。',
   },
 
   // ── 聚合网关 ────────────────────────────────────────────────────────────
@@ -119,7 +174,17 @@ module.exports = [
     hosts: ['openrouter.ai'],
     models: ['openai/gpt-5', 'openai/o1', 'openai/o3', 'openai/o4'],
     temperature: false, budget: true, systemRole: 'system',
-    note: '同 openai-reasoning 的那条 400；网关透传上游错误，原话一字不差。',
+    reasoning: { reasoning: { effort: 'low' } },
+    note: '同 openai-reasoning 的那条 400；网关透传上游错误，原话一字不差。'
+      + ' 推理参数是**第四种拼法**（实测 2026-08-20，真 key）：这个网关用嵌套的'
+      + ' reasoning:{effort}，与 OpenAI 的顶层 reasoning_effort、GLM/DeepSeek 的'
+      + ' thinking 都不同。openai/gpt-5-mini 基线 9146ms/704tok → effort:low'
+      + ' 4255ms/192tok；deepseek/deepseek-r1 思考 466→237tok。'
+      + " ⚠️ 顶层 reasoning_effort 在这里**也返回 200，但明显没那么有效**（320 vs 192tok）"
+      + '——只看状态码会选到次优的拼法，这是本表最需要实测而非读文档的一类差异。'
+      + " reasoning:{enabled:false} 被明确拒绝，原话「Reasoning is mandatory for this"
+      + " endpoint and cannot be disabled.」，所以只能降档不能关。"
+      + ' 不思考的模型（qwen/qwen3.8-27b、openai/gpt-4o-mini）带上它照常 200。',
   },
 
   // ── 国内外双域（两条 hosts 写在同一行，因为参数能力一致）──────────────────
@@ -133,13 +198,29 @@ module.exports = [
     id: 'glm', flavors: ['global', 'china'],
     hosts: ['open.bigmodel.cn', 'api.z.ai'],
     temperature: true, budget: true, systemRole: 'system',
-    note: 'paas/v4 收 temperature 与 max_tokens（文档）。',
+    reasoning: { thinking: { type: 'disabled' } },
+    note: 'paas/v4 收 temperature 与 max_tokens（文档）。'
+      + ' thinking:disabled 为实测所迫（2026-08-20，open.bigmodel.cn，真 key，各跑两遍）：'
+      + 'glm-4.6 基线 24339·25328ms、思考 1995·1996 tok、**正文 0 字**——与 gpt-5-mini'
+      + '同一种坏法（预算被思考吃光，用户看到「翻译失败」）；关掉后 1253·1567ms、117 字。'
+      + ' reasoning_effort:low 在这里被接受但完全无效（仍 38 秒 / 1991 tok / 0 字）。'
+      + ' 不思考的 glm-4-flash 带上它也照常 200，故写成 host 通行行。'
+      + ' 两个 host 都实测过：api.z.ai 走产品代码 1444ms、思考 0、正文 17 字。'
+      + ' ⚠️ open.bigmodel.cn 的时延本身波动很大（同一请求体在紧循环里 0.6–1.2 秒，'
+      + '在单次调用里见过 19.9 秒），所以这一行的证据是「思考归零」，不是某个固定耗时。',
   },
   {
     id: 'deepseek', flavors: ['global', 'china'],
     hosts: ['api.deepseek.com'],
     temperature: true, budget: true, systemRole: 'system',
-    note: '长期基线（verification-spec §0）：一直带 temperature:0.3 发送，从未被拒。',
+    reasoning: { thinking: { type: 'disabled' } },
+    note: '长期基线（verification-spec §0）：一直带 temperature:0.3 发送，从未被拒。'
+      + ' thinking:disabled 为实测（2026-08-20，真 key，同一段 440 字正文，各跑两遍）：'
+      + '**注册表默认的 deepseek-v4-flash 基线就在思考**（3549ms / 278 tok），关掉后'
+      + '1126ms、思考 0，快 3.2 倍；deepseek-reasoner 3515·3497ms / 228·223 tok →'
+      + '1414·1178ms / 0。译文长度相当（123→111、118→116、127→115 字）。'
+      + ' reasoning_effort 在这个 host 上被接受但无效，所以不能用它。'
+      + ' 不思考的模型带上这个参数也照常 200，故写成 host 通行行。',
   },
   {
     id: 'kimi', flavors: ['global', 'china'],
@@ -156,19 +237,33 @@ module.exports = [
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容，收 temperature 与 max_tokens（文档）。'
       + ' 其它地域的 ark 域名（非 cn-beijing）不在本表内，会落到最小必要集 —— 那是'
-      + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。',
+      + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。'
+      + ' reasoning 一列未测：2026-08-20 key 可达（到 API 才报模型级 404），但试过的'
+      + ' doubao-seed-1.6 / doubao-pro-32k / doubao-1.5-pro-32k 在该账号下均'
+      + ' InvalidEndpointOrModel.NotFound —— 正是本行必须写成 host 通行行的那个理由：'
+      + '这里的 model 常常是控制台自建的 ep- 接入点 id，不是模型名。',
   },
   {
     id: 'grok', flavors: ['global'],
     hosts: ['api.x.ai'],
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容（文档）。它不收的是 presence/frequency_penalty 与 stop，'
-      + '而我们从来不发那三个，所以表里不需要为它们造字段。',
+      + '而我们从来不发那三个，所以表里不需要为它们造字段。'
+      + ' **reasoning 一列刻意留空,是实测之后的决定,不是没测**（2026-08-20，真 key）：'
+      + 'reasoning_effort:low 全型号都收（grok-4/grok-4-latest/grok-4-fast/grok-3-mini 均 200），'
+      + '但效果不一致、甚至为负 —— grok-4-fast 长段 858→602tok 变好，grok-3-mini 长段'
+      + '624→**969**tok 变差，grok-4-latest 短句 3336→4121ms 变慢。四次长段全部 finish=stop、'
+      + '271–283 字，**没有饿死风险**。一个效果不稳定的值不值得写进表：它带来的是维护负担,'
+      + '不是知识。',
   },
   {
     id: 'minimax', flavors: ['global', 'china'],
     hosts: ['api.minimax.chat', 'api.minimaxi.com'],
     temperature: true, budget: true, systemRole: 'system',
-    note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。',
+    note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。'
+      + ' reasoning 一列未测：2026-08-20 手上的 key 被拒（base_resp.status_code 2049'
+      + ' invalid api key）。⚠️ 顺带记一个真陷阱：它在 /v1/text/chatcompletion_v2 上'
+      + '**把错误包在 HTTP 200 里**（无效 key 也返回 200 + 空正文），只有新路径'
+      + ' /v1/chat/completions 才正常返回 401。',
   },
 ];

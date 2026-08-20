@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "当前模型不接受此参数，本次不会发送。"
   },
+  "err_reasoning_starved": {
+    "message": "模型把整个输出预算用在了思考上，没有产出译文。请在设置的「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。"
+  },
   "toast_model_saved": {
     "message": "模型已保存"
   },
