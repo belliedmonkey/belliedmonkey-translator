@@ -43,6 +43,15 @@ npm run test:layout      # Layout regression corpus (real headless Chrome via ra
 npm run app:sync         # Push dist-app/ into the generated Xcode project + patch ViewController.
                          # Run after EVERY regeneration of safari-project/ — that tree is
                          # gitignored and disposable; app/ in the repo is the real source.
+npm run test:smoke       # 真实安装冒烟（real Chrome, Node ≥22）—— **改传输层必跑**。
+                         # 把 dist/ 用 Extensions.loadUnpacked 装进真 Chrome，配一个
+                         # custom_chat 端点（故意 OPTIONS→403、不给 CORS 头，即企业网关
+                         # 的形状），打开网页翻一段，断言页面上真的出现译文、且报告走的
+                         # 是直连还是扩展后台。其余各门都只看一层：npm test 看模块、
+                         # test:layout 用 google 通道看渲染、test:app 看宿主页起不起得来
+                         # —— 都不会因为「装上去根本不工作」而变红（2026-08-19 一天之内
+                         # 三次：1.5.4 的回退是空转、1.5.5 的路线记忆毒化整页、1.5.8 被
+                         # 报完全不可用时手上没有任何证据）。
 npm run test:app         # Host app page comes up (real Chrome, Node ≥22) — mandatory when app/**
                          # changes. Serves the SHIPPED bundle layout (Main.html in Base.lproj/,
                          # Script.js at the root), because a flat layout hides the 404 that turns
