@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "Qwen (DashScope) API Key."
   },
+  "hint_qwen_mt": {
+    "message": "Clave de API de Qwen MT (DashScope). Modelo especializado en traducción, más barato y rápido que un modelo de chat general. Misma clave que Qwen."
+  },
   "hint_kimi": {
     "message": "Kimi (Moonshot) API Key from the matching region platform."
   },

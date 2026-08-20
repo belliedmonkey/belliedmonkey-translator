@@ -361,10 +361,15 @@ Rules:
     // Registry `type` is the default shape; the address refines it (domain-design §7).
     // 三个 adapter 塌成一次调用：请求体长什么样由 request-shape.js 一处决定，
     // 翻译与解析两条链路从此共用同一份实现（原来是两份逐字重复的）。
-    const fmt = WireFormat.formatFor(url, p.type);
+    // 模型也参与形状判定：翻译专用模型（qwen-mt 家族）与普通对话模型共用同一个地址，
+    // 地址区分不了它们（domain-design §7 第三条声明）。
+    const mdl = model || p.defaultModel;
+    const fmt = WireFormat.formatFor(url, p.type, mdl);
     const req = RequestShape.build(fmt, {
-      url, apiKey, model: model || p.defaultModel,
+      url, apiKey, model: mdl,
       system: buildSystemPrompt(targetLang), user: text,
+      // translate-compat 用它替代提示词里的目标语言；别的形状忽略它。
+      targetLang,
       budget: MAX_OUT_TRANSLATION,
     });
     // 「这次按哪一行表发的、实际发了哪些字段」—— 设置页与 verify-provider 都要它。

@@ -150,3 +150,76 @@ describe('能力表：真实的表在真实的地址上', () => {
     eq(Object.keys(req.body).sort().join(','), 'messages,model');
   });
 });
+
+// ─── 翻译专用形状（domain-design §7 第三条声明）────────────────────────────
+// 这一组的存在理由跟上面几组不同。上面钉的是「少发了什么」，这里钉的是「必须发」——
+// 而且是因为漏发**不会报错**：实测 2026-08-20，qwen-mt 缺 translation_options 时服务端
+// 答 200 并把原文原样吐回来，isTranslated() 只看非空，于是英文段落下面渲染出同一句
+// 英文，没有任何报错，还会进 12 小时缓存。一个必填字段的缺失被答以一个像模像样的 200,
+// 就必须由结构保证，而不是由「记得传」保证。
+describe('translate-compat：qwen-mt 的形状', () => {
+  const RS = () => shapeWith(TABLE);
+  const DASH = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+
+  test('translation_options 一定在，且带目标语言', () => {
+    const req = RS().build('translate-compat', {
+      url: DASH, model: 'qwen-mt-turbo', system: '（应被丢弃）', user: 'hello',
+      targetLang: 'zh-CN', budget: 2000,
+    });
+    ok(req.body.translation_options, 'translation_options 缺失 = 静默回显原文');
+    eq(req.body.translation_options.target_lang, 'zh');
+    eq(req.body.translation_options.source_lang, 'auto');
+  });
+
+  test('只有一条 user 消息，没有 system —— 两者都会 400', () => {
+    const req = RS().build('translate-compat', {
+      url: DASH, model: 'qwen-mt-turbo', system: '（应被丢弃）', user: 'hello', targetLang: 'zh-CN',
+    });
+    eq(req.body.messages.length, 1, '多于一条: The length of the input.messages field has exceeded the limit');
+    eq(req.body.messages[0].role, 'user', 'system 角色: Role must be in [user, assistant]');
+    eq(req.body.messages[0].content, 'hello');
+    ok(!JSON.stringify(req.body).includes('应被丢弃'), '提示词在这个形状里没有位置');
+  });
+
+  test('zh-TW 映射成 Traditional Chinese，不是 zh —— 否则繁体用户静默拿到简体', () => {
+    // 实测：zh-TW / zh-Hant 都 400，裸 zh 会 200 但输出简体。这条断言是那个静默错误的
+    // 唯一守卫，因为服务端对「给繁体用户简体」这件事永远不会有意见。
+    const RS2 = RS();
+    eq(RS2.translateLang('zh-TW'), 'Traditional Chinese');
+    eq(RS2.translateLang('zh-CN'), 'zh');
+    eq(RS2.translateLang('ja'), 'ja', '实测可用的裸代码原样透传');
+    eq(RS2.translateLang('xx-YY'), 'xx-YY', '没见过的原样透传 —— 换来一句可见的 400');
+  });
+
+  test('可选字段仍走能力表：dashscope 说收，就带上', () => {
+    const req = RS().build('translate-compat', {
+      url: DASH, model: 'qwen-mt-turbo', user: 'hello', targetLang: 'zh-CN', budget: 2000,
+    });
+    eq(req.body.temperature, 0.3);
+    eq(req.body.max_tokens, 2000);
+  });
+});
+
+describe('形状判定：同一地址内由模型名声明', () => {
+  const WF = require('../extension/content/wire-format.js');
+  const DASH = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+
+  test('qwen-mt 家族 ⇒ translate-compat；同址别的模型 ⇒ 照旧 chat-compat', () => {
+    eq(WF.formatFor(DASH, 'chat-compat', 'qwen-mt-turbo'), 'translate-compat');
+    eq(WF.formatFor(DASH, 'chat-compat', 'qwen-mt-plus'), 'translate-compat');
+    eq(WF.formatFor(DASH, 'chat-compat', 'qwen-plus'), 'chat-compat');
+    eq(WF.formatFor(DASH, 'chat-compat', ''), 'chat-compat');
+  });
+
+  test('判据是 host 与模型前缀两者，不是任一 —— 两个方向都会静默出错', () => {
+    // 不该用却用了：发出去的是一句没有任何指令的裸文本，同样是个像模像样的 200。
+    eq(WF.formatFor('https://gw.corp.example/v1/chat/completions', 'chat-compat', 'qwen-mt-turbo'),
+      'chat-compat', '陌生 host 上的同名模型不该被换形状');
+  });
+
+  test('家族封闭 —— 语音/转写端点不会被模型名拖进对话形状', () => {
+    eq(WF.formatFor('https://x.example/v1/audio/speech', 'speech-compat', 'qwen-mt-turbo'), 'speech-compat');
+    eq(WF.formatFor('https://x.example/v1/audio/transcriptions', 'transcribe-compat', 'qwen-mt-turbo'),
+      'transcribe-compat');
+  });
+});

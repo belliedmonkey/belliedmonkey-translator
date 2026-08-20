@@ -95,13 +95,20 @@ const API = ctx.TranslationAPI;
 
 // 判据 2 要的是「打算请求哪个地址」，在发之前就能算出来——发不出去时它同样有用。
 const intended = WireFormat.resolveEndpoint(baseUrl, entry);
-const shape = WireFormat.formatFor(intended, entry.type);
+// 形状要按**真正会用的**模型算。传空串的话这里显示 chat-compat 而请求实际走的是
+// translate-compat —— 又一个「报告里说的和跑的不是一回事」，那种偏差今天已经代价够大了。
+const shape = WireFormat.formatFor(intended, entry.type, model || entry.defaultModel || '');
 
 (async () => {
   console.log(`条目      ${id}  ·  flavor ${flavor}  ·  ${entry.label || ''}`);
   console.log(`地址      ${intended}${baseUrl ? '  （自填）' : '  （注册表默认端点）'}`);
-  console.log(`形状      ${shape}${shape === entry.type ? '' : `  （由地址后缀判定，注册表 type 是 ${entry.type}）`}`);
-  if (model) console.log(`模型      ${model}`);
+  // 形状为什么不是 type，有两种可能的答案（domain-design §7），说清是哪一种：
+  // 地址的路径后缀，或者模型家族自带的形状。两者混为一谈会让排查从第一步就走错方向。
+  const byModel = shape !== WireFormat.formatFor(intended, entry.type, '');
+  console.log(`形状      ${shape}${shape === entry.type ? ''
+    : byModel ? '  （由模型名判定，注册表 type 是 ' + entry.type + '）'
+              : '  （由地址后缀判定，注册表 type 是 ' + entry.type + '）'}`);
+  console.log(`模型      ${model || (entry.defaultModel || '') + '  （注册表默认模型）'}`);
   console.log('');
 
   const SOURCE = 'Spaced repetition is an evidence-based learning technique.';

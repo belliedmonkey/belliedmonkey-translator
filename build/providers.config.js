@@ -95,6 +95,20 @@ module.exports = [
     label: { china: '通义千问', global: 'Qwen' }, hintKey: 'hint_qwen',
   },
   {
+    // 翻译专用模型。`type` 写 chat-compat 而不是 translate-compat，是刻意的：`type` 的
+    // 语义是「地址认不出来时的兜底形状」，而这个条目的真实形状由**模型名**声明
+    // （domain-design §7 第三条）。用户把模型改成 qwen-plus 时，它就该退回普通对话，
+    // 那正是 chat-compat 兜底给出的结果。
+    id: 'qwen_mt', type: 'chat-compat', flavors: ['global', 'china'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: {
+      china: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      global: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+    },
+    placeholder: null, defaultModel: 'qwen-mt-turbo',
+    label: { china: '通义千问·翻译版', global: 'Qwen MT' }, hintKey: 'hint_qwen_mt',
+  },
+  {
     id: 'kimi', type: 'chat-compat', flavors: ['global', 'china'],
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: {

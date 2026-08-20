@@ -706,6 +706,36 @@ is a build-time concern, not a runtime one.
   recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
   what keeps every unknown third-party endpoint behaving exactly as it does today.
 
+  **A third declaration, added 2026-08-20 for translation-specialised models: within a
+  single address, a model family may carry its own shape.** `qwen-mt-*` is served from
+  the very same `…/compatible-mode/v1/chat/completions` URL as every other Qwen model,
+  so the address cannot distinguish it — yet it is not Chat Completions at all:
+
+  | probe (real endpoint, 2026-08-20) | result |
+  |---|---|
+  | a `system` message | `400 Role must be in [user, assistant].` |
+  | more than one message | `400 The length of the input.messages field has exceeded the limit. only one` |
+  | one user message + `translation_options` | `200`, correct translation |
+  | **one user message, no `translation_options`** | **`200`, the SOURCE TEXT echoed back** |
+
+  That last row is why this is a **shape** and not a row in the capability table. The
+  table's licence (see below, and the header of `build/model-params.config.js`) holds
+  only while a missing row costs us a capability, never a correct request. Here a
+  missing field costs neither loudly: the server answers 200 with the English original,
+  `isTranslated()` accepts any non-empty string — deliberately, since a correct
+  translation may equal its input — and the page renders English under English, with no
+  error anywhere and a 12-hour cache entry to match. A required field whose omission is
+  answered with a plausible 200 must be **structural**: `request-shape.js` builds
+  `translate-compat` with `translation_options` always present, so there is no code path
+  that can omit it.
+
+  The discriminator is **host + model prefix, both verified**, and it is deliberately
+  narrow because *both* directions fail silently: sending the translate shape to a model
+  that does not want it means sending bare text with no instruction, which also returns
+  a plausible-looking 200. So it is a short pinned list in `wire-format.js` next to the
+  suffix table — the file that already answers "which shape" — and never a wildcard.
+  Anything not on it stays exactly as it is today.
+
 - **The request BODY is looked up in a table, and anything not in it gets the
   protocol minimum.** Picking the right address and the right shape still leaves a
   third variable: the optional fields inside the body. `chat-compat` faces the entire

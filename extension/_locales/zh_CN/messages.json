@@ -252,6 +252,9 @@
   "hint_qwen": {
     "message": "通义千问（DashScope）API Key。"
   },
+  "hint_qwen_mt": {
+    "message": "通义千问·翻译版（DashScope）API Key。翻译专用模型，比通用对话模型更便宜也更快，与通义千问共用同一把 Key。"
+  },
   "hint_kimi": {
     "message": "Kimi（Moonshot）API Key，请在对应区域平台申请（国内 moonshot.cn / 国际 moonshot.ai）。"
   },

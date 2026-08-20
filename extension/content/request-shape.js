@@ -158,6 +158,22 @@ var RequestShape = (() => {
 
   // ─── 请求体 ────────────────────────────────────────────────────────────
   // 可选字段的**唯一**决策点。三态在这一个函数里判，别处不许再判一次。
+  // 这个形状的语言词汇表跟我们的语言代码不是一回事。实测 2026-08-20（19 个取值）：
+  //
+  //   zh / en / ja / ko / fr / de / es / ar / pt / ru / it   ⇒ 200
+  //   zh-CN · zh_CN · zh-TW · zh-Hant                        ⇒ 400 暂时不支持当前设置的语种！
+  //   Traditional Chinese                                    ⇒ 200，且输出确实是繁体
+  //
+  // 所以**不能**用「去掉地区后缀」这个想当然的写法：`zh-TW` 那样会变成 `zh`，服务端
+  // 照常 200，而繁体用户拿到的是简体 —— 又一个静默出错。只显式映射我们确知的两条，
+  // 其余原样透传：一个没见过的代码会换来那句可见的 400，而不是一段悄悄错掉的译文。
+  const TRANSLATE_LANG = { 'zh-cn': 'zh', 'zh-tw': 'Traditional Chinese' };
+  function translateLang(code) {
+    const k = String(code == null ? '' : code).trim().toLowerCase();
+    if (!k) return 'zh';
+    return TRANSLATE_LANG[k] || String(code).trim();
+  }
+
   function optional(cap, want, tuned) {
     if (cap === false) return undefined;                    // 表明确否决 ⇒ 无条件不发
     if (want !== undefined && want !== null && want !== '') return want;  // 用户明说
@@ -206,6 +222,32 @@ var RequestShape = (() => {
       return { headers: bearer, body, extract: extractResponses, caps };
     }
 
+    // 翻译专用形状（qwen-mt 家族）。三条硬约束全部来自 2026-08-20 的实测：
+    //   · 只能有**一条** user 消息 —— 多一条 400，system 角色 400。
+    //   · 目标语言走 `translation_options`，不走提示词。
+    //   · **漏了 translation_options 不会报错**：服务端 200，把原文原样吐回来。
+    //
+    // 最后一条决定了这里的写法：那个字段是**按构造存在**的，不经过 put()、不看用户
+    // 设置、没有任何分支能把它拿掉。它不是可选字段表的一员，它是这个形状的定义本身。
+    if (fmt === 'translate-compat') {
+      const body = {
+        model: o.model,
+        messages: [{ role: 'user', content: o.user }],
+        translation_options: {
+          source_lang: o.sourceLang || 'auto',
+          target_lang: translateLang(o.targetLang),
+        },
+      };
+      // 可选字段仍然按能力表走 —— dashscope 那一行说收 temperature 与 max_tokens，
+      // 实测也确实收（带上二者 200）。系统提示词在这个形状里**没有位置**，调用方给了
+      // 也丢掉：模型的任务由 translation_options 定义，不由提示词定义。
+      put(body, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE));
+      if (caps.budget !== false) {
+        put(body, 'max_tokens', optional(true, p.reqMaxTokens, o.budget));
+      }
+      return { headers: bearer, body, extract: extractChat, caps };
+    }
+
     if (fmt === 'speech-compat') {
       const body = { model: o.model, input: o.input, voice: o.voice };
       // response_format 只在调用方给了值时才发。今天 tts.js 恒传它自己 DEFAULTS 里的
@@ -252,7 +294,7 @@ var RequestShape = (() => {
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
     extractChat, extractMessages, extractResponses,
-    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP,
+    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang,
   };
 })();
 
