@@ -54,6 +54,10 @@ const CANDIDATES = [
   { label: "reasoning:{effort:'low'}", params: { reasoning: { effort: 'low' } } },
   { label: 'reasoning:{enabled:false}', params: { reasoning: { enabled: false } } },
   { label: 'enable_thinking:false', params: { enable_thinking: false } },
+  // messages-compat 的写法。Anthropic 的 extended thinking 本就是 opt-in，
+  // 所以这里试的是「显式关掉会不会被拒」，不是「能不能省」。
+  { label: "thinking:{type:'disabled'}（messages 形状同名）", params: { thinking: { type: 'disabled' } },
+    onlyShape: 'messages' },
 ];
 
 const hostOf = (u) => {
@@ -83,18 +87,48 @@ function thinkOf(d) {
   if (rt != null) return rt;
   const m = d.choices && d.choices[0] && d.choices[0].message;
   if (m && m.reasoning_content) return String(m.reasoning_content).length;   // 字符数，不是 token
+  // messages-compat：思考是一类 content 块，不是一个 usage 字段。
+  if (Array.isArray(d.content)) {
+    const t = d.content.filter((b) => b.type === 'thinking' || b.type === 'redacted_thinking');
+    if (t.length) return t.reduce((a, b) => a + String(b.thinking || '').length, 0);
+  }
   return null;
 }
 
+// 正文：chat 在 choices[0].message.content，messages 在 content 里的 text 块。
+function textOf(d) {
+  const m = d.choices && d.choices[0] && d.choices[0].message;
+  if (m) return String(m.content || '').trim();
+  if (Array.isArray(d.content)) {
+    return d.content.filter((b) => b.type === 'text').map((b) => b.text || '').join('').trim();
+  }
+  return '';
+}
+
+// 形状由地址后缀判定，与 wire-format.js 同一条规则。
+// 本来只写了 chat-compat —— 而我们自己的注册表就有 messages 形状的条目（claude /
+// custom_msg）。一个测不了自家形状的测量工具，会让 /perf-tune 变成一句空话。
+function shapeOf(url) {
+  const n = String(url).split('?')[0].replace(/\/+$/, '').toLowerCase();
+  return n.endsWith('/messages') ? 'messages' : 'chat';
+}
+
 async function once(url, key, model, extra, budgetKey, text) {
-  const body = { model, messages: [{ role: 'system', content: SYS }, { role: 'user', content: text }] };
-  body[budgetKey] = 2000;
+  const shape = shapeOf(url);
+  // messages-compat：系统提示走**顶层 system**（不是一条 message），max_tokens 是
+  // API 必填，鉴权用 x-api-key + anthropic-version 而不是 Bearer。
+  const body = shape === 'messages'
+    ? { model, max_tokens: 2000, system: SYS, messages: [{ role: 'user', content: text }] }
+    : { model, messages: [{ role: 'system', content: SYS }, { role: 'user', content: text }] };
+  if (shape !== 'messages') body[budgetKey] = 2000;
   Object.assign(body, extra || {});
   const t0 = Date.now();
   try {
     const r = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      headers: shape === 'messages'
+        ? { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+        : { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(120000),
     });
@@ -102,7 +136,6 @@ async function once(url, key, model, extra, budgetKey, text) {
     let d = {};
     try { d = JSON.parse(raw); } catch (_) { /* 非 JSON 正文也要留住 —— 网关会返回 HTML */ }
     const c = d.choices && d.choices[0];
-    const msg = c && c.message;
     // ⚠️ MiniMax 会把错误包在 HTTP 200 里（base_resp.status_code）。只看 r.ok 会把
     // 「无效 key」读成一次成功的空翻译 —— 2026-08-20 实测。
     const soft = d.base_resp && d.base_resp.status_code ? d.base_resp : null;
@@ -110,9 +143,9 @@ async function once(url, key, model, extra, budgetKey, text) {
       ms: Date.now() - t0,
       status: r.status,
       ok: r.ok && !soft && !d.error,
-      finish: (c && c.finish_reason) || d.status || null,
+      finish: (c && c.finish_reason) || d.stop_reason || d.status || null,
       think: thinkOf(d),
-      outChars: String((msg && msg.content) || '').trim().length,
+      outChars: textOf(d).length,
       outTokens: (d.usage || {}).completion_tokens ?? (d.usage || {}).output_tokens ?? null,
       err: soft ? `${soft.status_code} ${soft.status_msg}`
         : (d.error && (d.error.message || JSON.stringify(d.error)))
@@ -196,6 +229,7 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   // ── 2. 候选 ───────────────────────────────────────────────────────────
   const results = [];
   for (const c of CANDIDATES) {
+    if (c.onlyShape && c.onlyShape !== shapeOf(url)) continue;
     const runs = [];
     for (let i = 0; i < repeat; i++) runs.push(await once(url, key, model, c.params, budgetKey, LONG));
     for (const r of runs) console.log(('  ' + c.label).padEnd(34) + fmt(r));
@@ -206,6 +240,7 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   if (safeModel) {
     console.log(`\n  安全性检查（${safeModel}，本来就不思考的模型）:`);
     for (const c of CANDIDATES) {
+      if (c.onlyShape && c.onlyShape !== shapeOf(url)) continue;
       const r = await once(url, key, safeModel, c.params, budgetKey, LONG);
       console.log(('    ' + c.label).padEnd(34) + fmt(r));
     }
@@ -221,6 +256,24 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
     .sort((a, b) => (a.think ?? 1e9) - (b.think ?? 1e9));
 
   console.log('\n── 结论草稿（粘进 build/perf-ledger.config.js 前请自己复核）──');
+
+  // 候选之间分不出高下时，**不许给自信的结论**。
+  // 2026-08-21 这个工具自己踩过：minimax/minimax-m2 经 openrouter，五个被接受的候选
+  // 思考量落在 233–264，本质上一模一样，而它按「单次采样里最小的那个」推荐了
+  // enable_thinking:false —— 一个大概率根本没生效的参数。写进表就是一行假知识。
+  // 判据：最好与最差的候选相差不到 15%，就是分不出来。
+  const spread = winners.length > 1 && winners.every((w) => w.think != null)
+    ? (winners[winners.length - 1].think - winners[0].think) / Math.max(1, winners[0].think)
+    : null;
+  if (winners.length > 1 && spread != null && spread < 0.15) {
+    console.log(`  ⚠️  ${winners.length} 个候选彼此分不出高下（思考 `
+      + `${winners[0].think}–${winners[winners.length - 1].think}，相差 ${Math.round(spread * 100)}%）。`);
+    console.log('  这通常意味着**它们都没生效**，而不是「都很好」。别按最小的那个下结论 ——');
+    console.log('  先 --repeat 4 看基线自己的抖动区间；基线若能跨进这个区间，那就是噪声，'
+      + "verdict: 'rejected'。");
+    console.log('');
+  }
+
   if (!winners.length) {
     console.log("  verdict: 'rejected' —— 没有候选同时满足「全部成功」且「思考更少」。");
     console.log('  记得写 why：是本来就不思考，还是候选都无效/被拒。留白等于下一个人重做一遍。');

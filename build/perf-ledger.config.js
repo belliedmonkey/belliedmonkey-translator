@@ -166,17 +166,26 @@ module.exports = [
 
   // ── openrouter ───────────────────────────────────────────────────────
   {
-    host: 'openrouter.ai', model: 'openai/gpt-5-mini', date: '2026-08-20',
-    baseline: { ms: 9146, thinkTokens: 704, outChars: 156, finish: 'stop' },
+    host: 'openrouter.ai', model: 'openai/gpt-5-mini', date: '2026-08-21',
+    baseline: { ms: 14951, thinkTokens: 1168, outChars: 156, finish: 'stop',
+      note: '**四遍复验**（2026-08-21）：1344 / 1088 / 1344 / 896 tok，11197–16852ms。'
+        + '首测（08-20）只跑了一遍，得 704tok / 9146ms —— 单次采样落在这个区间之外，'
+        + '正说明 n=1 不足以下结论' },
     tried: [
-      { params: { reasoning: { effort: 'low' } }, ms: 4255, thinkTokens: 192, outChars: 147 },
+      { params: { reasoning: { effort: 'low' } }, ms: 4694, thinkTokens: 208, outChars: 147,
+        note: '四遍：192 / 256 / 320 / 64 tok（区间 64–320），3296–6413ms。'
+          + '与基线的 896–1344 **毫不重叠**，基线最小值是候选最大值的 2.8 倍 —— '
+          + '效果远大于噪声带，这一行站得住' },
       { params: { reasoning_effort: 'low' }, ms: 4848, thinkTokens: 320, outChars: 126,
         note: '**也返回 200，但明显没那么有效**（320 vs 192 思考 tok）。只看状态码会选到次优拼法' },
       { params: { reasoning: { enabled: false } }, ms: 271, thinkTokens: null, outChars: 0,
         note: '400 —— Reasoning is mandatory for this endpoint and cannot be disabled. 只能降档不能关' },
     ],
     verdict: 'adopted', adopted: { reasoning: { effort: 'low' } },
-    why: '第四种拼法：这个网关用嵌套 reasoning:{effort}，与 OpenAI 顶层字符串、GLM/DeepSeek 的 thinking 都不同',
+    why: '第四种拼法：这个网关用嵌套 reasoning:{effort}，与 OpenAI 顶层字符串、GLM/DeepSeek 的 '
+      + 'thinking 都不同。⚠️ 这一行被**重新验过一次**：同 host 的 minimax/minimax-m2 露出'
+      + '基线抖动 2.4 倍之后，本行原来的 n=1 证据就不够格了。复验后区间不重叠，结论保留 —— '
+      + '规矩要先用在自己已经采纳的行上，否则它只是装饰',
   },
   {
     host: 'openrouter.ai', model: 'deepseek/deepseek-r1', date: '2026-08-20',
@@ -197,6 +206,27 @@ module.exports = [
       note: '安全性检查：要写的那个值在不思考的模型上不会 400' }],
     verdict: 'rejected',
     why: '本身不思考；这一行记的是「host 通行不会打断它」，不是它自己需要什么参数',
+  },
+
+  {
+    // 用户提议「MiniMax 自己的 key 无效，能不能借 openrouter 跑一遍」。可以，但要认清
+    // 它量到的是**哪个 host**：这一行属于 openrouter.ai，填不上 api.minimax.chat 那张
+    // 欠条 —— 网关做参数归一化，两边的拼法可以完全不同。
+    host: 'openrouter.ai', model: 'minimax/minimax-m2', date: '2026-08-21',
+    baseline: { ms: 5940, thinkTokens: 496, outChars: 271, finish: 'stop',
+      note: '四遍：413 / 411 / 346 / 815 tok —— **同一个请求体抖动 2.4 倍**' },
+    tried: [
+      { params: { reasoning: { effort: 'low' } }, ms: 6257, thinkTokens: 421, outChars: 271,
+        note: '四遍：598 / 171 / 571 / 345 tok（区间 171–598）。与基线的 346–815 几乎完全'
+          + '重叠 —— 分不出差别' },
+      { params: { reasoning: { enabled: false } }, ms: 228, thinkTokens: null, outChars: 0,
+        note: '400，同 host 其它模型那句原话' },
+    ],
+    verdict: 'rejected',
+    why: '证明不了有效果。⚠️ 这一行同时是**工具自己的一次翻车记录**：单次采样下五个候选'
+      + '思考量落在 233–264，perf-probe 按最小的那个推荐了 enable_thinking:false —— 一个'
+      + '大概率没生效的参数。多跑几遍才看出那只是噪声。工具与 skill 已据此各加一条判据：'
+      + '候选相差 <15% 时不给自信结论，先测基线抖动',
   },
 
   // ── 测过之后决定不写 ─────────────────────────────────────────────────
@@ -233,10 +263,35 @@ module.exports = [
 
   // ── 打不到（带日期的欠条，不是免责声明）────────────────────────────────
   {
-    host: 'api.anthropic.com', model: 'claude-haiku-4-5-20251001', date: '2026-08-20',
-    verdict: 'unreachable',
-    why: '账户余额不足：Your credit balance is too low to access the Anthropic API。'
-      + '另注：Claude 的 extended thinking 本就是 opt-in（默认关），所以预期无事可做，但未证实',
+    host: 'api.anthropic.com', model: 'claude-haiku-4-5-20251001', date: '2026-08-21',
+    baseline: { ms: 4721, thinkTokens: 0, outChars: 271, finish: 'end_turn' },
+    tried: [
+      { params: { thinking: { type: 'disabled' } }, ms: 3398, thinkTokens: 0, outChars: 279,
+        note: '被接受（200），但基线本来就不思考，所以什么也没省' },
+      { params: { thinking: { type: 'enabled', budget_tokens: 1024 } }, ms: 6291,
+        thinkTokens: 697, outChars: 275,
+        note: '**对照组**：显式打开后跑出 697 字思考。它证明上面那个「0」是真实观测，'
+          + '而不是我们的解析没找到 —— 没有这一条，「不思考」与「没测到」无法区分' },
+    ],
+    verdict: 'rejected',
+    why: 'extended thinking 是 opt-in，默认就是关的（三个档位实测均为 0）。没有可关的东西；'
+      + '显式发 disabled 只是多一个字段，不省任何东西',
+  },
+  {
+    host: 'api.anthropic.com', model: 'claude-sonnet-4-5-20250929', date: '2026-08-21',
+    baseline: { ms: 6379, thinkTokens: 0, outChars: 291, finish: 'end_turn' },
+    tried: [
+      { params: { thinking: { type: 'disabled' } }, ms: 6572, thinkTokens: 0, outChars: 288 },
+      { params: { thinking: { type: 'enabled', budget_tokens: 1024 } }, ms: 11567,
+        thinkTokens: 680, outChars: 285, note: '同上的对照组' },
+    ],
+    verdict: 'rejected', why: '同 haiku：默认不思考',
+  },
+  {
+    host: 'api.anthropic.com', model: 'claude-opus-4-5-20251101', date: '2026-08-21',
+    baseline: { ms: 6996, thinkTokens: 0, outChars: 278, finish: 'end_turn' },
+    tried: [{ params: { thinking: { type: 'disabled' } }, ms: 6166, thinkTokens: 0, outChars: 270 }],
+    verdict: 'rejected', why: '同 haiku：默认不思考。三个档位（haiku/sonnet/opus）一致',
   },
   {
     host: 'api.minimax.chat', model: 'MiniMax-M2', date: '2026-08-20',
