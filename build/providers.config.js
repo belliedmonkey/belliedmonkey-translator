@@ -115,7 +115,12 @@ module.exports = [
       china: 'https://api.moonshot.cn/v1/chat/completions',
       global: 'https://api.moonshot.ai/v1/chat/completions',
     },
-    placeholder: null, defaultModel: 'moonshot-v1-8k',
+    // ⚠️ 2026-08-21 实测：国际站 api.moonshot.ai 上 `moonshot-v1-8k` 已经 **404**
+    // （Not found the model … or Permission denied），也就是说任何人选了 Kimi、不手填
+    // 模型，第一次翻译就报错 —— 这个引擎开箱即不可用。改成实测可用的 kimi-k2.6。
+    // 国内站那个值**保持不动**：手上没有 .cn 的 key，无法验证；改一个没验过的值去替换
+    // 另一个没验过的值，只是把风险从一边挪到另一边。见 perf-ledger 里 api.moonshot.cn 那行。
+    placeholder: null, defaultModel: { global: 'kimi-k2.6', china: 'moonshot-v1-8k' },
     label: 'Kimi', hintKey: 'hint_kimi',
   },
   {

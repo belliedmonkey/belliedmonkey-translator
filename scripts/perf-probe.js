@@ -67,7 +67,11 @@ const hostOf = (u) => {
 
 function slot(name) {
   if (!fs.existsSync(KEYS_FILE)) return null;
-  const m = new RegExp(name + '\\s*=\\s*(\\S+)').exec(fs.readFileSync(KEYS_FILE, 'utf8'));
+  // `[^\\S\\n]*` 而不是 `\\s*`：`\\s` **包含换行**，于是一个空槽位（`key =` 后面什么都没有）
+  // 会贪婪地跨行吃到下一行的内容，把下一行的字段名当成 key 返回。实测 2026-08-21：
+  // 空的 cws_client_id 取到了字符串 "cws_client_secret"，于是「缺凭证」被伪装成
+  // 「凭证错误」，报错指向完全错误的方向。
+  const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS_FILE, 'utf8'));
   return m ? m[1] : null;
 }
 
@@ -282,6 +286,20 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   }
 
   console.log('\n── 结论草稿（粘进 build/perf-ledger.config.js 前请自己复核）──');
+
+  // 一次都没成功过 ⇒ **unreachable，不是 rejected**。
+  // 两者在台账里的含义完全不同：rejected 是「打通了，但没有值得写的参数」，是一条
+  // 知识；unreachable 是「根本没打通」，是一张欠条。把后者写成前者，等于在台账里留下
+  // 一条「我们测过了」的假记录，而门禁只会检查它自洽，不会知道它是假的。
+  // （2026-08-21 打 kimi 时露出来的：账号被停用、十次全 429，工具却建议 rejected。）
+  if (!base.some((r) => r.ok)) {
+    const first = base.find((r) => r.err) || base[0] || {};
+    console.log("  verdict: 'unreachable' —— 基线一次都没成功，这个端点根本没打通。");
+    console.log(`  把这句原话抄进 why：HTTP ${first.status} ${String(first.err || '').slice(0, 120)}`);
+    console.log('  ⚠️ 不要写成 rejected —— 那是「打通了但没收益」，是一条知识；');
+    console.log('     这里是一张欠条。两者混淆会让台账说一句我们并不知道的话。\n');
+    return;
+  }
 
   // 候选之间分不出高下时，**不许给自信的结论**。
   // 2026-08-21 这个工具自己踩过：minimax/minimax-m2 经 openrouter，五个被接受的候选

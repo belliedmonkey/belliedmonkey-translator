@@ -277,7 +277,6 @@ describe('推理档位：表只存档位，拼法由形状决定', () => {
     for (const [url, model] of [
       ['https://openrouter.ai/api/v1/chat/completions', 'openai/gpt-5'],
       ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
-      ['https://api.moonshot.cn/v1/chat/completions', 'kimi-k2'],
       ['https://api.x.ai/v1/chat/completions', 'grok-4'],
       ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1-6'],
     ]) {
@@ -381,6 +380,17 @@ describe('推理片段：三家三种拼法，这就是它存片段而非枚举�
     deepEq(pick('https://openrouter.ai/api/v1/chat/completions', 'openai/gpt-5').reasoning, { effort: 'low' });
   });
 
+  test('kimi 两个域都发 thinking:disabled —— 国内那条来自继承，不是单独实测', () => {
+    // 继承策略的落点：.ai 实测出结论，.cn 共享同一个 model-params 行，于是两边发同一个
+    // 值。台账里 .cn 那行是 verdict:'inferred'，from: 'api.moonshot.ai'。
+    const S = RS();
+    for (const url of ['https://api.moonshot.ai/v1/chat/completions',
+                       'https://api.moonshot.cn/v1/chat/completions']) {
+      const b = S.build('chat-compat', { url, model: 'kimi-k2.6', system: 's', user: 'u', budget: 2000 }).body;
+      deepEq(b.thinking, { type: 'disabled' }, url);
+    }
+  });
+
   test('实测之后决定不写的行,确实一个字都不发', () => {
     // grok / gemini / minimax / ark / kimi / anthropic / dashscope —— 每一条留空的理由
     // 都写在 config 的 note 里(测过没收益 / key 无效 / 模型 id 拿不到 / 默认就不思考)。
@@ -391,7 +401,7 @@ describe('推理片段：三家三种拼法，这就是它存片段而非枚举�
       ['https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'gemini-3.6-flash'],
       ['https://api.minimax.chat/v1/chat/completions', 'MiniMax-M2'],
       ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1.6'],
-      ['https://api.moonshot.cn/v1/chat/completions', 'kimi-k2'],
+
       ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
     ]) {
       const b = S.build('chat-compat', { url, model, system: 's', user: 'u', budget: 2000 }).body;

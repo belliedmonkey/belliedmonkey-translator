@@ -53,8 +53,13 @@ const pickFlavor = (v) => (v && typeof v === 'object' && !Array.isArray(v)) ? v[
 const raw = CONFIG.find((p) => p.id === id);
 if (!raw) die(`注册表里没有 ${id}`, '可选：' + CONFIG.map((p) => p.id).join(', '));
 if (!raw.flavors.includes(flavor)) die(`${id} 不在 ${flavor} flavor 里`, '试试 --flavor ' + raw.flavors.join(' / --flavor '));
+// 凡是**可能**按 flavor 分开写的字段都要过 pickFlavor。漏一个的表现是
+// `[object Object]` 被当成值发出去 —— 2026-08-21 给 kimi 的 defaultModel 分 flavor 之后
+// 这里就漏了，自检打印出「模型 [object Object]」并失败。build.js 那边同时也漏了同一个
+// 字段：一个字段变成按 flavor，它的每一个消费方都得跟上，而没有任何机制会提醒你。
 const entry = Object.assign({}, raw, {
   defaultEndpoint: pickFlavor(raw.defaultEndpoint),
+  defaultModel: pickFlavor(raw.defaultModel),
   label: pickFlavor(raw.label),
 });
 

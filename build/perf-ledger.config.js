@@ -523,19 +523,6 @@ module.exports = [
       + 'api.minimax.chat / api.minimaxi.com —— 后两者本轮 key 被拒，未能打通。',
   },
   {
-    host: 'api.minimax.chat', model: 'MiniMax-M2', date: '2026-08-21',
-    verdict: 'unreachable',
-    why: 'key 被拒：2049 invalid api key。**充值不能解决 —— 是鉴权不是余额。** '
-      + '2026-08-21 复测（用户充值后）三个端点仍全拒，且已定位到是 key 值本身的问题：'
-      + '带 Bearer 时报 2049（说明头的写法正确、值不被认），改用裸 key / api-key / '
-      + 'x-api-key 三种写法则报 login fail: Please carry the…（头就不对）。'
-      + '另：该 key 126 字符、单段、以 sk-api 开头，而 MiniMax 官方 key 是 eyJ… 三段式 JWT '
-      + '—— 形状就对不上，多半不是 MiniMax 的 key。需要用户从 MiniMax 控制台重新取。'
-      + '⚠️ 顺带记一个真陷阱：/v1/text/chatcompletion_v2 把错误包在 HTTP 200 里（无效 key '
-      + '也返回 200 + 空正文），只有 /v1/chat/completions 才正常 401 —— 我们的代码会把它'
-      + '当成一次「翻译失败」，且拿不到任何服务端原话',
-  },
-  {
     host: 'ark.cn-beijing.volces.com', model: '(未取得可用 model id)', date: '2026-08-20',
     verdict: 'unreachable',
     why: 'key 可达（到 API 才报模型级 404），但 doubao-seed-1.6 / doubao-pro-32k / '
@@ -544,12 +531,52 @@ module.exports = [
       + 'host 通行的理由。需要用户从火山控制台提供一个可用 id',
   },
   {
-    host: 'api.moonshot.cn', model: 'moonshot-v1-8k', date: '2026-08-20',
-    verdict: 'unreachable', why: '.local/keys.md 里没有 kimi 的 key',
+    // 用户问：国际版搞定了，还需要国内版 key 吗？不需要 —— 这正是继承策略的第一个
+    // 真实用例。两个域共享同一个 model-params 行，所以 .ai 一旦测出结论，.cn 可以
+    // 直接记成 inferred。但**今天还不能**：.ai 那边账号被停用，压根没有结论可继承。
+    // 继承策略的第二个真实用例，也是用户那个问题的答案：**国内 key 不需要**。
+    // 两个域共享同一个 model-params 行（同厂不同域），.ai 已实测出结论，直接继承。
+    host: 'api.moonshot.cn', model: 'moonshot-v1-8k', date: '2026-08-21',
+    verdict: 'inferred', from: 'api.moonshot.ai',
+    adopted: { thinking: { type: 'disabled' } },
+    why: '同厂不同域，与 api.moonshot.ai 共享 model-params 行。源端实测：基线两次里饿死'
+      + '一次，thinking:disabled 后思考 1999→1 tok、快约 8 倍。本域按同结论处理，'
+      + '直到拿到 .cn 的 key 实测。'
+      + ' ⚠️ 另有一个**未决**的问题：国际站的 moonshot-v1-8k 已下架，本域的 defaultModel '
+      + '仍是它 —— 那个值没有 key 可验，改与不改都是猜，所以保持原样并记在这里。',
   },
   {
-    host: 'api.moonshot.ai', model: 'moonshot-v1-8k', date: '2026-08-20',
-    verdict: 'unreachable', why: '同上（global 侧同样没有 key）',
+    // 账号停用 → 用户充值恢复后重测。第三家有饿死病的厂商。
+    host: 'api.moonshot.ai', model: 'kimi-k2.6', date: '2026-08-21',
+    baseline: { ms: 27275, thinkTokens: 1999, outChars: 137, finish: 'length',
+      note: '两遍：30287ms/1999tok/**正文 0 字**（finish=length，饿死）与 '
+        + '24263ms/1428tok/274 字 —— 两次里坏一次' },
+    tried: [
+      { params: { thinking: { type: 'disabled' } }, ms: 3348, thinkTokens: 1, outChars: 272,
+        note: '两遍：3432/3263ms、思考都是 1 tok、正文 277/266 字。快约 8 倍且饿死消失' },
+      { params: { reasoning_effort: 'minimal' }, ms: 31529, thinkTokens: 1882, outChars: 135,
+        note: '救不了：两遍里也饿死一次（1999tok/0 字）' },
+      { params: { reasoning_effort: 'low' }, ms: 21812, thinkTokens: 1333, outChars: 141,
+        note: '同样饿死一次' },
+      { params: { reasoning: { enabled: false } }, ms: 25606, thinkTokens: 1594, outChars: 140,
+        note: '⚠️ 名字写着「关闭」，实际让思考**变多**，并饿死一次' },
+      { params: { enable_thinking: false }, ms: 30813, thinkTokens: 1797, outChars: 263,
+        note: '⚠️ 同上，思考变多' },
+    ],
+    verdict: 'adopted', adopted: { thinking: { type: 'disabled' } },
+    why: '基线两次里饿死一次（HTTP 200、正文 0 字），与 gpt-5-mini / glm-4.6 同一种坏法。'
+      + '五个候选里只有 thinking:disabled 有效，另外四个要么救不了要么让思考变多 —— '
+      + '「名字里带 disable/false」不等于「行为是关闭」，这一条只有实测能分辨。',
+  },
+  {
+    // ⚠️ 顺带查出的**更严重**的问题，与参数无关：注册表原本给 kimi 的 defaultModel 是
+    // moonshot-v1-8k，而它在国际站已经 404（Not found the model … or Permission denied）。
+    // 也就是说任何人选了 Kimi、不手填模型，第一次翻译就报错 —— 引擎开箱即不可用。
+    // 已改为按 flavor 分开：global → kimi-k2.6（实测可用），china 保持原值（无 key 可验）。
+    host: 'api.moonshot.ai', model: 'moonshot-v1-8k', date: '2026-08-21',
+    verdict: 'unreachable',
+    why: '404 Not found the model moonshot-v1-8k or Permission denied —— 该型号已从国际站'
+      + '下架。这一行记的不是参数结论，是「注册表默认模型失效」这个事实本身。',
   },
   {
     // 欠条 → 推测值：与 dashscope.aliyuncs.com 共享同一个 model-params 行（同厂不同域），

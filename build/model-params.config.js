@@ -236,7 +236,16 @@ module.exports = [
     id: 'kimi', flavors: ['global', 'china'],
     hosts: ['api.moonshot.cn', 'api.moonshot.ai'],
     temperature: true, budget: true, systemRole: 'system',
-    note: 'moonshot-v1 系收 temperature 与 max_tokens（文档）。',
+    reasoning: { thinking: { type: 'disabled' } },
+    note: 'moonshot-v1 系收 temperature 与 max_tokens（文档）。'
+      + ' thinking:disabled 为实测所迫（2026-08-21，api.moonshot.ai，真 key，kimi-k2.6，'
+      + '各跑两遍）：基线 24263/30287ms、思考 1428/1999 tok，其中一次 finish=length、'
+      + '**正文 0 字** —— 与另外两家同一种饿死。加上之后 3432/3263ms、思考 1 tok、'
+      + '正文 277/266 字，快约 8 倍且饿死消失。'
+      + ' 五个候选里只有它有效：reasoning_effort 的 minimal 与 low 各自也饿死一次，'
+      + 'reasoning:{enabled:false} 与 enable_thinking:false 反而让思考**变多**'
+      + '（名字里写着「关闭」，行为是「开启」）。'
+      + ' 两个 host 共用本行：.cn 的结论按同厂跨域继承自 .ai（perf-ledger 里 verdict:inferred）。',
   },
   {
     id: 'ark', flavors: ['global', 'china'],
@@ -268,11 +277,11 @@ module.exports = [
   },
   {
     id: 'minimax', flavors: ['global', 'china'],
-    // ⚠️ 2026-08-21 实测才知道真正能用的是 api.minimax.io（用户给出）：
-    // 同一个 host 上既有 chat-compat 口 /v1/chat/completions，也有 messages-compat 口
-    // /anthropic/v1/messages，两条都通。另外两个域是历史地址，本次未能打通（key 被拒），
-    // 留在表里只是因为老用户可能还填着它们 —— 它们与 .io 参数能力一致这一点**未证实**。
-    hosts: ['api.minimax.io', 'api.minimax.chat', 'api.minimaxi.com'],
+    // 2026-08-21：真正能用的是 api.minimax.io（用户给出），同一个 host 上 chat-compat
+    // 与 messages-compat 两条口都通。原先表里写的 api.minimax.chat / api.minimaxi.com
+    // 是**错的地址**，已删 —— 留着一个从未打通、能力未证实的 host，等于让这张表说一句
+    // 我们并不知道的话；而删掉之后它们只是「表外」，照样能用，只是走最小必要集。
+    hosts: ['api.minimax.io'],
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。'
       + ' reasoning 一列**测过之后决定留空**（2026-08-21，api.minimax.io，真 key）：'

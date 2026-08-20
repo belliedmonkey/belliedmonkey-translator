@@ -151,7 +151,10 @@ function generateProviders(dir, flavor) {
     .map((p) => ({
       id: p.id, type: p.type, label: pick(p.label), labelKey: p.labelKey || null,
       defaultEndpoint: pick(p.defaultEndpoint), placeholder: p.placeholder || null,
-      defaultModel: p.defaultModel || '',
+      // 跟 label / defaultEndpoint 一样支持 { china, global } 映射。原来它漏了 pick，
+      // 于是两个 flavor 只能共用一个模型名 —— 而同一家厂商的国内外平台完全可能上下架
+      // 不同的模型（实测 2026-08-21：moonshot 国际站已经没有 moonshot-v1-8k 了）。
+      defaultModel: pick(p.defaultModel) || '',
       needsKey: !!p.needsKey, supportsBaseUrl: !!p.supportsBaseUrl,
       supportsModel: !!p.supportsModel, requiresEndpoint: !!p.requiresEndpoint, hintKey: p.hintKey || null,
     }));
