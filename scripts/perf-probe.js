@@ -221,6 +221,20 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   const starved = base.some((r) => r.ok && r.outChars === 0);
   console.log('');
   if (starved) console.log('  ⚠️  基线出现「200 但正文 0 字」—— 预算被思考吃光，这是必须修的 bug，不只是慢');
+
+  // 反方向的坑，2026-08-21 全家扫时才看见:某些网关上「降档」参数其实是**开关**。
+  // openrouter 的 reasoning:{effort:'low'} 对本来不思考的模型是「以低档**开启**推理」——
+  // deepseek-v4-flash 基线 0 tok，加了之后 78–233 tok；baidu、mistral 同样从 0 变成几百。
+  // 把它当成「优化」加到 host 通行行上，会让大多数模型变慢变贵。所以候选一律也要看
+  // **思考有没有变多**，不是只看有没有变少。
+  const grew = results.filter(({ runs }) => {
+    const t = runs.map((r) => r.think).filter((v) => v != null);
+    return t.length && bt != null && Math.min(...t) > bt;
+  });
+  if (grew.length) {
+    console.log('  ⚠️  这些候选让思考**变多**了 —— 在这个端点上它们是「开启」而不是「降档」:');
+    for (const g of grew) console.log(`        ${g.c.label}`);
+  }
   if (!thinks && !starved) {
     console.log('  ⓘ  基线看不到思考。若该端点不单独报推理 token（如 gemini 兼容端点），'
       + '改看出参 tok 与耗时；若确实不思考，结论就是 rejected —— 记下来，别留白。');
