@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "This model does not accept this parameter, so it will not be sent."
   },
+  "err_reasoning_starved": {
+    "message": "The model spent its entire output budget on reasoning and produced no translation. Raise \"Max output per request\" under Advanced parameters, or switch to a non-reasoning model."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

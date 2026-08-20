@@ -42,6 +42,15 @@
 //                缺省                     不知道
 //              ⚠️ messages-compat 例外：那条链路上 max_tokens 是 **API 必填**，
 //              表说 false 也照发。一行观测表不能推翻一条协议契约。
+//  reasoning   推理档位。缺省 = 不发（用模型自己的默认档）。目前只写过 'minimal'。
+//              **它只存档位，不存字段名** —— 拼写属于形状,不属于模型:
+//                chat-compat      reasoning_effort: 'minimal'
+//                responses-compat reasoning: { effort: 'minimal' }
+//              用错会 400,原话为证（实测 2026-08-20）:「In the Responses API, this
+//              parameter has moved to 'reasoning.effort'」。跟 systemRole 同一个道理,
+//              所以拼法在 request-shape.js 里按形状决定。
+//              ⚠️ 这一条**不是**「缺了就会错」的字段:不发就是模型的默认档,也就是今天的
+//              行为。它省的是时间和一次失败,不是请求的正确性 —— 许可证仍然成立。
 //  systemRole  chat-compat 里系统消息的 role：'system'（默认）| 'developer'。
 //              只对 chat-compat 有意义 —— messages-compat 走顶层 system、
 //              responses-compat 走顶层 instructions，那是**形状**的属性，不是模型的。
@@ -75,11 +84,35 @@ module.exports = [
     // 例外行：前缀更长者赢，所以它盖住上面那条家族行。
     id: 'openai-reasoning', flavors: ['global'],
     hosts: ['api.openai.com'],
-    models: ['gpt-5', 'o1', 'o3', 'o4'],
+    models: ['gpt-5'],
     temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
+    reasoning: 'minimal',
     note: '实测 2026-08-20，经企业网关转发 gpt-5.6-sol 的 400 原话：'
       + "Unsupported parameter: 'temperature' is not supported with this model."
-      + ' param=temperature。同族的改名与 developer 角色为官方文档所载。',
+      + ' param=temperature。同族的改名与 developer 角色为官方文档所载。'
+      + ' reasoning:minimal 为实测所迫（2026-08-20，gpt-5-mini，真 key，用户真机同款配置）：'
+      + '不发这个档位时，一段 870 字的维基正文 27.8 秒烧光 2000 预算全部用于思考，'
+      + 'finish_reason=length、正文 0 字 —— 用户看到的就是「翻译失败,点此重试」，而重试'
+      + '永远同样失败。加上 minimal 后同一段 5.6 秒成功、推理 0 tok；23 字的小标题'
+      + '从 9.3 秒降到 1.3 秒。',
+  },
+
+  {
+    // o 系与 gpt-5 系分成两行，唯一的原因是**档位取值不同**，而这是实测逼出来的：
+    // o3-mini / o4-mini 收到 'minimal' 直接 400，原话
+    //   Unsupported value: 'reasoning_effort' does not support 'minimal' with this
+    //   model. Supported values are: 'low', …
+    // 合成一行写 'minimal' 会打断一条今天能用的路 —— 这两个型号不发档位时本来是 200。
+    id: 'openai-o-series', flavors: ['global'],
+    hosts: ['api.openai.com'],
+    models: ['o1', 'o3', 'o4'],
+    temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
+    reasoning: 'low',
+    note: '实测 2026-08-20（真 key）：o3-mini / o4-mini 拒收 minimal，原话 '
+      + "「Unsupported value: 'reasoning_effort' does not support 'minimal' with this "
+      + "model. Supported values are: 'low', …」；改用 low 后两者均 200"
+      + '（o3-mini 2785ms、o4-mini 2642ms，对照不发档位时 5782ms / 3332ms）。'
+      + ' temperature 与 developer 角色同 gpt-5 系。',
   },
 
   // ── Anthropic 官方域（messages-compat）──────────────────────────────────
@@ -119,6 +152,9 @@ module.exports = [
     hosts: ['openrouter.ai'],
     models: ['openai/gpt-5', 'openai/o1', 'openai/o3', 'openai/o4'],
     temperature: false, budget: true, systemRole: 'system',
+    // 刻意**不**写 reasoning：这个网关有自己一套推理参数的归一化，而我们没打过它。
+    // 猜一个拼法过去，好的情况是被忽略、坏的情况是 400 打断一条今天能用的路。
+    // 代价是经它转推理系模型时仍会遇到「预算被思考吃光」——但那条路现在有具名报错了。
     note: '同 openai-reasoning 的那条 400；网关透传上游错误，原话一字不差。',
   },
 

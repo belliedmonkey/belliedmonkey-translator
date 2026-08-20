@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "현재 모델이 이 매개변수를 받지 않으므로 전송되지 않습니다."
   },
+  "err_reasoning_starved": {
+    "message": "모델이 출력 예산을 전부 추론에 사용해 번역을 내놓지 않았습니다. 고급 매개변수의 \"요청당 최대 출력 길이\"를 높이거나 추론하지 않는 모델로 바꾸세요."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

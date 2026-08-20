@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "Ce modèle n’accepte pas ce paramètre : il ne sera pas envoyé."
   },
+  "err_reasoning_starved": {
+    "message": "Le modèle a dépensé tout son budget de sortie en raisonnement et n’a produit aucune traduction. Augmentez « Longueur de sortie max par requête » dans les paramètres avancés, ou passez à un modèle sans raisonnement."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

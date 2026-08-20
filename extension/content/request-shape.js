@@ -34,7 +34,8 @@ var RequestShape = (() => {
 
   // 表外 = 三个字段全是「不知道」，**不是「不支持」**。这个区别撑起上面那张三态表。
   const UNKNOWN = Object.freeze({
-    id: null, temperature: undefined, budget: undefined, systemRole: undefined, matched: false,
+    id: null, temperature: undefined, budget: undefined, systemRole: undefined,
+    reasoning: undefined, matched: false,
   });
 
   // ─── 表：host + 模型前缀 ────────────────────────────────────────────────
@@ -66,6 +67,7 @@ var RequestShape = (() => {
       temperature: best.temperature,
       budget: best.budget,
       systemRole: best.systemRole,
+      reasoning: best.reasoning,
       matched: true,
     });
   }
@@ -174,6 +176,19 @@ var RequestShape = (() => {
     return TRANSLATE_LANG[k] || String(code).trim();
   }
 
+  // 「模型把预算全用在思考上了」。两条形状各有各的信号，但后果一样：HTTP 200、
+  // 正文为空。不认出来的话它只是一个泛泛的「翻译失败」，而用户重试多少次都一样失败 ——
+  // 那是这套设计里最坏的一种失败：看起来可恢复，实际上永远不会恢复。
+  function starvedByReasoning(d) {
+    if (!d || typeof d !== 'object') return false;
+    const c = d.choices && d.choices[0];
+    if (c && c.finish_reason === 'length') return true;           // chat-compat
+    if (d.status === 'incomplete') return true;                    // responses-compat
+    const ic = d.incomplete_details;
+    if (ic && ic.reason === 'max_output_tokens') return true;
+    return false;
+  }
+
   function optional(cap, want, tuned) {
     if (cap === false) return undefined;                    // 表明确否决 ⇒ 无条件不发
     if (want !== undefined && want !== null && want !== '') return want;  // 用户明说
@@ -219,6 +234,9 @@ var RequestShape = (() => {
       put(body, 'max_output_tokens',
         optional(caps.budget === undefined ? undefined : caps.budget !== false,
           p.reqMaxTokens, o.budget));
+      // 推理档位：表只存档位，拼法由形状决定。这条形状要嵌套写法，写成顶层字符串会 400，
+      // 原话为证：「In the Responses API, this parameter has moved to 'reasoning.effort'」。
+      if (caps.reasoning) body.reasoning = { effort: caps.reasoning };
       return { headers: bearer, body, extract: extractResponses, caps };
     }
 
@@ -284,6 +302,13 @@ var RequestShape = (() => {
       ],
     };
     put(body, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE));
+    // 推理档位。这条形状用顶层字符串（Responses 那条要嵌套，见上）。
+    //
+    // 为什么翻译要主动把它压到最低：推理开销**不随输入变小而变小**。实测 2026-08-20
+    // （gpt-5-mini，真 key）：不发这个字段时，一段 870 字的正文 27.8 秒把 2000 的预算
+    // 全部烧在思考上，finish_reason=length、正文 0 字 —— 用户看到的是「翻译失败」，
+    // 而重试永远同样失败。加上 minimal 后同一段 5.6 秒成功、推理 0 tok。
+    put(body, 'reasoning_effort', caps.reasoning || undefined);
     const budgetName = (typeof caps.budget === 'string') ? caps.budget : 'max_tokens';
     put(body, budgetName,
       optional(caps.budget === undefined ? undefined : caps.budget !== false,
@@ -294,7 +319,7 @@ var RequestShape = (() => {
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
     extractChat, extractMessages, extractResponses,
-    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang,
+    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning,
   };
 })();
 

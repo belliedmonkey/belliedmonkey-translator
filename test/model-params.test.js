@@ -223,3 +223,112 @@ describe('形状判定：同一地址内由模型名声明', () => {
       'transcribe-compat');
   });
 });
+
+// ─── 推理档位：一个被实测所迫的字段 ────────────────────────────────────────
+// 2026-08-20 用户真机报「翻译失败」，配置是 ChatGPT + gpt-5-mini。真端点复现（真 key）：
+//
+//   长段(870字) 预算2000 不发档位  ⇒ 27.8s, finish=length, 推理 2000 tok, 正文 **0 字**
+//   长段(870字) 预算2000 + minimal ⇒  5.6s, finish=stop,   推理 0 tok,    正文 304 字
+//   短句(23字)  预算2000 不发档位  ⇒  9.3s（推理 448 tok，为了译一个小标题）
+//   短句(23字)  预算2000 + minimal ⇒  1.3s
+//
+// 推理开销**不随输入变小而变小**，短输入上反而更大。所以对翻译这种任务，压到最低档
+// 不是省钱，是让它能用。
+describe('推理档位：表只存档位，拼法由形状决定', () => {
+  const RS = () => shapeWith(TABLE);
+  const OA = 'https://api.openai.com/v1/chat/completions';
+  const OA_RESP = 'https://api.openai.com/v1/responses';
+
+  test('chat-compat 用顶层 reasoning_effort', () => {
+    const req = RS().build('chat-compat', {
+      url: OA, model: 'gpt-5-mini', system: 's', user: 'u', budget: 2000,
+    });
+    eq(req.body.reasoning_effort, 'minimal');
+    ok(!req.body.reasoning, '这条形状不用嵌套写法');
+  });
+
+  test('responses-compat 用嵌套 reasoning.effort —— 写成顶层字符串会 400', () => {
+    // 服务端原话（实测）：In the Responses API, this parameter has moved to
+    // 'reasoning.effort'. 两条形状同一个模型、同一个档位、两种拼写。
+    const req = RS().build('responses-compat', {
+      url: OA_RESP, model: 'gpt-5-mini', system: 's', user: 'u', budget: 2000,
+    });
+    eq(req.body.reasoning && req.body.reasoning.effort, 'minimal');
+    ok(!('reasoning_effort' in req.body), '顶层写法在这条形状上是 400');
+  });
+
+  test('表里没写档位的行一个字都不发 —— 不发 = 用模型自己的默认档 = 今天的行为', () => {
+    const a = RS().build('chat-compat', {
+      url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat',
+      system: 's', user: 'u', budget: 2000,
+    });
+    ok(!('reasoning_effort' in a.body));
+    // openrouter 那条推理行刻意不写：我们没打过那个网关的推理参数归一化。
+    const b = RS().build('chat-compat', {
+      url: 'https://openrouter.ai/api/v1/chat/completions', model: 'openai/gpt-5',
+      system: 's', user: 'u', budget: 2000,
+    });
+    ok(!('reasoning_effort' in b.body), '没实测过的就不发 —— 猜错会打断一条今天能用的路');
+  });
+
+  test('表外的 host 仍然只有最小必要集 —— 新字段不许把兜底撑大', () => {
+    const req = RS().build('chat-compat', {
+      url: 'https://gw.corp.example/v1/chat/completions', model: 'gpt-5-mini',
+      system: 's', user: 'u', budget: 2000,
+    });
+    eq(Object.keys(req.body).sort().join(','), 'messages,model');
+  });
+});
+
+describe('预算被思考吃光：认出来，并且不要重试', () => {
+  const RS = () => shapeWith(TABLE);
+
+  test('两条形状的截断信号都认得', () => {
+    const S = RS();
+    ok(S.starvedByReasoning({ choices: [{ finish_reason: 'length', message: { content: '' } }] }),
+      'chat-compat: finish_reason=length');
+    ok(S.starvedByReasoning({ status: 'incomplete' }), 'responses-compat: status=incomplete');
+    ok(S.starvedByReasoning({ incomplete_details: { reason: 'max_output_tokens' } }),
+      'responses-compat: incomplete_details');
+  });
+
+  test('正常收尾不会被误判 —— 误判会把一次成功变成一条吓人的报错', () => {
+    const S = RS();
+    ok(!S.starvedByReasoning({ choices: [{ finish_reason: 'stop', message: { content: 'x' } }] }));
+    ok(!S.starvedByReasoning({ status: 'completed' }));
+    ok(!S.starvedByReasoning(null));
+    ok(!S.starvedByReasoning('not an object'));
+    ok(!S.starvedByReasoning({}));
+  });
+});
+
+describe('推理档位：档位取值本身要按型号分', () => {
+  const RS = () => shapeWith(TABLE);
+  const OA = 'https://api.openai.com/v1/chat/completions';
+
+  test('gpt-5 系用 minimal，o 系用 low —— 合成一行会打断 o 系', () => {
+    // 实测 2026-08-20：o3-mini / o4-mini 收到 'minimal' 直接 400，原话
+    // 「Unsupported value: 'reasoning_effort' does not support 'minimal' with this
+    // model. Supported values are: 'low', …」。而它们不发档位时本来是 200，所以
+    // 猜一个通用档位过去，代价是把一条能用的路打断。
+    const S = RS();
+    for (const m of ['gpt-5-mini', 'gpt-5-nano', 'gpt-5']) {
+      eq(S.build('chat-compat', { url: OA, model: m, system: 's', user: 'u', budget: 2000 })
+        .body.reasoning_effort, 'minimal', m);
+    }
+    for (const m of ['o3-mini', 'o4-mini', 'o1']) {
+      eq(S.build('chat-compat', { url: OA, model: m, system: 's', user: 'u', budget: 2000 })
+        .body.reasoning_effort, 'low', m);
+    }
+  });
+
+  test('两行的其余能力一致 —— 拆行的唯一理由是档位取值', () => {
+    const S = RS();
+    for (const m of ['gpt-5-mini', 'o3-mini']) {
+      const b = S.build('chat-compat', { url: OA, model: m, system: 's', user: 'u', budget: 2000 }).body;
+      ok(!('temperature' in b), m + ' 不该带 temperature');
+      eq(b.max_completion_tokens, 2000, m);
+      eq(b.messages[0].role, 'developer', m);
+    }
+  });
+});

@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "Este modelo não aceita este parâmetro, então ele não será enviado."
   },
+  "err_reasoning_starved": {
+    "message": "O modelo gastou todo o orçamento de saída raciocinando e não produziu tradução. Aumente \"Tamanho máximo de saída por requisição\" em Parâmetros avançados, ou troque para um modelo sem raciocínio."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

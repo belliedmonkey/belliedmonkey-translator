@@ -321,7 +321,24 @@ Rules:
     }, o.label, o.diag);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
-    return String(o.extract(JSON.parse(await resp.text())) || '').trim();
+    const parsed = JSON.parse(await resp.text());
+    const out = String(o.extract(parsed) || '').trim();
+    // HTTP 200 + 空正文 = 服务端没意见，是我们要的东西没拿到。其中有一种必须单独说：
+    // 推理模型把整个输出预算烧在思考上，一个字都没吐。它长得像「网络不好，再试一次」，
+    // 但重试**永远**同样失败（同样的输入、同样的预算、同样的思考）。实测 2026-08-20：
+    // gpt-5-mini 对一段 870 字的正文烧掉全部 2000 预算、耗时 27.8 秒、正文 0 字。
+    // 具名之后用户至少知道要去调哪个旋钮，而不是把「点此重试」点到天荒地老。
+    if (!out && RequestShape.starvedByReasoning(parsed)) {
+      // fallback 必须整段写在 t() 的第二个参数位、且不跨行 —— 检测器按行认，
+      // 跨行拼接的下半截在它眼里就是一句裸中文（test/no-hardcoded-copy.test.js 刚抓到）。
+      const msg = TranslationCore.t('err_reasoning_starved', '模型把整个输出预算用在了思考上，没有产出译文。请在「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。');
+      const e = new Error(`${o.label}: ${msg}`);
+      e.status = 0;
+      e.code = 'reasoning_starved';
+      e.retryable = false;
+      throw e;
+    }
+    return out;
   }
 
   // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
@@ -441,6 +458,10 @@ Rules:
   // 可重试 = 网络/超时（瞬时），或服务端明说「稍后再来」（408/429/5xx）。
   // 没有 status 的错误一律当可重试：那是 transportError 那一类，本来就是瞬时的。
   function isRetryable(err) {
+    // 显式否决优先于一切。「没有 status ⇒ 当作瞬时错误」这条兜底对 transportError 是对的，
+    // 但对「推理吃光预算」是灾难：同样的输入、同样的预算、同样的思考，重试必然同样失败，
+    // 而每一次都要再烧一次完整的推理时间（实测单次 27.8 秒）。用户等的是失败的三倍。
+    if (err && err.retryable === false) return false;
     const s = err && err.status;
     if (!s) return true;
     if (s === 408 || s === 429) return true;

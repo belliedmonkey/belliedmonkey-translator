@@ -52,7 +52,7 @@ const KNOWN_KEYS = {
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
-    'systemRole', 'note'],
+    'systemRole', 'reasoning', 'note'],
 };
 
 const KNOWN_FLAVORS = ['global', 'china'];

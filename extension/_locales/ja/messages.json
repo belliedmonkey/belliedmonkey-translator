@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "このモデルはこのパラメータを受け付けないため、送信されません。"
   },
+  "err_reasoning_starved": {
+    "message": "モデルが出力予算をすべて推論に使い、訳文を返しませんでした。詳細パラメータの「1 回あたりの最大出力長」を上げるか、推論しないモデルに切り替えてください。"
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

@@ -303,6 +303,9 @@
   "options_adv_unsupported": {
     "message": "Dieses Modell akzeptiert diesen Parameter nicht, er wird nicht gesendet."
   },
+  "err_reasoning_starved": {
+    "message": "Das Modell hat sein gesamtes Ausgabebudget fürs Nachdenken verbraucht und keine Übersetzung geliefert. Erhöhen Sie „Max. Ausgabelänge pro Anfrage“ unter Erweiterte Parameter oder wechseln Sie zu einem Modell ohne Reasoning."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },
