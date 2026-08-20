@@ -1,5 +1,9 @@
 // content/wire-format.js — 端点地址的两个纯问题：**请求哪个地址**，和**用哪种请求形状**。
 //
+// 第三个问题「这种形状的请求体长什么样」在 content/request-shape.js —— 它要读
+// chrome.storage（用户的高级参数），而本文件刻意保持纯函数、零加载期依赖，测试把它
+// 当依赖直接注入而不是打桩。把一次存储读塞进来会毁掉那个性质。
+//
 // See docs/domain-design.md §7. 三条传输（翻译、解析、语音、转写）全部经过这里，
 // 所以「怎么得到最终 URL」在整个产品里只有一份实现。
 //
@@ -89,6 +93,19 @@ var WireFormat = (() => {
     return /^https?:\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
   }
 
+  // 主机名，小写，**不带端口、不带用户信息段**。
+  //   · 端口不参与匹配：没有任何厂商靠端口区分模型能力，而带上端口会让
+  //     `https://api.example.com:443/…` 匹配不到 `api.example.com` 那一行。
+  //   · `user:pass@` 一并丢掉 —— 那是凭证，不该出现在任何比较里，更不该被
+  //     哪天有人打进日志。
+  // request-shape.js 的参数表按它匹配；translation-api.js 的路由记忆按 origin
+  // 记，两者都从这里取，免得同一个「地址的哪一部分算数」有两份实现。
+  function hostOf(url) {
+    const m = /^https?:\/\/([^/?#]+)/i.exec(String(url == null ? '' : url).trim());
+    if (!m) return '';
+    return m[1].split('@').pop().split(':')[0].toLowerCase();
+  }
+
   // 最终地址。**两个分支，没有第三个**：
   //
   //   存值为空   → 注册表的 defaultEndpoint
@@ -118,7 +135,7 @@ var WireFormat = (() => {
     return s;
   }
 
-  return { formatFor, hasPath, isAbsolute, resolveEndpoint, normalize };
+  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize };
 })();
 
 if (typeof window !== 'undefined') window.WireFormat = WireFormat;

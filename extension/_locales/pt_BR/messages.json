@@ -270,6 +270,36 @@
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
   },
+  "options_advanced": {
+    "message": "Parâmetros avançados"
+  },
+  "label_adv_temperature": {
+    "message": "Aleatoriedade (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Em branco usa 0,3. Quanto menor, mais estável a tradução."
+  },
+  "label_adv_max_tokens": {
+    "message": "Tamanho máximo de saída por requisição"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Em branco usa 2000. Aumente se parágrafos longos forem cortados."
+  },
+  "label_adv_timeout": {
+    "message": "Tempo limite por requisição (segundos)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Em branco usa 20 s. Aumente para serviços próprios ou modelos de raciocínio lentos."
+  },
+  "label_adv_concurrency": {
+    "message": "Requisições em paralelo"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Em branco usa 5. Reduza se houver limite de taxa; aumentar não acelera requisições já em espera."
+  },
+  "options_adv_unsupported": {
+    "message": "Este modelo não aceita este parâmetro, então ele não será enviado."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

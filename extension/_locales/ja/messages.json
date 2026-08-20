@@ -270,6 +270,36 @@
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
   },
+  "options_advanced": {
+    "message": "詳細パラメータ"
+  },
+  "label_adv_temperature": {
+    "message": "ランダム性（temperature）"
+  },
+  "options_adv_temperature_hint": {
+    "message": "空欄なら 0.3。低いほど訳文が安定します。"
+  },
+  "label_adv_max_tokens": {
+    "message": "1 回あたりの最大出力長"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "空欄なら 2000。長い段落が途切れる場合は上げてください。"
+  },
+  "label_adv_timeout": {
+    "message": "リクエストのタイムアウト（秒）"
+  },
+  "options_adv_timeout_hint": {
+    "message": "空欄なら 20 秒。自己ホストや推論モデルが遅い場合は上げてください。"
+  },
+  "label_adv_concurrency": {
+    "message": "同時リクエスト数"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "空欄なら 5。レート制限を受ける場合は下げてください。上げても待機中のリクエストは速くなりません。"
+  },
+  "options_adv_unsupported": {
+    "message": "このモデルはこのパラメータを受け付けないため、送信されません。"
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

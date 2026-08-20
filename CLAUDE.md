@@ -136,6 +136,18 @@ request **format**, declared by the endpoint URL's path suffix first
 only picks a variant within one capability. See `docs/domain-design.md` §7 for why the
 URL outranks `type` and why the pre-2026-08 legacy branch is permanent.
 
+**Which optional fields go in the body is a lookup, not a probe.**
+`build/model-params.config.js` is the single table of "this host + this model prefix
+takes these parameters"; the build emits it into the same `providers.gen.js`
+(`window.MT_MODEL_PARAMS`, flavor-filtered), and `content/request-shape.js` is the one
+place a body is built — all four transports go through it. **A host the table does not
+know gets the protocol minimum** (`{model, messages}`), which is why a corporate
+gateway on its own domain works out of the box. Same one-registry rule as above: never
+re-state a parameter capability anywhere else. Writing `false` in that table requires
+a quoted server rejection (`docs/verification-spec.md` §1.0); writing `true` may cite
+docs. There is no trial-and-error retry — see §7 for why the 1.5.3–1.5.9 negotiation
+was removed.
+
 Cache: in-memory Map (1000 entries) + `chrome.storage.local` (TTL 12h), keyed `tr:{provider}:{lang}:{text}`.
 
 ## Content Script Load Order
@@ -154,12 +166,16 @@ Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
 2. `lang-detect.js` → exposes `window.LangDetect`, the OPTIONAL browser-native language
    detector (`chrome.i18n.detectLanguage`; absent on every Safari). Adapters inject it
    into the engine — the engine never probes for it. See `docs/domain-design.md` §5.3.
-3. `translation-api.js` → exposes `window.TranslationAPI`
-4. `dom-processor.js` → exposes `window.DOMProcessor`
-5. `floating-button.js` → exposes `window.FloatingButton`
-6. `content-webpage.js` → exposes `window.WebpageTranslator`
-7. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
-8. `content-main.js` → reads settings, initializes everything
+3. `request-shape.js` → exposes `window.RequestShape` (请求体：发哪些可选字段 +
+   怎么解回来). Loads after `wire-format.js` (uses its `hostOf`) and before every
+   transport. Reads `chrome.storage` for the advanced parameters, which is why it is
+   a separate file from `wire-format.js` — that one is deliberately dependency-free.
+4. `translation-api.js` → exposes `window.TranslationAPI`
+5. `dom-processor.js` → exposes `window.DOMProcessor`
+6. `floating-button.js` → exposes `window.FloatingButton`
+7. `content-webpage.js` → exposes `window.WebpageTranslator`
+8. `content-youtube.js` → exposes `window.YouTubeTranslator` (thin adapter over TranslationCore)
+9. `content-main.js` → reads settings, initializes everything
 
 ## Internationalization (i18n)
 

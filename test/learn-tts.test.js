@@ -47,7 +47,7 @@ function setup(opts = {}) {
     },
   };
 
-  const ctx = loadModule('learn/tts.js', {
+  const ctx = loadModule(['content/request-shape.js', 'learn/tts.js'], {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
     LearnModel, LearnStore, WireFormat,
     fetch: fetchStub,

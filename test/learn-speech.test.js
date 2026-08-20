@@ -59,7 +59,7 @@ function setup(over) {
     MediaRecorder: over.noRecorder ? undefined : FakeRecorder,
     FormData, Blob, fetch: fetchImpl, console, WireFormat,
   };
-  const ctx = loadModule('learn/speech-input.js', sandbox);
+  const ctx = loadModule(['content/request-shape.js', 'learn/speech-input.js'], sandbox);
   return { S: ctx.LearnSpeech, calls, stream };
 }
 

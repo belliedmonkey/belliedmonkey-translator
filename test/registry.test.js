@@ -20,10 +20,21 @@ const { describe, test, ok, eq } = require('./harness');
 // stt was missing from this list until #147. It went unnoticed only because its one
 // branded entry happens to be global-only — i.e. the exact silent-default failure this
 // file was written to catch, one registry over.
+// model-params joined in #159. It is NOT a capability registry — it lists nothing the
+// user can pick — but it ships per flavor and it carries brand-named hosts, so the two
+// invariants that matter here (declare your builds; nothing branded reaches China) apply
+// to it word for word. What does NOT apply is `type` / `defaultEndpoint`: those are how
+// you REACH an engine, and this table only describes one you already reached. Hence
+// `required` moved onto the row instead of being one global list.
 const REGISTRIES = [
-  { name: 'providers', entries: require('../build/providers.config.js'), cap: 'chat' },
-  { name: 'tts', entries: require('../build/tts.config.js'), cap: 'tts' },
-  { name: 'stt', entries: require('../build/stt.config.js'), cap: 'stt' },
+  { name: 'providers', entries: require('../build/providers.config.js'), cap: 'chat',
+    required: ['id', 'type', 'flavors', 'defaultEndpoint'] },
+  { name: 'tts', entries: require('../build/tts.config.js'), cap: 'tts',
+    required: ['id', 'type', 'flavors', 'defaultEndpoint'] },
+  { name: 'stt', entries: require('../build/stt.config.js'), cap: 'stt',
+    required: ['id', 'type', 'flavors', 'defaultEndpoint'] },
+  { name: 'model-params', entries: require('../build/model-params.config.js'), cap: null,
+    required: ['id', 'flavors', 'hosts', 'note'] },
 ];
 
 // Every key an entry of each registry is allowed to carry. Enumerating the ALLOWED set
@@ -40,8 +51,9 @@ const KNOWN_KEYS = {
   stt: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey'],
+  'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
+    'systemRole', 'note'],
 };
-const REQUIRED_KEYS = ['id', 'type', 'flavors', 'defaultEndpoint'];
 
 const KNOWN_FLAVORS = ['global', 'china'];
 
@@ -52,7 +64,7 @@ const KNOWN_FLAVORS = ['global', 'china'];
 const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i;
 
 describe('capability registries', () => {
-  for (const { name, entries } of REGISTRIES) {
+  for (const { name, entries, required } of REGISTRIES) {
     test(`${name}: every entry declares the builds it ships in`, () => {
       for (const e of entries) {
         ok(Array.isArray(e.flavors), `${name}/${e.id} has no flavors array`);
@@ -98,12 +110,13 @@ describe('capability registries', () => {
           ok(known.indexOf(k) >= 0,
             `${name}/${e.id} carries unknown key \`${k}\` — a leftover from a rename?`);
         }
-        for (const k of REQUIRED_KEYS) {
+        for (const k of required) {
           ok(k in e, `${name}/${e.id} is missing \`${k}\` — an absent field is an error, not a default`);
         }
         // The two fields the zero-concatenation change removed. Named explicitly so a
         // half-applied revert fails here rather than producing `…undefined` URLs on a
-        // user's device.
+        // user's device. (`known` already forbids them on model-params, which never had
+        // an address of its own to begin with.)
         ok(!('path' in e), `${name}/${e.id} still has \`path\` — endpoints are complete now`);
         ok(!('defaultBase' in e), `${name}/${e.id} still has \`defaultBase\``);
       }
@@ -111,6 +124,7 @@ describe('capability registries', () => {
 
     test(`${name}: every defaultEndpoint is a complete, absolute request URL`, () => {
       for (const e of entries) {
+        if (!('defaultEndpoint' in e)) continue;         // model-params carries no address
         for (const f of (e.flavors || [])) {
           const v = (e.defaultEndpoint && typeof e.defaultEndpoint === 'object')
             ? e.defaultEndpoint[f] : e.defaultEndpoint;

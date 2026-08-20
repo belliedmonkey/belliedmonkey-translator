@@ -33,6 +33,10 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 // 端点**故意不带** Access-Control-Allow-Origin：这正是用户那个企业网关的形状。
 // 直连会被浏览器挡在预检那一步，只有走扩展后台才通得过 —— 于是这个 fixture 同时
 // 验证了「后台优先」这条路是真的活着，而不是只在单测里活着。
+// 陷阱被打中的记录。数组而不是布尔：打中时要能说出**当时发了哪些字段**，
+// 「多发了一个」和「整套乐观请求体又回来了」是两种不同的回归。
+const trapHits = [];
+
 function serve() {
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
@@ -43,11 +47,19 @@ function serve() {
         req.on('end', () => {
           let parsed = {};
           try { parsed = JSON.parse(body); } catch (_) {}
-          // 带 temperature 就拒 —— 而且**照企业网关的形状层层包裹**（真机 2026-08-20
-          // 拿到的就是三层）。这样这条冒烟同时验了两件事：请求体协商真的会让掉被点名
-          // 的字段，以及 serverSays 能从这么深的嵌套里把字段名读出来。手写一个平坦的
-          // 错误体测不到后者，而后者正是差点让协商静默失效的地方。
+          // 这条 400 是**一个永远不该被打中的陷阱**。
+          //
+          // 它以前是相反的意思：带 temperature 就拒，靠请求体协商让掉再发才拿得到
+          // 200 —— 于是它证明的是「被拒之后能自愈」。协商已随 #159 删除，因为它取决
+          // 于对方的错误信息长什么样（那条真实的三层嵌套里，字段名排在第 100 个字符，
+          // 而截断上限是 300）。现在的契约强得多：127.0.0.1 不在能力表里 ⇒ 最小必要集
+          // ⇒ temperature 从一开始就不会发出去。语义从「犯了错能改」变成「从一开始
+          // 就没犯」，所以命中次数必须是 0，收尾处断言。
+          //
+          // 响应体照原样保留企业网关那三层包裹：万一哪天陷阱真的被打中，报错要长得跟
+          // 真机上那条一模一样，而不是一个手写的平坦错误。
           if ('temperature' in parsed) {
+            trapHits.push(Object.keys(parsed).join(','));
             res.writeHead(400, { 'content-type': 'application/json' });
             res.end(JSON.stringify({ object: 'response', error: {
               code: 'MPE-001',
@@ -193,12 +205,23 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (d.route !== 'proxy') {
         problems.push(`通路是 ${JSON.stringify(d.route)}，期望 proxy —— 端点没有 CORS 头，直连本就该被挡`);
       }
+      // 表外的 host 只该发协议要求的最小必要字段。这一行报的是真实发出的键，
+      // 所以「多发了什么」在失败时是直接可读的，不用回去翻服务端日志。
+      notes.push(`请求体字段: ${JSON.stringify(d.bodyKeys)}（能力表命中: ${d.paramRow || '无 —— 走最小必要集'}）`);
+      if (d.bodyKeys && d.bodyKeys.some((k) => k !== 'model' && k !== 'messages')) {
+        problems.push(`表外端点收到了可选字段: ${d.bodyKeys.join(',')} —— 最小必要集只该有 model 与 messages`);
+      }
     }
     offCtx();
   } finally {
     try { await cdp.close(); } catch (_) {}
     chrome.cleanup();
     srv.close();
+  }
+
+  if (trapHits.length) {
+    problems.push(`带 temperature 的请求被发了 ${trapHits.length} 次（字段: ${trapHits.join(' | ')}）`
+      + ' —— 127.0.0.1 不在能力表里，一个可选字段都不该发');
   }
 
   console.log(notes.join('\n'));
@@ -208,5 +231,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 严格 CORS 端点 → 请求体协商 → 页面出译文，全通（通路：扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });

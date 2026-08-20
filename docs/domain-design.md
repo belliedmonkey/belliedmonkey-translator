@@ -665,7 +665,10 @@ is a build-time concern, not a runtime one.
   address is sent verbatim — the only processing permitted is trimming surrounding
   whitespace on save. `content/wire-format.js` is the one place that resolves an
   address, and all four transports (translation, notes, speech, transcription) go
-  through it.
+  through it. Its sibling `content/request-shape.js` answers the question that is left
+  once the shape is fixed — **which optional fields go in the body** — and the same
+  four transports go through that one instead of each carrying its own copy (two of
+  them used to, character for character, comments included).
 
   This replaced a `defaultBase + path` model, and the reason is not tidiness. That
   model assumed a regularity that never existed: `qwen`'s own default already carried
@@ -703,41 +706,79 @@ is a build-time concern, not a runtime one.
   recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
   what keeps every unknown third-party endpoint behaving exactly as it does today.
 
-- **The request BODY negotiates; we do not keep a table of which model accepts what.**
-  Picking the right address and the right shape still leaves a third variable: the
-  optional fields inside the body. `chat-compat` faces the entire compatibility zoo —
-  every proxy, gateway and self-hosted server speaks it, and they disagree about
-  `temperature`, `max_tokens`, the `system` role, and whether a non-streaming request
-  is accepted at all. Newer models reject several of these outright with HTTP 400.
+- **The request BODY is looked up in a table, and anything not in it gets the
+  protocol minimum.** Picking the right address and the right shape still leaves a
+  third variable: the optional fields inside the body. `chat-compat` faces the entire
+  compatibility zoo — every proxy, gateway and self-hosted server speaks it, and they
+  disagree about `temperature`, `max_tokens`, the `system` role, and whether a
+  non-streaming request is accepted at all. Newer models reject several of these
+  outright with HTTP 400.
 
   The diagnostic that isolates this: **same address, same key, works in another
   client.** That rules out the URL and the credential and leaves the body — and the
-  clients it works in are the ones that send none of the fields in question (they use
-  the Responses / Messages shapes, where the budget field has a different name and the
-  system prompt is a top-level string, and they stream).
+  clients it works in are the ones that send none of the fields in question.
 
-  Two rules follow, and the second depends on the first:
+  Two rules, and the second is a reversal of what this section said until #159:
 
   1. **The server's own sentence is carried, never replaced.** A 400 names the exact
      parameter it will not accept. `apiFetch` reads the error body as **text** (so a
-     gateway answering HTML or plain text survives), extracts the message across the
-     four shapes seen in the wild, and puts it on `err.serverMessage`. The settings
-     page prints it verbatim under our own hint: our hint is a guess, that sentence is
-     evidence, and paraphrasing evidence makes it un-searchable.
-  2. **On a 400/422 we concede the named field and retry.** `relaxBody` renames
-     `max_tokens` → `max_completion_tokens` when the server asks for that spelling,
-     otherwise drops it; drops `temperature`; rewrites the `system` role to
-     `developer`; and sets `stream: true` for endpoints that only serve streams (the
-     body is then merged back with `sseMerge` — we never need incremental delivery, so
-     a stream is just a different encoding of the same answer). Every concession is a
-     field that is optional by definition.
+     gateway answering HTML or plain text survives), unwraps a gateway's layered
+     re-forwarding down to the innermost human sentence, and puts it on
+     `err.serverMessage`. The settings page prints it verbatim under our own hint: our
+     hint is a guess, that sentence is evidence, and paraphrasing evidence makes it
+     un-searchable. This rule is unchanged and now carries the whole weight — it is
+     what a user sees when we get the body wrong.
+  2. **We send what `build/model-params.config.js` says the endpoint takes, and
+     nothing else.** Matching is by **host + longest model-name prefix**, not by
+     registry id: the vendors users most need covered (openrouter, grok, minimax) are
+     not registry entries at all — they are reached through `custom_chat` — while a
+     corporate gateway runs on its own domain and matches nothing, which is the point.
+     A miss yields the minimum the protocol requires (`{model, messages}` for
+     `chat-compat`) and a miss is the *default*, not an error.
 
-  Bounded so it can never become a loop that grinds a real error away: only 400/422,
-  at most two concessions, each of which must actually change the body, and only when
-  the server said something. A 401, a 404 or 「insufficient balance」 is reported as-is.
-  The alternative — a table of model names and their accepted parameters — is the same
-  mistake as a vendor list: it is a copy of someone else's decisions and it starts
-  rotting the day it is written.
+  **This overturns the rule that stood here from 2026-08-18 to 2026-08-20**, which
+  read: *"On a 400/422 we concede the named field and retry… The alternative — a table
+  of model names and their accepted parameters — is the same mistake as a vendor list:
+  it is a copy of someone else's decisions and it starts rotting the day it is
+  written."* That argument is kept here rather than deleted, because it is still
+  correct about the design it was aimed at, and because the reversal only holds while
+  the difference below holds:
+
+  - It aimed at a table used to **construct an optimistic body**. Such a table breaks
+    requests the day it goes stale. This one's default is the opposite: not in the
+    table ⇒ minimum ⇒ cannot be rejected for something we sent. Its failure mode when
+    stale is *conservative*, not *wrong*.
+  - So the licence is conditional, and the condition is written at the top of the
+    config file: **the moment anyone adds a field whose absence breaks a request**
+    (an auth-header type, an endpoint rewrite, a required parameter), the table
+    becomes the 2026-08-18 frozen-migration table again — the kind where a missing row
+    computes a wrong URL — and this argument no longer protects it.
+
+  What forced the reversal was not taste. Negotiation read the field name out of the
+  server's sentence, and a real gateway (2026-08-20) forwarded the upstream error
+  wrapped three deep: the field name `temperature` sat at character 100 of a 296-char
+  wrapper against a 300-char truncation limit. A slightly longer trace id and the
+  retry would have **neither fired nor errored** — the request would go out, be
+  rejected, and the page would silently fail to translate. Whether the product worked
+  depended on what the other side's error message happened to look like. Unwrapping
+  improved the odds of that bet; it did not stop it being a bet.
+
+  Two costs, both accepted and both visible rather than silent:
+  - An endpoint that is not in the table no longer receives `temperature: 0.3`, so its
+    translation randomness is whatever that server defaults to. The advanced panel
+    lets a user set it back.
+  - A gateway that accepts **only** streaming requests is no longer rescued (that
+    concession, and the `sseMerge` that made it work, are gone). It now fails with the
+    server's own sentence shown. A table cannot express that case either: "send
+    non-streaming first, retry as a stream" *is* negotiation.
+
+  The user-facing counterpart is the advanced-parameters panel (temperature, output
+  budget, timeout, concurrency): collapsed by default, **unset** by default — the keys
+  are absent from storage rather than present-with-a-default, because "not set" and
+  "set to the default" must stay distinguishable. When the table says the current
+  model refuses a parameter, the table wins and the panel **says so in place**: a
+  dropped parameter is invisible otherwise, since no server complains about a field it
+  never received.
 
   Retry policy follows the same logic: the outer retry loop only retries failures that
   might resolve themselves (network, timeout, 408, 429, 5xx). It used to retry

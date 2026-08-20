@@ -120,14 +120,18 @@ var LearnSpeech = (() => {
     // did to this user's saved value, and reproducing it is how a device whose
     // one-time migration never ran keeps working.
     const url = WireFormat.resolveEndpoint(cfg.baseUrl, eng);
-    const fd = new FormData();
-    fd.append('file', blob, 'speech.' + (ext || 'webm'));
-    const model = cfg.model || eng.defaultModel;
-    if (model) fd.append('model', model);
+    // multipart 体同样由 RequestShape 一处构造。这条路本来就是「条件发送」的范例
+    // （model / language 缺了就不发），改过来是为了让四条传输只有一个地方知道
+    // 「不要手写 Content-Type，boundary 只有浏览器自己知道」。
     const l = String(lang || '').split('-')[0].toLowerCase();
-    if (l && l !== 'und') fd.append('language', l);
-    const headers = {};
-    if (cfg.apiKey) headers['Authorization'] = 'Bearer ' + cfg.apiKey;
+    const req = RequestShape.build(WireFormat.formatFor(url, eng && eng.type), {
+      url, apiKey: cfg.apiKey,
+      model: cfg.model || eng.defaultModel,
+      file: blob, filename: 'speech.' + (ext || 'webm'),
+      language: (l && l !== 'und') ? l : '',
+    });
+    const fd = req.body;
+    const headers = req.headers;
     // A cross-origin POST to a SELF-HOSTED endpoint is the normal case here (the
     // review page's origin is never the transcription server's). If that server
     // omits `Access-Control-Allow-Origin`, WebKit rejects the response before any

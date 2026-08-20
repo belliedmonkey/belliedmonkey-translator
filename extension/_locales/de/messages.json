@@ -270,6 +270,36 @@
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
   },
+  "options_advanced": {
+    "message": "Erweiterte Parameter"
+  },
+  "label_adv_temperature": {
+    "message": "Zufälligkeit (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Leer = 0,3. Niedriger bedeutet gleichmäßigere Übersetzungen."
+  },
+  "label_adv_max_tokens": {
+    "message": "Max. Ausgabelänge pro Anfrage"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Leer = 2000. Erhöhen, wenn lange Absätze abgeschnitten werden."
+  },
+  "label_adv_timeout": {
+    "message": "Zeitlimit pro Anfrage (Sekunden)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Leer = 20 s. Erhöhen bei langsamen selbst gehosteten oder Reasoning-Modellen."
+  },
+  "label_adv_concurrency": {
+    "message": "Parallele Anfragen"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Leer = 5. Bei Ratenbegrenzung senken; Erhöhen beschleunigt bereits wartende Anfragen nicht."
+  },
+  "options_adv_unsupported": {
+    "message": "Dieses Modell akzeptiert diesen Parameter nicht, er wird nicht gesendet."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

@@ -80,6 +80,21 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 > driven against its REAL endpoint at least once, and the result recorded in §1.0's
 > table. An engine nobody has ever reached is an untested claim in the settings list.**
 
+`build/model-params.config.js` (#159) inherits this rule with **one asymmetry that is
+deliberate**, spelled out in the file's own header:
+
+- A row saying a parameter **is** accepted (`true`) may come from vendor documentation.
+  If it is wrong, we send the field, the server answers 400, and the user sees the
+  server's own sentence. Visible, recoverable.
+- A row saying a parameter is **not** accepted (`false`) must come from a **real
+  server rejection**, with the sentence quoted in that row's `note`. If it is wrong,
+  we silently stop sending a value the user set, and no server will ever complain
+  about a field it did not receive. That failure has no reporter, so it needs evidence
+  up front.
+
+An undated 「能用」 still is not a verification. A `false` with no quoted rejection is
+not one either.
+
 This matrix is **orthogonal to the surface matrix above**, and deliberately so. Which
 provider answers, and whether we speak its wire format correctly, is a **transport**
 property — it does not vary by device, so verifying it on all seven surfaces would be

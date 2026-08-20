@@ -141,48 +141,6 @@ var LearnNotes = (() => {
   // not less: there the reasoning tokens are charged against the same ceiling.
   const MAX_OUT = 3000;
 
-  function buildRequest(fmt, o) {
-    if (fmt === 'messages-compat') {
-      return {
-        headers: { 'Content-Type': 'application/json', 'x-api-key': o.apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true' },
-        body: { model: o.model, max_tokens: MAX_OUT, system: o.system,
-          messages: [{ role: 'user', content: o.user }] },
-        extract: (d) => d && d.content && d.content[0] && d.content[0].text,
-      };
-    }
-    if (fmt === 'responses-compat') {
-      return {
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey },
-        // `instructions` is where the system prompt goes; `max_output_tokens` is a
-        // different NAME and a different meaning from max_tokens. Never streamed.
-        body: { model: o.model, instructions: o.system, input: o.user,
-          temperature: 0.3, max_output_tokens: MAX_OUT },
-        // NEVER output[0] — a reasoning model puts its reasoning item there and the
-        // answer after it, so index 0 is empty on exactly the models people reach for.
-        extract: (d) => {
-          if (d && typeof d.output_text === 'string' && d.output_text.trim()) return d.output_text;
-          let out = '';
-          for (const it of (d && Array.isArray(d.output) ? d.output : [])) {
-            if (!it || it.type !== 'message') continue;
-            for (const c of (Array.isArray(it.content) ? it.content : [])) {
-              if (c && (c.type === 'output_text' || typeof c.text === 'string')) out += (c.text || '');
-            }
-          }
-          return out;
-        },
-      };
-    }
-    return {
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey },
-      body: { model: o.model, temperature: 0.3, max_tokens: MAX_OUT,
-        messages: [{ role: 'system', content: o.system }, { role: 'user', content: o.user }] },
-      extract: (d) => d && d.choices && d.choices[0] && d.choices[0].message
-        && d.choices[0].message.content,
-    };
-  }
-
   // The shared chat transport (§9.2 / §9.3): the ONE place that knows the wire
   // formats. Returns the model's raw text; throws with a named code
   // (no_base / network / http / empty_output). exercise-pack.js rides this same
@@ -200,8 +158,12 @@ var LearnNotes = (() => {
     // Registry `type` is the default shape; the endpoint's path suffix refines it
     // (content/wire-format.js) — one host can serve more than one request shape, and
     // which one the user wants is something only their address can say.
-    const req = buildRequest(WireFormat.formatFor(url, p && p.type), {
-      apiKey: cfg.apiKey, model, system, user,
+    // 请求体由 RequestShape 一处构造（content/request-shape.js）——翻译那条走的是同一个
+    // 函数。在此之前这里有一份与它逐字重复的实现，连 extractResponses 的注释都一样。
+    // 预算仍然由这里传：3000 的论证在 MAX_OUT 旁边，不该跟着搬走。
+    await RequestShape.ready();
+    const req = RequestShape.build(WireFormat.formatFor(url, p && p.type), {
+      url, apiKey: cfg.apiKey, model, system, user, budget: MAX_OUT,
     });
     const resp = await fetchNamed(url, {
       method: 'POST', headers: req.headers, body: JSON.stringify(req.body),

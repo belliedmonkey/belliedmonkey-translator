@@ -8,10 +8,12 @@ var TranslationAPI = (() => {
   const MAX_MEM_CACHE = 1000;
   const CACHE_KEY_PREFIX = 'tr:';
 
-  const REQUEST_TIMEOUT_MS = 20000;
   const BASE_BACKOFF_MS = 500;
   const JITTER_MS = 400;
   const MAX_RETRIES = 3;
+  // 翻译的输出预算。解析那条是 3000（notes.js，那里有「给推理留头寸」的论证）——
+  // 两个值各自待在自己的论证旁边，是这次归并里唯一不该归并的东西。
+  const MAX_OUT_TRANSLATION = 2000;
 
   // ─── Language display names ───────────────────────────────────────────
   const LANG_NAMES = {
@@ -105,7 +107,7 @@ Rules:
   // cacheGetStorage). The handler has its own timeout, but a dead worker never runs the
   // handler, so its timeout cannot help. Caught by layout fixture 12 (error-state-column)
   // when §5.5's fallback shipped without this: units stopped settling entirely.
-  const PROXY_ANSWER_TIMEOUT_MS = REQUEST_TIMEOUT_MS;
+  const proxyAnswerTimeoutMs = () => RequestShape.timeoutMs();
   async function proxyFetch(url, opts) {
     const o = opts || {};
     let timer = null;
@@ -116,7 +118,7 @@ Rules:
       }),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('background did not answer in time')),
-          PROXY_ANSWER_TIMEOUT_MS);
+          proxyAnswerTimeoutMs());
       }),
     ]).finally(() => { if (timer) clearTimeout(timer); });
     if (!r) throw new Error('background did not answer the proxied request');
@@ -177,14 +179,17 @@ Rules:
   // 全挂」。所以这份记忆只记**哪条路成功过**，永远不记「都不行」——失败是暂时的，
   // 成功才是关于这个端点的事实。
   const originRoute = new Map();   // origin → 'proxy' | 'direct'（只写成功过的那条）
+  // 路由记忆按 origin 记（scheme + host），而参数表按 host 匹配 —— 两者取的都是
+  // WireFormat.hostOf，免得「地址的哪一部分算数」在仓库里有两份实现。
   function originOf(url) {
-    const m = /^https?:\/\/[^/?#]+/i.exec(String(url == null ? '' : url).trim());
-    return m ? m[0].toLowerCase() : '';
+    const h = WireFormat.hostOf(url);
+    if (!h) return '';
+    return (/^http:/i.test(String(url).trim()) ? 'http://' : 'https://') + h;
   }
 
   async function directFetch(url, opts) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => ctrl.abort(), RequestShape.timeoutMs());
     try {
       return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
     } finally {
@@ -270,9 +275,10 @@ Rules:
   // 网关会**层层转发**上游的错误，每一层都把下一层整个塞进自己的 `message` 字符串里。
   // 2026-08-20 真机拿到的那条是三层：外层 `{object,error:{message,code}}`，里面是
   // 一段 JSON 文本，再里面又是一段。不拆的话「服务端原话」就是一坨转义反斜杠，而且
-  // ——更要命——**拿去做字段匹配的也是那坨**：真正的字段名 `temperature` 排在第 100
-  // 个字符，只要网关的 trace_id 再长一点就会被 300 字符上限截掉，协商于是既不报错
-  // 也不触发。所以这里剥到最里面那句人话为止。
+  // ——当初更要命的是——**拿去做字段匹配的也是那坨**：真正的字段名 `temperature` 排在
+  // 第 100 个字符，网关的 trace_id 再长一点就会被 300 字符上限截掉，于是那套试探性协商
+  // 既不报错也不触发。#159 把协商整个换成了查表，那个赌局不复存在；剥壳留下来是因为
+  // 用户仍然要读这句话 —— 现在它是「服务端说了什么」的唯一出口，而不是自动重试的燃料。
   const UNWRAP_MAX = 4;
   function pickMessage(d) {
     const err = d && d.error;
@@ -313,111 +319,9 @@ Rules:
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
     }, o.label, o.diag);
-    const text = await resp.text();
-    // A streaming answer is still just a body once it has all arrived. We never ask
-    // for one, but the negotiation below may end up asking, and then the body is SSE.
-    return o.extract(o.body && o.body.stream ? sseMerge(text) : JSON.parse(text)).trim();
-  }
-
-  // ─── 请求体协商 (§7.1) ────────────────────────────────────────────────────
-  //
-  // 「同一个地址、同一把 key，别的客户端能用，我们 400」的通用解释是：**地址和 key 都
-  // 对，是我们请求体里多了点东西**。2026-08-18 的真机对照把这件事说得很干净——把同一个
-  // 网关配到两个命令行客户端都能用，而它们在 chat/completions 这条路上恰好都不发我们
-  // 发的那几个字段：
-  //
-  //   我们发                     两个命令行客户端                  新模型的态度
-  //   ─────────────────────────  ────────────────────────────────  ──────────────────
-  //   temperature: 0.3           不发                              只接受默认值 ⇒ 400
-  //   max_tokens: 2000           走 Responses 的 max_output_tokens  改名了 ⇒ 400
-  //     ↑ 或 Messages 的 max_tokens（那里它是合法的）
-  //   messages[0].role='system'  走顶层 instructions / system      要求 developer ⇒ 400
-  //   （不发 stream）            stream: true                      SSE 网关只收流式 ⇒ 400
-  //
-  // 四个嫌疑人，我们不知道是哪一个——**也不需要知道**。服务端在 400 的响应体里会把它
-  // 不接受的字段名点出来，所以正确的做法不是维护一张「哪个模型不吃哪个参数」的名单
-  // （那张表和厂商名单一样，注定过期），而是**照着服务端说的那句话把对应字段让掉，再试
-  // 一次**。让掉的全是可选字段：temperature 和 max_tokens 只影响成本与风格，system 换成
-  // developer 语义等价，stream 只改变同一份内容的到达方式。
-  //
-  // 边界：只在 400/422（服务端在挑请求体的毛病）时协商，401/404/429/5xx 一律照旧报错；
-  // 每次协商必须真的改动了什么，否则立刻停；总共最多三次请求。这样它不可能变成一个把
-  // 真实错误磨掉的重试循环。
-  const NEGOTIABLE_STATUS = [400, 422];
-  const MAX_RELAX = 2;
-
-  function relaxBody(body, said) {
-    const msg = String(said || '');
-    if (!msg) return null;                    // 服务端没说话，就没有可照着让的东西
-    const next = Object.assign({}, body);
-    let changed = false;
-
-    // 顺序重要：先认「改名」再认「不支持」，否则 'use max_completion_tokens instead'
-    // 会被当成单纯的「不支持 max_tokens」而把预算整个丢掉。
-    if ('max_tokens' in next && /max_completion_tokens/i.test(msg)) {
-      next.max_completion_tokens = next.max_tokens; delete next.max_tokens; changed = true;
-    } else if ('max_tokens' in next && /max_tokens/i.test(msg)) {
-      delete next.max_tokens; changed = true;
-    }
-    if ('temperature' in next && /temperature/i.test(msg)) { delete next.temperature; changed = true; }
-
-    // system → developer。新模型把这个角色改了名，含义没变。
-    if (Array.isArray(next.messages) && /\bsystem\b|\bdeveloper\b/i.test(msg)) {
-      const i = next.messages.findIndex((m) => m && m.role === 'system');
-      if (i >= 0) {
-        next.messages = next.messages.slice();
-        next.messages[i] = Object.assign({}, next.messages[i], { role: 'developer' });
-        changed = true;
-      }
-    }
-
-    // 只收流式的网关。我们不需要边收边显示，所以「流式」对我们只是响应体换了个编码，
-    // 整包收完再解析即可 —— 见 sseMerge。
-    if (!next.stream && /\bstream/i.test(msg)) { next.stream = true; changed = true; }
-
-    return changed ? next : null;
-  }
-
-  // 把一段 SSE 响应体合并回一个 Chat Completions 形状的对象，好让上层的 extract 不必
-  // 知道流式这回事。只认 `data:` 行，`[DONE]` 忽略，坏帧跳过——半个 JSON 帧不该让
-  // 整次翻译失败。
-  function sseMerge(text) {
-    let out = '';
-    let last = null;
-    for (const line of String(text || '').split(/\r?\n/)) {
-      const s = line.trim();
-      if (!s.startsWith('data:')) continue;
-      const payload = s.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
-      let d = null;
-      try { d = JSON.parse(payload); } catch (_) { continue; }
-      last = d;
-      const ch = d && Array.isArray(d.choices) && d.choices[0];
-      if (!ch) continue;
-      const delta = ch.delta || {};
-      if (typeof delta.content === 'string') out += delta.content;
-      else if (ch.message && typeof ch.message.content === 'string') out += ch.message.content;
-    }
-    // 一帧都没解析出内容时把最后一帧原样交上去：它可能本来就是个非流式响应（网关忽略了
-    // stream），让上层的 extract 去处理，而不是在这里把它变成空串。
-    if (!out && last) return last;
-    return { choices: [{ message: { content: out } }] };
-  }
-
-  // 发一次；被挑请求体的毛病就照着服务端的话让一步，最多让 MAX_RELAX 次。
-  async function callChatNegotiating(o) {
-    let body = o.body;
-    for (let relaxed = 0; ; relaxed++) {
-      try {
-        return await callChatAPI(Object.assign({}, o, { body }));
-      } catch (e) {
-        const negotiable = e && e.code === 'http' && NEGOTIABLE_STATUS.includes(e.status)
-          && relaxed < MAX_RELAX;
-        const next = negotiable ? relaxBody(body, e.serverMessage) : null;
-        if (!next) throw e;                   // 没得让了 —— 原样把服务端那句话报上去
-        body = next;
-      }
-    }
+    // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
+    // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
+    return String(o.extract(JSON.parse(await resp.text())) || '').trim();
   }
 
   // ─── Provider adapters (all go through apiFetch → uniform error/timeout) ─
@@ -446,99 +350,6 @@ Rules:
     return list.find((p) => p.id === id) || null;
   }
 
-  // Chat Completions request format (DeepSeek / GLM / Qwen / Kimi / custom / etc.).
-  // The one shape that faces the whole compatibility zoo — every proxy, gateway and
-  // self-hosted server speaks it, and they disagree about the optional fields. Hence
-  // callChatNegotiating rather than callChatAPI: see 请求体协商 above.
-  function translateChatCompat(text, targetLang, apiKey, cfg, model, diag) {
-    return callChatNegotiating({
-      diag,
-      url: cfg.url,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: {
-        model: model || cfg.defaultModel,
-        messages: [
-          { role: 'system', content: buildSystemPrompt(targetLang) },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000
-      },
-      label: cfg.label,
-      extract: (d) => d.choices[0].message.content
-    });
-  }
-
-  // Messages request format (custom / self-hosted). `anthropic-version` is a
-  // required protocol header for ANY Messages-compatible endpoint — a technical
-  // API-format requirement, not a vendor brand reference.
-  function translateMessagesFormat(text, targetLang, apiKey, cfg, model, diag) {
-    return callChatAPI({
-      diag,
-      url: cfg.url,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: {
-        model: model || cfg.defaultModel,
-        max_tokens: 2000,
-        system: buildSystemPrompt(targetLang),
-        messages: [{ role: 'user', content: text }]
-      },
-      label: cfg.label,
-      extract: (d) => d.content[0].text
-    });
-  }
-
-  // The Responses request format. Same host and the same Bearer auth as Chat
-  // Completions — what differs is the shape, which is why the ENDPOINT has to be the
-  // thing that selects it: one provider serves both from one origin, and before this
-  // the user had no way to say which one they wanted.
-  //
-  // `instructions` rather than a system message inside `input`: it lines up 1:1 with
-  // buildSystemPrompt() and with the Messages format's top-level `system`, and it
-  // sidesteps the system-vs-developer role rename. `max_output_tokens`, not
-  // `max_tokens` — a different name AND a different meaning, since reasoning tokens
-  // are charged against it (notes.js:132 records what a too-small budget looks like:
-  // an empty body that is indistinguishable from a broken endpoint).
-  function translateResponsesFormat(text, targetLang, apiKey, cfg, model, diag) {
-    return callChatAPI({
-      diag,
-      url: cfg.url,
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: {
-        model: model || cfg.defaultModel,
-        instructions: buildSystemPrompt(targetLang),
-        input: text,
-        max_output_tokens: 2000,
-        temperature: 0.3,
-      },
-      label: cfg.label,
-      extract: extractResponses,
-    });
-  }
-
-  // NEVER `output[0]`: a reasoning model puts a `{type:'reasoning'}` item first and the
-  // answer after it, so index 0 is empty on exactly the models people reach for. Walk
-  // for the message item instead. `output_text` is tried first because it is the flat
-  // convenience field; it may not exist in the raw HTTP body, so the walk is the real
-  // implementation and the fast path is the optimisation.
-  function extractResponses(d) {
-    if (d && typeof d.output_text === 'string' && d.output_text.trim()) return d.output_text;
-    let out = '';
-    const items = (d && Array.isArray(d.output)) ? d.output : [];
-    for (const it of items) {
-      if (!it || it.type !== 'message') continue;
-      for (const c of (Array.isArray(it.content) ? it.content : [])) {
-        if (c && (c.type === 'output_text' || typeof c.text === 'string')) out += (c.text || '');
-      }
-    }
-    return out;
-  }
-
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
   function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag) {
@@ -547,13 +358,20 @@ Rules:
     const url = WireFormat.resolveEndpoint(baseUrl, p);
     if (diag) diag.url = url;
     if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
-    const cfg = { url, defaultModel: p.defaultModel, label: p.label || provider };
     // Registry `type` is the default shape; the address refines it (domain-design §7).
-    switch (WireFormat.formatFor(url, p.type)) {
-      case 'messages-compat': return translateMessagesFormat(text, targetLang, apiKey, cfg, model, diag);
-      case 'responses-compat': return translateResponsesFormat(text, targetLang, apiKey, cfg, model, diag);
-      default: return translateChatCompat(text, targetLang, apiKey, cfg, model, diag);
-    }
+    // 三个 adapter 塌成一次调用：请求体长什么样由 request-shape.js 一处决定，
+    // 翻译与解析两条链路从此共用同一份实现（原来是两份逐字重复的）。
+    const fmt = WireFormat.formatFor(url, p.type);
+    const req = RequestShape.build(fmt, {
+      url, apiKey, model: model || p.defaultModel,
+      system: buildSystemPrompt(targetLang), user: text,
+      budget: MAX_OUT_TRANSLATION,
+    });
+    // 「这次按哪一行表发的、实际发了哪些字段」—— 设置页与 verify-provider 都要它。
+    // 没有这两行的话，「我们发了什么」又只能靠读源码或抓包去猜。
+    if (diag) { diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
+    return callChatAPI({ diag, url, headers: req.headers, body: req.body,
+      label: p.label || provider, extract: req.extract });
   }
 
   // ─── Cache helpers ────────────────────────────────────────────────────
@@ -599,14 +417,14 @@ Rules:
 
   // ─── Concurrency queue ────────────────────────────────────────────────
   let inFlight = 0;
-  const MAX_CONCURRENT = 5;
   const queue = [];
 
   function enqueue(fn) {
     return new Promise((resolve, reject) => { queue.push({ fn, resolve, reject }); drain(); });
   }
   function drain() {
-    while (inFlight < MAX_CONCURRENT && queue.length > 0) {
+    // 每轮重读：调高立刻生效。调低无法抢占已经在飞的请求 —— 那点写在设置页的 hint 里。
+    while (inFlight < RequestShape.maxConcurrent() && queue.length > 0) {
       const { fn, resolve, reject } = queue.shift();
       inFlight++;
       fn().then(resolve, reject).finally(() => { inFlight--; drain(); });
@@ -637,6 +455,8 @@ Rules:
   // 它会在端点其实是坏的时候报「通了」。所以自检读写都绕开缓存，宁可慢几秒。
   async function translate(text, targetLang, provider, apiKey, baseUrl, model, opts) {
     if (!text || text.trim().length < 2) return text;
+    // 高级参数要在读缓存与入队之前就位 —— 并发上限也来自它。已读过则立即 resolve。
+    await RequestShape.ready();
     const noCache = !!(opts && opts.noCache);
     const key = cacheKey(provider, targetLang, baseUrl, model, text);
 
@@ -679,7 +499,7 @@ Rules:
           // 重试只对**可能自己好起来**的失败有意义。这个循环原来对任何错误都退避重试
           // 三次，于是一个「key 不对」或「余额不足」会被整页每一段各请求三次——一页
           // 50 段就是 150 次注定失败的请求，把用户的报错延后了十几秒，也把服务端的
-          // 限流白白撞满。请求体协商（见上）会让这件事更糟：3 × 3 = 9。
+          // 限流白白撞满。
           // 4xx 里只有 408（超时）和 429（限流）值得再试，其余是我们发错了，重发一遍
           // 还是错。
           if (!isRetryable(err)) throw err;
@@ -723,5 +543,5 @@ Rules:
     return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl, model)));
   }
 
-  return { translate, translateBatch, serverSays, relaxBody, sseMerge, LANG_NAMES };
+  return { translate, translateBatch, serverSays, LANG_NAMES };
 })();

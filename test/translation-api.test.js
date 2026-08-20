@@ -24,7 +24,8 @@ function loadAPI(program, chromeOpts = {}, flavor) {
   const fetch = makeFetch(program);
   const window = loadRegistry();
   if (flavor) window.MT_FLAVOR = flavor;
-  const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
+  const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+    { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
 
@@ -182,114 +183,112 @@ describe('TranslationAPI — failures are named, and carry the URL', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// 「同一个地址、同一把 key，别的客户端能用，我们 400」= 地址和 key 都对，是请求体多了
-// 东西。不去猜是哪个字段，照服务端点名的那个让掉再试 (#151).
-describe('TranslationAPI — 请求体协商', () => {
-  // 2026-08-20 真机（idealab 网关）原样拿到的 400 正文。网关把上游错误**层层转发**，
-  // 每层都把下一层整个塞进自己的 message 字符串里，这条是三层。留着原样是因为:
-  // 手写的简化版会把「三层」这个真正的难点抹掉,而那正是差点让协商静默失效的地方。
-  const REAL_NESTED_400 = JSON.stringify({
-    object: 'response',
-    error: {
-      message: JSON.stringify({
-        error: {
-          type: 'llm_call_failed',
-          message: '{\n  "error": {\n    "message": "Unsupported parameter: \'temperature\' is not supported with this model.",\n    "type": "invalid_request_error",\n    "param": "temperature",\n    "code": null\n  }\n}\n',
-          treace_id: '0b522d6217871977087566606e0ca6',
-        },
-      }),
-      code: 'MPE-001',
-    },
+// 「同一个地址、同一把 key，别的客户端能用，我们 400」= 请求体多了东西 (#151)。
+// 1.5.3–1.5.9 的答案是**试探性协商**：发一个乐观的体，被拒了从服务端报错里抠出字段名
+// 再让掉重发。它今天差点静默失效 —— 那条真实 400 是三层嵌套，字段名排在第 100 个字符，
+// 而截断上限是 300；网关的 trace id 再长一点，协商会**既不报错也不触发**。
+//
+// 现在改成查表：`build/model-params.config.js` 记我们知道的，表外一律最小必要集。
+// 下面钉的是同一件事的两面 —— 知道的要发对，不知道的要少说话。
+describe('TranslationAPI — 请求体：查表 + 最小必要兜底', () => {
+  // 整组里最要紧的一条：那个企业网关（自家域名，表里没有）现在从一开始就不会收到
+  // temperature，于是 2026-08-20 那个 400 根本不会发生。
+  test('表外的 host ⇒ body 只有 model 与 messages，一个可选字段都不发', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })]);
+    await API.translate('hello', 'zh-CN', 'custom_chat', 'K',
+      'https://idealab.example-corp.com/v1/chat/completions');
+    const body = bodyOf(fetch.calls[0]);
+    deepEq(Object.keys(body).sort(), ['messages', 'model']);
+    eq(body.messages[0].role, 'system', '角色名无表时用协议默认值');
   });
 
-  test('三层嵌套的错误被剥到最里面那句人话', () => {
+  test('表说不收 ⇒ 用户在高级面板设了值也不发，且预算要改名', async () => {
+    // 「表赢」的机器判据。用户设了 0.9，表（openai-reasoning）说 false ⇒ 不发。
+    const { API, fetch } = loadAPI(
+      [okJson({ choices: [{ message: { content: '你好' } }] })],
+      { store: { reqTemperature: 0.9, reqMaxTokens: 1234 } });
+    await API.translate('hello', 'zh-CN', 'custom_chat', 'K',
+      'https://api.openai.com/v1/chat/completions', 'gpt-5.6-sol');
+    const body = bodyOf(fetch.calls[0]);
+    ok(!('temperature' in body), '表说不收就是不收，用户设了也不发');
+    ok(!('max_tokens' in body), '这一族的预算不叫 max_tokens');
+    eq(body.max_completion_tokens, 1234);
+    eq(body.messages[0].role, 'developer');
+  });
+
+  test('同一个 host 上前缀更长者赢 —— gpt-4o 仍走经典行', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })]);
+    await API.translate('hello', 'zh-CN', 'custom_chat', 'K',
+      'https://api.openai.com/v1/chat/completions', 'gpt-4o');
+    const body = bodyOf(fetch.calls[0]);
+    eq(body.temperature, 0.3);
+    eq(body.max_tokens, 2000);
+    eq(body.messages[0].role, 'system');
+  });
+
+  test('表说收但用户没设 ⇒ 发我们的默认值；设了 ⇒ 发用户的', async () => {
+    const a = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })]);
+    await a.API.translate('hello', 'zh-CN', 'deepseek', 'K', '');
+    eq(bodyOf(a.fetch.calls[0]).temperature, 0.3);
+
+    const b = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })],
+      { store: { reqTemperature: 1.1 } });
+    await b.API.translate('hello', 'zh-CN', 'deepseek', 'K', '');
+    eq(bodyOf(b.fetch.calls[0]).temperature, 1.1);
+  });
+
+  test('高级参数会被钳制 —— 0 抬到 0.01，因为至少一家拒收 0', async () => {
+    const { API, fetch } = loadAPI([okJson({ choices: [{ message: { content: '你好' } }] })],
+      { store: { reqTemperature: 0 } });
+    await API.translate('hello', 'zh-CN', 'deepseek', 'K', '');
+    eq(bodyOf(fetch.calls[0]).temperature, 0.01);
+  });
+
+  test('messages-compat 无表也照发 max_tokens —— 协议必填，压不掉', async () => {
+    // 一张观测表不能推翻一条协议契约。这是「最小必要」唯一的例外，所以要钉住。
+    const { API, fetch } = loadAPI([okJson({ content: [{ text: '你好' }] })]);
+    await API.translate('hello', 'zh-CN', 'custom_chat', 'K',
+      'https://gateway.example-corp.com/v1/messages');
+    const body = bodyOf(fetch.calls[0]);
+    eq(body.max_tokens, 2000, '这条链路上 max_tokens 是必填');
+    ok(!('temperature' in body), '但可选的仍然不发');
+    ok(typeof body.system === 'string', 'system 走顶层，不是一条 message');
+  });
+
+  test('400 就是 400 —— 不猜是哪个字段，只发一次，把服务端原话交出去', async () => {
+    // 协商删除后的行为契约：一次请求、一次失败、原话可见。用户看得见的失败，好过
+    // 一个取决于对方错误信息长什么样的赌局。
+    const { API, fetch } = loadAPI([{ status: 400,
+      text: JSON.stringify({ error: { message: "Unsupported parameter: 'temperature'" } }) }]);
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.status, 400);
+    match(e.serverMessage, /temperature/);
+    eq(fetch.calls.length, 1, '400 不重发');
+  });
+
+  test('serverSays 仍会逐层剥壳 —— 它是「服务端原话」这一行的唯一来源', async () => {
+    // 2026-08-20 真机（idealab 网关）原样拿到的 400 正文，三层嵌套，一个字符没改。
+    // 协商没了，但把这堆转义反斜杠变成人能读的一句话，用户仍然需要。
+    const REAL_NESTED_400 = JSON.stringify({
+      object: 'response',
+      error: {
+        message: JSON.stringify({
+          error: {
+            type: 'llm_call_failed',
+            message: '{\n  "error": {\n    "message": "Unsupported parameter: \'temperature\' is not supported with this model.",\n    "type": "invalid_request_error",\n    "param": "temperature",\n    "code": null\n  }\n}\n',
+            treace_id: '0b522d6217871977087566606e0ca6',
+          },
+        }),
+        code: 'MPE-001',
+      },
+    });
     const { API } = loadAPI([]);
     const said = API.serverSays(REAL_NESTED_400);
-    eq(said, "Unsupported parameter: 'temperature' is not supported with this model.");
-    ok(said.length < 100, `原话 ${said.length} 字符 —— 不剥壳的话是 296，逼近 300 上限；` +
-      '字段名排在第 100 个字符，网关的 trace_id 再长一点就会被截掉，' +
-      '于是协商既不报错也不触发（最难查的那种失效）');
+    match(said, /Unsupported parameter: 'temperature' is not supported with this model\./);
+    ok(said.length < 120, '要剥到人能读的一句，而不是 296 字符的壳：' + said.length);
   });
 
-  test('真机那条 400 会触发协商并最终成功', async () => {
-    const { API, fetch } = loadAPI([
-      { status: 400, text: REAL_NESTED_400 },
-      okJson({ choices: [{ message: { content: '间隔重复' } }] }),
-    ]);
-    eq(await API.translate('Spaced repetition', 'zh-CN', 'custom_chat', 'K',
-      'https://gw.example/api/openai/v1/chat/completions'), '间隔重复');
-    eq(fetch.calls.length, 2);
-    const retried = bodyOf(fetch.calls[1]);
-    ok(!('temperature' in retried), '第二次请求还带着 temperature —— 没让掉');
-    eq(retried.max_tokens, 2000, '没被点名的字段不该受牵连');
-  });
-
-
-  const okBody = { choices: [{ message: { content: '你好' } }] };
-  const reject = (msg) => ({ status: 400, text: JSON.stringify({ error: { message: msg } }) });
-
-  test("点名 max_tokens 且给了新名字 ⇒ 改名重发，预算不丢", async () => {
-    const { API, fetch } = loadAPI([
-      reject("Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."),
-      okJson(okBody)]);
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    eq(fetch.calls.length, 2);
-    const b = bodyOf(fetch.calls[1]);
-    ok(!('max_tokens' in b), 'max_tokens 该让掉');
-    eq(b.max_completion_tokens, 2000, '预算改名保留，不是整个丢掉');
-  });
-
-  test('点名 temperature ⇒ 去掉再发，其余字段不动', async () => {
-    const { API, fetch } = loadAPI([
-      reject("Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported."),
-      okJson(okBody)]);
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    const b = bodyOf(fetch.calls[1]);
-    ok(!('temperature' in b));
-    eq(b.max_tokens, 2000, '没被点名的字段不该受牵连');
-    eq(b.messages.length, 2);
-  });
-
-  test("点名 system 角色 ⇒ 换成 developer，内容一字不改", async () => {
-    const { API, fetch } = loadAPI([
-      reject("Invalid value: 'system'. Supported values are: 'developer', 'user' and 'assistant'."),
-      okJson(okBody)]);
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    const before = bodyOf(fetch.calls[0]).messages[0];
-    const after = bodyOf(fetch.calls[1]).messages[0];
-    eq(after.role, 'developer');
-    eq(after.content, before.content, 'system prompt 内容必须原样');
-  });
-
-  test('只收流式的网关 ⇒ 带 stream 重发，整包收完再解 SSE', async () => {
-    const sse = ['data: {"choices":[{"delta":{"content":"你"}}]}',
-                 'data: {"choices":[{"delta":{"content":"好"}}]}',
-                 'data: [DONE]', ''].join('\n');
-    const { API, fetch } = loadAPI([reject('This endpoint only supports stream mode'),
-      { status: 200, text: sse }]);
-    eq(await API.translate('hello', 'zh-CN', 'deepseek', 'K', ''), '你好');
-    eq(bodyOf(fetch.calls[1]).stream, true);
-  });
-
-  test('最多让两步，且每一步必须真的改动了什么 —— 不能变成磨掉真错误的重试循环', async () => {
-    // 服务端反复点名同一个已经让掉的字段：第二次 relax 返回 null ⇒ 立刻抛出。
-    const { API, fetch } = loadAPI([reject("'temperature' unsupported"), reject("'temperature' unsupported")]);
-    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
-    eq(e.status, 400);
-    eq(fetch.calls.length, 2, '没得让了就停，不该再发第三次');
-  });
-
-  test('服务端没点名任何我们发的字段 ⇒ 不协商，原样报错', async () => {
-    const { API, fetch } = loadAPI([reject('insufficient balance')]);
-    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
-    eq(e.status, 400);
-    match(e.serverMessage, /insufficient balance/);
-    eq(fetch.calls.length, 1, '看不懂的 400 不该被当成可协商');
-  });
-
-  test('401 / 404 / 429 一律不协商 —— 那些不是请求体的毛病', async () => {
-    // 断言的是「请求体没被动过」而不是调用次数：429 该被外层退避重试（那是可重试的），
-    // 但每一次都必须原样重发，不能因为响应体里恰好出现了 temperature 就去改请求。
+  test('401 / 404 / 429 一律原样重发 —— 那些不是请求体的毛病', async () => {
     for (const status of [401, 404, 429]) {
       const { API, fetch } = loadAPI([{ status,
         text: JSON.stringify({ error: { message: "'temperature' unsupported" } }),
@@ -297,7 +296,7 @@ describe('TranslationAPI — 请求体协商', () => {
       const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
       eq(e.status, status);
       for (const c of fetch.calls) {
-        eq(bodyOf(c).temperature, 0.3, status + ' 不该触发协商');
+        eq(bodyOf(c).temperature, 0.3, status + ' 不该改动请求体');
       }
     }
   });
@@ -424,7 +423,8 @@ describe('TranslationAPI — a storage callback that hands back undefined (Safar
     };
     const window = loadRegistry();   // same registry as loadAPI, or we'd hit the
                                      // google branch instead of the code under test
-    const ctx = loadModule('translation-api.js', { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
+    const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+    { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
     return { API: ctx.TranslationAPI, fetch };
   }
 

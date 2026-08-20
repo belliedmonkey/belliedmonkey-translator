@@ -165,18 +165,17 @@ var LearnTTS = (() => {
     // old code did to that user's saved value.
     const url = WireFormat.resolveEndpoint(cfg.baseUrl, e);
     if (!url) { const err = new Error('missing endpoint URL'); err.code = 'no_base'; throw err; }
-    const init = {
-      method: 'POST',
-      headers: Object.assign(
-        { 'Content-Type': 'application/json' },
-        cfg.apiKey ? { Authorization: 'Bearer ' + cfg.apiKey } : {}),
-      body: JSON.stringify({
-        model: cfg.model || e.defaultModel,
-        input: text,
-        voice: cfg.voice || (e.voices && e.voices[0]) || 'alloy',
-        response_format: cfg.format || 'mp3',
-      }),
-    };
+    // 请求体由 RequestShape 一处构造（content/request-shape.js），与翻译/解析/转写同源。
+    // 语音这条路的形状由地址后缀 /audio/speech 判定，与注册表 type 无关 —— 同一个自建
+    // 服务可以同时提供多种形状，用哪种只有用户的地址说了算。
+    const req = RequestShape.build(WireFormat.formatFor(url, e && e.type), {
+      url, apiKey: cfg.apiKey,
+      model: cfg.model || e.defaultModel,
+      input: text,
+      voice: cfg.voice || (e.voices && e.voices[0]) || 'alloy',
+      format: cfg.format,
+    });
+    const init = { method: 'POST', headers: req.headers, body: JSON.stringify(req.body) };
     // A self-hosted speech endpoint that omits `Access-Control-Allow-Origin` makes
     // WebKit kill the fetch before any status is visible — a bare TypeError ("Load
     // failed") that reads exactly like "host unreachable" (measured 2026-08-13,

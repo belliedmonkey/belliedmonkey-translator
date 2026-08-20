@@ -270,6 +270,36 @@
   "options_custom_model_hint": {
     "message": "Leave blank to use the engine's default model."
   },
+  "options_advanced": {
+    "message": "Дополнительные параметры"
+  },
+  "label_adv_temperature": {
+    "message": "Случайность (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Пусто — 0,3. Чем ниже, тем стабильнее перевод."
+  },
+  "label_adv_max_tokens": {
+    "message": "Макс. длина ответа на запрос"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Пусто — 2000. Увеличьте, если длинные абзацы обрезаются."
+  },
+  "label_adv_timeout": {
+    "message": "Тайм-аут запроса (секунды)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Пусто — 20 с. Увеличьте для медленных собственных или рассуждающих моделей."
+  },
+  "label_adv_concurrency": {
+    "message": "Параллельные запросы"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Пусто — 5. Уменьшите при ограничении частоты; увеличение не ускорит уже ожидающие запросы."
+  },
+  "options_adv_unsupported": {
+    "message": "Эта модель не принимает данный параметр, поэтому он не будет отправлен."
+  },
   "toast_model_saved": {
     "message": "Model saved"
   },

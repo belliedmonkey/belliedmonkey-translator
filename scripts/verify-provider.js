@@ -12,7 +12,8 @@
 // 它**不是**自己写一份请求去打端点——那样测出来的「通了」只说明那个端点活着，不说明
 // 我们的代码能用它。它加载的是 `extension/content/translation-api.js` 与
 // `wire-format.js` 本体（和单元测试同一个 loader），只把 fetch 换成 Node 的真 fetch。
-// 所以走的是地址解析、形状判定、请求体协商、错误具名的同一条路。
+// 所以走的是地址解析、形状判定、请求体构造（能力表 + 最小必要兜底）、错误具名的
+// 同一条路。
 //
 // 凭证从 `.local/keys.md` 读（`key_chat_<id>[_flavor]` / `base_…` / `model_…`），
 // 值不打印、不进日志——只打印它去请求的**地址**，那正是 §1.0 判据 2 要看的东西。
@@ -82,11 +83,12 @@ const window = { MT_FLAVOR: flavor, MT_PROVIDERS: [entry] };
 const WireFormat = require(path.join(ROOT, 'extension', 'content', 'wire-format.js'));
 window.WireFormat = WireFormat;
 
-// 每次请求的地址都记下来：协商可能重发，而「第二次发了什么」正是要看的。
+// 每次请求的地址都记下来。#159 删掉请求体协商之后，正常情况下这里**只该有一行** ——
+// 多出来的行只可能来自 429/网络错误的退避重试，那本身就是要看见的事。
 const seen = [];
 const tracingFetch = (url, init) => { seen.push(String(url)); return fetch(url, init); };
 
-const ctx = loadModule('translation-api.js', {
+const ctx = loadModule(['request-shape.js', 'translation-api.js'], {
   fetch: tracingFetch, chrome: makeChrome(), AbortController, URLSearchParams, window, WireFormat,
 });
 const API = ctx.TranslationAPI;
@@ -109,7 +111,7 @@ const shape = WireFormat.formatFor(intended, entry.type);
   catch (e) { err = e; }
   const ms = Date.now() - t0;
 
-  // 请求了哪些地址 —— 判据 2。协商重发时这里会有多行，第一行之外都是让步后的重试。
+  // 请求了哪些地址 —— 判据 2。多于一行 = 发生了退避重试，值得看一眼为什么。
   for (let i = 0; i < seen.length; i++) {
     console.log(`请求 ${i + 1}    ${seen[i]}`);
   }

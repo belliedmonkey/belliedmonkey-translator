@@ -19,9 +19,13 @@ const EXT_DIR = path.join(EXT_ROOT, 'content');
 // A bare name resolves under extension/content/ (the content scripts). A name with
 // a slash resolves under extension/ — extension-PAGE modules live outside content/
 // (learn/tts.js, learn/store.js) and are just as worth regressing.
+// `relFile` may be an ARRAY, in which case every file runs in ONE shared context —
+// which is what the browser actually does: content scripts are not modules, they share
+// a single global scope, and a later file referencing an earlier file's `var` is the
+// normal case (translation-api.js → RequestShape). Loading them into separate contexts
+// and hand-wiring the globals is what made that dependency invisible to the tests.
 function loadModule(relFile, sandbox = {}) {
-  const abs = relFile.includes('/') ? path.join(EXT_ROOT, relFile) : path.join(EXT_DIR, relFile);
-  const code = fs.readFileSync(abs, 'utf8');
+  const files = Array.isArray(relFile) ? relFile : [relFile];
   const base = {
     console,
     setTimeout,
@@ -30,7 +34,10 @@ function loadModule(relFile, sandbox = {}) {
     clearInterval,
   };
   const ctx = vm.createContext(Object.assign(base, sandbox));
-  vm.runInContext(code, ctx, { filename: relFile });
+  for (const f of files) {
+    const abs = f.includes('/') ? path.join(EXT_ROOT, f) : path.join(EXT_DIR, f);
+    vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: f });
+  }
   return ctx;
 }
 

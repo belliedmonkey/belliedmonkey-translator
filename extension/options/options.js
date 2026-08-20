@@ -26,6 +26,10 @@ const SETTINGS_KEYS = [
   'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
   // §9.4: transcription engine for the 说 exercise — never follows any group.
   'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
+  // 高级参数（#159）。**默认不设置** —— 空字符串写回存储，读取处按「没设」处理。
+  // 它们刻意不进 background.js 的 DEFAULT_SETTINGS：那会让「没设置」与「设成了默认值」
+  // 无法区分，而前两项要靠这个区分来让能力表在冲突时赢。
+  'reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -317,6 +321,41 @@ function updateColorPreview(color) {
   $('color-preview').style.color = color;
 }
 
+// 「留空 = 不设置」的读取器。返回空串而不是 0/NaN：saveAll 是整体覆盖式的，
+// 一个 NaN 会把用户明确设过的值悄悄清成 0，而 0 恰好是 temperature 上最危险的值。
+function advNum(id, key) {
+  const raw = String($(id).value || '').trim();
+  if (raw === '') return '';
+  const n = Number(raw);
+  if (!isFinite(n)) return '';
+  const [lo, hi] = RequestShape.CLAMP[key];
+  return Math.max(lo, Math.min(hi, n));
+}
+
+// 「表赢，但界面上说明原因」的落点。能力表说当前 host+模型不收某个参数时，那个格子
+// 里的值不会被发送 —— 静默丢弃是这套设计里最难被发现的失败（服务端不会为此报错），
+// 所以在它旁边直接说出来，并把输入框置灰，让「填了没用」变成看得见的事。
+function updateAdvancedNotes() {
+  let caps = {};
+  try {
+    caps = RequestShape.paramsFor(
+      WireFormat.resolveEndpoint($('api-base-url').value.trim(),
+        (window.MT_PROVIDERS || []).find((p) => p.id === $('provider').value)),
+      $('api-model').value.trim()) || {};
+  } catch (_) { caps = {}; }
+  const rows = [
+    ['adv-temperature', caps.temperature],
+    ['adv-max-tokens', caps.budget],
+  ];
+  for (const [id, cap] of rows) {
+    const off = cap === false;
+    $(id).disabled = off;
+    $(id + '-note').textContent = off
+      ? t('options_adv_unsupported', '当前模型不接受此参数，本次不会发送。')
+      : '';
+  }
+}
+
 async function saveAll() {
   const settings = {
     provider:    $('provider').value,
@@ -343,6 +382,12 @@ async function saveAll() {
     notesApiKey:   $('notes-api-key').value.trim(),
     notesBaseUrl:  $('notes-base-url').value.trim(),
     notesModel:    $('notes-model').value.trim(),
+    // 空 ⇒ 存空串（= 没设置）。非空才钳制，钳制范围与 request-shape.js 的 CLAMP 同源，
+    // 因为界面钳过之后运行时还会再钳一次 —— 存储可能来自同步、来自 App、来自旧版本。
+    reqTemperature: advNum('adv-temperature', 'reqTemperature'),
+    reqMaxTokens:   advNum('adv-max-tokens', 'reqMaxTokens'),
+    reqTimeoutSec:  advNum('adv-timeout', 'reqTimeoutSec'),
+    reqConcurrency: advNum('adv-concurrency', 'reqConcurrency'),
     sttEngine:     $('stt-engine').value,
     sttApiKey:     $('stt-api-key').value.trim(),
     sttBaseUrl:    $('stt-base-url').value.trim(),
@@ -417,6 +462,13 @@ async function init() {
   // Capture is OFF until the user turns it on once — never default-on on upgrade.
   $('learn-enabled').checked = s.learnEnabled === true;
   $('learn-daily-new').value = Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew;
+  // 回填是必须的，不是可选的：saveAll() 整体覆盖，任何一个控件没回填，用户下一次改
+  // 别的字段就会把它清空。空值回填成空字符串 —— 那正是「没设置」的表示。
+  $('adv-temperature').value = s.reqTemperature === '' || s.reqTemperature == null ? '' : s.reqTemperature;
+  $('adv-max-tokens').value = s.reqMaxTokens === '' || s.reqMaxTokens == null ? '' : s.reqMaxTokens;
+  $('adv-timeout').value = s.reqTimeoutSec === '' || s.reqTimeoutSec == null ? '' : s.reqTimeoutSec;
+  $('adv-concurrency').value = s.reqConcurrency === '' || s.reqConcurrency == null ? '' : s.reqConcurrency;
+  updateAdvancedNotes();
   $('tts-mode').value      = s.ttsMode || 'off';
   $('tts-autoplay').checked = s.ttsAutoPlay !== false;
   $('tts-base-url').value  = s.ttsBaseUrl || '';
@@ -525,6 +577,7 @@ async function init() {
     const cleared = clearEndpointOnEngineSwitch('api-base-url');
     updateProviderUI(e.target.value);
     await saveAll();
+    updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
     showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
       : t('toast_provider_saved', '翻译引擎已保存'));
   });
@@ -532,8 +585,32 @@ async function init() {
   $('api-key').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apikey_saved', 'API Key 已保存')); });
   // `change` only fires on blur — clear the note as soon as a key is typed.
   $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
-  $('api-base-url').addEventListener('change', async () => { await saveAll(); showToast(t('toast_apiurl_saved', 'API 地址已保存')); });
-  $('api-model').addEventListener('change', async () => { await saveAll(); showToast(t('toast_model_saved', '模型已保存')); });
+  $('api-base-url').addEventListener('change', async () => {
+    await saveAll(); updateAdvancedNotes(); showToast(t('toast_apiurl_saved', 'API 地址已保存'));
+  });
+  $('api-model').addEventListener('change', async () => {
+    await saveAll(); updateAdvancedNotes(); showToast(t('toast_model_saved', '模型已保存'));
+  });
+
+  // 折叠沿用来源管理那条（options.js 的 btn-manage-sources）：button + hidden 容器，
+  // 不用 <details>（这个页面里一个都没有），也不写 display 规则（options.css:7 已有
+  // `[hidden]{display:none!important}`，再写一条就是那次「面板永远展开」的事故）。
+  // 不加 busy()：这里没有 IO。
+  $('btn-advanced').addEventListener('click', () => {
+    const box = $('advanced-config');
+    box.hidden = !box.hidden;
+    if (!box.hidden) updateAdvancedNotes();
+  });
+  for (const id of ['adv-temperature', 'adv-max-tokens', 'adv-timeout', 'adv-concurrency']) {
+    $(id).addEventListener('change', async () => {
+      await saveAll();
+      // 运行时缓存了这四个值（request-shape.js 的 _prefs）。它自己也监听 storage 变化，
+      // 但这个页面与内容脚本不在同一个上下文，所以这里显式刷一次自己的那份。
+      try { RequestShape.refresh(); } catch (_) {}
+      updateAdvancedNotes();
+      showToast(t('toast_saved', '已保存'));
+    });
+  }
   $('target-lang').addEventListener('change', async () => { await saveAll(); showToast(t('toast_lang_saved', '语言已保存')); });
   $('ui-lang').addEventListener('change', async (e) => {
     _uiLang = e.target.value || 'auto';
