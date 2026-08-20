@@ -147,6 +147,86 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       await cdp.send('Target.closeTarget', { targetId });
     }
 
+    // ── 2b. 设置页真的能用：面板展开、值存得住、重开还在 ─────────────────────
+    //
+    // 上面那一轮只证明页面没炸。它证明不了 saveAll() 这条路 —— 那是**整体覆盖式**的：
+    // 每次从 DOM 读全部字段写回存储，所以任何一个新控件只要 init() 里漏了回填，用户
+    // 下一次改别的字段就会把它悄悄清空。这种坏法在「页面能打开」这个断言下完全隐形，
+    // 而它正是 1.5.4 那种「全门禁绿着发出去、结果是空转」的形状。
+    {
+      const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+      const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+      await cdp.send('Runtime.enable', {}, sessionId);
+      const errs = [];
+      const off = cdp.on('Runtime.exceptionThrown', (ev, sid) => {
+        if (sid === sessionId) errs.push((ev.exceptionDetails || {}).text || 'exception');
+      });
+      await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
+      await sleep(2500);
+
+      // 新引擎条目真的出现在下拉里 —— 注册表加一条却渲染不出来，是另一种全绿的空转。
+      const engines = await evalIn(cdp, sessionId,
+        `JSON.stringify([...document.getElementById('provider').options].map(o => o.value))`);
+      if (!JSON.parse(engines).includes('qwen_mt')) {
+        problems.push(`引擎下拉里没有 qwen_mt：${engines}`);
+      }
+      notes.push(`引擎下拉 ${JSON.parse(engines).length} 项，含 qwen_mt: ${JSON.parse(engines).includes('qwen_mt')}`);
+
+      // 默认必须是折叠的 —— 「默认不设置」这件事，界面上的对应物就是它不占地方。
+      const hidden0 = await evalIn(cdp, sessionId, `document.getElementById('advanced-config').hidden`);
+      if (hidden0 !== true) problems.push('高级参数面板默认不是折叠的');
+
+      // 点开 → 填值 → 触发 change（saveAll 挂在 change 上，不是 input）
+      await evalIn(cdp, sessionId, `(() => {
+        document.getElementById('btn-advanced').click();
+        const t = document.getElementById('adv-temperature');
+        t.value = '0.7';
+        t.dispatchEvent(new Event('change', { bubbles: true }));
+        const c = document.getElementById('adv-concurrency');
+        c.value = '3';
+        c.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(1200);
+      const hidden1 = await evalIn(cdp, sessionId, `document.getElementById('advanced-config').hidden`);
+      if (hidden1 !== false) problems.push('点了「高级参数」面板没有展开');
+
+      // 落到存储里没有 —— 只看输入框的值等于什么都没验。
+      const stored = await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['reqTemperature','reqConcurrency'], v => r(JSON.stringify(v))))`);
+      const sv = JSON.parse(stored);
+      if (Number(sv.reqTemperature) !== 0.7) problems.push(`reqTemperature 没存住: ${stored}`);
+      if (Number(sv.reqConcurrency) !== 3) problems.push(`reqConcurrency 没存住: ${stored}`);
+
+      // 重开页面 —— init() 的回填。漏了这步，值还在存储里，但下一次任何 change 都会
+      // 把它写成空。所以这里再改一个**别的**字段，然后回来看这两个键还在不在。
+      await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
+      await sleep(2500);
+      const back = await evalIn(cdp, sessionId, `document.getElementById('adv-temperature').value`);
+      if (String(back) !== '0.7') problems.push(`重开后高级参数没回填（读到 ${JSON.stringify(back)}）`);
+      await evalIn(cdp, sessionId, `(() => {
+        const f = document.getElementById('font-size');
+        f.value = f.options[f.options.length - 1].value;
+        f.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(1200);
+      const after = JSON.parse(await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['reqTemperature','reqConcurrency'], v => r(JSON.stringify(v))))`));
+      if (Number(after.reqTemperature) !== 0.7 || Number(after.reqConcurrency) !== 3) {
+        problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— saveAll 是整体覆盖式的，回填漏了`);
+      }
+      notes.push(`高级参数 存→重开→改别的字段后仍是 ${JSON.stringify(after)}`);
+      for (const e of errs) problems.push(`options 交互期异常: ${e}`);
+      off();
+      await cdp.send('Target.closeTarget', { targetId });
+      // 这一段往存储里写了东西，后面那段翻译要的是干净配置，所以清掉。
+      if (swSession) {
+        await evalIn(cdp, swSession,
+          `new Promise(r => chrome.storage.local.remove(['reqTemperature','reqConcurrency'], () => r(1)))`);
+      }
+    }
+
     // ── 3. 配置成用户那种形状：custom_chat + 自填完整端点 ────────────────────
     if (swSession) {
       await evalIn(cdp, swSession, `new Promise(r => chrome.storage.local.set(${JSON.stringify({
