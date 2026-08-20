@@ -209,6 +209,10 @@ function engineTestReason(e) {
     case 'no_path': return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
     case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
     case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
+    // 上一条的精确版本：我们现在能分辨「模型不吐正文」与「预算被思考吃光」了。
+    // 后者不是「换个模型」，而是「调高预算或降低推理档位」，而且**重试永远无效** ——
+    // 说清楚这一点，用户才不会把「点此重试」点到天荒地老（实测单次要烧 27.8 秒）。
+    case 'reasoning_starved': return t('err_reasoning_starved', '模型把整个输出预算用在了思考上，没有产出译文。请在「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。');
     case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
     // 我们的提示是**猜**，服务端那句话是**事实**——所以两句都给，事实在后面单起一行。
     // 只给提示的代价是实测过的：一个网关因为 body 里的 `max_tokens` / `temperature`

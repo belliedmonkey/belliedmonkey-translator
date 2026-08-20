@@ -329,10 +329,17 @@ Rules:
     // gpt-5-mini 对一段 870 字的正文烧掉全部 2000 预算、耗时 27.8 秒、正文 0 字。
     // 具名之后用户至少知道要去调哪个旋钮，而不是把「点此重试」点到天荒地老。
     if (!out && RequestShape.starvedByReasoning(parsed)) {
-      // fallback 必须整段写在 t() 的第二个参数位、且不跨行 —— 检测器按行认，
-      // 跨行拼接的下半截在它眼里就是一句裸中文（test/no-hardcoded-copy.test.js 刚抓到）。
-      const msg = TranslationCore.t('err_reasoning_starved', '模型把整个输出预算用在了思考上，没有产出译文。请在「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。');
-      const e = new Error(`${o.label}: ${msg}`);
+      // **这里不做 i18n。** 这个文件对 TranslationCore 零依赖，而它有一个不显然的理由：
+      // `options.html` 加载 translation-api.js 却**不**加载 translation-core.js，所以在
+      // 设置页调 TranslationCore.t 会抛 ReferenceError —— 一个本该说人话的错误，变成
+      // 一句 "TranslationCore is not defined"。（这正是 1.6.1 发版前最后一次真端点
+      // 复验抓到的，代价是我自己在 #160 里破坏了这条不变量。）
+      //
+      // 文案由显示层给：设置页有 engineTestReason() 那张 code→文案表（带 i18n），
+      // 页面上的失败提示则是固定的 msg_translate_failed_retry，从不显示 message。
+      // 所以这里只负责把**事实**带出去：code + 一句英文兜底。
+      const e = new Error(`${o.label}: the model spent its entire output budget on reasoning`
+        + ' and returned no translation');
       e.status = 0;
       e.code = 'reasoning_starved';
       e.retryable = false;
