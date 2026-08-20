@@ -42,15 +42,30 @@
 //                缺省                     不知道
 //              ⚠️ messages-compat 例外：那条链路上 max_tokens 是 **API 必填**，
 //              表说 false 也照发。一行观测表不能推翻一条协议契约。
-//  reasoning   推理档位。缺省 = 不发（用模型自己的默认档）。目前只写过 'minimal'。
-//              **它只存档位，不存字段名** —— 拼写属于形状,不属于模型:
-//                chat-compat      reasoning_effort: 'minimal'
-//                responses-compat reasoning: { effort: 'minimal' }
-//              用错会 400,原话为证（实测 2026-08-20）:「In the Responses API, this
-//              parameter has moved to 'reasoning.effort'」。跟 systemRole 同一个道理,
-//              所以拼法在 request-shape.js 里按形状决定。
-//              ⚠️ 这一条**不是**「缺了就会错」的字段:不发就是模型的默认档,也就是今天的
-//              行为。它省的是时间和一次失败,不是请求的正确性 —— 许可证仍然成立。
+//  reasoning   「把思考压下去」的那组字段，**按 chat-compat 的写法存一个请求体片段**。
+//              缺省 = 不发 = 用模型自己的默认行为 = 今天的行为。
+//
+//              为什么是片段而不是一个档位字符串:各家根本不是同一种机制,实测 2026-08-20:
+//                api.openai.com   reasoning_effort: 'minimal' / 'low'   —— 档位
+//                api.deepseek.com thinking: { type: 'disabled' }        —— 开关
+//                open.bigmodel.cn thinking: { type: 'disabled' }        —— 开关
+//              而 `reasoning_effort` 在后两家是**被接受但完全无效**(GLM 加了
+//              reasoning_effort:'low' 仍然 38 秒、思考 1991 tok、正文 0 字)。一个枚举
+//              字符串表达不了这两种东西,所以这里存的就是要合并进请求体的字段本身。
+//
+//              形状差异仍由 request-shape.js 处理:responses-compat 上 reasoning_effort
+//              要写成 reasoning:{effort},写成顶层会 400,原话「In the Responses API,
+//              this parameter has moved to 'reasoning.effort'」(实测)。
+//
+//              ⚠️ 允许的顶层键是一份**白名单**(registry.test.js 钉住),不是任意字段。
+//              这一列写的是我们真的会发出去的东西,片段比枚举强大得多,而这张表的许可证
+//              建立在「表里没有一个字段是缺了就会错的」之上 —— 白名单是那条边界的守卫。
+//
+//              ⚠️ 它**不是**「缺了就会错」的字段:不发 = 模型默认行为 = 今天的行为。
+//              它省的是时间和一次失败,不是请求的正确性 —— 许可证仍然成立。
+//
+//              ⚠️ 关掉思考是一个**质量取舍**,不只是速度。对翻译这个任务实测下来译文
+//              长度与可读性相当(见各行 note),但那是这个任务的结论,不是普适结论。
 //  systemRole  chat-compat 里系统消息的 role：'system'（默认）| 'developer'。
 //              只对 chat-compat 有意义 —— messages-compat 走顶层 system、
 //              responses-compat 走顶层 instructions，那是**形状**的属性，不是模型的。
@@ -86,7 +101,7 @@ module.exports = [
     hosts: ['api.openai.com'],
     models: ['gpt-5'],
     temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
-    reasoning: 'minimal',
+    reasoning: { reasoning_effort: 'minimal' },
     note: '实测 2026-08-20，经企业网关转发 gpt-5.6-sol 的 400 原话：'
       + "Unsupported parameter: 'temperature' is not supported with this model."
       + ' param=temperature。同族的改名与 developer 角色为官方文档所载。'
@@ -107,7 +122,7 @@ module.exports = [
     hosts: ['api.openai.com'],
     models: ['o1', 'o3', 'o4'],
     temperature: false, budget: 'max_completion_tokens', systemRole: 'developer',
-    reasoning: 'low',
+    reasoning: { reasoning_effort: 'low' },
     note: '实测 2026-08-20（真 key）：o3-mini / o4-mini 拒收 minimal，原话 '
       + "「Unsupported value: 'reasoning_effort' does not support 'minimal' with this "
       + "model. Supported values are: 'low', …」；改用 low 后两者均 200"
@@ -169,13 +184,29 @@ module.exports = [
     id: 'glm', flavors: ['global', 'china'],
     hosts: ['open.bigmodel.cn', 'api.z.ai'],
     temperature: true, budget: true, systemRole: 'system',
-    note: 'paas/v4 收 temperature 与 max_tokens（文档）。',
+    reasoning: { thinking: { type: 'disabled' } },
+    note: 'paas/v4 收 temperature 与 max_tokens（文档）。'
+      + ' thinking:disabled 为实测所迫（2026-08-20，open.bigmodel.cn，真 key，各跑两遍）：'
+      + 'glm-4.6 基线 24339·25328ms、思考 1995·1996 tok、**正文 0 字**——与 gpt-5-mini'
+      + '同一种坏法（预算被思考吃光，用户看到「翻译失败」）；关掉后 1253·1567ms、117 字。'
+      + ' reasoning_effort:low 在这里被接受但完全无效（仍 38 秒 / 1991 tok / 0 字）。'
+      + ' 不思考的 glm-4-flash 带上它也照常 200，故写成 host 通行行。'
+      + ' 两个 host 都实测过：api.z.ai 走产品代码 1444ms、思考 0、正文 17 字。'
+      + ' ⚠️ open.bigmodel.cn 的时延本身波动很大（同一请求体在紧循环里 0.6–1.2 秒，'
+      + '在单次调用里见过 19.9 秒），所以这一行的证据是「思考归零」，不是某个固定耗时。',
   },
   {
     id: 'deepseek', flavors: ['global', 'china'],
     hosts: ['api.deepseek.com'],
     temperature: true, budget: true, systemRole: 'system',
-    note: '长期基线（verification-spec §0）：一直带 temperature:0.3 发送，从未被拒。',
+    reasoning: { thinking: { type: 'disabled' } },
+    note: '长期基线（verification-spec §0）：一直带 temperature:0.3 发送，从未被拒。'
+      + ' thinking:disabled 为实测（2026-08-20，真 key，同一段 440 字正文，各跑两遍）：'
+      + '**注册表默认的 deepseek-v4-flash 基线就在思考**（3549ms / 278 tok），关掉后'
+      + '1126ms、思考 0，快 3.2 倍；deepseek-reasoner 3515·3497ms / 228·223 tok →'
+      + '1414·1178ms / 0。译文长度相当（123→111、118→116、127→115 字）。'
+      + ' reasoning_effort 在这个 host 上被接受但无效，所以不能用它。'
+      + ' 不思考的模型带上这个参数也照常 200，故写成 host 通行行。',
   },
   {
     id: 'kimi', flavors: ['global', 'china'],

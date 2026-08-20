@@ -9,7 +9,7 @@
 //   temperature: false 写错 ⇒ 我们不发 ⇒ 用户设的值被静默丢弃，没有任何一方会报错。
 // 所以 false 必须带一条真实的服务端拒绝，写进 note。下面把这条规则变成一道门。
 
-const { describe, test, ok, eq } = require('./harness');
+const { describe, test, ok, eq, deepEq } = require('./harness');
 const { loadModule } = require('./harness');
 const WireFormat = require('../extension/content/wire-format.js');
 const TABLE = require('../build/model-params.config.js');
@@ -239,7 +239,7 @@ describe('推理档位：表只存档位，拼法由形状决定', () => {
   const OA = 'https://api.openai.com/v1/chat/completions';
   const OA_RESP = 'https://api.openai.com/v1/responses';
 
-  test('chat-compat 用顶层 reasoning_effort', () => {
+  test('chat-compat：片段原样合并（这一家的机制是档位）', () => {
     const req = RS().build('chat-compat', {
       url: OA, model: 'gpt-5-mini', system: 's', user: 'u', budget: 2000,
     });
@@ -257,18 +257,33 @@ describe('推理档位：表只存档位，拼法由形状决定', () => {
     ok(!('reasoning_effort' in req.body), '顶层写法在这条形状上是 400');
   });
 
-  test('表里没写档位的行一个字都不发 —— 不发 = 用模型自己的默认档 = 今天的行为', () => {
-    const a = RS().build('chat-compat', {
-      url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat',
-      system: 's', user: 'u', budget: 2000,
-    });
-    ok(!('reasoning_effort' in a.body));
-    // openrouter 那条推理行刻意不写：我们没打过那个网关的推理参数归一化。
-    const b = RS().build('chat-compat', {
-      url: 'https://openrouter.ai/api/v1/chat/completions', model: 'openai/gpt-5',
-      system: 's', user: 'u', budget: 2000,
-    });
-    ok(!('reasoning_effort' in b.body), '没实测过的就不发 —— 猜错会打断一条今天能用的路');
+  test('各家机制不同：deepseek / glm 是开关，不是档位', () => {
+    // reasoning_effort 在这两家**被接受但完全无效**（glm 加了 reasoning_effort:'low'
+    // 仍然 38 秒、思考 1991 tok、正文 0 字）。所以表里存的是字段本身，不是一个枚举。
+    const S = RS();
+    for (const url of ['https://api.deepseek.com/v1/chat/completions',
+                       'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                       'https://api.z.ai/api/paas/v4/chat/completions']) {
+      const b = S.build('chat-compat', { url, model: 'x', system: 's', user: 'u', budget: 2000 }).body;
+      deepEq(b.thinking, { type: 'disabled' }, url);
+      ok(!('reasoning_effort' in b), url + ' 不该发档位 —— 那个字段在这里是无效的');
+    }
+  });
+
+  test('没实测过的行一个字都不发 —— 猜错会打断一条今天能用的路', () => {
+    const S = RS();
+    // openrouter：没打过那个网关的推理参数归一化。
+    // dashscope：实测 qwen-plus / qwen3-max 默认就不思考，没有可关的东西。
+    for (const [url, model] of [
+      ['https://openrouter.ai/api/v1/chat/completions', 'openai/gpt-5'],
+      ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
+      ['https://api.moonshot.cn/v1/chat/completions', 'kimi-k2'],
+      ['https://api.x.ai/v1/chat/completions', 'grok-4'],
+      ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1-6'],
+    ]) {
+      const b = S.build('chat-compat', { url, model, system: 's', user: 'u', budget: 2000 }).body;
+      ok(!('reasoning_effort' in b) && !('thinking' in b), url + ' 不该发任何推理字段');
+    }
   });
 
   test('表外的 host 仍然只有最小必要集 —— 新字段不许把兜底撑大', () => {

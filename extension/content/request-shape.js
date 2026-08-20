@@ -189,6 +189,19 @@ var RequestShape = (() => {
     return false;
   }
 
+  // 把表里的推理片段合并进请求体。只有一条形状差异需要翻译（见下），其余原样带过去。
+  // 白名单在 registry.test.js 那一侧钉住 —— 这里不做校验，是因为运行时悄悄丢掉一个
+  // 字段比发出去更难查：发错了服务端会说话，丢掉了没有任何一方会说话。
+  function applyReasoning(body, frag, shape) {
+    if (!frag || typeof frag !== 'object') return;
+    for (const k of Object.keys(frag)) {
+      const v = frag[k];
+      if (v === undefined) continue;
+      if (shape === 'responses' && k === 'reasoning_effort') { body.reasoning = { effort: v }; continue; }
+      body[k] = v;
+    }
+  }
+
   function optional(cap, want, tuned) {
     if (cap === false) return undefined;                    // 表明确否决 ⇒ 无条件不发
     if (want !== undefined && want !== null && want !== '') return want;  // 用户明说
@@ -234,9 +247,10 @@ var RequestShape = (() => {
       put(body, 'max_output_tokens',
         optional(caps.budget === undefined ? undefined : caps.budget !== false,
           p.reqMaxTokens, o.budget));
-      // 推理档位：表只存档位，拼法由形状决定。这条形状要嵌套写法，写成顶层字符串会 400，
-      // 原话为证：「In the Responses API, this parameter has moved to 'reasoning.effort'」。
-      if (caps.reasoning) body.reasoning = { effort: caps.reasoning };
+      // 表存的是 chat-compat 的写法，这条形状只有一处不同：reasoning_effort 要写成
+      // 嵌套的 reasoning.effort，顶层写法会 400，原话为证：「In the Responses API,
+      // this parameter has moved to 'reasoning.effort'」（实测）。其余字段原样带过去。
+      applyReasoning(body, caps.reasoning, 'responses');
       return { headers: bearer, body, extract: extractResponses, caps };
     }
 
@@ -302,13 +316,13 @@ var RequestShape = (() => {
       ],
     };
     put(body, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE));
-    // 推理档位。这条形状用顶层字符串（Responses 那条要嵌套，见上）。
+    // 把思考压下去。表存的就是这条形状的写法，所以这里原样合并。
     //
-    // 为什么翻译要主动把它压到最低：推理开销**不随输入变小而变小**。实测 2026-08-20
-    // （gpt-5-mini，真 key）：不发这个字段时，一段 870 字的正文 27.8 秒把 2000 的预算
-    // 全部烧在思考上，finish_reason=length、正文 0 字 —— 用户看到的是「翻译失败」，
-    // 而重试永远同样失败。加上 minimal 后同一段 5.6 秒成功、推理 0 tok。
-    put(body, 'reasoning_effort', caps.reasoning || undefined);
+    // 为什么翻译要主动压它：推理开销**不随输入变小而变小**，而它算在同一个输出预算里。
+    // 实测 2026-08-20：gpt-5-mini 对一段 870 字正文 27.8 秒烧光 2000 预算、正文 0 字；
+    // glm-4.6 同一种坏法（24 秒、1995 tok、0 字）；连不以推理著称的 deepseek-v4-flash
+    // 也在为每个段落思考 278 tok。三家的字段各不相同，所以表里存的是字段本身。
+    applyReasoning(body, caps.reasoning, 'chat');
     const budgetName = (typeof caps.budget === 'string') ? caps.budget : 'max_tokens';
     put(body, budgetName,
       optional(caps.budget === undefined ? undefined : caps.budget !== false,
@@ -319,7 +333,7 @@ var RequestShape = (() => {
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
     extractChat, extractMessages, extractResponses,
-    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning,
+    DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
   };
 })();
 
