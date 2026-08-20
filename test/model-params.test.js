@@ -347,3 +347,57 @@ describe('推理档位：档位取值本身要按型号分', () => {
     }
   });
 });
+
+describe('推理片段：三家三种拼法，这就是它存片段而非枚举的理由', () => {
+  const RS = () => shapeWith(TABLE);
+
+  test('openrouter 用嵌套 reasoning:{effort} —— 顶层拼法也 200，但明显没那么有效', () => {
+    // 实测 2026-08-20：openai/gpt-5-mini 经 openrouter，
+    //   reasoning:{effort:'low'} ⇒ 思考 192tok；reasoning_effort:'low' ⇒ 思考 320tok。
+    // 两个都 200。**只看状态码会选到次优的那个拼法** —— 这是本表最需要实测的一类差异，
+    // 也是 GLM 那个「被接受但完全无效」的变体。
+    const b = RS().build('chat-compat', {
+      url: 'https://openrouter.ai/api/v1/chat/completions', model: 'openai/gpt-5-mini',
+      system: 's', user: 'u', budget: 2000,
+    }).body;
+    deepEq(b.reasoning, { effort: 'low' });
+    ok(!('reasoning_effort' in b), '顶层拼法在这个网关上是次优解，不能发');
+  });
+
+  test('同一个 host 上的非推理模型不受影响 —— 前缀更长者赢那条规则在这里兜底', () => {
+    const b = RS().build('chat-compat', {
+      url: 'https://openrouter.ai/api/v1/chat/completions', model: 'qwen/qwen3.8-27b',
+      system: 's', user: 'u', budget: 2000,
+    }).body;
+    ok(!('reasoning' in b) && !('reasoning_effort' in b), '通行行没有推理片段');
+  });
+
+  test('三种拼法互不串台', () => {
+    const S = RS();
+    const pick = (url, model) => S.build('chat-compat',
+      { url, model, system: 's', user: 'u', budget: 2000 }).body;
+    eq(pick('https://api.openai.com/v1/chat/completions', 'gpt-5-mini').reasoning_effort, 'minimal');
+    deepEq(pick('https://api.deepseek.com/v1/chat/completions', 'x').thinking, { type: 'disabled' });
+    deepEq(pick('https://openrouter.ai/api/v1/chat/completions', 'openai/gpt-5').reasoning, { effort: 'low' });
+  });
+
+  test('实测之后决定不写的行,确实一个字都不发', () => {
+    // grok / gemini / minimax / ark / kimi / anthropic / dashscope —— 每一条留空的理由
+    // 都写在 config 的 note 里(测过没收益 / key 无效 / 模型 id 拿不到 / 默认就不思考)。
+    // 这条测试防的是「下一个人照文档把它们补上」。
+    const S = RS();
+    for (const [url, model] of [
+      ['https://api.x.ai/v1/chat/completions', 'grok-4-fast'],
+      ['https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'gemini-3.6-flash'],
+      ['https://api.minimax.chat/v1/chat/completions', 'MiniMax-M2'],
+      ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1.6'],
+      ['https://api.moonshot.cn/v1/chat/completions', 'kimi-k2'],
+      ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
+    ]) {
+      const b = S.build('chat-compat', { url, model, system: 's', user: 'u', budget: 2000 }).body;
+      for (const k of ['reasoning', 'reasoning_effort', 'thinking']) {
+        ok(!(k in b), `${url} 不该发 ${k}`);
+      }
+    }
+  });
+});

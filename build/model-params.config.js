@@ -150,7 +150,14 @@ module.exports = [
     hosts: ['generativelanguage.googleapis.com'],
     temperature: true, budget: true, systemRole: 'system',
     note: '兼容端点 /v1beta/openai/chat/completions 收 temperature 与 max_tokens'
-      + '（后者映射到原生的 maxOutputTokens），系统消息按 system 角色收（文档）。',
+      + '（后者映射到原生的 maxOutputTokens），系统消息按 system 角色收（文档）。'
+      + ' **reasoning 一列刻意留空,是实测之后的决定,不是没测**（2026-08-20，真 key，'
+      + 'gemini-3.6-flash，基线与 low 交替各两遍以摊掉抖动）：出参 token 基本不变'
+      + '（基线 113·129 → low 130·139 → minimal 139），四次全部 finish=stop、149–199 字、'
+      + "没有饿死风险；effort:'none' 被拒（400 Request contains an invalid argument）。"
+      + ' 没有可测量的收益就不写 —— 写进来只会变成一个要跟着厂商改的负担。'
+      + ' 另注：该端点期间多次返回 503（This model is currently experiencing high demand），'
+      + '所以单次耗时不能当证据，这也是这一行按出参 token 而非墙钟时间下结论的原因。',
   },
 
   // ── 聚合网关 ────────────────────────────────────────────────────────────
@@ -167,10 +174,17 @@ module.exports = [
     hosts: ['openrouter.ai'],
     models: ['openai/gpt-5', 'openai/o1', 'openai/o3', 'openai/o4'],
     temperature: false, budget: true, systemRole: 'system',
-    // 刻意**不**写 reasoning：这个网关有自己一套推理参数的归一化，而我们没打过它。
-    // 猜一个拼法过去，好的情况是被忽略、坏的情况是 400 打断一条今天能用的路。
-    // 代价是经它转推理系模型时仍会遇到「预算被思考吃光」——但那条路现在有具名报错了。
-    note: '同 openai-reasoning 的那条 400；网关透传上游错误，原话一字不差。',
+    reasoning: { reasoning: { effort: 'low' } },
+    note: '同 openai-reasoning 的那条 400；网关透传上游错误，原话一字不差。'
+      + ' 推理参数是**第四种拼法**（实测 2026-08-20，真 key）：这个网关用嵌套的'
+      + ' reasoning:{effort}，与 OpenAI 的顶层 reasoning_effort、GLM/DeepSeek 的'
+      + ' thinking 都不同。openai/gpt-5-mini 基线 9146ms/704tok → effort:low'
+      + ' 4255ms/192tok；deepseek/deepseek-r1 思考 466→237tok。'
+      + " ⚠️ 顶层 reasoning_effort 在这里**也返回 200，但明显没那么有效**（320 vs 192tok）"
+      + '——只看状态码会选到次优的拼法，这是本表最需要实测而非读文档的一类差异。'
+      + " reasoning:{enabled:false} 被明确拒绝，原话「Reasoning is mandatory for this"
+      + " endpoint and cannot be disabled.」，所以只能降档不能关。"
+      + ' 不思考的模型（qwen/qwen3.8-27b、openai/gpt-4o-mini）带上它照常 200。',
   },
 
   // ── 国内外双域（两条 hosts 写在同一行，因为参数能力一致）──────────────────
@@ -223,19 +237,33 @@ module.exports = [
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容，收 temperature 与 max_tokens（文档）。'
       + ' 其它地域的 ark 域名（非 cn-beijing）不在本表内，会落到最小必要集 —— 那是'
-      + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。',
+      + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。'
+      + ' reasoning 一列未测：2026-08-20 key 可达（到 API 才报模型级 404），但试过的'
+      + ' doubao-seed-1.6 / doubao-pro-32k / doubao-1.5-pro-32k 在该账号下均'
+      + ' InvalidEndpointOrModel.NotFound —— 正是本行必须写成 host 通行行的那个理由：'
+      + '这里的 model 常常是控制台自建的 ep- 接入点 id，不是模型名。',
   },
   {
     id: 'grok', flavors: ['global'],
     hosts: ['api.x.ai'],
     temperature: true, budget: true, systemRole: 'system',
     note: 'Chat Completions 兼容（文档）。它不收的是 presence/frequency_penalty 与 stop，'
-      + '而我们从来不发那三个，所以表里不需要为它们造字段。',
+      + '而我们从来不发那三个，所以表里不需要为它们造字段。'
+      + ' **reasoning 一列刻意留空,是实测之后的决定,不是没测**（2026-08-20，真 key）：'
+      + 'reasoning_effort:low 全型号都收（grok-4/grok-4-latest/grok-4-fast/grok-3-mini 均 200），'
+      + '但效果不一致、甚至为负 —— grok-4-fast 长段 858→602tok 变好，grok-3-mini 长段'
+      + '624→**969**tok 变差，grok-4-latest 短句 3336→4121ms 变慢。四次长段全部 finish=stop、'
+      + '271–283 字，**没有饿死风险**。一个效果不稳定的值不值得写进表：它带来的是维护负担,'
+      + '不是知识。',
   },
   {
     id: 'minimax', flavors: ['global', 'china'],
     hosts: ['api.minimax.chat', 'api.minimaxi.com'],
     temperature: true, budget: true, systemRole: 'system',
-    note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。',
+    note: 'Chat Completions 兼容（文档）。temperature 需 > 0，因此高级面板的下限是 0.01 而非 0。'
+      + ' reasoning 一列未测：2026-08-20 手上的 key 被拒（base_resp.status_code 2049'
+      + ' invalid api key）。⚠️ 顺带记一个真陷阱：它在 /v1/text/chatcompletion_v2 上'
+      + '**把错误包在 HTTP 200 里**（无效 key 也返回 200 + 空正文），只有新路径'
+      + ' /v1/chat/completions 才正常返回 401。',
   },
 ];
