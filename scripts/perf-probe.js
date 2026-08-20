@@ -292,9 +292,22 @@ const fmt = (r) => `${String(r.ms).padStart(6)}ms HTTP ${String(r.status).padEnd
   // 知识；unreachable 是「根本没打通」，是一张欠条。把后者写成前者，等于在台账里留下
   // 一条「我们测过了」的假记录，而门禁只会检查它自洽，不会知道它是假的。
   // （2026-08-21 打 kimi 时露出来的：账号被停用、十次全 429，工具却建议 rejected。）
-  if (!base.some((r) => r.ok)) {
+  // 「基线失败」有两种，含义相反：
+  //   候选也全失败 ⇒ 端点打不通 ⇒ unreachable（欠条）
+  //   候选却成功了 ⇒ 端点通得很，是**基线本身慢到不可用** ⇒ 这是最强的 adopted 证据
+  // 2026-08-21 打豆包时露出来的：基线 120 秒超时，而五个候选里最快的 4.7 秒。
+  // 当时工具照旧建议 unreachable —— 那会把「这个模型不加参数根本没法用」这条最要紧的
+  // 结论，写成一张「我们没测到」的欠条。
+  const anyCandidateOk = results.some(({ runs }) => runs.some((r) => r.ok));
+  if (!base.some((r) => r.ok) && anyCandidateOk) {
     const first = base.find((r) => r.err) || base[0] || {};
-    console.log("  verdict: 'unreachable' —— 基线一次都没成功，这个端点根本没打通。");
+    console.log('  ⚠️  **基线失败但候选成功** —— 端点是通的，是基线本身不可用：');
+    console.log(`      基线：HTTP ${first.status} ${String(first.err || '').slice(0, 80)}`);
+    console.log('      这不是 unreachable，是 adopted 的最强证据：不加参数这个模型没法用。');
+    console.log('      baseline 那一格照实记（含失败），别留空。\n');
+  } else if (!base.some((r) => r.ok)) {
+    const first = base.find((r) => r.err) || base[0] || {};
+    console.log("  verdict: 'unreachable' —— 基线与候选都没成功，这个端点根本没打通。");
     console.log(`  把这句原话抄进 why：HTTP ${first.status} ${String(first.err || '').slice(0, 120)}`);
     console.log('  ⚠️ 不要写成 rejected —— 那是「打通了但没收益」，是一条知识；');
     console.log('     这里是一张欠条。两者混淆会让台账说一句我们并不知道的话。\n');

@@ -278,7 +278,6 @@ describe('推理档位：表只存档位，拼法由形状决定', () => {
       ['https://openrouter.ai/api/v1/chat/completions', 'openai/gpt-5'],
       ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
       ['https://api.x.ai/v1/chat/completions', 'grok-4'],
-      ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1-6'],
     ]) {
       const b = S.build('chat-compat', { url, model, system: 's', user: 'u', budget: 2000 }).body;
       ok(!('reasoning_effort' in b) && !('thinking' in b), url + ' 不该发任何推理字段');
@@ -400,7 +399,6 @@ describe('推理片段：三家三种拼法，这就是它存片段而非枚举�
       ['https://api.x.ai/v1/chat/completions', 'grok-4-fast'],
       ['https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'gemini-3.6-flash'],
       ['https://api.minimax.chat/v1/chat/completions', 'MiniMax-M2'],
-      ['https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'doubao-seed-1.6'],
 
       ['https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'qwen-plus'],
     ]) {
@@ -472,5 +470,36 @@ describe('extractMessages：思考是独立的块，且排在第 0 位', () => {
 
   test('只有思考块（被截断）⇒ 空串 ⇒ 具名失败，而不是把思考当译文', () => {
     eq(RS().extractMessages({ content: [{ type: 'thinking', thinking: '…' }] }), '');
+  });
+});
+
+describe('ark（豆包）：基线不可用，参数是刚需', () => {
+  const RS = () => shapeWith(TABLE);
+
+  test('发 thinking:disabled —— 不发的话基线 120 秒超时', () => {
+    // 实测 2026-08-21，doubao-seed-2-1-turbo-260628，883 字正文：
+    //   基线 **120 秒超时**  →  thinking:disabled 4893ms / 思考 0 / 正文 291 字
+    // 这是本表里最极端的一条：不加参数，这个模型根本没法用于翻译。
+    const b = RS().build('chat-compat', {
+      url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+      model: 'doubao-seed-2-1-turbo-260628', system: 's', user: 'u', budget: 2000,
+    }).body;
+    deepEq(b.thinking, { type: 'disabled' });
+    // 另外三个候选实测**让情况更糟**（最糟的 reasoning:{enabled:false} 思考 6145 tok、
+    // 近两分钟），所以一个都不能发。
+    for (const k of ['reasoning', 'reasoning_effort', 'enable_thinking']) {
+      ok(!(k in b), '不该发 ' + k);
+    }
+  });
+
+  test('host 通行 —— 豆包的 model 可能是控制台自建的 ep- 接入点 id', () => {
+    const S = RS();
+    for (const m of ['doubao-seed-2-1-turbo-260628', 'ep-20260101120000-abcde', '']) {
+      const b = S.build('chat-compat', {
+        url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+        model: m, system: 's', user: 'u', budget: 2000,
+      }).body;
+      deepEq(b.thinking, { type: 'disabled' }, JSON.stringify(m));
+    }
   });
 });

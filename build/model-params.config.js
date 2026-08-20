@@ -254,13 +254,21 @@ module.exports = [
     // 模型名（doubao-…），也可以是用户自己在控制台建的推理接入点 id（ep-…），后者是一
     // 串与模型无关的编号 —— 按模型名前缀去匹配它永远匹配不上，写前缀等于写了个死条目。
     temperature: true, budget: true, systemRole: 'system',
+    reasoning: { thinking: { type: 'disabled' } },
     note: 'Chat Completions 兼容，收 temperature 与 max_tokens（文档）。'
+      + ' thinking:disabled 为实测所迫（2026-08-21，真 key，doubao-seed-2-1-turbo-260628，'
+      + '883 字维基正文）：**基线 120 秒超时**，而加上它之后 4893ms、思考 0、正文 291 字。'
+      + '这是本表里最极端的一条 —— 不加参数这个模型根本没法用于翻译。'
+      + " reasoning_effort:'minimal' 同样有效（4750ms/思考 0），两者择一；选 thinking 是"
+      + '为了与同为国内厂商的另外几行保持一致。'
+      + ' ⚠️ 另外三个候选**让情况更糟**：reasoning:{effort:low} 88882ms/思考 5246、'
+      + 'reasoning:{enabled:false} 111470ms/思考 6145（名字写着「关闭」，行为是狂想）、'
+      + 'enable_thinking:false 直接 120 秒超时。'
       + ' 其它地域的 ark 域名（非 cn-beijing）不在本表内，会落到最小必要集 —— 那是'
       + '正确的兜底，不是遗漏：没实测过的主机名不该凭猜写进来。'
-      + ' reasoning 一列未测：2026-08-20 key 可达（到 API 才报模型级 404），但试过的'
-      + ' doubao-seed-1.6 / doubao-pro-32k / doubao-1.5-pro-32k 在该账号下均'
-      + ' InvalidEndpointOrModel.NotFound —— 正是本行必须写成 host 通行行的那个理由：'
-      + '这里的 model 常常是控制台自建的 ep- 接入点 id，不是模型名。',
+      + ' 排查备忘（2026-08-20/21 问错过三次）：先 GET /api/v3/models 拿目录，别猜 id；'
+      + '豆包的 id 用**连字符不用点**且带日期后缀；而「目录里有」不等于「账号已开通」，'
+      + '未开通时报的是 has not activated 而不是 NotFound。',
   },
   {
     id: 'grok', flavors: ['global'],

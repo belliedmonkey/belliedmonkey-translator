@@ -523,12 +523,53 @@ module.exports = [
       + 'api.minimax.chat / api.minimaxi.com —— 后两者本轮 key 被拒，未能打通。',
   },
   {
-    host: 'ark.cn-beijing.volces.com', model: '(未取得可用 model id)', date: '2026-08-20',
+    // 用户在火山控制台开通模型后重测 —— 结论是本表最极端的一条。
+    host: 'ark.cn-beijing.volces.com', model: 'doubao-seed-2-1-turbo-260628', date: '2026-08-21',
+    baseline: { ms: 120003, thinkTokens: null, outChars: 0, finish: null,
+      note: '**120 秒超时**（883 字正文）。同一模型翻一句 25 字符的短句也要 42.8 秒 / '
+        + '思考 2033 tok —— 基线本身不可用于翻译' },
+    tried: [
+      { params: { thinking: { type: 'disabled' } }, ms: 4893, thinkTokens: 0, outChars: 291 },
+      { params: { reasoning_effort: 'minimal' }, ms: 4750, thinkTokens: 0, outChars: 278,
+        note: '同样有效。两者择一，选 thinking 是为了与同为国内厂商的另外几行一致' },
+      { params: { reasoning_effort: 'low' }, ms: 30201, thinkTokens: 1365, outChars: 282,
+        note: '有效但远不如上面两个' },
+      { params: { reasoning: { effort: 'low' } }, ms: 88882, thinkTokens: 5246, outChars: 295,
+        note: '⚠️ 更糟：思考 5246 tok' },
+      { params: { reasoning: { enabled: false } }, ms: 111470, thinkTokens: 6145, outChars: 288,
+        note: '⚠️ 名字写着「关闭」，实测思考 6145 tok、近两分钟 —— 第三家出现这种反向行为' },
+      { params: { enable_thinking: false }, ms: 120000, thinkTokens: null, outChars: 0,
+        note: '⚠️ 直接 120 秒超时' },
+    ],
+    verdict: 'adopted', adopted: { thinking: { type: 'disabled' } },
+    why: '基线 120 秒超时而候选 4.9 秒成功 —— 不加参数这个模型没法用于翻译。'
+      + ' ⚠️ 这一轮同时暴露了工具的一个判断错误并据此修掉：它按「基线一次都没成功」'
+      + '建议了 unreachable，而五个候选明明成功了。基线失败不等于端点打不通 —— '
+      + '候选成功时那是「基线本身不可用」，是 adopted 的**最强**证据，不是欠条。',
+  },
+  {
+    host: 'ark.cn-beijing.volces.com', model: 'doubao-seed-translation-250915', date: '2026-08-21',
     verdict: 'unreachable',
-    why: 'key 可达（到 API 才报模型级 404），但 doubao-seed-1.6 / doubao-pro-32k / '
-      + 'doubao-1.5-pro-32k / kimi-k2-250711 在该账号下全部 InvalidEndpointOrModel.NotFound。'
-      + '这里的 model 常是控制台自建的 ep- 接入点 id —— 正是 model-params 那一行必须写成 '
-      + 'host 通行的理由。需要用户从火山控制台提供一个可用 id',
+    why: '翻译专用模型（与 qwen-mt 同类），账号里未开通：「Your account … has not '
+      + 'activated the model」。**用户 2026-08-21 明确决定暂不开通**，所以这不是一张'
+      + '待办欠条，而是一个已作出的选择 —— 记在这里是为了下一个人不要再去追它。'
+      + '（若将来开通：通用模型上那个 120 秒基线说明这一档很可能便宜且快得多，'
+      + '而它也可能像 qwen-mt 一样有自己的请求契约，需要单独做形状。）',
+  },
+  {
+    host: 'ark.cn-beijing.volces.com', model: '(历史记录：三次问错问题)', date: '2026-08-20',
+    verdict: 'unreachable',
+    why: '真因是**账号未开通模型**，不是 key 或 id 有问题：'
+      + '「Your account … has not activated the model doubao-seed-translation-250915」。'
+      + ' 排查路径值得记下来，因为我前两次都问错了问题：'
+      + '① 一开始凭印象猜 id（doubao-seed-1.6 / doubao-pro-32k），全是 404 —— 而豆包的'
+      + 'id 用**连字符不用点**，且要带日期后缀；'
+      + '② 直到去打 GET /api/v3/models 才拿到真实目录（130 个，未下线 61 个）——'
+      + '**同样的教训 kimi 那次已经教过一遍：先问 API 它有什么，别猜**；'
+      + '③ 用目录里的 name（doubao-seed-2-1-turbo）仍 404，要用 id（…-260628）才换来'
+      + '那句「has not activated」。⚠️ /models 列的是目录（能看见），不等于已开通（能调用）。'
+      + ' 待用户在控制台开通后重测；建议优先 doubao-seed-translation-250915（翻译专用模型，'
+      + '与 qwen-mt 同类）与 doubao-seed-2-1-turbo-260628（通用快档，做基线对照）。',
   },
   {
     // 用户问：国际版搞定了，还需要国内版 key 吗？不需要 —— 这正是继承策略的第一个

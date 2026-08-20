@@ -13,9 +13,15 @@
 // 为什么把 token 直接写文件而不是打印出来：它是长期凭证，打印出来就会进终端记录、
 // 进会话记录。写文件是唯一不让它路过任何日志的做法。
 //
-// ⚠️ 关于回调地址：Google 已经在 2022 年停用了 out-of-band（`urn:ietf:wg:oauth:2.0:oob`）
-// 那种「把 code 抄下来粘贴」的流程，所以这里用 loopback 回调 —— 也就是必须在**本机**
-// 的浏览器里完成授权。
+// ⚠️ 回调地址这件事被 Google 改过两次，两条老路都死了：
+//   · out-of-band（`urn:ietf:wg:oauth:2.0:oob`，把 code 抄下来粘贴）—— 2022 年停用
+//   · 桌面应用的**隐式 loopback**（任意 127.0.0.1 端口）—— 现在也被封，实测 2026-08-21
+//     报 400 invalid_request：「The loopback flow has been blocked in order to keep
+//     users secure.」
+//
+// 现在走的是第三条：客户端类型建成 **Web 应用**，把 `http://localhost:<端口>` **显式
+// 登记**为授权重定向 URI。那不是被封的隐式 loopback，而是一个正常登记过的回调地址
+// （Google 对 localhost 例外允许 http）。代价是端口必须**固定**并与登记的一字不差。
 'use strict';
 
 const fs = require('fs');
@@ -69,11 +75,23 @@ function pkce() {
   console.log(secret ? '模式：client_secret' : '模式：PKCE（该客户端没有密钥，这是正常的）');
   const { verifier, challenge } = pkce();
 
-  // 端口随机：固定端口会和别的东西撞，而 Google 的桌面应用类型允许任意 loopback 端口。
+  // 端口必须固定：它要和控制台里登记的那个重定向 URI 一字不差。随机端口是隐式 loopback
+  // 的做法，而那条路已经被封（见文件头）。默认 8976，可用 cws_redirect_port 覆盖。
+  const port = Number(slot('cws_redirect_port') || 8976);
+  const redirect = `http://localhost:${port}`;
   const server = http.createServer();
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const port = server.address().port;
-  const redirect = `http://127.0.0.1:${port}`;
+  try {
+    await new Promise((res, rej) => {
+      server.once('error', rej);
+      server.listen(port, '127.0.0.1', res);
+    });
+  } catch (e) {
+    console.error(`✗ 端口 ${port} 起不来：${e.code === 'EADDRINUSE' ? '已被占用' : e.message}`);
+    console.error('  换一个：在 .local/keys.md 加一行 cws_redirect_port = 9123，');
+    console.error('  并把控制台里登记的重定向 URI 同步改成 http://localhost:9123');
+    process.exit(1);
+  }
+  console.log(`回调地址 ${redirect} —— 必须与控制台里登记的**完全一致**`);
 
   const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?'
     + new URLSearchParams({
