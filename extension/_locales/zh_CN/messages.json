@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "当前模型不接受此参数，本次不会发送。"
   },
+  "label_adv_custom": {
+    "message": "自定义请求参数"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON 对象，会合并进请求体，覆盖上面几项。适用于我们没有实测过的自建或内网端点。"
+  },
+  "options_adv_custom_bad": {
+    "message": "解析不了，本次不会发送："
+  },
+  "options_adv_custom_notobj": {
+    "message": "需要是一个 JSON 对象，本次不会发送。"
+  },
+  "options_adv_custom_ok": {
+    "message": "将发送："
+  },
+  "options_adv_custom_dropped": {
+    "message": "不可覆盖，已忽略："
+  },
+  "options_adv_custom_none": {
+    "message": "（无）"
+  },
   "err_reasoning_starved": {
     "message": "模型把整个输出预算用在了思考上，没有产出译文。请在设置的「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。"
   },

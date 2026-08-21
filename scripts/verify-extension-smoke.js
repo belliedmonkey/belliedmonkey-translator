@@ -159,7 +159,13 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       await cdp.send('Runtime.enable', {}, sessionId);
       const errs = [];
       const off = cdp.on('Runtime.exceptionThrown', (ev, sid) => {
-        if (sid === sessionId) errs.push((ev.exceptionDetails || {}).text || 'exception');
+        if (sid !== sessionId) return;
+        const d = ev.exceptionDetails || {};
+        // 「Uncaught (in promise)」这行 text 本身不含任何信息 —— 真正的原因在
+        // exception.description 里。只报 text 的话，报错等于「出错了」。
+        const ex = d.exception || {};
+        errs.push([d.text, ex.description || ex.value || '', d.url ? `@${d.url}:${d.lineNumber}` : '']
+          .filter(Boolean).join(' | ').replace(/\s+/g, ' ').slice(0, 240));
       });
       await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
       await sleep(2500);
@@ -217,6 +223,62 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— saveAll 是整体覆盖式的，回填漏了`);
       }
       notes.push(`高级参数 存→重开→改别的字段后仍是 ${JSON.stringify(after)}`);
+
+      // ── 自定义参数：按引擎存，最容易坏在「切引擎」这一步 ──────────────────
+      //
+      // 它是按 providerId 索引的一张表，而设置页上只有一个输入框。切引擎时若不重新
+      // 回填，输入框里留着上一个引擎的内容，用户随手一改就把 A 的参数存到了 B 名下。
+      // 那种坏法在「值存住了吗」这个断言下完全隐形 —— 值确实存住了，只是存错了地方。
+      const CUSTOM = '{"thinking":{"type":"disabled"}}';
+      await evalIn(cdp, sessionId, `(() => {
+        const p = document.getElementById('provider');
+        p.value = 'custom_chat'; p.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(900);
+      await evalIn(cdp, sessionId, `(() => {
+        const c = document.getElementById('adv-custom');
+        c.value = ${JSON.stringify(CUSTOM)};
+        c.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(900);
+
+      // 切到别的引擎：输入框必须**清空**（那个引擎没设过）
+      await evalIn(cdp, sessionId, `(() => {
+        const p = document.getElementById('provider');
+        p.value = 'deepseek'; p.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(900);
+      const onOther = await evalIn(cdp, sessionId, `document.getElementById('adv-custom').value`);
+      if (String(onOther).trim()) {
+        problems.push(`切到别的引擎后自定义参数没清空（读到 ${JSON.stringify(onOther)}）`
+          + ' —— 用户随手一改就会把上一个引擎的参数存到这个引擎名下');
+      }
+
+      // 切回来：必须还在
+      await evalIn(cdp, sessionId, `(() => {
+        const p = document.getElementById('provider');
+        p.value = 'custom_chat'; p.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(900);
+      const back2 = await evalIn(cdp, sessionId, `document.getElementById('adv-custom').value`);
+      if (String(back2) !== CUSTOM) {
+        problems.push(`切回原引擎后自定义参数丢了（读到 ${JSON.stringify(back2)}）`);
+      }
+
+      // 存储里必须是**按引擎索引的一张表**，而不是一个裸字符串
+      const storedCustom = JSON.parse(await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['reqCustomParams'], v => r(JSON.stringify(v.reqCustomParams || null))))`));
+      if (!storedCustom || storedCustom.custom_chat !== CUSTOM || 'deepseek' in storedCustom) {
+        problems.push(`reqCustomParams 结构不对: ${JSON.stringify(storedCustom)}`);
+      }
+      notes.push(`自定义参数 按引擎隔离 ✓（存储键: ${Object.keys(storedCustom || {}).join(',')}）`);
+      // 清掉，后面那段翻译要的是干净配置
+      await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.remove(['reqCustomParams'], () => r(1)))`);
       for (const e of errs) problems.push(`options 交互期异常: ${e}`);
       off();
       await cdp.send('Target.closeTarget', { targetId });

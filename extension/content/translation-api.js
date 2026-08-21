@@ -391,6 +391,9 @@ Rules:
     const fmt = WireFormat.formatFor(url, p.type, mdl);
     const req = RequestShape.build(fmt, {
       url, apiKey, model: mdl,
+      // 自定义参数按引擎条目存，所以要把引擎 id 带进去。为 A 网关写的字段不该在
+      // 切到 B 引擎时跟着发出去。
+      providerId: provider,
       system: buildSystemPrompt(targetLang), user: text,
       // translate-compat 用它替代提示词里的目标语言；别的形状忽略它。
       targetLang,

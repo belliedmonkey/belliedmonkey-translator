@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "Este modelo no acepta este parámetro, así que no se enviará."
   },
+  "label_adv_custom": {
+    "message": "Parámetros de solicitud personalizados"
+  },
+  "options_adv_custom_hint": {
+    "message": "Un objeto JSON que se fusiona en el cuerpo de la solicitud y sustituye los campos anteriores. Para endpoints propios o internos que no hemos medido."
+  },
+  "options_adv_custom_bad": {
+    "message": "No se pudo analizar, no se enviará nada: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Debe ser un objeto JSON; no se enviará nada."
+  },
+  "options_adv_custom_ok": {
+    "message": "Se enviará: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "No se puede sustituir, ignorado: "
+  },
+  "options_adv_custom_none": {
+    "message": "(ninguno)"
+  },
   "err_reasoning_starved": {
     "message": "El modelo gastó todo su presupuesto de salida en razonar y no produjo traducción. Sube «Longitud máxima de salida por solicitud» en Parámetros avanzados, o cambia a un modelo sin razonamiento."
   },

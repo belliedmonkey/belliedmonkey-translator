@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "目前模型不接受此參數，本次不會送出。"
   },
+  "label_adv_custom": {
+    "message": "自訂請求參數"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON 物件，會合併進請求本體，覆蓋上面幾項。適用於我們沒有實測過的自建或內網端點。"
+  },
+  "options_adv_custom_bad": {
+    "message": "解析不了，本次不會送出："
+  },
+  "options_adv_custom_notobj": {
+    "message": "需要是一個 JSON 物件，本次不會送出。"
+  },
+  "options_adv_custom_ok": {
+    "message": "將送出："
+  },
+  "options_adv_custom_dropped": {
+    "message": "不可覆蓋，已忽略："
+  },
+  "options_adv_custom_none": {
+    "message": "（無）"
+  },
   "err_reasoning_starved": {
     "message": "模型把整個輸出預算用在了思考上，沒有產出譯文。請在設定的「進階參數」裡調高「單次最大輸出長度」，或改用非推理模型。"
   },

@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "This model does not accept this parameter, so it will not be sent."
   },
+  "label_adv_custom": {
+    "message": "Custom request parameters"
+  },
+  "options_adv_custom_hint": {
+    "message": "A JSON object, merged into the request body and overriding the fields above. For self-hosted or internal endpoints we have not measured."
+  },
+  "options_adv_custom_bad": {
+    "message": "Could not parse, so nothing will be sent: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Must be a JSON object; nothing will be sent."
+  },
+  "options_adv_custom_ok": {
+    "message": "Will send: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "Cannot be overridden, ignored: "
+  },
+  "options_adv_custom_none": {
+    "message": "(none)"
+  },
   "err_reasoning_starved": {
     "message": "The model spent its entire output budget on reasoning and produced no translation. Raise \"Max output per request\" under Advanced parameters, or switch to a non-reasoning model."
   },

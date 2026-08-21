@@ -73,7 +73,32 @@ var RequestShape = (() => {
   }
 
   // ─── 高级参数（用户设的；未设 = 键不存在）────────────────────────────────
-  const ADV_KEYS = ['reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency'];
+  const ADV_KEYS = ['reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency',
+    'reqCustomParams'];
+
+  // ─── 自定义请求参数：给能力表的一个**用户可控的逃生口** ──────────────────
+  //
+  // 这张表的默认态是「表外 = 最小必要」，那对私域端点是安全的，但也意味着用户**没有
+  // 任何办法**告诉我们「我这个内网网关其实收 thinking」。而我们永远测不到那些端点 ——
+  // 没有 key、打不到、也不该要求用户把内网地址交出来。
+  //
+  // 所以开一个口子，规则三条（用户裁定 2026-08-21）：
+  //   · 自由 JSON —— 固定下拉覆盖不到「我们没见过的字段」，而那正是它存在的理由
+  //   · **冲突时用户赢** —— 表的权威来自实测，而对一个我们根本没测过的 host，用户的
+  //     了解胜过我们的表；写错的代价是一个带服务端原话的 400，可见、可恢复
+  //   · **按引擎条目存** —— 为 A 网关写的字段不该在切到 B 引擎时跟着发出去
+  //
+  // ⚠️ 这个口子**不改变表本身的准入规则**：没填自定义时，表外 host 的请求体仍然只有
+  // {model, messages}。逃生口是显式的、按引擎的、后果由用户自己承担的。
+  const CUSTOM_FORBIDDEN = ['model', 'messages', 'system', 'input', 'instructions',
+    'stream', 'translation_options'];
+  // 为什么这几个不许覆盖：
+  //   model/messages/system/input/instructions —— 改了它们不是「调参数」，是把请求换成
+  //     另一个请求，之后的解析与渲染全部对不上。
+  //   stream —— sseMerge 已随 #159 删除。打开它换来的是一段解析不了的正文，也就是
+  //     **静默错误**；而我们这套设计的全部努力就是把静默错误换成可见失败。
+  //   translation_options —— 它是 translate-compat 的**定义**而非可选项。缺了它服务端
+  //     答 200 并把原文原样吐回来（实测，domain-design §7），又一个静默错误。
   const CLAMP = {
     // 下限 0.01 而不是 0：至少一家（minimax）拒收 0，而「0」在数值输入框里是用户最
     // 容易打出来的边界值。
@@ -92,12 +117,43 @@ var RequestShape = (() => {
     for (const k of ADV_KEYS) {
       const raw = res[k];
       if (raw === '' || raw == null) continue;
+      if (k === 'reqCustomParams') { out[k] = raw; continue; }   // 不是数值，见下
       const n = Number(raw);
       if (!isFinite(n)) continue;
       const [lo, hi] = CLAMP[k];
       out[k] = Math.max(lo, Math.min(hi, n));
     }
     return out;
+  }
+
+  // 自定义参数按引擎存：`{ [providerId]: "用户原样输入的字符串" }`。
+  // **存字符串不存对象**：JSON 打了一半时用户的输入不能丢，设置页照样保存，只是运行时
+  // 解析不了就当没填 —— 与上面「空即未设」同一条规矩，安全方向。
+  function customFor(providerId) {
+    const map = _prefs.reqCustomParams;
+    if (!map || typeof map !== 'object' || !providerId) return null;
+    const raw = map[providerId];
+    if (typeof raw !== 'string' || !raw.trim()) return null;
+    let obj;
+    try { obj = JSON.parse(raw); } catch (_) { return null; }
+    // 必须是普通对象。数组/字符串/数字合并进请求体只会产生一个畸形的 body。
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+    const out = {};
+    for (const k of Object.keys(obj)) {
+      if (CUSTOM_FORBIDDEN.indexOf(k) >= 0) continue;
+      if (obj[k] === undefined) continue;
+      out[k] = obj[k];
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
+  // 合并进请求体。**放在最后**，所以用户覆盖表 —— 这是「用户赢」的落点。
+  // 只对 chat 家族生效：speech / transcribe 是另一种能力，对话参数进去只会 400。
+  function applyCustom(body, providerId) {
+    const c = customFor(providerId);
+    if (!c) return body;
+    for (const k of Object.keys(c)) body[k] = c[k];
+    return body;
   }
 
   function readOnce() {
@@ -264,10 +320,11 @@ var RequestShape = (() => {
         },
         // max_tokens 在这条链路上是**协议必填**，不是可选字段：表说 false 也照发。
         // 一行观测表不能推翻一条 API 契约。
-        body: put({
+        body: applyCustom(put({
           model: o.model, max_tokens: budget, system: o.system,
           messages: [{ role: 'user', content: o.user }],
         }, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE)),
+        o.providerId),
         extract: extractMessages, caps,
       };
     }
@@ -284,7 +341,7 @@ var RequestShape = (() => {
       // 嵌套的 reasoning.effort，顶层写法会 400，原话为证：「In the Responses API,
       // this parameter has moved to 'reasoning.effort'」（实测）。其余字段原样带过去。
       applyReasoning(body, caps.reasoning, 'responses');
-      return { headers: bearer, body, extract: extractResponses, caps };
+      return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractResponses, caps };
     }
 
     // 翻译专用形状（qwen-mt 家族）。三条硬约束全部来自 2026-08-20 的实测：
@@ -310,7 +367,7 @@ var RequestShape = (() => {
       if (caps.budget !== false) {
         put(body, 'max_tokens', optional(true, p.reqMaxTokens, o.budget));
       }
-      return { headers: bearer, body, extract: extractChat, caps };
+      return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
     }
 
     if (fmt === 'speech-compat') {
@@ -320,6 +377,8 @@ var RequestShape = (() => {
       // 可选项 —— tts.js 已经从响应的 content-type 读真实类型（tts.js:204），不依赖
       // 自己点的那个格式。
       put(body, 'response_format', o.format || undefined);
+      // **不合并自定义参数**：那是对话能力的旋钮，朗读是另一种能力。把 thinking 之类的
+      // 字段发给语音端点，最好的结果是被忽略，最坏的是 400 打断一条本来能用的路。
       return {
         headers: Object.assign({ 'Content-Type': 'application/json' },
           o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
@@ -334,6 +393,7 @@ var RequestShape = (() => {
       if (o.language) fd.append('language', o.language);
       // **不设 Content-Type**：multipart 的 boundary 只有浏览器自己知道，手写这个头
       // 会让服务端解不出分段。这是一个经典坑，所以写在这里而不是靠调用方记得。
+      // 同上：转写也不合并。而且这条是 multipart，往里塞任意 JSON 字段无从谈起。
       return {
         headers: o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {},
         body: fd, isForm: true, extract: null, caps,
@@ -360,13 +420,17 @@ var RequestShape = (() => {
     put(body, budgetName,
       optional(caps.budget === undefined ? undefined : caps.budget !== false,
         p.reqMaxTokens, o.budget));
-    return { headers: bearer, body, extract: extractChat, caps };
+    // 最后合并 ⇒ 用户覆盖表。这一行就是「用户赢」。
+    return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
   }
 
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
     extractChat, extractMessages, extractResponses, stripThink,
     DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
+    // 设置页用 CUSTOM_FORBIDDEN 来告诉用户「哪些键会被忽略」。它必须是**同一份**常量 ——
+    // 界面上说的和运行时做的不一致，比不说更糟。
+    customFor, applyCustom, CUSTOM_FORBIDDEN,
   };
 })();
 

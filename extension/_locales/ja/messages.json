@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "このモデルはこのパラメータを受け付けないため、送信されません。"
   },
+  "label_adv_custom": {
+    "message": "カスタムリクエストパラメータ"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON オブジェクト。リクエスト本体にマージされ、上の項目を上書きします。当方で未計測の自己ホスト／社内エンドポイント向けです。"
+  },
+  "options_adv_custom_bad": {
+    "message": "解析できないため送信されません："
+  },
+  "options_adv_custom_notobj": {
+    "message": "JSON オブジェクトが必要です。送信されません。"
+  },
+  "options_adv_custom_ok": {
+    "message": "送信する項目："
+  },
+  "options_adv_custom_dropped": {
+    "message": "上書き不可のため無視："
+  },
+  "options_adv_custom_none": {
+    "message": "（なし）"
+  },
   "err_reasoning_starved": {
     "message": "モデルが出力予算をすべて推論に使い、訳文を返しませんでした。詳細パラメータの「1 回あたりの最大出力長」を上げるか、推論しないモデルに切り替えてください。"
   },

@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "현재 모델이 이 매개변수를 받지 않으므로 전송되지 않습니다."
   },
+  "label_adv_custom": {
+    "message": "사용자 지정 요청 매개변수"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON 객체. 요청 본문에 병합되며 위 항목을 덮어씁니다. 저희가 측정하지 못한 자체 호스팅·사내 엔드포인트용입니다."
+  },
+  "options_adv_custom_bad": {
+    "message": "해석할 수 없어 전송되지 않습니다: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "JSON 객체여야 합니다. 전송되지 않습니다."
+  },
+  "options_adv_custom_ok": {
+    "message": "전송할 항목: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "덮어쓸 수 없어 무시됨: "
+  },
+  "options_adv_custom_none": {
+    "message": "(없음)"
+  },
   "err_reasoning_starved": {
     "message": "모델이 출력 예산을 전부 추론에 사용해 번역을 내놓지 않았습니다. 고급 매개변수의 \"요청당 최대 출력 길이\"를 높이거나 추론하지 않는 모델로 바꾸세요."
   },

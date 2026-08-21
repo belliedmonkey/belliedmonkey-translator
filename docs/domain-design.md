@@ -802,6 +802,32 @@ is a build-time concern, not a runtime one.
     server's own sentence shown. A table cannot express that case either: "send
     non-streaming first, retry as a stream" *is* negotiation.
 
+  **The table is the default, not the ceiling (#162).** Private endpoints — corporate
+  gateways, self-hosted services, small vendors — can never be measured by us: we have no
+  key, no route, and no business asking a user to hand over an internal address. For them
+  the minimum body is safe, but it also left the user with **no way to say** "mine does
+  take `thinking`" — and that knowledge is something they have and we don't. So the panel
+  carries a free-form JSON field, merged into the body **last**, scoped **per engine**.
+
+  Merging last means **the user overrides the table**, which reverses the rule this
+  section carried until #162 ("the table wins, and the panel says why"). The reversal is
+  narrow and deliberate: that rule was written for the four numeric fields, where the
+  table's authority comes from a measurement of *that host*. For a host we never touched,
+  the user's knowledge is better than ours, and being wrong costs a 400 carrying the
+  server's own sentence — visible and recoverable, which is the failure mode this whole
+  design prefers.
+
+  What the field may **not** override is structural: `model`, `messages`, `system`,
+  `input`, `instructions`, `stream`, `translation_options`. Changing those is not tuning a
+  request, it is substituting a different one, and two of them fail silently rather than
+  loudly — `stream` returns a body the parser cannot read (`sseMerge` went with the
+  negotiation), and `translation_options` is the *definition* of `translate-compat`, whose
+  absence is answered with a plausible 200 containing the untranslated source.
+
+  The licence above is untouched: with nothing typed in, a host the table does not know
+  still receives exactly `{model, messages}`. The escape hatch is explicit, per-engine,
+  and owned by the person who opened it.
+
   The user-facing counterpart is the advanced-parameters panel (temperature, output
   budget, timeout, concurrency): collapsed by default, **unset** by default — the keys
   are absent from storage rather than present-with-a-default, because "not set" and

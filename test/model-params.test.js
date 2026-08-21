@@ -29,7 +29,7 @@ function shapeWith(rows, store) {
 }
 
 describe('能力表：准入规则', () => {
-  test('每一行都带 note —— 没有理由的行就是凭印象加的行', () => {
+  test('每一行都带 note —— 没有理由的行就是凭印象加的行', async () => {
     for (const r of TABLE) {
       ok(String(r.note || '').trim().length > 10, `${r.id} 的 note 太短或缺失`);
     }
@@ -501,5 +501,97 @@ describe('ark（豆包）：基线不可用，参数是刚需', () => {
       }).body;
       deepEq(b.thinking, { type: 'disabled' }, JSON.stringify(m));
     }
+  });
+});
+
+// ─── 自定义请求参数：能力表的逃生口 ────────────────────────────────────────
+// 私域端点永远测不到（没 key、打不到、也不该要用户交出内网地址），所以给用户一个口子。
+// 三条规则由用户裁定 2026-08-21：自由 JSON、冲突时**用户赢**、**按引擎条目存**。
+describe('自定义参数：逃生口', () => {
+  const OA = 'https://api.openai.com/v1/chat/completions';
+  const GW = 'https://gw.corp.example/v1/chat/completions';
+
+  // 必须 await ready()：_prefs 是异步从 chrome.storage 读进来的，而这些用例直接调
+  // build()（不像别处走 translate()，那条路内部会 await）。不等的话读到的是空 prefs，
+  // 于是断言「没发自定义字段」会通过 —— 那是最坏的一种绿：测试在测一个空配置。
+  async function withCustom(map) {
+    const S = shapeWith(TABLE, { reqCustomParams: map });
+    await S.ready();
+    return S;
+  }
+  const chat = (S, url, model, providerId) => S.build('chat-compat',
+    { url, model, system: 's', user: 'u', budget: 2000, providerId }).body;
+
+  test('⚠️ 许可证不变：没填自定义时，表外 host 仍然只有 model 与 messages', async () => {
+    // 整组里最要紧的一条。逃生口不能弄坏「表外 = 最小必要」这条默认态 ——
+    // 那是整张表被允许存在的前提。
+    const S = await withCustom({});
+    eq(Object.keys(chat(S, GW, 'x', 'custom_chat')).sort().join(','), 'messages,model');
+  });
+
+  test('表外 host + 填了自定义 ⇒ 那些字段真的发出去', async () => {
+    const S = await withCustom({ custom_chat: '{"thinking":{"type":"disabled"},"top_p":0.9}' });
+    const b = chat(S, GW, 'x', 'custom_chat');
+    deepEq(b.thinking, { type: 'disabled' });
+    eq(b.top_p, 0.9);
+  });
+
+  test('**用户赢** —— 表说 temperature 不收，用户写了就照发', async () => {
+    // 推翻了最初那条「表赢」裁定（当时针对的是 temperature 那四个数值项）。理由：
+    // 表的权威来自实测，而写错的代价是一个带服务端原话的 400 —— 可见、可恢复。
+    const S = await withCustom({ openai: '{"temperature":1.5}' });
+    const b = chat(S, OA, 'gpt-5-mini', 'openai');
+    eq(b.temperature, 1.5, '表说 false，但用户显式写了');
+    eq(b.reasoning_effort, 'minimal', '没被覆盖的表项照旧生效');
+  });
+
+  test('**按引擎隔离** —— 为 A 写的参数，选 B 时一个字都不发', async () => {
+    const S = await withCustom({ custom_chat: '{"thinking":{"type":"disabled"}}' });
+    const b = chat(S, GW, 'x', 'deepseek');
+    ok(!('thinking' in b), '为 custom_chat 写的字段跟着 deepseek 跑出去了');
+    eq(Object.keys(b).sort().join(','), 'messages,model');
+  });
+
+  test('结构字段不可覆盖 —— 那不是调参数，是把请求换成另一个请求', async () => {
+    const S = await withCustom({ p: JSON.stringify({
+      model: 'HIJACK', messages: [{ role: 'user', content: 'HIJACK' }],
+      system: 'HIJACK', stream: true, translation_options: { target_lang: 'xx' },
+      top_p: 0.5,                       // 合法字段，应该留下
+    }) });
+    const b = chat(S, GW, 'real', 'p');
+    eq(b.model, 'real');
+    eq(b.messages[1].content, 'u');
+    ok(!('stream' in b), 'stream 打开会换来一段解析不了的正文 —— sseMerge 已删');
+    ok(!('translation_options' in b), '它是 translate-compat 的定义，不是可选项');
+    eq(b.top_p, 0.5, '合法字段不该被误伤');
+  });
+
+  test('JSON 解析不了 ⇒ 当没填，而不是崩、也不是发一段字符串', async () => {
+    for (const bad of ['{不是 json', '[1,2,3]', '"just a string"', '42', '  ']) {
+      const S = await withCustom({ p: bad });
+      eq(Object.keys(chat(S, GW, 'x', 'p')).sort().join(','), 'messages,model', JSON.stringify(bad));
+    }
+  });
+
+  test('语音 / 转写永不合并 —— 那是另一种能力', async () => {
+    const S = await withCustom({ p: '{"thinking":{"type":"disabled"}}' });
+    const sp = S.build('speech-compat', { url: 'https://x.example/v1/audio/speech',
+      model: 'm', input: 'hi', voice: 'v', providerId: 'p' }).body;
+    ok(!('thinking' in sp), '对话旋钮发给语音端点，最好被忽略、最坏 400');
+  });
+
+  test('messages / responses / translate 三条形状也生效', async () => {
+    const S = await withCustom({ p: '{"top_p":0.7}' });
+    const m = S.build('messages-compat', { url: 'https://x.example/v1/messages',
+      model: 'm', system: 's', user: 'u', budget: 2000, providerId: 'p' }).body;
+    eq(m.top_p, 0.7);
+    const r = S.build('responses-compat', { url: 'https://x.example/v1/responses',
+      model: 'm', system: 's', user: 'u', budget: 2000, providerId: 'p' }).body;
+    eq(r.top_p, 0.7);
+    const t = S.build('translate-compat',
+      { url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        model: 'qwen-mt-turbo', user: 'u', targetLang: 'zh-CN', budget: 2000, providerId: 'p' }).body;
+    eq(t.top_p, 0.7);
+    ok(t.translation_options, 'translate 的定义字段仍在');
   });
 });

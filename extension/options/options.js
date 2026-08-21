@@ -30,6 +30,10 @@ const SETTINGS_KEYS = [
   // 它们刻意不进 background.js 的 DEFAULT_SETTINGS：那会让「没设置」与「设成了默认值」
   // 无法区分，而前两项要靠这个区分来让能力表在冲突时赢。
   'reqTemperature', 'reqMaxTokens', 'reqTimeoutSec', 'reqConcurrency',
+  // 自定义请求参数：`{ [providerId]: "原样字符串" }`。**只在这里读，不进 saveAll()** ——
+  // 那个函数是整体覆盖式的，只从 DOM 读当前引擎那一个输入框，直接写会把其它引擎的
+  // 条目抹掉。写走下面的 writeCustomParams（读-改-写），与 learnRules 同一个模式。
+  'reqCustomParams',
 ];
 
 // i18n: localized string by the UI language (user-selectable `uiLang`, default = OS
@@ -325,6 +329,46 @@ function updateColorPreview(color) {
   $('color-preview').style.color = color;
 }
 
+// ─── 自定义请求参数：按引擎存，走读-改-写 ────────────────────────────────
+//
+// 与 learnRules 同一个模式（见本文件下方那条注释：「learnRules is NOT part of
+// saveAll(): it is a single JSON key written whole」）。原因也一样：saveAll 整体覆盖，
+// 而这是一张按引擎索引的表，DOM 上只有当前引擎那一格。
+let customParams = {};
+
+async function writeCustomParams(providerId, text) {
+  if (!providerId) return;
+  const next = Object.assign({}, customParams);
+  // 空 ⇒ 删掉这个引擎的条目，而不是留一个空字符串。存储里没有该键 = 没设过。
+  if (String(text || '').trim()) next[providerId] = text;
+  else delete next[providerId];
+  customParams = next;
+  await new Promise((r) => chrome.storage.local.set({ reqCustomParams: next }, r));
+}
+
+// 校验只影响**提示**，不影响保存 —— JSON 打了一半时用户的输入不能丢。
+// 运行时解析不了就当没填（request-shape.js 的 customFor 同一条规矩）。
+function updateCustomNote() {
+  const el = $('adv-custom');
+  const note = $('adv-custom-note');
+  const raw = String(el.value || '').trim();
+  if (!raw) { note.textContent = ''; return; }
+  let obj;
+  try { obj = JSON.parse(raw); } catch (e) {
+    note.textContent = t('options_adv_custom_bad', '解析不了，本次不会发送：') + e.message;
+    return;
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    note.textContent = t('options_adv_custom_notobj', '需要是一个 JSON 对象，本次不会发送。');
+    return;
+  }
+  const dropped = Object.keys(obj).filter((k) => RequestShape.CUSTOM_FORBIDDEN.indexOf(k) >= 0);
+  const kept = Object.keys(obj).filter((k) => RequestShape.CUSTOM_FORBIDDEN.indexOf(k) < 0);
+  const none = t('options_adv_custom_none', '（无）');
+  note.textContent = t('options_adv_custom_ok', '将发送：') + (kept.join(', ') || none)
+    + (dropped.length ? '\n' + t('options_adv_custom_dropped', '不可覆盖，已忽略：') + dropped.join(', ') : '');
+}
+
 // 「留空 = 不设置」的读取器。返回空串而不是 0/NaN：saveAll 是整体覆盖式的，
 // 一个 NaN 会把用户明确设过的值悄悄清成 0，而 0 恰好是 temperature 上最危险的值。
 function advNum(id, key) {
@@ -472,6 +516,9 @@ async function init() {
   $('adv-max-tokens').value = s.reqMaxTokens === '' || s.reqMaxTokens == null ? '' : s.reqMaxTokens;
   $('adv-timeout').value = s.reqTimeoutSec === '' || s.reqTimeoutSec == null ? '' : s.reqTimeoutSec;
   $('adv-concurrency').value = s.reqConcurrency === '' || s.reqConcurrency == null ? '' : s.reqConcurrency;
+  customParams = (s.reqCustomParams && typeof s.reqCustomParams === 'object') ? s.reqCustomParams : {};
+  $('adv-custom').value = customParams[s.provider] || '';
+  updateCustomNote();
   updateAdvancedNotes();
   $('tts-mode').value      = s.ttsMode || 'off';
   $('tts-autoplay').checked = s.ttsAutoPlay !== false;
@@ -582,6 +629,10 @@ async function init() {
     updateProviderUI(e.target.value);
     await saveAll();
     updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
+    // ⚠️ 自定义参数按引擎存，切引擎必须**重新回填**。不做的话输入框里还留着上一个
+    // 引擎的内容，用户随手一改就把 A 的参数存到了 B 名下。
+    $('adv-custom').value = customParams[e.target.value] || '';
+    updateCustomNote();
     showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
       : t('toast_provider_saved', '翻译引擎已保存'));
   });
@@ -605,6 +656,16 @@ async function init() {
     box.hidden = !box.hidden;
     if (!box.hidden) updateAdvancedNotes();
   });
+  // 输入时只更新提示（不写存储），失焦时才落盘 —— 打字过程中每个字符都写一次存储
+  // 既无必要，也会让「解析不了」的中间态反复触发运行时刷新。
+  $('adv-custom').addEventListener('input', updateCustomNote);
+  $('adv-custom').addEventListener('change', async () => {
+    await writeCustomParams($('provider').value, $('adv-custom').value);
+    try { RequestShape.refresh(); } catch (_) {}
+    updateCustomNote();
+    showToast(t('toast_saved', '已保存'));
+  });
+
   for (const id of ['adv-temperature', 'adv-max-tokens', 'adv-timeout', 'adv-concurrency']) {
     $(id).addEventListener('change', async () => {
       await saveAll();

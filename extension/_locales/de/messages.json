@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "Dieses Modell akzeptiert diesen Parameter nicht, er wird nicht gesendet."
   },
+  "label_adv_custom": {
+    "message": "Eigene Anfrageparameter"
+  },
+  "options_adv_custom_hint": {
+    "message": "Ein JSON-Objekt, das in den Anfragekörper eingefügt wird und die Felder oben überschreibt. Für selbst gehostete oder interne Endpunkte, die wir nicht gemessen haben."
+  },
+  "options_adv_custom_bad": {
+    "message": "Nicht lesbar, es wird nichts gesendet: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Muss ein JSON-Objekt sein; es wird nichts gesendet."
+  },
+  "options_adv_custom_ok": {
+    "message": "Wird gesendet: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "Nicht überschreibbar, ignoriert: "
+  },
+  "options_adv_custom_none": {
+    "message": "(keine)"
+  },
   "err_reasoning_starved": {
     "message": "Das Modell hat sein gesamtes Ausgabebudget fürs Nachdenken verbraucht und keine Übersetzung geliefert. Erhöhen Sie „Max. Ausgabelänge pro Anfrage“ unter Erweiterte Parameter oder wechseln Sie zu einem Modell ohne Reasoning."
   },

@@ -303,6 +303,27 @@
   "options_adv_unsupported": {
     "message": "هذا النموذج لا يقبل هذا الإعداد، لذلك لن يُرسل."
   },
+  "label_adv_custom": {
+    "message": "معاملات طلب مخصّصة"
+  },
+  "options_adv_custom_hint": {
+    "message": "كائن JSON يُدمج في جسم الطلب ويتجاوز الحقول أعلاه. مخصّص للنقاط الذاتية الاستضافة أو الداخلية التي لم نقِسها."
+  },
+  "options_adv_custom_bad": {
+    "message": "تعذّر التحليل، ولن يُرسل شيء: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "يجب أن يكون كائن JSON؛ لن يُرسل شيء."
+  },
+  "options_adv_custom_ok": {
+    "message": "سيُرسل: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "لا يمكن تجاوزه، تم تجاهله: "
+  },
+  "options_adv_custom_none": {
+    "message": "(لا شيء)"
+  },
   "err_reasoning_starved": {
     "message": "استهلك النموذج كامل ميزانية المخرجات في التفكير ولم يُنتج ترجمة. ارفع «أقصى طول للمخرجات لكل طلب» في الإعدادات المتقدمة، أو انتقل إلى نموذج بلا استدلال."
   },

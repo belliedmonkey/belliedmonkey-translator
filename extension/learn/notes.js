@@ -164,6 +164,9 @@ var LearnNotes = (() => {
     await RequestShape.ready();
     const req = RequestShape.build(WireFormat.formatFor(url, p && p.type), {
       url, apiKey: cfg.apiKey, model, system, user, budget: MAX_OUT,
+      // 解析引擎默认跟随翻译引擎（§9.2），此时 cfg.provider 与翻译那边是同一个 id，
+      // 于是自定义参数天然一致；用户单独选了别的引擎时，它拿到的也是自己那份。
+      providerId: cfg.provider,
     });
     const resp = await fetchNamed(url, {
       method: 'POST', headers: req.headers, body: JSON.stringify(req.body),
