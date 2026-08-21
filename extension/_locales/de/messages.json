@@ -1501,7 +1501,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Auf jede Karte folgt ihre Erläuterung (Wörter, Wendungen, ein Grammatikpunkt). **Standardmäßig an**: Eine noch nie analysierte Karte wird sofort analysiert, mit der von Ihnen eingerichteten Engine — einmal pro Karte berechnet, danach aus dem Cache. Ausschalten, wenn Sie das nicht ausgeben möchten; aus werden nur Satz und Übersetzung gelesen.",
+    "message": "Auf jede Karte folgt ihre Erläuterung (Wörter, Wendungen, ein Grammatikpunkt). Standardmäßig an: Eine noch nie analysierte Karte wird sofort analysiert, mit der von Ihnen eingerichteten Engine — einmal pro Karte berechnet, danach aus dem Cache. Ausschalten, wenn Sie das nicht ausgeben möchten; aus werden nur Satz und Übersetzung gelesen.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

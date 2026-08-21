@@ -1501,7 +1501,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Each card is followed by its notes (words, phrases, one grammar point). **On by default**: a card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Turn it off if you would rather not spend that; off, only the sentence and its translation are read.",
+    "message": "Each card is followed by its notes (words, phrases, one grammar point). On by default: a card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Turn it off if you would rather not spend that; off, only the sentence and its translation are read.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

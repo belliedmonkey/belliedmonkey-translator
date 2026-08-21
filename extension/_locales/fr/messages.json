@@ -1501,7 +1501,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Chaque carte est suivie de ses notes (mots, expressions, un point de grammaire). **Activé par défaut** : une carte jamais analysée l’est sur-le-champ, avec le moteur que vous avez configuré — facturé une seule fois par carte, puis mis en cache. Désactivez si vous préférez ne pas dépenser ; désactivé, seules la phrase et sa traduction sont lues.",
+    "message": "Chaque carte est suivie de ses notes (mots, expressions, un point de grammaire). Activé par défaut : une carte jamais analysée l’est sur-le-champ, avec le moteur que vous avez configuré — facturé une seule fois par carte, puis mis en cache. Désactivez si vous préférez ne pas dépenser ; désactivé, seules la phrase et sa traduction sont lues.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

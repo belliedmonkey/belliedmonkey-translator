@@ -1501,7 +1501,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Cada tarjeta va seguida de su análisis (palabras, expresiones, un punto de gramática). **Activado por defecto**: una tarjeta nunca analizada se analiza en el momento con el motor que configuraste — se cobra una sola vez por tarjeta y luego queda en caché. Desactívalo si prefieres no gastar; desactivado, solo se leen la frase y su traducción.",
+    "message": "Cada tarjeta va seguida de su análisis (palabras, expresiones, un punto de gramática). Activado por defecto: una tarjeta nunca analizada se analiza en el momento con el motor que configuraste — se cobra una sola vez por tarjeta y luego queda en caché. Desactívalo si prefieres no gastar; desactivado, solo se leen la frase y su traducción.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

@@ -60,6 +60,24 @@ describe('i18n: 11 份 messages.json 是同一个键集', () => {
     }
   });
 
+  test('UI 文案里不许出现 markdown 标记 —— 这里没有渲染器，星号会原样显示', () => {
+    // 第二次栽在同一件事上了：
+    //   2026-08-17 `learn_section_hint` 的 zh_CN/zh_TW 把 **粗体** 写进纯文本串，
+    //     在中国版商店截图里被一眼看见。
+    //   2026-08-21 `options_custom_api_hint` 与 `drive_play_notes_note` 同样中招，
+    //     13 条 × 11 个 locale，又是在重拍截图时看见的。
+    // 「靠人在截图里看见」不是办法 —— 那要等到提审前才发现，而且只在被截到的那一屏。
+    // i18n 串进的是 textContent，浏览器不做 markdown 渲染。
+    const BAD = /\*\*[^*]+\*\*|__[^_]+__|(?:^|[^`])`[^`]+`/;
+    for (const loc of LOCALES) {
+      const has = load(loc);
+      const hits = Object.keys(has).filter((k) => BAD.test(String((has[k] || {}).message || '')));
+      eq(hits.length, 0,
+        `${loc} 有 ${hits.length} 条文案带 markdown 标记（界面上会原样显示）：`
+        + hits.slice(0, 6).join(', '));
+    }
+  });
+
   test('每条都有 message 字段 —— 结构写错时 getMessage 静默返回空', () => {
     for (const loc of LOCALES) {
       const has = load(loc);

@@ -1501,7 +1501,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_play_notes_note": {
-    "message": "Cada cartão é seguido da sua análise (palavras, expressões, um ponto de gramática). **Ligado por padrão**: um cartão nunca analisado é analisado na hora, com o mecanismo que você configurou — cobrado uma única vez por cartão e depois em cache. Desligue se preferir não gastar; desligado, só a frase e a tradução são lidas.",
+    "message": "Cada cartão é seguido da sua análise (palavras, expressões, um ponto de gramática). Ligado por padrão: um cartão nunca analisado é analisado na hora, com o mecanismo que você configurou — cobrado uma única vez por cartão e depois em cache. Desligue se preferir não gastar; desligado, só a frase e a tradução são lidas.",
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_cost": {

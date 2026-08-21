@@ -13,6 +13,8 @@
     "test:idb": "node scripts/verify-idb-upgrade.js",
     "app:sync": "node scripts/sync-app-assets.js",
     "test:app": "node scripts/verify-app-bundle.js",
+    "amo:check": "node scripts/amo-publish.js --check",
+    "cws:check": "node scripts/cws-publish.js --check",
     "perf:probe": "node scripts/perf-probe.js",
     "perf:status": "node scripts/perf-probe.js --status",
     "test:smoke": "node scripts/verify-extension-smoke.js",
