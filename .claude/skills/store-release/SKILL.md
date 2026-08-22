@@ -261,6 +261,30 @@ node scripts/gh-release.js --apply --clobber       # 替换已存在的同名资
 >
 > 现在只有一份实现，三条路都调它。**抄第四份的那天，就是它再次失效的那天。**
 
+### 要重发一个历史版本的正确产物时
+
+有时 tag 描述的**不是**真正出货的内容（v1.6.4 就是：星号修复在打完 tag 之后才合进来，
+而商店 build 是修复之后出的）。这时**不要用 `--allow-dirty` 绕过去** —— 那等于把
+溯源丢掉。正确做法是把事实说出来并验证它：
+
+```bash
+git tag -a v1.6.4-store -m "真正出货的那个提交" <sha> && git push origin v1.6.4-store
+git worktree add /tmp/build v1.6.4-store && (cd /tmp/build && node build.js)
+node scripts/gh-release.js --zip /tmp/build/belliedmonkeytranslator.zip \
+  --tag v1.6.4-store --worktree /tmp/build --apply --clobber
+git worktree remove /tmp/build
+```
+
+门禁会去那棵 worktree 里验 HEAD 确实在该 tag 上、且干净 —— **是通过检查，不是跳过**。
+不移动已发布的 tag（同中国版 `v1.6.4-china-2` / `-china-3` 的做法）。
+
+验收看的不是脚本有没有报错，而是**从官网那条直链重新下载**：
+
+```bash
+curl -sL -o /tmp/v.zip "https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip"
+unzip -p /tmp/v.zip content/i18n-messages.js | grep -c '\*\*'   # 期望 0
+```
+
 官网是**独立仓库** `~/belliedmonkey-cc`（Vercel 部署）。发版要改的是 8 份 i18n
 里的两个键：
 
