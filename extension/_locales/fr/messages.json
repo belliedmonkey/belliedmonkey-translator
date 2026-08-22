@@ -1329,6 +1329,10 @@
     "message": "Aucun moteur sélectionné",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "Cette version ne reconnaît pas le moteur enregistré — choisissez-en un ci-dessus",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "Le point de terminaison a répondu, mais le contenu est illisible",
     "description": "Engine self-test (settings)"

@@ -378,7 +378,23 @@ Rules:
   // condition. See content/wire-format.js.
   function callProvider(provider, text, targetLang, apiKey, baseUrl, model, diag) {
     const p = providerById(provider);
-    if (!p || p.type === 'google') return translateGoogle(text, targetLang);
+    // 认识的 google 引擎才走 google。**不认识的 id 一律具名报错,绝不静默兜底。**
+    //
+    // 这里原来是 `if (!p || p.type === 'google')` —— 任何本 flavor 注册表里没有的 id
+    // 都会掉进 translateGoogle。2026-08-22 真机实测:中国版的默认 `provider: 'google'`
+    // 在它自己的注册表里不存在,于是一份没填任何 Key 的中国版把 38 段译文翻了出来,
+    // 输出与直接打 translate.googleapis.com 的返回逐字相同;而设置页因为下拉里没有
+    // google 这个选项,显示的是 DeepSeek。**界面与运行时说的不是一回事**,且国内那条
+    // 地址不通,每段要等满超时——「翻译中…」不动的形状。
+    //
+    // 默认值那一头已经由 build.js 的 defaultProviderGate 堵死;这里堵的是另一头:
+    // 任何来路的未知 id(旧版本遗留、同步过来的、手改存储的)都必须**可见地失败**。
+    if (p && p.type === 'google') return translateGoogle(text, targetLang);
+    if (!p) {
+      const e = new Error(`unknown provider: ${provider}`);
+      e.status = 0; e.code = 'unknown_provider';
+      throw e;
+    }
     const url = WireFormat.resolveEndpoint(baseUrl, p);
     if (diag) diag.url = url;
     if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }

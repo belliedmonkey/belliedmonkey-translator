@@ -48,6 +48,18 @@ describe('TranslationAPI — guards & Google', () => {
     match(fetch.calls[0].url, /translate_a\/single/);
     match(fetch.calls[0].url, /[?&]tl=zh-CN/);
   });
+
+  // 2026-08-22 真机：中国版的默认 `provider: 'google'` 在它自己的注册表里不存在，
+  // 于是旧代码的 `if (!p || p.type === 'google')` 把它静默送去了 translateGoogle ——
+  // 一份没填任何 Key 的中国版真的翻出了 38 段，输出与直接打 Google 逐字相同，而设置页
+  // 因为下拉里没有 google 这一项，显示的是 DeepSeek。界面与运行时不一致 + 静默兜底。
+  test('未知引擎 id 具名报错，绝不静默落到 Google', async () => {
+    const { API, fetch } = loadAPI([okJson([[['你好', 'hello', null, null]]])]);
+    await rejects(() => API.translate('hello world', 'zh-CN', 'no-such-engine', 'K', ''),
+      /unknown provider/);
+    eq(fetch.calls.length, 0, '一个请求都不该发出去——尤其不该发给 Google');
+  });
+
 });
 
 // ─────────────────────────────────────────────────────────────────────────

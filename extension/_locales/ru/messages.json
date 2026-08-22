@@ -1329,6 +1329,10 @@
     "message": "Движок не выбран",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "Эта версия не распознаёт сохранённый движок — выберите другой выше",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "Сервер ответил, но содержимое не разобрать",
     "description": "Engine self-test (settings)"

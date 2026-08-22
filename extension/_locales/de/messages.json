@@ -1329,6 +1329,10 @@
     "message": "Keine Engine ausgewählt",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "Diese Version kennt die gespeicherte Engine nicht – bitte oben eine auswählen",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "Der Endpunkt antwortete, aber der Inhalt war nicht lesbar",
     "description": "Engine self-test (settings)"

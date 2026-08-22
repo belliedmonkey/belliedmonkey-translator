@@ -1329,6 +1329,10 @@
     "message": "Nenhum motor selecionado",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "Esta versão não reconhece o mecanismo salvo — escolha um acima",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "O endpoint respondeu, mas o conteúdo não pôde ser interpretado",
     "description": "Engine self-test (settings)"

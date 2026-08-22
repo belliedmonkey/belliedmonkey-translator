@@ -1329,6 +1329,10 @@
     "message": "No engine selected",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "This version doesn't recognise the saved engine — pick one above",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "The endpoint answered, but the content could not be parsed",
     "description": "Engine self-test (settings)"

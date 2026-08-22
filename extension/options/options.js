@@ -204,6 +204,9 @@ function engineTestReason(e) {
     case 'no_base': return t('engine_test_no_base', '还没填端点地址');
     case 'no_key': return t('engine_test_no_key', '还没填 API Key');
     case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
+    // 存储里的引擎 id 这个版本不认识（旧版本遗留、或本 flavor 没有这个引擎）。
+    // 说清「重新选一个」，因为下拉里显示的那一项**不等于**实际存着的那一项。
+    case 'unknown_provider': return t('engine_test_unknown_provider', '这个版本不认识当前存着的引擎，请在上面重新选一个');
     // `viaProxy` = 直连失败后我们已经自动改走扩展后台再试过一次（translation-api.js
     // 的 §5.5 回退）。两条路都不通时说出来，否则用户会照着提示第二次去查跨域——而
     // 后台那条路本来就不受跨域约束，查了也白查。

@@ -1329,6 +1329,10 @@
     "message": "エンジンが未選択です",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "このバージョンは保存されているエンジンを認識できません。上で選び直してください",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "エンドポイントは応答しましたが、内容を解析できません",
     "description": "Engine self-test (settings)"

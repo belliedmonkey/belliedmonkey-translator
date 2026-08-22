@@ -255,3 +255,46 @@ describe('description length (Apple 112)', () => {
     eq(over.length, 0, `中国版描述超长: ${over.join(', ')}`);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// 默认引擎必须存在于**它所在那个 flavor** 的注册表里。
+//
+// 2026-08-22 真机发现：中国版出货包的默认是 `provider: 'google'`，而 google 的
+// flavors 是 ['global']。运行时 `providerById` 返回 null，`callProvider` 旧代码的
+// `!p` 分支把它静默送去 translateGoogle —— 一份刚装好、没填任何 Key 的中国版
+// 真的翻出了 38 段，输出与直接打 translate.googleapis.com 的返回逐字相同。
+// 而设置页的 <select> 里没有 google 这一项，浏览器把它显示成第一项 DeepSeek：
+// **界面写着 DeepSeek，实际发的是 Google**，国内那条地址还不通，只会等到超时。
+//
+// 这条不变量在构建期完全看得见，代价却是出货之后才被真机撞到。所以有两道：
+// build.js 的 defaultProviderGate 查**出货目录**，这里查**源码 + 改写目标**，
+// 毫秒级、并且指名道姓。
+const fsRT = require('fs');
+const pathRT = require('path');
+const ROOT_RT = pathRT.join(__dirname, '..');
+const idsFor = (flavor) => require('../build/providers.config.js')
+  .filter((p) => p.flavors.includes(flavor)).map((p) => p.id);
+
+describe('默认引擎属于自己的 flavor', () => {
+  const bg = fsRT.readFileSync(pathRT.join(ROOT_RT, 'extension/background.js'), 'utf8');
+  const m = /provider:\s*'([a-z_]+)'/.exec(bg);
+
+  test('background.js 里能读到默认引擎', () => {
+    ok(m, 'extension/background.js 里找不到 `provider: \'…\'` —— 改了名就要改这条门禁');
+  });
+
+  test('源码的默认引擎在 global 注册表里（源码树永远是 global）', () => {
+    const ids = idsFor('global');
+    ok(ids.includes(m[1]),
+      `默认引擎 '${m[1]}' 不在 global 注册表里（${ids.join(', ')}）`);
+  });
+
+  test('build.js 为 china 改写默认引擎，且改成 china 注册表里有的 id', () => {
+    const build = fsRT.readFileSync(pathRT.join(ROOT_RT, 'build.js'), 'utf8');
+    const r = /'dist-china\/background\.js',\s*'([a-z_]+)'/.exec(build);
+    ok(r, 'build.js 没有为 china flavor 改写默认引擎');
+    const ids = idsFor('china');
+    ok(ids.includes(r[1]),
+      `china 的默认引擎被改写成 '${r[1]}'，但它不在 china 注册表里（${ids.join(', ')}）`);
+  });
+});
