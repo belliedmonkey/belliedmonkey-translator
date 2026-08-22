@@ -33,7 +33,7 @@ var WebpageTranslator = (() => {
     return TranslationCore.createEngine({
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-        settings.provider || 'google', settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
+        TranslationAPI.resolveProvider(settings.provider), settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
       // Text already in the target language never reaches the provider (engine skips it
       // before the request) and therefore renders no sibling at all. Read late (getter,
       // not value) per docs/domain-design.md §4 — the engine must never hold a stale copy.

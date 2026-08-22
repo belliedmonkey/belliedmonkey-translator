@@ -356,14 +356,6 @@ Rules:
     return data[0].map(c => c[0]).join('');
   }
 
-  async function translateGoogleBatch(texts, targetLang) {
-    const params = new URLSearchParams({ client: 'gtx', sl: 'auto', tl: targetLang });
-    texts.forEach(t => params.append('q', t));
-    const resp = await apiFetch(`https://translate.googleapis.com/translate_a/t?${params}`, {}, 'Google batch');
-    const data = await resp.json();
-    return data.map(item => Array.isArray(item) ? item[0] : item);
-  }
-
   // Provider config comes from the build-time registry (window.MT_PROVIDERS,
   // generated per flavor from build/providers.config.js). Transport is keyed by
   // request FORMAT, not by vendor: 'chat-compat' = the Chat Completions request
@@ -372,6 +364,25 @@ Rules:
   function providerById(id) {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
     return list.find((p) => p.id === id) || null;
+  }
+
+  // 「本次构建的默认引擎」只有一个来源:注册表的第一条。
+  //
+  // 2026-08-22 之前它被硬写成 'google' 抄在六个地方(background.js 的 DEFAULT_SETTINGS
+  // 加四个内容适配器各一份 `s.provider || 'google'`),而 google 的 flavors 是
+  // ['global'] —— 中国版里那个 id 根本不存在。每一份拷贝都是一个不再跟着注册表走的
+  // 消费者,这正是 §7 那条「注册表之外永不复述」要防的东西。popup/options 早就是
+  // 从注册表取的,内容层漏了。
+  function defaultProvider() {
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    return (list[0] && list[0].id) || '';
+  }
+
+  // 存储里的 id 本次构建不认识 ⇒ 回落到默认。**返回值与入参不同就是「需要自愈」的信号**,
+  // 调用方据此把存储改正,免得设置页显示的和运行时用的不是一回事(下拉里没有那一项时
+  // 浏览器会强制显示成第一项,而存储原样不动 —— 界面写着 A、实际发的是 B)。
+  function resolveProvider(id) {
+    return providerById(id) ? id : defaultProvider();
   }
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
@@ -393,6 +404,11 @@ Rules:
     if (!p) {
       const e = new Error(`unknown provider: ${provider}`);
       e.status = 0; e.code = 'unknown_provider';
+      // 不可重试。没有 status 的错误默认按「瞬时」处理，那条兜底对 transportError 是对的，
+      // 对这里是灾难：引擎 id 不认识，重试一万次还是不认识。2026-08-22 真机实测——34 段
+      // 的页面要 **70 秒** 才把失败显示出来（34 段 × 3 次重试 ÷ 并发 5 × 3.4 秒 ≈ 69 秒），
+      // 用户看到的是一分钟的「翻译中…」。同一份文件里已经为「推理吃光预算」写过这条理由。
+      e.retryable = false;
       throw e;
     }
     const url = WireFormat.resolveEndpoint(baseUrl, p);
@@ -565,35 +581,12 @@ Rules:
     return result;
   }
 
-  // ─── Batch translate ──────────────────────────────────────────────────
-  async function translateBatch(texts, targetLang, provider, apiKey, baseUrl, model) {
-    if (!texts.length) return [];
+  // translateBatch 与 translateGoogleBatch 已删除（2026-08-22）。整个扩展里没有任何
+  // 调用方，而 translateBatch 带着一条 `provider === 'google'` 的分支直接调
+  // translateGoogleBatch —— **绕过 callProvider**，于是那里的未知引擎守卫管不到它。
+  //
+  // 死代码不是中性的：它是一条随时会被接回去的旁路，而且它绕过的恰好是刚刚补上的
+  // 那道门。真要重新做批量，必须走 callProvider。
 
-    if (provider === 'google') {
-      const CHUNK = 20;
-      const results = [];
-      for (let i = 0; i < texts.length; i += CHUNK) {
-        const chunk = texts.slice(i, i + CHUNK);
-        // 必须走同一个 cacheKey()：这里曾经自己拼 `google:${lang}:${text}`，
-        // 键格式一改，批量写进去的条目单条读永远命中不了，两边各刷各的。
-        const cached = chunk.map(t => cacheGet(cacheKey('google', targetLang, '', '', t)));
-        const missingIdx = cached.map((v, idx) => v === null ? idx : -1).filter(idx => idx >= 0);
-        if (missingIdx.length > 0) {
-          try {
-            const missing = missingIdx.map(idx => chunk[idx]);
-            const translated = await translateGoogleBatch(missing, targetLang);
-            missingIdx.forEach((idx, j) => { cacheSet(cacheKey('google', targetLang, '', '', chunk[idx]), translated[j]); cached[idx] = translated[j]; });
-          } catch (_) {
-            for (const idx of missingIdx) cached[idx] = await translate(chunk[idx], targetLang, 'google', '', '');
-          }
-        }
-        results.push(...cached);
-      }
-      return results;
-    }
-
-    return Promise.all(texts.map(t => translate(t, targetLang, provider, apiKey, baseUrl, model)));
-  }
-
-  return { translate, translateBatch, serverSays, LANG_NAMES };
+  return { translate, defaultProvider, resolveProvider, serverSays, LANG_NAMES };
 })();

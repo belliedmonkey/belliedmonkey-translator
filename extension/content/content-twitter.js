@@ -245,7 +245,7 @@ var TwitterTranslator = (() => {
     textWidth,
     translate: (text, s) => TranslationAPI.translate(
       text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-      s.provider || 'google', s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+      TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
     showButton: () => !TranslationCore.isMobileLayout(), // mobile: page FAB drives it
     syncNative,
     srtName: () => document.title,

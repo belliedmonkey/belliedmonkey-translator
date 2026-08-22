@@ -60,6 +60,59 @@ describe('TranslationAPI — guards & Google', () => {
     eq(fetch.calls.length, 0, '一个请求都不该发出去——尤其不该发给 Google');
   });
 
+  // 2026-08-22 真机：守卫生效了，但失败要 **70 秒** 才显示出来。unknown_provider 走了
+  // isRetryable 的「没有 status ⇒ 当瞬时错误」兜底，每段白白重试 3 次（34 段 × 3 次
+  // ÷ 并发 5 × 3.4 秒 ≈ 69 秒）。引擎 id 不认识，重试一万次还是不认识。
+  test('未知引擎不可重试 —— 失败要立刻可见，不是一分钟后', async () => {
+    const { API, fetch } = loadAPI([]);
+    const t0 = Date.now();
+    await rejects(() => API.translate('hello world', 'zh-CN', 'no-such-engine', 'K', ''),
+      /unknown provider/);
+    const ms = Date.now() - t0;
+    ok(ms < 500, `应当立刻失败，实测 ${ms}ms —— 退避重试回来了`);
+    eq(fetch.calls.length, 0);
+  });
+
+  // 默认引擎只有一个来源：注册表第一条。它曾被硬写成 'google' 抄在六个地方
+  // （background.js 的 DEFAULT_SETTINGS + content-main + 四个内容适配器），
+  // 而 google 的 flavors 是 ['global'] —— 中国版里那个 id 根本不存在。
+  // 注意：**不能**拿真实的 global 注册表来测这条。它的第一条恰好就是 google，于是
+  // 「取注册表第一条」和「硬写 'google'」返回同一个值，测试永远绿——写完第一版就是
+  // 这样，掰断源码它照样过。所以这里注入一份构造的注册表：只有它能分辨两种实现。
+  function loadAPIWithRegistry(providers) {
+    const ctx = loadModule(['request-shape.js', 'translation-api.js'], {
+      fetch: makeFetch([]), chrome: makeChrome({}), AbortController, URLSearchParams,
+      window: { MT_PROVIDERS: providers }, WireFormat,
+    });
+    return ctx.TranslationAPI;
+  }
+
+  test('defaultProvider 取自注册表第一条，不是硬写的字面量', () => {
+    const API = loadAPIWithRegistry([
+      { id: 'first_engine', type: 'chat-compat', flavors: ['global'] },
+      { id: 'google', type: 'google', flavors: ['global'] },
+    ]);
+    eq(API.defaultProvider(), 'first_engine', '硬写 google 会在这里露馅');
+  });
+
+  test('注册表为空 ⇒ 默认是空串，不是凭空造一个 id', () => {
+    eq(loadAPIWithRegistry([]).defaultProvider(), '');
+  });
+
+  test('resolveProvider：认识的原样返回，不认识的回落到默认', () => {
+    const { API } = loadAPI([]);
+    eq(API.resolveProvider('deepseek'), 'deepseek');
+    eq(API.resolveProvider('no-such-engine'), API.defaultProvider());
+    eq(API.resolveProvider(undefined), API.defaultProvider());
+    eq(API.resolveProvider(''), API.defaultProvider());
+  });
+
+  // translateBatch 曾有一条 `provider === 'google'` 的分支直接调 translateGoogleBatch，
+  // **绕过 callProvider** —— 未知引擎守卫管不到它。整个扩展没有任何调用方，已删除。
+  test('translateBatch 已删除 —— 绕过 callProvider 的旁路不能悄悄回来', () => {
+    const { API } = loadAPI([]);
+    eq(typeof API.translateBatch, 'undefined');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -354,12 +407,9 @@ describe('TranslationAPI — 缓存键包含端点与模型', () => {
     eq(fetch.calls.length, 3, 'noCache 把结果写进了缓存');
   });
 
-  test('Google 批量与单条共用同一套键 —— 否则两边各刷各的', async () => {
-    const { API, fetch } = loadAPI([okJson([['你好']]), ok('不该用到')]);
-    deepEq(await API.translateBatch(['hello there'], 'zh-CN', 'google', '', ''), ['你好']);
-    eq(await API.translate('hello there', 'zh-CN', 'google', '', ''), '你好');
-    eq(fetch.calls.length, 1, '批量写的条目单条读没命中 —— 键格式对不上');
-  });
+  // 「Google 批量与单条共用同一套键」这条随 translateBatch 一起删除（2026-08-22）：
+  // 批量入口没有任何调用方，而它绕过 callProvider。键格式那条不变量仍由 cacheKey()
+  // 的其余用例守着。
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -498,28 +548,9 @@ describe('TranslationAPI — retry & fallback', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────
-describe('TranslationAPI — translateBatch', () => {
-  test('empty input → empty output', async () => {
-    const { API, fetch } = loadAPI([]);
-    deepEq(await API.translateBatch([], 'zh-CN', 'google', '', ''), []);
-    eq(fetch.calls.length, 0);
-  });
-
-  test('Google batch uses the batch endpoint and caches each item', async () => {
-    const { API, fetch, chrome } = loadAPI([okJson(['甲', '乙'])]);
-    deepEq(await API.translateBatch(['alpha', 'beta'], 'zh-CN', 'google', '', ''), ['甲', '乙']);
-    match(fetch.calls[0].url, /translate_a\/t/);
-    eq(chrome._store['tr:google:::zh-CN:alpha'].v, '甲');
-  });
-
-  test('non-Google batch fans out to per-item translate', async () => {
-    // Echo the user content so each item gets a distinct result.
-    const program = (url, opts) => okJson({ choices: [{ message: { content: 'T:' + JSON.parse(opts.body).messages[1].content } }] });
-    const { API } = loadAPI(program);
-    deepEq(await API.translateBatch(['xx', 'yy'], 'ja', 'openai', 'KEY', ''), ['T:xx', 'T:yy']);
-  });
-});
+// translateBatch 的三条用例随函数一起删除（2026-08-22）：它没有任何调用方，而它的
+// `provider === 'google'` 分支直接调 translateGoogleBatch，绕过 callProvider —— 未知
+// 引擎守卫管不到它。「已删除」本身由上面那条 typeof 断言守着。
 
 // ─── domain-design §5.4: Firefox routes through the background ────────────────
 // Firefox applies the HOST PAGE's CSP to a content script's fetch; Chrome and WebKit
