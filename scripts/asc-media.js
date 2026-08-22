@@ -78,6 +78,21 @@ const PLAN = [
     screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
     previews: { DESKTOP: '/tmp/mac-preview.mp4' },
   },
+  // 国际版的 zh-Hans 本地化原本一张截图都没有 ⇒ 中文用户看到的是 en-US 那套英文图。
+  // 这两条只是把已有的 zh-* 出货图配上去，不动 en-US。
+  {
+    id: 'global-ios-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hans',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`zh-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hans',
+    screenshots: { APP_DESKTOP: five((i) => g(`zh-mac-${i}.png`)) },
+    previews: {},
+  },
   {
     id: 'cn-ios', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
@@ -136,8 +151,15 @@ async function findVersionLocalization(bundleId, platform, locale) {
     + '&fields[appStoreVersions]=versionString,appStoreState,platform');
   const v = vs.data.find((x) => x.attributes.versionString === VERSION && x.attributes.platform === platform);
   if (!v) throw new Error(`${bundleId} ${platform} 没有 ${VERSION} 版本记录`);
+  // 只有 PREPARE_FOR_SUBMISSION 能动。
+  //
+  // 2026-08-22 实测：版本进 WAITING_FOR_REVIEW 之后，`POST /appScreenshotSets` 被
+  // Apple 以 409「Can't Create Screenshot Set while In Review」拒掉。**好消息是它拒得
+  // 很干净** —— 四条线的状态原封不动，排队位置没丢。所以别为了补素材去撤审：
+  // 撤审重提会把排队清零（中国版上次排了 40 天），而补图属于下一个版本的事。
   if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
-    throw new Error(`${bundleId} ${platform} ${VERSION} 状态是 ${v.attributes.appStoreState} —— 不动它`);
+    throw new Error(`${bundleId} ${platform} ${VERSION} 状态是 ${v.attributes.appStoreState}`
+      + ' —— 不动它（在审期间 Apple 不接受新建截图集，补图请留到下个版本）');
   }
   const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
     + '&fields[appStoreVersionLocalizations]=locale');
