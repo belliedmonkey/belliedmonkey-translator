@@ -368,6 +368,37 @@ to `DEFAULT_TARGET_LANG` at construction regardless of settings.
 
 ## 2. Per-surface build → install → enable → open-URL → drive
 
+### 2.0 一台机器上只能装一份大肚猴翻译 —— 国际版与中国版**不可并存**
+
+任何浏览器上，**同一时刻只允许安装一份**大肚猴翻译。国际版和中国版是两个 bundle id
+（`com.belliedmonkeytranslator` / `…​.cn`），系统允许它们同时存在，但**我们的验证不允许**：
+测完一个，**卸载**，再装另一个。
+
+不是「建议先关掉另一个」——是**卸载**。关掉的那一份仍然出现在扩展列表里、仍然参与
+LaunchServices 的注册竞争，于是「跑的是哪一份」这个最基本的问题就没有确定答案，
+而验证的全部价值就建立在这个答案上。
+
+**这条规矩是被违反出来的**（2026-08-21）：为了同时验四条线，两个版本被同时装进
+一台 iPhone 和一台 Mac，结果：
+
+- macOS Safari 的扩展列表里出现 **4 条同名「大肚猴翻译」**（还有历史副本掺进来），
+  AX 树只给 bundle id、不给版本号，无法分辨哪条对应哪个包；
+- iPhone 上两份并存、一开一关，随后出现**部分标签页翻译卡在「翻译中…」不动**，
+  而同一时刻新开的页面翻译正常 —— 排查时无法排除「另一份的残留状态」这个变量。
+
+**执行判据**（每个宿主一条，先读再动手）：
+
+```bash
+# macOS：认的是哪一份，只信这一行的版本号（不是「App 起来了」）
+pluginkit -m -p com.apple.Safari.web-extension | grep -i belliedmonkey
+# 期望：**恰好一行**
+
+# iPhone：设置 → App → Safari浏览器 → 扩展
+# 期望：「大肚猴翻译」**恰好一条**（不是「一条打开一条关闭」）
+```
+
+出现两条 ⇒ **先卸载多余的那一份再开始验证**，这一轮此前的观测全部作废。
+
 Shared first step for all Safari surfaces:
 
 ```bash
