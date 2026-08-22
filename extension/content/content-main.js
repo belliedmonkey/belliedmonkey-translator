@@ -20,12 +20,27 @@
     chrome.storage.local.get(SETTINGS_KEYS, (s) => resolve(s || {}));
   });
 
+  // 存着的引擎 id 本次构建不认识 ⇒ **就地改正存储**，不只是运行时兜一下。
+  //
+  // 只兜运行时会留下一个更坏的状态：设置页的 <select> 里没有那一项，浏览器强制显示
+  // 成第一项，而存储原样不动 —— 界面写着 A、实际用的是 B，两边永远对不上。
+  // 2026-08-22 真机就是这个形状（中国版存着 'google'，设置页显示 DeepSeek）。
+  // 也是升级路径的自愈：从默认还是 'google' 的旧版升上来的用户，第一次开页面就被改正。
+  if (settings.provider !== undefined) {
+    const fixed = TranslationAPI.resolveProvider(settings.provider);
+    if (fixed !== settings.provider) {
+      settings.provider = fixed;
+      try { chrome.storage.local.set({ provider: fixed }); } catch (_) {}
+    }
+  }
+
   const cfg = {
     // Always start OFF on page load. Translation begins only after the user
     // turns it on (FAB for page text, in-player 译 button for video subtitles).
     enabled: false,
     targetLang: settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
-    provider: settings.provider || 'google',
+    // 默认引擎来自注册表，不再硬写（见 translation-api.js 的 defaultProvider）。
+    provider: TranslationAPI.resolveProvider(settings.provider),
     apiKey: settings.apiKey || '',
     apiBaseUrl: settings.apiBaseUrl || '',
     apiModel: settings.apiModel || '',
