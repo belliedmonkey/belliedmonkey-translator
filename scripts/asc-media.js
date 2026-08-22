@@ -2,9 +2,13 @@
 // scripts/asc-media.js — 把商店截图与预览片推到 App Store Connect 的四条线。
 //
 // 用法：
-//   node scripts/asc-media.js            # 只打印计划，什么都不动（默认）
-//   node scripts/asc-media.js --apply    # 真的替换（**对外动作**，会改动线上商店页）
-//   node scripts/asc-media.js --apply --only cn-ios      # 只做一条线
+//   node scripts/asc-media.js                        # 只打印计划，什么都不动（默认）
+//   node scripts/asc-media.js --apply                # 真的替换（**对外动作**，会改线上商店页）
+//   node scripts/asc-media.js --apply --only cn-ios  # 只做一条线
+//   node scripts/asc-media.js --version 1.6.5        # 版本默认取 package.json，可覆盖
+//
+// --only 的取值就是 PLAN 里的 id：global-ios / global-mac / global-ios-zh /
+// global-mac-zh / cn-ios / cn-mac。
 //
 // 与 cws-publish / amo-publish 同一套分档：默认什么都不做，替换商店素材是对外动作，
 // 不该是副作用。
@@ -174,13 +178,25 @@ async function findVersionLocalization(bundleId, platform, locale) {
   return { appName: app.attributes.name, versionId: v.id, locId: L.id };
 }
 
-const VERSION = '1.6.4';
+// 版本号跟着 package.json 走，`--version` 可覆盖。
+//
+// 这里**曾经是一行硬编码** `const VERSION = '1.6.4'`。那种写法的坏处不是「要记得改」，
+// 而是忘了改之后它**不会报错**：脚本会去找上一个版本的本地化，把新素材推到已经上架的
+// 那一版上，或者报一句「没有 X 版本记录」而让人以为是 ASC 的问题。
+function resolveVersion(argv) {
+  const i = argv.indexOf('--version');
+  if (i >= 0 && argv[i + 1]) return argv[i + 1];
+  return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+}
+let VERSION = null;
 
 (async () => {
   const argv = process.argv.slice(2);
   const apply = argv.includes('--apply');
   const onlyIdx = argv.indexOf('--only');
   const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
+  VERSION = resolveVersion(argv);
+  console.log(`版本 ${VERSION}${argv.includes('--version') ? '（--version 指定）' : '（来自 package.json）'}`);
 
   console.log(apply ? '\x1b[1m模式：真的替换（对外动作）\x1b[0m' : '模式：只打印计划（加 --apply 才动）');
 

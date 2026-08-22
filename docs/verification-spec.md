@@ -411,8 +411,13 @@ xcrun safari-web-extension-converter dist \
 ```
 
 Confirmed generated schemes: **`BelliedMonkey Translator (iOS)`** and
-**`BelliedMonkey Translator (macOS)`**. (`build-safari.sh` passes `--ios-only`, which
-suppresses the macOS target — do **not** use it for the full-matrix pipeline.)
+**`BelliedMonkey Translator (macOS)`**.
+
+> **更正（2026-08-22）**：这里原来写着「`build-safari.sh` 传 `--ios-only`，所以不要用它
+> 跑全矩阵」。**那句话已经不成立** —— 脚本现在 `CONVERTER_PLATFORM=""`，一个 flavor 出
+> 的就是一棵双平台树（`Shared (App)` / `iOS (App)` / `macOS (App)`），而 `app:sync` 的
+> 六个补丁全按双平台布局写死。所以全矩阵**应该**用 `build-safari.sh`，
+> 不该再手敲上面那条 converter 命令。发布路径见 `/store-release`。
 
 ### A. iPhone Safari (Xcode Simulator) — ✅ verified
 

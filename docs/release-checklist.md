@@ -1,5 +1,10 @@
 # 发布清单（release checklist）
 
+> **要真的跑一次发布，去 `/store-release`**（`.claude/skills/store-release/SKILL.md`）。
+> 那边是**可执行的那一半**：六个面各自的命令、参数，以及每一步的回读判据。
+> 这份文件是另一半 —— 闸门清单、设备矩阵、隐私文案同版、Gate B 的历史论证。
+> 两边不重复：凡是能直接敲的，都在 skill 里；凡是需要人判断的，留在这里。
+
 > **这份清单收的是「构建闸门看不见的东西」。** 仓库里能自动化的都已经是闸门——版本漂移、
 > `data_collection_permissions`、locale 目录名、译文里的版本号字面量、`enabled` 与隐私文案
 > 的耦合、Safari 包完整性（`npm run verify:ios`）。**下面这些跨仓库或跨账号，闸门够不到，

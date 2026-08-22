@@ -4,7 +4,9 @@
 // 用法：
 //   node scripts/asc.js builds                 # 四条线各自最近的 build 和处理状态
 //   node scripts/asc.js versions               # 四条线的版本记录和审核状态
-//   node scripts/asc.js bind <版本号> <build号> # 把某个 build 挂到某个版本（对外动作）
+//   node scripts/asc.js bind <bundleId> <IOS|MAC_OS> <版本号> <build号>
+//                                              # 把某个 build 挂到某个版本（对外动作）
+//   例：node scripts/asc.js bind com.belliedmonkeytranslator IOS 1.6.4 43
 //
 // 为什么走 API 不走网页（`asc-api-beats-browser`）：ASC 的网页端按钮多是 hover 才挂
 // 事件，JS 点不动，AX 也点不稳。API 这边一次请求就是一个确定的结果。

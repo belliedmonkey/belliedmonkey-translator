@@ -20,6 +20,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > Every verification runs the **full matrix of adapted surfaces** — iPhone + iPad
 > (Xcode Simulator), macOS Safari/Chrome/Firefox (real Mac, sandboxed) — via cua-driver
 > only. Follow it for any test/QA/bug-repro task.
+>
+> **Shipping (发布):** run **`/store-release`**
+> (`.claude/skills/store-release/SKILL.md`) for any release to any of the six
+> surfaces — Apple iOS/macOS × global/China, Chrome Web Store, Firefox AMO, GitHub
+> Release, and the site (`~/belliedmonkey-cc`). It is the **executable** half:
+> exact commands, arguments, and a read-back criterion for every step, because on
+> this path a great many "successes" are silent lies (a PATCH returns 204; an
+> asset upload without its checksum sits at `UPLOAD_COMPLETE` forever; the build
+> script exits non-zero even when everything worked).
+> [`docs/release-checklist.md`](docs/release-checklist.md) remains the other half:
+> the gates, the device matrix, the privacy-copy rule, and the Gate B history.
+> Store-asset production (deciding what is stale, reshooting screenshots,
+> producing the preview videos) lives in the skill's `assets.md`.
 
 ## Project Overview
 
