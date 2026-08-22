@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js');
 
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
@@ -104,39 +105,14 @@ async function api(method, url, body, headers) {
 
   // ── 版本完整性：同一个版本号必须对应同一份内容 ────────────────────────────
   //
-  // 与 cws-publish.js 同一条硬拦，理由也一样：两个自称同一版本、内容却不同的包一旦
-  // 都发出去，事后没有任何办法分辨用户装的是哪一份。2026-08-21 在 CWS 那边真的撞到过。
+  // 与 CWS 同一条硬拦，实现在 lib/release-gate.js（三条发布路共用一份）。
   if (!fs.existsSync(XPI)) {
     console.error(`✗ 找不到 ${XPI} —— 先跑 node build.js firefox`);
     process.exit(1);
   }
-  const xpiVersion = (() => {
-    try {
-      return JSON.parse(execSync(`unzip -p ${JSON.stringify(XPI)} manifest.json`, { encoding: 'utf8' })).version;
-    } catch (_) { return null; }
-  })();
+  const xpiVersion = versionInZip(XPI);
   console.log(`\n准备上传 ${(fs.statSync(XPI).size / 1024).toFixed(0)} KB，包内版本 ${xpiVersion || '?'}`);
-
-  if (xpiVersion && !argv.includes('--allow-dirty')) {
-    const git = (c) => { try { return execSync(c, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch (_) { return ''; } };
-    const tag = `v${xpiVersion}`;
-    const tagSha = git(`git rev-list -n1 ${tag}`);
-    const head = git('git rev-parse HEAD');
-    const dirty = git('git status --porcelain -- extension build build.js');
-    if (!tagSha) { console.error(`✗ 包内版本 ${xpiVersion} 没有对应的 tag ${tag}`); process.exit(1); }
-    if (tagSha !== head) {
-      console.error(`✗ 包内版本是 ${xpiVersion}，但 HEAD 不在 ${tag} 上。${tag} 之后还有：`);
-      for (const l of git(`git log --oneline ${tag}..HEAD`).split('\n').filter(Boolean)) console.error('    ' + l);
-      console.error('  确实要传：加 --allow-dirty。');
-      process.exit(1);
-    }
-    if (dirty) {
-      console.error('✗ 出货相关目录有未提交改动：');
-      for (const l of dirty.split('\n').filter(Boolean)) console.error('    ' + l);
-      process.exit(1);
-    }
-    console.log(`✓ 包内版本 ${xpiVersion} 与 tag ${tag} 一致，工作树干净`);
-  }
+  assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty') });
 
   // ── 上传 ────────────────────────────────────────────────────────────────
   const fd = new FormData();

@@ -236,21 +236,30 @@ node scripts/amo-publish.js --upload                # 传 xpi 并等异步校验
 node scripts/amo-publish.js --upload --publish
 ```
 
-两个脚本都有**版本完整性门禁**：包内版本必须有同名 tag、HEAD 必须就在那个 tag 上、
-`extension/ build/ build.js` 必须干净。`--allow-dirty` 是唯一逃生口。
-
-> **Apple 与 GitHub 这条路没有这道门禁** —— 2026-08-22 的后果是官网的直装 ZIP
-> 带着一个已修的 bug 出货（tag 早于修复 5 小时）。发 GitHub Release 前手动核一次：
-> `git rev-list -n1 v<版本>` 是否等于 `git rev-parse HEAD`。
-
 ### 11. GitHub Release + 官网
 
 ```bash
-gh release create v<版本> belliedmonkeytranslator.zip --title ... --notes ...
+npm run gh:check                                   # 只打印计划
+node scripts/gh-release.js --apply                 # 真的发
+node scripts/gh-release.js --apply --clobber       # 替换已存在的同名资产
 ```
 
-资产名必须是 `belliedmonkey-translator-chrome.zip` —— 官网首页直链
-`releases/latest/download/<这个名字>`，改名等于把下载按钮变成 404。
+**GitHub Release 是一个真正的发布面**，和 CWS / AMO 平级 —— 官网首页的下载按钮
+直链 `releases/latest/download/belliedmonkey-translator-chrome.zip`。资产名是
+**契约**，改名等于把下载按钮变成 404，所以脚本把它钉成了常量。
+
+## 三条路共用一道版本完整性门禁
+
+`scripts/lib/release-gate.js`：包内版本必须有同名 tag、HEAD 必须就在那个 tag 上、
+`extension/ build/ build.js` 必须干净。`--allow-dirty` 是唯一逃生口，用了会明说
+「对应关系不再有保证」。
+
+> **它原来只有两份，抄在 CWS 与 AMO 里，而第三条路没抄。** 2026-08-21 的代价：
+> Release 从 `v1.6.4` tag（13:45）出，markdown 星号修复 19:05 才合进来，商店
+> build 43 是修复之后出的。于是官网那句「与提交商店的源码完全一致」变成假话，
+> **而没有任何人做错一步** —— 那条路上就是没有闸门。
+>
+> 现在只有一份实现，三条路都调它。**抄第四份的那天，就是它再次失效的那天。**
 
 官网是**独立仓库** `~/belliedmonkey-cc`（Vercel 部署）。发版要改的是 8 份 i18n
 里的两个键：
@@ -279,6 +288,7 @@ i18n/{ar,en,es,fr,hi,pt,ru,zh-CN}.json
 | Safari 认的还是旧版本 | 同 bundle id 时 LaunchServices 认 `/Applications` 那份 | `pluginkit -m -p …` 的版本号 |
 | 扩展列表里有幽灵条目 | `xcodebuild archive` 的中间产物被 LaunchServices 注册了 | `lsregister -dump` 找路径，`-u` 定点注销 |
 | 任何 node 脚本一跑就崩 | 本机 `NODE_OPTIONS` 指向不存在的 preload | `env -u NODE_OPTIONS` |
+| 官网 ZIP 与商店版本内容不同 | 那条路当时没有版本完整性门禁 | `npm run gh:check` |
 
 ## 判断口径
 

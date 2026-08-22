@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js');
 
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
@@ -133,44 +134,11 @@ async function api(token, method, url, body, extraHeaders) {
   // 里面多了一个未发布的修复。传上去的话 CWS 的「1.6.2」与 GitHub Release 的「1.6.2」
   // 是两份不同的东西 —— 而两边都自称 1.6.2，事后没有任何办法分辨用户装的是哪一份。
   //
-  // 所以这里硬拦：zip 的版本号必须有同名 tag，且 HEAD 必须就在那个 tag 上。
-  // 要传一个「tag 之后又改过」的包，得显式加 --allow-dirty 并自己承担后果。
-  const zipVersion = (() => {
-    try {
-      const raw = execSync(`unzip -p ${JSON.stringify(ZIP)} manifest.json`, { encoding: 'utf8' });
-      return JSON.parse(raw).version;
-    } catch (_) { return null; }
-  })();
+  // 实现在 lib/release-gate.js，三条发布路（CWS / AMO / GitHub Release）共用一份。
+  // 原来这里和 amo-publish.js 各抄了一份，而第三条路没抄 —— 那条路当天就出了事。
+  const zipVersion = versionInZip(ZIP);
   console.log(`\n准备上传 ${(zipBytes.length / 1024).toFixed(0)} KB，包内版本 ${zipVersion || '?'}`);
-
-  if (zipVersion && !argv.includes('--allow-dirty')) {
-    const git = (cmd) => { try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch (_) { return ''; } };
-    const tag = `v${zipVersion}`;
-    const tagSha = git(`git rev-list -n1 ${tag}`);
-    const head = git('git rev-parse HEAD');
-    const dirty = git('git status --porcelain -- extension build build.js');
-    if (!tagSha) {
-      console.error(`✗ 包内版本 ${zipVersion} 没有对应的 tag ${tag} —— 这个包不对应任何一次发布。`);
-      process.exit(1);
-    }
-    if (tagSha !== head) {
-      const ahead = git(`git log --oneline ${tag}..HEAD`);
-      console.error(`✗ 包内版本是 ${zipVersion}，但 HEAD 不在 ${tag} 上。${tag} 之后还有：`);
-      for (const l of ahead.split('\n').filter(Boolean)) console.error('    ' + l);
-      console.error('  传上去的话，商店的 ' + zipVersion + ' 与已发布的 ' + zipVersion + ' 会是两份不同的内容，');
-      console.error('  而两边都自称同一个版本号，事后无法分辨用户装的是哪一份。');
-      console.error(`  要么发一个新版本，要么 git checkout ${tag} 后重新 build。`);
-      console.error('  确实要传这个包：加 --allow-dirty。');
-      process.exit(1);
-    }
-    if (dirty) {
-      console.error('✗ 出货相关目录有未提交改动：');
-      for (const l of dirty.split('\n').filter(Boolean)) console.error('    ' + l);
-      console.error('  确实要传：加 --allow-dirty。');
-      process.exit(1);
-    }
-    console.log(`✓ 包内版本 ${zipVersion} 与 tag ${tag} 一致，工作树干净`);
-  }
+  assertVersionIntegrity({ version: zipVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty') });
 
   const up = await api(token, 'PUT',
     `https://www.googleapis.com/upload/chromewebstore/v1.1/items/${itemId}`,

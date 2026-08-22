@@ -15,6 +15,7 @@
     "test:app": "node scripts/verify-app-bundle.js",
     "amo:check": "node scripts/amo-publish.js --check",
     "cws:check": "node scripts/cws-publish.js --check",
+    "gh:check": "node scripts/gh-release.js",
     "perf:probe": "node scripts/perf-probe.js",
     "perf:status": "node scripts/perf-probe.js --status",
     "test:smoke": "node scripts/verify-extension-smoke.js",
