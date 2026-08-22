@@ -157,9 +157,15 @@ async function findVersionLocalization(bundleId, platform, locale) {
   // Apple 以 409「Can't Create Screenshot Set while In Review」拒掉。**好消息是它拒得
   // 很干净** —— 四条线的状态原封不动，排队位置没丢。所以别为了补素材去撤审：
   // 撤审重提会把排队清零（中国版上次排了 40 天），而补图属于下一个版本的事。
-  if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+  // 可编辑的两种状态：还没提交，或开发者自己撤回过（撤审后 Apple 给的就是
+  // DEVELOPER_REJECTED，不是被拒的意思）。
+  // 在审中（WAITING_FOR_REVIEW / IN_REVIEW）不行：2026-08-22 实测
+  // `POST /appScreenshotSets` 会被 409「Can't Create Screenshot Set while In Review」
+  // 拒掉 —— 拒得很干净，状态不受影响，所以那条路是安全的死路，不是隐患。
+  const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+  if (!EDITABLE.includes(v.attributes.appStoreState)) {
     throw new Error(`${bundleId} ${platform} ${VERSION} 状态是 ${v.attributes.appStoreState}`
-      + ' —— 不动它（在审期间 Apple 不接受新建截图集，补图请留到下个版本）');
+      + ' —— 不动它（在审期间 Apple 不接受新建截图集）');
   }
   const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
     + '&fields[appStoreVersionLocalizations]=locale');

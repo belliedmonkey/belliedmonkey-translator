@@ -57,10 +57,48 @@ async function api(method, url, body) {
   return d;
 }
 
+// 撤审。**排队位置会清零**（中国版上次首提排了 40 天），所以只对明确点名的
+// bundle id 生效 —— 不接受「撤全部」，那种批量操作在这里只会是误操作。
+async function cancelReview(version, bundleIds, apply) {
+  const apps = (await api('GET', '/apps?limit=200')).data.filter((a) => bundleIds.includes(a.attributes.bundleId));
+  if (apps.length !== bundleIds.length) throw new Error('有 bundle id 找不到对应 app');
+  for (const app of apps) {
+    const subs = (await api('GET', `/apps/${app.id}/reviewSubmissions?limit=25`
+      + '&fields[reviewSubmissions]=state,platform,submittedDate')).data
+      .filter((r) => ['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(r.attributes.state));
+    for (const sub of subs) {
+      const items = await api('GET', `/reviewSubmissions/${sub.id}/items?limit=10&include=appStoreVersion`);
+      const vers = (items.included || []).filter((x) => x.type === 'appStoreVersions'
+        && x.attributes.versionString === version);
+      if (!vers.length) { console.log(`  跳过 ${app.attributes.name} [${sub.attributes.platform}]：不含 ${version}`); continue; }
+      console.log(`  ${apply ? '撤回' : '将撤回'} ${app.attributes.name} [${sub.attributes.platform}] ${version}`
+        + `  (${sub.attributes.state}, 提交于 ${String(sub.attributes.submittedDate).slice(0, 16)})`);
+      if (!apply) continue;
+      await api('PATCH', `/reviewSubmissions/${sub.id}`, {
+        data: { type: 'reviewSubmissions', id: sub.id, attributes: { canceled: true } },
+      });
+      const back = await api('GET', `/reviewSubmissions/${sub.id}?fields[reviewSubmissions]=state`);
+      console.log(`    → ${back.data.attributes.state}`);
+    }
+  }
+}
+
 (async () => {
   const argv = process.argv.slice(2);
   const version = argv.find((a) => /^\d+\.\d+\.\d+$/.test(a));
   const apply = argv.includes('--apply');
+  const cancelIdx = argv.indexOf('--cancel');
+  if (cancelIdx >= 0) {
+    const ids = argv.slice(cancelIdx + 1).filter((a) => a.startsWith('com.'));
+    if (!version || !ids.length) {
+      console.log('用法: node scripts/asc-submit.js <版本号> --cancel <bundleId> [<bundleId>…] [--apply]');
+      process.exit(1);
+    }
+    console.log(apply ? '\x1b[1m模式：真的撤审（排队位置会清零）\x1b[0m' : '模式：只打印计划');
+    await cancelReview(version, ids, apply);
+    if (!apply) console.log('\n（只是计划。确认无误后加 --apply）');
+    return;
+  }
   if (!version) {
     console.log('用法: node scripts/asc-submit.js <版本号> [--apply]');
     process.exit(1);
@@ -78,7 +116,11 @@ async function api(method, url, body) {
       const plat = v.attributes.platform;
       const label = `${app.attributes.name} [${plat}] ${version}`;
 
-      if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+      // 可提交的两种状态：还没提交过，或开发者自己撤回过。
+      // DEVELOPER_REJECTED 是**撤审后 Apple 给的状态**，不是「被审核拒了」——
+      // 撤审重提正是要从这里走回去。在审中的一律跳过（不去动别人的排队）。
+      const SUBMITTABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+      if (!SUBMITTABLE.includes(v.attributes.appStoreState)) {
         console.log(`  跳过 ${label}: 状态 ${v.attributes.appStoreState}`);
         continue;
       }
