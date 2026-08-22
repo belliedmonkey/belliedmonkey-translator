@@ -51,6 +51,16 @@ const MODULES = [
   'extension/content/request-shape.js',  // RequestShape — 请求体：发哪些可选字段 + 怎么
                                          // 解回来。必须在 wire-format.js 之后（用它的
                                          // hostOf）、在四条传输之前。
+  'extension/content/translation-api.js',// TranslationAPI — §9.5 补译文 的传输。The app
+                                         // translated nothing until 2026-08-23; that
+                                         // boundary gave way for ONE button (§7.2), and
+                                         // this file is what it rides. Reusing the
+                                         // extension's transport verbatim is the point:
+                                         // a second translate path would be a second
+                                         // prompt and a second format branch to drift.
+                                         // Needs MT_PROVIDERS / WireFormat / RequestShape
+                                         // above it; it has zero TranslationCore
+                                         // dependency, which is why it can be here at all.
   'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS
@@ -62,6 +72,11 @@ const MODULES = [
   'extension/learn/notes.js',            // LearnNotes — review.js references it; the
                                          // app's own settings may hold a chat engine
                                          // + key (§7.2), else the gate stays closed
+  'app/translate-fill.js',               // LearnTranslateFill — §9.5 补译文. App-only,
+                                         // so it lives in app/ rather than
+                                         // extension/learn/: 播客模式 ships no bytes into
+                                         // the extension. Needs LearnNotes (config
+                                         // resolution) and TranslationAPI above it.
   'extension/learn/align.js',            // LearnAlign — §4.2c LLM 对齐裁决 (rides
                                          // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides

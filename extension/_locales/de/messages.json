@@ -1559,5 +1559,89 @@
   "drive_empty": {
     "message": "Keine vorlesbaren Karten",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Umfang des Vorabladens",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Heutiges Kartendeck",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Heute + nächste 3 Tage",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Heute + nächste 7 Tage",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Für offline vorab laden",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Vor der Abfahrt einmal antippen: Sprachausgabe, Analysen und Übersetzungen werden auf dieses Gerät geladen, sodass eine ganze Sitzung ohne Netz läuft. Der erste Tipp berechnet nur die Kosten und gibt nichts aus — prüfen Sie die Anzahl der Aufrufe, bevor Sie erneut tippen.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Prüfe, was bereits auf diesem Gerät liegt…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} Karten",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} Clips zu erzeugen",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} Karten zu analysieren",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} Karten ohne Übersetzung",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "Die geräteeigene Stimme erzeugt keinen Cache und funktioniert ohnehin offline — hier werden nur Analysen und Übersetzungen vorab geladen.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "Keine Analyse-Engine konfiguriert — Karten ohne Übersetzung erhalten diesmal keine (Einstellungen → Satzanalyse)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "Alles liegt bereits auf dem Gerät — unterwegs ist kein Netz nötig.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Vorabladen bestätigen (etwa {n} kostenpflichtige Aufrufe)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Stoppen",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Lade vorab {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Fertig {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Gestoppt: {done}/{total} fertig",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} Fehlschläge ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "Die Sprach-Engine ist nicht konfiguriert ({reason}) — diesmal kann kein Audio erzeugt werden (Einstellungen → Sprach-Engine)",
+    "description": "Podcast mode preload (learning-design §9.5)"
   }
 }

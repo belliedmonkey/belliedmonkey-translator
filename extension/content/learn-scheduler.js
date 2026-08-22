@@ -261,6 +261,41 @@ var LearnScheduler = (() => {
     return spreadBySource(picked, c.MAX_PER_SOURCE_RUN);
   }
 
+  // §9.5 出发前预载 — the deck for today PLUS the next `days` days, as one set.
+  //
+  // Preloading has to know what the driver might hear, and "today's deck" is not that
+  // set once they want to cover a few days of commuting. There is no separate
+  // scheduling rule here: the same `buildDeck` runs again with the clock moved forward
+  // a day at a time, and the results are unioned by id.
+  //
+  // Two things about that are deliberate:
+  //   · Only day 0 carries `newToday`. A future day's daily-new budget starts over,
+  //     which is what actually happens when that day arrives.
+  //   · The result is a SUPERSET of what will really be played — reviewing a card
+  //     today changes tomorrow's deck, and preloading happens before the reviewing.
+  //     Over-covering costs a few hundred KB of cache; under-covering costs silence
+  //     in the car, so the superset is the right direction to err in.
+  //
+  // `days = 0` must be byte-for-byte `buildDeck` — the preload button's default, and
+  // the property the tests pin.
+  function buildDeckAhead(items, now, cfg, newToday, days) {
+    // `Number()` first, and it is load-bearing: the horizon arrives from a <select>,
+    // so it is a STRING. `Math.floor('x')` is NaN, `Math.max(0, NaN)` is NaN, and
+    // `d <= NaN` is false — the loop would never run and the preload button would
+    // report "0 cards" while looking like it worked. Degrade to today, never to empty.
+    const n = Math.max(0, Math.floor(Number(days) || 0));
+    const seen = new Set();
+    const out = [];
+    for (let d = 0; d <= n; d++) {
+      for (const it of buildDeck(items, now + d * DAY, cfg, d === 0 ? newToday : 0)) {
+        if (seen.has(it.id)) continue;
+        seen.add(it.id);
+        out.push(it);
+      }
+    }
+    return out;
+  }
+
   // §5.3 — free practice draws from the corpus without the daily-deck quotas:
   // weakest first, optionally bounded, interleaved as always. Candidates score
   // R = 0 (never reviewed ⇒ fully forgotten), which puts fresh exposure ahead when
@@ -335,7 +370,7 @@ var LearnScheduler = (() => {
     DEFAULTS, DAY,
     freshSched, retrievability, nextDue, applyReview, previewIntervals, tierFor, stateFor,
     eligibleSkills, pickSkills, skillFresh, fullyMastered,
-    buildDeck, buildPracticeDeck, practiceOutcome, dueCount, introducedToday, spreadBySource,
+    buildDeck, buildDeckAhead, buildPracticeDeck, practiceOutcome, dueCount, introducedToday, spreadBySource,
   };
 })();
 

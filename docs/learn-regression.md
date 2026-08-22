@@ -25,16 +25,17 @@
 
 | 域 | 测试文件 | 关键性质 |
 |---|---|---|
-| 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限；§5.4：pickSkills 最久未验证优先 / legacy `1` 排最前 / 能力过滤 / ≤2 且第二个仅过窗时、skillFresh 随强度伸缩（legacy `1` 恒过窗）、fullyMastered 缺能力语义、extra 行不消耗每日预算 |
+| 调度器 | `learn-scheduler.test.js` | applyReview 单调性、previewIntervals 等价、practiceOutcome 不对称（错=lapse / 对=null / 候选=null）、tierFor 边界 4/30、buildDeck 池子/弱先/日上限、**buildDeckAhead**（days=0 与 buildDeck 逐字等价、按 id 并集去重、只有第 0 天消耗当日已引入的新卡预算）；§5.4：pickSkills 最久未验证优先 / legacy `1` 排最前 / 能力过滤 / ≤2 且第二个仅过窗时、skillFresh 随强度伸缩（legacy `1` 恒过窗）、fullyMastered 缺能力语义、extra 行不消耗每日预算 |
 | 数据模型 | `learn-model.test.js` | clozeFor 可还原+确定性、clozeCheck 归一化、知识点挖空（§5.4：答案⊆目标、seed 轮换被挖点、目标不在句中回落经典、重叠目标不出重叠空、CJK 短语、大小写不敏感匹配但答案保留句中原样）、mergeSkills 逐键 max 幂等可交换（legacy `1` 输给真时间戳、重放不放大） |
 | 题型生成 | `learn-exercises.test.js` | pickExercise 同 (id,reps,skill) 确定且跨 reps 轮换、AI 变体仅门开时入轮换、mcqFrom 答案恰一次/排归一等值干扰、listenPickFrom 正确⊆句/干扰∩句=∅（含子串）、speakScore 密疏两路+漏读点名、gradeGate 与挖空规则对齐 |
 | 题包 | `learn-pack.test.js` | 能力随解析引擎门、干扰项复述译文被拒（等值+包含双向）、句内词/子串不作听力干扰、理解题结构校验、accept 键必须句内且替代≠原词、部分题包逐项降级/全废 bad_output、**每卡每 PACK_VERSION 至多一次扣费**（调用计数）、并发去重、缓存写失败不重扣 |
 | 语音输入 | `learn-speech.test.js` | CORS/网络拒绝具名为 `network`（不吞成通用错）、baseUrl 尾斜杠不产生双斜杠、capable() 各门控（引擎条件 × mic API 存在）、multipart 构造（und 永不硬报语言、Bearer 仅在有 key、模型默认值来自注册表）、每条路径都释放麦克风轨道、JSON 与 text/plain 响应、具名错误码（no_base/no_key 不发请求、http 带 status、empty_transcript） |
 | 句子解析 | `learn-notes.test.js` | 能力门按 type、解析器防不可信输出、**一卡每提示词版本至多扣一次费**（调用计数；版本升级只为纠错，见 learning-design §9.2）、生词必须逐字来自原句（v2 提示词 + 零匹配判 bad_output）、并发去重、缓存写失败不重复扣费、两种线格式 |
 | 同步 | `learn-sync.test.js` | 推拉水位、配额如实报错、autoSync 节流/静默/并发去重、拉下来的不许推回去 |
-| 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求 |
+| 语音 | `learn-tts.test.js` | pickVoice 语言匹配、und 单列 reason（available 与 speak 两个决策点）、缓存二次播放零请求、**prefetch**（`returnsAudio:false` 返回 `not_cacheable` 且零请求；预热后紧跟的 speak 零请求；预热在途时 speak 与它共享同一个 in-flight promise —— 去重是并行预热成立的前提，见 §9.5） |
 | 块格式 | `learn-chunk.test.js` | 往返无损、replay 幂等、复习记录带 mode/practice 通过重放 |
-| 播客模式 | `learn-driving.test.js` | §9.5：播放顺序（随机是**排列**不是抽样、绕圈重洗、顺序播放会结束而其余三种不会、下一张在单曲循环里也能跳走）、**一张卡三遍**（含解析 `[s1,s2,tr2,n2,s3]`、关解析、无译文时三遍都是原句、每段带 pass、原句恰好三次）、`notesToSpeech`、`reduce` 走查（三遍连走后推进、解析段取→播→推进、整机级失败停下 vs 单卡级失败跳过、暂停记住段号、换模式不打断音频）、**暂停时按需解析**（只从暂停进、读完回暂停且 seg 原样带回、空/失败都回暂停并具名、按需朗读期间下一张先停音频）、**以及反向断言：模块表面没有任何写进度的函数** |
+| 播客模式 | `learn-driving.test.js` | §9.5：播放顺序（随机是**排列**不是抽样、绕圈重洗、顺序播放会结束而其余三种不会、下一张在单曲循环里也能跳走）、**一张卡三遍**（含解析 `[s1,s2,tr2,n2,s3]`、关解析、无译文时三遍都是原句、每段带 pass、原句恰好三次）、`notesToSpeech`、`reduce` 走查（三遍连走后推进、解析段取→播→推进、整机级失败停下 vs 单卡级失败跳过、暂停记住段号、换模式不打断音频）、**暂停时按需解析**（只从暂停进、读完回暂停且 seg 原样带回、空/失败都回暂停并具名、按需朗读期间下一张先停音频）、**`peekNext` 非破坏性前瞻**（四种模式各一；随机模式在需要重洗的边界返回 null 且**不消耗随机数**；不改 `order`）、`cardPlan({hasTr})` 让有补译文缓存的裸句卡也生成译句段、**以及反向断言：模块表面没有任何写进度的函数** |
+| 补译文（§9.5） | `learn-translate-fill.test.js` | cache-first 命中零调用、`TR_VERSION` 版本门、in-flight 按 id 去重、回写失败不二次扣费、引擎没配时 `capable()` 为假且零请求、**反向断言：模块表面没有任何写 `items` 的函数**（永不写 `item.tr`、永不同步） |
 | 文案纪律 | `no-hardcoded-copy.test.js` | CJK 字面量只许在 t() fallback 位（逐出货文件） |
 
 **纪律**：每条新断言做变异反向验证（杀不死的变异 = 测试缺口，先补齐再合并）。
@@ -71,6 +72,10 @@
 | 10d′ | **解析引擎没配 ⇒ 必须说话** | **先清掉 `provider`/`apiKey`** 再开开关：断言 `playNotes && !notesOk`、常驻行有具名说明、且**没有发出任何解析请求**。这是 2026-08-17 那次真机缺陷的回归用例——原来的 10d 抓不到它，因为它在打开开关的同一次写入里把引擎也配好了 |
 | 10d″ | 暂停时按需解析 | 暂停 ⇒ 「解析这句」按钮出现；点了之后解析被读出来、文字显示、**状态回到 paused 且 seg 不变**（seg 丢了「继续」会跳段） |
 | 10e | 播客暂停 | 暂停 ⇒ `LearnTTS.stop` 被调，此后零写入；恢复须手点 |
+| 10f | **出发前预载**（§9.5） | 设置页点一下「预载」⇒ **只出账单不发请求**（断言请求计数不变、提示行含卡数/待合成段数/待解析数/待补译文数、按钮文字变成确认态）；点第二下 ⇒ 进度走完、`LearnStore.audioStats().count` 增长、补译文缓存写入；随后**再进一次播客会话 ⇒ 零新增网络请求**（这才是这个功能的定义）；全程 IndexedDB **零新复习行、`sched`/`skills` 一字不动** |
+| 10f′ | **预载但引擎没配 ⇒ 必须说话** | **先清掉 `notesProvider`/`notesApiKey`/`provider`/`apiKey`** 再点预载：断言账单里点名「未配置解析引擎，M 张卡的解析与译文会被跳过」并指出去哪配，且**没有发出任何解析或翻译请求**。与 10d′ 同型——那次真机缺陷正是因为测试在同一次写入里把引擎也配好了 |
+| 10f‴ | 预载遇上配坏的语音引擎 | endpoint 引擎**去掉地址**再点预载：账单必须点名原因（缺地址 / 缺 key），而不是只说「没有可听读的卡」—— `available()` 失败会让每一张卡都被判成读不出来，症状会把原因盖住。算账那一步照旧零请求 |
+| 10f″ | 预载遇上不产生缓存的引擎 | `ttsEngine = browser`（`returnsAudio:false`）时点预载：账单如实说「设备内置语音不产生缓存，本来就能离线播放」，**不显示恒为 0 的音频进度**，且音频那一路零请求 |
 | * | **每步表面扫描** | 可见 button/a/select：文字非空 **且前景色≠背景色**（绿字绿底类 bug 整类击杀） |
 
 ### 2.2 其余真实引擎门禁（既有，此处挂名）
@@ -99,6 +104,7 @@
 
 | M11 | 播客连播真跑（§9.5） | iPhone App | 进播客模式 → 多张卡连续朗读**无需逐句手势**；**三遍节奏的听感**（会不会太啰嗦——若过头先退第三遍）；四种播放顺序各切一次、行驶中按模式键不打断音频；**解析引擎没配时那句说明真的出现**（2026-08-17 漏掉的正是这个场景）；暂停 → 「解析这句」 → 读完回到暂停；整机级 TTS 失败停在具名原因上，单卡级失败跳过并说明 |
 | M12 | ~~TTS→麦克风交接~~ | — | **已作废（2026-08-18）**：跟读题从播客模式移除，麦克风完全不参与这个模式。音频会话交接不再是这条路径上的风险面 |
+| M14 | **出发前预载 → 飞行模式整轮播完**（§9.5） | iPhone App | 有网时设置里点预载（先看账单、再确认），等它报完账 → **打开飞行模式** → 进播客模式跑完一整轮：全程有声、没有「译文准备中」、段与段之间没有听得出来的空档、没有具名网络失败。这是这个功能唯一真正的验收——前面每一道门都能在有网的情况下变绿。验证引擎用 DeepSeek（免费 Google 端点响应不稳，曾三次带偏全矩阵验证） |
 | M13 | 屏幕常亮 + 音频路由 | iPhone App | 播客会话中屏幕不自动锁（idle-timer 补丁生效）；蓝牙/CarPlay 路由下声音走车机（sanity，不追求完美）；来电/切后台落在暂停态，恢复须手点 |
 
 ## 4. 治理

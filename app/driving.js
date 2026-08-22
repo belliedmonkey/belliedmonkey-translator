@@ -38,9 +38,12 @@ var AppDriving = (() => {
   let playNotes = false;
   let notesOk = false;       // a chat engine is configured — the notes gate (§9.2)
   let schedCfg = LearnScheduler.DEFAULTS;
+  let preloadDays = 0;       // §9.5 出发前预载的天数视野（设置页读写）
   let uiLang = 'zh-CN';
   let plan = { segments: [] };
   let notesText = '';        // rendered notes for the current card, if fetched
+  // 当前卡的补译文（§9.5）。只读缓存 —— 播放途中永不现场翻译，见 openCard()。
+  let filledTr = '';
   // 会话级的一句话（例如「开关开着但引擎没配」）。它必须由 paint() 渲染进**常驻行**：
   // 写进 #app-drive-note 会被 renderCard() 每张卡的 note('') 抹掉 —— 提示话音未落就没了。
   let sessionNote = '';
@@ -52,14 +55,19 @@ var AppDriving = (() => {
   let gen = 0;
   let speakSeq = 0;
   let notesSeq = 0;
+  // openCard 现在会 await 一次补译文缓存读，于是「读到一半用户按了下一张」变成了一个真
+  // 窗口：没有这个计数器，先发起的那次 openCard 会在回来后把旧卡的 plan 盖上去。gen 挡
+  // 不住它 —— gen 只在开始/停止时变，换卡不变。
+  let cardSeq = 0;
 
   const SETTINGS_KEYS = [
     'uiLang', 'learnDailyNew',
     'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
     'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    // §9.5 — this mode's own two knobs. Both persist: a driver sets them once.
-    'drivePlaybackMode', 'drivePlayNotes',
+    // §9.5 — this mode's own knobs. All persist: a driver sets them once.
+    // `drivePreloadDays` is the 出发前预载 horizon (0 = 今天的牌库).
+    'drivePlaybackMode', 'drivePlayNotes', 'drivePreloadDays',
   ];
 
   // Returns { ok, data }. The `ok` is NOT decoration: `page-settings.js`'s whole
@@ -89,6 +97,9 @@ var AppDriving = (() => {
     });
     LearnNotes.configure(LearnNotes.resolveConfig(s));
     notesOk = LearnNotes.capable();
+    // 补译文骑同一组引擎（§9.5 / §7.2）。播放中只读缓存，但预载要用它生成。
+    LearnTranslateFill.configure(LearnTranslateFill.resolveConfig(s));
+    preloadDays = Number(s.drivePreloadDays) > 0 ? Math.floor(Number(s.drivePreloadDays)) : 0;
     schedCfg = Object.assign({}, LearnScheduler.DEFAULTS, {
       dailyNew: Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew,
     });
@@ -204,7 +215,9 @@ var AppDriving = (() => {
 
   function renderCard(item) {
     $('app-drive-text').textContent = item ? item.text : '';
-    $('app-drive-tr').textContent = item ? (item.tr || '') : '';
+    // `filledTr` 是补译文缓存（§9.5）。它由 openCard 在建 plan 之前读好，所以这里
+    // 显示的和 cardPlan 决定要不要播译句段的，永远是同一个事实。
+    $('app-drive-tr').textContent = item ? (item.tr || filledTr || '') : '';
     $('app-drive-notes').textContent = '';
     notesText = '';
     note('');
@@ -214,7 +227,7 @@ var AppDriving = (() => {
   function speechFor(what, item, fx) {
     switch (what) {
       case 'source': return { text: item.text, lang: item.lang || '' };
-      case 'tr': return { text: item.tr || '', lang: item.targetLang || uiLang };
+      case 'tr': return { text: item.tr || filledTr || '', lang: item.targetLang || uiLang };
       // The notes text was rendered by the fetch effect and travels on the effect,
       // so the utterance can never disagree with what is shown.
       case 'notes': return { text: (fx && fx.text) || notesText, lang: uiLang };
@@ -237,6 +250,16 @@ var AppDriving = (() => {
     await (r.done || Promise.resolve());
     if (myGen !== gen || mySeq !== speakSeq) return;
     dispatch('tts_done');
+  }
+
+  // 解析口播的三个标签。**一处** —— 预热合成的音频和正式那次朗读的文本必须逐字相同，
+  // 否则预热的是另一段话，缓存永远打不中，用户还多付一次钱。
+  function notesLabels() {
+    return {
+      words: t('drive_notes_words', '生词：'),
+      phrases: t('drive_notes_phrases', '短语：'),
+      grammar: t('drive_notes_grammar', '语法：'),
+    };
   }
 
   // Fetch (generating if necessary) and render this card's notes for speech.
@@ -263,11 +286,7 @@ var AppDriving = (() => {
       return;
     }
     if (myGen !== gen || mySeq !== notesSeq) return;
-    const text = LearnDriving.notesToSpeech(data, {
-      words: t('drive_notes_words', '生词：'),
-      phrases: t('drive_notes_phrases', '短语：'),
-      grammar: t('drive_notes_grammar', '语法：'),
-    });
+    const text = LearnDriving.notesToSpeech(data, notesLabels());
     notesText = text;
     $('app-drive-notes').textContent = text;
     dispatch('notes_ready', text);
@@ -296,19 +315,87 @@ var AppDriving = (() => {
     openCard();
   }
 
-  function openCard() {
+  // 开卡：把这张卡需要联网的东西**一次性并行发出**（§9.5 开卡并行预热）。
+  //
+  // 从前这里只预取解析，于是一张卡三遍五段里还剩四个网络往返落在段与段之间的静默里 ——
+  // 听起来就是「读一句、停一下、再读一句」。现在原句/译句/解析同时出发，解析文本一回来
+  // 立刻把它的音频也预热掉（这一段是旧写法救不到的：文本要等 API 回来才知道）。
+  //
+  // async，但**调用方一律不 await**：`card_ready` 必须立刻派发，让第一段音频照常开播 ——
+  // 预热是给后面几段用的，不是给第一段加一道闸。
+  async function openCard() {
     const item = deck[pos];
     if (!item) { dispatch('deck_done'); return; }
-    plan = LearnDriving.cardPlan(item, { playNotes: playNotes && notesOk });
-    renderCard(item);
-    // 预取解析：三遍结构白送的一个改进。走到第二遍的解析段才发起请求，会在
-    // 「原句 → 译句 → ★几秒静默★ → 解析」中间留一个听起来像卡住的空档；开卡就发起，
-    // 通常等走到那一段时已经在手。**不会重复扣费**：notes.js 的 inflight map 按
-    // item.id 去重，两次调用拿到的是同一个 promise。失败留给正式那次去具名处理。
-    if (playNotes && notesOk) {
-      try { LearnNotes.get(item, uiLang).catch(() => {}); } catch (_) {}
+    const myGen = gen, mySeq = ++cardSeq;
+    const stale = () => myGen !== gen || mySeq !== cardSeq;
+    // 补译文只读缓存，绝不现场翻译（§9.5）：行驶中不制造用户看不见的账单，也不让
+    // 播放器停在一个网络往返上。生成只发生在设置页的「出发前预载」里。
+    let tr = '';
+    if (!item.tr) {
+      try {
+        const hit = await LearnTranslateFill.cached(item.id);
+        if (stale()) return;                       // 期间已经换卡/退出
+        tr = (hit && hit.data) || '';
+      } catch (_) { tr = ''; }
     }
+    if (stale()) return;
+    filledTr = tr;
+    plan = LearnDriving.cardPlan(item, {
+      playNotes: playNotes && notesOk,
+      hasTr: !!(item.tr || filledTr),
+    });
+    renderCard(item);
+    warmCard(item, myGen, mySeq);
+    warmNext(myGen, mySeq);
     dispatch('card_ready');
+  }
+
+  // 这张卡的全部段落，并行预热。全部 fire-and-forget：预热失败没有任何后果，正式那次
+  // 会自己具名处理；受 `gen` 保护，退出会话后回来的结果一律丢弃。
+  //
+  // **不会重复扣费**：解析按 item.id 在 notes.js 去重，音频按 cacheKey 在 tts.js 去重
+  // （2026-08-23 加的 in-flight map）—— 预热在途、播放就轮到了，两条路拿到同一个 promise。
+  function warmCard(item, myGen, mySeq) {
+    const warm = (text, lang) => {
+      if (!text) return;
+      try { Promise.resolve(LearnTTS.prefetch(text, lang)).catch(() => {}); } catch (_) {}
+    };
+    warm(item.text, item.lang || '');
+    warm(item.tr || filledTr, item.targetLang || uiLang);
+    if (!(playNotes && notesOk)) return;
+    try {
+      LearnNotes.get(item, uiLang).then((r) => {
+        if (myGen !== gen || mySeq !== cardSeq) return;
+        // 解析的音频只能等文本回来才知道要合成什么 —— 这就是旧的「解析预取」救不到的
+        // 那个空档。渲染文案与 execFetchNotes 用的是同一份标签，两处不会说不一样的话。
+        const text = LearnDriving.notesToSpeech(r && r.data, notesLabels());
+        warm(text, uiLang);
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
+  // 再往前看一张，只预热音频、不碰解析：音频迟早要合成（合成过就在缓存里），而用户随时
+  // 可能退出，为一张没听到的卡付一次解析钱是不该发生的。
+  //
+  // 用 `peekNext` 而不是 `advance`：后者会重洗牌、会消耗随机数，拿它「看一眼」等于提前
+  // 把随机序列走掉。随机/循环走到需要重洗的边界时 peekNext 返回 null —— 那时下一张是谁
+  // 还没定，预热一个猜测就是白花钱。
+  function warmNext(myGen, mySeq) {
+    const at = LearnDriving.peekNext(pos, order, mode);
+    if (at === null || at === pos) return;
+    const nxt = deck[at];
+    if (!nxt) return;
+    const warm = (text, lang) => {
+      if (!text) return;
+      try { Promise.resolve(LearnTTS.prefetch(text, lang)).catch(() => {}); } catch (_) {}
+    };
+    warm(nxt.text, nxt.lang || '');
+    if (nxt.tr) { warm(nxt.tr, nxt.targetLang || uiLang); return; }
+    // 没有 `tr` 的卡：只有已经预载过补译文才有东西可预热，同样绝不现场翻译。
+    LearnTranslateFill.cached(nxt.id).then((hit) => {
+      if (myGen !== gen || mySeq !== cardSeq || !hit || !hit.data) return;
+      warm(hit.data, nxt.targetLang || uiLang);
+    }).catch(() => {});
   }
 
   async function execDone() {
@@ -349,30 +436,192 @@ var AppDriving = (() => {
   }
 
   // ─── Session lifecycle ────────────────────────────────────────────────────
-  async function buildSession() {
-    const [items, reviews] = await Promise.all([LearnStore.allItems(), LearnStore.allReviews()]);
-    const now = Date.now();
-    const full = LearnScheduler.buildDeck(items, now, schedCfg,
-      LearnScheduler.introducedToday(reviews, now));
-    // Media cards never enter (synthetic speech never replaces real speech, §11);
-    // cards whose language — either side — has no voice are skipped too, COUNTED,
-    // never silently (no silent caps).
+  // 牌库 → 真的听得出声的那些卡。**一份**，会话与预载共用：两条路要是各自过滤一遍，
+  // 预载就会去合成一批会话根本不播的卡（或者漏掉会播的），而这种不一致在真机上表现为
+  // 「明明预载过了，路上还是要联网」。
+  //
+  // Media cards never enter (synthetic speech never replaces real speech, §11);
+  // cards whose language — either side — has no voice are skipped too, COUNTED,
+  // never silently (no silent caps).
+  async function speakableDeck(full) {
     const voiceOk = new Map();
     const can = async (lang) => {
       const k = lang || '';
       if (!voiceOk.has(k)) voiceOk.set(k, (await LearnTTS.available(k)).ok);
       return voiceOk.get(k);
     };
-    deck = [];
+    const out = [];
     let skipped = 0;
     for (const it of full) {
       if (it.anchor && it.anchor.k === 'media') { skipped++; continue; }
       if (!(await can(it.lang)) || (it.tr && !(await can(it.targetLang || uiLang)))) { skipped++; continue; }
-      deck.push(it);
+      out.push(it);
     }
+    return { deck: out, skipped };
+  }
+
+  async function buildSession() {
+    const [items, reviews] = await Promise.all([LearnStore.allItems(), LearnStore.allReviews()]);
+    const now = Date.now();
+    const full = LearnScheduler.buildDeck(items, now, schedCfg,
+      LearnScheduler.introducedToday(reviews, now));
+    const r = await speakableDeck(full);
+    deck = r.deck;
     order = LearnDriving.buildOrder(deck.length, mode, Math.random);
     pos = order.length ? order[0] : 0;
-    return skipped;
+    return r.skipped;
+  }
+
+  // ─── 出发前预载（§9.5）────────────────────────────────────────────────────
+  //
+  // §9.2 修订后「允许的批量」的唯一实例，四个构成要件在这两个函数里各占一半：
+  // `preloadPlan` 只算账不花钱（**只读缓存，一个请求都不发**），`preloadRun` 才花钱，
+  // 可停，结束报账。设置页负责把这两步接成「点一下看账单、点第二下开跑」。
+  //
+  // 它仍然什么都不写进学习记录：只填缓存，不产生复习行、不盖技能戳、不动 lastSeenAt。
+
+  // 一张卡要合成的三段文本。原句在三遍里出现三次，但那是**同一个缓存键**，所以只算一段。
+  function segmentsOf(item, tr, notesText) {
+    const segs = [{ text: item.text, lang: item.lang || '' }];
+    if (tr) segs.push({ text: tr, lang: item.targetLang || uiLang });
+    if (notesText) segs.push({ text: notesText, lang: uiLang });
+    return segs.filter((x) => x.text);
+  }
+
+  // 会话结束那一句「本轮听完了」也要预载。它不属于任何一张卡，所以逐卡遍历天然漏掉它 ——
+  // 于是一整轮离线播放会在最后一句上突然发一个网络请求。整轮零请求是这个功能的定义，
+  // 「除了最后一句」不是。（这一条是 10f 的王冠断言逼出来的。）
+  function tailSegment() {
+    return { text: t('drive_done', '本轮听完了'), lang: uiLang };
+  }
+
+  async function audioCached(text, lang) {
+    try {
+      const hit = await LearnStore.getAudio(LearnTTS.cacheKey(text, lang));
+      return !!(hit && hit.buf && hit.buf.byteLength);
+    } catch (_) { return false; }
+  }
+
+  // 算账。只读缓存 —— 断言「这一步零请求」是 10f 的核心用例。
+  async function preloadPlan(days) {
+    const read = await loadSettings();
+    if (!read.ok) return { ok: false, reason: 'settings' };
+    applySettings(read.data);
+    const n = (days === undefined || days === null) ? preloadDays : days;
+
+    const [items, reviews] = await Promise.all([LearnStore.allItems(), LearnStore.allReviews()]);
+    const now = Date.now();
+    const full = LearnScheduler.buildDeckAhead(items, now, schedCfg,
+      LearnScheduler.introducedToday(reviews, now), n);
+    const r = await speakableDeck(full);
+
+    const e = LearnTTS.engine();
+    // 设备内置语音拿不到音频字节（§9.1）—— 它本来就离线可用。账单必须如实这么说，
+    // 而不是显示一个永远是 0 的音频进度条。
+    const audioCacheable = !!(e && e.returnsAudio);
+    // 语音引擎配坏了（缺地址 / 缺 key）会让每一段合成都失败。不在账单上先说，用户就会
+    // 点下确认、等一分钟，然后收到一整屏具名失败 —— 那些字都是对的，只是来晚了。
+    const av = audioCacheable ? await LearnTTS.available(uiLang) : { ok: true };
+    const wantNotes = playNotes && notesOk;
+    const canFill = LearnTranslateFill.capable();
+
+    const cards = [];
+    let audioMissing = 0, notesMissing = 0, trMissing = 0;
+    for (const it of r.deck) {
+      const hitTr = it.tr ? null : await LearnTranslateFill.cached(it.id);
+      const tr = it.tr || (hitTr && hitTr.data) || '';
+      const needTr = !it.tr && !tr && canFill;
+      if (needTr) trMissing++;
+
+      const hitNotes = wantNotes ? await LearnNotes.cached(it.id) : null;
+      const notesText = hitNotes ? LearnDriving.notesToSpeech(hitNotes.data, notesLabels()) : '';
+      const needNotes = wantNotes && !hitNotes;
+      if (needNotes) notesMissing++;
+
+      let missing = 0;
+      if (audioCacheable) {
+        for (const seg of segmentsOf(it, tr, notesText)) {
+          if (!(await audioCached(seg.text, seg.lang))) missing++;
+        }
+        // 还没生成的译文/解析，它们的音频也还不存在 —— 计入待合成，否则账单会少报。
+        if (needTr) missing++;
+        if (needNotes) missing++;
+      }
+      audioMissing += missing;
+      cards.push({ item: it, tr, needTr, needNotes, notesText });
+    }
+
+    const tail = tailSegment();
+    const tailMissing = !!(audioCacheable && cards.length && tail.text
+      && !(await audioCached(tail.text, tail.lang)));
+    if (tailMissing) audioMissing++;
+
+    return {
+      ok: true, days: n, cards, skipped: r.skipped, tailMissing,
+      audioCacheable, audioMissing, notesMissing, trMissing,
+      engineReady: !!av.ok, engineReason: av.ok ? '' : (av.reason || 'unsupported'),
+      // 用户明确开着「播放解析」却没配引擎，绝不能默默把这些卡从计划里删掉 ——
+      // build 38 的教训（§9.5），10d′ 的同型用例。
+      notesBlocked: playNotes && !notesOk,
+      fillBlocked: !canFill,
+    };
+  }
+
+  // 花钱那一步。并发上限 4：串行太慢（一副 20 张的牌要几分钟），无上限会撞供应商限流。
+  // `shouldStop()` 每张卡之间问一次 —— 停止是即时的语义，但不撕毁已经在途的请求。
+  async function preloadRun(plan, opts) {
+    const o = opts || {};
+    const onProgress = o.onProgress || (() => {});
+    const shouldStop = o.shouldStop || (() => false);
+    const total = plan.cards.length;
+    const failures = new Map();   // reason → count
+    let done = 0, stopped = false;
+
+    const fail = (reason) => failures.set(reason, (failures.get(reason) || 0) + 1);
+
+    const one = async (c) => {
+      let tr = c.tr;
+      if (c.needTr) {
+        try {
+          const r = await LearnTranslateFill.get(c.item, c.item.targetLang || uiLang);
+          tr = r.tr;
+        } catch (err) { fail((err && err.code) || 'translate_failed'); }
+      }
+      let notesText = c.notesText;
+      if (c.needNotes) {
+        try {
+          const r = await LearnNotes.get(c.item, uiLang);
+          notesText = LearnDriving.notesToSpeech(r && r.data, notesLabels());
+        } catch (err) { fail((err && err.code) || 'notes_failed'); }
+      }
+      if (!plan.audioCacheable) return;
+      for (const seg of segmentsOf(c.item, tr, notesText)) {
+        if (shouldStop()) return;
+        const r = await LearnTTS.prefetch(seg.text, seg.lang);
+        // `not_cacheable` 在这里不是失败：调用方已经知道这台机器不产生音频缓存。
+        if (!r.ok && r.reason !== 'not_cacheable') fail(r.reason || 'http');
+      }
+    };
+
+    if (plan.tailMissing) {
+      const tail = tailSegment();
+      const tr = await LearnTTS.prefetch(tail.text, tail.lang);
+      if (!tr.ok && tr.reason !== 'not_cacheable') fail(tr.reason || 'http');
+    }
+
+    const queue = plan.cards.slice();
+    const worker = async () => {
+      for (;;) {
+        if (shouldStop()) { stopped = true; return; }
+        const c = queue.shift();
+        if (!c) return;
+        try { await one(c); } catch (_) { fail('unknown'); }
+        done++;
+        onProgress({ done, total });
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    return { done, total, stopped, failures: Array.from(failures.entries()).map(([r, n]) => ({ reason: r, n })) };
   }
 
   async function start() {
@@ -380,6 +629,7 @@ var AppDriving = (() => {
     LearnTTS.stop();
     state = { name: 'idle' };
     sessionNote = '';
+    filledTr = '';
     const read = await loadSettings();
     if (!read.ok) {
       // 读失败绝不降级成「全用默认值」——那会把用户配好的引擎悄悄换掉。
@@ -415,6 +665,7 @@ var AppDriving = (() => {
     dispatch('tap_stop');
     deck = [];
     order = [];
+    filledTr = '';
     state = { name: 'idle' };
   }
 
@@ -460,5 +711,5 @@ var AppDriving = (() => {
       playNotes, notesOk, uiLang, order: order.slice() };
   }
 
-  return { start, stop, wire, paintStatic, refreshEntry, _debug };
+  return { start, stop, wire, paintStatic, refreshEntry, preloadPlan, preloadRun, _debug };
 })();

@@ -334,6 +334,69 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     eq(calls.put.length, 1, 'and must not rewrite the cache either');
   });
 
+  // §9.5 开卡并行预热. Three things have to hold or the warm-up is worse than nothing:
+  // it must fill the SAME cache entry the player will look for, it must not fire at
+  // all on an engine that produces no bytes, and it must SHARE the request with a
+  // speak that overlaps it — otherwise the user pays twice for one clip.
+  test('prefetch fills the cache, and the play that follows issues no request', async () => {
+    const { TTS, calls } = setup();
+    TTS.configure(cfg);
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, true);
+    eq(r.cached, false);
+    eq(calls.fetch.length, 1);
+
+    const played = await TTS.getAudio('Hello world', 'en');
+    eq(played.cached, true, '预热填的必须是播放要找的那个键');
+    eq(calls.fetch.length, 1, '预热之后再播放，一个请求都不该有');
+  });
+
+  test('prefetch on the on-device engine is not_cacheable AND issues no request', async () => {
+    // The Web Speech API exposes no audio data (§9.1) — that is a property of the
+    // API. Saying so by name is what lets the preload surface tell the user it
+    // produces no audio cache, instead of showing a bar that can never move.
+    const { TTS, calls } = setup();
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, false);
+    eq(r.reason, 'not_cacheable');
+    eq(calls.fetch.length, 0, '不产生缓存的引擎绝不能因为预热而发请求');
+  });
+
+  test('a speak overlapping an in-flight prefetch shares it — one request, not two', async () => {
+    // This is the load-bearing one. Warm-up and playback race by construction: the
+    // player opens a card and starts the first segment in the same tick the warm-up
+    // fires. Without in-flight de-duplication both miss the (still empty) cache and
+    // the warm-up turns into a second bill.
+    const { TTS, calls } = setup();
+    TTS.configure(cfg);
+    const warm = TTS.prefetch('Hello world', 'en');
+    const play = TTS.getAudio('Hello world', 'en');
+    await Promise.all([warm, play]);
+    eq(calls.fetch.length, 1, '并发的预热与播放必须共用同一个请求');
+    eq(calls.put.length, 1, '也只写一次缓存');
+  });
+
+  test('prefetch names a missing endpoint instead of fetching a blank URL', async () => {
+    const { TTS, calls } = setup();
+    TTS.configure({ engineId: 'local', baseUrl: '' });
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, false);
+    eq(r.reason, 'no_base');
+    eq(calls.fetch.length, 0);
+  });
+
+  test('a failed prefetch is not remembered as failed — the next call retries', async () => {
+    const { TTS, calls } = setup({ fetchThrows: true });
+    TTS.configure(cfg);
+    const a = await TTS.prefetch('Hello world', 'en');
+    eq(a.ok, false);
+    eq(a.reason, 'network');
+    const b = await TTS.prefetch('Hello world', 'en');
+    eq(b.ok, false);
+    eq(calls.fetch.length, 2, 'in-flight 表必须在失败后清干净，否则一次断网钉死这段音频');
+  });
+
   test('a LEGACY blob-handle record is a MISS — refetched, replaced with bytes', async () => {
     // 真机定案 2026-08-09：WebKit 把 IndexedDB 里的 Blob 存成文件句柄，App 更新
     // 搬容器后句柄悬空 —— 元数据健在、字节读不出，播放报 NotSupportedError。

@@ -95,7 +95,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // if review.js stops exporting it, the app silently loses deck freshness.
           'LearnReview',
           // §7.2/§9.2 — the registry feeds the notes gate and the engine picker.
-          'MT_PROVIDERS']
+          'MT_PROVIDERS',
+          // §9.5 出发前预载: AppDriving orchestrates it, LearnTranslateFill fills in
+          // the missing translations, and TranslationAPI is the transport it rides —
+          // the app translated nothing before 2026-08-23, so a missing TranslationAPI
+          // here would surface as 补译文 silently doing nothing at all.
+          'AppDriving', 'LearnTranslateFill', 'TranslationAPI']
           .filter((g) => typeof window[g] === 'undefined'),
         // The review surface is INLINED from extension/learn/review.html at build
         // time. If that lift silently produced nothing, everything above still
@@ -129,6 +134,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'notes-provider','notes-key','notes-base','notes-model',
           // §7.2 device-local credential for the §9.4 transcription engine
           'stt-engine','stt-key','stt-base','stt-model',
+          // §9.5 出发前预载 — the two-tap price-then-spend control and its readouts.
+          'drive-preload-days','btn-drive-preload','drive-preload-note',
+          'drive-audio-cache','btn-drive-clear-audio',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus

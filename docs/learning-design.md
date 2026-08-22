@@ -29,6 +29,7 @@
 | 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | 待评审 —— 见 §9.2 |
 | 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | 待评审 —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
 | 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
+| 2026-08-23 | belliedmonkey | 播客模式离线化（用户提议）：①开卡并行预热全部段落 + 前瞻下一张音频（`peekNext` 纯前瞻、`getAudio` in-flight 去重）；②设置页「出发前预载」按钮（今天牌库 + 未来 N 天）。连带两条规约让位：§9.2「绝不自动批量生成」收窄为「绝不在用户没看见账单的情况下批量」（四个构成要件）；§7.2/§4.2d「App 从不翻译」在 §9.5 补译文范围内失效——补译文是派生物，永不同步、永不写 `item.tr` | 待评审 —— 见 §9.2 / §9.5 / §7.2 / §4.2d |
 
 **2026-08-08 的评审范围**由真机使用反馈驱动：评分按钮后果不可见、「学习好了」无
 标准、牌组耗尽后精力无处使。三个方向已由产品在设计前定下（AskUserQuestion）：
@@ -408,8 +409,16 @@ and the alternative is an unmemorizable (or broken) card. Bounded spend: 80
 sentence calls per press (`LearnAlign.MAX_RETRANSLATE_SENTENCES`, riding the
 translation cache), candidates by the pure `LearnStore.retranslateCandidatesFor`
 (a superset of §4.2c's: no tr-side sentence requirement). Runs in the extension
-options page only — the app never translates (its own first law), so there the
-phase simply never runs; sync carries the healed cards over.
+options page only; sync carries the healed cards over.
+
+> *(2026-08-23.)* The clause that used to end that sentence — "the app never
+> translates (its own first law)" — no longer holds; §7.2 records where it gave way.
+> **This paragraph's rule is unchanged**, and the two must not be conflated: §4.2d
+> **overwrites a card's `tr`** and is therefore still the ONE place a stored `tr`
+> deviates from what the page showed, still extension-only. §9.5's 补译文 does the
+> opposite — it never touches `item.tr` at all, and caches a device-local derived
+> translation beside the notes. A card healed by §4.2d syncs; a card filled by §9.5
+> does not.
 
 **Existing long cards** (captured before this rule) are healed by an EXPLICIT
 maintenance action, never silently on upgrade (§3 law 2: anything touching
@@ -768,9 +777,17 @@ Three consequences that surprise people, so state them where they will be read:
 **App 侧凭证（2026-08-08 (二) 放宽，边界如下；同日稍晚扩至语音引擎）。** 此前的
 边界是「翻译引擎 / API key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。
 §9.2 的解析改变了后半个前提：App 里的复习面有确实需要用户自备引擎的功能。因此
-App 的设置页**可以**配置：一个 chat 类引擎 + key（仅供 §9.2 解析），以及一个语音
-引擎 + key（仅供 §9.1 朗读；引擎表来自 `MT_TTS_ENGINES` 注册表，本地优先的排序
-照旧）—— App 仍然从不翻译、从不采集。三条不放宽的边界（对两把 key 同样成立）：
+App 的设置页**可以**配置：一个 chat 类引擎 + key（供 §9.2 解析与 §9.5 补译文），
+以及一个语音引擎 + key（仅供 §9.1 朗读；引擎表来自 `MT_TTS_ENGINES` 注册表，本地
+优先的排序照旧）—— App 仍然从不采集。三条不放宽的边界（对两把 key 同样成立）：
+
+> **「App 从不翻译」于 2026-08-23 失效，范围严格限定在 §9.5 的补译文。** 这条边界
+> 从 2026-08-08 起就只剩半句成立（那天 §9.2 让 App 有了自己的 chat 引擎），现在另外
+> 半句也让位了：播客模式要在没网的车里播译文，而没有 `tr` 的裸句卡在 App 里无处可补。
+> 让位的**只是那一句话**，不是它守的东西 —— 补译文仍然是**用户按一下按钮才发生**的
+> 显式动作，仍然只发到用户自己配置的端点，而且它产出的译文是**派生物**，与 §9.1 的
+> 音频、§9.2 的解析、§9.3 的题包同一档：设备本地、可重造、**永不同步、永不写进
+> `item.tr`**。`item.tr` 继续只记录「页面当时真的显示了什么」。
 
 1. **凭证是设备本地的，永不同步。** key 不进 chunk、不进服务器 —— §8.6 已裁定
    服务器无 E2E，把凭证放上去等于把泄露半径从一台设备扩到整个服务端（§12）。
@@ -1531,8 +1548,9 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `LearnExercises` | `content/learn-exercises.js` *(planned, §5.4/§9.3)* | pure: 题型注册表、确定性轮换与知识点取材、译文选择题 / 盲听选词生成、`speakScore` 转写重合度、`gradeGate` 客观结果→评分约束 |
 | `ExercisePack` | `learn/exercise-pack.js` *(planned, §9.3)* | AI 题包：按卡生成/缓存/合规检查，`PACK_VERSION`，复用 §9.2 的引擎门与传输 |
 | `LearnSpeech` | `learn/speech-input.js` *(planned, §9.4)* | 录音 + BYO 转写：`getUserMedia`/`MediaRecorder`，multipart `/v1/audio/transcriptions`，录音用后即弃 |
-| `LearnDriving` | `content/learn-driving.js` *(§9.5)* | pure: 播放顺序（`buildOrder` / `advance`，随机是排列不是抽样）、`cardPlan` 分段、`notesToSpeech` 解析口播渲染、会话状态机 `reduce`。**无任何写进度的函数**——这是契约，不是遗漏 |
-| `AppDriving` | `app/driving.js` *(§9.5)* | App 专属编排器：执行状态机 effects（TTS 链 / 解析补全 / 视图），进 bundle 不进扩展。**不调用 `putItem` / `recordReview`** |
+| `LearnDriving` | `content/learn-driving.js` *(§9.5)* | pure: 播放顺序（`buildOrder` / `advance`，随机是排列不是抽样）、`peekNext` 非破坏性前瞻（不改 `order`、不吃随机）、`cardPlan` 分段、`notesToSpeech` 解析口播渲染、会话状态机 `reduce`。**无任何写进度的函数**——这是契约，不是遗漏 |
+| `AppDriving` | `app/driving.js` *(§9.5)* | App 专属编排器：执行状态机 effects（TTS 链 / 解析补全 / 视图）、开卡并行预热、出发前预载 `preload()`，进 bundle 不进扩展。**不调用 `putItem` / `recordReview`** |
+| `LearnTranslateFill` | `app/translate-fill.js` *(§9.5 补译文)* | App 专属：给没有 `tr` 的卡按需补一条译文，骑 `TranslationAPI.translate` + §9.2 的引擎组。缓存进现有 `notes` 表，key `itemId + '\0tr'`（无新表 ⇒ 无 `DB_VERSION` bump），带 `TR_VERSION`、in-flight 去重。**永不写 `items`、永不同步** |
 | `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
@@ -1606,7 +1624,16 @@ rather than reading the sentence in the wrong language.
 - **按需生成，一次缓存，永不重复扣费。** 结果按卡 id 落 IndexedDB 新 `notes` 表
   （**DB_VERSION 3 → 4**，建表照例带 `contains` 守卫；这是唯一碰用户已有数据的
   改动，`npm run test:idb` 必跑）。重看即时出。UI 注明：「使用你配置的 API，
-  一次调用，永久缓存」——成本可预期，绝不自动批量生成。
+  一次调用，永久缓存」——成本可预期。
+- **绝不在用户没看见账单的情况下批量生成（2026-08-23 修订）。** 这条原本写的是
+  「绝不自动批量生成」，那是把「批量」当成了病因。真正的病因是**用户不知道这一下
+  要花多少钱**：§9.5 的播客模式默认开着播放解析，一轮听下来本来就会把整副牌解析一遍，
+  它没有违反这条规矩，靠的是把成本那句话说了两遍——**说清楚，而不是设闸**（§12 已记录
+  「设上限」被否决）。所以规矩收窄为：批量生成允许存在，但必须同时满足四件事——
+  **先算账**（在花任何钱之前，只查缓存，把「要发生多少次调用」写在用户眼前）、
+  **第二下才开跑**（第一下只出账单，不发请求）、**过程中可停**、
+  **结束具名报账**（完成多少、失败多少、失败的具名原因）。缺任何一件，它就退回
+  「自动批量」，仍然禁止。§9.5 的「出发前预载」是这条例外目前唯一的实例。
 - **不同步。** 解析是可再生的衍生物：换设备按需重新生成即可。省掉的是 chunk
   格式变更与 50 MB 配额占用（§8.5 的成本模型不因它改一个字）。
 - **提示词英文**（同翻译系统提示词的既有惯例），解释语言跟 `uiLang`；要求 JSON
@@ -1807,6 +1834,57 @@ rather than reading the sentence in the wrong language.
 - 这个缺陷能上到真机，是因为自动化测试**自己造出了真机上不成立的前提**：它在打开开关的
   同一次写入里把 `provider` / `apiKey` 也写好了，于是永远走不到「引擎没配」那条分支。
   回归用例因此必须**先清掉那两个键**再打开开关（learn-regression §2.1 步骤 10d′）。
+
+### 开卡并行预热（2026-08-23）
+
+到这个日期为止，播客模式是**边播边取**的：`execSpeak` 走到哪一段，才在那一刻让
+`LearnTTS.speak` 去合成那一段的音频。一张卡三遍五段，于是一张卡最多有五个网络往返，
+每一个都落在「上一段刚播完」的那个静默里。上面「解析预取」修的是五个空档里的一个。
+
+规则统一成一条：**开卡的那一瞬间，这张卡需要联网的东西全部并行发出。**
+
+- 并行发出的是：原句音频、译句音频、解析请求；**解析文本一回来，立刻预热解析音频**。
+  最后这条是原来最大的空档——解析的文本要等 API 回来才知道，所以它的音频在旧写法里
+  必然是现取的，「解析预取」根本救不到它。
+- **再往前看一张**：只预热下一张卡的原句/译句音频，**不碰它的解析**。音频与解析在这里
+  不对称，理由是钱：下一张卡的音频迟早要合成（合成过就在缓存里，LRU 之外没有浪费），
+  而用户随时可能停下来退出，为一张没听到的卡付一次解析钱是不该发生的。
+- 前瞻不能用 `advance`：那个函数会重洗牌、会消耗随机数，拿它「看一眼下一张」就等于
+  提前把随机序列走掉了。因此另有一个纯的 `LearnDriving.peekNext(pos, order, mode)`，
+  不改 `order`、不吃随机；随机模式走到需要重洗的边界时它返回 `null`——**不猜**。
+- **去重是这件事成立的前提，不是优化。** 预热在途、播放就轮到了，如果两条路各自
+  `getAudio`，用户会为同一段音频付两次钱，整个预热就是负收益。所以 `getAudio` 套一个
+  按 `cacheKey` 去重的 in-flight map，`speak()` 也走它——与 `notes.js` 按 `item.id`
+  去重的是同一套纪律。
+- **播放途中永不现场翻译。** 译句只认 `item.tr`，其次认已缓存的补译文；两者都没有，
+  这张卡就按「没有译文」的既有读法三遍都读原句。行驶中不制造用户看不见的账单，也不让
+  播放器停在一个网络往返上——补译文的生成只发生在下面那个按钮里。
+
+### 出发前预载（2026-08-23）
+
+设置页「播客模式」区的一个按钮：**在还有网的时候，把接下来要听的东西全部落到本地**，
+上车之后整轮零网络。这是 §9.2 修订后「允许的批量」目前唯一的实例，四个构成要件一个不少。
+
+- **范围 = 今天的牌库 + 未来 N 天**（N 由旁边的选择器决定，存 `drivePreloadDays`）。
+  实现是纯函数 `LearnScheduler.buildDeckAhead`：对 `d = 0..N` 各调一次 `buildDeck`，
+  时间轴平移一天，按 `id` 求并集；只有第 0 天带今天已引入的新卡数，之后每天的新卡预算
+  按各自那天重新算。这必然是个**超集**——用户今天复习了什么会改变明天的牌库，而预载
+  发生在复习之前。超集是对的方向：多预载几张的代价是几百 KB，少预载一张的代价是路上没声。
+  过滤规则与 `buildSession` 完全共用一份（媒体卡跳过、任一侧无音色跳过）。
+- **第一下只算账，不花钱。** 只查缓存——音频查 `cacheKey` 对应的 `audio` 记录，解析查
+  `LearnNotes.cached`，译文查补译文缓存——然后把「N 张卡 · 待合成 P 段音频 · 待解析 M 张 ·
+  待补译文 K 张」写在按钮上方。按钮文字随之变成带调用次数的确认文案。**第二下才发请求。**
+- **过程中可停**，并发上限 4（串行太慢；无上限撞限流）。**结束具名报账**：完成多少、
+  失败多少、失败的具名原因，绝不静默（§3 law 2）。
+- **`returnsAudio: false` 的引擎不假装在下载。** 设备内置语音（默认）拿不到音频字节
+  （§9.1，这是 Web Speech API 的性质），它本来就离线可用。这种情况下按钮如实说明自己
+  只预载解析与译文，而不是显示一个永远是 0 的音频进度。
+- **引擎没配就必须说话**，同上面 build 38 的教训：算账那一步就点名「未配置解析引擎，
+  这 M 张卡的解析与译文会被跳过」并指出去哪配，而不是默默把它们从计划里删掉。
+- 同一区块顺带给 App 补上音频缓存读数与「清空」——扩展的 options 早有（`tts_cache`），
+  而预载正是唯一会让这个数字变大的动作，读数和它放在一起才有意义。
+- **它仍然什么都不写**：预载只填缓存，不产生复习行、不盖技能戳、不动 `lastSeenAt`、
+  不碰调度器。§9.5 开头那条契约对这个按钮同样成立。
 
 ### 暂停时的「解析这句」
 

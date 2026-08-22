@@ -91,6 +91,27 @@ var LearnDriving = (() => {
     return { pos: reshuffled[0], order: reshuffled, done: false };
   }
 
+  // Look one step ahead WITHOUT taking it. Prefetching the next card's audio (§9.5
+  // 开卡并行预热) needs to know which card is next, and `advance` cannot answer that
+  // question: it reshuffles at the wrap and consumes `rand`, so calling it to peek
+  // would spend the random sequence before the user gets there.
+  //
+  // Pure: never touches `order`, never calls `rand`. Returns `null` rather than
+  // guessing whenever the honest answer is unknown — at a shuffle/loop wrap the next
+  // card is whatever the reshuffle decides, and warming a guess would fetch audio for
+  // a card that is not next. `sequential`'s end is `null` for the same reason (there
+  // is no next card at all), and `repeat-one` peeks at itself, which is exactly what
+  // it will play.
+  function peekNext(pos, order, mode) {
+    if (!order || !order.length) return null;
+    if (mode === 'repeat-one') return pos;
+    const at = order.indexOf(pos);
+    if (at < 0) return null;
+    const next = at + 1;
+    if (next < order.length) return order[next];
+    return null;
+  }
+
   // ─── Per-card plan: THREE passes ───────────────────────────────────────────
   //   1st  原句
   //   2nd  原句 + 译句 + 解析（解析可选）
@@ -104,6 +125,12 @@ var LearnDriving = (() => {
   // A card with no translation gets three bare readings of its sentence. That is the
   // correct reading of "play it three times", not a degenerate case to special-case.
   //
+  // `cfg.hasTr` overrides where the translation comes from, defaulting to the card's
+  // own `tr`. §9.5's 补译文 caches a device-local translation for cards captured
+  // without one; it deliberately never writes `item.tr` (that field records what the
+  // page actually showed, and a value written here could never sync — see
+  // learning-design §7.2), so the orchestrator passes the cache hit in instead.
+  //
   // Media cards never reach this (the orchestrator skips them — synthetic speech
   // never replaces real speech, §11).
   const PASSES = 3;
@@ -111,9 +138,10 @@ var LearnDriving = (() => {
   function cardPlan(item, cfg) {
     const c = cfgOf(cfg);
     const seg = (what, pass) => ({ what, pass });
+    const hasTr = (c.hasTr === undefined) ? !!(item && item.tr) : !!c.hasTr;
     const segments = [seg('source', 1)];
     segments.push(seg('source', 2));
-    if (item && item.tr) segments.push(seg('tr', 2));
+    if (hasTr) segments.push(seg('tr', 2));
     if (c.playNotes) segments.push(seg('notes', 2));
     segments.push(seg('source', 3));
     return { segments, passes: PASSES };
@@ -257,7 +285,7 @@ var LearnDriving = (() => {
 
   return {
     DEFAULTS, MODES, DEFAULT_MODE, PASSES, nextMode,
-    buildOrder, advance, cardPlan, notesToSpeech, reduce,
+    buildOrder, advance, peekNext, cardPlan, notesToSpeech, reduce,
     ACTIVE,
   };
 })();

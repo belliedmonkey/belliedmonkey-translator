@@ -30,8 +30,9 @@ var AppSettings = (() => {
     // §9.4 — the transcription group review.js reads. Device-local (§7.2).
     'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
     // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
-    // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关。
-    'drivePlayNotes'];
+    // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关，
+    // 以及出发前预载的天数视野（`drivePreloadDays`，0 = 今天的牌库）。
+    'drivePlayNotes', 'drivePreloadDays'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -110,6 +111,12 @@ var AppSettings = (() => {
     $('drive-title').textContent = t('drive_entry', '播客模式');
     $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
     $('drive-play-notes-note').textContent = t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。');
+    $('drive-preload-days-label').textContent = t('drive_preload_days', '预载范围');
+    $('drive-preload-days-0').textContent = t('drive_preload_days_0', '今天要听的牌库');
+    $('drive-preload-days-3').textContent = t('drive_preload_days_3', '今天 + 未来 3 天');
+    $('drive-preload-days-7').textContent = t('drive_preload_days_7', '今天 + 未来 7 天');
+    $('drive-preload-hint').textContent = t('drive_preload_hint', '出发前点一下，把要听的语音、解析、译文全部下载到本机，路上没网也能整轮播完。第一下只算账、不花钱，看清楚要调用多少次再点第二下。');
+    $('btn-drive-clear-audio').textContent = t('tts_clear_cache', '清空语音缓存');
     $('stt-title').textContent = t('stt_engine', '转写引擎');
     $('stt-engine-label').textContent = t('stt_engine', '转写引擎');
     $('stt-key-label').textContent = t('stt_api_key', '转写 API Key');
@@ -147,6 +154,96 @@ var AppSettings = (() => {
 
   const engineById = (id) =>
     (window.MT_TTS_ENGINES || []).find((e) => e.id === id) || (window.MT_TTS_ENGINES || [])[0] || null;
+
+  // ─── 出发前预载（§9.5）────────────────────────────────────────────────────
+  // 两态按钮：`pending` 持有算好的账单，点第二下才开跑；`running` 时按钮是「停止」。
+  // 这不是 UI 花样，是 §9.2 修订后那条例外的构成要件之一 —— 没有「先看账单」这一步，
+  // 它就退回「自动批量」，仍然是禁止的。
+  let preloadState = 'idle';     // idle | pending | running
+  let preloadPlanned = null;
+  let preloadStop = false;
+
+  function resetPreload() {
+    preloadState = 'idle';
+    preloadPlanned = null;
+    preloadStop = false;
+    $('btn-drive-preload').disabled = false;
+    $('btn-drive-preload').textContent = t('drive_preload', '预载离线资源');
+    $('drive-preload-note').textContent = '';
+  }
+
+  async function refreshAudioCache() {
+    const el = $('drive-audio-cache');
+    if (!el) return;
+    try {
+      const e = engineById($('tts-engine').value);
+      if (e && !e.returnsAudio) {
+        el.textContent = t('tts_cache_na', '设备内置语音不产生缓存');
+        $('btn-drive-clear-audio').hidden = true;
+        return;
+      }
+      $('btn-drive-clear-audio').hidden = false;
+      const st = await LearnStore.audioStats();
+      el.textContent = st.count
+        ? t('tts_cache', '语音缓存 {n} 条 · 约 {mb} MB（上限 {cap} MB）')
+            .replace('{n}', String(st.count))
+            .replace('{mb}', String(Math.max(1, Math.round(st.bytes / 1048576))))
+            .replace('{cap}', String(Math.round(LearnStore.MAX_AUDIO_BYTES / 1048576)))
+        : t('tts_cache_empty', '语音缓存为空');
+    } catch (_) { el.textContent = ''; }
+  }
+
+  // 账单文案。**能力缺失也要在这里说出来** —— 用户开着「播放解析」却没配引擎时，
+  // 默默把那些卡从计划里删掉，就是 build 38 那次「表现得和功能没做完全一样」的复刻。
+  function priceText(p) {
+    const lines = [];
+    if (!p.cards.length) {
+      // 「没有可听读的卡」单独说不够：语音引擎配坏了会让 speakableDeck 把**每一张**卡都
+      // 判成读不出来，于是真正的原因（缺地址 / 缺 key）被一句「没卡」盖住。下面那些
+      // 具名的行照常追加，所以用户看到的是原因，不是症状。
+      lines.push(t('drive_empty', '没有可听读的卡'));
+    } else {
+      const parts = [t('drive_preload_cards', '{n} 张卡').replace('{n}', String(p.cards.length))];
+      if (p.audioCacheable) {
+        parts.push(t('drive_preload_audio', '待合成 {n} 段语音').replace('{n}', String(p.audioMissing)));
+      }
+      if (p.notesMissing) parts.push(t('drive_preload_notes', '待解析 {n} 张').replace('{n}', String(p.notesMissing)));
+      if (p.trMissing) parts.push(t('drive_preload_tr', '待补译文 {n} 张').replace('{n}', String(p.trMissing)));
+      lines.push(parts.join(' · '));
+    }
+    if (!p.audioCacheable) {
+      lines.push(t('drive_preload_no_audio_cache',
+        '设备内置语音不产生缓存，本来就能离线播放；这里只预载解析与译文。'));
+    }
+    if (p.audioCacheable && !p.engineReady) {
+      lines.push(t('drive_preload_tts_bad',
+        '语音引擎还没配置好（{reason}），这次一段音频都合成不出来（设置 → 语音引擎）')
+        .replace('{reason}', p.engineReason || ''));
+    }
+    if (p.notesBlocked) {
+      lines.push(t('drive_notes_engine_missing',
+        '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）'));
+    } else if (p.fillBlocked) {
+      lines.push(t('drive_preload_no_fill_engine',
+        '没配解析引擎，没有译文的卡这次补不了译文（设置 → 句子解析）'));
+    }
+    if (p.skipped) {
+      lines.push(t('drive_skipped', '跳过 {n} 张读不出来的卡（媒体卡或无语音）')
+        .replace('{n}', String(p.skipped)));
+    }
+    return lines.join('\n');
+  }
+
+  function tallyText(r) {
+    const head = (r.stopped ? t('drive_preload_stopped', '已停止：完成 {done}/{total}')
+                            : t('drive_preload_done', '完成 {done}/{total}'))
+      .replace('{done}', String(r.done)).replace('{total}', String(r.total));
+    if (!r.failures.length) return head;
+    const named = r.failures.map((f) => f.reason + ' ×' + f.n).join('、');
+    return head + ' · ' + t('drive_preload_failed', '{n} 处失败（{reasons}）')
+      .replace('{n}', String(r.failures.reduce((a, f) => a + f.n, 0)))
+      .replace('{reasons}', named);
+  }
 
   // Field visibility follows the registry entry (needsKey / supportsBaseUrl /
   // supportsModel), mirroring the extension options page — one registry, N
@@ -296,6 +393,9 @@ var AppSettings = (() => {
     paintNotesFields(cur.provider || '');
     // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
     $('drive-play-notes').checked = cur.drivePlayNotes !== false;
+    $('drive-preload-days').value = String(Number(cur.drivePreloadDays) > 0 ? Math.floor(Number(cur.drivePreloadDays)) : 0);
+    resetPreload();
+    refreshAudioCache();
     $('stt-engine').value = (window.MT_STT_ENGINES || []).some((e) => e.id === cur.sttEngine)
       ? cur.sttEngine : '';
     $('stt-key').value = cur.sttApiKey || '';
@@ -365,6 +465,10 @@ var AppSettings = (() => {
         paintTtsFields(id);
         await paintVoices('');
         liveTtsConfigure();
+        // 换引擎会换掉整个音频缓存键（cacheKey 含 engineId/model/voice），所以已经
+        // 算好的账单和缓存读数都过期了。
+        resetPreload();
+        await refreshAudioCache();
       } finally { sel.disabled = false; }
     });
     for (const id of ['tts-api-key', 'tts-base-url', 'tts-model']) {
@@ -455,8 +559,80 @@ var AppSettings = (() => {
         });
       }
     }
-    $('drive-play-notes').addEventListener('change', () =>
-      set({ drivePlayNotes: $('drive-play-notes').checked }));
+    $('drive-play-notes').addEventListener('change', () => {
+      set({ drivePlayNotes: $('drive-play-notes').checked });
+      resetPreload();     // 开关变了，账单就过期了 —— 不能让它继续代表旧的计划
+    });
+    $('drive-preload-days').addEventListener('change', () => {
+      set({ drivePreloadDays: Number($('drive-preload-days').value) || 0 });
+      resetPreload();
+    });
+
+    // 第一下算账、第二下开跑、跑起来之后是停止键（§9.5 / §9.2 修订后的四个构成要件）。
+    $('btn-drive-preload').addEventListener('click', async () => {
+      const btn = $('btn-drive-preload');
+      const note = $('drive-preload-note');
+
+      if (preloadState === 'running') { preloadStop = true; btn.disabled = true; return; }
+
+      if (preloadState === 'idle') {
+        btn.disabled = true;
+        note.textContent = t('drive_preload_pricing', '正在核对本机已有的内容…');
+        let p;
+        try {
+          p = await AppDriving.preloadPlan(Number($('drive-preload-days').value) || 0);
+        } catch (_) { p = null; }
+        btn.disabled = false;
+        if (!p || !p.ok) {
+          note.textContent = t('settings_read_failed_short', '读不到已保存的设置，请稍后再试');
+          return;
+        }
+        note.textContent = priceText(p);
+        if (!p.cards.length) return;
+        // 全都已经在本机了就不必再点第二下 —— 一个「确认花 0 次调用」的按钮是噪音。
+        if (!p.audioMissing && !p.notesMissing && !p.trMissing) {
+          note.textContent = priceText(p) + '\n' + t('drive_preload_ready', '这些内容已经全在本机，路上不需要联网。');
+          return;
+        }
+        preloadPlanned = p;
+        preloadState = 'pending';
+        btn.textContent = t('drive_preload_confirm', '确认预载（约 {n} 次付费调用）')
+          .replace('{n}', String(p.notesMissing + p.trMissing + (p.audioCacheable ? p.audioMissing : 0)));
+        return;
+      }
+
+      // pending → running
+      const p0 = preloadPlanned;
+      if (!p0) { resetPreload(); return; }
+      preloadState = 'running';
+      preloadStop = false;
+      btn.textContent = t('drive_preload_stop', '停止');
+      // 状态是在 await 之前就翻的，所以同一下点击派发两次事件时，第二次落在 running
+      // 分支上会把刚开跑的这一轮立刻停掉。上面的 markup 注释记着那个坑；这里再挡一道，
+      // 因为「点两下」在真机上还有别的来路（双击、辅助功能的重复激活）。
+      preloadPlanned = null;
+      const planned = p0;
+      const r = await AppDriving.preloadRun(planned, {
+        shouldStop: () => preloadStop,
+        onProgress: ({ done, total }) => {
+          note.textContent = t('drive_preload_progress', '预载中 {done}/{total}…')
+            .replace('{done}', String(done)).replace('{total}', String(total));
+        },
+      });
+      resetPreload();
+      note.textContent = tallyText(r);
+      await refreshAudioCache();
+    });
+
+    $('btn-drive-clear-audio').addEventListener('click', async () => {
+      const btn = $('btn-drive-clear-audio');
+      btn.disabled = true;
+      try { await LearnStore.clearAudio(); } catch (_) {}
+      btn.disabled = false;
+      resetPreload();
+      await refreshAudioCache();
+      say(t('toast_cache_cleared', '缓存已清除'));
+    });
     $('stt-engine').addEventListener('change', async () => {
       const cleared = clearEndpointOnEngineSwitch('stt-base');
       paintSttFields($('stt-engine').value);

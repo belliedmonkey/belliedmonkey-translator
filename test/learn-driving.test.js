@@ -95,6 +95,29 @@ describe('LearnDriving — 一张卡三遍 (§9.5)', () => {
       ['source1', 'source2', 'source3']);
   });
 
+  test('hasTr 让有补译文缓存的裸句卡也读译句 —— 但 item.tr 一个字都没被改', () => {
+    // §9.5 补译文：译文是**派生物**，缓存在 notes 表旁边，永不写进 item.tr（写了也
+    // 同步不出去，见 §7.2）。所以 cardPlan 必须能从外面被告知「这张卡有译文了」。
+    const bare = { id: 'b', text: 'Solo' };
+    deepEq(shape(D.cardPlan(bare, { playNotes: false, hasTr: true }).segments),
+      ['source1', 'source2', 'tr2', 'source3']);
+    eq('tr' in bare, false, 'cardPlan 不该往卡上写任何东西');
+  });
+
+  test('hasTr:false 压过卡上真有的 tr —— 缓存与计划永远说同一件事', () => {
+    // 反向：预热失败/缓存被清时，编排器要能说「这张卡这次没有译句」，而不是让计划
+    // 承诺一段播不出来的音频。
+    deepEq(shape(D.cardPlan(item, { playNotes: false, hasTr: false }).segments),
+      ['source1', 'source2', 'source3']);
+  });
+
+  test('不传 hasTr 时按卡自己的 tr 走 —— 老调用方行为一字不变', () => {
+    deepEq(shape(D.cardPlan(item, { playNotes: false }).segments),
+      ['source1', 'source2', 'tr2', 'source3']);
+    deepEq(shape(D.cardPlan({ id: 'b', text: 'Solo' }, { playNotes: false }).segments),
+      ['source1', 'source2', 'source3']);
+  });
+
   test('解析默认是开的（2026-08-18 用户裁定）', () => {
     eq(D.DEFAULTS.playNotes, true);
   });
@@ -105,6 +128,55 @@ describe('LearnDriving — 一张卡三遍 (§9.5)', () => {
     eq(segs[0].pass, 1);
     eq(segs[segs.length - 1].pass, 3);
     eq(segs.filter((x) => x.what === 'source').length, 3, '原句必须恰好读三次');
+  });
+});
+
+// §9.5 开卡并行预热：前瞻下一张卡的音频，需要「下一张是谁」而 advance 回答不了这个
+// 问题 —— 它会重洗牌、会消耗随机数，拿它偷看等于提前把随机序列走掉。
+describe('LearnDriving — peekNext：非破坏性前瞻 (§9.5)', () => {
+  test('顺序 / 循环：下一张就是原序的下一位', () => {
+    for (const m of ['sequential', 'loop']) {
+      eq(D.peekNext(0, [0, 1, 2], m), 1, m);
+      eq(D.peekNext(1, [0, 1, 2], m), 2, m);
+    }
+  });
+
+  test('单曲循环前瞻到自己 —— 那正是它接下来要播的', () => {
+    eq(D.peekNext(1, [0, 1, 2], 'repeat-one'), 1);
+  });
+
+  test('走到需要重洗的边界返回 null —— 不猜', () => {
+    // 随机与循环绕圈时，下一张是重洗之后才定的。预热一个猜测就是为一张不会播的卡花钱。
+    eq(D.peekNext(2, [0, 1, 2], 'shuffle'), null);
+    eq(D.peekNext(2, [0, 1, 2], 'loop'), null);
+    eq(D.peekNext(2, [0, 1, 2], 'sequential'), null, '顺序播放走到头就没有下一张了');
+  });
+
+  test('拿不到随机数，也改不了 order —— 这是它存在的全部理由', () => {
+    // 「不消耗随机」在这里是**结构性**的，不是行为性的：签名里根本没有 rand 那一格。
+    // 断言 arity 才杀得死变异——写成「传一个计数 rand 进去看它没被调用」是假绿的：
+    // 函数不接这个参数，计数当然是 0，把 peekNext 改成偷偷调 Math.random 也照样过。
+    eq(D.peekNext.length, 3, 'peekNext 多出一个参数就说明随机（或别的状态）溜进了前瞻');
+
+    const order = D.buildOrder(4, 'shuffle', seq([0.9, 0.1, 0.7, 0.3]));
+    const before = order.slice();
+    D.peekNext(order[0], order, 'shuffle');
+    D.peekNext(order[3], order, 'shuffle');   // 边界那一次尤其不能重洗
+    deepEq(order, before, '前瞻改了 order，真正的播放顺序就被偷看这一下改掉了');
+  });
+
+  test('空牌库 / 不在 order 里的位置 ⇒ null，绝不抛', () => {
+    eq(D.peekNext(0, [], 'sequential'), null);
+    eq(D.peekNext(0, null, 'shuffle'), null);
+    eq(D.peekNext(9, [0, 1, 2], 'loop'), null);
+  });
+
+  test('advance 与 peekNext 在同一步上一致（不绕圈时）', () => {
+    const order = [2, 0, 1];
+    for (const m of ['sequential', 'loop', 'shuffle']) {
+      const a = D.advance(2, order, m, () => 0.5, false);
+      eq(D.peekNext(2, order, m), a.pos, m + '：偷看到的和真走一步得到的必须是同一张');
+    }
   });
 });
 

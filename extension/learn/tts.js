@@ -207,18 +207,71 @@ var LearnTTS = (() => {
   // Returns { buf, type, cached } — `cached` exists so a test can assert the SECOND
   // play issues no request at all, which is the whole point of the cache and is
   // invisible in the audio itself.
-  async function getAudio(text, lang) {
+  //
+  // In-flight de-duplication by cache key, and it is NOT an optimisation. §9.5 warms a
+  // card's segments in parallel at card open while the player walks the same segments
+  // a moment later; without this the two paths each miss the (still empty) cache and
+  // the user pays twice for one clip, which makes the warm-up worse than useless.
+  // Same discipline as notes.js's `inflight` map, keyed by cache key rather than card
+  // id because audio is keyed by engine+voice+text, not by card.
+  const inflight = new Map();
+
+  function getAudio(text, lang) {
     const key = cacheKey(text, lang);
-    const hit = await LearnStore.getAudio(key);
-    // Only byte-inline records count. A legacy record holds a Blob HANDLE that
-    // may be a corpse (dangling after any app update) — refetch and replace it
-    // rather than serve bytes nobody can read.
-    if (hit && hit.buf && hit.buf.byteLength) {
-      return { buf: hit.buf, type: hit.type || 'audio/mpeg', cached: true, key };
+    const live = inflight.get(key);
+    if (live) return live;
+    const p = (async () => {
+      const hit = await LearnStore.getAudio(key);
+      // Only byte-inline records count. A legacy record holds a Blob HANDLE that
+      // may be a corpse (dangling after any app update) — refetch and replace it
+      // rather than serve bytes nobody can read.
+      if (hit && hit.buf && hit.buf.byteLength) {
+        return { buf: hit.buf, type: hit.type || 'audio/mpeg', cached: true, key };
+      }
+      const got = await fetchAudio(text, lang);
+      try { await LearnStore.putAudio(key, got, { lang, engineId: engine().id }); } catch (_) {}
+      return { buf: got.buf, type: got.type, cached: false, key };
+    })();
+    inflight.set(key, p);
+    // Settle either way before dropping the entry, so a failure is retried next time
+    // instead of being remembered as a permanent one.
+    p.then(() => inflight.delete(key), () => inflight.delete(key));
+    return p;
+  }
+
+  // Is an endpoint engine configured well enough to be asked for bytes? One helper so
+  // `available()` (renders the ▶ control) and `prefetch()` (fills the cache) can never
+  // disagree about what "configured" means.
+  function readiness(e) {
+    if (e.requiresEndpoint && !cfg.baseUrl) return { ok: false, reason: 'no_base' };
+    if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
+    return { ok: true };
+  }
+
+  // Synthesize into the cache WITHOUT playing (§9.5: 开卡并行预热 / 出发前预载).
+  //
+  // Deliberately not "speak but muted": speak() bumps the epoch and would cancel the
+  // utterance actually playing. This only fills the cache, so it is safe to fire while
+  // audio is running, and safe to fire many at once.
+  //
+  // A `browser` engine has no bytes to cache — the Web Speech API exposes no audio
+  // data (§9.1), which is a property of the API, not a gap. Saying so by name matters:
+  // the preload surface has to tell the user it produces no audio cache rather than
+  // show a progress bar that can never move. No request is issued in that case.
+  async function prefetch(text, lang) {
+    const clean = LearnModel.normText(text);
+    if (!clean) return { ok: false, reason: 'empty' };
+    const e = engine();
+    if (!e) return { ok: false, reason: 'unsupported' };
+    if (!e.returnsAudio) return { ok: false, reason: 'not_cacheable' };
+    const gate = readiness(e);
+    if (!gate.ok) return gate;
+    try {
+      const got = await getAudio(clean, lang);
+      return { ok: true, engine: e.id, cached: got.cached, bytes: got.buf ? got.buf.byteLength : 0 };
+    } catch (err) {
+      return { ok: false, reason: (err && err.code) || 'http', status: err && err.status };
     }
-    const got = await fetchAudio(text, lang);
-    try { await LearnStore.putAudio(key, got, { lang, engineId: engine().id }); } catch (_) {}
-    return { buf: got.buf, type: got.type, cached: false, key };
   }
 
   // Chunked to keep the argument list finite; a speech clip is ~100-500KB, so the
@@ -382,16 +435,14 @@ var LearnTTS = (() => {
       }
       return { ok: true };
     }
-    if (e.requiresEndpoint && !cfg.baseUrl) return { ok: false, reason: 'no_base' };
-    if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
-    return { ok: true };
+    return readiness(e);
   }
 
   return {
     DEFAULTS,
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, baseLang, undLang, cacheKey,
-    getAudio, speak, stop, available,
+    getAudio, prefetch, speak, stop, available,
     get config() { return cfg; },
   };
 })();

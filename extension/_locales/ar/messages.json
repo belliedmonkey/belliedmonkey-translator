@@ -1559,5 +1559,89 @@
   "drive_empty": {
     "message": "لا توجد بطاقات يمكن قراءتها",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "نطاق التحميل المسبق",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "مجموعة اليوم",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "اليوم + 3 أيام قادمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "اليوم + 7 أيام قادمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "تحميل مسبق للاستخدام دون اتصال",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "اضغط قبل الانطلاق لتنزيل الصوت والتحليل والترجمة التي ستستمع إليها على هذا الجهاز، فتُشغَّل الجلسة كاملة دون اتصال. الضغطة الأولى تحسب التكلفة فقط ولا تنفق شيئًا — تحقّق من عدد الطلبات قبل الضغط مرة أخرى.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "جارٍ التحقّق ممّا هو موجود على هذا الجهاز…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} بطاقة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} مقطعًا صوتيًا بحاجة إلى توليد",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} بطاقة بحاجة إلى تحليل",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} بطاقة بلا ترجمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "الصوت المدمج في الجهاز لا يُنشئ ذاكرة مؤقتة ويعمل أصلًا دون اتصال، لذا لا يُحمَّل هنا سوى التحليل والترجمة.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "لم يُضبط محرّك التحليل، لذا لن تحصل البطاقات بلا ترجمة على ترجمة هذه المرة (الإعدادات ← تحليل الجملة)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "كل هذا موجود على الجهاز بالفعل — لن تحتاج إلى اتصال أثناء الطريق.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "تأكيد التحميل المسبق (نحو {n} طلبًا مدفوعًا)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "إيقاف",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "جارٍ التحميل المسبق {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "اكتمل {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "تم الإيقاف: اكتمل {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} حالة إخفاق ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "محرّك الصوت غير مضبوط ({reason})، لذا لن يُولَّد أي مقطع صوتي هذه المرة (الإعدادات ← محرّك الصوت)",
+    "description": "Podcast mode preload (learning-design §9.5)"
   }
 }

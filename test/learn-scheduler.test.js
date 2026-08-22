@@ -108,6 +108,75 @@ describe('LearnScheduler — grading', () => {
   });
 });
 
+// §9.5 出发前预载 needs "what might I hear over the next few days", and today's deck
+// is not that set. There is no new scheduling rule — the same buildDeck runs again
+// with the clock moved forward — so what these pin is that the composition is honest.
+describe('LearnScheduler — buildDeckAhead (§9.5 出发前预载)', () => {
+  test('days = 0 is buildDeck, byte for byte — the preload default must change nothing', () => {
+    const S = load();
+    const items = [];
+    for (let i = 0; i < 12; i++) {
+      items.push(card({ id: 'd' + i, sourceId: 's' + i, sched: { s: 2, d: 5, lastReviewAt: T0 - 30 * DAY } }));
+    }
+    const a = S.buildDeck(items, T0, null, 0).map((x) => x.id);
+    const b = S.buildDeckAhead(items, T0, null, 0, 0).map((x) => x.id);
+    ok(JSON.stringify(a) === JSON.stringify(b), JSON.stringify(a) + ' vs ' + JSON.stringify(b));
+  });
+
+  test('a card that only comes due later IS included once the horizon reaches it', () => {
+    const S = load();
+    // Due in ~11 days: absent from today's deck, present when the horizon covers it.
+    const later = card({ id: 'later', sched: { s: 10, d: 5, lastReviewAt: T0 - DAY } });
+    eq(S.buildDeckAhead([later], T0, null, 0, 0).length, 0);
+    eq(S.buildDeckAhead([later], T0, null, 0, 3).length, 0, '视野还没够到就不该预载');
+    eq(S.buildDeckAhead([later], T0, null, 0, 11).length, 1);
+  });
+
+  test('the union is deduplicated by id — a card due today is not preloaded seven times', () => {
+    const S = load();
+    const due = card({ id: 'due', sched: { s: 2, d: 5, lastReviewAt: T0 - 30 * DAY } });
+    const deck = S.buildDeckAhead([due], T0, null, 0, 7);
+    eq(deck.length, 1, 'every day of the horizon sees this card; the preload sees it once');
+    eq(deck[0].id, 'due');
+  });
+
+  test("only day 0 spends today's new-card budget — a future day's cap starts over", () => {
+    const S = load();
+    const items = [];
+    for (let i = 0; i < 50; i++) items.push(card({ id: 'c' + i, state: 'candidate', sched: null, sourceId: 's' + i }));
+    const cfg = { dailyNew: 5, deckSize: 20 };
+    // Today's quota is already used up, so day 0 contributes nothing…
+    eq(S.buildDeck(items, T0, cfg, 5).length, 0);
+    // …but tomorrow's budget starts over. Compare against what buildDeck itself gives
+    // that day rather than a hardcoded 5 — the per-day new-card share is also bounded
+    // by MIX.fresh, and pinning the number here would make this test about the mix.
+    const tomorrow = S.buildDeck(items, T0 + DAY, cfg, 0).length;
+    ok(tomorrow > 0, 'buildDeck 自己在明天就该给出新卡，否则这个用例什么都没测');
+    eq(S.buildDeckAhead(items, T0, cfg, 5, 1).length, tomorrow,
+      '未来那天的新卡预算是重新算的，不是接着今天扣');
+  });
+
+  test('a negative or garbage horizon degrades to today, never to an empty deck', () => {
+    const S = load();
+    const due = card({ id: 'due', sched: { s: 2, d: 5, lastReviewAt: T0 - 30 * DAY } });
+    // 'x' and '3' matter most: the horizon comes off a <select>, so it is a STRING.
+    for (const bad of [-3, undefined, null, NaN, 'x', '']) {
+      eq(S.buildDeckAhead([due], T0, null, 0, bad).length, 1, String(bad));
+    }
+    // …and a numeric string must be honoured, not floored to today.
+    const later = card({ id: 'later', sched: { s: 10, d: 5, lastReviewAt: T0 - DAY } });
+    eq(S.buildDeckAhead([later], T0, null, 0, '11').length, 1, "'11' 必须当 11 天用");
+  });
+
+  test('items the deck withholds stay withheld at every horizon', () => {
+    const S = load();
+    const muted = card({ id: 'x', state: 'muted', sched: { s: 1, d: 5, lastReviewAt: T0 - 30 * DAY } });
+    const mature = card({ id: 'm', sched: { s: 300, d: 3, lastReviewAt: T0 - DAY } });
+    // 300 天稳定度的卡在 7 天视野内仍然远未到期 —— 预载不该把它翻出来。
+    eq(S.buildDeckAhead([muted, mature], T0, null, 0, 7).length, 0);
+  });
+});
+
 describe('LearnScheduler — the deck WITHHOLDS things', () => {
   test('a mature, well-retained card does NOT appear', () => {
     const S = load();
