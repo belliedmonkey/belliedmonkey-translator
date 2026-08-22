@@ -6,6 +6,9 @@
 //   node scripts/gh-release.js --apply            # 真的发（对外动作）
 //   node scripts/gh-release.js --apply --clobber  # 覆盖已存在的同名资产
 //   node scripts/gh-release.js --allow-dirty      # 显式跳过版本完整性门禁
+//   node scripts/gh-release.js --zip <路径> --tag v1.6.4-store --worktree <目录>
+//                                                 # 从某个历史 tag 重出的正确产物：
+//                                                 # 溯源被**说出来并验证**，不是跳过
 //
 // **为什么要有这个脚本**：官网首页的「下载 Chrome 安装包」直链
 // `releases/latest/download/belliedmonkey-translator-chrome.zip`，也就是说
@@ -37,22 +40,26 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
   const apply = argv.includes('--apply');
   const clobber = argv.includes('--clobber');
   const allowDirty = argv.includes('--allow-dirty');
+  const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
+  const zipPath = opt('--zip') || BUILT_ZIP;
+  const tagOpt = opt('--tag');
+  const worktree = opt('--worktree');
 
-  if (!fs.existsSync(BUILT_ZIP)) {
-    console.error(`✗ 找不到 ${path.basename(BUILT_ZIP)} —— 先跑 node build.js`);
+  if (!fs.existsSync(zipPath)) {
+    console.error(`✗ 找不到 ${zipPath} —— 先跑 node build.js`);
     process.exit(1);
   }
-  const version = versionInZip(BUILT_ZIP);
+  const version = versionInZip(zipPath);
   if (!version) {
     console.error('✗ 读不出包内版本号（manifest.json）');
     process.exit(1);
   }
   const tag = `v${version}`;
   console.log(apply ? '\x1b[1m模式：真的发布（对外动作）\x1b[0m' : '模式：只打印计划（加 --apply 才发）');
-  console.log(`  包 ${path.basename(BUILT_ZIP)} · 版本 ${version} · ${(fs.statSync(BUILT_ZIP).size / 1024).toFixed(0)} KB`);
+  console.log(`  包 ${zipPath} · 版本 ${version} · ${(fs.statSync(zipPath).size / 1024).toFixed(0)} KB`);
 
   // 门禁：和 CWS / AMO 同一份实现。
-  assertVersionIntegrity({ version, what: '这次 Release', allowDirty });
+  assertVersionIntegrity({ version, what: '这次 Release', allowDirty, tag: tagOpt, cwd: worktree });
 
   // Release 已存在？存在就只换资产，不重建（tag 与 notes 不该被一次重传改掉）。
   let exists = true;
@@ -76,7 +83,7 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
 
   // 用契约名上传：gh 按文件名决定资产名，所以先复制成那个名字。
   const staged = path.join(require('os').tmpdir(), ASSET_NAME);
-  fs.copyFileSync(BUILT_ZIP, staged);
+  fs.copyFileSync(zipPath, staged);
 
   if (!exists) {
     sh(`gh release create ${tag} ${JSON.stringify(staged)} --title ${JSON.stringify(tag)} --generate-notes`,

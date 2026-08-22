@@ -15,8 +15,8 @@
 
 const { execSync } = require('child_process');
 
-const git = (cmd) => {
-  try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+const gitIn = (cwd) => (cmd) => {
+  try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], cwd }).trim(); }
   catch (_) { return ''; }
 };
 
@@ -31,26 +31,35 @@ const SHIPPING_PATHS = 'extension build build.js';
  * @param {string}  o.version    包内读出来的版本号（不是 package.json —— 要验的是**包**）
  * @param {string}  o.what       出错信息里怎么称呼这个产物，例：'这个包' / '这次 Release'
  * @param {boolean} o.allowDirty 显式放行（调用方从 --allow-dirty 传进来）
+ * @param {string}  o.tag        要对照的 tag，默认 `v<version>`
+ * @param {string}  o.cwd        在哪棵工作树里查 HEAD，默认当前目录
  * @returns {boolean} 通过为 true；allowDirty 放行时为 false（调用方可据此打印警告）
+ *
+ * `tag` + `cwd` 一起，让「从某个历史 tag 重出正确产物」成为**被验证过的**操作，
+ * 而不是靠 --allow-dirty 绕过去。2026-08-22 的实例：v1.6.4 那个 tag 描述的不是
+ * 真正出货的内容（星号修复在打完 tag 之后才合进来），于是给真正出货的提交补了
+ * 一个 v1.6.4-store，在一棵干净 worktree 里从它重新构建，再用
+ * `--tag v1.6.4-store` 把这个事实说出来。**说出来的溯源，比跳过检查强得多。**
  */
-function assertVersionIntegrity({ version, what = '这个包', allowDirty = false }) {
+function assertVersionIntegrity({ version, what = '这个包', allowDirty = false, tag: tagOpt, cwd }) {
   if (!version) return false;
+  const git = gitIn(cwd);
   if (allowDirty) {
     console.log(`\x1b[33m⚠ --allow-dirty：跳过版本完整性检查。${what}与 tag 的对应关系不再有保证。\x1b[0m`);
     return false;
   }
 
-  const tag = `v${version}`;
+  const tag = tagOpt || `v${version}`;
   const tagSha = git(`git rev-list -n1 ${tag}`);
   const head = git('git rev-parse HEAD');
   const dirty = git(`git status --porcelain -- ${SHIPPING_PATHS}`);
 
   if (!tagSha) {
-    console.error(`✗ 版本 ${version} 没有对应的 tag ${tag} —— ${what}不对应任何一次发布。`);
+    console.error(`✗ 找不到 tag ${tag} —— ${what}（版本 ${version}）不对应任何一次发布。`);
     process.exit(1);
   }
   if (tagSha !== head) {
-    console.error(`✗ 版本是 ${version}，但 HEAD 不在 ${tag} 上。${tag} 之后还有：`);
+    console.error(`✗ ${what}是版本 ${version}，但 HEAD 不在 ${tag} 上。${tag} 之后还有：`);
     for (const l of git(`git log --oneline ${tag}..HEAD`).split('\n').filter(Boolean)) {
       console.error('    ' + l);
     }
@@ -66,7 +75,8 @@ function assertVersionIntegrity({ version, what = '这个包', allowDirty = fals
     console.error('  确实要出：加 --allow-dirty。');
     process.exit(1);
   }
-  console.log(`✓ 版本 ${version} 与 tag ${tag} 一致，工作树干净`);
+  console.log(`✓ 版本 ${version} 与 tag ${tag} 一致，工作树干净`
+    + (cwd ? `（工作树 ${cwd}）` : ''));
   return true;
 }
 
