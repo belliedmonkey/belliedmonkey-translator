@@ -12,7 +12,7 @@
 //   (cd dist && python3 -m http.server 8732 &)
 //   node store-assets/src/capture.js        # 拍出 src/assets/f3,f4
 //   bash store-assets/src/render.sh         # 合成 40 张出货图
-//   python3 <上传脚本>                       # 见 gbrain 发布权威页的 ASC 四步资产流程
+//   node scripts/asc-media.js --apply       # 传到 ASC（默认只打印计划）
 //
 // 为什么要 http 服务而不是 file://：复习页用 IndexedDB，file:// origin 下被 Chrome 拒。
 'use strict';

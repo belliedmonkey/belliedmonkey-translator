@@ -6,7 +6,7 @@
 //   (cd dist-china && python3 -m http.server 8731 &)
 //   node screenshots-cn/src/capture.js      # 拍出 src/assets/*.png
 //   bash screenshots-cn/src/render.sh       # 合成 cn-iphone-*/cn-ipad-*
-//   python3 <上传脚本>                       # 见 gbrain 发布权威页的 ASC 四步资产流程
+//   node scripts/asc-media.js --apply       # 传到 ASC（默认只打印计划）
 //
 // 为什么要 http 服务而不是 file://：复习页用 IndexedDB，file:// origin 下被 Chrome 拒。
 'use strict';
