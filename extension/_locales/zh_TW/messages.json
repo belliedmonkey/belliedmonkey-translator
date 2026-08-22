@@ -1330,6 +1330,10 @@
     "message": "還沒選引擎",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "這個版本不認識目前儲存的引擎，請在上面重新選一個",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "端點通了，但返回的內容無法解析",
     "description": "Engine self-test (settings)"

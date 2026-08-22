@@ -1329,6 +1329,10 @@
     "message": "No hay motor seleccionado",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "Esta versión no reconoce el motor guardado: elige uno arriba",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "El endpoint respondió, pero no se pudo interpretar el contenido",
     "description": "Engine self-test (settings)"

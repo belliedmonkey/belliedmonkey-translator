@@ -1329,6 +1329,10 @@
     "message": "لم يُختر محرك",
     "description": "Engine self-test (settings)"
   },
+  "engine_test_unknown_provider": {
+    "message": "هذا الإصدار لا يتعرف على المحرك المحفوظ — اختر واحدًا من الأعلى",
+    "description": "Engine self-test (settings)"
+  },
   "engine_test_bad_output": {
     "message": "استجابت نقطة النهاية لكن تعذّر تحليل المحتوى",
     "description": "Engine self-test (settings)"

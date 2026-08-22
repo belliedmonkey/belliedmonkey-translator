@@ -65,6 +65,41 @@ function flipSyncFlag(text, what, direction) {
     : 'enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
 }
 
+// 默认引擎必须是**本 flavor 注册表里存在**的 id。
+//
+// 2026-08-22 实测:中国版出货包的默认是 `provider: 'google'`,而 google 的 flavors 是
+// ['global'],于是它在中国版注册表里根本不存在。运行时 `providerById` 返回 null,
+// `callProvider` 的 `!p` 分支静默落到 translate.googleapis.com —— 一份刚装好、没填
+// 任何 Key 的中国版,真的把 38 段译文翻了出来,输出与直接打 Google 的返回逐字相同。
+//
+// 而设置页的 <select> 里没有 google 这个选项,浏览器把它强制显示成第一项(DeepSeek),
+// 于是**界面写着 DeepSeek,实际发的是 Google**。国内用户那条地址还不通,一段段等到
+// 20 秒超时——就是「翻译中…」不动的形状。静默兜底 + 界面与运行时不一致,两样都占。
+function rewriteDefaultProvider(text, what, providerId) {
+  const NEEDLE = "provider: 'google',";
+  const first = text.indexOf(NEEDLE);
+  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
+    console.error(`✗ default provider rewrite: expected exactly one \`${NEEDLE}\` in ${what}`);
+    process.exit(1);
+  }
+  return text.replace(NEEDLE, `provider: '${providerId}', // CHINA build: google is not in this flavor's registry (build.js)`);
+}
+
+// 门禁:两个 flavor 都查。**一个 flavor 的默认值指向它自己注册表里没有的引擎,是错误**,
+// 而这种错误在构建期完全看得见——上面那个 bug 出货了才被真机发现,不该再有第二次。
+function defaultProviderGate(dir, label, flavor) {
+  const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+  const m = /provider:\s*'([a-z_]+)'/.exec(bg);
+  if (!m) { err(`${label}: 在 background.js 里找不到默认 provider`); return; }
+  const want = m[1];
+  const reg = require('./build/providers.config.js');
+  const ids = reg.filter((p) => p.flavors.includes(flavor)).map((p) => p.id);
+  if (!ids.includes(want)) {
+    err(`${label}: 默认引擎 '${want}' 不在 ${flavor} 注册表里(${ids.join(', ')})`
+      + ' —— 运行时会静默落到 translateGoogle');
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function copyDir(src, dst) {
@@ -687,7 +722,16 @@ if (FLAVOR === 'china') {
   const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
   fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
   log('China flavor: sync disabled in artifact (enabled → false)');
+
+  // 默认引擎:google 只在 global 注册表里,中国版必须换成本 flavor 有的那个。
+  const bgPath = path.join(DIST, 'background.js');
+  fs.writeFileSync(bgPath, rewriteDefaultProvider(
+    fs.readFileSync(bgPath, 'utf8'), 'dist-china/background.js', 'deepseek'));
+  log('China flavor: default provider google → deepseek');
 }
+
+// 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。
+defaultProviderGate(DIST, path.basename(DIST), FLAVOR);
 
 // Firefox-specific patches
 if (isFirefox) patchManifestForFirefox();
