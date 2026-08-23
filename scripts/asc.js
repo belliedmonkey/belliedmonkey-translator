@@ -103,7 +103,7 @@ async function cmdVersions() {
   for (const app of await apps()) {
     console.log(`\n■ ${app.name}  (${app.bundleId})`);
     const d = await api('GET',
-      `/apps/${app.id}/appStoreVersions?limit=6`
+      `/apps/${app.id}/appStoreVersions?limit=30`
       + '&fields[appStoreVersions]=versionString,appStoreState,platform,createdDate');
     if (!d.data.length) { console.log('  （没有版本记录）'); continue; }
     for (const v of d.data) {
