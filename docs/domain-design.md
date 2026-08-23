@@ -34,7 +34,7 @@ middle is generic and lives in `TranslationCore`.
    │   title / description / comments                  │   │   yt-hook → parseJson3 → cues    │
    │   standard-HTML segmentation                      │   │   → mergeSentences               │
    │   scheduling = viewport-priority + lazy           │   │   scheduling = time-window       │
-   │   renderer = sibling injection (+ rich text)      │   │   renderer = subtitle overlay    │
+   │   renderer = child injection (+ rich text)        │   │   renderer = subtitle overlay    │
    └────────────────────────────────────────────────────┘   └────────────────────────────────┘
 ```
 
@@ -294,8 +294,9 @@ ad-hoc `translateNode` (no retry/error UI) and the `YT_TARGETS` special path are
 folded into `DomSegmenter + Engine`.
 
 YouTube page-text specials become **general renderer capabilities**, not site
-selectors: sibling injection (resists Polymer re-render, also fine on normal
-pages), clickable URLs (general), interleaved description. Only "timestamp click →
+selectors: child injection (resists Polymer re-render, also fine on normal
+pages — see the renderer contract below for why it is a child and not a
+sibling), clickable URLs (general), interleaved description. Only "timestamp click →
 `video.currentTime`" is a small optional renderer hook.
 
 **Engine settings are read late, not captured at construction.** `createEngine`
@@ -308,16 +309,70 @@ target language entirely. `translate` was already injected as a late-reading clo
 for exactly this reason; `targetLang` now matches it. Anything else the engine reads
 from user settings must follow the same rule.
 
-**Renderer contract: the injected sibling MIRRORS its original, and the mirror is
-not a one-shot.** Two consequences, both general (no site knowledge):
+**Renderer contract: the translation is a CHILD of its original, and the mirror is
+not a one-shot.**
+
+- **The translation goes INSIDE the original block, as its last child** — not
+  beside it. This is the load-bearing half of the contract, and it is not a style
+  preference: **an extra child in a container the page's framework owns is a
+  correctness bug.** React (and every position-matching reconciler) aligns its
+  children by index. A foreign node inserted between two of them shifts every
+  position after it, so the next commit does not patch — it moves the whole list.
+  Measured on `lennysnewsletter.com` (2026-08-23), one selection change inside the
+  article:
+
+  | our nodes in `div.body.markup` | mutations | `<p>` moved |
+  |---|---|---|
+  | 3, as siblings | 188 | **76** |
+  | 0 | 12 | **0** |
+  | 3, as children of their paragraphs | 6 | **0** |
+
+  Three was enough. The nodes are *moved* (same objects re-inserted), not
+  replaced — which is why this was survivable for a year: a live selection could
+  be snapshotted and re-asserted. **Clicks could not.** A real mouse click landing
+  dead centre on a hyperlink reported `mousedown`/`mouseup` with
+  `target = DIV.single-post-container` instead of the `<a>`, and two mousedowns
+  produced one `click`: the paragraph is moved out from under the pointer between
+  press and release, so the browser retargets the click to a common ancestor or
+  drops it. The anchor never activates. **「链接打不开」and「选不中」are one bug.**
+
+  The 2026-08-12 note in `content-webpage.js` had already measured the same
+  asymmetry ("ZERO paragraph mutations without our siblings and hundreds with
+  them") and answered it with repair-after-the-fact — a pre-paint re-anchor pass
+  plus a selection keeper. Repair cannot reach a click that was never dispatched.
+  So the fix moved to the cause.
+
+  Being a child also *removes* machinery rather than adding it: inside the
+  original's own box there is no parent flex direction to reverse the pair
+  (`computePlacement`), no sibling to constrain (`layoutCss` width mirroring), and
+  no flex item to un-wrap on the parent (`flowFixCss`). Those exist to compensate
+  for being a sibling. What replaces them is narrower: when the ORIGINAL is itself
+  a flex/grid container our child becomes one of its items, and only then does it
+  need a full-row escape.
+
+- **The interleave holder stays a sibling, and that is not an oversight.** The
+  interleave path HIDES the original (`data-mt-hidden`); a holder placed inside a
+  `display:none` node would be hidden with it. So blobs keep the old placement and
+  the old exposure. Acceptable because the two do not meet in practice: interleave
+  only fires on multi-paragraph blobs, and `INTERLEAVE_UNSAFE` already bails out
+  any blob containing a link, button, or media. A framework container full of
+  blank-line blobs would still churn — write the fixture the day a real page does.
 
 - **Placement follows VISUAL order, not DOM order.** "Original above, translation
-  below" is the invariant; `afterend` is merely the usual way to achieve it. In a
-  container whose visual order is reversed (`flex-direction:column-reverse`, or a
-  row with `flex-wrap:wrap-reverse`, where the lines stack upward) the renderer
-  anchors the translation *before* the original instead. The decision is computed
-  from the parent's computed style at render time and cached on the node, so the
-  per-tick re-anchor pass never forces a style recalc.
+  below" is the invariant. As a child, last-child achieves it unconditionally —
+  the reversal rule below now applies only to the interleave holder, which is
+  still a sibling. In a container whose visual order is reversed
+  (`flex-direction:column-reverse`, or a row with `flex-wrap:wrap-reverse`, where
+  the lines stack upward) the renderer anchors that holder *before* the original
+  instead. The decision is computed from the parent's computed style at render
+  time and cached on the node, so the per-tick re-anchor pass never forces a
+  style recalc.
+
+- **The cost we accepted: selecting a paragraph now selects its translation too.**
+  A child is inside the original's range, so 划选整段 / ⌘A / copy picks up both
+  languages. That is the same trade every in-place bilingual reader makes, and it
+  is the honest side of the trade — the alternative is a pair the page's own
+  framework destroys on every click.
 - **The mirror is re-measured when the viewport changes.** The copied geometry is
   viewport-time pixels (width cap, inline-start indent, the flex-row wrap fix), so
   rotation / resize / a media-query breakpoint invalidates it. The renderer drops
@@ -632,7 +687,7 @@ same endpoint.
 | `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits`; honors two generic adapter markers — `computePlayerRegions` (`data-mt-player-region`) and `computeSkipRegions` (`data-mt-skip-region`) |
 | `TwitterSite` | `content/site-twitter.js` | x.com/twitter.com **site adapter** (DOM/text dimension): feature-detects the tweet UI and marks non-content chrome (trends/who-to-follow sidebar, left nav, per-tweet engagement bar, and the tweet author/metadata line) with `data-mt-skip-region` so the generic segmenter excludes it; re-asserted via a `MutationObserver` against the virtualized feed. No selectors leak into `DomSegmenter`. |
 | `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
-| `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → sibling renderer |
+| `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → child renderer (interleave holder stays a sibling) |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
 | `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |

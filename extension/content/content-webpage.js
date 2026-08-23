@@ -223,8 +223,12 @@ var WebpageTranslator = (() => {
     return !!cs && TABLE_DISPLAYS.indexOf(cs.display) >= 0;
   }
 
-  function flowFixCss(node) {
-    const p = node.parentElement;
+  // `box` 是**译文节点将成为其子元素的那个容器**：译文挂在原文里面时是原文自己，
+  // interleave 的 holder 仍是兄弟节点、于是仍是原文的父元素。改成显式传入，是因为
+  // 「永远看父元素」在译文搬进原文之后就是错的答案，而且错得很安静：flex 原文里的
+  // 译文会变成一个 item 贴在正文右边。
+  function flowFixCss(box) {
+    const p = box;
     if (!p) return '';
     let cs; try { cs = getComputedStyle(p); } catch (_) { return ''; }
     const disp = cs.display;
@@ -331,9 +335,23 @@ var WebpageTranslator = (() => {
   // definite zero; `min-width:100%` then fills the cell back out at used-value time.
   // `overflow-wrap:anywhere` stays as the belt to `width:0`'s braces, so a single long
   // unbreakable token can't overflow the cell it is now painted inside.
-  function placementCss(node) {
-    if (isCell(node)) return 'width:0;min-width:100%;overflow-wrap:anywhere;';
-    return flowFixCss(node) + layoutCss(node);
+  // `asChild` = 译文挂在原文**里面**（2026-08-23 起的默认，见 domain-design §4 渲染器
+  // 契约）。这时不需要 layoutCss：那一整套宽度/缩进/居中的镜像，存在的理由就是兄弟
+  // 节点拿不到原文的盒子约束 —— 挂进去之后它本来就在那个盒子里。剩下的只有一种情况：
+  // **原文自己**是 flex/grid 容器，译文成了它的一个 item，需要独占一行。
+  //
+  // 子节点必须对原文的**固有宽度贡献为零**。原来只有表格单元格需要这一条（一个仅靠
+  // overflow-wrap 换行的译文，仍然会把 auto 宽的列撑宽 —— fixture 30 实测 +78px）。
+  // 译文搬进原文之后，凡是宽度由内容决定的原文都吃这一套：flex item、grid item、
+  // inline-block、浮动。fixture 04 的 flex 行实测 328→376px —— 译文把原文撑宽了，
+  // 而原文的宽度是页面自己的布局。`width:0` 让贡献是确定的零，`min-width:100%`
+  // 在 used-value 阶段再把它填回原文的内容盒。对普通块级原文这两条是恒等变换，
+  // 所以不分情况一律加 —— 少一个分支，就少一处「哪些算内容定宽」的判断会错。
+  const CHILD_BOX = 'width:0;min-width:100%;overflow-wrap:anywhere;';
+  function placementCss(node, asChild) {
+    if (asChild) return CHILD_BOX + flowFixCss(node);  // flowFixCss 的 width 要压过 CHILD_BOX
+    if (isCell(node)) return CHILD_BOX;
+    return flowFixCss(node.parentElement) + layoutCss(node);
   }
 
   // ─── Placement: visual order, not DOM order ───────────────────────────
@@ -363,23 +381,29 @@ var WebpageTranslator = (() => {
   function placeBefore(node) { return node.__mtPlaceBefore === true; }
 
   // ─── Sibling renderer ─────────────────────────────────────────────────
-  function adjacentTrans(node) {
-    if (isCell(node)) {
-      const c = node.lastElementChild;
-      return (c && c.classList && c.classList.contains(CLASS)) ? c : null;
-    }
+  // 找一个已经存在、可以复用的译文节点。**先看子节点**（现在的放置方式），再看兄弟
+  // 节点 —— 后者不是历史包袱：interleave 的 holder 依然是兄弟，而且用户从旧版本升上来
+  // 时页面上可能正挂着一批旧式兄弟节点，认得它们才能复用而不是留下两份。
+  function existingTrans(node) {
+    const c = node.lastElementChild;
+    if (c && c.classList && c.classList.contains(CLASS)) return c;
     const s = placeBefore(node) ? node.previousElementSibling : node.nextElementSibling;
     return (s && s.classList && s.classList.contains(CLASS)) ? s : null;
   }
+  // 译文挂进原文里，作为最后一个子节点。**唯一的例外是 interleave 的 holder**：那条路
+  // 会把原文 display:none，holder 挂在里面会跟着一起消失，所以它仍是兄弟节点。
+  //
+  // 重挂一个已经在正确位置的元素在 DOM 里是 no-op，但仍然先比对再动 —— 免得 SPA
+  // 每次重渲染都产生一次真实 mutation。
   function anchor(node, el) {
-    // A cell holds its translation as its LAST CHILD — see isCell. Re-appending an
-    // element that is already last is a no-op in the DOM, but guard anyway so an SPA
-    // re-render doesn't churn.
-    if (isCell(node)) { if (node.lastElementChild !== el) node.appendChild(el); return; }
-    const before = placeBefore(node);
-    if ((before ? node.previousElementSibling : node.nextElementSibling) !== el) {
-      node.insertAdjacentElement(before ? 'beforebegin' : 'afterend', el);
+    if (el.dataset && el.dataset.interleave === '1') {
+      const before = placeBefore(node);
+      if ((before ? node.previousElementSibling : node.nextElementSibling) !== el) {
+        node.insertAdjacentElement(before ? 'beforebegin' : 'afterend', el);
+      }
+      return;
     }
+    if (node.lastElementChild !== el) node.appendChild(el);
   }
   // Anchor ONE translation div immediately after `node`. SPA frameworks (React on
   // Substack, etc.) re-render their container and DISPLACE our injected sibling to the
@@ -388,13 +412,13 @@ var WebpageTranslator = (() => {
   // (never create a duplicate) and always re-anchor it right after the node. Without this
   // the translations pile up at the container end and the page reads as "英文一块 / 中文
   // 一块" instead of interleaved.
-  function ensureSibling(node) {
+  function ensureTrans(node) {
     node.__mtPlaceBefore = computePlacement(node);                    // refresh before adopting/anchoring
     let d = node.__mtTrans;
     if (d && !d.isConnected) d = null;                                // was removed
     if (d && d.dataset.interleave === '1') { d.remove(); d = null; }  // was an interleave holder
     if (!d) {
-      d = adjacentTrans(node);                                        // adopt an adjacent one if present
+      d = existingTrans(node);                                        // adopt an existing one if present
       if (d && d.dataset.interleave === '1') { d.remove(); d = null; }
       if (!d) { d = document.createElement('div'); d.className = CLASS; }
       node.__mtTrans = d;
@@ -463,15 +487,15 @@ var WebpageTranslator = (() => {
     const node = u.node;
     if (st.state === 'pending') {
       restoreOriginal(node);
-      const d = ensureSibling(node); d.onclick = null;
-      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + placementCss(node);
+      const d = ensureTrans(node); d.onclick = null;
+      d.style.cssText = 'color:#888;margin:2px 0;font-size:.9em;font-style:italic;display:block;white-space:pre-wrap;' + placementCss(node, true);
       d.textContent = TranslationCore.MSG.loading;
       return;
     }
     if (st.state === 'error') {
       restoreOriginal(node);
-      const d = ensureSibling(node);
-      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + placementCss(node);
+      const d = ensureTrans(node);
+      d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + placementCss(node, true);
       d.textContent = TranslationCore.MSG.error;
       d.onclick = () => { engine.retry(u); u._shownKey = ''; };
       return;
@@ -495,8 +519,8 @@ var WebpageTranslator = (() => {
         renderInterleaved(node, pairs); // single blob → interleave
       } else {
         restoreOriginal(node);
-        const d = ensureSibling(node); d.onclick = null;
-        d.style.cssText = transStyle(node) + placementCss(node);
+        const d = ensureTrans(node); d.onclick = null;
+        d.style.cssText = transStyle(node) + placementCss(node, true);
         buildRichText(st.translation, d);
         try { attachStarGesture(d, node); } catch (_) {}
       }
@@ -505,7 +529,7 @@ var WebpageTranslator = (() => {
     // nothing to translate → no sibling
     restoreOriginal(node);
     if (node.__mtTrans) { node.__mtTrans.remove(); node.__mtTrans = null; }
-    else { const d = adjacentTrans(node); if (d) d.remove(); }
+    else { const d = existingTrans(node); if (d) d.remove(); }
   }
 
   // Decide how to slice a single-blob unit for the interleave renderer, or return
@@ -613,7 +637,7 @@ var WebpageTranslator = (() => {
     if (holder && !holder.isConnected) holder = null;
     if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; } // was a plain sibling
     if (!holder) {
-      holder = adjacentTrans(node);
+      holder = existingTrans(node);
       if (holder && holder.dataset.interleave !== '1') { holder.remove(); holder = null; }
       if (!holder) { holder = document.createElement('div'); holder.className = CLASS; holder.dataset.interleave = '1'; }
       node.__mtTrans = holder;
@@ -621,7 +645,7 @@ var WebpageTranslator = (() => {
     anchor(node, holder);
     // Copy the original's font onto the holder so the re-rendered original rows match
     // the source; translation rows additionally take the distinct color via transStyle.
-    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + placementCss(node);
+    holder.style.cssText = 'display:block;margin:2px 0;' + fontCss(node) + placementCss(node, false);
     holder.textContent = '';
     // …and re-assert the original's own COLOR on the original rows. The holder is a
     // `.mt-translation` element, and bilingual.css colors that class with the
@@ -1001,12 +1025,13 @@ var WebpageTranslator = (() => {
     for (const u of units) {
       const node = u.node;
       if (!node || !node.removeAttribute) continue;
-      const sib = node.__mtTrans || adjacentTrans(node); if (sib) sib.remove();
+      const sib = node.__mtTrans || existingTrans(node); if (sib) sib.remove();
       node.__mtTrans = null;
       node.removeAttribute(PROCESSED);
       node.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR);
       restoreOriginal(node); // puts back the page's own prior inline display
-      undoFlowFix(node.parentElement); // undo the flex-row wrap fix (see flowFixCss)
+      undoFlowFix(node.parentElement); // interleave holder 那条路把 fix 打在父元素上
+      undoFlowFix(node);               // 译文挂在原文里时，fix 打在原文自己身上
     }
     document.querySelectorAll('.' + CLASS).forEach((e) => e.remove());
     document.querySelectorAll('[' + PROCESSED + ']').forEach((e) => e.removeAttribute(PROCESSED));

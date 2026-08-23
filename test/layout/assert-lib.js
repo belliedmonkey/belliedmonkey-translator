@@ -63,31 +63,40 @@
   // ─── Named per-target assertions ─────────────────────────────────────
   // Each: (node, trans, arg, ctx) => true | failure-detail-string
   const ASSERTS = {
+    // 参照系随放置方式走。译文挂在原文**里面**时（2026-08-23 起的默认），它贴的是原文
+    // 的**内容盒**；拿边框盒去比，原文只要有 padding 就必然差一个 padding 值 —— 那不是
+    // 对不齐，是量错了地方（fixture 31 的 15px 就是它的 padding-left）。不变量没变：
+    // 译文和原文的正文边缘对齐。
     sameLeft(node, trans, arg) {
       const tol = parseFloat(arg) || TOL;
-      const d = Math.abs(rectOf(trans).left - rectOf(node).left);
+      const d = Math.abs(rectOf(trans).left - (node.contains(trans) ? contentBox(node).left : rectOf(node).left));
       return d <= tol || `trans.left off by ${d.toFixed(1)}px (tol ${tol})`;
     },
     sameWidth(node, trans, arg) {
       const tol = parseFloat(arg) || TOL;
-      const d = Math.abs(rectOf(trans).width - rectOf(node).width);
+      const d = Math.abs(rectOf(trans).width - (node.contains(trans) ? contentBox(node).width : rectOf(node).width));
       return d <= tol || `trans.width off by ${d.toFixed(1)}px (tol ${tol})`;
     },
+    // 契约是**用出来的宽度不超过原文**；`max-width` 只是兄弟放置达成它的手段。译文挂进
+    // 原文之后手段消失了 —— 它就在原文的盒子里，宽度上界是结构给的，不是声明给的。所以
+    // 那个 px 上限只在兄弟放置时要求；两种放置都验最终宽度，那一条才是人能看见的东西。
     maxWidthLE(node, trans) {
-      const mw = csOf(trans).maxWidth;
-      if (mw === 'none') return 'translation has no max-width';
-      // Units matter: parseFloat('100%') is 100 and would compare as "100px" — the
-      // exact vacuous-green this assertion exists to catch. Require a px cap AND
-      // verify the USED width (the observable contract) against the original.
-      if (!/px$/.test(mw)) return `max-width "${mw}" is not a px cap`;
       const ow = baseline.get(node) ? baseline.get(node).rect.width : rectOf(node).width;
       const used = rectOf(trans).width;
-      if (parseFloat(mw) > ow + 2) return `max-width ${mw} exceeds original width ${ow}px`;
+      if (!node.contains(trans)) {
+        const mw = csOf(trans).maxWidth;
+        if (mw === 'none') return 'translation has no max-width';
+        // Units matter: parseFloat('100%') is 100 and would compare as "100px" — the
+        // exact vacuous-green this assertion exists to catch. Require a px cap AND
+        // verify the USED width (the observable contract) against the original.
+        if (!/px$/.test(mw)) return `max-width "${mw}" is not a px cap`;
+        if (parseFloat(mw) > ow + 2) return `max-width ${mw} exceeds original width ${ow}px`;
+      }
       return used <= ow + 2 || `used width ${used.toFixed(1)} exceeds original width ${ow}px`;
     },
     sameRight(node, trans, arg) {
       const tol = parseFloat(arg) || TOL;
-      const d = Math.abs(rectOf(trans).right - rectOf(node).right);
+      const d = Math.abs(rectOf(trans).right - (node.contains(trans) ? contentBox(node).right : rectOf(node).right));
       return d <= tol || `trans.right off by ${d.toFixed(1)}px (tol ${tol})`;
     },
     centeredInParent(node, trans, arg) {
@@ -554,6 +563,32 @@
       await new Promise((res) => setTimeout(res, 50));
       if (!ok) fail('interactionContextmenu', c.sel, 'contextmenu was defaultPrevented on page content');
       if (count(c.counter) <= before) fail('interactionContextmenu', c.sel, `page's contextmenu listener never fired (${c.counter})`);
+    }
+    // 病因断言，不是症状断言。真实症状（点击被重定向到祖先、click 干脆不发）只在
+    // 真实鼠标输入下出现，而这里的 el.click() 是合成事件、永远直达目标 —— 用它去测
+    // 「链接还能不能点」会永远绿。所以测因：**页面自己的框架有没有为了对齐子节点而
+    // 搬动它自己的节点**。搬了就说明我们插进了它管辖的容器，剩下的（选区被杀、点击
+    // 被吞）都是它的必然推论。
+    if (spec.frameworkChurn) {
+      const fc = spec.frameworkChurn;
+      const el = document.querySelector(fc.select);
+      if (!el || !el.firstChild) {
+        fail('frameworkChurn', fc.select, 'selection target missing');
+      } else {
+        const before = count(fc.counter);
+        const rg = document.createRange();
+        rg.selectNodeContents(el);
+        getSelection().removeAllRanges();
+        getSelection().addRange(rg);
+        await settle(SPA_STORM_SETTLE_MS);
+        const moved = count(fc.counter) - before;
+        getSelection().removeAllRanges();
+        const max = fc.max || 0;
+        if (moved > max) {
+          fail('frameworkChurn', fc.select,
+            `一次选区变化，框架搬动了 ${moved} 个它自己的子节点（上限 ${max}）—— 我们的节点插在了它管辖的容器里`);
+        }
+      }
     }
     if (spec.pageSelection) {
       const ps = spec.pageSelection;

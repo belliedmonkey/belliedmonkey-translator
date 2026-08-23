@@ -22,14 +22,7 @@
 {
   "name": "resize-flex-row-to-column",
   "unitCount": 3,
-  "mutations": [
-    {
-      "sel": ".row",
-      "prop": "flexWrap",
-      "to": "wrap",
-      "marker": "data-mt-flow-fix"
-    }
-  ],
+  "_note_mutations": "2026-08-23 起这里没有 mutations 了。译文挂进原文里之后，它不再是这一行的 flex item，页面自己的 flex-wrap 因此不必被我们改——这是契约收紧，不是断言放宽：我们少动了页面一处样式。原来的声明是 {sel:.row, prop:flexWrap, to:wrap, marker:data-mt-flow-fix}。译文在 flex item 里不撑宽原文，靠的是 CHILD_BOX 的 width:0/min-width:100%，由 originalGeometryStable 钉住。",
   "targets": [
     {
       "sel": ".row > div:not(.mt-translation)",
