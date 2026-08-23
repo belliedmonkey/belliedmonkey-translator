@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "Le moteur vocal n'est pas configuré ({reason}) : aucun audio ne pourra être synthétisé cette fois (Réglages → Moteur vocal)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Le moteur vocal n'est pas configuré : rien ne sera lu à voix haute ce tour-ci (Réglages → Moteur vocal)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "La lecture automatique a été bloquée — appuyez pour continuer",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "Aucun moteur vocal utilisable sur cet appareil",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Impossible de joindre le moteur vocal : rien ne sera lu ce tour-ci. Seules les cartes préchargées se lisent hors ligne (Réglages → Précharger pour le hors ligne)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

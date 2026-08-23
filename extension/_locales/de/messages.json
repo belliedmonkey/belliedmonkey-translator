@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "Die Sprach-Engine ist nicht konfiguriert ({reason}) — diesmal kann kein Audio erzeugt werden (Einstellungen → Sprach-Engine)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Die Sprach-Engine ist nicht konfiguriert — in dieser Runde wird nichts vorgelesen (Einstellungen → Sprach-Engine)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "Automatische Wiedergabe wurde blockiert — zum Fortfahren tippen",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "Auf diesem Gerät ist keine Sprach-Engine verfügbar",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Die Sprach-Engine ist nicht erreichbar — in dieser Runde wird nichts vorgelesen. Nur vorab geladene Karten spielen offline (Einstellungen → Für offline vorab laden)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

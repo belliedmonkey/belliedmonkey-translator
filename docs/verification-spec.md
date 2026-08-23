@@ -74,6 +74,41 @@ construction, not by exemption.
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
+### 0.1 凭证与登录：两件事，两个固定来源（2026-08-23）
+
+验证要花的两样东西——**引擎凭证**和**一个登录态**——都有固定来源。两条都是**纪律**，
+不是建议：每次开口问，验证就从「跑一遍」变成「等人回话」，而这两样东西一直都在机器上。
+
+1. **API key 一律从 `.local/keys.md` 读，不要问用户。** 那个文件是本机唯一的凭证册
+   （`node scripts/local-keys.js check` 只报槽位填没填、不回显内容），按引擎分行，
+   国内/国际分开。**永远不要**把值贴进对话、日志、提交或 PR —— 读它、用它、不复述它。
+   解析测试用 **DeepSeek**，不要用免费 Google 通道（响应不稳，曾三次把全矩阵验证带偏）。
+   要验音频缓存那一路，语音引擎必须选**会返回字节**的（`returnsAudio: true`，
+   例如 `openai_speech`）：设备内置语音按构造就不产生缓存（§9.1），用它等于没验。
+
+2. **App 的登录走用户已连接的 Gmail 取验证码，不要让用户手输。** App 不登录就没有语料
+   （learning-design §7.2），所以任何 App 侧的验收都从这一步开始。走 App 自己那条 API，
+   不要去戳模拟器的键盘：
+
+   ```
+   POST {MT_BACKEND.url}/auth/v1/otp     {email, create_user:true}   # 发信
+   # → 从 Gmail 读 6 位码（主题「大肚猴翻译 · 登录验证码」）
+   POST {MT_BACKEND.url}/auth/v1/verify  {type:'email', email, token} # 换 session
+   ```
+
+   拿到的 `{accessToken, refreshToken, expiresAt, email, userId}` 就是 `learnAuth`
+   的形状（`learn/auth.js` 的 `sessionFrom`），直接写进目标设备的存储即可。
+
+**为什么是写存储而不是在界面里打字（模拟器实测 2026-08-23）**：iOS 模拟器上
+`type_text` 会把每个字符都变成 `a`，`⌘A`/`⌘V` 被吞，长按与双击的手势识别器对合成鼠标
+事件不响应——`press_key` 单键是准的，但一次调用一个字符，50 位的 key 根本不现实。
+设置界面本身已经由 `test:app` / `test:learn` 覆盖；模拟器要验的是**运行时行为**，
+所以设置从存储层灌进去，操作用点击驱动。App 的 `chrome.storage.local` 就是
+`localStorage`（`app/chrome-shim.js` 加 `mt:` 前缀），落在容器里的
+`…/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3`，
+表是 `ItemTable(key, value)`，**value 是 UTF-16LE**。写之前先把 App 停掉。
+（脚本形态见 §2 F 行的 simulator 记录。）
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been

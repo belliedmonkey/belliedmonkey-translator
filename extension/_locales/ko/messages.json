@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "음성 엔진이 설정되지 않았습니다({reason}). 이번에는 음성을 하나도 만들 수 없습니다 (설정 → 음성 엔진)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "음성 엔진이 설정되지 않아 이번 회차는 읽어 줄 수 없습니다 (설정 → 음성 엔진)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "시스템이 자동 재생을 막았습니다. 눌러서 계속하세요",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "이 기기에는 사용할 수 있는 음성 엔진이 없습니다",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "음성 엔진에 연결할 수 없어 이번 회차는 읽어 줄 수 없습니다. 미리 받아 둔 카드만 오프라인에서 재생됩니다 (설정 → 오프라인용으로 미리 받기)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

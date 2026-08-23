@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "The speech engine is not configured ({reason}), so no audio can be synthesized this time (Settings → Speech engine)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "The speech engine is not configured, so nothing can be read aloud this round (Settings → Speech engine)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "The system blocked autoplay — tap to continue",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "No usable speech engine on this device",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Cannot reach the speech engine, so nothing can be read aloud this round. Only preloaded cards play offline (Settings → Preload for offline)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

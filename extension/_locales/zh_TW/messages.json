@@ -1644,5 +1644,21 @@
   "drive_preload_tts_bad": {
     "message": "語音引擎還沒設定好（{reason}），這次一段音訊都合成不出來（設定 → 語音引擎）",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "語音引擎還沒設定好，這一輪讀不出聲（設定 → 語音引擎）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "系統攔下了自動播放，點一下繼續",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "這台裝置上沒有可用的語音引擎",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "連不上語音引擎，這一輪讀不出聲。已經預載過的卡才能離線播放（設定 → 預載離線資源）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

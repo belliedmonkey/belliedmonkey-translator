@@ -231,15 +231,24 @@ var LearnDriving = (() => {
       case 'speaking':
         if (ev === 'tts_done') return playSegment(ctx, seg + 1);
         if (ev === 'tts_fail') {
-          // A whole-engine failure (autoplay blocked, no speech support) will fail on
-          // every card, so stopping is the honest response. A per-CARD failure — no
-          // voice for THIS language — must not end a session whose other cards are
-          // readable: say which card was skipped and keep going. Never silent either
-          // way; a card that vanishes with no explanation reads as data loss.
-          const fatal = arg === 'blocked' || arg === 'unsupported';
-          return fatal
-            ? S('stopped_error', [{ t: 'stop_tts' }, { t: 'note', code: arg }])
-            : S('advancing', [{ t: 'note', code: arg }, { t: 'advance' }]);
+          // A whole-engine failure will fail on every card, so stopping is the honest
+          // response. A per-CARD failure — no voice for THIS language — must not end a
+          // session whose other cards are readable: say which card was skipped and keep
+          // going. Never silent either way; a card that vanishes with no explanation
+          // reads as data loss.
+          //
+          // The test is written as a CLOSED list of per-card reasons, not a closed list
+          // of fatal ones (2026-08-23). It used to be `fatal = blocked || unsupported`,
+          // which quietly made every OTHER engine-level reason per-card: with an
+          // endpoint engine that could not be reached, a 20-card session skipped 20
+          // times and reached 「本轮听完了」 in twelve seconds having played nothing.
+          // Found on the iOS simulator while verifying §9.5's 出发前预载 — and that
+          // feature makes the case NORMAL rather than exotic, because its whole purpose
+          // is sessions where the endpoint is out of reach.
+          const perCard = arg === 'no_voice' || arg === 'no_voice_und' || arg === 'empty';
+          return perCard
+            ? S('advancing', [{ t: 'note', code: arg, src: 'tts' }, { t: 'advance' }])
+            : S('stopped_error', [{ t: 'stop_tts' }, { t: 'note', code: arg, src: 'tts' }]);
         }
         return { state: state, effects: [] };
 
@@ -254,7 +263,7 @@ var LearnDriving = (() => {
         if (ev === 'notes_fail') {
           // The card itself was already read; a missing analysis is a reason to move
           // on, not to end the drive. Named so the surface can say which one failed.
-          return S('advancing', [{ t: 'note', code: arg || 'notes_failed' }, { t: 'advance' }]);
+          return S('advancing', [{ t: 'note', code: arg || 'notes_failed', src: 'notes' }, { t: 'advance' }]);
         }
         return { state: state, effects: [] };
 
@@ -266,16 +275,16 @@ var LearnDriving = (() => {
         if (ev === 'notes_ready') {
           return arg && String(arg).trim()
             ? S('explain_speak', [{ t: 'speak', what: 'notes', text: arg }], { seg })
-            : S('paused', [{ t: 'note', code: 'notes_empty' }], { seg });
+            : S('paused', [{ t: 'note', code: 'notes_empty', src: 'notes' }], { seg });
         }
         if (ev === 'notes_fail') {
-          return S('paused', [{ t: 'note', code: arg || 'notes_failed' }], { seg });
+          return S('paused', [{ t: 'note', code: arg || 'notes_failed', src: 'notes' }], { seg });
         }
         return { state: state, effects: [] };
 
       case 'explain_speak':
         if (ev === 'tts_done') return S('paused', [], { seg });
-        if (ev === 'tts_fail') return S('paused', [{ t: 'note', code: arg }], { seg });
+        if (ev === 'tts_fail') return S('paused', [{ t: 'note', code: arg, src: 'tts' }], { seg });
         return { state: state, effects: [] };
 
       default:

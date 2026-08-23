@@ -292,7 +292,25 @@ var AppDriving = (() => {
     dispatch('notes_ready', text);
   }
 
-  function noteFor(code) {
+  // `src` says WHICH engine failed ('tts' | 'notes'), and it is load-bearing: the two
+  // share reason codes. `no_base` means「地址没配好」for either of them, and without the
+  // source a dead SPEECH endpoint was reported to the user as 「这张卡的解析没成功」——
+  // a sentence about the wrong feature, pointing at the wrong settings block.
+  // (Found 2026-08-23 on the iOS simulator, verifying §9.5 出发前预载.)
+  function noteFor(code, src) {
+    if (src === 'tts') {
+      switch (code) {
+        case 'no_voice':
+        case 'no_voice_und': return t('drive_skip_card', '这张卡读不出来，已跳到下一张');
+        case 'no_base':
+        case 'no_key': return t('drive_tts_not_configured',
+          '语音引擎还没配置好，这一轮读不出声（设置 → 语音引擎）');
+        case 'blocked': return t('drive_tts_blocked', '系统拦下了自动播放，点一下继续');
+        case 'unsupported': return t('drive_tts_unsupported', '这台设备上没有可用的语音引擎');
+        default: return t('drive_tts_unreachable',
+          '连不上语音引擎，这一轮读不出声。已经预载过的卡才能离线播放（设置 → 预载离线资源）');
+      }
+    }
     switch (code) {
       case 'no_engine': return t('drive_notes_engine_missing',
         '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）');
@@ -423,7 +441,7 @@ var AppDriving = (() => {
       case 'advance': advance(!!fx.force); return;
       case 'mode_next': cycleMode(); return;
       case 'done': execDone(); return;
-      case 'note': note(noteFor(fx.code)); return;
+      case 'note': note(noteFor(fx.code, fx.src)); return;
     }
   }
 

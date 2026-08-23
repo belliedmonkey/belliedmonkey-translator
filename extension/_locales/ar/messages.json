@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "محرّك الصوت غير مضبوط ({reason})، لذا لن يُولَّد أي مقطع صوتي هذه المرة (الإعدادات ← محرّك الصوت)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "محرّك الصوت غير مضبوط، لذا لن يُقرأ شيء بصوت عالٍ في هذه الجولة (الإعدادات ← محرّك الصوت)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "حجب النظام التشغيل التلقائي — اضغط للمتابعة",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "لا يوجد محرّك صوت صالح للاستخدام على هذا الجهاز",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "تعذّر الوصول إلى محرّك الصوت، لذا لن يُقرأ شيء في هذه الجولة. البطاقات المحمّلة مسبقًا وحدها تعمل دون اتصال (الإعدادات ← تحميل مسبق للاستخدام دون اتصال)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

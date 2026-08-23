@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "Речевой движок не настроен ({reason}) — в этот раз не удастся синтезировать ни одного фрагмента (Настройки → Речевой движок)",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Речевой движок не настроен — в этом круге ничего не будет прочитано вслух (Настройки → Речевой движок)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "Система заблокировала автовоспроизведение — нажмите, чтобы продолжить",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "На этом устройстве нет доступного речевого движка",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Речевой движок недоступен — в этом круге ничего не будет прочитано. Офлайн играют только предзагруженные карточки (Настройки → Загрузить для офлайна)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

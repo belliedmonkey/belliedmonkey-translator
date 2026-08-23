@@ -1643,5 +1643,21 @@
   "drive_preload_tts_bad": {
     "message": "音声エンジンが未設定です（{reason}）。今回は音声を一つも生成できません（設定 → 音声エンジン）",
     "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "音声エンジンが未設定のため、この回は読み上げできません（設定 → 音声エンジン）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "自動再生がブロックされました。タップして続けてください",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "この端末には利用できる音声エンジンがありません",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "音声エンジンに接続できないため、この回は読み上げできません。オフラインで再生できるのは事前ダウンロード済みのカードだけです（設定 → オフライン用にダウンロード）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

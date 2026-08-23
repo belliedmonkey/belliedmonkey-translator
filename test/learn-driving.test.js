@@ -274,10 +274,33 @@ describe('LearnDriving — reduce：失败要分得开 (§9.5)', () => {
   });
 
   test('单卡级失败说一声然后跳过 —— 别让一张坏卡毁掉整场', () => {
-    const r = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', 'no_voice', ctx);
-    eq(r.state.name, 'advancing');
-    ok(r.effects.some((f) => f.t === 'note' && f.code === 'no_voice'));
-    ok(r.effects.some((f) => f.t === 'advance'));
+    for (const code of ['no_voice', 'no_voice_und', 'empty']) {
+      const r = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', code, ctx);
+      eq(r.state.name, 'advancing', code);
+      ok(r.effects.some((f) => f.t === 'note' && f.code === code), code);
+      ok(r.effects.some((f) => f.t === 'advance'), code);
+    }
+  });
+
+  // 2026-08-23，模拟器实证。判据从前写成「fatal = blocked || unsupported」，于是**其余
+  // 每一个引擎级原因都被当成单卡级**：端点连不上时，20 张卡跳 20 次、十二秒走完，界面上
+  // 打出「本轮听完了」，而一声都没读出来。§9.5 的出发前预载让这件事从罕见变成常态 ——
+  // 它的全部用途就是端点够不着的场景。
+  test('连不上端点是整机级的 —— 它在每张卡上都会重演，绝不能跳 20 次然后说「听完了」', () => {
+    for (const code of ['network', 'no_base', 'no_key', 'http', undefined]) {
+      const r = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', code, ctx);
+      eq(r.state.name, 'stopped_error', String(code));
+      ok(r.effects.some((f) => f.t === 'stop_tts'), String(code));
+    }
+  });
+
+  test('note 效果带 src —— 两个引擎共用 reason 码，不带来源就会说错功能', () => {
+    // `no_base` 对语音和解析都成立。少了 src，一个够不着的**语音**端点会被报成
+    // 「这张卡的解析没成功」：说的是另一个功能，指的是另一个设置区。
+    const tts = D.reduce({ name: 'speaking', seg: 0 }, 'tts_fail', 'no_base', ctx);
+    eq(tts.effects.find((f) => f.t === 'note').src, 'tts');
+    const notes = D.reduce({ name: 'fetching_notes', seg: 0 }, 'notes_fail', 'no_base', ctx);
+    eq(notes.effects.find((f) => f.t === 'note').src, 'notes');
   });
 });
 
