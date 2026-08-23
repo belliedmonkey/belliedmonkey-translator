@@ -138,7 +138,10 @@ async function api(token, method, url, body, extraHeaders) {
   // 原来这里和 amo-publish.js 各抄了一份，而第三条路没抄 —— 那条路当天就出了事。
   const zipVersion = versionInZip(ZIP);
   console.log(`\n准备上传 ${(zipBytes.length / 1024).toFixed(0)} KB，包内版本 ${zipVersion || '?'}`);
-  assertVersionIntegrity({ version: zipVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty') });
+  // `--tag` 与 gh-release 对齐：让「从某个 tag 重出正确产物」在这两条路上也是**被验证过的**
+  // 操作，而不是只能 --allow-dirty 绕过去。三条路共用一道门禁的意义，就是三条路都能走完
+  // 同一套恢复流程 —— 少一个入口，那条路上的人就只剩绕过去这一个选择。
+  assertVersionIntegrity({ version: zipVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: (argv[argv.indexOf('--tag') + 1] && argv.includes('--tag')) ? argv[argv.indexOf('--tag') + 1] : undefined });
 
   const up = await api(token, 'PUT',
     `https://www.googleapis.com/upload/chromewebstore/v1.1/items/${itemId}`,

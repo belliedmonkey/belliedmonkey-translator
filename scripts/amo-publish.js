@@ -112,7 +112,10 @@ async function api(method, url, body, headers) {
   }
   const xpiVersion = versionInZip(XPI);
   console.log(`\n准备上传 ${(fs.statSync(XPI).size / 1024).toFixed(0)} KB，包内版本 ${xpiVersion || '?'}`);
-  assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty') });
+  // `--tag` 与 gh-release 对齐：让「从某个 tag 重出正确产物」在这两条路上也是**被验证过的**
+  // 操作，而不是只能 --allow-dirty 绕过去。三条路共用一道门禁的意义，就是三条路都能走完
+  // 同一套恢复流程 —— 少一个入口，那条路上的人就只剩绕过去这一个选择。
+  assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: (argv[argv.indexOf('--tag') + 1] && argv.includes('--tag')) ? argv[argv.indexOf('--tag') + 1] : undefined });
 
   // ── 上传 ────────────────────────────────────────────────────────────────
   const fd = new FormData();
