@@ -1559,5 +1559,105 @@
   "drive_empty": {
     "message": "No cards can be read aloud",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Preload range",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Today's deck",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Today + next 3 days",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Today + next 7 days",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Preload for offline",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Tap this before you set off and the speech, notes and translations you are about to hear are downloaded to this device, so a whole session plays with no network. The first tap only prices it and spends nothing — check how many calls it will make before you tap again.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Checking what is already on this device…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} cards",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} clips to synthesize",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} cards to analyse",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} cards needing a translation",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "The on-device voice produces no cache and already works offline, so only notes and translations are preloaded here.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "No analysis engine configured, so cards without a translation cannot get one this time (Settings → Sentence notes)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "All of this is already on the device — you will not need a network on the road.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Confirm preload (about {n} billed calls)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Stop",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Preloading {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Done {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Stopped: {done}/{total} done",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} failures ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "The speech engine is not configured ({reason}), so no audio can be synthesized this time (Settings → Speech engine)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "The speech engine is not configured, so nothing can be read aloud this round (Settings → Speech engine)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "The system blocked autoplay — tap to continue",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "No usable speech engine on this device",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Cannot reach the speech engine, so nothing can be read aloud this round. Only preloaded cards play offline (Settings → Preload for offline)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

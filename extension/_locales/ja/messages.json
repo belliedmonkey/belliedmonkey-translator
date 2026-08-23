@@ -1559,5 +1559,105 @@
   "drive_empty": {
     "message": "読み上げられるカードがありません",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "事前ダウンロードの範囲",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "今日のデッキ",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "今日＋今後 3 日間",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "今日＋今後 7 日間",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "オフライン用にダウンロード",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "出発前にタップすると、これから聞く音声・解説・訳文をこの端末に保存します。オフラインでも一巡まるごと再生できます。最初のタップは見積もりだけで課金は発生しません。呼び出し回数を確認してからもう一度タップしてください。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "この端末にある分を確認しています…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} 枚のカード",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "未生成の音声 {n} 件",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "未解析のカード {n} 枚",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "訳文のないカード {n} 枚",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "端末内蔵の音声はキャッシュを作らず、もともとオフラインで動きます。ここで先に取得するのは解説と訳文だけです。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "解析エンジンが未設定のため、訳文のないカードには今回訳文を付けられません（設定 → 文の解説）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "これらはすべて端末にあります。走行中にネットワークは不要です。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "事前ダウンロードを実行（課金対象の呼び出し 約 {n} 回）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "停止",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "ダウンロード中 {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "完了 {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "停止しました：{done}/{total} 完了",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} 件失敗（{reasons}）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "音声エンジンが未設定です（{reason}）。今回は音声を一つも生成できません（設定 → 音声エンジン）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "音声エンジンが未設定のため、この回は読み上げできません（設定 → 音声エンジン）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "自動再生がブロックされました。タップして続けてください",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "この端末には利用できる音声エンジンがありません",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "音声エンジンに接続できないため、この回は読み上げできません。オフラインで再生できるのは事前ダウンロード済みのカードだけです（設定 → オフライン用にダウンロード）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

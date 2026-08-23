@@ -245,6 +245,18 @@ async function runHost(host) {
         } });
         class U extends EventTarget { constructor(text) { super(); this.text = text; } }
         window.SpeechSynthesisUtterance = U;
+        // §9.5 出发前预载 runs on an ENDPOINT speech engine (the on-device voice caches
+        // nothing by construction), and that path plays through an Audio element fed a
+        // data: URL. Headless Chrome refuses autoplay without a gesture, so a real clip
+        // would come back blocked and stop the session — the platform, not the feature.
+        // Stub the sink the way speechSynthesis is stubbed above: resolve, then end. What
+        // this suite measures is which requests go out, not whether Chrome makes sound.
+        window.Audio = class extends EventTarget {
+          constructor(src) { super(); this.src = src; window.__mtAudioSrcs =
+            (window.__mtAudioSrcs || 0) + 1; }
+          play() { setTimeout(() => this.dispatchEvent(new Event('ended')), 20); return Promise.resolve(); }
+          pause() {}
+        };
         // fetch mock for the notes engine only — everything else passes through.
         const realFetch = window.fetch.bind(window);
         window.fetch = (u2, init) => {
@@ -259,12 +271,56 @@ async function runHost(host) {
                 : window.__mtSttText !== undefined ? window.__mtSttText
                 : document.getElementById('orig').textContent }) });
           }
+          // §9.5 出发前预载 needs an engine that actually returns BYTES — the
+          // on-device voice caches nothing by construction, so with that engine alone
+          // the whole audio half of the preload would be untestable.
+          if (String(u2).includes('/v1/audio/speech')) {
+            window.__mtSpeechCount = (window.__mtSpeechCount || 0) + 1;
+            return Promise.resolve({ ok: true, status: 200,
+              headers: { get: (h) => (String(h).toLowerCase() === 'content-type' ? 'audio/mpeg' : null) },
+              arrayBuffer: async () => new Uint8Array([73, 68, 51, 4, 0, 0]).buffer });
+          }
           if (String(u2).includes('/v1/chat/completions')) {
-            (window.__mtChatBodies = window.__mtChatBodies || []).push(init && init.body);
-            return Promise.resolve({ ok: true, status: 200, json: async () => ({
-              choices: [{ message: { content: JSON.stringify({
-                words: [{ w: 'durable', g: '持久的' }], phrases: [{ p: 'spaced repetition', g: '间隔重复' }],
-                grammar: '一般现在时表普遍真理。' }) } }] }) });
+            const body = init && init.body;
+            (window.__mtChatBodies = window.__mtChatBodies || []).push(body);
+            // §9.5 补译文 rides the SAME endpoint as the notes engine, so the mock has
+            // to tell them apart or a translation comes back as a notes JSON blob.
+            // The system prompts are the discriminator (notes.js buildPrompt vs
+            // translation-api.js buildSystemPrompt) — matching on those is matching on
+            // what the two features actually send.
+            const isTranslate = String(body).indexOf('professional translator') >= 0;
+            if (isTranslate) {
+              (window.__mtTranslateCount = (window.__mtTranslateCount || 0) + 1);
+              // Both json() and text(): the notes transport reads the parsed body,
+              // TranslationAPI reads the raw text. A mock that only answers one of them
+              // fails as "resp.text is not a function" — a mock bug wearing the costume
+              // of a product bug.
+              const payload = { choices: [{ message: { content: '【译】mock translation' } }] };
+              return Promise.resolve({ ok: true, status: 200,
+                headers: { get: () => null },
+                json: async () => payload, text: async () => JSON.stringify(payload) });
+            }
+            // The notes gate re-checks that every vocabulary word appears VERBATIM in
+            // the sentence (§9.2's anti-hallucination check), so a fixed word makes the
+            // mock fail on every card whose text does not happen to contain it. Lift a
+            // real word out of the request instead: the preload steps need notes to
+            // SUCCEED for the whole deck, or playback re-requests them and the
+            // "zero network" assertion measures the mock, not the feature.
+            const said = JSON.parse(body || '{}');
+            const last = ((said.messages || []).slice(-1)[0] || {}).content || '';
+            // Only the "Sentence (xx): …" line. Matching the whole message picks up the
+            // literal word "Translation" from the line below it — not in the sentence,
+            // so the gate rejects the answer and every card comes back bad_output.
+            const sent = (String(last).match(/Sentence[^:]*:([^\\n]*)/) || [, ''])[1];
+            const w = (String(sent).match(/[A-Za-z][A-Za-z'-]{3,}/g) || ['durable']).pop();
+            // 'durable' stays alongside it so the older steps that look for that marker
+            // keep working: the gate needs ONE verbatim hit, and tolerates strays.
+            const notesPayload = { choices: [{ message: { content: JSON.stringify({
+              words: [{ w, g: '持久的' }, { w: 'durable', g: '持久的' }],
+              phrases: [], grammar: '一般现在时表普遍真理。' }) } }] };
+            return Promise.resolve({ ok: true, status: 200,
+              headers: { get: () => null },
+              json: async () => notesPayload, text: async () => JSON.stringify(notesPayload) });
           }
           return realFetch(u2, init);
         };
@@ -871,6 +927,172 @@ async function runHost(host) {
       need((await text('#app-drive-notes')).length > 0, '按需解析的文字没有显示出来');
       await sweep('播客·按需解析', '#app-drive');
       await ev(`(AppDriving.stop(), 'ok')`);
+
+      // ─── 10f · 出发前预载（§9.5）────────────────────────────────────────
+      // 这一节的**判据只有一条**：预载跑完之后，再走一次播客会话，网络请求数一个都不涨。
+      // 前面每一道门都能在有网的情况下变绿，只有这条断言能分辨「真的离线可用」和
+      // 「看起来在下载」。
+      //
+      // 用 endpoint 语音引擎跑：设备内置语音按构造就不产生字节，用它测预载等于什么都没测。
+      await ev(`(AppDriving.stop(), 'ok')`);
+      const epEngine = await ev(`(() => { const e = (window.MT_TTS_ENGINES || [])
+        .find((x) => x.returnsAudio && x.supportsBaseUrl); return e ? e.id : ''; })()`);
+      need(!!epEngine, '注册表里没有会返回音频的语音引擎 —— 预载没法测');
+      await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify(${JSON.stringify(epEngine)})),
+                localStorage.setItem('mt:ttsBaseUrl', JSON.stringify('http://127.0.0.1:9/v1/audio/speech')),
+                localStorage.setItem('mt:ttsApiKey', JSON.stringify('k-test')),
+                localStorage.setItem('mt:ttsVoice', JSON.stringify('alloy')),
+                localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(true)),
+                localStorage.setItem('mt:drivePreloadDays', JSON.stringify(0)),
+                localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
+      // 抹掉一张卡的译文，让**补译文**这条路真的被走到。整副牌都自带 tr 的话
+      // trMissing 恒为 0，这一节就只测了音频与解析，而补译文正是这次新加的能力。
+      await ev(`(async () => {
+        const items = await LearnStore.allItems();
+        const it = items.find((x) => x.tr && (!x.anchor || x.anchor.k !== 'media'));
+        if (it) { it.tr = ''; await LearnStore.putItem(it); window.__barecard = it.id; }
+        return 'ok';
+      })()`);
+      need(!!(await ev(`window.__barecard`)), '找不到可以清掉译文的卡 —— 补译文这条路没被覆盖');
+
+      // 清干净：解析缓存、补译文缓存、音频缓存都归零，否则「预载有没有起作用」无从判断。
+      await ev(`(async () => {
+        for (const it of await LearnStore.allItems()) {
+          try { await LearnStore.putNote(it.id, null, {}); } catch (_) {}
+          try { await LearnStore.putNote(LearnTranslateFill.keyFor(it.id), null, {}); } catch (_) {}
+        }
+        await LearnStore.clearAudio();
+        return 'ok';
+      })()`);
+      // **不要**在这里调 AppSettings.wire —— app.js 启动时已经接过一次线了（app.js:440）。
+      // 再接一次就是同一个按钮上挂两个监听器：一次点击跑两遍处理函数，于是「第二下开跑」
+      // 的那一下里，第二遍处理函数看到状态已经是 running，立刻把刚开跑的这一轮停掉。
+      // （事件计数器看不见这件事：事件只有一个，处理函数跑了两遍。）
+      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 200));
+
+      // 第一下 = 只算账。**零请求**是这一步的全部内容：账单要是靠发请求算出来的，
+      // 「先看清楚再决定花不花钱」就是假的。
+      await ev(`(window.__mtSpeechCount = 0, window.__mtChatBodies = [], 'ok')`);
+      await click('#btn-drive-preload');
+      const priced = await (async () => {
+        const until = Date.now() + 20000;
+        while (Date.now() < until) {
+          if ((await text('#drive-preload-note')).length > 0
+              && !(await ev(`document.getElementById('btn-drive-preload').disabled`))) return true;
+          await new Promise((r) => setTimeout(r, 200));
+        }
+        return false;
+      })();
+      need(priced, '预载账单没有在 20s 内出来: ' + JSON.stringify(await text('#drive-preload-note')));
+      need((await ev(`window.__mtSpeechCount`)) === 0 && (await ev(`window.__mtChatBodies.length`)) === 0,
+        '算账那一步发了请求 —— 「第一下不花钱」是这个按钮的构成要件，不是文案');
+      const priceLine = await text('#drive-preload-note');
+      need(/\d/.test(priceLine), '账单里没有任何数字，用户无从判断要花多少: ' + priceLine);
+      const confirmLabel = await text('#btn-drive-preload');
+      need(confirmLabel.length > 0 && /\d/.test(confirmLabel),
+        '按钮没有变成带调用次数的确认态: ' + confirmLabel);
+      await sweep('播客·预载账单', '#app-settings');
+
+      // 第二下 = 真跑。
+      await click('#btn-drive-preload');
+      const ran = await (async () => {
+        const until = Date.now() + 90000;
+        while (Date.now() < until) {
+          const label = await text('#btn-drive-preload');
+          if (label === (await ev(`PageI18n.t('drive_preload', '预载离线资源')`))) return true;
+          await new Promise((r) => setTimeout(r, 400));
+        }
+        return false;
+      })();
+      need(ran, '预载没有在 90s 内跑完: ' + JSON.stringify(await text('#drive-preload-note')));
+      need((await ev(`window.__mtSpeechCount`)) > 0, '预载没有合成任何音频');
+      need((await ev(`LearnTranslateFill.cached(window.__barecard).then((h) => !!(h && h.data))`)) === true,
+        '没有译文的卡没有被补上译文 —— 补译文没跑，或者结果没落缓存');
+      need((await ev(`LearnStore.allItems().then((xs) => {
+        const it = xs.find((x) => x.id === window.__barecard); return it && it.tr; })`)) === '',
+        '补译文写进了 item.tr —— 它是派生物，永不写回语料（§7.2/§9.5）');
+      need((await ev(`LearnStore.audioStats().then((s) => s.count)`)) > 0, '音频缓存里什么都没有');
+      const tally = await text('#drive-preload-note');
+      need(/\d/.test(tally), '结束没有报账: ' + tally);
+      need((await ev(`document.getElementById('drive-audio-cache').textContent`)).length > 0,
+        '音频缓存读数没有刷新');
+      await sweep('播客·预载完成', '#app-settings');
+
+      // **王冠断言**：预载之后再听一整轮，网络请求一个都不涨。
+      const rowsBeforePreloadRun = await ev(`LearnStore.allReviews().then((r) => r.length)`);
+      await ev(`(window.__mtSpeechCount = 0, window.__mtChatBodies = [], window.__spoken = [], 'ok')`);
+      await ev(`(document.getElementById('app-settings').hidden = true,
+                document.getElementById('app-drive').hidden = false, 'ok')`);
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      need(await driveWait(90000), '预载之后的会话没有在 90s 内走完 '
+        + JSON.stringify(await ev(`AppDriving._debug()`)));
+      need((await ev(`window.__mtSpeechCount`)) === 0,
+        '预载之后播放仍然发了 ' + (await ev(`window.__mtSpeechCount`)) + ' 次语音合成请求 —— '
+        + '这个功能的定义就是这个数字为 0');
+      need((await ev(`window.__mtChatBodies.length`)) === 0,
+        '预载之后播放仍然发了解析/翻译请求');
+      need((await ev(`window.__spoken.length`)) > 0, '整轮一句话都没读 —— 上面的 0 是空跑出来的');
+      need((await ev(`LearnStore.allReviews().then((r) => r.length)`)) === rowsBeforePreloadRun,
+        '预载 + 播放写了复习行 —— 这个模式只曝光，永不评分');
+      await ev(`(AppDriving.stop(), 'ok')`);
+
+      // 10f′ · 引擎没配 ⇒ 账单必须说话，且**零请求**。与 10d′ 同型：先清引擎再点。
+      await ev(`(localStorage.removeItem('mt:provider'),
+                localStorage.removeItem('mt:apiKey'),
+                localStorage.removeItem('mt:notesProvider'),
+                localStorage.removeItem('mt:notesApiKey'), 'ok')`);
+      await ev(`(document.getElementById('app-drive').hidden = true,
+                document.getElementById('app-settings').hidden = false, 'ok')`);
+      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`(window.__mtSpeechCount = 0, window.__mtChatBodies = [], 'ok')`);
+      await click('#btn-drive-preload');
+      await new Promise((r) => setTimeout(r, 1500));
+      const noEngineLine = await text('#drive-preload-note');
+      need(noEngineLine.indexOf('\n') > 0 || noEngineLine.length > 0, '账单是空的');
+      need(/解析引擎|analysis engine|解析エンジン|해설 엔진|moteur|Analyse-Engine|motor de|movimiento|движок|محرّك/.test(noEngineLine),
+        '引擎没配，账单里一个字都没提 —— 这正是 build 38 的症状: ' + noEngineLine);
+      need((await ev(`window.__mtChatBodies.length`)) === 0, '引擎没配却发出了解析/翻译请求');
+      await sweep('播客·预载缺引擎', '#app-settings');
+
+      // 10f‴ · 语音引擎配坏了（endpoint 引擎缺地址）：账单要说出**原因**，不是症状。
+      // 这条路有个陷阱：available() 失败会让 speakableDeck 把每一张卡都判成读不出来，
+      // 于是账单本来会只说「没有可听读的卡」—— 一句正确但没用的话。
+      await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify(${JSON.stringify(epEngine)})),
+                localStorage.removeItem('mt:ttsBaseUrl'), 'ok')`);
+      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`(window.__mtSpeechCount = 0, 'ok')`);
+      await click('#btn-drive-preload');
+      await new Promise((r) => setTimeout(r, 1500));
+      const badLine = await text('#drive-preload-note');
+      const badCopy = (await ev(`PageI18n.t('drive_preload_tts_bad', '')`)).split('{reason}')[0];
+      need(badCopy.length > 0 && badLine.indexOf(badCopy) >= 0,
+        '语音引擎缺地址时账单没有点名原因: ' + badLine);
+      need((await ev(`window.__mtSpeechCount`)) === 0, '算账那一步又发了合成请求');
+      await sweep('播客·预载语音引擎坏', '#app-settings');
+      await ev(`(localStorage.setItem('mt:ttsBaseUrl',
+        JSON.stringify('http://127.0.0.1:9/v1/audio/speech')), 'ok')`);
+
+      // 10f″ · 不产生缓存的引擎：如实说明，不假装在下载音频。
+      await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')),
+                localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
+      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`(window.__mtSpeechCount = 0, 'ok')`);
+      await click('#btn-drive-preload');
+      await new Promise((r) => setTimeout(r, 1500));
+      const naLine = await text('#drive-preload-note');
+      need(naLine.length > 0, '内置语音下的账单是空的');
+      const naCopy = await ev(`PageI18n.t('drive_preload_no_audio_cache', '')`);
+      need(naCopy.length > 0 && naLine.indexOf(naCopy) >= 0,
+        '内置语音下没有说明「不产生缓存、本来就能离线」—— 用户会以为音频预载失败了: ' + naLine);
+      need((await ev(`window.__mtSpeechCount`)) === 0, '不产生缓存的引擎却发了合成请求');
+      await sweep('播客·预载内置语音', '#app-settings');
+      await ev(`(document.getElementById('app-settings').hidden = true,
+                document.getElementById('app-drive').hidden = false,
+                localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
 
       // 10e · Pause: TTS stops, and NOTHING is written after the pause.
       await ev(`AppDriving.start().then(() => 'ok')`);

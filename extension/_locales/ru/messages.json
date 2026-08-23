@@ -1559,5 +1559,105 @@
   "drive_empty": {
     "message": "Нет карточек для чтения вслух",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Объём предзагрузки",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Сегодняшняя колода",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Сегодня + 3 дня",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Сегодня + 7 дней",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Загрузить для офлайна",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Нажмите перед выездом — речь, разборы и переводы, которые вы будете слушать, скачаются на это устройство, и целый сеанс проиграется без сети. Первое нажатие только считает стоимость и ничего не тратит: посмотрите, сколько будет вызовов, прежде чем нажать снова.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Проверяем, что уже есть на этом устройстве…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "нужно синтезировать: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "разобрать карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "без перевода карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "Встроенный голос не создаёт кэш и и так работает офлайн — здесь заранее загружаются только разборы и переводы.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "Движок разбора не настроен, поэтому карточки без перевода в этот раз его не получат (Настройки → Разбор предложения)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "Всё это уже на устройстве — сеть в дороге не понадобится.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Подтвердить предзагрузку (примерно {n} платных вызовов)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Остановить",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Предзагрузка {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Готово {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Остановлено: готово {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "ошибок: {n} ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "Речевой движок не настроен ({reason}) — в этот раз не удастся синтезировать ни одного фрагмента (Настройки → Речевой движок)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Речевой движок не настроен — в этом круге ничего не будет прочитано вслух (Настройки → Речевой движок)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "Система заблокировала автовоспроизведение — нажмите, чтобы продолжить",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "На этом устройстве нет доступного речевого движка",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Речевой движок недоступен — в этом круге ничего не будет прочитано. Офлайн играют только предзагруженные карточки (Настройки → Загрузить для офлайна)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

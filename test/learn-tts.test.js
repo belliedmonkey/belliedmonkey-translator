@@ -25,6 +25,7 @@ function setup(opts = {}) {
 
   const fetchStub = (url, init) => {
     calls.fetch.push({ url, init });
+    if (opts.fetchImpl) return opts.fetchImpl(url, init);
     // A REJECTION, not a status: WebKit's CORS rejection never produces a status at
     // all, and that difference is exactly what the `network` naming exists to capture.
     if (opts.fetchThrows) return Promise.reject(new TypeError('Load failed'));
@@ -50,12 +51,18 @@ function setup(opts = {}) {
   const ctx = loadModule(['content/request-shape.js', 'learn/tts.js'], {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
     LearnModel, LearnStore, WireFormat,
+    // The vm sandbox inherits no globals, so the abort path only exists here if it is
+    // handed in — and without it the timeout test would silently exercise nothing.
+    AbortController,
     fetch: fetchStub,
     speechSynthesis: opts.speechSynthesis,
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
     Uint8Array, btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     Audio: opts.Audio,
   });
+  // The shipped budget is 20s; a unit test must not sit through it. Patched AFTER load
+  // because tts.js reads RequestShape.timeoutMs() at CALL time, not at load time.
+  if (opts.timeoutMs) ctx.RequestShape.timeoutMs = () => opts.timeoutMs;
   return { TTS: ctx.LearnTTS, calls, cache, LearnModel };
 }
 
@@ -332,6 +339,101 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     eq(second.cached, true);
     eq(calls.fetch.length, 1, 'a cache hit must cost the user nothing');
     eq(calls.put.length, 1, 'and must not rewrite the cache either');
+  });
+
+  // §9.5 开卡并行预热. Three things have to hold or the warm-up is worse than nothing:
+  // it must fill the SAME cache entry the player will look for, it must not fire at
+  // all on an engine that produces no bytes, and it must SHARE the request with a
+  // speak that overlaps it — otherwise the user pays twice for one clip.
+  test('prefetch fills the cache, and the play that follows issues no request', async () => {
+    const { TTS, calls } = setup();
+    TTS.configure(cfg);
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, true);
+    eq(r.cached, false);
+    eq(calls.fetch.length, 1);
+
+    const played = await TTS.getAudio('Hello world', 'en');
+    eq(played.cached, true, '预热填的必须是播放要找的那个键');
+    eq(calls.fetch.length, 1, '预热之后再播放，一个请求都不该有');
+  });
+
+  test('prefetch on the on-device engine is not_cacheable AND issues no request', async () => {
+    // The Web Speech API exposes no audio data (§9.1) — that is a property of the
+    // API. Saying so by name is what lets the preload surface tell the user it
+    // produces no audio cache, instead of showing a bar that can never move.
+    const { TTS, calls } = setup();
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, false);
+    eq(r.reason, 'not_cacheable');
+    eq(calls.fetch.length, 0, '不产生缓存的引擎绝不能因为预热而发请求');
+  });
+
+  test('a speak overlapping an in-flight prefetch shares it — one request, not two', async () => {
+    // This is the load-bearing one. Warm-up and playback race by construction: the
+    // player opens a card and starts the first segment in the same tick the warm-up
+    // fires. Without in-flight de-duplication both miss the (still empty) cache and
+    // the warm-up turns into a second bill.
+    const { TTS, calls } = setup();
+    TTS.configure(cfg);
+    const warm = TTS.prefetch('Hello world', 'en');
+    const play = TTS.getAudio('Hello world', 'en');
+    await Promise.all([warm, play]);
+    eq(calls.fetch.length, 1, '并发的预热与播放必须共用同一个请求');
+    eq(calls.put.length, 1, '也只写一次缓存');
+  });
+
+  // 2026-08-23, iPhone 15 Pro 实证。这条 fetch 从前是**无界**的：出发前预载跑到 18/20
+  // 就再也不动，「停止」按下去变灰却停不下来 —— 工人卡在一个永远不会 settle 的 await
+  // 里，根本走不到下一次 shouldStop()。挂起的请求没有报告人，看起来只是「有点慢」。
+  test('一个永不回应的端点在预算用尽时被中止，而不是永远挂着', async () => {
+    let abortedWith = null;
+    const { TTS } = setup({ timeoutMs: 40, fetchImpl: (url, init) => new Promise((_, reject) => {
+      // 永不 resolve —— 只有 AbortController 能把它结束掉。
+      if (init && init.signal) {
+        init.signal.addEventListener('abort', () => {
+          abortedWith = 'abort';
+          const e = new Error('The operation was aborted.');
+          e.name = 'AbortError';
+          reject(e);
+        });
+      }
+    }) });
+    TTS.configure(cfg);
+    // 自带看门狗：少了它，这条用例在回归时的表现是**挂住**而不是变红，而仓库自己的判词
+    // 是「a check that hangs is indistinguishable from one that is still working」
+    // （verification-spec §3.1.2 的 idb 检查器踩过同一个坑）。
+    const r = await Promise.race([
+      TTS.prefetch('Hello world', 'en'),
+      new Promise((res) => setTimeout(() => res({ ok: false, reason: '__hung__' }), 2000)),
+    ]);
+    eq(r.reason !== '__hung__', true,
+      'prefetch 2 秒还没落定 —— 这条 fetch 又变回无界的了（真机上表现为预载卡在 18/20，'
+      + '「停止」变灰却停不下来）');
+    eq(abortedWith, 'abort', '端点没回应，但我们也没中止它');
+    eq(r.ok, false);
+    eq(r.reason, 'timeout', '「没回应」和「连不上」是两种故障，账单上要分得开');
+  });
+
+  test('prefetch names a missing endpoint instead of fetching a blank URL', async () => {
+    const { TTS, calls } = setup();
+    TTS.configure({ engineId: 'local', baseUrl: '' });
+    const r = await TTS.prefetch('Hello world', 'en');
+    eq(r.ok, false);
+    eq(r.reason, 'no_base');
+    eq(calls.fetch.length, 0);
+  });
+
+  test('a failed prefetch is not remembered as failed — the next call retries', async () => {
+    const { TTS, calls } = setup({ fetchThrows: true });
+    TTS.configure(cfg);
+    const a = await TTS.prefetch('Hello world', 'en');
+    eq(a.ok, false);
+    eq(a.reason, 'network');
+    const b = await TTS.prefetch('Hello world', 'en');
+    eq(b.ok, false);
+    eq(calls.fetch.length, 2, 'in-flight 表必须在失败后清干净，否则一次断网钉死这段音频');
   });
 
   test('a LEGACY blob-handle record is a MISS — refetched, replaced with bytes', async () => {

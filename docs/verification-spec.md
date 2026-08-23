@@ -74,6 +74,102 @@ construction, not by exemption.
 
 Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
+### 0.1 凭证与登录：两件事，两个固定来源（2026-08-23）
+
+验证要花的两样东西——**引擎凭证**和**一个登录态**——都有固定来源。两条都是**纪律**，
+不是建议：每次开口问，验证就从「跑一遍」变成「等人回话」，而这两样东西一直都在机器上。
+
+1. **API key 一律从 `.local/keys.md` 读，不要问用户。** 那个文件是本机唯一的凭证册
+   （`node scripts/local-keys.js check` 只报槽位填没填、不回显内容），按引擎分行，
+   国内/国际分开。**永远不要**把值贴进对话、日志、提交或 PR —— 读它、用它、不复述它。
+   解析测试用 **DeepSeek**，不要用免费 Google 通道（响应不稳，曾三次把全矩阵验证带偏）。
+   要验音频缓存那一路，语音引擎必须选**会返回字节**的（`returnsAudio: true`，
+   例如 `openai_speech`）：设备内置语音按构造就不产生缓存（§9.1），用它等于没验。
+
+2. **App 的登录走用户已连接的 Gmail 取验证码，不要让用户手输。** App 不登录就没有语料
+   （learning-design §7.2），所以任何 App 侧的验收都从这一步开始。走 App 自己那条 API，
+   不要去戳模拟器的键盘：
+
+   ```
+   POST {MT_BACKEND.url}/auth/v1/otp     {email, create_user:true}   # 发信
+   # → 从 Gmail 读 6 位码（主题「大肚猴翻译 · 登录验证码」）
+   POST {MT_BACKEND.url}/auth/v1/verify  {type:'email', email, token} # 换 session
+   ```
+
+   拿到的 `{accessToken, refreshToken, expiresAt, email, userId}` 就是 `learnAuth`
+   的形状（`learn/auth.js` 的 `sessionFrom`），直接写进目标设备的存储即可。
+
+**为什么是写存储而不是在界面里打字（模拟器实测 2026-08-23）**：iOS 模拟器上
+`type_text` 会把每个字符都变成 `a`，`⌘A`/`⌘V` 被吞，长按与双击的手势识别器对合成鼠标
+事件不响应——`press_key` 单键是准的，但一次调用一个字符，50 位的 key 根本不现实。
+设置界面本身已经由 `test:app` / `test:learn` 覆盖；模拟器要验的是**运行时行为**，
+所以设置从存储层灌进去，操作用点击驱动。App 的 `chrome.storage.local` 就是
+`localStorage`（`app/chrome-shim.js` 加 `mt:` 前缀），落在容器里的
+`…/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3`，
+表是 `ItemTable(key, value)`，**value 是 UTF-16LE**。写之前先把 App 停掉。
+（脚本形态见 §2 F 行的 simulator 记录。）
+
+### 0.2 真机：一律走 iPhone 镜像驱动（2026-08-23 用户裁定）
+
+**真机验收由 iPhone 镜像（iPhone Mirroring）全程驱动，用户只做两件物理动作：把包弄上机、
+把手机锁屏。** 其余（点按、翻页、截图取证、判定）都不该再麻烦人 —— 一个每步都要人伸手的
+「真机验证」，跑一次就没有下一次了。
+
+- **镜像要求手机处于锁屏状态。** 屏幕上写着「iPhone 使用中，锁定 iPhone 以连接」时，
+  不是坏了，是手机正被拿在手里。装完包请把它放下、锁屏、别再碰。
+- **窗口底部约 70px 是悬浮条，会吃掉点击** —— 目标落在那一带时先滚动，别硬点。
+- **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.1）。
+
+**把包弄上机的两条路，代价不同：**
+
+| 路 | 代价 | 什么时候用 |
+|---|---|---|
+| USB + `devicectl device install app` | 要用户插线并信任一次；`xcrun devicectl list devices` 显示 `unavailable` / `tunnelState: unavailable` 就是没连上 | 默认。不碰 TestFlight、不占构建号、不对外发任何东西 |
+| TestFlight | 不用插线，但**会把一个未合并分支的构建推到 Apple 服务器并占掉一个构建号**，其他测试员也看得见 | 用户明确点头才走 |
+
+**镜像里的输入实测（2026-08-23，与模拟器不同，别把两套结论混用）：**
+
+| 动作 | 真机镜像 | 模拟器 |
+|---|---|---|
+| `type_text` 打字 | **准** —— 邮箱、验证码都一次打对 | 每个字符都变成 `a` |
+| `⌘V` | 吞 | 吞 |
+| 长按 / 双击唤出「粘贴」 | 不响应合成事件 | 不响应合成事件 |
+| 滚动 | **只有指针压在纯文本上时才滚**；压在 `<select>` 或页面外边距上，滚轮事件不落到页面滚动器 | 拖拽即可 |
+| 拖拽当滑动 | 会变成**选中文字**，不是滚动 | 可用 |
+
+由此得到两条操作纪律：
+
+- **短文本直接打，长凭证别想着粘。** 密钥这类长串在镜像里没有可靠的自动输入路径 ——
+  `type_text` 虽然准，但把密钥当参数传属于凭证处理，会被拦；而所有粘贴路径都不通。
+  真机上要配引擎，**目前只能请用户自己粘一次**（把值放到 Mac 剪贴板，用户在手机上
+  长按 → 粘贴，通用剪贴板会带过去）。
+- **别用拖拽滚动**，用滚轮，并且把指针放在一段纯文本上。
+
+**飞行模式与 iPhone 镜像互斥。** 镜像走 Wi-Fi/蓝牙，飞行模式把两个都关了，屏幕会变成
+「未找到 iPhone」。所以**真飞行模式的离线验收只能人眼看**，驱动不了也截不了图 —— 自动化
+那一版要用「把端点地址指到死地址」代替（`cacheKey` 不含 baseUrl，缓存照样全命中，而任何
+真发出的请求都会响亮失败）。两者证明力还不一样：飞行模式只证明「发不出去」，死地址证明
+「根本没发」。真机那一遍的增量仅仅是「真把无线电关掉也一样」，值得跑一次，但别指望能自动化。
+
+**还有两处会吃掉点击**：窗口底部约 70px 的悬浮条（既有结论），以及 App 切换器里的
+横向滑动 —— 想「上滑关掉某个 App」时，合成的拖拽会变成横向翻卡，翻出用户的其它 App。
+**真要杀进程请让用户自己动手**：在别人的手机上乱翻是隐私问题，不是操作问题。
+
+**走 TestFlight 之前，三件事顺序不能错**（2026-08-23 各踩一次）：
+
+1. **先 bump 版本，再 `build-safari.sh`。** `MARKETING_VERSION` 是生成工程时从
+   `package.json` 写进 pbxproj 的。顺序反了，工程里还是旧版本号，而 `xcodebuild` 不会说
+   什么 —— 归档出来的 Info.plist 仍是旧版，直到上传被 Apple 拒了才发现。
+   版本是**两处**：`package.json` 与 `extension/manifest.json`，`build.js` 有漂移门会拦。
+2. **已发布版本的 train 是关着的。** 同一个 `CFBundleShortVersionString` 不能再传新
+   build（`Invalid Pre-Release Train … is closed for new build submissions`）。要传就必须
+   进下一个版本号 —— 也就是说，**真机验收会顺带消耗一个版本号**，这也是它比 USB 贵的地方。
+3. **`npm run verify:ios` 必须对着这一次的 `.xcarchive` 跑**：
+   `npm run verify:ios -- /tmp/mt-ios.xcarchive`。不给参数它读的是 `/tmp/bt-dd` 里
+   **上一次**的产物 —— 2026-08-23 它就这样对着两周前的旧 appex 报「少了
+   `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
+   同一个默认路径也可能让一个真的漏文件的包通过。
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been

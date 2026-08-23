@@ -1559,5 +1559,105 @@
   "drive_empty": {
     "message": "읽을 수 있는 카드가 없어요",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "미리 받기 범위",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "오늘의 카드 묶음",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "오늘 + 앞으로 3일",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "오늘 + 앞으로 7일",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "오프라인용으로 미리 받기",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "출발 전에 한 번 누르면 앞으로 들을 음성·해설·번역을 이 기기에 내려받아 네트워크 없이도 한 바퀴를 끝까지 재생할 수 있습니다. 첫 번째 탭은 비용만 계산하고 아무것도 쓰지 않습니다. 호출 횟수를 확인한 뒤 다시 누르세요.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "이 기기에 이미 있는 항목을 확인하는 중…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "카드 {n}장",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "합성할 음성 {n}개",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "해설이 필요한 카드 {n}장",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "번역이 필요한 카드 {n}장",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "기기 내장 음성은 캐시를 만들지 않으며 원래 오프라인에서도 동작합니다. 여기서는 해설과 번역만 미리 받습니다.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "해설 엔진이 설정되지 않아 번역이 없는 카드는 이번에 번역을 채울 수 없습니다 (설정 → 문장 해설)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "이 항목은 모두 기기에 있습니다. 이동 중에 네트워크가 필요 없습니다.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "미리 받기 실행 (요금이 발생하는 호출 약 {n}회)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "중지",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "미리 받는 중 {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "완료 {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "중지됨: {done}/{total} 완료",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n}건 실패 ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "음성 엔진이 설정되지 않았습니다({reason}). 이번에는 음성을 하나도 만들 수 없습니다 (설정 → 음성 엔진)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "음성 엔진이 설정되지 않아 이번 회차는 읽어 줄 수 없습니다 (설정 → 음성 엔진)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "시스템이 자동 재생을 막았습니다. 눌러서 계속하세요",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "이 기기에는 사용할 수 있는 음성 엔진이 없습니다",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "음성 엔진에 연결할 수 없어 이번 회차는 읽어 줄 수 없습니다. 미리 받아 둔 카드만 오프라인에서 재생됩니다 (설정 → 오프라인용으로 미리 받기)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

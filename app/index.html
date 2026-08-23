@@ -208,6 +208,27 @@
       </label>
       <p class="note" id="drive-play-notes-note"></p>
 
+      <!-- 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
+           这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
+           可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 -->
+      <label class="field">
+        <span id="drive-preload-days-label"></span>
+        <select id="drive-preload-days">
+          <option value="0" id="drive-preload-days-0"></option>
+          <option value="3" id="drive-preload-days-3"></option>
+          <option value="7" id="drive-preload-days-7"></option>
+        </select>
+      </label>
+      <!-- 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
+           那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
+           里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
+           这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 -->
+      <button id="btn-drive-preload" type="button" class="secondary"></button>
+      <p class="note" id="drive-preload-note" role="status" aria-live="polite"></p>
+      <p class="note" id="drive-preload-hint"></p>
+      <p class="note" id="drive-audio-cache"></p>
+      <button id="btn-drive-clear-audio" type="button" class="danger"></button>
+
       <h3 id="stt-title"></h3>
       <label class="field">
         <span id="stt-engine-label"></span>

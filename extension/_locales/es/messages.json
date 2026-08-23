@@ -1559,5 +1559,105 @@
   "drive_empty": {
     "message": "No hay tarjetas para leer",
     "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Alcance de la precarga",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "El mazo de hoy",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Hoy + próximos 3 días",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Hoy + próximos 7 días",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Precargar para sin conexión",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Tócalo antes de salir y la voz, las notas y las traducciones que vas a escuchar se descargan a este dispositivo, de modo que una sesión entera suena sin red. El primer toque solo calcula el coste y no gasta nada: comprueba cuántas llamadas hará antes de volver a tocar.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Comprobando lo que ya está en este dispositivo…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} tarjetas",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} clips por sintetizar",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} tarjetas por analizar",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} tarjetas sin traducción",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "La voz del dispositivo no genera caché y ya funciona sin conexión, así que aquí solo se precargan las notas y las traducciones.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "No hay motor de análisis configurado, así que las tarjetas sin traducción no la recibirán esta vez (Ajustes → Análisis de la frase)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "Todo esto ya está en el dispositivo: no necesitarás red por el camino.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Confirmar precarga (unas {n} llamadas facturadas)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Detener",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Precargando {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Listo {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Detenido: {done}/{total} hechos",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} fallos ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "El motor de voz no está configurado ({reason}), así que esta vez no se podrá sintetizar ningún audio (Ajustes → Motor de voz)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "El motor de voz no está configurado, así que esta ronda no se leerá nada en voz alta (Ajustes → Motor de voz)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "El sistema bloqueó la reproducción automática: toca para continuar",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "No hay ningún motor de voz utilizable en este dispositivo",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "No se puede contactar con el motor de voz, así que esta ronda no se leerá nada. Solo las tarjetas precargadas suenan sin conexión (Ajustes → Precargar para sin conexión)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
   }
 }

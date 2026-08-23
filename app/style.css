@@ -56,6 +56,9 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
    requested; `.note` collapses newlines, and an endpoint URL is long enough to push
    the column sideways unless it may break mid-token. */
 #test-notes-note, #test-stt-note, #test-tts-note { white-space: pre-line; overflow-wrap: anywhere; }
+/* 出发前预载的账单（§9.5）同理：卡数/待合成/待解析是一行，能力缺失的具名说明各占一行。
+   `.note` 折叠换行，不加这一条那几句就会挤成一段，而它们恰恰是要被分开读的。 */
+#drive-preload-note { white-space: pre-line; overflow-wrap: anywhere; }
 
 /* ─── Shell element styling — SCOPED, because the cascade doesn't know about
    ownership. This file is concatenated AFTER review.css, so any bare element

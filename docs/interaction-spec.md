@@ -955,6 +955,23 @@ out follows the standing rules unchanged)*:
   recur on every card; a per-card failure (`no_voice`) says so and skips to the next,
   because one unreadable card must not end a session whose other cards are fine.
   Never silent either way. Hiding the app pauses; resuming is always a tap.
+- **开卡即并行，并前瞻一张**（2026-08-23，learning-design §9.5）: opening a card fires
+  every network call that card needs at once — 原句音频 / 译句音频 / 解析，and the
+  notes audio the moment the notes text lands — then warms the NEXT card's 原句/译句
+  audio only. Not its notes: audio already in cache costs nothing extra, a notes call
+  for a card the user quits before hearing is money spent on nothing. **Playback never
+  translates on the spot**: the 译句 comes from `item.tr`, else a cached 补译文, else
+  the card reads 原句 three times as it always did.
+- **「出发前预载」 in settings**（2026-08-23）: one button that fills the local cache
+  for 今天的牌库 + 未来 N 天 so a whole session plays with no network. It is the one
+  sanctioned batch, and it wears all four conditions on the surface: **the first tap
+  only prices it** (「N 张卡 · 待合成 P 段音频 · 待解析 M 张 · 待补译文 K 张」, no
+  request sent), the second tap spends, 停止 works throughout, and it closes with a
+  named tally including failures. A `returnsAudio: false` engine (设备内置语音, the
+  default) says plainly that it produces no audio cache and is already offline, rather
+  than showing a progress bar that can never move. Engine not configured ⇒ the price
+  line names what will be skipped and where to configure it — the 10d′ rule again.
+  预载写入的只有缓存: no review row, no skill stamp, no `lastSeenAt`, no scheduler call.
 
 
 ### 自由练习 (free practice) — 2026-08-08
@@ -978,7 +995,13 @@ out follows the standing rules unchanged)*:
   the button does not render at all. Never a disabled button with an apology.
 - **Cost is stated at the point of use**: 「使用你配置的 API，一次调用，永久缓存」.
   Cached notes render instantly with no spinner and no second charge. Generation is
-  always per-card and user-initiated — never bulk, never automatic.
+  always **user-initiated** — never automatic. *(2026-08-23: this line used to end
+  「never bulk, never automatic」. Bulk was never the disease; a bill the user cannot
+  see is. A batch is allowed when it meets all four of learning-design §9.2's
+  conditions — price it first, spend on the second tap, stay stoppable, report by
+  name. 「出发前预载」 below is the ONE place that holds, and it stays the only one:
+  a second feature wanting this exception goes back through domain review rather than
+  asserting it also meets the four.)*
 - **In the app** *(2026-08-08)*: the app's settings can hold a chat engine + key of
   their own (learning-design §7.2 — device-local, never synced; the wording must not
   imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
