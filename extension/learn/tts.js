@@ -181,14 +181,34 @@ var LearnTTS = (() => {
     // failed") that reads exactly like "host unreachable" (measured 2026-08-13,
     // learning-design §9.4). Named here for the same reason speech-input.js names it,
     // and carrying the URL so the settings page can echo what it actually requested.
+    // BOUNDED, like the other three transports (translation-api.js:191 does the same
+    // with the same budget). This one was unbounded until 2026-08-23, and a real iPhone
+    // showed what that costs: two clips of a 20-card 出发前预载 never settled, the
+    // counter froze at 18/20 forever, and 停止 went grey WITHOUT stopping — the workers
+    // were parked inside a fetch that could never return, so they never reached the
+    // next `shouldStop()`. A hung request has no reporter; it just looks like the
+    // feature is slow. §9.5's 「⏸ 停止 在任何时候都可用」 cannot hold on top of an
+    // unbounded await, so the bound belongs HERE rather than in the caller.
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const budget = (typeof RequestShape !== 'undefined' && RequestShape.timeoutMs)
+      ? RequestShape.timeoutMs() : 20000;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), budget) : null;
+    if (ctrl) init.signal = ctrl.signal;
     let resp;
     try {
       resp = await fetch(url, init);
     } catch (netErr) {
-      const err = new Error(String((netErr && netErr.message) || netErr));
-      err.code = 'network';
+      const aborted = !!(ctrl && ctrl.signal && ctrl.signal.aborted);
+      const err = new Error(aborted
+        ? ('speech request exceeded ' + budget + 'ms')
+        : String((netErr && netErr.message) || netErr));
+      // Distinct from `network`: "it never answered" and "it refused the connection"
+      // are different faults, and the preload tally prints the raw code.
+      err.code = aborted ? 'timeout' : 'network';
       err.url = url;
       throw err;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
     if (!resp.ok) {
       const err = new Error('speech ' + resp.status);

@@ -25,6 +25,7 @@ function setup(opts = {}) {
 
   const fetchStub = (url, init) => {
     calls.fetch.push({ url, init });
+    if (opts.fetchImpl) return opts.fetchImpl(url, init);
     // A REJECTION, not a status: WebKit's CORS rejection never produces a status at
     // all, and that difference is exactly what the `network` naming exists to capture.
     if (opts.fetchThrows) return Promise.reject(new TypeError('Load failed'));
@@ -50,12 +51,18 @@ function setup(opts = {}) {
   const ctx = loadModule(['content/request-shape.js', 'learn/tts.js'], {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
     LearnModel, LearnStore, WireFormat,
+    // The vm sandbox inherits no globals, so the abort path only exists here if it is
+    // handed in — and without it the timeout test would silently exercise nothing.
+    AbortController,
     fetch: fetchStub,
     speechSynthesis: opts.speechSynthesis,
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
     Uint8Array, btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     Audio: opts.Audio,
   });
+  // The shipped budget is 20s; a unit test must not sit through it. Patched AFTER load
+  // because tts.js reads RequestShape.timeoutMs() at CALL time, not at load time.
+  if (opts.timeoutMs) ctx.RequestShape.timeoutMs = () => opts.timeoutMs;
   return { TTS: ctx.LearnTTS, calls, cache, LearnModel };
 }
 
@@ -375,6 +382,38 @@ describe('LearnTTS — speech-compat transport & cache', () => {
     await Promise.all([warm, play]);
     eq(calls.fetch.length, 1, '并发的预热与播放必须共用同一个请求');
     eq(calls.put.length, 1, '也只写一次缓存');
+  });
+
+  // 2026-08-23, iPhone 15 Pro 实证。这条 fetch 从前是**无界**的：出发前预载跑到 18/20
+  // 就再也不动，「停止」按下去变灰却停不下来 —— 工人卡在一个永远不会 settle 的 await
+  // 里，根本走不到下一次 shouldStop()。挂起的请求没有报告人，看起来只是「有点慢」。
+  test('一个永不回应的端点在预算用尽时被中止，而不是永远挂着', async () => {
+    let abortedWith = null;
+    const { TTS } = setup({ timeoutMs: 40, fetchImpl: (url, init) => new Promise((_, reject) => {
+      // 永不 resolve —— 只有 AbortController 能把它结束掉。
+      if (init && init.signal) {
+        init.signal.addEventListener('abort', () => {
+          abortedWith = 'abort';
+          const e = new Error('The operation was aborted.');
+          e.name = 'AbortError';
+          reject(e);
+        });
+      }
+    }) });
+    TTS.configure(cfg);
+    // 自带看门狗：少了它，这条用例在回归时的表现是**挂住**而不是变红，而仓库自己的判词
+    // 是「a check that hangs is indistinguishable from one that is still working」
+    // （verification-spec §3.1.2 的 idb 检查器踩过同一个坑）。
+    const r = await Promise.race([
+      TTS.prefetch('Hello world', 'en'),
+      new Promise((res) => setTimeout(() => res({ ok: false, reason: '__hung__' }), 2000)),
+    ]);
+    eq(r.reason !== '__hung__', true,
+      'prefetch 2 秒还没落定 —— 这条 fetch 又变回无界的了（真机上表现为预载卡在 18/20，'
+      + '「停止」变灰却停不下来）');
+    eq(abortedWith, 'abort', '端点没回应，但我们也没中止它');
+    eq(r.ok, false);
+    eq(r.reason, 'timeout', '「没回应」和「连不上」是两种故障，账单上要分得开');
   });
 
   test('prefetch names a missing endpoint instead of fetching a blank URL', async () => {
