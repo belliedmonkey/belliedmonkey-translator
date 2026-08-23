@@ -104,8 +104,30 @@ function buildAppBundle(outDir, log, opts) {
     '// Sources: ' + MODULES.concat([APP_JS]).join(', '),
     '',
   ];
+  // 生成物必须跟着 flavor 走。`generateProviders/Tts/Stt` 把**全局**那一份写进
+  // `extension/content/`，中国版那一份只覆盖到 `dist-china/content/`。这里如果照旧读
+  // `extension/`，中国版宿主 App 拿到的就是国际版注册表 —— 设置页列出 ChatGPT /
+  // Claude / Google，而它旁边的中国版扩展早把这些滤掉了（1.6.4 就这么出货的）。
+  //
+  // 只重定向**生成物**：手写模块两个 flavor 完全相同，从 dist 读它们只会让「源码在
+  // extension/」这件事变得不真。
+  const GENERATED = new Set([
+    'i18n-messages.js', 'palette.gen.js', 'providers.gen.js',
+    'tts.gen.js', 'stt.gen.js', 'langs.gen.js',
+  ]);
+  const srcFor = (rel) => {
+    if (!opts.genRoot) return path.join(ROOT, rel);
+    const base = path.basename(rel);
+    if (!rel.startsWith('extension/content/') || !GENERATED.has(base)) return path.join(ROOT, rel);
+    const alt = path.join(opts.genRoot, 'content', base);
+    // 缺了就报错，**不回落**到 extension/ —— 回落正是上一版那个 bug 的形状：拿到了
+    // 另一个 flavor 的东西，而全程没有一行警告。
+    if (!fs.existsSync(alt)) throw new Error(`app bundle: genRoot 里缺 content/${base}（${alt}）`);
+    return alt;
+  };
+
   for (const rel of MODULES.concat([APP_JS])) {
-    const abs = path.join(ROOT, rel);
+    const abs = srcFor(rel);
     if (!fs.existsSync(abs)) {
       // Hard fail. A missing module would produce a bundle that loads and then throws
       // on first use — i.e. an app that opens to a blank screen, which is the failure

@@ -100,13 +100,20 @@ async function cancelReview(version, bundleIds, apply) {
     return;
   }
   if (!version) {
-    console.log('用法: node scripts/asc-submit.js <版本号> [--apply]');
+    console.log('用法: node scripts/asc-submit.js <版本号> [--only <bundleId>]… [--apply]');
     process.exit(1);
   }
   console.log(apply ? '\x1b[1m模式：真的提交审核（不可逆）\x1b[0m' : '模式：只打印计划（加 --apply 才提交）');
 
+  // `--only <bundleId>`（可重复）：只提点名的那条线。默认是全提 —— 而「全提」在发布
+  // 途中是危险的默认值：本轮国际版 iOS 已就绪、中国版两个包却正要重出，一次 --apply
+  // 会把还要重传的包一起送进审核，而撤审的代价是排队位置清零。
+  const only = [];
+  for (let i = 0; i < argv.length; i++) if (argv[i] === '--only' && argv[i + 1]) only.push(argv[i + 1]);
   const apps = (await api('GET', '/apps?limit=200')).data
-    .filter((a) => a.attributes.bundleId.startsWith('com.belliedmonkeytranslator'));
+    .filter((a) => a.attributes.bundleId.startsWith('com.belliedmonkeytranslator'))
+    .filter((a) => !only.length || only.includes(a.attributes.bundleId));
+  if (only.length && !apps.length) throw new Error(`--only 点名的 bundle id 一个都没匹配上: ${only.join(', ')}`);
 
   const targets = [];
   for (const app of apps) {

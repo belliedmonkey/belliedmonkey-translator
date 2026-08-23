@@ -31,7 +31,15 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = path.join(ROOT, 'dist-app');
+// 每个工程灌**它自己 flavor** 的宿主 App 包。以前只有一个 `dist-app/`，两棵树都灌它，
+// 于是中国版 App 带的是国际版引擎注册表 —— 设置页列出 ChatGPT / Claude / Google，而它
+// 旁边的中国版扩展早就把这些滤掉了。同一个产品两套标准，1.6.4 就这么出货了。
+// 来源必须跟着 flavor 走，而不是跟着「有哪个目录」走。
+const APP_SRC = {
+  'safari-project': 'dist-app',
+  'safari-project-china': 'dist-app-china',
+  'safari-project-macos': 'dist-app',
+};
 const FILES = ['Main.html', 'Script.js', 'Style.css'];
 
 // Every project the converter can produce. A flavor that exists but is not listed
@@ -395,21 +403,24 @@ function patchAppIcon(sharedDir) {
 }
 
 function main() {
-  if (!fs.existsSync(SRC)) {
-    console.error('✗ no dist-app/ — run `node build.js` first');
-    process.exit(1);
-  }
-  for (const f of FILES) {
-    if (!fs.existsSync(path.join(SRC, f))) {
-      console.error(`✗ dist-app/${f} missing — the app bundle did not build`);
-      process.exit(1);
-    }
-  }
-
   let touched = 0;
   for (const proj of PROJECTS) {
     const { state, dirs } = classifyProject(path.join(ROOT, proj));
     if (state === 'absent') { console.log(`  – ${proj}: 未生成，跳过`); continue; }
+    // 源目录按工程决定，且**缺了就停**，不回落到另一个 flavor 的包 —— 回落正是上一版
+    // 出问题的形状：中国版工程拿到了国际版资源，而全程没有一行警告。
+    const SRC = path.join(ROOT, APP_SRC[proj]);
+    if (!fs.existsSync(SRC)) {
+      console.error(`✗ ${proj} 需要 ${APP_SRC[proj]}/，但它不存在`);
+      console.error(`  跑 node build.js${APP_SRC[proj].endsWith('-china') ? ' --flavor china' : ''} 先出这个 flavor 的宿主 App 包`);
+      process.exit(1);
+    }
+    for (const f of FILES) {
+      if (!fs.existsSync(path.join(SRC, f))) {
+        console.error(`✗ ${APP_SRC[proj]}/${f} 缺失 —— 宿主 App 包没构建完整`);
+        process.exit(1);
+      }
+    }
     if (state === 'unrecognized') {
       console.error(`✗ ${proj}/ 存在，但里面找不到 "Shared (App)" —— 这个工程无法打补丁。`);
       console.error('  这是单平台的扁平布局（--ios-only / --macos-only，或旧版转换器生成的树）。');

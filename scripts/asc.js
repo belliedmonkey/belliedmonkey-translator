@@ -157,6 +157,114 @@ async function cmdBind(bundleId, platform, versionString, buildNumber) {
   return String(got) === String(buildNumber);
 }
 
+// 建一条新的 App Store 版本记录。`bind` 只会挂 build，不会建版本 —— 这一步以前是在
+// ASC 网页上手点的，于是它既没有干运行也没有回读，而发版流程里其余每一步都有。
+//
+// 幂等：同 (app, platform, versionString) 已存在就直接返回它，不重复建。ASC 允许同一个
+// 平台只有一条未发布版本，重复 POST 会拿到一个语焉不详的 409。
+async function cmdNewVersion(bundleId, platform, versionString, apply) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=30`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  const exist = vs.data.find((x) => x.attributes.versionString === versionString);
+  if (exist) {
+    console.log(`  ${app.name} [${platform}] ${versionString} 已存在 · `
+      + `${exist.attributes.appStoreState}  ✓（不重复建）`);
+    return true;
+  }
+  // 同平台已有一条在途版本时，ASC 不允许再建一条。先说清楚是哪一条，而不是让 POST
+  // 抛一个看不懂的 409。
+  const busy = vs.data.find((x) => x.attributes.appStoreState !== 'READY_FOR_SALE'
+    && x.attributes.appStoreState !== 'REPLACED_WITH_NEW_VERSION');
+  if (busy) {
+    throw new Error(`${app.name} [${platform}] 已有在途版本 `
+      + `${busy.attributes.versionString}（${busy.attributes.appStoreState}）—— `
+      + '同平台同时只能有一条。先让它上架或撤审，再建 ' + versionString);
+  }
+  if (!apply) {
+    console.log(`  ${app.name} [${platform}] 将新建版本 ${versionString}（干运行）`);
+    return true;
+  }
+  await api('POST', '/appStoreVersions', { data: {
+    type: 'appStoreVersions',
+    attributes: { platform, versionString },
+    relationships: { app: { data: { type: 'apps', id: app.id } } },
+  } });
+  // 回读。POST 的返回体不算数 —— 判据是「再问一次，它在那里」。
+  const after = await api('GET', `/apps/${app.id}/appStoreVersions?limit=30`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  const got = after.data.find((x) => x.attributes.versionString === versionString);
+  console.log(`  ${app.name} [${platform}] ${versionString}: `
+    + (got ? `已建 · ${got.attributes.appStoreState}  ✓` : '✗ 回读不到，没建成'));
+  return !!got;
+}
+
+// 把发布说明写进每个本地化的 whatsNew。
+//
+// 这一步以前没有工具 —— `asc-submit.js` 只**检查** whatsNew 是否为空，写是在 ASC 网页上
+// 手点的。2026-08-22 四条线全部卡在提审，真因就是这六处一处都没填，而 Apple 报的是
+// 「appStoreVersions is not in valid state」，不告诉你缺哪一项。一个只有检查、没有写入
+// 的步骤，就是在等人忘记。
+//
+// 文案来源是 store-assets/release-notes-<版本>.md：按 `## <国际版|中国版> · <locale>`
+// 取其后的第一个围栏块。flavor 由 bundleId 是否以 .cn 结尾决定 —— 两条线的文案必须不同
+// （中国版没有 OpenAI Speech，「把语音下到本机」对它多数用户不成立）。
+function parseNotes(md, flavor) {
+  const out = {};
+  const re = /^##\s+(国际版|中国版)\s*·\s*([A-Za-z-]+)\s*$/gm;
+  let m;
+  while ((m = re.exec(md))) {
+    if (m[1] !== flavor) continue;
+    const rest = md.slice(m.index + m[0].length);
+    const f = rest.match(/```[a-z]*\n([\s\S]*?)```/);
+    if (f) out[m[2]] = f[1].trim();
+  }
+  return out;
+}
+
+async function cmdNotes(bundleId, platform, versionString, file, apply) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+  const flavor = bundleId.endsWith('.cn') ? '中国版' : '国际版';
+  const md = require('fs').readFileSync(file, 'utf8');
+  const notes = parseNotes(md, flavor);
+  if (!Object.keys(notes).length) throw new Error(`${file} 里没有「## ${flavor} · <locale>」段`);
+
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=30`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  const v = vs.data.find((x) => x.attributes.versionString === versionString);
+  if (!v) throw new Error(`${app.name} 没有 ${platform} 的 ${versionString} 版本记录`);
+
+  const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations`
+    + '?limit=50&fields[appStoreVersionLocalizations]=locale,whatsNew');
+  let ok = true;
+  for (const L of locs.data) {
+    const locale = L.attributes.locale;
+    const text = notes[locale];
+    if (!text) {
+      console.log(`  ${app.name} [${platform}] ${locale}: ✗ 文案文件里没有这个 locale —— 提审会被挡`);
+      ok = false;
+      continue;
+    }
+    if (!apply) { console.log(`  ${app.name} [${platform}] ${locale}: 将写入 ${text.length} 字（干运行）`); continue; }
+    await api('PATCH', `/appStoreVersionLocalizations/${L.id}`,
+      { data: { type: 'appStoreVersionLocalizations', id: L.id, attributes: { whatsNew: text } } });
+    // 回读。PATCH 返回 204 无正文，「没报错」不等于「写进去了」。
+    const back = await api('GET', `/appStoreVersionLocalizations/${L.id}`
+      + '?fields[appStoreVersionLocalizations]=locale,whatsNew');
+    const got = String((back.data.attributes.whatsNew || '')).trim();
+    const same = got === text.trim();
+    console.log(`  ${app.name} [${platform}] ${locale}: ${got.length} 字 ${same ? '✓' : '✗ 回读不符！'}`);
+    if (!same) ok = false;
+  }
+  return ok;
+}
+
 (async () => {
   const [cmd, ...rest] = process.argv.slice(2);
   if (cmd === 'builds') return cmdBuilds();
@@ -170,6 +278,27 @@ async function cmdBind(bundleId, platform, versionString, buildNumber) {
     const ok = await cmdBind(bundleId, platform, versionString, buildNumber);
     process.exit(ok ? 0 : 1);
   }
-  console.log('用法: node scripts/asc.js builds | versions | bind <bundleId> <平台> <版本> <build>');
+  if (cmd === 'newversion') {
+    const [bundleId, platform, versionString] = rest;
+    if (!bundleId || !platform || !versionString) {
+      console.log('用法: node scripts/asc.js newversion <bundleId> <IOS|MAC_OS> <版本号> [--apply]');
+      process.exit(1);
+    }
+    const ok = await cmdNewVersion(bundleId, platform, versionString, rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
+  if (cmd === 'notes') {
+    const [bundleId, platform, versionString, file] = rest;
+    if (!bundleId || !platform || !versionString || !file) {
+      console.log('用法: node scripts/asc.js notes <bundleId> <IOS|MAC_OS> <版本号> <文案md> [--apply]');
+      process.exit(1);
+    }
+    const ok = await cmdNotes(bundleId, platform, versionString, file, rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
+  console.log('用法: node scripts/asc.js builds | versions'
+    + ' | newversion <bundleId> <平台> <版本> [--apply]'
+    + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
+    + ' | bind <bundleId> <平台> <版本> <build>');
   process.exit(1);
 })().catch((e) => { console.error('✗ ' + ((e && e.message) || e)); process.exit(1); });

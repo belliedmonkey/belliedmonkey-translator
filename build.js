@@ -453,7 +453,7 @@ function applyChinaLocales(dir) {
 // the generic Messages format) is intentionally NOT flagged — it is not a brand
 // reference. See docs/domain-design.md.
 
-function complianceGateChina(dir) {
+function complianceGateChina(dir, label) {
   const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i;
   const hits = [];
   (function walk(d) {
@@ -468,11 +468,11 @@ function complianceGateChina(dir) {
     }
   })(dir);
   if (hits.length) {
-    err(`China compliance gate FAILED — forbidden brand/endpoint references in dist-china/:`);
+    err(`China compliance gate FAILED — forbidden brand/endpoint references in ${label || 'dist-china'}/:`);
     hits.slice(0, 30).forEach((h) => console.error('   ' + h));
     process.exit(1);
   }
-  log('China compliance gate passed (no OpenAI/ChatGPT/Claude/global-endpoint references)');
+  log(`China compliance gate passed for ${label || 'dist-china'} (no OpenAI/ChatGPT/Claude/global-endpoint references)`);
 }
 
 // ─── Speech (TTS) engine registry bundle ────────────────────────────────────
@@ -756,15 +756,30 @@ descriptionLengthGate(DIST);
 
 // ─── Host app assets (learning-design §7.2) ─────────────────────────────────
 // Built from `app/` plus the SAME shared modules the extension ships — not copies of
-// them (§9: "not a second engine"). Global flavor only for now: the app is an Apple
-// surface and the China build has no App Store presence yet, so building it there
-// would ship an untested target rather than a feature.
-if (FLAVOR === 'global') {
+// them (§9: "not a second engine").
+//
+// **Per flavor, since 2026-08-23.** It used to be `if (FLAVOR === 'global')`, on the
+// stated grounds that "the China build has no App Store presence yet" — that stopped
+// being true when the China app shipped, and nothing went back to fix it. The effect:
+// `app:sync` pushed the ONE global `dist-app/` into BOTH project trees, so the China
+// host App carried the GLOBAL engine registry. Its settings page offered ChatGPT
+// (OpenAI), Claude (Anthropic) and Google with `api.openai.com` endpoints, while the
+// China extension right next to it had them stripped. Two standards inside one
+// product, and it shipped that way in 1.6.4.
+//
+// The China-flavor gate below catches the same class next time: the host bundle is a
+// concatenation of the SAME generated registries the extension uses, so if the
+// extension is clean and the app is not, the two were built from different flavors.
+{
   const { buildAppBundle } = require('./build/app-bundle.js');
+  const APP_OUT = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
   // syncOn flip retired with Gate B — the source flag is true; the bundle
   // concatenates it as-is.
-  buildAppBundle(path.join(ROOT, "dist-app"), log, {});
-  legacyBrandGate(path.join(ROOT, "dist-app"), "dist-app", [path.join(ROOT, "app")]);
+  // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
+  buildAppBundle(path.join(ROOT, APP_OUT), log,
+    FLAVOR === 'china' ? { genRoot: DIST } : {});
+  legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]);
+  if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
 }
 
 // ─── .not-shippable marker — closes the iOS archive hole ───────────────────
