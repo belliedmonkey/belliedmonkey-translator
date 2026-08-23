@@ -999,7 +999,9 @@ out follows the standing rules unchanged)*:
   「never bulk, never automatic」. Bulk was never the disease; a bill the user cannot
   see is. A batch is allowed when it meets all four of learning-design §9.2's
   conditions — price it first, spend on the second tap, stay stoppable, report by
-  name. 「出发前预载」 below is the one place that holds.)*
+  name. 「出发前预载」 below is the ONE place that holds, and it stays the only one:
+  a second feature wanting this exception goes back through domain review rather than
+  asserting it also meets the four.)*
 - **In the app** *(2026-08-08)*: the app's settings can hold a chat engine + key of
   their own (learning-design §7.2 — device-local, never synced; the wording must not
   imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
