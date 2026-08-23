@@ -109,6 +109,39 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 表是 `ItemTable(key, value)`，**value 是 UTF-16LE**。写之前先把 App 停掉。
 （脚本形态见 §2 F 行的 simulator 记录。）
 
+### 0.2 真机：一律走 iPhone 镜像驱动（2026-08-23 用户裁定）
+
+**真机验收由 iPhone 镜像（iPhone Mirroring）全程驱动，用户只做两件物理动作：把包弄上机、
+把手机锁屏。** 其余（点按、翻页、截图取证、判定）都不该再麻烦人 —— 一个每步都要人伸手的
+「真机验证」，跑一次就没有下一次了。
+
+- **镜像要求手机处于锁屏状态。** 屏幕上写着「iPhone 使用中，锁定 iPhone 以连接」时，
+  不是坏了，是手机正被拿在手里。装完包请把它放下、锁屏、别再碰。
+- **窗口底部约 70px 是悬浮条，会吃掉点击** —— 目标落在那一带时先滚动，别硬点。
+- **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.1）。
+
+**把包弄上机的两条路，代价不同：**
+
+| 路 | 代价 | 什么时候用 |
+|---|---|---|
+| USB + `devicectl device install app` | 要用户插线并信任一次；`xcrun devicectl list devices` 显示 `unavailable` / `tunnelState: unavailable` 就是没连上 | 默认。不碰 TestFlight、不占构建号、不对外发任何东西 |
+| TestFlight | 不用插线，但**会把一个未合并分支的构建推到 Apple 服务器并占掉一个构建号**，其他测试员也看得见 | 用户明确点头才走 |
+
+**走 TestFlight 之前，三件事顺序不能错**（2026-08-23 各踩一次）：
+
+1. **先 bump 版本，再 `build-safari.sh`。** `MARKETING_VERSION` 是生成工程时从
+   `package.json` 写进 pbxproj 的。顺序反了，工程里还是旧版本号，而 `xcodebuild` 不会说
+   什么 —— 归档出来的 Info.plist 仍是旧版，直到上传被 Apple 拒了才发现。
+   版本是**两处**：`package.json` 与 `extension/manifest.json`，`build.js` 有漂移门会拦。
+2. **已发布版本的 train 是关着的。** 同一个 `CFBundleShortVersionString` 不能再传新
+   build（`Invalid Pre-Release Train … is closed for new build submissions`）。要传就必须
+   进下一个版本号 —— 也就是说，**真机验收会顺带消耗一个版本号**，这也是它比 USB 贵的地方。
+3. **`npm run verify:ios` 必须对着这一次的 `.xcarchive` 跑**：
+   `npm run verify:ios -- /tmp/mt-ios.xcarchive`。不给参数它读的是 `/tmp/bt-dd` 里
+   **上一次**的产物 —— 2026-08-23 它就这样对着两周前的旧 appex 报「少了
+   `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
+   同一个默认路径也可能让一个真的漏文件的包通过。
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been
