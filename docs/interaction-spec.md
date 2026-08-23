@@ -312,12 +312,19 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 ### One unified path (incl. YouTube) — see [`domain-design.md`](domain-design.md)
 - All DOM — normal pages **and** YouTube title/description/comments — goes through
   the **single general `DomSegmenter`** (standard-HTML semantics, **no per-site
-  selectors**). Translation is inserted as a **SIBLING** after the original
-  (resists YouTube Polymer re-render; works on normal pages too) and re-applied by
-  a ~1s recollect poll.
+  selectors**). Translation is inserted as the original's **LAST CHILD** — inside
+  its box, not beside it (resists YouTube Polymer re-render; works on normal pages
+  too) and re-applied by a ~1s recollect poll. **A sibling is a correctness bug on
+  any page whose framework owns the container**: an extra child shifts every
+  position after it, so the next React commit moves the whole child list instead of
+  patching it. See `docs/domain-design.md` §4 for the measured numbers. The
+  interleave holder is the one exception — it hides the original, so it cannot live
+  inside it.
 - **SPA re-renders never visibly disturb the page.** A mere click/selection makes
-  SPA frameworks (React on Substack) re-render the article — MOVING existing nodes,
-  which order-displaces our sibling translations. Translations must stay glued to
+  SPA frameworks (React on Substack) re-render the article — MOVING existing nodes.
+  As a child the translation travels with its paragraph and is never order-displaced;
+  the machinery below remains for the interleave holder (still a sibling) and for
+  pages that move our child themselves. Translations must stay glued to
   their paragraphs with **no visible flash, layout jump, or remove→re-add blink** —
   clicking body text produces **no perceptible action**. (A childList
   MutationObserver runs the cheap re-anchor pass in the same microtask — before the
@@ -330,7 +337,13 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   lennysnewsletter.com 2026-08-12: selecting text triggers a React commit that
   performs **zero** paragraph mutations without our siblings and **hundreds** with
   them, and any move containing a selection endpoint kills or half-kills the
-  selection（用户症状：「高亮闪一下就没」）. The renderer snapshots the live
+  selection（用户症状：「高亮闪一下就没」）. **Re-measured 2026-08-23 with the same
+  method: 3 sibling divs → 76 paragraphs moved per selection change; 0 divs → 0.**
+  That is why placement moved inside the original (above): the keeper below is now
+  the backstop, not the cure. It never was a cure for the other half of the same
+  bug — a click landing on a hyperlink was retargeted to a container ancestor, or
+  dropped entirely, and no amount of after-the-fact repair can re-dispatch a click
+  that never happened（用户症状：「超链接打不开」）. The renderer snapshots the live
   selection (`selectionchange`) and, in the **same pre-paint microtask** as the
   re-anchor pass, restores it via `setBaseAndExtent` when a real mutation batch
   damaged it. Restore never fights intent: a user gesture after the snapshot, a
@@ -340,8 +353,11 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 - **…and never change how the page's own content behaves.**（翻译文字插入后不要
   影响网页原有内容的交互动作。）The page's links, buttons, handlers, context
   menu and selection must behave exactly as they would without the extension —
-  only our own injected UI (the `.mt-translation` sibling, FAB, subtitle
-  controls) is ever interactive on our behalf. Concretely: the interleave redraw
+  only our own injected UI (the `.mt-translation` child, FAB, subtitle
+  controls) is ever interactive on our behalf. **The strongest reading of this rule
+  is placement itself**: a translation node the page's framework has to reconcile
+  around is already changing how the page's own content behaves, before anyone
+  clicks anything. Concretely: the interleave redraw
   is plain text with the source hidden, so it **bails to sibling rendering**
   whenever the original contains interactive or non-text content (links,
   buttons, media, code — the original stays visible and fully clickable; fewer
@@ -356,19 +372,22 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
   carries the prior `display`, `data-mt-pos-fix` the prior `position` — the
   `data-mt-flow-fix` pattern). Regression: layout fixtures 34–36.
 - **Flex / grid rows: translation takes its own full-width line.** When the
-  original's parent is a flex or grid container (mobile YouTube video metadata
-  `次点赞/观看/年前`, the top nav, comment counts), the sibling translation would
-  otherwise become a flex/grid *item* placed inline next to the original and
-  overlap/spill off the row. So the translation is forced onto its own line below:
-  flex → `flex-basis:100%` + the row is made to wrap; grid → spans all columns.
-  The row's `flex-wrap` is restored on disable.
+  **original itself** is a flex or grid container, the translation — now one of its
+  own children — would otherwise become an *item* placed inline beside the text and
+  overlap/spill off the row. So it is forced onto its own line below: flex →
+  `flex-basis:100%` + the container is made to wrap; grid → spans all columns. The
+  container's `flex-wrap` is restored on disable. (Before 2026-08-23 this applied to
+  the original's PARENT, because the translation was a sibling and therefore the
+  parent's item. Same rule, one level in — moving inside is what narrowed it.)
 - **Reversed flex containers: the translation still reads BELOW the original.**
   A `flex-direction:column-reverse` container stacks its items bottom-to-top, and
   a row with `flex-wrap:wrap-reverse` stacks its *lines* bottom-to-top — in both,
   a translation appended after its original in the DOM would **paint above it**
   and the bilingual pair would read backwards. Placement therefore follows
-  **visual order, not DOM order**: in those containers the translation is
-  anchored *before* the original so it still renders below. (A plain
+  **visual order, not DOM order**. As a last child the translation lands below its
+  text unconditionally, so this now governs only the interleave holder, which is
+  still a sibling: in those containers it is anchored *before* the original so it
+  still renders below. (A plain
   `row-reverse` only mirrors the main axis; its own-line translation already
   lands below, so it is unchanged.)
 - **Rotation / resize / breakpoint re-measures the mirror.** The geometry a

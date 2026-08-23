@@ -15,12 +15,24 @@
 </div>
 <script>
   // Substack-class SPA behaviour, verified live on lennysnewsletter.com
-  // (2026-08-12): selecting text triggers a React re-render (the selection share
-  // menu), and the commit MOVES the article's paragraph nodes — remove+insert of
-  // the SAME node objects — but ONLY when foreign siblings (our translation divs)
-  // sit between React's children. With no extension the same re-render performs
-  // ZERO DOM operations (measured: 0 paragraph mutations off, 836 on). A node
-  // move that contains a selection endpoint destroys the selection.
+  // (2026-08-12, re-measured 2026-08-23): selecting text triggers a React
+  // re-render (the selection share menu), and the commit MOVES the article's
+  // paragraph nodes — remove+insert of the SAME node objects. A node move that
+  // contains a selection endpoint destroys the selection.
+  //
+  // **This fixture used to depend on our own siblings to provoke the storm**, and
+  // that dependency is gone: since 2026-08-23 the translation is a CHILD of its
+  // paragraph, so it no longer shifts any of the framework's positions and a
+  // position-matching reconciler finds nothing to move (fixture 37 is the one that
+  // pins that, and it is the reason「链接打不开」stopped happening). The anti-vacuous
+  // guard below caught the change immediately — the reconciler had quietly become a
+  // no-op and this fixture was passing without testing anything.
+  //
+  // So the storm is now the PAGE's own: this reconciler re-appends its children on
+  // every commit whether or not anything is out of place, which is what a framework
+  // that rebuilds its list wholesale does (virtualized feeds, sort/filter, a second
+  // hydration pass). The selection keeper must survive that too — it is not excused
+  // just because we stopped being the cause.
   //
   // The reconciler is memoized on the selection text, the way a real framework
   // memoizes its render: re-asserting the SAME selection does not re-render.
@@ -31,16 +43,14 @@
   const article = document.getElementById('article');
   const reactChildren = [...article.querySelectorAll('p')];
   function reconcile() {
-    for (let i = 0; i < reactChildren.length; i++) {
-      const p = reactChildren[i];
-      const expectedNext = reactChildren[i + 1] || null;
-      if (p.nextElementSibling !== expectedNext) {
-        article.insertBefore(p, expectedNext); // remove+insert of the same node
-        window.__moves++;
-        // DOM-visible copy: the assert lib runs in the extension's ISOLATED
-        // world and cannot read this world's `window.__moves`.
-        article.dataset.moves = String(window.__moves);
-      }
+    // 无条件重挂一遍：不是「有东西错位了才修」，而是每次提交都把自己的子节点
+    // 重新放一遍。每一次都是同一个节点对象的 remove+insert —— 页面自己搬自己。
+    for (const p of reactChildren) {
+      article.appendChild(p); // remove+insert of the same node
+      window.__moves++;
+      // DOM-visible copy: the assert lib runs in the extension's ISOLATED
+      // world and cannot read this world's `window.__moves`.
+      article.dataset.moves = String(window.__moves);
     }
   }
   let scheduled = false;
