@@ -1660,5 +1660,14 @@
   "drive_tts_unreachable": {
     "message": "连不上语音引擎，这一轮读不出声。已经预载过的卡才能离线播放（设置 → 预载离线资源）",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "语音服务超时了 —— 检查网络，或换一个语音端点"
+  },
+  "tts_network": {
+    "message": "连不上语音服务 —— 检查网络和端点地址"
+  },
+  "tts_empty": {
+    "message": "这张卡没有可朗读的文字"
   }
 }

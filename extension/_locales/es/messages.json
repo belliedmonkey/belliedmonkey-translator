@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "No se puede contactar con el motor de voz, así que esta ronda no se leerá nada. Solo las tarjetas precargadas suenan sin conexión (Ajustes → Precargar para sin conexión)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "El servicio de voz agotó el tiempo de espera: comprueba la red o prueba otra dirección"
+  },
+  "tts_network": {
+    "message": "No se puede conectar con el servicio de voz: comprueba la red y la dirección"
+  },
+  "tts_empty": {
+    "message": "Esta tarjeta no tiene texto que leer en voz alta"
   }
 }

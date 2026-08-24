@@ -199,6 +199,12 @@
       case 'no_key': return t('tts_no_key', '还没填语音 API Key');
       case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
       case 'http': return t('tts_http', '语音服务返回了错误');
+      // 这三条是 1.6.5 加的失败码，此前一直落到下面那句「暂时读不出来」。
+      // 补上不是锦上添花：删掉屏幕上的原始异常之后，不具名它们等于把这些失败
+      // 变得比清理前更没信息 —— 那是把清理做成回归。
+      case 'timeout': return t('tts_timeout', '语音服务超时了 —— 检查网络，或换一个语音端点');
+      case 'network': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
+      case 'empty': return t('tts_empty', '这张卡没有可朗读的文字');
       default: return t('tts_failed', '这句暂时读不出来');
     }
   }
@@ -246,8 +252,14 @@
     // Every failure names itself — auto attempts included. A blocked autoplay's
     // message already tells the user what to do (tap the button), and a failed
     // network fetch must not dead-end as a silently cleared loading line.
-    // DBG-TEMP: raw diagnostics visible on-device
-    setNote(reasonText(r.reason) + (r.detail ? ' 〔' + r.detail + '〕' : ' 〔' + (r.reason || '?') + (r.status ? ' ' + r.status : '') + '〕'));
+    //
+    // 屏幕上只放**说人话的那一句**，外加 HTTP 状态码（401/403/429 是用户能据以行动的）。
+    // 原始异常名、MIME、字节数只进控制台。这里原本挂着一条标了「临时诊断」的串，把
+    // `NotAllowedError play() failed because… | audio/mpeg 20480B fresh` 原样渲染给
+    // 手机上的用户看，而且**已经随 1.6.4/1.6.5/1.6.6 出货**。调试残留不会自己过期，
+    // 只会一版一版地跟着出去。
+    if (r.detail) console.warn('[mt-tts]', r.reason, r.status || '', r.detail);
+    setNote(reasonText(r.reason) + (r.status ? ' (HTTP ' + r.status + ')' : ''));
   }
 
   // Render the audio row for this card, and decide whether it can work at all

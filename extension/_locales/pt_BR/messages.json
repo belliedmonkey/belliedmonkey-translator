@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "Não foi possível alcançar o motor de voz, então nada será lido nesta rodada. Só cartões pré-carregados tocam offline (Ajustes → Pré-carregar para uso offline)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "O serviço de voz expirou — verifique a rede ou tente outro endereço"
+  },
+  "tts_network": {
+    "message": "Não foi possível acessar o serviço de voz — verifique a rede e o endereço"
+  },
+  "tts_empty": {
+    "message": "Este cartão não tem texto para ler em voz alta"
   }
 }

@@ -430,7 +430,10 @@ var LearnTTS = (() => {
     } catch (err) {
       // Autoplay policy, almost always. The caller keeps a visible ▶ button, so a
       // blocked autoplay is recoverable rather than a dead end.
-      // DBG-TEMP: name the real rejection + what we tried to play
+      //
+      // `detail` 是**给控制台的**，不是给界面的。它一度被 review.js 原样渲染到手机上
+      // （见那边的注释）。留着它有价值 —— 「blocked」这个码本身分不出是自动播放策略
+      // 还是解码失败 —— 但消费者必须自己决定放哪儿，这里只负责把事实说全。
       return { ok: false, reason: 'blocked', cached: got.cached,
         detail: String(err && err.name) + ' ' + String(err && err.message).slice(0, 100)
           + ' | ' + (got.type || '?') + ' ' + (got.buf ? got.buf.byteLength : 0) + 'B'

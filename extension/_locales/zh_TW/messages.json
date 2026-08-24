@@ -1660,5 +1660,14 @@
   "drive_tts_unreachable": {
     "message": "連不上語音引擎，這一輪讀不出聲。已經預載過的卡才能離線播放（設定 → 預載離線資源）",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "語音服務逾時了 —— 檢查網路，或換一個語音端點"
+  },
+  "tts_network": {
+    "message": "連不上語音服務 —— 檢查網路和端點位址"
+  },
+  "tts_empty": {
+    "message": "這張卡沒有可朗讀的文字"
   }
 }
