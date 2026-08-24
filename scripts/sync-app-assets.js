@@ -17,10 +17,13 @@
 //      App target ALREADY references, so the pbxproj never needs touching.
 //   2. `ViewController.swift` — scrolling (the template is one non-scrolling screen,
 //      a review list is not) and the iOS media user-gesture gate.
-//   3. `Info.plist` — the microphone usage string the 说 exercise needs.
+//   3. `Info.plist` — the microphone usage string the 说 exercise needs, and the iOS
+//      App's `UIBackgroundModes: audio` (播客模式 §9.5 background playback).
 //   4. `project.pbxproj` — the macOS audio-input sandbox entitlement.
 //   5. the macOS `Main.storyboard` — a window the user can actually resize, and a
 //      menu bar with an Edit menu, without which ⌘V does not paste.
+//   6. `ViewController.swift` again — `app/native/audio-bridge.swift` pasted in as a
+//      marker-delimited block (§9.5's native half: audio session + media remote).
 //
 // Each is written against the converter's template shape and is idempotent.
 //
@@ -152,8 +155,89 @@ function patchViewController(sharedDir) {
     notes.push('idle timer: anchor missing');
   }
 
+  // Patch 9 (§9.5 后台/锁屏): hand the web view to the native audio bridge. Both
+  // platforms — iOS needs the audio session, macOS needs the media remote (its
+  // process is never suspended, so background playback is unconditional there).
+  //
+  // A SECOND channel, deliberately: the converter's own `controller` handler has its
+  // entire body inside `#if os(macOS)` and opens with `message.body as! String`, so a
+  // dictionary body would trap. Reusing it would mean editing converter code we do
+  // not own; `mtAudio` keeps every byte of routing inside the marker block.
+  const BRIDGE_NEEDLE = 'MTAudioBridge.shared.install';
+  const BRIDGE_ANCHOR = 'self.webView.configuration.userContentController.add(self, name: "controller")';
+  if (src.includes(BRIDGE_NEEDLE)) {
+    notes.push('audio bridge install already patched');
+  } else if (src.includes(BRIDGE_ANCHOR)) {
+    src = src.replace(BRIDGE_ANCHOR, BRIDGE_ANCHOR + '\n\n'
+      + '        // Patched by scripts/sync-app-assets.js — 播客模式 (§9.5) 的后台/锁屏播放。\n'
+      + '        MTAudioBridge.shared.install(webView: self.webView)');
+    notes.push('audio bridge install patched');
+  } else {
+    notes.push('✗ audio bridge install: userContentController.add 锚点缺失');
+  }
+
   fs.writeFileSync(f, src);
   return notes.join(' · ');
+}
+
+// Patch 10 (§9.5 后台/锁屏): paste `app/native/audio-bridge.swift` into
+// ViewController.swift as a marker-delimited block.
+//
+// Marker block, not a needle. Every other patch here is one constant line, where
+// "contains it? then skip" is right. This block will keep evolving, and a needle
+// check would freeze whatever version first reached a given tree while `app:sync`
+// cheerfully printed "already patched" forever. Replacing the whole block makes
+// idempotence a RESULT (same template ⇒ same bytes) instead of a special case.
+//
+// Anchored after `import WebKit` rather than appended at the end of the file, which
+// buys three things at once: the template's own `import AVFoundation` / `import
+// MediaPlayer` are part of the block, so "keep the imports idempotent" stops being a
+// separate problem; there is a real anchor to fail loudly on; and that import line is
+// identical across both flavors and both platforms.
+const BRIDGE_BEGIN = '// ─── BEGIN mt-audio-bridge (generated — do not edit here) ───';
+const BRIDGE_END = '// ─── END mt-audio-bridge ───';
+const BRIDGE_IMPORT_ANCHOR = /^import WebKit$/m;
+
+function patchAudioBridgeSwift(src, tpl) {
+  const block = [
+    BRIDGE_BEGIN,
+    '// Source: app/native/audio-bridge.swift · written by scripts/sync-app-assets.js.',
+    '// Edit the repo file and re-run `npm run app:sync`; edits made here are overwritten.',
+    tpl.replace(/\s+$/, ''),
+    BRIDGE_END,
+  ].join('\n');
+
+  const b = src.indexOf(BRIDGE_BEGIN);
+  const e = src.indexOf(BRIDGE_END);
+  // Half a pair means someone hand-edited or the file was truncated. Appending a
+  // second copy would give the target two `MTAudioBridge` types, and the compiler
+  // error for that points nowhere near the cause. Refuse instead.
+  if ((b < 0) !== (e < 0)) return { swift: src, note: '✗ audio bridge: 标记不成对，拒绝改写' };
+  if (b >= 0 && e < b) return { swift: src, note: '✗ audio bridge: 标记顺序颠倒，拒绝改写' };
+
+  let out;
+  if (b >= 0) {
+    const tail = e + BRIDGE_END.length + (src[e + BRIDGE_END.length] === '\n' ? 1 : 0);
+    out = src.slice(0, b) + block + '\n' + src.slice(tail);
+  } else {
+    if (!BRIDGE_IMPORT_ANCHOR.test(src)) {
+      return { swift: src, note: '✗ audio bridge: import WebKit 锚点缺失 — 转换器模板变了？' };
+    }
+    out = src.replace(BRIDGE_IMPORT_ANCHOR, 'import WebKit\n\n' + block + '\n');
+  }
+  if (out === src) return { swift: src, note: 'audio bridge already current' };
+  return { swift: out, note: b >= 0 ? 'audio bridge block replaced' : 'audio bridge block inserted' };
+}
+
+function patchAudioBridge(sharedDir) {
+  const tplPath = path.join(ROOT, 'app', 'native', 'audio-bridge.swift');
+  if (!fs.existsSync(tplPath)) return '✗ audio bridge: app/native/audio-bridge.swift 不存在';
+  const f = path.join(sharedDir, 'ViewController.swift');
+  if (!fs.existsSync(f)) return '✗ audio bridge: no ViewController.swift';
+  const { swift, note } = patchAudioBridgeSwift(
+    fs.readFileSync(f, 'utf8'), fs.readFileSync(tplPath, 'utf8'));
+  if (!/^✗/.test(note)) fs.writeFileSync(f, swift);
+  return note;
 }
 
 // Patch 3 (§9.4): the 说 exercise records the microphone inside the WKWebView.
@@ -165,6 +249,37 @@ function patchViewController(sharedDir) {
 //
 const MIC_KEY = 'NSMicrophoneUsageDescription';
 const MIC_TEXT = '朗读练习需要使用麦克风录音；录音只发送到你自己配置的转写端点，识别后立即丢弃，绝不存储或上传到我们的服务器。';
+
+// One row per declaration. `only` names the platform App directory it belongs to;
+// absent means every App target.
+//
+// `UIBackgroundModes` MUST be iOS-only, and it cannot ride `build-safari.sh`'s
+// `set_app_key` to get there: that helper anchors on
+// `PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID;`, and the perl line beside it rewrites
+// EVERY bundle id in the project to the same value on purpose (one App Store record,
+// two platforms) — so the setting would land on the macOS App target too. A macOS app
+// declaring a background mode it cannot use is something review asks about, and
+// macOS needs nothing here anyway: its process is never suspended (§9.5).
+const PLIST_KEYS = [
+  { key: MIC_KEY, xml: `<string>${MIC_TEXT}</string>` },
+  { key: 'UIBackgroundModes', only: 'iOS (App)',
+    xml: '<array>\n\t\t<string>audio</string>\n\t</array>' },
+];
+
+// Pure, so the tests can run it without an Xcode tree. Returns { xml, added, note }.
+function patchPlistXml(src, keys) {
+  const added = [];
+  let out = src;
+  for (const k of keys) {
+    if (out.includes(`<key>${k.key}</key>`)) continue;
+    const anchor = out.lastIndexOf('</dict>');
+    if (anchor < 0) return { xml: src, added: [], note: '✗ no </dict> anchor' };
+    out = out.slice(0, anchor) + `\t<key>${k.key}</key>\n\t${k.xml}\n` + out.slice(anchor);
+    added.push(k.key);
+  }
+  return { xml: out, added, note: added.length ? `patched ${added.join(', ')}` : 'already current' };
+}
+
 function patchInfoPlists(sharedDir) {
   const appRoot = path.dirname(sharedDir);   // …/<name>/, holding "iOS (App)" etc.
   const notes = [];
@@ -172,15 +287,11 @@ function patchInfoPlists(sharedDir) {
     if (!/\(App\)$/.test(entry) || entry.startsWith('Shared')) continue;
     const plist = path.join(appRoot, entry, 'Info.plist');
     if (!fs.existsSync(plist)) continue;
-    let src = fs.readFileSync(plist, 'utf8');
-    if (src.includes(MIC_KEY)) { notes.push(entry + ': mic key already present'); continue; }
-    const anchor = src.lastIndexOf('</dict>');
-    if (anchor < 0) { notes.push(entry + ': no </dict> anchor'); continue; }
-    src = src.slice(0, anchor)
-      + `\t<key>${MIC_KEY}</key>\n\t<string>${MIC_TEXT}</string>\n`
-      + src.slice(anchor);
-    fs.writeFileSync(plist, src);
-    notes.push(entry + ': mic key patched');
+    const keys = PLIST_KEYS.filter((k) => !k.only || k.only === entry);
+    const { xml, note } = patchPlistXml(fs.readFileSync(plist, 'utf8'), keys);
+    if (/^✗/.test(note)) { notes.push(`✗ ${entry}: ${note.slice(2)}`); continue; }
+    fs.writeFileSync(plist, xml);
+    notes.push(entry + ': ' + note);
   }
   return notes.length ? notes.join(' · ') : 'no app Info.plist found';
 }
@@ -404,6 +515,17 @@ function patchAppIcon(sharedDir) {
 
 function main() {
   let touched = 0;
+  // Notes that start with ✗ are failures, and they used to disappear into the middle
+  // of a ✓ line. For the §9.5 patches that is not survivable: a missing background
+  // patch produces an app that installs fine and goes silent the moment the screen
+  // locks — indistinguishable from the feature not being built. Collect and exit 1.
+  // Only the new patches emit ✗; the older ones keep their soft wording so a
+  // half-generated tree does not start failing for unrelated reasons.
+  const problems = [];
+  const loud = (proj, label, note) => {
+    if (/^✗/.test(note)) problems.push(`${proj} · ${label}: ${note.replace(/^✗\s*/, '')}`);
+    return note;
+  };
   for (const proj of PROJECTS) {
     const { state, dirs } = classifyProject(path.join(ROOT, proj));
     if (state === 'absent') { console.log(`  – ${proj}: 未生成，跳过`); continue; }
@@ -441,7 +563,10 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Main.html'), path.join(lproj, 'Main.html'));
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${patchViewController(shared)} · Info.plist ${patchInfoPlists(shared)} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      const vc = loud(proj, 'ViewController', patchViewController(shared));
+      const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared));
+      const plists = loud(proj, 'Info.plist', patchInfoPlists(shared));
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · Info.plist ${plists} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -450,9 +575,18 @@ function main() {
     console.error('✗ 没有找到任何已生成的 Safari 工程 —— 先跑 safari-web-extension-converter');
     process.exit(1);
   }
+  if (problems.length) {
+    console.error('\n✗ 有补丁没打上 —— 装出来的 App 会缺功能，而 Xcode 不会说任何话：');
+    for (const x of problems) console.error('  ' + x);
+    process.exit(1);
+  }
+
   console.log('\n注意：Xcode 增量构建不一定会重拷改动过的资源。测 App 资源前先 rm -rf derivedData。');
 }
 
 if (require.main === module) main();
 
-module.exports = { classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml };
+module.exports = {
+  classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
+  patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
+};

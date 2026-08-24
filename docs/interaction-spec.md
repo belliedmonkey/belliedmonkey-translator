@@ -910,8 +910,11 @@ change: four grades, consequence previews, strength bar.
 
 An app-only **player** for the deck (learning-design §9.5): TTS reads each card
 原文 → 译文 (→ 解析, if the user turned that on), one card runs straight into the
-next with nothing waiting on the user, in one of four playback orders. Foreground
-only; the screen is kept awake by the `app:sync` idle-timer patch.
+next with nothing waiting on the user, in one of four playback orders. In **both host apps
+(iOS and macOS)** it keeps playing once the app is no longer visible — backgrounded,
+locked, minimised or switched away (2026-08-24, learning-design §9.5「后台与锁屏播放」);
+on iOS the screen is also kept awake by the `app:sync` idle-timer patch while the app is
+in front.
 
 **It writes nothing** — no review row, no skill stamp, no `lastSeenAt`, no scheduler
 call. The 跟读 exercise and the spoken 「有没有疑问？」 loop that v1 had are gone: a
@@ -973,7 +976,45 @@ out follows the standing rules unchanged)*:
   (`blocked`, `unsupported`) stops the session on a named reason, because it will
   recur on every card; a per-card failure (`no_voice`) says so and skips to the next,
   because one unreadable card must not end a session whose other cards are fine.
-  Never silent either way. Hiding the app pauses; resuming is always a tap.
+  Never silent either way.
+- **Hiding is no longer pausing** (2026-08-24). The test is one question — *can this host
+  keep making sound while it is not visible?* — and it answers differently per platform.
+  On **macOS** the answer is unconditionally yes: the process is never suspended, so
+  minimising, ⌘H or switching away just keeps playing (the only thing that ever stopped it
+  was this handler). On **iOS** it holds while the host actually has an audio session AND
+  the engine yields audio bytes. When it holds, `visibilitychange` does nothing and the
+  session plays on — backgrounding is what "listening while driving" looks like, not an
+  interruption. When it fails, hiding pauses exactly as before **and the standing line says
+  which condition failed and where to change it**: a player the user entered expecting a
+  music app must not go quiet without a sentence. Where background audio is unconditional
+  it says nothing at all — there is nothing to explain. A **real** interruption (a phone
+  call, another app taking the session) still pauses, and it resumes by itself only when
+  the system says `.shouldResume`. Pulling headphones pauses and never auto-resumes on
+  reconnect.
+  > **This is the host app, not a browser.** 播客模式 ships zero bytes into the extension
+  > (`manifest.json` never lists it), and the app's UI is `app/**` loaded with
+  > `loadFileURL` into the app's own web view. "Background" here means *the app went to
+  > the background*; Safari and the extension page are not involved on either platform.
+- **Lock-screen / car / headset controls are the second surface of the same four buttons.**
+  They dispatch the SAME events as the on-screen controls, so the session state machine
+  gains no event and no state:
+
+  | Remote | Event | |
+  |---|---|---|
+  | play / pause / toggle | `tap_resume` / `tap_pause` | shares one helper with the ⏸/▶ button |
+  | next track | `tap_next` | |
+  | **previous track** | **`tap_repeat`** | there is no "previous card" — 随机 is a one-shot permutation, so going back is undefined. Previous = 🔁 再听一遍 |
+
+  The surface differs per platform — iOS: the lock screen, the car head unit, headset
+  buttons; macOS: the keyboard media keys, AirPods, and Control Center's Now Playing
+  (there is no lock-screen card on a Mac). The wiring is one `MediaPlayer` code path for
+  both.
+
+  **No timeline is published**: three passes over five segments make every scrub bar a lie,
+  so seek / skip / position commands are all disabled. What is shown is the card itself —
+  原句 large, 译句 under it, `第 i / n 张 · 第 k 遍` below that. That the sentence being
+  studied appears on the lock screen (and in Control Center) is the intended behaviour of
+  "show the card", stated here so it is agreed rather than discovered.
 - **开卡即并行，并前瞻一张**（2026-08-23，learning-design §9.5）: opening a card fires
   every network call that card needs at once — 原句音频 / 译句音频 / 解析，and the
   notes audio the moment the notes text lands — then warms the NEXT card's 原句/译句

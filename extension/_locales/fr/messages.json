@@ -1668,5 +1668,11 @@
   },
   "tts_empty": {
     "message": "Cette carte ne contient aucun texte à lire"
+  },
+  "drive_bg_session_failed": {
+    "message": "Cet appareil ne peut pas démarrer de session audio en arrière-plan pour le moment ; la lecture se met en pause quand l'app quitte l'écran."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "La voix intégrée de l'appareil s'arrête dès que l'app quitte l'écran. Pour continuer à écouter, configurez un point de terminaison vocal (Réglages → Moteur vocal)."
   }
 }

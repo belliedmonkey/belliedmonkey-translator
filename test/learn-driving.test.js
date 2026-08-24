@@ -447,3 +447,64 @@ describe('LearnDriving — 这个模式不写任何进度 (§9.5)', () => {
     }
   });
 });
+
+// §9.5「后台与锁屏播放」。锁屏/车机/耳机/媒体键是屏幕上那四个按钮的第二个表面，
+// 所以这一整节验的其实是一句话：**状态机不该因为多了一个表面而长出任何东西。**
+describe('LearnDriving.nativeEvent — 遥控 → 会话事件', () => {
+  const ev = (msg, st) => D.nativeEvent(msg, st || 'speaking');
+
+  test('四个遥控键映射到既有事件，没有一个是新的', () => {
+    eq(ev({ type: 'remote', command: 'play' }), 'tap_resume');
+    eq(ev({ type: 'remote', command: 'pause' }), 'tap_pause');
+    eq(ev({ type: 'remote', command: 'next' }), 'tap_next');
+    eq(ev({ type: 'remote', command: 'previous' }), 'tap_repeat');
+  });
+
+  test('「上一曲」是再听一遍，不是上一张 —— 随机排列里往回退没有定义', () => {
+    eq(D.REMOTE_EVENTS.previous, 'tap_repeat');
+    ok(!Object.values(D.REMOTE_EVENTS).includes('tap_prev'), '不存在这样的事件，也不该存在');
+  });
+
+  test('播放/暂停切换键按当前状态倒向，和屏幕按钮用同一个判据', () => {
+    eq(ev({ type: 'remote', command: 'toggle' }, 'speaking'), 'tap_pause');
+    for (const st of D.PAUSED_LIKE) {
+      eq(ev({ type: 'remote', command: 'toggle' }, st), 'tap_resume', st + ' 看起来是停着的');
+    }
+  });
+
+  test('中断开始就暂停；结束只有系统说 shouldResume 才自动续播', () => {
+    eq(ev({ type: 'interrupt', phase: 'begin' }), 'tap_pause');
+    eq(ev({ type: 'interrupt', phase: 'end', resume: true }), 'tap_resume');
+    // 系统没说可以恢复 ⇒ 停着等人。「切后台不是中断」那条规约缩窄之后，剩下的正是这个。
+    eq(ev({ type: 'interrupt', phase: 'end', resume: false }), null);
+    eq(ev({ type: 'interrupt', phase: 'end' }), null, '字段缺失按不恢复算');
+  });
+
+  test('拔耳机暂停，重连不自动播', () => {
+    eq(ev({ type: 'route', change: 'device-lost' }), 'tap_pause');
+    eq(ev({ type: 'route', change: 'device-added' }), null,
+      '重连自动外放是所有音乐 App 都在避免的那件事');
+  });
+
+  test('认不出的消息一律不动播放器', () => {
+    eq(ev(null), null);
+    eq(ev({}), null);
+    eq(ev({ type: 'session-ready' }), null);
+    eq(ev({ type: 'remote', command: 'seek' }), null, '时间轴我们根本不给，seek 更不该有动作');
+  });
+
+  test('nativeEvent 只会产出 reduce 认识的事件', () => {
+    const KNOWN = ['tap_resume', 'tap_pause', 'tap_next', 'tap_repeat'];
+    const msgs = [
+      { type: 'remote', command: 'play' }, { type: 'remote', command: 'pause' },
+      { type: 'remote', command: 'next' }, { type: 'remote', command: 'previous' },
+      { type: 'remote', command: 'toggle' },
+      { type: 'interrupt', phase: 'begin' }, { type: 'interrupt', phase: 'end', resume: true },
+      { type: 'route', change: 'device-lost' },
+    ];
+    for (const m of msgs) {
+      const e = ev(m);
+      ok(e === null || KNOWN.indexOf(e) >= 0, '产出了状态机不认识的事件：' + e);
+    }
+  });
+});

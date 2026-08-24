@@ -1669,5 +1669,11 @@
   },
   "tts_empty": {
     "message": "这张卡没有可朗读的文字"
+  },
+  "drive_bg_session_failed": {
+    "message": "这台设备现在建不起后台音频会话，App 退到后台或锁屏后会暂停"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "设备内置语音在 App 退到后台或锁屏后会停下来；想放着听，请配一个语音端点（设置 → 语音引擎）"
   }
 }

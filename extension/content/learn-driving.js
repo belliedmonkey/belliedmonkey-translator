@@ -292,10 +292,50 @@ var LearnDriving = (() => {
     }
   }
 
+  // ─── 遥控 → 会话事件（§9.5「后台与锁屏播放」）────────────────────────────
+  // 锁屏卡片、车机按键、耳机、macOS 的媒体键，按下去的东西和屏幕上那四个按钮**是同一件
+  // 事的两个表面**，所以它们派发同一批 `tap_*` 事件。状态机因此一个新事件、一个新状态
+  // 都不需要 —— 这不是巧合：`tap_*` 的语义本来就是「用户在控制」，从哪个表面控制的
+  // 与状态机无关。
+  const REMOTE_EVENTS = {
+    play: 'tap_resume',
+    pause: 'tap_pause',
+    next: 'tap_next',
+    // 「上一曲」= 🔁 再听一遍（回第一遍开头）。播客模式**没有「上一张」**：随机播放是
+    // 一次性排列，往回退没有定义；给它接一个「上一张」就得记一条历史，而那条历史与
+    // `order` 会在重洗时分叉。
+    previous: 'tap_repeat',
+  };
+
+  // 用户看来仍然「停着」的几个状态。播放/暂停切换键要按这个判断往哪边倒，而 app/driving.js
+  // 的按钮显隐也读它 —— 一处定义，两个表面，免得遥控和按钮对同一个状态给出相反的动作。
+  const PAUSED_LIKE = ['paused', 'stopped_error', 'explain_fetch', 'explain_speak'];
+  function isPausedLike(stateName) { return PAUSED_LIKE.indexOf(stateName) >= 0; }
+
+  // 原生音频事件 → 会话事件。返回 null = 这条消息不该动播放器。
+  function nativeEvent(msg, stateName) {
+    if (!msg) return null;
+    if (msg.type === 'remote') {
+      if (msg.command === 'toggle') return isPausedLike(stateName) ? 'tap_resume' : 'tap_pause';
+      return REMOTE_EVENTS[msg.command] || null;
+    }
+    if (msg.type === 'interrupt') {
+      if (msg.phase === 'begin') return 'tap_pause';
+      // 只有系统说 `.shouldResume` 才自动续播。一次真正的中断（来电、被别的 App 抢走
+      // 音频）之后自作主张地重新开口，正是 2026-08-18 那条规约要防的事 —— 那条规约
+      // 2026-08-24 缩窄到了这里，而不是被废掉：**切后台不是中断**。
+      return msg.resume ? 'tap_resume' : null;
+    }
+    // 耳机被拔了 ⇒ 暂停。重连**不**自动播：拔掉耳机后从外放里冒出声音，是所有音乐 App
+    // 都在避免的那件事。
+    if (msg.type === 'route') return msg.change === 'device-lost' ? 'tap_pause' : null;
+    return null;
+  }
+
   return {
     DEFAULTS, MODES, DEFAULT_MODE, PASSES, nextMode,
     buildOrder, advance, peekNext, cardPlan, notesToSpeech, reduce,
-    ACTIVE,
+    ACTIVE, REMOTE_EVENTS, PAUSED_LIKE, isPausedLike, nativeEvent,
   };
 })();
 

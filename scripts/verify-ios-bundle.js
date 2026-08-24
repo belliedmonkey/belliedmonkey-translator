@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const dd = process.argv[2] || '/tmp/bt-dd';
@@ -51,6 +52,78 @@ function findAppex(root) {
     }
   }
   return null;
+}
+
+// The APP bundle, not the extension. `findAppex` deliberately dives past it; this one
+// stops at the first `.app` that is not itself inside a `.appex`.
+function findApp(root) {
+  const stack = [root];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { continue; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (!e.isDirectory()) continue;
+      if (e.name.endsWith('.app')) return p;
+      if (e.name.endsWith('.appex')) continue;
+      stack.push(p);
+    }
+  }
+  return null;
+}
+
+// macOS keeps Info.plist under Contents/, iOS at the bundle root — same split as
+// resourceRoot(), and getting it wrong reads as "the key is missing".
+function plistPath(bundle) {
+  const mac = path.join(bundle, 'Contents', 'Info.plist');
+  return fs.existsSync(mac) ? mac : path.join(bundle, 'Info.plist');
+}
+
+function readPlist(f) {
+  if (!fs.existsSync(f)) return null;
+  try {
+    return JSON.parse(execFileSync('plutil', ['-convert', 'json', '-o', '-', f],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  } catch (_) { return null; }
+}
+
+// §9.5 background playback lives entirely in a plist key that `app:sync` injects into
+// a gitignored, regenerated tree. Forgetting `npm run app:sync` therefore produces an
+// app that installs fine and goes silent the moment the screen locks — the exact
+// shape of "the feature was never built", and nothing in the build log says a word.
+// So it is a gate, not a line in a checklist.
+function checkBackgroundAudio(app, appex) {
+  const isMac = fs.existsSync(path.join(app, 'Contents'));
+  const appPlist = readPlist(plistPath(app));
+  if (!appPlist) {
+    console.error('✗ 读不到 App target 的 Info.plist —— 无法确认后台播放声明');
+    return false;
+  }
+  const modes = appPlist.UIBackgroundModes || [];
+  if (isMac) {
+    // macOS is never suspended, so it needs nothing here — and declaring a background
+    // mode it cannot use is something review asks about.
+    if (modes.length) {
+      console.error('✗ macOS App 声明了 UIBackgroundModes —— 它不需要，而且审核会问');
+      return false;
+    }
+    console.log('✓ macOS App 没有 UIBackgroundModes（正确：那边进程不会被挂起）');
+    return true;
+  }
+  if (!modes.includes('audio')) {
+    console.error('✗ iOS App 的 Info.plist 里没有 UIBackgroundModes: audio');
+    console.error('  播客模式 (§9.5) 会在锁屏那一刻静音，而构建日志一个字都不会说。');
+    console.error('  修法：npm run app:sync（它必须在 xcodebuild archive 之前跑），然后重新归档。');
+    return false;
+  }
+  const exPlist = appex ? readPlist(plistPath(appex)) : null;
+  if (exPlist && (exPlist.UIBackgroundModes || []).length) {
+    console.error('✗ 扩展 target 也声明了 UIBackgroundModes —— 它永不播放音频，不该有');
+    return false;
+  }
+  console.log('✓ iOS App 声明了 UIBackgroundModes: audio（§9.5 后台播放），扩展 target 没有');
+  return true;
 }
 
 function main() {
@@ -91,8 +164,15 @@ function main() {
     process.exit(1);
   }
   console.log(`✓ Safari bundle complete — all ${inDist.size} dist files present in ${path.basename(appex)}`);
+
+  const app = findApp(dd);
+  if (!app) {
+    console.error(`✗ no .app under ${dd} —— 找不到宿主 App，无法检查后台播放声明`);
+    process.exit(1);
+  }
+  if (!checkBackgroundAudio(app, appex)) process.exit(1);
 }
 
 if (require.main === module) main();
 
-module.exports = { resourceRoot };
+module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio };

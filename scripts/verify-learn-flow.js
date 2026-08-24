@@ -928,6 +928,70 @@ async function runHost(host) {
       await sweep('播客·按需解析', '#app-drive');
       await ev(`(AppDriving.stop(), 'ok')`);
 
+      // ─── 10e′ · 后台播放的退化路径与接管路径（§9.5「后台与锁屏播放」）─────
+      // 这个宿主里**没有原生桥**（Chrome 不是 App），所以第一半验的是「今天的行为一字
+      // 未改」：桥不在 ⇒ 隐藏照旧暂停，且界面上不该多出任何一句解释 —— 从没承诺过后台
+      // 播放的宿主解释「为什么会停」是噪音。
+      //
+      // 第二半注入一个假桥再跑一遍。没有它，这一整个功能在自动化里就只有「不生效」那一
+      // 条分支被走到，而那条分支恰恰是**改动之前就成立**的 —— 全绿也证明不了任何事。
+      need((await ev(`NativeAudio.available()`)) === false, '桥不该存在于这个宿主里');
+      need((await ev(`AppDriving._debug().bg`)) === false, '没有桥就不该判定为可后台播');
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+      need((await text('#app-drive-cost')).indexOf('后台') < 0,
+        '没有桥的宿主上不该出现任何关于后台播放的解释：' + (await text('#app-drive-cost')));
+      await ev(`(document.dispatchEvent(new Event('visibilitychange')), 'ok')`);
+      // jsdom/CDP 里 visibilityState 恒为 visible，所以直接验判据本身而不是靠改可见性：
+      // 分支是 `visible → return` 在前，`backgroundCapable() → return` 在后。
+      need((await ev(`AppDriving._debug().bg`)) === false, '判据不该因为一次事件而翻转');
+      await ev(`(AppDriving.stop(), 'ok')`);
+
+      // 假桥：postMessage 记账，然后手工喂一条 session-ready 回去。
+      await ev(`(() => {
+        window.__mtNative = [];
+        window.webkit = { messageHandlers: { mtAudio: {
+          postMessage: (m) => { window.__mtNative.push(m); },
+        } } };
+        return 'ok';
+      })()`);
+      need((await ev(`NativeAudio.available()`)) === true, '假桥没被认出来');
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+      need(await ev(`window.__mtNative.some((m) => m.type === 'session-start')`),
+        '会话开始时没有向原生要音频会话');
+      // 会话还没 ready ⇒ 仍然不能后台播。「桥在」不等于 setCategory 成功了。
+      need((await ev(`AppDriving._debug().bg`)) === false, 'ready 之前就判定可后台播');
+      await ev(`(window.NativeAudio._fromNative({ type: 'session-ready', platform: 'macos', suspends: false }), 'ok')`);
+      need((await ev(`AppDriving._debug().bg`)) === true,
+        '不会挂起进程的宿主（macOS）应该无条件可后台播 —— 这里误加 returnsAudio 门就会让'
+        + '默认装机的 Mac 用户莫名其妙没有后台播放');
+      need(await ev(`window.__mtNative.some((m) => m.type === 'now-playing' && m.title)`),
+        '没有把卡片正文推给「正在播放」');
+      // 遥控 = 屏幕按钮的第二个表面：按下去必须真的动播放器。
+      const before = (await ev(`AppDriving._debug()`)).state;
+      await ev(`(window.NativeAudio._fromNative({ type: 'remote', command: 'pause' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused',
+        '锁屏的暂停键没有停住播放器（之前是 ' + before + '）');
+      await ev(`(window.NativeAudio._fromNative({ type: 'remote', command: 'play' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) !== 'paused', '锁屏的播放键没有续上');
+      // 真正的中断：系统没说 shouldResume 就不许自己开口。
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'begin' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused', '中断开始没有暂停');
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'end', resume: false }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused',
+        '系统没说可以恢复，播放器却自己开口了');
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'end', resume: true }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) !== 'paused', 'shouldResume 之后没有自动续播');
+      await ev(`(AppDriving.stop(), 'ok')`);
+      need(await ev(`window.__mtNative.some((m) => m.type === 'session-stop')`),
+        '退出会话没有收掉锁屏卡片');
+      // iOS 形状：会挂起 ⇒ 还要看引擎产不产音频字节。
+      await ev(`(window.NativeAudio._fromNative({ type: 'session-ready', platform: 'ios', suspends: true }), 'ok')`);
+      need((await ev(`AppDriving._debug().bg`)) === false,
+        '设备内置语音（returnsAudio: false）在会挂起的宿主上不该被判定为可后台播');
+      await ev(`(delete window.webkit, 'ok')`);
+
       // ─── 10f · 出发前预载（§9.5）────────────────────────────────────────
       // 这一节的**判据只有一条**：预载跑完之后，再走一次播客会话，网络请求数一个都不涨。
       // 前面每一道门都能在有网的情况下变绿，只有这条断言能分辨「真的离线可用」和

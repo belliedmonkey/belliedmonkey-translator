@@ -1669,5 +1669,11 @@
   },
   "tts_empty": {
     "message": "這張卡沒有可朗讀的文字"
+  },
+  "drive_bg_session_failed": {
+    "message": "這台裝置現在建立不了背景音訊工作階段，App 退到背景或鎖定畫面後會暫停"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "裝置內建語音在 App 退到背景或鎖定畫面後會停下來；想放著聽，請設定一個語音端點（設定 → 語音引擎）"
   }
 }

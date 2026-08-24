@@ -1668,5 +1668,11 @@
   },
   "tts_empty": {
     "message": "Diese Karte enthält keinen vorlesbaren Text"
+  },
+  "drive_bg_session_failed": {
+    "message": "Auf diesem Gerät lässt sich derzeit keine Hintergrund-Audiositzung starten; die Wiedergabe pausiert, sobald die App den Bildschirm verlässt."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "Die geräteeigene Stimme stoppt, sobald die App den Bildschirm verlässt. Zum Weiterhören einen Sprach-Endpunkt einrichten (Einstellungen → Sprach-Engine)."
   }
 }
