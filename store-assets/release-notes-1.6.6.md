@@ -60,3 +60,52 @@ unzip -p /tmp/v.zip manifest.json | grep '"version"'                       # 1.6
 unzip -p /tmp/v.zip content/content-webpage.js | grep -c 'CHILD_BOX'       # >0，渲染器修复在包里
 unzip -p /tmp/v.zip content/i18n-messages.js | grep -c '\*\*'              # 0
 ```
+
+---
+
+## 国际版 · zh-Hans
+
+```
+修复：在 Substack 这类用 React 渲染的网站上，开启翻译后选不中文字、超链接也点不开。
+译文节点原本插在页面框架管辖的容器里，导致每次选中文字都会让整篇文章的段落被重新
+排布一遍——选区因此被清掉，鼠标按下和抬起之间段落已经换了位置，点击也就到不了链接
+上。现在译文改为插入到原文段落内部，不再打扰页面自己的结构。
+
+本次同时带来 1.6.5 的全部内容：
+
+· 播客模式可以离线用了。出发前点一下「预载离线资源」，今天要听的语音、句子解析和
+  译文就全部下到本机，路上完全没网也能整轮播完。第一下只算账——告诉你有多少张卡、
+  要花多少次付费调用，不花一分钱；你看清楚了再点第二下。
+· 开卡更快。一张卡需要的东西现在一次性同时请求，句与句之间的空档没有了。
+· 采集时没有译文的卡，现在可以用你已经配好的引擎补上译文。
+· 连不上语音引擎时会明确说出来并停下，而不是一声不响地把整副牌跳完再说「本轮听完了」。
+· 预载过程中按「停止」会立刻生效。
+```
+
+## 国际版 · en-US
+
+```
+Fixed: on React-rendered sites such as Substack, turning translation on made text
+impossible to select and hyperlinks impossible to open. The translation was being
+inserted into a container the page's own framework owns, so every change of
+selection made the framework re-lay-out every paragraph in the article — which
+wiped the selection, and moved the paragraph out from under the pointer between
+mouse-down and mouse-up so the click never reached the link. The translation now
+goes inside its own paragraph and leaves the page's structure alone.
+
+This update also brings everything from 1.6.5:
+
+· Podcast mode can now be taken offline. Tap Preload before you set out and the
+  speech, sentence notes and translations for today's deck are downloaded to your
+  device, so a whole session plays with no network at all. The first tap only
+  prices it — it shows how many cards and how many billed calls, and spends
+  nothing. You decide, then tap again.
+· Cards start faster. Everything a card needs is now requested at once instead of
+  one piece at a time, so the silence between sentences is gone.
+· Cards captured without a translation can be given one, using the engine you
+  already configured.
+· When the speech engine cannot be reached, it now says so and stops — instead of
+  skipping through the whole deck in silence and reporting that the round is
+  finished.
+· Stop now takes effect promptly during a preload.
+```
