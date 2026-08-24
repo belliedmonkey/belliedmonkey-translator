@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "Cannot reach the speech engine, so nothing can be read aloud this round. Only preloaded cards play offline (Settings → Preload for offline)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "The speech service timed out — check your network, or try another endpoint"
+  },
+  "tts_network": {
+    "message": "Cannot reach the speech service — check your network and the endpoint address"
+  },
+  "tts_empty": {
+    "message": "This card has no text to read aloud"
   }
 }

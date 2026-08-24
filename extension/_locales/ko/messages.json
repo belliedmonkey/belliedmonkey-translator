@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "음성 엔진에 연결할 수 없어 이번 회차는 읽어 줄 수 없습니다. 미리 받아 둔 카드만 오프라인에서 재생됩니다 (설정 → 오프라인용으로 미리 받기)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "음성 서비스가 시간 초과되었습니다 — 네트워크를 확인하거나 다른 엔드포인트를 사용해 보세요"
+  },
+  "tts_network": {
+    "message": "음성 서비스에 연결할 수 없습니다 — 네트워크와 엔드포인트 주소를 확인하세요"
+  },
+  "tts_empty": {
+    "message": "이 카드에는 읽어 줄 텍스트가 없습니다"
   }
 }

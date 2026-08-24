@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "Die Sprach-Engine ist nicht erreichbar — in dieser Runde wird nichts vorgelesen. Nur vorab geladene Karten spielen offline (Einstellungen → Für offline vorab laden)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "Zeitüberschreitung beim Sprachdienst — Netzwerk prüfen oder andere Adresse versuchen"
+  },
+  "tts_network": {
+    "message": "Sprachdienst nicht erreichbar — Netzwerk und Adresse prüfen"
+  },
+  "tts_empty": {
+    "message": "Diese Karte enthält keinen vorlesbaren Text"
   }
 }

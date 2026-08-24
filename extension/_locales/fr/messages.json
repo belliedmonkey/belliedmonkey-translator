@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "Impossible de joindre le moteur vocal : rien ne sera lu ce tour-ci. Seules les cartes préchargées se lisent hors ligne (Réglages → Précharger pour le hors ligne)",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "Le service vocal a expiré — vérifiez votre réseau ou essayez une autre adresse"
+  },
+  "tts_network": {
+    "message": "Impossible de joindre le service vocal — vérifiez votre réseau et l'adresse"
+  },
+  "tts_empty": {
+    "message": "Cette carte ne contient aucun texte à lire"
   }
 }

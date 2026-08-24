@@ -1659,5 +1659,14 @@
   "drive_tts_unreachable": {
     "message": "音声エンジンに接続できないため、この回は読み上げできません。オフラインで再生できるのは事前ダウンロード済みのカードだけです（設定 → オフライン用にダウンロード）",
     "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "音声サービスがタイムアウトしました —— ネットワークを確認するか、別のエンドポイントをお試しください"
+  },
+  "tts_network": {
+    "message": "音声サービスに接続できません —— ネットワークとエンドポイントのアドレスを確認してください"
+  },
+  "tts_empty": {
+    "message": "このカードには読み上げるテキストがありません"
   }
 }
