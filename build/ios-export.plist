@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 归档导出参数（App Store Connect 上传）。
+     以前它躺在 /tmp/mt-export.plist —— 2026-08-26 那次系统清理把它删了，出包走到最后
+     一步才失败（"couldn't be opened because there is no such file"）。发布路上的东西
+     不该住在一个会被系统清空的目录里。 -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>method</key><string>app-store-connect</string>
+<key>destination</key><string>upload</string>
+<key>teamID</key><string>X2Q85MABWK</string>
+<key>uploadSymbols</key><true/>
+</dict></plist>

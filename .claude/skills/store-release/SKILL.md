@@ -124,7 +124,7 @@ google 引擎       content/providers.gen.js 里 '"id":"google"' 应为 0 条
 
 ```bash
 env -u NODE_OPTIONS xcodebuild -exportArchive -archivePath /tmp/mt-ios.xcarchive \
-  -exportOptionsPlist /tmp/mt-export.plist -exportPath /tmp/out -allowProvisioningUpdates
+  -exportOptionsPlist build/ios-export.plist -exportPath /tmp/out -allowProvisioningUpdates
 # 判据：日志里同时出现 "Upload succeeded" 与 "EXPORT SUCCEEDED"
 
 node scripts/asc.js builds      # 等到该 build 变 VALID（约 1–3 分钟）
