@@ -447,3 +447,118 @@ describe('LearnDriving — 这个模式不写任何进度 (§9.5)', () => {
     }
   });
 });
+
+// §9.5「解析跟读」。解析从「整段念一次」改成「按生词/短语/语法三块逐行念」，锁屏封面
+// 跟着高亮当前行。这里守的是切分本身：
+//
+//   · 空块不产行 —— 产一个空行等于产一个空 utterance，听起来和卡住一模一样；
+//   · 整段版必须与逐行版**逐字一致** —— 不一致就意味着预热的和朗读的是两段话，
+//     缓存永远打不中而用户多付一次钱；
+//   · 行数有上界 3 —— 「出发前预载」在解析还没取回时靠它给出诚实的估算。
+describe('LearnDriving.notesToLines — 解析切成可跟读的行', () => {
+  const L = { words: 'W:', phrases: 'P:', grammar: 'G:' };
+  const full = {
+    words: [{ w: 'curve', g: '曲线' }, { w: 'bend', g: '弯曲' }],
+    phrases: [{ p: 'over time', g: '随时间' }],
+    grammar: '一般现在时',
+  };
+
+  test('三块齐全 ⇒ 三行，各带各的标签', () => {
+    const lines = D.notesToLines(full, L);
+    eq(lines.length, 3);
+    ok(lines[0].indexOf('W:') === 0 && lines[0].indexOf('curve') > 0, lines[0]);
+    ok(lines[1].indexOf('P:') === 0, lines[1]);
+    ok(lines[2].indexOf('G:') === 0, lines[2]);
+  });
+
+  test('空块不产行 —— 空行就是空 utterance，听起来和卡住一样', () => {
+    eq(D.notesToLines({ words: [], phrases: [], grammar: '' }, L).length, 0);
+    eq(D.notesToLines({ words: full.words, phrases: [], grammar: '  ' }, L).length, 1);
+    eq(D.notesToLines(null, L).length, 0);
+  });
+
+  test('半截条目不算内容（缺释义的词、缺释义的短语都不产行）', () => {
+    eq(D.notesToLines({ words: [{ w: 'x' }], phrases: [{ p: 'y' }], grammar: '' }, L).length, 0);
+  });
+
+  test('NOTE_LINES_MAX 就是实际的上界 —— 两者脱钩，预载账单会少报', () => {
+    const many = { words: Array.from({ length: 40 }, (_, i) => ({ w: 'w' + i, g: 'g' + i })),
+      phrases: [{ p: 'p', g: 'g' }], grammar: 'x' };
+    eq(D.notesToLines(many, L).length, D.NOTE_LINES_MAX);
+  });
+
+  test('行数恒 ≤ 3 —— 预载账单的上界靠这条成立', () => {
+    const many = { words: Array.from({ length: 40 }, (_, i) => ({ w: 'w' + i, g: 'g' + i })),
+      phrases: Array.from({ length: 20 }, (_, i) => ({ p: 'p' + i, g: 'g' + i })),
+      grammar: 'x。y。z。' };
+    ok(D.notesToLines(many, L).length <= 3, '切分粒度变了，预载的估算就不再是上界');
+  });
+
+  test('整段版 = 逐行版 join —— 两者不一致就意味着预热的和朗读的是两段话', () => {
+    for (const n of [full, { words: full.words, phrases: [], grammar: '' },
+      { words: [], phrases: [], grammar: '只有语法' }, {}]) {
+      eq(D.notesToSpeech(n, L), D.notesToLines(n, L).join('。'), JSON.stringify(n));
+    }
+  });
+});
+
+// §9.5「后台与锁屏播放」。锁屏/车机/耳机/媒体键是屏幕上那四个按钮的第二个表面，
+// 所以这一整节验的其实是一句话：**状态机不该因为多了一个表面而长出任何东西。**
+describe('LearnDriving.nativeEvent — 遥控 → 会话事件', () => {
+  const ev = (msg, st) => D.nativeEvent(msg, st || 'speaking');
+
+  test('四个遥控键映射到既有事件，没有一个是新的', () => {
+    eq(ev({ type: 'remote', command: 'play' }), 'tap_resume');
+    eq(ev({ type: 'remote', command: 'pause' }), 'tap_pause');
+    eq(ev({ type: 'remote', command: 'next' }), 'tap_next');
+    eq(ev({ type: 'remote', command: 'previous' }), 'tap_repeat');
+  });
+
+  test('「上一曲」是再听一遍，不是上一张 —— 随机排列里往回退没有定义', () => {
+    eq(D.REMOTE_EVENTS.previous, 'tap_repeat');
+    ok(!Object.values(D.REMOTE_EVENTS).includes('tap_prev'), '不存在这样的事件，也不该存在');
+  });
+
+  test('播放/暂停切换键按当前状态倒向，和屏幕按钮用同一个判据', () => {
+    eq(ev({ type: 'remote', command: 'toggle' }, 'speaking'), 'tap_pause');
+    for (const st of D.PAUSED_LIKE) {
+      eq(ev({ type: 'remote', command: 'toggle' }, st), 'tap_resume', st + ' 看起来是停着的');
+    }
+  });
+
+  test('中断开始就暂停；结束只有系统说 shouldResume 才自动续播', () => {
+    eq(ev({ type: 'interrupt', phase: 'begin' }), 'tap_pause');
+    eq(ev({ type: 'interrupt', phase: 'end', resume: true }), 'tap_resume');
+    // 系统没说可以恢复 ⇒ 停着等人。「切后台不是中断」那条规约缩窄之后，剩下的正是这个。
+    eq(ev({ type: 'interrupt', phase: 'end', resume: false }), null);
+    eq(ev({ type: 'interrupt', phase: 'end' }), null, '字段缺失按不恢复算');
+  });
+
+  test('拔耳机暂停，重连不自动播', () => {
+    eq(ev({ type: 'route', change: 'device-lost' }), 'tap_pause');
+    eq(ev({ type: 'route', change: 'device-added' }), null,
+      '重连自动外放是所有音乐 App 都在避免的那件事');
+  });
+
+  test('认不出的消息一律不动播放器', () => {
+    eq(ev(null), null);
+    eq(ev({}), null);
+    eq(ev({ type: 'session-ready' }), null);
+    eq(ev({ type: 'remote', command: 'seek' }), null, '时间轴我们根本不给，seek 更不该有动作');
+  });
+
+  test('nativeEvent 只会产出 reduce 认识的事件', () => {
+    const KNOWN = ['tap_resume', 'tap_pause', 'tap_next', 'tap_repeat'];
+    const msgs = [
+      { type: 'remote', command: 'play' }, { type: 'remote', command: 'pause' },
+      { type: 'remote', command: 'next' }, { type: 'remote', command: 'previous' },
+      { type: 'remote', command: 'toggle' },
+      { type: 'interrupt', phase: 'begin' }, { type: 'interrupt', phase: 'end', resume: true },
+      { type: 'route', change: 'device-lost' },
+    ];
+    for (const m of msgs) {
+      const e = ev(m);
+      ok(e === null || KNOWN.indexOf(e) >= 0, '产出了状态机不认识的事件：' + e);
+    }
+  });
+});

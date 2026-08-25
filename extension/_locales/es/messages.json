@@ -1668,5 +1668,14 @@
   },
   "tts_empty": {
     "message": "Esta tarjeta no tiene texto que leer en voz alta"
+  },
+  "drive_bg_session_failed": {
+    "message": "Este dispositivo no puede iniciar ahora una sesión de audio en segundo plano, así que la reproducción se pausa cuando la app deja la pantalla."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "La voz integrada del dispositivo se detiene cuando la app deja la pantalla. Para seguir escuchando, configura un endpoint de voz (Ajustes → Motor de voz)."
+  },
+  "drive_awake_note": {
+    "message": "La pantalla no se bloquea automáticamente mientras el modo pódcast está en primer plano. Para seguir viendo la tarjeta tras bloquear, activa la pantalla siempre activa del sistema: Ajustes → Pantalla y brillo → Siempre activa."
   }
 }

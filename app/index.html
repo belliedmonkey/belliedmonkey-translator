@@ -207,6 +207,10 @@
         <span id="drive-play-notes-label"></span>
       </label>
       <p class="note" id="drive-play-notes-note"></p>
+      <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
+           但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
+           系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->
+      <p class="note" id="drive-awake-note"></p>
 
       <!-- 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
            这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /

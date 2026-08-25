@@ -21,8 +21,12 @@ const os = require('os');
 const path = require('path');
 const { describe, test, ok, eq, deepEq, match } = require('./harness');
 
-const { classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml } = require('../scripts/sync-app-assets.js');
-const { resourceRoot } = require('../scripts/verify-ios-bundle.js');
+const {
+  classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
+  patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
+  patchWidgetTarget,
+} = require('../scripts/sync-app-assets.js');
+const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
 function tmpdir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'mt-build-scripts-'));
@@ -116,6 +120,7 @@ describe('sync-app-assets: ViewController patches', () => {
     + '        super.viewDidLoad()\n\n'
     + '        self.webView.navigationDelegate = self\n'
     + '        self.webView.scrollView.isScrollEnabled = false\n'
+    + '        self.webView.configuration.userContentController.add(self, name: "controller")\n'
     + '    }\n}\n';
 
   function run(dir) {
@@ -148,6 +153,266 @@ describe('sync-app-assets: ViewController patches', () => {
     const dir = tmpdir();
     fs.writeFileSync(path.join(dir, 'ViewController.swift'), 'class ViewController {}\n');
     ok(/idle timer: anchor missing/.test(run(dir)));
+  });
+
+  // §9.5 后台/锁屏. Both platforms get the install line: iOS needs the audio session,
+  // macOS needs the media remote (its process is never suspended, so background
+  // playback is unconditional there and the ONLY thing that ever stopped it was our
+  // own visibilitychange handler).
+  test('audio bridge install (§9.5): after the controller channel, once, both platforms', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE);
+    const notes = run(dir);
+    ok(/audio bridge install patched/.test(notes), notes);
+    const out = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    ok(out.includes('MTAudioBridge.shared.install(webView: self.webView)'), '安装行在');
+    ok(out.indexOf('MTAudioBridge.shared.install')
+       > out.indexOf('userContentController.add(self, name: "controller")'),
+      '必须在 controller 通道注册之后 —— 之前的话 web 视图还没定型');
+    ok(!/#if os\(iOS\)[^#]*MTAudioBridge\.shared\.install/.test(out),
+      'macOS 也要装：那边要媒体键，只是不需要音频会话');
+    const twice = run(dir);
+    ok(/audio bridge install already patched/.test(twice), twice);
+    eq((fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8')
+        .match(/MTAudioBridge\.shared\.install/g) || []).length, 1, '只插一次');
+  });
+
+  test('audio bridge install: missing anchor is LOUD (✗), not a shrug', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), 'class ViewController {}\n');
+    ok(/✗ audio bridge install: userContentController\.add 锚点缺失/.test(run(dir)),
+      '漏了这个补丁的表现是「App 装上了、锁屏就停」—— 和功能没做一模一样，必须响亮');
+  });
+});
+
+// The marker block is the whole point of this patch's shape. Every other patch here
+// is one constant line, where "contains it? skip" is right; this block keeps evolving,
+// and a needle check would freeze whatever version first reached a tree while app:sync
+// printed "already patched" forever.
+describe('sync-app-assets: audio bridge block (§9.5)', () => {
+  const VC = 'import WebKit\n\nclass ViewController {}\n';
+  const TPL = 'final class MTAudioBridge {\n    // v1\n}\n';
+
+  test('first run: inserted after the import anchor, exactly one marker pair', () => {
+    const { swift, note } = patchAudioBridgeSwift(VC, TPL);
+    match(note, /inserted/);
+    eq((swift.match(/BEGIN mt-audio-bridge/g) || []).length, 1);
+    eq((swift.match(/END mt-audio-bridge/g) || []).length, 1);
+    ok(swift.includes('final class MTAudioBridge'), '模板原文进去了');
+    ok(swift.indexOf('BEGIN mt-audio-bridge') > swift.indexOf('import WebKit'),
+      '锚在 import 之后 —— 模板自己的 import 因此成为块的一部分，不用单独保幂等');
+  });
+
+  test('same template again: byte-identical, and it says so', () => {
+    const once = patchAudioBridgeSwift(VC, TPL).swift;
+    const again = patchAudioBridgeSwift(once, TPL);
+    eq(again.swift, once, '第二次必须一字不改');
+    match(again.note, /already current/);
+  });
+
+  test('template evolved ⇒ the WHOLE block is replaced, not appended', () => {
+    const once = patchAudioBridgeSwift(VC, TPL).swift;
+    const { swift, note } = patchAudioBridgeSwift(once, 'final class MTAudioBridge {\n    // v2\n}\n');
+    match(note, /replaced/);
+    eq((swift.match(/BEGIN mt-audio-bridge/g) || []).length, 1, '仍然只有一对标记');
+    ok(swift.includes('// v2') && !swift.includes('// v1'),
+      '旧版本一个字都不能剩 —— 否则 build 38 的 Swift 会活到永远');
+  });
+
+  test('hand-edits inside the block are overwritten (the repo file is the source)', () => {
+    const once = patchAudioBridgeSwift(VC, TPL).swift;
+    const tampered = once.replace('// v1', '// someone edited the Xcode copy');
+    const { swift } = patchAudioBridgeSwift(tampered, TPL);
+    ok(!swift.includes('someone edited'), 'app/native/audio-bridge.swift 才是源');
+  });
+
+  test('half a marker pair ⇒ refuse, never append a second copy', () => {
+    const once = patchAudioBridgeSwift(VC, TPL).swift;
+    const broken = once.replace('// ─── END mt-audio-bridge ───', '');
+    const { swift, note } = patchAudioBridgeSwift(broken, TPL);
+    eq(swift, broken, '原样返回');
+    match(note, /^✗/);
+    eq((swift.match(/BEGIN mt-audio-bridge/g) || []).length, 1,
+      '两个 MTAudioBridge 是编译期重复定义，错误信息离原因十万八千里');
+  });
+
+  test('no import anchor ⇒ named failure, not a silent pass', () => {
+    const { swift, note } = patchAudioBridgeSwift('class ViewController {}\n', TPL);
+    eq(swift, 'class ViewController {}\n');
+    match(note, /^✗.*import WebKit/);
+  });
+
+  // The shipped template itself, not a stand-in: these are the properties the macOS
+  // target's compiler enforces, and a missing #if is a build failure, not a bug report.
+  describe('the real app/native/audio-bridge.swift', () => {
+    const tpl = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'audio-bridge.swift'), 'utf8');
+
+    test('AVAudioSession only ever appears inside #if os(iOS)', () => {
+      // AVAudioSession does not exist on macOS at all — an unguarded mention is a
+      // compile error in the macOS target, which is half of this feature's surface.
+      for (const line of tpl.split('\n')) {
+        if (!line.includes('AVAudioSession')) continue;
+        if (line.trim().startsWith('//')) continue;      // 注释里提它没有代价
+        ok(inIOSGuard(tpl, line), `未被 #if os(iOS) 包住：${line.trim()}`);
+      }
+    });
+
+    // 这一行曾经是无条件的 —— 一个真缺陷（2026-08-25 调研时查出）。中断的定义就是
+    // 「系统停用了我们的会话」（Apple 原文），所以 `.ended` 时它读起来天经地义：当然该
+    // 重新激活一下。但 setActive(true) 是**抢占**（我们的类别是非混音的 .playback），
+    // 而 shouldResume 为假时我们并不播 —— 净结果是占着一个活跃的会话却一声不出，最坏
+    // 表现是**两边都没声**：刚开始播的别人被我们掐掉，我们自己不响，屏幕上没有任何变化。
+    // 「读起来天经地义 + 症状无法归因」正是最该用测试钉死的那类代码。
+    test('重新激活会话只发生在 shouldResume 为真时', () => {
+      // 先剥注释：上面那段解释里就写着 `setActive(true)` 四个字，不剥的话断言会被
+      // 自己的说明文字绊倒（第一次跑就是这么红的）。
+      const body = tpl.slice(tpl.indexOf('func onInterruption'), tpl.indexOf('func onRouteChange'))
+        .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      ok(body.includes('setActive(true)'),
+        'shouldResume 那条路仍然要重新激活 —— 来电挂断后的自动续播靠它');
+      ok(body.indexOf('if shouldResume') >= 0
+         && body.indexOf('if shouldResume') < body.indexOf('setActive(true)'),
+        '无条件重新激活会打断刚开始播的别人，而我们自己不出声');
+      eq((body.match(/setActive\(true\)/g) || []).length, 1, '只该有一处');
+    });
+
+    test('the channel name matches what the install patch and the JS use', () => {
+      match(tpl, /static let channel = "mtAudio"/);
+      const sync = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'), 'utf8');
+      ok(sync.includes('MTAudioBridge.shared.install'), 'sync 脚本装的是同一个类');
+      const js = fs.readFileSync(path.join(__dirname, '..', 'app', 'native-audio.js'), 'utf8');
+      ok(js.includes('mtAudio'), 'JS 侧用的是同一个通道名');
+    });
+
+    // Live Activity 的属性定义在**两个 target 各编译一份**（App 与 Widget 扩展）。
+    // 字段对不上时不会编译报错 —— 只会在运行时解码失败、岛上什么都不显示，
+    // 而「岛上什么都没有」正是这个功能本来要修的症状，查起来会绕一大圈。
+    test('MTPodcastAttributes 两处逐字一致 —— 对不上时不报错，只是岛上空着', () => {
+      const widget = fs.readFileSync(
+        path.join(__dirname, '..', 'app', 'native', 'widget', 'LiveActivity.swift'), 'utf8');
+      const grab = (src) => {
+        const m = src.match(/struct MTPodcastAttributes[\s\S]*?\n\}/);
+        ok(m, 'MTPodcastAttributes 没找到');
+        // 剥掉整行注释**和行尾注释** —— 比对的是字段结构，不是说明文字。
+        // （widget 那份在字段后面标了「原句 / 译句 / 第 i / n 张」，那些注释有价值，
+        // 不该为了让断言通过而删掉。）
+        return m[0].split('\n').map((l) => l.replace(/\/\/.*$/, '').trim())
+          .filter(Boolean).join('\n');
+      };
+      eq(grab(tpl), grab(widget), '桥与 widget 里的属性定义不一致');
+    });
+
+    test('it carries no user-visible copy — every word on the lock screen comes from JS', () => {
+      // A string literal in Swift never reaches _locales/, so it would never be
+      // translated and never follow a product rename. Only keys/ids may be literals.
+      const strings = tpl.split('\n')
+        .filter((l) => !l.trim().startsWith('//'))
+        .join('\n')
+        .match(/"[^"]*"/g) || [];
+      const allowed = new Set(['""', '"mtAudio"', '"session-start"', '"session-stop"',
+        '"now-playing"', '"playing-state"', '"session-ready"', '"session-failed"',
+        '"remote"', '"interrupt"', '"route"', '"device-lost"', '"begin"', '"end"',
+        '"play"', '"pause"', '"toggle"', '"next"', '"previous"', '"type"', '"reason"',
+        '"phase"', '"resume"', '"command"', '"change"', '"title"', '"subtitle"',
+        '"album"', '"index"', '"count"', '"playing"',
+        '"platform"', '"suspends"', '"ios"', '"macos"',
+        '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
+        '","', '"w"', '"h"',
+        '"window.NativeAudio && window.NativeAudio._fromNative(\\(json))"']);
+      for (const lit of strings) {
+        ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
+      }
+    });
+  });
+});
+
+// `#if os(iOS)` … `#endif` containment, by line. Crude on purpose: the property being
+// asserted is "this line sits inside an iOS guard", and a nesting-aware parser would
+// be more code than the thing it checks.
+function inIOSGuard(src, line) {
+  const stack = [];
+  for (const l of src.split('\n')) {
+    const t = l.trim();
+    if (/^#if os\(iOS\)$/.test(t)) { stack.push(true); continue; }
+    if (/^#if\b/.test(t)) { stack.push(false); continue; }
+    // `#else` flips the branch: the macOS half of an os(iOS) conditional is NOT
+    // inside the iOS guard, and treating it as if it were would let an
+    // AVAudioSession call slip into the macOS build (where the type does not exist).
+    if (/^#else$/.test(t)) { if (stack.length) stack[stack.length - 1] = !stack[stack.length - 1]; continue; }
+    if (/^#endif$/.test(t)) { stack.pop(); continue; }
+    if (l === line) return stack.some(Boolean);
+  }
+  return false;
+}
+
+describe('sync-app-assets: Info.plist declarations (§9.4 mic / §9.5 background audio)', () => {
+  const PLIST = '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n'
+    + '\t<key>SFSafariWebExtensionConverterVersion</key>\n\t<string>26.6</string>\n'
+    + '</dict>\n</plist>\n';
+
+  function tree() {
+    const dir = tmpdir();
+    for (const t of ['iOS (App)', 'macOS (App)', 'iOS (Extension)', 'macOS (Extension)', 'Shared (App)']) {
+      fs.mkdirSync(path.join(dir, t), { recursive: true });
+      fs.writeFileSync(path.join(dir, t, 'Info.plist'), PLIST);
+    }
+    return dir;
+  }
+  const read = (dir, t) => fs.readFileSync(path.join(dir, t, 'Info.plist'), 'utf8');
+
+  test('UIBackgroundModes lands in the iOS App target only', () => {
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    match(read(dir, 'iOS (App)'), /<key>UIBackgroundModes<\/key>[\s\S]*<string>audio<\/string>/);
+    // macOS is never suspended, so it needs nothing here — and a macOS app declaring a
+    // background mode it cannot use is something review asks about.
+    ok(!read(dir, 'macOS (App)').includes('UIBackgroundModes'), 'macOS App 不该有');
+    ok(!read(dir, 'iOS (Extension)').includes('UIBackgroundModes'), '扩展 target 不该有');
+    ok(!read(dir, 'macOS (Extension)').includes('UIBackgroundModes'), '扩展 target 不该有');
+  });
+
+  test('NSSupportsLiveActivities 也只进 iOS App —— 没有它灵动岛静默不出现', () => {
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    match(read(dir, 'iOS (App)'), /<key>NSSupportsLiveActivities<\/key>\s*<true\/>/);
+    ok(!read(dir, 'macOS (App)').includes('NSSupportsLiveActivities'), 'macOS 没有灵动岛');
+  });
+
+  test('the microphone key still goes to BOTH app targets (§9.4 unchanged)', () => {
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    for (const t of ['iOS (App)', 'macOS (App)']) {
+      ok(read(dir, t).includes('NSMicrophoneUsageDescription'), t);
+    }
+  });
+
+  test('idempotent: each key appears exactly once after two runs', () => {
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    const once = read(dir, 'iOS (App)');
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    const twice = read(dir, 'iOS (App)');
+    eq(once, twice, '第二次必须一字不改');
+    eq((twice.match(/<key>UIBackgroundModes<\/key>/g) || []).length, 1);
+    eq((twice.match(/<key>NSMicrophoneUsageDescription<\/key>/g) || []).length, 1);
+  });
+
+  test('the result is still valid property-list XML', () => {
+    // Text injection into a plist is this route's one real risk, and `plutil -lint` is
+    // the only thing that actually knows. Skip off darwin rather than pretend.
+    if (process.platform !== 'darwin') return;
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    const { execFileSync } = require('child_process');
+    for (const t of ['iOS (App)', 'macOS (App)']) {
+      execFileSync('plutil', ['-lint', path.join(dir, t, 'Info.plist')], { stdio: 'pipe' });
+    }
+  });
+
+  test('no </dict> anchor ⇒ says so instead of writing garbage', () => {
+    const { xml, note } = patchPlistXml('<plist></plist>', PLIST_KEYS);
+    eq(xml, '<plist></plist>');
+    match(note, /^✗/);
   });
 });
 
@@ -324,5 +589,158 @@ describe('verify-ios-bundle: appex resource root', () => {
     const appex = mk(tmpdir(), 'Extension.appex');
     mk(appex, 'Contents', 'MacOS');
     eq(resourceRoot(appex), appex);
+  });
+});
+
+// The §9.5 background declaration lives in a gitignored tree that `app:sync` rebuilds.
+// Forgetting app:sync gives you an app that installs fine and goes silent the moment
+// the screen locks — the shape of "the feature was never built" — and the build log
+// says nothing. So it is checked against the BUILT bundle, not the source.
+describe('verify-ios-bundle: the §9.5 background-audio declaration', () => {
+  const PLIST = (extra) => '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n'
+    + '\t<key>CFBundleIdentifier</key>\n\t<string>com.example</string>\n' + (extra || '')
+    + '</dict>\n</plist>\n';
+  const BG = '\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>audio</string>\n\t</array>\n';
+
+  function iosBundles(dir, appExtra, appexExtra) {
+    const app = path.join(dir, 'App.app');
+    const appex = path.join(app, 'PlugIns', 'Ext.appex');
+    fs.mkdirSync(appex, { recursive: true });
+    fs.writeFileSync(path.join(app, 'Info.plist'), PLIST(appExtra));
+    fs.writeFileSync(path.join(appex, 'Info.plist'), PLIST(appexExtra));
+    return { app, appex };
+  }
+
+  test('iOS: app declares audio, extension does not ⇒ pass', () => {
+    if (process.platform !== 'darwin') return;   // needs plutil
+    const { app, appex } = iosBundles(tmpdir(), BG, '');
+    ok(checkBackgroundAudio(app, appex));
+  });
+
+  test('iOS: the key missing ⇒ fail (this is app:sync having been skipped)', () => {
+    if (process.platform !== 'darwin') return;
+    const { app, appex } = iosBundles(tmpdir(), '', '');
+    ok(!checkBackgroundAudio(app, appex));
+  });
+
+  test('the extension target must never declare it — it plays no audio', () => {
+    if (process.platform !== 'darwin') return;
+    const { app, appex } = iosBundles(tmpdir(), BG, BG);
+    ok(!checkBackgroundAudio(app, appex));
+  });
+
+  test('macOS: declaring it is the failure — the process is never suspended there', () => {
+    if (process.platform !== 'darwin') return;
+    const dir = tmpdir();
+    const app = path.join(dir, 'App.app');
+    fs.mkdirSync(path.join(app, 'Contents'), { recursive: true });
+    fs.writeFileSync(path.join(app, 'Contents', 'Info.plist'), PLIST(BG));
+    ok(!checkBackgroundAudio(app, null), 'macOS 不需要它，而声明一个用不上的后台模式审核会问');
+    fs.writeFileSync(path.join(app, 'Contents', 'Info.plist'), PLIST(''));
+    ok(checkBackgroundAudio(app, null));
+  });
+
+  test('findApp stops at the .app and does not dive into the .appex inside it', () => {
+    const dir = tmpdir();
+    const { app } = iosBundles(dir, BG, '');
+    eq(findApp(dir), app);
+  });
+});
+
+// 灵动岛的 Widget target（§9.5）。**这是本仓库唯一一个凭空造 target 的补丁**，也是
+// 最脆的：别的补丁都是往一个已经在 target 里的文件上贴代码，这一个要在 pbxproj 里
+// 新增八类对象并把它们接起来，而 safari-project*/ 每次重生成都会抹掉它们。
+//
+// 这里守的不是「造得对不对」（那要靠 xcodebuild，见 M20），而是**两条会静默失效的性质**：
+// 幂等，以及「按 productType 找 App target 而不是按产品名」—— 后者是被中国版那棵树
+// （target 叫「… CN (iOS)」）当场证伪出来的，写死英文名会让中国版整体跳过，
+// 而「跳过」的表现是「中国版没有灵动岛」，没有一行输出会提这件事。
+describe('sync-app-assets: 灵动岛 Widget target', () => {
+  // **样板取自真工程**，不是手写的。第一版手写的样板字段顺序和转换器的输出不同，
+  // 于是测试红了而补丁其实是对的 —— 一个只存在于测试里的形状，守不住任何东西。
+  // 这里读一份真实 pbxproj 骨架（跑过 app:sync 的树；没有就跳过整节）。
+  const REAL = (() => {
+    const cand = ['safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj'];
+    for (const c of cand) {
+      const abs = path.join(__dirname, '..', c);
+      if (fs.existsSync(abs)) return fs.readFileSync(abs, 'utf8');
+    }
+    return null;
+  })();
+
+  const PBX = (appName) => {
+    // 把 needle 与已有的 widget 痕迹剥掉，得到一份「还没打过这个补丁」的骨架。
+    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n')
+      .replace(/\n[^\n]*MT_WIDGET_TARGET[^\n]*\n/g, '\n')
+      .replace(/\n[^\n]*MTPodcastWidget[^\n]*\n/g, '\n');
+    if (appName !== 'BelliedMonkey Translator') {
+      t = t.split('BelliedMonkey Translator').join(appName);
+    }
+    return t;
+  };
+
+  function tree(appName) {
+    const dir = tmpdir();
+    const proj = path.join(dir, 'X.xcodeproj');
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'iOS (App)'), { recursive: true });
+    fs.mkdirSync(proj, { recursive: true });
+    fs.writeFileSync(path.join(proj, 'project.pbxproj'), PBX(appName));
+    return { dir, pbx: path.join(proj, 'project.pbxproj') };
+  }
+
+  test('造出 target，并把它挂进工程的 targets、依赖与嵌入阶段', () => {
+    if (!REAL) return;   // 工程还没生成过，这节无从谈起
+    const t = tree('Some App');
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /widget target patched/);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('MT_WIDGET_TARGET'), 'needle 在');
+    ok(/productType = "com\.apple\.product-type\.app-extension"/.test(out), 'target 类型');
+    ok(/targets = \(\n\t+MT[0-9A-F]+ \/\* MTPodcastWidget \*\/,/.test(out.replace(/\t/g, '\t')),
+      '没挂进工程的 targets 列表 —— Xcode 根本看不到它');
+    ok(/in Embed Foundation Extensions/.test(out),
+      '没塞进嵌入阶段 —— 扩展会编译但装不进 App，而这不会报错');
+    ok(/isa = PBXTargetDependency/.test(out), '没建依赖 —— 构建顺序无保证');
+  });
+
+  test('跑两次一字不改（幂等）—— 造了两遍就是两个同名 target，工程当场坏掉', () => {
+    if (!REAL) return;
+    const t = tree('Some App');
+    patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    const once = fs.readFileSync(t.pbx, 'utf8');
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /already patched/);
+    eq(fs.readFileSync(t.pbx, 'utf8'), once, '第二次必须一字不改');
+    eq((once.match(/MT_WIDGET_TARGET/g) || []).length, 1);
+  });
+
+  test('按 productType 找 App target，不按产品名 —— 中国版叫「… CN (iOS)」', () => {
+    // 写死英文名会让中国版整体跳过，而跳过的表现是「中国版没有灵动岛」，
+    // 没有任何一行输出会说这件事。这条是被那棵树当场证伪出来的。
+    if (!REAL) return;
+    for (const name of ['Some App', 'Some App CN', '大肚猴翻译']) {
+      const t = tree(name);
+      match(patchWidgetTarget(path.join(t.dir, 'Shared (App)')), /widget target patched/, name);
+    }
+  });
+
+  test('id 是固定的，不是随机的 —— 随机会让每次 app:sync 都产生不同的 pbxproj', () => {
+    if (!REAL) return;
+    const a = tree('Some App'); patchWidgetTarget(path.join(a.dir, 'Shared (App)'));
+    const b = tree('Some App'); patchWidgetTarget(path.join(b.dir, 'Shared (App)'));
+    eq(fs.readFileSync(a.pbx, 'utf8'), fs.readFileSync(b.pbx, 'utf8'));
+  });
+
+  test('锚点缺失 ⇒ 整体放弃并说明，绝不写一半', () => {
+    if (!REAL) return;
+    const t = tree('Some App');
+    // 抽掉**所有** application target：造了一半的工程编译不了，而那比不造更糟。
+    // （真工程有 iOS 与 macOS 两个 —— 只删一处，正则会在另一处匹配成功。）
+    fs.writeFileSync(t.pbx, PBX('Some App')
+      .split('productType = "com.apple.product-type.application";').join(''));
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /^✗/);
+    ok(!fs.readFileSync(t.pbx, 'utf8').includes('MT_WIDGET_TARGET'), '放弃时不许留下半个 target');
   });
 });

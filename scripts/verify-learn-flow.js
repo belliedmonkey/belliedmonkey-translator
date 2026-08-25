@@ -843,6 +843,22 @@ async function runHost(host) {
         try { await LearnStore.putNote(it.id, null, {}); } catch (_) {}
       } return 'ok'; })()`);
       await ev(`(window.__spoken = [], window.__mtChatBodies = [], 'ok')`);
+      // 解析跟读（§9.5）：封面要跟着念到哪一行就换一张，而且**不过桥**。数两件事 ——
+      // artworkLocal 被调了几次（逐行），以及过桥的 artwork 被调了几次（卡级）。
+      await ev(`(() => {
+        window.__artLocal = 0; window.__artLocalSrc = [];
+        const orig = NativeAudio.artworkLocal;
+        window.__artActive = [];
+        NativeAudio.artworkLocal = (u) => {
+          window.__artLocal++; window.__artLocalSrc.push(String(u).length);
+          window.__artActive.push(AppDriving._debug().notesActive);
+          return orig(u);
+        };
+        window.__artIds = [];
+        const origArt = NativeAudio.artwork;
+        NativeAudio.artwork = (id, u) => { window.__artIds.push(String(id)); return origArt(id, u); };
+        return 'ok';
+      })()`);
       const rowsBeforeNotes = await ev(`LearnStore.allReviews().then((r) => r.length)`);
       // 费用提示是「正在发生」的话，只在会话进行中显示。start() 的 promise 落定时
       // 第一张卡已经开播、第一帧已经画过，所以这里查是确定的 —— 而多睡哪怕 500ms，
@@ -854,6 +870,31 @@ async function runHost(host) {
         + JSON.stringify(await ev(`AppDriving._debug()`)));
       const notesBodies = await ev(`JSON.stringify(window.__mtChatBodies || [])`).then(JSON.parse);
       need(notesBodies.length >= 1, '没解析过的卡没有触发自动解析');
+
+      // ─── 解析跟读的两条判据 ───────────────────────────────────────────────
+      // 1. 封面真的逐行换过。解析只有一行时不拆（execSpeak 的 `> 1` 门），所以这里的
+      //    下界取 1：这一步的 mock 解析可能只产出一行。
+      const artLocal = await ev(`window.__artLocal`);
+      need(artLocal >= 1, '解析段一次都没更新封面 —— 歌词式高亮没生效');
+      // **解析文本回来之后必须再推一次封面**（从「没有解析」变成「三行压暗铺着」）。
+      // 这一次走过桥那条，而它按 id 去重 —— 去重键要是只有卡片 id，这次更新会被静默
+      // 吃掉，锁屏上永远没有解析区。2026-08-26 在模拟器上就是这么发现的：连拍八帧，
+      // 八帧的封面一模一样。
+      // 高亮真的逐行推进过。`_debug()` 里的 notesActive 是权威 —— 连拍截图撞那一帧
+      // 是碰运气（一段音频几秒就播完）。这里记录每次 artworkLocal 时的 active 值。
+      const seenActive = await ev(`JSON.stringify(window.__artActive || [])`).then(JSON.parse);
+      need(seenActive.length >= 1, '没有记录到任何高亮行');
+      const artIds = await ev(`JSON.stringify((window.__artIds || []))`).then(JSON.parse);
+      need(artIds.some((x) => /:n$/.test(x)),
+        '解析铺上之后没有再推一次封面 —— 去重键把它吃掉了：' + JSON.stringify(artIds));
+      // 2. **逐行那几次不过桥。** 这是整个设计成立的前提：一张 1024² PNG ≈123 KB，
+      //    跟着每一行过桥就是白烧。过桥的次数应当等于卡数量级，而不是行数量级。
+      // `__mtNative` 只在下面装了假桥之后才存在；这一步跑在它之前，所以要兜底。
+      const artPosted = await ev(`(window.__mtNative || []).filter((m) => m.type === 'now-playing-artwork').length`);
+      need(artPosted <= (await ev(`AppDriving._debug().deck`)) + 1,
+        '逐行封面过桥了 —— artworkLocal 应该只更新 mediaSession，不 post（过桥 '
+        + artPosted + ' 次）');
+      await ev(`(window.__artLocal = 0, 'ok')`);
       const spokeNotes = await ev(`window.__spoken.some((s) => s.indexOf('durable') >= 0
         && s.indexOf('持久的') >= 0)`);
       need(spokeNotes === true, '解析内容没有被读出来: '
@@ -927,6 +968,120 @@ async function runHost(host) {
       need((await text('#app-drive-notes')).length > 0, '按需解析的文字没有显示出来');
       await sweep('播客·按需解析', '#app-drive');
       await ev(`(AppDriving.stop(), 'ok')`);
+
+      // ─── 10e′ · 后台播放的退化路径与接管路径（§9.5「后台与锁屏播放」）─────
+      // 这个宿主里**没有原生桥**（Chrome 不是 App），所以第一半验的是「今天的行为一字
+      // 未改」：桥不在 ⇒ 隐藏照旧暂停，且界面上不该多出任何一句解释 —— 从没承诺过后台
+      // 播放的宿主解释「为什么会停」是噪音。
+      //
+      // 第二半注入一个假桥再跑一遍。没有它，这一整个功能在自动化里就只有「不生效」那一
+      // 条分支被走到，而那条分支恰恰是**改动之前就成立**的 —— 全绿也证明不了任何事。
+      need((await ev(`NativeAudio.available()`)) === false, '桥不该存在于这个宿主里');
+      need((await ev(`AppDriving._debug().bg`)) === false, '没有桥就不该判定为可后台播');
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+      need((await text('#app-drive-cost')).indexOf('后台') < 0,
+        '没有桥的宿主上不该出现任何关于后台播放的解释：' + (await text('#app-drive-cost')));
+      await ev(`(document.dispatchEvent(new Event('visibilitychange')), 'ok')`);
+      // jsdom/CDP 里 visibilityState 恒为 visible，所以直接验判据本身而不是靠改可见性：
+      // 分支是 `visible → return` 在前，`backgroundCapable() → return` 在后。
+      need((await ev(`AppDriving._debug().bg`)) === false, '判据不该因为一次事件而翻转');
+      await ev(`(AppDriving.stop(), 'ok')`);
+
+      // 假桥：postMessage 记账，然后手工喂一条 session-ready 回去。
+      await ev(`(() => {
+        window.__mtNative = [];
+        window.webkit = { messageHandlers: { mtAudio: {
+          postMessage: (m) => { window.__mtNative.push(m); },
+        } } };
+        return 'ok';
+      })()`);
+      need((await ev(`NativeAudio.available()`)) === true, '假桥没被认出来');
+      await ev(`AppDriving.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+      need(await ev(`window.__mtNative.some((m) => m.type === 'session-start')`),
+        '会话开始时没有向原生要音频会话');
+      // 会话还没 ready ⇒ 仍然不能后台播。「桥在」不等于 setCategory 成功了。
+      need((await ev(`AppDriving._debug().bg`)) === false, 'ready 之前就判定可后台播');
+      await ev(`(window.NativeAudio._fromNative({ type: 'session-ready', platform: 'macos', suspends: false }), 'ok')`);
+      need((await ev(`AppDriving._debug().bg`)) === true,
+        '不会挂起进程的宿主（macOS）应该无条件可后台播 —— 这里误加 returnsAudio 门就会让'
+        + '默认装机的 Mac 用户莫名其妙没有后台播放');
+      need(await ev(`window.__mtNative.some((m) => m.type === 'now-playing' && m.title)`),
+        '没有把卡片正文推给「正在播放」');
+
+      // ─── 锁屏封面（§9.5）────────────────────────────────────────────────
+      // 这里是封面唯一一次在**真引擎**里被画出来的地方：vm harness 没有 canvas，
+      // 而 file:// 下 canvas 的污染陷阱只有真 WebKit/Chromium 才碰得到。
+      const artMsgs = `window.__mtNative.filter((m) => m.type === 'now-playing-artwork')`;
+      need((await ev(`${artMsgs}.length`)) >= 1, '换卡时没有推封面');
+      need(await ev(`${artMsgs}[0].image.indexOf('data:image/png') === 0`),
+        '封面不是 data URL —— toDataURL 可能被 canvas 污染挡住了');
+      const artKB = Math.round((await ev(`${artMsgs}[0].image.length`)) / 1024);
+      console.log(`  [封面] 1024² PNG ≈ ${artKB} KB`);
+      need(artKB < 900, `封面 ${artKB} KB 过大 —— 换卡都要过一趟桥，得换编码或降尺寸`);
+
+      // ─── mediaSession：iOS 上真正决定锁屏/灵动岛长什么样的那一半 ──────────
+      // 2026-08-25 实证：WebKit 会为页面里的 <audio> 自己发布一套 now-playing，
+      // 标题取自 document.title —— 模拟器锁屏上显示的就是「大肚猴翻译 · 复习」，
+      // 而不是我们从原生侧写进去的卡片原文。所以这一半必须走 navigator.mediaSession。
+      // Chrome 也实现了它，于是这里能用真引擎验，不必等真机。
+      need(await ev(`NativeAudio.mediaSessionWired()`), 'mediaSession 的遥控没接上');
+      need(await ev(`!!(navigator.mediaSession && navigator.mediaSession.metadata)`),
+        'mediaSession 没有 metadata —— 锁屏上会退回页面标题');
+      const msTitle = await ev(`navigator.mediaSession.metadata.title`);
+      need(msTitle && msTitle.indexOf('大肚猴') < 0,
+        'mediaSession 标题是页面标题而不是卡片原文：' + JSON.stringify(msTitle));
+      need(await ev(`(navigator.mediaSession.metadata.artwork || []).length > 0`),
+        'mediaSession 没有封面 —— 那正是锁屏上那个空方块');
+      const msArtSrc = await ev(`navigator.mediaSession.metadata.artwork[0].src`);
+      need(/^(blob:|data:image\/png)/.test(msArtSrc || ''),
+        'mediaSession 的封面不是我们画的那张：' + JSON.stringify(String(msArtSrc).slice(0, 40)));
+      // 四个遥控 action 必须都注册上。⏪10/⏩10 只有在 nexttrack/previoustrack 有处理
+      // 函数时才会被引擎换掉 —— 少注册一个，锁屏上就会退回那两个假动作按钮。
+      const acts = await ev(`JSON.stringify(NativeAudio.mediaActions())`);
+      for (const a of ['play', 'pause', 'nexttrack', 'previoustrack']) {
+        need(acts.indexOf('"' + a + '"') >= 0, 'mediaSession 的 ' + a + ' 没注册上：' + acts);
+      }
+
+      // **同一张卡只推一次。** 这是「封面走独立消息、按卡片 id 去重」的全部理由：
+      // 一张 1024² 的图跟着每次重绘过桥就是白烧。
+      //
+      // ⚠️ 直接调 NativeAudio.artwork 两次来验，**不是**靠「点几下重绘再数一遍」——
+      // 后者是空转的：pushArtwork 只在 openCard 里调，重绘压根走不到去重那一行，
+      // 于是把去重整段删掉它照样绿（第一版就是这么写的，删掉去重后仍然全过）。
+      const artBefore = await ev(`${artMsgs}.length`);
+      await ev(`(NativeAudio.artwork('probe-same-id', 'data:image/png;base64,AAAA'),
+                 NativeAudio.artwork('probe-same-id', 'data:image/png;base64,BBBB'), 'ok')`);
+      need((await ev(`${artMsgs}.length`)) === artBefore + 1,
+        '同一张卡推了不止一次封面 —— 按 id 去重没生效');
+      // 反面：换个 id 必须推得出去，否则上面那条可以靠「永远不推」骗过去。
+      await ev(`(NativeAudio.artwork('probe-other-id', 'data:image/png;base64,CCCC'), 'ok')`);
+      need((await ev(`${artMsgs}.length`)) === artBefore + 2,
+        '换了卡片 id 却没推封面 —— 去重把该推的也挡了');
+      // 遥控 = 屏幕按钮的第二个表面：按下去必须真的动播放器。
+      const before = (await ev(`AppDriving._debug()`)).state;
+      await ev(`(window.NativeAudio._fromNative({ type: 'remote', command: 'pause' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused',
+        '锁屏的暂停键没有停住播放器（之前是 ' + before + '）');
+      await ev(`(window.NativeAudio._fromNative({ type: 'remote', command: 'play' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) !== 'paused', '锁屏的播放键没有续上');
+      // 真正的中断：系统没说 shouldResume 就不许自己开口。
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'begin' }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused', '中断开始没有暂停');
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'end', resume: false }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) === 'paused',
+        '系统没说可以恢复，播放器却自己开口了');
+      await ev(`(window.NativeAudio._fromNative({ type: 'interrupt', phase: 'end', resume: true }), 'ok')`);
+      need((await ev(`AppDriving._debug().state`)) !== 'paused', 'shouldResume 之后没有自动续播');
+      await ev(`(AppDriving.stop(), 'ok')`);
+      need(await ev(`window.__mtNative.some((m) => m.type === 'session-stop')`),
+        '退出会话没有收掉锁屏卡片');
+      // iOS 形状：会挂起 ⇒ 还要看引擎产不产音频字节。
+      await ev(`(window.NativeAudio._fromNative({ type: 'session-ready', platform: 'ios', suspends: true }), 'ok')`);
+      need((await ev(`AppDriving._debug().bg`)) === false,
+        '设备内置语音（returnsAudio: false）在会挂起的宿主上不该被判定为可后台播');
+      await ev(`(delete window.webkit, 'ok')`);
 
       // ─── 10f · 出发前预载（§9.5）────────────────────────────────────────
       // 这一节的**判据只有一条**：预载跑完之后，再走一次播客会话，网络请求数一个都不涨。

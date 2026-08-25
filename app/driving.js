@@ -42,11 +42,20 @@ var AppDriving = (() => {
   let uiLang = 'zh-CN';
   let plan = { segments: [] };
   let notesText = '';        // rendered notes for the current card, if fetched
+  // 解析切成的行（§9.5「解析跟读」）。逐行朗读用它，封面高亮也用它 —— **一处**，
+  // 否则念的和亮的会是两回事。`notesActive` 是正在念的下标，-1 = 没在念解析。
+  let notesLines = [];
+  let notesActive = -1;
   // 当前卡的补译文（§9.5）。只读缓存 —— 播放途中永不现场翻译，见 openCard()。
   let filledTr = '';
   // 会话级的一句话（例如「开关开着但引擎没配」）。它必须由 paint() 渲染进**常驻行**：
   // 写进 #app-drive-note 会被 renderCard() 每张卡的 note('') 抹掉 —— 提示话音未落就没了。
   let sessionNote = '';
+  // 「这个引擎/这台设备不能后台播」那句，与上面那句并列显示。**分成两个变量**，因为
+  // 它是异步到达的（`session-ready` 晚于 start()），而把它拼进 sessionNote 之后再想
+  // 更新，就只能靠匹配文案把自己从字符串里挖出来 —— 那种正则在翻译成十一种语言之后
+  // 必然失效。两个变量，paint() 里拼。
+  let bgNote = '';
   // Generation counters: `gen` invalidates every async continuation on session
   // start/stop; `speakSeq` invalidates a superseded utterance so an interrupted
   // speak's `done` can never advance the NEW state (the epoch discipline tts.js
@@ -174,9 +183,42 @@ var AppDriving = (() => {
   }
 
   // 按需解析这两个态在**用户看来仍然是暂停中**（他没点继续），所以按钮显隐按暂停处理。
-  function pausedLike() {
-    return state.name === 'paused' || state.name === 'stopped_error'
-      || state.name === 'explain_fetch' || state.name === 'explain_speak';
+  // 判据在 LearnDriving 里（`PAUSED_LIKE`），因为锁屏的播放/暂停切换键要按同一个判据
+  // 倒向 —— 两份定义会让遥控和屏幕按钮对同一个状态给出相反的动作。
+  function pausedLike() { return LearnDriving.isPausedLike(state.name); }
+
+  // ─── 后台播放（§9.5「后台与锁屏播放」）─────────────────────────────────
+  // 判据只有一句：**这个宿主能不能在 App 不可见时继续出声。** 两个平台取值不同，
+  // 但问的是同一件事：
+  //   · macOS —— 进程不会被挂起，无条件成立（`suspends()` 为 false）。
+  //   · iOS   —— 要两件事同时成立：音频会话真的建起来了（`ready()`，不是 `available()`
+  //     ——「桥在」不等于 `setCategory` 成功了），且引擎产出**音频字节**（复用注册表里
+  //     已有的 `returnsAudio`，不发明新标志）。
+  //
+  // 第二条**是保守的，不是已证实的**。原来的理由是「speechSynthesis 拿不到音频字节，
+  // 所以也活不过后台」—— 2026-08-24 的模拟器实测把它推翻了一半：把这道门临时打开，
+  // 设备内置语音在 iOS 17.2 模拟器上后台连播 240 秒、跨了 5 张卡。「拿不到字节」是
+  // Web Speech API 的性质，「活不过后台」是我们的猜测，两件事原来被混成了一件。
+  // 门先留着，是因为模拟器对后台挂起的执行比真机宽松得多 —— 那个绿是弱证据（反过来
+  // 红才是强证据）。**真机复现就删掉这两行**，中国版没有云端语音的问题随之消失；
+  // 真机相反就按 learning-design §9.5 的裁定做原生语音合成桥。证据在
+  // docs/verification-spec.md 的尖刺表。
+  function backgroundCapable() {
+    if (!NativeAudio.ready()) return false;
+    if (!NativeAudio.suspends()) return true;
+    const e = LearnTTS.engine();
+    return !!(e && e.returnsAudio);
+  }
+
+  // 后台不成立时那句常驻说明。**没有桥的宿主一个字都不说** —— 那里从来没有过后台播放
+  // 的承诺，解释「为什么会停」是噪音。不存在的形态不解释，存在但受限的形态才解释。
+  function backgroundNote() {
+    if (!NativeAudio.available() || backgroundCapable()) return '';
+    if (!NativeAudio.ready()) {
+      return t('drive_bg_session_failed', '这台设备现在建不起后台音频会话，App 退到后台或锁屏后会暂停');
+    }
+    return t('drive_bg_needs_audio_engine',
+      '设备内置语音在 App 退到后台或锁屏后会停下来；想放着听，请配一个语音端点（设置 → 语音引擎）');
   }
 
   // ─── View ─────────────────────────────────────────────────────────────────
@@ -207,8 +249,65 @@ var AppDriving = (() => {
     // Say the cost while it is being incurred, not only in settings: the charge is
     // per un-parsed card, and it happens while the user is driving and not looking.
     // 常驻行：会话级说明优先于费用提示 —— 「引擎没配」比「会花钱」更该先被看到。
-    $('app-drive-cost').textContent = sessionNote || ((active && playNotes && notesOk)
-      ? t('drive_notes_cost', '播放解析：没解析过的卡会调用你配置的解析引擎，每张卡只收一次费') : '');
+    const standing = [sessionNote, bgNote].filter(Boolean);
+    $('app-drive-cost').textContent = standing.length ? standing.join(' · ')
+      : ((active && playNotes && notesOk)
+        ? t('drive_notes_cost', '播放解析：没解析过的卡会调用你配置的解析引擎，每张卡只收一次费') : '');
+    paintNowPlaying(active, pauseLike);
+  }
+
+  // 锁屏卡片 / 控制中心的三行字。这里而不是 openCard()，是因为**第几遍**只有 paint()
+  // 知道 —— 段一走，锁屏上的那行进度就该跟着变。三个字段全部由这边传给原生，原生侧
+  // 一个用户可见的字都不持有（同 notesToSpeech(notes, labels) 的纪律）。
+  //
+  // 去重在 NativeAudio 里按 payload 做：paint() 每次重绘都会走到这儿，而绝大多数重绘
+  // 什么都没变，每一次过桥都是一次 evaluateJavaScript 往返。
+  function paintNowPlaying(active, pauseLike) {
+    if (!NativeAudio.mediaAvailable()) return;
+    const item = deck[pos];
+    NativeAudio.playingState(active && !pauseLike);
+    if (!active || !item) return;
+    // `passPrefix` 带一个尾部的「 · 」（它在状态行里是前缀），这里当后缀用，所以剥掉。
+    const pass = passPrefix(state.seg || 0).replace(/\s*·\s*$/, '');
+    const progress = $('app-drive-progress').textContent;
+    NativeAudio.nowPlaying({
+      title: item.text || '',
+      subtitle: item.tr || filledTr || '',
+      album: pass ? progress + ' · ' + pass : progress,
+      index: Math.min(pos + 1, deck.length),
+      count: deck.length,
+    });
+  }
+
+  // 锁屏 / 灵动岛的封面（§9.5）。**换卡时一次**，不跟着 paint 走 —— 一张 1024² 的图
+  // 每次重绘都过一趟桥是白烧。文案在这里算好传进去，画图那边不持有任何字。
+  //
+  // **封面上不放遍次。** 它是每张卡画一次的，而遍次在一张卡内会 1→2→3 地变；写上去
+  // 就是在锁屏上挂一句几秒后就不成立的话。遍次归媒体控件那一行 —— 那行跟着段走，
+  // 而且改它不花任何东西。封面只承载卡级为真的事实。
+  function pushArtwork(item) {
+    if (!item || !NativeAudio.mediaAvailable()) return;
+    try {
+      const url = NowPlayingArt.render({
+        badge: t('drive_progress', '第 {i} / {n} 张')
+          .replace('{i}', String(Math.min(pos + 1, deck.length))).replace('{n}', String(deck.length)),
+        text: item.text || '',
+        tr: item.tr || filledTr || '',
+        notes: notesLines.length ? { lines: notesLines, active: notesActive } : null,
+      });
+      if (!url) return;
+      // 逐行高亮走**不过桥**的那条（只更新 mediaSession 的 blob），卡级才过桥一次。
+      // 一张 1024² PNG ≈123 KB，跟着每一行过桥就是白烧 —— 而 iOS 上锁屏读的正是
+      // mediaSession，所以逐行完全够。过桥那一次是给 macOS 的。
+      if (notesActive >= 0) {
+        NativeAudio.artworkLocal(url);
+      } else {
+        // 卡级过桥。去重键带上「解析有没有铺上」：一张卡会推两次 —— 开卡一次，
+        // 解析文本回来后再一次（封面从"没有解析"变成"三行压暗铺着"）。只按卡片 id
+        // 去重的话，第二次会被自己的去重静默吃掉，锁屏上永远看不到解析区。
+        NativeAudio.artwork(item.id + (notesLines.length ? ':n' : ''), url);
+      }
+    } catch (_) { /* 画不出封面绝不影响播放 */ }
   }
 
   function note(msg) { $('app-drive-note').textContent = msg || ''; }
@@ -220,6 +319,7 @@ var AppDriving = (() => {
     $('app-drive-tr').textContent = item ? (item.tr || filledTr || '') : '';
     $('app-drive-notes').textContent = '';
     notesText = '';
+    notesLines = []; notesActive = -1;
     note('');
   }
 
@@ -238,6 +338,33 @@ var AppDriving = (() => {
   async function execSpeak(fx) {
     const myGen = gen, mySeq = ++speakSeq;
     const item = deck[pos];
+
+    // ─── 解析段：逐行念，念到哪一行封面就高亮哪一行（§9.5「解析跟读」）──────────
+    //
+    // **状态机一个字都没改。** plan 里仍然只有一个 `notes` 段；「一段变三行」整个
+    // 发生在这个函数内部，全部念完才 dispatch('tts_done')。让 plan 在解析文本回来时
+    // 动态长出几段，就得引入一个新的可变性来源 —— 而那是这个模块最不该有的东西。
+    if (fx.what === 'notes' && notesLines.length > 1) {
+      for (let i = 0; i < notesLines.length; i++) {
+        notesActive = i;
+        pushArtwork(item);
+        const r = await LearnTTS.speak(notesLines[i], uiLang);
+        // 每行之间都要重新守一次：念到一半按了暂停 / 下一张，这个循环必须当场作废，
+        // 而不是把已经被顶掉的会话继续往前推。
+        if (myGen !== gen || mySeq !== speakSeq) return;
+        if (!r.ok) {
+          if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
+          return;
+        }
+        await (r.done || Promise.resolve());
+        if (myGen !== gen || mySeq !== speakSeq) return;
+      }
+      notesActive = -1;
+      pushArtwork(item);
+      dispatch('tts_done');
+      return;
+    }
+
     const { text, lang } = speechFor(fx.what, item || {}, fx);
     if (!text) { dispatch('tts_done'); return; }
     const r = await LearnTTS.speak(text, lang);
@@ -286,7 +413,9 @@ var AppDriving = (() => {
       return;
     }
     if (myGen !== gen || mySeq !== notesSeq) return;
-    const text = LearnDriving.notesToSpeech(data, notesLabels());
+    const labels = notesLabels();
+    notesLines = LearnDriving.notesToLines(data, labels);
+    const text = notesLines.join('。');
     notesText = text;
     $('app-drive-notes').textContent = text;
     dispatch('notes_ready', text);
@@ -363,6 +492,7 @@ var AppDriving = (() => {
       hasTr: !!(item.tr || filledTr),
     });
     renderCard(item);
+    pushArtwork(item);
     warmCard(item, myGen, mySeq);
     warmNext(myGen, mySeq);
     dispatch('card_ready');
@@ -386,8 +516,18 @@ var AppDriving = (() => {
         if (myGen !== gen || mySeq !== cardSeq) return;
         // 解析的音频只能等文本回来才知道要合成什么 —— 这就是旧的「解析预取」救不到的
         // 那个空档。渲染文案与 execFetchNotes 用的是同一份标签，两处不会说不一样的话。
-        const text = LearnDriving.notesToSpeech(r && r.data, notesLabels());
-        warm(text, uiLang);
+        // 逐行预热，不是整段 —— 播放也是逐行的（§9.5「解析跟读」），两处必须枚举
+        // 同一批文本，否则预热的是另一段话，缓存永远打不中而用户多付一次钱。
+        const lines = LearnDriving.notesToLines(r && r.data, notesLabels());
+        for (const line of lines) warm(line, uiLang);
+        // **开卡就把解析铺到封面上（压暗），不等念到那一段。** 否则锁屏在前两遍是
+        // 「没有解析」、到第四段突然多出一块，整个版式跳一下 —— 而歌词的形状本来就是
+        // 「后面几句你先看得见，念到才点亮」。这里只填内容，高亮仍由 execSpeak 推进。
+        if (lines.length && !notesLines.length) {
+          notesLines = lines;
+          notesActive = -1;
+          pushArtwork(item);
+        }
       }).catch(() => {});
     } catch (_) {}
   }
@@ -498,11 +638,14 @@ var AppDriving = (() => {
   //
   // 它仍然什么都不写进学习记录：只填缓存，不产生复习行、不盖技能戳、不动 lastSeenAt。
 
-  // 一张卡要合成的三段文本。原句在三遍里出现三次，但那是**同一个缓存键**，所以只算一段。
-  function segmentsOf(item, tr, notesText) {
+  // 一张卡要合成的全部文本。原句在三遍里出现三次，但那是**同一个缓存键**，所以只算一段。
+  //
+  // 解析**按行**枚举（§9.5「解析跟读」）：播放已经是逐行的，预载要是还按整段算，
+  // 路上每张卡都会在解析那几行上现场发请求 —— 直接打破「预载完整轮零请求」。
+  function segmentsOf(item, tr, notesLineList) {
     const segs = [{ text: item.text, lang: item.lang || '' }];
     if (tr) segs.push({ text: tr, lang: item.targetLang || uiLang });
-    if (notesText) segs.push({ text: notesText, lang: uiLang });
+    for (const line of notesLineList || []) segs.push({ text: line, lang: uiLang });
     return segs.filter((x) => x.text);
   }
 
@@ -552,21 +695,26 @@ var AppDriving = (() => {
       if (needTr) trMissing++;
 
       const hitNotes = wantNotes ? await LearnNotes.cached(it.id) : null;
-      const notesText = hitNotes ? LearnDriving.notesToSpeech(hitNotes.data, notesLabels()) : '';
+      const notesLineList = hitNotes ? LearnDriving.notesToLines(hitNotes.data, notesLabels()) : [];
       const needNotes = wantNotes && !hitNotes;
       if (needNotes) notesMissing++;
 
       let missing = 0;
       if (audioCacheable) {
-        for (const seg of segmentsOf(it, tr, notesText)) {
+        for (const seg of segmentsOf(it, tr, notesLineList)) {
           if (!(await audioCached(seg.text, seg.lang))) missing++;
         }
         // 还没生成的译文/解析，它们的音频也还不存在 —— 计入待合成，否则账单会少报。
+        //
+        // 解析按**上界**估：它会切成生词/短语/语法三行，而这张卡到底有几行要等文本
+        // 回来才知道 —— 算账那一刻不可知。按 3 估是**多报**，而账单宁可多报不可少报：
+        // 少报会让用户在路上撞见没预载到的请求。（这也是当初选「按三块切」而不是
+        // 「按句切」的决定性理由：按句切的话连上界都给不出来。）
         if (needTr) missing++;
-        if (needNotes) missing++;
+        if (needNotes) missing += LearnDriving.NOTE_LINES_MAX;
       }
       audioMissing += missing;
-      cards.push({ item: it, tr, needTr, needNotes, notesText });
+      cards.push({ item: it, tr, needTr, needNotes, notesLineList });
     }
 
     const tail = tailSegment();
@@ -605,15 +753,15 @@ var AppDriving = (() => {
           tr = r.tr;
         } catch (err) { fail((err && err.code) || 'translate_failed'); }
       }
-      let notesText = c.notesText;
+      let notesLineList = c.notesLineList;
       if (c.needNotes) {
         try {
           const r = await LearnNotes.get(c.item, uiLang);
-          notesText = LearnDriving.notesToSpeech(r && r.data, notesLabels());
+          notesLineList = LearnDriving.notesToLines(r && r.data, notesLabels());
         } catch (err) { fail((err && err.code) || 'notes_failed'); }
       }
       if (!plan.audioCacheable) return;
-      for (const seg of segmentsOf(c.item, tr, notesText)) {
+      for (const seg of segmentsOf(c.item, tr, notesLineList)) {
         if (shouldStop()) return;
         const r = await LearnTTS.prefetch(seg.text, seg.lang);
         // `not_cacheable` 在这里不是失败：调用方已经知道这台机器不产生音频缓存。
@@ -645,8 +793,13 @@ var AppDriving = (() => {
   async function start() {
     gen++;
     LearnTTS.stop();
+    // 先要会话，再算 sessionNote —— `session-ready` 是异步回来的，但 `backgroundNote()`
+    // 只有在 applySettings 之后才知道用的是哪个引擎，两者的顺序在 start() 里是对的：
+    // 请求发在最前面，读结果发生在下面几个 await 之后。
+    NativeAudio.sessionStart();
     state = { name: 'idle' };
     sessionNote = '';
+    bgNote = '';
     filledTr = '';
     const read = await loadSettings();
     if (!read.ok) {
@@ -665,6 +818,7 @@ var AppDriving = (() => {
     sessionNote = (playNotes && !notesOk)
       ? t('drive_notes_engine_missing', '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）')
       : '';
+    bgNote = backgroundNote();
     if (skipped) {
       note(t('drive_skipped', '跳过 {n} 张读不出来的卡（媒体卡或无语音）').replace('{n}', String(skipped)));
     }
@@ -681,6 +835,9 @@ var AppDriving = (() => {
   function stop() {
     gen++;
     dispatch('tap_stop');
+    // 会话结束就把「正在播放」收掉。留着它等于在锁屏上放一张点了没反应的幽灵卡片，
+    // 而且会一直占着系统的 Now Playing 位置。
+    NativeAudio.sessionStop();
     deck = [];
     order = [];
     filledTr = '';
@@ -689,23 +846,53 @@ var AppDriving = (() => {
 
   // ─── Wiring (everything inside #app-drive) ────────────────────────────────
   function wire() {
-    $('app-drive-pause').addEventListener('click', () => {
-      dispatch(state.name === 'paused' || state.name === 'stopped_error' ? 'tap_resume' : 'tap_pause');
-    });
+    $('app-drive-pause').addEventListener('click', togglePlayPause);
     $('app-drive-next').addEventListener('click', () => dispatch('tap_next'));
     $('app-drive-repeat').addEventListener('click', () => dispatch('tap_repeat'));
     $('app-drive-mode').addEventListener('click', () => dispatch('tap_mode'));
     $('app-drive-explain').addEventListener('click', () => dispatch('tap_explain'));
     $('app-drive-more').addEventListener('click', () => { start(); });
-    // A hidden app (lock, call, app switch) pauses: TTS stops. Resuming is always a
-    // tap, never automatic — a car that starts talking again on its own is worse
-    // than one that waits.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible' && !$('app-drive').hidden) {
-        dispatch('hidden');
-      }
+
+    // 锁屏 / 车机 / 耳机 / macOS 媒体键。映射是纯的（LearnDriving.nativeEvent），
+    // 派发的是**和屏幕按钮同一批**事件 —— 状态机因此一个新事件都没长。
+    NativeAudio.onEvent((msg) => {
+      // 会话已经结束但系统的「正在播放」还没被收掉，是一个真实存在的窗口。那时按下的
+      // 遥控键不该把一个已经退出的会话弄活过来。
+      if ($('app-drive').hidden || state.name === 'idle') return;
+      const ev = LearnDriving.nativeEvent(msg, state.name);
+      if (ev) dispatch(ev);
+      // 会话建起来 / 建不起来都会改变那句常驻说明该不该出现（`session-ready` 是异步
+      // 回来的，可能晚于 start() 里算 sessionNote 的那一刻）。
+      if (msg && (msg.type === 'session-ready' || msg.type === 'session-failed')) refreshBgNote();
     });
+
+    // **隐藏不再等于暂停（§9.5「后台与锁屏播放」）。** 后台能力成立时什么都不做，
+    // 继续播 —— 把手机塞回口袋、屏幕黑掉，正是「架在支架上听」的常态，不是中断。
+    // 不成立时才照旧暂停，并且**说出是哪一条不成立**（sessionNote 里那行）。
+    //
+    // 原来这里的理由是「一辆自己重新开口说话的车比一辆等着的更糟」。那句话没有错，
+    // 错的是它的前提：「隐藏 = 用户走开了」。有了后台播放之后这个前提不成立，所以规约
+    // 缩窄到了它真正想防的那件事上 —— 一次**真正的中断**（来电、被别的 App 抢走音频）
+    // 之后不得自作主张地重新开口，那条走 LearnDriving.nativeEvent 的 interrupt 分支。
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') return;
+      if ($('app-drive').hidden) return;
+      if (backgroundCapable()) return;
+      dispatch('hidden');
+    });
+
+    // 页面要走了：收掉锁屏卡片。留一张点了没反应的幽灵卡片比没有更糟。
+    window.addEventListener('pagehide', () => { NativeAudio.sessionStop(); });
   }
+
+  // 屏幕上那个 ⏸/▶ 和锁屏上的播放/暂停切换键共用它 —— 两处各写一次三元判断，
+  // 迟早会对同一个状态给出相反的动作。
+  function togglePlayPause() {
+    dispatch(pausedLike() ? 'tap_resume' : 'tap_pause');
+  }
+
+  // 常驻行由 paint() 重绘，所以改的是变量不是元素。
+  function refreshBgNote() { bgNote = backgroundNote(); paint(); }
 
   function paintStatic() {
     $('app-drive-start').textContent = t('drive_entry', '播客模式');
@@ -726,7 +913,17 @@ var AppDriving = (() => {
     return { state: state.name, seg: state.seg || 0, pass: cur.pass || 0,
       segments: (plan.segments || []).map((x) => x.what + x.pass),
       deck: deck.length, pos, mode,
-      playNotes, notesOk, uiLang, order: order.slice() };
+      // 解析跟读（§9.5）：正在念第几行、一共几行。真机/模拟器上一段音频可能几秒就播完，
+      // 靠连拍截图去撞那一帧是碰运气 —— 读这两个数才是确定的。
+      notesLines: notesLines.length, notesActive,
+      playNotes, notesOk, uiLang, order: order.slice(),
+      // §9.5 后台播放。`bg` 是判据本身，`bridge` 是它的两个输入 —— 真机上「为什么退到
+      // 后台还是停了」只有分开看这三个数才回答得了。
+      bg: backgroundCapable(),
+      bridge: { available: NativeAudio.available(), ready: NativeAudio.ready(),
+        platform: NativeAudio.platform(), suspends: NativeAudio.suspends(),
+        artSizes: NativeAudio.artSizes(),
+        mediaActions: NativeAudio.mediaActions() } };
   }
 
   return { start, stop, wire, paintStatic, refreshEntry, preloadPlan, preloadRun, _debug };

@@ -84,6 +84,16 @@ const MODULES = [
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs
+  'app/now-playing-art.js',              // NowPlayingArt — §9.5 锁屏封面：把当前卡片画成
+                                         // 一张 1024² 的图交给原生。纯 canvas 图元（file://
+                                         // 下画外部图会污染 canvas），颜色读 CSS token。
+                                         // 必须在 driving.js 之前：openCard 会调它。
+  'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
+                                         // 适配器。无依赖（锁屏上的字由调用方传入，
+                                         // 同 notesToSpeech(notes, labels) 的纪律）。
+                                         // 必须在 driving.js 之前：那边在 wire() 里
+                                         // 注册回调。桥不在时全是 no-op，所以它在
+                                         // Chrome 的 test:learn 里也照常加载。
   'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
                                          // the extension page cannot autoplay)
 ];

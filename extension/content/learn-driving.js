@@ -155,22 +155,41 @@ var LearnDriving = (() => {
   // Returns '' when there is nothing worth saying, and the caller then skips the
   // segment rather than speaking an empty string — a silent "playing notes" state is
   // indistinguishable from a stall.
-  function notesToSpeech(notes, labels) {
-    if (!notes) return '';
+  //
+  // 分成**行**返回（生词 / 短语 / 语法，最多三行，空块不产行）。播客模式逐行朗读它，
+  // 并让锁屏封面跟着念到哪一行就高亮哪一行（§9.5「解析跟读」）。
+  //
+  // **为什么按这三块切，而不是按句**：块数 ≤ 3 且**结构上已知**，所以「出发前预载」在
+  // 解析文本还没取回时也能给出一个诚实的上界；按句切的话「这张卡的解析有几句」在算账
+  // 那一刻根本不可知。切分点也天然落在语义边界上，而不是把「生词：a，b。c，d」里那些
+  // 既当条目分隔又当块分隔的句号猜错。
+  // 解析最多切成几行。**「出发前预载」在解析文本还没取回时靠它给出上界** —— 少报会让
+  // 用户在路上撞见没预载到的请求，所以宁可多报。切分粒度一改，这个数必须跟着改。
+  const NOTE_LINES_MAX = 3;
+
+  function notesToLines(notes, labels) {
+    if (!notes) return [];
     const L = labels || {};
-    const parts = [];
+    const lines = [];
     const words = (notes.words || []).filter((w) => w && w.w && w.g);
     const phrases = (notes.phrases || []).filter((p) => p && p.p && p.g);
     if (words.length) {
-      parts.push((L.words || '') + words.map((w) => w.w + '，' + w.g).join('。'));
+      lines.push((L.words || '') + words.map((w) => w.w + '，' + w.g).join('。'));
     }
     if (phrases.length) {
-      parts.push((L.phrases || '') + phrases.map((p) => p.p + '，' + p.g).join('。'));
+      lines.push((L.phrases || '') + phrases.map((p) => p.p + '，' + p.g).join('。'));
     }
     if (notes.grammar && String(notes.grammar).trim()) {
-      parts.push((L.grammar || '') + String(notes.grammar).trim());
+      lines.push((L.grammar || '') + String(notes.grammar).trim());
     }
-    return parts.join('。');
+    return lines;
+  }
+
+  // 整段形式仍然保留：界面上那块解析文字、以及「这张卡的解析」作为一个整体出现的地方
+  // 用的都是它。**它必须与逐行版逐字一致** —— 否则预热的和朗读的是两段话，缓存永远
+  // 打不中而用户多付一次钱（notesLabels() 那条「一处」纪律的同型要求）。
+  function notesToSpeech(notes, labels) {
+    return notesToLines(notes, labels).join('。');
   }
 
   // ─── The session state machine ─────────────────────────────────────────────
@@ -292,10 +311,50 @@ var LearnDriving = (() => {
     }
   }
 
+  // ─── 遥控 → 会话事件（§9.5「后台与锁屏播放」）────────────────────────────
+  // 锁屏卡片、车机按键、耳机、macOS 的媒体键，按下去的东西和屏幕上那四个按钮**是同一件
+  // 事的两个表面**，所以它们派发同一批 `tap_*` 事件。状态机因此一个新事件、一个新状态
+  // 都不需要 —— 这不是巧合：`tap_*` 的语义本来就是「用户在控制」，从哪个表面控制的
+  // 与状态机无关。
+  const REMOTE_EVENTS = {
+    play: 'tap_resume',
+    pause: 'tap_pause',
+    next: 'tap_next',
+    // 「上一曲」= 🔁 再听一遍（回第一遍开头）。播客模式**没有「上一张」**：随机播放是
+    // 一次性排列，往回退没有定义；给它接一个「上一张」就得记一条历史，而那条历史与
+    // `order` 会在重洗时分叉。
+    previous: 'tap_repeat',
+  };
+
+  // 用户看来仍然「停着」的几个状态。播放/暂停切换键要按这个判断往哪边倒，而 app/driving.js
+  // 的按钮显隐也读它 —— 一处定义，两个表面，免得遥控和按钮对同一个状态给出相反的动作。
+  const PAUSED_LIKE = ['paused', 'stopped_error', 'explain_fetch', 'explain_speak'];
+  function isPausedLike(stateName) { return PAUSED_LIKE.indexOf(stateName) >= 0; }
+
+  // 原生音频事件 → 会话事件。返回 null = 这条消息不该动播放器。
+  function nativeEvent(msg, stateName) {
+    if (!msg) return null;
+    if (msg.type === 'remote') {
+      if (msg.command === 'toggle') return isPausedLike(stateName) ? 'tap_resume' : 'tap_pause';
+      return REMOTE_EVENTS[msg.command] || null;
+    }
+    if (msg.type === 'interrupt') {
+      if (msg.phase === 'begin') return 'tap_pause';
+      // 只有系统说 `.shouldResume` 才自动续播。一次真正的中断（来电、被别的 App 抢走
+      // 音频）之后自作主张地重新开口，正是 2026-08-18 那条规约要防的事 —— 那条规约
+      // 2026-08-24 缩窄到了这里，而不是被废掉：**切后台不是中断**。
+      return msg.resume ? 'tap_resume' : null;
+    }
+    // 耳机被拔了 ⇒ 暂停。重连**不**自动播：拔掉耳机后从外放里冒出声音，是所有音乐 App
+    // 都在避免的那件事。
+    if (msg.type === 'route') return msg.change === 'device-lost' ? 'tap_pause' : null;
+    return null;
+  }
+
   return {
     DEFAULTS, MODES, DEFAULT_MODE, PASSES, nextMode,
-    buildOrder, advance, peekNext, cardPlan, notesToSpeech, reduce,
-    ACTIVE,
+    buildOrder, advance, peekNext, cardPlan, notesToSpeech, notesToLines, reduce,
+    ACTIVE, REMOTE_EVENTS, PAUSED_LIKE, isPausedLike, nativeEvent, NOTE_LINES_MAX,
   };
 })();
 
