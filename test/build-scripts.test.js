@@ -256,6 +256,25 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
       }
     });
 
+    // 这一行曾经是无条件的 —— 一个真缺陷（2026-08-25 调研时查出）。中断的定义就是
+    // 「系统停用了我们的会话」（Apple 原文），所以 `.ended` 时它读起来天经地义：当然该
+    // 重新激活一下。但 setActive(true) 是**抢占**（我们的类别是非混音的 .playback），
+    // 而 shouldResume 为假时我们并不播 —— 净结果是占着一个活跃的会话却一声不出，最坏
+    // 表现是**两边都没声**：刚开始播的别人被我们掐掉，我们自己不响，屏幕上没有任何变化。
+    // 「读起来天经地义 + 症状无法归因」正是最该用测试钉死的那类代码。
+    test('重新激活会话只发生在 shouldResume 为真时', () => {
+      // 先剥注释：上面那段解释里就写着 `setActive(true)` 四个字，不剥的话断言会被
+      // 自己的说明文字绊倒（第一次跑就是这么红的）。
+      const body = tpl.slice(tpl.indexOf('func onInterruption'), tpl.indexOf('func onRouteChange'))
+        .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      ok(body.includes('setActive(true)'),
+        'shouldResume 那条路仍然要重新激活 —— 来电挂断后的自动续播靠它');
+      ok(body.indexOf('if shouldResume') >= 0
+         && body.indexOf('if shouldResume') < body.indexOf('setActive(true)'),
+        '无条件重新激活会打断刚开始播的别人，而我们自己不出声');
+      eq((body.match(/setActive\(true\)/g) || []).length, 1, '只该有一处');
+    });
+
     test('the channel name matches what the install patch and the JS use', () => {
       match(tpl, /static let channel = "mtAudio"/);
       const sync = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'), 'utf8');
@@ -278,6 +297,8 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"phase"', '"resume"', '"command"', '"change"', '"title"', '"subtitle"',
         '"album"', '"index"', '"count"', '"playing"',
         '"platform"', '"suspends"', '"ios"', '"macos"',
+        '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
+        '","', '"w"', '"h"',
         '"window.NativeAudio && window.NativeAudio._fromNative(\\(json))"']);
       for (const lit of strings) {
         ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);

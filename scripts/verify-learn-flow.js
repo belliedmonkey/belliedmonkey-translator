@@ -968,6 +968,56 @@ async function runHost(host) {
         + '默认装机的 Mac 用户莫名其妙没有后台播放');
       need(await ev(`window.__mtNative.some((m) => m.type === 'now-playing' && m.title)`),
         '没有把卡片正文推给「正在播放」');
+
+      // ─── 锁屏封面（§9.5）────────────────────────────────────────────────
+      // 这里是封面唯一一次在**真引擎**里被画出来的地方：vm harness 没有 canvas，
+      // 而 file:// 下 canvas 的污染陷阱只有真 WebKit/Chromium 才碰得到。
+      const artMsgs = `window.__mtNative.filter((m) => m.type === 'now-playing-artwork')`;
+      need((await ev(`${artMsgs}.length`)) >= 1, '换卡时没有推封面');
+      need(await ev(`${artMsgs}[0].image.indexOf('data:image/png') === 0`),
+        '封面不是 data URL —— toDataURL 可能被 canvas 污染挡住了');
+      const artKB = Math.round((await ev(`${artMsgs}[0].image.length`)) / 1024);
+      console.log(`  [封面] 1024² PNG ≈ ${artKB} KB`);
+      need(artKB < 900, `封面 ${artKB} KB 过大 —— 换卡都要过一趟桥，得换编码或降尺寸`);
+
+      // ─── mediaSession：iOS 上真正决定锁屏/灵动岛长什么样的那一半 ──────────
+      // 2026-08-25 实证：WebKit 会为页面里的 <audio> 自己发布一套 now-playing，
+      // 标题取自 document.title —— 模拟器锁屏上显示的就是「大肚猴翻译 · 复习」，
+      // 而不是我们从原生侧写进去的卡片原文。所以这一半必须走 navigator.mediaSession。
+      // Chrome 也实现了它，于是这里能用真引擎验，不必等真机。
+      need(await ev(`NativeAudio.mediaSessionWired()`), 'mediaSession 的遥控没接上');
+      need(await ev(`!!(navigator.mediaSession && navigator.mediaSession.metadata)`),
+        'mediaSession 没有 metadata —— 锁屏上会退回页面标题');
+      const msTitle = await ev(`navigator.mediaSession.metadata.title`);
+      need(msTitle && msTitle.indexOf('大肚猴') < 0,
+        'mediaSession 标题是页面标题而不是卡片原文：' + JSON.stringify(msTitle));
+      need(await ev(`(navigator.mediaSession.metadata.artwork || []).length > 0`),
+        'mediaSession 没有封面 —— 那正是锁屏上那个空方块');
+      const msArtSrc = await ev(`navigator.mediaSession.metadata.artwork[0].src`);
+      need(/^(blob:|data:image\/png)/.test(msArtSrc || ''),
+        'mediaSession 的封面不是我们画的那张：' + JSON.stringify(String(msArtSrc).slice(0, 40)));
+      // 四个遥控 action 必须都注册上。⏪10/⏩10 只有在 nexttrack/previoustrack 有处理
+      // 函数时才会被引擎换掉 —— 少注册一个，锁屏上就会退回那两个假动作按钮。
+      const acts = await ev(`JSON.stringify(NativeAudio.mediaActions())`);
+      for (const a of ['play', 'pause', 'nexttrack', 'previoustrack']) {
+        need(acts.indexOf('"' + a + '"') >= 0, 'mediaSession 的 ' + a + ' 没注册上：' + acts);
+      }
+
+      // **同一张卡只推一次。** 这是「封面走独立消息、按卡片 id 去重」的全部理由：
+      // 一张 1024² 的图跟着每次重绘过桥就是白烧。
+      //
+      // ⚠️ 直接调 NativeAudio.artwork 两次来验，**不是**靠「点几下重绘再数一遍」——
+      // 后者是空转的：pushArtwork 只在 openCard 里调，重绘压根走不到去重那一行，
+      // 于是把去重整段删掉它照样绿（第一版就是这么写的，删掉去重后仍然全过）。
+      const artBefore = await ev(`${artMsgs}.length`);
+      await ev(`(NativeAudio.artwork('probe-same-id', 'data:image/png;base64,AAAA'),
+                 NativeAudio.artwork('probe-same-id', 'data:image/png;base64,BBBB'), 'ok')`);
+      need((await ev(`${artMsgs}.length`)) === artBefore + 1,
+        '同一张卡推了不止一次封面 —— 按 id 去重没生效');
+      // 反面：换个 id 必须推得出去，否则上面那条可以靠「永远不推」骗过去。
+      await ev(`(NativeAudio.artwork('probe-other-id', 'data:image/png;base64,CCCC'), 'ok')`);
+      need((await ev(`${artMsgs}.length`)) === artBefore + 2,
+        '换了卡片 id 却没推封面 —— 去重把该推的也挡了');
       // 遥控 = 屏幕按钮的第二个表面：按下去必须真的动播放器。
       const before = (await ev(`AppDriving._debug()`)).state;
       await ev(`(window.NativeAudio._fromNative({ type: 'remote', command: 'pause' }), 'ok')`);

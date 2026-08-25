@@ -259,7 +259,7 @@ var AppDriving = (() => {
   // 去重在 NativeAudio 里按 payload 做：paint() 每次重绘都会走到这儿，而绝大多数重绘
   // 什么都没变，每一次过桥都是一次 evaluateJavaScript 往返。
   function paintNowPlaying(active, pauseLike) {
-    if (!NativeAudio.available()) return;
+    if (!NativeAudio.mediaAvailable()) return;
     const item = deck[pos];
     NativeAudio.playingState(active && !pauseLike);
     if (!active || !item) return;
@@ -273,6 +273,25 @@ var AppDriving = (() => {
       index: Math.min(pos + 1, deck.length),
       count: deck.length,
     });
+  }
+
+  // 锁屏 / 灵动岛的封面（§9.5）。**换卡时一次**，不跟着 paint 走 —— 一张 1024² 的图
+  // 每次重绘都过一趟桥是白烧。文案在这里算好传进去，画图那边不持有任何字。
+  //
+  // **封面上不放遍次。** 它是每张卡画一次的，而遍次在一张卡内会 1→2→3 地变；写上去
+  // 就是在锁屏上挂一句几秒后就不成立的话。遍次归媒体控件那一行 —— 那行跟着段走，
+  // 而且改它不花任何东西。封面只承载卡级为真的事实。
+  function pushArtwork(item) {
+    if (!item || !NativeAudio.mediaAvailable()) return;
+    try {
+      const url = NowPlayingArt.render({
+        badge: t('drive_progress', '第 {i} / {n} 张')
+          .replace('{i}', String(Math.min(pos + 1, deck.length))).replace('{n}', String(deck.length)),
+        text: item.text || '',
+        tr: item.tr || filledTr || '',
+      });
+      if (url) NativeAudio.artwork(item.id, url);
+    } catch (_) { /* 画不出封面绝不影响播放 */ }
   }
 
   function note(msg) { $('app-drive-note').textContent = msg || ''; }
@@ -427,6 +446,7 @@ var AppDriving = (() => {
       hasTr: !!(item.tr || filledTr),
     });
     renderCard(item);
+    pushArtwork(item);
     warmCard(item, myGen, mySeq);
     warmNext(myGen, mySeq);
     dispatch('card_ready');
@@ -834,7 +854,9 @@ var AppDriving = (() => {
       // 后台还是停了」只有分开看这三个数才回答得了。
       bg: backgroundCapable(),
       bridge: { available: NativeAudio.available(), ready: NativeAudio.ready(),
-        platform: NativeAudio.platform(), suspends: NativeAudio.suspends() } };
+        platform: NativeAudio.platform(), suspends: NativeAudio.suspends(),
+        artSizes: NativeAudio.artSizes(),
+        mediaActions: NativeAudio.mediaActions() } };
   }
 
   return { start, stop, wire, paintStatic, refreshEntry, preloadPlan, preloadRun, _debug };

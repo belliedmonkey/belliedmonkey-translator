@@ -27,6 +27,14 @@ import WebKit
 import AVFoundation
 import MediaPlayer
 
+#if os(iOS)
+import UIKit
+typealias MTImage = UIImage
+#else
+import AppKit
+typealias MTImage = NSImage
+#endif
+
 /// 把 App 内 web 视图里的播客播放器接到系统音频栈上：音频会话（iOS）、
 /// 媒体遥控与「正在播放」（两个平台）。
 final class MTAudioBridge: NSObject, WKScriptMessageHandler {
@@ -39,6 +47,17 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private weak var webView: WKWebView?
     private var commandsInstalled = false
+
+    /// 当前卡片的封面（由 JS 画好送过来）。锁屏那一档用它。
+    private var cardArt: MTImage?
+    /// 系统实际用哪些尺寸来问封面 —— Apple 没有公开这件事，所以这里如实记下来
+    /// 回传给 JS，让「小尺寸阈值」由实测决定而不是猜。只回传没见过的尺寸。
+    private var seenArtSizes = Set<Int>()
+
+    /// 小于这个宽度（pt）就给 App 图标，不给卡片：那个尺寸上放不下一个句子，
+    /// 缩过去只会是一团糊 —— 灵动岛那个「问号」位就在这一档。
+    /// **这是个待实测的初值**，见 seenArtSizes。
+    private static let iconMaxWidth: CGFloat = 120
 
     // MARK: - 安装
 
@@ -72,6 +91,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "session-start":  startSession()
         case "session-stop":   stopSession()
         case "now-playing":    updateNowPlaying(body)
+        case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
@@ -153,6 +173,73 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
+    // MARK: - 封面
+
+    /// data URL → 图片。只认 base64 那一种（JS 侧是 canvas.toDataURL，永远是它）。
+    private func decode(_ dataUrl: String) -> MTImage? {
+        guard let comma = dataUrl.firstIndex(of: ",") else { return nil }
+        let b64 = String(dataUrl[dataUrl.index(after: comma)...])
+        guard let data = Data(base64Encoded: b64) else { return nil }
+        return MTImage(data: data)
+    }
+
+    /// 小尺寸那一档：App 图标。原生这边本来就有（Assets.xcassets），不用过桥传。
+    private func appIcon() -> MTImage? {
+#if os(iOS)
+        return UIImage(named: "AppIcon")
+#else
+        return NSApp.applicationIconImage
+#endif
+    }
+
+    /// 按系统要的尺寸重画一张。**这不是优化，是契约**：`requestHandler` 的文档写的是
+    /// 「Returns the artwork image for an item at a given size」，不管要多大都甩回一张
+    /// 1024² 是常见的「代码跑了但封面就是不显示」的原因。
+    private func scaled(_ image: MTImage, to size: CGSize) -> MTImage {
+        guard size.width > 0, size.height > 0 else { return image }
+#if os(iOS)
+        let fmt = UIGraphicsImageRendererFormat.default()
+        fmt.opaque = true
+        return UIGraphicsImageRenderer(size: size, format: fmt).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+#else
+        let out = NSImage(size: size)
+        out.lockFocus()
+        image.draw(in: CGRect(origin: .zero, size: size))
+        out.unlockFocus()
+        return out
+#endif
+    }
+
+    private func updateArtwork(_ body: [String: Any]) {
+        guard let url = body["image"] as? String, let image = decode(url) else { return }
+        cardArt = image
+        let icon = appIcon()
+        let art = MPMediaItemArtwork(boundsSize: image.size) { [weak self] size in
+            guard let self = self else { return image }
+            self.noteArtSize(size)
+            let source = (size.width > 0 && size.width < MTAudioBridge.iconMaxWidth && icon != nil)
+                ? icon! : (self.cardArt ?? image)
+            return self.scaled(source, to: size)
+        }
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPMediaItemPropertyArtwork] = art
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private func noteArtSize(_ size: CGSize) {
+        let w = Int(size.width), h = Int(size.height)
+        let key = w * 100_000 + h
+        DispatchQueue.main.async {
+            guard !self.seenArtSizes.contains(key) else { return }
+            self.seenArtSizes.insert(key)
+            // 宽高按数字送，不在原生这边拼串：这个文件一个字符串字面量都不该多出来
+            // （零文案纪律有测试钉着），而结构化数据本来也更好用。
+            self.emit(["type": "artwork-size", "w": w, "h": h])
+        }
+    }
+
     private func updatePlaybackState(_ body: [String: Any]) {
         let playing = (body["playing"] as? Bool) ?? false
         MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
@@ -180,10 +267,25 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
         let options = AVAudioSession.InterruptionOptions(
             rawValue: note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0)
-        try? AVAudioSession.sharedInstance().setActive(true)
         // `.shouldResume` 是系统在说「刚才那件事结束了，你可以接着播」。只有它为真才自动续播
         // —— 播放器不得在一次真正的中断之后自作主张地重新开口（§9.5）。
-        emit(["type": "interrupt", "phase": "end", "resume": options.contains(.shouldResume)])
+        let shouldResume = options.contains(.shouldResume)
+
+        // ⚠️ 这次重新激活**必须留在这个 if 里**。它曾经是无条件的，那是个真缺陷：
+        //
+        // 中断的定义就是「系统停用了我们的会话」（Apple: "An audio interruption is the
+        // deactivation of your app's audio session"），所以 `.ended` 时会话确实是非活跃的
+        // —— 看起来「当然该重新激活一下」。但 `setActive(true)` 不是一个读操作，是**抢占**：
+        // 我们的类别是 .playback（非混音），激活它就会打断当时正在出声的任何东西。而
+        // shouldResume 为假时我们**不播**，于是结果是「我们占着一个活跃的非混音会话却一个
+        // 字都不出」—— 最坏表现是**两边都没声**：刚开始播的音乐被我们掐掉，我们自己不响，
+        // 屏幕上没有任何变化。这种静音在真机上几乎不可能归因。
+        //
+        // 只在真的要接着播时才激活。`test/build-scripts.test.js` 有一条断言钉住这个顺序。
+        if shouldResume {
+            try? AVAudioSession.sharedInstance().setActive(true)
+        }
+        emit(["type": "interrupt", "phase": "end", "resume": shouldResume])
     }
 
     @objc private func onRouteChange(_ note: Notification) {

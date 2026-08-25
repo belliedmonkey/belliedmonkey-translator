@@ -1015,6 +1015,19 @@ out follows the standing rules unchanged)*:
   原句 large, 译句 under it, `第 i / n 张 · 第 k 遍` below that. That the sentence being
   studied appears on the lock screen (and in Control Center) is the intended behaviour of
   "show the card", stated here so it is agreed rather than discovered.
+
+  **The artwork IS the card** (2026-08-25). Without one the system draws a placeholder —
+  which is what the Dynamic Island's "question mark" was. The artwork is drawn from the
+  live card, in the app's own card typography scaled up with its 21:19:12 ratio intact, in
+  the system's light or dark palette. It exists because the control row is one truncating
+  line and our sentences are long: **the artwork is the only place a long sentence can
+  actually be read.** It carries no pass number — it is drawn once per card while the pass
+  changes within one, and a lock screen must not display a sentence that stops being true
+  a few seconds later; the pass belongs to the control row, which follows the segment. A
+  card with no translation lets the 原句 grow into the space rather than leaving a hole.
+  At small sizes (the Dynamic Island's ~24pt slot) the system is handed the **app icon**
+  instead — a sentence is unreadable there, and being recognisable is the whole job of
+  that slot.
 - **开卡即并行，并前瞻一张**（2026-08-23，learning-design §9.5）: opening a card fires
   every network call that card needs at once — 原句音频 / 译句音频 / 解析，and the
   notes audio the moment the notes text lands — then warms the NEXT card's 原句/译句
