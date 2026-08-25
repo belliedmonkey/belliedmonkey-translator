@@ -1674,5 +1674,8 @@
   },
   "drive_bg_needs_audio_engine": {
     "message": "La voix intégrée de l'appareil s'arrête dès que l'app quitte l'écran. Pour continuer à écouter, configurez un point de terminaison vocal (Réglages → Moteur vocal)."
+  },
+  "drive_awake_note": {
+    "message": "L'écran ne se verrouille pas automatiquement tant que le mode podcast est au premier plan. Pour continuer à voir la carte après avoir verrouillé, activez l'affichage permanent du système : Réglages → Luminosité et affichage → Toujours activé."
   }
 }

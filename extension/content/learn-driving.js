@@ -155,22 +155,41 @@ var LearnDriving = (() => {
   // Returns '' when there is nothing worth saying, and the caller then skips the
   // segment rather than speaking an empty string — a silent "playing notes" state is
   // indistinguishable from a stall.
-  function notesToSpeech(notes, labels) {
-    if (!notes) return '';
+  //
+  // 分成**行**返回（生词 / 短语 / 语法，最多三行，空块不产行）。播客模式逐行朗读它，
+  // 并让锁屏封面跟着念到哪一行就高亮哪一行（§9.5「解析跟读」）。
+  //
+  // **为什么按这三块切，而不是按句**：块数 ≤ 3 且**结构上已知**，所以「出发前预载」在
+  // 解析文本还没取回时也能给出一个诚实的上界；按句切的话「这张卡的解析有几句」在算账
+  // 那一刻根本不可知。切分点也天然落在语义边界上，而不是把「生词：a，b。c，d」里那些
+  // 既当条目分隔又当块分隔的句号猜错。
+  // 解析最多切成几行。**「出发前预载」在解析文本还没取回时靠它给出上界** —— 少报会让
+  // 用户在路上撞见没预载到的请求，所以宁可多报。切分粒度一改，这个数必须跟着改。
+  const NOTE_LINES_MAX = 3;
+
+  function notesToLines(notes, labels) {
+    if (!notes) return [];
     const L = labels || {};
-    const parts = [];
+    const lines = [];
     const words = (notes.words || []).filter((w) => w && w.w && w.g);
     const phrases = (notes.phrases || []).filter((p) => p && p.p && p.g);
     if (words.length) {
-      parts.push((L.words || '') + words.map((w) => w.w + '，' + w.g).join('。'));
+      lines.push((L.words || '') + words.map((w) => w.w + '，' + w.g).join('。'));
     }
     if (phrases.length) {
-      parts.push((L.phrases || '') + phrases.map((p) => p.p + '，' + p.g).join('。'));
+      lines.push((L.phrases || '') + phrases.map((p) => p.p + '，' + p.g).join('。'));
     }
     if (notes.grammar && String(notes.grammar).trim()) {
-      parts.push((L.grammar || '') + String(notes.grammar).trim());
+      lines.push((L.grammar || '') + String(notes.grammar).trim());
     }
-    return parts.join('。');
+    return lines;
+  }
+
+  // 整段形式仍然保留：界面上那块解析文字、以及「这张卡的解析」作为一个整体出现的地方
+  // 用的都是它。**它必须与逐行版逐字一致** —— 否则预热的和朗读的是两段话，缓存永远
+  // 打不中而用户多付一次钱（notesLabels() 那条「一处」纪律的同型要求）。
+  function notesToSpeech(notes, labels) {
+    return notesToLines(notes, labels).join('。');
   }
 
   // ─── The session state machine ─────────────────────────────────────────────
@@ -334,8 +353,8 @@ var LearnDriving = (() => {
 
   return {
     DEFAULTS, MODES, DEFAULT_MODE, PASSES, nextMode,
-    buildOrder, advance, peekNext, cardPlan, notesToSpeech, reduce,
-    ACTIVE, REMOTE_EVENTS, PAUSED_LIKE, isPausedLike, nativeEvent,
+    buildOrder, advance, peekNext, cardPlan, notesToSpeech, notesToLines, reduce,
+    ACTIVE, REMOTE_EVENTS, PAUSED_LIKE, isPausedLike, nativeEvent, NOTE_LINES_MAX,
   };
 })();
 

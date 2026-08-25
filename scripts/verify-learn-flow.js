@@ -843,6 +843,22 @@ async function runHost(host) {
         try { await LearnStore.putNote(it.id, null, {}); } catch (_) {}
       } return 'ok'; })()`);
       await ev(`(window.__spoken = [], window.__mtChatBodies = [], 'ok')`);
+      // 解析跟读（§9.5）：封面要跟着念到哪一行就换一张，而且**不过桥**。数两件事 ——
+      // artworkLocal 被调了几次（逐行），以及过桥的 artwork 被调了几次（卡级）。
+      await ev(`(() => {
+        window.__artLocal = 0; window.__artLocalSrc = [];
+        const orig = NativeAudio.artworkLocal;
+        window.__artActive = [];
+        NativeAudio.artworkLocal = (u) => {
+          window.__artLocal++; window.__artLocalSrc.push(String(u).length);
+          window.__artActive.push(AppDriving._debug().notesActive);
+          return orig(u);
+        };
+        window.__artIds = [];
+        const origArt = NativeAudio.artwork;
+        NativeAudio.artwork = (id, u) => { window.__artIds.push(String(id)); return origArt(id, u); };
+        return 'ok';
+      })()`);
       const rowsBeforeNotes = await ev(`LearnStore.allReviews().then((r) => r.length)`);
       // 费用提示是「正在发生」的话，只在会话进行中显示。start() 的 promise 落定时
       // 第一张卡已经开播、第一帧已经画过，所以这里查是确定的 —— 而多睡哪怕 500ms，
@@ -854,6 +870,31 @@ async function runHost(host) {
         + JSON.stringify(await ev(`AppDriving._debug()`)));
       const notesBodies = await ev(`JSON.stringify(window.__mtChatBodies || [])`).then(JSON.parse);
       need(notesBodies.length >= 1, '没解析过的卡没有触发自动解析');
+
+      // ─── 解析跟读的两条判据 ───────────────────────────────────────────────
+      // 1. 封面真的逐行换过。解析只有一行时不拆（execSpeak 的 `> 1` 门），所以这里的
+      //    下界取 1：这一步的 mock 解析可能只产出一行。
+      const artLocal = await ev(`window.__artLocal`);
+      need(artLocal >= 1, '解析段一次都没更新封面 —— 歌词式高亮没生效');
+      // **解析文本回来之后必须再推一次封面**（从「没有解析」变成「三行压暗铺着」）。
+      // 这一次走过桥那条，而它按 id 去重 —— 去重键要是只有卡片 id，这次更新会被静默
+      // 吃掉，锁屏上永远没有解析区。2026-08-26 在模拟器上就是这么发现的：连拍八帧，
+      // 八帧的封面一模一样。
+      // 高亮真的逐行推进过。`_debug()` 里的 notesActive 是权威 —— 连拍截图撞那一帧
+      // 是碰运气（一段音频几秒就播完）。这里记录每次 artworkLocal 时的 active 值。
+      const seenActive = await ev(`JSON.stringify(window.__artActive || [])`).then(JSON.parse);
+      need(seenActive.length >= 1, '没有记录到任何高亮行');
+      const artIds = await ev(`JSON.stringify((window.__artIds || []))`).then(JSON.parse);
+      need(artIds.some((x) => /:n$/.test(x)),
+        '解析铺上之后没有再推一次封面 —— 去重键把它吃掉了：' + JSON.stringify(artIds));
+      // 2. **逐行那几次不过桥。** 这是整个设计成立的前提：一张 1024² PNG ≈123 KB，
+      //    跟着每一行过桥就是白烧。过桥的次数应当等于卡数量级，而不是行数量级。
+      // `__mtNative` 只在下面装了假桥之后才存在；这一步跑在它之前，所以要兜底。
+      const artPosted = await ev(`(window.__mtNative || []).filter((m) => m.type === 'now-playing-artwork').length`);
+      need(artPosted <= (await ev(`AppDriving._debug().deck`)) + 1,
+        '逐行封面过桥了 —— artworkLocal 应该只更新 mediaSession，不 post（过桥 '
+        + artPosted + ' 次）');
+      await ev(`(window.__artLocal = 0, 'ok')`);
       const spokeNotes = await ev(`window.__spoken.some((s) => s.indexOf('durable') >= 0
         && s.indexOf('持久的') >= 0)`);
       need(spokeNotes === true, '解析内容没有被读出来: '

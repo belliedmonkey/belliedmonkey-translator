@@ -77,6 +77,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                        name: AVAudioSession.interruptionNotification, object: nil)
         nc.addObserver(self, selector: #selector(onRouteChange(_:)),
                        name: AVAudioSession.routeChangeNotification, object: nil)
+        // 屏幕常亮要在每次回前台重申一次。`isIdleTimerDisabled` 只在 viewDidLoad 设过
+        // 一次，而它只在 App 处于前台时被系统尊重 —— 从后台回来之后不重申，播客模式
+        // 放着放着屏幕就自己灭了，而用户看到的只是「屏幕黑了」，无从归因。
+        //
+        // 注意这解决的**不是**「锁屏后保持亮屏」：那件事第三方 App 做不到，手动锁屏后
+        // 屏幕必灭，唯一能让锁屏内容持续可见的是系统的「息屏常显」。
+        nc.addObserver(self, selector: #selector(onDidBecomeActive),
+                       name: UIApplication.didBecomeActiveNotification, object: nil)
 #endif
     }
 
@@ -286,6 +294,10 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             try? AVAudioSession.sharedInstance().setActive(true)
         }
         emit(["type": "interrupt", "phase": "end", "resume": shouldResume])
+    }
+
+    @objc private func onDidBecomeActive() {
+        UIApplication.shared.isIdleTimerDisabled = true
     }
 
     @objc private func onRouteChange(_ note: Notification) {

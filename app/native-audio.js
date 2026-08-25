@@ -196,6 +196,10 @@ var NativeAudio = (() => {
   // 对上百 KB 做一次序列化加比较，过桥的往返也跟着变重。
   //
   // 换卡才推一次。同一张卡重复调用直接返回 false。
+  // `cardId` 是**去重键**，不必是卡片 id 本身：一张卡在解析文本回来之后要再推一次
+  // （封面上从"没有解析"变成"解析压暗铺着"），调用方于是传 `id + 状态` 进来。
+  // 挡住的仍然是「同一张图推两遍」，而不是「这张卡已经推过了」—— 后者会把解析那次
+  // 更新静默吃掉，表现为锁屏上永远没有解析区（2026-08-26 模拟器上就是这么发现的）。
   function artwork(cardId, dataUrl) {
     const id = String(cardId || '');
     if (!id || !dataUrl) return false;
@@ -207,6 +211,22 @@ var NativeAudio = (() => {
     if (prev && prev !== msArtUrl) { try { URL.revokeObjectURL(prev); } catch (_) {} }
     applyMediaSession();
     return post({ type: 'now-playing-artwork', id, image: String(dataUrl) });
+  }
+
+  // **只更新锁屏封面，不过桥。**（§9.5「解析跟读」）
+  //
+  // 解析逐行朗读时封面要跟着高亮当前行，一张卡会重画三次。那条「换卡才推一次」的规约
+  // 是针对**过桥**写的 —— 一张 1024² PNG ≈123 KB，跟着每次重绘走就是白烧。而 iOS 上
+  // 封面走的是 mediaSession 的 blob URL，**根本不过桥**：逐行更新只花一次 canvas 重绘。
+  // 所以逐行走这条，卡级仍走 `artwork()` 过桥一次（那一次是给 macOS 的）。
+  function artworkLocal(dataUrl) {
+    if (!dataUrl || !ms()) return false;
+    msArt = String(dataUrl);
+    const prev = msArtUrl;
+    msArtUrl = toBlobUrl(msArt) || msArt;
+    if (prev && prev !== msArtUrl) { try { URL.revokeObjectURL(prev); } catch (_) {} }
+    applyMediaSession();
+    return true;
   }
 
   function playingState(playing) {
@@ -250,7 +270,7 @@ var NativeAudio = (() => {
     platform: () => platform,
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
-    sessionStart, sessionStop, nowPlaying, artwork, playingState, onEvent, _fromNative,
+    sessionStart, sessionStop, nowPlaying, artwork, artworkLocal, playingState, onEvent, _fromNative,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

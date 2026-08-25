@@ -448,6 +448,60 @@ describe('LearnDriving — 这个模式不写任何进度 (§9.5)', () => {
   });
 });
 
+// §9.5「解析跟读」。解析从「整段念一次」改成「按生词/短语/语法三块逐行念」，锁屏封面
+// 跟着高亮当前行。这里守的是切分本身：
+//
+//   · 空块不产行 —— 产一个空行等于产一个空 utterance，听起来和卡住一模一样；
+//   · 整段版必须与逐行版**逐字一致** —— 不一致就意味着预热的和朗读的是两段话，
+//     缓存永远打不中而用户多付一次钱；
+//   · 行数有上界 3 —— 「出发前预载」在解析还没取回时靠它给出诚实的估算。
+describe('LearnDriving.notesToLines — 解析切成可跟读的行', () => {
+  const L = { words: 'W:', phrases: 'P:', grammar: 'G:' };
+  const full = {
+    words: [{ w: 'curve', g: '曲线' }, { w: 'bend', g: '弯曲' }],
+    phrases: [{ p: 'over time', g: '随时间' }],
+    grammar: '一般现在时',
+  };
+
+  test('三块齐全 ⇒ 三行，各带各的标签', () => {
+    const lines = D.notesToLines(full, L);
+    eq(lines.length, 3);
+    ok(lines[0].indexOf('W:') === 0 && lines[0].indexOf('curve') > 0, lines[0]);
+    ok(lines[1].indexOf('P:') === 0, lines[1]);
+    ok(lines[2].indexOf('G:') === 0, lines[2]);
+  });
+
+  test('空块不产行 —— 空行就是空 utterance，听起来和卡住一样', () => {
+    eq(D.notesToLines({ words: [], phrases: [], grammar: '' }, L).length, 0);
+    eq(D.notesToLines({ words: full.words, phrases: [], grammar: '  ' }, L).length, 1);
+    eq(D.notesToLines(null, L).length, 0);
+  });
+
+  test('半截条目不算内容（缺释义的词、缺释义的短语都不产行）', () => {
+    eq(D.notesToLines({ words: [{ w: 'x' }], phrases: [{ p: 'y' }], grammar: '' }, L).length, 0);
+  });
+
+  test('NOTE_LINES_MAX 就是实际的上界 —— 两者脱钩，预载账单会少报', () => {
+    const many = { words: Array.from({ length: 40 }, (_, i) => ({ w: 'w' + i, g: 'g' + i })),
+      phrases: [{ p: 'p', g: 'g' }], grammar: 'x' };
+    eq(D.notesToLines(many, L).length, D.NOTE_LINES_MAX);
+  });
+
+  test('行数恒 ≤ 3 —— 预载账单的上界靠这条成立', () => {
+    const many = { words: Array.from({ length: 40 }, (_, i) => ({ w: 'w' + i, g: 'g' + i })),
+      phrases: Array.from({ length: 20 }, (_, i) => ({ p: 'p' + i, g: 'g' + i })),
+      grammar: 'x。y。z。' };
+    ok(D.notesToLines(many, L).length <= 3, '切分粒度变了，预载的估算就不再是上界');
+  });
+
+  test('整段版 = 逐行版 join —— 两者不一致就意味着预热的和朗读的是两段话', () => {
+    for (const n of [full, { words: full.words, phrases: [], grammar: '' },
+      { words: [], phrases: [], grammar: '只有语法' }, {}]) {
+      eq(D.notesToSpeech(n, L), D.notesToLines(n, L).join('。'), JSON.stringify(n));
+    }
+  });
+});
+
 // §9.5「后台与锁屏播放」。锁屏/车机/耳机/媒体键是屏幕上那四个按钮的第二个表面，
 // 所以这一整节验的其实是一句话：**状态机不该因为多了一个表面而长出任何东西。**
 describe('LearnDriving.nativeEvent — 遥控 → 会话事件', () => {

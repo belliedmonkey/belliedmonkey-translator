@@ -31,6 +31,15 @@ var NowPlayingArt = (() => {
   const TR_RATIO = 19 / 21;
   const TR_LH = 1.55;
 
+  // 解析区（§9.5「解析跟读」）：念到哪一行就高亮哪一行。字号固定 —— 它是脚注，不该
+  // 跟着句长变；每行最多折两行，超出截断。带解析时原句的上限压到 72，否则一张长卡
+  // 会把解析挤没。
+  const NOTE = { size: 30, lh: 1.4, maxRows: 2, gap: 12, bar: 6, barGap: 16 };
+  // 带解析时原句的字号上限。**这个数是被译句逼出来的**：72 时一张长卡会把译句挤成
+  // 两行然后截断（2026-08-26 模拟器上实测），而译句是这张卡的另一半意思，不该为脚注
+  // 让到看不全。解析区同时也收窄了一档（34→30）。
+  const ORIG_MAX_WITH_NOTES = 58;
+
   const FONT_STACK = '-apple-system, BlinkMacSystemFont, "PingFang SC", '
     + '"Hiragino Sans GB", system-ui, sans-serif';
 
@@ -97,7 +106,8 @@ var NowPlayingArt = (() => {
   // 读法，不是要特判的退化情形。
   function fitCard(orig, tr, box, measure) {
     const has = !!String(tr || '').trim();
-    for (let size = ORIG.max; size >= ORIG.min; size -= 2) {
+    const top = box.max || ORIG.max;
+    for (let size = top; size >= ORIG.min; size -= 2) {
       const oLines = wrap(orig, box.width, size, measure);
       const oH = oLines.length * size * ORIG.lh;
       if (!has) {
@@ -121,6 +131,24 @@ var NowPlayingArt = (() => {
     const t = fitLines(tr, { width: box.width, height: half * 0.42,
       min: tSize, max: tSize, lineHeight: TR_LH }, measure);
     return { orig: o, tr: t };
+  }
+
+  // 解析区排版（纯，可测）。返回每行折好的若干排 + 总高度。
+  // `active` 是**正在念的那一行**的下标，-1 表示没有在念（换卡瞬间、或解析已念完）。
+  function layoutNotes(lines, box, measure) {
+    const out = [];
+    let h = 0;
+    for (let i = 0; i < (lines || []).length; i++) {
+      let rows = wrap(lines[i], box.width - NOTE.bar - NOTE.barGap, NOTE.size, measure);
+      if (rows.length > NOTE.maxRows) {
+        rows = rows.slice(0, NOTE.maxRows);
+        rows[NOTE.maxRows - 1] = String(rows[NOTE.maxRows - 1]).replace(/\s+$/, '') + '…';
+      }
+      out.push(rows);
+      h += rows.length * NOTE.size * NOTE.lh;
+      if (i < lines.length - 1) h += NOTE.gap;
+    }
+    return { rows: out, height: h };
   }
 
   // ─── 颜色 ────────────────────────────────────────────────────────────────
@@ -219,10 +247,21 @@ var NowPlayingArt = (() => {
         y += pillH + GAP;
       }
 
-      const boxH = (cx + cw - PAD_INNER) - y;
+      let boxH = (cx + cw - PAD_INNER) - y;
       const measure = (text, size) => { ctx.font = font(size, ORIG.weight); return ctx.measureText(text).width; };
+
+      // 解析区先量、先占位：它是脚注，字号固定，所以先把它要的高度扣掉，剩下的才归
+      // 原句/译句。反过来做的话，一张长卡会先把空间吃光，解析被挤成一条缝。
+      const noteLines = (card && card.notes && card.notes.lines) || [];
+      const noteActive = (card && card.notes && typeof card.notes.active === 'number')
+        ? card.notes.active : -1;
+      const notes = noteLines.length
+        ? layoutNotes(noteLines, { width: innerW }, measure) : null;
+      if (notes) boxH -= notes.height + GAP;
+
       const fit = fitCard(String((card && card.text) || ''), (card && card.tr) || '',
-        { width: innerW, height: boxH }, measure);
+        { width: innerW, height: boxH, max: noteLines.length ? ORIG_MAX_WITH_NOTES : ORIG.max },
+        measure);
 
       // 文字块在剩下的空间里**垂直居中** —— 短句和长句都成立的唯一版式；顶对齐会让
       // 短句在下半张留一块空白，那正是裸卡最难看的地方。
@@ -238,13 +277,34 @@ var NowPlayingArt = (() => {
         drawLines(ctx, fit.tr.lines, fit.tr.size, TR_LH, p.sage, innerX, ty);
       }
 
+      // 解析区永远贴着卡的底边，不跟着上面的文字块浮动 —— 逐行高亮时它必须待在
+      // 同一个位置，否则每换一行整块都在跳，看起来像页面在抖而不是「念到这儿了」。
+      if (notes) {
+        let ny = cx + cw - PAD_INNER - notes.height;
+        for (let i = 0; i < notes.rows.length; i++) {
+          const on = i === noteActive;
+          const rows = notes.rows[i];
+          const h = rows.length * NOTE.size * NOTE.lh;
+          if (on) {
+            ctx.fillStyle = p.accent;
+            roundRect(ctx, innerX, ny + 4, NOTE.bar, h - 8, NOTE.bar / 2);
+            ctx.fill();
+          }
+          ctx.font = font(NOTE.size, on ? 600 : 400);
+          drawLines(ctx, rows, NOTE.size, NOTE.lh, on ? p.ink : p.muted,
+            innerX + NOTE.bar + NOTE.barGap, ny);
+          ny += h + NOTE.gap;
+        }
+      }
+
       return cv.toDataURL('image/png');
     } catch (_) {
       return '';
     }
   }
 
-  const api = { SIZE, ORIG, TR_RATIO, TR_LH, GAP, tokenize, wrap, fitLines, fitCard, render };
+  const api = { SIZE, ORIG, TR_RATIO, TR_LH, GAP, NOTE, ORIG_MAX_WITH_NOTES,
+    tokenize, wrap, fitLines, fitCard, layoutNotes, render };
   try { window.NowPlayingArt = api; } catch (_) {}
   return api;
 })();

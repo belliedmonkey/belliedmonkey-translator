@@ -1016,6 +1016,16 @@ out follows the standing rules unchanged)*:
   studied appears on the lock screen (and in Control Center) is the intended behaviour of
   "show the card", stated here so it is agreed rather than discovered.
 
+  **The analysis is read line by line, and the artwork follows it** (2026-08-26). While the
+  解析 segment plays, the artwork keeps 原句/译句 where they are and lights up the line being
+  spoken — 生词, 短语, 语法, one at a time, current one in full ink behind an accent bar, the
+  others dimmed. It is the only place a third line can go: the control row's three slots are
+  already 原句/译句/进度, and no lock-screen lyrics API exists. The analysis is split by those
+  three blocks rather than by sentence because the block count is bounded and known before the
+  text arrives — which is what lets 出发前预载 quote an honest upper bound. An empty block
+  produces no line at all: an empty line would be an empty utterance, and that sounds exactly
+  like a stall.
+
   **The artwork IS the card** (2026-08-25). Without one the system draws a placeholder —
   which is what the Dynamic Island's "question mark" was. The artwork is drawn from the
   live card, in the app's own card typography scaled up with its 21:19:12 ratio intact, in

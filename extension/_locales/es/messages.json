@@ -1674,5 +1674,8 @@
   },
   "drive_bg_needs_audio_engine": {
     "message": "La voz integrada del dispositivo se detiene cuando la app deja la pantalla. Para seguir escuchando, configura un endpoint de voz (Ajustes → Motor de voz)."
+  },
+  "drive_awake_note": {
+    "message": "La pantalla no se bloquea automáticamente mientras el modo pódcast está en primer plano. Para seguir viendo la tarjeta tras bloquear, activa la pantalla siempre activa del sistema: Ajustes → Pantalla y brillo → Siempre activa."
   }
 }

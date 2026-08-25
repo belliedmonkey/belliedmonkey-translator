@@ -1674,5 +1674,8 @@
   },
   "drive_bg_needs_audio_engine": {
     "message": "The built-in device voice stops once the app leaves the screen. To keep listening, configure a speech endpoint (Settings → Speech engine)."
+  },
+  "drive_awake_note": {
+    "message": "The screen won't auto-lock while podcast mode is in front. To keep seeing the card after you lock the phone, turn on the system's Always-On display: Settings → Display & Brightness → Always On."
   }
 }

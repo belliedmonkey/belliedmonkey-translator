@@ -93,6 +93,38 @@ describe('NowPlayingArt.fitCard — 按句长定字号', () => {
   });
 });
 
+describe('NowPlayingArt.layoutNotes — 解析区（§9.5 解析跟读）', () => {
+  const BW = { width: 816 };
+
+  test('每行最多折两排，超出截断并加省略号', () => {
+    const long = '生词：' + 'word，释义。'.repeat(60);
+    const L = A.layoutNotes([long], BW, M);
+    eq(L.rows[0].length, A.NOTE.maxRows);
+    ok(/…$/.test(L.rows[0][A.NOTE.maxRows - 1]), '截断必须有省略号');
+  });
+
+  test('高度 = 各行排数 × 字号 × 行高 + 行间距 —— 这个数要被主版式先扣掉', () => {
+    const L = A.layoutNotes(['短一行', '也短'], BW, M);
+    const want = L.rows.reduce((a, r) => a + r.length * A.NOTE.size * A.NOTE.lh, 0) + A.NOTE.gap;
+    ok(Math.abs(L.height - want) < 0.01, L.height + ' vs ' + want);
+  });
+
+  test('没有解析时不占任何高度', () => {
+    eq(A.layoutNotes([], BW, M).height, 0);
+  });
+});
+
+describe('NowPlayingArt.fitCard — 带解析时给解析让位', () => {
+  test('同一张卡，带解析时原句上限被压低 —— 否则长卡会把解析挤没', () => {
+    const box = { width: 816, height: 738 };
+    const plain = A.fitCard('Short.', '短。', box, M);
+    const withNotes = A.fitCard('Short.', '短。',
+      { width: box.width, height: box.height - 200, max: A.ORIG_MAX_WITH_NOTES }, M);
+    ok(withNotes.orig.size <= A.ORIG_MAX_WITH_NOTES, withNotes.orig.size);
+    ok(withNotes.orig.size < plain.orig.size, '带解析时原句必须让位');
+  });
+});
+
 describe('NowPlayingArt.render — 没有 canvas 的宿主上安静退场', () => {
   test('拿不到 document 时返回空串，而不是抛异常', () => {
     // 播放是主线，封面是装饰。画不出来必须是「没有封面」，绝不能变成「播不了」。

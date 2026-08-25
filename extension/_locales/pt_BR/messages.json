@@ -1674,5 +1674,8 @@
   },
   "drive_bg_needs_audio_engine": {
     "message": "A voz integrada do dispositivo para quando o app sai da tela. Para continuar ouvindo, configure um endpoint de voz (Configurações → Motor de voz)."
+  },
+  "drive_awake_note": {
+    "message": "A tela não bloqueia automaticamente enquanto o modo podcast está em primeiro plano. Para continuar vendo o cartão depois de bloquear, ative a tela sempre ativa do sistema: Ajustes → Tela e brilho → Sempre ativa."
   }
 }

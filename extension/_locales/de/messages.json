@@ -1674,5 +1674,8 @@
   },
   "drive_bg_needs_audio_engine": {
     "message": "Die geräteeigene Stimme stoppt, sobald die App den Bildschirm verlässt. Zum Weiterhören einen Sprach-Endpunkt einrichten (Einstellungen → Sprach-Engine)."
+  },
+  "drive_awake_note": {
+    "message": "Solange der Podcast-Modus im Vordergrund ist, sperrt sich der Bildschirm nicht automatisch. Damit die Karte nach dem Sperren sichtbar bleibt, das systemeigene Always-On-Display einschalten: Einstellungen → Anzeige & Helligkeit → Immer aktiviert."
   }
 }
