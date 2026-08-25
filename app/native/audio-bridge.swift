@@ -26,6 +26,25 @@
 import WebKit
 import AVFoundation
 import MediaPlayer
+#if os(iOS)
+import ActivityKit
+#endif
+
+#if os(iOS)
+/// Live Activity 的属性（§9.5 灵动岛）。**这份定义在两个 target 各编译一份**
+/// （App 与 Widget 扩展），所以它和 `app/native/widget/LiveActivity.swift` 里那份
+/// 必须逐字一致 —— 字段名对不上时不会编译报错，只会在运行时解码失败、岛上什么都不显示。
+/// `npm test` 有一条断言逐字比对这两处。
+struct MTPodcastAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var title: String
+        var subtitle: String
+        var progress: String
+        var playing: Bool
+    }
+    var sessionId: String
+}
+#endif
 
 #if os(iOS)
 import UIKit
@@ -50,6 +69,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     /// 当前卡片的封面（由 JS 画好送过来）。锁屏那一档用它。
     private var cardArt: MTImage?
+#if os(iOS)
+    /// 当前的 Live Activity。iOS 16.1+ 才有 —— 低版本上它恒为 nil，灵动岛那一半
+    /// 不存在，其余（后台播放、锁屏封面、遥控）照常。能力语义，不是降级。
+    private var activityBox: Any?
+#endif
     /// 系统实际用哪些尺寸来问封面 —— Apple 没有公开这件事，所以这里如实记下来
     /// 回传给 JS，让「小尺寸阈值」由实测决定而不是猜。只回传没见过的尺寸。
     private var seenArtSizes = Set<Int>()
@@ -98,7 +122,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         switch type {
         case "session-start":  startSession()
         case "session-stop":   stopSession()
-        case "now-playing":    updateNowPlaying(body)
+        case "now-playing":    updateNowPlaying(body); updateActivity(body)
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
@@ -132,6 +156,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func stopSession() {
+        endActivity()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #if os(iOS)
         // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
@@ -180,6 +205,68 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
+
+    // MARK: - 灵动岛（Live Activity）
+
+    // 系统的媒体形态在收起态只给「图标 + 波形」，第三方加不了字 —— 想在岛上看到
+    // 正在念的是哪一句，只有 Live Activity 一条路。它与系统媒体形态**并存**，
+    // 岛上会挤，这是已知代价（§9.5）。
+    //
+    // iOS 16.1 以下：`activityBox` 恒为 nil，这一半整个不存在，其余照常。
+    private func startActivity(_ body: [String: Any]) {
+#if os(iOS)
+        guard #available(iOS 16.1, *), activityBox == nil else { return }
+        // 用户可以在系统设置里关掉实时活动 —— 关了就别再试，也不该有任何提示：
+        // 那是他自己的选择，不是一个要解释的故障。
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let state = contentState(body)
+        do {
+            activityBox = try Activity.request(
+                attributes: MTPodcastAttributes(sessionId: UUID().uuidString),
+                contentState: state, pushType: nil)
+        } catch {
+            // 起不来就算了。灵动岛是锦上添花，绝不能因为它影响播放。
+            activityBox = nil
+        }
+#endif
+    }
+
+    private func updateActivity(_ body: [String: Any]) {
+#if os(iOS)
+        guard #available(iOS 16.1, *) else { return }
+        guard let activity = activityBox as? Activity<MTPodcastAttributes> else {
+            // 还没起来（会话刚开始、或上一次起失败）：拿这条 now-playing 当种子起一个。
+            startActivity(body)
+            return
+        }
+        let state = contentState(body)
+        Task { await activity.update(using: state) }
+#endif
+    }
+
+    private func endActivity() {
+#if os(iOS)
+        guard #available(iOS 16.1, *),
+              let activity = activityBox as? Activity<MTPodcastAttributes> else { return }
+        activityBox = nil
+        // `.immediate`：会话结束了，岛上不该再留一条已经不动的信息。
+        Task { await activity.end(dismissalPolicy: .immediate) }
+#endif
+    }
+
+#if os(iOS)
+    @available(iOS 16.1, *)
+    private func contentState(_ body: [String: Any]) -> MTPodcastAttributes.ContentState {
+        MTPodcastAttributes.ContentState(
+            title: body["title"] as? String ?? "",
+            subtitle: body["subtitle"] as? String ?? "",
+            progress: body["album"] as? String ?? "",
+            playing: lastPlaying)
+    }
+    /// 播放状态由 `playing-state` 单独送来，而 Live Activity 的一次更新要带上全部字段
+    /// —— 所以这里存一份最后已知值。
+    private var lastPlaying = true
+#endif
 
     // MARK: - 封面
 
@@ -250,6 +337,18 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private func updatePlaybackState(_ body: [String: Any]) {
         let playing = (body["playing"] as? Bool) ?? false
+#if os(iOS)
+        if #available(iOS 16.1, *) {
+            lastPlaying = playing
+            // 暂停/继续要在岛上立刻看得出来 —— 用最后已知的文案重发一次。
+            if let activity = activityBox as? Activity<MTPodcastAttributes> {
+                let state = MTPodcastAttributes.ContentState(
+                    title: activity.contentState.title, subtitle: activity.contentState.subtitle,
+                    progress: activity.contentState.progress, playing: playing)
+                Task { await activity.update(using: state) }
+            }
+        }
+#endif
         MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPNowPlayingInfoPropertyPlaybackRate] = playing ? 1.0 : 0.0

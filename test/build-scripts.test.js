@@ -24,6 +24,7 @@ const { describe, test, ok, eq, deepEq, match } = require('./harness');
 const {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
   patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
+  patchWidgetTarget,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -283,6 +284,24 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
       ok(js.includes('mtAudio'), 'JS 侧用的是同一个通道名');
     });
 
+    // Live Activity 的属性定义在**两个 target 各编译一份**（App 与 Widget 扩展）。
+    // 字段对不上时不会编译报错 —— 只会在运行时解码失败、岛上什么都不显示，
+    // 而「岛上什么都没有」正是这个功能本来要修的症状，查起来会绕一大圈。
+    test('MTPodcastAttributes 两处逐字一致 —— 对不上时不报错，只是岛上空着', () => {
+      const widget = fs.readFileSync(
+        path.join(__dirname, '..', 'app', 'native', 'widget', 'LiveActivity.swift'), 'utf8');
+      const grab = (src) => {
+        const m = src.match(/struct MTPodcastAttributes[\s\S]*?\n\}/);
+        ok(m, 'MTPodcastAttributes 没找到');
+        // 剥掉整行注释**和行尾注释** —— 比对的是字段结构，不是说明文字。
+        // （widget 那份在字段后面标了「原句 / 译句 / 第 i / n 张」，那些注释有价值，
+        // 不该为了让断言通过而删掉。）
+        return m[0].split('\n').map((l) => l.replace(/\/\/.*$/, '').trim())
+          .filter(Boolean).join('\n');
+      };
+      eq(grab(tpl), grab(widget), '桥与 widget 里的属性定义不一致');
+    });
+
     test('it carries no user-visible copy — every word on the lock screen comes from JS', () => {
       // A string literal in Swift never reaches _locales/, so it would never be
       // translated and never follow a product rename. Only keys/ids may be literals.
@@ -350,6 +369,13 @@ describe('sync-app-assets: Info.plist declarations (§9.4 mic / §9.5 background
     ok(!read(dir, 'macOS (App)').includes('UIBackgroundModes'), 'macOS App 不该有');
     ok(!read(dir, 'iOS (Extension)').includes('UIBackgroundModes'), '扩展 target 不该有');
     ok(!read(dir, 'macOS (Extension)').includes('UIBackgroundModes'), '扩展 target 不该有');
+  });
+
+  test('NSSupportsLiveActivities 也只进 iOS App —— 没有它灵动岛静默不出现', () => {
+    const dir = tree();
+    patchInfoPlists(path.join(dir, 'Shared (App)'));
+    match(read(dir, 'iOS (App)'), /<key>NSSupportsLiveActivities<\/key>\s*<true\/>/);
+    ok(!read(dir, 'macOS (App)').includes('NSSupportsLiveActivities'), 'macOS 没有灵动岛');
   });
 
   test('the microphone key still goes to BOTH app targets (§9.4 unchanged)', () => {
@@ -618,5 +644,103 @@ describe('verify-ios-bundle: the §9.5 background-audio declaration', () => {
     const dir = tmpdir();
     const { app } = iosBundles(dir, BG, '');
     eq(findApp(dir), app);
+  });
+});
+
+// 灵动岛的 Widget target（§9.5）。**这是本仓库唯一一个凭空造 target 的补丁**，也是
+// 最脆的：别的补丁都是往一个已经在 target 里的文件上贴代码，这一个要在 pbxproj 里
+// 新增八类对象并把它们接起来，而 safari-project*/ 每次重生成都会抹掉它们。
+//
+// 这里守的不是「造得对不对」（那要靠 xcodebuild，见 M20），而是**两条会静默失效的性质**：
+// 幂等，以及「按 productType 找 App target 而不是按产品名」—— 后者是被中国版那棵树
+// （target 叫「… CN (iOS)」）当场证伪出来的，写死英文名会让中国版整体跳过，
+// 而「跳过」的表现是「中国版没有灵动岛」，没有一行输出会提这件事。
+describe('sync-app-assets: 灵动岛 Widget target', () => {
+  // **样板取自真工程**，不是手写的。第一版手写的样板字段顺序和转换器的输出不同，
+  // 于是测试红了而补丁其实是对的 —— 一个只存在于测试里的形状，守不住任何东西。
+  // 这里读一份真实 pbxproj 骨架（跑过 app:sync 的树；没有就跳过整节）。
+  const REAL = (() => {
+    const cand = ['safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj'];
+    for (const c of cand) {
+      const abs = path.join(__dirname, '..', c);
+      if (fs.existsSync(abs)) return fs.readFileSync(abs, 'utf8');
+    }
+    return null;
+  })();
+
+  const PBX = (appName) => {
+    // 把 needle 与已有的 widget 痕迹剥掉，得到一份「还没打过这个补丁」的骨架。
+    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n')
+      .replace(/\n[^\n]*MT_WIDGET_TARGET[^\n]*\n/g, '\n')
+      .replace(/\n[^\n]*MTPodcastWidget[^\n]*\n/g, '\n');
+    if (appName !== 'BelliedMonkey Translator') {
+      t = t.split('BelliedMonkey Translator').join(appName);
+    }
+    return t;
+  };
+
+  function tree(appName) {
+    const dir = tmpdir();
+    const proj = path.join(dir, 'X.xcodeproj');
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'iOS (App)'), { recursive: true });
+    fs.mkdirSync(proj, { recursive: true });
+    fs.writeFileSync(path.join(proj, 'project.pbxproj'), PBX(appName));
+    return { dir, pbx: path.join(proj, 'project.pbxproj') };
+  }
+
+  test('造出 target，并把它挂进工程的 targets、依赖与嵌入阶段', () => {
+    if (!REAL) return;   // 工程还没生成过，这节无从谈起
+    const t = tree('Some App');
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /widget target patched/);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('MT_WIDGET_TARGET'), 'needle 在');
+    ok(/productType = "com\.apple\.product-type\.app-extension"/.test(out), 'target 类型');
+    ok(/targets = \(\n\t+MT[0-9A-F]+ \/\* MTPodcastWidget \*\/,/.test(out.replace(/\t/g, '\t')),
+      '没挂进工程的 targets 列表 —— Xcode 根本看不到它');
+    ok(/in Embed Foundation Extensions/.test(out),
+      '没塞进嵌入阶段 —— 扩展会编译但装不进 App，而这不会报错');
+    ok(/isa = PBXTargetDependency/.test(out), '没建依赖 —— 构建顺序无保证');
+  });
+
+  test('跑两次一字不改（幂等）—— 造了两遍就是两个同名 target，工程当场坏掉', () => {
+    if (!REAL) return;
+    const t = tree('Some App');
+    patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    const once = fs.readFileSync(t.pbx, 'utf8');
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /already patched/);
+    eq(fs.readFileSync(t.pbx, 'utf8'), once, '第二次必须一字不改');
+    eq((once.match(/MT_WIDGET_TARGET/g) || []).length, 1);
+  });
+
+  test('按 productType 找 App target，不按产品名 —— 中国版叫「… CN (iOS)」', () => {
+    // 写死英文名会让中国版整体跳过，而跳过的表现是「中国版没有灵动岛」，
+    // 没有任何一行输出会说这件事。这条是被那棵树当场证伪出来的。
+    if (!REAL) return;
+    for (const name of ['Some App', 'Some App CN', '大肚猴翻译']) {
+      const t = tree(name);
+      match(patchWidgetTarget(path.join(t.dir, 'Shared (App)')), /widget target patched/, name);
+    }
+  });
+
+  test('id 是固定的，不是随机的 —— 随机会让每次 app:sync 都产生不同的 pbxproj', () => {
+    if (!REAL) return;
+    const a = tree('Some App'); patchWidgetTarget(path.join(a.dir, 'Shared (App)'));
+    const b = tree('Some App'); patchWidgetTarget(path.join(b.dir, 'Shared (App)'));
+    eq(fs.readFileSync(a.pbx, 'utf8'), fs.readFileSync(b.pbx, 'utf8'));
+  });
+
+  test('锚点缺失 ⇒ 整体放弃并说明，绝不写一半', () => {
+    if (!REAL) return;
+    const t = tree('Some App');
+    // 抽掉**所有** application target：造了一半的工程编译不了，而那比不造更糟。
+    // （真工程有 iOS 与 macOS 两个 —— 只删一处，正则会在另一处匹配成功。）
+    fs.writeFileSync(t.pbx, PBX('Some App')
+      .split('productType = "com.apple.product-type.application";').join(''));
+    const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    match(note, /^✗/);
+    ok(!fs.readFileSync(t.pbx, 'utf8').includes('MT_WIDGET_TARGET'), '放弃时不许留下半个 target');
   });
 });
