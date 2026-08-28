@@ -81,6 +81,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         text: document.body.innerText.trim().length,
         syncEnabled: !!(window.MT_BACKEND && MT_BACKEND.enabled),
         outHidden: document.getElementById('signed-out').hidden,
+        obShown: !document.getElementById('onboard').hidden,
         // Assert on what must be HIDDEN too. \`hidden\` is an attribute, not a
         // rendering guarantee — any author \`display\` rule beats it, and then the app
         // shows a verification-code field before a code exists.
@@ -177,7 +178,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     // account or to our server". An app whose whole job is signing in is exactly such
     // a path, so assert the absence, not just the presence.
     if (o.syncEnabled) {
-      need(!o.outHidden, '登录界面没显示出来 —— 这就是那块白屏');
+      // 首次运行顶上来的是引导，不是登录界面 —— 两者有一个在就不是白屏。
+      // 这条断言原本只认 #signed-out；引导上线后必须两者取或，否则它会把
+      // 「首屏改好了」误报成「白屏」。
+      need(!o.outHidden || o.obShown,
+        '未登录时既没有登录界面也没有引导 —— 这就是那块白屏');
       need(!o.codeShown, '验证码表单在没发码时就显示了 —— [hidden] 被某条 display 规则压过了');
       need(!o.inShown, '已登录界面在未登录时就显示了');
       need(o.text > 40, '页面几乎没有文字（' + o.text + '），八成是白屏');
@@ -321,6 +326,41 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(/同步|sync|同期|동기|synchron|sincroniz|синхрон|مزامنة/i.test(wv.why),
         '登录说明没讲清「材料只能靠同步过来」—— 那会让登录看起来像可选的');
       need(wv.formsAfterClick, '点了登录却展不开表单');
+    }
+    // 首次运行引导：六屏走一遍（§引导）。断言的是**每一屏都有话说**、进度条在动、
+    // 走完能落到登录表单 —— 而不是元素存不存在。
+    //
+    // 关键一条：iOS 那屏不能出现直达按钮。SFSafariApplication 是 macOS-only，
+    // 在 iOS 上给一个跳不过去的按钮，比老老实实念三步更糟。
+    if (o.syncEnabled) {
+      const ob = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const $ = (id) => document.getElementById(id);
+          const sec = $('onboard');
+          sec.hidden = false; $('signed-out').hidden = true;
+          window.show('ios');                        // 先把平台设成 iOS
+          await new Promise((r) => setTimeout(r, 20));
+          const seen = [];
+          // 从第一屏重新走：点 next 直到最后一屏
+          for (let i = 0; i < 6; i++) {
+            seen.push({ title: $('ob-title').textContent, text: $('ob-text').textContent,
+                        w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
+                        steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length });
+            if (i < 5) { $('ob-next').click(); await new Promise((r) => setTimeout(r, 30)); }
+          }
+          return JSON.stringify({ seen });
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const ov = JSON.parse(ob.result.value);
+      const seen = ov.seen;
+      need(seen.length === 6, '引导不是六屏，实际 ' + seen.length);
+      const blank = seen.map((x, i) => (x.title && x.text) ? null : i).filter((x) => x !== null);
+      need(blank.length === 0, '这几屏标题或正文是空的（i18n 键没落到）：' + blank.join(','));
+      need(seen[0].w !== seen[5].w, '进度条从头到尾没动');
+      const iosStep = seen.find((x) => x.steps > 0);
+      need(iosStep && iosStep.steps === 3, 'iOS 的启用扩展屏应当念三步，实际 '
+        + (iosStep ? iosStep.steps : 0) + ' 步');
+      need(!seen.some((x) => x.prefs), 'iOS 上出现了「打开 Safari 扩展设置」按钮 —— '
+        + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');

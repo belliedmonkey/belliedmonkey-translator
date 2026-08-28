@@ -1704,5 +1704,62 @@
   },
   "app_signin_open": {
     "message": "Anmelden"
+  },
+  "ob_next": {
+    "message": "Weiter"
+  },
+  "ob_skip": {
+    "message": "Später einrichten"
+  },
+  "ob_start": {
+    "message": "Los geht's"
+  },
+  "ob_welcome_title": {
+    "message": "Lies, was du wirklich liest"
+  },
+  "ob_welcome_body": {
+    "message": "Übersetzt wird im Browser, wiederholt in dieser App. Zwei Minuten, um beides zu verbinden."
+  },
+  "ob_ios_1": {
+    "message": "Öffne Einstellungen und suche Safari"
+  },
+  "ob_ios_2": {
+    "message": "Aktiviere unter Erweiterungen BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Berechtigung auf Erlauben, für alle Websites"
+  },
+  "ob_browser_title": {
+    "message": "Noch zwei Dinge, im Browser"
+  },
+  "ob_browser_body": {
+    "message": "Beide Schalter liegen in den Einstellungen der Erweiterung — diese App kann sie nicht ändern, die Speicher sind getrennt."
+  },
+  "ob_kv_engine": {
+    "message": "Trage einen Übersetzungs-API-Schlüssel ein"
+  },
+  "ob_kv_engine_note": {
+    "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Du kannst auch ohne Schlüssel mit dem kostenlosen Kanal starten."
+  },
+  "ob_kv_capture": {
+    "message": "Schalte das Sammeln ein"
+  },
+  "ob_kv_capture_note": {
+    "message": "Standardmäßig aus. Danach werden die Sätze, bei denen du wirklich verweilst, zu Karten."
+  },
+  "ob_read_title": {
+    "message": "Lies etwas"
+  },
+  "ob_read_body": {
+    "message": "Fertig eingerichtet: surfe und übersetze wie gewohnt. Gelesenes sammelt sich an; willst du einen Satz sofort behalten, drücke lange auf seine Übersetzung."
+  },
+  "ob_signin_title": {
+    "message": "Letzter Schritt: Anmelden"
+  },
+  "ob_kv_twice": {
+    "message": "Du meldest dich auch in der Erweiterung an"
+  },
+  "ob_kv_twice_note": {
+    "message": "Die Speicher sind getrennt, du erhältst also zwei Codes. Nutze dieselbe E-Mail-Adresse."
   }
 }

@@ -1705,5 +1705,62 @@
   },
   "app_signin_open": {
     "message": "登入"
+  },
+  "ob_next": {
+    "message": "繼續"
+  },
+  "ob_skip": {
+    "message": "以後再設定"
+  },
+  "ob_start": {
+    "message": "開始設定"
+  },
+  "ob_welcome_title": {
+    "message": "讀你真正在讀的東西"
+  },
+  "ob_welcome_body": {
+    "message": "翻譯發生在瀏覽器裡，複習發生在這個 App 裡。花兩分鐘把兩邊接上。"
+  },
+  "ob_ios_1": {
+    "message": "打開系統「設定」→ 找到 Safari"
+  },
+  "ob_ios_2": {
+    "message": "進「擴充功能」，把「大肚猴翻譯」打開"
+  },
+  "ob_ios_3": {
+    "message": "權限選「允許」，網站選「所有網站」"
+  },
+  "ob_browser_title": {
+    "message": "還有兩件事在瀏覽器裡做"
+  },
+  "ob_browser_body": {
+    "message": "這兩個開關在擴充功能自己的設定頁裡 —— App 改不了它們，兩邊的儲存是分開的。"
+  },
+  "ob_kv_engine": {
+    "message": "填一把翻譯引擎的 Key"
+  },
+  "ob_kv_engine_note": {
+    "message": "擴充功能設定 → 翻譯引擎。沒有 Key 也能先用免費通道看看效果。"
+  },
+  "ob_kv_capture": {
+    "message": "打開「採集學習材料」"
+  },
+  "ob_kv_capture_note": {
+    "message": "預設是關的。打開之後，你停下來讀過的句子才會變成卡片。"
+  },
+  "ob_read_title": {
+    "message": "去讀一篇"
+  },
+  "ob_read_body": {
+    "message": "設定完了就照常瀏覽、照常翻譯。讀過的句子會自己攢起來；想立刻收下某一句，長按它的譯文。"
+  },
+  "ob_signin_title": {
+    "message": "最後一步：登入"
+  },
+  "ob_kv_twice": {
+    "message": "擴充功能裡也要登入一次"
+  },
+  "ob_kv_twice_note": {
+    "message": "兩邊的儲存是分開的，所以會收到兩次驗證碼。用同一個信箱。"
   }
 }

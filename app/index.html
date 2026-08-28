@@ -65,10 +65,36 @@
         <button id="app-pw-login" type="submit"></button>
         <button id="app-pw-back" type="button" class="link"></button>
       </form>
-      <button id="app-use-pw" type="button" class="link"></button>
+      <!-- 默认隐藏：只有 plus-alias（演示账号）才会被 refreshPwEntry 揭出来。
+           **必须写在标记里**，不能只靠 show() 去设 —— 首次运行走引导那条路
+           根本不会调用 show()，那时它就会一直露着。 -->
+      <button id="app-use-pw" type="button" class="link" hidden></button>
       </div>
 
       <p class="note" id="local-note"></p>
+    </section>
+
+    <!-- 首次运行引导（§引导）。
+         设计稿里是九屏，这里只落六屏 —— 另外三屏 App 做不到：配翻译引擎、
+         打开采集、看第一张卡，全都发生在扩展那一侧，而 App 与扩展**不共享存储**
+         （app/chrome-shim.js 把 chrome.storage 垫在 localStorage 上）。
+         在 App 里画一个引擎选择器或采集开关，设了也是空转 —— 那比不给更糟。
+         所以这六屏的职责是：讲清楚闭环、设能设的（learnRules 经同步生效）、
+         把人送到 Safari，然后如实交代还要在浏览器里做什么。 -->
+    <section id="onboard" hidden>
+      <div id="ob-bar"><div id="ob-fill"></div></div>
+      <div id="ob-body">
+        <h2 id="ob-title"></h2>
+        <p id="ob-text"></p>
+        <ol id="ob-steps" hidden></ol>
+        <div id="ob-langs" hidden></div>
+        <div id="ob-kv" hidden></div>
+        <button id="ob-prefs" type="button" hidden></button>
+      </div>
+      <div id="ob-foot">
+        <button id="ob-next" type="button"></button>
+        <button id="ob-skip" type="button" class="link"></button>
+      </div>
     </section>
 
     <!-- Signed in. Stage 2 is deliberately just the sync state: proving material

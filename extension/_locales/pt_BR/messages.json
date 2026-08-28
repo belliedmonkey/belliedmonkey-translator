@@ -1704,5 +1704,62 @@
   },
   "app_signin_open": {
     "message": "Entrar"
+  },
+  "ob_next": {
+    "message": "Continuar"
+  },
+  "ob_skip": {
+    "message": "Configurar depois"
+  },
+  "ob_start": {
+    "message": "Começar"
+  },
+  "ob_welcome_title": {
+    "message": "Leia o que você realmente lê"
+  },
+  "ob_welcome_body": {
+    "message": "A tradução acontece no navegador; a revisão, neste app. Dois minutos para ligar os dois."
+  },
+  "ob_ios_1": {
+    "message": "Abra Ajustes e encontre o Safari"
+  },
+  "ob_ios_2": {
+    "message": "Em Extensões, ative o BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Permissões em Permitir, para todos os sites"
+  },
+  "ob_browser_title": {
+    "message": "Mais duas coisas, no navegador"
+  },
+  "ob_browser_body": {
+    "message": "Os dois interruptores ficam nos ajustes da extensão — este app não pode alterá-los; os armazenamentos são separados."
+  },
+  "ob_kv_engine": {
+    "message": "Adicione uma chave de API de tradução"
+  },
+  "ob_kv_engine_note": {
+    "message": "Ajustes da extensão → motor de tradução. Você também pode começar sem chave no canal gratuito."
+  },
+  "ob_kv_capture": {
+    "message": "Ative a captura"
+  },
+  "ob_kv_capture_note": {
+    "message": "Vem desligada. Depois de ligada, as frases em que você para para ler viram cartões."
+  },
+  "ob_read_title": {
+    "message": "Vá ler algo"
+  },
+  "ob_read_body": {
+    "message": "Pronto: navegue e traduza normalmente. O que você lê se acumula; para guardar uma frase na hora, toque e segure na tradução."
+  },
+  "ob_signin_title": {
+    "message": "Última etapa: entrar"
+  },
+  "ob_kv_twice": {
+    "message": "Você também vai entrar na extensão"
+  },
+  "ob_kv_twice_note": {
+    "message": "Os armazenamentos são separados, então você recebe dois códigos. Use o mesmo e-mail."
   }
 }

@@ -1704,5 +1704,62 @@
   },
   "app_signin_open": {
     "message": "サインイン"
+  },
+  "ob_next": {
+    "message": "続ける"
+  },
+  "ob_skip": {
+    "message": "あとで設定する"
+  },
+  "ob_start": {
+    "message": "設定を始める"
+  },
+  "ob_welcome_title": {
+    "message": "本当に読んでいるものを読む"
+  },
+  "ob_welcome_body": {
+    "message": "翻訳はブラウザで、復習はこのアプリで行われます。2 分で両者をつなぎます。"
+  },
+  "ob_ios_1": {
+    "message": "「設定」を開き Safari を選ぶ"
+  },
+  "ob_ios_2": {
+    "message": "「拡張機能」で大肚猴翻訳をオンにする"
+  },
+  "ob_ios_3": {
+    "message": "権限は「許可」、対象は「すべての Web サイト」"
+  },
+  "ob_browser_title": {
+    "message": "ブラウザ側であと 2 つ"
+  },
+  "ob_browser_body": {
+    "message": "この 2 つのスイッチは拡張機能側の設定にあります。アプリからは変更できません（保存領域が別です）。"
+  },
+  "ob_kv_engine": {
+    "message": "翻訳エンジンの API キーを入れる"
+  },
+  "ob_kv_engine_note": {
+    "message": "拡張機能の設定 → 翻訳エンジン。キーなしの無料チャネルで試すこともできます。"
+  },
+  "ob_kv_capture": {
+    "message": "「学習素材の収集」をオンにする"
+  },
+  "ob_kv_capture_note": {
+    "message": "初期状態はオフです。オンにすると、立ち止まって読んだ文がカードになります。"
+  },
+  "ob_read_title": {
+    "message": "何か読んでみる"
+  },
+  "ob_read_body": {
+    "message": "設定は完了です。いつも通り閲覧・翻訳してください。読んだ文が貯まります。すぐ保存したい文は訳文を長押し。"
+  },
+  "ob_signin_title": {
+    "message": "最後に：サインイン"
+  },
+  "ob_kv_twice": {
+    "message": "拡張機能側でもサインインします"
+  },
+  "ob_kv_twice_note": {
+    "message": "保存領域が別なので、確認コードは 2 回届きます。同じメールアドレスを使ってください。"
   }
 }

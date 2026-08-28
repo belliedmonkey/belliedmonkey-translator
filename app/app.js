@@ -239,9 +239,131 @@
     }
   }
 
+  // ─── 首次运行引导（§引导）───────────────────────────────────────────────
+  //
+  // 六屏，不是设计稿里的九屏。少掉的三屏（配翻译引擎 / 打开采集 / 看第一张卡）
+  // App 做不到 —— 它们都在扩展那一侧，而两边存储不通。在这里画一个引擎选择器
+  // 或采集开关，写下去也到不了扩展，是纯粹的假控件。
+  //
+  // 能真设的只有一样：learnRules（学习语言 / 屏蔽），它作为 chunk 的 `g` 行
+  // 双向同步，所以在 App 里选的语言登录后会传到扩展。复用设置页同一个
+  // SourcesView.renderLangChips，不另画一份。
+  const OB_SEEN = 'onboardSeen';
+  const OB = ['welcome', 'langs', 'ext', 'browser', 'read', 'signin'];
+  let obAt = 0;
+
+  function obPaint() {
+    const step = OB[obAt];
+    $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
+    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs']) $(id).hidden = true;
+    $('ob-skip').textContent = t('ob_skip', '以后再设置');
+    $('ob-next').textContent = obAt === OB.length - 1
+      ? t('app_signin_open', '登录') : t('ob_next', '继续');
+
+    if (step === 'welcome') {
+      $('ob-title').textContent = t('ob_welcome_title', '读你真正在读的东西');
+      $('ob-text').textContent = t('ob_welcome_body',
+        '翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。');
+      $('ob-next').textContent = t('ob_start', '开始设置');
+    } else if (step === 'langs') {
+      $('ob-title').textContent = t('learn_langs_label', '学习语言');
+      $('ob-text').textContent = t('learn_langs_hint', '只收录选中语言的句子。');
+      $('ob-langs').hidden = false;
+      obPaintLangs();
+    } else if (step === 'ext') {
+      $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
+      // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
+      const mac = extState && extState.canOpenPrefs;
+      $('ob-text').textContent = mac
+        ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
+        : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+      if (mac) { $('ob-prefs').hidden = false; $('ob-prefs').textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置'); }
+      else obSteps([
+        t('ob_ios_1', '打开系统「设置」→ 找到 Safari'),
+        t('ob_ios_2', '进「扩展」，把「大肚猴翻译」打开'),
+        t('ob_ios_3', '权限选「允许」，网站选「所有网站」'),
+      ]);
+    } else if (step === 'browser') {
+      $('ob-title').textContent = t('ob_browser_title', '还有两件事在浏览器里做');
+      $('ob-text').textContent = t('ob_browser_body',
+        '这两个开关在扩展自己的设置页里 —— App 改不了它们，两边的存储是分开的。');
+      $('ob-kv').hidden = false;
+      obKv([
+        [t('ob_kv_engine', '填一把翻译引擎的 Key'), t('ob_kv_engine_note', '扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。')],
+        [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
+      ]);
+    } else if (step === 'read') {
+      $('ob-title').textContent = t('ob_read_title', '去读一篇');
+      $('ob-text').textContent = t('ob_read_body',
+        '设置完了就照常浏览、照常翻译。读过的句子会自己攒起来；想立刻收下某一句，长按它的译文。');
+    } else {
+      $('ob-title').textContent = t('ob_signin_title', '最后一步：登录');
+      $('ob-text').textContent = t('app_signin_why',
+        '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
+      $('ob-kv').hidden = false;
+      obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
+    }
+  }
+
+  function obSteps(lines) {
+    const ol = $('ob-steps');
+    ol.textContent = '';
+    lines.forEach((line, i) => {
+      const li = document.createElement('li');
+      const b = document.createElement('b'); b.textContent = String(i + 1);
+      const sp = document.createElement('span'); sp.textContent = line;
+      li.append(b, sp); ol.append(li);
+    });
+    ol.hidden = false;
+  }
+
+  function obKv(rows) {
+    const box = $('ob-kv');
+    box.textContent = '';
+    for (const [head, note] of rows) {
+      const d = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = head;
+      const sp = document.createElement('span'); sp.textContent = note;
+      d.append(b, sp); box.append(d);
+    }
+  }
+
+  async function obPaintLangs() {
+    if (typeof SourcesView === 'undefined') return;
+    const cur = await new Promise((r) => chrome.storage.local.get(['learnRules'], r));
+    const rules = cur.learnRules || null;
+    SourcesView.renderLangChips($('ob-langs'), {
+      registry: window.MT_LANGS || [], langs: rules && rules.langs, t,
+      onChange: async (langs) => {
+        const base = (cur.learnRules) || { v: 1, block: [], langs: null };
+        await new Promise((r) => chrome.storage.local.set(
+          { learnRules: Object.assign({}, base, { langs, v: 1, updatedAt: Date.now() }) }, r));
+        obPaintLangs();
+      },
+    });
+  }
+
+  async function obFinish() {
+    try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
+    $('onboard').hidden = true;
+    await show(await LearnAuth.current().catch(() => null));
+  }
+
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
   let pendingEmail = '';
+
+  $('ob-next').addEventListener('click', () => {
+    if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
+    // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
+    obFinish().then(() => {
+      $('signin-prompt').hidden = true;
+      $('signin-forms').hidden = false;
+      $('email').focus();
+    });
+  });
+  $('ob-skip').addEventListener('click', () => { obFinish(); });
+  $('ob-prefs').addEventListener('click', openSafariPrefs);
 
   $('btn-signin').addEventListener('click', () => {
     $('signin-prompt').hidden = true;
@@ -568,6 +690,16 @@
 
     try {
       const session = await LearnAuth.current();
+      // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
+      const seen = await new Promise((r) => chrome.storage.local.get([OB_SEEN], r))
+        .then((o) => !!(o && o[OB_SEEN])).catch(() => true);
+      if (!session && !seen) {
+        $('signed-out').hidden = true;
+        $('signed-in').hidden = true;
+        $('onboard').hidden = false;
+        obAt = 0; obPaint();
+        return;
+      }
       await show(session);
       // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
       // as the recovery path, but the status line must name the real problem.

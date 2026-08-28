@@ -1704,5 +1704,62 @@
   },
   "app_signin_open": {
     "message": "Sign in"
+  },
+  "ob_next": {
+    "message": "Continue"
+  },
+  "ob_skip": {
+    "message": "Set this up later"
+  },
+  "ob_start": {
+    "message": "Get started"
+  },
+  "ob_welcome_title": {
+    "message": "Read what you actually read"
+  },
+  "ob_welcome_body": {
+    "message": "Translation happens in the browser; review happens in this app. Two minutes to connect the two."
+  },
+  "ob_ios_1": {
+    "message": "Open Settings and find Safari"
+  },
+  "ob_ios_2": {
+    "message": "Go to Extensions and turn on BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Set permissions to Allow, for All Websites"
+  },
+  "ob_browser_title": {
+    "message": "Two more things, in the browser"
+  },
+  "ob_browser_body": {
+    "message": "Both switches live in the extension's own settings — this app cannot change them; the two sides have separate storage."
+  },
+  "ob_kv_engine": {
+    "message": "Add a translation API key"
+  },
+  "ob_kv_engine_note": {
+    "message": "Extension settings → translation engine. You can also start on the free channel with no key."
+  },
+  "ob_kv_capture": {
+    "message": "Turn on capture"
+  },
+  "ob_kv_capture_note": {
+    "message": "It is off by default. Once on, the sentences you stop and read become cards."
+  },
+  "ob_read_title": {
+    "message": "Go read something"
+  },
+  "ob_read_body": {
+    "message": "You are set up — just browse and translate as usual. What you read accumulates; to keep a sentence right away, long-press its translation."
+  },
+  "ob_signin_title": {
+    "message": "Last step: sign in"
+  },
+  "ob_kv_twice": {
+    "message": "You will sign in inside the extension too"
+  },
+  "ob_kv_twice_note": {
+    "message": "The two sides have separate storage, so you get two codes. Use the same email address."
   }
 }
