@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --color-bg:#f5ead8;--color-surface:#ebddc5;--color-text:#201e1d;
+  --color-accent:#c67139;--color-accent-2:#7a8a5e;
+  --color-neutral-100:#f9f4ed;--color-neutral-200:#eee7db;--color-neutral-300:#dcd3c4;
+  --color-neutral-600:#82796a;--color-neutral-900:#2e2b25;
+  --color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-400:#f6a06b;
+  --color-accent-600:#b2622d;--color-accent-700:#8c491a;--color-accent-800:#643312;
+  --color-accent-2-100:#f0fae1;--color-accent-2-200:#e1eecc;--color-accent-2-300:#ccdbb2;
+  --color-accent-2-600:#728157;--color-accent-2-700:#56633f;--color-accent-2-800:#3d472b;
+  --font-heading:"Caprasimo",system-ui,sans-serif;--font-body:"Figtree",system-ui,sans-serif;
+  --radius-md:16px;--radius-lg:28px;
+  --shadow-sm:0 1px 2px rgba(46,43,37,.14);--shadow-md:0 3px 10px rgba(46,43,37,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);font-family:var(--font-body);color:var(--color-text)}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.pri{background:var(--color-accent);color:#fff;border-radius:999px;padding:14px 20px;
+  min-height:52px;font-size:17px;font-weight:600;width:100%;box-shadow:var(--shadow-sm)}
+.pri:hover{background:var(--color-accent-600)}
+.pri:disabled{opacity:.45}
+.ghost{border-radius:999px;padding:12px 18px;min-height:48px;font-size:15px;
+  color:var(--color-neutral-600);width:100%}
+.ghost:hover{background:rgba(32,30,29,.05)}
+.chip{border:1.5px solid var(--color-neutral-300);background:#fff;border-radius:999px;
+  padding:11px 16px;min-height:46px;font-size:15px;color:var(--color-text)}
+.chip:hover{border-color:var(--color-accent-400)}
+.card{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+.h{font-family:var(--font-heading);font-weight:400;color:var(--color-text);margin:0}
+.sub{margin:0;font-size:15px;line-height:1.55;color:rgba(32,30,29,.62)}
+.step{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin:0}
+</style>
+</helmet>
+
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:var(--color-bg);overflow:hidden">
+
+  <!-- top bar: back + progress. No fake status bar: the real one paints above this. -->
+  <div style="padding:52px 22px 0;display:flex;flex-direction:column;gap:14px;flex:none">
+    <div style="display:flex;align-items:center;gap:12px;min-height:32px">
+      <sc-if value="{{ v.canBack }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ v.back }}" aria-label="返回" style="padding:4px;margin-left:-4px;display:flex">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+      </sc-if>
+      <div style="flex:1;height:4px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden">
+        <div style="height:100%;background:var(--color-accent-2-600);border-radius:999px;width:{{ v.pct }}"></div>
+      </div>
+      <sc-if value="{{ v.canSkip }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ v.skip }}" style="font-size:14px;color:var(--color-neutral-600);padding:4px">跳过</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- body -->
+  <div style="flex:1;overflow:auto;padding:26px 22px 0;display:flex;flex-direction:column;gap:18px">
+
+    <!-- 0 · 欢迎 -->
+    <sc-if value="{{ v.is0 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center;padding-top:36px">
+        <svg width="108" height="108" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="13" cy="13" r="8" fill="var(--color-bg)" stroke="var(--color-accent-2-600)" stroke-width="2"></circle>
+          <circle cx="51" cy="13" r="8" fill="var(--color-bg)" stroke="var(--color-accent-2-600)" stroke-width="2"></circle>
+          <circle cx="13" cy="13" r="3.4" fill="var(--color-accent-2-300)"></circle>
+          <circle cx="51" cy="13" r="3.4" fill="var(--color-accent-2-300)"></circle>
+          <circle cx="32" cy="36" r="26" fill="var(--color-accent-2-600)" style="filter:drop-shadow(0 4px 10px rgba(122,138,94,.45))"></circle>
+          <circle cx="32" cy="30" r="15" fill="var(--color-bg)"></circle>
+          <path d="M23.5 28c1.3-1.9 3.9-1.9 5.2 0M35.3 28c1.3-1.9 3.9-1.9 5.2 0" stroke="#201e1d" stroke-width="2" stroke-linecap="round" fill="none"></path>
+          <path d="M28.5 33c2 1.9 5 1.9 7 0" stroke="#201e1d" stroke-width="2" stroke-linecap="round" fill="none"></path>
+          <circle cx="32" cy="50" r="10" fill="var(--color-bg)"></circle>
+          <rect x="26" y="46.5" width="12" height="2.8" rx="1.4" fill="#201e1d"></rect>
+          <rect x="26" y="51.5" width="8.5" height="2.8" rx="1.4" fill="var(--color-accent)"></rect>
+        </svg>
+        <h1 class="h" style="font-size:32px;line-height:1.2">读你真正<br>在读的东西</h1>
+        <p class="sub">大肚猴翻译在网页原文下面并排给出译文。你<b style="font-weight:600">真正停下来读完</b>的句子会变成复习卡 —— 回到这个 App 里复习。</p>
+        <div style="background:var(--color-accent-2-100);border-radius:var(--radius-md);padding:13px 16px;text-align:left">
+          <p style="margin:0;font-size:14px;line-height:1.5;color:var(--color-accent-2-800)">翻译发生在浏览器里，复习发生在这里。所以要先花两分钟把浏览器那半边打通。</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 1 · 语言 -->
+    <sc-if value="{{ v.is1 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p class="step">第 1 步 / 共 4 步</p>
+          <h1 class="h" style="font-size:26px;line-height:1.25">你在读哪种语言？</h1>
+          <p class="sub">只有这些语言的句子会被收进来。以后可以改。</p>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <sc-for list="{{ v.srcLangs }}" as="l" hint-placeholder-count="6">
+            <button class="chip" onClick="{{ l.pick }}" style="{{ l.css }}">{{ l.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <p class="step">译成</p>
+          <div style="display:flex;flex-wrap:wrap;gap:9px">
+            <sc-for list="{{ v.dstLangs }}" as="l" hint-placeholder-count="3">
+              <button class="chip" onClick="{{ l.pick }}" style="{{ l.css }}">{{ l.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 2 · 站点 -->
+    <sc-if value="{{ v.is2 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p class="step">第 2 步 / 共 4 步</p>
+          <h1 class="h" style="font-size:26px;line-height:1.25">你主要在哪读？</h1>
+          <p class="sub">这几个地方我们逐站点做过适配，排版和字幕都对得上。可多选。</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ v.sites }}" as="s" hint-placeholder-count="5">
+            <button onClick="{{ s.pick }}" class="card" style="{{ s.css }}">
+              <div style="display:flex;align-items:center;gap:13px;text-align:left">
+                <div style="width:40px;height:40px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ s.tint }}">
+                  <div style="width:22px;height:22px;color:{{ s.ink }}"><dc-import name="SiteIcon" kind="{{ s.id }}" hint-size="22px,22px"></dc-import></div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <b style="font-size:16px;font-weight:600">{{ s.name }}</b>
+                  <span style="font-size:13px;color:rgba(32,30,29,.55)">{{ s.what }}</span>
+                </div>
+                <sc-if value="{{ s.on }}" hint-placeholder-val="{{ true }}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                </sc-if>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 3 · 启用扩展 -->
+    <sc-if value="{{ v.is3 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p class="step">第 3 步 / 共 4 步</p>
+          <h1 class="h" style="font-size:26px;line-height:1.25">在 Safari 里打开它</h1>
+          <p class="sub">翻译由 Safari 扩展完成。这一步只能你自己在系统设置里做 —— iOS 不允许 App 代你打开。</p>
+        </div>
+        <div style="border-radius:var(--radius-md);padding:12px 15px;display:flex;align-items:center;gap:10px;background:{{ v.extTint }}">
+          <div style="width:9px;height:9px;border-radius:999px;background:{{ v.extDot }}"></div>
+          <span style="font-size:14px;font-weight:600;color:{{ v.extInk }}">{{ v.extLabel }}</span>
+        </div>
+        <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ v.enableSteps }}" as="e" hint-placeholder-count="3">
+            <li class="card" style="display:flex;gap:12px;align-items:flex-start">
+              <span style="width:24px;height:24px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-700);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ e.n }}</span>
+              <span style="font-size:15px;line-height:1.5">{{ e.text }}</span>
+            </li>
+          </sc-for>
+        </ol>
+        <p style="margin:0;font-size:13px;line-height:1.5;color:rgba(32,30,29,.55)">授权时选「所有网站」，否则每换一个站都要再点一次。</p>
+      </div>
+    </sc-if>
+
+    <!-- 4 · 采集开关 -->
+    <sc-if value="{{ v.is4 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p class="step">第 4 步 / 共 4 步</p>
+          <h1 class="h" style="font-size:26px;line-height:1.25">打开采集</h1>
+          <p class="sub">默认是关的。打开之后，你读过的句子才会变成卡片。</p>
+        </div>
+        <div class="card" style="display:flex;align-items:center;gap:14px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <b style="font-size:16px;font-weight:600">采集学习材料</b>
+            <span style="font-size:13px;color:rgba(32,30,29,.55)">在扩展设置的「学习」一栏</span>
+          </div>
+          <button onClick="{{ v.toggleCap }}" aria-label="采集开关" style="width:52px;height:31px;border-radius:999px;padding:3px;flex:none;display:flex;background:{{ v.capBg }};justify-content:{{ v.capJust }}">
+            <div style="width:25px;height:25px;border-radius:999px;background:#fff;box-shadow:var(--shadow-sm)"></div>
+          </button>
+        </div>
+        <div style="background:var(--color-accent-2-100);border-radius:var(--radius-md);padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+          <b style="font-size:14px;font-weight:600;color:var(--color-accent-2-800)">什么会被收？</b>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:var(--color-accent-2-800)">你在屏幕上停留过约 2.5 秒以上的句子。快速划过去的不算 —— 那不是你读过的。</p>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:var(--color-accent-2-800)">想立刻收下某一句，长按它的译文。</p>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 5 · 去读一篇 -->
+    <sc-if value="{{ v.is5 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 class="h" style="font-size:26px;line-height:1.25">去读一篇</h1>
+          <p class="sub">设置完了。现在去你选的地方读一段，读完回来 —— 卡片会自己出现在这里。</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ v.picks }}" as="p" hint-placeholder-count="2">
+            <div class="card" style="display:flex;align-items:center;gap:13px">
+              <div style="width:40px;height:40px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ p.tint }}">
+                <div style="width:22px;height:22px;color:{{ p.ink }}"><dc-import name="SiteIcon" kind="{{ p.id }}" hint-size="22px,22px"></dc-import></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                <b style="font-size:16px;font-weight:600">{{ p.name }}</b>
+                <span style="font-size:13px;color:rgba(32,30,29,.55)">{{ p.hint }}</span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 6 · 第一张卡 -->
+    <sc-if value="{{ v.is6 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 class="h" style="font-size:26px;line-height:1.25">你的第一张卡</h1>
+          <p class="sub">从你刚读的那篇里来的。记得就拉长间隔，忘了就很快再见。</p>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:11px;padding:20px">
+          <p style="margin:0;font-size:17px;line-height:1.55">The entrant wins by serving the customers nobody wants.</p>
+          <p style="margin:0;font-size:16px;line-height:1.55;color:var(--color-accent-2-700)">新进入者靠服务没人想要的客户取胜。</p>
+          <div style="height:1px;background:var(--color-neutral-200);margin:3px 0"></div>
+          <span style="font-size:12px;color:rgba(32,30,29,.5)">stratechery.com · 你读了 8 秒</span>
+        </div>
+        <div style="display:flex;gap:9px">
+          <button class="chip" style="flex:1;min-height:52px">忘了</button>
+          <button class="chip" style="flex:1;min-height:52px">有点印象</button>
+          <button class="chip" style="flex:1;min-height:52px;border-color:var(--color-accent-2-600);color:var(--color-accent-2-700);font-weight:600">记得</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- 7 · 同步（可选） -->
+    <sc-if value="{{ v.is7 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h1 class="h" style="font-size:26px;line-height:1.25">要在别的设备上<br>接着复习吗？</h1>
+          <p class="sub">可选。不登录也能完整使用，材料都存在这台设备上。登录后，学习库与复习记录会在你的设备之间双向同步。</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <label style="font-size:14px;color:var(--color-neutral-600)">邮箱</label>
+          <input type="email" placeholder="you@example.com" style="border:1.5px solid var(--color-neutral-300);background:#fff;border-radius:999px;padding:13px 18px;min-height:50px;font-size:16px;font-family:inherit;color:inherit;width:100%">
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- footer -->
+  <div style="flex:none;padding:16px 22px 30px;display:flex;flex-direction:column;gap:6px">
+    <button class="pri" onClick="{{ v.next }}" disabled="{{ v.blocked }}">{{ v.cta }}</button>
+    <sc-if value="{{ v.hasAlt }}" hint-placeholder-val="{{ true }}">
+      <button class="ghost" onClick="{{ v.alt }}">{{ v.altLabel }}</button>
+    </sc-if>
+  </div>
+</div>
+
+</x-dc>
+<script data-dc-script data-props='{"startStep":{"editor":"int","default":0,"min":0,"max":7,"section":"原型"},"extEnabled":{"editor":"boolean","default":false,"section":"原型"}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { step: null, src: 'English', dst: '简体中文', sites: ['substack'], ext: null, cap: false };
+  }
+  renderVals() {
+    const st = this.state;
+    const step = st.step === null ? (this.props.startStep ?? 0) : st.step;
+    const ext = st.ext === null ? !!this.props.extEnabled : st.ext;
+    const go = (n) => () => this.setState({ step: Math.max(0, Math.min(7, n)) });
+
+    const SITES = [
+      { id: 'youtube', name: 'YouTube', what: '双语字幕，原文在上译文在下', hint: '挑一个有字幕的视频' },
+      { id: 'x', name: 'X（推特）', what: '时间线上的推文逐条翻', hint: '刷一屏时间线' },
+      { id: 'substack', name: 'Substack / 长文通讯', what: '整篇文章段段对照', hint: '打开一封你订的通讯' },
+      { id: 'podcast', name: '播客', what: '边听边读逐句文稿', hint: '挑一集有文稿的' },
+      { id: 'web', name: '普通网页', what: '维基、博客、新闻都行', hint: '随便一篇长一点的' },
+    ];
+    const on = (id) => st.sites.indexOf(id) >= 0;
+    const selCss = 'border:1.5px solid var(--color-accent-2-600);box-shadow:0 0 0 3px var(--color-accent-2-200),var(--shadow-sm);width:100%';
+    const offCss = 'border:1.5px solid transparent;width:100%';
+    const sites = SITES.map((s) => ({
+      ...s, on: on(s.id),
+      tint: on(s.id) ? 'var(--color-accent-2-200)' : 'var(--color-neutral-100)',
+      ink: on(s.id) ? 'var(--color-accent-2-700)' : 'var(--color-neutral-600)',
+      css: on(s.id) ? selCss : offCss,
+      pick: () => this.setState({ sites: on(s.id) ? st.sites.filter((x) => x !== s.id) : st.sites.concat(s.id) }),
+    }));
+
+    const chip = (label, active, pick) => ({
+      label, pick,
+      css: active
+        ? 'border-color:var(--color-accent-2-600);background:var(--color-accent-2-100);color:var(--color-accent-2-700);font-weight:600'
+        : '',
+    });
+    const srcLangs = ['English', '日本語', '한국어', 'Français', 'Deutsch', 'Español']
+      .map((l) => chip(l, st.src === l, () => this.setState({ src: l })));
+    const dstLangs = ['简体中文', '繁體中文', 'English']
+      .map((l) => chip(l, st.dst === l, () => this.setState({ dst: l })));
+
+    const picks = (st.sites.length ? SITES.filter((s) => on(s.id)) : [SITES[2]])
+      .map((s) => ({ ...s, tint: 'var(--color-accent-2-200)', ink: 'var(--color-accent-2-700)' }));
+
+    const CTA = ['开始设置 · 约 2 分钟', '继续', '继续', ext ? '已经启用了，下一步' : '我已经启用了',
+      '打开了，下一步', '读完了，回来看看', '再看下一张', '发送验证码'];
+    const ALT = [
+      { on: true, label: '先四处看看', go: 7 },
+      { on: false }, { on: false },
+      { on: true, label: '这一步先跳过', go: 4 },
+      { on: false },
+      { on: true, label: '我已经翻过一页了', go: 6 },
+      { on: false },
+      { on: true, label: '以后再说', go: 7 },
+    ][step] || { on: false };
+
+    return {
+      v: {
+        is0: step === 0, is1: step === 1, is2: step === 2, is3: step === 3,
+        is4: step === 4, is5: step === 5, is6: step === 6, is7: step === 7,
+        pct: Math.round((step / 7) * 100) + '%',
+        canBack: step > 0, canSkip: step >= 1 && step <= 4,
+        back: go(step - 1), skip: go(5), next: () => {
+          if (step === 3 && !ext) return this.setState({ ext: true });
+          if (step === 4 && !st.cap) return this.setState({ cap: true });
+          go(step + 1)();
+        },
+        cta: CTA[step], blocked: step === 2 && st.sites.length === 0,
+        hasAlt: !!ALT.on, altLabel: ALT.label, alt: ALT.on ? go(ALT.go) : (() => {}),
+        srcLangs, dstLangs, sites, picks,
+        extLabel: ext ? '扩展已启用' : '扩展还没启用',
+        extTint: ext ? 'var(--color-accent-2-100)' : 'var(--color-accent-100)',
+        extDot: ext ? 'var(--color-accent-2-600)' : 'var(--color-accent-400)',
+        extInk: ext ? 'var(--color-accent-2-800)' : 'var(--color-accent-800)',
+        enableSteps: [
+          { n: '1', text: '打开系统「设置」→ 找到 Safari' },
+          { n: '2', text: '进「扩展」，把「大肚猴翻译」打开' },
+          { n: '3', text: '权限选「允许」，网站选「所有网站」' },
+        ],
+        capBg: st.cap ? 'var(--color-accent-2-600)' : 'var(--color-neutral-300)',
+        capJust: st.cap ? 'flex-end' : 'flex-start',
+        toggleCap: () => this.setState({ cap: !st.cap }),
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
