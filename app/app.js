@@ -199,7 +199,11 @@
   function paintExtBanner(state) {
     const sec = $('ext-banner');
     if (!sec) return;
-    if (!state || state.enabled === true) { sec.hidden = true; return; }
+    // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
+    // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
+    // 它只查内容对不对，不查有没有重复）。
+    const onboarding = $('onboard') && !$('onboard').hidden;
+    if (onboarding || !state || state.enabled === true) { sec.hidden = true; return; }
     sec.hidden = false;
     $('ext-banner-title').textContent = state.known
       ? t('app_ext_off_title', '扩展还没启用')
@@ -346,6 +350,7 @@
   async function obFinish() {
     try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
     $('onboard').hidden = true;
+    paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
     await show(await LearnAuth.current().catch(() => null));
   }
 
@@ -697,6 +702,7 @@
         $('signed-out').hidden = true;
         $('signed-in').hidden = true;
         $('onboard').hidden = false;
+        paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
         obAt = 0; obPaint();
         return;
       }

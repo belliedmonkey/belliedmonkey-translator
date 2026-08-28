@@ -273,6 +273,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     if (o.syncEnabled) {
       const eb = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
+          // 横幅的契约是「不在引导中时」—— 首启会直接进引导，那时它被有意抑制
+          // （否则和引导第 3 屏重复）。所以先退出引导，再验横幅。
+          document.getElementById('onboard').hidden = true;
           const sec = document.getElementById('ext-banner');
           const act = document.getElementById('ext-banner-act');
           const snap = () => ({ banner: !sec.hidden, button: !act.hidden,
@@ -348,10 +351,19 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
                         steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length });
             if (i < 5) { $('ob-next').click(); await new Promise((r) => setTimeout(r, 30)); }
           }
-          return JSON.stringify({ seen });
+          const out = JSON.stringify({ seen,
+            bannerDuringOb: !document.getElementById('ext-banner').hidden });
+          // 收拾干净：这一段把 #onboard 打开了，不还原的话后面的横幅断言会被
+          // paintExtBanner 的「引导进行中不挂横幅」抑制掉，报成假失败。
+          sec.hidden = true;
+          return out;
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const ov = JSON.parse(ob.result.value);
       const seen = ov.seen;
+      // 引导进行中不能同时挂着扩展横幅 —— 那会把同一句话说两遍。
+      // 这条是模拟器实测抓出来的：断言查内容对不对，查不出重复。
+      need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
+        + '两个一起显示等于把同一句话一字不差地重复一遍');
       need(seen.length === 6, '引导不是六屏，实际 ' + seen.length);
       const blank = seen.map((x, i) => (x.title && x.text) ? null : i).filter((x) => x !== null);
       need(blank.length === 0, '这几屏标题或正文是空的（i18n 键没落到）：' + blank.join(','));
