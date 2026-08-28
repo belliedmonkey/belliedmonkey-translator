@@ -210,6 +210,32 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(!gv.before, '还没配 key 门就开了');
       need(gv.after, '填了 key 门没开 —— 解析要等下次启动才出现，用户会当它是坏的');
     }
+    // 密码登录入口只能对演示账号露出（2026-08-28）。产品内没有任何设密码的面，
+    // 所以它对普通用户 100% 失败；GoTrue 日志里实证撞了两次，其中一次是一个刚发完
+    // 验证码的真实用户，连点三次后再没回来。DOM 里存在 ≠ 用户看得见，所以这里断言的
+    // 是 hidden 的实际取值随输入变化，不是元素在不在。
+    if (o.syncEnabled) {
+      const pw = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const link = document.getElementById('app-use-pw');
+          const email = document.getElementById('email');
+          const seen = {};
+          seen.atRest = link.hidden;
+          email.value = 'someone@example.com';
+          email.dispatchEvent(new Event('input'));
+          await new Promise((r) => setTimeout(r, 30));
+          seen.normal = link.hidden;
+          email.value = 'belliedmonkey+applereview@gmail.com';
+          email.dispatchEvent(new Event('input'));
+          await new Promise((r) => setTimeout(r, 30));
+          seen.demo = link.hidden;
+          return JSON.stringify(seen);
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const pv = JSON.parse(pw.result.value);
+      need(pv.atRest, '密码登录入口在首屏就露着 —— 普通用户点了必得「邮箱或密码不对」');
+      need(pv.normal, '普通邮箱也露出了密码入口 —— 判据没生效');
+      need(!pv.demo, '演示账号（plus-alias）看不到密码入口 —— 这会直接导致 App Review 登录不进去');
+    }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
     // The review surface, in both shipping states — it is inlined at build time and

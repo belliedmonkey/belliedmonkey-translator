@@ -110,6 +110,24 @@
       : t('app_never_synced', '还没有同步过');
   }
 
+  // 密码登录只服务「服务端已设过密码」的账号 —— 产品内没有任何设密码的面，
+  // 所以对普通用户它 100% 会失败。2026-08-28 的 GoTrue 日志里实证撞了两次：
+  // Apple 审核员（08-26，17.185.64.x）与一个真实用户（08-27，刚发完验证码就连点
+  // 三次密码登录，全部 invalid_credentials，然后再没回来）。他就是那批「发了码从没
+  // 验证」的用户之一 —— 也就是说这个入口在真实地吃转化。
+  //
+  // 判据用 plus-alias 而不是写死某个地址：演示账号按 §8.4.1 的做法一律是 Gmail
+  // 别名（belliedmonkey+applereview@gmail.com），而真实用户几乎不会用 + 标签。
+  // 写死地址的话，下次换演示账号就是一次 App Review 拒审。
+  function isDemoAddress(v) { return /\+[^@\s]*@/.test(String(v || '').trim()); }
+
+  function refreshPwEntry() {
+    const el = $('app-use-pw');
+    if (!el) return;
+    // 密码表单已经打开时不要把入口抽走。
+    el.hidden = !isDemoAddress($('email').value) && $('app-pw-form').hidden;
+  }
+
   async function show(session) {
     currentSession = session;
     $('signed-out').hidden = !!session;
@@ -121,7 +139,7 @@
       $('review-view').hidden = true;
       // And the sign-in surface resets to its default (OTP) path.
       $('app-pw-form').hidden = true;
-      $('app-use-pw').hidden = false;
+      $('app-use-pw').hidden = true;   // 只有 demo 地址才会把它揭出来（refreshPwEntry）
       $('email-form').hidden = false;
       $('code-form').hidden = true;
     }
@@ -137,6 +155,8 @@
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
   let pendingEmail = '';
+
+  $('email').addEventListener('input', refreshPwEntry);
 
   $('email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -204,8 +224,8 @@
 
   $('app-pw-back').addEventListener('click', () => {
     $('app-pw-form').hidden = true;
-    $('app-use-pw').hidden = false;
     $('email-form').hidden = false;
+    refreshPwEntry();
     $('email').focus();
     say('');
   });

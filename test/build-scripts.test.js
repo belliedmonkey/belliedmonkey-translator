@@ -189,6 +189,49 @@ describe('sync-app-assets: ViewController patches', () => {
 // is one constant line, where "contains it? skip" is right; this block keeps evolving,
 // and a needle check would freeze whatever version first reached a tree while app:sync
 // printed "already patched" forever.
+describe('sync-app-assets: the host app must stay UA-anonymous', () => {
+  // 2026-08-28: this is the ONLY thing that tells an App session apart from a Safari
+  // extension session server-side, and it exists by omission, not by design.
+  //
+  // A bare WKWebView sends `…AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148`
+  // — no `Version/`, no `Safari/`. Real Safari always sends both. That gap is what
+  // let `auth.sessions.user_agent` prove all 40 external accounts arrived through the
+  // iOS/macOS app and none through a browser extension.
+  //
+  // Setting `applicationNameForUserAgent` — the ordinary, tidy-looking thing to do —
+  // appends a token and makes the two indistinguishable. Nothing else would go red:
+  // the app keeps working, and the loss is silent and retroactive. Hence a gate.
+  //
+  // This guards the accident; it does not make it reliable. The real fix is a `client`
+  // field in the chunk header, which costs a Gate B privacy-copy round — see #175.
+  const NEEDLE = 'applicationNameForUserAgent';
+
+  test('the patcher never sets applicationNameForUserAgent', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'), 'utf8');
+    ok(!src.includes(NEEDLE),
+      'sync-app-assets.js 设了 ' + NEEDLE + ' —— 这会让 App 与 Safari 扩展的 UA 无法区分，'
+      + '服务端的客户端归因当场静默失效。真要加客户端标识走 #175（chunk header client 字段）。');
+  });
+
+  test('a patched ViewController still carries no app name', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE_UA);
+    patchViewController(dir);
+    const out = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    ok(!out.includes(NEEDLE), '补丁后的 ViewController 不能带 ' + NEEDLE);
+    // The media patch rebuilds the web view from a fresh configuration; that rebuild
+    // is exactly where an app name would be most tempting to add.
+    ok(out.includes('WKWebViewConfiguration()'), '前提没变：媒体补丁确实重建了 webView');
+  });
+
+  const TEMPLATE_UA = 'import WebKit\n\nclass ViewController {\n'
+    + '    func viewDidLoad() {\n'
+    + '        super.viewDidLoad()\n\n'
+    + '        self.webView.navigationDelegate = self\n'
+    + '    }\n}\n';
+});
+
 describe('sync-app-assets: audio bridge block (§9.5)', () => {
   const VC = 'import WebKit\n\nclass ViewController {}\n';
   const TPL = 'final class MTAudioBridge {\n    // v1\n}\n';

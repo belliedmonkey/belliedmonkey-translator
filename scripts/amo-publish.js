@@ -98,6 +98,11 @@ async function api(method, url, body, headers) {
   console.log('✓ 凭证可用');
   console.log(`  ${addonId}`);
   console.log(`  状态: ${info.d.status}   线上版本: ${(info.d.current_version || {}).version || '?'}`);
+  // 使用数据就在这同一个 JSON 里，以前被丢掉了。AMO 是六个面里唯一一个不用凭证
+  // 就能读到装机量的（CWS 完全没有 API，见 #176）—— 不打出来等于每次都白请求一遍。
+  const r = info.d.ratings || {};
+  console.log(`  日活: ${info.d.average_daily_users ?? '?'}   周下载: ${info.d.weekly_downloads ?? '?'}`
+    + `   评分: ${r.count ? `${r.average?.toFixed?.(1) ?? r.average} × ${r.count} 条` : '暂无'}`);
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
   console.log(`  本地 package.json: ${pkgVersion}`);
 
