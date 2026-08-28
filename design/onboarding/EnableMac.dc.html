@@ -16,7 +16,7 @@
   --color-accent:#c67139;--color-accent-2:#7a8a5e;
   --color-neutral-100:#f9f4ed;--color-neutral-200:#eee7db;--color-neutral-300:#dcd3c4;
   --color-neutral-600:#82796a;--color-neutral-900:#2e2b25;
-  --color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-400:#f6a06b;
+  --color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-300:#ffc6a5;--color-accent-400:#f6a06b;
   --color-accent-600:#b2622d;--color-accent-700:#8c491a;--color-accent-800:#643312;
   --color-accent-2-100:#f0fae1;--color-accent-2-200:#e1eecc;--color-accent-2-300:#ccdbb2;
   --color-accent-2-600:#728157;--color-accent-2-700:#56633f;--color-accent-2-800:#3d472b;
@@ -55,9 +55,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     <span style="font-size:14px;font-weight:600;color:var(--color-accent-800)">扩展还没启用</span>
   </div>
   <button class="pri" style="width:auto;align-self:flex-start;padding:14px 26px">打开 Safari 扩展设置</button>
-  <div style="background:var(--color-accent-2-100);border-radius:var(--radius-md);padding:14px 16px;margin-top:auto">
-    <p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-accent-2-800)">这个按钮背后的 Swift 早就在工程里 —— 转换器模板自带 <b style="font-weight:600">SFSafariApplication.showPreferencesForExtension</b> 和读取启用状态的调用，只是我们换掉模板页之后没接手。iOS 没有等价 API，所以那边只能念步骤。</p>
-  </div>
 </div>
 </x-dc>
 <script data-dc-script>

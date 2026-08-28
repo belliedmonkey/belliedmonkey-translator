@@ -1,13 +1,78 @@
 {
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "引导流程（可点）", "is_interactive": true },
-    { "file": "Home.dc.html", "x": 510, "y": 0, "w": 390, "h": 844, "title": "首页 · 未登录" },
-    { "file": "EnableMac.dc.html", "x": 1020, "y": 0, "w": 560, "h": 420, "title": "macOS 变体" },
-    { "file": "SiteIcon.dc.html", "x": 1020, "y": 620, "w": 140, "h": 120, "title": "站点图标" }
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "引导流程（可点）",
+      "is_interactive": true
+    },
+    {
+      "file": "Home.dc.html",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "首页 · 未登录"
+    },
+    {
+      "file": "EnableMac.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 560,
+      "h": 360,
+      "title": "macOS 变体"
+    },
+    {
+      "file": "SiteIcon.dc.html",
+      "x": 1020,
+      "y": 620,
+      "w": 140,
+      "h": 120,
+      "title": "站点图标"
+    },
+    {
+      "file": "ApiSetup.dc.html",
+      "x": 0,
+      "y": 1060,
+      "w": 900,
+      "h": 900,
+      "title": "配置引擎 · 完整案例"
+    }
   ],
   "annotations": [
-    { "id": "how", "x": 0, "y": -140, "w": 390, "text": "点左边这块走一遍：选语言 → 选站点 → 启用扩展 → 打开采集 → 去读 → 第一张卡 → 可选同步。右上角「跳过」和底部次要按钮都能点。" },
-    { "id": "why", "x": 510, "y": -140, "w": 390, "text": "这一屏是 A3 的重点：不登录也进得来。今天首屏是冷登录墙 —— 40 个外部用户 0 激活，15 个发了码从没验证。" }
+    {
+      "id": "how",
+      "x": 0,
+      "y": -140,
+      "w": 390,
+      "text": "点左边这块走一遍：选语言 → 选站点 → 启用扩展 → 打开采集 → 去读 → 第一张卡 → 可选同步。右上角「跳过」和底部次要按钮都能点。"
+    },
+    {
+      "id": "why",
+      "x": 510,
+      "y": -140,
+      "w": 390,
+      "text": "这一屏是 A3 的重点：不登录也进得来。今天首屏是冷登录墙 —— 40 个外部用户 0 激活，15 个发了码从没验证。"
+    },
+    {
+      "id": "mac-note",
+      "x": 1020,
+      "y": 460,
+      "w": 560,
+      "text": "macOS 这条不用新写 Swift：转换器模板自带 SFSafariApplication.showPreferencesForExtension 和读取启用状态的调用，我们换掉模板页之后没接手而已（全仓库零处发送 open-preferences）。iOS 没有等价 API，只能念步骤 —— 所以两边必须分开设计。"
+    },
+    {
+      "id": "api-note",
+      "x": 0,
+      "y": 990,
+      "w": 900,
+      "text": "端点与默认模型取自 build/providers.config.js。产品里这一屏必须从 window.MT_PROVIDERS 读 —— 单一注册表规则：地址和模型名不许在注册表之外再写一遍。"
+    }
   ],
-  "launch": { "view": "canvas" }
+  "launch": {
+    "view": "canvas"
+  }
 }

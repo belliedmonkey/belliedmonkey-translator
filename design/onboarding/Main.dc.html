@@ -16,7 +16,7 @@
   --color-accent:#c67139;--color-accent-2:#7a8a5e;
   --color-neutral-100:#f9f4ed;--color-neutral-200:#eee7db;--color-neutral-300:#dcd3c4;
   --color-neutral-600:#82796a;--color-neutral-900:#2e2b25;
-  --color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-400:#f6a06b;
+  --color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-300:#ffc6a5;--color-accent-400:#f6a06b;
   --color-accent-600:#b2622d;--color-accent-700:#8c491a;--color-accent-800:#643312;
   --color-accent-2-100:#f0fae1;--color-accent-2-200:#e1eecc;--color-accent-2-300:#ccdbb2;
   --color-accent-2-600:#728157;--color-accent-2-700:#56633f;--color-accent-2-800:#3d472b;
@@ -51,15 +51,15 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   <div style="padding:52px 22px 0;display:flex;flex-direction:column;gap:14px;flex:none">
     <div style="display:flex;align-items:center;gap:12px;min-height:32px">
       <sc-if value="{{ v.canBack }}" hint-placeholder-val="{{ true }}">
-        <button onClick="{{ v.back }}" aria-label="返回" style="padding:4px;margin-left:-4px;display:flex">
+        <button onClick="{{ v.back }}" aria-label="返回" style="width:44px;height:44px;margin-left:-10px;display:flex;align-items:center;justify-content:center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
         </button>
       </sc-if>
-      <div style="flex:1;height:4px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden">
+      <div style="flex:1;height:4px;background:{{ v.barBg }};border-radius:999px;overflow:hidden">
         <div style="height:100%;background:var(--color-accent-2-600);border-radius:999px;width:{{ v.pct }}"></div>
       </div>
       <sc-if value="{{ v.canSkip }}" hint-placeholder-val="{{ true }}">
-        <button onClick="{{ v.skip }}" style="font-size:14px;color:var(--color-neutral-600);padding:4px">跳过</button>
+        <button onClick="{{ v.skip }}" style="font-size:14px;color:var(--color-neutral-600);min-height:44px;padding:0 8px;margin-right:-8px">以后再设置</button>
       </sc-if>
     </div>
   </div>
@@ -68,7 +68,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
   <div style="flex:1;overflow:auto;padding:26px 22px 0;display:flex;flex-direction:column;gap:18px">
 
     <!-- 0 · 欢迎 -->
-    <sc-if value="{{ v.is0 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isWelcome }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center;padding-top:36px">
         <svg width="108" height="108" viewBox="0 0 64 64" aria-hidden="true">
           <circle cx="13" cy="13" r="8" fill="var(--color-bg)" stroke="var(--color-accent-2-600)" stroke-width="2"></circle>
@@ -92,10 +92,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     </sc-if>
 
     <!-- 1 · 语言 -->
-    <sc-if value="{{ v.is1 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isLang }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:22px">
         <div style="display:flex;flex-direction:column;gap:8px">
-          <p class="step">第 1 步 / 共 4 步</p>
+          <p class="step">第 1 步 / 共 5 步</p>
           <h1 class="h" style="font-size:26px;line-height:1.25">你在读哪种语言？</h1>
           <p class="sub">只有这些语言的句子会被收进来。以后可以改。</p>
         </div>
@@ -116,10 +116,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     </sc-if>
 
     <!-- 2 · 站点 -->
-    <sc-if value="{{ v.is2 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isSites }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
-          <p class="step">第 2 步 / 共 4 步</p>
+          <p class="step">第 2 步 / 共 5 步</p>
           <h1 class="h" style="font-size:26px;line-height:1.25">你主要在哪读？</h1>
           <p class="sub">这几个地方我们逐站点做过适配，排版和字幕都对得上。可多选。</p>
         </div>
@@ -145,10 +145,10 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     </sc-if>
 
     <!-- 3 · 启用扩展 -->
-    <sc-if value="{{ v.is3 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isExt }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
-          <p class="step">第 3 步 / 共 4 步</p>
+          <p class="step">第 3 步 / 共 5 步</p>
           <h1 class="h" style="font-size:26px;line-height:1.25">在 Safari 里打开它</h1>
           <p class="sub">翻译由 Safari 扩展完成。这一步只能你自己在系统设置里做 —— iOS 不允许 App 代你打开。</p>
         </div>
@@ -168,11 +168,59 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
       </div>
     </sc-if>
 
-    <!-- 4 · 采集开关 -->
-    <sc-if value="{{ v.is4 }}" hint-placeholder-val="{{ true }}">
+
+    <!-- 4 · 翻译引擎 -->
+    <sc-if value="{{ v.isKey }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
-          <p class="step">第 4 步 / 共 4 步</p>
+          <p class="step">第 4 步 / 共 5 步</p>
+          <h1 class="h" style="font-size:26px;line-height:1.25">用谁来翻</h1>
+          <p class="sub">用你自己的 API Key，按量付费，我们不经手。也可以先用免费通道看看效果。</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ v.engines }}" as="g" hint-placeholder-count="3">
+            <button onClick="{{ g.pick }}" class="card" style="{{ g.css }}">
+              <div style="display:flex;align-items:center;gap:12px;text-align:left;min-height:44px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <b style="font-size:16px;font-weight:600">{{ g.name }}</b>
+                  <span style="font-size:13px;color:rgba(32,30,29,.55)">{{ g.what }}</span>
+                </div>
+                <sc-if value="{{ g.on }}" hint-placeholder-val="{{ true }}">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                </sc-if>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ v.needsKey }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label style="font-size:14px;color:var(--color-neutral-600)">API Key</label>
+              <input type="password" placeholder="{{ v.keyHint }}" style="border:1.5px solid var(--color-neutral-300);background:#fff;border-radius:999px;padding:13px 18px;min-height:50px;font-size:16px;font-family:inherit;color:inherit;width:100%">
+              <span style="font-size:13px;color:rgba(32,30,29,.55)">在 {{ v.keyWhere }} 申请，只存在这台设备上。</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label style="font-size:14px;color:var(--color-neutral-600)">接口地址</label>
+              <input type="text" value="{{ v.endpoint }}" style="border:1.5px solid var(--color-neutral-300);background:var(--color-neutral-100);border-radius:999px;padding:13px 18px;min-height:50px;font-size:14px;font-family:ui-monospace,Menlo,monospace;color:rgba(32,30,29,.7);width:100%">
+              <span style="font-size:13px;color:rgba(32,30,29,.55)">已经填好了。要改成中转地址的话，写<b style="font-weight:600">完整地址</b>——我们一个字都不会替你拼。</span>
+            </div>
+            <button class="chip" onClick="{{ v.test }}" style="min-height:48px;width:100%">测试连接</button>
+            <sc-if value="{{ v.tested }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--color-accent-2-100);border-radius:var(--radius-md);padding:12px 15px;display:flex;align-items:center;gap:9px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                <span style="font-size:14px;color:var(--color-accent-2-800)">{{ v.testMsg }}</span>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- 5 · 采集开关 -->
+    <sc-if value="{{ v.isCapture }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <p class="step">第 5 步 / 共 5 步</p>
           <h1 class="h" style="font-size:26px;line-height:1.25">打开采集</h1>
           <p class="sub">默认是关的。打开之后，你读过的句子才会变成卡片。</p>
         </div>
@@ -181,7 +229,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
             <b style="font-size:16px;font-weight:600">采集学习材料</b>
             <span style="font-size:13px;color:rgba(32,30,29,.55)">在扩展设置的「学习」一栏</span>
           </div>
-          <button onClick="{{ v.toggleCap }}" aria-label="采集开关" style="width:52px;height:31px;border-radius:999px;padding:3px;flex:none;display:flex;background:{{ v.capBg }};justify-content:{{ v.capJust }}">
+          <button onClick="{{ v.toggleCap }}" aria-label="采集开关" style="width:52px;height:44px;align-items:center;border-radius:999px;padding:3px;flex:none;display:flex;background:{{ v.capBg }};justify-content:{{ v.capJust }}">
             <div style="width:25px;height:25px;border-radius:999px;background:#fff;box-shadow:var(--shadow-sm)"></div>
           </button>
         </div>
@@ -194,7 +242,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
     </sc-if>
 
     <!-- 5 · 去读一篇 -->
-    <sc-if value="{{ v.is5 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isRead }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
           <h1 class="h" style="font-size:26px;line-height:1.25">去读一篇</h1>
@@ -202,7 +250,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
         </div>
         <div style="display:flex;flex-direction:column;gap:10px">
           <sc-for list="{{ v.picks }}" as="p" hint-placeholder-count="2">
-            <div class="card" style="display:flex;align-items:center;gap:13px">
+            <button onClick="{{ p.open }}" class="card" style="display:flex;align-items:center;gap:13px;width:100%;border:1.5px solid transparent;min-height:64px;text-align:left">
               <div style="width:40px;height:40px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ p.tint }}">
                 <div style="width:22px;height:22px;color:{{ p.ink }}"><dc-import name="SiteIcon" kind="{{ p.id }}" hint-size="22px,22px"></dc-import></div>
               </div>
@@ -211,14 +259,14 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
                 <span style="font-size:13px;color:rgba(32,30,29,.55)">{{ p.hint }}</span>
               </div>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"></path></svg>
-            </div>
+            </button>
           </sc-for>
         </div>
       </div>
     </sc-if>
 
     <!-- 6 · 第一张卡 -->
-    <sc-if value="{{ v.is6 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isCard }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
           <h1 class="h" style="font-size:26px;line-height:1.25">你的第一张卡</h1>
@@ -227,19 +275,19 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
         <div class="card" style="display:flex;flex-direction:column;gap:11px;padding:20px">
           <p style="margin:0;font-size:17px;line-height:1.55">The entrant wins by serving the customers nobody wants.</p>
           <p style="margin:0;font-size:16px;line-height:1.55;color:var(--color-accent-2-700)">新进入者靠服务没人想要的客户取胜。</p>
-          <div style="height:1px;background:var(--color-neutral-200);margin:3px 0"></div>
+          <div style="height:1px;background:var(--color-neutral-200)"></div>
           <span style="font-size:12px;color:rgba(32,30,29,.5)">stratechery.com · 你读了 8 秒</span>
         </div>
         <div style="display:flex;gap:9px">
-          <button class="chip" style="flex:1;min-height:52px">忘了</button>
-          <button class="chip" style="flex:1;min-height:52px">有点印象</button>
-          <button class="chip" style="flex:1;min-height:52px;border-color:var(--color-accent-2-600);color:var(--color-accent-2-700);font-weight:600">记得</button>
+          <button onClick="{{ v.grade }}" class="chip" style="flex:1;min-height:52px">忘了</button>
+          <button onClick="{{ v.grade }}" class="chip" style="flex:1;min-height:52px">有点印象</button>
+          <button onClick="{{ v.grade }}" class="chip" style="flex:1;min-height:52px;border-color:var(--color-accent-2-600);color:var(--color-accent-2-700);font-weight:600">记得</button>
         </div>
       </div>
     </sc-if>
 
     <!-- 7 · 同步（可选） -->
-    <sc-if value="{{ v.is7 }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ v.isSync }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div style="display:flex;flex-direction:column;gap:8px">
           <h1 class="h" style="font-size:26px;line-height:1.25">要在别的设备上<br>接着复习吗？</h1>
@@ -255,7 +303,12 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 
   <!-- footer -->
   <div style="flex:none;padding:16px 22px 30px;display:flex;flex-direction:column;gap:6px">
-    <button class="pri" onClick="{{ v.next }}" disabled="{{ v.blocked }}">{{ v.cta }}</button>
+    <sc-if value="{{ v.blocked }}" hint-placeholder-val="{{ false }}">
+      <button class="pri" style="opacity:.45" disabled="disabled">{{ v.cta }}</button>
+    </sc-if>
+    <sc-if value="{{ v.ready }}" hint-placeholder-val="{{ true }}">
+      <button class="pri" onClick="{{ v.next }}">{{ v.cta }}</button>
+    </sc-if>
     <sc-if value="{{ v.hasAlt }}" hint-placeholder-val="{{ true }}">
       <button class="ghost" onClick="{{ v.alt }}">{{ v.altLabel }}</button>
     </sc-if>
@@ -263,17 +316,18 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 </div>
 
 </x-dc>
-<script data-dc-script data-props='{"startStep":{"editor":"int","default":0,"min":0,"max":7,"section":"原型"},"extEnabled":{"editor":"boolean","default":false,"section":"原型"}}'>
+<script data-dc-script data-props='{"startStep":{"editor":"int","default":0,"min":0,"max":8,"section":"原型"},"extEnabled":{"editor":"boolean","default":false,"section":"原型"}}'>
 class Component extends DCLogic {
   constructor(p) {
     super(p);
-    this.state = { step: null, src: 'English', dst: '简体中文', sites: ['substack'], ext: null, cap: false };
+    this.state = { step: null, src: 'English', dst: '简体中文', sites: ['substack'],
+      ext: null, cap: false, engine: 'deepseek', tested: false };
   }
   renderVals() {
     const st = this.state;
     const step = st.step === null ? (this.props.startStep ?? 0) : st.step;
     const ext = st.ext === null ? !!this.props.extEnabled : st.ext;
-    const go = (n) => () => this.setState({ step: Math.max(0, Math.min(7, n)) });
+    const go = (n) => () => this.setState({ step: Math.max(0, Math.min(8, n)) });
 
     const SITES = [
       { id: 'youtube', name: 'YouTube', what: '双语字幕，原文在上译文在下', hint: '挑一个有字幕的视频' },
@@ -283,56 +337,85 @@ class Component extends DCLogic {
       { id: 'web', name: '普通网页', what: '维基、博客、新闻都行', hint: '随便一篇长一点的' },
     ];
     const on = (id) => st.sites.indexOf(id) >= 0;
-    const selCss = 'border:1.5px solid var(--color-accent-2-600);box-shadow:0 0 0 3px var(--color-accent-2-200),var(--shadow-sm);width:100%';
-    const offCss = 'border:1.5px solid transparent;width:100%';
-    const sites = SITES.map((s) => ({
-      ...s, on: on(s.id),
-      tint: on(s.id) ? 'var(--color-accent-2-200)' : 'var(--color-neutral-100)',
-      ink: on(s.id) ? 'var(--color-accent-2-700)' : 'var(--color-neutral-600)',
-      css: on(s.id) ? selCss : offCss,
-      pick: () => this.setState({ sites: on(s.id) ? st.sites.filter((x) => x !== s.id) : st.sites.concat(s.id) }),
+    const selCard = 'border:1.5px solid var(--color-accent-2-600);box-shadow:0 0 0 3px var(--color-accent-2-200),var(--shadow-sm);width:100%';
+    const offCard = 'border:1.5px solid transparent;width:100%';
+    const sites = SITES.map((x) => ({
+      ...x, on: on(x.id),
+      tint: on(x.id) ? 'var(--color-accent-2-200)' : 'var(--color-neutral-100)',
+      ink: on(x.id) ? 'var(--color-accent-2-700)' : 'var(--color-neutral-600)',
+      css: on(x.id) ? selCard : offCard,
+      pick: () => this.setState({ sites: on(x.id) ? st.sites.filter((y) => y !== x.id) : st.sites.concat(x.id) }),
     }));
 
-    const chip = (label, active, pick) => ({
-      label, pick,
-      css: active
-        ? 'border-color:var(--color-accent-2-600);background:var(--color-accent-2-100);color:var(--color-accent-2-700);font-weight:600'
-        : '',
-    });
+    // 值取自 build/providers.config.js —— 真实注册表就是这些。产品里这一屏必须
+    // 从 window.MT_PROVIDERS 读，绝不能像这里一样写死（CLAUDE.md 的单一注册表规则）。
+    const ENGINES = [
+      { id: 'deepseek', name: 'DeepSeek', what: '便宜、够快，国内外都能直连',
+        endpoint: 'https://api.deepseek.com/v1/chat/completions',
+        where: 'platform.deepseek.com', hint: 'sk-…' },
+      { id: 'openai', name: 'ChatGPT (OpenAI)', what: '质量最稳，按 token 计费',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        where: 'platform.openai.com', hint: 'sk-proj-…' },
+      { id: 'free', name: '免费通道', what: '不用 Key，先看看效果；响应不稳定',
+        endpoint: '', where: '', hint: '' },
+    ];
+    const eng = ENGINES.find((e) => e.id === st.engine) || ENGINES[0];
+    const engines = ENGINES.map((e) => ({
+      ...e, on: e.id === st.engine,
+      css: e.id === st.engine ? selCard : offCard,
+      pick: () => this.setState({ engine: e.id, tested: false }),
+    }));
+
+    const chip = (label, active, pick) => ({ label, pick, css: active
+      ? 'border-color:var(--color-accent-2-600);background:var(--color-accent-2-100);color:var(--color-accent-2-700);font-weight:600' : '' });
     const srcLangs = ['English', '日本語', '한국어', 'Français', 'Deutsch', 'Español']
       .map((l) => chip(l, st.src === l, () => this.setState({ src: l })));
     const dstLangs = ['简体中文', '繁體中文', 'English']
       .map((l) => chip(l, st.dst === l, () => this.setState({ dst: l })));
 
-    const picks = (st.sites.length ? SITES.filter((s) => on(s.id)) : [SITES[2]])
-      .map((s) => ({ ...s, tint: 'var(--color-accent-2-200)', ink: 'var(--color-accent-2-700)' }));
+    const picks = (st.sites.length ? SITES.filter((x) => on(x.id)) : [SITES[2]])
+      .map((x) => ({ ...x, tint: 'var(--color-accent-2-200)', ink: 'var(--color-accent-2-700)', open: go(7) }));
 
-    const CTA = ['开始设置 · 约 2 分钟', '继续', '继续', ext ? '已经启用了，下一步' : '我已经启用了',
+    const SETUP = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+    const inSetup = !!SETUP[step];
+    const CTA = ['开始设置 · 约 3 分钟', '继续', '继续',
+      ext ? '已经启用了，下一步' : '我已经启用了', '继续',
       '打开了，下一步', '读完了，回来看看', '再看下一张', '发送验证码'];
+    const blocked = (step === 2 && st.sites.length === 0);
     const ALT = [
-      { on: true, label: '先四处看看', go: 7 },
-      { on: false }, { on: false },
-      { on: true, label: '这一步先跳过', go: 4 },
+      { on: true, label: '先四处看看', go: 8 },
+      { on: false }, { on: false }, { on: false }, { on: false }, { on: false },
+      { on: true, label: '我已经翻过一页了', go: 7 },
       { on: false },
-      { on: true, label: '我已经翻过一页了', go: 6 },
-      { on: false },
-      { on: true, label: '以后再说', go: 7 },
+      { on: true, label: '以后再说', go: 8 },
     ][step] || { on: false };
 
     return {
       v: {
-        is0: step === 0, is1: step === 1, is2: step === 2, is3: step === 3,
-        is4: step === 4, is5: step === 5, is6: step === 6, is7: step === 7,
-        pct: Math.round((step / 7) * 100) + '%',
-        canBack: step > 0, canSkip: step >= 1 && step <= 4,
-        back: go(step - 1), skip: go(5), next: () => {
-          if (step === 3 && !ext) return this.setState({ ext: true });
-          if (step === 4 && !st.cap) return this.setState({ cap: true });
-          go(step + 1)();
+        isWelcome: step === 0, isLang: step === 1, isSites: step === 2, isExt: step === 3,
+        isKey: step === 4, isCapture: step === 5, isRead: step === 6, isCard: step === 7,
+        isSync: step === 8,
+        pct: inSetup ? Math.round((SETUP[step] / 5) * 100) + '%' : '0%',
+        barBg: inSetup ? 'var(--color-neutral-200)' : 'transparent',
+        canBack: step > 0,
+        canSkip: inSetup,
+        back: go(step - 1),
+        skip: go(8),
+        blocked: blocked, ready: !blocked,
+        next: () => {
+          const patch = { step: Math.min(8, step + 1) };
+          if (step === 3) patch.ext = true;
+          if (step === 5) patch.cap = true;
+          this.setState(patch);
         },
-        cta: CTA[step], blocked: step === 2 && st.sites.length === 0,
-        hasAlt: !!ALT.on, altLabel: ALT.label, alt: ALT.on ? go(ALT.go) : (() => {}),
-        srcLangs, dstLangs, sites, picks,
+        cta: CTA[step],
+        grade: go(8),
+        hasAlt: !!ALT.on, altLabel: ALT.label || '', alt: ALT.on ? go(ALT.go) : (() => {}),
+        srcLangs: srcLangs, dstLangs: dstLangs, sites: sites, picks: picks, engines: engines,
+        needsKey: st.engine !== 'free',
+        keyHint: eng.hint, keyWhere: eng.where, endpoint: eng.endpoint,
+        tested: st.tested, testMsg: '通了 · ' + eng.name,
+        test: () => this.setState({ tested: true }),
         extLabel: ext ? '扩展已启用' : '扩展还没启用',
         extTint: ext ? 'var(--color-accent-2-100)' : 'var(--color-accent-100)',
         extDot: ext ? 'var(--color-accent-2-600)' : 'var(--color-accent-400)',
