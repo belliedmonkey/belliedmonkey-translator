@@ -38,6 +38,20 @@ const ROOT = path.join(__dirname, '..');
 // 于是中国版 App 带的是国际版引擎注册表 —— 设置页列出 ChatGPT / Claude / Google，而它
 // 旁边的中国版扩展早就把这些滤掉了。同一个产品两套标准，1.6.4 就这么出货了。
 // 来源必须跟着 flavor 走，而不是跟着「有哪个目录」走。
+// 一棵树里最新的改动时间。用来判断出货包是不是比源码旧（见下面的过期守卫）。
+function newestMtime(roots) {
+  let newest = 0;
+  const walk = (p) => {
+    let st;
+    try { st = fs.statSync(p); } catch (_) { return; }
+    if (st.isDirectory()) {
+      for (const e of fs.readdirSync(p)) walk(path.join(p, e));
+    } else if (st.mtimeMs > newest) { newest = st.mtimeMs; }
+  };
+  roots.forEach(walk);
+  return newest;
+}
+
 const APP_SRC = {
   'safari-project': 'dist-app',
   'safari-project-china': 'dist-app-china',
@@ -732,6 +746,23 @@ function main() {
         console.error(`✗ ${APP_SRC[proj]}/${f} 缺失 —— 宿主 App 包没构建完整`);
         process.exit(1);
       }
+    }
+    // 过期比缺失更坏，因为它一声不吭。上面那条只拦「没有」，拦不住「有，但是旧的」：
+    // 2026-08-28 只跑了 `node build.js`（global），dist-app-china/ 还停在两天前，
+    // app:sync 就把旧资源忠实地灌进了中国版工程，并打印「✓ 资源已灌入」。
+    // 装出来的中国版 App 少了整套引导，而没有任何一行说过。
+    const newestSrc = newestMtime([
+      path.join(ROOT, 'app'),
+      path.join(ROOT, 'extension', '_locales'),   // i18n 也编进 Script.js
+    ]);
+    const oldestBuilt = Math.min(...FILES.map((f) => fs.statSync(path.join(SRC, f)).mtimeMs));
+    if (newestSrc > oldestBuilt) {
+      const flag = APP_SRC[proj].endsWith('-china') ? ' --flavor china' : '';
+      console.error(`✗ ${APP_SRC[proj]}/ 比源码旧 —— 灌进去的会是过期资源`);
+      console.error(`  源码最新改动：${new Date(newestSrc).toLocaleString()}`);
+      console.error(`  包体构建时间：${new Date(oldestBuilt).toLocaleString()}`);
+      console.error(`  修法：node build.js${flag}   然后再跑 app:sync`);
+      process.exit(1);
     }
     if (state === 'unrecognized') {
       console.error(`✗ ${proj}/ 存在，但里面找不到 "Shared (App)" —— 这个工程无法打补丁。`);
