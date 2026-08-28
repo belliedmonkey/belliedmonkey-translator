@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "Aktiviere BelliedMonkey Translator unter Einstellungen → Safari → Erweiterungen, schalte das Sammeln ein und surfe und übersetze wie gewohnt."
+  },
+  "app_ext_off_title": {
+    "message": "Die Erweiterung ist noch nicht aktiv"
+  },
+  "app_ext_off_body": {
+    "message": "Karten kommen aus der Safari-Erweiterung. Sie ist nicht aktiviert, daher bleibt es hier leer."
+  },
+  "app_ext_unknown_title": {
+    "message": "Richte zuerst die Browser-Seite ein"
+  },
+  "app_ext_ios_body": {
+    "message": "Karten kommen aus der Safari-Erweiterung: Öffne Einstellungen → Safari → Erweiterungen, aktiviere BelliedMonkey Translator und erlaube alle Websites."
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari-Erweiterungseinstellungen öffnen"
   }
 }

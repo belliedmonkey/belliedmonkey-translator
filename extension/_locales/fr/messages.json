@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "Activez BelliedMonkey Translator dans Réglages → Safari → Extensions, activez la capture, puis naviguez et traduisez comme d'habitude."
+  },
+  "app_ext_off_title": {
+    "message": "L'extension n'est pas encore activée"
+  },
+  "app_ext_off_body": {
+    "message": "Les cartes viennent de l'extension Safari. Elle n'est pas activée, donc cette page reste vide."
+  },
+  "app_ext_unknown_title": {
+    "message": "Configurez d'abord le côté navigateur"
+  },
+  "app_ext_ios_body": {
+    "message": "Les cartes viennent de l'extension Safari : ouvrez Réglages → Safari → Extensions, activez BelliedMonkey Translator et autorisez tous les sites."
+  },
+  "app_ext_open_prefs": {
+    "message": "Ouvrir les réglages des extensions Safari"
   }
 }

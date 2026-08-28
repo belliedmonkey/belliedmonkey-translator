@@ -259,6 +259,43 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(ev.tag && ev.tag !== 'A',
         '空态那个「去设置」还是个链接 —— 它在 App 里指向没有采集开关的设置页，是死路');
     }
+    // 扩展未启用横幅（§引导）。转换器模板的两端接线都在工程里、都接着空气：
+    // Swift 调 show(...) 而 bundle 里没有全局 show()，ReferenceError 被静默吞掉；
+    // "open-preferences" 处理器现成而全仓库零处发送。这里断言两端都接上了。
+    //
+    // 平台不对称是**故意**的，也是这条断言的重点：getStateOfSafariExtension 是
+    // macOS-only，iOS 既查不到状态也没有深链 —— 给一个跳不过去的按钮比不给更糟。
+    if (o.syncEnabled) {
+      const eb = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const sec = document.getElementById('ext-banner');
+          const act = document.getElementById('ext-banner-act');
+          const snap = () => ({ banner: !sec.hidden, button: !act.hidden,
+                                title: document.getElementById('ext-banner-title').textContent });
+          const out = { hasShow: typeof window.show === 'function', atRest: snap() };
+          if (out.hasShow) {
+            window.show('mac', false, true);  await new Promise((r) => setTimeout(r, 20));
+            out.macOff = snap();
+            window.show('ios');               await new Promise((r) => setTimeout(r, 20));
+            out.ios = snap();
+            window.show('mac', true, true);   await new Promise((r) => setTimeout(r, 20));
+            out.macOn = snap();
+          }
+          return JSON.stringify(out);
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const b = JSON.parse(eb.result.value);
+      need(b.hasShow, '没有全局 show() —— ViewController 的 evaluateJavaScript 会静默失败，'
+        + '扩展状态永远传不进页面');
+      need(!b.atRest.banner, '还没收到状态就先把横幅显示出来了');
+      // 后面几条都依赖 show() 存在；缺了就只报上面那一条，不要级联成一串 TypeError。
+      if (b.hasShow) {
+        need(b.macOff.banner && b.macOff.button, 'macOS 扩展未启用时应当显示横幅和直达按钮');
+        need(!!b.macOff.title, '横幅标题是空的');
+        need(b.ios.banner && !b.ios.button, 'iOS 上不能给直达按钮 —— '
+          + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');
+        need(!b.macOn.banner, '扩展已启用还在显示「还没启用」横幅');
+      }
+    }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
     // The review surface, in both shipping states — it is inlined at build time and

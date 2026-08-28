@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "Activa BelliedMonkey Translator en Ajustes → Safari → Extensiones, activa la captura y navega y traduce como siempre."
+  },
+  "app_ext_off_title": {
+    "message": "La extensión aún no está activada"
+  },
+  "app_ext_off_body": {
+    "message": "Las tarjetas vienen de la extensión de Safari. No está activada, así que esto seguirá vacío."
+  },
+  "app_ext_unknown_title": {
+    "message": "Configura primero la parte del navegador"
+  },
+  "app_ext_ios_body": {
+    "message": "Las tarjetas vienen de la extensión de Safari: abre Ajustes → Safari → Extensiones, activa BelliedMonkey Translator y permite todos los sitios."
+  },
+  "app_ext_open_prefs": {
+    "message": "Abrir ajustes de extensiones de Safari"
   }
 }

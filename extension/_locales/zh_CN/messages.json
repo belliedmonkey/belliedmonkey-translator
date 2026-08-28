@@ -1684,5 +1684,20 @@
   },
   "app_empty_how": {
     "message": "在 iOS「设置 → Safari → 扩展」里启用大肚猴翻译，打开采集，然后照常浏览、照常翻译。"
+  },
+  "app_ext_off_title": {
+    "message": "扩展还没启用"
+  },
+  "app_ext_off_body": {
+    "message": "卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。"
+  },
+  "app_ext_unknown_title": {
+    "message": "先把浏览器那半边打通"
+  },
+  "app_ext_ios_body": {
+    "message": "卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。"
+  },
+  "app_ext_open_prefs": {
+    "message": "打开 Safari 扩展设置"
   }
 }

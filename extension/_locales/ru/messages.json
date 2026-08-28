@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "Включите BelliedMonkey Translator в «Настройки → Safari → Расширения», включите сбор, затем читайте и переводите как обычно."
+  },
+  "app_ext_off_title": {
+    "message": "Расширение ещё не включено"
+  },
+  "app_ext_off_body": {
+    "message": "Карточки приходят из расширения Safari. Оно не включено, поэтому здесь пусто."
+  },
+  "app_ext_unknown_title": {
+    "message": "Сначала настройте браузерную часть"
+  },
+  "app_ext_ios_body": {
+    "message": "Карточки приходят из расширения Safari: откройте «Настройки → Safari → Расширения», включите BelliedMonkey Translator и разрешите все сайты."
+  },
+  "app_ext_open_prefs": {
+    "message": "Открыть настройки расширений Safari"
   }
 }

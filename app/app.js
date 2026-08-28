@@ -176,6 +176,63 @@
     }
   }
 
+  // ─── 浏览器那半边（§引导）────────────────────────────────────────────────
+  //
+  // 转换器模板自带一套「告诉用户去启用扩展」的接线，两端都在工程里，两端都接空气：
+  //   Swift → 页面：didFinish 里 evaluateJavaScript("show('mac', <启用状态>, true)")
+  //                 —— 而我们用 Main.html 换掉模板页之后，全局 show() 就没了，
+  //                 ReferenceError 被 evaluateJavaScript 静默吞掉。
+  //   页面 → Swift：userContentController 收到 "open-preferences" 就调
+  //                 SFSafariApplication.showPreferencesForExtension —— 而全仓库
+  //                 零处发送这条消息。
+  // 这里把两端接上。Swift 一行都不用改。
+  //
+  // ⚠️ 平台不对称，且不能假装对称：getStateOfSafariExtension 是 macOS-only，
+  // iOS 分支只有一句无参数的 show('ios')。所以 iOS 上我们**不知道**扩展开没开，
+  // 只能给步骤；macOS 上才有真实状态和一键直达。
+  function paintExtBanner(state) {
+    const sec = $('ext-banner');
+    if (!sec) return;
+    if (!state || state.enabled === true) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $('ext-banner-title').textContent = state.known
+      ? t('app_ext_off_title', '扩展还没启用')
+      : t('app_ext_unknown_title', '先把浏览器那半边打通');
+    $('ext-banner-body').textContent = state.known
+      ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
+      : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+    const act = $('ext-banner-act');
+    // 只有 macOS 有直达入口。iOS 给按钮却跳不过去，比不给按钮更糟。
+    act.hidden = !state.canOpenPrefs;
+    act.textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置');
+  }
+
+  let extState = null;
+  function setExtState(next) { extState = next; paintExtBanner(extState); }
+
+  // ViewController 在页面加载完时调它。签名跟转换器模板一致，别改 —— 改了 Swift 侧就对不上。
+  window.show = function (platform, isEnabled, useSettingsDeepLink) {
+    if (platform === 'mac') {
+      setExtState({
+        known: typeof isEnabled === 'boolean',
+        enabled: isEnabled === true,
+        canOpenPrefs: useSettingsDeepLink !== false,
+      });
+    } else {
+      // iOS：查不到状态，也没有深链。
+      setExtState({ known: false, enabled: false, canOpenPrefs: false });
+    }
+  };
+
+  function openSafariPrefs() {
+    try {
+      webkit.messageHandlers.controller.postMessage('open-preferences');
+    } catch (_) {
+      // 不在宿主 App 里（浏览器里开的复习页、或测试环境）—— 静默即可，
+      // 横幅上的文字本身已经说清楚该去哪。
+    }
+  }
+
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
   let pendingEmail = '';
@@ -450,6 +507,7 @@
     say('');
   }
 
+  $('ext-banner-act').addEventListener('click', openSafariPrefs);
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // Both of review.html's settings links, captured so review.js's own handler (which

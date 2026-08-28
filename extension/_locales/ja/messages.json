@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "「設定 → Safari → 拡張機能」で大肚猴翻訳を有効にし、収集をオンにしてから、いつものように閲覧・翻訳してください。"
+  },
+  "app_ext_off_title": {
+    "message": "拡張機能がまだ有効になっていません"
+  },
+  "app_ext_off_body": {
+    "message": "カードは Safari 拡張機能から届きます。有効になっていないため、ここは空のままです。"
+  },
+  "app_ext_unknown_title": {
+    "message": "まずブラウザ側を設定します"
+  },
+  "app_ext_ios_body": {
+    "message": "カードは Safari 拡張機能から届きます：「設定 → Safari → 拡張機能」で大肚猴翻訳をオンにし、すべての Web サイトを許可してください。"
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari 拡張機能の設定を開く"
   }
 }

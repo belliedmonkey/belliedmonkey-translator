@@ -11,6 +11,15 @@
 </head>
 <body>
   <main id="app">
+    <!-- 浏览器那半边没打通时的横幅。卡片只能从 Safari 扩展经同步进来，所以这条
+         横跨登录与未登录两种状态 —— 它说的不是「你没登录」，是「材料的来源还没开」。
+         状态由 ViewController 在 didFinish 里调 show() 灌进来（macOS 查得到，
+         iOS 查不到 —— getStateOfSafariExtension 是 macOS-only）。 -->
+    <section id="ext-banner" hidden>
+      <p id="ext-banner-title"></p>
+      <p id="ext-banner-body" class="note"></p>
+      <button id="ext-banner-act" type="button" hidden></button>
+    </section>
     <!-- Signed out. This is the only screen a new user sees, so it has to say what
          signing in is FOR — the app is empty without it (learning-design §7.2), and
          an empty deck with no explanation reads as a broken app. -->

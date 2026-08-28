@@ -1684,5 +1684,20 @@
   },
   "app_empty_how": {
     "message": "在 iOS「設定 → Safari → 擴充功能」中啟用大肚猴翻譯，打開採集，然後照常瀏覽、照常翻譯。"
+  },
+  "app_ext_off_title": {
+    "message": "擴充功能還沒啟用"
+  },
+  "app_ext_off_body": {
+    "message": "卡片來自 Safari 擴充功能。它還沒啟用，所以這裡會一直是空的。"
+  },
+  "app_ext_unknown_title": {
+    "message": "先把瀏覽器那半邊打通"
+  },
+  "app_ext_ios_body": {
+    "message": "卡片來自 Safari 擴充功能：到「設定 → Safari → 擴充功能」中開啟大肚猴翻譯，權限選「所有網站」。"
+  },
+  "app_ext_open_prefs": {
+    "message": "開啟 Safari 擴充功能設定"
   }
 }

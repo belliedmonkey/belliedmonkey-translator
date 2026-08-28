@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "설정 → Safari → 확장 프로그램에서 BelliedMonkey Translator를 켜고 수집을 활성화한 뒤, 평소처럼 탐색하고 번역하세요."
+  },
+  "app_ext_off_title": {
+    "message": "확장 프로그램이 아직 켜지지 않았습니다"
+  },
+  "app_ext_off_body": {
+    "message": "카드는 Safari 확장에서 옵니다. 아직 켜지 않아 이곳은 계속 비어 있습니다."
+  },
+  "app_ext_unknown_title": {
+    "message": "브라우저 쪽을 먼저 설정하세요"
+  },
+  "app_ext_ios_body": {
+    "message": "카드는 Safari 확장에서 옵니다: 설정 → Safari → 확장 프로그램에서 BelliedMonkey Translator를 켜고 모든 웹사이트를 허용하세요."
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari 확장 프로그램 설정 열기"
   }
 }

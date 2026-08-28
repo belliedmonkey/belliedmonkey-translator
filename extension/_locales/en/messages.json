@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "Enable BelliedMonkey Translator in Settings → Safari → Extensions, turn on capture, then browse and translate as usual."
+  },
+  "app_ext_off_title": {
+    "message": "The extension isn't on yet"
+  },
+  "app_ext_off_body": {
+    "message": "Cards come from the Safari extension. It is not enabled, so this stays empty."
+  },
+  "app_ext_unknown_title": {
+    "message": "Set up the browser half first"
+  },
+  "app_ext_ios_body": {
+    "message": "Cards come from the Safari extension: open Settings → Safari → Extensions, turn on BelliedMonkey Translator, and allow all websites."
+  },
+  "app_ext_open_prefs": {
+    "message": "Open Safari Extension Settings"
   }
 }

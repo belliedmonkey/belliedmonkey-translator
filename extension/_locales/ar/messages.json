@@ -1683,5 +1683,20 @@
   },
   "app_empty_how": {
     "message": "فعّل BelliedMonkey Translator من الإعدادات ← Safari ← الإضافات، وشغّل الالتقاط، ثم تصفّح وترجم كالمعتاد."
+  },
+  "app_ext_off_title": {
+    "message": "لم يتم تفعيل الإضافة بعد"
+  },
+  "app_ext_off_body": {
+    "message": "تأتي البطاقات من إضافة Safari. لم يتم تفعيلها، لذا ستبقى هذه الصفحة فارغة."
+  },
+  "app_ext_unknown_title": {
+    "message": "اضبط جانب المتصفح أولاً"
+  },
+  "app_ext_ios_body": {
+    "message": "تأتي البطاقات من إضافة Safari: افتح الإعدادات ← Safari ← الإضافات، وفعّل BelliedMonkey Translator، واسمح لجميع المواقع."
+  },
+  "app_ext_open_prefs": {
+    "message": "فتح إعدادات إضافات Safari"
   }
 }

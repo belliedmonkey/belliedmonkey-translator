@@ -228,3 +228,29 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-drive) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 /* interaction-spec 全局原则: disabled must be VISIBLE (same 45% as the shell). */
 :where(#app-drive) button:disabled { opacity: 0.45; cursor: default; }
+
+/* 扩展未启用横幅（§引导）。琥珀调用的是 accent 家族的浅阶，与 popup 的
+   .setup-note.warn 同一套语义：这是「还差一步」，不是错误。 */
+#ext-banner {
+  background: var(--accent-track);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#ext-banner-title { margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--accent-deep); }
+#ext-banner .note { margin: 0; color: var(--accent-deep); opacity: .85; }
+#ext-banner-act {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 18px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+}
+#ext-banner-act:hover { background: var(--accent-hover); }
