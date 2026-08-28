@@ -1698,5 +1698,11 @@
   },
   "app_ext_open_prefs": {
     "message": "Safari-Erweiterungseinstellungen öffnen"
+  },
+  "app_signin_why": {
+    "message": "Karten werden von der Browser-Erweiterung gesammelt. Zum Wiederholen auf diesem Gerät musst du dich anmelden, damit sie synchronisiert werden."
+  },
+  "app_signin_open": {
+    "message": "Anmelden"
   }
 }

@@ -1699,5 +1699,11 @@
   },
   "app_ext_open_prefs": {
     "message": "開啟 Safari 擴充功能設定"
+  },
+  "app_signin_why": {
+    "message": "卡片是瀏覽器擴充功能採集的。要在這台裝置上複習，就得登入同步過來。"
+  },
+  "app_signin_open": {
+    "message": "登入"
   }
 }

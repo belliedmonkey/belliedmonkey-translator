@@ -1699,5 +1699,11 @@
   },
   "app_ext_open_prefs": {
     "message": "打开 Safari 扩展设置"
+  },
+  "app_signin_why": {
+    "message": "卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。"
+  },
+  "app_signin_open": {
+    "message": "登录"
   }
 }

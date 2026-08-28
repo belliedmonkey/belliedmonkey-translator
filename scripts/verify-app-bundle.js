@@ -296,6 +296,32 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(!b.macOn.banner, '扩展已启用还在显示「还没启用」横幅');
       }
     }
+    // A3：未登录首屏不能是登录墙。40 个外部用户全部经 App 进来、0 激活，
+    // 其中 15 个「发了验证码从没验证」—— 多半死在这一屏。冷启动就要邮箱，
+    // 而用户还不知道这个 App 是干什么的。
+    //
+    // 但也**不能反过来假装登录可选**：App 结构上不采集（learn-collector 不在
+    // app-bundle 里），材料只能经同步进来，所以未登录的 App 永远是空的。
+    // 这两条一起断言：门开着，且说清楚为什么最终仍要登录。
+    if (o.syncEnabled) {
+      const w = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const forms = document.getElementById('signin-forms');
+          const prompt = document.getElementById('signin-prompt');
+          const out = { formsHidden: forms.hidden, promptShown: !prompt.hidden,
+                        why: document.getElementById('signin-why').textContent };
+          document.getElementById('btn-signin').click();
+          await new Promise((r) => setTimeout(r, 30));
+          out.formsAfterClick = !forms.hidden;
+          return JSON.stringify(out);
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const wv = JSON.parse(w.result.value);
+      need(wv.formsHidden, '未登录首屏直接摊开了登录表单 —— 那就是一堵墙');
+      need(wv.promptShown, '未登录首屏没有任何说明 —— 用户不知道这是什么、也不知道下一步');
+      need(/同步|sync|同期|동기|synchron|sincroniz|синхрон|مزامنة/i.test(wv.why),
+        '登录说明没讲清「材料只能靠同步过来」—— 那会让登录看起来像可选的');
+      need(wv.formsAfterClick, '点了登录却展不开表单');
+    }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
     // The review surface, in both shipping states — it is inlined at build time and

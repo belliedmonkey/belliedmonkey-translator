@@ -1698,5 +1698,11 @@
   },
   "app_ext_open_prefs": {
     "message": "Open Safari Extension Settings"
+  },
+  "app_signin_why": {
+    "message": "Cards are captured by the browser extension. To review them on this device, sign in so they can sync over."
+  },
+  "app_signin_open": {
+    "message": "Sign in"
   }
 }

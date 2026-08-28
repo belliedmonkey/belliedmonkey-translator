@@ -27,6 +27,17 @@
       <h1>大肚猴翻译</h1>
       <p class="lede" id="lede"></p>
 
+      <!-- A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
+           #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
+           但**不假装登录是可选的**：App 结构上不采集，材料只能经同步进来
+           （learning-design §7.2 / §9.2），所以要在这台设备上复习就必须登录。
+           登录表单按需展开，而不是挡在门口。 -->
+      <div id="signin-prompt">
+        <p id="signin-why"></p>
+        <button id="btn-signin" type="button"></button>
+      </div>
+
+      <div id="signin-forms" hidden>
       <form id="email-form">
         <label for="email" id="email-label"></label>
         <input id="email" type="email" inputmode="email" autocomplete="email"
@@ -55,6 +66,7 @@
         <button id="app-pw-back" type="button" class="link"></button>
       </form>
       <button id="app-use-pw" type="button" class="link"></button>
+      </div>
 
       <p class="note" id="local-note"></p>
     </section>

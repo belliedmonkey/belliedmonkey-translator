@@ -58,6 +58,9 @@
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
     $('verify').textContent = t('app_verify', '登录');
     $('back').textContent = t('app_back_email', '换一个邮箱');
+    $('signin-why').textContent = t('app_signin_why',
+      '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
+    $('btn-signin').textContent = t('app_signin_open', '登录');
     $('local-note').textContent = t('app_local_note', '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。');
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
     $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
@@ -166,6 +169,9 @@
       $('app-use-pw').hidden = true;   // 只有 demo 地址才会把它揭出来（refreshPwEntry）
       $('email-form').hidden = false;
       $('code-form').hidden = true;
+      // A3：退出后回到可浏览的首页，表单收起来 —— 不要又变成一堵墙。
+      $('signin-forms').hidden = true;
+      $('signin-prompt').hidden = false;
     }
     if (session) {
       $('who').textContent = session.email || '';
@@ -236,6 +242,12 @@
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
   let pendingEmail = '';
+
+  $('btn-signin').addEventListener('click', () => {
+    $('signin-prompt').hidden = true;
+    $('signin-forms').hidden = false;
+    $('email').focus();
+  });
 
   $('email').addEventListener('input', refreshPwEntry);
 

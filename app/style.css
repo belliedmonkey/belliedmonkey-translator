@@ -254,3 +254,28 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   font-weight: 600;
 }
 #ext-banner-act:hover { background: var(--accent-hover); }
+
+/* A3：未登录首屏的登录邀请。它是一张说明卡，不是一道闸门 —— 表单按需展开。 */
+#signin-prompt {
+  background: var(--section-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#signin-why { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--dim); }
+#btn-signin {
+  align-self: flex-start;
+  background: none;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  padding: 10px 20px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+}
+#btn-signin:hover { background: var(--accent-track); }
+#signin-forms { display: flex; flex-direction: column; gap: 14px; }

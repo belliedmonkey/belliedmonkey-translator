@@ -1698,5 +1698,11 @@
   },
   "app_ext_open_prefs": {
     "message": "Ouvrir les réglages des extensions Safari"
+  },
+  "app_signin_why": {
+    "message": "Les cartes sont capturées par l'extension de navigateur. Pour les réviser sur cet appareil, connectez-vous afin qu'elles se synchronisent."
+  },
+  "app_signin_open": {
+    "message": "Se connecter"
   }
 }

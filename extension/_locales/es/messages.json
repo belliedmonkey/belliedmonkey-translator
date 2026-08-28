@@ -1698,5 +1698,11 @@
   },
   "app_ext_open_prefs": {
     "message": "Abrir ajustes de extensiones de Safari"
+  },
+  "app_signin_why": {
+    "message": "Las tarjetas las captura la extensión del navegador. Para repasarlas en este dispositivo, inicia sesión para que se sincronicen."
+  },
+  "app_signin_open": {
+    "message": "Iniciar sesión"
   }
 }

@@ -1698,5 +1698,11 @@
   },
   "app_ext_open_prefs": {
     "message": "Safari 확장 프로그램 설정 열기"
+  },
+  "app_signin_why": {
+    "message": "카드는 브라우저 확장이 수집합니다. 이 기기에서 복습하려면 로그인해 동기화해야 합니다."
+  },
+  "app_signin_open": {
+    "message": "로그인"
   }
 }
