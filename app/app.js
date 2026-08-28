@@ -71,6 +71,30 @@
     $('review-back').textContent = t('app_review_back', '← 返回');
     $('sync').textContent = t('app_sync', '同步');
     AppDriving.paintStatic();
+    paintAppEmptyState();
+  }
+
+  // 复习页的空态整段是从扩展的 review.html 原样嵌进来的（build/app-bundle.js 的
+  // <!--REVIEW--> 槽），所以它说的是扩展的话：「打开采集开关」+ 一个「去设置里打开采集」
+  // 的链接。在 App 里这两句都是错的 ——
+  //   · App 结构上就不采集：learn-collector.js 不在 app-bundle 的 MODULES 里，
+  //     材料只能经同步进来（domain-design §9.2）
+  //   · 那个链接被 app.js 拦去打开 App 设置，而 App 设置里没有采集开关 —— 死路
+  // 2026-08-28 实测：40 个外部用户全部经 App 进来，没有一个产生过一张卡。
+  // 每一个点进复习页的人撞的都是这面墙。
+  function paintAppEmptyState() {
+    const body = document.querySelector('#empty [data-i18n="learn_empty_body"]');
+    if (body) body.textContent = t('app_empty_body', '学习材料来自浏览器扩展 —— 这个 App 负责复习它们。');
+    const link = $('empty-settings');
+    if (!link) return;
+    // 降级成纯文本：iOS 没有跳到 Safari 扩展设置的深链，给一句能照做的话，
+    // 比给一个跳到死路的链接强。（macOS 有 SFSafariApplication 深链，但那要新增
+    // 一条 native 消息，属于另一件事。）
+    const how = document.createElement('span');
+    how.id = 'empty-settings';
+    how.textContent = t('app_empty_how',
+      '在 iOS「设置 → Safari → 扩展」里启用大肚猴翻译，打开采集，然后照常浏览、照常翻译。');
+    link.replaceWith(how);
   }
 
   async function paintCounts() {
@@ -354,6 +378,10 @@
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;
     $('review-view').hidden = false;
+    // review.js 自己的 applyI18n 会把每个 [data-i18n] 的 textContent 按扩展的文案
+    // 写回去，所以 paintStatic() 那次重绘会被它覆盖。进入复习页时再绘一次 ——
+    // 这里是空态真正会被看见的时刻。
+    paintAppEmptyState();
     // §8.8 — the app is a long-lived single page and review.js built its deck at
     // bundle load, so material synced since then is invisible until a rebuild.
     // Entering the view IS the rebuild point. `start()` is review.js's own export
@@ -427,7 +455,9 @@
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.
-  for (const id of ['open-settings', 'empty-settings']) {
+  // 'empty-settings' 不在列内：它在 App 里已被 paintAppEmptyState 换成纯文本，
+  // 而它原本指向的 App 设置没有采集开关。
+  for (const id of ['open-settings']) {
     const el = $(id);
     if (el) {
       el.addEventListener('click', (e) => {

@@ -1677,5 +1677,11 @@
   },
   "drive_awake_note": {
     "message": "A tela não bloqueia automaticamente enquanto o modo podcast está em primeiro plano. Para continuar vendo o cartão depois de bloquear, ative a tela sempre ativa do sistema: Ajustes → Tela e brilho → Sempre ativa."
+  },
+  "app_empty_body": {
+    "message": "O material de estudo vem da extensão do navegador — este app é para revisá-lo."
+  },
+  "app_empty_how": {
+    "message": "Ative o BelliedMonkey Translator em Ajustes → Safari → Extensões, ligue a captura e navegue e traduza normalmente."
   }
 }

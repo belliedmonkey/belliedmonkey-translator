@@ -1677,5 +1677,11 @@
   },
   "drive_awake_note": {
     "message": "L'écran ne se verrouille pas automatiquement tant que le mode podcast est au premier plan. Pour continuer à voir la carte après avoir verrouillé, activez l'affichage permanent du système : Réglages → Luminosité et affichage → Toujours activé."
+  },
+  "app_empty_body": {
+    "message": "Le matériel d'apprentissage vient de l'extension de navigateur — cette app sert à le réviser."
+  },
+  "app_empty_how": {
+    "message": "Activez BelliedMonkey Translator dans Réglages → Safari → Extensions, activez la capture, puis naviguez et traduisez comme d'habitude."
   }
 }

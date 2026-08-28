@@ -1677,5 +1677,11 @@
   },
   "drive_awake_note": {
     "message": "The screen won't auto-lock while podcast mode is in front. To keep seeing the card after you lock the phone, turn on the system's Always-On display: Settings → Display & Brightness → Always On."
+  },
+  "app_empty_body": {
+    "message": "Learning material comes from the browser extension — this app is where you review it."
+  },
+  "app_empty_how": {
+    "message": "Enable BelliedMonkey Translator in Settings → Safari → Extensions, turn on capture, then browse and translate as usual."
   }
 }

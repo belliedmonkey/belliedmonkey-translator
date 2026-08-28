@@ -236,6 +236,29 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(pv.normal, '普通邮箱也露出了密码入口 —— 判据没生效');
       need(!pv.demo, '演示账号（plus-alias）看不到密码入口 —— 这会直接导致 App Review 登录不进去');
     }
+    // 复习页空态在 App 里必须说 App 自己的话（2026-08-28）。整段是从扩展的
+    // review.html 原样嵌进来的，原文是「打开采集开关」+ 一个跳到 App 设置的链接 ——
+    // 而 App 结构上不采集（learn-collector.js 不在 app-bundle 的 MODULES 里），
+    // App 设置里也没有采集开关。那是每个点进复习页的人都会撞上的死路。
+    if (o.syncEnabled) {
+      const em = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          // 走用户的路径：点「开始复习」，让 review.js 的 applyI18n 先跑完，
+          // 再看空态说了什么。直接读初始 DOM 会漏掉「被覆盖回扩展文案」这种坏法。
+          document.getElementById('review').click();
+          await new Promise((r) => setTimeout(r, 200));
+          return JSON.stringify({
+          body: (document.querySelector('#empty [data-i18n="learn_empty_body"]') || {}).textContent || '',
+          tag: (document.getElementById('empty-settings') || {}).tagName || '',
+        }); })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const ev = JSON.parse(em.result.value);
+      need(!/采集开关|Turn on capture/i.test(ev.body),
+        '空态还在让 App 用户「打开采集开关」—— App 不采集，那个开关不存在');
+      need(/扩展|extension|拡張|확장|Erweiterung|extensión|extensão|расширени|إضافة/i.test(ev.body),
+        '空态没说清材料来自浏览器扩展，用户无从知道下一步做什么');
+      need(ev.tag && ev.tag !== 'A',
+        '空态那个「去设置」还是个链接 —— 它在 App 里指向没有采集开关的设置页，是死路');
+    }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
     // The review surface, in both shipping states — it is inlined at build time and

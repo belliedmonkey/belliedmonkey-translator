@@ -1677,5 +1677,11 @@
   },
   "drive_awake_note": {
     "message": "La pantalla no se bloquea automáticamente mientras el modo pódcast está en primer plano. Para seguir viendo la tarjeta tras bloquear, activa la pantalla siempre activa del sistema: Ajustes → Pantalla y brillo → Siempre activa."
+  },
+  "app_empty_body": {
+    "message": "El material de estudio viene de la extensión del navegador; esta app es para repasarlo."
+  },
+  "app_empty_how": {
+    "message": "Activa BelliedMonkey Translator en Ajustes → Safari → Extensiones, activa la captura y navega y traduce como siempre."
   }
 }

@@ -1677,5 +1677,11 @@
   },
   "drive_awake_note": {
     "message": "Solange der Podcast-Modus im Vordergrund ist, sperrt sich der Bildschirm nicht automatisch. Damit die Karte nach dem Sperren sichtbar bleibt, das systemeigene Always-On-Display einschalten: Einstellungen → Anzeige & Helligkeit → Immer aktiviert."
+  },
+  "app_empty_body": {
+    "message": "Das Lernmaterial stammt aus der Browser-Erweiterung — in dieser App wiederholst du es."
+  },
+  "app_empty_how": {
+    "message": "Aktiviere BelliedMonkey Translator unter Einstellungen → Safari → Erweiterungen, schalte das Sammeln ein und surfe und übersetze wie gewohnt."
   }
 }
