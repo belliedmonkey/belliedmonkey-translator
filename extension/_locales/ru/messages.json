@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "BelliedMonkey Translator"
+    "message": "BelliedMonkey: двуязычный перевод + повтор"
   },
   "extension_description": {
-    "message": "Двуязычные страницы + двойные субтитры. Включите обучение — прочитанные фразы станут карточками для повторения."
+    "message": "Двуязычные страницы и двойные субтитры. Прочитанные фразы становятся карточками для повторения. Свой ключ."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

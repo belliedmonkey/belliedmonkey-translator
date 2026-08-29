@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "大肚猴翻譯"
+    "message": "大肚猴翻譯：雙語對照 + 影片雙字幕 + 生詞複習"
   },
   "extension_description": {
-    "message": "網頁雙語對照 + 影片雙語字幕。開啟學習後，真正讀過的句子自動變成複習卡——翻譯與學習，一個閉環。"
+    "message": "網頁雙語對照與影片雙字幕。你真正讀過的句子會變成複習卡，按遺忘曲線推回來。自帶 Key，不上傳原文。"
   },
   "action_title": {
     "message": "大肚猴翻譯"

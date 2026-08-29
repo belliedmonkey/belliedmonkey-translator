@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "대두원숭이 번역"
+    "message": "BelliedMonkey: 이중 번역 · 자막 · 복습"
   },
   "extension_description": {
-    "message": "웹 대역 번역 + 영상 이중 자막. 학습을 켜면 실제로 읽은 문장이 복습 카드가 됩니다 — 번역과 학습이 하나의 루프로."
+    "message": "이중 언어 페이지와 자막. 실제로 읽은 문장이 간격 반복 카드가 됩니다. 키는 직접 준비."
   },
   "action_title": {
     "message": "대두원숭이 번역"

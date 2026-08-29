@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "BelliedMonkey Translator"
+    "message": "BelliedMonkey: traducción bilingüe + repaso"
   },
   "extension_description": {
-    "message": "Páginas bilingües + subtítulos dobles. Con el aprendizaje, las frases que lees se vuelven tarjetas de repaso."
+    "message": "Páginas bilingües y subtítulos dobles. Las frases que lees se vuelven tarjetas de repaso. Tu propia clave."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

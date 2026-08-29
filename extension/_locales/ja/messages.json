@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "大肚猴翻訳"
+    "message": "BelliedMonkey：対訳・二重字幕・単語復習"
   },
   "extension_description": {
-    "message": "ウェブ対訳 + 動画の二言語字幕。学習をオンにすると、実際に読んだ文が復習カードになります——翻訳と学習がひとつのループに。"
+    "message": "対訳ページと二重字幕。実際に読んだ文が間隔反復カードになります。キーはご自身のものを使用。"
   },
   "action_title": {
     "message": "大肚猴翻訳"

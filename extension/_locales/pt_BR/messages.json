@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "BelliedMonkey Translator"
+    "message": "BelliedMonkey: tradução bilíngue + revisão"
   },
   "extension_description": {
-    "message": "Páginas bilíngues + legendas duplas. Com o aprendizado, as frases que você lê viram cartões de revisão."
+    "message": "Páginas bilíngues e legendas duplas. As frases que você lê viram cartões de revisão. Sua própria chave."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"

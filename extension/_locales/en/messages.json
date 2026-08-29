@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "BelliedMonkey Translator"
+    "message": "BelliedMonkey: Bilingual Translate + Review"
   },
   "extension_description": {
-    "message": "Bilingual pages + dual video subtitles. Turn on learning and the sentences you read become review cards."
+    "message": "Bilingual pages and dual subtitles. Sentences you truly read become spaced-repetition cards. Bring your own key."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
