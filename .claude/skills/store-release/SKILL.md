@@ -63,7 +63,8 @@ node scripts/asc.js versions    # 各线的版本记录、状态、挂了哪个 
 ### 2. 出包
 
 ```bash
-# 改版本号：package.json 的 version 是唯一来源，build.js 与 build-safari.sh 都从这里取
+# 改版本号：**两处都要改** —— package.json 与 extension/manifest.json。
+# build.js 有 version drift 门禁同时校验两者，只改一处会直接红。
 node build.js                      # → dist/            + belliedmonkeytranslator.zip
 node build.js --flavor china       # → dist-china/      + belliedmonkeytranslator-china.zip
 node build.js firefox              # → dist-firefox/    + belliedmonkeytranslator-firefox.xpi
@@ -122,10 +123,43 @@ google 引擎       content/providers.gen.js 里 '"id":"google"' 应为 0 条
 
 ### 4. 上传 + 挂 build
 
+**不要用 `xcodebuild -exportArchive` 直接上传。** 那条路要 Xcode 里那个 Apple ID 的
+登录态（`-allowProvisioningUpdates` 拿它去刷描述文件），而登录态会过期 —— 2026-08-29
+就卡在这里：先报 `Failed to Use Accounts`，补上 API key 参数后改报 `Account credentials
+have expired`。**分发证书本身是好的**，过期的是账号会话。两次失败的**退出码都是 0**。
+
+改成两步：本地导出（不联网）+ API key 上传。这条路不依赖任何会过期的登录态。
+
 ```bash
+# ① 本地导出 —— export 而不是 upload，且**不要** -allowProvisioningUpdates
+cat > /tmp/export-local.plist <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>method</key><string>app-store-connect</string>
+<key>destination</key><string>export</string>
+<key>teamID</key><string>X2Q85MABWK</string>
+<key>uploadSymbols</key><true/>
+<key>signingStyle</key><string>automatic</string>
+</dict></plist>
+PLIST
 env -u NODE_OPTIONS xcodebuild -exportArchive -archivePath /tmp/mt-ios.xcarchive \
-  -exportOptionsPlist build/ios-export.plist -exportPath /tmp/out -allowProvisioningUpdates
-# 判据：日志里同时出现 "Upload succeeded" 与 "EXPORT SUCCEEDED"
+  -exportOptionsPlist /tmp/export-local.plist -exportPath /tmp/out-ios
+# 判据：EXPORT SUCCEEDED **且** /tmp/out-ios/*.ipa 真的存在
+
+# ② API key 上传（.p8 必须叫 AuthKey_<KEYID>.p8 且放在这个目录）
+KI=<ascKeyId>; II=<ascIssuerId>
+mkdir -p ~/.appstoreconnect/private_keys
+cp <ascKeyPath> ~/.appstoreconnect/private_keys/AuthKey_${KI}.p8
+env -u NODE_OPTIONS xcrun altool --upload-app -f /tmp/out-ios/*.ipa -t ios \
+  --apiKey "$KI" --apiIssuer "$II"
+# 判据：出现 "No errors uploading"。**退出码不可信**，altool 失败时也返回 0。
+```
+
+⚠️ `altool` 会跑 Apple 自己的一整套校验，而它拒得比本地任何门禁都晚、都贵：归档
+成功、导出成功、传到最后才拒，**而且一次只报一个 locale**。2026-08-29 撞到的是
+`extension_name` 超过 **40** 字符（不是 manifest 的 45），五个 locale 同时超标 ——
+照着报错改要来回五次。`build.js` 现在有 `nameLengthGate` 挡在前面了。
 
 node scripts/asc.js builds      # 等到该 build 变 VALID（约 1–3 分钟）
 node scripts/asc.js bind com.belliedmonkeytranslator IOS 1.6.4 43
