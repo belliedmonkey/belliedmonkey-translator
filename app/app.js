@@ -208,7 +208,11 @@
     $('ext-banner-title').textContent = state.known
       ? t('app_ext_off_title', '扩展还没启用')
       : t('app_ext_unknown_title', '先把浏览器那半边打通');
-    $('ext-banner-body').textContent = state.known
+    // 正文按「有没有可点的东西」选，不是按「知不知道状态」选。
+    // 2026-08-29 真机撞到：#177 的回退触发后按钮被收起，而正文仍走 known 分支，
+    // 于是横幅变成一句「它没启用」加一片空白 —— 收起了动作却没补上说明，
+    // 等于把一条死路换成了另一条。有按钮才说「没启用」，没按钮就得给步骤。
+    $('ext-banner-body').textContent = state.canOpenPrefs
       ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
       : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
     const act = $('ext-banner-act');
