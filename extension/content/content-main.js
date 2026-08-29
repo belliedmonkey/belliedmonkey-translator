@@ -59,6 +59,26 @@
     learnRules: settings.learnRules || null,
   };
 
+  // ─── 自家官网：留一个可被页面读到的标记 ─────────────────────────────────
+  // iOS 上 App **查不到扩展有没有启用**（getStateOfSafariExtension 是 macOS-only），
+  // 所以「我到底设置成功了没」这个问题，在 iOS 上唯一能回答的地方就是一个被扩展
+  // 注入过的网页。官网的启用教程页据此亮绿灯。
+  //
+  // ⚠️ 只在自家域名注入。在 <all_urls> 上都设的话，等于让**任何网站**都能探测出
+  // 用户装了这个扩展 —— 对一个把「不追踪」写进 README 的产品，那是自己给自己
+  // 造了一个指纹面。这个判断是安全边界，不是优化。
+  const MT_SITES = /^(www\.)?belliedmonkey\.(cc|com)$/;
+  if (MT_SITES.test(location.hostname)) {
+    try {
+      const el = document.documentElement;
+      el.dataset.mtExtension = (chrome.runtime.getManifest() || {}).version || '1';
+      // 属性可能在页面自己的水合里被抹掉，事件让页面无论何时监听都收得到。
+      document.dispatchEvent(new CustomEvent('mt-extension-ready', {
+        detail: { version: el.dataset.mtExtension },
+      }));
+    } catch (_) { /* 探测标记失败绝不能影响翻译本身 */ }
+  }
+
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);
   // x.com / twitter.com: a SITE adapter (DOM/text dimension) that marks
   // non-content chrome as data-mt-skip-region so the generic webpage path doesn't
