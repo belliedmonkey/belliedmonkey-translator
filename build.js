@@ -412,6 +412,41 @@ function descriptionLengthGate(dir) {
   log(`Store description within Apple's ${DESC_MAX}-char limit (all locales)`);
 }
 
+// extension_name 的上限是 **40**，不是 manifest 那个 45。
+//
+// 2026-08-29 撞到的：`altool --upload-app` 在归档成功、导出成功、上传走到最后才拒：
+//   Invalid messages file. The messages.json validation failed for locale pt_BR …
+//   The name field must be present, of string type, and 40 or fewer characters long.
+//
+// 它一次只报**一个** locale，所以「改完再传」会一个一个撞过去；而本地此前只有描述
+// 有门禁，名称一道都没有。五个 locale（de/en/es/pt_BR/ru）同时超标，全靠 Apple 的
+// 服务器告诉我们 —— 那是这条链上最慢、最贵的反馈点。
+//
+// 40 是 Safari Web Extension 的限制，比 Chrome manifest 的 45 更严。两个 flavor 都跑：
+// 中国版的名称不经 applyChinaLocales 替换，同样会原样进 App Store。
+const NAME_MAX = 40;
+
+function nameLengthGate(dir) {
+  const localesDir = path.join(dir, '_locales');
+  const over = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const name = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_name || {}).message;
+    if (typeof name !== 'string' || !name) { over.push(`${loc}: missing or not a string`); continue; }
+    // Apple 数的是字符不是字节，和它的报错口径一致（[...s] 而不是 s.length）。
+    const n = [...name].length;
+    if (n > NAME_MAX) over.push(`${loc}: ${n} chars (max ${NAME_MAX}) — ${JSON.stringify(name)}`);
+  }
+  if (over.length) {
+    err(`extension_name exceeds Apple's ${NAME_MAX}-character limit — the upload is rejected\n` +
+        `  AFTER a successful archive and export, and Apple reports only ONE locale per try:\n` +
+        over.map((o) => '   ' + o).join('\n'));
+    process.exit(1);
+  }
+  log(`Store name within Apple's ${NAME_MAX}-char limit (all locales)`);
+}
+
 function applyChinaLocales(dir) {
   const DESC = require('./build/descriptions.china.js');
   const STRIP_KEYS = chinaOnlyStripKeys();
@@ -753,6 +788,7 @@ if (FLAVOR !== 'china') descriptionBrandGate(DIST);
 
 // Length gate runs for BOTH flavors — Apple rejects the upload, not the build.
 descriptionLengthGate(DIST);
+nameLengthGate(DIST);
 
 // ─── Host app assets (learning-design §7.2) ─────────────────────────────────
 // Built from `app/` plus the SAME shared modules the extension ships — not copies of
