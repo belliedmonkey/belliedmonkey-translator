@@ -298,6 +298,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             // 正文退回三步版。给一个点了没反应的按钮，比不给更糟。
             window.show('mac', false, false); await new Promise((r) => setTimeout(r, 20));
             out.macFailed = snap();
+            out.macFailedBody = document.getElementById('ext-banner-body').textContent;
             window.show('mac');               await new Promise((r) => setTimeout(r, 20));
             out.macUnknown = snap();
             window.show('mac', false, true);  await new Promise((r) => setTimeout(r, 20));
@@ -322,6 +323,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // #177 的两条：深链失败、以及状态还没查出来时，都不许给按钮。
         need(b.macFailed.banner && !b.macFailed.button,
           '深链失败后还留着「打开 Safari 扩展设置」按钮 —— 点了没反应，比不给更糟 (#177)');
+        // 收起按钮之后必须补上步骤，否则只是把一条死路换成另一条。
+        need(/设置|Settings|設定|설정|Réglages|Einstellungen|Ajustes|Настройки|الإعدادات/i
+          .test(b.macFailedBody || ''),
+          '深链失败后横幅收了按钮却没给步骤 —— 用户被告知「没启用」，然后无路可走');
         need(!b.macUnknown.button,
           'show(\'mac\') 这个「还不知道状态」的初次调用就给了按钮 —— canOpenPrefs 必须 fail-closed');
       }
