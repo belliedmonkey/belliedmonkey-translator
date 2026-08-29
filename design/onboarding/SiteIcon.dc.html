@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0;background:transparent}a{color:#8c491a}a:hover{color:#643312}</style>
+</helmet>
+<div style="width:22px;height:22px;display:flex;color:currentColor">
+  <sc-if value="{{ k.youtube }}" hint-placeholder-val="{{ true }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="4"></rect><path d="M10 9.5l5 2.5-5 2.5z"></path></svg>
+  </sc-if>
+  <sc-if value="{{ k.x }}" hint-placeholder-val="{{ false }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.5 7.2L4 21l1.8-5.5A8 8 0 1121 12z"></path></svg>
+  </sc-if>
+  <sc-if value="{{ k.substack }}" hint-placeholder-val="{{ false }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h16M4 15l8 4 8-4v5"></path></svg>
+  </sc-if>
+  <sc-if value="{{ k.podcast }}" hint-placeholder-val="{{ false }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0M12 18v3"></path></svg>
+  </sc-if>
+  <sc-if value="{{ k.web }}" hint-placeholder-val="{{ false }}">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 010 18a15 15 0 010-18"></path></svg>
+  </sc-if>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"kind":{"editor":"enum","options":["youtube","x","substack","podcast","web"],"default":"substack"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const kind = this.props.kind || 'substack';
+    return { k: { youtube: kind === 'youtube', x: kind === 'x', substack: kind === 'substack',
+      podcast: kind === 'podcast', web: kind === 'web' } };
+  }
+}
+</script>
+</body>
+</html>

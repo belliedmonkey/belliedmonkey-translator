@@ -1677,5 +1677,92 @@
   },
   "drive_awake_note": {
     "message": "L'écran ne se verrouille pas automatiquement tant que le mode podcast est au premier plan. Pour continuer à voir la carte après avoir verrouillé, activez l'affichage permanent du système : Réglages → Luminosité et affichage → Toujours activé."
+  },
+  "app_empty_body": {
+    "message": "Le matériel d'apprentissage vient de l'extension de navigateur — cette app sert à le réviser."
+  },
+  "app_empty_how": {
+    "message": "Activez BelliedMonkey Translator dans Réglages → Safari → Extensions, activez la capture, puis naviguez et traduisez comme d'habitude."
+  },
+  "app_ext_off_title": {
+    "message": "L'extension n'est pas encore activée"
+  },
+  "app_ext_off_body": {
+    "message": "Les cartes viennent de l'extension Safari. Elle n'est pas activée, donc cette page reste vide."
+  },
+  "app_ext_unknown_title": {
+    "message": "Configurez d'abord le côté navigateur"
+  },
+  "app_ext_ios_body": {
+    "message": "Les cartes viennent de l'extension Safari : ouvrez Réglages → Safari → Extensions, activez BelliedMonkey Translator et autorisez tous les sites."
+  },
+  "app_ext_open_prefs": {
+    "message": "Ouvrir les réglages des extensions Safari"
+  },
+  "app_signin_why": {
+    "message": "Les cartes sont capturées par l'extension de navigateur. Pour les réviser sur cet appareil, connectez-vous afin qu'elles se synchronisent."
+  },
+  "app_signin_open": {
+    "message": "Se connecter"
+  },
+  "ob_next": {
+    "message": "Continuer"
+  },
+  "ob_skip": {
+    "message": "Configurer plus tard"
+  },
+  "ob_start": {
+    "message": "Commencer"
+  },
+  "ob_welcome_title": {
+    "message": "Lisez ce que vous lisez vraiment"
+  },
+  "ob_welcome_body": {
+    "message": "La traduction se fait dans le navigateur, la révision dans cette app. Deux minutes pour relier les deux."
+  },
+  "ob_ios_1": {
+    "message": "Ouvrez Réglages et trouvez Safari"
+  },
+  "ob_ios_2": {
+    "message": "Dans Extensions, activez BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Permissions sur Autoriser, pour tous les sites"
+  },
+  "ob_browser_title": {
+    "message": "Deux choses encore, dans le navigateur"
+  },
+  "ob_browser_body": {
+    "message": "Ces deux réglages sont dans l'extension — cette app ne peut pas les changer, les stockages sont séparés."
+  },
+  "ob_kv_engine": {
+    "message": "Ajoutez une clé d'API de traduction"
+  },
+  "ob_kv_engine_note": {
+    "message": "Réglages de l'extension → moteur de traduction. Vous pouvez aussi commencer sans clé sur le canal gratuit."
+  },
+  "ob_kv_capture": {
+    "message": "Activez la capture"
+  },
+  "ob_kv_capture_note": {
+    "message": "Désactivée par défaut. Une fois active, les phrases que vous lisez vraiment deviennent des cartes."
+  },
+  "ob_read_title": {
+    "message": "Allez lire quelque chose"
+  },
+  "ob_read_body": {
+    "message": "C'est configuré : naviguez et traduisez comme d'habitude. Ce que vous lisez s'accumule ; pour garder une phrase tout de suite, appuyez longuement sur sa traduction."
+  },
+  "ob_signin_title": {
+    "message": "Dernière étape : connexion"
+  },
+  "ob_kv_twice": {
+    "message": "Vous vous connecterez aussi dans l'extension"
+  },
+  "ob_kv_twice_note": {
+    "message": "Les stockages sont séparés, vous recevrez donc deux codes. Utilisez la même adresse e-mail."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Réglages de l'extension → moteur de traduction. Incontournable : sans clé, rien n'est traduit."
   }
 }

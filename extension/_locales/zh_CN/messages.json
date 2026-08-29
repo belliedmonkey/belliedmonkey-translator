@@ -1678,5 +1678,92 @@
   },
   "drive_awake_note": {
     "message": "播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。"
+  },
+  "app_empty_body": {
+    "message": "学习材料来自浏览器扩展 —— 这个 App 负责复习它们。"
+  },
+  "app_empty_how": {
+    "message": "在 iOS「设置 → Safari → 扩展」里启用大肚猴翻译，打开采集，然后照常浏览、照常翻译。"
+  },
+  "app_ext_off_title": {
+    "message": "扩展还没启用"
+  },
+  "app_ext_off_body": {
+    "message": "卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。"
+  },
+  "app_ext_unknown_title": {
+    "message": "先把浏览器那半边打通"
+  },
+  "app_ext_ios_body": {
+    "message": "卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。"
+  },
+  "app_ext_open_prefs": {
+    "message": "打开 Safari 扩展设置"
+  },
+  "app_signin_why": {
+    "message": "卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。"
+  },
+  "app_signin_open": {
+    "message": "登录"
+  },
+  "ob_next": {
+    "message": "继续"
+  },
+  "ob_skip": {
+    "message": "以后再设置"
+  },
+  "ob_start": {
+    "message": "开始设置"
+  },
+  "ob_welcome_title": {
+    "message": "读你真正在读的东西"
+  },
+  "ob_welcome_body": {
+    "message": "翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。"
+  },
+  "ob_ios_1": {
+    "message": "打开系统「设置」→ 找到 Safari"
+  },
+  "ob_ios_2": {
+    "message": "进「扩展」，把「大肚猴翻译」打开"
+  },
+  "ob_ios_3": {
+    "message": "权限选「允许」，网站选「所有网站」"
+  },
+  "ob_browser_title": {
+    "message": "还有两件事在浏览器里做"
+  },
+  "ob_browser_body": {
+    "message": "这两个开关在扩展自己的设置页里 —— App 改不了它们，两边的存储是分开的。"
+  },
+  "ob_kv_engine": {
+    "message": "填一把翻译引擎的 Key"
+  },
+  "ob_kv_engine_note": {
+    "message": "扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。"
+  },
+  "ob_kv_capture": {
+    "message": "打开「采集学习材料」"
+  },
+  "ob_kv_capture_note": {
+    "message": "默认是关的。打开之后，你停下来读过的句子才会变成卡片。"
+  },
+  "ob_read_title": {
+    "message": "去读一篇"
+  },
+  "ob_read_body": {
+    "message": "设置完了就照常浏览、照常翻译。读过的句子会自己攒起来；想立刻收下某一句，长按它的译文。"
+  },
+  "ob_signin_title": {
+    "message": "最后一步：登录"
+  },
+  "ob_kv_twice": {
+    "message": "扩展里也要登录一次"
+  },
+  "ob_kv_twice_note": {
+    "message": "两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。"
   }
 }

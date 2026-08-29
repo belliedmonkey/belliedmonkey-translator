@@ -41,11 +41,13 @@ var AppSettings = (() => {
     return new Promise((res) => chrome.storage.local.set(items, res));
   }
 
-  // `learnEnabled` gates review.js's 「还没有学习材料 · 去设置里打开采集」 screen.
-  // In the app that message is simply wrong: the app never captures, and its material
-  // arrives by sync. So the flag is forced ON here — not to fake a capture toggle,
-  // but because "is there a source of material" is genuinely true, and the browser's
-  // capture switch is not this surface's business.
+  // `learnEnabled` 被强制打开，因为「有没有材料来源」在 App 上确实为真：材料经同步
+  // 进来，浏览器的采集开关不归这个面管。
+  //
+  // ⚠️ 2026-08-28 更正：这里原本写着它「gates」复习页那句「去设置里打开采集」。
+  // 它不 gate —— review.js 全文只有存储键列表那一处提到 learnEnabled，空态分支
+  // 根本不读它，所以那句错话是**无条件**显示的。真正的修复在 app.js 的
+  // paintAppEmptyState()：把空态换成 App 自己的说法。这个 flag 与那件事无关。
   async function ensureDefaults() {
     const cur = await get(KEYS);
     const patch = {};

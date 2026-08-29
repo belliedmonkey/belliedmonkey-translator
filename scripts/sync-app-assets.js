@@ -38,6 +38,20 @@ const ROOT = path.join(__dirname, '..');
 // 于是中国版 App 带的是国际版引擎注册表 —— 设置页列出 ChatGPT / Claude / Google，而它
 // 旁边的中国版扩展早就把这些滤掉了。同一个产品两套标准，1.6.4 就这么出货了。
 // 来源必须跟着 flavor 走，而不是跟着「有哪个目录」走。
+// 一棵树里最新的改动时间。用来判断出货包是不是比源码旧（见下面的过期守卫）。
+function newestMtime(roots) {
+  let newest = 0;
+  const walk = (p) => {
+    let st;
+    try { st = fs.statSync(p); } catch (_) { return; }
+    if (st.isDirectory()) {
+      for (const e of fs.readdirSync(p)) walk(path.join(p, e));
+    } else if (st.mtimeMs > newest) { newest = st.mtimeMs; }
+  };
+  roots.forEach(walk);
+  return newest;
+}
+
 const APP_SRC = {
   'safari-project': 'dist-app',
   'safari-project-china': 'dist-app-china',
@@ -174,6 +188,40 @@ function patchViewController(sharedDir) {
     notes.push('audio bridge install patched');
   } else {
     notes.push('✗ audio bridge install: userContentController.add 锚点缺失');
+  }
+
+  // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
+  //
+  // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
+  // that something went wrong.」—— 然后 return，什么都不做：
+  //   · getStateOfSafariExtension 失败 ⇒ show('mac', …) 永不被调用，页面拿不到状态
+  //   · showPreferencesForExtension 失败 ⇒ 用户点了「打开 Safari 扩展设置」毫无反应
+  //
+  // 2026-08-28 真机验收就撞在第二条上：按钮拿到焦点环，但 App 没退出、Safari 设置
+  // 没开、系统日志一条记录都没有 —— 从外面分不清是消息没通还是系统调用被拒。
+  //
+  // 两处都改成回调页面。show() 的第三个参数就是「有没有直达入口」，失败时传 false，
+  // 页面自然退回 iOS 那套三步文字（app.js 里 canOpenPrefs 是 fail-closed 的）。
+  const FAIL_NEEDLE = 'MT_PREFS_FAILED';
+  const STUB = '// Insert code to inform the user that something went wrong.';
+  const stubCount = src.split(STUB).length - 1;
+  if (src.includes(FAIL_NEEDLE)) {
+    notes.push('safari failure feedback already patched');
+  } else if (stubCount === 2) {
+    // 两处 stub 按出现顺序替换：第一处在 getStateOfSafariExtension，
+    // 第二处在 showPreferencesForExtension。self 的可用性两处不同，故分开写。
+    let seen = 0;
+    src = src.replace(new RegExp(STUB.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), () => {
+      seen += 1;
+      const call = seen === 1 ? 'webView' : 'self.webView';
+      return '// MT_PREFS_FAILED — patched by scripts/sync-app-assets.js (#177):'
+        + ' 失败必须可见，退回三步文字而不是让用户点了没反应。'
+        + '\n                DispatchQueue.main.async { '
+        + call + '.evaluateJavaScript("show(\'mac\', false, false)") }';
+    });
+    notes.push('safari failure feedback patched (2 stubs)');
+  } else {
+    notes.push('✗ safari failure feedback: 期望 2 处 stub 注释，实际 ' + stubCount);
   }
 
   fs.writeFileSync(f, src);
@@ -732,6 +780,23 @@ function main() {
         console.error(`✗ ${APP_SRC[proj]}/${f} 缺失 —— 宿主 App 包没构建完整`);
         process.exit(1);
       }
+    }
+    // 过期比缺失更坏，因为它一声不吭。上面那条只拦「没有」，拦不住「有，但是旧的」：
+    // 2026-08-28 只跑了 `node build.js`（global），dist-app-china/ 还停在两天前，
+    // app:sync 就把旧资源忠实地灌进了中国版工程，并打印「✓ 资源已灌入」。
+    // 装出来的中国版 App 少了整套引导，而没有任何一行说过。
+    const newestSrc = newestMtime([
+      path.join(ROOT, 'app'),
+      path.join(ROOT, 'extension', '_locales'),   // i18n 也编进 Script.js
+    ]);
+    const oldestBuilt = Math.min(...FILES.map((f) => fs.statSync(path.join(SRC, f)).mtimeMs));
+    if (newestSrc > oldestBuilt) {
+      const flag = APP_SRC[proj].endsWith('-china') ? ' --flavor china' : '';
+      console.error(`✗ ${APP_SRC[proj]}/ 比源码旧 —— 灌进去的会是过期资源`);
+      console.error(`  源码最新改动：${new Date(newestSrc).toLocaleString()}`);
+      console.error(`  包体构建时间：${new Date(oldestBuilt).toLocaleString()}`);
+      console.error(`  修法：node build.js${flag}   然后再跑 app:sync`);
+      process.exit(1);
     }
     if (state === 'unrecognized') {
       console.error(`✗ ${proj}/ 存在，但里面找不到 "Shared (App)" —— 这个工程无法打补丁。`);

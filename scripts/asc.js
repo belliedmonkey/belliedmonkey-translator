@@ -4,6 +4,7 @@
 // 用法：
 //   node scripts/asc.js builds                 # 四条线各自最近的 build 和处理状态
 //   node scripts/asc.js versions               # 四条线的版本记录和审核状态
+//   node scripts/asc.js reviews [条数]         # App Store 用户评论（默认 20 条）
 //   node scripts/asc.js bind <bundleId> <IOS|MAC_OS> <版本号> <build号>
 //                                              # 把某个 build 挂到某个版本（对外动作）
 //   例：node scripts/asc.js bind com.belliedmonkeytranslator IOS 1.6.4 43
@@ -265,10 +266,40 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
   return ok;
 }
 
+// 用户原话 —— 这个产品没有遥测，所以商店评论是极少数能听见真实用户的渠道之一。
+// 2026-08-28 查那 40 个账号时才发现我们从没读过它：AMO 0 条评分，App Store 这边
+// 一直没看。纯 JSON，复用同一个 api()，不需要 analyticsReports 那套三段式。
+async function cmdReviews(limit) {
+  for (const app of await apps()) {
+    // 评论挂在 app 记录上（不分平台），四条线里两个 app 记录各读一次。
+    const d = await api('GET', `/apps/${app.id}/customerReviews`
+      + `?limit=${limit}&sort=-createdDate`
+      + '&fields[customerReviews]=rating,title,body,reviewerNickname,createdDate,territory');
+    const rows = (d && d.data) || [];
+    console.log(`\n${app.name}  (${app.bundleId})  ${rows.length} 条`);
+    if (!rows.length) { console.log('  （暂无评论）'); continue; }
+    const avg = rows.reduce((a, r) => a + (r.attributes.rating || 0), 0) / rows.length;
+    console.log(`  本页均分 ${avg.toFixed(1)}`);
+    for (const r of rows) {
+      const a = r.attributes;
+      console.log(`  ${'★'.repeat(a.rating || 0).padEnd(5, '·')} ${(a.createdDate || '').slice(0, 10)}`
+        + `  ${a.territory || '?'}  ${a.reviewerNickname || ''}`);
+      if (a.title) console.log(`    ${a.title}`);
+      if (a.body) console.log(`    ${String(a.body).replace(/\s+/g, ' ').slice(0, 300)}`);
+    }
+  }
+  return true;
+}
+
 (async () => {
   const [cmd, ...rest] = process.argv.slice(2);
   if (cmd === 'builds') return cmdBuilds();
   if (cmd === 'versions') return cmdVersions();
+  if (cmd === 'reviews') {
+    const n = Number(rest[0]) > 0 ? Math.min(Number(rest[0]), 200) : 20;
+    const ok = await cmdReviews(n);
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'bind') {
     const [bundleId, platform, versionString, buildNumber] = rest;
     if (!bundleId || !platform || !versionString || !buildNumber) {
@@ -296,7 +327,7 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
     const ok = await cmdNotes(bundleId, platform, versionString, file, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
-  console.log('用法: node scripts/asc.js builds | versions'
+  console.log('用法: node scripts/asc.js builds | versions | reviews [条数]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
     + ' | bind <bundleId> <平台> <版本> <build>');

@@ -26,6 +26,10 @@ test/layout/artifacts-*/
 .env
 .env.*
 dist-app/
+# 中国版宿主 App 包。它在 47134d0（修「中国版带国际版注册表」那次）被顺手
+# git add 进来了 —— 四个同类产物目录里只有它漏了忽略，于是每次
+# `node build.js --flavor china` 都会弄脏工作树，还带着 1MB 生成物进版本库。
+dist-app-china/
 
 # 本地凭证（scripts/local-keys.js 生成，永不提交）
 .local/

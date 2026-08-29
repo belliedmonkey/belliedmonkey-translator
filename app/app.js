@@ -58,6 +58,9 @@
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
     $('verify').textContent = t('app_verify', '登录');
     $('back').textContent = t('app_back_email', '换一个邮箱');
+    $('signin-why').textContent = t('app_signin_why',
+      '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
+    $('btn-signin').textContent = t('app_signin_open', '登录');
     $('local-note').textContent = t('app_local_note', '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。');
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
     $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
@@ -71,6 +74,30 @@
     $('review-back').textContent = t('app_review_back', '← 返回');
     $('sync').textContent = t('app_sync', '同步');
     AppDriving.paintStatic();
+    paintAppEmptyState();
+  }
+
+  // 复习页的空态整段是从扩展的 review.html 原样嵌进来的（build/app-bundle.js 的
+  // <!--REVIEW--> 槽），所以它说的是扩展的话：「打开采集开关」+ 一个「去设置里打开采集」
+  // 的链接。在 App 里这两句都是错的 ——
+  //   · App 结构上就不采集：learn-collector.js 不在 app-bundle 的 MODULES 里，
+  //     材料只能经同步进来（domain-design §9.2）
+  //   · 那个链接被 app.js 拦去打开 App 设置，而 App 设置里没有采集开关 —— 死路
+  // 2026-08-28 实测：40 个外部用户全部经 App 进来，没有一个产生过一张卡。
+  // 每一个点进复习页的人撞的都是这面墙。
+  function paintAppEmptyState() {
+    const body = document.querySelector('#empty [data-i18n="learn_empty_body"]');
+    if (body) body.textContent = t('app_empty_body', '学习材料来自浏览器扩展 —— 这个 App 负责复习它们。');
+    const link = $('empty-settings');
+    if (!link) return;
+    // 降级成纯文本：iOS 没有跳到 Safari 扩展设置的深链，给一句能照做的话，
+    // 比给一个跳到死路的链接强。（macOS 有 SFSafariApplication 深链，但那要新增
+    // 一条 native 消息，属于另一件事。）
+    const how = document.createElement('span');
+    how.id = 'empty-settings';
+    how.textContent = t('app_empty_how',
+      '在 iOS「设置 → Safari → 扩展」里启用大肚猴翻译，打开采集，然后照常浏览、照常翻译。');
+    link.replaceWith(how);
   }
 
   async function paintCounts() {
@@ -110,6 +137,24 @@
       : t('app_never_synced', '还没有同步过');
   }
 
+  // 密码登录只服务「服务端已设过密码」的账号 —— 产品内没有任何设密码的面，
+  // 所以对普通用户它 100% 会失败。2026-08-28 的 GoTrue 日志里实证撞了两次：
+  // Apple 审核员（08-26，17.185.64.x）与一个真实用户（08-27，刚发完验证码就连点
+  // 三次密码登录，全部 invalid_credentials，然后再没回来）。他就是那批「发了码从没
+  // 验证」的用户之一 —— 也就是说这个入口在真实地吃转化。
+  //
+  // 判据用 plus-alias 而不是写死某个地址：演示账号按 §8.4.1 的做法一律是 Gmail
+  // 别名（belliedmonkey+applereview@gmail.com），而真实用户几乎不会用 + 标签。
+  // 写死地址的话，下次换演示账号就是一次 App Review 拒审。
+  function isDemoAddress(v) { return /\+[^@\s]*@/.test(String(v || '').trim()); }
+
+  function refreshPwEntry() {
+    const el = $('app-use-pw');
+    if (!el) return;
+    // 密码表单已经打开时不要把入口抽走。
+    el.hidden = !isDemoAddress($('email').value) && $('app-pw-form').hidden;
+  }
+
   async function show(session) {
     currentSession = session;
     $('signed-out').hidden = !!session;
@@ -121,9 +166,12 @@
       $('review-view').hidden = true;
       // And the sign-in surface resets to its default (OTP) path.
       $('app-pw-form').hidden = true;
-      $('app-use-pw').hidden = false;
+      $('app-use-pw').hidden = true;   // 只有 demo 地址才会把它揭出来（refreshPwEntry）
       $('email-form').hidden = false;
       $('code-form').hidden = true;
+      // A3：退出后回到可浏览的首页，表单收起来 —— 不要又变成一堵墙。
+      $('signin-forms').hidden = true;
+      $('signin-prompt').hidden = false;
     }
     if (session) {
       $('who').textContent = session.email || '';
@@ -134,9 +182,213 @@
     }
   }
 
+  // ─── 浏览器那半边（§引导）────────────────────────────────────────────────
+  //
+  // 转换器模板自带一套「告诉用户去启用扩展」的接线，两端都在工程里，两端都接空气：
+  //   Swift → 页面：didFinish 里 evaluateJavaScript("show('mac', <启用状态>, true)")
+  //                 —— 而我们用 Main.html 换掉模板页之后，全局 show() 就没了，
+  //                 ReferenceError 被 evaluateJavaScript 静默吞掉。
+  //   页面 → Swift：userContentController 收到 "open-preferences" 就调
+  //                 SFSafariApplication.showPreferencesForExtension —— 而全仓库
+  //                 零处发送这条消息。
+  // 这里把两端接上。Swift 一行都不用改。
+  //
+  // ⚠️ 平台不对称，且不能假装对称：getStateOfSafariExtension 是 macOS-only，
+  // iOS 分支只有一句无参数的 show('ios')。所以 iOS 上我们**不知道**扩展开没开，
+  // 只能给步骤；macOS 上才有真实状态和一键直达。
+  function paintExtBanner(state) {
+    const sec = $('ext-banner');
+    if (!sec) return;
+    // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
+    // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
+    // 它只查内容对不对，不查有没有重复）。
+    const onboarding = $('onboard') && !$('onboard').hidden;
+    if (onboarding || !state || state.enabled === true) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $('ext-banner-title').textContent = state.known
+      ? t('app_ext_off_title', '扩展还没启用')
+      : t('app_ext_unknown_title', '先把浏览器那半边打通');
+    $('ext-banner-body').textContent = state.known
+      ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
+      : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+    const act = $('ext-banner-act');
+    // 只有 macOS 有直达入口。iOS 给按钮却跳不过去，比不给按钮更糟。
+    act.hidden = !state.canOpenPrefs;
+    act.textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置');
+  }
+
+  let extState = null;
+  function setExtState(next) { extState = next; paintExtBanner(extState); }
+
+  // ViewController 在页面加载完时调它。签名跟转换器模板一致，别改 —— 改了 Swift 侧就对不上。
+  window.show = function (platform, isEnabled, useSettingsDeepLink) {
+    if (platform === 'mac') {
+      setExtState({
+        known: typeof isEnabled === 'boolean',
+        enabled: isEnabled === true,
+        // fail-closed：必须显式给 true 才显示直达按钮。
+        // show('mac') 这个「还不知道状态」的初次调用因此不给按钮；
+        // Swift 侧深链失败时会回调 show('mac', false, false)，按钮同样收起，
+        // 退回三步文字 —— 给一个点了没反应的按钮，比不给更糟（#177）。
+        canOpenPrefs: useSettingsDeepLink === true,
+      });
+    } else {
+      // iOS：查不到状态，也没有深链。
+      setExtState({ known: false, enabled: false, canOpenPrefs: false });
+    }
+  };
+
+  function openSafariPrefs() {
+    try {
+      webkit.messageHandlers.controller.postMessage('open-preferences');
+    } catch (_) {
+      // 不在宿主 App 里（浏览器里开的复习页、或测试环境）—— 静默即可，
+      // 横幅上的文字本身已经说清楚该去哪。
+    }
+  }
+
+  // ─── 首次运行引导（§引导）───────────────────────────────────────────────
+  //
+  // 六屏，不是设计稿里的九屏。少掉的三屏（配翻译引擎 / 打开采集 / 看第一张卡）
+  // App 做不到 —— 它们都在扩展那一侧，而两边存储不通。在这里画一个引擎选择器
+  // 或采集开关，写下去也到不了扩展，是纯粹的假控件。
+  //
+  // 能真设的只有一样：learnRules（学习语言 / 屏蔽），它作为 chunk 的 `g` 行
+  // 双向同步，所以在 App 里选的语言登录后会传到扩展。复用设置页同一个
+  // SourcesView.renderLangChips，不另画一份。
+  const OB_SEEN = 'onboardSeen';
+  const OB = ['welcome', 'langs', 'ext', 'browser', 'read', 'signin'];
+  let obAt = 0;
+
+  function obPaint() {
+    const step = OB[obAt];
+    $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
+    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs']) $(id).hidden = true;
+    $('ob-skip').textContent = t('ob_skip', '以后再设置');
+    $('ob-next').textContent = obAt === OB.length - 1
+      ? t('app_signin_open', '登录') : t('ob_next', '继续');
+
+    if (step === 'welcome') {
+      $('ob-title').textContent = t('ob_welcome_title', '读你真正在读的东西');
+      $('ob-text').textContent = t('ob_welcome_body',
+        '翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。');
+      $('ob-next').textContent = t('ob_start', '开始设置');
+    } else if (step === 'langs') {
+      $('ob-title').textContent = t('learn_langs_label', '学习语言');
+      $('ob-text').textContent = t('learn_langs_hint', '只收录选中语言的句子。');
+      $('ob-langs').hidden = false;
+      obPaintLangs();
+    } else if (step === 'ext') {
+      $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
+      // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
+      const mac = extState && extState.canOpenPrefs;
+      $('ob-text').textContent = mac
+        ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
+        : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+      if (mac) { $('ob-prefs').hidden = false; $('ob-prefs').textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置'); }
+      else obSteps([
+        t('ob_ios_1', '打开系统「设置」→ 找到 Safari'),
+        t('ob_ios_2', '进「扩展」，把「大肚猴翻译」打开'),
+        t('ob_ios_3', '权限选「允许」，网站选「所有网站」'),
+      ]);
+    } else if (step === 'browser') {
+      $('ob-title').textContent = t('ob_browser_title', '还有两件事在浏览器里做');
+      $('ob-text').textContent = t('ob_browser_body',
+        '这两个开关在扩展自己的设置页里 —— App 改不了它们，两边的存储是分开的。');
+      $('ob-kv').hidden = false;
+      // 「可以先用免费通道」这句在中国版是假话 —— 那个 flavor 的注册表里
+      // 一个 needsKey:false 的引擎都没有（global 只有 google，而 google 是
+      // global-only）。按注册表实际内容判定，不写死、也不按 flavor 名判断：
+      // 单一注册表规则，且哪天注册表变了这里自动跟着变。
+      const freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
+      obKv([
+        [t('ob_kv_engine', '填一把翻译引擎的 Key'),
+          freeChannel
+            ? t('ob_kv_engine_note', '扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。')
+            : t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
+        [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
+      ]);
+    } else if (step === 'read') {
+      $('ob-title').textContent = t('ob_read_title', '去读一篇');
+      $('ob-text').textContent = t('ob_read_body',
+        '设置完了就照常浏览、照常翻译。读过的句子会自己攒起来；想立刻收下某一句，长按它的译文。');
+    } else {
+      $('ob-title').textContent = t('ob_signin_title', '最后一步：登录');
+      $('ob-text').textContent = t('app_signin_why',
+        '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
+      $('ob-kv').hidden = false;
+      obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
+    }
+  }
+
+  function obSteps(lines) {
+    const ol = $('ob-steps');
+    ol.textContent = '';
+    lines.forEach((line, i) => {
+      const li = document.createElement('li');
+      const b = document.createElement('b'); b.textContent = String(i + 1);
+      const sp = document.createElement('span'); sp.textContent = line;
+      li.append(b, sp); ol.append(li);
+    });
+    ol.hidden = false;
+  }
+
+  function obKv(rows) {
+    const box = $('ob-kv');
+    box.textContent = '';
+    for (const [head, note] of rows) {
+      const d = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = head;
+      const sp = document.createElement('span'); sp.textContent = note;
+      d.append(b, sp); box.append(d);
+    }
+  }
+
+  async function obPaintLangs() {
+    if (typeof SourcesView === 'undefined') return;
+    const cur = await new Promise((r) => chrome.storage.local.get(['learnRules'], r));
+    const rules = cur.learnRules || null;
+    SourcesView.renderLangChips($('ob-langs'), {
+      registry: window.MT_LANGS || [], langs: rules && rules.langs, t,
+      onChange: async (langs) => {
+        const base = (cur.learnRules) || { v: 1, block: [], langs: null };
+        await new Promise((r) => chrome.storage.local.set(
+          { learnRules: Object.assign({}, base, { langs, v: 1, updatedAt: Date.now() }) }, r));
+        obPaintLangs();
+      },
+    });
+  }
+
+  async function obFinish() {
+    try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
+    $('onboard').hidden = true;
+    paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
+    await show(await LearnAuth.current().catch(() => null));
+  }
+
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
   let pendingEmail = '';
+
+  $('ob-next').addEventListener('click', () => {
+    if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
+    // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
+    obFinish().then(() => {
+      $('signin-prompt').hidden = true;
+      $('signin-forms').hidden = false;
+      $('email').focus();
+    });
+  });
+  $('ob-skip').addEventListener('click', () => { obFinish(); });
+  $('ob-prefs').addEventListener('click', openSafariPrefs);
+
+  $('btn-signin').addEventListener('click', () => {
+    $('signin-prompt').hidden = true;
+    $('signin-forms').hidden = false;
+    $('email').focus();
+  });
+
+  $('email').addEventListener('input', refreshPwEntry);
 
   $('email-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -204,8 +456,8 @@
 
   $('app-pw-back').addEventListener('click', () => {
     $('app-pw-form').hidden = true;
-    $('app-use-pw').hidden = false;
     $('email-form').hidden = false;
+    refreshPwEntry();
     $('email').focus();
     say('');
   });
@@ -334,6 +586,10 @@
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;
     $('review-view').hidden = false;
+    // review.js 自己的 applyI18n 会把每个 [data-i18n] 的 textContent 按扩展的文案
+    // 写回去，所以 paintStatic() 那次重绘会被它覆盖。进入复习页时再绘一次 ——
+    // 这里是空态真正会被看见的时刻。
+    paintAppEmptyState();
     // §8.8 — the app is a long-lived single page and review.js built its deck at
     // bundle load, so material synced since then is invisible until a rebuild.
     // Entering the view IS the rebuild point. `start()` is review.js's own export
@@ -402,12 +658,15 @@
     say('');
   }
 
+  $('ext-banner-act').addEventListener('click', openSafariPrefs);
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.
-  for (const id of ['open-settings', 'empty-settings']) {
+  // 'empty-settings' 不在列内：它在 App 里已被 paintAppEmptyState 换成纯文本，
+  // 而它原本指向的 App 设置没有采集开关。
+  for (const id of ['open-settings']) {
     const el = $(id);
     if (el) {
       el.addEventListener('click', (e) => {
@@ -448,6 +707,17 @@
 
     try {
       const session = await LearnAuth.current();
+      // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
+      const seen = await new Promise((r) => chrome.storage.local.get([OB_SEEN], r))
+        .then((o) => !!(o && o[OB_SEEN])).catch(() => true);
+      if (!session && !seen) {
+        $('signed-out').hidden = true;
+        $('signed-in').hidden = true;
+        $('onboard').hidden = false;
+        paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
+        obAt = 0; obPaint();
+        return;
+      }
       await show(session);
       // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
       // as the recovery path, but the status line must name the real problem.

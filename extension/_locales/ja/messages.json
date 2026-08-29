@@ -1677,5 +1677,92 @@
   },
   "drive_awake_note": {
     "message": "ポッドキャストモードが前面にある間、画面は自動ロックされません。ロック後もカードを表示し続けるには、システムの「常時表示」をオンにしてください：設定 → 画面表示と明るさ → 常時表示。"
+  },
+  "app_empty_body": {
+    "message": "学習素材はブラウザ拡張機能から届きます —— このアプリは復習用です。"
+  },
+  "app_empty_how": {
+    "message": "「設定 → Safari → 拡張機能」で大肚猴翻訳を有効にし、収集をオンにしてから、いつものように閲覧・翻訳してください。"
+  },
+  "app_ext_off_title": {
+    "message": "拡張機能がまだ有効になっていません"
+  },
+  "app_ext_off_body": {
+    "message": "カードは Safari 拡張機能から届きます。有効になっていないため、ここは空のままです。"
+  },
+  "app_ext_unknown_title": {
+    "message": "まずブラウザ側を設定します"
+  },
+  "app_ext_ios_body": {
+    "message": "カードは Safari 拡張機能から届きます：「設定 → Safari → 拡張機能」で大肚猴翻訳をオンにし、すべての Web サイトを許可してください。"
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari 拡張機能の設定を開く"
+  },
+  "app_signin_why": {
+    "message": "カードはブラウザ拡張機能が集めます。この端末で復習するにはサインインして同期する必要があります。"
+  },
+  "app_signin_open": {
+    "message": "サインイン"
+  },
+  "ob_next": {
+    "message": "続ける"
+  },
+  "ob_skip": {
+    "message": "あとで設定する"
+  },
+  "ob_start": {
+    "message": "設定を始める"
+  },
+  "ob_welcome_title": {
+    "message": "本当に読んでいるものを読む"
+  },
+  "ob_welcome_body": {
+    "message": "翻訳はブラウザで、復習はこのアプリで行われます。2 分で両者をつなぎます。"
+  },
+  "ob_ios_1": {
+    "message": "「設定」を開き Safari を選ぶ"
+  },
+  "ob_ios_2": {
+    "message": "「拡張機能」で大肚猴翻訳をオンにする"
+  },
+  "ob_ios_3": {
+    "message": "権限は「許可」、対象は「すべての Web サイト」"
+  },
+  "ob_browser_title": {
+    "message": "ブラウザ側であと 2 つ"
+  },
+  "ob_browser_body": {
+    "message": "この 2 つのスイッチは拡張機能側の設定にあります。アプリからは変更できません（保存領域が別です）。"
+  },
+  "ob_kv_engine": {
+    "message": "翻訳エンジンの API キーを入れる"
+  },
+  "ob_kv_engine_note": {
+    "message": "拡張機能の設定 → 翻訳エンジン。キーなしの無料チャネルで試すこともできます。"
+  },
+  "ob_kv_capture": {
+    "message": "「学習素材の収集」をオンにする"
+  },
+  "ob_kv_capture_note": {
+    "message": "初期状態はオフです。オンにすると、立ち止まって読んだ文がカードになります。"
+  },
+  "ob_read_title": {
+    "message": "何か読んでみる"
+  },
+  "ob_read_body": {
+    "message": "設定は完了です。いつも通り閲覧・翻訳してください。読んだ文が貯まります。すぐ保存したい文は訳文を長押し。"
+  },
+  "ob_signin_title": {
+    "message": "最後に：サインイン"
+  },
+  "ob_kv_twice": {
+    "message": "拡張機能側でもサインインします"
+  },
+  "ob_kv_twice_note": {
+    "message": "保存領域が別なので、確認コードは 2 回届きます。同じメールアドレスを使ってください。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "拡張機能の設定 → 翻訳エンジン。これは省けません。キーがないと何も翻訳されません。"
   }
 }

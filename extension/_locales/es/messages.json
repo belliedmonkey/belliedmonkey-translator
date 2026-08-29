@@ -1677,5 +1677,92 @@
   },
   "drive_awake_note": {
     "message": "La pantalla no se bloquea automáticamente mientras el modo pódcast está en primer plano. Para seguir viendo la tarjeta tras bloquear, activa la pantalla siempre activa del sistema: Ajustes → Pantalla y brillo → Siempre activa."
+  },
+  "app_empty_body": {
+    "message": "El material de estudio viene de la extensión del navegador; esta app es para repasarlo."
+  },
+  "app_empty_how": {
+    "message": "Activa BelliedMonkey Translator en Ajustes → Safari → Extensiones, activa la captura y navega y traduce como siempre."
+  },
+  "app_ext_off_title": {
+    "message": "La extensión aún no está activada"
+  },
+  "app_ext_off_body": {
+    "message": "Las tarjetas vienen de la extensión de Safari. No está activada, así que esto seguirá vacío."
+  },
+  "app_ext_unknown_title": {
+    "message": "Configura primero la parte del navegador"
+  },
+  "app_ext_ios_body": {
+    "message": "Las tarjetas vienen de la extensión de Safari: abre Ajustes → Safari → Extensiones, activa BelliedMonkey Translator y permite todos los sitios."
+  },
+  "app_ext_open_prefs": {
+    "message": "Abrir ajustes de extensiones de Safari"
+  },
+  "app_signin_why": {
+    "message": "Las tarjetas las captura la extensión del navegador. Para repasarlas en este dispositivo, inicia sesión para que se sincronicen."
+  },
+  "app_signin_open": {
+    "message": "Iniciar sesión"
+  },
+  "ob_next": {
+    "message": "Continuar"
+  },
+  "ob_skip": {
+    "message": "Configurar más tarde"
+  },
+  "ob_start": {
+    "message": "Empezar"
+  },
+  "ob_welcome_title": {
+    "message": "Lee lo que de verdad lees"
+  },
+  "ob_welcome_body": {
+    "message": "La traducción ocurre en el navegador; el repaso, en esta app. Dos minutos para conectar ambos."
+  },
+  "ob_ios_1": {
+    "message": "Abre Ajustes y busca Safari"
+  },
+  "ob_ios_2": {
+    "message": "En Extensiones, activa BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Permisos en Permitir, para todos los sitios"
+  },
+  "ob_browser_title": {
+    "message": "Dos cosas más, en el navegador"
+  },
+  "ob_browser_body": {
+    "message": "Ambos interruptores están en los ajustes de la extensión: esta app no puede cambiarlos, los almacenamientos están separados."
+  },
+  "ob_kv_engine": {
+    "message": "Añade una clave de API de traducción"
+  },
+  "ob_kv_engine_note": {
+    "message": "Ajustes de la extensión → motor de traducción. También puedes empezar sin clave con el canal gratuito."
+  },
+  "ob_kv_capture": {
+    "message": "Activa la captura"
+  },
+  "ob_kv_capture_note": {
+    "message": "Está desactivada por defecto. Al activarla, las frases en las que te detienes se convierten en tarjetas."
+  },
+  "ob_read_title": {
+    "message": "Ve a leer algo"
+  },
+  "ob_read_body": {
+    "message": "Ya está: navega y traduce como siempre. Lo que lees se acumula; para guardar una frase al instante, mantén pulsada su traducción."
+  },
+  "ob_signin_title": {
+    "message": "Último paso: iniciar sesión"
+  },
+  "ob_kv_twice": {
+    "message": "También iniciarás sesión en la extensión"
+  },
+  "ob_kv_twice_note": {
+    "message": "Los almacenamientos están separados, así que recibirás dos códigos. Usa el mismo correo."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Ajustes de la extensión → motor de traducción. Este paso es ineludible: sin clave no se traduce nada."
   }
 }

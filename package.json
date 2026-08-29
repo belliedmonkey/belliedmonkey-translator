@@ -13,11 +13,13 @@
     "test:idb": "node scripts/verify-idb-upgrade.js",
     "app:sync": "node scripts/sync-app-assets.js",
     "test:app": "node scripts/verify-app-bundle.js",
+    "test:app:china": "node scripts/verify-app-bundle.js --flavor china",
     "amo:check": "node scripts/amo-publish.js --check",
     "cws:check": "node scripts/cws-publish.js --check",
     "gh:check": "node scripts/gh-release.js",
     "perf:probe": "node scripts/perf-probe.js",
     "perf:status": "node scripts/perf-probe.js --status",
+    "store:stats": "node scripts/store-stats.js",
     "test:smoke": "node scripts/verify-extension-smoke.js",
     "test:learn": "node scripts/verify-learn-flow.js",
     "test:sync": "node scripts/verify-sync-consistency.js"
