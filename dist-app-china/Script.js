@@ -10871,7 +10871,11 @@ var AppDriving = (() => {
       setExtState({
         known: typeof isEnabled === 'boolean',
         enabled: isEnabled === true,
-        canOpenPrefs: useSettingsDeepLink !== false,
+        // fail-closed：必须显式给 true 才显示直达按钮。
+        // show('mac') 这个「还不知道状态」的初次调用因此不给按钮；
+        // Swift 侧深链失败时会回调 show('mac', false, false)，按钮同样收起，
+        // 退回三步文字 —— 给一个点了没反应的按钮，比不给更糟（#177）。
+        canOpenPrefs: useSettingsDeepLink === true,
       });
     } else {
       // iOS：查不到状态，也没有深链。

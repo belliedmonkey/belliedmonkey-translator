@@ -294,6 +294,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           if (out.hasShow) {
             window.show('mac', false, true);  await new Promise((r) => setTimeout(r, 20));
             out.macOff = snap();
+            // #177：Swift 侧深链失败会回调 show('mac', false, false) —— 按钮必须收起，
+            // 正文退回三步版。给一个点了没反应的按钮，比不给更糟。
+            window.show('mac', false, false); await new Promise((r) => setTimeout(r, 20));
+            out.macFailed = snap();
+            window.show('mac');               await new Promise((r) => setTimeout(r, 20));
+            out.macUnknown = snap();
+            window.show('mac', false, true);  await new Promise((r) => setTimeout(r, 20));
             window.show('ios');               await new Promise((r) => setTimeout(r, 20));
             out.ios = snap();
             window.show('mac', true, true);   await new Promise((r) => setTimeout(r, 20));
@@ -312,6 +319,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(b.ios.banner && !b.ios.button, 'iOS 上不能给直达按钮 —— '
           + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');
         need(!b.macOn.banner, '扩展已启用还在显示「还没启用」横幅');
+        // #177 的两条：深链失败、以及状态还没查出来时，都不许给按钮。
+        need(b.macFailed.banner && !b.macFailed.button,
+          '深链失败后还留着「打开 Safari 扩展设置」按钮 —— 点了没反应，比不给更糟 (#177)');
+        need(!b.macUnknown.button,
+          'show(\'mac\') 这个「还不知道状态」的初次调用就给了按钮 —— canOpenPrefs 必须 fail-closed');
       }
     }
     // A3：未登录首屏不能是登录墙。40 个外部用户全部经 App 进来、0 激活，

@@ -189,6 +189,68 @@ describe('sync-app-assets: ViewController patches', () => {
 // is one constant line, where "contains it? skip" is right; this block keeps evolving,
 // and a needle check would freeze whatever version first reached a tree while app:sync
 // printed "already patched" forever.
+describe('sync-app-assets: Safari 调用失败必须可见 (#177)', () => {
+  // 转换器模板在两处留了「Insert code to inform the user that something went
+  // wrong.」然后 return —— 两处都是静默失败。2026-08-28 真机验收撞在深链那处：
+  // 按钮拿到焦点环，App 没退出、Safari 设置没开、系统日志无记录，从外面根本
+  // 分不清是消息没通还是系统调用被拒。
+  const TEMPLATE_SAFARI = 'import WebKit\n\nclass ViewController {\n'
+    + '    func viewDidLoad() {\n'
+    + '        super.viewDidLoad()\n\n'
+    + '        self.webView.navigationDelegate = self\n'
+    + '    }\n'
+    + '    func didFinish() {\n'
+    + '        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: x) { (state, error) in\n'
+    + '            guard let state = state, error == nil else {\n'
+    + '                // Insert code to inform the user that something went wrong.\n'
+    + '                return\n'
+    + '            }\n'
+    + '        }\n'
+    + '    }\n'
+    + '    func userContentController() {\n'
+    + '        SFSafariApplication.showPreferencesForExtension(withIdentifier: x) { error in\n'
+    + '            guard error == nil else {\n'
+    + '                // Insert code to inform the user that something went wrong.\n'
+    + '                return\n'
+    + '            }\n'
+    + '        }\n'
+    + '    }\n}\n';
+
+  test('两处 stub 都被替换成回调页面，且各自用对了 self', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE_SAFARI);
+    const notes = patchViewController(dir);
+    ok(/safari failure feedback patched \(2 stubs\)/.test(notes), notes);
+    const out = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    eq((out.match(/MT_PREFS_FAILED/g) || []).length, 2, '两处都要打上');
+    eq((out.match(/Insert code to inform/g) || []).length, 0, '模板的 stub 注释不该还留着');
+    // 第一处在 didFinish 的闭包里（webView 是入参），第二处在 handler 里（要 self.）
+    ok(/\{ webView\.evaluateJavaScript/.test(out), 'getState 那处应当直接用 webView');
+    ok(/\{ self\.webView\.evaluateJavaScript/.test(out), 'showPreferences 那处应当用 self.webView');
+    // 失败时传 false —— 页面据此收起按钮、退回三步文字
+    eq((out.match(/show\('mac', false, false\)/g) || []).length, 2, '两处都要传 false');
+  });
+
+  test('再跑一次不重复打（幂等）', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), TEMPLATE_SAFARI);
+    patchViewController(dir);
+    const once = fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8');
+    const notes = patchViewController(dir);
+    ok(/safari failure feedback already patched/.test(notes), notes);
+    eq(once, fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8'), '第二次必须一字不改');
+  });
+
+  test('模板形状不认识时报错，而不是默默跳过', () => {
+    const dir = tmpdir();
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'),
+      TEMPLATE_SAFARI.replace('// Insert code to inform the user that something went wrong.\n                return\n            }\n        }\n    }\n    func userContentController', 'return } } }\n    func userContentController'));
+    const notes = patchViewController(dir);
+    ok(/✗ safari failure feedback/.test(notes),
+      '只剩一处 stub 时必须显式报错 —— 认不出的形状是错误，不是缺席');
+  });
+});
+
 describe('sync-app-assets: the host app must stay UA-anonymous', () => {
   // 2026-08-28: this is the ONLY thing that tells an App session apart from a Safari
   // extension session server-side, and it exists by omission, not by design.

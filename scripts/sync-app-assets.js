@@ -190,6 +190,40 @@ function patchViewController(sharedDir) {
     notes.push('✗ audio bridge install: userContentController.add 锚点缺失');
   }
 
+  // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
+  //
+  // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
+  // that something went wrong.」—— 然后 return，什么都不做：
+  //   · getStateOfSafariExtension 失败 ⇒ show('mac', …) 永不被调用，页面拿不到状态
+  //   · showPreferencesForExtension 失败 ⇒ 用户点了「打开 Safari 扩展设置」毫无反应
+  //
+  // 2026-08-28 真机验收就撞在第二条上：按钮拿到焦点环，但 App 没退出、Safari 设置
+  // 没开、系统日志一条记录都没有 —— 从外面分不清是消息没通还是系统调用被拒。
+  //
+  // 两处都改成回调页面。show() 的第三个参数就是「有没有直达入口」，失败时传 false，
+  // 页面自然退回 iOS 那套三步文字（app.js 里 canOpenPrefs 是 fail-closed 的）。
+  const FAIL_NEEDLE = 'MT_PREFS_FAILED';
+  const STUB = '// Insert code to inform the user that something went wrong.';
+  const stubCount = src.split(STUB).length - 1;
+  if (src.includes(FAIL_NEEDLE)) {
+    notes.push('safari failure feedback already patched');
+  } else if (stubCount === 2) {
+    // 两处 stub 按出现顺序替换：第一处在 getStateOfSafariExtension，
+    // 第二处在 showPreferencesForExtension。self 的可用性两处不同，故分开写。
+    let seen = 0;
+    src = src.replace(new RegExp(STUB.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), () => {
+      seen += 1;
+      const call = seen === 1 ? 'webView' : 'self.webView';
+      return '// MT_PREFS_FAILED — patched by scripts/sync-app-assets.js (#177):'
+        + ' 失败必须可见，退回三步文字而不是让用户点了没反应。'
+        + '\n                DispatchQueue.main.async { '
+        + call + '.evaluateJavaScript("show(\'mac\', false, false)") }';
+    });
+    notes.push('safari failure feedback patched (2 stubs)');
+  } else {
+    notes.push('✗ safari failure feedback: 期望 2 处 stub 注释，实际 ' + stubCount);
+  }
+
   fs.writeFileSync(f, src);
   return notes.join(' · ');
 }
