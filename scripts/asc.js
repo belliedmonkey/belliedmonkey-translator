@@ -291,8 +291,43 @@ async function cmdReviews(limit) {
   return true;
 }
 
+
+// 真机直装要求 UDID 在开发者账号的设备列表里，否则签名阶段才失败 —— 那时报的是
+// 「没有匹配的 provisioning profile」，看不出真正原因是设备没注册。所以先注册、再打包。
+async function cmdDevices(udid, name) {
+  if (!udid) {
+    const d = await api('GET', '/devices?limit=200&fields[devices]=name,udid,deviceClass,status,platform');
+    const rows = (d && d.data) || [];
+    console.log(`共 ${rows.length} 台`);
+    for (const r of rows) {
+      const a = r.attributes;
+      console.log(`  ${(a.status || '?').padEnd(8)} ${(a.deviceClass || '').padEnd(14)}`
+        + ` ${a.udid}  ${a.name || ''}`);
+    }
+    return true;
+  }
+  // 已经在册就不要重复注册：ASC 对重复 UDID 返回 409，而那和「注册失败」长得一样。
+  const cur = await api('GET', '/devices?limit=200&fields[devices]=name,udid,status');
+  const hit = ((cur && cur.data) || []).find((r) => (r.attributes.udid || '').toLowerCase() === udid.toLowerCase());
+  if (hit) {
+    console.log(`✓ 已在册：${hit.attributes.udid}  ${hit.attributes.name}`
+      + `  (${hit.attributes.status})`);
+    return hit.attributes.status === 'ENABLED';
+  }
+  const r = await api('POST', '/devices', { data: { type: 'devices',
+    attributes: { name: name || 'test device', udid, platform: 'IOS' } } });
+  const a = (r && r.data && r.data.attributes) || {};
+  if (!a.udid) { console.error('✗ 注册没有回读到 udid：' + JSON.stringify(r).slice(0, 300)); return false; }
+  console.log(`✓ 已注册：${a.udid}  ${a.name}  (${a.status})`);
+  return true;
+}
+
 (async () => {
   const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd === 'devices') {
+    const ok = await cmdDevices(rest[0], rest.slice(1).join(' '));
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'builds') return cmdBuilds();
   if (cmd === 'versions') return cmdVersions();
   if (cmd === 'reviews') {
@@ -328,6 +363,7 @@ async function cmdReviews(limit) {
     process.exit(ok ? 0 : 1);
   }
   console.log('用法: node scripts/asc.js builds | versions | reviews [条数]'
+    + ' | devices [UDID [名称]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
     + ' | bind <bundleId> <平台> <版本> <build>');
