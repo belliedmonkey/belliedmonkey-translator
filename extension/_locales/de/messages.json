@@ -1,9 +1,9 @@
 {
   "extension_name": {
-    "message": "BelliedMonkey Translator"
+    "message": "BelliedMonkey: Zweisprachig + Wiederholen"
   },
   "extension_description": {
-    "message": "Zweisprachige Seiten + doppelte Video-Untertitel. Mit Lernen werden gelesene Sätze zu Wiederholungskarten."
+    "message": "Zweisprachige Seiten und doppelte Untertitel. Gelesene Sätze werden zu Wiederholungskarten. Eigener Schlüssel."
   },
   "action_title": {
     "message": "BelliedMonkey Translator"
