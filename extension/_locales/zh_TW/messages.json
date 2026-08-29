@@ -1762,5 +1762,8 @@
   },
   "ob_kv_twice_note": {
     "message": "兩邊的儲存是分開的，所以會收到兩次驗證碼。用同一個信箱。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "擴充功能設定 → 翻譯引擎。這一步躲不掉：不填 Key 就翻不出任何東西。"
   }
 }

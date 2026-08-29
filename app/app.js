@@ -292,8 +292,16 @@
       $('ob-text').textContent = t('ob_browser_body',
         '这两个开关在扩展自己的设置页里 —— App 改不了它们，两边的存储是分开的。');
       $('ob-kv').hidden = false;
+      // 「可以先用免费通道」这句在中国版是假话 —— 那个 flavor 的注册表里
+      // 一个 needsKey:false 的引擎都没有（global 只有 google，而 google 是
+      // global-only）。按注册表实际内容判定，不写死、也不按 flavor 名判断：
+      // 单一注册表规则，且哪天注册表变了这里自动跟着变。
+      const freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
       obKv([
-        [t('ob_kv_engine', '填一把翻译引擎的 Key'), t('ob_kv_engine_note', '扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。')],
+        [t('ob_kv_engine', '填一把翻译引擎的 Key'),
+          freeChannel
+            ? t('ob_kv_engine_note', '扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。')
+            : t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
         [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
       ]);
     } else if (step === 'read') {

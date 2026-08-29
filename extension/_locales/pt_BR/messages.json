@@ -1761,5 +1761,8 @@
   },
   "ob_kv_twice_note": {
     "message": "Os armazenamentos são separados, então você recebe dois códigos. Use o mesmo e-mail."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Ajustes da extensão → motor de tradução. Esta etapa é inevitável: sem chave nada é traduzido."
   }
 }

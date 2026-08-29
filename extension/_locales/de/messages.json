@@ -1761,5 +1761,8 @@
   },
   "ob_kv_twice_note": {
     "message": "Die Speicher sind getrennt, du erhältst also zwei Codes. Nutze dieselbe E-Mail-Adresse."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Unumgänglich: ohne Schlüssel wird nichts übersetzt."
   }
 }

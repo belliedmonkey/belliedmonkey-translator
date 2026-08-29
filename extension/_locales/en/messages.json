@@ -1761,5 +1761,8 @@
   },
   "ob_kv_twice_note": {
     "message": "The two sides have separate storage, so you get two codes. Use the same email address."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Extension settings → translation engine. This one is unavoidable: without a key nothing gets translated."
   }
 }

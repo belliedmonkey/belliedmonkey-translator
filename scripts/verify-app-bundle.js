@@ -25,7 +25,16 @@ const http = require('http');
 const ROOT = path.join(__dirname, '..');
 const { launchChrome } = require(path.join(ROOT, 'test/layout/chrome.js'));
 const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
-const SRC = path.join(ROOT, 'dist-app');
+// 两个 flavor 的宿主 App 包是两份不同的产物（注册表不同、默认引擎不同、
+// 免费通道有无不同）。此前这里写死 dist-app，于是**中国版从来没被这套断言测过**
+// —— 1.6.4 那次「中国版默认引擎不在自己注册表里」能一路出货，就是这个形状。
+const FLAVOR = (() => {
+  const i = process.argv.indexOf('--flavor');
+  if (i >= 0 && process.argv[i + 1] === 'china') return 'china';
+  return process.argv.includes('--flavor=china') ? 'china' : 'global';
+})();
+const APP_DIR = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+const SRC = path.join(ROOT, APP_DIR);
 
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
 
@@ -34,7 +43,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
 (async () => {
   for (const f of ['Main.html', 'Script.js', 'Style.css']) {
     if (!fs.existsSync(path.join(SRC, f))) {
-      console.error(`✗ dist-app/${f} 不存在 —— 先跑 node build.js`);
+      console.error(`✗ ${APP_DIR}/${f} 不存在 —— 先跑 node build.js`
+        + (FLAVOR === 'china' ? ' --flavor china' : ''));
       process.exit(1);
     }
   }
@@ -346,22 +356,39 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           const seen = [];
           // 从第一屏重新走：点 next 直到最后一屏
           for (let i = 0; i < 6; i++) {
+            const kv = $('ob-kv').hidden ? [] : $('ob-kv').querySelectorAll('div span');
             seen.push({ title: $('ob-title').textContent, text: $('ob-text').textContent,
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
-                        steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length });
+                        steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
+                        // 引擎说明只在「浏览器里的两件事」那屏存在，必须当场取 ——
+                        // 循环结束后再读会读到最后一屏的卡片，断言就永远空转。
+                        kv0: kv.length ? kv[0].textContent : '' });
             if (i < 5) { $('ob-next').click(); await new Promise((r) => setTimeout(r, 30)); }
           }
-          const out = JSON.stringify({ seen,
-            bannerDuringOb: !document.getElementById('ext-banner').hidden });
+          const out2 = { seen, bannerDuringOb: !document.getElementById('ext-banner').hidden };
           // 收拾干净：这一段把 #onboard 打开了，不还原的话后面的横幅断言会被
           // paintExtBanner 的「引导进行中不挂横幅」抑制掉，报成假失败。
           sec.hidden = true;
-          return out;
+          // 「可以先用免费通道」这句只有在注册表真有 needsKey:false 的引擎时才成立。
+          // 中国版一个都没有（google 是 global-only），说了就是假话 ——
+          // 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状。
+          out2.providerCount = (window.MT_PROVIDERS || []).length;
+          out2.freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
+          out2.engineNote = seen.map((x) => x.kv0).filter(Boolean).join(' | ');
+          return JSON.stringify(out2);
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const ov = JSON.parse(ob.result.value);
       const seen = ov.seen;
       // 引导进行中不能同时挂着扩展横幅 —— 那会把同一句话说两遍。
       // 这条是模拟器实测抓出来的：断言查内容对不对，查不出重复。
+      // 承诺免费通道，注册表里却没有免费引擎 —— 那就是在对用户撒谎。
+      need(ov.providerCount > 0, 'window.MT_PROVIDERS 读不到 —— 下面那条免费通道断言会空转');
+      need(!!ov.engineNote, '没抓到引擎说明文案 —— 断言会空转');
+      if (!ov.freeChannel) {
+        need(!/免费通道|free channel|無料|무료|gratuit|kostenlos|gratis|бесплат|المجانية/i.test(ov.engineNote || ''),
+          '这个 flavor 的注册表里没有 needsKey:false 的引擎，引导却说「可以先用免费通道」'
+          + ' —— 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状');
+      }
       need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
         + '两个一起显示等于把同一句话一字不差地重复一遍');
       need(seen.length === 6, '引导不是六屏，实际 ' + seen.length);
@@ -395,6 +422,6 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
-  console.log(ok ? '\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载' : '\n✗ App 页面有问题');
+  console.log(ok ? `\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载（${FLAVOR}）` : '\n✗ App 页面有问题');
   process.exit(ok ? 0 : 1);
 })();

@@ -1762,5 +1762,8 @@
   },
   "ob_kv_twice_note": {
     "message": "两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。"
   }
 }
