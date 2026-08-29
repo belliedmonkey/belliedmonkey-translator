@@ -1196,6 +1196,29 @@ by an ancestor's `overflow:hidden`.
     the target window (not the terminal) before trusting anything in the clip.
   - `--duration N` self-stops (no detach/stop dance needed for short clips); the `.cap`
     project dir and exported `.mp4` land in `--path`/`--output` (use the scratchpad).
+- **截图/录像之前先确认屏幕真的在显示 —— `bash scripts/ensure-screen-awake.sh`。**
+  屏保运行时 WebKit 会节流不渲染，而这件事伪装得非常像产品缺陷：
+
+  | 现象 | 真相 |
+  |---|---|
+  | 窗口标题栏截得到，网页内容一片空白 | 标题栏是 AppKit 画的，WKWebView 被节流了 |
+  | 整屏截图只有壁纸，连别的 App 都没有 | 屏保盖住了一切 |
+  | `list_windows` 仍报 `is_on_screen: true` | 它只管几何，不管有没有真被画出来 |
+  | 每条输入路由都是 `off_space_or_ax_unresolved` | **工具已经在提示了** |
+
+  2026-08-29 因此判错一小时：把「macOS 未签名 Debug 包白屏」当成了包的问题，
+  甚至做了对照实验（未打补丁的旧包也白屏）却把两次都归因成「包有问题」——
+  共同原因其实是「屏幕没在显示」。随后又误怪到 `codesign --deep` 和
+  LaunchServices 陈旧注册头上。解锁后同一个包立刻正常渲染。
+
+  **教训不是「记得看屏保」，是：抓不到画面时，先怀疑观察手段，再怀疑被观察对象。**
+  这与本节开头那条同源 —— DOM 里有 ≠ 用户看得见；反过来，截图里没有 ≠ 产品坏了。
+
+  ⚠️ 脚本只能解屏保，**解不了锁屏**（要密码，脚本给不了也不该给）。
+  `sysadminctl -screenLock status` 若是 `immediate`（本机即是），自动解除那条路
+  永远走不通，脚本必然落到「请手动解锁」。所以它的价值是**检测 + 大声失败**，
+  不是无人值守续命 —— 但正是这声失败能挡住上面那种误判。
+
 - Don't trust your own injected test hacks as proof of the shipped code — verify the
   **built/loaded** extension.
 - **Be honest about what was vs wasn't verified** (static check vs runtime vs screenshot
