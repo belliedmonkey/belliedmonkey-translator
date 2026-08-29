@@ -13,7 +13,14 @@ var TranslationCore = (() => {
   // detector before it is translated anyway. Ticks are ~350ms, so 3 is ~1s. This is a
   // safety net, not a tuning knob — without it a detector that never answers would pin
   // units at 'pending' ("⏳ 翻译中…") forever.
-  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3 };
+  // STALL_MS：单元停在 'pending' 的**绝对上限**。引擎不能假设注入的 translate() 一定
+  // 会 settle —— 这一族已经咬过两次（storage 回调带 undefined；storage 回调根本不来），
+  // 两次的症状都是整页永远「翻译中…」。传输层每修一个洞，都还会有下一个洞；而只要
+  // 有一个 promise 不落地，`.then/.catch/.finally` 一个都不会跑，重试逻辑也就永远
+  // 不会被触发。所以最终的保证只能长在这里：**超过上限一律进 error 态，把重试交还
+  // 给用户**。取 120 秒是为了绝不误伤真慢的请求：传输层默认 20 秒超时 × 3 次重试
+  // 加退避，最坏也就 ~90 秒。
+  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
@@ -366,7 +373,14 @@ var TranslationCore = (() => {
         }
         it._fetching = true;
         started++;
-        translate(it.text).then((t) => {
+        // 看门狗：和 translate() 赛跑。它先落地就照常走；它不落地，我们自己落地。
+        // 卡死**不进重试计数** —— 重试是为「可能自己好起来」的瞬时失败准备的，而一个
+        // 不落地的 promise 再等 3 个 120 秒只是让用户多等 6 分钟。直接给可点的重试。
+        let stallTimer = null;
+        const stall = new Promise((_, reject) => {
+          stallTimer = setTimeout(() => { const e = new Error('translate stalled'); e.stalled = true; reject(e); }, win.STALL_MS);
+        });
+        Promise.race([translate(it.text), stall]).then((t) => {
           if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; return; }
           // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
           // 请求发出**之前**判定不用翻（同语言跳过）才可以静默终结；请求发出**之后**
@@ -380,10 +394,14 @@ var TranslationCore = (() => {
           // 烧配额。所以直接进 error 态，把重试交给用户点一下。
           it._err = true;
           it._tries = 0;
-        }).catch(() => {
+        }).catch((e) => {
+          if (e && e.stalled) { it._err = true; it._tries = 0; return; }  // 卡死 → 直接可重试
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) it._err = true; // exhausted → error UI
-        }).finally(() => { setTimeout(() => { it._fetching = false; }, win.RETRY_GAP_MS); });
+        }).finally(() => {
+          clearTimeout(stallTimer);
+          setTimeout(() => { it._fetching = false; }, win.RETRY_GAP_MS);
+        });
       }
     }
 

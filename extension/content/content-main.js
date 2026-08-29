@@ -16,9 +16,10 @@
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
     'learnEnabled', 'learnDailyNew', 'learnRules',
   ];
-  const settings = await new Promise(resolve => {
-    chrome.storage.local.get(SETTINGS_KEYS, (s) => resolve(s || {}));
-  });
+  // 走 RequestShape.storageGet：它带截止时间。一个不落地的存储回调会把整个内容脚本
+  // 钉在这一行 —— 页面上什么都不会发生，也没有任何报错可查（2026-08-29 真机实测的
+  // 「翻译中…」永不结束就是同一族）。超时 = 空设置 = 和原来的 `s || {}` 同一个方向。
+  const settings = await RequestShape.storageGet(SETTINGS_KEYS, {});
 
   // 存着的引擎 id 本次构建不认识 ⇒ **就地改正存储**，不只是运行时兜一下。
   //

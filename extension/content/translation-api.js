@@ -465,18 +465,17 @@ Rules:
   //   · a promise executor must settle on EVERY path, including a throwing callback;
   //   · never dereference what a browser API hands a callback — Safari passes
   //     undefined where Chrome passes {} (same root cause as options.js init).
+  // 2026-08-29 追加：上面那条疤只修了「回调带 undefined 进来」，没修「**回调根本
+  // 不来**」——内层 try 对后者无能为力，因为它压根没执行。真机复现（全新 iPhone、
+  // 刚授权完扩展）：整页永远停在「翻译中…」，控制台干净。改走 RequestShape.storageGet，
+  // 那里有截止时间；超时 = 「没读到缓存」= 照常发请求，安全方向。
   async function cacheGetStorage(key) {
-    return new Promise(resolve => {
-      try {
-        chrome.storage.local.get([CACHE_KEY_PREFIX + key], (res) => {
-          try {
-            const entry = (res || {})[CACHE_KEY_PREFIX + key];
-            if (entry && Date.now() - entry.ts < CACHE_TTL) resolve(entry.v);
-            else resolve(null);
-          } catch (_) { resolve(null); }
-        });
-      } catch (_) { resolve(null); }
-    });
+    const res = await RequestShape.storageGet([CACHE_KEY_PREFIX + key], {});
+    try {
+      const entry = (res || {})[CACHE_KEY_PREFIX + key];
+      if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.v;
+    } catch (_) { /* 畸形条目 = 没缓存 */ }
+    return null;
   }
 
   // ─── Concurrency queue ────────────────────────────────────────────────

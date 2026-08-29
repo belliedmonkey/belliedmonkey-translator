@@ -50,8 +50,10 @@ async function checkSite(site) {
   const file = path.join(site.dir, 'setup.html');
   if (!fs.existsSync(file)) { console.log(`  — 跳过：${site.dir} 没有 setup.html`); return null; }
 
+  let blockI18n = false;   // 模拟弱网/CDN 抽风：字典与 i18n.js 一律拿不到
   const srv = http.createServer((req, res) => {
     const rel = decodeURIComponent(req.url.split('?')[0]);
+    if (blockI18n && rel.startsWith('/i18n/')) { res.writeHead(503); return res.end(); }
     const f = path.join(site.dir, rel === '/' ? 'index.html' : rel);
     if (!f.startsWith(site.dir) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) {
       res.writeHead(404); return res.end();
@@ -75,6 +77,8 @@ async function checkSite(site) {
       'EXCEPTION ' + ((p.exceptionDetails.exception || {}).description || p.exceptionDetails.text)) });
     cdp.listeners.push({ event: 'Log.entryAdded', fn: (p) => {
       if (p.entry.level !== 'error' || /favicon/.test(p.entry.url || '')) return;
+      // 阶段 ④ 的 503 是本门禁自己造的，不是页面缺陷。
+      if (blockI18n && /\/i18n\//.test(p.entry.url || '')) return;
       bad.push('ERROR ' + p.entry.text + ' ' + (p.entry.url || ''));
     } });
     await cdp.send('Page.enable', {}, sessionId);
@@ -117,6 +121,53 @@ async function checkSite(site) {
     if (!s.on) bad.push('标记已注入但灯没变绿');
     if (s.wait) bad.push('等待态没收起，两句同时显示');
     if (!s.demo) bad.push('演示段落没露出');
+
+    // ④ 断网：i18n 拿不到时，页面**仍然必须有字**
+    //
+    // 2026-08-29 真机第一次打开这一页时，看到的是「排版完整、一个字都没有」。
+    // 站点所有文案原本只存在于 /i18n/<lang>.json 里，HTML 标签全是空的；i18n.js 或
+    // 字典一旦加载失败，apply() 根本不会被调用，于是每个元素保持它的空内容。解遮罩
+    // 有兜底（head 里那条 2500ms 内联定时器），所以页面一定会显示——**只是没有字**。
+    // 兜底了容器，没兜底内容。
+    //
+    // 这条对 privacy.html / support.html 尤其要紧：那两个 URL 直接写在 App Store
+    // Connect 与 Chrome 应用商店的提交表单里，审核员在弱网下看到的会是一张空白隐私政策。
+    //
+    // 修法是把默认语言文案内联进 HTML，让 i18n 去**替换**而不是**提供**。
+    // 本地开发永远测不到这条 —— localhost 从不失败，所以只能靠这里主动拦。
+    // en.json 里值为空串 = **故意**对英文隐藏该元素（i18n.js 的 `el.hidden = v === ''`）。
+    // 这类元素本来就不该有文案，必须排除；靠 el.hidden 判断是错的 —— i18n 挂掉时
+    // fill() 根本没跑，hidden 也就从未被设上。
+    let intentionallyBlank = new Set();
+    try {
+      const en = JSON.parse(fs.readFileSync(path.join(site.dir, 'i18n', 'en.json'), 'utf8'));
+      intentionallyBlank = new Set(Object.keys(en).filter((k) => !String(en[k]).trim()));
+    } catch (_) { /* 中国站没有 i18n 目录 —— 它本来就是内联中文，天然免疫 */ }
+
+    blockI18n = true;
+    const pages = ['/setup.html', '/index.html', '/privacy.html', '/support.html']
+      .filter((f) => fs.existsSync(path.join(site.dir, f.slice(1))));
+    for (const page of pages) {
+      const pUrl = 'http://127.0.0.1:' + srv.address().port + page;
+      await cdp.send('Page.navigate', { url: pUrl }, sessionId);
+      await new Promise((r) => setTimeout(r, 3200));   // 等过 head 里那条 2500ms 兜底
+      const r = await ev(`JSON.stringify({
+        cloaked: getComputedStyle(document.documentElement).visibility === 'hidden',
+        chars: document.body.innerText.replace(/\\s+/g,'').length,
+        emptyKeyed: [...document.querySelectorAll('[data-i18n],[data-i18n-html]')]
+          .filter(e => !e.innerText.trim())
+          .map(e => e.getAttribute('data-i18n') || e.getAttribute('data-i18n-html'))
+      })`);
+      if (r.cloaked) bad.push(page + '：i18n 挂掉时页面仍被遮罩挡着（纯白屏）');
+      // 200 字是「像一个页面」的下限：空壳页只剩版权行，远达不到。
+      if (r.chars < 200) bad.push(page + `：i18n 挂掉时正文只剩 ${r.chars} 字 —— 有排版没文字`);
+      r.emptyKeyed = r.emptyKeyed.filter((k) => !intentionallyBlank.has(k));
+      if (r.emptyKeyed.length) {
+        bad.push(page + '：i18n 挂掉时这些元素是空的（HTML 里没有内联兜底文案）：'
+          + r.emptyKeyed.slice(0, 6).join(', ') + (r.emptyKeyed.length > 6 ? ` …共 ${r.emptyKeyed.length} 个` : ''));
+      }
+    }
+    blockI18n = false;
 
     // ③ 事件路径（页面先加载、扩展后注入 —— 属性没设时只能靠它）
     await load();

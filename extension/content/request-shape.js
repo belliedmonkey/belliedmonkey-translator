@@ -156,21 +156,50 @@ var RequestShape = (() => {
     return body;
   }
 
-  function readOnce() {
+  // ─── storageGet：读扩展存储的**唯一**安全入口 ─────────────────────────────
+  //
+  // 这个 helper 存在，是因为同一个失败形状咬了两次，而两次的直接原因不同：
+  //
+  //   ① 回调带着 `undefined` 进来  → 回调体里抛异常 → 外层 try 看不见 → 永不 settle
+  //      （2026-08 的疤，translation-api.js 的 cacheGetStorage，已由内层 try 修掉）
+  //   ② **回调根本不来**          → 内层 try 也救不了，因为它压根没执行
+  //      （2026-08-29 真机实测：全新 iPhone 刚授权完，整页永远停在「翻译中…」）
+  //
+  // ② 比 ① 更难查，因为**看不出任何异常**：没有请求上线、没有 20 秒 AbortController
+  // 超时（根本没走到 fetch）、没有错误态、控制台干净。而 translate() 的第一行就是
+  // `await RequestShape.ready()`，所以这一个不落地的 promise 会把整页钉死。
+  //
+  // Safari iOS 上这不是理论风险：同一个环境里 background service worker 锁屏后会
+  // 永久变成 undefined（见 CLAUDE.md「Critical Safari iOS Bug」），扩展存储走的是
+  // 原生 App 进程的同一套桥。桥不通时，回调不会报错，它只是不来。
+  //
+  // 所以规则是：**任何等浏览器 API 回调的 promise 都必须有截止时间。**
+  // 超时不是错误，是「就当没读到」——和 catch 分支同一个安全方向。
+  const STORAGE_TIMEOUT_MS = 3000;   // 本地读，正常是毫秒级；3 秒纯粹是给挂死用的
+
+  function storageGet(keys, fallback) {
     return new Promise((resolve) => {
+      let settled = false;
+      const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+      // 先挂表再发起：get() 若同步抛出，表也已经无害地存在（done 幂等）。
+      const timer = setTimeout(() => done(fallback), STORAGE_TIMEOUT_MS);
+      const finish = (v) => { clearTimeout(timer); done(v); };
       try {
-        chrome.storage.local.get(ADV_KEYS, (res) => {
-          // try 必须包住**回调体**，不只是 get 调用。Safari 会把 res 交成 undefined，
-          // 在回调里抛的异常外面那层 try 永远看不到，promise 于是永不 settle ——
-          // 那正是 translation-api.js 的 cacheGetStorage 留下的疤（整页卡在「翻译中…」）。
-          try { _prefs = normalizePrefs(res || {}); } catch (_) { _prefs = {}; }
-          resolve(_prefs);
+        chrome.storage.local.get(keys, (res) => {
+          // try 必须包住**回调体**，不只是 get 调用 —— 见上面的 ①。
+          try { finish(res || fallback); } catch (_) { finish(fallback); }
         });
       } catch (_) {
-        // 读失败 = 空 = 「用户什么都没设」= 最小必要集。安全方向。
-        _prefs = {};
-        resolve(_prefs);
+        finish(fallback);
       }
+    });
+  }
+
+  function readOnce() {
+    return storageGet(ADV_KEYS, {}).then((res) => {
+      // 读失败/超时 = 空 = 「用户什么都没设」= 最小必要集。安全方向。
+      try { _prefs = normalizePrefs(res || {}); } catch (_) { _prefs = {}; }
+      return _prefs;
     });
   }
 
@@ -426,6 +455,9 @@ var RequestShape = (() => {
 
   return {
     paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
+    // 读扩展存储的唯一安全入口（带截止时间）。translation-api 与 content-main
+    // 都必须走它 —— 三份各写一遍的话，下一次只会修好其中一份。
+    storageGet, STORAGE_TIMEOUT_MS,
     extractChat, extractMessages, extractResponses, stripThink,
     DEFAULT_TEMPERATURE, UNKNOWN, ADV_KEYS, CLAMP, translateLang, starvedByReasoning, applyReasoning,
     // 设置页用 CUSTOM_FORBIDDEN 来告诉用户「哪些键会被忽略」。它必须是**同一份**常量 ——
