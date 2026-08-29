@@ -170,7 +170,7 @@ var RequestShape = (() => {
   // `await RequestShape.ready()`，所以这一个不落地的 promise 会把整页钉死。
   //
   // Safari iOS 上这不是理论风险：同一个环境里 background service worker 锁屏后会
-  // 永久变成 undefined（见 CLAUDE.md「Critical Safari iOS Bug」），扩展存储走的是
+  // 永久变成 undefined（见仓库根目录 agent 指南里的「Critical Safari iOS Bug」一节），扩展存储走的是
   // 原生 App 进程的同一套桥。桥不通时，回调不会报错，它只是不来。
   //
   // 所以规则是：**任何等浏览器 API 回调的 promise 都必须有截止时间。**
