@@ -199,6 +199,46 @@ describe('TranslationCore — i18n / UI-language resolution', () => {
 
 // ─────────────────────────────────────────────────────────────────────────
 describe('TranslationCore — createEngine (state machine)', () => {
+  // ── 看门狗：translate() 永不落地时，单元不能永远停在 pending ──────────────
+  // 2026-08-29 真机（iPhone 14 Pro / iOS 26.5，全新设备刚授权扩展）实测：整页永远停在
+  // 「翻译中…」。根因在传输层（storage 回调不来 → promise 不落地 → translate() 前的
+  // await 卡死），但**引擎这一层不该依赖传输层永远正确**：只要有一个 promise 不落地，
+  // `.then/.catch/.finally` 一个都不会跑，引擎自己的重试逻辑也就永远不会被触发。
+  //
+  // 这一族已经咬过两次（回调带 undefined；回调根本不来），传输层每修一个洞都还会有
+  // 下一个洞。所以最终保证必须长在引擎里：超过 STALL_MS 一律进 error 态，给用户可点
+  // 的重试。这条测试钉的就是那个保证 —— 它对根因不做任何假设。
+  test('translate() 永不落地 → 超过 STALL_MS 必须进 error，而不是永远 pending', async () => {
+    const { TC } = loadCore();
+    const eng = TC.createEngine({
+      translate: () => new Promise(() => {}),      // 永不 settle，正是真机上的形状
+      window: Object.assign({}, FAST, { STALL_MS: 40 }),
+    });
+    const units = [{ text: 'hello' }];
+    eng.setUnits(units);
+    eng.pump();
+    eq(eng.stateOf(units[0]).state, 'pending', '刚发出时应当是 pending');
+    await tick(120);
+    eq(eng.stateOf(units[0]).state, 'error',
+      '超过 STALL_MS 之后必须是 error（渲染器据此显示「点此重试」）');
+  });
+
+  // 卡死不进重试计数：重试是给「可能自己好起来」的瞬时失败用的。一个不落地的 promise
+  // 再等 3 个 STALL_MS 只是让用户多等三倍，所以第一次就该给重试入口。
+  test('卡死一次就给重试，不消耗 MAX_RETRIES', async () => {
+    const { TC } = loadCore();
+    const eng = TC.createEngine({
+      translate: () => new Promise(() => {}),
+      window: Object.assign({}, FAST, { STALL_MS: 40, MAX_RETRIES: 3 }),
+    });
+    const units = [{ text: 'hello' }];
+    eng.setUnits(units);
+    eng.pump();
+    await tick(120);
+    eq(units[0]._tries, 0, '卡死不该累加重试次数');
+    eq(eng.stateOf(units[0]).state, 'error');
+  });
+
   test('happy path: pending → translated', async () => {
     const { TC } = loadCore();
     const eng = TC.createEngine({ translate: async (t) => t.toUpperCase(), window: FAST });

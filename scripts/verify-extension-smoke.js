@@ -204,6 +204,40 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (Number(sv.reqTemperature) !== 0.7) problems.push(`reqTemperature 没存住: ${stored}`);
       if (Number(sv.reqConcurrency) !== 3) problems.push(`reqConcurrency 没存住: ${stored}`);
 
+      // ── API Key 只敲 input、**不失焦**，也必须落盘 ────────────────────────
+      //
+      // 2026-08-29 真机（iPhone 14 Pro / iOS 26.5）：在手机上粘好 API Key 之后直接
+      // 锁屏，回到设置页输入框是空的 —— `change` 只在失焦时触发，而锁屏/切 App
+      // 根本不给它这个机会。Key 被**静默丢弃**：没有报错、没有提示，用户以为填好了，
+      // 看到的却是每段都「翻译失败」。把「配置没保存」伪装成「产品是坏的」。
+      //
+      // 这条测试当年就写在这个文件里，注释还明明白白写着「saveAll 挂在 change 上，
+      // 不是 input」—— 它是**绕着这个 bug 写的**，所以从来抓不到它。现在反过来钉住：
+      // 只派发 input，等过防抖，然后读存储。
+      await evalIn(cdp, sessionId, `(() => {
+        const k = document.getElementById('api-key');
+        k.value = 'sk-input-only-no-blur';
+        k.dispatchEvent(new Event('input', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(1500);   // 防抖 500ms + 写存储的余量
+      const keyStored = await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['apiKey'], v => r(String((v||{}).apiKey || ''))))`);
+      if (keyStored !== 'sk-input-only-no-blur') {
+        problems.push(`API Key 只敲 input 不失焦时没落盘（存储里是 ${JSON.stringify(keyStored)}）`
+          + ' —— 用户粘完 Key 直接锁屏就会静默丢失');
+      } else {
+        notes.push('API Key 只敲 input、不失焦 → 已落盘 ✓');
+      }
+      // 收尾：清掉这个假 Key，别污染后面的用例
+      await evalIn(cdp, sessionId, `(() => {
+        const k = document.getElementById('api-key');
+        k.value = '';
+        k.dispatchEvent(new Event('change', { bubbles: true }));
+        return 1;
+      })()`);
+      await sleep(800);
+
       // 重开页面 —— init() 的回填。漏了这步，值还在存储里，但下一次任何 change 都会
       // 把它写成空。所以这里再改一个**别的**字段，然后回来看这两个键还在不在。
       await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);

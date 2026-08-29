@@ -490,6 +490,46 @@ describe('TranslationAPI — a storage callback that hands back undefined (Safar
     return { API: ctx.TranslationAPI, fetch };
   }
 
+  // ── 孪生兄弟：回调**根本不来** ────────────────────────────────────────────
+  // 上面那条钉的是「回调带着 undefined 进来」。2026-08-29 真机（全新 iPhone 14 Pro /
+  // iOS 26.5，刚给扩展授完权）复现的是另一半：回调**一次都没有被调用**。
+  //
+  // 这一半更难查，因为内层 try 救不了它 —— try 只有在回调执行时才有意义。而
+  // translate() 的第一行就是 `await RequestShape.ready()`，所以一个不落地的存储读
+  // 会把整页钉死：没有请求上线、没有 20 秒 AbortController 超时（根本没走到 fetch）、
+  // 没有错误态、控制台干净。用户看到的只有永远的「翻译中…」。
+  //
+  // Safari iOS 上这不是假想：同一个环境里 background service worker 锁屏后会永久变成
+  // undefined，扩展存储走的是原生 App 进程的同一套桥。桥不通时回调不会报错，它只是不来。
+  function apiWithDeadStorage(program) {
+    const fetch = makeFetch(program);
+    const chrome = {
+      storage: {
+        local: {
+          get: () => { /* 回调永远不来 —— 这正是真机上发生的事 */ },
+          set: () => {},
+          remove: (_k, cb) => cb && cb(),
+        },
+      },
+    };
+    const window = loadRegistry();
+    const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+    { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
+    return { API: ctx.TranslationAPI, fetch, RS: ctx.RequestShape };
+  }
+
+  test('回调永不到来时，translate() 仍然落地并真的发出请求', async () => {
+    const { API, fetch, RS } = apiWithDeadStorage([okJson({ choices: [{ message: { content: '译文' } }] })]);
+    // 判据不是「没报错」，而是**请求真的上了线**：卡在存储读上时 fetch.calls 会是 0。
+    const out = await Promise.race([
+      API.translate('hello', 'zh-CN', 'deepseek', 'KEY', ''),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('HUNG: 存储回调不来就把整页钉死了')),
+        RS.STORAGE_TIMEOUT_MS + 5000)),
+    ]);
+    eq(out, '译文');
+    eq(fetch.calls.length, 1, '超时之后必须照常发请求，而不是静默放弃');
+  });
+
   test('translate() still COMPLETES — a throwing callback must not strand the promise', async () => {
     const { API, fetch } = apiWithBlindStorage([okJson({ choices: [{ message: { content: '译文' } }] })]);
     const out = await Promise.race([

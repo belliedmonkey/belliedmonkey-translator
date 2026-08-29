@@ -650,6 +650,38 @@ async function init() {
     await saveAll(); updateAdvancedNotes(); showToast(t('toast_model_saved', '模型已保存'));
   });
 
+  // ── 文本框：input 也必须落盘（防抖），不能只靠 change ─────────────────────
+  //
+  // `change` 只在**失焦**时触发。用户在手机上粘好 API Key 之后直接锁屏、切到别的
+  // App、或者直接退出设置页，change 根本没有机会触发 —— Key 被**静默丢弃**：没有
+  // 报错、没有提示，而用户以为已经填好了。
+  //
+  // 2026-08-29 真机实测（iPhone 14 Pro / iOS 26.5）：粘完 Key 锁屏，回来输入框是空的；
+  // 引擎已经是 DeepSeek 但没有 Key，于是每段都报「翻译失败」。用户侧看到的是「我明明
+  // 填了 Key，它还是不工作」—— 这正是新用户路径上最贵的一种失败，因为它把「配置没
+  // 保存」伪装成了「产品是坏的」。
+  //
+  // 防抖 500ms：打字过程中不必每个字符写一次存储，但停手半秒就必须落盘。change 那一路
+  // 原样保留（失焦时立即存 + toast），两者叠加是幂等的。
+  //
+  // 九个框一起改而不是只改 api-key：同一个陷阱在另外八个里一模一样，只修被抓到的那个，
+  // 下一次仍然会中招。adv-custom **故意不在此列** —— 它的中间态是解析不了的 JSON，
+  // 理由写在下面它自己那条注释里。
+  const SAVE_ON_INPUT = [
+    'api-key', 'api-base-url', 'api-model',
+    'notes-api-key', 'notes-base-url', 'notes-model',
+    'stt-api-key', 'stt-base-url', 'stt-model',
+  ];
+  let _inputSaveTimer = null;
+  for (const id of SAVE_ON_INPUT) {
+    const el = $(id);
+    if (!el) continue;              // 不同 flavor 可能少某个面板，缺了就跳过
+    el.addEventListener('input', () => {
+      clearTimeout(_inputSaveTimer);
+      _inputSaveTimer = setTimeout(() => { saveAll(); }, 500);
+    });
+  }
+
   // 折叠沿用来源管理那条（options.js 的 btn-manage-sources）：button + hidden 容器，
   // 不用 <details>（这个页面里一个都没有），也不写 display 规则（options.css:7 已有
   // `[hidden]{display:none!important}`，再写一条就是那次「面板永远展开」的事故）。
