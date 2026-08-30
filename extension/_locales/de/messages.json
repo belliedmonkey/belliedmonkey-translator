@@ -268,10 +268,10 @@
     "message": "Beliebiger Chat-Endpunkt im Messages-Format. Vollständige Endpunkt-URL, Modell und Schlüssel eintragen."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "Modell"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "Leer lassen, um das Standardmodell der Engine zu verwenden."
   },
   "options_advanced": {
     "message": "Erweiterte Parameter"
@@ -328,7 +328,7 @@
     "message": "Das Modell hat sein gesamtes Ausgabebudget fürs Nachdenken verbraucht und keine Übersetzung geliefert. Erhöhen Sie „Max. Ausgabelänge pro Anfrage“ unter Erweiterte Parameter oder wechseln Sie zu einem Modell ohne Reasoning."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "Modell gespeichert"
   },
   "setup_need_key": {
     "message": "Diese Engine benötigt einen API-Schlüssel. Ohne Eingabe unten funktioniert die Übersetzung nicht."
@@ -526,7 +526,7 @@
     "message": "Testsatz abspielen"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "So klingen deine Wiederholungskarten."
   },
   "tts_testing": {
     "message": "Wird synthetisiert…"

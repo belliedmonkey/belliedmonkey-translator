@@ -268,10 +268,10 @@
     "message": "أي نقطة نهاية محادثة بصيغة Messages. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "الطراز"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "اتركه فارغًا لاستخدام النموذج الافتراضي للمحرك."
   },
   "options_advanced": {
     "message": "إعدادات متقدمة"
@@ -328,7 +328,7 @@
     "message": "استهلك النموذج كامل ميزانية المخرجات في التفكير ولم يُنتج ترجمة. ارفع «أقصى طول للمخرجات لكل طلب» في الإعدادات المتقدمة، أو انتقل إلى نموذج بلا استدلال."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "تم حفظ الطراز"
   },
   "setup_need_key": {
     "message": "يحتاج هذا المحرّك إلى مفتاح API. لن تعمل الترجمة حتى تُدخل مفتاحًا في الأسفل."
@@ -526,7 +526,7 @@
     "message": "جرّب جملة"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "هكذا ستبدو بطاقات المراجعة عند قراءتها."
   },
   "tts_testing": {
     "message": "جارٍ التركيب…"

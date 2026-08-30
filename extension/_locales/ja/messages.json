@@ -268,10 +268,10 @@
     "message": "Messages 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。"
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "モデル"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "空欄にすると、そのエンジンの既定モデルを使います。"
   },
   "options_advanced": {
     "message": "詳細パラメータ"
@@ -328,7 +328,7 @@
     "message": "モデルが出力予算をすべて推論に使い、訳文を返しませんでした。詳細パラメータの「1 回あたりの最大出力長」を上げるか、推論しないモデルに切り替えてください。"
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "モデルを保存しました"
   },
   "setup_need_key": {
     "message": "このエンジンには API キーが必要です。下に入力するまで翻訳は動作しません。"
@@ -526,7 +526,7 @@
     "message": "テスト再生"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "復習カードはこんなふうに読み上げられます。"
   },
   "tts_testing": {
     "message": "合成中…"

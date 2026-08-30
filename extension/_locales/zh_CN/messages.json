@@ -527,7 +527,7 @@
     "message": "试听一句"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "你的复习卡片听起来就是这样。"
   },
   "tts_testing": {
     "message": "正在合成…"

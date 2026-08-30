@@ -268,10 +268,10 @@
     "message": "Messages 형식의 대화 엔드포인트. 완전한 엔드포인트 URL, 모델, 키를 입력하세요."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "모델"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "비워 두면 해당 엔진의 기본 모델을 사용합니다."
   },
   "options_advanced": {
     "message": "고급 매개변수"
@@ -328,7 +328,7 @@
     "message": "모델이 출력 예산을 전부 추론에 사용해 번역을 내놓지 않았습니다. 고급 매개변수의 \"요청당 최대 출력 길이\"를 높이거나 추론하지 않는 모델로 바꾸세요."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "모델을 저장했습니다"
   },
   "setup_need_key": {
     "message": "이 엔진에는 API 키가 필요합니다. 아래에 입력해야 번역이 작동합니다."
@@ -526,7 +526,7 @@
     "message": "테스트 재생"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "복습 카드는 이렇게 읽어 줍니다."
   },
   "tts_testing": {
     "message": "합성 중…"

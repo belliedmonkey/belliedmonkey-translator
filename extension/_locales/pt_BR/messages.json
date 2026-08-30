@@ -268,10 +268,10 @@
     "message": "Qualquer endpoint de conversa no formato Messages. Informe a URL completa, o modelo e a chave."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "Modelo"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "Deixe em branco para usar o modelo padrão do motor."
   },
   "options_advanced": {
     "message": "Parâmetros avançados"
@@ -328,7 +328,7 @@
     "message": "O modelo gastou todo o orçamento de saída raciocinando e não produziu tradução. Aumente \"Tamanho máximo de saída por requisição\" em Parâmetros avançados, ou troque para um modelo sem raciocínio."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "Modelo salvo"
   },
   "setup_need_key": {
     "message": "Este motor precisa de uma chave de API. A tradução não vai funcionar enquanto você não inserir uma abaixo."
@@ -526,7 +526,7 @@
     "message": "Ouvir uma frase de teste"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "É assim que seus cartões de revisão vão soar."
   },
   "tts_testing": {
     "message": "Sintetizando…"

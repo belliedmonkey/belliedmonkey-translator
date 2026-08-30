@@ -268,10 +268,10 @@
     "message": "Любой чат-эндпоинт формата Messages. Укажите полный URL, модель и ключ."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "Модель"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "Оставьте пустым, чтобы использовать модель движка по умолчанию."
   },
   "options_advanced": {
     "message": "Дополнительные параметры"
@@ -328,7 +328,7 @@
     "message": "Модель израсходовала весь бюджет вывода на рассуждения и не выдала перевод. Увеличьте «Макс. длину ответа на запрос» в дополнительных параметрах или выберите модель без рассуждений."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "Модель сохранена"
   },
   "setup_need_key": {
     "message": "Этому движку нужен ключ API. Пока вы не введёте его ниже, перевод не заработает."
@@ -526,7 +526,7 @@
     "message": "Проверить голос"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "Вот так будут звучать ваши карточки для повторения."
   },
   "tts_testing": {
     "message": "Синтезируется…"

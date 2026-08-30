@@ -268,10 +268,10 @@
     "message": "Tout point de terminaison de conversation au format Messages. Saisissez l’URL complète, le modèle et la clé."
   },
   "label_custom_model": {
-    "message": "Model"
+    "message": "Modèle"
   },
   "options_custom_model_hint": {
-    "message": "Leave blank to use the engine's default model."
+    "message": "Laissez vide pour utiliser le modèle par défaut du moteur."
   },
   "options_advanced": {
     "message": "Paramètres avancés"
@@ -328,7 +328,7 @@
     "message": "Le modèle a dépensé tout son budget de sortie en raisonnement et n’a produit aucune traduction. Augmentez « Longueur de sortie max par requête » dans les paramètres avancés, ou passez à un modèle sans raisonnement."
   },
   "toast_model_saved": {
-    "message": "Model saved"
+    "message": "Modèle enregistré"
   },
   "setup_need_key": {
     "message": "Ce moteur nécessite une clé API. La traduction ne fonctionnera pas tant que vous n'en aurez pas saisi une ci-dessous."
@@ -526,7 +526,7 @@
     "message": "Écouter un test"
   },
   "tts_test_sample": {
-    "message": "This is what your review cards will sound like."
+    "message": "Voici à quoi ressembleront vos cartes de révision."
   },
   "tts_testing": {
     "message": "Synthèse en cours…"
