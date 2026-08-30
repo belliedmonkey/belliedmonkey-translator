@@ -171,6 +171,32 @@ async function checkSite(site) {
     // 两个方向都要验：占位符不许漏在页面上，版本号也必须真的出现。
     if (fs.existsSync(path.join(site.dir, 'VERSION'))) {
       const want = fs.readFileSync(path.join(site.dir, 'VERSION'), 'utf8').trim();
+
+      // ⑤a 版本号有三份副本，必须是**一条被检查的链**，不是三处各写各的：
+      //     package.json（唯一来源）→ 站点 /VERSION → JSON-LD 的 softwareVersion。
+      // 中间两份是给**不跑 JS 的爬虫**看的，运行时替换救不了它们。
+      const pkgV = require('../package.json').version;
+      if (want !== pkgV) {
+        bad.push(`站点 VERSION 是 ${want}，package.json 是 ${pkgV} —— 发版时漏同步了`);
+      }
+      for (const page of ['index.html']) {
+        const f = path.join(site.dir, page);
+        if (!fs.existsSync(f)) continue;
+        const raw = fs.readFileSync(f, 'utf8');
+
+        // 原始 HTML 里不许有 {v}。渲染后的判据（下面那条）看不见这个：
+        // i18n.js 会把占位符换掉，但爬虫拿到的是**替换之前**的文本。
+        // 2026-08-30 实测：线上下载按钮对 curl 显示 "Download for Chrome — v{v} (ZIP)"，
+        // 而渲染判据全绿 —— 正是这一页做 GEO 想要的那批读者看到了一句坏掉的话。
+        // 修法是静态兜底**不提版本号**（JS 补上），这样它天然不会过期。
+        const m = raw.match(/.{0,50}\{v\}.{0,20}/s);
+        if (m) bad.push(`${page} 的原始 HTML 里漏出 {v} —— 不跑 JS 的爬虫会原样读到：…${m[0].replace(/\s+/g, ' ')}…`);
+
+        const sv = raw.match(/"softwareVersion"\s*:\s*"([^"]+)"/);
+        if (!sv) bad.push(`${page} 的 JSON-LD 没有 softwareVersion —— 爬虫无从判断新鲜度`);
+        else if (sv[1] !== want) bad.push(`${page} 的 softwareVersion 是 ${sv[1]}，VERSION 是 ${want}`);
+        else console.log(`  ✓ ${page} 版本链一致：package.json = /VERSION = softwareVersion = ${want}`);
+      }
       await cdp.send('Page.navigate', { url: 'http://127.0.0.1:' + srv.address().port + '/index.html' }, sessionId);
       await new Promise((r) => setTimeout(r, 3000));
       const v = await ev(`JSON.stringify({
@@ -178,9 +204,12 @@ async function checkSite(site) {
         has: document.body.innerText.indexOf(${JSON.stringify('v' + '')} + ${JSON.stringify(want)}) >= 0,
         dl: (document.querySelector('[data-i18n="home.installDl"]')||{}).innerText || ''
       })`);
+      // 字典里带 {v} 才有「替换成功」可言。中国站没有下载区，跳过而不是假装通过。
+      const dictHasV = fs.existsSync(path.join(site.dir, 'i18n', 'en.json'))
+        && fs.readFileSync(path.join(site.dir, 'i18n', 'en.json'), 'utf8').includes('{v}');
       if (v.raw) bad.push('首页上漏出了未替换的 {v} 占位符');
-      if (!v.has) bad.push(`首页没有出现 VERSION 里的版本号 v${want} —— 下载按钮: ${JSON.stringify(v.dl)}`);
-      if (!v.raw && v.has) console.log(`  ✓ 首页版本号 v${want}（来自 /VERSION，非写死）`);
+      if (dictHasV && !v.has) bad.push(`首页没有出现 VERSION 里的版本号 v${want} —— 下载按钮: ${JSON.stringify(v.dl)}`);
+      if (dictHasV && !v.raw && v.has) console.log(`  ✓ 首页渲染后显示 v${want}（i18n.js 从 /VERSION 取，非写死）`);
     }
 
     // ④ 断网：i18n 拿不到时，页面**仍然必须有字**
