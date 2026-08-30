@@ -117,10 +117,21 @@ async function checkSite(site) {
     await new Promise((r) => setTimeout(r, 1200));
     s = await ev(`JSON.stringify({on:!document.getElementById('mt-on').hidden,
       wait:!document.getElementById('mt-wait').hidden,
-      demo:!document.getElementById('mt-demo').hidden})`);
+      demo:!document.getElementById('mt-demo').hidden,
+      hasSteps:!!document.getElementById('mt-steps'),
+      steps:!!(document.getElementById('mt-steps') && !document.getElementById('mt-steps').hidden)})`);
     if (!s.on) bad.push('标记已注入但灯没变绿');
     if (s.wait) bad.push('等待态没收起，两句同时显示');
     if (!s.demo) bad.push('演示段落没露出');
+    // 扩展已装好并授权之后，「去设置 → Safari 里打开」对这个人已经是做完的事；
+    // 而对从扩展引导第 4 屏跳过来的 Chrome / Firefox 用户，那三步从一开始就是错的话
+    // （他们的浏览器里根本没有 Safari 扩展设置）。一页「你成功了」的确认不该同时
+    // 在教人做一件他不需要做的事。
+    // 先断言元素**存在**，再断言它收起了。少了前一句，这条判据在没有 #mt-steps 的
+    // 站点上是**空过**的 —— 元素不存在 ⇒ steps 恒为 false ⇒ 永远不报错。
+    // 中国站原本就是这个情况，写这条判据时它骗过了我一次。
+    if (!s.hasSteps) bad.push('页面上找不到 #mt-steps —— 这条判据会空过，等于没有');
+    else if (s.steps) bad.push('检测到扩展后，Safari 三步没有收起 —— 在教一件已经做完/不适用的事');
 
     // ④ 断网：i18n 拿不到时，页面**仍然必须有字**
     //
