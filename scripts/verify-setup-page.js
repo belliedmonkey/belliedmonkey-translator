@@ -258,6 +258,58 @@ async function checkSite(site) {
       }
     }
 
+    // ⑩ 预渲染的语言页
+    //
+    // 站点原本是运行时 i18n：一套 URL，canonical 固定指向根 —— Google 对一个 canonical
+    // 只索引一种语言，于是八份翻译里有七份从来没被搜索引擎见过。预渲染给了每种语言
+    // 自己的 URL 与 hreflang，那七份翻译这才成为可检索的资产。
+    //
+    // 四条判据。最要紧的是**不许加载 i18n.js**：它会按 localStorage 里存的语言重新
+    // 渲染整页，访客上次选阿拉伯语时，/zh-CN/ 会被就地改成阿拉伯语并翻成 RTL。
+    if (fs.existsSync(path.join(site.dir, 'i18n', 'i18n.js'))) {
+      let gen = null;
+      try { gen = require('./gen-site-langs.js'); } catch (e) { bad.push('加载语言页生成器失败：' + e.message); }
+      if (gen) {
+        const langs = gen.langsFrom(fs.readFileSync(path.join(site.dir, 'i18n', 'i18n.js'), 'utf8'));
+        const version = fs.readFileSync(path.join(site.dir, 'VERSION'), 'utf8').trim();
+        const SCRIPTS = { 'zh-CN': /[\u4e00-\u9fff]/, ar: /[\u0600-\u06ff]/, ru: /[\u0400-\u04ff]/, hi: /[\u0900-\u097f]/ };
+        let n = 0;
+        for (const l of langs) {
+          if (l.code === 'en') continue;
+          const dict = JSON.parse(fs.readFileSync(path.join(site.dir, 'i18n', l.code + '.json'), 'utf8'));
+          for (const page of gen.PAGES) {
+            const f = path.join(site.dir, l.code, page);
+            if (!fs.existsSync(f)) { bad.push(`缺 ${l.code}/${page} —— 跑 node scripts/gen-site-langs.js`); continue; }
+            const html = fs.readFileSync(f, 'utf8');
+            const src = fs.readFileSync(path.join(site.dir, page), 'utf8');
+            let want;
+            try { want = gen.render(src, page, l.code, dict, langs, version); }
+            catch (e) { bad.push(`${l.code}/${page} 生成失败：${e.message}`); continue; }
+            if (want !== html) bad.push(`${l.code}/${page} 与字典不一致 —— 跑 node scripts/gen-site-langs.js`);
+            if (/i18n\/i18n\.js/.test(html)) {
+              bad.push(`${l.code}/${page} 还加载着 i18n.js —— 它会按 localStorage 把这一页改成别的语言`);
+            }
+            if (html.includes('{v}')) bad.push(`${l.code}/${page} 里漏出了 {v} 占位符`);
+            const canon = (html.match(/<link rel="canonical" href="([^"]+)"/) || [])[1];
+            if (canon !== `https://${gen.HOST}${gen.urlFor(page, l.code)}`) {
+              bad.push(`${l.code}/${page} 的 canonical 是 ${canon} —— 指错了就等于把这一页并回主版本`);
+            }
+            // 只数 <link rel="alternate">。语言行里的 <a hreflang> 也带这个属性
+            // （那是对的，它告诉爬虫链接目标的语言），但它不是 alternate 声明。
+            const alts = (html.match(/<link rel="alternate" hreflang="/g) || []).length;
+            if (alts !== langs.length + 1) bad.push(`${l.code}/${page} 的 hreflang 有 ${alts} 条，应为 ${langs.length + 1}（含 x-default）`);
+            const re = SCRIPTS[l.code];
+            if (re) {
+              const prose = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ');
+              if (!re.test(prose)) bad.push(`${l.code}/${page} 的正文里没有该语系的字符 —— 没渲染成那门语言`);
+            }
+            n++;
+          }
+        }
+        if (n && !bad.length) console.log(`  ✓ ${n} 个语言页：与字典一致、canonical 自指、${langs.length + 1} 条 hreflang、无 i18n.js`);
+      }
+    }
+
     // ⑧ 官网字典：键集一致 + meta 串不许留英文兜底
     //
     // 官网仓库**一道门禁都没有**（扩展仓库那套 i18n-parity 管不到它）。两条：
@@ -312,28 +364,46 @@ async function checkSite(site) {
     if (fs.existsSync(smPath)) {
       const sm = fs.readFileSync(smPath, 'utf8');
       const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-      const rel = (u) => { const r = u.replace(/^https?:\/\/[^/]+/, ''); return r === '/' ? 'index.html' : r.replace(/^\//, ''); };
+      // URL → 磁盘路径。`/` 与 `/zh-CN/` 都落到各自的 index.html。
+      const rel = (u) => {
+        const r = u.replace(/^https?:\/\/[^/]+/, '').replace(/^\//, '');
+        return r === '' || r.endsWith('/') ? r + 'index.html' : r;
+      };
       const listed = new Set(locs.map(rel));
 
       for (const f of listed) {
         if (!fs.existsSync(path.join(site.dir, f))) bad.push(`sitemap 里的 ${f} 在站点里不存在 —— 抓取器会拿到 404`);
       }
-      // 反向：站上的内容页必须在 sitemap 里。排除 -cn 结尾的那两页（中文版隐私/支持，
-      // 是给商店表单用的定向链接，不进索引）。
-      const onDisk = fs.readdirSync(site.dir)
-        .filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f));
+      // 反向：站上的内容页必须在 sitemap 里。要连**语言子目录**一起走 —— 只看顶层的话，
+      // 预渲染出来的 28 个语言页会全部漏检，而那正是这一步存在的理由。
+      // 排除 -cn 结尾的那两页（给商店表单用的定向链接，不进索引）。
+      const htmlUnder = (d, prefix) => fs.existsSync(path.join(site.dir, d))
+        && fs.statSync(path.join(site.dir, d)).isDirectory()
+        ? fs.readdirSync(path.join(site.dir, d)).filter((f) => f.endsWith('.html')).map((f) => prefix + f)
+        : [];
+      const top = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f));
+      const langDirs = fs.readdirSync(site.dir)
+        .filter((f) => /^[a-z]{2}(-[A-Za-z]+)?$/.test(f) && fs.statSync(path.join(site.dir, f)).isDirectory());
+      const onDisk = top.concat(...langDirs.map((d) => htmlUnder(d, d + '/')));
       for (const f of onDisk) {
         if (!listed.has(f)) bad.push(`${f} 不在 sitemap 里 —— 搜索引擎不知道它存在`);
       }
 
-      // 孤儿：每个被列出的页面都要至少被另一个页面链到
+      // 孤儿：每个被列出的页面都要至少被另一个页面**用 <a> 链到**。
+      // 首页在链接里写作 `/zh-CN/`（不是 `/zh-CN/index.html`），两种写法都认。
+      const hrefForms = (f) => {
+        const forms = ['/' + f];
+        if (f.endsWith('index.html')) forms.push('/' + f.slice(0, -'index.html'.length));
+        return forms;
+      };
       for (const f of listed) {
         if (f === 'index.html') continue;
-        const linkers = onDisk.filter((o) => o !== f
-          && new RegExp('href="/' + f.replace(/[.]/g, '\\.') + '"').test(fs.readFileSync(path.join(site.dir, o), 'utf8')));
-        if (!linkers.length) bad.push(`${f} 是孤儿页 —— 只在 sitemap 里，站内没有任何链接指过去`);
+        const pats = hrefForms(f).map((h) => new RegExp('href="' + h.replace(/[.]/g, '\\.') + '"'));
+        const linked = onDisk.some((o) => o !== f
+          && pats.some((re) => re.test(fs.readFileSync(path.join(site.dir, o), 'utf8'))));
+        if (!linked) bad.push(`${f} 是孤儿页 —— 只在 sitemap 里，站内没有任何 <a> 指过去`);
       }
-      if (!bad.length) console.log(`  ✓ sitemap ${listed.size} 页：与文件一一对应，且无孤儿`);
+      if (!bad.length) console.log(`  ✓ sitemap ${listed.size} 页（含 ${onDisk.length - top.length} 个语言页）：与文件一一对应，且无孤儿`);
     }
 
     for (const f of fs.readdirSync(site.dir).filter((x) => x.endsWith('.html'))) {
