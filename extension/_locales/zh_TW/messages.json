@@ -1765,5 +1765,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "擴充功能設定 → 翻譯引擎。這一步躲不掉：不填 Key 就翻不出任何東西。"
+  },
+  "extob_header": {
+    "message": "大肚猴翻譯 · 開始使用"
+  },
+  "extob_welcome_title": {
+    "message": "邊讀邊記，不用離開頁面"
+  },
+  "extob_welcome_body": {
+    "message": "原文留在原地，譯文長在下面。你真正停下來讀完的句子會變成複習卡，按遺忘曲線回來找你。"
+  },
+  "extob_engine_title": {
+    "message": "選一個翻譯引擎"
+  },
+  "extob_engine_body_free": {
+    "message": "免費通道零設定就能用。想要更好的品質，填入你自己的 API Key。"
+  },
+  "extob_engine_body_key": {
+    "message": "這一步躲不掉：不填 Key 就翻不出任何東西。"
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "要不要順便把讀過的句子記下來"
+  },
+  "extob_capture_body": {
+    "message": "預設是關的。打開之後，你真正讀完的句子（快速滑過去的不算）會存成複習卡。"
+  },
+  "extob_capture_toggle": {
+    "message": "把我讀過的句子存成複習卡"
+  },
+  "extob_capture_note": {
+    "message": "只收錄你真正停下來讀完的句子。隨時可以在設定裡關掉，已存的卡也能整站刪除。"
+  },
+  "extob_try_title": {
+    "message": "現在翻一頁看看"
+  },
+  "extob_try_body": {
+    "message": "打開一頁真實網頁，點右下角的懸浮按鈕，原文下面就會出現譯文。"
+  },
+  "extob_try_cta": {
+    "message": "打開範例頁面"
+  },
+  "extob_sync_title": {
+    "message": "換台裝置接著複習"
+  },
+  "extob_sync_body": {
+    "message": "不登入也能完整使用，所有資料留在本機。登入只在你想讓手機接著複習電腦上讀到的句子時才需要。"
+  },
+  "extob_sync_cta": {
+    "message": "打開設定去登入"
+  },
+  "extob_app_note": {
+    "message": "想在手機上複習、或者邊走邊聽播客模式？那兩樣在 iPhone / Mac 的 App 裡。"
+  },
+  "extob_finish": {
+    "message": "完成"
+  },
+  "extob_done_title": {
+    "message": "設定好了"
+  },
+  "extob_done_text": {
+    "message": "打開任意外語網頁，點右下角的懸浮按鈕即可。想改設定或重看這段引導，都在擴充功能的設定頁裡。"
+  },
+  "extob_done_close": {
+    "message": "知道了"
+  },
+  "extob_reonboard": {
+    "message": "重看開始使用引導"
+  },
+  "extob_unpacked_note": {
+    "message": "你是用 ZIP 直接裝的：這一份不會自動更新。新版本請到官網下載，或改從商店安裝以取得自動更新。"
+  },
+  "extob_first_run": {
+    "message": "第一次用？兩分鐘把它配好 →"
   }
 }

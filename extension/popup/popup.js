@@ -63,6 +63,7 @@ function populateProviders() {
 // been translated by the user's own DeepSeek key.
 const POPUP_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'extObSeen',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
 ];
@@ -108,6 +109,23 @@ function updateSetupNote(provider, apiKey) {
   } else {
     el.style.display = 'none';
   }
+}
+
+// 首次运行入口。只在 extObSeen 未置位时出现，点了就开引导页。
+//
+// **故意不复用 App 的 onboardSeen 这个键名**：两边存储不通（app/chrome-shim.js 把
+// chrome.storage 垫在 file:// 的 localStorage 上），同名会让以后读代码的人以为它们
+// 是一回事，然后写出「App 看过了扩展就不用看」这种错的联动。
+function updateFirstRun(seen) {
+  const el = $('first-run');
+  if (!el) return;
+  if (seen) { el.style.display = 'none'; return; }
+  el.textContent = t('extob_first_run', '第一次用？两分钟把它配好 →');
+  el.style.display = 'block';
+  el.onclick = () => {
+    try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
+    window.close();
+  };
 }
 
 function updateApiKeySection(provider) {
@@ -211,6 +229,7 @@ async function init() {
 
   updateApiKeySection(prov);
   updateSetupNote(prov, s.apiKey);
+  updateFirstRun(s.extObSeen);
   if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
 
   // Reflect the CURRENT page's translation state (not a stored default).

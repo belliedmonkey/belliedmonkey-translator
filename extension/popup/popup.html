@@ -20,6 +20,10 @@
 
   <!-- Onboarding: says what to do BEFORE the user hits a bad first result.
        Filled and shown/hidden by popup.js — never both states at once. -->
+  <!-- 首次运行入口。刻意由用户主动点，不在 onInstalled 里自动开页 ——
+       background.js:63-70 已用实测封死那条路（劫持标签页 + 让 layout 套挂起）。 -->
+  <button class="setup-note" id="first-run" type="button" style="display:none"></button>
+
   <div class="setup-note" id="setup-note" style="display:none"></div>
 
   <!-- 复习入口。到期为 0 时这一行仍然显示（只是没有计数）—— 藏起来会让整个功能

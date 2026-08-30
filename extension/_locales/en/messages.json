@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "Extension settings → translation engine. This one is unavoidable: without a key nothing gets translated."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Get started"
+  },
+  "extob_welcome_title": {
+    "message": "Read and remember, without leaving the page"
+  },
+  "extob_welcome_body": {
+    "message": "The original stays where it is; the translation appears right below it. Sentences you actually stop and read become review cards that come back on a forgetting curve."
+  },
+  "extob_engine_title": {
+    "message": "Pick a translation engine"
+  },
+  "extob_engine_body_free": {
+    "message": "The free channel works with no setup. For better quality, add your own API key."
+  },
+  "extob_engine_body_key": {
+    "message": "There is no way around this one: without a key, nothing gets translated."
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "Want it to remember what you read?"
+  },
+  "extob_capture_body": {
+    "message": "Off by default. Turn it on and the sentences you actually finish reading (not the ones you scroll past) become review cards."
+  },
+  "extob_capture_toggle": {
+    "message": "Save sentences I read as review cards"
+  },
+  "extob_capture_note": {
+    "message": "Only sentences you actually finish reading. You can turn this off any time, and delete everything from a site at once."
+  },
+  "extob_try_title": {
+    "message": "Now translate a page"
+  },
+  "extob_try_body": {
+    "message": "Open a real page and tap the floating button in the corner — the translation appears under each paragraph."
+  },
+  "extob_try_cta": {
+    "message": "Open a sample page"
+  },
+  "extob_sync_title": {
+    "message": "Keep reviewing on another device"
+  },
+  "extob_sync_body": {
+    "message": "Everything works fully without an account — your data stays on this device. Sign in only if you want your phone to pick up where your computer left off."
+  },
+  "extob_sync_cta": {
+    "message": "Open settings to sign in"
+  },
+  "extob_app_note": {
+    "message": "Want to review on your phone, or listen in podcast mode while walking? Those live in the iPhone and Mac app."
+  },
+  "extob_finish": {
+    "message": "Done"
+  },
+  "extob_done_title": {
+    "message": "You're set up"
+  },
+  "extob_done_text": {
+    "message": "Open any page in another language and tap the floating button. Settings and this walkthrough are both in the extension's settings page."
+  },
+  "extob_done_close": {
+    "message": "Got it"
+  },
+  "extob_reonboard": {
+    "message": "Show the getting-started walkthrough again"
+  },
+  "extob_unpacked_note": {
+    "message": "Installed from a ZIP: this copy does not update itself. Grab new versions from the website, or install from the store for automatic updates."
+  },
+  "extob_first_run": {
+    "message": "First time? Two minutes to set it up →"
   }
 }

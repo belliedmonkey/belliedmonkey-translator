@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大肚猴翻译 — 开始使用</title>
+  <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
+  <link rel="stylesheet" href="onboard.css">
+</head>
+<!--
+  扩展侧的首次引导。
+
+  为什么是一个独立标签页，而不是 popup 里的向导：popup 点外面就关、切标签页就关，
+  在 Safari iOS 上是 sheet。一个「点一下别处就死」的向导比没有更糟。而且只有标签页
+  这个形态能承载第 4 屏 —— 「翻第一页」必须跳到一个真的 http(s) 页面，因为 content
+  script 不在 chrome-extension:// 上跑，引导页自己的演示文字永远不会变双语。
+
+  为什么不在 onInstalled 里自动打开：background.js:63-70 的注释已用实测封死这条路
+  （劫持标签页；CDP 加载扩展会触发 onInstalled，让 layout 套无限挂起）。所以三个入口
+  全部由用户主动点：popup、options、复习页空态。
+
+  外壳形状刻意与 App 的六屏一致（app/index.html:84-97），让两个产品看起来是一件东西；
+  但内容是它的**逆** —— App 做了它能做的三屏（选语言/去装扩展/去登录），这里做 App
+  做不到的那三件事：配引擎、开采集、翻第一页。
+-->
+<body>
+  <div class="page">
+    <header class="page-header">
+      <img src="../icons/icon.svg" width="40" height="40" alt="">
+      <span data-i18n="extob_header">大肚猴翻译 · 开始使用</span>
+    </header>
+
+    <main>
+      <section id="onboard">
+        <div id="ob-bar"><div id="ob-fill"></div></div>
+        <div id="ob-body">
+          <h2 id="ob-title"></h2>
+          <p id="ob-text"></p>
+
+          <!-- 第 2 屏：真的引擎选择器，不是说明文字 -->
+          <div id="ob-engine" hidden>
+            <label for="ob-provider" data-i18n="options_engine_label">翻译引擎</label>
+            <select id="ob-provider"></select>
+            <div id="ob-key-row">
+              <label for="ob-key" data-i18n="extob_key_label">API Key</label>
+              <input id="ob-key" type="password" autocomplete="off" spellcheck="false">
+            </div>
+            <p id="ob-engine-note" class="hint"></p>
+            <button id="ob-test" type="button" class="secondary"></button>
+            <p id="ob-test-out" class="hint" hidden></p>
+          </div>
+
+          <!-- 第 3 屏：真的采集开关 + 语言 chips（复用 SourcesView.renderLangChips） -->
+          <div id="ob-capture" hidden>
+            <label class="row">
+              <input id="ob-learn" type="checkbox">
+              <span data-i18n="extob_capture_toggle">把我读过的句子存成复习卡</span>
+            </label>
+            <p id="ob-capture-note" class="hint"></p>
+            <div id="ob-langs"></div>
+          </div>
+
+          <!-- 第 4 屏 / 第 5 屏的行动按钮 -->
+          <button id="ob-cta" type="button" hidden></button>
+          <p id="ob-cta-note" class="hint" hidden></p>
+        </div>
+        <div id="ob-foot">
+          <button id="ob-next" type="button"></button>
+          <button id="ob-skip" type="button" class="link"></button>
+        </div>
+      </section>
+
+      <section id="ob-done" hidden>
+        <h2 id="ob-done-title"></h2>
+        <p id="ob-done-text"></p>
+        <button id="ob-done-close" type="button"></button>
+      </section>
+    </main>
+  </div>
+
+  <script src="../content/i18n-messages.js"></script>
+  <script src="../content/palette.gen.js"></script>
+  <script src="../content/providers.gen.js"></script>
+  <script src="../content/langs.gen.js"></script>
+  <!-- TranslationAPI 的依赖链，顺序照 options.html：wire-format 解地址、request-shape
+       组请求体（它还会读 chrome.storage 的高级参数），两者都必须在 translation-api 之前。 -->
+  <script src="../content/wire-format.js"></script>
+  <script src="../content/request-shape.js"></script>
+  <script src="../content/translation-api.js"></script>
+  <script src="../learn/backend.config.js"></script>
+  <script src="../learn/sources-view.js"></script>
+  <script src="onboard.js"></script>
+</body>
+</html>

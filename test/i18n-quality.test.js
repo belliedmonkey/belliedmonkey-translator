@@ -60,7 +60,7 @@ const ALLOW = new Set([
   // 判据是「用户在该语言的技术语境里本来就这么说」，不是「我懒得翻」——
   // 所以这个名单必须逐条点名，不能用前缀通配。
   ...LOCALES.flatMap((l) => ['app_set_notes_key', 'label_api_key', 'placeholder_api_key',
-    'engine_test_http'].map((k) => `${k}:${l}`)),
+    'engine_test_http', 'extob_key_label'].map((k) => `${k}:${l}`)),
   // 引擎名出现在提示里（Qwen/DashScope、Kimi/Moonshot 都是品牌）
   ...LOCALES.flatMap((l) => Object.keys(M.en).filter((k) => k.startsWith('hint_')).map((k) => `${k}:${l}`)),
 ]);

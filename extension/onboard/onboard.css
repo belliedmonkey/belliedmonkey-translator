@@ -1,0 +1,45 @@
+/* extension/onboard/onboard.css — 扩展引导页。
+   ⚠️ 变量名用扩展这边的（--bg/--text/--card-bg/--border），不是 app/style.css 那套
+   （--cream/--ink/--card/--line）—— 两边各有一套 token 名，照抄 App 的会全部失效。
+   形状照 app/style.css:284-312 的引导外壳，让 App 与扩展看起来是一件东西。
+   颜色全部走 organic-tokens.gen.css 的变量 —— build.js 的调色板门禁会拦下
+   任何注册表不认识的十六进制值（这是硬门禁，不是约定）。 */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans", "Noto Sans", sans-serif;
+}
+.page { max-width: 560px; margin: 0 auto; padding: 32px 20px 56px; }
+.page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; font-weight: 700; }
+
+#onboard { display: flex; flex-direction: column; gap: 18px; }
+#ob-bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+#ob-fill { height: 100%; width: 0; background: var(--sage); border-radius: 999px; transition: width .18s ease; }
+#ob-body { display: flex; flex-direction: column; gap: 12px; min-height: 260px; }
+#ob-body h2 { margin: 0; font-size: 1.35rem; line-height: 1.3; }
+#ob-body > p { margin: 0; color: var(--text-secondary); }
+.hint { margin: 0; font-size: .9rem; color: var(--text-secondary); }
+
+#ob-engine, #ob-capture { display: flex; flex-direction: column; gap: 10px; }
+#ob-engine label, #ob-capture label { font-size: .9rem; color: var(--text-secondary); }
+#ob-engine select, #ob-engine input {
+  width: 100%; padding: 9px 12px; font: inherit;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text);
+}
+#ob-capture .row { display: flex; align-items: center; gap: 10px; font-size: 1rem; color: var(--text); }
+#ob-capture .row input { width: auto; }
+#ob-langs { display: flex; flex-wrap: wrap; gap: 8px; }
+
+button {
+  font: inherit; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  border: 1px solid transparent; background: var(--accent); color: #fff; font-weight: 600;
+}
+button:hover { filter: brightness(1.06); }
+button.secondary { background: var(--card-bg); color: var(--accent); border-color: var(--accent); }
+button.link { background: none; color: var(--text-secondary); border: none; font-weight: 400; padding: 6px; }
+button.link:hover { color: var(--text); filter: none; }
+
+#ob-foot { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+#ob-done { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+#ob-done h2 { margin: 0; }

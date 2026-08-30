@@ -686,6 +686,38 @@ async function init() {
   // 不用 <details>（这个页面里一个都没有），也不写 display 规则（options.css:7 已有
   // `[hidden]{display:none!important}`，再写一条就是那次「面板永远展开」的事故）。
   // 不加 busy()：这里没有 IO。
+  // ── 重看引导 ────────────────────────────────────────────────────────────
+  // 清掉 extObSeen 只是让 popup 的入口重新出现；引导页本身**读的是活状态**
+  // （引擎、Key、采集开关、语言 chips 都从 chrome.storage 现读），所以重看时
+  // 显示的是用户当前的真实配置，不是一段静态回放。
+  // 把已配好的 Key 显示成空白会让人以为设置丢了 —— 那比不给重看更糟。
+  $('btn-reonboard').addEventListener('click', async () => {
+    await new Promise((r) => { try { chrome.storage.local.remove(['extObSeen'], () => r()); } catch (_) { r(); } });
+    try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
+  });
+
+  // ── ZIP 直装提示 ────────────────────────────────────────────────────────
+  // 官网早就说了这句（home.installS4，8 语言都有），但装完的人不会回去看官网。
+  //
+  // 判据用商店分配的固定 id：直装（unpacked）时 Chrome 按公钥现算一个 id，与商店那个
+  // 不同。这个常量是公开的，README.md:35 与官网 index.html 都写着它。
+  // **不用 chrome.management** —— 那要一个会吓到用户的权限，为一句提示不值得。
+  //
+  // Firefox 不做这个判断：browser_specific_settings.gecko.id 在 AMO 安装与临时安装
+  // 是同一个值，自分发 XPI 本来也必须签名。写一个注定失效的检查比不写更坏。
+  const CWS_ID = 'ilnmffeejeohomjelipejdldhkjeoinf';
+  try {
+    const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo;
+    if (!isFirefox && chrome.runtime.id && chrome.runtime.id !== CWS_ID) {
+      const el = $('unpacked-note');
+      if (el) {
+        el.textContent = t('extob_unpacked_note',
+          '你是用 ZIP 直接装的：这一份不会自动更新。新版本请到官网下载，或改从商店安装以获得自动更新。');
+        el.hidden = false;
+      }
+    }
+  } catch (_) { /* 判断不出来就不说 —— 说错比不说更坏 */ }
+
   $('btn-advanced').addEventListener('click', () => {
     const box = $('advanced-config');
     box.hidden = !box.hidden;

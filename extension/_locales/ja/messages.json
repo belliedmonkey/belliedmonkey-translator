@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "拡張機能の設定 → 翻訳エンジン。これは省けません。キーがないと何も翻訳されません。"
+  },
+  "extob_header": {
+    "message": "大肚猴翻訳 · セットアップ"
+  },
+  "extob_welcome_title": {
+    "message": "ページを離れずに、読みながら覚える"
+  },
+  "extob_welcome_body": {
+    "message": "原文はそのまま、訳文がその下に表示されます。立ち止まって読んだ文は復習カードになり、忘却曲線に沿って戻ってきます。"
+  },
+  "extob_engine_title": {
+    "message": "翻訳エンジンを選ぶ"
+  },
+  "extob_engine_body_free": {
+    "message": "無料チャネルは設定なしで使えます。品質を上げたいなら自分の API キーを入れてください。"
+  },
+  "extob_engine_body_key": {
+    "message": "この手順は省けません。キーを入れないと何も翻訳されません。"
+  },
+  "extob_key_label": {
+    "message": "API キー"
+  },
+  "extob_capture_title": {
+    "message": "読んだ文を覚えておきますか？"
+  },
+  "extob_capture_body": {
+    "message": "既定ではオフです。オンにすると、実際に読み終えた文（スクロールで飛ばした分は除く）が復習カードになります。"
+  },
+  "extob_capture_toggle": {
+    "message": "読んだ文を復習カードとして保存する"
+  },
+  "extob_capture_note": {
+    "message": "実際に読み終えた文だけを保存します。いつでもオフにでき、サイト単位でまとめて削除できます。"
+  },
+  "extob_try_title": {
+    "message": "実際に 1 ページ翻訳してみる"
+  },
+  "extob_try_body": {
+    "message": "実際のページを開いて右下の丸いボタンを押すと、各段落の下に訳文が出ます。"
+  },
+  "extob_try_cta": {
+    "message": "サンプルページを開く"
+  },
+  "extob_sync_title": {
+    "message": "別の端末で復習を続ける"
+  },
+  "extob_sync_body": {
+    "message": "ログインしなくてもすべての機能が使え、データはこの端末に残ります。パソコンで読んだ続きをスマホで復習したいときだけログインしてください。"
+  },
+  "extob_sync_cta": {
+    "message": "設定を開いてログイン"
+  },
+  "extob_app_note": {
+    "message": "スマホで復習したい、歩きながらポッドキャストモードで聞きたい ── その 2 つは iPhone / Mac のアプリにあります。"
+  },
+  "extob_finish": {
+    "message": "完了"
+  },
+  "extob_done_title": {
+    "message": "準備完了"
+  },
+  "extob_done_text": {
+    "message": "外国語のページを開いて丸いボタンを押すだけです。設定の変更もこの案内の再表示も、拡張機能の設定ページにあります。"
+  },
+  "extob_done_close": {
+    "message": "わかりました"
+  },
+  "extob_reonboard": {
+    "message": "はじめての案内をもう一度見る"
+  },
+  "extob_unpacked_note": {
+    "message": "ZIP から直接インストールされています。この版は自動更新されません。新しい版は公式サイトから、または自動更新が必要ならストア版をご利用ください。"
+  },
+  "extob_first_run": {
+    "message": "はじめて？2 分で設定できます →"
   }
 }

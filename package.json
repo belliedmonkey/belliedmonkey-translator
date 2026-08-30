@@ -23,7 +23,8 @@
     "test:smoke": "node scripts/verify-extension-smoke.js",
     "test:learn": "node scripts/verify-learn-flow.js",
     "test:sync": "node scripts/verify-sync-consistency.js",
-    "test:setup-page": "node scripts/verify-setup-page.js"
+    "test:setup-page": "node scripts/verify-setup-page.js",
+    "test:onboard": "node scripts/verify-onboard.js dist && node scripts/verify-onboard.js dist-china"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "확장 설정 → 번역 엔진. 이 단계는 건너뛸 수 없습니다. 키가 없으면 아무것도 번역되지 않습니다."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey 번역 · 시작하기"
+  },
+  "extob_welcome_title": {
+    "message": "페이지를 떠나지 않고 읽으며 기억하기"
+  },
+  "extob_welcome_body": {
+    "message": "원문은 그대로 두고 번역이 바로 아래에 나타납니다. 실제로 멈춰서 읽은 문장은 복습 카드가 되어 망각 곡선에 따라 다시 찾아옵니다."
+  },
+  "extob_engine_title": {
+    "message": "번역 엔진 선택"
+  },
+  "extob_engine_body_free": {
+    "message": "무료 채널은 설정 없이 바로 쓸 수 있습니다. 품질을 높이려면 본인의 API 키를 넣으세요."
+  },
+  "extob_engine_body_key": {
+    "message": "이 단계는 건너뛸 수 없습니다. 키가 없으면 아무것도 번역되지 않습니다."
+  },
+  "extob_key_label": {
+    "message": "API 키"
+  },
+  "extob_capture_title": {
+    "message": "읽은 문장을 기억해 둘까요?"
+  },
+  "extob_capture_body": {
+    "message": "기본은 꺼져 있습니다. 켜면 실제로 다 읽은 문장(스크롤로 지나친 것은 제외)이 복습 카드가 됩니다."
+  },
+  "extob_capture_toggle": {
+    "message": "읽은 문장을 복습 카드로 저장"
+  },
+  "extob_capture_note": {
+    "message": "실제로 다 읽은 문장만 저장합니다. 언제든 끌 수 있고, 사이트 단위로 한 번에 삭제할 수 있습니다."
+  },
+  "extob_try_title": {
+    "message": "이제 한 페이지 번역해 보기"
+  },
+  "extob_try_body": {
+    "message": "실제 페이지를 열고 오른쪽 아래 떠 있는 버튼을 누르면 각 문단 아래에 번역이 나타납니다."
+  },
+  "extob_try_cta": {
+    "message": "예시 페이지 열기"
+  },
+  "extob_sync_title": {
+    "message": "다른 기기에서 이어서 복습하기"
+  },
+  "extob_sync_body": {
+    "message": "로그인하지 않아도 모든 기능을 쓸 수 있고 데이터는 이 기기에 남습니다. 컴퓨터에서 읽은 것을 휴대폰에서 이어 복습하고 싶을 때만 로그인하세요."
+  },
+  "extob_sync_cta": {
+    "message": "설정을 열어 로그인"
+  },
+  "extob_app_note": {
+    "message": "휴대폰에서 복습하거나 걸으면서 팟캐스트 모드로 듣고 싶다면, 그 두 가지는 iPhone / Mac 앱에 있습니다."
+  },
+  "extob_finish": {
+    "message": "완료"
+  },
+  "extob_done_title": {
+    "message": "설정 완료"
+  },
+  "extob_done_text": {
+    "message": "다른 언어로 된 페이지를 열고 떠 있는 버튼을 누르면 됩니다. 설정 변경과 이 안내 다시 보기는 모두 확장 프로그램 설정 페이지에 있습니다."
+  },
+  "extob_done_close": {
+    "message": "알겠습니다"
+  },
+  "extob_reonboard": {
+    "message": "시작 안내 다시 보기"
+  },
+  "extob_unpacked_note": {
+    "message": "ZIP으로 직접 설치했습니다. 이 사본은 자동 업데이트되지 않습니다. 새 버전은 웹사이트에서 받거나, 자동 업데이트를 원하면 스토어에서 설치하세요."
+  },
+  "extob_first_run": {
+    "message": "처음이신가요? 2분이면 설정 완료 →"
   }
 }

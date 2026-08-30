@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Unumgänglich: ohne Schlüssel wird nichts übersetzt."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Loslegen"
+  },
+  "extob_welcome_title": {
+    "message": "Lesen und behalten, ohne die Seite zu verlassen"
+  },
+  "extob_welcome_body": {
+    "message": "Das Original bleibt stehen, die Übersetzung erscheint direkt darunter. Sätze, bei denen du wirklich innehältst, werden zu Wiederholungskarten und kommen nach der Vergessenskurve zurück."
+  },
+  "extob_engine_title": {
+    "message": "Wähle eine Übersetzungs-Engine"
+  },
+  "extob_engine_body_free": {
+    "message": "Der kostenlose Kanal funktioniert ohne Einrichtung. Für bessere Qualität trage deinen eigenen API-Schlüssel ein."
+  },
+  "extob_engine_body_key": {
+    "message": "Dieser Schritt lässt sich nicht überspringen: ohne Schlüssel wird nichts übersetzt."
+  },
+  "extob_key_label": {
+    "message": "API-Schlüssel"
+  },
+  "extob_capture_title": {
+    "message": "Soll es sich merken, was du liest?"
+  },
+  "extob_capture_body": {
+    "message": "Standardmäßig aus. Eingeschaltet werden Sätze, die du wirklich zu Ende liest (nicht die überscrollten), zu Karten."
+  },
+  "extob_capture_toggle": {
+    "message": "Gelesene Sätze als Karten speichern"
+  },
+  "extob_capture_note": {
+    "message": "Nur Sätze, die du zu Ende liest. Jederzeit abschaltbar, und pro Website komplett löschbar."
+  },
+  "extob_try_title": {
+    "message": "Jetzt eine Seite übersetzen"
+  },
+  "extob_try_body": {
+    "message": "Öffne eine echte Seite und tippe unten rechts auf den Button — die Übersetzung erscheint unter jedem Absatz."
+  },
+  "extob_try_cta": {
+    "message": "Beispielseite öffnen"
+  },
+  "extob_sync_title": {
+    "message": "Auf einem anderen Gerät weiter wiederholen"
+  },
+  "extob_sync_body": {
+    "message": "Alles funktioniert ohne Konto — deine Daten bleiben auf diesem Gerät. Melde dich nur an, wenn dein Handy dort weitermachen soll, wo der Rechner aufgehört hat."
+  },
+  "extob_sync_cta": {
+    "message": "Einstellungen öffnen und anmelden"
+  },
+  "extob_app_note": {
+    "message": "Auf dem Handy wiederholen oder unterwegs im Podcast-Modus hören? Beides gibt es in der iPhone-/Mac-App."
+  },
+  "extob_finish": {
+    "message": "Fertig"
+  },
+  "extob_done_title": {
+    "message": "Alles eingerichtet"
+  },
+  "extob_done_text": {
+    "message": "Öffne eine fremdsprachige Seite und tippe auf den Button. Einstellungen und diese Einführung findest du beide in den Einstellungen der Erweiterung."
+  },
+  "extob_done_close": {
+    "message": "Verstanden"
+  },
+  "extob_reonboard": {
+    "message": "Einführung erneut ansehen"
+  },
+  "extob_unpacked_note": {
+    "message": "Aus einer ZIP installiert: diese Kopie aktualisiert sich nicht selbst. Neue Versionen gibt es auf der Website, oder installiere aus dem Store für automatische Updates."
+  },
+  "extob_first_run": {
+    "message": "Zum ersten Mal? In zwei Minuten eingerichtet →"
   }
 }

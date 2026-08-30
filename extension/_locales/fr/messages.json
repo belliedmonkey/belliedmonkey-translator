@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "Réglages de l'extension → moteur de traduction. Incontournable : sans clé, rien n'est traduit."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Démarrer"
+  },
+  "extob_welcome_title": {
+    "message": "Lire et retenir, sans quitter la page"
+  },
+  "extob_welcome_body": {
+    "message": "Le texte original reste en place, la traduction apparaît juste en dessous. Les phrases que vous lisez vraiment deviennent des cartes de révision qui reviennent selon la courbe de l'oubli."
+  },
+  "extob_engine_title": {
+    "message": "Choisissez un moteur de traduction"
+  },
+  "extob_engine_body_free": {
+    "message": "Le canal gratuit fonctionne sans configuration. Pour une meilleure qualité, ajoutez votre propre clé API."
+  },
+  "extob_engine_body_key": {
+    "message": "Impossible de sauter cette étape : sans clé, rien n'est traduit."
+  },
+  "extob_key_label": {
+    "message": "Clé API"
+  },
+  "extob_capture_title": {
+    "message": "Voulez-vous qu'il retienne ce que vous lisez ?"
+  },
+  "extob_capture_body": {
+    "message": "Désactivé par défaut. Une fois activé, les phrases que vous lisez jusqu'au bout (pas celles que vous survolez) deviennent des cartes."
+  },
+  "extob_capture_toggle": {
+    "message": "Enregistrer les phrases lues comme cartes"
+  },
+  "extob_capture_note": {
+    "message": "Seulement les phrases lues jusqu'au bout. Vous pouvez désactiver à tout moment et tout supprimer d'un site."
+  },
+  "extob_try_title": {
+    "message": "Traduisez une page maintenant"
+  },
+  "extob_try_body": {
+    "message": "Ouvrez une vraie page et touchez le bouton flottant en bas à droite : la traduction apparaît sous chaque paragraphe."
+  },
+  "extob_try_cta": {
+    "message": "Ouvrir une page d'exemple"
+  },
+  "extob_sync_title": {
+    "message": "Continuer à réviser sur un autre appareil"
+  },
+  "extob_sync_body": {
+    "message": "Tout fonctionne sans compte : vos données restent sur cet appareil. Connectez-vous seulement si vous voulez continuer sur votre téléphone."
+  },
+  "extob_sync_cta": {
+    "message": "Ouvrir les réglages pour se connecter"
+  },
+  "extob_app_note": {
+    "message": "Envie de réviser sur votre téléphone ou d'écouter en mode podcast en marchant ? C'est dans l'app iPhone / Mac."
+  },
+  "extob_finish": {
+    "message": "Terminer"
+  },
+  "extob_done_title": {
+    "message": "Tout est prêt"
+  },
+  "extob_done_text": {
+    "message": "Ouvrez n'importe quelle page en langue étrangère et touchez le bouton flottant. Les réglages et ce guide se trouvent dans la page de réglages de l'extension."
+  },
+  "extob_done_close": {
+    "message": "Compris"
+  },
+  "extob_reonboard": {
+    "message": "Revoir le guide de démarrage"
+  },
+  "extob_unpacked_note": {
+    "message": "Installé depuis un ZIP : cette copie ne se met pas à jour toute seule. Récupérez les nouvelles versions sur le site, ou installez depuis le store pour les mises à jour automatiques."
+  },
+  "extob_first_run": {
+    "message": "Première fois ? Deux minutes pour tout régler →"
   }
 }

@@ -1764,5 +1764,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "Ajustes da extensão → motor de tradução. Esta etapa é inevitável: sem chave nada é traduzido."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Começar"
+  },
+  "extob_welcome_title": {
+    "message": "Leia e memorize sem sair da página"
+  },
+  "extob_welcome_body": {
+    "message": "O original fica onde está e a tradução aparece logo abaixo. As frases que você realmente para e lê viram cartões de revisão que voltam pela curva do esquecimento."
+  },
+  "extob_engine_title": {
+    "message": "Escolha um motor de tradução"
+  },
+  "extob_engine_body_free": {
+    "message": "O canal gratuito funciona sem configuração. Para melhor qualidade, adicione sua própria chave de API."
+  },
+  "extob_engine_body_key": {
+    "message": "Não dá para pular esta etapa: sem chave, nada é traduzido."
+  },
+  "extob_key_label": {
+    "message": "Chave de API"
+  },
+  "extob_capture_title": {
+    "message": "Quer que ele guarde o que você lê?"
+  },
+  "extob_capture_body": {
+    "message": "Desligado por padrão. Ao ligar, as frases que você termina de ler (não as que passa rolando) viram cartões."
+  },
+  "extob_capture_toggle": {
+    "message": "Salvar as frases lidas como cartões"
+  },
+  "extob_capture_note": {
+    "message": "Só as frases que você termina de ler. Pode desligar quando quiser e apagar tudo de um site."
+  },
+  "extob_try_title": {
+    "message": "Agora traduza uma página"
+  },
+  "extob_try_body": {
+    "message": "Abra uma página real e toque no botão flutuante no canto: a tradução aparece sob cada parágrafo."
+  },
+  "extob_try_cta": {
+    "message": "Abrir uma página de exemplo"
+  },
+  "extob_sync_title": {
+    "message": "Continue revisando em outro aparelho"
+  },
+  "extob_sync_body": {
+    "message": "Tudo funciona sem conta — seus dados ficam neste aparelho. Entre só se quiser continuar no celular."
+  },
+  "extob_sync_cta": {
+    "message": "Abrir configurações para entrar"
+  },
+  "extob_app_note": {
+    "message": "Quer revisar no celular ou ouvir em modo podcast enquanto caminha? Isso está no app de iPhone / Mac."
+  },
+  "extob_finish": {
+    "message": "Concluir"
+  },
+  "extob_done_title": {
+    "message": "Tudo pronto"
+  },
+  "extob_done_text": {
+    "message": "Abra qualquer página em outro idioma e toque no botão flutuante. As configurações e este guia estão na página de configurações da extensão."
+  },
+  "extob_done_close": {
+    "message": "Entendi"
+  },
+  "extob_reonboard": {
+    "message": "Ver o guia inicial de novo"
+  },
+  "extob_unpacked_note": {
+    "message": "Instalado a partir de um ZIP: esta cópia não se atualiza sozinha. Baixe as novas versões no site, ou instale pela loja para atualizações automáticas."
+  },
+  "extob_first_run": {
+    "message": "Primeira vez? Dois minutos para configurar →"
   }
 }

@@ -1765,5 +1765,80 @@
   },
   "ob_kv_engine_note_required": {
     "message": "扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。"
+  },
+  "extob_header": {
+    "message": "大肚猴翻译 · 开始使用"
+  },
+  "extob_welcome_title": {
+    "message": "边读边记，不用离开页面"
+  },
+  "extob_welcome_body": {
+    "message": "原文留在原地，译文长在下面。你真正停下来读完的句子会变成复习卡，按遗忘曲线回来找你。"
+  },
+  "extob_engine_title": {
+    "message": "选一个翻译引擎"
+  },
+  "extob_engine_body_free": {
+    "message": "免费通道零配置就能用。想要更好的质量，填入你自己的 API Key。"
+  },
+  "extob_engine_body_key": {
+    "message": "这一步躲不掉：不填 Key 就翻不出任何东西。"
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "要不要顺便把读过的句子记下来"
+  },
+  "extob_capture_body": {
+    "message": "默认是关的。打开之后，你真正读完的句子（快速滚过去的不算）会存成复习卡。"
+  },
+  "extob_capture_toggle": {
+    "message": "把我读过的句子存成复习卡"
+  },
+  "extob_capture_note": {
+    "message": "只收录你真正停下来读完的句子。随时可以在设置里关掉，已存的卡也能整站删除。"
+  },
+  "extob_try_title": {
+    "message": "现在翻一页看看"
+  },
+  "extob_try_body": {
+    "message": "打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。"
+  },
+  "extob_try_cta": {
+    "message": "打开示例页面"
+  },
+  "extob_sync_title": {
+    "message": "换台设备接着复习"
+  },
+  "extob_sync_body": {
+    "message": "不登录也能完整使用，所有数据留在本机。登录只在你想让手机接着复习电脑上读到的句子时才需要。"
+  },
+  "extob_sync_cta": {
+    "message": "打开设置去登录"
+  },
+  "extob_app_note": {
+    "message": "想在手机上复习、或者边走边听播客模式？那两样在 iPhone / Mac 的 App 里。"
+  },
+  "extob_finish": {
+    "message": "完成"
+  },
+  "extob_done_title": {
+    "message": "设置好了"
+  },
+  "extob_done_text": {
+    "message": "打开任意外语网页，点右下角的悬浮按钮即可。想改设置或重看这段引导，都在扩展的设置页里。"
+  },
+  "extob_done_close": {
+    "message": "知道了"
+  },
+  "extob_reonboard": {
+    "message": "重看开始使用引导"
+  },
+  "extob_unpacked_note": {
+    "message": "你是用 ZIP 直接装的：这一份不会自动更新。新版本请到官网下载，或改从商店安装以获得自动更新。"
+  },
+  "extob_first_run": {
+    "message": "第一次用？两分钟把它配好 →"
   }
 }
