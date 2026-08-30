@@ -329,6 +329,19 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 15 | `openai_speech` | global | `speech-compat` | OpenAI key | ✅ 已在用 |
 | 16 | `local` (STT) | global + china | `transcribe-compat` | `scripts/dev-whisper-server.js` | ✅ M10 真机跑通 |
 | 17 | `openai_transcribe` | global | `transcribe-compat` | OpenAI key | ✅ M10 真机跑通（1.3MB 音频） |
+| 18 | `openrouter` | global | `chat-compat` | OpenRouter key | ✅ 2026-08-30 探针（`google/gemini-3.7-flash` 2162ms；11 个模型全通，见 §1.0 备注） |
+| 19 | `openrouter_transcribe` | global | `transcribe-compat` | 同一把 OpenRouter key | ✅ 2026-08-30 探针（5 个模型逐字转对；`gpt-4o-mini-transcribe` 600ms/$0.000035） |
+| 20 | `openrouter_speech` | global | `speech-compat` | 同一把 OpenRouter key | ✅ 2026-08-30 探针（`deepgram/aura-2` 692ms / 99884B；⚠ 声明 `audio/pcm` 实为 RIFF） |
+| 21 | `openrouter_audio` | global | `speech-audio-chat` | 同一把 OpenRouter key | ✅ 2026-08-30 端到端（`openai/gpt-audio-mini` SSE→pcm16→WAV，1368ms / 108KB，transcript 逐字相符） |
+| 22 | `qwen_asr` | china | `transcribe-dashscope` | 千问AI平台 key | ✅ 2026-08-30 端到端（base64 data URI，1036ms，转写正确） |
+| 23 | `qwen_tts` | china | `speech-dashscope` | 同一把千问 key | ✅ 2026-08-30 端到端（两步：合成 1.7s → 取音频 0.15s，141KB WAV） |
+
+> **⚠️ 以上 6 行都是「桌面 Node 走扩展代码路径」级别的实证，不是真机。** 三条新语音链路
+> （`transcribe-dashscope` / `speech-dashscope` / `speech-audio-chat`）**一条都没在
+> iOS / macOS 真机上跑过**：录音采集、WKWebView 的音频解码、`data:` URI 的大小上限
+> 各有脾气，而 Node 里一个都测不到（混合内容策略就是这样漏掉的 —— 见 request-shape.js
+> 里 http→https 那处注释）。发版前必须补全矩阵。
+
 
 **这张表是活的**：注册表加一个条目就加一行（`node scripts/local-keys.js init` 会从注册表
 重新生成本地凭证模板，不要手抄引擎清单）。一个条目在没有任何一行记录之前**不得出现在

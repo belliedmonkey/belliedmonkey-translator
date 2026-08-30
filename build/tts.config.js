@@ -86,6 +86,54 @@ module.exports = [
     hintKey: 'tts_hint_local',
   },
   {
+    // 聚合网关的**专用** TTS。走已有的 speech-compat 形状，不需要新传输 —— 这是它
+    // 比同网关的「会出声的对话模型」（openrouter_audio）更该作为默认的原因：更便宜、
+    // 不会不照着念、音色自带语种。
+    //
+    // 我一度判定这个网关「没有可用 TTS」，因为我只拿一个厂商的模型名去打 /audio/speech，
+    // 全部答 does not exist。换个厂商名就通了 —— 服务端答的是「Unknown voice」而不是
+    // 「Model does not exist」，那是两个完全不同的结论。
+    //
+    // ⚠️ 它声明 `Content-Type: audio/pcm;rate=24000`，而 body 是 RIFF（WAV）。
+    // tts.js 的 sniffAudioType() 按魔数纠正；照声明存会让播放**一声不响地不出声**。
+    //
+    // voices 是**服务端自己列出来的**全部 90 个（给一个不存在的音色，它把允许值全列了）。
+    // 后缀就是语种：-en 41 · -es 17 · -nl 9 · -it 9 · -de 7 · -ja 5 · -fr 2。
+    // **没有中文音色** —— 读中文的人要用 openrouter_audio 或设备内置语音。
+    id: 'openrouter_speech', type: 'speech-compat', flavors: ['global'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://openrouter.ai/api/v1/audio/speech', placeholder: null,
+    defaultModel: 'deepgram/aura-2',
+    voices: [
+      'aura-2-thalia-en', 'aura-2-amalthea-en', 'aura-2-andromeda-en', 'aura-2-apollo-en',
+      'aura-2-arcas-en', 'aura-2-aries-en', 'aura-2-asteria-en', 'aura-2-athena-en',
+      'aura-2-atlas-en', 'aura-2-aurora-en', 'aura-2-callista-en', 'aura-2-cora-en',
+      'aura-2-cordelia-en', 'aura-2-delia-en', 'aura-2-draco-en', 'aura-2-electra-en',
+      'aura-2-harmonia-en', 'aura-2-helena-en', 'aura-2-hera-en', 'aura-2-hermes-en',
+      'aura-2-hyperion-en', 'aura-2-iris-en', 'aura-2-janus-en', 'aura-2-juno-en',
+      'aura-2-jupiter-en', 'aura-2-luna-en', 'aura-2-mars-en', 'aura-2-minerva-en',
+      'aura-2-neptune-en', 'aura-2-odysseus-en', 'aura-2-ophelia-en', 'aura-2-orion-en',
+      'aura-2-orpheus-en', 'aura-2-pandora-en', 'aura-2-phoebe-en', 'aura-2-pluto-en',
+      'aura-2-saturn-en', 'aura-2-selene-en', 'aura-2-theia-en', 'aura-2-vesta-en',
+      'aura-2-zeus-en', 'aura-2-ama-ja', 'aura-2-ebisu-ja', 'aura-2-fujin-ja',
+      'aura-2-izanami-ja', 'aura-2-uzume-ja', 'aura-2-aurelia-de', 'aura-2-elara-de',
+      'aura-2-fabian-de', 'aura-2-julius-de', 'aura-2-kara-de', 'aura-2-lara-de',
+      'aura-2-viktoria-de', 'aura-2-agathe-fr', 'aura-2-hector-fr', 'aura-2-agustina-es',
+      'aura-2-alvaro-es', 'aura-2-antonia-es', 'aura-2-aquila-es', 'aura-2-carina-es',
+      'aura-2-celeste-es', 'aura-2-diana-es', 'aura-2-estrella-es', 'aura-2-gloria-es',
+      'aura-2-javier-es', 'aura-2-luciano-es', 'aura-2-nestor-es', 'aura-2-olivia-es',
+      'aura-2-selena-es', 'aura-2-silvia-es', 'aura-2-sirio-es', 'aura-2-valerio-es',
+      'aura-2-cesare-it', 'aura-2-cinzia-it', 'aura-2-demetra-it', 'aura-2-dionisio-it',
+      'aura-2-elio-it', 'aura-2-flavio-it', 'aura-2-livia-it', 'aura-2-maia-it',
+      'aura-2-melia-it', 'aura-2-beatrix-nl', 'aura-2-cornelia-nl', 'aura-2-daphne-nl',
+      'aura-2-hestia-nl', 'aura-2-lars-nl', 'aura-2-leda-nl', 'aura-2-rhea-nl',
+      'aura-2-roman-nl', 'aura-2-sander-nl'
+    ],
+    returnsAudio: true,
+    labelKey: null, label: 'OpenRouter · speech',
+    hintKey: 'tts_hint_local',
+  },
+  {
     // 「会出声的对话模型」这条路。GLOBAL ONLY —— 地址与型号名都带品牌，中国版不发。
     //
     // 我先前判过「这个网关没有可用的 TTS」，那是**拿它去打 /audio/speech** 得到的

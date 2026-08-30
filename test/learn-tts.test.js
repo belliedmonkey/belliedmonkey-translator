@@ -739,3 +739,29 @@ describe('LearnTTS — iOS 卡死解法：cancel 后让位，speak 前 resume', 
       'A 的超时对着 B 的现场播放喊了 cancel —— 正是「显示播放中却没声」的最坏结局');
   });
 });
+
+describe('LearnTTS.sniffAudioType — 服务器说的类型不可信', () => {
+  const { TTS } = setup();
+  const bytes = (...s) => new Uint8Array(s.concat(new Array(20).fill(0)));
+  const ascii = (str) => bytes.apply(null, Array.from(str).map((c) => c.charCodeAt(0)));
+
+  test('认出容器就用容器的类型，压过声明值', () => {
+    // 2026-08-30 实测：deepgram/aura-2 声明 audio/pcm;rate=24000，body 是 RIFF。
+    // 照声明存会让播放拼出 data:audio/pcm;base64,… —— 浏览器不认，**一声不响地不出声**。
+    eq(TTS.sniffAudioType(ascii('RIFF').buffer, 'audio/pcm;rate=24000;channels=1'), 'audio/wav');
+    eq(TTS.sniffAudioType(ascii('OggS').buffer, 'application/octet-stream'), 'audio/ogg');
+    eq(TTS.sniffAudioType(ascii('fLaC').buffer, ''), 'audio/flac');
+    eq(TTS.sniffAudioType(ascii('ID3x').buffer, 'audio/pcm'), 'audio/mpeg');
+    eq(TTS.sniffAudioType(bytes(0xff, 0xfb).buffer, 'audio/pcm'), 'audio/mpeg', '裸 MP3 帧头');
+  });
+
+  test('认不出容器才回落到声明值，且剥掉参数', () => {
+    eq(TTS.sniffAudioType(bytes(1, 2, 3, 4).buffer, 'audio/mpeg;rate=24000'), 'audio/mpeg');
+    eq(TTS.sniffAudioType(bytes(1, 2, 3, 4).buffer, ''), 'audio/mpeg', '两边都没有时给一个能播的默认值');
+  });
+
+  test('不做反向覆盖：声明值永远不能压过嗅探结果', () => {
+    // 我们看得见的字节比服务器说的话可靠。这条写下来是因为「相信声明值」正是本次的 bug。
+    eq(TTS.sniffAudioType(ascii('RIFF').buffer, 'audio/mpeg'), 'audio/wav');
+  });
+});

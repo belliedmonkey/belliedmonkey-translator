@@ -205,6 +205,36 @@ async function checkSite(site) {
           if (e.placeholder) known.add(e.placeholder);
         }
       }
+      // 页面上出现的每个**模型名**也必须真实存在。
+      //
+      // 这一条防的是教程里最容易抄错、而且抄错了最贵的东西：一个看起来完全合理、
+      // 目录里也确实列着的模型名，打过去却答「is not a valid model ID」。
+      // 2026-08-30 实测撞到过一个：`deepseek/deepseek-v4-flash-latest` 在网关的模型
+      // 清单里带 `~` 前缀，那个前缀不是模型名的一部分 —— 照清单抄进教程，新用户拿到的
+      // 是一个不工作的配置和「这软件是坏的」的第一印象。
+      //
+      // 判据的来源是**注册表的默认模型 + 台账里打过的模型**：前者是我们出货时选的，
+      // 后者是我们真的打过的。两者之外的名字，教程无权推荐。
+      const knownModels = new Set();
+      for (const reg of ['providers', 'stt', 'tts']) {
+        for (const e of require(`../build/${reg}.config.js`)) {
+          const dm = e.defaultModel;
+          if (typeof dm === 'string' && dm) knownModels.add(dm);
+          else if (dm && typeof dm === 'object') for (const v of Object.values(dm)) if (v) knownModels.add(v);
+          for (const v of e.voices || []) knownModels.add(v);
+        }
+      }
+      for (const r of require('../build/perf-ledger.config.js')) knownModels.add(r.model);
+
+      const codes = [...html.matchAll(/<code>([^<]+)<\/code>/g)].map((x) => x[1].trim());
+      for (const c of codes) {
+        if (/^https?:\/\//i.test(c)) continue;            // 地址由下面那条查
+        if (!knownModels.has(c)) {
+          bad.push(`guide.html 上的 ${c} 既不是任何注册表的默认模型，也不在台账里 ——`
+            + ' 教程无权推荐一个我们没出货也没打过的名字');
+        }
+      }
+
       const onPage = [...html.matchAll(/<code>(https?:\/\/[^<]+)<\/code>/g)].map((x) => x[1]);
       const strayEp = onPage.filter((u) => /\/(chat\/completions|messages|audio\/(speech|transcriptions))$/.test(u)
         && !known.has(u));

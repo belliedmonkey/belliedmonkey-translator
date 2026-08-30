@@ -27,6 +27,8 @@ const { describe, test, ok, eq, deepEq } = require('./harness');
 const LEDGER = require('../build/perf-ledger.config.js');
 const PARAMS = require('../build/model-params.config.js');
 const PROVIDERS = require('../build/providers.config.js');
+const TTS = require('../build/tts.config.js');
+const STT = require('../build/stt.config.js');
 
 const VERDICTS = ['adopted', 'rejected', 'unreachable', 'inferred'];
 const hostOf = (u) => {
@@ -231,13 +233,22 @@ describe('性能台账：与出货配置锁在一起', () => {
 describe('性能台账：新增供应商必须先打一遍', () => {
   // 这是整份文件的目的。前面几组守的是「记下来的东西自洽」，这一组守的是「有没有记」。
   test('每个自带默认端点的引擎，其 host 都必须在台账里出现过', () => {
+    // **三个注册表都要走**，不只 providers。verification-spec §1.0 的原文就是
+    // `build/{providers,tts,stt}.config.js`，而这道门原先只遍历翻译引擎 ——
+    // 于是 2026-08-30 新加的 qwen_asr / qwen_tts / openrouter_audio 一条自动门禁都
+    // 没过。今天它们碰巧不红，因为语音 host 与翻译 host 重合（dashscope、openrouter、
+    // api.openai.com 都已在台账里）；但那是**巧合**，不是保证 —— 一个只做语音的
+    // 新 host（比如某个专门的 TTS 厂商）会从这个缺口整个漏过去。
     const covered = new Set(LEDGER.map((r) => r.host));
     const missing = [];
-    for (const e of PROVIDERS) {
-      // 用户自填地址的条目（custom_chat / custom_msg）没有可测的对象 —— 我们量不了
-      // 一个还不存在的地址。google 用查询参数在调用时拼地址，同理。
-      if (e.requiresEndpoint || !e.defaultEndpoint) continue;
-      for (const h of hostsOfEntry(e)) if (!covered.has(h)) missing.push(`${e.id} → ${h}`);
+    for (const [reg, entries] of [['providers', PROVIDERS], ['tts', TTS], ['stt', STT]]) {
+      for (const e of entries) {
+        // 用户自填地址的条目（custom_chat / custom_msg / local）没有可测的对象 ——
+        // 我们量不了一个还不存在的地址。google 用查询参数在调用时拼地址，
+        // browser 那条根本不说 HTTP，同理。
+        if (e.requiresEndpoint || !e.defaultEndpoint) continue;
+        for (const h of hostsOfEntry(e)) if (!covered.has(h)) missing.push(`${reg}/${e.id} → ${h}`);
+      }
     }
     eq(missing.length, 0,
       '这些引擎还没有性能台账记录：\n  ' + missing.join('\n  ')
@@ -247,8 +258,12 @@ describe('性能台账：新增供应商必须先打一遍', () => {
   });
 
   test('台账里的 host 必须是某个引擎或某张表真的会用到的 —— 不许留下已删条目的尸体', () => {
+    // live 集合也要含 tts/stt —— 否则给一个**只做语音**的 host 写了台账行，会因为
+    // 「不属于任何引擎」而红，而它明明属于一个引擎。两条判据必须看同一批注册表。
     const live = new Set();
-    for (const e of PROVIDERS) for (const h of hostsOfEntry(e)) live.add(h);
+    for (const entries of [PROVIDERS, TTS, STT]) {
+      for (const e of entries) for (const h of hostsOfEntry(e)) live.add(h);
+    }
     for (const p of PARAMS) for (const h of p.hosts) live.add(h);
     for (const r of LEDGER) {
       ok(live.has(r.host),
@@ -259,7 +274,8 @@ describe('性能台账：新增供应商必须先打一遍', () => {
   test('这道门本身要能红，否则它证明不了任何事', () => {
     // 守卫的守卫：如果所有条目都被豁免，上面那条会真空通过并在有人删掉豁免判断后
     // 继续通过。至少要有一个条目真的被覆盖检查管着。
-    const guarded = PROVIDERS.filter((e) => !e.requiresEndpoint && e.defaultEndpoint);
+    const guarded = [].concat(PROVIDERS, TTS, STT)
+      .filter((e) => !e.requiresEndpoint && e.defaultEndpoint);
     ok(guarded.length > 0, '没有任何条目受覆盖检查约束 —— 那条测试是真空的');
   });
 });

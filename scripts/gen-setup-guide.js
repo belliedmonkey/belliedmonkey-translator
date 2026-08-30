@@ -47,6 +47,12 @@ const SITES = {
 // 还要为此过一遍合规门。门禁保证这里出现的每个 id 都真的在注册表里。
 const CONSOLE = {
   deepseek: 'https://platform.deepseek.com',
+  openrouter: 'https://openrouter.ai/keys',
+  openrouter_transcribe: 'https://openrouter.ai/keys',
+  openrouter_speech: 'https://openrouter.ai/keys',
+  openrouter_audio: 'https://openrouter.ai/keys',
+  qwen_asr: { china: 'https://bailian.console.aliyun.com' },
+  qwen_tts: { china: 'https://bailian.console.aliyun.com' },
   glm: { china: 'https://open.bigmodel.cn', global: 'https://z.ai' },
   qwen: { china: 'https://bailian.console.aliyun.com', global: 'https://modelstudio.console.alibabacloud.com' },
   qwen_mt: { china: 'https://bailian.console.aliyun.com', global: 'https://modelstudio.console.alibabacloud.com' },

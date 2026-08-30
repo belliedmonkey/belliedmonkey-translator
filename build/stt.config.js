@@ -65,6 +65,24 @@ module.exports = [
     hintKey: 'stt_hint',
   },
   {
+    // 聚合网关的转写。走**已有的** transcribe-compat 形状（multipart /audio/transcriptions），
+    // 不需要新传输。
+    //
+    // ⚠️ 这条路上可用的模型**不在网关的公开目录里**：/models 有 396 个模型，这里能用的
+    // 一个都不在，而目录里的对话模型在这条路上一律被拒。是 scripts/capability-probe.js
+    // 用「打一个不存在的模型名，看服务端怎么答」摸出来的。
+    //
+    // defaultModel 选 gpt-4o-mini-transcribe：实测（2026-08-30，系统语音念
+    // 「The quick brown fox…」）它与 gpt-4o-transcribe 都逐字转对，而 whisper-large-v3
+    // 虽然便宜十倍却把 The 听成了 a。转写喂给「说」这一档评分，错一个词就是错一分。
+    id: 'openrouter_transcribe', type: 'transcribe-compat', flavors: ['global'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://openrouter.ai/api/v1/audio/transcriptions', placeholder: null,
+    defaultModel: 'openai/gpt-4o-mini-transcribe',
+    labelKey: null, label: 'OpenRouter · transcription',
+    hintKey: 'stt_hint',
+  },
+  {
     // GLOBAL ONLY: label and defaultEndpoint carry a brand the China bundle may not
     // ship; `flavors` keeps it out and the compliance gate enforces that.
     id: 'openai_transcribe', type: 'transcribe-compat', flavors: ['global'],

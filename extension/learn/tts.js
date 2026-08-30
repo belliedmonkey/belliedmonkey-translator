@@ -156,6 +156,28 @@ var LearnTTS = (() => {
     ].join('\u0000'));
   }
 
+  // 声明的 Content-Type **不可信**，实测：deepgram/aura-2 回
+  // `audio/pcm;rate=24000;channels=1`，而 body 的头四个字节是 `RIFF` —— 那是一个
+  // 完整的 WAV 容器。照声明存进 IndexedDB，播放时会拼出 `data:audio/pcm;base64,…`，
+  // 浏览器不认这个类型，于是**一声不响地不出声**：请求成功、缓存写入成功、播放
+  // 静默失败，一路上没有任何地方会报错。
+  //
+  // 所以嗅探优先：认出容器就用容器的类型，认不出才回落到声明值。
+  // 反过来不做（不用声明值覆盖嗅探结果）—— 我们能看见的字节比服务器说的话可靠。
+  function sniffAudioType(bytes, declared) {
+    const b = new Uint8Array(bytes);
+    const tag = (n) => String.fromCharCode.apply(null, Array.prototype.slice.call(b, 0, n));
+    if (b.length >= 4) {
+      const four = tag(4);
+      if (four === 'RIFF') return 'audio/wav';
+      if (four === 'OggS') return 'audio/ogg';
+      if (four === 'fLaC') return 'audio/flac';
+      if (four.slice(0, 3) === 'ID3') return 'audio/mpeg';
+      if (b[0] === 0xff && (b[1] & 0xe0) === 0xe0) return 'audio/mpeg';   // 裸 MP3 帧头
+    }
+    return String(declared || '').split(';')[0] || 'audio/mpeg';
+  }
+
   // ─── speech-compat transport ─────────────────────────────────────────────
   async function fetchAudio(text, lang) {
     const e = engine();
@@ -256,10 +278,12 @@ var LearnTTS = (() => {
         throw err;
       }
       const mct = (media.headers && media.headers.get && media.headers.get('content-type')) || '';
-      return { buf: await media.arrayBuffer(), type: String(mct).split(';')[0] || 'audio/mpeg' };
+      const mbuf = await media.arrayBuffer();
+      return { buf: mbuf, type: sniffAudioType(mbuf, mct) };
     }
     const ct = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
-    return { buf: await resp.arrayBuffer(), type: String(ct).split(';')[0] || 'audio/mpeg' };
+    const abuf = await resp.arrayBuffer();
+    return { buf: abuf, type: sniffAudioType(abuf, ct) };
   }
 
   // Returns { buf, type, cached } — `cached` exists so a test can assert the SECOND
@@ -500,7 +524,7 @@ var LearnTTS = (() => {
   }
 
   return {
-    DEFAULTS,
+    DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, baseLang, undLang, cacheKey,
     getAudio, prefetch, speak, stop, available,

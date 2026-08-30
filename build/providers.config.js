@@ -124,6 +124,22 @@ module.exports = [
     label: 'Kimi', hintKey: 'hint_kimi',
   },
   {
+    // 聚合网关：**一个 key 覆盖四种能力**（翻译 / 解析 / 转写 / 朗读），这正是它值得
+    // 从 custom_chat 升为一等公民的理由 —— 官网教程推荐的就是它，而教程里的地址不该
+    // 靠用户手抄。
+    //
+    // GLOBAL ONLY：域名与它下面的模型名都带品牌，中国版不发。
+    //
+    // defaultModel 由实测选出（2026-08-30，真 key，见 perf-ledger）：基线每段思考
+    // 1369 tok / 13.3 秒，降档后思考归零、2.9–3.3 秒，译文长度不变。选它而不是更便宜的
+    // flash-lite，是因为 model-params 里有为它准备的降档行（openrouter-thinking）；
+    // 换一个没有对应行的模型，用户会安静地拿到最慢的那一档。
+    id: 'openrouter', type: 'chat-compat', flavors: ['global'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: { global: 'https://openrouter.ai/api/v1/chat/completions' }, placeholder: null,
+    defaultModel: 'google/gemini-3.7-flash', label: { global: 'OpenRouter' }, hintKey: null,
+  },
+  {
     // Generic OpenAI Chat-Completions-format endpoint. User supplies the COMPLETE
     // endpoint URL + model + key (self-hosted / third-party / proxy). Brand-free.
     id: 'custom_chat', type: 'chat-compat', flavors: ['global', 'china'],
