@@ -86,6 +86,25 @@ module.exports = [
     hintKey: 'tts_hint_local',
   },
   {
+    // 「会出声的对话模型」这条路。GLOBAL ONLY —— 地址与型号名都带品牌，中国版不发。
+    //
+    // 我先前判过「这个网关没有可用的 TTS」，那是**拿它去打 /audio/speech** 得到的
+    // 结论（所有候选模型都答 does not exist）。这个型号根本不在那条路上：它是带音频
+    // 输出模态的对话模型，走 /chat/completions。同一个错误犯了三次（ASR、qwen-tts、
+    // 这个）—— 读页面下结论，而不是把该打的那条路打一遍。
+    //
+    // voices 是**服务端自己报的**：给一个不存在的音色，它列出全部 13 个允许值。
+    id: 'openrouter_audio', type: 'speech-audio-chat', flavors: ['global'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    placeholder: null, defaultModel: 'openai/gpt-audio-mini',
+    voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'coral',
+      'verse', 'ballad', 'ash', 'sage', 'marin', 'cedar'],
+    returnsAudio: true,
+    labelKey: null, label: 'OpenRouter · audio model',
+    hintKey: 'tts_hint_local',
+  },
+  {
     // GLOBAL ONLY. Its label, defaultEndpoint and hint key all carry a brand the China
     // bundle may not ship; `flavors` is what keeps it out. Without this field the
     // China compliance gate fails the build — which is how the omission was caught.

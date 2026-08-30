@@ -220,6 +220,13 @@ var LearnTTS = (() => {
     // Bytes + declared type, never a Blob: Blobs round-tripped through WebKit's
     // IndexedDB are file-backed handles that dangle after an app update moves
     // the container (see LearnStore.putAudio). ArrayBuffers carry their bytes.
+    // 有的形状把音频拆在一条 SSE 流里（带音频输出的对话模型）。整段读完再拆 ——
+    // 上层要的是完整字节（缓存、离线预载），边收边播只会把两件事搅在一起。
+    if (req.parseAudioStream) {
+      const got = req.parseAudioStream(await resp.text());
+      return { buf: got.buf, type: got.type };
+    }
+
     // 有的形状回的是一个音频 URL 而不是字节（DashScope）。多取一次 —— 这一步放在
     // 这里而不是调用方，是为了让「拿到 { buf, type }」对上层始终是同一件事：缓存、
     // 预载、data: URL 播放那一整条路一个字都不用改。

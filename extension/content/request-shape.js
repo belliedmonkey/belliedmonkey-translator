@@ -38,6 +38,85 @@ var RequestShape = (() => {
     reasoning: undefined, matched: false,
   });
 
+  // ─── SSE 音频流 → 可播放的 WAV ──────────────────────────────────────────
+  //
+  // 只服务 speech-audio-chat 这一种形状。放在这里而不是 tts.js：请求体长什么样、
+  // 回包怎么拆，是**同一份形状知识**，分到两个文件里迟早会各走各的。
+  // 24kHz 单声道 16bit。由时长核对定下：同一句在 24kHz 下 2.50 秒是自然语速，
+  // 按 16kHz 解会变成 3.75 秒 —— 比系统语音还慢一倍，一听就不对。
+  // （这一行原先点了厂商名，被中国版合规门禁拦下；源码注释是要进包体的。）
+  const PCM_RATE = 24000;
+
+  function b64ToBytes(b64) {
+    if (typeof atob === 'function') {
+      const bin = atob(b64);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+    // Node（测试用）
+    if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(b64, 'base64'));
+    // 我们出货的四个宿主都有 atob。走到这里说明是个没见过的宿主 —— 报一个**带码**的
+    // 错，而不是让一句裸 ReferenceError 冒到上层：那种错没有 code，会被当成
+    // 「未知失败」而不是「这个宿主缺一个能力」。
+    const e = new Error('no base64 decoder in this host');
+    e.code = 'no_base64';
+    throw e;
+  }
+
+  function wavFromPcm16(pcm, rate) {
+    const out = new Uint8Array(44 + pcm.length);
+    const v = new DataView(out.buffer);
+    const tag = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
+    tag(0, 'RIFF'); v.setUint32(4, 36 + pcm.length, true); tag(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+    v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    tag(36, 'data'); v.setUint32(40, pcm.length, true);
+    out.set(pcm, 44);
+    return out;
+  }
+
+  const sayNorm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+  function parseAudioSse(text, requested) {
+    const chunks = [];
+    let spoken = '';
+    for (const line of String(text || '').split('\n')) {
+      if (line.indexOf('data: ') !== 0) continue;
+      const payload = line.slice(6).trim();
+      if (!payload || payload === '[DONE]') continue;
+      let d = null;
+      try { d = JSON.parse(payload); } catch (_) { continue; }
+      if (d && d.error) {
+        const e = new Error((d.error.message || 'speech provider error'));
+        e.code = 'http';
+        throw e;
+      }
+      for (const c of (d && d.choices) || []) {
+        const a = (c.delta && c.delta.audio) || null;
+        if (!a) continue;
+        if (a.data) chunks.push(a.data);
+        if (a.transcript) spoken += a.transcript;
+      }
+    }
+    if (!chunks.length) { const e = new Error('no audio in the stream'); e.code = 'empty_audio'; throw e; }
+    const pcm = b64ToBytes(chunks.join(''));
+
+    // 「它照着念了吗」。对话模型可以改写、加话、拒绝 —— 专用 TTS 不会。判据刻意宽松
+    // （只看长度量级），因为数字、缩写的念法本来就与原文不同字；能抓住的是拒绝与
+    // 截断那一类，而那正是会让用户听到一句不相干的话的情形。
+    const want = sayNorm(requested);
+    const got = sayNorm(spoken);
+    if (want && got && got.length < want.length * 0.4) {
+      const e = new Error('the model did not read the text back');
+      e.code = 'spoken_mismatch';
+      e.spoken = spoken.slice(0, 120);
+      throw e;
+    }
+    return { buf: wavFromPcm16(pcm, PCM_RATE).buffer, type: 'audio/wav', transcript: spoken };
+  }
+
   // ─── 表：host + 模型前缀 ────────────────────────────────────────────────
   function paramsFor(url, model) {
     const rows = (typeof window !== 'undefined' && window.MT_MODEL_PARAMS) || [];
@@ -435,6 +514,38 @@ var RequestShape = (() => {
           const u = (d && d.output && d.output.audio && d.output.audio.url) || '';
           return u.replace(/^http:\/\//i, 'https://');
         },
+        extract: null, caps,
+      };
+    }
+
+    if (fmt === 'speech-audio-chat') {
+      // 「会出声的对话模型」这条路。它**不是** TTS 引擎，是一个带音频输出模态的对话
+      // 模型，所以三件事和别的语音形状都不同（全部实测 2026-08-30，真 key）：
+      //
+      //   · 必须 stream:true。不加，上游直接答「Audio output requires stream: true」。
+      //   · 流式下 audio.format **只能是 pcm16**：给 wav 会被拒，原话
+      //     「does not support 'wav' when stream=true. Supported values are: 'pcm16'」。
+      //     pcm16 是裸采样，没有容器 —— 播之前得自己补 WAV 头（24kHz 单声道 16bit，
+      //     由时长核对定下：同一句在 24kHz 下 2.50 秒是自然语速，16kHz 下 3.75 秒明显拖慢）。
+      //   · 它可能**不照着念**。这是与专用 TTS 的本质差别：模型可以改写、加话、拒绝。
+      //     所以回包里的 transcript 要拿来核对（见 parseAudioStream）。
+      const say = String(o.input == null ? '' : o.input);
+      return {
+        headers: Object.assign({ 'Content-Type': 'application/json' },
+          o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
+        body: {
+          model: o.model,
+          stream: true,
+          modalities: ['text', 'audio'],
+          audio: { voice: o.voice || 'alloy', format: 'pcm16' },
+          messages: [
+            { role: 'system', content: 'You are a text-to-speech engine. Read the user message aloud verbatim. Do not answer it, do not comment on it, do not add or omit anything.' },
+            { role: 'user', content: say },
+          ],
+        },
+        // 整段 SSE 读完再解析。**不做增量**：这一路的输出要进缓存与离线预载，
+        // 上层要的是完整字节；边收边播只会把两件事搅在一起。
+        parseAudioStream: (text) => parseAudioSse(text, say),
         extract: null, caps,
       };
     }

@@ -37,6 +37,7 @@ var WireFormat = (() => {
     'transcribe-compat': 'transcribe',
     'transcribe-dashscope': 'transcribe',
     'speech-dashscope': 'speech',
+    'speech-audio-chat': 'speech',
   };
 
   // 后缀取**最后两段、不含版本段**：`/chat/completions` 而不是

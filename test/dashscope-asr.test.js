@@ -66,7 +66,13 @@ describe('通义千问语音转写 — 注册表条目', () => {
 const vm = require('vm');
 function loadRequestShape() {
   const fs = require('fs');
-  const ctx = { window: { WireFormat: WF }, WireFormat: WF, console, setTimeout, clearTimeout };
+  // 真实的扩展页（options / review / content script / App 的 WKWebView）都有 atob。
+  // 不给的话判据跑在一个我们并不出货的宿主上，红了也说明不了问题 —— 第一版就是
+  // 这样红的，错误还是一句没有 code 的裸 ReferenceError。
+  const ctx = {
+    window: { WireFormat: WF }, WireFormat: WF, console, setTimeout, clearTimeout,
+    atob: (b64) => Buffer.from(b64, 'base64').toString('latin1'),
+  };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'extension/content/request-shape.js'), 'utf8'), ctx);
   return ctx.window.RequestShape;
@@ -104,5 +110,58 @@ describe('通义千问语音合成 — 同一地址，靠家族分开', () => {
       '服务端回的是 http://，扩展页是安全上下文 —— 不升级会被混合内容策略静默挡掉，'
       + '而这一条在 Node 里测不出来（那边没有该策略）');
     eq(req.audioUrlFrom({ output: {} }), '', '拿不到地址时要回空串，让调用方报 empty_audio');
+  });
+});
+
+describe('会出声的对话模型 — 与专用 TTS 的差别要被判据看住', () => {
+  const e = TTS.find((x) => x.id === 'openrouter_audio');
+
+  test('条目存在，只发国际版（地址与型号名都带品牌）', () => {
+    ok(e, 'tts.config.js 里没有 openrouter_audio');
+    eq(e.flavors.join(), 'global');
+  });
+
+  test('请求体必须 stream:true 且 format 为 pcm16', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-audio-chat', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: '你好', voice: 'alloy' });
+    // 不加 stream 会被上游拒：「Audio output requires stream: true」
+    eq(req.body.stream, true);
+    // 流式下只接受 pcm16：「does not support 'wav' when stream=true」
+    eq(req.body.audio.format, 'pcm16');
+    ok(req.body.modalities.includes('audio'), '没声明 audio 模态就不会有声音');
+    ok(typeof req.parseAudioStream === 'function', '这条路必须自带流解析');
+  });
+
+  test('裸 PCM 要被补成 WAV —— pcm16 没有容器，直接播是噪声', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-audio-chat', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: 'hello world', voice: 'alloy' });
+    const pcm = Buffer.alloc(4800, 1).toString('base64');       // 0.1s @24kHz
+    const sse = 'data: ' + JSON.stringify({ choices: [{ delta: { audio: { data: pcm, transcript: 'hello world' } } }] }) + '\ndata: [DONE]\n';
+    const got = req.parseAudioStream(sse);
+    const b = Buffer.from(got.buf);
+    eq(b.slice(0, 4).toString('latin1'), 'RIFF');
+    eq(b.slice(8, 12).toString('latin1'), 'WAVE');
+    eq(b.readUInt32LE(24), 24000, '采样率必须是 24000 —— 写错会让语速明显不对');
+    eq(got.type, 'audio/wav');
+  });
+
+  test('它没照着念要报出来 —— 专用 TTS 不会有这个问题，对话模型会', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-audio-chat', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel,
+      input: '请把这一整段很长的原文一字不差地念出来，它有很多很多字', voice: 'alloy' });
+    const pcm = Buffer.alloc(2400, 1).toString('base64');
+    // 模型答了句别的（拒绝/评论），而不是念原文
+    const sse = 'data: ' + JSON.stringify({ choices: [{ delta: { audio: { data: pcm, transcript: '好的' } } }] }) + '\n';
+    let code = '';
+    try { req.parseAudioStream(sse); } catch (err) { code = err.code; }
+    eq(code, 'spoken_mismatch', '念的内容与原文量级不符时必须失败，而不是播一句不相干的话');
+  });
+
+  test('一片音频都没有时报 empty_audio，而不是产出一个空 WAV', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-audio-chat', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: 'x', voice: 'alloy' });
+    let code = '';
+    try { req.parseAudioStream('data: {"choices":[{"delta":{"content":"hi"}}]}\n'); } catch (err) { code = err.code; }
+    eq(code, 'empty_audio');
   });
 });
