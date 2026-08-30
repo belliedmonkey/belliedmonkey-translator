@@ -54,7 +54,8 @@ module.exports = [
     // URL, and the placeholder below is what tells them its shape (the hint copy used
     // to name the path itself, which put an endpoint in eleven translated strings).
     id: 'local', type: 'speech-compat', flavors: ['global', 'china'],
-    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    // 同 stt.config.js 的 local：needsKey=false 是「不强制」，不是「不支持」。
+    needsKey: false, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
     defaultEndpoint: null, placeholder: 'http://127.0.0.1:8880/v1/audio/speech',
     defaultModel: '', voices: null,
     returnsAudio: true,

@@ -522,7 +522,8 @@ function generateTts(dir, flavor) {
     id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
     defaultModel: e.defaultModel || '', voices: e.voices || null,
-    needsKey: !!e.needsKey, supportsBaseUrl: !!e.supportsBaseUrl,
+    needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
+    supportsBaseUrl: !!e.supportsBaseUrl,
     supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
     returnsAudio: !!e.returnsAudio, hintKey: e.hintKey || null,
   }));
@@ -544,7 +545,8 @@ function generateStt(dir, flavor) {
     id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
     defaultModel: e.defaultModel || '',
-    needsKey: !!e.needsKey, supportsBaseUrl: !!e.supportsBaseUrl,
+    needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
+    supportsBaseUrl: !!e.supportsBaseUrl,
     supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
     hintKey: e.hintKey || null,
   }));

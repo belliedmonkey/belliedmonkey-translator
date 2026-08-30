@@ -296,7 +296,8 @@ async function updateTtsUI(selectedVoice) {
   if (!e) return;
   $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
   $('tts-baseurl-field').style.display = e.supportsBaseUrl ? 'block' : 'none';
-  $('tts-key-field').style.display = e.needsKey ? 'block' : 'none';
+  // supportsKey 缺省时回落到 needsKey —— 没声明过这个字段的条目行为一个字都不变。
+  $('tts-key-field').style.display = (e.supportsKey ?? e.needsKey) ? 'block' : 'none';
   $('tts-model-field').style.display = e.supportsModel ? 'block' : 'none';
   $('tts-model').placeholder = e.defaultModel || '';
 
@@ -588,7 +589,7 @@ async function init() {
     const e = (window.MT_STT_ENGINES || []).find((x) => x.id === id) || null;
     $('stt-config').hidden = !e;
     if (!e) return;
-    $('stt-key-field').hidden = !e.needsKey;
+    $('stt-key-field').hidden = !(e.supportsKey ?? e.needsKey);
     $('stt-baseurl-field').hidden = !e.supportsBaseUrl;
     $('stt-model-field').hidden = !e.supportsModel;
     $('stt-base-url').placeholder = endpointPlaceholder(e);

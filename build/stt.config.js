@@ -33,7 +33,12 @@ module.exports = [
     // The example port matches scripts/dev-whisper-server.js, so the in-repo bridge
     // is a copy-paste away rather than a number to look up.
     id: 'local', type: 'transcribe-compat', flavors: ['global', 'china'],
-    needsKey: false, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    // needsKey=false 是「不强制」，supportsKey=true 是「可以填」—— 两件事。
+    // 设置页原先只看 needsKey，于是把「不强制」当成了「不支持」，直接把输入框藏了。
+    // 后果：这个条目的定义是「任何实现该请求形状的服务器」，其中云端的那一半**全部
+    // 需要鉴权**，而界面上没有地方填 —— 传输层其实一直会带上 Authorization
+    // （request-shape.js 那两处 `o.apiKey ? {...} : {}`），只是没人能把值交给它。
+    needsKey: false, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
     defaultEndpoint: null, placeholder: 'http://127.0.0.1:18790/v1/audio/transcriptions',
     defaultModel: '',
     labelKey: 'stt_engine_local', label: '本地 / 自建转写端点',

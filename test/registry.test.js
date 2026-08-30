@@ -45,10 +45,10 @@ const KNOWN_KEYS = {
   providers: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey'],
-  tts: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
+  tts: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'voices',
     'returnsAudio', 'label', 'labelKey', 'hintKey'],
-  stt: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
+  stt: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
@@ -118,6 +118,19 @@ describe('capability registries', () => {
         // user's device. (`known` already forbids them on model-params, which never had
         // an address of its own to begin with.)
         ok(!('path' in e), `${name}/${e.id} still has \`path\` — endpoints are complete now`);
+
+        // `needsKey` and `supportsKey` are different questions: "must you give one"
+        // vs "can you give one at all". The settings page read only the first and
+        // therefore HID the key input for the self-hosted audio entries — whose own
+        // definition is "any server implementing this request shape", and the cloud
+        // half of that set all require auth. The transports were already sending the
+        // header when a key was present (request-shape.js), so the value simply had
+        // nowhere to be typed. Requiring a key while claiming not to support one is
+        // the incoherent combination; forbid it.
+        if ('supportsKey' in e) {
+          ok(!(e.needsKey && !e.supportsKey),
+            `${name}/${e.id} says needsKey but not supportsKey — a key is required and cannot be entered`);
+        }
         ok(!('defaultBase' in e), `${name}/${e.id} still has \`defaultBase\``);
       }
     });
