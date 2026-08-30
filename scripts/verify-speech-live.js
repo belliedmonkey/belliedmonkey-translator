@@ -34,7 +34,9 @@ function probeWav() {
   const wav = path.join(os.tmpdir(), 'mt-live.wav');
   execFileSync('say', ['-o', aiff, PHRASE], { stdio: 'ignore' });
   execFileSync('afconvert', ['-f', 'WAVE', '-d', 'LEI16@16000', '-c', '1', aiff, wav], { stdio: 'ignore' });
-  return fs.readFileSync(wav);
+  const m4a = path.join(os.tmpdir(), 'mt-live.m4a');
+  execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', aiff, m4a], { stdio: 'ignore' });
+  return { wav: fs.readFileSync(wav), m4a: fs.readFileSync(m4a) };
 }
 const PHRASE = 'The quick brown fox jumps over the lazy dog.';
 
@@ -63,8 +65,9 @@ async function main() {
   const dist = path.join(ROOT, plan.dist);
   if (!fs.existsSync(dist)) { console.error(`✗ ${plan.dist} 不存在，先跑 node build.js`); process.exit(1); }
 
-  const wav = probeWav();
-  console.log(`\n■ ${flavor}   ${plan.dist}   探针音频 ${wav.length} 字节「${PHRASE}」\n`);
+  const audio = probeWav();
+  const wav = audio.wav;
+  console.log(`\n■ ${flavor}   ${plan.dist}   探针音频 wav ${audio.wav.length} / m4a ${audio.m4a.length} 字节「${PHRASE}」\n`);
 
   process.stderr.write('· 启动 Chrome…\n');
   const chrome = await launchChrome();
@@ -130,32 +133,40 @@ async function main() {
     }
 
     // ── 转写 ────────────────────────────────────────────────────────────
-    const wavB64 = wav.toString('base64');
+    // **两种容器都要测。** iOS Safari 的 MediaRecorder 首选 `audio/mp4`，于是
+    // speech-input.js 会把 ext 定成 `m4a`，而 DashScope 那条传输把 ext 原样当
+    // `parameters.format` 透传给服务端。只测 WAV 的话，桌面全绿而真机可能全挂 ——
+    // 这正是「一个宿主上能用不等于另一个宿主上能用」最典型的形状。
+    const CONTAINERS = [
+      { ext: 'wav', mime: 'audio/wav', b64: audio.wav.toString('base64'), note: '桌面录音' },
+      { ext: 'm4a', mime: 'audio/mp4', b64: audio.m4a.toString('base64'), note: 'iOS Safari 实际产出' },
+    ];
     for (const s of plan.stt) {
       const e = await ev(`JSON.stringify((window.MT_STT_ENGINES||[]).find(x=>x.id===${JSON.stringify(s.id)})||null)`);
       if (!e || e === 'null') { ok(false, `${s.id}: 这个 flavor 的产物里没有这个引擎`); continue; }
       const eng = JSON.parse(e);
       console.log(`\n── 转写 ${s.id}  ${eng.defaultModel}`);
-      const got = await ev(`(async () => {
-        LearnSpeech.configure({ engineId: ${JSON.stringify(s.id)}, apiKey: ${JSON.stringify(key)},
-          baseUrl: '', model: '' });
-        const bin = atob(${JSON.stringify(wavB64)});
-        const u = new Uint8Array(bin.length);
-        for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
-        const blob = new Blob([u], { type: 'audio/wav' });
-        const t0 = performance.now();
-        try {
-          const text = await LearnSpeech.transcribe(blob, 'wav', 'en');
-          return JSON.stringify({ ms: Math.round(performance.now()-t0), text });
-        } catch (err) { return JSON.stringify({ err: err.code || err.message, url: err.url || '' }); }
-      })()`);
-      const g = JSON.parse(got);
-      if (g.err) { ok(false, `${s.id}: 转写失败 —— ${g.err} ${g.url || ''}`); continue; }
-      console.log(`     ${g.ms}ms  转写=${JSON.stringify(g.text)}`);
-      const norm = (x) => String(x).toLowerCase().replace(/[^a-z]/g, '');
-      ok(norm(g.text).length > 6, `${s.id}: 转写非空`);
-      ok(norm(PHRASE).startsWith(norm(g.text).slice(0, 12)) || norm(g.text).includes('quickbrown'),
-        `${s.id}: 转写内容与原句对得上（${JSON.stringify(String(g.text).slice(0, 46))}）`);
+      for (const c of CONTAINERS) {
+        const got = await ev(`(async () => {
+          LearnSpeech.configure({ engineId: ${JSON.stringify(s.id)}, apiKey: ${JSON.stringify(key)},
+            baseUrl: '', model: '' });
+          const bin = atob(${JSON.stringify(c.b64)});
+          const u = new Uint8Array(bin.length);
+          for (let i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+          const blob = new Blob([u], { type: ${JSON.stringify(c.mime)} });
+          const t0 = performance.now();
+          try {
+            const text = await LearnSpeech.transcribe(blob, ${JSON.stringify(c.ext)}, 'en');
+            return JSON.stringify({ ms: Math.round(performance.now()-t0), text });
+          } catch (err) { return JSON.stringify({ err: err.code || err.message, url: err.url || '' }); }
+        })()`);
+        const g = JSON.parse(got);
+        if (g.err) { ok(false, `${s.id} · ${c.ext}（${c.note}）: 转写失败 —— ${g.err} ${g.url || ''}`); continue; }
+        const norm = (x) => String(x).toLowerCase().replace(/[^a-z]/g, '');
+        console.log(`     ${c.ext.padEnd(4)} ${String(g.ms).padStart(5)}ms  转写=${JSON.stringify(g.text)}`);
+        ok(norm(g.text).length > 6 && (norm(PHRASE).startsWith(norm(g.text).slice(0, 12)) || norm(g.text).includes('quickbrown')),
+          `${s.id} · ${c.ext}（${c.note}）: 转写与原句对得上`);
+      }
     }
 
     console.log('');
