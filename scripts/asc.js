@@ -158,6 +158,45 @@ async function cmdBind(bundleId, platform, versionString, buildNumber) {
   return String(got) === String(buildNumber);
 }
 
+// 给一条还没提审过的版本记录改版本号。ASC 每个平台同时只允许一条在途版本，所以当一个
+// 从未发出去的草稿需要换号时，唯一的路是改它 —— newversion 会（正确地）拒绝新建。
+//
+// 1.6.8 就是这样：四条线的草稿都建好了、素材也传了，但它一次都没发出去，而 v1.6.8 这个
+// tag 已经落在 29 个提交之前。改名比新建划算得多：截图、ASO 文案、审核联系方式全留在原地。
+//
+// 只动 PREPARE_FOR_SUBMISSION。已上架或在审的版本号是对外事实，改它等于篡改历史。
+async function cmdRenameVersion(bundleId, platform, fromVersion, toVersion, apply) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=30`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  if (vs.data.find((x) => x.attributes.versionString === toVersion)) {
+    console.log(`  ${app.name} [${platform}] 已经是 ${toVersion} 了  ✓（不动）`);
+    return true;
+  }
+  const v = vs.data.find((x) => x.attributes.versionString === fromVersion);
+  if (!v) throw new Error(`${app.name} [${platform}] 没有 ${fromVersion} 的版本记录`);
+  if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+    throw new Error(`${app.name} [${platform}] ${fromVersion} 状态是 `
+      + `${v.attributes.appStoreState}，不是 PREPARE_FOR_SUBMISSION —— 不动它`);
+  }
+  if (!apply) {
+    console.log(`  ${app.name} [${platform}] ${fromVersion} → ${toVersion}（干运行）`);
+    return true;
+  }
+  await api('PATCH', `/appStoreVersions/${v.id}`, { data: {
+    type: 'appStoreVersions', id: v.id, attributes: { versionString: toVersion },
+  } });
+  // 回读。同 bind：PATCH 返回 204 无正文，「没报错」不等于「改对了」。
+  const after = await api('GET', `/appStoreVersions/${v.id}`
+    + '?fields[appStoreVersions]=versionString,appStoreState');
+  const got = after.data && after.data.attributes.versionString;
+  console.log(`  ${app.name} [${platform}] ${fromVersion} → ${got}`
+    + (got === toVersion ? '  ✓' : '  ✗ 回读不符！'));
+  return got === toVersion;
+}
+
 // 建一条新的 App Store 版本记录。`bind` 只会挂 build，不会建版本 —— 这一步以前是在
 // ASC 网页上手点的，于是它既没有干运行也没有回读，而发版流程里其余每一步都有。
 //
@@ -688,6 +727,15 @@ async function cmdDevices(udid, name) {
     const ok = await cmdNewVersion(bundleId, platform, versionString, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'renameversion') {
+    const [bundleId, platform, fromV, toV] = rest;
+    if (!bundleId || !platform || !fromV || !toV) {
+      console.log('用法: node scripts/asc.js renameversion <bundleId> <IOS|MAC_OS> <旧版本> <新版本> [--apply]');
+      process.exit(1);
+    }
+    const ok = await cmdRenameVersion(bundleId, platform, fromV, toV, rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'notes') {
     const [bundleId, platform, versionString, file] = rest;
     if (!bundleId || !platform || !versionString || !file) {
@@ -704,6 +752,7 @@ async function cmdDevices(udid, name) {
     + ' | dump <bundleId> <平台>'
     + ' | devices [UDID [名称]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
+    + ' | renameversion <bundleId> <平台> <旧版本> <新版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
     + ' | bind <bundleId> <平台> <版本> <build>');
   process.exit(1);
