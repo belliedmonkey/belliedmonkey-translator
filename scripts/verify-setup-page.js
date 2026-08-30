@@ -133,6 +133,35 @@ async function checkSite(site) {
     if (!s.hasSteps) bad.push('页面上找不到 #mt-steps —— 这条判据会空过，等于没有');
     else if (s.steps) bad.push('检测到扩展后，Safari 三步没有收起 —— 在教一件已经做完/不适用的事');
 
+    // ⑥ 结构化数据必须能解析，且必须是**静态**的
+    //
+    // JSON-LD 的语法错误会被浏览器和爬虫**静默忽略** —— 又一个「没报错也没生效」。
+    // 而它对 GEO 的价值全在于机器能读懂：isAccessibleForFree / offers.price / license
+    // 是 AI 推荐时的头号筛选条件，写错等于没写。
+    //
+    // 「静态」这一条同样要验：多数 AI 抓取器不执行 JS，被 i18n.js 注入的 JSON-LD 对
+    // 它们等于不存在。所以判据是**从原始 HTML 文本里**解析，不是从渲染后的 DOM。
+    for (const page of ['index.html', 'setup.html']) {
+      const f = path.join(site.dir, page);
+      if (!fs.existsSync(f)) continue;
+      const html = fs.readFileSync(f, 'utf8');
+      const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+      if (!blocks.length) { bad.push(`${page} 里没有 JSON-LD —— GEO 的地基`); continue; }
+      for (const b of blocks) {
+        try {
+          const d = JSON.parse(b[1]);
+          const types = (d['@graph'] || [d]).map((x) => x['@type']).join(',');
+          // 编造评分既违反 Google 结构化数据政策，又会被 AI 原样引用出去。
+          if (JSON.stringify(d).includes('aggregateRating')) {
+            bad.push(`${page} 的 JSON-LD 里有 aggregateRating —— 我们没有足够评分，那是编的`);
+          }
+          console.log(`  ✓ ${page} JSON-LD 可解析（${types}）`);
+        } catch (e) {
+          bad.push(`${page} 的 JSON-LD 解析失败：${e.message} —— 爬虫会静默忽略它`);
+        }
+      }
+    }
+
     // ⑤ 首页的版本号必须替换成真数字
     //
     // 在此之前 `v1.6.7` 被写死在 8 份字典 + index.html 的兜底文本里（18 处）。漏改的
