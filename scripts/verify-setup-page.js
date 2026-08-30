@@ -22,6 +22,20 @@ const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
   '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
+// 「结构化数据必须与可见正文一致」这条判据，两处都用它（FAQPage 的问答、HowTo 的步骤）。
+//
+// 剥标签**并去掉所有空白**。只去空白不剥标签会漏；剥标签时把标签换成空格，又会在
+// `…<code>addr</code>。` 这种地方凭空多一个空格，而纯文本那份没有 —— 那正是 2026-08-30
+// 中文教程页第 4 步被误报的原因。空白是这里唯一的噪声，索性整个抹掉：中文本来无空格，
+// 英文去掉空格后词序仍然完整，判据不会因此变松。
+function normText(t) {
+  return String(t)
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, '')
+    .replace(/\s+/g, '');
+}
+
 const SITES = [
   { name: '国际 belliedmonkey.cc', dir: process.env.MT_SITE_CC
       || path.join(os.homedir(), 'belliedmonkey-cc'), i18n: true },
@@ -162,6 +176,88 @@ async function checkSite(site) {
       }
     }
 
+    // ⑨ 教程页：必须与注册表逐字一致，且 HowTo 与可见正文对齐
+    //
+    // guide.html 是**生成**的（scripts/gen-setup-guide.js），因为一页写满模型名与端点
+    // 的教程是最坏的那种副本：它在另一个仓库、没有构建、没有测试，而且恰恰是新用户
+    // 唯一会照着抄的东西 —— 抄错一个端点，他们得到的是一个不工作的配置。
+    //
+    // 三条：与生成器输出逐字节相同（否则有人手改过，它已经开始漂移）；页面上出现的
+    // 每个端点都必须是该 flavor 注册表里真有的；中国版还要过与 build.js 同一条合规正则。
+    const guide = path.join(site.dir, 'guide.html');
+    if (fs.existsSync(guide)) {
+      const html = fs.readFileSync(guide, 'utf8');
+      const flavor = site.dir.endsWith('-com') ? 'china' : 'global';
+      let want = null;
+      try { want = require('./lib/guide-render.js').build(flavor); } catch (e) { bad.push('生成教程页失败：' + e.message); }
+      if (want !== null && want !== html) {
+        bad.push(`guide.html 与注册表生成的结果不一致 —— 有人手改了它。跑 node scripts/gen-setup-guide.js`);
+      }
+
+      // 页面上的端点必须都在注册表里。反过来不查 —— 教程有权只讲一部分引擎。
+      const known = new Set();
+      for (const reg of ['providers', 'stt', 'tts']) {
+        for (const e of require(`../build/${reg}.config.js`)) {
+          if (!e.flavors.includes(flavor)) continue;
+          const ep = (e.defaultEndpoint && typeof e.defaultEndpoint === 'object')
+            ? e.defaultEndpoint[flavor] : e.defaultEndpoint;
+          if (ep) known.add(ep);
+          if (e.placeholder) known.add(e.placeholder);
+        }
+      }
+      const onPage = [...html.matchAll(/<code>(https?:\/\/[^<]+)<\/code>/g)].map((x) => x[1]);
+      const strayEp = onPage.filter((u) => /\/(chat\/completions|messages|audio\/(speech|transcriptions))$/.test(u)
+        && !known.has(u));
+      for (const u of strayEp) {
+        bad.push(`guide.html 上的端点 ${u} 不在 ${flavor} 注册表里 —— 教程在教一个软件里不存在的地址`);
+      }
+
+      // 语言纯度。注册表的 `label` 字段是**中文的**，即使在 global flavor 下也是 ——
+      // 扩展 UI 显示的是 labelKey 指向的 _locales 条目，label 只是兜底。照搬它，英文
+      // 教程页上就会出现「Google 翻译 works with no key at all」。生成器第一版就是这样，
+      // 而它对机器完全合法：解析通过、结构正确、端点全对。只有人读一遍才看得出来。
+      const cjk = /[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/;
+      const prose = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '');
+      if (flavor === 'global' && cjk.test(prose)) {
+        const m2 = prose.match(new RegExp('.{0,40}' + cjk.source + '.{0,20}'));
+        bad.push(`英文教程页里混进了中日韩文字：…${m2[0].replace(/\s+/g, ' ')}…`);
+      }
+      if (flavor === 'china' && !cjk.test(prose)) bad.push('中文教程页里一个中日韩字符都没有');
+
+      if (flavor === 'china') {
+        // 与 build.js 的 complianceGateChina 同一条正则。教程页和包体一样要过。
+        const m = html.match(/ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i);
+        if (m) bad.push(`中国版 guide.html 里出现了合规禁词「${m[0]}」`);
+      }
+
+      for (const b of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+        let d2; try { d2 = JSON.parse(b[1]); } catch (_) { continue; }
+        if (d2['@type'] !== 'HowTo') continue;
+        const visible = normText(html.replace(/<script[\s\S]*?<\/script>/g, ''));
+        const miss = (d2.step || []).filter((st) => !visible.includes(normText(st.text)));
+        if (miss.length) bad.push(`guide.html 的 HowTo 有 ${miss.length} 步不在可见正文里（如「${miss[0].name}」）`);
+        else console.log(`  ✓ guide.html 由注册表生成，HowTo ${d2.step.length} 步与正文一致${flavor === 'china' ? '，合规词零命中' : ''}`);
+      }
+    }
+
+    // ⑨b 中国站：每一页都必须展示 ICP 备案号并链到工信部查询页
+    //
+    // 已备案域名上的**每一个**页面都要展示备案号，不是首页展示就行。生成的 guide.html
+    // 第一版就漏了它 —— 页脚是我照着别的页面写的，而备案那两行不在我抄的那一段里。
+    // 它不会报错、不会白屏，只会在某次检查里变成一个问题。判据取自 index.html 现有的
+    // 那一份，不在这里再写一遍号码。
+    if (site.dir.endsWith('-com')) {
+      const idx = fs.readFileSync(path.join(site.dir, 'index.html'), 'utf8');
+      const icp = (idx.match(/[\u4e00-\u9fa5]{1,3}ICP备\d+号/) || [])[0];
+      if (!icp) bad.push('中国站 index.html 上找不到 ICP 备案号');
+      else {
+        const missing = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html'))
+          .filter((f) => !fs.readFileSync(path.join(site.dir, f), 'utf8').includes(icp));
+        if (missing.length) bad.push(`中国站这些页面没有展示备案号 ${icp}：${missing.join(', ')}`);
+        else console.log(`  ✓ 中国站每一页都展示了备案号 ${icp}`);
+      }
+    }
+
     // ⑧ 官网字典：键集一致 + meta 串不许留英文兜底
     //
     // 官网仓库**一道门禁都没有**（扩展仓库那套 i18n-parity 管不到它）。两条：
@@ -250,13 +346,9 @@ async function checkSite(site) {
         // 同样重要的是先剥掉 <script>：JSON-LD 自己就在文件里，拿整份 HTML 去
         // includes() 是恒真的 —— 写这条判据时我先用那个形式自查了一遍，三页全绿，
         // 而其中一页真的对不上。判据能骗人的方向，这次是「永远通过」。
-        const norm = (t) => String(t).replace(/<[^>]+>/g, '')
-          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-          .replace(/\s+/g, ' ').trim();
-        const visible = norm(html.replace(/<script[\s\S]*?<\/script>/g, ''));
-        const miss = (d.mainEntity || []).filter((q) => !visible.includes(norm(q.name))
-          || !visible.includes(norm(q.acceptedAnswer.text)));
+        const visible = normText(html.replace(/<script[\s\S]*?<\/script>/g, ''));
+        const miss = (d.mainEntity || []).filter((q) => !visible.includes(normText(q.name))
+          || !visible.includes(normText(q.acceptedAnswer.text)));
         if (miss.length) {
           bad.push(`${f} 的 FAQPage 有 ${miss.length} 条问答不在可见正文里（如「${miss[0].name.slice(0, 30)}…」）`
             + ' —— 与可见内容不一致的结构化数据会被丢弃');
