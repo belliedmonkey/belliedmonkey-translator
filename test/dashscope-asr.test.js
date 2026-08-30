@@ -61,3 +61,48 @@ describe('通义千问语音转写 — 注册表条目', () => {
     eq(WF.formatFor(e.defaultEndpoint, e.type), 'transcribe-dashscope');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+const vm = require('vm');
+function loadRequestShape() {
+  const fs = require('fs');
+  const ctx = { window: { WireFormat: WF }, WireFormat: WF, console, setTimeout, clearTimeout };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(require('path').join(__dirname, '..', 'extension/content/request-shape.js'), 'utf8'), ctx);
+  return ctx.window.RequestShape;
+}
+const TTS = require('../build/tts.config.js');
+
+describe('通义千问语音合成 — 同一地址，靠家族分开', () => {
+  const e = TTS.find((x) => x.id === 'qwen_tts');
+
+  test('条目存在，型号是 HTTP 能用的那个', () => {
+    ok(e, 'tts.config.js 里没有 qwen_tts');
+    // 厂商页主推的 qwen-audio-3.0-tts-flash 是 WebSocket 专属，在这个 HTTP 端点上
+    // 答「url error」。钉住型号，免得有人照那一页「修」成主推型号而整条路失效。
+    eq(e.defaultModel, 'qwen-tts');
+    eq(e.flavors.join(), 'china');
+  });
+
+  test('音色表与服务端报的一致（它自己列出了允许值）', () => {
+    // 给一个不存在的音色，服务端回：
+    //   Input should be 'Cherry', 'Serena', 'Ethan' or 'Chelsie'
+    eq(e.voices.join(','), 'Cherry,Serena,Ethan,Chelsie');
+  });
+
+  test('同一个 URL：朗读引擎判成语音，转写引擎判成转写', () => {
+    eq(WF.formatFor(e.defaultEndpoint, e.type), 'speech-dashscope');
+    eq(WF.formatFor(e.defaultEndpoint, 'transcribe-dashscope'), 'transcribe-dashscope');
+  });
+
+  test('回包里的音频地址必须被升成 https —— 否则安全上下文里取不到', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-dashscope', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: '你好', voice: 'Cherry' });
+    ok(typeof req.audioUrlFrom === 'function', 'speech-dashscope 必须声明第二步');
+    const got = req.audioUrlFrom({ output: { audio: { url: 'http://x.oss.example/a.wav' } } });
+    eq(got, 'https://x.oss.example/a.wav',
+      '服务端回的是 http://，扩展页是安全上下文 —— 不升级会被混合内容策略静默挡掉，'
+      + '而这一条在 Node 里测不出来（那边没有该策略）');
+    eq(req.audioUrlFrom({ output: {} }), '', '拿不到地址时要回空串，让调用方报 empty_audio');
+  });
+});

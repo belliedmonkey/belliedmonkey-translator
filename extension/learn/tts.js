@@ -220,6 +220,37 @@ var LearnTTS = (() => {
     // Bytes + declared type, never a Blob: Blobs round-tripped through WebKit's
     // IndexedDB are file-backed handles that dangle after an app update moves
     // the container (see LearnStore.putAudio). ArrayBuffers carry their bytes.
+    // 有的形状回的是一个音频 URL 而不是字节（DashScope）。多取一次 —— 这一步放在
+    // 这里而不是调用方，是为了让「拿到 { buf, type }」对上层始终是同一件事：缓存、
+    // 预载、data: URL 播放那一整条路一个字都不用改。
+    if (req.audioUrlFrom) {
+      let mediaUrl = '';
+      try { mediaUrl = req.audioUrlFrom(JSON.parse(await resp.text())); } catch (_) { mediaUrl = ''; }
+      if (!mediaUrl) {
+        const err = new Error('speech response carried no audio URL');
+        err.code = 'empty_audio'; err.url = url;
+        throw err;
+      }
+      // 同样有截止时间：一个取不回来的音频与一个挂住的请求，对预载是同一种伤害。
+      const c2 = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const t2 = c2 ? setTimeout(() => c2.abort(), budget) : null;
+      let media;
+      try {
+        media = await fetch(mediaUrl, c2 ? { signal: c2.signal } : undefined);
+      } catch (netErr) {
+        const err = new Error('cannot fetch the generated audio');
+        err.code = (c2 && c2.signal && c2.signal.aborted) ? 'timeout' : 'network';
+        err.url = mediaUrl;
+        throw err;
+      } finally { if (t2) clearTimeout(t2); }
+      if (!media.ok) {
+        const err = new Error('audio ' + media.status);
+        err.status = media.status; err.code = 'http'; err.url = mediaUrl;
+        throw err;
+      }
+      const mct = (media.headers && media.headers.get && media.headers.get('content-type')) || '';
+      return { buf: await media.arrayBuffer(), type: String(mct).split(';')[0] || 'audio/mpeg' };
+    }
     const ct = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
     return { buf: await resp.arrayBuffer(), type: String(ct).split(';')[0] || 'audio/mpeg' };
   }

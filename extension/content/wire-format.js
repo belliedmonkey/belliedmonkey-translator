@@ -36,6 +36,7 @@ var WireFormat = (() => {
     'speech-compat': 'speech',
     'transcribe-compat': 'transcribe',
     'transcribe-dashscope': 'transcribe',
+    'speech-dashscope': 'speech',
   };
 
   // 后缀取**最后两段、不含版本段**：`/chat/completions` 而不是
@@ -47,7 +48,13 @@ var WireFormat = (() => {
       ['/responses', 'responses-compat'],
       ['/messages', 'messages-compat'],
     ],
-    speech: [['/audio/speech', 'speech-compat']],
+    speech: [
+      ['/audio/speech', 'speech-compat'],
+      // 与转写**同一个地址**。家族封闭在这里不是理论：同一串 URL 在朗读引擎下是
+      // speech-dashscope，在转写引擎下是 transcribe-dashscope，分派只看引擎属于哪个
+      // 家族，厂商永不参与。
+      ['/multimodal-generation/generation', 'speech-dashscope'],
+    ],
     transcribe: [
       ['/audio/transcriptions', 'transcribe-compat'],
       // DashScope 的转写不走上面那条通用路：它没有 /audio/transcriptions（实测 404，

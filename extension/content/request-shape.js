@@ -415,6 +415,30 @@ var RequestShape = (() => {
       };
     }
 
+    if (fmt === 'speech-dashscope') {
+      // 这条路**回的是一个音频 URL，不是字节**（实测 2026-08-30，真 key：
+      // output.audio.url 指向一个带过期时间的 OSS 对象，data 字段恒空 —— 试过三种
+      // parameters 都要不到内联 base64）。所以它比别的传输多一步：拿到 URL 再取一次。
+      // 那一步能成立是因为扩展的 host_permissions 是 <all_urls>：那个 OSS 地址
+      // **没有** CORS 头，普通网页取不到，扩展页可以。
+      return {
+        headers: Object.assign({ 'Content-Type': 'application/json' },
+          o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {}),
+        body: { model: o.model, input: { text: o.input, voice: o.voice } },
+        // 调用方据此判断要不要走第二步。没有这个字段的形状一步就拿到字节。
+        //
+        // **必须把 http 升成 https。** 服务端回的是 `http://…oss-…aliyuncs.com/…`，
+        // 而扩展页是安全上下文 —— 取一个明文地址会被混合内容策略挡掉，且挡得很安静。
+        // 同一主机的 https 完全可用（实测：证书有效、200、audio/x-wav）。
+        // 这一条在 Node 里测不出来：那边没有混合内容策略，所以端到端脚本全绿而真机会坏。
+        audioUrlFrom: (d) => {
+          const u = (d && d.output && d.output.audio && d.output.audio.url) || '';
+          return u.replace(/^http:\/\//i, 'https://');
+        },
+        extract: null, caps,
+      };
+    }
+
     if (fmt === 'transcribe-compat') {
       const fd = new FormData();
       fd.append('file', o.file, o.filename);         // 唯一必发的

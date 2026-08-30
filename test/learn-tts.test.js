@@ -112,9 +112,18 @@ describe('LearnTTS — engine registry', () => {
   test('the browser engine can NEVER return audio — that is an API fact, not a setting', () => {
     const browser = REGISTRY.find((e) => e.id === 'browser');
     eq(browser.returnsAudio, false);
-    // Every other engine speaks the one request format we support.
+    // 其余每个引擎都必须说一种**我们真的实现了**的语音形状，而且它必须落在语音
+    // 家族里 —— 后者才是关键：DashScope 的朗读与转写是同一个 URL，只有家族能分开
+    // 它们。原先这里钉的是 `type === 'speech-compat'`，那在只有一种形状时成立；
+    // 现在钉「实现了 + 同家族」，既挡住乱写的 type，也不会在加第三种形状时假红。
+    const WF = require('../extension/content/wire-format.js');
+    const SPEECH_FORMATS = ['speech-compat', 'speech-dashscope'];
     for (const e of REGISTRY.filter((x) => x.id !== 'browser')) {
-      eq(e.type, 'speech-compat', `${e.id} must use the shared request format`);
+      ok(SPEECH_FORMATS.includes(e.type), `${e.id} 的 type ${e.type} 不是已实现的语音形状`);
+      // 家族封闭：拿它自己的默认端点去判，结果必须仍在语音形状集合里。
+      const fmt = WF.formatFor(e.defaultEndpoint || 'https://x.example/v1/audio/speech', e.type);
+      ok(SPEECH_FORMATS.includes(fmt),
+        `${e.id} 的端点被判成了 ${fmt} —— 语音引擎绝不该跑到别的家族去`);
       eq(e.returnsAudio, true);
     }
   });

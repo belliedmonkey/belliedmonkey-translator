@@ -63,6 +63,29 @@ module.exports = [
     hintKey: 'tts_hint_local',
   },
   {
+    // 通义千问的语音合成。与 stt.config.js 的 qwen_asr **同一个地址**，靠家族区分。
+    //
+    // 两件只能靠打出来的事（2026-08-30，真 key）：
+    //   · 型号要用 `qwen-tts`。厂商页上主推的 `qwen-audio-3.0-tts-flash` 是
+    //     **WebSocket 专属**（只给 Python SDK 示例，wss://…/api-ws/v1/inference），
+    //     在这个 HTTP 端点上答「url error」。我先按那一页下过「朗读不可行」的结论，
+    //     是把同族的 qwen-tts 打一遍才推翻的。
+    //   · 回包给的是**音频 URL**不是字节，且要不到内联 base64。取那个 URL 可行，
+    //     因为扩展的 host_permissions 是 <all_urls>（那个 OSS 地址没有 CORS 头）。
+    //
+    // voices 是**服务端自己报出来的**：给一个不存在的音色，它回
+    // 「Input should be 'Cherry', 'Serena', 'Ethan' or 'Chelsie'」。
+    // 只登记 china：手上的 key 是境内的，intl 那侧没验过。
+    id: 'qwen_tts', type: 'speech-dashscope', flavors: ['china'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+    placeholder: null, defaultModel: 'qwen-tts',
+    voices: ['Cherry', 'Serena', 'Ethan', 'Chelsie'],
+    returnsAudio: true,
+    labelKey: null, label: '通义千问 · 语音合成',
+    hintKey: 'tts_hint_local',
+  },
+  {
     // GLOBAL ONLY. Its label, defaultEndpoint and hint key all carry a brand the China
     // bundle may not ship; `flavors` is what keeps it out. Without this field the
     // China compliance gate fails the build — which is how the omission was caught.
