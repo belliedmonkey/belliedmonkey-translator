@@ -162,6 +162,47 @@ async function checkSite(site) {
       }
     }
 
+    // ⑧ 官网字典：键集一致 + meta 串不许留英文兜底
+    //
+    // 官网仓库**一道门禁都没有**（扩展仓库那套 i18n-parity 管不到它）。两条：
+    //   · 键集必须一致 —— 少一个键，那个语言的那处 UI 直接空白（i18n.js 的 fill()
+    //     对 undefined 只是 console.warn，页面上什么都不会说）。
+    //   · `.title` / `.desc` 这些**只出现在 <title> 与 og/meta 里**的串，不许等于 en。
+    //     它们的特别之处是：错了在页面上完全看不见 —— 只有分享卡片、标签页标题和
+    //     搜索结果摘要会露出来，而那三个地方谁都不会天天检查。setup/privacy/support
+    //     三条曾在 6 个语言里一直是英文兜底。
+    //   判据只钉这一类键，不做「所有值都不许等于 en」—— 那会因为品牌名、语言自名之类
+    //   产生大量误报，而一道天天误报的门禁只会被注释掉。
+    const i18nDir = path.join(site.dir, 'i18n');
+    if (fs.existsSync(i18nDir)) {
+      const dicts = {};
+      for (const f of fs.readdirSync(i18nDir).filter((x) => x.endsWith('.json'))) {
+        try { dicts[f.slice(0, -5)] = JSON.parse(fs.readFileSync(path.join(i18nDir, f), 'utf8')); }
+        catch (e) { bad.push(`i18n/${f} 不是合法 JSON：${e.message}`); }
+      }
+      const en = dicts.en;
+      if (en) {
+        const base = Object.keys(en).sort().join('\n');
+        const META = Object.keys(en).filter((k) => /\.(title|desc)$/.test(k));
+        for (const [loc, d] of Object.entries(dicts)) {
+          if (loc === 'en') continue;
+          if (Object.keys(d).sort().join('\n') !== base) {
+            const miss = Object.keys(en).filter((k) => !(k in d));
+            const extra = Object.keys(d).filter((k) => !(k in en));
+            bad.push(`i18n/${loc}.json 键集与 en 不一致`
+              + (miss.length ? `，少：${miss.slice(0, 4).join(', ')}` : '')
+              + (extra.length ? `，多：${extra.slice(0, 4).join(', ')}` : ''));
+          }
+          const fell = META.filter((k) => d[k] !== undefined && d[k] === en[k]);
+          if (fell.length) {
+            bad.push(`i18n/${loc}.json 的 ${fell.join(', ')} 还是英文原文 —— 这类串只在`
+              + ' <title> 与分享卡片里露面，页面上看不出来');
+          }
+        }
+        if (!bad.length) console.log(`  ✓ 官网 ${Object.keys(dicts).length} 份字典：键集一致，${META.length} 个 meta 串无英文兜底`);
+      }
+    }
+
     // ⑦ sitemap、内链与 FAQ 结构化数据
     //
     // GEO 的三条地基，每一条都是「写完就再也没人看一眼」的那种：
