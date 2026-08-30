@@ -162,6 +162,69 @@ async function checkSite(site) {
       }
     }
 
+    // ⑦ sitemap、内链与 FAQ 结构化数据
+    //
+    // GEO 的三条地基，每一条都是「写完就再也没人看一眼」的那种：
+    //   · sitemap 与文件系统必须双向一致 —— 少写一条，那一页搜索引擎就不知道存在；
+    //     多写一条（页面改名/删了），抓取器拿到 404，整份 sitemap 的可信度下降。
+    //   · 没有孤儿页 —— 只在 sitemap 里而没有任何站内链接指过去的页面，权重近乎为零。
+    //   · FAQPage 的问答必须逐字出现在可见正文里 —— 结构化数据与看得见的内容不一致
+    //     违反 Google 的政策，而 AI 抓取器会交叉核对；不一致时它们信正文、丢掉标注，
+    //     等于白写。这一条只能逐条比对，肉眼永远看不出来。
+    const smPath = path.join(site.dir, 'sitemap.xml');
+    if (fs.existsSync(smPath)) {
+      const sm = fs.readFileSync(smPath, 'utf8');
+      const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+      const rel = (u) => { const r = u.replace(/^https?:\/\/[^/]+/, ''); return r === '/' ? 'index.html' : r.replace(/^\//, ''); };
+      const listed = new Set(locs.map(rel));
+
+      for (const f of listed) {
+        if (!fs.existsSync(path.join(site.dir, f))) bad.push(`sitemap 里的 ${f} 在站点里不存在 —— 抓取器会拿到 404`);
+      }
+      // 反向：站上的内容页必须在 sitemap 里。排除 -cn 结尾的那两页（中文版隐私/支持，
+      // 是给商店表单用的定向链接，不进索引）。
+      const onDisk = fs.readdirSync(site.dir)
+        .filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f));
+      for (const f of onDisk) {
+        if (!listed.has(f)) bad.push(`${f} 不在 sitemap 里 —— 搜索引擎不知道它存在`);
+      }
+
+      // 孤儿：每个被列出的页面都要至少被另一个页面链到
+      for (const f of listed) {
+        if (f === 'index.html') continue;
+        const linkers = onDisk.filter((o) => o !== f
+          && new RegExp('href="/' + f.replace(/[.]/g, '\\.') + '"').test(fs.readFileSync(path.join(site.dir, o), 'utf8')));
+        if (!linkers.length) bad.push(`${f} 是孤儿页 —— 只在 sitemap 里，站内没有任何链接指过去`);
+      }
+      if (!bad.length) console.log(`  ✓ sitemap ${listed.size} 页：与文件一一对应，且无孤儿`);
+    }
+
+    for (const f of fs.readdirSync(site.dir).filter((x) => x.endsWith('.html'))) {
+      const html = fs.readFileSync(path.join(site.dir, f), 'utf8');
+      for (const b of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+        let d; try { d = JSON.parse(b[1]); } catch (_) { continue; }   // 解析失败由 ⑥ 报
+        if (d['@type'] !== 'FAQPage') continue;
+        // 比对前必须**剥标签并归一化空白**。可见正文里一句话中间可能有个 <a>
+        // （faq.html 的开源那一问就有），逐字比对会把它误报成漏写。
+        // 同样重要的是先剥掉 <script>：JSON-LD 自己就在文件里，拿整份 HTML 去
+        // includes() 是恒真的 —— 写这条判据时我先用那个形式自查了一遍，三页全绿，
+        // 而其中一页真的对不上。判据能骗人的方向，这次是「永远通过」。
+        const norm = (t) => String(t).replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+          .replace(/\s+/g, ' ').trim();
+        const visible = norm(html.replace(/<script[\s\S]*?<\/script>/g, ''));
+        const miss = (d.mainEntity || []).filter((q) => !visible.includes(norm(q.name))
+          || !visible.includes(norm(q.acceptedAnswer.text)));
+        if (miss.length) {
+          bad.push(`${f} 的 FAQPage 有 ${miss.length} 条问答不在可见正文里（如「${miss[0].name.slice(0, 30)}…」）`
+            + ' —— 与可见内容不一致的结构化数据会被丢弃');
+        } else {
+          console.log(`  ✓ ${f} FAQPage ${d.mainEntity.length} 问，逐条与可见正文一致`);
+        }
+      }
+    }
+
     // ⑤ 首页的版本号必须替换成真数字
     //
     // 在此之前 `v1.6.7` 被写死在 8 份字典 + index.html 的兜底文本里（18 处）。漏改的
