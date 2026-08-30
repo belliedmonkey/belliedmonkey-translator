@@ -25,7 +25,10 @@
 //  host      精确主机名，与 model-params 的 hosts 同一套写法。
 //  model     实际发出去的那个 model 值。
 //  date      YYYY-MM-DD。没有日期的「能用」不算验证（verification-spec §1.0）。
-//  verdict   'adopted'     —— 找到了更好的参数，已写进 model-params
+//  verdict   'reachable'   —— 打通了、量了耗时与成本，但**参数层面一次都没扫过**。
+//                             scripts/capability-probe.js 的产物就是这一类。它不是
+//                             rejected：那个说的是「测过参数之后决定不写」。
+//            'adopted'     —— 找到了更好的参数，已写进 model-params
 //            'rejected'    —— 打通了，但没有值得写的参数（没收益 / 效果不稳定 / 本来就
 //                             不思考）。**这一类必须记**，否则下一个人会照文档补上它。
 //            'unreachable' —— 打不到（没 key、余额不足、模型 id 拿不到）。这是一张
@@ -439,6 +442,58 @@ module.exports = [
   },
 
   // ── 测过之后决定不写 ─────────────────────────────────────────────────
+  // ── 以下为可达性实测（scripts/capability-probe.js + verify-speech-live.js）──
+  // 参数层面都没扫过；要 adopted 走 /perf-tune。记在这里是因为
+  // verification-spec §1.0 要求「出货的每个引擎至少被真正打到过一次」，而这些
+  // 正是那一次。
+  {
+    host: 'openrouter.ai', model: 'google/gemini-3.1-flash-lite', date: '2026-08-30',
+    baseline: { ms: 573, thinkTokens: null, outChars: 8, finish: 'stop' },
+    verdict: 'reachable',
+    why: '能力探针：573ms、单次 $0.0000065、16 出参 tok，目录里最便宜的可用文本模型之一。**参数层面没扫过**。注意它不在 openrouter-thinking 行的前缀里，所以不发降档参数。',
+  },
+  {
+    host: 'openrouter.ai', model: 'openai/gpt-4o-mini-transcribe', date: '2026-08-30',
+    baseline: { ms: 600, thinkTokens: null, outChars: 15, finish: 'stop' },
+    verdict: 'reachable',
+    why: '转写可达性：600–730ms、单次 $0.000035。用系统语音念的「The quick brown fox…」逐字转对；wav 与 m4a（iOS Safari 实际产出的容器）都通过。**参数层面没扫过** —— 转写这条路目前也没有可调参数。',
+  },
+  {
+    host: 'openrouter.ai', model: 'openai/whisper-large-v3', date: '2026-08-30',
+    baseline: { ms: 1774, thinkTokens: null, outChars: 15, finish: 'stop' },
+    verdict: 'reachable',
+    why: '转写可达性：1774ms、单次 $0.0000064（比 gpt-4o-mini-transcribe 便宜 5 倍）。**但同一段音频它把 The 听成了 a**（返回 " a quick brown."）。**参数层面没扫过**。',
+  },
+  {
+    host: 'openrouter.ai', model: 'deepgram/aura-2', date: '2026-08-30',
+    baseline: { ms: 1765, thinkTokens: null, outChars: 16128, finish: 'stop' },
+    verdict: 'reachable',
+    why: '朗读可达性（真 Chrome 扩展页）：1765ms、16128 字节、浏览器解码出 2.688 秒音频。90 个音色带语种后缀，无中文。⚠️ 不发 response_format 时它声明 Content-Type: audio/pcm 而 body 是 RIFF —— tts.js 的 sniffAudioType() 按魔数纠正。**参数层面没扫过**。',
+  },
+  {
+    host: 'openrouter.ai', model: 'openai/gpt-audio-mini', date: '2026-08-30',
+    baseline: { ms: 1411, thinkTokens: null, outChars: 290444, finish: 'stop' },
+    verdict: 'reachable',
+    why: '朗读可达性（真 Chrome 扩展页）：1411ms、290444 字节 WAV、浏览器解码 6.05 秒。走 speech-audio-chat 形状（stream:true + pcm16，自己补 WAV 头）。**参数层面没扫过**。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'qwen3.8-max', date: '2026-08-30',
+    baseline: { ms: 1978, thinkTokens: null, outChars: 4, finish: 'stop' },
+    verdict: 'reachable',
+    why: '能力探针（短句）：1.9–2.0 秒 / 131 出参 tok。长正文的**参数层面没扫过** —— 但它落在 dashscope 通行行里，会收到 enable_thinking:false（那一行由 glm-4.6 等四个模型的实测支撑）。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'qwen-audio-3.0-asr-flash', date: '2026-08-30',
+    baseline: { ms: 351, thinkTokens: null, outChars: 17, finish: 'stop' },
+    verdict: 'reachable',
+    why: '转写可达性（真 Chrome 扩展页）：351–488ms，wav 与 m4a 都逐字转对。走 transcribe-dashscope 形状（JSON + base64 data URI）。**参数层面没扫过**。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'qwen-tts', date: '2026-08-30',
+    baseline: { ms: 2004, thinkTokens: null, outChars: 148844, finish: 'stop' },
+    verdict: 'reachable',
+    why: '朗读可达性（真 Chrome 扩展页）：2004ms、148844 字节 WAV、浏览器解码 3.1 秒。两步链路（先要音频 URL 再取字节，回包是 http:// 必须升 https）。四个音色由服务端自己列出。**参数层面没扫过**。',
+  },
   {
     host: 'dashscope.aliyuncs.com', model: 'glm-4.6', date: '2026-08-30',
     baseline: { ms: 68902, thinkTokens: 3623, outChars: 280, finish: 'stop' },

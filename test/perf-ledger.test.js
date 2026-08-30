@@ -30,7 +30,11 @@ const PROVIDERS = require('../build/providers.config.js');
 const TTS = require('../build/tts.config.js');
 const STT = require('../build/stt.config.js');
 
-const VERDICTS = ['adopted', 'rejected', 'unreachable', 'inferred'];
+// 五种结局。'reachable' 是 2026-08-30 加的第五种，因为前四种都装不下
+// scripts/capability-probe.js 产出的那一类记录：**打通了、量了耗时与成本，但参数层面
+// 一次都没扫过**。硬把它记成 'rejected' 会毁掉台账里最要紧的那条区分 ——
+// 「测过之后决定不写」与「没测」是两回事，而 rejected 说的是前者。
+const VERDICTS = ['adopted', 'rejected', 'unreachable', 'inferred', 'reachable'];
 const hostOf = (u) => {
   const m = /^https?:\/\/([^/?#]+)/i.exec(String(u || ''));
   return m ? m[1].split('@').pop().split(':')[0].toLowerCase() : '';
@@ -90,6 +94,21 @@ describe('性能台账：形状', () => {
       const id = `${r.host}·${r.model}`;
       ok(r.baseline && typeof r.baseline === 'object', `${id} rejected 却没有 baseline`);
       ok(String(r.why || '').trim().length > 8, `${id} 缺 why`);
+    }
+  });
+
+  test('reachable 必须有基线，且 why 里要说明参数没扫过', () => {
+    // 它是「可达性实测」：证明这条路通、多快、多少钱。价值在于它让
+    // verification-spec §1.0 的覆盖要求可以被便宜地满足（探针横扫一遍即可），
+    // 而不必对每个模型都跑一次昂贵的参数纵扫。
+    // 但它**不是** adopted 的替代品：读的人必须一眼看出「参数还没调过」。
+    for (const r of LEDGER.filter((x) => x.verdict === 'reachable')) {
+      const id = `${r.host}·${r.model}`;
+      ok(r.baseline && typeof r.baseline === 'object', `${id} reachable 却没有 baseline`);
+      ok(String(r.why || '').trim().length > 8, `${id} 缺 why`);
+      ok(/没(有)?扫|未扫|没测|参数层面/.test(r.why),
+        `${id} 是 reachable，why 里必须写明参数层面没扫过 —— 否则它会被当成 rejected 读`);
+      ok(!r.adopted, `${id} 是 reachable 却写了 adopted —— 那应该是 adopted`);
     }
   });
 
