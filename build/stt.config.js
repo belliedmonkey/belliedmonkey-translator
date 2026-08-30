@@ -45,6 +45,26 @@ module.exports = [
     hintKey: 'stt_hint',
   },
   {
+    // 通义千问的语音转写。**不是** OpenAI 那条路：dashscope 的
+    // /compatible-mode/v1/audio/transcriptions 实测 404（带 key 也一样），
+    // 语音能力挂在自家的多模态生成端点上，请求体是 input.messages + parameters。
+    //
+    // 厂商示例里 `input_audio.data` 写的是 `{YOUR_AUDIO_URL}`，照着读会得出
+    // 「录音必须先传到公网某处」的结论 —— 那会让这条路在浏览器扩展里根本不可行。
+    // 实测 2026-08-30（真 key）：它同样收 `data:audio/wav;base64,…`，返回 200 与
+    // 正确转写。这一条只能靠打一次得到，读文档得到的是相反的答案。
+    //
+    // 只登记 china：手上的 key 是境内的，dashscope-intl 那侧没有验过。
+    // 用一个没验过的地址去覆盖另一门语言的用户，正是台账要防的事。
+    id: 'qwen_asr', type: 'transcribe-dashscope', flavors: ['china'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+    placeholder: null,
+    defaultModel: 'qwen-audio-3.0-asr-flash',
+    labelKey: null, label: '通义千问 · 语音转写',
+    hintKey: 'stt_hint',
+  },
+  {
     // GLOBAL ONLY: label and defaultEndpoint carry a brand the China bundle may not
     // ship; `flavors` keeps it out and the compliance gate enforces that.
     id: 'openai_transcribe', type: 'transcribe-compat', flavors: ['global'],

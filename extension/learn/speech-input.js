@@ -104,8 +104,8 @@ var LearnSpeech = (() => {
   // response settles. `language` is sent only when the card's language is known —
   // 'und' (every Safari capture) must not be asserted as a language.
   async function transcribe(blob, ext, lang) {
-    const resp = await postAudio(blob, ext, lang);
-    return readTranscript(resp);
+    const { resp, extract } = await postAudio(blob, ext, lang);
+    return readTranscript(resp, extract);
   }
 
   // 传输本身。transcribe 与 test 共用它 —— 「测试」若自己另写一遍请求，
@@ -124,12 +124,19 @@ var LearnSpeech = (() => {
     // （model / language 缺了就不发），改过来是为了让四条传输只有一个地方知道
     // 「不要手写 Content-Type，boundary 只有浏览器自己知道」。
     const l = String(lang || '').split('-')[0].toLowerCase();
-    const req = RequestShape.build(WireFormat.formatFor(url, eng && eng.type), {
+    const fmt = WireFormat.formatFor(url, eng && eng.type);
+    // 有的转写形状收的是 JSON 里的 data URI，不是 multipart。要不要编由 RequestShape
+    // 回答 —— 这里只问「这条路要不要」，不认识具体有哪几种形状。
+    // 只在需要时才编：base64 会把体积撑大三分之一，而多数路径根本用不上。
+    const audioDataUri = RequestShape.wantsAudioDataUri(fmt) ? await blobToDataUri(blob) : '';
+    const req = RequestShape.build(fmt, {
       url, apiKey: cfg.apiKey,
       model: cfg.model || eng.defaultModel,
       file: blob, filename: 'speech.' + (ext || 'webm'),
+      audioDataUri, audioFormat: ext || 'wav',
       language: (l && l !== 'und') ? l : '',
     });
+    if (req.error) { const e = new Error(req.error); e.code = req.error; throw e; }
     const fd = req.body;
     const headers = req.headers;
     // A cross-origin POST to a SELF-HOSTED endpoint is the normal case here (the
@@ -158,16 +165,29 @@ var LearnSpeech = (() => {
       e.code = 'http'; e.status = resp.status; e.url = url;
       throw e;
     }
-    return resp;
+    return { resp, extract: req.extract };
   }
 
-  async function readTranscript(resp) {
+  // Blob → `data:<mime>;base64,…`。录音本身的生命周期不变：它仍然只活在 stop()
+  // 与响应落定之间，编出来的串同理。
+  function blobToDataUri(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ''));
+      r.onerror = () => reject(new Error('cannot read the recording'));
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function readTranscript(resp, extract) {
     // Whisper-compatible servers answer {text} as JSON; some answer text/plain.
     let text = '';
     const raw = await resp.text();
     try {
       const d = JSON.parse(raw);
-      text = (d && (d.text != null ? d.text : d.transcript)) || '';
+      // 形状自带的取值函数优先 —— 它知道自己的回包长什么样。没有就按
+      // Whisper 兼容那两种键找。
+      text = extract ? extract(d) : ((d && (d.text != null ? d.text : d.transcript)) || '');
     } catch (_) {
       text = raw;
     }
@@ -187,9 +207,9 @@ var LearnSpeech = (() => {
   // 会被误读成 key 有问题。
   async function test() {
     const t0 = Date.now();
-    const resp = await postAudio(toneWav(600), 'wav', '');
+    const { resp, extract } = await postAudio(toneWav(600), 'wav', '');
     let sample = '';
-    try { sample = await readTranscript(resp); } catch (e) { sample = ''; }   // 空转写照样算通
+    try { sample = await readTranscript(resp, extract); } catch (e) { sample = ''; }   // 空转写照样算通
     return { ok: true, ms: Date.now() - t0, sample: String(sample).slice(0, 40) };
   }
 

@@ -429,6 +429,35 @@ var RequestShape = (() => {
       };
     }
 
+    if (fmt === 'transcribe-dashscope') {
+      // DashScope 的转写形状：JSON（不是 multipart），音频以 data URI 内联。
+      //
+      // 实测 2026-08-30（真 key）：`input_audio.data` 收 `data:audio/wav;base64,…`，
+      // 返回 200 与正确的转写结果。厂商文档的示例里写的是 `{YOUR_AUDIO_URL}`，
+      // 照文档读会得出「必须先把录音传到公网某处」的结论 —— 那会让这条路在浏览器
+      // 扩展里根本不可行。打一次就知道不是。
+      if (!o.audioDataUri) {
+        return { headers: {}, body: null, error: 'no_audio', caps };
+      }
+      return {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + (o.apiKey || ''),
+        },
+        body: JSON.stringify({
+          model: o.model,
+          input: { messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: o.audioDataUri } }] }] },
+          parameters: { format: o.audioFormat || 'wav', sample_rate: '16000' },
+        }),
+        isForm: false,
+        // 回包把结果放在 output 下，而且**同时**有 output.text 与 output.output.text
+        // （实测原文如此）。取外层那个；两者内容相同。
+        extract: (d) => (d && d.output && (d.output.text != null ? d.output.text
+          : (d.output.output && d.output.output.text))) || '',
+        caps,
+      };
+    }
+
     // 默认 chat-compat。它面对整个兼容动物园，所以是三态规则唯一真正吃劲的地方。
     const body = {
       model: o.model,
@@ -453,8 +482,12 @@ var RequestShape = (() => {
     return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
   }
 
+  // 哪些形状要把音频编成 data URI 再交过来。**形状知识留在这里**：调用方只问
+  // 「这条路要不要」，不需要知道有几种转写形状、各自长什么样。
+  function wantsAudioDataUri(fmt) { return fmt === 'transcribe-dashscope'; }
+
   return {
-    paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent,
+    paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent, wantsAudioDataUri,
     // 读扩展存储的唯一安全入口（带截止时间）。translation-api 与 content-main
     // 都必须走它 —— 三份各写一遍的话，下一次只会修好其中一份。
     storageGet, STORAGE_TIMEOUT_MS,

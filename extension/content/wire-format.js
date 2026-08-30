@@ -35,6 +35,7 @@ var WireFormat = (() => {
     'responses-compat': 'chat',
     'speech-compat': 'speech',
     'transcribe-compat': 'transcribe',
+    'transcribe-dashscope': 'transcribe',
   };
 
   // 后缀取**最后两段、不含版本段**：`/chat/completions` 而不是
@@ -47,7 +48,16 @@ var WireFormat = (() => {
       ['/messages', 'messages-compat'],
     ],
     speech: [['/audio/speech', 'speech-compat']],
-    transcribe: [['/audio/transcriptions', 'transcribe-compat']],
+    transcribe: [
+      ['/audio/transcriptions', 'transcribe-compat'],
+      // DashScope 的转写不走上面那条通用路：它没有 /audio/transcriptions（实测 404，
+      // 带 key 也一样），语音能力挂在自家的多模态生成端点上。后缀仍取最后两段，
+      // 规则不变。
+      //
+      // 这条注释原本点了一个品牌名，被中国版的合规门禁当场拦下 —— 源码注释是要进
+      // 包体的。同类的疤已经有过一次（CI 里那次），所以写在这里。
+      ['/multimodal-generation/generation', 'transcribe-dashscope'],
+    ],
   };
   // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。
   for (const fam of Object.keys(RULES)) RULES[fam].sort((a, b) => b[0].length - a[0].length);
