@@ -187,6 +187,17 @@ module.exports = [
       + '模型变慢变贵。只有下一条按模型前缀限定的推理行有不重叠区间为证。',
   },
   {
+    // 比 openrouter 通行行更具体（前缀 'google/gemini' 长 13，通行行特异度 0），
+    // 所以一定赢，与文件顺序无关。**不能**并进 openrouter-reasoning：那行的
+    // temperature:false 是 OpenAI 推理系列拒收 temperature 的实测结论，对这里不成立，
+    // 并过去等于凭空给 gemini 关掉一个它接受的参数。
+    id: 'openrouter-thinking', flavors: ['global'],
+    hosts: ['openrouter.ai'], models: ['google/gemini', 'deepseek/deepseek-r1'],
+    temperature: true, budget: true, systemRole: 'system',
+    reasoning: { reasoning: { effort: 'low' } },
+    note: 'google/gemini 实测 2026-08-30（真 key）：基线每段思考 1369 tok / 13.3 秒；嵌套 reasoning:{effort:low} 后思考归零、2.9–3.3 秒，译文长度不变。thinking:{type:disabled} 返回 200 但**被完全无视**（仍思考 1093 tok）。 deepseek/deepseek-r1 是 2026-08-20 就测过并采纳的（思考 466→237 tok），但当时**没人给它加前缀行** —— 它一直落到 openrouter 通行行、不发任何降档参数，那次测量整整十天没有到达用户。是 2026-08-30 把台账锁改成模型级（按运行时的最长前缀匹配去解，而不是问「这个值在表里出现过吗」）之后才暴露的。 两个前缀共用这一行而不并进 openrouter-reasoning：那行的 temperature:false 是 OpenAI 推理系列拒收 temperature 的结论，对这两个不成立。',
+  },
+  {
     // 但归一化不是万能的：走它转推理系模型时，上游的拒绝会一字不差地透传出来。
     id: 'openrouter-reasoning', flavors: ['global'],
     hosts: ['openrouter.ai'],

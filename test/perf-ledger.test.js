@@ -180,13 +180,39 @@ describe('性能台账：与出货配置锁在一起', () => {
     }
   });
 
-  test('台账里 adopted 的参数，必须真的写进了 model-params —— 否则那次测量白做了', () => {
+  // 按 host 找是不够的 —— 这一条 2026-08-30 被抓到是**空过**的：
+  // openrouter.ai 上新测的 google/gemini-3.7-flash 采纳了 reasoning:{effort:low}，
+  // 而同 host 的 openrouter-reasoning 行恰好带着同一个值，于是断言满足了 ——
+  // 尽管那一行的前缀只有 openai/gpt-5|o1|o3|o4，**根本覆盖不到 gemini**。
+  // 也就是说：把新建的 openrouter-gemini 行整个删掉，这道门依然全绿。
+  //
+  // 判据必须用运行时那把尺子 —— content/request-shape.js 的最长前缀匹配，
+  // host 通行行特异度为 0。问的不再是「这个值在表里出现过吗」，
+  // 而是「**这个模型**真的会收到它吗」。
+  function resolveRow(host, model) {
+    const m = String(model || '').trim().toLowerCase();
+    let best = null;
+    let bestLen = -1;
+    for (const row of PARAMS) {
+      if (!row.hosts || !row.hosts.includes(host)) continue;
+      const prefixes = row.models || [];
+      if (!prefixes.length) { if (bestLen < 0) { best = row; bestLen = 0; } continue; }
+      if (!m) continue;
+      for (const pre of prefixes) {
+        if (m.indexOf(pre) === 0 && pre.length > bestLen) { best = row; bestLen = pre.length; }
+      }
+    }
+    return best;
+  }
+
+  test('台账里 adopted 的参数，必须真的会发给**那个模型** —— 否则那次测量白做了', () => {
     for (const r of LEDGER.filter((x) => x.verdict === 'adopted')) {
-      const rows = PARAMS.filter((p) => p.hosts.includes(r.host));
-      ok(rows.length > 0, `台账 ${r.host} 采纳了参数，但 model-params 里没有这个 host`);
-      const used = rows.some((p) => JSON.stringify(p.reasoning) === JSON.stringify(r.adopted));
-      ok(used,
-        `台账 ${r.host}·${r.model} 采纳了 ${JSON.stringify(r.adopted)}，但没有任何一行在发它`);
+      const row = resolveRow(r.host, r.model);
+      ok(row, `台账 ${r.host}·${r.model} 采纳了参数，但 model-params 里没有能命中它的行`);
+      eq(JSON.stringify(row.reasoning), JSON.stringify(r.adopted),
+        `台账 ${r.host}·${r.model} 采纳了 ${JSON.stringify(r.adopted)}，`
+        + `但按运行时的最长前缀匹配，它命中的是 model-params/${row.id}，`
+        + `发出去的是 ${JSON.stringify(row.reasoning)} —— 那次测量没有落到这个模型上`);
     }
   });
 

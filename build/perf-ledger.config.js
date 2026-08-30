@@ -440,6 +440,31 @@ module.exports = [
 
   // ── 测过之后决定不写 ─────────────────────────────────────────────────
   {
+    host: 'openrouter.ai', model: 'google/gemini-3.7-flash', date: '2026-08-30',
+    baseline: { ms: 13329, thinkTokens: 1369, outChars: 299, finish: 'stop' },
+    tried: [
+      { params: { reasoning: { effort: 'low' } }, ms: 3338, thinkTokens: 0, outChars: 301 },
+      { params: { reasoning_effort: 'minimal' }, ms: 3152, thinkTokens: 0, outChars: 299,
+        note: '顶层拼法在这里同样把思考归零，两者差异在噪声内。选嵌套那一种是为了与本 host 既有结论一致（见 openrouter-reasoning 的 note）。' },
+      { params: { thinking: { type: 'disabled' } }, ms: 8428, thinkTokens: 1093, outChars: 312,
+        note: 'HTTP 200 且**完全无视** —— 思考仍有 1093 tok。只看状态码会以为生效了。' },
+    ],
+    verdict: 'adopted', adopted: { reasoning: { effort: 'low' } },
+    why: '为「官网教程推荐哪个模型」而测，真 key。基线每段思考 1369 tok / 13.3 秒；降档后思考归零、2.9–3.3 秒，译文长度不变 —— 同一段快 4 倍。要紧的是它**不在** openrouter-reasoning 那行的前缀里（那行只覆盖 openai/gpt-5|o1|o3|o4），所以在补上 openrouter-gemini 行之前，推荐它等于让用户拿 13 秒那一档。',
+  },
+  {
+    host: 'openrouter.ai', model: 'openai/gpt-oss-120b', date: '2026-08-30',
+    baseline: { ms: 2294, thinkTokens: 37, outChars: 275, finish: 'stop' },
+    tried: [
+      { params: { reasoning_effort: 'minimal' }, ms: 8959, thinkTokens: 731, outChars: 266,
+        note: '**反向**：把思考从 37 推到 731 tok，慢 4 倍。' },
+      { params: { reasoning_effort: 'low' }, ms: 1541, thinkTokens: 7, outChars: 261 },
+      { params: { reasoning: { effort: 'low' } }, ms: 4464, thinkTokens: 11, outChars: 262 },
+    ],
+    verdict: 'rejected',
+    why: '同一轮的翻译候选。它**基线本来就几乎不思考**（19–37 tok），降档没有可拿的收益，而 minimal 反而让它思考得更多。测过、决定不写 —— 记下来是为了下一个人不会照文档把它补进参数表。同轮另一个发现：deepseek/deepseek-v4-flash-latest 被网关判为「is not a valid model ID」，那是模型清单里带 ~ 前缀的条目，不能当模型名用。',
+  },
+  {
     host: 'api.x.ai', model: 'grok-4-fast', date: '2026-08-20',
     baseline: { ms: 10176, thinkTokens: 858, outChars: 271, finish: 'stop' },
     tried: [{ params: { reasoning_effort: 'low' }, ms: 8255, thinkTokens: 602, outChars: 283 }],
