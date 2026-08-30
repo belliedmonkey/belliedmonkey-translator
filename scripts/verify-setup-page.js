@@ -133,6 +133,27 @@ async function checkSite(site) {
     if (!s.hasSteps) bad.push('页面上找不到 #mt-steps —— 这条判据会空过，等于没有');
     else if (s.steps) bad.push('检测到扩展后，Safari 三步没有收起 —— 在教一件已经做完/不适用的事');
 
+    // ⑤ 首页的版本号必须替换成真数字
+    //
+    // 在此之前 `v1.6.7` 被写死在 8 份字典 + index.html 的兜底文本里（18 处）。漏改的
+    // 表现不是报错，是**全站 8 种语言同时说谎**：下载按钮写着旧版本号，而它链接的
+    // releases/latest 指向新版。现在文案里是 `v{v}`，由 i18n.js 从 /VERSION 替换。
+    //
+    // 两个方向都要验：占位符不许漏在页面上，版本号也必须真的出现。
+    if (fs.existsSync(path.join(site.dir, 'VERSION'))) {
+      const want = fs.readFileSync(path.join(site.dir, 'VERSION'), 'utf8').trim();
+      await cdp.send('Page.navigate', { url: 'http://127.0.0.1:' + srv.address().port + '/index.html' }, sessionId);
+      await new Promise((r) => setTimeout(r, 3000));
+      const v = await ev(`JSON.stringify({
+        raw: /\\{v\\}/.test(document.body.innerText),
+        has: document.body.innerText.indexOf(${JSON.stringify('v' + '')} + ${JSON.stringify(want)}) >= 0,
+        dl: (document.querySelector('[data-i18n="home.installDl"]')||{}).innerText || ''
+      })`);
+      if (v.raw) bad.push('首页上漏出了未替换的 {v} 占位符');
+      if (!v.has) bad.push(`首页没有出现 VERSION 里的版本号 v${want} —— 下载按钮: ${JSON.stringify(v.dl)}`);
+      if (!v.raw && v.has) console.log(`  ✓ 首页版本号 v${want}（来自 /VERSION，非写死）`);
+    }
+
     // ④ 断网：i18n 拿不到时，页面**仍然必须有字**
     //
     // 2026-08-29 真机第一次打开这一页时，看到的是「排版完整、一个字都没有」。
