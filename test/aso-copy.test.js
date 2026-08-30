@@ -42,10 +42,62 @@ const ASO = parseAso(MD);
 const GROUPS = Object.keys(ASO);
 
 describe('ASO 文案 — store-assets/aso.md', () => {
-  test('三组 locale 齐全（商店上真实存在的全集）', () => {
-    for (const g of ['国际版·en-US', '国际版·zh-Hans', '中国版·zh-Hans']) {
+  // 2026-08-30 从 3 组扩到 12 组：国际版补齐产品自己的 11 种语言（此前 ja/ko/de/fr/es/
+  // ru/pt/ar/zh-Hant 的用户在商店页读英文，装完却是母语 App —— 决定要不要装的那一页
+  // 是断的）。中国版只有 zh-Hans，那是它的储区决定的，不是漏了。
+  const EXPECTED = [
+    '国际版·en-US', '国际版·zh-Hans', '国际版·zh-Hant', '国际版·ja', '国际版·ko',
+    '国际版·de-DE', '国际版·fr-FR', '国际版·es-ES', '国际版·ru', '国际版·pt-BR', '国际版·ar-SA',
+    '中国版·zh-Hans',
+  ];
+
+  test('locale 齐全（商店上真实存在的全集）', () => {
+    for (const g of EXPECTED) {
       ok(GROUPS.includes(g), `缺少「${g}」—— 商店上有这个 locale，文案文件里没有`);
     }
+    const extra = GROUPS.filter((g) => !EXPECTED.includes(g));
+    eq(extra.length, 0, `文件里多出商店上没有的组：${extra.join(', ')}`);
+  });
+
+  test('每组五个字段一个都不缺', () => {
+    // 少写一个字段不会报错，只会让 asc.js 静默跳过它 —— 商店上那一格就永远停在旧值
+    // 或空着。中国版的 description 就是这样在单一来源之外活了很久。
+    for (const g of EXPECTED) {
+      for (const f of ['name', 'subtitle', 'keywords', 'description', 'promotionalText']) {
+        ok(ASO[g] && ASO[g][f], `${g} 缺 ${f} —— asc.js 会静默跳过，商店上那一格不受任何门禁管`);
+      }
+    }
+  });
+
+  // 每个语种必须真的用它自己的文字写。这是「zh-Hans 整份是英文」那个 bug 的推广形式：
+  // 不报错、不被拒，只是安静地把一个市场的搜索量清零。
+  const SCRIPTS = {
+    ja: /[぀-ヿ]/,          // 假名 —— 汉字不够，中文也有
+    ko: /[가-힯]/,          // 谚文
+    ru: /[Ѐ-ӿ]/,          // 西里尔
+    'ar-SA': /[؀-ۿ]/,      // 阿拉伯文
+    'zh-Hans': /[一-鿿]/,
+    'zh-Hant': /[一-鿿]/,
+  };
+
+  test('每个语种用它自己的文字写，且描述不是 en-US 的副本', () => {
+    for (const g of EXPECTED) {
+      const loc = g.split('·')[1];
+      const re = SCRIPTS[loc];
+      if (re) {
+        for (const f of ['subtitle', 'description', 'promotionalText']) {
+          ok(re.test(ASO[g][f]), `${g} · ${f} 里没有该语系的字符 —— 多半是粘成了英文`);
+        }
+      }
+      if (g !== '国际版·en-US') {
+        ok(ASO[g].description !== ASO['国际版·en-US'].description, `${g} 的描述与 en-US 逐字相同 —— 漏译`);
+      }
+    }
+  });
+
+  test('繁简不是同一份', () => {
+    ok(ASO['国际版·zh-Hant'].description !== ASO['国际版·zh-Hans'].description, 'zh-Hant 与 zh-Hans 描述逐字相同');
+    ok(/[複習網頁擴]/.test(ASO['国际版·zh-Hant'].description), 'zh-Hant 里没有繁体字形 —— 疑似简繁未转');
   });
 
   test('每个字段都在 Apple 的上限内', () => {

@@ -323,6 +323,48 @@ async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly)
       if (!same) ok = false;
     }
   }
+
+  // ── 反向的一遍：文件里有、商店里还没有的 locale，建出来 ──────────────────
+  //
+  // 上面那一遍**故意**以商店的 locale 列表为准（见那里的注释）。但只有那一遍的话，
+  // 「文件里新写了 ja，商店上还没有 ja」就是静默跳过 —— 与它要防的缺陷同一形状，
+  // 只是方向相反。所以两个方向各跑一遍，谁都不许安静。
+  //
+  // promotionalText 那一档不建 locale：它允许动已上架的版本，而在一个已上架版本上
+  // 凭空加一门语言不是「改促销语」该做的事。
+  if (!promoOnly) {
+    const have = new Set(locs.data.map((L) => L.attributes.locale));
+    const missing = Object.keys(aso)
+      .filter((k) => k.startsWith(flavor + '·'))
+      .map((k) => k.slice(flavor.length + 1))
+      .filter((loc) => !have.has(loc));
+    for (const locale of missing) {
+      const want = aso[`${flavor}·${locale}`];
+      const label = `${app.name} [${platform}] ${locale}`;
+      const attrs = { locale };
+      for (const f of ASO_VERSION_FIELDS) if (want[f] !== undefined) attrs[f] = want[f];
+      if (attrs.description === undefined) {
+        console.log(`  ${label}: ✗ 新 locale 缺 description —— Apple 不接受空描述`);
+        ok = false;
+        continue;
+      }
+      if (!apply) { console.log(`  ${label}: 将**新建**（${Object.keys(attrs).filter((k) => k !== 'locale').join(', ')}）`); continue; }
+      const made = await api('POST', '/appStoreVersionLocalizations', { data: {
+        type: 'appStoreVersionLocalizations',
+        attributes: attrs,
+        relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: v.id } } },
+      } });
+      // 回读。POST 返回 201 带 body，但那是**请求的回声**；再 GET 一次才是商店的状态。
+      const back = await api('GET', `/appStoreVersionLocalizations/${made.data.id}`
+        + '?fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
+      let good = true;
+      for (const f of Object.keys(attrs)) {
+        if (String(back.data.attributes[f] || '').trim() !== String(attrs[f]).trim()) good = false;
+      }
+      console.log(`  ${label}: 已新建 ${good ? '✓ 回读一致' : '✗ 回读不符！'}`);
+      if (!good) ok = false;
+    }
+  }
   return ok;
 }
 
@@ -370,10 +412,71 @@ async function cmdAppInfo(bundleId, file, apply) {
       if (!same) ok = false;
     }
   }
+
+  // 反向的一遍，同 cmdAso 里那一段的理由。
+  const have = new Set(locs.data.map((L) => L.attributes.locale));
+  const missing = Object.keys(aso)
+    .filter((k) => k.startsWith(flavor + '·'))
+    .map((k) => k.slice(flavor.length + 1))
+    .filter((loc) => !have.has(loc));
+  for (const locale of missing) {
+    const want = aso[`${flavor}·${locale}`];
+    const label = `${app.name} ${locale}`;
+    if (!want.name) { console.log(`  ${label}: ✗ 新 locale 缺 name`); ok = false; continue; }
+    const attrs = { locale, name: want.name };
+    if (want.subtitle !== undefined) attrs.subtitle = want.subtitle;
+    if (!apply) { console.log(`  ${label}: 将**新建** name「${attrs.name}」subtitle「${attrs.subtitle || ''}」`); continue; }
+    const made = await api('POST', '/appInfoLocalizations', { data: {
+      type: 'appInfoLocalizations',
+      attributes: attrs,
+      relationships: { appInfo: { data: { type: 'appInfos', id: inf.id } } },
+    } });
+    const back = await api('GET', `/appInfoLocalizations/${made.data.id}`
+      + '?fields[appInfoLocalizations]=locale,name,subtitle');
+    const good = ['name', 'subtitle'].every((f) => attrs[f] === undefined
+      || String(back.data.attributes[f] || '').trim() === String(attrs[f]).trim());
+    console.log(`  ${label}: 已新建 ${good ? '✓ 回读一致' : '✗ 回读不符！'}`);
+    if (!good) ok = false;
+  }
   return ok;
 }
 
 // 只读全景，兼作改动前后的快照。三类标红都是「不报错但有损失」的形状。
+// 把商店上现有的文案按 aso.md 的格式打出来 —— 用来把「商店上有、文件里没有」的字段
+// 收编进单一来源。发现它的场景：中国版的 description 一直在商店上活着，而 aso.md 里
+// 压根没有这个字段，于是那份文案不受任何门禁管，改了也没人知道。
+async function cmdDump(bundleId, platform) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 ${bundleId}`);
+  const flavor = bundleId.endsWith('.cn') ? '中国版' : '国际版';
+  const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10&fields[appInfos]=appStoreState`);
+  const out = [];
+  for (const inf of (infos.data || []).filter((x) => x.attributes.appStoreState !== 'READY_FOR_SALE')) {
+    const locs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+      + '&fields[appInfoLocalizations]=locale,name,subtitle');
+    for (const L of locs.data) {
+      for (const f of ['name', 'subtitle']) {
+        if (L.attributes[f]) out.push(`## ${flavor} · ${L.attributes.locale} · ${f}\n\n\`\`\`\n${L.attributes[f]}\n\`\`\`\n`);
+      }
+    }
+  }
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=8`
+    + '&fields[appStoreVersions]=versionString,platform,appStoreState');
+  const v = (vs.data || []).find((x) => x.attributes.platform === platform
+    && x.attributes.appStoreState === 'PREPARE_FOR_SUBMISSION');
+  if (v) {
+    const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
+      + '&fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
+    for (const L of locs.data) {
+      for (const f of ASO_VERSION_FIELDS) {
+        if (L.attributes[f]) out.push(`## ${flavor} · ${L.attributes.locale} · ${f}\n\n\`\`\`\n${L.attributes[f]}\n\`\`\`\n`);
+      }
+    }
+  }
+  console.log(out.join('\n'));
+  return true;
+}
+
 async function cmdAsoAudit() {
   const LIM = { name: 30, subtitle: 30, keywords: 100, promotionalText: 170, description: 4000 };
   let bad = 0;
@@ -551,6 +654,15 @@ async function cmdDevices(udid, name) {
     const ok = await cmdAppInfo(bundleId, file, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'dump') {
+    const [bundleId, platform] = rest;
+    if (!bundleId || !platform) {
+      console.log('用法: node scripts/asc.js dump <bundleId> <IOS|MAC_OS>   # 按 aso.md 格式打印商店现有文案');
+      process.exit(1);
+    }
+    const ok = await cmdDump(bundleId, platform);
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'builds') return cmdBuilds();
   if (cmd === 'versions') return cmdVersions();
   if (cmd === 'reviews') {
@@ -589,6 +701,7 @@ async function cmdDevices(udid, name) {
     + ' | aso --audit'
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'
+    + ' | dump <bundleId> <平台>'
     + ' | devices [UDID [名称]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
