@@ -159,6 +159,58 @@ async function cancelReview(version, bundleIds, apply) {
       }
       if (noNotes.length) throw new Error(`${label}: 这些本地化没有「本次更新内容」：${noNotes.join(', ')}`);
 
+      // ── 2026-08-30 追加的三道：商店文案 ────────────────────────────────────
+      //
+      // 上面那道（whatsNew 为空）拦的是「Apple 拒了但不说为什么」。这三道拦的是更坏的
+      // 一类：**Apple 不会拒，但那个市场的搜索量归零**。
+      //
+      // 实例：国际版 iOS 的 zh-Hans keywords 与 description 整份是英文（macOS 同一个
+      // locale 是中文的），从 1.0 一路带到 1.6.7 —— 十个版本，没有任何一环报过错。
+      // iOS 是用户最多的一条线。
+      //
+      // 代价对比也决定了这几道的优先级：extension_name 超限是 altool 上传时被拒，
+      // 分钟级、重传即可；这几个字段是提审后数天被 App Review 拒，代价是**排队位置清零**
+      // （中国版首提排过 40 天）。
+      const emptyMeta = [];
+      const wrongLang = [];
+      for (const L of locs.data) {
+        const full = await api('GET', `/appStoreVersionLocalizations/${L.id}`
+          + '?fields[appStoreVersionLocalizations]=locale,keywords,description');
+        const a = full.data.attributes;
+        for (const f of ['keywords', 'description']) {
+          if (!String(a[f] || '').trim()) emptyMeta.push(`${a.locale}/${f}`);
+        }
+        // zh-* 的文案写成英文 —— 不报错、不被拒，只是安静地把一个市场清零。
+        if (/^zh/.test(a.locale)) {
+          for (const f of ['keywords', 'description']) {
+            const v2 = String(a[f] || '');
+            const letters = [...v2].filter((c) => /[A-Za-z\u4e00-\u9fff]/.test(c));
+            if (!letters.length) continue;
+            const ascii = letters.filter((c) => /[A-Za-z]/.test(c)).length / letters.length;
+            if (ascii >= 0.8) wrongLang.push(`${a.locale}/${f}（ASCII ${Math.round(ascii * 100)}%）`);
+          }
+        }
+      }
+      if (emptyMeta.length) throw new Error(`${label}: 这些商店文案是空的：${emptyMeta.join(', ')}`);
+      if (wrongLang.length) {
+        throw new Error(`${label}: 中文 locale 下的文案写成了英文：${wrongLang.join(', ')}`
+          + ' —— Apple 不会拒，但中文用户搜不到这条线');
+      }
+
+      // subtitle 是 app 级的（appInfo，不分平台），30 字符、权重仅次于 name。
+      // 中国版曾经一直空着 —— 空着不报错，只是白扔一个高权重索引位。
+      const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10&fields[appInfos]=appStoreState`);
+      const editable = (infos.data || []).filter((x) => x.attributes.appStoreState !== 'READY_FOR_SALE');
+      const noSub = [];
+      for (const inf of editable) {
+        const iLocs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+          + '&fields[appInfoLocalizations]=locale,subtitle');
+        for (const L of iLocs.data) {
+          if (!String(L.attributes.subtitle || '').trim()) noSub.push(L.attributes.locale);
+        }
+      }
+      if (noSub.length) throw new Error(`${label}: 这些 locale 的副标题是空的：${noSub.join(', ')}`);
+
       console.log(`  ${label} · build ${b.data.attributes.version} · 截图 ${shots} 张`);
       targets.push({ appId: app.id, versionId: v.id, platform: plat, label });
     }

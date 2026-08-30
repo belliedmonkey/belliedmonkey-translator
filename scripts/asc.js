@@ -227,6 +227,207 @@ function parseNotes(md, flavor) {
   return out;
 }
 
+// ─── ASO：商店文案（keywords / subtitle / description / promotionalText）────────
+//
+// 2026-08-30 之前，这个仓库的工具链**只写过 whatsNew**，从没碰过任何一个影响搜索的字段。
+// 代价在实读时才看到：国际版 iOS 的 zh-Hans keywords 与 description **整份是英文**，
+// 而 macOS 同一个 locale 是中文的 —— 中文用户在 App Store 搜「翻译」命中不到 iOS 那条，
+// 而 iOS 是用户最多的一条线。它不报错、不被拒，只是安静地把一个市场的搜索量清零。
+//
+// 三条从 API 实测出来、决定了下面这些函数形状的事实：
+//
+//  ① **每个 app 有两条 appInfo**：一条 READY_FOR_SALE（线上快照，只读），一条
+//     PREPARE_FOR_SUBMISSION（可编辑）。写到前者上 Apple 可能接受但不生效 ——
+//     正是这个仓库最怕的「没报错但没发生」。所以 cmdAppInfo 按 state 选，命中数 ≠ 1 就抛。
+//  ② **appInfo 不分平台**：name/subtitle 是 app 级的，iOS 与 macOS 共用一条。所以
+//     cmdAppInfo 的签名里**没有 platform 参数** —— 有了就是在暗示一个不存在的自由度。
+//  ③ keywords / description 随版本锁定，**提审后要等下一版**；promotionalText 不参与
+//     搜索排序但**不需要过审、随时可改**，是上线后唯一还能动的文案位（--promo-only）。
+function parseAso(md) {
+  const out = {};
+  const re = /^##\s+(国际版|中国版)\s*·\s*([A-Za-z-]+)\s*·\s*(\w+)\s*$/gm;
+  let m;
+  while ((m = re.exec(md))) {
+    const rest = md.slice(m.index + m[0].length);
+    const f = rest.match(/```[a-z]*\n([\s\S]*?)```/);
+    if (!f) continue;
+    const key = `${m[1]}·${m[2]}`;
+    (out[key] || (out[key] = {}))[m[3]] = f[1].trim();
+  }
+  return out;
+}
+
+// 干运行 == 验证器。取现值、取目标值，相等打「一致」，不等才打「将写入」。
+// 这样跑第二遍就是验证 —— 不需要第二个工具，也不需要人记得去验。cmdNotes 那版的
+// 干运行只会说「将写入 N 字」，不比较，于是验证是一件要靠自觉的事。
+function diffLine(label, field, cur, want) {
+  const same = String(cur || '').trim() === String(want).trim();
+  return { same, line: `  ${label} ${field.padEnd(16)}`
+    + (same ? `一致，无需改动 (${[...String(want)].length} 字)`
+            : `将写入 ${[...String(want)].length} 字（现 ${[...String(cur || '')].length} 字）`) };
+}
+
+const ASO_VERSION_FIELDS = ['keywords', 'description', 'promotionalText'];
+
+async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+  const flavor = bundleId.endsWith('.cn') ? '中国版' : '国际版';
+  const aso = parseAso(require('fs').readFileSync(file, 'utf8'));
+
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=30`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  const v = vs.data.find((x) => x.attributes.versionString === versionString);
+  if (!v) throw new Error(`${app.name} 没有 ${platform} 的 ${versionString} 版本记录`);
+  // promotionalText 不需要过审，所以 --promo-only 这一档允许已上架的版本。
+  // 其余字段随版本锁定，动已上架/在审的版本没有意义，硬拦（同 cmdBind 的门禁）。
+  if (!promoOnly && v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+    throw new Error(`${app.name} ${platform} ${versionString} 状态是 `
+      + `${v.attributes.appStoreState}，不是 PREPARE_FOR_SUBMISSION —— 不动它`
+      + '（只改促销语请加 --promo-only）');
+  }
+
+  const fields = promoOnly ? ['promotionalText'] : ASO_VERSION_FIELDS;
+  const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations`
+    + '?limit=50&fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
+  let ok = true;
+  for (const L of locs.data) {
+    const locale = L.attributes.locale;
+    // 方向是「以商店的 locale 列表为准去文件里找」，不是反过来 —— 反过来会让
+    // 「商店有 zh-Hans、文件里忘了写」变成静默跳过，而那正是本轮要修的那类缺陷。
+    const want = aso[`${flavor}·${locale}`];
+    const label = `${app.name} [${platform}] ${locale}`;
+    if (!want) {
+      console.log(`  ${label}: ✗ ${file} 里没有「## ${flavor} · ${locale} · …」段`);
+      ok = false;
+      continue;
+    }
+    const patch = {};
+    for (const f of fields) {
+      if (want[f] === undefined) continue;
+      const d = diffLine(label, f, L.attributes[f], want[f]);
+      console.log(d.line);
+      if (!d.same) patch[f] = want[f];
+    }
+    if (!apply || !Object.keys(patch).length) continue;
+    await api('PATCH', `/appStoreVersionLocalizations/${L.id}`,
+      { data: { type: 'appStoreVersionLocalizations', id: L.id, attributes: patch } });
+    // 回读。PATCH 返回 204 无正文，「没报错」不等于「写进去了」。
+    const back = await api('GET', `/appStoreVersionLocalizations/${L.id}`
+      + '?fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
+    for (const f of Object.keys(patch)) {
+      const got = String(back.data.attributes[f] || '').trim();
+      const same = got === String(patch[f]).trim();
+      console.log(`  ${label} ${f.padEnd(16)}回读 ${[...got].length} 字 ${same ? '✓' : '✗ 不符！'}`);
+      if (!same) ok = false;
+    }
+  }
+  return ok;
+}
+
+// app 级字段。**无 platform 参数**，见上面 ②。
+async function cmdAppInfo(bundleId, file, apply) {
+  const app = (await apps()).find((a) => a.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+  const flavor = bundleId.endsWith('.cn') ? '中国版' : '国际版';
+  const aso = parseAso(require('fs').readFileSync(file, 'utf8'));
+
+  const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10`
+    + '&fields[appInfos]=appStoreState');
+  // 见上面 ①：必须唯一命中可编辑那条，不唯一就抛 —— 不猜。
+  const editable = (infos.data || []).filter((x) => x.attributes.appStoreState !== 'READY_FOR_SALE');
+  if (editable.length !== 1) {
+    throw new Error(`${app.name} 的可编辑 appInfo 命中 ${editable.length} 条（应为 1）`
+      + ' —— 写到 READY_FOR_SALE 那条上 Apple 可能接受但不生效，所以这里不猜');
+  }
+  const inf = editable[0];
+
+  const locs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+    + '&fields[appInfoLocalizations]=locale,name,subtitle');
+  let ok = true;
+  for (const L of locs.data) {
+    const locale = L.attributes.locale;
+    const want = aso[`${flavor}·${locale}`];
+    const label = `${app.name} ${locale}`;
+    if (!want) { console.log(`  ${label}: ✗ ${file} 里没有这个 locale`); ok = false; continue; }
+    const patch = {};
+    for (const f of ['name', 'subtitle']) {
+      if (want[f] === undefined) continue;
+      const d = diffLine(label, f, L.attributes[f], want[f]);
+      console.log(d.line);
+      if (!d.same) patch[f] = want[f];
+    }
+    if (!apply || !Object.keys(patch).length) continue;
+    await api('PATCH', `/appInfoLocalizations/${L.id}`,
+      { data: { type: 'appInfoLocalizations', id: L.id, attributes: patch } });
+    const back = await api('GET', `/appInfoLocalizations/${L.id}`
+      + '?fields[appInfoLocalizations]=locale,name,subtitle');
+    for (const f of Object.keys(patch)) {
+      const got = String(back.data.attributes[f] || '').trim();
+      const same = got === String(patch[f]).trim();
+      console.log(`  ${label} ${f.padEnd(16)}回读「${got}」${same ? '✓' : '✗ 不符！'}`);
+      if (!same) ok = false;
+    }
+  }
+  return ok;
+}
+
+// 只读全景，兼作改动前后的快照。三类标红都是「不报错但有损失」的形状。
+async function cmdAsoAudit() {
+  const LIM = { name: 30, subtitle: 30, keywords: 100, promotionalText: 170, description: 4000 };
+  let bad = 0;
+  for (const app of await apps()) {
+    if (!/belliedmonkeytranslator/.test(app.bundleId)) continue;
+    console.log(`\n■ ${app.name}  (${app.bundleId})`);
+    const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10&fields[appInfos]=appStoreState`);
+    for (const inf of (infos.data || []).filter((x) => x.attributes.appStoreState !== 'READY_FOR_SALE')) {
+      const locs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+        + '&fields[appInfoLocalizations]=locale,name,subtitle');
+      for (const L of locs.data) {
+        const a = L.attributes;
+        for (const f of ['name', 'subtitle']) {
+          const v = a[f] || '';
+          const n = [...v].length;
+          const empty = !n;
+          if (empty) bad++;
+          console.log(`  [appInfo ${a.locale}] ${f.padEnd(16)}${String(n).padStart(4)}/${LIM[f]}`
+            + (empty ? '  ✗ 空着 —— 高权重索引位浪费' : `  ${v.slice(0, 40)}`));
+        }
+      }
+    }
+    const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=8`
+      + '&fields[appStoreVersions]=versionString,platform,appStoreState');
+    for (const v of (vs.data || []).filter((x) => x.attributes.appStoreState === 'PREPARE_FOR_SUBMISSION')) {
+      const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=20`
+        + '&fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
+      for (const L of locs.data) {
+        const a = L.attributes;
+        for (const f of ASO_VERSION_FIELDS) {
+          const v2 = a[f] || '';
+          const n = [...v2].length;
+          const pct = Math.round((n / LIM[f]) * 100);
+          const notes = [];
+          if (!n) notes.push('✗ 空');
+          // keywords 占用率低是效率问题，不是正确性问题 —— 报出来但不算失败。
+          if (f === 'keywords' && n && pct < 60) notes.push(`占用率 ${pct}% —— 浪费了 ${LIM[f] - n} 个高权重字符`);
+          // 语种不符是本轮那个 bug 的机器判据，算失败。
+          if (/^zh/.test(a.locale) && n) {
+            const letters = [...v2].filter((c) => /[A-Za-z\u4e00-\u9fff]/.test(c));
+            const ascii = letters.length ? letters.filter((c) => /[A-Za-z]/.test(c)).length / letters.length : 0;
+            if (ascii >= 0.8) { notes.push(`✗ ASCII 占比 ${Math.round(ascii * 100)}% —— 中文 locale 写成了英文`); bad++; }
+          }
+          if (!n) bad++;
+          console.log(`  [${v.attributes.platform} ${a.locale}] ${f.padEnd(16)}`
+            + `${String(n).padStart(4)}/${LIM[f]}  ${notes.join(' · ')}`);
+        }
+      }
+    }
+  }
+  console.log(`\n${bad ? '✗ ' + bad + ' 处需要处理' : '✓ 无空字段、无语种不符'}`);
+  return bad === 0;
+}
+
 async function cmdNotes(bundleId, platform, versionString, file, apply) {
   const app = (await apps()).find((a) => a.bundleId === bundleId);
   if (!app) throw new Error(`找不到 app ${bundleId}`);
@@ -328,6 +529,28 @@ async function cmdDevices(udid, name) {
     const ok = await cmdDevices(rest[0], rest.slice(1).join(' '));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'aso') {
+    if (rest[0] === '--audit') { const ok = await cmdAsoAudit(); process.exit(ok ? 0 : 1); }
+    const [bundleId, platform, versionString, file] = rest;
+    if (!bundleId || !platform || !versionString || !file) {
+      console.log('用法: node scripts/asc.js aso <bundleId> <IOS|MAC_OS> <版本> <aso.md> [--apply] [--promo-only]');
+      console.log('      node scripts/asc.js aso --audit');
+      process.exit(1);
+    }
+    const ok = await cmdAso(bundleId, platform, versionString, file,
+      rest.includes('--apply'), rest.includes('--promo-only'));
+    process.exit(ok ? 0 : 1);
+  }
+  if (cmd === 'appinfo') {
+    const [bundleId, file] = rest;
+    if (!bundleId || !file) {
+      console.log('用法: node scripts/asc.js appinfo <bundleId> <aso.md> [--apply]');
+      console.log('  ⚠️ 无 platform 参数 —— name/subtitle 是 app 级的，iOS 与 macOS 共用一条');
+      process.exit(1);
+    }
+    const ok = await cmdAppInfo(bundleId, file, rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'builds') return cmdBuilds();
   if (cmd === 'versions') return cmdVersions();
   if (cmd === 'reviews') {
@@ -363,6 +586,9 @@ async function cmdDevices(udid, name) {
     process.exit(ok ? 0 : 1);
   }
   console.log('用法: node scripts/asc.js builds | versions | reviews [条数]'
+    + ' | aso --audit'
+    + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
+    + ' | appinfo <bundleId> <aso.md> [--apply]'
     + ' | devices [UDID [名称]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
