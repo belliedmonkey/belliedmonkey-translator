@@ -153,11 +153,20 @@ describe('capability registries', () => {
   // 白名单是那条边界的守卫:任何人想往请求体里塞一个新字段,得先过这里,也就得先解释
   // 它缺了会怎样。没有这道门,`reasoning` 就是一个可以往请求体里写任意东西的口子。
   test('model-params: reasoning 片段只许用白名单里的顶层键', () => {
-    // 三种拼法,三家各不相同 —— 这正是这一列要存片段而不是枚举的原因:
+    // 四种拼法,四家各不相同 —— 这正是这一列要存片段而不是枚举的原因:
     //   reasoning_effort  OpenAI（顶层字符串）
     //   thinking          DeepSeek / GLM（开关对象）
     //   reasoning         OpenRouter（嵌套 effort），也是 responses-compat 的写法
-    const ALLOWED = ['reasoning_effort', 'thinking', 'reasoning'];
+    //   enable_thinking   DashScope（顶层布尔）
+    //
+    // 第四种是 2026-08-30 实测加进来的，而且**它缺了会怎样是量过的**（这条白名单
+    // 只收这种字段）：在 dashscope 上不发它，glm-4.6 翻一段 870 字正文要 68.9 秒、
+    // 思考 3623 tok；发了 4.2 秒、思考归零，译文长度不变 —— 17 倍。
+    // 更要紧的是**别的拼法在这里不管用**：thinking:{type:'disabled'} 被完全无视，
+    // 而那正是同一个模型 glm-4.6 在 open.bigmodel.cn 上已采纳的写法。所以这不是
+    // 「多一种同义写法」，是「换个网关就必须换一种写法」——白名单里少了它，
+    // 这个网关上所有会思考的模型就只能一直慢下去，而且没有任何地方会报错。
+    const ALLOWED = ['reasoning_effort', 'thinking', 'reasoning', 'enable_thinking'];
     for (const e of require('../build/model-params.config.js')) {
       if (!('reasoning' in e)) continue;
       ok(e.reasoning && typeof e.reasoning === 'object' && !Array.isArray(e.reasoning),

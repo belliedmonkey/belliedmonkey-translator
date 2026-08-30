@@ -440,6 +440,70 @@ module.exports = [
 
   // ── 测过之后决定不写 ─────────────────────────────────────────────────
   {
+    host: 'dashscope.aliyuncs.com', model: 'glm-4.6', date: '2026-08-30',
+    baseline: { ms: 68902, thinkTokens: 3623, outChars: 280, finish: 'stop' },
+    tried: [
+      { params: { enable_thinking: false }, ms: 4161, thinkTokens: 0, outChars: 293 },
+      { params: { thinking: { type: 'disabled' } }, ms: 60518, thinkTokens: 2903, outChars: 288,
+        note: '**被完全无视** —— 而这正是同一个模型在 open.bigmodel.cn 上已采纳的写法。同模型同厂商，换一个网关就换一种拼法。' },
+      { params: { reasoning_effort: 'minimal' }, ms: 114507, thinkTokens: 5748, outChars: 276,
+        note: '**反向**：思考从 3623 涨到 5748，比基线还慢。在这个端点上它是「开启」不是「降档」。' },
+      { params: { reasoning_effort: 'low' }, ms: 72876, thinkTokens: 3663, outChars: 283 },
+      { params: { reasoning: { effort: 'low' } }, ms: 65902, thinkTokens: 3419, outChars: 266 },
+      { params: { reasoning: { enabled: false } }, ms: 78660, thinkTokens: 3778, outChars: 279 },
+    ],
+    verdict: 'adopted', adopted: { enable_thinking: false },
+    why: '这一轮最贵的一条：一段 870 字正文基线要 **68.9 秒**、思考 3623 tok；enable_thinking:false 之后 4.2 秒、思考归零，译文长度不变 —— **快 17 倍**。六种拼法里只有这一种有效，其余五种要么被无视、要么让它思考得更多。教程讲的正是「一个千问 Key 打多厂商模型」，用户一旦手动换到 glm-4.6 就会撞上这 68 秒，而没有任何地方会告诉他为什么慢。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'kimi-k3', date: '2026-08-30',
+    baseline: { ms: 24365, thinkTokens: 805, outChars: 290, finish: 'stop' },
+    tried: [
+      { params: { enable_thinking: false }, ms: 6564, thinkTokens: 0, outChars: 308 },
+      { params: { thinking: { type: 'disabled' } }, ms: 8760, thinkTokens: 0, outChars: 282,
+        note: '这一个也有效（与 glm-4.6 相反）—— 所以「哪种拼法管用」在同一个网关内也随模型而变。' },
+      { params: { reasoning_effort: 'low' }, ms: 6498, thinkTokens: 6, outChars: 299 },
+      { params: { reasoning: { effort: 'low' } }, ms: 25451, thinkTokens: 746, outChars: 291,
+        note: '被无视。' },
+      { params: { reasoning: { enabled: false } }, ms: 25528, thinkTokens: 835, outChars: 294,
+        note: '被无视。' },
+    ],
+    verdict: 'adopted', adopted: { enable_thinking: false },
+    why: '基线 24.4 秒 / 思考 805 tok → 6.6 秒 / 思考 0，快 3.7 倍。四种拼法有效，选 enable_thinking:false 是因为它同时是 glm-4.6 唯一有效的那一种 —— 一个网关一行，比按模型分叉更不容易漏。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'qwen3.8-flash', date: '2026-08-30',
+    baseline: { ms: 21247, thinkTokens: 2365, outChars: 299, finish: 'stop' },
+    tried: [
+      { params: { enable_thinking: false }, ms: 2244, thinkTokens: 0, outChars: 294 },
+      { params: { thinking: { type: 'disabled' } }, ms: 2023, thinkTokens: 0, outChars: 301 },
+      { params: { reasoning: { effort: 'low' } }, ms: 28481, thinkTokens: 3491, outChars: 295,
+        note: '**反向**：思考 2365 → 3491，比基线更慢。' },
+      { params: { reasoning: { enabled: false } }, ms: 18090, thinkTokens: 2040, outChars: 295,
+        note: '几乎无效。' },
+    ],
+    verdict: 'adopted', adopted: { enable_thinking: false },
+    why: '基线抖得厉害（21.2 秒 / 思考 2365，与 4.0 秒 / 思考 217 两次），正说明「思考多少」不由输入决定 —— 这也是墙钟时间证据力最弱的原因。降档后稳定在 2.2 秒 / 思考 0。',
+  },
+  {
+    host: 'dashscope.aliyuncs.com', model: 'deepseek-v4-flash-0731', date: '2026-08-30',
+    baseline: { ms: 16506, thinkTokens: 1410, outChars: 284, finish: 'stop' },
+    tried: [
+      { params: { enable_thinking: false }, ms: 2624, thinkTokens: 0, outChars: 274 },
+      { params: { thinking: { type: 'disabled' } }, ms: 2745, thinkTokens: 0, outChars: 274 },
+      { params: { reasoning_effort: 'minimal' }, ms: 68, thinkTokens: null, outChars: 0,
+        note: "HTTP 400，服务端原话：'reasoning_effort' must be one of: 'low', 'medium', 'high', 'xhigh', 'max'。" },
+      { params: { reasoning_effort: 'low' }, ms: 5272, thinkTokens: 210, outChars: 274 },
+    ],
+    verdict: 'adopted', adopted: { enable_thinking: false },
+    why: '基线 16.5 秒 / 思考 1410 → 2.6 秒 / 思考 0，快 6.3 倍。顺带拿到一条服务端拒绝原话：这个端点的 reasoning_effort 不收 minimal（只收 low/medium/high/xhigh/max）—— 那正是「写 false 必须有引文」要的那种证据。',
+  },
+  {
+    host: 'dashscope-intl.aliyuncs.com', model: 'glm-4.6', date: '2026-08-30',
+    verdict: 'inferred', from: 'dashscope.aliyuncs.com',
+    why: '同厂商不同域：国际站与境内站共用 model-params 的 dashscope 行，key 按区域绑定所以手上这把打不到它。境内站已实测 adopted（68.9 秒 → 4.2 秒），按继承规则沿用。手上有国际站 key 时应实测覆盖。',
+  },
+  {
     host: 'openrouter.ai', model: 'google/gemini-3.7-flash', date: '2026-08-30',
     baseline: { ms: 13329, thinkTokens: 1369, outChars: 299, finish: 'stop' },
     tried: [
