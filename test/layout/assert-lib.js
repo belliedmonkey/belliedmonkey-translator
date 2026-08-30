@@ -311,6 +311,23 @@
       const v = node.getAttribute('data-mt-hidden');
       return v === arg || `data-mt-hidden="${v}", expected "${arg}"`;
     },
+    // A page that scrolls ITSELF (no native scrolling anywhere) measures the content
+    // ONCE, writes that number as an inline pixel height onto a sizer, and moves the
+    // content with `transform` — its travel limit comes from that recorded number and
+    // nothing else. Insert translations and the tail becomes unreachable: no
+    // scrollbar, no error, the page just stops. Real iPhone, Gmail's mobile web
+    // client, 2026-08-30: 9356px of content behind a 6363px record, 2993px lost, while
+    // document.scrollingElement.scrollHeight stayed pinned at innerHeight throughout —
+    // which is why no scrollHeight-based assertion anywhere else in this corpus can
+    // see it. `arg` is the sizer's selector.
+    scrollerReconciled(node, trans, arg) {
+      const box = document.querySelector(arg);
+      if (!box) return `no sizer matched "${arg}"`;
+      const short = box.scrollHeight - box.clientHeight;
+      if (short <= 4) return true;
+      return `sizer "${arg}" records ${box.clientHeight}px but holds ${box.scrollHeight}px`
+        + ` — ${short}px of content cannot be reached`;
+    },
   };
 
   // Assertions whose subject is the ABSENCE of a translation — they must still run

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>a page that scrolls itself must be told the content grew</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  /* 视口：不滚动。真实形状里滚动完全由脚本用 transform 实现，
+     所以浏览器这一侧没有任何可滚动的东西。 */
+  #shell { height: 300px; overflow: hidden; position: relative; }
+  /* 占位元素：高度由脚本在打开时量一次写死。它自己不裁剪 —— 内容是靠
+     transform 移动的，这正是「够不着」而不是「被裁掉」的原因。 */
+  #sizer { overflow: visible; }
+  #content p { margin: 0 0 1em; line-height: 1.6; }
+</style>
+<body>
+<div id="shell">
+  <div id="sizer">
+    <div id="content">
+      <p id="p-1">Founders who lived the problem speak with credibility, and that
+        credibility carries an early pitch further than any deck ever will.</p>
+      <p id="p-2">Distribution is not a phase that comes after the product is
+        finished; it is a constraint that shapes what the product can be.</p>
+      <p id="p-3">Retention is the only growth loop that does not get more
+        expensive every quarter, which is why it is worth instrumenting first.</p>
+      <p id="p-4">The first ten customers teach you more than the next thousand,
+        because they are the only ones who will tell you why they nearly left.</p>
+    </div>
+  </div>
+</div>
+<script>
+  // 页面自己实现滚动：打开时量一次内容高，写死成占位元素的内联高度，之后
+  // 用 transform 位移，位移上限由这个数算出。**它不会重量。**
+  // 形状取自 Gmail 移动版网页客户端（真机 iPhone，iOS Safari 26.5）。
+  const sizer = document.getElementById('sizer');
+  const shell = document.getElementById('shell');
+  const content = document.getElementById('content');
+  let travel = 0;
+
+  function measureOnce() {
+    sizer.style.height = content.scrollHeight + 'px';   // ← 一次性快照
+  }
+  function maxTravel() {                                // ← 上限只认那个快照
+    return Math.max(0, parseFloat(sizer.style.height) - shell.clientHeight);
+  }
+  function scrollBy(dy) {
+    travel = Math.min(maxTravel(), Math.max(0, travel + dy));
+    content.style.transform = 'translate3d(0px,' + (-travel) + 'px,0)';
+  }
+  measureOnce();
+  window.__mtScrollToEnd = () => { scrollBy(1e6); return travel; };
+
+  // 反空转自检：量完之后，记录的高度必须刚好覆盖当前内容 —— 否则这条 fixture
+  // 在插入译文之前就已经是红的，断言就证明不了「是译文让尾部够不着的」。
+  if (sizer.scrollHeight - sizer.clientHeight > 1) {
+    document.title = 'BROKEN FIXTURE: 初始快照没有覆盖内容';
+  }
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "page-owned-scroller",
+  "unitCount": 4,
+  "targets": [
+    { "sel": "#p-1", "assert": ["translationMarked", "scrollerReconciled:#sizer"] },
+    { "sel": "#p-4", "assert": ["scrollerReconciled:#sizer"] }
+  ]
+}
+</script>
+</body>
+</html>

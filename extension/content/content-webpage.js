@@ -453,6 +453,108 @@ var WebpageTranslator = (() => {
     delete node.__mtPrevDisplay;
   }
 
+  // ─── Frozen-height ancestors (pages that scroll themselves) ───────────
+  // Some pages do not use the browser's scrolling at all. They MEASURE the content
+  // once, write that number as an inline pixel height onto a sizer element, and then
+  // move the content with `transform: translate3d(...)` in response to touch — the
+  // travel limit comes from that recorded number, never from scrollHeight.
+  //
+  // Gmail's mobile web client (real iPhone, iOS Safari 26.5, 2026-08-30) is the one
+  // that found us. Opening a message writes `height: 6363px` on its sizer. We add 71
+  // translations, the real content becomes 9356px — and the last 2993px can NEVER be
+  // reached: no scrollbar, no error, the page simply stops. `document.scrollingElement
+  // .scrollHeight` stays pinned at innerHeight the whole time, which is why this
+  // reproduced on no desktop layout and why chasing scrollHeight found nothing.
+  //
+  // The rule below is deliberately site-blind — it does not know Gmail. It looks for
+  // the FACT (an ancestor whose inline pixel height is now smaller than its own
+  // content) and grows it to fit, recording the page's own prior inline value so
+  // disable() puts back exactly what was there. Same prior-value family as
+  // data-mt-hidden / data-mt-flow-fix / data-mt-pos-fix, expando twin included.
+  const HEIGHT_FIX = 'data-mt-height-fix';
+  // Growing an outer box changes what the inner ones measure, so the pass repeats
+  // until it converges. Gmail's sizer needs two rounds (the first growth reflows the
+  // transformed layers and raises its own content height); the bound keeps a
+  // pathological page from spinning.
+  const HEIGHT_FIX_ROUNDS = 4;
+  // Below this a mismatch is subpixel/rounding noise, not a stale measurement.
+  const HEIGHT_FIX_SLACK = 4;
+  let heightFixTimer = null;
+
+  function growFrozen(el) {
+    // Only a height the PAGE itself wrote inline, in px, and non-zero: `height:0` is
+    // the collapse idiom, not a stale measurement.
+    const inline = el.style && el.style.height;
+    if (!inline || inline.slice(-2) !== 'px' || !(parseFloat(inline) > 0)) return false;
+    let cs; try { cs = getComputedStyle(el); } catch (_) { return false; }
+    // `overflow:hidden` + a fixed height is the page CLIPPING ON PURPOSE — a collapsed
+    // accordion, a "read more" clamp. Growing those would expand what the page
+    // deliberately hid, which is not our call to make. A frozen sizer does not clip:
+    // it is `visible`, and its content is moved by transform — which is precisely why
+    // nothing can reach the overflow. Measured on the Gmail page: the sizer is
+    // `visible`, and every `hidden` element there is a 1px divider.
+    if (!cs || cs.overflowY !== 'visible') return false;
+    const need = el.scrollHeight;
+    if (!(need > el.clientHeight + HEIGHT_FIX_SLACK)) return false; // only ever GROW
+    if (!el.hasAttribute(HEIGHT_FIX)) {
+      el.setAttribute(HEIGHT_FIX, inline);
+      el.__mtPrevHeight = inline; // expando twin: the attribute is page-writable
+    }
+    el.style.height = need + 'px';
+    return true;
+  }
+
+  function undoHeightFix(el) {
+    if (!el || !el.style) return;
+    const prev = (el.hasAttribute && el.hasAttribute(HEIGHT_FIX))
+      ? el.getAttribute(HEIGHT_FIX)
+      : el.__mtPrevHeight; // attribute stripped by the page — expando fallback
+    if (prev == null) return;
+    el.style.height = prev;
+    if (el.removeAttribute) el.removeAttribute(HEIGHT_FIX);
+    delete el.__mtPrevHeight;
+  }
+
+  // Walk ONLY the ancestor chains of our own translations — never the whole page.
+  // Collected into a Set first: on a long article every unit shares nearly all of
+  // its ancestors, so the naive units×depth walk re-visits the same boxes thousands
+  // of times per pass. Reading `el.style.height` is a cheap property read and gates
+  // everything expensive (getComputedStyle, scrollHeight) behind it, but the walk
+  // itself is still worth doing once.
+  function frozenCandidates() {
+    const seen = new Set();
+    for (const u of units) {
+      const node = u.node;
+      if (!node || !node.isConnected || !node.__mtTrans) continue;
+      let p = node.parentElement, depth = 0;
+      while (p && p !== document.body && depth < 40) {
+        if (seen.has(p)) break;   // this chain's remaining ancestors are already in
+        seen.add(p);
+        p = p.parentElement; depth++;
+      }
+    }
+    return seen;
+  }
+
+  function fixFrozenAncestors() {
+    heightFixTimer = null;
+    if (!active) return;
+    const boxes = frozenCandidates();
+    if (!boxes.size) return;
+    for (let round = 0; round < HEIGHT_FIX_ROUNDS; round++) {
+      let changed = false;
+      for (const el of boxes) { if (el.isConnected && growFrozen(el)) changed = true; }
+      if (!changed) break;
+    }
+  }
+
+  // Debounced: one batch of translations must cost ONE reconciliation, not one per
+  // paragraph — a per-unit pass would thrash the very scroller we are repairing.
+  function scheduleHeightFix() {
+    if (heightFixTimer) return;
+    heightFixTimer = setTimeout(fixFrozenAncestors, 150);
+  }
+
   // Long-press (or right-click) a translation to save that sentence to the learning
   // corpus, bypassing the dwell/salience gate. Deliberately NOT a plain click:
   // interaction-spec requires that clicking body text produce no perceptible action,
@@ -975,6 +1077,7 @@ var WebpageTranslator = (() => {
     engine.pump();
     reanchorAll(); // SPA re-anchor backstop (the observer already fixed order pre-paint)
     restoreSelection(); // backstop for kills the capped observer microtask missed (>8 batches/frame)
+    let painted = false;
     for (const u of engine.units) {
       if (!u.node.isConnected) continue;
       const near = inViewport(u.node);
@@ -986,7 +1089,11 @@ var WebpageTranslator = (() => {
       if (!u._rendered && !near) continue; // don't render far-offscreen untranslated
       renderUnit(u, st);
       u._shownKey = key; u._rendered = true;
+      painted = true;
     }
+    // The page's own scroller (if it has one) recorded a height BEFORE these
+    // translations existed; reconcile it once the batch has landed.
+    if (painted) scheduleHeightFix();
   }
 
   // ─── Public API ───────────────────────────────────────────────────────
@@ -1038,6 +1145,8 @@ var WebpageTranslator = (() => {
     document.querySelectorAll('[data-mt-hidden]').forEach(restoreOriginal);
     document.querySelectorAll('[' + DOMProcessor.TRANSLATABLE_ATTR + ']').forEach((e) => e.removeAttribute(DOMProcessor.TRANSLATABLE_ATTR));
     document.querySelectorAll('[data-mt-flow-fix]').forEach(undoFlowFix);
+    if (heightFixTimer) { clearTimeout(heightFixTimer); heightFixTimer = null; }
+    document.querySelectorAll('[' + HEIGHT_FIX + ']').forEach(undoHeightFix);
     units = [];
     engine = null;
   }
