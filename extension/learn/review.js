@@ -1076,6 +1076,17 @@
   };
   $('open-settings').addEventListener('click', openOptions);
   $('empty-settings').addEventListener('click', openOptions);
+  // 空态是用户产生「为什么一张卡都没有」疑问的地方 —— 引导入口在这里最有用。
+  // 只在扩展里显示：App 侧 paintAppEmptyState() 会把这一行藏掉（那里打不开
+  // chrome-extension:// 页面，而且 App 结构上不采集）。
+  const obRow = $('empty-onboard-row');
+  if (obRow) {
+    obRow.hidden = false;
+    $('empty-onboard').addEventListener('click', (e) => {
+      e.preventDefault();
+      try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
+    });
+  }
 
   // §5.3 — free practice entries.
   $('practice-open').addEventListener('click', (e) => {

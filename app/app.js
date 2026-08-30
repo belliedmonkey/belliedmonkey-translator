@@ -88,6 +88,10 @@
   function paintAppEmptyState() {
     const body = document.querySelector('#empty [data-i18n="learn_empty_body"]');
     if (body) body.textContent = t('app_empty_body', '学习材料来自浏览器扩展 —— 这个 App 负责复习它们。');
+    // 扩展的引导入口在 App 里是死链：App 打不开 chrome-extension:// 页面，而且 App
+    // 结构上不采集。藏掉它，而不是让它躺在那儿等人点。
+    const obRow = $('empty-onboard-row');
+    if (obRow) obRow.hidden = true;
     const link = $('empty-settings');
     if (!link) return;
     // 降级成纯文本：iOS 没有跳到 Safari 扩展设置的深链，给一句能照做的话，

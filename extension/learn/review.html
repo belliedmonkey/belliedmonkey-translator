@@ -30,6 +30,12 @@
       <h2 data-i18n="learn_empty_title">还没有学习材料</h2>
       <p data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你**真正读过**的句子会自动存进来 —— 快速滚过去的不算。</p>
       <p><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
+      <!-- 扩展侧的引导入口。这是用户产生「为什么一张卡都没有」疑问的地方，也是唯一
+           能回答它的地方。
+           ⚠️ 它在 App 里必须**藏起来**：App 打不开 chrome-extension:// 页面，而且 App
+           结构上不采集（材料只经同步进来），一个「去把扩展配好」的按钮在那里是死链。
+           App 侧由 paintAppEmptyState() 负责隐藏 —— 见 app/app.js。 -->
+      <p id="empty-onboard-row" hidden><a href="#" id="empty-onboard" data-i18n="extob_reonboard">重看开始使用引导</a></p>
     </section>
 
     <!-- One-time explainer (interaction-spec 复习: first visit, three sentences,
