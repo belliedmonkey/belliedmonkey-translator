@@ -1882,9 +1882,6 @@
   "qs_key_ph": {
     "message": "Cole uma vez — configura as três"
   },
-  "qs_more": {
-    "message": "Mudar quais modelos usar"
-  },
   "qs_privacy": {
     "message": "A transcrição envia sua gravação para {host}. Ela é descartada assim que é reconhecida — nunca armazenada, nunca sincronizada."
   },

@@ -134,7 +134,8 @@ describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', 
     if (!d) return ok(true, '（dist/ 不存在，跳过）');
     const p = d.Q.platforms().find((x) => x.host === 'openrouter.ai');
     eq(p.tts.id, 'openrouter_speech', '');
-    ok(p.alt.tts.some((e) => e.id === 'openrouter_audio'), '另一条应当出现在 alt 里，供展开修改时换');
+    // 原来这里断言另一条会出现在 p.alt 里「供展开修改时换」。展开修改没有了，alt
+    // 也就没有了消费者，一并删掉 —— 留着的话它是一份永远不会被读的数据。
   });
 
   test('结果里不含 needsKey:false 或 requiresEndpoint 的条目', () => {
@@ -159,7 +160,6 @@ const PLATFORM = {
   chat: { id: 'openrouter', needsKey: true, defaultEndpoint: 'https://openrouter.ai/api/v1/chat/completions' },
   tts: { id: 'openrouter_speech', needsKey: true, defaultEndpoint: 'https://openrouter.ai/api/v1/audio/speech' },
   stt: { id: 'openrouter_transcribe', needsKey: true, defaultEndpoint: 'https://openrouter.ai/api/v1/audio/transcriptions' },
-  alt: { chat: [], tts: [], stt: [] },
 };
 const KEY = 'sk-or-v1-test';
 
@@ -219,16 +219,18 @@ describe('QuickSetup.plan — 只填空，不覆盖', () => {
     }
   });
 
-  test('展开修改过的模型/音色/条目，写进 writes', () => {
+  // 原来这里有一条「展开修改过的模型/音色，写进 writes」。那个入口 2026-08-31 去掉了
+  // （与手动引擎配置重复），plan() 随之不再吃 pick —— 一个没有调用方的参数留着就是
+  // 没人消费的灵活性。下面这条接替它：**永远写注册表默认**。
+  test('模型/音色一律写空 —— 空 = 走注册表默认，那是有实测依据的那一个', () => {
     const { Q } = load();
-    const r = Q.plan({
-      platform: PLATFORM, key: KEY, settings: {},
-      pick: { chatModel: 'anthropic/claude-x', ttsEngine: 'openrouter_audio', ttsModel: 'openai/gpt-audio-mini', ttsVoice: 'alloy', sttModel: 'openai/whisper-1' },
-    });
-    eq(r.writes.apiModel, 'anthropic/claude-x', '');
-    eq(r.writes.ttsEngine, 'openrouter_audio', '');
-    eq(r.writes.ttsVoice, 'alloy', '');
-    eq(r.writes.sttModel, 'openai/whisper-1', '');
+    const r = Q.plan({ platform: PLATFORM, key: KEY, settings: {} });
+    eq(r.writes.apiModel, '', '');
+    eq(r.writes.ttsModel, '', '');
+    eq(r.writes.ttsVoice, '', '');
+    eq(r.writes.sttModel, '', '');
+    eq(r.writes.ttsEngine, PLATFORM.tts.id, '取该 host 的注册表第一条');
+    eq(r.writes.sttEngine, PLATFORM.stt.id, '取该 host 的注册表第一条');
   });
 
   test('没有 key 就什么都不写', () => {

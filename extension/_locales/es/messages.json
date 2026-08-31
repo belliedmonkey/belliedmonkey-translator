@@ -1882,9 +1882,6 @@
   "qs_key_ph": {
     "message": "Pégala una vez: configura las tres"
   },
-  "qs_more": {
-    "message": "Cambiar qué modelos se usan"
-  },
   "qs_privacy": {
     "message": "La transcripción envía tu grabación a {host}. Se descarta en cuanto se reconoce: nunca se almacena ni se sincroniza."
   },

@@ -1882,9 +1882,6 @@
   "qs_key_ph": {
     "message": "Einmal einfügen – richtet alle drei ein"
   },
-  "qs_more": {
-    "message": "Verwendete Modelle ändern"
-  },
   "qs_privacy": {
     "message": "Die Transkription sendet deine Aufnahme an {host}. Sie wird sofort nach der Erkennung verworfen – nie gespeichert, nie synchronisiert."
   },

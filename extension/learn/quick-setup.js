@@ -95,7 +95,6 @@ var QuickSetup = (() => {
         // openrouter_speech 赢过 openrouter_audio（专用语音端点，不是带音频输出
         // 的对话模型）。
         chat: g.chat[0], tts: g.tts[0], stt: g.stt[0],
-        alt: { chat: g.chat.slice(1), tts: g.tts.slice(1), stt: g.stt.slice(1) },
       }));
   }
 
@@ -136,10 +135,13 @@ var QuickSetup = (() => {
     };
   }
 
-  // plan({ platform, key, settings, pick }) → { writes, skipped, tests }
+  // plan({ platform, key, settings }) → { writes, skipped, tests }
   //
-  // `pick` 是「展开修改」里改过的值（模型 / 音色 / 换用同 host 的另一个条目），
-  // 缺省即注册表默认。
+  // **没有「用哪个模型」这个入参。** 一键配置写的永远是注册表默认 —— 那正是
+  // recommend.config.js 里有实测依据的那一个。卡里原本有一个「改一改用哪个模型」的
+  // 折叠，2026-08-31 去掉了：它与下面那个（同样折叠着的）手动引擎配置重复，而一张
+  // 承诺「最少操作」的卡里放一个模型选择器，本身就在跟这个承诺打架。改模型的路
+  // 一条都没少 —— 设置页的详细配置里三样各有各的字段。
   //
   // ⚠️ writes 的每个键都必须在 options.js 的 SETTINGS_KEYS 里 —— 不在里面的键
   // saveAll() 读不回来，下次任何字段变更就会把它清掉，静默且必然。
@@ -148,7 +150,6 @@ var QuickSetup = (() => {
     const p = input.platform;
     const key = String(input.key || '').trim();
     const s = input.settings || {};
-    const pick = input.pick || {};
     const st = state(s);
     const writes = {};
     const skipped = [];
@@ -156,17 +157,17 @@ var QuickSetup = (() => {
 
     if (!p || !key) return { writes, skipped, tests };
 
-    const ttsEngine = pick.ttsEngine || p.tts.id;
-    const sttEngine = pick.sttEngine || p.stt.id;
+    const ttsEngine = p.tts.id;
+    const sttEngine = p.stt.id;
 
     // 端点 / 模型 / 音色写空是构成要件：留着上一个引擎的地址配新引擎的 key，正是
     // notes.js 明文禁止的「把 key 和一个不是发给它的端点配在一起」。空 = 走注册表
     // 默认 = 一个能工作的配置（wire-format 的两分支合同）。
     if (st.chat === 'empty') {
-      writes.provider = pick.chatEngine || p.chat.id;
+      writes.provider = p.chat.id;
       writes.apiKey = key;
       writes.apiBaseUrl = '';
-      writes.apiModel = pick.chatModel || '';
+      writes.apiModel = '';
       tests.push('chat');
     } else {
       skipped.push({ slot: 'chat', reason: 'already', current: s.provider || '' });
@@ -176,8 +177,8 @@ var QuickSetup = (() => {
       writes.ttsEngine = ttsEngine;
       writes.ttsApiKey = key;
       writes.ttsBaseUrl = '';
-      writes.ttsModel = pick.ttsModel || '';
-      writes.ttsVoice = pick.ttsVoice || '';
+      writes.ttsModel = '';
+      writes.ttsVoice = '';
       // 不写 ttsMode，用户会看到上面说「朗读 ✓ 通了」而下面语音卡只剩一个「关闭」
       // 下拉 —— options.js 在 mode 为 off 时把整块 hidden。那是既有的坑，而这次
       // 会是**我们自己**造的。选 assist（显示原文、可点播放）而不是 audio-first
@@ -196,7 +197,7 @@ var QuickSetup = (() => {
       writes.sttEngine = sttEngine;
       writes.sttApiKey = key;
       writes.sttBaseUrl = '';
-      writes.sttModel = pick.sttModel || '';
+      writes.sttModel = '';
       tests.push('stt');
     } else {
       skipped.push({ slot: 'stt', reason: 'already', current: s.sttEngine || '' });
@@ -300,7 +301,7 @@ var QuickSetup = (() => {
         o.textContent = labelOf(p.chat, t) + ' · ' + p.host;
         sel.append(o);
       });
-      sel.addEventListener('change', () => { current = list[Number(sel.value)] || list[0]; paintPicks(); });
+      sel.addEventListener('change', () => { current = list[Number(sel.value)] || list[0]; paintPlatform(); });
       row.append(sel); wrap.append(row);
     } else {
       wrap.append(el('p', 'qs-sub', t('qs_only_one', '可用平台：{p}').replace('{p}',
@@ -323,39 +324,14 @@ var QuickSetup = (() => {
     keyLink.target = '_blank'; keyLink.rel = 'noopener noreferrer';
     wrap.append(keyLink);
 
-    // 展开修改：收起时只是一行摘要，展开后可在**按下按钮之前**换模型与音色。
-    const more = doc.createElement('details'); more.id = 'qs-more';
-    const sum = doc.createElement('summary');
-    sum.textContent = t('qs_more', '改一改用哪个模型');
-    more.append(sum);
-    const picks = {};
-    const picksBox = el('div', 'qs-wrap');
-    more.append(picksBox);
-    wrap.append(more);
-
-    function paintPicks() {
-      picksBox.textContent = '';
-      for (const slot of SLOTS) {
-        const chosen = current[slot];
-        const alts = [chosen].concat(current.alt[slot] || []);
-        const row = el('div', 'qs-row');
-        row.append(el('label', null, t(SLOT_LABEL[slot][0], SLOT_LABEL[slot][1])));
-        if (alts.length > 1) {
-          const s2 = doc.createElement('select');
-          alts.forEach((e) => {
-            const o = doc.createElement('option'); o.value = e.id; o.textContent = labelOf(e, t); s2.append(o);
-          });
-          s2.addEventListener('change', () => { picks[slot + 'Engine'] = s2.value; });
-          row.append(s2);
-        } else {
-          row.append(el('span', null, labelOf(chosen, t)));
-        }
-        const m = doc.createElement('input');
-        m.type = 'text'; m.placeholder = chosen.defaultModel || '';
-        m.addEventListener('input', () => { picks[slot + 'Model'] = m.value.trim(); });
-        row.append(m);
-        picksBox.append(row);
-      }
+    // 这张卡里**没有**模型选择器。原本有一个「改一改用哪个模型」的折叠，
+    // 2026-08-31 去掉：它与下面那个（同样折叠着的）手动引擎配置重复，而一张承诺
+    // 「最少操作」的卡里放一个模型选择器，本身就在跟这个承诺打架。写进去的永远是
+    // 注册表默认 —— 那正是 recommend.config.js 里有实测依据的那一个。改模型的路
+    // 一条都没少：设置页的详细配置里三样各有各的字段。
+    //
+    // 下面这个函数只重画**跟着平台变**的两处（申请入口、隐私那句），换平台时调用。
+    function paintPlatform() {
       const ku = (current.chat && current.chat.keyUrl) || '';
       keyLink.hidden = !ku;
       if (ku) {
@@ -401,13 +377,13 @@ var QuickSetup = (() => {
     wrap.append(tryNote, tryBtn);
 
     if (opts.disabled) { btn.disabled = true; key.disabled = true; }
-    paintPicks();
+    paintPlatform();
     box.append(wrap);
 
     btn.addEventListener('click', async () => {
       const k = key.value.trim();
       if (!k) { key.focus(); return; }
-      const p = plan({ platform: current, key: k, settings: opts.settings || {}, pick: picks });
+      const p = plan({ platform: current, key: k, settings: opts.settings || {} });
       btn.disabled = true;
       // 四行**在按下那一刻就存在**，不是「成功后才冒出来的绿框」—— 那种形状让失败
       // 看起来像什么都没发生。

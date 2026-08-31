@@ -1882,9 +1882,6 @@
   "qs_key_ph": {
     "message": "Collez une fois — les trois sont configurés"
   },
-  "qs_more": {
-    "message": "Changer les modèles utilisés"
-  },
   "qs_privacy": {
     "message": "La transcription envoie votre enregistrement à {host}. Il est supprimé dès la reconnaissance — jamais stocké, jamais synchronisé."
   },

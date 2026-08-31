@@ -1882,9 +1882,6 @@
   "qs_key_ph": {
     "message": "Paste once — configures all three"
   },
-  "qs_more": {
-    "message": "Change which models are used"
-  },
   "qs_privacy": {
     "message": "Transcription sends your recording to {host}. It is discarded as soon as it is recognised — never stored, never synced."
   },

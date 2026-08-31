@@ -1883,9 +1883,6 @@
   "qs_key_ph": {
     "message": "粘贴一次，三样一起配好"
   },
-  "qs_more": {
-    "message": "改一改用哪个模型"
-  },
   "qs_privacy": {
     "message": "转写会把你的录音发到 {host} 识别，识别完立即丢弃，不存储也不同步。"
   },
