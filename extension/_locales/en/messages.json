@@ -1873,6 +1873,12 @@
   "qs_try_note": {
     "message": "Open a real web page and tap the floating button — the translation appears under each paragraph."
   },
+  "extob_engine_manual": {
+    "message": "Use a different engine? Set it up manually ▾"
+  },
+  "extob_quick_sub": {
+    "message": "One key configures translation, speech, and transcription at once. To use a different engine, expand the manual setup below."
+  },
   "qs_key_ph": {
     "message": "Paste once — configures all three"
   },

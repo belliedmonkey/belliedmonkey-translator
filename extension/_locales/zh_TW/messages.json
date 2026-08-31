@@ -1874,6 +1874,12 @@
   "qs_try_note": {
     "message": "打開一頁真實網頁，點右下角的懸浮按鈕，原文下面就會出現譯文。"
   },
+  "extob_engine_manual": {
+    "message": "用別的引擎？手動填 ▾"
+  },
+  "extob_quick_sub": {
+    "message": "一把 key 就能同時配好翻譯、朗讀、轉寫。想用別的引擎，展開下面手動填。"
+  },
   "qs_key_ph": {
     "message": "貼上一次，三樣一起設定好"
   },

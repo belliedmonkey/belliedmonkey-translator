@@ -84,7 +84,7 @@
   function paint() {
     const step = OB[at];
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-quick', 'ob-engine', 'ob-capture', 'ob-cta', 'ob-cta-note']) $(id).hidden = true;
+    for (const id of ['ob-quick', 'ob-engine', 'ob-engine-toggle', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
     $('ob-next').hidden = false;
@@ -99,8 +99,13 @@
       $('ob-text').textContent = freeChannel
         ? t('extob_engine_body_free', '免费通道零配置就能用。想要更好的质量，填入你自己的 API Key。')
         : t('extob_engine_body_key', '这一步躲不掉：不填 Key 就翻不出任何东西。');
-      $('ob-engine').hidden = false;
+      // paintEngine 无论露不露都要跑：展开的那一刻不该看到一个空下拉。
       paintEngine();
+      // 一键卡在，手动填就收起来（与设置页同一条裁定）；一键卡不在，它就是唯一入口。
+      const quickShown = paintQuick();
+      $('ob-engine').hidden = quickShown && !engineExpanded;
+      $('ob-engine-toggle').hidden = !quickShown || engineExpanded;
+      $('ob-engine-toggle').textContent = t('extob_engine_manual', '用别的引擎？手动填 ▾');
     } else if (step === 'capture') {
       $('ob-title').textContent = t('extob_capture_title', '要不要顺便把读过的句子记下来');
       $('ob-text').textContent = t('extob_capture_body',
@@ -147,8 +152,11 @@
     $('ob-key').value = settings.apiKey || '';
     syncKeyRow();
     $('ob-test').textContent = t('engine_test', '测试连接');
-    paintQuick();
   }
+
+  // 「手动填」的展开是**一次性**的：展开过就一直开着。收回去会把用户刚填了一半的
+  // Key 藏起来，那比多占一屏糟得多。
+  let engineExpanded = false;
 
   // 「一把 key 配好全部」——与设置页**同一个组件**。
   //
@@ -163,6 +171,8 @@
       QuickSetup.render(box, {
         t,
         settings,
+        sub: t('extob_quick_sub',
+          '一把 key 就能同时配好翻译、朗读、转写。想用别的引擎，展开下面手动填。'),
         onApply: async (plan) => {
           await storageSet(plan.writes);
           Object.assign(settings, plan.writes);
@@ -172,6 +182,7 @@
       quickMounted = true;
     }
     box.hidden = !box.children.length;
+    return !box.hidden;
   }
   function syncKeyRow() {
     const p = providerById($('ob-provider').value);
@@ -181,6 +192,11 @@
       ? t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。')
       : t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。');
   }
+  $('ob-engine-toggle').addEventListener('click', () => {
+    engineExpanded = true;
+    $('ob-engine').hidden = false;
+    $('ob-engine-toggle').hidden = true;
+  });
   $('ob-provider').addEventListener('change', async () => {
     syncKeyRow();
     await storageSet({ provider: $('ob-provider').value });

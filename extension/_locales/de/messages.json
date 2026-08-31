@@ -1873,6 +1873,12 @@
   "qs_try_note": {
     "message": "Öffnen Sie eine echte Webseite und tippen Sie auf die schwebende Schaltfläche – die Übersetzung erscheint unter jedem Absatz."
   },
+  "extob_engine_manual": {
+    "message": "Anderen Dienst verwenden? Manuell einrichten ▾"
+  },
+  "extob_quick_sub": {
+    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein. Für einen anderen Dienst öffnen Sie unten die manuelle Einrichtung."
+  },
   "qs_key_ph": {
     "message": "Einmal einfügen – richtet alle drei ein"
   },

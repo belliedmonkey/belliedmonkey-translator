@@ -1874,6 +1874,12 @@
   "qs_try_note": {
     "message": "打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。"
   },
+  "extob_engine_manual": {
+    "message": "用别的引擎？手动填 ▾"
+  },
+  "extob_quick_sub": {
+    "message": "一把 key 就能同时配好翻译、朗读、转写。想用别的引擎，展开下面手动填。"
+  },
   "qs_key_ph": {
     "message": "粘贴一次，三样一起配好"
   },

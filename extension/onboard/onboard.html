@@ -41,6 +41,11 @@
                有的人就是想只配翻译，或者用一个不在一键清单里的引擎。 -->
           <div id="ob-quick" hidden></div>
 
+          <!-- 第 2 屏：手动单配一个引擎。**默认收起** —— 与设置页同一条裁定：一键
+               配置和详细配置不并排摊开。一键卡渲染不出来时（没有平台 / QuickSetup
+               缺席）这一块必须直接露出来，否则这一屏没法配任何东西。 -->
+          <button id="ob-engine-toggle" type="button" class="link" hidden></button>
+
           <!-- 第 2 屏：真的引擎选择器，不是说明文字 -->
           <div id="ob-engine" hidden>
             <label for="ob-provider" data-i18n="options_engine_label">翻译引擎</label>

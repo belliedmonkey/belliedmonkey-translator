@@ -1873,6 +1873,12 @@
   "qs_try_note": {
     "message": "Abra uma página web real e toque no botão flutuante: a tradução aparece abaixo de cada parágrafo."
   },
+  "extob_engine_manual": {
+    "message": "Usar outro motor? Configure manualmente ▾"
+  },
+  "extob_quick_sub": {
+    "message": "Uma única chave configura tradução, leitura e transcrição de uma vez. Para outro motor, abra a configuração manual abaixo."
+  },
   "qs_key_ph": {
     "message": "Cole uma vez — configura as três"
   },

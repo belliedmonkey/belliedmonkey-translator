@@ -62,6 +62,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
           return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
             apply:!!b.querySelector('#qs-apply')}:null;})(),
+        toggle:vis(document.getElementById('ob-engine-toggle')),
         capture:vis(document.getElementById('ob-capture')),
         cta:vis(document.getElementById('ob-cta')),
         done:vis(document.getElementById('ob-done'))})})()`);
@@ -75,7 +76,9 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     const expect = DIST==='dist-china'?4:5;
     if(seen.length!==expect) fail(`屏数 ${seen.length}，期望 ${expect}`); else pass(`屏数 ${expect} —— 与 flavor 相符`);
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
-    if(!seen.some(s=>s.engine)) fail('没有引擎那一屏'); else pass('引擎屏在');
+    // 「有引擎那一屏」原本拿「手动块可见」当代理 —— 手动块收起来之后那个代理就假了。
+    // 判据回到意图本身：这一屏上得有**某个**能配引擎的东西。
+    if(!seen.some(s=>s.engine||s.quick)) fail('没有引擎那一屏'); else pass('引擎屏在');
     // 每屏**只**露它自己那一块。第一屏尤其要紧：它是所有人看到的第一眼，而漏出来的
     // 那一块还是没被 paint 过的（下拉空、按钮没文字），比缺一块更难解释。
     const leak = seen.map((s,i)=>({i,bad:[s.engine&&'引擎',s.capture&&'采集'].filter(Boolean)}))
@@ -85,6 +88,16 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     else pass('欢迎屏干净 —— 引擎/采集都没漏出来');
     // 「一把 key 配好全部」必须真的渲染出来。HTML 在而 JS 抛异常导致一片空白，
     // 正是这个门禁存在的理由 —— 而它对新组件尤其要紧：这一页刚加了六个 script。
+    // 一键卡在的那一屏，手动引擎块必须是**收起**的 —— 「既然是一键配置，就没必要
+    // 重复的配置项」。但它不能消失：一键卡只覆盖 openrouter/openai（global）与
+    // qwen（china），拿 DeepSeek 的人得有路可走，所以要求那一行入口可见。
+    const qs = seen.filter(s=>s.quick);
+    if(qs.some(s=>s.engine))
+      fail('一键卡和手动引擎块同屏并排 —— 重复的配置项');
+    else if(qs.length && !qs.every(s=>s.toggle))
+      fail('手动引擎块收起来了，却没有展开它的入口 —— 不在一键清单里的引擎就没路可走了');
+    else if(qs.length) pass('一键卡那屏只有一份配置项，手动填有入口可展开');
+
     const q = (seen.find(s=>s.quick)||{}).quick;
     if(!q) fail('引擎屏上没有「一把 key 配好全部」那张卡 —— HTML 在但没渲染？');
     else if(!q.apply) fail('卡渲染了但没有那个按钮');
