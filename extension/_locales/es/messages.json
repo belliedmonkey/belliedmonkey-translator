@@ -1867,6 +1867,12 @@
   "qs_get_key": {
     "message": "¿Aún no tienes clave? Consigue una en {p} ↗"
   },
+  "qs_try": {
+    "message": "Traducir una página ahora"
+  },
+  "qs_try_note": {
+    "message": "Abre una página web real y toca el botón flotante: la traducción aparece debajo de cada párrafo."
+  },
   "qs_key_ph": {
     "message": "Pégala una vez: configura las tres"
   },

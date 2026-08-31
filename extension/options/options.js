@@ -1412,6 +1412,8 @@ async function init() {
       // settings_read_failed 那句警告存在的理由。
       disabled: _settingsReadFailed,
       onApply: applyQuickSetup,
+      // 设置页配完就没有下一步了。引导页不传 —— 它自己有「现在翻一页看看」那一屏。
+      showTry: true,
     });
     if (!$('quick-setup').children.length && $('quick-setup-card')) {
       $('quick-setup-card').hidden = true;   // 这个 flavor 没有可一键的平台，不留空壳

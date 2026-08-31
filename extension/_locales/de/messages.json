@@ -1867,6 +1867,12 @@
   "qs_get_key": {
     "message": "Noch kein Schlüssel? Bei {p} anfordern ↗"
   },
+  "qs_try": {
+    "message": "Jetzt eine Seite übersetzen"
+  },
+  "qs_try_note": {
+    "message": "Öffnen Sie eine echte Webseite und tippen Sie auf die schwebende Schaltfläche – die Übersetzung erscheint unter jedem Absatz."
+  },
   "qs_key_ph": {
     "message": "Einmal einfügen – richtet alle drei ein"
   },

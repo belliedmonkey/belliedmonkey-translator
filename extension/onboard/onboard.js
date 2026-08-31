@@ -114,10 +114,9 @@
       $('ob-cta').hidden = false;
       $('ob-cta').textContent = t('extob_try_cta', '打开示例页面');
       $('ob-cta').onclick = () => {
-        // content script 不在 chrome-extension:// 上跑，所以演示必须去一个真的 http(s)
-        // 页面。官网那一页已经是为此存在的：它检测到扩展会自己亮绿灯并露出一段英文。
-        const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
-        window.open('https://' + host + '/setup.html', '_blank', 'noopener');
+        // 地址走 QuickSetup.siteUrl —— 设置页的「现在翻一页看看」去的是同一页，
+        // 两处各写一份 flavor→域名 的映射迟早会漂。
+        window.open(QuickSetup.siteUrl('/setup.html'), '_blank', 'noopener');
       };
     } else if (step === 'sync') {
       $('ob-title').textContent = t('extob_sync_title', '换台设备接着复习');

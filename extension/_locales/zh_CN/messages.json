@@ -1868,6 +1868,12 @@
   "qs_get_key": {
     "message": "还没有 key？去 {p} 申请 ↗"
   },
+  "qs_try": {
+    "message": "现在翻一页看看"
+  },
+  "qs_try_note": {
+    "message": "打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。"
+  },
   "qs_key_ph": {
     "message": "粘贴一次，三样一起配好"
   },

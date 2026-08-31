@@ -88,3 +88,66 @@ describe('i18n: 11 份 messages.json 是同一个键集', () => {
     }
   });
 });
+
+// ── 占位符：兜底串与出货串必须声明同一批 {token} ───────────────────────────
+//
+// 2026-08-31 真机截图实证的一条缝：`engine-test.js` 写的是
+// `t('engine_test_url', '请求地址：{u}').replace('{u}', url)`，而 11 个 locale 写的
+// 都是 `{url}`。代码 replace 的是 `{u}`，出货串里没有这个记号，于是自检结果那一行
+// 在**每一台真机**上原样显示「请求地址：{url}」。
+//
+// 为什么此前所有门禁都看不见：兜底串只在 locale 缺键时才生效，而 i18n-parity 保证
+// 了一个都不缺 —— 也就是说，**兜底串这条路在生产里永远走不到**。开发者读代码只看得
+// 到能自洽的那一份。
+//
+// 判据取「兜底串 vs 出货串的占位符集合相等」，而不是去解析 `.replace()` 链：后者要
+// 跨行、要处理任意实参，解析器本身就会成为下一个假绿的来源。兜底串是作者对「这条
+// 消息有哪些槽」的声明，拿它当基准既准确又便宜。
+describe('i18n: 占位符在兜底串与 11 份译文之间必须一致', () => {
+  const SRC = path.join(__dirname, '..', 'extension');
+  const jsFiles = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { if (e.name !== '_locales') walk(p); }
+      else if (e.name.endsWith('.js') && !e.name.endsWith('.gen.js')) jsFiles.push(p);
+    }
+  })(SRC);
+
+  // t('key', '兜底串') —— 兜底串里不含单引号的那些（含转义引号的极少，漏掉它们
+  // 只是少验几条，不会造成假绿）。
+  const CALL = /\bt\(\s*'([a-z0-9_]+)'\s*,\s*'([^'\\]*)'\s*\)/g;
+  const slots = (s) => (String(s).match(/\{[a-zA-Z][a-zA-Z0-9_]*\}/g) || []).sort().join(',');
+
+  const seen = new Map();   // key → { file, fallback }
+  for (const f of jsFiles) {
+    const src = fs.readFileSync(f, 'utf8');
+    let m;
+    while ((m = CALL.exec(src))) {
+      if (!seen.has(m[1])) seen.set(m[1], { file: path.relative(SRC, f), fallback: m[2] });
+    }
+  }
+
+  test('扫到的 t() 调用足够多 —— 正则失配会让这一组静默空转', () => {
+    ok(seen.size >= 200, `只扫到 ${seen.size} 个 t() 调用，远少于预期 —— 正则或目录走歪了`);
+  });
+
+  for (const loc of LOCALES) {
+    test(`${loc}：每条消息的占位符与代码里的兜底串一致`, () => {
+      const msgs = load(loc);
+      const bad = [];
+      for (const [key, { file, fallback }] of seen) {
+        const m = msgs[key];
+        if (!m || typeof m.message !== 'string') continue;   // 缺键是上面那组的事
+        const want = slots(fallback);
+        const got = slots(m.message);
+        if (want !== got) {
+          bad.push(`${key}（${file}）：代码声明 [${want || '无'}]，${loc} 写的是 [${got || '无'}]`);
+        }
+      }
+      eq(bad.length, 0,
+        '占位符对不上 —— 代码 replace 的记号在出货串里不存在，用户会原样看到花括号：\n  '
+        + bad.join('\n  '));
+    });
+  }
+});

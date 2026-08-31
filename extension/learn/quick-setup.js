@@ -105,6 +105,16 @@ var QuickSetup = (() => {
     return [p.chat, p.tts, p.stt].every((e) => e.needsKey === true);
   }
 
+  // 官网地址的**唯一**来源。原先只写在 onboard.js 的「现在翻一页看看」那一步里；
+  // 设置页也要用，与其抄第二份 flavor→域名 的映射，不如把它放在两个 host 都加载
+  // 的这个文件里。content script 不在 chrome-extension:// 上跑，所以「去试一下」
+  // 必须落到一个真的 http(s) 页面 —— 官网那一页正是为此存在的（它检测到扩展会自己
+  // 亮绿灯，并露出一段可翻的英文）。
+  function siteUrl(path) {
+    const flavor = (typeof window !== 'undefined' && window.MT_FLAVOR) || 'global';
+    return 'https://' + (flavor === 'china' ? 'belliedmonkey.com' : 'belliedmonkey.cc') + (path || '/');
+  }
+
   const has = (v) => !!String(v == null ? '' : v).trim();
 
   // ── 「空」的判据 ─────────────────────────────────────────────────────
@@ -218,6 +228,8 @@ var QuickSetup = (() => {
     .qs-sub { font-size:.9em; opacity:.75; margin:0; }
     .qs-privacy { font-size:.85em; opacity:.8; margin:0; }
     .qs-key-link { font-size:.85em; margin:0; }
+    .qs-try { margin-top:4px; }
+    .qs-try-note { font-size:.85em; opacity:.8; margin:0; }
     .qs-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .qs-row label { flex:0 0 auto; font-size:.85em; opacity:.75; min-width:3em; }
     .qs-row input, .qs-row select { flex:1 1 8em; min-width:0; }
@@ -240,6 +252,17 @@ var QuickSetup = (() => {
   const SLOT_LABEL = {
     chat: ['qs_slot_chat', '翻译'], tts: ['qs_slot_tts', '朗读'], stt: ['qs_slot_stt', '转写'],
   };
+
+  // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败推迟到
+  // 一个更难解释的地方发生。没测翻译（因为早就配过了）也算通 —— 那种情况下用户本来
+  // 就在用它。
+  //
+  // 单独具名，是因为它是 render() 里唯一一处真正的判断，而 render() 需要 DOM、跑不进
+  // 纯逻辑套件；留在闭包里等于这个分支只有真机看得见。
+  function tryVisible(tests, results) {
+    if (!Array.isArray(tests) || !tests.includes('chat')) return true;
+    return (results || []).some((r) => r && r.slot === 'chat' && r.ok === true);
+  }
 
   function render(box, opts) {
     const t = opts.t;
@@ -355,6 +378,25 @@ var QuickSetup = (() => {
     const res = el('ul', 'qs-res'); res.id = 'qs-res'; res.hidden = true;
     wrap.append(res);
 
+    // 三行绿勾之后，这张卡原本就到此为止了 —— 用户配好了，然后停在一个设置页上，
+    // 没有任何东西告诉他下一步该干什么。翻译是在**网页**上发生的，而设置页不是网页
+    // （content script 不在 chrome-extension:// 上跑），所以「去用」必须是一次真正的
+    // 跳转，不能只写一句说明。
+    //
+    // opts.showTry 由 host 决定：引导页自己有「现在翻一页看看」那一屏，在那里再来
+    // 一个同义按钮是重复。默认不显示 —— 忘了传的 host 拿到的是今天的行为，不是一个
+    // 半成品出口。
+    const tryNote = el('p', 'qs-try-note'); tryNote.hidden = true;
+    const tryBtn = doc.createElement('button');
+    tryBtn.id = 'qs-try'; tryBtn.type = 'button'; tryBtn.className = 'qs-try'; tryBtn.hidden = true;
+    tryBtn.textContent = t('qs_try', '现在翻一页看看');
+    tryNote.textContent = t('qs_try_note',
+      '打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。');
+    tryBtn.addEventListener('click', () => {
+      try { window.open(siteUrl('/setup.html'), '_blank', 'noopener'); } catch (_) {}
+    });
+    wrap.append(tryNote, tryBtn);
+
     if (opts.disabled) { btn.disabled = true; key.disabled = true; }
     paintPicks();
     box.append(wrap);
@@ -396,8 +438,15 @@ var QuickSetup = (() => {
         return;
       }
 
-      await Promise.all(p.tests.map((slot) => runOne(slot, p, current, rows[slot], t, doc)));
+      const results = await Promise.all(p.tests.map((slot) => runOne(slot, p, current, rows[slot], t, doc)));
       btn.disabled = false;
+
+      // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败
+      // 推迟到一个更难解释的地方发生。没测翻译（因为早就配过了）也算通 —— 那种情况
+      // 下用户本来就在用。
+      const show = !!opts.showTry && tryVisible(p.tests, results);
+      tryNote.hidden = !show;
+      tryBtn.hidden = !show;
     });
   }
 
@@ -447,7 +496,7 @@ var QuickSetup = (() => {
     }
   }
 
-  return { platforms, plan, summarize, state, consistent, render, _eligible: eligible };
+  return { platforms, plan, summarize, state, consistent, render, siteUrl, tryVisible, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

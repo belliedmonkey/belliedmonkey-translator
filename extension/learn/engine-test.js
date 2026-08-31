@@ -67,8 +67,12 @@ var EngineTest = (() => {
     if (!WireFormat.hasPath(u)) { const e = new Error('no path'); e.code = 'no_path'; e.url = u; throw e; }
   }
 
-  const withUrl = (s, url, t) => (url ? s + '\n' + t('engine_test_url', '请求地址：{u}').replace('{u}', url) : s);
-  const withRoute = (s, route, t) => (route ? s + '\n' + t('engine_test_route', '通路：{r}').replace('{r}', route) : s);
+  // 占位符必须与 _locales 里的写法逐字一致。**兜底串不是真相** —— 它只在 locale
+  // 缺键时才用得上，而 11 个 locale 一个不缺，所以代码里写 `{u}` 而 locale 写
+  // `{url}` 的后果是：开发时一切正常，真机上原样显示「请求地址：{url}」。
+  // 2026-08-31 真机截图实证，之前没有任何门禁看得见这条缝。
+  const withUrl = (s, url, t) => (url ? s + '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', url) : s);
+  const withRoute = (s, route, t) => (route ? s + '\n' + t('engine_test_route', '通路：{route}').replace('{route}', route) : s);
 
   // 成功/失败统一成一段可直接塞进 textContent 的文字。
   function format(r, err, t) {

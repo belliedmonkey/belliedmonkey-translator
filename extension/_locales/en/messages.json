@@ -1867,6 +1867,12 @@
   "qs_get_key": {
     "message": "No key yet? Get one at {p} ↗"
   },
+  "qs_try": {
+    "message": "Translate a page now"
+  },
+  "qs_try_note": {
+    "message": "Open a real web page and tap the floating button — the translation appears under each paragraph."
+  },
   "qs_key_ph": {
     "message": "Paste once — configures all three"
   },

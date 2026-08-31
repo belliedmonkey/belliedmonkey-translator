@@ -36,6 +36,32 @@ function fromDist(dir) {
   return { Q: ctx2.QuickSetup, window: ctx.window };
 }
 
+describe('QuickSetup.tryVisible — 配好之后才给出口，没配好不给', () => {
+  const { Q } = load();
+  const OK = { slot: 'chat', ok: true };
+  const BAD = { slot: 'chat', ok: false };
+
+  test('翻译测通了 ⇒ 给', () => {
+    ok(Q.tryVisible(['chat', 'tts', 'stt'], [OK, { slot: 'tts', ok: false }]) === true,
+      '翻译通了就该给出口，朗读/转写没通不影响「去翻一页」这件事');
+  });
+
+  test('翻译没通 ⇒ 不给', () => {
+    ok(Q.tryVisible(['chat', 'tts'], [BAD, { slot: 'tts', ok: true }]) === false,
+      '翻译没通却请人去翻一页，是把失败推迟到一个更难解释的地方发生');
+  });
+
+  test('压根没测翻译（早就配过了）⇒ 给', () => {
+    ok(Q.tryVisible(['tts', 'stt'], [{ slot: 'tts', ok: true }]) === true,
+      'chat 不在 tests 里说明用户本来就配着翻译在用');
+  });
+
+  test('结果还没回来 ⇒ 不给（不是「先给了再收回」）', () => {
+    ok(Q.tryVisible(['chat'], []) === false, '没有结果就不该有结论');
+    ok(Q.tryVisible(['chat'], null) === false, '缺参数按未通过处理，不按通过处理');
+  });
+});
+
 describe('QuickSetup — 每个进了下拉的平台都得说得出「去哪儿申请 key」', () => {
   // 这张卡的承诺是「最少操作」，而没有 key 的用户在第一格就停住 —— 那时前面省下的
   // 二十几次点击一次都用不上。所以「进得了下拉」和「给得出申请入口」必须绑死：

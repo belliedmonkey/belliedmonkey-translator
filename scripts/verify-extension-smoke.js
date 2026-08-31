@@ -304,6 +304,21 @@ async function evalIn(cdp, sessionId, expression, contextId) {
           await sleep(1200);
           const still = JSON.parse(await evalIn(cdp, sessionId,
             `new Promise(r => chrome.storage.local.get(['provider','ttsEngine','ttsMode','sttEngine'], v => r(JSON.stringify(v))))`));
+          // 配好之后的出口。翻译那一路在这台机器上打不通（配的是真实 host），所以
+          // 这里只验**它没有在失败时冒出来** —— 一个「去用吧」出现在三条红勾下面，
+          // 比没有出口更糟。成功路径由 test/quick-setup.test.js 的分支断言覆盖。
+          const tryState = JSON.parse(await evalIn(cdp, sessionId, `(() => {
+            const b = document.getElementById('qs-try');
+            return JSON.stringify({ has: !!b, hidden: b ? b.hidden : null,
+              text: b ? b.textContent.trim() : '' });
+          })()`));
+          if (!tryState.has) {
+            problems.push('设置页的一键配置里没有「去用」按钮（#qs-try）—— showTry 没接上');
+          } else if (!tryState.hidden) {
+            problems.push('翻译自检失败，却还是把「去用」的出口露了出来：' + JSON.stringify(tryState)
+              + ' —— 那会把失败推迟到一个更难解释的地方发生');
+          }
+
           let drift = 0;
           for (const k of ['provider', 'ttsEngine', 'ttsMode', 'sttEngine']) {
             if (still[k] !== wrote[k]) {
