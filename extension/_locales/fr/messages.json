@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "Terminer la configuration sur le web"
   },
+  "app_ob_open_guide": {
+    "message": "Ouvrir le guide de configuration"
+  },
   "app_signin_why": {
     "message": "Les cartes sont capturées par l'extension de navigateur. Pour les réviser sur cet appareil, connectez-vous afin qu'elles se synchronisent."
   },

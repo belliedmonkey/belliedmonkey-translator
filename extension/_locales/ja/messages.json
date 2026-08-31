@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "ウェブで設定を完了する"
   },
+  "app_ob_open_guide": {
+    "message": "設定ガイドを開く"
+  },
   "app_signin_why": {
     "message": "カードはブラウザ拡張機能が集めます。この端末で復習するにはサインインして同期する必要があります。"
   },

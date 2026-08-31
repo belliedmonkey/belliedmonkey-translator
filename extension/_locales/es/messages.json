@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "Completar la configuración en la web"
   },
+  "app_ob_open_guide": {
+    "message": "Abrir la guía de configuración"
+  },
   "app_signin_why": {
     "message": "Las tarjetas las captura la extensión del navegador. Para repasarlas en este dispositivo, inicia sesión para que se sincronicen."
   },

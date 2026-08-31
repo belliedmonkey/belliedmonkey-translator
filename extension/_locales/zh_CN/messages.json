@@ -1703,6 +1703,9 @@
   "app_ext_open_setup": {
     "message": "在网页上完成设置"
   },
+  "app_ob_open_guide": {
+    "message": "打开配置教程"
+  },
   "app_signin_why": {
     "message": "卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。"
   },

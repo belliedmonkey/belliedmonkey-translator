@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "Einrichtung im Web abschließen"
   },
+  "app_ob_open_guide": {
+    "message": "Einrichtungsanleitung öffnen"
+  },
   "app_signin_why": {
     "message": "Karten werden von der Browser-Erweiterung gesammelt. Zum Wiederholen auf diesem Gerät musst du dich anmelden, damit sie synchronisiert werden."
   },

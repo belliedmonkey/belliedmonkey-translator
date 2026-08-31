@@ -179,6 +179,10 @@ ${engineTable([
 <h2 id="step6">6. Translate one page to confirm</h2>
 <p>${steps[5].text}</p>
 
+<h2>Turning the review cards on</h2>
+<p>Translation works without this, so it is not one of the six steps. Capture is <strong>off by default</strong>; turning it on is what makes the sentences you actually stopped and read become review cards — extension settings → <strong>Collect study material</strong>. It records only sentences you dwelled on, never everything you scrolled past, and the cards stay on the device until you choose to sign in.</p>
+<p>That switch lives in the extension, not in the app. The two have separate storage, so a switch drawn in the app would write somewhere the extension never reads — which is why the app sends you here instead of pretending otherwise.</p>
+
 <h2>Why this engine, and why you do not have to tune it</h2>
 ${m ? `<p>Reasoning models are the trap here. Left alone, ${esc(d.ds.label)}'s ${code(d.ds.model)} spends tokens thinking about every single paragraph: measured on ${m.date}, one paragraph took ${m.before} ms and burned ${m.thinkBefore} thinking tokens. With thinking switched off the same paragraph came back in ${m.after} ms — ${m.x}× faster for text that reads the same.</p>` : ''}
 ${mg ? `<p>The extension sends that parameter for you, per host and per model, from a table built out of measurements rather than documentation. The reason it has to be measured is that documentation does not predict it: on another provider the identical situation cost ${mg.before} ms before and ${mg.after} ms after — ${mg.x}× — and on a third, sending the documented parameter returns HTTP 200 with an empty body, which looks like a bug in the extension and is not.</p>` : ''}
@@ -196,7 +200,7 @@ ${engineTable(customRows, ['Entry', 'Address shape', '', ''])}
 <h3>Nothing happens and there is no error</h3>
 <p>A request that returns HTTP 200 with an empty body is almost always a reasoning model that spent its whole output budget thinking. The extension avoids this for the models it knows; if you switched to a model by hand, switch back or reduce it to a non-reasoning one.</p>
 <h3>It works in one browser but not another</h3>
-<p>Settings live on the device and are not shared unless you turn sync on, so a key entered on a Mac is not on the phone. Enter it again there, or sign in and let sync carry it.</p>
+<p>Settings live on the device and do not travel to your other ones — enter the key again there. Sync carries the learning corpus and nothing else: the cards, the reviews, and the pages they came from. Your keys never leave the device, which is the entire point of bringing your own.</p>
 
 <a class="cta" href="/setup.html"><strong>Not switched on yet? Start here →</strong><br>
 Three steps, about a minute. That page detects the extension and confirms when it is actually working.</a>
@@ -299,6 +303,10 @@ ${engineTable([
 
 <h2 id="step6">6. 翻一页确认</h2>
 <p>${steps[5].text}</p>
+
+<h2>把复习卡打开</h2>
+<p>不打开也能翻译，所以它不算在那六步里。采集<strong>默认是关的</strong>；打开之后，你**停下来读过**的句子才会变成复习卡 —— 扩展设置 →「采集学习材料」。它只记你停留过的句子，不记你划过去的一切；在你主动登录之前，卡片一直只在这台设备上。</p>
+<p>这个开关在扩展里，不在 App 里。两边的存储是分开的，在 App 里画一个开关，写下去的地方扩展根本不读 —— 所以 App 把你送到这一页，而不是假装它能设。</p>
 
 <h2>为什么是这个引擎，以及为什么你不用自己调参</h2>
 ${m ? `<p>推理模型是这里最大的坑。不管它的话，${esc(d.ds.label)} 的 ${code(d.ds.model)} 会为**每一个段落**思考一遍：${m.date} 实测，一段话用了 ${m.before} 毫秒、烧掉 ${m.thinkBefore} 个思考 token。把思考关掉之后，同一段 ${m.after} 毫秒回来，快 ${m.x} 倍，而译文读起来没有区别。</p>` : ''}

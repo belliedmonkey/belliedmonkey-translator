@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "Concluir a configuração na web"
   },
+  "app_ob_open_guide": {
+    "message": "Abrir o guia de configuração"
+  },
   "app_signin_why": {
     "message": "Os cartões são capturados pela extensão do navegador. Para revisá-los neste aparelho, entre para que sincronizem."
   },

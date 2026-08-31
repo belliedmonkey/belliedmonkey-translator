@@ -258,6 +258,13 @@
 
   // 官网的启用教程页。地址按 flavor 走，与 extension/onboard/onboard.js 同一行 ——
   // MT_FLAVOR 由 providers.gen.js 提供，app bundle 里同样带着它。
+  // 配置教程页：从注册表生成的六步（装扩展 → 拿 Key → 填 Key 并测连接 → 朗读 →
+  // 转写 → 翻一页确认），外加「把复习卡打开」那一节。
+  function guidePageUrl() {
+    const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
+    return 'https://' + host + '/guide.html';
+  }
+
   function setupPageUrl() {
     const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
     return 'https://' + host + '/setup.html';
@@ -320,7 +327,7 @@
   function obPaint() {
     const step = OB[obAt];
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs', 'ob-setup']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-guide']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').textContent = obAt === OB.length - 1
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
@@ -369,6 +376,13 @@
             : t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
         [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
       ]);
+      // 这一屏原本是死胡同：它说「这两个开关在扩展自己的设置页里」，却没说怎么到
+      // 那儿。这两件事 App 确实做不到 —— Key 跨过去就意味着它离开设备经我们的服务器
+      // （产品的核心承诺正好相反），采集开关跨过去也只在登录后生效、中国版扩展还
+      // 永远收不到（那个 flavor 的 sync 是关的）。做不到就别假装，把人送到讲得清楚
+      // 的那一页。
+      $('ob-guide').hidden = false;
+      $('ob-guide').textContent = t('app_ob_open_guide', '打开配置教程');
     } else if (step === 'read') {
       $('ob-title').textContent = t('ob_read_title', '去读一篇');
       $('ob-text').textContent = t('ob_read_body',
@@ -735,6 +749,7 @@
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
   $('ext-banner-setup').addEventListener('click', () => openExternal(setupPageUrl()));
   $('ob-setup').addEventListener('click', () => openExternal(setupPageUrl()));
+  $('ob-guide').addEventListener('click', () => openExternal(guidePageUrl()));
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // Both of review.html's settings links, captured so review.js's own handler (which

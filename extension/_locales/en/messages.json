@@ -1702,6 +1702,9 @@
   "app_ext_open_setup": {
     "message": "Finish setup on the web"
   },
+  "app_ob_open_guide": {
+    "message": "Open the setup guide"
+  },
   "app_signin_why": {
     "message": "Cards are captured by the browser extension. To review them on this device, sign in so they can sync over."
   },
