@@ -1845,5 +1845,68 @@
   },
   "extob_first_run": {
     "message": "Primeira vez? Dois minutos para configurar →"
+  },
+  "qs_title": {
+    "message": "Configure tudo com uma única chave"
+  },
+  "qs_sub": {
+    "message": "Nessas plataformas, uma única chave configura tradução, leitura em voz alta e transcrição. Os outros motores são configurados em seus próprios cartões."
+  },
+  "qs_platform": {
+    "message": "Plataforma"
+  },
+  "qs_only_one": {
+    "message": "Plataforma: {p}"
+  },
+  "qs_key": {
+    "message": "Chave de API"
+  },
+  "qs_key_ph": {
+    "message": "Cole uma vez — configura as três"
+  },
+  "qs_more": {
+    "message": "Mudar quais modelos usar"
+  },
+  "qs_privacy": {
+    "message": "A transcrição envia sua gravação para {host}. Ela é descartada assim que é reconhecida — nunca armazenada, nunca sincronizada."
+  },
+  "qs_apply": {
+    "message": "Configurar tradução, leitura e transcrição"
+  },
+  "qs_testing": {
+    "message": "Testando…"
+  },
+  "qs_untouched": {
+    "message": "— inalterado · você já configurou ({cur})"
+  },
+  "qs_unknown": {
+    "message": "configuração existente"
+  },
+  "qs_slot_chat": {
+    "message": "Tradução"
+  },
+  "qs_slot_tts": {
+    "message": "Leitura em voz alta"
+  },
+  "qs_slot_stt": {
+    "message": "Transcrição"
+  },
+  "qs_slot_notes": {
+    "message": "Análise de frases"
+  },
+  "qs_notes_follow": {
+    "message": "segue o motor de tradução (inalterado)"
+  },
+  "qs_tts_untried": {
+    "message": "(ainda não foi reproduzido — use “Ouvir um exemplo” no cartão de Voz abaixo)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Isso não liga a gravação. O que acabou de ser enviado é um tom senoidal de 0,6 segundo, não a sua voz."
+  },
+  "qs_retry": {
+    "message": "Tentar este novamente"
+  },
+  "engine_test_empty_audio": {
+    "message": "O endpoint respondeu, mas não retornou áudio"
   }
 }

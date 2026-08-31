@@ -196,52 +196,11 @@ function populateTtsEngines(selected) {
   sel.value = ttsEngineById(selected) ? selected : (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser';
 }
 
-// 引擎自检的失败具名。三个引擎共用一张表：用户看到的应该是「哪里不对、
-// 怎么改」，而不是一句「测试失败」。code 由各模块抛出（transport 层已具名）。
-function engineTestReason(e) {
-  const code = (e && e.code) || '';
-  switch (code) {
-    case 'no_base': return t('engine_test_no_base', '还没填端点地址');
-    case 'no_key': return t('engine_test_no_key', '还没填 API Key');
-    case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
-    // 存储里的引擎 id 这个版本不认识（旧版本遗留、或本 flavor 没有这个引擎）。
-    // 说清「重新选一个」，因为下拉里显示的那一项**不等于**实际存着的那一项。
-    case 'unknown_provider': return t('engine_test_unknown_provider', '这个版本不认识当前存着的引擎，请在上面重新选一个');
-    // `viaProxy` = 直连失败后我们已经自动改走扩展后台再试过一次（translation-api.js
-    // 的 §5.5 回退）。两条路都不通时说出来，否则用户会照着提示第二次去查跨域——而
-    // 后台那条路本来就不受跨域约束，查了也白查。
-    case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）')
-      + (e && e.viaProxy ? '\n' + t('engine_test_via_proxy', '（已自动改从扩展后台重试，仍未通——所以不是跨域问题，是这个地址从这台机器真的够不着）') : '');
-    case 'timeout': return t('engine_test_timeout', '端点没有在超时前回应');
-    case 'no_path': return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
-    case 'bad_url': return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
-    case 'empty_output': return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
-    // 上一条的精确版本：我们现在能分辨「模型不吐正文」与「预算被思考吃光」了。
-    // 后者不是「换个模型」，而是「调高预算或降低推理档位」，而且**重试永远无效** ——
-    // 说清楚这一点，用户才不会把「点此重试」点到天荒地老（实测单次要烧 27.8 秒）。
-    case 'reasoning_starved': return t('err_reasoning_starved', '模型把整个输出预算用在了思考上，没有产出译文。请在「高级参数」里调高「单次最大输出长度」，或换一个非推理模型。');
-    case 'bad_output': return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
-    // 我们的提示是**猜**，服务端那句话是**事实**——所以两句都给，事实在后面单起一行。
-    // 只给提示的代价是实测过的：一个网关因为 body 里的 `max_tokens` / `temperature`
-    // 对新模型不合法而回 400，它在响应体里把参数名点得清清楚楚，而我们只显示
-    // 「服务端拒绝了这次请求」，把用户支去查地址和 key——那两样本来就是对的。
-    case 'http': return t('engine_test_http', 'HTTP {n} —— {hint}')
-      .replace('{n}', String(e.status || '?'))
-      .replace('{hint}', e.status === 401 || e.status === 403
-        ? t('engine_test_hint_key', 'key 不对或没有权限')
-        : e.status === 404 ? t('engine_test_hint_404', '地址或模型名不对')
-        : t('engine_test_hint_other', '服务端拒绝了这次请求'))
-      + serverLine(e);
-    default: return ((e && e.message) || t('engine_test_failed', '没通')) + serverLine(e);
-  }
-}
-
-// 服务端原话，原样附上，不翻译也不改写：它是**证据**，任何加工都会让它对不上用户
-// 去搜的那段文字。`serverMessage` 由传输层填（translation-api.js 的 serverSays）。
-function serverLine(e) {
-  const said = e && e.serverMessage;
-  return said ? '\n' + t('engine_test_server_said', '服务端原话：{msg}').replace('{msg}', String(said)) : '';
-}
+// 引擎自检的失败具名与「服务端原话」，实现在 learn/engine-test.js —— 那张表现在有
+// **四个**消费者（这三个按钮 + 引导页 + 一键配置卡）。它以前住在这个文件的闭包里，
+// 于是引导页只能自己手写一份，同一个 401 在两个页面上说两种话。
+function engineTestReason(e) { return EngineTest.reason(e, t); }
+function serverLine(e) { return EngineTest.serverLine(e, t); }
 
 function ttsReason(reason) {
   switch (reason) {
@@ -672,6 +631,10 @@ async function init() {
     'api-key', 'api-base-url', 'api-model',
     'notes-api-key', 'notes-base-url', 'notes-model',
     'stt-api-key', 'stt-base-url', 'stt-model',
+    // 2026-08-31 补：语音那三个框一直不在这里，只靠 change 失焦保存 —— 粘完 key
+    // 直接关页面就丢。与 1.6.8 修过的「API Key 只在 change 保存被静默丢弃」同族，
+    // 当时改了九个框，漏的正是这三个。
+    'tts-api-key', 'tts-base-url', 'tts-model',
   ];
   let _inputSaveTimer = null;
   for (const id of SAVE_ON_INPUT) {
@@ -829,12 +792,7 @@ async function init() {
   // 端点虽然罕见却是合法的。但自检是用户「东西坏了」时会来的地方，把「地址少了路径」从
   // CORS / 不可达里切出来，命中率最高的位置就在这里 —— 那两种失败在 WebKit 里长得一模
   // 一样（2026-08-13 实测），只有离线检查能确定地区分。
-  function assertEndpointShape(url) {
-    const u = String(url || '').trim();
-    if (!u) return;                                   // 空 = 用默认端点，不是错误
-    if (!WireFormat.isAbsolute(u)) { const e = new Error('not absolute'); e.code = 'bad_url'; e.url = u; throw e; }
-    if (!WireFormat.hasPath(u)) { const e = new Error('no path'); e.code = 'no_path'; e.url = u; throw e; }
-  }
+  const assertEndpointShape = (url) => EngineTest.assertEndpointShape(url);
   const runTest = (btn, note, fn) => busy($(btn), async () => {
     const el = $(note);
     el.textContent = t('engine_test_running', '测试中…');
@@ -873,20 +831,17 @@ async function init() {
     // The notes group may be empty and follow the translation group instead
     // (LearnNotes.resolveConfig owns that rule) — check whichever field is in play.
     assertEndpointShape($('notes-provider').value ? $('notes-base-url').value : $('api-base-url').value);
-    LearnNotes.configure(LearnNotes.resolveConfig(await new Promise((r) =>
-      chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {})))));
-    return LearnNotes.test();
+    return EngineTest.notes(await new Promise((r) =>
+      chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {}))));
   }));
 
   $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
     await saveAll();
-    assertEndpointShape($('stt-base-url').value);
-    LearnSpeech.configure({
+    return EngineTest.stt({
       engineId: $('stt-engine').value, apiKey: $('stt-api-key').value.trim(),
       baseUrl: $('stt-base-url').value.trim(),
       model: $('stt-model').value.trim(),
     });
-    return LearnSpeech.test();
   }));
 
   $('btn-tts-test').addEventListener('click', busy($('btn-tts-test'), async () => {
@@ -1369,6 +1324,48 @@ async function init() {
       });
     });
   }));
+
+  // ── 一把 key 配好全部（QuickSetup）──────────────────────────────────
+  //
+  // 组件只返回 patch。这里**先把值回填进控件、跑各自的 update*UI、再 saveAll()** ——
+  // 反过来做（组件自己写存储）的话，用户下一次改任何一个字段，saveAll 就会用旧 DOM
+  // 把刚配好的三组全部覆盖回去。静默，且必然。
+  //
+  // 副作用是个礼物：ttsMode 已经是 'assist'，updateTtsUI 会把 #tts-config 当场展开 ——
+  // 用户看到语音卡长出来，就是「它真的动了」的物理证据。
+  async function applyQuickSetup(plan) {
+    const w = plan.writes;
+    const put = (key, id) => { if (key in w && $(id)) $(id).value = w[key]; };
+    put('provider', 'provider'); put('apiKey', 'api-key');
+    put('apiBaseUrl', 'api-base-url'); put('apiModel', 'api-model');
+    put('ttsMode', 'tts-mode'); put('ttsBaseUrl', 'tts-base-url');
+    put('ttsApiKey', 'tts-api-key'); put('ttsModel', 'tts-model');
+    put('sttBaseUrl', 'stt-base-url'); put('sttApiKey', 'stt-api-key'); put('sttModel', 'stt-model');
+    if ('ttsAutoPlay' in w && $('tts-autoplay')) $('tts-autoplay').checked = w.ttsAutoPlay;
+
+    if ('provider' in w) {
+      updateProviderUI(w.provider);
+      if ($('adv-custom')) { $('adv-custom').value = customParams[w.provider] || ''; }
+      updateCustomNote(); updateAdvancedNotes();
+    }
+    if ('ttsEngine' in w) { populateTtsEngines(w.ttsEngine); await updateTtsUI(w.ttsVoice || ''); }
+    if ('sttEngine' in w) { populateSttEngines(w.sttEngine); updateSttUI(w.sttEngine); }
+    await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
+  }
+
+  if ($('quick-setup')) {
+    QuickSetup.render($('quick-setup'), {
+      t,
+      settings: s0,
+      // 读不到已存设置时不许配：往一份读不出来的档案上盖三组配置，正是
+      // settings_read_failed 那句警告存在的理由。
+      disabled: _settingsReadFailed,
+      onApply: applyQuickSetup,
+    });
+    if (!$('quick-setup').children.length && $('quick-setup-card')) {
+      $('quick-setup-card').hidden = true;   // 这个 flavor 没有可一键的平台，不留空壳
+    }
+  }
 }
 
 // A bare `init()` turns any throw inside it into a silent unhandled rejection, which

@@ -330,6 +330,32 @@ var LearnTTS = (() => {
     return { ok: true };
   }
 
+  // 连通性自检：合成一次，**不播放、不入缓存**。
+  //
+  // 「配好了吗」与「这台设备放得出声吗」是两个问题。设置页那个「试听一句」回答后者
+  // （走 speak()，会撞上自动播放策略、编解码、系统音量），把两者混在一起测，一次被
+  // 浏览器拦下的自动播放会显示成「你的 key 不对」。
+  //
+  // 走 fetchAudio 而不是 getAudio 是刻意的：绕开 LearnStore / LearnModel，于是这个
+  // 函数在**只加载了 wire-format + request-shape 的页面**上也能跑 —— 扩展的引导页
+  // 正是那种页面，而让引导页测得比设置页少，就是我们自己造的一个沉默失败。
+  //
+  // 不入缓存也是刻意的：这句测试文本和任何一张卡的正文都不同，缓存它只占空间。
+  async function test() {
+    const e = engine();
+    if (!e) { const err = new Error('no engine'); err.code = 'no_engine'; throw err; }
+    // browser 引擎没有字节可取（Web Speech 不暴露音频数据）。一键配置永远选不到它
+    // （needsKey:false ⇒ 不成组），但别给未来的调用方留一个会抛的分支。
+    if (!e.returnsAudio) return { ok: true, ms: 0, browser: true };
+    const gate = readiness(e);
+    if (!gate.ok) { const err = new Error(gate.reason); err.code = gate.reason; throw err; }
+    const t0 = Date.now();
+    const got = await fetchAudio('This is a connectivity check.', 'en');
+    const bytes = got && got.buf ? got.buf.byteLength : 0;
+    if (!bytes) { const err = new Error('empty_audio'); err.code = 'empty_audio'; throw err; }
+    return { ok: true, ms: Date.now() - t0, bytes };
+  }
+
   // Synthesize into the cache WITHOUT playing (§9.5: 开卡并行预热 / 出发前预载).
   //
   // Deliberately not "speak but muted": speak() bumps the epoch and would cancel the
@@ -527,7 +553,7 @@ var LearnTTS = (() => {
     DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, baseLang, undLang, cacheKey,
-    getAudio, prefetch, speak, stop, available,
+    getAudio, prefetch, speak, stop, available, test,
     get config() { return cfg; },
   };
 })();

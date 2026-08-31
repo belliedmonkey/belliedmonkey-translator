@@ -1845,5 +1845,68 @@
   },
   "extob_first_run": {
     "message": "Première fois ? Deux minutes pour tout régler →"
+  },
+  "qs_title": {
+    "message": "Tout configurer avec une seule clé"
+  },
+  "qs_sub": {
+    "message": "Sur ces plateformes, une seule clé configure la traduction, la lecture à voix haute et la transcription. Les autres moteurs se configurent dans leurs propres cartes."
+  },
+  "qs_platform": {
+    "message": "Plateforme"
+  },
+  "qs_only_one": {
+    "message": "Plateforme : {p}"
+  },
+  "qs_key": {
+    "message": "Clé API"
+  },
+  "qs_key_ph": {
+    "message": "Collez une fois — les trois sont configurés"
+  },
+  "qs_more": {
+    "message": "Changer les modèles utilisés"
+  },
+  "qs_privacy": {
+    "message": "La transcription envoie votre enregistrement à {host}. Il est supprimé dès la reconnaissance — jamais stocké, jamais synchronisé."
+  },
+  "qs_apply": {
+    "message": "Configurer traduction, lecture et transcription"
+  },
+  "qs_testing": {
+    "message": "Test en cours…"
+  },
+  "qs_untouched": {
+    "message": "— inchangé · déjà configuré ({cur})"
+  },
+  "qs_unknown": {
+    "message": "configuration existante"
+  },
+  "qs_slot_chat": {
+    "message": "Traduction"
+  },
+  "qs_slot_tts": {
+    "message": "Lecture à voix haute"
+  },
+  "qs_slot_stt": {
+    "message": "Transcription"
+  },
+  "qs_slot_notes": {
+    "message": "Analyse de phrase"
+  },
+  "qs_notes_follow": {
+    "message": "suit le moteur de traduction (inchangé)"
+  },
+  "qs_tts_untried": {
+    "message": "(pas encore écouté — utilisez « Écouter un exemple » dans la carte Voix ci-dessous)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Cela n'active pas l'enregistrement. Ce qui vient d'être envoyé est une tonalité sinusoïdale de 0,6 seconde, pas votre voix."
+  },
+  "qs_retry": {
+    "message": "Réessayer celui-ci"
+  },
+  "engine_test_empty_audio": {
+    "message": "Le point de terminaison a répondu mais n'a renvoyé aucun audio"
   }
 }

@@ -37,6 +37,10 @@
           <h2 id="ob-title"></h2>
           <p id="ob-text"></p>
 
+          <!-- 第 2 屏：先给「一把 key 配好全部」，下面那个单配翻译的选择器留着 ——
+               有的人就是想只配翻译，或者用一个不在一键清单里的引擎。 -->
+          <div id="ob-quick" hidden></div>
+
           <!-- 第 2 屏：真的引擎选择器，不是说明文字 -->
           <div id="ob-engine" hidden>
             <label for="ob-provider" data-i18n="options_engine_label">翻译引擎</label>
@@ -82,6 +86,14 @@
   <script src="../content/palette.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
   <script src="../content/langs.gen.js"></script>
+  <!-- 语音那两张注册表 + 两个传输：一键配置要在这一页把朗读与转写也**配好并测通**。
+       让引导页测得比设置页少，用户会在这里看到 ✓ 而以为三样都验过了 —— 那是我们
+       新造的沉默失败。代价约 43 KB，而这一页已经在加载 440 KB 的 i18n-messages.js。
+       刻意**不**加载 learn/store.js / learn-model.js / learn/notes.js：LearnTTS.test()
+       走 fetchAudio、LearnSpeech.test() 只用 WireFormat + RequestShape，都不需要
+       IndexedDB 那一层。别「顺手补齐」。 -->
+  <script src="../content/tts.gen.js"></script>
+  <script src="../content/stt.gen.js"></script>
   <!-- TranslationAPI 的依赖链，顺序照 options.html：wire-format 解地址、request-shape
        组请求体（它还会读 chrome.storage 的高级参数），两者都必须在 translation-api 之前。 -->
   <script src="../content/wire-format.js"></script>
@@ -89,6 +101,10 @@
   <script src="../content/translation-api.js"></script>
   <script src="../learn/backend.config.js"></script>
   <script src="../learn/sources-view.js"></script>
+  <script src="../learn/tts.js"></script>
+  <script src="../learn/speech-input.js"></script>
+  <script src="../learn/engine-test.js"></script>
+  <script src="../learn/quick-setup.js"></script>
   <script src="onboard.js"></script>
 </body>
 </html>

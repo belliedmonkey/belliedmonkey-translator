@@ -1845,5 +1845,68 @@
   },
   "extob_first_run": {
     "message": "First time? Two minutes to set it up →"
+  },
+  "qs_title": {
+    "message": "Set everything up with one key"
+  },
+  "qs_sub": {
+    "message": "On these platforms one key configures translation, read-aloud and transcription at once. Other engines are configured in their own cards below."
+  },
+  "qs_platform": {
+    "message": "Platform"
+  },
+  "qs_only_one": {
+    "message": "Platform: {p}"
+  },
+  "qs_key": {
+    "message": "API key"
+  },
+  "qs_key_ph": {
+    "message": "Paste once — configures all three"
+  },
+  "qs_more": {
+    "message": "Change which models are used"
+  },
+  "qs_privacy": {
+    "message": "Transcription sends your recording to {host}. It is discarded as soon as it is recognised — never stored, never synced."
+  },
+  "qs_apply": {
+    "message": "Set up translation, read-aloud and transcription"
+  },
+  "qs_testing": {
+    "message": "Testing…"
+  },
+  "qs_untouched": {
+    "message": "— left alone · you already configured this ({cur})"
+  },
+  "qs_unknown": {
+    "message": "existing setup"
+  },
+  "qs_slot_chat": {
+    "message": "Translation"
+  },
+  "qs_slot_tts": {
+    "message": "Read-aloud"
+  },
+  "qs_slot_stt": {
+    "message": "Transcription"
+  },
+  "qs_slot_notes": {
+    "message": "Sentence notes"
+  },
+  "qs_notes_follow": {
+    "message": "follows the translation engine (unchanged)"
+  },
+  "qs_tts_untried": {
+    "message": "(not played yet — use “Play a sample” in the Voice card below to hear it)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Recording is not switched on by this. What was just sent was a 0.6-second sine tone, not your voice."
+  },
+  "qs_retry": {
+    "message": "Retry this one"
+  },
+  "engine_test_empty_audio": {
+    "message": "The endpoint responded but returned no audio"
   }
 }

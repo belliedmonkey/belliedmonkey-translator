@@ -1845,5 +1845,68 @@
   },
   "extob_first_run": {
     "message": "はじめて？2 分で設定できます →"
+  },
+  "qs_title": {
+    "message": "ひとつのキーですべて設定"
+  },
+  "qs_sub": {
+    "message": "これらのプラットフォームなら、ひとつのキーで翻訳・読み上げ・文字起こしをまとめて設定できます。他のエンジンは各カードで個別に設定してください。"
+  },
+  "qs_platform": {
+    "message": "プラットフォーム"
+  },
+  "qs_only_one": {
+    "message": "対象プラットフォーム：{p}"
+  },
+  "qs_key": {
+    "message": "API キー"
+  },
+  "qs_key_ph": {
+    "message": "一度貼るだけで 3 つとも設定"
+  },
+  "qs_more": {
+    "message": "使うモデルを変更"
+  },
+  "qs_privacy": {
+    "message": "文字起こしは録音を {host} に送ります。認識が済み次第すぐ破棄され、保存も同期もされません。"
+  },
+  "qs_apply": {
+    "message": "翻訳・読み上げ・文字起こしを設定"
+  },
+  "qs_testing": {
+    "message": "テスト中…"
+  },
+  "qs_untouched": {
+    "message": "— 変更なし · すでに設定済みです（{cur}）"
+  },
+  "qs_unknown": {
+    "message": "既存の設定"
+  },
+  "qs_slot_chat": {
+    "message": "翻訳"
+  },
+  "qs_slot_tts": {
+    "message": "読み上げ"
+  },
+  "qs_slot_stt": {
+    "message": "文字起こし"
+  },
+  "qs_slot_notes": {
+    "message": "文の解説"
+  },
+  "qs_notes_follow": {
+    "message": "翻訳エンジンに追従（変更なし）"
+  },
+  "qs_tts_untried": {
+    "message": "（まだ再生していません —— 下の〈音声〉カードの「一文を試聴」で確認してください）"
+  },
+  "qs_stt_failed_note": {
+    "message": "これで録音が有効になることはありません。今送られたのは 0.6 秒の正弦波で、あなたの声ではありません。"
+  },
+  "qs_retry": {
+    "message": "これだけ再試行"
+  },
+  "engine_test_empty_audio": {
+    "message": "エンドポイントは応答しましたが、音声が返りませんでした"
   }
 }

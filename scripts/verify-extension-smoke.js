@@ -256,6 +256,54 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (Number(after.reqTemperature) !== 0.7 || Number(after.reqConcurrency) !== 3) {
         problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— saveAll 是整体覆盖式的，回填漏了`);
       }
+
+      // ── 一把 key 配好全部：写进去的三组，必须扛得住下一次 saveAll ──────────
+      //
+      // 这是这个功能唯一的高危回归，而且**只在真浏览器里成立** —— 它是 DOM 回填的
+      // 问题，纯函数层测不到。组件只返回 patch，由 applyQuickSetup 先回填控件再
+      // saveAll()；少回填一个控件，用户手上的表现就是「我配好了，过一分钟又没了」。
+      //
+      // 三条连通性测试在这里必定失败（配的是注册表里的真实 host，这台机器上打不通），
+      // 无所谓 —— 写入在测试之前就已经发生，而这一幕验的正是写入活不活得下来。
+      const qsHave = await evalIn(cdp, sessionId, `!!document.getElementById('qs-apply')`);
+      if (!qsHave) {
+        problems.push('设置页上没有「一把 key 配好全部」的按钮 —— 卡没渲染');
+      } else {
+        await evalIn(cdp, sessionId, `(() => {
+          const k = document.getElementById('qs-key');
+          k.value = 'sk-smoke-test';
+          document.getElementById('qs-apply').click();
+          return 1;
+        })()`);
+        await sleep(2500);
+        const wrote = JSON.parse(await evalIn(cdp, sessionId,
+          `new Promise(r => chrome.storage.local.get(['provider','ttsEngine','ttsMode','sttEngine'], v => r(JSON.stringify(v))))`));
+        if (!wrote.ttsEngine || !wrote.sttEngine || wrote.ttsMode !== 'assist') {
+          problems.push(`一键配置没把三组写进去: ${JSON.stringify(wrote)}`);
+        } else {
+          // 改一个完全无关的字段，触发整体覆盖式的 saveAll()
+          await evalIn(cdp, sessionId, `(() => {
+            const f = document.getElementById('font-size');
+            f.value = f.options[0].value;
+            f.dispatchEvent(new Event('change', { bubbles: true }));
+            return 1;
+          })()`);
+          await sleep(1200);
+          const still = JSON.parse(await evalIn(cdp, sessionId,
+            `new Promise(r => chrome.storage.local.get(['provider','ttsEngine','ttsMode','sttEngine'], v => r(JSON.stringify(v))))`));
+          let drift = 0;
+          for (const k of ['provider', 'ttsEngine', 'ttsMode', 'sttEngine']) {
+            if (still[k] !== wrote[k]) {
+              drift++;
+              problems.push(`改别的字段把一键配置冲掉了：${k} ${JSON.stringify(wrote[k])} → ${JSON.stringify(still[k])}`
+                + ' —— applyQuickSetup 少回填了一个控件');
+            }
+          }
+          // 打出来，否则「这一幕跑没跑」和「跑了并且通过」在输出上一模一样。
+          console.log('一键配置 写入→改别的字段后仍是 ' + JSON.stringify(still)
+            + (drift ? ' ✗' : ' ✓'));
+        }
+      }
       notes.push(`高级参数 存→重开→改别的字段后仍是 ${JSON.stringify(after)}`);
 
       // ── 自定义参数：按引擎存，最容易坏在「切引擎」这一步 ──────────────────

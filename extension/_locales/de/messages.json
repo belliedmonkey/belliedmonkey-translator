@@ -1845,5 +1845,68 @@
   },
   "extob_first_run": {
     "message": "Zum ersten Mal? In zwei Minuten eingerichtet →"
+  },
+  "qs_title": {
+    "message": "Alles mit einem Schlüssel einrichten"
+  },
+  "qs_sub": {
+    "message": "Bei diesen Plattformen richtet ein Schlüssel Übersetzung, Vorlesen und Transkription auf einmal ein. Andere Engines werden in ihren eigenen Karten konfiguriert."
+  },
+  "qs_platform": {
+    "message": "Plattform"
+  },
+  "qs_only_one": {
+    "message": "Plattform: {p}"
+  },
+  "qs_key": {
+    "message": "API-Schlüssel"
+  },
+  "qs_key_ph": {
+    "message": "Einmal einfügen – richtet alle drei ein"
+  },
+  "qs_more": {
+    "message": "Verwendete Modelle ändern"
+  },
+  "qs_privacy": {
+    "message": "Die Transkription sendet deine Aufnahme an {host}. Sie wird sofort nach der Erkennung verworfen – nie gespeichert, nie synchronisiert."
+  },
+  "qs_apply": {
+    "message": "Übersetzung, Vorlesen und Transkription einrichten"
+  },
+  "qs_testing": {
+    "message": "Wird getestet…"
+  },
+  "qs_untouched": {
+    "message": "— unverändert · bereits eingerichtet ({cur})"
+  },
+  "qs_unknown": {
+    "message": "vorhandene Einrichtung"
+  },
+  "qs_slot_chat": {
+    "message": "Übersetzung"
+  },
+  "qs_slot_tts": {
+    "message": "Vorlesen"
+  },
+  "qs_slot_stt": {
+    "message": "Transkription"
+  },
+  "qs_slot_notes": {
+    "message": "Satzanalyse"
+  },
+  "qs_notes_follow": {
+    "message": "folgt der Übersetzungs-Engine (unverändert)"
+  },
+  "qs_tts_untried": {
+    "message": "(noch nicht abgespielt – nutze „Beispiel anhören“ in der Sprachkarte unten)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Dadurch wird die Aufnahme nicht eingeschaltet. Gesendet wurde ein 0,6 Sekunden langer Sinuston, nicht deine Stimme."
+  },
+  "qs_retry": {
+    "message": "Diesen erneut versuchen"
+  },
+  "engine_test_empty_audio": {
+    "message": "Der Endpunkt hat geantwortet, aber kein Audio geliefert"
   }
 }

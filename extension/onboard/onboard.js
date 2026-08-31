@@ -84,7 +84,7 @@
   function paint() {
     const step = OB[at];
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-engine', 'ob-capture', 'ob-cta', 'ob-cta-note']) $(id).hidden = true;
+    for (const id of ['ob-quick', 'ob-engine', 'ob-capture', 'ob-cta', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
     $('ob-next').hidden = false;
@@ -148,6 +148,31 @@
     $('ob-key').value = settings.apiKey || '';
     syncKeyRow();
     $('ob-test').textContent = t('engine_test', '测试连接');
+    paintQuick();
+  }
+
+  // 「一把 key 配好全部」——与设置页**同一个组件**。
+  //
+  // onApply 走局部写（storageSet），**不是** options.js 的 saveAll()：这一页没有
+  // tts/stt/notes 的控件，整体覆盖式的保存会把它们全部清空。写完重画第 2 屏，
+  // 否则用户会在同一屏上同时看到「已配好 OpenRouter」和一个还写着别的引擎的下拉。
+  let quickMounted = false;
+  function paintQuick() {
+    const box = $('ob-quick');
+    if (!box || typeof QuickSetup === 'undefined') return;
+    if (!quickMounted) {
+      QuickSetup.render(box, {
+        t,
+        settings,
+        onApply: async (plan) => {
+          await storageSet(plan.writes);
+          Object.assign(settings, plan.writes);
+          paintEngine();
+        },
+      });
+      quickMounted = true;
+    }
+    box.hidden = !box.children.length;
   }
   function syncKeyRow() {
     const p = providerById($('ob-provider').value);
@@ -179,14 +204,16 @@
     try {
       // noCache: 一个可能不发请求的「测试连接」是有害的，不是省事 —— 它会在端点其实是
       // 坏的时候报「通了」。同 options.js:824 的理由。
-      const diag = {};
       const s = await storageGet(['targetLang', 'apiBaseUrl', 'apiModel'], {});
-      const res = await window.TranslationAPI.translate('Hello.', s.targetLang || 'zh-CN',
-        $('ob-provider').value, $('ob-key').value.trim(), s.apiBaseUrl || '', s.apiModel || '',
-        { noCache: true, diag });
-      out.textContent = '✓ ' + String(res).trim().slice(0, 40);
+      // 走共用的 EngineTest：这里原本是第六份手写实现，同一个 401 在设置页上显示
+      // 完整失败码表 + 服务端原话 + 请求地址 + 通路，在这一页只显示「✗ Load failed」。
+      const r = await EngineTest.translation({
+        provider: $('ob-provider').value, apiKey: $('ob-key').value.trim(),
+        baseUrl: s.apiBaseUrl || '', model: s.apiModel || '', targetLang: s.targetLang || 'zh-CN',
+      });
+      out.textContent = EngineTest.format(r, null, t);
     } catch (e) {
-      out.textContent = '✗ ' + ((e && e.message) || String(e)).slice(0, 80);
+      out.textContent = EngineTest.format(null, e, t);
     }
   });
 

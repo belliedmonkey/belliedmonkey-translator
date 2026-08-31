@@ -21,6 +21,16 @@
            Filled and shown/hidden by options.js — never both states at once. -->
       <div class="setup-note" id="setup-note" style="display:none"></div>
 
+      <!-- 一把 key 配好全部（QuickSetup）。渲染在 learn/quick-setup.js，与扩展引导
+           第 2 屏是**同一个组件** —— 两处说两套话是这一整块要消灭的东西。
+           它只返回 patch，写盘由本页的 applyQuickSetup() 负责：saveAll() 是整体
+           覆盖式的、DOM 才是真相源，组件自己写存储的话，用户下一次改任何一个字段
+           都会用旧 DOM 把刚配好的三组覆盖回去。 -->
+      <section class="card" id="quick-setup-card">
+        <h2 data-i18n="qs_title">用一把 key 配好全部</h2>
+        <div id="quick-setup"></div>
+      </section>
+
       <!-- 翻译引擎 -->
       <section class="card">
         <h2 data-i18n="options_engine_section">翻译引擎</h2>
@@ -251,8 +261,14 @@
         </div>
 
         <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的
-             端点，识别后即弃；不配置则说题不存在。永不跟随翻译或解析组——
-             录音去哪儿必须是一次显式选择。 -->
+             端点，识别后即弃；不配置则说题不存在。**永不隐式跟随**翻译或解析组 ——
+             LearnNotes.resolveConfig 那种「没单独配就整组借用」对录音不成立。
+             2026-08-31 修订：这条原本写作「录音去哪儿必须是一次显式选择」，并据此
+             拒绝任何自动配置。上面的「一把 key 配好全部」现在会配它 —— 但那不是
+             隐式跟随：那张卡在按钮**上方**常显一句「转写会把你的录音发到 <host>
+             识别，识别完立即丢弃」，按钮本身也点名三样。显式选择的落点从一个复选框
+             挪到了「按下之前就看得见的一句话 + 一个说清楚要做什么的按钮」，规约
+             要保护的东西没变，形状变了。 -->
         <div class="field">
           <label for="stt-engine" data-i18n="stt_engine">转写引擎</label>
           <select id="stt-engine"></select>
@@ -438,6 +454,8 @@
   <script src="../learn/backend.config.js"></script>
   <script src="../learn/auth.js"></script>
   <script src="../learn/sync.js"></script>
+  <script src="../learn/engine-test.js"></script>
+  <script src="../learn/quick-setup.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="../learn/sources-view.js"></script>

@@ -1846,5 +1846,68 @@
   },
   "extob_first_run": {
     "message": "第一次用？两分钟把它配好 →"
+  },
+  "qs_title": {
+    "message": "用一把 key 配好全部"
+  },
+  "qs_sub": {
+    "message": "下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请在各自的卡片里单独配置。"
+  },
+  "qs_platform": {
+    "message": "平台"
+  },
+  "qs_only_one": {
+    "message": "可用平台：{p}"
+  },
+  "qs_key": {
+    "message": "API 密钥"
+  },
+  "qs_key_ph": {
+    "message": "粘贴一次，三样一起配好"
+  },
+  "qs_more": {
+    "message": "改一改用哪个模型"
+  },
+  "qs_privacy": {
+    "message": "转写会把你的录音发到 {host} 识别，识别完立即丢弃，不存储也不同步。"
+  },
+  "qs_apply": {
+    "message": "配好翻译、朗读、转写"
+  },
+  "qs_testing": {
+    "message": "测试中…"
+  },
+  "qs_untouched": {
+    "message": "— 没动 · 你已经配过了（{cur}）"
+  },
+  "qs_unknown": {
+    "message": "已有配置"
+  },
+  "qs_slot_chat": {
+    "message": "翻译"
+  },
+  "qs_slot_tts": {
+    "message": "朗读"
+  },
+  "qs_slot_stt": {
+    "message": "转写"
+  },
+  "qs_slot_notes": {
+    "message": "解析"
+  },
+  "qs_notes_follow": {
+    "message": "跟随翻译引擎（未改动）"
+  },
+  "qs_tts_untried": {
+    "message": "（还没试听 —— 到下面的〈语音〉卡点「试听一句」听一次）"
+  },
+  "qs_stt_failed_note": {
+    "message": "录音功能不会因此打开。刚才发出去的是一段 0.6 秒的正弦音，不是你的声音。"
+  },
+  "qs_retry": {
+    "message": "重试这一项"
+  },
+  "engine_test_empty_audio": {
+    "message": "端点通了，但没有返回音频"
   }
 }

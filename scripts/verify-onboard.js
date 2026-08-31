@@ -53,6 +53,10 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         text:(document.getElementById('ob-text')||{}).textContent||'',
         w:(document.getElementById('ob-fill')||{style:{}}).style.width,
         engine:!document.getElementById('ob-engine').hidden,
+        quick:(()=>{const b=document.getElementById('ob-quick');
+          return b&&!b.hidden?{n:b.querySelectorAll('button,select,input').length,
+            plat:b.querySelectorAll('#qs-platform option').length,
+            apply:!!b.querySelector('#qs-apply')}:null;})(),
         capture:!document.getElementById('ob-capture').hidden,
         cta:!document.getElementById('ob-cta').hidden,
         done:!document.getElementById('ob-done').hidden})`);
@@ -67,6 +71,18 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(seen.length!==expect) fail(`屏数 ${seen.length}，期望 ${expect}`); else pass(`屏数 ${expect} —— 与 flavor 相符`);
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
     if(!seen.some(s=>s.engine)) fail('没有引擎那一屏'); else pass('引擎屏在');
+    // 「一把 key 配好全部」必须真的渲染出来。HTML 在而 JS 抛异常导致一片空白，
+    // 正是这个门禁存在的理由 —— 而它对新组件尤其要紧：这一页刚加了六个 script。
+    const q = (seen.find(s=>s.quick)||{}).quick;
+    if(!q) fail('引擎屏上没有「一把 key 配好全部」那张卡 —— HTML 在但没渲染？');
+    else if(!q.apply) fail('卡渲染了但没有那个按钮');
+    else {
+      // global 有 openrouter.ai / api.openai.com 两组，china 只有 dashscope 一组；
+      // 只有一项时刻意不渲染 <select>（一个只有一个选项的下拉是在假装有选择）。
+      const wantSel = DIST==='dist-china' ? 0 : 2;
+      if(q.plat!==wantSel) fail(`平台下拉 ${q.plat} 项，期望 ${wantSel}（china 只有一组，不该有下拉）`);
+      else pass(`一键配置卡在，平台${wantSel?`下拉 ${wantSel} 项`:'唯一、不渲染下拉'}`);
+    }
     if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);
     if(errs.length){ok=false;console.log('  控制台错误:');errs.slice(0,4).forEach(e=>console.log('    '+e));}
