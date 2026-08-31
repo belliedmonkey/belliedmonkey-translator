@@ -1864,6 +1864,9 @@
   "qs_key": {
     "message": "API キー"
   },
+  "qs_get_key": {
+    "message": "キーがまだありませんか？{p} で取得 ↗"
+  },
   "qs_key_ph": {
     "message": "一度貼るだけで 3 つとも設定"
   },

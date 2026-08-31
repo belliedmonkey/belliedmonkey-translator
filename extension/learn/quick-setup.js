@@ -217,6 +217,7 @@ var QuickSetup = (() => {
     .qs-wrap { display:flex; flex-direction:column; gap:10px; }
     .qs-sub { font-size:.9em; opacity:.75; margin:0; }
     .qs-privacy { font-size:.85em; opacity:.8; margin:0; }
+    .qs-key-link { font-size:.85em; margin:0; }
     .qs-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .qs-row label { flex:0 0 auto; font-size:.85em; opacity:.75; min-width:3em; }
     .qs-row input, .qs-row select { flex:1 1 8em; min-width:0; }
@@ -287,6 +288,15 @@ var QuickSetup = (() => {
     key.placeholder = t('qs_key_ph', '粘贴一次，三样一起配好');
     keyRow.append(key); wrap.append(keyRow);
 
+    // 「我还没有 key」是这张卡最常见的断点 —— 卡在这一步，前面省下的二十几次点击
+    // 一次都用不上。地址由注册表给（keyUrl），**不在这里写死**：同一条规则挡的是
+    // defaultEndpoint 的第二份副本，地址类的事实一律归注册表。没有 keyUrl 的平台
+    // 就不显示这一行（隐藏而不是显示一个死链）。
+    const keyLink = el('a', 'qs-key-link');
+    keyLink.id = 'qs-key-link';
+    keyLink.target = '_blank'; keyLink.rel = 'noopener noreferrer';
+    wrap.append(keyLink);
+
     // 展开修改：收起时只是一行摘要，展开后可在**按下按钮之前**换模型与音色。
     const more = doc.createElement('details'); more.id = 'qs-more';
     const sum = doc.createElement('summary');
@@ -319,6 +329,13 @@ var QuickSetup = (() => {
         m.addEventListener('input', () => { picks[slot + 'Model'] = m.value.trim(); });
         row.append(m);
         picksBox.append(row);
+      }
+      const ku = (current.chat && current.chat.keyUrl) || '';
+      keyLink.hidden = !ku;
+      if (ku) {
+        keyLink.href = ku;
+        keyLink.textContent = t('qs_get_key', '还没有 key？去 {p} 申请 ↗')
+          .replace('{p}', labelOf(current.chat, t));
       }
       privacy.textContent = t('qs_privacy',
         '转写会把你的**录音**发到 {host} 识别，识别完立即丢弃，不存储也不同步。')

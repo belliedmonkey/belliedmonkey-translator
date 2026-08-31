@@ -1865,6 +1865,9 @@
   "qs_key": {
     "message": "API 密钥"
   },
+  "qs_get_key": {
+    "message": "还没有 key？去 {p} 申请 ↗"
+  },
   "qs_key_ph": {
     "message": "粘贴一次，三样一起配好"
   },

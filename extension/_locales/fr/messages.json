@@ -1864,6 +1864,9 @@
   "qs_key": {
     "message": "Clé API"
   },
+  "qs_get_key": {
+    "message": "Pas encore de clé ? Obtenez-en une sur {p} ↗"
+  },
   "qs_key_ph": {
     "message": "Collez une fois — les trois sont configurés"
   },

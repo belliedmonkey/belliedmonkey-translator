@@ -36,6 +36,37 @@ function fromDist(dir) {
   return { Q: ctx2.QuickSetup, window: ctx.window };
 }
 
+describe('QuickSetup — 每个进了下拉的平台都得说得出「去哪儿申请 key」', () => {
+  // 这张卡的承诺是「最少操作」，而没有 key 的用户在第一格就停住 —— 那时前面省下的
+  // 二十几次点击一次都用不上。所以「进得了下拉」和「给得出申请入口」必须绑死：
+  // 将来加一个平台却忘了 keyUrl，那一行会**静默消失**（渲染器 hidden 掉它），
+  // 没有这条断言就没有任何东西会红。
+  for (const dir of ['dist', 'dist-china']) {
+    test(dir + '：platforms() 里每个平台的 chat 条目都带 keyUrl，且是 https 绝对地址', () => {
+      const d = fromDist(dir);
+      if (!d) return ok(true, '（' + dir + '/ 不存在，跳过 —— 先跑 node build.js）');
+      const list = d.Q.platforms();
+      ok(list.length > 0, dir + ' 一个平台都没有，这条断言就成了空转');
+      for (const p of list) {
+        const u = p.chat.keyUrl;
+        ok(!!u, p.host + '（' + p.chat.id + '）没有 keyUrl —— '
+          + '进得了一键配置的下拉，就必须给得出申请入口');
+        ok(/^https:\/\//.test(u), p.host + ' 的 keyUrl 不是 https 绝对地址：' + u);
+      }
+    });
+  }
+
+  test('keyUrl 按 flavor 分：中国版拿到的不是国际站控制台', () => {
+    const cn = fromDist('dist-china');
+    if (!cn) return ok(true, '（dist-china/ 不存在，跳过）');
+    for (const p of cn.Q.platforms()) {
+      ok(!/alibabacloud\.com/.test(p.chat.keyUrl || ''),
+        '中国版拿到了国际站控制台（' + p.chat.keyUrl + '）—— 那边签出来的 key '
+        + '不认这个端点，用户会以为是自己粘错了');
+    }
+  });
+});
+
 describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', () => {
   test('global：恰好两组，且有实测推荐的 openrouter.ai 排第一', () => {
     const d = fromDist('dist');

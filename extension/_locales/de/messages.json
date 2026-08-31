@@ -1864,6 +1864,9 @@
   "qs_key": {
     "message": "API-Schlüssel"
   },
+  "qs_get_key": {
+    "message": "Noch kein Schlüssel? Bei {p} anfordern ↗"
+  },
   "qs_key_ph": {
     "message": "Einmal einfügen – richtet alle drei ein"
   },

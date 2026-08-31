@@ -269,6 +269,19 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (!qsHave) {
         problems.push('设置页上没有「一把 key 配好全部」的按钮 —— 卡没渲染');
       } else {
+        // 申请入口：注册表里的 keyUrl 要真的走到 DOM 上。这条只有真浏览器验得了 ——
+        // 中间隔着 build.js 生成器的 allowlist（漏字段不会有任何测试红）与渲染器的
+        // hidden 分支（没有地址就整行隐藏，看起来和「没做」一模一样）。
+        const link = JSON.parse(await evalIn(cdp, sessionId, `(() => {
+          const a = document.getElementById('qs-key-link');
+          return JSON.stringify({ has: !!a, hidden: a ? a.hidden : null,
+            href: a ? a.getAttribute('href') : '', text: a ? a.textContent.trim() : '' });
+        })()`));
+        if (!link.has || link.hidden || !/^https:\/\//.test(link.href || '')) {
+          problems.push('一键配置里没有可用的「去申请 key」入口：' + JSON.stringify(link)
+            + ' —— 注册表的 keyUrl 没走到 DOM（多半是 build.js 生成器的 allowlist 漏了）');
+        }
+
         await evalIn(cdp, sessionId, `(() => {
           const k = document.getElementById('qs-key');
           k.value = 'sk-smoke-test';

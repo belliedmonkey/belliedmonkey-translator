@@ -1864,6 +1864,9 @@
   "qs_key": {
     "message": "API key"
   },
+  "qs_get_key": {
+    "message": "No key yet? Get one at {p} ↗"
+  },
   "qs_key_ph": {
     "message": "Paste once — configures all three"
   },

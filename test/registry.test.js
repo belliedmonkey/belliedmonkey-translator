@@ -44,7 +44,7 @@ const REGISTRIES = [
 const KNOWN_KEYS = {
   providers: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
-    'labelKey', 'hintKey'],
+    'labelKey', 'hintKey', 'keyUrl'],
   tts: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'voices',
     'returnsAudio', 'label', 'labelKey', 'hintKey'],

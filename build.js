@@ -192,6 +192,8 @@ function generateProviders(dir, flavor) {
       defaultModel: pick(p.defaultModel) || '',
       needsKey: !!p.needsKey, supportsBaseUrl: !!p.supportsBaseUrl,
       supportsModel: !!p.supportsModel, requiresEndpoint: !!p.requiresEndpoint, hintKey: p.hintKey || null,
+      // 「去哪儿申请这把 key」。按 flavor 取，同 defaultEndpoint / label。
+      keyUrl: pick(p.keyUrl) || null,
     }));
   // The model-parameter table rides this same file rather than getting one of its own.
   // providers.gen.js is already on every surface that resolves an endpoint (both

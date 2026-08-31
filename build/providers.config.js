@@ -59,6 +59,7 @@ module.exports = [
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: { global: 'https://api.openai.com/v1/chat/completions' }, placeholder: null,
     defaultModel: 'gpt-4o-mini', label: { global: 'ChatGPT (OpenAI)' }, hintKey: 'hint_openai',
+    keyUrl: { global: 'https://platform.openai.com/api-keys' },
   },
   {
     id: 'claude', type: 'messages-compat', flavors: ['global'],
@@ -93,6 +94,19 @@ module.exports = [
     },
     placeholder: null, defaultModel: 'qwen-plus',
     label: { china: '通义千问', global: 'Qwen' }, hintKey: 'hint_qwen',
+    // 按 flavor 分，理由与 defaultEndpoint 同一条：这家的账号体系是**分区域**的，
+    // 拿错区域的控制台给用户，他签出来的 key 打不通这个端点，而报错只会说 401 ——
+    // 他会以为是自己粘错了。
+    //
+    // 两条都带**区域路径段**，这不是多余的：2026-08-31 实测，不带区域的
+    // `bailian.console.alibabacloud.com/?tab=model#/api-key` 会跳到
+    // modelstudio.console.alibabacloud.com 并**默认落在 cn-beijing**，而 global 的
+    // 端点是 dashscope-intl（新加坡）—— 正好是这条注释在防的那个错。
+    // 钉 /ap-southeast-1 后落地页读到「Singapore · API Key」。
+    keyUrl: {
+      china: 'https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key',
+      global: 'https://modelstudio.console.alibabacloud.com/ap-southeast-1?tab=model#/api-key',
+    },
   },
   {
     // 翻译专用模型。`type` 写 chat-compat 而不是 translate-compat，是刻意的：`type` 的
@@ -138,6 +152,7 @@ module.exports = [
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: { global: 'https://openrouter.ai/api/v1/chat/completions' }, placeholder: null,
     defaultModel: 'google/gemini-3.7-flash', label: { global: 'OpenRouter' }, hintKey: null,
+    keyUrl: { global: 'https://openrouter.ai/keys' },
   },
   {
     // Generic OpenAI Chat-Completions-format endpoint. User supplies the COMPLETE

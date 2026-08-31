@@ -1865,6 +1865,9 @@
   "qs_key": {
     "message": "API 金鑰"
   },
+  "qs_get_key": {
+    "message": "還沒有 key？去 {p} 申請 ↗"
+  },
   "qs_key_ph": {
     "message": "貼上一次，三樣一起設定好"
   },
