@@ -62,6 +62,14 @@ var QuickSetup = (() => {
 
   function platforms(reg) {
     const r = registries(reg);
+    // 有实测推荐的 host 排前面，其余按注册表顺序。
+    //
+    // 注册表顺序是**历史形成**的（openai 只是加得早），拿它当推荐序会让一键配置卡
+    // 推荐一个我们从没为它跑过跨能力实测的平台，而官网教程推荐的是另一个。这份
+    // 名单由 build.js 从 build/recommend.config.js 派生进生成物 —— 单一来源，
+    // 且那张表已经有「每个 (平台, 能力) 必须有 default 轴」的门禁守着。
+    const rec = (reg && reg.recommended)
+      || (typeof window !== 'undefined' && window.MT_RECOMMENDED_HOSTS) || [];
     const order = [];
     const byHost = new Map();
     const take = (slot, e) => {
@@ -74,7 +82,8 @@ var QuickSetup = (() => {
     for (const e of r.tts) take('tts', e);
     for (const e of r.stt) take('stt', e);
 
-    return order.map((h) => byHost.get(h))
+    const rank = (h) => { const i = rec.indexOf(h); return i < 0 ? rec.length + order.indexOf(h) : i; };
+    return order.slice().sort((a, b) => rank(a) - rank(b)).map((h) => byHost.get(h))
       // 三样齐全才算。只有 chat 的平台不进下拉：那一行的承诺（「一把 key 配好
       // 三样」）当场变假，而且它一点没省 —— 用现有的引擎卡配它操作数完全相同。
       .filter((g) => g.chat.length && g.tts.length && g.stt.length)

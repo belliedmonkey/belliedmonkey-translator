@@ -37,12 +37,13 @@ function fromDist(dir) {
 }
 
 describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', () => {
-  test('global：恰好 openrouter.ai 与 api.openai.com，顺序即注册表顺序', () => {
+  test('global：恰好两组，且有实测推荐的 openrouter.ai 排第一', () => {
     const d = fromDist('dist');
     if (!d) return ok(true, '（dist/ 不存在，跳过 —— 先跑 node build.js）');
     const hosts = d.Q.platforms().map((p) => p.host);
-    deepEq(hosts, ['api.openai.com', 'openrouter.ai'].sort() && hosts.slice(), 'host 列表');
-    ok(hosts.includes('openrouter.ai'), 'openrouter.ai 必须成组');
+    eq(hosts[0], 'openrouter.ai',
+      '有实测推荐的排前面：注册表顺序是历史形成的（openai 只是加得早），拿它当推荐序'
+      + '会让这张卡推荐一个我们从没跑过跨能力实测的平台');
     ok(hosts.includes('api.openai.com'), 'api.openai.com 必须成组');
     eq(hosts.length, 2, 'global 恰好两组，实际 ' + JSON.stringify(hosts));
   });
