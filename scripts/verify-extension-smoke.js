@@ -334,6 +334,64 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       }
       notes.push(`高级参数 存→重开→改别的字段后仍是 ${JSON.stringify(after)}`);
 
+      // ── 2c 幕：一键配置与逐引擎配置永不同屏，且不许按过期快照覆盖 ────────────
+      //
+      // 这一整套 smoke 在此之前**一次都没点过 #mode-detail**，而这次的裁定正是一条
+      // 渲染可见性的不变量。判据一律用 getClientRects —— 读 el.hidden 正是把一个
+      // CSS 泄漏送上 App Store 的那种读法。
+      const vis = `(el=>!!(el&&el.getClientRects().length))`;
+      const mode1 = JSON.parse(await evalIn(cdp, sessionId, `(()=>{const vis=${vis};
+        return JSON.stringify({quick:vis(document.getElementById('quick-setup-card')),
+          adv:['engine-card','tts-card','learn-card','cache-card']
+            .filter(id=>vis(document.getElementById(id)))});})()`));
+      if (!mode1.quick || mode1.adv.length) {
+        problems.push(`快速视图不对：一键卡 ${mode1.quick}，却露着 ${mode1.adv.join('/') || '（无）'}`);
+      }
+      await evalIn(cdp, sessionId, `(()=>{document.getElementById('mode-detail').click();return 1})()`);
+      await sleep(400);
+      const mode2 = JSON.parse(await evalIn(cdp, sessionId, `(()=>{const vis=${vis};
+        const need=['provider','api-key','api-base-url','api-model',
+          'tts-engine','tts-api-key','tts-base-url','tts-model',
+          'stt-engine','stt-api-key','stt-base-url','stt-model'];
+        return JSON.stringify({quick:vis(document.getElementById('quick-setup-card')),
+          engine:vis(document.getElementById('engine-card')),
+          missing:need.filter(id=>!document.getElementById(id)),
+          text:document.body.innerText.trim().length});})()`));
+      if (mode2.quick) {
+        problems.push('详细视图里一键卡还在 —— 一键配置与逐引擎配置同屏');
+      } else if (!mode2.engine) {
+        problems.push('详细视图里翻译引擎卡不见了');
+      } else if (mode2.missing.length) {
+        // 组件生成 DOM 这条新路径必须真的产出 saveAll() 要读的那些 id。少一个，
+        // saveAll 会在 assertSaveFields 抛错 —— 但那要等用户去改一个字段才发生。
+        problems.push('详细视图里缺少核心控件：' + mode2.missing.join(', ')
+          + ' —— EngineFields 没渲染出 saveAll() 需要的 id');
+      } else if (mode2.text < 60) {
+        problems.push(`详细视图可见文本只有 ${mode2.text} 字符 —— 是不是加载期就炸了`);
+      } else {
+        console.log(`详细视图 ✓ 一键卡已隐藏，12 个核心控件齐全，可见文本 ${mode2.text} 字符`);
+      }
+
+      // ★ 过期快照：这一条在改之前的代码上是**红**的。
+      // 在「详细」里敲一把 key（只发 input，不失焦），切回「快速」，用一键卡配一次。
+      // 一键卡若按加载时的快照判「翻译没配过」，就会把刚敲的那把 key 覆盖掉。
+      await evalIn(cdp, sessionId, `(()=>{const k=document.getElementById('api-key');
+        k.value='sk-typed-by-hand'; k.dispatchEvent(new Event('input',{bubbles:true})); return 1})()`);
+      await sleep(900);
+      await evalIn(cdp, sessionId, `(()=>{document.getElementById('mode-quick').click();return 1})()`);
+      await sleep(300);
+      await evalIn(cdp, sessionId, `(()=>{const k=document.getElementById('qs-key');
+        k.value='sk-pasted-into-card'; document.getElementById('qs-apply').click(); return 1})()`);
+      await sleep(2600);
+      const kept = JSON.parse(await evalIn(cdp, sessionId,
+        `new Promise(r => chrome.storage.local.get(['apiKey'], v => r(JSON.stringify(v))))`));
+      if (kept.apiKey !== 'sk-typed-by-hand') {
+        problems.push(`一键卡按过期快照覆盖了用户刚输入的 key：期望 sk-typed-by-hand，`
+          + `实际 ${JSON.stringify(kept.apiKey)} —— settings 快照没有在点击那一刻现读`);
+      } else {
+        console.log('过期快照 ✓ 一键卡读到了「详细」里刚敲的 key，没有覆盖它');
+      }
+
       // ── 自定义参数：按引擎存，最容易坏在「切引擎」这一步 ──────────────────
       //
       // 它是按 providerId 索引的一张表，而设置页上只有一个输入框。切引擎时若不重新

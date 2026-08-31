@@ -36,7 +36,7 @@
            它只返回 patch，写盘由本页的 applyQuickSetup() 负责：saveAll() 是整体
            覆盖式的、DOM 才是真相源，组件自己写存储的话，用户下一次改任何一个字段
            都会用旧 DOM 把刚配好的三组覆盖回去。 -->
-      <section class="card" id="quick-setup-card">
+      <section class="card quick-only" id="quick-setup-card">
         <h2 data-i18n="qs_title">用一把 key 配好全部</h2>
         <div id="quick-setup"></div>
       </section>
@@ -45,35 +45,22 @@
       <section class="card adv-only" id="engine-card">
         <h2 data-i18n="options_engine_section">翻译引擎</h2>
 
-        <div class="field">
-          <label for="provider" data-i18n="options_engine_label">引擎</label>
-          <select id="provider"><!-- populated from window.MT_PROVIDERS by options.js --></select>
-        </div>
+        <!-- 引擎 / API Key / 接口地址 / 模型：learn/engine-fields.js 生成，与扩展
+             引导页第 2 屏**同一个组件、同一套 id**。这一页额外的东西（眼睛按钮、
+             三条提示）由 options.js 挂进组件交回来的那几行里 —— 挂在行**内**，
+             这样字段被收起时它们跟着收，不会出现「字段藏了提示还在」。 -->
+        <div id="engine-core"></div>
 
-        <div id="apikey-fields" style="display:none">
-          <div class="field">
-            <label for="api-key">API Key</label>
-            <div class="input-row">
-              <input type="password" id="api-key" placeholder="输入 API Key…" data-i18n-placeholder="placeholder_api_key" autocomplete="off">
-              <button class="icon-btn" id="toggle-eye" title="显示/隐藏" data-i18n-title="toggle_show_hide">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-            <p class="hint" id="api-hint"></p>
-          </div>
-
-          <div class="field" id="baseurl-field">
-            <label for="api-base-url"><span data-i18n="label_custom_api">自定义 API 地址</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
-            <input type="url" id="api-base-url">
-            <p class="hint" data-i18n="options_custom_api_hint">留空则使用默认地址。适用于中转代理或自建服务。</p>
-          </div>
-
-          <div class="field" id="model-field">
-            <label for="api-model"><span data-i18n="label_custom_model">模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
-            <input type="text" id="api-model" placeholder="" autocomplete="off">
-            <p class="hint" data-i18n="options_custom_model_hint">留空则使用该引擎的默认模型。</p>
-          </div>
-        </div>
+        <!-- 组件把这几段挂进对应的行里；放在这里只是为了让文案仍然由 HTML + data-i18n
+             维护，而不是散进 JS 字符串。 -->
+        <template id="engine-extras">
+          <p class="hint" id="api-hint"></p>
+          <p class="hint" data-i18n="options_custom_api_hint">留空则使用默认地址。适用于中转代理或自建服务。</p>
+          <p class="hint" data-i18n="options_custom_model_hint">留空则使用该引擎的默认模型。</p>
+          <button class="icon-btn" id="toggle-eye" title="显示/隐藏" data-i18n-title="toggle_show_hide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </template>
 
         <!-- 高级参数：默认折叠、默认全部不设置（存储里没有这些键）。
              「不设置」与「设成了默认值」必须可区分，所以它们不进 background.js 的
@@ -279,24 +266,13 @@
              识别，识别完立即丢弃」，按钮本身也点名三样。显式选择的落点从一个复选框
              挪到了「按下之前就看得见的一句话 + 一个说清楚要做什么的按钮」，规约
              要保护的东西没变，形状变了。 -->
-        <div class="field">
-          <label for="stt-engine" data-i18n="stt_engine">转写引擎</label>
-          <select id="stt-engine"></select>
-          <p class="hint" data-i18n="stt_hint">「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。</p>
-        </div>
+        <p class="hint" data-i18n="stt_hint">「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。</p>
+        <!-- 引擎 / Key / 地址 / 模型四个控件由 learn/engine-fields.js 生成，
+             与扩展引导页第 2 屏**是同一个组件、同一套 id**（stt-engine / stt-api-key /
+             stt-base-url / stt-model）。以后加一个字段只改一处。
+             这里不能写死那四个框：写死就又是两份实现了。 -->
+        <div id="stt-core"></div>
         <div id="stt-config" hidden>
-          <div class="field" id="stt-key-field">
-            <label for="stt-api-key" data-i18n="stt_api_key">转写 API Key</label>
-            <input type="password" id="stt-api-key" placeholder="sk-…">
-          </div>
-          <div class="field" id="stt-baseurl-field">
-            <label for="stt-base-url"><span data-i18n="stt_base_url">转写端点地址</span></label>
-            <input type="url" id="stt-base-url">
-          </div>
-          <div class="field" id="stt-model-field">
-            <label for="stt-model"><span data-i18n="stt_model">转写模型</span> <span class="optional" data-i18n="label_optional">（可选）</span></label>
-            <input type="text" id="stt-model">
-          </div>
           <div class="field">
             <button id="btn-test-stt" data-i18n="engine_test">测试连接</button>
             <p class="hint" id="test-stt-note"></p>
@@ -374,26 +350,10 @@
         </div>
 
         <div id="tts-config" hidden>
-          <div class="field">
-            <label for="tts-engine" data-i18n="tts_engine">语音引擎</label>
-            <select id="tts-engine"></select>
-            <p class="hint" id="tts-engine-hint"></p>
-          </div>
-
-          <div class="field" id="tts-baseurl-field">
-            <label for="tts-base-url" data-i18n="tts_base_url">语音端点地址</label>
-            <input type="url" id="tts-base-url">
-          </div>
-
-          <div class="field" id="tts-key-field">
-            <label for="tts-api-key" data-i18n="tts_api_key">语音 API Key</label>
-            <input type="password" id="tts-api-key" placeholder="sk-…">
-          </div>
-
-          <div class="field" id="tts-model-field">
-            <label for="tts-model" data-i18n="tts_model">语音模型</label>
-            <input type="text" id="tts-model">
-          </div>
+          <!-- 引擎 / Key / 地址 / 模型：learn/engine-fields.js 生成，与引导页同源。
+               这里不写死那四个框 —— 写死就又是两份实现了。 -->
+          <div id="tts-core"></div>
+          <p class="hint" id="tts-engine-hint"></p>
 
           <div class="field">
             <label for="tts-voice" data-i18n="tts_voice">声音</label>

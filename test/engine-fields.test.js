@@ -161,11 +161,19 @@ describe('options.js 里不许再有第二份同能力的判断', () => {
       + hits.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
   });
 
-  test('options.js 真的在用这个组件（不是删干净了但也没接上）', () => {
-    ok(/EngineFields\.visibility\(/.test(src), 'visibility 一次都没被调用');
-    ok(/EngineFields\.populate\(/.test(src), 'populate 一次都没被调用');
-    eq((src.match(/EngineFields\.visibility\(/g) || []).length, 4,
-      '四处（翻译/朗读/解析/转写）各调一次；数目对不上说明漏了一处或多接了一处');
+  // 判据不是「调了几次」——那是个会随迁移不断失效的代理。要守的是：**四组引擎配置
+  // 一组都不许自己另写一套**。每一组要么整块由组件渲染（render），要么至少用组件的
+  // 判据（visibility）。两者相加必须正好是四组：翻译 / 朗读 / 解析 / 转写。
+  test('四组引擎配置全都接在组件上，一组都不落', () => {
+    // 不能用 [^)]*? —— 第一个实参就是 $('stt-core')，里面有括号。限长的懒惰匹配。
+    const rendered = [...src.matchAll(/EngineFields\.render\([\s\S]{0,240}?slot:\s*'(\w+)'/g)].map((m) => m[1]);
+    const ruleOnly = (src.match(/EngineFields\.visibility\(/g) || []).length;
+    ok(rendered.length + ruleOnly === 4,
+      `只接上了 ${rendered.length + ruleOnly} 组（组件渲染 ${rendered.length} 组：`
+      + `${rendered.join('/') || '无'}；只用判据 ${ruleOnly} 组），期望 4 组`
+      + ' —— 翻译/朗读/解析/转写，漏掉的那一组会另写一套并慢慢漂走');
+    ok(new Set(rendered).size === rendered.length,
+      '同一个 slot 渲染了两次：' + rendered.join('/'));
   });
 
   test('两个 host 都加载了它，且在自己的脚本之前', () => {

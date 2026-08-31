@@ -67,11 +67,10 @@ function applyI18n() {
 
 // Provider <select> is populated from the registry; label comes from labelKey
 // (localizable) or the flavor-resolved literal label.
+// 界面语言变化时要重填一次下拉（选项文本会变），但不能动用户已选的引擎。
 function populateProviders() {
   const sel = $('provider');
-  // selected 传当前值：这个函数会在界面语言变化时重跑，那时要保住用户已选的引擎。
-  // 不给 fallback ⇒ 落到第一项，与原来「prev 不合法就不 set」的浏览器默认行为一致。
-  EngineFields.populate(sel, PROVIDERS, { t, selected: sel.value });
+  if (sel) EngineFields.populate(sel, PROVIDERS, { t, selected: sel.value });
 }
 
 // The MODEL NAME belongs to the registry (build/providers.config.js `defaultModel`),
@@ -151,17 +150,28 @@ function updateSetupNote(provider, apiKey) {
   }
 }
 
+// 与引导页第 2 屏同一个组件、同一套 id。挂一次，之后靠 paint() 重画。
+// onChange 在这一页**不写存储** —— 写盘走 saveAll()（整体覆盖式，DOM 才是真相源）。
+let chatCore = null;
+let chatClearedEndpoint = false;
+function mountChatCore(values) {
+  chatCore = EngineFields.render($('engine-core'), {
+    slot: 'chat', t, head: false, values,
+    onChange: (patch) => { if ('apiBaseUrl' in patch && patch.apiBaseUrl === '') chatClearedEndpoint = true; },
+  });
+  // 这一页额外的东西，挂进组件交回来的那几行里。挂在行**内**是构成要件：
+  // 字段按 visibility 收起时它们跟着收，不会出现「字段藏了、提示还在」。
+  const ex = $('engine-extras').content;
+  const [apiHintEl, baseHint, modelHint] = ex.querySelectorAll('p.hint');
+  chatCore.rows.key.inputRow.append(ex.querySelector('#toggle-eye'));
+  chatCore.rows.key.row.append(apiHintEl);
+  chatCore.rows.baseUrl.row.append(baseHint);
+  chatCore.rows.model.row.append(modelHint);
+}
+
 function updateProviderUI(provider) {
-  const p = providerById(provider) || null;
-  const v = EngineFields.visibility(p);
-  // ⚠️ 这一处与 tts/stt 不同：三个框裹在同一个 #apikey-fields 里，所以「不需要 Key」
-  // 会连地址和模型一起藏掉。这是既有行为，不在这次抽取的范围内 —— 抽的是判据，
-  // 不是 DOM 结构。
-  $('apikey-fields').style.display = v.key ? 'block' : 'none';
-  $('baseurl-field').style.display = v.baseUrl ? 'block' : 'none';
-  $('model-field').style.display = v.model ? 'block' : 'none';
-  $('api-base-url').placeholder = v.basePlaceholder;
-  $('api-model').placeholder = v.modelPlaceholder;
+  // 露哪几个框、示例地址、示例模型全归组件；这里只剩这一页独有的两件事。
+  if (chatCore) chatCore.paint();
   $('api-hint').textContent = apiHint(provider);
   // Hooked here rather than at each call site: updateProviderUI already re-runs on
   // load, on engine change and on UI-language change — every moment the note can go stale.
@@ -174,9 +184,15 @@ function updateProviderUI(provider) {
 const TTS_ENGINES = (window.MT_TTS_ENGINES || []);
 const ttsEngineById = (id) => TTS_ENGINES.find((e) => e.id === id) || null;
 
-function populateTtsEngines(selected) {
-  EngineFields.populate($('tts-engine'), TTS_ENGINES, {
-    t, selected, fallback: (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser',
+// 与引导页第 2 屏**同一个组件、同一套 id**。挂一次，之后靠 paint() 重画。
+// onChange 在这一页**不写存储** —— 写盘走 saveAll()（整体覆盖式，DOM 才是真相源）；
+// 这里只记下组件有没有帮我们清掉端点，好让 toast 说实话。
+let ttsCore = null;
+let ttsClearedEndpoint = false;
+function mountTtsCore(values) {
+  ttsCore = EngineFields.render($('tts-core'), {
+    slot: 'tts', t, head: false, values,
+    onChange: (patch) => { if ('ttsBaseUrl' in patch && patch.ttsBaseUrl === '') ttsClearedEndpoint = true; },
   });
 }
 
@@ -238,13 +254,8 @@ async function updateTtsUI(selectedVoice) {
   const e = ttsEngineById($('tts-engine').value) || TTS_ENGINES[0];
   if (!e) return;
   $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
-  const v = EngineFields.visibility(e);
-  $('tts-baseurl-field').style.display = v.baseUrl ? 'block' : 'none';
-  $('tts-key-field').style.display = v.key ? 'block' : 'none';
-  $('tts-model-field').style.display = v.model ? 'block' : 'none';
-  // 地址示例：这一处原来漏了，chat 和 stt 都有。四份抄写收敛成一份的顺带结果。
-  $('tts-base-url').placeholder = v.basePlaceholder;
-  $('tts-model').placeholder = v.modelPlaceholder;
+  // 四个核心控件归组件（露哪几个、示例地址、示例模型全在它那里）。
+  if (ttsCore) ttsCore.paint();
 
   const sel = $('tts-voice');
   sel.innerHTML = '';
@@ -464,14 +475,12 @@ async function init() {
   } catch (_) {}
   const s = s0;
 
-  populateProviders();
   // A stored provider from another flavor may not exist in this build → fall
   // back to the first registry provider available here.
   const prov = providerById(s.provider) ? s.provider : defaultProviderId();
-  $('provider').value       = prov;
-  $('api-key').value        = s.apiKey      || '';
-  $('api-base-url').value   = s.apiBaseUrl  || '';
-  $('api-model').value      = s.apiModel    || '';
+  // 引擎 / Key / 地址 / 模型四样由组件按 values 预填，不再逐个 set —— 手工回填就是
+  // 第二份「有哪几个字段」的清单，加字段时必然漏掉它。
+  mountChatCore({ ...s, provider: prov });
   $('target-lang').value    = s.targetLang  || 'zh-CN';
   $('ui-lang').value        = s.uiLang      || 'auto';
   $('text-color').value     = s.textColor   || window.MT_PALETTE.textColor;
@@ -493,11 +502,10 @@ async function init() {
   updateAdvancedNotes();
   $('tts-mode').value      = s.ttsMode || 'off';
   $('tts-autoplay').checked = s.ttsAutoPlay !== false;
-  $('tts-base-url').value  = s.ttsBaseUrl || '';
-  $('tts-api-key').value   = s.ttsApiKey || '';
-  $('tts-model').value     = s.ttsModel || '';
   $('tts-rate').value      = String(Number(s.ttsRate) > 0 ? Number(s.ttsRate) : 1);
-  populateTtsEngines(s.ttsEngine || LearnTTS.DEFAULTS.engineId);
+  // 引擎 / Key / 地址 / 模型四样由组件按 values 预填，这里不再逐个 set —— 手工回填
+  // 就是第二份「哪几个字段」的清单，加字段时必然漏。
+  mountTtsCore({ ...s, ttsEngine: s.ttsEngine || LearnTTS.DEFAULTS.engineId });
   await updateTtsUI(s.ttsVoice || '');
 
   // §9.2 (2026-08-09 二) — dedicated notes engine. Option "" = follow the
@@ -533,28 +541,20 @@ async function init() {
   // the speak form does not exist (the correct default; there is no zero-config
   // transcription engine and never will be — §12). Candidates come from the
   // generated registry; nothing engine-specific is restated here.
-  function populateSttEngines(selected) {
-    // '' 同样是有语义的空：未配置 ⇒ 不出「说」题。「录音去哪儿必须是一次显式选择」
-    // 那条裁定的落点就是这个哨兵项，不要把它改成必选。
-    EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], {
-      t, selected, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
-    });
-  }
+  // 四个核心控件由共用组件生成（与引导页第 2 屏同一个组件、同一套 id）。
+  // 组件只负责「有哪几个框、露哪几个」；写盘仍然走这一页的 saveAll()，所以
+  // onChange 在这里**不写存储** —— 只记下它有没有帮我们清掉端点，好让 toast 说实话。
+  let sttClearedEndpoint = false;
+  const sttCore = EngineFields.render($('stt-core'), {
+    slot: 'stt', t, head: false, values: s,
+    onChange: (patch) => { if ('sttBaseUrl' in patch && patch.sttBaseUrl === '') sttClearedEndpoint = true; },
+  });
   function updateSttUI(id) {
     const e = (window.MT_STT_ENGINES || []).find((x) => x.id === id) || null;
-    const v = EngineFields.visibility(e);
+    // 组件自己按条目决定露哪几个框；这里只剩「没选引擎就连测试按钮一起收起来」。
+    if (sttCore) sttCore.paint();
     $('stt-config').hidden = !e;
-    if (!e) return;
-    $('stt-key-field').hidden = !v.key;
-    $('stt-baseurl-field').hidden = !v.baseUrl;
-    $('stt-model-field').hidden = !v.model;
-    $('stt-base-url').placeholder = v.basePlaceholder;
-    $('stt-model').placeholder = v.modelPlaceholder;
   }
-  populateSttEngines(s.sttEngine || '');
-  $('stt-api-key').value  = s.sttApiKey || '';
-  $('stt-base-url').value = s.sttBaseUrl || '';
-  $('stt-model').value    = s.sttModel || '';
   updateSttUI($('stt-engine').value);
 
   updateProviderUI(prov);
@@ -575,7 +575,9 @@ async function init() {
   }
 
   $('stt-engine').addEventListener('change', async (e) => {
-    const cleared = clearEndpointOnEngineSwitch('stt-base-url');
+    // 清端点由组件做（两个 host 都要），这里只读它的回报 —— 静默丢掉用户填过的地址
+    // 是这条规则要防的事，所以 toast 必须说出来。
+    const cleared = sttClearedEndpoint; sttClearedEndpoint = false;
     updateSttUI(e.target.value);
     await saveAll();
     showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
@@ -585,7 +587,8 @@ async function init() {
   }
 
   $('provider').addEventListener('change', async (e) => {
-    const cleared = clearEndpointOnEngineSwitch('api-base-url');
+    // 组件的 change 监听在挂载时注册，**先于**这一条跑；这里只读它的回报。
+    const cleared = chatClearedEndpoint; chatClearedEndpoint = false;
     updateProviderUI(e.target.value);
     await saveAll();
     updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
@@ -739,11 +742,15 @@ async function init() {
     showToast(t('toast_saved', '已保存'));
   });
   $('tts-engine').addEventListener('change', async () => {
+    // 组件的 change 监听在挂载时就注册了，**先于**这一条跑，所以到这里读到的是它的
+    // 结果，不能在读之前清零。换引擎清端点这件事 TTS 以前没有，是并进共用组件之后
+    // 顺带获得的 —— 把一个引擎的地址留给另一个引擎，正是 notes.js 明文禁止的事。
+    const cleared = ttsClearedEndpoint; ttsClearedEndpoint = false;
     // Engine defaults differ, so the model placeholder and voice list must follow
     // the engine BEFORE the user is asked to pick a voice for it.
     await updateTtsUI('');
     await saveAll();
-    showToast(t('toast_saved', '已保存'));
+    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));
   });
   for (const id of ['tts-base-url', 'tts-api-key', 'tts-model', 'tts-voice', 'tts-rate']) {
     $(id).addEventListener('change', async () => { await saveAll(); showToast(t('toast_saved', '已保存')); });
@@ -1345,8 +1352,8 @@ async function init() {
       if ($('adv-custom')) { $('adv-custom').value = customParams[w.provider] || ''; }
       updateCustomNote(); updateAdvancedNotes();
     }
-    if ('ttsEngine' in w) { populateTtsEngines(w.ttsEngine); await updateTtsUI(w.ttsVoice || ''); }
-    if ('sttEngine' in w) { populateSttEngines(w.sttEngine); updateSttUI(w.sttEngine); }
+    if ('ttsEngine' in w) { $('tts-engine').value = w.ttsEngine; await updateTtsUI(w.ttsVoice || ''); }
+    if ('sttEngine' in w) { $('stt-engine').value = w.sttEngine; updateSttUI(w.sttEngine); }
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
   }
 
@@ -1359,8 +1366,15 @@ async function init() {
   // 混进去等于让 saveAll 的整体覆盖去管一个跟配置无关的东西（learnRules /
   // reqCustomParams 也是同样的理由单独存的）。
   const DETAIL_KEY = 'optDetailMode';
+  // 这个 flavor 有没有可一键的平台。没有它，空 flavor 那条路藏掉卡片之后，用户点一下
+  // 「快速」就会把一个空壳放出来。
+  let _quickAvailable = true;
   function applyDetailMode(on) {
     for (const el of document.querySelectorAll('.adv-only')) el.hidden = !on;
+    // .quick-only 是 .adv-only 的补集：一键配置卡与逐引擎配置**永不同屏**。
+    // 共存时用户在「详细」里改了引擎，一键卡显示的「已配过/没配过」当场变成谎话，
+    // 而它下一次被按下就会照着那份谎话覆盖存储。裁定见 docs/interaction-spec.md。
+    for (const el of document.querySelectorAll('.quick-only')) el.hidden = on || !_quickAvailable;
     const q = $('mode-quick'); const d = $('mode-detail');
     if (q) q.setAttribute('aria-selected', String(!on));
     if (d) d.setAttribute('aria-selected', String(!!on));
@@ -1393,9 +1407,11 @@ async function init() {
       showTry: true,
     });
     if (!$('quick-setup').children.length && $('quick-setup-card')) {
-      $('quick-setup-card').hidden = true;   // 这个 flavor 没有可一键的平台，不留空壳
-      // 一键配置渲染不出来时，「快速」视图就是一张空页 —— 强制展开详细。
+      // 这个 flavor 没有可一键的平台。不留空壳，也不给一个其中一边可证为空的二选一 ——
+      // 那比没有这个选择更糟。_quickAvailable 让 applyDetailMode 之后也一直藏着它。
+      _quickAvailable = false;
       _detail = true;
+      if ($('mode-tabs')) $('mode-tabs').hidden = true;
     }
   }
   // 读不到已存设置时一键配置是 disabled 的，同样没有可做的事 —— 也强制展开，

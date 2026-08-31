@@ -178,6 +178,8 @@ var EngineFields = (() => {
     .ef-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .ef-row label { flex:0 0 auto; font-size:.85em; opacity:.75; min-width:5.5em; }
     .ef-row input, .ef-row select { flex:1 1 8em; min-width:0; }
+    .ef-row .input-row { flex:1 1 8em; min-width:0; display:flex; gap:6px; align-items:center; }
+    .ef-row .input-row input { flex:1 1 auto; }
   `;
   let styled = false;
   function injectStyle(doc) {
@@ -216,7 +218,9 @@ var EngineFields = (() => {
 
     const L = fieldLabels(o.slot, t);
     const box = el('div', 'ef-slot');
-    box.append(el('div', 'ef-head', L.head));
+    // head:false 给设置页用 —— 那边每个槽已经有一张卡的标题，再来一行「转写」是重复。
+    // 引导页三个槽连着排，没有小标题就分不清哪三行属于哪一样。
+    if (o.head !== false) box.append(el('div', 'ef-head', L.head));
 
     // 引擎行
     const engineRow = el('div', 'ef-row');
@@ -248,9 +252,15 @@ var EngineFields = (() => {
       // input 而不是 change：change 只在失焦时触发，用户填完直接点「继续」就丢了。
       // 2026-08-30 在 options.js 上修过的同一个缺陷，不要在新代码里重犯。
       inp.addEventListener('input', () => emit({ [spec.keys[f]]: inp.value.trim() }));
-      row.append(lab, inp);
+      // 输入框外面套一层 .input-row，是为了让 host 能往它**旁边**挂东西（设置页的
+      // 「显示/隐藏」眼睛按钮就贴在 Key 输入框右边）。给组件加一堆 `eye:true`
+      // `hint:'…'` 参数是另一条路，但那会让组件替每个 host 猜它想要什么；交回句柄，
+      // host 自己挂，组件只管那四个框本身。
+      const wrap = el('div', 'input-row');
+      wrap.append(inp);
+      row.append(lab, wrap);
       box.append(row);
-      rows[f] = { row, input: inp };
+      rows[f] = { row, input: inp, inputRow: wrap };
     }
 
     function paint() {
@@ -263,6 +273,8 @@ var EngineFields = (() => {
       rows.model.input.placeholder = v.modelPlaceholder;
     }
 
+    // 换引擎时清端点。**两个 host 都要**，所以放在组件里而不是各自的 change 处理器里
+    // —— options.js 原来为 stt 单独写过一份 clearEndpointOnEngineSwitch。
     sel.addEventListener('change', () => {
       // 换引擎清空端点：把一个引擎的地址留给另一个引擎，正是 notes.js 明文禁止的
       // 「把 key 和一个不是发给它的端点配在一起」。清空 = 走注册表默认 = 能工作。
@@ -273,7 +285,10 @@ var EngineFields = (() => {
 
     paint();
     container.append(box);
-    return { el: box, paint, ids: spec.ids, keys: spec.keys };
+    // rows 交回去：host 想往某一行里加提示、按钮，就往 rows[f].row / .inputRow 里挂。
+    // 挂在行内**而不是行外**是构成要件 —— 行按 visibility 收起时，挂在里面的东西
+    // 跟着一起收；挂在外面就会出现「字段藏了、它的提示还在」。
+    return { el: box, paint, rows, ids: spec.ids, keys: spec.keys };
   }
 
   return { labelOf, visibility, populate, render, SLOTS };
