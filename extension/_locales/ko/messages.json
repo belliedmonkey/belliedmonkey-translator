@@ -1694,7 +1694,7 @@
     "message": "브라우저 쪽을 먼저 설정하세요"
   },
   "app_ext_ios_body": {
-    "message": "카드는 Safari 확장에서 옵니다: 설정 → Safari → 확장 프로그램에서 BelliedMonkey Translator를 켜고 모든 웹사이트를 허용하세요."
+    "message": "카드는 Safari 확장 프로그램에서 옵니다: Safari에서 주소 표시줄 왼쪽의 확장 프로그램 아이콘 → “확장 프로그램 관리” → BelliedMonkey Translator 켜기."
   },
   "app_ext_open_prefs": {
     "message": "Safari 확장 프로그램 설정 열기"
@@ -1724,10 +1724,10 @@
     "message": "번역은 브라우저에서, 복습은 이 앱에서 일어납니다. 2분이면 둘을 연결합니다."
   },
   "ob_ios_1": {
-    "message": "설정을 열고 Safari를 찾으세요"
+    "message": "Safari에서 주소 표시줄 왼쪽의 확장 프로그램 아이콘을 탭"
   },
   "ob_ios_2": {
-    "message": "확장 프로그램에서 BelliedMonkey Translator를 켜세요"
+    "message": "“확장 프로그램 관리”를 선택하고 BelliedMonkey Translator 켜기"
   },
   "ob_ios_3": {
     "message": "권한은 허용, 대상은 모든 웹사이트로"

@@ -242,7 +242,7 @@
     // 等于把一条死路换成了另一条。有按钮才说「没启用」，没按钮就得给步骤。
     $('ext-banner-body').textContent = state.canOpenPrefs
       ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
-      : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+      : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。');
     const act = $('ext-banner-act');
     // 只有 macOS 有直达入口。iOS 给按钮却跳不过去，比不给按钮更糟。
     act.hidden = !state.canOpenPrefs;
@@ -341,11 +341,11 @@
       const mac = extState && extState.canOpenPrefs;
       $('ob-text').textContent = mac
         ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
-        : t('app_ext_ios_body', '卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。');
+        : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。');
       if (mac) { $('ob-prefs').hidden = false; $('ob-prefs').textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置'); }
       else obSteps([
-        t('ob_ios_1', '打开系统「设置」→ 找到 Safari'),
-        t('ob_ios_2', '进「扩展」，把「大肚猴翻译」打开'),
+        t('ob_ios_1', '在 Safari 里点地址栏左边的扩展图标'),
+        t('ob_ios_2', '选「管理扩展」，把「大肚猴翻译」打开'),
         t('ob_ios_3', '权限选「允许」，网站选「所有网站」'),
       ]);
       // 「设完了到底成没成」在 iOS 上只有官网那一页答得出（它被扩展注入后自己亮

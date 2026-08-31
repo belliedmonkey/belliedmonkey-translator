@@ -1694,7 +1694,7 @@
     "message": "Configurez d'abord le côté navigateur"
   },
   "app_ext_ios_body": {
-    "message": "Les cartes viennent de l'extension Safari : ouvrez Réglages → Safari → Extensions, activez BelliedMonkey Translator et autorisez tous les sites."
+    "message": "Les cartes viennent de l’extension Safari : dans Safari, touchez l’icône des extensions à gauche de la barre d’adresse → « Gérer les extensions » → activez BelliedMonkey Translator."
   },
   "app_ext_open_prefs": {
     "message": "Ouvrir les réglages des extensions Safari"
@@ -1724,10 +1724,10 @@
     "message": "La traduction se fait dans le navigateur, la révision dans cette app. Deux minutes pour relier les deux."
   },
   "ob_ios_1": {
-    "message": "Ouvrez Réglages et trouvez Safari"
+    "message": "Dans Safari, touchez l’icône des extensions à gauche de la barre d’adresse"
   },
   "ob_ios_2": {
-    "message": "Dans Extensions, activez BelliedMonkey Translator"
+    "message": "Choisissez « Gérer les extensions » et activez BelliedMonkey Translator"
   },
   "ob_ios_3": {
     "message": "Permissions sur Autoriser, pour tous les sites"

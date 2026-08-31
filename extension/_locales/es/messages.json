@@ -1694,7 +1694,7 @@
     "message": "Configura primero la parte del navegador"
   },
   "app_ext_ios_body": {
-    "message": "Las tarjetas vienen de la extensión de Safari: abre Ajustes → Safari → Extensiones, activa BelliedMonkey Translator y permite todos los sitios."
+    "message": "Las tarjetas vienen de la extensión de Safari: en Safari, toca el icono de extensiones a la izquierda de la barra de direcciones → «Gestionar extensiones» → activa BelliedMonkey Translator."
   },
   "app_ext_open_prefs": {
     "message": "Abrir ajustes de extensiones de Safari"
@@ -1724,10 +1724,10 @@
     "message": "La traducción ocurre en el navegador; el repaso, en esta app. Dos minutos para conectar ambos."
   },
   "ob_ios_1": {
-    "message": "Abre Ajustes y busca Safari"
+    "message": "En Safari, toca el icono de extensiones a la izquierda de la barra de direcciones"
   },
   "ob_ios_2": {
-    "message": "En Extensiones, activa BelliedMonkey Translator"
+    "message": "Elige «Gestionar extensiones» y activa BelliedMonkey Translator"
   },
   "ob_ios_3": {
     "message": "Permisos en Permitir, para todos los sitios"

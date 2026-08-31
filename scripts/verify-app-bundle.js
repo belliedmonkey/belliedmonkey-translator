@@ -337,8 +337,16 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(b.macFailed.banner && !b.macFailed.button,
           '深链失败后还留着「打开 Safari 扩展设置」按钮 —— 点了没反应，比不给更糟 (#177)');
         // 收起按钮之后必须补上步骤，否则只是把一条死路换成另一条。
-        need(/设置|Settings|設定|설정|Réglages|Einstellungen|Ajustes|Настройки|الإعدادات/i
-          .test(b.macFailedBody || ''),
+        // #177 要守的是「收起按钮之后必须补上可执行的下一步」。原来的探针拿「文案里
+        // 有没有『设置』二字」当代理，而 2026-08-31 起主路线改成了 Safari 自己的
+        // 扩展图标 →「管理扩展」（三下，且不用离开当前页面；设置 App 那条降为备选）。
+        // 代理过时了，判据本身没变 —— 两条路线任一都算给了下一步。
+        need(/管理扩展|管理擴充功能|Manage Extensions|機能拡張を管理|확장 프로그램 관리/i
+          .test(b.macFailedBody || '')
+          || /Gérer les extensions|Erweiterungen verwalten|Gestionar extensiones|Gerenciar extensões|Управление расширениями|إدارة الإضافات/i
+            .test(b.macFailedBody || '')
+          || /设置|Settings|設定|설정|Réglages|Einstellungen|Ajustes|Настройки|الإعدادات/i
+            .test(b.macFailedBody || ''),
           '深链失败后横幅收了按钮却没给步骤 —— 用户被告知「没启用」，然后无路可走');
         need(!b.macUnknown.button,
           'show(\'mac\') 这个「还不知道状态」的初次调用就给了按钮 —— canOpenPrefs 必须 fail-closed');

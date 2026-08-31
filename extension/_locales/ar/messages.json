@@ -1694,7 +1694,7 @@
     "message": "اضبط جانب المتصفح أولاً"
   },
   "app_ext_ios_body": {
-    "message": "تأتي البطاقات من إضافة Safari: افتح الإعدادات ← Safari ← الإضافات، وفعّل BelliedMonkey Translator، واسمح لجميع المواقع."
+    "message": "تأتي البطاقات من إضافة Safari: في Safari اضغط على أيقونة الإضافات على يسار شريط العنوان ← «إدارة الإضافات» ← شغّل BelliedMonkey Translator."
   },
   "app_ext_open_prefs": {
     "message": "فتح إعدادات إضافات Safari"
@@ -1724,10 +1724,10 @@
     "message": "تتم الترجمة في المتصفح، والمراجعة في هذا التطبيق. دقيقتان لربط الجانبين."
   },
   "ob_ios_1": {
-    "message": "افتح الإعدادات وابحث عن Safari"
+    "message": "في Safari اضغط على أيقونة الإضافات على يسار شريط العنوان"
   },
   "ob_ios_2": {
-    "message": "من «الإضافات» فعّل BelliedMonkey Translator"
+    "message": "اختر «إدارة الإضافات» وشغّل BelliedMonkey Translator"
   },
   "ob_ios_3": {
     "message": "اضبط الأذونات على «سماح» لجميع المواقع"

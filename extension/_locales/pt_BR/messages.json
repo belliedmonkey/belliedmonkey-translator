@@ -1694,7 +1694,7 @@
     "message": "Configure primeiro o lado do navegador"
   },
   "app_ext_ios_body": {
-    "message": "Os cartões vêm da extensão do Safari: abra Ajustes → Safari → Extensões, ative o BelliedMonkey Translator e permita todos os sites."
+    "message": "Os cartões vêm da extensão do Safari: no Safari, toque no ícone de extensões à esquerda da barra de endereço → “Gerenciar extensões” → ative o BelliedMonkey Translator."
   },
   "app_ext_open_prefs": {
     "message": "Abrir ajustes de extensões do Safari"
@@ -1724,10 +1724,10 @@
     "message": "A tradução acontece no navegador; a revisão, neste app. Dois minutos para ligar os dois."
   },
   "ob_ios_1": {
-    "message": "Abra Ajustes e encontre o Safari"
+    "message": "No Safari, toque no ícone de extensões à esquerda da barra de endereço"
   },
   "ob_ios_2": {
-    "message": "Em Extensões, ative o BelliedMonkey Translator"
+    "message": "Escolha “Gerenciar extensões” e ative o BelliedMonkey Translator"
   },
   "ob_ios_3": {
     "message": "Permissões em Permitir, para todos os sites"

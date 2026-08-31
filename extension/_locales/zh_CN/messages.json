@@ -1695,7 +1695,7 @@
     "message": "先把浏览器那半边打通"
   },
   "app_ext_ios_body": {
-    "message": "卡片来自 Safari 扩展：到「设置 → Safari → 扩展」里打开大肚猴翻译，权限选「所有网站」。"
+    "message": "卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。"
   },
   "app_ext_open_prefs": {
     "message": "打开 Safari 扩展设置"
@@ -1725,10 +1725,10 @@
     "message": "翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。"
   },
   "ob_ios_1": {
-    "message": "打开系统「设置」→ 找到 Safari"
+    "message": "在 Safari 里点地址栏左边的扩展图标"
   },
   "ob_ios_2": {
-    "message": "进「扩展」，把「大肚猴翻译」打开"
+    "message": "选「管理扩展」，把「大肚猴翻译」打开"
   },
   "ob_ios_3": {
     "message": "权限选「允许」，网站选「所有网站」"

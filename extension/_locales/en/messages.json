@@ -1694,7 +1694,7 @@
     "message": "Set up the browser half first"
   },
   "app_ext_ios_body": {
-    "message": "Cards come from the Safari extension: open Settings → Safari → Extensions, turn on BelliedMonkey Translator, and allow all websites."
+    "message": "Cards come from the Safari extension: in Safari, tap the extensions icon at the left of the address bar → “Manage Extensions” → turn on BelliedMonkey Translator."
   },
   "app_ext_open_prefs": {
     "message": "Open Safari Extension Settings"
@@ -1724,10 +1724,10 @@
     "message": "Translation happens in the browser; review happens in this app. Two minutes to connect the two."
   },
   "ob_ios_1": {
-    "message": "Open Settings and find Safari"
+    "message": "In Safari, tap the extensions icon at the left of the address bar"
   },
   "ob_ios_2": {
-    "message": "Go to Extensions and turn on BelliedMonkey Translator"
+    "message": "Choose “Manage Extensions” and turn on BelliedMonkey Translator"
   },
   "ob_ios_3": {
     "message": "Set permissions to Allow, for All Websites"
