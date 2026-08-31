@@ -6,12 +6,6 @@ const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
 const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
-// The empty input's example address. `defaultEndpoint` when we ship one, else the
-// registry's `placeholder` — endpoints live in the registry and nowhere else, so the
-// hint copy no longer has to name a path (it used to, in eleven translated strings).
-function endpointPlaceholder(e) {
-  return (e && (e.defaultEndpoint || e.placeholder)) || 'https://…';
-}
 
 
 const $ = id => document.getElementById(id);
@@ -73,18 +67,11 @@ function applyI18n() {
 
 // Provider <select> is populated from the registry; label comes from labelKey
 // (localizable) or the flavor-resolved literal label.
-function providerLabel(p) { return p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id); }
 function populateProviders() {
   const sel = $('provider');
-  const prev = sel.value;
-  sel.innerHTML = '';
-  for (const p of PROVIDERS) {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = providerLabel(p);
-    sel.appendChild(opt);
-  }
-  if (prev && providerById(prev)) sel.value = prev;
+  // selected 传当前值：这个函数会在界面语言变化时重跑，那时要保住用户已选的引擎。
+  // 不给 fallback ⇒ 落到第一项，与原来「prev 不合法就不 set」的浏览器默认行为一致。
+  EngineFields.populate(sel, PROVIDERS, { t, selected: sel.value });
 }
 
 // The MODEL NAME belongs to the registry (build/providers.config.js `defaultModel`),
@@ -165,12 +152,16 @@ function updateSetupNote(provider, apiKey) {
 }
 
 function updateProviderUI(provider) {
-  const p = providerById(provider) || {};
-  $('apikey-fields').style.display = p.needsKey ? 'block' : 'none';
-  $('baseurl-field').style.display = p.supportsBaseUrl ? 'block' : 'none';
-  $('model-field').style.display = p.supportsModel ? 'block' : 'none';
-  $('api-base-url').placeholder = endpointPlaceholder(p);
-  $('api-model').placeholder = p.defaultModel || '';
+  const p = providerById(provider) || null;
+  const v = EngineFields.visibility(p);
+  // ⚠️ 这一处与 tts/stt 不同：三个框裹在同一个 #apikey-fields 里，所以「不需要 Key」
+  // 会连地址和模型一起藏掉。这是既有行为，不在这次抽取的范围内 —— 抽的是判据，
+  // 不是 DOM 结构。
+  $('apikey-fields').style.display = v.key ? 'block' : 'none';
+  $('baseurl-field').style.display = v.baseUrl ? 'block' : 'none';
+  $('model-field').style.display = v.model ? 'block' : 'none';
+  $('api-base-url').placeholder = v.basePlaceholder;
+  $('api-model').placeholder = v.modelPlaceholder;
   $('api-hint').textContent = apiHint(provider);
   // Hooked here rather than at each call site: updateProviderUI already re-runs on
   // load, on engine change and on UI-language change — every moment the note can go stale.
@@ -182,18 +173,11 @@ function updateProviderUI(provider) {
 // the translation providers.
 const TTS_ENGINES = (window.MT_TTS_ENGINES || []);
 const ttsEngineById = (id) => TTS_ENGINES.find((e) => e.id === id) || null;
-function ttsEngineLabel(e) { return e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id); }
 
 function populateTtsEngines(selected) {
-  const sel = $('tts-engine');
-  sel.innerHTML = '';
-  for (const e of TTS_ENGINES) {
-    const o = document.createElement('option');
-    o.value = e.id;
-    o.textContent = ttsEngineLabel(e);
-    sel.appendChild(o);
-  }
-  sel.value = ttsEngineById(selected) ? selected : (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser';
+  EngineFields.populate($('tts-engine'), TTS_ENGINES, {
+    t, selected, fallback: (TTS_ENGINES[0] && TTS_ENGINES[0].id) || 'browser',
+  });
 }
 
 // 引擎自检的失败具名与「服务端原话」，实现在 learn/engine-test.js —— 那张表现在有
@@ -254,11 +238,13 @@ async function updateTtsUI(selectedVoice) {
   const e = ttsEngineById($('tts-engine').value) || TTS_ENGINES[0];
   if (!e) return;
   $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
-  $('tts-baseurl-field').style.display = e.supportsBaseUrl ? 'block' : 'none';
-  // supportsKey 缺省时回落到 needsKey —— 没声明过这个字段的条目行为一个字都不变。
-  $('tts-key-field').style.display = (e.supportsKey ?? e.needsKey) ? 'block' : 'none';
-  $('tts-model-field').style.display = e.supportsModel ? 'block' : 'none';
-  $('tts-model').placeholder = e.defaultModel || '';
+  const v = EngineFields.visibility(e);
+  $('tts-baseurl-field').style.display = v.baseUrl ? 'block' : 'none';
+  $('tts-key-field').style.display = v.key ? 'block' : 'none';
+  $('tts-model-field').style.display = v.model ? 'block' : 'none';
+  // 地址示例：这一处原来漏了，chat 和 stt 都有。四份抄写收敛成一份的顺带结果。
+  $('tts-base-url').placeholder = v.basePlaceholder;
+  $('tts-model').placeholder = v.modelPlaceholder;
 
   const sel = $('tts-voice');
   sel.innerHTML = '';
@@ -519,27 +505,23 @@ async function init() {
   // candidate list is the registry filtered by LearnNotes' own type rule, so
   // "what counts as a chat engine" cannot drift between the gate and this picker.
   function populateNotesEngines(selected) {
-    const sel = $('notes-provider');
-    sel.innerHTML = '';
-    const follow = document.createElement('option');
-    follow.value = '';
-    follow.textContent = t('notes_follow', '跟随翻译引擎（默认）');
-    sel.appendChild(follow);
-    for (const p of LearnNotes.chatEngines()) {
-      const o = document.createElement('option');
-      o.value = p.id;
-      o.textContent = providerLabel(p);
-      sel.appendChild(o);
-    }
-    sel.value = LearnNotes.chatEngines().some((p) => p.id === selected) ? selected : '';
+    // '' 是**有语义的空**：跟随翻译引擎。它不是占位符，写了别的值会永久打断
+    // follow 关系（quick-setup.js:206-209 论证过同一件事）。
+    EngineFields.populate($('notes-provider'), LearnNotes.chatEngines(), {
+      t, selected, sentinel: { value: '', text: t('notes_follow', '跟随翻译引擎（默认）') },
+    });
   }
   function updateNotesUI(id) {
     const p = (window.MT_PROVIDERS || []).find((x) => x.id === id) || null;
+    const v = EngineFields.visibility(p);
     $('notes-config').hidden = !p;
     if (!p) return;
-    $('notes-key-field').hidden = !p.needsKey;
-    $('notes-baseurl-field').hidden = !p.supportsBaseUrl;
-    $('notes-model-field').hidden = !p.supportsModel;
+    $('notes-key-field').hidden = !v.key;
+    $('notes-baseurl-field').hidden = !v.baseUrl;
+    $('notes-model-field').hidden = !v.model;
+    // 地址与模型的示例：这一处原来两个都漏了。
+    $('notes-base-url').placeholder = v.basePlaceholder;
+    $('notes-model').placeholder = v.modelPlaceholder;
   }
   populateNotesEngines(s.notesProvider || '');
   $('notes-api-key').value  = s.notesApiKey || '';
@@ -552,29 +534,22 @@ async function init() {
   // transcription engine and never will be — §12). Candidates come from the
   // generated registry; nothing engine-specific is restated here.
   function populateSttEngines(selected) {
-    const sel = $('stt-engine');
-    sel.innerHTML = '';
-    const none = document.createElement('option');
-    none.value = '';
-    none.textContent = t('stt_engine_none', '未配置（不出「说」题）');
-    sel.appendChild(none);
-    for (const e of (window.MT_STT_ENGINES || [])) {
-      const o = document.createElement('option');
-      o.value = e.id;
-      o.textContent = e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id);
-      sel.appendChild(o);
-    }
-    sel.value = (window.MT_STT_ENGINES || []).some((e) => e.id === selected) ? selected : '';
+    // '' 同样是有语义的空：未配置 ⇒ 不出「说」题。「录音去哪儿必须是一次显式选择」
+    // 那条裁定的落点就是这个哨兵项，不要把它改成必选。
+    EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], {
+      t, selected, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
+    });
   }
   function updateSttUI(id) {
     const e = (window.MT_STT_ENGINES || []).find((x) => x.id === id) || null;
+    const v = EngineFields.visibility(e);
     $('stt-config').hidden = !e;
     if (!e) return;
-    $('stt-key-field').hidden = !(e.supportsKey ?? e.needsKey);
-    $('stt-baseurl-field').hidden = !e.supportsBaseUrl;
-    $('stt-model-field').hidden = !e.supportsModel;
-    $('stt-base-url').placeholder = endpointPlaceholder(e);
-    $('stt-model').placeholder = e.defaultModel || '';
+    $('stt-key-field').hidden = !v.key;
+    $('stt-baseurl-field').hidden = !v.baseUrl;
+    $('stt-model-field').hidden = !v.model;
+    $('stt-base-url').placeholder = v.basePlaceholder;
+    $('stt-model').placeholder = v.modelPlaceholder;
   }
   populateSttEngines(s.sttEngine || '');
   $('stt-api-key').value  = s.sttApiKey || '';
