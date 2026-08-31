@@ -4,7 +4,6 @@
 // flavor from build/providers.config.js).
 const PROVIDERS = (window.MT_PROVIDERS || []);
 const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
-const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
 
 const $ = id => document.getElementById(id);
 
@@ -42,27 +41,17 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { const m = t(el.dataset.i18nAria, ''); if (m) el.setAttribute('aria-label', m); });
 }
 
-function providerLabel(p) { return p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id); }
-function populateProviders() {
-  const sel = $('provider');
-  const prev = sel.value;
-  sel.innerHTML = '';
-  for (const p of PROVIDERS) {
-    const o = document.createElement('option');
-    o.value = p.id;
-    o.textContent = providerLabel(p);
-    sel.appendChild(o);
-  }
-  if (prev && providerById(prev)) sel.value = prev;
-}
-
 // Explicit keys, never get(null) by default: the bucket also holds the unbounded
 // `tr:` cache and the `lq:` learning outbox (docs/learning-design.md §7). The read
 // goes through PageSettings because an extension page on Safari iOS gets nothing back
 // — this popup showed "Google 翻译（免费）" while the page it was describing had just
 // been translated by the user's own DeepSeek key.
 const POPUP_KEYS = [
-  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  // apiBaseUrl / apiModel **刻意不在这里**：弹窗不再配引擎，那是设置页那一个入口的事。
+  // 留下的三个是**只读不写**的：provider + apiKey 用来判断「配没配好」，uiLang 用来
+  // 决定弹窗自己显示成哪种语言 —— 不再让你在这里**改**它，不等于可以不**读**它。
+  // 这份清单是全仓第四份手抄的设置键表，没有任何门禁盯着它。
+  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey',
   'extObSeen',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
@@ -98,9 +87,15 @@ function updateSetupNote(provider, apiKey) {
   const p = providerById(provider) || {};
   const needsKey = !!p.needsKey;
   const hasKey = !!(apiKey || '').trim();
+  // 弹窗不再提供配置控件，所以这条提示的职责从「说明」变成**引导**：整条可点，
+  // 点开设置页。interaction-spec 要求 setup note 同时出现在弹窗与设置页两处，
+  // 那条契约仍然成立 —— 变的是它把人送去哪儿。
+  el.onclick = null;
+  el.classList.remove('clickable');
   if (needsKey && !hasKey) {
-    el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');
-    el.classList.add('warn');
+    el.textContent = t('popup_need_setup', '还没配好翻译引擎 —— 点这里去设置页，一把 key 就能配好。');
+    el.classList.add('warn', 'clickable');
+    el.onclick = () => { try { chrome.runtime.openOptionsPage(); } catch (_) {} window.close(); };
     el.style.display = 'block';
   } else if (!needsKey) {
     el.textContent = t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。');
@@ -128,15 +123,6 @@ function updateFirstRun(seen) {
   };
 }
 
-function updateApiKeySection(provider) {
-  const p = providerById(provider) || {};
-  $('apikey-section').style.display = p.needsKey ? 'block' : 'none';
-  $('baseurl-row').style.display = p.supportsBaseUrl ? 'flex' : 'none';
-  $('model-row').style.display = p.supportsModel ? 'flex' : 'none';
-  // 完整端点地址（registry 的 defaultEndpoint / placeholder）——见 options.js 的同名助手。
-  $('api-base-url').placeholder = (p.defaultEndpoint || p.placeholder) || 'https://…';
-  $('api-model').placeholder = p.defaultModel || '';
-}
 
 let pageTranslated = false; // whether the current page is currently translated
 
@@ -219,18 +205,10 @@ async function init() {
 
   // Populate UI
   $('target-lang').value = s.targetLang || 'zh-CN';
-  $('ui-lang').value = s.uiLang || 'auto';
-  populateProviders();
-  const prov = providerById(s.provider) ? s.provider : defaultProviderId();
-  $('provider').value = prov;
-  $('api-key').value = s.apiKey || '';
-  $('api-base-url').value = s.apiBaseUrl || '';
-  $('api-model').value = s.apiModel || '';
-
-  updateApiKeySection(prov);
-  updateSetupNote(prov, s.apiKey);
+  // provider / apiKey 只读不写：弹窗用它们判断「配没配好」，配置本身在设置页。
+  // out-of-flavor 的引擎迁移也随之去掉 —— 那是配置动作，属于设置页。
+  updateSetupNote(s.provider, s.apiKey);
   updateFirstRun(s.extObSeen);
-  if (prov !== s.provider) await saveSettings({ provider: prov }); // migrate out-of-flavor provider
 
   // Reflect the CURRENT page's translation state (not a stored default).
   const pageStatus = await sendToPage('getPageStatus');
@@ -280,40 +258,6 @@ async function init() {
     showToast(t('toast_lang_switched', '语言已切换'));
   });
 
-  $('ui-lang').addEventListener('change', async (e) => {
-    _uiLang = e.target.value || 'auto';
-    await saveSettings({ uiLang: e.target.value });
-    applyI18n();
-    populateProviders();  // re-localize provider option labels
-    updateTranslateUI();  // re-localize the button/badge text
-    updateSetupNote($('provider').value, $('api-key').value);  // …and the setup note
-    showToast(t('toast_lang_switched', '语言已切换'));
-  });
-
-  $('provider').addEventListener('change', async (e) => {
-    const provider = e.target.value;
-    // See options.js: an endpoint address cannot carry across engines, and clearing it
-    // lands on a working default rather than on the previous engine's address.
-    const url = $('api-base-url');
-    const cleared = !!(url && url.value.trim());
-    if (cleared) { url.value = ''; }
-    await saveSettings(cleared
-      ? { provider, apiBaseUrl: '' }
-      : { provider });
-    updateApiKeySection(provider);
-    updateSetupNote(provider, $('api-key').value);
-    showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空')
-      : t('toast_provider_switched', '翻译引擎已切换'));
-  });
-
-  $('api-key').addEventListener('change', async (e) => {
-    await saveSettings({ apiKey: e.target.value.trim() });
-    updateSetupNote($('provider').value, e.target.value);
-  });
-  // `change` only fires on blur — the note must clear as soon as a key is typed,
-  // otherwise it keeps saying "translation will not work" while the field is full.
-  $('api-key').addEventListener('input', (e) => updateSetupNote($('provider').value, e.target.value));
-
   // 复习入口。The row renders immediately and the count fills in when IndexedDB
   // resolves — the popup must never wait on the corpus to paint.
   $('open-review').addEventListener('click', () => {
@@ -338,19 +282,6 @@ async function init() {
     } catch (_) { /* silent + total */ }
   })();
 
-  $('api-base-url').addEventListener('change', async (e) => {
-    await saveSettings({ apiBaseUrl: e.target.value.trim() });
-  });
-
-  $('api-model').addEventListener('change', async (e) => {
-    await saveSettings({ apiModel: e.target.value.trim() });
-  });
-
-  // Toggle password visibility
-  $('toggle-eye').addEventListener('click', () => {
-    const input = $('api-key');
-    input.type = input.type === 'password' ? 'text' : 'password';
-  });
 
   // Toggle: 翻译本页 ↔ 查看原文. Re-translating is cache-first (TranslationAPI cache).
   $('btn-translate').addEventListener('click', async (e) => {

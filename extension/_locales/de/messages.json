@@ -333,6 +333,9 @@
   "setup_need_key": {
     "message": "Diese Engine benötigt einen API-Schlüssel. Ohne Eingabe unten funktioniert die Übersetzung nicht."
   },
+  "popup_need_setup": {
+    "message": "Die Übersetzung ist noch nicht eingerichtet – tippe hier für die Einstellungen; ein Schlüssel genügt."
+  },
   "setup_free_channel": {
     "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
   },
@@ -1908,5 +1911,11 @@
   },
   "engine_test_empty_audio": {
     "message": "Der Endpunkt hat geantwortet, aber kein Audio geliefert"
+  },
+  "opt_mode_quick": {
+    "message": "Schnell"
+  },
+  "opt_mode_detail": {
+    "message": "Alle Einstellungen"
   }
 }

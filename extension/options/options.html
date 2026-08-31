@@ -21,6 +21,16 @@
            Filled and shown/hidden by options.js — never both states at once. -->
       <div class="setup-note" id="setup-note" style="display:none"></div>
 
+      <!-- 快速 / 详细。刻意**不叫「高级」** —— 翻译引擎卡里已经有一个 #btn-advanced
+           （高级参数），同屏两个同名不同义的控件是必然的困惑。
+           实现只用 hidden，永不 remove()：saveAll() 按字面量读 41 个字段、零 null
+           保护，从 DOM 里拿掉任何一张卡都会让它在 null 上抛，于是**每次保存都静默
+           什么都不存**。见 options.js 里 saveAll() 开头那道断言。 -->
+      <div class="mode-tabs" id="mode-tabs" role="tablist">
+        <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
+        <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+      </div>
+
       <!-- 一把 key 配好全部（QuickSetup）。渲染在 learn/quick-setup.js，与扩展引导
            第 2 屏是**同一个组件** —— 两处说两套话是这一整块要消灭的东西。
            它只返回 patch，写盘由本页的 applyQuickSetup() 负责：saveAll() 是整体
@@ -32,7 +42,7 @@
       </section>
 
       <!-- 翻译引擎 -->
-      <section class="card">
+      <section class="card adv-only" id="engine-card">
         <h2 data-i18n="options_engine_section">翻译引擎</h2>
 
         <div class="field">
@@ -121,7 +131,7 @@
       </section>
 
       <!-- 翻译语言 -->
-      <section class="card">
+      <section class="card" id="lang-card">
         <h2 data-i18n="options_lang_section">语言</h2>
         <div class="field">
           <label for="target-lang" data-i18n="popup_target_lang">目标语言</label>
@@ -161,7 +171,7 @@
       </section>
 
       <!-- 显示样式 -->
-      <section class="card">
+      <section class="card" id="style-card">
         <h2 data-i18n="options_style_section">显示样式</h2>
 
         <div class="field">
@@ -201,7 +211,7 @@
       </section>
 
       <!-- 缓存 -->
-      <section class="card">
+      <section class="card adv-only" id="cache-card">
         <h2 data-i18n="options_cache_section">缓存管理</h2>
         <p class="hint" data-i18n="options_cache_hint">翻译结果会缓存 12 小时以减少 API 请求。</p>
         <button class="btn-danger" id="btn-clear-cache" data-i18n="options_clear_cache">清除翻译缓存</button>
@@ -209,7 +219,7 @@
       </section>
 
       <!-- 学习（记忆层）。采集默认关闭 —— 升级不会自己开始记录。 -->
-      <section class="card">
+      <section class="card adv-only" id="learn-card">
         <h2 data-i18n="learn_section">学习</h2>
         <p class="hint" data-i18n="learn_section_hint">打开后，你**真正读过**的句子会连同页面地址、标题和停留时长一起存在**这台设备**上，按遗忘曲线重新推给你。快速滚过去的不算。除非你开启同步，否则不上传；一键可清空。</p>
 
@@ -315,7 +325,7 @@
 
       <!-- 同步（可选）。不登录是默认状态，不是降级版本：本地学习功能完全一样。
            learning-design.md §8。上行的只有已晋级的卡，候选池永不离开设备。 -->
-      <section class="card" id="sync-section">
+      <section class="card adv-only" id="sync-section">
         <h2 data-i18n="sync_section">多设备同步</h2>
         <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。</p>
 
@@ -350,7 +360,7 @@
       </section>
 
       <!-- 语音（TTS）。本地优先：默认用设备内置语音，零配置零成本可离线。 -->
-      <section class="card">
+      <section class="card adv-only" id="tts-card">
         <h2 data-i18n="tts_section">语音</h2>
         <p class="hint" data-i18n="tts_section_hint">把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。</p>
 
@@ -417,7 +427,7 @@
       </section>
 
       <!-- 关于 -->
-      <section class="card about">
+      <section class="card about" id="about-card">
         <h2 data-i18n="options_about_section">关于</h2>
         <!-- 版本号来自 manifest，不来自翻译。写死在 11 份译文里的结果是：
              manifest 已经 1.3.0，界面还显示 v1.0.0，而且没有任何东西会报。 -->

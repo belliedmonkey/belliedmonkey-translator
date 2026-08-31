@@ -333,6 +333,9 @@
   "setup_need_key": {
     "message": "Este motor precisa de uma chave de API. A tradução não vai funcionar enquanto você não inserir uma abaixo."
   },
+  "popup_need_setup": {
+    "message": "A tradução ainda não está configurada — toque aqui para abrir os ajustes; uma única chave basta."
+  },
   "setup_free_channel": {
     "message": "Você está no motor gratuito sem chave — o suficiente para uma primeira olhada. Não é um endpoint estável: às vezes devolve o seu texto original sem alterações. Trocar para um motor LLM com a sua própria chave é bem mais confiável, e melhor."
   },
@@ -1908,5 +1911,11 @@
   },
   "engine_test_empty_audio": {
     "message": "O endpoint respondeu, mas não retornou áudio"
+  },
+  "opt_mode_quick": {
+    "message": "Rápido"
+  },
+  "opt_mode_detail": {
+    "message": "Detalhado"
   }
 }

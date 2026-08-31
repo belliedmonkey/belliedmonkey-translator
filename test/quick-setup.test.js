@@ -214,3 +214,55 @@ describe('QuickSetup.summarize', () => {
     eq(s.ok, false, '');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// saveAll 的存在性断言
+//
+// options.js 的 saveAll() 是整体覆盖式的，按字面量读 28 个控件、零 null 保护。
+// 少一个元素就在 null 上抛，而所有调用点都是无 catch 的 `await saveAll()` ——
+// 于是每次保存都静默什么都不存，且 smoke 里「一键配置扛住整体覆盖」那条断言会
+// 因为「什么都没写」而变绿。
+//
+// 那道断言本身在 smoke 里够不着（saveAll 读的每张卡，smoke 或 applyQuickSetup
+// 都会更早碰到并先抛）。所以这里守的是它的**前提**：SAVE_FIELDS 必须与 saveAll
+// 的函数体逐个对得上。漂了，断言就会漏掉真正缺的那个元素 —— 一道漏检的断言比
+// 没有断言更坏，因为它让人以为有人在看着。
+// ─────────────────────────────────────────────────────────────────────────────
+describe('options.saveAll — 存在性断言不许与函数体漂开', () => {
+  const src = () => fs.readFileSync(path.join(ROOT, 'extension/options/options.js'), 'utf8');
+
+  test('SAVE_FIELDS 恰好等于 saveAll 里读到的元素集合', () => {
+    const s = src();
+    const m = /const SAVE_FIELDS = \[([\s\S]*?)\];/.exec(s);
+    ok(m, '找不到 SAVE_FIELDS —— 它改名了？这条断言就空过了');
+    const declared = new Set((m[1].match(/'([a-z0-9-]+)'/g) || []).map((x) => x.slice(1, -1)));
+    ok(declared.size >= 20, `只抽到 ${declared.size} 个 —— 抽取本身坏了`);
+
+    const i = s.indexOf('async function saveAll() {');
+    ok(i > 0, '找不到 saveAll');
+    const j = s.indexOf('\n}', i);
+    const body = s.slice(i, j);
+    const used = new Set((body.match(/\$\('([a-z0-9-]+)'\)/g) || [])
+      .map((x) => x.slice(3, -2)));
+
+    for (const id of used) ok(declared.has(id), `saveAll 读了 ${id}，但 SAVE_FIELDS 没有它 —— 断言会漏掉它`);
+    for (const id of declared) ok(used.has(id), `SAVE_FIELDS 有 ${id}，但 saveAll 不读它 —— 多余的断言会在无害的重构上误报`);
+  });
+
+  test('saveAll 第一行就是那道断言 —— 放在读值之后等于没放', () => {
+    const s = src();
+    const i = s.indexOf('async function saveAll() {');
+    const head = s.slice(i, i + 200);
+    ok(/assertSaveFields\(\);/.test(head), 'saveAll 开头没有 assertSaveFields()');
+    ok(head.indexOf('assertSaveFields()') < head.indexOf("$('"), '断言必须在第一次读元素之前');
+  });
+
+  test('这张页面不许 remove() 任何 section（sync-section 是唯一例外）', () => {
+    // sync-section 安全只因为它一个字段都不进 saveAll。照抄到别的卡上就是静默清零。
+    const s = src();
+    const removes = (s.match(/\$\('([a-z0-9-]+)'\)\.remove\(\)/g) || []);
+    for (const r of removes) {
+      ok(/sync-section/.test(r), `发现 ${r} —— 收起一张卡要用 hidden，remove() 会让 saveAll 每次都静默失败`);
+    }
+  });
+});

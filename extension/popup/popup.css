@@ -187,40 +187,7 @@ body {
 
 /* ─── Input ───────────────────────────────────────────────────── */
 
-.input {
-  width: 100%;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--section-bg);
-  border: 1.5px solid var(--border);
-  border-radius: 999px;
-  padding: 8px 14px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.input:focus { border-color: var(--accent); }
-
-.api-key-wrap {
-  position: relative;
-  flex: 1;
-}
-
-.api-key-wrap .input { padding-right: 36px; }
-
-.eye-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-}
+/* .input / .api-key-wrap / .eye-btn 随引擎配置一起removed —— 弹窗不再有输入框 */
 
 /* ─── Action buttons ──────────────────────────────────────────── */
 
@@ -307,6 +274,11 @@ button:disabled, input:disabled, select:disabled {
   background: #f0fae1;
   color: #272e1b;
 }
+
+/* 未配置时这条提示**整条可点**，点开设置页 —— 弹窗不再提供配置控件，它的职责
+   从「说明」变成了「引导」。给出可点的视觉线索，否则用户不会想到去点一段文字。 */
+.setup-note.clickable { cursor: pointer; text-align: left; width: 100%; }
+.setup-note.clickable:hover { filter: brightness(0.97); }
 .setup-note.warn {
   border: 1.5px solid #f6a06b;
   background: #fff2eb;

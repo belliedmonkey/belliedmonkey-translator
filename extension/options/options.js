@@ -367,7 +367,29 @@ function updateAdvancedNotes() {
   }
 }
 
+// saveAll() 是**整体覆盖式**的：它按字面量从 DOM 读下面每一个字段。
+// 少一个元素，`$('x').value` 就在 null 上抛 —— 而所有调用点都是无 catch 的
+// `await saveAll()`，于是**每次保存都静默什么都不存**：不写盘、不弹 toast、界面
+// 毫无变化。更坏的是 smoke 里那条「一键配置扛住整体覆盖」的断言会因此**变绿**
+// （什么都没写，所以前后相等）。
+//
+// 所以这道断言必须在最前面、而且必须**响**。刻意不写成 `el ? el.value : ''` ——
+// 那会把「元素不在」翻译成「用户清空了」，把一次崩溃换成一次静默清零。
+//
+// 推论：这张页面**永不 remove() 任何 section**（sync-section 是唯一的例外，它一个
+// 字段都不进 saveAll）。要收起一张卡就用 hidden —— 元素还在 DOM 里，值照样读得到。
+const SAVE_FIELDS = ['api-base-url', 'api-key', 'api-model', 'font-size', 'learn-daily-new', 'learn-enabled', 'notes-api-key', 'notes-base-url', 'notes-model', 'notes-provider', 'provider', 'show-fab', 'stt-api-key', 'stt-base-url', 'stt-engine', 'stt-model', 'target-lang', 'text-color', 'tts-api-key', 'tts-autoplay', 'tts-base-url', 'tts-engine', 'tts-mode', 'tts-model', 'tts-rate', 'tts-voice', 'ui-lang', 'yt-text-color'];
+function assertSaveFields() {
+  const missing = SAVE_FIELDS.filter((id) => !$(id));
+  if (missing.length) {
+    // 开发者可见的断言，永不到用户眼前 —— 所以是英文，不进 i18n。
+    throw new Error('saveAll: controls missing from the DOM (a section was removed '
+      + 'rather than hidden): ' + missing.join(', '));
+  }
+}
+
 async function saveAll() {
+  assertSaveFields();
   const settings = {
     provider:    $('provider').value,
     apiKey:      $('api-key').value.trim(),
@@ -1353,6 +1375,35 @@ async function init() {
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
   }
 
+  // ── 快速 / 详细 ──────────────────────────────────────────────────────
+  //
+  // **只切 hidden，永不 remove()。** 理由写在 saveAll() 上方那段注释里：那个函数
+  // 按字面量读 28 个控件、零 null 保护，从 DOM 里拿掉一张卡会让每次保存静默失败。
+  //
+  // 模式**单独存**（optDetailMode），不进 SETTINGS_KEYS —— 它是 UI 状态不是配置，
+  // 混进去等于让 saveAll 的整体覆盖去管一个跟配置无关的东西（learnRules /
+  // reqCustomParams 也是同样的理由单独存的）。
+  const DETAIL_KEY = 'optDetailMode';
+  function applyDetailMode(on) {
+    for (const el of document.querySelectorAll('.adv-only')) el.hidden = !on;
+    const q = $('mode-quick'); const d = $('mode-detail');
+    if (q) q.setAttribute('aria-selected', String(!on));
+    if (d) d.setAttribute('aria-selected', String(!!on));
+  }
+  const setDetail = (on) => {
+    applyDetailMode(on);
+    try { chrome.storage.local.set({ [DETAIL_KEY]: !!on }); } catch (_) {}
+  };
+  if ($('mode-quick')) $('mode-quick').addEventListener('click', () => setDetail(false));
+  if ($('mode-detail')) $('mode-detail').addEventListener('click', () => setDetail(true));
+
+  // 默认「快速」，除非用户上次切到过详细。
+  let _detail = false;
+  try {
+    const r = await new Promise((res) => chrome.storage.local.get([DETAIL_KEY], (v) => res(v || {})));
+    _detail = r[DETAIL_KEY] === true;
+  } catch (_) {}
+
   if ($('quick-setup')) {
     QuickSetup.render($('quick-setup'), {
       t,
@@ -1364,8 +1415,14 @@ async function init() {
     });
     if (!$('quick-setup').children.length && $('quick-setup-card')) {
       $('quick-setup-card').hidden = true;   // 这个 flavor 没有可一键的平台，不留空壳
+      // 一键配置渲染不出来时，「快速」视图就是一张空页 —— 强制展开详细。
+      _detail = true;
     }
   }
+  // 读不到已存设置时一键配置是 disabled 的，同样没有可做的事 —— 也强制展开，
+  // 否则用户面对的是一张什么都点不了的页面。
+  if (_settingsReadFailed) _detail = true;
+  applyDetailMode(_detail);
 }
 
 // A bare `init()` turns any throw inside it into a silent unhandled rejection, which

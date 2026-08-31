@@ -71,51 +71,12 @@
       </select>
     </div>
 
-    <div class="row">
-      <span class="row-label" data-i18n="ui_lang_label">界面语言</span>
-      <select id="ui-lang" class="select">
-        <option value="auto" data-i18n="ui_lang_auto">跟随系统</option>
-        <option value="zh_CN">简体中文</option>
-        <option value="zh_TW">繁體中文</option>
-        <option value="en">English</option>
-        <option value="ja">日本語</option>
-        <option value="ko">한국어</option>
-        <option value="fr">Français</option>
-        <option value="de">Deutsch</option>
-        <option value="es">Español</option>
-        <option value="ar">العربية</option>
-        <option value="pt_BR">Português</option>
-        <option value="ru">Русский</option>
-      </select>
-    </div>
-
-    <div class="row">
-      <span class="row-label" data-i18n="popup_provider">翻译引擎</span>
-      <select id="provider" class="select"><!-- populated from window.MT_PROVIDERS by popup.js --></select>
-    </div>
   </div>
 
-  <div class="section" id="apikey-section" style="display:none">
-    <div class="row col">
-      <span class="row-label">API Key</span>
-      <div class="api-key-wrap">
-        <input type="password" id="api-key" class="input" placeholder="输入 API Key…" data-i18n-placeholder="placeholder_api_key" autocomplete="off">
-        <button class="eye-btn" id="toggle-eye" aria-label="显示/隐藏" data-i18n-aria="toggle_show_hide">
-          <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div class="row col" id="baseurl-row" style="display:none">
-      <span class="row-label"><span data-i18n="label_custom_api">自定义 API 地址</span> <span class="hint" data-i18n="label_optional">（可选）</span></span>
-      <input type="url" id="api-base-url" class="input">
-    </div>
-    <div class="row col" id="model-row" style="display:none">
-      <span class="row-label"><span data-i18n="label_custom_model">模型</span> <span class="hint" data-i18n="label_optional">（可选）</span></span>
-      <input type="text" id="api-model" class="input" placeholder="" autocomplete="off">
-    </div>
-  </div>
+  <!-- 引擎 / API Key / 接口地址 / 模型**不在这里**。它们曾经是设置页的一份缩水
+       复制品，而且带着一个设置页早就修掉、这一份没修的缺陷：Key 只挂 change（失焦），
+       iOS 上粘完直接锁屏就静默丢了（1.6.8 的同款事故）。未配置时由上面的 #setup-note
+       整条可点，把人送到设置页那一个入口。 -->
 
   <div class="section actions">
     <button class="btn-primary" id="btn-translate" data-i18n="btn_translate_page">翻译本页</button>

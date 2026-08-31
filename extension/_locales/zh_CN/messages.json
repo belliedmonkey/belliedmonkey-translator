@@ -333,6 +333,9 @@
   "setup_need_key": {
     "message": "这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。"
   },
+  "popup_need_setup": {
+    "message": "还没配好翻译引擎 —— 点这里去设置页，一把 key 就能配好。"
+  },
   "setup_free_channel": {
     "message": "当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。"
   },
@@ -1909,5 +1912,11 @@
   },
   "engine_test_empty_audio": {
     "message": "端点通了，但没有返回音频"
+  },
+  "opt_mode_quick": {
+    "message": "快速"
+  },
+  "opt_mode_detail": {
+    "message": "详细"
   }
 }
