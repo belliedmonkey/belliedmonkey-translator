@@ -344,9 +344,9 @@
         : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。');
       if (mac) { $('ob-prefs').hidden = false; $('ob-prefs').textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置'); }
       else obSteps([
-        t('ob_ios_1', '在 Safari 里点地址栏左边的扩展图标'),
-        t('ob_ios_2', '选「管理扩展」，把「大肚猴翻译」打开'),
-        t('ob_ios_3', '权限选「允许」，网站选「所有网站」'),
+        { text: t('ob_ios_1', '在 Safari 里点地址栏左边的扩展图标'), art: 'app-art-1' },
+        { text: t('ob_ios_2', '选「管理扩展」，把「大肚猴翻译」打开'), art: 'app-art-2' },
+        { text: t('ob_ios_3', '权限选「允许」，网站选「所有网站」'), art: 'app-art-3' },
       ]);
       // 「设完了到底成没成」在 iOS 上只有官网那一页答得出（它被扩展注入后自己亮
       // 绿灯），所以这一屏两个平台都给它 —— macOS 有直达设置，但没有回执。
@@ -382,14 +382,25 @@
     }
   }
 
+  // 吃字符串或 {text, art}。`art` 是 index.html 里一个 <template> 的 id —— 插图是
+  // 图形不是文案，里面一个要翻译的字都没有，所以克隆一份就行，不必进 i18n。
+  //
+  // ⚠️ #ob-steps 必须恰好三个直接子元素（verify-app-bundle.js 的断言）。图画在 <li>
+  // 内部，不要因为想加一张图就多一个兄弟节点。
   function obSteps(lines) {
     const ol = $('ob-steps');
     ol.textContent = '';
     lines.forEach((line, i) => {
+      const item = (typeof line === 'string') ? { text: line } : line;
       const li = document.createElement('li');
       const b = document.createElement('b'); b.textContent = String(i + 1);
-      const sp = document.createElement('span'); sp.textContent = line;
-      li.append(b, sp); ol.append(li);
+      // 文字与插图竖排；<b> 仍在左侧，所以正文包一层。
+      const body = document.createElement('div'); body.className = 'ob-step-body';
+      const sp = document.createElement('span'); sp.textContent = item.text;
+      body.append(sp);
+      const tpl = item.art && $(item.art);
+      if (tpl && tpl.content) body.append(tpl.content.cloneNode(true));
+      li.append(b, body); ol.append(li);
     });
     ol.hidden = false;
   }
