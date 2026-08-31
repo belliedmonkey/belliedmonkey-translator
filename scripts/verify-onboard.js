@@ -62,6 +62,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
             plat:b.querySelectorAll('#qs-platform option').length,
             apply:!!b.querySelector('#qs-apply')}:null;})(),
         modes:vis(document.getElementById('ob-modes')),
+        acts:['ob-cta','ob-next','ob-skip'].filter(id=>vis(document.getElementById(id))).length,
         manual:(()=>{const b=document.getElementById('ob-manual');
           return vis(b)?{sel:b.querySelectorAll('select').length,
             key:b.querySelectorAll('input[type=password]').length}:null;})(),
@@ -79,7 +80,12 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         done:vis(document.getElementById('ob-done'))})})()`);
       if(s.done) break;
       seen.push(s);
-      await ev(`(()=>{document.getElementById('ob-next').click();return'1'})()`);
+      // 点**可见**的那个按钮。'try' 屏没有「继续」（唯一行动是「打开示例页面」，
+      // 它同时前进），照旧点 ob-next 会点到一个 display:none 的按钮 —— click() 照样
+      // 触发，于是这道门禁永远发现不了那一屏变了。
+      await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+        const n=document.getElementById('ob-next');
+        (vis(n)?n:document.getElementById('ob-cta')).click();return'1'})()`);
       await new Promise(r=>setTimeout(r,220));
     }
     console.log(`  屏数: ${seen.length}`);
@@ -158,6 +164,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(!tab.back.quick||tab.back.manual)
       fail(`切回「一键配置」没生效：${JSON.stringify(tab.back)}`);
     else pass('两个 tab 来回切都保持互斥');
+
+    // 「现在翻一页看看」那一屏只该有一个按钮。配好了就去看，而「继续」（配好了但
+    // 不去看）和「以后再设置」（配好了但不用）都在跟它抢注意力。
+    const tryScreen = seen.find(s=>s.cta && !s.quick && !s.capture);
+    if(!tryScreen) fail('找不到「翻一页看看」那一屏');
+    else if(tryScreen.acts !== 1)
+      fail(`「翻一页看看」那屏有 ${tryScreen.acts} 个可点按钮，期望 1（只留「打开示例页面」）`);
+    else pass('「翻一页看看」那屏只有一个按钮');
 
     const q = (seen.find(s=>s.quick)||{}).quick;
     if(!q) fail('引擎屏上没有「一把 key 配好全部」那张卡 —— HTML 在但没渲染？');

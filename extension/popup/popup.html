@@ -29,7 +29,7 @@
   <!-- 复习入口。到期为 0 时这一行仍然显示（只是没有计数）—— 藏起来会让整个功能
        无从发现。计数不用 action badge：service worker 在 Safari iOS 上会死，
        badge 会静默过期。 -->
-  <div class="section">
+  <div class="section" id="review-section">
     <button class="row row-btn" id="open-review">
       <span class="row-label" data-i18n="learn_review">复习</span>
       <span class="row-value" id="review-count"></span>
@@ -53,7 +53,7 @@
     </button>
   </div>
 
-  <div class="section">
+  <div class="section" id="lang-section">
     <div class="row">
       <span class="row-label" data-i18n="popup_target_lang">目标语言</span>
       <select id="target-lang" class="select">
@@ -78,7 +78,7 @@
        iOS 上粘完直接锁屏就静默丢了（1.6.8 的同款事故）。未配置时由上面的 #setup-note
        整条可点，把人送到设置页那一个入口。 -->
 
-  <div class="section actions">
+  <div class="section actions" id="actions-section">
     <button class="btn-primary" id="btn-translate" data-i18n="btn_translate_page">翻译本页</button>
     <button class="btn-secondary" id="btn-settings" data-i18n="btn_more_settings">更多设置</button>
   </div>

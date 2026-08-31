@@ -111,6 +111,26 @@ function updateSetupNote(provider, apiKey) {
 // **故意不复用 App 的 onboardSeen 这个键名**：两边存储不通（app/chrome-shim.js 把
 // chrome.storage 垫在 file:// 的 localStorage 上），同名会让以后读代码的人以为它们
 // 是一回事，然后写出「App 看过了扩展就不用看」这种错的联动。
+// 「还没配好」时，弹窗只留一个入口。
+//
+// 未配置的人打开弹窗，看到的应该是一件事，不是六件：复习（还没有卡）、收录本站
+// （采集还没开）、目标语言（翻不出来，选给谁看）、翻译本页（点了只会失败）——
+// 这些在那个状态下不是功能，是分散注意力的噪音，而且每一个都会把人引向一次失败。
+//
+// 判据取**这一刻能不能用**，不取「有没有走过引导」：走过引导但没填 key 一样不能用，
+// 而用免费通道、没走过引导的人是能用的，不该被拦。first-run 那条绿色提示因此只在
+// 「能用但没走过引导」时出现 —— 它是邀请，不是路障。
+function applyUnconfigured(blocked) {
+  for (const id of ['review-section', 'site-section', 'lang-section', 'actions-section']) {
+    const el = $(id);
+    if (!el) continue;
+    if (blocked) el.hidden = true;
+    // blocked=false 时不要在这里取消隐藏：#site-section 有它自己的显示条件
+    // （采集开着且页面可注入），这里一律放出来会把那条条件覆盖掉。
+  }
+  if (blocked) { const fr = $('first-run'); if (fr) fr.style.display = 'none'; }
+}
+
 function updateFirstRun(seen) {
   const el = $('first-run');
   if (!el) return;
@@ -209,6 +229,9 @@ async function init() {
   // out-of-flavor 的引擎迁移也随之去掉 —— 那是配置动作，属于设置页。
   updateSetupNote(s.provider, s.apiKey);
   updateFirstRun(s.extObSeen);
+  // 顺序要紧：先让两条提示各自决定显不显示，再由这一步把其余的收起来。
+  const _p = providerById(s.provider) || {};
+  applyUnconfigured(!!_p.needsKey && !(s.apiKey || '').trim());
 
   // Reflect the CURRENT page's translation state (not a stored default).
   const pageStatus = await sendToPage('getPageStatus');

@@ -378,7 +378,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         '登录说明没讲清「材料只能靠同步过来」—— 那会让登录看起来像可选的');
       need(wv.formsAfterClick, '点了登录却展不开表单');
     }
-    // 首次运行引导：六屏走一遍（§引导）。断言的是**每一屏都有话说**、进度条在动、
+    // 首次运行引导：五屏走一遍（§引导）。断言的是**每一屏都有话说**、进度条在动、
     // 走完能落到登录表单 —— 而不是元素存不存在。
     //
     // 关键一条：iOS 那屏不能出现直达按钮。SFSafariApplication 是 macOS-only，
@@ -393,17 +393,31 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           await new Promise((r) => setTimeout(r, 20));
           const seen = [];
           // 从第一屏重新走：点 next 直到最后一屏
-          for (let i = 0; i < 6; i++) {
+          for (let i = 0; i < 5; i++) {
             const kv = $('ob-kv').hidden ? [] : $('ob-kv').querySelectorAll('div span');
             seen.push({ title: $('ob-title').textContent, text: $('ob-text').textContent,
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
                         steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
+                        next: !$('ob-next').hidden,
                         // 引擎说明只在「浏览器里的两件事」那屏存在，必须当场取 ——
                         // 循环结束后再读会读到最后一屏的卡片，断言就永远空转。
                         kv0: kv.length ? kv[0].textContent : '' });
-            if (i < 5) { $('ob-next').click(); await new Promise((r) => setTimeout(r, 30)); }
+            // 'ext' 那一屏**没有「继续」**：主行动是「在网页上完成设置」，它同时前进
+            // 一屏。所以遍历也得走那个按钮 —— 照旧点 ob-next 会卡死在那一屏，而门禁
+            // 会报成「屏数不对」，指向完全错误的原因。
+            if (i < 4) {
+              const btn = $('ob-next').hidden ? $('ob-setup') : $('ob-next');
+              btn.click(); await new Promise((r) => setTimeout(r, 30));
+            }
           }
-          const out2 = { seen, bannerDuringOb: !document.getElementById('ext-banner').hidden };
+          // 「继续」在不在，必须在**主循环里逐屏采**。原来我另起了一个循环回头找那一屏
+          // —— 它会把引导又点走一遍，于是这一条和横幅那一条读到的都是走完之后的状态，
+          // 两条一起报假失败，而报的原因完全指向别处。
+          const extScreen = seen.find((x) => x.steps > 0);
+          const out2 = { seen,
+            extScreenHasNext: extScreen ? extScreen.next : null,
+            hasLangScreen: seen.some((x) => x.title === '学习语言'),
+            bannerDuringOb: !document.getElementById('ext-banner').hidden };
           // 收拾干净：这一段把 #onboard 打开了，不还原的话后面的横幅断言会被
           // paintExtBanner 的「引导进行中不挂横幅」抑制掉，报成假失败。
           sec.hidden = true;
@@ -429,15 +443,22 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       }
       need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
         + '两个一起显示等于把同一句话一字不差地重复一遍');
-      need(seen.length === 6, '引导不是六屏，实际 ' + seen.length);
+      need(seen.length === 5, '引导不是五屏，实际 ' + seen.length);
       const blank = seen.map((x, i) => (x.title && x.text) ? null : i).filter((x) => x !== null);
       need(blank.length === 0, '这几屏标题或正文是空的（i18n 键没落到）：' + blank.join(','));
-      need(seen[0].w !== seen[5].w, '进度条从头到尾没动');
+      need(seen[0].w !== seen[seen.length - 1].w, '进度条从头到尾没动');
       const iosStep = seen.find((x) => x.steps > 0);
       need(iosStep && iosStep.steps === 3, 'iOS 的启用扩展屏应当念三步，实际 '
         + (iosStep ? iosStep.steps : 0) + ' 步');
       need(!seen.some((x) => x.prefs), 'iOS 上出现了「打开 Safari 扩展设置」按钮 —— '
         + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');
+      // 启用扩展那一屏不许有「继续」：App 在 iOS 上判不了扩展启没启用，一个「继续」
+      // 只能是「假装你做完了」。主行动是「在网页上完成设置」，它同时前进一屏。
+      need(ov.extScreenHasNext === false, '启用扩展那一屏又出现了「继续」按钮 —— '
+        + '没设置好就该去网站设置，不该给一个原地跳过的口子');
+      // 选语言只该有一处（扩展引导的采集屏，chips 就在开关旁边）。App 引导里那一屏
+      // 2026-09-01 删了：给一个还没启用的功能配过滤器，而且排在登录之前、根本没同步。
+      need(ov.hasLangScreen === false, 'App 引导里又出现了选语言那一屏 —— 与扩展引导重复');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');

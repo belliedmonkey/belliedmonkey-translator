@@ -105,6 +105,7 @@
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
     for (const id of ['ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
+    $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
     $('ob-next').hidden = false;
 
@@ -131,10 +132,18 @@
         '打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。');
       $('ob-cta').hidden = false;
       $('ob-cta').textContent = t('extob_try_cta', '打开示例页面');
+      // 这一屏**只有这一个按钮**。「继续」在这里是「配好了但不去看」，
+      // 「以后再设置」是「配好了但不用」—— 都在跟这一屏唯一想让人做的事抢注意力。
+      $('ob-next').hidden = true;
+      $('ob-skip').hidden = true;
       $('ob-cta').onclick = () => {
         // 地址走 QuickSetup.siteUrl —— 设置页的「现在翻一页看看」去的是同一页，
         // 两处各写一份 flavor→域名 的映射迟早会漂。
         window.open(QuickSetup.siteUrl('/setup.html'), '_blank', 'noopener');
+        // 它同时是前进键：这一屏没有别的出口，不然点了它的人（也就是照做的人）
+        // 会卡在这里，后面那屏（登录同步）再也到不了。中国版没有那一屏，这里就是
+        // 收尾 —— 必须走 finish()，否则 extObSeen 不写，弹窗会一直提示「第一次用？」。
+        if (at < OB.length - 1) { at += 1; paint(); } else finish();
       };
     } else if (step === 'sync') {
       $('ob-title').textContent = t('extob_sync_title', '换台设备接着复习');

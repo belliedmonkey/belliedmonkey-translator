@@ -317,18 +317,22 @@
   // App 做不到 —— 它们都在扩展那一侧，而两边存储不通。在这里画一个引擎选择器
   // 或采集开关，写下去也到不了扩展，是纯粹的假控件。
   //
-  // 能真设的只有一样：learnRules（学习语言 / 屏蔽），它作为 chunk 的 `g` 行
-  // 双向同步，所以在 App 里选的语言登录后会传到扩展。复用设置页同一个
-  // SourcesView.renderLangChips，不另画一份。
+  // 曾经还有一屏「学习语言」，理由是 learnRules 是 App 唯一能真设的东西（它作为
+  // chunk 的 `g` 行双向同步）。2026-09-01 去掉了：语言 chips 是**采集的过滤器**，
+  // 而采集只能在扩展里打开 —— 那一屏是在让人给一个他还没启用、也无法在这里启用的
+  // 功能配过滤器；而且它排在 signin 之前，那时还没同步，两边就是两份各自的值。
+  // 同一个控件在扩展引导的采集屏上就在开关旁边，那才是它该在的地方。
+  // App 设置页里仍然改得了，只是不再占引导的一屏。
   const OB_SEEN = 'onboardSeen';
-  const OB = ['welcome', 'langs', 'ext', 'browser', 'read', 'signin'];
+  const OB = ['welcome', 'ext', 'browser', 'read', 'signin'];
   let obAt = 0;
 
   function obPaint() {
     const step = OB[obAt];
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-guide']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-guide']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
+    $('ob-next').hidden = false;   // 只有 'ext' 屏藏它，别的屏要放回来
     $('ob-next').textContent = obAt === OB.length - 1
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
 
@@ -337,11 +341,6 @@
       $('ob-text').textContent = t('ob_welcome_body',
         '翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。');
       $('ob-next').textContent = t('ob_start', '开始设置');
-    } else if (step === 'langs') {
-      $('ob-title').textContent = t('learn_langs_label', '学习语言');
-      $('ob-text').textContent = t('learn_langs_hint', '只收录选中语言的句子。');
-      $('ob-langs').hidden = false;
-      obPaintLangs();
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
       // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
@@ -359,6 +358,12 @@
       // 绿灯），所以这一屏两个平台都给它 —— macOS 有直达设置，但没有回执。
       $('ob-setup').hidden = false;
       $('ob-setup').textContent = t('app_ext_open_setup', '在网页上完成设置');
+      // 这一屏**没有「继续」**。App 在 iOS 上判不了扩展启没启用（上面那条注释），
+      // 所以一个「继续」按钮只能是「假装你做完了」—— 没设置好就该去网站设置。
+      // 主行动因此变成「在网页上完成设置」：它既把人送去该去的地方，也把流程往前
+      // 推一屏，后面三屏（浏览器里的两件事 / 去读一篇 / 登录）不会因此失联。
+      // 比原来严格更好：原来点「继续」是原地跳过，现在是先送到位。
+      $('ob-next').hidden = true;
     } else if (step === 'browser') {
       $('ob-title').textContent = t('ob_browser_title', '还有两件事在浏览器里做');
       $('ob-text').textContent = t('ob_browser_body',
@@ -430,20 +435,6 @@
     }
   }
 
-  async function obPaintLangs() {
-    if (typeof SourcesView === 'undefined') return;
-    const cur = await new Promise((r) => chrome.storage.local.get(['learnRules'], r));
-    const rules = cur.learnRules || null;
-    SourcesView.renderLangChips($('ob-langs'), {
-      registry: window.MT_LANGS || [], langs: rules && rules.langs, t,
-      onChange: async (langs) => {
-        const base = (cur.learnRules) || { v: 1, block: [], langs: null };
-        await new Promise((r) => chrome.storage.local.set(
-          { learnRules: Object.assign({}, base, { langs, v: 1, updatedAt: Date.now() }) }, r));
-        obPaintLangs();
-      },
-    });
-  }
 
   async function obFinish() {
     try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
@@ -748,7 +739,12 @@
 
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
   $('ext-banner-setup').addEventListener('click', () => openExternal(setupPageUrl()));
-  $('ob-setup').addEventListener('click', () => openExternal(setupPageUrl()));
+  $('ob-setup').addEventListener('click', () => {
+    openExternal(setupPageUrl());
+    // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做
+    // 的人）会被卡在这一屏，后面三屏只能靠「以后再设置」整个跳过。
+    if (OB[obAt] === 'ext' && obAt < OB.length - 1) { obAt += 1; obPaint(); }
+  });
   $('ob-guide').addEventListener('click', () => openExternal(guidePageUrl()));
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
