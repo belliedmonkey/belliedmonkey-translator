@@ -322,6 +322,14 @@ async function init() {
   });
   (async () => {
     try {
+      // The popup does NOT run the account→database policy: it does not load
+      // auth.js (that would drag the backend config into a surface whose whole
+      // job is to paint a number fast). It FOLLOWS the decision another surface
+      // already made and persisted, which is one storage read.
+      try {
+        const r = await PageSettings.read(['learnActiveDb']);
+        if (r.ok && r.data.learnActiveDb) await LearnStore.useDb(r.data.learnActiveDb);
+      } catch (_) {}
       await LearnDrain.run();
       const items = await LearnStore.allItems();
       const due = LearnScheduler.dueCount(items, Date.now());

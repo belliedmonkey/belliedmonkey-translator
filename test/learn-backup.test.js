@@ -48,6 +48,11 @@ function fakeStore(seed = {}) {
     recordReview: (itemId, grade, at) => { reviews.push({ itemId, grade, at }); return Promise.resolve(); },
     evictIfNeeded: () => Promise.resolve(0),
     tombstones: () => Promise.resolve(new Set()),
+    // Per-account corpora (§ account switch): the backup keys follow the active
+    // database, so the fake has to answer which one it is. Default = PRIMARY,
+    // which keeps the historic key names — seed `db` for a secondary corpus.
+    DB_NAME: 'mt-learn',
+    currentDbName: () => seed.db || 'mt-learn',
   };
 }
 

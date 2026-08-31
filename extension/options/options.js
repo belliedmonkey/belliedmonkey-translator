@@ -1242,6 +1242,9 @@ async function init() {
 
   async function refreshSyncUI() {
     const s = await LearnAuth.current().catch(() => null);
+    // Re-bind on every refresh: this runs at page load AND after every sign-in /
+    // sign-out, which is exactly the set of moments the answer can change.
+    try { await LearnAuth.bindCorpus(s); } catch (_) {}
     $('sync-out').hidden = !!s;
     $('sync-in').hidden = !s;
     if (!s) {

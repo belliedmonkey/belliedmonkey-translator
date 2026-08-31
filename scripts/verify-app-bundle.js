@@ -288,12 +288,22 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           document.getElementById('onboard').hidden = true;
           const sec = document.getElementById('ext-banner');
           const act = document.getElementById('ext-banner-act');
+          // 上一段把用户领进了复习页。横幅**只属于首页** —— 走用户自己的返回路径
+          // 回去，再验它。
+          document.getElementById('review-back').click();
+          await new Promise((r) => setTimeout(r, 200));
           const snap = () => ({ banner: !sec.hidden, button: !act.hidden,
                                 title: document.getElementById('ext-banner-title').textContent });
           const out = { hasShow: typeof window.show === 'function', atRest: snap() };
           if (out.hasShow) {
             window.show('mac', false, true);  await new Promise((r) => setTimeout(r, 20));
             out.macOff = snap();
+            // 真机 1.7.0 build 52 实测：横幅与 #review-view 平级，而没有任何代码在
+            // 进那个视图时收起它 —— 于是它钉在每一个界面最顶上，在一台已经有 2999
+            // 张卡的设备上反复说「先去把扩展打开」。走用户的路径进出一次来验。
+            document.getElementById('review').click(); await new Promise((r) => setTimeout(r, 200));
+            out.inReview = snap();
+            document.getElementById('review-back').click(); await new Promise((r) => setTimeout(r, 200));
             // #177：Swift 侧深链失败会回调 show('mac', false, false) —— 按钮必须收起，
             // 正文退回三步版。给一个点了没反应的按钮，比不给更糟。
             window.show('mac', false, false); await new Promise((r) => setTimeout(r, 20));
@@ -313,9 +323,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(b.hasShow, '没有全局 show() —— ViewController 的 evaluateJavaScript 会静默失败，'
         + '扩展状态永远传不进页面');
       need(!b.atRest.banner, '还没收到状态就先把横幅显示出来了');
+
       // 后面几条都依赖 show() 存在；缺了就只报上面那一条，不要级联成一串 TypeError。
       if (b.hasShow) {
         need(b.macOff.banner && b.macOff.button, 'macOS 扩展未启用时应当显示横幅和直达按钮');
+        need(!b.inReview.banner, '复习页里还挂着「先把浏览器那半边打通」横幅 —— '
+          + '它与 #review-view 平级，进那个视图时必须收起，否则它会钉在每一个界面最顶上');
         need(!!b.macOff.title, '横幅标题是空的');
         need(b.ios.banner && !b.ios.button, 'iOS 上不能给直达按钮 —— '
           + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');

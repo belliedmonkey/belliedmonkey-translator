@@ -7,7 +7,7 @@
 // See docs/learning-design.md §7.
 
 var LearnStore = (() => {
-  const DB_NAME = 'mt-learn';
+  const DB_NAME = 'mt-learn';   // the PRIMARY corpus — see useDb() below
   // v2 adds the `audio` store; v3 adds `tombs` (§7.3); v4 adds `notes` (§9.2);
   // v5 adds `dels` (§7.4 user-delete ledger).
   // The upgrade path only ever ADDS (every create is guarded by `contains`), so
@@ -19,6 +19,37 @@ var LearnStore = (() => {
                              // device may then re-introduce those cards once, the
                              // same failure direction as tombs
   const MAX_AUDIO_BYTES = 200 * 1024 * 1024;   // 200 MB, LRU-evicted
+
+  // ─── Per-account databases ───────────────────────────────────────────────
+  // One device used to mean one corpus: DB_NAME was a constant, so whoever signed
+  // in saw whatever the previous person had left behind. Worse than the wrong
+  // numbers on screen: sync PUSHED that corpus into the new account, because the
+  // `syncedAt` guard is only stamped on the PULL path and locally captured cards
+  // are therefore immune to it.
+  //
+  // The primary database keeps its name AND its bytes. It belongs to the first
+  // account that signs in, and every device that exists today is in exactly that
+  // state — so upgrading moves nothing, copies nothing, and reads byte-for-byte
+  // the same. Only a DIFFERENT account gets a database of its own, which is why a
+  // single-account device never pays for any of this.
+  let dbName = DB_NAME;
+
+  function dbNameFor(userId) { return userId ? DB_NAME + '-' + userId : DB_NAME; }
+  function currentDbName() { return dbName; }
+
+  // Switching MUST close the live handle first: an open connection blocks the
+  // other database's upgrade transaction (a silent hang, not an error), and every
+  // read issued after this point has to land in the new corpus rather than the
+  // one we just left.
+  async function useDb(name) {
+    const next = name || DB_NAME;
+    if (next === dbName) return dbName;
+    const prev = dbp;
+    dbp = null;
+    dbName = next;
+    if (prev) { try { (await prev).close(); } catch (_) { /* already closed / rejected */ } }
+    return dbName;
+  }
 
   let dbp = null;
 
@@ -41,7 +72,7 @@ var LearnStore = (() => {
 
   function openOnce() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      const req = indexedDB.open(dbName, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('items')) {
@@ -633,7 +664,8 @@ var LearnStore = (() => {
   }
 
   return {
-    MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS, MAX_DELS,
+    MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS, MAX_DELS, DB_NAME,
+    dbNameFor, currentDbName, useDb,
     open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,

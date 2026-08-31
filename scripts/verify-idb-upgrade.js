@@ -23,10 +23,11 @@
 //   · adding an index to an EXISTING store → `contains` does not guard that at all
 //   · deleting and recreating a store      → every user's corpus silently emptied
 //
-// One thing it CANNOT prove: the `contains` guard around a brand-new store. On the
-// v4→v5 path that store does not exist yet, so guarded and unguarded behave
-// identically. The guard is a convention for paths that skip versions, not something
-// this run exercises — do not read a green here as evidence for it.
+// The v4→v5 scene alone CANNOT prove the `contains` guard around a brand-new store:
+// on that path every store already exists, so guarded and unguarded behave
+// identically. Scene 2 below exists for exactly that gap — per-account databases
+// (§account switch) create a store set FROM NOTHING, which is the only path where
+// that guard is the branch actually taken.
 //
 // The v5 run ALSO exercises `deleteItems` (§7.4) against the upgraded data, because
 // its three claims — item AND its reviews go, the ledger records it, `everEvicted`
@@ -109,6 +110,29 @@ const CHECK_NEXT = `new Promise((resolve) => {
   }, (e) => resolve('OPEN REJECTED: ' + e));
 })`;
 
+// ─── 第二幕：从零创建一个按账号库 ────────────────────────────────────────
+// 分库把一条以前走不到的路变成了日常路径：**一个全新的库**。这里的判据有两条，
+// 第二条才是分库的全部意义 —— 新库建出来之后，主库必须一寸未动。
+const CHECK_FRESH = `new Promise((resolve) => {
+  const out = {};
+  LearnStore.useDb(LearnStore.dbNameFor('u-second'))
+    .then(() => LearnStore.open())
+    .then((db) => {
+      out.name = db.name;
+      out.version = db.version;
+      out.stores = [...db.objectStoreNames].sort();
+      out.itemIndexes = [...db.transaction('items').objectStore('items').indexNames].sort();
+      return LearnStore.putItem({ id:'second-1', text:'belongs to the other account',
+                                  lang:'en', createdAt: 1, state:'candidate' });
+    })
+    .then(() => LearnStore.allItems())
+    .then((its) => { out.freshItems = its.map((i) => i.id).sort(); })
+    .then(() => LearnStore.useDb(LearnStore.DB_NAME))
+    .then(() => LearnStore.allItems())
+    .then((back) => { out.primaryItems = back.map((i) => i.id).sort(); resolve(JSON.stringify(out)); })
+    .catch((e) => resolve('THREW: ' + (e && (e.stack || e.message || e))));
+})`;
+
 // §7.4 against the UPGRADED database: the shipped deleteItems, not a retype.
 const CHECK_DELETE = `LearnStore.deleteItems(['old-1'], 50000)
   .then((n) => Promise.all([
@@ -186,8 +210,23 @@ setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.
     need(d.reviews.join(',') === 'old-2', '被删卡的复习行必须一并删: ' + d.reviews);
     need(d.ledger.join(',') === 'd1,old-1', '台账没落: ' + d.ledger);
     need(d.everEvicted === false, '用户删除绝不能碰 everEvicted（否则本机永久失去压实资格）');
+
+    const rawFresh = await evalIn(CHECK_FRESH);
+    console.log('  new :', rawFresh);
+    if (typeof rawFresh !== 'string' || rawFresh[0] !== '{') throw new Error('全新库检查没有结果: ' + rawFresh);
+    const n = JSON.parse(rawFresh);
+    need(n.name === 'mt-learn-u-second', '库名不对: ' + n.name);
+    need(n.version === 5, '全新库的 version 不是 5，是 ' + n.version);
+    need(n.stores.join(',') === 'audio,dels,items,meta,notes,reviews,sources,tombs',
+      '全新库的表集合不全 —— `contains` 守卫这条路上是唯一被执行的分支: ' + n.stores);
+    need(n.itemIndexes.join(',') === 'createdAt,lang,salience,state',
+      '全新库的 items 索引不全: ' + n.itemIndexes);
+    need(n.freshItems.join(',') === 'second-1',
+      '全新库看见了别的账号的条目 —— 分库没有生效: ' + n.freshItems);
+    need(n.primaryItems.join(',') === 'old-2',
+      '建了新库之后主库被动过 —— 分库的全部意义就是它不该被动: ' + n.primaryItems);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
-  console.log(ok ? '\n✓ v4→v5：旧数据完整保留（含墓碑/notes），dels 已建且 deleteItems 语义正确' : '\n✗ 升级路径有问题');
+  console.log(ok ? '\n✓ v4→v5 旧数据完整保留 + 按账号新库从零建全且不碰主库' : '\n✗ 升级路径有问题');
   process.exit(ok ? 0 : 1);
 })();

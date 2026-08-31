@@ -103,6 +103,13 @@ function fakeStore(seed = {}) {
     allDels: () => Promise.resolve(Array.from(dels, ([id, at]) => ({ id, at }))),
     getMeta: (k, d) => Promise.resolve(k in meta ? meta[k] : d),
     setMeta: (k, v) => { meta[k] = v; return Promise.resolve(); },
+    // Per-account corpora (§ account switch). The fake defaults to the PRIMARY
+    // database, which is what every pre-existing test means by "the corpus";
+    // seed `db` to exercise a secondary one.
+    DB_NAME: 'mt-learn',
+    currentDbName: () => seed.db || 'mt-learn',
+    dbNameFor: (uid) => (uid ? 'mt-learn-' + uid : 'mt-learn'),
+    useDb: () => Promise.resolve(seed.db || 'mt-learn'),
     allItems: () => Promise.resolve(items.slice()),
     allSources: () => Promise.resolve(sources.slice()),
     allReviews: () => Promise.resolve(reviews.slice()),
@@ -1052,5 +1059,120 @@ describe('LearnAuth — 会话持久化与判死收紧（§8.4.1）', () => {
     }], {}, { learnAuth: expired() });
     eq(await A.token(), null);
     eq(chrome._store.learnAuth, undefined, '确定性拒绝后会话必须移除');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 归属闸（§ 账号切换）
+//
+// 一台设备一份语料曾经是硬编码的事实：DB_NAME 是常量，谁登录都看同一份。显示错
+// 只是表象；真正的损害是**旧账号的语料会被推进新账号的云端** —— push 的挡板是
+// `t > (it.syncedAt||0)`，而 syncedAt 只在拉取路径盖章，所以本机自采的卡对它完全
+// 免疫。这一组用例钉住的是那个损害，不是那个显示。
+//
+// 判据一律是**零请求**（fetchFn.calls.length === 0），不是「上传了 0 张卡」：
+// 一次发出去才发现不该发的请求，和一次根本没发生的请求，是两件事。
+// ─────────────────────────────────────────────────────────────────────────────
+describe('LearnSync — 归属闸：语料属于账号，闸在数据层', () => {
+  const sessionFor = (uid) => Object.assign(liveSession(), { userId: uid });
+  const stamp = (uid) => ({ userId: uid, at: T0 });
+
+  test('归属不符 ⇒ push 抛 owner_mismatch，且一个请求都没发出去', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: T0 },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.push(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_mismatch');
+    eq(fetchFn.calls.length, 0);
+    // 水位线必须没动。一次推进了 PUSHED 的拒绝 = 静默丢素材：那些卡此后再也不满足
+    // `touchedAt > since`，于是它们对**正确的**账号也永远不会被上传。
+    eq(store.meta.syncPushedAt, T0);
+  });
+
+  test('点名那个 bug：forget() 之后的形状（since=0、卡没有 syncedAt）⇒ 依然零请求', async () => {
+    // 这正是今天走扩展设置页退出、再登入另一个账号时的整库上传形状。
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: 0 },
+      items: [card('a'), card('b'), card('c')],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('删除账本与治理规则同样一个字节都不出网', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: 0 },
+      dels: [{ id: 'gone', at: T0 + 5 }],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('sync() 两个方向都不动 —— 只挡 push 会把别人的卡拉进这份语料，计数就开始撒谎', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A') },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.sync(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);   // GET 也要是 0
+  });
+
+  test('compact() 拒绝 —— 它是唯一同时上传和 DELETE 的函数', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A') },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.compact(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_mismatch');
+    eq(fetchFn.calls.length, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0);
+  });
+
+  test('无戳 + 有身份 ⇒ 认领后照常上传（这是每一台升级上来的设备，只发生一次）', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-A'), syncPushedAt: 0 },
+      items: [card('a')],
+    });
+    const { S, store: st } = setup({ store });
+    await S.push(T0 + 1000);
+    eq(st.meta.corpusOwner.userId, 'u-A');
+  });
+
+  test('无戳 + 无身份 ⇒ 放行且**不认领** —— 中国版扩展永远走这一行，行为逐字节不变', async () => {
+    const store = fakeStore({ meta: {}, items: [card('a')] });
+    const { S, store: st } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(st.meta.corpusOwner == null, true);
+  });
+
+  test('有戳 + 读不到身份 ⇒ owner_unknown（fail-closed：身份不明时不发东西出去）', async () => {
+    const store = fakeStore({ meta: { corpusOwner: stamp('u-A') }, items: [card('a')] });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.push(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_unknown');
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('次级语料不上传认领之前写下的治理规则 —— block 是用户屏蔽过的站点，属于隐私面', async () => {
+    // 规则住在 chrome.storage，不随语料分库。主语料上传它是对的（同一个人）；
+    // 次级语料上传它，等于把上一个使用者的屏蔽列表交给这个账号。
+    const store = fakeStore({
+      db: 'mt-learn-u-B',
+      meta: { auth: sessionFor('u-B'), corpusOwner: { userId: 'u-B', at: T0 + 500 }, syncPushedAt: 0 },
+      storage: { learnRules: { v: 1, block: ['secret.example'], langs: null, updatedAt: T0 } },
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    const bodies = fetchFn.calls.map((c) => String((c.init && c.init.body) || ''));
+    eq(bodies.some((b) => b.includes('secret.example')), false);
   });
 });

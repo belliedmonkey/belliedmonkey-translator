@@ -278,6 +278,67 @@ var LearnAuth = (() => {
   // ─── Read-only helpers for the UI ────────────────────────────────────────
 
   async function current() { return await load(); }
+  // sync.js is allowed to ask "who am I". It is NOT allowed to take the session
+  // object apart — §8.4.1 keeps it ignorant of where the token comes from, and a
+  // field read here would be exactly that knowledge leaking one file over.
+  // Signed out returns null rather than throwing: "no identity" is a legitimate
+  // row of the owner truth table, not a failure.
+  async function userId() { const s = await load(); return (s && s.userId) || null; }
+
+  // ─── Which corpus this account uses (§ account switch) ───────────────────
+  // The policy needs both halves — the session (this file) and chrome.storage
+  // (PageSettings) — so it lives here. LearnStore owns only the MECHANISM
+  // (`useDb`) and stays free of any notion of an account.
+  //
+  // The primary database keeps its name and its bytes, and belongs to the first
+  // account that signs in. Every device in the world is in exactly that state
+  // today, so this CLAIMS rather than migrates: nothing is copied, nothing moves,
+  // and an existing user reads byte-for-byte the same corpus as before. Only a
+  // second, different account gets a database of its own.
+  const DB_OWNER = 'learnDbOwner';     // userId that owns the primary database
+  const DB_ACTIVE = 'learnActiveDb';   // database currently selected
+
+  async function bindCorpus(session) {
+    // Read the session DIRECTLY instead of through load(): load() also carries the
+    // pre-2026-08-09 legacy migration, which touches IndexedDB — and deciding WHICH
+    // database to use must not itself require opening one. It deadlocked exactly
+    // there: the bind became the first thing to open the store, early enough to
+    // collide with a connection that had not closed yet, and the review page's
+    // whole bootstrap stopped behind it with a blank screen and nothing said.
+    let me = null;
+    if (session !== undefined) me = (session && session.userId) || null;
+    else {
+      const c = cachedSession();
+      if (c) me = c.userId || null;
+      else {
+        const r = await PageSettings.read([KEY]);
+        me = (r.ok && r.data[KEY] && r.data[KEY].userId) || null;
+      }
+    }
+    let want;
+    if (!me) {
+      // Signed out keeps whatever was last selected. "Signing out is not a reason
+      // to lose what you learned" is the existing stance; revealing the PREVIOUS
+      // account's corpus after signing out of this one would break that promise
+      // from the other side.
+      const r = await PageSettings.read([DB_ACTIVE]);
+      want = (r.ok && r.data[DB_ACTIVE]) || LearnStore.DB_NAME;
+    } else {
+      const r = await PageSettings.read([DB_OWNER]);
+      const owner = r.ok ? (r.data[DB_OWNER] || null) : null;
+      if (!owner) {
+        // Unclaimed: this is every upgrading device. Claim the primary — do not
+        // create a second database and do not move anything into it.
+        await PageSettings.write({ [DB_OWNER]: me });
+        want = LearnStore.DB_NAME;
+      } else {
+        want = (owner === me) ? LearnStore.DB_NAME : LearnStore.dbNameFor(me);
+      }
+    }
+    await LearnStore.useDb(want);
+    await PageSettings.write({ [DB_ACTIVE]: want });
+    return want;
+  }
   function cachedSession() { return cached; }          // sync read for first paint
   // Non-null when the LAST load/store hit a storage failure. The UI uses it to
   // say 「存储读取失败」 instead of painting the signed-out state (law 2).
@@ -288,7 +349,7 @@ var LearnAuth = (() => {
   }
   function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
 
-  return { signIn, verify, signInPassword, token, signOut, deleteAccount, current, cachedSession, lastLoadError, onChange, _reset };
+  return { signIn, verify, signInPassword, token, signOut, deleteAccount, current, userId, bindCorpus, cachedSession, lastLoadError, onChange, _reset };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnAuth;

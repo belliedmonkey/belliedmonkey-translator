@@ -150,6 +150,7 @@ var AppSettings = (() => {
     $('corpus-title').textContent = t('app_set_corpus', '学习库');
     $('split-long').textContent = t('learn_split_long', '拆分长段卡');
     $('clean-known').textContent = t('app_set_clean_known', '清理已掌握的卡');
+    $('clear-learn').textContent = t('learn_clear', '清空学习库');
     $('account-title').textContent = t('app_set_account', '账号');
     $('settings-signout').textContent = t('app_set_signout', '退出登录');
     $('delete-account').textContent = t('app_set_delete', '删除账号与云端数据');
@@ -755,6 +756,29 @@ var AppSettings = (() => {
         say(n
           ? t('app_set_cleaned', '已清理 {n} 张').replace('{n}', String(n))
           : t('app_set_clean_none', '没有可清理的卡'));
+      } finally { btn.disabled = false; }
+    });
+
+    $('clear-learn').addEventListener('click', async () => {
+      // Destructive and irreversible, so it names what goes rather than asking a
+      // generic 「确定吗」 that gets answered without reading. Same string the
+      // extension's settings page uses — one sentence, one meaning, eleven locales
+      // already written.
+      if (!window.confirm(t('learn_clear_confirm',
+        '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
+      const btn = $('clear-learn');
+      btn.disabled = true;
+      try {
+        await LearnStore.clearAll();
+        // §7.5's emptying guard: without this the local backup restores the corpus
+        // on the next entry — and restored material carries no `syncedAt`, so it
+        // would upload itself back as well. The typeof guard is mandatory: the app
+        // bundle deliberately ships without LearnBackup.
+        if (typeof LearnBackup !== 'undefined') { try { await LearnBackup.clear(); } catch (_) {} }
+        await paint(opts.session(), say);   // read back: the counts must be 0 now
+        say(t('toast_learn_cleared', '学习库已清空'));
+      } catch (_) {
+        say(t('toast_learn_clear_failed', '清空失败'), true);
       } finally { btn.disabled = false; }
     });
 

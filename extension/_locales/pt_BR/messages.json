@@ -1699,6 +1699,9 @@
   "app_ext_open_prefs": {
     "message": "Abrir ajustes de extensões do Safari"
   },
+  "app_ext_open_setup": {
+    "message": "Concluir a configuração na web"
+  },
   "app_signin_why": {
     "message": "Os cartões são capturados pela extensão do navegador. Para revisá-los neste aparelho, entre para que sincronizem."
   },

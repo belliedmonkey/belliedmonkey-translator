@@ -1699,6 +1699,9 @@
   "app_ext_open_prefs": {
     "message": "Safari 拡張機能の設定を開く"
   },
+  "app_ext_open_setup": {
+    "message": "ウェブで設定を完了する"
+  },
   "app_signin_why": {
     "message": "カードはブラウザ拡張機能が集めます。この端末で復習するにはサインインして同期する必要があります。"
   },

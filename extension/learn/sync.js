@@ -18,6 +18,7 @@
 var LearnSync = (() => {
   const CURSOR = 'syncCursor';         // highest `seq` already replayed locally
   const PUSHED = 'syncPushedAt';       // ms; everything touched before this is up there
+  const OWNER = 'corpusOwner';         // which account this corpus belongs to (§account switch)
   const PAGE = 200;                    // rows per pull request
   const COMPACT_AT = 40;               // chunks before a snapshot replaces them
   const PUSH_BATCH = 200;              // cards per chunk — §8.5 lever 3, §8.4's rule
@@ -71,8 +72,56 @@ var LearnSync = (() => {
   // which reads it, can never drift apart.
   const touchedAt = (item) => LearnModel.touchedAt(item);
 
+  // ─── Owner gate ──────────────────────────────────────────────────────────
+  // A corpus belongs to an account, and this is the only place that fact is
+  // enforced. It lives in the data layer rather than in the UI because there are
+  // already SIX push triggers (options ×4, review ×4, the app's doSync/quietSync,
+  // settings ×2) and `visibilitychange`/`online` fire them without a user doing
+  // anything. The proof that a UI-level rule leaks is in the repo's own history:
+  // the app's sign-out path was written to call `forget()` and never did.
+  //
+  // Five rows, all total:
+  //   no stamp + no identity  → allow, do NOT claim   (today's behaviour; the
+  //                             China extension, whose sync is off, is always here)
+  //   no stamp + identity     → claim, then allow     (every existing device, once)
+  //   stamp    + no identity  → refuse `owner_unknown`
+  //   stamp    == identity    → allow
+  //   stamp    != identity    → refuse `owner_mismatch`
+  //
+  // Row 3 is fail-CLOSED. `git log -S userId` shows the field has been in the
+  // session since sync's first commit, so the row is unreachable in practice —
+  // which is exactly why choosing the strict direction costs nothing. (Contrast
+  // §7.4.5's `userDels`, which is fail-open: that is a ledger that can be damaged,
+  // this is an identity. Opposite directions, on purpose.)
+  function ownerErr(code) { const e = new Error(code); e.code = code; return e; }
+
+  async function ownerGate() {
+    const [stamp, me] = await Promise.all([
+      LearnStore.getMeta(OWNER, null),
+      (async () => { try { return await LearnAuth.userId(); } catch (_) { return null; } })(),
+    ]);
+    const owner = stamp && stamp.userId;
+    if (!owner) {
+      // Claiming on first successful gate rather than on sign-in: a half-finished
+      // sign-in must not put a permanent label on a corpus.
+      if (me) {
+        const claimed = { userId: me, at: Date.now() };
+        await LearnStore.setMeta(OWNER, claimed);
+        return claimed;
+      }
+      return null;
+    }
+    if (!me) throw ownerErr('owner_unknown');
+    if (owner !== me) throw ownerErr('owner_mismatch');
+    return stamp;
+  }
+
   async function push(now) {
     const at = now || Date.now();
+    // Before `since`, and before the first read of local material: there must be
+    // no path where `fresh` has already been computed and something later decides
+    // whether to send it.
+    const claim = await ownerGate();
     const since = (await LearnStore.getMeta(PUSHED, 0)) || 0;
     const [items, sources, reviews, delsAll, rules] = await Promise.all([
       LearnStore.allItems(), LearnStore.allSources(), LearnStore.allReviews(),
@@ -94,7 +143,16 @@ var LearnSync = (() => {
     // replay is idempotent and a `d` row is bytes; cheap-and-redundant beats
     // clever-and-lossy here exactly as it does for `lastSeenAt` above.
     const delsDue = delsAll.filter((d) => (d.at || 0) > since);
-    const rulesDue = rules && (rules.updatedAt || 0) > since ? rules : null;
+    // §8.9's rules live in chrome.storage, which does NOT partition along with the
+    // corpus. On the PRIMARY corpus that is still right — those rules and that
+    // corpus have belonged to the same person since the device was set up. On a
+    // per-account corpus it is not: the rules sitting on the device were written by
+    // whoever used it before, and `block` is the list of sites that person chose to
+    // hide, which is a privacy surface rather than merely stale data. A secondary
+    // corpus therefore only uploads rules edited after it was claimed.
+    const mine = LearnStore.currentDbName() === LearnStore.DB_NAME
+      || (rules && (rules.updatedAt || 0) > ((claim && claim.at) || 0));
+    const rulesDue = mine && rules && (rules.updatedAt || 0) > since ? rules : null;
     if (!fresh.length && !revs.length && !delsDue.length && !rulesDue) {
       await LearnStore.setMeta(PUSHED, at);
       return { pushed: 0, reviews: 0, bytes: 0, chunks: 0, dels: 0, rules: 0 };
@@ -188,6 +246,10 @@ var LearnSync = (() => {
   // ─── Pull ────────────────────────────────────────────────────────────────
 
   async function pull() {
+    // Gating only push is not enough: pulling B's cards into A's corpus makes the
+    // counts lie, and §7.1 law 2 says a corpus that lost or mixed anything has to
+    // say so rather than quietly look plausible.
+    await ownerGate();
     let cursor = (await LearnStore.getMeta(CURSOR, 0)) || 0;
     const stats = { chunks: 0, cards: 0, reviews: 0, skipped: 0 };
 
@@ -244,6 +306,10 @@ var LearnSync = (() => {
   // Idempotent replay is what makes that a non-event rather than a corruption.
 
   async function compact(now) {
+    // The only function that uploads AND deletes (POST the whole corpus, then
+    // DELETE everything at or below the high-water mark). Run under a mismatch it
+    // would hand A's corpus to B and erase B's history in the same breath.
+    await ownerGate();
     const at = now || Date.now();
     const rows = await call(
       rest(MT_BACKEND.table) + '?select=seq,generation&order=seq.desc&limit=1000',
@@ -432,7 +498,7 @@ var LearnSync = (() => {
     await LearnStore.setMeta(PUSHED, 0);
   }
 
-  return { push, pull, sync, autoSync, compact, usage, forget, onStatus, toHex, fromHex, touchedAt, COMPACT_AT, AUTO_MIN_MS, LAST_OK };
+  return { push, pull, sync, autoSync, compact, usage, forget, onStatus, toHex, fromHex, touchedAt, ownerGate, OWNER, COMPACT_AT, AUTO_MIN_MS, LAST_OK };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = LearnSync;

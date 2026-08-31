@@ -22,13 +22,30 @@
 var LearnBackup = (() => {
   'use strict';
 
-  const KEY = 'learnBackup';        // {v, at, format, b64, bytes, counts}
-  const META_KEY = 'learnBackupMeta'; // {at, bytes, counts, lastError} — tiny; the
+  // ─── Per-corpus keys (§ account switch) ──────────────────────────────────
+  // The backup lives in chrome.storage, which does NOT partition along with the
+  // IndexedDB corpus. Left device-global it would defeat the partition in the
+  // worst possible direction: restoreIfEmpty() runs BEFORE the entry sync, and
+  // §7.5 deliberately leaves restored material WITHOUT a `syncedAt` stamp so that
+  // it re-uploads and heals the server. So account A's backup would refill account
+  // B's empty corpus and then push every card of it into B's cloud.
+  //
+  // The primary corpus keeps the historic key names: existing devices must not
+  // lose the backup they already have, which is §7.5's only lifeline against a
+  // Safari UUID rotation.
+  const BASE = 'learnBackup';
+  const BASE_META = 'learnBackupMeta';
+  function suffix() {
+    const db = LearnStore.currentDbName();
+    return db === LearnStore.DB_NAME ? '' : ':' + db;
+  }
+  function bkKey() { return BASE + suffix(); }          // {v, at, format, b64, bytes, counts}
+  function metaKey() { return BASE_META + suffix(); } // {at, bytes, counts, lastError} — tiny; the
                                       // throttle check never deserializes the payload
   const BACKUP_MIN_MS = 6 * 3600e3;
   // §8.5 puts a full 20k-item corpus at ~1.7MB compressed → ~2.3MB base64.
   // 4MB leaves headroom without requesting `unlimitedStorage` (§7's standing
-  // decision). Oversize skips and says so in META_KEY.lastError.
+  // decision). Oversize skips and says so in the meta record's lastError.
   const MAX_B64 = 4 * 1024 * 1024;
 
   // ── base64 ⇄ bytes, chunked so a multi-MB corpus cannot blow the arg limit ──
@@ -64,8 +81,8 @@ var LearnBackup = (() => {
   async function maybeRun(now) {
     const at = now || Date.now();
     try {
-      const m = await PageSettings.read([META_KEY]);
-      const meta = (m.ok && m.data[META_KEY]) || null;
+      const m = await PageSettings.read([metaKey()]);
+      const meta = (m.ok && m.data[metaKey()]) || null;
       if (!shouldBackup(meta, at)) return { ran: false, reason: 'throttled' };
 
       const items = await LearnStore.allItems();
@@ -74,22 +91,22 @@ var LearnBackup = (() => {
       const { bytes, header } = await LearnChunk.exportBytes(at);
       const b64 = encode(bytes);
       if (b64.length > MAX_B64) {
-        await PageSettings.write({ [META_KEY]: {
+        await PageSettings.write({ [metaKey()]: {
           at, bytes: bytes.length, counts: header.counts,
           lastError: 'oversize:' + b64.length,
         } });
         return { ran: false, reason: 'oversize' };
       }
       const w = await PageSettings.write({
-        [KEY]: { v: 1, at, format: header.format, b64, bytes: bytes.length, counts: header.counts },
-        [META_KEY]: { at, bytes: bytes.length, counts: header.counts, lastError: null },
+        [bkKey()]: { v: 1, at, format: header.format, b64, bytes: bytes.length, counts: header.counts },
+        [metaKey()]: { at, bytes: bytes.length, counts: header.counts, lastError: null },
       });
       return w.ok ? { ran: true, counts: header.counts }
                   : { ran: false, reason: 'write-failed: ' + (w.error || '') };
     } catch (e) {
       // Backup failure is not loss — the corpus is still live. Record, never block.
       try {
-        await PageSettings.write({ [META_KEY]: { at, lastError: String((e && e.message) || e) } });
+        await PageSettings.write({ [metaKey()]: { at, lastError: String((e && e.message) || e) } });
       } catch (_) {}
       return { ran: false, reason: String((e && e.message) || e) };
     }
@@ -104,8 +121,8 @@ var LearnBackup = (() => {
     try {
       const items = await LearnStore.allItems();
       if (items.length) return { restored: false, reason: 'not-empty' };
-      const r = await PageSettings.read([KEY]);
-      const payload = (r.ok && r.data[KEY]) || null;
+      const r = await PageSettings.read([bkKey()]);
+      const payload = (r.ok && r.data[bkKey()]) || null;
       if (!payload || !payload.b64) return { restored: false, reason: 'no-backup' };
       const stats = await LearnChunk.importBytes(decode(payload.b64));
       return { restored: true, stats, backupAt: payload.at };
@@ -117,12 +134,12 @@ var LearnBackup = (() => {
   // 清空学习库 must also clear the backup — a purge the user asked for does not
   // get to resurrect on the next page open.
   function clear() {
-    return PageSettings.removeKeys([KEY, META_KEY]);
+    return PageSettings.removeKeys([bkKey(), metaKey()]);
   }
 
   async function meta() {
-    const m = await PageSettings.read([META_KEY]);
-    return (m.ok && m.data[META_KEY]) || null;
+    const m = await PageSettings.read([metaKey()]);
+    return (m.ok && m.data[metaKey()]) || null;
   }
 
   return {

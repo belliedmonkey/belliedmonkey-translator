@@ -224,6 +224,42 @@ function patchViewController(sharedDir) {
     notes.push('✗ safari failure feedback: 期望 2 处 stub 注释，实际 ' + stubCount);
   }
 
+  // Patch 7: open a URL in the SYSTEM browser. The app's page needs to send the
+  // reader to the site's setup page — the one surface that can actually answer
+  // "is the extension enabled?", because the extension injects a marker into it
+  // and it turns green by itself. In a WKWebView `window.open(_, "_blank")` is
+  // inert (the converter template implements no `createWebViewWith`), and
+  // navigating in place would replace the review UI with a web page and leave no
+  // way back — worse than no button at all (#177's lesson).
+  //
+  // Deliberately OUTSIDE the existing `#if os(macOS)`: iOS is the platform that
+  // needs this most, since it is the one where the app cannot see the extension's
+  // state at all (getStateOfSafariExtension is macOS-only).
+  const URL_ANCHOR = '#if os(macOS)\n        if (message.body as! String != "open-preferences") {';
+  if (src.includes('MT_OPEN_URL')) {
+    notes.push('open-url bridge already patched');
+  } else if (src.includes(URL_ANCHOR)) {
+    src = src.replace(URL_ANCHOR,
+      '// MT_OPEN_URL — patched by scripts/sync-app-assets.js\n'
+      + '        if let s = message.body as? String, s.hasPrefix("open-url:") {\n'
+      + '            let raw = String(s.dropFirst("open-url:".count))\n'
+      + '            // Our own https pages only. A native side that opens ANY url on\n'
+      + '            // request is a redirector, and this one is reachable from web content.\n'
+      + '            guard let url = URL(string: raw), url.scheme == "https", let host = url.host,\n'
+      + '                  host == "belliedmonkey.cc" || host == "belliedmonkey.com" else { return }\n'
+      + '#if os(iOS)\n'
+      + '            UIApplication.shared.open(url)\n'
+      + '#elseif os(macOS)\n'
+      + '            NSWorkspace.shared.open(url)\n'
+      + '#endif\n'
+      + '            return\n'
+      + '        }\n'
+      + '        ' + URL_ANCHOR);
+    notes.push('open-url bridge patched');
+  } else {
+    notes.push('✗ open-url bridge: userContentController 锚点缺失');
+  }
+
   fs.writeFileSync(f, src);
   return notes.join(' · ');
 }

@@ -115,6 +115,9 @@
       LearnStore.getMeta('appLastSync', 0),
     ]);
     const due = LearnScheduler.dueCount(items, Date.now(), LearnScheduler.DEFAULTS);
+    // 没有额外的一次 IDB 读：stats 本来就在这儿。
+    corpusSeen = stats.total > 0;
+    paintExtBanner(extState);
     $('app-counts').innerHTML = '';
     // cls = semantic hook for style.css's stat-tile colors (never color by
     // position — a reordered/hidden tile would silently mis-color).
@@ -161,6 +164,12 @@
 
   async function show(session) {
     currentSession = session;
+    // Bind the corpus BEFORE anything reads it. Every path that changes who is
+    // signed in arrives here — startup, both sign-in forms, sign-out — so this is
+    // the one place where "which database" gets decided, and there is no second
+    // place that could disagree.
+    try { await LearnAuth.bindCorpus(session); }
+    catch (_) { /* storage read failed — keep the corpus we are on rather than guess */ }
     $('signed-out').hidden = !!session;
     $('signed-in').hidden = !session;
     // Signing out from inside settings or review must not leave that view on screen
@@ -200,9 +209,24 @@
   // ⚠️ 平台不对称，且不能假装对称：getStateOfSafariExtension 是 macOS-only，
   // iOS 分支只有一句无参数的 show('ios')。所以 iOS 上我们**不知道**扩展开没开，
   // 只能给步骤；macOS 上才有真实状态和一键直达。
+  // 语料非空 = 浏览器那半边已经通了。这是事实而不是猜测：app-bundle 的 MODULES 里
+  // 没有 learn-collector（domain-design §9.2 —— 采集只发生在浏览器里，App 只经同步
+  // 收材料），所以 App 里的任何一张卡都必然是某个扩展写的。iOS 上查不到扩展状态，
+  // 但「卡片从哪来的」这个问题本身已经把答案带上了。
+  let corpusSeen = false;
+
   function paintExtBanner(state) {
     const sec = $('ext-banner');
     if (!sec) return;
+    // 横幅只属于首页。它原来与 #review-view / #app-settings 平级，而没有任何代码在
+    // 进那些视图时收起它 —— 于是它横跨每一个界面钉在最顶上，在一台明显已经在用的
+    // 设备上反复说「先去把扩展打开」。
+    //
+    // 判据写成「有别的视图开着就收起」，而不是「首页开着才显示」：后者在首页两个
+    // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
+    // 横幅误伤掉。
+    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-settings').hidden;
+    if (away || corpusSeen) { sec.hidden = true; return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
@@ -223,6 +247,31 @@
     // 只有 macOS 有直达入口。iOS 给按钮却跳不过去，比不给按钮更糟。
     act.hidden = !state.canOpenPrefs;
     act.textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置');
+    // 两个平台都给：macOS 有直达设置，但「设完了到底成没成」仍然只有官网那一页
+    // 答得出；iOS 除了它没有别的答案。
+    const setup = $('ext-banner-setup');
+    if (setup) {
+      setup.hidden = false;
+      setup.textContent = t('app_ext_open_setup', '在网页上完成设置');
+    }
+  }
+
+  // 官网的启用教程页。地址按 flavor 走，与 extension/onboard/onboard.js 同一行 ——
+  // MT_FLAVOR 由 providers.gen.js 提供，app bundle 里同样带着它。
+  function setupPageUrl() {
+    const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
+    return 'https://' + host + '/setup.html';
+  }
+
+  // WKWebView 里 window.open(_, '_blank') 是哑的：转换器模板没实现
+  // createWebViewWith，点了什么都不会发生。走原生桥在**系统浏览器**里打开 ——
+  // 在 App 内导航过去会把复习界面换掉且回不来，那比不给按钮更糟。
+  function openExternal(url) {
+    try {
+      webkit.messageHandlers.controller.postMessage('open-url:' + url);
+      return;
+    } catch (_) { /* 不在宿主 App 里 —— 浏览器里打开的这一页，window.open 是通的 */ }
+    try { window.open(url, '_blank', 'noopener'); } catch (_) {}
   }
 
   let extState = null;
@@ -271,7 +320,7 @@
   function obPaint() {
     const step = OB[obAt];
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-langs', 'ob-kv', 'ob-prefs', 'ob-setup']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').textContent = obAt === OB.length - 1
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
@@ -299,6 +348,10 @@
         t('ob_ios_2', '进「扩展」，把「大肚猴翻译」打开'),
         t('ob_ios_3', '权限选「允许」，网站选「所有网站」'),
       ]);
+      // 「设完了到底成没成」在 iOS 上只有官网那一页答得出（它被扩展注入后自己亮
+      // 绿灯），所以这一屏两个平台都给它 —— macOS 有直达设置，但没有回执。
+      $('ob-setup').hidden = false;
+      $('ob-setup').textContent = t('app_ext_open_setup', '在网页上完成设置');
     } else if (step === 'browser') {
       $('ob-title').textContent = t('ob_browser_title', '还有两件事在浏览器里做');
       $('ob-text').textContent = t('ob_browser_body',
@@ -604,6 +657,7 @@
     // (same bytes as the extension); this is showing/hiding plus one sanctioned
     // call, not a second implementation.
     if (window.LearnReview) LearnReview.start();
+    paintExtBanner(extState);
     say('');
   });
 
@@ -614,6 +668,7 @@
     $('signed-in').hidden = true;
     $('app-drive').hidden = false;
     AppDriving.start();
+    paintExtBanner(extState);
     say('');
   });
 
@@ -667,6 +722,8 @@
   }
 
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
+  $('ext-banner-setup').addEventListener('click', () => openExternal(setupPageUrl()));
+  $('ob-setup').addEventListener('click', () => openExternal(setupPageUrl()));
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // Both of review.html's settings links, captured so review.js's own handler (which
@@ -701,6 +758,11 @@
       say(t('app_sync_disabled', '同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。'));
       return;
     }
+
+    // Before ensureDefaults / any paint: those read the corpus, and reading the
+    // wrong one for a few hundred milliseconds is how a stale count gets shown and
+    // believed.
+    try { await LearnAuth.bindCorpus(); } catch (_) {}
 
     await AppSettings.ensureDefaults();
     AppDriving.wire();

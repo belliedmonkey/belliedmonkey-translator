@@ -19,6 +19,10 @@
       <p id="ext-banner-title"></p>
       <p id="ext-banner-body" class="note"></p>
       <button id="ext-banner-act" type="button" hidden></button>
+      <!-- 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
+           注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
+           App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 -->
+      <button id="ext-banner-setup" type="button" class="secondary"></button>
     </section>
     <!-- Signed out. This is the only screen a new user sees, so it has to say what
          signing in is FOR — the app is empty without it (learning-design §7.2), and
@@ -90,6 +94,7 @@
         <div id="ob-langs" hidden></div>
         <div id="ob-kv" hidden></div>
         <button id="ob-prefs" type="button" hidden></button>
+        <button id="ob-setup" type="button" class="secondary" hidden></button>
       </div>
       <div id="ob-foot">
         <button id="ob-next" type="button"></button>
@@ -319,6 +324,10 @@
       <div class="counts" id="settings-counts"></div>
       <button id="split-long" type="button" class="secondary"></button>
       <button id="clean-known" type="button" class="secondary"></button>
+      <!-- 本机卫生，不是同步功能：一台设备换过账号之后，唯一的出路不该是删应用
+           重装。刻意**不受** MT_BACKEND.enabled 门控 —— 先例是扩展设置页的同一个
+           按钮就在同步块之外，所以中国版扩展照样有它。 -->
+      <button id="clear-learn" type="button" class="secondary danger"></button>
 
       <h3 id="account-title"></h3>
       <p class="note" id="account-who"></p>

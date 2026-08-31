@@ -1289,6 +1289,25 @@
     } finally { btn.disabled = false; }
   });
 
+
+  // Bind the corpus before anything reads it: which database this surface uses
+  // depends on who is signed in (§ account switch).
+  //
+  // Bounded on purpose. This is the FIRST await in the page's bootstrap, so an
+  // unsettled storage read here does not degrade the page — it stops it dead, and
+  // the review surface comes up blank with nothing said about why (§「等待必须有
+  // 上限」). Worst case after the ceiling: this surface reads whichever corpus was
+  // already selected, which is the pre-existing behaviour, not a new failure.
+  // 天花板是第二道防线，不是解释。根因（绑定反过来要先开库）已经在 auth.js 里修掉，
+  // 但这是整页引导序列的第一个 await：它一旦不落定，页面不是降级而是停死，且什么
+  // 都不说。留一个上限，最坏结果退回「用已经选中的那个库」——那是改动前的行为。
+  try {
+    await Promise.race([
+      LearnAuth.bindCorpus(),
+      new Promise((r) => setTimeout(r, 1500)),
+    ]);
+  } catch (_) {}
+
   // §7.5 — restore BEFORE drain and before the entry-forced sync: a UUID-rotated
   // (or otherwise emptied) corpus comes back from the local backup for signed-out
   // users; the pull below heals signed-in ones. Guarded: the app bundle
