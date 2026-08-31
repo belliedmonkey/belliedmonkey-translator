@@ -1,3 +1,13 @@
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element — and this file has one:
+   `#ob-engine, #ob-capture { display: flex }`. Without this line those two blocks
+   leak onto EVERY step, unpainted: an empty engine dropdown（「无选项」）and an
+   unlabeled test button sitting under the welcome copy. Real device, build 56 —
+   the first build that ever shipped this page to Safari.
+   options.css:1-7 已经为同一个 bug 写过同一行注释；一句「以后记得写」不是门禁，
+   所以 test/hidden-guard.test.js 现在替人记着。 */
+[hidden] { display: none !important; }
+
 /* extension/onboard/onboard.css — 扩展引导页。
    ⚠️ 变量名用扩展这边的（--bg/--text/--card-bg/--border），不是 app/style.css 那套
    （--cream/--ink/--card/--line）—— 两边各有一套 token 名，照抄 App 的会全部失效。

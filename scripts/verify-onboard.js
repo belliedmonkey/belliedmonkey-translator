@@ -48,18 +48,23 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
 
     const seen=[];
     for(let i=0;i<8;i++){
-      const s=await ev(`JSON.stringify({
+      // **读渲染，不读属性。** 这一行原来写的是 `!el.hidden` —— 而 2026-08-31 真机上
+      // 漏出来的引擎块，`el.hidden` 恰恰是 true：onboard.css 的 `#ob-engine{display:flex}`
+      // 压过了 UA 的 `[hidden]{display:none}`，属性对、渲染错，于是这道门禁一路绿着
+      // 把它送上了 App Store。问「用户看不看得见」只有 getClientRects 答得了。
+      const s=await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+        return JSON.stringify({
         title:(document.getElementById('ob-title')||{}).textContent||'',
         text:(document.getElementById('ob-text')||{}).textContent||'',
         w:(document.getElementById('ob-fill')||{style:{}}).style.width,
-        engine:!document.getElementById('ob-engine').hidden,
+        engine:vis(document.getElementById('ob-engine')),
         quick:(()=>{const b=document.getElementById('ob-quick');
-          return b&&!b.hidden?{n:b.querySelectorAll('button,select,input').length,
+          return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
             apply:!!b.querySelector('#qs-apply')}:null;})(),
-        capture:!document.getElementById('ob-capture').hidden,
-        cta:!document.getElementById('ob-cta').hidden,
-        done:!document.getElementById('ob-done').hidden})`);
+        capture:vis(document.getElementById('ob-capture')),
+        cta:vis(document.getElementById('ob-cta')),
+        done:vis(document.getElementById('ob-done'))})})()`);
       if(s.done) break;
       seen.push(s);
       await ev(`(()=>{document.getElementById('ob-next').click();return'1'})()`);
@@ -71,6 +76,13 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(seen.length!==expect) fail(`屏数 ${seen.length}，期望 ${expect}`); else pass(`屏数 ${expect} —— 与 flavor 相符`);
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
     if(!seen.some(s=>s.engine)) fail('没有引擎那一屏'); else pass('引擎屏在');
+    // 每屏**只**露它自己那一块。第一屏尤其要紧：它是所有人看到的第一眼，而漏出来的
+    // 那一块还是没被 paint 过的（下拉空、按钮没文字），比缺一块更难解释。
+    const leak = seen.map((s,i)=>({i,bad:[s.engine&&'引擎',s.capture&&'采集'].filter(Boolean)}))
+      .filter(x=>x.i===0&&x.bad.length);
+    if(leak.length) fail(`欢迎屏上漏出了 ${leak[0].bad.join('、')} 那一块 —— `
+      + 'hidden 属性对但渲染没隐藏？查样式表里的 [hidden]{display:none!important}');
+    else pass('欢迎屏干净 —— 引擎/采集都没漏出来');
     // 「一把 key 配好全部」必须真的渲染出来。HTML 在而 JS 抛异常导致一片空白，
     // 正是这个门禁存在的理由 —— 而它对新组件尤其要紧：这一页刚加了六个 script。
     const q = (seen.find(s=>s.quick)||{}).quick;
