@@ -93,20 +93,6 @@ function apiHint(provider) {
 }
 
 
-// Switching engines clears a non-empty endpoint, visibly (interaction-spec 「接口地址
-// 字段」). An address cannot carry across endpoints — the same reason app/settings.js
-// already resets the chosen voice when the speech engine changes ("Voice names don't
-// carry across engines"). For an entry that ships a default this lands on a WORKING
-// configuration; for one that requires its own address it had to be retyped anyway.
-// Returns true when something was cleared, so the caller can say so — silently
-// discarding what someone typed is the failure this rule exists to avoid.
-function clearEndpointOnEngineSwitch(inputId) {
-  const el = $(inputId);
-  if (!el || !el.value.trim()) return false;
-  el.value = '';
-  return true;
-}
-
 function showToast(msg, duration = 2500) {
   const el = $('toast');
   el.textContent = msg;
@@ -512,29 +498,22 @@ async function init() {
   // translation engine (the default, and the pre-feature behaviour); the
   // candidate list is the registry filtered by LearnNotes' own type rule, so
   // "what counts as a chat engine" cannot drift between the gate and this picker.
-  function populateNotesEngines(selected) {
-    // '' 是**有语义的空**：跟随翻译引擎。它不是占位符，写了别的值会永久打断
-    // follow 关系（quick-setup.js:206-209 论证过同一件事）。
-    EngineFields.populate($('notes-provider'), LearnNotes.chatEngines(), {
-      t, selected, sentinel: { value: '', text: t('notes_follow', '跟随翻译引擎（默认）') },
+  // 第四个槽。条目是 LearnNotes 过滤过的对话引擎表 —— 「什么算对话引擎」的判据只有
+  // 一份，在 LearnNotes 那里，不能在这里另写一份 type 白名单。
+  let notesCore = null;
+  let notesClearedEndpoint = false;
+  function mountNotesCore(values) {
+    notesCore = EngineFields.render($('notes-core'), {
+      slot: 'notes', t, head: false, values, entries: LearnNotes.chatEngines(),
+      onChange: (patch) => { if ('notesBaseUrl' in patch && patch.notesBaseUrl === '') notesClearedEndpoint = true; },
     });
   }
   function updateNotesUI(id) {
-    const p = (window.MT_PROVIDERS || []).find((x) => x.id === id) || null;
-    const v = EngineFields.visibility(p);
-    $('notes-config').hidden = !p;
-    if (!p) return;
-    $('notes-key-field').hidden = !v.key;
-    $('notes-baseurl-field').hidden = !v.baseUrl;
-    $('notes-model-field').hidden = !v.model;
-    // 地址与模型的示例：这一处原来两个都漏了。
-    $('notes-base-url').placeholder = v.basePlaceholder;
-    $('notes-model').placeholder = v.modelPlaceholder;
+    if (notesCore) notesCore.paint();
+    // '' ⇒ 跟随翻译引擎 ⇒ 这一组一个框都不露，连测试按钮一起收起来。
+    $('notes-config').hidden = !id;
   }
-  populateNotesEngines(s.notesProvider || '');
-  $('notes-api-key').value  = s.notesApiKey || '';
-  $('notes-base-url').value = s.notesBaseUrl || '';
-  $('notes-model').value    = s.notesModel || '';
+  mountNotesCore(s);
   updateNotesUI($('notes-provider').value);
 
   // §9.4 — transcription engine for the 说 exercise. Option "" = not configured =
@@ -565,7 +544,8 @@ async function init() {
   // ─── Listeners ──────────────────────────────────────────────────────
 
   $('notes-provider').addEventListener('change', async (e) => {
-    const cleared = clearEndpointOnEngineSwitch('notes-base-url');
+    // 组件的 change 监听先跑并清端点；这里只读它的回报。
+    const cleared = notesClearedEndpoint; notesClearedEndpoint = false;
     updateNotesUI(e.target.value);
     await saveAll();
     showToast(cleared ? t('toast_endpoint_cleared', '换引擎了，接口地址已清空') : t('toast_saved', '已保存'));

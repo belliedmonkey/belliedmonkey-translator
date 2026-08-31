@@ -350,17 +350,25 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       await evalIn(cdp, sessionId, `(()=>{document.getElementById('mode-detail').click();return 1})()`);
       await sleep(400);
       const mode2 = JSON.parse(await evalIn(cdp, sessionId, `(()=>{const vis=${vis};
+        // 四组 × 四个字段。id 齐全只是**必要**条件：谁把某一组重新手写回去，id 照样
+        // 都在。真正要守的是「四组都由 learn/engine-fields.js 生成」，判据是它的输出
+        // 标记 .ef-slot —— 手写的 markup 没有这个类。
         const need=['provider','api-key','api-base-url','api-model',
           'tts-engine','tts-api-key','tts-base-url','tts-model',
+          'notes-provider','notes-api-key','notes-base-url','notes-model',
           'stt-engine','stt-api-key','stt-base-url','stt-model'];
         return JSON.stringify({quick:vis(document.getElementById('quick-setup-card')),
           engine:vis(document.getElementById('engine-card')),
           missing:need.filter(id=>!document.getElementById(id)),
+          slots:document.querySelectorAll('.ef-slot').length,
           text:document.body.innerText.trim().length});})()`));
       if (mode2.quick) {
         problems.push('详细视图里一键卡还在 —— 一键配置与逐引擎配置同屏');
       } else if (!mode2.engine) {
         problems.push('详细视图里翻译引擎卡不见了');
+      } else if (mode2.slots !== 4) {
+        problems.push(`设置页只有 ${mode2.slots} 组由共用组件生成，期望 4（翻译/朗读/解析/转写）`
+          + ' —— 有一组被重新手写了，以后加字段它不会跟着长出来');
       } else if (mode2.missing.length) {
         // 组件生成 DOM 这条新路径必须真的产出 saveAll() 要读的那些 id。少一个，
         // saveAll 会在 assertSaveFields 抛错 —— 但那要等用户去改一个字段才发生。
@@ -369,7 +377,7 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       } else if (mode2.text < 60) {
         problems.push(`详细视图可见文本只有 ${mode2.text} 字符 —— 是不是加载期就炸了`);
       } else {
-        console.log(`详细视图 ✓ 一键卡已隐藏，12 个核心控件齐全，可见文本 ${mode2.text} 字符`);
+        console.log(`详细视图 ✓ 一键卡已隐藏，4 组均由共用组件生成、16 个核心控件齐全，可见文本 ${mode2.text} 字符`);
       }
 
       // ★ 过期快照：这一条在改之前的代码上是**红**的。

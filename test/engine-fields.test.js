@@ -172,6 +172,10 @@ describe('options.js 里不许再有第二份同能力的判断', () => {
       `只接上了 ${rendered.length + ruleOnly} 组（组件渲染 ${rendered.length} 组：`
       + `${rendered.join('/') || '无'}；只用判据 ${ruleOnly} 组），期望 4 组`
       + ' —— 翻译/朗读/解析/转写，漏掉的那一组会另写一套并慢慢漂走');
+    // 四组现在全部由组件渲染。退回「只用判据」也算接着，但那意味着又有一份手写
+    // markup —— 加字段时它不会自己长出来。
+    ok(new Set(rendered).size === 4,
+      '不是四组都由组件渲染，实际：' + (rendered.join('/') || '一组都没有'));
     ok(new Set(rendered).size === rendered.length,
       '同一个 slot 渲染了两次：' + rendered.join('/'));
   });

@@ -126,6 +126,19 @@ var EngineFields = (() => {
       labelKey: 'qs_slot_tts',
       sentinelKey: null,
     },
+    // 解析（「解析这句」用的对话引擎）。条目不是整张 providers 表，而是
+    // LearnNotes.chatEngines() 过滤后的那一份 —— 由 host 通过 opts.entries 传进来，
+    // 组件不认识 LearnNotes。
+    notes: {
+      registry: 'MT_PROVIDERS',
+      keys: { engine: 'notesProvider', key: 'notesApiKey', baseUrl: 'notesBaseUrl', model: 'notesModel' },
+      ids: { engine: 'notes-provider', key: 'notes-api-key', baseUrl: 'notes-base-url', model: 'notes-model' },
+      labelKey: 'notes_engine',
+      // '' = 跟随翻译引擎的**整组**配置。选了别的就只用解析自己这一组 —— 全有或全无，
+      // 因为借翻译引擎的 key 去配另一家的端点，就是「把 key 和一个不是发给它的端点
+      // 配在一起」。所以这个空值是语义，不是占位符。
+      sentinelKey: 'notes_follow',
+    },
     stt: {
       registry: 'MT_STT_ENGINES',
       keys: { engine: 'sttEngine', key: 'sttApiKey', baseUrl: 'sttBaseUrl', model: 'sttModel' },
@@ -159,6 +172,16 @@ var EngineFields = (() => {
         model: t('tts_model', '语音模型'),
         head: t('qs_slot_tts', '朗读'),
         sentinel: '',
+      };
+    }
+    if (slot === 'notes') {
+      return {
+        engine: t('notes_engine', '解析引擎'),
+        key: t('notes_api_key', '解析 API Key'),
+        baseUrl: t('notes_base_url', '解析 API 地址'),
+        model: t('notes_model', '解析模型'),
+        head: t('notes_engine', '解析引擎'),
+        sentinel: t('notes_follow', '跟随翻译引擎（默认）'),
       };
     }
     return {
@@ -273,8 +296,14 @@ var EngineFields = (() => {
       rows.model.input.placeholder = v.modelPlaceholder;
     }
 
-    // 换引擎时清端点。**两个 host 都要**，所以放在组件里而不是各自的 change 处理器里
-    // —— options.js 原来为 stt 单独写过一份 clearEndpointOnEngineSwitch。
+    // 换引擎时清端点，而且**看得见地清**（interaction-spec 「接口地址字段」）。
+    // 地址不能跨端点沿用 —— 同 app/settings.js 换语音引擎要重置音色的理由
+    // （「音色名不跨引擎」）。带默认端点的条目清空后落在一个能工作的配置上；要求自填
+    // 地址的条目本来也得重填。
+    //
+    // 放在组件里而不是各自的 change 处理器里：四组都要这条规则，options.js 原来只为
+    // 其中三组写了，TTS 那组一直没有。patch 里带上被清的那个键，host 据此把「已清空」
+    // 说给用户听 —— 静默丢掉别人填过的地址，正是这条规则要防的事。
     sel.addEventListener('change', () => {
       // 换引擎清空端点：把一个引擎的地址留给另一个引擎，正是 notes.js 明文禁止的
       // 「把 key 和一个不是发给它的端点配在一起」。清空 = 走注册表默认 = 能工作。
