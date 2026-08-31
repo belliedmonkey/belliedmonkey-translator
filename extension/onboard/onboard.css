@@ -1,11 +1,11 @@
-/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
-   `display` declaration on the element — and this file has one:
-   `#ob-engine, #ob-capture { display: flex }`. Without this line those two blocks
-   leak onto EVERY step, unpainted: an empty engine dropdown（「无选项」）and an
-   unlabeled test button sitting under the welcome copy. Real device, build 56 —
-   the first build that ever shipped this page to Safari.
-   options.css:1-7 已经为同一个 bug 写过同一行注释；一句「以后记得写」不是门禁，
-   所以 test/hidden-guard.test.js 现在替人记着。 */
+/* `hidden` 必须真的隐藏。UA 样式表的 `[hidden]{display:none}` 输给作者样式表里
+   **任何一条** display 声明，而这个文件有两条：`#ob-capture` 和 `.mode-tabs`。
+   少了下面这一行，凡是带 display 声明的块都会无视 hidden 属性 —— 而 JS 读回
+   el.hidden 仍然是 true，控制台里一切正常。
+   2026-08-31 真机实证：欢迎屏上漏出了没被 paint 过的引擎块（空下拉、没文字的按钮），
+   而 build 56 是这一页第一次进 Safari 包。
+   options.css 顶上为同一个 bug 写过同一行注释，结尾是「以后每个 display 规则都要
+   记得」—— 这个文件证明了那句话值多少钱，所以现在由 test/hidden-guard.test.js 记着。 */
 [hidden] { display: none !important; }
 
 /* extension/onboard/onboard.css — 扩展引导页。
@@ -31,9 +31,17 @@ body {
 #ob-body > p { margin: 0; color: var(--text-secondary); }
 .hint { margin: 0; font-size: .9rem; color: var(--text-secondary); }
 
-#ob-engine, #ob-capture { display: flex; flex-direction: column; gap: 10px; }
-#ob-engine label, #ob-capture label { font-size: .9rem; color: var(--text-secondary); }
-#ob-engine select, #ob-engine input {
+/* 与设置页 options.css:329-331 逐字相同：第 2 屏的「一键配置 | 三引擎分别配」和设置页
+   的「快速 | 详细」是同一个控件、同一条裁定 —— 长得不一样只会让人以为是两回事。 */
+.mode-tabs { display: flex; gap: 0; margin: 0 0 4px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: fit-content; }
+.mode-tabs button { margin: 0; width: auto; padding: 7px 22px; border: none; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: .92rem; cursor: pointer; }
+.mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+
+#ob-capture { display: flex; flex-direction: column; gap: 10px; }
+#ob-capture label { font-size: .9rem; color: var(--text-secondary); }
+/* 三引擎分别配的输入框由 EngineFields 生成（.ef-row），它自带 injectStyle 只管排版；
+   外观（边框、圆角、内边距）归这一页，所以在这里给一次。 */
+#ob-manual select, #ob-manual input {
   width: 100%; padding: 9px 12px; font: inherit;
   border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text);
 }

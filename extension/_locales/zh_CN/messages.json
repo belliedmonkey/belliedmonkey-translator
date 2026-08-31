@@ -1788,10 +1788,10 @@
     "message": "选一个翻译引擎"
   },
   "extob_engine_body_free": {
-    "message": "免费通道零配置就能用。想要更好的质量，填入你自己的 API Key。"
+    "message": "现在用的是免费通道，什么都不填、直接点「继续」就能开始翻译 —— 它不太稳，偶尔会把原文原样还给你。想要稳定的译文，用下面任一种方式配一次。"
   },
   "extob_engine_body_key": {
-    "message": "这一步躲不掉：不填 Key 就翻不出任何东西。"
+    "message": "这一步躲不掉：不填 key 就一个字也翻不出来。"
   },
   "extob_key_label": {
     "message": "API Key"
@@ -1854,7 +1854,7 @@
     "message": "用一把 key 配好全部"
   },
   "qs_sub": {
-    "message": "下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请在各自的卡片里单独配置。"
+    "message": "下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请切到上面的〈详细〉逐个配置。"
   },
   "qs_platform": {
     "message": "平台"
@@ -1874,11 +1874,14 @@
   "qs_try_note": {
     "message": "打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。"
   },
-  "extob_engine_manual": {
-    "message": "用别的引擎？手动填 ▾"
-  },
   "extob_quick_sub": {
-    "message": "一把 key 就能同时配好翻译、朗读、转写。想用别的引擎，展开下面手动填。"
+    "message": "一把 key 就能同时配好翻译、朗读、转写。"
+  },
+  "extob_mode_quick": {
+    "message": "一键配置"
+  },
+  "extob_mode_manual": {
+    "message": "三引擎分别配"
   },
   "qs_key_ph": {
     "message": "粘贴一次，三样一起配好"

@@ -37,27 +37,21 @@
           <h2 id="ob-title"></h2>
           <p id="ob-text"></p>
 
-          <!-- 第 2 屏：先给「一把 key 配好全部」，下面那个单配翻译的选择器留着 ——
-               有的人就是想只配翻译，或者用一个不在一键清单里的引擎。 -->
+          <!-- 第 2 屏：两个**互斥**的入口。同屏只显示其中一个。
+               裁定见 docs/interaction-spec.md：一键配置与逐引擎配置永不同屏 ——
+               两者共存时，在下面改了引擎，上面那张卡显示的状态就成了谎话。
+               形状照设置页的 #mode-tabs，不新造一套。 -->
+          <div id="ob-modes" class="mode-tabs" role="tablist" hidden>
+            <button id="ob-mode-quick" type="button" role="tab"></button>
+            <button id="ob-mode-manual" type="button" role="tab"></button>
+          </div>
+
+          <!-- 一把 key 配好全部（QuickSetup） -->
           <div id="ob-quick" hidden></div>
 
-          <!-- 第 2 屏：手动单配一个引擎。**默认收起** —— 与设置页同一条裁定：一键
-               配置和详细配置不并排摊开。一键卡渲染不出来时（没有平台 / QuickSetup
-               缺席）这一块必须直接露出来，否则这一屏没法配任何东西。 -->
-          <button id="ob-engine-toggle" type="button" class="link" hidden></button>
-
-          <!-- 第 2 屏：真的引擎选择器，不是说明文字 -->
-          <div id="ob-engine" hidden>
-            <label for="ob-provider" data-i18n="options_engine_label">翻译引擎</label>
-            <select id="ob-provider"></select>
-            <div id="ob-key-row">
-              <label for="ob-key" data-i18n="extob_key_label">API Key</label>
-              <input id="ob-key" type="password" autocomplete="off" spellcheck="false">
-            </div>
-            <p id="ob-engine-note" class="hint"></p>
-            <button id="ob-test" type="button" class="secondary"></button>
-            <p id="ob-test-out" class="hint" hidden></p>
-          </div>
+          <!-- 三引擎分别配（EngineFields.render ×3）。控件与设置页**是同一批** ——
+               同一个组件、同一套 id，所以两边以后是一起改的。 -->
+          <div id="ob-manual" hidden></div>
 
           <!-- 第 3 屏：真的采集开关 + 语言 chips（复用 SourcesView.renderLangChips） -->
           <div id="ob-capture" hidden>
@@ -108,6 +102,7 @@
   <script src="../learn/sources-view.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/speech-input.js"></script>
+  <script src="../learn/page-settings.js"></script>
   <script src="../learn/engine-fields.js"></script>
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>

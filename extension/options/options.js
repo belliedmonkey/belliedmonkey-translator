@@ -1382,7 +1382,9 @@ async function init() {
   if ($('quick-setup')) {
     QuickSetup.render($('quick-setup'), {
       t,
-      settings: s0,
+      // 现读而不是快照：s0 是页面加载时读的，之后永不更新。详见 quick-setup.js 里
+      // 那段注释 —— 拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
+      readSettings: () => PageSettings.read(SETTINGS_KEYS),
       // 读不到已存设置时不许配：往一份读不出来的档案上盖三组配置，正是
       // settings_read_failed 那句警告存在的理由。
       disabled: _settingsReadFailed,

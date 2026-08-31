@@ -18,10 +18,16 @@
 //   4. chat 把 Key / 地址 / 模型三个框裹在一个 `#apikey-fields` 里，所以「不需要 Key」
 //      会连地址和模型一起藏掉；tts / stt 是各藏各的。
 //
-// **这个文件只回答「显示什么」，不碰 DOM 结构。** 各调用点保留自己的 id 与
-// display/hidden 习惯 —— 抽的是规则，不是 markup。markup 的收敛是另一步，风险完全
-// 不同：options 的那 19 个 id 被 saveAll() 的 assertSaveFields 钉着，被 smoke 里
-// 「改一个无关字段不许冲掉配置」那条钉着，动它要另配门禁。
+// 两层，可以只用上面那层：
+//
+//   visibility() / populate()  —— 纯规则，不碰 DOM。options 的四处调它，各自保留
+//                                 自己的 id 与 display/hidden 习惯。
+//   render()                   —— 连 markup 一起给。引导页用它，options 以后也会。
+//
+// 分两层是刻意的：options 的那 19 个 id 被 saveAll() 的 assertSaveFields 钉着、被
+// smoke 里「改一个无关字段不许冲掉配置」钉着，所以 markup 的迁移风险和规则的收敛
+// 完全不是一回事，得分开落地、分开验。render() 吐出的 id **就是 options 今天那一套**，
+// 正是为了让那一步不需要任何覆盖。
 //
 // 形状照 sources-view.js / quick-setup.js：不碰 chrome.storage，不读全局 document，
 // 需要什么由调用方传进来。
@@ -95,7 +101,182 @@ var EngineFields = (() => {
     return sel.value;
   }
 
-  return { labelOf, visibility, populate };
+
+  // ── 三个能力槽的规格表 ──────────────────────────────────────────────────────
+  //
+  // id 用的是 **options 今天那一套**，不是新造的。两个理由：
+  //   1. options 的 saveAll() 按字面量读这些 id，且开头就断言它们都在。组件照旧吐出
+  //      同样的 id，第 3 步把 options 迁过来时不需要任何覆盖，saveAll 一个字不改。
+  //   2. 两个页面渲染出来的是**同一批控件**，而不是「长得像的两套」。用户在设置页学会
+  //      的东西，在引导页原样成立。
+  //
+  // 同一个文档里三个槽的 id 互不重叠；两个文档之间重名无所谓（各自的 document）。
+  const SLOTS = {
+    chat: {
+      registry: 'MT_PROVIDERS',
+      keys: { engine: 'provider', key: 'apiKey', baseUrl: 'apiBaseUrl', model: 'apiModel' },
+      ids: { engine: 'provider', key: 'api-key', baseUrl: 'api-base-url', model: 'api-model' },
+      labelKey: 'qs_slot_chat',
+      sentinelKey: null,
+    },
+    tts: {
+      registry: 'MT_TTS_ENGINES',
+      keys: { engine: 'ttsEngine', key: 'ttsApiKey', baseUrl: 'ttsBaseUrl', model: 'ttsModel' },
+      ids: { engine: 'tts-engine', key: 'tts-api-key', baseUrl: 'tts-base-url', model: 'tts-model' },
+      labelKey: 'qs_slot_tts',
+      sentinelKey: null,
+    },
+    stt: {
+      registry: 'MT_STT_ENGINES',
+      keys: { engine: 'sttEngine', key: 'sttApiKey', baseUrl: 'sttBaseUrl', model: 'sttModel' },
+      ids: { engine: 'stt-engine', key: 'stt-api-key', baseUrl: 'stt-base-url', model: 'stt-model' },
+      labelKey: 'qs_slot_stt',
+      // '' 是**有语义的空**：未配置 ⇒ 不出「说」题。「录音去哪儿必须是一次显式选择」
+      // 那条裁定的落点就是这个哨兵项。
+      sentinelKey: 'stt_engine_none',
+    },
+  };
+
+  // 标签写成 t() 调用，不是 [key, 兜底串] 的表。放进数据结构里，
+  // test/no-hardcoded-copy.test.js 认不出那是兜底位（它只认紧跟在 `t('key',` 后面的
+  // 那一个字面量），于是一整张表的中文会变成谁都翻译不到的硬编码。
+  function fieldLabels(slot, t) {
+    if (slot === 'chat') {
+      return {
+        engine: t('options_engine_label', '引擎'),
+        key: t('extob_key_label', 'API Key'),
+        baseUrl: t('label_custom_api', '接口地址（完整）'),
+        model: t('label_custom_model', '模型'),
+        head: t('qs_slot_chat', '翻译'),
+        sentinel: '',
+      };
+    }
+    if (slot === 'tts') {
+      return {
+        engine: t('tts_engine', '语音引擎'),
+        key: t('tts_api_key', '语音 API Key'),
+        baseUrl: t('tts_base_url', '语音端点地址'),
+        model: t('tts_model', '语音模型'),
+        head: t('qs_slot_tts', '朗读'),
+        sentinel: '',
+      };
+    }
+    return {
+      engine: t('stt_engine', '转写引擎'),
+      key: t('stt_api_key', '转写 API Key'),
+      baseUrl: t('stt_base_url', '转写端点地址'),
+      model: t('stt_model', '转写模型'),
+      head: t('qs_slot_stt', '转写'),
+      sentinel: t('stt_engine_none', '未配置（不出「说」题）'),
+    };
+  }
+
+  const STYLE = `
+    .ef-slot { display:flex; flex-direction:column; gap:6px; }
+    .ef-slot + .ef-slot { margin-top:14px; }
+    .ef-head { font-weight:600; font-size:.95em; }
+    .ef-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .ef-row label { flex:0 0 auto; font-size:.85em; opacity:.75; min-width:5.5em; }
+    .ef-row input, .ef-row select { flex:1 1 8em; min-width:0; }
+  `;
+  let styled = false;
+  function injectStyle(doc) {
+    if (styled || !doc || !doc.head) return;
+    const el = doc.createElement('style'); el.textContent = STYLE; doc.head.appendChild(el);
+    styled = true;
+  }
+
+  // render(container, { slot, t, entries?, values, onChange })
+  //
+  // **不碰 chrome.storage**（同 quick-setup.js / sources-view.js）：把当前值传进来，
+  // 改动通过 onChange(patch) 交回去，patch 的键是**存储键**而不是 DOM id —— host 拿到
+  // 就能直接写盘，不必再翻译一次。
+  //
+  // 一次渲染一个槽。三个槽连着渲染就是「三引擎分别配」，单独渲染一个就是 options 的
+  // 一张卡。两者是同一段代码。
+  function render(container, opts) {
+    if (!container) return null;
+    const o = opts || {};
+    const spec = SLOTS[o.slot];
+    if (!spec) return null;
+    const t = o.t || ((k, fb) => fb);
+    const doc = container.ownerDocument || document;
+    const w = (typeof window !== 'undefined') ? window : {};
+    const entries = o.entries || w[spec.registry] || [];
+    const values = o.values || {};
+    injectStyle(doc);
+
+    const el = (tag, cls, txt) => {
+      const n = doc.createElement(tag);
+      if (cls) n.className = cls;
+      if (txt != null) n.textContent = txt;
+      return n;
+    };
+    const emit = (patch) => { if (typeof o.onChange === 'function') o.onChange(patch); };
+
+    const L = fieldLabels(o.slot, t);
+    const box = el('div', 'ef-slot');
+    box.append(el('div', 'ef-head', L.head));
+
+    // 引擎行
+    const engineRow = el('div', 'ef-row');
+    const engineLabel = el('label', null, L.engine);
+    engineLabel.setAttribute('for', spec.ids.engine);
+    const sel = doc.createElement('select');
+    sel.id = spec.ids.engine;
+    populate(sel, entries, {
+      t,
+      selected: values[spec.keys.engine] || '',
+      sentinel: spec.sentinelKey ? { value: '', text: L.sentinel } : null,
+    });
+    engineRow.append(engineLabel, sel);
+    box.append(engineRow);
+
+    // 其余三行。每一行都**始终建出来**，只切 hidden —— 与 options 同一条规矩：
+    // 藏可以，删不行（删掉之后读它的地方会拿到 null，而 null 会被当成「用户清空了」）。
+    const rows = {};
+    for (const f of ['key', 'baseUrl', 'model']) {
+      const row = el('div', 'ef-row');
+      const lab = el('label', null, L[f]);
+      lab.setAttribute('for', spec.ids[f]);
+      const inp = doc.createElement('input');
+      inp.id = spec.ids[f];
+      inp.type = f === 'key' ? 'password' : (f === 'baseUrl' ? 'url' : 'text');
+      inp.autocomplete = 'off';
+      inp.spellcheck = false;
+      inp.value = values[spec.keys[f]] || '';
+      // input 而不是 change：change 只在失焦时触发，用户填完直接点「继续」就丢了。
+      // 2026-08-30 在 options.js 上修过的同一个缺陷，不要在新代码里重犯。
+      inp.addEventListener('input', () => emit({ [spec.keys[f]]: inp.value.trim() }));
+      row.append(lab, inp);
+      box.append(row);
+      rows[f] = { row, input: inp };
+    }
+
+    function paint() {
+      const cur = entries.find((e) => e.id === sel.value) || null;
+      const v = visibility(cur);
+      rows.key.row.hidden = !v.key;
+      rows.baseUrl.row.hidden = !v.baseUrl;
+      rows.model.row.hidden = !v.model;
+      rows.baseUrl.input.placeholder = v.basePlaceholder;
+      rows.model.input.placeholder = v.modelPlaceholder;
+    }
+
+    sel.addEventListener('change', () => {
+      // 换引擎清空端点：把一个引擎的地址留给另一个引擎，正是 notes.js 明文禁止的
+      // 「把 key 和一个不是发给它的端点配在一起」。清空 = 走注册表默认 = 能工作。
+      rows.baseUrl.input.value = '';
+      paint();
+      emit({ [spec.keys.engine]: sel.value, [spec.keys.baseUrl]: '' });
+    });
+
+    paint();
+    container.append(box);
+    return { el: box, paint, ids: spec.ids, keys: spec.keys };
+  }
+
+  return { labelOf, visibility, populate, render, SLOTS };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineFields;

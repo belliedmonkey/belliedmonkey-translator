@@ -250,9 +250,13 @@ var QuickSetup = (() => {
   }
 
   const SLOTS = ['chat', 'tts', 'stt'];
-  const SLOT_LABEL = {
-    chat: ['qs_slot_chat', '翻译'], tts: ['qs_slot_tts', '朗读'], stt: ['qs_slot_stt', '转写'],
-  };
+  // 写成函数而不是 [key, 兜底串] 的表：兜底串放在数据结构里，
+  // test/no-hardcoded-copy.test.js 认不出它是兜底位。而那条门禁曾经**看不见这一段**
+  // （quick-setup.js 有 310 行被一个假块注释吞掉了，2026-08-31 修好扫描器后才露出来），
+  // 所以这份写法一直没被拦过。
+  const slotLabel = (slot, t) => (slot === 'chat' ? t('qs_slot_chat', '翻译')
+    : slot === 'tts' ? t('qs_slot_tts', '朗读')
+      : t('qs_slot_stt', '转写'));
 
   // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败推迟到
   // 一个更难解释的地方发生。没测翻译（因为早就配过了）也算通 —— 那种情况下用户本来
@@ -383,7 +387,29 @@ var QuickSetup = (() => {
     btn.addEventListener('click', async () => {
       const k = key.value.trim();
       if (!k) { key.focus(); return; }
-      const p = plan({ platform: current, key: k, settings: opts.settings || {} });
+      // **点下去那一刻才读设置。** 原来这里用的是 render 时传进来的快照，而那份快照
+      // 在 options 上是页面加载时读的、之后永不更新（s0）。后果不是显示不对，是丢数据：
+      // 用户在「详细」里敲了 key → 点这个按钮 → state() 按旧快照判「没配过」→ 覆盖那把
+      // key，还报「✓ 通了」。反向亦然（清空了 key 却说「没动 · 你已经配过了」）。
+      //
+      // 现读一次就把这一整类关掉：跨标签、跨模式、重复点击全覆盖，不需要任何事件监听。
+      // 读失败**什么都不写** —— 一个读不出设置的时刻不该被当成「用户没配过」。
+      let cur = opts.settings || {};
+      if (typeof opts.readSettings === 'function') {
+        const r = await opts.readSettings();
+        if (!r || r.ok === false) {
+          btn.disabled = false;
+          res.hidden = false;
+          res.textContent = '';
+          const li = doc.createElement('li');
+          li.append(el('span', 'qs-bad', t('settings_read_failed_short',
+            '读不到已保存的设置，请稍后再试')));
+          res.append(li);
+          return;
+        }
+        cur = r.data || {};
+      }
+      const p = plan({ platform: current, key: k, settings: cur });
       btn.disabled = true;
       // 四行**在按下那一刻就存在**，不是「成功后才冒出来的绿框」—— 那种形状让失败
       // 看起来像什么都没发生。
@@ -392,7 +418,7 @@ var QuickSetup = (() => {
       res.textContent = '';
       for (const slot of SLOTS) {
         const li = doc.createElement('li');
-        const nm = el('span', 'qs-name', t(SLOT_LABEL[slot][0], SLOT_LABEL[slot][1]) + '：');
+        const nm = el('span', 'qs-name', slotLabel(slot, t) + '：');
         const val = el('span', 'qs-idle', t('qs_testing', '测试中…'));
         li.append(nm, val); res.append(li); rows[slot] = val;
       }

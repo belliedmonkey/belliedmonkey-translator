@@ -583,6 +583,32 @@ So the onboarding tells them what to expect **before** a bad first result, never
   promised in the store listing; what changes is that the user is told what it is, instead
   of landing on it silently.
 
+## 一键配置与逐引擎配置永不同屏
+
+**不变量。** 任何界面、任何时刻，一键配置卡与逐引擎配置控件不同时渲染。一键卡在场时，
+必须有且只有一条可见、有标签的路通向逐引擎配置，且那条路落地后一键卡不在场。
+
+第二句和第一句一样重要：一键卡只覆盖「同一个 host 一把 key 通吃翻译+朗读+转写」的
+平台 —— 全球版 11 个对话引擎里覆盖 2 个，中国版 7 个里覆盖 1 个，且中国版没有免费
+通道。**只藏不给路是退化，不是简化。**
+
+**为什么这是正确性而不是排版。** 两者共存时，用户在逐引擎那一侧改了引擎或 key，
+一键卡里那份「已配过 / 没配过」的判断当场变成谎话，而它下一次被按下就会照着那份谎话
+写存储：把用户刚输入的 key 覆盖掉，并报告「✓ 通了」。反向同样成立（清空了 key，卡片
+说「没动 · 你已经配过了」，翻译其实没配上）。2026-08-31 在设置页上实测到这三种表现。
+
+配套的两条实现约束：
+
+- **一键卡在按下按钮那一刻才读设置**，不用渲染时的快照。快照会跨模式、跨标签过期，
+  而「重画一次」修不干净（重画会吃掉用户填了一半的 key）。读失败必须什么都不写 ——
+  一个读不出设置的时刻不该被当成「用户没配过」。
+- **两处的控件是同一个组件生成的**（`extension/learn/engine-fields.js`），id 也是同一套。
+  两份「长得像的实现」意味着以后每次改都要改两遍，而漏掉的那一遍不会有人发现。
+
+落点：设置页是「快速 | 详细」两个 tab；扩展引导页第 2 屏是「一键配置 | 三引擎分别配」
+两个 tab，后面几屏共用。门禁在 `scripts/verify-onboard.js`（互斥、旧块不在 DOM、
+两个 tab 之外没有任何引擎控件）与 `scripts/verify-extension-smoke.js`。
+
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
 menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此

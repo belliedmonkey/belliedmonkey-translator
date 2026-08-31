@@ -1787,10 +1787,10 @@
     "message": "Wähle eine Übersetzungs-Engine"
   },
   "extob_engine_body_free": {
-    "message": "Der kostenlose Kanal funktioniert ohne Einrichtung. Für bessere Qualität trage deinen eigenen API-Schlüssel ein."
+    "message": "Sie nutzen gerade den kostenlosen Kanal — einfach auf Weiter tippen, ohne etwas auszufüllen. Er ist nicht stabil und gibt manchmal den Originaltext zurück. Für zuverlässige Übersetzungen richten Sie unten einmal etwas ein."
   },
   "extob_engine_body_key": {
-    "message": "Dieser Schritt lässt sich nicht überspringen: ohne Schlüssel wird nichts übersetzt."
+    "message": "An diesem Schritt führt kein Weg vorbei: ohne Schlüssel wird nichts übersetzt."
   },
   "extob_key_label": {
     "message": "API-Schlüssel"
@@ -1853,7 +1853,7 @@
     "message": "Alles mit einem Schlüssel einrichten"
   },
   "qs_sub": {
-    "message": "Bei diesen Plattformen richtet ein Schlüssel Übersetzung, Vorlesen und Transkription auf einmal ein. Andere Engines werden in ihren eigenen Karten konfiguriert."
+    "message": "Bei diesen Plattformen richtet ein Schlüssel Übersetzung, Vorlesen und Transkription zugleich ein. Für andere Dienste wechseln Sie oben zu „Detailliert“."
   },
   "qs_platform": {
     "message": "Plattform"
@@ -1873,11 +1873,14 @@
   "qs_try_note": {
     "message": "Öffnen Sie eine echte Webseite und tippen Sie auf die schwebende Schaltfläche – die Übersetzung erscheint unter jedem Absatz."
   },
-  "extob_engine_manual": {
-    "message": "Anderen Dienst verwenden? Manuell einrichten ▾"
-  },
   "extob_quick_sub": {
-    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein. Für einen anderen Dienst öffnen Sie unten die manuelle Einrichtung."
+    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein."
+  },
+  "extob_mode_quick": {
+    "message": "Ein Schlüssel"
+  },
+  "extob_mode_manual": {
+    "message": "Dienste einzeln einrichten"
   },
   "qs_key_ph": {
     "message": "Einmal einfügen – richtet alle drei ein"

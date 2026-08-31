@@ -1787,10 +1787,10 @@
     "message": "Escolha um motor de tradução"
   },
   "extob_engine_body_free": {
-    "message": "O canal gratuito funciona sem configuração. Para melhor qualidade, adicione sua própria chave de API."
+    "message": "Você está no canal gratuito: toque em Continuar sem preencher nada e a tradução funciona. Ele não é estável e às vezes devolve o texto original. Para traduções confiáveis, configure uma vez abaixo."
   },
   "extob_engine_body_key": {
-    "message": "Não dá para pular esta etapa: sem chave, nada é traduzido."
+    "message": "Não dá para pular esta etapa: sem chave nada é traduzido."
   },
   "extob_key_label": {
     "message": "Chave de API"
@@ -1853,7 +1853,7 @@
     "message": "Configure tudo com uma única chave"
   },
   "qs_sub": {
-    "message": "Nessas plataformas, uma única chave configura tradução, leitura em voz alta e transcrição. Os outros motores são configurados em seus próprios cartões."
+    "message": "Nessas plataformas, uma única chave configura tradução, leitura e transcrição. Para outro motor, mude para «Detalhado» acima."
   },
   "qs_platform": {
     "message": "Plataforma"
@@ -1873,11 +1873,14 @@
   "qs_try_note": {
     "message": "Abra uma página web real e toque no botão flutuante: a tradução aparece abaixo de cada parágrafo."
   },
-  "extob_engine_manual": {
-    "message": "Usar outro motor? Configure manualmente ▾"
-  },
   "extob_quick_sub": {
-    "message": "Uma única chave configura tradução, leitura e transcrição de uma vez. Para outro motor, abra a configuração manual abaixo."
+    "message": "Uma única chave configura tradução, leitura e transcrição."
+  },
+  "extob_mode_quick": {
+    "message": "Uma só chave"
+  },
+  "extob_mode_manual": {
+    "message": "Configurar cada motor"
   },
   "qs_key_ph": {
     "message": "Cole uma vez — configura as três"

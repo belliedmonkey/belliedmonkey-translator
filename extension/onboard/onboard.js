@@ -78,13 +78,32 @@
   // 确立的规则。中国版注册表里一个 needsKey:false 都没有，所以第 2 屏对它是必经。
   const freeChannel = PROVIDERS.some((p) => p && !p.needsKey);
 
-  const providerById = (id) => PROVIDERS.find((p) => p.id === id);
-  const providerLabel = (p) => (p.labelKey ? t(p.labelKey, p.label || p.id) : (p.label || p.id));
+  // 这一页要读的键。**必须覆盖 QuickSetup.state() 判「配没配过」看的那三个**
+  // （apiKey / ttsApiKey / sttEngine）—— 原来这份清单里没有后两个，于是朗读和转写在
+  // 引导页上永远判成「没配过」，从设置页点「重看引导」再按一次一键配置，会把已配好的
+  // 音色、模型、自定义端点全部清掉，同时显示 ✓。
+  //
+  // ttsAutoPlay 也要读，而且**不许给默认值**：undefined = 从没选过，是 plan() 用来
+  // 决定要不要写 false 防止持续扣费的判据。给了默认值那道保护就没了，且测试全绿。
+  const SETTINGS_KEYS = [
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'ttsEngine', 'ttsApiKey', 'ttsBaseUrl', 'ttsModel', 'ttsMode', 'ttsAutoPlay',
+    'sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
+    'learnEnabled', 'learnRules', 'uiLang', 'targetLang',
+  ];
+
+  // 一键卡在**点下按钮那一刻**用它现读一次，而不是拿加载时的快照。
+  // 读失败必须报失败，不能回落成 {} —— 空档案会被 state() 判成「什么都没配过」，
+  // 然后照着这个判断覆盖存储。page-settings.js 的文件头用 27 行论证过同一件事。
+  const readSettings = () => (typeof PageSettings !== 'undefined'
+    ? PageSettings.read(SETTINGS_KEYS)
+    : storageGet(SETTINGS_KEYS, null).then((d) => ({ ok: !!d, data: d || {} })));
+
 
   function paint() {
     const step = OB[at];
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-quick', 'ob-engine', 'ob-engine-toggle', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
+    for (const id of ['ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
     $('ob-next').hidden = false;
@@ -99,13 +118,7 @@
       $('ob-text').textContent = freeChannel
         ? t('extob_engine_body_free', '免费通道零配置就能用。想要更好的质量，填入你自己的 API Key。')
         : t('extob_engine_body_key', '这一步躲不掉：不填 Key 就翻不出任何东西。');
-      // paintEngine 无论露不露都要跑：展开的那一刻不该看到一个空下拉。
-      paintEngine();
-      // 一键卡在，手动填就收起来（与设置页同一条裁定）；一键卡不在，它就是唯一入口。
-      const quickShown = paintQuick();
-      $('ob-engine').hidden = quickShown && !engineExpanded;
-      $('ob-engine-toggle').hidden = !quickShown || engineExpanded;
-      $('ob-engine-toggle').textContent = t('extob_engine_manual', '用别的引擎？手动填 ▾');
+      paintModes();
     } else if (step === 'capture') {
       $('ob-title').textContent = t('extob_capture_title', '要不要顺便把读过的句子记下来');
       $('ob-text').textContent = t('extob_capture_body',
@@ -138,45 +151,33 @@
     }
   }
 
-  // ── 第 2 屏：真的引擎设置 ───────────────────────────────────────────────────
-  function paintEngine() {
-    const sel = $('ob-provider');
-    if (!sel.options.length) {
-      for (const p of PROVIDERS) {
-        const o = document.createElement('option');
-        o.value = p.id; o.textContent = providerLabel(p);
-        sel.appendChild(o);
-      }
-    }
-    sel.value = settings.provider || (PROVIDERS[0] && PROVIDERS[0].id) || '';
-    $('ob-key').value = settings.apiKey || '';
-    syncKeyRow();
-    $('ob-test').textContent = t('engine_test', '测试连接');
-  }
-
-  // 「手动填」的展开是**一次性**的：展开过就一直开着。收回去会把用户刚填了一半的
-  // Key 藏起来，那比多占一屏糟得多。
-  let engineExpanded = false;
-
-  // 「一把 key 配好全部」——与设置页**同一个组件**。
+  // ── 第 2 屏：两条互斥的路 ───────────────────────────────────────────────────
   //
-  // onApply 走局部写（storageSet），**不是** options.js 的 saveAll()：这一页没有
-  // tts/stt/notes 的控件，整体覆盖式的保存会把它们全部清空。写完重画第 2 屏，
-  // 否则用户会在同一屏上同时看到「已配好 OpenRouter」和一个还写着别的引擎的下拉。
+  // 裁定（docs/interaction-spec.md）：一键配置与逐引擎配置**永不同屏**。共存时，
+  // 用户在下面改了引擎，上面那张卡显示的「已配过 / 没配过」当场变成谎话，而它下一次
+  // 被按下就会照着那份谎话覆盖存储。所以这里是两个互斥 tab，不是一个折叠。
+  //
+  // 默认「一键配置」——最短的那条路。**不持久化**：这是一次性流程里的一个瞬时选择，
+  // 不是配置。
+  let manualMode = false;
+
+  // 「一把 key 配好全部」与「三引擎分别配」都写局部 patch（storageSet），
+  // **不是** options.js 的 saveAll()：那一份是整体覆盖式的，而这一页没有
+  // notes / 音色 / 语速 的控件，覆盖会把它们全部清空。
   let quickMounted = false;
   function paintQuick() {
     const box = $('ob-quick');
-    if (!box || typeof QuickSetup === 'undefined') return;
+    if (!box || typeof QuickSetup === 'undefined') return false;
     if (!quickMounted) {
       QuickSetup.render(box, {
         t,
-        settings,
-        sub: t('extob_quick_sub',
-          '一把 key 就能同时配好翻译、朗读、转写。想用别的引擎，展开下面手动填。'),
+        readSettings,
+        sub: t('extob_quick_sub', '一把 key 就能同时配好翻译、朗读、转写。'),
         onApply: async (plan) => {
           await storageSet(plan.writes);
           Object.assign(settings, plan.writes);
-          paintEngine();
+          manualMounted = false;          // 三引擎那一页要按新值重画
+          $('ob-manual').textContent = '';
         },
       });
       quickMounted = true;
@@ -184,53 +185,46 @@
     box.hidden = !box.children.length;
     return !box.hidden;
   }
-  function syncKeyRow() {
-    const p = providerById($('ob-provider').value);
-    const needs = !p || p.needsKey !== false;
-    $('ob-key-row').hidden = !needs;
-    $('ob-engine-note').textContent = needs
-      ? t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。')
-      : t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。');
-  }
-  $('ob-engine-toggle').addEventListener('click', () => {
-    engineExpanded = true;
-    $('ob-engine').hidden = false;
-    $('ob-engine-toggle').hidden = true;
-  });
-  $('ob-provider').addEventListener('change', async () => {
-    syncKeyRow();
-    await storageSet({ provider: $('ob-provider').value });
-    settings.provider = $('ob-provider').value;
-  });
-  // input 而不是 change：change 只在失焦时触发，用户填完直接点「继续」就丢了。
-  // 这是 2026-08-30 在 options.js 上修过的同一个缺陷，不要在新代码里重犯。
-  let keyTimer = null;
-  $('ob-key').addEventListener('input', () => {
-    clearTimeout(keyTimer);
-    keyTimer = setTimeout(async () => {
-      settings.apiKey = $('ob-key').value.trim();
-      await storageSet({ apiKey: settings.apiKey });
-    }, 400);
-  });
-  $('ob-test').addEventListener('click', async () => {
-    const out = $('ob-test-out');
-    out.hidden = false;
-    out.textContent = t('toast_translating', '翻译中…');
-    try {
-      // noCache: 一个可能不发请求的「测试连接」是有害的，不是省事 —— 它会在端点其实是
-      // 坏的时候报「通了」。同 options.js:824 的理由。
-      const s = await storageGet(['targetLang', 'apiBaseUrl', 'apiModel'], {});
-      // 走共用的 EngineTest：这里原本是第六份手写实现，同一个 401 在设置页上显示
-      // 完整失败码表 + 服务端原话 + 请求地址 + 通路，在这一页只显示「✗ Load failed」。
-      const r = await EngineTest.translation({
-        provider: $('ob-provider').value, apiKey: $('ob-key').value.trim(),
-        baseUrl: s.apiBaseUrl || '', model: s.apiModel || '', targetLang: s.targetLang || 'zh-CN',
+
+  // 三引擎分别配。控件由 EngineFields 生成 —— 与设置页**同一个组件、同一套 id**，
+  // 所以两边以后是一起改的。
+  let manualMounted = false;
+  function paintManual() {
+    const box = $('ob-manual');
+    if (!box || typeof EngineFields === 'undefined') return;
+    if (manualMounted) return;
+    box.textContent = '';
+    for (const slot of ['chat', 'tts', 'stt']) {
+      EngineFields.render(box, {
+        slot,
+        t,
+        values: settings,
+        // 每改一个字段就落一次盘。**不防抖**中的那一半：输入框自己在组件里挂的是
+        // input 事件（change 只在失焦时触发，用户填完直接点「继续」就丢了）。
+        onChange: async (patch) => {
+          Object.assign(settings, patch);
+          await storageSet(patch);
+        },
       });
-      out.textContent = EngineTest.format(r, null, t);
-    } catch (e) {
-      out.textContent = EngineTest.format(null, e, t);
     }
-  });
+    manualMounted = true;
+  }
+
+  function paintModes() {
+    const quickShown = paintQuick();
+    // 一键卡渲染不出来的 flavor：没有可选的东西，就不给一个只有一边的二选一。
+    $('ob-modes').hidden = !quickShown;
+    const manual = manualMode || !quickShown;
+    if (manual) paintManual();
+    $('ob-quick').hidden = manual || !quickShown;
+    $('ob-manual').hidden = !manual;
+    $('ob-mode-quick').textContent = t('extob_mode_quick', '一键配置');
+    $('ob-mode-manual').textContent = t('extob_mode_manual', '三引擎分别配');
+    $('ob-mode-quick').setAttribute('aria-selected', String(!manual));
+    $('ob-mode-manual').setAttribute('aria-selected', String(manual));
+  }
+  $('ob-mode-quick').addEventListener('click', () => { manualMode = false; paintModes(); });
+  $('ob-mode-manual').addEventListener('click', () => { manualMode = true; paintModes(); });
 
   // ── 第 3 屏：真的采集开关 + 语言 chips ──────────────────────────────────────
   function paintCapture() {
@@ -281,9 +275,8 @@
 
   // ── 启动 ────────────────────────────────────────────────────────────────────
   (async () => {
-    const s = await storageGet(
-      ['provider', 'apiKey', 'learnEnabled', 'learnRules', 'uiLang', 'targetLang'], {});
-    settings = s || {};
+    const r = await readSettings();
+    settings = r.data || {};
     _uiLang = settings.uiLang || 'auto';
     learnRules = settings.learnRules || null;
     applyI18n();

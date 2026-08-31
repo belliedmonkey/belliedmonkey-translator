@@ -1787,10 +1787,10 @@
     "message": "Pick a translation engine"
   },
   "extob_engine_body_free": {
-    "message": "The free channel works with no setup. For better quality, add your own API key."
+    "message": "You are on the free channel right now — press Continue without filling anything and translation works. It is not a stable endpoint and will sometimes hand back the original text unchanged. For reliable translations, set up once below."
   },
   "extob_engine_body_key": {
-    "message": "There is no way around this one: without a key, nothing gets translated."
+    "message": "No way around this one: without a key nothing gets translated."
   },
   "extob_key_label": {
     "message": "API Key"
@@ -1853,7 +1853,7 @@
     "message": "Set everything up with one key"
   },
   "qs_sub": {
-    "message": "On these platforms one key configures translation, read-aloud and transcription at once. Other engines are configured in their own cards below."
+    "message": "One key on these platforms sets up translation, speech, and transcription at once. For any other engine, switch to Detailed above."
   },
   "qs_platform": {
     "message": "Platform"
@@ -1873,11 +1873,14 @@
   "qs_try_note": {
     "message": "Open a real web page and tap the floating button — the translation appears under each paragraph."
   },
-  "extob_engine_manual": {
-    "message": "Use a different engine? Set it up manually ▾"
-  },
   "extob_quick_sub": {
-    "message": "One key configures translation, speech, and transcription at once. To use a different engine, expand the manual setup below."
+    "message": "One key sets up translation, speech, and transcription at once."
+  },
+  "extob_mode_quick": {
+    "message": "One key"
+  },
+  "extob_mode_manual": {
+    "message": "Set up each engine"
   },
   "qs_key_ph": {
     "message": "Paste once — configures all three"
