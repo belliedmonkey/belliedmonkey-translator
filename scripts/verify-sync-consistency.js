@@ -421,11 +421,78 @@ async function withHost(host, fn) {
       `备份恢复失败 —— 删库前后计数不一致:\n    前: 「${countsPreWipe}」\n    后: 「${countsRestored}」`);
   });
 
+
+  // ─── 设备 D：同一台机器换账号 —— 旧账号的语料不得以新身份出网 ────────────
+  // 真机 1.7.0 build 52 实证的缺陷：本地库没有账号维度，换账号后四个计数一模一样，
+  // 而真正的损害是旧账号的语料会被 push 进新账号的云端（syncedAt 挡板只在拉取路径
+  // 盖章，本机自采的卡对它完全免疫）。
+  //
+  // 判据是 **POST 数不涨**，不是「上传了 0 张卡」：分库之后新账号本来就该同步
+  // （它有自己的空库），所以「零请求」不再是这一幕的正确判据；一个字节都不该出网的
+  // 是**旧账号那份语料**。
+  await withHost(HOSTS.ext, async ({ ev, nav, text, waitLine }) => {
+    console.log('  auth:', await ev(SEED_AUTH));
+    await nav();
+    await waitLine('同步完成');
+    await ev(`LearnReview.start().then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 300));
+    const countsOwner = await text('#counts');
+    const dbOwner = await ev(`LearnStore.currentDbName()`);
+    console.log('  D 本人: ' + countsOwner + '  库=' + dbOwner);
+    need(dbOwner === 'mt-learn', `本人应当用主库，实际 ${dbOwner}`);
+
+    // 换成另一个账号 —— 同一台设备、同一份本地语料。
+    await ev(`new Promise((r) => chrome.storage.local.set({ learnAuth: {
+      accessToken: 't-other', refreshToken: 'r-other',
+      expiresAt: Date.now() + 3600e3, email: 'other@example.org', userId: 'u-other',
+    } }, () => r(null))).then(() => (LearnAuth._reset ? LearnAuth._reset() : null)).then(() => 'switched')`);
+    // 判据取在**进入即同步之前**：新账号将要使用的那个库，此刻必须是空的。
+    // 这就是用户报的那件事的直接陈述 ——「新账号不该复用上一个账号的进度」。
+    //
+    // 这里**不**拿 POST 数当判据。假云没有 RLS，新账号会拉到旧账号的行，随后
+    // §7.4 那条「拉下来的删除意图会回声一次」就合法地把它们推回去 —— 那是假云的
+    // 形状，不是缺陷。真实后端按 user_id 隔离，回声的是它自己的行。归属不符时
+    // 「一个请求都不发」由 test/learn-sync.test.js 的九条钉住，那里没有假云的干扰。
+    const preItems = await ev(`new Promise((res) => {
+      const q = indexedDB.open('mt-learn-u-other');
+      q.onsuccess = () => {
+        const db = q.result;
+        if (!db.objectStoreNames.contains('items')) { db.close(); return res(0); }
+        const g = db.transaction('items').objectStore('items').getAll();
+        g.onsuccess = () => { const n = g.result.length; db.close(); res(n); };
+        g.onerror = () => { db.close(); res(-1); };
+      };
+      q.onerror = () => res(0);
+    })`);
+    need(preItems === 0,
+      `新账号的库在第一次同步之前就已经有 ${preItems} 条 —— 上一个账号的进度被复用了`);
+
+    await nav();
+    await new Promise((r) => setTimeout(r, 2500));
+    const dbOther = await ev(`LearnStore.currentDbName()`);
+    console.log('  D 换人后: 库=' + dbOther + '  换前该库条目=' + preItems);
+    need(dbOther === 'mt-learn-u-other',
+      `换账号后没有切库（这正是「新账号看到上一个账号的进度」的机制）：${dbOther}`);
+
+    // 换回去：原账号的语料必须原样还在。分库的全部意义就是它没被销毁。
+    await ev(SEED_AUTH);
+    await nav();
+    await waitLine('同步完成');
+    await ev(`LearnReview.start().then(() => 'ok')`);
+    await new Promise((r) => setTimeout(r, 300));
+    const dbBack = await ev(`LearnStore.currentDbName()`);
+    const countsBack = await text('#counts');
+    console.log('  D 换回来: ' + countsBack + '  库=' + dbBack);
+    need(dbBack === 'mt-learn', `换回原账号没有回到主库：${dbBack}`);
+    need(countsBack === countsOwner,
+      `换回原账号后计数变了：\n    原: 「${countsOwner}」\n    回: 「${countsBack}」`);
+  });
+
   console.log('');
   if (ok) {
     console.log('✓ 多设备同步一致性回归全部通过：未登录态 · 进入即同步 · 上传/拉取 · '
       + '两端计数逐字一致 · 收敛零新上传 · 节流穿透 · 离线可见 · online 自愈 · '
-      + '删除跨设备传播（d 行）· 规则跨设备传播（g 行）· 备份恢复（登出+删库仅靠本地备份复原）');
+      + '删除跨设备传播（d 行）· 规则跨设备传播（g 行）· 备份恢复（登出+删库仅靠本地备份复原） · 换账号（新账号的库开局为空，换回原账号计数逐字还原）');
     process.exit(0);
   }
   console.log(`✗ ${failures.length} 项失败`);
