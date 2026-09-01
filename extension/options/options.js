@@ -642,9 +642,15 @@ async function init() {
   // （引擎、Key、采集开关、语言 chips 都从 chrome.storage 现读），所以重看时
   // 显示的是用户当前的真实配置，不是一段静态回放。
   // 把已配好的 Key 显示成空白会让人以为设置丢了 —— 那比不给重看更糟。
-  $('btn-reonboard').addEventListener('click', async () => {
-    await new Promise((r) => { try { chrome.storage.local.remove(['extObSeen'], () => r()); } catch (_) { r(); } });
+  //
+  // ⚠️ window.open 必须**同步**发生在这次点击里。一旦先 await 过，用户手势就用掉了,
+  // Safari 会把随后的 window.open 当弹窗拦掉 —— 表现是「点了没反应」，控制台没有
+  // 任何东西，本地 Chrome 也测不出来（Chrome 对这条宽松）。2026-09-01 用户在真机上
+  // 报的就是这个。所以顺序是**先开页，再清标记**：两件事本来也不互相依赖，引导页
+  // 读的是活状态，extObSeen 只影响弹窗那个入口。
+  $('btn-reonboard').addEventListener('click', () => {
     try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
+    try { chrome.storage.local.remove(['extObSeen'], () => {}); } catch (_) {}
   });
 
   // ── ZIP 直装提示 ────────────────────────────────────────────────────────

@@ -384,6 +384,14 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     // 关键一条：iOS 那屏不能出现直达按钮。SFSafariApplication 是 macOS-only，
     // 在 iOS 上给一个跳不过去的按钮，比老老实实念三步更糟。
     if (o.syncEnabled) {
+      // 手机尺寸，取**下限**而不是常见值。窗口默认 1300×900，在那个高度上「按钮被内容
+      // 顶出首屏」永远不会发生 —— 而那是用户唯一会遇到它的尺寸。取 320×480 有两个理由：
+      // 它是真实机型的下限；而 App 的正文用 -apple-system-body，**跟随系统动态字号**，
+      // 把字调大一档就等于把可用高度砍掉一截 —— 无头环境复现不了那个变量，只能靠更小的
+      // 视口把余量逼出来。中文文案比英文短两行，390×640 下测出来是 610，看着「刚好够」，
+      // 而那个余量在真机上根本不存在（2026-09-01 用户截图里按钮就是没了）。
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
       const ob = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
           const $ = (id) => document.getElementById(id);
@@ -399,6 +407,16 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
                         steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
                         next: !$('ob-next').hidden,
+                        // 「首屏看不看得见能点的东西」。判据是渲染坐标：#onboard 的父级
+                        // #app 是普通 block，所以 flex 那条高度链是断的，overflow 也好
+                        // sticky 也好，都可能静默失效 —— 失效的样子就是这个数字大过视口。
+                        fold: (() => {
+                          const vis = (el) => !!(el && el.getClientRects().length);
+                          const n = $('ob-next'), t = $('ob-setup');
+                          const key = vis(n) ? n : (vis(t) ? t : null);
+                          return { vh: innerHeight,
+                            key: key ? Math.round(key.getBoundingClientRect().bottom) : null };
+                        })(),
                         // 引擎说明只在「浏览器里的两件事」那屏存在，必须当场取 ——
                         // 循环结束后再读会读到最后一屏的卡片，断言就永远空转。
                         kv0: kv.length ? kv[0].textContent : '' });
@@ -429,6 +447,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           out2.engineNote = seen.map((x) => x.kv0).filter(Boolean).join(' | ');
           return JSON.stringify(out2);
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
       const ov = JSON.parse(ob.result.value);
       const seen = ov.seen;
       // 引导进行中不能同时挂着扩展横幅 —— 那会把同一句话说两遍。
@@ -461,6 +480,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 选语言只该有一处（扩展引导的采集屏，chips 就在开关旁边）。App 引导里那一屏
       // 2026-09-01 删了：给一个还没启用的功能配过滤器，而且排在登录之前、根本没同步。
       need(ov.hasLangScreen === false, 'App 引导里又出现了选语言那一屏 —— 与扩展引导重复');
+      // ★ 每一屏的行动键都要落在首屏之内。'ext' 屏上它是 #ob-setup（那一屏没有「继续」），
+      //   而那一屏恰恰是内容最多的一屏：三张插图 + 三行步骤。2026-09-01 真机上正是它
+      //   把按钮顶出了视口，用户看到的是一屏图，没有任何能点的东西。
+      const below = seen.map((x, i) => ({ i, f: x.fold }))
+        .filter((x) => x.f && x.f.key !== null && x.f.key > x.f.vh);
+      need(below.length === 0, below.length
+        ? `第 ${below[0].i + 1} 屏的行动键在首屏之外（底边 ${below[0].f.key} > 视口 `
+          + `${below[0].f.vh}）—— 页脚没吸住，用户看到的是一屏图，没有能点的东西`
+        : '');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');

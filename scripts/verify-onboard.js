@@ -37,6 +37,10 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     cdp.listeners.push({event:'Runtime.exceptionThrown',fn:p=>errs.push('EXC '+((p.exceptionDetails.exception||{}).description||p.exceptionDetails.text))});
     cdp.listeners.push({event:'Log.entryAdded',fn:p=>{if(p.entry.level==='error'&&!/favicon/.test(p.entry.url||''))errs.push('ERR '+p.entry.text);}});
     await cdp.send('Page.enable',{},sessionId);
+    // 手机尺寸。默认窗口高得离谱，于是「按钮被内容顶出首屏」这类问题在门禁里
+    // 永远不发生 —— 而那正是用户唯一会遇到它的尺寸。390×640 比 iPhone SE 还窄矮一档。
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      {width:390,height:640,deviceScaleFactor:1,mobile:true},sessionId);
     // chrome.storage 在普通页面上不存在 —— 打桩，正是要验 storageGet 的超时兜底之外的路径
     await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:`
       window.chrome={runtime:{getURL:s=>s,id:'x',openOptionsPage(){}},
@@ -81,6 +85,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
           if(!body) return 0;
           return [...body.querySelectorAll('select,input[type=password]')]
             .filter(e=>!e.closest('#ob-quick')&&!e.closest('#ob-manual')&&e.getClientRects().length).length;})(),
+        // 「首屏能不能看见前进键」。sticky 页脚之前，第 1 屏（三张插图 + 三行字）
+        // 会把「继续」顶到 701px、视口只有 640 —— 而没人会想到往下滚一屏找前进键。
+        fold:(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+          const n=document.getElementById('ob-next'), c=document.getElementById('ob-cta');
+          const key=vis(n)?n:(vis(c)?c:null), sk=document.getElementById('ob-skip');
+          return {vh:innerHeight,
+            key:key?Math.round(key.getBoundingClientRect().bottom):null,
+            skip:vis(sk)?Math.round(sk.getBoundingClientRect().bottom):null};})(),
         capture:vis(document.getElementById('ob-capture')),
         cta:vis(document.getElementById('ob-cta')),
         done:vis(document.getElementById('ob-done'))})})()`);
@@ -114,6 +126,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     else if(first.texts !== 3) fail(`第 1 屏只有 ${first.texts} 步有文字 —— i18n 键没解出来？`);
     else if(first.arts !== 3) fail(`第 1 屏只有 ${first.arts} 步有插图 —— <template> 没克隆进去？`);
     else pass('第 1 屏：三步，各有文字与插图');
+
+    // ★ 每一屏的前进键都必须落在首屏之内。判据是**渲染出来的坐标**，不是 CSS 里
+    //   写了什么 —— sticky 会因为祖先的 overflow 静默失效，而失效的样子就是这个数字变大。
+    const below = seen.map((s,i)=>({i,f:s.fold}))
+      .filter(x=>x.f && x.f.key!==null && x.f.key > x.f.vh);
+    if(below.length) fail(`第 ${below[0].i+1} 屏的前进键在首屏之外`
+      + `（底边 ${below[0].f.key} > 视口 ${below[0].f.vh}）—— 页脚没吸住，用户看不到能点什么`);
+    else pass('每屏的前进键都在首屏之内');
 
     const leak = seen.map((s,i)=>({i,bad:[s.quick&&'一键卡',s.manual&&'三引擎',
       s.modes&&'切换标签',s.capture&&'采集'].filter(Boolean)}))

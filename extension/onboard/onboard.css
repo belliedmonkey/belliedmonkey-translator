@@ -39,10 +39,10 @@ body {
 
 /* 第 1 屏的三步。形状与 App 引导那屏同构（app/style.css 的 #ob-steps），
    变量换成本页真实存在的那几个。 */
-#ob-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+#ob-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 #ob-steps li {
   background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
-  padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5;
+  padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.45;
 }
 #ob-steps b {
   flex: none; width: 22px; height: 22px; border-radius: 999px;
@@ -51,7 +51,9 @@ body {
 }
 .ob-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 #ob-steps svg {
-  display: block; width: 100%; height: auto;
+  /* 与 app/style.css 同一条理由：固定高度、宽度按比例、居中。占满卡宽会把下面的
+     按钮顶出首屏，而插图是佐证不是主体。 */
+  display: block; height: 72px; width: auto; max-width: 100%; margin-inline: auto;
   border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
   direction: ltr;   /* 画的是浏览器界面，RTL 下不镜像 */
 }
@@ -77,6 +79,14 @@ button.secondary { background: var(--card-bg); color: var(--accent); border-colo
 button.link { background: none; color: var(--text-secondary); border: none; font-weight: 400; padding: 6px; }
 button.link:hover { color: var(--text); filter: none; }
 
-#ob-foot { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+/* 吸底。这一页第一屏有三张插图 + 三行文字，在手机宽度上「继续」会被顶到视口以外
+   （2026-09-01 实测 390×640：底边 701 > 640），而没人会想到往下滚一屏去找前进键。
+   sticky 不依赖祖先高度，内容多就从它下面滚过去。同 app/style.css 的 #ob-foot。 */
+#ob-foot {
+  display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  position: sticky; bottom: 0; z-index: 1;
+  padding-bottom: 12px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 12px);
+}
 #ob-done { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
 #ob-done h2 { margin: 0; }

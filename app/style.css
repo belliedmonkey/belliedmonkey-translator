@@ -284,17 +284,23 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #onboard { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
 #ob-bar { height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; flex: none; }
 #ob-fill { height: 100%; width: 0; background: var(--sage); border-radius: 999px; transition: width .18s ease; }
-#ob-body { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+/* min-height:0 不是可选的：flex 子项默认 min-height:auto，会被内容撑到自然高，
+   于是 overflow:auto 永远不生效、整段把 #ob-foot 顶出视口 —— 2026-09-01 真机上
+   「先把浏览器那半边打通」那屏的按钮就是这么消失的（当时误以为是插图太大）。 */
+#ob-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
 #ob-title { margin: 0; font-size: 1.35rem; line-height: 1.3; }
 #ob-text { margin: 0; color: var(--dim); line-height: 1.55; }
-#ob-steps { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+#ob-steps { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 #ob-steps li {
   background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-sm);
-  padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5;
+  padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.45;
 }
 .ob-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 #ob-steps svg {
-  display: block; width: 100%; height: auto;
+  /* 固定高度、宽度按比例、居中。原来是 width:100% —— 280×150 的画在手机上会占满
+     卡宽，三张下来光插图就 500px 以上，把「继续」顶出首屏。插图是**佐证**，
+     不是主体：它该让人一眼认出那个界面，不该把要点的按钮挤走。 */
+  display: block; height: 72px; width: auto; max-width: 100%; margin-inline: auto;
   border: 1px solid var(--line); border-radius: 10px; background: var(--field);
   direction: ltr;   /* 画的是浏览器 UI，RTL 下不镜像 */
 }
@@ -315,7 +321,16 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   border-radius: 999px; padding: 11px 18px; min-height: 44px; font: inherit; font-weight: 600;
 }
 #ob-prefs:hover { background: var(--accent-hover); }
-#ob-foot { flex: none; display: flex; flex-direction: column; gap: 6px; }
+/* 吸底。#onboard 的父级 #app 是普通 block，所以 flex:1 那条高度链在那里就断了 ——
+   给 #ob-body 写 overflow 也没用（2026-09-01 实测：按钮底边 688 > 视口 640）。
+   sticky 不依赖任何祖先的高度：内容多就在它下面滚过去，行动键始终在视口里。
+   背景与上方渐隐是必需的 —— 半透的字从按钮底下穿过去比按钮消失更糟。 */
+#ob-foot {
+  flex: none; display: flex; flex-direction: column; gap: 6px;
+  position: sticky; bottom: 0; z-index: 1;
+  padding-top: 12px; margin-top: auto;
+  background: linear-gradient(to bottom, transparent, var(--bg) 12px);
+}
 #ob-next {
   background: var(--accent); color: #fff; border: none; border-radius: 999px;
   padding: 13px 20px; min-height: 50px; font: inherit; font-size: 1.02rem; font-weight: 600;

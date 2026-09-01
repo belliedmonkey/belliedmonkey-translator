@@ -92,11 +92,14 @@
         <p id="ob-text"></p>
         <ol id="ob-steps" hidden></ol>
         <div id="ob-kv" hidden></div>
+      </div>
+      <!-- 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
+           #ob-setup 就是那一屏的前进键（docs/interaction-spec.md）——
+           一个前进键放在会被内容顶下去的地方，就是没有前进键。 -->
+      <div id="ob-foot">
         <button id="ob-prefs" type="button" hidden></button>
         <button id="ob-setup" type="button" class="secondary" hidden></button>
         <button id="ob-guide" type="button" class="secondary" hidden></button>
-      </div>
-      <div id="ob-foot">
         <button id="ob-next" type="button"></button>
         <button id="ob-skip" type="button" class="link"></button>
       </div>
