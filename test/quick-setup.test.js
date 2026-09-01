@@ -36,6 +36,44 @@ function fromDist(dir) {
   return { Q: ctx2.QuickSetup, window: ctx.window };
 }
 
+describe('QuickSetup.represents — 这份已存配置，一键卡表示得了吗', () => {
+  // 它决定设置页默认落在哪个 tab。判错的代价不对称：判成「表示得了」而其实表示不了，
+  // 用户会对着一张空卡以为自己没配过，而他此刻唯一能做的动作（粘一把新 key）会覆盖
+  // 掉现有配置。所以「没配过」和「表示不了」都必须回 null。
+  const REG = (() => {
+    const d = fromDist('dist');
+    return d ? d : null;
+  })();
+
+  test('没配过（apiKey 空）⇒ null，谈不上表示不表示', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    eq(REG.Q.represents({ provider: 'openrouter', apiKey: '' }), null, '');
+    eq(REG.Q.represents({}), null, '');
+    eq(REG.Q.represents(null), null, '');
+  });
+
+  test('用一键平台的引擎配的 ⇒ 回那个平台（设置页据此预选 + 回显 key）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    const p = REG.Q.represents({ provider: 'openrouter', apiKey: 'sk-x' });
+    ok(p && p.host === 'openrouter.ai', '应当回 openrouter.ai 那一组，实际 ' + JSON.stringify(p && p.host));
+  });
+
+  test('用不在一键清单里的引擎配的 ⇒ null（设置页要默认落在详细）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    eq(REG.Q.represents({ provider: 'deepseek', apiKey: 'sk-x' }), null,
+      'DeepSeek 不在任何一键平台里 —— 快速视图没有一个控件能显示这份配置');
+    eq(REG.Q.represents({ provider: 'custom_chat', apiKey: 'sk-x' }), null, '');
+  });
+
+  test('朗读/转写用别的平台不影响判据 —— 只看翻译那一路', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    const p = REG.Q.represents({ provider: 'openrouter', apiKey: 'sk-x',
+      ttsEngine: 'openai_speech', ttsApiKey: 'sk-other' });
+    ok(p && p.host === 'openrouter.ai',
+      '一键卡自己也允许只配其中一样，不该因为朗读用了别家就把人赶去详细页');
+  });
+});
+
 describe('QuickSetup.tryVisible — 配好之后才给出口，没配好不给', () => {
   const { Q } = load();
   const OK = { slot: 'chat', ok: true };

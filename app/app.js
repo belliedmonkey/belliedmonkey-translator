@@ -115,8 +115,16 @@
       LearnStore.getMeta('appLastSync', 0),
     ]);
     const due = LearnScheduler.dueCount(items, Date.now(), LearnScheduler.DEFAULTS);
-    // 没有额外的一次 IDB 读：stats 本来就在这儿。
-    corpusSeen = stats.total > 0;
+    // 「浏览器那半边通没通」的判据。没有额外的一次 IDB 读：这两样本来就在这儿。
+    //
+    // 原来只看「本机有卡」。那太晚了：刚登录、扩展也配好了、只是还没读过任何句子的人
+    // 会被告知去做一件他已经做完的事。**成功拉取过一次**就足够 —— 拉得动说明账号通、
+    // 同步通，而卡是从扩展那一端推上来的，所以另一端一定在。
+    //
+    // 判不了的那一半照实说清楚：扩展有没有配好翻译 key，App **看不见** ——
+    // 同步协议刻意不带 settings 也不带 keys（learning-design §8）。要精确回答那一条
+    // 得往同步里加一种新行，那是 domain design 的改动。
+    browserSideOk = stats.total > 0 || (!!currentSession && Number(lastOk) > 0);
     paintExtBanner(extState);
     $('app-counts').innerHTML = '';
     // cls = semantic hook for style.css's stat-tile colors (never color by
@@ -213,7 +221,7 @@
   // 没有 learn-collector（domain-design §9.2 —— 采集只发生在浏览器里，App 只经同步
   // 收材料），所以 App 里的任何一张卡都必然是某个扩展写的。iOS 上查不到扩展状态，
   // 但「卡片从哪来的」这个问题本身已经把答案带上了。
-  let corpusSeen = false;
+  let browserSideOk = false;
 
   function paintExtBanner(state) {
     const sec = $('ext-banner');
@@ -226,7 +234,7 @@
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
     const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-settings').hidden;
-    if (away || corpusSeen) { sec.hidden = true; return; }
+    if (away || browserSideOk) { sec.hidden = true; return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。

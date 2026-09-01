@@ -135,6 +135,20 @@ var QuickSetup = (() => {
     };
   }
 
+  // 「这份已存的配置，一键卡表示得了吗」——纯函数，给 host 决定默认落在哪个 tab。
+  //
+  // 一键卡能表示的只有一种形状：翻译引擎是某个一键平台的代表条目，且那把 key 非空。
+  // 拿 DeepSeek（不在任何一键平台里）配好的人，快速视图**没有一个控件能显示他的配置**
+  // —— 把他丢在那一页，等于让他对着一张空卡猜自己配没配过。
+  //
+  // 判据只看翻译那一路：朗读/转写用别的平台是常见且合理的（一键卡自己也允许你只配
+  // 其中一样），不该因此把人赶去详细页。
+  function represents(settings, reg) {
+    const s = settings || {};
+    if (!has(s.apiKey)) return null;                 // 没配过 ⇒ 谈不上表示不表示
+    return platforms(reg).find((p) => p.chat.id === s.provider) || null;
+  }
+
   // plan({ platform, key, settings }) → { writes, skipped, tests }
   //
   // **没有「用哪个模型」这个入参。** 一键配置写的永远是注册表默认 —— 那正是
@@ -279,6 +293,11 @@ var QuickSetup = (() => {
     if (!list.length) { box.hidden = true; return; }   // 空壳不留
     box.hidden = false;
 
+    // 已经配过的，回显出来。空着的输入框在一个**已经配好**的页面上是假话：它看起来
+    // 像「你还没配」，而用户此刻能做的唯一动作（粘一把新 key）会覆盖掉现有配置。
+    // prefill 由 host 算好传进来（组件不碰存储）。
+    const pre = opts.prefill || null;
+
     const el = (tag, cls, txt) => {
       const n = doc.createElement(tag);
       if (cls) n.className = cls;
@@ -294,7 +313,7 @@ var QuickSetup = (() => {
       '下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请在各自的卡片里单独配置。')));
 
     // 只有一项时不渲染 <select> —— 一个只有一个选项的下拉是在假装有选择。
-    let current = list[0];
+    let current = (pre && pre.host && list.find((p) => p.host === pre.host)) || list[0];
     if (list.length > 1) {
       const row = el('div', 'qs-row');
       row.append(el('label', null, t('qs_platform', '平台')));
@@ -305,6 +324,7 @@ var QuickSetup = (() => {
         o.textContent = labelOf(p.chat, t) + ' · ' + p.host;
         sel.append(o);
       });
+      sel.value = String(list.indexOf(current));
       sel.addEventListener('change', () => { current = list[Number(sel.value)] || list[0]; paintPlatform(); });
       row.append(sel); wrap.append(row);
     } else {
@@ -317,6 +337,7 @@ var QuickSetup = (() => {
     const key = doc.createElement('input');
     key.id = 'qs-key'; key.type = 'password'; key.autocomplete = 'off';
     key.placeholder = t('qs_key_ph', '粘贴一次，三样一起配好');
+    if (pre && pre.key) key.value = pre.key;
     keyRow.append(key); wrap.append(keyRow);
 
     // 「我还没有 key」是这张卡最常见的断点 —— 卡在这一步，前面省下的二十几次点击
@@ -501,7 +522,7 @@ var QuickSetup = (() => {
     }
   }
 
-  return { platforms, plan, summarize, state, consistent, render, siteUrl, tryVisible, _eligible: eligible };
+  return { platforms, plan, summarize, state, represents, consistent, render, siteUrl, tryVisible, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

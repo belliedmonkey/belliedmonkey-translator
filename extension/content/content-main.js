@@ -127,8 +127,29 @@
   // Desktop: FAB → page text; in-player 译 button → video subtitles (separate).
   // Mobile YouTube: FAB → both (no in-player button).
 
+  // 点悬浮球时如果翻译还没配好，就把人送去配，而不是让他看着一次失败。
+  //
+  // 这条判据只在**打开**的那一下生效：关闭不需要 key。送去的是扩展自己的引导页而不是
+  // 设置页 —— 引导页第 2 屏有「一键配置」，那是最短的一条路；设置页要先找到那张卡。
+  //
+  // 从内容脚本开新标签必须发生在用户手势里（Safari 的弹窗拦截），点击回调正是手势。
+  function needsSetup() {
+    try { return TranslationAPI.needsKey(cfg.provider) && !String(cfg.apiKey || '').trim(); }
+    catch (_) { return false; }   // 判不了就别拦，翻译失败还有它自己的提示
+  }
+  function openOnboarding() {
+    try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
+  }
+
   if (cfg.showFab) {
     FloatingButton.create(cfg.enabled, async (enabled) => {
+      if (enabled && needsSetup()) {
+        // 不要把按钮留在「已打开」的样子 —— 那是在说一件没发生的事。
+        FloatingButton.setEnabled(false);
+        cfg.enabled = false;
+        openOnboarding();
+        return;
+      }
       cfg.enabled = enabled;
       chrome.storage.local.set({ enabled });
       if (enabled) await WebpageTranslator.enable(cfg);

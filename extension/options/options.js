@@ -1366,6 +1366,9 @@ async function init() {
   if ($('mode-quick')) $('mode-quick').addEventListener('click', () => setDetail(false));
   if ($('mode-detail')) $('mode-detail').addEventListener('click', () => setDetail(true));
 
+  // 这份已存的配置，一键卡表示得了吗（null = 表示不了 / 还没配过）。
+  const _quickShows = (typeof QuickSetup !== 'undefined') ? QuickSetup.represents(s0) : null;
+
   // 默认「快速」，除非用户上次切到过详细。
   let _detail = false;
   try {
@@ -1379,6 +1382,9 @@ async function init() {
       // 现读而不是快照：s0 是页面加载时读的，之后永不更新。详见 quick-setup.js 里
       // 那段注释 —— 拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
       readSettings: () => PageSettings.read(SETTINGS_KEYS),
+      // 配过的回显出来。一个空输入框在已经配好的页面上是假话：它看起来像「你还没配」，
+      // 而此刻唯一能做的动作（粘一把新 key）会覆盖掉现有配置。
+      prefill: _quickShows ? { host: _quickShows.host, key: s0.apiKey } : null,
       // 读不到已存设置时不许配：往一份读不出来的档案上盖三组配置，正是
       // settings_read_failed 那句警告存在的理由。
       disabled: _settingsReadFailed,
@@ -1397,6 +1403,11 @@ async function init() {
   // 读不到已存设置时一键配置是 disabled 的，同样没有可做的事 —— 也强制展开，
   // 否则用户面对的是一张什么都点不了的页面。
   if (_settingsReadFailed) _detail = true;
+  // 已经配过、但一键卡表示不了这份配置（比如用 DeepSeek 配的，它不在任何一键平台里，
+  // 或者是从引导页的「三引擎分别配」配好的）—— 快速视图里**没有一个控件能显示他的
+  // 配置**，把他丢在那一页等于让他对着一张空卡猜自己配没配过。
+  // 这一条不写进 optDetailMode：它是「这份数据长什么样」的推论，不是用户的偏好。
+  if (!_quickShows && String(s0.apiKey || '').trim()) _detail = true;
   applyDetailMode(_detail);
 }
 

@@ -587,5 +587,12 @@ Rules:
   // 死代码不是中性的：它是一条随时会被接回去的旁路，而且它绕过的恰好是刚刚补上的
   // 那道门。真要重新做批量，必须走 callProvider。
 
-  return { translate, defaultProvider, resolveProvider, serverSays, LANG_NAMES };
+  // needsKey：这个引擎要不要 key。内容脚本要用它判断「点悬浮球会不会白点」——
+  // 判据在这里，不在调用方，因为 providerById 读的是同一份注册表生成物。
+  function needsKey(provider) {
+    const p = providerById(resolveProvider(provider));
+    return !!(p && p.needsKey);
+  }
+
+  return { translate, defaultProvider, resolveProvider, needsKey, serverSays, LANG_NAMES };
 })();
