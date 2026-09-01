@@ -105,20 +105,19 @@ function updateSetupNote(provider, apiKey, chosen) {
   }
 }
 
-// 首次运行入口。只在 extObSeen 未置位时出现，点了就开引导页。
-//
-// **故意不复用 App 的 onboardSeen 这个键名**：两边存储不通（app/chrome-shim.js 把
-// chrome.storage 垫在 file:// 的 localStorage 上），同名会让以后读代码的人以为它们
-// 是一回事，然后写出「App 看过了扩展就不用看」这种错的联动。
 // 「还没配好」时，弹窗只留一个入口。
 //
 // 未配置的人打开弹窗，看到的应该是一件事，不是六件：复习（还没有卡）、收录本站
 // （采集还没开）、目标语言（翻不出来，选给谁看）、翻译本页（点了只会失败）——
 // 这些在那个状态下不是功能，是分散注意力的噪音，而且每一个都会把人引向一次失败。
 //
-// 判据取**这一刻能不能用**，不取「有没有走过引导」：走过引导但没填 key 一样不能用，
-// 而用免费通道、没走过引导的人是能用的，不该被拦。first-run 那条绿色提示因此只在
-// 「能用但没走过引导」时出现 —— 它是邀请，不是路障。
+// 判据取**配好了没有**（content/engine-state.js），不取「有没有走过引导」——那两件事
+// 可以任意组合：按过一次「以后再设置」的人 extObSeen 已置位而一句也翻不出来；在设置页
+// 点过「重看引导」的人配得好好的却没置位。
+//
+// ⚠️ 2026-09-01 之前这里写着「用免费通道、没走过引导的人是能用的，不该被拦」。那句话
+// 随裁定作废了：出厂默认的免费引擎不再算已配好，所以全新安装的人**会**被折叠成一个
+// 入口。主动点选过免费引擎的人才不被拦（engineChosen）。
 function applyUnconfigured(blocked) {
   for (const id of ['review-section', 'site-section', 'lang-section', 'actions-section']) {
     const el = $(id);
@@ -130,6 +129,15 @@ function applyUnconfigured(blocked) {
   if (blocked) { const fr = $('first-run'); if (fr) fr.style.display = 'none'; }
 }
 
+// 首次运行入口。只在 extObSeen 未置位时出现，点了就开引导页。
+//
+// **extObSeen 是流程标记，不是配置标记** —— 它只回答「这个人看过引导页没有」。
+// 全仓只有这一处读它（test/ext-ob-seen.test.js 钉着这一条）：拿它当「配好了」的信号
+// 会立刻出错，因为任何一次「以后再设置」都会写它，而设置页的「重看引导」会删掉它。
+//
+// **故意不复用 App 的 onboardSeen 这个键名**：两边存储不通（app/chrome-shim.js 把
+// chrome.storage 垫在 file:// 的 localStorage 上），同名会让以后读代码的人以为它们
+// 是一回事，然后写出「App 看过了扩展就不用看」这种错的联动。
 function updateFirstRun(seen) {
   const el = $('first-run');
   if (!el) return;
