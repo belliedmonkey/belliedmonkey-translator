@@ -1933,5 +1933,17 @@
   },
   "opt_mode_detail": {
     "message": "詳細"
+  },
+  "options_wipe_all": {
+    "message": "清除本機全部資料"
+  },
+  "options_wipe_hint": {
+    "message": "刪除 App 不會清除這裡的資料。要徹底清乾淨，請先在這裡清除。"
+  },
+  "options_wipe_confirm": {
+    "message": "清除這台裝置上的全部資料？API Key、所有設定、已擷取的句子與複習進度都會被刪除，並會登出。此操作無法復原。\n\n已同步到雲端的內容不受影響 —— 重新登入會把它們同步回來。"
+  },
+  "toast_wipe_failed": {
+    "message": "沒有清乾淨，請再試一次"
   }
 }

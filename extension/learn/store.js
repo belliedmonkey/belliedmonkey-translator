@@ -51,6 +51,15 @@ var LearnStore = (() => {
     return dbName;
   }
 
+  // 关掉当前句柄，不改 dbName。「清除本机全部数据」必须先调它：
+  // deleteDatabase 撞上一个还开着的连接会发 blocked 事件然后**一直挂着** ——
+  // 不是错误，是永远不落定。于是清除流程会顺利走完、报「已清除」，而库还在。
+  // useDb() 上面那段注释为同一个原因存在；这里把它单独拿出来，是因为清除不换库。
+  async function closeDb() {
+    const prev = dbp; dbp = null;
+    if (prev) { try { (await prev).close(); } catch (_) { /* 已关或本来就失败 */ } }
+  }
+
   let dbp = null;
 
   function open() {
@@ -665,7 +674,7 @@ var LearnStore = (() => {
 
   return {
     MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS, MAX_DELS, DB_NAME,
-    dbNameFor, currentDbName, useDb,
+    dbNameFor, currentDbName, useDb, closeDb,
     open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,

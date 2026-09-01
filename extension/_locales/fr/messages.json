@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "Détaillé"
+  },
+  "options_wipe_all": {
+    "message": "Effacer toutes les données de cet appareil"
+  },
+  "options_wipe_hint": {
+    "message": "Supprimer l'app n'efface pas ces données. Pour tout effacer, faites-le ici d'abord."
+  },
+  "options_wipe_confirm": {
+    "message": "Effacer toutes les données de cet appareil ? Vos clés API, tous les réglages, les phrases collectées et la progression des révisions seront supprimés, et vous serez déconnecté. Action irréversible.\n\nCe qui est déjà synchronisé dans le cloud n'est pas touché — vous reconnecter le ramènera."
+  },
+  "toast_wipe_failed": {
+    "message": "Effacement incomplet — réessayez"
   }
 }

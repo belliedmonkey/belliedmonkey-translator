@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "All settings"
+  },
+  "options_wipe_all": {
+    "message": "Erase all data on this device"
+  },
+  "options_wipe_hint": {
+    "message": "Deleting the app does not erase this data. To wipe it for good, erase it here first."
+  },
+  "options_wipe_confirm": {
+    "message": "Erase all data on this device? Your API keys, all settings, every captured sentence and all review progress will be deleted, and you will be signed out. This cannot be undone.\n\nAnything already synced to the cloud is unaffected — signing back in will bring it back."
+  },
+  "toast_wipe_failed": {
+    "message": "Not fully erased — please try again"
   }
 }

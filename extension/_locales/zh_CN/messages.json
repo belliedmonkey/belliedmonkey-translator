@@ -1933,5 +1933,17 @@
   },
   "opt_mode_detail": {
     "message": "详细"
+  },
+  "options_wipe_all": {
+    "message": "清除本机全部数据"
+  },
+  "options_wipe_hint": {
+    "message": "删除 App 不会清除这里的数据。要彻底清干净，先在这里清除。"
+  },
+  "options_wipe_confirm": {
+    "message": "清除这台设备上的全部数据？API Key、全部设置、已采集的句子与复习进度都会被删除，并会退出登录。此操作无法撤销。\n\n已同步到云端的内容不受影响 —— 重新登录会把它们同步回来。"
+  },
+  "toast_wipe_failed": {
+    "message": "没有清干净，请再试一次"
   }
 }

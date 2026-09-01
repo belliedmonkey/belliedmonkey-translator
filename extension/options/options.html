@@ -386,6 +386,12 @@
              引导里说更新对第 0 天的用户是噪音。 -->
         <p id="unpacked-note" class="warn" hidden></p>
         <button id="btn-reonboard" type="button" class="secondary" data-i18n="extob_reonboard">重看开始使用引导</button>
+        <!-- 删 App 不会带走扩展这边的数据（iOS 把扩展的存储容器留下了），所以
+             「重装一次就干净了」是假的 —— 用户 2026-09-01 实测：删了 App 重装，
+             API Key 还在。iOS 又没有卸载钩子，系统删 App 时不给应用任何回调，
+             也不允许在删除流程里弹自己的界面。所以这个选择只能提前到这里。 -->
+        <p id="wipe-hint" class="note" data-i18n="options_wipe_hint">删除 App 不会清除这里的数据。要彻底清干净，先在这里清除。</p>
+        <button id="btn-wipe-all" type="button" class="btn-danger" data-i18n="options_wipe_all">清除本机全部数据</button>
       </section>
     </main>
 

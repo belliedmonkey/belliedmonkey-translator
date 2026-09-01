@@ -73,6 +73,12 @@ npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — man
                          # learn/store.js's DB_VERSION changes. It is the only change that touches
                          # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
                          # vm harness). See docs/verification-spec.md §3.1.2
+npm run test:wipe        # 「清除本机全部数据」真的清干净了吗（real Chrome, Node ≥22）——
+                         # 改 options 的清除路径、learn/store.js 的库命名或 chrome.storage
+                         # 键面时必跑。种两个学习库（mt-learn + mt-learn-<uid>，**并故意开着
+                         # 一个连接**）+ API Key + 翻译缓存，点清除，然后**回读**。
+                         # 判据必须是回读：deleteDatabase 撞上未关闭的连接会发 blocked 然后
+                         # 永远不落定 —— 不报错，界面照样说「已清除」，而库原封不动。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified

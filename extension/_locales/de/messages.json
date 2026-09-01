@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "Alle Einstellungen"
+  },
+  "options_wipe_all": {
+    "message": "Alle Daten auf diesem Gerät löschen"
+  },
+  "options_wipe_hint": {
+    "message": "Das Löschen der App entfernt diese Daten nicht. Zum vollständigen Löschen zuerst hier löschen."
+  },
+  "options_wipe_confirm": {
+    "message": "Alle Daten auf diesem Gerät löschen? API-Schlüssel, sämtliche Einstellungen, alle erfassten Sätze und der Lernfortschritt werden gelöscht, und Sie werden abgemeldet. Das lässt sich nicht rückgängig machen.\n\nBereits in die Cloud synchronisierte Inhalte bleiben unberührt — bei erneuter Anmeldung kommen sie zurück."
+  },
+  "toast_wipe_failed": {
+    "message": "Nicht vollständig gelöscht — bitte erneut versuchen"
   }
 }

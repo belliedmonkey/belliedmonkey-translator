@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "세부 설정"
+  },
+  "options_wipe_all": {
+    "message": "이 기기의 모든 데이터 지우기"
+  },
+  "options_wipe_hint": {
+    "message": "앱을 삭제해도 여기 데이터는 지워지지 않습니다. 완전히 지우려면 여기서 먼저 지우세요."
+  },
+  "options_wipe_confirm": {
+    "message": "이 기기의 모든 데이터를 지울까요? API 키, 모든 설정, 수집한 문장과 복습 진행 상황이 삭제되고 로그아웃됩니다. 되돌릴 수 없습니다.\n\n클라우드에 동기화된 내용은 영향을 받지 않습니다 — 다시 로그인하면 돌아옵니다."
+  },
+  "toast_wipe_failed": {
+    "message": "완전히 지워지지 않았습니다. 다시 시도하세요"
   }
 }

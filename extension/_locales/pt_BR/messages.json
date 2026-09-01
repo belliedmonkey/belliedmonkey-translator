@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "Detalhado"
+  },
+  "options_wipe_all": {
+    "message": "Apagar todos os dados deste dispositivo"
+  },
+  "options_wipe_hint": {
+    "message": "Excluir o app não apaga estes dados. Para limpar de vez, apague aqui primeiro."
+  },
+  "options_wipe_confirm": {
+    "message": "Apagar todos os dados deste dispositivo? Suas chaves de API, todas as configurações, as frases coletadas e o progresso de revisão serão excluídos, e você sairá da conta. Não é possível desfazer.\n\nO que já foi sincronizado na nuvem não é afetado — entrar novamente traz tudo de volta."
+  },
+  "toast_wipe_failed": {
+    "message": "Não foi tudo apagado — tente de novo"
   }
 }

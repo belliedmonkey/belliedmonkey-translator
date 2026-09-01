@@ -648,6 +648,78 @@ async function init() {
   // 任何东西，本地 Chrome 也测不出来（Chrome 对这条宽松）。2026-09-01 用户在真机上
   // 报的就是这个。所以顺序是**先开页，再清标记**：两件事本来也不互相依赖，引导页
   // 读的是活状态，extObSeen 只影响弹窗那个入口。
+  // ── 清除本机全部数据 ────────────────────────────────────────────────────
+  // 「所有数据」散在四处，少清一处就是没清：
+  //   1. chrome.storage.local —— 设置、四个 API Key、翻译缓存 tr:*、登录会话，
+  //      以及 LearnBackup 的本地备份（它也存在这里，见 learn/backup.js）
+  //   2. mt-learn* 那组 IndexedDB —— **按账号分库**，不止当前那一个
+  //   3. 登录态本身 —— 不登出的话，缓存的 session 会在下一次打开时把语料同步回来，
+  //      用户看到的是「清了又长回来」
+  //   4. 学习库的活句柄 —— 不关掉，deleteDatabase 会 blocked 然后永远挂着
+  //
+  // 判据是**回读**，不是「没报错」：清完重新列一遍库、重新读一遍 storage，
+  // 都空了才敢跳走。这条路上「成功」太容易是假的（deleteDatabase 的 blocked
+  // 不抛异常、Safari 的 storage 回调可能根本不落地）。
+  async function wipeEverything() {
+    try { await LearnAuth.signOut(); } catch (_) { /* 没登录 / 网络不通都不该挡住清除 */ }
+    try { await LearnStore.closeDb(); } catch (_) {}
+    await deleteLearnDbs();
+    await new Promise((r) => {
+      let done = false;
+      const fin = () => { if (!done) { done = true; r(); } };
+      // Safari 上 storage 回调不落地是有先例的（见 learn/page-settings.js），
+      // 而一个不落地的回调会把整个清除流程钉死在这一行。
+      setTimeout(fin, 3000);
+      try { chrome.storage.local.clear(fin); } catch (_) { fin(); }
+    });
+    // 回读。
+    const left = await new Promise((r) => {
+      setTimeout(() => r(null), 3000);
+      try { chrome.storage.local.get(null, (o) => r(o || {})); } catch (_) { r(null); }
+    });
+    const dbs = await learnDbNames();
+    return { storageLeft: left ? Object.keys(left).length : -1, dbsLeft: dbs.length };
+  }
+
+  // indexedDB.databases() 在 Safari 14+ 有；没有时退回「只删当前这个」——
+  // 那不完整，所以下面的回读也读不到别的库，会照实说没清干净。
+  async function learnDbNames() {
+    try {
+      if (indexedDB.databases) {
+        const l = await indexedDB.databases();
+        return (l || []).map((d) => d && d.name).filter((n) => n && /^mt-learn/.test(n));
+      }
+    } catch (_) {}
+    const cur = LearnStore.currentDbName ? LearnStore.currentDbName() : LearnStore.DB_NAME;
+    return cur ? [cur] : [];
+  }
+
+  async function deleteLearnDbs() {
+    const names = await learnDbNames();
+    await Promise.all(names.map((n) => new Promise((r) => {
+      // blocked 不结束请求 —— 它只是在说「还有人开着」。给个上限，然后靠回读定胜负。
+      setTimeout(r, 4000);
+      let req;
+      try { req = indexedDB.deleteDatabase(n); } catch (_) { r(); return; }
+      req.onsuccess = r; req.onerror = r;
+    })));
+  }
+
+  $('btn-wipe-all').addEventListener('click', busy($('btn-wipe-all'), async () => {
+    // 兜底串必须整条写在 t() 的第二个参数上，不能用 + 拆行：拆了之后第二段的中文
+    // 就不在兜底位上，零硬编码文案那道门禁会红（它是对的 —— 那正是漏译的形状）。
+    if (!window.confirm(t('options_wipe_confirm', '清除这台设备上的全部数据？API Key、全部设置、已采集的句子与复习进度都会被删除，并会退出登录。此操作无法撤销。\n\n已同步到云端的内容不受影响 —— 重新登录会把它们同步回来。'))) return;
+    const r = await wipeEverything().catch(() => ({ storageLeft: -1, dbsLeft: -1 }));
+    if (r.storageLeft !== 0 || r.dbsLeft !== 0) {
+      // 说实话。半清干净了却报「已清除」，比什么都不做更糟 —— 用户会拿着一台
+      // 他以为干净的设备去卖掉。
+      showToast(t('toast_wipe_failed', '没有清干净，请再试一次'), 5000);
+      return;
+    }
+    // location 导航不受用户手势限制（不同于 window.open），这里不需要提前调。
+    location.replace(chrome.runtime.getURL('onboard/onboard.html'));
+  }));
+
   $('btn-reonboard').addEventListener('click', () => {
     try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
     try { chrome.storage.local.remove(['extObSeen'], () => {}); } catch (_) {}

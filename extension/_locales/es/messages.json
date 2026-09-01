@@ -1932,5 +1932,17 @@
   },
   "opt_mode_detail": {
     "message": "Detallado"
+  },
+  "options_wipe_all": {
+    "message": "Borrar todos los datos de este dispositivo"
+  },
+  "options_wipe_hint": {
+    "message": "Eliminar la app no borra estos datos. Para borrarlos del todo, hazlo aquí primero."
+  },
+  "options_wipe_confirm": {
+    "message": "¿Borrar todos los datos de este dispositivo? Se eliminarán tus claves de API, todos los ajustes, las frases recopiladas y el progreso de repaso, y se cerrará tu sesión. No se puede deshacer.\n\nLo ya sincronizado en la nube no se ve afectado: al volver a iniciar sesión regresará."
+  },
+  "toast_wipe_failed": {
+    "message": "No se borró del todo: inténtalo de nuevo"
   }
 }
