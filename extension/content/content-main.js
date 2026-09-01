@@ -98,8 +98,15 @@
     // 而在这之前，全仓只有复习页和设置页两个入口级触发点 —— 只翻译、不开那两页的人，
     // 服务器上永远是空的，App 里就永远没卡。
     //
-    // 中国版站点（.com）不发这个容器：那个 flavor 的扩展 sync 是关的，给了就是死路。
-    try { paintSiteHandoff(cfg.learnEnabled); } catch (_) {}
+    // 同步没编进这个构建时**整块不出现**。这一块说的是「登录之后卡片才到 App」，
+    // 而中国版扩展的登录入口是被整节 remove 掉的（options.js 的 !MT_BACKEND.enabled
+    // 分支）—— 对那个构建，这句话是死路。判据按**值**不按 flavor 名：
+    // window.MT_SYNC_ENABLED 由 build.js 从 backend.config.js 的 enabled 读出来发进
+    // providers.gen.js（内容脚本不加载 backend.config.js —— 那个文件带着后端地址与
+    // anon key，而内容脚本注入到每一个页面）。
+    try {
+      if (window.MT_SYNC_ENABLED) paintSiteHandoff(cfg.learnEnabled);
+    } catch (_) {}
   }
 
   function paintSiteHandoff(learnOn) {

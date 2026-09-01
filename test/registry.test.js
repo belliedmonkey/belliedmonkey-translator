@@ -320,3 +320,49 @@ describe('默认引擎属于自己的 flavor', () => {
       `china 的默认引擎被改写成 '${r[1]}'，但它不在 china 注册表里（${ids.join(', ')}）`);
   });
 });
+
+// ── MT_SYNC_ENABLED：交接块的开关，必须与 backend.config.js 的 enabled 一致 ──────
+//
+// 官网试翻页上那个「登录之后卡片才到 App」的块，靠这个布尔值决定出不出现。
+// 中国版扩展的登录入口是被整节 remove 掉的，对那个构建这句话是死路。
+//
+// 这条门禁存在是因为第一版实现取错了值：判据写成 /enabled:\\s*true/，把文件里
+// 一句**注释**（"enabled:true, sign-in included"）也算了进去，于是中国版产物里
+// 它是 true。产物是二进制事实，比读源码更难骗 —— 所以这里读产物。
+describe('MT_SYNC_ENABLED 与 backend.config.js 一致', () => {
+  const fs2 = require('fs');
+  const path2 = require('path');
+  const ROOT2 = path2.join(__dirname, '..');
+  const read = (p) => (fs2.existsSync(p) ? fs2.readFileSync(p, 'utf8') : null);
+  const flagOf = (gen) => {
+    const m = gen && gen.match(/window\.MT_SYNC_ENABLED = (true|false);/);
+    return m ? m[1] === 'true' : null;
+  };
+  // 源码里那一行**声明**（不是注释）说的是什么。
+  const declared = (cfg) => {
+    const on = (cfg.match(/^\s*enabled:\s*true,/gm) || []).length;
+    const off = (cfg.match(/^\s*enabled:\s*false,/gm) || []).length;
+    eq(on + off, 1, 'backend.config.js 里 enabled 声明不是恰好一处');
+    return on === 1;
+  };
+
+  for (const [name, dist] of [['global', 'dist'], ['china', 'dist-china']]) {
+    test(`${name} 产物里的 MT_SYNC_ENABLED 与它自己的 backend.config.js 相符`, () => {
+      const gen = read(path2.join(ROOT2, dist, 'content/providers.gen.js'));
+      const cfg = read(path2.join(ROOT2, dist, 'learn/backend.config.js'));
+      if (!gen || !cfg) { ok(true, `跳过：${dist}/ 还没构建`); return; }
+      const want = declared(cfg);
+      const got = flagOf(gen);
+      ok(got !== null, `${dist}/content/providers.gen.js 里没有 MT_SYNC_ENABLED`);
+      eq(got, want, `${dist}: providers.gen.js 说 ${got}，backend.config.js 声明的是 ${want}`
+        + ' —— 取值取错了（第一版就是被一句注释骗过去的）');
+    });
+  }
+
+  test('两个 flavor 的取值不同 —— 相同就说明判据根本没在读那个文件', () => {
+    const g = flagOf(read(path2.join(ROOT2, 'dist/content/providers.gen.js')));
+    const c = flagOf(read(path2.join(ROOT2, 'dist-china/content/providers.gen.js')));
+    if (g === null || c === null) { ok(true, '跳过：两个 flavor 没有都构建'); return; }
+    ok(g !== c, `两个产物里都是 ${g} —— 判据没有真的在读 backend.config.js`);
+  });
+});

@@ -107,7 +107,7 @@ ${nav}  <section style="padding-top:40px;max-width:720px">
 
     <!-- 没检测到扩展时才显示。默认**显示**：这一页的全部意义建立在扩展在场，
          默认藏起来会让一个没装扩展的人对着一段外语点一个不存在的悬浮球。 -->
-    <p id="try-wait" class="sub"${site.i18n ? ' data-i18n="try.wait"' : ''}>${esc(zh ? waitZh : waitEn)}</p>
+    <p id="try-wait" class="sub" style="margin-top:18px"${site.i18n ? ' data-i18n="try.wait"' : ''}>${esc(zh ? waitZh : waitEn)}</p>
     <p id="try-wait-cta"><a class="btn" href="/setup.html"${site.i18n ? ' data-i18n="try.waitCta"' : ''}>${esc(zh ? waitCtaZh : waitCtaEn)}</a></p>
 
     <!-- 示例段落。**故意不挂 data-i18n** —— 它是给人翻的外语，翻译它就毁了这一页。
