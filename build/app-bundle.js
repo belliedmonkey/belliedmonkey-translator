@@ -45,6 +45,13 @@ const MODULES = [
   'extension/content/providers.gen.js',  // generated provider registry — the notes
                                          // gate and the app's engine picker both
                                          // read it (§7.2 / §9.2)
+  'extension/content/engine-state.js',   // EngineState — provider 归一化 + 「配好了没有」。
+                                         // translation-api.js 的 providerById /
+                                         // defaultProvider / resolveProvider 全部转调它，
+                                         // 所以它**必须**跟着进 App 包。2026-09-01 漏了这一行：
+                                         // App 里每次补译文都抛 `EngineState is not defined`，
+                                         // 被 driving.js 收成一句 translate_failed —— 整条
+                                         // 补译文在 App 上是死的，而扩展那边一切正常。
   'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape.
                                          // After providers.gen.js only for readability;
                                          // it reads its globals lazily, at call time.
