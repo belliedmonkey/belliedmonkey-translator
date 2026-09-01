@@ -3,7 +3,7 @@
 // Provider list is the build-time registry (window.MT_PROVIDERS, generated per
 // flavor from build/providers.config.js).
 const PROVIDERS = (window.MT_PROVIDERS || []);
-const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
+const providerById = (id) => EngineState.byId(id);
 
 const $ = id => document.getElementById(id);
 
@@ -84,8 +84,11 @@ async function saveSettings(patch) {
 function updateSetupNote(provider, apiKey) {
   const el = $('setup-note');
   if (!el) return;
-  const p = providerById(provider) || {};
-  const needsKey = !!p.needsKey;
+  // 判据取自 content/engine-state.js —— 它会**先归一化 provider**。原来这里用的是
+  // `providerById(...) || {}`：一个注册表不认识的 id 会让 needsKey 变成 undefined，
+  // 于是弹窗说「免费通道，一切正常」，而同一台设备上的悬浮球判成未配置。
+  const s0 = { provider, apiKey };
+  const needsKey = !EngineState.freeChannel(s0);
   const hasKey = !!(apiKey || '').trim();
   // 弹窗不再提供配置控件，所以这条提示的职责从「说明」变成**引导**：整条可点，
   // 点开设置页。interaction-spec 要求 setup note 同时出现在弹窗与设置页两处，
@@ -230,8 +233,7 @@ async function init() {
   updateSetupNote(s.provider, s.apiKey);
   updateFirstRun(s.extObSeen);
   // 顺序要紧：先让两条提示各自决定显不显示，再由这一步把其余的收起来。
-  const _p = providerById(s.provider) || {};
-  applyUnconfigured(!!_p.needsKey && !(s.apiKey || '').trim());
+  applyUnconfigured(EngineState.needsSetup(s));
 
   // Reflect the CURRENT page's translation state (not a stored default).
   const pageStatus = await sendToPage('getPageStatus');

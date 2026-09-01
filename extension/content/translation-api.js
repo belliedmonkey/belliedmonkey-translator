@@ -361,10 +361,10 @@ Rules:
   // request FORMAT, not by vendor: 'chat-compat' = the Chat Completions request
   // shape; 'messages-compat' = the Messages request shape. Brand-free on purpose so
   // a China build carries no vendor brand strings (App Store Guideline 5).
-  function providerById(id) {
-    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
-    return list.find((p) => p.id === id) || null;
-  }
+  // 三个 helper 现在都转调 content/engine-state.js —— 归一化只剩一份实现。
+  // 原因见那个文件的文件头：归一化与否在一个注册表不认识的 id 上会给出**相反**的结论，
+  // 而扩展里曾经有四份各自为政的判据。
+  const providerById = (id) => EngineState.byId(id);
 
   // 「本次构建的默认引擎」只有一个来源:注册表的第一条。
   //
@@ -373,17 +373,12 @@ Rules:
   // ['global'] —— 中国版里那个 id 根本不存在。每一份拷贝都是一个不再跟着注册表走的
   // 消费者,这正是 §7 那条「注册表之外永不复述」要防的东西。popup/options 早就是
   // 从注册表取的,内容层漏了。
-  function defaultProvider() {
-    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
-    return (list[0] && list[0].id) || '';
-  }
+  const defaultProvider = () => EngineState.defaultId();
 
   // 存储里的 id 本次构建不认识 ⇒ 回落到默认。**返回值与入参不同就是「需要自愈」的信号**,
   // 调用方据此把存储改正,免得设置页显示的和运行时用的不是一回事(下拉里没有那一项时
   // 浏览器会强制显示成第一项,而存储原样不动 —— 界面写着 A、实际发的是 B)。
-  function resolveProvider(id) {
-    return providerById(id) ? id : defaultProvider();
-  }
+  const resolveProvider = (id) => EngineState.resolve(id);
 
   // The endpoint is used EXACTLY as stored — no path is appended, ever, under any
   // condition. See content/wire-format.js.
@@ -589,10 +584,7 @@ Rules:
 
   // needsKey：这个引擎要不要 key。内容脚本要用它判断「点悬浮球会不会白点」——
   // 判据在这里，不在调用方，因为 providerById 读的是同一份注册表生成物。
-  function needsKey(provider) {
-    const p = providerById(resolveProvider(provider));
-    return !!(p && p.needsKey);
-  }
+  const needsKey = (provider) => !!(EngineState.entry({ provider }) || {}).needsKey;
 
   return { translate, defaultProvider, resolveProvider, needsKey, serverSays, LANG_NAMES };
 })();

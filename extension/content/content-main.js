@@ -133,10 +133,9 @@
   // 设置页 —— 引导页第 2 屏有「一键配置」，那是最短的一条路；设置页要先找到那张卡。
   //
   // 从内容脚本开新标签必须发生在用户手势里（Safari 的弹窗拦截），点击回调正是手势。
-  function needsSetup() {
-    try { return TranslationAPI.needsKey(cfg.provider) && !String(cfg.apiKey || '').trim(); }
-    catch (_) { return false; }   // 判不了就别拦，翻译失败还有它自己的提示
-  }
+  // 判据只有一份：content/engine-state.js。判不了就别拦 —— 翻译失败还有具名提示，
+  // 被拦住则什么都不会发生。
+  const needsSetup = () => { try { return EngineState.needsSetup(cfg); } catch (_) { return false; } };
   function openOnboarding() {
     try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
   }

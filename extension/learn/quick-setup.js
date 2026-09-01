@@ -146,7 +146,11 @@ var QuickSetup = (() => {
   function represents(settings, reg) {
     const s = settings || {};
     if (!has(s.apiKey)) return null;                 // 没配过 ⇒ 谈不上表示不表示
-    return platforms(reg).find((p) => p.chat.id === s.provider) || null;
+    // 归一化之后再比：存值跨 flavor 时，同一页在别处早就迁移过了（options.js 的
+    // `providerById(s.provider) ? s.provider : defaultProviderId()`），这里读迁移前的
+    // 原值，会把一个 key 有效、引擎也有效的人推到「详细」去。
+    const id = (typeof EngineState !== 'undefined') ? EngineState.resolve(s.provider) : s.provider;
+    return platforms(reg).find((p) => p.chat.id === id) || null;
   }
 
   // plan({ platform, key, settings }) → { writes, skipped, tests }

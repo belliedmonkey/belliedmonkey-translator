@@ -3,8 +3,11 @@
 // Provider list is the build-time registry (window.MT_PROVIDERS, generated per
 // flavor from build/providers.config.js). No hardcoded provider list here.
 const PROVIDERS = (window.MT_PROVIDERS || []);
-const providerById = (id) => PROVIDERS.find((p) => p.id === id) || null;
-const defaultProviderId = () => (PROVIDERS[0] && PROVIDERS[0].id) || 'google';
+// 归一化只有一份实现：content/engine-state.js。原来这里的 defaultProviderId 还硬写着
+// `|| 'google'` 兜底 —— 那是注册表规则禁止的第五份副本，而且对中国版是错的：
+// google 的 flavors 是 ['global']，那个 id 在中国版注册表里根本不存在。
+const providerById = (id) => EngineState.byId(id);
+const defaultProviderId = () => EngineState.defaultId();
 
 
 
@@ -120,8 +123,8 @@ function updateSetupNote(provider, apiKey) {
   // A storage failure outranks onboarding advice: telling someone to fill in a key
   // while we cannot read the one they already saved is worse than saying nothing.
   if (_settingsReadFailed) return;
-  const p = providerById(provider) || {};
-  const needsKey = !!p.needsKey;
+  // 与弹窗、悬浮球同一个判据（content/engine-state.js），先归一化 provider。
+  const needsKey = !EngineState.freeChannel({ provider, apiKey });
   const hasKey = !!(apiKey || '').trim();
   if (needsKey && !hasKey) {
     el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');

@@ -24,7 +24,7 @@ function loadAPI(program, chromeOpts = {}, flavor) {
   const fetch = makeFetch(program);
   const window = loadRegistry();
   if (flavor) window.MT_FLAVOR = flavor;
-  const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+  const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
     { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
   return { API: ctx.TranslationAPI, fetch, chrome };
 }
@@ -80,7 +80,7 @@ describe('TranslationAPI — guards & Google', () => {
   // 「取注册表第一条」和「硬写 'google'」返回同一个值，测试永远绿——写完第一版就是
   // 这样，掰断源码它照样过。所以这里注入一份构造的注册表：只有它能分辨两种实现。
   function loadAPIWithRegistry(providers) {
-    const ctx = loadModule(['request-shape.js', 'translation-api.js'], {
+    const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'], {
       fetch: makeFetch([]), chrome: makeChrome({}), AbortController, URLSearchParams,
       window: { MT_PROVIDERS: providers }, WireFormat,
     });
@@ -485,7 +485,7 @@ describe('TranslationAPI — a storage callback that hands back undefined (Safar
     };
     const window = loadRegistry();   // same registry as loadAPI, or we'd hit the
                                      // google branch instead of the code under test
-    const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+    const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
     { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
     return { API: ctx.TranslationAPI, fetch };
   }
@@ -513,7 +513,7 @@ describe('TranslationAPI — a storage callback that hands back undefined (Safar
       },
     };
     const window = loadRegistry();
-    const ctx = loadModule(['request-shape.js', 'translation-api.js'],
+    const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
     { fetch, chrome, AbortController, URLSearchParams, window, WireFormat });
     return { API: ctx.TranslationAPI, fetch, RS: ctx.RequestShape };
   }
