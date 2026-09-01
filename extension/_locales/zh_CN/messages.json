@@ -336,9 +336,6 @@
   "popup_need_setup": {
     "message": "还没配好翻译引擎 —— 点这里去设置页，一把 key 就能配好。"
   },
-  "setup_free_channel": {
-    "message": "当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。"
-  },
   "learn_title": {
     "message": "复习"
   },
@@ -1748,9 +1745,6 @@
   "ob_kv_engine": {
     "message": "填一把翻译引擎的 Key"
   },
-  "ob_kv_engine_note": {
-    "message": "扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。"
-  },
   "ob_kv_capture": {
     "message": "打开「采集学习材料」"
   },
@@ -1786,9 +1780,6 @@
   },
   "extob_engine_title": {
     "message": "选一个翻译引擎"
-  },
-  "extob_engine_body_free": {
-    "message": "现在用的是免费通道，什么都不填、直接点「继续」就能开始翻译 —— 它不太稳，偶尔会把原文原样还给你。想要稳定的译文，用下面任一种方式配一次。"
   },
   "extob_engine_body_key": {
     "message": "这一步躲不掉：不填 key 就一个字也翻不出来。"

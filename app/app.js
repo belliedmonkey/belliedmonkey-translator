@@ -381,12 +381,11 @@
       // 一个 needsKey:false 的引擎都没有（global 只有 google，而 google 是
       // global-only）。按注册表实际内容判定，不写死、也不按 flavor 名判断：
       // 单一注册表规则，且哪天注册表变了这里自动跟着变。
-      const freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
+      // 不再按「注册表里有没有免费条目」分支。2026-09-01 裁定：决策不为免费通道开特例，
+      // 第一优先级是一键配置 —— 说「没有 Key 也能先用」正是在劝人别配。
       obKv([
         [t('ob_kv_engine', '填一把翻译引擎的 Key'),
-          freeChannel
-            ? t('ob_kv_engine_note', '扩展设置 → 翻译引擎。没有 Key 也能先用免费通道看看效果。')
-            : t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
+          t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
         [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
       ]);
       // 这一屏原本是死胡同：它说「这两个开关在扩展自己的设置页里」，却没说怎么到

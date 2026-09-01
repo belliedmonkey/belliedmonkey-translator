@@ -12,7 +12,7 @@
   // translation cache and the `lq:` learning outbox, and pulling the whole bucket on
   // every page load would drag both along. (docs/learning-design.md §7.)
   const SETTINGS_KEYS = [
-    'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
     'learnEnabled', 'learnDailyNew', 'learnRules',
   ];
@@ -43,6 +43,8 @@
     // 默认引擎来自注册表，不再硬写（见 translation-api.js 的 defaultProvider）。
     provider: TranslationAPI.resolveProvider(settings.provider),
     apiKey: settings.apiKey || '',
+    // 「用户主动点选过引擎」——出厂默认不算。悬浮球的判据要读它，见 engine-state.js。
+    engineChosen: !!settings.engineChosen,
     apiBaseUrl: settings.apiBaseUrl || '',
     apiModel: settings.apiModel || '',
     textColor: settings.textColor || window.MT_PALETTE.textColor,

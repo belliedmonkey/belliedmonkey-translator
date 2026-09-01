@@ -336,9 +336,6 @@
   "popup_need_setup": {
     "message": "Die Übersetzung ist noch nicht eingerichtet – tippe hier für die Einstellungen; ein Schlüssel genügt."
   },
-  "setup_free_channel": {
-    "message": "Du nutzt die kostenlose Engine ohne Schlüssel — für einen ersten Eindruck in Ordnung. Dieser Endpunkt ist nicht stabil: Er gibt gelegentlich deinen Originaltext unverändert zurück. Eine LLM-Engine mit deinem eigenen Schlüssel ist deutlich zuverlässiger und besser."
-  },
   "learn_title": {
     "message": "Wiederholen"
   },
@@ -1747,9 +1744,6 @@
   "ob_kv_engine": {
     "message": "Trage einen Übersetzungs-API-Schlüssel ein"
   },
-  "ob_kv_engine_note": {
-    "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Du kannst auch ohne Schlüssel mit dem kostenlosen Kanal starten."
-  },
   "ob_kv_capture": {
     "message": "Schalte das Sammeln ein"
   },
@@ -1785,9 +1779,6 @@
   },
   "extob_engine_title": {
     "message": "Wähle eine Übersetzungs-Engine"
-  },
-  "extob_engine_body_free": {
-    "message": "Sie nutzen gerade den kostenlosen Kanal — einfach auf Weiter tippen, ohne etwas auszufüllen. Er ist nicht stabil und gibt manchmal den Originaltext zurück. Für zuverlässige Übersetzungen richten Sie unten einmal etwas ein."
   },
   "extob_engine_body_key": {
     "message": "An diesem Schritt führt kein Weg vorbei: ohne Schlüssel wird nichts übersetzt."

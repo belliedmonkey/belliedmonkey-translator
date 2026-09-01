@@ -20,44 +20,49 @@ function withRegistry(providers) {
 const KEYED = { id: 'deepseek', needsKey: true };
 const FREE = { id: 'google', needsKey: false };
 
-describe('EngineState — 先归一化，再判', () => {
+describe('EngineState — 先归一化，再判；免费通道不再享特例', () => {
   test('注册表不认识的 id ⇒ 落到第一条，而不是当成「没有 needsKey」', () => {
     const E = withRegistry([KEYED, FREE]);
     eq(E.resolve('google'), 'google', '认识的原样返回');
     eq(E.resolve('nope'), 'deepseek', '不认识的落到注册表第一条');
-    ok(E.needsSetup({ provider: 'nope', apiKey: '' }),
-      '这正是中国版带着遗留 google 的场景：不归一化就会说「一切正常」');
+  });
+
+  test('★ 全新安装（出厂默认是免费引擎、没配过 key）⇒ 判成没配好', () => {
+    const E = withRegistry([FREE, KEYED]);
+    ok(E.needsSetup({ provider: 'google', apiKey: '' }),
+      '2026-09-01 裁定：决策不为免费通道开特例。旧判据把出厂默认算成已配好，'
+      + '于是全球版全新安装的人永远不会被推去配一次 —— 那正是要改掉的');
+  });
+
+  test('★ 主动选过免费引擎 ⇒ 算配好了，不能被反复弹回引导页', () => {
+    const E = withRegistry([FREE, KEYED]);
+    ok(!E.needsSetup({ provider: 'google', apiKey: '', engineChosen: 1 }),
+      '只写 !has(apiKey) 会把故意选了免费引擎的人困死');
+  });
+
+  test('主动选过**要 key 的**引擎但没填 key ⇒ 仍然没配好', () => {
+    const E = withRegistry([FREE, KEYED]);
+    ok(E.needsSetup({ provider: 'deepseek', apiKey: '', engineChosen: 1 }),
+      'engineChosen 只对不需要 key 的引擎成立 —— 它是「选择」的证据，不是「配好」的证据');
+  });
+
+  test('配过 key ⇒ 配好了，与选没选过无关', () => {
+    const E = withRegistry([KEYED]);
+    ok(!E.needsSetup({ provider: 'deepseek', apiKey: 'sk-x' }), '');
+    ok(E.needsSetup({ provider: 'deepseek', apiKey: '   ' }), '全空格算没填');
   });
 
   test('中国版那个真实场景：注册表里没有 google', () => {
     const E = withRegistry([KEYED]);       // 中国版没有免费条目
     ok(E.needsSetup({ provider: 'google', apiKey: '' }), '存着一个本版不存在的 id ⇒ 未配置');
-    ok(!E.freeChannel({ provider: 'google' }), '也不该被当成免费通道');
-  });
-
-  test('免费通道：能用，且不该被判成「要去配」', () => {
-    const E = withRegistry([FREE, KEYED]);
-    ok(!E.needsSetup({ provider: 'google', apiKey: '' }), '');
-    ok(E.freeChannel({ provider: 'google' }), '');
-  });
-
-  test('要 key 的引擎：填了才算配好；空白与全空格都算没填', () => {
-    const E = withRegistry([KEYED]);
-    ok(E.needsSetup({ provider: 'deepseek', apiKey: '' }), '');
-    ok(E.needsSetup({ provider: 'deepseek', apiKey: '   ' }), '');
-    ok(!E.needsSetup({ provider: 'deepseek', apiKey: 'sk-x' }), '');
+    ok(E.needsSetup({ provider: 'google', apiKey: '', engineChosen: 1 }),
+      '归一化后落到 deepseek，它要 key —— 主动选过也不能豁免');
   });
 
   test('注册表还没加载 ⇒ 不拦。把人拦在门外比让他撞一次失败更糟', () => {
     const E = withRegistry([]);
     ok(!E.needsSetup({ provider: 'x', apiKey: '' }), '判不了就不该拦');
     eq(E.defaultId(), '', '也不许凭空造一个 id 出来');
-  });
-
-  test('needsSetup 与 freeChannel 不是互补 —— 配好了的引擎两者都是 false', () => {
-    const E = withRegistry([KEYED]);
-    const s = { provider: 'deepseek', apiKey: 'sk-x' };
-    ok(!E.needsSetup(s) && !E.freeChannel(s), '');
   });
 });
 

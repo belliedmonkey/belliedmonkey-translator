@@ -433,14 +433,16 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       const seen = ov.seen;
       // 引导进行中不能同时挂着扩展横幅 —— 那会把同一句话说两遍。
       // 这条是模拟器实测抓出来的：断言查内容对不对，查不出重复。
-      // 承诺免费通道，注册表里却没有免费引擎 —— 那就是在对用户撒谎。
-      need(ov.providerCount > 0, 'window.MT_PROVIDERS 读不到 —— 下面那条免费通道断言会空转');
+      // 引导里不许再推荐免费通道 —— 无论这个 flavor 的注册表里有没有免费条目。
+      //
+      // 这条原来只在**没有**免费条目时才检查（防「中国版说着一个它没有的东西」）。
+      // 2026-09-01 裁定之后它对两个 flavor 都成立：决策不为免费通道开特例，第一优先级
+      // 是一键配置，而「没有 Key 也能先用」这句话的作用正是劝人别配。
+      // 免费引擎仍然选得到，只是不再由我们推荐 —— 那是用户的选择，不是我们的建议。
+      need(ov.providerCount > 0, 'window.MT_PROVIDERS 读不到 —— 下面那条断言会空转');
       need(!!ov.engineNote, '没抓到引擎说明文案 —— 断言会空转');
-      if (!ov.freeChannel) {
-        need(!/免费通道|free channel|無料|무료|gratuit|kostenlos|gratis|бесплат|المجانية/i.test(ov.engineNote || ''),
-          '这个 flavor 的注册表里没有 needsKey:false 的引擎，引导却说「可以先用免费通道」'
-          + ' —— 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状');
-      }
+      need(!/免费通道|free channel|無料|무료|gratuit|kostenlos|gratis|бесплат|المجانية/i.test(ov.engineNote || ''),
+        '引导里又出现了「可以先用免费通道」—— 2026-09-01 裁定：不再推荐它');
       need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
         + '两个一起显示等于把同一句话一字不差地重复一遍');
       need(seen.length === 5, '引导不是五屏，实际 ' + seen.length);

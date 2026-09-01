@@ -140,7 +140,23 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/${p}` }, sessionId);
       await sleep(2000);
       const len = await evalIn(cdp, sessionId, 'document.body ? document.body.innerText.trim().length : -1');
-      if (!(len > 60)) problems.push(`${p} 几乎是空白页（可见文本 ${len}）—— 加载期就炸了`);
+      // 弹窗在**未配置**状态下是刻意折叠的（只留一个入口），所以字数会贴着这道门槛。
+      // 字数本来就是「页面死没死」的粗代理；对这一页换成真判据：那唯一的入口在不在、
+      // 可不可点。一个加载期炸掉的页面满足不了它，而一次正当的文案改动也不会误伤。
+      if (p.includes('popup')) {
+        const note = JSON.parse(await evalIn(cdp, sessionId, `(() => {
+          const el = document.getElementById('setup-note');
+          const vis = !!(el && el.getClientRects().length);
+          return JSON.stringify({ vis, text: vis ? el.textContent.trim().length : 0,
+            clickable: !!(el && el.classList.contains('clickable')) });
+        })()`));
+        if (!note.vis || note.text < 8 || !note.clickable) {
+          problems.push(`未配置时弹窗没给出可点的那一个入口：${JSON.stringify(note)}`
+            + ' —— 这一页此刻只剩这一件事可做，它没了就等于什么都没有');
+        }
+      } else if (!(len > 60)) {
+        problems.push(`${p} 几乎是空白页（可见文本 ${len}）—— 加载期就炸了`);
+      }
       for (const e of errs) problems.push(`${p}: ${e}`);
       notes.push(`${p} 可见文本 ${len} 字符`);
       off1();

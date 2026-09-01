@@ -336,9 +336,6 @@
   "popup_need_setup": {
     "message": "Translation is not set up yet — tap here to open Settings; one key configures everything."
   },
-  "setup_free_channel": {
-    "message": "You are on the free no-key engine — fine for a first look. It is not a stable endpoint: it sometimes returns your original text unchanged. Switching to any LLM engine with your own key is noticeably more reliable, and better."
-  },
   "learn_title": {
     "message": "Review"
   },
@@ -1747,9 +1744,6 @@
   "ob_kv_engine": {
     "message": "Add a translation API key"
   },
-  "ob_kv_engine_note": {
-    "message": "Extension settings → translation engine. You can also start on the free channel with no key."
-  },
   "ob_kv_capture": {
     "message": "Turn on capture"
   },
@@ -1785,9 +1779,6 @@
   },
   "extob_engine_title": {
     "message": "Pick a translation engine"
-  },
-  "extob_engine_body_free": {
-    "message": "You are on the free channel right now — press Continue without filling anything and translation works. It is not a stable endpoint and will sometimes hand back the original text unchanged. For reliable translations, set up once below."
   },
   "extob_engine_body_key": {
     "message": "No way around this one: without a key nothing gets translated."

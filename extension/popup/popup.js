@@ -51,7 +51,7 @@ const POPUP_KEYS = [
   // 留下的三个是**只读不写**的：provider + apiKey 用来判断「配没配好」，uiLang 用来
   // 决定弹窗自己显示成哪种语言 —— 不再让你在这里**改**它，不等于可以不**读**它。
   // 这份清单是全仓第四份手抄的设置键表，没有任何门禁盯着它。
-  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey',
+  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'engineChosen',
   'extObSeen',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
@@ -81,28 +81,24 @@ async function saveSettings(patch) {
 // no-key engine (works, but it is not a stable endpoint and can hand back the
 // original text unchanged, which reads as "the extension is broken"). A configured
 // keyed engine shows nothing.
-function updateSetupNote(provider, apiKey) {
+function updateSetupNote(provider, apiKey, chosen) {
   const el = $('setup-note');
   if (!el) return;
-  // 判据取自 content/engine-state.js —— 它会**先归一化 provider**。原来这里用的是
-  // `providerById(...) || {}`：一个注册表不认识的 id 会让 needsKey 变成 undefined，
-  // 于是弹窗说「免费通道，一切正常」，而同一台设备上的悬浮球判成未配置。
-  const s0 = { provider, apiKey };
-  const needsKey = !EngineState.freeChannel(s0);
-  const hasKey = !!(apiKey || '').trim();
+  // 判据取自 content/engine-state.js —— 与悬浮球、设置页同一份，且**先归一化 provider**。
+  //
+  // 只剩两支：要么引导去配，要么什么都不说。原来还有第三支「当前使用免费通道，
+  // 不需要 API Key —— 适合先看看效果」，2026-09-01 去掉：决策不再为免费通道开特例，
+  // 第一优先级是一键配置。那句话的作用是安抚一个我们其实想让他去配的人。
+  const unset = EngineState.needsSetup({ provider, apiKey, engineChosen: chosen });
   // 弹窗不再提供配置控件，所以这条提示的职责从「说明」变成**引导**：整条可点，
   // 点开设置页。interaction-spec 要求 setup note 同时出现在弹窗与设置页两处，
   // 那条契约仍然成立 —— 变的是它把人送去哪儿。
   el.onclick = null;
   el.classList.remove('clickable');
-  if (needsKey && !hasKey) {
+  if (unset) {
     el.textContent = t('popup_need_setup', '还没配好翻译引擎 —— 点这里去设置页，一把 key 就能配好。');
     el.classList.add('warn', 'clickable');
     el.onclick = () => { try { chrome.runtime.openOptionsPage(); } catch (_) {} window.close(); };
-    el.style.display = 'block';
-  } else if (!needsKey) {
-    el.textContent = t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。');
-    el.classList.remove('warn');
     el.style.display = 'block';
   } else {
     el.style.display = 'none';
@@ -230,7 +226,7 @@ async function init() {
   $('target-lang').value = s.targetLang || 'zh-CN';
   // provider / apiKey 只读不写：弹窗用它们判断「配没配好」，配置本身在设置页。
   // out-of-flavor 的引擎迁移也随之去掉 —— 那是配置动作，属于设置页。
-  updateSetupNote(s.provider, s.apiKey);
+  updateSetupNote(s.provider, s.apiKey, s.engineChosen);
   updateFirstRun(s.extObSeen);
   // 顺序要紧：先让两条提示各自决定显不显示，再由这一步把其余的收起来。
   applyUnconfigured(EngineState.needsSetup(s));

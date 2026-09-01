@@ -42,22 +42,25 @@ var EngineState = (() => {
   // 归一化之后的那个注册表条目。注册表还没加载时是 null。
   function entry(settings) { return byId(resolve(settings && settings.provider)); }
 
-  // 「现在点下去会不会白点」。判不了就**不拦** —— 注册表还没加载时把人拦在门外，
-  // 比让他撞一次失败更糟：失败还有具名提示，被拦住则什么都不会发生。
+  // 「配好了没有」。
+  //
+  // 2026-09-01 用户裁定：**决策不再为免费通道开特例**，第一优先级是一键配置。
+  // 所以判据从「当前引擎需不需要 key」改成「有没有配过」——旧判据把**出厂默认**的
+  // 免费引擎算成已配好，于是全球版全新安装的人永远不会被推去配一次，而那正是要改的。
+  //
+  // 但不能只写 `!has(apiKey)`：那样**故意选了免费引擎的人永远满足不了它**，悬浮球会
+  // 一直把他弹回引导页。所以第二个出口是 engineChosen —— 用户**主动点选过**引擎。
+  // 出厂默认不算选择，用户自己点的才算，这正是这次要区分开的那件事。
   function needsSetup(settings) {
-    const p = entry(settings);
-    if (!p) return false;
-    return !!p.needsKey && !String((settings && settings.apiKey) || '').trim();
+    const s = settings || {};
+    if (String(s.apiKey || '').trim()) return false;      // 配过 key
+    const p = entry(s);
+    if (!p) return false;                                 // 注册表还没加载 ⇒ 不拦
+    // 主动选过一个不需要 key 的引擎 ⇒ 那是一次选择，不是「还没配」。
+    return !(s.engineChosen && !p.needsKey);
   }
 
-  // 「当前走的是不需要 key 的免费通道」。它与 needsSetup 不是互补关系：
-  // 需要 key 且填了 key 的时候两者都是 false。
-  function freeChannel(settings) {
-    const p = entry(settings);
-    return !!p && !p.needsKey;
-  }
-
-  return { byId, defaultId, resolve, entry, needsSetup, freeChannel };
+  return { byId, defaultId, resolve, entry, needsSetup };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineState;

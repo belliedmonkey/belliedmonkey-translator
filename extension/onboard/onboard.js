@@ -76,7 +76,6 @@
 
   // 免费通道是按**注册表内容**判的，不是按 flavor 名 —— 沿用 app/app.js:308-312 已经
   // 确立的规则。中国版注册表里一个 needsKey:false 都没有，所以第 2 屏对它是必经。
-  const freeChannel = PROVIDERS.some((p) => p && !p.needsKey);
 
   // 这一页要读的键。**必须覆盖 QuickSetup.state() 判「配没配过」看的那三个**
   // （apiKey / ttsApiKey / sttEngine）—— 原来这份清单里没有后两个，于是朗读和转写在
@@ -86,7 +85,7 @@
   // ttsAutoPlay 也要读，而且**不许给默认值**：undefined = 从没选过，是 plan() 用来
   // 决定要不要写 false 防止持续扣费的判据。给了默认值那道保护就没了，且测试全绿。
   const SETTINGS_KEYS = [
-    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
     'ttsEngine', 'ttsApiKey', 'ttsBaseUrl', 'ttsModel', 'ttsMode', 'ttsAutoPlay',
     'sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
     'learnEnabled', 'learnRules', 'uiLang', 'targetLang',
@@ -116,9 +115,10 @@
       $('ob-next').textContent = t('ob_start', '开始设置');
     } else if (step === 'engine') {
       $('ob-title').textContent = t('extob_engine_title', '选一个翻译引擎');
-      $('ob-text').textContent = freeChannel
-        ? t('extob_engine_body_free', '免费通道零配置就能用。想要更好的质量，填入你自己的 API Key。')
-        : t('extob_engine_body_key', '这一步躲不掉：不填 Key 就翻不出任何东西。');
+      // 不再按「有没有免费通道」分支。2026-09-01 裁定：决策不为免费通道开特例，
+      // 第一优先级是一键配置 —— 原来那句「免费通道零配置就能用」正是在劝人别配。
+      // 免费引擎仍然选得到（在「三引擎分别配」里），只是不再由我们推荐。
+      $('ob-text').textContent = t('extob_engine_body_key', '这一步躲不掉：不填 key 就一个字也翻不出来。');
       paintModes();
     } else if (step === 'capture') {
       $('ob-title').textContent = t('extob_capture_title', '要不要顺便把读过的句子记下来');
@@ -212,6 +212,12 @@
         // input 事件（change 只在失焦时触发，用户填完直接点「继续」就丢了）。
         onChange: async (patch) => {
           Object.assign(settings, patch);
+          // 在这一页选引擎就是一次**主动选择** —— 出厂默认不算。故意选了免费引擎的人
+          // 必须能满足「配好了」，否则悬浮球会一直把他弹回这一页。见 engine-state.js。
+          if (slot === 'chat' && 'provider' in patch) {
+            patch = Object.assign({}, patch, { engineChosen: 1 });
+            settings.engineChosen = 1;
+          }
           await storageSet(patch);
         },
       });

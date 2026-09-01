@@ -6,6 +6,9 @@ const PROVIDERS = (window.MT_PROVIDERS || []);
 // 归一化只有一份实现：content/engine-state.js。原来这里的 defaultProviderId 还硬写着
 // `|| 'google'` 兜底 —— 那是注册表规则禁止的第五份副本，而且对中国版是错的：
 // google 的 flavors 是 ['global']，那个 id 在中国版注册表里根本不存在。
+// 用户**主动点选过**引擎没有？出厂默认不算。判据见 content/engine-state.js：
+// 故意选了免费引擎的人必须能满足「配好了」，否则悬浮球会一直把他弹回引导页。
+let _engineChosen = false;
 const providerById = (id) => EngineState.byId(id);
 const defaultProviderId = () => EngineState.defaultId();
 
@@ -14,7 +17,7 @@ const defaultProviderId = () => EngineState.defaultId();
 const $ = id => document.getElementById(id);
 
 const SETTINGS_KEYS = [
-  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+  'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
   'textColor', 'ytTextColor', 'fontSize', 'showFab',
   'learnEnabled', 'learnDailyNew', 'learnRules',
   'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
@@ -123,16 +126,12 @@ function updateSetupNote(provider, apiKey) {
   // A storage failure outranks onboarding advice: telling someone to fill in a key
   // while we cannot read the one they already saved is worse than saying nothing.
   if (_settingsReadFailed) return;
-  // 与弹窗、悬浮球同一个判据（content/engine-state.js），先归一化 provider。
-  const needsKey = !EngineState.freeChannel({ provider, apiKey });
-  const hasKey = !!(apiKey || '').trim();
-  if (needsKey && !hasKey) {
+  // 与弹窗、悬浮球同一份判据（content/engine-state.js）。只剩两支 —— 原来那句
+  // 「当前使用免费通道，不需要 API Key」2026-09-01 去掉了：决策不再为免费通道开特例，
+  // 第一优先级是一键配置，而那句话的作用是安抚一个我们其实想让他去配的人。
+  if (EngineState.needsSetup({ provider, apiKey, engineChosen: _engineChosen })) {
     el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');
     el.classList.add('warn');
-    el.style.display = 'block';
-  } else if (!needsKey) {
-    el.textContent = t('setup_free_channel', '当前使用免费通道，不需要 API Key —— 适合先看看效果。它的响应不稳定，偶尔会把原文原样返回；换成任一 LLM 引擎并填入你自己的 Key，会稳定得多，质量也更好。');
-    el.classList.remove('warn');
     el.style.display = 'block';
   } else {
     el.style.display = 'none';
@@ -572,6 +571,11 @@ async function init() {
   $('provider').addEventListener('change', async (e) => {
     // 组件的 change 监听在挂载时注册，**先于**这一条跑；这里只读它的回报。
     const cleared = chatClearedEndpoint; chatClearedEndpoint = false;
+    // 记下「这是一次主动选择」。出厂默认的免费引擎不算 —— 那正是新判据要区分的：
+    // 全新安装的人应当被推去配一次，而故意选了免费引擎的人不该被反复弹回引导页。
+    // 单独写盘，不进 saveAll()：它是一次事件的记录，不是一个可编辑的设置。
+    _engineChosen = true;
+    try { chrome.storage.local.set({ engineChosen: 1 }); } catch (_) {}
     updateProviderUI(e.target.value);
     await saveAll();
     updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
@@ -1370,6 +1374,7 @@ async function init() {
   if ($('mode-detail')) $('mode-detail').addEventListener('click', () => setDetail(true));
 
   // 这份已存的配置，一键卡表示得了吗（null = 表示不了 / 还没配过）。
+  _engineChosen = !!s0.engineChosen;
   const _quickShows = (typeof QuickSetup !== 'undefined') ? QuickSetup.represents(s0) : null;
 
   // 默认「快速」，除非用户上次切到过详细。

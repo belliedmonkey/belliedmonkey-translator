@@ -579,9 +579,29 @@ So the onboarding tells them what to expect **before** a bad first result, never
   - A configured keyed engine shows **nothing** — the note is onboarding, not chrome.
 - The note clears on `input`, not just `change`. Waiting for blur would leave "translation
   will not work" on screen while the field is visibly full.
-- **The free engine is not removed or hidden.** Zero-config trial is a real feature and is
-  promised in the store listing; what changes is that the user is told what it is, instead
-  of landing on it silently.
+- **免费引擎仍然选得到，但我们不再推荐它** *(2026-09-01，用户裁定，推翻本节原有的
+  「零配置试用是我们主推的第一印象」)*。原文是：「免费引擎不移除、不隐藏；零配置试用
+  是真功能，改变的只是告诉用户它是什么。」前半句仍然成立 —— 它在设置页的详细配置和
+  引导页的「三引擎分别配」里都选得到；**后半句不再成立**：我们给用户的第一优先级是
+  一键配置。
+
+  这条改的不只是文案，是**判据**。旧判据问「当前引擎需不需要 key」，于是出厂默认的
+  免费引擎让全球版全新安装的人**永远不会被推去配一次**。新判据（`content/engine-state.js`
+  的 `needsSetup`）问「配过没有」：
+
+  - 配过 key ⇒ 配好了；
+  - **主动点选过**一个不需要 key 的引擎 ⇒ 也算配好了（`engineChosen`）；
+  - 其余 ⇒ 没配好，弹窗只留一个入口、悬浮球点下去进引导页。
+
+  第二条不可省：只写「没 key = 没配好」会把**故意选了免费引擎的人困死**，悬浮球会一直
+  把他弹回引导页。出厂默认不算选择，用户自己点的才算 —— 这正是这条裁定要区分的东西。
+
+  随之删掉的三处「安抚免费通道」的分支：弹窗与设置页 setup note 的第三支、引导页第 2 屏
+  按 flavor 分的正文、App 引导第 3 屏那行说明。它们的共同作用是让一个我们其实想让他去配
+  的人安心不配。
+
+  ⚠️ **商店描述里承诺过零配置试用**（本节原文如此）。免费引擎仍在，所以承诺没有作废，
+  但下一次改商店文案时要重读这一条，别把「开箱即用、无需 Key」写成主打。
 
 ## 一键配置与逐引擎配置永不同屏
 

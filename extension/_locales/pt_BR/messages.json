@@ -336,9 +336,6 @@
   "popup_need_setup": {
     "message": "A tradução ainda não está configurada — toque aqui para abrir os ajustes; uma única chave basta."
   },
-  "setup_free_channel": {
-    "message": "Você está no motor gratuito sem chave — o suficiente para uma primeira olhada. Não é um endpoint estável: às vezes devolve o seu texto original sem alterações. Trocar para um motor LLM com a sua própria chave é bem mais confiável, e melhor."
-  },
   "learn_title": {
     "message": "Revisão"
   },
@@ -1747,9 +1744,6 @@
   "ob_kv_engine": {
     "message": "Adicione uma chave de API de tradução"
   },
-  "ob_kv_engine_note": {
-    "message": "Ajustes da extensão → motor de tradução. Você também pode começar sem chave no canal gratuito."
-  },
   "ob_kv_capture": {
     "message": "Ative a captura"
   },
@@ -1785,9 +1779,6 @@
   },
   "extob_engine_title": {
     "message": "Escolha um motor de tradução"
-  },
-  "extob_engine_body_free": {
-    "message": "Você está no canal gratuito: toque em Continuar sem preencher nada e a tradução funciona. Ele não é estável e às vezes devolve o texto original. Para traduções confiáveis, configure uma vez abaixo."
   },
   "extob_engine_body_key": {
     "message": "Não dá para pular esta etapa: sem chave nada é traduzido."
