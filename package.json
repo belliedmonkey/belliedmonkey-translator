@@ -29,7 +29,8 @@
     "test:setup-page": "node scripts/gen-try-pages.js --check && node scripts/verify-setup-page.js",
     "test:onboard": "node scripts/verify-onboard.js dist && node scripts/verify-onboard.js dist-china",
     "test:wipe": "node scripts/verify-wipe.js dist && node scripts/verify-wipe.js dist-china",
-    "test:handoff": "node scripts/verify-site-handoff.js"
+    "test:handoff": "node scripts/verify-site-handoff.js",
+    "test:signin": "node scripts/verify-signin-flow.js"
   },
   "engines": {
     "node": ">=18.0.0"

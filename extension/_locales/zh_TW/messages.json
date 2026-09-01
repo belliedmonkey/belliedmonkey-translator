@@ -1981,5 +1981,8 @@
   },
   "extob_sync_later": {
     "message": "以後再說"
+  },
+  "sync_next_app": {
+    "message": "接下來：在 iPhone / Mac 的 App 裡用同一個信箱（{email}）登入，這些卡才會出現在那邊。"
   }
 }

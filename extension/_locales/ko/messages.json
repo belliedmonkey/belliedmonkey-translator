@@ -1980,5 +1980,8 @@
   },
   "extob_sync_later": {
     "message": "나중에"
+  },
+  "sync_next_app": {
+    "message": "다음: iPhone / Mac 앱에서 같은 이메일({email})로 로그인하세요. 그래야 카드가 그쪽에 나타납니다."
   }
 }

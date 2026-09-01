@@ -1980,5 +1980,8 @@
   },
   "extob_sync_later": {
     "message": "あとで"
+  },
+  "sync_next_app": {
+    "message": "次に：iPhone / Mac の App で同じメールアドレス（{email}）でログインしてください。そうして初めてカードが向こうに現れます。"
   }
 }

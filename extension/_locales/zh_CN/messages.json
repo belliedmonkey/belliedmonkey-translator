@@ -1981,5 +1981,8 @@
   },
   "extob_sync_later": {
     "message": "以后再说"
+  },
+  "sync_next_app": {
+    "message": "接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。"
   }
 }

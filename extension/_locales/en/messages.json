@@ -1980,5 +1980,8 @@
   },
   "extob_sync_later": {
     "message": "Later"
+  },
+  "sync_next_app": {
+    "message": "Next: sign in to the iPhone / Mac app with this same email ({email}) — that is what brings these cards over."
   }
 }

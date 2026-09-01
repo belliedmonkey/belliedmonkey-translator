@@ -1980,5 +1980,8 @@
   },
   "extob_sync_later": {
     "message": "لاحقًا"
+  },
+  "sync_next_app": {
+    "message": "التالي: سجّل الدخول في تطبيق iPhone / Mac بالبريد نفسه ({email}) — بذلك تظهر هذه البطاقات هناك."
   }
 }

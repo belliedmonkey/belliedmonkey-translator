@@ -720,6 +720,14 @@ async function init() {
     location.replace(chrome.runtime.getURL('onboard/onboard.html'));
   }));
 
+  // 登录之后那个「现在翻一页看看」。地址与引导页、一键配置卡走同一个 tryUrl ——
+  // 按目标语言选示例页。window.open 必须同步发生在这次点击里（见下面那段注释）。
+  if ($('btn-sync-try')) {
+    $('btn-sync-try').addEventListener('click', () => {
+      try { window.open(QuickSetup.tryUrl($('target-lang') && $('target-lang').value), '_blank', 'noopener'); } catch (_) {}
+    });
+  }
+
   $('btn-reonboard').addEventListener('click', () => {
     try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
     try { chrome.storage.local.remove(['extObSeen'], () => {}); } catch (_) {}
@@ -1294,6 +1302,16 @@ async function init() {
         .replace('{used}', fmtSize(u.bytes)).replace('{quota}', fmtSize(u.quota))
         .replace('{n}', String(u.chunks));
     } catch (_) { $('sync-usage').textContent = ''; }
+
+    // 下一步。**带上刚登录的这个邮箱** —— 「用同一个账号」这句话不带具体值时，
+    // 用户没有可对照的东西；带上之后他在 App 里输入的那一刻就能比对。
+    const next = $('sync-next');
+    if (next) {
+      $('sync-next-app').textContent = t('sync_next_app',
+        '接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。')
+        .replace('{email}', s.email || '');
+      next.hidden = false;
+    }
   }
 
   if (MT_BACKEND.enabled) {

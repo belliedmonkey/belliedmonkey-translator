@@ -319,6 +319,20 @@
         <div id="sync-in" hidden>
           <div id="sync-who" class="cache-status"></div>
           <div id="sync-usage" class="cache-status"></div>
+
+          <!-- 登录之后的**下一步**。登录成功原来是个死胡同：界面变成邮箱 + 用量 +
+               三个管理按钮，一个字都没说接下来该干什么 —— 而登录本身对用户没有价值，
+               它的价值在后面那两件事上（去翻一页、在 App 里用同一个账号登录）。
+               2026-09-02 用户实测报的。
+
+               「两边同一个账号」这句话此前在全仓**只出现一次**，而且只在 App 引导的
+               最后一屏 —— 也就是只有已经装了 App 的人才看得到。扩展这边一个字都没有，
+               于是扩展登 A、App 登 B 的人一路上没有任何提示（App 那边的空态文案还
+               反过来指责他没采集）。 -->
+          <div id="sync-next" hidden>
+            <p class="hint" id="sync-next-app"></p>
+            <button id="btn-sync-try" type="button" class="secondary" data-i18n="qs_try">现在翻一页看看</button>
+          </div>
           <button id="btn-sync-now" data-i18n="sync_now">立即同步</button>
           <button id="btn-sync-out" data-i18n="sync_signout">退出登录</button>
           <!-- §8.7：删除必须是一个动作，且包含账号本身，不只是数据行。 -->

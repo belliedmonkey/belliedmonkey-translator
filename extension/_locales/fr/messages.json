@@ -1980,5 +1980,8 @@
   },
   "extob_sync_later": {
     "message": "Plus tard"
+  },
+  "sync_next_app": {
+    "message": "Ensuite : connectez-vous à l'app iPhone / Mac avec cette même adresse ({email}) — c'est ce qui y fait apparaître ces cartes."
   }
 }
