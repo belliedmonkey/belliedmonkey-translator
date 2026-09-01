@@ -12,7 +12,11 @@
 
 'use strict';
 
-// 源语言的段落。两段，与官网 setup.html 的示例同源 —— 那两段讲的正是这个产品在做的事。
+// 源语言的段落：**一篇介绍这个产品本身的短文**（2026-09-01 用户裁定）。
+//
+// 为什么是产品介绍而不是随便一段外语：这一页要同时办两件事 —— 证明翻译能用，
+// 以及让一个刚装完、还不知道自己装了什么的人读懂他装了什么。用一段讲间隔重复的
+// 通用文字，第二件事就白丢了。译文出来的那一刻，他读到的正是这东西是干什么的。
 const PASSAGES = {
   en: {
     // 语言的自称（endonym）。界面上原样显示，不翻译 —— 语言的名字用它自己的文字写，
@@ -20,20 +24,24 @@ const PASSAGES = {
     endonym: 'English',
     dir: 'ltr',
     paras: [
-      'Spaced repetition works because forgetting is not a failure of memory but a '
-      + 'property of it. Each time a memory is retrieved just before it would have '
-      + 'slipped away, the interval until the next review can be stretched further.',
-      'The sentences you actually stopped to read are the ones worth keeping. '
-      + 'The ones you scrolled past are not.',
+      'BelliedMonkey Translator is a browser extension that puts a translation under '
+      + 'every paragraph you read, in your own language, without taking you out of the '
+      + 'page. You bring your own API key, so the text goes straight from your device '
+      + 'to the engine you picked — nothing passes through us.',
+      'It also remembers. The sentences you actually slowed down to read become review '
+      + 'cards, and those cards follow you to your phone. The article you read this '
+      + 'morning is what you practise tonight.',
     ],
   },
   'zh-CN': {
     endonym: '简体中文',
     dir: 'ltr',
     paras: [
-      '间隔重复之所以有效，是因为遗忘并非记忆的失败，而是记忆本身的特性。每次在一段'
-      + '记忆即将消退之前把它取出来，下一次复习的间隔就能拉得更长一些。',
-      '那些让你真正停下来读完的句子，才是值得留下的。被你划过去的，不是。',
+      '大肚猴翻译是一个浏览器扩展：你读到的每一段下面，都会出现一句你自己的语言，'
+      + '而不必离开这一页。翻译用的是你自己的 API key，文字从你的设备直接送到你选的'
+      + '引擎 —— 不经过我们。',
+      '它还会记住。那些你真正放慢速度读完的句子会变成复习卡，并跟着你到手机上。'
+      + '今天早上读的那篇文章，就是今晚要练的东西。',
     ],
   },
 };

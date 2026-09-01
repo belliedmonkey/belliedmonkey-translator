@@ -631,7 +631,7 @@
     "message": "Échec de l'import"
   },
   "sync_section": {
-    "message": "Synchronisation entre appareils"
+    "message": "Connexion · Synchronisation multi-appareils"
   },
   "sync_section_hint": {
     "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Une fois connecté, les phrases collectées (y compris les candidates pas encore en révision) se synchronisent vers vos autres appareils et l'app mobile."
@@ -1977,5 +1977,8 @@
   },
   "site_next_signin": {
     "message": "Se connecter →"
+  },
+  "extob_sync_later": {
+    "message": "Plus tard"
   }
 }

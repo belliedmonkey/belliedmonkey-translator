@@ -486,9 +486,29 @@ async function checkSite(site) {
       // ⑤a 版本号有三份副本，必须是**一条被检查的链**，不是三处各写各的：
       //     package.json（唯一来源）→ 站点 /VERSION → JSON-LD 的 softwareVersion。
       // 中间两份是给**不跑 JS 的爬虫**看的，运行时替换救不了它们。
+      // 基准是**最新已发布的那个版本**，不是 package.json。
+      //
+      // 这条判据原来直接比 package.json，而那只在「每次升版都立刻发布」时才成立。
+      // 2026-09-01 破了：1.7.1 只出 TestFlight，官网与 GitHub Release 按裁定不动 ——
+      // 于是这道门禁红了，而站点其实完全正确（它宣传的 1.7.0 正是下载得到的那一份）。
+      //
+      // 这条门禁真正要挡的是「站点宣传一个下载不到的版本」。所以基准取 git tag：
+      // package.json 的版本已经有同名 tag ⇒ 它已发布，站点该跟上；还没有 tag ⇒
+      // 它还没发布，站点该停在最新的那个 tag 上。不联网，只读本地 tag。
       const pkgV = require('../package.json').version;
-      if (want !== pkgV) {
-        bad.push(`站点 VERSION 是 ${want}，package.json 是 ${pkgV} —— 发版时漏同步了`);
+      let released = pkgV;
+      try {
+        const tags = require('child_process')
+          .execSync('git tag --list "v*" --sort=-v:refname', { cwd: ROOT, encoding: 'utf8' })
+          .split('\n').map((x) => x.trim().replace(/^v/, '')).filter(Boolean);
+        // 只认「纯版本号」的 tag：v1.6.4-china-2 之类是重发历史产物用的，不是发布线。
+        const plain = tags.filter((x) => /^\d+\.\d+\.\d+$/.test(x));
+        if (plain.length && !plain.includes(pkgV)) released = plain[0];
+      } catch (_) { /* 不是 git 仓库 / 没有 tag ⇒ 退回比 package.json */ }
+      if (want !== released) {
+        bad.push(`站点 VERSION 是 ${want}，最新已发布版本是 ${released}`
+          + (released === pkgV ? ' —— 发版时漏同步了'
+            : `（package.json 已到 ${pkgV}，但那一版还没打 tag / 还没发布）`));
       }
       for (const page of ['index.html']) {
         const f = path.join(site.dir, page);
@@ -506,7 +526,8 @@ async function checkSite(site) {
         const sv = raw.match(/"softwareVersion"\s*:\s*"([^"]+)"/);
         if (!sv) bad.push(`${page} 的 JSON-LD 没有 softwareVersion —— 爬虫无从判断新鲜度`);
         else if (sv[1] !== want) bad.push(`${page} 的 softwareVersion 是 ${sv[1]}，VERSION 是 ${want}`);
-        else console.log(`  ✓ ${page} 版本链一致：package.json = /VERSION = softwareVersion = ${want}`);
+        else console.log(`  ✓ ${page} 版本链一致：最新已发布 = /VERSION = softwareVersion = ${want}`
+          + (released === pkgV ? '' : `（package.json 已到 ${pkgV}，尚未发布）`));
       }
       await cdp.send('Page.navigate', { url: 'http://127.0.0.1:' + srv.address().port + '/index.html' }, sessionId);
       await new Promise((r) => setTimeout(r, 3000));

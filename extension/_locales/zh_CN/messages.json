@@ -632,7 +632,7 @@
     "message": "导入失败"
   },
   "sync_section": {
-    "message": "多设备同步"
+    "message": "登录 · 多设备同步"
   },
   "sync_section_hint": {
     "message": "可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。登录之后，采集到的句子（含还没进复习的候选）会同步到你的其它设备和手机 App。"
@@ -1978,5 +1978,8 @@
   },
   "site_next_signin": {
     "message": "直接去登录 →"
+  },
+  "extob_sync_later": {
+    "message": "以后再说"
   }
 }

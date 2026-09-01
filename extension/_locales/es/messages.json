@@ -631,7 +631,7 @@
     "message": "Falló la importación"
   },
   "sync_section": {
-    "message": "Sincronización entre dispositivos"
+    "message": "Iniciar sesión · Sincronización entre dispositivos"
   },
   "sync_section_hint": {
     "message": "Opcional. Todo funciona sin iniciar sesión: la sincronización solo sirve para repasar en el móvil lo que leíste en el ordenador. Al iniciar sesión, las frases recopiladas (incluidas las candidatas que aún no entraron en repaso) se sincronizan con tus otros dispositivos y con la app del móvil."
@@ -1977,5 +1977,8 @@
   },
   "site_next_signin": {
     "message": "Iniciar sesión →"
+  },
+  "extob_sync_later": {
+    "message": "Más tarde"
   }
 }

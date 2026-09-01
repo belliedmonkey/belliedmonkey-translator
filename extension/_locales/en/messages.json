@@ -631,7 +631,7 @@
     "message": "Import failed"
   },
   "sync_section": {
-    "message": "Sync across devices"
+    "message": "Sign in · Sync across devices"
   },
   "sync_section_hint": {
     "message": "Optional. Everything works signed out — sync only lets you review on your phone what you read on your computer. Once signed in, the sentences you captured (including candidates not yet in review) sync to your other devices and the phone app."
@@ -1977,5 +1977,8 @@
   },
   "site_next_signin": {
     "message": "Sign in now →"
+  },
+  "extob_sync_later": {
+    "message": "Later"
   }
 }

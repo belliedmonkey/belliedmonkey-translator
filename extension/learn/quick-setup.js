@@ -124,7 +124,15 @@ var QuickSetup = (() => {
   // 语言不对的示例更糟。
   const TRY_LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ar', 'pt', 'ru', 'it'];
   function tryUrl(targetLang) {
-    const l = String(targetLang || '').trim();
+    let l = String(targetLang || '').trim();
+    // **没值 ≠ 认不出。** 存储里没有 targetLang 的人（全新安装、或刚清过本机数据）
+    // 翻译时走的是默认目标语言，所以试翻页也该走同一个 —— 原来这里跟「认不出的语言」
+    // 混成一支，一起回落 setup.html，于是清完数据的人点「打开示例页面」又回到了那一页。
+    // 2026-09-01 真机上实测到的。
+    // 默认值从生成的注册表拿：设置页与引导页**都不加载 translation-core.js**，
+    // 在那里读 TranslationCore.DEFAULT_TARGET_LANG 是空转（第一版就是这么写的）。
+    if (!l) l = (typeof window !== 'undefined' && window.MT_DEFAULT_TARGET_LANG) || '';
+    // 认不出的语言才回落。那一页永远存在，落一个 404 比落一页语言不对的示例更糟。
     return TRY_LANGS.indexOf(l) >= 0 ? siteUrl('/try/' + l + '.html') : siteUrl('/setup.html');
   }
 

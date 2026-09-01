@@ -631,7 +631,7 @@
     "message": "Import fehlgeschlagen"
   },
   "sync_section": {
-    "message": "Geräteübergreifende Synchronisierung"
+    "message": "Anmelden · Geräteübergreifende Synchronisierung"
   },
   "sync_section_hint": {
     "message": "Optional. Alles funktioniert auch abgemeldet — die Synchronisierung sorgt nur dafür, dass Sie auf dem Handy wiederholen können, was Sie am Computer gelesen haben. Nach der Anmeldung werden die erfassten Sätze (auch die noch nicht in der Wiederholung befindlichen Kandidaten) mit Ihren anderen Geräten und der Handy-App synchronisiert."
@@ -1977,5 +1977,8 @@
   },
   "site_next_signin": {
     "message": "Jetzt anmelden →"
+  },
+  "extob_sync_later": {
+    "message": "Später"
   }
 }

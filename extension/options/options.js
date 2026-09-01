@@ -1379,19 +1379,6 @@ async function init() {
     if (r) return Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
   }).catch(() => {});
 
-  // #sync 锚点。别处（引导页、复习页那行「未登录」、官网试翻页的下一步块）把人往
-  // 登录送时，落点必须是**看得见的登录框**，而不是页面顶部 —— 送到顶部等于让人
-  // 在一页设置里自己找，那正是这条路原来断掉的方式。
-  // 用 scrollIntoView 而不是靠浏览器的原生锚点跳转：这一页的卡片在 paint 之后才
-  // 定位，原生跳转发生在那之前，落点会偏。
-  if (location.hash === '#sync') {
-    const sec = $('sync-section');
-    if (sec) {
-      try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
-      const email = $('sync-email');
-      if (email && !email.hidden) { try { email.focus(); } catch (_) {} }
-    }
-  }
   }   // end if (MT_BACKEND.enabled)
 
   $('btn-clear-cache').addEventListener('click', busy($('btn-clear-cache'), async () => {
@@ -1517,6 +1504,29 @@ async function init() {
   // 这一条不写进 optDetailMode：它是「这份数据长什么样」的推论，不是用户的偏好。
   if (!_quickShows && String(s0.apiKey || '').trim()) _detail = true;
   applyDetailMode(_detail);
+
+  // ── #sync 锚点 ──────────────────────────────────────────────────────────
+  //
+  // 别处（引导页的「打开设置去登录」、官网试翻页的下一步块）把人往登录送时，落点
+  // 必须是**看得见的登录框**，而不是页面顶部 —— 送到顶部等于让人在一整页设置里
+  // 自己找，那正是这条路原来断掉的方式。
+  //
+  // 位置要紧：必须排在 applyDetailMode() **之后**。那一步会增删 .adv-only /
+  // .quick-only 的卡片，滚完再改布局，落点就偏了。
+  // 也不能靠浏览器的原生锚点跳转 —— 那发生在这一页 paint 之前。
+  // 再等一帧，让 applyDetailMode 引起的重排真正落定。
+  if (location.hash === '#sync') {
+    const jump = () => {
+      const sec = $('sync-section');
+      if (!sec || sec.hidden) return;      // 同步没编进这个构建 ⇒ 整节已被 remove
+      try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
+      const email = $('sync-email');
+      const out = $('sync-out');
+      // 已登录时没有邮箱框可聚焦（那一支显示的是 #sync-in）。
+      if (email && out && !out.hidden) { try { email.focus({ preventScroll: true }); } catch (_) { email.focus(); } }
+    };
+    try { requestAnimationFrame(() => requestAnimationFrame(jump)); } catch (_) { jump(); }
+  }
 }
 
 // A bare `init()` turns any throw inside it into a silent unhandled rejection, which

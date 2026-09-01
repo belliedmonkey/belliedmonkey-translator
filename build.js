@@ -255,8 +255,20 @@ function generateProviders(dir, flavor) {
     process.exit(1);
   }
   const syncOn = on.length === 1;
+
+  // 默认目标语言。唯一来源是 translation-core.js 的 DEFAULT_TARGET_LANG，这里只是
+  // 把它搭 providers.gen.js 的车发给**没加载 translation-core.js 的面**（设置页、
+  // 引导页 —— 它们要用它决定「打开示例页面」去哪一页）。
+  // 匹配不到就硬失败，理由同上：一个静默取错的默认语言会把人送到语言不对的示例页。
+  const coreSrc = fs.readFileSync(path.join(dir, 'content', 'translation-core.js'), 'utf8');
+  const dtl = coreSrc.match(/DEFAULT_TARGET_LANG\s*=\s*'([\w-]+)'/);
+  if (!dtl) {
+    console.error('✗ MT_DEFAULT_TARGET_LANG: translation-core.js 里读不到 DEFAULT_TARGET_LANG');
+    process.exit(1);
+  }
   let body = `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
     + `window.MT_SYNC_ENABLED = ${JSON.stringify(syncOn)};\n`
+    + `window.MT_DEFAULT_TARGET_LANG = ${JSON.stringify(dtl[1])};\n`
     + `window.MT_PROVIDERS = ${JSON.stringify(providers)};\n`
     + `window.MT_MODEL_PARAMS = ${JSON.stringify(params)};\n`;
   // 「哪些 host 有实测推荐」——同样搭 providers.gen.js 的车（理由同上：这个文件已经

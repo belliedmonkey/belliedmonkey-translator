@@ -632,7 +632,7 @@
     "message": "匯入失敗"
   },
   "sync_section": {
-    "message": "多裝置同步"
+    "message": "登入 · 多裝置同步"
   },
   "sync_section_hint": {
     "message": "可選。不登入也能完整使用——同步只是讓你在手機上複習電腦上讀到的句子。登入之後，擷取到的句子（含還沒進複習的候選）會同步到你的其它裝置和手機 App。"
@@ -1978,5 +1978,8 @@
   },
   "site_next_signin": {
     "message": "直接去登入 →"
+  },
+  "extob_sync_later": {
+    "message": "以後再說"
   }
 }

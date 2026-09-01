@@ -164,7 +164,24 @@
         '不登录也能完整使用，所有数据留在本机。登录只在你想让手机接着复习电脑上读到的句子时才需要。');
       $('ob-cta').hidden = false;
       $('ob-cta').textContent = t('extob_sync_cta', '打开设置去登录');
-      $('ob-cta').onclick = () => { try { chrome.runtime.openOptionsPage(); } catch (_) {} };
+      // **带 #sync 锚点**，不用 openOptionsPage() —— 那个 API 不接受 hash，人到了
+      // 设置页顶部，得自己在一整页设置里找登录框。按钮上写着「去登录」，落点就该是
+      // 登录框本身（options.js 里那段 location.hash === '#sync' 负责滚过去并聚焦）。
+      // window.open 必须同步发生在这次点击里（见 options.js 的「重看引导」那段）。
+      $('ob-cta').onclick = () => {
+        try {
+          window.open(chrome.runtime.getURL('options/options.html') + '#sync', '_blank');
+        } catch (_) { try { chrome.runtime.openOptionsPage(); } catch (__) {} }
+        // 它同时是前进键，和 try 屏、App 的 ext 屏同一条规矩：这一屏的主行动会把人
+        // 带去另一个标签，不前进的话他回来看到的还是这一屏。
+        if (at < OB.length - 1) { at += 1; paint(); } else finish();
+      };
+      // 这一屏原来并排着「打开设置去登录」和「继续」，而「继续」看不出跟登录是什么
+      // 关系 —— 是已经登录了？还是跳过登录？2026-09-01 用户在真机上问的正是这句。
+      // 现在两个按钮的差别只有一件事：要不要现在去登录。都会前进到下一屏。
+      $('ob-next').textContent = t('extob_sync_later', '以后再说');
+      // 「以后再设置」在这一屏是第三种「跳过」，与上面那个同义。藏掉。
+      $('ob-skip').hidden = true;
       $('ob-cta-note').hidden = false;
       // 只说 App 真正独有的两件事。**不要**把「跨设备同步」写成 App 独有 ——
       // 扩展↔扩展也有，那是假话。
