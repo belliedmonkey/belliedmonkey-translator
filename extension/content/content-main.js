@@ -80,6 +80,74 @@
         detail: { version: el.dataset.mtExtension },
       }));
     } catch (_) { /* 探测标记失败绝不能影响翻译本身 */ }
+
+    // ── 试翻页上的「下一步：登录并同步到 App」──────────────────────────────
+    //
+    // 页面只发一个**空容器**（scripts/gen-try-pages.js 生成的 #mt-next-review），
+    // 文案与按钮全由这里填。三个理由：
+    //   1. 文案跟随用户在**扩展里**选的界面语言（11 份），不是站点的 8 份；
+    //   2. 没装扩展时它不可能出现 —— 空容器里什么都没有；
+    //   3. 它要读 learnEnabled 才能说对话，而那是扩展这边的状态。
+    //
+    // ⚠️ **不读、也不许读 learnAuth**（learning-design §8.4.1：内容脚本只读显式键
+    // 列表，learnAuth 永不加入任何一份）。所以这个块**不知道用户登没登录**，它也不
+    // 假装知道 —— 它把人送到复习页，登录状态由那一页自己讲。
+    //
+    // 为什么主行动是复习页而不是设置页：复习页**打开就是一次强制同步**
+    // （review.js 的 ENTRY），一步同时完成「看到你的卡」和「把它们推上去」。
+    // 而在这之前，全仓只有复习页和设置页两个入口级触发点 —— 只翻译、不开那两页的人，
+    // 服务器上永远是空的，App 里就永远没卡。
+    //
+    // 中国版站点（.com）不发这个容器：那个 flavor 的扩展 sync 是关的，给了就是死路。
+    try { paintSiteHandoff(cfg.learnEnabled); } catch (_) {}
+  }
+
+  function paintSiteHandoff(learnOn) {
+    const box = document.getElementById('mt-next-review');
+    if (!box || box.childElementCount) return;      // 容器不在，或已经填过
+    const T = (k, fb) => TranslationCore.t(k, fb);
+    const mk = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    };
+    // 排版借站点自己的 CSS 变量，**不写死任何十六进制** —— build.js 的调色板门禁会
+    // 拦下注册表不认识的颜色，而页面注入的样式正是它盯着的那一类。
+    box.style.cssText = 'margin-top:28px;padding-top:22px;border-top:1px solid var(--line)';
+    box.appendChild(mk('h2', null, T('site_next_title', '译文出来了。下一步：让它们到手机上')));
+    box.appendChild(mk('p', 'sub', learnOn
+      // 采集开着：卡已经在攒了，缺的只是同步。
+      ? T('site_next_body', '你停下来读完的句子已经存成复习卡，就在这台设备上。登录之后它们才会同步到手机 App —— 不登录也能一直用，只是 App 那边会是空的。')
+      // 采集关着：先说清楚没有卡这件事，否则下面那个按钮把人送到一个空页面。
+      : T('site_next_body_off', '「采集学习材料」还没打开，所以现在还不会产生复习卡。先在扩展设置里打开它，读过的句子才会存下来。')));
+    const cta = mk('button', 'btn btn-primary', learnOn
+      ? T('site_next_cta', '打开复习页')
+      : T('site_next_cta_off', '去打开采集'));
+    cta.type = 'button';
+    // <button> 自带 UA 边框/背景/字体，会跟站点的 .btn 打架。
+    cta.style.cssText = 'border:0;cursor:pointer;font:inherit';
+    cta.addEventListener('click', () => {
+      // 导航到扩展页：两个目标都在 web_accessible_resources 且 matches 是 <all_urls>，
+      // 否则浏览器会拒绝这次导航（Safari 报「网址无效」，#67）。
+      // test/web-accessible.test.js 静态守着这一条。
+      // 两个字面量各自直接写在 getURL 里，**不要**写成 getURL(cond ? a : b) ——
+      // test/web-accessible.test.js 是静态扫 getURL('…') 的字面量，三元写法会让这两个
+      // 目标从那道门禁的视野里消失，而它守的正是「导航到没列进清单的扩展页会被拒绝」。
+      const url = learnOn
+        ? chrome.runtime.getURL('learn/review.html')
+        : chrome.runtime.getURL('options/options.html');
+      try { window.open(url, '_blank'); } catch (_) { location.href = url; }
+    });
+    box.appendChild(cta);
+    if (learnOn) {
+      const a = mk('a', null, T('site_next_signin', '直接去登录 →'));
+      a.href = chrome.runtime.getURL('options/options.html') + '#sync';
+      a.target = '_blank';
+      a.style.cssText = 'display:inline-block;margin-left:16px';
+      box.appendChild(a);
+    }
+    box.hidden = false;
   }
 
   const isYouTube = /(youtube\.com|youtube-nocookie\.com)/.test(location.hostname);

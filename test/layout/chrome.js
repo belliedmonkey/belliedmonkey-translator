@@ -24,7 +24,11 @@ function findChrome() {
   return null;
 }
 
-async function launchChrome() {
+// extraArgs: 额外的 Chrome 启动参数。目前唯一的用途是 --host-resolver-rules ——
+// 官网交接那道门禁必须让页面**真的**跑在 belliedmonkey.cc 这个主机名上，因为内容
+// 脚本的判据是 location.hostname（那是安全边界，不是配置，见 content-main.js）。
+// 在 127.0.0.1 上测等于测了另一条分支。
+async function launchChrome(extraArgs) {
   const bin = findChrome();
   if (!bin) {
     // Hard fail, never a silent skip — a gate that silently goes green rots.
@@ -42,6 +46,7 @@ async function launchChrome() {
     '--remote-debugging-port=0',
     '--enable-unsafe-extension-debugging', // newer Chrome gates CDP Extensions.loadUnpacked behind this; older builds ignore it
     '--window-size=1300,900',
+    ...(Array.isArray(extraArgs) ? extraArgs : []),
     // Headless by default (no focus-stealing window; works on displayless boxes).
     // MT_LAYOUT_HEADED=1 opts into a visible window for --keep debugging.
     ...(process.env.MT_LAYOUT_HEADED ? [] : ['--headless=new']),

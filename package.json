@@ -26,9 +26,10 @@
     "models": "node scripts/gen-model-recommendations.js",
     "acct": "node scripts/test-account.js",
     "test:sync": "node scripts/verify-sync-consistency.js",
-    "test:setup-page": "node scripts/verify-setup-page.js",
+    "test:setup-page": "node scripts/gen-try-pages.js --check && node scripts/verify-setup-page.js",
     "test:onboard": "node scripts/verify-onboard.js dist && node scripts/verify-onboard.js dist-china",
-    "test:wipe": "node scripts/verify-wipe.js dist && node scripts/verify-wipe.js dist-china"
+    "test:wipe": "node scripts/verify-wipe.js dist && node scripts/verify-wipe.js dist-china",
+    "test:handoff": "node scripts/verify-site-handoff.js"
   },
   "engines": {
     "node": ">=18.0.0"

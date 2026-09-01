@@ -295,10 +295,9 @@ async function init() {
   });
   (async () => {
     try {
-      // The popup does NOT run the account→database policy: it does not load
-      // auth.js (that would drag the backend config into a surface whose whole
-      // job is to paint a number fast). It FOLLOWS the decision another surface
-      // already made and persisted, which is one storage read.
+      // 库的选择仍然是**跟随**，不是决策：弹窗读 learnActiveDb，照别的面已经做过
+      // 并落盘的决定走。（bindCorpus 那条策略仍然不在这里跑 —— 它要读会话、要判
+      // 认领，属于「有界面负责解释结果」的那类动作。）
       try {
         const r = await PageSettings.read(['learnActiveDb']);
         if (r.ok && r.data.learnActiveDb) await LearnStore.useDb(r.data.learnActiveDb);
@@ -308,6 +307,28 @@ async function init() {
       const due = LearnScheduler.dueCount(items, Date.now());
       const el = $('review-count');
       if (el) el.textContent = due > 0 ? String(due) : '';
+
+      // ── 弹窗也是一次心跳（§8.8）────────────────────────────────────────
+      //
+      // 在**画完数字之后**才发起，永不挡在它前面 —— 这一面的第一职责仍然是快点
+      // 给出那个数。
+      //
+      // 为什么非加不可：在这之前，全仓只有复习页与设置页两个入口级触发点。
+      // 一个装好扩展、天天在网页上翻译、采集攒了几百张卡、但从没点开过那两页的人，
+      // 服务器上是空的 —— 于是他在 App 里看到「同步完成，但服务器上还没有内容」，
+      // 而他确实什么都没做错。弹窗是他最常点的那一面。
+      //
+      // **不带 force**：受 autoSync 自己的 10 分钟节流，且未登录时它在
+      // `if (!t)` 那一行就返回，不发任何请求、不碰 IndexedDB。
+      //
+      // 代价，如实记：弹窗一关 JS 就死，push 可能被打断。后果是下次重推 ⇒ 服务器上
+      // 多一条 chunk 行（append-only，replay 幂等），**不是数据损坏**；水位线
+      // syncPushedAt 是全有或全无，被打断时不推进。这与 §8.8 规则 1「用户没主动
+      // 发起的运行不许打断他」一致 —— 所以它 catch 掉一切，界面上不留任何痕迹。
+      if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled
+          && typeof LearnSync !== 'undefined') {
+        LearnSync.autoSync(Date.now()).catch(() => {});
+      }
     } catch (_) { /* silent + total */ }
   })();
 

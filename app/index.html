@@ -79,11 +79,11 @@
     </section>
 
     <!-- 首次运行引导（§引导）。
-         设计稿里是九屏，这里只落六屏 —— 另外三屏 App 做不到：配翻译引擎、
+         设计稿里是九屏，这里只落四到五屏 —— 另外几屏 App 做不到：配翻译引擎、
          打开采集、看第一张卡，全都发生在扩展那一侧，而 App 与扩展**不共享存储**
          （app/chrome-shim.js 把 chrome.storage 垫在 localStorage 上）。
          在 App 里画一个引擎选择器或采集开关，设了也是空转 —— 那比不给更糟。
-         所以这六屏的职责是：讲清楚闭环、设能设的（learnRules 经同步生效）、
+         所以这几屏的职责是：讲清楚闭环、设能设的（learnRules 经同步生效）、
          把人送到 Safari，然后如实交代还要在浏览器里做什么。 -->
     <section id="onboard" hidden>
       <div id="ob-bar"><div id="ob-fill"></div></div>
@@ -99,7 +99,6 @@
       <div id="ob-foot">
         <button id="ob-prefs" type="button" hidden></button>
         <button id="ob-setup" type="button" class="secondary" hidden></button>
-        <button id="ob-guide" type="button" class="secondary" hidden></button>
         <button id="ob-next" type="button"></button>
         <button id="ob-skip" type="button" class="link"></button>
       </div>

@@ -1137,8 +1137,10 @@ async function init() {
   let learnRules = s.learnRules || null;
 
   async function writeRules(mutate) {
-    const base = learnRules || { v: 1, block: [], langs: null };
-    learnRules = Object.assign({}, base, mutate(base), { v: 1, updatedAt: Date.now() });
+    // 成形只有一处（LearnRules.withUpdate）—— 这段逻辑曾经被抄了四份，第四份漏了
+    // updatedAt，于是那台设备的规则永远输给远端、也永远推不上去，全程零报错。
+    const base = learnRules;
+    learnRules = LearnRules.withUpdate(base, mutate(base || { v: 1, block: [], langs: null }));
     await new Promise((r) => chrome.storage.local.set({ learnRules }, r));
     renderGovernance();
     // A deliberate rules edit deserves a prompt push (rides the next chunk, §8.9).
@@ -1254,6 +1256,10 @@ async function init() {
     if (code === 'signed_out') return t('sync_err_signed_out', '登录已失效，请重新登录。');
     if (code === 'enc_unsupported') return t('sync_err_upgrade', '云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级扩展后再同步——那些内容没有丢，只是暂时读不了。');
     if (code === 'rate_limited') return t('sync_err_rate', '验证码发得太频繁了，等几分钟再试。');
+    // 归属闸的两个 code（sync.js 的 ownerGate）。少了这两行，它们会以英文 code 原文
+    // 落到用户眼前 —— 下面那个 e.message 是兜底，不是文案。
+    if (code === 'owner_mismatch') return t('sync_err_owner_mismatch', '这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或先清除本机全部数据再重来。');
+    if (code === 'owner_unknown') return t('sync_err_owner_unknown', '这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。');
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
 
@@ -1372,6 +1378,20 @@ async function init() {
   LearnSync.autoSync().then((r) => {
     if (r) return Promise.all([refreshLearnStats(), refreshPressure(), refreshSyncUI()]);
   }).catch(() => {});
+
+  // #sync 锚点。别处（引导页、复习页那行「未登录」、官网试翻页的下一步块）把人往
+  // 登录送时，落点必须是**看得见的登录框**，而不是页面顶部 —— 送到顶部等于让人
+  // 在一页设置里自己找，那正是这条路原来断掉的方式。
+  // 用 scrollIntoView 而不是靠浏览器的原生锚点跳转：这一页的卡片在 paint 之后才
+  // 定位，原生跳转发生在那之前，落点会偏。
+  if (location.hash === '#sync') {
+    const sec = $('sync-section');
+    if (sec) {
+      try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
+      const email = $('sync-email');
+      if (email && !email.hidden) { try { email.focus(); } catch (_) {} }
+    }
+  }
   }   // end if (MT_BACKEND.enabled)
 
   $('btn-clear-cache').addEventListener('click', busy($('btn-clear-cache'), async () => {
@@ -1471,6 +1491,8 @@ async function init() {
       // 配过的回显出来。一个空输入框在已经配好的页面上是假话：它看起来像「你还没配」，
       // 而此刻唯一能做的动作（粘一把新 key）会覆盖掉现有配置。
       prefill: _quickShows ? { host: _quickShows.host, key: s0.apiKey } : null,
+      // 「现在翻一页看看」按目标语言选示例页。传 s0 的快照够用：改目标语言会重画这一页。
+      targetLang: s0.targetLang,
       // 读不到已存设置时不许配：往一份读不出来的档案上盖三组配置，正是
       // settings_read_failed 那句警告存在的理由。
       disabled: _settingsReadFailed,

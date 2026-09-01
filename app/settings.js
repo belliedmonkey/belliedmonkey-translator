@@ -318,7 +318,7 @@ var AppSettings = (() => {
   async function writeRules(mutate) {
     const cur = await get(['learnRules']);
     const base = cur.learnRules || { v: 1, block: [], langs: null };
-    const next = Object.assign({}, base, mutate(base), { v: 1, updatedAt: Date.now() });
+    const next = LearnRules.withUpdate(base, mutate(base));
     await set({ learnRules: next });
     if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
       LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});

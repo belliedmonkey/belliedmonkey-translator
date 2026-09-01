@@ -96,6 +96,15 @@
   <script src="../content/learn-scheduler.js"></script>
   <script src="../learn/store.js"></script>
   <script src="../learn/drain.js"></script>
+  <!-- 同步四件套。**2026-09-01 推翻了「弹窗不加载 auth.js」那条决定**（理由写在
+       popup.js 的心跳那段）：那条决定的前提是「别的面会推」，而探查证明没有别的面
+       会推 —— 全仓只有复习页和设置页两个入口级触发点，只翻译、不开那两页的人，
+       服务器上永远是空的，App 里就永远没卡。
+       顺序照复习页：backend.config → auth → chunk → sync。 -->
+  <script src="../learn/backend.config.js"></script>
+  <script src="../learn/auth.js"></script>
+  <script src="../learn/chunk.js"></script>
+  <script src="../learn/sync.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

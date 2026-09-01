@@ -634,7 +634,7 @@
     "message": "Sync across devices"
   },
   "sync_section_hint": {
-    "message": "Optional. Everything works without signing in — once signed in, your library (including candidates) and review history sync both ways across your devices."
+    "message": "Optional. Everything works signed out — sync only lets you review on your phone what you read on your computer. Once signed in, the sentences you captured (including candidates not yet in review) sync to your other devices and the phone app."
   },
   "sync_email": {
     "message": "Email"
@@ -1702,9 +1702,6 @@
   "app_ext_open_setup": {
     "message": "Finish setup on the web"
   },
-  "app_ob_open_guide": {
-    "message": "Open the setup guide"
-  },
   "app_signin_why": {
     "message": "Cards are captured by the browser extension. To review them on this device, sign in so they can sync over."
   },
@@ -1944,5 +1941,41 @@
   },
   "toast_wipe_failed": {
     "message": "Not fully erased — please try again"
+  },
+  "app_sync_empty_who": {
+    "message": "Sync finished, but there is nothing under {email} yet. If you captured sentences in the browser extension, check that it is signed in with the same email."
+  },
+  "app_owner_mismatch": {
+    "message": "The corpus on this device belongs to a different account. Sign in with that email, or erase this device's data in the extension settings and start over."
+  },
+  "app_owner_unknown": {
+    "message": "The corpus on this device has an owner, but you are not signed in. Sign in to keep syncing."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "The corpus on this device belongs to a different account. Sign in with that email, or erase all data on this device and start over."
+  },
+  "sync_err_owner_unknown": {
+    "message": "The corpus on this device has an owner, but you are not signed in. Sign in to keep syncing."
+  },
+  "app_err_upgrade": {
+    "message": "The cloud has content this version cannot read yet (probably from a newer extension). Update the app, then sync again — nothing is lost, it is just unreadable for now."
+  },
+  "site_next_title": {
+    "message": "It translated. Next: get these onto your phone"
+  },
+  "site_next_body": {
+    "message": "The sentences you stopped to read are already review cards — on this device. They reach the phone app only once you sign in. You can keep using everything signed out; the app will just be empty."
+  },
+  "site_next_body_off": {
+    "message": "“Collect learning material” is still off, so no cards are being made yet. Turn it on in the extension settings first."
+  },
+  "site_next_cta": {
+    "message": "Open the review page"
+  },
+  "site_next_cta_off": {
+    "message": "Turn on collecting"
+  },
+  "site_next_signin": {
+    "message": "Sign in now →"
   }
 }

@@ -634,7 +634,7 @@
     "message": "Sincronización entre dispositivos"
   },
   "sync_section_hint": {
-    "message": "Opcional. Todo funciona sin iniciar sesión — al iniciar sesión, tu biblioteca (incluidos los candidatos) y tu historial de repaso se sincronizan en ambos sentidos entre tus dispositivos."
+    "message": "Opcional. Todo funciona sin iniciar sesión: la sincronización solo sirve para repasar en el móvil lo que leíste en el ordenador. Al iniciar sesión, las frases recopiladas (incluidas las candidatas que aún no entraron en repaso) se sincronizan con tus otros dispositivos y con la app del móvil."
   },
   "sync_email": {
     "message": "Correo electrónico"
@@ -1702,9 +1702,6 @@
   "app_ext_open_setup": {
     "message": "Completar la configuración en la web"
   },
-  "app_ob_open_guide": {
-    "message": "Abrir la guía de configuración"
-  },
   "app_signin_why": {
     "message": "Las tarjetas las captura la extensión del navegador. Para repasarlas en este dispositivo, inicia sesión para que se sincronicen."
   },
@@ -1944,5 +1941,41 @@
   },
   "toast_wipe_failed": {
     "message": "No se borró del todo: inténtalo de nuevo"
+  },
+  "app_sync_empty_who": {
+    "message": "Sincronización completada, pero todavía no hay nada en {email}. Si recopilaste frases en la extensión del navegador, comprueba que allí esté iniciada la sesión con el mismo correo."
+  },
+  "app_owner_mismatch": {
+    "message": "El corpus de este dispositivo pertenece a otra cuenta. Inicia sesión con ese correo, o borra los datos de este dispositivo en los ajustes de la extensión y empieza de nuevo."
+  },
+  "app_owner_unknown": {
+    "message": "El corpus de este dispositivo tiene propietario, pero no has iniciado sesión. Inicia sesión para seguir sincronizando."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "El corpus de este dispositivo pertenece a otra cuenta. Inicia sesión con ese correo, o borra todos los datos de este dispositivo y empieza de nuevo."
+  },
+  "sync_err_owner_unknown": {
+    "message": "El corpus de este dispositivo tiene propietario, pero no has iniciado sesión. Inicia sesión para seguir sincronizando."
+  },
+  "app_err_upgrade": {
+    "message": "La nube tiene contenido que esta versión aún no puede leer (probablemente de una extensión más nueva). Actualiza la app y vuelve a sincronizar: no se ha perdido nada, solo es ilegible por ahora."
+  },
+  "site_next_title": {
+    "message": "Ha traducido. Ahora: llévalas al móvil"
+  },
+  "site_next_body": {
+    "message": "Las frases en las que te detuviste ya son tarjetas de repaso, en este dispositivo. Solo llegan a la app del móvil cuando inicias sesión. Todo funciona sin cuenta; simplemente la app estará vacía."
+  },
+  "site_next_body_off": {
+    "message": "«Recopilar material de estudio» sigue desactivado, así que todavía no se crean tarjetas. Actívalo primero en los ajustes de la extensión."
+  },
+  "site_next_cta": {
+    "message": "Abrir la página de repaso"
+  },
+  "site_next_cta_off": {
+    "message": "Activar la recopilación"
+  },
+  "site_next_signin": {
+    "message": "Iniciar sesión →"
   }
 }

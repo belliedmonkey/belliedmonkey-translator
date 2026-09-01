@@ -635,7 +635,7 @@
     "message": "多设备同步"
   },
   "sync_section_hint": {
-    "message": "可选。不登录也能完整使用——登录后，学习库（含候选）与复习记录会在你的设备之间双向同步。"
+    "message": "可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。登录之后，采集到的句子（含还没进复习的候选）会同步到你的其它设备和手机 App。"
   },
   "sync_email": {
     "message": "邮箱"
@@ -1703,9 +1703,6 @@
   "app_ext_open_setup": {
     "message": "在网页上完成设置"
   },
-  "app_ob_open_guide": {
-    "message": "打开配置教程"
-  },
   "app_signin_why": {
     "message": "卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。"
   },
@@ -1945,5 +1942,41 @@
   },
   "toast_wipe_failed": {
     "message": "没有清干净，请再试一次"
+  },
+  "app_sync_empty_who": {
+    "message": "同步完成，但 {email} 这个账号下还没有内容。如果你在浏览器扩展里采集过，确认那边登录的是同一个邮箱。"
+  },
+  "app_owner_mismatch": {
+    "message": "这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或在扩展的设置里清除本机数据后重来。"
+  },
+  "app_owner_unknown": {
+    "message": "这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或先清除本机全部数据再重来。"
+  },
+  "sync_err_owner_unknown": {
+    "message": "这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。"
+  },
+  "app_err_upgrade": {
+    "message": "云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级 App 后再同步——那些内容没有丢，只是暂时读不了。"
+  },
+  "site_next_title": {
+    "message": "译文出来了。下一步：让它们到手机上"
+  },
+  "site_next_body": {
+    "message": "你停下来读完的句子已经存成复习卡，就在这台设备上。登录之后它们才会同步到手机 App —— 不登录也能一直用，只是 App 那边会是空的。"
+  },
+  "site_next_body_off": {
+    "message": "「采集学习材料」还没打开，所以现在还不会产生复习卡。先在扩展设置里打开它，读过的句子才会存下来。"
+  },
+  "site_next_cta": {
+    "message": "打开复习页"
+  },
+  "site_next_cta_off": {
+    "message": "去打开采集"
+  },
+  "site_next_signin": {
+    "message": "直接去登录 →"
   }
 }

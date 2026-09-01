@@ -44,6 +44,21 @@
     if (code === 'network' || code === 'offline') return offline();
     if (code === 'invalid_credentials') return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (code === 'signed_out') return codeBad();
+    // 归属闸的两个 code（sync.js 的 ownerGate）。没有这两行时它们会以**英文 code
+    // 原文**出现在状态行 —— 下面那个 `return msg` 是兜底，不是文案。
+    if (code === 'owner_mismatch') {
+      return t('app_owner_mismatch', '这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或在扩展的设置里清除本机数据后重来。');
+    }
+    if (code === 'owner_unknown') {
+      return t('app_owner_unknown', '这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。');
+    }
+    // 这三个 App 侧同样会撞到（配额尤其：App 也推复习记录）。前两句与扩展逐字共用
+    // 同一个键 —— 它们的措辞与在哪个界面无关，抄第二份只会漂。
+    if (code === 'quota') return t('sync_err_quota', '云端空间已满，新内容暂时不再上传（本机不受影响）。清理已掌握的卡可以腾出空间。');
+    if (code === 'rate_limited') return t('sync_err_rate', '验证码发得太频繁了，等几分钟再试。');
+    // 升级的对象在两个界面上不是同一个东西（那边是扩展，这里是 App），所以这一句
+    // 必须有自己的键。
+    if (code === 'enc_unsupported') return t('app_err_upgrade', '云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级 App 后再同步——那些内容没有丢，只是暂时读不了。');
     const msg = String((e && e.message) || e);
     if (/invalid login credentials/i.test(msg)) return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (/expired|invalid|otp/i.test(msg)) return codeBad();
@@ -264,15 +279,6 @@
     }
   }
 
-  // 官网的启用教程页。地址按 flavor 走，与 extension/onboard/onboard.js 同一行 ——
-  // MT_FLAVOR 由 providers.gen.js 提供，app bundle 里同样带着它。
-  // 配置教程页：从注册表生成的六步（装扩展 → 拿 Key → 填 Key 并测连接 → 朗读 →
-  // 转写 → 翻一页确认），外加「把复习卡打开」那一节。
-  function guidePageUrl() {
-    const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
-    return 'https://' + host + '/guide.html';
-  }
-
   function setupPageUrl() {
     const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
     return 'https://' + host + '/setup.html';
@@ -321,7 +327,7 @@
 
   // ─── 首次运行引导（§引导）───────────────────────────────────────────────
   //
-  // 六屏，不是设计稿里的九屏。少掉的三屏（配翻译引擎 / 打开采集 / 看第一张卡）
+  // 四到五屏（不是设计稿里的九屏）。少掉的三屏（配翻译引擎 / 打开采集 / 看第一张卡）
   // App 做不到 —— 它们都在扩展那一侧，而两边存储不通。在这里画一个引擎选择器
   // 或采集开关，写下去也到不了扩展，是纯粹的假控件。
   //
@@ -332,13 +338,22 @@
   // 同一个控件在扩展引导的采集屏上就在开关旁边，那才是它该在的地方。
   // App 设置页里仍然改得了，只是不再占引导的一屏。
   const OB_SEEN = 'onboardSeen';
-  const OB = ['welcome', 'ext', 'browser', 'read', 'signin'];
+  // signin 屏按**同步有没有编进这个构建**取舍，与扩展引导的 OB 同一个写法
+  // （onboard.js 的 syncOn）。中国版扩展的登录入口是被整节 remove 掉的
+  // （options.js 的 `if (!MT_BACKEND.enabled)`），所以那一屏那句「扩展里也要登录
+  // 一次」把人送去一个不存在的地方 —— 引导里的第二条死路。
+  // 判据按**值**不按 flavor 名：interaction-spec「不存在的功能不许长死状态条」。
+  // ⚠️ 中国版**App** 的 MT_BACKEND.enabled 仍是 true（backend.config.js 里明写的
+  // 不对称：App Review Route A 需要密码登录），所以今天这个分支在出货产物里不触发。
+  // 它守的是「哪天 App 侧也关掉同步」，那时这一屏必须跟着消失，而不是留在那里。
+  const OB = ['welcome', 'ext', 'browser', 'read']
+    .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : []);
   let obAt = 0;
 
   function obPaint() {
     const step = OB[obAt];
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-guide']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').hidden = false;   // 只有 'ext' 屏藏它，别的屏要放回来
     $('ob-next').textContent = obAt === OB.length - 1
@@ -388,13 +403,13 @@
           t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
         [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
       ]);
-      // 这一屏原本是死胡同：它说「这两个开关在扩展自己的设置页里」，却没说怎么到
-      // 那儿。这两件事 App 确实做不到 —— Key 跨过去就意味着它离开设备经我们的服务器
-      // （产品的核心承诺正好相反），采集开关跨过去也只在登录后生效、中国版扩展还
-      // 永远收不到（那个 flavor 的 sync 是关的）。做不到就别假装，把人送到讲得清楚
-      // 的那一页。
-      $('ob-guide').hidden = false;
-      $('ob-guide').textContent = t('app_ob_open_guide', '打开配置教程');
+      // **这一屏不再给外链。** 上一屏（ext）已经有「在网页上完成设置」把人送去官网了；
+      // 这里再放一个「打开配置教程」是第二个竞争入口，而且它去的是另一页。同一条
+      // 裁定在扩展那边已经下过一次：没设置好就该去网站设置，不该再有别的按钮分散
+      // 注意力（2026-09-01 用户对着真机截图指出）。
+      // 这两件事 App 确实做不到 —— Key 跨过去就意味着它离开设备经我们的服务器
+      // （产品的核心承诺正好相反），采集开关跨过去也只在登录后生效。做不到就别假装，
+      // 但「说清楚」不等于「再给一个链接」。
     } else if (step === 'read') {
       $('ob-title').textContent = t('ob_read_title', '去读一篇');
       $('ob-text').textContent = t('ob_read_body',
@@ -631,9 +646,16 @@
         // counts beside it read 11 — i.e. the app announced data loss every time
         // sync worked perfectly. Distinguish by whether anything is actually here.
         const stats = await LearnStore.stats();
+        // 空态那句话原来是「先在浏览器里采集一些，再回来同步」。在最常见的触发场景里
+        // 它是**反过来指责用户**：扩展登 A、App 登 B 时 RLS 返回 0 行，而他已经采集
+        // 了一周。两端的账号从不并排出现在同一个屏幕上，他无从发现自己登了两个号。
+        // 所以这句话现在**带上这台设备登的是谁**，把可对比的事实交到他手上。
+        const who = (currentSession && currentSession.email) || '';
         say(stats.total
           ? t('app_up_to_date', '已经是最新的。')
-          : t('app_sync_empty', '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。'));
+          : (who
+            ? t('app_sync_empty_who', '同步完成，但 {email} 这个账号下还没有内容。如果你在浏览器扩展里采集过，确认那边登录的是同一个邮箱。').replace('{email}', who)
+            : t('app_sync_empty', '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。')));
       }
     } catch (err) {
       say(humanError(err), true);
@@ -752,7 +774,6 @@
     // 的人）会被卡在这一屏，后面三屏只能靠「以后再设置」整个跳过。
     if (OB[obAt] === 'ext' && obAt < OB.length - 1) { obAt += 1; obPaint(); }
   });
-  $('ob-guide').addEventListener('click', () => openExternal(guidePageUrl()));
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // Both of review.html's settings links, captured so review.js's own handler (which

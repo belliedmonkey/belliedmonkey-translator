@@ -69,7 +69,14 @@
   // （build.js 在构建时翻的），所以那一屏自动消失、进度条分母自动变 4 ——
   // **这是免费的正确性**：那个值本来就是 flavor 正确的，不需要在这里判 flavor 名。
   const syncOn = !!(window.MT_BACKEND && window.MT_BACKEND.enabled);
-  const OB = ['welcome', 'engine', 'capture', 'try'].concat(syncOn ? ['sync'] : []);
+  // 屏序：sync **排在 try 之前**。
+  //
+  // try 屏是**终止屏** —— 它唯一的按钮开一个新标签（onboard.js 下面那段），人就走了，
+  // 引导这个标签留在背后，第 5 屏再也不会被看见。原来 sync 排在 try 之后，于是
+  // 「扩展里唯一提登录的地方」在真实使用中等于不存在（2026-09-01 用户在真机上走完
+  // 整条引导，从没见过它）。
+  // sync 在前也更顺：登录是「配好之后、去用之前」的最后一件配置，而 try 是「去用」。
+  const OB = ['welcome', 'engine', 'capture'].concat(syncOn ? ['sync'] : []).concat(['try']);
   let at = 0;
   let settings = {};
   let learnRules = null;
@@ -101,6 +108,10 @@
 
   function paint() {
     const step = OB[at];
+    // 把当前步骤 id 挂到 DOM 上。门禁原来靠「第一个带 CTA 的屏」来认 try 屏 ——
+    // 那是个代理，2026-09-01 把 sync 挪到 try 前面时它就指错了屏，而断言照样在跑。
+    // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
+    try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
     for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
@@ -138,13 +149,14 @@
       $('ob-next').hidden = true;
       $('ob-skip').hidden = true;
       $('ob-cta').onclick = () => {
-        // 地址走 QuickSetup.siteUrl —— 设置页的「现在翻一页看看」去的是同一页，
-        // 两处各写一份 flavor→域名 的映射迟早会漂。
-        window.open(QuickSetup.siteUrl('/setup.html'), '_blank', 'noopener');
-        // 它同时是前进键：这一屏没有别的出口，不然点了它的人（也就是照做的人）
-        // 会卡在这里，后面那屏（登录同步）再也到不了。中国版没有那一屏，这里就是
-        // 收尾 —— 必须走 finish()，否则 extObSeen 不写，弹窗会一直提示「第一次用？」。
-        if (at < OB.length - 1) { at += 1; paint(); } else finish();
+        // 地址走 QuickSetup.tryUrl —— 设置页的「现在翻一页看看」去的是同一页，
+        // 两处各写一份 flavor→域名 的映射迟早会漂。按**目标语言**选页：目标是英文的
+        // 人打开一页英文示例，看到的是英文翻英文。
+        window.open(QuickSetup.tryUrl(settings.targetLang), '_blank', 'noopener');
+        // 它同时是收尾键。try 现在**永远是最后一屏**（见上面 OB 的注释：它是终止屏，
+        // 点下去人就去了另一个标签），所以这里必须 finish() —— 否则 extObSeen 不写，
+        // 弹窗会一直提示「第一次用？」。
+        finish();
       };
     } else if (step === 'sync') {
       $('ob-title').textContent = t('extob_sync_title', '换台设备接着复习');
@@ -288,8 +300,15 @@
       // 必须把 promise 交回去：SourcesView 的 lock() 靠它决定 chip 何时重新可点，
       // 丢掉它会重开「两次快点丢一个语言」那个竞态（options.js:1106-1109 的疤）。
       onChange: (langs) => {
-        learnRules = Object.assign({}, learnRules, { langs });
-        return storageSet({ learnRules });
+        // 两处曾经都错：
+        //   · 成形 —— 原来是 Object.assign({}, learnRules, { langs })，v 与 updatedAt
+        //     都没写。缺 updatedAt 的记录在 §8.9 里是「远古」：永远输给任何远端，也
+        //     永远不会被推上去（sync.js 的 rulesDue 判据是 updatedAt > since）。
+        //   · 不重画 —— SourcesView 的 chip 只上报，不自己翻状态（渲染由宿主负责，
+        //     见 render() 那段注释）。设置页写完会 renderGovernance()，引导页什么都没做，
+        //     于是点了存进去了、界面一动不动 —— 用户看到的就是「选语言没有反应」。
+        learnRules = LearnRules.withUpdate(learnRules, { langs });
+        return storageSet({ learnRules }).then(() => renderChips());
       },
     });
   }

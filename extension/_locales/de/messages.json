@@ -634,7 +634,7 @@
     "message": "Geräteübergreifende Synchronisierung"
   },
   "sync_section_hint": {
-    "message": "Optional. Alles funktioniert ohne Anmeldung — nach der Anmeldung werden deine Bibliothek (einschließlich Kandidaten) und dein Wiederholungsverlauf in beide Richtungen zwischen deinen Geräten synchronisiert."
+    "message": "Optional. Alles funktioniert auch abgemeldet — die Synchronisierung sorgt nur dafür, dass Sie auf dem Handy wiederholen können, was Sie am Computer gelesen haben. Nach der Anmeldung werden die erfassten Sätze (auch die noch nicht in der Wiederholung befindlichen Kandidaten) mit Ihren anderen Geräten und der Handy-App synchronisiert."
   },
   "sync_email": {
     "message": "E-Mail"
@@ -1702,9 +1702,6 @@
   "app_ext_open_setup": {
     "message": "Einrichtung im Web abschließen"
   },
-  "app_ob_open_guide": {
-    "message": "Einrichtungsanleitung öffnen"
-  },
   "app_signin_why": {
     "message": "Karten werden von der Browser-Erweiterung gesammelt. Zum Wiederholen auf diesem Gerät musst du dich anmelden, damit sie synchronisiert werden."
   },
@@ -1944,5 +1941,41 @@
   },
   "toast_wipe_failed": {
     "message": "Nicht vollständig gelöscht — bitte erneut versuchen"
+  },
+  "app_sync_empty_who": {
+    "message": "Synchronisierung abgeschlossen, aber unter {email} gibt es noch nichts. Falls Sie in der Browser-Erweiterung Sätze erfasst haben, prüfen Sie, ob dort dieselbe E-Mail-Adresse angemeldet ist."
+  },
+  "app_owner_mismatch": {
+    "message": "Die Sammlung auf diesem Gerät gehört zu einem anderen Konto. Melden Sie sich mit jener E-Mail-Adresse an, oder löschen Sie die Daten dieses Geräts in den Einstellungen der Erweiterung und beginnen Sie neu."
+  },
+  "app_owner_unknown": {
+    "message": "Die Sammlung auf diesem Gerät hat einen Eigentümer, aber Sie sind nicht angemeldet. Melden Sie sich an, um weiter zu synchronisieren."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "Die Sammlung auf diesem Gerät gehört zu einem anderen Konto. Melden Sie sich mit jener E-Mail-Adresse an, oder löschen Sie alle Daten auf diesem Gerät und beginnen Sie neu."
+  },
+  "sync_err_owner_unknown": {
+    "message": "Die Sammlung auf diesem Gerät hat einen Eigentümer, aber Sie sind nicht angemeldet. Melden Sie sich an, um weiter zu synchronisieren."
+  },
+  "app_err_upgrade": {
+    "message": "In der Cloud liegen Inhalte, die diese Version noch nicht lesen kann (vermutlich aus einer neueren Erweiterung). Aktualisieren Sie die App und synchronisieren Sie erneut — nichts ist verloren, es ist nur vorerst nicht lesbar."
+  },
+  "site_next_title": {
+    "message": "Es hat übersetzt. Als Nächstes: aufs Handy damit"
+  },
+  "site_next_body": {
+    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — auf diesem Gerät. In die Handy-App gelangen sie erst nach der Anmeldung. Abgemeldet funktioniert alles; die App bleibt dann nur leer."
+  },
+  "site_next_body_off": {
+    "message": "„Lernmaterial sammeln“ ist noch aus, es entstehen also noch keine Karten. Schalten Sie es zuerst in den Einstellungen der Erweiterung ein."
+  },
+  "site_next_cta": {
+    "message": "Wiederholungsseite öffnen"
+  },
+  "site_next_cta_off": {
+    "message": "Sammeln einschalten"
+  },
+  "site_next_signin": {
+    "message": "Jetzt anmelden →"
   }
 }

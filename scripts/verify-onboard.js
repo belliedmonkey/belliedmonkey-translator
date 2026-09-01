@@ -58,6 +58,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       // 把它送上了 App Store。问「用户看不看得见」只有 getClientRects 答得了。
       const s=await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
         return JSON.stringify({
+        step:(document.body&&document.body.dataset&&document.body.dataset.obStep)||'',
         title:(document.getElementById('ob-title')||{}).textContent||'',
         text:(document.getElementById('ob-text')||{}).textContent||'',
         w:(document.getElementById('ob-fill')||{style:{}}).style.width,
@@ -108,6 +109,16 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     }
     console.log(`  屏数: ${seen.length}`);
     seen.forEach((s,i)=>console.log(`    ${i+1}. ${s.w.padStart(4)} ${s.title.slice(0,26).padEnd(28)}${s.quick?'[一键]':''}${s.manual?'[三引擎]':''}${s.capture?'[采集]':''}${s.cta?'[按钮]':''}`));
+    // 屏**序**，不只是屏数。这一轮的 bug 正是顺序：sync 排在 try 之后，而 try 是终止屏
+    // （它唯一的按钮开新标签，人就走了），于是「扩展里唯一提登录的地方」在真实使用中
+    // 等于不存在 —— 而屏数是对的，5 屏一个不少，旧断言全绿。
+    // try 必须是最后一屏：任何排在它后面的屏都到不了。
+    const order = seen.map(s=>s.step).join(' → ');
+    const want = DIST==='dist-china'
+      ? 'welcome → engine → capture → try'
+      : 'welcome → engine → capture → sync → try';
+    if(order!==want) fail(`屏序是 ${order}，期望 ${want}`);
+    else pass(`屏序 ${want}`);
     const expect = DIST==='dist-china'?4:5;
     if(seen.length!==expect) fail(`屏数 ${seen.length}，期望 ${expect}`); else pass(`屏数 ${expect} —— 与 flavor 相符`);
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
@@ -204,7 +215,10 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
 
     // 「现在翻一页看看」那一屏只该有一个按钮。配好了就去看，而「继续」（配好了但
     // 不去看）和「以后再设置」（配好了但不用）都在跟它抢注意力。
-    const tryScreen = seen.find(s=>s.cta && !s.quick && !s.capture);
+    // 按**页面自报的步骤 id** 认屏，不靠「长得像」。原来的判据是「第一个带 CTA 且
+    // 没有一键卡/采集的屏」—— sync 屏同样满足它，于是 sync 排到 try 前面之后，这条
+    // 断言就悄悄改成在考 sync 屏了（它有 3 个按钮，理应如此）。
+    const tryScreen = seen.find(s=>s.step==='try');
     if(!tryScreen) fail('找不到「翻一页看看」那一屏');
     else if(tryScreen.acts !== 1)
       fail(`「翻一页看看」那屏有 ${tryScreen.acts} 个可点按钮，期望 1（只留「打开示例页面」）`);

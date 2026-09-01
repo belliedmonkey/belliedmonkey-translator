@@ -635,7 +635,7 @@
     "message": "多裝置同步"
   },
   "sync_section_hint": {
-    "message": "可選。不登入也能完整使用——登入後，學習庫（含候選）與複習記錄會在你的裝置之間雙向同步。"
+    "message": "可選。不登入也能完整使用——同步只是讓你在手機上複習電腦上讀到的句子。登入之後，擷取到的句子（含還沒進複習的候選）會同步到你的其它裝置和手機 App。"
   },
   "sync_email": {
     "message": "電子郵件"
@@ -1703,9 +1703,6 @@
   "app_ext_open_setup": {
     "message": "在網頁上完成設定"
   },
-  "app_ob_open_guide": {
-    "message": "開啟設定教學"
-  },
   "app_signin_why": {
     "message": "卡片是瀏覽器擴充功能採集的。要在這台裝置上複習，就得登入同步過來。"
   },
@@ -1945,5 +1942,41 @@
   },
   "toast_wipe_failed": {
     "message": "沒有清乾淨，請再試一次"
+  },
+  "app_sync_empty_who": {
+    "message": "同步完成，但 {email} 這個帳號下還沒有內容。如果你在瀏覽器擴充功能裡擷取過，確認那邊登入的是同一個信箱。"
+  },
+  "app_owner_mismatch": {
+    "message": "這台裝置上的學習庫屬於另一個帳號。用原來那個信箱登入，或在擴充功能的設定裡清除本機資料後重來。"
+  },
+  "app_owner_unknown": {
+    "message": "這台裝置上的學習庫有歸屬，但現在沒有登入。登入之後才能繼續同步。"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "這台裝置上的學習庫屬於另一個帳號。用原來那個信箱登入，或先清除本機全部資料再重來。"
+  },
+  "sync_err_owner_unknown": {
+    "message": "這台裝置上的學習庫有歸屬，但現在沒有登入。登入之後才能繼續同步。"
+  },
+  "app_err_upgrade": {
+    "message": "雲端有這個版本還讀不了的內容（可能來自更新版本的擴充功能）。請升級 App 後再同步——那些內容沒有遺失，只是暫時讀不了。"
+  },
+  "site_next_title": {
+    "message": "譯文出來了。下一步：讓它們到手機上"
+  },
+  "site_next_body": {
+    "message": "你停下來讀完的句子已經存成複習卡，就在這台裝置上。登入之後它們才會同步到手機 App —— 不登入也能一直用，只是 App 那邊會是空的。"
+  },
+  "site_next_body_off": {
+    "message": "「擷取學習材料」還沒打開，所以現在還不會產生複習卡。先在擴充功能設定裡打開它，讀過的句子才會存下來。"
+  },
+  "site_next_cta": {
+    "message": "打開複習頁"
+  },
+  "site_next_cta_off": {
+    "message": "去打開擷取"
+  },
+  "site_next_signin": {
+    "message": "直接去登入 →"
   }
 }

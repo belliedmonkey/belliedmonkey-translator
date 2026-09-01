@@ -125,9 +125,7 @@
         const rules = await readRules();
         const base = rules || { v: 1, block: [], langs: null };
         if ((base.block || []).indexOf(host) < 0) {
-          const next = Object.assign({}, base, {
-            v: 1, block: (base.block || []).concat([host]), updatedAt: Date.now(),
-          });
+          const next = LearnRules.withUpdate(base, { block: (base.block || []).concat([host]) });
           await new Promise((r) => chrome.storage.local.set({ learnRules: next }, r));
           if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
             LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});

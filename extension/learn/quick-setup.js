@@ -114,6 +114,20 @@ var QuickSetup = (() => {
     return 'https://' + (flavor === 'china' ? 'belliedmonkey.com' : 'belliedmonkey.cc') + (path || '/');
   }
 
+  // 「现在翻一页看看」的落点。**按目标语言分页** —— 示例段落的价值在于「这段你读不顺，
+  // 翻一下就顺了」，而把目标语言设成 English 的人打开一页英文示例，看到的是英文翻英文，
+  // 什么都证明不了（2026-09-01 用户在真机上走到这一步时提的）。
+  //
+  // 页面由 scripts/gen-try-pages.js 从 build/try-pages.config.js 生成，目标语言全集
+  // 与设置页那个下拉逐条一致（test/try-pages.test.js 钉住）。
+  // 认不出的目标语言**回落 setup.html** —— 那一页永远存在，落一个 404 比落一页
+  // 语言不对的示例更糟。
+  const TRY_LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ar', 'pt', 'ru', 'it'];
+  function tryUrl(targetLang) {
+    const l = String(targetLang || '').trim();
+    return TRY_LANGS.indexOf(l) >= 0 ? siteUrl('/try/' + l + '.html') : siteUrl('/setup.html');
+  }
+
   const has = (v) => !!String(v == null ? '' : v).trim();
 
   // ── 「空」的判据 ─────────────────────────────────────────────────────
@@ -401,7 +415,7 @@ var QuickSetup = (() => {
     tryNote.textContent = t('qs_try_note',
       '打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。');
     tryBtn.addEventListener('click', () => {
-      try { window.open(siteUrl('/setup.html'), '_blank', 'noopener'); } catch (_) {}
+      try { window.open(tryUrl(opts.targetLang), '_blank', 'noopener'); } catch (_) {}
     });
     wrap.append(tryNote, tryBtn);
 
@@ -526,7 +540,7 @@ var QuickSetup = (() => {
     }
   }
 
-  return { platforms, plan, summarize, state, represents, consistent, render, siteUrl, tryVisible, _eligible: eligible };
+  return { platforms, plan, summarize, state, represents, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

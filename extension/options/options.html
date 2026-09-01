@@ -287,10 +287,16 @@
       </section>
 
       <!-- 同步（可选）。不登录是默认状态，不是降级版本：本地学习功能完全一样。
-           learning-design.md §8。上行的只有已晋级的卡，候选池永不离开设备。 -->
-      <section class="card adv-only" id="sync-section">
+           learning-design.md §8。
+
+           ⚠️ **不带 adv-only。** 那个类是「逐引擎配置」那一档（与一键配置卡互斥，
+           见 interaction-spec 的「永不同屏」），而同步跟引擎配置毫无关系 —— 它当初
+           只是被顺手扫了进去。后果是：默认模式是「快速」（options.js 的 _detail 默认
+           false），于是**整个扩展里唯一的登录入口默认是藏起来的**，而引导页第 5 屏
+           偏偏写着「打开设置去登录」。人到了，看不见登录框。2026-09-01 探查抓到。 -->
+      <section class="card" id="sync-section">
         <h2 data-i18n="sync_section">多设备同步</h2>
-        <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。上传的是已进入复习的卡片与复习记录，还没进复习的候选永远留在本设备。</p>
+        <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。登录之后，采集到的句子（含还没进复习的候选）会同步到你的其它设备和手机 App。</p>
 
         <div id="sync-out">
           <div class="field">

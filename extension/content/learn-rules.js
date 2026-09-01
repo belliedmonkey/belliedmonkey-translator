@@ -172,9 +172,28 @@ var LearnRules = (() => {
     return allowed.has(script);
   }
 
+  // 规则记录的**唯一**成形处（§8.9）。本地编辑一律走它。
+  //
+  // 两个字段少了都不会报错，但都会静默出事：
+  //   · 少 v      —— 那就不是这个 schema 的记录了
+  //   · 少 updatedAt —— mergeRules 的 `(incoming.updatedAt || 0) > (local.updatedAt || 0)`
+  //     会把它当成远古记录：**永远输给任何远端**；sync.js 的 rulesDue 判据同样是
+  //     `updatedAt > since`，所以它也**永远不会被推上去**。用户的选择就这么没了，
+  //     而全程没有一行报错。
+  //
+  // 这个函数存在是因为同一段逻辑已经被抄了三份（options.js / review.js /
+  // app/settings.js），而第四份（引导页）抄错了 —— 它两个字段都没写。
+  //
+  // ⚠️ **同步收到的记录不要走这里**：chunk.js 写的是远端那一份，重新盖时间戳会让
+  // 每一次入站都显得更新，last-writer-wins 就此失效。那条路故意原样落盘。
+  function withUpdate(base, patch, now) {
+    return Object.assign({ v: 1, block: [], langs: null }, base || {}, patch || {},
+      { v: 1, updatedAt: typeof now === 'number' ? now : Date.now() });
+  }
+
   return {
     normalizePattern, matchesUrl, isBlocked, siteRuleFor,
-    doomedFor, mergeRules, dominantScript, langAllowed,
+    doomedFor, mergeRules, dominantScript, langAllowed, withUpdate,
   };
 })();
 

@@ -634,7 +634,7 @@
     "message": "Synchronisation entre appareils"
   },
   "sync_section_hint": {
-    "message": "Facultatif. Tout fonctionne sans connexion — une fois connecté, votre bibliothèque (candidats inclus) et votre historique de révision se synchronisent entre vos appareils."
+    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Une fois connecté, les phrases collectées (y compris les candidates pas encore en révision) se synchronisent vers vos autres appareils et l'app mobile."
   },
   "sync_email": {
     "message": "E-mail"
@@ -1702,9 +1702,6 @@
   "app_ext_open_setup": {
     "message": "Terminer la configuration sur le web"
   },
-  "app_ob_open_guide": {
-    "message": "Ouvrir le guide de configuration"
-  },
   "app_signin_why": {
     "message": "Les cartes sont capturées par l'extension de navigateur. Pour les réviser sur cet appareil, connectez-vous afin qu'elles se synchronisent."
   },
@@ -1944,5 +1941,41 @@
   },
   "toast_wipe_failed": {
     "message": "Effacement incomplet — réessayez"
+  },
+  "app_sync_empty_who": {
+    "message": "Synchronisation terminée, mais il n'y a encore rien sous {email}. Si vous avez collecté des phrases dans l'extension du navigateur, vérifiez qu'elle est connectée avec la même adresse e-mail."
+  },
+  "app_owner_mismatch": {
+    "message": "Le corpus de cet appareil appartient à un autre compte. Connectez-vous avec cette adresse, ou effacez les données de cet appareil dans les réglages de l'extension et recommencez."
+  },
+  "app_owner_unknown": {
+    "message": "Le corpus de cet appareil a un propriétaire, mais vous n'êtes pas connecté. Connectez-vous pour continuer la synchronisation."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "Le corpus de cet appareil appartient à un autre compte. Connectez-vous avec cette adresse, ou effacez toutes les données de cet appareil et recommencez."
+  },
+  "sync_err_owner_unknown": {
+    "message": "Le corpus de cet appareil a un propriétaire, mais vous n'êtes pas connecté. Connectez-vous pour continuer la synchronisation."
+  },
+  "app_err_upgrade": {
+    "message": "Le cloud contient du contenu que cette version ne sait pas encore lire (probablement issu d'une extension plus récente). Mettez l'app à jour, puis synchronisez de nouveau — rien n'est perdu, c'est seulement illisible pour l'instant."
+  },
+  "site_next_title": {
+    "message": "Ça a marché. Ensuite : les emmener sur votre téléphone"
+  },
+  "site_next_body": {
+    "message": "Les phrases devant lesquelles vous vous êtes arrêté sont déjà des cartes de révision — sur cet appareil. Elles n'arrivent dans l'app mobile qu'une fois connecté. Tout fonctionne sans compte ; l'app sera simplement vide."
+  },
+  "site_next_body_off": {
+    "message": "« Collecter le matériel d'apprentissage » est encore désactivé : aucune carte n'est créée pour l'instant. Activez-le d'abord dans les réglages de l'extension."
+  },
+  "site_next_cta": {
+    "message": "Ouvrir la page de révision"
+  },
+  "site_next_cta_off": {
+    "message": "Activer la collecte"
+  },
+  "site_next_signin": {
+    "message": "Se connecter →"
   }
 }
