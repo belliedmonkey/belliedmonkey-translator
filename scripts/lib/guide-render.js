@@ -77,7 +77,6 @@ module.exports.build = function build(flavor) {
   const stts = G.forFlavor(STT, flavor);
   const ttss = G.forFlavor(TTS, flavor);
   const ds = provs.find((p) => p.id === 'deepseek');
-  const freeChannel = provs.find((p) => !p.needsKey);
   const cloudStt = stts.find((s) => s.needsKey);
   const cloudTts = ttss.find((t) => t.needsKey);
   const deviceTts = ttss.find((t) => t.id === 'browser');
@@ -96,14 +95,14 @@ module.exports.build = function build(flavor) {
   ]);
 
   return (flavor === 'china' ? renderZh : renderEn)({
-    site, provs, stts, ttss, ds, freeChannel, cloudStt, cloudTts, deviceTts, localStt,
+    site, provs, stts, ttss, ds, cloudStt, cloudTts, deviceTts, localStt,
     m, mg, engineRows, customRows,
   });
 };
 
 // ─────────────────────────────────────────────────────────── 国际版（英文）
 function renderEn(d) {
-  const { site, ds, freeChannel, cloudStt, cloudTts, deviceTts, m, mg, engineRows, customRows } = d;
+  const { site, ds, cloudStt, cloudTts, deviceTts, m, mg, engineRows, customRows } = d;
   const steps = [
     { name: 'Install the app and switch the extension on',
       text: `Install from the App Store, or load the Chrome or Firefox build. Then switch the extension on once — on iPhone that happens in Settings, and ${site.host}/setup.html detects it and confirms when it is actually working.` },
@@ -151,7 +150,7 @@ ${howToJsonLd(site, 'Setup guide: your own translation engine, step by step',
 <h1>Setup guide: your own translation engine, step by step</h1>
 <p class="lede">One configuration that works end to end — the exact endpoint, the exact model, and the measurements behind the choice.</p>
 
-<p>${esc(freeChannel.label.replace(/\s*[（(].*$/, ''))} works with no key at all, and if you only want to read the occasional page you can stop there. This guide is for the other case: you want translation good enough to read closely, plus the listening and speaking review that needs speech and transcription. That means bringing your own keys, and the whole point of doing so is that your text goes from your browser to that provider directly — there is no server of ours in between.</p>
+<p>Translation needs an engine, and an engine needs a key of your own. That is the whole setup: this guide walks through one configuration end to end — translation good enough to read closely, plus the listening and speaking review that needs speech and transcription. The point of bringing your own keys is that your text goes from your browser to that provider directly; there is no server of ours in between.</p>
 
 <h2>What this guide sets up</h2>
 ${engineTable([

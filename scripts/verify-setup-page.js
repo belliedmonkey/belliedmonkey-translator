@@ -133,10 +133,25 @@ async function checkSite(site) {
       wait:!document.getElementById('mt-wait').hidden,
       demo:!document.getElementById('mt-demo').hidden,
       hasSteps:!!document.getElementById('mt-steps'),
-      steps:!!(document.getElementById('mt-steps') && !document.getElementById('mt-steps').hidden)})`);
+      steps:!!(document.getElementById('mt-steps') && !document.getElementById('mt-steps').hidden),
+      hasNext:!!document.getElementById('mt-next'),
+      next:!!(document.getElementById('mt-next') && !document.getElementById('mt-next').hidden),
+      nextLink:(()=>{const n=document.getElementById('mt-next');
+        const a=n&&n.querySelector('a[href]');return a?a.getAttribute('href'):'';})(),
+      nextText:(()=>{const n=document.getElementById('mt-next');
+        return n?n.textContent.trim().length:0;})()})`);
     if (!s.on) bad.push('标记已注入但灯没变绿');
     if (s.wait) bad.push('等待态没收起，两句同时显示');
     if (!s.demo) bad.push('演示段落没露出');
+    // 绿灯之后必须给出**下一步**。这一页能证明的只有「扩展装了且启用了」——
+    // 它证明不了翻译引擎配没配，而它服务的正是刚启用、还没配的那批人：那个人此刻
+    // 点悬浮按钮不会看到译文，会被送进配置引导。只把指南链接放在页脚等于没有下一步。
+    if (!s.hasNext) bad.push('绿灯之后没有「下一步」那一段（#mt-next）—— '
+      + '这一页证明不了引擎配没配，而它服务的正是还没配的人');
+    else if (!s.next) bad.push('#mt-next 在，但绿灯之后没露出来');
+    else if (!/guide|#how/.test(s.nextLink || '')) bad.push(`「下一步」指向 ${s.nextLink || '（空）'}，`
+      + ' 期望指向配置指南');
+    else if (s.nextText < 20) bad.push('「下一步」那一段几乎没有文字 —— i18n 键没解出来？');
     // 扩展已装好并授权之后，「去设置 → Safari 里打开」对这个人已经是做完的事；
     // 而对从扩展引导第 4 屏跳过来的 Chrome / Firefox 用户，那三步从一开始就是错的话
     // （他们的浏览器里根本没有 Safari 扩展设置）。一页「你成功了」的确认不该同时
