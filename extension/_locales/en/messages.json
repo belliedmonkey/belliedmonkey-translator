@@ -1777,6 +1777,15 @@
   "extob_welcome_body": {
     "message": "The original stays where it is; the translation appears right below it. Sentences you actually stop and read become review cards that come back on a forgetting curve."
   },
+  "extob_use_1": {
+    "message": "Open a page in another language"
+  },
+  "extob_use_2": {
+    "message": "Tap the floating button at the bottom right"
+  },
+  "extob_use_3": {
+    "message": "The translation appears under the original; sentences you actually finish reading become review cards"
+  },
   "extob_engine_title": {
     "message": "Pick a translation engine"
   },

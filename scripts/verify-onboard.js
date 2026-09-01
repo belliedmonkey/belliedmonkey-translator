@@ -61,6 +61,12 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
           return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
             apply:!!b.querySelector('#qs-apply')}:null;})(),
+        steps:(()=>{const ol=document.getElementById('ob-steps');
+          if(!vis(ol)) return null;
+          const li=[...ol.children];
+          return {n:li.length,
+            texts:li.filter(x=>(x.textContent||'').replace(/^\d+/,'').trim().length>3).length,
+            arts:li.filter(x=>x.querySelector('svg')).length};})(),
         modes:vis(document.getElementById('ob-modes')),
         acts:['ob-cta','ob-next','ob-skip'].filter(id=>vis(document.getElementById(id))).length,
         manual:(()=>{const b=document.getElementById('ob-manual');
@@ -98,6 +104,17 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(!seen.some(s=>s.quick||s.manual)) fail('没有引擎那一屏'); else pass('引擎屏在');
     // 每屏**只**露它自己那一块。第一屏尤其要紧：它是所有人看到的第一眼，而漏出来的
     // 那一块还是没被 paint 过的（下拉空、按钮没文字），比缺一块更难解释。
+    // 第 1 屏的三步插图不许漏到别的屏 —— 它讲的是「怎么用」，配置屏上出现只会分散注意力。
+    const stepLeak = seen.map((s,i)=>({i,has:!!s.steps})).filter(x=>x.i!==0&&x.has);
+    if(stepLeak.length) fail(`第 ${stepLeak[0].i+1} 屏漏出了第 1 屏的三步插图`);
+    else pass('三步插图只在第 1 屏');
+    const first = seen[0] && seen[0].steps;
+    if(!first) fail('第 1 屏没有那三步 —— 只剩一句话和一大片空白');
+    else if(first.n !== 3) fail(`第 1 屏有 ${first.n} 步，期望 3`);
+    else if(first.texts !== 3) fail(`第 1 屏只有 ${first.texts} 步有文字 —— i18n 键没解出来？`);
+    else if(first.arts !== 3) fail(`第 1 屏只有 ${first.arts} 步有插图 —— <template> 没克隆进去？`);
+    else pass('第 1 屏：三步，各有文字与插图');
+
     const leak = seen.map((s,i)=>({i,bad:[s.quick&&'一键卡',s.manual&&'三引擎',
       s.modes&&'切换标签',s.capture&&'采集'].filter(Boolean)}))
       .filter(x=>x.i===0&&x.bad.length);

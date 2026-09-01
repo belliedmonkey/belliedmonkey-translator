@@ -37,6 +37,12 @@
           <h2 id="ob-title"></h2>
           <p id="ob-text"></p>
 
+          <!-- 第 1 屏：三步带插图。形状与 App 引导那屏同构（app/app.js 的 obSteps）。
+               插图里**一个要翻译的字都没有** —— 文字放在 <li> 里走 data-i18n，
+               否则 8 种语言就要 8 套素材，而 SVG 的 <text> 上挂 data-i18n 还会让
+               「每个 [data-i18n] 调 innerText」的门禁崩掉（SVGElement 没有 innerText）。 -->
+          <ol id="ob-steps" hidden></ol>
+
           <!-- 第 2 屏：两个**互斥**的入口。同屏只显示其中一个。
                裁定见 docs/interaction-spec.md：一键配置与逐引擎配置永不同屏 ——
                两者共存时，在下面改了引擎，上面那张卡显示的状态就成了谎话。
@@ -81,6 +87,38 @@
     </main>
   </div>
 
+  <!-- 插图：只用令牌表里真实存在的变量（organic-tokens.gen.css）。写死 hex 会被
+       build.js 的调色板门禁拦下 —— 那道门禁存在的理由就是防止品牌色出现第二份副本。 -->
+  <template id="ob-art-1">
+    <svg viewBox="0 0 280 120" aria-hidden="true">
+      <rect x="20" y="14" width="240" height="92" rx="10" fill="var(--card-bg)" stroke="var(--border)" stroke-width="2"/>
+      <rect x="36" y="30" width="120" height="8" rx="4" fill="var(--text-secondary)" opacity=".55"/>
+      <rect x="36" y="48" width="196" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="62" width="180" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="76" width="196" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="90" width="140" height="6" rx="3" fill="var(--border)"/>
+    </svg>
+  </template>
+  <template id="ob-art-2">
+    <svg viewBox="0 0 280 120" aria-hidden="true">
+      <rect x="20" y="14" width="240" height="92" rx="10" fill="var(--card-bg)" stroke="var(--border)" stroke-width="2"/>
+      <rect x="36" y="30" width="120" height="8" rx="4" fill="var(--text-secondary)" opacity=".55"/>
+      <rect x="36" y="48" width="150" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="62" width="130" height="6" rx="3" fill="var(--border)"/>
+      <circle cx="228" cy="82" r="17" fill="var(--accent)"/>
+      <circle cx="228" cy="82" r="25" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4" opacity=".8"/>
+    </svg>
+  </template>
+  <template id="ob-art-3">
+    <svg viewBox="0 0 280 120" aria-hidden="true">
+      <rect x="20" y="14" width="240" height="92" rx="10" fill="var(--card-bg)" stroke="var(--border)" stroke-width="2"/>
+      <rect x="36" y="28" width="180" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="40" width="150" height="6" rx="3" fill="var(--sage)"/>
+      <rect x="36" y="58" width="196" height="6" rx="3" fill="var(--border)"/>
+      <rect x="36" y="70" width="168" height="6" rx="3" fill="var(--sage)"/>
+      <rect x="36" y="88" width="96" height="10" rx="5" fill="var(--sage)" opacity=".45"/>
+    </svg>
+  </template>
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/palette.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
@@ -108,5 +146,6 @@
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
   <script src="onboard.js"></script>
+
 </body>
 </html>

@@ -102,7 +102,7 @@
   function paint() {
     const step = OB[at];
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -113,6 +113,7 @@
       $('ob-text').textContent = t('extob_welcome_body',
         '原文留在原地，译文长在下面。你真正停下来读完的句子会变成复习卡，按遗忘曲线回来找你。');
       $('ob-next').textContent = t('ob_start', '开始设置');
+      paintSteps();
     } else if (step === 'engine') {
       $('ob-title').textContent = t('extob_engine_title', '选一个翻译引擎');
       // 不再按「有没有免费通道」分支。2026-09-01 裁定：决策不为免费通道开特例，
@@ -158,6 +159,33 @@
       $('ob-cta-note').textContent = t('extob_app_note',
         '想在手机上复习、或者边走边听播客模式？那两样在 iPhone / Mac 的 App 里。');
     }
+  }
+
+  // ── 第 1 屏：三步带插图 ─────────────────────────────────────────────────────
+  //
+  // 原来这一屏只有一句话加一大片空白。三步讲的是**这个产品怎么用**，不是怎么配 ——
+  // 配置是下一屏的事。插图是图形，里面一个要翻译的字都没有（见 onboard.html 那段注释）。
+  function paintSteps() {
+    const ol = $('ob-steps');
+    if (!ol) return;
+    if (!ol.children.length) {
+      const rows = [
+        [t('extob_use_1', '打开一页外语网页'), 'ob-art-1'],
+        [t('extob_use_2', '点右下角的悬浮按钮'), 'ob-art-2'],
+        [t('extob_use_3', '译文长在原文下面；你真正读完的句子会变成复习卡'), 'ob-art-3'],
+      ];
+      rows.forEach(([text, artId], i) => {
+        const li = document.createElement('li');
+        const b = document.createElement('b'); b.textContent = String(i + 1);
+        const body = document.createElement('div'); body.className = 'ob-step-body';
+        const sp = document.createElement('span'); sp.textContent = text;
+        body.append(sp);
+        const tpl = $(artId);
+        if (tpl && tpl.content) body.append(tpl.content.cloneNode(true));
+        li.append(b, body); ol.append(li);
+      });
+    }
+    ol.hidden = false;
   }
 
   // ── 第 2 屏：两条互斥的路 ───────────────────────────────────────────────────

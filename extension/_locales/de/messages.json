@@ -1777,6 +1777,15 @@
   "extob_welcome_body": {
     "message": "Das Original bleibt stehen, die Übersetzung erscheint direkt darunter. Sätze, bei denen du wirklich innehältst, werden zu Wiederholungskarten und kommen nach der Vergessenskurve zurück."
   },
+  "extob_use_1": {
+    "message": "Öffnen Sie eine fremdsprachige Seite"
+  },
+  "extob_use_2": {
+    "message": "Tippen Sie unten rechts auf die schwebende Schaltfläche"
+  },
+  "extob_use_3": {
+    "message": "Die Übersetzung erscheint unter dem Original; Sätze, die Sie wirklich zu Ende lesen, werden zu Lernkarten"
+  },
   "extob_engine_title": {
     "message": "Wähle eine Übersetzungs-Engine"
   },

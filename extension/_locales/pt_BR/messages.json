@@ -1777,6 +1777,15 @@
   "extob_welcome_body": {
     "message": "O original fica onde está e a tradução aparece logo abaixo. As frases que você realmente para e lê viram cartões de revisão que voltam pela curva do esquecimento."
   },
+  "extob_use_1": {
+    "message": "Abra uma página em outro idioma"
+  },
+  "extob_use_2": {
+    "message": "Toque no botão flutuante no canto inferior direito"
+  },
+  "extob_use_3": {
+    "message": "A tradução aparece abaixo do original; as frases que você realmente termina de ler viram cartões de revisão"
+  },
   "extob_engine_title": {
     "message": "Escolha um motor de tradução"
   },

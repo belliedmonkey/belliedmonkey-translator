@@ -1778,6 +1778,15 @@
   "extob_welcome_body": {
     "message": "原文留在原地，譯文長在下面。你真正停下來讀完的句子會變成複習卡，按遺忘曲線回來找你。"
   },
+  "extob_use_1": {
+    "message": "打開一頁外語網頁"
+  },
+  "extob_use_2": {
+    "message": "點右下角的懸浮按鈕"
+  },
+  "extob_use_3": {
+    "message": "譯文長在原文下面；你真正讀完的句子會變成複習卡"
+  },
   "extob_engine_title": {
     "message": "選一個翻譯引擎"
   },

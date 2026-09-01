@@ -33,9 +33,28 @@ body {
 
 /* 与设置页 options.css:329-331 逐字相同：第 2 屏的「一键配置 | 三引擎分别配」和设置页
    的「快速 | 详细」是同一个控件、同一条裁定 —— 长得不一样只会让人以为是两回事。 */
-.mode-tabs { display: flex; gap: 0; margin: 0 0 4px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: fit-content; }
+.mode-tabs { display: flex; gap: 0; margin: 0 0 4px; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: fit-content; }
 .mode-tabs button { margin: 0; width: auto; padding: 7px 22px; border: none; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: .92rem; cursor: pointer; }
 .mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+
+/* 第 1 屏的三步。形状与 App 引导那屏同构（app/style.css 的 #ob-steps），
+   变量换成本页真实存在的那几个。 */
+#ob-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+#ob-steps li {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5;
+}
+#ob-steps b {
+  flex: none; width: 22px; height: 22px; border-radius: 999px;
+  background: var(--accent-track); color: var(--accent-deep);
+  font-size: .8rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.ob-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+#ob-steps svg {
+  display: block; width: 100%; height: auto;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+  direction: ltr;   /* 画的是浏览器界面，RTL 下不镜像 */
+}
 
 #ob-capture { display: flex; flex-direction: column; gap: 10px; }
 #ob-capture label { font-size: .9rem; color: var(--text-secondary); }

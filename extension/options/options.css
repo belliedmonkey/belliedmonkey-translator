@@ -326,6 +326,6 @@ button:disabled, input:disabled, select:disabled {
 }
 
 /* 快速 / 详细 分段控件。只切显隐，不改 DOM —— 见 options.js 的 applyDetailMode。 */
-.mode-tabs { display: flex; gap: 0; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: fit-content; }
+.mode-tabs { display: flex; gap: 0; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: fit-content; }
 .mode-tabs button { margin: 0; width: auto; padding: 7px 22px; border: none; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: .92rem; cursor: pointer; }
 .mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
