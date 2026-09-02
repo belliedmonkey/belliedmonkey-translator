@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "Signed out, local only — sign in to review in the app too →"
+  },
+  "app_open_failed": {
+    "message": "Couldn’t open the app on this device.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Get it on the App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "The app is only for iPhone, iPad and Mac. On this device, review right here in the browser.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

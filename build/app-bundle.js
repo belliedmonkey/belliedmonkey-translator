@@ -45,6 +45,11 @@ const MODULES = [
   'extension/content/providers.gen.js',  // generated provider registry — the notes
                                          // gate and the app's engine picker both
                                          // read it (§7.2 / §9.2)
+  'extension/learn/app-link.js',         // AppLink —— 「去 App 里复习」的地址与出口。
+                                         // App 宿主里那个按钮本就不该出现（人已经在
+                                         // App 里了），但 review.js 引用它，漏了这一行
+                                         // 就是加载期 ReferenceError —— 同 engine-state
+                                         // 那次（见下）。
   'extension/content/engine-state.js',   // EngineState — provider 归一化 + 「配好了没有」。
                                          // translation-api.js 的 providerById /
                                          // defaultProvider / resolveProvider 全部转调它，

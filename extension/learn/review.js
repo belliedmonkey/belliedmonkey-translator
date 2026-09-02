@@ -926,11 +926,8 @@
   //
   // 带过去的只有一个不透明 userId：不是会话（那里面有 token），也不是邮箱。
   // 它只回答一个问题 —— 两边是不是同一个人。
-  function goAppUrl(userId) {
-    const scheme = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china')
-      ? 'belliedmonkeycn' : 'belliedmonkey';
-    return scheme + '://review' + (userId ? '?uid=' + encodeURIComponent(userId) : '');
-  }
+  // 地址与「打不开怎么办」都在 AppLink 里，这里不再写第二份。
+  function goAppUrl(userId) { return AppLink.deepLink(userId); }
 
   async function renderGoApp() {
     const btn = $('go-app');
@@ -945,7 +942,29 @@
     // 「带没带 uid」「scheme 对不对」就只能靠读代码判断，而门禁读不到。
     btn.dataset.href = goAppUrl(s.userId);
     btn.hidden = false;
-    btn.onclick = () => { try { location.href = btn.dataset.href; } catch (_) {} };
+    // 打不开要说话：电脑上没装 App 时，自定义 scheme 一点反应都没有，浏览器
+    // 既不跳转也不报错（2026-09-02 用户实测）。
+    btn.onclick = () => AppLink.open(s.userId, (kind) => {
+      let box = document.getElementById('app-open-fallback');
+      if (!box) {
+        box = document.createElement('p');
+        box.id = 'app-open-fallback';
+        box.className = 'muted';
+        btn.parentNode.insertBefore(box, btn.nextSibling);
+      }
+      box.textContent = '';
+      if (kind === 'store') {
+        box.appendChild(document.createTextNode(
+          t('app_open_failed', '这台设备上没能打开 App。') + ' '));
+        const a = document.createElement('a');
+        a.href = AppLink.storeUrl(); a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = t('app_open_store', '去 App Store 下载 →');
+        box.appendChild(a);
+      } else {
+        box.textContent = t('app_not_on_platform',
+          '这个 App 只有 iPhone、iPad 和 Mac 版。在这台设备上，就在浏览器里复习。');
+      }
+    });
   }
 
   function renderSyncStatus(ev) {

@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "Abgemeldet, nur lokal — melden Sie sich an, um auch in der App zu wiederholen →"
+  },
+  "app_open_failed": {
+    "message": "Die App ließ sich auf diesem Gerät nicht öffnen.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Im App Store laden →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "Die App gibt es nur für iPhone, iPad und Mac. Auf diesem Gerät kannst du direkt im Browser wiederholen.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

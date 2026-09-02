@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "غير مسجَّل الدخول، على هذا الجهاز فقط — سجّل الدخول لتراجع في التطبيق أيضًا ←"
+  },
+  "app_open_failed": {
+    "message": "تعذّر فتح التطبيق على هذا الجهاز.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "التنزيل من App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "التطبيق متاح على iPhone وiPad وMac فقط. على هذا الجهاز، راجِع من داخل المتصفّح.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "Вход не выполнен, только это устройство — войдите, чтобы повторять и в приложении →"
+  },
+  "app_open_failed": {
+    "message": "Не удалось открыть приложение на этом устройстве.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Загрузить в App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "Приложение есть только для iPhone, iPad и Mac. На этом устройстве занимайтесь прямо в браузере.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

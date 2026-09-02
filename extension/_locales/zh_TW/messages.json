@@ -2019,5 +2019,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "未登入，僅本機資料 —— 登入後也能在 App 裡複習 →"
+  },
+  "app_open_failed": {
+    "message": "這台裝置上沒能開啟 App。",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "去 App Store 下載 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "這個 App 只有 iPhone、iPad 和 Mac 版。在這台裝置上，就在瀏覽器裡複習。",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "未ログイン・この端末のみ —— ログインすると App でも復習できます →"
+  },
+  "app_open_failed": {
+    "message": "この端末ではアプリを開けませんでした。",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "App Store で入手 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "このアプリは iPhone・iPad・Mac のみです。この端末ではブラウザのまま復習してください。",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

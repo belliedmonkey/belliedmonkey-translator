@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "로그아웃 상태·이 기기 전용 — 로그인하면 앱에서도 복습할 수 있습니다 →"
+  },
+  "app_open_failed": {
+    "message": "이 기기에서 앱을 열지 못했습니다.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "App Store에서 받기 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "이 앱은 iPhone·iPad·Mac 전용입니다. 이 기기에서는 브라우저에서 복습하세요.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

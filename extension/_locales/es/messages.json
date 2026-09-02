@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "Sin sesión, solo local: inicia sesión para repasar también en la app →"
+  },
+  "app_open_failed": {
+    "message": "No se pudo abrir la app en este dispositivo.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Descargar en el App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "La app solo existe para iPhone, iPad y Mac. En este dispositivo, repasa aquí mismo en el navegador.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

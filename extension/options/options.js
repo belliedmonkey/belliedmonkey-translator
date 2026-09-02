@@ -780,11 +780,39 @@ async function init() {
   }
   if ($('btn-sync-app')) {
     $('btn-sync-app').addEventListener('click', () => {
-      // 与复习页那个按钮同一个地址形状（learning-design §8.4.1.1）：只带不透明 userId。
-      const scheme = (window.MT_FLAVOR === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
+      // 地址形状与复习页那个按钮共用一处实现（AppLink，learning-design §8.4.1.1）：
+      // 只带不透明 userId。**打不开时要说话** —— 电脑上没装 App 的话，自定义
+      // scheme 是一点反应都没有的，浏览器既不跳转也不报错（2026-09-02 用户在
+      // Chrome 里实测：点了没反应）。
       const uid = $('btn-sync-app').dataset.uid || '';
-      try { location.href = scheme + '://review' + (uid ? '?uid=' + encodeURIComponent(uid) : ''); } catch (_) {}
+      $('btn-sync-app').dataset.href = AppLink.deepLink(uid);   // 门禁读得到
+      AppLink.open(uid, (kind) => paintAppFallback(kind));
     });
+  }
+
+  // 打不开 App 时那句话画在按钮下面。两个宿主版式不同，所以画在各自这边，
+  // 判据与地址在 AppLink 里只有一份。
+  function paintAppFallback(kind) {
+    const host = $('sync-next-app') || $('btn-sync-app').parentNode;
+    let box = document.getElementById('app-open-fallback');
+    if (!box) {
+      box = document.createElement('p');
+      box.id = 'app-open-fallback';
+      box.className = 'hint';
+      host.parentNode.insertBefore(box, host.nextSibling);
+    }
+    box.textContent = '';
+    if (kind === 'store') {
+      box.appendChild(document.createTextNode(
+        t('app_open_failed', '这台设备上没能打开 App。') + ' '));
+      const a = document.createElement('a');
+      a.href = AppLink.storeUrl(); a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = t('app_open_store', '去 App Store 下载 →');
+      box.appendChild(a);
+    } else {
+      box.textContent = t('app_not_on_platform',
+        '这个 App 只有 iPhone、iPad 和 Mac 版。在这台设备上，就在浏览器里复习。');
+    }
   }
 
   $('btn-reonboard').addEventListener('click', () => {

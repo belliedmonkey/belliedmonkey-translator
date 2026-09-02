@@ -2019,5 +2019,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "未登录，仅本机数据 —— 登录后也能在 App 里复习 →"
+  },
+  "app_open_failed": {
+    "message": "这台设备上没能打开 App。",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "去 App Store 下载 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "这个 App 只有 iPhone、iPad 和 Mac 版。在这台设备上，就在浏览器里复习。",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }

@@ -2018,5 +2018,17 @@
   },
   "sync_status_signed_out_cta": {
     "message": "Déconnecté, local uniquement — connectez-vous pour réviser aussi dans l'app →"
+  },
+  "app_open_failed": {
+    "message": "Impossible d’ouvrir l’app sur cet appareil.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Télécharger sur l’App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "L’app existe seulement pour iPhone, iPad et Mac. Sur cet appareil, révisez directement dans le navigateur.",
+    "description": "Shown on Windows/Linux where the app does not exist"
   }
 }
