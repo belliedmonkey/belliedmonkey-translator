@@ -849,3 +849,34 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
     ok(!fs.readFileSync(t.pbx, 'utf8').includes('MT_WIDGET_TARGET'), '放弃时不许留下半个 target');
   });
 });
+
+// 发内测**一定**会更新官网那一页。
+//
+// 第一版把「保持最新」全押在页面运行时那次 api.github.com 请求上，而那个请求在部分
+// 网络下根本发不出去：1.7.4 发了出去，页面还写着 1.7.3，同时印着「所以这个链接不会
+// 停在旧版本」—— 恰恰在它失效的那一刻说了假话（2026-09-02 用户实测）。
+// 静态那份是真相，所以发布脚本必须调生成器；这条断言守的就是那一行不许被删。
+describe('内测发布会更新官网那一页', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts/gh-release.js'), 'utf8');
+
+  test('gh-release.js 在 prerelease 之后调 gen-beta-page.js', () => {
+    ok(src.includes('gen-beta-page.js'),
+      'gh-release.js 不再调用 gen-beta-page.js —— 官网内测页会停在上一个版本');
+    ok(/--tag \$\{tag\}/.test(src),
+      '调生成器时没把 tag 传进去 —— 生成器会沿用页面里的旧版本');
+  });
+
+  test('页面没推时会明说', () => {
+    ok(src.includes('还没推'),
+      '生成完却不检查有没有推 —— 文件改了没推，用户看到的仍是上一版');
+  });
+
+  test('生成器把版本钉进 HTML，而不是只靠运行时 fetch', () => {
+    const gen = fs.readFileSync(path.join(__dirname, '..', 'scripts/gen-beta-page.js'), 'utf8');
+    ok(gen.includes('{{TAG}}'), '生成器不再往 HTML 里钉版本');
+    ok(gen.includes('AbortController'), '运行时那次 fetch 没有超时 —— 请求不到时会一直挂着');
+    ok(gen.includes('function newer('), '运行时改写没有比大小 —— 会被更旧的 prerelease 覆盖');
+  });
+});

@@ -132,6 +132,26 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
     }
     console.log(`✓ latest 仍是 ${latestAfter}（官网首页的下载按钮没被动过）`);
     console.log('  内测直链：releases/download/' + tag + '/' + ASSET_NAME);
+
+    // 官网那一页的版本**钉在 HTML 里**，所以每次发内测都要重生成它。
+    // 这一步接在这里而不是靠记性：第一版把「保持最新」全押在页面运行时那次
+    // api.github.com 请求上，而那个请求在部分网络下根本发不出去 —— 于是 1.7.4 发了
+    // 出去，页面还写着 1.7.3，同时印着「所以这个链接不会停在旧版本」
+    // （2026-09-02 用户实测）。
+    try {
+      sh(`node ${JSON.stringify(path.join(__dirname, 'gen-beta-page.js'))} --tag ${tag}`,
+        { stdio: 'inherit' });
+      const site = path.join(require('os').homedir(), 'belliedmonkey-cc');
+      const dirty = sh('git status --porcelain beta.html', { cwd: site }).trim();
+      if (dirty) {
+        console.log('\n⚠ 官网内测页已更新但**还没推**。这一页不推的话，用户看到的仍是上一版：');
+        console.log(`    cd ${site} && git add beta.html && git commit -m "chore: 内测包 ${tag}" && git push`);
+      } else {
+        console.log('  官网内测页：已经是 ' + tag + '，无需改动');
+      }
+    } catch (e) {
+      console.log('\n⚠ 官网内测页没能更新（' + (e && e.message) + '）—— 手动跑 node scripts/gen-beta-page.js --tag ' + tag);
+    }
   } else {
     if (latestAfter !== tag) {
       console.error(`✗ 回读：latest 是 ${latestAfter}，不是 ${tag}`);

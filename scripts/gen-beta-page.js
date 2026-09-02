@@ -10,9 +10,14 @@
 //
 // 1. **版面从 setup.html 的 <style> 继承**，不抄第二份配色 —— 同 gen-try-pages.js。
 //    抄第二份的那天就是两页开始漂的那天。
-// 2. **页面在运行时自己去问 GitHub 最新的 prerelease 是哪个**，静态写死的那份只是
-//    没网/被限流时的兜底。否则下一次内测这一页会安静地继续指向上一个版本 —— 而
-//    「安静地指向旧东西」正是这个仓库付过好几次学费的形状。
+// 2. **静态写死的那份是真相，运行时那次 fetch 只是锦上添花。**
+//    第一版是反的：靠页面打开时去问 api.github.com，静态那份当兜底 —— 而
+//    api.github.com 在国内常常根本请求不到，于是页面永远显示上一个版本，同时还
+//    印着「所以这个链接不会停在旧版本」，在它失效的那一刻说了假话
+//    （2026-09-02 用户实测：发了 1.7.4，页面还是 1.7.3）。
+//    现在：每次发内测由 gh-release.js 调这个生成器把版本钉进 HTML；fetch 带超时，
+//    只在**确实问到了更新的版本**时才改写，问不到就什么都不动 —— 静态那份本来就
+//    是对的。
 // 3. **noindex + 不进 sitemap + 首页不链接它**。它不是产品的一部分。
 //
 //   node scripts/gen-beta-page.js [--check]
@@ -80,7 +85,7 @@ ${headStyle()}
       <a class="btn btn-primary" id="dl"
          href="https://github.com/${REPO}/releases/download/{{TAG}}/${ASSET}">下载内测包 — {{TAG}}（ZIP）</a>
     </p>
-    <p class="beta-meta" id="meta">页面打开时会去问一次 GitHub 上最新的内测包，所以这个链接不会停在旧版本。</p>
+    <p class="beta-meta" id="meta">{{TAG}} · 发布于 {{DATE}}</p>
 
     <h2 style="margin-top:40px;font-size:1.15rem">装法（Chrome / Edge，约一分钟）</h2>
     <ol class="beta-steps">
@@ -103,17 +108,33 @@ ${headStyle()}
 </div>
 
 <script>
-/* 去问 GitHub 最新的 prerelease。拿不到就什么都不做 —— 页面里写死的那份仍然可用。
-   判据是「确实有一个 prerelease 且带着我们那个资产」，不是「请求成功了」。 */
+/* 去问一次 GitHub 有没有更新的内测包。**这只是锦上添花** —— 上面写死的那份已经是
+   对的（发版时由 gh-release.js 钉进来）。所以：带超时，失败什么都不做，也**只在问到
+   更新的版本时**才改写。api.github.com 在部分网络下根本请求不到，那种情况下这一页
+   仍然完全可用。 */
 (function () {
   var dl = document.getElementById('dl'), meta = document.getElementById('meta');
-  fetch('https://api.github.com/repos/${REPO}/releases?per_page=15')
+  var pinned = '{{TAG}}';
+  // 版本比大小，不是字符串比 —— 'v1.7.10' < 'v1.7.9' 在字符串序下成立。
+  function newer(a, b) {
+    var pa = a.replace(/^v/, '').split('.').map(Number), pb = b.replace(/^v/, '').split('.').map(Number);
+    for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+      var x = pa[i] || 0, y = pb[i] || 0;
+      if (x !== y) return x > y;
+    }
+    return false;
+  }
+  var ctl = null;
+  try { ctl = new AbortController(); setTimeout(function () { ctl.abort(); }, 4000); } catch (_) {}
+  fetch('https://api.github.com/repos/${REPO}/releases?per_page=15',
+        ctl ? { signal: ctl.signal } : undefined)
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (list) {
       if (!Array.isArray(list)) return;
       for (var i = 0; i < list.length; i++) {
         var rel = list[i];
         if (!rel.prerelease || rel.draft) continue;
+        if (!newer(rel.tag_name, pinned)) return;      // 不比钉住的新 → 什么都不动
         var a = (rel.assets || []).filter(function (x) { return x.name === ${JSON.stringify(ASSET)}; })[0];
         if (!a) continue;
         dl.href = a.browser_download_url;
@@ -124,7 +145,7 @@ ${headStyle()}
         return;
       }
     })
-    .catch(function () { /* 没网就用写死的那份 */ });
+    .catch(function () { /* 请求不到就用钉住的那份，它本来就是对的 */ });
 })();
 </script>
 </body>
@@ -141,7 +162,13 @@ if (!tag && !fs.existsSync(out)) {
 // 兜底链接：给了 --tag 用它，没给就沿用页面里已有的那个（重跑不会把它改回去）。
 const keep = fs.existsSync(out)
   ? (/releases\/download\/(v[^/]+)\//.exec(fs.readFileSync(out, 'utf8')) || [])[1] : null;
-const body = html.replace(/\{\{TAG\}\}/g, tag || keep);
+const today = new Date().toISOString().slice(0, 10);
+// 日期同样钉住：没有它，「发布于」那一行在没网时就没东西可说。重跑生成器而 tag 没变
+// 时沿用页面里已有的日期，免得一次无关的重跑把发布日改成今天。
+const keepDate = fs.existsSync(out)
+  ? (/· 发布于 (\d{4}-\d{2}-\d{2})/.exec(fs.readFileSync(out, 'utf8')) || [])[1] : null;
+const body = html.replace(/\{\{TAG\}\}/g, tag || keep)
+  .replace(/\{\{DATE\}\}/g, tag && tag !== keep ? today : (keepDate || today));
 
 if (CHECK) {
   const cur = fs.existsSync(out) ? fs.readFileSync(out, 'utf8') : null;
