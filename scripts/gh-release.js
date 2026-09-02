@@ -5,6 +5,14 @@
 //   node scripts/gh-release.js                    # 只打印计划（默认）
 //   node scripts/gh-release.js --apply            # 真的发（对外动作）
 //   node scripts/gh-release.js --apply --clobber  # 覆盖已存在的同名资产
+//   node scripts/gh-release.js --apply --prerelease
+//                                                 # **内测包**：发成 prerelease。
+//                                                 # GitHub 的 releases/latest 跳过
+//                                                 # prerelease，所以官网首页那个下载
+//                                                 # 按钮不会被顶掉 —— 这是「只给自己
+//                                                 # 装来测，不给用户」唯一不靠自觉的
+//                                                 # 做法。脚本会**回读 latest**确认它
+//                                                 # 仍指向原来那条正式版。
 //   node scripts/gh-release.js --allow-dirty      # 显式跳过版本完整性门禁
 //   node scripts/gh-release.js --zip <路径> --tag v1.6.4-store --worktree <目录>
 //                                                 # 从某个历史 tag 重出的正确产物：
@@ -40,6 +48,7 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
   const apply = argv.includes('--apply');
   const clobber = argv.includes('--clobber');
   const allowDirty = argv.includes('--allow-dirty');
+  const prerelease = argv.includes('--prerelease');
   const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
   const zipPath = opt('--zip') || BUILT_ZIP;
   const tagOpt = opt('--tag');
@@ -78,6 +87,16 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
   } else {
     console.log(`  新建 Release ${tag}，并挂上 ${ASSET_NAME}`);
   }
+  console.log(prerelease
+    ? '  ⚑ 内测（prerelease）：releases/latest 不会改，官网首页的下载按钮仍指向当前正式版'
+    : '  ⚑ 正式版：releases/latest 会指到这里，官网首页的下载按钮立刻跟着变');
+
+  // 发之前先记下 latest 是谁。prerelease 的全部意义就是它不该变，而「不该变」
+  // 只有拿发布前后两次读数比对才算数。
+  let latestBefore = null;
+  try { latestBefore = JSON.parse(sh('gh release view --json tagName',
+    { stdio: ['ignore', 'pipe', 'ignore'] })).tagName; } catch (_) { /* 一个 release 都没有 */ }
+  console.log(`  当前 latest：${latestBefore || '（无）'}`);
 
   if (!apply) { console.log('\n（只是计划。确认无误后加 --apply）'); return; }
 
@@ -86,16 +105,38 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
   fs.copyFileSync(zipPath, staged);
 
   if (!exists) {
-    sh(`gh release create ${tag} ${JSON.stringify(staged)} --title ${JSON.stringify(tag)} --generate-notes`,
-      { stdio: 'inherit' });
+    sh(`gh release create ${tag} ${JSON.stringify(staged)} --title ${JSON.stringify(tag)} --generate-notes`
+      + (prerelease ? ' --prerelease' : ''), { stdio: 'inherit' });
   } else {
     sh(`gh release upload ${tag} ${JSON.stringify(staged)} ${clobber ? '--clobber' : ''}`, { stdio: 'inherit' });
   }
 
   // 回读。**不是看 gh 有没有报错** —— 要确认 latest 指向的那份下载下来确实是这个版本。
-  const back = JSON.parse(sh(`gh release view ${tag} --json tagName,assets`));
+  const back = JSON.parse(sh(`gh release view ${tag} --json tagName,assets,isPrerelease`));
+  if (prerelease && !back.isPrerelease) {
+    console.error('✗ 回读：它不是 prerelease —— 这会把官网首页的下载按钮顶成内测包');
+    process.exit(1);
+  }
   const asset = back.assets.find((a) => a.name === ASSET_NAME);
   if (!asset) { console.error('✗ 回读：资产不在 Release 里'); process.exit(1); }
   console.log(`✓ ${back.tagName} → ${asset.name} (${(asset.size / 1024).toFixed(0)} KB)`);
-  console.log('  官网直链：releases/latest/download/' + ASSET_NAME);
+
+  // latest 的回读。prerelease 时它必须没变；正式版时它必须变成这个 tag。
+  let latestAfter = null;
+  try { latestAfter = JSON.parse(sh('gh release view --json tagName',
+    { stdio: ['ignore', 'pipe', 'ignore'] })).tagName; } catch (_) { /* 同上 */ }
+  if (prerelease) {
+    if (latestAfter !== latestBefore) {
+      console.error(`✗ 回读：latest 从 ${latestBefore} 变成了 ${latestAfter} —— 官网首页被内测包顶了`);
+      process.exit(1);
+    }
+    console.log(`✓ latest 仍是 ${latestAfter}（官网首页的下载按钮没被动过）`);
+    console.log('  内测直链：releases/download/' + tag + '/' + ASSET_NAME);
+  } else {
+    if (latestAfter !== tag) {
+      console.error(`✗ 回读：latest 是 ${latestAfter}，不是 ${tag}`);
+      process.exit(1);
+    }
+    console.log('  官网直链：releases/latest/download/' + ASSET_NAME);
+  }
 })();
