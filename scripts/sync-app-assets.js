@@ -278,14 +278,21 @@ function patchViewController(sharedDir) {
 // MediaPlayer` are part of the block, so "keep the imports idempotent" stops being a
 // separate problem; there is a real anchor to fail loudly on; and that import line is
 // identical across both flavors and both platforms.
-const BRIDGE_BEGIN = '// ─── BEGIN mt-audio-bridge (generated — do not edit here) ───';
-const BRIDGE_END = '// ─── END mt-audio-bridge ───';
 const BRIDGE_IMPORT_ANCHOR = /^import WebKit$/m;
 
-function patchAudioBridgeSwift(src, tpl) {
+// 现在有两个标记块（音频桥、深链桥），所以这段逻辑只有一份 —— 抄第二份的那天，
+// 就是两者开始漂的那天（这个仓库为「抄第二份」付过好几次代价）。
+const BLOCKS = [
+  { name: 'mt-audio-bridge', src: 'audio-bridge.swift', label: 'audio bridge' },
+  { name: 'mt-deeplink-bridge', src: 'open-url-bridge.swift', label: 'deeplink bridge' },
+];
+
+function patchMarkerBlockSwift(src, tpl, cfg) {
+  const BRIDGE_BEGIN = `// ─── BEGIN ${cfg.name} (generated — do not edit here) ───`;
+  const BRIDGE_END = `// ─── END ${cfg.name} ───`;
   const block = [
     BRIDGE_BEGIN,
-    '// Source: app/native/audio-bridge.swift · written by scripts/sync-app-assets.js.',
+    `// Source: app/native/${cfg.src} · written by scripts/sync-app-assets.js.`,
     '// Edit the repo file and re-run `npm run app:sync`; edits made here are overwritten.',
     tpl.replace(/\s+$/, ''),
     BRIDGE_END,
@@ -296,8 +303,8 @@ function patchAudioBridgeSwift(src, tpl) {
   // Half a pair means someone hand-edited or the file was truncated. Appending a
   // second copy would give the target two `MTAudioBridge` types, and the compiler
   // error for that points nowhere near the cause. Refuse instead.
-  if ((b < 0) !== (e < 0)) return { swift: src, note: '✗ audio bridge: 标记不成对，拒绝改写' };
-  if (b >= 0 && e < b) return { swift: src, note: '✗ audio bridge: 标记顺序颠倒，拒绝改写' };
+  if ((b < 0) !== (e < 0)) return { swift: src, note: `✗ ${cfg.label}: 标记不成对，拒绝改写` };
+  if (b >= 0 && e < b) return { swift: src, note: `✗ ${cfg.label}: 标记顺序颠倒，拒绝改写` };
 
   let out;
   if (b >= 0) {
@@ -305,23 +312,48 @@ function patchAudioBridgeSwift(src, tpl) {
     out = src.slice(0, b) + block + '\n' + src.slice(tail);
   } else {
     if (!BRIDGE_IMPORT_ANCHOR.test(src)) {
-      return { swift: src, note: '✗ audio bridge: import WebKit 锚点缺失 — 转换器模板变了？' };
+      return { swift: src, note: `✗ ${cfg.label}: import WebKit 锚点缺失 — 转换器模板变了？` };
     }
     out = src.replace(BRIDGE_IMPORT_ANCHOR, 'import WebKit\n\n' + block + '\n');
   }
-  if (out === src) return { swift: src, note: 'audio bridge already current' };
-  return { swift: out, note: b >= 0 ? 'audio bridge block replaced' : 'audio bridge block inserted' };
+  if (out === src) return { swift: src, note: `${cfg.label} already current` };
+  return { swift: out, note: b >= 0 ? `${cfg.label} block replaced` : `${cfg.label} block inserted` };
+}
+
+// 音频桥那一支的具名入口。保留它有两个理由：test/build-scripts.test.js 直接调它，
+// 而那组断言（幂等、标记不成对拒绝改写、锚点缺失报错）守的正是这段逻辑本身。
+function patchAudioBridgeSwift(src, tpl) {
+  return patchMarkerBlockSwift(src, tpl, BLOCKS[0]);
 }
 
 function patchAudioBridge(sharedDir) {
-  const tplPath = path.join(ROOT, 'app', 'native', 'audio-bridge.swift');
-  if (!fs.existsSync(tplPath)) return '✗ audio bridge: app/native/audio-bridge.swift 不存在';
   const f = path.join(sharedDir, 'ViewController.swift');
-  if (!fs.existsSync(f)) return '✗ audio bridge: no ViewController.swift';
-  const { swift, note } = patchAudioBridgeSwift(
-    fs.readFileSync(f, 'utf8'), fs.readFileSync(tplPath, 'utf8'));
-  if (!/^✗/.test(note)) fs.writeFileSync(f, swift);
-  return note;
+  if (!fs.existsSync(f)) return '✗ bridges: no ViewController.swift';
+  const notes = [];
+  for (const cfg of BLOCKS) {
+    const tplPath = path.join(ROOT, 'app', 'native', cfg.src);
+    if (!fs.existsSync(tplPath)) { notes.push(`✗ ${cfg.label}: app/native/${cfg.src} 不存在`); continue; }
+    const { swift, note } = patchMarkerBlockSwift(
+      fs.readFileSync(f, 'utf8'), fs.readFileSync(tplPath, 'utf8'), cfg);
+    if (!/^✗/.test(note)) fs.writeFileSync(f, swift);
+    notes.push(note);
+  }
+  // 深链桥要在 WKWebView 最终确定之后 attach 一次；冷启动期间到达的 URL 存在
+  // pending 里等它。漏了这一行的表现是「点了链接，App 打开了，然后什么都没发生」。
+  const ATTACH = 'MTDeepLink.attach(self.webView)';
+  let vc = fs.readFileSync(f, 'utf8');
+  if (!vc.includes(ATTACH)) {
+    const anchor = 'self.webView.navigationDelegate = self';
+    if (!vc.includes(anchor)) notes.push('✗ deeplink attach: navigationDelegate 锚点缺失');
+    else {
+      vc = vc.replace(anchor, anchor + '\n\n'
+        + '        // Patched by scripts/sync-app-assets.js — 跨面交接（learning-design §8.4.1.1）。\n'
+        + '        ' + ATTACH);
+      fs.writeFileSync(f, vc);
+      notes.push('deeplink attach patched');
+    }
+  } else notes.push('deeplink attach already current');
+  return notes.join(' · ');
 }
 
 // Patch 3 (§9.4): the 说 exercise records the microphone inside the WKWebView.
@@ -367,14 +399,80 @@ function patchPlistXml(src, keys) {
   return { xml: out, added, note: added.length ? `patched ${added.join(', ')}` : 'already current' };
 }
 
+// 跨面交接的自定义 scheme（learning-design §8.4.1.1）。
+//
+// **两个 flavor 两个 scheme。** 同名的话，两版同时装在一台机器上时由 iOS 随机挑一个
+// 去接 —— 而「跑的是哪一份」没有确定答案，正是 verification-spec §2.0 已经付过代价的
+// 那件事。scheme 跟着工程树走（safari-project-china 是中国版）。
+function schemeFor(sharedDir) {
+  return /-china\b/.test(sharedDir) ? 'belliedmonkeycn' : 'belliedmonkey';
+}
+
+function urlTypeXml(scheme) {
+  return '<array>\n\t\t<dict>\n'
+    + '\t\t\t<key>CFBundleURLName</key>\n'
+    + `\t\t\t<string>cc.belliedmonkey.deeplink</string>\n`
+    + '\t\t\t<key>CFBundleURLSchemes</key>\n'
+    + `\t\t\t<array>\n\t\t\t\t<string>${scheme}</string>\n\t\t\t</array>\n`
+    + '\t\t</dict>\n\t</array>';
+}
+
+// 平台入口：把外部打开的 URL 交给 MTDeepLink。iOS 走 SceneDelegate（两支：冷启动的
+// connectionOptions 与热启动的 openURLContexts —— 只接一支的表现是「App 没开着时点
+// 链接没反应」，而那不会报任何错），macOS 走 AppDelegate。
+// 一行常量式的针脚补丁，"含它就跳过" 在这里是对的。
+const DELEGATE_PATCHES = [
+  {
+    file: 'iOS (App)/SceneDelegate.swift',
+    needle: 'MTDeepLink.handle',
+    anchor: 'guard let _ = (scene as? UIWindowScene) else { return }',
+    add: (a) => a + '\n'
+      + '        // Patched by scripts/sync-app-assets.js — 跨面交接（§8.4.1.1）。\n'
+      + '        // 冷启动这一支：App 是被这条 URL 拉起来的。\n'
+      + '        if let ctx = connectionOptions.urlContexts.first { MTDeepLink.handle(ctx.url) }\n'
+      + '    }\n\n'
+      + '    // 热启动这一支：App 已经在后台开着。\n'
+      + '    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {\n'
+      + '        if let ctx = URLContexts.first { MTDeepLink.handle(ctx.url) }',
+  },
+  {
+    file: 'macOS (App)/AppDelegate.swift',
+    needle: 'MTDeepLink.handle',
+    anchor: '    func applicationDidFinishLaunching(_ notification: Notification) {',
+    add: (a) => '    // Patched by scripts/sync-app-assets.js — 跨面交接（§8.4.1.1）。\n'
+      + '    func application(_ application: NSApplication, open urls: [URL]) {\n'
+      + '        if let u = urls.first { MTDeepLink.handle(u) }\n'
+      + '    }\n\n' + a,
+  },
+];
+
+function patchDelegates(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const notes = [];
+  for (const p of DELEGATE_PATCHES) {
+    const f = path.join(appRoot, p.file);
+    if (!fs.existsSync(f)) continue;          // 这棵树没有这个平台
+    const src = fs.readFileSync(f, 'utf8');
+    const label = p.file.split('/')[0];
+    if (src.includes(p.needle)) { notes.push(`${label}: deeplink already current`); continue; }
+    if (!src.includes(p.anchor)) { notes.push(`✗ ${label}: deeplink 锚点缺失 — 转换器模板变了？`); continue; }
+    fs.writeFileSync(f, src.replace(p.anchor, p.add(p.anchor)));
+    notes.push(`${label}: deeplink patched`);
+  }
+  return notes.length ? notes.join(' · ') : 'no delegates found';
+}
+
 function patchInfoPlists(sharedDir) {
   const appRoot = path.dirname(sharedDir);   // …/<name>/, holding "iOS (App)" etc.
   const notes = [];
+  const scheme = schemeFor(sharedDir);
   for (const entry of fs.readdirSync(appRoot)) {
     if (!/\(App\)$/.test(entry) || entry.startsWith('Shared')) continue;
     const plist = path.join(appRoot, entry, 'Info.plist');
     if (!fs.existsSync(plist)) continue;
-    const keys = PLIST_KEYS.filter((k) => !k.only || k.only === entry);
+    // scheme 两个平台都要：macOS App 同样可以被 URL 唤起。
+    const keys = PLIST_KEYS.filter((k) => !k.only || k.only === entry)
+      .concat([{ key: 'CFBundleURLTypes', xml: urlTypeXml(scheme) }]);
     const { xml, note } = patchPlistXml(fs.readFileSync(plist, 'utf8'), keys);
     if (/^✗/.test(note)) { notes.push(`✗ ${entry}: ${note.slice(2)}`); continue; }
     fs.writeFileSync(plist, xml);
@@ -857,12 +955,13 @@ function main() {
       const vc = loud(proj, 'ViewController', patchViewController(shared));
       const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared));
       const plists = loud(proj, 'Info.plist', patchInfoPlists(shared));
+      const dlg = loud(proj, 'delegates', patchDelegates(shared));
       // 灵动岛（§9.5）：只做 iOS，且只对已经带 iOS App target 的工程。macOS 没有灵动岛。
       const widget = fs.existsSync(path.join(path.dirname(shared), 'iOS (App)'))
         ? loud(proj, 'widget', patchWidgetFiles(shared)) + ' · '
           + loud(proj, 'widget', patchWidgetTarget(shared))
         : 'widget: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -884,6 +983,7 @@ if (require.main === module) main();
 
 module.exports = {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
-  patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
+  patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS,
+  patchPlistXml, patchInfoPlists, PLIST_KEYS,
   patchWidgetTarget, patchWidgetFiles,
 };

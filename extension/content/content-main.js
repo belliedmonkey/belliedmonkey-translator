@@ -15,6 +15,11 @@
     'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
     'textColor', 'ytTextColor', 'fontSize', 'showFab',
     'learnEnabled', 'learnDailyNew', 'learnRules',
+    // 跨面交接用的**不透明 id**（learning-design §8.4.1.1，2026-09-02 用户裁定）。
+    // ⚠️ 这里加进来的是 `learnUserId`，**不是** `learnAuth` —— 后者装着 access /
+    // refresh token，永不进任何一份键列表。两边比一下 id 相不相等，是发现「扩展登 A、
+    // App 登 B」的唯一办法，而在这之前没有任何一侧发现得了。
+    'learnUserId',
   ];
   // 走 RequestShape.storageGet：它带截止时间。一个不落地的存储回调会把整个内容脚本
   // 钉在这一行 —— 页面上什么都不会发生，也没有任何报错可查（2026-08-29 真机实测的
@@ -60,6 +65,10 @@
     // (fail-open, §7.4.5 — a genuinely broken read also loses learnEnabled, which
     // fails capture closed anyway).
     learnRules: settings.learnRules || null,
+    // 空串与 undefined 都表示「扩展这边没登录」。交接链接据此决定带不带 uid ——
+    // **不带**和**带空串**必须能分开：前者是「没登录」，后者会让 App 以为
+    // 「登录了但 id 读不出来」。
+    learnUserId: String(settings.learnUserId || '').trim(),
   };
 
   // ─── 自家官网：留一个可被页面读到的标记 ─────────────────────────────────

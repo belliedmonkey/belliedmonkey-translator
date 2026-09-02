@@ -1983,5 +1983,26 @@
   },
   "sync_next_app": {
     "message": "Als Nächstes: Melden Sie sich in der iPhone-/Mac-App mit derselben E-Mail-Adresse ({email}) an — erst dann erscheinen diese Karten dort."
+  },
+  "app_dl_mismatch_title": {
+    "message": "Das sind zwei verschiedene Konten"
+  },
+  "app_dl_mismatch_body": {
+    "message": "Die Browser-Erweiterung ist mit einem anderen Konto angemeldet; diese App ist als {email} angemeldet. Karten gehören zu einem Konto — solange die beiden verschieden sind, erscheint hier nichts von dort."
+  },
+  "app_dl_switch": {
+    "message": "Abmelden und das Konto der Erweiterung nutzen"
+  },
+  "app_dl_keep": {
+    "message": "Dieses Konto behalten"
+  },
+  "app_dl_signin": {
+    "message": "Die Browser-Erweiterung ist bereits angemeldet. Melden Sie sich hier mit demselben Konto an, dann werden die Karten synchronisiert."
+  },
+  "app_dl_signin_none": {
+    "message": "Melden Sie sich zuerst in der Erweiterung an und dann hier mit demselben Konto — die Karten werden dort erfasst."
+  },
+  "review_go_app": {
+    "message": "In der App weiterlernen →"
   }
 }

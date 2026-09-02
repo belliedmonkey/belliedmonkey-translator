@@ -258,3 +258,12 @@ button:hover { border-color: var(--accent); }
 .notes-h:first-child { margin-top: 0; }
 .notes-line { margin: 2px 0; }
 .notes-line b { color: var(--sage-text); font-weight: 600; }
+
+/* 跨面交接的按钮（learning-design §8.4.1.1）。只在已登录时出现，紧跟同步状态行 ——
+   那两行说的是同一件事的两半：这台设备同步到哪了，以及去 App 接着复习。 */
+.go-app {
+  margin-top: 8px; padding: 8px 14px; border-radius: 999px;
+  border: 1.5px solid var(--accent); background: none; color: var(--accent-deep);
+  font: inherit; font-size: .9rem; cursor: pointer;
+}
+.go-app:hover { background: var(--accent); color: #fff; }

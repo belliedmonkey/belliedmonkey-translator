@@ -1984,5 +1984,26 @@
   },
   "sync_next_app": {
     "message": "接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。"
+  },
+  "app_dl_mismatch_title": {
+    "message": "两边不是同一个账号"
+  },
+  "app_dl_mismatch_body": {
+    "message": "浏览器扩展登录的是另一个账号，这台 App 登录的是 {email}。卡片属于账号，所以两边不是同一个账号时，这边看不到那边采集的东西。"
+  },
+  "app_dl_switch": {
+    "message": "退出，换成扩展那个账号"
+  },
+  "app_dl_keep": {
+    "message": "保持当前账号"
+  },
+  "app_dl_signin": {
+    "message": "浏览器扩展那边已经登录了。在这里用同一个账号登录，卡片才会同步过来。"
+  },
+  "app_dl_signin_none": {
+    "message": "先在浏览器扩展里登录，再回到这里用同一个账号登录 —— 卡片是那边采集的。"
+  },
+  "review_go_app": {
+    "message": "在 App 里继续复习 →"
   }
 }

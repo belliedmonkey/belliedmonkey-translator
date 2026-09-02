@@ -1983,5 +1983,26 @@
   },
   "sync_next_app": {
     "message": "Ahora: inicia sesión en la app de iPhone / Mac con este mismo correo ({email}); así es como llegan estas tarjetas."
+  },
+  "app_dl_mismatch_title": {
+    "message": "No son la misma cuenta"
+  },
+  "app_dl_mismatch_body": {
+    "message": "La extensión del navegador tiene otra cuenta iniciada; esta app está como {email}. Las tarjetas pertenecen a una cuenta, así que mientras las dos difieran, lo que recopiles allí no aparecerá aquí."
+  },
+  "app_dl_switch": {
+    "message": "Cerrar sesión y usar la cuenta de la extensión"
+  },
+  "app_dl_keep": {
+    "message": "Mantener esta cuenta"
+  },
+  "app_dl_signin": {
+    "message": "La extensión del navegador ya tiene sesión iniciada. Inicia sesión aquí con la misma cuenta y las tarjetas se sincronizarán."
+  },
+  "app_dl_signin_none": {
+    "message": "Inicia sesión primero en la extensión y vuelve aquí con la misma cuenta: las tarjetas se recopilan allí."
+  },
+  "review_go_app": {
+    "message": "Seguir en la app →"
   }
 }

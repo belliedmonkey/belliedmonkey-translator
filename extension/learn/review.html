@@ -15,6 +15,11 @@
       <!-- interaction-spec「多设备同步一致性」: 常驻同步状态行。五态：同步中 /
            同步完成·时间 / 离线 / 失败 / 未登录。公开构建（sync 未编入）整行隐藏。 -->
       <div class="sync-line" id="sync-line" hidden></div>
+      <!-- 跨面交接（learning-design §8.4.1.1）：把人送去 App 继续复习，并把一个
+           **不透明 userId** 带过去，好让 App 那边发现「两边不是同一个账号」——
+           在这之前没有任何一侧发现得了。只在已登录时出现：没登录时既没有 id 可带，
+           那边也拉不到任何东西。 -->
+      <button id="go-app" type="button" class="go-app" hidden></button>
     </header>
 
     <!-- Empty: no corpus at all. Says how material gets collected, rather than

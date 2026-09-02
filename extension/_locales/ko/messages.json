@@ -1983,5 +1983,26 @@
   },
   "sync_next_app": {
     "message": "다음: iPhone / Mac 앱에서 같은 이메일({email})로 로그인하세요. 그래야 카드가 그쪽에 나타납니다."
+  },
+  "app_dl_mismatch_title": {
+    "message": "서로 다른 계정입니다"
+  },
+  "app_dl_mismatch_body": {
+    "message": "브라우저 확장은 다른 계정으로 로그인되어 있고, 이 앱은 {email}입니다. 카드는 계정에 속하므로, 서로 다른 동안에는 그쪽에서 모은 것이 여기에 나타나지 않습니다."
+  },
+  "app_dl_switch": {
+    "message": "로그아웃하고 확장의 계정 사용"
+  },
+  "app_dl_keep": {
+    "message": "현재 계정 유지"
+  },
+  "app_dl_signin": {
+    "message": "브라우저 확장은 이미 로그인되어 있습니다. 여기서도 같은 계정으로 로그인하면 카드가 동기화됩니다."
+  },
+  "app_dl_signin_none": {
+    "message": "먼저 브라우저 확장에서 로그인한 뒤, 여기서 같은 계정으로 로그인하세요 — 카드는 그쪽에서 모입니다."
+  },
+  "review_go_app": {
+    "message": "앱에서 이어서 복습 →"
   }
 }

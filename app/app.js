@@ -825,6 +825,79 @@
       },
     });
 
+    // ── 跨面交接（learning-design §8.4.1.1）────────────────────────────────
+    //
+    // 扩展那边打开 belliedmonkey://review?uid=<userId> 把人送过来。跨过来的只有一个
+    // **不透明 userId** —— 不是会话（那里面有 token），也不是邮箱。它只回答一个问题：
+    // 两边是不是同一个人。
+    //
+    // 在这之前，两边登了不同账号时**没有任何一侧发现得了**：App 拉到 0 行，然后说
+    // 「先在浏览器里采集一些」，反过来指责一个已经采集了一周的人。
+    //
+    // Swift 侧（app/native/open-url-bridge.swift）两头都兜：页面没就绪时它写
+    // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。所以这里两样都读。
+    function parseDeepLink(raw) {
+      try {
+        const u = new URL(String(raw || ''));
+        if (!/^belliedmonkey(cn)?:$/.test(u.protocol)) return null;
+        // `has` 与「空串」必须分开：不带 uid 是「扩展没登录」，带空串是
+        // 「登录了但 id 读不出来」—— 两者要给的话不一样。
+        const has = u.searchParams.has('uid');
+        return { action: (u.hostname || u.pathname.replace(/^\/+/, '')) || 'review',
+          hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
+      } catch (_) { return null; }
+    }
+    window.__mtDeepLink = (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); };
+
+    // 三支，每一支都必须说得出**事实**，不猜。
+    async function applyDeepLink(d) {
+      const mine = (currentSession && currentSession.userId) || '';
+      // ① App 未登录。扩展那边登没登录，决定这句话怎么说。
+      if (!mine) {
+        $('onboard').hidden = true;
+        $('signed-out').hidden = false;
+        $('signin-prompt').hidden = true;
+        $('signin-forms').hidden = false;
+        try { $('email').focus(); } catch (_) {}
+        say(d.hasUid && d.uid
+          // 不给邮箱：跨过来的是不透明 id，我们**不知道**那是哪个邮箱，
+          // 说「用 xxx 登录」就是编造。如实说「用扩展里那个账号」。
+          ? t('app_dl_signin', '浏览器扩展那边已经登录了。在这里用同一个账号登录，卡片才会同步过来。')
+          : t('app_dl_signin_none', '先在浏览器扩展里登录，再回到这里用同一个账号登录 —— 卡片是那边采集的。'), true);
+        return;
+      }
+      // ② 同一个人 ⇒ 直接进复习，并强制同步一次（这一刻正是「进入」）。
+      if (!d.hasUid || !d.uid || d.uid === mine) {
+        $('onboard').hidden = true;
+        quietSync();
+        // 走那个按钮自己的处理器，而不是在这里抄一份视图切换 —— 那一段还带着
+        // paintAppEmptyState / LearnReview.start / paintExtBanner 三件事，抄漏一件
+        // 的表现是「进了复习页但卡是旧的」。
+        try { $('review').click(); } catch (_) {}
+        return;
+      }
+      // ③ 两边不是同一个人。**拦下来，不自动切换** —— §8.4.3 的归属闸说过，
+      //    账号切换会把一份语料推进另一个账号的云端。给事实和两个动作，让人自己选。
+      $('onboard').hidden = true;
+      $('dl-mismatch-body').textContent = t('app_dl_mismatch_body',
+        '浏览器扩展登录的是另一个账号，这台 App 登录的是 {email}。卡片属于账号，所以两边不是同一个账号时，这边看不到那边采集的东西。')
+        .replace('{email}', (currentSession && currentSession.email) || '');
+      $('dl-mismatch').hidden = false;
+    }
+
+    // 「退出，换成扩展那个账号」：只做退出，**不替他登录** —— 我们手上只有一个
+    // 不透明 id，不知道那是哪个邮箱，也不该替他决定。退出之后表单展开，他自己填。
+    $('dl-mismatch-switch').addEventListener('click', async () => {
+      $('dl-mismatch').hidden = true;
+      try { await LearnAuth.signOut(); } catch (_) {}
+      await show(null);
+      $('signin-prompt').hidden = true;
+      $('signin-forms').hidden = false;
+      try { $('email').focus(); } catch (_) {}
+      say(t('app_dl_signin', '浏览器扩展那边已经登录了。在这里用同一个账号登录，卡片才会同步过来。'), true);
+    });
+    $('dl-mismatch-keep').addEventListener('click', () => { $('dl-mismatch').hidden = true; });
+
     try {
       const session = await LearnAuth.current();
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。

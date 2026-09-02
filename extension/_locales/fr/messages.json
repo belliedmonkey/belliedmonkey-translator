@@ -1983,5 +1983,26 @@
   },
   "sync_next_app": {
     "message": "Ensuite : connectez-vous à l'app iPhone / Mac avec cette même adresse ({email}) — c'est ce qui y fait apparaître ces cartes."
+  },
+  "app_dl_mismatch_title": {
+    "message": "Ce ne sont pas le même compte"
+  },
+  "app_dl_mismatch_body": {
+    "message": "L'extension du navigateur est connectée à un autre compte ; cette app est connectée en tant que {email}. Les cartes appartiennent à un compte : tant que les deux diffèrent, ce que vous collectez là-bas n'apparaîtra pas ici."
+  },
+  "app_dl_switch": {
+    "message": "Se déconnecter et utiliser le compte de l'extension"
+  },
+  "app_dl_keep": {
+    "message": "Garder ce compte"
+  },
+  "app_dl_signin": {
+    "message": "L'extension du navigateur est déjà connectée. Connectez-vous ici avec le même compte et les cartes se synchroniseront."
+  },
+  "app_dl_signin_none": {
+    "message": "Connectez-vous d'abord dans l'extension, puis revenez ici et connectez-vous avec le même compte — les cartes y sont collectées."
+  },
+  "review_go_app": {
+    "message": "Continuer dans l'app →"
   }
 }

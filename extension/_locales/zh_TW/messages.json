@@ -1984,5 +1984,26 @@
   },
   "sync_next_app": {
     "message": "接下來：在 iPhone / Mac 的 App 裡用同一個信箱（{email}）登入，這些卡才會出現在那邊。"
+  },
+  "app_dl_mismatch_title": {
+    "message": "兩邊不是同一個帳號"
+  },
+  "app_dl_mismatch_body": {
+    "message": "瀏覽器擴充功能登入的是另一個帳號，這台 App 登入的是 {email}。卡片屬於帳號，所以兩邊不是同一個帳號時，這邊看不到那邊擷取的東西。"
+  },
+  "app_dl_switch": {
+    "message": "登出，換成擴充功能那個帳號"
+  },
+  "app_dl_keep": {
+    "message": "保持目前帳號"
+  },
+  "app_dl_signin": {
+    "message": "瀏覽器擴充功能那邊已經登入了。在這裡用同一個帳號登入，卡片才會同步過來。"
+  },
+  "app_dl_signin_none": {
+    "message": "先在瀏覽器擴充功能裡登入，再回到這裡用同一個帳號登入 —— 卡片是那邊擷取的。"
+  },
+  "review_go_app": {
+    "message": "在 App 裡繼續複習 →"
   }
 }

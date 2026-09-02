@@ -109,6 +109,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (!/App/i.test(s.nextApp)) problems.push('「下一步」没提到 App —— 登录的价值全在那一边');
     if (!s.tryBtn) problems.push('登录之后没有「现在翻一页看看」的出口');
     if (errs.length) problems.push('运行期异常：' + errs.slice(0, 2).join(' | '));
+
+    // ── ③ 复习页 → App 的交接（learning-design §8.4.1.1）──────────────────
+    const { targetId: rid } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const rAtt = await cdp.send('Target.attachToTarget', { targetId: rid, flatten: true });
+    await cdp.send('Runtime.enable', {}, rAtt.sessionId);
+    await cdp.send('Page.navigate',
+      { url: `chrome-extension://${extId}/learn/review.html` }, rAtt.sessionId);
+    await sleep(3000);
+    const rr = await cdp.send('Runtime.evaluate', { returnByValue: true, expression: `(() => {
+      const b = document.getElementById('go-app');
+      return JSON.stringify({
+        exists: !!b,
+        vis: !!(b && b.getClientRects().length),
+        text: b ? (b.textContent || '').trim() : '',
+        href: b ? (b.dataset.href || '') : '',
+        // 页面到底活没活。review.js 一旦解析失败，整页是空的，而上面那些断言
+        // 会全部读到 false —— 那时报「按钮不在」是**错的诊断**。
+        counts: (document.getElementById('counts') || {}).textContent || '',
+      });
+    })()` }, rAtt.sessionId);
+    const rv = JSON.parse(rr.result.value);
+    notes.push(`复习页：按钮 ${rv.vis ? '「' + rv.text + '」' : '不可见'} → ${rv.href || '（无）'}`);
+    if (!rv.counts.trim()) {
+      problems.push('复习页头部的计数是空的 —— review.js 可能整份没解析（语法错的表现就是这个，'
+        + '不是一行报错）。先看 npm test 的「出货的 JS 都解析得了」。');
+    } else if (!rv.vis) {
+      problems.push('已登录，复习页却没有「在 App 里继续复习」的按钮 —— 跨面交接断在这里');
+    } else if (!/^belliedmonkey(cn)?:\/\/review\?uid=/.test(rv.href)) {
+      problems.push(`交接地址形状不对：${rv.href} —— 期望 belliedmonkey://review?uid=<不透明 id>`);
+    } else if (rv.href.includes('@')) {
+      problems.push(`交接地址里出现了邮箱：${rv.href} —— §8.4.1.1 裁定只传不透明 userId`);
+    }
   } catch (e) {
     problems.push('跑挂了：' + ((e && e.message) || e));
   } finally {

@@ -15,6 +15,17 @@
          横跨登录与未登录两种状态 —— 它说的不是「你没登录」，是「材料的来源还没开」。
          状态由 ViewController 在 didFinish 里调 show() 灌进来（macOS 查得到，
          iOS 查不到 —— getStateOfSafariExtension 是 macOS-only）。 -->
+    <!-- 跨面账号不一致的拦截（learning-design §8.4.1.1）。
+         扩展打开 belliedmonkey://review?uid=… 把人送过来，两边 userId 不同时出现。
+         **不自动切换账号** —— §8.4.3 的归属闸说过，切账号会把一份语料推进另一个
+         账号的云端。这里只给事实和两个动作，选择权在人手上。 -->
+    <section id="dl-mismatch" hidden>
+      <p id="dl-mismatch-title" data-i18n="app_dl_mismatch_title">两边不是同一个账号</p>
+      <p id="dl-mismatch-body" class="note"></p>
+      <button id="dl-mismatch-switch" type="button" data-i18n="app_dl_switch">退出，换成扩展那个账号</button>
+      <button id="dl-mismatch-keep" type="button" class="secondary" data-i18n="app_dl_keep">保持当前账号</button>
+    </section>
+
     <section id="ext-banner" hidden>
       <p id="ext-banner-title"></p>
       <p id="ext-banner-body" class="note"></p>

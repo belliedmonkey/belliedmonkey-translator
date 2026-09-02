@@ -920,6 +920,34 @@
     try { return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
     catch (_) { return ''; }
   }
+  // 「去 App 继续复习」。地址是自定义 scheme，按 flavor 走 —— 两个 flavor 两个
+  // scheme，同名的话两版同时在场时由 iOS 随机挑一个去接（verification-spec §2.0
+  // 为「跑的是哪一份没有确定答案」付过代价）。
+  //
+  // 带过去的只有一个不透明 userId：不是会话（那里面有 token），也不是邮箱。
+  // 它只回答一个问题 —— 两边是不是同一个人。
+  function goAppUrl(userId) {
+    const scheme = (typeof window !== 'undefined' && window.MT_FLAVOR === 'china')
+      ? 'belliedmonkeycn' : 'belliedmonkey';
+    return scheme + '://review' + (userId ? '?uid=' + encodeURIComponent(userId) : '');
+  }
+
+  async function renderGoApp() {
+    const btn = $('go-app');
+    if (!btn) return;
+    if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) { btn.hidden = true; return; }
+    const s = await LearnAuth.current().catch(() => null);
+    // 未登录不给：没有 id 可带，而 App 那边此刻也拉不到任何东西 ——
+    // 给一个按钮把人送去一个必然空着的界面，是把失败推迟到下一屏。
+    if (!s || !s.userId) { btn.hidden = true; return; }
+    btn.textContent = t('review_go_app', '在 App 里继续复习 →');
+    // 地址挂到 dataset 上：它是这条链路上唯一能被读回的东西。藏在闭包里的话，
+    // 「带没带 uid」「scheme 对不对」就只能靠读代码判断，而门禁读不到。
+    btn.dataset.href = goAppUrl(s.userId);
+    btn.hidden = false;
+    btn.onclick = () => { try { location.href = btn.dataset.href; } catch (_) {} };
+  }
+
   function renderSyncStatus(ev) {
     const line = $('sync-line');
     if (!line) return;
@@ -1352,6 +1380,10 @@
         if (!session && LearnAuth.lastLoadError()) renderSyncStatus({ state: 'storage_error', at: Date.now() });
         else if (!session) renderSyncStatus({ state: 'signed_out', at: Date.now() });
         else if (lastOk) renderSyncStatus({ state: 'done', at: lastOk });
+        // 跨面交接的按钮。**排在链条之后**，不是插在 if/else 中间 ——
+        // 插进去是语法错误，而它的表现不是报一行错，是整个 review.js 不解析、
+        // 复习页一片空白（2026-09-02 我自己刚踩过一次）。
+        renderGoApp();
       }
     })().catch(() => {});
     LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});

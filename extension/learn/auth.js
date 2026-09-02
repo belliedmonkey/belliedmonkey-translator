@@ -25,6 +25,8 @@
 
 var LearnAuth = (() => {
   const KEY = 'learnAuth';
+  // 只装 userId 的独立键（§8.4.1.1 的跨面交接）。内容脚本读得到的就只有它。
+  const UID_KEY = 'learnUserId';
   // Pre-2026-08-09 location (IndexedDB meta). Read once for migration, then
   // cleared after a successful forward-write. An orphaned legacy bucket simply
   // migrates nothing — one final sign-in, never again.
@@ -134,8 +136,12 @@ var LearnAuth = (() => {
     if (next) {
       const w = await PageSettings.write({ [KEY]: next });
       if (!w.ok) loadError = w.error || 'storage write failed';   // stays in memory
+      // 身份与会话**分开存**（§8.4.1.1）。跨面交接要传的只是一个不透明 id，
+      // 而 `learnAuth` 里有 access / refresh token —— 把整个会话放进内容脚本读得到
+      // 的键列表是另一件事，那件事仍然禁止。这个键只装 userId，别的一个字节都没有。
+      try { await PageSettings.write({ [UID_KEY]: next.userId || '' }); } catch (_) {}
     } else {
-      await PageSettings.removeKeys([KEY]);
+      await PageSettings.removeKeys([KEY, UID_KEY]);
       // Best-effort: a sign-out must not leave a resurrectable legacy copy.
       try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {}
     }

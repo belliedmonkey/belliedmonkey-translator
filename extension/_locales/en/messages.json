@@ -1983,5 +1983,26 @@
   },
   "sync_next_app": {
     "message": "Next: sign in to the iPhone / Mac app with this same email ({email}) — that is what brings these cards over."
+  },
+  "app_dl_mismatch_title": {
+    "message": "These are two different accounts"
+  },
+  "app_dl_mismatch_body": {
+    "message": "The browser extension is signed in to a different account; this app is signed in as {email}. Cards belong to an account, so while the two differ, what you collect there will not appear here."
+  },
+  "app_dl_switch": {
+    "message": "Sign out and use the extension's account"
+  },
+  "app_dl_keep": {
+    "message": "Keep this account"
+  },
+  "app_dl_signin": {
+    "message": "The browser extension is already signed in. Sign in here with the same account and the cards will sync over."
+  },
+  "app_dl_signin_none": {
+    "message": "Sign in to the browser extension first, then come back and sign in here with the same account — the cards are collected there."
+  },
+  "review_go_app": {
+    "message": "Continue in the app →"
   }
 }
