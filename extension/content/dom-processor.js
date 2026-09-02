@@ -21,6 +21,27 @@ var DOMProcessor = (() => {
     'select', 'option', 'button', 'meta', 'link', 'br', 'hr', 'slot'
   ]);
 
+  // Code-ish tags. They are in EXCLUDE_TAGS above — as a BLOCK they are a code
+  // listing and stay excluded — but used INLINE inside a sentence they carry
+  // sentence-critical content, and dropping them does not shorten the sentence,
+  // it makes it wrong. See docs/domain-design.md §3 ("Inline code is KEPT
+  // VERBATIM; block code is excluded"):
+  //
+  //   `Apps start from a hotkey (<kbd>Super + Return</kbd> for the terminal, …)`
+  //   extracted as `Apps start from a hotkey ( for the terminal, …)`
+  //   → 「应用通过热键启动（终端用热键，浏览器用热键…）」
+  //
+  // The engine did nothing wrong; it faithfully translated a sentence with holes.
+  // `pre` is NOT in this set: a <pre> is a code listing whatever its display is.
+  const CODEISH_TAGS = new Set(['code', 'kbd', 'samp', 'var']);
+
+  // 行内的 code-ish 元素（进句子）与块级的（整段排除）。判据是**计算样式**，不是
+  // 标签名：同一个 <code> 在段落里是行内、单独成块时是代码块。
+  function isInlineCode(el) {
+    if (!CODEISH_TAGS.has(el.tagName.toLowerCase())) return false;
+    return !isBlock(el);      // display:inline / contents → 行内；其余都当块
+  }
+
   // Phrasing (inline) tags — merged into a paragraph unit, never a block boundary.
   const INLINE_TAGS = new Set([
     'a', 'abbr', 'b', 'bdi', 'bdo', 'cite', 'data', 'dfn', 'em', 'i', 'mark',
@@ -240,7 +261,8 @@ var DOMProcessor = (() => {
       if (node.nodeType === Node.TEXT_NODE) { out.push(node.textContent); continue; }
       if (!(node instanceof Element)) continue;
       if (node.classList && node.classList.contains(TRANSLATION_CLASS)) continue;
-      if (EXCLUDE_TAGS.has(node.tagName.toLowerCase())) continue;
+      // 行内的 code-ish 元素要**下钻**（它的文字属于这个句子）；块级的照旧整段排除。
+      if (EXCLUDE_TAGS.has(node.tagName.toLowerCase()) && !isInlineCode(node)) continue;
       if (!isVisible(node)) continue;
       collectText(node, out);
     }

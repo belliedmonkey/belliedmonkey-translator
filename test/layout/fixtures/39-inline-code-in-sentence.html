@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inline kbd/code inside a sentence, and a real code block beside it</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 760px; }
+  p { margin: 0 0 14px; line-height: 1.7; }
+  /* omarchy.org 的形状：行内 <kbd> 是个小胶囊。display 保持 inline —— 判据看的是
+     计算样式，不是标签名。 */
+  kbd { display: inline; background: #2b2f3a; color: #cfe3ff; border-radius: 4px;
+        padding: 2px 6px; font-family: ui-monospace, monospace; font-size: .92em; }
+  code.inline { display: inline; font-family: ui-monospace, monospace; }
+  /* 块级的代码：仍然整段不翻。<pre> 与「自己成块的 <code>」两种都放进来。 */
+  pre { display: block; background: #f4f4f4; padding: 12px; overflow-x: auto; }
+  code.blockish { display: block; background: #f4f4f4; padding: 12px; white-space: pre; }
+</style>
+</head>
+<body>
+
+<p id="lead">Nothing to click to launch things, no icons to arrange on the desktop.
+Apps start from a hotkey (<kbd id="k1">Super + Return</kbd> for the terminal,
+<kbd id="k2">Super + Shift + Return</kbd> for the browser, and <kbd id="k3">Super + K</kbd>
+for a list of everything that is mapped) or from the menu.</p>
+
+<p id="mixed">Set the value with <code class="inline" id="c1">editor.fontSize</code> and restart
+the session; the change is picked up the next time the configuration file is read.</p>
+
+<pre id="listing">for f in *.md; do
+  pandoc "$f" -o "${f%.md}.html"
+done</pre>
+
+<code class="blockish" id="blockcode">npm install --save-dev eslint</code>
+
+<p id="tail">Everything else keeps working the way it did before, so there is nothing to
+migrate and nothing that has to be learned in a particular order.</p>
+
+<!--
+  REGRESSION（2026-09-02，用户在 omarchy.org/manual/coming-from-mac-or-windows/ 上报）：
+  译文里三个热键**整个消失**了 ——「终端用热键，浏览器用热键，以及一个列出所有映射
+  项的热键」。
+
+  真因不在引擎，在抽取器：dom-processor 的 collectText 对 EXCLUDE_TAGS 里的元素直接
+  continue，而 code/kbd/samp/var 都在那张表里。于是送出去的原文是
+
+    Apps start from a hotkey ( for the terminal, for the browser, and for a list …)
+
+  引擎照着这个带窟窿的句子忠实翻译。删掉一段行内代码不会让句子变短，会让它变错。
+
+  规则见 docs/domain-design.md §3「Inline code is KEPT VERBATIM; block code is
+  excluded」，判据是**计算样式**不是标签名：同一个 <code> 在段落里是行内、单独成块
+  时是代码块。
+
+  所以这一条同时守两个方向：
+    · expectRequested —— 三个热键与那个行内标识符必须出现在送出去的原文里；
+    · expectNotRequested —— <pre> 与块级 <code> 的内容一个字都不许送出去。
+  只守前者的话，「把所有代码都翻了」也能过。
+-->
+
+<script type="application/json" id="mt-expect">
+{
+  "name": "inline-code-in-sentence",
+  "unitCount": 3,
+  "expectRequested": [
+    "Super + Return",
+    "Super + Shift + Return",
+    "Super + K",
+    "editor.fontSize"
+  ],
+  "expectNotRequested": [
+    "pandoc",
+    "npm install --save-dev eslint"
+  ],
+  "targets": [
+    { "sel": "#lead",  "assert": ["translationMarked", "sameLeft"] },
+    { "sel": "#mixed", "assert": ["translationMarked", "sameLeft"] },
+    { "sel": "#tail",  "assert": ["translationMarked", "sameLeft"] },
+    { "sel": "#listing",   "assert": ["noTranslationSibling"] },
+    { "sel": "#blockcode", "assert": ["noTranslationSibling"] }
+  ]
+}
+</script>
+
+</body>
+</html>
