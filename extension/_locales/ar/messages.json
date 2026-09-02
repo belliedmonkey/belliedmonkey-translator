@@ -1552,10 +1552,6 @@
     "message": "انتهت هذه الجولة",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "تم تخطي {n} بطاقة يتعذر قراءتها (بطاقات وسائط أو بدون صوت)",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "لا توجد بطاقات يمكن قراءتها",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "تمت الترجمة — لكن لا يُحفظ شيء كبطاقات بعد"
+  },
+  "drive_skipped_media": {
+    "message": "تم تخطّي {n} من بطاقات ترجمة الفيديو — ليس فيها نص يُقرأ بصوت عالٍ"
+  },
+  "drive_skipped_voice": {
+    "message": "تم تخطّي {n}: لا يوجد في هذا الجهاز صوت يستطيع قراءتها. أعِدّ واحدًا من الإعدادات ← محرك النطق، أو اختر صوت نظام آخر."
   }
 }

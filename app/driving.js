@@ -603,19 +603,33 @@ var AppDriving = (() => {
   // never silently (no silent caps).
   async function speakableDeck(full) {
     const voiceOk = new Map();
-    const can = async (lang) => {
-      const k = lang || '';
-      if (!voiceOk.has(k)) voiceOk.set(k, (await LearnTTS.available(k)).ok);
+    // **把文本一起交出去。** 语言未知（Safari 采的卡全是 'und'）时，LearnTTS 会按
+    // 文本的主导脚本挑音色；不给文本它只能返回「读不了」，而那意味着 iOS 上一张都
+    // 播不了（2026-09-02 真机：4 张卡全跳过，一轮瞬间结束）。
+    // 缓存键要带上脚本判断的输入，否则第一张 und 卡的结论会盖住所有 und 卡 ——
+    // 而它们的脚本可能各不相同。已知语言仍按语言缓存，一次问答走遍全牌库。
+    const can = async (lang, text) => {
+      const base = String(lang || '').toLowerCase().split('-')[0];
+      const known = base && base !== 'und';
+      const k = known ? base : 'und:' + (LearnTTS.scriptLang ? LearnTTS.scriptLang(text) : '');
+      if (!voiceOk.has(k)) voiceOk.set(k, (await LearnTTS.available(lang, undefined, text)).ok);
       return voiceOk.get(k);
     };
     const out = [];
-    let skipped = 0;
+    // 两个原因分开数。「媒体卡」和「没有能读它的音色」对用户是完全不同的两件事：
+    // 前者无解（那张卡是视频字幕的锚点），后者去设置里配个语音引擎就好了。
+    // 合成一句「读不出来的卡（媒体卡或无语音）」等于让他猜自己该做什么。
+    let media = 0; let noVoice = 0;
     for (const it of full) {
-      if (it.anchor && it.anchor.k === 'media') { skipped++; continue; }
-      if (!(await can(it.lang)) || (it.tr && !(await can(it.targetLang || uiLang)))) { skipped++; continue; }
+      if (it.anchor && it.anchor.k === 'media') { media += 1; continue; }
+      // eslint-disable-next-line no-await-in-loop
+      const srcOk = await can(it.lang, it.text);
+      // eslint-disable-next-line no-await-in-loop
+      const trOk = !it.tr || await can(it.targetLang || uiLang, it.tr);
+      if (!srcOk || !trOk) { noVoice += 1; continue; }
       out.push(it);
     }
-    return { deck: out, skipped };
+    return { deck: out, skipped: media + noVoice, media, noVoice };
   }
 
   async function buildSession() {
@@ -627,7 +641,7 @@ var AppDriving = (() => {
     deck = r.deck;
     order = LearnDriving.buildOrder(deck.length, mode, Math.random);
     pos = order.length ? order[0] : 0;
-    return r.skipped;
+    return { media: r.media, noVoice: r.noVoice };
   }
 
   // ─── 出发前预载（§9.5）────────────────────────────────────────────────────
@@ -810,7 +824,7 @@ var AppDriving = (() => {
       return;
     }
     applySettings(read.data);
-    const skipped = await buildSession();
+    const skip = await buildSession();
     renderCard(null);
     // 开关开着、引擎没配 ⇒ 说一次，会话级，不是每张卡。这不是「能力语义下的形态不
     // 存在」——用户**明确打开了一个开关**，什么都不发生就必须给出理由，而且要点名去哪配。
@@ -819,8 +833,14 @@ var AppDriving = (() => {
       ? t('drive_notes_engine_missing', '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）')
       : '';
     bgNote = backgroundNote();
-    if (skipped) {
-      note(t('drive_skipped', '跳过 {n} 张读不出来的卡（媒体卡或无语音）').replace('{n}', String(skipped)));
+    // 两个原因各说各的，并且「没音色」那一支要说得出**去哪儿解决**。
+    if (skip.media) {
+      note(t('drive_skipped_media', '跳过 {n} 张视频字幕卡 —— 它们没有可朗读的正文')
+        .replace('{n}', String(skip.media)));
+    }
+    if (skip.noVoice) {
+      note(t('drive_skipped_voice', '跳过 {n} 张：这台设备上没有能读它们的语音。到设置 → 语音引擎里配一个，或换一个系统音色。')
+        .replace('{n}', String(skip.noVoice)));
     }
     if (!deck.length) {
       state = { name: 'session_done' };

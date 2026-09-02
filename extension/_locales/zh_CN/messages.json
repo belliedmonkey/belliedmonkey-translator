@@ -1553,10 +1553,6 @@
     "message": "本轮听完了",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "跳过 {n} 张读不出来的卡（媒体卡或无语音）",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "没有可听读的卡",
     "description": "Driving mode (learning-design §9.5)"
@@ -2020,5 +2016,11 @@
   },
   "site_next_title_off": {
     "message": "译文出来了。但现在还不会存成复习卡"
+  },
+  "drive_skipped_media": {
+    "message": "跳过 {n} 张视频字幕卡 —— 它们没有可朗读的正文"
+  },
+  "drive_skipped_voice": {
+    "message": "跳过 {n} 张：这台设备上没有能读它们的语音。到设置 → 语音引擎里配一个，或换一个系统音色。"
   }
 }

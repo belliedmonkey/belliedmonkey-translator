@@ -1050,6 +1050,26 @@ change: four grades, consequence previews, strength bar.
   capability means the form does not exist, not that the card failed (same
   semantics as domain-design §5.3 rule 1). The same sentence covers 说.
 
+### 语言未知的卡也要读得出来（2026-09-02）
+
+Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的每一张卡的
+`lang` 都是 `und`** —— 也就是 iOS 上的全部素材。而挑音色的规则原来是「und 且没有
+显式选过音色 ⇒ 没有音色」，于是播客模式在 iOS 上一张卡都播不了：4 张卡、4 张跳过、
+一轮瞬间结束，而界面只说「读不出来的卡（媒体卡或无语音）」。
+
+- **语言未知时按文本的主导脚本挑音色**（`LearnRules.dominantScript`）。假名 ⇒ ja、
+  谚文 ⇒ ko、西里尔 ⇒ ru、汉字 ⇒ zh…… 拉丁字母是唯一含糊的一支，退回 en：
+  我们的用户读的外文绝大多数是英文，而英文文本用英文音色念即使猜错也读得出来。
+- 「日文卡用英文音色念比不念更糟」那条判断**不变** —— 它针对的是**已知**的语言。
+  这里处理的是未知，而未知 ≠ 已知不匹配。
+- **用户显式选过的音色永远最优先**：那是他的决定，不是我们的推断。
+- 猜出来的语言仍然没有音色 ⇒ 照旧 `no_voice_und`，理由必须与 `no_voice` 分开：
+  后者会让人去 iOS 设置里找一个他手机上明明有的音色，而真正的修法在我们的设置里。
+
+**跳过的两个原因必须分开说。** 「媒体卡」（视频字幕的锚点，没有可朗读的正文）无解；
+「没有能读它的音色」去设置里配一个就好。合成一句「读不出来的卡（媒体卡或无语音）」
+等于让用户猜自己该做什么。
+
 ### 说题卡 (speaking exercise) — 2026-08-12
 
 - **Anatomy**: the original sentence stays VISIBLE (this is reading aloud, not

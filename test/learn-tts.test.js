@@ -51,6 +51,9 @@ function setup(opts = {}) {
   const ctx = loadModule(['content/request-shape.js', 'learn/tts.js'], {
     window: { MT_TTS_ENGINES: REGISTRY.map((e) => Object.assign({}, e)) },
     LearnModel, LearnStore, WireFormat,
+    // 语言未知时按脚本挑音色要用它（tts.js 的 scriptLang）。不注入的话那条路
+    // 会静默退回「猜不出」，于是新加的断言全都在考一个不存在的分支。
+    LearnRules: loadModule('learn-rules.js', { window: {} }).LearnRules,
     // The vm sandbox inherits no globals, so the abort path only exists here if it is
     // handed in — and without it the timeout test would silently exercise nothing.
     AbortController,
@@ -163,6 +166,48 @@ describe('LearnTTS — voice selection is language-aware', () => {
     eq(TTS.pickVoice([], 'en', ''), null);
   });
 
+  // ── 语言未知（Safari 采的卡全是 'und'）──────────────────────────────────
+  //
+  // 这一组守的是一个曾经把整个功能变成死的的行为：und 且没显式选过音色 ⇒ 返回 null
+  // ⇒ 播客模式在 iOS 上一张卡都播不了（2026-09-02 真机：4 张全跳过）。
+  // 现在按文本的主导脚本猜，而**已知语言的行为一个字都不许变**（上面那几条）。
+  describe('语言未知时按脚本挑音色', () => {
+    const many = [
+      voice('Alex', 'en-US', { default: true }),
+      voice('Kyoko', 'ja-JP'),
+      voice('Yuna', 'ko-KR'),
+      voice('Milena', 'ru-RU'),
+    ];
+
+    test('假名 ⇒ 日文音色；谚文 ⇒ 韩文音色；西里尔 ⇒ 俄文音色', () => {
+      const { TTS } = setup();
+      eq(TTS.pickVoice(many, 'und', '', 'これは日本語の文です。').name, 'Kyoko');
+      eq(TTS.pickVoice(many, 'und', '', '이것은 한국어 문장입니다.').name, 'Yuna');
+      eq(TTS.pickVoice(many, 'und', '', 'Это предложение на русском.').name, 'Milena');
+    });
+
+    test('拉丁字母含糊 ⇒ 退回英文音色（读得出来，即使猜错）', () => {
+      const { TTS } = setup();
+      eq(TTS.pickVoice(many, 'und', '', 'Spaced repetition works because forgetting is a property of memory.').name, 'Alex');
+    });
+
+    test('★ 用户显式选过的音色仍然最优先 —— 那是他的决定，不是我们的推断', () => {
+      const { TTS } = setup();
+      eq(TTS.pickVoice(many, 'und', 'Kyoko|ja-JP', 'This text is in English.').name, 'Kyoko');
+    });
+
+    test('不给文本时行为与从前逐字相同 —— 调用方问的是「这个已知语言能不能读」', () => {
+      const { TTS } = setup();
+      eq(TTS.pickVoice(many, 'und', ''), null);
+    });
+
+    test('猜出来的语言没有对应音色 ⇒ 仍然 null，调用方照旧说得出原因', () => {
+      const { TTS } = setup();
+      // 只有英文音色，而文本是日文 —— 用英文音色念日文比不念更糟，这条不变。
+      eq(TTS.pickVoice([voice('Alex', 'en-US', { default: true })], 'und', '', 'これは日本語です。'), null);
+    });
+  });
+
   test('region subtags do not prevent a match (en vs en-GB vs en_US)', () => {
     const { TTS } = setup();
     eq(TTS.baseLang('en_US'), 'en');
@@ -206,22 +251,36 @@ describe('LearnTTS — availability is checked BEFORE offering a button', () => 
   });
 
   // 'und' is every Safari-captured card (no detector there — domain-design §5.3),
-  // which on the phone means MOST cards. The reason code must be distinct: the
-  // no_voice wording ("no voice for this language") sends the user hunting iOS
-  // settings for an English voice their phone obviously has, when the actual fix
-  // is one tap away in OUR settings.
-  test('an unknown-language card without a chosen voice reports no_voice_und, not no_voice', async () => {
+  // which on the phone means MOST cards.
+  //
+  // 2026-09-02 改了规则：**有文本时按脚本猜**（und + 拉丁 ⇒ en）。原来这里断言
+  // 「und 一律 no_voice_und」，那条规则的代价是播客模式在 iOS 上一张卡都播不了。
+  // 仍然成立、仍然要守的是另外两件事：
+  //   · 猜不出来（没给文本，或猜出的语言没有音色）时，理由必须是 no_voice_und 而
+  //     不是 no_voice —— 后者会让用户去 iOS 设置里找一个他手机上明明有的英文音色，
+  //     而真正的修法在**我们**的设置里，一步之遥。
+  //   · speak() 有它自己那份判断（available 只是建议，▶ 真正跑的是 speak），
+  //     只改坏 speak 的变异体曾经躲过只测 available 的断言。
+  test('猜不出语言时，理由是 no_voice_und（指路到我们的设置），不是 no_voice', async () => {
     const sp = fakeSpeech([voice('Alex', 'en-US'), voice('Kyoko', 'ja-JP')]);
     const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
     TTS.configure({ engineId: 'browser' });
+    // 不给文本 ⇒ 无从猜起。
     eq((await TTS.available('und')).reason, 'no_voice_und', 'und 卡要指路到语音设置');
     eq((await TTS.available('')).reason, 'no_voice_und', '空 lang 与 und 同类');
-    // speak() has its own copy of this decision (available() is advisory; speak()
-    // is what the ▶ tap actually runs) — a mutant that broke only speak()'s
-    // reason survived the available()-only assertions.
-    const r = await TTS.speak('Hello there', 'und');
+    // 给了文本但猜出的语言没有音色（韩文，而这台只有英日）⇒ 仍然 no_voice_und。
+    const r = await TTS.speak('이것은 한국어 문장입니다.', 'und');
     eq(r.ok, false);
     eq(r.reason, 'no_voice_und', 'speak 的 und 报错也要指路，不许退回 no_voice');
+  });
+
+  test('★ und + 有文本 ⇒ 按脚本挑到音色并真的读出来（这条曾经是死的）', async () => {
+    const sp = fakeSpeech([voice('Alex', 'en-US'), voice('Kyoko', 'ja-JP')]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    // available 与 speak 各问一遍：两处各有一份判断。
+    eq((await TTS.available('und', undefined, 'Hello there, this is English.')).ok, true);
+    eq((await TTS.available('und', undefined, 'これは日本語の文です。')).ok, true);
   });
 
   test('an unknown-language card WITH a chosen voice plays with it', async () => {

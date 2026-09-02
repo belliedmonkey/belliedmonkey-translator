@@ -1552,10 +1552,6 @@
     "message": "Fin de esta ronda",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "Se omitieron {n} tarjetas que no se pueden leer (tarjetas de medios o sin voz)",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "No hay tarjetas para leer",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "Ha traducido, pero todavía no se guarda nada como tarjetas"
+  },
+  "drive_skipped_media": {
+    "message": "Se omitieron {n} tarjetas de subtítulos de vídeo: no tienen texto que leer en voz alta"
+  },
+  "drive_skipped_voice": {
+    "message": "Se omitieron {n}: este dispositivo no tiene ninguna voz capaz de leerlas. Configura una en Ajustes → Motor de voz, o elige otra voz del sistema."
   }
 }

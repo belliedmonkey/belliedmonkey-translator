@@ -131,8 +131,33 @@ var LearnTTS = (() => {
   //   1. the user's chosen voice, IF it speaks this card's language
   //   2. any system voice for this language (a default-flagged one first)
   //   3. nothing — and the caller must SAY so rather than fail silently
-  function pickVoice(voices, lang, preferredURI) {
-    const want = baseLang(lang);
+  // 语言未知时，用**文本的主导脚本**猜一个。
+  //
+  // 为什么非猜不可：Safari 上没有 chrome.i18n.detectLanguage（domain-design §5.3），
+  // 所以在 Safari 里采集的每一张卡的 lang 都是 'und' —— 也就是 iOS 上的**全部**素材。
+  // 而原来的规则是「und 且没显式选过音色 ⇒ 返回 null」，于是播客模式在 iOS 上
+  // 一张都播不了：4 张卡、4 张跳过、一轮瞬间结束（2026-09-02 真机实测）。
+  //
+  // 脚本比盲选默认音色准得多：日文假名、汉字、谚文、西里尔、阿拉伯…… 各自只对应
+  // 一门主要语言。拉丁字母是唯一真正含糊的一支，那里退回 en —— 我们的用户读的外文
+  // 绝大多数是英文，而「英文文本用英文音色念」即使猜错也仍然读得出来。
+  // 「日文卡用英文音色念比不念更糟」那条判断仍然成立：它针对的是**已知**的语言，
+  // 这里处理的是未知。
+  const SCRIPT_VOICE = { Kana: 'ja', Han: 'zh', Hangul: 'ko', Cyrillic: 'ru',
+    Arabic: 'ar', Devanagari: 'hi', Thai: 'th', Greek: 'el', Hebrew: 'he', Latin: 'en' };
+  function scriptLang(text) {
+    if (typeof LearnRules === 'undefined' || !LearnRules.dominantScript) return '';
+    try { return SCRIPT_VOICE[LearnRules.dominantScript(text)] || ''; } catch (_) { return ''; }
+  }
+
+  function pickVoice(voices, lang, preferredURI, text) {
+    let want = baseLang(lang);
+    if ((!want || want === 'und') && text) {
+      // 显式选过的音色仍然最优先 —— 它是用户的决定，不是我们的推断。
+      const pref0 = voices.find((v) => v.voiceURI === preferredURI);
+      if (pref0) return pref0;
+      want = scriptLang(text);
+    }
     if (!want || want === 'und') {
       const pref0 = voices.find((v) => v.voiceURI === preferredURI);
       return pref0 || null;
@@ -434,7 +459,7 @@ var LearnTTS = (() => {
       }
       const voices = await loadVoices();
       if (stale()) return { ok: false, reason: 'superseded' };
-      const v = pickVoice(voices, lang, cfg.voice);
+      const v = pickVoice(voices, lang, cfg.voice, clean);
       if (!v) return { ok: false, reason: undLang(lang) ? 'no_voice_und' : 'no_voice' };
       // iOS silently drops a speak() issued right after a cancel() that
       // interrupted real speech — whether OUR stop() above did the interrupting
@@ -534,14 +559,16 @@ var LearnTTS = (() => {
   // Is speech usable at all right now, without trying to play anything? Used to
   // decide whether to render the ▶ control — an engine that cannot possibly work
   // should not present a button that always fails.
-  async function available(lang, waitMs) {
+  // text 可选：给了它，语言未知时就能按脚本挑音色（见 pickVoice）。
+  // 不给的话行为与从前逐字相同 —— 调用方问的是「这个已知语言能不能读」。
+  async function available(lang, waitMs, text) {
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
     if (e.type === 'browser') {
       if (typeof speechSynthesis === 'undefined') return { ok: false, reason: 'unsupported' };
       const voices = await loadVoices(waitMs);
       if (!voices.length) return { ok: false, reason: 'unsupported' };
-      if (!pickVoice(voices, lang, cfg.voice)) {
+      if (!pickVoice(voices, lang, cfg.voice, text)) {
         return { ok: false, reason: undLang(lang) ? 'no_voice_und' : 'no_voice' };
       }
       return { ok: true };
@@ -552,7 +579,7 @@ var LearnTTS = (() => {
   return {
     DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
-    loadVoices, onVoicesChanged, pickVoice, baseLang, undLang, cacheKey,
+    loadVoices, onVoicesChanged, pickVoice, scriptLang, baseLang, undLang, cacheKey,
     getAudio, prefetch, speak, stop, available, test,
     get config() { return cfg; },
   };

@@ -1552,10 +1552,6 @@
     "message": "Fin de cette série",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "{n} carte(s) impossibles à lire ignorée(s) (cartes média ou pas de voix)",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "Aucune carte à lire",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "Ça a marché — mais rien n'est encore enregistré en cartes"
+  },
+  "drive_skipped_media": {
+    "message": "{n} cartes de sous-titres vidéo ignorées — elles n’ont pas de texte à lire"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} ignorées : cet appareil n’a aucune voix capable de les lire. Configurez-en une dans Réglages → Moteur vocal, ou choisissez une autre voix système."
   }
 }

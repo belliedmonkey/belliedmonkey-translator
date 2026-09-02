@@ -1552,10 +1552,6 @@
     "message": "今回の分はここまでです",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "読み上げできないカードを {n} 枚スキップしました（メディアカードまたは音声なし）",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "読み上げられるカードがありません",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "翻訳できました —— ただ今はまだカードとして保存されません"
+  },
+  "drive_skipped_media": {
+    "message": "{n} 件の動画字幕カードをスキップしました —— 読み上げる本文がありません"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} 件をスキップ：この端末に読み上げられる音声がありません。設定 → 音声エンジンで設定するか、別のシステム音声を選んでください。"
   }
 }

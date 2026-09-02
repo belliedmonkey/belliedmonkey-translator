@@ -1552,10 +1552,6 @@
     "message": "Diese Runde ist zu Ende",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "{n} nicht vorlesbare Karten übersprungen (Medienkarten oder keine Stimme)",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "Keine vorlesbaren Karten",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "Es hat übersetzt — aber noch wird nichts als Karte gespeichert"
+  },
+  "drive_skipped_media": {
+    "message": "{n} Video-Untertitelkarten übersprungen — sie haben keinen vorlesbaren Text"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} übersprungen: Auf diesem Gerät gibt es keine Stimme, die sie lesen kann. Richten Sie unter Einstellungen → Sprach-Engine eine ein, oder wählen Sie eine andere Systemstimme."
   }
 }

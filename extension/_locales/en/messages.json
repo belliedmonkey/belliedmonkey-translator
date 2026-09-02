@@ -1552,10 +1552,6 @@
     "message": "That's the end of this round",
     "description": "Driving mode (learning-design §9.5)"
   },
-  "drive_skipped": {
-    "message": "Skipped {n} cards that cannot be read aloud (media cards or no voice)",
-    "description": "Driving mode (learning-design §9.5)"
-  },
   "drive_empty": {
     "message": "No cards can be read aloud",
     "description": "Driving mode (learning-design §9.5)"
@@ -2019,5 +2015,11 @@
   },
   "site_next_title_off": {
     "message": "It translated — but nothing is being saved as cards yet"
+  },
+  "drive_skipped_media": {
+    "message": "Skipped {n} video-subtitle cards — they have no body text to read aloud"
+  },
+  "drive_skipped_voice": {
+    "message": "Skipped {n}: this device has no voice that can read them. Set one up under Settings → Speech engine, or pick a different system voice."
   }
 }
