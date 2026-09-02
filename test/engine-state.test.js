@@ -70,6 +70,25 @@ describe('没有人再另写一份判据', () => {
   const FILES = ['popup/popup.js', 'options/options.js', 'content/content-main.js',
     'content/translation-api.js'];
 
+  // needsKey 与 needsSetup 是**两个问题**。混用的后果是对着一个写着
+  // 「免费，无需 API」的引擎说「这个引擎需要 API Key」——2026-09-02 真机截图实证，
+  // 而当时那句话是设置页唯一的提示。
+  test('needsKey 说的是「这个引擎要不要 Key」，与「配没配过」正交', () => {
+    const ES = withRegistry([FREE, KEYED]);
+    // 出厂默认（免费引擎、没 key、没主动选过）：needsSetup 为真，needsKey 为假。
+    eq(ES.needsSetup({ provider: 'google', apiKey: '', engineChosen: false }), true);
+    eq(ES.needsKey({ provider: 'google', apiKey: '', engineChosen: false }), false,
+      '免费引擎被判成「需要 Key」—— 那句提示就会变成假话');
+    // 要 key 的引擎、没填：两个都为真。
+    eq(ES.needsSetup({ provider: 'deepseek', apiKey: '', engineChosen: true }), true);
+    eq(ES.needsKey({ provider: 'deepseek', apiKey: '' }), true);
+    // 要 key 的引擎、填了：needsSetup 假，而 needsKey 仍然为真 —— 它问的不是配没配。
+    eq(ES.needsSetup({ provider: 'deepseek', apiKey: 'sk-x', engineChosen: true }), false);
+    eq(ES.needsKey({ provider: 'deepseek', apiKey: 'sk-x' }), true);
+    // 注册表不认识的 id ⇒ 归一化到第一条（这里是免费那个）。
+    eq(ES.needsKey({ provider: 'nope' }), false);
+  });
+
   test('四个面都不再自己算 needsKey && !apiKey', () => {
     const bad = [];
     for (const rel of FILES) {

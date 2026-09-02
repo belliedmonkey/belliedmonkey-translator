@@ -60,7 +60,21 @@ var EngineState = (() => {
     return !(s.engineChosen && !p.needsKey);
   }
 
-  return { byId, defaultId, resolve, entry, needsSetup };
+  // 「归一化之后的那个引擎，要不要 Key」。
+  //
+  // 与 needsSetup 是两个问题，不能互相代替：needsSetup 为真有两个原因（引擎要 Key
+  // 而没填 / 引擎不要 Key 但用户从没主动选过），而说给用户听的那句话必须分得开 ——
+  // 对着一个写着「免费，无需 API」的引擎说「这个引擎需要 API Key」是假话
+  // （2026-09-02 真机截图实证）。
+  //
+  // 做成具名出口而不是让调用方读 entry().needsKey：判据只有一处，
+  // 这也是 test/engine-state.test.js 那条「没有人再另写一份判据」守着的东西。
+  function needsKey(settings) {
+    const p = entry(settings);
+    return !!(p && p.needsKey);
+  }
+
+  return { byId, defaultId, resolve, entry, needsSetup, needsKey };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineState;

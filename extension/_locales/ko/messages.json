@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "번역 엔진 설정하기 →"
+  },
+  "setup_not_configured": {
+    "message": "번역 엔진을 아직 설정하지 않았습니다. 위의 한 번에 설정을 쓰거나, ‘상세’로 전환해 엔진을 고르고 키를 입력하세요."
+  },
+  "toast_wipe_failed_what": {
+    "message": "완전히 지워지지 않았습니다. 남은 것: {what}. 다시 시도하세요."
+  },
+  "wipe_left_unreadable": {
+    "message": "저장소를 다시 읽을 수 없음"
   }
 }

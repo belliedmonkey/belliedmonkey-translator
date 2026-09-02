@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "Set up a translation engine →"
+  },
+  "setup_not_configured": {
+    "message": "No translation engine set up yet. Use the one-key setup above, or switch to “Detailed” to pick an engine and enter its key."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Not fully erased — still there: {what}. Please try again."
+  },
+  "wipe_left_unreadable": {
+    "message": "storage could not be read back"
   }
 }

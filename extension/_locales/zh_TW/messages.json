@@ -2008,5 +2008,14 @@
   },
   "site_setup_next_engine": {
     "message": "去設定翻譯引擎 →"
+  },
+  "setup_not_configured": {
+    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「詳細」裡選一個引擎並填上 Key。"
+  },
+  "toast_wipe_failed_what": {
+    "message": "沒有清乾淨，還剩：{what}。請再試一次。"
+  },
+  "wipe_left_unreadable": {
+    "message": "儲存讀不回來"
   }
 }

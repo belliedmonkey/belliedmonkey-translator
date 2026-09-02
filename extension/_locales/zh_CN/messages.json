@@ -2008,5 +2008,14 @@
   },
   "site_setup_next_engine": {
     "message": "去配置翻译引擎 →"
+  },
+  "setup_not_configured": {
+    "message": "还没配过翻译引擎。用上面的一键配置，或切到「详细」里选一个引擎并填上 Key。"
+  },
+  "toast_wipe_failed_what": {
+    "message": "没有清干净，还剩：{what}。请再试一次。"
+  },
+  "wipe_left_unreadable": {
+    "message": "存储读不回来"
   }
 }

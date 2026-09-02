@@ -130,7 +130,18 @@ function updateSetupNote(provider, apiKey) {
   // 「当前使用免费通道，不需要 API Key」2026-09-01 去掉了：决策不再为免费通道开特例，
   // 第一优先级是一键配置，而那句话的作用是安抚一个我们其实想让他去配的人。
   if (EngineState.needsSetup({ provider, apiKey, engineChosen: _engineChosen })) {
-    el.textContent = t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。');
+    // needsSetup 为真有**两个不同的原因**，而它们不能共用一句话：
+    //   · 当前引擎真的需要 Key，而 Key 是空的
+    //   · 当前引擎**不需要 Key**（出厂默认那个免费的），用户只是从没配过
+    // 原来两支都说「这个引擎需要 API Key」—— 对第二种人那是**假话**：他屏幕上
+    // 明明写着「Google 翻译（免费，无需 API）」，而提示说它需要 Key。
+    // 2026-09-02 真机截图实证。
+    //
+    // 第二支也**不许**变回「你可以先用免费通道」——2026-09-01 裁定去掉的正是那句，
+    // 它的作用是安抚一个我们其实想让他去配的人。说事实：还没配过，去配。
+    el.textContent = EngineState.needsKey({ provider })
+      ? t('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。')
+      : t('setup_not_configured', '还没配过翻译引擎。用上面的一键配置，或切到「详细」里选一个引擎并填上 Key。');
     el.classList.add('warn');
     el.style.display = 'block';
   } else {
@@ -661,6 +672,11 @@ async function init() {
   // 都空了才敢跳走。这条路上「成功」太容易是假的（deleteDatabase 的 blocked
   // 不抛异常、Safari 的 storage 回调可能根本不落地）。
   async function wipeEverything() {
+    // 先记下**现在有哪些键**。回读时比的是这一份，见下面那段注释。
+    const before = await new Promise((r) => {
+      setTimeout(() => r([]), 3000);
+      try { chrome.storage.local.get(null, (o) => r(Object.keys(o || {}))); } catch (_) { r([]); }
+    });
     try { await LearnAuth.signOut(); } catch (_) { /* 没登录 / 网络不通都不该挡住清除 */ }
     try { await LearnStore.closeDb(); } catch (_) {}
     await deleteLearnDbs();
@@ -673,25 +689,57 @@ async function init() {
       try { chrome.storage.local.clear(fin); } catch (_) { fin(); }
     });
     // 回读。
-    const left = await new Promise((r) => {
+    //
+    // 判据是「**原来那些键**还在不在」，不是「storage 是不是空的」。
+    // 这一页上还活着的代码（自动同步、本地备份）会在清完之后的几毫秒里写回一两个
+    // 时间戳 —— 那不是用户的数据，拿它判失败就是在为一件已经做成的事报错。
+    // 用户要的是「我的东西没了」，而这条判据恰好说的就是那句话。
+    const after = await new Promise((r) => {
       setTimeout(() => r(null), 3000);
       try { chrome.storage.local.get(null, (o) => r(o || {})); } catch (_) { r(null); }
     });
     const dbs = await learnDbNames();
-    return { storageLeft: left ? Object.keys(left).length : -1, dbsLeft: dbs.length };
+    // 读不回来 ⇒ 不知道 ⇒ 按失败处理（谎报成功比报失败贵得多）。
+    const leftover = after ? before.filter((k) => k in after)
+      : [t('wipe_left_unreadable', '存储读不回来')];
+    return { leftover, dbsLeft: dbs };
   }
 
-  // indexedDB.databases() 在 Safari 14+ 有；没有时退回「只删当前这个」——
-  // 那不完整，所以下面的回读也读不到别的库，会照实说没清干净。
+  // 列出还存在的 mt-learn* 库。
+  //
+  // ⚠️ 没有 indexedDB.databases() 时**不能**退回「返回当前库名」——那只是一个名字，
+  // 不是「库还在」的证据。第一版就是那么写的，后果是：删成功了，回读照样数出 1 个，
+  // 于是**永远报「没有清干净」**。2026-09-02 用户在真机上撞到的就是它。
+  // 没有那个 API 时改成逐个**探测**：用 open 打开，如果触发了 onupgradeneeded，
+  // 说明它本来不存在（是这次 open 新建的）—— 立刻回滚删掉，并如实报「不存在」。
   async function learnDbNames() {
     try {
       if (indexedDB.databases) {
         const l = await indexedDB.databases();
         return (l || []).map((d) => d && d.name).filter((n) => n && /^mt-learn/.test(n));
       }
-    } catch (_) {}
+    } catch (_) { /* 有这个 API 但调用失败 ⇒ 走下面的探测 */ }
     const cur = LearnStore.currentDbName ? LearnStore.currentDbName() : LearnStore.DB_NAME;
-    return cur ? [cur] : [];
+    const names = cur ? [cur] : [];
+    const alive = [];
+    for (const n of names) {
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await new Promise((r) => {
+        let fresh = false;
+        let req;
+        setTimeout(() => r(true), 2500);      // 探不出来就当它还在：宁可报失败，不可谎报成功
+        try { req = indexedDB.open(n); } catch (_) { r(true); return; }
+        req.onupgradeneeded = () => { fresh = true; };
+        req.onsuccess = () => {
+          try { req.result.close(); } catch (_) {}
+          if (fresh) { try { indexedDB.deleteDatabase(n); } catch (_) {} }
+          r(!fresh);
+        };
+        req.onerror = () => r(true);
+      });
+      if (exists) alive.push(n);
+    }
+    return alive;
   }
 
   async function deleteLearnDbs() {
@@ -709,11 +757,15 @@ async function init() {
     // 兜底串必须整条写在 t() 的第二个参数上，不能用 + 拆行：拆了之后第二段的中文
     // 就不在兜底位上，零硬编码文案那道门禁会红（它是对的 —— 那正是漏译的形状）。
     if (!window.confirm(t('options_wipe_confirm', '清除这台设备上的全部数据？API Key、全部设置、已采集的句子与复习进度都会被删除，并会退出登录。此操作无法撤销。\n\n已同步到云端的内容不受影响 —— 重新登录会把它们同步回来。'))) return;
-    const r = await wipeEverything().catch(() => ({ storageLeft: -1, dbsLeft: -1 }));
-    if (r.storageLeft !== 0 || r.dbsLeft !== 0) {
-      // 说实话。半清干净了却报「已清除」，比什么都不做更糟 —— 用户会拿着一台
-      // 他以为干净的设备去卖掉。
-      showToast(t('toast_wipe_failed', '没有清干净，请再试一次'), 5000);
+    const r = await wipeEverything().catch((e) => ({ leftover: ['(' + ((e && e.message) || e) + ')'], dbsLeft: [] }));
+    if (r.leftover.length || r.dbsLeft.length) {
+      // 说实话，并且**说得出剩了什么**。原来只有一句「没有清干净」——那句话对用户
+      // 和对我都毫无信息：不知道剩的是 Key 还是一个时间戳，也就不知道该不该担心。
+      // 半清干净了却报「已清除」仍然是更糟的那一边：用户会拿着一台他以为干净的
+      // 设备去卖掉。
+      const what = r.leftover.concat(r.dbsLeft).slice(0, 4).join('、');
+      showToast(t('toast_wipe_failed_what', '没有清干净，还剩：{what}。请再试一次。')
+        .replace('{what}', what), 6000);
       return;
     }
     // location 导航不受用户手势限制（不同于 window.open），这里不需要提前调。

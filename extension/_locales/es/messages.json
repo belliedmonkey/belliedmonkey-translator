@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "Configurar un motor de traducción →"
+  },
+  "setup_not_configured": {
+    "message": "Aún no has configurado ningún motor de traducción. Usa la configuración con una sola clave de arriba, o cambia a «Detallado» para elegir un motor e introducir su clave."
+  },
+  "toast_wipe_failed_what": {
+    "message": "No se borró del todo; queda: {what}. Inténtalo de nuevo."
+  },
+  "wipe_left_unreadable": {
+    "message": "no se pudo releer el almacenamiento"
   }
 }

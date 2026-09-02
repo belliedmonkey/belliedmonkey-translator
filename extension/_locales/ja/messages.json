@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "翻訳エンジンを設定する →"
+  },
+  "setup_not_configured": {
+    "message": "翻訳エンジンがまだ設定されていません。上のワンキー設定を使うか、「詳細」に切り替えてエンジンを選び、キーを入力してください。"
+  },
+  "toast_wipe_failed_what": {
+    "message": "消去しきれませんでした。残っているもの：{what}。もう一度お試しください。"
+  },
+  "wipe_left_unreadable": {
+    "message": "ストレージを読み戻せません"
   }
 }

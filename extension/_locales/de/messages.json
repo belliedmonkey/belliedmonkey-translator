@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "Übersetzungs-Engine einrichten →"
+  },
+  "setup_not_configured": {
+    "message": "Noch keine Übersetzungs-Engine eingerichtet. Nutzen Sie oben die Ein-Schlüssel-Einrichtung, oder wechseln Sie zu „Detailliert“, um eine Engine zu wählen und ihren Schlüssel einzugeben."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Nicht vollständig gelöscht — übrig: {what}. Bitte erneut versuchen."
+  },
+  "wipe_left_unreadable": {
+    "message": "Speicher nicht rücklesbar"
   }
 }

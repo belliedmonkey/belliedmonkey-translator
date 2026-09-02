@@ -2007,5 +2007,14 @@
   },
   "site_setup_next_engine": {
     "message": "Configurer un moteur de traduction →"
+  },
+  "setup_not_configured": {
+    "message": "Aucun moteur de traduction configuré. Utilisez la configuration en une clé ci-dessus, ou passez à « Détaillé » pour choisir un moteur et saisir sa clé."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Effacement incomplet — il reste : {what}. Réessayez."
+  },
+  "wipe_left_unreadable": {
+    "message": "stockage illisible en relecture"
   }
 }
