@@ -2030,5 +2030,9 @@
   "app_not_on_platform": {
     "message": "이 앱은 iPhone·iPad·Mac 전용입니다. 이 기기에서는 브라우저에서 복습하세요.",
     "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey 번역",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
   }
 }

@@ -194,6 +194,29 @@ scripts), and text heuristics (Unicode `\p{L}` "has a letter" + URL/email/@/#/
 translated because it lives in a non-rendered / hidden node and looks like code —
 a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
 
+**Inline code is KEPT VERBATIM; block code is excluded.** `pre` and any
+`code`/`kbd`/`samp`/`var` whose computed display is block-level are never
+translated and never descended into — that is what the exclusion is for. But the
+same tags used **inline inside a text-bearing paragraph** carry sentence-critical
+content, and dropping them does not produce a shorter sentence, it produces a
+**wrong** one:
+
+> `Apps start from a hotkey (<kbd>Super + Return</kbd> for the terminal, …)`
+> extracted as `Apps start from a hotkey ( for the terminal, …)`
+> → 「应用通过热键启动（终端用热键，浏览器用热键…）」
+
+The engine did nothing wrong; it faithfully translated a sentence with holes in
+it. So inline code-ish elements contribute their text to the unit **unchanged**,
+and are handed to the engine as ordinary words.
+
+Deliberately NOT done: a placeholder protocol (`⟦1⟧` … restore after). It buys
+protection against an engine rewriting `Super + Return`, and costs a wire format
+that every engine must honor — and when one doesn't, the failure is a paragraph
+with visible garbage markers rather than a slightly-reworded key name. The
+original stays on the page next to the translation (bilingual display is the
+whole product), so a reworded identifier is recoverable by looking one line up; a
+hole is not recoverable by anything.
+
 **Leaf-block detection must see through `display:contents`.** A unit is a *leaf
 block* (collected whole) only when it has no block-level child; otherwise we
 descend. `display:contents` generates **no box** (so it is neither block nor

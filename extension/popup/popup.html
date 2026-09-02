@@ -6,6 +6,10 @@
   <title>Mobile Translator</title>
   <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
   <link rel="stylesheet" href="popup.css">
+  <!-- 设备类别要在**首帧之前**定下来，否则桌面上会先闪一下手机版式。
+       判据在 content/device.js（分层的理由写在那里）。 -->
+  <script src="../content/device.js"></script>
+  <script>Device.apply(document);</script>
 </head>
 <body>
   <div class="popup-header">
@@ -14,7 +18,11 @@
            (design/handoff.md §3; same-package URLs work in extension pages). -->
       <img src="../icons/icon.svg" width="36" height="36" alt="">
     </div>
-    <h1 data-i18n="extension_name">大肚猴翻译</h1>
+    <!-- **产品名**，不是 extension_name。后者是商店条目的标题，为搜索长尾词而长
+         （「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」），在 320px 的弹窗里
+         它自己就占掉三行，把整个弹窗顶成一张海报（2026-09-02 用户实测）。
+         商店那个名字属于商店，不属于产品里面。 -->
+    <h1 data-i18n="product_name">大肚猴翻译</h1>
     <div class="badge" id="status-badge" data-i18n="popup_status_off">已关闭</div>
   </div>
 

@@ -2030,5 +2030,9 @@
   "app_not_on_platform": {
     "message": "Приложение есть только для iPhone, iPad и Mac. На этом устройстве занимайтесь прямо в браузере.",
     "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey Переводчик",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
   }
 }

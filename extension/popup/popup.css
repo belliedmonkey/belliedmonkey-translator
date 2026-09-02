@@ -288,3 +288,11 @@ button:disabled, input:disabled, select:disabled {
   .setup-note { border-color: #3d472b; background: #1c2114; color: #ccdbb2; }
   .setup-note.warn { border-color: #8c491a; background: #2b1c10; color: #ffc6a5; }
 }
+
+/* ── 桌面版式 ────────────────────────────────────────────────────────────────
+   320px 是给手机上那张表单表定的（html 也钉死是为了治 Chrome 弹窗撑成 800px 的
+   老毛病，别把 width 去掉）。在电脑上它太窄：一行标题排不下，卡片之间全是折行。
+   判据是 content/device.js 判出来的设备类别，不是 `pointer: fine`：接了妙控键盘的
+   iPad 也报 fine，而它的主输入仍然是手指。放宽到 380 —— Chrome 弹窗上限 800，
+   380 仍然是个弹窗不是一扇窗。 */
+html[data-device="desktop"], html[data-device="desktop"] body { width: 380px; }

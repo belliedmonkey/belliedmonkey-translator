@@ -2031,5 +2031,9 @@
   "app_not_on_platform": {
     "message": "这个 App 只有 iPhone、iPad 和 Mac 版。在这台设备上，就在浏览器里复习。",
     "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "大肚猴翻译",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
   }
 }

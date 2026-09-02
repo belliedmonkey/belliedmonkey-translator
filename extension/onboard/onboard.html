@@ -6,6 +6,10 @@
   <title>大肚猴翻译 — 开始使用</title>
   <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
   <link rel="stylesheet" href="onboard.css">
+  <!-- 设备类别要在**首帧之前**定下来，否则桌面上会先闪一下手机版式。
+       判据在 content/device.js（分层的理由写在那里）。 -->
+  <script src="../content/device.js"></script>
+  <script>Device.apply(document);</script>
 </head>
 <!--
   扩展侧的首次引导。

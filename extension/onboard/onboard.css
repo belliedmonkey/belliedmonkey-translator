@@ -110,3 +110,33 @@ button.link:hover { color: var(--text); background: none; }
 }
 #ob-done { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
 #ob-done h2 { margin: 0; }
+
+/* ── 桌面版式 ────────────────────────────────────────────────────────────────
+   这一页是照着手机排的（560px 单列、整幅宽的按钮、三步竖着叠），在电脑上打开
+   就是「一个被放大的手机界面」——用户在 Chrome 里看到的正是这个（2026-09-02）。
+
+   判据是 content/device.js 判出来的设备类别（写在 <html data-device> 上），不是
+   `pointer: fine` —— 接了妙控键盘的 iPad 也报 fine，会被判成桌面，然后拿到一套
+   给鼠标排的版式，而它的主输入仍然是手指。那个文件里写着分层的理由。
+   再加一道宽度条件：判出来是电脑，窗口却很窄（分屏、小窗），仍然走单列。
+
+   变的只有三件事，配色、字号阶梯、组件都不动：
+     ① 列宽 560 → 720，页面不再是汪洋里的一条窄缝；
+     ② 三步横排 —— 它们本来就是一个 1→2→3 的序列，横排读起来就是序列；
+     ③ 主按钮不再整幅宽。560px 宽的按钮在鼠标下面是个奇观。 */
+@media (min-width: 820px) {
+  html[data-device="desktop"] .page { max-width: 720px; }
+
+  html[data-device="desktop"] #ob-steps { flex-direction: row; align-items: stretch; gap: 12px; }
+  html[data-device="desktop"] #ob-steps li { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: flex-start; }
+  /* 竖排时序号在文字左边，横排时它是这张卡的编号，回到卡的左上角。 */
+  html[data-device="desktop"] #ob-steps b { margin-bottom: 2px; }
+  html[data-device="desktop"] .ob-step-body { width: 100%; }
+  /* 插图推到卡底对齐。三张卡的标题长短不一（第 3 条是两行），不推的话插图各在
+     各的高度上，三张卡看起来像没对齐的三个东西。 */
+  html[data-device="desktop"] .ob-step-body { justify-content: space-between; }
+  html[data-device="desktop"] #ob-steps svg { height: 88px; margin-top: auto; }
+
+  /* 按钮：定宽居中，不再整幅。次要按钮跟着一起收。 */
+  html[data-device="desktop"] #ob-foot .btn, html[data-device="desktop"] #ob-foot button { max-width: 320px; margin-inline: auto; }
+}

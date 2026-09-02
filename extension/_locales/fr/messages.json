@@ -2030,5 +2030,9 @@
   "app_not_on_platform": {
     "message": "L’app existe seulement pour iPhone, iPad et Mac. Sur cet appareil, révisez directement dans le navigateur.",
     "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey Translator",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
   }
 }
