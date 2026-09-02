@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "Continue in the app →"
+  },
+  "site_setup_next_engine": {
+    "message": "Set up a translation engine →"
   }
 }

@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "تابع في التطبيق ←"
+  },
+  "site_setup_next_engine": {
+    "message": "إعداد محرك الترجمة ←"
   }
 }

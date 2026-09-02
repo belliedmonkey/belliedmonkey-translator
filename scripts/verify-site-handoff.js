@@ -101,6 +101,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return r.result ? r.result.value : undefined;
   }
 
+  // 启用页那个「下一步」按钮长什么样。两次都用它 —— 装扩展前后各读一次，
+  // 差别本身就是断言的内容。
+  const nextProbe = `(() => {
+    const box = document.getElementById('mt-next');
+    const a = box && box.querySelector('a[href]');
+    return JSON.stringify({ has: !!box, href: a ? a.getAttribute('href') : '',
+      text: a ? (a.textContent || '').trim() : '' });
+  })()`;
+
   try {
     // ── ① 没装扩展：容器在，但一个字都没有 ──────────────────────────────
     let { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
@@ -114,6 +123,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     else if (before.text > 0) problems.push('没装扩展，块里却已经有文字 —— 页面自己写了文案？'
       + '它应当是空壳，文案由扩展按用户的界面语言填');
     else if (before.shown) problems.push('没装扩展，空块却显示出来了');
+
+    // 先看**没装扩展**时的样子：站点自己发的仍然是那篇指南 —— 对还没有配置页可进的人
+    // 那是对的，接管不许把它也改掉。
+    let t2 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    let a2 = await cdp.send('Target.attachToTarget', { targetId: t2.targetId, flatten: true });
+    await cdp.send('Runtime.enable', {}, a2.sessionId);
+    await intercept(a2.sessionId);
+    await open('https://belliedmonkey.cc/setup.html', a2.sessionId);
+    // 站点脚本只有检测到扩展才露出 #mt-next；这里没有扩展，所以直接读 DOM 里的 href。
+    const bare = JSON.parse(await ev(a2.sessionId, nextProbe));
+    notes.push(`启用页（未装扩展）：${bare.href || '（无）'}`);
+    if (!bare.has) problems.push('启用页上没有 #mt-next —— 站点结构变了？');
+    else if (!/guide/.test(bare.href || '')) {
+      problems.push(`没装扩展时「下一步」指向 ${bare.href}，期望仍是站点的配置指南 ——`
+        + ' 那个人还没有配置页可进');
+    }
 
     // ── ② 装上扩展：块被填出来，按钮指向复习页 ──────────────────────────
     const loaded = await cdp.send('Extensions.loadUnpacked', { path: DIST });
@@ -159,6 +184,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       if (!/options\/options\.html#sync$/.test(on.linkHref || '')) {
         problems.push(`采集开着时「直接去登录」指向 ${on.linkHref || '（无）'}，期望 options/options.html#sync`);
       }
+    }
+
+    // 再看**装了扩展**时：内容脚本应当把它接管成引导页。
+    t2 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    a2 = await cdp.send('Target.attachToTarget', { targetId: t2.targetId, flatten: true });
+    await cdp.send('Runtime.enable', {}, a2.sessionId);
+    await intercept(a2.sessionId);
+    await open('https://belliedmonkey.cc/setup.html', a2.sessionId);
+    const took = JSON.parse(await ev(a2.sessionId, nextProbe));
+    notes.push(`启用页（装了扩展）：「${took.text}」→ ${took.href || '（无）'}`);
+    if (!/^chrome-extension:\/\/[a-z]+\/onboard\/onboard\.html$/.test(took.href || '')) {
+      problems.push(`装了扩展时「下一步」仍指向 ${took.href} —— 站在这一页的人已经装好了，`
+        + '正确的下一步是直接进配置引导，不是再读一篇文章');
+    }
+    if (took.text === bare.text) {
+      problems.push(`接管前后按钮文案都是「${took.text}」—— 地址变了而话没变，`
+        + '「打开配置指南」指向一个引导页是骗人的');
     }
   } catch (e) {
     problems.push('跑挂了：' + ((e && e.message) || e));

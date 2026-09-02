@@ -2005,5 +2005,8 @@
   },
   "review_go_app": {
     "message": "在 App 里继续复习 →"
+  },
+  "site_setup_next_engine": {
+    "message": "去配置翻译引擎 →"
   }
 }

@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "App で続きを復習 →"
+  },
+  "site_setup_next_engine": {
+    "message": "翻訳エンジンを設定する →"
   }
 }

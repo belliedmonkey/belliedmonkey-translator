@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "Продолжить в приложении →"
+  },
+  "site_setup_next_engine": {
+    "message": "Настроить движок перевода →"
   }
 }

@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "Continuer dans l'app →"
+  },
+  "site_setup_next_engine": {
+    "message": "Configurer un moteur de traduction →"
   }
 }

@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "In der App weiterlernen →"
+  },
+  "site_setup_next_engine": {
+    "message": "Übersetzungs-Engine einrichten →"
   }
 }

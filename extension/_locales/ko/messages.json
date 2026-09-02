@@ -2004,5 +2004,8 @@
   },
   "review_go_app": {
     "message": "앱에서 이어서 복습 →"
+  },
+  "site_setup_next_engine": {
+    "message": "번역 엔진 설정하기 →"
   }
 }

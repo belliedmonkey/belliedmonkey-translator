@@ -116,6 +116,35 @@
     try {
       if (window.MT_SYNC_ENABLED) paintSiteHandoff(cfg.learnEnabled);
     } catch (_) {}
+    try { upgradeSetupNext(); } catch (_) {}
+  }
+
+  // 官网启用页的「下一步：配一个翻译引擎」。
+  //
+  // 站点上那个按钮链的是 /guide.html —— 一篇讲怎么配的**文章**。可对一个已经装好、
+  // 站在这一页的人，正确的下一步不是再读一篇文章，是**直接进配置**。
+  // 站点自己链不过去（网页写不出 chrome-extension:// 的地址），而这一块本来就只在
+  // 检测到扩展时才显示，所以装了扩展的人一定有内容脚本在场，接管永远成立。
+  //
+  // 没装扩展的人看到的仍然是原来那篇指南 —— 对他那是对的，他还没有配置页可进。
+  function upgradeSetupNext() {
+    const box = document.getElementById('mt-next');
+    if (!box) return;                       // 不是启用页
+    const a = box.querySelector('a[href]');
+    if (!a || a.dataset.mtUpgraded) return;
+    a.dataset.mtUpgraded = '1';
+    // ⚠️ **先摘 data-i18n，再写字。** 站点的 i18n.js 会把每个带该属性的元素的
+    // textContent 按它的字典写回去 —— 只写字不摘属性的话，地址换了而话没换，
+    // 「打开配置指南」指向一个引导页，那是骗人的。（setup.html 里为同一个陷阱
+    // 写过一段注释；2026-09-02 这道门禁第一次跑就抓到了它。）
+    a.removeAttribute('data-i18n');
+    a.removeAttribute('data-i18n-html');
+    a.textContent = TranslationCore.t('site_setup_next_engine', '去配置翻译引擎 →');
+    // 直接改 href 而不是挂 click：长按/新标签打开这些浏览器自带的动作也跟着对。
+    // onboard/onboard.html 在 web_accessible_resources 里（test/web-accessible.test.js
+    // 静态守着），否则浏览器会拒绝这次导航，Safari 报「网址无效」。
+    a.href = chrome.runtime.getURL('onboard/onboard.html');
+    a.removeAttribute('target');
   }
 
   function paintSiteHandoff(learnOn) {

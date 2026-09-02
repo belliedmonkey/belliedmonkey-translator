@@ -2005,5 +2005,8 @@
   },
   "review_go_app": {
     "message": "在 App 裡繼續複習 →"
+  },
+  "site_setup_next_engine": {
+    "message": "去設定翻譯引擎 →"
   }
 }
