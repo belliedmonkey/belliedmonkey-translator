@@ -407,6 +407,20 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
                         steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
                         next: !$('ob-next').hidden,
+                        // 每个可见行动键的**渲染背景**，以及页面自己解析出来的 accent。
+                        // 判据不能是类名：secondary 挂对了而 CSS 没命中，正是
+                        // 2026-09-02 扩展侧那个 bug 的形状。
+                        // e977a51 那次「实测背景是 rgb(198,113,57)」是人工验的，
+                        // 没落成门禁 —— 这就是补上的那一条。
+                        accentBg: (() => {
+                          const d = document.createElement('div');
+                          d.style.cssText = 'background:var(--accent);position:absolute;left:-9999px';
+                          document.body.appendChild(d);
+                          const v = getComputedStyle(d).backgroundColor; d.remove(); return v;
+                        })(),
+                        btns: ['ob-prefs', 'ob-setup', 'ob-next', 'ob-skip']
+                          .filter((id) => !!($(id) && $(id).getClientRects().length))
+                          .map((id) => ({ id, bg: getComputedStyle($(id)).backgroundColor })),
                         // 「首屏看不看得见能点的东西」。判据是渲染坐标：#onboard 的父级
                         // #app 是普通 block，所以 flex 那条高度链是断的，overflow 也好
                         // sticky 也好，都可能静默失效 —— 失效的样子就是这个数字大过视口。
@@ -483,6 +497,17 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // ★ 每一屏的行动键都要落在首屏之内。'ext' 屏上它是 #ob-setup（那一屏没有「继续」），
       //   而那一屏恰恰是内容最多的一屏：三张插图 + 三行步骤。2026-09-01 真机上正是它
       //   把按钮顶出了视口，用户看到的是一屏图，没有任何能点的东西。
+      // ★ 任一屏至多一个填色按钮。两个并排时用户看不出该点哪个 —— 这一族问题在
+      //   两个面上各犯过一次（App 是两个白按钮，扩展是两个填色按钮），而两侧门禁
+      //   当时都只数个数、从不看长相。
+      const filled = seen.map((x, i) => ({ i,
+        on: (x.btns || []).filter((b) => x.accentBg && b.bg === x.accentBg) }))
+        .filter((x) => x.on.length > 1);
+      need(filled.length === 0, filled.length
+        ? `第 ${filled[0].i + 1} 屏有 ${filled[0].on.length} 个填色按钮：`
+          + filled[0].on.map((b) => b.id).join('、') + ' —— 并排的两个主行动'
+        : '');
+
       const below = seen.map((x, i) => ({ i, f: x.fold }))
         .filter((x) => x.f && x.f.key !== null && x.f.key > x.f.vh);
       need(below.length === 0, below.length

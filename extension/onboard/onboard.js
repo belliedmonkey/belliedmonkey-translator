@@ -118,6 +118,9 @@
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
     $('ob-next').hidden = false;
+    // 主/次逐屏重设，不留状态（同 app/app.js 的写法）。默认「继续」是这一屏的主行动；
+    // 有 #ob-cta 的屏会在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
+    $('ob-next').classList.remove('secondary');
 
     if (step === 'welcome') {
       $('ob-title').textContent = t('extob_welcome_title', '边读边记，不用离开页面');
@@ -164,6 +167,8 @@
         '不登录也能完整使用，所有数据留在本机。登录只在你想让手机接着复习电脑上读到的句子时才需要。');
       $('ob-cta').hidden = false;
       $('ob-cta').textContent = t('extob_sync_cta', '打开设置去登录');
+      // 这一屏的主行动是「去登录」，「以后再说」是跳过 —— 两者视觉重量不能相同。
+      $('ob-next').classList.add('secondary');
       // **带 #sync 锚点**，不用 openOptionsPage() —— 那个 API 不接受 hash，人到了
       // 设置页顶部，得自己在一整页设置里找登录框。按钮上写着「去登录」，落点就该是
       // 登录框本身（options.js 里那段 location.hash === '#sync' 负责滚过去并聚焦）。

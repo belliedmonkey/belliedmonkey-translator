@@ -74,6 +74,20 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
             arts:li.filter(x=>x.querySelector('svg')).length};})(),
         modes:vis(document.getElementById('ob-modes')),
         acts:['ob-cta','ob-next','ob-skip'].filter(id=>vis(document.getElementById(id))).length,
+        // 每个可见按钮的**渲染背景**。判据不能是类名：secondary 挂对了而 CSS 规则
+        // 没命中，正是 2026-09-02 那个 bug 的形状（填色写在裸 button 上，
+        // button.secondary 是一条从没被用过的死规则）。
+        // ⚠️ 这段注释在模板字符串里，**不许出现反引号** —— 它会把模板提前结束掉。
+        //
+        // 「填色」= 背景等于页面自己的 --accent。**在页面里解析**这个令牌（塞一个探针
+        // 元素读回 computed 值），而不是在门禁里写死一个十六进制 —— 后者等于再抄一份
+        // 调色板，调色板改一次这条断言就废了。
+        accentBg:(()=>{const d=document.createElement('div');
+          d.style.cssText='background:var(--accent);position:absolute;left:-9999px';
+          document.body.appendChild(d);
+          const v=getComputedStyle(d).backgroundColor; d.remove(); return v;})(),
+        btns:['ob-cta','ob-next','ob-skip'].filter(id=>vis(document.getElementById(id)))
+          .map(id=>({id,bg:getComputedStyle(document.getElementById(id)).backgroundColor})),
         manual:(()=>{const b=document.getElementById('ob-manual');
           return vis(b)?{sel:b.querySelectorAll('select').length,
             key:b.querySelectorAll('input[type=password]').length}:null;})(),
@@ -212,6 +226,23 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(!tab.back.quick||tab.back.manual)
       fail(`切回「一键配置」没生效：${JSON.stringify(tab.back)}`);
     else pass('两个 tab 来回切都保持互斥');
+
+    // ★ 任一屏**至多一个填色按钮**。
+    //
+    // 两个填色按钮并排时，用户看不出该点哪个 —— 而这一族问题在两个面上各犯过一次：
+    // App 侧是两个白按钮（2026-09-02 用户截图），扩展侧是两个填色按钮（同日探查）。
+    // 两次都没被拦下来，因为两侧门禁**都只数按钮个数，从不看长相**。
+    //
+    // 「填色」= 背景就是 accent 本身（页面里解析出来的那个值，见上面的探针）。
+    const filledOn = seen.map((s,i)=>({i, step:s.step,
+      filled:(s.btns||[]).filter(b=>s.accentBg && b.bg === s.accentBg)
+        .map(b=>b.id+'='+b.bg)}));
+    const twoFilled = filledOn.filter(x=>x.filled.length > 1);
+    if(twoFilled.length){
+      fail(`第 ${twoFilled[0].i+1} 屏（${twoFilled[0].step}）有 ${twoFilled[0].filled.length} 个填色按钮：`
+        + twoFilled[0].filled.join('、')
+        + ' —— 并排的两个主行动，用户看不出该点哪个');
+    } else pass('每屏至多一个填色按钮');
 
     // 「现在翻一页看看」那一屏只该有一个按钮。配好了就去看，而「继续」（配好了但
     // 不去看）和「以后再设置」（配好了但不用）都在跟它抢注意力。

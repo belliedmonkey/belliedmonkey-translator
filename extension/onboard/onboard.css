@@ -9,9 +9,11 @@
 [hidden] { display: none !important; }
 
 /* extension/onboard/onboard.css — 扩展引导页。
-   ⚠️ 变量名用扩展这边的（--bg/--text/--card-bg/--border），不是 app/style.css 那套
-   （--cream/--ink/--card/--line）—— 两边各有一套 token 名，照抄 App 的会全部失效。
-   形状照 app/style.css:284-312 的引导外壳，让 App 与扩展看起来是一件东西。
+   ⚠️ 变量名用扩展这边的（--bg/--text/--card-bg/--border）。App 那边是**同一张**
+   organic-tokens.gen.css 的别名（--fg/--dim/--field/--line 见 app/style.css 顶部），
+   底层值逐个相同 —— 所以「照抄 App 的会全部失效」那句旧说法是错的，两边真正会漂的
+   是**别名之外**的东西：谁填色、谁白底、插图用哪个底色。那几条 2026-09-02 对齐过一次。
+   形状照 app/style.css 的 #ob-* 那一组，让 App 与扩展看起来是一件东西。
    颜色全部走 organic-tokens.gen.css 的变量 —— build.js 的调色板门禁会拦下
    任何注册表不认识的十六进制值（这是硬门禁，不是约定）。 */
 * { box-sizing: border-box; }
@@ -23,10 +25,13 @@ body {
 .page { max-width: 560px; margin: 0 auto; padding: 32px 20px 56px; }
 .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; font-weight: 700; }
 
-#onboard { display: flex; flex-direction: column; gap: 18px; }
-#ob-bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+/* 高度链，与 app/style.css 的同名规则逐条对应。少了它，#ob-foot 的 sticky 只能靠
+   整页滚动兜住；App 那边是内滚，两边表现不同。min-height:0 不是可选的：flex 子项
+   默认 min-height:auto 会被内容撑到自然高，overflow 永远不生效。 */
+#onboard { display: flex; flex-direction: column; gap: 18px; flex: 1; min-height: 0; }
+#ob-bar { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; flex: none; }
 #ob-fill { height: 100%; width: 0; background: var(--sage); border-radius: 999px; transition: width .18s ease; }
-#ob-body { display: flex; flex-direction: column; gap: 12px; min-height: 260px; }
+#ob-body { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow: auto; }
 #ob-body h2 { margin: 0; font-size: 1.35rem; line-height: 1.3; }
 #ob-body > p { margin: 0; color: var(--text-secondary); }
 .hint { margin: 0; font-size: .9rem; color: var(--text-secondary); }
@@ -41,7 +46,7 @@ body {
    变量换成本页真实存在的那几个。 */
 #ob-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 #ob-steps li {
-  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.45;
 }
 #ob-steps b {
@@ -54,7 +59,10 @@ body {
   /* 与 app/style.css 同一条理由：固定高度、宽度按比例、居中。占满卡宽会把下面的
      按钮顶出首屏，而插图是佐证不是主体。 */
   display: block; height: 72px; width: auto; max-width: 100%; margin-inline: auto;
-  border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+  /* 底色与 App 一致（app/style.css 的 #ob-steps svg 用 --field，即 --card-bg）。
+     两边原来是**对调**的：这边卡片底是 --card-bg 而插图底是 --bg，App 正好相反，
+     于是同一张插图在两个面上看起来是两个东西。 */
+  border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg);
   direction: ltr;   /* 画的是浏览器界面，RTL 下不镜像 */
 }
 
@@ -70,22 +78,34 @@ body {
 #ob-capture .row input { width: auto; }
 #ob-langs { display: flex; flex-wrap: wrap; gap: 8px; }
 
+/* 主行动**看得出**是主行动。
+   原来填色写在裸 `button` 上，于是这一页每个按钮都是填色的 —— 「换台设备接着复习」
+   那一屏「打开设置去登录」与「以后再说」两个填色按钮并排，用户看不出该点哪个。
+   App 侧 2026-09-02 修的是同一个问题（那边是两个白按钮并排），这里是它的镜像。
+   `button.secondary` 这条规则一直存在，只是从来没有人用过 —— 现在 onboard.js 用它。
+   触控下限与 App 侧对齐（app/style.css 的 #ob-next / #ob-skip）：50 / 44。 */
 button {
-  font: inherit; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  font: inherit; padding: 13px 20px; min-height: 50px; border-radius: 999px; cursor: pointer;
   border: 1px solid transparent; background: var(--accent); color: #fff; font-weight: 600;
+  font-size: 1.02rem;
 }
-button:hover { filter: brightness(1.06); }
-button.secondary { background: var(--card-bg); color: var(--accent); border-color: var(--accent); }
-button.link { background: none; color: var(--text-secondary); border: none; font-weight: 400; padding: 6px; }
-button.link:hover { color: var(--text); filter: none; }
+button:hover { background: var(--accent-hover); }
+button.secondary {
+  background: var(--card-bg); color: var(--accent-deep); border: 1.5px solid var(--border);
+}
+button.secondary:hover { background: var(--card-bg); border-color: var(--accent); }
+button.link { background: none; color: var(--text-secondary); border: none; font-weight: 400; padding: 6px; min-height: 44px; }
+button.link:hover { color: var(--text); background: none; }
 
 /* 吸底。这一页第一屏有三张插图 + 三行文字，在手机宽度上「继续」会被顶到视口以外
    （2026-09-01 实测 390×640：底边 701 > 640），而没人会想到往下滚一屏去找前进键。
    sticky 不依赖祖先高度，内容多就从它下面滚过去。同 app/style.css 的 #ob-foot。 */
 #ob-foot {
-  display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  flex: none; display: flex; flex-direction: column; gap: 6px; align-items: stretch;
   position: sticky; bottom: 0; z-index: 1;
-  padding-bottom: 12px;
+  /* padding-**top**，不是 bottom：那 12px 是给上方渐隐让出的空间。写在 bottom 时
+     渐隐区直接压在按钮上沿（App 侧写的就是 top）。 */
+  padding-top: 12px; margin-top: auto;
   background: linear-gradient(to bottom, transparent, var(--bg) 12px);
 }
 #ob-done { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
