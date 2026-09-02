@@ -67,6 +67,9 @@ const COPY = {
     3: ['读过的句子，自动变成复习卡', '快速滚过的不算——只留下你真正读过的'],
     4: ['手机上复习', '读 · 听 · 写 三档 + 句子解析 + 朗读'],
     5: ['电脑上读，手机上复习', '翻译与学习，一个闭环'],
+    // 6：1.7 的主角。前五帧讲的都是「配好之后能干什么」，而新用户的第一个问题是
+    // 「要配多久」——这一帧回答它：一把 key，三样一起配好。
+    6: ['一把 key，三样一起配好', '翻译、朗读、转写 —— 填完当场自检，不用等到翻第一页'],
   },
   en: {
     1: ['Browse like you always do', 'Original and translation, side by side'],
@@ -74,6 +77,7 @@ const COPY = {
     3: ['Sentences you read become review cards', 'Only what you actually read — skimming doesn\'t count'],
     4: ['Review on your phone', 'Read · Listen · Write + sentence notes + read-aloud'],
     5: ['Read on your computer, review on your phone', 'Translation and learning, one loop'],
+    6: ['One key sets up all three', 'Translate, read aloud, transcribe — tested on the spot, before your first page'],
   },
 };
 const [big, sub] = COPY[lang][f];
@@ -94,6 +98,7 @@ if (f === '1') stage.innerHTML = mac('assets/f1-article.png');
 else if (f === '2') stage.innerHTML = mac('assets/f2-video.png');
 else if (f === '3') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f4-phone-card.png')}</div>`;
 else if (f === '4') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f3-phone-stats.png')}</div>`;
+else if (f === '6') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f6-onboard.png')}</div>`;
 else if (f === '5') {
   if (portrait) {
     stage.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:2%;height:100%;width:100%;justify-content:center">
@@ -108,7 +113,7 @@ else if (f === '5') {
 }
 
 // 竖版（手机截图）时限制 phone 宽度
-if (portrait && (f === '3' || f === '4')) {
+if (portrait && (f === '3' || f === '4' || f === '6')) {
   document.querySelectorAll('.phone').forEach((p) => { p.style.width = '78%'; });
 }
 </script>
