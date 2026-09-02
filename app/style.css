@@ -331,9 +331,14 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   padding-top: 12px; margin-top: auto;
   background: linear-gradient(to bottom, transparent, var(--bg) 12px);
 }
-#ob-next {
+/* 引导里的主行动。原来这条只写给 #ob-next —— 于是 'ext' 屏（那一屏没有「继续」，
+   主行动是 #ob-setup）上，唯一该点的按钮和「以后再设置」长得一模一样，用户看不出
+   该点哪个（2026-09-02 真机截图）。抽成一个类，谁是主行动谁套上。
+   #ob-setup 的主/次由 obPaint 按平台切：iOS 上它是主行动，macOS 上主行动是
+   #ob-prefs（直达 Safari 扩展设置），它退成次级。 */
+#ob-next, #ob-setup:not(.secondary) {
   background: var(--accent); color: #fff; border: none; border-radius: 999px;
   padding: 13px 20px; min-height: 50px; font: inherit; font-size: 1.02rem; font-weight: 600;
 }
-#ob-next:hover { background: var(--accent-hover); }
+#ob-next:hover, #ob-setup:not(.secondary):hover { background: var(--accent-hover); }
 #ob-skip { min-height: 44px; }

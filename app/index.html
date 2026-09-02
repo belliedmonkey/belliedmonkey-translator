@@ -109,7 +109,10 @@
            一个前进键放在会被内容顶下去的地方，就是没有前进键。 -->
       <div id="ob-foot">
         <button id="ob-prefs" type="button" hidden></button>
-        <button id="ob-setup" type="button" class="secondary" hidden></button>
+        <!-- class 由 obPaint 按平台设：iOS 上它是这一屏**唯一**的行动、也是前进键
+             （那一屏没有「继续」），必须是主按钮；macOS 上主行动是 #ob-prefs
+             （直达 Safari 扩展设置），它退成次级。写死在这里就没法分。 -->
+        <button id="ob-setup" type="button" hidden></button>
         <button id="ob-next" type="button"></button>
         <button id="ob-skip" type="button" class="link"></button>
       </div>
