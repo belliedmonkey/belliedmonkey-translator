@@ -1742,7 +1742,7 @@
     "message": "打開「採集學習材料」"
   },
   "ob_kv_capture_note": {
-    "message": "預設是關的。打開之後，你停下來讀過的句子才會變成卡片。"
+    "message": "已經開著了。你停下來讀過的句子會變成卡片；不想要可以在這裡關掉。"
   },
   "ob_read_title": {
     "message": "去讀一篇"
@@ -1790,10 +1790,10 @@
     "message": "API Key"
   },
   "extob_capture_title": {
-    "message": "要不要順便把讀過的句子記下來"
+    "message": "讀過的句子會自己變成複習卡"
   },
   "extob_capture_body": {
-    "message": "預設是關的。打開之後，你真正讀完的句子（快速滑過去的不算）會存成複習卡。"
+    "message": "已經開著了。你真正讀完的句子（快速滑過去的不算）會存成複習卡，只存在這台裝置上；不想要可以在這裡關掉。"
   },
   "extob_capture_toggle": {
     "message": "把我讀過的句子存成複習卡"

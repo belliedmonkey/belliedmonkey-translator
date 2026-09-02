@@ -1741,7 +1741,7 @@
     "message": "Activez la capture"
   },
   "ob_kv_capture_note": {
-    "message": "Désactivée par défaut. Une fois active, les phrases que vous lisez vraiment deviennent des cartes."
+    "message": "Déjà activé. Les phrases sur lesquelles vous vous arrêtez deviennent des cartes — désactivez ici si vous préférez."
   },
   "ob_read_title": {
     "message": "Allez lire quelque chose"
@@ -1789,10 +1789,10 @@
     "message": "Clé API"
   },
   "extob_capture_title": {
-    "message": "Voulez-vous qu'il retienne ce que vous lisez ?"
+    "message": "Ce que vous lisez devient des cartes de révision"
   },
   "extob_capture_body": {
-    "message": "Désactivé par défaut. Une fois activé, les phrases que vous lisez jusqu'au bout (pas celles que vous survolez) deviennent des cartes."
+    "message": "Déjà activé. Les phrases que vous lisez vraiment (défiler ne compte pas) sont enregistrées comme cartes de révision, sur cet appareil uniquement — désactivez ici si vous préférez."
   },
   "extob_capture_toggle": {
     "message": "Enregistrer les phrases lues comme cartes"

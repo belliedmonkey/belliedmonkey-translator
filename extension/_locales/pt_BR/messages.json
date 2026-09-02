@@ -1741,7 +1741,7 @@
     "message": "Ative a captura"
   },
   "ob_kv_capture_note": {
-    "message": "Vem desligada. Depois de ligada, as frases em que você para para ler viram cartões."
+    "message": "Já está ativado. As frases em que você para para ler viram cartões — desative aqui se preferir."
   },
   "ob_read_title": {
     "message": "Vá ler algo"
@@ -1789,10 +1789,10 @@
     "message": "Chave de API"
   },
   "extob_capture_title": {
-    "message": "Quer que ele guarde o que você lê?"
+    "message": "O que você lê vira cartões de revisão"
   },
   "extob_capture_body": {
-    "message": "Desligado por padrão. Ao ligar, as frases que você termina de ler (não as que passa rolando) viram cartões."
+    "message": "Já está ativado. As frases que você realmente termina de ler (rolar rápido não conta) viram cartões de revisão apenas neste aparelho — desative aqui se preferir."
   },
   "extob_capture_toggle": {
     "message": "Salvar as frases lidas como cartões"

@@ -1741,7 +1741,7 @@
     "message": "Activa la captura"
   },
   "ob_kv_capture_note": {
-    "message": "Está desactivada por defecto. Al activarla, las frases en las que te detienes se convierten en tarjetas."
+    "message": "Ya está activado. Las frases en las que te detienes se convierten en tarjetas; desactívalo aquí si prefieres."
   },
   "ob_read_title": {
     "message": "Ve a leer algo"
@@ -1789,10 +1789,10 @@
     "message": "Clave API"
   },
   "extob_capture_title": {
-    "message": "¿Quieres que recuerde lo que lees?"
+    "message": "Lo que lees se convierte en tarjetas de repaso"
   },
   "extob_capture_body": {
-    "message": "Desactivado por defecto. Al activarlo, las frases que terminas de leer (no las que pasas de largo) se guardan como tarjetas."
+    "message": "Ya está activado. Las frases que realmente terminas de leer (pasar rápido no cuenta) se guardan como tarjetas de repaso solo en este dispositivo; desactívalo aquí si prefieres."
   },
   "extob_capture_toggle": {
     "message": "Guardar las frases leídas como tarjetas"

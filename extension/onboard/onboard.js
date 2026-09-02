@@ -139,9 +139,9 @@
       // 一键卡的按钮在 body 里，它看不见。
       $('ob-next').classList.add('secondary');
     } else if (step === 'capture') {
-      $('ob-title').textContent = t('extob_capture_title', '要不要顺便把读过的句子记下来');
+      $('ob-title').textContent = t('extob_capture_title', '读过的句子会自己变成复习卡');
       $('ob-text').textContent = t('extob_capture_body',
-        '默认是关的。打开之后，你真正读完的句子（快速滚过去的不算）会存成复习卡。');
+        '已经开着了。你真正读完的句子（快速滚过去的不算）会存成复习卡，只存在这台设备上；不想要可以在这里关掉。');
       $('ob-capture').hidden = false;
       paintCapture();
     } else if (step === 'try') {

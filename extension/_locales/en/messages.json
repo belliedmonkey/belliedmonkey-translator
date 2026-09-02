@@ -1741,7 +1741,7 @@
     "message": "Turn on capture"
   },
   "ob_kv_capture_note": {
-    "message": "It is off by default. Once on, the sentences you stop and read become cards."
+    "message": "Already on. Sentences you actually stop to read become cards — turn it off here if you would rather not."
   },
   "ob_read_title": {
     "message": "Go read something"
@@ -1789,10 +1789,10 @@
     "message": "API Key"
   },
   "extob_capture_title": {
-    "message": "Want it to remember what you read?"
+    "message": "What you read turns into review cards"
   },
   "extob_capture_body": {
-    "message": "Off by default. Turn it on and the sentences you actually finish reading (not the ones you scroll past) become review cards."
+    "message": "Already on. Sentences you actually finish reading (scrolling past does not count) are saved as review cards on this device only — turn it off here if you would rather not."
   },
   "extob_capture_toggle": {
     "message": "Save sentences I read as review cards"

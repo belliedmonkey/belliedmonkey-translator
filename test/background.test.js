@@ -68,6 +68,37 @@ describe('background — onInstalled defaults + rebrand migration', () => {
     eq(badges[0], PALETTE.brand, 'onboarding dot uses the registry brand colour');
   });
 
+  // 采集默认开着，**只对全新安装**（2026-09-02 用户裁定）。
+  //
+  // 这三条一起才守得住。只守第一条的话，把它加进 DEFAULT_SETTINGS 也能过 —— 而那样
+  // 老用户会在一次更新之后被悄悄打开一个采集数据的功能，他们没有在任何地方同意过。
+  test('全新安装 → 采集默认开着', () => {
+    const { fire, store } = load({});
+    fire({ reason: 'install' });
+    eq(store.learnEnabled, true, '新装应当种下 learnEnabled: true');
+  });
+
+  test('更新（从没碰过这个开关）→ 不许替他打开', () => {
+    const { fire, store } = load({
+      enabled: true, targetLang: 'zh-CN', uiLang: 'auto', provider: 'google',
+      apiKey: '', apiBaseUrl: '', fontSize: '1.0', showFab: true, bilingualMode: 'below',
+      textColor: '#56633f',
+    });
+    fire({ reason: 'update' });
+    eq(store.learnEnabled, undefined,
+      '老用户从没碰过这个开关 —— 一次更新把采集悄悄打开，同样是「界面不说」');
+  });
+
+  test('更新（特意关掉过）→ 保持关着', () => {
+    const { fire, store } = load({
+      enabled: true, targetLang: 'zh-CN', uiLang: 'auto', provider: 'google',
+      apiKey: '', apiBaseUrl: '', fontSize: '1.0', showFab: true, bilingualMode: 'below',
+      textColor: '#56633f', learnEnabled: false,
+    });
+    fire({ reason: 'update' });
+    eq(store.learnEnabled, false, '明确关掉过的，永远不许被默认值改回来');
+  });
+
   test('update with OLD defaults stored → both colours migrate', () => {
     const { fire, store } = load({
       enabled: true, targetLang: 'zh-CN', uiLang: 'auto', provider: 'google',

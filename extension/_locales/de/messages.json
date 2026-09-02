@@ -1741,7 +1741,7 @@
     "message": "Schalte das Sammeln ein"
   },
   "ob_kv_capture_note": {
-    "message": "Standardmäßig aus. Danach werden die Sätze, bei denen du wirklich verweilst, zu Karten."
+    "message": "Schon an. Sätze, bei denen du stehen bleibst, werden zu Karten — hier ausschalten, wenn du das nicht willst."
   },
   "ob_read_title": {
     "message": "Lies etwas"
@@ -1789,10 +1789,10 @@
     "message": "API-Schlüssel"
   },
   "extob_capture_title": {
-    "message": "Soll es sich merken, was du liest?"
+    "message": "Was du liest, wird zu Lernkarten"
   },
   "extob_capture_body": {
-    "message": "Standardmäßig aus. Eingeschaltet werden Sätze, die du wirklich zu Ende liest (nicht die überscrollten), zu Karten."
+    "message": "Schon an. Sätze, die du wirklich zu Ende liest (schnelles Scrollen zählt nicht), werden nur auf diesem Gerät als Lernkarten gespeichert — hier ausschalten, wenn du das nicht willst."
   },
   "extob_capture_toggle": {
     "message": "Gelesene Sätze als Karten speichern"

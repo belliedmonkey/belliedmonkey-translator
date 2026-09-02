@@ -576,6 +576,21 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     //
     // 判据是 chrome.storage.local 里真的多出了 outbox 条目，不是「函数被调到了」。
     if (ctxId && swSession) {
+      // 采集在**全新安装**上默认就开着（2026-09-02 起）。这里先回读它 —— 断言的是
+      // 「装完就是开的」，不是「我们刚把它打开」。读到没开就说明 onInstalled 那条
+      // 没生效，那比后面的补登记更靠前、也更严重。
+      const seeded = await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.get(['learnEnabled'], (o) => r(String(o && o.learnEnabled))))`);
+      notes.push(`全新安装的采集开关: ${seeded}`);
+      if (seeded !== 'true') {
+        problems.push(`全新安装之后 learnEnabled = ${seeded}，期望 true —— `
+          + '整条引导是「先翻译、后看卡」，采集不默认开着的话第一次看必然是空的');
+      }
+      // 再把「后开采集」那条路也走一遍（老用户、或自己关了又开的人）：先关再开，
+      // 页面上已有的译文必须被补登记进来。
+      await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.set({ learnEnabled: false }, () => r(1)))`);
+      await sleep(400);
       await evalIn(cdp, swSession,
         `new Promise(r => chrome.storage.local.set({ learnEnabled: true }, () => r(1)))`);
       // onChanged 是异步送达内容脚本的；再给 dwell 一点时间累积。

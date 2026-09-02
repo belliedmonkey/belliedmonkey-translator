@@ -1742,7 +1742,7 @@
     "message": "打开「采集学习材料」"
   },
   "ob_kv_capture_note": {
-    "message": "默认是关的。打开之后，你停下来读过的句子才会变成卡片。"
+    "message": "已经开着了。你停下来读过的句子会变成卡片；不想要可以在这里关掉。"
   },
   "ob_read_title": {
     "message": "去读一篇"
@@ -1790,10 +1790,10 @@
     "message": "API Key"
   },
   "extob_capture_title": {
-    "message": "要不要顺便把读过的句子记下来"
+    "message": "读过的句子会自己变成复习卡"
   },
   "extob_capture_body": {
-    "message": "默认是关的。打开之后，你真正读完的句子（快速滚过去的不算）会存成复习卡。"
+    "message": "已经开着了。你真正读完的句子（快速滚过去的不算）会存成复习卡，只存在这台设备上；不想要可以在这里关掉。"
   },
   "extob_capture_toggle": {
     "message": "把我读过的句子存成复习卡"
