@@ -336,7 +336,12 @@
                反过来指责他没采集）。 -->
           <div id="sync-next" hidden>
             <p class="hint" id="sync-next-app"></p>
-            <button id="btn-sync-try" type="button" class="secondary" data-i18n="qs_try">现在翻一页看看</button>
+            <!-- 主行动是**去看你的卡**，不是「再去翻一页」——后者是上一步。
+                 登录之所以有价值，是因为卡片能到别的设备上；所以这里第二个出口
+                 直接是 App（belliedmonkey://review?uid=…，同复习页那个按钮）。
+                 在这之前「怎么在另一台设备看到卡」只有一句纯文本，无任何可点。 -->
+            <button id="btn-sync-cards" type="button" data-i18n="sync_next_cards">去看你的卡</button>
+            <button id="btn-sync-app" type="button" class="secondary" hidden data-i18n="review_go_app">在 App 里继续复习 →</button>
           </div>
           <button id="btn-sync-now" data-i18n="sync_now">立即同步</button>
           <button id="btn-sync-out" data-i18n="sync_signout">退出登录</button>

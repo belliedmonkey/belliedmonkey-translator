@@ -82,13 +82,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         who: ($('sync-who') || {}).textContent || '',
         nextVisible: vis($('sync-next')),
         nextApp: ($('sync-next-app') || {}).textContent || '',
-        tryBtn: vis($('btn-sync-try')) ? ($('btn-sync-try').textContent || '').trim() : '',
+        cardsBtn: vis($('btn-sync-cards')) ? ($('btn-sync-cards').textContent || '').trim() : '',
+        appBtn: vis($('btn-sync-app')) ? ($('btn-sync-app').textContent || '').trim() : '',
+        appUid: $('btn-sync-app') ? ($('btn-sync-app').dataset.uid || '') : '',
       });
     })()` }, sessionId);
     const s = JSON.parse(r.result.value);
     notes.push(`视口 ${s.vh}，文档 ${s.docH}，登录区顶边 ${s.top}`);
     notes.push(`标题「${s.h2}」· ${s.who}`);
-    notes.push(`下一步：${s.nextApp || '（无）'} · 按钮「${s.tryBtn || '无'}」`);
+    notes.push(`下一步：${s.nextApp || '（无）'} · 按钮「${s.cardsBtn || '无'}」/「${s.appBtn || '无'}」uid=${s.appUid || '（无）'}`);
 
     if (!s.secVisible) problems.push('登录区不可见 —— adv-only 又回来了？');
     // ① 锚点
@@ -107,7 +109,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         + ' —— 「用同一个账号」不带具体值时，用户没有可对照的东西');
     }
     if (!/App/i.test(s.nextApp)) problems.push('「下一步」没提到 App —— 登录的价值全在那一边');
-    if (!s.tryBtn) problems.push('登录之后没有「现在翻一页看看」的出口');
+    // 登录之后的下一步必须**往前**，不是往回。
+    //
+    // 原来这里唯一的按钮是「现在翻一页看看」—— 那正是引导 try 屏干的事，
+    // 把刚登录完的人送回上一步（2026-09-02 链路核查）。登录的价值在后面两件事上：
+    // 看到自己的卡，以及让它们出现在 App 里。
+    if (!s.cardsBtn) problems.push('登录之后没有「去看你的卡」的出口 —— 那是这条链的下一环');
+    if (!s.appBtn) {
+      problems.push('登录之后没有通往 App 的出口 —— 「怎么在另一台设备看到卡」'
+        + '在这之前只有一句纯文本，无任何可点');
+    } else if (!s.appUid) {
+      problems.push('通往 App 的按钮没带 userId —— App 那边就发现不了「两边不是同一个账号」');
+    }
     if (errs.length) problems.push('运行期异常：' + errs.slice(0, 2).join(' | '));
 
     // ── ②b #learn 锚点：「去打开采集」必须落在那个开关上 ────────────────────
@@ -187,6 +200,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log('\n✗ 登录流程未通过');
     process.exit(1);
   }
-  console.log('\n✓ 登录：#sync 落在登录框、标题说「登录」、登录之后有下一步（带邮箱 + 翻一页出口）');
+  console.log('\n✓ 登录：#sync 落在登录框、标题说「登录」、登录之后有下一步（带邮箱 + 去看卡 + 去 App）');
   process.exit(0);
 })().catch((e) => { console.error('verify-signin-flow failed:', (e && e.stack) || e); process.exit(1); });

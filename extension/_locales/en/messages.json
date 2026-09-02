@@ -1809,18 +1809,6 @@
   "extob_try_cta": {
     "message": "Open a sample page"
   },
-  "extob_sync_title": {
-    "message": "Keep reviewing on another device"
-  },
-  "extob_sync_body": {
-    "message": "Everything works signed out; all data stays on this device. Sign in only if you want these sentences to show up in the app or on another device as well."
-  },
-  "extob_sync_cta": {
-    "message": "Open settings to sign in"
-  },
-  "extob_app_note": {
-    "message": "Want to review in the app, or listen on the go in podcast mode? Both live in the iPhone / Mac app."
-  },
   "extob_finish": {
     "message": "Done"
   },
@@ -1966,16 +1954,13 @@
     "message": "“Collect learning material” is still off, so no cards are being made yet. Turn it on in the extension settings first."
   },
   "site_next_cta": {
-    "message": "Open the review page"
+    "message": "See your cards"
   },
   "site_next_cta_off": {
     "message": "Turn on collecting"
   },
   "site_next_signin": {
     "message": "Sign in now →"
-  },
-  "extob_sync_later": {
-    "message": "Later"
   },
   "sync_next_app": {
     "message": "Next: sign in to the iPhone / Mac app with this same email ({email}) — that is what brings these cards over."
@@ -2021,5 +2006,17 @@
   },
   "drive_skipped_voice": {
     "message": "Skipped {n}: this device has no voice that can read them. Set one up under Settings → Speech engine, or pick a different system voice."
+  },
+  "sync_next_cards": {
+    "message": "See your cards"
+  },
+  "site_next_body_local": {
+    "message": "The sentences you stopped to read are already review cards, here in this browser. Go look at them."
+  },
+  "learn_empty_on": {
+    "message": "Collecting is already on. Keep browsing and translating — the sentences you stop to read will show up here. The ones you scroll past will not."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Signed out, local only — sign in to review in the app too →"
   }
 }

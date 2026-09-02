@@ -1809,18 +1809,6 @@
   "extob_try_cta": {
     "message": "Beispielseite öffnen"
   },
-  "extob_sync_title": {
-    "message": "Auf einem anderen Gerät weiter wiederholen"
-  },
-  "extob_sync_body": {
-    "message": "Alles funktioniert auch abgemeldet, die Daten bleiben auf diesem Gerät. Die Anmeldung brauchen Sie nur, wenn diese Sätze auch in der App oder auf einem anderen Gerät erscheinen sollen."
-  },
-  "extob_sync_cta": {
-    "message": "Einstellungen öffnen und anmelden"
-  },
-  "extob_app_note": {
-    "message": "Lieber in der App wiederholen oder unterwegs im Podcast-Modus hören? Beides steckt in der iPhone-/Mac-App."
-  },
   "extob_finish": {
     "message": "Fertig"
   },
@@ -1966,16 +1954,13 @@
     "message": "„Lernmaterial sammeln“ ist noch aus, es entstehen also noch keine Karten. Schalten Sie es zuerst in den Einstellungen der Erweiterung ein."
   },
   "site_next_cta": {
-    "message": "Wiederholungsseite öffnen"
+    "message": "Ihre Karten ansehen"
   },
   "site_next_cta_off": {
     "message": "Sammeln einschalten"
   },
   "site_next_signin": {
     "message": "Jetzt anmelden →"
-  },
-  "extob_sync_later": {
-    "message": "Später"
   },
   "sync_next_app": {
     "message": "Als Nächstes: Melden Sie sich in der iPhone-/Mac-App mit derselben E-Mail-Adresse ({email}) an — erst dann erscheinen diese Karten dort."
@@ -2021,5 +2006,17 @@
   },
   "drive_skipped_voice": {
     "message": "{n} übersprungen: Auf diesem Gerät gibt es keine Stimme, die sie lesen kann. Richten Sie unter Einstellungen → Sprach-Engine eine ein, oder wählen Sie eine andere Systemstimme."
+  },
+  "sync_next_cards": {
+    "message": "Ihre Karten ansehen"
+  },
+  "site_next_body_local": {
+    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — hier in diesem Browser. Sehen Sie sie sich an."
+  },
+  "learn_empty_on": {
+    "message": "Das Sammeln ist bereits eingeschaltet. Surfen und übersetzen Sie wie gewohnt — die Sätze, bei denen Sie stehen bleiben, erscheinen hier. Die überflogenen nicht."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Abgemeldet, nur lokal — melden Sie sich an, um auch in der App zu wiederholen →"
   }
 }

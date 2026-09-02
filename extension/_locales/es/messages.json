@@ -1809,18 +1809,6 @@
   "extob_try_cta": {
     "message": "Abrir una página de ejemplo"
   },
-  "extob_sync_title": {
-    "message": "Sigue repasando en otro dispositivo"
-  },
-  "extob_sync_body": {
-    "message": "Todo funciona sin iniciar sesión y los datos se quedan en este dispositivo. Solo necesitas la sesión si quieres que estas frases aparezcan también en la app o en otro dispositivo."
-  },
-  "extob_sync_cta": {
-    "message": "Abrir ajustes para iniciar sesión"
-  },
-  "extob_app_note": {
-    "message": "¿Quieres repasar en la app, o escuchar en modo pódcast mientras caminas? Ambas cosas están en la app de iPhone / Mac."
-  },
   "extob_finish": {
     "message": "Listo"
   },
@@ -1966,16 +1954,13 @@
     "message": "«Recopilar material de estudio» sigue desactivado, así que todavía no se crean tarjetas. Actívalo primero en los ajustes de la extensión."
   },
   "site_next_cta": {
-    "message": "Abrir la página de repaso"
+    "message": "Ver tus tarjetas"
   },
   "site_next_cta_off": {
     "message": "Activar la recopilación"
   },
   "site_next_signin": {
     "message": "Iniciar sesión →"
-  },
-  "extob_sync_later": {
-    "message": "Más tarde"
   },
   "sync_next_app": {
     "message": "Ahora: inicia sesión en la app de iPhone / Mac con este mismo correo ({email}); así es como llegan estas tarjetas."
@@ -2021,5 +2006,17 @@
   },
   "drive_skipped_voice": {
     "message": "Se omitieron {n}: este dispositivo no tiene ninguna voz capaz de leerlas. Configura una en Ajustes → Motor de voz, o elige otra voz del sistema."
+  },
+  "sync_next_cards": {
+    "message": "Ver tus tarjetas"
+  },
+  "site_next_body_local": {
+    "message": "Las frases en las que te detuviste ya son tarjetas de repaso, aquí en este navegador. Ve a verlas."
+  },
+  "learn_empty_on": {
+    "message": "La recopilación ya está activada. Sigue navegando y traduciendo: las frases en las que te detengas aparecerán aquí. Las que pases de largo, no."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Sin sesión, solo local: inicia sesión para repasar también en la app →"
   }
 }

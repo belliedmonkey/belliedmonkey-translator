@@ -1809,18 +1809,6 @@
   "extob_try_cta": {
     "message": "サンプルページを開く"
   },
-  "extob_sync_title": {
-    "message": "別の端末で復習を続ける"
-  },
-  "extob_sync_body": {
-    "message": "ログインしなくてもすべて使えます。データはこの端末に残ります。ログインが要るのは、これらの文を App や別の端末にも出したいときだけです。"
-  },
-  "extob_sync_cta": {
-    "message": "設定を開いてログイン"
-  },
-  "extob_app_note": {
-    "message": "App で復習したい、あるいは歩きながらポッドキャストモードで聴きたいですか？どちらも iPhone / Mac の App にあります。"
-  },
   "extob_finish": {
     "message": "完了"
   },
@@ -1966,16 +1954,13 @@
     "message": "「学習素材の収集」がまだオフなので、カードはまだ作られません。先に拡張機能の設定でオンにしてください。"
   },
   "site_next_cta": {
-    "message": "復習ページを開く"
+    "message": "カードを見る"
   },
   "site_next_cta_off": {
     "message": "収集をオンにする"
   },
   "site_next_signin": {
     "message": "いますぐログイン →"
-  },
-  "extob_sync_later": {
-    "message": "あとで"
   },
   "sync_next_app": {
     "message": "次に：iPhone / Mac の App で同じメールアドレス（{email}）でログインしてください。そうして初めてカードが向こうに現れます。"
@@ -2021,5 +2006,17 @@
   },
   "drive_skipped_voice": {
     "message": "{n} 件をスキップ：この端末に読み上げられる音声がありません。設定 → 音声エンジンで設定するか、別のシステム音声を選んでください。"
+  },
+  "sync_next_cards": {
+    "message": "カードを見る"
+  },
+  "site_next_body_local": {
+    "message": "立ち止まって読んだ文はすでに復習カードとして、このブラウザにあります。見てみましょう。"
+  },
+  "learn_empty_on": {
+    "message": "収集はすでにオンです。いつも通り閲覧・翻訳してください。立ち止まって読んだ文がここに現れます —— さっと流した分は入りません。"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "未ログイン・この端末のみ —— ログインすると App でも復習できます →"
   }
 }

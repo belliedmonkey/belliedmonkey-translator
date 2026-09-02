@@ -107,14 +107,22 @@
     // 而在这之前，全仓只有复习页和设置页两个入口级触发点 —— 只翻译、不开那两页的人，
     // 服务器上永远是空的，App 里就永远没卡。
     //
-    // 同步没编进这个构建时**整块不出现**。这一块说的是「登录之后卡片才到 App」，
-    // 而中国版扩展的登录入口是被整节 remove 掉的（options.js 的 !MT_BACKEND.enabled
-    // 分支）—— 对那个构建，这句话是死路。判据按**值**不按 flavor 名：
-    // window.MT_SYNC_ENABLED 由 build.js 从 backend.config.js 的 enabled 读出来发进
-    // providers.gen.js（内容脚本不加载 backend.config.js —— 那个文件带着后端地址与
-    // anon key，而内容脚本注入到每一个页面）。
+    // ⚠️ **等译文真的出现再画。**
+    //
+    // 原来这一行就在这里同步调用 —— 而此刻 cfg.enabled 是 false（翻译要点悬浮球才
+    // 开始），于是页面一打开、一个字都还没翻，「译文出来了。下一步…」就已经在下面了。
+    // 它只是位置靠下，多数人先滚不到而已。判据必须是**页面上真有译文**，不是
+    // 「脚本跑到了这里」。
     try {
-      if (window.MT_SYNC_ENABLED) paintSiteHandoff(cfg.learnEnabled);
+      whenTranslated(() => {
+        // **落盘。** 采集器只在 30 秒定时器或 pagehide 时写 outbox，而下面那个按钮是
+        // window.open —— 源页不卸载，两个条件一个都不满足。翻完一段立刻点（不到 30 秒
+        // 是常态）的人，会被送进一个刚刚还空着的复习页，然后被空态告知「去打开采集」
+        // —— 而采集正是他两分钟前在引导里亲手打开的。
+        // 放在这里（译文出现时）而不是点击时：点击那一刻必须留给同步的 window.open。
+        try { if (typeof LearnCollector !== 'undefined') LearnCollector.flush(); } catch (_) {}
+        paintSiteHandoff(cfg.learnEnabled);
+      });
     } catch (_) {}
     try { upgradeSetupNext(); } catch (_) {}
   }
@@ -147,6 +155,18 @@
     a.removeAttribute('target');
   }
 
+  // 第一条 .mt-translation 落进 DOM 的那一刻。已经有了就立刻回调（重进页面的情况）。
+  // 命中即断开 —— 一个一直挂着的 observer 会在整页翻译时被叫成百上千次。
+  function whenTranslated(fn) {
+    if (document.querySelector('.mt-translation')) { fn(); return; }
+    const mo = new MutationObserver(() => {
+      if (!document.querySelector('.mt-translation')) return;
+      mo.disconnect();
+      try { fn(); } catch (_) {}
+    });
+    mo.observe(document.body || document.documentElement, { childList: true, subtree: true });
+  }
+
   function paintSiteHandoff(learnOn) {
     const box = document.getElementById('mt-next-review');
     if (!box || box.childElementCount) return;      // 容器不在，或已经填过
@@ -165,18 +185,26 @@
     box.appendChild(mk('h2', null, learnOn
       ? T('site_next_title', '译文出来了。下一步：让这些卡片也进 App')
       : T('site_next_title_off', '译文出来了。但现在还不会存成复习卡')));
-    box.appendChild(mk('p', 'sub', learnOn
-      // 采集开着：卡已经在攒了，缺的只是同步。
-      ? T('site_next_body', '你停下来读完的句子已经存成复习卡，就在这台设备上。登录之后它们才会同步到手机 App —— 不登录也能一直用，只是 App 那边会是空的。')
+    // 正文按两个维度说：有没有卡（learnOn）× 这个构建有没有同步（sync）。
+    // 同步没编进来时**不许提登录** —— 中国版的登录入口是被整节 remove 掉的。
+    const sync = !!window.MT_SYNC_ENABLED;
+    box.appendChild(mk('p', 'sub', !learnOn
       // 采集关着：先说清楚没有卡这件事，否则下面那个按钮把人送到一个空页面。
-      : T('site_next_body_off', '「采集学习材料」还没打开，所以现在还不会产生复习卡。先在扩展设置里打开它，读过的句子才会存下来。')));
+      ? T('site_next_body_off', '「采集学习材料」还没打开，所以现在还不会产生复习卡。先在扩展设置里打开它，读过的句子才会存下来。')
+      : (sync
+        ? T('site_next_body', '你停下来读完的句子已经存成复习卡，就在这个浏览器里。登录之后它们才会同步到 App —— 不登录也能一直用，只是 App 那边会是空的。')
+        : T('site_next_body_local', '你停下来读完的句子已经存成复习卡，就在这个浏览器里。去看看它们。'))));
     const cta = mk('button', 'btn btn-primary', learnOn
-      ? T('site_next_cta', '打开复习页')
+      ? T('site_next_cta', '看看你的卡')
       : T('site_next_cta_off', '去打开采集'));
     cta.type = 'button';
     // <button> 自带 UA 边框/背景/字体，会跟站点的 .btn 打架。
     cta.style.cssText = 'border:0;cursor:pointer;font:inherit';
     cta.addEventListener('click', () => {
+      // ⚠️ window.open 必须**同步**发生在这次点击里 —— 一旦 await 过，用户手势就用掉了，
+      // Safari 会把它当自动弹窗拦掉，而且不报任何错（test/user-gesture.test.js 守着
+      // 这一条，它当场抓到了这里的第一版）。所以落盘放在开窗**之后**，
+      // 而主要的那一次落盘早在画这个块的时候就做了（见 whenTranslated 那段）。
       // 导航到扩展页：两个目标都在 web_accessible_resources 且 matches 是 <all_urls>，
       // 否则浏览器会拒绝这次导航（Safari 报「网址无效」，#67）。
       // test/web-accessible.test.js 静态守着这一条。
@@ -189,9 +217,11 @@
         ? chrome.runtime.getURL('learn/review.html')
         : chrome.runtime.getURL('options/options.html') + '#learn';
       try { window.open(url, '_blank'); } catch (_) { location.href = url; }
+      // 开完窗再补一次：覆盖「画块之后、点击之前」这段时间里读到的句子。
+      try { if (typeof LearnCollector !== 'undefined') LearnCollector.flush(); } catch (_) {}
     });
     box.appendChild(cta);
-    if (learnOn) {
+    if (learnOn && sync) {
       const a = mk('a', null, T('site_next_signin', '直接去登录 →'));
       a.href = chrome.runtime.getURL('options/options.html') + '#sync';
       a.target = '_blank';

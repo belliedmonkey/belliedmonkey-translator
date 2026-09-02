@@ -1809,18 +1809,6 @@
   "extob_try_cta": {
     "message": "예시 페이지 열기"
   },
-  "extob_sync_title": {
-    "message": "다른 기기에서 이어서 복습하기"
-  },
-  "extob_sync_body": {
-    "message": "로그인하지 않아도 모두 쓸 수 있고, 데이터는 이 기기에 남습니다. 로그인은 이 문장들을 앱이나 다른 기기에도 띄우고 싶을 때만 필요합니다."
-  },
-  "extob_sync_cta": {
-    "message": "설정을 열어 로그인"
-  },
-  "extob_app_note": {
-    "message": "앱에서 복습하거나, 걸으면서 팟캐스트 모드로 듣고 싶으신가요? 둘 다 iPhone / Mac 앱에 있습니다."
-  },
   "extob_finish": {
     "message": "완료"
   },
@@ -1966,16 +1954,13 @@
     "message": "“학습 자료 수집”이 아직 꺼져 있어 카드가 만들어지지 않습니다. 먼저 확장 설정에서 켜세요."
   },
   "site_next_cta": {
-    "message": "복습 페이지 열기"
+    "message": "카드 보기"
   },
   "site_next_cta_off": {
     "message": "수집 켜기"
   },
   "site_next_signin": {
     "message": "지금 로그인 →"
-  },
-  "extob_sync_later": {
-    "message": "나중에"
   },
   "sync_next_app": {
     "message": "다음: iPhone / Mac 앱에서 같은 이메일({email})로 로그인하세요. 그래야 카드가 그쪽에 나타납니다."
@@ -2021,5 +2006,17 @@
   },
   "drive_skipped_voice": {
     "message": "{n}장 건너뜀: 이 기기에 읽어 줄 음성이 없습니다. 설정 → 음성 엔진에서 설정하거나 다른 시스템 음성을 고르세요."
+  },
+  "sync_next_cards": {
+    "message": "카드 보기"
+  },
+  "site_next_body_local": {
+    "message": "멈춰서 읽은 문장은 이미 이 브라우저에 복습 카드로 저장되어 있습니다. 보러 가세요."
+  },
+  "learn_empty_on": {
+    "message": "수집이 이미 켜져 있습니다. 평소처럼 탐색하고 번역하세요 — 멈춰서 읽은 문장이 여기에 나타납니다. 빠르게 지나친 것은 포함되지 않습니다."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "로그아웃 상태·이 기기 전용 — 로그인하면 앱에서도 복습할 수 있습니다 →"
   }
 }

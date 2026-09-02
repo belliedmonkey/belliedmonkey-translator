@@ -1810,18 +1810,6 @@
   "extob_try_cta": {
     "message": "打开示例页面"
   },
-  "extob_sync_title": {
-    "message": "换台设备接着复习"
-  },
-  "extob_sync_body": {
-    "message": "不登录也能完整使用，所有数据留在本机。登录只在你想让这些句子也出现在 App 或另一台设备上时才需要。"
-  },
-  "extob_sync_cta": {
-    "message": "打开设置去登录"
-  },
-  "extob_app_note": {
-    "message": "想在 App 里复习、或者边走边听播客模式？那两样在 iPhone / Mac 的 App 里。"
-  },
   "extob_finish": {
     "message": "完成"
   },
@@ -1967,16 +1955,13 @@
     "message": "「采集学习材料」还没打开，所以现在还不会产生复习卡。先在扩展设置里打开它，读过的句子才会存下来。"
   },
   "site_next_cta": {
-    "message": "打开复习页"
+    "message": "看看你的卡"
   },
   "site_next_cta_off": {
     "message": "去打开采集"
   },
   "site_next_signin": {
     "message": "直接去登录 →"
-  },
-  "extob_sync_later": {
-    "message": "以后再说"
   },
   "sync_next_app": {
     "message": "接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。"
@@ -2022,5 +2007,17 @@
   },
   "drive_skipped_voice": {
     "message": "跳过 {n} 张：这台设备上没有能读它们的语音。到设置 → 语音引擎里配一个，或换一个系统音色。"
+  },
+  "sync_next_cards": {
+    "message": "去看你的卡"
+  },
+  "site_next_body_local": {
+    "message": "你停下来读完的句子已经存成复习卡，就在这个浏览器里。去看看它们。"
+  },
+  "learn_empty_on": {
+    "message": "采集已经开着了。照常浏览、照常翻译，你停下来读完的句子会出现在这里 —— 快速滚过去的不算。"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "未登录，仅本机数据 —— 登录后也能在 App 里复习 →"
   }
 }

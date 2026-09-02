@@ -514,7 +514,11 @@ var QuickSetup = (() => {
       if (slot === 'chat') {
         return EngineTest.translation({
           provider: w.provider, apiKey: w.apiKey, baseUrl: w.apiBaseUrl, model: w.apiModel,
-          targetLang: (typeof window !== 'undefined' && window.__mtTargetLang) || 'zh-CN',
+          // 调用方传进来的目标语言。原来读 window.__mtTargetLang —— 那个全局**全仓
+          // 没有任何一处赋值**，所以自检永远测 zh-CN。缺省仍回落到默认目标语言，
+          // 但那是「调用方没传」的兜底，不是唯一的路。
+          targetLang: opts.targetLang
+            || (typeof window !== 'undefined' && window.MT_DEFAULT_TARGET_LANG) || 'zh-CN',
         });
       }
       if (slot === 'tts') {

@@ -1810,18 +1810,6 @@
   "extob_try_cta": {
     "message": "打開範例頁面"
   },
-  "extob_sync_title": {
-    "message": "換台裝置接著複習"
-  },
-  "extob_sync_body": {
-    "message": "不登入也能完整使用，所有資料留在本機。登入只在你想讓這些句子也出現在 App 或另一台裝置上時才需要。"
-  },
-  "extob_sync_cta": {
-    "message": "打開設定去登入"
-  },
-  "extob_app_note": {
-    "message": "想在 App 裡複習、或者邊走邊聽播客模式？那兩樣在 iPhone / Mac 的 App 裡。"
-  },
   "extob_finish": {
     "message": "完成"
   },
@@ -1967,16 +1955,13 @@
     "message": "「擷取學習材料」還沒打開，所以現在還不會產生複習卡。先在擴充功能設定裡打開它，讀過的句子才會存下來。"
   },
   "site_next_cta": {
-    "message": "打開複習頁"
+    "message": "看看你的卡"
   },
   "site_next_cta_off": {
     "message": "去打開擷取"
   },
   "site_next_signin": {
     "message": "直接去登入 →"
-  },
-  "extob_sync_later": {
-    "message": "以後再說"
   },
   "sync_next_app": {
     "message": "接下來：在 iPhone / Mac 的 App 裡用同一個信箱（{email}）登入，這些卡才會出現在那邊。"
@@ -2022,5 +2007,17 @@
   },
   "drive_skipped_voice": {
     "message": "跳過 {n} 張：這台裝置上沒有能讀它們的語音。到設定 → 語音引擎裡配一個，或換一個系統音色。"
+  },
+  "sync_next_cards": {
+    "message": "去看你的卡"
+  },
+  "site_next_body_local": {
+    "message": "你停下來讀完的句子已經存成複習卡，就在這個瀏覽器裡。去看看它們。"
+  },
+  "learn_empty_on": {
+    "message": "擷取已經開著了。照常瀏覽、照常翻譯，你停下來讀完的句子會出現在這裡 —— 快速滑過去的不算。"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "未登入，僅本機資料 —— 登入後也能在 App 裡複習 →"
   }
 }

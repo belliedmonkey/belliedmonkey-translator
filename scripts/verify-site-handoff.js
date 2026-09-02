@@ -91,6 +91,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
   });
 
+  // 造一条译文。内容脚本等的正是 .mt-translation 落进 DOM 那一刻 —— 这里不去跑真实
+  // 翻译（那需要一个能用的引擎，是 test:smoke 的职责），只喂它等的那个信号。
+  const TRANSLATE = `(() => {
+    const p = document.createElement('div');
+    p.className = 'mt-translation';
+    p.textContent = '（测试注入的译文）';
+    document.querySelector('.howto,body').appendChild(p);
+    return 1;
+  })()`;
+
   async function open(url, sessionId) {
     await cdp.send('Page.navigate', { url }, sessionId);
     await sleep(2500);
@@ -151,9 +161,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await cdp.send('Runtime.enable', {}, att.sessionId);
     await intercept(att.sessionId);
     await open(`https://belliedmonkey.cc${PAGE}`, att.sessionId);
+    // ★ 翻译**之前**不许出现。原来这一块在内容脚本初始化期就画了，于是页面一打开、
+    //   一个字都没翻，「译文出来了。下一步…」就已经在下面了 —— 只是位置靠下，
+    //   多数人先滚不到（2026-09-02 链路核查）。
+    const pre = JSON.parse(await ev(att.sessionId, probe));
+    notes.push(`翻译前：块 ${pre.shown ? '出现了' : '没出现'}，文字 ${pre.text} 字`);
+    if (pre.shown || pre.text > 0) {
+      problems.push('还没翻译，交接块就出现了 —— 它说的是「译文出来了」，那是假话');
+    }
+    await ev(att.sessionId, TRANSLATE);
+    await sleep(600);
     const off = JSON.parse(await ev(att.sessionId, probe));
     notes.push(`采集关：标题「${off.h2}」按钮「${off.btnText}」链接 ${off.linkHref || '（无）'}`);
-    if (!off.shown) problems.push('装了扩展，块却没露出来 —— MT_SITES 分支没跑到？');
+    if (!off.shown) problems.push('出了译文，块却没露出来 —— MutationObserver 没命中？');
     if (!off.h2) problems.push('块里没有标题 —— i18n 键没解出来');
     if (!off.btnText) problems.push('块里没有按钮');
     if (off.linkHref) problems.push('采集关着时不该给「直接去登录」—— 还没有卡可同步');
@@ -173,6 +193,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await cdp.send('Runtime.enable', {}, att.sessionId);
       await intercept(att.sessionId);
       await open(`https://belliedmonkey.cc${PAGE}`, att.sessionId);
+      await ev(att.sessionId, TRANSLATE);
+      await sleep(600);
       const on = JSON.parse(await ev(att.sessionId, probe));
       notes.push(`采集开：标题「${on.h2}」按钮「${on.btnText}」链接 ${on.linkHref || '（无）'}`);
       if (!on.shown) problems.push('采集开着时块没露出来');
@@ -184,6 +206,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       if (!/options\/options\.html#sync$/.test(on.linkHref || '')) {
         problems.push(`采集开着时「直接去登录」指向 ${on.linkHref || '（无）'}，期望 options/options.html#sync`);
       }
+      // ★ 主行动必须是**复习页**。它是这条链上「学习」那一环唯一的入口 ——
+      //   引导四屏里没有一屏指向它（2026-09-02 核查），所以这里断了就没有第二条路。
+      const href = await ev(att.sessionId,
+        `(() => { const b = document.querySelector('#mt-next-review button'); return b ? '' : 'no-btn'; })()`);
+      if (href === 'no-btn') problems.push('采集开着时块里没有主按钮');
     }
 
     // 再看**装了扩展**时：内容脚本应当把它接管成引导页。

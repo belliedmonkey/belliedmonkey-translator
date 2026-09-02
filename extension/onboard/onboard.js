@@ -65,18 +65,16 @@
   });
 
   // ── 屏序 ────────────────────────────────────────────────────────────────────
-  // 第 5 屏（sync）按 MT_BACKEND.enabled 决定是否存在。中国版的产物里那个值是 false
-  // （build.js 在构建时翻的），所以那一屏自动消失、进度条分母自动变 4 ——
-  // **这是免费的正确性**：那个值本来就是 flavor 正确的，不需要在这里判 flavor 名。
-  const syncOn = !!(window.MT_BACKEND && window.MT_BACKEND.enabled);
-  // 屏序：sync **排在 try 之前**。
+  // 屏序：四屏，两个 flavor 同形。
   //
-  // try 屏是**终止屏** —— 它唯一的按钮开一个新标签（onboard.js 下面那段），人就走了，
-  // 引导这个标签留在背后，第 5 屏再也不会被看见。原来 sync 排在 try 之后，于是
-  // 「扩展里唯一提登录的地方」在真实使用中等于不存在（2026-09-01 用户在真机上走完
-  // 整条引导，从没见过它）。
-  // sync 在前也更顺：登录是「配好之后、去用之前」的最后一件配置，而 try 是「去用」。
-  const OB = ['welcome', 'engine', 'capture'].concat(syncOn ? ['sync'] : []).concat(['try']);
+  // **登录不在引导里**（2026-09-02 用户裁定）。它曾经是第 4 屏，排在「翻一页」之前 ——
+  // 也就是在人看到第一句译文之前，先要他填邮箱、收验证码。现在登录的请求由官网交接块
+  // 在**翻译成功那一刻**提出，并由复习页那行「未登录」接住；两处都在他已经看到价值
+  // 之后。这也正是 2026-09-01「官网试翻页上就地给」那条裁定的落点。
+  //
+  // try 仍是**终止屏**：它唯一的按钮开一个新标签，人就走了，引导这个标签留在背后。
+  // 所以它必须排最后，而且它的 CTA 同时是收尾键（finish 写 extObSeen）。
+  const OB = ['welcome', 'engine', 'capture', 'try'];
   let at = 0;
   let settings = {};
   let learnRules = null;
@@ -113,7 +111,7 @@
     // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture', 'ob-cta-note']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -161,37 +159,6 @@
         // 弹窗会一直提示「第一次用？」。
         finish();
       };
-    } else if (step === 'sync') {
-      $('ob-title').textContent = t('extob_sync_title', '换台设备接着复习');
-      $('ob-text').textContent = t('extob_sync_body',
-        '不登录也能完整使用，所有数据留在本机。登录只在你想让手机接着复习电脑上读到的句子时才需要。');
-      $('ob-cta').hidden = false;
-      $('ob-cta').textContent = t('extob_sync_cta', '打开设置去登录');
-      // 这一屏的主行动是「去登录」，「以后再说」是跳过 —— 两者视觉重量不能相同。
-      $('ob-next').classList.add('secondary');
-      // **带 #sync 锚点**，不用 openOptionsPage() —— 那个 API 不接受 hash，人到了
-      // 设置页顶部，得自己在一整页设置里找登录框。按钮上写着「去登录」，落点就该是
-      // 登录框本身（options.js 里那段 location.hash === '#sync' 负责滚过去并聚焦）。
-      // window.open 必须同步发生在这次点击里（见 options.js 的「重看引导」那段）。
-      $('ob-cta').onclick = () => {
-        try {
-          window.open(chrome.runtime.getURL('options/options.html') + '#sync', '_blank');
-        } catch (_) { try { chrome.runtime.openOptionsPage(); } catch (__) {} }
-        // 它同时是前进键，和 try 屏、App 的 ext 屏同一条规矩：这一屏的主行动会把人
-        // 带去另一个标签，不前进的话他回来看到的还是这一屏。
-        if (at < OB.length - 1) { at += 1; paint(); } else finish();
-      };
-      // 这一屏原来并排着「打开设置去登录」和「继续」，而「继续」看不出跟登录是什么
-      // 关系 —— 是已经登录了？还是跳过登录？2026-09-01 用户在真机上问的正是这句。
-      // 现在两个按钮的差别只有一件事：要不要现在去登录。都会前进到下一屏。
-      $('ob-next').textContent = t('extob_sync_later', '以后再说');
-      // 「以后再设置」在这一屏是第三种「跳过」，与上面那个同义。藏掉。
-      $('ob-skip').hidden = true;
-      $('ob-cta-note').hidden = false;
-      // 只说 App 真正独有的两件事。**不要**把「跨设备同步」写成 App 独有 ——
-      // 扩展↔扩展也有，那是假话。
-      $('ob-cta-note').textContent = t('extob_app_note',
-        '想在手机上复习、或者边走边听播客模式？那两样在 iPhone / Mac 的 App 里。');
     }
   }
 
@@ -244,6 +211,17 @@
         t,
         readSettings,
         sub: t('extob_quick_sub', '一把 key 就能同时配好翻译、朗读、转写。'),
+        // 配过的回显出来。设置页早就这么做了（options.js 的 prefill），而这一页没有 ——
+        // 于是从「重看开始使用引导」回来的老用户看到一个**空 key 框**，而这一页自己
+        // 写过的规矩是「把已配好的 Key 显示成空白会让人以为设置丢了，比不给重看更糟」。
+        prefill: (() => {
+          const q = QuickSetup.represents(settings);
+          return q ? { host: q.host, key: settings.apiKey } : null;
+        })(),
+        // 自检要按**用户真实的目标语言**测。原来它读一个全仓从未被赋值的
+        // window.__mtTargetLang，于是永远测「译成 zh-CN」——一个把目标设成日文的人，
+        // 自检通过了也说明不了他要的那条路通没通。
+        targetLang: settings.targetLang,
         onApply: async (plan) => {
           await storageSet(plan.writes);
           Object.assign(settings, plan.writes);

@@ -772,11 +772,18 @@ async function init() {
     location.replace(chrome.runtime.getURL('onboard/onboard.html'));
   }));
 
-  // 登录之后那个「现在翻一页看看」。地址与引导页、一键配置卡走同一个 tryUrl ——
-  // 按目标语言选示例页。window.open 必须同步发生在这次点击里（见下面那段注释）。
-  if ($('btn-sync-try')) {
-    $('btn-sync-try').addEventListener('click', () => {
-      try { window.open(QuickSetup.tryUrl($('target-lang') && $('target-lang').value), '_blank', 'noopener'); } catch (_) {}
+  // 登录之后的两个出口。window.open 必须同步发生在这次点击里（见下面那段注释）。
+  if ($('btn-sync-cards')) {
+    $('btn-sync-cards').addEventListener('click', () => {
+      try { window.open(chrome.runtime.getURL('learn/review.html'), '_blank'); } catch (_) {}
+    });
+  }
+  if ($('btn-sync-app')) {
+    $('btn-sync-app').addEventListener('click', () => {
+      // 与复习页那个按钮同一个地址形状（learning-design §8.4.1.1）：只带不透明 userId。
+      const scheme = (window.MT_FLAVOR === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
+      const uid = $('btn-sync-app').dataset.uid || '';
+      try { location.href = scheme + '://review' + (uid ? '?uid=' + encodeURIComponent(uid) : ''); } catch (_) {}
     });
   }
 
@@ -1362,6 +1369,12 @@ async function init() {
       $('sync-next-app').textContent = t('sync_next_app',
         '接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。')
         .replace('{email}', s.email || '');
+      // App 那个出口带上不透明 userId：App 收到之后才发现得了「两边不是同一个账号」。
+      const appBtn = $('btn-sync-app');
+      if (appBtn) {
+        appBtn.dataset.uid = s.userId || '';
+        appBtn.hidden = !s.userId;
+      }
       next.hidden = false;
     }
   }

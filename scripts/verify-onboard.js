@@ -128,13 +128,22 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     // 等于不存在 —— 而屏数是对的，5 屏一个不少，旧断言全绿。
     // try 必须是最后一屏：任何排在它后面的屏都到不了。
     const order = seen.map(s=>s.step).join(' → ');
-    const want = DIST==='dist-china'
-      ? 'welcome → engine → capture → try'
-      : 'welcome → engine → capture → sync → try';
+    // 四屏，**两个 flavor 同形**。登录 2026-09-02 移出引导：它曾经排在「翻一页」之前，
+    // 也就是要人在看到第一句译文之前先填邮箱收验证码。现在登录的请求由官网交接块
+    // 在翻译成功那一刻提出、由复习页那行「未登录」接住 —— 都在他看到价值之后。
+    const want = 'welcome → engine → capture → try';
     if(order!==want) fail(`屏序是 ${order}，期望 ${want}`);
     else pass(`屏序 ${want}`);
-    const expect = DIST==='dist-china'?4:5;
-    if(seen.length!==expect) fail(`屏数 ${seen.length}，期望 ${expect}`); else pass(`屏数 ${expect} —— 与 flavor 相符`);
+    if(seen.length!==4) fail(`屏数 ${seen.length}，期望 4`); else pass('屏数 4 —— 两个 flavor 同形');
+
+    // ★ 引导里**不许再出现登录**。加回来的那天这条会红，并且会指着这段注释问为什么。
+    // 理由不是「登录不重要」，恰恰相反：它太重要，所以不能问在人还没看到价值的时候。
+    const loginish = /登录|登入|Sign in|ログイン|로그인|Connexion|Anmeld|Iniciar sesión|Entrar|Вход|تسجيل الدخول/i;
+    const asksLogin = seen.filter(s=>loginish.test(s.title+' '+s.text));
+    if(asksLogin.length) fail(`第 ${seen.indexOf(asksLogin[0])+1} 屏（${asksLogin[0].step}）又在引导里要人登录了：`
+      + JSON.stringify(asksLogin[0].title)
+      + ' —— 登录的请求归官网交接块与复习页，都在用户看到译文之后');
+    else pass('引导里不提登录 —— 那一步在看到价值之后才问');
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
     // 判据是意图本身：这一屏上得有**某个**能配引擎的东西。不要拿某个具体元素当代理 ——
     // 代理会随改版失效，而失效的代理不会变红，只会变得没有意义。

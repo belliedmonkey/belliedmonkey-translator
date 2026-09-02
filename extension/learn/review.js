@@ -960,8 +960,18 @@
         line.textContent = t('sync_status_done_at', '同步完成 · {time}').replace('{time}', fmtClock(ev.at)); break;
       case 'offline':
         line.textContent = t('sync_status_offline', '当前网络离线，稍后自动重试。学习记录已保存在本机。'); break;
-      case 'signed_out':
-        line.textContent = t('sync_status_signed_out', '未登录，仅本机数据'); break;
+      case 'signed_out': {
+        // **可点。** 这里是链路上一个真实的岔口：从官网交接块过来的人刚看到自己的卡，
+        // 而「怎么让它们也出现在 App 里」的答案就是登录 —— 原来这行是纯文本，
+        // 到此为止（2026-09-02 链路核查）。落点是登录框本身，不是设置页顶部。
+        line.textContent = '';
+        const a = document.createElement('a');
+        a.textContent = t('sync_status_signed_out_cta', '未登录，仅本机数据 —— 登录后也能在 App 里复习 →');
+        a.href = chrome.runtime.getURL('options/options.html') + '#sync';
+        a.target = '_blank';
+        line.appendChild(a);
+        break;
+      }
       // A storage-read failure is NOT the signed-out state, and painting it as
       // one is the page-settings incident all over again (§8.4.1). Name it.
       case 'storage_error':
@@ -1009,6 +1019,13 @@
 
     if (!items.length) {
       $('card').hidden = true; $('nothing-due').hidden = true; $('empty').hidden = false;
+      // 空态两支。采集开着时不许再说「去打开采集」—— 那句话对他是错的，
+      // 而且会让他以为自己哪里做错了（2026-09-02 链路核查）。
+      const capOn = !!(settings && settings.learnEnabled);
+      const on = $('empty-on'); const off = $('empty-off'); const row = $('empty-settings-row');
+      if (on) on.hidden = !capOn;
+      if (off) off.hidden = capOn;
+      if (row) row.hidden = capOn;
       $('progress').textContent = '';
       return;
     }
