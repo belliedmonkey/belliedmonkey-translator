@@ -86,8 +86,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
           d.style.cssText='background:var(--accent);position:absolute;left:-9999px';
           document.body.appendChild(d);
           const v=getComputedStyle(d).backgroundColor; d.remove(); return v;})(),
-        btns:['ob-cta','ob-next','ob-skip'].filter(id=>vis(document.getElementById(id)))
-          .map(id=>({id,bg:getComputedStyle(document.getElementById(id)).backgroundColor})),
+        // **整屏所有可见按钮**，不只是页脚那三个。第一版只数 ob-cta/ob-next/ob-skip，
+        // 于是「配好翻译、朗读、转写」（一键卡的按钮，在 body 里）与「继续」两个填色
+        // 按钮并排时，这条断言看不见 —— 2026-09-02 靠一张截图才发现。
+        // 排除 tab 切换器：选中态本来就该填色，那是「你在哪一档」不是「该点哪个」。
+        btns:[...document.querySelectorAll('#onboard button')]
+          .filter(b=>vis(b) && !b.closest('.mode-tabs'))
+          .map(b=>({id:b.id||b.className||b.textContent.trim().slice(0,10),
+            bg:getComputedStyle(b).backgroundColor})),
         manual:(()=>{const b=document.getElementById('ob-manual');
           return vis(b)?{sel:b.querySelectorAll('select').length,
             key:b.querySelectorAll('input[type=password]').length}:null;})(),
@@ -214,7 +220,11 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
                    sel:box?box.querySelectorAll('select').length:0,
                    key:box?box.querySelectorAll('input[type=password]').length:0,
                    base:box?box.querySelectorAll('input[type=url]').length:0,
-                   labels:box?[...box.querySelectorAll('label')].filter(l=>l.textContent.trim()).length:0};
+                   labels:box?[...box.querySelectorAll('label')].filter(l=>l.textContent.trim()).length:0,
+                   // 每一槽都得有自检按钮。这一页原来**零反馈**：填完 key 唯一的回应
+                   // 是什么都没有，然后点「继续」—— 而这是整条链的第一环，key 没配对
+                   // 要到他翻第一页时才发现（2026-09-02）。
+                   tests:box?box.querySelectorAll('.ef-test-btn').length:0};
       document.getElementById('ob-mode-quick').click();
       const back={quick:vis(document.getElementById('ob-quick')),
                   manual:vis(document.getElementById('ob-manual'))};
@@ -226,12 +236,16 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       fail(`点了「三引擎分别配」之后不是互斥的：${JSON.stringify(tab.after)}`);
     else if(tab.after.sel!==3)
       fail(`三引擎那一页只有 ${tab.after.sel} 个引擎下拉，期望 3（翻译/朗读/转写）`);
+    else if(tab.after.tests !== 3)
+      fail(`三引擎那一页只有 ${tab.after.tests} 个「测试连接」，期望 3 —— `
+        + '手动路原来零反馈：填完 key 唯一的回应是什么都没有，然后点「继续」');
     else if(!tab.after.key||!tab.after.base)
       fail(`三引擎那一页缺字段：Key ${tab.after.key} 个、地址 ${tab.after.base} 个`
         + ' —— 用户选的是「每行还带地址与模型」');
     else if(tab.after.labels<4)
       fail(`三引擎那一页只有 ${tab.after.labels} 个非空标签 —— i18n 键没解出来？`);
-    else pass(`三引擎那一页：3 个引擎下拉、${tab.after.key} 个 Key、${tab.after.base} 个地址，标签都有文字`);
+    else pass(`三引擎那一页：3 个引擎下拉、${tab.after.key} 个 Key、${tab.after.base} 个地址、`
+      + `${tab.after.tests} 个「测试连接」，标签都有文字`);
     if(!tab.back.quick||tab.back.manual)
       fail(`切回「一键配置」没生效：${JSON.stringify(tab.back)}`);
     else pass('两个 tab 来回切都保持互斥');

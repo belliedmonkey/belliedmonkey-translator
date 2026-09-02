@@ -133,6 +133,11 @@
       // 免费引擎仍然选得到（在「三引擎分别配」里），只是不再由我们推荐。
       $('ob-text').textContent = t('extob_engine_body_key', '这一步躲不掉：不填 key 就一个字也翻不出来。');
       paintModes();
+      // 这一屏的主行动是**配好**（一键卡的「配好翻译、朗读、转写」，或手动区的三个
+      // 「测试连接」），「继续」是「先不配、往下走」。两个填色按钮并排时用户看不出
+      // 该点哪个 —— 2026-09-02 靠一张截图才发现，而当时的门禁只数页脚那三个按钮，
+      // 一键卡的按钮在 body 里，它看不见。
+      $('ob-next').classList.add('secondary');
     } else if (step === 'capture') {
       $('ob-title').textContent = t('extob_capture_title', '要不要顺便把读过的句子记下来');
       $('ob-text').textContent = t('extob_capture_body',
@@ -259,6 +264,36 @@
             settings.engineChosen = 1;
           }
           await storageSet(patch);
+        },
+        // 自检。这一页原来**零反馈** —— 填完 key 唯一的回应是什么都没有，然后点
+        // 「继续」。而这是整条链的第一环：key 没配对，后面每一步都白走，却要到他翻
+        // 第一页时才发现（2026-09-02 链路核查）。
+        //
+        // 走的是各功能**真正用的那条传输**（EngineTest 的四条），所以「通了」意味着
+        // 真的能翻/能读，不只是字段填了。settings 是现读的：onChange 每敲一个字符就
+        // 更新它，所以点测试时拿到的是屏幕上那份。
+        onTest: () => {
+          if (slot === 'chat') {
+            return EngineTest.translation({
+              provider: settings.provider, apiKey: settings.apiKey,
+              baseUrl: settings.apiBaseUrl, model: settings.apiModel,
+              targetLang: settings.targetLang,
+            });
+          }
+          if (slot === 'tts') {
+            return EngineTest.tts({
+              engineId: settings.ttsEngine, apiKey: settings.ttsApiKey,
+              baseUrl: settings.ttsBaseUrl, model: settings.ttsModel, voice: settings.ttsVoice,
+            });
+          }
+          // **没有 notes 这一支**：这一页的手动区只有 chat / tts / stt 三槽（解析跟随
+          // 翻译引擎，与一键卡那边同一条规则）。写一支用不到的分支，代价是要为它加载
+          // learn/notes.js —— 而 onboard.html 顶上那条注释明确说了别「顺手补齐」：
+          // 那会把 IndexedDB 那一层拖进这一页，而三条被测的传输一个都不需要它。
+          return EngineTest.stt({
+            engineId: settings.sttEngine, apiKey: settings.sttApiKey,
+            baseUrl: settings.sttBaseUrl, model: settings.sttModel,
+          });
         },
       });
     }

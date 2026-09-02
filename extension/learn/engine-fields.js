@@ -196,6 +196,11 @@ var EngineFields = (() => {
 
   const STYLE = `
     .ef-slot { display:flex; flex-direction:column; gap:6px; }
+    .ef-test { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+    .ef-test-btn { align-self:flex-start; }
+    .ef-test-note { margin:0; font-size:.86rem; color:var(--text-secondary); }
+    .ef-test-note.ok { color:var(--sage-strong); }
+    .ef-test-note.bad { color:var(--danger); }
     .ef-slot + .ef-slot { margin-top:14px; }
     .ef-head { font-weight:600; font-size:.95em; }
     .ef-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -312,12 +317,56 @@ var EngineFields = (() => {
       emit({ [spec.keys.engine]: sel.value, [spec.keys.baseUrl]: '' });
     });
 
+    // ── 自检按钮（可选）────────────────────────────────────────────────────
+    //
+    // **只有传了 onTest 的宿主才有。** 设置页四个槽早就各有一个静态的「测试连接」，
+    // 连着它自己的 saveAll / assertEndpointShape / DOM id —— 把那些搬进这个组件是把
+    // 宿主的事塞进组件里，方向反了。所以这里只管**按钮与状态行**（两个面长得一样），
+    // 真正怎么测由宿主给。设置页不传 ⇒ 什么都不渲染 ⇒ 它一个字节都不受影响。
+    //
+    // 为什么引导页非有不可：「三引擎分别配」那一页原来**零反馈** —— 用户填完 key，
+    // 唯一的回应是什么都没有，然后点「继续」。而这一步正是整条链的第一环：
+    // key 没配对，后面每一步都白走，却要到他翻第一页时才发现（2026-09-02 链路核查）。
+    let testNote = null;
+    if (typeof o.onTest === 'function') {
+      const wrap = el('div', 'ef-test');
+      const btn = doc.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ef-test-btn';
+      btn.textContent = t('engine_test', '测试连接');
+      testNote = el('p', 'ef-test-note');
+      testNote.hidden = true;
+      btn.addEventListener('click', async () => {
+        if (btn.disabled) return;            // 全局原则：IO 在途，控件不可用
+        btn.disabled = true;
+        testNote.hidden = false;
+        testNote.className = 'ef-test-note';
+        testNote.textContent = t('engine_testing', '测试中…');
+        try {
+          const r = await o.onTest();
+          testNote.className = 'ef-test-note ok';
+          // 成功也要说出**它做了什么**（耗时、真正请求的地址、走了哪条通路）——
+          // 一句不带证据的「通了」，与「根本没发请求」在界面上一模一样。
+          // format 的签名是 (result, err, t)，与 quick-setup 用的是同一个。
+          testNote.textContent = EngineTest.format(r, null, t);
+        } catch (e) {
+          testNote.className = 'ef-test-note bad';
+          // 具名失败 + 服务端原话（format 里已经带上了）。一句「失败」说不出该改哪个字段。
+          testNote.textContent = EngineTest.format(null, e, t);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+      wrap.append(btn, testNote);
+      box.append(wrap);
+    }
+
     paint();
     container.append(box);
     // rows 交回去：host 想往某一行里加提示、按钮，就往 rows[f].row / .inputRow 里挂。
     // 挂在行内**而不是行外**是构成要件 —— 行按 visibility 收起时，挂在里面的东西
     // 跟着一起收；挂在外面就会出现「字段藏了、它的提示还在」。
-    return { el: box, paint, rows, ids: spec.ids, keys: spec.keys };
+    return { el: box, paint, rows, ids: spec.ids, keys: spec.keys, testNote };
   }
 
   return { labelOf, visibility, populate, render, SLOTS };
