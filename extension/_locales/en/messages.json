@@ -634,7 +634,7 @@
     "message": "Sign in · Sync across devices"
   },
   "sync_section_hint": {
-    "message": "Optional. Everything works signed out — sync only lets you review on your phone what you read on your computer. Once signed in, the sentences you captured (including candidates not yet in review) sync to your other devices and the phone app."
+    "message": "Optional. Everything works signed out — sync only makes the sentences you read in the browser show up in the app and on your other devices too. Once signed in, everything you capture (including candidates not yet in review) syncs across."
   },
   "sync_email": {
     "message": "Email"
@@ -1817,13 +1817,13 @@
     "message": "Keep reviewing on another device"
   },
   "extob_sync_body": {
-    "message": "Everything works fully without an account — your data stays on this device. Sign in only if you want your phone to pick up where your computer left off."
+    "message": "Everything works signed out; all data stays on this device. Sign in only if you want these sentences to show up in the app or on another device as well."
   },
   "extob_sync_cta": {
     "message": "Open settings to sign in"
   },
   "extob_app_note": {
-    "message": "Want to review on your phone, or listen in podcast mode while walking? Those live in the iPhone and Mac app."
+    "message": "Want to review in the app, or listen on the go in podcast mode? Both live in the iPhone / Mac app."
   },
   "extob_finish": {
     "message": "Done"
@@ -1961,10 +1961,10 @@
     "message": "The cloud has content this version cannot read yet (probably from a newer extension). Update the app, then sync again — nothing is lost, it is just unreadable for now."
   },
   "site_next_title": {
-    "message": "It translated. Next: get these onto your phone"
+    "message": "It translated. Next: get these cards into the app"
   },
   "site_next_body": {
-    "message": "The sentences you stopped to read are already review cards — on this device. They reach the phone app only once you sign in. You can keep using everything signed out; the app will just be empty."
+    "message": "The sentences you stopped to read are already review cards, here in this browser. They reach the app only once you sign in. You can keep using everything signed out; the app will just be empty."
   },
   "site_next_body_off": {
     "message": "“Collect learning material” is still off, so no cards are being made yet. Turn it on in the extension settings first."
@@ -2016,5 +2016,8 @@
   },
   "wipe_left_unreadable": {
     "message": "storage could not be read back"
+  },
+  "site_next_title_off": {
+    "message": "It translated — but nothing is being saved as cards yet"
   }
 }

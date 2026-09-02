@@ -634,7 +634,7 @@
     "message": "Iniciar sesión · Sincronización entre dispositivos"
   },
   "sync_section_hint": {
-    "message": "Opcional. Todo funciona sin iniciar sesión: la sincronización solo sirve para repasar en el móvil lo que leíste en el ordenador. Al iniciar sesión, las frases recopiladas (incluidas las candidatas que aún no entraron en repaso) se sincronizan con tus otros dispositivos y con la app del móvil."
+    "message": "Opcional. Todo funciona sin iniciar sesión: la sincronización solo hace que las frases que lees en el navegador aparezcan también en la app y en tus otros dispositivos. Al iniciar sesión, todo lo recopilado (incluidas las candidatas que aún no entraron en repaso) se sincroniza."
   },
   "sync_email": {
     "message": "Correo electrónico"
@@ -1817,13 +1817,13 @@
     "message": "Sigue repasando en otro dispositivo"
   },
   "extob_sync_body": {
-    "message": "Todo funciona sin cuenta: tus datos se quedan en este dispositivo. Inicia sesión solo si quieres seguir en el móvil."
+    "message": "Todo funciona sin iniciar sesión y los datos se quedan en este dispositivo. Solo necesitas la sesión si quieres que estas frases aparezcan también en la app o en otro dispositivo."
   },
   "extob_sync_cta": {
     "message": "Abrir ajustes para iniciar sesión"
   },
   "extob_app_note": {
-    "message": "¿Repasar en el móvil o escuchar en modo pódcast mientras caminas? Eso está en la app de iPhone / Mac."
+    "message": "¿Quieres repasar en la app, o escuchar en modo pódcast mientras caminas? Ambas cosas están en la app de iPhone / Mac."
   },
   "extob_finish": {
     "message": "Listo"
@@ -1961,10 +1961,10 @@
     "message": "La nube tiene contenido que esta versión aún no puede leer (probablemente de una extensión más nueva). Actualiza la app y vuelve a sincronizar: no se ha perdido nada, solo es ilegible por ahora."
   },
   "site_next_title": {
-    "message": "Ha traducido. Ahora: llévalas al móvil"
+    "message": "Ha traducido. Ahora: llevar estas tarjetas a la app"
   },
   "site_next_body": {
-    "message": "Las frases en las que te detuviste ya son tarjetas de repaso, en este dispositivo. Solo llegan a la app del móvil cuando inicias sesión. Todo funciona sin cuenta; simplemente la app estará vacía."
+    "message": "Las frases en las que te detuviste ya son tarjetas de repaso, aquí en este navegador. Solo llegan a la app cuando inicias sesión. Todo funciona sin cuenta; simplemente la app estará vacía."
   },
   "site_next_body_off": {
     "message": "«Recopilar material de estudio» sigue desactivado, así que todavía no se crean tarjetas. Actívalo primero en los ajustes de la extensión."
@@ -2016,5 +2016,8 @@
   },
   "wipe_left_unreadable": {
     "message": "no se pudo releer el almacenamiento"
+  },
+  "site_next_title_off": {
+    "message": "Ha traducido, pero todavía no se guarda nada como tarjetas"
   }
 }

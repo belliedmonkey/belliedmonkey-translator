@@ -634,7 +634,7 @@
     "message": "Entrar · Sincronizar entre dispositivos"
   },
   "sync_section_hint": {
-    "message": "Opcional. Tudo funciona sem entrar na conta — a sincronização só serve para revisar no celular o que você leu no computador. Depois de entrar, as frases coletadas (inclusive as candidatas que ainda não entraram em revisão) sincronizam com seus outros dispositivos e com o app do celular."
+    "message": "Opcional. Tudo funciona sem entrar na conta — a sincronização só faz as frases lidas no navegador aparecerem também no app e nos seus outros dispositivos. Depois de entrar, tudo o que você coleta (inclusive candidatas que ainda não entraram em revisão) sincroniza."
   },
   "sync_email": {
     "message": "E-mail"
@@ -1817,13 +1817,13 @@
     "message": "Continue revisando em outro aparelho"
   },
   "extob_sync_body": {
-    "message": "Tudo funciona sem conta — seus dados ficam neste aparelho. Entre só se quiser continuar no celular."
+    "message": "Tudo funciona sem conta e os dados ficam neste dispositivo. Entrar só é preciso se você quiser que estas frases apareçam também no app ou em outro dispositivo."
   },
   "extob_sync_cta": {
     "message": "Abrir configurações para entrar"
   },
   "extob_app_note": {
-    "message": "Quer revisar no celular ou ouvir em modo podcast enquanto caminha? Isso está no app de iPhone / Mac."
+    "message": "Quer revisar no app, ou ouvir no modo podcast enquanto anda? Os dois estão no app de iPhone / Mac."
   },
   "extob_finish": {
     "message": "Concluir"
@@ -1961,10 +1961,10 @@
     "message": "A nuvem tem conteúdo que esta versão ainda não consegue ler (provavelmente de uma extensão mais nova). Atualize o app e sincronize de novo — nada foi perdido, só está ilegível por enquanto."
   },
   "site_next_title": {
-    "message": "Traduziu. Agora: leve isso para o celular"
+    "message": "Traduziu. Agora: levar estes cartões para o app"
   },
   "site_next_body": {
-    "message": "As frases em que você parou já são cartões de revisão — neste dispositivo. Elas só chegam ao app do celular depois que você entra na conta. Tudo funciona sem conta; o app é que ficará vazio."
+    "message": "As frases em que você parou já são cartões de revisão, aqui neste navegador. Elas só chegam ao app depois que você entra na conta. Tudo funciona sem conta; o app é que ficará vazio."
   },
   "site_next_body_off": {
     "message": "“Coletar material de estudo” ainda está desligado, então nenhum cartão está sendo criado. Ligue primeiro nas configurações da extensão."
@@ -2016,5 +2016,8 @@
   },
   "wipe_left_unreadable": {
     "message": "não foi possível reler o armazenamento"
+  },
+  "site_next_title_off": {
+    "message": "Traduziu — mas ainda nada está sendo salvo como cartão"
   }
 }

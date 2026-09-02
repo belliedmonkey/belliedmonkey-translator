@@ -356,12 +356,31 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       // 渲染可见性的不变量。判据一律用 getClientRects —— 读 el.hidden 正是把一个
       // CSS 泄漏送上 App Store 的那种读法。
       const vis = `(el=>!!(el&&el.getClientRects().length))`;
+      // 「永不同屏」说的是**一键配置卡 vs 逐引擎配置控件**，不是「快速模式下只许有
+      // 一张卡」。原来这份清单里还有 learn-card（采集）和 sync-section（登录）——
+      // 它们跟引擎配置毫无关系，只是当初被顺手打上了 adv-only。
+      // 那个误分组的代价是实打实的：默认模式下**采集开关和登录入口都看不见**，
+      // 而官网上那两个按钮（「去打开采集」「打开设置去登录」）正是往那里送人的
+      // （2026-09-01 / 09-02 两次真机实测）。清单收回它真正管的那几个。
+      const ENGINE_CARDS = ['engine-card', 'tts-card'];
       const mode1 = JSON.parse(await evalIn(cdp, sessionId, `(()=>{const vis=${vis};
         return JSON.stringify({quick:vis(document.getElementById('quick-setup-card')),
-          adv:['engine-card','tts-card','learn-card','cache-card']
-            .filter(id=>vis(document.getElementById(id)))});})()`));
+          adv:${JSON.stringify(ENGINE_CARDS)}
+            .filter(id=>vis(document.getElementById(id))),
+          // 反过来也要断言：采集开关与登录入口在**快速模式下必须看得见** ——
+          // 它们是这个产品的另外两个入口，藏起来等于没有。
+          learn:vis(document.getElementById('learn-card')),
+          sync:vis(document.getElementById('sync-section'))});})()`));
       if (!mode1.quick || mode1.adv.length) {
         problems.push(`快速视图不对：一键卡 ${mode1.quick}，却露着 ${mode1.adv.join('/') || '（无）'}`);
+      }
+      if (!mode1.learn) {
+        problems.push('快速视图里采集开关（#learn-card）不可见 —— 官网那个「去打开采集」'
+          + '把人送到这里，而开关藏着');
+      }
+      if (!mode1.sync) {
+        problems.push('快速视图里登录入口（#sync-section）不可见 —— 引导里那个'
+          + '「打开设置去登录」把人送到这里，而登录框藏着');
       }
       await evalIn(cdp, sessionId, `(()=>{document.getElementById('mode-detail').click();return 1})()`);
       await sleep(400);

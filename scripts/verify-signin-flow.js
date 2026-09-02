@@ -110,6 +110,37 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (!s.tryBtn) problems.push('登录之后没有「现在翻一页看看」的出口');
     if (errs.length) problems.push('运行期异常：' + errs.slice(0, 2).join(' | '));
 
+    // ── ②b #learn 锚点：「去打开采集」必须落在那个开关上 ────────────────────
+    //
+    // 官网试翻页上采集关着时那个按钮写的是「去打开采集」。它原来只开设置页顶部，
+    // 而采集开关那张卡当时还带着 adv-only —— 默认模式下**根本看不见**。
+    // 按钮点了、人到了、开关不在（2026-09-02 用户实测）。
+    const { targetId: lid } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const lAtt = await cdp.send('Target.attachToTarget', { targetId: lid, flatten: true });
+    await cdp.send('Runtime.enable', {}, lAtt.sessionId);
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: 390, height: 640, deviceScaleFactor: 1, mobile: true }, lAtt.sessionId);
+    await cdp.send('Page.navigate',
+      { url: `chrome-extension://${extId}/options/options.html#learn` }, lAtt.sessionId);
+    await sleep(3000);
+    const lr = await cdp.send('Runtime.evaluate', { returnByValue: true, expression: `(() => {
+      const $ = (id) => document.getElementById(id);
+      const vis = (el) => !!(el && el.getClientRects().length);
+      const card = $('learn-card'); const sw = $('learn-enabled');
+      const b = card ? card.getBoundingClientRect() : null;
+      return JSON.stringify({ cardVis: vis(card), swVis: vis(sw),
+        top: b ? Math.round(b.top) : null, vh: innerHeight,
+        docH: document.documentElement.scrollHeight });
+    })()` }, lAtt.sessionId);
+    const lv = JSON.parse(lr.result.value);
+    notes.push(`#learn：采集卡 ${lv.cardVis ? '可见' : '不可见'}，开关 ${lv.swVis ? '可见' : '不可见'}，顶边 ${lv.top}`);
+    if (!lv.cardVis || !lv.swVis) {
+      problems.push('带 #learn 打开设置页，采集开关不可见 —— adv-only 又回来了？'
+        + '按钮上写着「去打开采集」，而那个开关看不见');
+    } else if (lv.docH > lv.vh && (lv.top < -20 || lv.top > lv.vh * 0.5)) {
+      problems.push(`带 #learn 打开时采集卡顶边在 ${lv.top}（视口 ${lv.vh}）—— 没有滚到跟前`);
+    }
+
     // ── ③ 复习页 → App 的交接（learning-design §8.4.1.1）──────────────────
     const { targetId: rid } = await cdp.send('Target.createTarget', { url: 'about:blank' });
     const rAtt = await cdp.send('Target.attachToTarget', { targetId: rid, flatten: true });

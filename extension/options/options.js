@@ -1585,15 +1585,21 @@ async function init() {
   // .quick-only 的卡片，滚完再改布局，落点就偏了。
   // 也不能靠浏览器的原生锚点跳转 —— 那发生在这一页 paint 之前。
   // 再等一帧，让 applyDetailMode 引起的重排真正落定。
-  if (location.hash === '#sync') {
+  // 一张表，不是每个目标各写一遍 —— 第二个锚点（#learn）加进来时就该收敛了。
+  // focus 是可选的：能落在真正要动的那个控件上最好，落不上也不影响滚动。
+  const ANCHORS = {
+    '#sync': { sec: 'sync-section', focus: () => ($('sync-out') && !$('sync-out').hidden ? $('sync-email') : null) },
+    '#learn': { sec: 'learn-card', focus: () => $('learn-enabled') },
+  };
+  const target = ANCHORS[location.hash];
+  if (target) {
     const jump = () => {
-      const sec = $('sync-section');
-      if (!sec || sec.hidden) return;      // 同步没编进这个构建 ⇒ 整节已被 remove
+      const sec = $(target.sec);
+      if (!sec || sec.hidden) return;      // 这个构建里整节被 remove 掉了（如中国版的同步）
       try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
-      const email = $('sync-email');
-      const out = $('sync-out');
-      // 已登录时没有邮箱框可聚焦（那一支显示的是 #sync-in）。
-      if (email && out && !out.hidden) { try { email.focus({ preventScroll: true }); } catch (_) { email.focus(); } }
+      let el = null;
+      try { el = target.focus(); } catch (_) {}
+      if (el) { try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); } }
     };
     try { requestAnimationFrame(() => requestAnimationFrame(jump)); } catch (_) { jump(); }
   }

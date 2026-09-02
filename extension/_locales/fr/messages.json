@@ -634,7 +634,7 @@
     "message": "Connexion · Synchronisation multi-appareils"
   },
   "sync_section_hint": {
-    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à réviser sur votre téléphone ce que vous avez lu sur votre ordinateur. Une fois connecté, les phrases collectées (y compris les candidates pas encore en révision) se synchronisent vers vos autres appareils et l'app mobile."
+    "message": "Facultatif. Tout fonctionne sans compte — la synchronisation sert seulement à faire apparaître dans l'app et sur vos autres appareils les phrases lues dans le navigateur. Une fois connecté, tout ce que vous collectez (y compris les candidates pas encore en révision) se synchronise."
   },
   "sync_email": {
     "message": "E-mail"
@@ -1817,13 +1817,13 @@
     "message": "Continuer à réviser sur un autre appareil"
   },
   "extob_sync_body": {
-    "message": "Tout fonctionne sans compte : vos données restent sur cet appareil. Connectez-vous seulement si vous voulez continuer sur votre téléphone."
+    "message": "Tout fonctionne sans compte et les données restent sur cet appareil. La connexion ne sert que si vous voulez retrouver ces phrases dans l'app ou sur un autre appareil."
   },
   "extob_sync_cta": {
     "message": "Ouvrir les réglages pour se connecter"
   },
   "extob_app_note": {
-    "message": "Envie de réviser sur votre téléphone ou d'écouter en mode podcast en marchant ? C'est dans l'app iPhone / Mac."
+    "message": "Envie de réviser dans l'app, ou d'écouter en mode podcast en marchant ? Les deux sont dans l'app iPhone / Mac."
   },
   "extob_finish": {
     "message": "Terminer"
@@ -1961,10 +1961,10 @@
     "message": "Le cloud contient du contenu que cette version ne sait pas encore lire (probablement issu d'une extension plus récente). Mettez l'app à jour, puis synchronisez de nouveau — rien n'est perdu, c'est seulement illisible pour l'instant."
   },
   "site_next_title": {
-    "message": "Ça a marché. Ensuite : les emmener sur votre téléphone"
+    "message": "Ça a marché. Ensuite : faire passer ces cartes dans l'app"
   },
   "site_next_body": {
-    "message": "Les phrases devant lesquelles vous vous êtes arrêté sont déjà des cartes de révision — sur cet appareil. Elles n'arrivent dans l'app mobile qu'une fois connecté. Tout fonctionne sans compte ; l'app sera simplement vide."
+    "message": "Les phrases devant lesquelles vous vous êtes arrêté sont déjà des cartes de révision, ici dans ce navigateur. Elles n'arrivent dans l'app qu'une fois connecté. Tout fonctionne sans compte ; l'app sera simplement vide."
   },
   "site_next_body_off": {
     "message": "« Collecter le matériel d'apprentissage » est encore désactivé : aucune carte n'est créée pour l'instant. Activez-le d'abord dans les réglages de l'extension."
@@ -2016,5 +2016,8 @@
   },
   "wipe_left_unreadable": {
     "message": "stockage illisible en relecture"
+  },
+  "site_next_title_off": {
+    "message": "Ça a marché — mais rien n'est encore enregistré en cartes"
   }
 }

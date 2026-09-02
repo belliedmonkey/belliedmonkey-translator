@@ -634,7 +634,7 @@
     "message": "Anmelden · Geräteübergreifende Synchronisierung"
   },
   "sync_section_hint": {
-    "message": "Optional. Alles funktioniert auch abgemeldet — die Synchronisierung sorgt nur dafür, dass Sie auf dem Handy wiederholen können, was Sie am Computer gelesen haben. Nach der Anmeldung werden die erfassten Sätze (auch die noch nicht in der Wiederholung befindlichen Kandidaten) mit Ihren anderen Geräten und der Handy-App synchronisiert."
+    "message": "Optional. Alles funktioniert auch abgemeldet — die Synchronisierung sorgt nur dafür, dass die im Browser gelesenen Sätze auch in der App und auf Ihren anderen Geräten erscheinen. Nach der Anmeldung wird alles Erfasste (auch noch nicht wiederholte Kandidaten) synchronisiert."
   },
   "sync_email": {
     "message": "E-Mail"
@@ -1817,13 +1817,13 @@
     "message": "Auf einem anderen Gerät weiter wiederholen"
   },
   "extob_sync_body": {
-    "message": "Alles funktioniert ohne Konto — deine Daten bleiben auf diesem Gerät. Melde dich nur an, wenn dein Handy dort weitermachen soll, wo der Rechner aufgehört hat."
+    "message": "Alles funktioniert auch abgemeldet, die Daten bleiben auf diesem Gerät. Die Anmeldung brauchen Sie nur, wenn diese Sätze auch in der App oder auf einem anderen Gerät erscheinen sollen."
   },
   "extob_sync_cta": {
     "message": "Einstellungen öffnen und anmelden"
   },
   "extob_app_note": {
-    "message": "Auf dem Handy wiederholen oder unterwegs im Podcast-Modus hören? Beides gibt es in der iPhone-/Mac-App."
+    "message": "Lieber in der App wiederholen oder unterwegs im Podcast-Modus hören? Beides steckt in der iPhone-/Mac-App."
   },
   "extob_finish": {
     "message": "Fertig"
@@ -1961,10 +1961,10 @@
     "message": "In der Cloud liegen Inhalte, die diese Version noch nicht lesen kann (vermutlich aus einer neueren Erweiterung). Aktualisieren Sie die App und synchronisieren Sie erneut — nichts ist verloren, es ist nur vorerst nicht lesbar."
   },
   "site_next_title": {
-    "message": "Es hat übersetzt. Als Nächstes: aufs Handy damit"
+    "message": "Es hat übersetzt. Als Nächstes: diese Karten in die App"
   },
   "site_next_body": {
-    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — auf diesem Gerät. In die Handy-App gelangen sie erst nach der Anmeldung. Abgemeldet funktioniert alles; die App bleibt dann nur leer."
+    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — hier in diesem Browser. In die App gelangen sie erst nach der Anmeldung. Abgemeldet funktioniert alles; die App bleibt dann nur leer."
   },
   "site_next_body_off": {
     "message": "„Lernmaterial sammeln“ ist noch aus, es entstehen also noch keine Karten. Schalten Sie es zuerst in den Einstellungen der Erweiterung ein."
@@ -2016,5 +2016,8 @@
   },
   "wipe_left_unreadable": {
     "message": "Speicher nicht rücklesbar"
+  },
+  "site_next_title_off": {
+    "message": "Es hat übersetzt — aber noch wird nichts als Karte gespeichert"
   }
 }

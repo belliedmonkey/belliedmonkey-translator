@@ -160,7 +160,11 @@
     // 排版借站点自己的 CSS 变量，**不写死任何十六进制** —— build.js 的调色板门禁会
     // 拦下注册表不认识的颜色，而页面注入的样式正是它盯着的那一类。
     box.style.cssText = 'margin-top:28px;padding-top:22px;border-top:1px solid var(--line)';
-    box.appendChild(mk('h2', null, T('site_next_title', '译文出来了。下一步：让它们到手机上')));
+    // 标题也按采集开/关分两句。两支要说的事本来就不同：开着 ⇒ 卡已经在攒了，缺的是
+    // 同步；关着 ⇒ 根本还没有卡。共用一个标题时，对后者那句话是假的。
+    box.appendChild(mk('h2', null, learnOn
+      ? T('site_next_title', '译文出来了。下一步：让这些卡片也进 App')
+      : T('site_next_title_off', '译文出来了。但现在还不会存成复习卡')));
     box.appendChild(mk('p', 'sub', learnOn
       // 采集开着：卡已经在攒了，缺的只是同步。
       ? T('site_next_body', '你停下来读完的句子已经存成复习卡，就在这台设备上。登录之后它们才会同步到手机 App —— 不登录也能一直用，只是 App 那边会是空的。')
@@ -179,9 +183,11 @@
       // 两个字面量各自直接写在 getURL 里，**不要**写成 getURL(cond ? a : b) ——
       // test/web-accessible.test.js 是静态扫 getURL('…') 的字面量，三元写法会让这两个
       // 目标从那道门禁的视野里消失，而它守的正是「导航到没列进清单的扩展页会被拒绝」。
+      // 采集关着时送到**开关本身**（#learn 锚点），不是设置页顶部 ——
+      // 按钮上写着「去打开采集」，落点就该是那个开关。
       const url = learnOn
         ? chrome.runtime.getURL('learn/review.html')
-        : chrome.runtime.getURL('options/options.html');
+        : chrome.runtime.getURL('options/options.html') + '#learn';
       try { window.open(url, '_blank'); } catch (_) { location.href = url; }
     });
     box.appendChild(cta);
