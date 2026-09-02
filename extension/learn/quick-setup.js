@@ -490,7 +490,8 @@ var QuickSetup = (() => {
         return;
       }
 
-      const results = await Promise.all(p.tests.map((slot) => runOne(slot, p, current, rows[slot], t, doc)));
+      const results = await Promise.all(p.tests.map((slot) =>
+        runOne(slot, p, current, rows[slot], t, doc, opts.targetLang)));
       btn.disabled = false;
 
       // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败
@@ -508,7 +509,10 @@ var QuickSetup = (() => {
 
   // 三条各自独立成败。失败**不回滚** —— 最常见的原因（key 少粘一位、限流、模型
   // 下架）恰恰重试就过；回滚只会浪费掉用户已经付出的那次粘贴。
-  async function runOne(slot, p, platform, cell, t, doc) {
+  // targetLang 是**参数**，不是从外层闭包读的。runOne 在 render 外面，`opts` 在这里
+  // 根本不存在 —— 而它被 try/catch 包着，于是 ReferenceError 被印成了一行错误文案
+  // 「✗ opts is not defined」，看上去像是 key 或网络出了问题（2026-09-02 用户报的）。
+  async function runOne(slot, p, platform, cell, t, doc, targetLang) {
     const w = p.writes;
     const run = () => {
       if (slot === 'chat') {
@@ -517,7 +521,7 @@ var QuickSetup = (() => {
           // 调用方传进来的目标语言。原来读 window.__mtTargetLang —— 那个全局**全仓
           // 没有任何一处赋值**，所以自检永远测 zh-CN。缺省仍回落到默认目标语言，
           // 但那是「调用方没传」的兜底，不是唯一的路。
-          targetLang: opts.targetLang
+          targetLang: targetLang
             || (typeof window !== 'undefined' && window.MT_DEFAULT_TARGET_LANG) || 'zh-CN',
         });
       }
@@ -546,7 +550,9 @@ var QuickSetup = (() => {
       again.type = 'button';
       again.textContent = t('qs_retry', '重试这一项');
       // 只重测，不重写 —— 配置已经保存了。
-      again.addEventListener('click', () => { again.remove(); runOne(slot, p, platform, cell, t, doc); });
+      again.addEventListener('click', () => {
+        again.remove(); runOne(slot, p, platform, cell, t, doc, targetLang);
+      });
       cell.parentNode.append(again);
       return { slot, ok: false };
     }

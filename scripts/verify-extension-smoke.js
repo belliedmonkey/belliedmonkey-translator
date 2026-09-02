@@ -565,6 +565,38 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         problems.push(`表外端点收到了可选字段: ${d.bodyKeys.join(',')} —— 最小必要集只该有 model 与 messages`);
       }
     }
+
+    // ── 5. 先翻译、**后**打开采集 —— 交接块引导的正是这条路 ────────────────
+    //
+    // 这一段验的是：翻完之后再把采集打开，页面上**已经有的**那些译文会不会被补
+    // 登记进采集器。原来不会 —— LearnCollector.observe 只在渲染那一刻被调用，而
+    // 采集关着时它直接 return。于是我们自己的交接块（「译文出来了 → 去打开采集
+    // 学习材料」）把人送进去，复习页永远是「还没有学习材料 · 总计 0」，而没有
+    // 任何一层会说话（2026-09-02 用户实测）。
+    //
+    // 判据是 chrome.storage.local 里真的多出了 outbox 条目，不是「函数被调到了」。
+    if (ctxId && swSession) {
+      await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.set({ learnEnabled: true }, () => r(1)))`);
+      // onChanged 是异步送达内容脚本的；再给 dwell 一点时间累积。
+      await sleep(1200);
+      const before = await evalIn(cdp, sessionId,
+        `(async () => { const n = await LearnCollector.flush(); return String(n); })()`, ctxId);
+      let items = 0;
+      for (let i = 0; i < 25 && !items; i++) {
+        const raw = await evalIn(cdp, swSession,
+          `new Promise(r => chrome.storage.local.get(null, (o) => r(JSON.stringify(
+             Object.keys(o).filter(k => k.startsWith('lq:') && k !== 'lq:index' && k !== 'lq:dropped')
+               .reduce((a, k) => a + ((o[k] && o[k].items && o[k].items.length) || 0), 0)))))`);
+        items = Number(JSON.parse(raw || '0')) || 0;
+        if (!items) { await sleep(400); await evalIn(cdp, sessionId, `LearnCollector.flush()`, ctxId); }
+      }
+      notes.push(`后开采集：flush 首次写入 ${before} 条，outbox 合计 ${items} 条`);
+      if (!items) {
+        problems.push('先翻译、后打开采集 → outbox 里一条都没有 —— 交接块把人送去打开采集，'
+          + '回来却是「还没有学习材料」');
+      }
+    }
     offCtx();
   } finally {
     try { await cdp.close(); } catch (_) {}

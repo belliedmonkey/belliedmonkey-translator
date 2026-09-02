@@ -768,6 +768,7 @@ var LearnModel = (() => {
   }
 
   return {
+    DEFAULTS,
     DEFAULTS, OUTBOX_PREFIX, OUTBOX_INDEX, OUTBOX_DROPPED, MAX_OUTBOX_SESSIONS,
     normText, hash16, itemId, sourceId, isDense, lengthScore,
     salience, shouldCapture, makeItem, mergeItem, mergeSkills, touchedAt,

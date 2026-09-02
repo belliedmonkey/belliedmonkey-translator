@@ -329,3 +329,19 @@ button:disabled, input:disabled, select:disabled {
 .mode-tabs { display: flex; gap: 0; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: fit-content; }
 .mode-tabs button { margin: 0; width: auto; padding: 7px 22px; border: none; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: .92rem; cursor: pointer; }
 .mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+
+/* 锚点落点的一次性高亮。#learn 那个按钮把人送到这一页时，「到了」和「看见了」是
+   两件事 —— 这张卡有十来个控件，那个开关在用户眼里和其它九个长得一样
+   （2026-09-02 用户实测：按钮点了、人到了、开关没找到）。亮的是**那一行**。 */
+.field.anchor-flash {
+  border-radius: 10px;
+  animation: mt-anchor-flash 2.4s ease-out 1;
+}
+@keyframes mt-anchor-flash {
+  0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  100%    { box-shadow: 0 0 0 3px transparent; background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 动画关掉了，但「是哪一行」这件事仍然要说。静态描边留 2.4s（JS 摘类）。 */
+  .field.anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}

@@ -107,7 +107,14 @@ var LearnCollector = (() => {
 
   // Called from content-webpage's renderUnit, AFTER the same-language backstop —
   // so only genuine translations ever reach here.
-  function observe(node, text, tr) {
+  //
+  // `priorDwellMs` 是**补登记**用的（renderUnit 从不传它）。采集是在渲染那一刻登记
+  // 节点的，而用户完全可能先翻译、再打开采集 —— 我们自己的交接块正是这么引导的
+  // （「译文出来了 → 去打开采集学习材料」）。那条路上页面里的译文早已渲染完毕，
+  // 没有任何东西会再调用 observe，于是**必然一张卡都没有**（2026-09-02 用户实测）。
+  // 补登记时把「这段译文已经在页面上摆了多久、且此刻就在视口里」如实折算进 dwell：
+  // 不是凭空给分，是把当时没在记的那段时间补记上，上限与实时那条路的饱和点相同。
+  function observe(node, text, tr, priorDwellMs) {
     if (!on) return;
     safe(() => {
       if (isOurs(node)) return;
@@ -117,7 +124,9 @@ var LearnCollector = (() => {
       const ob = ensureObserver();
       if (!ob) return;
       if (existing) ob.unobserve(node);
-      watched.set(node, { text, tr, dwellMs: existing ? existing.dwellMs : 0, visibleSince: 0 });
+      const prior = existing ? existing.dwellMs
+        : Math.max(0, Math.min(Number(priorDwellMs) || 0, LearnModel.DEFAULTS.DWELL_FULL_MS));
+      watched.set(node, { text, tr, dwellMs: prior, visibleSince: 0 });
       ob.observe(node);
     });
   }

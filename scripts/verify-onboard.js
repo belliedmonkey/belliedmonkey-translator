@@ -49,6 +49,10 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     await cdp.send('Page.navigate',{url},sessionId);
     await new Promise(r=>setTimeout(r,2500));
     const ev=async e=>JSON.parse((await cdp.send('Runtime.evaluate',{expression:e,returnByValue:true},sessionId)).result.value);
+    // 异步版。上面那个不等 Promise —— 拿到的是一个 Promise 对象，value 是 undefined，
+    // 于是 JSON.parse(undefined) 抛出，看上去像「页面坏了」而不是「求值器用错了」。
+    const evA=async e=>JSON.parse((await cdp.send('Runtime.evaluate',
+      {expression:e,returnByValue:true,awaitPromise:true},sessionId)).result.value);
 
     const seen=[];
     for(let i=0;i<8;i++){
@@ -288,6 +292,46 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       if(q.plat!==wantSel) fail(`平台下拉 ${q.plat} 项，期望 ${wantSel}（china 只有一组，不该有下拉）`);
       else pass(`一键配置卡在，平台${wantSel?`下拉 ${wantSel} 项`:'唯一、不渲染下拉'}`);
     }
+    // ★ 一键配置的自检**真的点一次**。
+    //
+    // 这道门禁原来只数按钮、只看渲染，从来没点过那个「配好翻译、朗读、转写」。
+    // 于是 quick-setup 的 runOne 里一个 `opts.targetLang` 一路绿着上了线 —— runOne
+    // 在 render 外面，那里根本没有 `opts` 这个名字，一进去就 ReferenceError，被自己
+    // 的 try/catch 接住印成「✗ opts is not defined」，看上去像是用户的 key 或网络
+    // 出了问题（2026-09-02 用户报的，1.7.2/1.7.3 都带着它）。
+    //
+    // 三个引擎测试是**打桩**的：这里验的是自检这条代码路径走不走得通，不是第三方
+    // 端点通不通。真去请求的话，这道门禁就变成了对别人可用性的赌注。
+    const sc = await evA(`(async()=>{
+      window.EngineTest = Object.assign({}, window.EngineTest, {
+        translation: async () => ({ ms: 11, text: '你好' }),
+        tts: async () => ({ ms: 12 }),
+        stt: async () => ({ ms: 13 }),
+      });
+      const key = document.getElementById('qs-key');
+      if (!key) return JSON.stringify({ err: '找不到 #qs-key' });
+      key.value = 'sk-verify-0123456789';
+      key.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('qs-apply').click();
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (!document.querySelector('#ob-quick .qs-idle')
+            && document.querySelectorAll('#ob-quick .qs-ok, #ob-quick .qs-bad').length) break;
+      }
+      const rows = [...document.querySelectorAll('#ob-quick .qs-ok, #ob-quick .qs-bad, #ob-quick .qs-idle')]
+        .map(c => ({ cls: c.className, txt: (c.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 90) }));
+      return JSON.stringify({ rows });
+    })()`);
+    if(sc.err) fail('自检跑不起来：'+sc.err);
+    else if(!sc.rows.length) fail('点了「配好」之后一行结果都没有 —— 自检没跑');
+    else {
+      const bad = sc.rows.filter(r=>/qs-bad/.test(r.cls));
+      const ref = sc.rows.filter(r=>/is not defined|undefined is not|Cannot read/.test(r.txt));
+      if(ref.length) fail(`自检印出了 JS 报错（不是引擎的错，是我们自己的）：${ref[0].txt}`);
+      else if(bad.length) fail(`打桩全都成功，却有 ${bad.length} 行失败：${bad[0].txt}`);
+      else pass(`一键配置自检跑通 ${sc.rows.length} 项，无一失败`);
+    }
+
     if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);
     if(errs.length){ok=false;console.log('  控制台错误:');errs.slice(0,4).forEach(e=>console.log('    '+e));}

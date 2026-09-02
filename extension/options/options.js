@@ -1602,7 +1602,12 @@ async function init() {
   // focus 是可选的：能落在真正要动的那个控件上最好，落不上也不影响滚动。
   const ANCHORS = {
     '#sync': { sec: 'sync-section', focus: () => ($('sync-out') && !$('sync-out').hidden ? $('sync-email') : null) },
-    '#learn': { sec: 'learn-card', focus: () => $('learn-enabled') },
+    // flash：到达之后要**看得见**。滚到卡片顶部只保证它在视野里，而这张卡有十来个
+    // 控件，那个开关在用户眼里和其它九个长得一样 —— 「按钮点了、人到了、开关没找到」
+    // （2026-09-02 用户实测）。高亮的是**那一行**，不是整张卡：整张卡亮起来等于没说
+    // 是哪一个。
+    '#learn': { sec: 'learn-card', focus: () => $('learn-enabled'),
+      flash: () => $('learn-enabled') && $('learn-enabled').closest('.field') },
   };
   const target = ANCHORS[location.hash];
   if (target) {
@@ -1613,6 +1618,14 @@ async function init() {
       let el = null;
       try { el = target.focus(); } catch (_) {}
       if (el) { try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); } }
+      let row = null;
+      try { row = target.flash && target.flash(); } catch (_) {}
+      if (row) {
+        row.classList.add('anchor-flash');
+        // 动画结束就摘掉。留着的话，下一次因为别的原因回到这一页时，一行会毫无
+        // 理由地亮着 —— 而「毫无理由地亮着」比不亮更让人困惑。
+        setTimeout(() => row.classList.remove('anchor-flash'), 2600);
+      }
     };
     try { requestAnimationFrame(() => requestAnimationFrame(jump)); } catch (_) { jump(); }
   }

@@ -196,7 +196,10 @@
         : T('site_next_body_local', '你停下来读完的句子已经存成复习卡，就在这个浏览器里。去看看它们。'))));
     const cta = mk('button', 'btn btn-primary', learnOn
       ? T('site_next_cta', '看看你的卡')
-      : T('site_next_cta_off', '去打开采集'));
+      : T('site_next_cta_off', '去打开「采集学习材料」'));
+      // 按钮上的字要和落点上那个标签**逐字一致**。原来写「去打开采集」，而设置页
+      // 上那一行叫「采集学习材料」—— 人跳过去了，却要在一页开关里找一个名字对不上
+      // 的东西（2026-09-02 用户实测）。
     cta.type = 'button';
     // <button> 自带 UA 边框/背景/字体，会跟站点的 .btn 打架。
     cta.style.cssText = 'border:0;cursor:pointer;font:inherit';
@@ -345,6 +348,9 @@
           rules: cfg.learnRules,
           langRegistry: (typeof window !== 'undefined' && window.MT_LANGS) || null,
         });
+        // 刚打开采集时，把页面上**已经有的**译文补登记进来。不做的话，「先翻译、
+        // 后打开采集」这条路（交接块正是这么引导的）永远是 0 张卡。
+        try { WebpageTranslator.recapture(); } catch (_) {}
       } else {
         // A site blocked MID-SESSION (rule added from the popup) must not flush
         // its backlog on the way out — the user just said "not from here".

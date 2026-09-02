@@ -615,6 +615,11 @@ var WebpageTranslator = (() => {
       // affect anything below it, hence the try/catch: if capture throws, the
       // renderer carries on byte-for-byte as if the learning layer did not exist.
       try { LearnCollector.observe(node, u.text, st.translation); } catch (_) {}
+      // 这段译文出现在页面上的时刻。只有**补登记**（recapture）会读它 —— 采集是
+      // 在渲染那一刻登记节点的，而用户可以先翻译、后打开采集。没有这个时间戳，
+      // 补登记就只能凭空给分或者一律给 0，两个都不诚实。
+      // 挂在节点自己的属性上（同 __mtTrans 的家族），不进 DOM 属性、不污染页面。
+      if (!node.__mtTrAt) node.__mtTrAt = Date.now();
 
       const pairs = pairForInterleave(node, u.text, st.translation);
       if (pairs) {
@@ -1158,5 +1163,34 @@ var WebpageTranslator = (() => {
 
   function init(cfg) { settings = cfg; if (cfg.enabled) enable(cfg); }
 
-  return { init, enable, disable, updateSettings };
+  // 把**已经在页面上**的译文补登记进采集器。采集刚被打开时调用一次。
+  //
+  // 为什么要有它：LearnCollector.observe 只在 renderUnit 那一刻被调用，且采集关着
+  // 时直接返回。于是「先翻译 → 再打开采集」这条路（正是交接块引导用户走的那条）
+  // 必然一张卡都没有 —— 页面上的译文早就渲染完了，没有任何东西会再登记它们
+  // （2026-09-02 用户实测：翻译过了，复习页却说「还没有学习材料」，总计 0）。
+  //
+  // dwell 的补记是**实测的**，不是给分：译文已经摆了多久（__mtTrAt），且此刻是不是
+  // 真的在视口里。不在视口里的补 0 —— 那种情况下我们确实没有证据说他读过。
+  function recapture() {
+    let n = 0;
+    for (const u of units) {
+      try {
+        if (!u.node || !u.node.isConnected) continue;
+        // 译文的取法必须和 renderUnit 一致：正常路径上它在引擎状态里，`u.tr` 只有
+        // 孤儿复用那条路才会有值。写成 u.tr 的话，这个函数看上去在跑，实际几乎
+        // 每个单元都被 continue 掉 —— 又一个「不报错的空转」。
+        const st = engine.stateOf(u) || {};
+        const tr = st.translation || u.tr;
+        if (!tr || norm(tr) === norm(u.text)) continue;   // 同 renderUnit 的同语言兜底
+        const at = u.node.__mtTrAt || 0;
+        const prior = (at && inViewport(u.node)) ? (Date.now() - at) : 0;
+        LearnCollector.observe(u.node, u.text, tr, prior);
+        n += 1;
+      } catch (_) { /* 采集出问题，翻译这一路一个字都不该受影响 */ }
+    }
+    return n;
+  }
+
+  return { init, enable, disable, updateSettings, recapture };
 })();
