@@ -152,11 +152,9 @@ final class MTWebAuth: NSObject, ASWebAuthenticationPresentationContextProviding
             }
             let get = { (n: String) in items.first { $0.name == n }?.value }
             guard let code = get("code") else { self?.deliver(error: get("error") ?? "no_code"); return }
-            // 我们自己的 state 叫 **st**（由 redirect_to 带出去再带回来，见
-            // learn/auth.js）。`state` 是 GoTrue 与 provider 之间那一段用的，
-            // 读它永远拿不到我们要的值 —— 2026-09-03 用户实测：第一次报「来源对不上」，
-            // 而扩展那侧早就改成 st 了，原生这侧没跟着改。
-            self?.deliver(code: code, state: get("st") ?? get("state"))
+            // 只带 code 回去。回跳地址不许带查询串（Supabase 白名单是精确匹配），
+            // 所以我们自己的 state 不绕这一圈；绑定由页面那一侧的 code_verifier 承担。
+            self?.deliver(code: code, state: get("st"))
         }
         s.presentationContextProvider = self
         // 每次都用干净的会话：留着上一次的 cookie，换账号时会**静默**登回上一个人。

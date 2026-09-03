@@ -152,7 +152,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     // 先种一个 pending —— 相当于用户刚在设置页点过「用 Google 登录」。
     await evIn(swS, `new Promise(r => chrome.storage.local.set(${JSON.stringify({
-      learnAuthPkce: { verifier: 'V-VERIFIER', state: 'S-STATE', provider: 'google', at: Date.now() },
+      learnAuthPkce: { verifier: 'V-VERIFIER', state: 'S-STATE', at: Date.now() },
     })}, () => r(1)))`);
 
     // ── ① 走一遍回调页 ───────────────────────────────────────────────────
@@ -163,7 +163,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await intercept(att.sessionId);
     const before = supabaseHits.length;
     await cdp.send('Page.navigate',
-      { url: 'https://belliedmonkey.cc/auth/done.html?st=S-STATE&code=THE-CODE' }, att.sessionId);
+      { url: 'https://belliedmonkey.cc/auth/done.html?code=THE-CODE' }, att.sessionId);
     await sleep(2500);
 
     const writes = JSON.parse(await evIn(swS, 'JSON.stringify(self.__mtWrites || [])'));
@@ -173,7 +173,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       problems.push('回调页没有把 code 递进 storage —— 内容脚本那一支没跑');
     } else {
       if (ticketWrite.v.code !== 'THE-CODE') problems.push('票里的 code 不对: ' + ticketWrite.v.code);
-      const extra = Object.keys(ticketWrite.v).filter((k) => !['code', 'state', 'at'].includes(k));
+      const extra = Object.keys(ticketWrite.v).filter((k) => !['code', 'at'].includes(k));
       if (extra.length) problems.push('票里多了不该有的字段: ' + extra.join(', '));
     }
 

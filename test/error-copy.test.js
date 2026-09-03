@@ -104,29 +104,27 @@ describe('登录身份的显示口径', () => {
 // 回调里我们自己的 state 藏在 `st`，不是 `state`（后者是 GoTrue 与 provider 之间
 // 那一段用的）。读错那个的表现是永远读到 null —— 票永远递不出去，而没有任何一层
 // 会报错（2026-09-03 用户实测卡在落地页）。
-describe('回调参数的名字，三处必须一致', () => {
+describe('回调只带 code —— 不许再往回跳地址上加东西', () => {
   const fs = require('fs');
   const path = require('path');
   const ROOT = path.join(__dirname, '..');
-  test('auth.js 发的、内容脚本读的、落地页读的，是同一个名字', () => {
+
+  // 曾经往 redirect_to 上拼过 `?st=<state>`，想让自己的 state 绕一圈回来。代价是
+  // Supabase 的白名单（精确匹配）不再命中，回退到 Site URL —— 而它的默认值是
+  // localhost:3000。于是失败长成「Safari 无法连接服务器」，与登录毫无关系。
+  test('auth.js 不再往 redirect_to 上拼查询串', () => {
     const auth = fs.readFileSync(path.join(ROOT, 'extension/learn/auth.js'), 'utf8');
-    const cm = fs.readFileSync(path.join(ROOT, 'extension/content/content-main.js'), 'utf8');
-    const gen = fs.readFileSync(path.join(ROOT, 'scripts/gen-auth-callback.js'), 'utf8');
-    ok(/'st=' \+ encodeURIComponent/.test(auth), 'auth.js 没有把 state 塞进 redirect_to');
-    ok(/q\.get\('st'\)/.test(cm), "内容脚本读的不是 'st'");
-    ok(/q\.get\('st'\)/.test(gen), "落地页读的不是 'st'");
-    ok(!/q\.get\('state'\)/.test(cm), "内容脚本还在读 'state' —— 那是 GoTrue 自己的，永远是别的值");
+    ok(!/'st=' \+ encodeURIComponent/.test(auth),
+      'auth.js 又在往回跳地址上加参数 —— 白名单会不匹配，用户会落到 Site URL');
   });
 
-  // 第四处：原生那一侧（Swift）。它和上面三处是**同一个约定的第四个使用者**，
-  // 而它用的是另一门语言，所以最容易被漏掉 —— 2026-09-03 就是这样：扩展三处都
-  // 改成了 st，Swift 还在读 state，表现是「第一次来源对不上，之后永远接不上」。
-  test('原生桥读的也是 st', () => {
-    const sw = fs.readFileSync(path.join(ROOT, 'app/native/apple-signin-bridge.swift'), 'utf8');
-    ok(/get\("st"\)/.test(sw), 'Swift 那侧没有读 st —— 它拿不到我们的 state');
+  test('内容脚本只要 code 就递票', () => {
+    const cm = read('extension/content/content-main.js');
+    ok(/const code = q\.get\('code'\)/.test(cm), '内容脚本不读 code 了？');
+    ok(!/q\.get\('st'\)/.test(cm), "内容脚本还在要 st —— 它不会回来，票就永远递不出去");
   });
 
-  // 兑换失败会作废 verifier（一次性，对的）。不重新备一份的话，按钮到刷新页面前
+// 兑换失败会作废 verifier（一次性，对的）。不重新备一份的话，按钮到刷新页面前
   // 都是死的：第一次报真实原因，之后永远 pkce_missing。
   test('两个宿主在兑换失败后都重新备一份 PKCE', () => {
     for (const f of ['app/app.js', 'extension/options/options.js']) {

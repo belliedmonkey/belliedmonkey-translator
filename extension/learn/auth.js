@@ -454,20 +454,21 @@ var LearnAuth = (() => {
   // **同步**。没备好就返回 null —— 调用方据此让按钮先不可点，而不是开一个空窗。
   function providerSignInUrl(provider, redirectTo) {
     if (!prepared) return null;
-    // **state 要塞进回跳地址里带出去。** GoTrue 的 authorize 不接受我们自己的 state
-    // 参数（它有它自己那一个，用于它与 provider 之间那一段），回跳时也只会补上
-    // `?code=`。所以想让 state 回到我们手上，唯一的位置就是 redirect_to 本身。
+    // **回跳地址必须与 Supabase 白名单里登记的那条逐字相同 —— 不许带查询串。**
     //
-    // 2026-09-03 用户实测卡住的正是这里：本地存了 state 等它回来，却从来没有把它
-    // 发出去过。内容脚本要求 code 与 state 都在才递票 —— 于是永远递不出去，人落在
-    // 落地页上。**代码看起来对称（存了、也校验了），中间那一环从来不存在。**
-    const back = String(redirectTo)
-      + (String(redirectTo).includes('?') ? '&' : '?') + 'st=' + encodeURIComponent(prepared.state);
+    // 这里曾经往 redirect_to 上拼过一个 `?st=<state>`，想让自己的 state 绕一圈回来。
+    // 代价是白名单不再匹配（那是精确匹配），Supabase 于是回退到 Site URL，用户落在
+    // `localhost:3000/?code=…`（2026-09-03 实测）。而 Site URL 的默认值就是 localhost
+    // —— 也就是说**任何一次回跳地址写错，都会长成「无法连接服务器」**，看不出真因。
+    //
+    // 去掉 state 不是妥协，是把一个多余的环节删掉：**PKCE 的 verifier 本身就是绑定**。
+    // 别人塞给我们一个他自己的 code 也换不出东西 —— 那个 code 是对着他的 challenge
+    // 签发的，而我们手上只有自己的 verifier。Supabase 自家的客户端也是这么做的。
     const q = [
       ['provider', String(provider)],
       ['code_challenge', prepared.challenge],
       ['code_challenge_method', 's256'],
-      ['redirect_to', back],
+      ['redirect_to', String(redirectTo)],
     ].map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
     return api() + '/authorize?' + q;
   }
@@ -490,8 +491,10 @@ var LearnAuth = (() => {
     if (!pending || !pending.verifier) {
       const e = new Error('no pending sign-in'); e.code = 'pkce_missing'; throw e;
     }
-    // state 不符 = 这张票不是我们发起的那次。停住，**且不发任何请求**。
-    if (!ticket.state || ticket.state !== pending.state) {
+    // state 只在**两边都有**时才校验。它现在不再绕一圈回来（回跳地址不许带查询串，
+    // 见 providerSignInUrl），所以常态是没有 —— 绑定由 verifier 承担。留着这个分支
+    // 是因为 App 那条路（自定义 scheme）将来若要带回 state，判据不该另写一份。
+    if (ticket.state && pending.state && ticket.state !== pending.state) {
       await PageSettings.removeKeys([PKCE_KEY]);
       const e = new Error('state mismatch'); e.code = 'pkce_state'; throw e;
     }

@@ -102,13 +102,11 @@
     if (/^\/auth\/done\.html?$/.test(location.pathname)) {
       try {
         const q = new URLSearchParams(location.search);
+        // **只要 code。** 回跳地址不许带查询串（白名单是精确匹配），所以我们自己的
+        // state 不绕这一圈；绑定由只存在扩展这一侧的 code_verifier 承担。
         const code = q.get('code');
-        // 我们自己的 state 藏在 `st`（由 redirect_to 带出去再带回来）。
-        // `state` 是 GoTrue 与 provider 之间那一段用的，不是给我们的 —— 读错那个
-        // 的表现是永远读到 null，而票就永远递不出去（2026-09-03 用户实测）。
-        const state = q.get('st');
-        if (code && state) {
-          chrome.storage.local.set({ learnAuthCode: { code, state, at: Date.now() } }, () => {
+        if (code) {
+          chrome.storage.local.set({ learnAuthCode: { code, at: Date.now() } }, () => {
             try {
               location.replace(chrome.runtime.getURL('options/options.html') + '#sync');
             } catch (_) { /* 导航失败也没关系：票已经落盘，下次开设置页就会被兑换 */ }

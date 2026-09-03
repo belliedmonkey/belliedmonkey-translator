@@ -99,13 +99,13 @@ ${headStyle(site.dir)}
    没有只存在扩展那一侧的 code_verifier，这串东西换不出任何东西。 */
 (function () {
   var q = new URLSearchParams(location.search);
-  var code = q.get('code'), state = q.get('st');   // 我们的 state 在 st，见 auth.js
+  var code = q.get('code');
   if (!code) return;                       // 不是回调，什么都不做
   setTimeout(function () {
     var has = !!document.documentElement.dataset.mtExtension;
     document.getElementById('hint').hidden = true;
     if (!has) { document.getElementById('no-ext').hidden = false; return; }
-    document.getElementById('ticket').textContent = code + '.' + (state || '');
+    document.getElementById('ticket').textContent = code;
     document.getElementById('stuck').hidden = false;
   }, 3000);
 })();
