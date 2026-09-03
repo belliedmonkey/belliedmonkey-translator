@@ -466,16 +466,19 @@ var LearnAuth = (() => {
 
   // 回调之后在**扩展页**里兑换。不经 background：Safari iOS 锁屏后 service worker
   // 永久 undefined，sendMessage 会静默失败（项目须知里的头号约束：Safari 的后台脚本不可依赖）。
-  async function completeProviderSignIn() {
+  // `direct` 是 App 那条路传进来的票：系统鉴权会话把 code 直接给了页面，
+  // **不经内容脚本**（那一侧根本不存在）。两条路之后完全合流 —— 同一个 state 校验、
+  // 同一个兑换、同一个 sessionFrom。
+  async function completeProviderSignIn(direct) {
     const r = await PageSettings.read([PKCE_KEY, CODE_KEY]);
     // 存储读失败不是「没有票」。混同的话，一次读失败会被画成「登录没发生」，
     // 而用户明明刚走完一整圈 —— 同 load() 里 loadError 的那条纪律。
     if (!r.ok) { const e = new Error(r.error || 'storage read failed'); e.code = 'storage_error'; throw e; }
     const pending = r.data[PKCE_KEY];
-    const ticket = r.data[CODE_KEY];
+    const ticket = direct || r.data[CODE_KEY];
     if (!ticket || !ticket.code) return null;               // 没有票，什么都不做
     // 票用过就作废，无论后面成不成 —— 留着会在下次开设置页时重放一次必然失败的兑换。
-    await PageSettings.removeKeys([CODE_KEY]);
+    if (!direct) await PageSettings.removeKeys([CODE_KEY]);
     if (!pending || !pending.verifier) {
       const e = new Error('no pending sign-in'); e.code = 'pkce_missing'; throw e;
     }

@@ -307,3 +307,24 @@ describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
     ok(src.includes('providerSignInUrl'), 'auth.js 没有 provider 入口，这张表就没意义');
   });
 });
+
+describe('App 那条路：票直接传进来（不经内容脚本）', () => {
+  test('direct 票也走同一套 state 校验与兑换', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', at: Date.now() },
+    });
+    const sess = await A.completeProviderSignIn({ code: 'c-native', state: 's' });
+    eq(sess.userId, 'u-1');
+    eq(JSON.parse(calls[0].init.body).auth_code, 'c-native');
+  });
+
+  test('★ direct 票的 state 不符，同样停住且不发请求', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', at: Date.now() },
+    });
+    let code = '';
+    try { await A.completeProviderSignIn({ code: 'c', state: 'WRONG' }); } catch (e) { code = e.code; }
+    eq(code, 'pkce_state');
+    eq(calls.length, 0);
+  });
+});

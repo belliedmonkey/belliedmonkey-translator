@@ -943,3 +943,34 @@ describe('Apple client secret 的到期提醒', () => {
       'secret 本身不该被写进 keys.md —— 它随时能重新生成，多存一份只是多一个泄露面');
   });
 });
+
+// app:sync 的幂等判据必须覆盖**这一版要打的全部内容**。
+//
+// 2026-09-03 的真实漏打：给 attach 那一处加 MTWebAuth.attach 时，判据还只认
+// MTAppleSignIn.attach，于是整段被当成「已经打过了」跳过 —— 补丁没打上，而输出
+// 说的是 `already current`。这类失败**最难发现**：脚本报的是成功。
+//
+// 判据：凡是补丁块里要写进去的 `.attach(` 调用，幂等检查里都要出现。
+describe('app:sync 的幂等判据不许只认第一行', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts/sync-app-assets.js'), 'utf8');
+
+  test('要打进去的每一个 attach，检查里都提到了', () => {
+    const written = new Set([...src.matchAll(/(\w+)\.attach\(self\.webView\)/g)].map((m) => m[1]));
+    ok(written.size >= 2, `只扫到 ${written.size} 个 attach —— 扫法走歪了？`);
+    // 检查侧可能写成 `includes(ATTACH)`，其中 ATTACH 是个常量。先把常量解开，
+    // 否则断言会指着一个其实已经守住的地方喊漏（第一版就是这样）。
+    const alias = {};
+    for (const m of src.matchAll(/const\s+(\w+)\s*=\s*'(\w+)\.attach\(self\.webView\)'/g)) {
+      alias[m[1]] = m[2];
+    }
+    const checkLines = src.split('\n').filter((ln) => ln.includes('includes('));
+    for (const name of written) {
+      const guarded = checkLines.some((ln) => ln.includes(name + '.attach')
+        || Object.entries(alias).some(([k, v]) => v === name && ln.includes('includes(' + k + ')')));
+      ok(guarded, `${name}.attach 会被写进工程，但幂等检查里没有它 —— `
+        + '下一次它会被当成「已经打过了」而漏打，且脚本报的是成功');
+    }
+  });
+});

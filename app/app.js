@@ -525,6 +525,53 @@
     });
   }
 
+  // ── Google：系统鉴权会话（§8.4.1.2）────────────────────────────────────────
+  //
+  // Google 禁止在内嵌 WebView 里跑 OAuth，所以 App 里这条交给系统的
+  // ASWebAuthenticationSession。**URL 在这一侧算**（PKCE 的 verifier 只能在这里），
+  // 原生只负责把会话开起来、把 code 带回来 —— 与扩展那条路是同一套 auth.js 入口。
+  if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('google')) {
+    const scheme = (window.MT_FLAVOR === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
+    const g = $('btn-google');
+    g.textContent = t('sync_with_google', '用 Google 登录');
+    g.hidden = false;
+    g.disabled = true;
+    LearnAuth.prepareProviderSignIn().then(() => { g.disabled = false; })
+      .catch(() => { /* 备不好就保持不可点 */ });
+    g.addEventListener('click', () => {
+      const url = LearnAuth.providerSignInUrl('google', scheme + '://auth');
+      if (!url) { say(humanError({ code: 'pkce_missing' }), true); return; }
+      g.disabled = true;
+      say(t('app_apple_waiting', '正在打开登录…'));
+      try {
+        window.webkit.messageHandlers.mtAppleSignIn.postMessage({ url, scheme });
+      } catch (err) { g.disabled = false; say(humanError(err), true); }
+    });
+  }
+
+  // 系统鉴权会话回来的 code。与扩展那条路唯一的不同是票不经内容脚本 ——
+  // 它直接从原生进到这一页，而这一页本来就持有 verifier。
+  window.__mtWebAuthResult = async (r) => {
+    const g = $('btn-google'); if (g) g.disabled = false;
+    if (!r || r.error) {
+      if (r && r.error === 'canceled') { say(''); return; }
+      say(t('app_apple_failed', '登录没能完成。可以改用下面的邮箱或手机号。'), true);
+      return;
+    }
+    say(t('app_verifying', '正在登录…'));
+    try {
+      const session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
+      await show(session);
+      await doSync();
+    } catch (err) { say(humanError(err), true); }
+  };
+  try {
+    if (window.__mtWebAuthPending) {
+      const p = window.__mtWebAuthPending; window.__mtWebAuthPending = null;
+      window.__mtWebAuthResult(p);
+    }
+  } catch (_) {}
+
   // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），所以两边都兜。
   window.__mtAppleResult = async (r) => {
     $('btn-apple').disabled = false;

@@ -1,4 +1,5 @@
-// app/native/apple-signin-bridge.swift — 原生 Sign in with Apple，把 id_token 交给页面。
+// app/native/apple-signin-bridge.swift — 原生第三方登录：Apple（id_token）与 Google
+// （ASWebAuthenticationSession → 一次性 code），结果都交给页面。
 //
 // 由 scripts/sync-app-assets.js 以标记块的形式贴进 ViewController.swift。
 // **改这里，然后跑 `npm run app:sync`**；直接改工程里那份会被覆盖。
@@ -113,6 +114,79 @@ final class MTAppleSignIn: NSObject, ASAuthorizationControllerDelegate,
     }
 }
 
+/// Google：走 ASWebAuthenticationSession，**不能**在 WKWebView 里跑。
+///
+/// Google 明确禁止在内嵌 WebView 里做 OAuth（`disallowed_useragent`），所以 App 里
+/// 这条必须交给系统的鉴权会话。它长得像浏览器、但由系统持有，Google 认它。
+///
+/// 回调用我们自己已经注册好的自定义 scheme（`belliedmonkey://` / `belliedmonkeycn://`，
+/// 见 sync-app-assets 的 urlTypeXml）—— 不必再登记一个新的。
+///
+/// 跨桥的只有 **code 与 state**，和扩展那条路完全一样：没有 verifier 它换不出东西，
+/// 而 verifier 只在页面那一侧（learning-design §8.4.1.1 第二条跨界裁定）。
+@available(iOS 13.0, macOS 10.15, *)
+final class MTWebAuth: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = MTWebAuth()
+    private weak var webView: WKWebView?
+    // 强引用住会话：ASWebAuthenticationSession 出了作用域就会被回收，
+    // 表现是「弹窗一闪而过」——同 ASAuthorizationController 的那个坑。
+    private var session: ASWebAuthenticationSession?
+
+    static func attach(_ view: WKWebView) { shared.webView = view }
+
+    /// 页面把整条 authorize URL 与回调 scheme 递进来。**URL 由页面算**（PKCE 的
+    /// challenge 在那一侧），原生这边只负责把系统鉴权会话开起来。
+    static func start(url: String, scheme: String) { shared.begin(url: url, scheme: scheme) }
+
+    private func begin(url: String, scheme: String) {
+        guard let u = URL(string: url) else { deliver(error: "bad_url"); return }
+        let s = ASWebAuthenticationSession(url: u, callbackURLScheme: scheme) { [weak self] cb, err in
+            self?.session = nil
+            if let e = err as NSError?,
+               e.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                self?.deliver(error: "canceled"); return       // 取消不是错误
+            }
+            guard let cb = cb,
+                  let items = URLComponents(url: cb, resolvingAgainstBaseURL: false)?.queryItems else {
+                self?.deliver(error: "no_callback"); return
+            }
+            let get = { (n: String) in items.first { $0.name == n }?.value }
+            guard let code = get("code") else { self?.deliver(error: get("error") ?? "no_code"); return }
+            self?.deliver(code: code, state: get("state"))
+        }
+        s.presentationContextProvider = self
+        // 每次都用干净的会话：留着上一次的 cookie，换账号时会**静默**登回上一个人。
+        s.prefersEphemeralWebBrowserSession = true
+        session = s
+        s.start()
+    }
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        #if os(macOS)
+        return webView?.window ?? NSApplication.shared.windows.first ?? ASPresentationAnchor()
+        #else
+        return webView?.window ?? UIApplication.shared.windows.first ?? ASPresentationAnchor()
+        #endif
+    }
+
+    private func deliver(code: String? = nil, state: String? = nil, error: String? = nil) {
+        var payload: [String: Any] = [:]
+        if let c = code { payload["code"] = c }
+        if let st = state { payload["state"] = st }
+        if let e = error { payload["error"] = e }
+        let data = try? JSONSerialization.data(withJSONObject: [payload], options: [])
+        let arg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[{\"error\":\"encode\"}]"
+        let js = """
+        (function(){var r=\(arg)[0];
+        if (typeof window.__mtWebAuthResult === 'function') { window.__mtWebAuthResult(r); }
+        else { window.__mtWebAuthPending = r; }})()
+        """
+        DispatchQueue.main.async { [weak self] in
+            self?.webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+}
+
 /// 页面 → 原生 的收信端。
 ///
 /// 单独一个类而不是让 MTAppleSignIn 自己实现 WKScriptMessageHandler：
@@ -124,6 +198,14 @@ final class MTAppleSignInRelay: NSObject, WKScriptMessageHandler {
     func userContentController(_ controller: WKUserContentController,
                                didReceive message: WKScriptMessage) {
         guard message.name == "mtAppleSignIn" else { return }
+        // 一个通道两种用法：不带参数 = 原生 Apple；带 url/scheme = 系统鉴权会话（Google）。
+        // 多开一个通道意味着多一处 add() 与多一处补丁锚点，而这两件事本质是同一件：
+        // 「页面请原生去完成一次登录」。
+        if let d = message.body as? [String: Any],
+           let url = d["url"] as? String, let scheme = d["scheme"] as? String {
+            if #available(iOS 13.0, macOS 10.15, *) { MTWebAuth.start(url: url, scheme: scheme) }
+            return
+        }
         MTAppleSignIn.start()
     }
 }

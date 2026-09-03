@@ -362,7 +362,15 @@ function patchAudioBridge(sharedDir) {
   // 整个包在 #if os(macOS) 里，且开头就 `message.body as! String` —— 传字典会 trap。
   const A_ATTACH = 'MTAppleSignIn.attach(self.webView)';
   vc = fs.readFileSync(f, 'utf8');
-  if (!vc.includes(A_ATTACH)) {
+  // 幂等判据必须覆盖**这一版要打的全部内容**，不能只认第一行。
+  // 2026-09-03：加 MTWebAuth.attach 时判据还只认 MTAppleSignIn.attach，于是整段被
+  // 当成「已经打过了」跳过 —— 补丁没打上，而输出说的是 already current。
+  // 少一行 attach 的表现是：Google 那个按钮点了，系统鉴权会话拿不到窗口锚点。
+  if (vc.includes(A_ATTACH) && !vc.includes('MTWebAuth.attach')) {
+    vc = vc.replace(A_ATTACH, A_ATTACH + '\n            MTWebAuth.attach(self.webView)');
+    fs.writeFileSync(f, vc);
+    notes.push('apple attach: 补上 MTWebAuth.attach');
+  } else if (!vc.includes(A_ATTACH)) {
     const anchor = 'self.webView.navigationDelegate = self';
     if (!vc.includes(anchor)) notes.push('✗ apple attach: navigationDelegate 锚点缺失');
     else {
@@ -370,6 +378,7 @@ function patchAudioBridge(sharedDir) {
         + '        // Patched by scripts/sync-app-assets.js — 原生 Sign in with Apple（§8.4.1.2）。\n'
         + '        if #available(iOS 13.0, macOS 10.15, *) {\n'
         + '            ' + A_ATTACH + '\n'
+        + '            MTWebAuth.attach(self.webView)\n'
         + '            self.webView.configuration.userContentController.add(\n'
         + '                MTAppleSignInRelay.shared, name: "mtAppleSignIn")\n'
         + '        }');
