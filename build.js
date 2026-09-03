@@ -65,6 +65,25 @@ function flipSyncFlag(text, what, direction) {
     : 'enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
 }
 
+// 中国版只提供 Apple 登录（2026-09-03 用户裁定）。
+//
+// Google 在中国大陆连不上。留着那个按钮，对绝大多数中国版用户就是一个点了转圈然后
+// 失败的东西 —— 与这一轮反复在修的「点了没反应」是同一类，只是原因在网络那一侧。
+// 而「能不能连上」是**用户所在网络的事实**，客户端猜不出来，只能由 flavor 决定。
+//
+// 判据同 flipSyncFlag：**恰好一处**，多一处或没有都退出 —— 静默改错一处的代价是
+// 中国版包里留着一个死按钮，而拆包 grep 之前没人看得见。
+function limitProviders(text, what, list) {
+  const NEEDLE = "providers: ['apple', 'google'],";
+  const first = text.indexOf(NEEDLE);
+  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
+    console.error(`✗ providers: expected exactly one \`${NEEDLE}\` in ${what}`);
+    process.exit(1);
+  }
+  return text.replace(NEEDLE,
+    `providers: ${JSON.stringify(list).replace(/"/g, "'")}, // CHINA build: Google 在大陆连不上（build.js）`);
+}
+
 // 默认引擎必须是**本 flavor 注册表里存在**的 id。
 //
 // 2026-08-22 实测:中国版出货包的默认是 `provider: 'google'`,而 google 的 flavors 是
@@ -813,6 +832,9 @@ if (FLAVOR === 'china') {
   const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
   fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
   log('China flavor: sync disabled in artifact (enabled → false)');
+  fs.writeFileSync(cfgPath, limitProviders(fs.readFileSync(cfgPath, 'utf8'),
+    'dist-china/learn/backend.config.js', ['apple']));
+  log('China flavor: providers → [apple]（Google 在大陆连不上）');
   generateProviders(DIST, 'china'); // overwrite providers.gen.js with the China set
   generateTts(DIST, 'china');       // …and tts.gen.js with the China speech set
   generateStt(DIST, 'china');       // …and stt.gen.js with the China transcription set
@@ -872,7 +894,7 @@ nameLengthGate(DIST);
   // concatenates it as-is.
   // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
   buildAppBundle(path.join(ROOT, APP_OUT), log,
-    FLAVOR === 'china' ? { genRoot: DIST } : {});
+    FLAVOR === 'china' ? { genRoot: DIST, limitProviders } : {});
   legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]);
   if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
 }

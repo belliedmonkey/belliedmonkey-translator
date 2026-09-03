@@ -97,6 +97,130 @@ const PLAN = [
     screenshots: { APP_DESKTOP: five((i) => g(`zh-mac-${i}.png`)) },
     previews: {},
   },
+  // 其余九份本地化（2026-09-03 补）。它们有文案、有关键词，**却一张截图都没有** ——
+  // 而截图是必填项，缺了会让整条线在提审时被 409 挡下，且 Apple 的报错只说
+  // 「not in valid state, please check associated errors」，不指出是哪一项、哪个 locale。
+  // 那次是逐份数出来的：只有 en-US 与 zh-Hans 各 5 张，另外九份是 0。
+  //
+  // 用英文那套：这九种语言的用户看不懂中文界面，而英文界面是产品的真实样子。
+  // zh-Hant 用中文那套（同为汉字，简体界面对繁体用户可读）。
+  {
+    id: 'global-ios-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ru',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ru',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'de-DE',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'de-DE',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ja',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ja',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'fr-FR',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'fr-FR',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ko',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ko',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pt-BR',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pt-BR',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'es-ES',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'es-ES',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ar-SA',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ar-SA',
+    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hant',
+    screenshots: {
+      APP_IPHONE_65: five((i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: five((i) => g(`zh-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hant',
+    screenshots: { APP_DESKTOP: five((i) => g(`zh-mac-${i}.png`)) },
+    previews: {},
+  },
   {
     id: 'cn-ios', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {

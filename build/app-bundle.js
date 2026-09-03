@@ -164,6 +164,13 @@ function buildAppBundle(outDir, log, opts) {
     if (opts.syncOn && rel === 'extension/learn/backend.config.js') {
       text = opts.flipSyncFlag(text, rel + ' (app bundle)');
     }
+    // 中国版 App 只提供 Apple 登录：Google 在大陆连不上（build.js 的 limitProviders）。
+    // **这里必须单独做一次** —— App 包拼的是**源码**那份 backend.config.js，不是
+    // dist-china 里那份，所以 build.js 对 dist-china 的改写在这条路上完全不生效。
+    // 同一份文件、两条发射路径，2026-08-09 的 sync 翻转就是在这里漏过一次。
+    if (opts.limitProviders && rel === 'extension/learn/backend.config.js') {
+      text = opts.limitProviders(text, rel + ' (app bundle)', ['apple']);
+    }
     parts.push(`// ─── ${rel} ${'─'.repeat(Math.max(0, 60 - rel.length))}`);
     parts.push(text);
     parts.push('');

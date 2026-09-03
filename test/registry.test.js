@@ -366,3 +366,47 @@ describe('MT_SYNC_ENABLED 与 backend.config.js 一致', () => {
     ok(g !== c, `两个产物里都是 ${g} —— 判据没有真的在读 backend.config.js`);
   });
 });
+
+// 中国版只提供 Apple 登录（2026-09-03 用户裁定）。
+//
+// Google 在中国大陆连不上，留着那个按钮就是一个必然失败的按钮。而「能不能连上」是
+// 用户所在网络的事实，客户端猜不出来，只能由 flavor 决定。
+//
+// **两条发射路径都要验**：dist-china（扩展）与 dist-app-china（App 包）读的是**不同**
+// 的 backend.config.js —— 前者是 build.js 改写过的产物，后者拼的是**源码**那一份。
+// 只改一条的后果，2026-08-09 的 sync 翻转已经演示过一次：手机端开着、Chrome 端悄悄
+// 回退。而这一次漏掉的会是 App —— 恰恰是**唯一**有 Google 按钮的那个面。
+describe('中国版的登录方式（两条发射路径）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const read = (p) => (fs.existsSync(path.join(ROOT, p)) ? fs.readFileSync(path.join(ROOT, p), 'utf8') : null);
+  const providersIn = (src) => {
+    const m = /providers:\s*(\[[^\]]*\])/.exec(src || '');
+    return m ? m[1].replace(/'/g, '"') : null;
+  };
+
+  for (const [what, file, want] of [
+    ['扩展 · 国际', 'dist/learn/backend.config.js', '["apple","google"]'],
+    ['扩展 · 中国', 'dist-china/learn/backend.config.js', '["apple"]'],
+    ['App · 国际', 'dist-app/Script.js', '["apple","google"]'],
+    ['App · 中国', 'dist-app-china/Script.js', '["apple"]'],
+  ]) {
+    test(`${what}: ${want}`, () => {
+      const src = read(file);
+      if (src === null) return;                 // 那个 flavor 这次没构建，跳过
+      const got = (providersIn(src) || '').replace(/\s/g, '');
+      eq(got, want, `${file} 的 providers 是 ${got}，期望 ${want}`
+        + (want === '["apple"]' ? ' —— 中国版留着 Google 就是一个必然失败的按钮' : ''));
+    });
+  }
+
+  test('两条路径各自有自己的改写调用 —— 少一条就会漏掉 App', () => {
+    const b = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const ab = fs.readFileSync(path.join(ROOT, 'build/app-bundle.js'), 'utf8');
+    ok(/limitProviders\(/.test(b), 'build.js 里没有 limitProviders —— 扩展那条路没限制');
+    ok(/opts\.limitProviders/.test(ab),
+      'app-bundle.js 里没有 limitProviders —— App 包拼的是源码那份，'
+      + '而 App 正是唯一有 Google 按钮的面');
+  });
+});
