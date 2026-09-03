@@ -304,17 +304,30 @@
         <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。登录之后，采集到的句子（含还没进复习的候选）会同步到你的其它设备和手机 App。</p>
 
         <div id="sync-out">
+          <!-- 第三方登录放在邮箱**之前**：它是更快的那条路（一次点击 vs 收信 + 抄码）。
+               排在后面等于让绝大多数人先读完一段自己用不上的表单。见 §8.4.1.2。 -->
+          <div id="sync-providers">
+            <button id="btn-sync-apple" class="provider" data-i18n="sync_with_apple">用 Apple 登录</button>
+            <button id="btn-sync-google" class="provider" data-i18n="sync_with_google">用 Google 登录</button>
+            <p class="hint" id="sync-or" data-i18n="sync_or">或者用邮箱 / 手机号：</p>
+          </div>
+
           <div class="field">
-            <label for="sync-email" data-i18n="sync_email">邮箱</label>
-            <input type="email" id="sync-email" autocomplete="email" placeholder="you@example.com">
+            <!-- 手机号也走这一个输入框（§8.4.1.2）。两个输入框会逼用户先做一次
+                 「我算哪一类」的选择，而那个选择对他没有意义 —— 我们判得出来。
+                 type 保持 text：type=email 会让浏览器拒绝手机号。 -->
+            <label for="sync-email" data-i18n="sync_email_or_phone">邮箱或手机号</label>
+            <input type="text" id="sync-email" autocomplete="username" inputmode="email"
+                   placeholder="you@example.com / 13800138000">
           </div>
           <button id="btn-sync-code" data-i18n="sync_send_code">发送验证码</button>
 
-          <!-- 验证码而不是登录链接：链接需要一个我们托管的页面来接收跳转，而我们
-               不托管任何东西。见 learning-design §8.4.1。 -->
+          <!-- 验证码而不是登录链接：magic link 会把**会话**放进 URL。PKCE 的 code
+               不是会话（没有 verifier 换不出东西），所以第三方登录走得通而 magic
+               link 仍然不做。见 learning-design §8.4.1 与 §8.4.1.2。 -->
           <div id="sync-code-row" hidden>
             <div class="field">
-              <label for="sync-code" data-i18n="sync_code">邮件里的 6 位验证码</label>
+              <label for="sync-code" data-i18n="sync_code_any">6 位验证码</label>
               <input type="text" id="sync-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
             </div>
             <button id="btn-sync-verify" data-i18n="sync_verify">登录</button>

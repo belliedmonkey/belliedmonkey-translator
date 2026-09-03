@@ -2047,5 +2047,25 @@
   "sync_err_storage": {
     "message": "讀不到本機儲存，這一步暫時做不了。重開這一頁再試；如果一直這樣，請把這條訊息告訴我們。",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "用 Apple 登入",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "用 Google 登入",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "或者用電子郵件 / 手機號：",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "電子郵件或手機號",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6 位驗證碼",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

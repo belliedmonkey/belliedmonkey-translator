@@ -1344,6 +1344,13 @@ async function init() {
   // Every failure here gets its own sentence. "同步失败" tells a user nothing about
   // whether to wait, retry, sign in again, or delete something — and this is a
   // surface they deliberately turned on, so §9.1 law 2 requires it be told.
+  // 回调落在我们自己的站点上。两个 flavor 两个站，但中国版扩展的 sync 在构建期被
+  // 整段移除，所以这一行实际只会在国际版里被读到 —— 仍然按 flavor 写，免得哪天
+  // 中国版打开同步时这里悄悄指错站。
+  const PROVIDER_REDIRECT = (window.MT_FLAVOR === 'china')
+    ? 'https://belliedmonkey.com/auth/done.html'
+    : 'https://belliedmonkey.cc/auth/done.html';
+
   function syncError(e) {
     const code = (e && e.code) || '';
     if (code === 'offline') return t('sync_err_offline', '连不上服务器，稍后会自动重试。已学的内容都在本机。');
@@ -1389,7 +1396,8 @@ async function init() {
       }
       return;
     }
-    $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', s.email || '');
+    // 手机号用户没有 email（§8.4.1.2）。口径只有一处，在 LearnAuth.displayName。
+    $('sync-who').textContent = t('sync_signed_in', '已登录：{email}').replace('{email}', LearnAuth.displayName(s));
     try {
       const u = await LearnSync.usage();
       $('sync-usage').textContent = t('sync_usage', '云端已用 {used} / {quota} · {n} 个数据块')
@@ -1403,7 +1411,7 @@ async function init() {
     if (next) {
       $('sync-next-app').textContent = t('sync_next_app',
         '接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。')
-        .replace('{email}', s.email || '');
+        .replace('{email}', LearnAuth.displayName(s));
       // App 那个出口带上不透明 userId：App 收到之后才发现得了「两边不是同一个账号」。
       const appBtn = $('btn-sync-app');
       if (appBtn) {
@@ -1415,17 +1423,48 @@ async function init() {
   }
 
   if (MT_BACKEND.enabled) {
+  // ── 第三方登录（§8.4.1.2）────────────────────────────────────────────────
+  //
+  // **window.open 必须同步发生在点击处理器里。** 任何 await 都会把用户手势消耗掉，
+  // Safari 随后静默拦下（test/user-gesture.test.js 为这条付过一次代价）。所以先把
+  // URL 备好再开窗 —— startProviderSignIn 只**返回** URL，不自己开。
+  function wireProvider(id, provider) {
+    const btn = $(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const w = window.open('about:blank', '_blank', 'noopener');   // 手势就用在这里
+      syncSay(t('sync_opening', '正在打开登录页…'));
+      LearnAuth.startProviderSignIn(provider, PROVIDER_REDIRECT)
+        .then((url) => { if (w) w.location.href = url; })
+        .catch((e) => { try { if (w) w.close(); } catch (_) {} syncSay(syncError(e)); });
+    });
+  }
+  wireProvider('btn-sync-apple', 'apple');
+  wireProvider('btn-sync-google', 'google');
+
+  // 回调之后：票在 storage 里，这里（一个真正的扩展页）兑换。**不经 background** ——
+  // Safari iOS 锁屏后 service worker 永久 undefined（项目须知里的头号约束：Safari 的后台脚本不可依赖）。
+  LearnAuth.completeProviderSignIn().then(async (session) => {
+    if (!session) return;                       // 没有票，正常路径，什么都不说
+    await refreshSyncUI();
+    syncSay(t('sync_signed_in_now', '已登录。第一次同步可能要几秒。'));
+    await runSync();
+  }).catch((e) => syncSay(syncError(e)));
+
   // busy() on both auth buttons: the OTP endpoint is server-rate-limited, so a
   // repeat tap here burns the user's OWN limit (sync_err_rate exists because of it).
   $('btn-sync-code').addEventListener('click', busy($('btn-sync-code'), async () => {
-    const email = $('sync-email').value.trim();
-    if (!email) { syncSay(t('sync_need_email', '先填邮箱')); return; }
+    const who = $('sync-email').value.trim();
+    if (!who) { syncSay(t('sync_need_id', '先填邮箱或手机号')); return; }
     syncSay(t('sync_sending', '发送中…'));
     try {
-      await LearnAuth.signIn(email);
+      const r = await LearnAuth.signIn(who);
       $('sync-code-row').hidden = false;
       $('sync-code').focus();
-      syncSay(t('sync_code_sent', '验证码已发到 {email}，填在下面。').replace('{email}', email));
+      // 文案按真实走的那条路说。手机号用户读到「验证码已发到邮箱」会去翻邮箱。
+      syncSay(r.via === 'phone'
+        ? t('sync_code_sent_sms', '验证码已发到 {who} 的短信，填在下面。').replace('{who}', who)
+        : t('sync_code_sent', '验证码已发到 {email}，填在下面。').replace('{email}', who));
     } catch (e) { syncSay(syncError(e)); }
   }));
 

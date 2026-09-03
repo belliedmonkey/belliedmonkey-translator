@@ -407,7 +407,7 @@ var AppSettings = (() => {
     $('stt-base').value = cur.sttBaseUrl || '';
     $('stt-model').value = cur.sttModel || '';
     paintSttFields($('stt-engine').value);
-    $('account-who').textContent = (session && session.email) || '';
+    $('account-who').textContent = LearnAuth.displayName(session);
 
     const [stats, reviews] = await Promise.all([LearnStore.stats(), LearnStore.allReviews()]);
     $('settings-counts').textContent =

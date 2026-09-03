@@ -2046,5 +2046,25 @@
   "sync_err_storage": {
     "message": "Не удалось прочитать локальное хранилище, поэтому шаг не завершён. Откройте страницу заново и попробуйте ещё раз; если повторяется — сообщите нам.",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Войти через Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Войти через Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "Или по почте / телефону:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "Почта или телефон",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6-значный код",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

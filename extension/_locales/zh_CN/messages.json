@@ -2047,5 +2047,25 @@
   "sync_err_storage": {
     "message": "读不到本机存储，这一步暂时做不了。重开这一页再试；如果一直这样，请把这条信息告诉我们。",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "用 Apple 登录",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "用 Google 登录",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "或者用邮箱 / 手机号：",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "邮箱或手机号",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6 位验证码",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

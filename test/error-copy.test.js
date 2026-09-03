@@ -69,3 +69,34 @@ describe('同步层的每个错误 code 都有人话', () => {
     eq(stale.length, 0, '这些 code 已经不存在了，从放行清单里删掉：' + stale.join(', '));
   });
 });
+
+// 「你是谁」只有一个口径（§8.4.1.2）。
+//
+// 手机号用户没有 email。任何直接渲染 `session.email` 的地方，对他们的表现是
+// **登录成功却显示空白** —— 不报错、不抛异常、没有任何一层会说话。这是跨三个面
+// （设置页 / App / App 设置）的改动，漏一处的形状恰恰是最难被发现的那种，
+// 所以用静态断言钉住，而不是靠记性。
+describe('登录身份的显示口径', () => {
+  const files = ['extension/options/options.js', 'app/app.js', 'app/settings.js',
+    'extension/learn/review.js'];
+  for (const f of files) {
+    test(f + ' 不直接渲染 session.email', () => {
+      const src = read(f);
+      // 找「把 email 直接塞进 textContent / replace 的写法」，放过 auth.js 内部
+      // 与注释（read() 已剥注释）。
+      // 判据放宽成「这一行既在渲染、又直接读 .email」，逐行看 —— 比一条大正则
+      // 好读，也不会像上一版那样自己写不对。
+      const bad = src.split('\n').filter((ln) => /\.email\b/.test(ln)
+        && /(textContent\s*=|\.replace\()/.test(ln)
+        && !/displayName/.test(ln));
+      eq(bad.length, 0, f + ' 里还有直接读 .email 的渲染 —— 手机号用户会看到空白。'
+        + '改成 LearnAuth.displayName(session)。命中行：' + bad.map((x) => x.trim()).join(' / '));
+    });
+  }
+
+  test('displayName 确实存在且被导出 —— 断言指着一个不存在的函数就是摆设', () => {
+    const src = read('extension/learn/auth.js');
+    ok(/function displayName\(/.test(src), 'auth.js 里没有 displayName');
+    ok(/\bdisplayName\b[^=]*,/.test(src.slice(src.lastIndexOf('return {'))), 'displayName 没被导出');
+  });
+});

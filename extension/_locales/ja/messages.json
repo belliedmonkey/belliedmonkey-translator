@@ -2046,5 +2046,25 @@
   "sync_err_storage": {
     "message": "端末のストレージを読めなかったため、この操作を完了できません。ページを開き直してお試しください。繰り返す場合はご連絡ください。",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Apple でログイン",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Google でログイン",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "またはメール / 電話番号で：",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "メールまたは電話番号",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6 桁の確認コード",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

@@ -2046,5 +2046,25 @@
   "sync_err_storage": {
     "message": "기기 저장소를 읽지 못해 이 단계를 끝낼 수 없습니다. 페이지를 다시 열어 시도해 보세요. 계속되면 알려 주세요.",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Apple로 로그인",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Google로 로그인",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "또는 이메일 / 전화번호로:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "이메일 또는 전화번호",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6자리 인증 코드",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

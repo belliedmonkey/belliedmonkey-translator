@@ -154,8 +154,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const loaded = await cdp.send('Extensions.loadUnpacked', { path: DIST });
     const extId = loaded && loaded.id;
     if (!extId) throw new Error('Extensions.loadUnpacked 没有回 id');
-    // 采集默认是关的。先测「关着」这一支，再打开测「开着」那一支 —— 两支文案不同，
-    // 而把一个没开采集的人送去空复习页，是把失败推迟到下一屏。
+    // 两支文案不同，都要验：把一个没开采集的人送去空复习页，是把失败推迟到下一屏。
+    //
+    // **采集从 2026-09-02 起在全新安装上默认是开的**（learning-design §9 的默认值裁定）。
+    // 所以「关着」那一支不再是默认状态，得显式关掉才测得到 —— 它仍然是真实状态
+    // （老用户、以及自己关掉的人）。这道门禁那次没跟着改，一直到 09-03 才红：
+    // 改默认值时**要连带跑一遍所有假设过那个默认值的门禁**。
+    {
+      // SW 是异步起来的 —— 装完立刻找必然找不到（同 verify-extension-smoke 的等法）。
+      let sw0 = null;
+      for (let i = 0; i < 60 && !sw0; i += 1) {
+        const t0 = await cdp.send('Target.getTargets');
+        sw0 = t0.targetInfos.find((t) => t.type === 'service_worker' && (t.url || '').includes(extId));
+        if (!sw0) await sleep(150);
+      }
+      if (!sw0) throw new Error('service worker 没起来，设不了 learnEnabled');
+      const a0 = await cdp.send('Target.attachToTarget', { targetId: sw0.targetId, flatten: true });
+      await cdp.send('Runtime.enable', {}, a0.sessionId);
+      await cdp.send('Runtime.evaluate', {
+        expression: 'new Promise((r)=>chrome.storage.local.set({learnEnabled:false},()=>r(1)))',
+        awaitPromise: true, returnByValue: true }, a0.sessionId);
+    }
     ({ targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' }));
     att = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
     await cdp.send('Runtime.enable', {}, att.sessionId);

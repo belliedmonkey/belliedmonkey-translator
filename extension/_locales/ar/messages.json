@@ -2046,5 +2046,25 @@
   "sync_err_storage": {
     "message": "تعذّرت قراءة التخزين المحلي، لذا لا يمكن إتمام هذه الخطوة. أعد فتح الصفحة وحاول مجدداً؛ وإن تكرّر الأمر فأخبرنا.",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "المتابعة عبر Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "المتابعة عبر Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "أو عبر البريد / الهاتف:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "البريد أو رقم الهاتف",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "رمز من 6 أرقام",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

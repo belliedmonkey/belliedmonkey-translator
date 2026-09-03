@@ -2046,5 +2046,25 @@
   "sync_err_storage": {
     "message": "Não foi possível ler o armazenamento local, então esta etapa não pode terminar. Reabra esta página e tente de novo; se continuar, nos avise.",
     "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Continuar com a Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Continuar com o Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "Ou por e-mail / telefone:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "E-mail ou telefone",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "Código de 6 dígitos",
+    "description": "Label for the OTP field (email or SMS)"
   }
 }

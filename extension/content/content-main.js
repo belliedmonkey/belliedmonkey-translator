@@ -90,6 +90,31 @@
       }));
     } catch (_) { /* 探测标记失败绝不能影响翻译本身 */ }
 
+    // ── 第三方登录的回调（§8.4.1.1 第二条跨界裁定）──────────────────────────
+    //
+    // 跨过这条边界的只有 `code` 与 `state` 两个查询参数。**它们单独换不出任何东西** ——
+    // 兑换还需要 code_verifier，而 verifier 只在扩展页的 learnAuthPkce 里，从不来这边。
+    // 所以这里递回去的是一张一次性的票，不是钥匙；会话仍然永不跨界。
+    //
+    // 不经 background：Safari iOS 锁屏后 service worker 永久 undefined，
+    // chrome.runtime.sendMessage 会**静默**失败（项目须知里的头号约束：Safari 的后台脚本不可依赖）。写 storage，
+    // 再把这一页导航到设置页，由那边（一个真正的扩展页）去兑换。
+    if (/^\/auth\/done\.html?$/.test(location.pathname)) {
+      try {
+        const q = new URLSearchParams(location.search);
+        const code = q.get('code');
+        const state = q.get('state');
+        if (code && state) {
+          chrome.storage.local.set({ learnAuthCode: { code, state, at: Date.now() } }, () => {
+            try {
+              location.replace(chrome.runtime.getURL('options/options.html') + '#sync');
+            } catch (_) { /* 导航失败也没关系：票已经落盘，下次开设置页就会被兑换 */ }
+          });
+        }
+      } catch (_) { /* 回调页出任何问题都不该影响这一页的其它部分 */ }
+      return;   // 这一页没有正文可翻，不必往下走
+    }
+
     // ── 试翻页上的「下一步：登录并同步到 App」──────────────────────────────
     //
     // 页面只发一个**空容器**（scripts/gen-try-pages.js 生成的 #mt-next-review），

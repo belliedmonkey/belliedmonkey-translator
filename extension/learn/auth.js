@@ -434,7 +434,7 @@ var LearnAuth = (() => {
   }
 
   // 回调之后在**扩展页**里兑换。不经 background：Safari iOS 锁屏后 service worker
-  // 永久 undefined，sendMessage 会静默失败（CLAUDE.md 头号约束）。
+  // 永久 undefined，sendMessage 会静默失败（项目须知里的头号约束：Safari 的后台脚本不可依赖）。
   async function completeProviderSignIn() {
     const r = await PageSettings.read([PKCE_KEY, CODE_KEY]);
     // 存储读失败不是「没有票」。混同的话，一次读失败会被画成「登录没发生」，

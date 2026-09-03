@@ -219,7 +219,7 @@
       $('signin-prompt').hidden = false;
     }
     if (session) {
-      $('who').textContent = session.email || '';
+      $('who').textContent = LearnAuth.displayName(session);
       await paintCounts();
       // 播客模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
       // 计数与登录绝不等一次语音列表加载。
@@ -893,7 +893,7 @@
       $('onboard').hidden = true;
       $('dl-mismatch-body').textContent = t('app_dl_mismatch_body',
         '浏览器扩展登录的是另一个账号，这台 App 登录的是 {email}。卡片属于账号，所以两边不是同一个账号时，这边看不到那边采集的东西。')
-        .replace('{email}', (currentSession && currentSession.email) || '');
+        .replace('{email}', LearnAuth.displayName(currentSession));
       $('dl-mismatch').hidden = false;
     }
 
