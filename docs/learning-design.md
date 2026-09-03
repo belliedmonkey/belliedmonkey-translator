@@ -1379,6 +1379,37 @@ Google —— 在扩展里用 Google 建的账号必须能在 App 登进同一�
 要说清楚「这台设备上的学习库属于另一个账号」，给两个出口（换回原账号 / 只用新账号
 从头开始），并且**永远不自动切换**（§8.4.1.1 已有的裁定）。
 
+#### 服务端那一侧要配什么（2026-09-03 实配一遍之后记下来的）
+
+代码只占一半。另一半在三个控制台里，**它们出错的样子都不像登录出错**，所以逐条写下来。
+
+**Supabase → Authentication**
+
+| 项 | 值 | 配错时的样子 |
+|---|---|---|
+| Providers → Apple → Client IDs | `<Services ID>, <bundle id>, <bundle id .cn>`，**Services ID 必须排第一** | 顺序反了：网页流程拿 bundle id 去跑，Apple 拒 |
+| Providers → Apple → Secret Key | `node scripts/apple-client-secret.js` 生成的 JWT，**六个月过期** | 到期后**只坏一半**：扩展登录失败而 App 正常（原生走 id_token，不用 secret）。门禁会在剩 30 天时红 |
+| Providers → Google | Google Cloud 的 Web OAuth client id/secret | — |
+| URL Configuration → Redirect URLs | `https://belliedmonkey.cc/auth/done.html`、`https://belliedmonkey.com/auth/done.html`、`belliedmonkey://auth`、`belliedmonkeycn://auth` | **精确匹配**。不匹配就回退到 Site URL |
+| URL Configuration → **Site URL** | `https://belliedmonkey.cc` | 默认是 `http://localhost:3000`。留着它，**任何一次回跳地址写错都会长成「Safari 无法连接服务器」** —— 与登录二字毫无关系，查不出真因。改成自己的站，至少一眼看得出是回跳的问题 |
+
+**Apple Developer**
+
+- App ID 要先勾 Sign in with Apple（否则 Services ID 的 Primary App ID 下拉是空的）
+- Services ID → Configure：Domains 填 `<project>.supabase.co`，Return URL 填
+  `https://<project>.supabase.co/auth/v1/callback`。**不是**我们自己的站 ——
+  我们那个登记在 Supabase 的 Redirect URLs 里，两处填反是最常见的卡点
+- Key → Configure 只选 Primary App ID，**没有 URL 字段**
+
+**Google Cloud**
+
+- Web 类型的 OAuth client，redirect URI 只需
+  `https://<project>.supabase.co/auth/v1/callback`
+
+> **回跳地址永远不许带查询串。** 曾经往 `redirect_to` 上拼过 `?st=<state>`，白名单
+> 当场不匹配，用户落到 `localhost:3000/?code=…`。绑定由 PKCE 的 verifier 承担，
+> state 那一圈是多余的（test/learn-auth.test.js 钉住了这条）。
+
 ### 8.4.2 核心约束 — 合并有两种语义，混淆它们就是数据损坏
 
 **2026-08-06 两台真实设备打真实后端跑完整闭环时定下的。** 三条缺陷同源：把
