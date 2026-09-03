@@ -331,6 +331,28 @@ i18n/{ar,en,es,fr,hi,pt,ru,zh-CN}.json
 官网还有**它自己的一套会过时的素材**：`media/shot-*.png`、`media/demo-macos-*.mp4`、
 `media/demo-poster.jpg`。审计时别漏（见 `assets.md`）。
 
+## 想知道用户是谁：`node scripts/asc.js installs [天数]`
+
+免费 app 的 Units 就是下载次数，按 app / 设备 / 国家三个维度打印。
+
+```bash
+node scripts/asc.js installs 45
+```
+
+走的是 **salesReports**，不是 analyticsReports —— 后者要先 POST 一个请求再等 Apple
+异步生成实例（一次性快照通常要等一天上下），前者是现成的，且每行自带 Country Code
+与 Device。凭证是 `.local/keys.md` 里的 `ascVendorNumber`，那个号 **API 查不到**，
+只能去网页上抄一次：「付款和财务报告」页左上角的灰色小字
+（https://appstoreconnect.apple.com/itc/payments_and_financial_reports/#/）。
+
+三个实测出来的坑（都由 test/build-scripts.test.js 钉住）：
+
+| 现象 | 真因 |
+|---|---|
+| 拉 40 天在某一天炸掉 | 没有下载的那天返回 **404**，不是空报表 —— 要当成「那天安静」 |
+| JSON.parse 失败 | 返回的是 **gzip 的 TSV**，不能走 `api()`；Accept 要 `application/a-gzip` |
+| 设备分布 100% 是「iOS and macOS」 | 读错了列。`Supported Platforms` 是包支持什么，`Device` 才是用户用什么 |
+
 ## 陷阱索引
 
 | 现象 | 真因 | 判据 |

@@ -880,3 +880,34 @@ describe('内测发布会更新官网那一页', () => {
     ok(gen.includes('function newer('), '运行时改写没有比大小 —— 会被更旧的 prerelease 覆盖');
   });
 });
+
+// installs：下载量。这三条钉的是**实测出来的形状**，不是文档里读的。
+// 2026-09-03 首次接通 salesReports 时，每一条都真实地绊过一次。
+describe('asc installs 的三个形状', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts/asc.js'), 'utf8');
+  const fn = src.slice(src.indexOf('async function cmdInstalls'), src.indexOf('async function cmdReviews'));
+
+  test('404 当成「那天没人下载」，不当错误', () => {
+    ok(/status === 404\) return null/.test(fn),
+      '没数据的那天 Apple 返回 404 —— 当成错误的话，拉 40 天会在第一个安静的日子里炸掉');
+  });
+
+  test('按 gzip 的 TSV 读，不走 api()（那个只解 JSON）', () => {
+    ok(fn.includes("Accept: 'application/a-gzip'"), '没有要 a-gzip');
+    ok(fn.includes('gunzipSync'), '没有解压 —— salesReports 返回的不是 JSON');
+  });
+
+  test('设备分布读 Device 列，不读 Supported Platforms', () => {
+    ok(/r\.Device/.test(fn), '没读 Device 列');
+    ok(!/Supported Platforms/.test(fn),
+      'Supported Platforms 写的是「包支持什么」（iOS and macOS），不是「用户用什么」'
+      + ' —— 拿它当设备分布会得到一个 100% 全平台的废话');
+  });
+
+  test('缺 vendorNumber 时告诉用户去哪儿拿，而不是只说缺', () => {
+    ok(fn.includes('payments_and_financial_reports'),
+      '缺凭证时没给出取值的地址 —— 那个号 API 查不到，只能去网页上抄');
+  });
+});

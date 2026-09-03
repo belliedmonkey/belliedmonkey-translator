@@ -609,6 +609,107 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
   return ok;
 }
 
+// ─── installs：下载量。两条线各占多少、在哪些国家、什么设备 ─────────────────
+//
+// 2026-09-03 之前这个问题**答不了**：账号从没接过任何分析数据，
+// analyticsReportRequests 是 0，商店评论两条线都是 0 条，同步后端又分不出 flavor
+// （中国版的 App 也带登录，chunks 里没有客户端标记）。
+//
+// 走的是 salesReports 而不是 analyticsReports，两个理由：
+//   ① **立刻可读**。analyticsReports 要先 POST 一个请求，然后等 Apple 异步生成
+//      实例，一次性快照通常要等一天上下；salesReports 是现成的。
+//   ② 它按天/周切片，且每行自带 Country Code 与 Device —— 正好是要问的三个维度。
+//
+// 三件从实测中长出来的形状：
+//   · **不是 JSON**。返回的是 gzip 的 TSV，所以不能走 api()；Accept 要 a-gzip。
+//   · **没数据的那天返回 404**，不是空报表。404 必须当成「那天没人下载」而不是错误，
+//     否则拉 40 天会在第一个安静的日子里炸掉。
+//   · **周报表的 reportDate 必须落在那一周里**（Apple 的周以周日结束）。
+//
+// 免费 app 的 Units 就是下载次数。Device 列是真实设备（iPhone / iPad / Desktop），
+// 而 Supported Platforms 那列写的是「iOS and macOS」——是包支持什么，不是用户用什么。
+// 拿后者当设备分布会得到一个「100% 全平台」的废话。
+async function cmdInstalls(days) {
+  const vendor = slot('ascVendorNumber');
+  if (!vendor) {
+    console.error('✗ .local/keys.md 缺 ascVendorNumber');
+    console.error('  在 App Store Connect 的「付款和财务报告」页左上角灰色小字里：');
+    console.error('  https://appstoreconnect.apple.com/itc/payments_and_financial_reports/#/');
+    process.exit(1);
+  }
+  const zlib = require('zlib');
+  const APPS = {};
+  for (const a of await apps()) APPS[a.id] = a.name;
+
+  const fetchDay = async (date) => {
+    const u = API + '/salesReports?filter[frequency]=DAILY&filter[reportType]=SALES'
+      + '&filter[reportSubType]=SUMMARY&filter[vendorNumber]=' + vendor
+      + '&filter[reportDate]=' + date;
+    const r = await fetch(u, { headers: { Authorization: 'Bearer ' + jwt(), Accept: 'application/a-gzip' } });
+    if (r.status === 404) return null;                 // 那天没人下载 —— 正常，不是错误
+    if (!r.ok) throw new Error(`${date}: HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    try { return zlib.gunzipSync(buf).toString('utf8'); } catch (_) { return buf.toString('utf8'); }
+  };
+
+  const rows = []; let quiet = 0; let live = 0;
+  const d0 = new Date();
+  for (let i = 1; i <= days; i += 1) {
+    const d = new Date(d0); d.setDate(d.getDate() - i);
+    const t = await fetchDay(d.toISOString().slice(0, 10));
+    if (!t) { quiet += 1; continue; }
+    live += 1;
+    const lines = t.trim().split('\n');
+    const head = lines[0].split('\t').map((h) => h.trim());
+    for (const l of lines.slice(1)) {
+      const c = l.split('\t');
+      rows.push(Object.fromEntries(head.map((h, j) => [h, (c[j] || '').trim()])));
+    }
+  }
+  if (!rows.length) {
+    console.log(`最近 ${days} 天没有任何下载记录（${quiet} 天无报表）。`);
+    return;
+  }
+  const units = (r) => Number(r.Units || 0);
+  const nameOf = (r) => APPS[r['Apple Identifier']] || r['Apple Identifier'];
+  const add = (m, k, n) => m.set(k, (m.get(k) || 0) + n);
+  const byApp = new Map(); const byDev = new Map(); const byTerr = new Map();
+  let total = 0;
+  for (const r of rows) {
+    const n = units(r); total += n;
+    add(byApp, nameOf(r), n);
+    add(byDev, nameOf(r) + '\u0000' + (r.Device || '?'), n);
+    add(byTerr, r['Country Code'] + '\u0000' + nameOf(r), n);
+  }
+  const dates = rows.map((r) => r['Begin Date']).sort();
+  console.log(`\n下载量 · 最近 ${days} 天（${dates[0]} → ${dates[dates.length - 1]}；`
+    + `${live} 天有下载，${quiet} 天安静）· 合计 ${total}\n`);
+
+  console.log('■ 按 app');
+  for (const [k, v] of [...byApp].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${k.padEnd(28)} ${String(v).padStart(5)}  ${(100 * v / total).toFixed(0)}%`);
+  }
+  console.log('\n■ 按设备');
+  for (const [k, v] of [...byDev].sort((a, b) => b[1] - a[1])) {
+    const [app, dev] = k.split('\u0000');
+    console.log(`  ${app.padEnd(28)} ${dev.padEnd(10)} ${String(v).padStart(5)}`);
+  }
+  console.log('\n■ 按国家/地区');
+  const terr = new Map();
+  for (const [k, v] of byTerr) {
+    const [cc, app] = k.split('\u0000');
+    if (!terr.has(cc)) terr.set(cc, new Map());
+    add(terr.get(cc), app, v);
+  }
+  const sum = (m) => [...m.values()].reduce((a, b) => a + b, 0);
+  for (const [cc, m] of [...terr].sort((a, b) => sum(b[1]) - sum(a[1]))) {
+    const s = sum(m);
+    const parts = [...m].sort((a, b) => b[1] - a[1]).map(([a, v]) => `${a} ${v}`).join(' · ');
+    console.log(`  ${cc.padEnd(4)} ${String(s).padStart(4)}  ${(100 * s / total).toFixed(1).padStart(5)}%  ${parts}`);
+  }
+  console.log(`\n  共 ${terr.size} 个国家/地区`);
+}
+
 // 用户原话 —— 这个产品没有遥测，所以商店评论是极少数能听见真实用户的渠道之一。
 // 2026-08-28 查那 40 个账号时才发现我们从没读过它：AMO 0 条评分，App Store 这边
 // 一直没看。纯 JSON，复用同一个 api()，不需要 analyticsReports 那套三段式。
@@ -745,7 +846,13 @@ async function cmdDevices(udid, name) {
     const ok = await cmdNotes(bundleId, platform, versionString, file, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
-  console.log('用法: node scripts/asc.js builds | versions | reviews [条数]'
+  if (cmd === 'installs') {
+    // 默认 30 天。免费 app 的 Units 就是下载次数。
+    const n = Math.max(1, Math.min(365, parseInt(rest[0], 10) || 30));
+    await cmdInstalls(n);
+    return;
+  }
+  console.log('用法: node scripts/asc.js builds | versions | reviews [条数] | installs [天数]'
     + ' | aso --audit'
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'
