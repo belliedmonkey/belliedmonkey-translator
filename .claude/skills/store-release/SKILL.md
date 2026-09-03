@@ -96,6 +96,40 @@ env -u NODE_OPTIONS xcodebuild -project "safari-project/BelliedMonkey Translator
 
 `DEVELOPMENT_TEAM` 每次重生成工程都会丢，必须显式传。
 
+**描述文件要新拉时（改了 capability / entitlement），加三个 API key 参数** ——
+否则 `-allowProvisioningUpdates` 会去要 Xcode 里那个**会过期**的账号登录态：
+
+```bash
+  -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_S9UZYBNW63.p8 \
+  -authenticationKeyID S9UZYBNW63 \
+  -authenticationKeyIssuerID 69a6de76-b4fd-47e3-e053-5b8c7c11a4d1
+```
+
+> 2026-09-03：给 App ID 开了 Sign in with Apple 之后，归档报 `No Accounts` +
+> `No profiles for … were found`。补上这三个参数后**报错换了一个** ——
+> 「Your team has no devices from which to generate a provisioning profile」，
+> 说明它已经在和 Apple 通话了。真因是 macOS 归档用的是**开发型**描述文件，
+> 而开发型要求团队里至少有一台该平台的设备，那时三台在册的全是 iPhone。
+> 注册这台 Mac 之后一次通过：
+>
+> ```bash
+> system_profiler SPHardwareDataType | grep "Provisioning UDID"
+> node scripts/asc.js devices <UDID> "开发 MacBook Pro" --mac
+> ```
+>
+> `--mac` 是那次一并补上的：`cmdDevices` 原来把 platform 写死成 IOS，注册 Mac 会
+> 静默注册成一台 iPhone，而 ASC 的报错指不到这里。
+
+**entitlement 的判据是归档之后回读，不是构建没报错**：
+
+```bash
+codesign -d --entitlements :- "<archive>/Products/Applications/*.app" | plutil -convert json -o - -- -
+```
+
+期望同时读到 `applesignin` + `app-sandbox` + `audio-input`。macOS 的沙箱来自构建
+设置（`ENABLE_APP_SANDBOX`），而 Sign in with Apple 只能来自 `.entitlements` 文件 ——
+两者共存与否，**只有这一行回读答得了**；沙箱掉了本地一切正常，只有 App Review 会拒。
+
 ### 3. 包体自查 —— 拆开看，不要信构建日志
 
 归档完，直接翻 `.appex` 里的文件。iOS 资源在 bundle 根，**macOS 在

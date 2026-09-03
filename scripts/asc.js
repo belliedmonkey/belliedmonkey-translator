@@ -738,7 +738,7 @@ async function cmdReviews(limit) {
 
 // 真机直装要求 UDID 在开发者账号的设备列表里，否则签名阶段才失败 —— 那时报的是
 // 「没有匹配的 provisioning profile」，看不出真正原因是设备没注册。所以先注册、再打包。
-async function cmdDevices(udid, name) {
+async function cmdDevices(udid, name, macFlag) {
   if (!udid) {
     const d = await api('GET', '/devices?limit=200&fields[devices]=name,udid,deviceClass,status,platform');
     const rows = (d && d.data) || [];
@@ -759,7 +759,12 @@ async function cmdDevices(udid, name) {
     return hit.attributes.status === 'ENABLED';
   }
   const r = await api('POST', '/devices', { data: { type: 'devices',
-    attributes: { name: name || 'test device', udid, platform: 'IOS' } } });
+    // platform 原来写死 IOS。注册一台 Mac 时那是错的，而 ASC 的报错
+    // （「no devices from which to generate a provisioning profile」）指不到这里
+    // —— 2026-09-03 给 macOS 归档拉描述文件时才发现。
+    // 判据用 UDID 的形状：Apple Silicon 的 Mac 是 `00006020-…` 这种 8-16 位分段，
+    // iPhone 是 `00008120-…`（前缀不同）或 40 位十六进制。显式传 --mac 最保险。
+    attributes: { name: name || 'test device', udid, platform: macFlag ? 'MAC_OS' : 'IOS' } } });
   const a = (r && r.data && r.data.attributes) || {};
   if (!a.udid) { console.error('✗ 注册没有回读到 udid：' + JSON.stringify(r).slice(0, 300)); return false; }
   console.log(`✓ 已注册：${a.udid}  ${a.name}  (${a.status})`);
@@ -769,7 +774,9 @@ async function cmdDevices(udid, name) {
 (async () => {
   const [cmd, ...rest] = process.argv.slice(2);
   if (cmd === 'devices') {
-    const ok = await cmdDevices(rest[0], rest.slice(1).join(' '));
+    const macFlag = rest.includes('--mac');
+    const args = rest.filter((x) => x !== '--mac');
+    const ok = await cmdDevices(args[0], args.slice(1).join(' '), macFlag);
     process.exit(ok ? 0 : 1);
   }
   if (cmd === 'aso') {
@@ -857,7 +864,7 @@ async function cmdDevices(udid, name) {
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'
     + ' | dump <bundleId> <平台>'
-    + ' | devices [UDID [名称]]'
+    + ' | devices [UDID [名称] [--mac]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
     + ' | renameversion <bundleId> <平台> <旧版本> <新版本> [--apply]'
     + ' | notes <bundleId> <平台> <版本> <文案md> [--apply]'
