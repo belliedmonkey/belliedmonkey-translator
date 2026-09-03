@@ -1439,8 +1439,17 @@ async function init() {
         .catch((e) => { try { if (w) w.close(); } catch (_) {} syncSay(syncError(e)); });
     });
   }
-  wireProvider('btn-sync-apple', 'apple');
-  wireProvider('btn-sync-google', 'google');
+  // 只提供后端真的开着的那些（backend.config.js 的 providers）。表里没有的按钮
+  // **直接不渲染** —— 灰着或点了报错，都是在告诉用户「这里有个坏东西」。
+  // 用 hidden **不是** remove()：这一页的 saveAll 会遍历控件，remove 掉的元素会让它
+  // 每次都静默失败（test/quick-setup.test.js 为此立了一条断言，它当场抓住了我）。
+  const AVAIL = (MT_BACKEND.providers || []);
+  for (const [id, name] of [['btn-sync-apple', 'apple'], ['btn-sync-google', 'google']]) {
+    if (AVAIL.includes(name)) wireProvider(id, name);
+    else if ($(id)) $(id).hidden = true;
+  }
+  // 一个都没开时，那句「或者用邮箱 / 手机号：」就没有「或者」可言了。
+  if (!AVAIL.length && $('sync-or')) $('sync-or').hidden = true;
 
   // 回调之后：票在 storage 里，这里（一个真正的扩展页）兑换。**不经 background** ——
   // Safari iOS 锁屏后 service worker 永久 undefined（项目须知里的头号约束：Safari 的后台脚本不可依赖）。

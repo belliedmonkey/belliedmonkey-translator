@@ -510,7 +510,7 @@
         && window.webkit.messageHandlers.mtAppleSignIn);
     } catch (_) { return false; }
   })();
-  if (appleBridge && MT_BACKEND.enabled) {
+  if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('apple')) {
     $('btn-apple').textContent = t('sync_with_apple', '用 Apple 登录');
     $('btn-apple').hidden = false;
     $('signin-or').textContent = t('sync_or', '或者用邮箱 / 手机号：');

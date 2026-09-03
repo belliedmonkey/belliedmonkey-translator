@@ -42,6 +42,18 @@ var MT_BACKEND = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmV6Y3VmenR6cXNvaHBqbXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MTczNTAsImV4cCI6MjEwMTM5MzM1MH0.VdL1B_jYLySEkhecL6WHOLV_vYbnRItpciFx7ZSxO4M',
   table: 'bt_chunks',
   quotaBytes: 50 * 1024 * 1024,
+
+  // 后端**真的开着**的第三方登录（§8.4.1.2）。界面只提供这里列出的。
+  //
+  // 为什么要有这张表：一个 provider 在 Supabase 那边没配时，点它会跳到一个
+  // 「Unsupported provider」的错误页 —— 一个必然失败的按钮，和「点了没反应」
+  // 是同一类。而「配没配」是**后端的状态**，客户端猜不出来，只能被告知。
+  //
+  // 加一个 provider 的顺序永远是：先在 Supabase 配好并实测授权入口 302 到对的地方，
+  // 再把它写进这张表。反过来做，就是发一个坏按钮出去。
+  //   apple  —— 2026-09-03 配好（Services ID + secret，实测 302 到 appleid.apple.com）
+  //   google —— 还没配（Google Cloud 的 OAuth client 尚未建）
+  providers: ['apple'],
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MT_BACKEND;

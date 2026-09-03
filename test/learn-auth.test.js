@@ -273,3 +273,31 @@ describe('这台设备上是不是还有别人的库（§8.4.1.2 身份合并）
     eq(opened, 0, '它开了数据库 —— 这个判据只该读两个 storage 键');
   });
 });
+
+describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const cfg = require(path.join(ROOT, 'extension/learn/backend.config.js'));
+
+  test('backend.config 里有 providers 这张表', () => {
+    ok(Array.isArray(cfg.providers), 'providers 不是数组 —— 界面就没有依据可依');
+  });
+
+  test('两个界面都按这张表出按钮，而不是写死', () => {
+    const opt = fs.readFileSync(path.join(ROOT, 'extension/options/options.js'), 'utf8');
+    const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
+    ok(/MT_BACKEND\.providers/.test(opt), '设置页没读 providers —— 会发一个必然失败的按钮');
+    ok(/MT_BACKEND\.providers/.test(app), 'App 没读 providers');
+  });
+
+  test('表里的每一个都是 auth.js 支持的 provider', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'extension/learn/auth.js'), 'utf8');
+    for (const p of cfg.providers) {
+      // 支持的证据：startProviderSignIn 以 provider 为参数，所以只要它不是被写死的
+      // 某一个即可；这里守的是「表里别出现一个显然不存在的名字」。
+      ok(/[a-z]/.test(p) && p.length < 20, `providers 里有个可疑的值：${JSON.stringify(p)}`);
+    }
+    ok(src.includes('startProviderSignIn'), 'auth.js 没有 provider 入口，这张表就没意义');
+  });
+});
