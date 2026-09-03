@@ -454,12 +454,20 @@ var LearnAuth = (() => {
   // **同步**。没备好就返回 null —— 调用方据此让按钮先不可点，而不是开一个空窗。
   function providerSignInUrl(provider, redirectTo) {
     if (!prepared) return null;
-    const challenge = prepared.challenge;
+    // **state 要塞进回跳地址里带出去。** GoTrue 的 authorize 不接受我们自己的 state
+    // 参数（它有它自己那一个，用于它与 provider 之间那一段），回跳时也只会补上
+    // `?code=`。所以想让 state 回到我们手上，唯一的位置就是 redirect_to 本身。
+    //
+    // 2026-09-03 用户实测卡住的正是这里：本地存了 state 等它回来，却从来没有把它
+    // 发出去过。内容脚本要求 code 与 state 都在才递票 —— 于是永远递不出去，人落在
+    // 落地页上。**代码看起来对称（存了、也校验了），中间那一环从来不存在。**
+    const back = String(redirectTo)
+      + (String(redirectTo).includes('?') ? '&' : '?') + 'st=' + encodeURIComponent(prepared.state);
     const q = [
       ['provider', String(provider)],
-      ['code_challenge', challenge],
+      ['code_challenge', prepared.challenge],
       ['code_challenge_method', 's256'],
-      ['redirect_to', String(redirectTo)],
+      ['redirect_to', back],
     ].map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
     return api() + '/authorize?' + q;
   }

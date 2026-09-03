@@ -146,6 +146,17 @@ describe('手机号走同一条路（§8.4.1.2）', () => {
 });
 
 describe('第三方登录：PKCE（§8.4.1.1 第二条跨界裁定）', () => {
+  test('★ state 必须真的被发出去 —— 存了又校验，中间那一环却不存在', async () => {
+    const { A, stored } = loadWith(async () => okResponse({}));
+    await A.prepareProviderSignIn();
+    const url = A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
+    const st = stored.learnAuthPkce.state;
+    // redirect_to 是整体编码过的，所以在 URL 里找的是编码后的形状。
+    ok(url.includes(encodeURIComponent('st=' + st)) || url.includes('st%3D' + encodeURIComponent(st)),
+      '回跳地址里没有带上我们的 state —— 它永远回不来，票也就永远递不出去。'
+      + ' 2026-09-03 用户实测卡在落地页，真因就是这个。URL: ' + url);
+  });
+
   test('★ 备好之前 providerSignInUrl 返回 null —— 而不是一个开不出来的窗', () => {
     const { A } = loadWith(async () => okResponse({}));
     eq(A.providerSignInUrl('google', 'https://x/y'), null);

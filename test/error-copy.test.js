@@ -100,3 +100,21 @@ describe('登录身份的显示口径', () => {
     ok(/\bdisplayName\b[^=]*,/.test(src.slice(src.lastIndexOf('return {'))), 'displayName 没被导出');
   });
 });
+
+// 回调里我们自己的 state 藏在 `st`，不是 `state`（后者是 GoTrue 与 provider 之间
+// 那一段用的）。读错那个的表现是永远读到 null —— 票永远递不出去，而没有任何一层
+// 会报错（2026-09-03 用户实测卡在落地页）。
+describe('回调参数的名字，三处必须一致', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  test('auth.js 发的、内容脚本读的、落地页读的，是同一个名字', () => {
+    const auth = fs.readFileSync(path.join(ROOT, 'extension/learn/auth.js'), 'utf8');
+    const cm = fs.readFileSync(path.join(ROOT, 'extension/content/content-main.js'), 'utf8');
+    const gen = fs.readFileSync(path.join(ROOT, 'scripts/gen-auth-callback.js'), 'utf8');
+    ok(/'st=' \+ encodeURIComponent/.test(auth), 'auth.js 没有把 state 塞进 redirect_to');
+    ok(/q\.get\('st'\)/.test(cm), "内容脚本读的不是 'st'");
+    ok(/q\.get\('st'\)/.test(gen), "落地页读的不是 'st'");
+    ok(!/q\.get\('state'\)/.test(cm), "内容脚本还在读 'state' —— 那是 GoTrue 自己的，永远是别的值");
+  });
+});

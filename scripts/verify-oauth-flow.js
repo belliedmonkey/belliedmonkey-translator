@@ -163,7 +163,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await intercept(att.sessionId);
     const before = supabaseHits.length;
     await cdp.send('Page.navigate',
-      { url: 'https://belliedmonkey.cc/auth/done.html?code=THE-CODE&state=S-STATE' }, att.sessionId);
+      { url: 'https://belliedmonkey.cc/auth/done.html?st=S-STATE&code=THE-CODE' }, att.sessionId);
     await sleep(2500);
 
     const writes = JSON.parse(await evIn(swS, 'JSON.stringify(self.__mtWrites || [])'));
@@ -175,6 +175,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       if (ticketWrite.v.code !== 'THE-CODE') problems.push('票里的 code 不对: ' + ticketWrite.v.code);
       const extra = Object.keys(ticketWrite.v).filter((k) => !['code', 'state', 'at'].includes(k));
       if (extra.length) problems.push('票里多了不该有的字段: ' + extra.join(', '));
+    }
+
+    // ★ 回调之后人必须**被送回设置页**。落地页是中转，不是终点 ——
+    // 2026-09-03 用户就停在那一页上，而它当时说的是「复制这串粘过去」，
+    // 那是兜底，不该是常态。判据是那个标签最终的 URL。
+    {
+      const { targetInfos } = await cdp.send('Target.getTargets', {});
+      const t = targetInfos.find((x) => x.targetId === targetId);
+      const url = (t && t.url) || '';
+      notes.push('回调标签最终在: ' + url.slice(0, 70));
+      if (!/^chrome-extension:\/\/[a-z]+\/options\/options\.html/.test(url)) {
+        problems.push(`回调之后停在 ${url.slice(0, 60)} —— 应该被送回设置页。`
+          + '停在落地页对用户就是「登录完了，然后呢」');
+      }
     }
 
     // ③ 兑换必须来自扩展页，不能来自页面 origin。

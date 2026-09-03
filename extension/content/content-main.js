@@ -103,7 +103,10 @@
       try {
         const q = new URLSearchParams(location.search);
         const code = q.get('code');
-        const state = q.get('state');
+        // 我们自己的 state 藏在 `st`（由 redirect_to 带出去再带回来）。
+        // `state` 是 GoTrue 与 provider 之间那一段用的，不是给我们的 —— 读错那个
+        // 的表现是永远读到 null，而票就永远递不出去（2026-09-03 用户实测）。
+        const state = q.get('st');
         if (code && state) {
           chrome.storage.local.set({ learnAuthCode: { code, state, at: Date.now() } }, () => {
             try {
