@@ -563,7 +563,14 @@
       const session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
       await show(session);
       await doSync();
-    } catch (err) { say(humanError(err), true); }
+    } catch (err) {
+      say(humanError(err), true);
+      // 兑换失败会把 verifier 作废（它是一次性的），**必须重新备一份** ——
+      // 不备的话，下一次点击拿到的是 pkce_missing，按钮直到刷新页面前都是死的。
+      // 2026-09-03 用户实测「重试也没成功」就是这个：第一次 pkce_state，
+      // 第二次开始永远 pkce_missing。
+      LearnAuth.prepareProviderSignIn().catch(() => {});
+    }
   };
   try {
     if (window.__mtWebAuthPending) {

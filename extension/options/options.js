@@ -1497,7 +1497,11 @@ async function init() {
     await refreshSyncUI();
     syncSay(t('sync_signed_in_now', '已登录。第一次同步可能要几秒。'));
     await runSync();
-  }).catch((e) => syncSay(syncError(e)));
+  }).catch((e) => {
+    syncSay(syncError(e));
+    // 同 App：兑换失败会作废 verifier，不重新备一份的话按钮到刷新前都是死的。
+    LearnAuth.prepareProviderSignIn().catch(() => {});
+  });
 
   // busy() on both auth buttons: the OTP endpoint is server-rate-limited, so a
   // repeat tap here burns the user's OWN limit (sync_err_rate exists because of it).

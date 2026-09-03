@@ -117,4 +117,23 @@ describe('回调参数的名字，三处必须一致', () => {
     ok(/q\.get\('st'\)/.test(gen), "落地页读的不是 'st'");
     ok(!/q\.get\('state'\)/.test(cm), "内容脚本还在读 'state' —— 那是 GoTrue 自己的，永远是别的值");
   });
+
+  // 第四处：原生那一侧（Swift）。它和上面三处是**同一个约定的第四个使用者**，
+  // 而它用的是另一门语言，所以最容易被漏掉 —— 2026-09-03 就是这样：扩展三处都
+  // 改成了 st，Swift 还在读 state，表现是「第一次来源对不上，之后永远接不上」。
+  test('原生桥读的也是 st', () => {
+    const sw = fs.readFileSync(path.join(ROOT, 'app/native/apple-signin-bridge.swift'), 'utf8');
+    ok(/get\("st"\)/.test(sw), 'Swift 那侧没有读 st —— 它拿不到我们的 state');
+  });
+
+  // 兑换失败会作废 verifier（一次性，对的）。不重新备一份的话，按钮到刷新页面前
+  // 都是死的：第一次报真实原因，之后永远 pkce_missing。
+  test('两个宿主在兑换失败后都重新备一份 PKCE', () => {
+    for (const f of ['app/app.js', 'extension/options/options.js']) {
+      const src = read(f);
+      const n = (src.match(/prepareProviderSignIn/g) || []).length;
+      ok(n >= 2, `${f} 里 prepareProviderSignIn 只出现 ${n} 次 —— `
+        + '失败之后没有重新备，按钮直到刷新前都是死的');
+    }
+  });
 });
