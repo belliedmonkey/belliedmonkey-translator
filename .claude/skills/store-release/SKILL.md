@@ -315,6 +315,49 @@ node scripts/amo-publish.js --upload                # 传 xpi 并等异步校验
 node scripts/amo-publish.js --upload --publish
 ```
 
+**HEAD 往前走了就走 worktree，不要补 `-storeN` tag、更不要 `--allow-dirty`。**
+三条路现在都接 `--worktree <目录>` + `--zip/--xpi <路径>`：
+
+```bash
+git worktree add /tmp/mt-1713 v1.7.13 && (cd /tmp/mt-1713 && node build.js)
+node scripts/cws-publish.js --upload --publish \
+  --zip /tmp/mt-1713/belliedmonkeytranslator.zip --tag v1.7.13 --worktree /tmp/mt-1713
+```
+
+门禁去那棵树里验 HEAD —— **是通过检查，不是跳过**。2026-09-03 之前只有 gh-release
+有这两个参数，于是另外两条路每往前一个提交就要补一个新 tag，tag 变成一次性用品。
+
+**CWS：上一版在审时，什么都做不了。**
+
+```
+✗ 上传失败 HTTP 200
+  The item cannot be updated now because it is in pending review, ready to publish, or deleted status.
+```
+
+这句话把三种状态混在一起说，而三种的处理完全不同。分辨的办法只有一个 ——
+`POST /items/{id}/publish`，它的错误文案会点名：
+
+```
+"You may not edit or publish an item that is in review."   ← 在审：只能等
+```
+
+- **CWS 的 API 读不到审核状态。** 只有 `?projection=DRAFT`（`PUBLISHED` 直接 400 让你
+  改回 DRAFT），而那份数据里没有审核状态。`uploadState: NOT_FOUND` 说的是「草稿里
+  没有待传的包」，**不是**「找不到这个扩展」。
+- **也没有撤回提交的 API。** Apple 那边可以撤审重提（代价是排队清零），Google 这边
+  连这个代价都付不了 —— 只能等上一版审完，通过或被拒都行。
+- 所以一天里发两版的话，第二版必然要等。要么合并成一版，要么挂个循环去试。
+
+**AMO：`--check` 看不见刚提交的那一版。** `线上版本` 是**已通过审核**的那个，新提交
+的在 `/versions/` 里而且默认被过滤掉了。要看它得显式带上过滤器：
+
+```bash
+GET /api/v5/addons/addon/<id>/versions/?filter=all_with_unlisted
+# 期望看到  1.7.13  file.status=unreviewed  channel=listed
+```
+
+不带 `filter` 会以为版本根本没提交上去。
+
 ### 11. GitHub Release + 官网
 
 ```bash
@@ -414,6 +457,10 @@ node scripts/asc.js installs 45
 | 扩展列表里有幽灵条目 | `xcodebuild archive` 的中间产物被 LaunchServices 注册了 | `lsregister -dump` 找路径，`-u` 定点注销 |
 | 任何 node 脚本一跑就崩 | 本机 `NODE_OPTIONS` 指向不存在的 preload | `env -u NODE_OPTIONS` |
 | 官网 ZIP 与商店版本内容不同 | 那条路当时没有版本完整性门禁 | `npm run gh:check` |
+| CWS 传包报 `HTTP 200` 失败 | 上一版还在审；没有撤回 API，只能等 | `POST …/publish` 的错误文案点名状态 |
+| CWS 体检显示 `NOT_FOUND` | 那是「草稿里没有待传的包」，不是找不到条目 | 审核状态这个 API 根本读不到 |
+| AMO 传完 `--check` 还是旧版本 | `线上版本` 只算审核通过的 | `/versions/?filter=all_with_unlisted` |
+| 门禁说 HEAD 不在 tag 上 | HEAD 往前走了（哪怕只动 scripts/） | `--worktree` 从干净树出货，别 `--allow-dirty` |
 
 ## 判断口径
 
