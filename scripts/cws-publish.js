@@ -106,7 +106,20 @@ async function api(token, method, url, body, extraHeaders) {
     process.exit(1);
   }
   console.log(`  item ${itemId}`);
-  console.log(`  当前状态: ${(info.d.uploadState || '?')}  crx 版本: ${info.d.crxVersion || '（草稿里还没有）'}`);
+  // `uploadState` 说的是**草稿里有没有一个待处理的上传**，不是条目的审核状态。
+  // 直接印 `NOT_FOUND` 会被读成「找不到这个扩展」，而它的意思恰恰相反 ——
+  // 条目好好的，只是草稿里现在没有待传的包。2026-09-03 就这样误读过一次。
+  //
+  // **审核状态这个 API 读不到。** CWS 只提供 ?projection=DRAFT（PUBLISHED 直接 400
+  // 让你改回 DRAFT），而那份数据里没有「在审 / 已发布 / 待发布」。唯一能问出来的
+  // 时机是上传：条目在审时 PUT 会带着一句明文理由被拒（HTTP 仍是 200）。所以这里
+  // 只说自己知道的，不假装知道审核状态。
+  const US = { NOT_FOUND: '草稿里没有待传的包', SUCCESS: '草稿里有一个已传好的包',
+    IN_PROGRESS: '上传处理中', FAILURE: '上一次上传失败' };
+  const us = info.d.uploadState || '?';
+  console.log(`  草稿上传状态: ${us}${US[us] ? `（${US[us]}）` : ''}  crx 版本: `
+    + `${info.d.crxVersion || '（草稿里还没有）'}`);
+  console.log('  审核状态: 未知 —— CWS 的 API 不提供；条目若在审，上传会被明文拒绝');
   if (Array.isArray(info.d.itemError) && info.d.itemError.length) {
     for (const e of info.d.itemError) console.log('  ⚠️ ' + brief(e.error_detail || JSON.stringify(e)));
   }
@@ -148,6 +161,12 @@ async function api(token, method, url, body, extraHeaders) {
     zipBytes, { 'Content-Type': 'application/zip' });
   if (!up.ok || (up.d && up.d.uploadState === 'FAILURE')) {
     console.error(`✗ 上传失败 HTTP ${up.status}`);
+    // 在审是最常撞到的一种，而它不是错误、也不需要改任何东西 —— 只需要等。
+    // 单看 `HTTP 200` 三个字会以为是脚本坏了。
+    if (/pending review|ready to publish/i.test(up.text || '')) {
+      console.error('  这是「上一版还在审」，不是包有问题：CWS 不允许对在审条目再上传，');
+      console.error('  也没有撤回提交的 API。等上一版审完（通过或被拒都行）再跑同一条命令。');
+    }
     const errs = (up.d && up.d.itemError) || [];
     for (const e of errs) console.error('  ' + brief(e.error_detail || JSON.stringify(e)));
     if (!errs.length) console.error('  ' + brief(up.text));
