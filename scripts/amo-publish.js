@@ -25,7 +25,7 @@ const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js'
 
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
-const XPI = path.join(ROOT, 'belliedmonkeytranslator-firefox.xpi');
+let XPI = path.join(ROOT, 'belliedmonkeytranslator-firefox.xpi');   // 可被 --xpi 覆盖（见下方 --worktree）
 const API = 'https://addons.mozilla.org/api/v5';
 
 function slot(name) {
@@ -73,10 +73,13 @@ async function api(method, url, body, headers) {
 
 (async () => {
   const argv = process.argv.slice(2);
+  const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
+  if (opt('--xpi')) XPI = opt('--xpi');
   const want = { check: argv.includes('--check'), upload: argv.includes('--upload'),
     publish: argv.includes('--publish') };
   if (!want.check && !want.upload) {
     console.log('用法: node scripts/amo-publish.js --check | --upload [--publish]');
+    console.log('  从历史 tag 重出产物: --xpi <路径> --tag <tag> --worktree <目录>');
     console.log('  --check   只体检，不动任何东西');
     console.log('  --upload  传 xpi 并等 AMO 校验完成（不建版本）');
     console.log('  --publish 建版本（对外动作，必须与 --upload 一起显式给出）');
@@ -120,7 +123,11 @@ async function api(method, url, body, headers) {
   // `--tag` 与 gh-release 对齐：让「从某个 tag 重出正确产物」在这两条路上也是**被验证过的**
   // 操作，而不是只能 --allow-dirty 绕过去。三条路共用一道门禁的意义，就是三条路都能走完
   // 同一套恢复流程 —— 少一个入口，那条路上的人就只剩绕过去这一个选择。
-  assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: (argv[argv.indexOf('--tag') + 1] && argv.includes('--tag')) ? argv[argv.indexOf('--tag') + 1] : undefined });
+  // `--worktree <目录>` + `--zip/--xpi <路径>`：从一棵**别的**工作树出货，门禁去那棵树里
+  // 验 HEAD。三条路共用一道门禁的意义是三条路都能走完 —— 而在此之前只有 gh-release 有
+  // 这两个参数，另外两条一旦 HEAD 往前走就只剩 --allow-dirty 或者不停补 `-storeN` tag，
+  // 两个都是噪声：前者丢掉溯源，后者让 tag 变成一次性用品。2026-09-03 当天撞到。
+  assertVersionIntegrity({ version: xpiVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: opt('--tag'), cwd: opt('--worktree') });
 
   // ── 上传 ────────────────────────────────────────────────────────────────
   const fd = new FormData();
