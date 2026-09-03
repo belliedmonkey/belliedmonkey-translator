@@ -120,6 +120,17 @@ env -u NODE_OPTIONS xcodebuild -project "safari-project/BelliedMonkey Translator
 > `--mac` 是那次一并补上的：`cmdDevices` 原来把 platform 写死成 IOS，注册 Mac 会
 > 静默注册成一台 iPhone，而 ASC 的报错指不到这里。
 
+**导出也要那三个参数**，不只是归档 —— 归档用的是**开发型**描述文件，导出重签名用的
+是**分发型**，那是两张，各自都要含新 capability：
+
+```
+error: exportArchive Provisioning profile "iOS Team Store Provisioning Profile: …"
+       doesn't include the Sign In with Apple capability.
+```
+
+2026-09-03 实测：归档过了、导出才红，因为只给归档加了参数。给 `-exportArchive`
+也加上 `-allowProvisioningUpdates` + 三个 key 参数即可。
+
 **entitlement 的判据是归档之后回读，不是构建没报错**：
 
 ```bash
