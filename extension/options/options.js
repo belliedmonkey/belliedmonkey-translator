@@ -1355,6 +1355,13 @@ async function init() {
     // 落到用户眼前 —— 下面那个 e.message 是兜底，不是文案。
     if (code === 'owner_mismatch') return t('sync_err_owner_mismatch', '这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或先清除本机全部数据再重来。');
     if (code === 'owner_unknown') return t('sync_err_owner_unknown', '这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。');
+    // 第三方登录回来时的两种「接不上」（§8.4.1.2）。都不是用户做错了事，
+    // 所以文案给的是下一步，不是指责。
+    if (code === 'pkce_missing') return t('sync_err_pkce_missing', '这次登录没能接上 —— 中途换了浏览器、或清过数据。回到这一页重新点一次登录就行。');
+    if (code === 'pkce_state') return t('sync_err_pkce_state', '这次登录的来源对不上，已经停下了。请重新点一次登录。');
+    // 存储读失败**不是**「没登录」。混同的话，一次读失败会被画成登出，
+    // 而用户明明刚走完一整圈（同 auth.js load() 里 loadError 的纪律）。
+    if (code === 'storage_error') return t('sync_err_storage', '读不到本机存储，这一步暂时做不了。重开这一页再试；如果一直这样，请把这条信息告诉我们。');
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
 

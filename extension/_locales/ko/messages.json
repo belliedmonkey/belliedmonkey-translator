@@ -2034,5 +2034,17 @@
   "product_name": {
     "message": "BelliedMonkey 번역",
     "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "이번 로그인이 돌아오지 않았습니다 — 브라우저가 바뀌었거나 데이터를 지웠을 수 있습니다. 이 페이지에서 다시 시작하세요.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "이번 로그인은 저희가 시작한 것과 일치하지 않아 중단했습니다. 다시 시도해 주세요.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "기기 저장소를 읽지 못해 이 단계를 끝낼 수 없습니다. 페이지를 다시 열어 시도해 보세요. 계속되면 알려 주세요.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
   }
 }

@@ -2035,5 +2035,17 @@
   "product_name": {
     "message": "大肚猴翻譯",
     "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "這次登入沒能接上 —— 中途換了瀏覽器、或清過資料。回到這一頁重新點一次登入就行。",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "這次登入的來源對不上，已經停下了。請重新點一次登入。",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "讀不到本機儲存，這一步暫時做不了。重開這一頁再試；如果一直這樣，請把這條訊息告訴我們。",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
   }
 }

@@ -2034,5 +2034,17 @@
   "product_name": {
     "message": "BelliedMonkey Translator",
     "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "Cette connexion n’est pas revenue — navigateur changé ou données effacées. Relancez-la depuis cette page.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "Cette connexion ne vient pas de celle que nous avons lancée. Arrêtée. Merci de recommencer.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "Impossible de lire le stockage local, cette étape ne peut pas aboutir. Rouvrez cette page et réessayez ; si cela persiste, dites-le-nous.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
   }
 }

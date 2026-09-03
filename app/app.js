@@ -49,6 +49,15 @@
     if (code === 'owner_mismatch') {
       return t('app_owner_mismatch', '这台设备上的学习库属于另一个账号。用原来那个邮箱登录，或在扩展的设置里清除本机数据后重来。');
     }
+    if (code === 'pkce_missing') {
+      return t('sync_err_pkce_missing', '这次登录没能接上 —— 中途换了浏览器、或清过数据。回到这一页重新点一次登录就行。');
+    }
+    if (code === 'pkce_state') {
+      return t('sync_err_pkce_state', '这次登录的来源对不上，已经停下了。请重新点一次登录。');
+    }
+    if (code === 'storage_error') {
+      return t('sync_err_storage', '读不到本机存储，这一步暂时做不了。重开这一页再试；如果一直这样，请把这条信息告诉我们。');
+    }
     if (code === 'owner_unknown') {
       return t('app_owner_unknown', '这台设备上的学习库有归属，但现在没有登录。登录之后才能继续同步。');
     }

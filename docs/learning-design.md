@@ -1215,15 +1215,27 @@ day) — it would have made this worse, not better:
   inconvenience into each product holding a master key to the other.
 
 **The client still treats the backend as replaceable.** `learn/auth.js` exposes exactly
-`signIn / verify / token / signOut / deleteAccount` and is the only module that knows
-what GoTrue is; `learn/sync.js` speaks PostgREST and never learns how the token was
+`signIn / verify / token / signOut / deleteAccount / startProviderSignIn /
+completeProviderSignIn / signInWithIdToken` and is the only module that knows what
+GoTrue is; `learn/sync.js` speaks PostgREST and never learns how the token was
 obtained. Changing provider — or moving to a dedicated project — is a one-file change
-with the sync path untouched.
+with the sync path untouched. `signIn` / `verify` take **an email or a phone number**
+(§8.4.1.2); every route lands on the same `sessionFrom()`, which is why `learnUserId`,
+`bindCorpus` and the ownerGate never learn how the user got in.
 
-**Setup consequence, easy to lose:** sign-in is a **6-digit code**, not a magic link —
-a link needs a page we host to catch the redirect and we host nothing. The provider's
-email template must therefore render `{{ .Token }}`; the stock template sends a link,
-and a link cannot be completed from inside an extension.
+**Setup consequence, easy to lose:** email sign-in is a **6-digit code**, not a magic
+link. The provider's email template must therefore render `{{ .Token }}`; the stock
+template sends a link, and a link cannot be completed from inside an extension.
+
+> **这条理由的前提在 2026-09-03 变了，如实记下来。** 原文写的是「一个链接需要一个
+> 我们自己托管的页面去接住跳转，**而我们什么都不托管**」。今天我们托管
+> `belliedmonkey.cc` / `belliedmonkey.com`，而且内容脚本已经跑在上面
+> （`content-main.js` 的 `MT_SITES` 交接块）。所以 OAuth 现在办得到 —— 见 §8.4.1.2。
+>
+> **但 magic link 仍然不做**，理由换了一条更硬的：magic link 把**会话**放进 URL，
+> 而 URL 会经过内容脚本、浏览历史、可能还有转发。PKCE 的 `code` 不是会话 ——
+> 没有只存在扩展这边的 `code_verifier`，它兑换不出任何东西。区别不是「链接 vs 验证码」，
+> 是**跨界的那个东西本身值不值钱**。
 
 #### 会话存储位置 — `chrome.storage.local`（2026-08-09，取代旧裁定）
 
@@ -1302,6 +1314,70 @@ App 审核要求提供 username+password 演示账号，而纯 OTP 流程给不�
 
 **这条通道不改变 §7.2。** 语料仍然只经服务器相遇；这里传的东西不构成任何语料，
 也不足以代表用户去调用任何接口。
+
+**第二样允许跨界的东西：PKCE 的一次性 code（2026-09-03）。** 第三方登录的回调落在
+我们自己的站点上，取值的是内容脚本 —— 所以要问同一个问题：跨过去的那个东西值多少钱。
+
+判据是**它单独不可兑换**：换 session 还需要 `code_verifier`，而 verifier 只存在扩展
+的 `chrome.storage.local['learnAuthPkce']` 里，从不离开扩展页。所以跨界的是一张
+**一次性、短命、无 verifier 即废**的票，不是钥匙。三条硬性要求：
+
+- 内容脚本**只取 `code` 与 `state` 两个查询参数**，不读响应体、不发任何请求；
+- 兑换只发生在扩展页（设置页），**不经 background** —— Safari iOS 锁屏后 service
+  worker 永久 undefined，`chrome.runtime.sendMessage` 会静默失败（CLAUDE.md 头号约束）；
+- `state` 不符即整条流程停住，且不发网络请求。
+
+**会话仍然永不跨界。** 这里放宽的是「一张换不出东西的票」，与 `userId` 同级；
+把 `learnAuth` 放进内容脚本可读的键列表，仍然是禁止的。
+
+### 8.4.1.2 登录方式：Apple + Google（全球）· 手机号短信（中国）（2026-09-03）
+
+用户问「为各地区准备最常见的登录方式」时列的是 Google / 微信 / WhatsApp / Instagram。
+调研之后，清单里有一半不成立 —— **把裁定连同真因写下来，免得下次再调研一遍**：
+
+| 候选 | 裁定 | 真因 |
+|---|---|---|
+| WhatsApp | **不存在** | 没有面向消费者的 OAuth「用 WhatsApp 登录」。所谓 WhatsApp Login 是**用 WhatsApp 发 OTP**（Business Platform，模板需审核、按条计费）—— 一条发送通道，不是身份提供方 |
+| Instagram | **不可用** | Basic Display API 2024-12-04 关停；替代品要 Creator/Business 账号，且面向内容读取 |
+| 微信 | **卡在主体** | 开放平台网站/移动应用需企业或个体工商户营业执照 + ￥300 资质认证；Supabase 无内置，且微信不是合规 OIDC（返回 openid/unionid），要自建 Edge Function 交换 |
+| **手机号 + 短信** | **做** | 覆盖同一批中国用户，且**不用等主体** |
+| **Google** | **做** | Supabase 内置，零第三方资质 |
+| **Sign in with Apple** | **做，且被强制** | 苹果 4.8：一旦提供任何第三方登录，App 必须同时提供等效的隐私保护登录 |
+
+> **今天我们是豁免的**：只用自家邮箱账号体系不触发 4.8。加 Google 的那一刻起，
+> Sign in with Apple 从「可选」变成「必须」—— 这两件事绑在一起，不能分期做。
+
+**扩展侧一条流程覆盖三个浏览器**：托管回调 + PKCE（§8.4.1.1 的第二条跨界裁定）。
+不用 `chrome.identity.launchWebAuthFlow`，两个原因都是硬的：Safari 上它不工作；而
+Safari 扩展的 `safari-web-extension://<UUID>` 源**每次重装都轮换**（同 §8.4.1 会话
+搬家那条依据），根本没法登记成固定回调地址。
+
+**App 侧走原生**：Sign in with Apple 用 `ASAuthorization`，Google 用
+`ASWebAuthenticationSession`（Google 禁止在内嵌 WebView 里跑 OAuth）。App 也必须有
+Google —— 在扩展里用 Google 建的账号必须能在 App 登进同一个账号，否则跨设备同步对
+这批人是断的，而那是登录存在的唯一理由。
+
+**手机号为什么选阿里云号码认证服务(PNVS)，不是短信服务(SMS)**：后者的验证码短信
+**明确要求企业资质**，前者**个人开发者免资质** —— 只要个人实名认证，不需要 ICP 备案、
+不需要签名报备、不需要模板申请。代价照实说：签名与模板系统赠送不可自定义，且
+**只发中国大陆号码（+86）**。海外用户继续走邮箱；装作支持全球会在用户输完号码之后
+才失败，那比不提供更糟。发送侧：Supabase 的 Send SMS Hook → 我们的 Edge Function
+→ PNVS。**防刷不是可选项** —— 短信按条计费而这是免费产品。
+
+**手机号戳破的一条既有假设：`session.email` 不再必然存在。** 手机号用户没有邮箱，
+所有渲染 `session.email` 的地方都要落到 `email || phone`。这是跨三个面的显示口径，
+不是一处 if；漏掉一处的表现是「登录成功却显示空白」。
+
+**身份合并 —— 这条链上最容易伤到老用户的地方。** Supabase 默认按**已验证邮箱**自动
+并号（未验证不并，防 pre-account-takeover），所以「先邮箱、后 Google、同一邮箱」是
+同一个 userId，ownerGate 照旧通过。但**两种情况必然造出第二个账号**：
+
+1. Apple 的「隐藏我的邮箱」给 `xxx@privaterelay.appleid.com`，与原邮箱不同；
+2. 手机号不参与邮箱维度的合并。
+
+两种都会在 §8.4.3 的归属闸上撞出 `owner_mismatch`。**那一刻不许甩一个错误码给用户** ——
+要说清楚「这台设备上的学习库属于另一个账号」，给两个出口（换回原账号 / 只用新账号
+从头开始），并且**永远不自动切换**（§8.4.1.1 已有的裁定）。
 
 ### 8.4.2 核心约束 — 合并有两种语义，混淆它们就是数据损坏
 

@@ -70,3 +70,150 @@ describe('LearnAuth.signInPassword (§8.4.1 second grant)', () => {
     eq(got.code, 'offline');
   });
 });
+
+// ─── §8.4.1.2 手机号 + 第三方登录（2026-09-03）──────────────────────────────
+//
+// 这一组守的是「三条路收敛到同一个 sessionFrom」。收敛不成立的话，learnUserId /
+// bindCorpus / ownerGate 就会因为「用户是怎么进来的」而表现不同 —— 而那三样恰恰
+// 是最不该知道这件事的（§8.4.1 可替换性契约）。
+
+function loadWith(fetchImpl, seed) {
+  const stored = Object.assign({}, seed || {});
+  const removed = [];
+  const PageSettings = {
+    read: async (keys) => ({ ok: true,
+      data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+    write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+    removeKeys: async (keys) => { removed.push(...keys); for (const k of keys) delete stored[k]; return { ok: true }; },
+  };
+  const LearnStore = { getMeta: async () => null, setMeta: async () => {} };
+  const calls = [];
+  const ctx = loadModule('learn/auth.js', {
+    window: {},
+    MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+    PageSettings, LearnStore,
+    crypto: require('crypto').webcrypto,
+    TextEncoder,
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    fetch: async (url, init) => { calls.push({ url, init }); return fetchImpl(url, init); },
+  });
+  return { A: ctx.LearnAuth, calls, stored, removed };
+}
+
+const SESSION = {
+  access_token: 'a', refresh_token: 'r', expires_in: 3600,
+  user: { id: 'u-1', email: 'x@y.com' },
+};
+
+describe('手机号走同一条路（§8.4.1.2）', () => {
+  test('signIn 认得手机号，打的是 {phone} 而不是 {email}', async () => {
+    const { A, calls } = loadWith(async () => okResponse({}));
+    const r = await A.signIn('13800138000');
+    eq(r.via, 'phone');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.phone, '+8613800138000', '11 位国内号要补成 E.164 —— Supabase 只认这个形状');
+    eq(body.email, undefined, '手机号那条路不许再带 email 字段');
+  });
+
+  test('verify 用 type:sms', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION));
+    await A.verify('+8613800138000', '123456');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.type, 'sms');
+    eq(body.phone, '+8613800138000');
+  });
+
+  test('邮箱那条路一个字都没变', async () => {
+    const { A, calls } = loadWith(async () => okResponse({}));
+    const r = await A.signIn('  x@y.com ');
+    eq(r.via, 'email');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.email, 'x@y.com');
+    eq(body.phone, undefined);
+  });
+
+  test('session 带 phone，且 displayName 是唯一口径', async () => {
+    const { A } = loadWith(async () => okResponse({
+      access_token: 'a', refresh_token: 'r', expires_in: 3600,
+      user: { id: 'u-2', email: null, phone: '+8613800138000' },
+    }));
+    const s = await A.verify('13800138000', '123456');
+    eq(s.phone, '+8613800138000');
+    eq(A.displayName(s), '+8613800138000',
+      '手机号用户没有 email —— 界面读 email 会显示空白');
+    eq(A.displayName({ email: 'x@y.com', phone: null }), 'x@y.com');
+  });
+});
+
+describe('第三方登录：PKCE（§8.4.1.1 第二条跨界裁定）', () => {
+  test('startProviderSignIn 存 verifier 并**返回** URL，自己不开窗', async () => {
+    const { A, stored } = loadWith(async () => okResponse({}));
+    const url = await A.startProviderSignIn('google', 'https://belliedmonkey.cc/auth/done.html');
+    ok(url.startsWith('https://x.example/auth/v1/authorize?'), 'URL 形状不对: ' + url);
+    ok(url.includes('code_challenge_method=s256'), '没带 PKCE method');
+    const p = stored.learnAuthPkce;
+    ok(p && p.verifier && p.state, 'verifier/state 没落盘');
+    // challenge 必须是 verifier 的 s256 —— 不然服务端换不出来，而那要到用户走完
+    // 一整圈才会发现。
+    const h = require('crypto').createHash('sha256').update(p.verifier).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    ok(url.includes('code_challenge=' + encodeURIComponent(h).replace(/%2D/g, '-'),
+    ) || url.includes('code_challenge=' + h), 'challenge 不是 verifier 的 s256');
+  });
+
+  test('completeProviderSignIn 换到 session，并把 verifier 与票都清掉', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 's' },
+    });
+    const s = await A.completeProviderSignIn();
+    eq(s.userId, 'u-1');
+    ok(calls[0].url.includes('grant_type=pkce'), '打错端点: ' + calls[0].url);
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.auth_code, 'c');
+    eq(body.code_verifier, 'v');
+    eq(stored.learnAuthPkce, undefined, 'verifier 必须一次性');
+    eq(stored.learnAuthCode, undefined, '票必须一次性 —— 留着会在下次开页时重放');
+  });
+
+  test('★ state 不符：停住，且一个请求都不发', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 'NOT-s' },
+    });
+    let code = '';
+    try { await A.completeProviderSignIn(); } catch (e) { code = e.code; }
+    eq(code, 'pkce_state');
+    eq(calls.length, 0, 'state 不符还去换 —— 那等于把别人塞的票当成自己的');
+    eq(stored.learnAuthPkce, undefined);
+  });
+
+  test('没有票时返回 null，不报错 —— 每次开设置页都会调它一次', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION));
+    eq(await A.completeProviderSignIn(), null);
+    eq(calls.length, 0);
+  });
+
+  test('有票但没有 verifier → pkce_missing（换过浏览器/清过数据）', async () => {
+    const { A } = loadWith(async () => okResponse(SESSION), { learnAuthCode: { code: 'c', state: 's' } });
+    let code = '';
+    try { await A.completeProviderSignIn(); } catch (e) { code = e.code; }
+    eq(code, 'pkce_missing');
+  });
+});
+
+describe('原生登录：id_token grant（App 侧）', () => {
+  test('signInWithIdToken 打对端点，落成同一个 session 形状', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION));
+    const s = await A.signInWithIdToken('apple', 'ID-TOKEN', 'NONCE');
+    ok(calls[0].url.includes('grant_type=id_token'), '打错端点: ' + calls[0].url);
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.provider, 'apple');
+    eq(body.id_token, 'ID-TOKEN');
+    eq(body.nonce, 'NONCE');
+    eq(s.userId, 'u-1');
+    // 三条路收敛的实证：落盘的键与邮箱那条路逐字相同。
+    ok(stored.learnAuth && stored.learnAuth.accessToken === 'a', 'learnAuth 没落盘');
+    eq(stored.learnUserId, 'u-1', 'learnUserId 必须照旧写 —— 跨面交接靠它');
+  });
+});

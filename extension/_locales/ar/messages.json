@@ -2034,5 +2034,17 @@
   "product_name": {
     "message": "BelliedMonkey للترجمة",
     "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "لم تعُد عملية تسجيل الدخول هذه — تغيّر المتصفّح أو مُسحت البيانات. ابدأها من جديد من هذه الصفحة.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "عملية تسجيل الدخول هذه لا تطابق التي بدأناها، فأوقفناها. أعد المحاولة من فضلك.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "تعذّرت قراءة التخزين المحلي، لذا لا يمكن إتمام هذه الخطوة. أعد فتح الصفحة وحاول مجدداً؛ وإن تكرّر الأمر فأخبرنا.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
   }
 }
