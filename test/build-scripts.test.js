@@ -974,3 +974,29 @@ describe('app:sync 的幂等判据不许只认第一行', () => {
     }
   });
 });
+
+// 撤审之后必须走得回去。
+//
+// 撤审后的状态是 DEVELOPER_REJECTED —— 那是「开发者自己撤回」，**不是**「被审核拒了」。
+// 状态判据只认 PREPARE_FOR_SUBMISSION 的脚本，会在撤审之后拒绝再动那条记录，而撤审
+// **不可逆**（排队位置已经清零）。2026-09-03 中国版为合规撤审后当场撞上：renameversion
+// 拒绝把 1.7.12 改成 1.7.13，人被卡在一个走不回去的状态里。
+//
+// 三个脚本用的是同一套判据，所以三个都验 —— 这条以前只在两个脚本里成立。
+describe('ASC 脚本必须认 DEVELOPER_REJECTED（撤审后的状态）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  for (const f of ['scripts/asc.js', 'scripts/asc-media.js', 'scripts/asc-submit.js']) {
+    test(f + ' 的可编辑集合里有 DEVELOPER_REJECTED', () => {
+      const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+      ok(/DEVELOPER_REJECTED/.test(src), f + ' 从没提过 DEVELOPER_REJECTED');
+      // 真正的判据：不许再有「!== 'PREPARE_FOR_SUBMISSION'」这种单状态比较 ——
+      // 那正是撤审后走不回去的形状。集合比较（includes / EDITABLE）才对。
+      const bare = [...src.matchAll(/[!=]==\s*'PREPARE_FOR_SUBMISSION'/g)];
+      eq(bare.length, 0,
+        `${f} 还有 ${bare.length} 处把 PREPARE_FOR_SUBMISSION 当唯一可编辑状态 `
+        + '—— 撤审之后那条记录就再也动不了了，而撤审不可逆');
+    });
+  }
+});

@@ -15,6 +15,19 @@
 // 凭证从 .local/keys.md 读（gitignored）：ascIssuerId / ascKeyId / ascKeyPath
 'use strict';
 
+// **可编辑 = 还没交出去。** 两个状态都算：
+//   PREPARE_FOR_SUBMISSION —— 从来没提交过
+//   DEVELOPER_REJECTED     —— **自己撤审后 Apple 给的状态**，不是「被审核拒了」
+//
+// 只认前者的代价 2026-09-03 当场付过：中国版为合规撤审之后，renameversion 拒绝动它，
+// 于是「撤完就走不回去」—— 而撤审是不可逆的，排队位置已经清零了。asc-media.js 与
+// asc-submit.js 早就认了两个，这个文件的四处没跟上。判据写在一处，别再抄第五份。
+//
+// 不在这里面的（READY_FOR_SALE / WAITING_FOR_REVIEW / IN_REVIEW）是**对外事实**，
+// 改它等于篡改历史，所以仍然一律拒绝。
+const EDITABLE_STATES = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+const isEditable = (v) => EDITABLE_STATES.includes(v.attributes.appStoreState);
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -132,9 +145,9 @@ async function cmdBind(bundleId, platform, versionString, buildNumber) {
   const v = vs.data.find((x) => x.attributes.versionString === versionString
     && x.attributes.platform === platform);
   if (!v) throw new Error(`${app.name} 没有 ${platform} 的 ${versionString} 版本记录`);
-  if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+  if (!isEditable(v)) {
     throw new Error(`${app.name} ${platform} ${versionString} 状态是 `
-      + `${v.attributes.appStoreState}，不是 PREPARE_FOR_SUBMISSION —— 不动它`);
+      + `${v.attributes.appStoreState}，不可编辑（只动 ${EDITABLE_STATES.join(' / ')}）—— 不动它`);
   }
 
   const bs = await api('GET', `/builds?filter[app]=${app.id}`
@@ -164,7 +177,7 @@ async function cmdBind(bundleId, platform, versionString, buildNumber) {
 // 1.6.8 就是这样：四条线的草稿都建好了、素材也传了，但它一次都没发出去，而 v1.6.8 这个
 // tag 已经落在 29 个提交之前。改名比新建划算得多：截图、ASO 文案、审核联系方式全留在原地。
 //
-// 只动 PREPARE_FOR_SUBMISSION。已上架或在审的版本号是对外事实，改它等于篡改历史。
+// 只动可编辑状态（见 EDITABLE_STATES）。已上架或在审的版本号是对外事实，改它等于篡改历史。
 async function cmdRenameVersion(bundleId, platform, fromVersion, toVersion, apply) {
   const app = (await apps()).find((a) => a.bundleId === bundleId);
   if (!app) throw new Error(`找不到 app ${bundleId}`);
@@ -177,9 +190,9 @@ async function cmdRenameVersion(bundleId, platform, fromVersion, toVersion, appl
   }
   const v = vs.data.find((x) => x.attributes.versionString === fromVersion);
   if (!v) throw new Error(`${app.name} [${platform}] 没有 ${fromVersion} 的版本记录`);
-  if (v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+  if (!isEditable(v)) {
     throw new Error(`${app.name} [${platform}] ${fromVersion} 状态是 `
-      + `${v.attributes.appStoreState}，不是 PREPARE_FOR_SUBMISSION —— 不动它`);
+      + `${v.attributes.appStoreState}，不可编辑（只动 ${EDITABLE_STATES.join(' / ')}）—— 不动它`);
   }
   if (!apply) {
     console.log(`  ${app.name} [${platform}] ${fromVersion} → ${toVersion}（干运行）`);
@@ -321,7 +334,7 @@ async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly)
   if (!v) throw new Error(`${app.name} 没有 ${platform} 的 ${versionString} 版本记录`);
   // promotionalText 不需要过审，所以 --promo-only 这一档允许已上架的版本。
   // 其余字段随版本锁定，动已上架/在审的版本没有意义，硬拦（同 cmdBind 的门禁）。
-  if (!promoOnly && v.attributes.appStoreState !== 'PREPARE_FOR_SUBMISSION') {
+  if (!promoOnly && !isEditable(v)) {
     throw new Error(`${app.name} ${platform} ${versionString} 状态是 `
       + `${v.attributes.appStoreState}，不是 PREPARE_FOR_SUBMISSION —— 不动它`
       + '（只改促销语请加 --promo-only）');
@@ -502,7 +515,7 @@ async function cmdDump(bundleId, platform) {
   const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=8`
     + '&fields[appStoreVersions]=versionString,platform,appStoreState');
   const v = (vs.data || []).find((x) => x.attributes.platform === platform
-    && x.attributes.appStoreState === 'PREPARE_FOR_SUBMISSION');
+    && isEditable(x));
   if (v) {
     const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
       + '&fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
@@ -540,7 +553,7 @@ async function cmdAsoAudit() {
     }
     const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=8`
       + '&fields[appStoreVersions]=versionString,platform,appStoreState');
-    for (const v of (vs.data || []).filter((x) => x.attributes.appStoreState === 'PREPARE_FOR_SUBMISSION')) {
+    for (const v of (vs.data || []).filter(isEditable)) {
       const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=20`
         + '&fields[appStoreVersionLocalizations]=locale,keywords,description,promotionalText');
       for (const L of locs.data) {
