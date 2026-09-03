@@ -2067,5 +2067,13 @@
   "sync_code_any": {
     "message": "6 位验证码",
     "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "正在打开 Apple 登录…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple 登录没能完成。可以改用下面的邮箱或手机号。",
+    "description": "Native Apple sign-in failed (not user cancel)"
   }
 }

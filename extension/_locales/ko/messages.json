@@ -2066,5 +2066,13 @@
   "sync_code_any": {
     "message": "6자리 인증 코드",
     "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Apple 로그인을 여는 중…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple 로그인을 완료하지 못했습니다. 아래의 이메일이나 전화번호를 이용하세요.",
+    "description": "Native Apple sign-in failed (not user cancel)"
   }
 }

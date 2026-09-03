@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- app/native/app.entitlements — Sign in with Apple 的权限声明。
+     由 scripts/sync-app-assets.js 复制进生成的工程并挂上 CODE_SIGN_ENTITLEMENTS。
+     **改这里，然后跑 `npm run app:sync`**；工程是一次性的，直接改那边会被覆盖。
+
+     为什么必须是文件而不是构建设置：这个工程的沙箱与录音权限走的是 Xcode 15 的
+     构建设置式 entitlement（ENABLE_APP_SANDBOX / ENABLE_RESOURCE_ACCESS_AUDIO_INPUT），
+     但 Sign in with Apple **没有**对应的构建设置 —— 它只能来自 .entitlements。
+     两者同时存在时会不会把沙箱弄丢，判据是归档之后 `codesign -d --entitlements`
+     的回读，不是「构建没报错」（macOS 沙箱丢了会被 App Review 拒，而本地跑得好好的）。
+
+     只给 App target，**不给扩展 target** —— 扩展不登录，多一个权限只会在审核时被问。 -->
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.applesignin</key>
+    <array>
+        <string>Default</string>
+    </array>
+</dict>
+</plist>

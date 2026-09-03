@@ -499,6 +499,57 @@
     $('email').focus();
   });
 
+  // ── 原生 Sign in with Apple（§8.4.1.2）────────────────────────────────────
+  //
+  // 按钮**只在原生桥在场时才显示**。桥不在（旧宿主、或补丁没打上）时显示它，等于
+  // 给一个点了没反应的按钮 —— 这个仓库为「点了没反应」付过好几次代价了。
+  // 判据是 webkit 的消息通道存在，不是「这是 Safari」。
+  const appleBridge = (() => {
+    try {
+      return !!(window.webkit && window.webkit.messageHandlers
+        && window.webkit.messageHandlers.mtAppleSignIn);
+    } catch (_) { return false; }
+  })();
+  if (appleBridge && MT_BACKEND.enabled) {
+    $('btn-apple').textContent = t('sync_with_apple', '用 Apple 登录');
+    $('btn-apple').hidden = false;
+    $('signin-or').textContent = t('sync_or', '或者用邮箱 / 手机号：');
+    $('signin-or').hidden = false;
+    $('btn-apple').addEventListener('click', () => {
+      $('btn-apple').disabled = true;
+      say(t('app_apple_waiting', '正在打开 Apple 登录…'));
+      try { window.webkit.messageHandlers.mtAppleSignIn.postMessage({}); } catch (err) {
+        $('btn-apple').disabled = false;
+        say(humanError(err), true);
+      }
+    });
+  }
+
+  // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），所以两边都兜。
+  window.__mtAppleResult = async (r) => {
+    $('btn-apple').disabled = false;
+    if (!r || r.error) {
+      // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。
+      if (r && r.error === 'canceled') { say(''); return; }
+      say(t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。'), true);
+      return;
+    }
+    say(t('app_verifying', '正在登录…'));
+    try {
+      const session = await LearnAuth.signInWithIdToken('apple', r.idToken, r.nonce);
+      await show(session);
+      // 与验证码那条路逐字相同：刚登录的人要的就是他的材料，让他再去找一个按钮，
+      // 等于这个 App 承认自己不知道自己是干什么的。
+      await doSync();
+    } catch (err) { say(humanError(err), true); }
+  };
+  try {
+    if (window.__mtApplePending) {
+      const p = window.__mtApplePending; window.__mtApplePending = null;
+      window.__mtAppleResult(p);
+    }
+  } catch (_) {}
+
   $('email').addEventListener('input', refreshPwEntry);
 
   $('email-form').addEventListener('submit', async (e) => {

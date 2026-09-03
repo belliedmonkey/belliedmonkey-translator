@@ -53,9 +53,15 @@
       </div>
 
       <div id="signin-forms" hidden>
+      <!-- 原生 Sign in with Apple（§8.4.1.2）。排在邮箱之前：它是一次点击，
+           邮箱那条要收信再抄码。按钮由 app.js 在原生桥存在时才显示 ——
+           不存在时显示它等于给一个点了没反应的按钮。 -->
+      <button id="btn-apple" type="button" hidden></button>
+      <p id="signin-or" class="hint" hidden></p>
+
       <form id="email-form">
         <label for="email" id="email-label"></label>
-        <input id="email" type="email" inputmode="email" autocomplete="email"
+        <input id="email" type="text" inputmode="email" autocomplete="username"
                autocapitalize="none" autocorrect="off" spellcheck="false" required>
         <button id="send" type="submit"></button>
       </form>

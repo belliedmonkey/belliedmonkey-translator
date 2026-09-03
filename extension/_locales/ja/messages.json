@@ -2066,5 +2066,13 @@
   "sync_code_any": {
     "message": "6 桁の確認コード",
     "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Apple ログインを開いています…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple ログインを完了できませんでした。下のメールまたは電話番号をお使いください。",
+    "description": "Native Apple sign-in failed (not user cancel)"
   }
 }

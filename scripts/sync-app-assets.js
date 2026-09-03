@@ -285,6 +285,9 @@ const BRIDGE_IMPORT_ANCHOR = /^import WebKit$/m;
 const BLOCKS = [
   { name: 'mt-audio-bridge', src: 'audio-bridge.swift', label: 'audio bridge' },
   { name: 'mt-deeplink-bridge', src: 'open-url-bridge.swift', label: 'deeplink bridge' },
+  // 原生 Sign in with Apple（learning-design §8.4.1.2）。跨桥的只有 id_token 与 nonce，
+  // 会话从头到尾只在页面那一侧。
+  { name: 'mt-apple-signin', src: 'apple-signin-bridge.swift', label: 'apple sign-in bridge' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -353,6 +356,27 @@ function patchAudioBridge(sharedDir) {
       notes.push('deeplink attach patched');
     }
   } else notes.push('deeplink attach already current');
+
+  // Sign in with Apple：attach（拿 webView 做弹窗锚点）+ 一条**独立**的消息通道。
+  // 独立而不是复用转换器那个 `controller` 通道，同 mtAudio 的理由：那个通道的函数体
+  // 整个包在 #if os(macOS) 里，且开头就 `message.body as! String` —— 传字典会 trap。
+  const A_ATTACH = 'MTAppleSignIn.attach(self.webView)';
+  vc = fs.readFileSync(f, 'utf8');
+  if (!vc.includes(A_ATTACH)) {
+    const anchor = 'self.webView.navigationDelegate = self';
+    if (!vc.includes(anchor)) notes.push('✗ apple attach: navigationDelegate 锚点缺失');
+    else {
+      vc = vc.replace(anchor, anchor + '\n\n'
+        + '        // Patched by scripts/sync-app-assets.js — 原生 Sign in with Apple（§8.4.1.2）。\n'
+        + '        if #available(iOS 13.0, macOS 10.15, *) {\n'
+        + '            ' + A_ATTACH + '\n'
+        + '            self.webView.configuration.userContentController.add(\n'
+        + '                MTAppleSignInRelay.shared, name: "mtAppleSignIn")\n'
+        + '        }');
+      fs.writeFileSync(f, vc);
+      notes.push('apple attach patched');
+    }
+  } else notes.push('apple attach already current');
   return notes.join(' · ');
 }
 
@@ -489,6 +513,48 @@ function patchInfoPlists(sharedDir) {
 // configurations that belong to the macOS APP target (matched by its
 // INFOPLIST_FILE — the extension target never records audio and stays ungranted).
 // Idempotent, like every patch here; regeneration wipes it, app:sync restores it.
+// Patch 4b (§8.4.1.2): Sign in with Apple 的 entitlement。
+//
+// 它**没有**构建设置的写法（沙箱与录音有，这个没有），只能来自一个 .entitlements
+// 文件。所以这一处是这份脚本里唯一往工程里放新文件、并改 CODE_SIGN_ENTITLEMENTS 的补丁。
+//
+// 只挂给两个 App target（按 INFOPLIST_FILE 认），**不挂扩展** —— 扩展不登录，
+// 多一个权限只会在审核时被问。
+//
+// 判据在别处：归档之后 `codesign -d --entitlements` 要能同时读到 applesignin 与
+// 沙箱 —— 「构建没报错」说明不了两者是否共存（verify:ios 覆盖不到 entitlement）。
+function patchEntitlements(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return 'no xcodeproj';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return 'no project.pbxproj';
+
+  // ① 文件本身
+  const rel = path.basename(sharedDir) + '/app.entitlements';
+  const dst = path.join(sharedDir, 'app.entitlements');
+  const tpl = fs.readFileSync(path.join(ROOT, 'app', 'native', 'app.entitlements'), 'utf8');
+  const had = fs.existsSync(dst) && fs.readFileSync(dst, 'utf8') === tpl;
+  if (!had) fs.writeFileSync(dst, tpl);
+
+  // ② 构建设置
+  let src = fs.readFileSync(f, 'utf8');
+  if (src.includes('CODE_SIGN_ENTITLEMENTS')) {
+    return `applesignin entitlement already patched${had ? '' : '（文件已更新）'}`;
+  }
+  // 与 audio-input 那处同一个纪律：只在**一个构建配置块内部**匹配（中间不许出现
+  // `}`），这样扩展 target 的设置行永远借不到 App target 的标识行。
+  const NEEDLE = /(\n\s*)INFOPLIST_FILE = "(iOS|macOS) \(App\)\/Info\.plist";/g;
+  let hits = 0;
+  src = src.replace(NEEDLE, (m, ws) => {
+    hits += 1;
+    return `${ws}CODE_SIGN_ENTITLEMENTS = "${rel}";` + m;
+  });
+  if (!hits) return 'applesignin: App target 的 INFOPLIST_FILE 没找到 — 转换器布局变了？';
+  fs.writeFileSync(f, src);
+  return `applesignin entitlement patched (${hits} configs)`;
+}
+
 function patchPbxproj(sharedDir) {
   const appRoot = path.dirname(sharedDir);
   const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
@@ -961,7 +1027,7 @@ function main() {
         ? loud(proj, 'widget', patchWidgetFiles(shared)) + ' · '
           + loud(proj, 'widget', patchWidgetTarget(shared))
         : 'widget: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }

@@ -2066,5 +2066,13 @@
   "sync_code_any": {
     "message": "6-stelliger Code",
     "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Apple-Anmeldung wird geöffnet…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Die Apple-Anmeldung wurde nicht abgeschlossen. Nutze stattdessen unten E-Mail oder Telefon.",
+    "description": "Native Apple sign-in failed (not user cancel)"
   }
 }
