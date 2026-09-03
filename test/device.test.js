@@ -86,8 +86,41 @@ describe('两个页面用的是这一份判据，不是自己写的媒体查询'
     test(html + ' 在首帧之前打标记', () => {
       const s = fs.readFileSync(path.join(ROOT, 'extension', html), 'utf8');
       const head = s.slice(0, s.indexOf('</head>'));
-      ok(head.includes('content/device.js'), html + ' 的 <head> 里没有 device.js');
-      ok(head.includes('Device.apply('), html + ' 没有在 <head> 里调用 Device.apply');
+      // 判据从「页面在 <head> 里调 Device.apply」换成「device.js 在 <head> 里同步
+      // 加载，而它自己 apply」—— 原来那句是内联 <script>，Firefox 的扩展 CSP 会
+      // **静默**拦掉，于是桌面版式在 Firefox 上从来没生效过（2026-09-03 AMO 报的）。
+      // 要钉的事实一个字没变：标记必须在**首帧之前**打上，否则手机版式会先闪一下。
+      const tag = /<script[^>]*src="[^"]*content\/device\.js"[^>]*>/.exec(head);
+      ok(tag, html + ' 的 <head> 里没有同步加载 device.js');
+      ok(!/\b(defer|async)\b/.test(tag[0]),
+        html + ' 的 device.js 带了 defer/async —— 那就跑在首帧之后，版式会先闪一下手机版');
+      const dev = fs.readFileSync(path.join(ROOT, 'extension/content/device.js'), 'utf8');
+      ok(/^\s*try \{ apply\(\); \}/m.test(dev),
+        'device.js 自己不 apply 了 —— 页面这边也没人调它，标记永远打不上');
+    });
+  }
+});
+
+// 扩展页面里不许有内联 <script>。
+//
+// Firefox 的扩展 CSP 默认拦它，而失败是**静默**的：脚本不执行，页面照常渲染，
+// 只是那件事没发生。2026-09-03 AMO 的校验器报了两条 warning，正是 device.js 那两处
+// `<script>Device.apply(document)</script>` —— 桌面版式在 Firefox 上从来没生效过。
+describe('扩展页面不许有内联脚本（Firefox CSP）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const PAGES = ['extension/onboard/onboard.html', 'extension/popup/popup.html',
+    'extension/options/options.html', 'extension/learn/review.html'];
+  for (const p of PAGES) {
+    test(p + ' 里的 <script> 都有 src', () => {
+      // 先剥掉 HTML 注释：注释里出现 <script> 字样是常事（这一条门禁自己的说明就写了
+      // 一句「不要在这里写内联 script」），把它当命中就是自己咬自己。
+      const src = fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+      const bad = [...src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+        .filter((m) => m[1].trim().length);
+      eq(bad.length, 0, `${p} 有 ${bad.length} 段内联脚本 —— Firefox 会静默拦掉。`
+        + '首段: ' + (bad[0] ? bad[0][1].trim().slice(0, 60) : ''));
     });
   }
 });

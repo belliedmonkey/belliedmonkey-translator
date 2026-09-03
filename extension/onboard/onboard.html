@@ -7,9 +7,10 @@
   <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
   <link rel="stylesheet" href="onboard.css">
   <!-- 设备类别要在**首帧之前**定下来，否则桌面上会先闪一下手机版式。
-       判据在 content/device.js（分层的理由写在那里）。 -->
+       判据在 content/device.js（分层的理由写在那里）。它自己就会 apply ——
+       **不要在这里写内联 <script> 去调**：Firefox 的扩展 CSP 会拦掉，
+       表现是桌面版式在 Firefox 上静默失效。 -->
   <script src="../content/device.js"></script>
-  <script>Device.apply(document);</script>
 </head>
 <!--
   扩展侧的首次引导。

@@ -49,6 +49,12 @@ var Device = (() => {
     return c;
   }
 
+  // **自己 apply，不要页面写内联 <script> 去调。** Firefox 的扩展 CSP 默认拦内联
+  // 脚本（AMO 校验器 2026-09-03 报的两条 warning 就是它），于是 data-device 永远
+  // 不会被打上，桌面版式在 Firefox 上静默失效 —— 不崩、不报错，只是没生效。
+  // 这个文件在两个页面的 <head> 里同步加载，所以这里执行的时机与原来那句一样。
+  try { apply(); } catch (_) {}
+
   return { classOf, apply };
 })();
 

@@ -573,16 +573,36 @@ var WebpageTranslator = (() => {
       d.style.outline = '2px solid currentColor';
       setTimeout(() => { d.style.outline = prev; }, 450);
     };
-    const start = () => { clearTimeout(timer); timer = setTimeout(confirm, STAR_HOLD_MS); };
+    // 只有**我们自己的长按刚刚触发过**，才吞掉紧随其后的 contextmenu。
+    // 那一次 contextmenu 是长按的产物（iOS 的文字 callout / 桌面把长按当右键），
+    // 让它出来会盖住刚给出的确认，而用户要的是收藏不是菜单。
+    let staredAt = 0;
+    const start = (e) => {
+      // 非主键（右键、中键）不起计时器：右键有它自己的语义，而长按是主键的手势。
+      if (e && e.button !== undefined && e.button !== 0) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => { staredAt = Date.now(); confirm(); }, STAR_HOLD_MS);
+    };
     const cancel = () => { clearTimeout(timer); timer = null; };
     d.addEventListener('pointerdown', start);
     d.addEventListener('pointerup', cancel);
     d.addEventListener('pointerleave', cancel);
     d.addEventListener('pointercancel', cancel);
-    // typeof guard: this runs inside the PAGE's contextmenu dispatch — if
-    // learn-collector failed to load, a bare reference would throw mid-dispatch
-    // (the try around attachStarGesture only guards the wiring, not invocation).
-    d.addEventListener('contextmenu', (e) => { if (typeof LearnCollector !== 'undefined' && LearnCollector.isOn) { e.preventDefault(); confirm(); } });
+    // **右键不再等于收藏，也不再被吞。**
+    //
+    // 原来这里是「采集开着就 preventDefault 并收藏」。采集默认关着的时候它没事；
+    // 2026-09-03 把采集改成默认开着的那一刻，它就变成了「每一段译文上右键都没反应」——
+    // 而右键译文最常见的用途恰恰是**复制译文**。界面文案（中英两份）从头到尾只承诺
+    // 「长按它的译文」，右键那条别名是我们自己加的，没有人在等它。
+    //
+    // typeof guard: 这段跑在**页面自己的** contextmenu 派发里 —— learn-collector 没
+    // 加载成功时，裸引用会在派发中途抛出（attachStarGesture 外面那个 try 只保护接线，
+    // 保护不到调用）。
+    d.addEventListener('contextmenu', (e) => {
+      if (typeof LearnCollector === 'undefined' || !LearnCollector.isOn) return;
+      if (Date.now() - staredAt > 1000) return;   // 不是长按带出来的那一次 → 放行
+      e.preventDefault();
+    });
   }
 
   function renderUnit(u, st) {
