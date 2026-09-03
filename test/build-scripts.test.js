@@ -911,3 +911,35 @@ describe('asc installs 的三个形状', () => {
       '缺凭证时没给出取值的地址 —— 那个号 API 查不到，只能去网页上抄');
   });
 });
+
+// Apple 的 OAuth secret 六个月过期（§8.4.1.2）。
+//
+// 到期时的表现是**只坏一半**：扩展里的「用 Apple 登录」开始失败，而 App 一切正常
+// —— 因为原生那条路走 id_token，根本不用这个 secret。半年后没有人会记得这里有个
+// 定时炸弹，而「一半的登录静默失效」正是这个仓库最怕的形状。
+//
+// 判据取自 .local/keys.md 里由 scripts/apple-client-secret.js 写回的到期日。
+// 那个文件是 gitignored 的，所以在 CI 上它不存在 —— **不存在时跳过**，而不是红。
+// 一条在 CI 上永远红的断言，等于一条没人看的断言。
+describe('Apple client secret 的到期提醒', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const KEYS = path.join(__dirname, '..', '.local', 'keys.md');
+
+  test('剩余有效期还够（本机有凭证时才判）', () => {
+    if (!fs.existsSync(KEYS)) return;                      // CI：没有凭证，跳过
+    const m = /^appleSecretExpires\s*=\s*(\d{4}-\d{2}-\d{2})/m.exec(fs.readFileSync(KEYS, 'utf8'));
+    if (!m) return;                                        // 还没生成过 secret
+    const days = Math.floor((new Date(m[1] + 'T00:00:00Z') - Date.now()) / 86400000);
+    ok(days > 30, `Apple 的 OAuth secret 还有 ${days} 天到期（${m[1]}）。`
+      + '过期后**扩展**里的 Apple 登录会静默失败，而 App 一切正常 —— 只坏一半，最难查。'
+      + ' 重新生成：node scripts/apple-client-secret.js');
+  });
+
+  test('生成器把到期日写回去了 —— 不写的话上面那条永远没东西可判', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'scripts/apple-client-secret.js'), 'utf8');
+    ok(src.includes('appleSecretExpires'), '生成器不再记录到期日');
+    ok(!/appleClientSecret\s*=/.test(src),
+      'secret 本身不该被写进 keys.md —— 它随时能重新生成，多存一份只是多一个泄露面');
+  });
+});
