@@ -114,6 +114,42 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         for (const k of Object.keys(ch)) self.__mtWrites.push({ k, v: ch[k].newValue });
       }); 1`);
 
+    // ── ⓪ 按钮点了到底会不会真的去 provider ────────────────────────────────
+    //
+    // 这一条是**行为**断言，不是结构断言。第一版代码写的是「先开一个空窗、算完
+    // URL 再塞给它」，而带 noopener 的 window.open 按规范**返回 null** ——
+    // 按钮点了什么都不发生，而代码看起来完全正确、单测也全绿。
+    // 只有真的点一次、看落到哪个域，才抓得住这一类。
+    {
+      const { targetId: t0 } = await cdp.send('Target.createTarget',
+        { url: `chrome-extension://${extId}/options/options.html#sync` });
+      const { sessionId: s0 } = await cdp.send('Target.attachToTarget', { targetId: t0, flatten: true });
+      await cdp.send('Runtime.enable', {}, s0);
+      await sleep(2500);
+      const btns = JSON.parse(await evIn(s0, `JSON.stringify(
+        ['btn-sync-apple','btn-sync-google'].map(id => { const e = document.getElementById(id);
+          return { id, vis: !!(e && e.getClientRects().length), off: !!(e && e.disabled) }; }))`));
+      notes.push('按钮: ' + JSON.stringify(btns));
+      const live = btns.filter((b) => b.vis && !b.off);
+      if (!live.length) {
+        problems.push('设置页上没有一个可点的第三方登录按钮 —— providers 表配了却没渲染？');
+      } else {
+        const seen = [];
+        const poll = async () => {
+          const { targetInfos } = await cdp.send('Target.getTargets', {});
+          for (const t of targetInfos) if (t.url && !seen.includes(t.url)) seen.push(t.url);
+        };
+        await evIn(s0, `document.getElementById(${JSON.stringify(live[0].id)}).click(); 1`);
+        for (let i = 0; i < 40; i += 1) { await poll(); await sleep(250); }
+        const hit = seen.find((u) => /\/auth\/v1\/authorize\?provider=/.test(u));
+        notes.push('点击落点: ' + (hit ? hit.slice(0, 90) : '（没有新标签）'));
+        if (!hit) {
+          problems.push(`点了 ${live[0].id} 之后没有任何标签去往 authorize —— `
+            + '「点了没反应」。带 noopener 的 window.open 返回 null，别指望拿到窗口对象');
+        }
+      }
+    }
+
     // 先种一个 pending —— 相当于用户刚在设置页点过「用 Google 登录」。
     await evIn(swS, `new Promise(r => chrome.storage.local.set(${JSON.stringify({
       learnAuthPkce: { verifier: 'V-VERIFIER', state: 'S-STATE', provider: 'google', at: Date.now() },
@@ -175,7 +211,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       problems.push('扩展页没有把票换成 session');
     }
     if (after.learnAuthCode) problems.push('票没被用掉 —— 下次开设置页会重放一次必然失败的兑换');
-    if (after.learnAuthPkce) problems.push('verifier 没被清掉 —— 它必须是一次性的');
+    // **用过的那一份**必须消失。而设置页每次加载都会为下一次备一份新的，所以
+    // 「learnAuthPkce 存在」本身不是问题 —— 判据是它不再是我们种下去的那个 verifier。
+    // 第一版按「存在即失败」判，于是加了 ⓪ 那一段之后它自己红了：那是判据错，不是代码错。
+    if (after.learnAuthPkce && after.learnAuthPkce.verifier === 'V-VERIFIER') {
+      problems.push('用过的 verifier 还在 —— 它必须是一次性的');
+    }
     if (after.learnUserId !== 'u-oauth') problems.push('learnUserId 没写 —— 跨面交接靠它');
 
     // ── ⑤ state 不符：停住，且不发请求 ──────────────────────────────────
@@ -196,7 +237,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     notes.push(`state 不符：换取请求 ${sent.length} 个，会话 ${post.learnAuth ? '有' : '无'}`);
     if (sent.length) problems.push('state 不符还去换票 —— 那等于把别人塞的票当成自己的');
     if (post.learnAuth) problems.push('state 不符却拿到了会话');
-    if (post.learnAuthPkce) problems.push('state 不符之后 verifier 没被清掉');
+    if (post.learnAuthPkce && post.learnAuthPkce.verifier === 'V2') {
+      problems.push('state 不符之后，那一份 verifier 没被清掉');
+    }
   } finally {
     try { await cdp.close(); } catch (_) {}
     chrome.cleanup();

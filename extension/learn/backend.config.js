@@ -52,8 +52,12 @@ var MT_BACKEND = {
   // 加一个 provider 的顺序永远是：先在 Supabase 配好并实测授权入口 302 到对的地方，
   // 再把它写进这张表。反过来做，就是发一个坏按钮出去。
   //   apple  —— 2026-09-03 配好（Services ID + secret，实测 302 到 appleid.apple.com）
-  //   google —— 还没配（Google Cloud 的 OAuth client 尚未建）
-  providers: ['apple'],
+  //   google —— 2026-09-03 配好（OAuth client 950198135110-…，实测 302 到
+  //             accounts.google.com 且 client_id 与本地那份逐字一致）
+  //
+  // 排序就是界面上的排序。Apple 在前：按下载数据用户几乎全在苹果设备上，而在那些
+  // 设备上 Sign in with Apple 是系统级的一次点击，Google 要走一次浏览器往返。
+  providers: ['apple', 'google'],
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MT_BACKEND;

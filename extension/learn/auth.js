@@ -432,15 +432,29 @@ var LearnAuth = (() => {
     return b64url(new Uint8Array(buf));
   }
 
-  // **返回**要打开的 URL，自己不开窗。用户手势必须在点击处理器里同步用掉 ——
-  // 任何 await 都会把它消耗掉，Safari 随后静默拦下（test/user-gesture.test.js 钉过）。
-  async function startProviderSignIn(provider, redirectTo) {
+  // PKCE 的准备**必须提前做完**，不能放在点击处理器里。两条约束叠在一起：
+  //   ① 用户手势必须同步用掉 —— 任何 await 都会把它消耗掉（test/user-gesture.test.js）
+  //   ② 开窗要带 noopener，否则登录页拿得到 window.opener
+  // 而 `window.open(..., 'noopener')` 按规范**返回 null** —— 所以「先开空窗、算完
+  // URL 再塞给它」这条路走不通：根本没有那个窗口对象。2026-09-03 的行为探针抓到的
+  // 正是这个：按钮点了，什么都不发生，而代码看起来完全正确。
+  //
+  // 所以拆成两步：页面加载时备好（异步），点击时同步取用。
+  let prepared = null;      // { verifier, state, challenge }
+
+  async function prepareProviderSignIn() {
     const verifier = randomB64(64);
     const state = randomB64(16);
-    await PageSettings.write({
-      [PKCE_KEY]: { verifier, state, provider: String(provider), at: Date.now() },
-    });
     const challenge = await challengeOf(verifier);
+    await PageSettings.write({ [PKCE_KEY]: { verifier, state, at: Date.now() } });
+    prepared = { verifier, state, challenge };
+    return true;
+  }
+
+  // **同步**。没备好就返回 null —— 调用方据此让按钮先不可点，而不是开一个空窗。
+  function providerSignInUrl(provider, redirectTo) {
+    if (!prepared) return null;
+    const challenge = prepared.challenge;
     const q = [
       ['provider', String(provider)],
       ['code_challenge', challenge],
@@ -494,7 +508,7 @@ var LearnAuth = (() => {
 
   return {
     signIn, verify, signInPassword, token, signOut, deleteAccount,
-    startProviderSignIn, completeProviderSignIn, signInWithIdToken,
+    prepareProviderSignIn, providerSignInUrl, completeProviderSignIn, signInWithIdToken,
     current, userId, displayName, bindCorpus, otherAccountOnDevice,
     cachedSession, lastLoadError, onChange,
     _reset,

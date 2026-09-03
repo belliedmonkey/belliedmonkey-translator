@@ -146,9 +146,15 @@ describe('手机号走同一条路（§8.4.1.2）', () => {
 });
 
 describe('第三方登录：PKCE（§8.4.1.1 第二条跨界裁定）', () => {
-  test('startProviderSignIn 存 verifier 并**返回** URL，自己不开窗', async () => {
+  test('★ 备好之前 providerSignInUrl 返回 null —— 而不是一个开不出来的窗', () => {
+    const { A } = loadWith(async () => okResponse({}));
+    eq(A.providerSignInUrl('google', 'https://x/y'), null);
+  });
+
+  test('prepare 存 verifier；URL 由**同步**函数给出（手势不能等 await）', async () => {
     const { A, stored } = loadWith(async () => okResponse({}));
-    const url = await A.startProviderSignIn('google', 'https://belliedmonkey.cc/auth/done.html');
+    await A.prepareProviderSignIn();
+    const url = A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
     ok(url.startsWith('https://x.example/auth/v1/authorize?'), 'URL 形状不对: ' + url);
     ok(url.includes('code_challenge_method=s256'), '没带 PKCE method');
     const p = stored.learnAuthPkce;
@@ -294,10 +300,10 @@ describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
   test('表里的每一个都是 auth.js 支持的 provider', () => {
     const src = fs.readFileSync(path.join(ROOT, 'extension/learn/auth.js'), 'utf8');
     for (const p of cfg.providers) {
-      // 支持的证据：startProviderSignIn 以 provider 为参数，所以只要它不是被写死的
+      // 支持的证据：providerSignInUrl 以 provider 为参数，所以只要它不是被写死的
       // 某一个即可；这里守的是「表里别出现一个显然不存在的名字」。
       ok(/[a-z]/.test(p) && p.length < 20, `providers 里有个可疑的值：${JSON.stringify(p)}`);
     }
-    ok(src.includes('startProviderSignIn'), 'auth.js 没有 provider 入口，这张表就没意义');
+    ok(src.includes('providerSignInUrl'), 'auth.js 没有 provider 入口，这张表就没意义');
   });
 });

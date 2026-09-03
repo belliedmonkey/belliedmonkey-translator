@@ -1427,20 +1427,32 @@ async function init() {
   //
   // **window.open 必须同步发生在点击处理器里。** 任何 await 都会把用户手势消耗掉，
   // Safari 随后静默拦下（test/user-gesture.test.js 为这条付过一次代价）。所以先把
-  // URL 备好再开窗 —— startProviderSignIn 只**返回** URL，不自己开。
+
+  // URL 在页面加载时就备好，点击处理器里**同步**取用并开窗。
+  // 「先开一个空窗、算完 URL 再塞给它」走不通：带 noopener 的 window.open 按规范
+  // 返回 null，压根没有那个窗口对象 —— 第一版就是这么写的，行为探针抓到「点了没反应」。
+  // 而 noopener 不能去掉：去掉之后登录页拿得到 window.opener。
   function wireProvider(id, provider) {
     const btn = $(id);
     if (!btn) return;
+    btn.disabled = true;                      // 备好之前不可点，而不是点了没反应
     btn.addEventListener('click', () => {
-      const w = window.open('about:blank', '_blank', 'noopener');   // 手势就用在这里
+      const url = LearnAuth.providerSignInUrl(provider, PROVIDER_REDIRECT);
+      if (!url) { syncSay(syncError({ code: 'pkce_missing' })); return; }
+      window.open(url, '_blank', 'noopener');
       syncSay(t('sync_opening', '正在打开登录页…'));
-      LearnAuth.startProviderSignIn(provider, PROVIDER_REDIRECT)
-        .then((url) => { if (w) w.location.href = url; })
-        .catch((e) => { try { if (w) w.close(); } catch (_) {} syncSay(syncError(e)); });
     });
   }
   // 只提供后端真的开着的那些（backend.config.js 的 providers）。表里没有的按钮
   // **直接不渲染** —— 灰着或点了报错，都是在告诉用户「这里有个坏东西」。
+  // 备好 PKCE，然后才让按钮可点。这一步很快（一次 SHA-256），但它是异步的，
+  // 而点击处理器里不能有 await。
+  LearnAuth.prepareProviderSignIn().then(() => {
+    for (const id of ['btn-sync-apple', 'btn-sync-google']) {
+      if ($(id)) $(id).disabled = false;
+    }
+  }).catch(() => { /* 备不好就保持不可点 —— 那比点了没反应诚实 */ });
+
   // 用 hidden **不是** remove()：这一页的 saveAll 会遍历控件，remove 掉的元素会让它
   // 每次都静默失败（test/quick-setup.test.js 为此立了一条断言，它当场抓住了我）。
   const AVAIL = (MT_BACKEND.providers || []);
