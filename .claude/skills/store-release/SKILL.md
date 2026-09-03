@@ -344,9 +344,12 @@ node scripts/cws-publish.js --upload --publish \
 - **CWS 的 API 读不到审核状态。** 只有 `?projection=DRAFT`（`PUBLISHED` 直接 400 让你
   改回 DRAFT），而那份数据里没有审核状态。`uploadState: NOT_FOUND` 说的是「草稿里
   没有待传的包」，**不是**「找不到这个扩展」。
-- **也没有撤回提交的 API。** Apple 那边可以撤审重提（代价是排队清零），Google 这边
-  连这个代价都付不了 —— 只能等上一版审完，通过或被拒都行。
-- 所以一天里发两版的话，第二版必然要等。要么合并成一版，要么挂个循环去试。
+- **没有撤回提交的 API，但开发者后台有。** 2026-09-03 实测：脚本这边只能等，而人进
+  开发者后台点一下 cancel review，下一次 `--upload --publish` 立刻就过了。所以撞到
+  「in review」时**先请用户去后台撤审**，不要默认只能等 —— 我第一反应挂了个每 10
+  分钟重试的循环，而正确答案是一句话请用户点一下。
+  （Apple 那边相反：API 能撤，代价是排队位置清零。）
+- 一天里发两版的话，第二版要么合并进第一版，要么走后台撤审这条路。
 
 **AMO：`--check` 看不见刚提交的那一版。** `线上版本` 是**已通过审核**的那个，新提交
 的在 `/versions/` 里而且默认被过滤掉了。要看它得显式带上过滤器：
@@ -457,7 +460,7 @@ node scripts/asc.js installs 45
 | 扩展列表里有幽灵条目 | `xcodebuild archive` 的中间产物被 LaunchServices 注册了 | `lsregister -dump` 找路径，`-u` 定点注销 |
 | 任何 node 脚本一跑就崩 | 本机 `NODE_OPTIONS` 指向不存在的 preload | `env -u NODE_OPTIONS` |
 | 官网 ZIP 与商店版本内容不同 | 那条路当时没有版本完整性门禁 | `npm run gh:check` |
-| CWS 传包报 `HTTP 200` 失败 | 上一版还在审；没有撤回 API，只能等 | `POST …/publish` 的错误文案点名状态 |
+| CWS 传包报 `HTTP 200` 失败 | 上一版还在审 | `POST …/publish` 点名状态；**请用户去后台 cancel review**，API 没这个端点 |
 | CWS 体检显示 `NOT_FOUND` | 那是「草稿里没有待传的包」，不是找不到条目 | 审核状态这个 API 根本读不到 |
 | AMO 传完 `--check` 还是旧版本 | `线上版本` 只算审核通过的 | `/versions/?filter=all_with_unlisted` |
 | 门禁说 HEAD 不在 tag 上 | HEAD 往前走了（哪怕只动 scripts/） | `--worktree` 从干净树出货，别 `--allow-dirty` |
