@@ -637,7 +637,7 @@
     "message": "Необязательно. Всё работает и без входа — синхронизация лишь делает так, чтобы прочитанные в браузере предложения появлялись и в приложении, и на других ваших устройствах. После входа синхронизируется всё собранное, включая кандидатов, ещё не попавших в повторение."
   },
   "sync_email": {
-    "message": "Эл. почта"
+    "message": "Почта"
   },
   "sync_send_code": {
     "message": "Отправить код"
@@ -2078,5 +2078,13 @@
   "learn_empty_other_account": {
     "message": "На этом устройстве есть материал и другой учётной записи. Сейчас вы вошли под другой — ничего не потеряно: войдите под прежней, и всё вернётся.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "Или по почте:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "Сначала укажите {what}",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

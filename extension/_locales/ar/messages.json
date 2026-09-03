@@ -643,7 +643,7 @@
     "message": "إرسال الرمز"
   },
   "sync_code": {
-    "message": "الرمز المكوّن من 6 أرقام في البريد"
+    "message": "رمز من 6 أرقام من البريد"
   },
   "sync_verify": {
     "message": "تسجيل الدخول"
@@ -2078,5 +2078,13 @@
   "learn_empty_other_account": {
     "message": "يحتوي هذا الجهاز أيضاً على مواد حساب آخر. أنت الآن مسجَّل بحساب مختلف — لم يُفقد شيء؛ سجّل الدخول بالحساب الأصلي وستعود.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "أو عبر البريد:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "أدخل {what} أولاً",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

@@ -2078,5 +2078,13 @@
   "learn_empty_other_account": {
     "message": "이 기기에는 다른 계정의 학습 자료도 있습니다. 지금은 다른 계정으로 로그인되어 있습니다 — 사라진 것이 아니며, 원래 계정으로 로그인하면 돌아옵니다.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "또는 이메일로:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "먼저 {what}을(를) 입력하세요",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

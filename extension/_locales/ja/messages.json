@@ -643,7 +643,7 @@
     "message": "確認コードを送信"
   },
   "sync_code": {
-    "message": "メールに届いた6桁のコード"
+    "message": "メールに届く 6 桁のコード"
   },
   "sync_verify": {
     "message": "ログイン"
@@ -2078,5 +2078,13 @@
   "learn_empty_other_account": {
     "message": "この端末には別のアカウントの学習素材もあります。いまは別のアカウントでログイン中です — 失われてはいません。元のアカウントでログインすれば戻ります。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "またはメールで：",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "まず{what}を入力してください",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

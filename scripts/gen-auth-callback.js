@@ -40,9 +40,17 @@ function render(site) {
   const T = {
     title: zh ? '正在完成登录 · 大肚猴翻译' : 'Finishing sign-in · BelliedMonkey Translator',
     h1: zh ? '正在完成登录…' : 'Finishing sign-in…',
-    lede: zh
-      ? '这一页会自动跳回扩展的设置页。没有跳转的话，说明这个浏览器里没有装大肚猴翻译，或者它被停用了。'
-      : 'This page hands the sign-in back to the extension and closes itself. If nothing happens, BelliedMonkey Translator is not installed in this browser, or it is disabled.',
+    lede: zh ? '正把登录结果交回扩展…' : 'Handing the sign-in back to the extension…',
+    // 这一页**能知道**扩展在不在（内容脚本会在 <html> 上打 data-mt-extension），
+    // 所以不许猜。2026-09-03 用户在 Safari iOS 上就卡在原来那句「如果没反应，
+    // 可能是没装或被停用」——两种猜测，一个都没帮到他。
+    noExt: zh
+      ? '这个浏览器里没有检测到大肚猴翻译。Safari 需要你**允许它在这个网站上运行**：点地址栏左边的「ぇA」→ 扩展 → 大肚猴翻译 → 允许。允许之后刷新这一页即可。'
+      : 'BelliedMonkey Translator was not detected in this browser. Safari needs you to allow it on this site: tap “ぇA” in the address bar → Extensions → BelliedMonkey Translator → Allow, then reload this page.',
+    stuck: zh
+      ? '扩展在，但这一页没能把结果交回去。把下面这串复制到设置页的登录区，也能完成登录：'
+      : 'The extension is here but this page could not hand the result back. Copy the string below into the sign-in area of Settings to finish:',
+    reload: zh ? '刷新这一页' : 'Reload this page',
     cta: zh ? '怎么安装 →' : 'How to install →',
     safe: zh
       ? '这一页不读取、也不保存你的任何登录信息 —— 它只是一个落地地址。'
@@ -65,11 +73,43 @@ ${headStyle(site.dir)}
   <section style="padding-top:56px;max-width:620px">
     <h1>${T.h1}</h1>
     <p class="lede" id="hint">${T.lede}</p>
-    <p style="margin-top:22px"><a class="btn" href="/setup.html">${T.cta}</a></p>
+
+    <!-- 三支，由页面自己判定，见下面的脚本。默认全隐藏：默认显示任何一支都是猜。 -->
+    <div id="no-ext" hidden>
+      <p class="lede">${T.noExt}</p>
+      <p style="margin-top:18px"><a class="btn" href="/setup.html">${T.cta}</a>
+        &nbsp;<a class="btn" href="" onclick="location.reload();return false">${T.reload}</a></p>
+    </div>
+    <div id="stuck" hidden>
+      <p class="lede">${T.stuck}</p>
+      <p><code id="ticket" style="word-break:break-all;font-size:.85em"></code></p>
+    </div>
+
     <p class="sub" style="margin-top:28px">${T.safe}</p>
   </section>
   <footer><span>© 2026 BelliedMonkey${zh ? '' : ', LLC'}</span><a href="/">${zh ? '首页' : 'Product'}</a></footer>
 </div>
+
+<script>
+/* 这一页有三种结局，它**分得清**是哪一种，所以不许说「可能是 A 也可能是 B」：
+     ① 扩展接住了 → 这一页会被导航走，下面的计时器根本不会跑到
+     ② 没检测到扩展 → 说清楚 Safari 要按站点授权（iOS 上这是最常见的一种）
+     ③ 扩展在、却没接住 → 把票显示出来，让用户手工完成
+   ③ 里把 code 显示给用户是**安全的**，理由与它能过内容脚本是同一条：
+   没有只存在扩展那一侧的 code_verifier，这串东西换不出任何东西。 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var code = q.get('code'), state = q.get('state');
+  if (!code) return;                       // 不是回调，什么都不做
+  setTimeout(function () {
+    var has = !!document.documentElement.dataset.mtExtension;
+    document.getElementById('hint').hidden = true;
+    if (!has) { document.getElementById('no-ext').hidden = false; return; }
+    document.getElementById('ticket').textContent = code + '.' + (state || '');
+    document.getElementById('stuck').hidden = false;
+  }, 3000);
+})();
+</script>
 </body>
 </html>
 `;

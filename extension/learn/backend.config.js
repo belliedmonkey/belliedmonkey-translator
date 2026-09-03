@@ -58,6 +58,18 @@ var MT_BACKEND = {
   // 排序就是界面上的排序。Apple 在前：按下载数据用户几乎全在苹果设备上，而在那些
   // 设备上 Sign in with Apple 是系统级的一次点击，Google 要走一次浏览器往返。
   providers: ['apple', 'google'],
+
+  // 手机号验证码。**还没接通** —— Supabase 的 Send SMS Hook 与阿里云 PNVS 都没配。
+  // 界面按这个值决定说不说「手机号」；auth.js 那一侧早就支持了，但**能力不等于承诺**：
+  // 在没接通时把「邮箱或手机号」写在标签上，是让用户填一个必然失败的东西。
+  //
+  // 接通之后这里也**不能直接写 true** —— PNVS 只发中国大陆号码（+86）。对一个法国
+  // 用户说「手机号」同样是假话。所以它的取值是**地域相关**的：
+  //   'cn'   —— 只在中国版构建里提供（那个 flavor 的用户几乎必然是 +86）
+  //   true   —— 所有地区都提供（只有换成一家全球可达的短信服务之后才成立）
+  //   false  —— 不提供（现在）
+  // 判据永远是「这条路对**这个**用户真的能走通吗」，不是「我们实现了吗」。
+  phoneOtp: false,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MT_BACKEND;

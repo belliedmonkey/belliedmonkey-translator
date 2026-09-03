@@ -644,7 +644,7 @@
     "message": "寄送驗證碼"
   },
   "sync_code": {
-    "message": "信件裡的 6 位驗證碼"
+    "message": "郵件裡的 6 位驗證碼"
   },
   "sync_verify": {
     "message": "登入"
@@ -2079,5 +2079,13 @@
   "learn_empty_other_account": {
     "message": "這台裝置上還有另一個帳號的學習材料。你現在登入的是另一個帳號 —— 那些卡沒有丟，用原來的帳號登入就會回來。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "或者用電子郵件：",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "先填{what}",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

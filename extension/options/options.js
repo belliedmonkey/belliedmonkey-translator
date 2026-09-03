@@ -1445,6 +1445,17 @@ async function init() {
   }
   // 只提供后端真的开着的那些（backend.config.js 的 providers）。表里没有的按钮
   // **直接不渲染** —— 灰着或点了报错，都是在告诉用户「这里有个坏东西」。
+  // 手机号那条路接通之后，这三处才改口。**能力不等于承诺** —— auth.js 早就支持
+  // 手机号了，但没接通短信通道时把「手机号」写在标签上，是让用户填一个必然失败的
+  // 东西（2026-09-03 用户实测）。接通之后 phoneOtp 还要按地域取值：PNVS 只发 +86。
+  if (MT_BACKEND.phoneOtp === true
+      || (MT_BACKEND.phoneOtp === 'cn' && window.MT_FLAVOR === 'china')) {
+    if ($('sync-id-label')) $('sync-id-label').textContent = t('sync_email_or_phone', '邮箱或手机号');
+    if ($('sync-email')) $('sync-email').placeholder = 'you@example.com / 13800138000';
+    if ($('sync-or')) $('sync-or').textContent = t('sync_or', '或者用邮箱 / 手机号：');
+    if ($('sync-code-label')) $('sync-code-label').textContent = t('sync_code_any', '6 位验证码');
+  }
+
   // 备好 PKCE，然后才让按钮可点。这一步很快（一次 SHA-256），但它是异步的，
   // 而点击处理器里不能有 await。
   LearnAuth.prepareProviderSignIn().then(() => {
@@ -1463,6 +1474,22 @@ async function init() {
   // 一个都没开时，那句「或者用邮箱 / 手机号：」就没有「或者」可言了。
   if (!AVAIL.length && $('sync-or')) $('sync-or').hidden = true;
 
+  // 手工粘票：Safari iOS 上内容脚本可能没有那一站的权限，落地页于是把票显示出来
+  // （显示它是安全的 —— 没有只在这一侧的 verifier，它换不出任何东西）。
+  // 粘进验证码那个框即可，不另加一个输入框：多一个框就是多一件要解释的事。
+  async function tryPastedTicket(raw) {
+    const m = /^([A-Za-z0-9_.\-]+)\.([A-Za-z0-9_\-]+)$/.exec(String(raw || '').trim());
+    if (!m) return false;
+    syncSay(t('sync_verifying', '验证中…'));
+    try {
+      await LearnAuth.completeProviderSignIn({ code: m[1], state: m[2] });
+      await refreshSyncUI();
+      syncSay(t('sync_signed_in_now', '已登录。第一次同步可能要几秒。'));
+      await runSync();
+    } catch (e) { syncSay(syncError(e)); }
+    return true;
+  }
+
   // 回调之后：票在 storage 里，这里（一个真正的扩展页）兑换。**不经 background** ——
   // Safari iOS 锁屏后 service worker 永久 undefined（项目须知里的头号约束：Safari 的后台脚本不可依赖）。
   LearnAuth.completeProviderSignIn().then(async (session) => {
@@ -1476,7 +1503,7 @@ async function init() {
   // repeat tap here burns the user's OWN limit (sync_err_rate exists because of it).
   $('btn-sync-code').addEventListener('click', busy($('btn-sync-code'), async () => {
     const who = $('sync-email').value.trim();
-    if (!who) { syncSay(t('sync_need_id', '先填邮箱或手机号')); return; }
+    if (!who) { syncSay($('sync-id-label') ? t('sync_need_id_dyn', '先填{what}').replace('{what}', $('sync-id-label').textContent) : t('sync_need_email', '先填邮箱')); return; }
     syncSay(t('sync_sending', '发送中…'));
     try {
       const r = await LearnAuth.signIn(who);
@@ -1490,6 +1517,8 @@ async function init() {
   }));
 
   $('btn-sync-verify').addEventListener('click', busy($('btn-sync-verify'), async () => {
+    // 粘进来的如果是落地页给的那张票（code.state），就走兑换而不是验证码。
+    if (await tryPastedTicket($('sync-code').value)) { $('sync-code').value = ''; return; }
     syncSay(t('sync_verifying', '验证中…'));
     try {
       await LearnAuth.verify($('sync-email').value.trim(), $('sync-code').value.trim());

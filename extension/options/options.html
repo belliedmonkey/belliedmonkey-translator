@@ -309,16 +309,20 @@
           <div id="sync-providers">
             <button id="btn-sync-apple" class="provider" data-i18n="sync_with_apple">用 Apple 登录</button>
             <button id="btn-sync-google" class="provider" data-i18n="sync_with_google">用 Google 登录</button>
-            <p class="hint" id="sync-or" data-i18n="sync_or">或者用邮箱 / 手机号：</p>
+            <p class="hint" id="sync-or" data-i18n="sync_or_email">或者用邮箱：</p>
           </div>
 
           <div class="field">
             <!-- 手机号也走这一个输入框（§8.4.1.2）。两个输入框会逼用户先做一次
                  「我算哪一类」的选择，而那个选择对他没有意义 —— 我们判得出来。
                  type 保持 text：type=email 会让浏览器拒绝手机号。 -->
-            <label for="sync-email" data-i18n="sync_email_or_phone">邮箱或手机号</label>
+            <!-- 标签与占位符由 options.js 按 MT_BACKEND.phoneOtp 决定：手机号那条路
+                 没接通时不许在这里出现「手机号」三个字（2026-09-03 用户实测截图）。
+                 输入框本身保持一个、type=text —— 将来打开手机号时不必改结构，
+                 而 type=email 会让浏览器直接拒绝手机号。 -->
+            <label for="sync-email" id="sync-id-label" data-i18n="sync_email">邮箱</label>
             <input type="text" id="sync-email" autocomplete="username" inputmode="email"
-                   placeholder="you@example.com / 13800138000">
+                   placeholder="you@example.com">
           </div>
           <button id="btn-sync-code" data-i18n="sync_send_code">发送验证码</button>
 
@@ -327,7 +331,7 @@
                link 仍然不做。见 learning-design §8.4.1 与 §8.4.1.2。 -->
           <div id="sync-code-row" hidden>
             <div class="field">
-              <label for="sync-code" data-i18n="sync_code_any">6 位验证码</label>
+              <label for="sync-code" id="sync-code-label" data-i18n="sync_code">邮件里的 6 位验证码</label>
               <input type="text" id="sync-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
             </div>
             <button id="btn-sync-verify" data-i18n="sync_verify">登录</button>

@@ -2078,5 +2078,13 @@
   "learn_empty_other_account": {
     "message": "This device also holds another account’s material. You are signed in as someone else right now — nothing was lost; sign back in with the original account and it returns.",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "Or use email:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "Enter your {what} first",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }

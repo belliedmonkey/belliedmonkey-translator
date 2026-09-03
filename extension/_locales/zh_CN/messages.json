@@ -2079,5 +2079,13 @@
   "learn_empty_other_account": {
     "message": "这台设备上还有另一个账号的学习材料。你现在登录的是另一个账号 —— 那些卡没有丢，用原来的账号登录就会回来。",
     "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "或者用邮箱：",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "先填{what}",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
   }
 }
