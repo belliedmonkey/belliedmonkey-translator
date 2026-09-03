@@ -39,6 +39,12 @@
            判据是 learnEnabled，不是只数 items.length。 -->
       <p id="empty-off" data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你真正读过的句子会自动存进来 —— 快速滚过去的不算。</p>
       <p id="empty-on" hidden data-i18n="learn_empty_on">采集已经开着了。照常浏览、照常翻译，你**停下来读完**的句子会出现在这里 —— 快速滚过去的不算。</p>
+      <!-- 第三支，比上面两支更要紧（§8.4.1.2 身份合并）：这台设备上**有**卡，
+           只是挂在另一个账号下。换一个身份登录（Apple 的「隐藏我的邮箱」、手机号）
+           会拿到一个新账号 + 一个独立的空库，而整条路**一个错都不报** ——
+           用户看到的就是这一页，然后以为自己的东西没了。
+           它出现时，上面两支要让位：那两句在这种情况下都是错的。 -->
+      <p id="empty-other" hidden data-i18n="learn_empty_other_account">这台设备上还有另一个账号的学习材料。你现在登录的是另一个账号 —— 那些卡没有丢，用原来的账号登录就会回来。</p>
       <p id="empty-settings-row"><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
       <!-- 扩展侧的引导入口。这是用户产生「为什么一张卡都没有」疑问的地方，也是唯一
            能回答它的地方。

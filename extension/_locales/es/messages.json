@@ -2074,5 +2074,9 @@
   "app_apple_failed": {
     "message": "El inicio de sesión con Apple no se completó. Usa el correo o el teléfono de abajo.",
     "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "Este dispositivo también guarda el material de otra cuenta. Ahora has iniciado sesión con otra — no se perdió nada; vuelve a entrar con la cuenta original y reaparece.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
   }
 }

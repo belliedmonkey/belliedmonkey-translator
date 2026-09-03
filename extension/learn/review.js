@@ -1042,9 +1042,15 @@
       // 而且会让他以为自己哪里做错了（2026-09-02 链路核查）。
       const capOn = !!(settings && settings.learnEnabled);
       const on = $('empty-on'); const off = $('empty-off'); const row = $('empty-settings-row');
-      if (on) on.hidden = !capOn;
-      if (off) off.hidden = capOn;
-      if (row) row.hidden = capOn;
+      // 第三支优先：这台设备上有另一个账号的库时，上面两句都是错的 ——
+      // 他的卡没有「还没攒到」，而是在另一个身份下（§8.4.1.2）。
+      let other = false;
+      try { other = await LearnAuth.otherAccountOnDevice(); } catch (_) {}
+      const oth = $('empty-other');
+      if (oth) oth.hidden = !other;
+      if (on) on.hidden = other || !capOn;
+      if (off) off.hidden = other || capOn;
+      if (row) row.hidden = other || capOn;
       $('progress').textContent = '';
       return;
     }

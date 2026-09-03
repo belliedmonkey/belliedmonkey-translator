@@ -2074,5 +2074,9 @@
   "app_apple_failed": {
     "message": "La connexion Apple n’a pas abouti. Utilisez plutôt l’e-mail ou le téléphone ci-dessous.",
     "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "Cet appareil contient aussi le matériel d’un autre compte. Vous êtes connecté avec un compte différent — rien n’est perdu ; reconnectez-vous avec le compte d’origine et tout revient.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
   }
 }

@@ -383,6 +383,23 @@ var LearnAuth = (() => {
     await PageSettings.write({ [DB_ACTIVE]: want });
     return want;
   }
+  // 这台设备上的**主库**是不是属于别人（§8.4.1.2 的身份合并那一节）。
+  //
+  // 为什么需要它：换一个身份登录时 bindCorpus 会给这个账号一个独立的空库，
+  // ownerGate 读的是库内部的戳，新库是空的于是直接认领 —— 整条路**一个错都不报**。
+  // 用户看到的是一个空的复习页，而他那堆卡还在这台设备上、只是挂在另一个身份下。
+  // 「隐藏我的邮箱」和手机号都会走到这里（都不参与按邮箱的自动并号）。
+  //
+  // 不开数据库：只读两个 storage 键。§8.4.3 那条「绑定不许要求打开数据库」的纪律
+  // 是为死锁付过代价的，这里没有理由再碰它。
+  async function otherAccountOnDevice() {
+    const r = await PageSettings.read([DB_OWNER]);
+    const owner = (r.ok && r.data[DB_OWNER]) || null;
+    if (!owner) return false;
+    const me = await userId();
+    return !!(me && owner !== me);
+  }
+
   function cachedSession() { return cached; }          // sync read for first paint
   // Non-null when the LAST load/store hit a storage failure. The UI uses it to
   // say 「存储读取失败」 instead of painting the signed-out state (law 2).
@@ -478,7 +495,8 @@ var LearnAuth = (() => {
   return {
     signIn, verify, signInPassword, token, signOut, deleteAccount,
     startProviderSignIn, completeProviderSignIn, signInWithIdToken,
-    current, userId, displayName, bindCorpus, cachedSession, lastLoadError, onChange,
+    current, userId, displayName, bindCorpus, otherAccountOnDevice,
+    cachedSession, lastLoadError, onChange,
     _reset,
   };
 })();

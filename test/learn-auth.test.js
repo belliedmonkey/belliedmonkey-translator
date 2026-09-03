@@ -217,3 +217,59 @@ describe('原生登录：id_token grant（App 侧）', () => {
     eq(stored.learnUserId, 'u-1', 'learnUserId 必须照旧写 —— 跨面交接靠它');
   });
 });
+
+describe('这台设备上是不是还有别人的库（§8.4.1.2 身份合并）', () => {
+  // 换一个身份登录时，bindCorpus 给新账号一个独立的空库，ownerGate 读的是库内部的
+  // 戳（新库是空的 → 直接认领）—— 整条路**一个错都不报**。用户看到的是一个空的
+  // 复习页，而他的卡还在这台设备上挂在另一个身份下。这个判据是那一支文案的开关。
+  test('主库属于别人 → true', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnDbOwner: 'u-first',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-second' },
+    });
+    eq(await A.otherAccountOnDevice(), true);
+  });
+
+  test('主库就是我 → false', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnDbOwner: 'u-me',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-me' },
+    });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('主库没主人（升级上来的设备）→ false，不许吓人', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-me' },
+    });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('没登录 → false（那是「未登录」，不是「另一个账号」）', async () => {
+    const { A } = loadWith(async () => okResponse({}), { learnDbOwner: 'u-first' });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('★ 不开数据库 —— §8.4.3 为死锁付过代价', async () => {
+    let opened = 0;
+    const stored = { learnDbOwner: 'u-first',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-2' } };
+    const ctx = loadModule('learn/auth.js', {
+      window: {},
+      MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+      PageSettings: {
+        read: async (keys) => ({ ok: true,
+          data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+        write: async () => ({ ok: true }), removeKeys: async () => ({ ok: true }),
+      },
+      LearnStore: {
+        getMeta: async () => { opened += 1; return null; },
+        setMeta: async () => { opened += 1; },
+        useDb: async () => { opened += 1; },
+      },
+      fetch: async () => okResponse({}),
+    });
+    await ctx.LearnAuth.otherAccountOnDevice();
+    eq(opened, 0, '它开了数据库 —— 这个判据只该读两个 storage 键');
+  });
+});

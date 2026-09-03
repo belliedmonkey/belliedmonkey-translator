@@ -2074,5 +2074,9 @@
   "app_apple_failed": {
     "message": "لم يكتمل تسجيل الدخول عبر Apple. يمكنك استخدام البريد أو الهاتف بالأسفل.",
     "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "يحتوي هذا الجهاز أيضاً على مواد حساب آخر. أنت الآن مسجَّل بحساب مختلف — لم يُفقد شيء؛ سجّل الدخول بالحساب الأصلي وستعود.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
   }
 }

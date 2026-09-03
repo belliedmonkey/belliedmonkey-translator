@@ -2074,5 +2074,9 @@
   "app_apple_failed": {
     "message": "Apple 로그인을 완료하지 못했습니다. 아래의 이메일이나 전화번호를 이용하세요.",
     "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "이 기기에는 다른 계정의 학습 자료도 있습니다. 지금은 다른 계정으로 로그인되어 있습니다 — 사라진 것이 아니며, 원래 계정으로 로그인하면 돌아옵니다.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
   }
 }

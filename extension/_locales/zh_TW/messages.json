@@ -2075,5 +2075,9 @@
   "app_apple_failed": {
     "message": "Apple 登入沒能完成。可以改用下面的電子郵件或手機號。",
     "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "這台裝置上還有另一個帳號的學習材料。你現在登入的是另一個帳號 —— 那些卡沒有丟，用原來的帳號登入就會回來。",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
   }
 }
