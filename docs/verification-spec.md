@@ -67,8 +67,8 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 
 | # | Surface | Execution mode | Status |
 |---|---|---|---|
-| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified pipeline |
-| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified pipeline |
+| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
+| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
 | 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
@@ -584,6 +584,31 @@ code bug. (A reinstall sometimes *preserves* the toggle+grant — environment-de
 Drive: `xcrun simctl io <UDID> screenshot x.png` to view cheaply; the FAB/overlay are
 **web content, not AX-bridged** → locate them in a `get_window_state` window screenshot
 and **pixel-click**. Record time-based behavior: `xcrun simctl io <UDID> recordVideo out.mov`.
+
+> **不要在模拟器里打字或滚动 —— 直接写扩展存储。**（2026-09-04 全矩阵实测）
+>
+> 这一轮 cua 对模拟器窗口的 AX 全程解析不到（`ax_window_unresolved`），后果是：
+> **像素点击照常работа，但 `type_text` 一个字符都进不去、`scroll` 与 `drag` 都不滚页**。
+> 长按也调不出「粘贴」菜单，`ios-sim-input-only-longpress-paste` 那条配方在这个状态下
+> 整条失效。绕过去的办法不是重试，是**换一个面**：
+>
+> ```bash
+> DB=$(find ~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application \
+>       -path '*Safari/WebExtensions*' -name 'local.db' | head -1)
+> sqlite3 "$DB" "select key, value from extension_storage;"   # 就是 chrome.storage.local
+> ```
+>
+> 表是 `extension_storage(key TEXT PRIMARY KEY, value TEXT)`，value 是 **JSON**
+> （字符串带引号）。写完 **terminate + relaunch Safari** 才会被读到。
+> 两个前置条件：**扩展先在设置里启用过**（否则这个库根本不存在），
+> 且目录名带团队 id（`com.belliedmonkeytranslator.extension (X2Q85MABWK)`）——
+> 旁边可能还躺着一个 `(UNSIGNED)` 的旧安装，别写错那个。
+>
+> 顺带：这个库也是**回读本机默认值**最便宜的地方。2026-09-04 就是在这里读到
+> `ttsEngine=""` · `ttsMode="off"` · `sttEngine=""`，一次 sqlite 查询顶一屏截图。
+>
+> 页面太长看不全时，用 Safari 自己的**「大小」→「小」**缩到 50%（下限），
+> 比试图滚动可靠 —— 但 50% 仍装不下整个设置页，够不到的那几段要另找判据。
 
 ### B. iPad Safari (Xcode Simulator) — ✅ verified
 
