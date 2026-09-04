@@ -673,6 +673,37 @@ function generateIcons(distDir) {
   log('Icons OK (real PNG)');
 }
 
+// ─── default_locale 按 flavor ──────────────────────────────────────────────
+//
+// `chrome.i18n` 对**没有对应 _locales/<locale> 目录**的用户，回落到 default_locale。
+// 这个值一直是 zh_CN，于是每一个我们没做本地化的市场，装完看到的是中文界面。
+//
+// 2026-09-04 用下载数据量出了代价：IT 是 30 天下载量第 3 名（18 次，8.9%），而
+// `_locales/` 里没有 it；加上 TR 9 / VN 6 / PL 4，共 37 次 = 国际版的 21.5%。
+// 这些人打开的是一个中文界面的翻译扩展。（`node scripts/store-stats.js` 的
+// 「市场缺口」那一节会持续报这个数。）
+//
+// 所以它按 flavor 分叉，而不是一个常量：
+//   · global / firefox —— `en`。国际版发到 36 个国家，英文是唯一合理的兜底。
+//   · china            —— `zh_CN`。它只在中国区分发，兜底成英文纯属倒退。
+//
+// 门禁而不是约定：这个值改错了**不会报错**，只会让一个市场安静地读到另一种语言
+// —— 和 issue #65 那个「目录名 Chrome 不认识就静默忽略」是同一类病。
+function defaultLocaleGate(distDir, label, flavor) {
+  const want = flavor === 'china' ? 'zh_CN' : 'en';
+  const m = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf8'));
+  if (m.default_locale !== want) {
+    err(`${label}: default_locale is "${m.default_locale}", expected "${want}" for flavor ${flavor}`);
+    process.exit(1);
+  }
+  // 兜底语言自己必须存在，否则回落的目的地是个空目录 —— 那比回落到别的语言更糟。
+  if (!fs.existsSync(path.join(distDir, '_locales', want, 'messages.json'))) {
+    err(`${label}: default_locale "${want}" has no _locales/${want}/messages.json`);
+    process.exit(1);
+  }
+  log(`default_locale gate OK (${label}: ${want})`);
+}
+
 // ─── Validate manifest ─────────────────────────────────────────────────────
 
 function validateManifest(distDir, isFirefox) {
@@ -819,6 +850,18 @@ if (SYNC_ON) {
 // Flavor overrides applied to DIST only
 if (FLAVOR === 'china') {
   applyChinaLocales(DIST);
+  // 兜底语言跟着 flavor 走 —— 源里是 en（国际版发 36 个国家），中国版只在中国区
+  // 分发，回落成英文纯属倒退。判据在 defaultLocaleGate。
+  {
+    const mp = path.join(DIST, 'manifest.json');
+    const mm = JSON.parse(fs.readFileSync(mp, 'utf8'));
+    mm.default_locale = 'zh_CN';
+    fs.writeFileSync(mp, JSON.stringify(mm, null, 2));
+    // 打印**回读**的值，不是写死的字面量 —— 一句写死的日志在赋值被改坏时照样说
+    // 「-> zh_CN」，那正是这个仓库最贵的那类谎。
+    log('China: default_locale -> '
+      + JSON.parse(fs.readFileSync(mp, 'utf8')).default_locale);
+  }
   generateI18nMessages(DIST);      // rebuild i18n table from the scrubbed China locales
   // Sync OFF in the China artifact (source stays true): the China app is
   // unreleased and PIPL/cross-border compliance is unevaluated. Its own Gate,
@@ -848,6 +891,7 @@ if (FLAVOR === 'china') {
 
 // 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。
 defaultProviderGate(DIST, path.basename(DIST), FLAVOR);
+defaultLocaleGate(DIST, path.basename(DIST), TARGET === 'firefox' ? 'global' : FLAVOR);
 
 // Firefox-specific patches
 if (isFirefox) patchManifestForFirefox();

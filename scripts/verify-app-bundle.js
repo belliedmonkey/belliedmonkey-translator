@@ -142,9 +142,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'tts-engine','tts-api-key','tts-base-url','tts-model',
           'tts-voice','tts-auto','tts-rate',
           // §7.2 device-local credential for §9.2 notes
-          'notes-provider','notes-key','notes-base','notes-model',
+          'notes-provider','notes-api-key','notes-base-url','notes-model',
           // §7.2 device-local credential for the §9.4 transcription engine
-          'stt-engine','stt-key','stt-base','stt-model',
+          'stt-engine','stt-api-key','stt-base-url','stt-model',
           // §9.5 出发前预载 — the two-tap price-then-spend control and its readouts.
           'drive-preload-days','btn-drive-preload','drive-preload-note',
           'drive-audio-cache','btn-drive-clear-audio',
@@ -207,6 +207,95 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     // lost, this is the check that knows (the DOM assertions above cannot see it).
     // Only meaningful when the account surface exists (sync-enabled builds — the
     // disabled build returns from boot before wire() attaches any listener).
+    // ── 引擎字段的显隐：**渲染后**与组件的判据逐项相等（2026-09-04）────────────
+    //
+    // 这是「App 设置页与扩展端不一致」那个报障的门。它必须问**渲染后的可见性**，
+    // 不是 `.hidden` 的属性值 —— 一条 display 声明就能把 hidden 压掉，而那正是
+    // engine-fields.js 文件头列的四处漂移里最难发现的一处。
+    //
+    // 判据是「与 EngineFields.visibility(entry) 相等」而不是一张写死的期望表：
+    // 写死的表是第八份手抄，注册表一变它就成了谎话。
+    {
+      const fx = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const vis = (el) => !!(el && el.offsetParent !== null);
+          const rows = (p) => ({
+            key: vis(document.getElementById(p + '-key-field')),
+            baseUrl: vis(document.getElementById(p + '-base-field')),
+            model: vis(document.getElementById(p + '-model-field')),
+          });
+          const SL = EngineFields.SLOTS;
+          const cases = [
+            ['tts', 'tts', 'tts-engine', (window.MT_TTS_ENGINES || [])],
+            ['stt', 'stt', 'stt-engine', (window.MT_STT_ENGINES || [])],
+            ['notes', 'notes', 'notes-provider', LearnNotes.chatEngines()],
+          ];
+          // 必须先真的进设置页：祖先 hidden 时 offsetParent 对每一个后代都是 null，
+          // 于是「全部不可见」，这条断言会以一种看起来很像真发现的方式全线报错。
+          document.getElementById('gear').click();
+          await new Promise((r) => setTimeout(r, 120));
+          // 详细档才谈得上字段显隐 —— 快速档整批 .adv-only 是收起来的。
+          document.getElementById('mode-detail').click();
+          await new Promise((r) => setTimeout(r, 60));
+          const bad = [];
+          let checked = 0;
+          for (const [slot, prefix, selId, entries] of cases) {
+            const sel = document.getElementById(selId);
+            for (const e of entries) {
+              sel.value = e.id;
+              sel.dispatchEvent(new Event('change'));
+              await new Promise((r) => setTimeout(r, 20));
+              const want = EngineFields.visibility(e);
+              const got = rows(prefix);
+              checked += 1;
+              for (const f of ['key', 'baseUrl', 'model']) {
+                if (!!want[f] !== got[f]) {
+                  bad.push(slot + '/' + e.id + '.' + f + ' 期望 ' + !!want[f] + ' 实际 ' + got[f]);
+                }
+              }
+            }
+          }
+          // 不变量（interaction-spec「一键配置与逐引擎配置永不同屏」）：两档互斥，
+          // 且快速档必须有一条**可见**的路通向详细档 —— 「只藏不给路是退化，不是简化」。
+          const anyVis = (sel) => [...document.querySelectorAll(sel)].some((e) => vis(e));
+          const tabsHidden = !vis(document.getElementById('mode-tabs'));
+          document.getElementById('mode-quick').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const quick = {
+            adv: anyVis('#app-settings .adv-only'),
+            card: anyVis('#app-settings .quick-only'),
+            path: vis(document.getElementById('mode-detail')),
+          };
+          document.getElementById('mode-detail').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const detail = {
+            adv: anyVis('#app-settings .adv-only'),
+            card: anyVis('#app-settings .quick-only'),
+          };
+          document.getElementById('settings-back').click();
+          await new Promise((r) => setTimeout(r, 60));
+          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail });
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const fv = JSON.parse(fx.result.value);
+      need(fv.checked > 0, '一个引擎都没验到 —— 三个下拉都是空的？这条断言空转了');
+      // 这个 flavor 没有可一键的平台时，tabs 整块藏起来、只剩详细档 —— 那是正当状态，
+      // 与「两档都在但互斥」是两种不同的正确，分开判。
+      if (fv.tabsHidden) {
+        need(fv.detail.adv && !fv.detail.card,
+          '一键卡渲染不出来时应当只剩详细档，实际 adv=' + fv.detail.adv + ' card=' + fv.detail.card);
+      } else {
+        need(fv.quick.card && !fv.quick.adv,
+          '快速档没有互斥：一键卡 ' + fv.quick.card + '、逐引擎控件仍可见 ' + fv.quick.adv
+          + ' —— 两者共存时一键卡显示的「配没配过」当场变成谎话');
+        need(fv.detail.adv && !fv.detail.card,
+          '详细档没有互斥：逐引擎 ' + fv.detail.adv + '、一键卡仍可见 ' + fv.detail.card);
+        need(fv.quick.path, '快速档没有一条可见的路通向详细档 —— 只藏不给路是退化，不是简化');
+      }
+      need(fv.bad.length === 0,
+        '引擎字段的渲染结果与 EngineFields 的判据不符（' + fv.checked + ' 个引擎里 '
+        + fv.bad.length + ' 处）：' + fv.bad.slice(0, 6).join(' · '));
+    }
+
     if (o.syncEnabled) {
       const g = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
@@ -215,7 +304,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           const opt = [...sel.options].find((x) => x.value);
           sel.value = opt ? opt.value : '';
           sel.dispatchEvent(new Event('change'));
-          const key = document.getElementById('notes-key');
+          const key = document.getElementById('notes-api-key');
           key.value = 'k-live-gate';
           key.dispatchEvent(new Event('change'));
           await new Promise((r) => setTimeout(r, 80));

@@ -26,6 +26,15 @@ Corollaries:
 - **State honestly what was and wasn't run.** For each task, report the per-surface
   result: verified-live (screenshot/recording) · documented-not-run · N/A. Never imply
   full coverage you didn't perform. (See §4 honesty rules.)
+- **两个宿主的同一个控件族，必须由同一个组件渲染。** 扩展页与宿主 App 是两个
+  origin、两份存储（`docs/domain-design.md` §9.3），但**规则只能有一份**。手写第二份
+  的代价不是重复代码，是**静默漂移**：它不报错、不被任何现有门禁看见，只在某个引擎的
+  某个字段上表现为「另一边没有这个框」。2026-09-04 实测到六处，全部来自
+  `app/settings.js` 手抄 options 页的显隐规则：`supportsKey ?? needsKey` 只有一半的
+  地方判 · 解析引擎那处干脆不判 `needsKey`（选了引擎就露 Key 框）· 示例地址只有一半
+  的地方给 · 一半用 `hidden` 一半用 `style.display`（前者会被后者压掉）· 四个输入框
+  id 与注册表对不上 · 同一概念两份 i18n key。**守它的门禁必须覆盖每一个 host** ——
+  原来那道只 grep `options.js`，于是 App 那三份从来不会让任何测试变红。见 §3.1.4。
 - **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
   browser/computer-use tools — for every surface, including desktop Chrome.
 - **Configure DeepSeek on every surface before verifying — never verify on the free
@@ -1084,6 +1093,52 @@ loop with a seeded per-tier corpus, asserting against the DATABASE for behavior 
 sweeping the visible surface after every step (non-empty labels, foreground ≠
 background — the class of bug that only exists where CSS cascades differ per host).
 Case list and manual-matrix complement: [`learn-regression.md`](learn-regression.md).
+
+### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
+
+**Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
+设置区 · `extension/options/**` · `extension/learn/engine-fields.js` ·
+`build/app-bundle.js` 的 `MODULES`。
+
+促成它的报障（2026-09-04）：用户报「App 的设置页居然没有与扩展端保持一致」。
+根因是 `engine-fields.js` —— 那个为消灭手抄而抽出来的组件 —— **不在 App 包的
+`MODULES` 里**，所以 `app/settings.js` 只能继续手抄，而守它的门禁只 grep
+`options.js`。两件事叠在一起，等于这条路修了一半、且没有人会被告知。
+
+两层，缺一不可：
+
+- **静态（`npm test` · `test/engine-fields.test.js`）** —— App 侧不许再自己判
+  `supportsKey/needsKey/supportsBaseUrl/supportsModel`；三组引擎配置都接在
+  `EngineFields.visibility()` 上；下拉一律走 `populate()`；输入框 id 从
+  `EngineFields.SLOTS` 取而**不是第八份手抄表**；组件（含 `engine-test.js`）
+  真的在 `MODULES` 里且排在 `app/settings.js` 之前。
+- **真渲染（`npm run test:app`）** —— 在真 Chrome 里进设置页、切到「详细」，
+  把三个下拉的**每一个引擎**都选一遍，断言三个字段行的**渲染后可见性**与
+  `EngineFields.visibility(entry)` 逐项相等。
+
+**同一族里的第三条（`npm test`）：App 读得到的设置，设置页必须管得到。**
+`app/driving.js` 的读取清单减去 `app/settings.js` 的键集，差集必须**恰好等于**一张
+写明理由的白名单。多出来的那个键会**静默赢过**设置页写的值，而用户看不见也清不掉它。
+
+> ⚠️ 这条不许用「把那半组从读取清单里删掉」来修。`extension/learn/review.js` 是与
+> 扩展**同一份字节**打进 App 包的，它自己也读 notes* 也调 `resolveConfig`；只删一处
+> 的结果是同一个 App 里播客模式回落到基础组、复习页仍用 notes 组 —— 从「一个静默赢」
+> 变成「两处解出两个不同引擎」。而 review.js 那份不能动：扩展那边 notes 组是真实可配的。
+> **所以钉的是不变量本身，不是某一处读取。** 2026-09-04 动手前查出来的。
+
+今天白名单上有六个，其中 `uiLang` 是**已知缺口而不是设计**：`driving.js` 已经在读它，
+App 里却没有任何控件，界面语言永远落到 `navigator.language`。
+
+两条判据上的纪律：
+
+- **问渲染后的可见性（`offsetParent`），不问 `.hidden` 的属性值。** 一条 display
+  声明就能把 `hidden` 压掉（`test/hidden-guard.test.js` 就是为它立的），而那正是
+  六处漂移里最难发现的一处。
+- **期望值来自组件，不是一张写死的表。** 写死的表是第八份手抄，注册表一变它就成了谎话。
+- 断言必须**先真的进设置页**：祖先 `hidden` 时 `offsetParent` 对每一个后代都是 null，
+  于是「全部不可见」会以一种很像真发现的方式全线报错。这条已经踩过一次。
+- 门禁要**证伪**过：删掉 `MODULES` 里的一行、恢复一处手写显隐、把旧 id 放回来、
+  让某个字段恒显 —— 四种破坏方式当场各红一次，才算这道门存在。
 
 ### 3.2 `npm run test:layout` — layout regression corpus
 

@@ -21,9 +21,15 @@ const DIR = path.join(__dirname, '..', 'extension', '_locales');
 const LOCALES = fs.readdirSync(DIR).filter((d) => fs.existsSync(path.join(DIR, d, 'messages.json')));
 const load = (l) => JSON.parse(fs.readFileSync(path.join(DIR, l, 'messages.json'), 'utf8'));
 
-// zh_CN 是 manifest 的 default_locale，所以它是事实上的基准：任何 locale 缺的键，
-// 运行时都回落到它。基准本身缺键则谁也救不了，那是下面第二条测试。
-const BASE = 'zh_CN';
+// 基准 = manifest 的 default_locale：任何 locale 缺的键，运行时都回落到它。
+// 基准本身缺键则谁也救不了，那是下面第二条测试。
+//
+// 2026-09-04 从 zh_CN 改成 en，跟着 manifest 走（见 build.js 的 defaultLocaleGate：
+// 没做本地化的市场此前装完看到的是中文界面，而那是 21.5% 的下载量）。
+// **从 manifest 读，不写死** —— 两个地方各存一份「兜底语言是谁」，迟早会各说各话。
+const BASE = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'extension', 'manifest.json'), 'utf8'),
+).default_locale;
 
 describe('i18n: 11 份 messages.json 是同一个键集', () => {
   test('每一份 locale 都存在且是合法 JSON', () => {

@@ -244,6 +244,48 @@
       <button id="settings-back" type="button" class="link"></button>
       <h2 id="settings-title"></h2>
 
+      <!-- 「快速 | 详细」两档 —— 与扩展设置页同一套类名契约（.adv-only / .quick-only）
+           和同一条不变量：一键配置卡与逐引擎控件**永不同屏**（interaction-spec）。
+           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护，
+           从 DOM 里拿掉一张卡会让每次保存静默失败。 -->
+      <div class="mode-tabs" id="mode-tabs" role="tablist">
+        <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
+        <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+      </div>
+
+      <!-- 一把 key 配好全部（QuickSetup）。与扩展设置页、扩展引导第 2 屏是**同一个
+           组件**。它算出 patch 交给 host 写盘，本页的 applyQuickSetup() 负责落地。
+           它 plan() 出来的 chat 三键正是 provider / apiKey / apiBaseUrl / apiModel
+           —— 与 App 这一档用的键完全对齐，零适配。 -->
+      <section class="quick-only" id="quick-setup-card">
+        <h3 id="quick-setup-title"></h3>
+        <div id="quick-setup"></div>
+      </section>
+
+      <!-- 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项 —— 两边存储不通，
+           但**选项集合必须一致**，由 test/engine-fields.test.js 的门禁钉在 _locales/ 上。
+           在 App 里它不只是「界面文字」：driving.js 拿它当用户的母语，决定句子解析用
+           哪种语言生成、用哪个语音朗读，**播客模式入口还按它有没有语音做门控** ——
+           在没有这个控件之前，系统语言不是母语的人会拿到一个默认消失的入口。 -->
+      <label class="field">
+        <span id="ui-lang-label"></span>
+        <select id="ui-lang">
+          <option value="auto" id="ui-lang-auto"></option>
+          <option value="zh_CN">简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ar">العربية</option>
+          <option value="pt_BR">Português</option>
+          <option value="ru">Русский</option>
+        </select>
+      </label>
+
       <label class="field">
         <span id="daily-label"></span>
         <input id="daily" type="number" min="1" max="200" step="1" inputmode="numeric">
@@ -263,21 +305,21 @@
         <span id="tts-auto-label"></span>
       </label>
 
-      <label class="field">
+      <label class="field adv-only">
         <span id="tts-engine-label"></span>
         <select id="tts-engine"></select>
       </label>
-      <label class="field" id="tts-key-field">
+      <label class="field adv-only" id="tts-key-field">
         <span id="tts-key-label"></span>
         <input id="tts-api-key" type="password" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="tts-base-field">
+      <label class="field adv-only" id="tts-base-field">
         <span id="tts-base-label"></span>
         <input id="tts-base-url" type="url" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="tts-model-field">
+      <label class="field adv-only" id="tts-model-field">
         <span id="tts-model-label"></span>
         <input id="tts-model" type="text" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
@@ -294,33 +336,33 @@
         <output id="tts-rate-out"></output>
       </label>
 
-      <label class="field">
+      <label class="field adv-only">
         <button id="btn-tts-test" type="button"></button>
       </label>
       <p class="note" id="test-tts-note"></p>
       <p class="note" id="tts-note"></p>
 
       <h3 id="notes-title"></h3>
-      <label class="field">
+      <label class="field adv-only">
         <span id="notes-provider-label"></span>
         <select id="notes-provider"></select>
       </label>
-      <label class="field" id="notes-key-field">
+      <label class="field adv-only" id="notes-key-field">
         <span id="notes-key-label"></span>
-        <input id="notes-key" type="password" autocomplete="off" autocapitalize="none"
+        <input id="notes-api-key" type="password" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="notes-base-field">
+      <label class="field adv-only" id="notes-base-field">
         <span id="notes-base-label"></span>
-        <input id="notes-base" type="url" autocomplete="off" autocapitalize="none"
+        <input id="notes-base-url" type="url" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="notes-model-field">
+      <label class="field adv-only" id="notes-model-field">
         <span id="notes-model-label"></span>
         <input id="notes-model" type="text" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field">
+      <label class="field adv-only">
         <button id="btn-test-notes" type="button"></button>
       </label>
       <p class="note" id="test-notes-note"></p>
@@ -363,26 +405,26 @@
       <button id="btn-drive-clear-audio" type="button" class="danger"></button>
 
       <h3 id="stt-title"></h3>
-      <label class="field">
+      <label class="field adv-only">
         <span id="stt-engine-label"></span>
         <select id="stt-engine"></select>
       </label>
-      <label class="field" id="stt-key-field">
+      <label class="field adv-only" id="stt-key-field">
         <span id="stt-key-label"></span>
-        <input id="stt-key" type="password" autocomplete="off" autocapitalize="none"
+        <input id="stt-api-key" type="password" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="stt-base-field">
+      <label class="field adv-only" id="stt-base-field">
         <span id="stt-base-label"></span>
-        <input id="stt-base" type="url" autocomplete="off" autocapitalize="none"
+        <input id="stt-base-url" type="url" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field" id="stt-model-field">
+      <label class="field adv-only" id="stt-model-field">
         <span id="stt-model-label"></span>
         <input id="stt-model" type="text" autocomplete="off" autocapitalize="none"
                autocorrect="off" spellcheck="false">
       </label>
-      <label class="field">
+      <label class="field adv-only">
         <button id="btn-test-stt" type="button"></button>
       </label>
       <p class="note" id="test-stt-note"></p>

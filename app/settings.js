@@ -23,7 +23,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules',
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang',
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
@@ -63,7 +63,12 @@ var AppSettings = (() => {
 
   function paintStatic() {
     $('settings-title').textContent = t('app_set_title', '设置');
+    $('mode-quick').textContent = t('opt_mode_quick', '快速');
+    $('mode-detail').textContent = t('opt_mode_detail', '详细');
+    $('quick-setup-title').textContent = t('qs_title', '用一把 key 配好全部');
     $('settings-back').textContent = t('app_review_back', '← 返回');
+    $('ui-lang-label').textContent = t('ui_lang_label', '界面语言');
+    $('ui-lang-auto').textContent = t('ui_lang_auto', '跟随系统');
     $('daily-label').textContent = t('app_set_daily', '每天最多学几张新卡');
     // The three modes reuse the extension options page's keys — same feature, same
     // words, one translation to maintain.
@@ -74,14 +79,10 @@ var AppSettings = (() => {
     // Engine labels come from the registry (labelKey via t, else the literal) —
     // same rule as the notes picker: nothing engine-specific restated here.
     $('tts-engine-label').textContent = t('tts_engine', '语音引擎');
-    const esel = $('tts-engine');
-    esel.textContent = '';
-    for (const e of (window.MT_TTS_ENGINES || [])) {
-      const o = document.createElement('option');
-      o.value = e.id;
-      o.textContent = e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id);
-      esel.append(o);
-    }
+    // 用注册表填下拉：EngineFields.populate 一处实现。它比手抄多做两件事 ——
+    // 存着的 id 注册表不认识时**落到一个能用的选项**（换 flavor / 降级安装 / 厂商下架
+    // 都会让一个合法保存过的 id 消失，留一个空 select 更糟），以及哨兵项的语义。
+    EngineFields.populate($('tts-engine'), window.MT_TTS_ENGINES || [], { t });
     $('tts-key-label').textContent = t('tts_api_key', '语音 API Key');
     $('tts-base-label').textContent = t('tts_base_url', '语音端点地址');
     $('tts-model-label').textContent = t('tts_model', '语音模型');
@@ -98,16 +99,12 @@ var AppSettings = (() => {
     // The picker lists chat-capable engines ONLY, and asks LearnNotes which those
     // are — the gate and the picker share one definition, so they cannot drift.
     // Labels come from the registry; nothing engine-specific is restated here.
-    const sel = $('notes-provider');
-    sel.textContent = '';
-    const none = document.createElement('option');
-    none.value = ''; none.textContent = t('app_set_notes_none', '不使用');
-    sel.append(none);
-    for (const p of LearnNotes.chatEngines()) {
-      const o = document.createElement('option');
-      o.value = p.id; o.textContent = p.label;
-      sel.append(o);
-    }
+    // ⚠️ 哨兵的**语义在两个宿主上不同，这是有意的**：扩展那边 '' = 「跟随翻译引擎」
+    // （它有一个翻译引擎可跟随）；App 里没有网页翻译，没有可跟随的对象，所以 '' =
+    // 「不使用」。所以这里显式传 sentinel，而不是用 SLOTS.notes 的默认哨兵。
+    EngineFields.populate($('notes-provider'), LearnNotes.chatEngines(), {
+      t, sentinel: { value: '', text: t('app_set_notes_none', '不使用') },
+    });
     // §9.4 — transcription engine for the 说 exercise. Empty = not configured =
     // the speak form does not exist. Candidates come from the generated registry.
     $('drive-title').textContent = t('drive_entry', '播客模式');
@@ -130,18 +127,9 @@ var AppSettings = (() => {
     $('btn-test-stt').textContent = t('engine_test', '测试连接');
     $('btn-tts-test').textContent = t('tts_test', '试听一句');
     $('stt-note').textContent = t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。');
-    const ssel = $('stt-engine');
-    ssel.textContent = '';
-    const snone = document.createElement('option');
-    snone.value = '';
-    snone.textContent = t('stt_engine_none', '未配置（不出「说」题）');
-    ssel.append(snone);
-    for (const e of (window.MT_STT_ENGINES || [])) {
-      const o = document.createElement('option');
-      o.value = e.id;
-      o.textContent = e.labelKey ? t(e.labelKey, e.label || e.id) : (e.label || e.id);
-      ssel.append(o);
-    }
+    EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], {
+      t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
+    });
     // 来源治理 (interaction-spec): rules follow the account (§8.9); the phone is a
     // natural place to edit them even though the app itself never captures.
     $('app-langs-title').textContent = t('learn_langs_label', '学习语言');
@@ -250,18 +238,27 @@ var AppSettings = (() => {
       .replace('{reasons}', named);
   }
 
-  // Field visibility follows the registry entry (needsKey / supportsBaseUrl /
-  // supportsModel), mirroring the extension options page — one registry, N
-  // consumers, no restating what an engine wants.
+  // 显隐与示例地址一律走 EngineFields —— **不在这里复述规则**。
+  //
+  // 这三个 paint* 曾经是手抄的（engine-fields.js 的文件头点名了它们），代价是四处
+  // 静默漂移：`supportsKey ?? needsKey` 只有一半的地方判、notes 那处干脆不判
+  // needsKey、示例地址只有一半的地方给。2026-09-04 用户报「App 设置页与扩展不一致」
+  // 就是这么来的。规则只能有一份。
+  // `slot` 是 EngineFields.SLOTS 的槽名 —— **输入框的 id 从那张表取，不在这里抄**。
+  // 抄一份的下场就是这个仓库已经有的七份手抄键表：改一处，另外六处不会红。
+  // `prefix` 只用于 App 自己的行容器（`<prefix>-key-field` 等），那是 App 的 markup，
+  // SLOTS 不管它们。
+  function applyFields(vis, slot, prefix) {
+    const ids = EngineFields.SLOTS[slot].ids;
+    $(prefix + '-key-field').hidden = !vis.key;
+    $(prefix + '-base-field').hidden = !vis.baseUrl;
+    $(prefix + '-model-field').hidden = !vis.model;
+    $(ids.baseUrl).placeholder = vis.basePlaceholder;
+    $(ids.model).placeholder = vis.modelPlaceholder;
+  }
+
   function paintTtsFields(engineId) {
-    const e = engineById(engineId);
-    $('tts-key-field').hidden = !(e && e.needsKey);
-    $('tts-base-field').hidden = !(e && e.supportsBaseUrl);
-    $('tts-model-field').hidden = !(e && e.supportsModel);
-    if (e) {
-      $('tts-base-url').placeholder = (e.defaultEndpoint || e.placeholder) || 'https://…';
-      $('tts-model').placeholder = e.defaultModel || '';
-    }
+    applyFields(EngineFields.visibility(engineById(engineId)), 'tts', 'tts');
   }
 
   // Voice list is engine-aware, same three cases as the extension options page:
@@ -380,6 +377,7 @@ var AppSettings = (() => {
 
   async function paint(session, say) {
     const cur = await get(KEYS);
+    $('ui-lang').value = cur.uiLang || 'auto';
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'assist';
     $('tts-engine').value = engineById(cur.ttsEngine).id;
@@ -392,8 +390,8 @@ var AppSettings = (() => {
     $('tts-rate').value = cur.ttsRate != null ? cur.ttsRate : 1;
     $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
     $('notes-provider').value = cur.provider || '';
-    $('notes-key').value = cur.apiKey || '';
-    $('notes-base').value = cur.apiBaseUrl || '';
+    $('notes-api-key').value = cur.apiKey || '';
+    $('notes-base-url').value = cur.apiBaseUrl || '';
     $('notes-model').value = cur.apiModel || '';
     paintNotesFields(cur.provider || '');
     // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
@@ -403,8 +401,8 @@ var AppSettings = (() => {
     refreshAudioCache();
     $('stt-engine').value = (window.MT_STT_ENGINES || []).some((e) => e.id === cur.sttEngine)
       ? cur.sttEngine : '';
-    $('stt-key').value = cur.sttApiKey || '';
-    $('stt-base').value = cur.sttBaseUrl || '';
+    $('stt-api-key').value = cur.sttApiKey || '';
+    $('stt-base-url').value = cur.sttBaseUrl || '';
     $('stt-model').value = cur.sttModel || '';
     paintSttFields($('stt-engine').value);
     $('account-who').textContent = LearnAuth.displayName(session);
@@ -416,35 +414,82 @@ var AppSettings = (() => {
       + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
 
     await paintGovernance(say);
+    await setupQuickCard(session, say);
   }
 
-  // §9.4 — STT field visibility follows the registry entry, same rule as TTS.
+  // §9.4 — 同一条规则，同一个组件。
   function paintSttFields(engineId) {
     const e = (window.MT_STT_ENGINES || []).find((x) => x.id === engineId) || null;
-    $('stt-key-field').hidden = !(e && e.needsKey);
-    $('stt-base-field').hidden = !(e && e.supportsBaseUrl);
-    $('stt-model-field').hidden = !(e && e.supportsModel);
-    if (e) {
-      $('stt-base').placeholder = (e.defaultEndpoint || e.placeholder) || 'https://…';
-      $('stt-model').placeholder = e.defaultModel || '';
-    }
+    applyFields(EngineFields.visibility(e), 'stt', 'stt');
   }
 
-  // Field visibility and placeholders follow the registry entry, not a hardcoded
-  // idea of what engines want (§9.2: never restate what the registry knows).
+  // 同一条规则，同一个组件。⚠️ 这一处此前是 `hidden = !p` —— **只要选了引擎就露出
+  // Key 框，完全不看 needsKey**，而扩展那边看。不需要 Key 的引擎在 App 上多一个
+  // 空 Key 框，是这次报障里最直观的那一处。
   function paintNotesFields(providerId) {
     const p = LearnNotes.chatEngines().find((e) => e.id === providerId) || null;
-    $('notes-key-field').hidden = !p;
-    $('notes-base-field').hidden = !(p && p.supportsBaseUrl);
-    $('notes-model-field').hidden = !(p && p.supportsModel);
-    if (p) {
-      $('notes-base').placeholder = (p.defaultEndpoint || p.placeholder) || 'https://…';
-      $('notes-model').placeholder = p.defaultModel || '';
+    applyFields(EngineFields.visibility(p), 'notes', 'notes');
+  }
+
+  // ── 「快速 | 详细」两档 ────────────────────────────────────────────────────
+  //
+  // 与扩展设置页同一套类名契约，不发明第二套。三条照抄的实现约束：
+  //   · **只切 hidden，永不 remove()** —— 这一页按字面量读控件、零 null 保护。
+  //   · 模式**单独存**一个 key，不进 KEYS —— 它是 UI 状态不是配置，混进去等于让
+  //     整体式的读写去管一个跟配置无关的东西。
+  //   · 这个 flavor 没有可一键的平台时不留空壳（_quickAvailable）——「只藏不给路
+  //     是退化，不是简化」。
+  const DETAIL_KEY = 'optDetailMode';
+  let _quickAvailable = true;
+
+  function applyDetailMode(on) {
+    for (const el of document.querySelectorAll('#app-settings .adv-only')) el.hidden = !on;
+    for (const el of document.querySelectorAll('#app-settings .quick-only')) {
+      el.hidden = on || !_quickAvailable;
     }
+    $('mode-quick').setAttribute('aria-selected', String(!on));
+    $('mode-detail').setAttribute('aria-selected', String(!!on));
+  }
+
+  async function setDetail(on) {
+    applyDetailMode(on);
+    try { await set({ [DETAIL_KEY]: !!on }); } catch (_) {}
+  }
+
+  // 组件只返回 patch，写盘归本页 —— 与扩展设置页同一条分工。写完重画：一键配好的
+  // 三组必须在「详细」里立刻看得见，否则用户下一次改任何一个字段都会用旧 DOM 覆盖回去。
+  async function applyQuickSetup(plan, session, say) {
+    if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
+    await paint(session, say);
+  }
+
+  async function setupQuickCard(session, say) {
+    if (!$('quick-setup')) return;
+    QuickSetup.render($('quick-setup'), {
+      t,
+      // 现读而不是快照：拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
+      readSettings: () => get(KEYS),
+      targetLang: '',
+      onApply: (plan) => applyQuickSetup(plan, session, say),
+      // App 配完就没有下一步了，也没有网页可翻 —— 「现在翻一页看看」属于浏览器那一侧。
+      showTry: false,
+    });
+    if (!$('quick-setup').children.length) {
+      // 没有可一键的平台。不留空壳，也不给一个其中一边可证为空的二选一。
+      _quickAvailable = false;
+      $('mode-tabs').hidden = true;
+      applyDetailMode(true);
+      return;
+    }
+    let on = false;
+    try { const r = await get([DETAIL_KEY]); on = r[DETAIL_KEY] === true; } catch (_) {}
+    applyDetailMode(on);
   }
 
   function wire(opts) {
     const say = opts.say;
+    $('mode-quick').addEventListener('click', () => setDetail(false));
+    $('mode-detail').addEventListener('click', () => setDetail(true));
 
     // Persist on change, not behind a Save button. There is no multi-field state to
     // keep consistent here, and a Save button is one more thing to forget to press.
@@ -452,6 +497,20 @@ var AppSettings = (() => {
       const n = Math.max(1, Math.min(200, parseInt($('daily').value, 10) || 15));
       $('daily').value = n;
       await set({ learnDailyNew: n });
+    });
+    // 界面语言：**改完立刻生效，不等下次启动**（interaction-spec「Switching applies live」）。
+    // 三件事要一起做，漏一件都是「改了没反应」：
+    //   1. PageI18n.setUiLang —— 之后每一次 t() 才走新 locale
+    //   2. 重画本页 —— 已经渲染出来的文字不会自己变
+    //   3. AppDriving.refreshEntry —— 播客模式入口按 uiLang 有没有语音做门控（§9.5），
+    //      换了语言而不重算，入口会停在上一个语言的结论上
+    $('ui-lang').addEventListener('change', async () => {
+      const v = $('ui-lang').value || 'auto';
+      await set({ uiLang: v });
+      try { PageI18n.setUiLang(v); } catch (_) {}
+      paintStatic();
+      try { document.documentElement.lang = PageI18n.effectiveLocale().replace('_', '-'); } catch (_) {}
+      try { AppDriving.refreshEntry(); } catch (_) {}
     });
     $('tts-mode').addEventListener('change', () => set({ ttsMode: $('tts-mode').value }));
     // Every speech knob reconfigures LearnTTS LIVE, not just at next launch —
@@ -515,8 +574,8 @@ var AppSettings = (() => {
     async function saveNotesCfg() {
       const cfgNow = {
         provider: $('notes-provider').value,
-        apiKey: $('notes-key').value.trim(),
-        apiBaseUrl: $('notes-base').value.trim(),
+        apiKey: $('notes-api-key').value.trim(),
+        apiBaseUrl: $('notes-base-url').value.trim(),
         apiModel: $('notes-model').value.trim(),
       };
       await set(cfgNow);
@@ -537,12 +596,12 @@ var AppSettings = (() => {
     }
 
     $('notes-provider').addEventListener('change', async () => {
-      const cleared = clearEndpointOnEngineSwitch('notes-base');
+      const cleared = clearEndpointOnEngineSwitch('notes-base-url');
       paintNotesFields($('notes-provider').value);
       await saveNotesCfg();
       if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
-    for (const id of ['notes-key', 'notes-base', 'notes-model']) {
+    for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
       $(id).addEventListener('change', saveNotesCfg);
     }
 
@@ -552,8 +611,8 @@ var AppSettings = (() => {
     async function saveSttCfg() {
       const c = {
         sttEngine: $('stt-engine').value,
-        sttApiKey: $('stt-key').value.trim(),
-        sttBaseUrl: $('stt-base').value.trim(),
+        sttApiKey: $('stt-api-key').value.trim(),
+        sttBaseUrl: $('stt-base-url').value.trim(),
         sttModel: $('stt-model').value.trim(),
       };
       await set(c);
@@ -639,12 +698,12 @@ var AppSettings = (() => {
       say(t('toast_cache_cleared', '缓存已清除'));
     });
     $('stt-engine').addEventListener('change', async () => {
-      const cleared = clearEndpointOnEngineSwitch('stt-base');
+      const cleared = clearEndpointOnEngineSwitch('stt-base-url');
       paintSttFields($('stt-engine').value);
       await saveSttCfg();
       if (cleared) say(t('toast_endpoint_cleared', '换引擎了，接口地址已清空'));
     });
-    for (const id of ['stt-key', 'stt-base', 'stt-model']) {
+    for (const id of ['stt-api-key', 'stt-base-url', 'stt-model']) {
       $(id).addEventListener('change', saveSttCfg);
     }
 

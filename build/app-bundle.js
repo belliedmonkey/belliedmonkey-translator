@@ -93,6 +93,24 @@ const MODULES = [
                                          // LearnNotes.chat; explicit split action only)
   'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
                                          // LearnNotes.chat; gate follows the notes gate)
+  'extension/learn/engine-test.js',      // EngineTest —— engine-fields 与 quick-setup 的
+                                         // 「测试连接」都调它。**是 test/app-bundle 的
+                                         // 门禁把它逼出来的**：不加这一行，包拼得出来、
+                                         // App 也起得来，只有用户真去点那个按钮时才
+                                         // ReferenceError —— 同 engine-state.js 那次。
+                                         // 依赖 LearnNotes/LearnTTS/LearnSpeech/
+                                         // TranslationAPI/WireFormat，都排在它前面。
+  'extension/learn/engine-fields.js',    // EngineFields —— 「这个引擎该露出哪几个框」的
+                                         // **唯一**实现。它抽出来正是因为规则已经漂了，
+                                         // 而它自己的文件头点名了 app/settings.js 的三处
+                                         // 手抄。不进这个列表，App 那边就只能继续手抄
+                                         // —— 2026-09-04 用户报的「App 设置页与扩展不一致」
+                                         // 就是这么来的。
+  'extension/learn/quick-setup.js',      // QuickSetup —— 「一把 key 配好全部」。它自述
+                                         // 「一个渲染器，两个 host」，且不碰 chrome.storage
+                                         // （算出 patch 交给 host 写盘），App 是第三个 host。
+                                         // 必须在 engine-fields.js 之后：快速档收起的正是
+                                         // 它渲染的那些字段。
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs

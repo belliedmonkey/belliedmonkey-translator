@@ -342,3 +342,21 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 #ob-next:hover, #ob-setup:not(.secondary):hover { background: var(--accent-hover); }
 #ob-skip { min-height: 44px; }
+
+/* ── 设置页的「快速 | 详细」两档 ────────────────────────────────────────────
+   与扩展设置页同一个视觉与同一套类名（.adv-only / .quick-only）。样式抄过来是
+   刻意的：用户在扩展设置页学会的东西，在 App 里原样成立。
+   隐藏一律靠 hidden 属性（JS 只切它），这里**不写任何 display 规则**去压它 ——
+   `hidden` 被一条 display 声明压掉正是 test/hidden-guard.test.js 存在的理由。 */
+#app-settings .mode-tabs {
+  display: flex; gap: 0; margin: 0 0 18px;
+  border: 1px solid var(--border); border-radius: 999px;
+  overflow: hidden; width: fit-content;
+}
+#app-settings .mode-tabs button {
+  margin: 0; width: auto; padding: 7px 22px;
+  border: none; border-radius: 0; background: transparent;
+  color: var(--text-secondary); font-size: .92rem; cursor: pointer;
+}
+#app-settings .mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+#quick-setup-card { margin: 0 0 18px; }
