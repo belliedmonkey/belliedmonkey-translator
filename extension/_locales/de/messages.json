@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "Zuerst {what} eingeben",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Nicht eingerichtet (kein Vorlesen)"
+  },
+  "tts_not_configured": {
+    "message": "Sprachausgabe ist nicht eingerichtet — wähle eine Engine unter Einstellungen › Sprache"
   }
 }

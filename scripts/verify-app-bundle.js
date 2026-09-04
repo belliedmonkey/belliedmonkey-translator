@@ -162,7 +162,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // The speech-engine picker must be registry-fed too — one row per
         // MT_TTS_ENGINES entry, counted against the live registry.
         ttsEngineCount: document.getElementById('tts-engine').options.length,
-        ttsEngineWant: (window.MT_TTS_ENGINES || []).length,
+        // +1 是哨兵项「未配置（不朗读）」—— 与 stt 同形（2026-09-04：语音不再默认
+        // 走系统自带，所以「未配置」必须在选择器里有位置可待）。
+        ttsEngineWant: 1 + (window.MT_TTS_ENGINES || []).length,
         // The transcription-engine picker (§9.4): one 未配置 row (the correct
         // default — no zero-config STT engine exists) plus the live registry.
         sttEngineCount: document.getElementById('stt-engine').options.length,
@@ -172,7 +174,14 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // is exactly how the app shipped with speech permanently off. Assert the
         // seed itself, not the settings UI: the UI can look right while the boot
         // read still saw nothing.
-        ttsModeSeeded: localStorage.getItem('mt:ttsMode') === JSON.stringify('assist'),
+        // **反过来了**（2026-09-04）。原来这里断言 shim 同步播种 'assist'，
+        // 因为那时语音默认可用。现在语音要用户先配引擎才有，播种 'assist' =
+        // 一个点了必然失败的播放键。所以断言的是「**没有**被播种」。
+        // 不变量是「**默认不出声**」，不是「没人写这个键」—— ensureDefaults 仍会
+        // 显式落一个 'off'，那是对的（一个明确的关，比一个缺席的值更好读回）。
+        // 会出声的两档（assist / audio-first）在用户配引擎之前都不许出现。
+        ttsModeQuiet: ['assist', 'audio-first']
+          .indexOf(JSON.parse(localStorage.getItem('mt:ttsMode') || 'null')) < 0,
         settingsHidden: getComputedStyle(document.getElementById('app-settings')).display === 'none',
         // review.css must survive the concatenation too — it owns the review markup.
         reviewStyled: getComputedStyle(document.querySelector('.page') || document.body).maxWidth,
@@ -615,12 +624,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       + (o.settingsMissing.indexOf('delete-account') >= 0
         ? '（删除账号是 Apple 的上架硬要求，§10 Gate B）' : ''));
     need(o.settingsHidden, '设置页在没进入之前就显示了');
-    need(o.ttsModeSeeded, 'ttsMode 没被 shim 播种成 assist —— App 里语音又会永远关着');
+    need(o.ttsModeQuiet,
+      '全新安装的 ttsMode 是会出声的那一档 —— 而语音引擎默认未配置，'
+      + '那就是一个点了必然失败的播放键（2026-09-04：语音要用户填了引擎才有）');
     need(o.notesPickerCount === o.notesPickerWant,
       '解析引擎选择器与注册表不同步：' + o.notesPickerCount + ' 项，应为 ' + o.notesPickerWant);
     need(!o.notesPickerHasNonChat, '解析引擎选择器混入了非 chat 类引擎 —— 门控按 type，选择器也必须');
-    need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 0,
-      '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant);
+    need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 1,
+      '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant
+      + '（含哨兵项）');
     need(o.sttEngineCount === o.sttEngineWant && o.sttEngineWant > 1,
       '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }

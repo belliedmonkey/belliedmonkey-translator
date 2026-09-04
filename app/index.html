@@ -201,6 +201,14 @@
       <div class="row">
         <button id="app-drive-start" type="button" class="secondary" hidden></button>
       </div>
+      <!-- 门没过时**不留白**：按 interaction-spec「只藏不给路是退化，不是简化」，
+           入口消失的同时要有且只有一条可见、有标签的路通向那个控件本身。
+           落点是设置页的语音那一档（#app-tts-section），不是页面顶部 ——
+           「按钮点了、人到了、控件没找到」是 2026-09-02 真机实测过的失败形状。 -->
+      <p class="note" id="app-drive-need-tts" hidden>
+        <span id="app-drive-need-tts-why"></span>
+        <button id="app-drive-need-tts-go" type="button" class="link"></button>
+      </p>
       <p class="note" id="last"></p>
     </section>
 
@@ -291,7 +299,7 @@
         <input id="daily" type="number" min="1" max="200" step="1" inputmode="numeric">
       </label>
 
-      <label class="field">
+      <label class="field" id="app-tts-section">
         <span id="tts-mode-label"></span>
         <select id="tts-mode">
           <option value="off" id="tts-mode-off"></option>

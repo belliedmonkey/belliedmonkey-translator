@@ -1918,5 +1918,11 @@
   },
   "sync_need_id_dyn": {
     "message": "पहले {what} दर्ज करें"
+  },
+  "tts_engine_none": {
+    "message": "सेट नहीं है (पढ़कर नहीं सुनाएगा)"
+  },
+  "tts_not_configured": {
+    "message": "वाक् इंजन अभी सेट नहीं है — «सेटिंग्स › वाक्» में एक चुनें"
   }
 }

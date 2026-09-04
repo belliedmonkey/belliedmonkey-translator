@@ -105,10 +105,14 @@ describe('LearnTTS — engine registry', () => {
     eq(TTS.engines()[0].id, REGISTRY[0].id);
   });
 
-  test('the default engine is the on-device one, and it is listed first (本地优先)', () => {
+  // 2026-09-04 用户裁定：**语音不再默认走系统自带**。「语音是这个产品的核心体验，
+  // 而系统自带的效果撑不起它」—— 没人应该在没做过选择的情况下听到它。
+  // `browser` 仍在注册表里、仍排第一（AGENTS.md 原则 2：免费这条路不许被砍），
+  // 但**默认值是空**，与 `sttEngine` 同一套语义。
+  test('默认是「未配置」，不是系统自带 —— 但 browser 仍可显式选中', () => {
     const { TTS } = setup();
-    eq(TTS.DEFAULTS.engineId, 'browser');
-    eq(REGISTRY[0].id, 'browser', 'the zero-config offline engine must lead the list');
+    eq(TTS.DEFAULTS.engineId, '', '默认必须是空 = 未配置；填回 browser 就是把那个默认悄悄放回来了');
+    eq(REGISTRY[0].id, 'browser', '免费零配置的那个仍要在列表里、仍排第一（原则 2）');
     eq(REGISTRY[0].type, 'browser');
   });
 
@@ -131,10 +135,20 @@ describe('LearnTTS — engine registry', () => {
     }
   });
 
-  test('an unknown engine id falls back to the on-device engine rather than breaking', () => {
+  // 这条**反过来了**。原来它钉的是「不认识的 id 回落到系统自带」——而那个回落正是
+  // 2026-09-04 要根除的东西：它让「未配置」静默变成「用系统语音」，用户从没做过
+  // 那个选择。现在钉的是：不回落，且**说得出原因**（reason 分得开「没配过」与
+  // 「这平台做不到」，因为前者有出路、后者没有）。
+  test('不认识的 id / 未配置都不回落到系统自带 —— 而且原因说得出来', async () => {
     const { TTS } = setup();
     TTS.configure({ engineId: 'nope' });
-    eq(TTS.engine().id, 'browser');
+    eq(TTS.engine(), null, '回落回来了 —— 那会让「未配置」静默变成「用系统语音」');
+    TTS.configure({ engineId: '' });
+    eq(TTS.engine(), null, '');
+    const av = await TTS.available('en', 0);
+    eq(av.ok, false, '');
+    eq(av.reason, 'not_configured',
+      '未配置必须报 not_configured 而不是 unsupported —— 界面据此给出「去哪儿配」的路');
   });
 });
 
@@ -822,5 +836,54 @@ describe('LearnTTS.sniffAudioType — 服务器说的类型不可信', () => {
   test('不做反向覆盖：声明值永远不能压过嗅探结果', () => {
     // 我们看得见的字节比服务器说的话可靠。这条写下来是因为「相信声明值」正是本次的 bug。
     eq(TTS.sniffAudioType(ascii('RIFF').buffer, 'audio/mpeg'), 'audio/wav');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 「不许再有第二个静默回落」—— 2026-09-04。
+//
+// 把默认改成「未配置」的那天，全仓有**三处**一模一样的谎，每一处都会让 engineId
+// 为空时在界面或运行时变回 browser，而用户从没做过那个选择：
+//
+//   extension/learn/tts.js        engine()      `|| engineById('browser')`
+//   extension/options/options.js  updateTtsUI   `|| TTS_ENGINES[0]`
+//   app/settings.js               engineById    `|| (MT_TTS_ENGINES||[])[0]`
+//
+// 三处都不报错、都不被任何既有门禁看见 —— 只是把一次产品裁定悄悄撤销掉。
+// 所以这里钉的是**源码里不许再出现这种形状**，而不是某一处的行为。
+describe('语音默认：不许有回落到系统自带的暗门', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const codeOf = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+
+  test('三处历史回落一处都不许回来', () => {
+    const CASES = [
+      ['extension/learn/tts.js', /\|\|\s*engineById\(\s*'browser'\s*\)/,
+        "engine() 又回落到 browser —— 「未配置」会静默变成「用系统语音」"],
+      ['extension/options/options.js', /ttsEngineById\([^)]*\)\s*\|\|\s*TTS_ENGINES\[0\]/,
+        'updateTtsUI 又回落到第一个引擎 —— 界面会把「未配置」显示成「已选 browser」'],
+      ['app/settings.js', /MT_TTS_ENGINES\s*\|\|\s*\[\]\)\[0\]/,
+        'app 的 engineById 又回落到第一个引擎 —— 同一个谎的第三处'],
+    ];
+    for (const [rel, re, why] of CASES) {
+      ok(!re.test(codeOf(rel)), `${rel}: ${why}`);
+    }
+  });
+
+  test('tts 槽有哨兵项，与 stt 同形 —— 没有它，下拉会默默停在第一个引擎上', () => {
+    const EF = require('../extension/learn/engine-fields.js');
+    ok(!!EF.SLOTS.tts.sentinelKey,
+      'EngineFields.SLOTS.tts 没有 sentinelKey —— 「未配置」在选择器里就没有位置可待');
+    eq(EF.SLOTS.tts.sentinelKey, 'tts_engine_none', '');
+    ok(!!EF.SLOTS.stt.sentinelKey, 'stt 的哨兵也不见了？两者必须同形');
+  });
+
+  test('App 不再同步播种 ttsMode —— 播种回来就等于把语音默认打开了', () => {
+    const shim = codeOf('app/chrome-shim.js');
+    ok(!/setItem\([^)]*ttsMode/.test(shim),
+      'chrome-shim 又在播种 ttsMode —— 它跑在 review.js 的启动读之前，'
+      + '播什么就是什么，等于绕过「用户填了才有」这条裁定');
   });
 });

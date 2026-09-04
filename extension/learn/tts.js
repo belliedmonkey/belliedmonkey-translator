@@ -4,8 +4,12 @@
 //
 // Two engine formats, and the difference between them is load-bearing:
 //
-//   'browser'        the platform's own speechSynthesis. Free, offline, zero config,
-//                    and the DEFAULT. It only *speaks* — the Web Speech API exposes
+//   'browser'        the platform's own speechSynthesis. Free, offline, zero config —
+//                    but **no longer the default** (2026-09-04, 用户裁定): 语音是这个
+//                    产品的核心体验，而系统自带的效果撑不起它，没人应该在没做过选择的
+//                    情况下听到它。保留为**显式可选**（AGENTS.md 原则 2：不付费不登录
+//                    的人也要有完整产品 —— 免费这条路不许被砍，只是不再默认走）。
+//                    It only *speaks* — the Web Speech API exposes
 //                    no way to obtain the audio data — so nothing from this engine
 //                    can be cached or, later, uploaded. That is a permanent property
 //                    of the API, not a gap to fill in.
@@ -19,7 +23,9 @@
 
 var LearnTTS = (() => {
   const DEFAULTS = {
-    engineId: 'browser',
+    // '' = **未配置**，与 sttEngine 同一套语义（不发明第二种空值）。
+    // 语音要用户填了引擎/端点才有 —— 见文件头。
+    engineId: '',
     baseUrl: '', apiKey: '', model: '', voice: '',
     // 「这个地址是按新语义（原样使用）存的」的戳；缺席 ⇒ 走 wire-format 的 legacy 分支。
     rate: 1, pitch: 1,
@@ -62,7 +68,10 @@ var LearnTTS = (() => {
     return (typeof window !== 'undefined' && window.MT_TTS_ENGINES) || [];
   }
   function engineById(id) { return engines().find((e) => e.id === id) || null; }
-  function engine() { return engineById(cfg.engineId) || engineById('browser'); }
+  // **没有回落。** 曾经这里是 `|| engineById('browser')`，那让「未配置」静默变成
+  // 「用系统语音」—— 正是 2026-09-04 要根除的行为。未配置就返回 null，由 available()
+  // 说出原因、由界面给出去配置的路。
+  function engine() { return engineById(cfg.engineId) || null; }
 
   function configure(next) {
     cfg = Object.assign({}, DEFAULTS, next || {});
@@ -562,6 +571,9 @@ var LearnTTS = (() => {
   // text 可选：给了它，语言未知时就能按脚本挑音色（见 pickVoice）。
   // 不给的话行为与从前逐字相同 —— 调用方问的是「这个已知语言能不能读」。
   async function available(lang, waitMs, text) {
+    // 「没配过」与「这个平台做不到」是两件事：前者的出路是去设置页，后者没有出路。
+    // 合成一个 reason 会让界面只能说一句帮不上忙的话。
+    if (!cfg.engineId) return { ok: false, reason: 'not_configured' };
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
     if (e.type === 'browser') {

@@ -771,8 +771,37 @@ function validateManifest(distDir, isFirefox) {
     if (readmeZh.includes('无账号、无追踪、无遥测')) {
       staleHits.push('README.zh-CN.md: 「无账号、无追踪、无遥测」');
     }
-    // The false-claim fingerprints across the 11 locales. Any hint that promises
-    // no-upload WITHOUT the sync qualifier is a lie the moment sync ships.
+    // ── 正向判据：每一门 locale 的 hint 都必须**提到同步** ──────────────────
+    //
+    // 下面那张 FALSE_CLAIMS 是**逐语言手写的谎言指纹**，写它的时候有 11 门语言而它
+    // 只覆盖 7 门（ko / ar / pt_BR / ru 从一开始就漏）。2026-09-04 加了 hi 之后变成
+    // 12 缺 5 —— 而这个仓库自己有一句话说这种东西：**「a list a human must remember
+    // to extend is not a gate, it is a wish」**。
+    //
+    // 所以补一条**语言无关、且不需要任何新表**的正向判据：那句 hint 必须含有本 locale
+    // 自己的「同步」这个词 —— 而那个词 `app_sync` 已经在同一个 messages.json 里。
+    // 两个 key 同源，所以**新增第 13 门语言会自动被覆盖**，没有谁要记得去扩哪张表。
+    //
+    // 取**前 8 个码点做词干**而不是整词：词形变化改的是词尾不是词干
+    // （de Synchronisieren→Synchronisierung · es Sincronizar→sincronización ·
+    //  ru Синхронизировать→синхронизацию）。实测 12 门全覆盖。
+    // 若将来某门语言的词干比这更短而落空，它会**变红**而不是静默放行 —— 失败方向是对的。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const hint = String(m.learn_section_hint?.message || '');
+      const word = String(m.app_sync?.message || '');
+      if (!hint || !word) { staleHits.push(`_locales/${loc} 缺 learn_section_hint 或 app_sync`); continue; }
+      const stem = [...word].slice(0, 8).join('').toLowerCase();
+      if (!hint.toLowerCase().includes(stem)) {
+        staleHits.push(`_locales/${loc} learn_section_hint 没提到同步（找「${stem}」）`
+          + ' —— 不带同步限定的「不上传」在同步上线那天就是假话');
+      }
+    }
+
+    // 负向判据（保留，与上面互补）：已知的几种「无条件承诺不上传」的写法。
+    // 它只覆盖 7 门，所以**不能单独作数** —— 上面那条才是覆盖全部 locale 的那一条。
     const FALSE_CLAIMS = [
       /不会上传/, /不會上傳/, /Nothing is uploaded, and/, /アップロードは一切行われず/,
       /Nichts wird hochgeladen, und/, /No se sube nada\./, /Rien n'est envoyé\./,

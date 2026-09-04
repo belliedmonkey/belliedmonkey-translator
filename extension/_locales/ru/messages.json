@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "Сначала укажите {what}",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Не настроено (без озвучивания)"
+  },
+  "tts_not_configured": {
+    "message": "Голос ещё не настроен — выберите движок в «Настройки › Голос»"
   }
 }

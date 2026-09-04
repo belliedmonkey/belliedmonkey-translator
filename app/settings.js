@@ -53,9 +53,9 @@ var AppSettings = (() => {
     const patch = {};
     if (cur.learnEnabled !== true) patch.learnEnabled = true;
     if (typeof cur.learnDailyNew !== 'number') patch.learnDailyNew = 15;
-    // Normally already seeded by chrome-shim.js (which must win the race against
-    // review.js's boot read); this only repairs a corrupted value.
-    if (['off', 'assist', 'audio-first'].indexOf(cur.ttsMode) < 0) patch.ttsMode = 'assist';
+    // 坏值修复落到 **'off'**，不是 'assist'（2026-09-04）：语音要用户先配引擎才有，
+    // 修一个坏值不该顺手把功能打开。chrome-shim 那边同步播种的那一段已经删掉了。
+    if (['off', 'assist', 'audio-first'].indexOf(cur.ttsMode) < 0) patch.ttsMode = 'off';
     if (typeof cur.ttsAutoPlay !== 'boolean') patch.ttsAutoPlay = false;
     if (typeof cur.ttsRate !== 'number') patch.ttsRate = 1;
     if (Object.keys(patch).length) await set(patch);
@@ -82,7 +82,10 @@ var AppSettings = (() => {
     // 用注册表填下拉：EngineFields.populate 一处实现。它比手抄多做两件事 ——
     // 存着的 id 注册表不认识时**落到一个能用的选项**（换 flavor / 降级安装 / 厂商下架
     // 都会让一个合法保存过的 id 消失，留一个空 select 更糟），以及哨兵项的语义。
-    EngineFields.populate($('tts-engine'), window.MT_TTS_ENGINES || [], { t });
+    // 哨兵 '' = 未配置（不朗读）。与 stt 同一套语义 —— 语音不再默认走系统自带。
+    EngineFields.populate($('tts-engine'), window.MT_TTS_ENGINES || [], {
+      t, sentinel: { value: '', text: t('tts_engine_none', '未配置（不朗读）') },
+    });
     $('tts-key-label').textContent = t('tts_api_key', '语音 API Key');
     $('tts-base-label').textContent = t('tts_base_url', '语音端点地址');
     $('tts-model-label').textContent = t('tts_model', '语音模型');
@@ -145,8 +148,11 @@ var AppSettings = (() => {
     $('delete-note').textContent = t('app_set_delete_note', '删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。');
   }
 
-  const engineById = (id) =>
-    (window.MT_TTS_ENGINES || []).find((e) => e.id === id) || (window.MT_TTS_ENGINES || [])[0] || null;
+  // **没有回落到第一个引擎**（2026-09-04）。这是全仓第三处同样的谎 —— 另两处在
+  // `tts.js` 的 engine() 与 `options.js` 的 updateTtsUI，同一天一起删的。
+  // 回落会让「未配置」在界面上显示成「已选 browser」，而用户从没做过那个选择。
+  // 未配置返回 null，调用方各自处理（三处都已能吃 null）。
+  const engineById = (id) => (window.MT_TTS_ENGINES || []).find((e) => e.id === id) || null;
 
   // ─── 出发前预载（§9.5）────────────────────────────────────────────────────
   // 两态按钮：`pending` 持有算好的账单，点第二下才开跑；`running` 时按钮是「停止」。
@@ -170,7 +176,8 @@ var AppSettings = (() => {
     if (!el) return;
     try {
       const e = engineById($('tts-engine').value);
-      if (e && !e.returnsAudio) {
+      if (!e) { el.textContent = ''; $('btn-drive-clear-audio').hidden = true; return; }
+      if (!e.returnsAudio) {
         el.textContent = t('tts_cache_na', '设备内置语音不产生缓存');
         $('btn-drive-clear-audio').hidden = true;
         return;
@@ -379,8 +386,10 @@ var AppSettings = (() => {
     const cur = await get(KEYS);
     $('ui-lang').value = cur.uiLang || 'auto';
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
-    $('tts-mode').value = cur.ttsMode || 'assist';
-    $('tts-engine').value = engineById(cur.ttsEngine).id;
+    $('tts-mode').value = cur.ttsMode || 'off';
+    // 不认识的 id（换 flavor / 降级安装 / 厂商下架）落到**哨兵**，不是第一个引擎 ——
+    // 落到第一个引擎等于替用户做了一个他没做过的选择。
+    $('tts-engine').value = (engineById(cur.ttsEngine) || {}).id || '';
     $('tts-api-key').value = cur.ttsApiKey || '';
     $('tts-base-url').value = cur.ttsBaseUrl || '';
     $('tts-model').value = cur.ttsModel || '';

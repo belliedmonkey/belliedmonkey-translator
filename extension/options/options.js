@@ -250,9 +250,13 @@ async function refreshTtsCache() {
 async function updateTtsUI(selectedVoice) {
   const mode = $('tts-mode').value;
   $('tts-config').hidden = mode === 'off';
-  const e = ttsEngineById($('tts-engine').value) || TTS_ENGINES[0];
-  if (!e) return;
-  $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
+  // **没有回落到第一个引擎。** 那个 `|| TTS_ENGINES[0]` 会让「未配置」在界面上
+  // 显示成「已选 browser」—— 与 tts.js 里刚删掉的那个回落是同一个谎，只是换了个地方。
+  const e = ttsEngineById($('tts-engine').value);
+  // e 为 null = 未配置（哨兵项）。这不是异常路径，是**默认状态** —— 所以下面每一处
+  // 用到 e 的地方都要能吃 null，而不是早退：早退会把「声音」下拉留在上一个引擎的
+  // 列表上，看起来像还配着。
+  $('tts-engine-hint').textContent = (e && e.hintKey) ? t(e.hintKey, '') : '';
   // 四个核心控件归组件（露哪几个、示例地址、示例模型全在它那里）。
   if (ttsCore) ttsCore.paint();
 
@@ -264,7 +268,7 @@ async function updateTtsUI(selectedVoice) {
   sel.appendChild(auto);
 
   applyTtsConfig();
-  if (e.type === 'browser') {
+  if (e && e.type === 'browser') {
     const voices = await LearnTTS.loadVoices();
     for (const v of voices) {
       const o = document.createElement('option');
@@ -272,7 +276,7 @@ async function updateTtsUI(selectedVoice) {
       o.textContent = `${v.name} — ${v.lang}`;
       sel.appendChild(o);
     }
-  } else if (e.voices) {
+  } else if (e && e.voices) {
     for (const v of e.voices) {
       const o = document.createElement('option');
       o.value = v; o.textContent = v;
