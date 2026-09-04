@@ -1021,6 +1021,14 @@ survives a relaunch**.
 >    `lsof` 就够了：WebContent/Networking 还打开着那个 sqlite，就说明页面在跑 JS。
 >    这一条把「是不是我刚才那次改动把 App 改白屏了」从猜测变成可判定的事 ——
 >    而它当时的答案是「不是」（`npm test` 与两个 flavor 的 `test:app` 全绿）。
+>
+> 5. **⚠️ 未决：2026-09-04 这台 Mac 上，本地 Debug 构建的宿主 App 起来是白屏。**
+>    进程活着、WebKit 打开了 localStorage（JS 在跑），但窗口没有任何 AX 内容。
+>    三种签名配置（完全不签 / 正式签名带 App Sandbox / 签名去掉 sandbox）表现一致。
+>    **不是产品回归**：同一份 `dist-app/` 的 `Script.js` 在 iOS 模拟器宿主 App 上、
+>    在 `test:app` 的真 Chrome 上，两个 flavor 全都正常。同一天更早、同一份代码的
+>    一个构建也是好的 —— 变量在构建侧，尚未定位。**这一行的语音断言因此改由
+>    iOS 宿主 App（行 6）与 `test:app` 承担，如实记为 not-run 而不是 pass。**
 
 **Scope note:** relaunch-persistence of the graded state was not re-driven here (the
 on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
