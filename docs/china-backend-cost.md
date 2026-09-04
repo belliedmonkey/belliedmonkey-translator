@@ -161,3 +161,58 @@ Postgres + GoTrue + PostgREST 三个容器跑在同一台**轻量应用服务器
 那么最便宜的形状就是**一台小服务器跑整套** —— 百元/年这一档，
 而托管数据库是两千元/年这一档。
 **差价买的是运维不用自己做。**
+
+---
+
+## 13. 评估过：Tencent OneID 身份安全（`cloud.tencent.com/product/idsec`）
+
+2026-09-04 用户提出。它确实是能做 C 端用户池的身份服务，支持微信/QQ 登录，按量计费，
+公有云或私有化部署。**但它回答的问题和它带来的代价要分开看。**
+
+### 它其实混着两个不同的问题
+
+| | 问题 | OneID 的答案 |
+|---|---|---|
+| Q1 | **谁来运营身份服务**（自建 GoTrue vs 托管） | 托管 —— 消掉 §8 运维表里的一行 |
+| Q2 | **提供哪些登录方式** | **加微信 / QQ** —— 这是真实的产品改进 |
+
+**Q2 是这里真正值钱的部分。** 中国版现在是 **Apple-only**（Google 在大陆不通，
+2026-09-03 裁定），而中国用户预期的是微信登录。这是产品欠缺，不是基建问题。
+
+### 但换掉 GoTrue 的代价有两条，第二条比第一条重
+
+1. **`extension/learn/auth.js`（532 行）整个重写。** 客户端说的是 GoTrue 的精确协议
+   （`/auth/v1/otp` `/verify` `/token?grant_type=password|refresh_token|pkce|id_token`
+   `/logout` `/authorize`）。换 IdP 就是**第二份认证实现** —— 与 §3 排除 MySQL 的
+   理由完全相同。
+2. **schema 会分叉，而这比 URL 分叉严重得多。**
+   ```sql
+   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
+   ```
+   `auth.users` 是 GoTrue 建的表，`auth.uid()` 读的是 PostgREST 注入的 JWT 声明。
+   没有 GoTrue 就没有这张表 —— 外键和默认值都要改。于是**国际版与中国版在数据层
+   就不是同一套东西了**，而不只是换个 url。计划里那道「两个后端 schema 不许分叉」的
+   门禁，会从第一天起就是红的。
+
+### 还有一个没能确认的关键事实
+
+OneID 的**开发者文档没有公开检索到** —— 它到底签不签标准 OIDC `id_token`（JWT）
+无法确认。**不签就直接不成立**：PostgREST 校验的就是 JWT，RLS 读的就是它的声明。
+这一条不确认，上面的取舍都不用谈。
+
+### 更好的形状：不换 GoTrue，把微信登录挂在它前面
+
+如果目标是**微信登录**（Q2），不必动 Q1：
+
+- 客户端**已经有** `grant_type=id_token` 这条路（Apple 原生登录走的就是它）
+- 服务端加一个小的换票端点：微信 OAuth 回调 → 校验 → 用 GoTrue 的 admin API
+  建/取用户 → 签发 GoTrue 的 session
+- 结果：**`auth.js` 的会话层不动、schema 不动、两个后端仍是同一套东西**，
+  而微信登录拿到了
+
+### 结论
+
+**要微信登录 → 走上面那条前置换票，不换 GoTrue。**
+**要省运维 → OneID 省掉的是一行，换来的是 532 行重写 + schema 分叉，不划算。**
+除非将来身份这一侧的需求复杂到自建明显撑不住（多租户、企业 SSO、合规审计），
+那时再重估 —— 到那时 §8 那张运维表的价值也会变。
