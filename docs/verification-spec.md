@@ -1009,6 +1009,45 @@ settings model to drift), 学习库 counts + §7.1's targeted 清理已掌握的
 > requires in-app account deletion wherever accounts exist. `npm run test:app` now
 > fails by name if that button goes missing, and the failure message says why.
 
+### F-bis. 真机 iPhone（ZHAO的iPhone / iOS 26.5）— ✅ verified 2026-09-05
+
+USB（`devicectl`）与蓝牙/Wi-Fi（iPhone 镜像）**是两条独立的路，缺一不可**，而且
+它们对锁屏状态的要求正好相反：
+
+| 要做的事 | 走哪条 | 设备状态要求 |
+|---|---|---|
+| 装包 / 读写容器 / 启动 App | `devicectl`（USB） | **必须解锁**（`FBSOpenApplicationErrorDomain error 7 = Locked`） |
+| 看屏幕 / 点击 / 打字 | iPhone 镜像（蓝牙+Wi-Fi） | **必须锁屏**，且「最近解锁过」 |
+
+所以顺序是固定的：**先解锁装包 → 再锁屏遥控**。2026-09-05 卡在
+「未找到 iPhone」十分钟，真因是**手机蓝牙关着** —— USB 连着、`devicectl` 一切正常，
+完全不影响，所以别拿 `devicectl list devices` 的 `available (paired)` 当镜像也能连的证据。
+
+> **真机是唯一能验「存量用户」的地方。** 模拟器与 Chrome 每次都是全新态；这台机器上
+> 躺着的是真实的历史数据。2026-09-05 就是在这里读到 1.6.8 时代留下的
+> `ttsMode="assist"` + **`ttsEngine` 不存在** —— 正是 A2 点名的那个危险组合
+> （「模式开着但引擎为空 ⇒ 点了必然失败的播放键」）。取证方式不需要镜像：
+>
+> ```bash
+> xcrun devicectl device copy from --device <id> \
+>   --domain-type appDataContainer --domain-identifier com.belliedmonkeytranslator \
+>   --source "Library/WebKit/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3" \
+>   --destination ./dev-ls.sqlite3
+> ```
+>
+> 升级前先拉一份当基线，升级后再拉一份对比 —— 这是「存量用户会被这次改动影响成
+> 什么样」唯一的直接证据。
+
+> **⚠️ 手机那条网络与 Mac 不是一回事。** Mac 上挂着代理，手机没有。2026-09-05
+> `en.wikipedia.org` 与 `stackoverflow.com` 在手机上都打不开（前者直接报
+> 「已丢失网络连接」）。**验证站点要挑国内直连的英文页**（实测 `www.apple.com/newsroom/`
+> 可用）。别把这个误判成扩展坏了。
+
+2026-09-05 verified：装 1.7.13 → 启用扩展（重装会把开关重置回「关闭」）→
+站点授权**从另一台设备同步过来**（「在设备之间共享」开着时不必重新授权）→
+FAB 注入 → 点一下整页双语（`September Event` → `九月活动`、`Latest News` → `最新新闻`），
+走存量的 DeepSeek 配置。
+
 ### G. macOS host app (real Mac) — ✅ verified 2026-08-08
 
 Same three built files as row F, same Xcode project, so what this row tests is the
