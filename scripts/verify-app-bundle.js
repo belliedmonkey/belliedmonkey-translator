@@ -239,6 +239,20 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             ['stt', 'stt', 'stt-engine', (window.MT_STT_ENGINES || [])],
             ['notes', 'notes', 'notes-provider', LearnNotes.chatEngines()],
           ];
+          // ── 进详细档的**第一眼**：默认（未配置）下三个框都不该露 ────────────
+          //
+          // 这一条是 2026-09-04 在 iPhone 模拟器上肉眼发现的，而下面那个「逐个切引擎」
+          // 的循环**看不见它**：切引擎会调 paintTtsFields，那时 applyDetailMode 早已
+          // 跑完，两者恰好一致。真正的缺陷只在**刚进详细档、还没动过任何引擎**的那一
+          // 瞬间存在 —— .adv-only 放开了所有行，而逐引擎的判断还没再说一次话。
+          // 所以判据必须是「第一眼」，不是「切过之后」。
+          const firstLook = () => ({
+            engine: (document.getElementById('tts-engine') || {}).value,
+            key: vis(document.getElementById('tts-key-field')),
+            base: vis(document.getElementById('tts-base-field')),
+            model: vis(document.getElementById('tts-model-field')),
+          });
+
           // 必须先真的进设置页：祖先 hidden 时 offsetParent 对每一个后代都是 null，
           // 于是「全部不可见」，这条断言会以一种看起来很像真发现的方式全线报错。
           document.getElementById('gear').click();
@@ -246,6 +260,24 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // 详细档才谈得上字段显隐 —— 快速档整批 .adv-only 是收起来的。
           document.getElementById('mode-detail').click();
           await new Promise((r) => setTimeout(r, 60));
+          const first = firstLook();
+
+          // ── 未配置时点「试听一句」，界面不许说「播放中」──────────────────
+          //
+          // 2026-09-04 全矩阵行 7（macOS 真宿主 App）肉眼抓到：App 的
+          // liveTtsConfigure 里留着一处写死的 browser 回落，于是
+          // 「未配置」在试听时被静默换成系统自带，**真的出了声**，而这正是这次
+          // 改动要消灭的东西。上面那两块断言都看不见它 —— 它们只读显隐、不点按钮。
+          //
+          // 判据是状态行的**文字**而不是 speak() 的返回值：用户看见的就是这行字，
+          // 而「必然失败的按钮 + 一句谎话」正是它当时的样子。
+          document.getElementById('btn-tts-test').click();
+          await new Promise((r) => setTimeout(r, 300));
+          const preview = {
+            engine: (document.getElementById('tts-engine') || {}).value,
+            note: (document.getElementById('test-tts-note').textContent || '').trim(),
+          };
+
           const bad = [];
           let checked = 0;
           for (const [slot, prefix, selId, entries] of cases) {
@@ -283,9 +315,23 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           };
           document.getElementById('settings-back').click();
           await new Promise((r) => setTimeout(r, 60));
-          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail });
+          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail, first, preview });
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const fv = JSON.parse(fx.result.value);
+      need(fv.first.engine === '',
+        '进详细档时语音引擎不是「未配置」，实际 "' + fv.first.engine + '"');
+      need(!fv.first.key && !fv.first.base && !fv.first.model,
+        '刚进详细档、语音还没配，Key/地址/模型却露着（key=' + fv.first.key
+        + ' base=' + fv.first.base + ' model=' + fv.first.model + '）—— '
+        + '.adv-only 与 applyFields 都在写同一个 hidden，放开之后必须让逐引擎的判断再说一次话');
+      need(fv.preview.engine === '',
+        '试听前语音引擎已经不是「未配置」了，这条断言测不到它要测的东西');
+      need(fv.preview.note && !/播放中/.test(fv.preview.note),
+        '未配置引擎时点「试听一句」，状态行说的是 "' + fv.preview.note + '" —— '
+        + '要么它撒谎说在播放（那就是有第二处 browser 回落偷偷接管了），'
+        + '要么它一个字都不说（静默失败，用户没有出口）');
+      need(/还没配语音引擎/.test(fv.preview.note),
+        '未配置的失败要说人话并给出路，实际说的是 "' + fv.preview.note + '"');
       need(fv.checked > 0, '一个引擎都没验到 —— 三个下拉都是空的？这条断言空转了');
       // 这个 flavor 没有可一键的平台时，tabs 整块藏起来、只剩详细档 —— 那是正当状态，
       // 与「两档都在但互斥」是两种不同的正确，分开判。

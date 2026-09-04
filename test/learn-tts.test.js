@@ -858,10 +858,17 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
   const codeOf = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
     .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
 
-  test('三处历史回落一处都不许回来', () => {
+  // 2026-09-04 全矩阵行 7（macOS 宿主 App）实测：拆掉 tts.js 那个回落之后，
+  // App 的 liveTtsConfigure 里还留着**第四处**，写死 `|| 'browser'`。表现是
+  // 未配置时点「试听一句」真的出了声，而界面说「播放中」—— 用户明确要消灭的
+  // 「系统自带凑合一下」，就藏在这一个 `||` 里。三道自动化门禁都看不见，因为
+  // 它们没有一个去点那个按钮。
+  test('四处历史回落一处都不许回来', () => {
     const CASES = [
       ['extension/learn/tts.js', /\|\|\s*engineById\(\s*'browser'\s*\)/,
         "engine() 又回落到 browser —— 「未配置」会静默变成「用系统语音」"],
+      ['app/settings.js', /\$\('tts-engine'\)\.value\s*\|\|/,
+        "liveTtsConfigure 又给 tts-engine 的值加了回落 —— 试听会绕过「用户填了才有」"],
       ['extension/options/options.js', /ttsEngineById\([^)]*\)\s*\|\|\s*TTS_ENGINES\[0\]/,
         'updateTtsUI 又回落到第一个引擎 —— 界面会把「未配置」显示成「已选 browser」'],
       ['app/settings.js', /MT_TTS_ENGINES\s*\|\|\s*\[\]\)\[0\]/,
@@ -878,6 +885,30 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
       'EngineFields.SLOTS.tts 没有 sentinelKey —— 「未配置」在选择器里就没有位置可待');
     eq(EF.SLOTS.tts.sentinelKey, 'tts_engine_none', '');
     ok(!!EF.SLOTS.stt.sentinelKey, 'stt 的哨兵也不见了？两者必须同形');
+  });
+
+  test('speak() 未配置时报的是 not_configured，不是 unsupported —— 两者出路不同', async () => {
+    const { TTS } = setup();
+    TTS.configure({ engineId: '' });
+    const r = await TTS.speak('hello', 'en');
+    eq(r.ok, false, '未配置还能 ok，那这一整条裁定就没落地');
+    eq(r.reason, 'not_configured',
+      '说成 unsupported 就是在说「这平台做不到」—— 而真相是「你还没配」，后者有出路');
+  });
+
+  test('reason 文案只有一份 —— 三个面上同一次失败必须说同一句话', () => {
+    const { TTS } = setup();
+    const t = (k, fb) => fb;
+    eq(typeof TTS.reason, 'function', 'LearnTTS.reason 不见了');
+    ok(/还没配语音引擎/.test(TTS.reason('not_configured', t)), '');
+    ok(/暂时读不出来/.test(TTS.reason('这不是任何一个码', t)), '兜底也要是人话');
+    // 消费者不许再自己长一张表出来。判据是 fallback 文案 —— 它是表的指纹。
+    for (const rel of ['extension/options/options.js', 'extension/learn/review.js',
+                       'app/settings.js']) {
+      ok(!/tts_no_voice_und/.test(codeOf(rel)),
+        rel + ' 又自己写了一份 tts reason 表 —— 上一次的代价是 options.js 缺 '
+        + 'not_configured，把「还没配」说成「暂时读不出来」');
+    }
   });
 
   test('App 不再同步播种 ttsMode —— 播种回来就等于把语音默认打开了', () => {

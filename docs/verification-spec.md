@@ -793,6 +793,25 @@ npx --yes web-ext run --source-dir dist-firefox \
   --start-url "<test-url>" --no-config-discovery
 ```
 
+> **驱动扩展自己的页面（options / onboard）—— 2026-09-04 首次跑通，三个坑**
+>
+> 上面这条配方验的是**内容脚本**那一面（FAB、整页双语），那些是普通网页，BiDi 直接
+> 能开。**扩展自己的页面不行**，要另一套做法：
+>
+> 1. **`--args` 必须合成一个 argv token**：`--args=--remote-debugging-port=9333`。
+>    分开写会被 web-ext 的 yargs 当成它自己的参数（实测报「无法识别这些选项」）。
+> 2. **Firefox 的 BiDi 没有 CDP 那套 `/json/version` 发现端点**（实测 404）。
+>    WebSocket 直接在 `ws://127.0.0.1:<port>/session` 上，握手就是 `session.new`。
+> 3. **BiDi 拒绝把内容标签页导航到 `moz-extension://`** ——
+>    实测报 `Navigation to "moz-extension://…" is not allowed in this context`。
+>    **出路是跑两趟**：UUID 在同一个 profile 里是稳定的（存在 `prefs.js` 的
+>    `extensions.webextensions.uuids`），所以第一趟只为把它写进去，第二趟用
+>    `--start-url <那个地址>` 让 **Firefox 自己打开**，BiDi 只负责读、不负责导航。
+>
+> 还有一条进程卫生：**web-ext 把 Firefox 起成孙进程**，`child.kill()` 杀不到它，
+> 上一轮残留的 Firefox 会一直占着 BiDi session，下一轮 `session.new` 直接报
+> 「Maximum number of active sessions」。启动前和收尾都要按端口特征 `pkill` 一次。
+
 **Use a PERSISTENT profile, not the default throwaway one.** §0 requires DeepSeek, and
 the API key lives in extension storage — a throwaway profile wipes it on every quit, so
 each run would need the key re-entered by hand. `--profile-create-if-missing
@@ -979,6 +998,29 @@ survives a relaunch**.
 > the explanation, it was the **falsifying test** — sign out, relaunch, confirm it
 > stays out. That distinguishes "a session I forgot about" from "sessions resurrect"
 > without needing to know where the session came from.
+
+> **两条 2026-09-04 花了十几轮买来的（同一行、同一个 App）**
+>
+> 3. **这个 App 的 localStorage 有两个可能的位置，先用 `lsof` 问它在读哪一份。**
+>    带 App Sandbox 的构建（正式签名 / 有 provisioning profile）落在
+>    `~/Library/Containers/com.belliedmonkeytranslator/Data/Library/WebKit/…`；
+>    去掉沙箱的本地 Debug 构建落在 `~/Library/WebKit/com.belliedmonkeytranslator/…`。
+>    **两份都可能存在、都装着看起来很像的 `mt:` 键**，而旧的那份是历史遗留。
+>    我对着没在用的那份改了六轮种子，每次都得到「没生效」，并据此推出了一个
+>    错误的结论（「macOS 上外部写 WKWebView 的 localStorage 不生效」）。判据是：
+>
+>    ```bash
+>    for q in $(pgrep -f WebKit.Networking); do
+>      lsof -p $q 2>/dev/null | grep "localstorage.sqlite3$"
+>    done
+>    ```
+>
+>    顺带：种子要写进 **WebKit 自己建过的**那个库（它是 WAL），别用 sqlite3 新建一个。
+>
+> 4. **窗口截图全白 ≠ App 挂了。** 先证明渲染进程是死是活，再谈回归。同一个
+>    `lsof` 就够了：WebContent/Networking 还打开着那个 sqlite，就说明页面在跑 JS。
+>    这一条把「是不是我刚才那次改动把 App 改白屏了」从猜测变成可判定的事 ——
+>    而它当时的答案是「不是」（`npm test` 与两个 flavor 的 `test:app` 全绿）。
 
 **Scope note:** relaunch-persistence of the graded state was not re-driven here (the
 on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on

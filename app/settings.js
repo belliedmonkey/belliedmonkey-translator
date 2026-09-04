@@ -306,7 +306,10 @@ var AppSettings = (() => {
   // of the next launch.
   function liveTtsConfigure() {
     LearnTTS.configure(Object.assign({}, LearnTTS.config, {
-      engineId: $('tts-engine').value || 'browser',
+      // **没有回落。** 这里曾经是 `|| 'browser'` —— 于是「未配置」在试听时被静默
+      // 换成系统自带，真的出了声，而界面说「播放中」。tts.js 里的那个回落 2026-09-04
+      // 拆掉了，这一处漏了：同一条规则的第二份实现，正是这一轮在消灭的东西。
+      engineId: $('tts-engine').value,
       apiKey: $('tts-api-key').value.trim(),
       baseUrl: $('tts-base-url').value.trim(),
       model: $('tts-model').value.trim(),
@@ -448,11 +451,29 @@ var AppSettings = (() => {
   //     整体式的读写去管一个跟配置无关的东西。
   //   · 这个 flavor 没有可一键的平台时不留空壳（_quickAvailable）——「只藏不给路
   //     是退化，不是简化」。
+  // 让三档引擎的显隐重新说一次话。只读 DOM 当前选中的引擎，不碰存储。
+  function repaintEngineFields() {
+    try { paintTtsFields($('tts-engine').value); } catch (_) {}
+    try { paintSttFields($('stt-engine').value); } catch (_) {}
+    try { paintNotesFields($('notes-provider').value); } catch (_) {}
+  }
+
   const DETAIL_KEY = 'optDetailMode';
   let _quickAvailable = true;
 
+  // ⚠️ **两套机制在写同一个 `hidden`，必须有明确的先后。**
+  //
+  // `.adv-only` 管的是「这一档要不要露」，`applyFields` 管的是「这个引擎需不需要
+  // 这个框」。三个引擎字段行**同时属于两者**。2026-09-04 在 iPhone 模拟器上实测到
+  // 后果：详细档下语音引擎明明是「未配置（不朗读）」，Key 与端点地址却照样显示 ——
+  // 因为 applyDetailMode 跑在 paintTtsFields 之后，把逐引擎的判断整个冲掉了。
+  //
+  // 所以放开 .adv-only 之后**必须再让逐引擎的判断说一次话**。顺序反过来会同样错。
+  // 这是设备矩阵抓到的 —— 三道自动化门禁都看不见它（它们只在详细档下逐个切引擎，
+  // 而那时 applyDetailMode 早已跑完，两者恰好一致）。
   function applyDetailMode(on) {
     for (const el of document.querySelectorAll('#app-settings .adv-only')) el.hidden = !on;
+    if (on) repaintEngineFields();
     for (const el of document.querySelectorAll('#app-settings .quick-only')) {
       el.hidden = on || !_quickAvailable;
     }
@@ -779,7 +800,7 @@ var AppSettings = (() => {
       try {
         liveTtsConfigure();
         const r = await LearnTTS.speak(t('tts_test_sample', 'This is what your review cards will sound like.'), 'en');
-        note.textContent = r.ok ? t('tts_test_ok', '播放中') : ('✗ ' + (r.reason || ''));
+        note.textContent = r.ok ? t('tts_test_ok', '播放中') : ('✗ ' + LearnTTS.reason(r.reason, t));
         if (r.ok) await Promise.race([(r.done || Promise.resolve()).catch(() => {}),
           new Promise((res) => setTimeout(res, 15000))]);
       } finally { btn.disabled = false; }

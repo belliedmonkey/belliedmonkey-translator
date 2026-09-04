@@ -459,6 +459,9 @@ var LearnTTS = (() => {
     const stale = () => epoch !== myEpoch;
     const clean = LearnModel.normText(text);
     if (!clean) return { ok: false, reason: 'empty' };
+    // 与 available() 同一条口径：「没配过」有出路，「这平台做不到」没有。
+    // 试听按钮读的是 speak() 的 reason，所以这里少分一次，界面就少说一句人话。
+    if (!cfg.engineId) return { ok: false, reason: 'not_configured' };
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
 
@@ -588,11 +591,40 @@ var LearnTTS = (() => {
     return readiness(e);
   }
 
+  // ─── reason → 人话 ────────────────────────────────────────────────────────
+  // 这张表此前有**三份**：review.js（完整）、options.js（缺 not_configured）、
+  // 而 App 的试听按钮**一份都没有**，直接把 `not_configured` 这种机器码印在屏幕上。
+  // 同一次失败在三个面上说三种话，其中一种还不是话。
+  //
+  // 放在这里而不是某个 UI 文件里：reason 是这个模块产的，谁产它谁说它是什么意思
+  // （`EngineTest.reason` 已经是这个形状）。`t` 由调用方传入 —— 这个文件在扩展页、
+  // 宿主 App 两个宿主里跑，i18n 的取法不一样，而文案的**内容**必须一样。
+  function reason(code, t) {
+    switch (code) {
+      case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
+      case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
+      // 「没配过」与「这平台做不到」分开说 —— 前者有出路，后者没有。
+      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
+      case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
+      case 'no_base': return t('tts_no_base', '还没填语音端点地址');
+      case 'no_key': return t('tts_no_key', '还没填语音 API Key');
+      case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
+      case 'http': return t('tts_http', '语音服务返回了错误');
+      // 这三条是 1.6.5 加的失败码，此前一直落到下面那句「暂时读不出来」。
+      // 补上不是锦上添花：删掉屏幕上的原始异常之后，不具名它们等于把这些失败
+      // 变得比清理前更没信息 —— 那是把清理做成回归。
+      case 'timeout': return t('tts_timeout', '语音服务超时了 —— 检查网络，或换一个语音端点');
+      case 'network': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
+      case 'empty': return t('tts_empty', '这张卡没有可朗读的文字');
+      default: return t('tts_failed', '这句暂时读不出来');
+    }
+  }
+
   return {
     DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, scriptLang, baseLang, undLang, cacheKey,
-    getAudio, prefetch, speak, stop, available, test,
+    getAudio, prefetch, speak, stop, available, test, reason,
     get config() { return cfg; },
   };
 })();

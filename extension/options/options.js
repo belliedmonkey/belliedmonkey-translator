@@ -201,18 +201,9 @@ function mountTtsCore(values) {
 function engineTestReason(e) { return EngineTest.reason(e, t); }
 function serverLine(e) { return EngineTest.serverLine(e, t); }
 
-function ttsReason(reason) {
-  switch (reason) {
-    case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
-    case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
-    case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
-    case 'no_base': return t('tts_no_base', '还没填语音端点地址');
-    case 'no_key': return t('tts_no_key', '还没填语音 API Key');
-    case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
-    case 'http': return t('tts_http', '语音服务返回了错误');
-    default: return t('tts_failed', '这句暂时读不出来');
-  }
-}
+// 文案表在 learn/tts.js —— reason 是它产的（与 EngineTest.reason 同一个模式）。
+// 这里曾经是自己的一份，缺 `not_configured`，于是「还没配」被说成「暂时读不出来」。
+function ttsReason(reason) { return LearnTTS.reason(reason, t); }
 
 function applyTtsConfig() {
   LearnTTS.configure({
