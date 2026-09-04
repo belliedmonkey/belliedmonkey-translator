@@ -28,67 +28,9 @@
 const EDITABLE_STATES = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
 const isEditable = (v) => EDITABLE_STATES.includes(v.attributes.appStoreState);
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-const ROOT = path.join(__dirname, '..');
-const KEYS = path.join(ROOT, '.local', 'keys.md');
-const API = 'https://api.appstoreconnect.apple.com/v1';
-
-function slot(name) {
-  if (!fs.existsSync(KEYS)) return null;
-  // `[^\S\n]*` 而不是 `\s*`：`\s` 含换行，空槽位会跨行吃到下一行的字段名，
-  // 把「缺凭证」伪装成「凭证错误」。同 cws-publish.js / amo-publish.js 那处的疤。
-  const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS, 'utf8'));
-  return m ? m[1] : null;
-}
-
-// ASC 的 JWT：ES256，payload 带 aud，exp 官方上限 20 分钟。
-function jwt() {
-  const missing = ['ascIssuerId', 'ascKeyId', 'ascKeyPath'].filter((n) => !slot(n));
-  if (missing.length) {
-    console.error('✗ .local/keys.md 缺：' + missing.join(', '));
-    process.exit(1);
-  }
-  const keyPath = slot('ascKeyPath').replace(/^~/, process.env.HOME);
-  if (!fs.existsSync(keyPath)) {
-    console.error(`✗ 私钥文件不存在：${keyPath}`);
-    process.exit(1);
-  }
-  const now = Math.floor(Date.now() / 1000);
-  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  const head = b64({ alg: 'ES256', kid: slot('ascKeyId'), typ: 'JWT' });
-  const body = b64({ iss: slot('ascIssuerId'), iat: now, exp: now + 900,
-    aud: 'appstoreconnect-v1' });
-  const sig = crypto.sign('sha256', Buffer.from(`${head}.${body}`),
-    { key: fs.readFileSync(keyPath), dsaEncoding: 'ieee-p1363' }).toString('base64url');
-  return `${head}.${body}.${sig}`;
-}
-
-async function api(method, url, body) {
-  const r = await fetch(url.startsWith('http') ? url : API + url, {
-    method,
-    headers: Object.assign({ Authorization: 'Bearer ' + jwt() },
-      body ? { 'Content-Type': 'application/json' } : {}),
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await r.text();
-  let d = null;
-  try { d = JSON.parse(text); } catch (_) { /* 非 JSON 也要留住原文 */ }
-  if (!r.ok) {
-    const detail = d && d.errors ? d.errors.map((e) => `${e.title}: ${e.detail}`).join('; ')
-      : String(text).slice(0, 300);
-    throw new Error(`HTTP ${r.status} ${method} ${url} — ${detail}`);
-  }
-  return d;
-}
-
-async function apps() {
-  const d = await api('GET', '/apps?limit=200');
-  return d.data.map((a) => ({ id: a.id, name: a.attributes.name,
-    bundleId: a.attributes.bundleId }));
-}
+// 凭证、JWT、请求、销售报表都在 lib 里 —— `store-stats.js` 要问 Apple 同样的问题，
+// 两份实现会漂移。见 scripts/lib/asc-client.js 开头。
+const { API, SEP, cut, slot, api, apps, salesRows, aggregateSales } = require('./lib/asc-client');
 
 async function cmdBuilds() {
   for (const app of await apps()) {
@@ -643,59 +585,17 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
 // 而 Supported Platforms 那列写的是「iOS and macOS」——是包支持什么，不是用户用什么。
 // 拿后者当设备分布会得到一个「100% 全平台」的废话。
 async function cmdInstalls(days) {
-  const vendor = slot('ascVendorNumber');
-  if (!vendor) {
-    console.error('✗ .local/keys.md 缺 ascVendorNumber');
-    console.error('  在 App Store Connect 的「付款和财务报告」页左上角灰色小字里：');
-    console.error('  https://appstoreconnect.apple.com/itc/payments_and_financial_reports/#/');
-    process.exit(1);
-  }
-  const zlib = require('zlib');
   const APPS = {};
   for (const a of await apps()) APPS[a.id] = a.name;
 
-  const fetchDay = async (date) => {
-    const u = API + '/salesReports?filter[frequency]=DAILY&filter[reportType]=SALES'
-      + '&filter[reportSubType]=SUMMARY&filter[vendorNumber]=' + vendor
-      + '&filter[reportDate]=' + date;
-    const r = await fetch(u, { headers: { Authorization: 'Bearer ' + jwt(), Accept: 'application/a-gzip' } });
-    if (r.status === 404) return null;                 // 那天没人下载 —— 正常，不是错误
-    if (!r.ok) throw new Error(`${date}: HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
-    const buf = Buffer.from(await r.arrayBuffer());
-    try { return zlib.gunzipSync(buf).toString('utf8'); } catch (_) { return buf.toString('utf8'); }
-  };
-
-  const rows = []; let quiet = 0; let live = 0;
-  const d0 = new Date();
-  for (let i = 1; i <= days; i += 1) {
-    const d = new Date(d0); d.setDate(d.getDate() - i);
-    const t = await fetchDay(d.toISOString().slice(0, 10));
-    if (!t) { quiet += 1; continue; }
-    live += 1;
-    const lines = t.trim().split('\n');
-    const head = lines[0].split('\t').map((h) => h.trim());
-    for (const l of lines.slice(1)) {
-      const c = l.split('\t');
-      rows.push(Object.fromEntries(head.map((h, j) => [h, (c[j] || '').trim()])));
-    }
-  }
+  const { rows, live, quiet, from, to } = await salesRows(days);
   if (!rows.length) {
     console.log(`最近 ${days} 天没有任何下载记录（${quiet} 天无报表）。`);
     return;
   }
-  const units = (r) => Number(r.Units || 0);
-  const nameOf = (r) => APPS[r['Apple Identifier']] || r['Apple Identifier'];
-  const add = (m, k, n) => m.set(k, (m.get(k) || 0) + n);
-  const byApp = new Map(); const byDev = new Map(); const byTerr = new Map();
-  let total = 0;
-  for (const r of rows) {
-    const n = units(r); total += n;
-    add(byApp, nameOf(r), n);
-    add(byDev, nameOf(r) + '\u0000' + (r.Device || '?'), n);
-    add(byTerr, r['Country Code'] + '\u0000' + nameOf(r), n);
-  }
-  const dates = rows.map((r) => r['Begin Date']).sort();
-  console.log(`\n下载量 · 最近 ${days} 天（${dates[0]} → ${dates[dates.length - 1]}；`
+  const { total, byApp, byDev, terr } = aggregateSales(rows, APPS);
+
+  console.log(`\n下载量 · 最近 ${days} 天（${from} → ${to}；`
     + `${live} 天有下载，${quiet} 天安静）· 合计 ${total}\n`);
 
   console.log('■ 按 app');
@@ -704,16 +604,10 @@ async function cmdInstalls(days) {
   }
   console.log('\n■ 按设备');
   for (const [k, v] of [...byDev].sort((a, b) => b[1] - a[1])) {
-    const [app, dev] = k.split('\u0000');
+    const [app, dev] = cut(k);
     console.log(`  ${app.padEnd(28)} ${dev.padEnd(10)} ${String(v).padStart(5)}`);
   }
   console.log('\n■ 按国家/地区');
-  const terr = new Map();
-  for (const [k, v] of byTerr) {
-    const [cc, app] = k.split('\u0000');
-    if (!terr.has(cc)) terr.set(cc, new Map());
-    add(terr.get(cc), app, v);
-  }
   const sum = (m) => [...m.values()].reduce((a, b) => a + b, 0);
   for (const [cc, m] of [...terr].sort((a, b) => sum(b[1]) - sum(a[1]))) {
     const s = sum(m);

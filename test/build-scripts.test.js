@@ -883,11 +883,19 @@ describe('内测发布会更新官网那一页', () => {
 
 // installs：下载量。这三条钉的是**实测出来的形状**，不是文档里读的。
 // 2026-09-03 首次接通 salesReports 时，每一条都真实地绊过一次。
+//
+// 2026-09-04 这段代码搬进了 scripts/lib/asc-client.js（store-stats.js 要问 Apple
+// 同样的问题，两份实现会漂移）。**断言跟着搬，一条都没放宽** —— 搬家当天它就抓到
+// 一个真回归：取 vendorNumber 的那个网址在搬运中被丢了，而那个号 API 查不到、
+// 只能去网页上抄。
 describe('asc installs 的三个形状', () => {
   const fs = require('fs');
   const path = require('path');
-  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts/asc.js'), 'utf8');
-  const fn = src.slice(src.indexOf('async function cmdInstalls'), src.indexOf('async function cmdReviews'));
+  const fn = fs.readFileSync(path.join(__dirname, '..', 'scripts/lib/asc-client.js'), 'utf8');
+  const caller = fs.readFileSync(path.join(__dirname, '..', 'scripts/asc.js'), 'utf8');
+  // 负向断言要看**代码**，不看注释 —— 解释「为什么不读 Supported Platforms」的那段话
+  // 本身含有这个词组，否则一条正确的说明会把它自己判成违规。
+  const codeOf = (s) => s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
 
   test('404 当成「那天没人下载」，不当错误', () => {
     ok(/status === 404\) return null/.test(fn),
@@ -901,7 +909,7 @@ describe('asc installs 的三个形状', () => {
 
   test('设备分布读 Device 列，不读 Supported Platforms', () => {
     ok(/r\.Device/.test(fn), '没读 Device 列');
-    ok(!/Supported Platforms/.test(fn),
+    ok(!/Supported Platforms/.test(codeOf(fn)) && !/Supported Platforms/.test(codeOf(caller)),
       'Supported Platforms 写的是「包支持什么」（iOS and macOS），不是「用户用什么」'
       + ' —— 拿它当设备分布会得到一个 100% 全平台的废话');
   });
