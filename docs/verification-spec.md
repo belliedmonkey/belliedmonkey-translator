@@ -69,7 +69,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 |---|---|---|---|
 | 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
 | 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
-| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
+| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified（2026-09-05 重验：引导页语音哨兵 + DeepSeek 测试连接 663ms 通过 + 整页双语）— see §2.C；勾选与选文件夹是仅有的两步人工 |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
@@ -712,6 +712,20 @@ So there are two real paths for macOS Safari — **prefer the first**:
     bug (2026-07-27).** `list_windows` reporting `is_on_screen: false` while the title is
     correct means the capture will be empty white; `bring_to_front` first. Cost an
     incorrect "the extension broke the page" conclusion.
+  - **⚠️ 加临时扩展之前先清空「已安装」里的同名扩展（2026-09-05）。** 每一次
+    `open` 一个本地 Debug 构建的宿主 App，Safari 就多注册一份扩展条目；这一轮跑完
+    矩阵后设置里躺着**四份**「大肚猴翻译」，而且**全部勾着** —— 正是上面那条
+    「两份同时加载会打架」的形状，只是更糟。`pluginkit -m` 看不到它们（Debug 构建
+    本来就不注册到 pluginkit），所以**判据是 Safari 设置 → 扩展这个列表本身**，
+    不是 pluginkit。清理要连**磁盘上的 App 副本**一起删（`/tmp/mt-dd-*/…/*.app`），
+    否则下次 `open` 它又回来了。
+  - **原生 `<select>`：用首字母跳转，别用方向键（2026-09-05）。** 每一次
+    `press_key(down)` 都会把下拉重新打开，净位移不等于按键次数（实测「按 3 次 ↓
+    + 回车」只移动了一格）。按目标项的**首字母**（DeepSeek → `d`）一次到位。
+  - **⌘V 在 Safari 网页里也被吞，但 `type_text` 可用（2026-09-05）。** 与
+    `macos-webview-input-unreliable` 记的宿主 App 情况不同：这里 `type_text` 把
+    35 字符的 API key 一字不差地打进去了（判据不是看框里的圆点数，是**点「测试连接」
+    让服务端回读** —— 它返回 200 就证明没有字符错位）。
 
 **Restore after:** if you enabled "允许未签名的扩展", uncheck it; remove any temporary
 extension / app copy; return Develop-menu visibility to its snapshotted state.
