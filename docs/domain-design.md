@@ -1027,6 +1027,12 @@ What does **not** change, and is now load-bearing rather than incidental:
   and never signs in has a complete product.**
 - **The server runs no model and performs no computation on user data.** It stores
   opaque bytes.
+- **Anonymous usage events are the one thing the product sends unasked** *(amended
+  2026-09-05)*: a whitelist of event names with a random per-install id, never page
+  content, URLs, hostnames, keys or account ids, off in one switch, and none at all
+  in the China flavor. The whitelist is a domain-design artifact — adding an event or
+  a property goes through the governance rule, not a PR. Design and Gate D:
+  `docs/telemetry-design.md`, `docs/learning-design.md` §10.
 - **The extension is complete without an account.** Sync is additive; every learning
   feature works fully offline and signed-out, on every surface.
 
