@@ -1,6 +1,6 @@
 # Telemetry design — anonymous usage events（匿名用量事件）
 
-> Status: **design approved 2026-09-05 by the owner; no code yet.** Governed by
+> Status: **design approved 2026-09-05; backend (PR-D1) live; client + copy (PR-D2/D3) implemented the same day.** Governed by
 > `AGENTS.md` rule 4 (amended the same day) and released through
 > `docs/learning-design.md` §10 **Gate D**. The event whitelist in §3 is a
 > domain-design artifact: adding an event, a property, or a join is a change to this

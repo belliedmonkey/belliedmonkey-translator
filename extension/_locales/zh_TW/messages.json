@@ -2123,5 +2123,20 @@
   },
   "sync_resend": {
     "message": "重新傳送"
+  },
+  "telemetry_section": {
+    "message": "匿名使用資料"
+  },
+  "telemetry_toggle": {
+    "message": "分享匿名使用資料"
+  },
+  "telemetry_what": {
+    "message": "會傳送什麼"
+  },
+  "telemetry_hint": {
+    "message": "只傳送用了哪些功能、在哪個瀏覽器、翻譯成功還是失敗 —— 不含你讀的網頁、文字、網址、金鑰或帳號。關掉即刪除這台裝置傳過的資料。"
+  },
+  "telemetry_onboard": {
+    "message": "會傳送匿名使用資料（不含網頁內容與網址），幫助改進；設定裡可關。"
   }
 }

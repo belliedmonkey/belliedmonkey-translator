@@ -317,7 +317,18 @@ function generateProviders(dir, flavor) {
     console.error('✗ MT_DEFAULT_TARGET_LANG: translation-core.js 里读不到 DEFAULT_TARGET_LANG');
     process.exit(1);
   }
+  // 匿名用量事件（docs/telemetry-design.md §4）：端点 + 白名单一起搭这辆车 —— 内容
+  // 脚本已经加载 providers.gen.js，而它们不能加载 backend.config.js（anon key）。这里
+  // 只发 URL，不发 key；边缘函数不校验 JWT。**中国版发 null**：那个 flavor 一个字节
+  // 都不发（AGENTS.md 规则 4），下面的门禁会核对产物里没有端点。
+  const TELEMETRY = require('./build/telemetry.config.js');
+  const telemetry = flavor === 'china' ? null : {
+    url: require('./extension/learn/backend.config.js').url + '/functions/v1/bt-ingest',
+    spec: { common: TELEMETRY.COMMON, events: TELEMETRY.EVENTS, limits: TELEMETRY.LIMITS },
+  };
   let body = `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
+    + `window.MT_VERSION = ${JSON.stringify(require('./package.json').version)};\n`
+    + `window.MT_TELEMETRY = ${JSON.stringify(telemetry)};\n`
     + `window.MT_SYNC_ENABLED = ${JSON.stringify(syncOn)};\n`
     + `window.MT_DEFAULT_TARGET_LANG = ${JSON.stringify(dtl[1])};\n`
     + `window.MT_PROVIDERS = ${JSON.stringify(providers)};\n`
@@ -591,7 +602,8 @@ function applyChinaLocales(dir) {
 // reference. See docs/domain-design.md.
 
 function complianceGateChina(dir, label) {
-  const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i;
+  // bt-ingest：匿名用量事件的端点（Gate D）。中国版一个字节都不发，产物里不该有它。
+const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|bt-ingest/i;
   const hits = [];
   (function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -803,6 +815,22 @@ function validateManifest(distDir, isFirefox) {
     if (readmeZh.includes('无账号、无追踪、无遥测')) {
       staleHits.push('README.zh-CN.md: 「无账号、无追踪、无遥测」');
     }
+    // ── Gate D（docs/learning-design.md §10；2026-09-05）：匿名用量事件上线之后，
+    // 「no telemetry / 无遥测」在两份 README 里都是假话；反过来，「anonymous usage /
+    // 匿名用量」这句必须在。两个方向都查：只查反向，删掉整段也能过。
+    if (/no telemetry/i.test(readme)) staleHits.push('README.md: still says "no telemetry" (Gate D)');
+    if (!/anonymous usage/i.test(readme)) staleHits.push('README.md: no "anonymous usage" disclosure (Gate D)');
+    if (/无遥测/.test(readmeZh)) staleHits.push('README.zh-CN.md: 仍写着「无遥测」(Gate D)');
+    if (!/匿名用量/.test(readmeZh)) staleHits.push('README.zh-CN.md: 没有「匿名用量」的披露 (Gate D)');
+    // 产品内的开关与说明：每一门 locale 都要有，且说明不能是开关那一句的复读。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const tog = String(m.telemetry_toggle?.message || '');
+      const hint = String(m.telemetry_hint?.message || '');
+      if (!tog || !hint || hint === tog) staleHits.push(`_locales/${loc} 缺 telemetry_toggle / telemetry_hint（Gate D）`);
+    }
     // ── 正向判据：每一门 locale 的 hint 都必须**提到同步** ──────────────────
     //
     // 下面那张 FALSE_CLAIMS 是**逐语言手写的谎言指纹**，写它的时候有 11 门语言而它
@@ -847,7 +875,8 @@ function validateManifest(distDir, isFirefox) {
       }
     }
     // The declaration must be the full Gate B value, not merely present.
-    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo'];
+    // technicalAndInteraction：匿名用量事件（Gate D，2026-09-05）。AMO 审核可见。
+    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo', 'technicalAndInteraction'];
     if (JSON.stringify((dcp || []).slice().sort()) !== JSON.stringify(WANT_DCP.slice().sort())) {
       staleHits.push(`gecko.data_collection_permissions.required is [${dcp}] — Gate B requires exactly [${WANT_DCP}]`);
     }

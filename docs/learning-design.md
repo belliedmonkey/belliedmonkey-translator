@@ -2581,9 +2581,10 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
   website content **and** browsing activity, readable on the receiving end, so the
   declaration almost certainly has to grow — and the wording must not lean on "it's
   encrypted", because it is not.
-- **App Store privacy labels** must be refilled — adds "User Content"; **not** "Usage
-  Data", since there is still no telemetry — and the host app must offer in-app
-  **account deletion**, an Apple requirement wherever accounts exist.
+- **App Store privacy labels** must be refilled — adds "User Content"; *(2026-09-05: and
+  "Usage Data · Product Interaction, not linked to you", once Gate D ships — this line
+  used to say "not Usage Data, since there is still no telemetry")* — and the host app
+  must offer in-app **account deletion**, an Apple requirement wherever accounts exist.
 - **Export ships with sync, not after** (§8.2). It is simultaneously the portability
   right, the no-account path, and the honest answer to "I don't trust you".
 - **`belliedmonkey.cc/privacy.html` lives outside this repo.** Per `AGENTS.md`, look

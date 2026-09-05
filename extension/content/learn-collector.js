@@ -279,6 +279,8 @@ var LearnCollector = (() => {
             write[key] = { url: src.url, title: src.title, sourceId: src.sourceId, items };
             chrome.storage.local.set(write, () => {
               if (drop.length) safe(() => chrome.storage.local.remove(drop.map((e) => e.k)));
+              // 用量事件：这个 install 第一次真的落盘（成功回调里，失败路径上什么都不发 —— 法则 2）。
+              if (items.length && (typeof MTTelemetry !== 'undefined')) safe(() => MTTelemetry.once('capture_first'));
               done(items.length);
             });
           } catch (_) { done(0); }

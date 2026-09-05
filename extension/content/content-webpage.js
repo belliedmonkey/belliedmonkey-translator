@@ -15,6 +15,7 @@ var WebpageTranslator = (() => {
   let known = new WeakSet();      // nodes already turned into units (dedupe)
   let engine = null;
   let tickTimer = null;
+  let enabledAt = 0, okSent = false;   // 用量事件：本次会话的起点 + translate_ok 只发一次
   let tickCount = 0;
   let domObs = null;              // SPA re-render fix-up (see installDomObserver)
 
@@ -31,6 +32,23 @@ var WebpageTranslator = (() => {
 
   function makeEngine() {
     return TranslationCore.createEngine({
+      // 用量事件（docs/telemetry-design.md §3）：每个页面会话一次 translate_ok；每次最终失败
+      // 一条 translate_fail（引擎 id + 错误码 + 状态码 + 通路，没有原文、没有地址）。
+      onOk: () => {
+        if (okSent || !(typeof MTTelemetry !== 'undefined')) return;
+        okSent = true;
+        MTTelemetry.track('translate_ok', { provider: String(settings.provider || ''), kind: 'page', ms: Date.now() - enabledAt });
+      },
+      onFail: (e) => {
+        if (!(typeof MTTelemetry !== 'undefined')) return;
+        MTTelemetry.track('translate_fail', {
+          provider: String(settings.provider || ''),
+          code: (e && typeof e.code === 'string') ? e.code : 'network',
+          status: Number.isInteger(e && e.status) ? e.status : 0,
+          route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
+          ms: Date.now() - enabledAt,
+        });
+      },
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         TranslationAPI.resolveProvider(settings.provider), settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''),
@@ -1127,6 +1145,7 @@ var WebpageTranslator = (() => {
     if (active) return; // idempotent: ignore a double-enable (message + storage.onChanged
                         // both fire on the first translate; the 2nd must not wipe the engine)
     active = true;
+    enabledAt = Date.now(); okSent = false;
     engine = makeEngine();
     units = []; known = new WeakSet();
     // Self-heal orphaned hide markers: a content-script reload (extension

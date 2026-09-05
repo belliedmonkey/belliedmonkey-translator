@@ -146,6 +146,9 @@ var AppSettings = (() => {
     $('feedback-mail').textContent = t('feedback_row', '发送反馈');
     $('feedback-rate').textContent = t('feedback_rate', '去商店评分');
     $('feedback-note').textContent = t('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。');
+    $('telemetry-title').textContent = t('telemetry_section', '匿名用量数据');
+    $('telemetry-label').textContent = t('telemetry_toggle', '分享匿名用量数据');
+    $('telemetry-note').textContent = t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。');
     $('account-title').textContent = t('app_set_account', '账号');
     $('settings-signout').textContent = t('app_set_signout', '退出登录');
     $('delete-account').textContent = t('app_set_delete', '删除账号与云端数据');
@@ -879,6 +882,14 @@ var AppSettings = (() => {
     // 是哑的），且**同步**发生在点击里 —— 别在它前面 await。
     $('feedback-mail').addEventListener('click', () => { MTFeedback.open(MTFeedback.mailtoUrl('app')); });
     $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
+    // 匿名用量事件的开关：独立键（tm:on），不进任何 saveAll。
+    try {
+      if (window.MT_TELEMETRY && typeof MTTelemetry !== 'undefined') {
+        $('telemetry-block').hidden = false;
+        MTTelemetry.enabled().then((on) => { $('telemetry-on').checked = !!on; });
+        $('telemetry-on').addEventListener('change', () => { MTTelemetry.setEnabled($('telemetry-on').checked); });
+      }
+    } catch (_) {}
 
     $('settings-signout').addEventListener('click', async () => {
       const btn = $('settings-signout');

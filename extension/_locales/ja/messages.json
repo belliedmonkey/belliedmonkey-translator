@@ -2122,5 +2122,20 @@
   },
   "sync_resend": {
     "message": "コードを再送信"
+  },
+  "telemetry_section": {
+    "message": "匿名の利用データ"
+  },
+  "telemetry_toggle": {
+    "message": "匿名の利用データを共有する"
+  },
+  "telemetry_what": {
+    "message": "送信される内容"
+  },
+  "telemetry_hint": {
+    "message": "送信するのは、どの機能をどのブラウザで使ったか、翻訳が成功したか失敗したかだけです。読んだページ・本文・URL・キー・アカウントは含まれません。オフにすると、この端末が送ったデータは削除されます。"
+  },
+  "telemetry_onboard": {
+    "message": "改善のため匿名の利用データを送信します（ページの内容や URL は含みません）。設定でオフにできます。"
   }
 }

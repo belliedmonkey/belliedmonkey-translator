@@ -35,7 +35,7 @@ ZWEISPRACHIGE SEITEN – Jeder Absatz behält seinen Originaltext, die Übersetz
 DOPPELTE UNTERTITEL – Videos, Podcasts und Video-Beiträge bekommen satzweise zugeordnete zweisprachige Untertitel: Original oben, Übersetzung darunter, der Wiedergabe voraus übersetzt.
 LESEN UND BEHALTEN – Schalte das Lernen ein, und die Sätze, die du wirklich gelesen hast, werden zu Wiederholungskarten: Lese-, Hör- und Schreibübungen, Satzerklärungen und Vorlesen, geplant nach Gedächtnisstärke. Mit Synchronisierung wiederholst du sie auch auf dem Handy.
 EIGENER SCHLÜSSEL – Trage den Schlüssel deines eigenen KI-Dienstes ein, oder einen beliebigen kompatiblen eigenen Endpunkt.
-PRIVAT VON GRUND AUF – Kein Konto nötig, kein Tracking und kein Server von uns im Übersetzungsweg: Dein Text geht direkt aus dem Browser an die von dir gewählte Engine, mit deinem Schlüssel. Die Synchronisierung über mehrere Geräte ist optional und bleibt aus, bis du dich anmeldest. Kostenlos und quelloffen.
+PRIVAT VON GRUND AUF – Kein Konto nötig, kein Tracking, keine Drittanbieter-Analysen (nur anonyme Nutzungsdaten, abschaltbar) und kein Server von uns im Übersetzungsweg: Dein Text geht direkt aus dem Browser an die von dir gewählte Engine, mit deinem Schlüssel. Die Synchronisierung über mehrere Geräte ist optional und bleibt aus, bis du dich anmeldest. Kostenlos und quelloffen.
 
 Website: https://belliedmonkey.cc
 ```
@@ -147,7 +147,7 @@ BILINGUAL PAGES — Every paragraph keeps its original text with the translation
 DUAL SUBTITLES — Videos, podcasts and video posts get sentence-matched dual subtitles: original on top, translation below, translated ahead of playback.
 READ IT, KEEP IT — Turn on learning and the sentences you actually read become review cards: read/listen/write exercises, sentence notes and read-aloud, scheduled by memory strength. Review on your phone with sync on.
 BRING YOUR OWN KEY — Plug in your own AI service key, or any compatible custom endpoint.
-PRIVATE BY DESIGN — No account needed, no tracking, and no server of ours in the translation path: your text goes straight from your browser to the engine you picked, with your key. Multi-device sync is optional, off until you sign in. Free and open source.
+PRIVATE BY DESIGN — No account needed, no tracking, no third-party analytics (only anonymous usage events, off in one switch), and no server of ours in the translation path: your text goes straight from your browser to the engine you picked, with your key. Multi-device sync is optional, off until you sign in. Free and open source.
 
 Website: https://belliedmonkey.cc
 ```
@@ -161,7 +161,7 @@ Website: https://belliedmonkey.cc
 【视频双语字幕】视频、播客与视频帖逐句对齐的双语字幕——原文在上、译文在下，提前翻译整句，播放不卡顿。
 【读过即积累】开启学习后，真正读过的句子自动变成复习卡：读·听·写多种练习 + 句子解析 + 朗读，按记忆强度安排复习；开同步后手机上也能复习。
 【自带 key】填入你自己的 AI 服务密钥，或任何兼容的自定义接口。
-【隐私优先】无账号、无追踪、无中间服务器——密钥与设置只存在你的设备上。开源免费。
+【隐私优先】无账号、无追踪、无第三方统计（只有可关闭的匿名用量事件）、无中间服务器——密钥与设置只存在你的设备上。开源免费。
 
 官网：https://belliedmonkey.cc
 ```

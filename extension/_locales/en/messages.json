@@ -2122,5 +2122,20 @@
   },
   "sync_resend": {
     "message": "Resend code"
+  },
+  "telemetry_section": {
+    "message": "Anonymous usage data"
+  },
+  "telemetry_toggle": {
+    "message": "Share anonymous usage data"
+  },
+  "telemetry_what": {
+    "message": "What is sent"
+  },
+  "telemetry_hint": {
+    "message": "Only which features are used, on which browser, and whether a translation succeeded or failed — never the pages you read, the text, the addresses, your keys or your account. Turning it off deletes what this device sent."
+  },
+  "telemetry_onboard": {
+    "message": "Anonymous usage data is sent to help improve the product (never page content or addresses). You can turn it off in Settings."
   }
 }

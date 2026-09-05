@@ -381,7 +381,7 @@ var TranslationCore = (() => {
           stallTimer = setTimeout(() => { const e = new Error('translate stalled'); e.stalled = true; reject(e); }, win.STALL_MS);
         });
         Promise.race([translate(it.text), stall]).then((t) => {
-          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; return; }
+          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
           // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
           // 请求发出**之前**判定不用翻（同语言跳过）才可以静默终结；请求发出**之后**
           // 拿回空正文，说明这一段确实需要译文而我们没拿到。此前这里写的是
@@ -394,10 +394,11 @@ var TranslationCore = (() => {
           // 烧配额。所以直接进 error 态，把重试交给用户点一下。
           it._err = true;
           it._tries = 0;
+          if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
-          if (e && e.stalled) { it._err = true; it._tries = 0; return; }  // 卡死 → 直接可重试
+          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout' }); } catch (_) {} } return; }  // 卡死 → 直接可重试
           it._tries = (it._tries || 0) + 1;
-          if (it._tries >= win.MAX_RETRIES) it._err = true; // exhausted → error UI
+          if (it._tries >= win.MAX_RETRIES) { it._err = true; if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} } } // exhausted → error UI
         }).finally(() => {
           clearTimeout(stallTimer);
           setTimeout(() => { it._fetching = false; }, win.RETRY_GAP_MS);
@@ -439,6 +440,7 @@ var TranslationCore = (() => {
       window: win,
       targetLang: cfg.targetLang,   // string or getter — passed through, read late
       detect: cfg.detect,
+      onOk: cfg.onOk, onFail: cfg.onFail,   // 用量事件的两个钩子（docs/telemetry-design.md §3），可缺省
       // sliding window: only sentences from now to +AHEAD_MS
       selectActive: (units) => {
         const tMs = getCurrentTime();

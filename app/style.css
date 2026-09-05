@@ -396,3 +396,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   /* 动画关掉了，但「是哪一行」仍然要说。静态描边留着（JS 2.4s 后摘类）。 */
   #app-settings .anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
 }
+
+/* 匿名用量事件的开关行（设置页）。 */
+:where(#app-settings) .row-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 0.95rem; }
+:where(#app-settings) .row-toggle input { width: 22px; height: 22px; accent-color: var(--accent); }

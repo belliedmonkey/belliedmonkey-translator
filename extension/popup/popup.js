@@ -378,3 +378,6 @@ init();
     if (rate && url) { rate.href = url; rate.hidden = false; }
   } catch (_) { /* 反馈入口坏了不能拖垮弹窗本身 */ }
 })();
+
+// 用量事件：扩展页打开即 flush（内容脚本攒下的队列由这里送走），顺便记当日心跳。
+try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}

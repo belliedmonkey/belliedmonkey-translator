@@ -182,6 +182,7 @@ var YouTubeTranslator = (() => {
 
   const T = TranslationCore.t;
   const ui = SubtitleAdapter.createSubtitleUI({
+    telemetrySite: 'youtube',
     ids: { overlay: 'mt-yt-overlay', orig: 'mt-yt-orig', trans: 'mt-yt-trans', btn: 'mt-yt-btn', menu: 'mt-yt-menu', meas: 'mt-yt-meas' },
     maxAttempts: 8,
     hasMedia: () => !!document.querySelector(PLAYER),

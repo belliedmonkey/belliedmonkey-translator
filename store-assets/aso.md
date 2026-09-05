@@ -66,7 +66,7 @@ BRING YOUR OWN ENGINE
 Google translation works instantly, with no setup. Prefer an AI model? Add your own key for OpenAI, Claude, DeepSeek, or GLM and translate with the engine you trust. You're always in control.
 
 PRIVATE BY DESIGN
-No tracking, no telemetry, no ads. No servers of ours in the translation path — text goes straight to the provider you choose, and your keys and settings stay on your device. No account unless you want one. The entire app is open source.
+No tracking, no ads, no third-party analytics — only anonymous usage events (which features are used, never page content), off in one switch. No servers of ours in the translation path — text goes straight to the provider you choose, and your keys and settings stay on your device. No account unless you want one. The entire app is open source.
 
 FREE AND OPEN
 BelliedMonkey Translator is free and fully open source.
@@ -221,7 +221,7 @@ BelliedMonkey 翻訳
 無料の通道は設定なしですぐ使えます。品質を上げたいときは、お使いの AI サービスのキー、または互換性のある任意のカスタムエンドポイントを設定してください。主導権は常にあなたにあります。
 
 【設計からプライバシー優先】
-トラッキングなし、計測なし、広告なし。翻訳経路に当方のサーバーは一切ありません —— テキストはあなたが選んだ提供元へ直接送られ、キーと設定は端末に残ります。アカウントは必要なときだけ。全体がオープンソースです。
+トラッキングなし、広告なし、第三者の分析なし — 匿名の利用データ（使った機能だけ、ページ内容は含まず）のみで、設定でオフにできます。翻訳経路に当方のサーバーは一切ありません —— テキストはあなたが選んだ提供元へ直接送られ、キーと設定は端末に残ります。アカウントは必要なときだけ。全体がオープンソースです。
 
 【無料・オープン】
 完全に無料、そして完全にオープンソースです。
@@ -276,7 +276,7 @@ BelliedMonkey 번역
 무료 채널은 설정 없이 바로 쓸 수 있습니다. 품질을 높이고 싶다면 사용 중인 AI 서비스의 키, 또는 호환되는 임의의 사용자 지정 엔드포인트를 넣으세요. 주도권은 언제나 여러분에게 있습니다.
 
 【설계부터 프라이버시】
-추적 없음, 계측 없음, 광고 없음. 번역 경로에 저희 서버는 없습니다 —— 텍스트는 여러분이 고른 제공자에게 곧바로 전송되고, 키와 설정은 기기에 남습니다. 계정은 원할 때만. 전체가 오픈 소스입니다.
+추적 없음, 광고 없음, 제3자 분석 없음 — 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용은 제외)만 보내며 설정에서 끌 수 있습니다. 번역 경로에 저희 서버는 없습니다 —— 텍스트는 여러분이 고른 제공자에게 곧바로 전송되고, 키와 설정은 기기에 남습니다. 계정은 원할 때만. 전체가 오픈 소스입니다.
 
 【무료, 오픈】
 완전히 무료이며 완전한 오픈 소스입니다.
@@ -331,7 +331,7 @@ BelliedMonkey 번역
 免費通道零設定就能用；想要更好的品質，填入你自己的 AI 服務金鑰，或任何相容的自訂端點。主導權始終在你手上。
 
 【隱私】
-沒有追蹤、沒有埋點、沒有廣告。翻譯路徑上沒有我們的伺服器 —— 翻譯請求由你的裝置直接送往你選擇的服務商，金鑰與設定只留在本機。不登入也能完整使用。
+沒有追蹤、沒有廣告、沒有第三方分析 —— 只傳送匿名使用資料（用了哪些功能，不含網頁內容），設定裡可關。翻譯路徑上沒有我們的伺服器 —— 翻譯請求由你的裝置直接送往你選擇的服務商，金鑰與設定只留在本機。不登入也能完整使用。
 
 完全免費，完整開放原始碼。
 ```
@@ -383,7 +383,7 @@ DEINE EIGENE ENGINE
 Ein kostenloser Kanal funktioniert ohne jede Einrichtung. Willst du bessere Qualität, trage den Schlüssel deines eigenen KI-Dienstes ein oder einen beliebigen kompatiblen eigenen Endpunkt. Die Entscheidung bleibt bei dir.
 
 PRIVAT VON GRUND AUF
-Kein Tracking, keine Telemetrie, keine Werbung. Kein Server von uns im Übersetzungsweg – dein Text geht direkt an den Anbieter, den du gewählt hast, und Schlüssel wie Einstellungen bleiben auf deinem Gerät. Ein Konto nur, wenn du eins willst.
+Kein Tracking, keine Werbung, keine Drittanbieter-Analysen – nur anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), in den Einstellungen abschaltbar. Kein Server von uns im Übersetzungsweg – dein Text geht direkt an den Anbieter, den du gewählt hast, und Schlüssel wie Einstellungen bleiben auf deinem Gerät. Ein Konto nur, wenn du eins willst.
 
 KOSTENLOS UND QUELLOFFEN
 Vollständig kostenlos und vollständig quelloffen.
@@ -436,7 +436,7 @@ VOTRE PROPRE MOTEUR
 Un canal gratuit fonctionne immédiatement, sans configuration. Pour une meilleure qualité, renseignez la clé de votre propre service d'IA, ou n'importe quel endpoint personnalisé compatible. Vous gardez la main.
 
 CONFIDENTIEL PAR CONCEPTION
-Aucun pistage, aucune télémétrie, aucune publicité. Aucun serveur à nous sur le chemin de la traduction — votre texte part directement vers le fournisseur que vous avez choisi, et votre clé comme vos réglages restent sur votre appareil. Un compte seulement si vous en voulez un.
+Aucun pistage, aucune publicité, aucune analyse tierce — seulement des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables dans les réglages. Aucun serveur à nous sur le chemin de la traduction — votre texte part directement vers le fournisseur que vous avez choisi, et votre clé comme vos réglages restent sur votre appareil. Un compte seulement si vous en voulez un.
 
 GRATUIT ET OUVERT
 Entièrement gratuit et entièrement open source.
@@ -489,7 +489,7 @@ TU PROPIO MOTOR
 Un canal gratuito funciona al instante, sin configuración. Si quieres más calidad, introduce la clave de tu propio servicio de IA, o cualquier endpoint personalizado compatible. Tú mandas.
 
 PRIVADO POR DISEÑO
-Sin rastreo, sin telemetría, sin anuncios. Ningún servidor nuestro en la ruta de traducción: tu texto va directo al proveedor que elijas, y tu clave y tus ajustes se quedan en tu dispositivo. Cuenta solo si tú quieres una.
+Sin rastreo, sin anuncios, sin analíticas de terceros: solo datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables en Ajustes. Ningún servidor nuestro en la ruta de traducción: tu texto va directo al proveedor que elijas, y tu clave y tus ajustes se quedan en tu dispositivo. Cuenta solo si tú quieres una.
 
 GRATIS Y ABIERTO
 Completamente gratis y completamente de código abierto.
@@ -542,7 +542,7 @@ BelliedMonkey Переводчик
 Бесплатный канал работает сразу, без настройки. Нужно качество выше — укажите ключ своего ИИ-сервиса или любую совместимую собственную конечную точку. Решение всегда за вами.
 
 ПРИВАТНОСТЬ ПО УМОЛЧАНИЮ
-Никакой слежки, никакой телеметрии, никакой рекламы. На пути перевода нет наших серверов: текст идёт напрямую выбранному вами поставщику, а ключ и настройки остаются на устройстве. Учётная запись — только если она вам нужна.
+Никакой слежки, рекламы и сторонней аналитики — только анонимные данные об использовании (какие функции, никогда содержимое страниц), отключаются в настройках. На пути перевода нет наших серверов: текст идёт напрямую выбранному вами поставщику, а ключ и настройки остаются на устройстве. Учётная запись — только если она вам нужна.
 
 БЕСПЛАТНО И ОТКРЫТО
 Полностью бесплатно и полностью с открытым исходным кодом.
@@ -595,7 +595,7 @@ SEU PRÓPRIO MOTOR
 Um canal gratuito funciona na hora, sem configuração. Quer mais qualidade? Coloque a chave do seu próprio serviço de IA, ou qualquer endpoint personalizado compatível. O controle é sempre seu.
 
 PRIVADO POR PADRÃO
-Sem rastreamento, sem telemetria, sem anúncios. Nenhum servidor nosso no caminho da tradução: seu texto vai direto para o provedor que você escolheu, e sua chave e ajustes ficam no aparelho. Conta só se você quiser uma.
+Sem rastreamento, sem anúncios, sem analytics de terceiros — só dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis nos Ajustes. Nenhum servidor nosso no caminho da tradução: seu texto vai direto para o provedor que você escolheu, e sua chave e ajustes ficam no aparelho. Conta só se você quiser uma.
 
 GRÁTIS E ABERTO
 Totalmente gratuito e totalmente de código aberto.
@@ -699,7 +699,7 @@ SCEGLI TU IL MOTORE
 Il canale gratuito funziona subito, senza configurazione. Vuoi più qualità? Inserisci la chiave del tuo servizio di IA, o qualsiasi endpoint personalizzato compatibile. Il controllo resta sempre tuo.
 
 PRIVATO PER SCELTA
-Nessun tracciamento, nessuna telemetria, nessuna pubblicità. Nessun nostro server sul percorso della traduzione: il testo va direttamente al fornitore che scegli, e le tue chiavi e impostazioni restano sul dispositivo. Nessun account, a meno che tu non lo voglia. Tutta l'app è open source.
+Nessun tracciamento, nessuna pubblicità, nessuna analisi di terze parti — solo dati d'uso anonimi (quali funzioni, mai il contenuto delle pagine), disattivabili nelle impostazioni. Nessun nostro server sul percorso della traduzione: il testo va direttamente al fornitore che scegli, e le tue chiavi e impostazioni restano sul dispositivo. Nessun account, a meno che tu non lo voglia. Tutta l'app è open source.
 
 GRATIS E APERTA
 BelliedMonkey Traduttore è gratuita e completamente open source.
@@ -809,7 +809,7 @@ TỰ CHỌN CỖ MÁY DỊCH
 Kênh miễn phí chạy ngay, không cần cài đặt gì. Muốn chất lượng cao hơn? Điền khóa dịch vụ AI của riêng bạn, hoặc bất kỳ điểm cuối tùy chỉnh tương thích nào. Quyền quyết định luôn thuộc về bạn.
 
 RIÊNG TƯ NGAY TỪ THIẾT KẾ
-Không theo dõi, không đo đạc, không quảng cáo. Không có máy chủ nào của chúng tôi nằm trên đường dịch: văn bản đi thẳng tới nhà cung cấp bạn chọn, còn khóa và cài đặt thì ở lại trên máy bạn. Không cần tài khoản trừ khi bạn muốn. Toàn bộ ứng dụng là mã nguồn mở.
+Không theo dõi, không quảng cáo, không phân tích của bên thứ ba — chỉ dữ liệu sử dụng ẩn danh (tính năng nào được dùng, không bao giờ là nội dung trang), tắt được trong Cài đặt. Không có máy chủ nào của chúng tôi nằm trên đường dịch: văn bản đi thẳng tới nhà cung cấp bạn chọn, còn khóa và cài đặt thì ở lại trên máy bạn. Không cần tài khoản trừ khi bạn muốn. Toàn bộ ứng dụng là mã nguồn mở.
 
 MIỄN PHÍ VÀ MỞ
 BelliedMonkey Dịch miễn phí và hoàn toàn mã nguồn mở.
@@ -864,7 +864,7 @@ SILNIK WYBIERASZ TY
 Darmowy kanał działa od razu, bez konfiguracji. Chcesz wyższej jakości? Wpisz klucz własnej usługi AI albo dowolny zgodny własny endpoint. Kontrolę zawsze masz Ty.
 
 PRYWATNE Z ZAŁOŻENIA
-Bez śledzenia, bez telemetrii, bez reklam. Na drodze tłumaczenia nie ma żadnego naszego serwera: tekst idzie prosto do wybranego przez Ciebie dostawcy, a klucze i ustawienia zostają na urządzeniu. Konto tylko wtedy, gdy sam zechcesz. Cała aplikacja jest open source.
+Bez śledzenia, bez reklam, bez analityki firm trzecich — tylko anonimowe dane o użyciu (które funkcje, nigdy treść stron), do wyłączenia w ustawieniach. Na drodze tłumaczenia nie ma żadnego naszego serwera: tekst idzie prosto do wybranego przez Ciebie dostawcy, a klucze i ustawienia zostają na urządzeniu. Konto tylko wtedy, gdy sam zechcesz. Cała aplikacja jest open source.
 
 DARMOWE I OTWARTE
 BelliedMonkey Tłumacz jest darmowy i w pełni otwartoźródłowy.

@@ -2122,5 +2122,20 @@
   },
   "sync_resend": {
     "message": "Reenviar código"
+  },
+  "telemetry_section": {
+    "message": "Dados de uso anônimos"
+  },
+  "telemetry_toggle": {
+    "message": "Compartilhar dados de uso anônimos"
+  },
+  "telemetry_what": {
+    "message": "O que é enviado"
+  },
+  "telemetry_hint": {
+    "message": "Só quais recursos são usados, em qual navegador e se uma tradução deu certo ou falhou — nunca as páginas que você lê, o texto, os endereços, suas chaves ou sua conta. Desligar apaga o que este aparelho enviou."
+  },
+  "telemetry_onboard": {
+    "message": "Dados de uso anônimos são enviados para melhorar o produto (nunca o conteúdo nem os endereços das páginas). Dá para desligar nos Ajustes."
   }
 }

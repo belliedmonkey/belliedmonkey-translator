@@ -2123,5 +2123,20 @@
   },
   "sync_resend": {
     "message": "重新发送"
+  },
+  "telemetry_section": {
+    "message": "匿名用量数据"
+  },
+  "telemetry_toggle": {
+    "message": "分享匿名用量数据"
+  },
+  "telemetry_what": {
+    "message": "会发送什么"
+  },
+  "telemetry_hint": {
+    "message": "只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。"
+  },
+  "telemetry_onboard": {
+    "message": "会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。"
   }
 }

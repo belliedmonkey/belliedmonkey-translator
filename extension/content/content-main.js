@@ -468,3 +468,6 @@
     }
   });
 })();
+
+// 用量事件：每个自然日一次心跳（只入队；扩展页打开时统一发送）。
+try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init(); } catch (_) {}

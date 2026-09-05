@@ -47,6 +47,7 @@ const MODULES = [
                                          // read it (§7.2 / §9.2)
   'extension/learn/app-link.js',         // AppLink —— 「去 App 里复习」的地址与出口。
   'extension/learn/feedback.js',         // MTFeedback —— 反馈 / 评分出口；settings.js 与 review.js 引用
+  'extension/learn/telemetry.js',        // MTTelemetry —— 匿名用量事件（docs/telemetry-design.md）
                                          // App 宿主里那个按钮本就不该出现（人已经在
                                          // App 里了），但 review.js 引用它，漏了这一行
                                          // 就是加载期 ReferenceError —— 同 engine-state
