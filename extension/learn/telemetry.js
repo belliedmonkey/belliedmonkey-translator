@@ -22,6 +22,9 @@ var MTTelemetry = (() => {
   let flushTimer = null;
 
   function spec() {
+    // 自动化里的浏览器（门禁、语料、真机驱动）不算用户：headless / CDP 驱动的 Chrome 会把
+    // navigator.webdriver 置真。不加这一条，每跑一次 test:app 就往表里写两行。
+    try { if (typeof navigator !== 'undefined' && navigator.webdriver === true) return null; } catch (_) {}
     try { return (typeof window !== 'undefined' && window.MT_TELEMETRY) || null; } catch (_) { return null; }
   }
   function storage() {
@@ -177,7 +180,11 @@ var MTTelemetry = (() => {
       const r = await sget([K.queue, K.last]);
       const q = Array.isArray(r[K.queue]) ? r[K.queue] : [];
       if (!q.length) return false;
-      // 先清再发：两个页面同时 flush 时至多重复，不会无限累积。发失败放回队尾。
+      // 两个页面同时 flush（弹窗 + 设置页各自 init）会把同一批发两遍 —— 09-05 实测表里
+      // 成对重复。storage 没有原子操作，用 tm:last 当 5 秒的软锁：窗口从「读到写」缩到
+      // 一次 get 的往返；剩下的重复由日聚合的 count(distinct install_id) 吸收。
+      if (Number(r[K.last]) && Date.now() - Number(r[K.last]) < 5000) { schedule(); return false; }
+      // 先清再发：发失败放回队尾。
       await sset({ [K.queue]: [], [K.last]: Date.now() });
       const { id } = await installId();
       const batch = q.slice(0, 50).map((e) => envelope(id, e));

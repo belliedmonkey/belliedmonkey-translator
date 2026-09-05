@@ -85,6 +85,17 @@ describe('MTTelemetry — 开关与心跳', () => {
     eq(ids.size, 1);
     ok(sends.every((s) => s.body.length <= 50));
   });
+  test('自动化浏览器（navigator.webdriver）⇒ 空操作 —— 门禁不许往表里写', async () => {
+    const { T, sends } = load();
+    // 注入 webdriver 标记后再 init：与真实门禁（headless Chrome）同一形状
+    const ctx = loadModule(['learn/telemetry.js'], { window: { MT_TELEMETRY: { url: 'https://x.test/i', spec: { events: cfg.EVENTS } } },
+      navigator: { userAgent: 'x', webdriver: true }, crypto: require('crypto').webcrypto, fetch: async () => { sends.push(1); return { ok: true }; },
+      chrome: { storage: { local: { get: (k, cb) => cb({}), set: (o, cb) => cb && cb(), remove: (k, cb) => cb && cb() } }, i18n: { getUILanguage: () => 'en' } } });
+    eq(await ctx.MTTelemetry.enabled(), false);
+    eq(await ctx.MTTelemetry.track('heartbeat'), false);
+    await ctx.MTTelemetry.init({ flushNow: true });
+    eq(sends.length, 0); ok(T);
+  });
   test('⑤ 中国版：MT_TELEMETRY 为 null ⇒ 全部空操作，什么都不发', async () => {
     const { T, store, sends } = load({ china: true });
     eq(await T.enabled(), false);
