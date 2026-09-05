@@ -236,17 +236,33 @@ function patchViewController(sharedDir) {
   // needs this most, since it is the one where the app cannot see the extension's
   // state at all (getStateOfSafariExtension is macOS-only).
   const URL_ANCHOR = '#if os(macOS)\n        if (message.body as! String != "open-preferences") {';
-  if (src.includes('MT_OPEN_URL')) {
-    notes.push('open-url bridge already patched');
+  // v2（2026-09-05）：白名单加上 App Store（评分）与我们自己的邮箱（反馈）。
+  // 判据带版本号：老的 needle 只认「有没有 MT_OPEN_URL」，于是一棵已打过 v1 的树
+  // 会永远停在 v1，而 app:sync 照样打印「already patched」。升级时先把 v1 块整段
+  // 摘掉（从标记到锚点之间），再按插入路径走一遍 —— 结果幂等，不靠特判。
+  const V1_MARK = '// MT_OPEN_URL — patched';
+  if (!src.includes('MT_OPEN_URL v2') && src.includes(V1_MARK) && src.includes(URL_ANCHOR)) {
+    const b = src.indexOf(V1_MARK);
+    const e = src.indexOf(URL_ANCHOR, b);
+    if (e > b) { src = src.slice(0, b) + src.slice(e); notes.push('open-url bridge v1 block removed'); }
+  }
+  if (src.includes('MT_OPEN_URL v2')) {
+    notes.push('open-url bridge already patched (v2)');
   } else if (src.includes(URL_ANCHOR)) {
     src = src.replace(URL_ANCHOR,
-      '// MT_OPEN_URL — patched by scripts/sync-app-assets.js\n'
+      '// MT_OPEN_URL v2 — patched by scripts/sync-app-assets.js\n'
       + '        if let s = message.body as? String, s.hasPrefix("open-url:") {\n'
       + '            let raw = String(s.dropFirst("open-url:".count))\n'
-      + '            // Our own https pages only. A native side that opens ANY url on\n'
-      + '            // request is a redirector, and this one is reachable from web content.\n'
-      + '            guard let url = URL(string: raw), url.scheme == "https", let host = url.host,\n'
-      + '                  host == "belliedmonkey.cc" || host == "belliedmonkey.com" else { return }\n'
+      + '            // A native side that opens ANY url on request is a redirector reachable\n'
+      + '            // from web content — so this is an allowlist: our two sites, the App\n'
+      + '            // Store page of this app (rating), and mail to our own address (feedback).\n'
+      + '            guard let url = URL(string: raw) else { return }\n'
+      + '            var allowed = false\n'
+      + '            if url.scheme == "mailto" { allowed = raw.hasPrefix("mailto:belliedmonkey@gmail.com") }\n'
+      + '            else if url.scheme == "https", let host = url.host {\n'
+      + '                allowed = host == "belliedmonkey.cc" || host == "belliedmonkey.com" || host == "apps.apple.com"\n'
+      + '            }\n'
+      + '            guard allowed else { return }\n'
       + '#if os(iOS)\n'
       + '            UIApplication.shared.open(url)\n'
       + '#elseif os(macOS)\n'
@@ -254,6 +270,9 @@ function patchViewController(sharedDir) {
       + '#endif\n'
       + '            return\n'
       + '        }\n'
+      + '        // 系统评分弹窗（app/native/review-bridge.swift）。页面只在一轮复习刷完后发，\n'
+      + '        // 且本机 90 天冷却；系统再节流一层，弹不弹不回报。\n'
+      + '        if let s = message.body as? String, s == "request-review" { MTReview.request(); return }\n'
       + '        ' + URL_ANCHOR);
     notes.push('open-url bridge patched');
   } else {
@@ -288,6 +307,8 @@ const BLOCKS = [
   // 原生 Sign in with Apple（learning-design §8.4.1.2）。跨桥的只有 id_token 与 nonce，
   // 会话从头到尾只在页面那一侧。
   { name: 'mt-apple-signin', src: 'apple-signin-bridge.swift', label: 'apple sign-in bridge' },
+  // 系统评分弹窗（SKStoreReviewController）。无 attach：它不持有 webView。
+  { name: 'mt-review-bridge', src: 'review-bridge.swift', label: 'review bridge' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

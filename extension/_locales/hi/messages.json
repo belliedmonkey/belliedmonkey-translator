@@ -1924,5 +1924,23 @@
   },
   "tts_not_configured": {
     "message": "वाक् इंजन अभी सेट नहीं है — «सेटिंग्स › वाक्» में एक चुनें"
+  },
+  "feedback_section": {
+    "message": "प्रतिक्रिया"
+  },
+  "feedback_row": {
+    "message": "प्रतिक्रिया भेजें"
+  },
+  "feedback_rate": {
+    "message": "स्टोर पर रेटिंग दें"
+  },
+  "feedback_discuss": {
+    "message": "GitHub पर चर्चाएँ"
+  },
+  "feedback_hint": {
+    "message": "आपका मेल ऐप खुलेगा। विषय में केवल संस्करण और प्लेटफ़ॉर्म होता है; और कुछ नहीं भेजा जाता।"
+  },
+  "extob_done_feedback": {
+    "message": "कुछ काम नहीं कर रहा? मुझे लिखें — मैं हर संदेश पढ़ता हूँ।"
   }
 }

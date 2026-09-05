@@ -429,6 +429,16 @@
         <p><span data-i18n="about_line">大肚猴翻译</span> · <span id="about-version"></span></p>
         <p data-i18n="options_about_desc">支持网页全文双语对照翻译 + YouTube 双语字幕。</p>
         <p data-i18n="options_about_safari">Safari iOS：在设置 → Safari → 扩展 中启用。</p>
+        <!-- 反馈 / 评分 / 讨论区。地址来自 learn/feedback.js（唯一登记处）；
+             评分链接在没有商店条目的宿主上藏掉。 -->
+        <p id="about-links">
+          <a id="feedback-mail" target="_blank" rel="noopener" data-i18n="feedback_row">发送反馈</a>
+          <span class="sep">·</span>
+          <a id="feedback-discuss" target="_blank" rel="noopener" data-i18n="feedback_discuss">GitHub 讨论区</a>
+          <span class="sep" id="feedback-rate-sep" hidden>·</span>
+          <a id="feedback-rate" target="_blank" rel="noopener" data-i18n="feedback_rate" hidden>去商店评分</a>
+        </p>
+        <p class="note" data-i18n="feedback_hint">会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。</p>
         <!-- ZIP 直装提示。官网早就说了这句（home.installS4，8 语言都有），但装完的人
              不会回去看官网 —— 所以产品内也要有一处。只放这里：popup 是干活的地方，
              引导里说更新对第 0 天的用户是噪音。 -->
@@ -468,6 +478,7 @@
   <script src="../learn/sync.js"></script>
   <script src="../learn/engine-fields.js"></script>
   <script src="../learn/app-link.js"></script>
+  <script src="../learn/feedback.js"></script>
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
   <script src="../learn/tts.js"></script>

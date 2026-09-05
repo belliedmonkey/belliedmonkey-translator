@@ -466,6 +466,13 @@ async function init() {
   try {
     const el = $('about-version');
     if (el) el.textContent = 'v' + chrome.runtime.getManifest().version;
+    // 反馈 / 评分 / 讨论区：地址由 learn/feedback.js 统一给。
+    try {
+      const mail = $('feedback-mail'); if (mail) mail.href = MTFeedback.mailtoUrl('settings');
+      const disc = $('feedback-discuss'); if (disc) disc.href = MTFeedback.discussUrl();
+      const rate = $('feedback-rate'); const url = MTFeedback.rateUrl();
+      if (rate && url) { rate.href = url; rate.hidden = false; const sep = $('feedback-rate-sep'); if (sep) sep.hidden = false; }
+    } catch (_) {}
   } catch (_) {}
   const s = s0;
 
@@ -824,7 +831,7 @@ async function init() {
   //
   // Firefox 不做这个判断：browser_specific_settings.gecko.id 在 AMO 安装与临时安装
   // 是同一个值，自分发 XPI 本来也必须签名。写一个注定失效的检查比不写更坏。
-  const CWS_ID = 'ilnmffeejeohomjelipejdldhkjeoinf';
+  const CWS_ID = MTFeedback.CWS_ID;   // 商店 id 只登记在 learn/feedback.js 一处
   try {
     const isFirefox = typeof browser !== 'undefined' && browser.runtime && browser.runtime.getBrowserInfo;
     if (!isFirefox && chrome.runtime.id && chrome.runtime.id !== CWS_ID) {

@@ -456,6 +456,13 @@
            按钮就在同步块之外，所以中国版扩展照样有它。 -->
       <button id="clear-learn" type="button" class="secondary danger"></button>
 
+      <!-- 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
+           打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 -->
+      <h3 id="feedback-title"></h3>
+      <button id="feedback-mail" type="button" class="secondary"></button>
+      <button id="feedback-rate" type="button" class="secondary"></button>
+      <p class="note" id="feedback-note"></p>
+
       <h3 id="account-title"></h3>
       <p class="note" id="account-who"></p>
       <button id="settings-signout" type="button" class="secondary"></button>

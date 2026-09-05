@@ -120,8 +120,17 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
             skip:vis(sk)?Math.round(sk.getBoundingClientRect().bottom):null};})(),
         capture:vis(document.getElementById('ob-capture')),
         cta:vis(document.getElementById('ob-cta')),
-        done:vis(document.getElementById('ob-done'))})})()`);
-      if(s.done) break;
+        done:vis(document.getElementById('ob-done')),
+        // 收尾屏的反馈出口：文字非空、链接是 mailto。HTML 在而 feedback.js 抛异常时
+        // 这里是空的 —— 正是这道门禁存在的理由。
+        fb:(()=>{const a=document.getElementById('ob-done-feedback-link'),tx=document.getElementById('ob-done-feedback-text');
+          return {href:a?a.getAttribute('href')||'':'',text:(tx&&tx.textContent||'').trim(),link:(a&&a.textContent||'').trim()};})()})})()`);
+      if(s.done){
+        if(!/^mailto:/.test(s.fb.href)) fail(`收尾屏的反馈链接不是 mailto（${JSON.stringify(s.fb.href)}）—— feedback.js 没跑起来？`);
+        else if(!s.fb.text||!s.fb.link) fail('收尾屏的反馈出口文字为空');
+        else pass('收尾屏有反馈出口，链接是 mailto');
+        break;
+      }
       seen.push(s);
       // 点**可见**的那个按钮。'try' 屏没有「继续」（唯一行动是「打开示例页面」，
       // 它同时前进），照旧点 ob-next 会点到一个 display:none 的按钮 —— click() 照样

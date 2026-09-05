@@ -367,6 +367,11 @@
     $('ob-done-text').textContent = t('extob_done_text',
       '打开任意外语网页，点右下角的悬浮按钮即可。想改设置或重看这段引导，都在扩展的设置页里。');
     $('ob-done-close').textContent = t('extob_done_close', '知道了');
+    // 第 0 天就把出口给出来：引导页说得再对，真机上总有一个站不听话。
+    $('ob-done-feedback-text').textContent = t('extob_done_feedback', '哪里不对劲？写信给我 —— 每一封我都会读。');
+    const fl = $('ob-done-feedback-link');
+    fl.textContent = t('feedback_row', '发送反馈');
+    try { fl.href = MTFeedback.mailtoUrl('onboarding'); } catch (_) { fl.hidden = true; }
   }
   $('ob-done-close').addEventListener('click', () => { try { window.close(); } catch (_) {} });
 

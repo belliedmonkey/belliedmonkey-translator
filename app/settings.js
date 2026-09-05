@@ -142,6 +142,10 @@ var AppSettings = (() => {
     $('split-long').textContent = t('learn_split_long', '拆分长段卡');
     $('clean-known').textContent = t('app_set_clean_known', '清理已掌握的卡');
     $('clear-learn').textContent = t('learn_clear', '清空学习库');
+    $('feedback-title').textContent = t('feedback_section', '反馈');
+    $('feedback-mail').textContent = t('feedback_row', '发送反馈');
+    $('feedback-rate').textContent = t('feedback_rate', '去商店评分');
+    $('feedback-note').textContent = t('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。');
     $('account-title').textContent = t('app_set_account', '账号');
     $('settings-signout').textContent = t('app_set_signout', '退出登录');
     $('delete-account').textContent = t('app_set_delete', '删除账号与云端数据');
@@ -870,6 +874,11 @@ var AppSettings = (() => {
         say(t('toast_learn_clear_failed', '清空失败'), true);
       } finally { btn.disabled = false; }
     });
+
+    // 反馈 / 评分。MTFeedback.open 在宿主 App 里走原生桥（window.open 在 WKWebView 里
+    // 是哑的），且**同步**发生在点击里 —— 别在它前面 await。
+    $('feedback-mail').addEventListener('click', () => { MTFeedback.open(MTFeedback.mailtoUrl('app')); });
+    $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
 
     $('settings-signout').addEventListener('click', async () => {
       const btn = $('settings-signout');
