@@ -119,3 +119,99 @@ $$;
 revoke all on function public.bt_enforce_quota() from public, anon, authenticated;
 revoke all on function public.bt_usage() from public, anon;
 grant execute on function public.bt_usage() to authenticated;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 匿名用量事件（docs/telemetry-design.md；AGENTS.md 规则 4，2026-09-05 修订）。
+--
+-- 一行 = 一个事件。install_id 是客户端随机生成的 UUID，**这张表里没有、也永远不会有**
+-- 任何能连到 auth.users 的列 —— 这是设计上的承诺，不是暂时没加。
+-- 只有边缘函数 bt-ingest（service role）能写；anon / authenticated 一条策略都没有，
+-- 所以没有任何客户端能读到别人的、或自己的事件。
+-- 原始行 180 天后由 pg_cron 删除；bt_daily 是不含 install_id 的日聚合，长期保留。
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table if not exists public.bt_events (
+  id           bigint generated always as identity primary key,
+  install_id   uuid        not null,
+  ts           timestamptz not null,               -- 客户端时间（取整到分钟）
+  v            text        not null,               -- 扩展版本
+  flavor       text        not null,
+  host         text        not null,               -- safari / chrome / firefox / app
+  device       text        not null default '',
+  ui           text        not null default '',
+  name         text        not null,               -- 事件名，白名单见 build/telemetry.config.js
+  props        jsonb       not null default '{}'::jsonb,
+  received_at  timestamptz not null default now()
+);
+
+create index if not exists bt_events_install_idx  on public.bt_events (install_id);
+create index if not exists bt_events_received_idx on public.bt_events (received_at);
+create index if not exists bt_events_name_day_idx on public.bt_events (name, received_at);
+
+comment on table public.bt_events is
+  'BelliedMonkey Translator 匿名用量事件。无账号关联；180 天后删；见 docs/telemetry-design.md。';
+
+-- RLS 开着、**没有任何策略** = 对 anon / authenticated 全拒。service role 绕过 RLS，
+-- 这正是「只有边缘函数能写」的实现方式。往这里加一条 select 策略就是把别人的事件
+-- 开放给客户端 —— 别加。
+alter table public.bt_events enable row level security;
+revoke all on table public.bt_events from anon, authenticated;
+
+-- 日聚合：不含 install_id。installs 是当天去重后的 install 数。
+create table if not exists public.bt_daily (
+  day       date  not null,
+  flavor    text  not null,
+  host      text  not null,
+  name      text  not null,
+  provider  text  not null default '',
+  n         int   not null,
+  installs  int   not null,
+  primary key (day, flavor, host, name, provider)
+);
+alter table public.bt_daily enable row level security;
+revoke all on table public.bt_daily from anon, authenticated;
+
+-- 关闭遥测的次数（事件本身不落库，只计数）：知道 opt-out 率，不知道是谁。
+create table if not exists public.bt_optouts (
+  day  date not null primary key,
+  n    int  not null default 0
+);
+alter table public.bt_optouts enable row level security;
+revoke all on table public.bt_optouts from anon, authenticated;
+
+-- 把某一天聚合进 bt_daily（幂等：重跑覆盖）。
+create or replace function public.bt_rollup_day(d date)
+returns void
+language sql
+security definer
+set search_path = public, pg_catalog
+as $$
+  insert into public.bt_daily (day, flavor, host, name, provider, n, installs)
+  select d, flavor, host, name, coalesce(props->>'provider', ''),
+         count(*)::int, count(distinct install_id)::int
+    from public.bt_events
+   where received_at >= d and received_at < d + 1
+   group by flavor, host, name, coalesce(props->>'provider', '')
+  on conflict (day, flavor, host, name, provider)
+  do update set n = excluded.n, installs = excluded.installs;
+$$;
+revoke all on function public.bt_rollup_day(date) from public, anon, authenticated;
+
+-- 每天 03:17 UTC：先聚合昨天，再删 180 天前的原始行。顺序是硬的 —— 反过来会把
+-- 还没聚合的那一天删掉。
+create extension if not exists pg_cron;
+select cron.unschedule(jobid) from cron.job where jobname in ('bt_events_rollup', 'bt_events_retention');
+select cron.schedule('bt_events_rollup',    '17 3 * * *', $$select public.bt_rollup_day((now() - interval '1 day')::date)$$);
+select cron.schedule('bt_events_retention', '27 3 * * *', $$delete from public.bt_events where received_at < now() - interval '180 days'$$);
+
+-- bt_optouts 的自增（边缘函数经 RPC 调；service role 才有权限）。
+create or replace function public.bt_optout_bump(d date)
+returns void
+language sql
+security definer
+set search_path = public, pg_catalog
+as $$
+  insert into public.bt_optouts (day, n) values (d, 1)
+  on conflict (day) do update set n = public.bt_optouts.n + 1;
+$$;
+revoke all on function public.bt_optout_bump(date) from public, anon, authenticated;
