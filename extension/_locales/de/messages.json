@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "Sprachausgabe ist nicht eingerichtet — wähle eine Engine unter Einstellungen › Sprache"
+  },
+  "feedback_section": {
+    "message": "Feedback"
+  },
+  "feedback_row": {
+    "message": "Feedback senden"
+  },
+  "feedback_rate": {
+    "message": "Im Store bewerten"
+  },
+  "feedback_discuss": {
+    "message": "Diskussionen auf GitHub"
+  },
+  "feedback_hint": {
+    "message": "Öffnet Ihre Mail-App. Der Betreff enthält Version und Plattform; sonst wird nichts gesendet."
+  },
+  "extob_done_feedback": {
+    "message": "Etwas funktioniert nicht? Schreiben Sie mir — ich lese jede Nachricht."
   }
 }

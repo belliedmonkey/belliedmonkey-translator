@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "Speech is not set up yet — choose an engine in Settings › Speech"
+  },
+  "feedback_section": {
+    "message": "Feedback"
+  },
+  "feedback_row": {
+    "message": "Send feedback"
+  },
+  "feedback_rate": {
+    "message": "Rate it on the store"
+  },
+  "feedback_discuss": {
+    "message": "Discussions on GitHub"
+  },
+  "feedback_hint": {
+    "message": "Opens your mail app. The subject carries the version and platform; nothing else is sent."
+  },
+  "extob_done_feedback": {
+    "message": "Something not working? Write to me — I read every message."
   }
 }

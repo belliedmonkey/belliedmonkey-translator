@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "音声エンジンが未設定です —— 「設定 › 音声」で選んでください"
+  },
+  "feedback_section": {
+    "message": "フィードバック"
+  },
+  "feedback_row": {
+    "message": "フィードバックを送る"
+  },
+  "feedback_rate": {
+    "message": "ストアで評価する"
+  },
+  "feedback_discuss": {
+    "message": "GitHub のディスカッション"
+  },
+  "feedback_hint": {
+    "message": "メールアプリが開きます。件名にバージョンとプラットフォームが入るだけで、それ以外は何も送信されません。"
+  },
+  "extob_done_feedback": {
+    "message": "うまく動かないところがあれば、メールしてください。すべて目を通しています。"
   }
 }

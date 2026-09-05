@@ -110,6 +110,7 @@ body {
   color: inherit;
 }
 .row-btn:hover .row-label { color: var(--accent); }
+a.row-btn { display: flex; text-decoration: none; }
 .row-value {
   font-size: 13px;
   color: var(--text-secondary, #82796a);

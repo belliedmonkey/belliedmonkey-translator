@@ -148,6 +148,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // §9.5 出发前预载 — the two-tap price-then-spend control and its readouts.
           'drive-preload-days','btn-drive-preload','drive-preload-note',
           'drive-audio-cache','btn-drive-clear-audio',
+          // 反馈 / 评分出口（2026-09-05）：产品里此前一个 mailto 都没有
+          'feedback-title','feedback-mail','feedback-rate','feedback-note',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus

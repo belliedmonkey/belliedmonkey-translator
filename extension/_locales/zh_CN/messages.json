@@ -2093,5 +2093,23 @@
   },
   "tts_not_configured": {
     "message": "还没配语音引擎 —— 到「设置 › 语音」里选一个"
+  },
+  "feedback_section": {
+    "message": "反馈"
+  },
+  "feedback_row": {
+    "message": "发送反馈"
+  },
+  "feedback_rate": {
+    "message": "去商店评分"
+  },
+  "feedback_discuss": {
+    "message": "GitHub 讨论区"
+  },
+  "feedback_hint": {
+    "message": "会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。"
+  },
+  "extob_done_feedback": {
+    "message": "哪里不对劲？写信给我 —— 每一封我都会读。"
   }
 }

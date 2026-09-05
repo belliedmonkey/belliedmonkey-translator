@@ -87,6 +87,18 @@
        iOS 上粘完直接锁屏就静默丢了（1.6.8 的同款事故）。未配置时由上面的 #setup-note
        整条可点，把人送到设置页那一个入口。 -->
 
+  <!-- 反馈 / 评分。2026-09-05 之前产品里没有一个 mailto、没有一个商店链接 ——
+       想说话没处说。两个都是 <a>：点击直接由浏览器处理，不经 window.open，也就没有
+       用户手势的坑。地址由 learn/feedback.js 统一给；评分行在没有商店条目的宿主上藏掉。 -->
+  <div class="section" id="feedback-section">
+    <a class="row row-btn" id="feedback-mail" target="_blank" rel="noopener">
+      <span class="row-label" data-i18n="feedback_row">发送反馈</span>
+    </a>
+    <a class="row row-btn" id="feedback-rate" target="_blank" rel="noopener" hidden>
+      <span class="row-label" data-i18n="feedback_rate">去商店评分</span>
+    </a>
+  </div>
+
   <div class="section actions" id="actions-section">
     <button class="btn-primary" id="btn-translate" data-i18n="btn_translate_page">翻译本页</button>
     <button class="btn-secondary" id="btn-settings" data-i18n="btn_more_settings">更多设置</button>
@@ -114,6 +126,8 @@
   <script src="../learn/auth.js"></script>
   <script src="../learn/chunk.js"></script>
   <script src="../learn/sync.js"></script>
+  <script src="../learn/app-link.js"></script>
+  <script src="../learn/feedback.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

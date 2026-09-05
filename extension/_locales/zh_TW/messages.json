@@ -2093,5 +2093,23 @@
   },
   "tts_not_configured": {
     "message": "還沒設定語音引擎 —— 到「設定 › 語音」裡選一個"
+  },
+  "feedback_section": {
+    "message": "意見回饋"
+  },
+  "feedback_row": {
+    "message": "傳送意見"
+  },
+  "feedback_rate": {
+    "message": "到商店評分"
+  },
+  "feedback_discuss": {
+    "message": "GitHub 討論區"
+  },
+  "feedback_hint": {
+    "message": "會開啟你的郵件 App。主旨帶著版本號與平台，除此之外什麼都不會送出。"
+  },
+  "extob_done_feedback": {
+    "message": "哪裡不對勁？寫信給我 —— 每一封我都會讀。"
   }
 }

@@ -38,6 +38,8 @@
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
 
+在用？说说你拿它做什么、想改什么 —— [Discussions 里的开放帖](https://github.com/belliedmonkey/belliedmonkey-translator/discussions)，中英文都行。
+
 <details>
 <summary><b>直接安装 ZIP（Chrome / Edge）</b></summary>
 

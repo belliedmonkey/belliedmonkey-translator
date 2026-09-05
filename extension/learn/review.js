@@ -1057,6 +1057,11 @@
         .replace('{n}', String(sched.dailyNew));
       $('progress').textContent = doneThisRun
         ? t('learn_done_run', '本次完成 {n} 张').replace('{n}', String(doneThisRun)) : '';
+      // 成功时刻：一轮刷完、且真做了几张。只有宿主 App 有系统评分弹窗；扩展的
+      // 复习页不加载 feedback.js，typeof 守卫让这里在那边是空操作。
+      if (doneThisRun && typeof MTFeedback !== 'undefined') {
+        try { MTFeedback.maybeRequestRating(doneThisRun); } catch (_) {}
+      }
       return;
     }
 

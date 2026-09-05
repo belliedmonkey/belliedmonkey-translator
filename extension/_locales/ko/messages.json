@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "음성 엔진이 아직 설정되지 않았습니다 — 「설정 › 음성」에서 선택하세요"
+  },
+  "feedback_section": {
+    "message": "피드백"
+  },
+  "feedback_row": {
+    "message": "피드백 보내기"
+  },
+  "feedback_rate": {
+    "message": "스토어에서 평가하기"
+  },
+  "feedback_discuss": {
+    "message": "GitHub 토론"
+  },
+  "feedback_hint": {
+    "message": "메일 앱이 열립니다. 제목에 버전과 플랫폼만 들어가고, 그 외에는 아무것도 전송되지 않습니다."
+  },
+  "extob_done_feedback": {
+    "message": "뭔가 안 되나요? 메일을 보내 주세요. 모든 메일을 읽습니다."
   }
 }

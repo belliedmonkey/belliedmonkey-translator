@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "لم يتم إعداد الصوت بعد — اختر محركًا من الإعدادات › الصوت"
+  },
+  "feedback_section": {
+    "message": "ملاحظات"
+  },
+  "feedback_row": {
+    "message": "إرسال ملاحظات"
+  },
+  "feedback_rate": {
+    "message": "قيّمه في المتجر"
+  },
+  "feedback_discuss": {
+    "message": "النقاشات على GitHub"
+  },
+  "feedback_hint": {
+    "message": "يفتح تطبيق البريد لديك. يحمل الموضوع الإصدار والمنصة فقط؛ ولا يُرسل أي شيء آخر."
+  },
+  "extob_done_feedback": {
+    "message": "شيء لا يعمل؟ راسلني — أقرأ كل رسالة."
   }
 }

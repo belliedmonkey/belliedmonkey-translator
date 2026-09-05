@@ -365,3 +365,16 @@ async function init() {
 }
 
 init();
+
+// ─── 反馈 / 评分 ────────────────────────────────────────────────────────────
+// 只填 href。评分行在这个宿主没有商店条目时（中国版 Chrome/Firefox）保持 hidden ——
+// 指向一个不存在的页比没有这一行更糟。
+(() => {
+  try {
+    const mail = document.getElementById('feedback-mail');
+    if (mail) mail.href = MTFeedback.mailtoUrl('popup');
+    const rate = document.getElementById('feedback-rate');
+    const url = MTFeedback.rateUrl();
+    if (rate && url) { rate.href = url; rate.hidden = false; }
+  } catch (_) { /* 反馈入口坏了不能拖垮弹窗本身 */ }
+})();

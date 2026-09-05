@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "La synthèse vocale n'est pas configurée — choisissez un moteur dans Réglages › Voix"
+  },
+  "feedback_section": {
+    "message": "Retour"
+  },
+  "feedback_row": {
+    "message": "Envoyer un retour"
+  },
+  "feedback_rate": {
+    "message": "Noter sur la boutique"
+  },
+  "feedback_discuss": {
+    "message": "Discussions sur GitHub"
+  },
+  "feedback_hint": {
+    "message": "Ouvre votre application de messagerie. L'objet contient la version et la plateforme ; rien d'autre n'est envoyé."
+  },
+  "extob_done_feedback": {
+    "message": "Quelque chose ne marche pas ? Écrivez-moi — je lis chaque message."
   }
 }

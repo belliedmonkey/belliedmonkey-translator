@@ -2092,5 +2092,23 @@
   },
   "tts_not_configured": {
     "message": "La voz no está configurada — elige un motor en Ajustes › Voz"
+  },
+  "feedback_section": {
+    "message": "Comentarios"
+  },
+  "feedback_row": {
+    "message": "Enviar comentarios"
+  },
+  "feedback_rate": {
+    "message": "Valorar en la tienda"
+  },
+  "feedback_discuss": {
+    "message": "Discusiones en GitHub"
+  },
+  "feedback_hint": {
+    "message": "Abre tu app de correo. El asunto lleva la versión y la plataforma; no se envía nada más."
+  },
+  "extob_done_feedback": {
+    "message": "¿Algo no funciona? Escríbeme — leo todos los mensajes."
   }
 }
