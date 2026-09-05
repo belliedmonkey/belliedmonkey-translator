@@ -73,7 +73,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
-| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：语音未配置的提示与去设置的路都在；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -1126,6 +1126,9 @@ survives a relaunch**.
 >    这一整轮的代价：十几次重建 + 三种签名配置的对照实验 + 一条写错的 not-run。
 >    **`ask-before-investigating-anomalies` 那条记忆正是为此存在的** ——
 >    人在回路里的时候，「你看一眼屏幕」是最便宜的一次测量。
+>
+>    权限恢复后同一个进程立刻截得出内容、AX 也回来了 —— 这本身就是最终判据：
+>    **App 一个字节都没变，变的只有观察。**
 
 **Scope note:** relaunch-persistence of the graded state was not re-driven here (the
 on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
