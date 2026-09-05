@@ -395,12 +395,21 @@ async function cmdPrivacy(apply) {
       for (const L of (locs.data || [])) {
         const got = L.attributes.privacyPolicyUrl || '';
         const same = got === want;
+        // ⚠️ READY_FOR_SALE 那条**永远改不了**（Apple 409），所以它不符时
+        //    不能算失败 —— 否则这个命令会永远返回 1，而**一个永远红的检查等于
+        //    没有检查**（2026-09-05 同一天刚在 CI 的 Node 底线上付过一次这个学费）。
+        //    它会被下一次上架的版本取代，所以这里只提示，不判负。
+        const locked = state === 'READY_FOR_SALE';
         const label = `${app.bundleId} ${L.attributes.locale} [${state}]`;
-        console.log(`  ${same ? '✓' : '✗'} ${label}`);
+        console.log(`  ${same ? '✓' : (locked ? '·' : '✗')} ${label}`);
         if (!same) {
           console.log(`      现在 ${got || '(空)'}`);
           console.log(`      应为 ${want}`);
-          ok = false;
+          if (locked) {
+            console.log('      （已上架那条锁死，改不了；上架新版本后它会被取代 —— 不计入失败）');
+          } else {
+            ok = false;
+          }
         }
         if (!apply || same) continue;
         // READY_FOR_SALE 上必然 409。先说清楚再试，免得把一个已知的限制
