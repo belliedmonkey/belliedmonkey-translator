@@ -73,6 +73,38 @@ function flipSyncFlag(text, what, direction) {
 //
 // 判据同 flipSyncFlag：**恰好一处**，多一处或没有都退出 —— 静默改错一处的代价是
 // 中国版包里留着一个死按钮，而拆包 grep 之前没人看得见。
+// ── 中国版的境内后端（§C）────────────────────────────────────────────────
+//
+// 读**源码树**那一份，不是产物 —— 判据要在改写之前就定下来，否则会读到自己刚写的值。
+function chinaBackend() {
+  const cfg = require('./extension/learn/backend.config.js');
+  return (cfg && cfg.china) || { ready: false, url: '', anonKey: '' };
+}
+function chinaBackendReady() {
+  const cn = chinaBackend();
+  return cn.ready === true && !!cn.url && !!cn.anonKey;
+}
+
+// 把产物里的 url / anonKey 换成境内那一套。
+//
+// 与 flipSyncFlag / limitProviders 同一条纪律：**恰好一处**，否则 exit(1)。
+// 一个静默的 0 处替换会产出一个「说自己是中国版、其实还在打东京」的包 ——
+// 那是这个仓库最贵的那类谎，而它在产物里完全看不出来。
+function switchBackend(text, what, cn) {
+  const out = [['url', cn.url], ['anonKey', cn.anonKey]].reduce((acc, [key, val]) => {
+    // 只匹配**顶层**那一条（行首两个空格），不碰 china 块里的同名键（四个空格）。
+    const RE = new RegExp(`^  ${key}: '[^']*',`, 'm');
+    const hits = acc.match(new RegExp(RE.source, 'gm')) || [];
+    if (hits.length !== 1) {
+      console.error(`✗ backend switch: expected exactly one top-level \`${key}\` in ${what}, got ${hits.length}`);
+      process.exit(1);
+    }
+    return acc.replace(RE, `  ${key}: '${val}', // CHINA build: 境内后端（build.js）`);
+  }, text);
+  // 产物里不该再留着那个块 —— 它只是源码里的一个决策记录，进了包就是第二个可信来源。
+  return out.replace(/\n  china: \{[\s\S]*?\n  \},\n/, '\n');
+}
+
 function limitProviders(text, what, list) {
   const NEEDLE = "providers: ['apple', 'google'],";
   const first = text.indexOf(NEEDLE);
@@ -902,8 +934,23 @@ if (FLAVOR === 'china') {
   // 上要不要说「登录之后卡片才到 App」，对一个连登录入口都被 remove 掉的构建，
   // 那句话是死路。
   const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
-  fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
-  log('China flavor: sync disabled in artifact (enabled → false)');
+  // 两条路，由 backend.config.js 的 `china.ready` 选 —— **按值，不按 flavor 名**，
+  // 与这个文件里其它 flavor 判据同一条纪律。
+  //
+  //   ready: false → 与从前逐字相同：关掉同步。
+  //   ready: true  → 换成境内后端，**不再关同步** —— 那正是这件事的目的。
+  //
+  // 为什么不是「改完 url 就自动开」：地址填了不等于服务跑起来了。让开关独立于
+  // 地址，是为了让「填地址」和「切过去」成为两个动作 —— 中间隔着一次真实链路验证。
+  if (chinaBackendReady()) {
+    const cn = chinaBackend();
+    fs.writeFileSync(cfgPath, switchBackend(fs.readFileSync(cfgPath, 'utf8'),
+      'dist-china/learn/backend.config.js', cn));
+    log('China flavor: backend → ' + cn.url + '（境内，同步保持开启）');
+  } else {
+    fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
+    log('China flavor: sync disabled in artifact (enabled → false) —— 境内后端未就绪（china.ready=false）');
+  }
   fs.writeFileSync(cfgPath, limitProviders(fs.readFileSync(cfgPath, 'utf8'),
     'dist-china/learn/backend.config.js', ['apple']));
   log('China flavor: providers → [apple]（Google 在大陆连不上）');

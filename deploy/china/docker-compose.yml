@@ -1,0 +1,114 @@
+# deploy/china/docker-compose.yml — 中国版境内后端，一台机器跑整套。
+#
+# 目标机器：腾讯云轻量应用服务器 Lighthouse 入门型 2核2GB / 40GB SSD /
+# 2Mbps 峰值 / 100GB 月流量（2026-09-05 用户裁定，见 docs/china-backend-cost.md §5）。
+#
+# 为什么是「一台机器跑整套」而不是托管数据库 + 云函数：
+#   · 腾讯云的 PostgreSQL **没有 serverless 形态**（§3），所以在这件事上
+#     「便宜」和「自建」是同一个方向
+#   · 顺带消掉两个问题：没有冷启动，没有函数↔库的连接风暴（两端在同一台机器上）
+#   · 代价是运维（§8），那一栏没有数字但它是这个方案真正的价格
+#
+# 协议**一个字节不变**：客户端说的是标准 GoTrue + PostgREST，对 Supabase 的特有
+# 依赖近乎为零（没有 supabase-js、没有 Storage/Realtime）。所以这里不是「换一套
+# 后端」，是「把同一套协议换个地方跑」。
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      POSTGRES_DB: postgres
+    # ⚠️ 2GB 机器上 Postgres 的默认参数偏大。这三个不调，跟 GoTrue + PostgREST
+    #    抢内存会在同步高峰时被 OOM killer 挑中 —— 而那表现为「偶尔全挂几秒」，
+    #    是最难查的一类。数字按 2GB 总内存给：shared_buffers 取 1/8，
+    #    effective_cache_size 取 1/2。
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c max_connections=100
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # 不映射到宿主机端口。库只能被同一个 compose 网络里的服务访问 ——
+    # 一台单机后端上，把 5432 暴露到公网是最常见也最贵的那个错。
+    expose:
+      - "5432"
+
+  auth:
+    image: supabase/gotrue:v2.151.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: ./gotrue.env
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres?search_path=auth&sslmode=disable
+    expose:
+      - "9999"
+
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD:?必须设置}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      # ⚠️ 必须与 GoTrue 的 GOTRUE_JWT_SECRET **逐字相同**。
+      #    不同的话：登录成功、同步全部 401 —— 两个症状看起来毫无关系。
+      PGRST_JWT_SECRET: ${JWT_SECRET:?必须设置}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    expose:
+      - "3000"
+
+  # 删号（替代 Supabase 的 /functions/v1/bt-delete-account）。
+  #
+  # ⚠️ **跑的是 supabase/functions/bt-delete-account/index.ts 本身，不是它的副本。**
+  #    那个文件只读三个环境变量、只发两个标准 GoTrue 调用（GET /auth/v1/user 拿
+  #    user.id，DELETE /auth/v1/admin/users/{id}）—— 换后端时它一个字节都不用改。
+  #    抄一份到这里会立刻变成第二份要各自维护的实现，而这一整轮就是在消灭那种东西。
+  #    环境变量名沿用 SUPABASE_* 也是同一个理由：改名就得改那个文件。
+  fn:
+    image: denoland/deno:alpine-2.1.4
+    restart: unless-stopped
+    # 不写 depends_on: [proxy] —— proxy 依赖 fn，写了就是循环。
+    # 运行时才用到 proxy，而删号是低频操作，启动顺序不构成问题。
+    working_dir: /app
+    volumes:
+      - ../../supabase/functions/bt-delete-account:/app:ro
+    command: ["run", "--allow-net", "--allow-env", "index.ts"]
+    environment:
+      # ⚠️ 指向 proxy 的**内部入口**（Caddyfile 的 :8081），不是 auth:9999。
+      #    那个共享文件写死了 `${SUPABASE_URL}/auth/v1/user`，而 GoTrue 容器自己的
+      #    路由是 `/user` —— 前缀由 proxy 那一层加。直连 auth:9999 会全部 404。
+      SUPABASE_URL: http://proxy:8081
+      SUPABASE_ANON_KEY: ${ANON_KEY:?必须设置}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?必须设置}
+      PORT: "8080"
+    expose:
+      - "8080"
+
+  # 把 GoTrue 与 PostgREST 挂在**同一个域名**下，路径与 Supabase 逐字相同
+  # （/auth/v1/* 与 /rest/v1/*）—— 客户端因此一个字节都不用改。
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [auth, rest]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+    environment:
+      MT_DOMAIN: ${MT_DOMAIN:?必须设置，例如 api.belliedmonkey.cn}
