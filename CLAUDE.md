@@ -15,6 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > deleting the learning layer at runtime must leave translation byte-for-byte
 > identical.
 >
+> **Telemetry (匿名用量事件):** designed in
+> [`docs/telemetry-design.md`](docs/telemetry-design.md), governed by `AGENTS.md`
+> rule 4 (amended 2026-09-05) and released through `docs/learning-design.md` §10
+> Gate D. The event whitelist there is the only registry — adding an event or a
+> property is a domain-design change. The China flavor sends nothing.
+>
 > **Verification & testing:** governed by
 > [`docs/verification-spec.md`](docs/verification-spec.md) (the single source of truth).
 > Every verification runs the **full matrix of adapted surfaces** — iPhone + iPad

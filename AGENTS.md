@@ -33,14 +33,26 @@ these in order when designing anything new:
    actually load-bearing: the free path's independence, not our abstinence.)*
 3. **Accounts and sync are free.** The server carries only what genuinely cannot work
    without it — and the product must be complete for a signed-out user.
-4. **No telemetry, ever — and server-side computation only as a paid, opt-in
-   exception.** Usage analytics and tracking stay permanently forbidden; `README.md`
-   says "no tracking, no telemetry" and that must remain literally true. Model
-   inference on user content (translation, quiz generation, grading) is allowed
-   **only** when the user chose it and is paying for it, because it is a real
-   recurring cost (rule 8). Whatever such a path processes must be disclosed for
-   that path specifically — never averaged away in a claim about the product as a
-   whole.
+4. **No tracking, no content, no identity in telemetry — and server-side computation
+   only as a paid, opt-in exception.** The product sends **anonymous usage events**
+   (`docs/telemetry-design.md`): a fixed whitelist of event names, a random per-install
+   id that is never joined to an account, and never any page content, URL, hostname,
+   API key, email or server error text. It is on by default, disclosed at first run,
+   switchable off in settings, and switching it off erases that install's rows. The
+   **China flavor sends nothing** — `belliedmonkey.com` promises that in writing, and
+   the promise stays literally true. Adding an event, a property, or a join is a
+   domain-design change (governance rule below), not a code change. Model inference on
+   user content (translation, quiz generation, grading) is allowed **only** when the
+   user chose it and is paying for it, because it is a real recurring cost (rule 8).
+   Whatever such a path processes must be disclosed for that path specifically —
+   never averaged away in a claim about the product as a whole.
+   *(Amended 2026-09-05. This rule used to read "No telemetry, ever … permanently
+   forbidden". It was declared, never argued — issue #174 — and its cost was paid
+   silently: 75 sync accounts of which 54 never produced a card, and nobody could say
+   why. The owner's decision: anonymous usage events, even at the price of changing
+   the privacy copy and the marketing claim. What survived is the part that was
+   load-bearing — no tracking across sites, no third-party analytics, and nothing a
+   user wrote or read ever leaves the device unasked.)*
 5. **The server never stores media we do not own.** Third-party audio and video (a
    YouTube segment, podcast audio) is stored as a **pointer** — media id + start/end
    offsets, ~20 bytes — and replayed from the source. This is **not** a cost
@@ -140,8 +152,9 @@ governed by the same human-review rule above. Key invariants:
 - **Never concatenate anything onto a user-supplied URL.** `defaultEndpoint` is a complete
   request URL; `content/wire-format.js` is the only place an address is resolved, and its
   legacy branch (which reproduces the pre-2026-08 `base + path` behaviour for installs
-  that never migrated) is permanent — we have no telemetry that could ever justify
-  deleting it.
+  that never migrated) is permanent — usage telemetry (rule 4) cannot justify deleting
+  it either: the installs that never migrated are precisely the ones that stopped
+  updating, so they are the ones no event would ever come from.
 - **Region flavor is decided at build time, never at runtime.**
   `node build.js --flavor global|china` and `bash build-safari.sh [china]` produce
   two independent binaries / bundle ids (`com.belliedmonkeytranslator` vs

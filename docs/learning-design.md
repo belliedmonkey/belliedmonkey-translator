@@ -160,7 +160,11 @@ least resistance.
 > It is also checkable, which a preference is not. Before release, ask: *can someone
 > who never signs in and never pays use this?* A "no" blocks the release.
 
-**Telemetry remains permanently forbidden**, and is not affected by any of this.
+**Telemetry is anonymous usage events only** — a whitelist of event names, never
+content or identity, off in one switch, none at all in the China flavor. It is
+specified in `docs/telemetry-design.md` and gated by §10 Gate D. *(Amended
+2026-09-05; this line used to say "permanently forbidden". See `AGENTS.md` rule 4 for
+why it moved.)*
 
 ---
 
@@ -2662,6 +2666,38 @@ One disclosure, same PR as the code that makes it true (never before, never afte
   stores' current definitions at PR4 time; if a store's definition counts
   user-configured endpoints, grow the declaration rather than argue with the form.
 
+### Gate D — ships with anonymous usage telemetry (`docs/telemetry-design.md`)
+
+*(Added 2026-09-05. The first gate that makes a privacy statement **weaker** rather
+than more specific — which is exactly why it is a gate: every surface below is
+review-visible, and shipping the code before any one of them is shipping a lie.)*
+
+What becomes true, in one sentence used verbatim everywhere it is disclosed:
+
+> **We collect anonymous usage events — which features are used, on which browser,
+> and whether a translation succeeded or failed. Never the pages you read, the text,
+> the addresses, your keys or your account. On by default; off in one switch; turning
+> it off deletes what that device sent.**
+
+Every surface that currently says "no telemetry", and what replaces it — all in the
+**same PR as the code**, or the release does not ship:
+
+| Surface | Today | Gate D |
+|---|---|---|
+| `AGENTS.md` rule 4 | No telemetry, ever | amended 2026-09-05 (done in the docs PR, ahead of code — the one place where "before" is right, because it is the design, not the disclosure) |
+| `README.md` / `README.zh-CN.md` | "No tracking, no telemetry" | "No tracking, no third-party analytics. Anonymous usage events (never page content or URLs), off in one switch." |
+| `build.js` Gate B | asserts the README does **not** say "no telemetry" | inverted: README ×2 and the 12-locale `telemetry_hint` must carry the "anonymous usage / 匿名用量" stem; the **china artifact must not contain `MT_TELEMETRY_URL`** |
+| Firefox `data_collection_permissions` (`WANT_DCP`) | 3 categories, exact set | + `technicalAndInteraction` |
+| App Store privacy labels | User Content = yes; **Usage Data = no** (Gate B) | Usage Data → **Product Interaction, not linked to you**. Refill both app records at submission |
+| Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
+| `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
+| `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
+| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **unchanged** — the China flavor sends nothing, so the sentence stays true |
+| Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
+
+The Gate B sentence above ("**not** Usage Data, since there is still no telemetry")
+is superseded by this table; it is left in place as history.
+
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
@@ -2675,13 +2711,17 @@ One disclosure, same PR as the code that makes it true (never before, never afte
 - **A hosted model as the DEFAULT path** (§2.1). Local/BYO-key is the default and
   stays fully capable; a server-side model is an opt-in paid alternative or it does
   not ship at all.
-- **Telemetry and usage analytics**, permanently — unaffected by §2.1.
+- **Telemetry that carries content or identity**, permanently: page text, URLs,
+  hostnames, keys, emails, account ids, server error text, or any join between an
+  install and an account. *(Narrowed 2026-09-05 from "telemetry and usage analytics,
+  permanently" — anonymous whitelist events are in scope under §10 Gate D and
+  `docs/telemetry-design.md`.)*
 - **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
   server-side model is a *new* capability, not a conversion, which is the only reason
   it is permitted.
 - **Vendor ASR (browser `SpeechRecognition`) stays permanently out** — it ships the
   user's recordings to vendor servers (Chrome→Google, Safari→Apple), which the
-  no-telemetry promise cannot absorb. **The page-media rule is also unchanged**: the
+  "nothing you said or read leaves the device unasked" promise cannot absorb. **The page-media rule is also unchanged**: the
   learning layer consumes transcripts that already exist; it never transcribes page
   audio or video (domain-design §2's "No ASR / no self-generated transcripts").
   *(Re-scoped 2026-08-12 on third review — §12. What was rejected twice was
