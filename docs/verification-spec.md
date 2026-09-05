@@ -73,7 +73,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
-| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（拉取 → 复习 → 落盘 → 退出后重启仍是退出）— see §2.G |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：语音未配置的提示与去设置的路都在；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -1100,13 +1100,32 @@ survives a relaunch**.
 >    这一条把「是不是我刚才那次改动把 App 改白屏了」从猜测变成可判定的事 ——
 >    而它当时的答案是「不是」（`npm test` 与两个 flavor 的 `test:app` 全绿）。
 >
-> 5. **⚠️ 未决：2026-09-04 这台 Mac 上，本地 Debug 构建的宿主 App 起来是白屏。**
->    进程活着、WebKit 打开了 localStorage（JS 在跑），但窗口没有任何 AX 内容。
->    三种签名配置（完全不签 / 正式签名带 App Sandbox / 签名去掉 sandbox）表现一致。
->    **不是产品回归**：同一份 `dist-app/` 的 `Script.js` 在 iOS 模拟器宿主 App 上、
->    在 `test:app` 的真 Chrome 上，两个 flavor 全都正常。同一天更早、同一份代码的
->    一个构建也是好的 —— 变量在构建侧，尚未定位。**这一行的语音断言因此改由
->    iOS 宿主 App（行 6）与 `test:app` 承担，如实记为 not-run 而不是 pass。**
+> 5. **「白屏」是假的 —— 那是窗口捕捉坏了，不是 App（2026-09-04 误判，09-05 更正）。**
+>    我连续判定这一行「白屏、未决、not-run」，写进了这份文档，**结论是错的**。
+>    真相是屏幕上的窗口一直在正常显示，坏掉的是我这一侧的观察：cua 对**这一个 App**
+>    的窗口捕捉失败（`ScreenCaptureKit ... 无法开始流播放` / `could not create image
+>    from window`），返回的空白被我读成了 App 画的白 —— 而同一时刻它对 Safari 和
+>    模拟器截得好好的，这个「别处都正常」恰恰让误判显得可信。
+>
+>    **判据要用不依赖捕捉的那些，而且要能分清三层**：
+>
+>    | 想知道什么 | 判据 | 不受捕捉影响 |
+>    |---|---|---|
+>    | 进程死了吗 | `sample <pid>`：主线程停在 `NSApplication run → nextEventMatchingMask → mach_msg` 就是**健康空闲**，不是死锁 | ✅ |
+>    | 页面 boot 走完了吗 | 删掉只有渲染到登录态才会写的键（`mt:learnDbOwner`，由 `show()` → `bindCorpus` 写），重启看它**写不写回来** | ✅ |
+>    | 屏幕上到底长什么样 | **问用户** | ✅ |
+>
+>    ⚠️ **`osascript` + System Events 在 Bash 沙箱里读不到任何 App 的窗口** ——
+>    它对 Safari、Chrome 一律返回 `count windows = 0`。我拿它「独立验证」过一次
+>    「AX 层真的看不到窗口」，那条推断整个作废。**任何 AX 判据都要先跑一个已知正常
+>    的 App 当对照**，否则量到的是自己的权限，不是被测对象。
+>
+>    同理，shell 里的 `screencapture` 在这个沙箱里出的是**全黑图**（有字节数、看起来
+>    像成功），不是黑屏。
+>
+>    这一整轮的代价：十几次重建 + 三种签名配置的对照实验 + 一条写错的 not-run。
+>    **`ask-before-investigating-anomalies` 那条记忆正是为此存在的** ——
+>    人在回路里的时候，「你看一眼屏幕」是最便宜的一次测量。
 
 **Scope note:** relaunch-persistence of the graded state was not re-driven here (the
 on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
