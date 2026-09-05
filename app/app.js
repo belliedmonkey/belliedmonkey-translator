@@ -868,12 +868,22 @@
   // `chrome.runtime.openOptionsPage()`, which the shim throws on — a dead end the
   // user could reach in two taps.
 
-  async function openSettings() {
+  // `anchorId` 是可选的落点。**落点是那个控件本身，不是页面顶部** ——
+  // 「按钮点了、人到了、控件没找到」是 2026-09-02 真机实测过的失败形状
+  // （interaction-spec 有这条：任何把人往某个控件送的按钮，落点是那个控件）。
+  async function openSettings(anchorId) {
     $('signed-in').hidden = true;
     $('review-view').hidden = true;
     $('app-settings').hidden = false;
     await AppSettings.paint(currentSession, say);
     say('');
+    if (!anchorId) return;
+    const el = $(anchorId);
+    if (!el) return;
+    // paint 之后再滚：paint 会增删 .adv-only 的 hidden，滚在它之前会落到旧布局上。
+    try { el.scrollIntoView({ block: 'center' }); } catch (_) { el.scrollIntoView(); }
+    el.classList.add('anchor-flash');
+    setTimeout(() => el.classList.remove('anchor-flash'), 2400);
   }
 
   async function closeSettings() {

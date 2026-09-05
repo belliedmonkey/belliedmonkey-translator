@@ -188,24 +188,10 @@
   // Why an engine cannot speak, in the user's words. An engine that silently does
   // nothing is the worst possible outcome here — the user cannot tell a missing
   // voice from a broken key from a typo'd URL.
-  function reasonText(reason) {
-    switch (reason) {
-      case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
-      case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
-      case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
-      case 'no_base': return t('tts_no_base', '还没填语音端点地址');
-      case 'no_key': return t('tts_no_key', '还没填语音 API Key');
-      case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
-      case 'http': return t('tts_http', '语音服务返回了错误');
-      // 这三条是 1.6.5 加的失败码，此前一直落到下面那句「暂时读不出来」。
-      // 补上不是锦上添花：删掉屏幕上的原始异常之后，不具名它们等于把这些失败
-      // 变得比清理前更没信息 —— 那是把清理做成回归。
-      case 'timeout': return t('tts_timeout', '语音服务超时了 —— 检查网络，或换一个语音端点');
-      case 'network': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
-      case 'empty': return t('tts_empty', '这张卡没有可朗读的文字');
-      default: return t('tts_failed', '这句暂时读不出来');
-    }
-  }
+  // 文案表在本文件之外（learn/tts.js）：同一次失败在复习页、设置页、宿主 App
+  // 上必须说同一句话，三份手写表做不到 —— 已经做不到过。
+  function reasonText(reason) { return LearnTTS.reason(reason, t); }
+
 
   function setNote(msg) { $('audio-note').textContent = msg || ''; }
 

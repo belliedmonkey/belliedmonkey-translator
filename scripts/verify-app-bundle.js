@@ -142,9 +142,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'tts-engine','tts-api-key','tts-base-url','tts-model',
           'tts-voice','tts-auto','tts-rate',
           // §7.2 device-local credential for §9.2 notes
-          'notes-provider','notes-key','notes-base','notes-model',
+          'notes-provider','notes-api-key','notes-base-url','notes-model',
           // §7.2 device-local credential for the §9.4 transcription engine
-          'stt-engine','stt-key','stt-base','stt-model',
+          'stt-engine','stt-api-key','stt-base-url','stt-model',
           // §9.5 出发前预载 — the two-tap price-then-spend control and its readouts.
           'drive-preload-days','btn-drive-preload','drive-preload-note',
           'drive-audio-cache','btn-drive-clear-audio',
@@ -162,7 +162,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // The speech-engine picker must be registry-fed too — one row per
         // MT_TTS_ENGINES entry, counted against the live registry.
         ttsEngineCount: document.getElementById('tts-engine').options.length,
-        ttsEngineWant: (window.MT_TTS_ENGINES || []).length,
+        // +1 是哨兵项「未配置（不朗读）」—— 与 stt 同形（2026-09-04：语音不再默认
+        // 走系统自带，所以「未配置」必须在选择器里有位置可待）。
+        ttsEngineWant: 1 + (window.MT_TTS_ENGINES || []).length,
         // The transcription-engine picker (§9.4): one 未配置 row (the correct
         // default — no zero-config STT engine exists) plus the live registry.
         sttEngineCount: document.getElementById('stt-engine').options.length,
@@ -172,7 +174,14 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // is exactly how the app shipped with speech permanently off. Assert the
         // seed itself, not the settings UI: the UI can look right while the boot
         // read still saw nothing.
-        ttsModeSeeded: localStorage.getItem('mt:ttsMode') === JSON.stringify('assist'),
+        // **反过来了**（2026-09-04）。原来这里断言 shim 同步播种 'assist'，
+        // 因为那时语音默认可用。现在语音要用户先配引擎才有，播种 'assist' =
+        // 一个点了必然失败的播放键。所以断言的是「**没有**被播种」。
+        // 不变量是「**默认不出声**」，不是「没人写这个键」—— ensureDefaults 仍会
+        // 显式落一个 'off'，那是对的（一个明确的关，比一个缺席的值更好读回）。
+        // 会出声的两档（assist / audio-first）在用户配引擎之前都不许出现。
+        ttsModeQuiet: ['assist', 'audio-first']
+          .indexOf(JSON.parse(localStorage.getItem('mt:ttsMode') || 'null')) < 0,
         settingsHidden: getComputedStyle(document.getElementById('app-settings')).display === 'none',
         // review.css must survive the concatenation too — it owns the review markup.
         reviewStyled: getComputedStyle(document.querySelector('.page') || document.body).maxWidth,
@@ -207,6 +216,141 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     // lost, this is the check that knows (the DOM assertions above cannot see it).
     // Only meaningful when the account surface exists (sync-enabled builds — the
     // disabled build returns from boot before wire() attaches any listener).
+    // ── 引擎字段的显隐：**渲染后**与组件的判据逐项相等（2026-09-04）────────────
+    //
+    // 这是「App 设置页与扩展端不一致」那个报障的门。它必须问**渲染后的可见性**，
+    // 不是 `.hidden` 的属性值 —— 一条 display 声明就能把 hidden 压掉，而那正是
+    // engine-fields.js 文件头列的四处漂移里最难发现的一处。
+    //
+    // 判据是「与 EngineFields.visibility(entry) 相等」而不是一张写死的期望表：
+    // 写死的表是第八份手抄，注册表一变它就成了谎话。
+    {
+      const fx = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const vis = (el) => !!(el && el.offsetParent !== null);
+          const rows = (p) => ({
+            key: vis(document.getElementById(p + '-key-field')),
+            baseUrl: vis(document.getElementById(p + '-base-field')),
+            model: vis(document.getElementById(p + '-model-field')),
+          });
+          const SL = EngineFields.SLOTS;
+          const cases = [
+            ['tts', 'tts', 'tts-engine', (window.MT_TTS_ENGINES || [])],
+            ['stt', 'stt', 'stt-engine', (window.MT_STT_ENGINES || [])],
+            ['notes', 'notes', 'notes-provider', LearnNotes.chatEngines()],
+          ];
+          // ── 进详细档的**第一眼**：默认（未配置）下三个框都不该露 ────────────
+          //
+          // 这一条是 2026-09-04 在 iPhone 模拟器上肉眼发现的，而下面那个「逐个切引擎」
+          // 的循环**看不见它**：切引擎会调 paintTtsFields，那时 applyDetailMode 早已
+          // 跑完，两者恰好一致。真正的缺陷只在**刚进详细档、还没动过任何引擎**的那一
+          // 瞬间存在 —— .adv-only 放开了所有行，而逐引擎的判断还没再说一次话。
+          // 所以判据必须是「第一眼」，不是「切过之后」。
+          const firstLook = () => ({
+            engine: (document.getElementById('tts-engine') || {}).value,
+            key: vis(document.getElementById('tts-key-field')),
+            base: vis(document.getElementById('tts-base-field')),
+            model: vis(document.getElementById('tts-model-field')),
+          });
+
+          // 必须先真的进设置页：祖先 hidden 时 offsetParent 对每一个后代都是 null，
+          // 于是「全部不可见」，这条断言会以一种看起来很像真发现的方式全线报错。
+          document.getElementById('gear').click();
+          await new Promise((r) => setTimeout(r, 120));
+          // 详细档才谈得上字段显隐 —— 快速档整批 .adv-only 是收起来的。
+          document.getElementById('mode-detail').click();
+          await new Promise((r) => setTimeout(r, 60));
+          const first = firstLook();
+
+          // ── 未配置时点「试听一句」，界面不许说「播放中」──────────────────
+          //
+          // 2026-09-04 全矩阵行 7（macOS 真宿主 App）肉眼抓到：App 的
+          // liveTtsConfigure 里留着一处写死的 browser 回落，于是
+          // 「未配置」在试听时被静默换成系统自带，**真的出了声**，而这正是这次
+          // 改动要消灭的东西。上面那两块断言都看不见它 —— 它们只读显隐、不点按钮。
+          //
+          // 判据是状态行的**文字**而不是 speak() 的返回值：用户看见的就是这行字，
+          // 而「必然失败的按钮 + 一句谎话」正是它当时的样子。
+          document.getElementById('btn-tts-test').click();
+          await new Promise((r) => setTimeout(r, 300));
+          const preview = {
+            engine: (document.getElementById('tts-engine') || {}).value,
+            note: (document.getElementById('test-tts-note').textContent || '').trim(),
+          };
+
+          const bad = [];
+          let checked = 0;
+          for (const [slot, prefix, selId, entries] of cases) {
+            const sel = document.getElementById(selId);
+            for (const e of entries) {
+              sel.value = e.id;
+              sel.dispatchEvent(new Event('change'));
+              await new Promise((r) => setTimeout(r, 20));
+              const want = EngineFields.visibility(e);
+              const got = rows(prefix);
+              checked += 1;
+              for (const f of ['key', 'baseUrl', 'model']) {
+                if (!!want[f] !== got[f]) {
+                  bad.push(slot + '/' + e.id + '.' + f + ' 期望 ' + !!want[f] + ' 实际 ' + got[f]);
+                }
+              }
+            }
+          }
+          // 不变量（interaction-spec「一键配置与逐引擎配置永不同屏」）：两档互斥，
+          // 且快速档必须有一条**可见**的路通向详细档 —— 「只藏不给路是退化，不是简化」。
+          const anyVis = (sel) => [...document.querySelectorAll(sel)].some((e) => vis(e));
+          const tabsHidden = !vis(document.getElementById('mode-tabs'));
+          document.getElementById('mode-quick').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const quick = {
+            adv: anyVis('#app-settings .adv-only'),
+            card: anyVis('#app-settings .quick-only'),
+            path: vis(document.getElementById('mode-detail')),
+          };
+          document.getElementById('mode-detail').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const detail = {
+            adv: anyVis('#app-settings .adv-only'),
+            card: anyVis('#app-settings .quick-only'),
+          };
+          document.getElementById('settings-back').click();
+          await new Promise((r) => setTimeout(r, 60));
+          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail, first, preview });
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const fv = JSON.parse(fx.result.value);
+      need(fv.first.engine === '',
+        '进详细档时语音引擎不是「未配置」，实际 "' + fv.first.engine + '"');
+      need(!fv.first.key && !fv.first.base && !fv.first.model,
+        '刚进详细档、语音还没配，Key/地址/模型却露着（key=' + fv.first.key
+        + ' base=' + fv.first.base + ' model=' + fv.first.model + '）—— '
+        + '.adv-only 与 applyFields 都在写同一个 hidden，放开之后必须让逐引擎的判断再说一次话');
+      need(fv.preview.engine === '',
+        '试听前语音引擎已经不是「未配置」了，这条断言测不到它要测的东西');
+      need(fv.preview.note && !/播放中/.test(fv.preview.note),
+        '未配置引擎时点「试听一句」，状态行说的是 "' + fv.preview.note + '" —— '
+        + '要么它撒谎说在播放（那就是有第二处 browser 回落偷偷接管了），'
+        + '要么它一个字都不说（静默失败，用户没有出口）');
+      need(/还没配语音引擎/.test(fv.preview.note),
+        '未配置的失败要说人话并给出路，实际说的是 "' + fv.preview.note + '"');
+      need(fv.checked > 0, '一个引擎都没验到 —— 三个下拉都是空的？这条断言空转了');
+      // 这个 flavor 没有可一键的平台时，tabs 整块藏起来、只剩详细档 —— 那是正当状态，
+      // 与「两档都在但互斥」是两种不同的正确，分开判。
+      if (fv.tabsHidden) {
+        need(fv.detail.adv && !fv.detail.card,
+          '一键卡渲染不出来时应当只剩详细档，实际 adv=' + fv.detail.adv + ' card=' + fv.detail.card);
+      } else {
+        need(fv.quick.card && !fv.quick.adv,
+          '快速档没有互斥：一键卡 ' + fv.quick.card + '、逐引擎控件仍可见 ' + fv.quick.adv
+          + ' —— 两者共存时一键卡显示的「配没配过」当场变成谎话');
+        need(fv.detail.adv && !fv.detail.card,
+          '详细档没有互斥：逐引擎 ' + fv.detail.adv + '、一键卡仍可见 ' + fv.detail.card);
+        need(fv.quick.path, '快速档没有一条可见的路通向详细档 —— 只藏不给路是退化，不是简化');
+      }
+      need(fv.bad.length === 0,
+        '引擎字段的渲染结果与 EngineFields 的判据不符（' + fv.checked + ' 个引擎里 '
+        + fv.bad.length + ' 处）：' + fv.bad.slice(0, 6).join(' · '));
+    }
+
     if (o.syncEnabled) {
       const g = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
@@ -215,7 +359,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           const opt = [...sel.options].find((x) => x.value);
           sel.value = opt ? opt.value : '';
           sel.dispatchEvent(new Event('change'));
-          const key = document.getElementById('notes-key');
+          const key = document.getElementById('notes-api-key');
           key.value = 'k-live-gate';
           key.dispatchEvent(new Event('change'));
           await new Promise((r) => setTimeout(r, 80));
@@ -526,12 +670,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       + (o.settingsMissing.indexOf('delete-account') >= 0
         ? '（删除账号是 Apple 的上架硬要求，§10 Gate B）' : ''));
     need(o.settingsHidden, '设置页在没进入之前就显示了');
-    need(o.ttsModeSeeded, 'ttsMode 没被 shim 播种成 assist —— App 里语音又会永远关着');
+    need(o.ttsModeQuiet,
+      '全新安装的 ttsMode 是会出声的那一档 —— 而语音引擎默认未配置，'
+      + '那就是一个点了必然失败的播放键（2026-09-04：语音要用户填了引擎才有）');
     need(o.notesPickerCount === o.notesPickerWant,
       '解析引擎选择器与注册表不同步：' + o.notesPickerCount + ' 项，应为 ' + o.notesPickerWant);
     need(!o.notesPickerHasNonChat, '解析引擎选择器混入了非 chat 类引擎 —— 门控按 type，选择器也必须');
-    need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 0,
-      '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant);
+    need(o.ttsEngineCount === o.ttsEngineWant && o.ttsEngineWant > 1,
+      '语音引擎选择器与注册表不同步：' + o.ttsEngineCount + ' 项，应为 ' + o.ttsEngineWant
+      + '（含哨兵项）');
     need(o.sttEngineCount === o.sttEngineWant && o.sttEngineWant > 1,
       '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }

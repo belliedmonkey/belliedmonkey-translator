@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "まず{what}を入力してください",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "未設定（読み上げなし）"
+  },
+  "tts_not_configured": {
+    "message": "音声エンジンが未設定です —— 「設定 › 音声」で選んでください"
   }
 }

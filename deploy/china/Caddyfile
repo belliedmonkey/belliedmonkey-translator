@@ -1,0 +1,71 @@
+# deploy/china/Caddyfile — 把 GoTrue 与 PostgREST 挂在同一个域名下。
+#
+# 路径必须与 Supabase 逐字相同（/auth/v1/* 与 /rest/v1/*）——
+# 客户端拼地址的方式是 `MT_BACKEND.url + '/auth/v1'`（auth.js:48）与
+# `+ '/rest/v1/'`（sync.js:26），只换 url 就该能跑。改路径 = 改客户端。
+
+# ── 内部入口（不加密，只在 compose 网络里可达）──────────────────────────
+#
+# 存在的理由只有一个：`supabase/functions/bt-delete-account/index.ts` 是**共享文件**
+# （国际版那边也在用），它写死了 `${SUPABASE_URL}/auth/v1/user` 这样的完整路径。
+# 而 GoTrue 容器自己的路由是 `/user` —— 前缀是这一层加的。
+#
+# 所以给它一个**带前缀的内部地址**，而不是去改那个文件。改文件就会变成两份实现，
+# 而这一整轮就是在消灭那种东西。
+#
+# 没有 ports: 映射，所以这个端口出不了 compose 网络。
+:8081 {
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999
+	}
+	respond 404
+}
+
+{$MT_DOMAIN} {
+	# GoTrue 自己不带 /auth/v1 前缀，它的路由是 /otp、/verify、/token…
+	# 所以这里要**剥掉**前缀再转发。
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999
+	}
+
+	# PostgREST 同理：它的路由是 /bt_chunks、/rpc/bt_usage。
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
+
+	# 删号那个小服务（替代 Supabase 的 /functions/v1/bt-delete-account）。
+	# 客户端调用点：auth.js:310。失败只降级为 partial 不抛，所以它不在
+	# 关键路径上 —— 但没有它，用户删号时云端数据会留着。
+	handle_path /functions/v1/* {
+		reverse_proxy fn:8080
+	}
+
+	# CORS：扩展页与宿主 App 都是从别的 origin 发过来的。
+	# 客户端实际会送的头只有这三个（auth.js:50、sync.js:31-38）——
+	# 少一个就是全部请求被浏览器拦在发出去之前。
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		header {
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "authorization, apikey, content-type, prefer"
+			Access-Control-Max-Age "86400"
+		}
+		respond 204
+	}
+	header {
+		Access-Control-Allow-Origin "*"
+		# PostgREST 的分页与 Prefer 回显要能被读到。
+		Access-Control-Expose-Headers "content-range, content-location"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		# ⚠️ 不记请求体。语料是用户读过的句子 —— 把它写进访问日志，
+		#    就等于在服务器上又存了一份没人管理生命周期的副本。
+	}
+}

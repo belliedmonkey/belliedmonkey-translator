@@ -4,8 +4,12 @@
 //
 // Two engine formats, and the difference between them is load-bearing:
 //
-//   'browser'        the platform's own speechSynthesis. Free, offline, zero config,
-//                    and the DEFAULT. It only *speaks* — the Web Speech API exposes
+//   'browser'        the platform's own speechSynthesis. Free, offline, zero config —
+//                    but **no longer the default** (2026-09-04, 用户裁定): 语音是这个
+//                    产品的核心体验，而系统自带的效果撑不起它，没人应该在没做过选择的
+//                    情况下听到它。保留为**显式可选**（AGENTS.md 原则 2：不付费不登录
+//                    的人也要有完整产品 —— 免费这条路不许被砍，只是不再默认走）。
+//                    It only *speaks* — the Web Speech API exposes
 //                    no way to obtain the audio data — so nothing from this engine
 //                    can be cached or, later, uploaded. That is a permanent property
 //                    of the API, not a gap to fill in.
@@ -19,7 +23,9 @@
 
 var LearnTTS = (() => {
   const DEFAULTS = {
-    engineId: 'browser',
+    // '' = **未配置**，与 sttEngine 同一套语义（不发明第二种空值）。
+    // 语音要用户填了引擎/端点才有 —— 见文件头。
+    engineId: '',
     baseUrl: '', apiKey: '', model: '', voice: '',
     // 「这个地址是按新语义（原样使用）存的」的戳；缺席 ⇒ 走 wire-format 的 legacy 分支。
     rate: 1, pitch: 1,
@@ -62,7 +68,10 @@ var LearnTTS = (() => {
     return (typeof window !== 'undefined' && window.MT_TTS_ENGINES) || [];
   }
   function engineById(id) { return engines().find((e) => e.id === id) || null; }
-  function engine() { return engineById(cfg.engineId) || engineById('browser'); }
+  // **没有回落。** 曾经这里是 `|| engineById('browser')`，那让「未配置」静默变成
+  // 「用系统语音」—— 正是 2026-09-04 要根除的行为。未配置就返回 null，由 available()
+  // 说出原因、由界面给出去配置的路。
+  function engine() { return engineById(cfg.engineId) || null; }
 
   function configure(next) {
     cfg = Object.assign({}, DEFAULTS, next || {});
@@ -450,6 +459,9 @@ var LearnTTS = (() => {
     const stale = () => epoch !== myEpoch;
     const clean = LearnModel.normText(text);
     if (!clean) return { ok: false, reason: 'empty' };
+    // 与 available() 同一条口径：「没配过」有出路，「这平台做不到」没有。
+    // 试听按钮读的是 speak() 的 reason，所以这里少分一次，界面就少说一句人话。
+    if (!cfg.engineId) return { ok: false, reason: 'not_configured' };
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
 
@@ -562,6 +574,9 @@ var LearnTTS = (() => {
   // text 可选：给了它，语言未知时就能按脚本挑音色（见 pickVoice）。
   // 不给的话行为与从前逐字相同 —— 调用方问的是「这个已知语言能不能读」。
   async function available(lang, waitMs, text) {
+    // 「没配过」与「这个平台做不到」是两件事：前者的出路是去设置页，后者没有出路。
+    // 合成一个 reason 会让界面只能说一句帮不上忙的话。
+    if (!cfg.engineId) return { ok: false, reason: 'not_configured' };
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
     if (e.type === 'browser') {
@@ -576,11 +591,40 @@ var LearnTTS = (() => {
     return readiness(e);
   }
 
+  // ─── reason → 人话 ────────────────────────────────────────────────────────
+  // 这张表此前有**三份**：review.js（完整）、options.js（缺 not_configured）、
+  // 而 App 的试听按钮**一份都没有**，直接把 `not_configured` 这种机器码印在屏幕上。
+  // 同一次失败在三个面上说三种话，其中一种还不是话。
+  //
+  // 放在这里而不是某个 UI 文件里：reason 是这个模块产的，谁产它谁说它是什么意思
+  // （`EngineTest.reason` 已经是这个形状）。`t` 由调用方传入 —— 这个文件在扩展页、
+  // 宿主 App 两个宿主里跑，i18n 的取法不一样，而文案的**内容**必须一样。
+  function reason(code, t) {
+    switch (code) {
+      case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
+      case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
+      // 「没配过」与「这平台做不到」分开说 —— 前者有出路，后者没有。
+      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
+      case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
+      case 'no_base': return t('tts_no_base', '还没填语音端点地址');
+      case 'no_key': return t('tts_no_key', '还没填语音 API Key');
+      case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
+      case 'http': return t('tts_http', '语音服务返回了错误');
+      // 这三条是 1.6.5 加的失败码，此前一直落到下面那句「暂时读不出来」。
+      // 补上不是锦上添花：删掉屏幕上的原始异常之后，不具名它们等于把这些失败
+      // 变得比清理前更没信息 —— 那是把清理做成回归。
+      case 'timeout': return t('tts_timeout', '语音服务超时了 —— 检查网络，或换一个语音端点');
+      case 'network': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
+      case 'empty': return t('tts_empty', '这张卡没有可朗读的文字');
+      default: return t('tts_failed', '这句暂时读不出来');
+    }
+  }
+
   return {
     DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, scriptLang, baseLang, undLang, cacheKey,
-    getAudio, prefetch, speak, stop, available, test,
+    getAudio, prefetch, speak, stop, available, test, reason,
     get config() { return cfg; },
   };
 })();

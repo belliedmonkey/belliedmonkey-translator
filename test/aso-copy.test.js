@@ -48,6 +48,11 @@ describe('ASO 文案 — store-assets/aso.md', () => {
   const EXPECTED = [
     '国际版·en-US', '国际版·zh-Hans', '国际版·zh-Hant', '国际版·ja', '国际版·ko',
     '国际版·de-DE', '国际版·fr-FR', '国际版·es-ES', '国际版·ru', '国际版·pt-BR', '国际版·ar-SA',
+    // 2026-09-04 加的四个：**按下载数据选的，不是按产品自己的 i18n 语言选的**。
+    // 实测 30 天里 IT 18 次（第 3 名）· TR 9 · VN 6 · PL 4 = 国际版的 21.5%，
+    // 而这四个市场当时既没有商店文案也没有界面语言。
+    // 现状会由 `node scripts/store-stats.js` 的「市场缺口」一节持续报出来。
+    '国际版·it', '国际版·tr', '国际版·vi', '国际版·pl',
     '中国版·zh-Hans',
   ];
 

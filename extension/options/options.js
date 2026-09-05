@@ -201,18 +201,9 @@ function mountTtsCore(values) {
 function engineTestReason(e) { return EngineTest.reason(e, t); }
 function serverLine(e) { return EngineTest.serverLine(e, t); }
 
-function ttsReason(reason) {
-  switch (reason) {
-    case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
-    case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
-    case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
-    case 'no_base': return t('tts_no_base', '还没填语音端点地址');
-    case 'no_key': return t('tts_no_key', '还没填语音 API Key');
-    case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
-    case 'http': return t('tts_http', '语音服务返回了错误');
-    default: return t('tts_failed', '这句暂时读不出来');
-  }
-}
+// 文案表在 learn/tts.js —— reason 是它产的（与 EngineTest.reason 同一个模式）。
+// 这里曾经是自己的一份，缺 `not_configured`，于是「还没配」被说成「暂时读不出来」。
+function ttsReason(reason) { return LearnTTS.reason(reason, t); }
 
 function applyTtsConfig() {
   LearnTTS.configure({
@@ -250,9 +241,13 @@ async function refreshTtsCache() {
 async function updateTtsUI(selectedVoice) {
   const mode = $('tts-mode').value;
   $('tts-config').hidden = mode === 'off';
-  const e = ttsEngineById($('tts-engine').value) || TTS_ENGINES[0];
-  if (!e) return;
-  $('tts-engine-hint').textContent = e.hintKey ? t(e.hintKey, '') : '';
+  // **没有回落到第一个引擎。** 那个 `|| TTS_ENGINES[0]` 会让「未配置」在界面上
+  // 显示成「已选 browser」—— 与 tts.js 里刚删掉的那个回落是同一个谎，只是换了个地方。
+  const e = ttsEngineById($('tts-engine').value);
+  // e 为 null = 未配置（哨兵项）。这不是异常路径，是**默认状态** —— 所以下面每一处
+  // 用到 e 的地方都要能吃 null，而不是早退：早退会把「声音」下拉留在上一个引擎的
+  // 列表上，看起来像还配着。
+  $('tts-engine-hint').textContent = (e && e.hintKey) ? t(e.hintKey, '') : '';
   // 四个核心控件归组件（露哪几个、示例地址、示例模型全在它那里）。
   if (ttsCore) ttsCore.paint();
 
@@ -264,7 +259,7 @@ async function updateTtsUI(selectedVoice) {
   sel.appendChild(auto);
 
   applyTtsConfig();
-  if (e.type === 'browser') {
+  if (e && e.type === 'browser') {
     const voices = await LearnTTS.loadVoices();
     for (const v of voices) {
       const o = document.createElement('option');
@@ -272,7 +267,7 @@ async function updateTtsUI(selectedVoice) {
       o.textContent = `${v.name} — ${v.lang}`;
       sel.appendChild(o);
     }
-  } else if (e.voices) {
+  } else if (e && e.voices) {
     for (const v of e.voices) {
       const o = document.createElement('option');
       o.value = v; o.textContent = v;

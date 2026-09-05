@@ -73,6 +73,38 @@ function flipSyncFlag(text, what, direction) {
 //
 // 判据同 flipSyncFlag：**恰好一处**，多一处或没有都退出 —— 静默改错一处的代价是
 // 中国版包里留着一个死按钮，而拆包 grep 之前没人看得见。
+// ── 中国版的境内后端（§C）────────────────────────────────────────────────
+//
+// 读**源码树**那一份，不是产物 —— 判据要在改写之前就定下来，否则会读到自己刚写的值。
+function chinaBackend() {
+  const cfg = require('./extension/learn/backend.config.js');
+  return (cfg && cfg.china) || { ready: false, url: '', anonKey: '' };
+}
+function chinaBackendReady() {
+  const cn = chinaBackend();
+  return cn.ready === true && !!cn.url && !!cn.anonKey;
+}
+
+// 把产物里的 url / anonKey 换成境内那一套。
+//
+// 与 flipSyncFlag / limitProviders 同一条纪律：**恰好一处**，否则 exit(1)。
+// 一个静默的 0 处替换会产出一个「说自己是中国版、其实还在打东京」的包 ——
+// 那是这个仓库最贵的那类谎，而它在产物里完全看不出来。
+function switchBackend(text, what, cn) {
+  const out = [['url', cn.url], ['anonKey', cn.anonKey]].reduce((acc, [key, val]) => {
+    // 只匹配**顶层**那一条（行首两个空格），不碰 china 块里的同名键（四个空格）。
+    const RE = new RegExp(`^  ${key}: '[^']*',`, 'm');
+    const hits = acc.match(new RegExp(RE.source, 'gm')) || [];
+    if (hits.length !== 1) {
+      console.error(`✗ backend switch: expected exactly one top-level \`${key}\` in ${what}, got ${hits.length}`);
+      process.exit(1);
+    }
+    return acc.replace(RE, `  ${key}: '${val}', // CHINA build: 境内后端（build.js）`);
+  }, text);
+  // 产物里不该再留着那个块 —— 它只是源码里的一个决策记录，进了包就是第二个可信来源。
+  return out.replace(/\n  china: \{[\s\S]*?\n  \},\n/, '\n');
+}
+
 function limitProviders(text, what, list) {
   const NEEDLE = "providers: ['apple', 'google'],";
   const first = text.indexOf(NEEDLE);
@@ -673,6 +705,37 @@ function generateIcons(distDir) {
   log('Icons OK (real PNG)');
 }
 
+// ─── default_locale 按 flavor ──────────────────────────────────────────────
+//
+// `chrome.i18n` 对**没有对应 _locales/<locale> 目录**的用户，回落到 default_locale。
+// 这个值一直是 zh_CN，于是每一个我们没做本地化的市场，装完看到的是中文界面。
+//
+// 2026-09-04 用下载数据量出了代价：IT 是 30 天下载量第 3 名（18 次，8.9%），而
+// `_locales/` 里没有 it；加上 TR 9 / VN 6 / PL 4，共 37 次 = 国际版的 21.5%。
+// 这些人打开的是一个中文界面的翻译扩展。（`node scripts/store-stats.js` 的
+// 「市场缺口」那一节会持续报这个数。）
+//
+// 所以它按 flavor 分叉，而不是一个常量：
+//   · global / firefox —— `en`。国际版发到 36 个国家，英文是唯一合理的兜底。
+//   · china            —— `zh_CN`。它只在中国区分发，兜底成英文纯属倒退。
+//
+// 门禁而不是约定：这个值改错了**不会报错**，只会让一个市场安静地读到另一种语言
+// —— 和 issue #65 那个「目录名 Chrome 不认识就静默忽略」是同一类病。
+function defaultLocaleGate(distDir, label, flavor) {
+  const want = flavor === 'china' ? 'zh_CN' : 'en';
+  const m = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf8'));
+  if (m.default_locale !== want) {
+    err(`${label}: default_locale is "${m.default_locale}", expected "${want}" for flavor ${flavor}`);
+    process.exit(1);
+  }
+  // 兜底语言自己必须存在，否则回落的目的地是个空目录 —— 那比回落到别的语言更糟。
+  if (!fs.existsSync(path.join(distDir, '_locales', want, 'messages.json'))) {
+    err(`${label}: default_locale "${want}" has no _locales/${want}/messages.json`);
+    process.exit(1);
+  }
+  log(`default_locale gate OK (${label}: ${want})`);
+}
+
 // ─── Validate manifest ─────────────────────────────────────────────────────
 
 function validateManifest(distDir, isFirefox) {
@@ -740,8 +803,37 @@ function validateManifest(distDir, isFirefox) {
     if (readmeZh.includes('无账号、无追踪、无遥测')) {
       staleHits.push('README.zh-CN.md: 「无账号、无追踪、无遥测」');
     }
-    // The false-claim fingerprints across the 11 locales. Any hint that promises
-    // no-upload WITHOUT the sync qualifier is a lie the moment sync ships.
+    // ── 正向判据：每一门 locale 的 hint 都必须**提到同步** ──────────────────
+    //
+    // 下面那张 FALSE_CLAIMS 是**逐语言手写的谎言指纹**，写它的时候有 11 门语言而它
+    // 只覆盖 7 门（ko / ar / pt_BR / ru 从一开始就漏）。2026-09-04 加了 hi 之后变成
+    // 12 缺 5 —— 而这个仓库自己有一句话说这种东西：**「a list a human must remember
+    // to extend is not a gate, it is a wish」**。
+    //
+    // 所以补一条**语言无关、且不需要任何新表**的正向判据：那句 hint 必须含有本 locale
+    // 自己的「同步」这个词 —— 而那个词 `app_sync` 已经在同一个 messages.json 里。
+    // 两个 key 同源，所以**新增第 13 门语言会自动被覆盖**，没有谁要记得去扩哪张表。
+    //
+    // 取**前 8 个码点做词干**而不是整词：词形变化改的是词尾不是词干
+    // （de Synchronisieren→Synchronisierung · es Sincronizar→sincronización ·
+    //  ru Синхронизировать→синхронизацию）。实测 12 门全覆盖。
+    // 若将来某门语言的词干比这更短而落空，它会**变红**而不是静默放行 —— 失败方向是对的。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const hint = String(m.learn_section_hint?.message || '');
+      const word = String(m.app_sync?.message || '');
+      if (!hint || !word) { staleHits.push(`_locales/${loc} 缺 learn_section_hint 或 app_sync`); continue; }
+      const stem = [...word].slice(0, 8).join('').toLowerCase();
+      if (!hint.toLowerCase().includes(stem)) {
+        staleHits.push(`_locales/${loc} learn_section_hint 没提到同步（找「${stem}」）`
+          + ' —— 不带同步限定的「不上传」在同步上线那天就是假话');
+      }
+    }
+
+    // 负向判据（保留，与上面互补）：已知的几种「无条件承诺不上传」的写法。
+    // 它只覆盖 7 门，所以**不能单独作数** —— 上面那条才是覆盖全部 locale 的那一条。
     const FALSE_CLAIMS = [
       /不会上传/, /不會上傳/, /Nothing is uploaded, and/, /アップロードは一切行われず/,
       /Nichts wird hochgeladen, und/, /No se sube nada\./, /Rien n'est envoyé\./,
@@ -819,6 +911,18 @@ if (SYNC_ON) {
 // Flavor overrides applied to DIST only
 if (FLAVOR === 'china') {
   applyChinaLocales(DIST);
+  // 兜底语言跟着 flavor 走 —— 源里是 en（国际版发 36 个国家），中国版只在中国区
+  // 分发，回落成英文纯属倒退。判据在 defaultLocaleGate。
+  {
+    const mp = path.join(DIST, 'manifest.json');
+    const mm = JSON.parse(fs.readFileSync(mp, 'utf8'));
+    mm.default_locale = 'zh_CN';
+    fs.writeFileSync(mp, JSON.stringify(mm, null, 2));
+    // 打印**回读**的值，不是写死的字面量 —— 一句写死的日志在赋值被改坏时照样说
+    // 「-> zh_CN」，那正是这个仓库最贵的那类谎。
+    log('China: default_locale -> '
+      + JSON.parse(fs.readFileSync(mp, 'utf8')).default_locale);
+  }
   generateI18nMessages(DIST);      // rebuild i18n table from the scrubbed China locales
   // Sync OFF in the China artifact (source stays true): the China app is
   // unreleased and PIPL/cross-border compliance is unevaluated. Its own Gate,
@@ -830,8 +934,23 @@ if (FLAVOR === 'china') {
   // 上要不要说「登录之后卡片才到 App」，对一个连登录入口都被 remove 掉的构建，
   // 那句话是死路。
   const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
-  fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
-  log('China flavor: sync disabled in artifact (enabled → false)');
+  // 两条路，由 backend.config.js 的 `china.ready` 选 —— **按值，不按 flavor 名**，
+  // 与这个文件里其它 flavor 判据同一条纪律。
+  //
+  //   ready: false → 与从前逐字相同：关掉同步。
+  //   ready: true  → 换成境内后端，**不再关同步** —— 那正是这件事的目的。
+  //
+  // 为什么不是「改完 url 就自动开」：地址填了不等于服务跑起来了。让开关独立于
+  // 地址，是为了让「填地址」和「切过去」成为两个动作 —— 中间隔着一次真实链路验证。
+  if (chinaBackendReady()) {
+    const cn = chinaBackend();
+    fs.writeFileSync(cfgPath, switchBackend(fs.readFileSync(cfgPath, 'utf8'),
+      'dist-china/learn/backend.config.js', cn));
+    log('China flavor: backend → ' + cn.url + '（境内，同步保持开启）');
+  } else {
+    fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
+    log('China flavor: sync disabled in artifact (enabled → false) —— 境内后端未就绪（china.ready=false）');
+  }
   fs.writeFileSync(cfgPath, limitProviders(fs.readFileSync(cfgPath, 'utf8'),
     'dist-china/learn/backend.config.js', ['apple']));
   log('China flavor: providers → [apple]（Google 在大陆连不上）');
@@ -848,6 +967,7 @@ if (FLAVOR === 'china') {
 
 // 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。
 defaultProviderGate(DIST, path.basename(DIST), FLAVOR);
+defaultLocaleGate(DIST, path.basename(DIST), TARGET === 'firefox' ? 'global' : FLAVOR);
 
 // Firefox-specific patches
 if (isFirefox) patchManifestForFirefox();

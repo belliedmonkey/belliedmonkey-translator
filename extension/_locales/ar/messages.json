@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "أدخل {what} أولاً",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "غير مُعد (بدون قراءة صوتية)"
+  },
+  "tts_not_configured": {
+    "message": "لم يتم إعداد الصوت بعد — اختر محركًا من الإعدادات › الصوت"
   }
 }

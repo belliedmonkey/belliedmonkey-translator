@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "Saisissez d’abord votre {what}",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Non configuré (pas de lecture)"
+  },
+  "tts_not_configured": {
+    "message": "La synthèse vocale n'est pas configurée — choisissez un moteur dans Réglages › Voix"
   }
 }

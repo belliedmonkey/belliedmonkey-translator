@@ -659,3 +659,221 @@ BelliedMonkey مترجم
 ```
 ليست مجرد ترجمة: الجُمل التي قرأتها فعلاً تعود بطاقاتِ مراجعة وفق منحنى النسيان. مجاني ومفتوح المصدر، ومفتاحك يبقى على جهازك.
 ```
+
+## 国际版 · it · name
+
+```
+BelliedMonkey Traduttore
+```
+
+## 国际版 · it · subtitle
+
+```
+Web bilingue e sottotitoli
+```
+
+## 国际版 · it · keywords
+
+```
+inglese,tradurre,vocaboli,ripasso,lettura,notizie,memoria,video,imparare,gratis,flashcard,podcast
+```
+
+## 国际版 · it · description
+
+```
+Un'estensione per Safari che ti fa leggere il web e guardare i video in due lingue insieme — e ricordare davvero quello che leggi.
+
+PAGINE BILINGUI
+Attiva la traduzione e ogni paragrafo conserva il testo originale, con la traduzione subito sotto, in un colore distinto. Nessun cambio di scheda, nessun segno perso: si legge e basta.
+
+SOTTOTITOLI DOPPI PER I VIDEO
+Video, podcast e post con video ottengono sottotitoli bilingui allineati frase per frase: originale sopra, traduzione sotto. La traduzione va in anticipo sulla riproduzione, così non si inceppa.
+
+LEGGI E TI RESTA
+Attiva l'apprendimento e le frasi che hai davvero letto diventano carte di ripasso: esercizi di lettura, ascolto e scrittura, note sulla frase e lettura ad alta voce, programmati in base alla forza della memoria. Disattivato di default, e tutto resta sul tuo dispositivo.
+
+SINCRONIZZAZIONE TRA DISPOSITIVI (FACOLTATIVA)
+Accedi con un account email gratuito e dal telefono potrai ripassare ciò che hai letto sul computer. Cosa conserva la sincronizzazione sui nostri server: le frasi e le traduzioni salvate, l'indirizzo e il titolo della pagina di origine e gli orari di ripasso — in forma leggibile e solo per il tuo account. Se elimini una fonte o il tuo account, spariscono da tutti i dispositivi. Senza accedere, niente lascia il tuo dispositivo.
+
+SCEGLI TU IL MOTORE
+Il canale gratuito funziona subito, senza configurazione. Vuoi più qualità? Inserisci la chiave del tuo servizio di IA, o qualsiasi endpoint personalizzato compatibile. Il controllo resta sempre tuo.
+
+PRIVATO PER SCELTA
+Nessun tracciamento, nessuna telemetria, nessuna pubblicità. Nessun nostro server sul percorso della traduzione: il testo va direttamente al fornitore che scegli, e le tue chiavi e impostazioni restano sul dispositivo. Nessun account, a meno che tu non lo voglia. Tutta l'app è open source.
+
+GRATIS E APERTA
+BelliedMonkey Traduttore è gratuita e completamente open source.
+
+Perfetta per leggere notizie e blog stranieri, studiare una lingua, seguire creator che parlano un'altra lingua e navigare il web globale come navighi quello di casa.
+```
+
+## 国际版 · it · promotionalText
+
+```
+Non il solito traduttore: le frasi che leggi davvero tornano come carte di ripasso sulla curva dell'oblio. Gratis, open source, la tua chiave resta sul dispositivo.
+```
+
+---
+
+## 国际版 · tr · name
+
+```
+BelliedMonkey Çeviri
+```
+
+## 国际版 · tr · subtitle
+
+```
+İki dilli web ve altyazı
+```
+
+## 国际版 · tr · keywords
+
+```
+İngilizce,kelime,tekrar,okuma,haber,ezber,sözlük,yabancı,video,ücretsiz,podcast,öğrenme,dizi,film
+```
+
+## 国际版 · tr · description
+
+```
+Web'i okurken ve video izlerken iki dili aynı anda gösteren, okuduklarını gerçekten aklında tutmanı sağlayan bir Safari eklentisi.
+
+İKİ DİLLİ SAYFALAR
+Çeviriyi aç: her paragraf özgün metnini korur, çevirisi hemen altında ayrı bir renkte belirir. Sekme değiştirmek yok, kaldığın yeri kaybetmek yok — sadece oku.
+
+VİDEOLARDA ÇİFT ALTYAZI
+Videolar, podcast'ler ve videolu gönderiler cümle cümle eşleşen iki dilli altyazı alır: üstte özgün metin, altta çeviri. Çeviri oynatmanın önünden gittiği için takılma olmaz.
+
+OKU, AKLINDA KALSIN
+Öğrenmeyi açtığında gerçekten okuduğun cümleler tekrar kartlarına dönüşür: okuma, dinleme ve yazma alıştırmaları, cümle açıklamaları ve sesli okuma — hafızanın gücüne göre programlanır. Varsayılan olarak kapalıdır ve her şey cihazında kalır.
+
+CİHAZLAR ARASI EŞİTLEME (İSTEĞE BAĞLI)
+Ücretsiz bir e-posta hesabıyla giriş yap, bilgisayarında okuduklarını telefonundan tekrar et. Eşitlemenin sunucularımızda tuttukları: kaydettiğin cümleler ve çevirileri, kaynak sayfanın adresi ve başlığı, tekrar zamanları — okunabilir biçimde ve yalnızca senin hesabın için. Bir kaynağı ya da hesabını silersen hepsi tüm cihazlardan kalkar. Giriş yapmazsan hiçbir şey cihazından çıkmaz.
+
+MOTORU SEN SEÇ
+Ücretsiz kanal kurulum gerektirmeden çalışır. Daha iyi kalite mi istiyorsun? Kendi yapay zekâ servisinin anahtarını ya da uyumlu herhangi bir özel uç noktayı gir. Kontrol her zaman sende.
+
+TASARIMDAN GİZLİ
+Takip yok, telemetri yok, reklam yok. Çeviri yolunda bize ait hiçbir sunucu yok: metin doğrudan seçtiğin sağlayıcıya gider, anahtarların ve ayarların cihazında kalır. İstemezsen hesap gerekmez. Uygulamanın tamamı açık kaynaktır.
+
+ÜCRETSİZ VE AÇIK
+BelliedMonkey Çeviri ücretsizdir ve tamamen açık kaynaklıdır.
+
+Yabancı haber ve blogları okumak, dil öğrenmek, başka bir dilde konuşan içerik üreticilerini takip etmek ve dünya web'inde kendi dilindeymiş gibi gezinmek için.
+```
+
+## 国际版 · tr · promotionalText
+
+```
+Sıradan bir çeviri aracı değil: gerçekten okuduğun cümleler unutma eğrisine göre tekrar kartı olarak geri gelir. Ücretsiz, açık kaynak, anahtarın cihazında kalır.
+```
+
+---
+
+## 国际版 · vi · name
+
+```
+BelliedMonkey Dịch
+```
+
+## 国际版 · vi · subtitle
+
+```
+Web song ngữ và phụ đề kép
+```
+
+## 国际版 · vi · keywords
+
+```
+tiếng Anh,ngoại ngữ,từ vựng,ôn tập,đọc,tin tức,ghi nhớ,video,học,miễn phí,podcast,phim,luyện nghe
+```
+
+## 国际版 · vi · description
+
+```
+Tiện ích Safari giúp bạn đọc web và xem video bằng hai ngôn ngữ cùng lúc — và thật sự nhớ được những gì đã đọc.
+
+TRANG WEB SONG NGỮ
+Bật dịch: mỗi đoạn văn giữ nguyên bản gốc, bản dịch hiện ngay bên dưới bằng một màu riêng. Không phải đổi thẻ, không mất chỗ đang đọc — cứ thế mà đọc.
+
+PHỤ ĐỀ KÉP CHO VIDEO
+Video, podcast và bài đăng có video đều có phụ đề song ngữ khớp theo từng câu: bản gốc ở trên, bản dịch ở dưới. Bản dịch chạy trước phần phát nên không bị khựng.
+
+ĐỌC XONG LÀ NHỚ
+Bật phần học, những câu bạn thực sự đã đọc sẽ thành thẻ ôn tập: bài tập đọc, nghe và viết, ghi chú câu và đọc thành tiếng, được sắp lịch theo độ bền của trí nhớ. Mặc định tắt, và mọi thứ nằm trên máy bạn.
+
+ĐỒNG BỘ GIỮA CÁC THIẾT BỊ (TÙY CHỌN)
+Đăng nhập bằng một tài khoản email miễn phí, rồi ôn trên điện thoại những gì đã đọc trên máy tính. Đồng bộ lưu gì trên máy chủ của chúng tôi: các câu và bản dịch bạn đã lưu, địa chỉ và tiêu đề trang nguồn, thời điểm ôn tập — ở dạng đọc được và chỉ thuộc tài khoản của bạn. Xóa một nguồn hoặc xóa tài khoản là chúng biến mất khỏi mọi thiết bị. Không đăng nhập thì không có gì rời khỏi máy bạn.
+
+TỰ CHỌN CỖ MÁY DỊCH
+Kênh miễn phí chạy ngay, không cần cài đặt gì. Muốn chất lượng cao hơn? Điền khóa dịch vụ AI của riêng bạn, hoặc bất kỳ điểm cuối tùy chỉnh tương thích nào. Quyền quyết định luôn thuộc về bạn.
+
+RIÊNG TƯ NGAY TỪ THIẾT KẾ
+Không theo dõi, không đo đạc, không quảng cáo. Không có máy chủ nào của chúng tôi nằm trên đường dịch: văn bản đi thẳng tới nhà cung cấp bạn chọn, còn khóa và cài đặt thì ở lại trên máy bạn. Không cần tài khoản trừ khi bạn muốn. Toàn bộ ứng dụng là mã nguồn mở.
+
+MIỄN PHÍ VÀ MỞ
+BelliedMonkey Dịch miễn phí và hoàn toàn mã nguồn mở.
+
+Rất hợp để đọc tin tức và blog nước ngoài, học một ngoại ngữ, theo dõi những người sáng tạo nói thứ tiếng khác, và lướt web toàn cầu như lướt web tiếng mẹ đẻ.
+```
+
+## 国际版 · vi · promotionalText
+
+```
+Không chỉ là một công cụ dịch: những câu bạn thực sự đọc sẽ quay lại thành thẻ ôn tập theo đường cong quên. Miễn phí, mã nguồn mở, khóa nằm trên máy bạn.
+```
+
+---
+
+## 国际版 · pl · name
+
+```
+BelliedMonkey Tłumacz
+```
+
+## 国际版 · pl · subtitle
+
+```
+Dwujęzyczny web i napisy
+```
+
+## 国际版 · pl · keywords
+
+```
+angielski,języki,słówka,powtórki,czytanie,wiadomości,pamięć,fiszki,nauka,video,darmowy,podcast
+```
+
+## 国际版 · pl · description
+
+```
+Rozszerzenie Safari, dzięki któremu czytasz sieć i oglądasz filmy w dwóch językach naraz — i naprawdę zapamiętujesz to, co przeczytasz.
+
+DWUJĘZYCZNE STRONY
+Włącz tłumaczenie: każdy akapit zachowuje oryginalny tekst, a tłumaczenie pojawia się tuż pod nim, w wyróżnionym kolorze. Bez przełączania kart, bez gubienia miejsca — po prostu czytasz.
+
+PODWÓJNE NAPISY DO FILMÓW
+Filmy, podcasty i wpisy z wideo dostają dwujęzyczne napisy dopasowane zdanie po zdaniu: oryginał na górze, tłumaczenie pod spodem. Tłumaczenie wyprzedza odtwarzanie, więc nic się nie zacina.
+
+PRZECZYTANE ZOSTAJE
+Włącz naukę, a zdania, które faktycznie przeczytasz, staną się fiszkami do powtórek: ćwiczenia z czytania, słuchania i pisania, objaśnienia zdań oraz czytanie na głos, planowane według siły pamięci. Domyślnie wyłączone, a wszystko zostaje na Twoim urządzeniu.
+
+SYNCHRONIZACJA MIĘDZY URZĄDZENIAMI (OPCJONALNA)
+Zaloguj się darmowym kontem e-mail, a na telefonie powtórzysz to, co przeczytałeś na komputerze. Co synchronizacja przechowuje na naszych serwerach: zapisane zdania i ich tłumaczenia, adres i tytuł strony źródłowej oraz terminy powtórek — w czytelnej postaci i wyłącznie dla Twojego konta. Usunięcie źródła lub konta kasuje je ze wszystkich urządzeń. Bez logowania nic nie opuszcza Twojego urządzenia.
+
+SILNIK WYBIERASZ TY
+Darmowy kanał działa od razu, bez konfiguracji. Chcesz wyższej jakości? Wpisz klucz własnej usługi AI albo dowolny zgodny własny endpoint. Kontrolę zawsze masz Ty.
+
+PRYWATNE Z ZAŁOŻENIA
+Bez śledzenia, bez telemetrii, bez reklam. Na drodze tłumaczenia nie ma żadnego naszego serwera: tekst idzie prosto do wybranego przez Ciebie dostawcy, a klucze i ustawienia zostają na urządzeniu. Konto tylko wtedy, gdy sam zechcesz. Cała aplikacja jest open source.
+
+DARMOWE I OTWARTE
+BelliedMonkey Tłumacz jest darmowy i w pełni otwartoźródłowy.
+
+Świetny do czytania zagranicznych wiadomości i blogów, nauki języka, śledzenia twórców mówiących w innym języku i przeglądania światowej sieci tak, jak przeglądasz swoją.
+```
+
+## 国际版 · pl · promotionalText
+
+```
+To nie kolejny tłumacz: zdania, które faktycznie przeczytasz, wracają jako fiszki na krzywej zapominania. Za darmo, open source, klucz zostaje na urządzeniu.
+```

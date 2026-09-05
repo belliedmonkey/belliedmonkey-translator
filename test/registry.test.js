@@ -359,11 +359,27 @@ describe('MT_SYNC_ENABLED 与 backend.config.js 一致', () => {
     });
   }
 
-  test('两个 flavor 的取值不同 —— 相同就说明判据根本没在读那个文件', () => {
-    const g = flagOf(read(path2.join(ROOT2, 'dist/content/providers.gen.js')));
-    const c = flagOf(read(path2.join(ROOT2, 'dist-china/content/providers.gen.js')));
-    if (g === null || c === null) { ok(true, '跳过：两个 flavor 没有都构建'); return; }
-    ok(g !== c, `两个产物里都是 ${g} —— 判据没有真的在读 backend.config.js`);
+  // 这一条守的是「`flagOf` 真的在读产物，而不是返回一个常量」。
+  //
+  // 它**曾经**写成「两个 flavor 的取值必须不同」，因为当时 china 恒为 false。
+  // 2026-09-05（§C 境内后端）之后那个前提会过期：`china.ready` 翻真那天两个 flavor
+  // 都是 true，而那条会**假红** —— 红的原因不是判据坏了，是判据的前提过期了。
+  //
+  // 所以判据改成条件式的：**只有当两份 cfg 的声明不同时，才要求两个产物不同**。
+  // 力量不减（声明不同而产物相同，正是「没在读文件」的指纹），但它跟着事实走，
+  // 不需要谁在切后端那天记得回来改这里。
+  test('声明不同的两个 flavor，产物也必须不同 —— 否则判据没在读那个文件', () => {
+    const gGen = read(path2.join(ROOT2, 'dist/content/providers.gen.js'));
+    const cGen = read(path2.join(ROOT2, 'dist-china/content/providers.gen.js'));
+    const gCfg = read(path2.join(ROOT2, 'dist/learn/backend.config.js'));
+    const cCfg = read(path2.join(ROOT2, 'dist-china/learn/backend.config.js'));
+    if (!gGen || !cGen || !gCfg || !cCfg) { ok(true, '跳过：两个 flavor 没有都构建'); return; }
+    if (declared(gCfg) === declared(cCfg)) {
+      ok(true, '两个 flavor 声明相同（境内后端已启用），这条不适用');
+      return;
+    }
+    ok(flagOf(gGen) !== flagOf(cGen),
+      `两份 cfg 声明不同，产物里却都是 ${flagOf(gGen)} —— 判据没有真的在读 backend.config.js`);
   });
 });
 

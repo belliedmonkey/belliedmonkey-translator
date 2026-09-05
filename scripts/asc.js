@@ -28,67 +28,9 @@
 const EDITABLE_STATES = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
 const isEditable = (v) => EDITABLE_STATES.includes(v.attributes.appStoreState);
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-const ROOT = path.join(__dirname, '..');
-const KEYS = path.join(ROOT, '.local', 'keys.md');
-const API = 'https://api.appstoreconnect.apple.com/v1';
-
-function slot(name) {
-  if (!fs.existsSync(KEYS)) return null;
-  // `[^\S\n]*` 而不是 `\s*`：`\s` 含换行，空槽位会跨行吃到下一行的字段名，
-  // 把「缺凭证」伪装成「凭证错误」。同 cws-publish.js / amo-publish.js 那处的疤。
-  const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS, 'utf8'));
-  return m ? m[1] : null;
-}
-
-// ASC 的 JWT：ES256，payload 带 aud，exp 官方上限 20 分钟。
-function jwt() {
-  const missing = ['ascIssuerId', 'ascKeyId', 'ascKeyPath'].filter((n) => !slot(n));
-  if (missing.length) {
-    console.error('✗ .local/keys.md 缺：' + missing.join(', '));
-    process.exit(1);
-  }
-  const keyPath = slot('ascKeyPath').replace(/^~/, process.env.HOME);
-  if (!fs.existsSync(keyPath)) {
-    console.error(`✗ 私钥文件不存在：${keyPath}`);
-    process.exit(1);
-  }
-  const now = Math.floor(Date.now() / 1000);
-  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  const head = b64({ alg: 'ES256', kid: slot('ascKeyId'), typ: 'JWT' });
-  const body = b64({ iss: slot('ascIssuerId'), iat: now, exp: now + 900,
-    aud: 'appstoreconnect-v1' });
-  const sig = crypto.sign('sha256', Buffer.from(`${head}.${body}`),
-    { key: fs.readFileSync(keyPath), dsaEncoding: 'ieee-p1363' }).toString('base64url');
-  return `${head}.${body}.${sig}`;
-}
-
-async function api(method, url, body) {
-  const r = await fetch(url.startsWith('http') ? url : API + url, {
-    method,
-    headers: Object.assign({ Authorization: 'Bearer ' + jwt() },
-      body ? { 'Content-Type': 'application/json' } : {}),
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await r.text();
-  let d = null;
-  try { d = JSON.parse(text); } catch (_) { /* 非 JSON 也要留住原文 */ }
-  if (!r.ok) {
-    const detail = d && d.errors ? d.errors.map((e) => `${e.title}: ${e.detail}`).join('; ')
-      : String(text).slice(0, 300);
-    throw new Error(`HTTP ${r.status} ${method} ${url} — ${detail}`);
-  }
-  return d;
-}
-
-async function apps() {
-  const d = await api('GET', '/apps?limit=200');
-  return d.data.map((a) => ({ id: a.id, name: a.attributes.name,
-    bundleId: a.attributes.bundleId }));
-}
+// 凭证、JWT、请求、销售报表都在 lib 里 —— `store-stats.js` 要问 Apple 同样的问题，
+// 两份实现会漂移。见 scripts/lib/asc-client.js 开头。
+const { API, SEP, cut, slot, api, apps, salesRows, aggregateSales } = require('./lib/asc-client');
 
 async function cmdBuilds() {
   for (const app of await apps()) {
@@ -420,6 +362,68 @@ async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly)
   return ok;
 }
 
+// ── 隐私政策 URL：商店页那一份，与页面本身是两回事 ────────────────────────
+//
+// 2026-09-05 发现：中国版这个字段指向一个**脱离两个仓库管理**的 CloudBase 托管点，
+// 挂着 7-11 的版本，写着「没有后端服务器、没有账号系统」—— 而那时中国版 App 已经
+// 在同步。App 内链接、support、marketing 早就都对了，**只有商店页那一个是孤儿**，
+// 所以从代码和站点两侧都看不出来。它是被这个命令发现的，不是被谁想起来的。
+//
+// ⚠️ 这个字段在 READY_FOR_SALE 下**改不了**（Apple 409：can not be modified in
+//    the current state），要有一个进行中的版本。所以它只能跟着发版改 ——
+//    而「跟着发版」这件事，靠人记是靠不住的，靠这个命令跑一次是可靠的。
+//
+// 期望值按 flavor 分：中国版必须落在 belliedmonkey.com（EdgeOne，境内，浙ICP备），
+// 国际版落在 belliedmonkey.cc（Vercel）。与 app/app.js:292 和
+// extension/learn/quick-setup.js:114 的分叉判据一致 —— 那两处是同一件事的另一半。
+const PRIVACY_URL = {
+  'com.belliedmonkeytranslator': 'https://belliedmonkey.cc/privacy.html',
+  'com.belliedmonkeytranslator.cn': 'https://belliedmonkey.com/privacy.html',
+};
+
+async function cmdPrivacy(apply) {
+  let ok = true;
+  for (const app of await apps()) {
+    const want = PRIVACY_URL[app.bundleId];
+    if (!want) continue;
+    const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10`
+      + '&fields[appInfos]=appStoreState');
+    for (const inf of (infos.data || [])) {
+      const state = inf.attributes.appStoreState;
+      const locs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+        + '&fields[appInfoLocalizations]=locale,privacyPolicyUrl');
+      for (const L of (locs.data || [])) {
+        const got = L.attributes.privacyPolicyUrl || '';
+        const same = got === want;
+        const label = `${app.bundleId} ${L.attributes.locale} [${state}]`;
+        console.log(`  ${same ? '✓' : '✗'} ${label}`);
+        if (!same) {
+          console.log(`      现在 ${got || '(空)'}`);
+          console.log(`      应为 ${want}`);
+          ok = false;
+        }
+        if (!apply || same) continue;
+        // READY_FOR_SALE 上必然 409。先说清楚再试，免得把一个已知的限制
+        // 读成一次偶发失败。
+        if (state === 'READY_FOR_SALE') {
+          console.log('      ⚠️ 这条是 READY_FOR_SALE，Apple 不允许改这个字段。'
+            + '要改必须有一个进行中的版本 —— 也就是说，跟着下一次发版改。');
+          continue;
+        }
+        await api('PATCH', `/appInfoLocalizations/${L.id}`,
+          { data: { type: 'appInfoLocalizations', id: L.id,
+                    attributes: { privacyPolicyUrl: want } } });
+        const back = await api('GET', `/appInfoLocalizations/${L.id}`
+          + '?fields[appInfoLocalizations]=privacyPolicyUrl');
+        const now = back.data.attributes.privacyPolicyUrl || '';
+        console.log(`      回读「${now}」${now === want ? '✓' : '✗ 不符！'}`);
+        if (now !== want) ok = false;
+      }
+    }
+  }
+  return ok;
+}
+
 // app 级字段。**无 platform 参数**，见上面 ②。
 async function cmdAppInfo(bundleId, file, apply) {
   const app = (await apps()).find((a) => a.bundleId === bundleId);
@@ -643,59 +647,17 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
 // 而 Supported Platforms 那列写的是「iOS and macOS」——是包支持什么，不是用户用什么。
 // 拿后者当设备分布会得到一个「100% 全平台」的废话。
 async function cmdInstalls(days) {
-  const vendor = slot('ascVendorNumber');
-  if (!vendor) {
-    console.error('✗ .local/keys.md 缺 ascVendorNumber');
-    console.error('  在 App Store Connect 的「付款和财务报告」页左上角灰色小字里：');
-    console.error('  https://appstoreconnect.apple.com/itc/payments_and_financial_reports/#/');
-    process.exit(1);
-  }
-  const zlib = require('zlib');
   const APPS = {};
   for (const a of await apps()) APPS[a.id] = a.name;
 
-  const fetchDay = async (date) => {
-    const u = API + '/salesReports?filter[frequency]=DAILY&filter[reportType]=SALES'
-      + '&filter[reportSubType]=SUMMARY&filter[vendorNumber]=' + vendor
-      + '&filter[reportDate]=' + date;
-    const r = await fetch(u, { headers: { Authorization: 'Bearer ' + jwt(), Accept: 'application/a-gzip' } });
-    if (r.status === 404) return null;                 // 那天没人下载 —— 正常，不是错误
-    if (!r.ok) throw new Error(`${date}: HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
-    const buf = Buffer.from(await r.arrayBuffer());
-    try { return zlib.gunzipSync(buf).toString('utf8'); } catch (_) { return buf.toString('utf8'); }
-  };
-
-  const rows = []; let quiet = 0; let live = 0;
-  const d0 = new Date();
-  for (let i = 1; i <= days; i += 1) {
-    const d = new Date(d0); d.setDate(d.getDate() - i);
-    const t = await fetchDay(d.toISOString().slice(0, 10));
-    if (!t) { quiet += 1; continue; }
-    live += 1;
-    const lines = t.trim().split('\n');
-    const head = lines[0].split('\t').map((h) => h.trim());
-    for (const l of lines.slice(1)) {
-      const c = l.split('\t');
-      rows.push(Object.fromEntries(head.map((h, j) => [h, (c[j] || '').trim()])));
-    }
-  }
+  const { rows, live, quiet, from, to } = await salesRows(days);
   if (!rows.length) {
     console.log(`最近 ${days} 天没有任何下载记录（${quiet} 天无报表）。`);
     return;
   }
-  const units = (r) => Number(r.Units || 0);
-  const nameOf = (r) => APPS[r['Apple Identifier']] || r['Apple Identifier'];
-  const add = (m, k, n) => m.set(k, (m.get(k) || 0) + n);
-  const byApp = new Map(); const byDev = new Map(); const byTerr = new Map();
-  let total = 0;
-  for (const r of rows) {
-    const n = units(r); total += n;
-    add(byApp, nameOf(r), n);
-    add(byDev, nameOf(r) + '\u0000' + (r.Device || '?'), n);
-    add(byTerr, r['Country Code'] + '\u0000' + nameOf(r), n);
-  }
-  const dates = rows.map((r) => r['Begin Date']).sort();
-  console.log(`\n下载量 · 最近 ${days} 天（${dates[0]} → ${dates[dates.length - 1]}；`
+  const { total, byApp, byDev, terr } = aggregateSales(rows, APPS);
+
+  console.log(`\n下载量 · 最近 ${days} 天（${from} → ${to}；`
     + `${live} 天有下载，${quiet} 天安静）· 合计 ${total}\n`);
 
   console.log('■ 按 app');
@@ -704,16 +666,10 @@ async function cmdInstalls(days) {
   }
   console.log('\n■ 按设备');
   for (const [k, v] of [...byDev].sort((a, b) => b[1] - a[1])) {
-    const [app, dev] = k.split('\u0000');
+    const [app, dev] = cut(k);
     console.log(`  ${app.padEnd(28)} ${dev.padEnd(10)} ${String(v).padStart(5)}`);
   }
   console.log('\n■ 按国家/地区');
-  const terr = new Map();
-  for (const [k, v] of byTerr) {
-    const [cc, app] = k.split('\u0000');
-    if (!terr.has(cc)) terr.set(cc, new Map());
-    add(terr.get(cc), app, v);
-  }
   const sum = (m) => [...m.values()].reduce((a, b) => a + b, 0);
   for (const [cc, m] of [...terr].sort((a, b) => sum(b[1]) - sum(a[1]))) {
     const s = sum(m);
@@ -866,6 +822,10 @@ async function cmdDevices(udid, name, macFlag) {
     const ok = await cmdNotes(bundleId, platform, versionString, file, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'privacy') {
+    const ok = await cmdPrivacy(rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'installs') {
     // 默认 30 天。免费 app 的 Units 就是下载次数。
     const n = Math.max(1, Math.min(365, parseInt(rest[0], 10) || 30));
@@ -876,6 +836,7 @@ async function cmdDevices(udid, name, macFlag) {
     + ' | aso --audit'
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'
+    + ' | privacy [--apply]'
     + ' | dump <bundleId> <平台>'
     + ' | devices [UDID [名称] [--mac]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'

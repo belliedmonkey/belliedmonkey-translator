@@ -117,6 +117,17 @@ var AppDriving = (() => {
   // ─── Entry gating (capability semantics: exists or doesn't, never disabled) ─
   // The entry button renders only when the session could actually speak.
   // Voices land asynchronously, so wait a moment.
+  // 只管显隐与文案；点击归 app.js（它才拥有 openSettings）——
+  // 一个视图不该去开另一个视图。
+  function showNeedSpeech(on, reason) {
+    const box = $('app-drive-need-tts');
+    if (!box) return;
+    box.hidden = !on;
+    if (!on) return;
+    $('app-drive-need-tts-why').textContent = ttsReason(reason);
+    $('app-drive-need-tts-go').textContent = t('app_settings_link', '设置');
+  }
+
   async function refreshEntry() {
     const btn = $('app-drive-start');
     if (!btn) return;
@@ -126,7 +137,11 @@ var AppDriving = (() => {
       applySettings(r.data);
       const av = await LearnTTS.available(uiLang, 2000);
       btn.hidden = !av.ok;
-    } catch (_) { btn.hidden = true; }
+      // 「没配过 / 差一个字段」是**有出路**的失败，要说出来并给路；
+      // 「这台设备做不到」没有出路，不给假希望。两者共用 ttsReason 的文案。
+      const FIXABLE = ['not_configured', 'no_base', 'no_key'];
+      showNeedSpeech(!av.ok && FIXABLE.indexOf(av.reason) >= 0, av.reason);
+    } catch (_) { btn.hidden = true; showNeedSpeech(false); }
   }
 
   // ─── Copy ─────────────────────────────────────────────────────────────────
@@ -136,6 +151,7 @@ var AppDriving = (() => {
     switch (reason) {
       case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
       case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
+      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
       case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
       case 'no_base': return t('tts_no_base', '还没填语音端点地址');
       case 'no_key': return t('tts_no_key', '还没填语音 API Key');
@@ -435,6 +451,7 @@ var AppDriving = (() => {
         case 'no_key': return t('drive_tts_not_configured',
           '语音引擎还没配置好，这一轮读不出声（设置 → 语音引擎）');
         case 'blocked': return t('drive_tts_blocked', '系统拦下了自动播放，点一下继续');
+        case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
         case 'unsupported': return t('drive_tts_unsupported', '这台设备上没有可用的语音引擎');
         default: return t('drive_tts_unreachable',
           '连不上语音引擎，这一轮读不出声。已经预载过的卡才能离线播放（设置 → 预载离线资源）');

@@ -124,7 +124,10 @@ var EngineFields = (() => {
       keys: { engine: 'ttsEngine', key: 'ttsApiKey', baseUrl: 'ttsBaseUrl', model: 'ttsModel' },
       ids: { engine: 'tts-engine', key: 'tts-api-key', baseUrl: 'tts-base-url', model: 'tts-model' },
       labelKey: 'qs_slot_tts',
-      sentinelKey: null,
+      // '' 是**有语义的空**：未配置 ⇒ 不朗读。2026-09-04 起语音不再默认走系统自带
+      // （效果撑不起这个产品的核心体验），所以它和 stt 一样需要一个哨兵项，
+      // 而不是让下拉默默停在第一个引擎上。
+      sentinelKey: 'tts_engine_none',
     },
     // 解析（「解析这句」用的对话引擎）。条目不是整张 providers 表，而是
     // LearnNotes.chatEngines() 过滤后的那一份 —— 由 host 通过 opts.entries 传进来，
@@ -171,7 +174,7 @@ var EngineFields = (() => {
         baseUrl: t('tts_base_url', '语音端点地址'),
         model: t('tts_model', '语音模型'),
         head: t('qs_slot_tts', '朗读'),
-        sentinel: '',
+        sentinel: t('tts_engine_none', '未配置（不朗读）'),
       };
     }
     if (slot === 'notes') {
@@ -274,6 +277,17 @@ var EngineFields = (() => {
       const inp = doc.createElement('input');
       inp.id = spec.ids[f];
       inp.type = f === 'key' ? 'password' : (f === 'baseUrl' ? 'url' : 'text');
+      // ⚠️ **别为了「让 1Password 能补齐 API key」来改这一行 —— 在这个页面上做不到。**
+      //
+      // 这个组件只渲染在**扩展自己的页面**（options / onboard，chrome-extension:// 与
+      // moz-extension:// 源）。浏览器**禁止一个扩展向另一个扩展的页面注入内容脚本**
+      // （Chrome 与 MDN 口径一致，理由是防止通过特权页提权）。所以密码管理器的内容
+      // 脚本根本到不了这里，改 autocomplete / name / data-1p-* 一个字都不会生效。
+      //
+      // 能做到的面是另外两个：官网（普通 https 页）与宿主 App（WKWebView，走系统级
+      // AutoFill 而不是浏览器插件）。App 那一侧的 markup 在 app/index.html，
+      // 是否真能被填要在真机上看 —— 在拿到那个结论之前不动它的属性。
+      //   —— 2026-09-04 查证
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.value = values[spec.keys[f]] || '';

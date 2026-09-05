@@ -169,6 +169,32 @@ function main(argv) {
     process.exit(1);
   }
 
+  // ── 与扩展 / App 的界面语言取全集（2026-09-04 用户裁定）──────────────────
+  //
+  // 「这个产品的界面能说哪些语言」的唯一注册表是 build/ui-langs.config.js。此前官网
+  // 少 de/ja/ko/zh-TW、扩展少 hi —— 那几门语言的用户在对应的面上**选不到自己的语言**，
+  // 而且不报错，只是看到兜底语言。
+  //
+  // ⚠️ **官网是另一个仓库**，本仓库的 npm test 看不到它（local-gates-are-not-ci）。
+  // 所以这一条挂在这里：这个脚本本来就住在本仓库、本来就要读官网的树。
+  // 判据同时管 id 与 endonym —— endonym 按定义不翻译，三个面必须逐字相同。
+  const REG = require(path.join(__dirname, '..', 'build', 'ui-langs.config.js'));
+  const wantIds = REG.map((l) => l.id);
+  const gotIds = langs.map((l) => l.code);
+  if (gotIds.join() !== wantIds.join()) {
+    console.error(`✗ 官网的语言清单与 build/ui-langs.config.js 不一致（顺序也算）`);
+    console.error(`  官网 : ${gotIds.join(' ')}`);
+    console.error(`  注册表: ${wantIds.join(' ')}`);
+    console.error('  少一门 = 那门语言的用户在官网上选不到自己的语言；多一门 = 选了没有字典。');
+    process.exit(1);
+  }
+  const badName = langs.filter((l, i) => l.name !== REG[i].endonym);
+  if (badName.length) {
+    console.error('✗ endonym 与注册表不同字：'
+      + badName.map((l, i) => l.code + ' 写「' + l.name + '」').join(' · '));
+    process.exit(1);
+  }
+
   const out = [];
   for (const l of langs) {
     if (l.code === 'en') continue;          // 根就是英文，不做 /en/

@@ -1,0 +1,1928 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: द्विभाषी + समीक्षा"
+  },
+  "extension_description": {
+    "message": "द्विभाषी पेज और दोहरे सबटाइटल। पढ़े गए वाक्य रिवीज़न कार्ड बनते हैं। अपनी कुंजी लाएँ।"
+  },
+  "action_title": {
+    "message": "BelliedMonkey अनुवादक"
+  },
+  "msg_loading": {
+    "message": "⏳ अनुवाद हो रहा है…"
+  },
+  "msg_preparing": {
+    "message": "⏳ अनुवाद तैयार हो रहा है…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ अनुवाद विफल — पुनः प्रयास करने के लिए टैप करें"
+  },
+  "fab_translate": {
+    "message": "अनुवाद करें"
+  },
+  "fab_toggle": {
+    "message": "अनुवाद टॉगल करें"
+  },
+  "fab_enable": {
+    "message": "अनुवाद चालू करें"
+  },
+  "fab_disable": {
+    "message": "अनुवाद बंद करें"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey अनुवादक · वीडियो उपशीर्षक"
+  },
+  "yt_sub_on": {
+    "message": "उपशीर्षक अनुवाद चालू करें"
+  },
+  "yt_sub_off": {
+    "message": "उपशीर्षक अनुवाद बंद करें"
+  },
+  "yt_display_type": {
+    "message": "उपशीर्षक प्रदर्शन"
+  },
+  "yt_mode_both": {
+    "message": "द्विभाषी"
+  },
+  "yt_mode_trans": {
+    "message": "केवल अनुवाद"
+  },
+  "yt_mode_orig": {
+    "message": "केवल मूल"
+  },
+  "yt_download_srt": {
+    "message": "उपशीर्षक डाउनलोड करें (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "उपशीर्षक अभी तैयार नहीं हैं — अनुवाद लोड होने के बाद पुनः प्रयास करें"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ उपशीर्षक लोड हो रहे हैं…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "उपशीर्षक उपलब्ध नहीं हैं"
+  },
+  "podcast_sub_on": {
+    "message": "पॉडकास्ट उपशीर्षक चालू करें"
+  },
+  "podcast_sub_off": {
+    "message": "पॉडकास्ट उपशीर्षक बंद करें"
+  },
+  "settings": {
+    "message": "सेटिंग्स"
+  },
+  "popup_status_off": {
+    "message": "बंद"
+  },
+  "popup_target_lang": {
+    "message": "लक्ष्य भाषा"
+  },
+  "popup_provider": {
+    "message": "अनुवाद इंजन"
+  },
+  "provider_google_free": {
+    "message": "Google Translate (मुफ़्त)"
+  },
+  "placeholder_api_key": {
+    "message": "API कुंजी दर्ज करें…"
+  },
+  "toggle_show_hide": {
+    "message": "दिखाएँ/छिपाएँ"
+  },
+  "label_custom_api": {
+    "message": "एंडपॉइंट URL (पूर्ण)"
+  },
+  "label_optional": {
+    "message": "(वैकल्पिक)"
+  },
+  "btn_translate_page": {
+    "message": "पृष्ठ अनुवाद करें"
+  },
+  "btn_view_original": {
+    "message": "मूल देखें"
+  },
+  "btn_more_settings": {
+    "message": "अधिक सेटिंग्स"
+  },
+  "status_translated": {
+    "message": "अनुवादित"
+  },
+  "status_untranslated": {
+    "message": "अनुवादित नहीं"
+  },
+  "toast_lang_switched": {
+    "message": "भाषा बदली गई"
+  },
+  "toast_provider_switched": {
+    "message": "इंजन बदला गया"
+  },
+  "toast_restored_original": {
+    "message": "मूल पुनर्स्थापित"
+  },
+  "toast_translating": {
+    "message": "翻译中…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey 翻译器 — 设置"
+  },
+  "options_engine_section": {
+    "message": "翻译引擎"
+  },
+  "options_engine_label": {
+    "message": "引擎"
+  },
+  "provider_google_free_long": {
+    "message": "谷歌翻译（免费，无需 API 密钥）"
+  },
+  "options_custom_api_hint": {
+    "message": "留空以使用此引擎的默认端点。若填写，请输入包含路径的完整请求 URL — 我们将按原样发送，绝不附加任何内容。适用于代理和自托管服务。"
+  },
+  "options_lang_section": {
+    "message": "语言"
+  },
+  "options_style_section": {
+    "message": "显示样式"
+  },
+  "options_webpage_color": {
+    "message": "网页翻译颜色"
+  },
+  "options_color_preview": {
+    "message": "这是翻译样式的预览"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕颜色"
+  },
+  "options_yt_preview": {
+    "message": "双语字幕预览"
+  },
+  "options_font_size": {
+    "message": "翻译大小（相对于原文）"
+  },
+  "options_font_s": {
+    "message": "更小（0.8×）"
+  },
+  "options_font_m": {
+    "message": "小（0.9×）"
+  },
+  "options_font_body": {
+    "message": "与原文一致（1.0×）"
+  },
+  "options_font_l": {
+    "message": "更大（1.1×）"
+  },
+  "options_show_fab": {
+    "message": "显示浮动按钮"
+  },
+  "options_cache_section": {
+    "message": "缓存"
+  },
+  "options_cache_hint": {
+    "message": "翻译结果缓存 12 小时以减少 API 请求。"
+  },
+  "options_clear_cache": {
+    "message": "清除翻译缓存"
+  },
+  "options_about_section": {
+    "message": "关于"
+  },
+  "options_about_desc": {
+    "message": "双语翻译 + 学习循环：你实际读过的句子会变成复习卡片。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：在 设置 → Safari → 扩展 中启用。"
+  },
+  "toast_provider_saved": {
+    "message": "引擎已保存"
+  },
+  "toast_endpoint_cleared": {
+    "message": "引擎已更改 — 端点 URL 已清除"
+  },
+  "toast_apikey_saved": {
+    "message": "API 密钥已保存"
+  },
+  "toast_apiurl_saved": {
+    "message": "API URL 已保存"
+  },
+  "toast_lang_saved": {
+    "message": "语言已保存"
+  },
+  "toast_fontsize_saved": {
+    "message": "字体大小已保存"
+  },
+  "toast_color_saved": {
+    "message": "颜色已保存"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕颜色已保存"
+  },
+  "toast_clearing": {
+    "message": "正在清除…"
+  },
+  "toast_cache_empty": {
+    "message": "缓存为空"
+  },
+  "toast_cache_cleared": {
+    "message": "缓存已清除"
+  },
+  "hint_openai": {
+    "message": "OpenAI API 密钥（sk-…）。"
+  },
+  "hint_claude": {
+    "message": "Anthropic API 密钥（sk-ant-…）。"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API 密钥。"
+  },
+  "hint_glm": {
+    "message": "GLM（智谱 AI）API 密钥（提供免费层级）。"
+  },
+  "ui_lang_label": {
+    "message": "界面语言"
+  },
+  "ui_lang_auto": {
+    "message": "跟随系统"
+  },
+  "about_line": {
+    "message": "BelliedMonkey 翻译器"
+  },
+  "options_font_xl": {
+    "message": "最大（1.25×）"
+  },
+  "hint_qwen": {
+    "message": "Qwen（DashScope）API 密钥。"
+  },
+  "hint_qwen_mt": {
+    "message": "Qwen MT（DashScope）API 密钥。翻译专用模型——比通用聊天模型更便宜、更快。与 Qwen 使用相同密钥。"
+  },
+  "hint_kimi": {
+    "message": "Kimi（Moonshot）API 密钥，来自对应区域平台。"
+  },
+  "label_default_model": {
+    "message": "默认模型："
+  },
+  "hint_custom_chat": {
+    "message": "任意兼容 Chat-Completions 格式的聊天端点。输入完整的端点 URL、模型和密钥。如果地址以 responses 结尾，则发送 Responses 格式。"
+  },
+  "hint_custom_msg": {
+    "message": "任意兼容 Messages 格式的聊天端点。输入完整的端点 URL、模型和密钥。"
+  },
+  "label_custom_model": {
+    "message": "模型"
+  },
+  "options_custom_model_hint": {
+    "message": "留空以使用引擎的默认模型。"
+  },
+  "options_advanced": {
+    "message": "高级参数"
+  },
+  "label_adv_temperature": {
+    "message": "随机性（温度）"
+  },
+  "options_adv_temperature_hint": {
+    "message": "留空使用 0.3。数值越低越稳定。"
+  },
+  "label_adv_max_tokens": {
+    "message": "每次请求的最大输出"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "留空使用 2000。如果长段落被截断，请调高。"
+  },
+  "label_adv_timeout": {
+    "message": "请求超时（秒）"
+  },
+  "options_adv_timeout_hint": {
+    "message": "留空使用 20 秒。对于较慢的自托管或推理模型，请调高。"
+  },
+  "label_adv_concurrency": {
+    "message": "并行请求"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "留空使用 5。如果被限速，请调低；调高不会加速已等待的请求。"
+  },
+  "options_adv_unsupported": {
+    "message": "此模型不接受此参数，因此不会发送。"
+  },
+  "label_adv_custom": {
+    "message": "自定义请求参数"
+  },
+  "options_adv_custom_hint": {
+    "message": "一个 JSON 对象，合并到请求体中并覆盖上述字段。适用于我们未测量的自托管或内部端点。"
+  },
+  "options_adv_custom_bad": {
+    "message": "无法解析，因此不会发送任何内容："
+  },
+  "options_adv_custom_notobj": {
+    "message": "必须是 JSON 对象；不会发送任何内容。"
+  },
+  "options_adv_custom_ok": {
+    "message": "将发送："
+  },
+  "options_adv_custom_dropped": {
+    "message": "无法覆盖，已忽略："
+  },
+  "options_adv_custom_none": {
+    "message": "（无）"
+  },
+  "err_reasoning_starved": {
+    "message": "模型将全部输出预算用于推理，未产生翻译。请在高级参数下调高“每次请求的最大输出”，或改用非推理模型。"
+  },
+  "toast_model_saved": {
+    "message": "模型已保存"
+  },
+  "setup_need_key": {
+    "message": "此引擎需要 API 密钥。在下方输入密钥前，翻译将无法工作。"
+  },
+  "popup_need_setup": {
+    "message": "翻译尚未设置——点击此处打开设置；一个密钥即可配置所有内容。"
+  },
+  "learn_title": {
+    "message": "审阅"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey 翻译器 — 审阅"
+  },
+  "learn_review": {
+    "message": "审阅"
+  },
+  "learn_reveal": {
+    "message": "显示翻译"
+  },
+  "learn_grade_again": {
+    "message": "忘记"
+  },
+  "learn_grade_hard": {
+    "message": "困难"
+  },
+  "learn_grade_good": {
+    "message": "明白了"
+  },
+  "learn_grade_easy": {
+    "message": "太简单"
+  },
+  "learn_empty_title": {
+    "message": "अभी तक कोई सीखने की सामग्री नहीं"
+  },
+  "learn_empty_body": {
+    "message": "कैप्चर चालू करें, फिर हमेशा की तरह ब्राउज़ करें और अनुवाद करें। जो वाक्य आप वास्तव में पढ़ते हैं वे सहेजे जाते हैं — जिन्हें आप स्क्रॉल करके छोड़ देते हैं वे नहीं।"
+  },
+  "learn_open_settings": {
+    "message": "सेटिंग्स में कैप्चर चालू करें"
+  },
+  "learn_alldone_title": {
+    "message": "अभी के लिए हो गया"
+  },
+  "learn_alldone_body": {
+    "message": "ब्राउज़ करते और अनुवाद करते रहें — नई सामग्री अपने आप आती रहेगी।"
+  },
+  "learn_next_due": {
+    "message": "अगला कार्ड {when} पर देय है।"
+  },
+  "learn_in_minutes": {
+    "message": "लगभग {n} मिनट में"
+  },
+  "learn_in_hours": {
+    "message": "लगभग {n} घंटे में"
+  },
+  "learn_in_days": {
+    "message": "लगभग {n} दिनों में"
+  },
+  "learn_progress": {
+    "message": "प्रगति"
+  },
+  "learn_done_run": {
+    "message": "इस सत्र में {n} पूर्ण"
+  },
+  "learn_settings": {
+    "message": "सेटिंग्स"
+  },
+  "learn_unknown_source": {
+    "message": "अज्ञात स्रोत"
+  },
+  "learn_count_due": {
+    "message": "देय"
+  },
+  "learn_count_learning": {
+    "message": "सीख रहे हैं"
+  },
+  "learn_count_new": {
+    "message": "उम्मीदवार"
+  },
+  "learn_count_known": {
+    "message": "ज्ञात"
+  },
+  "learn_count_total": {
+    "message": "कुल"
+  },
+  "learn_section": {
+    "message": "सीख रहे हैं"
+  },
+  "learn_section_hint": {
+    "message": "जब चालू होता है, तो आपके वास्तव में पढ़े गए वाक्य इस डिवाइस पर पृष्ठ के पते, उसके शीर्षक और स्क्रीन पर पाठ के रहने की अवधि के साथ रखे जाते हैं, और भूलने की वक्र पर फिर से सामने आते हैं। स्किम करके आगे बढ़ना मायने नहीं रखता। जब तक आप सिंक चालू नहीं करते, कुछ भी अपलोड नहीं होता, और एक बटन सब कुछ मिटा देता है।"
+  },
+  "learn_enable": {
+    "message": "सीखने की सामग्री एकत्र करें"
+  },
+  "learn_daily_new": {
+    "message": "प्रति दिन नए कार्ड (अधिकतम)"
+  },
+  "learn_open_review": {
+    "message": "समीक्षा पृष्ठ खोलें"
+  },
+  "learn_clear": {
+    "message": "सीखने का संग्रह मिटाएँ"
+  },
+  "learn_clear_confirm": {
+    "message": "सीखने का संग्रह मिटाएँ? हर एकत्रित वाक्य और सभी समीक्षा प्रगति हटा दी जाएगी, और इसे पूर्ववत नहीं किया जा सकता।"
+  },
+  "learn_stats": {
+    "message": "{n} आइटम · {due} देय · लगभग {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "सीखने का संग्रह खाली है"
+  },
+  "toast_learn_on": {
+    "message": "सीखने की सामग्री एकत्र की जा रही है"
+  },
+  "toast_learn_off": {
+    "message": "संग्रह रोक दिया गया (जो पहले एकत्र किया गया था वह रखा गया है)"
+  },
+  "toast_learn_cleared": {
+    "message": "सीखने का संग्रह मिटा दिया गया"
+  },
+  "toast_learn_clear_failed": {
+    "message": "मिटाया नहीं जा सका"
+  },
+  "toast_saved": {
+    "message": "सहेजा गया"
+  },
+  "learn_replay": {
+    "message": "▶ यह क्लिप दोबारा चलाएँ"
+  },
+  "learn_replay_hint": {
+    "message": "स्रोत को उस टाइमस्टैम्प पर नए टैब में खोलता है — द्विभाषी उपशीर्षक वहाँ भी काम करते हैं।"
+  },
+  "tts_section": {
+    "message": "भाषण"
+  },
+  "tts_section_hint": {
+    "message": "समीक्षा कार्ड को सुनने का अभ्यास बनाएँ। डिफ़ॉल्ट रूप से आपके डिवाइस की अपनी आवाज़ का उपयोग करता है — कोई नेटवर्क नहीं, कोई लागत नहीं। आप इसे अपने द्वारा चलाए जाने वाले भाषण सर्वर की ओर भी इंगित कर सकते हैं।"
+  },
+  "tts_mode": {
+    "message": "भाषण मोड"
+  },
+  "tts_mode_off": {
+    "message": "बंद"
+  },
+  "tts_mode_assist": {
+    "message": "पाठ दिखाएँ, प्ले बटन के साथ"
+  },
+  "tts_mode_audio_first": {
+    "message": "पहले सुनें (पाठ तब तक छिपा रहे जब तक आप न पूछें)"
+  },
+  "tts_engine": {
+    "message": "वाक् इंजन"
+  },
+  "tts_engine_browser": {
+    "message": "डिवाइस की अंतर्निहित आवाज़ (मुफ़्त · ऑफ़लाइन)"
+  },
+  "tts_engine_local": {
+    "message": "स्थानीय / स्व-होस्टेड वाक् एंडपॉइंट"
+  },
+  "tts_hint_browser": {
+    "message": "आपके ऑपरेटिंग सिस्टम में पहले से मौजूद आवाज़ों का उपयोग करता है। कुछ भी कहीं नहीं भेजा जाता और कुछ भी कैश नहीं होता — यह इंजन केवल बोलता है, ऑडियो वापस नहीं दे सकता।"
+  },
+  "tts_hint_local": {
+    "message": "आपकी अपनी मशीन या LAN पर एक वाक् सर्वर — फ़ील्ड में दिखाए गए उदाहरण के अनुसार पूरा पता दर्ज करें। संश्लेषण स्थानीय रूप से कैश होता है, इसलिए एक वाक्य की लागत केवल एक बार आती है।"
+  },
+  "tts_hint_openai": {
+    "message": "आपकी अपनी API कुंजी का उपयोग करता है। संश्लेषित ऑडियो स्थानीय रूप से कैश होता है, इसलिए एक कार्ड के लिए केवल एक बार भुगतान होता है।"
+  },
+  "tts_base_url": {
+    "message": "वाक् एंडपॉइंट URL"
+  },
+  "tts_api_key": {
+    "message": "वाक् API कुंजी"
+  },
+  "tts_model": {
+    "message": "वाक् मॉडल"
+  },
+  "tts_voice": {
+    "message": "आवाज़"
+  },
+  "tts_voice_auto": {
+    "message": "स्वचालित (कार्ड की भाषा से मेल खाती है)"
+  },
+  "tts_voice_hint": {
+    "message": "आवाज़ें प्रत्येक कार्ड की भाषा से मेल खाती हैं। आपके द्वारा चुनी गई आवाज़ का उपयोग केवल तब होता है जब वह वास्तव में उस भाषा में बोलती है।"
+  },
+  "tts_rate": {
+    "message": "गति"
+  },
+  "tts_autoplay": {
+    "message": "कार्ड खुलने पर स्वचालित रूप से चलाएँ"
+  },
+  "tts_test": {
+    "message": "परीक्षण वाक्य चलाएँ"
+  },
+  "tts_test_sample": {
+    "message": "आपके समीक्षा कार्ड ऐसे सुनाई देंगे।"
+  },
+  "tts_testing": {
+    "message": "संश्लेषण हो रहा है…"
+  },
+  "tts_test_ok": {
+    "message": "चल रहा है"
+  },
+  "tts_play": {
+    "message": "▶ सुनें"
+  },
+  "tts_replay": {
+    "message": "▶ फिर से सुनें"
+  },
+  "tts_playing": {
+    "message": "चल रहा है…"
+  },
+  "tts_loading": {
+    "message": "ऑडियो लोड हो रहा है…"
+  },
+  "tts_no_voice": {
+    "message": "आपके सिस्टम में इस भाषा के लिए कोई आवाज़ नहीं है"
+  },
+  "tts_unsupported": {
+    "message": "इस ब्राउज़र में कोई अंतर्निहित वाक् सुविधा नहीं है"
+  },
+  "tts_no_base": {
+    "message": "अभी तक कोई वाक् एंडपॉइंट URL नहीं"
+  },
+  "tts_no_key": {
+    "message": "अभी तक कोई वाक् API कुंजी नहीं"
+  },
+  "tts_blocked": {
+    "message": "ब्राउज़र ने ऑटोप्ले रोक दिया — चलाने के लिए टैप करें"
+  },
+  "tts_http": {
+    "message": "वाक् सेवा ने त्रुटि लौटाई"
+  },
+  "tts_failed": {
+    "message": "यह वाक्य अभी नहीं बोला जा सकता"
+  },
+  "tts_cache": {
+    "message": "वाक् कैश: {n} क्लिप · लगभग {mb} MB (सीमा {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "वाक् कैश खाली है"
+  },
+  "tts_cache_na": {
+    "message": "अंतर्निहित डिवाइस आवाज़ कोई कैश उत्पन्न नहीं करती"
+  },
+  "tts_clear_cache": {
+    "message": "वाक् कैश साफ़ करें"
+  },
+  "toast_tts_cleared": {
+    "message": "वाक् कैश साफ़ हो गया"
+  },
+  "learn_reveal_orig": {
+    "message": "पाठ दिखाएँ"
+  },
+  "learn_clean_known": {
+    "message": "जिन कार्डों में आप महारत हासिल कर चुके हैं उन्हें साफ़ करें"
+  },
+  "learn_clean_known_n": {
+    "message": "{n} महारत वाले कार्ड साफ़ करें"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} कैप्चर की गई वस्तुएँ सहेजी नहीं जा सकीं — ऐसा तब होता है जब संग्रह भरा हो।"
+  },
+  "learn_pressure_evicted": {
+    "message": "संग्रह भरा हुआ है — जगह बनाने के लिए {n} पुराने कार्ड स्वचालित रूप से हटा दिए गए।"
+  },
+  "learn_pressure_near": {
+    "message": "संग्रह लगभग भरा हुआ है ({n} / {cap})।"
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} मास्टर किए गए कार्ड साफ़ किए गए"
+  },
+  "learn_export": {
+    "message": "कॉर्पस निर्यात करें"
+  },
+  "learn_import": {
+    "message": "फ़ाइल से आयात करें"
+  },
+  "toast_exported": {
+    "message": "{n} कार्ड निर्यात किए गए"
+  },
+  "toast_export_empty": {
+    "message": "अभी निर्यात करने के लिए कुछ नहीं"
+  },
+  "toast_export_failed": {
+    "message": "निर्यात विफल"
+  },
+  "toast_imported": {
+    "message": "{n} कार्ड आयात किए गए"
+  },
+  "toast_import_skipped": {
+    "message": "{n} अपठनीय पंक्तियाँ छोड़ी गईं"
+  },
+  "toast_import_bad_format": {
+    "message": "यह लर्निंग-कॉर्पस निर्यात फ़ाइल नहीं है"
+  },
+  "toast_import_failed": {
+    "message": "आयात विफल"
+  },
+  "sync_section": {
+    "message": "साइन इन करें · डिवाइसों में सिंक करें"
+  },
+  "sync_section_hint": {
+    "message": "वैकल्पिक। साइन आउट रहते हुए सब कुछ काम करता है — सिंक केवल ब्राउज़र में पढ़े गए वाक्यों को ऐप और आपके अन्य डिवाइसों पर दिखाता है। साइन इन करने के बाद, आपके द्वारा कैप्चर की गई हर चीज़ (समीक्षा में नहीं आए उम्मीदवारों सहित) सिंक होती है।"
+  },
+  "sync_email": {
+    "message": "ईमेल"
+  },
+  "sync_send_code": {
+    "message": "कोड भेजें"
+  },
+  "sync_code": {
+    "message": "ईमेल से 6-अंकीय कोड"
+  },
+  "sync_verify": {
+    "message": "साइन इन करें"
+  },
+  "sync_now": {
+    "message": "अभी सिंक करें"
+  },
+  "sync_signout": {
+    "message": "साइन आउट करें"
+  },
+  "sync_delete": {
+    "message": "क्लाउड डेटा और खाता हटाएँ"
+  },
+  "sync_err_offline": {
+    "message": "सर्वर तक नहीं पहुँच सकते; यह बाद में फिर से प्रयास करेगा। आपने जो कुछ भी सीखा है वह इस डिवाइस पर है।"
+  },
+  "sync_err_quota": {
+    "message": "आपका क्लाउड स्टोरेज भर गया है, इसलिए नई सामग्री अपलोड नहीं हो रही है (यह डिवाइस प्रभावित नहीं है)। मास्टर किए गए कार्ड साफ़ करने से स्थान खाली होता है।"
+  },
+  "sync_err_signed_out": {
+    "message": "आपका सत्र समाप्त हो गया। कृपया फिर से साइन इन करें।"
+  },
+  "sync_err_rate": {
+    "message": "बहुत अधिक कोड अनुरोधित किए गए। कुछ मिनटों में फिर से प्रयास करें।"
+  },
+  "sync_err_generic": {
+    "message": "सिंक पूरा नहीं हुआ"
+  },
+  "sync_signed_in": {
+    "message": "{email} के रूप में साइन इन किया गया"
+  },
+  "sync_usage": {
+    "message": "{used} में से {quota} उपयोग किया गया · {n} खंड"
+  },
+  "sync_need_email": {
+    "message": "पहले अपना ईमेल दर्ज करें"
+  },
+  "sync_sending": {
+    "message": "भेजा जा रहा है…"
+  },
+  "sync_code_sent": {
+    "message": "कोड {email} पर भेजा गया। इसे नीचे दर्ज करें।"
+  },
+  "sync_verifying": {
+    "message": "सत्यापित किया जा रहा है…"
+  },
+  "sync_signed_in_now": {
+    "message": "साइन इन किया गया। पहला सिंक कुछ सेकंड ले सकता है।"
+  },
+  "sync_bad_code": {
+    "message": "वह कोड गलत या समाप्त हो गया है। नया अनुरोध करें।"
+  },
+  "sync_running": {
+    "message": "सिंक हो रहा है…"
+  },
+  "sync_done": {
+    "message": "सिंक पूर्ण · {in} प्राप्त · {out} अपलोड किया गया"
+  },
+  "sync_status_running": {
+    "message": "सर्वर के साथ सिंक हो रहा है…"
+  },
+  "sync_status_done_at": {
+    "message": "सिंक किया गया · {time}"
+  },
+  "sync_status_offline": {
+    "message": "अभी ऑफ़लाइन — स्वचालित रूप से फिर से प्रयास करेगा। आपका लर्निंग डेटा इस डिवाइस पर सहेजा गया है।"
+  },
+  "sync_status_error": {
+    "message": "सिंक विफल — स्वचालित रूप से फिर से प्रयास करेगा।"
+  },
+  "sync_status_signed_out": {
+    "message": "साइन इन नहीं किया गया — केवल स्थानीय डेटा"
+  },
+  "sync_signed_out": {
+    "message": "साइन आउट किया गया। आपकी लर्निंग लाइब्रेरी इस डिवाइस पर, अछूती रहती है।"
+  },
+  "sync_delete_confirm": {
+    "message": "क्लाउड डेटा और खाता हटाएं? सर्वर और इस खाते पर सब कुछ स्थायी रूप से हटा दिया जाएगा। इस डिवाइस पर आपकी लाइब्रेरी रखी जाती है।"
+  },
+  "sync_deleting": {
+    "message": "हटाया जा रहा है…"
+  },
+  "sync_deleted": {
+    "message": "क्लाउड डेटा और खाता हटा दिया गया। इस डिवाइस पर आपकी लाइब्रेरी रखी जाती है।"
+  },
+  "sync_deleted_partial": {
+    "message": "क्लाउड डेटा हटा दिया गया, लेकिन खाता नहीं हटाया जा सका ({why})। आप पुनः प्रयास कर सकते हैं या हमसे संपर्क कर सकते हैं।"
+  },
+  "sync_err_upgrade": {
+    "message": "क्लाउड में कुछ ऐसा है जिसे यह संस्करण अभी पढ़ नहीं सकता (शायद नए बिल्ड द्वारा लिखा गया)। एक्सटेंशन अपडेट करें, फिर सिंक करें — कुछ भी खोया नहीं है, बस अभी पढ़ा नहीं जा सकता।"
+  },
+  "toast_import_upgrade": {
+    "message": "यह फ़ाइल एक्सटेंशन के नए संस्करण द्वारा लिखी गई थी। अपडेट करें, फिर इसे आयात करें। फ़ाइल में कोई समस्या नहीं है।"
+  },
+  "options_init_failed": {
+    "message": "सेटिंग्स पृष्ठ लोड नहीं हो सका ({err})। यह पृष्ठ फिर से खोलें; यदि ऐसा बार-बार होता है, तो कृपया यह संदेश हमें रिपोर्ट करें।"
+  },
+  "settings_read_failed": {
+    "message": "आपकी सहेजी गई सेटिंग्स पढ़ी नहीं जा सकीं, इसलिए डिफ़ॉल्ट नीचे दिखाए गए हैं। इस पृष्ठ से सहेजें नहीं — यह आपके पिछले डेटा को अधिलेखित कर देगा। ({why})"
+  },
+  "learn_relearn": {
+    "message": "फिर से सीखें"
+  },
+  "learn_strength": {
+    "message": "स्मृति शक्ति"
+  },
+  "learn_days_unit": {
+    "message": "दिन"
+  },
+  "learn_howto_title": {
+    "message": "समीक्षा कैसे काम करती है"
+  },
+  "learn_howto_1": {
+    "message": "याद रखें → अंतराल बढ़ता है, कार्ड बाद में लौटता है।"
+  },
+  "learn_howto_2": {
+    "message": "भूल जाएं → यह फिर से शुरू होता है और जल्दी लौटता है।"
+  },
+  "learn_howto_3": {
+    "message": "जब शक्ति 180 दिनों तक पहुँचती है, कार्ड उत्तीर्ण हो जाता है।"
+  },
+  "learn_howto_ok": {
+    "message": "समझ गया"
+  },
+  "learn_cap_hint": {
+    "message": "प्रतिदिन {n} नए कार्ड तक — सेटिंग्स में समायोज्य।"
+  },
+  "learn_practice": {
+    "message": "मुफ्त अभ्यास"
+  },
+  "learn_practice_rule": {
+    "message": "अभ्यास पूर्णता नहीं दे सकता, लेकिन यह भूलने को उजागर कर सकता है।"
+  },
+  "learn_pool_learning": {
+    "message": "सीखना"
+  },
+  "learn_pool_all": {
+    "message": "सब कुछ (नए और ज्ञात सहित)"
+  },
+  "learn_batch_unlimited": {
+    "message": "कोई सीमा नहीं"
+  },
+  "learn_practice_start": {
+    "message": "अभ्यास शुरू करें"
+  },
+  "learn_practice_progress": {
+    "message": "अभ्यास {i} / {n}"
+  },
+  "learn_practice_done": {
+    "message": "अभ्यास पूरा — {n} कार्ड।"
+  },
+  "learn_badge_read": {
+    "message": "पढ़ें"
+  },
+  "learn_badge_listen": {
+    "message": "सुनें"
+  },
+  "learn_badge_write": {
+    "message": "लिखें"
+  },
+  "learn_mastered_full": {
+    "message": "पूरी तरह से निपुण"
+  },
+  "learn_shadow_hint": {
+    "message": "इसे ज़ोर से बोलें (अभ्यास — ग्रेड नहीं)"
+  },
+  "learn_check": {
+    "message": "जांचें"
+  },
+  "learn_write_prompt": {
+    "message": "वाक्य पूरा करें"
+  },
+  "learn_write_replaced": {
+    "message": "सही उत्तर से बदला गया"
+  },
+  "learn_notes_btn": {
+    "message": "इस वाक्य की व्याख्या करें"
+  },
+  "learn_notes_cost": {
+    "message": "आपके कॉन्फ़िगर किए गए API का उपयोग करता है — एक कॉल, हमेशा के लिए कैश"
+  },
+  "learn_notes_loading": {
+    "message": "विश्लेषण हो रहा है…"
+  },
+  "learn_notes_failed": {
+    "message": "विश्लेषण विफल — बाद में पुनः प्रयास करें"
+  },
+  "learn_notes_failed_empty": {
+    "message": "मॉडल ने कोई उत्तर पाठ नहीं लौटाया — सोच/रीज़नर मॉडल वाक्य नोट्स के लिए उपयुक्त नहीं हैं; सेटिंग्स में चैट मॉडल चुनें।"
+  },
+  "learn_notes_words": {
+    "message": "शब्दावली"
+  },
+  "learn_notes_phrases": {
+    "message": "वाक्यांश"
+  },
+  "learn_notes_grammar": {
+    "message": "Grammar"
+  },
+  "app_lede": {
+    "message": "आपके द्वारा ब्राउज़र में पढ़े गए वाक्य समीक्षा के लिए यहां सिंक होते हैं।"
+  },
+  "app_email_label": {
+    "message": "Email"
+  },
+  "app_send": {
+    "message": "कोड भेजें"
+  },
+  "app_sending": {
+    "message": "भेजा जा रहा है…"
+  },
+  "app_code_label": {
+    "message": "कोड (अपना ईमेल जांचें)"
+  },
+  "app_verify": {
+    "message": "साइन इन करें"
+  },
+  "app_verifying": {
+    "message": "साइन इन हो रहा है…"
+  },
+  "app_back_email": {
+    "message": "कोई दूसरा ईमेल उपयोग करें"
+  },
+  "app_local_note": {
+    "message": "ब्राउज़र एक्सटेंशन बिना खाते के कैप्चर और समीक्षा करता है — सब कुछ आपके डिवाइस पर रहता है। साइन इन करने से केवल आपकी सामग्री इस डिवाइस पर सिंक होती है।"
+  },
+  "app_signout": {
+    "message": "साइन आउट करें"
+  },
+  "app_settings_link": {
+    "message": "सेटिंग्स"
+  },
+  "app_review_start": {
+    "message": "समीक्षा शुरू करें"
+  },
+  "app_review_back": {
+    "message": "← वापस"
+  },
+  "app_sync": {
+    "message": "सिंक"
+  },
+  "app_syncing": {
+    "message": "सिंक हो रहा है…"
+  },
+  "app_unit_cards": {
+    "message": "कार्ड"
+  },
+  "app_unit_reviews": {
+    "message": "समीक्षाएं"
+  },
+  "app_unit_sources": {
+    "message": "स्रोत"
+  },
+  "app_never_synced": {
+    "message": "अभी सिंक नहीं हुआ"
+  },
+  "app_sync_empty": {
+    "message": "सिंक हुआ, लेकिन सर्वर पर अभी कुछ नहीं है — पहले ब्राउज़र में कुछ वाक्य कैप्चर करें, फिर दोबारा सिंक करें।"
+  },
+  "app_up_to_date": {
+    "message": "पहले से अपडेटेड है।"
+  },
+  "app_code_sent": {
+    "message": "कोड भेज दिया गया — अपना ईमेल जांचें।"
+  },
+  "app_code_bad": {
+    "message": "गलत या समाप्त कोड — फिर से प्रयास करें।"
+  },
+  "app_offline": {
+    "message": "सर्वर तक नहीं पहुंच सकते — अपना कनेक्शन जांचें और पुनः प्रयास करें।"
+  },
+  "app_needs_upgrade": {
+    "message": "सर्वर पर ऐसी सामग्री है जो इस संस्करण में नहीं पढ़ी जा सकती — कृपया ऐप अपडेट करें।"
+  },
+  "app_received": {
+    "message": "{n} कार्ड प्राप्त हुए · {m} समीक्षाएं"
+  },
+  "app_uploaded_n": {
+    "message": "{n} समीक्षाएं अपलोड की गईं"
+  },
+  "app_uploaded_only": {
+    "message": "{n} समीक्षाएं अपलोड की गईं"
+  },
+  "app_sync_disabled": {
+    "message": "इस बिल्ड में सिंक सक्षम नहीं है। ब्राउज़र एक्सटेंशन की कैप्चर और समीक्षा प्रभावित नहीं होती — सब कुछ आपके डिवाइस पर रहता है।"
+  },
+  "app_set_title": {
+    "message": "सेटिंग्स"
+  },
+  "app_set_daily": {
+    "message": "प्रति दिन अधिकतम नए कार्ड"
+  },
+  "app_set_tts_auto": {
+    "message": "अनुवाद दिखाने पर स्वतः बोलें"
+  },
+  "app_set_tts_rate": {
+    "message": "बोलने की गति"
+  },
+  "app_set_tts_note": {
+    "message": "अज्ञात भाषा वाले कार्ड (जैसे Safari में कैप्चर किए गए, जिनमें भाषा पहचान नहीं है) केवल ऊपर चुनी गई आवाज़ से चलते हैं; बिना चयन के उन्हें बोला नहीं जा सकता। स्पीच API कुंजी वाक्य-नोट्स कुंजी की तरह काम करती है: यह केवल इस डिवाइस पर रहती है, आपके खाते से कभी सिंक नहीं होती, और सादे पाठ में संग्रहीत होती है।"
+  },
+  "app_set_notes_title": {
+    "message": "वाक्य नोट्स"
+  },
+  "app_set_notes_provider": {
+    "message": "नोट्स इंजन"
+  },
+  "app_set_notes_none": {
+    "message": "कोई नहीं"
+  },
+  "app_set_notes_key": {
+    "message": "API कुंजी"
+  },
+  "app_set_notes_base": {
+    "message": "कस्टम एंडपॉइंट URL"
+  },
+  "app_set_notes_model": {
+    "message": "Model"
+  },
+  "app_set_notes_note": {
+    "message": "केवल वाक्य नोट्स (शब्द / वाक्यांश / व्याकरण) उत्पन्न करने के लिए उपयोग किया जाता है, आपकी अपनी API को कॉल करता है। कुंजी इस डिवाइस पर रहती है और आपके खाते से कभी सिंक नहीं होती; यह ब्राउज़र एक्सटेंशन में कॉन्फ़िगर की गई कुंजी से अलग है, समान सुरक्षा स्थिति के साथ — दोनों डिवाइस पर सादे पाठ में संग्रहीत हैं।"
+  },
+  "app_set_corpus": {
+    "message": "लाइब्रेरी"
+  },
+  "app_set_clean_known": {
+    "message": "महारत हासिल कार्ड साफ़ करें"
+  },
+  "app_set_cleaned": {
+    "message": "{n} कार्ड साफ़ किए गए"
+  },
+  "app_set_clean_none": {
+    "message": "साफ़ करने के लिए कुछ नहीं"
+  },
+  "app_set_account": {
+    "message": "खाता"
+  },
+  "app_set_signout": {
+    "message": "साइन आउट करें"
+  },
+  "app_set_delete": {
+    "message": "खाता और क्लाउड डेटा हटाएं"
+  },
+  "app_set_delete_note": {
+    "message": "हटाने से आपकी सामग्री और समीक्षा इतिहास सर्वर से स्थायी रूप से हट जाता है और खाता बंद हो जाता है। इस डिवाइस पर पहले से डाउनलोड की गई सामग्री प्रभावित नहीं होती — उसे भी हटाने के लिए, ऐप हटाएं।"
+  },
+  "app_set_confirm_delete": {
+    "message": "क्या आप अपना खाता हटाना चाहते हैं? सर्वर पर सब कुछ स्थायी रूप से हटा दिया जाएगा और पुनर्प्राप्त नहीं किया जा सकता।"
+  },
+  "app_set_deleting": {
+    "message": "हटाया जा रहा है…"
+  },
+  "app_set_deleted": {
+    "message": "खाता हटा दिया गया।"
+  },
+  "app_unit_known": {
+    "message": "महारत हासिल"
+  },
+  "tts_no_voice_und": {
+    "message": "इस कार्ड की भाषा अज्ञात है — सेटिंग्स में एक आवाज़ चुनें और यह चलेगी"
+  },
+  "app_set_tts_voice": {
+    "message": "आवाज़"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "स्वचालित (कार्ड की भाषा के अनुसार)"
+  },
+  "learn_langs_label": {
+    "message": "सीखने के लिए भाषाएँ"
+  },
+  "learn_langs_all": {
+    "message": "सभी (डिफ़ॉल्ट)"
+  },
+  "learn_langs_hint": {
+    "message": "केवल चयनित भाषाओं के वाक्य कैप्चर किए जाते हैं। जहाँ Safari भाषा का पता नहीं लगा सकता, वहाँ लेखन प्रणाली निर्णय लेती है; लंबे प्रेस से सहेजना कभी फ़िल्टर नहीं होता।"
+  },
+  "learn_sources_manage": {
+    "message": "स्रोत प्रबंधित करें"
+  },
+  "learn_sources_empty": {
+    "message": "अभी तक कोई स्रोत कैप्चर नहीं हुआ"
+  },
+  "learn_sources_count": {
+    "message": "{n} कार्ड"
+  },
+  "learn_src_delete": {
+    "message": "सहेजा हुआ हटाएं"
+  },
+  "learn_src_block": {
+    "message": "कैप्चर रोकें"
+  },
+  "learn_src_unblock": {
+    "message": "कैप्चर फिर से शुरू करें"
+  },
+  "learn_src_blocked": {
+    "message": "अवरुद्ध"
+  },
+  "learn_src_blocked_by": {
+    "message": "नियम {pattern} द्वारा अवरुद्ध"
+  },
+  "learn_block_title": {
+    "message": "ब्लॉक नियम"
+  },
+  "learn_block_hint": {
+    "message": "वाइल्डकार्ड समर्थित: example.com पूरे डोमेन से मेल खाता है (सबडोमेन भी); *.example.com/news/* एक पथ से मेल खाता है।"
+  },
+  "learn_block_add": {
+    "message": "जोड़ें"
+  },
+  "learn_block_placeholder": {
+    "message": "जैसे *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "मान्य नियम नहीं"
+  },
+  "learn_delete_confirm": {
+    "message": "{host} से {n} कार्ड हटाएं? यह आपके सभी डिवाइसों पर सिंक होगा और पूर्ववत नहीं किया जा सकता।"
+  },
+  "learn_delete_done": {
+    "message": "{n} कार्ड हटाए गए"
+  },
+  "learn_delete_none": {
+    "message": "इस स्रोत से हटाने के लिए कुछ नहीं बचा"
+  },
+  "popup_site_section": {
+    "message": "यह साइट"
+  },
+  "popup_site_capture": {
+    "message": "इस साइट पर कैप्चर करें"
+  },
+  "popup_site_manage": {
+    "message": "प्रबंधित करें…"
+  },
+  "learn_card_src_actions": {
+    "message": "स्रोत क्रियाएँ"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "sync_status_storage_error": {
+    "message": "साइन-इन स्थिति पढ़ी नहीं जा सकी (स्टोरेज पढ़ने में विफल); जल्द ही पुनः प्रयास होगा — इसका मतलब यह नहीं कि आप साइन आउट हो गए हैं।"
+  },
+  "learn_backup_failed": {
+    "message": "स्थानीय बैकअप नहीं लिखा जा सका ({why})। लर्निंग लाइब्रेरी स्वयं प्रभावित नहीं है।"
+  },
+  "notes_engine": {
+    "message": "नोट्स इंजन"
+  },
+  "notes_engine_hint": {
+    "message": "“Explain this sentence” द्वारा उपयोग किया जाने वाला चैट इंजन। डिफ़ॉल्ट रूप से ऊपर दिए गए अनुवाद इंजन का अनुसरण करता है; थिंकिंग/रीज़नर मॉडल नोट्स के लिए उपयुक्त नहीं हैं।"
+  },
+  "notes_follow": {
+    "message": "अनुवाद इंजन का अनुसरण करें (डिफ़ॉल्ट)"
+  },
+  "notes_api_key": {
+    "message": "नोट्स API कुंजी"
+  },
+  "notes_base_url": {
+    "message": "नोट्स API एंडपॉइंट"
+  },
+  "notes_model": {
+    "message": "नोट्स मॉडल"
+  },
+  "learn_badge_speak": {
+    "message": "बोलें"
+  },
+  "learn_second_exercise": {
+    "message": "एक और कौशल · अंतराल को प्रभावित नहीं करता"
+  },
+  "learn_mcq_prompt": {
+    "message": "सही अनुवाद चुनें"
+  },
+  "learn_listen_once": {
+    "message": "पहले सुनें, फिर सुने गए शब्द चुनें"
+  },
+  "learn_check_pick": {
+    "message": "चयन की पुष्टि करें"
+  },
+  "learn_pack_loading": {
+    "message": "इस कार्ड के प्रश्न आपके API से बनाए जा रहे हैं (एक कॉल, हमेशा के लिए कैश्ड)…"
+  },
+  "learn_pack_failed": {
+    "message": "प्रश्न निर्माण विफल — इसके बजाय स्थानीय अभ्यास उपयोग हो रहा है"
+  },
+  "stt_engine": {
+    "message": "प्रतिलेखन इंजन"
+  },
+  "stt_engine_none": {
+    "message": "कॉन्फ़िगर नहीं किया गया (कोई बोलने का अभ्यास नहीं)"
+  },
+  "stt_engine_local": {
+    "message": "स्थानीय / स्व-होस्टेड प्रतिलेखन एंडपॉइंट"
+  },
+  "stt_hint": {
+    "message": "बोलने के अभ्यास की रिकॉर्डिंग यहाँ कॉन्फ़िगर किए गए एंडपॉइंट पर प्रतिलेखन के लिए भेजी जाती है, फिर हटा दी जाती है — कभी संग्रहीत नहीं, कभी सिंक नहीं। कोई इंजन नहीं मतलब कोई बोलने का अभ्यास नहीं। कुंजी इसी डिवाइस पर रहती है। स्व-होस्टेड सर्वर को क्रॉस-ओरिजिन अनुरोध (CORS) की अनुमति देनी चाहिए।"
+  },
+  "stt_api_key": {
+    "message": "प्रतिलेखन API कुंजी"
+  },
+  "stt_base_url": {
+    "message": "प्रतिलेखन एंडपॉइंट URL"
+  },
+  "stt_model": {
+    "message": "प्रतिलेखन मॉडल"
+  },
+  "learn_speak_prompt": {
+    "message": "इस वाक्य को ज़ोर से पढ़ें"
+  },
+  "learn_speak_record": {
+    "message": "🎙 रिकॉर्डिंग शुरू करें"
+  },
+  "learn_speak_again": {
+    "message": "🎙 फिर से रिकॉर्ड करें"
+  },
+  "learn_speak_stop": {
+    "message": "■ रोकें"
+  },
+  "learn_speak_recording": {
+    "message": "रिकॉर्डिंग — ऊपर दिया वाक्य पढ़ें"
+  },
+  "learn_speak_busy": {
+    "message": "प्रतिलेखित किया जा रहा है…"
+  },
+  "learn_speak_score": {
+    "message": "वाक्य से {n}% मेल खाता है"
+  },
+  "learn_speak_missed": {
+    "message": "छूट गया: "
+  },
+  "learn_speak_cost": {
+    "message": "आपके कॉन्फ़िगर किए गए ट्रांसक्रिप्शन एंडपॉइंट का उपयोग करता है — प्रति रिकॉर्डिंग एक कॉल"
+  },
+  "stt_no_base": {
+    "message": "अभी तक कोई ट्रांसक्रिप्शन एंडपॉइंट कॉन्फ़िगर नहीं किया गया है"
+  },
+  "stt_no_key": {
+    "message": "अभी तक कोई ट्रांसक्रिप्शन API कुंजी नहीं"
+  },
+  "stt_no_mic": {
+    "message": "यह ब्राउज़र माइक्रोफ़ोन तक नहीं पहुँच सकता"
+  },
+  "stt_mic_denied": {
+    "message": "माइक्रोफ़ोन अनुमति अस्वीकृत — इस सत्र में अन्य अभ्यासों का उपयोग कर रहे हैं"
+  },
+  "stt_http": {
+    "message": "ट्रांसक्रिप्शन सेवा ने एक त्रुटि लौटाई"
+  },
+  "stt_empty": {
+    "message": "कोई भाषण पहचाना नहीं गया — फिर से प्रयास करें"
+  },
+  "stt_unsupported": {
+    "message": "यह ब्राउज़र रिकॉर्डिंग का समर्थन नहीं करता"
+  },
+  "stt_failed": {
+    "message": "ट्रांसक्रिप्शन विफल"
+  },
+  "stt_network": {
+    "message": "ट्रांसक्रिप्शन एंडपॉइंट तक नहीं पहुँच सकते — URL जाँचें, और ध्यान दें कि एक स्व-होस्टेड सर्वर को क्रॉस-ओरिजिन अनुरोधों (CORS) की अनुमति देनी चाहिए"
+  },
+  "engine_test": {
+    "message": "कनेक्शन परीक्षण"
+  },
+  "engine_test_running": {
+    "message": "परीक्षण हो रहा है…"
+  },
+  "engine_test_ok": {
+    "message": "✓ काम करता है · {ms}ms"
+  },
+  "engine_test_sample": {
+    "message": "उत्तर: "
+  },
+  "engine_test_failed": {
+    "message": "काम नहीं किया"
+  },
+  "engine_test_no_base": {
+    "message": "अभी तक कोई एंडपॉइंट URL नहीं"
+  },
+  "engine_test_no_key": {
+    "message": "अभी तक कोई API कुंजी नहीं"
+  },
+  "engine_test_no_engine": {
+    "message": "कोई इंजन चयनित नहीं"
+  },
+  "engine_test_unknown_provider": {
+    "message": "यह संस्करण सहेजे गए इंजन को नहीं पहचानता — ऊपर एक चुनें"
+  },
+  "engine_test_bad_output": {
+    "message": "एंडपॉइंट ने उत्तर दिया, लेकिन सामग्री पार्स नहीं की जा सकी"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}"
+  },
+  "engine_test_hint_key": {
+    "message": "कुंजी गलत है या अनुमति की कमी है"
+  },
+  "engine_test_hint_404": {
+    "message": "एंडपॉइंट URL (इसका पथ सहित) या मॉडल नाम गलत है"
+  },
+  "engine_test_hint_other": {
+    "message": "सर्वर ने इस अनुरोध को अस्वीकार कर दिया"
+  },
+  "engine_test_no_path": {
+    "message": "इस पते में केवल एक होस्ट है और कोई एंडपॉइंट पथ नहीं — पूरा अनुरोध URL दर्ज करें (फ़ील्ड में उदाहरण देखें)"
+  },
+  "engine_test_bad_url": {
+    "message": "पता http:// या https:// से शुरू नहीं होता — स्कीम के बिना इसे एक सापेक्ष पथ माना जाता है और कोई अनुरोध बिल्कुल नहीं भेजा जाता"
+  },
+  "engine_test_timeout": {
+    "message": "एंडपॉइंट ने टाइमआउट से पहले उत्तर नहीं दिया"
+  },
+  "engine_test_url": {
+    "message": "अनुरोधित: {url}"
+  },
+  "engine_test_route": {
+    "message": "के माध्यम से भेजा गया: {route}"
+  },
+  "engine_test_route_proxy": {
+    "message": "एक्सटेंशन बैकग्राउंड (CORS के अधीन नहीं, कोई प्रीफ़्लाइट नहीं)"
+  },
+  "engine_test_route_direct": {
+    "message": "पृष्ठ स्वयं (पहले एक OPTIONS प्रीफ़्लाइट भेजता है)"
+  },
+  "engine_test_server_said": {
+    "message": "सर्वर ने कहा: {msg}"
+  },
+  "engine_test_via_proxy": {
+    "message": "(एक्सटेंशन बैकग्राउंड से भी स्वचालित रूप से पुनः प्रयास किया गया, और वह भी विफल रहा — इसलिए यह CORS समस्या नहीं है; पता वास्तव में इस मशीन से अप्राप्य है।)"
+  },
+  "notes_test_empty": {
+    "message": "मॉडल ने कोई सामग्री नहीं लौटाई — रीज़निंग मॉडल यहाँ फिट नहीं होते; चैट मॉडल पर स्विच करें"
+  },
+  "learn_split_long": {
+    "message": "लंबे कार्ड विभाजित करें"
+  },
+  "learn_split_failed": {
+    "message": "विभाजन विफल"
+  },
+  "learn_split_none": {
+    "message": "विभाजित करने के लिए कोई लंबे कार्ड नहीं"
+  },
+  "learn_split_done": {
+    "message": "{p} लंबे कार्डों को {c} वाक्य कार्डों में विभाजित किया"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} पूरे रखे गए — अनुवाद संरेखित नहीं हुआ)"
+  },
+  "app_use_pw": {
+    "message": "पासवर्ड से साइन इन करें"
+  },
+  "app_pw_label": {
+    "message": "पासवर्ड"
+  },
+  "app_pw_back": {
+    "message": "इसके बजाय कोड का उपयोग करें"
+  },
+  "app_pw_bad": {
+    "message": "गलत ईमेल या पासवर्ड — फिर से कोशिश करें।"
+  },
+  "drive_entry": {
+    "message": "पॉडकास्ट मोड"
+  },
+  "drive_pause": {
+    "message": "⏸ रोकें"
+  },
+  "drive_resume": {
+    "message": "▶ जारी रखें"
+  },
+  "drive_next": {
+    "message": "⏭ अगला"
+  },
+  "drive_repeat": {
+    "message": "🔁 दोबारा चलाएँ"
+  },
+  "drive_progress": {
+    "message": "कार्ड {i} / {n}"
+  },
+  "drive_explain": {
+    "message": "🔍 यह समझाएँ"
+  },
+  "drive_pass": {
+    "message": "पास {i}"
+  },
+  "drive_status_explaining": {
+    "message": "विश्लेषण हो रहा है…"
+  },
+  "drive_notes_engine_missing": {
+    "message": "नोट्स पढ़ने के लिए पहले नोट्स इंजन की आवश्यकता है — सेटिंग्स → वाक्य नोट्स में सेट करें"
+  },
+  "drive_notes_empty": {
+    "message": "इस कार्ड में पढ़ने के लिए कोई नोट्स नहीं हैं"
+  },
+  "settings_read_failed_short": {
+    "message": "आपकी सहेजी गई सेटिंग्स नहीं पढ़ सकते — एक पल में फिर से कोशिश करें"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 शफ़ल"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ क्रम में"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 सभी दोहराएँ"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 एक दोहराएँ"
+  },
+  "drive_restart": {
+    "message": "फिर से चलाएँ"
+  },
+  "drive_status_notes": {
+    "message": "नोट्स चल रहे हैं…"
+  },
+  "drive_status_parsing": {
+    "message": "इस वाक्य का विश्लेषण हो रहा है…"
+  },
+  "drive_play_notes": {
+    "message": "वाक्य नोट्स ज़ोर से पढ़ें"
+  },
+  "drive_play_notes_note": {
+    "message": "हर कार्ड के बाद उसके नोट्स (शब्द, वाक्यांश, एक व्याकरण बिंदु) आते हैं। डिफ़ॉल्ट रूप से चालू: जिस कार्ड का कभी विश्लेषण नहीं हुआ, उसका तुरंत विश्लेषण किया जाता है, आपके कॉन्फ़िगर किए गए इंजन का उपयोग करके — प्रति कार्ड एक बार शुल्क, फिर कैश किया जाता है। यदि आप वह खर्च नहीं करना चाहते तो इसे बंद करें; बंद होने पर, केवल वाक्य और उसका अनुवाद पढ़ा जाता है।"
+  },
+  "drive_notes_cost": {
+    "message": "नोट्स पढ़ना: जिस कार्ड का कभी विश्लेषण नहीं हुआ, वह आपके कॉन्फ़िगर किए गए इंजन को बुलाता है — प्रति कार्ड एक बार शुल्क"
+  },
+  "drive_notes_words": {
+    "message": "शब्द: "
+  },
+  "drive_notes_phrases": {
+    "message": "वाक्यांश: "
+  },
+  "drive_notes_grammar": {
+    "message": "व्याकरण: "
+  },
+  "drive_notes_failed": {
+    "message": "इस कार्ड का विश्लेषण नहीं हो सका — छोड़ दिया गया"
+  },
+  "drive_notes_no_base": {
+    "message": "नोट्स इंजन कॉन्फ़िगर नहीं है — इस कार्ड के नोट्स छोड़ दिए गए"
+  },
+  "drive_skip_card": {
+    "message": "यह कार्ड ज़ोर से नहीं पढ़ा जा सकता — अगले पर छोड़ दिया गया"
+  },
+  "drive_status_source": {
+    "message": "मूल चल रहा है…"
+  },
+  "drive_status_tr": {
+    "message": "अनुवाद चल रहा है…"
+  },
+  "drive_status_paused": {
+    "message": "रोका गया"
+  },
+  "drive_done": {
+    "message": "इस दौर का अंत है"
+  },
+  "drive_empty": {
+    "message": "कोई कार्ड ज़ोर से नहीं पढ़ा जा सकता"
+  },
+  "drive_preload_days": {
+    "message": "प्रीलोड सीमा"
+  },
+  "drive_preload_days_0": {
+    "message": "आज का डेक"
+  },
+  "drive_preload_days_3": {
+    "message": "आज + अगले 3 दिन"
+  },
+  "drive_preload_days_7": {
+    "message": "आज + अगले 7 दिन"
+  },
+  "drive_preload": {
+    "message": "ऑफ़लाइन के लिए प्रीलोड करें"
+  },
+  "drive_preload_hint": {
+    "message": "जाने से पहले इसे टैप करें और जो भाषण, नोट्स और अनुवाद आप सुनने वाले हैं वे इस डिवाइस पर डाउनलोड हो जाएंगे, ताकि पूरा सत्र बिना नेटवर्क के चले। पहला टैप केवल मूल्य बताता है और कुछ खर्च नहीं करता — दोबारा टैप करने से पहले जांचें कि यह कितनी कॉल करेगा।"
+  },
+  "drive_preload_pricing": {
+    "message": "इस डिवाइस पर पहले से क्या है, जाँचा जा रहा है…"
+  },
+  "drive_preload_cards": {
+    "message": "{n} कार्ड"
+  },
+  "drive_preload_audio": {
+    "message": "{n} क्लिप संश्लेषित करने के लिए"
+  },
+  "drive_preload_notes": {
+    "message": "{n} कार्ड विश्लेषण करने के लिए"
+  },
+  "drive_preload_tr": {
+    "message": "{n} कार्ड जिन्हें अनुवाद की आवश्यकता है"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "डिवाइस की आवाज़ कोई कैश नहीं बनाती और पहले से ऑफ़लाइन काम करती है, इसलिए यहाँ केवल नोट्स और अनुवाद प्रीलोड किए जाते हैं।"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "कोई विश्लेषण इंजन कॉन्फ़िगर नहीं है, इसलिए बिना अनुवाद वाले कार्ड इस बार अनुवाद नहीं पा सकते (सेटिंग्स → वाक्य नोट्स)"
+  },
+  "drive_preload_ready": {
+    "message": "यह सब पहले से डिवाइस पर है — रास्ते में आपको नेटवर्क की आवश्यकता नहीं होगी।"
+  },
+  "drive_preload_confirm": {
+    "message": "प्रीलोड की पुष्टि करें (लगभग {n} बिल की गई कॉल)"
+  },
+  "drive_preload_stop": {
+    "message": "रोकें"
+  },
+  "drive_preload_progress": {
+    "message": "प्रीलोड हो रहा है {done}/{total}…"
+  },
+  "drive_preload_done": {
+    "message": "पूर्ण {done}/{total}"
+  },
+  "drive_preload_stopped": {
+    "message": "रोका गया: {done}/{total} पूर्ण"
+  },
+  "drive_preload_failed": {
+    "message": "{n} विफलताएँ ({reasons})"
+  },
+  "drive_preload_tts_bad": {
+    "message": "भाषण इंजन कॉन्फ़िगर नहीं है ({reason}), इसलिए इस बार कोई ऑडियो संश्लेषित नहीं किया जा सकता (सेटिंग्स → भाषण इंजन)"
+  },
+  "drive_tts_not_configured": {
+    "message": "भाषण इंजन कॉन्फ़िगर नहीं है, इसलिए इस दौर में कुछ भी ज़ोर से नहीं पढ़ा जा सकता (सेटिंग्स → भाषण इंजन)"
+  },
+  "drive_tts_blocked": {
+    "message": "सिस्टम ने ऑटोप्ले रोक दिया — जारी रखने के लिए टैप करें"
+  },
+  "drive_tts_unsupported": {
+    "message": "इस डिवाइस पर कोई उपयोगी भाषण इंजन नहीं है"
+  },
+  "drive_tts_unreachable": {
+    "message": "भाषण इंजन तक नहीं पहुँचा जा सकता, इसलिए इस दौर में कुछ भी ज़ोर से नहीं पढ़ा जा सकता। केवल प्रीलोड किए गए कार्ड ऑफ़लाइन चलते हैं (सेटिंग्स → ऑफ़लाइन के लिए प्रीलोड)"
+  },
+  "tts_timeout": {
+    "message": "भाषण सेवा का समय समाप्त हो गया — अपना नेटवर्क जाँचें, या कोई अन्य एंडपॉइंट आज़माएँ"
+  },
+  "tts_network": {
+    "message": "भाषण सेवा तक नहीं पहुँचा जा सकता — अपना नेटवर्क और एंडपॉइंट पता जाँचें"
+  },
+  "tts_empty": {
+    "message": "इस कार्ड में ज़ोर से पढ़ने के लिए कोई पाठ नहीं है"
+  },
+  "drive_bg_session_failed": {
+    "message": "यह डिवाइस अभी पृष्ठभूमि ऑडियो सत्र शुरू नहीं कर सकता, इसलिए ऐप स्क्रीन से बाहर जाने पर प्लेबैक रुक जाता है।"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "अंतर्निहित डिवाइस आवाज़ ऐप स्क्रीन से बाहर जाने पर रुक जाती है। सुनते रहने के लिए, एक भाषण एंडपॉइंट कॉन्फ़िगर करें (सेटिंग्स → भाषण इंजन)।"
+  },
+  "drive_awake_note": {
+    "message": "पॉडकास्ट मोड सामने होने पर स्क्रीन स्वतः लॉक नहीं होगी। फ़ोन लॉक करने के बाद भी कार्ड देखते रहने के लिए, सिस्टम की ऑलवेज़-ऑन डिस्प्ले चालू करें: सेटिंग्स → डिस्प्ले और चमक → ऑलवेज़ ऑन।"
+  },
+  "app_empty_body": {
+    "message": "सीखने की सामग्री ब्राउज़र एक्सटेंशन से आती है — यह ऐप वह जगह है जहाँ आप इसकी समीक्षा करते हैं।"
+  },
+  "app_empty_how": {
+    "message": "सेटिंग्स → Safari → एक्सटेंशन में BelliedMonkey अनुवादक सक्षम करें, कैप्चर चालू करें, फिर हमेशा की तरह ब्राउज़ करें और अनुवाद करें।"
+  },
+  "app_ext_off_title": {
+    "message": "एक्सटेंशन अभी चालू नहीं है"
+  },
+  "app_ext_off_body": {
+    "message": "कार्ड Safari एक्सटेंशन से आते हैं। यह सक्षम नहीं है, इसलिए यह खाली रहेगा।"
+  },
+  "app_ext_unknown_title": {
+    "message": "पहले ब्राउज़र वाला हिस्सा सेट करें"
+  },
+  "app_ext_ios_body": {
+    "message": "कार्ड Safari एक्सटेंशन से आते हैं: Safari में, एड्रेस बार के बाईं ओर एक्सटेंशन आइकन टैप करें → “एक्सटेंशन प्रबंधित करें” → BelliedMonkey अनुवादक चालू करें।"
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari एक्सटेंशन सेटिंग्स खोलें"
+  },
+  "app_ext_open_setup": {
+    "message": "वेब पर सेटअप पूरा करें"
+  },
+  "app_signin_why": {
+    "message": "कार्ड ब्राउज़र एक्सटेंशन द्वारा कैप्चर किए जाते हैं। इस डिवाइस पर समीक्षा करने के लिए, साइन इन करें ताकि वे सिंक हो सकें।"
+  },
+  "app_signin_open": {
+    "message": "साइन इन करें"
+  },
+  "ob_next": {
+    "message": "जारी रखें"
+  },
+  "ob_skip": {
+    "message": "इसे बाद में सेट करें"
+  },
+  "ob_start": {
+    "message": "आरंभ करें"
+  },
+  "ob_welcome_title": {
+    "message": "पढ़ें जो आप वास्तव में पढ़ते हैं"
+  },
+  "ob_welcome_body": {
+    "message": "अनुवाद ब्राउज़र में होता है; समीक्षा इस ऐप में होती है। दोनों को जोड़ने में दो मिनट लगते हैं।"
+  },
+  "ob_ios_1": {
+    "message": "Safari में, एड्रेस बार के बाईं ओर एक्सटेंशन आइकन पर टैप करें"
+  },
+  "ob_ios_2": {
+    "message": "“एक्सटेंशन प्रबंधित करें” चुनें और BelliedMonkey अनुवादक चालू करें"
+  },
+  "ob_ios_3": {
+    "message": "अनुमतियाँ सभी वेबसाइटों के लिए अनुमति दें पर सेट करें"
+  },
+  "ob_browser_title": {
+    "message": "ब्राउज़र में दो और चीज़ें"
+  },
+  "ob_browser_body": {
+    "message": "दोनों स्विच एक्सटेंशन की अपनी सेटिंग्स में हैं — यह ऐप उन्हें बदल नहीं सकता; दोनों पक्षों का अलग स्टोरेज है।"
+  },
+  "ob_kv_engine": {
+    "message": "अनुवाद API कुंजी जोड़ें"
+  },
+  "ob_kv_capture": {
+    "message": "कैप्चर चालू करें"
+  },
+  "ob_kv_capture_note": {
+    "message": "पहले से चालू। जिन वाक्यों को आप वास्तव में रुककर पढ़ते हैं वे कार्ड बन जाते हैं — यदि आप नहीं चाहते तो इसे यहाँ बंद करें।"
+  },
+  "ob_read_title": {
+    "message": "कुछ पढ़ने जाएँ"
+  },
+  "ob_read_body": {
+    "message": "आप तैयार हैं — बस हमेशा की तरह ब्राउज़ करें और अनुवाद करें। जो आप पढ़ते हैं वह जमा होता है; किसी वाक्य को तुरंत सहेजने के लिए, उसके अनुवाद को लंबे समय तक दबाएँ।"
+  },
+  "ob_signin_title": {
+    "message": "अंतिम चरण: साइन इन करें"
+  },
+  "ob_kv_twice": {
+    "message": "आप एक्सटेंशन के अंदर भी साइन इन करेंगे"
+  },
+  "ob_kv_twice_note": {
+    "message": "दोनों पक्षों का अलग स्टोरेज है, इसलिए आपको दो कोड मिलते हैं। एक ही ईमेल पता उपयोग करें।"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "एक्सटेंशन सेटिंग्स → अनुवाद इंजन। यह अपरिहार्य है: बिना कुंजी के कुछ भी अनुवाद नहीं होता।"
+  },
+  "extob_header": {
+    "message": "BelliedMonkey अनुवादक · आरंभ करें"
+  },
+  "extob_welcome_title": {
+    "message": "पृष्ठ छोड़े बिना पढ़ें और याद रखें"
+  },
+  "extob_welcome_body": {
+    "message": "मूल वहीं रहता है; अनुवाद उसके ठीक नीचे दिखाई देता है। जिन वाक्यों को आप वास्तव में रुककर पढ़ते हैं वे समीक्षा कार्ड बन जाते हैं जो भूलने की वक्र पर वापस आते हैं।"
+  },
+  "extob_use_1": {
+    "message": "किसी अन्य भाषा में पृष्ठ खोलें"
+  },
+  "extob_use_2": {
+    "message": "नीचे दाईं ओर तैरते बटन पर टैप करें"
+  },
+  "extob_use_3": {
+    "message": "अनुवाद मूल के नीचे दिखाई देता है; जिन वाक्यों को आप पूरा पढ़ते हैं वे समीक्षा कार्ड बन जाते हैं"
+  },
+  "extob_engine_title": {
+    "message": "अनुवाद इंजन चुनें"
+  },
+  "extob_engine_body_key": {
+    "message": "इसका कोई विकल्प नहीं: बिना कुंजी के कुछ भी अनुवाद नहीं होता।"
+  },
+  "extob_key_label": {
+    "message": "API कुंजी"
+  },
+  "extob_capture_title": {
+    "message": "जो आप पढ़ते हैं वह समीक्षा कार्ड में बदल जाता है"
+  },
+  "extob_capture_body": {
+    "message": "पहले से चालू। जिन वाक्यों को आप पूरा पढ़ते हैं (स्क्रॉल करके आगे बढ़ना मायने नहीं रखता) केवल इस डिवाइस पर समीक्षा कार्ड के रूप में सहेजे जाते हैं — यदि आप नहीं चाहते तो इसे यहाँ बंद करें।"
+  },
+  "extob_capture_toggle": {
+    "message": "पढ़े गए वाक्यों को समीक्षा कार्ड के रूप में सहेजें"
+  },
+  "extob_capture_note": {
+    "message": "केवल वे वाक्य जिन्हें आप वास्तव में पूरा पढ़ते हैं। आप इसे किसी भी समय बंद कर सकते हैं, और किसी साइट से सब कुछ एक साथ हटा सकते हैं।"
+  },
+  "extob_try_title": {
+    "message": "अब किसी पृष्ठ का अनुवाद करें"
+  },
+  "extob_try_body": {
+    "message": "एक वास्तविक पृष्ठ खोलें और कोने में तैरते बटन पर टैप करें — अनुवाद प्रत्येक अनुच्छेद के नीचे दिखाई देता है।"
+  },
+  "extob_try_cta": {
+    "message": "नमूना पृष्ठ खोलें"
+  },
+  "extob_finish": {
+    "message": "हो गया"
+  },
+  "extob_done_title": {
+    "message": "आप तैयार हैं"
+  },
+  "extob_done_text": {
+    "message": "किसी अन्य भाषा में कोई पृष्ठ खोलें और तैरते बटन पर टैप करें। सेटिंग्स और यह वॉकथ्रू दोनों एक्सटेंशन के सेटिंग्स पृष्ठ में हैं।"
+  },
+  "extob_done_close": {
+    "message": "समझ गया"
+  },
+  "extob_reonboard": {
+    "message": "आरंभ करने का वॉकथ्रू फिर से दिखाएँ"
+  },
+  "extob_unpacked_note": {
+    "message": "ZIP से स्थापित: यह प्रति स्वयं अपडेट नहीं होती। नए संस्करण वेबसाइट से लें, या स्वचालित अपडेट के लिए स्टोर से स्थापित करें।"
+  },
+  "extob_first_run": {
+    "message": "पहली बार? इसे सेट करने में दो मिनट लगते हैं →"
+  },
+  "qs_title": {
+    "message": "एक कुंजी से सब कुछ सेट करें"
+  },
+  "qs_sub": {
+    "message": "इन प्लेटफ़ॉर्मों पर एक कुंजी अनुवाद, वाणी और प्रतिलेखन एक साथ सेट करती है। किसी अन्य इंजन के लिए, ऊपर विस्तृत पर स्विच करें।"
+  },
+  "qs_platform": {
+    "message": "प्लेटफ़ॉर्म"
+  },
+  "qs_only_one": {
+    "message": "प्लेटफ़ॉर्म: {p}"
+  },
+  "qs_key": {
+    "message": "API कुंजी"
+  },
+  "qs_get_key": {
+    "message": "अभी तक कोई कुंजी नहीं? {p} ↗ पर एक प्राप्त करें"
+  },
+  "qs_try": {
+    "message": "अभी एक पृष्ठ का अनुवाद करें"
+  },
+  "qs_try_note": {
+    "message": "एक वास्तविक वेब पृष्ठ खोलें और फ्लोटिंग बटन दबाएं — अनुवाद प्रत्येक अनुच्छेद के नीचे दिखाई देता है।"
+  },
+  "extob_quick_sub": {
+    "message": "एक कुंजी अनुवाद, वाणी और प्रतिलेखन एक साथ सेट करती है।"
+  },
+  "extob_mode_quick": {
+    "message": "एक कुंजी"
+  },
+  "extob_mode_manual": {
+    "message": "प्रत्येक इंजन सेट करें"
+  },
+  "qs_key_ph": {
+    "message": "एक बार पेस्ट करें — तीनों कॉन्फ़िगर हो जाते हैं"
+  },
+  "qs_privacy": {
+    "message": "प्रतिलेखन आपकी रिकॉर्डिंग {host} को भेजता है। पहचान होते ही इसे हटा दिया जाता है — कभी संग्रहीत नहीं, कभी सिंक नहीं।"
+  },
+  "qs_apply": {
+    "message": "अनुवाद, पठन-वाचन और प्रतिलेखन सेट करें"
+  },
+  "qs_testing": {
+    "message": "परीक्षण…"
+  },
+  "qs_untouched": {
+    "message": "— अकेला छोड़ दिया · आपने इसे पहले से कॉन्फ़िगर किया है ({cur})"
+  },
+  "qs_unknown": {
+    "message": "मौजूदा सेटअप"
+  },
+  "qs_slot_chat": {
+    "message": "अनुवाद"
+  },
+  "qs_slot_tts": {
+    "message": "पठन-वाचन"
+  },
+  "qs_slot_stt": {
+    "message": "प्रतिलेखन"
+  },
+  "qs_slot_notes": {
+    "message": "वाक्य नोट्स"
+  },
+  "qs_notes_follow": {
+    "message": "अनुवाद इंजन का अनुसरण करता है (अपरिवर्तित)"
+  },
+  "qs_tts_untried": {
+    "message": "(अभी नहीं चलाया गया — इसे सुनने के लिए नीचे वॉइस कार्ड में “नमूना चलाएं” उपयोग करें)"
+  },
+  "qs_stt_failed_note": {
+    "message": "इससे रिकॉर्डिंग चालू नहीं होती। अभी जो भेजा गया था वह 0.6-सेकंड का साइन टोन था, आपकी आवाज़ नहीं।"
+  },
+  "qs_retry": {
+    "message": "इसे फिर से आज़माएं"
+  },
+  "engine_test_empty_audio": {
+    "message": "एंडपॉइंट ने उत्तर दिया लेकिन कोई ऑडियो नहीं लौटाया"
+  },
+  "opt_mode_quick": {
+    "message": "त्वरित"
+  },
+  "opt_mode_detail": {
+    "message": "सभी सेटिंग्स"
+  },
+  "options_wipe_all": {
+    "message": "इस डिवाइस पर सभी डेटा मिटाएं"
+  },
+  "options_wipe_hint": {
+    "message": "ऐप हटाने से यह डेटा नहीं मिटता। इसे पूरी तरह मिटाने के लिए, पहले इसे यहाँ मिटाएं।"
+  },
+  "options_wipe_confirm": {
+    "message": "इस डिवाइस पर सभी डेटा मिटाएं? आपकी API कुंजियाँ, सभी सेटिंग्स, हर कैप्चर किया गया वाक्य और सभी समीक्षा प्रगति हटा दी जाएगी, और आप साइन आउट हो जाएंगे। इसे पूर्ववत नहीं किया जा सकता।\n\nक्लाउड में पहले से सिंक की गई कोई भी चीज़ प्रभावित नहीं होती — फिर से साइन इन करने पर वह वापस आ जाएगी।"
+  },
+  "toast_wipe_failed": {
+    "message": "पूरी तरह नहीं मिटा — कृपया फिर से प्रयास करें"
+  },
+  "app_sync_empty_who": {
+    "message": "सिंक समाप्त, लेकिन {email} के अंतर्गत अभी कुछ नहीं है। यदि आपने ब्राउज़र एक्सटेंशन में वाक्य कैप्चर किए हैं, तो जांचें कि वह उसी ईमेल से साइन इन है।"
+  },
+  "app_owner_mismatch": {
+    "message": "इस डिवाइस पर कॉर्पस एक अलग खाते से संबंधित है। उस ईमेल से साइन इन करें, या एक्सटेंशन सेटिंग्स में इस डिवाइस का डेटा मिटाएं और फिर से शुरू करें।"
+  },
+  "app_owner_unknown": {
+    "message": "इस डिवाइस पर कॉर्पस का एक स्वामी है, लेकिन आप साइन इन नहीं हैं। सिंक जारी रखने के लिए साइन इन करें।"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "इस डिवाइस पर कॉर्पस एक अलग खाते से संबंधित है। उस ईमेल से साइन इन करें, या इस डिवाइस पर सभी डेटा मिटाएं और फिर से शुरू करें।"
+  },
+  "sync_err_owner_unknown": {
+    "message": "इस डिवाइस पर कॉर्पस का एक स्वामी है, लेकिन आप साइन इन नहीं हैं। सिंक जारी रखने के लिए साइन इन करें।"
+  },
+  "app_err_upgrade": {
+    "message": "क्लाउड में ऐसी सामग्री है जिसे यह संस्करण अभी पढ़ नहीं सकता (शायद नए एक्सटेंशन से)। ऐप अपडेट करें, फिर सिंक करें — कुछ भी नहीं खोया है, यह अभी के लिए केवल अपठनीय है।"
+  },
+  "site_next_title": {
+    "message": "इसका अनुवाद हो गया। अगला: इन कार्ड्स को ऐप में लाएं"
+  },
+  "site_next_body": {
+    "message": "जिन वाक्यों को आपने पढ़ने के लिए रोका, वे पहले से ही समीक्षा कार्ड हैं, इस ब्राउज़र में। वे ऐप तक केवल साइन इन करने पर पहुंचते हैं। आप साइन आउट रहकर सब कुछ उपयोग कर सकते हैं; ऐप बस खाली रहेगा।"
+  },
+  "site_next_body_off": {
+    "message": "“Collect learning material” अभी भी बंद है, इसलिए अभी कोई कार्ड नहीं बन रहे हैं। पहले एक्सटेंशन सेटिंग्स में इसे चालू करें।"
+  },
+  "site_next_cta": {
+    "message": "अपने कार्ड देखें"
+  },
+  "site_next_cta_off": {
+    "message": "“Collect learning material” चालू करें"
+  },
+  "site_next_signin": {
+    "message": "अभी साइन इन करें →"
+  },
+  "sync_next_app": {
+    "message": "अगला: इसी ईमेल ({email}) से iPhone / Mac ऐप में साइन इन करें — यही इन कार्डों को यहाँ लाता है।"
+  },
+  "app_dl_mismatch_title": {
+    "message": "ये दो अलग-अलग खाते हैं"
+  },
+  "app_dl_mismatch_body": {
+    "message": "ब्राउज़र एक्सटेंशन एक अलग खाते में साइन इन है; यह ऐप {email} के रूप में साइन इन है। कार्ड एक खाते से जुड़े होते हैं, इसलिए जब तक दोनों अलग हैं, वहाँ आप जो इकट्ठा करेंगे वह यहाँ नहीं दिखेगा।"
+  },
+  "app_dl_switch": {
+    "message": "साइन आउट करें और एक्सटेंशन का खाता उपयोग करें"
+  },
+  "app_dl_keep": {
+    "message": "यह खाता रखें"
+  },
+  "app_dl_signin": {
+    "message": "ब्राउज़र एक्सटेंशन पहले से साइन इन है। यहाँ उसी खाते से साइन इन करें और कार्ड सिंक हो जाएँगे।"
+  },
+  "app_dl_signin_none": {
+    "message": "पहले ब्राउज़र एक्सटेंशन में साइन इन करें, फिर वापस आकर यहाँ उसी खाते से साइन इन करें — कार्ड वहाँ इकट्ठा होते हैं।"
+  },
+  "review_go_app": {
+    "message": "ऐप में जारी रखें →"
+  },
+  "site_setup_next_engine": {
+    "message": "अनुवाद इंजन सेट करें →"
+  },
+  "setup_not_configured": {
+    "message": "अभी तक कोई अनुवाद इंजन सेट नहीं है। ऊपर वन-की सेटअप का उपयोग करें, या इंजन चुनने और उसकी कुंजी दर्ज करने के लिए “Detailed” पर स्विच करें।"
+  },
+  "toast_wipe_failed_what": {
+    "message": "पूरी तरह मिटा नहीं — अभी भी मौजूद: {what}। कृपया फिर से प्रयास करें।"
+  },
+  "wipe_left_unreadable": {
+    "message": "स्टोरेज वापस नहीं पढ़ा जा सका"
+  },
+  "site_next_title_off": {
+    "message": "इसने अनुवाद किया — लेकिन अभी कुछ भी कार्ड के रूप में सहेजा नहीं जा रहा है"
+  },
+  "drive_skipped_media": {
+    "message": "{n} वीडियो-सबटाइटल कार्ड छोड़े गए — उनमें ज़ोर से पढ़ने के लिए कोई बॉडी टेक्स्ट नहीं है"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} छोड़े गए: इस डिवाइस पर कोई आवाज़ नहीं है जो उन्हें पढ़ सके। सेटिंग्स → स्पीच इंजन के तहत एक सेट करें, या कोई अलग सिस्टम आवाज़ चुनें।"
+  },
+  "sync_next_cards": {
+    "message": "अपने कार्ड देखें"
+  },
+  "site_next_body_local": {
+    "message": "जिन वाक्यों को आपने पढ़ने के लिए रोका, वे पहले से ही समीक्षा कार्ड हैं, इस ब्राउज़र में। जाकर देखें।"
+  },
+  "learn_empty_on": {
+    "message": "Collecting पहले से चालू है। ब्राउज़ करते और अनुवाद करते रहें — जिन वाक्यों को आप पढ़ने के लिए रोकेंगे वे यहाँ दिखेंगे। जिन्हें आप स्क्रॉल करके पार करेंगे वे नहीं दिखेंगे।"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "साइन आउट, केवल स्थानीय — ऐप में भी समीक्षा करने के लिए साइन इन करें →"
+  },
+  "app_open_failed": {
+    "message": "इस डिवाइस पर ऐप नहीं खोला जा सका।"
+  },
+  "app_open_store": {
+    "message": "इसे App Store पर पाएँ →"
+  },
+  "app_not_on_platform": {
+    "message": "यह ऐप केवल iPhone, iPad और Mac के लिए है। इस डिवाइस पर, यहीं ब्राउज़र में समीक्षा करें।"
+  },
+  "product_name": {
+    "message": "BelliedMonkey अनुवादक"
+  },
+  "sync_err_pkce_missing": {
+    "message": "वह साइन-इन वापस नहीं आया — ब्राउज़र बदल गया, या साइट डेटा साफ़ हो गया। इस पेज से इसे फिर से शुरू करें।"
+  },
+  "sync_err_pkce_state": {
+    "message": "वह साइन-इन कहीं से आया जहाँ से हमने इसे शुरू नहीं किया। रोक दिया गया। कृपया इसे फिर से शुरू करें।"
+  },
+  "sync_err_storage": {
+    "message": "स्थानीय स्टोरेज नहीं पढ़ा जा सका, इसलिए यह चरण पूरा नहीं हो सकता। यह पेज फिर से खोलें और प्रयास करें; यदि यह बार-बार होता है, तो हमें बताएँ।"
+  },
+  "sync_with_apple": {
+    "message": "Apple के साथ जारी रखें"
+  },
+  "sync_with_google": {
+    "message": "Google के साथ जारी रखें"
+  },
+  "sync_or": {
+    "message": "या ईमेल / फ़ोन उपयोग करें:"
+  },
+  "sync_email_or_phone": {
+    "message": "ईमेल या फ़ोन"
+  },
+  "sync_code_any": {
+    "message": "6-अंकीय कोड"
+  },
+  "app_apple_waiting": {
+    "message": "Apple साइन-इन खोला जा रहा है…"
+  },
+  "app_apple_failed": {
+    "message": "Apple साइन-इन पूरा नहीं हुआ। आप नीचे ईमेल या फ़ोन का उपयोग कर सकते हैं।"
+  },
+  "learn_empty_other_account": {
+    "message": "इस डिवाइस पर किसी अन्य खाते की सामग्री भी है। आप अभी किसी और के रूप में साइन इन हैं — कुछ भी खोया नहीं; मूल खाते से फिर से साइन इन करें और यह वापस आ जाएगा।"
+  },
+  "sync_or_email": {
+    "message": "या ईमेल उपयोग करें:"
+  },
+  "sync_need_id_dyn": {
+    "message": "पहले {what} दर्ज करें"
+  },
+  "tts_engine_none": {
+    "message": "सेट नहीं है (पढ़कर नहीं सुनाएगा)"
+  },
+  "tts_not_configured": {
+    "message": "वाक् इंजन अभी सेट नहीं है — «सेटिंग्स › वाक्» में एक चुनें"
+  }
+}

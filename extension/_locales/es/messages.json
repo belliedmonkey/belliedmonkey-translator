@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "Primero escribe tu {what}",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Sin configurar (sin lectura)"
+  },
+  "tts_not_configured": {
+    "message": "La voz no está configurada — elige un motor en Ajustes › Voz"
   }
 }

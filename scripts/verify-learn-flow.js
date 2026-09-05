@@ -195,8 +195,18 @@ async function runHost(host) {
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `
       ${SHIM_SRC}
       try { localStorage.setItem('mt:learnEnabled', 'true'); } catch (_) {}
-      // §9.4 — a configured transcription engine, so the speak capability gate is
-      // open in both hosts (the engine itself is mocked at the fetch layer below).
+      // §9.4 —— 语音与转写**都要显式配置**，两个能力门才是开的。
+      //
+      // TTS 这一段是 2026-09-04 补的：在那之前它靠的是「默认引擎 = browser」这个
+      // 隐式默认，而那天默认改成了「未配置」（语音是核心体验，系统自带撑不起它）。
+      // 夹具跟着显式化是**对的方向** —— 一个依赖隐式默认的测试，在默认变了的那天
+      // 会以「功能坏了」的样子报出来，而实际坏的是它自己的前提。
+      // 下面 mock 了 speechSynthesis 的音色，所以这里选 browser 才对得上。
+      try {
+        localStorage.setItem('mt:ttsEngine', JSON.stringify('browser'));
+        localStorage.setItem('mt:ttsMode', JSON.stringify('assist'));
+      } catch (_) {}
+      // 转写引擎（引擎本身在下面的 fetch 层被 mock）。
       try {
         localStorage.setItem('mt:sttEngine', JSON.stringify('local'));
         // 完整接口地址（含路径）。以前这里存的是 base，靠注册表补出 /v1/audio/transcriptions

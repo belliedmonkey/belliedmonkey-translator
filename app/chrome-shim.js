@@ -33,16 +33,16 @@
   };
 
   // ─── App-side defaults that must exist BEFORE the first read ─────────────
-  // `review.js` reads settings ONCE, at bundle load, from its own top-level boot —
-  // and this shim is the only code that runs before it. `AppSettings.ensureDefaults`
-  // is async and loses that race, which is how the app shipped with `ttsMode`
-  // permanently 'off': the listen tier and the ▶ button gate on it, and nothing
-  // app-side ever set it. Seeding here is synchronous, so the first launch after
-  // install already has speech. 'assist' (show text, tap to play), not 'audio-first' —
-  // hiding every card's text behind audio is a choice the user makes, not a default.
-  if (localStorage.getItem(PREFIX + 'ttsMode') == null) {
-    try { localStorage.setItem(PREFIX + 'ttsMode', JSON.stringify('assist')); } catch (_) {}
-  }
+  // **这里曾经同步播种 `ttsMode: 'assist'`，2026-09-04 去掉了。**
+  //
+  // 去掉的理由：语音不再默认可用（`LearnTTS.DEFAULTS.engineId` 已改为 ''），
+  // 而 'assist' 的意思是「显示原文，可点播放」—— 在没有引擎的情况下那就是一个
+  // **点了必然失败的播放键**，仓库里有前科。默认回到 'off'，与扩展一致。
+  //
+  // ⚠️ **但那段注释记的竞态仍然成立，别把它一起丢掉**：`review.js` 在 bundle
+  // 加载时**只读一次**设置，而 `AppSettings.ensureDefaults` 是异步的、会输掉这场
+  // 竞速。所以将来若又需要给 App 一个**非默认**的初始值，它必须播种在**这里**
+  // （同步、在 review.js 之前），而不是 ensureDefaults 里。
 
   const storage = {
     get(query, cb) {

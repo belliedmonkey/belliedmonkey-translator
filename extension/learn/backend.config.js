@@ -70,6 +70,42 @@ var MT_BACKEND = {
   //   false  —— 不提供（现在）
   // 判据永远是「这条路对**这个**用户真的能走通吗」，不是「我们实现了吗」。
   phoneOtp: false,
+
+  // ─── 中国版的境内后端（§C，2026-09-05）──────────────────────────────────
+  //
+  // 上面那个 `url` 在东京（ap-northeast-1）。中国版 **App** 今天就在打它 ——
+  // 也就是说中国版现在有数据出境，而 App Store 中国区指向的隐私政策写着
+  // 「绝不上传」。境内后端要解决的是这件事的前一半（数据去哪），
+  // 后一半（怎么说）在 `~/belliedmonkey-cc/privacy-cn.html`。
+  //
+  // 形状是「一台轻量服务器跑整套」：Postgres + GoTrue + PostgREST + 反代。
+  // **协议一个字节不变** —— 客户端对 Supabase 的特有依赖近乎为零（没有
+  // supabase-js、没有 Storage/Realtime），它说的是标准 GoTrue + PostgREST，
+  // 而 `auth.uid()` / `auth.users` 是 GoTrue 的产物不是 Supabase 独有。
+  // 所以这里只换地址与 key，`supabase/schema.sql` 原样复用。
+  // 部署契约见 `deploy/china/README.md`。
+  //
+  // ⚠️ **`ready` 是这个块存在的全部理由。**
+  //
+  // 机器、备案、SMTP 三件事任何一件没就绪，切过去就是把中国版所有用户送进一个
+  // 连不上的地址 —— 那比现在的状态坏得多。所以：
+  //
+  //   ready: false —— 构建行为**与从前逐字相同**（中国版扩展 sync 关闭）。
+  //                   这是今天的值，代码与门禁先落地，不动运行时。
+  //   ready: true  —— 中国版产物的 url/anonKey 换成下面这两个，且**不再关 sync**。
+  //
+  // 翻它之前必须全部为真（`deploy/china/README.md` 有逐条判据）：
+  //   1. 服务器上五条真实链路都跑通了（Apple 登录 · 邮箱 OTP · push · pull · 删号）
+  //   2. `url` 那个域名的 ICP 备案已通过，且接入商就是这台机器所在的云厂商
+  //   3. `anonKey` 是该后端 GoTrue 同一个 JWT secret 签出的 `role: anon` 长期 token
+  //
+  // 只有一处写死了「境内」这件事：门禁要求 `url` 不是 *.supabase.co
+  // （见 test/backend-config.test.js）—— 否则「切过去了」会是一句假话。
+  china: {
+    ready: false,
+    url: '',
+    anonKey: '',
+  },
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = MT_BACKEND;

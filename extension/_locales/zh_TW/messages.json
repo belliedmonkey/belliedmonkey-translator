@@ -2087,5 +2087,11 @@
   "sync_need_id_dyn": {
     "message": "先填{what}",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "未設定（不朗讀）"
+  },
+  "tts_not_configured": {
+    "message": "還沒設定語音引擎 —— 到「設定 › 語音」裡選一個"
   }
 }

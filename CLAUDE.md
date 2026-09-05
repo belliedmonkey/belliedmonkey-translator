@@ -45,7 +45,8 @@ Safari iOS browser extension for bilingual translation — fully open source and
 
 ```bash
 node build.js            # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
-npm test                 # Pure-logic suite (zero-dep vm harness, Node ≥18 — learn/chunk.js uses CompressionStream/Response) — every push
+npm test                 # Pure-logic suite (zero-dep vm harness, **Node ≥20** — learn/chunk.js uses
+                         # CompressionStream('deflate-raw'), and deflate-raw is a Node 20 addition) — every push
 npm run test:layout      # Layout regression corpus (real headless Chrome via raw CDP,
                          # Node ≥22) — geometry asserts + in-page behavioral phases
                          # (selection / interaction / keeperGuards manifest keys: selection
@@ -69,6 +70,11 @@ npm run test:app         # Host app page comes up (real Chrome, Node ≥22) — 
                          # changes. Serves the SHIPPED bundle layout (Main.html in Base.lproj/,
                          # Script.js at the root), because a flat layout hides the 404 that turns
                          # the app into a blank white screen.
+                         # 也守**引擎配置的跨宿主一致性**（docs/verification-spec.md §3.1.4）：
+                         # 进设置页、切「详细」、把三个下拉的每个引擎都选一遍，断言字段行的
+                         # **渲染后可见性**与 EngineFields.visibility() 逐项相等。改
+                         # extension/options/** 或 build/app-bundle.js 的 MODULES 时同样必跑
+                         # —— 2026-09-04 报障的根因就是组件没进 App 包，而门禁只看扩展那侧。
 npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — mandatory whenever
                          # learn/store.js's DB_VERSION changes. It is the only change that touches
                          # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
@@ -213,7 +219,9 @@ Scripts are loaded in this order by manifest (IIFE pattern, no ES modules):
 
 UI strings follow the browser language via `chrome.i18n`, with keys in
 `_locales/<locale>/messages.json` (en, zh_CN, zh_TW, ja, ko, fr, de, es, ar, pt, ru;
-`default_locale` zh_CN). Content scripts read them through `TranslationCore.t(key,
+`default_locale` **en** — the fallback for any market we have not localized;
+it is `zh_CN` in the China artifact only, forked and gated by `build.js`
+(`defaultLocaleGate`)). Content scripts read them through `TranslationCore.t(key,
 fallback)`; popup/options use a local `t()` + `applyI18n()` over `data-i18n` /
 `data-i18n-placeholder` / `data-i18n-title` / `data-i18n-aria` attributes. Always
 pass a Chinese fallback so a missing key never blanks the UI. To add a UI string,

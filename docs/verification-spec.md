@@ -26,6 +26,15 @@ Corollaries:
 - **State honestly what was and wasn't run.** For each task, report the per-surface
   result: verified-live (screenshot/recording) · documented-not-run · N/A. Never imply
   full coverage you didn't perform. (See §4 honesty rules.)
+- **两个宿主的同一个控件族，必须由同一个组件渲染。** 扩展页与宿主 App 是两个
+  origin、两份存储（`docs/domain-design.md` §9.3），但**规则只能有一份**。手写第二份
+  的代价不是重复代码，是**静默漂移**：它不报错、不被任何现有门禁看见，只在某个引擎的
+  某个字段上表现为「另一边没有这个框」。2026-09-04 实测到六处，全部来自
+  `app/settings.js` 手抄 options 页的显隐规则：`supportsKey ?? needsKey` 只有一半的
+  地方判 · 解析引擎那处干脆不判 `needsKey`（选了引擎就露 Key 框）· 示例地址只有一半
+  的地方给 · 一半用 `hidden` 一半用 `style.display`（前者会被后者压掉）· 四个输入框
+  id 与注册表对不上 · 同一概念两份 i18n key。**守它的门禁必须覆盖每一个 host** ——
+  原来那道只 grep `options.js`，于是 App 那三份从来不会让任何测试变红。见 §3.1.4。
 - **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
   browser/computer-use tools — for every surface, including desktop Chrome.
 - **Configure DeepSeek on every surface before verifying — never verify on the free
@@ -58,13 +67,13 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 
 | # | Surface | Execution mode | Status |
 |---|---|---|---|
-| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified pipeline |
-| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified pipeline |
-| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified (FAB + full-page translation) — see §2.C; picker folder-selection is the one manual step |
+| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
+| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
+| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified（2026-09-05 重验：引导页语音哨兵 + DeepSeek 测试连接 663ms 通过 + 整页双语）— see §2.C；勾选与选文件夹是仅有的两步人工 |
 | 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
-| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（拉取 → 复习 → 落盘 → 退出后重启仍是退出）— see §2.G |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -576,6 +585,31 @@ Drive: `xcrun simctl io <UDID> screenshot x.png` to view cheaply; the FAB/overla
 **web content, not AX-bridged** → locate them in a `get_window_state` window screenshot
 and **pixel-click**. Record time-based behavior: `xcrun simctl io <UDID> recordVideo out.mov`.
 
+> **不要在模拟器里打字或滚动 —— 直接写扩展存储。**（2026-09-04 全矩阵实测）
+>
+> 这一轮 cua 对模拟器窗口的 AX 全程解析不到（`ax_window_unresolved`），后果是：
+> **像素点击照常работа，但 `type_text` 一个字符都进不去、`scroll` 与 `drag` 都不滚页**。
+> 长按也调不出「粘贴」菜单，`ios-sim-input-only-longpress-paste` 那条配方在这个状态下
+> 整条失效。绕过去的办法不是重试，是**换一个面**：
+>
+> ```bash
+> DB=$(find ~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application \
+>       -path '*Safari/WebExtensions*' -name 'local.db' | head -1)
+> sqlite3 "$DB" "select key, value from extension_storage;"   # 就是 chrome.storage.local
+> ```
+>
+> 表是 `extension_storage(key TEXT PRIMARY KEY, value TEXT)`，value 是 **JSON**
+> （字符串带引号）。写完 **terminate + relaunch Safari** 才会被读到。
+> 两个前置条件：**扩展先在设置里启用过**（否则这个库根本不存在），
+> 且目录名带团队 id（`com.belliedmonkeytranslator.extension (X2Q85MABWK)`）——
+> 旁边可能还躺着一个 `(UNSIGNED)` 的旧安装，别写错那个。
+>
+> 顺带：这个库也是**回读本机默认值**最便宜的地方。2026-09-04 就是在这里读到
+> `ttsEngine=""` · `ttsMode="off"` · `sttEngine=""`，一次 sqlite 查询顶一屏截图。
+>
+> 页面太长看不全时，用 Safari 自己的**「大小」→「小」**缩到 50%（下限），
+> 比试图滚动可靠 —— 但 50% 仍装不下整个设置页，够不到的那几段要另找判据。
+
 ### B. iPad Safari (Xcode Simulator) — ✅ verified
 
 **Same iOS build**, different simulator UDID. `xcrun simctl install <iPad-UDID> "$APP"`
@@ -678,6 +712,20 @@ So there are two real paths for macOS Safari — **prefer the first**:
     bug (2026-07-27).** `list_windows` reporting `is_on_screen: false` while the title is
     correct means the capture will be empty white; `bring_to_front` first. Cost an
     incorrect "the extension broke the page" conclusion.
+  - **⚠️ 加临时扩展之前先清空「已安装」里的同名扩展（2026-09-05）。** 每一次
+    `open` 一个本地 Debug 构建的宿主 App，Safari 就多注册一份扩展条目；这一轮跑完
+    矩阵后设置里躺着**四份**「大肚猴翻译」，而且**全部勾着** —— 正是上面那条
+    「两份同时加载会打架」的形状，只是更糟。`pluginkit -m` 看不到它们（Debug 构建
+    本来就不注册到 pluginkit），所以**判据是 Safari 设置 → 扩展这个列表本身**，
+    不是 pluginkit。清理要连**磁盘上的 App 副本**一起删（`/tmp/mt-dd-*/…/*.app`），
+    否则下次 `open` 它又回来了。
+  - **原生 `<select>`：用首字母跳转，别用方向键（2026-09-05）。** 每一次
+    `press_key(down)` 都会把下拉重新打开，净位移不等于按键次数（实测「按 3 次 ↓
+    + 回车」只移动了一格）。按目标项的**首字母**（DeepSeek → `d`）一次到位。
+  - **⌘V 在 Safari 网页里也被吞，但 `type_text` 可用（2026-09-05）。** 与
+    `macos-webview-input-unreliable` 记的宿主 App 情况不同：这里 `type_text` 把
+    35 字符的 API key 一字不差地打进去了（判据不是看框里的圆点数，是**点「测试连接」
+    让服务端回读** —— 它返回 200 就证明没有字符错位）。
 
 **Restore after:** if you enabled "允许未签名的扩展", uncheck it; remove any temporary
 extension / app copy; return Develop-menu visibility to its snapshotted state.
@@ -783,6 +831,25 @@ npx --yes web-ext run --source-dir dist-firefox \
   -p "$HOME/.mt-verify-firefox" \
   --start-url "<test-url>" --no-config-discovery
 ```
+
+> **驱动扩展自己的页面（options / onboard）—— 2026-09-04 首次跑通，三个坑**
+>
+> 上面这条配方验的是**内容脚本**那一面（FAB、整页双语），那些是普通网页，BiDi 直接
+> 能开。**扩展自己的页面不行**，要另一套做法：
+>
+> 1. **`--args` 必须合成一个 argv token**：`--args=--remote-debugging-port=9333`。
+>    分开写会被 web-ext 的 yargs 当成它自己的参数（实测报「无法识别这些选项」）。
+> 2. **Firefox 的 BiDi 没有 CDP 那套 `/json/version` 发现端点**（实测 404）。
+>    WebSocket 直接在 `ws://127.0.0.1:<port>/session` 上，握手就是 `session.new`。
+> 3. **BiDi 拒绝把内容标签页导航到 `moz-extension://`** ——
+>    实测报 `Navigation to "moz-extension://…" is not allowed in this context`。
+>    **出路是跑两趟**：UUID 在同一个 profile 里是稳定的（存在 `prefs.js` 的
+>    `extensions.webextensions.uuids`），所以第一趟只为把它写进去，第二趟用
+>    `--start-url <那个地址>` 让 **Firefox 自己打开**，BiDi 只负责读、不负责导航。
+>
+> 还有一条进程卫生：**web-ext 把 Firefox 起成孙进程**，`child.kill()` 杀不到它，
+> 上一轮残留的 Firefox 会一直占着 BiDi session，下一轮 `session.new` 直接报
+> 「Maximum number of active sessions」。启动前和收尾都要按端口特征 `pkill` 一次。
 
 **Use a PERSISTENT profile, not the default throwaway one.** §0 requires DeepSeek, and
 the API key lives in extension storage — a throwaway profile wipes it on every quit, so
@@ -942,6 +1009,45 @@ settings model to drift), 学习库 counts + §7.1's targeted 清理已掌握的
 > requires in-app account deletion wherever accounts exist. `npm run test:app` now
 > fails by name if that button goes missing, and the failure message says why.
 
+### F-bis. 真机 iPhone（ZHAO的iPhone / iOS 26.5）— ✅ verified 2026-09-05
+
+USB（`devicectl`）与蓝牙/Wi-Fi（iPhone 镜像）**是两条独立的路，缺一不可**，而且
+它们对锁屏状态的要求正好相反：
+
+| 要做的事 | 走哪条 | 设备状态要求 |
+|---|---|---|
+| 装包 / 读写容器 / 启动 App | `devicectl`（USB） | **必须解锁**（`FBSOpenApplicationErrorDomain error 7 = Locked`） |
+| 看屏幕 / 点击 / 打字 | iPhone 镜像（蓝牙+Wi-Fi） | **必须锁屏**，且「最近解锁过」 |
+
+所以顺序是固定的：**先解锁装包 → 再锁屏遥控**。2026-09-05 卡在
+「未找到 iPhone」十分钟，真因是**手机蓝牙关着** —— USB 连着、`devicectl` 一切正常，
+完全不影响，所以别拿 `devicectl list devices` 的 `available (paired)` 当镜像也能连的证据。
+
+> **真机是唯一能验「存量用户」的地方。** 模拟器与 Chrome 每次都是全新态；这台机器上
+> 躺着的是真实的历史数据。2026-09-05 就是在这里读到 1.6.8 时代留下的
+> `ttsMode="assist"` + **`ttsEngine` 不存在** —— 正是 A2 点名的那个危险组合
+> （「模式开着但引擎为空 ⇒ 点了必然失败的播放键」）。取证方式不需要镜像：
+>
+> ```bash
+> xcrun devicectl device copy from --device <id> \
+>   --domain-type appDataContainer --domain-identifier com.belliedmonkeytranslator \
+>   --source "Library/WebKit/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3" \
+>   --destination ./dev-ls.sqlite3
+> ```
+>
+> 升级前先拉一份当基线，升级后再拉一份对比 —— 这是「存量用户会被这次改动影响成
+> 什么样」唯一的直接证据。
+
+> **⚠️ 手机那条网络与 Mac 不是一回事。** Mac 上挂着代理，手机没有。2026-09-05
+> `en.wikipedia.org` 与 `stackoverflow.com` 在手机上都打不开（前者直接报
+> 「已丢失网络连接」）。**验证站点要挑国内直连的英文页**（实测 `www.apple.com/newsroom/`
+> 可用）。别把这个误判成扩展坏了。
+
+2026-09-05 verified：装 1.7.13 → 启用扩展（重装会把开关重置回「关闭」）→
+站点授权**从另一台设备同步过来**（「在设备之间共享」开着时不必重新授权）→
+FAB 注入 → 点一下整页双语（`September Event` → `九月活动`、`Latest News` → `最新新闻`），
+走存量的 DeepSeek 配置。
+
 ### G. macOS host app (real Mac) — ✅ verified 2026-08-08
 
 Same three built files as row F, same Xcode project, so what this row tests is the
@@ -970,6 +1076,59 @@ survives a relaunch**.
 > the explanation, it was the **falsifying test** — sign out, relaunch, confirm it
 > stays out. That distinguishes "a session I forgot about" from "sessions resurrect"
 > without needing to know where the session came from.
+
+> **两条 2026-09-04 花了十几轮买来的（同一行、同一个 App）**
+>
+> 3. **这个 App 的 localStorage 有两个可能的位置，先用 `lsof` 问它在读哪一份。**
+>    带 App Sandbox 的构建（正式签名 / 有 provisioning profile）落在
+>    `~/Library/Containers/com.belliedmonkeytranslator/Data/Library/WebKit/…`；
+>    去掉沙箱的本地 Debug 构建落在 `~/Library/WebKit/com.belliedmonkeytranslator/…`。
+>    **两份都可能存在、都装着看起来很像的 `mt:` 键**，而旧的那份是历史遗留。
+>    我对着没在用的那份改了六轮种子，每次都得到「没生效」，并据此推出了一个
+>    错误的结论（「macOS 上外部写 WKWebView 的 localStorage 不生效」）。判据是：
+>
+>    ```bash
+>    for q in $(pgrep -f WebKit.Networking); do
+>      lsof -p $q 2>/dev/null | grep "localstorage.sqlite3$"
+>    done
+>    ```
+>
+>    顺带：种子要写进 **WebKit 自己建过的**那个库（它是 WAL），别用 sqlite3 新建一个。
+>
+> 4. **窗口截图全白 ≠ App 挂了。** 先证明渲染进程是死是活，再谈回归。同一个
+>    `lsof` 就够了：WebContent/Networking 还打开着那个 sqlite，就说明页面在跑 JS。
+>    这一条把「是不是我刚才那次改动把 App 改白屏了」从猜测变成可判定的事 ——
+>    而它当时的答案是「不是」（`npm test` 与两个 flavor 的 `test:app` 全绿）。
+>
+> 5. **「白屏」是假的 —— 那是窗口捕捉坏了，不是 App（2026-09-04 误判，09-05 更正）。**
+>    我连续判定这一行「白屏、未决、not-run」，写进了这份文档，**结论是错的**。
+>    真相是屏幕上的窗口一直在正常显示，坏掉的是我这一侧的观察：cua 对**这一个 App**
+>    的窗口捕捉失败（`ScreenCaptureKit ... 无法开始流播放` / `could not create image
+>    from window`），返回的空白被我读成了 App 画的白 —— 而同一时刻它对 Safari 和
+>    模拟器截得好好的，这个「别处都正常」恰恰让误判显得可信。
+>
+>    **判据要用不依赖捕捉的那些，而且要能分清三层**：
+>
+>    | 想知道什么 | 判据 | 不受捕捉影响 |
+>    |---|---|---|
+>    | 进程死了吗 | `sample <pid>`：主线程停在 `NSApplication run → nextEventMatchingMask → mach_msg` 就是**健康空闲**，不是死锁 | ✅ |
+>    | 页面 boot 走完了吗 | 删掉只有渲染到登录态才会写的键（`mt:learnDbOwner`，由 `show()` → `bindCorpus` 写），重启看它**写不写回来** | ✅ |
+>    | 屏幕上到底长什么样 | **问用户** | ✅ |
+>
+>    ⚠️ **`osascript` + System Events 在 Bash 沙箱里读不到任何 App 的窗口** ——
+>    它对 Safari、Chrome 一律返回 `count windows = 0`。我拿它「独立验证」过一次
+>    「AX 层真的看不到窗口」，那条推断整个作废。**任何 AX 判据都要先跑一个已知正常
+>    的 App 当对照**，否则量到的是自己的权限，不是被测对象。
+>
+>    同理，shell 里的 `screencapture` 在这个沙箱里出的是**全黑图**（有字节数、看起来
+>    像成功），不是黑屏。
+>
+>    这一整轮的代价：十几次重建 + 三种签名配置的对照实验 + 一条写错的 not-run。
+>    **`ask-before-investigating-anomalies` 那条记忆正是为此存在的** ——
+>    人在回路里的时候，「你看一眼屏幕」是最便宜的一次测量。
+>
+>    权限恢复后同一个进程立刻截得出内容、AX 也回来了 —— 这本身就是最终判据：
+>    **App 一个字节都没变，变的只有观察。**
 
 **Scope note:** relaunch-persistence of the graded state was not re-driven here (the
 on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
@@ -1084,6 +1243,52 @@ loop with a seeded per-tier corpus, asserting against the DATABASE for behavior 
 sweeping the visible surface after every step (non-empty labels, foreground ≠
 background — the class of bug that only exists where CSS cascades differ per host).
 Case list and manual-matrix complement: [`learn-regression.md`](learn-regression.md).
+
+### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
+
+**Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
+设置区 · `extension/options/**` · `extension/learn/engine-fields.js` ·
+`build/app-bundle.js` 的 `MODULES`。
+
+促成它的报障（2026-09-04）：用户报「App 的设置页居然没有与扩展端保持一致」。
+根因是 `engine-fields.js` —— 那个为消灭手抄而抽出来的组件 —— **不在 App 包的
+`MODULES` 里**，所以 `app/settings.js` 只能继续手抄，而守它的门禁只 grep
+`options.js`。两件事叠在一起，等于这条路修了一半、且没有人会被告知。
+
+两层，缺一不可：
+
+- **静态（`npm test` · `test/engine-fields.test.js`）** —— App 侧不许再自己判
+  `supportsKey/needsKey/supportsBaseUrl/supportsModel`；三组引擎配置都接在
+  `EngineFields.visibility()` 上；下拉一律走 `populate()`；输入框 id 从
+  `EngineFields.SLOTS` 取而**不是第八份手抄表**；组件（含 `engine-test.js`）
+  真的在 `MODULES` 里且排在 `app/settings.js` 之前。
+- **真渲染（`npm run test:app`）** —— 在真 Chrome 里进设置页、切到「详细」，
+  把三个下拉的**每一个引擎**都选一遍，断言三个字段行的**渲染后可见性**与
+  `EngineFields.visibility(entry)` 逐项相等。
+
+**同一族里的第三条（`npm test`）：App 读得到的设置，设置页必须管得到。**
+`app/driving.js` 的读取清单减去 `app/settings.js` 的键集，差集必须**恰好等于**一张
+写明理由的白名单。多出来的那个键会**静默赢过**设置页写的值，而用户看不见也清不掉它。
+
+> ⚠️ 这条不许用「把那半组从读取清单里删掉」来修。`extension/learn/review.js` 是与
+> 扩展**同一份字节**打进 App 包的，它自己也读 notes* 也调 `resolveConfig`；只删一处
+> 的结果是同一个 App 里播客模式回落到基础组、复习页仍用 notes 组 —— 从「一个静默赢」
+> 变成「两处解出两个不同引擎」。而 review.js 那份不能动：扩展那边 notes 组是真实可配的。
+> **所以钉的是不变量本身，不是某一处读取。** 2026-09-04 动手前查出来的。
+
+今天白名单上有六个，其中 `uiLang` 是**已知缺口而不是设计**：`driving.js` 已经在读它，
+App 里却没有任何控件，界面语言永远落到 `navigator.language`。
+
+两条判据上的纪律：
+
+- **问渲染后的可见性（`offsetParent`），不问 `.hidden` 的属性值。** 一条 display
+  声明就能把 `hidden` 压掉（`test/hidden-guard.test.js` 就是为它立的），而那正是
+  六处漂移里最难发现的一处。
+- **期望值来自组件，不是一张写死的表。** 写死的表是第八份手抄，注册表一变它就成了谎话。
+- 断言必须**先真的进设置页**：祖先 `hidden` 时 `offsetParent` 对每一个后代都是 null，
+  于是「全部不可见」会以一种很像真发现的方式全线报错。这条已经踩过一次。
+- 门禁要**证伪**过：删掉 `MODULES` 里的一行、恢复一处手写显隐、把旧 id 放回来、
+  让某个字段恒显 —— 四种破坏方式当场各红一次，才算这道门存在。
 
 ### 3.2 `npm run test:layout` — layout regression corpus
 

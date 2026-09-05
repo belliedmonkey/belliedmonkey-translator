@@ -342,3 +342,36 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 #ob-next:hover, #ob-setup:not(.secondary):hover { background: var(--accent-hover); }
 #ob-skip { min-height: 44px; }
+
+/* ── 设置页的「快速 | 详细」两档 ────────────────────────────────────────────
+   与扩展设置页同一个视觉与同一套类名（.adv-only / .quick-only）。样式抄过来是
+   刻意的：用户在扩展设置页学会的东西，在 App 里原样成立。
+   隐藏一律靠 hidden 属性（JS 只切它），这里**不写任何 display 规则**去压它 ——
+   `hidden` 被一条 display 声明压掉正是 test/hidden-guard.test.js 存在的理由。 */
+#app-settings .mode-tabs {
+  display: flex; gap: 0; margin: 0 0 18px;
+  border: 1px solid var(--border); border-radius: 999px;
+  overflow: hidden; width: fit-content;
+}
+#app-settings .mode-tabs button {
+  margin: 0; width: auto; padding: 7px 22px;
+  border: none; border-radius: 0; background: transparent;
+  color: var(--text-secondary); font-size: .92rem; cursor: pointer;
+}
+#app-settings .mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+#quick-setup-card { margin: 0 0 18px; }
+
+/* 锚点落点的一次性高亮 —— 与扩展设置页同一套做法。「到了」和「看见了」是两件事：
+   语音那一档周围有十来个控件，它在用户眼里和其它九个长得一样。亮的是**那一行**。 */
+#app-settings .anchor-flash {
+  border-radius: 10px;
+  animation: mt-anchor-flash 2.4s ease-out 1;
+}
+@keyframes mt-anchor-flash {
+  0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  100%    { box-shadow: 0 0 0 3px transparent; background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 动画关掉了，但「是哪一行」仍然要说。静态描边留着（JS 2.4s 后摘类）。 */
+  #app-settings .anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}

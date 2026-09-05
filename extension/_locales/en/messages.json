@@ -2086,5 +2086,11 @@
   "sync_need_id_dyn": {
     "message": "Enter your {what} first",
     "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Not set up (no read-aloud)"
+  },
+  "tts_not_configured": {
+    "message": "Speech is not set up yet — choose an engine in Settings › Speech"
   }
 }
