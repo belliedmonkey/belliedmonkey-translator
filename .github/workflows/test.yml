@@ -27,7 +27,17 @@ jobs:
         # using `CompressionStream` and `Response`, both Node 18 globals. This row is
         # what caught it (34 red tests), so the fix was to raise the floor to the
         # truth — never to drop the row. A floor nothing runs at is just a comment.
-        node: ['18', '22']
+        #
+        # 2026-09-05 —— **同一件事又发生了一次，而且这一行又一次抓到了它。**
+        # learn/chunk.js 用的是 `CompressionStream('deflate-raw')`，而 `deflate-raw`
+        # 是 **Node 20** 才加的（Node 18 只有 gzip / deflate）。于是 main 的 CI
+        # 从 2026-09-03 起连红，而没有人发现 —— **一条红着的 CI 等于没有 CI**，
+        # 「合并前先 gh pr checks」那条纪律在那几天里是失效的。
+        #
+        # 修法照上面那句：抬到真相，不删这一行。产品那一侧不受影响 ——
+        # deflate-raw 在 Chrome 103+ / Safari 16.4+ 都有，浏览器从来没有问题；
+        # Node 18 是一个**产品从不运行的环境**，在那里绿不绿说明不了任何事。
+        node: ['20', '22']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
