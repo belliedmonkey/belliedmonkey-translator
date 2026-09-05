@@ -68,6 +68,42 @@ git -C ~/belliedmonkey-cc  push    # Vercel，同上
 
 > **Gate A（V1 本地采集）的站点部分已于 2026-08-06 推送并上线**，早于扩展发版。这是刻意
 > 选择的：`.com` 先被推了，而**两个站点说法不一致比提前写严重**，所以 `.cc` 也补上了。
+
+### ⚠️ 商店页里那个 URL 是第三件事，而且它会被 Apple 锁住
+
+改好页面、推上线，**不等于 App Store 上的链接指向它**。那是 App Store Connect 里
+`appInfoLocalizations.privacyPolicyUrl` 一个独立的字段，可以指向任何地方 ——
+2026-09-05 实测，中国版那个字段指的是
+
+```
+https://cli-d7gpsjbn104fdb724-1320551096.tcloudbaseapp.com/privacy-cn.html
+```
+
+一个**脱离两个仓库管理**的 CloudBase 托管点，挂着 2026-07-11 的版本，写着
+「大肚猴翻译**没有后端服务器**、没有账号系统」—— 而那时中国版 App 已经在同步。
+App 内的链接、support、marketing 早就都指向 `belliedmonkey.com` 了，**只有商店页
+那一个是孤儿**，所以从代码和站点两侧都看不出来。
+
+**这个字段在 `READY_FOR_SALE` 状态下改不了**，Apple 直接拒：
+
+```
+409 · The field 'privacyPolicyUrl' can not be modified in the current state.
+```
+
+要改它必须有一个**进行中的版本**（`PREPARE_FOR_SUBMISSION` 等）。也就是说：
+
+> **隐私政策 URL 只能跟着一次发版改。** 发版时顺手核一次，比事后单独为它开一个
+> 版本便宜得多 —— 而事后你会发现它根本改不了。
+
+核对命令（只读）：
+
+```bash
+node -e 'const {api,apps}=require("./scripts/lib/asc-client.js");(async()=>{
+  for(const a of await apps()){const i=await api("GET",`/apps/${a.id}/appInfos`);
+  for(const f of i.data){const l=await api("GET",`/appInfos/${f.id}/appInfoLocalizations`);
+  for(const x of l.data) if(x.attributes.privacyPolicyUrl)
+    console.log(a.bundleId,x.attributes.locale,"→",x.attributes.privacyPolicyUrl);}}})()'
+```
 > 下次发版**不要**再推这两条——它们已经在线上。已核对：`.com` 有「学习材料」条目；`.cc`
 > 的 8 种语言（ar/en/es/fr/hi/pt/ru/zh-CN）全部带 `privacy.s2li4`，没有空条目。
 >
