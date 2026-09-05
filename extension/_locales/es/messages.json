@@ -900,7 +900,7 @@
     "message": "Usar otro correo"
   },
   "app_local_note": {
-    "message": "La extensión del navegador captura y repasa sin cuenta: todo queda en tu dispositivo. Iniciar sesión solo sirve para sincronizar tu material con este dispositivo."
+    "message": "Opcional. Todo funciona sin iniciar sesión: la captura y el repaso se quedan en este dispositivo; iniciar sesión solo sirve para sincronizar con tus otros dispositivos."
   },
   "app_signout": {
     "message": "Cerrar sesión"
@@ -1699,7 +1699,7 @@
     "message": "Completar la configuración en la web"
   },
   "app_signin_why": {
-    "message": "Las tarjetas las captura la extensión del navegador. Para repasarlas en este dispositivo, inicia sesión para que se sincronicen."
+    "message": "Las tarjetas las captura la extensión del navegador. Inicia sesión con la misma cuenta y se sincronizan con este dispositivo."
   },
   "app_signin_open": {
     "message": "Iniciar sesión"
@@ -1756,7 +1756,7 @@
     "message": "También iniciarás sesión en la extensión"
   },
   "ob_kv_twice_note": {
-    "message": "Los almacenamientos están separados, así que recibirás dos códigos. Usa el mismo correo."
+    "message": "Cada lado guarda sus datos por separado: inicia sesión con la misma cuenta en ambos."
   },
   "ob_kv_engine_note_required": {
     "message": "Ajustes de la extensión → motor de traducción. Este paso es ineludible: sin clave no se traduce nada."
@@ -2110,5 +2110,17 @@
   },
   "extob_done_feedback": {
     "message": "¿Algo no funciona? Escríbeme — leo todos los mensajes."
+  },
+  "sync_why": {
+    "message": "Inicia sesión con la misma cuenta y las frases que lees en el navegador se sincronizan con la app y tus otros dispositivos."
+  },
+  "sync_use_email": {
+    "message": "O iniciar sesión con correo"
+  },
+  "sync_change_email": {
+    "message": "Usar otro correo"
+  },
+  "sync_resend": {
+    "message": "Reenviar código"
   }
 }

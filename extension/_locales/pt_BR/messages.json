@@ -900,7 +900,7 @@
     "message": "Usar outro e-mail"
   },
   "app_local_note": {
-    "message": "A extensão do navegador captura e revisa sem conta — tudo fica no seu dispositivo. Entrar serve apenas para sincronizar seu material com este dispositivo."
+    "message": "Opcional. Tudo funciona sem entrar — captura e revisão ficam neste aparelho; entrar serve apenas para sincronizar com seus outros dispositivos."
   },
   "app_signout": {
     "message": "Sair"
@@ -1699,7 +1699,7 @@
     "message": "Concluir a configuração na web"
   },
   "app_signin_why": {
-    "message": "Os cartões são capturados pela extensão do navegador. Para revisá-los neste aparelho, entre para que sincronizem."
+    "message": "Os cartões são capturados pela extensão do navegador. Entre com a mesma conta e eles sincronizam com este aparelho."
   },
   "app_signin_open": {
     "message": "Entrar"
@@ -1756,7 +1756,7 @@
     "message": "Você também vai entrar na extensão"
   },
   "ob_kv_twice_note": {
-    "message": "Os armazenamentos são separados, então você recebe dois códigos. Use o mesmo e-mail."
+    "message": "Os dois lados guardam dados separadamente — entre com a mesma conta em ambos."
   },
   "ob_kv_engine_note_required": {
     "message": "Ajustes da extensão → motor de tradução. Esta etapa é inevitável: sem chave nada é traduzido."
@@ -2110,5 +2110,17 @@
   },
   "extob_done_feedback": {
     "message": "Algo não funciona? Escreva para mim — leio todas as mensagens."
+  },
+  "sync_why": {
+    "message": "Entre com a mesma conta e as frases que você lê no navegador sincronizam com o app e seus outros dispositivos."
+  },
+  "sync_use_email": {
+    "message": "Ou entrar com e-mail"
+  },
+  "sync_change_email": {
+    "message": "Usar outro e-mail"
+  },
+  "sync_resend": {
+    "message": "Reenviar código"
   }
 }

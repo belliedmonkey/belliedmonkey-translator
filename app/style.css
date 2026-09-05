@@ -255,29 +255,50 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 #ext-banner-act:hover { background: var(--accent-hover); }
 
-/* A3：未登录首屏的登录邀请。它是一张说明卡，不是一道闸门 —— 表单按需展开。 */
+/* A3：未登录首屏的登录邀请。它是一张说明卡，不是一道闸门 —— 一键登录就在卡上，
+   邮箱表单按需展开（design/signin/，2026-09-05）。 */
 #signin-prompt {
-  background: var(--section-bg);
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-#signin-why { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--dim); }
+#signin-why { margin: 0 0 2px; font-size: 0.9rem; line-height: 1.5; color: var(--fg); }
+:where(#signed-out) button.provider {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; font-weight: 600; font-size: max(16px, 1rem);
+}
+:where(#signed-out) button.provider .provider-mark { flex: none; }
+:where(#signed-out) button.provider.apple { background: #000; color: #fff; }
+:where(#signed-out) button.provider.google { background: #fff; color: var(--fg); border: 1.5px solid var(--line); }
+@media (prefers-color-scheme: dark) {
+  :where(#signed-out) button.provider.apple { background: #fff; color: #000; }
+  :where(#signed-out) button.provider.google { background: var(--field); color: var(--fg); }
+}
+/* 「或用邮箱登录」：文字链接，但点击区仍然 ≥ 44px。 */
 #btn-signin {
-  align-self: flex-start;
+  align-self: center;
   background: none;
-  color: var(--accent);
-  border: 1.5px solid var(--accent);
+  color: var(--accent-deep);
+  border: 0;
   border-radius: 999px;
-  padding: 10px 20px;
+  padding: 10px 8px;
   min-height: 44px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 400;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 #btn-signin:hover { background: var(--accent-track); }
+:where(#signed-out) .link-row { display: flex; justify-content: center; gap: 8px; }
+/* 验证码是第二屏：卡上只剩验证码表单。 */
+#signin-prompt.code-step > :not(#signin-forms) { display: none; }
+#signin-prompt #signin-forms { gap: 10px; }
+#signin-prompt form { margin: 0; }
+:where(#signed-out) .link-row button.link { min-height: 44px; padding: 10px 8px; }
 #signin-forms { display: flex; flex-direction: column; gap: 14px; }
 
 /* 首次运行引导（§引导）。与 App 其余部分同一套 token，不另起一套视觉。 */

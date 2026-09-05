@@ -39,6 +39,10 @@ const ramps = {
   darkDanger: '#ff6b6b', darkTerraHover: '#d67f48',
   // dark setup-note grounds (tinted, derived from the sage/terra families)
   noteDarkSageBg: '#1c2114', noteDarkTerraBg: '#2b1c10',
+  // Third-party marks on the sign-in buttons (design/signin/, 2026-09-05). NOT our
+  // brand — registered so the palette gate can tell "a mark we chose to draw" from
+  // drift. Google's four-colour G is the only place these may appear.
+  googleRed: '#ea4335', googleBlue: '#4285f4', googleYellow: '#fbbc05', googleGreen: '#34a853',
 };
 
 // ── Runtime defaults (JS consumers) ────────────────────────────────────────

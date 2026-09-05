@@ -511,7 +511,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           const forms = document.getElementById('signin-forms');
           const prompt = document.getElementById('signin-prompt');
           const out = { formsHidden: forms.hidden, promptShown: !prompt.hidden,
-                        why: document.getElementById('signin-why').textContent };
+                        why: document.getElementById('signin-why').textContent,
+                        // 2026-09-05：一键登录直接在卡上（藏不藏由原生桥决定，Chrome 里没有桥），
+                        // 邮箱是卡上那行链接。断言的是结构，不是可见性。
+                        providersInPrompt: !!prompt.querySelector('#btn-apple.provider.apple') && !!prompt.querySelector('#btn-google.provider.google'),
+                        emailLinkInPrompt: !!prompt.querySelector('#btn-signin') };
           document.getElementById('btn-signin').click();
           await new Promise((r) => setTimeout(r, 30));
           out.formsAfterClick = !forms.hidden;
@@ -523,6 +527,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(/同步|sync|同期|동기|synchron|sincroniz|синхрон|مزامنة/i.test(wv.why),
         '登录说明没讲清「材料只能靠同步过来」—— 那会让登录看起来像可选的');
       need(wv.formsAfterClick, '点了登录却展不开表单');
+      need(wv.providersInPrompt, '一键登录（Apple / Google）没在说明卡上 —— 又躲回邮箱表单后面了');
+      need(wv.emailLinkInPrompt, '「或用邮箱登录」那行链接不在说明卡上');
     }
     // 首次运行引导：五屏走一遍（§引导）。断言的是**每一屏都有话说**、进度条在动、
     // 走完能落到登录表单 —— 而不是元素存不存在。

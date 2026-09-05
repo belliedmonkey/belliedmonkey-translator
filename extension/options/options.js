@@ -1473,8 +1473,27 @@ async function init() {
     if (AVAIL.includes(name)) wireProvider(id, name);
     else if ($(id)) $(id).hidden = true;
   }
-  // 一个都没开时，那句「或者用邮箱 / 手机号：」就没有「或者」可言了。
-  if (!AVAIL.length && $('sync-or')) $('sync-or').hidden = true;
+  // 邮箱是备选：默认折叠成一行链接，点开才有输入框（design/signin/）。
+  // 一个第三方都没开时，「或用邮箱」就没有「或」可言 —— 直接摊开邮箱块、藏掉链接。
+  const emailBlock = $('sync-email-block');
+  const emailLink = $('btn-sync-email');
+  function showEmailBlock() {
+    if (emailBlock) emailBlock.hidden = false;
+    if (emailLink) emailLink.hidden = true;
+  }
+  if (emailLink) emailLink.addEventListener('click', () => { showEmailBlock(); try { $('sync-email').focus(); } catch (_) {} });
+  if (!AVAIL.length) { showEmailBlock(); if ($('sync-providers')) $('sync-providers').hidden = true; }
+  // 发送后整块换成验证码；「换一个邮箱」回到发送前的样子。
+  function showCodeStep(on) {
+    if ($('sync-providers')) $('sync-providers').hidden = on || !AVAIL.length;
+    if (emailLink) emailLink.hidden = on || !emailBlock || !emailBlock.hidden;
+    if (emailBlock) emailBlock.hidden = on || (AVAIL.length ? emailLink && !emailLink.hidden : false);
+    $('sync-code-row').hidden = !on;
+  }
+  if ($('btn-sync-change')) $('btn-sync-change').addEventListener('click', () => {
+    showCodeStep(false); showEmailBlock(); try { $('sync-email').focus(); } catch (_) {}
+  });
+  if ($('btn-sync-resend')) $('btn-sync-resend').addEventListener('click', () => { $('btn-sync-code').click(); });
 
   // 手工粘票：Safari iOS 上内容脚本可能没有那一站的权限，落地页于是把票显示出来
   // （显示它是安全的 —— 没有只在这一侧的 verifier，它换不出任何东西）。
@@ -1513,7 +1532,7 @@ async function init() {
     syncSay(t('sync_sending', '发送中…'));
     try {
       const r = await LearnAuth.signIn(who);
-      $('sync-code-row').hidden = false;
+      showCodeStep(true);
       $('sync-code').focus();
       // 文案按真实走的那条路说。手机号用户读到「验证码已发到邮箱」会去翻邮箱。
       syncSay(r.via === 'phone'
@@ -1731,7 +1750,15 @@ async function init() {
   // 一张表，不是每个目标各写一遍 —— 第二个锚点（#learn）加进来时就该收敛了。
   // focus 是可选的：能落在真正要动的那个控件上最好，落不上也不影响滚动。
   const ANCHORS = {
-    '#sync': { sec: 'sync-section', focus: () => ($('sync-out') && !$('sync-out').hidden ? $('sync-email') : null) },
+    // 落点跟着可见的那个控件走：邮箱块折叠时是 Apple 按钮（或链接），展开时才是输入框。
+    '#sync': { sec: 'sync-section', focus: () => {
+      if (!$('sync-out') || $('sync-out').hidden) return null;
+      const eb = $('sync-email-block');
+      if (eb && !eb.hidden) return $('sync-email');
+      const a = $('btn-sync-apple');
+      if (a && !a.hidden) return a;
+      return $('btn-sync-email');
+    } },
     // flash：到达之后要**看得见**。滚到卡片顶部只保证它在视野里，而这张卡有十来个
     // 控件，那个开关在用户眼里和其它九个长得一样 —— 「按钮点了、人到了、开关没找到」
     // （2026-09-02 用户实测）。高亮的是**那一行**，不是整张卡：整张卡亮起来等于没说

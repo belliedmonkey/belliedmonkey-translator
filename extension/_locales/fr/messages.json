@@ -900,7 +900,7 @@
     "message": "Changer d'adresse e-mail"
   },
   "app_local_note": {
-    "message": "L'extension de navigateur capture et révise sans compte — tout reste sur votre appareil. La connexion sert uniquement à synchroniser votre matériel sur cet appareil."
+    "message": "Facultatif. Tout fonctionne sans connexion — la capture et la révision restent sur cet appareil ; la connexion sert uniquement à synchroniser vos autres appareils."
   },
   "app_signout": {
     "message": "Se déconnecter"
@@ -1699,7 +1699,7 @@
     "message": "Terminer la configuration sur le web"
   },
   "app_signin_why": {
-    "message": "Les cartes sont capturées par l'extension de navigateur. Pour les réviser sur cet appareil, connectez-vous afin qu'elles se synchronisent."
+    "message": "Les cartes sont capturées par l'extension de navigateur. Connectez-vous avec le même compte et elles se synchronisent sur cet appareil."
   },
   "app_signin_open": {
     "message": "Se connecter"
@@ -1756,7 +1756,7 @@
     "message": "Vous vous connecterez aussi dans l'extension"
   },
   "ob_kv_twice_note": {
-    "message": "Les stockages sont séparés, vous recevrez donc deux codes. Utilisez la même adresse e-mail."
+    "message": "Les deux côtés stockent les données séparément — connectez-vous avec le même compte des deux côtés."
   },
   "ob_kv_engine_note_required": {
     "message": "Réglages de l'extension → moteur de traduction. Incontournable : sans clé, rien n'est traduit."
@@ -2110,5 +2110,17 @@
   },
   "extob_done_feedback": {
     "message": "Quelque chose ne marche pas ? Écrivez-moi — je lis chaque message."
+  },
+  "sync_why": {
+    "message": "Connectez-vous avec le même compte : les phrases lues dans le navigateur se synchronisent vers l’app et vos autres appareils."
+  },
+  "sync_use_email": {
+    "message": "Ou se connecter par e-mail"
+  },
+  "sync_change_email": {
+    "message": "Utiliser une autre adresse"
+  },
+  "sync_resend": {
+    "message": "Renvoyer le code"
   }
 }

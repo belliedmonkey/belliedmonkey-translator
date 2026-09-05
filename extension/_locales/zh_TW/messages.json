@@ -901,7 +901,7 @@
     "message": "換一個電子郵件"
   },
   "app_local_note": {
-    "message": "瀏覽器擴充功能不登入也能採集和複習，全部存在本機。登入只是為了讓語料同步到這台裝置上。"
+    "message": "可選。不登入也能完整使用 —— 採集和複習都在本機，登入只是為了同步到別的裝置。"
   },
   "app_signout": {
     "message": "登出"
@@ -1700,7 +1700,7 @@
     "message": "在網頁上完成設定"
   },
   "app_signin_why": {
-    "message": "卡片是瀏覽器擴充功能採集的。要在這台裝置上複習，就得登入同步過來。"
+    "message": "卡片是瀏覽器擴充功能採集的。登入同一個帳號，它們就會同步到這台裝置。"
   },
   "app_signin_open": {
     "message": "登入"
@@ -1757,7 +1757,7 @@
     "message": "擴充功能裡也要登入一次"
   },
   "ob_kv_twice_note": {
-    "message": "兩邊的儲存是分開的，所以會收到兩次驗證碼。用同一個信箱。"
+    "message": "兩邊的儲存是分開的，用同一個帳號登入即可。"
   },
   "ob_kv_engine_note_required": {
     "message": "擴充功能設定 → 翻譯引擎。這一步躲不掉：不填 Key 就翻不出任何東西。"
@@ -2111,5 +2111,17 @@
   },
   "extob_done_feedback": {
     "message": "哪裡不對勁？寫信給我 —— 每一封我都會讀。"
+  },
+  "sync_why": {
+    "message": "登入同一個帳號，瀏覽器裡讀到的句子就會同步到 App 和你的其它裝置。"
+  },
+  "sync_use_email": {
+    "message": "或用電子郵件登入"
+  },
+  "sync_change_email": {
+    "message": "換一個信箱"
+  },
+  "sync_resend": {
+    "message": "重新傳送"
   }
 }

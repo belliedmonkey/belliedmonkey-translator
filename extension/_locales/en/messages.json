@@ -900,7 +900,7 @@
     "message": "Use a different email"
   },
   "app_local_note": {
-    "message": "The browser extension captures and reviews without an account — everything stays on your device. Signing in only syncs your material to this device."
+    "message": "Optional. Everything works signed out — capture and review stay on this device; signing in only syncs to your other devices."
   },
   "app_signout": {
     "message": "Sign out"
@@ -1699,7 +1699,7 @@
     "message": "Finish setup on the web"
   },
   "app_signin_why": {
-    "message": "Cards are captured by the browser extension. To review them on this device, sign in so they can sync over."
+    "message": "Cards are captured by the browser extension. Sign in with the same account and they sync to this device."
   },
   "app_signin_open": {
     "message": "Sign in"
@@ -1756,7 +1756,7 @@
     "message": "You will sign in inside the extension too"
   },
   "ob_kv_twice_note": {
-    "message": "The two sides have separate storage, so you get two codes. Use the same email address."
+    "message": "The two sides store data separately — sign in with the same account on both."
   },
   "ob_kv_engine_note_required": {
     "message": "Extension settings → translation engine. This one is unavoidable: without a key nothing gets translated."
@@ -2110,5 +2110,17 @@
   },
   "extob_done_feedback": {
     "message": "Something not working? Write to me — I read every message."
+  },
+  "sync_why": {
+    "message": "Sign in with the same account and the sentences you read in the browser sync to the app and your other devices."
+  },
+  "sync_use_email": {
+    "message": "Or sign in with email"
+  },
+  "sync_change_email": {
+    "message": "Use a different email"
+  },
+  "sync_resend": {
+    "message": "Resend code"
   }
 }

@@ -302,30 +302,34 @@
            偏偏写着「打开设置去登录」。人到了，看不见登录框。2026-09-01 探查抓到。 -->
       <section class="card" id="sync-section">
         <h2 data-i18n="sync_section">登录 · 多设备同步</h2>
-        <p class="hint" data-i18n="sync_section_hint">可选。不登录也能完整使用——同步只是让你在手机上复习电脑上读到的句子。登录之后，采集到的句子（含还没进复习的候选）会同步到你的其它设备和手机 App。</p>
 
         <div id="sync-out">
-          <!-- 第三方登录放在邮箱**之前**：它是更快的那条路（一次点击 vs 收信 + 抄码）。
-               排在后面等于让绝大多数人先读完一段自己用不上的表单。见 §8.4.1.2。 -->
+          <!-- 2026-09-05 重设计（design/signin/）：一键登录是主角，邮箱是备选。
+               此前两个第三方按钮是普通细描边胶囊，下面紧跟整行宽的邮箱输入框 ——
+               页面上最大的控件是最费劲的那条路。现在：一句为什么 → Apple（HIG 黑底
+               白字带标）→ Google（白底描边带 G）→ 一行「或用邮箱登录」链接，点开才有
+               输入框；发送后整块换成验证码，不往下堆。**id 一个没改**：
+               verify-signin-flow / verify-oauth-flow / user-gesture 测试都按 id 找。 -->
+          <p class="hint" id="sync-why" data-i18n="sync_why">登录同一个账号，浏览器里读到的句子就会同步到 App 和你的其它设备。</p>
           <div id="sync-providers">
-            <button id="btn-sync-apple" class="provider" data-i18n="sync_with_apple">用 Apple 登录</button>
-            <button id="btn-sync-google" class="provider" data-i18n="sync_with_google">用 Google 登录</button>
-            <p class="hint" id="sync-or" data-i18n="sync_or_email">或者用邮箱：</p>
+            <button id="btn-sync-apple" class="provider apple" type="button"><svg class="provider-mark" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span data-i18n="sync_with_apple">用 Apple 登录</span></button>
+            <button id="btn-sync-google" class="provider google" type="button"><svg class="provider-mark" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span data-i18n="sync_with_google">用 Google 登录</span></button>
           </div>
+          <button id="btn-sync-email" class="link-btn" type="button" data-i18n="sync_use_email">或用邮箱登录</button>
 
-          <div class="field">
-            <!-- 手机号也走这一个输入框（§8.4.1.2）。两个输入框会逼用户先做一次
-                 「我算哪一类」的选择，而那个选择对他没有意义 —— 我们判得出来。
-                 type 保持 text：type=email 会让浏览器拒绝手机号。 -->
-            <!-- 标签与占位符由 options.js 按 MT_BACKEND.phoneOtp 决定：手机号那条路
-                 没接通时不许在这里出现「手机号」三个字（2026-09-03 用户实测截图）。
-                 输入框本身保持一个、type=text —— 将来打开手机号时不必改结构，
-                 而 type=email 会让浏览器直接拒绝手机号。 -->
-            <label for="sync-email" id="sync-id-label" data-i18n="sync_email">邮箱</label>
-            <input type="text" id="sync-email" autocomplete="username" inputmode="email"
-                   placeholder="you@example.com">
+          <div id="sync-email-block" hidden>
+            <div class="field">
+              <!-- 手机号也走这一个输入框（§8.4.1.2）。两个输入框会逼用户先做一次
+                   「我算哪一类」的选择，而那个选择对他没有意义 —— 我们判得出来。
+                   type 保持 text：type=email 会让浏览器拒绝手机号。 -->
+              <!-- 标签与占位符由 options.js 按 MT_BACKEND.phoneOtp 决定：手机号那条路
+                   没接通时不许在这里出现「手机号」三个字（2026-09-03 用户实测截图）。 -->
+              <label for="sync-email" id="sync-id-label" data-i18n="sync_email">邮箱</label>
+              <input type="text" id="sync-email" autocomplete="username" inputmode="email"
+                     placeholder="you@example.com">
+            </div>
+            <button id="btn-sync-code" data-i18n="sync_send_code">发送验证码</button>
           </div>
-          <button id="btn-sync-code" data-i18n="sync_send_code">发送验证码</button>
 
           <!-- 验证码而不是登录链接：magic link 会把**会话**放进 URL。PKCE 的 code
                不是会话（没有 verifier 换不出东西），所以第三方登录走得通而 magic
@@ -336,7 +340,14 @@
               <input type="text" id="sync-code" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
             </div>
             <button id="btn-sync-verify" data-i18n="sync_verify">登录</button>
+            <div class="link-row">
+              <button id="btn-sync-resend" class="link-btn" type="button" data-i18n="sync_resend">重新发送</button>
+              <button id="btn-sync-change" class="link-btn" type="button" data-i18n="sync_change_email">换一个邮箱</button>
+            </div>
           </div>
+
+          <!-- 「可选」那句放最底下当脚注：它是安心话，不是行动理由。 -->
+          <p class="hint" id="sync-optional" data-i18n="sync_section_hint">可选。不登录也能完整使用 —— 同步只是让浏览器里读到的句子，也出现在 App 和你的其它设备上。登录之后，采集到的句子（含还没进复习的候选）都会同步过去。</p>
         </div>
 
         <div id="sync-in" hidden>
