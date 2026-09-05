@@ -450,6 +450,13 @@
           <a id="feedback-rate" target="_blank" rel="noopener" data-i18n="feedback_rate" hidden>去商店评分</a>
         </p>
         <p class="note" data-i18n="feedback_hint">会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。</p>
+        <!-- 匿名用量事件（docs/telemetry-design.md §5）：默认开、一个开关可关、关了即删。
+             独立键（learn/telemetry.js 的 tm:on），不进 saveAll。中国版 MT_TELEMETRY 为 null，整块藏掉。 -->
+        <div id="telemetry-block" class="field row">
+          <label for="telemetry-on" data-i18n="telemetry_toggle">分享匿名用量数据</label>
+          <label class="switch"><input type="checkbox" id="telemetry-on"><span class="slider"></span></label>
+        </div>
+        <p class="note" id="telemetry-hint"><span data-i18n="telemetry_hint">只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。</span> <a id="telemetry-what" target="_blank" rel="noopener" data-i18n="telemetry_what">会发送什么</a></p>
         <!-- ZIP 直装提示。官网早就说了这句（home.installS4，8 语言都有），但装完的人
              不会回去看官网 —— 所以产品内也要有一处。只放这里：popup 是干活的地方，
              引导里说更新对第 0 天的用户是噪音。 -->
@@ -490,6 +497,7 @@
   <script src="../learn/engine-fields.js"></script>
   <script src="../learn/app-link.js"></script>
   <script src="../learn/feedback.js"></script>
+  <script src="../learn/telemetry.js"></script>
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
   <script src="../learn/tts.js"></script>

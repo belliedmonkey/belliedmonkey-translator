@@ -404,6 +404,7 @@ var LearnSync = (() => {
       if (pulled.needsUpgrade) { emit('error', { code: 'enc_unsupported' }); return { pulled, pushed: null }; }
       const pushed = await push(now);
       await LearnStore.setMeta(LAST_OK, now || Date.now());
+    if (typeof MTTelemetry !== 'undefined') { try { MTTelemetry.once('sync_on'); } catch (_) {} }
       emit('done', { pulled, pushed });
       return { pulled, pushed };
     } catch (e) {

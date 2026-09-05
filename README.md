@@ -222,8 +222,13 @@ Stated up front, because finding them yourself is worse.
 - **No servers of ours in the translation path.** Requests go from your browser to the engine
   you picked.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
-- **No tracking, no telemetry — and no account unless you want one.** Syncing your learning
-  material between your own devices needs a free account; everything else works without one.
+- **No tracking, no third-party analytics — and no account unless you want one.** Syncing your
+  learning material between your own devices needs a free account; everything else works without one.
+- **Anonymous usage events, off in one switch.** The extension sends which features are used, on
+  which browser, and whether a translation succeeded or failed — never the pages you read, the
+  text, the addresses, your keys or your account. A random per-install id, never joined to an
+  account; turning it off in Settings deletes what that device sent. The China edition sends
+  nothing. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
 - **Learning material is built on your device.** If you turn on the learning feature, the
   extension keeps the sentences you actually read — with the page URL, its title, and how long
   the text was on screen — in local storage on that device, so it can show them to you again

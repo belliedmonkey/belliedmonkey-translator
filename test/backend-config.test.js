@@ -101,3 +101,20 @@ describe('build.js — 两条路都要在', () => {
       + '其实还在打东京」的包，而那在产物里完全看不出来');
   });
 });
+
+// ── Gate D（docs/telemetry-design.md §2 第 6 条）：中国版产物里没有遥测端点 ──
+describe('telemetry — 中国版一个字节都不发', () => {
+  const gen = path.join(ROOT, 'dist-china', 'content', 'providers.gen.js');
+  test('dist-china 的 providers.gen.js 里 MT_TELEMETRY 是 null，且没有 bt-ingest', () => {
+    if (!fs.existsSync(gen)) { ok(true, '（未构建 china flavor，跳过）'); return; }
+    const src = fs.readFileSync(gen, 'utf8');
+    ok(/window\.MT_TELEMETRY = null;/.test(src), 'china 产物里 MT_TELEMETRY 不是 null');
+    ok(!/bt-ingest/.test(src), 'china 产物里出现了遥测端点');
+  });
+  test('global 产物里有端点与白名单', () => {
+    const g = path.join(ROOT, 'dist', 'content', 'providers.gen.js');
+    if (!fs.existsSync(g)) { ok(true, '（未构建，跳过）'); return; }
+    const src = fs.readFileSync(g, 'utf8');
+    ok(/functions\/v1\/bt-ingest/.test(src) && /"events":\{/.test(src), 'global 产物缺遥测端点或白名单');
+  });
+});

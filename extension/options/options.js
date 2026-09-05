@@ -466,6 +466,19 @@ async function init() {
   try {
     const el = $('about-version');
     if (el) el.textContent = 'v' + chrome.runtime.getManifest().version;
+    // 匿名用量事件的开关（docs/telemetry-design.md §5）：独立键，不进 saveAll。
+    // 中国版没有这个块（MT_TELEMETRY 为 null 时整块藏掉），保存不受影响。
+    try {
+      const tb = $('telemetry-block'), tg = $('telemetry-on');
+      if (tb && tg) {
+        if (!window.MT_TELEMETRY) tb.hidden = true;
+        else {
+          MTTelemetry.enabled().then((on) => { tg.checked = !!on; });
+          tg.addEventListener('change', () => { MTTelemetry.setEnabled(tg.checked); });
+          const w = $('telemetry-what'); if (w) w.href = 'https://belliedmonkey.cc/privacy.html#usage';
+        }
+      }
+    } catch (_) {}
     // 反馈 / 评分 / 讨论区：地址由 learn/feedback.js 统一给。
     try {
       const mail = $('feedback-mail'); if (mail) mail.href = MTFeedback.mailtoUrl('settings');
@@ -589,6 +602,7 @@ async function init() {
     // 单独写盘，不进 saveAll()：它是一次事件的记录，不是一个可编辑的设置。
     _engineChosen = true;
     try { chrome.storage.local.set({ engineChosen: 1 }); } catch (_) {}
+    if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('engine_set', { provider: String(e.target.value || '') });
     updateProviderUI(e.target.value);
     await saveAll();
     updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
@@ -1659,6 +1673,7 @@ async function init() {
     if ('ttsEngine' in w) { $('tts-engine').value = w.ttsEngine; await updateTtsUI(w.ttsVoice || ''); }
     if ('sttEngine' in w) { $('stt-engine').value = w.sttEngine; updateSttUI(w.sttEngine); }
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
+    if ('provider' in w && (typeof MTTelemetry !== 'undefined')) MTTelemetry.track('engine_set', { provider: String(w.provider || '') });
   }
 
   // ── 快速 / 详细 ──────────────────────────────────────────────────────
@@ -1807,3 +1822,6 @@ init().catch((e) => {
     }
   } catch (_) {}
 });
+
+// 用量事件：扩展页打开即 flush + 当日心跳（docs/telemetry-design.md §4）。
+try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}

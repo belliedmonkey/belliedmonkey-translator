@@ -361,6 +361,7 @@
   $('ob-skip').addEventListener('click', finish);
   async function finish() {
     await storageSet({ extObSeen: 1 });
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('onboarding_done', { surface: 'ext' }); } catch (_) {}
     $('onboard').hidden = true;
     $('ob-done').hidden = false;
     $('ob-done-title').textContent = t('extob_done_title', '设置好了');
@@ -372,6 +373,15 @@
     const fl = $('ob-done-feedback-link');
     fl.textContent = t('feedback_row', '发送反馈');
     try { fl.href = MTFeedback.mailtoUrl('onboarding'); } catch (_) { fl.hidden = true; }
+    // 匿名用量事件说在前面（docs/telemetry-design.md §5）：默认开、设置里可关。中国版没有。
+    const tp = $('ob-done-telemetry');
+    if (tp) {
+      if (!window.MT_TELEMETRY) tp.hidden = true;
+      else {
+        $('ob-done-telemetry-text').textContent = t('telemetry_onboard', '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。');
+        const a = $('ob-done-telemetry-link'); a.textContent = t('telemetry_what', '会发送什么'); a.href = 'https://belliedmonkey.cc/privacy.html#usage';
+      }
+    }
   }
   $('ob-done-close').addEventListener('click', () => { try { window.close(); } catch (_) {} });
 

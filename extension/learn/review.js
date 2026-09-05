@@ -1062,6 +1062,9 @@
       if (doneThisRun && typeof MTFeedback !== 'undefined') {
         try { MTFeedback.maybeRequestRating(doneThisRun); } catch (_) {}
       }
+      if (doneThisRun && (typeof MTTelemetry !== 'undefined')) {
+        try { MTTelemetry.track('review_session', { graded: doneThisRun }); } catch (_) {}
+      }
       return;
     }
 
@@ -1442,3 +1445,6 @@
     await LearnStore.setMeta('howtoSeen', 1);
   });
 })();
+
+// 用量事件：扩展页打开即 flush + 当日心跳（docs/telemetry-design.md §4）。
+try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}

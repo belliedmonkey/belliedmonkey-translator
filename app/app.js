@@ -363,6 +363,7 @@
   let obAt = 0;
 
   function obPaint() {
+    if ($('ob-telemetry')) $('ob-telemetry').hidden = true;   // 只在最后一屏露出
     const step = OB[obAt];
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
     for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup']) $(id).hidden = true;
@@ -435,6 +436,10 @@
         '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
       $('ob-kv').hidden = false;
       obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
+      // 匿名用量事件说在前面（docs/telemetry-design.md §5）。中国版 App 同一份 bundle，
+      // 但 MT_TELEMETRY 为 null，这一句藏掉。
+      const tn = $('ob-telemetry');
+      if (tn) { tn.hidden = !window.MT_TELEMETRY; tn.textContent = t('telemetry_onboard', '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。'); }
     }
   }
 
@@ -474,6 +479,7 @@
 
 
   async function obFinish() {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('onboarding_done', { surface: 'app' }); } catch (_) {}
     try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
     $('onboard').hidden = true;
     paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
@@ -1061,3 +1067,6 @@
     }
   })();
 })();
+
+// 用量事件：App 打开即 flush + 当日心跳。
+try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}

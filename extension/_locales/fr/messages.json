@@ -2122,5 +2122,20 @@
   },
   "sync_resend": {
     "message": "Renvoyer le code"
+  },
+  "telemetry_section": {
+    "message": "Données d’usage anonymes"
+  },
+  "telemetry_toggle": {
+    "message": "Partager des données d’usage anonymes"
+  },
+  "telemetry_what": {
+    "message": "Ce qui est envoyé"
+  },
+  "telemetry_hint": {
+    "message": "Seulement quelles fonctions sont utilisées, sur quel navigateur, et si une traduction a réussi ou échoué — jamais les pages lues, le texte, les adresses, vos clés ni votre compte. Désactiver supprime ce que cet appareil a envoyé."
+  },
+  "telemetry_onboard": {
+    "message": "Des données d’usage anonymes sont envoyées pour améliorer le produit (jamais le contenu ni les adresses des pages). Désactivable dans les réglages."
   }
 }

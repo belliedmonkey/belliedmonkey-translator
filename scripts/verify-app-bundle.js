@@ -150,6 +150,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'drive-audio-cache','btn-drive-clear-audio',
           // 反馈 / 评分出口（2026-09-05）：产品里此前一个 mailto 都没有
           'feedback-title','feedback-mail','feedback-rate','feedback-note',
+          // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
+          'telemetry-block','telemetry-on','telemetry-note',
           'clean-known','settings-signout','delete-account','gear']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus

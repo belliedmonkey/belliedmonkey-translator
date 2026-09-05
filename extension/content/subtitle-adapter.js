@@ -52,8 +52,24 @@ var SubtitleAdapter = (() => {
     let inFlight = false, attempts = 0, nextAt = 0;
 
     const pager = TranslationCore.createPager({ measurerId: ID.meas });
+    let subOkSent = false, subSince = 0;
     const engine = TranslationCore.createSubtitleEngine({
       getCurrentTime: () => spec.getCurrentTime(),
+      onOk: () => {
+        if (subOkSent || !(typeof MTTelemetry !== 'undefined')) return;
+        subOkSent = true;
+        MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
+      },
+      onFail: (e) => {
+        if (!(typeof MTTelemetry !== 'undefined')) return;
+        MTTelemetry.track('translate_fail', {
+          provider: String((settings && settings.provider) || ''),
+          code: (e && typeof e.code === 'string') ? e.code : 'network',
+          status: Number.isInteger(e && e.status) ? e.status : 0,
+          route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
+          ms: Date.now() - subSince,
+        });
+      },
       translate: (text) => spec.translate(text, settings), // harness owns settings; backend reads it
       // Cues already in the target language are skipped before the request, so a
       // native-language video shows one line instead of the same line twice.
@@ -340,6 +356,11 @@ var SubtitleAdapter = (() => {
     function setActive(on) {
       active = on;
       if (on) { lastKey = ''; inFlight = false; attempts = 0; nextAt = 0; status = ''; }
+      // 用量事件：字幕会话开始，只记站点**类别**（youtube / substack / podcast / other），不记域名。
+      if (on && (typeof MTTelemetry !== 'undefined')) {
+        subOkSent = false; subSince = Date.now();
+        MTTelemetry.track('subtitle_on', { site: spec.telemetrySite || 'other' });
+      }
       if (spec.onActiveChange) spec.onActiveChange(on);
       if (!on) { removeOverlay(); document.getElementById(ID.btn)?.remove(); closeMenu(); if (spec.syncNative) spec.syncNative(false, 0); }
       closeMenu();
