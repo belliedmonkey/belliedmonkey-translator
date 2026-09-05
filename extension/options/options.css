@@ -241,6 +241,37 @@ input[type="color"] {
 }
 .card button:not(.btn-danger):not(.icon-btn):hover { background: var(--accent); color: #fff; }
 
+/* 登录卡（design/signin/，2026-09-05）：一键登录是主角。Apple 按 HIG（黑底白字带标，
+   暗色下反转成白底黑字）；Google 白底细边带四色 G。两者同高同宽，胶囊。
+   选择器带 #sync-section：要压过上面 .card button:not():not() 那条通用胶囊（0,3,1）。 */
+#sync-providers { display: flex; flex-direction: column; gap: 10px; }
+#sync-section button.provider {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; padding: 12px 18px;
+  font-size: 15px; font-weight: 600; border: 0;
+}
+#sync-section button.provider .provider-mark { flex: none; }
+#sync-section button.provider.apple { background: #000; color: #fff; }
+#sync-section button.provider.apple:hover { background: #000; color: #fff; filter: brightness(1.25); }
+#sync-section button.provider.google { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+#sync-section button.provider.google:hover { background: var(--section-bg); color: var(--text); }
+#sync-section button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 文字链接样式的按钮：备选路径。点击区仍然 ≥ 44px。 */
+#sync-section button.link-btn {
+  display: block; margin: 0 auto; background: none; border: 0;
+  min-height: 44px; padding: 10px 8px; font-size: 13px; font-weight: 500;
+  color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px;
+}
+#sync-section button.link-btn:hover { background: none; color: var(--accent); }
+.link-row { display: flex; justify-content: center; gap: 8px; }
+/* 邮箱 / 验证码这两步的主按钮通栏；「登录」是这一步的终点，填色。 */
+#sync-section #btn-sync-code, #sync-section #btn-sync-verify { width: 100%; min-height: 44px; font-size: 14px; }
+#sync-section #btn-sync-verify { background: var(--accent); color: #fff; }
+#sync-section #btn-sync-verify:hover { background: var(--accent-hover); color: #fff; }
+#sync-why { margin-bottom: 12px; }
+#sync-email-block, #sync-code-row { margin-top: 4px; }
+#sync-optional { margin-top: 12px; font-size: 12px; }
+
 /* interaction-spec 全局原则: an in-flight (disabled) control must LOOK disabled.
    Wins over the hover fill above — a disabled button lighting up on hover was the
    visual lie that made 立即同步's correct disable invisible. 45% = Organic value. */
@@ -344,4 +375,11 @@ button:disabled, input:disabled, select:disabled {
 @media (prefers-reduced-motion: reduce) {
   /* 动画关掉了，但「是哪一行」这件事仍然要说。静态描边留 2.4s（JS 摘类）。 */
   .field.anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* HIG：暗色底上 Sign in with Apple 用白底黑字。 */
+  #sync-section button.provider.apple { background: #fff; color: #000; }
+  #sync-section button.provider.apple:hover { background: #fff; color: #000; filter: brightness(.92); }
+  #sync-section button.provider.google { background: var(--card-bg); color: var(--text); }
 }

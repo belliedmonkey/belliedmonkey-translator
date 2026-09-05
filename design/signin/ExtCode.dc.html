@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>扩展设置页 · 验证码</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap');
+    :root { --bg:#f5ead8; --card:#ffffff; --section:#f9f4ed; --input:#f9f4ed; --text:#201e1d; --muted:#82796a; --border:#dcd3c4;
+            --accent:#c67139; --accent-deep:#8c491a; --accent-track:#ffe1d0; --sage:#728157; --danger:#b3261e;
+            --apple-bg:#000000; --apple-fg:#ffffff; --google-bg:#ffffff; --google-fg:#201e1d; --google-border:#dcd3c4;
+            --shadow:0 1px 2px rgba(46,43,37,.14); }
+    .dark { --bg:#1d1b19; --card:#2a2723; --section:#262320; --input:#1f1d1a; --text:#f1ebe2; --muted:#a79d8d; --border:#3f3a34;
+            --accent:#d98b57; --accent-deep:#f0b48a; --accent-track:#4a3324; --apple-bg:#ffffff; --apple-fg:#000000;
+            --google-bg:#2a2723; --google-fg:#f1ebe2; --google-border:#4b453e; --shadow:0 1px 2px rgba(0,0,0,.4); }
+    body { margin:0; font-family:"Figtree", -apple-system, system-ui, sans-serif; color:var(--text); }
+    a { color:var(--accent-deep); } a:hover { color:var(--accent); }
+    .root { background:var(--bg); color:var(--text); box-sizing:border-box; }
+    .h { font-family:"Caprasimo", "Figtree", system-ui, sans-serif; font-weight:400; margin:0; }
+    .btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:48px; padding:12px 18px;
+           border-radius:999px; font:inherit; font-size:16px; font-weight:600; border:0; cursor:pointer; box-sizing:border-box; }
+    .btn.apple { background:var(--apple-bg); color:var(--apple-fg); }
+    .btn.google { background:var(--google-bg); color:var(--google-fg); border:1.5px solid var(--google-border); }
+    .btn.primary { background:var(--accent); color:#fff; box-shadow:var(--shadow); }
+    .btn.outline { background:none; color:var(--accent-deep); border:1.5px solid var(--accent); font-weight:700; }
+    .link { background:none; border:0; padding:12px 8px; min-height:44px; display:inline-flex; align-items:center; font:inherit; color:var(--accent-deep); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .label { font-size:13px; color:var(--muted); }
+    .input { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:12px 16px; border-radius:999px; border:1.5px solid var(--border); background:var(--input); color:var(--text); }
+    .input.placeholder { color:var(--muted); }
+    .code { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:8px; }
+    .code .cell { height:52px; border-radius:14px; border:1.5px solid var(--border); background:var(--input); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+    .code .cell.on { border-color:var(--accent); }
+    .muted { color:var(--muted); }
+    .card { background:var(--card); border-radius:16px; box-shadow:var(--shadow); }
+    .panel { background:var(--section); border:1px solid var(--border); border-radius:16px; }
+  </style>
+</helmet>
+
+<div class="{{rootClass}}" style="width: 560px; height: 420px; padding: 24px;">
+  <div class="card" style="display: flex; flex-direction: column; gap: 16px; padding: 22px 24px;">
+    <h2 style="margin: 0; font-size: 18px; font-weight: 700;">登录 · 多设备同步</h2>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <p style="margin: 0; font-size: 14px; line-height: 1.5;">验证码已发到 <b>you@example.com</b></p>
+      <p class="muted" style="margin: 0; font-size: 13px;">邮件里的 6 位数字，填在下面。</p>
+    </div>
+    <div class="code">
+      <div class="cell">4</div><div class="cell">8</div><div class="cell">2</div><div class="cell on"></div><div class="cell"></div><div class="cell"></div>
+    </div>
+    <button class="btn primary" type="button">登录</button>
+    <div style="display: flex; justify-content: center; gap: 8px;">
+      <button class="link" type="button" style="font-size: 13px;">重新发送</button>
+      <button class="link" type="button" style="font-size: 13px;">换一个邮箱</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"Theme"},"$preview":{"width":560,"height":420}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

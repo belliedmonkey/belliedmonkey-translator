@@ -901,7 +901,7 @@
     "message": "换一个邮箱"
   },
   "app_local_note": {
-    "message": "浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。"
+    "message": "可选。不登录也能完整使用 —— 采集和复习都在本机，登录只是为了同步到别的设备。"
   },
   "app_signout": {
     "message": "退出"
@@ -1700,7 +1700,7 @@
     "message": "在网页上完成设置"
   },
   "app_signin_why": {
-    "message": "卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。"
+    "message": "卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。"
   },
   "app_signin_open": {
     "message": "登录"
@@ -1757,7 +1757,7 @@
     "message": "扩展里也要登录一次"
   },
   "ob_kv_twice_note": {
-    "message": "两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。"
+    "message": "两边的存储是分开的，用同一个账号登录即可。"
   },
   "ob_kv_engine_note_required": {
     "message": "扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。"
@@ -2111,5 +2111,17 @@
   },
   "extob_done_feedback": {
     "message": "哪里不对劲？写信给我 —— 每一封我都会读。"
+  },
+  "sync_why": {
+    "message": "登录同一个账号，浏览器里读到的句子就会同步到 App 和你的其它设备。"
+  },
+  "sync_use_email": {
+    "message": "或用邮箱登录"
+  },
+  "sync_change_email": {
+    "message": "换一个邮箱"
+  },
+  "sync_resend": {
+    "message": "重新发送"
   }
 }

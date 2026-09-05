@@ -82,10 +82,11 @@
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
     $('verify').textContent = t('app_verify', '登录');
     $('back').textContent = t('app_back_email', '换一个邮箱');
+    $('resend').textContent = t('sync_resend', '重新发送');
     $('signin-why').textContent = t('app_signin_why',
-      '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
-    $('btn-signin').textContent = t('app_signin_open', '登录');
-    $('local-note').textContent = t('app_local_note', '浏览器扩展不登录也能采集和复习，全部存在本机。登录只是为了让语料同步到这台设备上。');
+      '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
+    $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
+    $('local-note').textContent = t('app_local_note', '可选。不登录也能完整使用 —— 采集和复习都在本机，登录只是为了同步到别的设备。');
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
     $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
     $('app-pw-label').textContent = t('app_pw_label', '密码');
@@ -217,6 +218,8 @@
       // A3：退出后回到可浏览的首页，表单收起来 —— 不要又变成一堵墙。
       $('signin-forms').hidden = true;
       $('signin-prompt').hidden = false;
+      $('signin-prompt').classList.remove('code-step');
+      $('btn-signin').hidden = false;
     }
     if (session) {
       $('who').textContent = LearnAuth.displayName(session);
@@ -429,7 +432,7 @@
     } else {
       $('ob-title').textContent = t('ob_signin_title', '最后一步：登录');
       $('ob-text').textContent = t('app_signin_why',
-        '卡片是浏览器扩展采集的。要在这台设备上复习，就得登录同步过来。');
+        '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
       $('ob-kv').hidden = false;
       obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
     }
@@ -484,20 +487,20 @@
   $('ob-next').addEventListener('click', () => {
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
     // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
-    obFinish().then(() => {
-      $('signin-prompt').hidden = true;
-      $('signin-forms').hidden = false;
-      $('email').focus();
-    });
+    // 引导收尾落到未登录首屏的说明卡上：一键登录在卡上，邮箱是卡上那行链接 ——
+    // 不再直接摊开邮箱表单（那会让最费劲的路又排到最前面）。
+    obFinish().then(() => { try { $('btn-apple').focus(); } catch (_) {} });
   });
   $('ob-skip').addEventListener('click', () => { obFinish(); });
   $('ob-prefs').addEventListener('click', openSafariPrefs);
 
-  $('btn-signin').addEventListener('click', () => {
-    $('signin-prompt').hidden = true;
+  // 邮箱是备选：展开表单时一键登录仍留在卡上；只有那行链接自己消失。
+  function openEmailForms() {
     $('signin-forms').hidden = false;
-    $('email').focus();
-  });
+    $('btn-signin').hidden = true;
+    try { $('email').focus(); } catch (_) {}
+  }
+  $('btn-signin').addEventListener('click', openEmailForms);
 
   // ── 原生 Sign in with Apple（§8.4.1.2）────────────────────────────────────
   //
@@ -511,10 +514,8 @@
     } catch (_) { return false; }
   })();
   if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('apple')) {
-    $('btn-apple').textContent = t('sync_with_apple', '用 Apple 登录');
+    $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
     $('btn-apple').hidden = false;
-    $('signin-or').textContent = t('sync_or', '或者用邮箱 / 手机号：');
-    $('signin-or').hidden = false;
     $('btn-apple').addEventListener('click', () => {
       $('btn-apple').disabled = true;
       say(t('app_apple_waiting', '正在打开 Apple 登录…'));
@@ -533,7 +534,7 @@
   if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('google')) {
     const scheme = (window.MT_FLAVOR === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
     const g = $('btn-google');
-    g.textContent = t('sync_with_google', '用 Google 登录');
+    $('btn-google-label').textContent = t('sync_with_google', '用 Google 登录');
     g.hidden = false;
     g.disabled = true;
     LearnAuth.prepareProviderSignIn().then(() => { g.disabled = false; })
@@ -618,6 +619,7 @@
       pendingEmail = email;
       $('email-form').hidden = true;
       $('code-form').hidden = false;
+      $('signin-prompt').classList.add('code-step');   // 验证码是第二屏，不往下堆
       $('code').focus();
       say(t('app_code_sent', '验证码已发送，查收邮件。'));
     } catch (err) {
@@ -652,8 +654,17 @@
   $('back').addEventListener('click', () => {
     $('code-form').hidden = true;
     $('email-form').hidden = false;
+    $('signin-prompt').classList.remove('code-step');
     $('email').focus();
     say('');
+  });
+  $('resend').addEventListener('click', async () => {
+    if (!pendingEmail) return;
+    $('resend').disabled = true;
+    say(t('app_sending', '正在发送…'));
+    try { await LearnAuth.signIn(pendingEmail); say(t('app_code_sent', '验证码已发送，查收邮件。')); }
+    catch (err) { say(humanError(err), true); }
+    finally { $('resend').disabled = false; }
   });
 
   // ─── Password sign-in (§8.4.1 second grant, 2026-08-17) ──────────────────
@@ -983,9 +994,7 @@
       if (!mine) {
         $('onboard').hidden = true;
         $('signed-out').hidden = false;
-        $('signin-prompt').hidden = true;
-        $('signin-forms').hidden = false;
-        try { $('email').focus(); } catch (_) {}
+        openEmailForms();
         say(d.hasUid && d.uid
           // 不给邮箱：跨过来的是不透明 id，我们**不知道**那是哪个邮箱，
           // 说「用 xxx 登录」就是编造。如实说「用扩展里那个账号」。
@@ -1018,9 +1027,7 @@
       $('dl-mismatch').hidden = true;
       try { await LearnAuth.signOut(); } catch (_) {}
       await show(null);
-      $('signin-prompt').hidden = true;
-      $('signin-forms').hidden = false;
-      try { $('email').focus(); } catch (_) {}
+      openEmailForms();
       say(t('app_dl_signin', '浏览器扩展那边已经登录了。在这里用同一个账号登录，卡片才会同步过来。'), true);
     });
     $('dl-mismatch-keep').addEventListener('click', () => { $('dl-mismatch').hidden = true; });

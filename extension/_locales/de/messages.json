@@ -900,7 +900,7 @@
     "message": "Andere E-Mail verwenden"
   },
   "app_local_note": {
-    "message": "Die Browser-Erweiterung sammelt und wiederholt auch ohne Konto — alles bleibt auf deinem Gerät. Die Anmeldung dient nur dazu, dein Material auf dieses Gerät zu synchronisieren."
+    "message": "Optional. Alles funktioniert auch ohne Anmeldung — Sammeln und Wiederholen bleiben auf diesem Gerät; die Anmeldung dient nur der Synchronisierung mit Ihren anderen Geräten."
   },
   "app_signout": {
     "message": "Abmelden"
@@ -1699,7 +1699,7 @@
     "message": "Einrichtung im Web abschließen"
   },
   "app_signin_why": {
-    "message": "Karten werden von der Browser-Erweiterung gesammelt. Zum Wiederholen auf diesem Gerät musst du dich anmelden, damit sie synchronisiert werden."
+    "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
   },
   "app_signin_open": {
     "message": "Anmelden"
@@ -1756,7 +1756,7 @@
     "message": "Du meldest dich auch in der Erweiterung an"
   },
   "ob_kv_twice_note": {
-    "message": "Die Speicher sind getrennt, du erhältst also zwei Codes. Nutze dieselbe E-Mail-Adresse."
+    "message": "Beide Seiten speichern getrennt — melden Sie sich auf beiden mit demselben Konto an."
   },
   "ob_kv_engine_note_required": {
     "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Unumgänglich: ohne Schlüssel wird nichts übersetzt."
@@ -2110,5 +2110,17 @@
   },
   "extob_done_feedback": {
     "message": "Etwas funktioniert nicht? Schreiben Sie mir — ich lese jede Nachricht."
+  },
+  "sync_why": {
+    "message": "Mit demselben Konto anmelden, und die im Browser gelesenen Sätze werden in die App und auf Ihre anderen Geräte synchronisiert."
+  },
+  "sync_use_email": {
+    "message": "Oder mit E-Mail anmelden"
+  },
+  "sync_change_email": {
+    "message": "Andere E-Mail-Adresse verwenden"
+  },
+  "sync_resend": {
+    "message": "Code erneut senden"
   }
 }
