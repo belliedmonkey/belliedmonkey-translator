@@ -214,6 +214,27 @@ node scripts/asc.js bind com.belliedmonkeytranslator IOS 1.6.4 43
 按号排序取首条会安静地挂上另一个平台的包，而 ASC 不会拦。它 PATCH 之后会回读，
 回读不符即 `exit 1`。
 
+### 4.5 隐私政策 URL —— **趁版本还没上架，现在就核** ⚠️
+
+```bash
+node scripts/asc.js privacy          # 只读比对
+node scripts/asc.js privacy --apply  # 有进行中的版本时才改得动
+```
+
+**这一步只有在这个时刻做得成。** 那个字段在 `READY_FOR_SALE` 下被 Apple 锁死
+（409 · `The field 'privacyPolicyUrl' can not be modified in the current state`），
+所以「事后想起来再改」是**改不了**的 —— 只能等下一次发版，然后再忘一次。
+
+它也是最容易漏的一个：改好隐私页、推上线，**不等于**商店页的链接指向它。
+那是 ASC 里一个独立字段，可以指向任何地方。2026-09-05 实测，中国版指的是一个
+**脱离两个仓库管理**的 CloudBase 托管点，挂着 7-11 的版本，写着「没有后端服务器、
+没有账号系统」—— 而那时中国版 App 已经在同步。App 内链接、support、marketing
+早就都对了，**只有商店页那一个是孤儿**，从代码和站点两侧都看不出来。
+
+期望值在 `scripts/asc.js` 的 `PRIVACY_URL` 表里，按 flavor 分（中国版
+`belliedmonkey.com`／EdgeOne 境内备案，国际版 `belliedmonkey.cc`／Vercel）——
+与 `app/app.js:292`、`extension/learn/quick-setup.js:114` 的分叉判据同源。
+
 ### 5. 真机验证
 
 **§2.0：一台机器同一时刻只能装一份。** 不是「先关掉另一个」，是**卸载**。

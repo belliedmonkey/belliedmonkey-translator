@@ -362,6 +362,68 @@ async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly)
   return ok;
 }
 
+// ── 隐私政策 URL：商店页那一份，与页面本身是两回事 ────────────────────────
+//
+// 2026-09-05 发现：中国版这个字段指向一个**脱离两个仓库管理**的 CloudBase 托管点，
+// 挂着 7-11 的版本，写着「没有后端服务器、没有账号系统」—— 而那时中国版 App 已经
+// 在同步。App 内链接、support、marketing 早就都对了，**只有商店页那一个是孤儿**，
+// 所以从代码和站点两侧都看不出来。它是被这个命令发现的，不是被谁想起来的。
+//
+// ⚠️ 这个字段在 READY_FOR_SALE 下**改不了**（Apple 409：can not be modified in
+//    the current state），要有一个进行中的版本。所以它只能跟着发版改 ——
+//    而「跟着发版」这件事，靠人记是靠不住的，靠这个命令跑一次是可靠的。
+//
+// 期望值按 flavor 分：中国版必须落在 belliedmonkey.com（EdgeOne，境内，浙ICP备），
+// 国际版落在 belliedmonkey.cc（Vercel）。与 app/app.js:292 和
+// extension/learn/quick-setup.js:114 的分叉判据一致 —— 那两处是同一件事的另一半。
+const PRIVACY_URL = {
+  'com.belliedmonkeytranslator': 'https://belliedmonkey.cc/privacy.html',
+  'com.belliedmonkeytranslator.cn': 'https://belliedmonkey.com/privacy.html',
+};
+
+async function cmdPrivacy(apply) {
+  let ok = true;
+  for (const app of await apps()) {
+    const want = PRIVACY_URL[app.bundleId];
+    if (!want) continue;
+    const infos = await api('GET', `/apps/${app.id}/appInfos?limit=10`
+      + '&fields[appInfos]=appStoreState');
+    for (const inf of (infos.data || [])) {
+      const state = inf.attributes.appStoreState;
+      const locs = await api('GET', `/appInfos/${inf.id}/appInfoLocalizations?limit=20`
+        + '&fields[appInfoLocalizations]=locale,privacyPolicyUrl');
+      for (const L of (locs.data || [])) {
+        const got = L.attributes.privacyPolicyUrl || '';
+        const same = got === want;
+        const label = `${app.bundleId} ${L.attributes.locale} [${state}]`;
+        console.log(`  ${same ? '✓' : '✗'} ${label}`);
+        if (!same) {
+          console.log(`      现在 ${got || '(空)'}`);
+          console.log(`      应为 ${want}`);
+          ok = false;
+        }
+        if (!apply || same) continue;
+        // READY_FOR_SALE 上必然 409。先说清楚再试，免得把一个已知的限制
+        // 读成一次偶发失败。
+        if (state === 'READY_FOR_SALE') {
+          console.log('      ⚠️ 这条是 READY_FOR_SALE，Apple 不允许改这个字段。'
+            + '要改必须有一个进行中的版本 —— 也就是说，跟着下一次发版改。');
+          continue;
+        }
+        await api('PATCH', `/appInfoLocalizations/${L.id}`,
+          { data: { type: 'appInfoLocalizations', id: L.id,
+                    attributes: { privacyPolicyUrl: want } } });
+        const back = await api('GET', `/appInfoLocalizations/${L.id}`
+          + '?fields[appInfoLocalizations]=privacyPolicyUrl');
+        const now = back.data.attributes.privacyPolicyUrl || '';
+        console.log(`      回读「${now}」${now === want ? '✓' : '✗ 不符！'}`);
+        if (now !== want) ok = false;
+      }
+    }
+  }
+  return ok;
+}
+
 // app 级字段。**无 platform 参数**，见上面 ②。
 async function cmdAppInfo(bundleId, file, apply) {
   const app = (await apps()).find((a) => a.bundleId === bundleId);
@@ -760,6 +822,10 @@ async function cmdDevices(udid, name, macFlag) {
     const ok = await cmdNotes(bundleId, platform, versionString, file, rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'privacy') {
+    const ok = await cmdPrivacy(rest.includes('--apply'));
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'installs') {
     // 默认 30 天。免费 app 的 Units 就是下载次数。
     const n = Math.max(1, Math.min(365, parseInt(rest[0], 10) || 30));
@@ -770,6 +836,7 @@ async function cmdDevices(udid, name, macFlag) {
     + ' | aso --audit'
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'
+    + ' | privacy [--apply]'
     + ' | dump <bundleId> <平台>'
     + ' | devices [UDID [名称] [--mac]]'
     + ' | newversion <bundleId> <平台> <版本> [--apply]'
