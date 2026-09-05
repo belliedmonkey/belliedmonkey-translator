@@ -875,8 +875,15 @@ function validateManifest(distDir, isFirefox) {
       }
     }
     // The declaration must be the full Gate B value, not merely present.
-    // technicalAndInteraction：匿名用量事件（Gate D，2026-09-05）。AMO 审核可见。
-    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo', 'technicalAndInteraction'];
+    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo'];
+    // technicalAndInteraction：匿名用量事件（Gate D，2026-09-05）。AMO 的校验器**只允许它出现在
+    // optional 里**（放进 required 会被拒：must be equal to one of the allowed values —— 09-05 实测）。
+    // 与产品内那个开关的语义一致：可关的东西就该是 optional。
+    const WANT_DCP_OPT = ['technicalAndInteraction'];
+    const dcpOpt = m.browser_specific_settings?.gecko?.data_collection_permissions?.optional;
+    if (JSON.stringify((dcpOpt || []).slice().sort()) !== JSON.stringify(WANT_DCP_OPT.slice().sort())) {
+      staleHits.push(`gecko.data_collection_permissions.optional is [${dcpOpt}] — Gate D requires exactly [${WANT_DCP_OPT}]`);
+    }
     if (JSON.stringify((dcp || []).slice().sort()) !== JSON.stringify(WANT_DCP.slice().sort())) {
       staleHits.push(`gecko.data_collection_permissions.required is [${dcp}] — Gate B requires exactly [${WANT_DCP}]`);
     }

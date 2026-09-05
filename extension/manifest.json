@@ -186,7 +186,9 @@
         "required": [
           "websiteContent",
           "browsingActivity",
-          "personallyIdentifyingInfo",
+          "personallyIdentifyingInfo"
+        ],
+        "optional": [
           "technicalAndInteraction"
         ]
       }
