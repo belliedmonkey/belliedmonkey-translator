@@ -11,6 +11,7 @@
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
 </p>
 
 <p align="center">
@@ -338,6 +339,16 @@ extension/
 ```
 
 ---
+
+## Where to talk
+
+Everything user-facing happens in [GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) — it is the same link behind the "Discuss" button in the app and the extension.
+
+- **Something broken or confusing?** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) — say which version and which surface (Safari on iPhone, Chrome, the Mac app…).
+- **Want a site, engine or feature?** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) — upvote an existing one before opening a new one.
+- **Using it in a way we didn't expect?** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell).
+
+Chinese and English are both fine. There is no chat server yet; one will open when there are enough people to keep it alive.
 
 ## Contributing
 

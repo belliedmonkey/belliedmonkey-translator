@@ -11,6 +11,7 @@
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-0a7a3c"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
 </p>
 
 <p align="center">
@@ -299,6 +300,16 @@ extension/
 ```
 
 ---
+
+## 去哪儿说话
+
+面向用户的交流都在 [GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) —— App 和扩展里那个「讨论」按钮指的就是它。
+
+- **坏了或看不懂？** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) —— 写上版本号和你用的是哪一面（iPhone 上的 Safari、Chrome、Mac App……）。
+- **想要某个站点、引擎或功能？** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) —— 先给已有的点赞，再开新的。
+- **用出了我们没想到的用法？** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell)。
+
+中文英文都可以。目前没有聊天群；人够多到能让群活着的时候会开一个。
 
 ## 参与贡献
 
