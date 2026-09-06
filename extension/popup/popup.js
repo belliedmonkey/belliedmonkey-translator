@@ -249,10 +249,11 @@ async function init() {
   // progress and every stop reason are shown.
   const asrSection = $('asr-section');
   const durationS = (pageStatus && pageStatus.media && pageStatus.media.durationS) || 0;
-  if (asrSection && durationS >= 30) {
+  const live = !!(pageStatus && pageStatus.media && pageStatus.media.live);
+  if (asrSection && (live || durationS >= 30)) {
     asrSection.hidden = false;
     const hint = $('transcribe-media-hint');
-    if (hint) hint.textContent = Math.floor(durationS / 60) + ':' + String(Math.round(durationS % 60)).padStart(2, '0');
+    if (hint) hint.textContent = live ? 'LIVE' : Math.floor(durationS / 60) + ':' + String(Math.round(durationS % 60)).padStart(2, '0');
     $('transcribe-media').addEventListener('click', async () => {
       const r = await sendToPage('transcribeMedia');
       if (r && r.ok) window.close();
