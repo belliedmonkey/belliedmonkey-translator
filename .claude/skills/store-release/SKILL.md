@@ -451,6 +451,17 @@ i18n/{ar,en,es,fr,hi,pt,ru,zh-CN}.json
   home.installDl    按钮文案「下载 Chrome 安装包 — v1.6.4（ZIP）」
 ```
 
+**改过任何一份 `i18n/*.json` 之后，必须重新生成 11 套语言页**，否则搜索引擎索引到的是旧文案
+（根页面是运行时替换的，看着是新的；`/zh-CN/` 等 44 个预渲染页是静态的）。2026-09-05 改了
+隐私 §5 没跑，两天里搜索引擎能看到的 11 套隐私页还写着「无遥测」：
+
+```bash
+node scripts/gen-site-langs.js           # 生成到 ~/belliedmonkey-cc
+node scripts/gen-site-langs.js --check   # 门禁：与字典不一致就红
+```
+
+`llms.txt` 也是给爬虫和模型看的一份文案，不在字典里 —— Gate D 那类改口要单独改它。
+
 官网还有**它自己的一套会过时的素材**：`media/shot-*.png`、`media/demo-macos-*.mp4`、
 `media/demo-poster.jpg`。审计时别漏（见 `assets.md`）。
 

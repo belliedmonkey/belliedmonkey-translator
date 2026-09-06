@@ -2694,6 +2694,7 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 | `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
 | `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
 | `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **unchanged** — the China flavor sends nothing, so the sentence stays true |
+| `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
 | Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
 
 The Gate B sentence above ("**not** Usage Data, since there is still no telemetry")
