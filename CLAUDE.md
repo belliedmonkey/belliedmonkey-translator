@@ -40,6 +40,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > Store-asset production (deciding what is stale, reshooting screenshots,
 > producing the preview videos) lives in the skill's `assets.md`.
 
+## 待办（人要做的事）
+
+**所有需要用户人工去做、或要等外部结果的事，一律写进 `.local/TODO.md`**（gitignored，
+不提交）。每次开工先读它，把「未完成」里的条目提醒一遍 —— 这是每日提醒，不是可选项。
+**只有拿到结果并回读过（截图、API 读回、页面状态），才可以标 `[x]`**；「已经点了」「应该
+好了」不算完成。新条目写清加入日期与完成判据。
+
 ## Project Overview
 
 Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:
