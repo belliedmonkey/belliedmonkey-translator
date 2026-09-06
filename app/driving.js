@@ -144,6 +144,26 @@ var AppDriving = (() => {
     } catch (_) { btn.hidden = true; showNeedSpeech(false); }
   }
 
+  // 设置总线（chrome-shim 的 storage.onChanged）：读的那组键里任何一把变了，就重算入口。
+  // 以前只有登录和改界面语言两处调 refreshEntry —— 在设置里配好语音 key 回到首页，入口
+  // 还是「没配」时的结论，要重启 App（2026-09-06 报障）。会话进行中不重算：那时能改设置
+  // 的只有本视图自己的按钮，它们写的值就是 applySettings 会读回来的值。
+  let entryTimer = 0;
+  const WATCHED = new Set(SETTINGS_KEYS);
+  function watchSettings() {
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area && area !== 'local') return;
+        if (!Object.keys(changes || {}).some((k) => WATCHED.has(k))) return;
+        if (state && state.name !== 'idle') return;
+        clearTimeout(entryTimer);
+        entryTimer = setTimeout(() => { refreshEntry(); }, 150);
+      });
+    } catch (e) {
+      console.warn('[app/driving] no storage.onChanged in this host; entry gate refreshes at sign-in only', e);
+    }
+  }
+
   // ─── Copy ─────────────────────────────────────────────────────────────────
   // TTS failure reasons reuse the SAME i18n keys review.js's reasonText maps —
   // one wording per failure across surfaces.
@@ -883,6 +903,7 @@ var AppDriving = (() => {
 
   // ─── Wiring (everything inside #app-drive) ────────────────────────────────
   function wire() {
+    watchSettings();
     $('app-drive-pause').addEventListener('click', togglePlayPause);
     $('app-drive-next').addEventListener('click', () => dispatch('tap_next'));
     $('app-drive-repeat').addEventListener('click', () => dispatch('tap_repeat'));

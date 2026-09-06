@@ -920,6 +920,10 @@
   });
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
+  // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
+  // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
+  // 这个最需要出路的场景里（2026-09-06）。落点是语音引擎那个控件，不是页面顶部。
+  $('app-drive-need-tts-go').addEventListener('click', () => openSettings('tts-engine'));
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.

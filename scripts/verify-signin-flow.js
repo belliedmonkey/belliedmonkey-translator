@@ -23,6 +23,7 @@
 const path = require('path');
 const { launchChrome } = require('../test/layout/chrome.js');
 const { CDP } = require('../test/layout/cdp.js');
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 
 const DIST = process.argv[2] || path.join(__dirname, '..', 'dist');
 const EMAIL = 'tester@example.com';
@@ -67,6 +68,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await cdp.send('Page.navigate',
       { url: `chrome-extension://${extId}/options/options.html#sync` }, sessionId);
     await sleep(3500);
+    // 设置页每段文字在深色 + 浅色下 ≥ 4.5:1（scripts/lib/sweep.js，2026-09-06）。
+    await installSweep(cdp, sessionId);
+    { const sw = await sweepBoth(cdp, sessionId, 'body');
+      if (sw.length) problems.push('设置页看不清的文字: ' + sw.slice(0, 6).join(' | ') + (sw.length > 6 ? ` …共 ${sw.length} 处` : '')); }
 
     const r = await cdp.send('Runtime.evaluate', { returnByValue: true, expression: `(() => {
       const $ = (id) => document.getElementById(id);
@@ -161,6 +166,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await cdp.send('Page.navigate',
       { url: `chrome-extension://${extId}/learn/review.html` }, rAtt.sessionId);
     await sleep(3000);
+    await installSweep(cdp, rAtt.sessionId);
+    { const sw = await sweepBoth(cdp, rAtt.sessionId, 'body');
+      if (sw.length) problems.push('复习页看不清的文字: ' + sw.slice(0, 6).join(' | ') + (sw.length > 6 ? ` …共 ${sw.length} 处` : '')); }
     const rr = await cdp.send('Runtime.evaluate', { returnByValue: true, expression: `(() => {
       const b = document.getElementById('go-app');
       return JSON.stringify({

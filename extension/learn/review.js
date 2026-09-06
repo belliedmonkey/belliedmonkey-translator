@@ -28,23 +28,25 @@
   let ttsMode = 'off';  // 'off' | 'assist' | 'audio-first'
   let ttsAutoPlay = true;
 
-  async function loadSettings() {
-    return new Promise((resolve) => {
-      // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
-      // cache and the `lq:` outbox, and reading the whole thing here would drag
-      // both along. (docs/learning-design.md §7.)
-      resolve(PageSettings.read([
-        'uiLang', 'learnEnabled', 'learnDailyNew', 'learnRules',
-        'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-        // §9.2 — the translator's engine config, plus the dedicated notes-engine
-        // override group (notesProvider set ⇒ notes group wins; resolveConfig).
-        'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-        'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-        // §9.4 — the transcription engine group. NEVER follows the translation or
-        // notes group: where a recording goes is an explicit choice.
-        'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-      ]).then(function (r) { return r.data; }));
-    });
+  // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
+  // cache and the `lq:` outbox, and reading the whole thing here would drag
+  // both along. (docs/learning-design.md §7.) 读的键 = 订阅的键（WATCHED）。
+  const READ_KEYS = [
+    'uiLang', 'learnEnabled', 'learnDailyNew', 'learnRules',
+    'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
+    // §9.2 — the translator's engine config, plus the dedicated notes-engine
+    // override group (notesProvider set ⇒ notes group wins; resolveConfig).
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
+    'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
+    // §9.4 — the transcription engine group. NEVER follows the translation or
+    // notes group: where a recording goes is an explicit choice.
+    'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
+  ];
+
+  // Returns {ok, data}: a FAILED read is not an empty profile (page-settings 的契约，
+  // §8.4.1）—— 启动时拿它当默认值是没办法，但热刷新时绝不能用「读失败」覆盖上一份。
+  function loadSettings() {
+    return PageSettings.read(READ_KEYS);
   }
 
   function srcLine(item, sources) {
@@ -248,7 +250,10 @@
 
   // Render the audio row for this card, and decide whether it can work at all
   // BEFORE offering a button that would always fail.
-  async function setupAudio(item) {
+  // `quiet`: re-decide the button only, never start playback — the settings-change
+  // path re-runs this for the card already on screen, and a settings edit is not a
+  // request to hear the card again.
+  async function setupAudio(item, quiet) {
     const box = $('audio');
     setNote('');
     $('play').textContent = t('tts_play', '▶ 听一遍');
@@ -257,6 +262,7 @@
     const av = await LearnTTS.available(item.lang);
     $('play').disabled = !av.ok;
     if (!av.ok) { setNote(reasonText(av.reason)); return; }
+    if (quiet) return;
     if (ttsAutoPlay || ttsMode === 'audio-first' || currentMode === 'listen') playCurrent(true);
   }
 
@@ -918,6 +924,10 @@
   async function renderGoApp() {
     const btn = $('go-app');
     if (!btn) return;
+    // 人已经在 App 里了 —— 这个按钮是从浏览器往 App 送人的，在 App 里出现就是自指
+    // （2026-09-06 报障：宿主 App 的复习页头长出了「在 App 里继续复习 →」）。
+    // 宿主真值只有一个：AppLink.inApp()。
+    if (AppLink.inApp()) { btn.hidden = true; return; }
     if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) { btn.hidden = true; return; }
     const s = await LearnAuth.current().catch(() => null);
     // 未登录不给：没有 id 可带，而 App 那边此刻也拉不到任何东西 ——
@@ -970,6 +980,12 @@
         // 而「怎么让它们也出现在 App 里」的答案就是登录 —— 原来这行是纯文本，
         // 到此为止（2026-09-02 链路核查）。落点是登录框本身，不是设置页顶部。
         line.textContent = '';
+        // App 里没有 options.html（垫片的 getURL 原样返回路径，链接是死的），登录在
+        // App 自己的首页 —— 这里只说状态，不给一个点了没反应、文案还说「去 App」的链接。
+        if (AppLink.inApp()) {
+          line.textContent = t('sync_status_signed_out', '未登录，仅本机数据');
+          break;
+        }
         const a = document.createElement('a');
         a.textContent = t('sync_status_signed_out_cta', '未登录，仅本机数据 —— 登录后也能在 App 里复习 →');
         a.href = chrome.runtime.getURL('options/options.html') + '#sync';
@@ -1076,48 +1092,106 @@
   // §8.8 — the app enters this view without reloading the page (it is a long-lived
   // single page), so it needs a handle to rebuild the deck on entry. The extension
   // reloads per open and never calls this; exposing it there is harmless.
-  window.LearnReview = { start };
+  // ─── Settings → runtime ──────────────────────────────────────────────────
+  // Runs once at boot and again on every storage change (watchSettings). It used
+  // to be inline in Boot and run ONCE: the app is a long-lived single page, so a
+  // user who configured a speech key in settings and came back still had the boot
+  // snapshot — ttsMode / the engine singletons / the deck cap — until the next
+  // launch (2026-09-06 报障). Quick Setup, the primary first-run path, only wrote
+  // storage and pushed nothing. The extension's review page reloads per open, so
+  // there this only adds "options changed in another tab ⇒ live here".
+  let settings = {};
+  let explainLang = navigator.language || 'zh-CN';
+
+  function applySettings(s) {
+    settings = s || {};
+    ttsMode = settings.ttsMode || 'off';
+    ttsAutoPlay = settings.ttsAutoPlay !== false;
+    // §9.2 — the notes gate follows the translator's engine unless a dedicated
+    // notes engine is configured (notesProvider set ⇒ whole notes group wins;
+    // resolveConfig owns that rule). No chat-capable engine (or no key) ⇒
+    // capable() stays false ⇒ the entry point never renders.
+    LearnNotes.configure(LearnNotes.resolveConfig(settings));
+    explainLang = settings.uiLang && settings.uiLang !== 'auto'
+      ? settings.uiLang : (navigator.language || 'zh-CN');
+    // §9.4 — the transcription engine group. Empty engine ⇒ capable() false ⇒ the
+    // speak form does not exist. Guarded: content-script-less test hosts may load
+    // review.js without the speech module.
+    if (typeof LearnSpeech !== 'undefined') {
+      LearnSpeech.configure({
+        engineId: settings.sttEngine || '',
+        baseUrl: settings.sttBaseUrl || '',
+        apiKey: settings.sttApiKey || '',
+        model: settings.sttModel || '',
+      });
+    }
+    LearnTTS.configure({
+      engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
+      baseUrl: settings.ttsBaseUrl || '',
+      apiKey: settings.ttsApiKey || '',
+      model: settings.ttsModel || '',
+      voice: settings.ttsVoice || '',
+      rate: Number(settings.ttsRate) > 0 ? Number(settings.ttsRate) : 1,
+    });
+    sched = Object.assign({}, LearnScheduler.DEFAULTS, {
+      dailyNew: Number(settings.learnDailyNew) > 0
+        ? Number(settings.learnDailyNew)
+        : LearnScheduler.DEFAULTS.dailyNew,
+    });
+  }
+
+  // Re-read + re-apply. A failed read keeps the previous snapshot (§8.4.1: a
+  // storage failure is not "everything is default"). If the card on screen is
+  // actually visible, re-decide its ▶ under the new config — same path as
+  // onVoicesChanged — without starting playback. The app re-enters the view through
+  // start() anyway, which rebuilds the deck under the new `sched`.
+  async function reloadSettings() {
+    const prevLang = settings.uiLang || 'auto';
+    const r = await loadSettings();
+    if (!r || !r.ok) return;
+    applySettings(r.data);
+    if ((settings.uiLang || 'auto') !== prevLang) {
+      PageI18n.setUiLang(settings.uiLang);
+      PageI18n.applyI18n('learn_title_full');
+    }
+    const it = deck[idx];
+    const card = $('card');
+    if (it && card && !card.hidden && card.offsetParent !== null) setupAudio(it, true);
+  }
+
+  // The settings bus. In the extension this is the real chrome.storage.onChanged;
+  // in the app it is chrome-shim's emitter (added 2026-09-06 — before that the shim
+  // had none, and every consumer here was a one-shot read). Filtered to the keys we
+  // read: the same bucket takes a `tr:` cache write per translation. Debounced,
+  // because one settings-page action writes several keys.
+  let reloadTimer = 0;
+  const WATCHED = new Set(READ_KEYS);
+  function watchSettings() {
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area && area !== 'local') return;
+        if (!Object.keys(changes || {}).some((k) => WATCHED.has(k))) return;
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+          reloadSettings().catch((e) => console.error('[learn/review] settings reload failed', e));
+        }, 150);
+      });
+    } catch (e) {
+      // A host without onChanged is back to one read per load. Say so — silent is
+      // how this class of bug stayed hidden.
+      console.warn('[learn/review] no storage.onChanged in this host; settings apply at next load', e);
+    }
+  }
+
+  window.LearnReview = { start, reloadSettings };
 
   // ─── Boot ────────────────────────────────────────────────────────────────
 
-  const settings = await loadSettings();
+  const boot = await loadSettings();
+  applySettings(boot && boot.data);
   PageI18n.setUiLang(settings.uiLang);
   PageI18n.applyI18n('learn_title_full');
-
-  ttsMode = settings.ttsMode || 'off';
-  ttsAutoPlay = settings.ttsAutoPlay !== false;
-  // §9.2 — the notes gate follows the translator's engine unless a dedicated
-  // notes engine is configured (notesProvider set ⇒ whole notes group wins;
-  // resolveConfig owns that rule). No chat-capable engine (or no key) ⇒
-  // capable() stays false ⇒ the entry point never renders.
-  LearnNotes.configure(LearnNotes.resolveConfig(settings));
-  const explainLang = settings.uiLang && settings.uiLang !== 'auto'
-    ? settings.uiLang : (navigator.language || 'zh-CN');
-  // §9.4 — the transcription engine group. Empty engine ⇒ capable() false ⇒ the
-  // speak form does not exist. Guarded: content-script-less test hosts may load
-  // review.js without the speech module.
-  if (typeof LearnSpeech !== 'undefined') {
-    LearnSpeech.configure({
-      engineId: settings.sttEngine || '',
-      baseUrl: settings.sttBaseUrl || '',
-      apiKey: settings.sttApiKey || '',
-      model: settings.sttModel || '',
-    });
-  }
-  LearnTTS.configure({
-    engineId: settings.ttsEngine || LearnTTS.DEFAULTS.engineId,
-    baseUrl: settings.ttsBaseUrl || '',
-    apiKey: settings.ttsApiKey || '',
-    model: settings.ttsModel || '',
-    voice: settings.ttsVoice || '',
-    rate: Number(settings.ttsRate) > 0 ? Number(settings.ttsRate) : 1,
-  });
-
-  sched = Object.assign({}, LearnScheduler.DEFAULTS, {
-    dailyNew: Number(settings.learnDailyNew) > 0
-      ? Number(settings.learnDailyNew)
-      : LearnScheduler.DEFAULTS.dailyNew,
-  });
+  watchSettings();
 
   document.querySelectorAll('.grade').forEach((b) => {
     b.addEventListener('click', () => grade(Number(b.dataset.grade), currentSources));

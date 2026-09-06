@@ -278,6 +278,16 @@ Registry consequences are in §7 (`liveEndpoint` / `liveType` / `liveModel` /
 key carve-outs). Module consequences are in §6. Per-surface expectations are named in
 `docs/verification-spec.md`.
 
+7. **The host app's 对话 mode is the same source with a different microphone**
+   *(2026-09-07, `docs/learning-design.md` §9.6)*. Rules 3, 5 and 6 apply verbatim:
+   sentences close on the same cutter, audio goes only to the user's live endpoint,
+   every stop is visible and total. What differs is the capture: the device microphone
+   through a **native** `AVAudioEngine` tap in the host app, because WebKit mutes
+   `getUserMedia` whenever the app is not visible (measured on a real iPhone, three
+   runs — `docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」). Per §5.3 this is
+   a host-app capability: **the extension never gains a microphone source**, and the
+   streaming adapter (`ws-transcribe.js`) stays one file shared by both hosts.
+
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
 `DomSegmenter` relies on: block/inline classification (by computed `display` —
@@ -1149,7 +1159,10 @@ never media, and never audio we would have to transcribe. *(Amended 2026-09-06:)
 is **in** scope is §2.4 — transcription on the endpoint the **user** configured, started
 by the user's tap, with the audio never touching a server of ours. Podcasts with
 neither a timed transcript nor a text transcript page get the page path plus that
-offer, nothing automatic.
+offer, nothing automatic. *(Amended 2026-09-07:)* the host app's 对话 mode
+(`docs/learning-design.md` §9.6) transcribes the **device microphone** on the same
+terms — user's tap, user's endpoint, nothing of ours in the path — with capture done
+natively because WebKit silences it in the background.
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
@@ -1256,6 +1269,11 @@ source → Extractor → Engine → Renderer
 > Either way the Collector sees only what the Renderer displayed.
 
 ### 9.2 Where it attaches (the only three touch points)
+
+> *(Amended 2026-09-07:)* the host app's 对话 mode adds a fourth, **app-only** point —
+> `app/listen.js`, when a finalized pair is first rendered into the history list
+> (`docs/learning-design.md` §9.6). It writes through `LearnStore.putItem` in the app's
+> own origin (§9.3); `learn-collector.js` still ships in no app bundle.
 
 | Surface | Attachment | Why there |
 |---|---|---|

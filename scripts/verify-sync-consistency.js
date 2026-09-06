@@ -161,23 +161,8 @@ let ok = true;
 const failures = [];
 const need = (cond, msg) => { if (!cond) { ok = false; failures.push(msg); console.log('  ✗ ' + msg); } };
 
-const SWEEP_FN = `
-function __sweep(scope) {
-  const bad = [];
-  const root = document.querySelector(scope) || document.body;
-  const vis = (el) => {
-    const r = el.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2) return false;
-    const cs = getComputedStyle(el);
-    return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05;
-  };
-  for (const el of root.querySelectorAll('button, a, select')) {
-    if (!vis(el)) continue;
-    const label = (el.textContent || el.value || '').trim();
-    if (!label) bad.push(el.tagName.toLowerCase() + '#' + (el.id || el.className) + ' 无文字');
-  }
-  return bad;
-}`;
+// 表面扫描来自 scripts/lib/sweep.js（WCAG 比值、深浅两色，2026-09-06）。
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 
 async function withHost(host, fn) {
   console.log('\n── ' + host.name + ' ──');
@@ -245,7 +230,8 @@ async function withHost(host, fn) {
     };
 
     await nav();
-    await fn({ nav, ev, text, waitLine, offline, problems });
+    const sweep = (scope) => sweepBoth(cdp, sessionId, scope);
+    await fn({ nav, ev, text, waitLine, offline, problems, sweep });
     need(problems.length === 0, '页面异常: ' + problems.join(' | '));
   } finally {
     chrome.cleanup();
@@ -263,7 +249,7 @@ async function withHost(host, fn) {
   let countsB2 = '';
 
   // ─── 设备 A：扩展复习页 —— 未登录态 → 登录 → 进入即同步 → 评分 → 上传 ─────
-  await withHost(HOSTS.ext, async ({ nav, ev, text, waitLine }) => {
+  await withHost(HOSTS.ext, async ({ nav, ev, text, waitLine, sweep }) => {
     // 1 · 未登录：状态行必须显示「未登录，仅本机数据」（用户裁定）
     const signedOut = await waitLine('未登录', 4000);
     need(signedOut.includes('未登录'), `未登录态状态行不对: 「${signedOut}」`);
@@ -300,12 +286,15 @@ async function withHost(host, fn) {
     await new Promise((r) => setTimeout(r, 300));
     countsA = await text('#counts');
     console.log('  A 计数: ' + countsA);
-    const bad = await ev(`__sweep('body')`);
+    // 跨面交接的按钮：扩展侧已登录必须有（宿主门只关 App，别关过头）。
+    need((await ev(`document.getElementById('go-app').hidden`)) === false,
+      '扩展复习页已登录却没有「在 App 里继续复习」—— 宿主门关过头了');
+    const bad = await sweep('body');
     need(bad.length === 0, '表面扫描: ' + bad.join(' | '));
   });
 
   // ─── 设备 B：App 出货布局 —— 空库登录 → 进入即拉取 → 计数逐字一致 ──────────
-  await withHost(HOSTS.app, async ({ nav, ev, text, waitLine, offline }) => {
+  await withHost(HOSTS.app, async ({ nav, ev, text, waitLine, offline, sweep }) => {
     console.log('  auth:', await ev(SEED_AUTH));
     const rowsStable = cloud.rows.length;
     await nav();   // 进入 App：启动即强制同步（quietSync force）
@@ -376,7 +365,11 @@ async function withHost(host, fn) {
     const back = await waitLine('同步完成');
     need(back.includes('同步完成'), `网络恢复后状态行未回到同步完成: 「${back}」`);
 
-    const bad = await ev(`__sweep('#review-view')`);
+    // 人已经在 App 里了：这个按钮是从浏览器往 App 送人的，在 App 里出现就是自指
+    // （2026-09-06 报障，修前这里是 false）。
+    need((await ev(`document.getElementById('go-app').hidden`)) === true,
+      'App 里长出了「在 App 里继续复习」按钮 —— renderGoApp 没判宿主');
+    const bad = await sweep('#review-view');
     need(bad.length === 0, '表面扫描: ' + bad.join(' | '));
   });
 

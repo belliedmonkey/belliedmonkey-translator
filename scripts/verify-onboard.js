@@ -11,9 +11,12 @@
  * 用法：node scripts/verify-onboard.js [dist|dist-china|dist-firefox]
  */
 const path=require('path'), fs=require('fs'), http=require('http');
-const ROOT='/Users/belliedmonkey/mobiletranslator';
+// 仓库根按脚本位置算，不写死：写死的绝对路径会让 worktree / 别的机器上的门禁悄悄去验
+// **另一棵树**的 dist（2026-09-06 就这么量到了一份旧调色板）。
+const ROOT=path.join(__dirname,'..');
 const { launchChrome }=require(path.join(ROOT,'test/layout/chrome.js'));
 const { CDP }=require(path.join(ROOT,'test/layout/cdp.js'));
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 const DIST=process.argv[2]||'dist';
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml'};
 setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
@@ -45,7 +48,9 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:`
       window.chrome={runtime:{getURL:s=>s,id:'x',openOptionsPage(){}},
         i18n:{getUILanguage:()=>'zh-CN',getMessage:()=>''},
-        storage:{local:{get:(k,cb)=>cb({}),set:(o,cb)=>cb&&cb(),remove:(k,cb)=>cb&&cb()}}};`},sessionId);
+        storage:{local:{get:(k,cb)=>cb({}),set:(o,cb)=>cb&&cb(),remove:(k,cb)=>cb&&cb()}}};
+      ${SWEEP_FN}
+      window.__sweep=__sweep;`},sessionId);
     await cdp.send('Page.navigate',{url},sessionId);
     await new Promise(r=>setTimeout(r,2500));
     const ev=async e=>JSON.parse((await cdp.send('Runtime.evaluate',{expression:e,returnByValue:true},sessionId)).result.value);
@@ -131,6 +136,9 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         else pass('收尾屏有反馈出口，链接是 mailto');
         break;
       }
+      // 每一屏在深色 + 浅色下各扫一遍：每段看得见的文字 ≥ 4.5:1（scripts/lib/sweep.js）。
+      // 2026-09-06 用户报「申请 key 的链接在深色下看不清」—— 那个 <a> 没人上色，1.9:1。
+      s.contrast=await sweepBoth(cdp,sessionId,'body');
       seen.push(s);
       // 点**可见**的那个按钮。'try' 屏没有「继续」（唯一行动是「打开示例页面」，
       // 它同时前进），照旧点 ob-next 会点到一个 display:none 的按钮 —— click() 照样
@@ -163,6 +171,9 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       + JSON.stringify(asksLogin[0].title)
       + ' —— 登录的请求归官网交接块与复习页，都在用户看到译文之后');
     else pass('引导里不提登录 —— 那一步在看到价值之后才问');
+    const dim=seen.filter(s=>s.contrast&&s.contrast.length);
+    if(dim.length) fail(`第 ${seen.indexOf(dim[0])+1} 屏有看不清的文字：${dim[0].contrast.slice(0,5).join(' | ')}${dim[0].contrast.length>5?' …共 '+dim[0].contrast.length+' 处':''}`);
+    else pass('每屏文字在深色与浅色下都 ≥ 4.5:1');
     if(seen.some(s=>!s.title.trim()||!s.text.trim())) fail('有屏的标题或正文是空的'); else pass('每屏都有标题与正文');
     // 判据是意图本身：这一屏上得有**某个**能配引擎的东西。不要拿某个具体元素当代理 ——
     // 代理会随改版失效，而失效的代理不会变红，只会变得没有意义。
