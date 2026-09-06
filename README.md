@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/hero-bilingual.gif" alt="A Substack podcast page: every paragraph carries a translation beneath it, and a bilingual subtitle pair tracks the audio at the bottom of the screen." width="720">
+  <img src="docs/media/hero-bilingual.gif" alt="A Wikipedia article: tap the floating button and every paragraph keeps its original text with the translation right beneath it, in a distinct colour." width="720">
 </p>
 
-<p align="center"><sub>Page text and audio subtitles at the same time. The original stays; the translation goes underneath.</sub></p>
+<p align="center"><sub>One tap on the floating button. The original stays; the translation goes underneath. Wikipedia, translated with your own key.</sub></p>
 
 ---
 

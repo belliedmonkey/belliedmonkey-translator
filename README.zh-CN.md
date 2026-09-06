@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/hero-bilingual.gif" alt="一个 Substack 播客页面：每个段落下方都有绿色译文，底部有跟随音频推进的双语字幕。" width="720">
+  <img src="docs/media/hero-bilingual.gif" alt="一个维基百科页面：点一下悬浮按钮，每个段落保留原文，译文用另一种颜色紧跟在下面。" width="720">
 </p>
 
-<p align="center"><sub>页面文本与音频字幕同时工作。原文保留，译文在下面。</sub></p>
+<p align="center"><sub>点一下悬浮按钮。原文保留，译文在下面。维基百科，用你自己的 key 翻的。</sub></p>
 
 ---
 
