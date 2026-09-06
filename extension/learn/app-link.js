@@ -66,7 +66,16 @@ var AppLink = (() => {
     return url;
   }
 
-  return { open, deepLink, storeUrl, applePlatform };
+  // 「我在宿主 App 里吗」。唯一的真值是 build/app-bundle.js 写在 Script.js 头部的
+  // `window.MT_HOST = 'app'`。不嗅 UA（WKWebView 在 macOS 上也带 Safari 字样），也不嗅
+  // webkit 桥（test:learn 的 Chrome 宿主里没有桥，而它跑的正是 App 包）。
+  // 「去 App 里复习」是从浏览器往 App 送人的一跳 —— 在 App 里出现就是自指
+  // （2026-09-06 报障），renderGoApp 用它关门。
+  function inApp() {
+    return typeof window !== 'undefined' && window.MT_HOST === 'app';
+  }
+
+  return { open, deepLink, storeUrl, applePlatform, inApp };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = AppLink;

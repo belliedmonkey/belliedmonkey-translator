@@ -19,6 +19,7 @@ const os = require('os');
 const ROOT = path.resolve(__dirname, '..');
 const { launchChrome } = require(path.join(ROOT, 'test/layout/chrome.js'));
 const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json',
   '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
@@ -105,6 +106,10 @@ async function checkSite(site) {
 
     // ① 没装扩展时：绝不能说已启用
     await load();
+    // 站点页每段文字在深色 + 浅色下 ≥ 4.5:1（scripts/lib/sweep.js，2026-09-06）。
+    await installSweep(cdp, sessionId);
+    { const sw = await sweepBoth(cdp, sessionId, 'body');
+      if (sw.length) bad.push('看不清的文字: ' + sw.slice(0, 6).join(' | ') + (sw.length > 6 ? ` …共 ${sw.length} 处` : '')); }
     let s = await ev(`JSON.stringify({
       cloaked: getComputedStyle(document.documentElement).visibility === 'hidden',
       h1: (document.querySelector('h1')||{}).innerText.trim() || '',

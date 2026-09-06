@@ -25,6 +25,7 @@ const http = require('http');
 const ROOT = path.join(__dirname, '..');
 const { launchChrome } = require(path.join(ROOT, 'test/layout/chrome.js'));
 const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 // 两个 flavor 的宿主 App 包是两份不同的产物（注册表不同、默认引擎不同、
 // 免费通道有无不同）。此前这里写死 dist-app，于是**中国版从来没被这套断言测过**
 // —— 1.6.4 那次「中国版默认引擎不在自己注册表里」能一路出货，就是这个形状。
@@ -90,6 +91,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       expression: `JSON.stringify({
         text: document.body.innerText.trim().length,
         syncEnabled: !!(window.MT_BACKEND && MT_BACKEND.enabled),
+        // 宿主真值（AppLink.inApp 读它）：build/app-bundle.js 写在 Script.js 头部。
+        hostFlag: window.MT_HOST === 'app',
+        // 「在 App 里继续复习」在 App 里永远不该出现（2026-09-06 报障）。未登录时它本来
+        // 就藏着，这条只防「无条件显示」的回归；登录态的正式断言在 test:sync。
+        goAppHidden: !!(document.getElementById('go-app') || {}).hidden,
         outHidden: document.getElementById('signed-out').hidden,
         obShown: !document.getElementById('onboard').hidden,
         // Assert on what must be HIDDEN too. \`hidden\` is an attribute, not a
@@ -196,6 +202,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     need(problems.length === 0, '控制台有错: ' + problems.join(' | '));
     need(missed.length === 0, '请求了 bundle 里不存在的路径: ' + missed.join(', '));
     need(o.globals.length === 0, '打包漏了模块: ' + o.globals.join(', '));
+    need(o.hostFlag, 'Script.js 头部没有 window.MT_HOST = \'app\' —— 复习页分不清自己在哪个宿主');
+    need(o.goAppHidden, '「在 App 里继续复习」在 App 里露出来了');
     // Both shipping states are real states, and the OFF one carries a promise worth
     // holding the app to: `MT_BACKEND.enabled === false` says there is "no path to an
     // account or to our server". An app whose whole job is signing in is exactly such
@@ -382,6 +390,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     if (o.syncEnabled) {
       const g = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
+          // 上一段（引擎字段走查 / 一键配置）已经写过翻译引擎的 key，而解析门**跟随翻译
+          // 引擎**（§9.2）—— 自 2026-09-06 设置总线接通后那次写入会即刻传到 LearnNotes，
+          // 所以「还没配 key」这个前提要自己造出来：清掉两组引擎键，等总线把门关上。
+          await new Promise((r) => chrome.storage.local.remove(
+            ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel'], () => r()));
+          await new Promise((r) => setTimeout(r, 400));
           const before = LearnNotes.capable();
           const sel = document.getElementById('notes-provider');
           const opt = [...sel.options].find((x) => x.value);
@@ -715,6 +729,25 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       + '（含哨兵项）');
     need(o.sttEngineCount === o.sttEngineWant && o.sttEngineWant > 1,
       '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
+
+    // ─── 深浅两色的表面扫描（scripts/lib/sweep.js）：首页、设置页、复习视图 ────────
+    // 每段看得见的文字 ≥ 4.5:1。2026-09-06 之前所有门禁只跑浅色、只判「前景 ≠ 背景」。
+    await installSweep(cdp, sessionId);
+    const sweepView = async (label, prep, scope) => {
+      const pr = await cdp.send('Runtime.evaluate', { expression: prep, awaitPromise: true, returnByValue: true }, sessionId);
+      if (pr.exceptionDetails) throw new Error(label + ' 准备失败: ' + ((pr.exceptionDetails.exception || {}).description || pr.exceptionDetails.text));
+      const bad = await sweepBoth(cdp, sessionId, scope);
+      need(bad.length === 0, `【${label}】看不清的文字: ` + bad.slice(0, 6).join(' | ')
+        + (bad.length > 6 ? ` …共 ${bad.length} 处` : ''));
+    };
+    await sweepView('首页', `(async () => { const $ = (id) => document.getElementById(id);
+      $('onboard').hidden = true; $('signed-out').hidden = false; return 'ok'; })()`, 'body');
+    await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
+      $('signed-out').hidden = true; $('app-settings').hidden = false;
+      AppSettings.paintStatic(); await AppSettings.paint(null, () => {}); return 'ok'; })()`, '#app-settings');
+    await sweepView('复习视图', `(async () => { const $ = (id) => document.getElementById(id);
+      $('app-settings').hidden = true; $('review-view').hidden = false;
+      await LearnReview.start(); return 'ok'; })()`, '#review-view');
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? `\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载（${FLAVOR}）` : '\n✗ App 页面有问题');

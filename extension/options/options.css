@@ -6,6 +6,10 @@
    One line here beats remembering it at every future `display` rule. */
 [hidden] { display: none !important; }
 
+/* 链接颜色只有一个来源：--link。这页原来没有 a 规则，#about-links / #telemetry-what /
+   一键配置的申请 key 链接都是浏览器默认蓝，深色卡片上 1.56:1（2026-09-06）。 */
+a { color: var(--link); }
+
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -181,9 +185,15 @@ input[type="color"] {
   flex-shrink: 0;
 }
 
+/* 预览的是「译文压在网页上」的样子 —— 网页多半是白底，所以底色固定白，深色模式下也是：
+   否则深色卡片上预览一个为浅底选的绿字只有 2.3:1，看起来像坏了（2026-09-06）。
+   字幕预览同理固定黑底（见 options.html 的内联样式）。 */
 .color-preview {
+  display: inline-block;
   font-size: 14px;
-  padding: 4px 0;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: #ffffff;
   transition: color 0.2s;
 }
 

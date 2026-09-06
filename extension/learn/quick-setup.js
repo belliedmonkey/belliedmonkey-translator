@@ -266,20 +266,24 @@ var QuickSetup = (() => {
 
   const STYLE = `
     .qs-wrap { display:flex; flex-direction:column; gap:10px; }
-    .qs-sub { font-size:.9em; opacity:.75; margin:0; }
-    .qs-privacy { font-size:.85em; opacity:.8; margin:0; }
-    .qs-key-link { font-size:.85em; margin:0; }
+    /* 次要文字走 --text-secondary，不走 opacity：透明度把 4.5:1 的字压成 3.4:1，
+       而它在三个宿主的三张样式表里都没人管（2026-09-06 深浅色核查）。 */
+    .qs-sub { font-size:.9em; color:var(--text-secondary, inherit); margin:0; }
+    .qs-privacy { font-size:.85em; color:var(--text-secondary, inherit); margin:0; }
+    /* 链接颜色必须自带：这个组件挂在引导页 / 扩展设置页 / App 设置页，三张样式表里
+       原来没有一张给 <a> 上色 —— 浏览器默认蓝在深色底上 1.9:1（2026-09-06 报障）。 */
+    .qs-key-link { font-size:.85em; margin:0; color:var(--link, inherit); text-decoration:underline; }
     .qs-try { margin-top:4px; }
-    .qs-try-note { font-size:.85em; opacity:.8; margin:0; }
+    .qs-try-note { font-size:.85em; color:var(--text-secondary, inherit); margin:0; }
     .qs-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .qs-row label { flex:0 0 auto; font-size:.85em; opacity:.75; min-width:3em; }
+    .qs-row label { flex:0 0 auto; font-size:.85em; color:var(--text-secondary, inherit); min-width:3em; }
     .qs-row input, .qs-row select { flex:1 1 8em; min-width:0; }
     .qs-res { display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none; }
     .qs-res li { font-size:.9em; line-height:1.5; white-space:pre-wrap; }
     .qs-res .qs-name { font-weight:600; }
     .qs-ok { color:var(--sage-text, #2f6b4f); }
     .qs-bad { color:var(--danger, #c0392b); }
-    .qs-idle { opacity:.6; }
+    .qs-idle { color:var(--text-secondary, inherit); }
     .qs-res button { font-size:.8em; padding:2px 8px; width:auto; margin:0 0 0 6px; }
   `;
   let styled = false;

@@ -65,6 +65,7 @@
 | 8 | 句子解析 | 门随 configure 即刻打开、mock 引擎结果渲染生词、结果落缓存 |
 | 9 | App 设置页 | 标签全非空、语音选择器装入系统语音（仅 App 宿主） |
 | 10 | 播客入口门控（§9.5，仅 App 宿主） | mock 音色在 ⇒ 「播客模式」入口出现；无音色 ⇒ 入口**不存在**（门控而非禁用） |
+| 10′ | **设置总线**（2026-09-06 报障：配好语音 key 返回，入口与 ▶ 要重启 App 才出现） | 全程**不调 `refreshEntry()`、不刷新页面**，只写 `chrome.storage`：清掉引擎 ⇒ 1.5s 内播客入口自己消失、复习卡 ▶ 自己禁用；配回引擎 ⇒ 入口与 ▶ 自己回来（und 卡则说明语言未知）；`ttsMode` 关/开 ⇒ 音频块自己隐/显。机制：`app/chrome-shim.js` 的 `storage.onChanged`（App 侧唯一的设置总线），review.js `reloadSettings` 与 driving.js `refreshEntry` 订阅它 |
 | 10a | 播客自动连播 + **零写入** | 顺序播放走完一整轮：**三遍结构**（原句/原句/译句…，第一张卡的原句被读满三次）、播放段数 ≥ 卡数×4；跑完 IndexedDB **零新复习行**、`sched`/`skills` 一字不动（load-bearing 反向断言） |
 | 10b | 播放模式按钮 | 点一下换模式、落盘到 `drivePlaybackMode`、且 `LearnTTS.stop` 调用次数不变（**不打断正在播的音频**） |
 | 10c | 随机是排列 | 切随机后 `order` 是 0..n-1 的一个排列（无重复无遗漏）—— 「每次随机抽一张」会在这里露馅 |
@@ -76,7 +77,7 @@
 | 10f′ | **预载但引擎没配 ⇒ 必须说话** | **先清掉 `notesProvider`/`notesApiKey`/`provider`/`apiKey`** 再点预载：断言账单里点名「未配置解析引擎，M 张卡的解析与译文会被跳过」并指出去哪配，且**没有发出任何解析或翻译请求**。与 10d′ 同型——那次真机缺陷正是因为测试在同一次写入里把引擎也配好了 |
 | 10f‴ | 预载遇上配坏的语音引擎 | endpoint 引擎**去掉地址**再点预载：账单必须点名原因（缺地址 / 缺 key），而不是只说「没有可听读的卡」—— `available()` 失败会让每一张卡都被判成读不出来，症状会把原因盖住。算账那一步照旧零请求 |
 | 10f″ | 预载遇上不产生缓存的引擎 | `ttsEngine = browser`（`returnsAudio:false`）时点预载：账单如实说「设备内置语音不产生缓存，本来就能离线播放」，**不显示恒为 0 的音频进度**，且音频那一路零请求 |
-| * | **每步表面扫描** | 可见 button/a/select：文字非空 **且前景色≠背景色**（绿字绿底类 bug 整类击杀） |
+| * | **每步表面扫描**（`scripts/lib/sweep.js`，深色 + 浅色各一遍） | 每个可见、带自有文字的元素（含 input/select 的值）：WCAG 比值 ≥ 4.5:1（大字 3:1），button/a 必须有可读标签；背景沿祖先链合成，过渡动画先跳到终点再量。2026-09-06 之前只判「前景 ≠ 背景」且只跑浅色，深色底上 1.9:1 的默认链接蓝一路绿着上了商店。同一个扫描器也接在 test:app / test:onboard / test:signin / test:sync / test:setup-page 上；token 两两组合另由 `test/palette-contrast.test.js` 在 `npm test` 里钉住 |
 
 ### 2.2 其余真实引擎门禁（既有，此处挂名）
 
@@ -98,7 +99,7 @@
 | M5 | 自动同步端到端 | Safari 采集 + App | 浏览器采集 → 开扩展复习页（上推）→ App 回前台（拉取）→ 进复习见新卡，全程零手动同步；再同步一次收敛 0/0 |
 | M6 | 阶梯升降真机手感 | iPhone App | 认读→听懂→产出随强度切换；阈值 4/30 手感不对就调（设计文档标了「调整便宜」） |
 | M7 | TestFlight 特查 | ASC | 新 build 处理完 **必须手动加进「天使」组**（16 的教训）；出口合规无警告 |
-| M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读（表面扫描只跑浅色引擎） |
+| M8 | 深浅色两查 | iPhone App | 深色模式下全部按钮/文字可读 —— 比值下限已由自动扫描守住（双配色，全部门禁）；真机这一查只看「不刺眼、不过暗」这种数字说不了的事 |
 | M9 | 真麦克风门控（§9.4）**✅ 2026-08-13 模拟器实证** | iPhone App + iOS Safari 扩展页 | 实测通过：App 里配好转写引擎后**说徽章出现**（capable() 在真 WKWebView 为真）、iOS 麦克风授权弹窗正常弹出并可授权；WebKit `isTypeSupported('audio/mp4')`=true，选中 m4a 符合设计。**模拟器无法完成真录音**：授权后拿到的音轨立刻 `readyState=ended`、MediaRecorder 产出 0 字节（Simulator 无可用音频输入，非代码问题——原始 MediaRecorder 诊断确认 `dataavailable` 先于 `stop`，出货代码在 onstop 读 chunks 的假设在 WebKit 成立）。**真录音改到真机上做。** 原步骤：| App：配转写引擎 → 说题出现 → 🎙 触发系统麦克风授权（`NSMicrophoneUsageDescription` 来自 app:sync 补丁）→ 授权后可录；扩展页：iOS Safari 扩展页 getUserMedia 历史受限——预期表现为**说档不存在**（能力门控），绝不是报错或死卡 |
 | M10 | 真转写端到端（§9.4）**⚠️ 部分完成** | iPhone App | 已证：出货 speech-input.js 在真 WebKit 里跑通到上传（服务器实收并处理），**且揪出真 bug——自建端点缺 CORS 时 WebKit 在读状态码前就判死 fetch，只抛裸 TypeError**（已修：具名 `network` + 文案点出可达性与 CORS + 尾斜杠裁剪）。**未证**：真语音→真 transcript→匹配度（模拟器无麦，见 M9）。原步骤：| Safari 的 MediaRecorder 出 mp4/m4a 容器 → 发真 whisper 兼容端点（本地起一个即可）→ 有 transcript、有匹配度；文件扩展名与容器不匹配是常见断点，必须真测。macOS App 的 `com.apple.security.device.audio-input` entitlement 由 `app:sync` 的 pbxproj 补丁写入（`ENABLE_RESOURCE_ACCESS_AUDIO_INPUT`，2026-08-12 已实证进入签名后的 entitlements）——工程重新生成后记得重跑 app:sync |
 

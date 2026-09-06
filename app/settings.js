@@ -325,7 +325,7 @@ var AppSettings = (() => {
   }
 
   // ─── 来源治理 (§4.1/§7.4/§8.9) ─────────────────────────────────────────
-  // The shim has NO storage.onChanged, so every write repaints explicitly — the
+  // 本页自己的读数不订阅 storage.onChanged（它是写入方，重画自己就够了）——
   // same pattern as liveTtsConfigure(). Rules ride the next push as a `g` row;
   // a delete is account intent and gets a prompt forced sync (§7.4).
 
@@ -574,6 +574,12 @@ var AppSettings = (() => {
         // Voice names don't carry across engines (a voiceURI means nothing to a
         // speech endpoint, 'alloy' means nothing to the system) — reset it.
         await set({ ttsEngine: id, ttsVoice: '' });
+        // 选了引擎而朗读模式还是「关」= 配好了却永远不出声的语音。一键配置早就是这条
+        // 规则（quick-setup.js：ttsMode off → assist）；手动路径不做，配完 key ▶ 照样不出现。
+        if (id && $('tts-mode').value === 'off') {
+          $('tts-mode').value = 'assist';
+          await set({ ttsMode: 'assist' });
+        }
         paintTtsFields(id);
         await paintVoices('');
         liveTtsConfigure();

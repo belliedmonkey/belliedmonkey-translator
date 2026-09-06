@@ -100,7 +100,8 @@ npm run test:wipe        # 「清除本机全部数据」真的清干净了吗�
                          # 永远不落定 —— 不报错，界面照样说「已清除」，而库原封不动。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
-                         # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified
+                         # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour
+                         # schemes, via scripts/lib/sweep.js — shared by every page gate) + DB-verified
                          # tier/practice/notes flow. Cases: docs/learn-regression.md
 ```
 
