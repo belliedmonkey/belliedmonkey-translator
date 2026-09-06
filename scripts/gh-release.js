@@ -147,7 +147,19 @@ if (require.main === module) (async () => {
   }
 
   // 回读。**不是看 gh 有没有报错** —— 要确认 latest 指向的那份下载下来确实是这个版本。
-  const back = JSON.parse(sh(`gh release view ${tag} --json tagName,assets,isPrerelease`));
+  const back = JSON.parse(sh(`gh release view ${tag} --json tagName,assets,isPrerelease,isDraft`));
+  // 2026-09-05 的形状：删远端 tag 重打时，GitHub 把挂在旧 tag 上的已发布 release 降成 Draft，
+  // 而这里第二次跑只看「已存在」换资产 —— 官网 beta 页的直链 404 了十几个小时，每一步都 ✓。
+  if (back.isDraft) {
+    console.error('✗ 回读：Release 是 Draft —— 直链是 404。多半是 tag 被移过：`gh release edit ' + tag + ' --draft=false`');
+    process.exit(1);
+  }
+  // 直链本身也要读回：Draft 之外还有别的办法让它 404（资产名、权限），只信 HTTP 200。
+  try {
+    const code = sh(`curl -sIL -o /dev/null -w "%{http_code}" https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/${tag}/${ASSET_NAME}`).trim();
+    if (code !== '200') { console.error(`✗ 回读：直链 HTTP ${code}`); process.exit(1); }
+    console.log('✓ 直链 HTTP 200');
+  } catch (e) { console.error('✗ 回读直链失败：' + (e && e.message)); process.exit(1); }
   if (prerelease && !back.isPrerelease) {
     console.error('✗ 回读：它不是 prerelease —— 这会把官网首页的下载按钮顶成内测包');
     process.exit(1);

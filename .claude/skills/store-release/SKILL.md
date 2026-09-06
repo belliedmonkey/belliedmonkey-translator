@@ -496,6 +496,7 @@ node scripts/asc.js installs 45
 | CWS 体检显示 `NOT_FOUND` | 那是「草稿里没有待传的包」，不是找不到条目 | 审核状态这个 API 根本读不到 |
 | AMO 传完 `--check` 还是旧版本 | `线上版本` 只算审核通过的 | `/versions/?filter=all_with_unlisted` |
 | 门禁说 HEAD 不在 tag 上 | HEAD 往前走了（哪怕只动 scripts/） | `--worktree` 从干净树出货，别 `--allow-dirty` |
+| 官网 beta 直链 404，而发布脚本每步 ✓ | 移 tag（删远端再重打）把已发布 Release 降成 **Draft**，脚本「已存在只换资产」看不见 | 移 tag 前先 `gh release delete`；`gh-release.js` 回读现在查 isDraft + 直链 HTTP 200 |
 
 ## 判断口径
 
