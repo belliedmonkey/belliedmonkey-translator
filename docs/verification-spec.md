@@ -413,6 +413,28 @@ only asserts "speak() did not throw" passes over total silence. Assert on the
 utterance's `start` event, or on the ▶ label flipping to its replay wording (which
 only happens on a confirmed start).
 
+**Mandatory: AI 转写字幕 (`docs/domain-design.md` §2.4) is a per-surface expectation.**
+Tier A (file) is the floor; tier B (live capture) is a browser capability, so per §5.3
+rule 4 each surface's behaviour is named here. Every row is verified **during ≥ 30 s of
+real playback, with a recording** (the claim is about timing), on a public-domain
+sample (LibriVox chapter on archive.org: CORS-readable, so tier A) and on a `blob:`/MSE
+source (a YouTube video with captions disabled, or a Twitch/YouTube live stream: tier
+B). DeepSeek as the translation engine; the transcription engine is the one under
+test with the key from `.local/keys.md`.
+
+| Surface | Tier A (fetchable URL) | Tier B (`blob:`/MSE) | Stop visibility |
+|---|---|---|---|
+| macOS Chrome / Edge | pair appears after one upload; no per-sentence requests to the STT endpoint (check the network log) | `captureStream` after the crossorigin reload keeps the playhead position; sentences appear ≈ 2 s after speech | Substack episode ⇒ 「无法读取该音频」 within 10 s; muting a tainted source ⇒ 「捕获不到声音」 within 3 s |
+| Firefox | same, via `apiFetch`'s background route where the CDN has no CORS (R1: body must survive `sendMessage`) | `captureStream` (Firefox ≥ 149); **measure** whether the content-script socket obeys the page's `connect-src` on a strict-CSP page | same |
+| macOS Safari | same as Chrome — content-script fetch; record whether a no-CORS CDN is reachable from the content script (unknown until measured) | `createMediaElementSource` after the crossorigin reload; audio stays audible (the node is wired to `destination`) | same |
+| iPhone / iPad Safari (≥ iOS 17.1) | same as macOS Safari; the AudioContext is created inside the tap handler | `createMediaElementSource` on MSE works; **native HLS (`src=.m3u8`) is expected to be silent** — the silence guard must report it within 3 s, never a stuck 「实时转写中」 | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
+| iOS / macOS host app | N/A (no translation path) | N/A | N/A |
+
+**Check the request, not the overlay.** A live session that re-sends an already-closed
+sentence produces byte-identical subtitles; only the socket log shows the waste. Assert
+that the number of closed sentences pushed equals the number the vendor emitted, and
+that the STT endpoint received exactly one upload per file-tier session.
+
 **Mandatory: the learning layer (记忆层).** Permanent matrix item for any change
 touching `content/learn-*.js`, `learn/**`, or the two capture attachment points
 (`content-webpage.js` `renderUnit`, `subtitle-adapter.js` after `renderOverlay`). See
