@@ -2017,5 +2017,20 @@
   },
   "asr_history_title": {
     "message": "इतिहास · पूरे वाक्य"
+  },
+  "app_listen_back": {
+    "message": "वापस"
+  },
+  "app_listen_spike_title": {
+    "message": "लाइव सुनना · परीक्षण"
+  },
+  "app_listen_start": {
+    "message": "सुनना शुरू करें"
+  },
+  "app_listen_stop": {
+    "message": "रोकें"
+  },
+  "app_listen_bg": {
+    "message": "लॉक होने पर भी सुनते रहें (रिकॉर्डिंग सत्र)"
   }
 }

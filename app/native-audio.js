@@ -42,7 +42,7 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state'],
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size'],
   };
 
@@ -238,6 +238,9 @@ var NativeAudio = (() => {
   }
 
   // 由 app/driving.js 在 wire() 里注册。一个监听者，不是一串 —— 会话只有一个。
+  // 实时听译（§9.6）：请求一个**可录音**的音频会话（.playAndRecord），让锁屏后麦克风
+  // 还活着。要在 sessionStart 之前发；关掉时回到只放不录。
+  function recordMode(on) { post({ type: 'record-mode', on: !!on }); }
   function onEvent(fn) { listener = typeof fn === 'function' ? fn : null; }
 
   // 原生 → JS 的唯一入口。
@@ -270,7 +273,7 @@ var NativeAudio = (() => {
     platform: () => platform,
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
-    sessionStart, sessionStop, nowPlaying, artwork, artworkLocal, playingState, onEvent, _fromNative,
+    sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, _fromNative,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

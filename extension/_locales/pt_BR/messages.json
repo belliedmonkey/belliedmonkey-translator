@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "Histórico · frases completas"
+  },
+  "app_listen_back": {
+    "message": "Voltar"
+  },
+  "app_listen_spike_title": {
+    "message": "Escuta ao vivo · teste"
+  },
+  "app_listen_start": {
+    "message": "Começar a ouvir"
+  },
+  "app_listen_stop": {
+    "message": "Parar"
+  },
+  "app_listen_bg": {
+    "message": "Continuar com a tela bloqueada (sessão de gravação)"
   }
 }

@@ -2186,5 +2186,20 @@
   },
   "asr_history_title": {
     "message": "字幕历史 · 整句定稿"
+  },
+  "app_listen_back": {
+    "message": "返回"
+  },
+  "app_listen_spike_title": {
+    "message": "实时听译 · 可行性探针"
+  },
+  "app_listen_start": {
+    "message": "开始听"
+  },
+  "app_listen_stop": {
+    "message": "停止"
+  },
+  "app_listen_bg": {
+    "message": "锁屏也继续（录音会话）"
   }
 }

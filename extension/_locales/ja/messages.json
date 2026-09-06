@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "履歴 · 確定文"
+  },
+  "app_listen_back": {
+    "message": "戻る"
+  },
+  "app_listen_spike_title": {
+    "message": "リアルタイム聞き取り · 検証"
+  },
+  "app_listen_start": {
+    "message": "聞き始める"
+  },
+  "app_listen_stop": {
+    "message": "停止"
+  },
+  "app_listen_bg": {
+    "message": "ロック中も続ける（録音セッション）"
   }
 }

@@ -99,6 +99,7 @@
       </div>
 
       <p class="note" id="local-note"></p>
+          <button id="app-listen-open2" type="button" class="link" hidden></button>
     </section>
 
     <!-- 首次运行引导（§引导）。
@@ -216,6 +217,7 @@
         <button id="app-drive-need-tts-go" type="button" class="link"></button>
       </p>
       <p class="note" id="last"></p>
+      <button id="app-listen-open" type="button" class="link" hidden></button>
     </section>
 
     <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
@@ -254,6 +256,25 @@
          amendment, ONE device-local credential: a chat engine + key used solely for
          sentence notes (§9.2). The app still never translates and never captures;
          the key never syncs. -->
+    <!-- 对话 · 实时听译（learning-design §9.6，评审中）。PR-L0 探针：只由隐藏手势进入
+         （头部名字 5 连点），什么都不写；量三件事：file:// WKWebView 开 wss、麦克风 PCM、
+         锁屏后 finals 还来不来。 -->
+    <section id="app-listen" hidden>
+      <button id="app-listen-back" class="link" type="button"></button>
+      <h2 id="app-listen-title"></h2>
+      <pre class="note" id="app-listen-stats"></pre>
+      <div class="drive-card">
+        <p id="app-listen-partial" class="listen-partial"></p>
+        <div id="app-listen-finals"></div>
+      </div>
+      <label class="note"><input type="checkbox" id="app-listen-bg" checked> <span id="app-listen-bg-label"></span></label>
+      <div class="drive-grid">
+        <button id="app-listen-start" type="button"></button>
+        <button id="app-listen-stop" type="button" class="secondary" disabled></button>
+      </div>
+      <pre class="note" id="app-listen-log"></pre>
+    </section>
+
     <section id="app-settings" hidden>
       <button id="settings-back" type="button" class="link"></button>
       <h2 id="settings-title"></h2>

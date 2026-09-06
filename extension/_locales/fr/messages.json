@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "Historique · phrases complètes"
+  },
+  "app_listen_back": {
+    "message": "Retour"
+  },
+  "app_listen_spike_title": {
+    "message": "Écoute en direct · sonde"
+  },
+  "app_listen_start": {
+    "message": "Commencer l’écoute"
+  },
+  "app_listen_stop": {
+    "message": "Arrêter"
+  },
+  "app_listen_bg": {
+    "message": "Continuer écran verrouillé (session d’enregistrement)"
   }
 }

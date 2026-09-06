@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "History · full sentences"
+  },
+  "app_listen_back": {
+    "message": "Back"
+  },
+  "app_listen_spike_title": {
+    "message": "Live listen · feasibility probe"
+  },
+  "app_listen_start": {
+    "message": "Start listening"
+  },
+  "app_listen_stop": {
+    "message": "Stop"
+  },
+  "app_listen_bg": {
+    "message": "Keep listening when locked (recording session)"
   }
 }

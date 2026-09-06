@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "السجل · جمل كاملة"
+  },
+  "app_listen_back": {
+    "message": "رجوع"
+  },
+  "app_listen_spike_title": {
+    "message": "استماع مباشر · اختبار"
+  },
+  "app_listen_start": {
+    "message": "ابدأ الاستماع"
+  },
+  "app_listen_stop": {
+    "message": "إيقاف"
+  },
+  "app_listen_bg": {
+    "message": "الاستمرار عند القفل (جلسة تسجيل)"
   }
 }

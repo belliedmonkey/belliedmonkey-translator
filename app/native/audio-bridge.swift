@@ -125,9 +125,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "now-playing":    updateNowPlaying(body); updateActivity(body)
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
+        case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
     }
+
+    /// 实时听译要的是「一边录一边（可能）放」的会话；播客模式仍是只放不录。
+    /// 由 JS 在 session-start 之前用 record-mode 声明，原生只在建会话时读它。
+    private var recordMode = false
 
     private func startSession() {
 #if os(iOS)
@@ -136,7 +141,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             // .playback = 「这是内容音频，静音键不该关掉它，后台要继续」。
             // .spokenAudio = 口播语义：蓝牙/车机路由与「暂停别人的播客」都按这个来。
             // 不加 .mixWithOthers —— 播客模式就是要接管，混着播等于两个人同时说话。
-            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            if recordMode {
+                // .playAndRecord + 扬声器 + 蓝牙：线下对话手机放桌上，声音要从外放出、耳机要能用。
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            } else {
+                try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            }
             try session.setActive(true)
         } catch {
             // 建不起来就如实说，让 JS 退回「隐藏即暂停」的老行为，而不是继续假装能后台播。
