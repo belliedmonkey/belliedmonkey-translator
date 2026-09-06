@@ -415,10 +415,11 @@ function patchAudioBridge(sharedDir) {
 // process is killed at getUserMedia time — and the converter's template does not
 // carry it. `safari-project*/` is regenerated (and this key wiped) routinely, so
 // the patch lives here, like every other thing the converter gets wrong for us.
-// The string names the §10 Gate C contract, not a generic "needs the mic".
+// The string names the §10 Gate C contract (and, since 2026-09-07, Gate E — continuous
+// listening in 对话 · 实时听译, learning-design §9.6), not a generic "needs the mic".
 //
 const MIC_KEY = 'NSMicrophoneUsageDescription';
-const MIC_TEXT = '朗读练习需要使用麦克风录音；录音只发送到你自己配置的转写端点，识别后立即丢弃，绝不存储或上传到我们的服务器。';
+const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克风：声音只发送到你自己配置的转写端点，识别后立即丢弃，不保存任何录音，绝不存储或上传到我们的服务器。';
 
 // One row per declaration. `only` names the platform App directory it belongs to;
 // absent means every App target.
