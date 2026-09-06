@@ -20,11 +20,13 @@ function loadAdapter() {
   const seen = {};
   const TranslationCore = {
     DEFAULT_TARGET_LANG: 'zh-CN',
+    WINDOW: { GRACE_MS: 700 },
+    createCueMerger: () => ({ push: () => [], flush: () => [] }),
     createPager: () => ({ pageize: (t) => [t], destroy() {} }),
     createSubtitleEngine: (cfg) => {
       seen.cfg = cfg;
       return {
-        setItems() {}, pump() {}, activeAt: () => null,
+        setItems() {}, appendItems() {}, setWindow() {}, pump() {}, activeAt: () => null,
         stateOf: () => ({ state: '', translation: '' }),
         retry() {}, reset() { seen.resets = (seen.resets || 0) + 1; },
         get items() { return []; },

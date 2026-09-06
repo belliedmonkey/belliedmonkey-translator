@@ -2137,5 +2137,44 @@
   },
   "telemetry_onboard": {
     "message": "Anonymous usage data is sent to help improve the product (never page content or addresses). You can turn it off in Settings."
+  },
+  "asr_offer": {
+    "message": "🎙 AI subtitles"
+  },
+  "asr_needs_engine": {
+    "message": "Choose a transcription engine in Settings first"
+  },
+  "asr_status_file": {
+    "message": "⏳ Transcribing the whole audio…"
+  },
+  "asr_status_live": {
+    "message": "● Live transcription"
+  },
+  "asr_stop": {
+    "message": "Stop transcribing"
+  },
+  "asr_err_silent": {
+    "message": "No sound captured — transcription stopped"
+  },
+  "asr_err_media": {
+    "message": "Cannot read this audio"
+  },
+  "asr_err_ws": {
+    "message": "Transcription connection lost"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio too large to transcribe in one go"
+  },
+  "asr_err_nocues": {
+    "message": "This engine returns no timestamps, so it cannot make subtitles"
+  },
+  "asr_err_nolive": {
+    "message": "This engine has no live interface; this media cannot be transcribed"
+  },
+  "asr_err_settings": {
+    "message": "Transcription engine changed — stopped"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 Transcribe audio into subtitles"
   }
 }

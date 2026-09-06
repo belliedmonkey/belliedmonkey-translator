@@ -283,6 +283,9 @@ var PodcastTranslator = (() => {
     fontPx,
     textWidth: overlayTextWidth,
     onMediaKeyChange: () => { spotifyTabActivated = false; },
+    // §2.4: the offer inside `字幕不可用` (user-initiated transcription). Spotify is DRM —
+    // no bytes, no capture — so no offer there.
+    unavailableAction: IS_SPOTIFY ? null : AsrSource.offerFor(mediaEl, () => ui, () => ui.settings),
     syncNative,
     srtName: () => document.title,
     translate: (text, s) => TranslationAPI.translate(
@@ -291,5 +294,10 @@ var PodcastTranslator = (() => {
     labels: { btnTitle: T('podcast_sub_off', '关闭播客字幕翻译') },
   });
 
-  return { init: ui.init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, hasTranscriptHint };
+  // Popup action 「转写音频字幕」: same session as the in-overlay offer, started from a click
+  // in the popup (a user gesture in the popup's own document — the AudioContext is still
+  // created in the page, so iOS may keep it suspended until the in-overlay tap; the notice
+  // then re-offers). Returns false when there is nothing eligible to transcribe.
+  function startAsr() { return AsrSource.start(mediaEl(), ui, ui.settings); }
+  return { init: ui.init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, hasTranscriptHint, startAsr, mediaEl };
 })();

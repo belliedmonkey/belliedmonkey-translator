@@ -91,5 +91,29 @@ module.exports = [
     defaultModel: 'whisper-1',
     labelKey: null, label: 'OpenAI Transcribe',
     hintKey: 'stt_hint',
+    // §2.4 tier B（AI 转写字幕的流式一档）。实测 2026-09-06（scripts/asr-probe.js）：
+    // ?intent=transcription、子协议 openai-insecure-api-key 鉴权、pcm 24k、逐词 delta 带标点，
+    // 英文 12 分钟滞后 p90 2.24s / WER 3.7%，中文 p90 2.45s / CER 3.9%。地址原样存原样用；
+    // 用户改 sttBaseUrl 只影响上面那个文件端点。
+    // 文件一档仍走 whisper-1 + verbose_json（gpt-transcribe 拒绝 verbose_json，没有时间戳）。
+    liveEndpoint: 'wss://api.openai.com/v1/realtime?intent=transcription',
+    liveType: 'ws-realtime', liveModel: 'gpt-live-transcribe', liveRate: 24000,
+    liveKeyProtocol: 'openai-insecure-api-key.',
+  },
+  {
+    // GLOBAL ONLY（Gemini 在中国大陆不开放）。文件一档走 Interactions 接口：JSON 内联
+    // base64 + 词级时间戳（mode 必须是 verbatim —— 实测 smart 与时间戳互斥，服务端原话
+    // "Transcription mode SMART is incompatible with timestamps"）。实测 2026-09-06：英文
+    // 29.8 分钟 69.4s / WER 2.9%，时间戳与 whisper 参照 p90 差 220ms；中文 19.9 分钟 CER 12.0%。
+    // 开时间戳的上限 30 分钟、内联体的上限约 20MB —— 超过走 uploadEndpoint（Files API）。
+    id: 'gemini_transcribe', type: 'transcribe-gemini', flavors: ['global'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://generativelanguage.googleapis.com/v1beta/interactions', placeholder: null,
+    defaultModel: 'gemini-3.5-transcribe',
+    labelKey: null, label: 'Gemini Transcribe (Google)',
+    hintKey: 'stt_hint',
+    uploadEndpoint: 'https://generativelanguage.googleapis.com/upload/v1beta/files',
+    liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
+    liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
   },
 ];

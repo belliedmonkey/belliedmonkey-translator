@@ -2138,5 +2138,44 @@
   },
   "telemetry_onboard": {
     "message": "會傳送匿名使用資料（不含網頁內容與網址），幫助改進；設定裡可關。"
+  },
+  "asr_offer": {
+    "message": "🎙 AI 轉寫字幕"
+  },
+  "asr_needs_engine": {
+    "message": "先在設定裡選擇轉寫引擎"
+  },
+  "asr_status_file": {
+    "message": "⏳ 正在轉寫整段音訊…"
+  },
+  "asr_status_live": {
+    "message": "● 即時轉寫中"
+  },
+  "asr_stop": {
+    "message": "停止轉寫"
+  },
+  "asr_err_silent": {
+    "message": "擷取不到聲音，已停止轉寫"
+  },
+  "asr_err_media": {
+    "message": "無法讀取該音訊"
+  },
+  "asr_err_ws": {
+    "message": "轉寫連線中斷"
+  },
+  "asr_err_toolarge": {
+    "message": "音訊太大，無法整段轉寫"
+  },
+  "asr_err_nocues": {
+    "message": "該轉寫引擎不回傳時間戳，無法做字幕"
+  },
+  "asr_err_nolive": {
+    "message": "該轉寫引擎沒有即時介面，此媒體無法轉寫"
+  },
+  "asr_err_settings": {
+    "message": "轉寫引擎已更改，已停止轉寫"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 轉寫音訊字幕"
   }
 }

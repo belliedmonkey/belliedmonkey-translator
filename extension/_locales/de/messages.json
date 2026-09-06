@@ -2137,5 +2137,44 @@
   },
   "telemetry_onboard": {
     "message": "Zur Verbesserung werden anonyme Nutzungsdaten gesendet (nie Seiteninhalte oder Adressen). In den Einstellungen abschaltbar."
+  },
+  "asr_offer": {
+    "message": "🎙 KI-Untertitel"
+  },
+  "asr_needs_engine": {
+    "message": "Wähle zuerst in den Einstellungen eine Transkriptions-Engine"
+  },
+  "asr_status_file": {
+    "message": "⏳ Gesamtes Audio wird transkribiert…"
+  },
+  "asr_status_live": {
+    "message": "● Live-Transkription"
+  },
+  "asr_stop": {
+    "message": "Transkription stoppen"
+  },
+  "asr_err_silent": {
+    "message": "Kein Ton erfasst — Transkription gestoppt"
+  },
+  "asr_err_media": {
+    "message": "Dieses Audio kann nicht gelesen werden"
+  },
+  "asr_err_ws": {
+    "message": "Transkriptionsverbindung unterbrochen"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio zu groß für eine vollständige Transkription"
+  },
+  "asr_err_nocues": {
+    "message": "Diese Engine liefert keine Zeitstempel und kann keine Untertitel erzeugen"
+  },
+  "asr_err_nolive": {
+    "message": "Diese Engine hat keine Live-Schnittstelle; dieses Medium kann nicht transkribiert werden"
+  },
+  "asr_err_settings": {
+    "message": "Transkriptions-Engine geändert — gestoppt"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 Audio in Untertitel transkribieren"
   }
 }

@@ -459,6 +459,12 @@ module.exports = [
     verdict: 'reachable',
     why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。',
   },
+  {
+    host: 'generativelanguage.googleapis.com', model: 'gemini-3.5-transcribe', date: '2026-09-06',
+    baseline: { ms: 69362, thinkTokens: null, outChars: 40256, finish: 'stop' },
+    verdict: 'reachable',
+    why: '文件式转写（Interactions 接口，JSON 内联 base64，mode 必须 verbatim —— smart 与时间戳互斥，服务端原话 "Transcription mode SMART is incompatible with timestamps"）：英文 12 分钟 51.3s / WER 3.8%，29.8 分钟 69.4s / WER 2.9%（比 whisper-1 的 89.7s 快）；中文 19.9 分钟 59.0s / CER 12.0%（贴着 12% 的线）。词级时间戳与 whisper-1 参照 p90 差 220–260ms；按词切 cue 后句界命中 95–97%。usage 只报音频 token（12 分钟 18000 tok）。真 Chrome 页面源 POST 可读（CORS 放行）。**参数层面没扫过**（diarization、language_codes 未试）。',
+  },
   // ── 以下为可达性实测（scripts/capability-probe.js + verify-speech-live.js）──
   // 参数层面都没扫过；要 adopted 走 /perf-tune。记在这里是因为
   // verification-spec §1.0 要求「出货的每个引擎至少被真正打到过一次」，而这些

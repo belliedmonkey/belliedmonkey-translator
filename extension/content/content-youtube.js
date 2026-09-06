@@ -200,6 +200,8 @@ var YouTubeTranslator = (() => {
       else removeCaptionStyle();
     },
     beforeRender: () => (adShowing() ? 'clear' : undefined), // during an ad, currentTime is the ad timeline
+    // §2.4: YouTube is MSE, so only the live tier can serve a caption-less video.
+    unavailableAction: AsrSource.offerFor(() => document.querySelector('video'), () => ui, () => ui.settings),
     syncNative: (active) => { if (!active) removeCaptionStyle(); }, // belt: restore if turned off
     showButton: () => IS_EMBED || (!!document.querySelector(RIGHT_CONTROLS) && !TranslationCore.isMobileLayout()),
     buttonCss: () => floatingBtnCss(IS_EMBED ? 10 : 150),
@@ -219,5 +221,6 @@ var YouTubeTranslator = (() => {
     if (IS_EMBED && !/\/embed\//.test(location.pathname)) return;
     ui.init(cfg);
   }
-  return { init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings };
+  function startAsr() { return AsrSource.start(document.querySelector('video'), ui, ui.settings); }
+  return { init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, startAsr };
 })();

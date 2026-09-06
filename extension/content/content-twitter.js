@@ -239,6 +239,8 @@ var TwitterTranslator = (() => {
     getCurrentTime: () => (activeVideo()?.currentTime || 0) * 1000,
     isPlaying: () => { const v = activeVideo(); return !!(v && !v.paused); },
     acquire,
+    // §2.4: X video / Spaces are HLS→MSE, so only the live tier applies.
+    unavailableAction: AsrSource.offerFor(activeVideo, () => ui, () => ui.settings),
     placeOverlay,
     anchorButton,
     fontPx,
@@ -269,7 +271,9 @@ var TwitterTranslator = (() => {
   function bindFs() { if (fsBound) return; fsBound = true; FS_EVENTS.forEach((e) => document.addEventListener(e, reanchor)); }
   function unbindFs() { if (!fsBound) return; fsBound = false; FS_EVENTS.forEach((e) => document.removeEventListener(e, reanchor)); }
 
+  function startAsr() { return AsrSource.start(activeVideo(), ui, ui.settings); }
   return {
+    startAsr,
     init: (s) => { bindFs(); return ui.init(s); },
     enable: ui.enable,
     disable: () => { unbindFs(); undoPosFix(); return ui.disable(); },

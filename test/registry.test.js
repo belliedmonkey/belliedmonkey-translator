@@ -50,7 +50,10 @@ const KNOWN_KEYS = {
     'returnsAudio', 'label', 'labelKey', 'hintKey'],
   stt: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
-    'labelKey', 'hintKey'],
+    'labelKey', 'hintKey',
+    // docs/domain-design.md §2.4 / §7: the live-transcription socket and the large-file
+    // upload are STORED addresses (complete URLs, used verbatim), never derived.
+    'liveEndpoint', 'liveType', 'liveModel', 'liveRate', 'liveKeyProtocol', 'uploadEndpoint'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
     'systemRole', 'reasoning', 'note'],
 };

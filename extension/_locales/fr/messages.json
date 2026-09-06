@@ -2137,5 +2137,44 @@
   },
   "telemetry_onboard": {
     "message": "Des données d’usage anonymes sont envoyées pour améliorer le produit (jamais le contenu ni les adresses des pages). Désactivable dans les réglages."
+  },
+  "asr_offer": {
+    "message": "🎙 Sous-titres IA"
+  },
+  "asr_needs_engine": {
+    "message": "Choisissez d’abord un moteur de transcription dans les réglages"
+  },
+  "asr_status_file": {
+    "message": "⏳ Transcription de tout l’audio…"
+  },
+  "asr_status_live": {
+    "message": "● Transcription en direct"
+  },
+  "asr_stop": {
+    "message": "Arrêter la transcription"
+  },
+  "asr_err_silent": {
+    "message": "Aucun son capté — transcription arrêtée"
+  },
+  "asr_err_media": {
+    "message": "Impossible de lire cet audio"
+  },
+  "asr_err_ws": {
+    "message": "Connexion de transcription perdue"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio trop volumineux pour une transcription complète"
+  },
+  "asr_err_nocues": {
+    "message": "Ce moteur ne renvoie pas d’horodatage, impossible de créer des sous-titres"
+  },
+  "asr_err_nolive": {
+    "message": "Ce moteur n’a pas d’interface en direct ; ce média ne peut pas être transcrit"
+  },
+  "asr_err_settings": {
+    "message": "Moteur de transcription modifié — arrêté"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 Transcrire l’audio en sous-titres"
   }
 }

@@ -2137,5 +2137,44 @@
   },
   "telemetry_onboard": {
     "message": "Dados de uso anônimos são enviados para melhorar o produto (nunca o conteúdo nem os endereços das páginas). Dá para desligar nos Ajustes."
+  },
+  "asr_offer": {
+    "message": "🎙 Legendas por IA"
+  },
+  "asr_needs_engine": {
+    "message": "Escolha um mecanismo de transcrição em Configurações primeiro"
+  },
+  "asr_status_file": {
+    "message": "⏳ Transcrevendo todo o áudio…"
+  },
+  "asr_status_live": {
+    "message": "● Transcrição ao vivo"
+  },
+  "asr_stop": {
+    "message": "Parar transcrição"
+  },
+  "asr_err_silent": {
+    "message": "Nenhum som capturado — transcrição interrompida"
+  },
+  "asr_err_media": {
+    "message": "Não foi possível ler este áudio"
+  },
+  "asr_err_ws": {
+    "message": "Conexão de transcrição perdida"
+  },
+  "asr_err_toolarge": {
+    "message": "Áudio grande demais para transcrever de uma vez"
+  },
+  "asr_err_nocues": {
+    "message": "Este mecanismo não retorna marcas de tempo, então não gera legendas"
+  },
+  "asr_err_nolive": {
+    "message": "Este mecanismo não tem interface ao vivo; esta mídia não pode ser transcrita"
+  },
+  "asr_err_settings": {
+    "message": "Mecanismo de transcrição alterado — interrompido"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 Transcrever áudio em legendas"
   }
 }

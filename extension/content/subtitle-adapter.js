@@ -18,8 +18,18 @@
 //   mediaKey():     string — media identity; change ⇒ reset engine + re-acquire
 //   getCurrentTime(): ms   — the playback clock the overlay syncs to
 //   isPlaying():    bool   — (optional) gate loading/unavailable notices on playback
-//   acquire():      Promise< cues[] | null | 'unavailable' >
-//                   cues[] → ready; null → retry (until cap); 'unavailable' → no track (final)
+//   acquire(ctx):   Promise< cues[] | null | 'unavailable' | 'streaming' >
+//                   cues[] → ready; null → retry (until cap); 'unavailable' → no track (final);
+//                   'streaming' → the backend keeps pushing through ctx (docs/domain-design.md
+//                   §2.4 tier B). ctx = { push(cues), done(), fail(msg), notice(msg),
+//                   mode('file'|'live'), onAbort(fn) } — push() runs the streaming sentence
+//                   merger and appends only CLOSED sentences to the engine; done() flushes;
+//                   fail(msg) ends in `unavailable` with msg as the notice; mode() applies
+//                   the per-tier window; onAbort(fn) registers the stop hook the harness
+//                   calls on media change / disable / settings change / 「停止转写」.
+//   unavailableAction(): {label, onClick} | null — (optional) a button rendered inside the
+//                   `字幕不可用` notice (the §2.4 offer). Re-read every tick.
+//   onSettingsChange(cfg): void — (optional) e.g. abort a live session when its engine changed
 //   placeOverlay(ov): bool — (re)mount + position the overlay; false ⇒ skip render this tick
 //   fontPx():       number
 //   textWidth():    number
@@ -48,8 +58,46 @@ var SubtitleAdapter = (() => {
     // Learning layer: how long the playhead has actually rested on the current
     // sentence. Reset whenever the sentence changes; see the capture site in tick().
     let watchAcc = { key: '', ms: 0, done: false };
-    let status = '';           // '' | 'loading' | 'ready' | 'unavailable'
+    let status = '';           // '' | 'loading' | 'ready' | 'unavailable' | 'streaming'
     let inFlight = false, attempts = 0, nextAt = 0;
+    // §2.4 streaming state: the backend-supplied acquire (set by acquireVia), its abort
+    // hook, the open-tail merger, and a custom notice line (a stop reason, never silent).
+    let asrAcquire = null, streamAbort = null, merger = null, noticeMsg = '';
+    let lastNoticeKey = '';
+    // Live: a sentence closes only after it was spoken (§2.4), so the pair stays for
+    // HOLD_MS past its end and the "pending" flicker waits a longer grace. File/default:
+    // the production window, read from the core (never restated here).
+    const LIVE_WINDOW = { GRACE_MS: 4000, HOLD_MS: 6000 };
+    const FILE_WINDOW = { GRACE_MS: (TranslationCore.WINDOW || {}).GRACE_MS, HOLD_MS: 0 };
+    function applyWindow(w) {
+      const clean = {};
+      for (const k of Object.keys(w)) if (w[k] !== undefined) clean[k] = w[k];
+      if (engine.setWindow) engine.setWindow(clean);
+    }
+    function abortStream(why) {
+      const fn = streamAbort; streamAbort = null;
+      if (fn) { try { fn(why); } catch (_) {} }
+      merger = null;
+    }
+    function makeCtx() {
+      let live = false;
+      return {
+        push(cues) {
+          if (!merger) merger = TranslationCore.createCueMerger();
+          const closed = merger.push(cues);
+          if (closed.length) engine.appendItems(closed);
+        },
+        done() {
+          if (merger) { const t = merger.flush(); if (t.length) engine.appendItems(t); }
+          if (status === 'streaming') status = 'ready';
+          streamAbort = null;
+        },
+        fail(msg) { abortStream('fail'); status = 'unavailable'; noticeMsg = msg || ''; lastShownKey = ''; },
+        notice(msg) { noticeMsg = msg || ''; },
+        mode(kind) { live = kind === 'live'; applyWindow(live ? LIVE_WINDOW : FILE_WINDOW); },
+        onAbort(fn) { streamAbort = fn; },
+      };
+    }
 
     const pager = TranslationCore.createPager({ measurerId: ID.meas });
     let subOkSent = false, subSince = 0;
@@ -138,20 +186,39 @@ var SubtitleAdapter = (() => {
         zhEl.textContent = TranslationCore.MSG.preparing;
       } else { zhEl.style.display = 'none'; zhEl.textContent = ''; }
     }
-    function renderNotice(msg) {
+    // action: {label, onClick} — the §2.4 offer button, inside the same notice line.
+    // Content is rebuilt only when (msg, label) changes: the notice is re-rendered every
+    // tick to follow the overlay anchor, and rebuilding the button every 250 ms would
+    // let a tap land between two generations of it.
+    function renderNotice(msg, action) {
       const ov = ensureOverlay();
       if (!spec.placeOverlay(ov)) return;
       const enEl = ov.querySelector('.' + ID.orig);
       const zhEl = ov.querySelector('.' + ID.trans);
       enEl.style.display = 'none'; enEl.textContent = '';
+      const key = msg + '|' + (action ? action.label : '');
+      if (key === lastNoticeKey && zhEl.style.display !== 'none') return;
+      lastNoticeKey = key;
       zhEl.onclick = null;
       zhEl.style.cssText = lineCss(Math.round(spec.fontPx() * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
       zhEl.textContent = msg;
+      if (action) {
+        const btn = document.createElement('button');
+        btn.className = ID.trans + '-action';
+        btn.setAttribute('translate', 'no');
+        btn.textContent = action.label;
+        // The podcast overlay is pointer-events:none so it never blocks the page; the
+        // button is the one thing inside it that must be tappable.
+        btn.style.cssText = 'pointer-events:auto;margin-left:10px;padding:2px 10px;border-radius:12px;border:0;' +
+          'font:inherit;font-style:normal;cursor:pointer;' + window.MT_PALETTE.roundBtnCss(Math.round(spec.fontPx() * 0.8));
+        btn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); action.onClick(); });
+        zhEl.appendChild(btn);
+      }
     }
     function clearOverlay() {
       const ov = document.getElementById(ID.overlay);
       if (ov) for (const cls of [ID.orig, ID.trans]) { const el = ov.querySelector('.' + cls); if (el) { el.textContent = ''; el.style.display = 'none'; } }
-      lastShownKey = '';
+      lastShownKey = ''; lastNoticeKey = '';
     }
     function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); }
 
@@ -167,15 +234,24 @@ var SubtitleAdapter = (() => {
       const key = spec.mediaKey();
       if (key !== lastKey) {
         lastKey = key;
+        // A §2.4 session belongs to the media it was tapped for: stop it, and require a
+        // fresh tap for the next media (never an automatic restart of a paid session).
+        abortStream('media'); asrAcquire = null; noticeMsg = ''; applyWindow(FILE_WINDOW);
         engine.setItems([]); engine.reset();
         inFlight = false; attempts = 0; nextAt = 0; status = ''; clearOverlay();
         if (spec.onMediaKeyChange) spec.onMediaKeyChange(); // backend resets its own acquire state
       }
 
-      if (!engine.items.length && status !== 'unavailable' && !inFlight && Date.now() >= nextAt) {
+      // 'streaming' latches the gate exactly like 'unavailable': the backend now owns
+      // acquisition and feeds the engine through ctx.push — re-calling acquire would
+      // start a second capture of the same media.
+      if (!engine.items.length && status !== 'unavailable' && status !== 'streaming' && !inFlight && Date.now() >= nextAt) {
         inFlight = true; status = status === 'ready' ? 'ready' : 'loading'; attempts++;
-        Promise.resolve().then(spec.acquire).then((res) => {
+        const ctx = makeCtx();
+        const fn = asrAcquire || spec.acquire;
+        Promise.resolve().then(() => fn(ctx)).then((res) => {
           if (res === 'unavailable') { status = 'unavailable'; }
+          else if (res === 'streaming') { if (status !== 'unavailable') status = 'streaming'; }
           else if (res && res.length) { engine.setItems(TranslationCore.mergeSentences(res)); status = 'ready'; }
           else if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; }
           else { nextAt = Date.now() + RESOLVE_RETRY_MS; }
@@ -227,8 +303,12 @@ var SubtitleAdapter = (() => {
         lastShownKey = '';
         const playing = spec.isPlaying ? spec.isPlaying() : true;
         if (!playing) { if (document.getElementById(ID.overlay)) clearOverlay(); return; }
-        if (status === 'unavailable') renderNotice(TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'));
-        else renderNotice(TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
+        if (status === 'unavailable') {
+          const action = spec.unavailableAction ? spec.unavailableAction() : null;
+          renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'), action);
+        }
+        else if (status === 'streaming') renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
+        else renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
       }
     }
     function startLoop() { if (pollTimer) clearInterval(pollTimer); pollTimer = setInterval(tick, TICK_MS); }
@@ -301,6 +381,10 @@ var SubtitleAdapter = (() => {
         menu.appendChild(row(active ? spec.labels.subOff : spec.labels.subOn, { checked: active, onClick: () => setActive(!active) }));
         menu.appendChild(sep());
       }
+      if (streamAbort) {
+        menu.appendChild(row(T('asr_stop', '停止转写'), { onClick: () => { stopAsr(); closeMenu(); } }));
+        menu.appendChild(sep());
+      }
       const head = document.createElement('div');
       head.textContent = T('yt_display_type', '字幕显示类型');
       head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';
@@ -362,15 +446,31 @@ var SubtitleAdapter = (() => {
         MTTelemetry.track('subtitle_on', { site: spec.telemetrySite || 'other' });
       }
       if (spec.onActiveChange) spec.onActiveChange(on);
-      if (!on) { removeOverlay(); document.getElementById(ID.btn)?.remove(); closeMenu(); if (spec.syncNative) spec.syncNative(false, 0); }
+      if (!on) { abortStream('off'); asrAcquire = null; noticeMsg = ''; removeOverlay(); document.getElementById(ID.btn)?.remove(); closeMenu(); if (spec.syncNative) spec.syncNative(false, 0); }
       closeMenu();
       tick();
+    }
+    // §2.4: the backend hands over an acquire that transcribes (on the user's tap).
+    // It replaces spec.acquire for the CURRENT media only; a media change clears it.
+    function acquireVia(fn) {
+      abortStream('restart');
+      asrAcquire = fn; noticeMsg = '';
+      status = ''; attempts = 0; nextAt = 0; inFlight = false;
+      engine.setItems([]); engine.reset(); clearOverlay();
+      if (!active) setActive(true); else tick();
+    }
+    // User-initiated stop: back to the offer, never a silent state.
+    function stopAsr() {
+      abortStream('user'); asrAcquire = null; noticeMsg = '';
+      status = 'unavailable'; applyWindow(FILE_WINDOW); clearOverlay();
     }
     return {
       init(cfg) { settings = cfg; active = false; startLoop(); },
       enable(cfg) { if (cfg) settings = cfg; setActive(true); },
       disable() { setActive(false); },
-      updateSettings(cfg) { settings = cfg; engine.reset(); clearOverlay(); },
+      updateSettings(cfg) { settings = cfg; engine.reset(); clearOverlay(); if (spec.onSettingsChange) spec.onSettingsChange(cfg); },
+      acquireVia, stopAsr,
+      get streaming() { return !!streamAbort; },
       setActive,
       setDisplayMode: setMode,
       get engine() { return engine; },

@@ -244,6 +244,21 @@ async function init() {
   pageTranslated = !!(pageStatus && pageStatus.enabled);
   updateTranslateUI();
 
+  // §2.4 「转写音频字幕」: shown only when the page has a media element ≥ 30 s. The
+  // click starts the session in the page and closes the popup — the overlay is where
+  // progress and every stop reason are shown.
+  const asrSection = $('asr-section');
+  const durationS = (pageStatus && pageStatus.media && pageStatus.media.durationS) || 0;
+  if (asrSection && durationS >= 30) {
+    asrSection.hidden = false;
+    const hint = $('transcribe-media-hint');
+    if (hint) hint.textContent = Math.floor(durationS / 60) + ':' + String(Math.round(durationS % 60)).padStart(2, '0');
+    $('transcribe-media').addEventListener('click', async () => {
+      const r = await sendToPage('transcribeMedia');
+      if (r && r.ok) window.close();
+    });
+  }
+
   // 本站 section — only meaningful while capture is on at all.
   siteRules = s.learnRules || null;
   siteUrl = (pageStatus && pageStatus.url) || '';
