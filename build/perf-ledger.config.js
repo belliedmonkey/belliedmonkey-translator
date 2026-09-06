@@ -442,6 +442,23 @@ module.exports = [
   },
 
   // ── 测过之后决定不写 ─────────────────────────────────────────────────
+  // ── AI 转写字幕预研（scripts/asr-probe.js，2026-09-06）──
+  // 与上面那组不同：不是「打得通」级别，而是对着**有参照文本的公有领域录音**（LibriVox +
+  // Gutenberg / 维基文库）算 WER/CER、句界与滞后。判据在计划文件 §6：流式滞后 p90 ≤ 2.5s、
+  // 30 分钟文件 ≤ 90s、英文 WER ≤ 8%、中文 CER ≤ 12%。这两行是 OpenAI 一家过线的证据；
+  // Gemini / Meta 各自的行等 key 到手再补（.local/TODO.md）。
+  {
+    host: 'api.openai.com', model: 'whisper-1', date: '2026-09-06',
+    baseline: { ms: 89690, thinkTokens: null, outChars: 40256, finish: 'stop' },
+    verdict: 'reachable',
+    why: '文件式转写（verbose_json + segment/word 时间戳）：英文 12 分钟 38.3s / WER 2.5%，29.8 分钟 89.7s（另一次 92.5s，贴着 90s 的线）/ WER 2.1%；中文 12.6 分钟 46.7s / CER 7.7%，19.9 分钟 70.4s / CER 11.0%（含 LibriVox 片头片尾约 1 个点）。segment 边界不按句子切（原始句界命中 36%），按句末标点重切后 95%。gpt-transcribe 拒绝 verbose_json（"not compatible with model"），没有时间戳，做不了字幕。**参数层面没扫过** —— 转写这条路没有可调参数。',
+  },
+  {
+    host: 'api.openai.com', model: 'gpt-live-transcribe', date: '2026-09-06',
+    baseline: { ms: 2238, thinkTokens: null, outChars: 7160, finish: 'stop' },
+    verdict: 'reachable',
+    why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。',
+  },
   // ── 以下为可达性实测（scripts/capability-probe.js + verify-speech-live.js）──
   // 参数层面都没扫过；要 adopted 走 /perf-tune。记在这里是因为
   // verification-spec §1.0 要求「出货的每个引擎至少被真正打到过一次」，而这些
