@@ -79,6 +79,7 @@ const MODULES = [
   'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
   'extension/learn/tts.js',              // LearnTTS
   'extension/learn/speech-input.js',     // LearnSpeech — §9.4 录音 + BYO 转写
+  'extension/content/ws-transcribe.js',  // WsTranscribe — 实时转写 socket（§2.4 / §9.6）；自足，只用 WebSocket/btoa
   'extension/learn/drain.js',            // LearnDrain — a no-op here (no outbox), see below
   'extension/learn/auth.js',             // LearnAuth
   'extension/learn/chunk.js',            // LearnChunk
@@ -126,6 +127,7 @@ const MODULES = [
                                          // 必须在 driving.js 之前：那边在 wire() 里
                                          // 注册回调。桥不在时全是 no-op，所以它在
                                          // Chrome 的 test:learn 里也照常加载。
+  'app/listen.js',                       // AppListen — §9.6 对话·实时听译（PR-L0 探针）
   'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
                                          // the extension page cannot autoplay)
 ];

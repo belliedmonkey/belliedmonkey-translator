@@ -960,6 +960,7 @@
 
     await AppSettings.ensureDefaults();
     AppDriving.wire();
+    AppListen.wire();
     AppSettings.wire({
       say,
       session: () => currentSession,

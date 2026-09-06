@@ -2186,5 +2186,20 @@
   },
   "asr_history_title": {
     "message": "字幕歷史 · 整句定稿"
+  },
+  "app_listen_back": {
+    "message": "返回"
+  },
+  "app_listen_spike_title": {
+    "message": "即時聽譯 · 可行性探針"
+  },
+  "app_listen_start": {
+    "message": "開始聽"
+  },
+  "app_listen_stop": {
+    "message": "停止"
+  },
+  "app_listen_bg": {
+    "message": "鎖屏也繼續（錄音工作階段）"
   }
 }

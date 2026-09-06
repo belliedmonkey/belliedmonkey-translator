@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "Verlauf · ganze Sätze"
+  },
+  "app_listen_back": {
+    "message": "Zurück"
+  },
+  "app_listen_spike_title": {
+    "message": "Live-Hören · Probe"
+  },
+  "app_listen_start": {
+    "message": "Zuhören starten"
+  },
+  "app_listen_stop": {
+    "message": "Stopp"
+  },
+  "app_listen_bg": {
+    "message": "Auch gesperrt weiterhören (Aufnahmesitzung)"
   }
 }

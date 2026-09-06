@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "История · целые предложения"
+  },
+  "app_listen_back": {
+    "message": "Назад"
+  },
+  "app_listen_spike_title": {
+    "message": "Живое прослушивание · проба"
+  },
+  "app_listen_start": {
+    "message": "Начать слушать"
+  },
+  "app_listen_stop": {
+    "message": "Стоп"
+  },
+  "app_listen_bg": {
+    "message": "Продолжать при блокировке (сеанс записи)"
   }
 }

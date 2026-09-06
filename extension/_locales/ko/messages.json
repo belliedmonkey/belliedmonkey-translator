@@ -2185,5 +2185,20 @@
   },
   "asr_history_title": {
     "message": "기록 · 완성 문장"
+  },
+  "app_listen_back": {
+    "message": "뒤로"
+  },
+  "app_listen_spike_title": {
+    "message": "실시간 듣기 · 검증"
+  },
+  "app_listen_start": {
+    "message": "듣기 시작"
+  },
+  "app_listen_stop": {
+    "message": "중지"
+  },
+  "app_listen_bg": {
+    "message": "잠금 중에도 계속（녹음 세션）"
   }
 }
