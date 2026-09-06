@@ -118,6 +118,7 @@ function makeDom() {
       appendChild(c) { if (c.parentElement && c.parentElement !== e) { const k = c.parentElement.children; const i = k.indexOf(c); if (i >= 0) k.splice(i, 1); } if (!kids.includes(c)) kids.push(c); c.parentElement = e; if (c.id) byId[c.id] = c; return c; },
       querySelector(sel) { const cls = sel.replace(/^\./, ''); return kids.find((k) => k.className === cls) || null; },
       addEventListener(n, fn) { e._listeners[n] = fn; },
+      setPointerCapture() {}, releasePointerCapture() {},
       removeEventListener() {},
       remove() { if (e.id) delete byId[e.id]; if (e.parentElement) { const k = e.parentElement.children; const i = k.indexOf(e); if (i >= 0) k.splice(i, 1); e.parentElement = null; } },
       getBoundingClientRect() { return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }; },
@@ -135,7 +136,8 @@ function loadHarness(opts = {}) {
   // MT_PALETTE exactly as the build emits it: the registry values plus the roundBtnCss
   // function the build appends (build.js writes both into palette.gen.js).
   const P = require('../build/palette.config.js');
-  const window = { MT_I18N_MESSAGES: MSGS, MT_PALETTE: Object.assign({}, P.runtime), innerWidth: 800, innerHeight: 600 };
+  const window = { MT_I18N_MESSAGES: MSGS, MT_PALETTE: Object.assign({}, P.runtime), innerWidth: 1400, innerHeight: 900 };
+  if (opts.storeInto) chrome.storage.local.set = (obj) => { Object.assign(opts.storeInto, obj); };
   new Function('window', P.roundBtnCssJs())(window);
   const timers = { intervals: 0, cleared: 0 };
   const ctx = loadModule(['translation-core.js', 'subtitle-adapter.js'], {
@@ -285,6 +287,43 @@ describe('§2.4 harness: streaming acquire', () => {
     now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
     eq(document.getElementById('ov-history'), null, 'no panel');
     eq(document.getElementById('ov').querySelector('.o').textContent, 'Closed one.');
+  });
+
+  test('字幕历史面板 drag: the clamp keeps the panel inside the viewport', () => {
+    const { ui } = loadHarness({});
+    void ui;
+    const { runtime: P } = require('../build/palette.config.js'); void P;
+    const chrome = makeChrome({ uiLanguage: 'en-US' });
+    const ctx = loadModule(['translation-core.js', 'subtitle-adapter.js'], { window: { MT_I18N_MESSAGES: MSGS, MT_PALETTE: {} }, chrome, document: makeDom(), navigator: {}, setInterval: () => 0, clearInterval() {}, setTimeout: () => 0, clearTimeout() {} });
+    const clamp = ctx.SubtitleAdapter.clampHistoryPos;
+    deepEq(clamp(-50, -50, 380, 200, 1400, 900), { x: 0, y: 0 });
+    deepEq(clamp(1300, 850, 380, 200, 1400, 900), { x: 1020, y: 700 });
+    deepEq(clamp(100, 100, 380, 200, 1400, 900), { x: 100, y: 100 });
+    deepEq(clamp(10, 10, 2000, 3000, 800, 600), { x: 0, y: 0 }, 'a panel larger than the viewport pins to the origin');
+  });
+
+  test('字幕历史面板 drag: after a drag past the threshold the panel is viewport-fixed at the drop point and remembered', async () => {
+    let ctxRef = null;
+    const stored = {};
+    const { ui, document } = loadHarness({ spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } }, storeInto: stored });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: false });
+    ctxRef.push([{ start: 0, end: 1000, text: 'Row one.' }]);
+    ui.tick(); await flush();
+    const panel = document.getElementById('ov-history');
+    const head = panel.children[0];
+    panel.getBoundingClientRect = () => ({ left: 900, top: 500, width: 380, height: 200 });
+    panel.offsetWidth = 380; panel.offsetHeight = 200;
+    head._listeners.pointerdown({ pointerId: 1, button: 0, clientX: 950, clientY: 510, stopPropagation() {} });
+    head._listeners.pointermove({ pointerId: 1, clientX: 952, clientY: 511, preventDefault() {} }); // under the 5 px threshold: a tap
+    eq(panel.style.position, undefined, 'no move yet');
+    head._listeners.pointermove({ pointerId: 1, clientX: 650, clientY: 300, preventDefault() {} });
+    eq(panel.style.position, 'fixed'); eq(panel.style.left, '600px'); eq(panel.style.top, '290px');
+    head._listeners.pointerup({ pointerId: 1 });
+    deepEq(stored.asrHistoryPos, { x: 600, y: 290 }, 'position remembered');
+    // the next render keeps the dragged spot instead of the anchor
+    ui.tick(); await flush();
+    eq(panel.style.left, '600px');
   });
 
   test('字幕历史面板 mounts inside the fullscreen element when there is one', async () => {

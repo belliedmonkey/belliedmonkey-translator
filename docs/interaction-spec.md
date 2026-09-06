@@ -257,7 +257,9 @@ surface (YouTube, podcast/generic media, x.com).
   video — inside the player, above its control bar, on YouTube (a viewport-fixed panel
   landed on the live chat column there, measured 2026-09-06); viewport-fixed
   bottom-right on audio pages — (≈ 380 px wide, ≤ 40 % of the viewport high,
-  scrollable, last 40 sentences)
+  scrollable, last 40 sentences; **draggable by its header to anywhere on the page** —
+  once dragged it stays viewport-fixed at that spot, clamped inside the viewport, and
+  the spot is remembered)
   lists every closed sentence with its whole-sentence translation (`⏳ 译文准备中…`
   until it lands; a failed one in red, tap to retry); older rows are slightly dimmed;
   new rows auto-scroll unless the viewer scrolled up. While the panel is on the

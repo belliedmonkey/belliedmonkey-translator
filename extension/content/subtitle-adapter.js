@@ -89,6 +89,12 @@ var SubtitleAdapter = (() => {
     const HISTORY_MAX = 40;
     let historyRows = new Map();   // unit → { row, orig, trans, state }
     let historyStick = true;       // auto-scroll unless the user scrolled up
+    // Draggable anywhere on the page: once the viewer drags the panel by its header it
+    // becomes viewport-fixed at that spot (inside the fullscreen element when there is
+    // one), the backend's placeHistory anchor no longer applies, and the spot is
+    // remembered (asrHistoryPos). Same 5 px tap-vs-drag threshold as the page FAB.
+    let historyPos = null;         // { x, y } in viewport px, or null = anchored
+    let historyPosLoaded = false;
     let historyCaptured = new Set();
     let partialTr = { text: '', tr: '' };
     let partialTimer = null, partialInFlight = '';
@@ -304,13 +310,25 @@ var SubtitleAdapter = (() => {
         el.addEventListener('scroll', () => { historyStick = el.scrollTop + el.clientHeight >= el.scrollHeight - 8; });
         const head = document.createElement('div');
         head.className = HID + '-head';
-        head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#9a9a9a;padding:0 2px 2px;';
+        head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#9a9a9a;padding:0 2px 2px;' +
+          'cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;';
         const title = document.createElement('span'); title.textContent = TranslationCore.t('asr_history_title', '字幕历史 · 整句定稿');
         const dot = document.createElement('span'); dot.className = HID + '-dot';
         head.appendChild(title); head.appendChild(dot);
         el.appendChild(head);
+        bindHistoryDrag(el, head);
+        if (!historyPosLoaded) {
+          historyPosLoaded = true;
+          try { chrome.storage.local.get('asrHistoryPos', (r) => { const p = r && r.asrHistoryPos; if (p && isFinite(p.x) && isFinite(p.y)) historyPos = { x: p.x, y: p.y }; }); } catch (_) {}
+        }
       }
-      if (spec.placeHistory) {
+      if (historyPos) {
+        const mount = historyMount();
+        if (el.parentElement !== mount) mount.appendChild(el);
+        const c = clampHistoryPos(historyPos.x, historyPos.y, el.offsetWidth || 380, el.offsetHeight || 120, window.innerWidth, window.innerHeight);
+        el.style.position = 'fixed'; el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto';
+        el.style.display = '';
+      } else if (spec.placeHistory) {
         if (!spec.placeHistory(el)) { el.style.display = 'none'; return el; }
         el.style.display = '';
       } else {
@@ -374,6 +392,41 @@ var SubtitleAdapter = (() => {
       if (appended && historyStick) { try { el.scrollTop = el.scrollHeight; } catch (_) {} }
     }
     function removeHistory() { document.getElementById(HID)?.remove(); historyRows = new Map(); historyCaptured = new Set(); historyStick = true; }
+    function clampHistoryPos(x, y, w, h, vw, vh) {
+      const maxX = Math.max(0, vw - Math.min(w, vw)), maxY = Math.max(0, vh - Math.min(h, vh));
+      return { x: Math.round(Math.min(maxX, Math.max(0, x))), y: Math.round(Math.min(maxY, Math.max(0, y))) };
+    }
+    function bindHistoryDrag(el, handle) {
+      let startX = 0, startY = 0, originX = 0, originY = 0, dragging = false, pid = null;
+      handle.addEventListener('pointerdown', (e) => {
+        if (e.button != null && e.button !== 0) return;
+        pid = e.pointerId; startX = e.clientX; startY = e.clientY; dragging = false;
+        const r = el.getBoundingClientRect(); originX = r.left; originY = r.top;
+        try { handle.setPointerCapture(pid); } catch (_) {}
+        e.stopPropagation();
+      });
+      handle.addEventListener('pointermove', (e) => {
+        if (pid == null || e.pointerId !== pid) return;
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (!dragging && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        dragging = true;
+        historyPos = clampHistoryPos(originX + dx, originY + dy, el.offsetWidth, el.offsetHeight, window.innerWidth, window.innerHeight);
+        const mount = historyMount();
+        if (el.parentElement !== mount) mount.appendChild(el);
+        el.style.position = 'fixed'; el.style.left = historyPos.x + 'px'; el.style.top = historyPos.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto';
+        handle.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+      const end = (e) => {
+        if (pid == null || (e && e.pointerId !== pid)) return;
+        try { handle.releasePointerCapture(pid); } catch (_) {}
+        pid = null; handle.style.cursor = 'grab';
+        if (dragging && historyPos) { try { chrome.storage.local.set({ asrHistoryPos: historyPos }); } catch (_) {} }
+        dragging = false;
+      };
+      handle.addEventListener('pointerup', end);
+      handle.addEventListener('pointercancel', end);
+    }
 
     // ─── Display loop ──────────────────────────────────────────────────
     const MAX_ATTEMPTS = spec.maxAttempts || RESOLVE_MAX_ATTEMPTS;
@@ -671,5 +724,10 @@ var SubtitleAdapter = (() => {
     };
   }
 
-  return { createSubtitleUI };
+  // exported for tests: the clamp keeps a dragged panel fully inside the viewport
+  function clampHistoryPos(x, y, w, h, vw, vh) {
+    const maxX = Math.max(0, vw - Math.min(w, vw)), maxY = Math.max(0, vh - Math.min(h, vh));
+    return { x: Math.round(Math.min(maxX, Math.max(0, x))), y: Math.round(Math.min(maxY, Math.max(0, y))) };
+  }
+  return { createSubtitleUI, clampHistoryPos };
 })();
