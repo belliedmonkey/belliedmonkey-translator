@@ -23,6 +23,13 @@
 
 <p align="center"><sub>One tap on the floating button. The original stays; the translation goes underneath. Wikipedia, translated with your own key.</sub></p>
 
+<p align="center">
+  <img src="docs/media/review-phone.gif" alt="On a phone: the review page shows a sentence captured from the article, you pick the right translation, grade how well you remembered it, and the next card comes up." width="27%">
+  &nbsp;&nbsp;
+  <img src="docs/media/review-mac.gif" alt="The same review session on a Mac: the card, the four grade buttons with their next-review intervals, and the following card." width="66%">
+</p>
+<p align="center"><sub>Sentences you actually read come back as review cards — on your phone or on your Mac. Pick the translation, grade yourself, and spaced repetition schedules the next visit.</sub></p>
+
 ---
 
 ## Install

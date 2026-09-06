@@ -23,6 +23,13 @@
 
 <p align="center"><sub>点一下悬浮按钮。原文保留，译文在下面。维基百科，用你自己的 key 翻的。</sub></p>
 
+<p align="center">
+  <img src="docs/media/review-phone.gif" alt="手机上：复习页出现一句从文章里记下的句子，选出正确译文，给自己打分，下一张卡接着来。" width="27%">
+  &nbsp;&nbsp;
+  <img src="docs/media/review-mac.gif" alt="Mac 上同一轮复习：卡片、带下次复习间隔的四档评分、下一张卡。" width="66%">
+</p>
+<p align="center"><sub>真正读过的句子会变成复习卡 —— 手机上、Mac 上都能复习。选译文、打分，间隔重复安排下一次。</sub></p>
+
 ---
 
 ## 安装
