@@ -99,7 +99,6 @@
       </div>
 
       <p class="note" id="local-note"></p>
-          <button id="app-listen-open2" type="button" class="link" hidden></button>
     </section>
 
     <!-- 首次运行引导（§引导）。
@@ -216,8 +215,17 @@
         <span id="app-drive-need-tts-why"></span>
         <button id="app-drive-need-tts-go" type="button" class="link"></button>
       </p>
+      <!-- 对话 · 实时听译入口（§9.6）：门控与播客模式同规矩 —— 转写引擎带实时接口且 key
+           已填才存在；门不过就不存在（AppListen.refreshEntry），并留一条去设置转写那一档的路。 -->
+      <div class="row">
+        <button id="app-listen-entry" type="button" class="secondary" hidden></button>
+      </div>
+      <p class="note" id="app-listen-entry-hint" hidden></p>
+      <p class="note" id="app-listen-need-live" hidden>
+        <span id="app-listen-need-live-why"></span>
+        <button id="app-listen-need-live-go" type="button" class="link"></button>
+      </p>
       <p class="note" id="last"></p>
-      <button id="app-listen-open" type="button" class="link" hidden></button>
     </section>
 
     <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
@@ -259,20 +267,55 @@
     <!-- 对话 · 实时听译（learning-design §9.6，评审中）。PR-L0 探针：只由隐藏手势进入
          （头部名字 5 连点），什么都不写；量三件事：file:// WKWebView 开 wss、麦克风 PCM、
          锁屏后 finals 还来不来。 -->
+    <!-- 对话 · 实时听译（learning-design §9.6 / interaction-spec 同名一节）：App 专属。
+         上卡 = 当下（逐词原文 + 临时译文），下面 = 整句定稿历史（可加星）；按住「我说」
+         走 walkie-talkie；松手 → 翻面大字给对方看 + 朗读。视图切换归本模块（open/leave），
+         与 #app-drive 的分工相同。 -->
     <section id="app-listen" hidden>
-      <button id="app-listen-back" class="link" type="button"></button>
-      <h2 id="app-listen-title"></h2>
-      <pre class="note" id="app-listen-stats"></pre>
-      <div class="drive-card">
+      <div class="listen-head">
+        <button id="app-listen-back" class="link" type="button"></button>
+        <h2 id="app-listen-title"></h2>
+        <span id="app-listen-pill" class="listen-pill"></span>
+      </div>
+      <p class="note listen-langline"><span id="app-listen-lang"></span></p>
+      <div class="drive-card listen-now">
+        <div class="listen-now-head"><span id="app-listen-now-label"></span><span id="app-listen-live" class="listen-live" hidden>● 实时</span></div>
         <p id="app-listen-partial" class="listen-partial"></p>
-        <div id="app-listen-finals"></div>
+        <p id="app-listen-partial-tr" class="listen-partial-tr"></p>
       </div>
-      <label class="note"><input type="checkbox" id="app-listen-bg" checked> <span id="app-listen-bg-label"></span></label>
+      <div id="app-listen-history-wrap" class="drive-card listen-history-wrap">
+        <div class="listen-now-head"><span id="app-listen-history-title"></span><button id="app-listen-end" type="button" class="link" hidden></button></div>
+        <div id="app-listen-history" class="listen-history"></div>
+      </div>
+      <p class="note err" id="app-listen-note"></p>
       <div class="drive-grid">
-        <button id="app-listen-start" type="button"></button>
-        <button id="app-listen-stop" type="button" class="secondary" disabled></button>
+        <button id="app-listen-toggle" type="button"></button>
+        <button id="app-listen-speak" type="button" class="secondary"></button>
       </div>
-      <pre class="note" id="app-listen-log"></pre>
+      <label class="note listen-other"><span id="app-listen-other-label"></span> <select id="app-listen-other"></select></label>
+      <p class="note" id="app-listen-cost"></p>
+
+      <div id="app-listen-summary" class="drive-card" hidden>
+        <h3 id="app-listen-summary-title"></h3>
+        <p id="app-listen-summary-body"></p>
+        <p class="note" id="app-listen-summary-note"></p>
+        <div class="drive-grid">
+          <button id="app-listen-summary-home" type="button"></button>
+          <button id="app-listen-summary-again" type="button" class="secondary"></button>
+        </div>
+      </div>
+
+      <!-- 翻面卡：松手后译文放大给对方看。点任意处返回听。 -->
+      <div id="app-listen-flip" class="listen-flip" hidden>
+        <p class="listen-flip-hint" id="app-listen-flip-hint"></p>
+        <p class="listen-flip-text" id="app-listen-flip-text"></p>
+        <p class="listen-flip-sub" id="app-listen-flip-sub"></p>
+        <p class="listen-flip-speaking" id="app-listen-flip-speaking" hidden></p>
+        <div class="drive-grid">
+          <button id="app-listen-flip-again" type="button" class="secondary"></button>
+          <button id="app-listen-flip-back" type="button"></button>
+        </div>
+      </div>
     </section>
 
     <section id="app-settings" hidden>
@@ -413,6 +456,14 @@
         <span id="drive-play-notes-label"></span>
       </label>
       <p class="note" id="drive-play-notes-note"></p>
+      <!-- 对话 · 实时听译（§9.6）：定稿句对进复习作为来源「对话」，默认开；下面一句是
+           §10 Gate E 的披露 —— 说在配置的那个点上。 -->
+      <h3 id="listen-title"></h3>
+      <label class="check">
+        <input id="listen-capture" type="checkbox">
+        <span id="listen-capture-label"></span>
+      </label>
+      <p class="note" id="listen-capture-note"></p>
       <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
            但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
            系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->

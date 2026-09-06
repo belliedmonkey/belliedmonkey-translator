@@ -2188,18 +2188,144 @@
     "message": "字幕歷史 · 整句定稿"
   },
   "app_listen_back": {
-    "message": "返回"
+    "message": "‹ 返回"
   },
-  "app_listen_spike_title": {
-    "message": "即時聽譯 · 可行性探針"
+  "listen_source_label": {
+    "message": "對話"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 對話 · 即時聽譯"
+  },
+  "listen_entry_hint": {
+    "message": "線下聽外語：對方說，你看中文；按住說中文，譯成外語給對方。音訊只發往你設定的轉寫端點。"
+  },
+  "listen_need_live": {
+    "message": "「對話 · 即時聽譯」需要一個帶即時介面的轉寫引擎"
+  },
+  "listen_need_live_go": {
+    "message": "去設定裡選擇 →"
+  },
+  "listen_title": {
+    "message": "對話"
+  },
+  "listen_history": {
+    "message": "整句定稿"
+  },
+  "listen_pending": {
+    "message": "⏳ 譯文準備中…"
+  },
+  "listen_me_prefix": {
+    "message": "我："
+  },
+  "listen_me_badge": {
+    "message": "我說的"
+  },
+  "listen_star": {
+    "message": "加星"
+  },
+  "listen_now_them": {
+    "message": "對方正在說"
+  },
+  "listen_now_me": {
+    "message": "我正在說（放開即譯）"
+  },
+  "listen_lang_auto": {
+    "message": "對方 {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "中文 → {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "對方的語言"
+  },
+  "listen_pill_listening": {
+    "message": "聽譯中 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "已暫停 · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "我在說 · 暫不聽對方"
+  },
+  "listen_pill_ended": {
+    "message": "已結束 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 正在聽 · 暫停"
+  },
+  "listen_toggle_start": {
     "message": "開始聽"
   },
-  "app_listen_stop": {
-    "message": "停止"
+  "listen_speak_hold": {
+    "message": "按住 · 我說"
   },
-  "app_listen_bg": {
-    "message": "鎖屏也繼續（錄音工作階段）"
+  "listen_speak_release": {
+    "message": "放開 · 譯給對方"
+  },
+  "listen_end": {
+    "message": "結束"
+  },
+  "listen_cost_line": {
+    "message": "已聽 {t} · 音訊只發往你設定的轉寫端點"
+  },
+  "listen_flip_hint": {
+    "message": "給對方看 · 點任意處返回"
+  },
+  "listen_flip_speaking": {
+    "message": "朗讀中"
+  },
+  "listen_flip_again": {
+    "message": "再讀一遍"
+  },
+  "listen_flip_back": {
+    "message": "繼續聽對方"
+  },
+  "listen_stop_denied": {
+    "message": "麥克風被拒絕 — 到「設定 › 隱私 › 麥克風」允許大肚猴翻譯。"
+  },
+  "listen_stop_socket": {
+    "message": "轉寫連線中斷：{why} — 已聽的句子還在。"
+  },
+  "listen_stop_locked": {
+    "message": "錄音被系統停止了 — 點「開始聽」繼續。"
+  },
+  "listen_stop_silence": {
+    "message": "聽不到聲音（30 秒靜音）— 已暫停以免計費。"
+  },
+  "listen_stop_failed": {
+    "message": "麥克風啟動失敗：{why}"
+  },
+  "listen_summary_title": {
+    "message": "這次對話"
+  },
+  "listen_summary_body": {
+    "message": "時長 {t} · 對方說了 {them} 句 · 我說了 {me} 句 · 進複習（來源「對話」）{n} 句 · 含 {s} 句加星"
+  },
+  "listen_summary_note": {
+    "message": "錄音已丟棄；只保留文字。進複習的句子可在「來源 › 對話」裡管理或整段刪除。"
+  },
+  "listen_summary_home": {
+    "message": "回到首頁"
+  },
+  "listen_summary_again": {
+    "message": "再來一段"
+  },
+  "listen_np_title": {
+    "message": "對話 · 即時聽譯中"
+  },
+  "listen_np_album": {
+    "message": "對話 · 即時聽譯中 · {t} · {n} 句"
+  },
+  "listen_settings_title": {
+    "message": "對話 · 即時聽譯"
+  },
+  "listen_capture_label": {
+    "message": "對話進複習（來源「對話」）"
+  },
+  "listen_capture_note": {
+    "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你按下「開始聽」之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
+  },
+  "listen_sources_note": {
+    "message": "每句原文來自轉寫、譯文來自你的翻譯引擎，都可能有錯——加星的句子優先進複習。"
   }
 }

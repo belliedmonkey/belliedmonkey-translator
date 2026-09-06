@@ -1,70 +1,221 @@
-// app/listen.js — 「对话 · 实时听译」(learning-design §9.6, in review) — App-only.
+// app/listen.js — 「对话 · 实时听译」(learning-design §9.6 / interaction-spec 同名一节) — App-only.
 //
-// PR-L0 SPIKE (2026-09-06): this file is the seed of the mode and, for now, a
-// measurement page. It answers three questions that only a device can answer:
-//   (a) can this WKWebView (file:// origin) open the realtime transcription socket,
-//   (b) does the microphone deliver audible PCM (the Simulator delivers 0 bytes),
-//   (c) with the native session switched to record mode, do finals keep arriving
-//       for 60 s after the screen locks.
-// It is reachable only through a hidden gesture (5 taps on the header name within
-// 2 s) and writes NOTHING to the corpus. Every result is painted on screen and kept in
-// an in-memory log the run can read back.
+// 线下听外语：对方说 → 手机上看中文；按住「我说」说中文 → 松手译成外语，放大给对方看并朗读。
+// 双显与扩展的直播字幕同型：上卡是**当下**（逐词原文 + 边说边译的临时译文），下面是
+// **整句定稿历史**（原文 + 整句译文，可加星）。定稿句对进复习，来源「对话」（默认开）。
 //
-// What is reused, not re-invented:
-//   · WsTranscribe (extension/content/ws-transcribe.js) — the same socket adapters the
-//     extension's live tier ships; the registry's liveEndpoint/liveType/liveKeyProtocol
-//     (build/stt.config.js) decide the wire.
-//   · TranslationAPI.translate — the App's one translation door (app/translate-fill.js
-//     is the precedent); provider group via LearnNotes.resolveConfig.
-//   · NativeAudio — the mtAudio bridge; a new 'record-mode' message asks the host for a
-//     recording-capable audio session (.playAndRecord) so capture survives a lock.
-// Audio goes only to the endpoint the user configured (§2.4 rule 5 / §9.4).
+// 分工（与 driving.js / learn-driving.js 相同）：
+//   · app/listen-core.js —— 纯逻辑：归属、门、语料形状、静音、计时、边说边译策略。
+//   · 这个文件 —— IO：麦克风（原生桥）、socket（WsTranscribe）、翻译、TTS、界面、语料写入、
+//     锁屏卡片、停止态。
+//
+// 麦克风为什么走原生桥（PR-L0，2026-09-07 真机三轮）：WebKit 在 App 不可见时一律静音页内的
+// getUserMedia —— 锁屏期间采集帧恒为 0，页内音频保活只能保住 JS。所以 PCM 由 Swift 的
+// AVAudioEngine tap 采、重采样、经 mtAudio 桥送进来（NativeAudio.micStart）；socket、翻译、
+// 界面留在这里，与扩展共用同一份 ws-transcribe.js。没有桥的宿主（Chrome 里的 test:app、
+// 扩展页）退回页内 getUserMedia —— 那里没有锁屏问题，能力语义。
+//
+// 音频只发往用户配置的转写端点（§2.4 规则 5 / §10 Gate E）；不保存任何录音，只保留文字。
 'use strict';
 
 var AppListen = (() => {
   const $ = (id) => document.getElementById(id);
   const t = (k, fb) => PageI18n.t(k, fb);
+  const C = ListenCore;
   const PROCESSOR_FRAMES = 4096;
-  const SILENCE_RMS = 1e-4;
+  const SOURCE_LABEL = () => t('listen_source_label', '对话');
 
-  // spike: looping inaudible audio (-60 dBFS noise) — does audible-ish playback keep the WebContent process alive under lock?
-  const KEEP_ALIVE_WAV = 'data:audio/wav;base64,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';
+  // 页内保活（PR-L0 第三轮实证）：一段不可闻的 WAV 循环播放（8 kHz、0.5 s、全零样本 ——
+  // WebKit 只看「有没有元素在播」，不看幅度），WebContent 进程在锁屏后就不会被挂起
+  // （计时器 2 s 节流但全程活着）。只在会挂起进程的宿主上放。
+  // PR-L2 真机若证明原生录音本身已足以保住 WebContent，这一段就删掉（§9.6）。
+  const KEEP_ALIVE_WAV = (() => {
+    const rate = 8000, n = rate / 2, data = n * 2;
+    const b = new Uint8Array(44 + data);
+    const w32 = (o, v) => { b[o] = v & 255; b[o + 1] = (v >> 8) & 255; b[o + 2] = (v >> 16) & 255; b[o + 3] = (v >>> 24) & 255; };
+    const w16 = (o, v) => { b[o] = v & 255; b[o + 1] = (v >> 8) & 255; };
+    const tag = (o, s) => { for (let i = 0; i < 4; i++) b[o + i] = s.charCodeAt(i); };
+    tag(0, 'RIFF'); w32(4, 36 + data); tag(8, 'WAVE'); tag(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);
+    w32(24, rate); w32(28, rate * 2); w16(32, 2); w16(34, 16); tag(36, 'data'); w32(40, data);
+    let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  })();
   let keepAlive = null;
-  let audioCtx = null, stream = null, proc = null, srcNode = null, sock = null;
-  let running = false, ticker = null;
-  const stats = { frames: 0, bytes: 0, rms: 0, peak: 0, finals: 0, partials: 0, socket: 'idle', started: 0, lastFinalAt: 0, hidden: 0, hiddenAt: 0, finalsWhileHidden: 0, framesWhileHidden: 0, peakWhileHidden: 0, lastFrameAt: 0, ticksWhileHidden: 0, lastTickAt: 0 };
-  const log = [];
-  const finals = [];
 
-  function note(msg) {
-    const line = new Date().toISOString().slice(11, 19) + ' ' + msg;
-    log.push(line); if (log.length > 200) log.shift();
-    const el = $('app-listen-log'); if (el) { el.textContent = log.slice(-12).join('\n'); }
-  }
-  function paint() {
-    const s = $('app-listen-stats'); if (!s) return;
-    const secs = stats.started ? Math.round((Date.now() - stats.started) / 1000) : 0;
-    s.textContent = [
-      `socket: ${stats.socket}`,
-      `mic: ${stream ? 'on' : 'off'} · frames ${stats.frames} · ${(stats.bytes / 1024).toFixed(0)} KB · rms ${stats.rms.toFixed(4)} · peak ${stats.peak.toFixed(3)}`,
-      `finals ${stats.finals} · partials ${stats.partials} · ${secs}s · hidden ${stats.hidden}× · finals while hidden ${stats.finalsWhileHidden}`,
-      `while hidden: frames ${stats.framesWhileHidden} · peak ${stats.peakWhileHidden.toFixed(3)} · js ticks ${stats.ticksWhileHidden} · last frame ${stats.lastFrameAt ? Math.round((Date.now() - stats.lastFrameAt) / 1000) + 's ago' : '—'}`,
-    ].join('\n');
-  }
+  // ── 会话状态 ──────────────────────────────────────────────────────────────
+  // phase: 'idle' | 'listening' | 'speaking' | 'showing' | 'paused' | 'halted' | 'ended'
+  let phase = 'idle';
+  let pauseReason = '';     // 'user' | 'silence' | 'denied' | 'socket' | 'locked' | 'failed'
+  let session = null;
+  let cfg = null;
+  let sock = null;
+  let inc = null;           // 边说边译（ListenCore.makeIncremental）
+  let partial = '', partialTr = '';
+  let clockTimer = 0;
+  let cameFrom = 'signed-in';
+  let gen = 0;              // 会话代际：旧会话的异步回调按它作废
+  let holdRowsFrom = 0;     // 这一次按住开始时的 seq，松手时把之后的「我」行合并
+  let speakGen = 0;
+  // 页内麦克风（无桥宿主的退路）
+  let audioCtx = null, stream = null, proc = null, srcNode = null;
 
-  // ── settings ─────────────────────────────────────────────────────────
+  const now = () => Date.now();
+
+  // ── 设置 ──────────────────────────────────────────────────────────────────
+  const READ_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
+    'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
+    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang'];
   function readCfg() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel', 'uiLang'], (s) => {
+      chrome.storage.local.get(READ_KEYS, (s) => {
+        s = s || {};
         const eng = (window.MT_STT_ENGINES || []).find((e) => e.id === s.sttEngine) || null;
         const tr = LearnNotes.resolveConfig(s);
-        resolve({ eng, sttKey: s.sttApiKey || '', tr, targetLang: s.uiLang || (navigator.language || 'zh-CN') });
+        const rules = s.learnRules && typeof s.learnRules === 'object' ? s.learnRules : {};
+        const otherLang = s.listenOtherLang || 'en';
+        resolve({
+          eng, sttKey: s.sttApiKey || '', tr,
+          targetLang: s.uiLang || (navigator.language || 'zh-CN'),
+          captureOn: s.listenCapture !== false,
+          otherLang,
+          lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
+          langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
+          registry: window.MT_LANGS || [],
+          label: SOURCE_LABEL(),
+        });
       });
     });
   }
-  function liveCapable(eng) { return !!(eng && eng.liveEndpoint && eng.liveType); }
+  function liveCapable(c) { return !!(c && c.eng && c.eng.liveEndpoint && c.eng.liveType && (c.sttKey || !c.eng.needsKey)); }
 
-  // ── PCM: Float32 @ ctx rate → Int16 @ target rate (same decimation as asr-source) ──
+  // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
+  async function refreshEntry() {
+    const btn = $('app-listen-entry');
+    if (!btn) return;
+    try {
+      const c = await readCfg();
+      const ok = liveCapable(c);
+      btn.hidden = !ok;
+      const hint = $('app-listen-entry-hint');
+      if (hint) { hint.hidden = !ok; hint.textContent = t('listen_entry_hint', '线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。'); }
+      const need = $('app-listen-need-live');
+      if (need) need.hidden = ok;
+    } catch (_) { btn.hidden = true; }
+  }
+
+  // ── 翻译 ──────────────────────────────────────────────────────────────────
+  async function translate(text, toLang) {
+    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
+    try {
+      return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+    } catch (_) { return ''; }
+  }
+
+  // ── 语料写入（§9.6：定稿译文首次进历史时写一次；星绕过门）────────────────────
+  const deps = {
+    langAllowed: (lang, text, langs, registry) => (typeof LearnRules !== 'undefined' ? LearnRules.langAllowed(lang, text, langs, registry) : true),
+    shouldCapture: (draft) => (typeof LearnModel !== 'undefined' && LearnModel.shouldCapture ? LearnModel.shouldCapture(draft) : true),
+  };
+  async function maybeWrite(row) {
+    if (!session || !C.shouldWrite(row, session, cfg, deps)) return;
+    if (typeof LearnStore === 'undefined' || typeof LearnModel === 'undefined') return;
+    row.written = true;   // 先标再写：写失败下一次不会重试，但也不会把同一句写两遍
+    try {
+      const draft = C.draftFor(row, session, cfg);
+      const item = LearnModel.makeItem(draft, now());
+      await LearnStore.mergeBatch([item], [C.sourceFor(session, cfg.label)]);
+    } catch (_) { row.written = false; }
+    renderHistory();
+  }
+  async function toggleStar(row) {
+    row.starred = !row.starred;
+    renderHistory();
+    if (!row.starred) return;   // 取消星不删卡：卡已经是用户的了（同复习页的规则）
+    if (row.written) {
+      // 已写过：再合并一次，mergeItem 的 starred 是 OR，state 随之升为 learning
+      try {
+        const item = LearnModel.makeItem(C.draftFor(row, session, cfg), now());
+        await LearnStore.mergeBatch([item], [C.sourceFor(session, cfg.label)], { accumulate: false });
+      } catch (_) {}
+      return;
+    }
+    await maybeWrite(row);
+  }
+
+  // ── socket ────────────────────────────────────────────────────────────────
+  function openSocket() {
+    const myGen = gen;
+    const e = cfg.eng;
+    sock = WsTranscribe.open({
+      url: e.liveEndpoint, type: e.liveType, apiKey: cfg.sttKey, keyProtocol: e.liveKeyProtocol || '',
+      model: e.liveModel || e.defaultModel, rate: e.liveRate || 24000, params: e.liveParams || null, langs: [],
+      onEvent: (ev) => {
+        if (myGen !== gen) return;
+        if (ev.kind === 'partial') onPartial(ev.text);
+        else if (ev.kind === 'final') onFinal(ev.text);
+        else if (ev.kind === 'error') halt('socket', ev.message || '');
+        else if (ev.kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused') halt('socket', ev.reason || ''); }
+      },
+    });
+  }
+  function closeSocket() { const s = sock; sock = null; try { if (s) s.close(); } catch (_) {} }
+
+  function onPartial(text) {
+    partial = text || '';
+    if (phase === 'speaking') { renderNow(); return; }
+    if (inc) inc.onPartial(partial);
+    renderNow();
+  }
+  function onFinal(text) {
+    const row = C.addFinal(session, text, now());
+    if (!row) return;
+    partial = ''; partialTr = '';
+    if (row.who === 'me') { renderNow(); renderHistory(); return; }   // 我说的：松手时整段处理
+    const reuse = inc ? inc.close(row.text) : '';
+    renderNow(); renderHistory();
+    const finish = (tr) => { row.tr = tr || ''; renderHistory(); paintNowPlaying(); if (row.tr) maybeWrite(row); };
+    if (reuse) finish(reuse);
+    else { const myGen = gen; translate(row.text, cfg.targetLang).then((tr) => { if (myGen === gen) finish(tr); }); }
+  }
+
+  // ── 麦克风：原生桥优先，页内 getUserMedia 是无桥宿主的退路 ────────────────────
+  function bridged() { return typeof NativeAudio !== 'undefined' && NativeAudio.available(); }
+  function onPcm(int16) {
+    if (!session || !sock) return;
+    if (phase !== 'listening' && phase !== 'speaking') return;
+    sock.sendPcm(int16);
+    if (phase === 'listening' && C.silenceCheck(session, C.rmsOf(int16), now())) pause('silence');
+  }
+  function onMicState(state, reason) {
+    if (state === 'denied') halt('denied', '');
+    else if (state === 'failed') halt('failed', reason);
+    else if (state === 'interrupted') halt('locked', '');
+  }
+  async function micStart() {
+    const rate = (cfg.eng && cfg.eng.liveRate) || 24000;
+    if (bridged()) { NativeAudio.micStart(rate, { onPcm, onState: onMicState }); return true; }
+    // 退路：页内采集（Chrome / 无桥）。AudioContext 必须在手势里建 —— start() 由点击触发。
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) { halt(e && e.name === 'NotAllowedError' ? 'denied' : 'failed', e && e.message); return false; }
+    const resample = makeResampler(audioCtx.sampleRate, rate);
+    srcNode = audioCtx.createMediaStreamSource(stream);
+    proc = audioCtx.createScriptProcessor(PROCESSOR_FRAMES, 1, 1);
+    proc.onaudioprocess = (e) => { const pcm = resample(e.inputBuffer.getChannelData(0)); if (pcm.length) onPcm(pcm); };
+    srcNode.connect(proc);
+    const mute = audioCtx.createGain(); mute.gain.value = 0; proc.connect(mute); mute.connect(audioCtx.destination);
+    proc._mute = mute;
+    return true;
+  }
+  function micStop() {
+    if (bridged()) NativeAudio.micStop();
+    try { if (proc) { proc.disconnect(); if (proc._mute) proc._mute.disconnect(); } } catch (_) {}
+    try { if (srcNode) srcNode.disconnect(); } catch (_) {}
+    try { if (stream) stream.getTracks().forEach((tr) => tr.stop()); } catch (_) {}
+    proc = null; srcNode = null; stream = null;
+  }
   function makeResampler(fromRate, toRate) {
     const ratio = fromRate / toRate;
     let carry = new Float32Array(0);
@@ -84,195 +235,358 @@ var AppListen = (() => {
   }
   function concatF32(a, b) { const o = new Float32Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
 
-  // ── translation of finals (spike: one request per final, no debounce) ──
-  async function translateFinal(text, cfg) {
-    if (!cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
-    try {
-      return await TranslationAPI.translate(text, cfg.targetLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-    } catch (e) { note('translate failed: ' + (e && e.message)); return ''; }
+  function keepAliveOn() {
+    if (!bridged() || !NativeAudio.suspends()) return;
+    try { if (!keepAlive) { keepAlive = new Audio(KEEP_ALIVE_WAV); keepAlive.loop = true; } keepAlive.play().catch(() => {}); } catch (_) {}
+  }
+  function keepAliveOff() { try { if (keepAlive) keepAlive.pause(); } catch (_) {} }
+
+  // ── 会话生命周期 ──────────────────────────────────────────────────────────
+  async function start() {
+    if (phase !== 'idle' && phase !== 'ended') return;
+    gen++;
+    cfg = await readCfg();
+    if (!liveCapable(cfg)) { note(t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎'), true); return; }
+    session = C.newSession(now(), Math.random());
+    inc = C.makeIncremental((text) => translate(text, cfg.targetLang));
+    inc.result((text, tr) => { if (text === partial) { partialTr = tr; renderNow(); } });
+    partial = ''; partialTr = '';
+    if (bridged()) { NativeAudio.recordMode(true); NativeAudio.sessionStart(); }
+    $('app-listen-summary').hidden = true;
+    $('app-listen-history-wrap').hidden = false;
+    renderHistory();
+    if (!clockTimer) clockTimer = setInterval(paintClock, 1000);
+    await beginPipeline();
+  }
+  // 起管线：麦克风 + socket。暂停/中断之后「开始听」也走这里（同一场会话继续）。
+  async function beginPipeline() {
+    phase = 'listening'; pauseReason = '';
+    note('');
+    C.resume(session, now());
+    openSocket();
+    paint();
+    const ok = await micStart();
+    if (!ok) return;
+    keepAliveOn();
+    paint();
+  }
+  // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
+  function pause(reason) {
+    if (phase !== 'listening' && phase !== 'speaking') return;
+    phase = 'paused'; pauseReason = reason || 'user';
+    C.pause(session, now());
+    micStop(); closeSocket();
+    if (inc) inc.reset();
+    partial = ''; partialTr = '';
+    if (reason === 'silence') note(t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。'), false);
+    paint();
+  }
+  // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
+  function halt(reason, why) {
+    if (phase === 'ended' || phase === 'idle') return;
+    if (phase === 'showing') { speakGen++; $('app-listen-flip').hidden = true; }
+    phase = 'halted'; pauseReason = reason;
+    C.pause(session, now());
+    session.speaking = false;
+    micStop(); closeSocket();
+    if (inc) inc.reset();
+    partial = ''; partialTr = '';
+    const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
+    const msg = reason === 'denied' ? t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。')
+      : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
+      : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了 — 点「开始听」继续。')
+      : t('listen_stop_failed', '麦克风启动失败：{why}').replace('{why}', why1);
+    note(msg, true);
+    paint();
+  }
+  async function resume() {
+    if (phase !== 'paused' && phase !== 'halted') return;
+    await beginPipeline();
+  }
+  function toggle() {
+    if (phase === 'listening') pause('user');
+    else if (phase === 'paused' || phase === 'halted') resume();
+    else if (phase === 'idle' || phase === 'ended') start();
+  }
+  function end() {
+    if (!session || phase === 'ended') return;
+    speakGen++;
+    C.pause(session, now());
+    phase = 'ended';
+    session.speaking = false;
+    micStop(); closeSocket(); keepAliveOff();
+    if (inc) inc.reset();
+    if (bridged()) { NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+    $('app-listen-flip').hidden = true;
+    renderSummary();
+    paint();
+  }
+  function leave() {
+    if (session && phase !== 'ended') end();
+    gen++;
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
+    session = null; phase = 'idle';
+    $('app-listen').hidden = true;
+    $(cameFrom).hidden = false;
+  }
+  function open() {
+    cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
+    $(cameFrom).hidden = true;
+    $('app-listen').hidden = false;
+    $('app-listen-summary').hidden = true;
+    note('');
+    renderHistory(); renderNow();
+    start();
   }
 
-  // ── network probe (spike only): is each host reachable from this WKWebView? ──
-  // Hosts come from the registries (no literals — the China gate greps shipped JS).
-  function hostOf(u) { try { return new URL(u).host; } catch (_) { return ''; } }
-  function probeHttp(label, url) {
-    const t0 = Date.now(); const ac = new AbortController(); const tm = setTimeout(() => ac.abort(), 8000);
-    return fetch(url, { method: 'GET', signal: ac.signal, cache: 'no-store' })
-      .then((r) => note(`net ${label} https: HTTP ${r.status} in ${Date.now() - t0}ms`))
-      .catch((e) => note(`net ${label} https: ${e && e.name} ${e && e.message} after ${Date.now() - t0}ms`))
-      .then(() => clearTimeout(tm));
+  // ── 我说（按住说话）────────────────────────────────────────────────────────
+  function speakBegin() {
+    if (phase !== 'listening') return;
+    phase = 'speaking';
+    holdRowsFrom = session.seq;
+    C.holdStart(session, now());
+    if (inc) inc.reset();
+    partial = ''; partialTr = '';
+    paint();
   }
-  function probeWs(label, url) {
-    return new Promise((resolve) => {
-      const t0 = Date.now(); let done = false;
-      const fin = (msg) => { if (done) return; done = true; note(`net ${label} wss: ${msg} after ${Date.now() - t0}ms`); resolve(); };
-      let ws; try { ws = new WebSocket(url); } catch (e) { fin('threw ' + e.message); return; }
-      ws.onopen = () => { fin('open'); try { ws.close(); } catch (_) {} };
-      ws.onerror = () => fin('error');
-      ws.onclose = (ev) => fin('close ' + ev.code);
-      setTimeout(() => { fin('timeout'); try { ws.close(); } catch (_) {} }, 8000);
+  async function speakEnd() {
+    if (phase !== 'speaking') return;
+    const open = partial;
+    C.holdEnd(session, now());
+    phase = 'showing';
+    paint();
+    const myGen = ++speakGen;
+    // 等端点检测把最后一句闭合（松手后的尾巴，HOLD_TAIL_MS），再合并成一段
+    await new Promise((r) => setTimeout(r, C.HOLD_TAIL_MS));
+    if (myGen !== speakGen || phase !== 'showing') return;
+    const mine = session.rows.filter((r) => r.who === 'me' && r.rid > holdRowsFrom);
+    let text = mine.map((r) => r.text).join(' ').trim();
+    if (!text && open) text = open.trim();
+    // 合并：留第一行，文本换成整段；其余行拿掉
+    let row = mine[0];
+    if (!row && text) { session.speaking = true; row = C.addFinal(session, text, now()); session.speaking = false; }
+    for (const r of mine.slice(1)) { const i = session.rows.indexOf(r); if (i >= 0) session.rows.splice(i, 1); }
+    if (!row) { phase = 'listening'; paint(); return; }
+    row.text = text;
+    partial = ''; partialTr = '';
+    renderHistory();
+    showFlip(row, '');
+    const tr = await translate(text, cfg.otherLang);
+    if (myGen !== speakGen) return;
+    row.tr = tr;
+    renderHistory();
+    showFlip(row, tr);
+    if (tr) { maybeWrite(row); speakOut(tr); }
+  }
+  function showFlip(row, tr) {
+    $('app-listen-flip-text').textContent = tr || t('listen_pending', '⏳ 译文准备中…');
+    $('app-listen-flip-sub').textContent = row.text;
+    $('app-listen-flip').hidden = false;
+    $('app-listen-flip').dataset.rid = String(row.rid);
+  }
+  async function speakOut(text) {
+    if (typeof LearnTTS === 'undefined') return null;
+    const mark = $('app-listen-flip-speaking');
+    let r = null;
+    try { mark.hidden = false; r = await LearnTTS.speak(text, cfg.otherLang); }
+    catch (_) { r = null; }
+    // 没有 TTS 引擎 / 没音色：只显示不朗读，不道歉（能力语义）
+    mark.hidden = true;
+    return r;
+  }
+  function flipBack() {
+    if (phase !== 'showing') return;
+    speakGen++;
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+    $('app-listen-flip').hidden = true;
+    phase = 'listening';
+    session.speaking = false;
+    paint();
+  }
+
+  // ── 锁屏卡片（复用 §9.5 的 Now Playing 通道）────────────────────────────────
+  function paintNowPlaying() {
+    if (!bridged() || !session) return;
+    const last = session.rows.length ? session.rows[session.rows.length - 1] : null;
+    const listening = phase === 'listening' || phase === 'speaking';
+    NativeAudio.playingState(listening);
+    NativeAudio.nowPlaying({
+      title: last ? last.text : t('listen_np_title', '对话 · 实时听译中'),
+      subtitle: last ? (last.tr || t('listen_pending', '⏳ 译文准备中…')) : '',
+      album: t('listen_np_album', '对话 · 实时听译中 · {t} · {n} 句')
+        .replace('{t}', C.fmtClock(C.listenedMs(session, now()))).replace('{n}', String(session.rows.length)),
     });
   }
-  async function netProbe(cfg) {
-    const prov = (window.MT_PROVIDERS || []).find((x) => x.id === (cfg.tr && cfg.tr.provider)) || null;
-    const stt = hostOf(cfg.eng.liveEndpoint), tr = hostOf((cfg.tr && cfg.tr.baseUrl) || (prov && prov.defaultEndpoint) || '');
-    note('net probe: stt ' + stt + ' · tr ' + tr);
-    await Promise.all([
-      stt && probeHttp('stt', 'https://' + stt + '/'), stt && probeWs('stt', 'wss://' + stt + '/'),
-      tr && probeHttp('tr', 'https://' + tr + '/'), tr && probeWs('tr', 'wss://' + tr + '/'),
-    ].filter(Boolean));
-  }
-
-  // ── start / stop ──────────────────────────────────────────────────────
-  async function start() {
-    if (running) return;
-    const cfg = await readCfg();
-    if (!liveCapable(cfg.eng)) { note('no live-capable transcription engine (need liveEndpoint) — pick OpenAI Transcribe in settings'); paint(); return; }
-    if (!cfg.sttKey && cfg.eng.needsKey) { note('no transcription key'); return; }
-    running = true; stats.started = Date.now(); stats.frames = 0; stats.bytes = 0; stats.finals = 0; stats.partials = 0; stats.hidden = 0; stats.finalsWhileHidden = 0; stats.framesWhileHidden = 0; stats.peakWhileHidden = 0; stats.ticksWhileHidden = 0;
-    // (c) ask the host for a recording-capable session BEFORE getUserMedia
-    if (typeof NativeAudio !== 'undefined' && NativeAudio.available()) {
-      NativeAudio.recordMode($('app-listen-bg') ? $('app-listen-bg').checked : true);
-      NativeAudio.sessionStart();
-      note('native: record-mode requested');
-    } else note('native bridge absent (browser / Simulator without bridge)');
-    // AudioContext must be created inside the tap — this runs from the click handler
-    try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); }
-    catch (e) { note('AudioContext failed: ' + e.message); stop(); return; }
-    note('AudioContext ' + audioCtx.state + ' @ ' + audioCtx.sampleRate + ' Hz');
-    try { keepAlive = new Audio(KEEP_ALIVE_WAV); keepAlive.loop = true; await keepAlive.play(); note('keep-alive audio playing (looping, inaudible)'); }
-    catch (e) { note('keep-alive audio failed: ' + e.message); }
-    // (b) microphone
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-    catch (e) { note('getUserMedia failed: ' + (e && (e.name + ' ' + e.message))); stop(); return; }
-    const track = stream.getAudioTracks()[0];
-    note('mic track: ' + (track ? track.label + ' ' + track.readyState : 'none'));
-    // (a0) reachability first, so a socket timeout below can be read against it
-    await netProbe(cfg);
-    if (!running) return;
-    // (a) socket
-    const rate = cfg.eng.liveRate || 24000;
-    stats.socket = 'connecting'; paint();
-    try {
-      sock = WsTranscribe.open({
-        url: cfg.eng.liveEndpoint, type: cfg.eng.liveType, apiKey: cfg.sttKey, keyProtocol: cfg.eng.liveKeyProtocol || '',
-        model: cfg.eng.liveModel || cfg.eng.defaultModel, rate, params: cfg.eng.liveParams || null, langs: [],
-        onEvent: (ev) => {
-          if (ev.kind === 'ready') { stats.socket = 'ready'; note('socket ready'); }
-          else if (ev.kind === 'partial') { stats.partials++; const p = $('app-listen-partial'); if (p) p.textContent = ev.text; }
-          else if (ev.kind === 'final') {
-            stats.finals++; stats.lastFinalAt = Date.now();
-            if (document.hidden) stats.finalsWhileHidden++;
-            const row = { text: ev.text, tr: '', at: Date.now() };
-            finals.push(row); if (finals.length > 30) finals.shift();
-            renderFinals();
-            translateFinal(ev.text, cfg).then((tr) => { row.tr = tr; renderFinals(); });
-            const p = $('app-listen-partial'); if (p) p.textContent = '';
-          }
-          // spike: a dead socket must not end the capture — (b)/(c) are readable without it
-          else if (ev.kind === 'error') { stats.socket = 'error: ' + ev.message; note('socket error: ' + ev.message + ' — capture continues mic-only'); sock = null; }
-          else if (ev.kind === 'close') { stats.socket = 'closed ' + ev.code; note('socket closed ' + ev.code + ' ' + ev.reason + ' — capture continues mic-only'); sock = null; }
-          paint();
-        },
-      });
-    } catch (e) { note('socket open threw: ' + e.message); stop(); return; }
-    // capture → resample → send
-    const resample = makeResampler(audioCtx.sampleRate, rate);
-    srcNode = audioCtx.createMediaStreamSource(stream);
-    proc = audioCtx.createScriptProcessor(PROCESSOR_FRAMES, 1, 1);
-    proc.onaudioprocess = (e) => {
-      if (!running) return;
-      const f32 = e.inputBuffer.getChannelData(0);
-      let s = 0, peak = 0; for (let i = 0; i < f32.length; i++) { s += f32[i] * f32[i]; const a = Math.abs(f32[i]); if (a > peak) peak = a; }
-      stats.rms = Math.sqrt(s / f32.length); stats.peak = peak;
-      const pcm = resample(f32);
-      if (pcm.length) { stats.frames++; stats.bytes += pcm.byteLength; stats.lastFrameAt = Date.now(); if (sock) sock.sendPcm(pcm); }
-      if (document.hidden) { stats.framesWhileHidden++; if (peak > stats.peakWhileHidden) stats.peakWhileHidden = peak; }
-      if (stats.frames % 25 === 0) paint();
-    };
-    srcNode.connect(proc);
-    const mute = audioCtx.createGain(); mute.gain.value = 0; proc.connect(mute); mute.connect(audioCtx.destination);
-    proc._mute = mute;
-    document.addEventListener('visibilitychange', onVis);
-    // does JS run at all while locked? (decides native-capture-only vs whole pipeline native)
-    ticker = setInterval(() => { if (document.hidden) { stats.ticksWhileHidden++; stats.lastTickAt = Date.now(); } }, 1000);
-    paint();
-    $('app-listen-start').disabled = true; $('app-listen-stop').disabled = false;
-  }
-  function onVis() {
-    if (document.hidden) { stats.hidden++; stats.hiddenAt = Date.now(); note('page hidden (lock/background) — watching for finals'); }
-    else note('page visible again; hidden for ' + Math.round((Date.now() - stats.hiddenAt) / 1000) + 's · frames while hidden ' + stats.framesWhileHidden + ' · peak while hidden ' + stats.peakWhileHidden.toFixed(3) + ' · js ticks while hidden ' + stats.ticksWhileHidden + ' · finals while hidden ' + stats.finalsWhileHidden);
-    paint();
-  }
-  function stop() {
-    running = false;
-    if (ticker) { clearInterval(ticker); ticker = null; }
-    if (keepAlive) { try { keepAlive.pause(); } catch (_) {} keepAlive = null; }
-    document.removeEventListener('visibilitychange', onVis);
-    try { if (proc) { proc.disconnect(); if (proc._mute) proc._mute.disconnect(); } } catch (_) {}
-    try { if (srcNode) srcNode.disconnect(); } catch (_) {}
-    try { if (stream) stream.getTracks().forEach((tr) => tr.stop()); } catch (_) {}
-    try { if (sock) sock.close(); } catch (_) {}
-    proc = null; srcNode = null; stream = null; sock = null;
-    if (typeof NativeAudio !== 'undefined' && NativeAudio.available()) { NativeAudio.recordMode(false); NativeAudio.sessionStop(); }
-    if (stats.socket === 'ready' || stats.socket === 'connecting') stats.socket = 'idle';
-    note('stopped');
-    paint();
-    const b1 = $('app-listen-start'), b2 = $('app-listen-stop');
-    if (b1) b1.disabled = false; if (b2) b2.disabled = true;
-  }
-  function renderFinals() {
-    const el = $('app-listen-finals'); if (!el) return;
-    el.textContent = '';
-    for (const r of finals.slice(-8).reverse()) {
-      const row = document.createElement('div'); row.className = 'listen-row';
-      const o = document.createElement('div'); o.textContent = r.text;
-      const tr = document.createElement('div'); tr.className = 'listen-tr'; tr.textContent = r.tr || '…';
-      row.appendChild(o); row.appendChild(tr); el.appendChild(row);
+  function onNative(msg) {
+    if (!msg || $('app-listen').hidden || !session) return;
+    if (msg.type === 'remote') {
+      if (msg.command === 'pause') { if (phase === 'listening') pause('user'); }
+      else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resume(); }
+      else if (msg.command === 'toggle') toggle();
+    } else if (msg.type === 'interrupt' && msg.phase === 'begin') {
+      if (phase === 'listening' || phase === 'speaking') halt('locked', '');
     }
   }
 
-  // ── view ──────────────────────────────────────────────────────────────
-  let cameFrom = 'signed-in';
-  function open() {
-    cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
-    $(cameFrom).hidden = true; $('app-listen').hidden = false;
-    readCfg().then((cfg) => {
-      note(liveCapable(cfg.eng) ? `engine ${cfg.eng.id} → ${cfg.eng.liveType} @ ${cfg.eng.liveRate || 24000} Hz` : 'engine has no live tier; pick OpenAI Transcribe in settings');
-      note('translate via ' + (cfg.tr && cfg.tr.provider ? cfg.tr.provider : 'none') + ' → ' + cfg.targetLang);
-      paint();
-    });
+  // ── 界面 ──────────────────────────────────────────────────────────────────
+  function note(msg, isErr) {
+    const el = $('app-listen-note'); if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('err', !!isErr);
   }
-  function close() { if (running) stop(); $('app-listen').hidden = true; $(cameFrom).hidden = false; }
+  function paintClock() {
+    if (!session) return;
+    const ms = C.listenedMs(session, now());
+    const pill = $('app-listen-pill');
+    const listening = phase === 'listening';
+    pill.textContent = (phase === 'speaking' || phase === 'showing') ? t('listen_pill_speaking', '我在说 · 对方的声音暂不听')
+      : listening ? t('listen_pill_listening', '听译中 · {t}').replace('{t}', C.fmtClock(ms))
+      : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
+      : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
+    pill.classList.toggle('live', listening);
+    $('app-listen-cost').textContent = t('listen_cost_line', '已听 {t} · 音频只发往你配置的转写端点').replace('{t}', C.fmtClock(ms));
+    if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
+  }
+  function paint() {
+    const active = phase === 'listening' || phase === 'speaking' || phase === 'showing';
+    const tog = $('app-listen-toggle');
+    tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
+      : (phase === 'paused' || phase === 'halted' || phase === 'ended' || phase === 'idle') ? t('listen_toggle_start', '开始听')
+      : t('listen_toggle_pause', '● 正在听 · 暂停');
+    tog.disabled = phase === 'speaking' || phase === 'showing';
+    const spk = $('app-listen-speak');
+    spk.textContent = phase === 'speaking' ? t('listen_speak_release', '松手 · 译给对方') : t('listen_speak_hold', '按住 · 我说');
+    spk.disabled = !(phase === 'listening' || phase === 'speaking');
+    spk.classList.toggle('holding', phase === 'speaking');
+    $('app-listen-end').hidden = !session || phase === 'ended';
+    $('app-listen-lang').textContent = (phase === 'speaking' || phase === 'showing')
+      ? t('listen_lang_me', '中文 → {to}').replace('{to}', langLabel(cfg && cfg.otherLang))
+      : t('listen_lang_auto', '{from} → {to}').replace('{from}', langLabel(cfg && cfg.otherLang)).replace('{to}', langLabel(cfg && cfg.targetLang));
+    $('app-listen-now-label').textContent = (phase === 'speaking') ? t('listen_now_me', '我正在说（松手即译）') : t('listen_now_them', '对方正在说');
+    $('app-listen-live').hidden = !active;
+    paintClock();
+    paintNowPlaying();
+    renderNow();
+  }
+  function langLabel(code) {
+    const c = String(code || '');
+    const base = c.split('-')[0].toLowerCase();
+    const e = (window.MT_LANGS || []).find((l) => l.code === base || l.code === c);
+    return e ? (e.labelKey ? t(e.labelKey, e.label) : e.label) : c;
+  }
+  function renderNow() {
+    const p = $('app-listen-partial'), q = $('app-listen-partial-tr');
+    if (!p) return;
+    p.textContent = partial || '';
+    q.textContent = (phase === 'speaking') ? '' : (partial && partialTr ? partialTr + '…' : '');
+  }
+  function renderHistory() {
+    const list = $('app-listen-history'); if (!list) return;
+    const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 12;
+    list.textContent = '';
+    const rows = session ? session.rows : [];
+    for (const r of rows) {
+      const row = document.createElement('div'); row.className = 'listen-row' + (r.who === 'me' ? ' me' : '');
+      const body = document.createElement('div'); body.className = 'listen-body';
+      const o = document.createElement('div'); o.className = 'listen-orig';
+      o.textContent = (r.who === 'me' ? t('listen_me_prefix', '我：') : '') + r.text;
+      const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? '' : ' pending');
+      tr.textContent = r.tr || t('listen_pending', '⏳ 译文准备中…');
+      body.appendChild(o); body.appendChild(tr);
+      const star = document.createElement('button'); star.type = 'button'; star.className = 'listen-star' + (r.starred ? ' on' : '');
+      star.textContent = r.starred ? '★' : '☆';
+      star.setAttribute('aria-label', t('listen_star', '加星'));
+      star.addEventListener('click', () => { toggleStar(r); });
+      row.appendChild(body); row.appendChild(star);
+      list.appendChild(row);
+    }
+    $('app-listen-history-title').textContent = t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : '');
+    if (atBottom) list.scrollTop = list.scrollHeight;
+  }
+  function renderSummary() {
+    const s = C.summary(session, now());
+    $('app-listen-summary-body').textContent = t('listen_summary_body', '时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · 进复习（来源「对话」）{n} 句 · 含 {s} 句加星')
+      .replace('{t}', C.fmtClock(s.seconds * 1000)).replace('{them}', String(s.them)).replace('{me}', String(s.me))
+      .replace('{n}', String(s.written)).replace('{s}', String(s.starred));
+    $('app-listen-summary').hidden = false;
+  }
 
-  // Hidden entry for the spike: 5 taps on the header name within 2 s.
+  // ── 接线 ──────────────────────────────────────────────────────────────────
   function wire() {
-    let taps = [];
-    const gesture = () => {
-      const now = Date.now(); taps = taps.filter((x) => now - x < 2000); taps.push(now);
-      if (taps.length >= 5) { taps = []; open(); }
-    };
-    // signed-in header name, and the signed-out title — the spike must be reachable
-    // without an account (登录只是为了同步)
-    for (const el of [$('who'), document.querySelector('#signed-out h1')]) if (el) el.addEventListener('click', gesture);
-    // An instrumented build (verification-spec §1.1) seeds `listenSpike`; only then does a
-    // visible link exist — the multi-tap gesture does not survive iPhone Mirroring's
-    // click delivery (measured 2026-09-07: it selects the title text instead).
+    const entry = $('app-listen-entry');
+    if (entry) {
+      entry.textContent = t('listen_entry', '🎙 对话 · 实时听译');
+      entry.addEventListener('click', open);
+    }
+    const why = $('app-listen-need-live-why'); if (why) why.textContent = t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎');
+    const go = $('app-listen-need-live-go'); if (go) go.textContent = t('listen_need_live_go', '去设置里选择 →');
+    refreshEntry();
     try {
-      chrome.storage.local.get('listenSpike', (r) => {
-        if (!r || !r.listenSpike) return;
-        for (const id of ['app-listen-open', 'app-listen-open2']) { const b = $(id); if (b) { b.hidden = false; b.textContent = t('app_listen_spike_title', '实时听译 · 可行性探针'); b.addEventListener('click', open); } }
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area && area !== 'local') return;
+        if (['sttEngine', 'sttApiKey', 'sttBaseUrl'].some((k) => k in (changes || {}))) refreshEntry();
       });
     } catch (_) {}
-    $('app-listen-back').addEventListener('click', close);
-    $('app-listen-start').addEventListener('click', () => { start(); });
-    $('app-listen-stop').addEventListener('click', () => { stop(); });
-    $('app-listen-back').textContent = t('app_listen_back', '返回');
-    $('app-listen-title').textContent = t('app_listen_spike_title', '实时听译 · 可行性探针');
-    $('app-listen-start').textContent = t('app_listen_start', '开始听');
-    $('app-listen-stop').textContent = t('app_listen_stop', '停止');
-    $('app-listen-bg-label').textContent = t('app_listen_bg', '锁屏也继续（录音会话）');
+
+    $('app-listen-back').textContent = t('app_listen_back', '‹ 返回');
+    $('app-listen-title').textContent = t('listen_title', '对话');
+    $('app-listen-history-title').textContent = t('listen_history', '整句定稿');
+    $('app-listen-end').textContent = t('listen_end', '结束');
+    $('app-listen-flip-hint').textContent = t('listen_flip_hint', '给对方看 · 点任意处返回');
+    $('app-listen-flip-speaking').textContent = t('listen_flip_speaking', '朗读中');
+    $('app-listen-flip-again').textContent = t('listen_flip_again', '再读一遍');
+    $('app-listen-flip-back').textContent = t('listen_flip_back', '继续听对方');
+    $('app-listen-summary-title').textContent = t('listen_summary_title', '这次对话');
+    $('app-listen-summary-note').textContent = t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。');
+    $('app-listen-summary-home').textContent = t('listen_summary_home', '回到首页');
+    $('app-listen-summary-again').textContent = t('listen_summary_again', '再来一段');
+    $('app-listen-other-label').textContent = t('listen_other_lang_label', '对方的语言');
+
+    // 对方的语言：从语言注册表列，记住选择（listenOtherLang）。用于「我说」的目标语言，
+    // 与对方句子进语料时的 lang。
+    const sel = $('app-listen-other');
+    sel.textContent = '';
+    for (const l of (window.MT_LANGS || [])) {
+      const o = document.createElement('option'); o.value = l.code; o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
+      sel.appendChild(o);
+    }
+    chrome.storage.local.get(['listenOtherLang'], (s) => { sel.value = (s && s.listenOtherLang) || 'en'; if (!sel.value) sel.value = 'en'; });
+    sel.addEventListener('change', () => { chrome.storage.local.set({ listenOtherLang: sel.value }); if (cfg) { cfg.otherLang = sel.value; cfg.lang = sel.value; } if (session) paint(); });
+
+    $('app-listen-back').addEventListener('click', leave);
+    $('app-listen-toggle').addEventListener('click', toggle);
+    $('app-listen-end').addEventListener('click', end);
+    $('app-listen-summary-home').addEventListener('click', leave);
+    $('app-listen-summary-again').addEventListener('click', () => { phase = 'idle'; start(); });
+
+    // 按住说话：pointer 三件套 + 键盘（macOS：按住空格）
+    const spk = $('app-listen-speak');
+    spk.addEventListener('pointerdown', (e) => { e.preventDefault(); try { spk.setPointerCapture(e.pointerId); } catch (_) {} speakBegin(); });
+    spk.addEventListener('pointerup', () => { speakEnd(); });
+    spk.addEventListener('pointercancel', () => { speakEnd(); });
+    spk.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space' || e.repeat || $('app-listen').hidden) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      e.preventDefault(); speakBegin();
+    });
+    document.addEventListener('keyup', (e) => { if (e.code === 'Space' && !$('app-listen').hidden) speakEnd(); });
+
+    const flip = $('app-listen-flip');
+    flip.addEventListener('click', (e) => { if (e.target.closest('button')) return; flipBack(); });
+    $('app-listen-flip-back').addEventListener('click', flipBack);
+    $('app-listen-flip-again').addEventListener('click', () => {
+      const rid = Number(flip.dataset.rid || 0);
+      const row = session && session.rows.find((r) => r.rid === rid);
+      if (row && row.tr) speakOut(row.tr);
+    });
+
+    if (bridged()) NativeAudio.onEvent(onNative);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && session) paint(); });
   }
 
-  return { wire, open, close, start, stop, _stats: stats, _log: log, _finals: finals };
+  return { wire, open, leave, start, pause, resume, end, refreshEntry,
+    _debug: () => ({ phase, pauseReason, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id }) };
 })();

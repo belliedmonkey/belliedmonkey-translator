@@ -2187,18 +2187,144 @@
     "message": "История · целые предложения"
   },
   "app_listen_back": {
-    "message": "Назад"
+    "message": "‹ Назад"
   },
-  "app_listen_spike_title": {
-    "message": "Живое прослушивание · проба"
+  "listen_source_label": {
+    "message": "Разговор"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 Разговор · живой переводчик"
+  },
+  "listen_entry_hint": {
+    "message": "Понимайте иностранную речь вживую: собеседник говорит — вы читаете на своём языке; удерживайте, чтобы сказать своё, и покажите перевод. Аудио уходит только на настроенную вами точку транскрипции."
+  },
+  "listen_need_live": {
+    "message": "«Разговор · живой переводчик» требует движок транскрипции с точкой реального времени"
+  },
+  "listen_need_live_go": {
+    "message": "Выбрать в настройках →"
+  },
+  "listen_title": {
+    "message": "Разговор"
+  },
+  "listen_history": {
+    "message": "Готовые фразы"
+  },
+  "listen_pending": {
+    "message": "⏳ Перевод…"
+  },
+  "listen_me_prefix": {
+    "message": "Я: "
+  },
+  "listen_me_badge": {
+    "message": "сказано мной"
+  },
+  "listen_star": {
+    "message": "Звезда"
+  },
+  "listen_now_them": {
+    "message": "Собеседник говорит"
+  },
+  "listen_now_me": {
+    "message": "Я говорю (отпустите для перевода)"
+  },
+  "listen_lang_auto": {
+    "message": "собеседник: {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "на {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Язык собеседника"
+  },
+  "listen_pill_listening": {
+    "message": "Слушаю · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Пауза · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Говорю я · собеседник не слушается"
+  },
+  "listen_pill_ended": {
+    "message": "Завершено · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Слушаю · пауза"
+  },
+  "listen_toggle_start": {
     "message": "Начать слушать"
   },
-  "app_listen_stop": {
-    "message": "Стоп"
+  "listen_speak_hold": {
+    "message": "Удерживать · говорю я"
   },
-  "app_listen_bg": {
-    "message": "Продолжать при блокировке (сеанс записи)"
+  "listen_speak_release": {
+    "message": "Отпустить · перевести собеседнику"
+  },
+  "listen_end": {
+    "message": "Завершить"
+  },
+  "listen_cost_line": {
+    "message": "Прослушано {t} · аудио уходит только на вашу точку транскрипции"
+  },
+  "listen_flip_hint": {
+    "message": "Показать · коснитесь где угодно, чтобы вернуться"
+  },
+  "listen_flip_speaking": {
+    "message": "Озвучивание"
+  },
+  "listen_flip_again": {
+    "message": "Ещё раз"
+  },
+  "listen_flip_back": {
+    "message": "Снова слушать"
+  },
+  "listen_stop_denied": {
+    "message": "Микрофон запрещён — разрешите BelliedMonkey Translator в Настройки › Конфиденциальность › Микрофон."
+  },
+  "listen_stop_socket": {
+    "message": "Соединение транскрипции потеряно: {why} — услышанное сохранено."
+  },
+  "listen_stop_locked": {
+    "message": "Система остановила запись — нажмите «Начать слушать», чтобы продолжить."
+  },
+  "listen_stop_silence": {
+    "message": "30 с тишины — пауза, чтобы не тратить деньги."
+  },
+  "listen_stop_failed": {
+    "message": "Микрофон не запустился: {why}"
+  },
+  "listen_summary_title": {
+    "message": "Этот разговор"
+  },
+  "listen_summary_body": {
+    "message": "{t} · собеседник: {them} фраз · я: {me} · {n} в повторение (источник «Разговор») · {s} со звездой"
+  },
+  "listen_summary_note": {
+    "message": "Запись удалена; остаётся только текст. Фразы в повторении можно найти или удалить целиком в Источники › Разговор."
+  },
+  "listen_summary_home": {
+    "message": "На главную"
+  },
+  "listen_summary_again": {
+    "message": "Ещё один"
+  },
+  "listen_np_title": {
+    "message": "Разговор · живой переводчик"
+  },
+  "listen_np_album": {
+    "message": "Разговор · слушаю · {t} · {n} фраз"
+  },
+  "listen_settings_title": {
+    "message": "Разговор · живой переводчик"
+  },
+  "listen_capture_label": {
+    "message": "Добавлять разговоры в повторение (источник «Разговор»)"
+  },
+  "listen_capture_note": {
+    "message": "«Разговор · живой переводчик» передаёт микрофон на настроенную вами точку транскрипции, только после «Начать слушать» и только туда; наши серверы не касаются аудио; запись не хранится, только текст — и только пока этот переключатель включён."
+  },
+  "listen_sources_note": {
+    "message": "Каждая фраза — из транскрипции, перевод — из вашего движка; оба могут ошибаться. Фразы со звездой идут в повторение первыми."
   }
 }

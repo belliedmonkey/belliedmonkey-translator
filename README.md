@@ -254,6 +254,11 @@ Stated up front, because finding them yourself is worse.
   you chose — and nowhere else — then discarded once the transcript comes back. It is never
   stored, never synced, and never touches a server of ours. No engine configured means the
   speaking exercise simply doesn't appear.
+- **The app's live interpreter streams your microphone only where you point it.**
+  “Conversation · live interpreter” sends microphone audio to the transcription endpoint you
+  configured, only after you tap “Start listening” and only to that endpoint. Our servers never
+  touch the audio; no recording is kept, only text — and only while “add conversations to
+  review” is on. No realtime-capable engine configured means the mode simply doesn't appear.
 - **What is sent for translation** is the text, and nothing else — not the URL, not the page
   title, not the referrer, not any identifier. **What sync sends, if you turn it on, is
   different and larger: every sentence the extension kept, the page URL and title it came

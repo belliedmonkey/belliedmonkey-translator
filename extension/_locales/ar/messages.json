@@ -2187,18 +2187,144 @@
     "message": "السجل · جمل كاملة"
   },
   "app_listen_back": {
-    "message": "رجوع"
+    "message": "‹ رجوع"
   },
-  "app_listen_spike_title": {
-    "message": "استماع مباشر · اختبار"
+  "listen_source_label": {
+    "message": "محادثة"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 محادثة · مترجم فوري"
+  },
+  "listen_entry_hint": {
+    "message": "افهم لغة أجنبية وجهاً لوجه: يتحدث الطرف الآخر وتقرأ أنت بلغتك؛ اضغط مطولاً لتتحدث وأظهر له الترجمة. الصوت يذهب فقط إلى نقطة النسخ التي ضبطتها."
+  },
+  "listen_need_live": {
+    "message": "يحتاج «محادثة · مترجم فوري» إلى محرك نسخ بنقطة زمن حقيقي"
+  },
+  "listen_need_live_go": {
+    "message": "اختر في الإعدادات ←"
+  },
+  "listen_title": {
+    "message": "محادثة"
+  },
+  "listen_history": {
+    "message": "الجمل النهائية"
+  },
+  "listen_pending": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "listen_me_prefix": {
+    "message": "أنا: "
+  },
+  "listen_me_badge": {
+    "message": "قلته أنا"
+  },
+  "listen_star": {
+    "message": "نجمة"
+  },
+  "listen_now_them": {
+    "message": "الطرف الآخر يقول"
+  },
+  "listen_now_me": {
+    "message": "أنا أقول (اترك للترجمة)"
+  },
+  "listen_lang_auto": {
+    "message": "الطرف الآخر {from} ← {to}"
+  },
+  "listen_lang_me": {
+    "message": "إلى {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "لغة الطرف الآخر"
+  },
+  "listen_pill_listening": {
+    "message": "يستمع · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "متوقف مؤقتاً · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "أنا أتحدث · لا يُسمع الطرف الآخر"
+  },
+  "listen_pill_ended": {
+    "message": "انتهى · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● يستمع · إيقاف مؤقت"
+  },
+  "listen_toggle_start": {
     "message": "ابدأ الاستماع"
   },
-  "app_listen_stop": {
-    "message": "إيقاف"
+  "listen_speak_hold": {
+    "message": "اضغط مطولاً · أنا أتحدث"
   },
-  "app_listen_bg": {
-    "message": "الاستمرار عند القفل (جلسة تسجيل)"
+  "listen_speak_release": {
+    "message": "اترك · ترجم للطرف الآخر"
+  },
+  "listen_end": {
+    "message": "إنهاء"
+  },
+  "listen_cost_line": {
+    "message": "استُمع {t} · الصوت يذهب فقط إلى نقطة النسخ الخاصة بك"
+  },
+  "listen_flip_hint": {
+    "message": "أظهر للطرف الآخر · المس أي مكان للعودة"
+  },
+  "listen_flip_speaking": {
+    "message": "يُقرأ بصوت عالٍ"
+  },
+  "listen_flip_again": {
+    "message": "اقرأ مرة أخرى"
+  },
+  "listen_flip_back": {
+    "message": "عد إلى الاستماع"
+  },
+  "listen_stop_denied": {
+    "message": "رُفض الميكروفون — اسمح لـ BelliedMonkey Translator في الإعدادات › الخصوصية › الميكروفون."
+  },
+  "listen_stop_socket": {
+    "message": "انقطع اتصال النسخ: {why} — ما سُمع محفوظ."
+  },
+  "listen_stop_locked": {
+    "message": "أوقف النظام التسجيل — المس «ابدأ الاستماع» للمتابعة."
+  },
+  "listen_stop_silence": {
+    "message": "لا صوت منذ 30 ثانية — توقف مؤقتاً لتجنب التكاليف."
+  },
+  "listen_stop_failed": {
+    "message": "تعذر تشغيل الميكروفون: {why}"
+  },
+  "listen_summary_title": {
+    "message": "هذه المحادثة"
+  },
+  "listen_summary_body": {
+    "message": "{t} · الطرف الآخر: {them} جمل · أنا: {me} · {n} أُضيفت للمراجعة (المصدر «محادثة») · {s} بنجمة"
+  },
+  "listen_summary_note": {
+    "message": "يُحذف التسجيل ويُحتفظ بالنص فقط. يمكن إدارة جمل المراجعة أو حذفها كاملة في المصادر › محادثة."
+  },
+  "listen_summary_home": {
+    "message": "العودة للرئيسية"
+  },
+  "listen_summary_again": {
+    "message": "واحدة أخرى"
+  },
+  "listen_np_title": {
+    "message": "محادثة · مترجم فوري"
+  },
+  "listen_np_album": {
+    "message": "محادثة · يستمع · {t} · {n} جمل"
+  },
+  "listen_settings_title": {
+    "message": "محادثة · مترجم فوري"
+  },
+  "listen_capture_label": {
+    "message": "إضافة المحادثات إلى المراجعة (المصدر «محادثة»)"
+  },
+  "listen_capture_note": {
+    "message": "يبث «محادثة · مترجم فوري» الميكروفون إلى نقطة النسخ التي ضبطتها، فقط بعد «ابدأ الاستماع» وإلى تلك النقطة فقط؛ خوادمنا لا تلمس الصوت أبداً؛ لا يُحفظ أي تسجيل، فقط النص — وفقط ما دام هذا المفتاح مفعلاً."
+  },
+  "listen_sources_note": {
+    "message": "كل جملة من النسخ وترجمتها من محركك؛ كلاهما قد يخطئ — الجمل ذات النجمة تدخل المراجعة أولاً."
   }
 }

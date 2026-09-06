@@ -2019,18 +2019,144 @@
     "message": "इतिहास · पूरे वाक्य"
   },
   "app_listen_back": {
-    "message": "वापस"
+    "message": "‹ वापस"
   },
-  "app_listen_spike_title": {
-    "message": "लाइव सुनना · परीक्षण"
+  "listen_source_label": {
+    "message": "बातचीत"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 बातचीत · लाइव दुभाषिया"
+  },
+  "listen_entry_hint": {
+    "message": "आमने-सामने विदेशी भाषा समझें: सामने वाला बोले, आप अपनी भाषा में पढ़ें; दबाकर रखें और बोलें, अनुवाद उसे दिखाएँ। ऑडियो केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाता है।"
+  },
+  "listen_need_live": {
+    "message": "“बातचीत · लाइव दुभाषिया” के लिए रीयलटाइम एंडपॉइंट वाला ट्रांसक्रिप्शन इंजन चाहिए"
+  },
+  "listen_need_live_go": {
+    "message": "सेटिंग्स में चुनें →"
+  },
+  "listen_title": {
+    "message": "बातचीत"
+  },
+  "listen_history": {
+    "message": "पूरे वाक्य"
+  },
+  "listen_pending": {
+    "message": "⏳ अनुवाद हो रहा है…"
+  },
+  "listen_me_prefix": {
+    "message": "मैं: "
+  },
+  "listen_me_badge": {
+    "message": "मैंने कहा"
+  },
+  "listen_star": {
+    "message": "स्टार"
+  },
+  "listen_now_them": {
+    "message": "सामने वाला कह रहा है"
+  },
+  "listen_now_me": {
+    "message": "मैं कह रहा हूँ (छोड़ें तो अनुवाद)"
+  },
+  "listen_lang_auto": {
+    "message": "सामने वाला {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "{to} में"
+  },
+  "listen_other_lang_label": {
+    "message": "सामने वाले की भाषा"
+  },
+  "listen_pill_listening": {
+    "message": "सुन रहा है · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "रुका हुआ · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "मैं बोल रहा हूँ · सामने वाला नहीं सुना जा रहा"
+  },
+  "listen_pill_ended": {
+    "message": "समाप्त · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● सुन रहा है · रोकें"
+  },
+  "listen_toggle_start": {
     "message": "सुनना शुरू करें"
   },
-  "app_listen_stop": {
-    "message": "रोकें"
+  "listen_speak_hold": {
+    "message": "दबाकर रखें · मैं बोलूँ"
   },
-  "app_listen_bg": {
-    "message": "लॉक होने पर भी सुनते रहें (रिकॉर्डिंग सत्र)"
+  "listen_speak_release": {
+    "message": "छोड़ें · सामने वाले के लिए अनुवाद"
+  },
+  "listen_end": {
+    "message": "समाप्त"
+  },
+  "listen_cost_line": {
+    "message": "{t} सुना · ऑडियो केवल आपके ट्रांसक्रिप्शन एंडपॉइंट पर जाता है"
+  },
+  "listen_flip_hint": {
+    "message": "दिखाएँ · वापस जाने के लिए कहीं भी टैप करें"
+  },
+  "listen_flip_speaking": {
+    "message": "पढ़ा जा रहा है"
+  },
+  "listen_flip_again": {
+    "message": "फिर पढ़ें"
+  },
+  "listen_flip_back": {
+    "message": "फिर सुनें"
+  },
+  "listen_stop_denied": {
+    "message": "माइक्रोफ़ोन अस्वीकृत — सेटिंग्स › गोपनीयता › माइक्रोफ़ोन में BelliedMonkey Translator को अनुमति दें।"
+  },
+  "listen_stop_socket": {
+    "message": "ट्रांसक्रिप्शन कनेक्शन टूटा: {why} — जो सुना गया वह सुरक्षित है।"
+  },
+  "listen_stop_locked": {
+    "message": "सिस्टम ने रिकॉर्डिंग रोक दी — जारी रखने के लिए “सुनना शुरू करें” टैप करें।"
+  },
+  "listen_stop_silence": {
+    "message": "30 सेकंड से आवाज़ नहीं — शुल्क बचाने के लिए रोका गया।"
+  },
+  "listen_stop_failed": {
+    "message": "माइक्रोफ़ोन शुरू नहीं हुआ: {why}"
+  },
+  "listen_summary_title": {
+    "message": "यह बातचीत"
+  },
+  "listen_summary_body": {
+    "message": "{t} · सामने वाला: {them} वाक्य · मैं: {me} · {n} रिव्यू में जोड़े गए (स्रोत “बातचीत”) · {s} स्टार वाले"
+  },
+  "listen_summary_note": {
+    "message": "रिकॉर्डिंग हटा दी जाती है; केवल टेक्स्ट रहता है। रिव्यू के वाक्य स्रोत › बातचीत में प्रबंधित या पूरे हटाए जा सकते हैं।"
+  },
+  "listen_summary_home": {
+    "message": "होम पर लौटें"
+  },
+  "listen_summary_again": {
+    "message": "एक और"
+  },
+  "listen_np_title": {
+    "message": "बातचीत · लाइव दुभाषिया"
+  },
+  "listen_np_album": {
+    "message": "बातचीत · सुन रहा है · {t} · {n} वाक्य"
+  },
+  "listen_settings_title": {
+    "message": "बातचीत · लाइव दुभाषिया"
+  },
+  "listen_capture_label": {
+    "message": "बातचीत को रिव्यू में जोड़ें (स्रोत “बातचीत”)"
+  },
+  "listen_capture_note": {
+    "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल “सुनना शुरू करें” के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
+  },
+  "listen_sources_note": {
+    "message": "हर वाक्य ट्रांसक्रिप्शन से और उसका अनुवाद आपके इंजन से आता है; दोनों गलत हो सकते हैं — स्टार वाले वाक्य पहले रिव्यू में जाते हैं।"
   }
 }

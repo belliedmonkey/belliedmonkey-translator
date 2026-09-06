@@ -32,7 +32,9 @@ var AppSettings = (() => {
     // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
     // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关，
     // 以及出发前预载的天数视野（`drivePreloadDays`，0 = 今天的牌库）。
-    'drivePlayNotes', 'drivePreloadDays'];
+    'drivePlayNotes', 'drivePreloadDays',
+    // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）与「对方的语言」。
+    'listenCapture', 'listenOtherLang'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -112,6 +114,9 @@ var AppSettings = (() => {
     // the speak form does not exist. Candidates come from the generated registry.
     $('drive-title').textContent = t('drive_entry', '播客模式');
     $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
+    $('listen-title').textContent = t('listen_settings_title', '对话 · 实时听译');
+    $('listen-capture-label').textContent = t('listen_capture_label', '对话进复习（来源「对话」）');
+    $('listen-capture-note').textContent = t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。');
     $('drive-awake-note').textContent = t('drive_awake_note',
       '播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。');
     $('drive-play-notes-note').textContent = t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。');
@@ -415,6 +420,7 @@ var AppSettings = (() => {
     paintNotesFields(cur.provider || '');
     // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
     $('drive-play-notes').checked = cur.drivePlayNotes !== false;
+    $('listen-capture').checked = cur.listenCapture !== false;
     $('drive-preload-days').value = String(Number(cur.drivePreloadDays) > 0 ? Math.floor(Number(cur.drivePreloadDays)) : 0);
     resetPreload();
     refreshAudioCache();
@@ -677,6 +683,7 @@ var AppSettings = (() => {
         });
       }
     }
+    $('listen-capture').addEventListener('change', () => { set({ listenCapture: $('listen-capture').checked }); });
     $('drive-play-notes').addEventListener('change', () => {
       set({ drivePlayNotes: $('drive-play-notes').checked });
       resetPreload();     // 开关变了，账单就过期了 —— 不能让它继续代表旧的计划
