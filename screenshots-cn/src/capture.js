@@ -146,15 +146,19 @@ const SEED = `(async () => {
   await wait(400);
   await shot('cn-options-learn.png');
 
-  // ── 桌面尺寸：Mac App Store 截图要拍 Mac 上的样子，不能塞一张手机图进去 ──
-  await cdp.send('Emulation.setDeviceMetricsOverride',
+  // ── 桌面与平板尺寸：Mac App Store 截图要拍 Mac 上的样子，iPad 截图要拍 iPad 上的样子，
+  // 都不能塞一张手机图进去（store-assets/README.md「一条硬规矩」，2026-09-06）──
+  for (const [metrics, prefix] of [
     // 1100×760：页面本身有 max-width，视口再宽只会拍出一条窄内容 + 大片空白。
     // 这个尺寸让内容填满窗口，放进 Mac 窗框后比例才像真的在用。
-    { width: 1100, height: 760, deviceScaleFactor: 2, mobile: false }, sessionId);
+    [{ width: 1100, height: 760, deviceScaleFactor: 2, mobile: false }, 'cn-desk-'],
+    [{ width: 1032, height: 1376, deviceScaleFactor: 2, mobile: true }, 'cn-tab-'],   // iPad 13"
+  ]) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', metrics, sessionId);
   for (const [url, name, scrollTo] of [
-    [BASE + '/options/options.html', 'cn-desk-engine.png', 'first'],
-    [BASE + '/learn/review.html', 'cn-desk-review.png', 'review'],
-    [BASE + '/options/options.html', 'cn-desk-learn.png', 'learn'],
+    [BASE + '/options/options.html', prefix + 'engine.png', 'first'],
+    [BASE + '/learn/review.html', prefix + 'review.png', 'review'],
+    [BASE + '/options/options.html', prefix + 'learn.png', 'learn'],
   ]) {
     await cdp.send('Page.navigate', { url }, sessionId);
     await wait(2200);
@@ -173,6 +177,8 @@ const SEED = `(async () => {
       await wait(300);
     }
     await shot(name);
+  }
+
   }
 
   chrome.cleanup();

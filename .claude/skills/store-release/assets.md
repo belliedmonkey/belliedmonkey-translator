@@ -48,6 +48,16 @@ git log -1 --format=%ad --date=short -- extension/options extension/learn extens
 自那以后没改过），重拍它是浪费；而 08-11 的 `f5-settings.png` 里印着 markdown 星号
 bug —— 幸好它是孤儿资产（`scene.html` 不引用），没进出货图。
 
+### ⑥ 画布上放的是另一台设备的截图
+
+手机画布里一个 Mac 窗口、Mac 横幅里一台手机 —— 图与画布不是同一台设备。2026-09-06
+之前第 1、2、5 帧在 iPhone / iPad 画布里就是一个 1728 宽的 Mac 窗口：缩进 1242 宽的画布后
+正文一个字都看不清，上下各空四成。用户原话「人类看起来很糟糕」。
+
+规矩与档位写在 `store-assets/README.md`「一条硬规矩」；`scene.html` 按画布判档位，原料按
+`phone` / `tablet` / `desk` 三档各拍。审计时逐张问一句：**这张画布是哪台设备，图里是不是
+那台设备看到的东西。** 唯一例外是横版第 5 帧（Mac 旁边那台手机是内容本身）。
+
 ### 别漏掉的三处素材
 
 审计范围不止 App Store：
@@ -81,10 +91,20 @@ bug —— 幸好它是孤儿资产（`scene.html` 不引用），没进出货�
 # asc-media.js 的干运行会打印每个集合现有几张；要看尺寸就查 imageAsset
 ```
 
-### 手工那两张的完整配方
+### 手工那几张的完整配方
 
-`f1-article`（网页双语）与 `f2-video`（视频字幕）需要真实扩展跑在真实站点上，
-headless 造不出来。
+桌面档 `f1-article` / `f2-video` 与手机、平板档的视频 `phone-video` / `tablet-video`
+是手拍的。文章双语的手机、平板档**不用手拍**：`node store-assets/src/capture-live.js
+phone|tablet article` 用真 Chrome 装上 dist/ 去翻 m.wikipedia / wikipedia。视频拍不了是
+YouTube 的事：受控浏览器里播放器直接报「Something went wrong」（headless、有头、iPhone /
+Android UA、先暖 cookie 全试过，2026-09-06），所以视频永远手拍。
+
+手机 / 平板档的视频用 **iOS 模拟器**拍（真机走 iPhone 镜像的话分辨率只有 0.7 倍，且手机
+自己的网络到不了 YouTube）：模拟器走 Mac 的网络与代理，`simctl io booted screenshot` 出的
+是整数倍的原生分辨率，装扩展的步骤见 [[ios-sim-extension-resources-stale]] 那条记忆。
+拍 m.youtube.com（iPhone）/ youtube.com（iPad），点悬浮球，等双字幕出现、画面不是黑场再截。
+
+桌面档两张：
 
 ```bash
 # ① 干净窗口，精确 1280×800 点 —— 单标签页，否则标签栏泄露浏览记录
