@@ -24,6 +24,10 @@
 
 * { box-sizing: border-box; }
 
+/* 链接颜色只有一个来源：--link（共享 token，见上面的规矩）。App 设置页里一键配置的
+   「申请 key」链接原来是浏览器默认蓝，深色卡片上 1.56:1（2026-09-06）。 */
+a { color: var(--link); }
+
 /* MUST stay ahead of any rule that sets `display`. The UA stylesheet gives [hidden]
    `display: none`, but an author rule like `form { display: flex }` outranks it — so
    every screen the app tries to hide renders anyway, stacked on top of each other.

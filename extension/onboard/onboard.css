@@ -8,6 +8,10 @@
    记得」—— 这个文件证明了那句话值多少钱，所以现在由 test/hidden-guard.test.js 记着。 */
 [hidden] { display: none !important; }
 
+/* 链接颜色只有一个来源：--link（build/palette.config.js）。少了这一条，<a> 走浏览器默认蓝，
+   深色底上 1.9:1 —— 2026-09-06 用户报「申请 key 的链接看不清」，就是这一页。 */
+a { color: var(--link); }
+
 /* extension/onboard/onboard.css — 扩展引导页。
    ⚠️ 变量名用扩展这边的（--bg/--text/--card-bg/--border）。App 那边是**同一张**
    organic-tokens.gen.css 的别名（--fg/--dim/--field/--line 见 app/style.css 顶部），

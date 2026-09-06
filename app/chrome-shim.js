@@ -10,6 +10,11 @@
 // call and nothing else, because a shim that pretends to be more than it is invites
 // code to depend on behaviour that was never really there.
 //
+// 2026-09-06 起多了一样：`storage.onChanged`。它是 App 侧**唯一的设置总线** —— 之前没有
+// 它，review.js 在 bundle 加载时读一次设置之后就再没人能告诉它「变了」，App 只能靠每个
+// 设置控件手写显式重绘，一键配置 / 朗读模式 / 自动播放三处漏了，症状是「配好语音 key
+// 返回，播客入口与 ▶ 仍不出现，要重启 App」。消费者（review.js、driving.js）只订阅它。
+//
 // Must be FIRST in the bundle — the modules below it read `chrome` at load time.
 
 (() => {
@@ -44,7 +49,28 @@
   // 竞速。所以将来若又需要给 App 一个**非默认**的初始值，它必须播种在**这里**
   // （同步、在 review.js 之前），而不是 ensureDefaults 里。
 
+  // ─── storage.onChanged —— 与真 API 同形：set/remove 之后**异步**派发
+  // {key: {oldValue, newValue}}, 'local'；值没变的键不发。异步是为了写入方不会在自己的
+  // set() 里被重入。一个监听器抛错不能拖累其它监听器 —— 设置页保存时挂掉复习页不是选项。
+  const listeners = new Set();
+  const onChanged = {
+    addListener(fn) { if (typeof fn === 'function') listeners.add(fn); },
+    removeListener(fn) { listeners.delete(fn); },
+    hasListener(fn) { return listeners.has(fn); },
+  };
+  const emit = (changes) => {
+    if (!Object.keys(changes).length || !listeners.size) return;
+    setTimeout(() => {
+      for (const fn of [...listeners]) {
+        try { fn(changes, 'local'); }
+        catch (e) { try { console.error('[chrome-shim] onChanged listener threw', e); } catch (_) {} }
+      }
+    }, 0);
+  };
+  const parse = (raw) => { try { return JSON.parse(raw); } catch (_) { return undefined; } };
+
   const storage = {
+    onChanged,
     get(query, cb) {
       const all = readAll();
       let out;
@@ -57,19 +83,37 @@
       setTimeout(() => cb && cb(out), 0);
     },
     set(items, cb) {
+      const changes = {};
       for (const [k, v] of Object.entries(items || {})) {
-        try { localStorage.setItem(PREFIX + k, JSON.stringify(v)); } catch (_) {}
+        const prev = localStorage.getItem(PREFIX + k);
+        let next;
+        try { next = JSON.stringify(v); } catch (_) { continue; }
+        try { localStorage.setItem(PREFIX + k, next); } catch (_) { continue; }
+        if (prev === next) continue;
+        const c = {};
+        if (prev != null) c.oldValue = parse(prev);
+        c.newValue = v;
+        changes[k] = c;
       }
+      // 回调先于派发排队：调用方 await 完 set() 时监听器还没跑，与真 API 一致。
       setTimeout(() => cb && cb(), 0);
+      emit(changes);
     },
     remove(keys, cb) {
-      for (const k of [].concat(keys || [])) localStorage.removeItem(PREFIX + k);
+      const changes = {};
+      for (const k of [].concat(keys || [])) {
+        const prev = localStorage.getItem(PREFIX + k);
+        localStorage.removeItem(PREFIX + k);
+        if (prev == null) continue;
+        changes[k] = { oldValue: parse(prev) };
+      }
       setTimeout(() => cb && cb(), 0);
+      emit(changes);
     },
   };
 
   window.chrome = Object.assign(window.chrome || {}, {
-    storage: { local: storage },
+    storage: { local: storage, onChanged },
     runtime: {
       // Always undefined: nothing here can produce an extension-messaging error, and
       // `page-settings.js` reads it on every get.

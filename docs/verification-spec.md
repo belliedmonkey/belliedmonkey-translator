@@ -1389,8 +1389,14 @@ in full — new fixture, **red before the change**, all pre-existing fixtures gr
 
 Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
 `layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT
-cover WebKit/Gecko engine differences, real devices, subtitles/overlays, or visual
-color/contrast — those remain owned by the §1 full matrix via cua-driver.
+cover WebKit/Gecko engine differences, real devices, or subtitles/overlays — those
+remain owned by the §1 full matrix via cua-driver. Colour contrast is **not** on that
+list any more: every page gate (test:learn / test:app / test:onboard / test:signin /
+test:sync / test:setup-page) runs the shared sweep in `scripts/lib/sweep.js` under
+**both** colour schemes and fails any visible text under WCAG AA (4.5:1, large text
+3:1); the registry side is pinned by `test/palette-contrast.test.js`. Before 2026-09-06
+the sweep only compared foreground to background for equality and only ran in light
+mode, which is how a 1.9:1 default-blue link shipped on the onboarding page.
 
 ---
 

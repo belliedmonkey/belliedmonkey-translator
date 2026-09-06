@@ -126,42 +126,10 @@ const SEED = `(async () => {
 })()`;
 
 // ─── The per-step surface sweep ──────────────────────────────────────────────
-// Definition of "broken surface": a visible interactive element with no text, or
-// whose resolved foreground equals its resolved background. Resolution walks up
-// for the background because most controls are transparent over the card.
-const SWEEP_FN = `
-function __sweep(scope) {
-  const bad = [];
-  const root = document.querySelector(scope) || document.body;
-  const vis = (el) => {
-    const r = el.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2) return false;
-    const cs = getComputedStyle(el);
-    return cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05;
-  };
-  const bg = (el) => {
-    for (let n = el; n; n = n.parentElement) {
-      const c = getComputedStyle(n).backgroundColor;
-      if (c && !/rgba\\(0, 0, 0, 0\\)|transparent/.test(c)) return c;
-    }
-    return 'rgb(255, 255, 255)';
-  };
-  for (const el of root.querySelectorAll('button, a, select, option, label, input[type=text], input[type=password]')) {
-    if (!vis(el)) continue;
-    const tag = el.tagName.toLowerCase();
-    const label = (el.textContent || el.value || el.placeholder || '').trim();
-    if ((tag === 'button' || tag === 'a') && !label) {
-      bad.push(tag + '#' + (el.id || el.className) + ' 无文字');
-      continue;
-    }
-    const cs = getComputedStyle(el);
-    if (tag === 'button' || tag === 'a') {
-      const fg = cs.color, back = bg(el);
-      if (fg === back) bad.push(tag + '#' + (el.id || el.className) + ' 前景=背景 ' + fg);
-    }
-  }
-  return bad;
-}`;
+// 2026-09-06 起来自 scripts/lib/sweep.js：判据是 WCAG 比值（不再是「前景 ≠ 背景」的
+// 字符串相等），而且每次 sweep 都在深色 + 浅色下各扫一遍。原来这里那份只判相等、只跑
+// 浅色，于是深色底上 1.9:1 的默认链接蓝一路绿着上了商店。
+const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 
 async function runHost(host) {
   console.log('\n── 宿主：' + host.name + ' ──');
@@ -350,8 +318,9 @@ async function runHost(host) {
       return r.result && r.result.value;
     };
     const sweep = async (step, scope) => {
-      const bad = await ev(`__sweep(${JSON.stringify(scope || host.scope)})`);
-      need(bad.length === 0, `【${step}】表面扫描: ` + bad.join(' | '));
+      const bad = await sweepBoth(cdp, sessionId, scope || host.scope);
+      need(bad.length === 0, `【${step}】表面扫描: ` + bad.slice(0, 8).join(' | ')
+        + (bad.length > 8 ? ` …共 ${bad.length} 处` : ''));
     };
     const click = (sel) => ev(`(document.querySelector(${JSON.stringify(sel)}).click(), 'ok')`);
     const text = (sel) => ev(`(document.querySelector(${JSON.stringify(sel)})?.textContent || '').trim()`);
@@ -768,6 +737,39 @@ async function runHost(host) {
         }
         return 'ok';
       })()`);
+
+      // ─── 10′ · 设置总线：改了设置，入口与 ▶ 自己刷新（2026-09-06 报障）────────
+      // 全程**不调 refreshEntry()、不刷新页面**：只写 chrome.storage（一键配置与设置页
+      // 的写法），然后等。修前：review.js 只在启动时读一次设置、垫片没有 onChanged，
+      // 配好语音 key 回到首页，入口停在「没配」时的结论，要重启 App。
+      const until = async (expr, ms) => {
+        const end = Date.now() + ms;
+        while (Date.now() < end) { if (await ev(expr)) return true; await new Promise((r) => setTimeout(r, 100)); }
+        return false;
+      };
+      const wset = (obj) => ev(`new Promise((r) => chrome.storage.local.set(${JSON.stringify(obj)}, () => r('ok')))`);
+      await ev(`(document.getElementById('review-view').hidden = false, 'ok')`);
+      await ev(`LearnReview.start().then(() => 'ok')`);
+      need(!(await hidden('#card')), '10′ 前提：语料重新到期后复习视图应有一张卡在屏上');
+      await wset({ ttsEngine: '' });
+      need(await until(`document.getElementById('app-drive-start').hidden === true`, 1500),
+        '清掉语音引擎后 1.5s 内播客入口没有自己消失 —— 设置总线没接到 driving.js');
+      need(await until(`document.getElementById('play').disabled === true`, 1500),
+        '清掉引擎后复习卡的 ▶ 没有自己禁用 —— review.js 没订阅设置变化');
+      await wset({ ttsEngine: 'browser', ttsMode: 'assist' });
+      need(await until(`document.getElementById('app-drive-start').hidden === false`, 2500),
+        '配回语音引擎后播客入口没有自己回来（修前要重启 App 才出现）');
+      // 屏上这张卡可能是 und 卡（种子里有一张）：那时 ▶ 本来就该禁用并说「语言未知」，
+      // 这里要的是「门自己重算过」—— 音频块回来了，且要么 ▶ 可用、要么说明是 und。
+      need(await until(`!document.getElementById('audio').hidden && (!document.getElementById('play').disabled
+        || /und|未知|unknown|不明|알 수 없|inconnue|unbekannt|desconocid|неизвест|غير معروف/i.test(document.getElementById('audio-note').textContent))`, 2500),
+        '配回引擎后复习卡的 ▶ 没有自己重算（既没变可用，也没说明是 und 卡）');
+      await wset({ ttsMode: 'off' });
+      need(await until(`document.getElementById('audio').hidden === true`, 1500),
+        '朗读模式关掉后当前卡的音频块没有自己隐藏');
+      await wset({ ttsMode: 'assist' });
+      need(await until(`!document.getElementById('audio').hidden`, 1500), '朗读模式开回来后音频块没有回来');
+      await ev(`(document.getElementById('review-view').hidden = true, 'ok')`);
 
       // Instrument: record every spoken text + every LearnTTS.stop call.
       await ev(`(() => {
@@ -1217,8 +1219,12 @@ async function runHost(host) {
       await new Promise((r) => setTimeout(r, 1500));
       const noEngineLine = await text('#drive-preload-note');
       need(noEngineLine.indexOf('\n') > 0 || noEngineLine.length > 0, '账单是空的');
-      need(/解析引擎|analysis engine|解析エンジン|해설 엔진|moteur|Analyse-Engine|motor de|movimiento|движок|محرّك/.test(noEngineLine),
-        '引擎没配，账单里一个字都没提 —— 这正是 build 38 的症状: ' + noEngineLine);
+      // 英文文案是「notes engine」（2026-09-06 起 App 会按存储里的 uiLang 即时切语言，这一步
+      // 跑在 en 下 —— 以前能过是因为 review.js 从不刷新 PageI18n，页面一直停在中文）。
+      need(/解析引擎|analysis engine|notes engine|解析エンジン|해설 엔진|moteur|Analyse-Engine|motor de|movimiento|движок|محرّك/.test(noEngineLine),
+        '引擎没配，账单里一个字都没提 —— 这正是 build 38 的症状: ' + noEngineLine
+        + ' · 状态 ' + JSON.stringify(await ev(`(({ playNotes, notesOk }) => ({ playNotes, notesOk }))(AppDriving._debug())`))
+        + ' · 存储 ' + await ev(`JSON.stringify({ pn: localStorage.getItem('mt:drivePlayNotes'), p: localStorage.getItem('mt:provider'), np: localStorage.getItem('mt:notesProvider') })`));
       need((await ev(`window.__mtChatBodies.length`)) === 0, '引擎没配却发出了解析/翻译请求');
       await sweep('播客·预载缺引擎', '#app-settings');
 
