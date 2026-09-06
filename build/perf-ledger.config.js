@@ -457,7 +457,23 @@ module.exports = [
     host: 'api.openai.com', model: 'gpt-live-transcribe', date: '2026-09-06',
     baseline: { ms: 2238, thinkTokens: null, outChars: 7160, finish: 'stop' },
     verdict: 'reachable',
-    why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。',
+    why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**delay 档位 A/B（3 分钟英文，同一段）**：默认 p50 1.72s / p90 2.63s；low 0.78s / 2.29s；**minimal 0.18s / 0.35s**，三档 WER 相同（11.3%，3 分钟样本含 LibriVox 片头） ⇒ 注册表 liveParams 写 minimal。medium/high/xhigh 未扫（只会更慢）。',
+  },
+  {
+    host: 'generativelanguage.googleapis.com', model: 'gemini-3.5-transcribe', date: '2026-09-06',
+    baseline: { ms: 69362, thinkTokens: null, outChars: 40256, finish: 'stop' },
+    verdict: 'reachable',
+    why: '文件式转写（Interactions 接口，JSON 内联 base64，mode 必须 verbatim —— smart 与时间戳互斥，服务端原话 "Transcription mode SMART is incompatible with timestamps"）：英文 12 分钟 51.3s / WER 3.8%，29.8 分钟 69.4s / WER 2.9%（比 whisper-1 的 89.7s 快）；中文 19.9 分钟 59.0s / CER 12.0%（贴着 12% 的线）。词级时间戳与 whisper-1 参照 p90 差 220–260ms；按词切 cue 后句界命中 95–97%。usage 只报音频 token（12 分钟 18000 tok）。真 Chrome 页面源 POST 可读（CORS 放行）。**参数层面没扫过**（diarization、language_codes 未试）。',
+  },
+  {
+    host: 'generativelanguage.googleapis.com', model: 'gemini-3.5-transcribe-live', date: '2026-09-06',
+    baseline: { ms: 2042, thinkTokens: null, outChars: 7200, finish: 'stop' },
+    tried: [
+      { params: { interimCutter: true }, ms: 8637, thinkTokens: null, outChars: 7200,
+        note: '从累计 interim 切句（产品规则）。单路重测：12 分钟只收到 126 个 interim（首轮 1473 个），句子成批到达 —— 滞后 p50 8.6s / p90 97s，WER 6.0%，0 重复句' },
+    ],
+    verdict: 'rejected',
+    why: '流式转写（ws-bidi）。首轮（vendor final 计）：滞后 p50 1.5s / p90 2.0s、WER 4.1%，但 final 是段落级（12 分钟 21 条、平均 98 token），字幕不可用；改从 interim 切句后，免费档 interim 被限流（两路并发时直接 1011 "Resource has been exhausted"），无法达到 p90 ≤ 2.5s。**免费档下不过线**；付费档未测。ms 记首轮 p90。',
   },
   // ── 以下为可达性实测（scripts/capability-probe.js + verify-speech-live.js）──
   // 参数层面都没扫过；要 adopted 走 /perf-tune。记在这里是因为

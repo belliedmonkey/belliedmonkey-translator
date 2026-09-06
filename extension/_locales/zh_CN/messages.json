@@ -2138,5 +2138,53 @@
   },
   "telemetry_onboard": {
     "message": "会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。"
+  },
+  "asr_offer": {
+    "message": "🎙 AI 转写字幕"
+  },
+  "asr_needs_engine": {
+    "message": "先在设置里选择转写引擎"
+  },
+  "asr_status_file": {
+    "message": "⏳ 正在转写整段音频…"
+  },
+  "asr_status_live": {
+    "message": "● 实时转写中"
+  },
+  "asr_stop": {
+    "message": "停止转写"
+  },
+  "asr_err_silent": {
+    "message": "捕获不到声音，已停止转写"
+  },
+  "asr_err_media": {
+    "message": "无法读取该音频"
+  },
+  "asr_err_ws": {
+    "message": "转写连接中断"
+  },
+  "asr_err_toolarge": {
+    "message": "音频太大，无法整段转写"
+  },
+  "asr_err_nocues": {
+    "message": "该转写引擎不返回时间戳，无法做字幕"
+  },
+  "asr_err_nolive": {
+    "message": "该转写引擎没有实时接口，此媒体无法转写"
+  },
+  "asr_err_settings": {
+    "message": "转写引擎已更改，已停止转写"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 转写音频字幕"
+  },
+  "asr_incremental": {
+    "message": "边说边译（快，译文会改）"
+  },
+  "asr_history": {
+    "message": "字幕历史面板"
+  },
+  "asr_history_title": {
+    "message": "字幕历史 · 整句定稿"
   }
 }

@@ -98,6 +98,11 @@ npm run test:wipe        # 「清除本机全部数据」真的清干净了吗�
                          # 一个连接**）+ API Key + 翻译缓存，点清除，然后**回读**。
                          # 判据必须是回读：deleteDatabase 撞上未关闭的连接会发 blocked 然后
                          # 永远不落定 —— 不报错，界面照样说「已清除」，而库原封不动。
+npm run test:asr         # 「AI 转写字幕」真 Chrome 端到端（Node ≥22）—— 改 content/asr-source.js、
+                         # content/ws-transcribe.js、subtitle-adapter.js 的流式钩子、或 stt 注册表的
+                         # live* 字段时必跑。本机假 STT 端点 + 手写 RFC 6455 假流式服务端：文件一档
+                         # 断言整段只上传一次且叠层出原文+译文；流式一档断言 captureStream 真把
+                         # PCM 送到了端点（≥20 帧）且叠层出整句。厂商本身由 scripts/asr-probe.js 验。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified

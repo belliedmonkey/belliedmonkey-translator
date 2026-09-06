@@ -233,12 +233,14 @@ var TwitterTranslator = (() => {
 
   const T = TranslationCore.t;
   const ui = SubtitleAdapter.createSubtitleUI({
-    ids: { overlay: 'mt-tw-overlay', orig: 'mt-tw-orig', trans: 'mt-tw-trans', btn: 'mt-tw-btn', menu: 'mt-tw-menu', meas: 'mt-tw-meas' },
+    ids: { overlay: 'mt-tw-overlay', orig: 'mt-tw-orig', trans: 'mt-tw-trans', btn: 'mt-tw-btn', menu: 'mt-tw-menu', meas: 'mt-tw-meas', history: 'mt-tw-history' },
     hasMedia: () => !!activeVideo(),
     mediaKey: activeKey,
     getCurrentTime: () => (activeVideo()?.currentTime || 0) * 1000,
     isPlaying: () => { const v = activeVideo(); return !!(v && !v.paused); },
     acquire,
+    // §2.4: X video / Spaces are HLS→MSE, so only the live tier applies.
+    unavailableAction: AsrSource.offerFor(activeVideo, () => ui, () => ui.settings),
     placeOverlay,
     anchorButton,
     fontPx,
@@ -269,7 +271,9 @@ var TwitterTranslator = (() => {
   function bindFs() { if (fsBound) return; fsBound = true; FS_EVENTS.forEach((e) => document.addEventListener(e, reanchor)); }
   function unbindFs() { if (!fsBound) return; fsBound = false; FS_EVENTS.forEach((e) => document.removeEventListener(e, reanchor)); }
 
+  function startAsr() { return AsrSource.start(activeVideo(), ui, ui.settings); }
   return {
+    startAsr,
     init: (s) => { bindFs(); return ui.init(s); },
     enable: ui.enable,
     disable: () => { unbindFs(); undoPosFix(); return ui.disable(); },

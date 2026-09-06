@@ -166,6 +166,20 @@ var YouTubeTranslator = (() => {
       'display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;';
     return true;
   }
+  // 字幕历史面板 (§2.4)：挂在播放器里、右下角、控制条之上 —— 视口固定的默认位置会压在
+  // 直播页右侧的聊天栏上（实测截图）。全屏时播放器就是全屏元素，面板自然跟进。
+  function placeHistory(el) {
+    const player = document.querySelector(PLAYER);
+    if (!player) return false;
+    if (el.parentElement !== player) player.appendChild(el);
+    const h = player.clientHeight || 400;
+    // sit ABOVE the overlay band (overlay bottom 11% + two lines), so a long stream line
+    // never covers the panel's newest row
+    const above = Math.round(h * 0.11) + Math.round(fontPx() * 1.3 * 2) + 12;
+    el.style.position = 'absolute'; el.style.right = '12px'; el.style.bottom = above + 'px'; el.style.left = '';
+    el.style.width = 'min(380px,36%)'; el.style.maxHeight = Math.max(120, Math.round(h * 0.55) - above + 64) + 'px'; el.style.zIndex = '24';
+    return true;
+  }
   function fontPx() { const v = document.querySelector('video'); const h = (v && v.clientHeight) || 400; return Math.max(16, Math.min(40, Math.round(h * 0.042))); }
   function textWidth() { const p = document.querySelector(PLAYER); return Math.max(200, Math.round((p ? p.clientWidth : 800) * 0.82) - 24); }
 
@@ -183,7 +197,7 @@ var YouTubeTranslator = (() => {
   const T = TranslationCore.t;
   const ui = SubtitleAdapter.createSubtitleUI({
     telemetrySite: 'youtube',
-    ids: { overlay: 'mt-yt-overlay', orig: 'mt-yt-orig', trans: 'mt-yt-trans', btn: 'mt-yt-btn', menu: 'mt-yt-menu', meas: 'mt-yt-meas' },
+    ids: { overlay: 'mt-yt-overlay', orig: 'mt-yt-orig', trans: 'mt-yt-trans', btn: 'mt-yt-btn', menu: 'mt-yt-menu', meas: 'mt-yt-meas', history: 'mt-yt-history' },
     maxAttempts: 8,
     hasMedia: () => !!document.querySelector(PLAYER),
     mediaKey: currentVideoId,
@@ -200,6 +214,9 @@ var YouTubeTranslator = (() => {
       else removeCaptionStyle();
     },
     beforeRender: () => (adShowing() ? 'clear' : undefined), // during an ad, currentTime is the ad timeline
+    // §2.4: YouTube is MSE, so only the live tier can serve a caption-less video.
+    unavailableAction: AsrSource.offerFor(() => document.querySelector('video'), () => ui, () => ui.settings),
+    placeHistory,
     syncNative: (active) => { if (!active) removeCaptionStyle(); }, // belt: restore if turned off
     showButton: () => IS_EMBED || (!!document.querySelector(RIGHT_CONTROLS) && !TranslationCore.isMobileLayout()),
     buttonCss: () => floatingBtnCss(IS_EMBED ? 10 : 150),
@@ -219,5 +236,6 @@ var YouTubeTranslator = (() => {
     if (IS_EMBED && !/\/embed\//.test(location.pathname)) return;
     ui.init(cfg);
   }
-  return { init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings };
+  function startAsr() { return AsrSource.start(document.querySelector('video'), ui, ui.settings); }
+  return { init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, startAsr };
 })();

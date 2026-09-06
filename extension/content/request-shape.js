@@ -555,12 +555,42 @@ var RequestShape = (() => {
       fd.append('file', o.file, o.filename);         // 唯一必发的
       if (o.model) fd.append('model', o.model);
       if (o.language) fd.append('language', o.language);
+      // 字幕要时间戳（docs/domain-design.md §2.4 文件一档）：verbose_json 带 segments[]。
+      // 只在调用方要 cue 时加 —— 说题那条路要的是 {text}，多要一份 segments 只是浪费。
+      // 实测 2026-09-06：whisper-1 收；gpt-transcribe 拒绝（"response_format 'verbose_json'
+      // is not compatible with model"）—— 那种引擎做不了字幕，extractCues 会得到空数组，
+      // 调用方据此具名失败，而不是拿纯文本去逐句现翻。
+      if (o.wantCues) { fd.append('response_format', 'verbose_json'); fd.append('timestamp_granularities[]', 'segment'); }
       // **不设 Content-Type**：multipart 的 boundary 只有浏览器自己知道，手写这个头
       // 会让服务端解不出分段。这是一个经典坑，所以写在这里而不是靠调用方记得。
       // 同上：转写也不合并。而且这条是 multipart，往里塞任意 JSON 字段无从谈起。
       return {
         headers: o.apiKey ? { Authorization: 'Bearer ' + o.apiKey } : {},
         body: fd, isForm: true, extract: null, caps,
+        extractCues: o.wantCues ? extractCuesSegments : null,
+        // verbose_json 报 duration —— 分块上传时下一块的时间偏移就靠它
+        durationOf: (d) => (d && typeof d.duration === 'number') ? Math.round(d.duration * 1000) : null,
+      };
+    }
+
+    if (fmt === 'transcribe-gemini') {
+      // Interactions 接口：JSON，音频 base64 内联（≤ ~20MB）或 Files API 的 uri。
+      // 时间戳要词级，而 **mode 必须是 verbatim** —— 实测 2026-09-06 服务端原话：
+      // "Transcription mode SMART is incompatible with timestamps"。
+      if (!o.audioBase64 && !o.audioUri) return { headers: {}, body: null, error: 'no_audio', caps };
+      const audio = o.audioUri
+        ? { type: 'audio', uri: o.audioUri, mime_type: o.audioMime || 'audio/mp3' }
+        : { type: 'audio', data: o.audioBase64, mime_type: o.audioMime || 'audio/mp3' };
+      const tc = { mode: { type: 'verbatim' }, timestamp_granularities: ['word'] };
+      if (o.language) tc.language_codes = [o.language];
+      return {
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': o.apiKey || '', 'Api-Revision': '2026-05-20' },
+        body: JSON.stringify({ model: o.model, input: [audio], generation_config: { transcription_config: tc } }),
+        isForm: false,
+        extract: (d) => (d && (d.output_text || (Array.isArray(d.output) ? d.output.map((x) => x.text || '').join('') : ''))) || '',
+        extractCues: extractCuesGeminiWords,
+        durationOf: (d) => { const w = geminiWords(d); return w.length ? w[w.length - 1].end : null; },
+        caps,
       };
     }
 
@@ -617,12 +647,70 @@ var RequestShape = (() => {
     return { headers: bearer, body: applyCustom(body, o.providerId), extract: extractChat, caps };
   }
 
+  // ─── 转写回包 → 字幕 cue ──────────────────────────────────────────────
+  // cue 形状 {start, end, text}（毫秒，按 start 有序）—— 与字幕 harness 的契约一致，
+  // 所以这里出去的东西 Engine 分不出它来自 VTT 还是转写（§2.4）。
+  function extractCuesSegments(d) {
+    const segs = (d && Array.isArray(d.segments)) ? d.segments : [];
+    const out = [];
+    for (const sg of segs) {
+      const text = String(sg.text || '').trim();
+      if (!text) continue;
+      out.push({ start: Math.round((+sg.start || 0) * 1000), end: Math.round((+sg.end || 0) * 1000), text });
+    }
+    return out;
+  }
+  // Gemini 的词级标注藏在 steps[].content[].annotations[]，type=word_info；offset 形如
+  // "12.345s" 或 {seconds,nanos}。递归找，不押注层级 —— 回包层级在 preview 期间变过。
+  function geminiOffMs(o) {
+    if (o == null) return 0;
+    if (typeof o === 'number') return Math.round(o * 1000);
+    if (typeof o === 'string') return Math.round(parseFloat(o) * 1000) || 0;
+    return Math.round((o.seconds || 0) * 1000 + (o.nanos || 0) / 1e6);
+  }
+  function geminiWords(d) {
+    const words = [];
+    const walk = (x, depth) => {
+      if (!x || typeof x !== 'object' || depth > 12) return;
+      if (Array.isArray(x)) { x.forEach((y) => walk(y, depth + 1)); return; }
+      if (x.type === 'word_info' && x.text != null) {
+        words.push({ w: String(x.text), speaker: x.speaker, start: geminiOffMs(x.start_offset), end: geminiOffMs(x.end_offset) });
+      }
+      for (const k of Object.keys(x)) walk(x[k], depth + 1);
+    };
+    walk(d && d.steps, 0); walk(d && d.output, 0);
+    return words;
+  }
+  // 词 → cue：说话人切换 / 间隔 > 700ms / 句末标点 / ≥ 14 词 就切。CJK 词之间不加空格。
+  function extractCuesGeminiWords(d) {
+    const out = []; let cur = null;
+    const cjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+    for (const w of geminiWords(d)) {
+      const gap = cur ? w.start - cur.end : 0;
+      if (cur && (gap > 700 || (w.speaker != null && w.speaker !== cur.speaker) || cur.n >= 14 || /[.!?。！？…]["'”’)\]]?$/.test(cur.text))) { out.push(cur); cur = null; }
+      if (!cur) cur = { start: w.start, end: w.end, text: w.w, speaker: w.speaker, n: 1 };
+      else {
+        const sep = (cjk.test(cur.text.slice(-1)) && cjk.test(w.w.slice(0, 1))) ? '' : ' ';
+        cur.text = cur.text + sep + w.w; cur.end = w.end; cur.n++;
+      }
+    }
+    if (cur) out.push(cur);
+    return out.map(({ start, end, text }) => ({ start, end, text: text.trim() })).filter((c) => c.text);
+  }
+
   // 哪些形状要把音频编成 data URI 再交过来。**形状知识留在这里**：调用方只问
   // 「这条路要不要」，不需要知道有几种转写形状、各自长什么样。
   function wantsAudioDataUri(fmt) { return fmt === 'transcribe-dashscope'; }
+  // 同一个问题的三态版本（§2.4 的文件一档要区分 Blob / base64 / data URI）。
+  function audioEncoding(fmt) {
+    if (fmt === 'transcribe-dashscope') return 'dataUri';
+    if (fmt === 'transcribe-gemini') return 'base64';
+    return 'blob';
+  }
 
   return {
-    paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent, wantsAudioDataUri,
+    paramsFor, build, ready, refresh, prefs, timeoutMs, maxConcurrent, wantsAudioDataUri, audioEncoding,
+    extractCuesSegments, extractCuesGeminiWords,
     // 读扩展存储的唯一安全入口（带截止时间）。translation-api 与 content-main
     // 都必须走它 —— 三份各写一遍的话，下一次只会修好其中一份。
     storageGet, STORAGE_TIMEOUT_MS,

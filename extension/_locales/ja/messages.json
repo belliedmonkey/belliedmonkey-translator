@@ -2137,5 +2137,53 @@
   },
   "telemetry_onboard": {
     "message": "改善のため匿名の利用データを送信します（ページの内容や URL は含みません）。設定でオフにできます。"
+  },
+  "asr_offer": {
+    "message": "🎙 AI 文字起こし字幕"
+  },
+  "asr_needs_engine": {
+    "message": "先に設定で文字起こしエンジンを選んでください"
+  },
+  "asr_status_file": {
+    "message": "⏳ 音声全体を文字起こし中…"
+  },
+  "asr_status_live": {
+    "message": "● リアルタイム文字起こし中"
+  },
+  "asr_stop": {
+    "message": "文字起こしを停止"
+  },
+  "asr_err_silent": {
+    "message": "音声を取得できないため停止しました"
+  },
+  "asr_err_media": {
+    "message": "この音声を読み取れません"
+  },
+  "asr_err_ws": {
+    "message": "文字起こしの接続が切れました"
+  },
+  "asr_err_toolarge": {
+    "message": "音声が大きすぎて一括で文字起こしできません"
+  },
+  "asr_err_nocues": {
+    "message": "このエンジンはタイムスタンプを返さないため字幕にできません"
+  },
+  "asr_err_nolive": {
+    "message": "このエンジンにはリアルタイム接続がなく、このメディアは文字起こしできません"
+  },
+  "asr_err_settings": {
+    "message": "文字起こしエンジンが変更されたため停止しました"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 音声を字幕に文字起こし"
+  },
+  "asr_incremental": {
+    "message": "話しながら翻訳（速い・訳文は更新される）"
+  },
+  "asr_history": {
+    "message": "字幕履歴パネル"
+  },
+  "asr_history_title": {
+    "message": "履歴 · 確定文"
   }
 }

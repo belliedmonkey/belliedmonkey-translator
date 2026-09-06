@@ -464,7 +464,30 @@
       // `url` feeds the popup's 本站 section. From here rather than chrome.tabs
       // so the popup shows the SAME url the capture gate judged — and it works
       // identically on Safari, where tabs.query quirks are not worth relying on.
-      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href });
+      // `media` feeds the popup's 「转写音频字幕」 action (§2.4): the longest media
+      // element's duration, so a decorative clip never surfaces it.
+      // A live stream reports duration = Infinity — that is the most eligible media of all
+      // (Twitch / YouTube live / Spaces), not "no duration".
+      let durationS = 0, live = false;
+      try {
+        for (const m of document.querySelectorAll('audio, video')) {
+          if (m.duration === Infinity) live = true;
+          else if (isFinite(m.duration) && m.duration > durationS) durationS = m.duration;
+        }
+      } catch (_) {}
+      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href, media: { durationS: Math.round(durationS), live } });
+    }
+
+    // §2.4 popup entry — the ONLY way to transcribe a <video> that surfaces no subtitle UI
+    // of its own (drivesPodcast() is unchanged: decorative videos stay silent).
+    if (msg.action === 'transcribeMedia') {
+      let ok = false;
+      try {
+        if (isYouTube) ok = YouTubeTranslator.startAsr();
+        else if (isTwitter && TwitterTranslator.startAsr) ok = TwitterTranslator.startAsr();
+        if (!ok) ok = PodcastTranslator.startAsr();
+      } catch (_) { ok = false; }
+      sendResponse({ ok });
     }
   });
 })();

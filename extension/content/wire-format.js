@@ -36,6 +36,11 @@ var WireFormat = (() => {
     'speech-compat': 'speech',
     'transcribe-compat': 'transcribe',
     'transcribe-dashscope': 'transcribe',
+    'transcribe-gemini': 'transcribe',
+    // 流式转写（docs/domain-design.md §2.4 tier B）是第五种传输：一条 WebSocket。它自成
+    // 一个家族 —— 与文件式转写同能力不同协议，后缀表只在家族内选变体。
+    'ws-realtime': 'transcribe-live',
+    'ws-bidi': 'transcribe-live',
     'speech-dashscope': 'speech',
     'speech-audio-chat': 'speech',
   };
@@ -65,6 +70,12 @@ var WireFormat = (() => {
       // 这条注释原本点了一个品牌名，被中国版的合规门禁当场拦下 —— 源码注释是要进
       // 包体的。同类的疤已经有过一次（CI 里那次），所以写在这里。
       ['/multimodal-generation/generation', 'transcribe-dashscope'],
+      // 去掉版本段之后只剩一段 —— 与 chat 家族的 /responses 同一种情形
+      ['/interactions', 'transcribe-gemini'],
+    ],
+    'transcribe-live': [
+      ['/realtime', 'ws-realtime'],
+      ['/generativeservice.bidigeneratecontent', 'ws-bidi'],
     ],
   };
   // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。
@@ -129,13 +140,14 @@ var WireFormat = (() => {
   // 接口路径」从 CORS / 不可达里切出来——运行时**不拦**，因为「原样使用」是承诺，
   // 不该因为一个极罕见的根路径端点就剥夺用户的能力。
   function hasPath(url) {
-    const m = /^https?:\/\/[^/?#]+(\/[^?#]*)?/i.exec(String(url == null ? '' : url).trim());
+    const m = /^(?:https?|wss?):\/\/[^/?#]+(\/[^?#]*)?/i.exec(String(url == null ? '' : url).trim());
     if (!m) return false;
     return (m[1] || '').replace(/\/+$/, '').length > 0;
   }
 
+  // `wss://` 一并算绝对地址：注册表的 liveEndpoint 就是这种（§2.4）。
   function isAbsolute(url) {
-    return /^https?:\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
+    return /^(?:https?|wss?):\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
   }
 
   // 主机名，小写，**不带端口、不带用户信息段**。
@@ -146,7 +158,7 @@ var WireFormat = (() => {
   // request-shape.js 的参数表按它匹配；translation-api.js 的路由记忆按 origin
   // 记，两者都从这里取，免得同一个「地址的哪一部分算数」有两份实现。
   function hostOf(url) {
-    const m = /^https?:\/\/([^/?#]+)/i.exec(String(url == null ? '' : url).trim());
+    const m = /^(?:https?|wss?):\/\/([^/?#]+)/i.exec(String(url == null ? '' : url).trim());
     if (!m) return '';
     return m[1].split('@').pop().split(':')[0].toLowerCase();
   }

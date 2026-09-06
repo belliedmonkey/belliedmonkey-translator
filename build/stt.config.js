@@ -91,5 +91,36 @@ module.exports = [
     defaultModel: 'whisper-1',
     labelKey: null, label: 'OpenAI Transcribe',
     hintKey: 'stt_hint',
+    // §2.4 tier B（AI 转写字幕的流式一档）。实测 2026-09-06（scripts/asr-probe.js）：
+    // ?intent=transcription、子协议 openai-insecure-api-key 鉴权、pcm 24k、逐词 delta 带标点，
+    // 英文 12 分钟滞后 p90 2.24s / WER 3.7%，中文 p90 2.45s / CER 3.9%。地址原样存原样用；
+    // 用户改 sttBaseUrl 只影响上面那个文件端点。
+    // 文件一档仍走 whisper-1 + verbose_json（gpt-transcribe 拒绝 verbose_json，没有时间戳）。
+    liveEndpoint: 'wss://api.openai.com/v1/realtime?intent=transcription',
+    liveType: 'ws-realtime', liveModel: 'gpt-live-transcribe', liveRate: 24000,
+    liveKeyProtocol: 'openai-insecure-api-key.',
+    // 会话参数（直接并进 transcription 配置）。实测 2026-09-06 A/B（3 分钟英文，同一段音频）：
+    // 默认档滞后 p50 1.72s / p90 2.63s；`delay:'low'` 0.78s / 2.29s；`delay:'minimal'`
+    // **0.18s / 0.35s**，三档 WER 相同 —— 见台账 gpt-live-transcribe 行。
+    liveParams: { delay: 'minimal' },
+  },
+  {
+    // GLOBAL ONLY（Gemini 在中国大陆不开放）。文件一档走 Interactions 接口：JSON 内联
+    // base64 + 词级时间戳（mode 必须是 verbatim —— 实测 smart 与时间戳互斥，服务端原话
+    // "Transcription mode SMART is incompatible with timestamps"）。实测 2026-09-06：英文
+    // 29.8 分钟 69.4s / WER 2.9%，时间戳与 whisper 参照 p90 差 220ms；中文 19.9 分钟 CER 12.0%。
+    // 开时间戳的上限 30 分钟、内联体的上限约 20MB —— 超过走 uploadEndpoint（Files API）。
+    id: 'gemini_transcribe', type: 'transcribe-gemini', flavors: ['global'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://generativelanguage.googleapis.com/v1beta/interactions', placeholder: null,
+    defaultModel: 'gemini-3.5-transcribe',
+    labelKey: null, label: 'Gemini Transcribe (Google)',
+    hintKey: 'stt_hint',
+    uploadEndpoint: 'https://generativelanguage.googleapis.com/upload/v1beta/files',
+    // 流式一档**暂不登记**（台账 gemini-3.5-transcribe-live 行，verdict rejected）：免费档下
+    // interim 被限流（12 分钟只有 126 帧，首次干净的一轮是 1473 帧），句子成批到达，
+    // 滞后 p50 8.6s。ws-bidi 适配器已实现并有单元测试；付费档复测过线后把下面三行放开：
+    //   liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
+    //   liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
   },
 ];

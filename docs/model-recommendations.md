@@ -73,7 +73,7 @@
 
 ## 实测台账（全部）
 
-共 66 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 68 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -84,7 +84,7 @@
 | `o3-mini` | 2026-08-20 | ✅ 采纳 | 基线 5782ms · 降档后 2785ms | `{"reasoning_effort":"low"}` | 不发时慢一倍；而 gpt-5 系那个 minimal 在这里直接 400，合成一行会打断一条能用的路 |
 | `o4-mini` | 2026-08-20 | ✅ 采纳 | 基线 3332ms · 降档后 2642ms | `{"reasoning_effort":"low"}` | 同 o3-mini |
 | `whisper-1` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 89690ms | — | 文件式转写（verbose_json + segment/word 时间戳）：英文 12 分钟 38.3s / WER 2.5%，29.8 分钟 89.7s（另一次 92.5s，贴着 90s 的线）/ WER 2.1%；中文 12.6 分钟 46.7s / CER 7.7%，19.9 分钟 70.4s / CER 11.0%（含 LibriVox 片头片尾约 1 个点）。segment 边界不按句子切（原始句界命中 36%），按句末标点重切后 95%。gpt-transcribe 拒绝 verbose_json（"not compatible with model"），没有时间戳，做不了字幕。**参数层面没扫过** —— 转写这条路没有可调参数。 |
-| `gpt-live-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 2238ms | — | Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。 |
+| `gpt-live-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 2238ms | — | Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**delay 档位 A/B（3 分钟英文，同一段）**：默认 p50 1.72s / p90 2.63s；low 0.78s / 2.29s；**minimal 0.18s / 0.35s**，三档 WER 相同（11.3%，3 分钟样本含 LibriVox 片头） ⇒ 注册表 liveParams 写 minimal。medium/high/xhigh 未扫（只会更慢）。 |
 
 ### `api.deepseek.com`
 
@@ -156,6 +156,14 @@
 | `google/gemini-3.7-flash` | 2026-08-30 | ✅ 采纳 | 基线 13329ms · 思考 1369tok · 降档后 3152ms | `{"reasoning":{"effort":"low"}}` | 为「官网教程推荐哪个模型」而测，真 key。基线每段思考 1369 tok / 13.3 秒；降档后思考归零、2.9–3.3 秒，译文长度不变 —— 同一段快 4 倍。要紧的是它**不在** openrouter-reasoning 那行的前缀里（那行只覆盖 openai/gpt-5\|o1\|o3\|o4），所以在补上 openrouter-gemini 行之前，推荐它等于让用户拿 13 秒那一档。 |
 | `openai/gpt-oss-120b` | 2026-08-30 | ⬜ 测过不写 | 基线 2294ms · 思考 37tok · 降档后 1541ms | — | 同一轮的翻译候选。它**基线本来就几乎不思考**（19–37 tok），降档没有可拿的收益，而 minimal 反而让它思考得更多。测过、决定不写 —— 记下来是为了下一个人不会照文档把它补进参数表。同轮另一个发现：deepseek/deepseek-v4-flash-latest 被网关判为「is not a valid model ID」，那是模型清单里带 ~ 前缀的条目，不能当模型名用。 |
 
+### `generativelanguage.googleapis.com`
+
+| 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
+|---|---|---|---|---|---|
+| `gemini-3.5-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 69362ms | — | 文件式转写（Interactions 接口，JSON 内联 base64，mode 必须 verbatim —— smart 与时间戳互斥，服务端原话 "Transcription mode SMART is incompatible with timestamps"）：英文 12 分钟 51.3s / WER 3.8%，29.8 分钟 69.4s / WER 2.9%（比 whisper-1 的 89.7s 快）；中文 19.9 分钟 59.0s / CER 12.0%（贴着 12% 的线）。词级时间戳与 whisper-1 参照 p90 差 220–260ms；按词切 cue 后句界命中 95–97%。usage 只报音频 token（12 分钟 18000 tok）。真 Chrome 页面源 POST 可读（CORS 放行）。**参数层面没扫过**（diarization、language_codes 未试）。 |
+| `gemini-3.5-transcribe-live` | 2026-09-06 | ⬜ 测过不写 | 基线 2042ms · 降档后 8637ms | — | 流式转写（ws-bidi）。首轮（vendor final 计）：滞后 p50 1.5s / p90 2.0s、WER 4.1%，但 final 是段落级（12 分钟 21 条、平均 98 token），字幕不可用；改从 interim 切句后，免费档 interim 被限流（两路并发时直接 1011 "Resource has been exhausted"），无法达到 p90 ≤ 2.5s。**免费档下不过线**；付费档未测。ms 记首轮 p90。 |
+| `gemini-3.6-flash` | 2026-08-20 | ⬜ 测过不写 | 基线 7542ms · 降档后 2040ms | — | 出参 token 基本不变，没有可测量的收益；期间多次 503（high demand），所以按 token 而非墙钟下结论 |
+
 ### `dashscope-intl.aliyuncs.com`
 
 | 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
@@ -169,12 +177,6 @@
 |---|---|---|---|---|---|
 | `grok-4-fast` | 2026-08-20 | ⬜ 测过不写 | 基线 10176ms · 思考 858tok · 降档后 8255ms | — | 本型号有改善，但同 host 的 grok-3-mini 反而变差（624→969tok），效果不一致；且四次长段全部 finish=stop、271–283 字，没有饿死风险。不稳定的值是维护负担，不是知识 |
 | `grok-3-mini` | 2026-08-20 | ⬜ 测过不写 | 基线 8535ms · 思考 624tok · 降档后 9428ms | — | 加了参数反而更慢更费；见 grok-4-fast 那行 |
-
-### `generativelanguage.googleapis.com`
-
-| 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
-|---|---|---|---|---|---|
-| `gemini-3.6-flash` | 2026-08-20 | ⬜ 测过不写 | 基线 7542ms · 降档后 2040ms | — | 出参 token 基本不变，没有可测量的收益；期间多次 503（high demand），所以按 token 而非墙钟下结论 |
 
 ### `api.anthropic.com`
 
