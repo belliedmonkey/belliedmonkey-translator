@@ -317,9 +317,26 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             adv: anyVis('#app-settings .adv-only'),
             card: anyVis('#app-settings .quick-only'),
           };
+          // 一键卡按下「配好」之后必须还在：key 还在框里、三行「测试中…」看得见。
+          // 2026-09-06 用户报：粘贴 key → 点按钮 → 密码消失。真因是 applyQuickSetup 写盘后
+          // paint() 重画整页，而 setupQuickCard 清空重建了这张卡。自检本身打桩掉（不发网络）。
+          document.getElementById('mode-quick').click();
+          await new Promise((r) => setTimeout(r, 80));
+          let apply = { present: false };
+          const qk = document.getElementById('qs-key'), qb = document.getElementById('qs-apply');
+          if (qk && qb) {
+            const stub = () => Promise.reject(new Error('gate-stub'));
+            try { window.EngineTest.translation = stub; window.EngineTest.tts = stub; window.EngineTest.stt = stub; } catch (_) {}
+            qk.value = 'sk-gate-0123456789'; qk.dispatchEvent(new Event('input', { bubbles: true }));
+            qb.click();
+            await new Promise((r) => setTimeout(r, 900));
+            const qk2 = document.getElementById('qs-key'), qr = document.getElementById('qs-res');
+            apply = { present: true, kept: !!qk2 && qk2.value === 'sk-gate-0123456789', sameNode: qk2 === qk,
+              resVisible: !!qr && vis(qr), rows: qr ? qr.querySelectorAll('li').length : 0 };
+          }
           document.getElementById('settings-back').click();
           await new Promise((r) => setTimeout(r, 60));
-          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail, first, preview });
+          return JSON.stringify({ bad, checked, slots: Object.keys(SL).length, tabsHidden, quick, detail, first, preview, apply });
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const fv = JSON.parse(fx.result.value);
       need(fv.first.engine === '',
@@ -349,6 +366,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(fv.detail.adv && !fv.detail.card,
           '详细档没有互斥：逐引擎 ' + fv.detail.adv + '、一键卡仍可见 ' + fv.detail.card);
         need(fv.quick.path, '快速档没有一条可见的路通向详细档 —— 只藏不给路是退化，不是简化');
+        need(fv.apply.present, '一键卡里找不到 #qs-key / #qs-apply，这条断言空转了');
+        need(fv.apply.kept && fv.apply.sameNode,
+          '按下「配好」之后一键卡被重建了：key ' + (fv.apply.kept ? '还在' : '没了')
+          + '、输入框' + (fv.apply.sameNode ? '还是原来那个' : '已经换了一个')
+          + ' —— 用户看到的就是「粘贴的密码消失」（1.7.14–1.7.16 的真 bug）');
+        need(fv.apply.resVisible && fv.apply.rows >= 3,
+          '按下「配好」之后看不到自检那几行（visible=' + fv.apply.resVisible + ' rows=' + fv.apply.rows + '）');
       }
       need(fv.bad.length === 0,
         '引擎字段的渲染结果与 EngineFields 的判据不符（' + fv.checked + ' 个引擎里 '
