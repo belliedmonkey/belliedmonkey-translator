@@ -24,6 +24,10 @@
 
 * { box-sizing: border-box; }
 
+/* 链接颜色只有一个来源：--link（共享 token，见上面的规矩）。App 设置页里一键配置的
+   「申请 key」链接原来是浏览器默认蓝，深色卡片上 1.56:1（2026-09-06）。 */
+a { color: var(--link); }
+
 /* MUST stay ahead of any rule that sets `display`. The UA stylesheet gives [hidden]
    `display: none`, but an author rule like `form { display: flex }` outranks it — so
    every screen the app tries to hide renders anyway, stacked on top of each other.
@@ -400,3 +404,36 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* 匿名用量事件的开关行（设置页）。 */
 :where(#app-settings) .row-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-settings) .row-toggle input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+/* 对话 · 实时听译（§9.6）—— 同 #app-drive 的作用域纪律 */
+#app-listen { display: flex; flex-direction: column; gap: 12px; }
+#app-listen h2 { font-size: 1.25rem; margin: 0; }
+#app-listen-back { align-self: flex-start; font: inherit; background: none; border: 0; color: var(--accent-deep); font-weight: 400; min-height: 0; padding: 6px; text-decoration: underline; cursor: pointer; }
+:where(#app-listen) .listen-head { display: flex; align-items: center; gap: 12px; }
+:where(#app-listen) .listen-head h2 { font-size: 1.25rem; margin: 0; flex: 1; }
+:where(#app-listen) .listen-pill { font-size: 0.8rem; color: var(--dim); background: var(--card-bg); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+:where(#app-listen) .listen-pill.live { color: var(--sage-strong); }
+:where(#app-listen) .listen-langline { margin: 0; }
+:where(#app-listen) .listen-now-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; color: var(--dim); }
+:where(#app-listen) .listen-live { color: var(--accent); }
+:where(#app-listen) .listen-partial { font-size: 1.35rem; line-height: 1.5; min-height: 1.5em; margin: 6px 0 0; }
+:where(#app-listen) .listen-partial-tr { color: var(--sage-strong); font-size: 1.1rem; line-height: 1.5; min-height: 1.5em; margin: 2px 0 0; }
+:where(#app-listen) .listen-history { max-height: 38vh; overflow-y: auto; }
+:where(#app-listen) .listen-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+:where(#app-listen) .listen-body { flex: 1; min-width: 0; }
+:where(#app-listen) .listen-orig { font-size: 1rem; line-height: 1.45; }
+:where(#app-listen) .listen-row.me .listen-orig { color: var(--accent-deep); }
+:where(#app-listen) .listen-tr { color: var(--sage-strong); font-size: 0.95rem; line-height: 1.45; }
+:where(#app-listen) .listen-tr.pending { color: var(--dim); font-style: italic; }
+:where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
+:where(#app-listen) .listen-star.on { color: var(--accent); }
+:where(#app-listen) .listen-other select { font: inherit; }
+:where(#app-listen) button:not(.link):not(.listen-star) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
+:where(#app-listen) button.secondary.holding { background: var(--accent); color: #fff; border-color: var(--accent); }
+:where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
+:where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
+:where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
+:where(#app-listen) .listen-flip-text { font-size: 1.9rem; line-height: 1.35; font-weight: 700; margin: 0; }
+:where(#app-listen) .listen-flip-sub { color: var(--dim); font-size: 1rem; margin: 0; }
+:where(#app-listen) .listen-flip-speaking { color: var(--sage-strong); font-size: 0.9rem; margin: 0; }

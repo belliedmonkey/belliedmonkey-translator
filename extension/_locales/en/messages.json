@@ -2185,5 +2185,146 @@
   },
   "asr_history_title": {
     "message": "History · full sentences"
+  },
+  "app_listen_back": {
+    "message": "‹ Back"
+  },
+  "listen_source_label": {
+    "message": "Conversation"
+  },
+  "listen_entry": {
+    "message": "🎙 Conversation · live interpreter"
+  },
+  "listen_entry_hint": {
+    "message": "Listen to a foreign language in person: they speak, you read it in your language; hold to speak yours and show them the translation. Audio goes only to the transcription endpoint you configured."
+  },
+  "listen_need_live": {
+    "message": "“Conversation · live interpreter” needs a transcription engine with a realtime endpoint"
+  },
+  "listen_need_live_go": {
+    "message": "Choose one in settings →"
+  },
+  "listen_title": {
+    "message": "Conversation"
+  },
+  "listen_history": {
+    "message": "Finalized sentences"
+  },
+  "listen_pending": {
+    "message": "⏳ Translating…"
+  },
+  "listen_me_prefix": {
+    "message": "Me: "
+  },
+  "listen_me_badge": {
+    "message": "said by me"
+  },
+  "listen_star": {
+    "message": "Star"
+  },
+  "listen_now_them": {
+    "message": "They are saying"
+  },
+  "listen_now_me": {
+    "message": "I am saying (release to translate)"
+  },
+  "listen_lang_auto": {
+    "message": "{from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "{to} for them"
+  },
+  "listen_other_lang_label": {
+    "message": "Their language"
+  },
+  "listen_pill_listening": {
+    "message": "Listening · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Paused · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Speaking · not listening to them"
+  },
+  "listen_pill_ended": {
+    "message": "Ended · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Listening · pause"
+  },
+  "listen_toggle_start": {
+    "message": "Start listening"
+  },
+  "listen_speak_hold": {
+    "message": "Hold · I speak"
+  },
+  "listen_speak_release": {
+    "message": "Release · translate for them"
+  },
+  "listen_end": {
+    "message": "End"
+  },
+  "listen_cost_line": {
+    "message": "Listened {t} · audio goes only to your transcription endpoint"
+  },
+  "listen_flip_hint": {
+    "message": "Show them · tap anywhere to go back"
+  },
+  "listen_flip_speaking": {
+    "message": "Speaking aloud"
+  },
+  "listen_flip_again": {
+    "message": "Say it again"
+  },
+  "listen_flip_back": {
+    "message": "Back to listening"
+  },
+  "listen_stop_denied": {
+    "message": "Microphone denied — allow BelliedMonkey Translator under Settings › Privacy › Microphone."
+  },
+  "listen_stop_socket": {
+    "message": "Transcription connection lost: {why} — what was heard is kept."
+  },
+  "listen_stop_locked": {
+    "message": "The system stopped the recording — tap “Start listening” to continue."
+  },
+  "listen_stop_silence": {
+    "message": "No sound for 30 s — paused to avoid charges."
+  },
+  "listen_stop_failed": {
+    "message": "Microphone failed to start: {why}"
+  },
+  "listen_summary_title": {
+    "message": "This conversation"
+  },
+  "listen_summary_body": {
+    "message": "{t} · they said {them} sentences · I said {me} · {n} added to review (source “Conversation”) · {s} starred"
+  },
+  "listen_summary_note": {
+    "message": "The recording is discarded; only text is kept. Sentences added to review can be managed or deleted as a whole under Sources › Conversation."
+  },
+  "listen_summary_home": {
+    "message": "Back to home"
+  },
+  "listen_summary_again": {
+    "message": "Another one"
+  },
+  "listen_np_title": {
+    "message": "Conversation · live interpreter"
+  },
+  "listen_np_album": {
+    "message": "Conversation · listening · {t} · {n} sentences"
+  },
+  "listen_settings_title": {
+    "message": "Conversation · live interpreter"
+  },
+  "listen_capture_label": {
+    "message": "Add conversations to review (source “Conversation”)"
+  },
+  "listen_capture_note": {
+    "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap “Start listening” and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
+  },
+  "listen_sources_note": {
+    "message": "Each sentence comes from transcription and its translation from your engine; both can be wrong — starred sentences go to review first."
   }
 }

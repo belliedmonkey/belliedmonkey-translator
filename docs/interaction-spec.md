@@ -1358,6 +1358,81 @@ out follows the standing rules unchanged)*:
   预载写入的只有缓存: no review row, no skill stamp, no `lastSeenAt`, no scheduler call.
 
 
+### 对话 · 实时听译 (live conversation) — 2026-09-07（App 专属）
+
+Governed by [`learning-design.md`](learning-design.md) §9.6 (and domain-design §2.4
+rule 7). Canvas: https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f .
+Same dual display as the extension's live subtitles: **now** on top (word-by-word
+original + provisional translation), **finalized sentences** below.
+
+#### Entry & gating
+- Home gains a card 「🎙 对话 · 实时听译」 with one line: 「线下听外语：对方说，你看中文；
+  按住说中文，译成外语给对方。音频只发往你配置的转写端点。」
+- Same gating rule as 播客模式: the card **does not exist** unless the transcription
+  engine has a live endpoint (registry `liveEndpoint`) and its key is filled. In that
+  case the home shows one sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 and a
+  link 「去设置里选择 →」 that lands on the transcription row of settings. Never a grey
+  button.
+- First tap after install triggers the **native** microphone permission once; denied
+  ⇒ stop state 「麦克风被拒绝」 (below), never a silent no-op.
+
+#### 听 (listening)
+- Header: 「‹ 返回」 · 「对话」 · pill 「听译中 · mm:ss」 · language line 「自动识别 → 中文」
+  (target = interface language; manual pair selection is an open ruling).
+- Top card 「对方正在说 ● 实时」: original words as they arrive (22 px), provisional
+  translation underneath in sage with a trailing 「…」 (18 px). Updates in place, never
+  scrolls.
+- Below, 「整句定稿」 list, newest at the bottom, auto-scrolls unless the user scrolled
+  up: each row = original + translation (or 「⏳ 译文准备中…」 in the loading style), a
+  ☆ that toggles to ★ (star = enter review regardless of gate/whitelist). Rows from
+  「我说」 are prefixed 「我：」 with the Chinese first and the foreign second.
+- Bottom: two ≥ 64 px buttons — terracotta 「● 正在听 · 暂停」 and outlined
+  「按住 · 我说」. Persistent line: 「已听 3 分 42 秒 · 约 $0.03 · 音频只发往你配置的转写端点」.
+- **30 s of silence pauses the session** with 「听不到声音（30 秒静音）— 已暂停以免计费；
+  点「开始听」继续」.
+
+#### 我说 (push-to-talk)
+- Press and hold: header pill becomes 「我在说 · 对方的声音暂不听」, language line flips to
+  「中文 → English」, the top card shows my Chinese words live and the provisional
+  English under them. The other side's audio is **not sent** while held.
+- Release ⇒ 「松手 · 译给对方」: a full-screen flip card 「给对方看 · 点任意处返回」 shows
+  the English large (28 px) with the Chinese small under it, and speaks it with the
+  configured TTS engine (marker 「朗读中」). No TTS engine ⇒ text only, no marker, no
+  apology (capability semantics). Buttons 「再读一遍」 / 「继续听对方」; tapping anywhere
+  returns to listening.
+- The pair enters the history as a 「我：」 row (default on; open ruling).
+
+#### Stop states — every one names its cause and returns to 「开始听」
+| Cause | Line |
+|---|---|
+| microphone denied | 「麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。」 |
+| socket closed / vendor error | 「转写连接中断：{server sentence, ≤ 1 line} — 已听的句子还在。」 |
+| capture ended by the system while locked | 「锁屏后系统停止了录音 — 解锁后点「开始听」继续。」 (should not occur with native capture; kept as the fallback wording) |
+| 30 s silence | 「听不到声音（30 秒静音）— 已暂停以免计费。」 |
+
+#### 结束 (end of session)
+- 「结束」 shows a summary card: 时长 · 对方说了 N 句 · 我说了 N 句 · 进复习（来源「对话」）N 句
+  · 含 N 句加星 · 约花费 $x, then 「录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里
+  管理或整段删除。」 Buttons 「回到首页」 / 「查看全文」.
+
+#### Lock screen (iOS)
+- Reuses the podcast-mode Now Playing channel: title 「对话 · 实时听译中」, subtitle
+  「大肚猴翻译 · mm:ss · N 句」, body = the latest finalized pair, controls ⏸ and ■ only,
+  no timeline. Listening continues while locked (native capture, learning-design §9.6).
+
+#### macOS
+- Same section in a wide layout: left = now card + the two buttons (「按住 · 我说（或按住
+  空格）」), right = the finalized list with 「复制全文」. Status pill names the input
+  device 「麦克风：MacBook Pro 麦克风」. Typical use named in one grey line: online
+  meetings and video calls.
+
+#### Settings & sources
+- Settings 学习 gains 「对话进复习」 (default on) next to the capture switch, with the
+  Gate E sentence under the transcription-engine row.
+- 来源管理 lists conversations one row per session — 「🎙 对话 · 2026-09-07 机场问路 · 23 句」
+  — with 「删除已存」 only (no block rule: blocking a session is meaningless). A note under
+  the list: 「每句原文来自转写、译文来自你的翻译引擎，都可能有错——加星的句子优先进复习。」
+
 ### 自由练习 (free practice) — 2026-08-08
 
 - **Entry**: a standing 「自由练习」 on the review page, and 「继续巩固练习」 on

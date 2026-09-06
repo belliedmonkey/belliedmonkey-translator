@@ -260,7 +260,7 @@
     // 判据写成「有别的视图开着就收起」，而不是「首页开着才显示」：后者在首页两个
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
-    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-settings').hidden;
+    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-settings').hidden;
     if (away || browserSideOk) { sec.hidden = true; return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
@@ -920,6 +920,12 @@
   });
   $('gear').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
+  // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
+  // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
+  // 这个最需要出路的场景里（2026-09-06）。落点是语音引擎那个控件，不是页面顶部。
+  $('app-drive-need-tts-go').addEventListener('click', () => openSettings('tts-engine'));
+  // 对话 · 实时听译的门没过时那条路：设置页转写引擎那一档（§9.6）。
+  $('app-listen-need-live-go').addEventListener('click', () => openSettings('stt-engine'));
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.
@@ -960,6 +966,7 @@
 
     await AppSettings.ensureDefaults();
     AppDriving.wire();
+    AppListen.wire();
     AppSettings.wire({
       say,
       session: () => currentSession,

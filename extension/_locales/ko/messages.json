@@ -2185,5 +2185,146 @@
   },
   "asr_history_title": {
     "message": "기록 · 완성 문장"
+  },
+  "app_listen_back": {
+    "message": "‹ 뒤로"
+  },
+  "listen_source_label": {
+    "message": "대화"
+  },
+  "listen_entry": {
+    "message": "🎙 대화 · 실시간 통역"
+  },
+  "listen_entry_hint": {
+    "message": "대면으로 외국어 듣기: 상대가 말하면 내 언어로 읽고, 길게 눌러 말하면 외국어로 번역해 상대에게 보여줍니다. 음성은 설정한 전사 엔드포인트로만 전송됩니다."
+  },
+  "listen_need_live": {
+    "message": "「대화 · 실시간 통역」에는 실시간 인터페이스가 있는 전사 엔진이 필요합니다"
+  },
+  "listen_need_live_go": {
+    "message": "설정에서 선택 →"
+  },
+  "listen_title": {
+    "message": "대화"
+  },
+  "listen_history": {
+    "message": "확정된 문장"
+  },
+  "listen_pending": {
+    "message": "⏳ 번역 중…"
+  },
+  "listen_me_prefix": {
+    "message": "나: "
+  },
+  "listen_me_badge": {
+    "message": "내가 말함"
+  },
+  "listen_star": {
+    "message": "별표"
+  },
+  "listen_now_them": {
+    "message": "상대가 말하는 중"
+  },
+  "listen_now_me": {
+    "message": "말하는 중 (떼면 번역)"
+  },
+  "listen_lang_auto": {
+    "message": "상대 {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "{to}(으)로"
+  },
+  "listen_other_lang_label": {
+    "message": "상대의 언어"
+  },
+  "listen_pill_listening": {
+    "message": "통역 중 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "일시정지 · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "말하는 중 · 상대 음성은 듣지 않음"
+  },
+  "listen_pill_ended": {
+    "message": "종료 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 듣는 중 · 일시정지"
+  },
+  "listen_toggle_start": {
+    "message": "듣기 시작"
+  },
+  "listen_speak_hold": {
+    "message": "길게 누르기 · 내가 말하기"
+  },
+  "listen_speak_release": {
+    "message": "떼기 · 상대에게 번역"
+  },
+  "listen_end": {
+    "message": "종료"
+  },
+  "listen_cost_line": {
+    "message": "{t} 들음 · 음성은 설정한 엔드포인트로만 전송"
+  },
+  "listen_flip_hint": {
+    "message": "상대에게 보여주기 · 아무 곳이나 탭하면 돌아감"
+  },
+  "listen_flip_speaking": {
+    "message": "읽는 중"
+  },
+  "listen_flip_again": {
+    "message": "다시 읽기"
+  },
+  "listen_flip_back": {
+    "message": "상대 듣기로"
+  },
+  "listen_stop_denied": {
+    "message": "마이크가 거부됨 — 「설정 › 개인정보 › 마이크」에서 허용하세요."
+  },
+  "listen_stop_socket": {
+    "message": "전사 연결 끊김: {why} — 들은 문장은 남아 있습니다."
+  },
+  "listen_stop_locked": {
+    "message": "시스템이 녹음을 중단했습니다 — 「듣기 시작」으로 계속."
+  },
+  "listen_stop_silence": {
+    "message": "30초간 소리 없음 — 과금을 피하려고 일시정지했습니다."
+  },
+  "listen_stop_failed": {
+    "message": "마이크 시작 실패: {why}"
+  },
+  "listen_summary_title": {
+    "message": "이번 대화"
+  },
+  "listen_summary_body": {
+    "message": "{t} · 상대 {them}문장 · 나 {me}문장 · 복습에 추가 {n}문장 (출처 「대화」) · 별표 {s}문장"
+  },
+  "listen_summary_note": {
+    "message": "녹음은 폐기되고 텍스트만 남습니다. 복습에 들어간 문장은 「출처 › 대화」에서 관리하거나 통째로 삭제할 수 있습니다."
+  },
+  "listen_summary_home": {
+    "message": "홈으로"
+  },
+  "listen_summary_again": {
+    "message": "한 번 더"
+  },
+  "listen_np_title": {
+    "message": "대화 · 통역 중"
+  },
+  "listen_np_album": {
+    "message": "대화 · 통역 중 · {t} · {n}문장"
+  },
+  "listen_settings_title": {
+    "message": "대화 · 실시간 통역"
+  },
+  "listen_capture_label": {
+    "message": "대화를 복습에 추가 (출처 「대화」)"
+  },
+  "listen_capture_note": {
+    "message": "「대화 · 실시간 통역」은 「듣기 시작」을 누른 뒤에만, 설정한 전사 엔드포인트로만 마이크 음성을 전송합니다. 저희 서버는 음성에 접근하지 않으며, 녹음은 저장하지 않고 텍스트만(이 스위치가 켜진 동안만) 남깁니다."
+  },
+  "listen_sources_note": {
+    "message": "원문은 전사, 번역은 사용자의 번역 엔진에서 나오므로 둘 다 틀릴 수 있습니다 — 별표한 문장이 먼저 복습에 들어갑니다."
   }
 }

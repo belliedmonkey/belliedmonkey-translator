@@ -105,7 +105,8 @@ npm run test:asr         # 「AI 转写字幕」真 Chrome 端到端（Node ≥2
                          # PCM 送到了端点（≥20 帧）且叠层出整句。厂商本身由 scripts/asr-probe.js 验。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
-                         # changes. Per-step surface sweep (labels non-empty, fg≠bg) + DB-verified
+                         # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour
+                         # schemes, via scripts/lib/sweep.js — shared by every page gate) + DB-verified
                          # tier/practice/notes flow. Cases: docs/learn-regression.md
 ```
 

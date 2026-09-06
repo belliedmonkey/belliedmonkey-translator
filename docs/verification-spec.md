@@ -431,7 +431,7 @@ test with the key from `.local/keys.md`.
 | Firefox | same, via `apiFetch`'s background route where the CDN has no CORS (R1: body must survive `sendMessage`) | `captureStream` (Firefox ≥ 149); **measure** whether the content-script socket obeys the page's `connect-src` on a strict-CSP page | same |
 | macOS Safari | same as Chrome — content-script fetch; record whether a no-CORS CDN is reachable from the content script (unknown until measured) | `createMediaElementSource` after the crossorigin reload; audio stays audible (the node is wired to `destination`) | same |
 | iPhone / iPad Safari (≥ iOS 17.1) | same as macOS Safari; the AudioContext is created inside the tap handler | `createMediaElementSource` on MSE works; **native HLS (`src=.m3u8`) is expected to be silent** — the silence guard must report it within 3 s, never a stuck 「实时转写中」 | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
-| iOS / macOS host app | N/A (no translation path) | N/A | N/A |
+| iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
 
 **Check the request, not the overlay.** A live session that re-sends an already-closed
 sentence produces byte-identical subtitles; only the socket log shows the waste. Assert
@@ -1392,8 +1392,14 @@ in full — new fixture, **red before the change**, all pre-existing fixtures gr
 
 Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
 `layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT
-cover WebKit/Gecko engine differences, real devices, subtitles/overlays, or visual
-color/contrast — those remain owned by the §1 full matrix via cua-driver.
+cover WebKit/Gecko engine differences, real devices, or subtitles/overlays — those
+remain owned by the §1 full matrix via cua-driver. Colour contrast is **not** on that
+list any more: every page gate (test:learn / test:app / test:onboard / test:signin /
+test:sync / test:setup-page) runs the shared sweep in `scripts/lib/sweep.js` under
+**both** colour schemes and fails any visible text under WCAG AA (4.5:1, large text
+3:1); the registry side is pinned by `test/palette-contrast.test.js`. Before 2026-09-06
+the sweep only compared foreground to background for equality and only ran in light
+mode, which is how a 1.9:1 default-blue link shipped on the onboarding page.
 
 ---
 
@@ -2079,6 +2085,32 @@ serial10  OK      8ms   10 次调用 ≈ 0.8ms/次
 - App Group 共享容器尚未验证（标准能力，风险低，但没测就是没测）。
 
 ---
+
+## 尖刺：WKWebView 能不能后台录（2026-09-07）—— **真机已跑，三轮**
+
+「对话 · 实时听译」（`docs/learning-design.md` §9.6）要在锁屏后继续录音。§9.5 的播客尖刺
+证明了 WKWebView 能后台**播**；这里问的是能不能后台**录**，答案不能从前者推出来。
+探针是 App 里一个 flag 门控的隐藏页（`app/listen.js`，分支 `spike/app-listen-l0`）：
+`getUserMedia` → ScriptProcessor → 重采样 → `WsTranscribe` socket，读数面板记帧数、峰值、
+锁屏期间的帧 / JS 计时器 tick / finals。真机 ZHAO的iPhone（iOS 26.5），经 iPhone 镜像遥控；
+**退出镜像 = 真锁屏**，80 s 后重连读数。
+
+| 轮 | 条件 | 锁屏期间 | 结论 |
+|---|---|---|---|
+| L0d / L0e | `.playAndRecord` 已激活 + `UIBackgroundModes: audio`，页内无音频 | JS tick **2 / 96 s**，采集帧 **0** | 整个 WebContent 进程约 2 s 后挂起 |
+| L0f | 同上 + 页内循环一段 −60 dBFS 不可闻 `<audio>` | JS tick **48 / 92 s**（1 s 计时器被节流成 2 s），采集帧 **0**，页面一可见立刻恢复 | 页内音频保活能让 JS 活着；**WebKit 在 App 不可见时一律静音 `getUserMedia`** |
+
+另两条读数：(a) `file://` 页面开 wss **未证伪** —— 同一页面到 DeepSeek 主机 HTTPS 401 /
+wss 握手 0.3 s 内被拒（TCP/TLS 通），到 OpenAI 的 HTTPS 与 wss 都 8 s 超时，是手机网络没走
+Mac 代理（F-bis 那条网络提醒的又一次应验）；(b) 麦克风权限可拿、track live，但**镜像期间
+iPhone 麦克风被 Mac 占用**（Mac 弹「无法从 Mac 使用 iPhone 麦克风」，PCM 全 0），有声与否
+只能人耳验。顺带：WKWebView 的麦克风权限每次重装都重新弹（宿主未实现
+`decideMediaCapturePermissionsFor`）。
+
+判读（写在跑之前的规则，与 §9.5 尖刺同型）：采集帧为 0 而 JS 活着 ⇒ **采集必须原生**，
+socket 与翻译留在 JS —— 用户 2026-09-07 裁定「原生做吧」。PR-L2 真机必验的两条：原生 tap
+在锁屏 60 s 内帧数持续增长且 finals 到达；原生录音本身是否已足以保住 WebContent（是则去掉
+页内保活音频）。
 
 ## 尖刺：WKWebView 能不能后台播（2026-08-24）—— **模拟器已跑，真机未跑**
 

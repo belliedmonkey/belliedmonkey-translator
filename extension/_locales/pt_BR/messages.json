@@ -2185,5 +2185,146 @@
   },
   "asr_history_title": {
     "message": "Histórico · frases completas"
+  },
+  "app_listen_back": {
+    "message": "‹ Voltar"
+  },
+  "listen_source_label": {
+    "message": "Conversa"
+  },
+  "listen_entry": {
+    "message": "🎙 Conversa · intérprete ao vivo"
+  },
+  "listen_entry_hint": {
+    "message": "Ouça um idioma estrangeiro pessoalmente: a outra pessoa fala, você lê no seu idioma; segure para falar e mostre a tradução. O áudio vai apenas para o endpoint de transcrição que você configurou."
+  },
+  "listen_need_live": {
+    "message": "“Conversa · intérprete ao vivo” precisa de um mecanismo de transcrição com endpoint em tempo real"
+  },
+  "listen_need_live_go": {
+    "message": "Escolher nas configurações →"
+  },
+  "listen_title": {
+    "message": "Conversa"
+  },
+  "listen_history": {
+    "message": "Frases finalizadas"
+  },
+  "listen_pending": {
+    "message": "⏳ Traduzindo…"
+  },
+  "listen_me_prefix": {
+    "message": "Eu: "
+  },
+  "listen_me_badge": {
+    "message": "dito por mim"
+  },
+  "listen_star": {
+    "message": "Estrela"
+  },
+  "listen_now_them": {
+    "message": "A outra pessoa está dizendo"
+  },
+  "listen_now_me": {
+    "message": "Estou dizendo (solte para traduzir)"
+  },
+  "listen_lang_auto": {
+    "message": "{from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "para {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Idioma da outra pessoa"
+  },
+  "listen_pill_listening": {
+    "message": "Ouvindo · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Pausado · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Estou falando · não ouvindo a outra pessoa"
+  },
+  "listen_pill_ended": {
+    "message": "Encerrado · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Ouvindo · pausar"
+  },
+  "listen_toggle_start": {
+    "message": "Começar a ouvir"
+  },
+  "listen_speak_hold": {
+    "message": "Segurar · eu falo"
+  },
+  "listen_speak_release": {
+    "message": "Soltar · traduzir para a outra pessoa"
+  },
+  "listen_end": {
+    "message": "Encerrar"
+  },
+  "listen_cost_line": {
+    "message": "{t} ouvidos · o áudio vai apenas para o seu endpoint de transcrição"
+  },
+  "listen_flip_hint": {
+    "message": "Mostrar · toque em qualquer lugar para voltar"
+  },
+  "listen_flip_speaking": {
+    "message": "Lendo em voz alta"
+  },
+  "listen_flip_again": {
+    "message": "Ler de novo"
+  },
+  "listen_flip_back": {
+    "message": "Voltar a ouvir"
+  },
+  "listen_stop_denied": {
+    "message": "Microfone negado — permita o BelliedMonkey Translator em Ajustes › Privacidade › Microfone."
+  },
+  "listen_stop_socket": {
+    "message": "Conexão de transcrição perdida: {why} — o que foi ouvido continua."
+  },
+  "listen_stop_locked": {
+    "message": "O sistema interrompeu a gravação — toque em “Começar a ouvir” para continuar."
+  },
+  "listen_stop_silence": {
+    "message": "Sem som por 30 s — pausado para evitar cobranças."
+  },
+  "listen_stop_failed": {
+    "message": "O microfone não iniciou: {why}"
+  },
+  "listen_summary_title": {
+    "message": "Esta conversa"
+  },
+  "listen_summary_body": {
+    "message": "{t} · a outra pessoa: {them} frases · eu: {me} · {n} adicionadas à revisão (fonte “Conversa”) · {s} com estrela"
+  },
+  "listen_summary_note": {
+    "message": "A gravação é descartada; só o texto fica. As frases na revisão podem ser gerenciadas ou apagadas em bloco em Fontes › Conversa."
+  },
+  "listen_summary_home": {
+    "message": "Voltar ao início"
+  },
+  "listen_summary_again": {
+    "message": "Mais uma"
+  },
+  "listen_np_title": {
+    "message": "Conversa · intérprete ao vivo"
+  },
+  "listen_np_album": {
+    "message": "Conversa · ouvindo · {t} · {n} frases"
+  },
+  "listen_settings_title": {
+    "message": "Conversa · intérprete ao vivo"
+  },
+  "listen_capture_label": {
+    "message": "Adicionar conversas à revisão (fonte “Conversa”)"
+  },
+  "listen_capture_note": {
+    "message": "“Conversa · intérprete ao vivo” transmite o microfone ao endpoint de transcrição que você configurou, apenas após “Começar a ouvir” e apenas para esse endpoint; nossos servidores nunca tocam no áudio; nenhuma gravação é guardada, só texto — e só enquanto esta chave estiver ligada."
+  },
+  "listen_sources_note": {
+    "message": "Cada frase vem da transcrição e a tradução do seu mecanismo; ambas podem errar — frases com estrela entram na revisão primeiro."
   }
 }

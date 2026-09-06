@@ -7,6 +7,9 @@ const path = require('path');
 const G = require('../gen-setup-guide.js');
 
 const PROVIDERS = require('../../build/providers.config.js');
+// 教程页的主色也从调色板注册表取，不再自己抄一份：这里原来写死 #b2622d，白底上 4.49:1
+// 差一线不过 AA（2026-09-06 深浅色核查）。terra550 是白字 / 白底两个方向都过线的那一档。
+const PALETTE = require('../../build/palette.config.js').ramps;
 const STT = require('../../build/stt.config.js');
 const TTS = require('../../build/tts.config.js');
 
@@ -14,7 +17,7 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const code = (s) => `<code>${esc(s)}</code>`;
 
 const STYLE = `<style>
-  :root { color-scheme: light dark; --accent:#b2622d; --ink:#1a1a1a; --sub:#7a7268; --line:#e6ded1; --bg:#fff; --well:#faf6f0; }
+  :root { color-scheme: light dark; --accent:${PALETTE.terra550}; --ink:#1a1a1a; --sub:#7a7268; --line:#e6ded1; --bg:#fff; --well:#faf6f0; }
   @media (prefers-color-scheme: dark) { :root { --ink:#e6e6e6; --sub:#9a9188; --line:#333; --bg:#111; --well:#1b1a19; --accent:#e08a4d; } }
   body { max-width:760px; margin:0 auto; padding:28px 20px 72px; background:var(--bg); color:var(--ink);
          font:16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }

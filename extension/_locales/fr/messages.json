@@ -2185,5 +2185,146 @@
   },
   "asr_history_title": {
     "message": "Historique · phrases complètes"
+  },
+  "app_listen_back": {
+    "message": "‹ Retour"
+  },
+  "listen_source_label": {
+    "message": "Conversation"
+  },
+  "listen_entry": {
+    "message": "🎙 Conversation · interprète en direct"
+  },
+  "listen_entry_hint": {
+    "message": "Écoutez une langue étrangère en face à face : l’autre parle, vous lisez dans votre langue ; maintenez pour parler et montrez-lui la traduction. L’audio ne va qu’au point de transcription que vous avez configuré."
+  },
+  "listen_need_live": {
+    "message": "« Conversation · interprète en direct » a besoin d’un moteur de transcription avec point temps réel"
+  },
+  "listen_need_live_go": {
+    "message": "Choisir dans les réglages →"
+  },
+  "listen_title": {
+    "message": "Conversation"
+  },
+  "listen_history": {
+    "message": "Phrases finalisées"
+  },
+  "listen_pending": {
+    "message": "⏳ Traduction…"
+  },
+  "listen_me_prefix": {
+    "message": "Moi : "
+  },
+  "listen_me_badge": {
+    "message": "dit par moi"
+  },
+  "listen_star": {
+    "message": "Étoile"
+  },
+  "listen_now_them": {
+    "message": "L’autre dit"
+  },
+  "listen_now_me": {
+    "message": "Je dis (relâchez pour traduire)"
+  },
+  "listen_lang_auto": {
+    "message": "{from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "vers {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Sa langue"
+  },
+  "listen_pill_listening": {
+    "message": "Écoute · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "En pause · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Je parle · l’autre n’est pas écouté"
+  },
+  "listen_pill_ended": {
+    "message": "Terminé · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● À l’écoute · pause"
+  },
+  "listen_toggle_start": {
+    "message": "Commencer l’écoute"
+  },
+  "listen_speak_hold": {
+    "message": "Maintenir · je parle"
+  },
+  "listen_speak_release": {
+    "message": "Relâcher · traduire pour l’autre"
+  },
+  "listen_end": {
+    "message": "Terminer"
+  },
+  "listen_cost_line": {
+    "message": "{t} écoutées · l’audio ne va qu’à votre point de transcription"
+  },
+  "listen_flip_hint": {
+    "message": "À montrer · touchez n’importe où pour revenir"
+  },
+  "listen_flip_speaking": {
+    "message": "Lecture à voix haute"
+  },
+  "listen_flip_again": {
+    "message": "Relire"
+  },
+  "listen_flip_back": {
+    "message": "Réécouter l’autre"
+  },
+  "listen_stop_denied": {
+    "message": "Micro refusé — autorisez BelliedMonkey Translator dans Réglages › Confidentialité › Micro."
+  },
+  "listen_stop_socket": {
+    "message": "Connexion de transcription perdue : {why} — ce qui a été entendu est conservé."
+  },
+  "listen_stop_locked": {
+    "message": "Le système a arrêté l’enregistrement — touchez « Commencer l’écoute » pour continuer."
+  },
+  "listen_stop_silence": {
+    "message": "Aucun son depuis 30 s — mis en pause pour éviter des frais."
+  },
+  "listen_stop_failed": {
+    "message": "Le micro n’a pas démarré : {why}"
+  },
+  "listen_summary_title": {
+    "message": "Cette conversation"
+  },
+  "listen_summary_body": {
+    "message": "{t} · l’autre : {them} phrases · moi : {me} · {n} ajoutées à la révision (source « Conversation ») · {s} étoilées"
+  },
+  "listen_summary_note": {
+    "message": "L’enregistrement est supprimé ; seul le texte est conservé. Les phrases ajoutées se gèrent ou se suppriment en bloc dans Sources › Conversation."
+  },
+  "listen_summary_home": {
+    "message": "Accueil"
+  },
+  "listen_summary_again": {
+    "message": "Une autre"
+  },
+  "listen_np_title": {
+    "message": "Conversation · interprète en direct"
+  },
+  "listen_np_album": {
+    "message": "Conversation · à l’écoute · {t} · {n} phrases"
+  },
+  "listen_settings_title": {
+    "message": "Conversation · interprète en direct"
+  },
+  "listen_capture_label": {
+    "message": "Ajouter les conversations à la révision (source « Conversation »)"
+  },
+  "listen_capture_note": {
+    "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après « Commencer l’écoute » et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
+  },
+  "listen_sources_note": {
+    "message": "Chaque phrase vient de la transcription et sa traduction de votre moteur ; les deux peuvent se tromper — les phrases étoilées passent en révision en premier."
   }
 }
