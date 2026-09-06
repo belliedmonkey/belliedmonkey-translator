@@ -53,9 +53,16 @@ translation output byte-for-byte identical.
   segment, so they use a different **kind** of extractor (`SubtitleSource` /
   `PodcastSource`), but feed the **same Engine**. This is a *source-kind* difference,
   not a site difference.
+- **A third source kind — `AsrSource` (§2.4, added 2026-09-06).** When no timed
+  transcript exists anywhere, the user may *ask* for one: on their explicit tap the
+  page's own media is transcribed by the speech-to-text endpoint they configured, and
+  the resulting timed cues feed the **same Engine** through the same harness. It is a
+  source, never a different pipeline — the Engine and Renderer cannot tell it apart
+  from a fetched transcript.
 - **Podcast bilingual subtitles** are the audio analogue of video subtitles — see
   **§2.2**. Where a podcast has no timed transcript, it is just a **page** (show
-  notes / a text transcript) and falls to the normal `DomSegmenter` text path.
+  notes / a text transcript) and falls to the normal `DomSegmenter` text path —
+  plus the §2.4 offer, which the user may take or ignore.
 
 ### 2.1 YouTube subtitle core constraint (核心约束 — do not break)
 
@@ -64,7 +71,10 @@ The YouTube subtitle path follows **one** logic, identical on every platform
 
 1. **Fetch the COMPLETE transcript up front, in one shot.** Acquire every cue for
    the current video as a single transcript before/at playback start — never
-   caption-by-caption off the live player DOM.
+   caption-by-caption off the live player DOM. `AsrSource`'s file tier (§2.4)
+   satisfies this rule literally; its live tier is the **one written exception**,
+   bounded in §2.4 — it appends whole sentences in playback order and still never
+   translates a caption or a word.
 2. **Translate ahead in a 60-second sliding window, in batches** (`engine.pump`
    over `WINDOW.AHEAD_MS = 60000`). Whole merged sentences, with context.
 3. **No word-by-word / per-caption translation.** We never translate YouTube's
@@ -101,8 +111,9 @@ overlay renderer. The only podcast-specific parts are the **source** (where the
 timed cues come from) and the **renderer anchor** (no video frame → fixed to the
 viewport, not a player element).
 
-1. **Use an EXISTING timestamped transcript — never generate one.** Acquire the
-   COMPLETE timed transcript up front from a source that already carries timestamps:
+1. **Prefer an EXISTING timestamped transcript; generate one only via §2.4, on the
+   user's tap.** Acquire the COMPLETE timed transcript up front from a source that
+   already carries timestamps:
    - **In-page caption file** — a WebVTT/SRT URL embedded in the page (e.g. Substack
      embeds a CloudFront-**signed** `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`;
      also `<track src>`). Use the *signed* URL; the bare URL is rejected. Fetch it
@@ -120,9 +131,14 @@ viewport, not a player element).
    never regress to per-line live translation.
 4. **Sync to the `<audio>` element's `currentTime`** (`getCurrentTime` reads the page
    media element). DRM (Spotify/EME) hides the samples, **not** the playback clock.
-5. **No ASR / no self-generated transcripts** (no-backend; infeasible on Safari iOS).
-   If no timed transcript exists, show `字幕不可用` and let the existing webpage text
-   path translate the show-notes / transcript **page** as the floor.
+5. **No *automatic* ASR.** If no timed transcript exists, show `字幕不可用` **with the
+   §2.4 offer** (a button; nothing starts until it is tapped), and let the existing
+   webpage text path translate the show-notes / transcript **page** as the floor.
+   *(Before 2026-09-06 this rule read "No ASR / no self-generated transcripts
+   (no-backend; infeasible on Safari iOS)". Both premises fell: the transcription
+   runs on the endpoint the user configured, never on a backend of ours, and the
+   file tier is two operations — fetch bytes, POST them — that Safari iOS already
+   performs on the VTT path. See §2.4 and §5.3.)*
 
 Platforms: **generic in-page VTT/SRT + RSS `podcast:transcript`** (incl. Substack)
 are Phase A; **Spotify** synced-DOM is Phase B. **Apple Podcasts web** and **小宇宙**
@@ -141,7 +157,9 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
    playlist** as `#EXT-X-MEDIA:TYPE=SUBTITLES,…,URI="…"` (X auto-generates one for
    many videos, `CHARACTERISTICS="twitter.auto-generated"`). If there is **no
    SUBTITLES track**, show `字幕不可用` — this is a **first-class, common** outcome,
-   never a word-by-word or ASR fallback (no-backend; infeasible on Safari iOS).
+   never a word-by-word fallback and never an *automatic* ASR fallback. The §2.4
+   offer applies here as on every subtitle surface; X video and Spaces are MSE
+   (`blob:`) media, so only §2.4's live tier can serve them.
 2. **Acquire the COMPLETE transcript up front** (verified 2026-07-18 on the target
    video): master m3u8 → SUBTITLES `URI` → a VOD **subtitle sub-playlist** whose
    `#EXTINF` lists `.vtt` segment(s) (`/subtitles/amplify_video/<id>/<seg>/<hash>.vtt`)
@@ -178,6 +196,66 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
    first-class, must-verify surface (Chrome + Safari on x.com);** it is a **permanent
    matrix item** per `verification-spec.md` §0. (iOS uses the OS's native video
    fullscreen — a DOM overlay cannot cover it; that is a documented N/A, never faked.)
+
+### 2.4 AI 转写字幕 — user-initiated transcription (核心约束 — do not break)
+
+Added 2026-09-06 after PR0 measurement (`scripts/asr-probe.js`, `scripts/asr-cors-probe.js`;
+ledger rows `api.openai.com × whisper-1 / gpt-live-transcribe`). The measured question was
+"is a transcription endpoint fast and accurate enough to be a subtitle *source*"; the
+answer for OpenAI was yes on every threshold (streaming lag p90 2.24 s en / 2.45 s zh,
+WER 3.7 % / CER 3.9 %, 99 % of sentences closed on punctuation, no drops in 12 minutes).
+Gemini and Meta are measured the same way before their entries ship.
+
+1. **User-initiated only. Never automatic.** Nothing is captured, fetched or sent until
+   the user taps the offer — a button inside the `字幕不可用` notice, or the popup's
+   「转写音频字幕」 action (shown only when the page has a media element ≥ 30 s long).
+   The offer states the per-minute cost. A decorative `<video>` never surfaces subtitle
+   UI (`docs/regression-tests.md` §4) — the popup action is the *only* entry for a
+   video with no transcript hint, so `drivesPodcast()` is unchanged. After any stop the
+   offer must be tapped again; there is no auto-restart (a media-key flap must not
+   restart a paid session).
+2. **Tier A — file mode — is the baseline, and it obeys §2.1 rule 1 literally.** When
+   the media has a fetchable `http(s)` URL, the whole file is fetched and transcribed
+   *once*; the complete timed transcript arrives before it is used, exactly like a VTT.
+   This tier needs nothing Safari iOS lacks (§5.3).
+3. **Tier B — live mode — is the one written exception to "complete transcript up
+   front".** When there is no fetchable URL (`blob:`/MSE — YouTube, Twitch, X video and
+   Spaces, live streams) the element's audio is captured in-page and streamed to the
+   endpoint; cues are **appended in playback order as whole sentences** (closed on a
+   sentence terminal, `MAX_LEN`, or a silence gap — the same closing rules as
+   `mergeSentences`). The open tail sentence is never handed to the Engine, so no unit
+   is ever replaced and no translation is ever discarded. **No word-by-word, no
+   per-caption translation** — the Engine still receives sentences, in a window, and
+   translates them exactly as it does a fetched transcript. Because a sentence can only
+   close after it has been spoken, the pair appears **after** the speech (measured
+   ≈ 1.8 s p50 before translation); the Renderer holds it on screen for `HOLD_MS`
+   after its end or until the next sentence, and the live window uses a longer
+   `GRACE_MS` so `⏳ 译文准备中…` does not flicker on every sentence.
+4. **Capture is the capability, not the floor.** Tier B depends on
+   `HTMLMediaElement.captureStream()` (Chrome, Firefox) or Web Audio's
+   `createMediaElementSource` (Safari), both of which refuse or silence cross-origin
+   media loaded without `crossorigin` — so a live session first probes the media URL
+   with a CORS `GET`, reloads the element with `crossOrigin='anonymous'` at the same
+   position, and only then attaches. Where the CDN sends no CORS header, live mode is
+   impossible and the notice says so. Where capture attaches but yields silence for
+   3 s while the element is playing and unmuted, the session stops and the notice says
+   so. **Never a silent failure**: every stop (silence, CORS refusal, socket close,
+   region refusal) is a visible line in the overlay.
+5. **Audio goes only to the endpoint the user configured. Our server never sees it.**
+   This is AGENTS.md product rule 5 restated for this source: we transmit page media
+   to the user's own STT endpoint at the user's request, and nothing of ours stores,
+   proxies or logs it. The privacy copy ships in the same version (`release-checklist`
+   §2). There is no zero-config engine here for the same reason there is none for 说
+   (`stt.config.js` header): an empty `sttEngine` means the offer opens settings.
+6. **Stops are total.** A `mediaKey` change, `disable()`, or a change to the
+   transcription settings aborts the capture, closes the socket and drops the open
+   tail; already-appended sentences keep their translations (the Engine's `reset()`
+   keeps units and re-translates, as today).
+
+Registry consequences are in §7 (`liveEndpoint` / `liveType` / `liveModel` /
+`uploadEndpoint` on `build/stt.config.js` entries, and the subprotocol / query-string
+key carve-outs). Module consequences are in §6. Per-surface expectations are named in
+`docs/verification-spec.md`.
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
@@ -507,8 +585,9 @@ becoming a second product:
 
 1. **The baseline must be complete on the weakest surface.** Safari iOS is the floor.
    A feature whose *correctness* depends on a capability Safari lacks is out of scope
-   (that is the §8 argument against in-browser ASR). A capability may only make an
-   already-correct baseline **cheaper or sharper** — never supply the only working path.
+   (that is the §8 argument against *in-browser* ASR, i.e. recognition running in the
+   browser itself). A capability may only make an already-correct baseline **cheaper
+   or sharper** — never supply the only working path.
 2. **The capability is injected into the core, never probed by it.** The adapter
    probes, and passes a plain function in. The core's contract is that function's
    signature, not the browser behind it — `TranslationCore` must not call
@@ -532,6 +611,21 @@ Firefox likewise), the engine may additionally skip a unit whose detected langua
 matches a **non**-script-decidable target — the English/French case script cannot
 separate. zh/ja/ko targets never consult the detector, so the most-used path is
 identical on every surface by construction.
+
+**Second instance — AI 转写字幕 (§2.4), 2026-09-06.** The baseline is tier A, file
+mode: fetch the media bytes, POST them to the user's transcription endpoint, receive a
+complete timed transcript. Those are the same two operations the VTT path already
+performs on Safari iOS, so the baseline is complete on the floor. In-page audio
+capture (tier B) is the capability: it exists on Chrome/Firefox (`captureStream`) and
+on Safari (`createMediaElementSource`, with the crossorigin reload), and it only
+**sharpens** the case where the baseline already failed for a reason outside our
+control — the media has no fetchable URL. Where capture is absent, refused (CORS) or
+silent, the surface behaves exactly as if tier B did not exist, with one deliberate
+departure from rule 3: because the user *tapped* for this, the degradation is
+**named in the overlay** rather than silent — §9.1's "never silent to a user who opted
+in" outranks rule 3's silence, which was written for automatic sharpening nobody asked
+for. iOS native HLS (`src=.m3u8`) is expected to yield silence from Web Audio and is a
+matrix row, not an assumption.
 
 > **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
 > other two: DEVICE and SITE change *where* things are drawn, whereas this one can
@@ -699,7 +793,14 @@ as units stuck at 「翻译中…」 rather than as a clean failure.
 
 **Scope, stated plainly:** only the translation transport is covered today. Notes, TTS
 and transcription each own their own `fetch` and would hit the same wall against the
-same endpoint.
+same endpoint. `AsrSource` (§2.4) adds two more: the file-tier media fetch, which on
+Chrome is subject to the *page's* CORS (measured 2026-09-06: Transistor, Megaphone,
+Blubrry, 小宇宙 and archive.org enclosures are readable from a foreign origin;
+Substack's are not) and therefore rides `apiFetch` so the Firefox/strict-CORS
+compensation applies; and a **WebSocket** for the live tier, which has no CORS at all —
+all three vendors' sockets were opened from a page origin in real Chrome. Whether a
+content-script WebSocket on Firefox is subject to the page's `connect-src` is measured
+in PR3, not assumed.
 
 ## 6. Module map
 
@@ -712,7 +813,9 @@ same endpoint.
 | `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
 | `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → child renderer (interleave holder stays a sibling) |
 | `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
-| `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime` |
+| `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime`. Supplies the §2.4 offer (`unavailableAction`) and starts an `AsrSource` session on the user's tap |
+| `AsrSource` | `content/asr-source.js` | the §2.4 source: resolves the media URL, runs tier A (fetch bytes → transcription endpoint → cues) or tier B (CORS probe → crossorigin reload → `captureStream` / `createMediaElementSource` → PCM → `WsTranscribe`), the 3-second silence guard, and one `AbortController` per session. Pushes closed sentences into the harness; never touches the Engine directly |
+| `WsTranscribe` | `content/ws-transcribe.js` | the live-tier transport: one WebSocket client with per-vendor message adapters keyed by the registry's `liveType` (`ws-openai` subprotocol key + `input_audio_buffer.append`; `ws-gemini` `?key=` + `realtimeInput.audio` with the 10-minute reconnect; `ws-meta`). Emits `{kind:'partial'|'final', text, startMs?, endMs?}`; connect timeout, idle heartbeat, never a silent close |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
@@ -743,7 +846,14 @@ is a build-time concern, not a runtime one.
   address is sent verbatim — the only processing permitted is trimming surrounding
   whitespace on save. `content/wire-format.js` is the one place that resolves an
   address, and all four transports (translation, notes, speech, transcription) go
-  through it. Its sibling `content/request-shape.js` answers the question that is left
+  through it — and, since §2.4, the live-transcription socket: `build/stt.config.js`
+  entries may carry `liveEndpoint` (a complete `wss://` URL, used exactly as stored),
+  `liveType` (the socket's message shape), `liveModel`, and `uploadEndpoint` (Gemini's
+  Files API for media above the inline limit). They are *stored addresses*, not
+  derivations: `https://…/interactions` → `wss://…/BidiGenerateContent` has no regular
+  mapping, and inventing one would be the `defaultBase + path` mistake again. A
+  user-supplied `sttBaseUrl` overrides the file endpoint only; the live socket stays the
+  registry's (v1). Its sibling `content/request-shape.js` answers the question that is left
   once the shape is fixed — **which optional fields go in the body** — and the same
   four transports go through that one instead of each carrying its own copy (two of
   them used to, character for character, comments included).
@@ -928,6 +1038,15 @@ is a build-time concern, not a runtime one.
   palette carve-out for page-injected CSS: the exception is written down and gated,
   never left as an unmentioned gap.
 
+- **Live-transcription sockets are the second carve-out, same shape.** A browser
+  WebSocket cannot send an `Authorization` header, so each vendor's socket carries the
+  key the only way it can: OpenAI as a subprotocol (`openai-insecure-api-key.<key>`,
+  their documented browser path), Gemini as `?key=` on the URL (their documented path),
+  Meta in the handshake as measured. `content/ws-transcribe.js` is the one place this
+  happens, the registry's `liveType` names which, and `test/wire-format.test.js` pins
+  that a `?key=` is stripped before suffix matching and never logged. Written down and
+  gated, never an unmentioned gap.
+
 - **`resolveEndpoint` has exactly two branches, and neither of them concatenates.**
   Empty stored value ⇒ the registry's `defaultEndpoint`; anything else ⇒ that value,
   trimmed and otherwise untouched. There is no capability argument, no stamp, no table.
@@ -1002,11 +1121,14 @@ No Readability-style full-article extraction fallback (the reference extension
 uses one for unstructured pages); rule-based semantic segmentation is sufficient
 for bilingual injection. Revisit only if unstructured pages prove inadequate.
 
-**ASR / self-generated podcast transcripts are out of scope** (§2.2): in-browser ASR
-is infeasible on Safari iOS, and the learning layer's optional backend (§9) is
-explicitly not a licence to add one — it carries text and scheduling state, never
-media, and never audio we would have to transcribe. Podcasts with neither a timed transcript nor a text transcript
-page get no translation.
+**In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
+browser itself is infeasible on Safari iOS, and the learning layer's optional backend
+(§9) is explicitly not a licence to transcribe — it carries text and scheduling state,
+never media, and never audio we would have to transcribe. *(Amended 2026-09-06:)* what
+is **in** scope is §2.4 — transcription on the endpoint the **user** configured, started
+by the user's tap, with the audio never touching a server of ours. Podcasts with
+neither a timed transcript nor a text transcript page get the page path plus that
+offer, nothing automatic.
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
@@ -1108,8 +1230,9 @@ source → Extractor → Engine → Renderer
 > *Scope note (2026-08-12):* the learning layer's 说 exercise records the **user's
 > own voice** at their explicit tap and sends it only to the transcription endpoint
 > they configured (`learning-design.md` §9.4). This does not touch §2's subtitle
-> rule ("No ASR / no self-generated transcripts"): the translation pipeline still
-> only consumes transcripts that already exist and never transcribes page media.
+> rule: the translation pipeline consumes transcripts that already exist, or — since
+> 2026-09-06, §2.4 — one the user explicitly asked their own endpoint to generate.
+> Either way the Collector sees only what the Renderer displayed.
 
 ### 9.2 Where it attaches (the only three touch points)
 

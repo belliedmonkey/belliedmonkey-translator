@@ -107,8 +107,10 @@ element existing is not proof the user sees it (see AGENTS.md).
   capture that URL, and re-fetch the full transcript ourselves — we do **not** rely
   on a `world:MAIN` hook, and we do **not** translate the rendered live caption DOM.
 - If no transcript can be obtained (no caption track, or the fetch is blocked),
-  show a **one-line notice** in the overlay (`字幕不可用`). Do **not** silently
-  regress to per-caption / word-by-word translation of the live caption DOM.
+  show a **one-line notice** in the overlay (`字幕不可用`) **with the 「AI 转写字幕」
+  offer button** (see that section below). Do **not** silently regress to
+  per-caption / word-by-word translation of the live caption DOM, and do **not**
+  start transcribing on your own.
 
 ### Known tradeoff
 - A 1-line cap is tight, so pages can break mid-phrase (a page may end on a stray
@@ -129,7 +131,8 @@ states. Differences from YouTube are noted below.
   `<track src>`), or a Podcasting 2.0 `<podcast:transcript>` from the feed, or
   Spotify's synced "Read along" transcript (scraped from the episode page — see below).
   Parse → merge into sentences → translate ahead in the 60-second window.
-  **No word-by-word; no ASR.**
+  **No word-by-word; no automatic ASR** — the user may ask for one, see
+  「AI 转写字幕」 below.
 - **Synced to the `<audio>` element's `currentTime`.** Original + translation appear
   together as whole sentences.
 
@@ -223,6 +226,42 @@ states. Differences from YouTube are noted below.
     UI, so they are left untouched.)
 
 ---
+
+---
+
+## AI 转写字幕 — user-initiated transcription (2026-09-06)
+
+Governed by [`domain-design.md`](domain-design.md) §2.4. One behaviour on every subtitle
+surface (YouTube, podcast/generic media, x.com).
+
+### Offer
+- Appears **only** inside the `字幕不可用` notice (same overlay line, a button after the
+  text) and as a popup action 「转写音频字幕」 when the page's media element is ≥ 30 s
+  long. Nothing else surfaces it; a decorative video never does.
+- The button text names the cost from the registry pick, e.g. 「🎙 AI 转写字幕（约
+  $0.006/分钟）」; the notice under it says where the audio goes: 「音频将发送到你配置的
+  转写端点」.
+- With no transcription engine configured, the button reads 「先在设置里选择转写引擎」 and
+  opens `options.html#stt`. Nothing is captured.
+
+### While running
+- File tier: 「⏳ 正在转写整段音频…」 (dimmed, italic — the loading style) until the
+  complete transcript is in, then the normal bilingual pair. A progress fraction is
+  shown when the upload is > 5 MB.
+- Live tier: a small 「● 实时转写中」 marker at the overlay's edge; sentences appear
+  **after** they are spoken (≈ 2 s) and each pair stays on screen for `HOLD_MS` (≈ 6 s)
+  or until the next sentence. `⏳ 译文准备中…` uses the live grace (4 s), so it is rare.
+- Tapping the 译 control shows a 「停止转写」 row while a session runs.
+
+### Stops — always visible, never automatic restart
+| Cause | Line shown |
+|---|---|
+| CDN refuses cross-origin reads and no capture path | 「无法读取该音频」 |
+| capture attached but silent for 3 s while playing, unmuted | 「捕获不到声音，已停止转写」 |
+| socket closed / vendor error | 「转写连接中断」 + the server's sentence, ≤ 1 line |
+| media changed, subtitles turned off, STT settings changed | session ends; the notice reverts to `字幕不可用` + offer |
+After any stop the user taps the offer again. Sentences already shown keep their
+translations.
 
 ## x.com / twitter.com
 
