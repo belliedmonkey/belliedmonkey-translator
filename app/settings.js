@@ -502,6 +502,17 @@ var AppSettings = (() => {
 
   async function setupQuickCard(session, say) {
     if (!$('quick-setup')) return;
+    // **已经挂上的卡不重画。** paint() 在每次写盘之后都会跑一遍（一键配好 → 写盘 → 重画
+    // 详细档的三组字段），而 QuickSetup.render 是清空重建 —— 于是用户刚粘进去的 key、
+    // 正在跑的「测试中…」三行，在按下按钮的那一瞬间一起消失，看起来像密码被吃掉了
+    // （2026-09-06 用户报，1.7.14 起带入，1.7.16 已上架）。读设置本来就是现读的
+    // （readSettings），卡不需要靠重建来保持新鲜。
+    if ($('quick-setup').children.length) {
+      let on = false;
+      try { const r = await get([DETAIL_KEY]); on = r[DETAIL_KEY] === true; } catch (_) {}
+      applyDetailMode(on);
+      return;
+    }
     QuickSetup.render($('quick-setup'), {
       t,
       // 现读而不是快照：拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
