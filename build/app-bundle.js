@@ -128,7 +128,8 @@ const MODULES = [
                                          // 必须在 driving.js 之前：那边在 wire() 里
                                          // 注册回调。桥不在时全是 no-op，所以它在
                                          // Chrome 的 test:learn 里也照常加载。
-  'app/listen.js',                       // AppListen — §9.6 对话·实时听译（PR-L0 探针）
+  'app/listen-core.js',                  // ListenCore — §9.6 对话·实时听译的纯逻辑（归属、门、小结）
+  'app/listen.js',                       // AppListen — §9.6 对话·实时听译（IO：麦克风桥、socket、界面、语料）
   'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
                                          // the extension page cannot autoplay)
 ];

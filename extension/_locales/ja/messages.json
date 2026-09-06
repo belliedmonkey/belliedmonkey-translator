@@ -2187,18 +2187,144 @@
     "message": "履歴 · 確定文"
   },
   "app_listen_back": {
-    "message": "戻る"
+    "message": "‹ 戻る"
   },
-  "app_listen_spike_title": {
-    "message": "リアルタイム聞き取り · 検証"
+  "listen_source_label": {
+    "message": "会話"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 会話 · リアルタイム通訳"
+  },
+  "listen_entry_hint": {
+    "message": "対面で外国語を聞く：相手が話すと、あなたの言語で読める。長押しして話せば、外国語に訳して相手に見せる。音声は設定した文字起こしエンドポイントにのみ送信。"
+  },
+  "listen_need_live": {
+    "message": "「会話 · リアルタイム通訳」にはリアルタイム対応の文字起こしエンジンが必要です"
+  },
+  "listen_need_live_go": {
+    "message": "設定で選ぶ →"
+  },
+  "listen_title": {
+    "message": "会話"
+  },
+  "listen_history": {
+    "message": "確定した文"
+  },
+  "listen_pending": {
+    "message": "⏳ 翻訳中…"
+  },
+  "listen_me_prefix": {
+    "message": "私："
+  },
+  "listen_me_badge": {
+    "message": "自分の発言"
+  },
+  "listen_star": {
+    "message": "スター"
+  },
+  "listen_now_them": {
+    "message": "相手が話しています"
+  },
+  "listen_now_me": {
+    "message": "話しています（離すと翻訳）"
+  },
+  "listen_lang_auto": {
+    "message": "相手 {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "{to} へ"
+  },
+  "listen_other_lang_label": {
+    "message": "相手の言語"
+  },
+  "listen_pill_listening": {
+    "message": "通訳中 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "一時停止 · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "発話中 · 相手の声は聞きません"
+  },
+  "listen_pill_ended": {
+    "message": "終了 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 聞いています · 一時停止"
+  },
+  "listen_toggle_start": {
     "message": "聞き始める"
   },
-  "app_listen_stop": {
-    "message": "停止"
+  "listen_speak_hold": {
+    "message": "長押し · 話す"
   },
-  "app_listen_bg": {
-    "message": "ロック中も続ける（録音セッション）"
+  "listen_speak_release": {
+    "message": "離す · 相手に訳す"
+  },
+  "listen_end": {
+    "message": "終了"
+  },
+  "listen_cost_line": {
+    "message": "{t} 聞きました · 音声は設定したエンドポイントにのみ送信"
+  },
+  "listen_flip_hint": {
+    "message": "相手に見せる · どこかをタップで戻る"
+  },
+  "listen_flip_speaking": {
+    "message": "読み上げ中"
+  },
+  "listen_flip_again": {
+    "message": "もう一度読む"
+  },
+  "listen_flip_back": {
+    "message": "相手を聞く"
+  },
+  "listen_stop_denied": {
+    "message": "マイクが拒否されました — 「設定 › プライバシー › マイク」で許可してください。"
+  },
+  "listen_stop_socket": {
+    "message": "文字起こしの接続が切れました：{why} — 聞いた文は残っています。"
+  },
+  "listen_stop_locked": {
+    "message": "システムが録音を停止しました — 「聞き始める」で再開。"
+  },
+  "listen_stop_silence": {
+    "message": "30 秒間無音 — 課金を避けるため一時停止しました。"
+  },
+  "listen_stop_failed": {
+    "message": "マイクを開始できません：{why}"
+  },
+  "listen_summary_title": {
+    "message": "この会話"
+  },
+  "listen_summary_body": {
+    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · 復習へ {n} 文（ソース「会話」）· スター {s} 文"
+  },
+  "listen_summary_note": {
+    "message": "録音は破棄され、テキストのみ保持します。復習に入った文は「ソース › 会話」で管理・一括削除できます。"
+  },
+  "listen_summary_home": {
+    "message": "ホームへ"
+  },
+  "listen_summary_again": {
+    "message": "もう一回"
+  },
+  "listen_np_title": {
+    "message": "会話 · 通訳中"
+  },
+  "listen_np_album": {
+    "message": "会話 · 通訳中 · {t} · {n} 文"
+  },
+  "listen_settings_title": {
+    "message": "会話 · リアルタイム通訳"
+  },
+  "listen_capture_label": {
+    "message": "会話を復習に入れる（ソース「会話」）"
+  },
+  "listen_capture_note": {
+    "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、「聞き始める」を押した後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
+  },
+  "listen_sources_note": {
+    "message": "原文は文字起こし、訳文はあなたの翻訳エンジンによるもので、どちらも誤りうる — スター付きの文が優先して復習に入ります。"
   }
 }

@@ -2187,18 +2187,144 @@
     "message": "Verlauf · ganze Sätze"
   },
   "app_listen_back": {
-    "message": "Zurück"
+    "message": "‹ Zurück"
   },
-  "app_listen_spike_title": {
-    "message": "Live-Hören · Probe"
+  "listen_source_label": {
+    "message": "Gespräch"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 Gespräch · Live-Dolmetscher"
+  },
+  "listen_entry_hint": {
+    "message": "Fremdsprache vor Ort verstehen: das Gegenüber spricht, du liest es in deiner Sprache; halte gedrückt, um selbst zu sprechen, und zeige die Übersetzung. Audio geht nur an den von dir konfigurierten Transkriptions-Endpunkt."
+  },
+  "listen_need_live": {
+    "message": "„Gespräch · Live-Dolmetscher“ braucht eine Transkriptions-Engine mit Echtzeit-Endpunkt"
+  },
+  "listen_need_live_go": {
+    "message": "In den Einstellungen wählen →"
+  },
+  "listen_title": {
+    "message": "Gespräch"
+  },
+  "listen_history": {
+    "message": "Fertige Sätze"
+  },
+  "listen_pending": {
+    "message": "⏳ Wird übersetzt…"
+  },
+  "listen_me_prefix": {
+    "message": "Ich: "
+  },
+  "listen_me_badge": {
+    "message": "von mir gesagt"
+  },
+  "listen_star": {
+    "message": "Stern"
+  },
+  "listen_now_them": {
+    "message": "Gegenüber sagt"
+  },
+  "listen_now_me": {
+    "message": "Ich sage (loslassen zum Übersetzen)"
+  },
+  "listen_lang_auto": {
+    "message": "{from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "nach {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Sprache des Gegenübers"
+  },
+  "listen_pill_listening": {
+    "message": "Hört zu · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Pausiert · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Ich spreche · Gegenüber wird nicht gehört"
+  },
+  "listen_pill_ended": {
+    "message": "Beendet · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Hört zu · Pause"
+  },
+  "listen_toggle_start": {
     "message": "Zuhören starten"
   },
-  "app_listen_stop": {
-    "message": "Stopp"
+  "listen_speak_hold": {
+    "message": "Halten · ich spreche"
   },
-  "app_listen_bg": {
-    "message": "Auch gesperrt weiterhören (Aufnahmesitzung)"
+  "listen_speak_release": {
+    "message": "Loslassen · fürs Gegenüber übersetzen"
+  },
+  "listen_end": {
+    "message": "Beenden"
+  },
+  "listen_cost_line": {
+    "message": "{t} gehört · Audio geht nur an deinen Transkriptions-Endpunkt"
+  },
+  "listen_flip_hint": {
+    "message": "Zum Zeigen · irgendwo tippen, um zurückzukehren"
+  },
+  "listen_flip_speaking": {
+    "message": "Wird vorgelesen"
+  },
+  "listen_flip_again": {
+    "message": "Noch einmal vorlesen"
+  },
+  "listen_flip_back": {
+    "message": "Wieder zuhören"
+  },
+  "listen_stop_denied": {
+    "message": "Mikrofon verweigert — erlaube BelliedMonkey Translator unter Einstellungen › Datenschutz › Mikrofon."
+  },
+  "listen_stop_socket": {
+    "message": "Transkriptionsverbindung unterbrochen: {why} — das Gehörte bleibt erhalten."
+  },
+  "listen_stop_locked": {
+    "message": "Das System hat die Aufnahme gestoppt — tippe auf „Zuhören starten“, um fortzufahren."
+  },
+  "listen_stop_silence": {
+    "message": "30 s kein Ton — pausiert, um Kosten zu vermeiden."
+  },
+  "listen_stop_failed": {
+    "message": "Mikrofon konnte nicht starten: {why}"
+  },
+  "listen_summary_title": {
+    "message": "Dieses Gespräch"
+  },
+  "listen_summary_body": {
+    "message": "{t} · Gegenüber: {them} Sätze · ich: {me} · {n} zur Wiederholung (Quelle „Gespräch“) · {s} mit Stern"
+  },
+  "listen_summary_note": {
+    "message": "Die Aufnahme wird verworfen; nur Text bleibt. Sätze in der Wiederholung lassen sich unter Quellen › Gespräch verwalten oder komplett löschen."
+  },
+  "listen_summary_home": {
+    "message": "Zur Startseite"
+  },
+  "listen_summary_again": {
+    "message": "Noch eins"
+  },
+  "listen_np_title": {
+    "message": "Gespräch · Live-Dolmetscher"
+  },
+  "listen_np_album": {
+    "message": "Gespräch · hört zu · {t} · {n} Sätze"
+  },
+  "listen_settings_title": {
+    "message": "Gespräch · Live-Dolmetscher"
+  },
+  "listen_capture_label": {
+    "message": "Gespräche zur Wiederholung hinzufügen (Quelle „Gespräch“)"
+  },
+  "listen_capture_note": {
+    "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, nur nach „Zuhören starten“ und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
+  },
+  "listen_sources_note": {
+    "message": "Jeder Satz stammt aus der Transkription, die Übersetzung aus deiner Engine; beides kann falsch sein — Sätze mit Stern kommen zuerst in die Wiederholung."
   }
 }

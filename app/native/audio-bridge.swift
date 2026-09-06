@@ -126,8 +126,118 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
         case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
+        case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000)
+        case "mic-stop":       micStop()
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
+    }
+
+    // MARK: - 麦克风（§9.6 对话·实时听译 —— 原生采集）
+    //
+    // 为什么在这儿而不在网页里：WebKit 在 App 不可见时一律静音页内的 getUserMedia
+    // （2026-09-07 真机三轮实证：锁屏期间采集帧恒为 0，页面一可见立刻恢复；页内音频
+    // 保活只能保住 JS，保不住采集）。AVAudioEngine 的输入 tap 不受这条限制 —— 只要
+    // 会话是 .playAndRecord 且声明了 UIBackgroundModes: audio，锁屏后照常出块。
+    //
+    // 形状：inputNode 的原生格式 → AVAudioConverter → 单声道 Int16 @ 请求的采样率
+    // （注册表 liveRate，OpenAI 是 24 kHz）→ base64 → 一条 `mic-pcm`。每块 ≈ 85 ms
+    // （4096 帧 @ 48 kHz），≈ 12 条/s、≈ 64 KB/s base64 —— evaluateJavaScript 扛得住。
+    //
+    // 权限由这里一次性要（AVAudioApplication / AVAudioSession），不再让 WKWebView 每次
+    // 重装都重新弹。拒绝 ⇒ `mic-state denied`，JS 那边有一句指路文案。
+
+    private var micEngine: AVAudioEngine?
+    private var micConverter: AVAudioConverter?
+    private var micOutFormat: AVAudioFormat?
+
+    private func micStart(rate: Double) {
+        micStop()
+        requestMicPermission { [weak self] granted in
+            guard let self = self else { return }
+            guard granted else { self.emit(["type": "mic-state", "state": "denied"]); return }
+            self.micBegin(rate: rate)
+        }
+    }
+
+    private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
+#if os(iOS)
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { ok in DispatchQueue.main.async { done(ok) } }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { ok in DispatchQueue.main.async { done(ok) } }
+        }
+#else
+        AVCaptureDevice.requestAccess(for: .audio) { ok in DispatchQueue.main.async { done(ok) } }
+#endif
+    }
+
+    private func micBegin(rate: Double) {
+#if os(iOS)
+        // 录音会话：不管 JS 有没有先发 record-mode，这里都把类别钉成可录的那一档。
+        // 漏掉这一步的表现是「权限给了、tap 装了、块里全是 0」—— 查起来极贵。
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setActive(true)
+        } catch {
+            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            return
+        }
+#endif
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let inFormat = input.outputFormat(forBus: 0)
+        guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
+            emit(["type": "mic-state", "state": "failed", "reason": "input-format"])
+            return
+        }
+        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
+              let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
+            emit(["type": "mic-state", "state": "failed", "reason": "converter"])
+            return
+        }
+        micEngine = engine
+        micConverter = converter
+        micOutFormat = outFormat
+        input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
+            self?.micDeliver(buffer)
+        }
+        do {
+            engine.prepare()
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            micEngine = nil; micConverter = nil; micOutFormat = nil
+            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            return
+        }
+        emit(["type": "mic-state", "state": "granted"])
+    }
+
+    private func micDeliver(_ buffer: AVAudioPCMBuffer) {
+        guard let converter = micConverter, let outFormat = micOutFormat else { return }
+        let ratio = outFormat.sampleRate / buffer.format.sampleRate
+        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 16
+        guard let out = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: capacity) else { return }
+        var consumed = false
+        var error: NSError?
+        converter.convert(to: out, error: &error) { _, status in
+            if consumed { status.pointee = .noDataNow; return nil }
+            consumed = true
+            status.pointee = .haveData
+            return buffer
+        }
+        guard error == nil, out.frameLength > 0, let ch = out.int16ChannelData else { return }
+        let bytes = Data(bytes: ch[0], count: Int(out.frameLength) * MemoryLayout<Int16>.size)
+        emit(["type": "mic-pcm", "b64": bytes.base64EncodedString()])
+    }
+
+    private func micStop() {
+        guard let engine = micEngine else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        micEngine = nil; micConverter = nil; micOutFormat = nil
+        emit(["type": "mic-state", "state": "ended"])
     }
 
     /// 实时听译要的是「一边录一边（可能）放」的会话；播客模式仍是只放不录。
@@ -166,6 +276,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func stopSession() {
+        micStop()
         endActivity()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #if os(iOS)
@@ -380,6 +491,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
               let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
         if type == .began {
             emit(["type": "interrupt", "phase": "begin"])
+            // 录音中被打断（来电等）：引擎已被系统停掉，如实说，JS 那边停在具名态。
+            if micEngine != nil { micStop(); emit(["type": "mic-state", "state": "interrupted"]) }
             return
         }
         let options = AVAudioSession.InterruptionOptions(

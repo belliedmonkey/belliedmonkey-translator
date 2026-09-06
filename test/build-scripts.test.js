@@ -422,6 +422,8 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"album"', '"index"', '"count"', '"playing"',
         '"platform"', '"suspends"', '"ios"', '"macos"',
         '"record-mode"', '"on"',   // §9.6 实时听译：可录音的音频会话请求
+        '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"rate"', '"b64"', '"state"',   // §9.6 原生采集
+        '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',
         '"window.NativeAudio && window.NativeAudio._fromNative(\\(json))"']);

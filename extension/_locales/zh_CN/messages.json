@@ -2188,18 +2188,144 @@
     "message": "字幕历史 · 整句定稿"
   },
   "app_listen_back": {
-    "message": "返回"
+    "message": "‹ 返回"
   },
-  "app_listen_spike_title": {
-    "message": "实时听译 · 可行性探针"
+  "listen_source_label": {
+    "message": "对话"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 对话 · 实时听译"
+  },
+  "listen_entry_hint": {
+    "message": "线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。"
+  },
+  "listen_need_live": {
+    "message": "「对话 · 实时听译」需要一个带实时接口的转写引擎"
+  },
+  "listen_need_live_go": {
+    "message": "去设置里选择 →"
+  },
+  "listen_title": {
+    "message": "对话"
+  },
+  "listen_history": {
+    "message": "整句定稿"
+  },
+  "listen_pending": {
+    "message": "⏳ 译文准备中…"
+  },
+  "listen_me_prefix": {
+    "message": "我："
+  },
+  "listen_me_badge": {
+    "message": "我说的"
+  },
+  "listen_star": {
+    "message": "加星"
+  },
+  "listen_now_them": {
+    "message": "对方正在说"
+  },
+  "listen_now_me": {
+    "message": "我正在说（松手即译）"
+  },
+  "listen_lang_auto": {
+    "message": "对方 {from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "中文 → {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "对方的语言"
+  },
+  "listen_pill_listening": {
+    "message": "听译中 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "已暂停 · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "我在说 · 对方的声音暂不听"
+  },
+  "listen_pill_ended": {
+    "message": "已结束 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 正在听 · 暂停"
+  },
+  "listen_toggle_start": {
     "message": "开始听"
   },
-  "app_listen_stop": {
-    "message": "停止"
+  "listen_speak_hold": {
+    "message": "按住 · 我说"
   },
-  "app_listen_bg": {
-    "message": "锁屏也继续（录音会话）"
+  "listen_speak_release": {
+    "message": "松手 · 译给对方"
+  },
+  "listen_end": {
+    "message": "结束"
+  },
+  "listen_cost_line": {
+    "message": "已听 {t} · 音频只发往你配置的转写端点"
+  },
+  "listen_flip_hint": {
+    "message": "给对方看 · 点任意处返回"
+  },
+  "listen_flip_speaking": {
+    "message": "朗读中"
+  },
+  "listen_flip_again": {
+    "message": "再读一遍"
+  },
+  "listen_flip_back": {
+    "message": "继续听对方"
+  },
+  "listen_stop_denied": {
+    "message": "麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。"
+  },
+  "listen_stop_socket": {
+    "message": "转写连接中断：{why} — 已听的句子还在。"
+  },
+  "listen_stop_locked": {
+    "message": "录音被系统停止了 — 点「开始听」继续。"
+  },
+  "listen_stop_silence": {
+    "message": "听不到声音（30 秒静音）— 已暂停以免计费。"
+  },
+  "listen_stop_failed": {
+    "message": "麦克风启动失败：{why}"
+  },
+  "listen_summary_title": {
+    "message": "这次对话"
+  },
+  "listen_summary_body": {
+    "message": "时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · 进复习（来源「对话」）{n} 句 · 含 {s} 句加星"
+  },
+  "listen_summary_note": {
+    "message": "录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。"
+  },
+  "listen_summary_home": {
+    "message": "回到首页"
+  },
+  "listen_summary_again": {
+    "message": "再来一段"
+  },
+  "listen_np_title": {
+    "message": "对话 · 实时听译中"
+  },
+  "listen_np_album": {
+    "message": "对话 · 实时听译中 · {t} · {n} 句"
+  },
+  "listen_settings_title": {
+    "message": "对话 · 实时听译"
+  },
+  "listen_capture_label": {
+    "message": "对话进复习（来源「对话」）"
+  },
+  "listen_capture_note": {
+    "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
+  },
+  "listen_sources_note": {
+    "message": "每句原文来自转写、译文来自你的翻译引擎，都可能有错——加星的句子优先进复习。"
   }
 }

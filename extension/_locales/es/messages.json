@@ -2187,18 +2187,144 @@
     "message": "Historial · frases completas"
   },
   "app_listen_back": {
-    "message": "Volver"
+    "message": "‹ Volver"
   },
-  "app_listen_spike_title": {
-    "message": "Escucha en vivo · prueba"
+  "listen_source_label": {
+    "message": "Conversación"
   },
-  "app_listen_start": {
+  "listen_entry": {
+    "message": "🎙 Conversación · intérprete en vivo"
+  },
+  "listen_entry_hint": {
+    "message": "Escucha un idioma extranjero en persona: la otra persona habla, tú lo lees en tu idioma; mantén pulsado para hablar y muéstrale la traducción. El audio solo va al punto de transcripción que configuraste."
+  },
+  "listen_need_live": {
+    "message": "«Conversación · intérprete en vivo» necesita un motor de transcripción con punto en tiempo real"
+  },
+  "listen_need_live_go": {
+    "message": "Elegir en ajustes →"
+  },
+  "listen_title": {
+    "message": "Conversación"
+  },
+  "listen_history": {
+    "message": "Frases finales"
+  },
+  "listen_pending": {
+    "message": "⏳ Traduciendo…"
+  },
+  "listen_me_prefix": {
+    "message": "Yo: "
+  },
+  "listen_me_badge": {
+    "message": "dicho por mí"
+  },
+  "listen_star": {
+    "message": "Estrella"
+  },
+  "listen_now_them": {
+    "message": "La otra persona dice"
+  },
+  "listen_now_me": {
+    "message": "Estoy diciendo (suelta para traducir)"
+  },
+  "listen_lang_auto": {
+    "message": "{from} → {to}"
+  },
+  "listen_lang_me": {
+    "message": "a {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Su idioma"
+  },
+  "listen_pill_listening": {
+    "message": "Escuchando · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "En pausa · {t}"
+  },
+  "listen_pill_speaking": {
+    "message": "Hablo yo · no se escucha a la otra persona"
+  },
+  "listen_pill_ended": {
+    "message": "Terminado · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Escuchando · pausa"
+  },
+  "listen_toggle_start": {
     "message": "Empezar a escuchar"
   },
-  "app_listen_stop": {
-    "message": "Detener"
+  "listen_speak_hold": {
+    "message": "Mantener · hablo yo"
   },
-  "app_listen_bg": {
-    "message": "Seguir con la pantalla bloqueada (sesión de grabación)"
+  "listen_speak_release": {
+    "message": "Soltar · traducir para la otra persona"
+  },
+  "listen_end": {
+    "message": "Terminar"
+  },
+  "listen_cost_line": {
+    "message": "{t} escuchado · el audio solo va a tu punto de transcripción"
+  },
+  "listen_flip_hint": {
+    "message": "Para mostrar · toca en cualquier sitio para volver"
+  },
+  "listen_flip_speaking": {
+    "message": "Leyendo en voz alta"
+  },
+  "listen_flip_again": {
+    "message": "Leer otra vez"
+  },
+  "listen_flip_back": {
+    "message": "Volver a escuchar"
+  },
+  "listen_stop_denied": {
+    "message": "Micrófono denegado — permite BelliedMonkey Translator en Ajustes › Privacidad › Micrófono."
+  },
+  "listen_stop_socket": {
+    "message": "Conexión de transcripción perdida: {why} — lo escuchado se conserva."
+  },
+  "listen_stop_locked": {
+    "message": "El sistema detuvo la grabación — toca «Empezar a escuchar» para continuar."
+  },
+  "listen_stop_silence": {
+    "message": "Sin sonido durante 30 s — en pausa para evitar cargos."
+  },
+  "listen_stop_failed": {
+    "message": "El micrófono no arrancó: {why}"
+  },
+  "listen_summary_title": {
+    "message": "Esta conversación"
+  },
+  "listen_summary_body": {
+    "message": "{t} · la otra persona: {them} frases · yo: {me} · {n} añadidas al repaso (fuente «Conversación») · {s} con estrella"
+  },
+  "listen_summary_note": {
+    "message": "La grabación se descarta; solo se conserva el texto. Las frases del repaso se gestionan o se borran en bloque en Fuentes › Conversación."
+  },
+  "listen_summary_home": {
+    "message": "Volver al inicio"
+  },
+  "listen_summary_again": {
+    "message": "Otra más"
+  },
+  "listen_np_title": {
+    "message": "Conversación · intérprete en vivo"
+  },
+  "listen_np_album": {
+    "message": "Conversación · escuchando · {t} · {n} frases"
+  },
+  "listen_settings_title": {
+    "message": "Conversación · intérprete en vivo"
+  },
+  "listen_capture_label": {
+    "message": "Añadir conversaciones al repaso (fuente «Conversación»)"
+  },
+  "listen_capture_note": {
+    "message": "«Conversación · intérprete en vivo» envía el micrófono en continuo al punto de transcripción que configuraste, solo tras «Empezar a escuchar» y solo a ese punto; nuestros servidores nunca tocan el audio; no se guarda ninguna grabación, solo texto — y solo mientras este interruptor esté activado."
+  },
+  "listen_sources_note": {
+    "message": "Cada frase viene de la transcripción y su traducción de tu motor; ambas pueden fallar — las frases con estrella pasan al repaso primero."
   }
 }
