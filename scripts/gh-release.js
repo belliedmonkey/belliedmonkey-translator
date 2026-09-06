@@ -43,7 +43,37 @@ const ASSET_NAME = 'belliedmonkey-translator-chrome.zip';
 
 const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts || {}));
 
-(async () => {
+// 把 store-assets/release-notes-<版本>.md 里「## 国际版 · en-US」与「## 国际版 · zh-Hans」
+// 两个代码块拼成 Release 正文，写到临时文件；没有那份文件返回 null（走 --generate-notes）。
+// 段落取法与 scripts/asc.js 的 parseNotes 同一条正则，别各写一份。
+function releaseNotesFile(version) {
+  const md = path.join(ROOT, 'store-assets', `release-notes-${version}.md`);
+  if (!fs.existsSync(md)) return null;
+  const src = fs.readFileSync(md, 'utf8');
+  const pick = (locale) => {
+    const re = new RegExp('^##\\s+国际版\\s*·\\s*' + locale + '\\s*$', 'm');
+    const m = re.exec(src); if (!m) return '';
+    const f = src.slice(m.index + m[0].length).match(/```[a-z]*\n([\s\S]*?)```/);
+    return f ? f[1].trim() : '';
+  };
+  const en = pick('en-US'), zh = pick('zh-Hans');
+  if (!en && !zh) return null;
+  const body = [en, zh ? '---\n\n' + zh : ''].filter(Boolean).join('\n\n')
+    + `\n\n**Full Changelog**: https://github.com/belliedmonkey/belliedmonkey-translator/compare/v${prevVersion(version)}...v${version}`;
+  const out = path.join(require('os').tmpdir(), `release-notes-${version}.md`);
+  fs.writeFileSync(out, body);
+  return out;
+}
+function prevVersion(v) {
+  try {
+    const tags = sh('git tag --list "v*" --sort=-v:refname').split('\n').map((t) => t.trim()).filter(Boolean);
+    const i = tags.indexOf('v' + v);
+    return i >= 0 && tags[i + 1] ? tags[i + 1].slice(1) : v;
+  } catch (_) { return v; }
+}
+module.exports = { releaseNotesFile };
+
+if (require.main === module) (async () => {
   const argv = process.argv.slice(2);
   const apply = argv.includes('--apply');
   const clobber = argv.includes('--clobber');
@@ -105,7 +135,12 @@ const sh = (cmd, opts) => execSync(cmd, Object.assign({ encoding: 'utf8' }, opts
   fs.copyFileSync(zipPath, staged);
 
   if (!exists) {
-    sh(`gh release create ${tag} ${JSON.stringify(staged)} --title ${JSON.stringify(tag)} --generate-notes`
+    // 发布说明：有 store-assets/release-notes-<版本>.md 就用它的 en-US + zh-Hans 两段
+    // （与商店 whatsNew 同源），没有才退回 --generate-notes。2026-09-06 之前一直是后者：
+    // Release 页面上只有一行中文 PR 标题，而 Releases 是英文用户最先看的地方。
+    const notesFile = releaseNotesFile(version);
+    sh(`gh release create ${tag} ${JSON.stringify(staged)} --title ${JSON.stringify(tag)}`
+      + (notesFile ? ` --notes-file ${JSON.stringify(notesFile)}` : ' --generate-notes')
       + (prerelease ? ' --prerelease' : ''), { stdio: 'inherit' });
   } else {
     sh(`gh release upload ${tag} ${JSON.stringify(staged)} ${clobber ? '--clobber' : ''}`, { stdio: 'inherit' });

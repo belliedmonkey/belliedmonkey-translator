@@ -4,7 +4,7 @@
   <b>Read the world's web — both languages at once. And actually remember it.</b><br>
   Bilingual pages, plus dual subtitles for video and podcasts.<br>
   Sentences you actually read become review cards — on your phone too, if you turn on sync.<br>
-  Bring your own LLM key. No servers of ours in the middle.
+  Bring your own LLM key. No server of ours in the translation path.
 </p>
 
 <p align="center">
@@ -90,6 +90,12 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 
 ## What it does
 
+<p align="center">
+  <img src="docs/media/shot-page.png" alt="Wikipedia article with every paragraph followed by its translation" width="30%">
+  <img src="docs/media/shot-subtitles.png" alt="YouTube video with the original subtitle above and the translation below" width="30%">
+  <img src="docs/media/shot-review.png" alt="A review card built from a sentence read earlier, with four difficulty buttons" width="30%">
+</p>
+
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
 inherits the original's font, size, weight and alignment — only the colour differs — and
@@ -166,9 +172,10 @@ just practised.
 
 ## Why bring your own key
 
-- **No servers of ours.** Translation requests go from your browser straight to the provider
-  you chose. There is nothing in between to log, store, or resell — because there is nothing
-  in between.
+- **No server of ours in the translation path.** Translation requests go from your browser
+  straight to the provider you chose. There is nothing in between to log, store, or resell —
+  because there is nothing in between. (Sync and anonymous usage events do use a server of
+  ours; both are described under [Privacy](#privacy), and neither ever sees what you translate.)
 - **Your key stays local.** It lives in `chrome.storage.local` and never leaves your device.
 - **You control the cost.** Which engine, which model, how much you spend — all yours. A free
   engine is available if you'd rather not configure anything, though a real model is
