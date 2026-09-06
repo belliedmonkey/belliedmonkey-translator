@@ -12,7 +12,11 @@
 // 依赖：AppLink（商店条目按 flavor 分，那里是唯一登记处）。
 var MTFeedback = (() => {
   const MAIL = 'belliedmonkey@gmail.com';
-  const DISCUSS_URL = 'https://github.com/belliedmonkey/belliedmonkey-translator/discussions';
+  // 「社区在哪儿」的唯一登记处。现在 = GitHub Discussions（异步、可被搜索引擎索引、不怕人少）。
+  // 2026-09-06 裁定：实时群（Discord）等 bt_daily 连续 4 周周活 ≥ 50 或 Discussions 累计 ≥ 20 个
+  // 参与者再开；到那天只改这一行，四个面的「讨论」按钮、README 与官网徽章一起跟着走。
+  const COMMUNITY_URL = 'https://github.com/belliedmonkey/belliedmonkey-translator/discussions';
+  const DISCUSS_URL = COMMUNITY_URL;
   // Chrome Web Store 条目 id。options.js 的「未打包安装」提示也读它 —— 同一个 id 只写一处。
   const CWS_ID = 'ilnmffeejeohomjelipejdldhkjeoinf';
   // AMO 的 slug 是中文名（大肚猴翻译），URL 里必须是编码后的形式。
@@ -83,6 +87,7 @@ var MTFeedback = (() => {
   }
 
   function discussUrl() { return DISCUSS_URL; }
+  function communityUrl() { return COMMUNITY_URL; }
 
   // 打开一个出口。宿主 App 里 window.open 是哑的（转换器模板没实现 createWebViewWith），
   // 走原生桥在系统里打开 —— 原生那侧是白名单（我们的两个站、App Store、我们自己的
@@ -122,7 +127,7 @@ var MTFeedback = (() => {
   }
 
   return {
-    host, device, version, mailtoUrl, rateUrl, discussUrl, open, maybeRequestRating,
+    host, device, version, mailtoUrl, rateUrl, discussUrl, communityUrl, open, maybeRequestRating,
     CWS_ID, RATING_KEY, RATING_COOLDOWN_MS, RATING_MIN_DONE,
   };
 })();
