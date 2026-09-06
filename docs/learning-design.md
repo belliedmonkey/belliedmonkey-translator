@@ -32,6 +32,7 @@
 | 2026-08-23 | belliedmonkey | 播客模式离线化（用户提议）：①开卡并行预热全部段落 + 前瞻下一张音频（`peekNext` 纯前瞻、`getAudio` in-flight 去重）；②设置页「出发前预载」按钮（今天牌库 + 未来 N 天）。连带两条规约让位：§9.2「绝不自动批量生成」收窄为「绝不在用户没看见账单的情况下批量」（四个构成要件）；§7.2/§4.2d「App 从不翻译」在 §9.5 补译文范围内失效——补译文是派生物，永不同步、永不写 `item.tr` | **已评审通过 2026-08-23**，三条裁定：①§9.2 的四条件例外**只此一处**，第二个功能要重新评审；②派生物的「至多一次」**按设备算**，写进 §9.2；③失败分类改封闭清单算 bug 修复、不算模型变更 —— 见 §9.2 / §9.5 / §7.2 / §4.2d |
 | 2026-08-24 | belliedmonkey | 播客模式后台/锁屏播放与遥控（用户提议）：**范围 = iOS 与 macOS 两个宿主 App，扩展一个字节都不进**（播客模式本来就是 App 专属）。推翻 §12 2026-08-17 的「前台 only」裁定 —— iOS 加 `UIBackgroundModes: audio` + 原生音频会话、macOS 只需解掉我们自己那行「隐藏即暂停」，退到后台/锁屏继续播，锁屏与车机遥控映射到既有的 `tap_*` 事件（上一曲 = 再听一遍），锁屏显示卡片正文。连带一条规约让位：§9.5「隐藏即暂停，恢复只能手点」缩窄为「**真正的中断**才暂停，且中断结束带 `.shouldResume` 时自动续播」 | **已评审通过 2026-08-24**，一条裁定：**中国版必须同样有后台播放**（AGENTS.md 规则 10「无阉割版本」）。若实测证明设备内置语音在后台会停，解法是**把音频做成真的**（原生语音合成桥），而不是让中国版没有这个功能 —— 见 §9.5「后台与锁屏播放」 |
 | 2026-08-26 | belliedmonkey | 播客模式：解析跟读（锁屏封面逐行高亮）+ 亮屏。**连带推翻一条规约**：§9.5「封面只承载卡级为真的事实」—— 它的依据是「跟着段走就要每段过桥、一张 123 KB」，而 iOS 改走 `navigator.mediaSession` 之后逐行更新不过桥，依据不复存在。收窄为「封面上不放没有对应语音段的东西」（遍次仍出局）。另：解析拆成三块逐行念，旧的整段音频缓存成为孤儿，已有用户需重新预载一次 | **已评审通过 2026-08-26** —— 见 §9.5「解析跟读」 |
+| 2026-09-07 | belliedmonkey | 对话 · 实时听译（用户提议，App 专属）：随时录音 → 转写 → 翻译，双显（当下逐词 + 整句定稿历史）；定稿句对进复习作为**新来源类别「对话」**（默认开）；锁屏也继续；双向（按住「我说」中文 → 译成外语给对方看并朗读）。真机 spike（PR-L0）三轮读数：WebKit 在后台一律静音 `getUserMedia`，页内音频保活能让 JS 活着但采集帧为 0 ⇒ **麦克风采集必须原生**（用户 09-07 裁定「原生做吧」）。见 §9.6 | **待评审（本 PR）**：三处裁定 —— ①「我说」的句子是否也进复习（默认进，标「我」）；②语言对是否给手动选（默认自动识别 → 界面语言）；③翻面大字卡是否保留（默认保留） |
 
 > **关于上面那批「已评审通过 2026-08-23（回溯批量确认）」。** 它们不是九次独立的审议，
 > 而是一次**回溯确认**：这些改动早已随 1.x 出货、在日常使用中跑了几周，产品方在
@@ -213,7 +214,7 @@ source → Extractor → Engine → Renderer
 
 ## 4. Data model
 
-One `Item` type. The three study granularities are distinguished by the `anchor`
+One `Item` type. The study granularities are distinguished by the `anchor`
 union, **not** by three parallel types — same reasoning as domain-design §2 ("the
 split is the source kind, not the site").
 
@@ -227,6 +228,7 @@ Item = {
   anchor:
       { k:'dom',   url, title, siteKind, quote }            // passage re-read: quote locates it again
     | { k:'media', url, mediaKey, title, startMs, endMs },  // clip replay: jumps back to the segment
+    | { k:'conv',  sessionId, title, startMs, endMs, who },  // 对话 (§9.6): no replay — the recording is gone; who = 'them' | 'me'
   createdAt, lastSeenAt, seenCount, dwellMs,
   salience,        // 0..1, computed deterministically at capture time
   state: 'candidate' | 'learning' | 'known' | 'muted',
@@ -2510,6 +2512,102 @@ target，于是**整体跳过** —— 而「跳过」的表现是「中国版�
 
 ---
 
+## 9.6 对话 · 实时听译 (live conversation) — App 专属（2026-09-07）
+
+把 §2.4（domain-design）那条「AI 转写字幕」管线从**网页媒体**转到**这台设备的麦克风**：
+线下听外语时，对方说 → 手机上看中文；按住「我说」说中文 → 松手译成外语，放大给对方看
+并朗读。显示与扩展直播双显同型：上半块是**当下**（逐词原文 + 边说边译的临时译文），下半块
+是**整句定稿历史**（原文 + 整句译文，可加星）。设计稿：
+https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
+
+**App 专属**，理由与播客模式同一条：它要一个能在锁屏后继续录音的音频会话，而 Safari
+扩展页没有任何会话可言（§9.5 开头）。iPhone 优先，macOS App 同步做（用户 09-06 裁定）。
+
+### 它写什么：定稿句对，作为新来源「对话」
+
+与播客模式相反，**这个模式写**。每一句定稿（转写闭合成整句 + 译文到达）都是一次真实的
+「看过」：用户正对着对方、正等着这句中文。所以它进语料，来源类别叫**「对话」**，默认开，
+会话内可关（设置项「对话进复习」）。
+
+| 字段 | 取值 | 为什么 |
+|---|---|---|
+| `sourceId` | `conv:<sessionId>`（每次会话一个） | 来源治理按**会话**分组（「🎙 对话 · 2026-09-07 机场问路 · 23 句」），可整段删除；没有 host 可分组 |
+| `sources` 记录 | `{ id, url: 'conv://<sessionId>', title }`，`title` = 日期 + 第一句定稿的前 12 字 | 来源管理与卡片 ⓘ 行显示 `title`；`url` 不可点（没有可回放的音频） |
+| `anchor` | `{ k:'conv', sessionId, title, startMs, endMs, who: 'them' \| 'me' }` | **不复用 `k:'media'`**：媒体锚点的语义是「跳回那段音频」，而对话的录音已丢弃，复用会让复习卡长出一个永远失败的 ▶。新 kind 要求每个读者显式分支（review 卡、来源管理、`driving.js` 的媒体计数）——这是有意的，未知 kind 静默落进默认分支才是坑 |
+| `text` / `tr` | 对方说的：`text` = 外语原文，`tr` = 中文。**我说的**：`text` = 译出的外语，`tr` = 我说的中文，`who:'me'` | 学的永远是外语那一侧；「我说」的句子是**我想说但不会说的话**，学习价值不低于对方说的。卡片显示「我」标记。**待裁定**（§0 行）：是否默认进 |
+| `lang` | 转写引擎回的语言；拿不到就 `und` | 同 §4 |
+| 采集时机 | **定稿译文首次渲染进历史**时采集一次，`playedThrough = true` | 与 domain-design §2.4 直播面板同一先例；不是「在屏幕上停留 1.5s」——历史面板的行不会消失 |
+| 门 | 照走 §6 的门（`playedThrough` ⇒ dwell 1.0，落在 0.78）；**语言白名单**照走 `LearnRules.langAllowed`；加星绕过门与白名单 | 没有新门。会话里的每一句都过门，是因为每一句都被看了 |
+| 写入路径 | App 端 `LearnStore.putItem`（`file://` 语料，§7.2），随同步上行 | 与播客模式「什么都不写」相反，所以它**不在**扩展里，`learn-collector.js` 一个字节不进 App（`verify-app-bundle.js` 的断言不变）|
+
+**「一句都可能有错」要说在来源管理里**：原文来自转写、译文来自翻译引擎，两层都可能错。
+所以来源「对话」的说明写明这一点，且**加星的句子优先进复习**（星 = 用户亲手确认过这句）。
+
+### 原生采集：为什么麦克风不能留在网页里（2026-09-07 真机 spike，PR-L0）
+
+`app/listen.js` 探针页在真机（ZHAO的iPhone / iOS 26.5）跑了三轮，读数记在
+`docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」：
+
+| 轮 | 条件 | 锁屏期间 JS 计时器 tick | 锁屏期间采集帧 |
+|---|---|---|---|
+| L0d/L0e | `.playAndRecord` 已激活 + `UIBackgroundModes: audio`，页内无音频 | **2 / 96 s** —— 整个 WebContent 进程约 2 s 后挂起 | 0 |
+| L0f | 同上 + 页内循环一段不可闻 `<audio>` | **48 / 92 s**（1 s 计时器被节流成 2 s，即全程活着） | **0**，页面一可见立刻恢复 |
+
+结论有两半：**页内有音频在放，WebContent 就活着**（与 §9.5 的播客模式同一机制）；
+**但 WebKit 在 App 不可见时一律把 `getUserMedia` 静音**，这不是我们能配置掉的。
+用户裁定「原生做吧」。于是：
+
+| 谁 | 做什么 |
+|---|---|
+| **Swift**（`app/native/audio-bridge.swift` 的输入半边） | `AVAudioEngine.inputNode` 装 tap → 单声道 Float32 → 重采样到注册表 `liveRate`（OpenAI 24 kHz）→ Int16 PCM → base64 → `evaluateJavaScript` 推给页面（≈48 KB/s 原始、≈64 KB/s base64）。音频会话 `.playAndRecord` + `.defaultToSpeaker` + `.allowBluetooth`。**权限由原生一次授权**（`AVAudioApplication.requestRecordPermission`），顺带解决 WKWebView 每次重装重问的问题 |
+| **JS**（`app/listen.js`） | 一切不动：`WsTranscribe` 的 socket、边说边译、定稿切句、翻译、历史、加星、写语料、TTS。PCM 从「自己录的」变成「桥送来的」 |
+| 桥协议 | JS→原生：`mic-start {rate}`、`mic-stop`、既有 `record-mode` / `session-start` / `now-playing`；原生→JS：`mic-pcm {b64}`、`mic-state {state, reason}`（`granted` / `denied` / `interrupted` / `ended`）。PROTOCOL 两侧同步，`test/build-scripts.test.js` 的 Swift 字符串白名单跟着改 |
+| 保活 | 会话期间页内循环那段不可闻音频（L0f 实证）。**PR-L2 真机若证明原生录音本身已足以保住 WebContent，就删掉它**——先按实证过的做法走，别按猜测 |
+| macOS | `AVAudioEngine` 同一份代码；无 `AVAudioSession`；沙箱 entitlement `com.apple.security.device.audio-input` 已由 `app:sync` 写入（M10 实证）。进程不挂起，所以没有锁屏问题，只有「有没有多余地停」（同 §9.5 macOS 段） |
+
+§12 记两条否决：整条管线搬进原生（不必要：JS 活着）；采集留在网页（不可能：WebKit 静音）。
+
+### 门控：没有实时接口的转写引擎，入口就不存在
+
+与播客模式同一规矩：转写引擎带 `liveEndpoint`（`build/stt.config.js`，目前只有
+`openai_transcribe`）且 key 已填 ⇒ 首页出现「🎙 对话 · 实时听译」；否则**入口不存在**，
+并留一条可见、有标签、直达设置页转写那一档的路（「需要一个带实时接口的转写引擎 → 去设置里
+选择」）。翻译引擎照 `LearnNotes.resolveConfig` 的整组规则；目标语言 = 界面语言（§3.1.4
+已知缺口：App 没有目标语言控件；**待裁定**是否给手动选）。
+
+### 会话内的规则
+
+- **计费可见**：常驻行显示已听时长与按注册表 `cost` 估的花费；**30 s 静音自动暂停**
+  （以免计费），说明「已暂停以免计费；点开始听继续」。
+- **「我说」= 按住说话（walkie-talkie）**：按住时**不听对方**（对方的 PCM 不发），松手
+  ⇒ 这段转写为中文 → 译成外语 → 翻面大字给对方看 + TTS 朗读（用现有 `learn/tts.js` 引擎；
+  **无 TTS 引擎时只显示不朗读**，能力语义，不是灰按钮）。「再读一遍 / 继续听对方」。
+- **锁屏**：复用 §9.5 的 Now Playing 通道，卡片 = 最近一句定稿（原文 + 译文）+ 暂停/停止
+  两键，映射到会话的 `tap_pause` / `tap_stop`；没有时间轴。
+- **结束态**：小结（时长、对方 N 句、我 N 句、进复习 N 句含加星、约花费），一句「录音已
+  丢弃，只保留文字」。
+- **停止态四种，每种写明原因并回到「开始听」**：麦克风被拒绝（指路系统设置）；转写连接
+  中断（服务端原话 ≤ 1 行，已听的句子还在）；锁屏后系统停止了录音（原生采集下不该出现，
+  出现即 bug，但文案保留作兜底）；30 s 静音自动暂停。
+- **停止是彻底的**：关 socket、停 tap、丢开口尾句、停保活音频、`setActive(false)`。
+
+### 隐私：§10 Gate E
+
+一句披露，与代码同 PR：**「对话 · 实时听译」把麦克风音频实时发送到你自己配置的转写端点，
+只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，
+只保留文字（且只在你开着「对话进复习」时保留）。** 落点：README 两份、App 设置转写那一档
+的提示、`NSMicrophoneUsageDescription`（`scripts/sync-app-assets.js`，措辞从「识别后立即
+丢弃」扩到覆盖连续听译）、两个站的 privacy.html（发版时，`release-checklist` §2）。
+
+### 模块
+
+| 模块 | 位置 | 职责 |
+|---|---|---|
+| `AppListen` | `app/listen.js` | 状态机 idle / listening / speaking / showing / ended；边说边译；定稿历史；加星；写语料；计费行；停止态 |
+| `WsTranscribe` | `extension/content/ws-transcribe.js`（进 `build/app-bundle.js` MODULES） | 与扩展同一份流式适配器 |
+| 原生输入半边 | `app/native/audio-bridge.swift` | tap、重采样、桥推 PCM、权限、会话类别 |
+| 来源管理 | `extension/learn/sources-view.js` | `conv://` 来源按会话一行，只有「删除已存」（屏蔽规则对会话无意义） |
+
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
 `README.md`, `README.zh-CN.md` and `belliedmonkey.cc/privacy.html` currently make
@@ -2700,6 +2798,15 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 The Gate B sentence above ("**not** Usage Data, since there is still no telemetry")
 is superseded by this table; it is left in place as history.
 
+### Gate E — ships with 对话 · 实时听译 (§9.6)
+
+Same shape as Gate C, extended from "one recording, discarded after the transcript" to
+"continuous listening": the microphone streams to the transcription endpoint the user
+configured, only after 「开始听」, only to that endpoint; nothing of ours touches the
+audio; no recording is kept, only text — and text only while 「对话进复习」 is on.
+README (both), the App transcription-engine hint, `NSMicrophoneUsageDescription`, and
+both sites' privacy pages carry it in the same version.
+
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
@@ -2732,6 +2839,10 @@ is superseded by this table; it is left in place as history.
   `/v1/audio/transcriptions` endpoint they configured, discarded after the
   response — is the same trust shape as BYO-key translation and TTS, and is now in
   scope as the 说 exercise: §5.4, §9.4, §10 Gate C.)*
+  *(Amended 2026-09-07: the same trust shape, made continuous, is §9.6 对话 · 实时听译 —
+  the device microphone streams to the user's configured live endpoint at the user's
+  tap, in the host app only. Page audio is still never transcribed by the learning
+  layer; domain-design §2.4 covers page media, on the user's tap.)*
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
   and can be disabled and purged from settings at any time. See `README.md` — the
   privacy statement is part of the product, not marketing copy.
@@ -2776,3 +2887,6 @@ matters more than the detail.
 | 2026-08-18 | 播放解析时给自动补全设每会话上限 | 上限会让一轮听读中途莫名其妙地不再有解析，而这种「有时有有时没有」比明确的成本更难理解。§9.2 的「每张卡至多收一次费，永远」本身已经是收敛的承诺；要做的是**说清楚**，不是设闸（§9.5） |
 | 2026-08-17 | 播客问答复用浏览器 `SpeechRecognition`（四审） | 维持三审裁定不重开：录音离开用户自选端点即出局。播客问答的录音同样只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃（§9.4 同一信任形状） |
 | 2026-08-17 | 播客会话引入新卡 / 问答结果缓存 | 引新卡会绕开 `dailyNew`（§5.3 候选只曝光的原则不因换个面失效）；问答是自由文本、缓存命中率趋零，缓存只会让「一次缓存永不重复扣费」的承诺在这里变成谎言——改为入口明示「每问一次调用，不缓存」（§9.5） |
+| 2026-09-07 | 对话模式的麦克风采集留在网页（`getUserMedia` + Web Audio） | 真机三轮实证 WebKit 在 App 不可见时一律静音采集（锁屏期间帧数恒为 0，页面一可见立刻恢复）；页内音频保活只能保住 JS，保不住采集。用户裁定「原生做吧」（§9.6） |
+| 2026-09-07 | 对话模式整条管线（采集 + socket + 翻译）都搬进 Swift | 不必要：页内不可闻音频在放时，锁屏 92 s 内 JS 计时器 48 tick（2 s 节流，全程活着），socket 与翻译是事件驱动的不受节流影响。只搬「录」这一件事，`WsTranscribe` 与翻译继续和扩展共用一份代码；整条原生化会让 App 与扩展的流式实现分叉（§9.6） |
+| 2026-09-07 | 对话的句子复用 `anchor.k:'media'`（`mediaKey:'conv:…'`） | 媒体锚点的语义是「跳回那段音频」，而对话录音已丢弃 —— 复习卡会长出一个永远失败的 ▶，来源管理会拿一个假 host 分组。新 kind `conv` 让每个读者显式分支（§9.6） |
