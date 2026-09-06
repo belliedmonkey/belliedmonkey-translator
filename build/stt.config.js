@@ -113,7 +113,10 @@ module.exports = [
     labelKey: null, label: 'Gemini Transcribe (Google)',
     hintKey: 'stt_hint',
     uploadEndpoint: 'https://generativelanguage.googleapis.com/upload/v1beta/files',
-    liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
-    liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
+    // 流式一档**暂不登记**（台账 gemini-3.5-transcribe-live 行，verdict rejected）：免费档下
+    // interim 被限流（12 分钟只有 126 帧，首次干净的一轮是 1473 帧），句子成批到达，
+    // 滞后 p50 8.6s。ws-bidi 适配器已实现并有单元测试；付费档复测过线后把下面三行放开：
+    //   liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
+    //   liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
   },
 ];

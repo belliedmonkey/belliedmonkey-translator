@@ -73,7 +73,7 @@
 
 ## 实测台账（全部）
 
-共 67 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 68 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -161,6 +161,7 @@
 | 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
 |---|---|---|---|---|---|
 | `gemini-3.5-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 69362ms | — | 文件式转写（Interactions 接口，JSON 内联 base64，mode 必须 verbatim —— smart 与时间戳互斥，服务端原话 "Transcription mode SMART is incompatible with timestamps"）：英文 12 分钟 51.3s / WER 3.8%，29.8 分钟 69.4s / WER 2.9%（比 whisper-1 的 89.7s 快）；中文 19.9 分钟 59.0s / CER 12.0%（贴着 12% 的线）。词级时间戳与 whisper-1 参照 p90 差 220–260ms；按词切 cue 后句界命中 95–97%。usage 只报音频 token（12 分钟 18000 tok）。真 Chrome 页面源 POST 可读（CORS 放行）。**参数层面没扫过**（diarization、language_codes 未试）。 |
+| `gemini-3.5-transcribe-live` | 2026-09-06 | ⬜ 测过不写 | 基线 2042ms · 降档后 8637ms | — | 流式转写（ws-bidi）。首轮（vendor final 计）：滞后 p50 1.5s / p90 2.0s、WER 4.1%，但 final 是段落级（12 分钟 21 条、平均 98 token），字幕不可用；改从 interim 切句后，免费档 interim 被限流（两路并发时直接 1011 "Resource has been exhausted"），无法达到 p90 ≤ 2.5s。**免费档下不过线**；付费档未测。ms 记首轮 p90。 |
 | `gemini-3.6-flash` | 2026-08-20 | ⬜ 测过不写 | 基线 7542ms · 降档后 2040ms | — | 出参 token 基本不变，没有可测量的收益；期间多次 503（high demand），所以按 token 而非墙钟下结论 |
 
 ### `dashscope-intl.aliyuncs.com`
