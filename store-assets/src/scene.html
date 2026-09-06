@@ -32,7 +32,12 @@
   .mac img { display: block; width: 100%; height: auto; }
   /* 手机框 */
   .phone { background: #111; border-radius: 46px; padding: 12px; box-shadow: 0 30px 80px rgba(46,43,37,.32); max-height: 100%; }
-  .phone img { display: block; border-radius: 36px; width: 100%; height: auto; }
+  .phone img { display: block; border-radius: 36px; width: 100%; height: 100%; }
+  .tablet { background: #111; border-radius: 32px; padding: 20px; box-shadow: 0 30px 80px rgba(46,43,37,.32); }
+  .tablet img { display: block; border-radius: 16px; width: 100%; height: 100%; }
+  .cascade { position: relative; width: 100%; height: 100%; }
+  .pair { display: flex; align-items: center; justify-content: center; gap: 2%; width: 100%; height: 100%; }
+  .pair .arrow { font-size: calc(var(--h1) * 1.1); }
   /* 双设备同框 */
   .duo { position: relative; width: 100%; height: 100%; }
   .duo .mac { position: absolute; left: 1%; top: 6%; width: 72% !important; }
@@ -80,42 +85,67 @@ const COPY = {
     6: ['One key sets up all three', 'Translate, read aloud, transcribe — tested on the spot, before your first page'],
   },
 };
-const [big, sub] = COPY[lang][f];
+// 第 5 帧的竖版画布里没有 Mac（手机画布是两台手机、iPad 画布是 iPad + 手机），标题不能再说「电脑上读」。
+const PORTRAIT5 = { zh: ['读到哪，复习到哪', '电脑、平板、手机同步，一个闭环'], en: ['Read anywhere, review anywhere', 'Synced across your devices — one loop'] };
+const [big, sub] = (f === '5' && H > W) ? PORTRAIT5[lang] : COPY[lang][f];
 document.getElementById('big').textContent = big;
 document.getElementById('sub').textContent = sub;
 
-// 横版时按 stage 可用高反推 mac 宽度（帧图 1728×868 + 34px bar），铺满舞台
-const macW = (() => {
-  if (portrait) return '96%';
-  const stageH = H * 0.68, imgH = stageH - 34;
-  return Math.min(W * 0.9, imgH * 1728 / 868) + 'px';
-})();
-const mac = (src) => `<div class="mac" style="width:${macW}"><div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div><img src="${src}"></div>`;
+// ── 设备档位：画布是什么设备，就放那个设备视口拍的图（2026-09-06 的硬规矩，见 ../README.md）──
+// 竖版窄画布 = iPhone → phone 档；竖版宽画布 = iPad → tablet 档；横版 = Mac / Chrome 商店 → desk 档。
+const tier = !portrait ? 'desk' : (W >= 1500 ? 'tablet' : 'phone');
+const ARTICLE = { phone: 'assets/phone-article.png', tablet: 'assets/tablet-article.png', desk: 'assets/f1-article.png' };
+const VIDEO = { phone: 'assets/phone-video.png', tablet: 'assets/tablet-video.png', desk: 'assets/f2-video.png' };
+const own = (kind, t) => `assets/${lang}-${t || tier}-${kind}.png`;
+
+const mac = (src, w) => `<div class="mac" style="width:${w || '96%'}"><div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div><img src="${src}"></div>`;
 const phone = (src) => `<div class="phone"><img src="${src}"></div>`;
+const tablet = (src) => `<div class="tablet"><img src="${src}"></div>`;
+const device = (src, t) => ({ phone, tablet, desk: mac })[t || tier](src);
 
 const stage = document.getElementById('stage');
-if (f === '1') stage.innerHTML = mac('assets/f1-article.png');
-else if (f === '2') stage.innerHTML = mac('assets/f2-video.png');
-else if (f === '3') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f4-phone-card.png')}</div>`;
-else if (f === '4') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f3-phone-stats.png')}</div>`;
-else if (f === '6') stage.innerHTML = `<div style="display:flex;gap:4%;align-items:center;justify-content:center;height:100%">${phone('assets/f6-onboard.png')}</div>`;
+if (f === '1') stage.innerHTML = device(ARTICLE[tier]);
+else if (f === '2') stage.innerHTML = device(VIDEO[tier]);
+else if (f === '3') stage.innerHTML = device(own('card'));
+else if (f === '4') stage.innerHTML = device(own('stats'));
+else if (f === '6') stage.innerHTML = device(own('onboard'));
 else if (f === '5') {
-  if (portrait) {
-    stage.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:2%;height:100%;width:100%;justify-content:center">
-      <div style="width:96%">${mac('assets/f1-article.png')}</div>
-      <div class="arrow" style="position:static;transform:rotate(90deg)">⟶</div>
-      <div style="width:46%">${phone('assets/f4-phone-card.png')}</div></div>`;
-    document.querySelectorAll('.mac').forEach((m) => { m.style.width = '100%'; });
-    document.querySelectorAll('.phone').forEach((p) => { p.style.width = '100%'; });
-  } else {
-    stage.innerHTML = `<div class="duo">${mac('assets/f1-article.png')}<div class="arrow">⟶</div>${phone('assets/f4-phone-card.png')}</div>`;
-  }
+  // 跨设备闭环。横版：Mac 上读 → 手机上复习（手机是这一帧的主语，不是错放）。
+  // 竖版：这台设备上读 → 手机上复习；手机画布里就是两台手机（读的那台 / 复习的那台）。
+  if (!portrait) stage.innerHTML = `<div class="duo">${mac(ARTICLE.desk)}<div class="arrow">⟶</div>${phone(own('card', 'phone'))}</div>`;
+  else if (tier === 'tablet') stage.innerHTML = `<div class="pair">${device(ARTICLE[tier])}<div class="arrow" style="position:static">⟶</div>${phone(own('card', 'phone'))}</div>`;
+  // 手机画布放不下两台并排还能读清字的手机：斜向叠放，读的那台在左上，复习的那台压在右下。
+  else stage.innerHTML = `<div class="cascade">${phone(ARTICLE.phone)}${phone(own('card', 'phone'))}</div>`;
 }
 
-// 竖版（手机截图）时限制 phone 宽度
-if (portrait && (f === '3' || f === '4' || f === '6')) {
-  document.querySelectorAll('.phone').forEach((p) => { p.style.width = '78%'; });
-}
+// 尺寸：设备框按舞台可用高铺满（宽度随截图比例走），永远不超出画布。
+// mac 窗口另加 34px 标题栏；桌面档三张自拍图是 2200×1520，与真 Safari 手拍的 f1/f2（1728×868）比例不同，
+// 所以宽度要等图片加载后按各自的自然尺寸算，不能写死。
+const stageH = stage.clientHeight, stageW = stage.clientWidth;
+document.querySelectorAll('.mac img').forEach((img) => {
+  const fit = () => {
+    const box = img.closest('.mac');
+    const inPair = !!box.closest('.pair');
+    const maxH = (inPair ? stageH * 0.9 : stageH) - 34, maxW = box.closest('.duo') ? stageW * 0.72 : stageW * (inPair ? 0.58 : 0.94);
+    box.style.width = Math.min(maxW, maxH * img.naturalWidth / img.naturalHeight) + 'px';
+  };
+  if (img.complete) fit(); else img.onload = fit;
+});
+document.querySelectorAll('.phone, .tablet').forEach((box) => {
+  const img = box.querySelector('img');
+  const fit = () => {
+    const pad = box.classList.contains('phone') ? 24 : 40;
+    const inPair = !!box.closest('.pair'), inDuo = !!box.closest('.duo'), inCascade = !!box.closest('.cascade');
+    const isPhone = box.classList.contains('phone');
+    const maxH = inDuo ? stageH * 0.94 : inCascade ? stageH * 0.74 : inPair ? (isPhone ? stageH * 0.6 : stageH * 0.74) : stageH * 0.96;
+    const maxW = inDuo ? stageW * 0.27 : inCascade ? stageW * 0.7 : inPair ? (isPhone ? stageW * 0.32 : stageW * 0.6) : stageW * 0.9;
+    const h = Math.min(maxH, (maxW - pad) * img.naturalHeight / img.naturalWidth + pad);
+    box.style.height = h + 'px'; box.style.width = ((h - pad) * img.naturalWidth / img.naturalHeight + pad) + 'px';
+    if (inDuo) { box.style.position = 'absolute'; box.style.right = '1%'; box.style.bottom = '0'; }
+    if (inCascade) { const second = box.previousElementSibling; box.style.position = 'absolute'; if (second) { box.style.right = '0'; box.style.bottom = '0'; box.style.zIndex = 2; } else { box.style.left = '0'; box.style.top = '0'; } }
+  };
+  if (img.complete) fit(); else img.onload = fit;
+});
 </script>
 </body>
 </html>
