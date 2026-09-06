@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 Распознать звук в субтитры"
+  },
+  "asr_incremental": {
+    "message": "Переводить по ходу речи (быстро, перевод уточняется)"
+  },
+  "asr_history": {
+    "message": "Панель истории субтитров"
+  },
+  "asr_history_title": {
+    "message": "История · целые предложения"
   }
 }

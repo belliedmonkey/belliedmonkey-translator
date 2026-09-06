@@ -227,8 +227,70 @@ async function realRun(url) {
   } finally { try { cdp.close(); } catch (_) {} chrome.cleanup(); }
 }
 
+// ─── --live <url>：真直播 + 真引擎 —— 流式一档在真站点上的样子（叠层流式 + 历史面板）──
+// 同 --real 不是门禁。每 5 秒截一张图到 .local/asr/results/live-<ts>-N.png 当时间证据
+// （verification-spec：时间相关的判断要有录像；这里是逐帧截图）。
+async function liveRun(url, seconds) {
+  const deepseek = keySlot('key_chat_deepseek') || keySlot('apiKey');
+  const stt = keySlot('sttApiKey');
+  if (!deepseek || !stt) { console.error('✗ .local/keys.md 里缺 key_chat_deepseek 或 sttApiKey'); process.exit(1); }
+  const outDir = path.join(ROOT, '.local', 'asr', 'results'); fs.mkdirSync(outDir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const chrome = await launchChrome(['--autoplay-policy=no-user-gesture-required', '--window-size=1400,900']);
+  const cdp = await CDP.connect(chrome.port);
+  try {
+    const { id: extId } = await cdp.send('Extensions.loadUnpacked', { path: DIST });
+    let swSession = null;
+    for (let i = 0; i < 60 && !swSession; i++) {
+      const { targetInfos } = await cdp.send('Target.getTargets');
+      const sw = targetInfos.find((t) => t.type === 'service_worker' && (t.url || '').includes(extId));
+      if (sw) ({ sessionId: swSession } = await cdp.send('Target.attachToTarget', { targetId: sw.targetId, flatten: true }));
+      else await sleep(150);
+    }
+    await cdp.send('Runtime.enable', {}, swSession);
+    await evalIn(cdp, swSession, `chrome.storage.local.set(${JSON.stringify({ enabled: false, provider: 'deepseek', apiKey: deepseek, apiBaseUrl: '', apiModel: '', targetLang: 'zh-CN', sttEngine: 'openai_transcribe', sttApiKey: stt, sttBaseUrl: '', sttModel: '', engineChosen: true, extObSeen: true })})`);
+    const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+    const contexts = []; const errs = [];
+    cdp.on('Runtime.executionContextCreated', (ev, sid) => { if (sid === sessionId) contexts.push(ev.context); });
+    cdp.on('Runtime.exceptionThrown', (ev, sid) => { if (sid === sessionId) errs.push((((ev.exceptionDetails || {}).exception || {}).description || '').slice(0, 160)); });
+    await cdp.send('Runtime.enable', {}, sessionId);
+    await cdp.send('Page.enable', {}, sessionId);
+    await cdp.send('Page.navigate', { url }, sessionId);
+    await sleep(9000);
+    const iso = contexts.find((c) => c.auxData && c.auxData.type === 'isolated');
+    if (!iso) throw new Error('没有内容脚本的隔离世界');
+    const media = await evalIn(cdp, sessionId, `(() => { const m = document.querySelector('video'); if (!m) return null; m.muted = true; m.play().catch(() => {}); return { src: (m.currentSrc || m.src || '').slice(0, 60), duration: m.duration, paused: m.paused }; })()`);
+    console.log('  媒体', JSON.stringify(media));
+    const isYt = /youtube\.com/.test(url);
+    const started = await evalIn(cdp, sessionId, `(() => { try { return ${isYt ? 'YouTubeTranslator' : 'PodcastTranslator'}.startAsr(); } catch (e) { return 'ERR ' + e.message; } })()`, iso.id);
+    console.log('  startAsr →', started);
+    const t0 = Date.now();
+    const seen = new Set(); let shots = 0, lastPartial = '';
+    const ovSel = isYt ? '#mt-yt-overlay .mt-yt-orig' : '#mt-pod-overlay .mt-pod-orig';
+    const trSel = isYt ? '#mt-yt-overlay .mt-yt-trans' : '#mt-pod-overlay .mt-pod-trans';
+    const hist = isYt ? '#mt-yt-history' : '#mt-pod-history';
+    while (Date.now() - t0 < seconds * 1000) {
+      await sleep(1000);
+      const st = await evalIn(cdp, sessionId, `(() => { const o = document.querySelector(${JSON.stringify(ovSel)}), t = document.querySelector(${JSON.stringify(trSel)}); const rows = [...document.querySelectorAll(${JSON.stringify(hist + ' .' + hist.slice(1) + '-row')})].map(r => [...r.children].map(c => c.textContent).join(' ⟶ ')); return { orig: o ? o.textContent : '', trans: t ? t.textContent : '', rows }; })()`);
+      if (st.orig && st.orig !== lastPartial) { lastPartial = st.orig; }
+      for (const r of st.rows) if (!seen.has(r)) { seen.add(r); console.log(`  [+${((Date.now() - t0) / 1000).toFixed(0)}s] 面板: ${r.slice(0, 140)}`); }
+      if ((Date.now() - t0) / 1000 >= shots * 5) {
+        const shot = await cdp.send('Page.captureScreenshot', { format: 'png' }, sessionId);
+        fs.writeFileSync(path.join(outDir, `live-${stamp}-${String(shots).padStart(2, '0')}.png`), Buffer.from(shot.data, 'base64'));
+        shots++;
+        console.log(`  [+${((Date.now() - t0) / 1000).toFixed(0)}s] 叠层: 「${st.orig.slice(0, 80)}」 / 「${st.trans.slice(0, 60)}」`);
+      }
+    }
+    console.log(`  ${seconds}s：面板定稿 ${seen.size} 句，截图 ${shots} 张 → ${path.relative(ROOT, outDir)}/live-${stamp}-*.png；页面异常 ${errs.length ? errs.slice(0, 2).join(' | ') : '无'}`);
+    if (!seen.size) { console.log('✗ 直播上没有出现定稿句'); process.exitCode = 1; } else console.log('✓ 真直播 + 真引擎：双显出现');
+  } finally { try { cdp.close(); } catch (_) {} chrome.cleanup(); }
+}
+
 (async () => {
   if (!fs.existsSync(path.join(DIST, 'manifest.json'))) { console.error('✗ 没有 dist/，先 node build.js'); process.exit(1); }
+  const li = process.argv.indexOf('--live');
+  if (li > 0) { await liveRun(process.argv[li + 1], +(process.argv[li + 2]) || 60); return; }
   const ri = process.argv.indexOf('--real');
   if (ri > 0) { await realRun(process.argv[ri + 1]); return; }
   const srv = await serve();
@@ -317,13 +379,17 @@ async function realRun(url) {
       await evalIn(cdp, pg.sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').click(); 'clicked'`);
       let orig;
       try {
-        orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-orig') || {}).textContent || ''`), 40000, 'B: 叠层出现流式整句');
+        // 双显：叠层放流式 partial，整句定稿在历史面板里 —— 判据读面板的行
+        orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'B: 历史面板出现定稿整句');
       } catch (e) {
         const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
         throw new Error(`${e.message}；叠层提示「${notice}」；ws 握手 ${stats.wsOpened} 帧 ${stats.wsFrames}；页面异常 ${pg.errs.slice(0, 2).join(' | ')}`);
       }
-      notes.push(`B: 原文「${orig}」；服务端收到 ${stats.wsFrames} 帧 / ${stats.wsAudioBytes} 字节 PCM，握手 ${stats.wsOpened} 次`);
-      if (orig.indexOf('Hello from the live fake.') < 0 && orig.indexOf('Second sentence here.') < 0) problems.push(`B: 叠层原文不是流式回的句子：「${orig}」`);
+      const overlayNow = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-orig') || {}).textContent || ''`);
+      const rowCount = await evalIn(cdp, pg.sessionId, `document.querySelectorAll('#mt-pod-history .mt-pod-history-row').length`);
+      notes.push(`B: 面板定稿「${orig}」（${rowCount} 行）；叠层此刻「${overlayNow}」；服务端收到 ${stats.wsFrames} 帧 / ${stats.wsAudioBytes} 字节 PCM，握手 ${stats.wsOpened} 次`);
+      if (orig.indexOf('Hello from the live fake.') < 0 && orig.indexOf('Second sentence here.') < 0) problems.push(`B: 面板定稿不是流式回的句子：「${orig}」`);
+      if (rowCount < 1) problems.push('B: 历史面板没有行');
       if (stats.wsFrames < 20 || stats.wsAudioBytes < 20 * 1000) problems.push(`B: 抓流没有真正把 PCM 送到端点（${stats.wsFrames} 帧 / ${stats.wsAudioBytes} 字节）`);
       const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
       if (/捕获不到声音|No sound/.test(notice)) problems.push('B: 静音守卫误触发（抓到的是静音）');

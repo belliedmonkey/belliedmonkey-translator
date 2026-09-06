@@ -2008,5 +2008,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 ऑडियो को उपशीर्षक में बदलें"
+  },
+  "asr_incremental": {
+    "message": "बोलते-बोलते अनुवाद (तेज़, बदल सकता है)"
+  },
+  "asr_history": {
+    "message": "उपशीर्षक इतिहास पैनल"
+  },
+  "asr_history_title": {
+    "message": "इतिहास · पूरे वाक्य"
   }
 }

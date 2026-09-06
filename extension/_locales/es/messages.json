@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 Transcribir audio a subtítulos"
+  },
+  "asr_incremental": {
+    "message": "Traducir mientras hablan (rápido, puede corregirse)"
+  },
+  "asr_history": {
+    "message": "Panel de historial de subtítulos"
+  },
+  "asr_history_title": {
+    "message": "Historial · frases completas"
   }
 }

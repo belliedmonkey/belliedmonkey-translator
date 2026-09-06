@@ -56,6 +56,21 @@ describe('§2.4 core: appendUnits / HOLD_MS / createCueMerger', () => {
     eq(eng.activeAt(3000), null, 'setWindow moves both copies');
   });
 
+  test('a live sentence whose end is already behind the playhead is still translated while held (HOLD_MS)', () => {
+    let now = 10000; const calls = [];
+    const eng = TC.createSubtitleEngine({ getCurrentTime: () => now, translate: async (x) => { calls.push(x); return x; }, window: FAST });
+    eng.setWindow({ HOLD_MS: 6000 });
+    eng.appendItems([{ start: 7000, end: 9500, text: 'spoken already' }]); // arrived at 9.5 s, playhead at 10 s
+    eng.pump();
+    deepEq(calls, ['spoken already']);
+    // and with HOLD_MS = 0 (fetched transcripts) the old rule stands: a past unit is not sent
+    const calls2 = [];
+    const eng2 = TC.createSubtitleEngine({ getCurrentTime: () => now, translate: async (x) => { calls2.push(x); return x; }, window: FAST });
+    eng2.appendItems([{ start: 7000, end: 9500, text: 'past' }]);
+    eng2.pump();
+    deepEq(calls2, []);
+  });
+
   test('setWindow merges (an override never leaves other knobs undefined)', () => {
     const eng = TC.createSubtitleEngine({ getCurrentTime: () => 0, translate: async (x) => x, window: FAST });
     eng.setWindow({ GRACE_MS: 4000 });
@@ -100,11 +115,11 @@ function makeDom() {
     const e = { tag, id: '', className: '', style: {}, textContent: '', hidden: false, _listeners: {},
       setAttribute(n, v) { if (n === 'id') { e.id = v; byId[v] = e; } },
       getAttribute() { return null; },
-      appendChild(c) { kids.push(c); if (c.id) byId[c.id] = c; return c; },
+      appendChild(c) { if (c.parentElement && c.parentElement !== e) { const k = c.parentElement.children; const i = k.indexOf(c); if (i >= 0) k.splice(i, 1); } if (!kids.includes(c)) kids.push(c); c.parentElement = e; if (c.id) byId[c.id] = c; return c; },
       querySelector(sel) { const cls = sel.replace(/^\./, ''); return kids.find((k) => k.className === cls) || null; },
       addEventListener(n, fn) { e._listeners[n] = fn; },
       removeEventListener() {},
-      remove() { if (e.id) delete byId[e.id]; },
+      remove() { if (e.id) delete byId[e.id]; if (e.parentElement) { const k = e.parentElement.children; const i = k.indexOf(e); if (i >= 0) k.splice(i, 1); e.parentElement = null; } },
       getBoundingClientRect() { return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }; },
       get children() { return kids; },
     };
@@ -124,9 +139,9 @@ function loadHarness(opts = {}) {
   new Function('window', P.roundBtnCssJs())(window);
   const timers = { intervals: 0, cleared: 0 };
   const ctx = loadModule(['translation-core.js', 'subtitle-adapter.js'], {
-    window, chrome, document, navigator: {},
+    window, chrome, document, navigator: {}, LearnCollector: opts.collector || { noteSubtitle() {} },
     setInterval: () => { timers.intervals++; return 1; }, clearInterval: () => { timers.cleared++; },
-    setTimeout: (fn) => { return 0; }, clearTimeout: () => {},
+    setTimeout: (fn) => { if (opts.timersOut) opts.timersOut.push(fn); return 0; }, clearTimeout: () => {},
   });
   const calls = [];
   const spec = Object.assign({
@@ -170,6 +185,119 @@ describe('§2.4 harness: streaming acquire', () => {
     ctxRef.done();
     eq(ui.engine.items.length, 2);
     eq(ui.engine.items[1].text, 'tail');
+  });
+
+  test('live partial shows on the original line between sentences, and is never translated', async () => {
+    let ctxRef = null, now = 0;
+    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: false, history: false });
+    ctxRef.partial('words arriving right');
+    ui.tick(); await flush();
+    const ov = document.getElementById('ov');
+    eq(ov.querySelector('.o').textContent, 'words arriving right');
+    eq(calls.length, 0, 'in whole-sentence mode a partial is display only');
+    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
+    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
+    eq(ov.querySelector('.o').textContent, 'Words arriving right now.', 'the closed sentence takes over (held by HOLD_MS)');
+    eq(calls.length, 1);
+  });
+
+  test('边说边译: the growing partial is translated (debounced, one in flight) and reused when the sentence closes', async () => {
+    let ctxRef = null, now = 0;
+    const timers = [];
+    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } },
+      timersOut: timers });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: true, history: false });
+    ctxRef.partial('Words arriving'); ctxRef.partial('Words arriving right');
+    // the debounce timer fires once (our fake setTimeout records callbacks)
+    eq(timers.length >= 1, true); timers.splice(0).forEach((fn) => fn());
+    await flush(); await flush();
+    eq(calls.length, 1, 'one partial translation'); eq(calls[0], 'Words arriving right');
+    ui.tick(); await flush();
+    const ov = document.getElementById('ov');
+    eq(ov.querySelector('.t').textContent, 'T:Words arriving right…', 'partial translation shown with an ellipsis');
+    ctxRef.partial('Words arriving right now');
+    timers.splice(0).forEach((fn) => fn()); await flush(); await flush();
+    eq(calls.length, 2);
+    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
+    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
+    eq(calls.length, 2, 'the closed sentence REUSES the partial translation of the same text — no third request');
+    eq(ov.querySelector('.t').textContent, 'T:Words arriving right now');
+  });
+
+  test('边说边译: a partial translation that lands AFTER its sentence closed never shows under the next partial', async () => {
+    let ctxRef = null, now = 0;
+    const timers = []; let release = null;
+    const { ui, document } = loadHarness({ now: () => now, timersOut: timers,
+      spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; }, translate: (x) => new Promise((r) => { release = () => r('T:' + x); }) } });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: true, history: false });
+    ctxRef.partial('First sentence going');
+    timers.splice(0).forEach((fn) => fn()); await flush();          // request for the first partial is in flight
+    ctxRef.push([{ start: 0, end: 1000, text: 'First sentence going on.' }]); // …and the sentence closes
+    ctxRef.partial('Second one');
+    const late = release; release = null; late(); await flush(); await flush(); // the stale answer arrives now
+    now = 1100; ui.tick(); await flush();
+    const ov = document.getElementById('ov');
+    ok(ov.querySelector('.t').textContent.indexOf('First sentence') < 0, 'stale translation not shown: ' + ov.querySelector('.t').textContent);
+  });
+
+  test('字幕历史面板 (default on): closed sentences go to the panel, the overlay keeps only the stream', async () => {
+    let ctxRef = null, now = 0;
+    const captured = [];
+    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } },
+      collector: { noteSubtitle: (x) => captured.push(x) } });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: false }); // history defaults to on
+    ctxRef.partial('Words arriving right');
+    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
+    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
+    const panel = document.getElementById('ov-history');
+    ok(panel, 'panel exists');
+    const rows = panel.children.filter((c) => c.className === 'ov-history-row');
+    eq(rows.length, 1, 'one closed sentence in the panel');
+    eq(rows[0].children[0].textContent, 'Words arriving right now.');
+    const ov = document.getElementById('ov');
+    ok(ov.querySelector('.o').textContent !== 'Words arriving right now.', 'overlay never shows the closed sentence while the panel is on');
+    ctxRef.partial('Next words');
+    ui.tick(); await flush();
+    eq(ov.querySelector('.o').textContent, 'Next words', 'overlay shows the stream');
+    eq(calls.length, 1, 'the Engine translated the closed sentence');
+    // translation lands → panel row updates, collector captures exactly once
+    ui.tick(); await flush(); ui.tick(); await flush();
+    eq(rows[0].children[1].textContent, 'T:Words arriving right now.');
+    eq(captured.length, 1); eq(captured[0].text, 'Words arriving right now.');
+    ui.tick(); await flush();
+    eq(captured.length, 1, 'never twice');
+    // media change removes the panel
+    ui.disable();
+    eq(document.getElementById('ov-history'), null, 'panel removed with the overlay');
+  });
+
+  test('字幕历史面板 off: the overlay shows closed sentences again (HOLD_MS path)', async () => {
+    let ctxRef = null, now = 0;
+    const { ui, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: false, history: false });
+    ctxRef.push([{ start: 0, end: 2000, text: 'Closed one.' }]);
+    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
+    eq(document.getElementById('ov-history'), null, 'no panel');
+    eq(document.getElementById('ov').querySelector('.o').textContent, 'Closed one.');
+  });
+
+  test('字幕历史面板 mounts inside the fullscreen element when there is one', async () => {
+    let ctxRef = null;
+    const { ui, document } = loadHarness({ spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
+    const fs = document.createElement('div'); fs.id = 'fs';
+    document.fullscreenElement = fs;
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    ctxRef.mode('live', { incremental: false });
+    ctxRef.push([{ start: 0, end: 1000, text: 'In fullscreen.' }]);
+    ui.tick(); await flush();
+    const panel = document.getElementById('ov-history');
+    eq(panel.parentElement, fs, 'panel lives inside the fullscreen element');
   });
 
   test('mode("live") applies the live window; media-key change restores the production window', async () => {
@@ -224,6 +352,16 @@ describe('§2.4 harness: streaming acquire', () => {
     key = 'm2'; ui.tick(); await flush(); ui.tick(); await flush();
     eq(asr, 1, 'the ASR acquire does not follow the next media (no automatic restart of a paid session)');
     eq(base, 2, 'the normal acquire runs for the new media');
+  });
+
+  test('acquireVia while subtitles are OFF (popup entry) still runs the ASR acquire, not the normal one', async () => {
+    let base = 0, asr = 0;
+    const { ui } = loadHarness({ spec: { mediaKey: () => 'v1', acquire: async () => { base++; return 'unavailable'; } } });
+    ui.init({});
+    ui.acquireVia(async () => { asr++; return 'streaming'; });
+    await flush(); ui.tick(); await flush();
+    eq(asr, 1, 'the ASR acquire ran');
+    eq(base, 0, 'the normal acquire did not');
   });
 
   test('a spec without unavailableAction renders the plain notice (three existing backends unchanged)', async () => {
@@ -339,6 +477,16 @@ describe('§2.4 ws-transcribe: cutters and adapters', () => {
     c.flush(); c.flush();
     deepEq(ev.filter((e) => e.kind === 'final').map((e) => e.text), ['This is one.', 'Two']);
   });
+  test('sentenceCutter: run-on speech closes at a clause boundary past CLAUSE_CHARS, never mid-word', () => {
+    const { W } = loadWs();
+    const ev = []; const c = W.sentenceCutter((e) => ev.push(e));
+    const words = 'so what we are going to do today is walk through the whole pipeline, and then after that we will look at the numbers, and finally';
+    for (const w of words.split(' ')) c.add(' ' + w);
+    const finals = ev.filter((e) => e.kind === 'final').map((e) => e.text);
+    ok(finals.length >= 1, 'a clause closed: ' + JSON.stringify(finals));
+    ok(finals.every((f) => /[,;:]$/.test(f)), 'closed at clause punctuation: ' + JSON.stringify(finals));
+    ok(finals.every((f) => f.length >= 20));
+  });
   test('interimCutter: cumulative interims emit a sentence once it is no longer the tail; final flushes the rest; never re-emits', () => {
     const { W } = loadWs();
     const ev = []; const c = W.interimCutter((e) => ev.push(e));
@@ -362,7 +510,7 @@ describe('§2.4 ws-transcribe: cutters and adapters', () => {
   test('ws-realtime: key rides the subprotocol, session.update on open, deltas → finals, error → error event', () => {
     const { W, sockets } = loadWs();
     const ev = [];
-    const s = W.open({ url: 'wss://x/v1/realtime?intent=transcription', type: 'ws-realtime', apiKey: 'SECRET', keyProtocol: 'vendor-insecure-api-key.', model: 'live', rate: 24000, langs: ['en'], onEvent: (e) => ev.push(e) });
+    const s = W.open({ url: 'wss://x/v1/realtime?intent=transcription', type: 'ws-realtime', apiKey: 'SECRET', keyProtocol: 'vendor-insecure-api-key.', model: 'live', rate: 24000, langs: ['en'], params: { delay: 'minimal' }, onEvent: (e) => ev.push(e) });
     const ws = sockets[0];
     deepEq(ws.protocols, ['realtime', 'vendor-insecure-api-key.SECRET']);
     ws._open();
@@ -370,6 +518,7 @@ describe('§2.4 ws-transcribe: cutters and adapters', () => {
     eq(upd.type, 'session.update'); eq(upd.session.type, 'transcription');
     eq(upd.session.audio.input.format.rate, 24000); eq(upd.session.audio.input.turn_detection, null);
     deepEq(upd.session.audio.input.transcription.languages, ['en']);
+    eq(upd.session.audio.input.transcription.delay, 'minimal', 'registry liveParams ride into the session config');
     eq(s.sendPcm(new Int16Array(4)), false, 'not ready before session.updated');
     ws._msg({ type: 'session.updated' });
     ok(s.sendPcm(new Int16Array(4)));

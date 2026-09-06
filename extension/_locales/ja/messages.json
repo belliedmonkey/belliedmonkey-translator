@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 音声を字幕に文字起こし"
+  },
+  "asr_incremental": {
+    "message": "話しながら翻訳（速い・訳文は更新される）"
+  },
+  "asr_history": {
+    "message": "字幕履歴パネル"
+  },
+  "asr_history_title": {
+    "message": "履歴 · 確定文"
   }
 }

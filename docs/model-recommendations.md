@@ -84,7 +84,7 @@
 | `o3-mini` | 2026-08-20 | ✅ 采纳 | 基线 5782ms · 降档后 2785ms | `{"reasoning_effort":"low"}` | 不发时慢一倍；而 gpt-5 系那个 minimal 在这里直接 400，合成一行会打断一条能用的路 |
 | `o4-mini` | 2026-08-20 | ✅ 采纳 | 基线 3332ms · 降档后 2642ms | `{"reasoning_effort":"low"}` | 同 o3-mini |
 | `whisper-1` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 89690ms | — | 文件式转写（verbose_json + segment/word 时间戳）：英文 12 分钟 38.3s / WER 2.5%，29.8 分钟 89.7s（另一次 92.5s，贴着 90s 的线）/ WER 2.1%；中文 12.6 分钟 46.7s / CER 7.7%，19.9 分钟 70.4s / CER 11.0%（含 LibriVox 片头片尾约 1 个点）。segment 边界不按句子切（原始句界命中 36%），按句末标点重切后 95%。gpt-transcribe 拒绝 verbose_json（"not compatible with model"），没有时间戳，做不了字幕。**参数层面没扫过** —— 转写这条路没有可调参数。 |
-| `gpt-live-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 2238ms | — | Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。 |
+| `gpt-live-transcribe` | 2026-09-06 | 🔵 可达（参数未扫） | 基线 2238ms | — | Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**delay 档位 A/B（3 分钟英文，同一段）**：默认 p50 1.72s / p90 2.63s；low 0.78s / 2.29s；**minimal 0.18s / 0.35s**，三档 WER 相同（11.3%，3 分钟样本含 LibriVox 片头） ⇒ 注册表 liveParams 写 minimal。medium/high/xhigh 未扫（只会更慢）。 |
 
 ### `api.deepseek.com`
 

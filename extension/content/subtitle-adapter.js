@@ -29,6 +29,9 @@
 //                   calls on media change / disable / settings change / 「停止转写」.
 //   unavailableAction(): {label, onClick} | null — (optional) a button rendered inside the
 //                   `字幕不可用` notice (the §2.4 offer). Re-read every tick.
+//   placeHistory(el): bool — (optional) mount + position the 字幕历史 panel (e.g. inside the
+//                   player, bottom-right, above the controls). Default: viewport-fixed
+//                   bottom-right. Return false to hide it this tick.
 //   onSettingsChange(cfg): void — (optional) e.g. abort a live session when its engine changed
 //   placeOverlay(ov): bool — (re)mount + position the overlay; false ⇒ skip render this tick
 //   fontPx():       number
@@ -60,9 +63,55 @@ var SubtitleAdapter = (() => {
     let watchAcc = { key: '', ms: 0, done: false };
     let status = '';           // '' | 'loading' | 'ready' | 'unavailable' | 'streaming'
     let inFlight = false, attempts = 0, nextAt = 0;
+    // Every (re)start of acquisition bumps the epoch; an acquire that resolves after
+    // the epoch moved (media changed, acquireVia took over) must not touch `status`.
+    let acquireEpoch = 0;
     // §2.4 streaming state: the backend-supplied acquire (set by acquireVia), its abort
     // hook, the open-tail merger, and a custom notice line (a stop reason, never silent).
     let asrAcquire = null, streamAbort = null, merger = null, noticeMsg = '';
+    // Live-tier partial (the sentence being spoken, words arriving as they are recognised).
+    // DISPLAY ONLY — it never reaches the Engine, so nothing is translated word by word;
+    // it fills the original line between closed sentences so the overlay reads like live
+    // captions instead of going blank for the length of every sentence.
+    let livePartial = { text: '', at: 0 };
+    const PARTIAL_TTL_MS = 8000;
+    // 边说边译 (§2.4 rule 3 as amended 2026-09-06): in a live session the growing partial
+    // is translated too — debounced, one request in flight, stale answers dropped — and
+    // the translation line is REPLACED as the sentence grows. When the sentence closes,
+    // a partial translation of that exact text becomes the unit's `tr`, so the Engine
+    // does not pay for it twice. Off ⇒ today's whole-sentence behaviour.
+    let liveIncremental = true;
+    // 字幕历史面板 (§2.4 as amended 2026-09-06): in a live session the overlay shows only
+    // the stream (partial + provisional translation); every CLOSED sentence and its
+    // whole-sentence translation goes to a floating multi-line panel instead — the
+    // "corrected" record. Renderer-only: the Engine still translates closed sentences.
+    let historyOn = true;
+    const HISTORY_MAX = 40;
+    let historyRows = new Map();   // unit → { row, orig, trans, state }
+    let historyStick = true;       // auto-scroll unless the user scrolled up
+    let historyCaptured = new Set();
+    let partialTr = { text: '', tr: '' };
+    let partialTimer = null, partialInFlight = '';
+    const PARTIAL_DEBOUNCE_MS = 900;
+    const normText = (t) => String(t || '').toLowerCase().replace(/[\s\p{P}]+/gu, '');
+    function schedulePartialTranslate() {
+      if (!liveIncremental) return;
+      clearTimeout(partialTimer);
+      partialTimer = setTimeout(() => {
+        const text = livePartial.text;
+        if (!text || partialInFlight || normText(text) === normText(partialTr.text)) return;
+        // too short to mean anything yet: 2 Latin words or 4 CJK characters
+        if (!(/\s\S/.test(text.trim()) || normText(text).length >= 4)) return;
+        partialInFlight = text;
+        Promise.resolve().then(() => spec.translate(text, settings)).then((tr) => {
+          if (partialInFlight !== text) return; // a newer partial superseded this one
+          if (TranslationCore.isTranslated(text, tr)) partialTr = { text, tr };
+        }).catch(() => {}).finally(() => {
+          if (partialInFlight === text) partialInFlight = '';
+          if (livePartial.text && livePartial.text !== text) schedulePartialTranslate();
+        });
+      }, PARTIAL_DEBOUNCE_MS);
+    }
     let lastNoticeKey = '';
     // Live: a sentence closes only after it was spoken (§2.4), so the pair stays for
     // HOLD_MS past its end and the "pending" flicker waits a longer grace. File/default:
@@ -77,7 +126,10 @@ var SubtitleAdapter = (() => {
     function abortStream(why) {
       const fn = streamAbort; streamAbort = null;
       if (fn) { try { fn(why); } catch (_) {} }
-      merger = null;
+      merger = null; livePartial = { text: '', at: 0 }; partialTr = { text: '', tr: '' }; partialInFlight = ''; clearTimeout(partialTimer);
+      // the panel's rows stay readable after a stop; only the live dot goes
+      const dot = document.getElementById(HID) && document.getElementById(HID).querySelector('.' + HID + '-dot');
+      if (dot) dot.textContent = '';
     }
     function makeCtx() {
       let live = false;
@@ -85,7 +137,16 @@ var SubtitleAdapter = (() => {
         push(cues) {
           if (!merger) merger = TranslationCore.createCueMerger();
           const closed = merger.push(cues);
-          if (closed.length) engine.appendItems(closed);
+          for (const u of closed) {
+            // reuse the incremental translation when it was for this very text
+            if (partialTr.tr && normText(u.text) === normText(partialTr.text)) { u.tr = partialTr.tr; u._done = true; }
+          }
+          if (closed.length) {
+            engine.appendItems(closed);
+            // the stream moved on: a partial translation still in flight is for the
+            // sentence that just closed and must not surface under the next one
+            livePartial = { text: '', at: 0 }; partialTr = { text: '', tr: '' }; partialInFlight = ''; clearTimeout(partialTimer);
+          }
         },
         done() {
           if (merger) { const t = merger.flush(); if (t.length) engine.appendItems(t); }
@@ -94,7 +155,13 @@ var SubtitleAdapter = (() => {
         },
         fail(msg) { abortStream('fail'); status = 'unavailable'; noticeMsg = msg || ''; lastShownKey = ''; },
         notice(msg) { noticeMsg = msg || ''; },
-        mode(kind) { live = kind === 'live'; applyWindow(live ? LIVE_WINDOW : FILE_WINDOW); },
+        partial(text) { livePartial = { text: String(text || ''), at: Date.now() }; schedulePartialTranslate(); },
+        mode(kind, opts) {
+          live = kind === 'live';
+          if (opts && typeof opts.incremental === 'boolean') liveIncremental = opts.incremental;
+          if (opts && typeof opts.history === 'boolean') historyOn = opts.history;
+          applyWindow(live ? LIVE_WINDOW : FILE_WINDOW);
+        },
         onAbort(fn) { streamAbort = fn; },
       };
     }
@@ -220,7 +287,93 @@ var SubtitleAdapter = (() => {
       if (ov) for (const cls of [ID.orig, ID.trans]) { const el = ov.querySelector('.' + cls); if (el) { el.textContent = ''; el.style.display = 'none'; } }
       lastShownKey = ''; lastNoticeKey = '';
     }
-    function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); }
+    function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); removeHistory(); }
+
+    // ─── 字幕历史面板 ───────────────────────────────────────────────────
+    const HID = ID.history || (ID.overlay + '-history');
+    function historyMount() { return document.fullscreenElement || document.webkitFullscreenElement || document.body; }
+    function ensureHistory() {
+      let el = document.getElementById(HID);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = HID;
+        el.setAttribute('translate', 'no');
+        el.style.cssText = 'position:fixed;right:16px;bottom:206px;width:min(380px,40vw);max-height:40vh;overflow-y:auto;' +
+          'box-sizing:border-box;background:rgba(8,8,8,.92);color:#eee;border-radius:10px;padding:8px 10px;' +
+          'font-size:13px;line-height:1.4;z-index:2147482000;pointer-events:auto;display:flex;flex-direction:column;gap:8px;';
+        el.addEventListener('scroll', () => { historyStick = el.scrollTop + el.clientHeight >= el.scrollHeight - 8; });
+        const head = document.createElement('div');
+        head.className = HID + '-head';
+        head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#9a9a9a;padding:0 2px 2px;';
+        const title = document.createElement('span'); title.textContent = TranslationCore.t('asr_history_title', '字幕历史 · 整句定稿');
+        const dot = document.createElement('span'); dot.className = HID + '-dot';
+        head.appendChild(title); head.appendChild(dot);
+        el.appendChild(head);
+      }
+      if (spec.placeHistory) {
+        if (!spec.placeHistory(el)) { el.style.display = 'none'; return el; }
+        el.style.display = '';
+      } else {
+        const mount = historyMount();
+        if (el.parentElement !== mount) mount.appendChild(el);
+      }
+      const dot = el.querySelector('.' + HID + '-dot');
+      if (dot) dot.textContent = status === 'streaming' ? TranslationCore.t('asr_status_live', '● 实时转写中') : '';
+      return el;
+    }
+    function historyLine(color, italic) {
+      return 'color:' + color + ';white-space:pre-wrap;overflow-wrap:anywhere;' + (italic ? 'font-style:italic;opacity:.85;' : '');
+    }
+    function renderHistory() {
+      const el = ensureHistory();
+      const items = engine.items;
+      const from = Math.max(0, items.length - HISTORY_MAX);
+      // drop rows for units that fell out of the window (or were reset)
+      for (const [u, r] of historyRows) if (items.indexOf(u) < from) { r.row.remove(); historyRows.delete(u); }
+      const trColor = settings.ytTextColor || window.MT_PALETTE.ytTextColor;
+      let appended = false;
+      for (let i = from; i < items.length; i++) {
+        const u = items[i];
+        let r = historyRows.get(u);
+        if (!r) {
+          const row = document.createElement('div');
+          row.className = HID + '-row';
+          row.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+          const orig = document.createElement('div'); orig.className = HID + '-orig'; orig.style.cssText = historyLine('#fff', false); orig.textContent = u.text;
+          const trans = document.createElement('div'); trans.className = HID + '-trans';
+          row.appendChild(orig); row.appendChild(trans);
+          el.appendChild(row);
+          r = { row, orig, trans, state: null };
+          historyRows.set(u, r);
+          appended = true;
+        }
+        r.orig.style.display = displayMode === 'trans' ? 'none' : '';
+        r.trans.style.display = displayMode === 'orig' ? 'none' : '';
+        const st = engine.stateOf(u, u.end);
+        const key = st.translation ? 'tr:' + st.translation : st.state;
+        if (key !== r.state) {
+          r.state = key;
+          r.trans.onclick = null;
+          if (st.translation) {
+            r.trans.style.cssText = historyLine(trColor, false); r.trans.textContent = st.translation;
+            // Learning layer (§9.1 sink): the pair is "displayed" the moment its final
+            // translation lands in the panel — once per sentence, only while the session runs.
+            if (status === 'streaming' && !historyCaptured.has(u)) {
+              historyCaptured.add(u);
+              try { LearnCollector.noteSubtitle({ text: u.text, tr: st.translation, startMs: u.start, endMs: u.end, mediaKey: spec.mediaKey ? spec.mediaKey() : '' }); } catch (_) {}
+            }
+          } else if (st.state === 'error') {
+            r.trans.style.cssText = historyLine('#ffb3b3', false) + 'cursor:pointer;pointer-events:auto;'; r.trans.textContent = TranslationCore.MSG.error;
+            r.trans.onclick = () => { engine.retry(u); r.state = null; };
+          } else {
+            r.trans.style.cssText = historyLine('#d6d6d6', true); r.trans.textContent = TranslationCore.MSG.preparing;
+          }
+        }
+        r.row.style.opacity = i < items.length - 3 ? '0.7' : '1';
+      }
+      if (appended && historyStick) { try { el.scrollTop = el.scrollHeight; } catch (_) {} }
+    }
+    function removeHistory() { document.getElementById(HID)?.remove(); historyRows = new Map(); historyCaptured = new Set(); historyStick = true; }
 
     // ─── Display loop ──────────────────────────────────────────────────
     const MAX_ATTEMPTS = spec.maxAttempts || RESOLVE_MAX_ATTEMPTS;
@@ -233,12 +386,16 @@ var SubtitleAdapter = (() => {
 
       const key = spec.mediaKey();
       if (key !== lastKey) {
-        lastKey = key;
         // A §2.4 session belongs to the media it was tapped for: stop it, and require a
         // fresh tap for the next media (never an automatic restart of a paid session).
-        abortStream('media'); asrAcquire = null; noticeMsg = ''; applyWindow(FILE_WINDOW);
+        // The FIRST key after activation is not a change — acquireVia may already have
+        // registered the session for exactly this media.
+        const realChange = lastKey !== '';
+        lastKey = key;
+        if (realChange) { abortStream('media'); asrAcquire = null; removeHistory(); }
+        noticeMsg = ''; applyWindow(FILE_WINDOW);
         engine.setItems([]); engine.reset();
-        inFlight = false; attempts = 0; nextAt = 0; status = ''; clearOverlay();
+        inFlight = false; attempts = 0; nextAt = 0; status = ''; clearOverlay(); acquireEpoch++;
         if (spec.onMediaKeyChange) spec.onMediaKeyChange(); // backend resets its own acquire state
       }
 
@@ -249,26 +406,45 @@ var SubtitleAdapter = (() => {
         inFlight = true; status = status === 'ready' ? 'ready' : 'loading'; attempts++;
         const ctx = makeCtx();
         const fn = asrAcquire || spec.acquire;
+        const epoch = acquireEpoch;
         Promise.resolve().then(() => fn(ctx)).then((res) => {
+          if (epoch !== acquireEpoch) return; // superseded: a newer acquisition owns `status`
           if (res === 'unavailable') { status = 'unavailable'; }
           else if (res === 'streaming') { if (status !== 'unavailable') status = 'streaming'; }
           else if (res && res.length) { engine.setItems(TranslationCore.mergeSentences(res)); status = 'ready'; }
           else if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; }
           else { nextAt = Date.now() + RESOLVE_RETRY_MS; }
         }).catch(() => {
+          if (epoch !== acquireEpoch) return;
           if (attempts >= MAX_ATTEMPTS) status = 'unavailable';
           else nextAt = Date.now() + RESOLVE_RETRY_MS;
-        }).finally(() => { inFlight = false; });
+        }).finally(() => { if (epoch === acquireEpoch) inFlight = false; });
       }
 
       const br = spec.beforeRender ? spec.beforeRender() : undefined;
       if (br === 'clear') { if (lastShownKey) clearOverlay(); return; }
       if (br === 'skip') return;
 
+      const tMs = spec.getCurrentTime();
+      let s = null;
+      if (engine.items.length) { engine.pump(); s = engine.activeAt(tMs); }
+      if (status === 'streaming') {
+        if (historyOn) { renderHistory(); s = null; } // panel shows closed sentences; overlay shows only the stream
+        else if (document.getElementById(HID)) removeHistory();
+      }
+      if (!s) {
+        // Between closed sentences in a live session: show what is being said right now
+        // (and, in 边说边译 mode, the latest partial translation under it).
+        const fresh = livePartial.text && Date.now() - livePartial.at < PARTIAL_TTL_MS;
+        if (status === 'streaming' && fresh) {
+          const en = displayMode === 'trans' ? '' : livePartial.text;
+          const zh = (displayMode !== 'orig' && liveIncremental && partialTr.tr) ? partialTr.tr + '…' : null;
+          const k = 'partial|' + en + '|' + (zh || '');
+          if (k !== lastShownKey) { renderOverlay(en, zh, '', null); lastShownKey = k; }
+          return;
+        }
+      }
       if (engine.items.length) {
-        const tMs = spec.getCurrentTime();
-        engine.pump();
-        const s = engine.activeAt(tMs);
         if (!s) { if (lastShownKey) clearOverlay(); return; }
         const fp = spec.fontPx();
         const width = spec.textWidth();
@@ -382,6 +558,18 @@ var SubtitleAdapter = (() => {
         menu.appendChild(sep());
       }
       if (streamAbort) {
+        menu.appendChild(row(T('asr_history', '字幕历史面板'), { checked: historyOn, onClick: () => {
+          historyOn = !historyOn;
+          try { chrome.storage.local.set({ asrHistoryPanel: historyOn ? 'on' : 'off' }); } catch (_) {}
+          if (!historyOn) removeHistory();
+          lastShownKey = '';
+          closeMenu();
+        } }));
+        menu.appendChild(row(T('asr_incremental', '边说边译（快，译文会改）'), { checked: liveIncremental, onClick: () => {
+          liveIncremental = !liveIncremental;
+          try { chrome.storage.local.set({ asrLiveMode: liveIncremental ? 'incremental' : 'sentence' }); } catch (_) {}
+          closeMenu();
+        } }));
         menu.appendChild(row(T('asr_stop', '停止转写'), { onClick: () => { stopAsr(); closeMenu(); } }));
         menu.appendChild(sep());
       }
@@ -439,7 +627,7 @@ var SubtitleAdapter = (() => {
     // ─── Public API ────────────────────────────────────────────────────
     function setActive(on) {
       active = on;
-      if (on) { lastKey = ''; inFlight = false; attempts = 0; nextAt = 0; status = ''; }
+      if (on) { lastKey = ''; inFlight = false; attempts = 0; nextAt = 0; status = ''; acquireEpoch++; }
       // 用量事件：字幕会话开始，只记站点**类别**（youtube / substack / podcast / other），不记域名。
       if (on && (typeof MTTelemetry !== 'undefined')) {
         subOkSent = false; subSince = Date.now();
@@ -455,8 +643,11 @@ var SubtitleAdapter = (() => {
     function acquireVia(fn) {
       abortStream('restart');
       asrAcquire = fn; noticeMsg = '';
-      status = ''; attempts = 0; nextAt = 0; inFlight = false;
+      status = ''; attempts = 0; nextAt = 0; inFlight = false; acquireEpoch++;
       engine.setItems([]); engine.reset(); clearOverlay();
+      // With subtitles off, setActive's own tick sees the FIRST media key (not a change,
+      // so the session registered above survives) and runs it. Found live: an earlier
+      // version cleared the session on that first tick and ended in a plain 字幕不可用.
       if (!active) setActive(true); else tick();
     }
     // User-initiated stop: back to the offer, never a silent state.

@@ -231,6 +231,27 @@ Gemini and Meta are measured the same way before their entries ship.
    ≈ 1.8 s p50 before translation); the Renderer holds it on screen for `HOLD_MS`
    after its end or until the next sentence, and the live window uses a longer
    `GRACE_MS` so `⏳ 译文准备中…` does not flicker on every sentence.
+   *Amended 2026-09-06 (user decision, after trying a YouTube live stream):* the live
+   tier may additionally **translate the growing partial** — 「边说边译」, on by default
+   for live sessions, a menu toggle. The original line shows words as they are
+   recognised; the translation line shows a debounced (≈ 0.9 s), one-in-flight
+   translation of the partial and is **replaced** as the sentence grows; when the
+   sentence closes, a partial translation of that exact text becomes the unit's `tr`
+   (no second request). This is a Renderer/harness affair: the Engine still receives
+   only closed sentences, and the "no word-by-word" clause is read as *no per-word
+   units in the Engine and never for fetched transcripts*, not as *no live feedback*.
+   The cost is bounded by the debounce (≈ 3–5 partial requests per sentence) and the
+   quality of a partial is by construction provisional — the UI marks it with an
+   ellipsis. Run-on speech is closed at a clause boundary past ~90 characters so a
+   speaker who never lands a period does not hold the pair back indefinitely.
+   *Same day, second step:* the Renderer gains a **second output surface** for the
+   live tier — a floating multi-line 「字幕历史」 panel (bottom-right of the viewport,
+   inside the fullscreen element when there is one) that lists the closed sentences
+   with their whole-sentence translations, the corrected record; while it is on
+   (default, a menu toggle remembered in storage) the in-video overlay shows ONLY the
+   stream — the partial and its provisional translation — and never a closed
+   sentence. The Engine is unchanged; the learning Collector treats a pair as
+   displayed the moment its final translation lands in the panel, once per sentence.
 4. **Capture is the capability, not the floor.** Tier B depends on
    `HTMLMediaElement.captureStream()` (Chrome, Firefox) or Web Audio's
    `createMediaElementSource` (Safari), both of which refuse or silence cross-origin

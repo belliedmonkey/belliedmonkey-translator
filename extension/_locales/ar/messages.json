@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 تفريغ الصوت إلى ترجمة"
+  },
+  "asr_incremental": {
+    "message": "ترجمة أثناء الكلام (سريعة، قد تتغير)"
+  },
+  "asr_history": {
+    "message": "لوحة سجل الترجمة"
+  },
+  "asr_history_title": {
+    "message": "السجل · جمل كاملة"
   }
 }

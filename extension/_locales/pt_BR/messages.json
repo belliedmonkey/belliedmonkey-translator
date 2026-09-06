@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 Transcrever áudio em legendas"
+  },
+  "asr_incremental": {
+    "message": "Traduzir enquanto falam (rápido, pode mudar)"
+  },
+  "asr_history": {
+    "message": "Painel de histórico de legendas"
+  },
+  "asr_history_title": {
+    "message": "Histórico · frases completas"
   }
 }

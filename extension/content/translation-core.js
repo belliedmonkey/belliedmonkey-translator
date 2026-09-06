@@ -483,9 +483,13 @@ var TranslationCore = (() => {
       detect: cfg.detect,
       onOk: cfg.onOk, onFail: cfg.onFail,   // 用量事件的两个钩子（docs/telemetry-design.md §3），可缺省
       // sliding window: only sentences from now to +AHEAD_MS
+      // HOLD_MS widens the window backwards too: a live-tier sentence (§2.4) closes at
+      // the moment it was spoken, so its `end` is already behind the playhead when it
+      // arrives — with the plain `u.end < tMs` test it would never be translated at all.
       selectActive: (units) => {
         const tMs = getCurrentTime();
-        return units.filter((u) => !(u.end < tMs || u.start > tMs + win.AHEAD_MS));
+        const hold = win.HOLD_MS || 0;
+        return units.filter((u) => !(u.end + hold < tMs || u.start > tMs + win.AHEAD_MS));
       },
     });
 

@@ -99,6 +99,10 @@ module.exports = [
     liveEndpoint: 'wss://api.openai.com/v1/realtime?intent=transcription',
     liveType: 'ws-realtime', liveModel: 'gpt-live-transcribe', liveRate: 24000,
     liveKeyProtocol: 'openai-insecure-api-key.',
+    // 会话参数（直接并进 transcription 配置）。实测 2026-09-06 A/B（3 分钟英文，同一段音频）：
+    // 默认档滞后 p50 1.72s / p90 2.63s；`delay:'low'` 0.78s / 2.29s；`delay:'minimal'`
+    // **0.18s / 0.35s**，三档 WER 相同 —— 见台账 gpt-live-transcribe 行。
+    liveParams: { delay: 'minimal' },
   },
   {
     // GLOBAL ONLY（Gemini 在中国大陆不开放）。文件一档走 Interactions 接口：JSON 内联

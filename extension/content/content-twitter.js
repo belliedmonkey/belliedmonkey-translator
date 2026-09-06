@@ -233,7 +233,7 @@ var TwitterTranslator = (() => {
 
   const T = TranslationCore.t;
   const ui = SubtitleAdapter.createSubtitleUI({
-    ids: { overlay: 'mt-tw-overlay', orig: 'mt-tw-orig', trans: 'mt-tw-trans', btn: 'mt-tw-btn', menu: 'mt-tw-menu', meas: 'mt-tw-meas' },
+    ids: { overlay: 'mt-tw-overlay', orig: 'mt-tw-orig', trans: 'mt-tw-trans', btn: 'mt-tw-btn', menu: 'mt-tw-menu', meas: 'mt-tw-meas', history: 'mt-tw-history' },
     hasMedia: () => !!activeVideo(),
     mediaKey: activeKey,
     getCurrentTime: () => (activeVideo()?.currentTime || 0) * 1000,

@@ -455,7 +455,7 @@ async function liveOpenai(pcm, lang, minutes, model) {
         type: 'transcription',
         audio: { input: {
           format: { type: 'audio/pcm', rate },
-          transcription: { model: model || 'gpt-live-transcribe', ...(lang ? { languages: [lang] } : {}) },
+          transcription: { model: model || 'gpt-live-transcribe', ...(lang ? { languages: [lang] } : {}), ...(process.env.ASR_DELAY ? { delay: process.env.ASR_DELAY } : {}) },
           turn_detection: null,
         } },
       } }));

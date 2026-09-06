@@ -34,6 +34,8 @@ var AsrSource = (() => {
   const PROCESSOR_FRAMES = 4096;
   const MIN_DURATION_S = 30;                // the offer only for media at least this long
   const STT_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel'];
+  const MODE_KEY = 'asrLiveMode'; // 'incremental' (default, 边说边译) | 'sentence'
+  const HISTORY_KEY = 'asrHistoryPanel'; // 'on' (default) | 'off'
 
   const T = (k, fb) => (typeof TranslationCore !== 'undefined' ? TranslationCore.t(k, fb) : fb);
 
@@ -43,12 +45,13 @@ var AsrSource = (() => {
     return list.find((e) => e.id === id) || null;
   }
   async function readSttConfig() {
-    const s = await RequestShape.storageGet(STT_KEYS);
+    const s = await RequestShape.storageGet(STT_KEYS.concat([MODE_KEY, HISTORY_KEY]));
     const eng = engineById(s.sttEngine);
     if (!eng) return { ok: false, reason: 'no_engine' };
     if (eng.requiresEndpoint && !s.sttBaseUrl) return { ok: false, reason: 'no_base' };
     if (eng.needsKey && !s.sttApiKey) return { ok: false, reason: 'no_key' };
-    return { ok: true, eng, apiKey: s.sttApiKey || '', baseUrl: s.sttBaseUrl || '', model: s.sttModel || eng.defaultModel || '' };
+    return { ok: true, eng, apiKey: s.sttApiKey || '', baseUrl: s.sttBaseUrl || '', model: s.sttModel || eng.defaultModel || '',
+      incremental: s[MODE_KEY] !== 'sentence', history: s[HISTORY_KEY] !== 'off' };
   }
   // §2.4 rule 6: a change to the transcription settings stops every running session,
   // visibly. Sessions register here; the storage listener below fans out.
@@ -233,7 +236,7 @@ var AsrSource = (() => {
   async function liveTier({ el, url, cfg, ctx, signal, language }) {
     const eng = cfg.eng;
     if (!eng.liveEndpoint || !eng.liveType) throw named('nolive', eng.label || eng.id);
-    ctx.mode('live');
+    ctx.mode('live', { incremental: cfg.incremental !== false, history: cfg.history !== false });
     const { ac, sourceNode } = await attachCapture(el, url, signal);
     const rate = eng.liveRate || 16000;
     const resample = makeResampler(ac.sampleRate, rate);
@@ -243,11 +246,12 @@ var AsrSource = (() => {
     let stopped = false;
     const sock = WsTranscribe.open({
       url: eng.liveEndpoint, type: eng.liveType, apiKey: cfg.apiKey, keyProtocol: eng.liveKeyProtocol || '', model: eng.liveModel || cfg.model, rate,
+      params: eng.liveParams || null,
       langs: language ? [language] : [],
       onEvent: (ev) => {
         if (stopped) return;
         const now = Math.round(el.currentTime * 1000);
-        if (ev.kind === 'partial') { if (sentenceStart == null) sentenceStart = now; }
+        if (ev.kind === 'partial') { if (sentenceStart == null) sentenceStart = now; if (ctx.partial) ctx.partial(ev.text); }
         else if (ev.kind === 'final') {
           const start = sentenceStart == null ? Math.max(0, now - 2000) : sentenceStart;
           sentenceStart = null;

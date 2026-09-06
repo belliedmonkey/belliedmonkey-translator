@@ -457,7 +457,7 @@ module.exports = [
     host: 'api.openai.com', model: 'gpt-live-transcribe', date: '2026-09-06',
     baseline: { ms: 2238, thinkTokens: null, outChars: 7160, finish: 'stop' },
     verdict: 'reachable',
-    why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（delay 档位 minimal/low/medium/high/xhigh 未试）。',
+    why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**delay 档位 A/B（3 分钟英文，同一段）**：默认 p50 1.72s / p90 2.63s；low 0.78s / 2.29s；**minimal 0.18s / 0.35s**，三档 WER 相同（11.3%，3 分钟样本含 LibriVox 片头） ⇒ 注册表 liveParams 写 minimal。medium/high/xhigh 未扫（只会更慢）。',
   },
   {
     host: 'generativelanguage.googleapis.com', model: 'gemini-3.5-transcribe', date: '2026-09-06',

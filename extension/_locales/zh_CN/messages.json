@@ -2177,5 +2177,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 转写音频字幕"
+  },
+  "asr_incremental": {
+    "message": "边说边译（快，译文会改）"
+  },
+  "asr_history": {
+    "message": "字幕历史面板"
+  },
+  "asr_history_title": {
+    "message": "字幕历史 · 整句定稿"
   }
 }

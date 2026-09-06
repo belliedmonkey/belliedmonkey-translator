@@ -58,6 +58,24 @@ var WsTranscribe = (() => {
   // A tiny sentence cutter for word-delta streams: emits a final as soon as the buffer
   // holds a terminal, keeps the rest as the open partial. Same closing intent as
   // TranslationCore.createCueMerger; that one works on cues, this one on characters.
+  //
+  // Run-on speech (a speaker who never lands a period) would otherwise hold the pair
+  // back indefinitely, so a long open tail is closed at its last CLAUSE boundary
+  // (comma / semicolon / dash / CJK 、，；) once it passes CLAUSE_CHARS, and at a word
+  // boundary once it passes HARD_CHARS. Still never a word or a fragment: the unit the
+  // Engine receives is a clause with its context, which is what §2.4 rule 3 protects.
+  const CLAUSE_CHARS = 90;
+  const HARD_CHARS = 160;
+  const CLAUSE_RE = /[,;:，、；：—–]\s*(?=\S)/g;
+  function clauseCut(text) {
+    if (text.length < CLAUSE_CHARS) return null;
+    let last = -1, m;
+    CLAUSE_RE.lastIndex = 0;
+    while ((m = CLAUSE_RE.exec(text))) if (m.index >= 20) last = m.index + m[0].length;
+    if (last > 0) return last;
+    if (text.length >= HARD_CHARS) { const sp = text.lastIndexOf(' ', HARD_CHARS); return sp > 20 ? sp + 1 : HARD_CHARS; }
+    return null;
+  }
   function sentenceCutter(emit) {
     let pending = '';
     return {
@@ -66,6 +84,12 @@ var WsTranscribe = (() => {
         const { done, tail } = completeSentences(pending);
         for (const s of done) emit({ kind: 'final', text: s });
         pending = tail;
+        let cut;
+        while ((cut = clauseCut(pending)) != null) {
+          const head = pending.slice(0, cut).trim();
+          pending = pending.slice(cut);
+          if (head) emit({ kind: 'final', text: head });
+        }
         if (pending.trim()) emit({ kind: 'partial', text: pending.trim() });
       },
       flush() { const t = pending.trim(); pending = ''; if (t) emit({ kind: 'final', text: t }); },
@@ -141,7 +165,7 @@ var WsTranscribe = (() => {
           type: 'transcription',
           audio: { input: {
             format: { type: 'audio/pcm', rate: o.rate },
-            transcription: Object.assign({ model: o.model }, o.langs && o.langs.length ? { languages: o.langs } : {}),
+            transcription: Object.assign({ model: o.model }, o.langs && o.langs.length ? { languages: o.langs } : {}, o.params || {}),
             turn_detection: null,
           } },
         } }));
@@ -254,7 +278,7 @@ var WsTranscribe = (() => {
     return fn(o, emit);
   }
 
-  return { open, sentenceCutter, interimCutter, splitSentences, completeSentences, stripKey, TYPES: Object.keys(ADAPTERS), RING_MS, BIDI_RECONNECT_MS };
+  return { open, sentenceCutter, interimCutter, splitSentences, completeSentences, clauseCut, stripKey, TYPES: Object.keys(ADAPTERS), RING_MS, BIDI_RECONNECT_MS, CLAUSE_CHARS, HARD_CHARS };
 })();
 
 if (typeof window !== 'undefined') window.WsTranscribe = WsTranscribe;

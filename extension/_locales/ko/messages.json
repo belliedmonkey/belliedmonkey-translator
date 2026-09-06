@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 오디오를 자막으로 전사"
+  },
+  "asr_incremental": {
+    "message": "말하는 대로 번역（빠름, 번역이 바뀔 수 있음）"
+  },
+  "asr_history": {
+    "message": "자막 기록 패널"
+  },
+  "asr_history_title": {
+    "message": "기록 · 완성 문장"
   }
 }

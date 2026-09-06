@@ -272,7 +272,7 @@ var PodcastTranslator = (() => {
   const T = TranslationCore.t;
   ui = SubtitleAdapter.createSubtitleUI({
     telemetrySite: /(^|\.)substack\.com$/.test(location.hostname) ? 'substack' : 'podcast',
-    ids: { overlay: 'mt-pod-overlay', orig: 'mt-pod-orig', trans: 'mt-pod-trans', btn: 'mt-pod-btn', menu: 'mt-pod-menu', meas: 'mt-pod-meas' },
+    ids: { overlay: 'mt-pod-overlay', orig: 'mt-pod-orig', trans: 'mt-pod-trans', btn: 'mt-pod-btn', menu: 'mt-pod-menu', meas: 'mt-pod-meas', history: 'mt-pod-history' },
     menuToggle: false, // podcast is toggled by the page FAB — no on/off row in the menu
     hasMedia,
     mediaKey: episodeKey,

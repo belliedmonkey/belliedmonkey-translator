@@ -2176,5 +2176,14 @@
   },
   "popup_transcribe_media": {
     "message": "🎙 Transcribe audio into subtitles"
+  },
+  "asr_incremental": {
+    "message": "Translate as they speak (fast, may revise)"
+  },
+  "asr_history": {
+    "message": "Subtitle history panel"
+  },
+  "asr_history_title": {
+    "message": "History · full sentences"
   }
 }
