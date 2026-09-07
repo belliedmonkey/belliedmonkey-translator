@@ -101,14 +101,21 @@
       <p class="note" id="local-note"></p>
       <!-- 对话 · 实时听译（§9.6）在未登录时也存在：它不依赖同步进来的牌库，语料写本机。
            与播客模式不同（那个要牌库，只在登录后的首页）。同一门控、同一条去设置的路。 -->
-      <div class="row">
-        <button id="app-listen-entry2" type="button" class="secondary" hidden></button>
+      <div class="modes">
+        <span class="modes-label" id="modes-label2"></span>
+        <div class="mode-list">
+        <button id="app-listen-entry2" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint2"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        </div>
+        <p class="note" id="modes-privacy2"></p>
+        <p class="note" id="app-listen-need-live2" hidden>
+          <span id="app-listen-need-live-why2"></span>
+          <button id="app-listen-need-live-go2" type="button" class="link"></button>
+        </p>
       </div>
-      <p class="note" id="app-listen-entry-hint2" hidden></p>
-      <p class="note" id="app-listen-need-live2" hidden>
-        <span id="app-listen-need-live-why2"></span>
-        <button id="app-listen-need-live-go2" type="button" class="link"></button>
-      </p>
     </section>
 
     <!-- 首次运行引导（§引导）。
@@ -207,35 +214,46 @@
         </span>
       </header>
 
-      <div id="app-counts" class="counts"></div>
-      <div class="row">
-        <button id="review" type="button"></button>
-        <button id="sync" type="button" class="secondary"></button>
+      <!-- 今日一张卡（design: 大肚猴翻译 App 首页 · 主推）：待复习是唯一的大数字，其余四个
+           计数缩成小字，开始复习是卡内唯一主按钮，同步收成小胶囊 + 上次同步时间。
+           计数由 app.js 的 cell() 按语义类落格，CSS 按类而不是按位置排版。 -->
+      <section class="today">
+        <div class="today-head"><span class="today-label" id="today-label"></span><span class="note" id="last"></span></div>
+        <div id="app-counts" class="counts"></div>
+        <div class="today-bar" aria-hidden="true"><span id="today-bar-learning"></span><span id="today-bar-due"></span></div>
+        <div class="row">
+          <button id="review" type="button"></button>
+          <button id="sync" type="button" class="secondary"></button>
+        </div>
+      </section>
+
+      <!-- 「听」：两个模式做成带图标与一句说明的列表行。门控不过时整行不存在
+           （AppDriving.refreshEntry / AppListen.refreshEntry 切 hidden），两行都不在时整组
+           隐藏（CSS :has）；门没过时留一条可见、有标签、直达设置页那个控件的路。 -->
+      <div class="modes">
+        <span class="modes-label" id="modes-label"></span>
+        <div class="mode-list">
+        <button id="app-drive-start" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z"/><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-drive-desc"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button id="app-listen-entry" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        </div>
+        <p class="note" id="modes-privacy"></p>
+        <p class="note" id="app-drive-need-tts" hidden>
+          <span id="app-drive-need-tts-why"></span>
+          <button id="app-drive-need-tts-go" type="button" class="link"></button>
+        </p>
+        <p class="note" id="app-listen-need-live" hidden>
+          <span id="app-listen-need-live-why"></span>
+          <button id="app-listen-need-live-go" type="button" class="link"></button>
+        </p>
       </div>
-      <!-- 播客模式入口（§9.5）：能力门控 —— 只有 TTS 能开口（uiLang 有音色）才
-           渲染；门不过就不存在，绝不是灰按钮（AppDriving.refreshEntry）。 -->
-      <div class="row">
-        <button id="app-drive-start" type="button" class="secondary" hidden></button>
-      </div>
-      <!-- 门没过时**不留白**：按 interaction-spec「只藏不给路是退化，不是简化」，
-           入口消失的同时要有且只有一条可见、有标签的路通向那个控件本身。
-           落点是设置页的语音那一档（#app-tts-section），不是页面顶部 ——
-           「按钮点了、人到了、控件没找到」是 2026-09-02 真机实测过的失败形状。 -->
-      <p class="note" id="app-drive-need-tts" hidden>
-        <span id="app-drive-need-tts-why"></span>
-        <button id="app-drive-need-tts-go" type="button" class="link"></button>
-      </p>
-      <!-- 对话 · 实时听译入口（§9.6）：门控与播客模式同规矩 —— 转写引擎带实时接口且 key
-           已填才存在；门不过就不存在（AppListen.refreshEntry），并留一条去设置转写那一档的路。 -->
-      <div class="row">
-        <button id="app-listen-entry" type="button" class="secondary" hidden></button>
-      </div>
-      <p class="note" id="app-listen-entry-hint" hidden></p>
-      <p class="note" id="app-listen-need-live" hidden>
-        <span id="app-listen-need-live-why"></span>
-        <button id="app-listen-need-live-go" type="button" class="link"></button>
-      </p>
-      <p class="note" id="last"></p>
     </section>
 
     <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属

@@ -98,6 +98,8 @@
     $('review').textContent = t('app_review_start', '开始复习');
     $('review-back').textContent = t('app_review_back', '← 返回');
     $('sync').textContent = t('app_sync', '同步');
+    $('today-label').textContent = t('app_today_due', '今天待复习');
+    for (const id of ['modes-label', 'modes-label2']) { const e = $(id); if (e) e.textContent = t('app_modes_label', '听'); }
     AppDriving.paintStatic();
     paintAppEmptyState();
   }
@@ -165,15 +167,20 @@
       return d;
     };
     $('app-counts').append(
-      cell(stats.total, t('learn_count_total', '总计')),
+      cell(stats.total, t('learn_count_total', '总计'), 'count-total'),
       cell(due, t('learn_count_due', '待复习'), 'count-due'),
       cell(stats.by.learning || 0, t('learn_count_learning', '学习中'), 'count-learning'),
-      cell(stats.by.candidate || 0, t('learn_count_new', '候选')),
-      cell(stats.by.known || 0, t('learn_count_known', '已掌握')));
+      cell(stats.by.candidate || 0, t('learn_count_new', '候选'), 'count-new'),
+      cell(stats.by.known || 0, t('learn_count_known', '已掌握'), 'count-known'));
+    // 今日卡的进度条：学习中 / 待复习 各占总数的比例（纯装饰，aria-hidden）
+    const total = Math.max(1, stats.total || 0);
+    const pct = (n) => Math.min(100, Math.round((n / total) * 100)) + '%';
+    if ($('today-bar-learning')) $('today-bar-learning').style.width = pct(stats.by.learning || 0);
+    if ($('today-bar-due')) $('today-bar-due').style.width = pct(due);
     // 「上次同步」读统一成功戳；旧装机回退老键（只读回退，不迁移）。
     const last = lastOk || lastLegacy;
     $('last').textContent = last
-      ? new Date(last).toLocaleString()
+      ? t('app_last_sync', '上次同步 {t}').replace('{t}', new Date(last).toLocaleString())
       : t('app_never_synced', '还没有同步过');
   }
 

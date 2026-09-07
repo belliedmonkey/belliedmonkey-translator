@@ -2193,7 +2193,7 @@
     "message": "Conversation"
   },
   "listen_entry": {
-    "message": "🎙 Conversation · live interpreter"
+    "message": "Conversation · live interpreter"
   },
   "listen_entry_hint": {
     "message": "Listen to a foreign language in person: they speak, you read it in your language; hold to speak yours and show them the translation. Audio goes only to the transcription endpoint you configured."
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "Nothing heard — hold and say it again"
+  },
+  "app_today_due": {
+    "message": "Due today"
+  },
+  "app_last_sync": {
+    "message": "Last synced {t}"
+  },
+  "app_modes_label": {
+    "message": "Listen"
+  },
+  "drive_entry_hint": {
+    "message": "Today’s deck read aloud, hands-free"
+  },
+  "listen_entry_short": {
+    "message": "They speak, you read; hold to speak and show them the translation"
+  },
+  "listen_entry_privacy": {
+    "message": "Audio goes only to the transcription endpoint you configured."
   }
 }

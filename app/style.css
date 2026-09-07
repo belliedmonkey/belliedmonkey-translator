@@ -125,14 +125,48 @@ header {
 }
 #who { color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
 
-.counts { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 4px; }
-.counts b { display: block; font-size: 1.7rem; color: var(--fg); font-variant-numeric: tabular-nums; }
+/* ─── 今日一张卡（2026-09-07 首页重设计，画布「大肚猴翻译 App 首页 · 主推」）────
+   待复习是唯一的大数字；学习中挨着它；总计/候选/已掌握缩成第二行小字。
+   格子由 app.js 的 cell() 按语义类落到 grid 区域 —— 按位置 (nth-child) 排的话，
+   格子一旦重排/隐藏就静默错位（同旧的三色规则）。 */
+.today { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.today-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.today-label { font-size: 0.85rem; color: var(--dim); }
+.today-head .note { margin: 0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.counts { display: grid; grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "due learning ." "total new known"; gap: 12px 22px; align-items: end; margin: 0; font-variant-numeric: tabular-nums; }
+.counts > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.counts b { display: block; font-size: 1.06rem; font-weight: 700; color: var(--fg); }
 .counts span { font-size: 0.8rem; color: var(--dim); }
-/* Mock 1b 的三色思路映射到五格：待复习陶土深、学习中鼠尾草，其余墨色。
-   语义类由 app.js 的 cell() 打上——按位置 (nth-child) 上色的话，格子一旦
-   重排/隐藏，颜色就静默错位。 */
-.counts .count-due b { color: var(--accent-deep); }
+.counts .count-due { grid-area: due; }
+.counts .count-due b { font-size: 3.25rem; line-height: 1; letter-spacing: -0.5px; color: var(--accent-deep); }
+.counts .count-learning { grid-area: learning; }
 .counts .count-learning b { color: var(--sage-strong); }
+.counts .count-total { grid-area: total; }
+.counts .count-new { grid-area: new; }
+.counts .count-known { grid-area: known; }
+.today-bar { height: 6px; border-radius: 999px; background: var(--accent-track); overflow: hidden; display: flex; }
+.today-bar span { display: block; height: 100%; width: 0; }
+#today-bar-learning { background: var(--sage); }
+#today-bar-due { background: var(--accent); }
+.today .row { margin: 0; }
+.today .row #review { flex: 1; }
+.today .row #sync { flex: 0 0 auto; }
+
+/* 「听」分组：带图标与一句说明的列表行；两行都不存在时整组消失 */
+.modes { display: flex; flex-direction: column; gap: 8px; }
+.modes-label { font-size: 0.85rem; color: var(--dim); padding: 0 4px; }
+.mode-list { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+.modes:not(:has(.mode:not([hidden]))) .mode-list, .modes:not(:has(.mode:not([hidden]))) .modes-label { display: none; }
+:where(#signed-out, #signed-in) button.mode { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: none; color: var(--fg); border: 0; border-radius: 0; padding: 16px 18px; min-height: 72px; font-weight: 400; }
+:where(#signed-out, #signed-in) button.mode + button.mode { border-top: 1px solid var(--line); }
+.mode-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--section-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mode-icon-sage { color: var(--sage-strong); }
+.mode-icon-terra { color: var(--accent-deep); }
+.mode-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mode-title { font-size: 1rem; font-weight: 700; }
+.mode-desc { font-size: 0.85rem; color: var(--dim); }
+.mode-chev { color: var(--dim); flex-shrink: 0; }
+.modes .note { margin: 0; padding: 0 4px; }
 
 #status { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--dim); }
 #status.err { color: var(--danger); }
@@ -164,7 +198,8 @@ header {
 }
 
 /* ─── Settings ───────────────────────────────────────────────────────────── */
-.head-actions { display: flex; gap: 14px; }
+.head-actions { display: flex; gap: 14px; flex-shrink: 0; white-space: nowrap; }
+header #who { min-width: 0; }
 #app-settings { display: flex; flex-direction: column; gap: 14px; }
 #app-settings h2 { font-size: 1.25rem; margin: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }

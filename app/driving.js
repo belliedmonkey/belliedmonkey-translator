@@ -953,7 +953,10 @@ var AppDriving = (() => {
   function refreshBgNote() { bgNote = backgroundNote(); paint(); }
 
   function paintStatic() {
-    $('app-drive-start').textContent = t('drive_entry', '播客模式');
+    // 入口是首页的列表行（标题 + 一句说明）；标题写进 .mode-title，别把整行的结构抹掉。
+    const entry = $('app-drive-start'); const title = entry.querySelector('.mode-title');
+    (title || entry).textContent = t('drive_entry', '播客模式');
+    if ($('app-drive-desc')) $('app-drive-desc').textContent = t('drive_entry_hint', '今天的牌库连着读，放着听');
     $('app-drive-back').textContent = t('app_review_back', '← 返回');
     $('app-drive-title').textContent = t('drive_entry', '播客模式');
     $('app-drive-next').textContent = t('drive_next', '⏭ 下一张');

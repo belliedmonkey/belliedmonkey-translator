@@ -2193,7 +2193,7 @@
     "message": "대화"
   },
   "listen_entry": {
-    "message": "🎙 대화 · 실시간 통역"
+    "message": "대화 · 실시간 통역"
   },
   "listen_entry_hint": {
     "message": "대면으로 외국어 듣기: 상대가 말하면 내 언어로 읽고, 길게 눌러 말하면 외국어로 번역해 상대에게 보여줍니다. 음성은 설정한 전사 엔드포인트로만 전송됩니다."
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "들리지 않았습니다 — 다시 길게 누르고 말하세요"
+  },
+  "app_today_due": {
+    "message": "오늘 복습"
+  },
+  "app_last_sync": {
+    "message": "마지막 동기화 {t}"
+  },
+  "app_modes_label": {
+    "message": "듣기"
+  },
+  "drive_entry_hint": {
+    "message": "오늘의 덱을 이어서 읽어 줍니다"
+  },
+  "listen_entry_short": {
+    "message": "상대가 말하면 읽고, 길게 눌러 말하면 상대에게 번역해 보여줍니다"
+  },
+  "listen_entry_privacy": {
+    "message": "음성은 설정한 전사 엔드포인트로만 전송됩니다."
   }
 }

@@ -2193,7 +2193,7 @@
     "message": "Conversación"
   },
   "listen_entry": {
-    "message": "🎙 Conversación · intérprete en vivo"
+    "message": "Conversación · intérprete en vivo"
   },
   "listen_entry_hint": {
     "message": "Escucha un idioma extranjero en persona: la otra persona habla, tú lo lees en tu idioma; mantén pulsado para hablar y muéstrale la traducción. El audio solo va al punto de transcripción que configuraste."
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "No se oyó nada — mantén pulsado y repite"
+  },
+  "app_today_due": {
+    "message": "Para hoy"
+  },
+  "app_last_sync": {
+    "message": "Última sincronización {t}"
+  },
+  "app_modes_label": {
+    "message": "Escuchar"
+  },
+  "drive_entry_hint": {
+    "message": "El mazo de hoy leído seguido, sin manos"
+  },
+  "listen_entry_short": {
+    "message": "La otra persona habla, tú lees; mantén pulsado para hablar y mostrar la traducción"
+  },
+  "listen_entry_privacy": {
+    "message": "El audio solo va al punto de transcripción que configuraste."
   }
 }

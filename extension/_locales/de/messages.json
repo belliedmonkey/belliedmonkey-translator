@@ -2193,7 +2193,7 @@
     "message": "Gespräch"
   },
   "listen_entry": {
-    "message": "🎙 Gespräch · Live-Dolmetscher"
+    "message": "Gespräch · Live-Dolmetscher"
   },
   "listen_entry_hint": {
     "message": "Fremdsprache vor Ort verstehen: das Gegenüber spricht, du liest es in deiner Sprache; halte gedrückt, um selbst zu sprechen, und zeige die Übersetzung. Audio geht nur an den von dir konfigurierten Transkriptions-Endpunkt."
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "Nichts gehört — halten und noch einmal sprechen"
+  },
+  "app_today_due": {
+    "message": "Heute fällig"
+  },
+  "app_last_sync": {
+    "message": "Zuletzt synchronisiert {t}"
+  },
+  "app_modes_label": {
+    "message": "Hören"
+  },
+  "drive_entry_hint": {
+    "message": "Das heutige Deck am Stück vorgelesen, freihändig"
+  },
+  "listen_entry_short": {
+    "message": "Das Gegenüber spricht, du liest; halten zum Sprechen und die Übersetzung zeigen"
+  },
+  "listen_entry_privacy": {
+    "message": "Audio geht nur an den von dir konfigurierten Transkriptions-Endpunkt."
   }
 }

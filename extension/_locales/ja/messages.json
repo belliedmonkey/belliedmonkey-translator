@@ -2193,7 +2193,7 @@
     "message": "会話"
   },
   "listen_entry": {
-    "message": "🎙 会話 · リアルタイム通訳"
+    "message": "会話 · リアルタイム通訳"
   },
   "listen_entry_hint": {
     "message": "対面で外国語を聞く：相手が話すと、あなたの言語で読める。長押しして話せば、外国語に訳して相手に見せる。音声は設定した文字起こしエンドポイントにのみ送信。"
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "聞き取れませんでした — もう一度長押しして話してください"
+  },
+  "app_today_due": {
+    "message": "今日の復習"
+  },
+  "app_last_sync": {
+    "message": "最終同期 {t}"
+  },
+  "app_modes_label": {
+    "message": "聞く"
+  },
+  "drive_entry_hint": {
+    "message": "今日のデッキを続けて読み上げ、置いたまま聞く"
+  },
+  "listen_entry_short": {
+    "message": "相手が話すと読める。長押しして話せば相手に訳して見せる"
+  },
+  "listen_entry_privacy": {
+    "message": "音声は設定した文字起こしエンドポイントにのみ送信。"
   }
 }
