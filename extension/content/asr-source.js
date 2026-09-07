@@ -70,9 +70,13 @@ var AsrSource = (() => {
   primeConfig();
 
   // ─── Media URL ─────────────────────────────────────────────────────
+  // A streaming manifest (HLS .m3u8 / DASH .mpd) is a playlist, not audio: fetching it and
+  // posting the text to a transcription endpoint yields a meaningless 「无法读取该音频」
+  // (measured 2026-09-07, iOS 17.2 Simulator, Apple's bipbop sample). Not a tier-A URL.
+  const MANIFEST_RE = /\.(m3u8|mpd)(\?|#|$)/i;
   function mediaUrl(el) {
     const src = (el && (el.currentSrc || el.src)) || (el && el.querySelector && (el.querySelector('source') || {}).src) || '';
-    return /^https?:/i.test(src) ? src : '';
+    return /^https?:/i.test(src) && !MANIFEST_RE.test(src) ? src : '';
   }
   function fetchWithTimeout(url, init, ms) {
     const ctl = new AbortController();
@@ -179,7 +183,8 @@ var AsrSource = (() => {
     // user gesture and a running AudioContext — `createMediaElementSource` outputs silence while
     // the element stays audible. Say so before opening a socket; the generic 「捕获不到声音」
     // would blame the user's speakers for what is the browser's limitation.
-    if (noCapture && /^blob:/i.test(el.currentSrc || el.src || '')) throw named('mse', el.currentSrc || el.src);
+    const srcNow = el.currentSrc || el.src || '';
+    if (noCapture && (/^blob:/i.test(srcNow) || MANIFEST_RE.test(srcNow))) throw named('mse', srcNow);
     const ac = prepareAudioContext();
     if (!ac) throw named('media', 'no AudioContext');
     let sourceNode;
@@ -396,7 +401,7 @@ var AsrSource = (() => {
 
   function eligible(el) { return !!el && el.duration >= MIN_DURATION_S; }
 
-  return { startSession, offerFor, start, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MIN_DURATION_S, CHUNK_BYTES };
+  return { startSession, offerFor, start, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES };
 })();
 
 if (typeof window !== 'undefined') window.AsrSource = AsrSource;
