@@ -2262,6 +2262,26 @@
   "listen_speak_hold": {
     "message": "Segurar · eu falo"
   },
+  "listen_speak_hold_mac": {
+    "message": "Segure · Eu falo (ou segure Espaço)",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "Copiar tudo",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Copiado",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Falha ao copiar",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Também funciona em reuniões on-line e videochamadas: basta deixar a voz da outra pessoa sair pelos alto-falantes.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "Soltar · traduzir para a outra pessoa"
   },

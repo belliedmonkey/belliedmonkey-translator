@@ -148,3 +148,16 @@ describe('ListenCore — 边说边译策略', () => {
     eq(calls.length, 1);
   });
 });
+
+describe('ListenCore — 复制全文（macOS 宽屏右栏）', () => {
+  test('一行原文一行译文、空行分段；我说的行带前缀；未译行只有原文，界面词不进剪贴板', () => {
+    const s = { rows: [
+      { who: 'other', text: 'Where is the gate?', tr: '登机口在哪？' },
+      { who: 'me', text: '往前走。', tr: 'Go straight.' },
+      { who: 'other', text: 'Thanks.', tr: '' },
+    ] };
+    eq(C.transcriptText(s, '我：'), 'Where is the gate?\n登机口在哪？\n\n我：往前走。\nGo straight.\n\nThanks.');
+    eq(C.transcriptText({ rows: [] }, '我：'), '');
+    eq(C.transcriptText(null, '我：'), '');
+  });
+});

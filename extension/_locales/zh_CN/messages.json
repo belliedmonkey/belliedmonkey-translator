@@ -2263,6 +2263,26 @@
   "listen_speak_hold": {
     "message": "按住 · 我说"
   },
+  "listen_speak_hold_mac": {
+    "message": "按住 · 我说（或按住空格）",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "复制全文",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "已复制",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "复制失败",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "松手 · 译给对方"
   },

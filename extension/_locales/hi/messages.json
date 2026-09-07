@@ -2094,6 +2094,26 @@
   "listen_speak_hold": {
     "message": "दबाकर रखें · मैं बोलूँ"
   },
+  "listen_speak_hold_mac": {
+    "message": "दबाए रखें · मैं बोलूँ (या Space दबाए रखें)",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "सब कॉपी करें",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "कॉपी हो गया",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "कॉपी नहीं हो सका",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "ऑनलाइन मीटिंग और वीडियो कॉल में भी काम करता है: बस सामने वाले की आवाज़ स्पीकर से बजने दें।",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "छोड़ें · सामने वाले के लिए अनुवाद"
   },

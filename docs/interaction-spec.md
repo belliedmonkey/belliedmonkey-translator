@@ -1437,10 +1437,14 @@ original + provisional translation), **finalized sentences** below.
   no timeline. Listening continues while locked (native capture, learning-design §9.6).
 
 #### macOS
-- Same section in a wide layout: left = now card + the two buttons (「按住 · 我说（或按住
-  空格）」), right = the finalized list with 「复制全文」. Status pill names the input
-  device 「麦克风：MacBook Pro 麦克风」. Typical use named in one grey line: online
-  meetings and video calls.
+- Same section in a wide layout (≥ 720 px, CSS grid over the unchanged DOM): left = now
+  card + the two buttons (「按住 · 我说（或按住空格）」 on a keyboard host), right = the
+  finalized list, taller and self-scrolling, with 「复制全文」 in its head (one line
+  original, one line translation, blank line between; 「我：」 on my rows; untranslated
+  rows copy the original only). Typical use named in one grey line under the language
+  line: online meetings and video calls — let the other side play through the speakers.
+  *(Not done: naming the input device in the status pill — the bridge does not report
+  the device name.)*
 
 #### Settings & sources
 - Settings 学习 gains 「对话进复习」 (default on) next to the capture switch, with the

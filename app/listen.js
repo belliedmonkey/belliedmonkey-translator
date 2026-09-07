@@ -21,6 +21,8 @@
 var AppListen = (() => {
   const $ = (id) => document.getElementById(id);
   const t = (k, fb) => PageI18n.t(k, fb);
+  // macOS 宿主：有物理键盘、没有触屏 —— 「按住」的提示要把空格说出来（interaction-spec「macOS」）。
+  const isMacHost = () => { try { return /^Mac/.test(navigator.platform || '') && !(navigator.maxTouchPoints > 0); } catch (_) { return false; } };
   const C = ListenCore;
   const PROCESSOR_FRAMES = 4096;
   const SOURCE_LABEL = () => t('listen_source_label', '对话');
@@ -557,7 +559,8 @@ var AppListen = (() => {
       : t('listen_toggle_start', '开始听');
     tog.disabled = phase === 'speaking' || phase === 'preparing' || (phase === 'halted' && pauseReason === 'socket-retry');
     const spk = $('app-listen-speak');
-    spk.textContent = phase === 'speaking' ? t('listen_speak_release', '松手 · 译给对方') : t('listen_speak_hold', '按住 · 我说');
+    spk.textContent = phase === 'speaking' ? t('listen_speak_release', '松手 · 译给对方')
+      : (isMacHost() ? t('listen_speak_hold_mac', '按住 · 我说（或按住空格）') : t('listen_speak_hold', '按住 · 我说'));
     spk.disabled = !speakAllowed();
     spk.classList.toggle('holding', phase === 'speaking');
     // 结束后两个按钮不出现（要说话就「再来一段」）；小结卡替换上卡，历史留着
@@ -638,6 +641,7 @@ var AppListen = (() => {
       list.appendChild(row);
     }
     $('app-listen-history-title').textContent = t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : '');
+    const cp = $('app-listen-copy'); if (cp) { cp.hidden = !rows.length; if (!cp.dataset.flash) cp.textContent = t('listen_copy_all', '复制全文'); }
     if (atBottom) list.scrollTop = list.scrollHeight;
   }
   function renderSummary() {
@@ -668,6 +672,8 @@ var AppListen = (() => {
     $('app-listen-title').textContent = t('listen_title', '对话');
     $('app-listen-history-title').textContent = t('listen_history', '整句定稿');
     $('app-listen-end').textContent = t('listen_end', '结束');
+    $('app-listen-copy').textContent = t('listen_copy_all', '复制全文');
+    const mn = $('app-listen-mac-note'); mn.textContent = t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。'); mn.hidden = !isMacHost();
     $('app-listen-flip-hint').textContent = t('listen_flip_hint', '给对方看 · 点任意处返回');
     $('app-listen-flip-speaking').textContent = t('listen_flip_speaking', '朗读中');
     $('app-listen-flip-again').textContent = t('listen_read_aloud', '朗读');
@@ -692,6 +698,18 @@ var AppListen = (() => {
     $('app-listen-back').addEventListener('click', leave);
     $('app-listen-toggle').addEventListener('click', toggle);
     $('app-listen-end').addEventListener('click', end);
+    $('app-listen-copy').addEventListener('click', async () => {
+      const cp = $('app-listen-copy');
+      const text = ListenCore.transcriptText(session, t('listen_me_prefix', '我：'));
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
+        // 无剪贴板 API 的宿主：退到选区复制
+        try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (_2) { ok = false; }
+      }
+      cp.dataset.flash = '1';
+      cp.textContent = ok ? t('listen_copied', '已复制') : t('listen_copy_failed', '复制失败');
+      setTimeout(() => { delete cp.dataset.flash; cp.textContent = t('listen_copy_all', '复制全文'); }, 1500);
+    });
     $('app-listen-summary-home').addEventListener('click', leave);
     $('app-listen-summary-again').addEventListener('click', () => { phase = 'idle'; start(); });
 

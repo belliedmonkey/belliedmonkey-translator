@@ -2262,6 +2262,26 @@
   "listen_speak_hold": {
     "message": "Удерживать · говорю я"
   },
+  "listen_speak_hold_mac": {
+    "message": "Удерживайте · Говорю я (или удерживайте пробел)",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "Скопировать всё",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Скопировано",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Не удалось скопировать",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Подходит и для онлайн-встреч и видеозвонков: просто выведите голос собеседника на динамики.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "Отпустить · перевести собеседнику"
   },

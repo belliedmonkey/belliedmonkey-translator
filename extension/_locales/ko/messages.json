@@ -2262,6 +2262,26 @@
   "listen_speak_hold": {
     "message": "길게 누르기 · 내가 말하기"
   },
+  "listen_speak_hold_mac": {
+    "message": "길게 누르기 · 내가 말하기（또는 스페이스 길게）",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "전체 복사",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "복사됨",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "복사 실패",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "온라인 회의나 영상 통화에도 쓸 수 있습니다. 상대의 목소리를 스피커로 틀기만 하면 됩니다.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "떼기 · 상대에게 번역"
   },
