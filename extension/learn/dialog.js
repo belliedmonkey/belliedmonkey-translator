@@ -17,10 +17,10 @@ var LearnDialog = (() => {
 .ld-box { background: var(--card-bg, #fff); color: var(--fg, var(--text, #201e1d)); border: 1.5px solid var(--line, var(--border, #dcd3c4)); border-radius: 16px; padding: 18px; width: min(360px, 100%); display: flex; flex-direction: column; gap: 14px; font: inherit; box-shadow: 0 12px 40px rgba(0,0,0,.18); }
 .ld-msg { margin: 0; font-size: 1rem; line-height: 1.5; white-space: pre-line; }
 .ld-row { display: flex; gap: 10px; }
-.ld-row button { flex: 1; font: inherit; font-weight: 700; min-height: 44px; border-radius: 999px; cursor: pointer; padding: 10px 14px; }
-.ld-cancel { background: none; color: var(--accent-deep, #8c491a); border: 1.5px solid var(--line, var(--border, #dcd3c4)); }
-.ld-ok { background: var(--accent, #ac6231); color: #fff; border: 0; }
-.ld-ok.danger { background: var(--danger, #b3261e); }
+.ld-row .ld-cancel, .ld-row .ld-ok { flex: 1; font: inherit; font-weight: 700; min-height: 44px; border-radius: 999px; cursor: pointer; padding: 10px 14px; }
+.ld-row .ld-cancel { background: none; color: var(--accent-deep, #8c491a); border: 1.5px solid var(--line, var(--border, #dcd3c4)); }
+.ld-row .ld-ok { background: var(--accent, #ac6231); color: #fff; border: 0; }
+.ld-row .ld-ok.ld-danger { background: var(--danger, #b3261e); }
 `;
   let styled = false;
   function ensureStyle(doc) {
@@ -30,6 +30,8 @@ var LearnDialog = (() => {
   }
 
   // opts: { ok, cancel, danger } — 文案可覆盖；danger 让确定键用危险色（删除类）。
+  // 类名一律带 ld- 前缀、选择器带 .ld-row：宿主页有自己的 `button.danger`（红字透明底），
+  // 2026-09-07 TestFlight 87 里删除账号的确定键就被它盖成红字红底、看着是空的。
   function confirm(message, opts) {
     const o = opts || {};
     const doc = document;
@@ -40,7 +42,7 @@ var LearnDialog = (() => {
       const msg = doc.createElement('p'); msg.className = 'ld-msg'; msg.textContent = String(message || '');
       const row = doc.createElement('div'); row.className = 'ld-row';
       const cancel = doc.createElement('button'); cancel.type = 'button'; cancel.className = 'ld-cancel'; cancel.textContent = o.cancel || t('dialog_cancel', '取消');
-      const ok = doc.createElement('button'); ok.type = 'button'; ok.className = 'ld-ok' + (o.danger ? ' danger' : ''); ok.textContent = o.ok || t('dialog_ok', '确定');
+      const ok = doc.createElement('button'); ok.type = 'button'; ok.className = 'ld-ok' + (o.danger ? ' ld-danger' : ''); ok.textContent = o.ok || t('dialog_ok', '确定');
       row.appendChild(cancel); row.appendChild(ok);
       box.appendChild(msg); box.appendChild(row); mask.appendChild(box);
       const prev = doc.activeElement;
