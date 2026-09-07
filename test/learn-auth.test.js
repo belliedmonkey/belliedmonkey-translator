@@ -189,8 +189,27 @@ describe('第三方登录：PKCE（§8.4.1.1 第二条跨界裁定）', () => {
     const body = JSON.parse(calls[0].init.body);
     eq(body.auth_code, 'c');
     eq(body.code_verifier, 'v');
-    eq(stored.learnAuthPkce, undefined, 'verifier 必须一次性');
+    ok(stored.learnAuthPkce && stored.learnAuthPkce.verifier !== 'v', 'verifier 必须一次性');
     eq(stored.learnAuthCode, undefined, '票必须一次性 —— 留着会在下次开页时重放');
+  });
+
+  // 2026-09-07 TestFlight 87：Google 登录成功 → 删除账号 → 再点 Google → pkce_missing。
+  // 成功那次把 storage 里的 verifier 清了，内存里的 prepared 却还在，于是第二次
+  // 用旧 challenge 开了会话，回来兑换时 storage 里没有 verifier。
+  test('★ 兑换成功后：内存与 storage 里的 verifier 一起换成新的一份，下一次登录还能开', async () => {
+    const { A, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 's' },
+    });
+    await A.completeProviderSignIn();
+    const next = stored.learnAuthPkce;
+    ok(next && next.verifier && next.verifier !== 'v', '兑换后没有备下一份 verifier');
+    const url = A.providerSignInUrl('google', 'belliedmonkey://auth');
+    ok(url, '兑换后按钮变死（providerSignInUrl 返回 null）');
+    const h = require('crypto').createHash('sha256').update(next.verifier).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    ok(url.includes('code_challenge=' + encodeURIComponent(h)) || url.includes('code_challenge=' + h),
+      '按钮用的 challenge 不是 storage 里那份新 verifier 的 —— 回来必然 pkce_missing');
   });
 
   test('★ state 不符：停住，且一个请求都不发', async () => {
