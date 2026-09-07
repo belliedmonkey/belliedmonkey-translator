@@ -2193,7 +2193,7 @@
     "message": "Conversa"
   },
   "listen_entry": {
-    "message": "🎙 Conversa · intérprete ao vivo"
+    "message": "Conversa · intérprete ao vivo"
   },
   "listen_entry_hint": {
     "message": "Ouça um idioma estrangeiro pessoalmente: a outra pessoa fala, você lê no seu idioma; segure para falar e mostre a tradução. O áudio vai apenas para o endpoint de transcrição que você configurou."
@@ -2329,5 +2329,23 @@
   },
   "listen_speak_nothing": {
     "message": "Nada foi ouvido — segure e fale de novo"
+  },
+  "app_today_due": {
+    "message": "Para hoje"
+  },
+  "app_last_sync": {
+    "message": "Última sincronização {t}"
+  },
+  "app_modes_label": {
+    "message": "Ouvir"
+  },
+  "drive_entry_hint": {
+    "message": "O baralho de hoje lido seguido, sem usar as mãos"
+  },
+  "listen_entry_short": {
+    "message": "A outra pessoa fala, você lê; segure para falar e mostrar a tradução"
+  },
+  "listen_entry_privacy": {
+    "message": "O áudio vai apenas para o endpoint de transcrição que você configurou."
   }
 }

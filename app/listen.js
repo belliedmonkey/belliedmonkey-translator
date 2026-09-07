@@ -97,7 +97,8 @@ var AppListen = (() => {
     for (const sfx of ENTRY_SUFFIXES) {
       const btn = $('app-listen-entry' + sfx); if (btn) btn.hidden = !ok;
       const hint = $('app-listen-entry-hint' + sfx);
-      if (hint) { hint.hidden = !ok; hint.textContent = t('listen_entry_hint', '线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。'); }
+      if (hint) { hint.hidden = !ok; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
+      const priv = $('modes-privacy' + sfx); if (priv) { priv.hidden = !ok; priv.textContent = t('listen_entry_privacy', '音频只发往你配置的转写端点。'); }
       const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
     }
   }
@@ -539,7 +540,7 @@ var AppListen = (() => {
   function wire() {
     for (const sfx of ENTRY_SUFFIXES) {
       const entry = $('app-listen-entry' + sfx);
-      if (entry) { entry.textContent = t('listen_entry', '🎙 对话 · 实时听译'); entry.addEventListener('click', open); }
+      if (entry) { const title = entry.querySelector('.mode-title'); (title || entry).textContent = t('listen_entry', '对话 · 实时听译'); entry.addEventListener('click', open); }
       const why = $('app-listen-need-live-why' + sfx); if (why) why.textContent = t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎');
       const go = $('app-listen-need-live-go' + sfx); if (go) go.textContent = t('listen_need_live_go', '去设置里选择 →');
     }

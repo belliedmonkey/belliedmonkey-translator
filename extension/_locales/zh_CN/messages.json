@@ -2194,7 +2194,7 @@
     "message": "对话"
   },
   "listen_entry": {
-    "message": "🎙 对话 · 实时听译"
+    "message": "对话 · 实时听译"
   },
   "listen_entry_hint": {
     "message": "线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。"
@@ -2330,5 +2330,23 @@
   },
   "listen_speak_nothing": {
     "message": "没有听到你说的话 — 再按住说一次"
+  },
+  "app_today_due": {
+    "message": "今天待复习"
+  },
+  "app_last_sync": {
+    "message": "上次同步 {t}"
+  },
+  "app_modes_label": {
+    "message": "听"
+  },
+  "drive_entry_hint": {
+    "message": "今天的牌库连着读，放着听"
+  },
+  "listen_entry_short": {
+    "message": "对方说，你看中文；按住说中文，译给对方"
+  },
+  "listen_entry_privacy": {
+    "message": "音频只发往你配置的转写端点。"
   }
 }
