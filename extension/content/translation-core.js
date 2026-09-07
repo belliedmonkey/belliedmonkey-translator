@@ -20,7 +20,11 @@ var TranslationCore = (() => {
   // 不会被触发。所以最终的保证只能长在这里：**超过上限一律进 error 态，把重试交还
   // 给用户**。取 120 秒是为了绝不误伤真慢的请求：传输层默认 20 秒超时 × 3 次重试
   // 加退避，最坏也就 ~90 秒。
-  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000 };
+  // HOLD_MS: how long a sentence stays "active" past its end (docs/domain-design.md
+  // §2.4). 0 = today's behaviour for every fetched transcript; the live ASR source sets
+  // it because a sentence can only close after it was spoken, so its pair would
+  // otherwise never be on screen while its own time range is.
+  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, HOLD_MS: 0 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
@@ -214,6 +218,29 @@ var TranslationCore = (() => {
   }
 
   // ─── Cue merge: [{start,end,text}] → merged sentences ─────────────────
+  // Streaming twin of mergeSentences (docs/domain-design.md §2.4 tier B): the same
+  // three closing rules, but over a buffer that grows. push() returns only sentences
+  // that CLOSED — on a terminal, on MAX_LEN, or because the next cue starts after a
+  // silence gap; the open tail is kept back until flush(). The tail never reaches the
+  // Engine, so no unit is ever replaced and no translation is ever thrown away.
+  function createCueMerger(opt) {
+    const o = opt || MERGE;
+    let cur = null;
+    function push(cues) {
+      const out = [];
+      for (const c of cues || []) {
+        if (!c || !c.text) continue;
+        if (cur && c.start - cur.end > o.GAP_MS) { out.push(cur); cur = null; }
+        if (!cur) cur = { start: c.start, end: c.end, text: c.text };
+        else { cur.text = joinCue(cur.text, c.text); cur.end = c.end; }
+        if (endsSentence(cur.text) || cur.text.length > o.MAX_LEN) { out.push(cur); cur = null; }
+      }
+      return out;
+    }
+    function flush() { const t = cur; cur = null; return t ? [t] : []; }
+    return { push, flush, get open() { return cur; } };
+  }
+
   function mergeSentences(cues, opt) {
     const o = opt || MERGE;
     const out = [];
@@ -316,6 +343,20 @@ var TranslationCore = (() => {
     let units = [];
 
     function setUnits(list) { units = list || []; }
+    // Sorted insert (by start). The subtitle activeAt() scans backwards and returns on
+    // the first `start <= t`, so order is load-bearing — an appended unit that landed
+    // out of place would shadow its neighbours. Fresh objects only: a unit carries
+    // engine-private `_` state once pumped.
+    function appendUnits(list) {
+      for (const u of list || []) {
+        if (!u) continue;
+        let i = units.length;
+        while (i > 0 && units[i - 1].start > u.start) i--;
+        units.splice(i, 0, u);
+      }
+    }
+    // Merge, never replace — same reason as the constructor's Object.assign.
+    function setWindow(partial) { Object.assign(win, partial || {}); }
 
     function pump() {
       if (!units.length) return;
@@ -422,7 +463,7 @@ var TranslationCore = (() => {
       });
     }
 
-    return { setUnits, pump, stateOf, retry, reset, get units() { return units; } };
+    return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset, get units() { return units; } };
   }
 
   // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
@@ -442,19 +483,32 @@ var TranslationCore = (() => {
       detect: cfg.detect,
       onOk: cfg.onOk, onFail: cfg.onFail,   // 用量事件的两个钩子（docs/telemetry-design.md §3），可缺省
       // sliding window: only sentences from now to +AHEAD_MS
+      // HOLD_MS widens the window backwards too: a live-tier sentence (§2.4) closes at
+      // the moment it was spoken, so its `end` is already behind the playhead when it
+      // arrives — with the plain `u.end < tMs` test it would never be translated at all.
       selectActive: (units) => {
         const tMs = getCurrentTime();
-        return units.filter((u) => !(u.end < tMs || u.start > tMs + win.AHEAD_MS));
+        const hold = win.HOLD_MS || 0;
+        return units.filter((u) => !(u.end + hold < tMs || u.start > tMs + win.AHEAD_MS));
       },
     });
 
+    // A sentence is active from its start until its end + HOLD_MS, but never past the
+    // next sentence's start (the next one takes over). HOLD_MS = 0 ⇒ exactly `end`.
     function activeAt(tMs) {
       const items = engine.units;
       for (let i = items.length - 1; i >= 0; i--) {
-        if (items[i].start <= tMs) return tMs < items[i].end ? items[i] : null;
+        if (items[i].start <= tMs) {
+          let until = items[i].end + (win.HOLD_MS || 0);
+          const next = items[i + 1];
+          if (next && next.start < until) until = Math.max(items[i].end, next.start);
+          return tMs < until ? items[i] : null;
+        }
       }
       return null;
     }
+    // Both copies must move: createEngine merged its own `win` from ours.
+    function setWindow(partial) { Object.assign(win, partial || {}); engine.setWindow(partial); }
     // Subtitle stateOf adds the anti-flicker GRACE (only show "pending" once we are
     // genuinely behind playback) on top of the generic state.
     function stateOf(it, tMs) {
@@ -464,8 +518,9 @@ var TranslationCore = (() => {
       return { state: '', translation: '' };
     }
     return {
-      setItems: engine.setUnits, pump: engine.pump, activeAt, stateOf,
+      setItems: engine.setUnits, appendItems: engine.appendUnits, setWindow, pump: engine.pump, activeAt, stateOf,
       retry: engine.retry, reset: engine.reset, get items() { return engine.units; },
+      get window() { return win; },
     };
   }
 
@@ -488,6 +543,6 @@ var TranslationCore = (() => {
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,
-    mergeSentences, createPager, createEngine, createSubtitleEngine, isMobileLayout,
+    mergeSentences, createCueMerger, createPager, createEngine, createSubtitleEngine, isMobileLayout,
   };
 })();

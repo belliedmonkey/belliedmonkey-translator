@@ -248,10 +248,26 @@ surface (YouTube, podcast/generic media, x.com).
 - File tier: 「⏳ 正在转写整段音频…」 (dimmed, italic — the loading style) until the
   complete transcript is in, then the normal bilingual pair. A progress fraction is
   shown when the upload is > 5 MB.
-- Live tier: a small 「● 实时转写中」 marker at the overlay's edge; sentences appear
-  **after** they are spoken (≈ 2 s) and each pair stays on screen for `HOLD_MS` (≈ 6 s)
+- Live tier: 「● 实时转写中」 until the first words; then the original line shows the
+  words being spoken as they are recognised, and (with 「边说边译」 on, the default) the
+  translation line shows a provisional translation ending in `…` that is replaced as the
+  sentence grows. A closed sentence takes over both lines and stays for `HOLD_MS` (≈ 6 s)
   or until the next sentence. `⏳ 译文准备中…` uses the live grace (4 s), so it is rare.
-- Tapping the 译 control shows a 「停止转写」 row while a session runs.
+- With 「字幕历史面板」 on (the default), a floating panel at the bottom-right of the
+  video — inside the player, above its control bar, on YouTube (a viewport-fixed panel
+  landed on the live chat column there, measured 2026-09-06); viewport-fixed
+  bottom-right on audio pages — (≈ 380 px wide, ≤ 40 % of the viewport high,
+  scrollable, last 40 sentences; **draggable by its header to anywhere on the page** —
+  once dragged it stays viewport-fixed at that spot, clamped inside the viewport, and
+  the spot is remembered)
+  lists every closed sentence with its whole-sentence translation (`⏳ 译文准备中…`
+  until it lands; a failed one in red, tap to retry); older rows are slightly dimmed;
+  new rows auto-scroll unless the viewer scrolled up. While the panel is on the
+  overlay shows only the stream (never a closed sentence); with it off the overlay
+  holds each closed sentence ≈ 6 s as above. The panel keeps its rows after a stop
+  and disappears with the media / when subtitles are turned off.
+- Tapping the 译 control shows 「字幕历史面板」 and 「边说边译（快，译文会改）」
+  (checkboxes) and 「停止转写」 rows while a session runs.
 
 ### Stops — always visible, never automatic restart
 | Cause | Line shown |

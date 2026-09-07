@@ -2137,5 +2137,53 @@
   },
   "telemetry_onboard": {
     "message": "Se envían datos de uso anónimos para mejorar el producto (nunca el contenido ni las direcciones de las páginas). Se puede desactivar en Ajustes."
+  },
+  "asr_offer": {
+    "message": "🎙 Subtítulos IA"
+  },
+  "asr_needs_engine": {
+    "message": "Elige primero un motor de transcripción en Ajustes"
+  },
+  "asr_status_file": {
+    "message": "⏳ Transcribiendo todo el audio…"
+  },
+  "asr_status_live": {
+    "message": "● Transcripción en vivo"
+  },
+  "asr_stop": {
+    "message": "Detener transcripción"
+  },
+  "asr_err_silent": {
+    "message": "No se captó sonido — transcripción detenida"
+  },
+  "asr_err_media": {
+    "message": "No se puede leer este audio"
+  },
+  "asr_err_ws": {
+    "message": "Conexión de transcripción perdida"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio demasiado grande para transcribir de una vez"
+  },
+  "asr_err_nocues": {
+    "message": "Este motor no devuelve marcas de tiempo; no puede crear subtítulos"
+  },
+  "asr_err_nolive": {
+    "message": "Este motor no tiene interfaz en vivo; este medio no se puede transcribir"
+  },
+  "asr_err_settings": {
+    "message": "Motor de transcripción cambiado — detenido"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 Transcribir audio a subtítulos"
+  },
+  "asr_incremental": {
+    "message": "Traducir mientras hablan (rápido, puede corregirse)"
+  },
+  "asr_history": {
+    "message": "Panel de historial de subtítulos"
+  },
+  "asr_history_title": {
+    "message": "Historial · frases completas"
   }
 }

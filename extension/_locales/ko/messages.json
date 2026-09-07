@@ -2137,5 +2137,53 @@
   },
   "telemetry_onboard": {
     "message": "개선을 위해 익명 사용 데이터를 보냅니다(페이지 내용이나 주소는 포함되지 않음). 설정에서 끌 수 있습니다."
+  },
+  "asr_offer": {
+    "message": "🎙 AI 자막 생성"
+  },
+  "asr_needs_engine": {
+    "message": "먼저 설정에서 전사 엔진을 선택하세요"
+  },
+  "asr_status_file": {
+    "message": "⏳ 전체 오디오 전사 중…"
+  },
+  "asr_status_live": {
+    "message": "● 실시간 전사 중"
+  },
+  "asr_stop": {
+    "message": "전사 중지"
+  },
+  "asr_err_silent": {
+    "message": "소리를 캡처할 수 없어 전사를 중지했습니다"
+  },
+  "asr_err_media": {
+    "message": "이 오디오를 읽을 수 없습니다"
+  },
+  "asr_err_ws": {
+    "message": "전사 연결이 끊어졌습니다"
+  },
+  "asr_err_toolarge": {
+    "message": "오디오가 너무 커서 한 번에 전사할 수 없습니다"
+  },
+  "asr_err_nocues": {
+    "message": "이 엔진은 타임스탬프를 반환하지 않아 자막을 만들 수 없습니다"
+  },
+  "asr_err_nolive": {
+    "message": "이 엔진에는 실시간 인터페이스가 없어 이 미디어를 전사할 수 없습니다"
+  },
+  "asr_err_settings": {
+    "message": "전사 엔진이 변경되어 중지했습니다"
+  },
+  "popup_transcribe_media": {
+    "message": "🎙 오디오를 자막으로 전사"
+  },
+  "asr_incremental": {
+    "message": "말하는 대로 번역（빠름, 번역이 바뀔 수 있음）"
+  },
+  "asr_history": {
+    "message": "자막 기록 패널"
+  },
+  "asr_history_title": {
+    "message": "기록 · 완성 문장"
   }
 }

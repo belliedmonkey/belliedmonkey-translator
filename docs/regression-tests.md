@@ -257,6 +257,27 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   *(Spec: Podcast "Video posts are peers of audio"; gate `drivesPodcast()` +
   `hasTranscriptHint()`.)*
 
+- [ ] **AI 转写字幕 (domain-design §2.4) — the offer is user-initiated, never automatic.** On a
+  podcast page with NO timed transcript (a Transistor / Megaphone-hosted episode page, or
+  a LibriVox chapter on archive.org): with a transcription engine configured, the
+  `字幕不可用` notice carries a 「🎙 AI 转写字幕」 button and NOTHING is fetched or sent before
+  it is tapped (check the network log). Tap → 「⏳ 正在转写整段音频…」 → within ~20 s the
+  bilingual pair follows playback, one upload per ≤ 6 MB slice, no per-sentence requests to
+  the STT endpoint. With no engine configured the button reads 「先在设置里选择转写引擎」 and
+  opens settings. A decorative `<video>` still surfaces nothing (below); the popup's
+  「🎙 转写音频字幕」 row is the only entry there and appears only when the page's media is
+  ≥ 30 s long.
+- [ ] **AI 转写字幕 — live tier stops are visible, never silent.** On a YouTube video with
+  captions disabled (MSE ⇒ live tier): tap the offer → 「● 实时转写中」 → the overlay shows
+  words as they are spoken with a provisional translation ending in `…`, and the
+  bottom-right 「字幕历史」 panel gains a row per closed sentence with its whole-sentence
+  translation (the two are NOT expected to match word for word — the panel is the
+  corrected record); the 译 menu shows 「字幕历史面板」, 「边说边译」 and 「停止转写」.
+  Turning the panel off makes the overlay hold each closed sentence ≈ 6 s. Then: mute the
+  page's audio source at the OS level does NOT stop it (element unmuted, capture unaffected),
+  but a Substack episode (no CORS on its CDN) must show 「无法读取该音频」 within 10 s, a
+  changed transcription engine in settings must show 「转写引擎已更改，已停止转写」, and
+  navigating to another video must end the session (no automatic restart, the offer is back).
 - [ ] **Decorative videos never surface subtitle UI.** On an ordinary page with a
   hero/background/autoplaying `<video>` and no transcript source, FAB on. **Expected:**
   page text translates; **no** 译 button, **no** `字幕不可用` bar, no `#mt-pod-overlay` —

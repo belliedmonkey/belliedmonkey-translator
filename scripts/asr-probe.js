@@ -79,6 +79,7 @@ async function fetchText(spec) {
     // 只取正文段落；注释、导航、脚注都不是朗读者会念的
     const ps = [...t.matchAll(/<p>([\s\S]*?)<\/p>/g)].map((m) => m[1]);
     const strip = (h) => h.replace(/<sup[\s\S]*?<\/sup>/g, '').replace(/<[^>]+>/g, '')
+      .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
       .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
     // 维基文库的正文是繁体，而朗读者念的是普通话、转写引擎吐的是简体；API 的 variant=zh-cn
     // 对这些页面不生效（实测原样返回）。用 OpenCC 的字表做繁→简（字级，足够算 CER）。
@@ -237,7 +238,7 @@ async function fileGemini(mp3, lang, model) {
     input: [{ type: 'audio', data: buf.toString('base64'), mime_type: 'audio/mp3' }],
     generation_config: { transcription_config: {
       language_codes: lang === 'zh' ? ['cmn-Hans-CN'] : ['en-US'],
-      mode: 'smart', timestamp_granularities: ['word'],
+      mode: { type: 'verbatim' }, timestamp_granularities: ['word'],
     } },
   };
   const t0 = Date.now();
@@ -321,6 +322,11 @@ async function liveGemini(pcm, lang, minutes, model) {
   const buf = ring(2);
   let ws = null, sock = 0;
   const t0 = Date.now();
+  // 产品的切句规则（extension/content/ws-transcribe.js）：从累计的 interim 里切出已经
+  // 不在尾部的句子。量的就是出货的那条规则，不是「等 final」。
+  const WsT = require(path.join(ROOT, 'extension/content/ws-transcribe.js'));
+  let curSock = 0;
+  const cutter = WsT.interimCutter((ev) => { if (ev.kind === 'final') out.finals.push({ text: ev.text, arrivalMs: Date.now() - t0, sock: curSock }); });
   const open = () => new Promise((resolve, reject) => {
     const w = new WebSocket(url);
     const id = ++sock;
@@ -332,10 +338,10 @@ async function liveGemini(pcm, lang, minutes, model) {
       if (out.raw.length < 40) out.raw.push(m);
       if (m.setupComplete) { clearTimeout(timer); resolve(w); return; }
       const sc = m.serverContent || {};
-      if (sc.interimInputTranscription) out.interims++;
-      if (sc.inputTranscription && sc.inputTranscription.text) {
-        out.finals.push({ text: sc.inputTranscription.text, arrivalMs: Date.now() - t0, sock: id });
-      }
+      curSock = id;
+      if (sc.interimInputTranscription) { out.interims++; if (sc.interimInputTranscription.text) cutter.interim(sc.interimInputTranscription.text); }
+      if (sc.inputTranscription && sc.inputTranscription.text) cutter.final(sc.inputTranscription.text);
+      if (m.voiceActivity && m.voiceActivity.type === 'ACTIVITY_START') cutter.reset();
       if (m.error) out.errors.push(JSON.stringify(m.error).slice(0, 200));
     };
     w.onerror = (e) => { out.errors.push('ws error ' + (e.message || '')); };
@@ -449,7 +455,7 @@ async function liveOpenai(pcm, lang, minutes, model) {
         type: 'transcription',
         audio: { input: {
           format: { type: 'audio/pcm', rate },
-          transcription: { model: model || 'gpt-live-transcribe', ...(lang ? { languages: [lang] } : {}) },
+          transcription: { model: model || 'gpt-live-transcribe', ...(lang ? { languages: [lang] } : {}), ...(process.env.ASR_DELAY ? { delay: process.env.ASR_DELAY } : {}) },
           turn_detection: null,
         } },
       } }));
