@@ -177,7 +177,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 漏掉这一步的表现是「权限给了、tap 装了、块里全是 0」—— 查起来极贵。
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
             try session.setActive(true)
         } catch {
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
@@ -252,8 +252,10 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             // .spokenAudio = 口播语义：蓝牙/车机路由与「暂停别人的播客」都按这个来。
             // 不加 .mixWithOthers —— 播客模式就是要接管，混着播等于两个人同时说话。
             if recordMode {
-                // .playAndRecord + 扬声器 + 蓝牙：线下对话手机放桌上，声音要从外放出、耳机要能用。
-                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                // .playAndRecord + 扬声器 + 蓝牙 + 可混音：线下对话手机放桌上，声音要从外放出、耳机要能用；
+                // **可混音是必须的** —— 页内的保活音频与朗读走 WebKit 自己（GPU 进程）的音频会话，不可混音的
+                // 录音会话会被它当场打断（2026-09-07 真机：TestFlight 84 一进来就「录音被系统停止了」）。
+                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
             } else {
                 try session.setCategory(.playback, mode: .spokenAudio, options: [])
             }
@@ -483,7 +485,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             // 那一档 —— 2026-09-07 真机实证：结束再开始时这句把类别打回 .playback，
             // 麦克风引擎随即起不来（第一次能成只是因为权限查询把引擎启动排到了它后面）。
             if recordMode || micEngine != nil {
-                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
             } else {
                 try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
             }

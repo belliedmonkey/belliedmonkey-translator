@@ -192,9 +192,14 @@ var AppListen = (() => {
     if (state === 'denied') halt('denied', '');
     else if (state === 'failed') halt('failed', reason);
     else if (state === 'interrupted') {
-      // 刚起就被打断（2 s 内）多半是会话类别的一次抖动，不是真的来电：自动再试一次，
-      // 再不行才停在具名态等用户。
-      if (now() - startedAt < 2000 && earlyRetries < 1) { earlyRetries++; halt('locked', ''); setTimeout(() => { if (phase === 'halted' && pauseReason === 'locked') resume(); }, 800); return; }
+      // 刚起就被打断（3 s 内）多半是别的音频会话（页内保活/朗读走 WebKit 自己的会话）在
+      // 抢，不是真的来电：带退避再试三次（0.8 / 1.6 / 3.2 s），都不行才停在具名态等用户。
+      if (now() - startedAt < 3000 && earlyRetries < 3) {
+        const wait = 800 * Math.pow(2, earlyRetries); earlyRetries++;
+        halt('locked', '');
+        setTimeout(() => { if (phase === 'halted' && pauseReason === 'locked') resume(); }, wait);
+        return;
+      }
       halt('locked', '');
     }
     else if (state === 'granted') { earlyRetries = 0; if (session) session.lastVoiceAt = now(); }   // 静音计时从麦克风真正开始出帧算起，不从点按算起
@@ -321,9 +326,10 @@ var AppListen = (() => {
     if (phase !== 'paused' && phase !== 'halted') return;
     await beginPipeline();
   }
+  function resumeByUser() { earlyRetries = 0; return resume(); }
   function toggle() {
     if (phase === 'listening') pause('user');
-    else if (phase === 'paused' || phase === 'halted') resume();
+    else if (phase === 'paused' || phase === 'halted') resumeByUser();
     else if (phase === 'idle' || phase === 'ended') start();
   }
   function end() {
