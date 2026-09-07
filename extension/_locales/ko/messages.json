@@ -2371,5 +2371,14 @@
   },
   "listen_leave_confirm": {
     "message": "아직 듣는 중입니다. 나가면 이 대화가 끝나고, 들은 문장은 남습니다."
+  },
+  "dialog_ok": {
+    "message": "확인"
+  },
+  "dialog_cancel": {
+    "message": "취소"
+  },
+  "listen_leave_ok": {
+    "message": "종료하고 나가기"
   }
 }

@@ -2203,5 +2203,14 @@
   },
   "listen_leave_confirm": {
     "message": "अभी सुन रहा है। बाहर जाने से यह बातचीत समाप्त होगी; सुना गया सुरक्षित रहेगा।"
+  },
+  "dialog_ok": {
+    "message": "ठीक है"
+  },
+  "dialog_cancel": {
+    "message": "रद्द करें"
+  },
+  "listen_leave_ok": {
+    "message": "समाप्त करें और बाहर जाएँ"
   }
 }

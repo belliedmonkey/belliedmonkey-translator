@@ -115,6 +115,7 @@ const MODULES = [
                                          // （算出 patch 交给 host 写盘），App 是第三个 host。
                                          // 必须在 engine-fields.js 之后：快速档收起的正是
                                          // 它渲染的那些字段。
+  'extension/learn/dialog.js',           // LearnDialog — 页内确认框（App 的 WKWebView 没有 window.confirm）
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/settings.js',                     // AppSettings — the learning layer's own knobs

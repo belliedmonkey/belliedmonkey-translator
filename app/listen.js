@@ -385,9 +385,10 @@ var AppListen = (() => {
     paint();
   }
   // 返回 = 结束会话（语料已逐句写了，不丢）；还在听时先确认一下（用户 09-07 裁定 B）。
-  function leave() {
+  // 页内确认（LearnDialog）：App 的 WKWebView 没有原生确认框，window.confirm 恒为 false。
+  async function leave() {
     if (session && phase !== 'ended' && phase !== 'idle') {
-      if (!window.confirm(t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。'))) return;
+      if (!(await LearnDialog.confirm(t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。'), { ok: t('listen_leave_ok', '结束并离开') }))) return;
       end();
     }
     gen++;

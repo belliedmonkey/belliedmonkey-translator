@@ -243,6 +243,15 @@ function say(base, text) {
     const back = await waitFor(async () => { const p = await evalIn(cdp, sessionId, `AppListen._debug().phase`); return p === 'listening' ? p : null; }, 8000, '松手后回到 listening');
     need(back === 'listening', 'C: 松手后应回到 listening，实际 ' + back);
 
+    // ── C2. 「返回」在会话中先确认（页内对话框，不是 window.confirm —— App 里那个恒为 false）──
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    const dlg = await waitFor(async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), msg: (document.querySelector('.ld-msg') || {}).textContent || '', ok: (document.querySelector('.ld-ok') || {}).textContent || '' })`)), 3000, '返回时出现页内确认框');
+    need(dlg.mask && dlg.msg.includes('还在听') && dlg.ok === '结束并离开', 'C2: 确认框文案不对：' + JSON.stringify(dlg));
+    await evalIn(cdp, sessionId, `(document.querySelector('.ld-cancel').click(), 'ok')`);
+    await sleep(200);
+    const stay = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), hidden: document.getElementById('app-listen').hidden, phase: AppListen._debug().phase })`));
+    need(!stay.mask && stay.hidden === false && stay.phase === 'listening', 'C2: 取消后该留在页面上继续听，实际 ' + JSON.stringify(stay));
+
     // ── D. 语料：定稿译文到达 ⇒ 写一次，来源 conv、锚点 conv；加星 ⇒ starred ──
     const items = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.map((x) => ({ text: x.text, tr: x.tr, sourceId: x.sourceId, anchor: x.anchor, starred: x.starred, lang: x.lang }))))`));
     const them = items.find((x) => x.text === 'Does this bus go to the airport?');
@@ -268,6 +277,11 @@ function say(base, text) {
     need(/对方说了 1 句/.test(sum) && /我说了 1 句/.test(sum) && /2 句 · 含 1 句加星/.test(sum), 'E: 小结数字不对：' + sum);
     const endedUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ actions: document.getElementById('app-listen-actions').hidden, now: document.getElementById('app-listen-now').hidden, rows: document.querySelectorAll('#app-listen-history .listen-row').length })`));
     need(endedUi.actions === true && endedUi.now === true && endedUi.rows === 2, 'E: 结束后两个大按钮与上卡该收起、历史留着，实际 ' + JSON.stringify(endedUi));
+    // 结束后返回不再确认，直接回首页
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(300);
+    const home = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), listenHidden: document.getElementById('app-listen').hidden, outShown: !document.getElementById('signed-out').hidden })`));
+    need(!home.mask && home.listenHidden && home.outShown, 'E: 结束后「返回」该直接回首页，实际 ' + JSON.stringify(home));
     await sleep(500);
     need(sockets.length === 0, 'E: 结束后 socket 该关闭，实际还开着 ' + sockets.length);
     const summaryShown = await evalIn(cdp, sessionId, `!document.getElementById('app-listen-summary').hidden`);

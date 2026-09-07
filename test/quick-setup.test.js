@@ -36,6 +36,28 @@ function fromDist(dir) {
   return { Q: ctx2.QuickSetup, window: ctx.window };
 }
 
+describe('QuickSetup.prefill — 已经配过的 key 要在快速卡上回显', () => {
+  // 2026-09-07 用户报：详细里有 key，快速里空着。翻译是 DeepSeek（不在一键清单）、转写是
+  // OpenAI 时 represents 为 null，而 App 那边原来根本没传 prefill。回显的判据比 represents
+  // 宽：三样里只要有一样配在可一键的平台上，就把那把 key 回显出来。
+  const REG = (() => { const d = fromDist('dist'); return d ? d : null; })();
+  test('翻译在一键平台上 ⇒ 回翻译那把 key（slot chat）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    const p = REG.Q.prefill({ provider: 'openrouter', apiKey: 'k1', sttEngine: 'openai_transcribe', sttApiKey: 'k3' });
+    ok(p && p.host === 'openrouter.ai' && p.key === 'k1' && p.slot === 'chat', JSON.stringify(p));
+  });
+  test('翻译不在一键平台、转写在 ⇒ 回转写那把 key（slot stt）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    const p = REG.Q.prefill({ provider: 'deepseek', apiKey: 'k1', sttEngine: 'openai_transcribe', sttApiKey: 'k3' });
+    ok(p && p.host === 'api.openai.com' && p.key === 'k3' && p.slot === 'stt', JSON.stringify(p));
+  });
+  test('三样都不在一键平台上 ⇒ null（卡空着是真话）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    eq(REG.Q.prefill({ provider: 'deepseek', apiKey: 'k1' }), null, '');
+    eq(REG.Q.prefill({}), null, '');
+  });
+});
+
 describe('QuickSetup.represents — 这份已存配置，一键卡表示得了吗', () => {
   // 它决定设置页默认落在哪个 tab。判错的代价不对称：判成「表示得了」而其实表示不了，
   // 用户会对着一张空卡以为自己没配过，而他此刻唯一能做的动作（粘一把新 key）会覆盖

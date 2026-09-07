@@ -2372,5 +2372,14 @@
   },
   "listen_leave_confirm": {
     "message": "還在聽。離開會結束這次對話，已聽的句子保留。"
+  },
+  "dialog_ok": {
+    "message": "確定"
+  },
+  "dialog_cancel": {
+    "message": "取消"
+  },
+  "listen_leave_ok": {
+    "message": "結束並離開"
   }
 }

@@ -562,7 +562,23 @@ var QuickSetup = (() => {
     }
   }
 
-  return { platforms, plan, summarize, state, represents, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, _eligible: eligible };
+  // 回显用：这个人现在的配置里，哪一把 key 在一个可一键的平台上？翻译那一路优先（它决定
+  // 「代表」谁），翻译不在可一键平台上时退到朗读、再退到转写 —— 三样里只要有一样配在
+  // 可一键的平台上，卡就该把那把 key 回显出来，而不是空着装作「你还没配」
+  // （2026-09-07 用户报：详细里有 key、快速里空着。翻译是 DeepSeek、转写是 OpenAI 时
+  // `represents` 为 null，App 那边又根本没传 prefill）。
+  function prefill(settings, reg) {
+    const s = settings || {};
+    const rep = represents(s, reg);
+    if (rep && has(s.apiKey)) return { host: rep.host, key: s.apiKey, slot: 'chat' };
+    for (const p of platforms(reg)) {
+      if (has(s.ttsApiKey) && p.tts && p.tts.id === s.ttsEngine) return { host: p.host, key: s.ttsApiKey, slot: 'tts' };
+      if (has(s.sttApiKey) && p.stt && p.stt.id === s.sttEngine) return { host: p.host, key: s.sttApiKey, slot: 'stt' };
+    }
+    return null;
+  }
+
+  return { platforms, plan, summarize, state, represents, prefill, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

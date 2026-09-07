@@ -2371,5 +2371,14 @@
   },
   "listen_leave_confirm": {
     "message": "Sigue escuchando. Salir termina esta conversación; lo escuchado se conserva."
+  },
+  "dialog_ok": {
+    "message": "Aceptar"
+  },
+  "dialog_cancel": {
+    "message": "Cancelar"
+  },
+  "listen_leave_ok": {
+    "message": "Terminar y salir"
   }
 }

@@ -101,8 +101,8 @@
         const [items, srcs] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
         const doomed = LearnRules.doomedFor(items, srcs, host);
         if (!doomed.itemIds.length) return;
-        if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
-          .replace('{host}', host).replace('{n}', String(doomed.itemIds.length)))) return;
+        if (!(await LearnDialog.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+          .replace('{host}', host).replace('{n}', String(doomed.itemIds.length)), { danger: true }))) return;
         await LearnStore.deleteItems(doomed.itemIds, Date.now());
         await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
         // Account intent must reach the server promptly (§7.4); then rebuild —
