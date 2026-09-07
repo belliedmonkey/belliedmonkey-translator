@@ -66,10 +66,24 @@ var SourcesView = (() => {
     catch (_) { return ''; }
   }
 
+  // 对话来源（learning-design §9.6）：`conv://<sessionId>`，没有 host，按会话一行。
+  function isConv(src) { return !!(src && typeof src.url === 'string' && src.url.startsWith('conv://')); }
+  // conv sources → [{sourceId, title, count, itemIds}] newest first (ids embed the start time).
+  function groupConversations(items, sources) {
+    const byId = new Map();
+    for (const s of sources || []) if (isConv(s)) byId.set(s.id, { sourceId: s.id, title: s.title || s.id, count: 0, itemIds: [] });
+    for (const it of items || []) {
+      const g = it && it.sourceId ? byId.get(it.sourceId) : null;
+      if (!g) continue;
+      g.count++; g.itemIds.push(it.id);
+    }
+    return Array.from(byId.values()).filter((g) => g.count > 0).sort((a, b) => (a.sourceId < b.sourceId ? 1 : -1));
+  }
+
   // items+sources → [{host, count, blocked, blockedBy, exactRule}] sorted by count.
   function groupByHost(items, sources, rules) {
     const srcHost = new Map();
-    for (const s of sources || []) { if (s && s.id) srcHost.set(s.id, hostOf(s.url)); }
+    for (const s of sources || []) { if (s && s.id && !isConv(s)) srcHost.set(s.id, hostOf(s.url)); }
     const counts = new Map();
     for (const it of items || []) {
       const h = it && it.sourceId ? srcHost.get(it.sourceId) : '';
@@ -163,6 +177,26 @@ var SourcesView = (() => {
     }
     container.appendChild(list);
 
+    // ── 对话（§9.6）：按会话一行，只有「删除已存」—— 屏蔽一场会话没有意义 ──
+    const convs = groupConversations(opts.items, opts.sources);
+    if (convs.length) {
+      const wrap = el(doc, 'div');
+      wrap.id = 'srcm-conv';
+      for (const g of convs) {
+        const row = el(doc, 'div', 'srcm-row');
+        row.appendChild(el(doc, 'span', 'srcm-host', '🎙 ' + g.title));
+        row.appendChild(el(doc, 'span', 'srcm-count', t('learn_sources_count', '{n} 张卡').replace('{n}', String(g.count))));
+        const del = el(doc, 'button', '', t('learn_src_delete', '删除已存'));
+        del.addEventListener('click', lock(del, () => opts.onDelete && opts.onDelete({
+          host: g.title, pattern: '', itemIds: g.itemIds.slice(), sourceIds: [g.sourceId],
+        })));
+        row.appendChild(del);
+        wrap.appendChild(row);
+      }
+      wrap.appendChild(el(doc, 'div', 'srcm-empty', t('listen_sources_note', '每句原文来自转写、译文来自你的翻译引擎，都可能有错——加星的句子优先进复习。')));
+      container.appendChild(wrap);
+    }
+
     // ── block-rule chips ──
     const block = (opts.rules && opts.rules.block) || [];
     const chipsWrap = el(doc, 'div');
@@ -247,7 +281,7 @@ var SourcesView = (() => {
     container.appendChild(chips);
   }
 
-  return { render, renderLangChips, groupByHost };
+  return { render, renderLangChips, groupByHost, groupConversations };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = SourcesView;

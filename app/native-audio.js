@@ -42,8 +42,8 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state'],
-    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size'],
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop'],
+    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state'],
   };
 
   let ready = false;
@@ -52,7 +52,12 @@ var NativeAudio = (() => {
   // UA —— §5.3 规则 2 禁止用 UA 做能力判断，而这正是一个平台能力问题。
   // 未知时按**最保守**的 true 处理：宁可多暂停一次，也不要承诺一个不存在的后台。
   let suspends = true;
-  let listener = null;
+  // 监听者是一串，不是一个（2026-09-07 起）：播客模式与实时听译各自注册，各自按
+  // 「我的视图在不在前台」过滤。每个回调各自 try/catch，一个坏了不影响别人。
+  const listeners = [];
+  // 麦克风（§9.6 原生采集）：PCM 与状态走独立的槽，不混进 listeners —— 每秒十几块
+  // 音频不该让播客模式的回调也跟着醒十几次。
+  let mic = null;
   // 上一次推给原生的 payload，按 JSON 串去重。paint() 每次重绘都会调，而绝大多数重绘
   // 什么都没变；每一次过桥都是一次 evaluateJavaScript 往返。
   let lastNowPlaying = '';
@@ -238,7 +243,38 @@ var NativeAudio = (() => {
   }
 
   // 由 app/driving.js 在 wire() 里注册。一个监听者，不是一串 —— 会话只有一个。
-  function onEvent(fn) { listener = typeof fn === 'function' ? fn : null; }
+  // 实时听译（§9.6）：请求一个**可录音**的音频会话（.playAndRecord），让锁屏后麦克风
+  // 还活着。要在 sessionStart 之前发；关掉时回到只放不录。
+  function recordMode(on) { post({ type: 'record-mode', on: !!on }); }
+  function onEvent(fn) { if (typeof fn === 'function' && listeners.indexOf(fn) < 0) listeners.push(fn); }
+  function offEvent(fn) { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); }
+
+  // ─── 麦克风（§9.6）────────────────────────────────────────────────────────
+  // 原生 AVAudioEngine 在 inputNode 上装 tap，重采样到 `rate`、Int16、base64，
+  // 每块一条 `mic-pcm`；状态一条 `mic-state`（granted / denied / failed / interrupted / ended）。
+  // WebKit 在 App 不可见时一律静音页内的 getUserMedia（2026-09-07 真机三轮实证），
+  // 所以锁屏后还想听，采集只能在这儿。
+  //   handlers: { onPcm(Int16Array), onState(state, reason) }
+  function micStart(rate, handlers) {
+    if (!available()) return false;
+    mic = handlers || null;
+    return post({ type: 'mic-start', rate: Number(rate) || 24000 });
+  }
+  function micStop() {
+    mic = null;
+    return post({ type: 'mic-stop' });
+  }
+  // base64 → Int16Array（小端）。同步解码，不走 fetch（同 toBlobUrl 的理由）。
+  function pcmOf(b64) {
+    const bin = atob(String(b64 || ''));
+    const n = bin.length >> 1;
+    const out = new Int16Array(n);
+    for (let i = 0; i < n; i++) {
+      const v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8);
+      out[i] = v >= 0x8000 ? v - 0x10000 : v;
+    }
+    return out;
+  }
 
   // 原生 → JS 的唯一入口。
   function _fromNative(msg) {
@@ -255,7 +291,14 @@ var NativeAudio = (() => {
       const s = Number(msg.w) + 'x' + Number(msg.h);
       if (artSizes.indexOf(s) < 0) artSizes.push(s);
     }
-    if (listener) { try { listener(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
+    if (msg.type === 'mic-pcm') {
+      if (mic && mic.onPcm) { try { mic.onPcm(pcmOf(msg.b64)); } catch (_) {} }
+      return;   // 音频块不广播
+    }
+    if (msg.type === 'mic-state') {
+      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || '')); } catch (_) {} }
+    }
+    for (const fn of listeners.slice()) { try { fn(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
   }
 
   const api = {
@@ -270,7 +313,8 @@ var NativeAudio = (() => {
     platform: () => platform,
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
-    sessionStart, sessionStop, nowPlaying, artwork, artworkLocal, playingState, onEvent, _fromNative,
+    sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
+    micStart, micStop, pcmOf, _fromNative,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

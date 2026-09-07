@@ -51,6 +51,11 @@
 
   function srcLine(item, sources) {
     const s = sources.get(item.sourceId);
+    // 对话来源（§9.6）：没有 host、没有可回放的音频 —— 只显示会话标题，不给链接。
+    if (item.anchor && item.anchor.k === 'conv') {
+      const who = item.anchor.who === 'me' ? ' · ' + t('listen_me_badge', '我说的') : '';
+      return document.createTextNode('🎙 ' + ((s && s.title) || item.anchor.title || t('listen_source_label', '对话')) + who);
+    }
     const host = (() => { try { return new URL(s && s.url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
     const title = (s && s.title) || host || t('learn_unknown_source', '未知来源');
     const url = mediaUrl(item, s) || (s && s.url) || '';
