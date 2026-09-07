@@ -429,3 +429,25 @@ describe('中国版的登录方式（两条发射路径）', () => {
       + '而 App 正是唯一有 Google 按钮的面');
   });
 });
+
+// AGENTS 规则 10：不出阉割版。App「对话 · 实时听译」与扩展「AI 转写字幕」的流式一档都以
+// 「转写引擎带 liveEndpoint」为存在前提（learning-design §9.6、domain-design §2.4），所以
+// **每个出货 flavor** 都必须至少有一个带实时接口的转写引擎 —— 中国版 2026-09-07 之前没有，
+// 这个模式在中国版里根本不存在，而没有任何门禁会为此变红。
+describe('每个 flavor 至少有一个带实时接口的转写引擎（AGENTS 规则 10）', () => {
+  const STT = require('../build/stt.config.js');
+  for (const flavor of ['global', 'china']) {
+    test(`${flavor}：有 liveEndpoint + liveType 的条目`, () => {
+      const live = STT.filter((e) => (e.flavors || []).includes(flavor) && e.liveEndpoint && e.liveType);
+      ok(live.length >= 1, `${flavor} 没有带实时接口的转写引擎 —— 对话 · 实时听译在这个 flavor 里不存在`);
+      for (const e of live) ok(/^wss:\/\//.test(e.liveEndpoint), `${e.id} 的 liveEndpoint 不是 wss://`);
+    });
+  }
+  test('产物里也是（dist-china/content/stt.gen.js）', () => {
+    const fs = require('fs'), path = require('path');
+    const p = path.join(__dirname, '..', 'dist-china', 'content', 'stt.gen.js');
+    if (!fs.existsSync(p)) return;   // 没跑过 china 构建就跳过 —— 上面那条已经守住源头
+    const src = fs.readFileSync(p, 'utf8');
+    ok(/"liveEndpoint":"wss:\/\//.test(src), 'dist-china 的 stt.gen.js 里没有 liveEndpoint —— 构建把它丢了');
+  });
+});

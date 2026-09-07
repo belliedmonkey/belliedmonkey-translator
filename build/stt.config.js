@@ -63,6 +63,15 @@ module.exports = [
     defaultModel: 'qwen-audio-3.0-asr-flash',
     labelKey: null, label: '通义千问 · 语音转写',
     hintKey: 'stt_hint',
+    // §2.4 tier B（流式一档）—— 中国版唯一带实时接口的转写引擎，也是 App「对话 · 实时听译」
+    // 在中国版存在的前提（AGENTS 规则 10：不出阉割版）。实测 2026-09-07（scripts/asr-probe.js）：
+    // `api-ws/v1/inference` 的 run-task/duplex 协议，pcm 16k 二进制帧，逐句 result-generated；
+    // 英文 12 分钟滞后 p50 1.20s / p90 1.56s、WER 3.6%、100% 以标点闭合；中文 12 分钟
+    // p50 1.03s / p90 1.42s、CER 5.2%、98.1%；0 断流。key 走 `?api_key=`（握手实测只认这一种
+    // 无头写法；真 Chrome 页面源握手 + task-started 成功，scripts/asr-cors-probe.js）。
+    // 同一把 key；用户改 sttBaseUrl 只影响上面那个文件端点。
+    liveEndpoint: 'wss://dashscope.aliyuncs.com/api-ws/v1/inference',
+    liveType: 'ws-duplex', liveModel: 'qwen-audio-3.0-asr-flash-streaming', liveRate: 16000,
   },
   {
     // 聚合网关的转写。走**已有的** transcribe-compat 形状（multipart /audio/transcriptions），

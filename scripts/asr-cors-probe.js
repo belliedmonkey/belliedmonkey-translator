@@ -42,10 +42,16 @@ function keyFromLocal(name) {
   } catch (_) { return null; }
 }
 const OPENAI_KEY = keyFromLocal('sttApiKey');
+const QWEN_KEY = keyFromLocal('key_stt_qwen') || keyFromLocal('key_chat_qwen_china');
 const WS = {
   gemini: { url: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=probe' },
   meta: { url: 'wss://api.meta.ai/v1/asr/realtime' },
   ...(OPENAI_KEY ? { openai: { url: 'wss://api.openai.com/v1/realtime?intent=transcription', protocols: ['realtime', 'openai-insecure-api-key.' + OPENAI_KEY] } } : {}),
+  // ws-duplex：key 走 ?api_key=；握手之后还要 run-task 得到 task-started 才算「页面源能用」——
+  // 服务端可能在握手放行、在任务层看 Origin 拒绝。
+  ...(QWEN_KEY ? { dashscope: { url: 'wss://dashscope.aliyuncs.com/api-ws/v1/inference?api_key=' + QWEN_KEY,
+    runTask: { header: { action: 'run-task', task_id: '0123456789abcdef0123456789abcdef', streaming: 'duplex' }, payload: { task_group: 'audio', task: 'asr', function: 'recognition', model: 'qwen-audio-3.0-asr-flash-streaming', parameters: { format: 'pcm', sample_rate: 16000 }, input: {} } },
+    expect: 'task-started' } } : {}),
 };
 
 // 页面里跑的探针。返回一个纯 JSON 结果；所有等待都有上限，静默失败不算成功。
@@ -130,7 +136,8 @@ const PAGE_SCRIPT = `(async () => {
       let done = false; const fin = (v) => { if (!done) { done = true; resolve(v); } };
       try {
         const w = spec.protocols ? new WebSocket(spec.url, spec.protocols) : new WebSocket(spec.url);
-        w.onopen = () => { fin({ open: true }); try { w.close(); } catch (_) {} };
+        w.onopen = () => { if (spec.runTask) { w.send(JSON.stringify(spec.runTask)); return; } fin({ open: true }); try { w.close(); } catch (_) {} };
+        w.onmessage = (ev) => { if (!spec.expect) return; const t = String(ev.data || ''); fin({ open: true, task: t.indexOf(spec.expect) >= 0 ? spec.expect : t.slice(0, 160) }); try { w.close(); } catch (_) {} };
         w.onerror = () => fin({ open: false, error: 'error event (握手失败或被拒)' });
         w.onclose = (e) => fin({ open: false, code: e.code, reason: e.reason });
         setTimeout(() => { fin({ open: false, error: 'timeout' }); try { w.close(); } catch (_) {} }, 8000);
@@ -180,7 +187,7 @@ function summarize(r) {
   if (r.getCors) lines.push(`  直链 GET(cors, Range): ${r.getCors.error ? '✗ ' + r.getCors.error : `${r.getCors.status} ${r.getCors.bytes}B`}`);
   if (r.capture) lines.push(`  captureStream: ${r.capture.error ? '✗ ' + r.capture.error : `${r.capture.silent ? '✗ 静音' : '✓ 有声'} rms=${r.capture.rms} peak=${r.capture.peak} trackMuted=${r.capture.trackMuted}`}`);
   for (const [k, v] of Object.entries(r.rest || {})) lines.push(`  REST ${k}: ${v.corsReadable ? `✓ CORS 放行，HTTP ${v.status} acao=${v.acao} ${JSON.stringify(v.body).slice(0, 90)}` : '✗ ' + v.error}`);
-  for (const [k, v] of Object.entries(r.ws || {})) lines.push(`  WS ${k}: ${v.open ? '✓ 握手成功' : `✗ ${v.error || ''} code=${v.code || ''} ${v.reason || ''}`}`);
+  for (const [k, v] of Object.entries(r.ws || {})) lines.push(`  WS ${k}: ${v.open ? '✓ 握手成功' + (v.task ? ' · 任务层 ' + v.task : '') : `✗ ${v.error || ''} code=${v.code || ''} ${v.reason || ''}`}`);
   return lines.join('\n');
 }
 

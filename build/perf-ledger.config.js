@@ -460,6 +460,12 @@ module.exports = [
     why: 'Realtime 流式转写（wss://api.openai.com/v1/realtime?intent=transcription，子协议 openai-insecure-api-key 鉴权，pcm 24k，turn_detection 必须为 null）：逐词 delta 带标点，按句末标点切句后 —— 英文 12 分钟滞后 p50 1.78s / p90 2.24s / max 3.2s、WER 3.7%、99.2% 句子以标点闭合、0 断流；中文 12.6 分钟 p50 1.83s / p90 2.45s / max 3.5s、CER 3.9%、98.8%、0 断流。ms 记的是英文 p90 滞后。真 Chrome 页面源握手成功（scripts/asr-cors-probe.js）。**delay 档位 A/B（3 分钟英文，同一段）**：默认 p50 1.72s / p90 2.63s；low 0.78s / 2.29s；**minimal 0.18s / 0.35s**，三档 WER 相同（11.3%，3 分钟样本含 LibriVox 片头） ⇒ 注册表 liveParams 写 minimal。medium/high/xhigh 未扫（只会更慢）。',
   },
   {
+    host: 'dashscope.aliyuncs.com', model: 'qwen-audio-3.0-asr-flash-streaming', date: '2026-09-07',
+    baseline: { ms: 1558, thinkTokens: null, outChars: 7300, finish: 'stop' },
+    verdict: 'reachable',
+    why: '流式转写（ws-duplex：wss://dashscope.aliyuncs.com/api-ws/v1/inference，run-task/duplex 协议，pcm 16k 二进制帧，result-generated 逐句、sentence_end 定稿）：英文 12 分钟滞后 p50 1.20s / p90 1.56s / max 1.81s、WER 3.6%、100% 句子以标点闭合、0 断流；中文 12 分钟 p50 1.03s / p90 1.42s / max 1.72s、CER 5.2%、98.1%、0 断流。ms 记英文 p90 滞后。厂商按停顿切「句」（平均 36–50 token，常含两三句），中间态是累计文本带标点 ⇒ 产品侧用 interimCutter 提前放句。鉴权：握手 URL `?api_key=` 通过，`?apikey=`、`?Authorization=`、子协议各种写法都被拒；真 Chrome 页面源握手 + task-started 成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（language_hints / 热词 / 标点参数未试）。',
+  },
+  {
     host: 'generativelanguage.googleapis.com', model: 'gemini-3.5-transcribe', date: '2026-09-06',
     baseline: { ms: 69362, thinkTokens: null, outChars: 40256, finish: 'stop' },
     verdict: 'reachable',

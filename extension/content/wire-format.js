@@ -41,6 +41,7 @@ var WireFormat = (() => {
     // 一个家族 —— 与文件式转写同能力不同协议，后缀表只在家族内选变体。
     'ws-realtime': 'transcribe-live',
     'ws-bidi': 'transcribe-live',
+    'ws-duplex': 'transcribe-live',
     'speech-dashscope': 'speech',
     'speech-audio-chat': 'speech',
   };
@@ -76,6 +77,7 @@ var WireFormat = (() => {
     'transcribe-live': [
       ['/realtime', 'ws-realtime'],
       ['/generativeservice.bidigeneratecontent', 'ws-bidi'],
+      ['/inference', 'ws-duplex'],
     ],
   };
   // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。

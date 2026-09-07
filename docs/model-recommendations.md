@@ -73,7 +73,7 @@
 
 ## 实测台账（全部）
 
-共 68 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 69 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -113,6 +113,7 @@
 | `qwen-plus` | 2026-08-20 | ⬜ 测过不写 | 基线 3175ms · 思考 0tok · 降档后 3819ms | — | 默认就不思考，没有可关的东西。加了参数也一样 —— 写进表只会是一个要跟着厂商改的负担 |
 | `qwen3-max` | 2026-08-20 | ⬜ 测过不写 | 基线 3938ms · 思考 0tok · 降档后 4017ms | — | 同 qwen-plus，默认不思考 |
 | `qwen-mt-turbo` | 2026-08-20 | ⬜ 测过不写 | 基线 383ms · 思考 0tok | — | 翻译专用模型，不思考，且本身就是最快的一档（383ms，对比 qwen-plus 509ms） |
+| `qwen-audio-3.0-asr-flash-streaming` | 2026-09-07 | 🔵 可达（参数未扫） | 基线 1558ms | — | 流式转写（ws-duplex：wss://dashscope.aliyuncs.com/api-ws/v1/inference，run-task/duplex 协议，pcm 16k 二进制帧，result-generated 逐句、sentence_end 定稿）：英文 12 分钟滞后 p50 1.20s / p90 1.56s / max 1.81s、WER 3.6%、100% 句子以标点闭合、0 断流；中文 12 分钟 p50 1.03s / p90 1.42s / max 1.72s、CER 5.2%、98.1%、0 断流。ms 记英文 p90 滞后。厂商按停顿切「句」（平均 36–50 token，常含两三句），中间态是累计文本带标点 ⇒ 产品侧用 interimCutter 提前放句。鉴权：握手 URL `?api_key=` 通过，`?apikey=`、`?Authorization=`、子协议各种写法都被拒；真 Chrome 页面源握手 + task-started 成功（scripts/asr-cors-probe.js）。**参数层面没扫过**（language_hints / 热词 / 标点参数未试）。 |
 | `qwen3.8-max` | 2026-08-30 | 🔵 可达（参数未扫） | 基线 1978ms | — | 能力探针（短句）：1.9–2.0 秒 / 131 出参 tok。长正文的**参数层面没扫过** —— 但它落在 dashscope 通行行里，会收到 enable_thinking:false（那一行由 glm-4.6 等四个模型的实测支撑）。 |
 | `qwen-audio-3.0-asr-flash` | 2026-08-30 | 🔵 可达（参数未扫） | 基线 351ms | — | 转写可达性（真 Chrome 扩展页）：351–488ms，wav 与 m4a 都逐字转对。走 transcribe-dashscope 形状（JSON + base64 data URI）。**参数层面没扫过**。 |
 | `qwen-tts` | 2026-08-30 | 🔵 可达（参数未扫） | 基线 2004ms | — | 朗读可达性（真 Chrome 扩展页）：2004ms、148844 字节 WAV、浏览器解码 3.1 秒。两步链路（先要音频 URL 再取字节，回包是 http:// 必须升 https）。四个音色由服务端自己列出。**参数层面没扫过**。 |
