@@ -2326,5 +2326,8 @@
   },
   "listen_sources_note": {
     "message": "Chaque phrase vient de la transcription et sa traduction de votre moteur ; les deux peuvent se tromper — les phrases étoilées passent en révision en premier."
+  },
+  "listen_speak_nothing": {
+    "message": "Rien entendu — maintenez et répétez"
   }
 }

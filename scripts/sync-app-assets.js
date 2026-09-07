@@ -443,15 +443,34 @@ const PLIST_KEYS = [
 // Pure, so the tests can run it without an Xcode tree. Returns { xml, added, note }.
 function patchPlistXml(src, keys) {
   const added = [];
+  const updated = [];
   let out = src;
   for (const k of keys) {
-    if (out.includes(`<key>${k.key}</key>`)) continue;
+    const keyTag = `<key>${k.key}</key>`;
+    if (out.includes(keyTag)) {
+      // 键已在，但值可能是旧的（2026-09-07：麦克风文案改了措辞，工程里的 plist 却还是
+      // 「识别后立即丢弃」那一版 —— 模拟器弹窗里看到的正是旧话）。只对 <string> 值做替换：
+      // 数组/布尔那几个键没有「改措辞」这回事。
+      const m = /^<string>[\s\S]*<\/string>$/.test(k.xml);
+      if (m) {
+        const re = new RegExp(keyTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*<string>[^<]*<\\/string>');
+        const cur = re.exec(out);
+        if (cur && cur[0] !== `${keyTag}\n\t${k.xml}` && !cur[0].endsWith(k.xml)) {
+          out = out.replace(re, `${keyTag}\n\t${k.xml}`);
+          updated.push(k.key);
+        }
+      }
+      continue;
+    }
     const anchor = out.lastIndexOf('</dict>');
-    if (anchor < 0) return { xml: src, added: [], note: '✗ no </dict> anchor' };
+    if (anchor < 0) return { xml: src, added: [], updated: [], note: '✗ no </dict> anchor' };
     out = out.slice(0, anchor) + `\t<key>${k.key}</key>\n\t${k.xml}\n` + out.slice(anchor);
     added.push(k.key);
   }
-  return { xml: out, added, note: added.length ? `patched ${added.join(', ')}` : 'already current' };
+  const parts = [];
+  if (added.length) parts.push(`patched ${added.join(', ')}`);
+  if (updated.length) parts.push(`updated ${updated.join(', ')}`);
+  return { xml: out, added, updated, note: parts.length ? parts.join(' · ') : 'already current' };
 }
 
 // 跨面交接的自定义 scheme（learning-design §8.4.1.1）。

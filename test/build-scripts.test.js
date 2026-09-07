@@ -517,6 +517,22 @@ describe('sync-app-assets: Info.plist declarations (§9.4 mic / §9.5 background
     }
   });
 
+  test('a key already present with a STALE string value is updated, not skipped', () => {
+    // 2026-09-07：麦克风文案改了措辞（Gate E），而工程里的 plist 还是旧话 —— 模拟器权限
+    // 弹窗里看到的正是旧文案。「已存在就跳过」对数组/布尔键是对的，对文案不是。
+    const mic = PLIST_KEYS.find((k) => k.key === 'NSMicrophoneUsageDescription');
+    const stale = '<plist><dict>\n\t<key>NSMicrophoneUsageDescription</key>\n\t<string>老文案</string>\n</dict></plist>';
+    const { xml, updated, note } = patchPlistXml(stale, [mic]);
+    ok(xml.includes(mic.xml), '新文案该写进去');
+    ok(!xml.includes('老文案'), '旧文案该被替换');
+    eq(updated.length, 1);
+    match(note, /updated NSMicrophoneUsageDescription/);
+    // 再跑一次是幂等的
+    const again = patchPlistXml(xml, [mic]);
+    eq(again.updated.length, 0);
+    eq(again.note, 'already current');
+  });
+
   test('no </dict> anchor ⇒ says so instead of writing garbage', () => {
     const { xml, note } = patchPlistXml('<plist></plist>', PLIST_KEYS);
     eq(xml, '<plist></plist>');

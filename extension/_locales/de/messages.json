@@ -2326,5 +2326,8 @@
   },
   "listen_sources_note": {
     "message": "Jeder Satz stammt aus der Transkription, die Übersetzung aus deiner Engine; beides kann falsch sein — Sätze mit Stern kommen zuerst in die Wiederholung."
+  },
+  "listen_speak_nothing": {
+    "message": "Nichts gehört — halten und noch einmal sprechen"
   }
 }

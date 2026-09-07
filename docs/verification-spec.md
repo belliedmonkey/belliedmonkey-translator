@@ -1269,6 +1269,16 @@ sweeping the visible surface after every step (non-empty labels, foreground ≠
 background — the class of bug that only exists where CSS cascades differ per host).
 Case list and manual-matrix complement: [`learn-regression.md`](learn-regression.md).
 
+### 3.1.5 `npm run test:listen` — 「对话 · 实时听译」端到端（2026-09-07）
+
+learning-design §9.6 的整条链在真 Chrome 里走一遍：页内注入一个按 `mtAudio` 协议回话的假原生桥
+（`mic-pcm` / `mic-state` / `session-ready`，即出货的原生采集路），本机假流式端点（RFC 6455）
+与假翻译端点，CDP 发真指针按住。断言：未配实时引擎时入口不存在、配好后出现；socket 真开且收到
+PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松手翻面大字 = 译文；语料里来源 `conv:<id>`、
+锚点 `k:'conv'`、对方句 lang = 「对方的语言」；加星落盘；结束小结数字与历史一致、socket 关闭、
+桥收到 `mic-stop`。改 `app/listen*.js`、桥的 mic 协议、Swift 输入半边、来源/复习卡的 conv 分支
+时必跑。真机上仍要人验的只剩两件：锁屏续听（M22，09-07 已实证 3 分钟不断）与朗读有没有声（M23）。
+
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的

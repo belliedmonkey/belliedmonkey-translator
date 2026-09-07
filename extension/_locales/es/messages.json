@@ -2326,5 +2326,8 @@
   },
   "listen_sources_note": {
     "message": "Cada frase viene de la transcripción y su traducción de tu motor; ambas pueden fallar — las frases con estrella pasan al repaso primero."
+  },
+  "listen_speak_nothing": {
+    "message": "No se oyó nada — mantén pulsado y repite"
   }
 }

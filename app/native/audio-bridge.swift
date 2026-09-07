@@ -478,7 +478,15 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         if playing {
             // WebKit 每开一个 <audio> 都会按它自己的判断动一次音频会话类别。重申一次的
             // 代价是零，而漏掉一次的代价是「播到第三段忽然不能后台了」这种查不到的 bug。
-            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+            //
+            // 实时听译（§9.6）也发这条消息（锁屏卡片的播放态），那时必须重申成**可录**的
+            // 那一档 —— 2026-09-07 真机实证：结束再开始时这句把类别打回 .playback，
+            // 麦克风引擎随即起不来（第一次能成只是因为权限查询把引擎启动排到了它后面）。
+            if recordMode || micEngine != nil {
+                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            } else {
+                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+            }
         }
 #endif
     }

@@ -103,6 +103,14 @@ npm run test:asr         # 「AI 转写字幕」真 Chrome 端到端（Node ≥2
                          # live* 字段时必跑。本机假 STT 端点 + 手写 RFC 6455 假流式服务端：文件一档
                          # 断言整段只上传一次且叠层出原文+译文；流式一档断言 captureStream 真把
                          # PCM 送到了端点（≥20 帧）且叠层出整句。厂商本身由 scripts/asr-probe.js 验。
+npm run test:listen      # 「对话 · 实时听译」真 Chrome 端到端（Node ≥22）—— 改 app/listen*.js、
+                         # app/native-audio.js 的 mic-* 协议、audio-bridge.swift 输入半边、或
+                         # sources-view/review 的 conv 分支时必跑。页内注入假原生桥（按 mtAudio 协议
+                         # 回 mic-pcm，即出货的原生采集路）+ 本机假流式端点 + 本机假翻译端点，CDP 发
+                         # 真指针按住：断言入口门控、定稿+译文进历史、按住期间的句子归「我」并翻面、
+                         # 语料里是 conv 来源/锚点、加星落盘、结束小结数字与桥收到 mic-stop。
+                         # 为什么不用模拟器/真机：模拟器麦克风 0 字节、cua 的按住到不了 WKWebView 的
+                         # pointerdown、真机被 iPhone 镜像占着麦克风（2026-09-07 三条路都试过）。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour

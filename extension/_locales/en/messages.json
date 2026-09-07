@@ -2326,5 +2326,8 @@
   },
   "listen_sources_note": {
     "message": "Each sentence comes from transcription and its translation from your engine; both can be wrong — starred sentences go to review first."
+  },
+  "listen_speak_nothing": {
+    "message": "Nothing heard — hold and say it again"
   }
 }

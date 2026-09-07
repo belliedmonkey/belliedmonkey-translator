@@ -2327,5 +2327,8 @@
   },
   "listen_sources_note": {
     "message": "每句原文來自轉寫、譯文來自你的翻譯引擎，都可能有錯——加星的句子優先進複習。"
+  },
+  "listen_speak_nothing": {
+    "message": "沒有聽到你說的話 — 再按住說一次"
   }
 }

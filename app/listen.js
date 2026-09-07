@@ -89,18 +89,17 @@ var AppListen = (() => {
   function liveCapable(c) { return !!(c && c.eng && c.eng.liveEndpoint && c.eng.liveType && (c.sttKey || !c.eng.needsKey)); }
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
+  // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
+  const ENTRY_SUFFIXES = ['', '2'];
   async function refreshEntry() {
-    const btn = $('app-listen-entry');
-    if (!btn) return;
-    try {
-      const c = await readCfg();
-      const ok = liveCapable(c);
-      btn.hidden = !ok;
-      const hint = $('app-listen-entry-hint');
+    let ok = false;
+    try { ok = liveCapable(await readCfg()); } catch (_) { ok = false; }
+    for (const sfx of ENTRY_SUFFIXES) {
+      const btn = $('app-listen-entry' + sfx); if (btn) btn.hidden = !ok;
+      const hint = $('app-listen-entry-hint' + sfx);
       if (hint) { hint.hidden = !ok; hint.textContent = t('listen_entry_hint', '线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。'); }
-      const need = $('app-listen-need-live');
-      if (need) need.hidden = ok;
-    } catch (_) { btn.hidden = true; }
+      const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
+    }
   }
 
   // ── 翻译 ──────────────────────────────────────────────────────────────────
@@ -180,16 +179,24 @@ var AppListen = (() => {
 
   // ── 麦克风：原生桥优先，页内 getUserMedia 是无桥宿主的退路 ────────────────────
   function bridged() { return typeof NativeAudio !== 'undefined' && NativeAudio.available(); }
+  let pcmFrames = 0, pcmSent = 0;
   function onPcm(int16) {
+    pcmFrames++;
     if (!session || !sock) return;
     if (phase !== 'listening' && phase !== 'speaking') return;
-    sock.sendPcm(int16);
+    if (sock.sendPcm(int16) !== false) pcmSent++;
     if (phase === 'listening' && C.silenceCheck(session, C.rmsOf(int16), now())) pause('silence');
   }
   function onMicState(state, reason) {
     if (state === 'denied') halt('denied', '');
     else if (state === 'failed') halt('failed', reason);
-    else if (state === 'interrupted') halt('locked', '');
+    else if (state === 'interrupted') {
+      // 刚起就被打断（2 s 内）多半是会话类别的一次抖动，不是真的来电：自动再试一次，
+      // 再不行才停在具名态等用户。
+      if (now() - startedAt < 2000 && earlyRetries < 1) { earlyRetries++; halt('locked', ''); setTimeout(() => { if (phase === 'halted' && pauseReason === 'locked') resume(); }, 800); return; }
+      halt('locked', '');
+    }
+    else if (state === 'granted') { earlyRetries = 0; if (session) session.lastVoiceAt = now(); }   // 静音计时从麦克风真正开始出帧算起，不从点按算起
   }
   async function micStart() {
     const rate = (cfg.eng && cfg.eng.liveRate) || 24000;
@@ -235,9 +242,16 @@ var AppListen = (() => {
   }
   function concatF32(a, b) { const o = new Float32Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
 
-  function keepAliveOn() {
+  // 返回 promise：**必须在启动麦克风之前放起来**。WebKit 一开始播页内媒体就会把音频会话
+  // 类别改回 .playback，正在启动的录音引擎会被当场打断（2026-09-07 真机：第一次进入与
+  // 结束后重开都是「起了半秒就断」，8 s 后重试才成功 —— 那时保活已在播，不再冲突）。
+  async function keepAliveOn() {
     if (!bridged() || !NativeAudio.suspends()) return;
-    try { if (!keepAlive) { keepAlive = new Audio(KEEP_ALIVE_WAV); keepAlive.loop = true; } keepAlive.play().catch(() => {}); } catch (_) {}
+    try {
+      if (!keepAlive) { keepAlive = new Audio(KEEP_ALIVE_WAV); keepAlive.loop = true; }
+      await keepAlive.play();
+      await new Promise((r) => setTimeout(r, 250));   // 让 WebKit 把类别动完
+    } catch (_) {}
   }
   function keepAliveOff() { try { if (keepAlive) keepAlive.pause(); } catch (_) {} }
 
@@ -265,11 +279,14 @@ var AppListen = (() => {
     C.resume(session, now());
     openSocket();
     paint();
+    startedAt = now();
+    await keepAliveOn();
+    if (phase !== 'listening') return;   // 等保活的这一拍里被停掉了
     const ok = await micStart();
     if (!ok) return;
-    keepAliveOn();
     paint();
   }
+  let startedAt = 0, earlyRetries = 0;
   // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
   function pause(reason) {
     if (phase !== 'listening' && phase !== 'speaking') return;
@@ -343,6 +360,7 @@ var AppListen = (() => {
   // ── 我说（按住说话）────────────────────────────────────────────────────────
   function speakBegin() {
     if (phase !== 'listening') return;
+    note('');
     phase = 'speaking';
     holdRowsFrom = session.seq;
     C.holdStart(session, now());
@@ -367,7 +385,8 @@ var AppListen = (() => {
     let row = mine[0];
     if (!row && text) { session.speaking = true; row = C.addFinal(session, text, now()); session.speaking = false; }
     for (const r of mine.slice(1)) { const i = session.rows.indexOf(r); if (i >= 0) session.rows.splice(i, 1); }
-    if (!row) { phase = 'listening'; paint(); return; }
+    // 松手时什么都没听到：说一声再回到听。静默回去等于「按了没反应」，是最贵的那种失败。
+    if (!row) { phase = 'listening'; note(t('listen_speak_nothing', '没有听到你说的话 — 再按住说一次'), false); paint(); return; }
     row.text = text;
     partial = ''; partialTr = '';
     renderHistory();
@@ -426,6 +445,10 @@ var AppListen = (() => {
       else if (msg.command === 'toggle') toggle();
     } else if (msg.type === 'interrupt' && msg.phase === 'begin') {
       if (phase === 'listening' || phase === 'speaking') halt('locked', '');
+    } else if (msg.type === 'interrupt' && msg.phase === 'end') {
+      // 中断结束且系统说可以继续（来电挂断、别的 App 放开麦克风）⇒ 自动续听 ——
+      // 与播客模式 §9.5 的「.shouldResume 才自动续播」同一条规则；没有它就等用户点。
+      if (msg.resume && phase === 'halted' && pauseReason === 'locked') resume();
     }
   }
 
@@ -514,13 +537,12 @@ var AppListen = (() => {
 
   // ── 接线 ──────────────────────────────────────────────────────────────────
   function wire() {
-    const entry = $('app-listen-entry');
-    if (entry) {
-      entry.textContent = t('listen_entry', '🎙 对话 · 实时听译');
-      entry.addEventListener('click', open);
+    for (const sfx of ENTRY_SUFFIXES) {
+      const entry = $('app-listen-entry' + sfx);
+      if (entry) { entry.textContent = t('listen_entry', '🎙 对话 · 实时听译'); entry.addEventListener('click', open); }
+      const why = $('app-listen-need-live-why' + sfx); if (why) why.textContent = t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎');
+      const go = $('app-listen-need-live-go' + sfx); if (go) go.textContent = t('listen_need_live_go', '去设置里选择 →');
     }
-    const why = $('app-listen-need-live-why'); if (why) why.textContent = t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎');
-    const go = $('app-listen-need-live-go'); if (go) go.textContent = t('listen_need_live_go', '去设置里选择 →');
     refreshEntry();
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -588,5 +610,6 @@ var AppListen = (() => {
   }
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
-    _debug: () => ({ phase, pauseReason, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id }) };
+    _debug: () => ({ phase, pauseReason, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+      pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null }) };
 })();

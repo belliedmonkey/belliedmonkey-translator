@@ -926,6 +926,7 @@
   $('app-drive-need-tts-go').addEventListener('click', () => openSettings('tts-engine'));
   // 对话 · 实时听译的门没过时那条路：设置页转写引擎那一档（§9.6）。
   $('app-listen-need-live-go').addEventListener('click', () => openSettings('stt-engine'));
+  $('app-listen-need-live-go2').addEventListener('click', () => openSettings('stt-engine'));
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.

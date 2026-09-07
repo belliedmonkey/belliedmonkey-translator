@@ -2326,5 +2326,8 @@
   },
   "listen_sources_note": {
     "message": "Cada frase vem da transcrição e a tradução do seu mecanismo; ambas podem errar — frases com estrela entram na revisão primeiro."
+  },
+  "listen_speak_nothing": {
+    "message": "Nada foi ouvido — segure e fale de novo"
   }
 }
