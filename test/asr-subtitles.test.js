@@ -421,6 +421,7 @@ describe('§2.4 wire-format: transcribe-gemini and the live family', () => {
     eq(WF.formatFor('wss://api.example.com/v1/realtime?intent=transcription', 'ws-realtime'), 'ws-realtime');
     eq(WF.formatFor('wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=abc', 'ws-bidi'), 'ws-bidi');
     eq(WF.formatFor('wss://gateway.example/v1/realtime', 'ws-bidi'), 'ws-realtime', 'suffix picks the variant within the live family');
+    eq(WF.formatFor('wss://dashscope.aliyuncs.com/api-ws/v1/inference?api_key=abc', 'ws-duplex'), 'ws-duplex');
   });
   test('family closure: an /interactions address under a CHAT engine stays chat', () => {
     eq(WF.formatFor('https://x.example/v1beta/interactions', 'chat-compat'), 'chat-compat');
@@ -589,6 +590,42 @@ describe('§2.4 ws-transcribe: cutters and adapters', () => {
     ws._msg({ serverContent: { interimInputTranscription: { text: 'One. Two' } } });
     ws._msg({ serverContent: { inputTranscription: { text: 'One. Two.' } } });
     deepEq(ev.filter((e) => e.kind === 'final').map((e) => e.text), ['One.', 'Two.']);
+  });
+  test('ws-duplex: key as ?api_key=, run-task on open, binary audio, partial/final from sentence_end, task-failed → error', () => {
+    const { W, sockets } = loadWs();
+    const ev = [];
+    const s = W.open({ url: 'wss://d/api-ws/v1/inference', type: 'ws-duplex', apiKey: 'SECRET', model: 'flash-streaming', rate: 16000, langs: [], onEvent: (e) => ev.push(e) });
+    const ws = sockets[0];
+    ok(ws.url.indexOf('?api_key=SECRET') > 0, ws.url);
+    ok(ws.protocols == null, 'no subprotocol');
+    ws._open();
+    const rt = JSON.parse(ws.sent[0]);
+    eq(rt.header.action, 'run-task'); eq(rt.header.streaming, 'duplex'); ok(/^[0-9a-f]{32}$/.test(rt.header.task_id), rt.header.task_id);
+    eq(rt.payload.model, 'flash-streaming'); eq(rt.payload.parameters.format, 'pcm'); eq(rt.payload.parameters.sample_rate, 16000);
+    eq(s.sendPcm(new Int16Array(4)), false, 'not ready before task-started');
+    ws._msg({ header: { event: 'task-started', task_id: rt.header.task_id }, payload: {} });
+    eq(ev[0].kind, 'ready');
+    ok(s.sendPcm(new Int16Array(4)));
+    ok(ArrayBuffer.isView(ws.sent[1]) && ws.sent[1].byteLength === 8, 'audio goes as a binary frame (not a JSON string)');
+    ws._msg({ header: { event: 'result-generated' }, payload: { output: { sentence: { text: 'this is', sentence_end: false } } } });
+    deepEq(ev.filter((e) => e.kind === 'partial').map((e) => e.text), ['this is']);
+    // cumulative partial already holds a closed sentence ⇒ released before the vendor closes the chunk
+    ws._msg({ header: { event: 'result-generated' }, payload: { output: { sentence: { text: 'this is one. and', sentence_end: false } } } });
+    deepEq(ev.filter((e) => e.kind === 'final').map((e) => e.text), ['this is one.']);
+    ws._msg({ header: { event: 'result-generated' }, payload: { output: { sentence: { text: 'this is one. and two.', sentence_end: true, begin_time: 100, end_time: 2400 } } } });
+    deepEq(ev.filter((e) => e.kind === 'final').map((e) => e.text), ['this is one.', 'and two.'], 'no re-emit of the released sentence');
+    s.close();
+    const fin = JSON.parse(ws.sent[2]);
+    eq(fin.header.action, 'finish-task'); eq(fin.header.task_id, rt.header.task_id);
+    eq(W.stripKey('wss://d/x?api_key=SECRET'), 'wss://d/x?api_key=…');
+  });
+  test('ws-duplex: task-failed surfaces the server sentence, never silent', () => {
+    const { W, sockets } = loadWs();
+    const ev = [];
+    W.open({ url: 'wss://d/api-ws/v1/inference', type: 'ws-duplex', apiKey: 'k', model: 'm', rate: 16000, onEvent: (e) => ev.push(e) });
+    sockets[0]._open();
+    sockets[0]._msg({ header: { event: 'task-failed', error_code: 'InvalidParameter', error_message: 'bad format' } });
+    deepEq(ev.filter((e) => e.kind === 'error').map((e) => e.message), ['bad format']);
   });
   test('unknown live type throws synchronously', () => {
     const { W } = loadWs();

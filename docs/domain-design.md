@@ -1076,7 +1076,8 @@ is a build-time concern, not a runtime one.
   WebSocket cannot send an `Authorization` header, so each vendor's socket carries the
   key the only way it can: OpenAI as a subprotocol (`openai-insecure-api-key.<key>`,
   their documented browser path), Gemini as `?key=` on the URL (their documented path),
-  Meta in the handshake as measured. `content/ws-transcribe.js` is the one place this
+  DashScope as `?api_key=` on the URL (measured 2026-09-07: the only header-free spelling
+  its handshake accepts), Meta in the handshake as measured. `content/ws-transcribe.js` is the one place this
   happens, the registry's `liveType` names which, and `test/wire-format.test.js` pins
   that a `?key=` is stripped before suffix matching and never logged. Written down and
   gated, never an unmentioned gap.

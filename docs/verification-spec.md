@@ -347,6 +347,7 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 24 | `openai_transcribe` **live tier** (§2.4) | global | `ws-realtime` | OpenAI key（子协议鉴权） | ✅ 2026-09-06 `scripts/asr-probe.js`（12 分钟英文滞后 p90 2.24s / WER 3.7%，中文 p90 2.45s / CER 3.9%）+ 真 Chrome 页面源握手成功（`asr-cors-probe.js`）；`npm run test:asr` 用假服务端验抓流→PCM→整句 |
 | 25 | `gemini_transcribe` (file tier) | global | `transcribe-gemini` | Gemini key | ✅ 2026-09-06 探针（英文 29.8 分钟 69.4s / WER 2.9%，中文 19.9 分钟 CER 12.0%；mode 必须 verbatim）+ 真 Chrome 页面源 POST 可读 |
 | 26 | `gemini_transcribe` **live tier** | global | `ws-bidi` | 同一把 Gemini key（`?key=`） | ❌ **未登记**（2026-09-06）：首测 finals 是段落级（每 ~35s 一条）⇒ 改为从累计 interim 切句；免费档 interim 被限流（12 分钟 126 帧 vs 首轮 1473），滞后 p50 8.6s，不过 §2.4 判据。适配器 `ws-bidi` 已实现有单测；付费档复测过线再登记（台账 `gemini-3.5-transcribe-live` 行） |
+| 27 | `qwen_asr` **live tier** (§2.4) | china | `ws-duplex` | 同一把千问 key（`?api_key=`） | ✅ 2026-09-07 `scripts/asr-probe.js`（12 分钟英文滞后 p90 1.56s / WER 3.6%，中文 p90 1.42s / CER 5.2%，0 断流）+ 真 Chrome 页面源握手并收到 task-started（`asr-cors-probe.js`）；单测覆盖 run-task / 二进制帧 / 累计中间态切句 / task-failed。**中国版 App「对话 · 实时听译」的存在前提**（AGENTS 规则 10） |
 
 > **⚠️ 以上 6 行都是「桌面 Node 走扩展代码路径」级别的实证，不是真机。** 三条新语音链路
 > （`transcribe-dashscope` / `speech-dashscope` / `speech-audio-chat`）**一条都没在

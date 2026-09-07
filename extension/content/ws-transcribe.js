@@ -14,6 +14,8 @@
 //   ws-realtime → subprotocol `<registry liveKeyProtocol><key>` (the vendor's documented
 //                 browser path; the prefix is a STORED registry value, not restated here)
 //   ws-bidi     → `?key=` on the URL (the vendor's documented path)
+//   ws-duplex   → `?api_key=` on the URL (measured 2026-09-07: the handshake accepts it;
+//                 `?apikey=`, `?Authorization=` and every subprotocol spelling are refused)
 // The key is never logged and never appears in an error message: adapters strip it
 // before quoting a URL. Names are protocol shapes, never vendors — this file ships in
 // every flavor and the compliance gate scans it line by line.
@@ -27,6 +29,12 @@
 //     inputAudioTranscription:{…}}; realtimeInput.audio{data,mimeType:'audio/pcm;rate=16000'};
 //     serverContent.interimInputTranscription / inputTranscription (utterance-level, no
 //     timestamps); a session lasts 10 minutes → reconnect at 9:30 replaying a 2 s ring buffer.
+//   ws-duplex (measured 2026-09-07): run-task{header:{action,task_id,streaming:'duplex'},
+//     payload:{task_group:'audio',task:'asr',function:'recognition',model,parameters:{format:'pcm',
+//     sample_rate}}} → task-started; audio as BINARY frames; result-generated carries one
+//     sentence at a time — `sentence_end:false` frames are the growing partial, `true` is the
+//     final (with begin_time/end_time in ms); finish-task → task-finished; task-failed carries
+//     header.error_code/error_message.
 'use strict';
 
 var WsTranscribe = (() => {
@@ -47,7 +55,7 @@ var WsTranscribe = (() => {
   const BIDI_RECONNECT_MS = 570000;   // 9:30 — before the 10-minute session cap
   const RING_MS = 2000;
 
-  function stripKey(url) { return String(url || '').replace(/([?&]key=)[^&]*/i, '$1…'); }
+  function stripKey(url) { return String(url || '').replace(/([?&](?:api_)?key=)[^&]*/i, '$1…'); }
 
   function b64(bytes) {
     let s = '';
@@ -268,7 +276,65 @@ var WsTranscribe = (() => {
     };
   }
 
-  const ADAPTERS = { 'ws-realtime': openRealtime, 'ws-bidi': openBidi };
+  // ─── ws-duplex ───────────────────────────────────────────────────────
+  function openDuplex(o, emit) {
+    const url = o.url + (o.url.indexOf('?') < 0 ? '?' : '&') + 'api_key=' + encodeURIComponent(o.apiKey);
+    const taskId = hex32();
+    // The vendor closes a "sentence" on a pause (measured: 36–50 tokens, often two or three
+    // sentences), and its `sentence_end:false` frames are the CUMULATIVE text of that chunk
+    // with punctuation — the same shape as ws-bidi's interims, so the same cutter releases
+    // the leading sentences before the vendor closes the chunk.
+    const cutter = interimCutter(emit);
+    let ws = null, closed = false, ready = false, lastFrame = Date.now();
+    const timer = setTimeout(() => { if (!ready) fail('connect timeout'); }, CONNECT_TIMEOUT_MS);
+    const idle = setInterval(() => { if (ready && Date.now() - lastFrame > IDLE_TIMEOUT_MS) fail('idle'); }, 5000);
+    function fail(message) { if (closed) return; emit({ kind: 'error', message }); close(); }
+    function close() {
+      if (closed) return; closed = true; clearTimeout(timer); clearInterval(idle);
+      try { ws && ws.close(); } catch (_) {}
+    }
+    ws = openSocket(url, null,
+      () => {
+        ws.send(JSON.stringify({
+          header: { action: 'run-task', task_id: taskId, streaming: 'duplex' },
+          payload: { task_group: 'audio', task: 'asr', function: 'recognition', model: o.model,
+            parameters: Object.assign({ format: 'pcm', sample_rate: o.rate }, o.params || {}), input: {} },
+        }));
+      },
+      (txt) => {
+        lastFrame = Date.now();
+        let m; try { m = JSON.parse(txt); } catch (_) { return; }
+        const evn = (m.header && m.header.event) || '';
+        if (evn === 'task-started') { ready = true; clearTimeout(timer); emit({ kind: 'ready' }); }
+        else if (evn === 'result-generated') {
+          const sen = m.payload && m.payload.output && m.payload.output.sentence;
+          if (!sen) return;
+          const text = String(sen.text || '').trim();
+          if (!text) return;
+          if (sen.sentence_end) cutter.final(text); else cutter.interim(text);
+        }
+        else if (evn === 'task-failed') fail(String((m.header && (m.header.error_message || m.header.error_code)) || 'server error').slice(0, 200));
+      },
+      (ev) => { if (!closed) { closed = true; clearTimeout(timer); clearInterval(idle); emit({ kind: 'close', code: ev.code, reason: ev.reason || '' }); } },
+      () => fail('socket error'));
+    return {
+      sendPcm(int16) {
+        if (closed || !ready || ws.readyState !== 1) return false;
+        ws.send(new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength));
+        return true;
+      },
+      close() { try { if (ready && ws.readyState === 1) ws.send(JSON.stringify({ header: { action: 'finish-task', task_id: taskId, streaming: 'duplex' }, payload: { input: {} } })); } catch (_) {} close(); },
+      reset() { cutter.reset(); },
+    };
+  }
+  function hex32() {
+    let s = '';
+    try { const a = new Uint8Array(16); crypto.getRandomValues(a); for (const b of a) s += (b < 16 ? '0' : '') + b.toString(16); return s; } catch (_) {}
+    while (s.length < 32) s += Math.floor(Math.random() * 16).toString(16);
+    return s;
+  }
+
+  const ADAPTERS = { 'ws-realtime': openRealtime, 'ws-bidi': openBidi, 'ws-duplex': openDuplex };
 
   // open({ url, type, apiKey, keyProtocol, model, rate, langs, onEvent }) → { sendPcm(Int16Array), close() }
   // Throws synchronously for an unknown type or a missing WebSocket — a caller must

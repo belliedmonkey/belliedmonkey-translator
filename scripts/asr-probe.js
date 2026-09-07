@@ -505,6 +505,75 @@ async function liveOpenai(pcm, lang, minutes, model) {
   return out;
 }
 
+// DashScope 实时识别（qwen-audio-3.0-asr-flash-streaming）。协议是 `api-ws/v1/inference` 那套：
+// run-task 起任务 → **二进制帧**推 16k PCM → `result-generated` 逐句（`sentence_end` 为 true 才是
+// 定稿，false 是中间态）→ finish-task → task-finished。鉴权在握手头里（Bearer），浏览器开
+// WebSocket 不能带自定义头 —— 这一点产品侧要另验（PR 阶段），探针先量模型本身。
+async function liveQwen(pcm, lang, minutes, model) {
+  const key = slot('key_stt_qwen') || slot('key_chat_qwen_china');
+  if (!key) throw new Error('.local/keys.md 里没有 key_stt_qwen / key_chat_qwen_china');
+  const rate = 16000;
+  const url = process.env.ASR_QWEN_URL || 'wss://dashscope.aliyuncs.com/api-ws/v1/inference';
+  const taskId = require('crypto').randomBytes(16).toString('hex');
+  const out = { finals: [], interims: 0, seams: 0, closes: [], errors: [], raw: [] };
+  const t0 = Date.now();
+  let lastPartial = '';
+  let finished = null;
+  const ws = await new Promise((resolve, reject) => {
+    const w = new WebSocket(url, { headers: { Authorization: 'Bearer ' + key, 'X-DashScope-DataInspection': 'disable' } });
+    const timer = setTimeout(() => reject(new Error('connect/start timeout')), 8000);
+    w.onopen = () => {
+      const parameters = { format: 'pcm', sample_rate: rate };
+      if (process.env.ASR_QWEN_LANG_FIELD && lang) parameters[process.env.ASR_QWEN_LANG_FIELD] = process.env.ASR_QWEN_LANG_FIELD === 'language_hints' ? [lang] : lang;
+      w.send(JSON.stringify({
+        header: { action: 'run-task', task_id: taskId, streaming: 'duplex' },
+        payload: { task_group: 'audio', task: 'asr', function: 'recognition', model: model || 'qwen-audio-3.0-asr-flash-streaming', parameters, input: {} },
+      }));
+    };
+    w.onmessage = async (ev) => {
+      const txt = typeof ev.data === 'string' ? ev.data : Buffer.from(await ev.data.arrayBuffer()).toString('utf8');
+      let m; try { m = JSON.parse(txt); } catch (_) { return; }
+      if (out.raw.length < 60) out.raw.push(m);
+      const evn = (m.header && m.header.event) || '';
+      if (evn === 'task-started') { clearTimeout(timer); resolve(w); }
+      else if (evn === 'result-generated') {
+        const sen = m.payload && m.payload.output && m.payload.output.sentence;
+        if (!sen) return;
+        if (sen.sentence_end) {
+          out.finals.push({ text: String(sen.text || '').trim(), arrivalMs: Date.now() - t0, beginMs: sen.begin_time, endMs: sen.end_time });
+          lastPartial = '';
+        } else { out.interims++; lastPartial = sen.text || ''; }
+      }
+      else if (evn === 'task-finished') { finished = Date.now() - t0; }
+      else if (evn === 'task-failed') {
+        const msg = (m.header.error_code || '') + ' ' + (m.header.error_message || '');
+        out.errors.push(msg.slice(0, 300)); clearTimeout(timer); reject(new Error('task-failed: ' + msg.slice(0, 300)));
+      }
+    };
+    w.onerror = (e) => { out.errors.push('ws error ' + (e.message || '')); clearTimeout(timer); reject(new Error('ws error ' + (e.message || ''))); };
+    w.onclose = (e) => { out.closes.push({ code: e.code, reason: e.reason, atMs: Date.now() - t0 }); };
+  });
+  const total = Math.min(pcm.length, minutes * 60 * rate * 2);
+  const CH = rate * 2 / 10; // 100ms
+  let sent = 0;
+  for (let off = 0; off < total; off += CH) {
+    const chunk = pcm.subarray(off, Math.min(total, off + CH));
+    const due = t0 + (off / (rate * 2)) * 1000;
+    const wait = due - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    if (ws.readyState !== 1) { out.errors.push('socket not open at ' + off); break; }
+    ws.send(chunk);
+    sent = off + chunk.length;
+  }
+  try { ws.send(JSON.stringify({ header: { action: 'finish-task', task_id: taskId, streaming: 'duplex' }, payload: { input: {} } })); } catch (_) {}
+  for (let i = 0; i < 100 && finished == null; i++) await new Promise((r) => setTimeout(r, 100));
+  if (lastPartial.trim()) out.finals.push({ text: lastPartial.trim(), arrivalMs: Date.now() - t0 });
+  try { ws.close(); } catch (_) {}
+  out.sentMs = (sent / (rate * 2)) * 1000;
+  out.finishedAtMs = finished;
+  return out;
+}
+
 // ─── 评分 ────────────────────────────────────────────────────────────────────
 function loadRef(id) {
   const ref = REFS[id];
@@ -662,8 +731,8 @@ async function cmdFile(vendor, id, opts) {
 }
 async function cmdLive(vendor, id, opts) {
   const ref = loadRef(id);
-  const fn = { gemini: liveGemini, meta: liveMeta, openai: liveOpenai }[vendor];
-  if (!fn) throw new Error('vendor 可选 gemini|meta|openai');
+  const fn = { gemini: liveGemini, meta: liveMeta, openai: liveOpenai, qwen: liveQwen }[vendor];
+  if (!fn) throw new Error('vendor 可选 gemini|meta|openai|qwen');
   const minutes = opts.minutes || Math.min(12, ref.secs / 60);
   const words = loadWords(id);
   if (!words) console.log('  （没有 words.json，先跑 `words ' + id + '` 才能算滞后）');
@@ -704,8 +773,8 @@ function cmdReport() {
   }
 }
 function cmdLedger() {
-  const HOST = { whisper: 'api.openai.com', openai: 'api.openai.com', gemini: 'generativelanguage.googleapis.com', meta: 'api.meta.ai' };
-  const MODEL = { whisper: 'whisper-1', openai: 'gpt-live-transcribe', gemini: 'gemini-3.5-transcribe', meta: 'muse-voice-transcribe-1.0' };
+  const HOST = { whisper: 'api.openai.com', openai: 'api.openai.com', gemini: 'generativelanguage.googleapis.com', meta: 'api.meta.ai', qwen: 'dashscope.aliyuncs.com' };
+  const MODEL = { whisper: 'whisper-1', openai: 'gpt-live-transcribe', gemini: 'gemini-3.5-transcribe', meta: 'muse-voice-transcribe-1.0', qwen: 'qwen-audio-3.0-asr-flash-streaming' };
   const by = {};
   for (const f of (fs.existsSync(RESULTS) ? fs.readdirSync(RESULTS) : []).filter((x) => /^(file|live)-.*\.json$/.test(x))) {
     const r = JSON.parse(fs.readFileSync(path.join(RESULTS, f), 'utf8'));
