@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "Звук не захвачен — распознавание остановлено"
   },
+  "asr_err_mse": {
+    "message": "Safari не может захватить звук этого потокового видео, поэтому расшифровать эту страницу нельзя",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "Не удалось прочитать эту запись"
   },

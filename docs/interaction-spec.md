@@ -273,6 +273,7 @@ surface (YouTube, podcast/generic media, x.com).
 | Cause | Line shown |
 |---|---|
 | CDN refuses cross-origin reads and no capture path | 「无法读取该音频」 |
+| Safari and the source is `blob:` (MSE — YouTube, Twitch, X) or a streaming manifest (`.m3u8` / `.mpd`, native HLS on iOS) | 「Safari 抓不到这类流媒体视频的声音，此页无法转写」 — before any socket opens (measured 2026-09-07/08: WebKit's `createMediaElementSource` is silent for MSE while the element stays audible; a manifest is a playlist, not audio, so it never takes the file tier either) |
 | capture attached but silent for 3 s while playing, unmuted | 「捕获不到声音，已停止转写」 |
 | socket closed / vendor error | 「转写连接中断」 + the server's sentence, ≤ 1 line |
 | media changed, subtitles turned off, STT settings changed | session ends; the notice reverts to `字幕不可用` + offer |

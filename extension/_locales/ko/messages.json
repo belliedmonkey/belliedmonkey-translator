@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "소리를 캡처할 수 없어 전사를 중지했습니다"
   },
+  "asr_err_mse": {
+    "message": "Safari가 이런 스트리밍 동영상의 소리를 가져올 수 없어 이 페이지는 전사할 수 없습니다",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "이 오디오를 읽을 수 없습니다"
   },

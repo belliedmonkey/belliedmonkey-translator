@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "音声を取得できないため停止しました"
   },
+  "asr_err_mse": {
+    "message": "Safari はこの種のストリーミング動画の音声を取得できないため、このページは文字起こしできません",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "この音声を読み取れません"
   },

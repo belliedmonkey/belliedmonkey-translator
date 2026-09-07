@@ -609,6 +609,24 @@ describe('§2.4 asr-source: pure helpers', () => {
     eq(W.completeSentences('One. Two').tail, 'Two');
     eq(W.completeSentences('One. Two.').tail, '');
   });
+  // 2026-09-07 macOS Safari 26.5 实测：真实手势、AudioContext running、视频在放且有声，
+  // createMediaElementSource 对 blob:（MSE）源的输出 RMS 恒为 0。原先要等静音守卫 3 秒后说
+  // 「捕获不到声音」—— 用户明明听得见，那句话在怪错人。现在开 socket 之前就具名停下。
+  test('★ Safari + blob:(MSE) source → named "mse" failure before any AudioContext / socket', async () => {
+    let code = null;
+    try { await A.attachCapture({ currentSrc: 'blob:https://www.youtube.com/abc', src: '' }, null, null); } catch (e) { code = e.code; }
+    eq(code, 'mse');
+    let code2 = null;
+    try { await A.attachCapture({ currentSrc: 'https://cdn.example/x.mp3', src: '' }, null, null); } catch (e) { code2 = e.code; }
+    ok(code2 !== 'mse', 'an http(s) source must not be judged as MSE');
+    // 原生 HLS（iOS Safari 的 <video src=.m3u8>）：清单不是音频，文件档拿它去转写只会得到
+    // 「无法读取该音频」（2026-09-07 iOS 17.2 模拟器实测）；Safari 上同样具名停下。
+    eq(A.mediaUrl({ currentSrc: 'https://cdn.example/live/master.m3u8?x=1' }), '', 'a manifest URL is not a tier-A media URL');
+    eq(A.mediaUrl({ currentSrc: 'https://cdn.example/ep.mp3?x=1' }), 'https://cdn.example/ep.mp3?x=1');
+    let code3 = null;
+    try { await A.attachCapture({ currentSrc: 'https://cdn.example/live/master.m3u8', src: '' }, null, null); } catch (e) { code3 = e.code; }
+    eq(code3, 'mse');
+  });
   test('splitAtTerminals cuts a multi-sentence cue with proportional timing', () => {
     const out = A.splitAtTerminals([{ start: 0, end: 1000, text: 'One two. Three four five.' }]);
     eq(out.length, 2);

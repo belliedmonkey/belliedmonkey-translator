@@ -2157,6 +2157,10 @@
   "asr_err_silent": {
     "message": "捕获不到声音，已停止转写"
   },
+  "asr_err_mse": {
+    "message": "Safari 抓不到这类流媒体视频的声音，此页无法转写",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "无法读取该音频"
   },

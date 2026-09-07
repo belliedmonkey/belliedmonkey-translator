@@ -255,7 +255,10 @@ Gemini and Meta are measured the same way before their entries ship.
 4. **Capture is the capability, not the floor.** Tier B depends on
    `HTMLMediaElement.captureStream()` (Chrome, Firefox) or Web Audio's
    `createMediaElementSource` (Safari), both of which refuse or silence cross-origin
-   media loaded without `crossorigin` — so a live session first probes the media URL
+   media loaded without `crossorigin` — and Safari's node is silent for MSE (`blob:`)
+   sources outright (measured 2026-09-07), so on Safari tier B exists only for http(s)
+   media, and a `blob:` source stops with a named notice before any socket opens. A
+   live session otherwise first probes the media URL
    with a CORS `GET`, reloads the element with `crossOrigin='anonymous'` at the same
    position, and only then attaches. Where the CDN sends no CORS header, live mode is
    impossible and the notice says so. Where capture attaches but yields silence for
