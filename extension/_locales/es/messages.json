@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Leyendo en voz alta"
   },
-  "listen_flip_again": {
-    "message": "Leer otra vez"
-  },
-  "listen_flip_back": {
-    "message": "Volver a escuchar"
-  },
   "listen_stop_denied": {
     "message": "Micrófono denegado — permite BelliedMonkey Translator en Ajustes › Privacidad › Micrófono."
   },
@@ -2286,13 +2280,13 @@
     "message": "Conexión de transcripción perdida: {why} — lo escuchado se conserva."
   },
   "listen_stop_locked": {
-    "message": "El sistema detuvo la grabación — toca «Empezar a escuchar» para continuar."
+    "message": "El sistema detuvo la grabación (una llamada u otra app usa el micrófono) — se reanuda al terminar, o toca «Empezar a escuchar»."
   },
   "listen_stop_silence": {
     "message": "Sin sonido durante 30 s — en pausa para evitar cargos."
   },
   "listen_stop_failed": {
-    "message": "El micrófono no arrancó: {why}"
+    "message": "El micrófono no arrancó: {why} — toca de nuevo «Empezar a escuchar»."
   },
   "listen_summary_title": {
     "message": "Esta conversación"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "El audio solo va al punto de transcripción que configuraste."
+  },
+  "listen_pill_preparing": {
+    "message": "Preparando"
+  },
+  "listen_toggle_preparing": {
+    "message": "Preparando…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Reconectando…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Conexión de transcripción perdida: {why} — reconectando…"
+  },
+  "listen_history_empty": {
+    "message": "Las frases aparecen aquí cuando la otra persona hable; toca una fila para ampliarla"
+  },
+  "listen_tr_failed": {
+    "message": "Traducción fallida · reintentar"
+  },
+  "listen_read_aloud": {
+    "message": "Leer en voz alta"
+  },
+  "listen_show_other": {
+    "message": "Mostrar"
+  },
+  "listen_close": {
+    "message": "Cerrar"
+  },
+  "listen_leave_confirm": {
+    "message": "Sigue escuchando. Salir termina esta conversación; lo escuchado se conserva."
   }
 }

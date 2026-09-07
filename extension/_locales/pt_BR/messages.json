@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Lendo em voz alta"
   },
-  "listen_flip_again": {
-    "message": "Ler de novo"
-  },
-  "listen_flip_back": {
-    "message": "Voltar a ouvir"
-  },
   "listen_stop_denied": {
     "message": "Microfone negado — permita o BelliedMonkey Translator em Ajustes › Privacidade › Microfone."
   },
@@ -2286,13 +2280,13 @@
     "message": "Conexão de transcrição perdida: {why} — o que foi ouvido continua."
   },
   "listen_stop_locked": {
-    "message": "O sistema interrompeu a gravação — toque em “Começar a ouvir” para continuar."
+    "message": "O sistema interrompeu a gravação (ligação ou outro app usando o microfone) — retoma ao terminar, ou toque em “Começar a ouvir”."
   },
   "listen_stop_silence": {
     "message": "Sem som por 30 s — pausado para evitar cobranças."
   },
   "listen_stop_failed": {
-    "message": "O microfone não iniciou: {why}"
+    "message": "O microfone não iniciou: {why} — toque de novo em “Começar a ouvir”."
   },
   "listen_summary_title": {
     "message": "Esta conversa"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "O áudio vai apenas para o endpoint de transcrição que você configurou."
+  },
+  "listen_pill_preparing": {
+    "message": "Preparando"
+  },
+  "listen_toggle_preparing": {
+    "message": "Preparando…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Reconectando…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Conexão de transcrição perdida: {why} — reconectando…"
+  },
+  "listen_history_empty": {
+    "message": "As frases aparecem aqui quando a outra pessoa falar; toque numa linha para ampliar"
+  },
+  "listen_tr_failed": {
+    "message": "Tradução falhou · tentar de novo"
+  },
+  "listen_read_aloud": {
+    "message": "Ler em voz alta"
+  },
+  "listen_show_other": {
+    "message": "Mostrar"
+  },
+  "listen_close": {
+    "message": "Fechar"
+  },
+  "listen_leave_confirm": {
+    "message": "Ainda ouvindo. Sair encerra esta conversa; o que foi ouvido fica."
   }
 }

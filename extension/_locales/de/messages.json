@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Wird vorgelesen"
   },
-  "listen_flip_again": {
-    "message": "Noch einmal vorlesen"
-  },
-  "listen_flip_back": {
-    "message": "Wieder zuhören"
-  },
   "listen_stop_denied": {
     "message": "Mikrofon verweigert — erlaube BelliedMonkey Translator unter Einstellungen › Datenschutz › Mikrofon."
   },
@@ -2286,13 +2280,13 @@
     "message": "Transkriptionsverbindung unterbrochen: {why} — das Gehörte bleibt erhalten."
   },
   "listen_stop_locked": {
-    "message": "Das System hat die Aufnahme gestoppt — tippe auf „Zuhören starten“, um fortzufahren."
+    "message": "Das System hat die Aufnahme gestoppt (Anruf oder andere App am Mikrofon) — geht danach automatisch weiter, oder „Zuhören starten“ tippen."
   },
   "listen_stop_silence": {
     "message": "30 s kein Ton — pausiert, um Kosten zu vermeiden."
   },
   "listen_stop_failed": {
-    "message": "Mikrofon konnte nicht starten: {why}"
+    "message": "Mikrofon konnte nicht starten: {why} — noch einmal „Zuhören starten“ tippen."
   },
   "listen_summary_title": {
     "message": "Dieses Gespräch"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "Audio geht nur an den von dir konfigurierten Transkriptions-Endpunkt."
+  },
+  "listen_pill_preparing": {
+    "message": "Vorbereitung"
+  },
+  "listen_toggle_preparing": {
+    "message": "Vorbereitung…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Verbinde neu…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Transkriptionsverbindung unterbrochen: {why} — verbinde neu…"
+  },
+  "listen_history_empty": {
+    "message": "Sobald das Gegenüber spricht, erscheinen die Sätze hier; Zeile antippen zum Vergrößern"
+  },
+  "listen_tr_failed": {
+    "message": "Übersetzung fehlgeschlagen · erneut"
+  },
+  "listen_read_aloud": {
+    "message": "Vorlesen"
+  },
+  "listen_show_other": {
+    "message": "Zeigen"
+  },
+  "listen_close": {
+    "message": "Schließen"
+  },
+  "listen_leave_confirm": {
+    "message": "Hört noch zu. Verlassen beendet dieses Gespräch; das Gehörte bleibt erhalten."
   }
 }

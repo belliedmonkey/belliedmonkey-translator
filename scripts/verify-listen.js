@@ -163,8 +163,9 @@ function say(base, text) {
     })()`);
 
     // ── A. 门控：没配转写引擎时入口不存在；配好实时引擎 + 翻译端点后出现 ──
-    const before = await evalIn(cdp, sessionId, `(() => { const b = document.getElementById('app-listen-entry2'); return b ? b.hidden : null; })()`);
-    need(before === true, 'A: 未配引擎时入口本该不存在（hidden），实际 ' + before);
+    // 裁定 A（2026-09-07）：门没过时入口**灰掉 + 一句原因**，不是消失
+    const before = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-listen-entry2'); const n = document.getElementById('app-listen-need-live2'); return { hidden: b.hidden, disabled: b.disabled, need: n ? !n.hidden : null }; })())`));
+    need(before.hidden === false && before.disabled === true && before.need === true, 'A: 未配引擎时入口本该可见但灰掉、原因句可见，实际 ' + JSON.stringify(before));
     await evalIn(cdp, sessionId, `(async () => {
       window.MT_STT_ENGINES.push({ id: 'e2e_live', type: 'transcribe-compat', label: 'e2e', needsKey: false, supportsKey: false, supportsBaseUrl: true, supportsModel: false, requiresEndpoint: false,
         defaultEndpoint: ${JSON.stringify(base + '/v1/audio/transcriptions')}, placeholder: null, defaultModel: 'x',
@@ -173,8 +174,8 @@ function say(base, text) {
       await AppListen.refreshEntry();
       return 'ok';
     })()`);
-    const after = await evalIn(cdp, sessionId, `document.getElementById('app-listen-entry2').hidden`);
-    need(after === false, 'A: 配好实时引擎后入口本该出现');
+    const after = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-listen-entry2').hidden, disabled: document.getElementById('app-listen-entry2').disabled, need: !document.getElementById('app-listen-need-live2').hidden })`));
+    need(after.hidden === false && after.disabled === false && after.need === false, 'A: 配好实时引擎后入口本该可用、原因句藏起，实际 ' + JSON.stringify(after));
 
     // ── B. 开始听：socket 真开、PCM 真到、定稿 + 译文进历史 ──
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
@@ -191,7 +192,11 @@ function say(base, text) {
     const domB = await evalIn(cdp, sessionId, `document.getElementById('app-listen-history').textContent`);
     need(domB.includes('Does this bus go to the airport?') && domB.includes('译：'), 'B: 历史 DOM 里没有原文 + 译文');
 
-    // ── C. 按住「我说」：真指针按住 → 期间到的句子归我 → 松手翻面 + 译成对方语言 ──
+    // ── B2. 准备中 → 听：granted 之后才是 listening；空历史有引导句 ──
+    const phaseB = await evalIn(cdp, sessionId, `AppListen._debug().phase`);
+    need(phaseB === 'listening', 'B: 定稿出现时应已是 listening，实际 ' + phaseB);
+
+    // ── C. 按住「我说」：真指针按住 → 期间到的句子归我 → 松手**留在本页**，历史加行 + 译成对方语言 ──
     const box = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(document.getElementById('app-listen-speak').getBoundingClientRect())`));
     const cx = Math.round(box.x + box.width / 2), cy = Math.round(box.y + box.height / 2);
     await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: cx, y: cy }, sessionId);
@@ -202,20 +207,41 @@ function say(base, text) {
     await say(base, '我要去机场');
     await sleep(700);
     await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: cx, y: cy, button: 'left', clickCount: 1 }, sessionId);
-    const flip = await waitFor(async () => {
-      const r = await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-listen-flip').hidden, text: document.getElementById('app-listen-flip-text').textContent, sub: document.getElementById('app-listen-flip-sub').textContent, phase: AppListen._debug().phase })`);
-      const o = JSON.parse(r); return (!o.hidden && o.text.startsWith('译：')) ? o : null;
-    }, 8000, '松手后翻面卡出现且带译文');
-    need(flip.sub === '我要去机场', 'C: 翻面卡小字该是我说的中文，实际 ' + flip.sub);
-    need(flip.text === '译：我要去机场', 'C: 翻面卡大字该是译文，实际 ' + flip.text);
-    const meRow = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).filter((x) => x.who === 'me').map((x) => ({ text: x.text, tr: x.tr })))`));
-    need(meRow.length === 1 && meRow[0].text === '我要去机场' && meRow[0].tr === '译：我要去机场', 'C: 历史里该有恰好一行「我」，实际 ' + JSON.stringify(meRow));
+    const meRow0 = await waitFor(async () => {
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).filter((x) => x.who === 'me').map((x) => ({ text: x.text, tr: x.tr })))`));
+      return (r.length === 1 && r[0].tr) ? r : null;
+    }, 8000, '松手后历史里出现带译文的「我」行');
+    need(meRow0[0].text === '我要去机场' && meRow0[0].tr === '译：我要去机场', 'C: 「我」行文本/译文不对：' + JSON.stringify(meRow0));
+    const stateC = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, flipHidden: document.getElementById('app-listen-flip').hidden })`));
+    need(stateC.phase === 'listening', 'C: 松手后应留在本页回到 listening，实际 ' + stateC.phase);
+    need(stateC.flipHidden === true, 'C: 松手后不该自动弹出展示卡（裁定：给对方看 = 点历史行）');
     const domC = await evalIn(cdp, sessionId, `document.getElementById('app-listen-history').textContent`);
-    need(domC.includes('我：我要去机场'), 'C: 历史 DOM 里「我」行该带「我：」前缀');
-    // 翻面卡点任意处返回听
+    need(domC.includes('我：我要去机场') && domC.includes('给对方看'), 'C: 「我」行该带「我：」前缀与「给对方看」');
+    need(!domC.includes('朗读') , 'C: 没有 TTS 引擎时「朗读」不该出现（能力语义）');
+    // 点历史行 → 展示卡（外语大字 + 中文小字），底下照常在听；点关闭
+    await evalIn(cdp, sessionId, `(document.querySelector('#app-listen-history .listen-row.me .listen-body').click(), 'ok')`);
+    const show = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-listen-flip').hidden, text: document.getElementById('app-listen-flip-text').textContent, sub: document.getElementById('app-listen-flip-sub').textContent, again: document.getElementById('app-listen-flip-again').hidden, phase: AppListen._debug().phase })`));
+    need(!show.hidden && show.text === '译：我要去机场' && show.sub === '我要去机场', 'C: 展示卡该是外语大字 + 中文小字，实际 ' + JSON.stringify(show));
+    need(show.again === true, 'C: 没有 TTS 引擎时展示卡上不该有「朗读」');
+    need(show.phase === 'listening', 'C: 展示时底下该照常在听，实际 ' + show.phase);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-flip-back').click(), 'ok')`);
-    const back = await evalIn(cdp, sessionId, `AppListen._debug().phase`);
-    need(back === 'listening', 'C: 「继续听对方」后应回到 listening，实际 ' + back);
+    const closed = await evalIn(cdp, sessionId, `document.getElementById('app-listen-flip').hidden`);
+    need(closed === true, 'C: 「关闭」后展示卡该收起');
+    // 暂停态下也能按住我说（它自己起麦克风）
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
+    const paused = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, spk: document.getElementById('app-listen-speak').disabled, tog: document.getElementById('app-listen-toggle').textContent })`));
+    need(paused.phase === 'paused' && paused.spk === false, 'C: 暂停态下「按住 · 我说」该可用，实际 ' + JSON.stringify(paused));
+    // 历史长了，按钮位置变了：重新量一次再按
+    const box2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(document.getElementById('app-listen-speak').getBoundingClientRect())`));
+    const cx2 = Math.round(box2.x + box2.width / 2), cy2 = Math.round(box2.y + box2.height / 2);
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: cx2, y: cy2 }, sessionId);
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: cx2, y: cy2, button: 'left', clickCount: 1 }, sessionId);
+    await sleep(400);
+    const held2 = await evalIn(cdp, sessionId, `AppListen._debug().phase`);
+    need(held2 === 'speaking', 'C: 暂停态下按住应进入 speaking，实际 ' + held2);
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: cx2, y: cy2, button: 'left', clickCount: 1 }, sessionId);
+    const back = await waitFor(async () => { const p = await evalIn(cdp, sessionId, `AppListen._debug().phase`); return p === 'listening' ? p : null; }, 8000, '松手后回到 listening');
+    need(back === 'listening', 'C: 松手后应回到 listening，实际 ' + back);
 
     // ── D. 语料：定稿译文到达 ⇒ 写一次，来源 conv、锚点 conv；加星 ⇒ starred ──
     const items = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.map((x) => ({ text: x.text, tr: x.tr, sourceId: x.sourceId, anchor: x.anchor, starred: x.starred, lang: x.lang }))))`));
@@ -240,6 +266,8 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
     const sum = await evalIn(cdp, sessionId, `document.getElementById('app-listen-summary-body').textContent`);
     need(/对方说了 1 句/.test(sum) && /我说了 1 句/.test(sum) && /2 句 · 含 1 句加星/.test(sum), 'E: 小结数字不对：' + sum);
+    const endedUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ actions: document.getElementById('app-listen-actions').hidden, now: document.getElementById('app-listen-now').hidden, rows: document.querySelectorAll('#app-listen-history .listen-row').length })`));
+    need(endedUi.actions === true && endedUi.now === true && endedUi.rows === 2, 'E: 结束后两个大按钮与上卡该收起、历史留着，实际 ' + JSON.stringify(endedUi));
     await sleep(500);
     need(sockets.length === 0, 'E: 结束后 socket 该关闭，实际还开着 ' + sockets.length);
     const summaryShown = await evalIn(cdp, sessionId, `!document.getElementById('app-listen-summary').hidden`);
@@ -255,6 +283,6 @@ function say(base, text) {
 
   console.log(`  假端点：socket ${stats.wsOpened} 次 · PCM ${stats.wsFrames} 帧 / ${(stats.wsAudioBytes / 1024).toFixed(0)} KB · 翻译请求 ${stats.chatCalls} 次`);
   if (problems.length) { console.log('\n✗ 对话 · 实时听译端到端有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 按住我说 → 翻面 / 语料 conv / 加星 / 结束小结 全部通过');
+  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 按住我说（留在本页）/ 点行放大 / 暂停态按住 / 语料 conv / 加星 / 结束小结 全部通过');
   process.exit(0);
 })();

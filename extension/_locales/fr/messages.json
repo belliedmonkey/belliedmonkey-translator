@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Lecture à voix haute"
   },
-  "listen_flip_again": {
-    "message": "Relire"
-  },
-  "listen_flip_back": {
-    "message": "Réécouter l’autre"
-  },
   "listen_stop_denied": {
     "message": "Micro refusé — autorisez BelliedMonkey Translator dans Réglages › Confidentialité › Micro."
   },
@@ -2286,13 +2280,13 @@
     "message": "Connexion de transcription perdue : {why} — ce qui a été entendu est conservé."
   },
   "listen_stop_locked": {
-    "message": "Le système a arrêté l’enregistrement — touchez « Commencer l’écoute » pour continuer."
+    "message": "Le système a arrêté l’enregistrement (appel ou autre app sur le micro) — reprise automatique ensuite, ou touchez « Commencer l’écoute »."
   },
   "listen_stop_silence": {
     "message": "Aucun son depuis 30 s — mis en pause pour éviter des frais."
   },
   "listen_stop_failed": {
-    "message": "Le micro n’a pas démarré : {why}"
+    "message": "Le micro n’a pas démarré : {why} — touchez à nouveau « Commencer l’écoute »."
   },
   "listen_summary_title": {
     "message": "Cette conversation"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "L’audio ne va qu’au point de transcription que vous avez configuré."
+  },
+  "listen_pill_preparing": {
+    "message": "Préparation"
+  },
+  "listen_toggle_preparing": {
+    "message": "Préparation…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Reconnexion…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Connexion de transcription perdue : {why} — reconnexion…"
+  },
+  "listen_history_empty": {
+    "message": "Les phrases apparaissent ici dès que l’autre parle ; touchez une ligne pour l’agrandir"
+  },
+  "listen_tr_failed": {
+    "message": "Traduction échouée · réessayer"
+  },
+  "listen_read_aloud": {
+    "message": "Lire à voix haute"
+  },
+  "listen_show_other": {
+    "message": "Montrer"
+  },
+  "listen_close": {
+    "message": "Fermer"
+  },
+  "listen_leave_confirm": {
+    "message": "Écoute en cours. Quitter termine cette conversation ; ce qui a été entendu est conservé."
   }
 }

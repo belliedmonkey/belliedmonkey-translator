@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "يُقرأ بصوت عالٍ"
   },
-  "listen_flip_again": {
-    "message": "اقرأ مرة أخرى"
-  },
-  "listen_flip_back": {
-    "message": "عد إلى الاستماع"
-  },
   "listen_stop_denied": {
     "message": "رُفض الميكروفون — اسمح لـ BelliedMonkey Translator في الإعدادات › الخصوصية › الميكروفون."
   },
@@ -2286,13 +2280,13 @@
     "message": "انقطع اتصال النسخ: {why} — ما سُمع محفوظ."
   },
   "listen_stop_locked": {
-    "message": "أوقف النظام التسجيل — المس «ابدأ الاستماع» للمتابعة."
+    "message": "أوقف النظام التسجيل (مكالمة أو تطبيق آخر يستخدم الميكروفون) — يُستأنف تلقائياً بعد انتهائها، أو المس «ابدأ الاستماع»."
   },
   "listen_stop_silence": {
     "message": "لا صوت منذ 30 ثانية — توقف مؤقتاً لتجنب التكاليف."
   },
   "listen_stop_failed": {
-    "message": "تعذر تشغيل الميكروفون: {why}"
+    "message": "تعذر تشغيل الميكروفون: {why} — المس «ابدأ الاستماع» مرة أخرى."
   },
   "listen_summary_title": {
     "message": "هذه المحادثة"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "الصوت يذهب فقط إلى نقطة النسخ التي ضبطتها."
+  },
+  "listen_pill_preparing": {
+    "message": "جارٍ التحضير"
+  },
+  "listen_toggle_preparing": {
+    "message": "جارٍ التحضير…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "جارٍ إعادة الاتصال…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "انقطع اتصال النسخ: {why} — جارٍ إعادة الاتصال…"
+  },
+  "listen_history_empty": {
+    "message": "تظهر الجمل هنا عندما يتحدث الطرف الآخر؛ المس صفاً لتكبيره"
+  },
+  "listen_tr_failed": {
+    "message": "فشلت الترجمة · أعد المحاولة"
+  },
+  "listen_read_aloud": {
+    "message": "قراءة بصوت عالٍ"
+  },
+  "listen_show_other": {
+    "message": "أظهر للطرف الآخر"
+  },
+  "listen_close": {
+    "message": "إغلاق"
+  },
+  "listen_leave_confirm": {
+    "message": "ما زال يستمع. المغادرة تنهي هذه المحادثة؛ ما سُمع محفوظ."
   }
 }

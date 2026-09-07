@@ -2274,12 +2274,6 @@
   "listen_flip_speaking": {
     "message": "朗讀中"
   },
-  "listen_flip_again": {
-    "message": "再讀一遍"
-  },
-  "listen_flip_back": {
-    "message": "繼續聽對方"
-  },
   "listen_stop_denied": {
     "message": "麥克風被拒絕 — 到「設定 › 隱私 › 麥克風」允許大肚猴翻譯。"
   },
@@ -2287,13 +2281,13 @@
     "message": "轉寫連線中斷：{why} — 已聽的句子還在。"
   },
   "listen_stop_locked": {
-    "message": "錄音被系統停止了 — 點「開始聽」繼續。"
+    "message": "錄音被系統停止了（來電或其它 App 佔用麥克風）— 掛斷後會自動繼續，或點「開始聽」。"
   },
   "listen_stop_silence": {
     "message": "聽不到聲音（30 秒靜音）— 已暫停以免計費。"
   },
   "listen_stop_failed": {
-    "message": "麥克風啟動失敗：{why}"
+    "message": "麥克風啟動失敗：{why} — 再點一次「開始聽」。"
   },
   "listen_summary_title": {
     "message": "這次對話"
@@ -2348,5 +2342,35 @@
   },
   "listen_entry_privacy": {
     "message": "音訊只發往你設定的轉寫端點。"
+  },
+  "listen_pill_preparing": {
+    "message": "準備中"
+  },
+  "listen_toggle_preparing": {
+    "message": "準備中…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "重連中…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "轉寫連線中斷：{why} — 正在重連…"
+  },
+  "listen_history_empty": {
+    "message": "對方開口後，整句會出現在這裡；點任一行可放大給對方看"
+  },
+  "listen_tr_failed": {
+    "message": "譯文失敗 · 重試"
+  },
+  "listen_read_aloud": {
+    "message": "朗讀"
+  },
+  "listen_show_other": {
+    "message": "給對方看"
+  },
+  "listen_close": {
+    "message": "關閉"
+  },
+  "listen_leave_confirm": {
+    "message": "還在聽。離開會結束這次對話，已聽的句子保留。"
   }
 }

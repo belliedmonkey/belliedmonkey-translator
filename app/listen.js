@@ -43,9 +43,12 @@ var AppListen = (() => {
   let keepAlive = null;
 
   // ── 会话状态 ──────────────────────────────────────────────────────────────
-  // phase: 'idle' | 'listening' | 'speaking' | 'showing' | 'paused' | 'halted' | 'ended'
+  // phase: 'idle' | 'preparing' | 'listening' | 'speaking' | 'paused' | 'halted' | 'ended'
+  // 放大展示（给对方看）不是 phase：它是历史行上的一个叠层，底下照常在听（showRid）。
   let phase = 'idle';
-  let pauseReason = '';     // 'user' | 'silence' | 'denied' | 'socket' | 'locked' | 'failed'
+  let pauseReason = '';     // 'user' | 'silence' | 'denied' | 'socket' | 'socket-retry' | 'locked' | 'failed'
+  let showRid = 0;          // 放大展示中的历史行（0 = 没有）
+  let socketRetried = false; // socket 断开后自动重连过一次了吗（成功 ready 时清零）
   let session = null;
   let cfg = null;
   let sock = null;
@@ -94,10 +97,12 @@ var AppListen = (() => {
   async function refreshEntry() {
     let ok = false;
     try { ok = liveCapable(await readCfg()); } catch (_) { ok = false; }
+    // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
+    // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     for (const sfx of ENTRY_SUFFIXES) {
-      const btn = $('app-listen-entry' + sfx); if (btn) btn.hidden = !ok;
+      const btn = $('app-listen-entry' + sfx); if (btn) { btn.hidden = false; btn.disabled = !ok; }
       const hint = $('app-listen-entry-hint' + sfx);
-      if (hint) { hint.hidden = !ok; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
+      if (hint) { hint.hidden = false; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
       const priv = $('modes-privacy' + sfx); if (priv) { priv.hidden = !ok; priv.textContent = t('listen_entry_privacy', '音频只发往你配置的转写端点。'); }
       const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
     }
@@ -109,6 +114,16 @@ var AppListen = (() => {
     try {
       return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
     } catch (_) { return ''; }
+  }
+  // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
+  async function translateRow(row, toLang) {
+    const myGen = gen;
+    row.trErr = false; row.trBusy = true; renderHistory();
+    const tr = await translate(row.who === 'me' ? row.text : row.text, toLang);
+    if (myGen !== gen) return;
+    row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
+    renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
+    if (row.tr) maybeWrite(row);
   }
 
   // ── 语料写入（§9.6：定稿译文首次进历史时写一次；星绕过门）────────────────────
@@ -151,14 +166,27 @@ var AppListen = (() => {
       model: e.liveModel || e.defaultModel, rate: e.liveRate || 24000, params: e.liveParams || null, langs: [],
       onEvent: (ev) => {
         if (myGen !== gen) return;
-        if (ev.kind === 'partial') onPartial(ev.text);
+        // 我们自己关的 socket（暂停/结束）会把开口尾句 flush 成一个 final —— 那时 sock 已置空，丢掉
+        if (!sock && (ev.kind === 'partial' || ev.kind === 'final')) return;
+        if (ev.kind === 'ready') { socketRetried = false; }
+        else if (ev.kind === 'partial') onPartial(ev.text);
         else if (ev.kind === 'final') onFinal(ev.text);
-        else if (ev.kind === 'error') halt('socket', ev.message || '');
-        else if (ev.kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused') halt('socket', ev.reason || ''); }
+        else if (ev.kind === 'error') socketLost(ev.message || '');
+        else if (ev.kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
     });
   }
   function closeSocket() { const s = sock; sock = null; try { if (s) s.close(); } catch (_) {} }
+  // socket 断了：先自动重连一次（2 s），期间主按钮「重连中…」、我说灰；再断才停在具名态。
+  function socketLost(why) {
+    if (!socketRetried && (phase === 'listening' || phase === 'speaking' || phase === 'preparing')) {
+      socketRetried = true;
+      halt('socket-retry', why);
+      setTimeout(() => { if (phase === 'halted' && pauseReason === 'socket-retry') resume(); }, 2000);
+      return;
+    }
+    halt('socket', why);
+  }
 
   function onPartial(text) {
     partial = text || '';
@@ -173,9 +201,8 @@ var AppListen = (() => {
     if (row.who === 'me') { renderNow(); renderHistory(); return; }   // 我说的：松手时整段处理
     const reuse = inc ? inc.close(row.text) : '';
     renderNow(); renderHistory();
-    const finish = (tr) => { row.tr = tr || ''; renderHistory(); paintNowPlaying(); if (row.tr) maybeWrite(row); };
-    if (reuse) finish(reuse);
-    else { const myGen = gen; translate(row.text, cfg.targetLang).then((tr) => { if (myGen === gen) finish(tr); }); }
+    if (reuse) { row.tr = reuse; renderHistory(); paintNowPlaying(); maybeWrite(row); }
+    else translateRow(row, cfg.targetLang);
   }
 
   // ── 麦克风：原生桥优先，页内 getUserMedia 是无桥宿主的退路 ────────────────────
@@ -193,16 +220,22 @@ var AppListen = (() => {
     else if (state === 'failed') halt('failed', reason);
     else if (state === 'interrupted') {
       // 刚起就被打断（3 s 内）多半是别的音频会话（页内保活/朗读走 WebKit 自己的会话）在
-      // 抢，不是真的来电：带退避再试三次（0.8 / 1.6 / 3.2 s），都不行才停在具名态等用户。
+      // 抢，不是真的来电：带退避再试三次（0.8 / 1.6 / 3.2 s），**期间胶囊仍是「准备中」、
+      // 不闪红字**；都不行才停在具名态等用户。
       if (now() - startedAt < 3000 && earlyRetries < 3) {
         const wait = 800 * Math.pow(2, earlyRetries); earlyRetries++;
-        halt('locked', '');
-        setTimeout(() => { if (phase === 'halted' && pauseReason === 'locked') resume(); }, wait);
+        micStop(); closeSocket();
+        phase = 'preparing'; paint();
+        setTimeout(() => { if (phase === 'preparing') beginPipeline(); }, wait);
         return;
       }
       halt('locked', '');
     }
-    else if (state === 'granted') { earlyRetries = 0; if (session) session.lastVoiceAt = now(); }   // 静音计时从麦克风真正开始出帧算起，不从点按算起
+    else if (state === 'granted') {
+      earlyRetries = 0;
+      if (session) session.lastVoiceAt = now();   // 静音计时从麦克风真正开始出帧算起，不从点按算起
+      if (phase === 'preparing') { phase = 'listening'; note(''); paint(); }
+    }
   }
   async function micStart() {
     const rate = (cfg.eng && cfg.eng.liveRate) || 24000;
@@ -280,16 +313,20 @@ var AppListen = (() => {
   }
   // 起管线：麦克风 + socket。暂停/中断之后「开始听」也走这里（同一场会话继续）。
   async function beginPipeline() {
-    phase = 'listening'; pauseReason = '';
+    // 按住我说也会走到这里（暂停态下直接按住）：那时保持 speaking，不退回 preparing
+    if (phase !== 'speaking') phase = 'preparing';
+    pauseReason = '';
     note('');
     C.resume(session, now());
     openSocket();
     paint();
     startedAt = now();
     await keepAliveOn();
-    if (phase !== 'listening') return;   // 等保活的这一拍里被停掉了
+    if (phase !== 'preparing' && phase !== 'speaking') return;   // 等保活的这一拍里被停掉了
     const ok = await micStart();
     if (!ok) return;
+    // 桥的路：granted 事件把 preparing 切成 listening；页内的路：这里就切
+    if (!bridged() && phase === 'preparing') phase = 'listening';
     paint();
   }
   let startedAt = 0, earlyRetries = 0;
@@ -307,7 +344,7 @@ var AppListen = (() => {
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
   function halt(reason, why) {
     if (phase === 'ended' || phase === 'idle') return;
-    if (phase === 'showing') { speakGen++; $('app-listen-flip').hidden = true; }
+    if (phase === 'speaking') speakGen++;
     phase = 'halted'; pauseReason = reason;
     C.pause(session, now());
     session.speaking = false;
@@ -317,8 +354,9 @@ var AppListen = (() => {
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
     const msg = reason === 'denied' ? t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。')
       : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
-      : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了 — 点「开始听」继续。')
-      : t('listen_stop_failed', '麦克风启动失败：{why}').replace('{why}', why1);
+      : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
+      : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
+      : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
     note(msg, true);
     paint();
   }
@@ -342,12 +380,16 @@ var AppListen = (() => {
     if (inc) inc.reset();
     if (bridged()) { NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
-    $('app-listen-flip').hidden = true;
+    closeShow();
     renderSummary();
     paint();
   }
+  // 返回 = 结束会话（语料已逐句写了，不丢）；还在听时先确认一下（用户 09-07 裁定 B）。
   function leave() {
-    if (session && phase !== 'ended') end();
+    if (session && phase !== 'ended' && phase !== 'idle') {
+      if (!window.confirm(t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。'))) return;
+      end();
+    }
     gen++;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
     session = null; phase = 'idle';
@@ -366,25 +408,40 @@ var AppListen = (() => {
 
   // ── 我说（按住说话）────────────────────────────────────────────────────────
   function speakBegin() {
-    if (phase !== 'listening') return;
+    if (!session || !speakAllowed()) return;
     note('');
+    const wasIdle = phase === 'paused' || phase === 'halted';
     phase = 'speaking';
     holdRowsFrom = session.seq;
     C.holdStart(session, now());
     if (inc) inc.reset();
+    // 对方说到一半的开口尾句不并进我的话里：转写端的 pending 清掉
+    if (sock && sock.reset) sock.reset();
     partial = ''; partialTr = '';
     paint();
+    // 暂停/停止态下直接按住：自己把麦克风和 socket 起起来，不用先点「开始听」
+    if (wasIdle) { earlyRetries = 0; beginPipeline(); }
   }
+  // 「按住 · 我说」只在四种情况下灰：准备中、麦克风被拒绝、socket 重连中、会话已结束/不存在
+  function speakAllowed() {
+    if (!session) return false;
+    if (phase === 'listening' || phase === 'speaking') return true;
+    if (phase === 'paused') return true;
+    if (phase === 'halted') return pauseReason !== 'denied' && pauseReason !== 'socket-retry';
+    return false;
+  }
+  // 松手：**留在本页**（用户 09-07 裁定）—— 回到听，历史加一行「我：」，译文到了行里有
+  // 「朗读」与「给对方看」；朗读由用户点（裁定 D），给对方看 = 点那一行放大。
   async function speakEnd() {
     if (phase !== 'speaking') return;
     const open = partial;
     C.holdEnd(session, now());
-    phase = 'showing';
+    phase = sock ? 'listening' : 'preparing';
     paint();
     const myGen = ++speakGen;
     // 等端点检测把最后一句闭合（松手后的尾巴，HOLD_TAIL_MS），再合并成一段
     await new Promise((r) => setTimeout(r, C.HOLD_TAIL_MS));
-    if (myGen !== speakGen || phase !== 'showing') return;
+    if (myGen !== speakGen) return;
     const mine = session.rows.filter((r) => r.who === 'me' && r.rid > holdRowsFrom);
     let text = mine.map((r) => r.text).join(' ').trim();
     if (!text && open) text = open.trim();
@@ -393,42 +450,50 @@ var AppListen = (() => {
     if (!row && text) { session.speaking = true; row = C.addFinal(session, text, now()); session.speaking = false; }
     for (const r of mine.slice(1)) { const i = session.rows.indexOf(r); if (i >= 0) session.rows.splice(i, 1); }
     // 松手时什么都没听到：说一声再回到听。静默回去等于「按了没反应」，是最贵的那种失败。
-    if (!row) { phase = 'listening'; note(t('listen_speak_nothing', '没有听到你说的话 — 再按住说一次'), false); paint(); return; }
+    // 开口的尾句已经被消费进「我」行了：转写端的 pending 清掉，免得下一句把它再吐一遍
+    if (sock && sock.reset) sock.reset();
+    if (!row) { note(t('listen_speak_nothing', '没有听到你说的话 — 再按住说一次'), false); paint(); return; }
     row.text = text;
     partial = ''; partialTr = '';
     renderHistory();
-    showFlip(row, '');
-    const tr = await translate(text, cfg.otherLang);
-    if (myGen !== speakGen) return;
-    row.tr = tr;
-    renderHistory();
-    showFlip(row, tr);
-    if (tr) { maybeWrite(row); speakOut(tr); }
+    translateRow(row, cfg.otherLang);
   }
-  function showFlip(row, tr) {
-    $('app-listen-flip-text').textContent = tr || t('listen_pending', '⏳ 译文准备中…');
-    $('app-listen-flip-sub').textContent = row.text;
-    $('app-listen-flip').hidden = false;
-    $('app-listen-flip').dataset.rid = String(row.rid);
+
+  // ── 放大给对方看（历史行叠层，底下照常在听）────────────────────────────────
+  function ttsReady() { return typeof LearnTTS !== 'undefined' && !!(LearnTTS.engine && LearnTTS.engine()); }
+  function foreignOf(row) { return row.who === 'me' ? row.tr : row.text; }
+  function nativeOf(row) { return row.who === 'me' ? row.text : row.tr; }
+  function openShow(row) {
+    if (!row) return;
+    showRid = row.rid;
+    renderShow();
   }
+  function renderShow() {
+    const box = $('app-listen-flip');
+    const row = session && session.rows.find((r) => r.rid === showRid);
+    if (!row) { box.hidden = true; showRid = 0; return; }
+    const big = foreignOf(row), small = nativeOf(row);
+    $('app-listen-flip-text').textContent = big || (row.trErr ? t('listen_tr_failed', '译文失败 · 重试') : t('listen_pending', '⏳ 译文准备中…'));
+    $('app-listen-flip-sub').textContent = small || '';
+    $('app-listen-flip-again').hidden = !(ttsReady() && big);
+    box.hidden = false;
+  }
+  function closeShow() {
+    showRid = 0;
+    $('app-listen-flip').hidden = true;
+    $('app-listen-flip-speaking').hidden = true;
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+  }
+  let speakOutGen = 0;
   async function speakOut(text) {
-    if (typeof LearnTTS === 'undefined') return null;
+    if (!ttsReady() || !text) return null;
+    const my = ++speakOutGen;
     const mark = $('app-listen-flip-speaking');
     let r = null;
     try { mark.hidden = false; r = await LearnTTS.speak(text, cfg.otherLang); }
     catch (_) { r = null; }
-    // 没有 TTS 引擎 / 没音色：只显示不朗读，不道歉（能力语义）
-    mark.hidden = true;
+    if (my === speakOutGen) mark.hidden = true;
     return r;
-  }
-  function flipBack() {
-    if (phase !== 'showing') return;
-    speakGen++;
-    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
-    $('app-listen-flip').hidden = true;
-    phase = 'listening';
-    session.speaking = false;
-    paint();
   }
 
   // ── 锁屏卡片（复用 §9.5 的 Now Playing 通道）────────────────────────────────
@@ -448,7 +513,7 @@ var AppListen = (() => {
     if (!msg || $('app-listen').hidden || !session) return;
     if (msg.type === 'remote') {
       if (msg.command === 'pause') { if (phase === 'listening') pause('user'); }
-      else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resume(); }
+      else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resumeByUser(); }
       else if (msg.command === 'toggle') toggle();
     } else if (msg.type === 'interrupt' && msg.phase === 'begin') {
       if (phase === 'listening' || phase === 'speaking') halt('locked', '');
@@ -470,7 +535,8 @@ var AppListen = (() => {
     const ms = C.listenedMs(session, now());
     const pill = $('app-listen-pill');
     const listening = phase === 'listening';
-    pill.textContent = (phase === 'speaking' || phase === 'showing') ? t('listen_pill_speaking', '我在说 · 对方的声音暂不听')
+    pill.textContent = phase === 'speaking' ? t('listen_pill_speaking', '我在说 · 对方的声音暂不听')
+      : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
       : listening ? t('listen_pill_listening', '听译中 · {t}').replace('{t}', C.fmtClock(ms))
       : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
       : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
@@ -479,18 +545,25 @@ var AppListen = (() => {
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   function paint() {
-    const active = phase === 'listening' || phase === 'speaking' || phase === 'showing';
+    const active = phase === 'listening' || phase === 'speaking';
+    const ended = phase === 'ended';
+    // 表 1（画布「状态与转移」）：每个状态下每个控件的样子。灰 = 45% 透明 + 文案不变，
+    // 且屏上一定有原因（胶囊或红字行）。
     const tog = $('app-listen-toggle');
     tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
-      : (phase === 'paused' || phase === 'halted' || phase === 'ended' || phase === 'idle') ? t('listen_toggle_start', '开始听')
-      : t('listen_toggle_pause', '● 正在听 · 暂停');
-    tog.disabled = phase === 'speaking' || phase === 'showing';
+      : phase === 'preparing' ? t('listen_toggle_preparing', '准备中…')
+      : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
+      : t('listen_toggle_start', '开始听');
+    tog.disabled = phase === 'speaking' || phase === 'preparing' || (phase === 'halted' && pauseReason === 'socket-retry');
     const spk = $('app-listen-speak');
     spk.textContent = phase === 'speaking' ? t('listen_speak_release', '松手 · 译给对方') : t('listen_speak_hold', '按住 · 我说');
-    spk.disabled = !(phase === 'listening' || phase === 'speaking');
+    spk.disabled = !speakAllowed();
     spk.classList.toggle('holding', phase === 'speaking');
-    $('app-listen-end').hidden = !session || phase === 'ended';
-    $('app-listen-lang').textContent = (phase === 'speaking' || phase === 'showing')
+    // 结束后两个按钮不出现（要说话就「再来一段」）；小结卡替换上卡，历史留着
+    const grid = $('app-listen-actions'); if (grid) grid.hidden = ended;
+    const nowCard = $('app-listen-now'); if (nowCard) nowCard.hidden = ended;
+    $('app-listen-end').hidden = !session || ended;
+    $('app-listen-lang').textContent = (phase === 'speaking')
       ? t('listen_lang_me', '中文 → {to}').replace('{to}', langLabel(cfg && cfg.otherLang))
       : t('listen_lang_auto', '{from} → {to}').replace('{from}', langLabel(cfg && cfg.otherLang)).replace('{to}', langLabel(cfg && cfg.targetLang));
     $('app-listen-now-label').textContent = (phase === 'speaking') ? t('listen_now_me', '我正在说（松手即译）') : t('listen_now_them', '对方正在说');
@@ -516,18 +589,50 @@ var AppListen = (() => {
     const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 12;
     list.textContent = '';
     const rows = session ? session.rows : [];
+    if (!rows.length) {
+      // 刚开始、还没有一句定稿：一句引导，不是空白
+      const e = document.createElement('div'); e.className = 'listen-empty';
+      e.textContent = t('listen_history_empty', '对方开口后，整句会出现在这里；点任一行可放大给对方看');
+      list.appendChild(e);
+    }
     for (const r of rows) {
       const row = document.createElement('div'); row.className = 'listen-row' + (r.who === 'me' ? ' me' : '');
       const body = document.createElement('div'); body.className = 'listen-body';
+      body.setAttribute('role', 'button');
       const o = document.createElement('div'); o.className = 'listen-orig';
       o.textContent = (r.who === 'me' ? t('listen_me_prefix', '我：') : '') + r.text;
-      const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? '' : ' pending');
-      tr.textContent = r.tr || t('listen_pending', '⏳ 译文准备中…');
-      body.appendChild(o); body.appendChild(tr);
+      body.appendChild(o);
+      if (r.trErr) {
+        // 翻译失败要留下出口，不是永远的 ⏳
+        const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'listen-tr-retry';
+        retry.textContent = t('listen_tr_failed', '译文失败 · 重试');
+        retry.addEventListener('click', (e) => { e.stopPropagation(); translateRow(r, r.who === 'me' ? cfg.otherLang : cfg.targetLang); });
+        body.appendChild(retry);
+      } else {
+        const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? '' : ' pending');
+        tr.textContent = r.tr || t('listen_pending', '⏳ 译文准备中…');
+        body.appendChild(tr);
+      }
+      if (r.who === 'me' && r.tr) {
+        // 我说的行：朗读由用户点（裁定 D）；给对方看 = 点行放大
+        const acts = document.createElement('div'); acts.className = 'listen-row-acts';
+        if (ttsReady()) {
+          const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'listen-act';
+          rd.textContent = t('listen_read_aloud', '朗读');
+          rd.addEventListener('click', (e) => { e.stopPropagation(); speakOut(r.tr); });
+          acts.appendChild(rd);
+        }
+        const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'listen-act';
+        sh.textContent = t('listen_show_other', '给对方看');
+        sh.addEventListener('click', (e) => { e.stopPropagation(); openShow(r); });
+        acts.appendChild(sh);
+        body.appendChild(acts);
+      }
+      body.addEventListener('click', () => { openShow(r); });
       const star = document.createElement('button'); star.type = 'button'; star.className = 'listen-star' + (r.starred ? ' on' : '');
       star.textContent = r.starred ? '★' : '☆';
       star.setAttribute('aria-label', t('listen_star', '加星'));
-      star.addEventListener('click', () => { toggleStar(r); });
+      star.addEventListener('click', (e) => { e.stopPropagation(); toggleStar(r); });
       row.appendChild(body); row.appendChild(star);
       list.appendChild(row);
     }
@@ -564,8 +669,8 @@ var AppListen = (() => {
     $('app-listen-end').textContent = t('listen_end', '结束');
     $('app-listen-flip-hint').textContent = t('listen_flip_hint', '给对方看 · 点任意处返回');
     $('app-listen-flip-speaking').textContent = t('listen_flip_speaking', '朗读中');
-    $('app-listen-flip-again').textContent = t('listen_flip_again', '再读一遍');
-    $('app-listen-flip-back').textContent = t('listen_flip_back', '继续听对方');
+    $('app-listen-flip-again').textContent = t('listen_read_aloud', '朗读');
+    $('app-listen-flip-back').textContent = t('listen_close', '关闭');
     $('app-listen-summary-title').textContent = t('listen_summary_title', '这次对话');
     $('app-listen-summary-note').textContent = t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。');
     $('app-listen-summary-home').textContent = t('listen_summary_home', '回到首页');
@@ -604,12 +709,11 @@ var AppListen = (() => {
     document.addEventListener('keyup', (e) => { if (e.code === 'Space' && !$('app-listen').hidden) speakEnd(); });
 
     const flip = $('app-listen-flip');
-    flip.addEventListener('click', (e) => { if (e.target.closest('button')) return; flipBack(); });
-    $('app-listen-flip-back').addEventListener('click', flipBack);
+    flip.addEventListener('click', (e) => { if (e.target.closest('button')) return; closeShow(); });
+    $('app-listen-flip-back').addEventListener('click', closeShow);
     $('app-listen-flip-again').addEventListener('click', () => {
-      const rid = Number(flip.dataset.rid || 0);
-      const row = session && session.rows.find((r) => r.rid === rid);
-      if (row && row.tr) speakOut(row.tr);
+      const row = session && session.rows.find((r) => r.rid === showRid);
+      if (row) speakOut(foreignOf(row));
     });
 
     if (bridged()) NativeAudio.onEvent(onNative);
@@ -617,6 +721,6 @@ var AppListen = (() => {
   }
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
-    _debug: () => ({ phase, pauseReason, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+    _debug: () => ({ phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null }) };
 })();

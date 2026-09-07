@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "읽는 중"
   },
-  "listen_flip_again": {
-    "message": "다시 읽기"
-  },
-  "listen_flip_back": {
-    "message": "상대 듣기로"
-  },
   "listen_stop_denied": {
     "message": "마이크가 거부됨 — 「설정 › 개인정보 › 마이크」에서 허용하세요."
   },
@@ -2286,13 +2280,13 @@
     "message": "전사 연결 끊김: {why} — 들은 문장은 남아 있습니다."
   },
   "listen_stop_locked": {
-    "message": "시스템이 녹음을 중단했습니다 — 「듣기 시작」으로 계속."
+    "message": "시스템이 녹음을 중단했습니다(전화 또는 다른 앱이 마이크 사용) — 끝나면 자동 재개, 또는 「듣기 시작」."
   },
   "listen_stop_silence": {
     "message": "30초간 소리 없음 — 과금을 피하려고 일시정지했습니다."
   },
   "listen_stop_failed": {
-    "message": "마이크 시작 실패: {why}"
+    "message": "마이크 시작 실패: {why} — 「듣기 시작」을 다시 누르세요."
   },
   "listen_summary_title": {
     "message": "이번 대화"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "음성은 설정한 전사 엔드포인트로만 전송됩니다."
+  },
+  "listen_pill_preparing": {
+    "message": "준비 중"
+  },
+  "listen_toggle_preparing": {
+    "message": "준비 중…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "다시 연결 중…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "전사 연결 끊김: {why} — 다시 연결 중…"
+  },
+  "listen_history_empty": {
+    "message": "상대가 말하면 문장이 여기에 나타납니다. 행을 탭하면 크게 보기"
+  },
+  "listen_tr_failed": {
+    "message": "번역 실패 · 다시 시도"
+  },
+  "listen_read_aloud": {
+    "message": "읽어 주기"
+  },
+  "listen_show_other": {
+    "message": "상대에게 보여주기"
+  },
+  "listen_close": {
+    "message": "닫기"
+  },
+  "listen_leave_confirm": {
+    "message": "아직 듣는 중입니다. 나가면 이 대화가 끝나고, 들은 문장은 남습니다."
   }
 }
