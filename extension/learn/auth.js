@@ -505,7 +505,14 @@ var LearnAuth = (() => {
       });
       return store(sessionFrom(json));
     } finally {
+      // verifier 是一次性的：成败都作废，**并且当场备下一份**。内存里那份 `prepared`
+      // 与 storage 里那份是同一个东西，不能只清一半 —— 2026-09-07 TestFlight 87：
+      // Google 登录成功（storage 里的 verifier 被清）→ 删除账号 → 再点 Google，
+      // 按钮用内存里的旧 challenge 开了会话，回来时 storage 里没有 verifier，
+      // 报 pkce_missing。之前只在失败分支由宿主重新备，成功分支谁都没备。
+      prepared = null;
       await PageSettings.removeKeys([PKCE_KEY]);
+      await prepareProviderSignIn().catch(() => {});
     }
   }
 
