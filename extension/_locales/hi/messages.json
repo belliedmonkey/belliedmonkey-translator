@@ -2105,12 +2105,6 @@
   "listen_flip_speaking": {
     "message": "पढ़ा जा रहा है"
   },
-  "listen_flip_again": {
-    "message": "फिर पढ़ें"
-  },
-  "listen_flip_back": {
-    "message": "फिर सुनें"
-  },
   "listen_stop_denied": {
     "message": "माइक्रोफ़ोन अस्वीकृत — सेटिंग्स › गोपनीयता › माइक्रोफ़ोन में BelliedMonkey Translator को अनुमति दें।"
   },
@@ -2118,13 +2112,13 @@
     "message": "ट्रांसक्रिप्शन कनेक्शन टूटा: {why} — जो सुना गया वह सुरक्षित है।"
   },
   "listen_stop_locked": {
-    "message": "सिस्टम ने रिकॉर्डिंग रोक दी — जारी रखने के लिए “सुनना शुरू करें” टैप करें।"
+    "message": "सिस्टम ने रिकॉर्डिंग रोक दी (कॉल या दूसरे ऐप ने माइक लिया) — उसके बाद अपने आप जारी, या “सुनना शुरू करें” टैप करें।"
   },
   "listen_stop_silence": {
     "message": "30 सेकंड से आवाज़ नहीं — शुल्क बचाने के लिए रोका गया।"
   },
   "listen_stop_failed": {
-    "message": "माइक्रोफ़ोन शुरू नहीं हुआ: {why}"
+    "message": "माइक्रोफ़ोन शुरू नहीं हुआ: {why} — “सुनना शुरू करें” फिर टैप करें।"
   },
   "listen_summary_title": {
     "message": "यह बातचीत"
@@ -2179,5 +2173,35 @@
   },
   "listen_entry_privacy": {
     "message": "ऑडियो केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाता है।"
+  },
+  "listen_pill_preparing": {
+    "message": "तैयार हो रहा है"
+  },
+  "listen_toggle_preparing": {
+    "message": "तैयार हो रहा है…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "फिर से जुड़ रहा है…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "ट्रांसक्रिप्शन कनेक्शन टूटा: {why} — फिर से जुड़ रहा है…"
+  },
+  "listen_history_empty": {
+    "message": "सामने वाला बोलेगा तो वाक्य यहाँ आएँगे; बड़ा दिखाने के लिए किसी पंक्ति को टैप करें"
+  },
+  "listen_tr_failed": {
+    "message": "अनुवाद विफल · फिर कोशिश करें"
+  },
+  "listen_read_aloud": {
+    "message": "पढ़कर सुनाएँ"
+  },
+  "listen_show_other": {
+    "message": "दिखाएँ"
+  },
+  "listen_close": {
+    "message": "बंद करें"
+  },
+  "listen_leave_confirm": {
+    "message": "अभी सुन रहा है। बाहर जाने से यह बातचीत समाप्त होगी; सुना गया सुरक्षित रहेगा।"
   }
 }

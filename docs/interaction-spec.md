@@ -1366,54 +1366,69 @@ Same dual display as the extension's live subtitles: **now** on top (word-by-wor
 original + provisional translation), **finalized sentences** below.
 
 #### Entry & gating
-- Home gains a card 「🎙 对话 · 实时听译」 with one line: 「线下听外语：对方说，你看中文；
-  按住说中文，译成外语给对方。音频只发往你配置的转写端点。」
-- Same gating rule as 播客模式: the card **does not exist** unless the transcription
-  engine has a live endpoint (registry `liveEndpoint`) and its key is filled. In that
-  case the home shows one sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 and a
-  link 「去设置里选择 →」 that lands on the transcription row of settings. Never a grey
-  button.
+- Home gains a row 「对话 · 实时听译」 with one line: 「对方说，你看中文；按住说中文，译给对方」
+  and, under the group, 「音频只发往你配置的转写端点。」
+- Gating *(ruled 2026-09-07, differs from 播客模式)*: when the transcription engine has no
+  live endpoint or no key, the row **stays visible but disabled** (45 % opacity) and the
+  sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 + 「去设置里选择 →」 sits
+  under it. A vanished entry answered no question; a grey one says why.
 - First tap after install triggers the **native** microphone permission once; denied
   ⇒ stop state 「麦克风被拒绝」 (below), never a silent no-op.
 
-#### 听 (listening)
-- Header: 「‹ 返回」 · 「对话」 · pill 「听译中 · mm:ss」 · language line 「自动识别 → 中文」
-  (target = interface language; manual pair selection is an open ruling).
-- Top card 「对方正在说 ● 实时」: original words as they arrive (22 px), provisional
-  translation underneath in sage with a trailing 「…」 (18 px). Updates in place, never
-  scrolls.
-- Below, 「整句定稿」 list, newest at the bottom, auto-scrolls unless the user scrolled
-  up: each row = original + translation (or 「⏳ 译文准备中…」 in the loading style), a
-  ☆ that toggles to ★ (star = enter review regardless of gate/whitelist). Rows from
-  「我说」 are prefixed 「我：」 with the Chinese first and the foreign second.
-- Bottom: two ≥ 64 px buttons — terracotta 「● 正在听 · 暂停」 and outlined
-  「按住 · 我说」. Persistent line: 「已听 3 分 42 秒 · 约 $0.03 · 音频只发往你配置的转写端点」.
-- **30 s of silence pauses the session** with 「听不到声音（30 秒静音）— 已暂停以免计费；
-  点「开始听」继续」.
+#### States (the state × control table is the canvas 「对话 · 实时听译 交互逻辑」 sheet 1)
+- **preparing**: pill 「准备中」; 「开始听」 reads 「准备中…」 and is disabled; 「按住 · 我说」
+  disabled. Early interruptions (≤ 3 s after start) retry with backoff ×3 *inside* this
+  state — no red line until all three fail.
+- **listening**: pill 「听译中 · mm:ss」; top card 「对方正在说 ● 实时」 with words as they
+  arrive and the provisional translation; history auto-scrolls unless the user scrolled up.
+- **speaking** (held): pill 「我在说 · 对方的声音暂不听」; top card becomes 「我正在说（松手即译）」
+  on a light terracotta tint; the pause button is disabled while held. Whatever the mic
+  hears while held is attributed to me (ruled: the other side's words in that window are
+  accepted as lost).
+- **paused** (user / 30 s silence) and **stopped** (socket / interrupted / failed): pill
+  「已暂停 · mm:ss」, one reason line (none for a user pause; grey for silence; red for the
+  rest), 「开始听」 resumes. Socket loss first **reconnects once after 2 s** — button reads
+  「重连中…」, 「按住 · 我说」 disabled — then names the cause with the server's sentence.
+  「麦克风被拒绝」 keeps 「按住 · 我说」 disabled and points at Settings › Privacy › Microphone.
+- **ended**: the summary card replaces the top card; history stays (rows still enlarge and
+  star); the two big buttons are gone — 「再来一段」 starts a new session.
+- **Disabled look is one thing everywhere**: 45 % opacity, label unchanged — and every grey
+  button has its reason on screen (the pill or the reason line). 「按住 · 我说」 is grey only
+  in preparing, while held (the pause button), microphone denied, and socket reconnecting;
+  in paused/stopped it works and brings the microphone up itself.
 
-#### 我说 (push-to-talk)
-- Press and hold: header pill becomes 「我在说 · 对方的声音暂不听」, language line flips to
-  「中文 → English」, the top card shows my Chinese words live and the provisional
-  English under them. The other side's audio is **not sent** while held.
-- Release ⇒ 「松手 · 译给对方」: a full-screen flip card 「给对方看 · 点任意处返回」 shows
-  the English large (28 px) with the Chinese small under it, and speaks it with the
-  configured TTS engine (marker 「朗读中」). No TTS engine ⇒ text only, no marker, no
-  apology (capability semantics). Buttons 「再读一遍」 / 「继续听对方」; tapping anywhere
-  returns to listening.
-- The pair enters the history as a 「我：」 row (default on; open ruling).
+#### 我说 (push-to-talk) — stays on this page
+- Press and hold from listening **or** from paused/stopped (it starts the microphone).
+  Release ⇒ back to listening; the held words merge into one history row 「我：中文 /
+  外语」; translation arrives in place. **No page change, no flip card.** Under the row:
+  「朗读」 (only when a TTS engine is configured; spoken only when tapped — ruled D) and
+  「给对方看」.
+- Release with nothing heard ⇒ 「没有听到你说的话 — 再按住说一次」 and back to listening.
+
+#### 给对方看 (show card) — an overlay on a history row, not a state
+- Tapping any history row (or 「给对方看」) opens a full-screen card: the foreign line
+  large, the Chinese line small, buttons 「朗读」 (TTS configured only) / 「关闭」; tap
+  anywhere to close. No star on the card (ruled E) — the star lives on the row.
+- Listening continues underneath: new sentences join the history without closing the
+  card; a stop that happens meanwhile shows its reason after the card closes.
 
 #### Stop states — every one names its cause and returns to 「开始听」
 | Cause | Line |
 |---|---|
 | microphone denied | 「麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。」 |
-| socket closed / vendor error | 「转写连接中断：{server sentence, ≤ 1 line} — 已听的句子还在。」 |
-| capture ended by the system while locked | 「锁屏后系统停止了录音 — 解锁后点「开始听」继续。」 (should not occur with native capture; kept as the fallback wording) |
-| 30 s silence | 「听不到声音（30 秒静音）— 已暂停以免计费。」 |
+| socket lost, first time | 「转写连接中断：{server sentence} — 正在重连…」 then silent success or the line below |
+| socket lost again | 「转写连接中断：{server sentence, ≤ 1 line} — 已听的句子还在。」 |
+| capture stopped by the system (call, another app took the mic) | 「录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。」 — resumes by itself when the interruption ends with `shouldResume` |
+| microphone failed to start | 「麦克风启动失败：{why} — 再点一次「开始听」。」 |
+| 30 s silence | 「听不到声音（30 秒静音）— 已暂停以免计费。」 (grey, not red) |
+| a row's translation failed | the row shows 「译文失败 · 重试」 instead of an endless ⏳ |
 
-#### 结束 (end of session)
-- 「结束」 shows a summary card: 时长 · 对方说了 N 句 · 我说了 N 句 · 进复习（来源「对话」）N 句
-  · 含 N 句加星 · 约花费 $x, then 「录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里
-  管理或整段删除。」 Buttons 「回到首页」 / 「查看全文」.
+#### 返回 / 结束
+- 「‹ 返回」 while a session is live asks once — 「还在听。离开会结束这次对话，已听的句子保留。」
+  (ruled B) — then ends the session and returns home without a summary.
+- 「结束」 shows the summary card: 时长 · 对方说了 N 句 · 我说了 N 句 · 进复习（来源「对话」）N 句
+  · 含 N 句加星, then 「录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。」
+  Buttons 「回到首页」 / 「再来一段」.
 
 #### Lock screen (iOS)
 - Reuses the podcast-mode Now Playing channel: title 「对话 · 实时听译中」, subtitle

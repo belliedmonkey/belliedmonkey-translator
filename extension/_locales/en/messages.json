@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Speaking aloud"
   },
-  "listen_flip_again": {
-    "message": "Say it again"
-  },
-  "listen_flip_back": {
-    "message": "Back to listening"
-  },
   "listen_stop_denied": {
     "message": "Microphone denied — allow BelliedMonkey Translator under Settings › Privacy › Microphone."
   },
@@ -2286,13 +2280,13 @@
     "message": "Transcription connection lost: {why} — what was heard is kept."
   },
   "listen_stop_locked": {
-    "message": "The system stopped the recording — tap “Start listening” to continue."
+    "message": "The system stopped the recording (a call or another app took the microphone) — it resumes when that ends, or tap “Start listening”."
   },
   "listen_stop_silence": {
     "message": "No sound for 30 s — paused to avoid charges."
   },
   "listen_stop_failed": {
-    "message": "Microphone failed to start: {why}"
+    "message": "Microphone failed to start: {why} — tap “Start listening” again."
   },
   "listen_summary_title": {
     "message": "This conversation"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "Audio goes only to the transcription endpoint you configured."
+  },
+  "listen_pill_preparing": {
+    "message": "Getting ready"
+  },
+  "listen_toggle_preparing": {
+    "message": "Getting ready…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Reconnecting…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Transcription connection lost: {why} — reconnecting…"
+  },
+  "listen_history_empty": {
+    "message": "Full sentences appear here once they speak; tap a row to show it large"
+  },
+  "listen_tr_failed": {
+    "message": "Translation failed · retry"
+  },
+  "listen_read_aloud": {
+    "message": "Read aloud"
+  },
+  "listen_show_other": {
+    "message": "Show them"
+  },
+  "listen_close": {
+    "message": "Close"
+  },
+  "listen_leave_confirm": {
+    "message": "Still listening. Leaving ends this conversation; what was heard is kept."
   }
 }

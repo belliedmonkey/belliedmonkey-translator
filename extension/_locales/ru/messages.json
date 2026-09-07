@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "Озвучивание"
   },
-  "listen_flip_again": {
-    "message": "Ещё раз"
-  },
-  "listen_flip_back": {
-    "message": "Снова слушать"
-  },
   "listen_stop_denied": {
     "message": "Микрофон запрещён — разрешите BelliedMonkey Translator в Настройки › Конфиденциальность › Микрофон."
   },
@@ -2286,13 +2280,13 @@
     "message": "Соединение транскрипции потеряно: {why} — услышанное сохранено."
   },
   "listen_stop_locked": {
-    "message": "Система остановила запись — нажмите «Начать слушать», чтобы продолжить."
+    "message": "Система остановила запись (звонок или другое приложение заняло микрофон) — продолжится автоматически, или нажмите «Начать слушать»."
   },
   "listen_stop_silence": {
     "message": "30 с тишины — пауза, чтобы не тратить деньги."
   },
   "listen_stop_failed": {
-    "message": "Микрофон не запустился: {why}"
+    "message": "Микрофон не запустился: {why} — нажмите «Начать слушать» ещё раз."
   },
   "listen_summary_title": {
     "message": "Этот разговор"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "Аудио уходит только на настроенную вами точку транскрипции."
+  },
+  "listen_pill_preparing": {
+    "message": "Подготовка"
+  },
+  "listen_toggle_preparing": {
+    "message": "Подготовка…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Переподключение…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Соединение транскрипции потеряно: {why} — переподключение…"
+  },
+  "listen_history_empty": {
+    "message": "Фразы появятся здесь, когда собеседник заговорит; нажмите строку, чтобы увеличить"
+  },
+  "listen_tr_failed": {
+    "message": "Перевод не удался · повторить"
+  },
+  "listen_read_aloud": {
+    "message": "Озвучить"
+  },
+  "listen_show_other": {
+    "message": "Показать"
+  },
+  "listen_close": {
+    "message": "Закрыть"
+  },
+  "listen_leave_confirm": {
+    "message": "Ещё слушаю. Выход завершит разговор; услышанное сохранится."
   }
 }

@@ -93,6 +93,8 @@ var WsTranscribe = (() => {
         if (pending.trim()) emit({ kind: 'partial', text: pending.trim() });
       },
       flush() { const t = pending.trim(); pending = ''; if (t) emit({ kind: 'final', text: t }); },
+      // 丢掉开口的尾句而不发出（调用方已经用别的方式消费了它，例如 App 的「我说」松手）
+      reset() { pending = ''; },
     };
   }
 
@@ -188,6 +190,7 @@ var WsTranscribe = (() => {
         return true;
       },
       close() { try { if (ready && ws.readyState === 1) ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' })); } catch (_) {} close(); },
+      reset() { cutter.reset(); },
     };
   }
 

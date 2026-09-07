@@ -2273,12 +2273,6 @@
   "listen_flip_speaking": {
     "message": "読み上げ中"
   },
-  "listen_flip_again": {
-    "message": "もう一度読む"
-  },
-  "listen_flip_back": {
-    "message": "相手を聞く"
-  },
   "listen_stop_denied": {
     "message": "マイクが拒否されました — 「設定 › プライバシー › マイク」で許可してください。"
   },
@@ -2286,13 +2280,13 @@
     "message": "文字起こしの接続が切れました：{why} — 聞いた文は残っています。"
   },
   "listen_stop_locked": {
-    "message": "システムが録音を停止しました — 「聞き始める」で再開。"
+    "message": "システムが録音を停止しました（着信や他のアプリがマイクを使用）— 終わると自動で再開、または「聞き始める」。"
   },
   "listen_stop_silence": {
     "message": "30 秒間無音 — 課金を避けるため一時停止しました。"
   },
   "listen_stop_failed": {
-    "message": "マイクを開始できません：{why}"
+    "message": "マイクを開始できません：{why} — もう一度「聞き始める」を押してください。"
   },
   "listen_summary_title": {
     "message": "この会話"
@@ -2347,5 +2341,35 @@
   },
   "listen_entry_privacy": {
     "message": "音声は設定した文字起こしエンドポイントにのみ送信。"
+  },
+  "listen_pill_preparing": {
+    "message": "準備中"
+  },
+  "listen_toggle_preparing": {
+    "message": "準備中…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "再接続中…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "文字起こしの接続が切れました：{why} — 再接続中…"
+  },
+  "listen_history_empty": {
+    "message": "相手が話すと文がここに出ます。行をタップすると拡大表示"
+  },
+  "listen_tr_failed": {
+    "message": "翻訳失敗 · 再試行"
+  },
+  "listen_read_aloud": {
+    "message": "読み上げ"
+  },
+  "listen_show_other": {
+    "message": "相手に見せる"
+  },
+  "listen_close": {
+    "message": "閉じる"
+  },
+  "listen_leave_confirm": {
+    "message": "まだ聞いています。離れるとこの会話は終了しますが、聞いた文は残ります。"
   }
 }

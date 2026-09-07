@@ -2274,12 +2274,6 @@
   "listen_flip_speaking": {
     "message": "朗读中"
   },
-  "listen_flip_again": {
-    "message": "再读一遍"
-  },
-  "listen_flip_back": {
-    "message": "继续听对方"
-  },
   "listen_stop_denied": {
     "message": "麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。"
   },
@@ -2287,13 +2281,13 @@
     "message": "转写连接中断：{why} — 已听的句子还在。"
   },
   "listen_stop_locked": {
-    "message": "录音被系统停止了 — 点「开始听」继续。"
+    "message": "录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。"
   },
   "listen_stop_silence": {
     "message": "听不到声音（30 秒静音）— 已暂停以免计费。"
   },
   "listen_stop_failed": {
-    "message": "麦克风启动失败：{why}"
+    "message": "麦克风启动失败：{why} — 再点一次「开始听」。"
   },
   "listen_summary_title": {
     "message": "这次对话"
@@ -2348,5 +2342,35 @@
   },
   "listen_entry_privacy": {
     "message": "音频只发往你配置的转写端点。"
+  },
+  "listen_pill_preparing": {
+    "message": "准备中"
+  },
+  "listen_toggle_preparing": {
+    "message": "准备中…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "重连中…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "转写连接中断：{why} — 正在重连…"
+  },
+  "listen_history_empty": {
+    "message": "对方开口后，整句会出现在这里；点任一行可放大给对方看"
+  },
+  "listen_tr_failed": {
+    "message": "译文失败 · 重试"
+  },
+  "listen_read_aloud": {
+    "message": "朗读"
+  },
+  "listen_show_other": {
+    "message": "给对方看"
+  },
+  "listen_close": {
+    "message": "关闭"
+  },
+  "listen_leave_confirm": {
+    "message": "还在听。离开会结束这次对话，已听的句子保留。"
   }
 }

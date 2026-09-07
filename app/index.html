@@ -306,7 +306,7 @@
         <span id="app-listen-pill" class="listen-pill"></span>
       </div>
       <p class="note listen-langline"><span id="app-listen-lang"></span></p>
-      <div class="drive-card listen-now">
+      <div class="drive-card listen-now" id="app-listen-now">
         <div class="listen-now-head"><span id="app-listen-now-label"></span><span id="app-listen-live" class="listen-live" hidden>● 实时</span></div>
         <p id="app-listen-partial" class="listen-partial"></p>
         <p id="app-listen-partial-tr" class="listen-partial-tr"></p>
@@ -316,7 +316,7 @@
         <div id="app-listen-history" class="listen-history"></div>
       </div>
       <p class="note err" id="app-listen-note"></p>
-      <div class="drive-grid">
+      <div class="drive-grid" id="app-listen-actions">
         <button id="app-listen-toggle" type="button"></button>
         <button id="app-listen-speak" type="button" class="secondary"></button>
       </div>
@@ -333,7 +333,8 @@
         </div>
       </div>
 
-      <!-- 翻面卡：松手后译文放大给对方看。点任意处返回听。 -->
+      <!-- 放大展示卡（给对方看）：点任一历史行打开，底下照常在听；「朗读」只在有 TTS 引擎时存在；
+           点任意处关闭。不是一个 phase，是历史行上的叠层（画布「交互逻辑」表 1 showing）。 -->
       <div id="app-listen-flip" class="listen-flip" hidden>
         <p class="listen-flip-hint" id="app-listen-flip-hint"></p>
         <p class="listen-flip-text" id="app-listen-flip-text"></p>
