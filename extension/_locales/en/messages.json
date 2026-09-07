@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "No sound captured — transcription stopped"
   },
+  "asr_err_mse": {
+    "message": "Safari can't capture the audio of this streaming video, so this page can't be transcribed",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "Cannot read this audio"
   },

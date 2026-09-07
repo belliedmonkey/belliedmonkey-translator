@@ -1988,6 +1988,10 @@
   "asr_err_silent": {
     "message": "कोई आवाज़ नहीं मिली — ट्रांसक्रिप्शन रुक गया"
   },
+  "asr_err_mse": {
+    "message": "Safari इस स्ट्रीमिंग वीडियो की आवाज़ नहीं पकड़ पाता, इसलिए इस पेज का ट्रांसक्रिप्शन नहीं हो सकता",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "यह ऑडियो पढ़ा नहीं जा सका"
   },

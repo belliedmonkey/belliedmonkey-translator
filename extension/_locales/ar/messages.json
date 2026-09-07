@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "لم يُلتقط أي صوت — تم إيقاف التفريغ"
   },
+  "asr_err_mse": {
+    "message": "لا يستطيع Safari التقاط صوت هذا الفيديو المتدفق، لذا لا يمكن تفريغ هذه الصفحة",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "تعذّر قراءة هذا الصوت"
   },

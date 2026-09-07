@@ -2157,6 +2157,10 @@
   "asr_err_silent": {
     "message": "擷取不到聲音，已停止轉寫"
   },
+  "asr_err_mse": {
+    "message": "Safari 抓不到這類串流影片的聲音，此頁無法轉寫",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "無法讀取該音訊"
   },

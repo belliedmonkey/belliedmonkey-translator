@@ -2156,6 +2156,10 @@
   "asr_err_silent": {
     "message": "Nenhum som capturado — transcrição interrompida"
   },
+  "asr_err_mse": {
+    "message": "O Safari não consegue capturar o áudio deste vídeo em streaming; esta página não pode ser transcrita",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
   "asr_err_media": {
     "message": "Não foi possível ler este áudio"
   },
