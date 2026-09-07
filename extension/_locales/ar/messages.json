@@ -2371,5 +2371,14 @@
   },
   "listen_leave_confirm": {
     "message": "ما زال يستمع. المغادرة تنهي هذه المحادثة؛ ما سُمع محفوظ."
+  },
+  "dialog_ok": {
+    "message": "موافق"
+  },
+  "dialog_cancel": {
+    "message": "إلغاء"
+  },
+  "listen_leave_ok": {
+    "message": "إنهاء والمغادرة"
   }
 }

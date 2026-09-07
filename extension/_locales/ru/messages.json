@@ -2371,5 +2371,14 @@
   },
   "listen_leave_confirm": {
     "message": "Ещё слушаю. Выход завершит разговор; услышанное сохранится."
+  },
+  "dialog_ok": {
+    "message": "ОК"
+  },
+  "dialog_cancel": {
+    "message": "Отмена"
+  },
+  "listen_leave_ok": {
+    "message": "Завершить и выйти"
   }
 }

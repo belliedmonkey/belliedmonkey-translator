@@ -367,8 +367,8 @@ var AppSettings = (() => {
       items, sources, rules, t,
       onDelete: async ({ host, itemIds, sourceIds }) => {
         if (!itemIds.length) { say(t('learn_delete_none', '这个来源已没有可删的卡')); return; }
-        if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
-          .replace('{host}', host).replace('{n}', String(itemIds.length)))) return;
+        if (!(await LearnDialog.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
+          .replace('{host}', host).replace('{n}', String(itemIds.length)), { danger: true }))) return;
         const n = await LearnStore.deleteItems(itemIds, Date.now()).catch(() => 0);
         await LearnStore.deleteSourcesIfOrphan(sourceIds).catch(() => {});
         say(t('learn_delete_done', '已删除 {n} 张卡').replace('{n}', String(n)));
@@ -519,8 +519,13 @@ var AppSettings = (() => {
       applyDetailMode(on);
       return;
     }
+    // 回显：已经配过的 key 要在卡上看得见（QuickSetup.prefill：翻译那一路优先，退到朗读/转写）。
+    // 2026-09-07 用户报「详细里有、快速里空」—— App 这里原来根本没传 prefill。
+    let pre = null;
+    try { pre = QuickSetup.prefill(await get(KEYS)); } catch (_) { pre = null; }
     QuickSetup.render($('quick-setup'), {
       t,
+      prefill: pre,
       // 现读而不是快照：拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
       readSettings: () => get(KEYS),
       targetLang: '',
@@ -884,8 +889,8 @@ var AppSettings = (() => {
       // generic 「确定吗」 that gets answered without reading. Same string the
       // extension's settings page uses — one sentence, one meaning, eleven locales
       // already written.
-      if (!window.confirm(t('learn_clear_confirm',
-        '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'))) return;
+      if (!(await LearnDialog.confirm(t('learn_clear_confirm',
+        '清空学习库？所有已采集的句子与复习进度都会被删除，且无法恢复。'), { danger: true }))) return;
       const btn = $('clear-learn');
       btn.disabled = true;
       try {
@@ -924,7 +929,7 @@ var AppSettings = (() => {
     $('delete-account').addEventListener('click', async () => {
       // Destructive and irreversible, so it asks — and the question names what goes,
       // rather than a generic 「确定吗」 that the user answers without reading.
-      if (!window.confirm(t('app_set_confirm_delete', '确定要删除账号吗？服务器上的所有内容会被永久移除，无法恢复。'))) return;
+      if (!(await LearnDialog.confirm(t('app_set_confirm_delete', '确定要删除账号吗？服务器上的所有内容会被永久移除，无法恢复。'), { danger: true }))) return;
       $('delete-account').disabled = true;
       say(t('app_set_deleting', '正在删除…'));
       try {
