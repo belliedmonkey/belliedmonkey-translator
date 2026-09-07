@@ -2258,6 +2258,26 @@
   "listen_speak_hold": {
     "message": "Hold · I speak"
   },
+  "listen_speak_hold_mac": {
+    "message": "Hold · I speak (or hold Space)",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "Copy all",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Copied",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Copy failed",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Works for online meetings and video calls too: just let the other side's voice play through the speakers.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "Release · translate for them"
   },

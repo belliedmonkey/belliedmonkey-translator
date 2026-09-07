@@ -2259,6 +2259,26 @@
   "listen_speak_hold": {
     "message": "按住 · 我說"
   },
+  "listen_speak_hold_mac": {
+    "message": "按住 · 我說（或按住空白鍵）",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "複製全文",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "已複製",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "複製失敗",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "線上會議、視訊通話也能用：讓對方的聲音從喇叭放出來即可。",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "放開 · 譯給對方"
   },

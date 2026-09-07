@@ -472,6 +472,25 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 :where(#app-listen) button.secondary.holding { background: var(--accent); color: #fff; border-color: var(--accent); }
 :where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
+:where(#app-listen) .listen-head-acts { display: flex; gap: 12px; }
+:where(#app-listen) .listen-mac-note { margin: 0; }
+/* macOS 宿主的窗口是 820×640 起步、可拉宽：≥ 720px 时左右两栏 —— 左边「当下」+ 两个按钮，
+   右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
+@media (min-width: 720px) {
+  #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
+    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "note hist" "actions hist" "other hist" "cost hist" "summary summary"; }
+  :where(#app-listen) .listen-head { grid-area: head; }
+  :where(#app-listen) .listen-langline { grid-area: lang; }
+  :where(#app-listen) .listen-mac-note { grid-area: macnote; }
+  #app-listen-now { grid-area: now; }
+  #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
+  #app-listen-note { grid-area: note; }
+  #app-listen-actions { grid-area: actions; }
+  :where(#app-listen) .listen-other { grid-area: other; }
+  #app-listen-cost { grid-area: cost; }
+  #app-listen-summary { grid-area: summary; }
+  :where(#app-listen) .listen-history { max-height: calc(100vh - 230px); }
+}
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
 :where(#app-listen) .listen-flip-text { font-size: 1.9rem; line-height: 1.35; font-weight: 700; margin: 0; }

@@ -2258,6 +2258,26 @@
   "listen_speak_hold": {
     "message": "Halten · ich spreche"
   },
+  "listen_speak_hold_mac": {
+    "message": "Halten · Ich spreche (oder Leertaste halten)",
+    "description": "macOS host: the hold button also names the Space key"
+  },
+  "listen_copy_all": {
+    "message": "Alles kopieren",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Kopiert",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Kopieren fehlgeschlagen",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Funktioniert auch bei Online-Meetings und Videoanrufen: Lassen Sie die Stimme der anderen Seite einfach über die Lautsprecher laufen.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
   "listen_speak_release": {
     "message": "Loslassen · fürs Gegenüber übersetzen"
   },

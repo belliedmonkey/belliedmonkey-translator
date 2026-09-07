@@ -196,6 +196,18 @@ function say(base, text) {
     const phaseB = await evalIn(cdp, sessionId, `AppListen._debug().phase`);
     need(phaseB === 'listening', 'B: 定稿出现时应已是 listening，实际 ' + phaseB);
 
+    // ── W. macOS 宽屏（≥ 720px）：左右两栏 —— 历史在「当下」卡右边、不在下边；「复制全文」随定稿出现 ──
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: 900, height: 700, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await sleep(300);
+    const wide = JSON.parse(await evalIn(cdp, sessionId, `(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const n = r('app-listen-now'), h = r('app-listen-history-wrap'); const cp = document.getElementById('app-listen-copy'); return JSON.stringify({ nowRight: n.right, histLeft: h.left, nowTop: n.top, histTop: h.top, copyHidden: cp.hidden, copyText: cp.textContent }); })()`));
+    need(wide.histLeft >= wide.nowRight - 1 && Math.abs(wide.histTop - wide.nowTop) < 4, 'W: 900px 宽时历史应在当下卡右侧同一行，实际 ' + JSON.stringify(wide));
+    need(wide.copyHidden === false && wide.copyText.length > 0, 'W: 有定稿时「复制全文」应可见，实际 ' + JSON.stringify(wide));
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 800, deviceScaleFactor: 1, mobile: false }, sessionId);
+    await sleep(300);
+    const narrow = JSON.parse(await evalIn(cdp, sessionId, `(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const n = r('app-listen-now'), h = r('app-listen-history-wrap'); return JSON.stringify({ nowBottom: n.bottom, histTop: h.top }); })()`));
+    need(narrow.histTop >= narrow.nowBottom - 1, 'W: 390px 宽时历史应回到当下卡下方，实际 ' + JSON.stringify(narrow));
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+
     // ── C. 按住「我说」：真指针按住 → 期间到的句子归我 → 松手**留在本页**，历史加行 + 译成对方语言 ──
     const box = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(document.getElementById('app-listen-speak').getBoundingClientRect())`));
     const cx = Math.round(box.x + box.width / 2), cy = Math.round(box.y + box.height / 2);

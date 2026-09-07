@@ -187,9 +187,19 @@ var ListenCore = (() => {
     };
   }
 
+  // 「复制全文」：整段对话的纯文本。一行原文、一行译文、空行分段；我说的行带前缀；没译出来的
+  // 行只有原文（不写 ⏳ 之类的界面词进剪贴板）。
+  function transcriptText(session, mePrefix) {
+    const rows = (session && session.rows) || [];
+    return rows.map((r) => {
+      const head = (r.who === 'me' ? (mePrefix || '') : '') + (r.text || '');
+      return r.tr ? head + '\n' + r.tr : head;
+    }).join('\n\n');
+  }
+
   return {
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX, HOLD_TAIL_MS,
-    newSession, sessionTitle, sourceFor, attribute, addFinal, holdStart, holdEnd,
+    newSession, sessionTitle, sourceFor, attribute, addFinal, holdStart, holdEnd, transcriptText,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,
     makeIncremental,
   };
