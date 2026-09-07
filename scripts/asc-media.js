@@ -357,7 +357,9 @@ let VERSION = null;
     const psets = await api('GET', `/appStoreVersionLocalizations/${locId}/appPreviewSets?limit=20`
       + '&fields[appPreviewSets]=previewType');
     for (const [previewType, file] of Object.entries(line.previews || {})) {
-      if (!fs.existsSync(file)) throw new Error(`缺文件 ${file}`);
+      // 预览视频要重录（assets.md 的 cap 配方），不是每次发版都重做；文件不在就保留线上那份，
+      // 只换截图 —— 但要说出来，别让「没换」看起来像「换了」（2026-09-08，1.8.0 只换图）。
+      if (!fs.existsSync(file)) { console.log(`  ⚠ 预览 ${previewType}: 本地没有 ${file}，保留线上现有预览不动`); continue; }
       let set = psets.data.find((s) => s.attributes.previewType === previewType);
       const existing = set
         ? (await api('GET', `/appPreviewSets/${set.id}/appPreviews?limit=20&fields[appPreviews]=fileName`)).data
