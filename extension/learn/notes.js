@@ -172,8 +172,16 @@ var LearnNotes = (() => {
       method: 'POST', headers: req.headers, body: JSON.stringify(req.body),
     });
     if (!resp.ok) {
+      // 有的调用方（含测试里的假响应）给的不是完整 Response —— 没有 text() 就当没有正文，
+      // 绝不让「读不到正文」变成一个抛出去的异常，那会把真正的错误码整个吃掉。
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status; e.url = url;
+      // 免费额度中继的具名错误优先（§8.10）——「额度用完了」和「服务端出错了」
+      // 指向完全不同的出口，混成一个 http 就等于把用户支到错的地方。
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
+      e.code = gcode || 'http'; e.status = resp.status; e.url = url;
+      if (gcode) { e.grant = true; e.retryable = false; }
       throw e;
     }
     const d = await resp.json();

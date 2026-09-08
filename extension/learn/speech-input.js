@@ -161,8 +161,14 @@ var LearnSpeech = (() => {
       throw e;
     }
     if (!resp.ok) {
+      // 有的调用方（含测试里的假响应）给的不是完整 Response —— 没有 text() 就当没有正文，
+      // 绝不让「读不到正文」变成一个抛出去的异常，那会把真正的错误码整个吃掉。
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status; e.url = url;
+      e.code = gcode || 'http'; e.status = resp.status; e.url = url;   // 免费额度（§8.10）优先
+      if (gcode) { e.grant = true; e.retryable = false; }
       throw e;
     }
     return { resp, extract: req.extract };

@@ -194,7 +194,37 @@ var WireFormat = (() => {
     return s;
   }
 
-  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize };
+  // ── 免费额度中继的具名错误（learning-design §8.10）
+  //
+  // 为什么放在这里：四个调用点（网页翻译、复习解析、朗读、语音输入）各自 fetch、
+  // 各自抛错，而它们**唯一都能看见**的模块就是这一个（扩展两个块 + App 包 + 复习页
+  // 都加载它）。抄四份映射表的那天，就是它们开始各走各的那天 —— 提供方列表的先例
+  // 已经演过一遍（DeepSeek 的提示写死了模型名，API 早就不认了还在那儿）。
+  //
+  // 判据是**状态码加中继自己的具名 error**，不是猜。中继与提供方会回同样的 402，
+  // 但含义天差地别：中继的 402 是「你的免费额度用完了」，提供方的 402 是「你自己的
+  // 账户没钱了」—— 两句话指向完全不同的出口，认错了就是把用户支到错的地方去。
+  // 所以没有具名 error 时**一律返回空**，让调用方回到原来的 http 分支。
+  const GRANT_CODES = new Set([
+    'credit_exhausted',    // 402 你的 0.2 美元用完了
+    'grant_unavailable',   // 503 我们的池子空了 —— 不是你用完了，文案必须分开
+    'grant_misconfigured', // 503 我们配错了，同样不是用户的问题
+    'grant_revoked',       // 403 这枚令牌被停用了（删号 / 退出登录）
+    'grant_invalid',       // 401 令牌不认识
+    'model_not_allowed',   // 403 在「详细」里把模型改掉了
+    'busy',                // 429 限流
+  ]);
+  function grantError(status, bodyText) {
+    if (!status || status < 400) return '';
+    let name = '';
+    try {
+      const j = JSON.parse(String(bodyText == null ? '' : bodyText));
+      name = j && typeof j.error === 'string' ? j.error : '';
+    } catch (_) { return ''; }        // 不是 JSON ⇒ 不是我们的中继
+    return GRANT_CODES.has(name) ? name : '';
+  }
+
+  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize, grantError };
 })();
 
 if (typeof window !== 'undefined') window.WireFormat = WireFormat;

@@ -323,6 +323,9 @@ var TranslationCore = (() => {
   // Rendering stays in the adapter. This is the shared core for BOTH the webpage
   // path and the subtitle path (see docs/domain-design.md).
   function createEngine(cfg) {
+    // 引擎级停机。只有「额度用完」这一族会置上 —— 它与别的失败不同：重试**必然**
+    // 再失败，而且每一次都花掉一个来回。其余错误仍走每单元的重试计数。
+    let halted = false;
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
     // MERGE, not replace: an adapter's override lists only the knobs it cares about,
@@ -365,6 +368,14 @@ var TranslationCore = (() => {
       // Loop-invariant for this tick — hoisted so the script-family regexes aren't
       // re-run once per unit per 350ms tick.
       const useDetector = !!detect && !!targetLang && !isScriptDecidableTarget(targetLang);
+      // 免费额度用完之后**一个请求都不再发**（learning-design §8.10）。没有这道闸，
+      // 一页 60 段就是 60 次注定 402 的请求 —— 每一次都要等一个来回，用户盯着一页
+      // 「翻译中…」慢慢变成一页错误，而第一次就已经知道结局了。
+      // 未译的单元当场置错，渲染器按 grantActive 分两句话；retry() 解锁。
+      if (halted) {
+        for (const it of active) { if (!it.tr && !it._done) { it._err = true; it._fetching = false; } }
+        return;
+      }
       let started = 0;
       for (let i = 0; i < active.length && started < win.MAX_PER_TICK; i++) {
         const it = active[i];
@@ -437,6 +448,12 @@ var TranslationCore = (() => {
           it._tries = 0;
           if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
+          // 额度用完 / 池子空了：整台引擎停机，不再计重试次数（§8.10）。
+          if (e && e.grant) {
+            halted = true; it._err = true; it._tries = 0;
+            if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+            return;
+          }
           if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout' }); } catch (_) {} } return; }  // 卡死 → 直接可重试
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) { it._err = true; if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} } } // exhausted → error UI
@@ -455,15 +472,18 @@ var TranslationCore = (() => {
       return { state: '', translation: '' };
     }
 
-    function retry(it) { if (it) { it._err = false; it._tries = 0; } }
+    // 用户点重试 = 他自己决定再试一次（可能刚配好自带 key），解锁停机。
+    function retry(it) { halted = false; if (it) { it._err = false; it._tries = 0; } }
     function reset() {
+      halted = false;
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
         it._detectWaits = 0;
       });
     }
 
-    return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset, get units() { return units; } };
+    return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset,
+      get halted() { return halted; }, get units() { return units; } };
   }
 
   // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
