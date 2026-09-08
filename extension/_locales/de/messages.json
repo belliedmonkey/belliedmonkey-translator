@@ -2404,5 +2404,26 @@
   },
   "listen_leave_ok": {
     "message": "Beenden und verlassen"
+  },
+  "grant_err_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Du kannst mit einem eigenen API-Schlüssel weitermachen (ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab) oder in der Community nachfragen."
+  },
+  "grant_err_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_err_misconfigured": {
+    "message": "Beim Gratis-Guthaben ist auf unserer Seite etwas falsch konfiguriert; wir haben es notiert. Das liegt nicht an dir; nutze vorerst deinen eigenen Schlüssel."
+  },
+  "grant_err_revoked": {
+    "message": "Dieses Gratis-Guthaben wurde deaktiviert (Abmelden oder Konto löschen deaktiviert es). Melde dich mit demselben Konto wieder an, dann ist es zurück — mit gleichem Stand."
+  },
+  "grant_err_invalid": {
+    "message": "Dieses Gratis-Guthaben wird nicht mehr erkannt. Öffne die Einstellungen und hole es dir erneut."
+  },
+  "grant_err_model": {
+    "message": "Gratis-Guthaben funktioniert nur mit dem festgelegten Modell. Du hast das Modell unter „Erweitert“ geändert — stelle es zurück oder trage einen eigenen Schlüssel ein."
+  },
+  "grant_err_busy": {
+    "message": "Gerade zu viele Anfragen. Warte ein paar Sekunden und versuch es erneut."
   }
 }

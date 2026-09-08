@@ -1385,6 +1385,16 @@ async function init() {
     // 存储读失败**不是**「没登录」。混同的话，一次读失败会被画成登出，
     // 而用户明明刚走完一整圈（同 auth.js load() 里 loadError 的纪律）。
     if (code === 'storage_error') return t('sync_err_storage', '读不到本机存储，这一步暂时做不了。重开这一页再试；如果一直这样，请把这条信息告诉我们。');
+    // ── 免费额度（§8.10）。中继与提供方都会回 402，含义相反，所以码必须分开、
+    // 话也必须分开：「你用完了」给的是继续用下去的两条路；「我们的池子空了」
+    // 头一句必须先说**不是你的问题**，否则用户会去查自己的账户，查一晚上也查不出来。
+    if (code === 'credit_exhausted') return t('grant_err_exhausted', '免费额度已经用完了。你可以填一把自己的 key 继续用（一把通吃翻译、朗读、转写），或者到社群里问问。');
+    if (code === 'grant_unavailable') return t('grant_err_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。');
+    if (code === 'grant_misconfigured') return t('grant_err_misconfigured', '免费额度这条路我们这边配错了，已经记下。这不是你的问题；先用自己的 key。');
+    if (code === 'grant_revoked') return t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+    if (code === 'grant_invalid') return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
+    if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「详细」里改过模型 —— 改回去，或者填一把自己的 key。');
+    if (code === 'busy') return t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
 

@@ -2404,5 +2404,26 @@
   },
   "listen_leave_ok": {
     "message": "Terminer et quitter"
+  },
+  "grant_err_exhausted": {
+    "message": "Votre crédit gratuit est épuisé. Vous pouvez ajouter votre propre clé API pour continuer (une seule clé couvre traduction, synthèse vocale et transcription), ou demander de l'aide dans la communauté."
+  },
+  "grant_err_unavailable": {
+    "message": "Ce n'est pas vous qui êtes à court : notre réserve de crédit gratuit est vide et nous la rechargeons. Utilisez votre propre clé pour l'instant, ou revenez plus tard."
+  },
+  "grant_err_misconfigured": {
+    "message": "Le crédit gratuit est mal configuré de notre côté, et nous l'avons noté. Ce n'est pas votre faute ; utilisez votre propre clé pour l'instant."
+  },
+  "grant_err_revoked": {
+    "message": "Ce crédit gratuit a été désactivé (se déconnecter ou supprimer son compte le désactive). Reconnectez-vous au même compte et il revient, avec le même solde."
+  },
+  "grant_err_invalid": {
+    "message": "Ce crédit gratuit n'est plus reconnu. Ouvrez les réglages et réclamez-le à nouveau."
+  },
+  "grant_err_model": {
+    "message": "Le crédit gratuit ne fonctionne qu'avec le modèle qu'il impose. Vous avez changé le modèle dans « Avancé » — remettez-le, ou ajoutez votre propre clé."
+  },
+  "grant_err_busy": {
+    "message": "Trop de requêtes en ce moment. Attendez quelques secondes et réessayez."
   }
 }

@@ -2404,5 +2404,26 @@
   },
   "listen_leave_ok": {
     "message": "Terminar y salir"
+  },
+  "grant_err_exhausted": {
+    "message": "Se ha agotado tu crédito gratuito. Puedes añadir tu propia clave API para seguir (una sola clave cubre traducción, lectura en voz alta y transcripción), o preguntar en la comunidad."
+  },
+  "grant_err_unavailable": {
+    "message": "No eres tú quien se ha quedado sin crédito: nuestra reserva gratuita está vacía y la estamos reponiendo. Usa tu propia clave por ahora, o vuelve más tarde."
+  },
+  "grant_err_misconfigured": {
+    "message": "El crédito gratuito está mal configurado por nuestra parte, y ya lo hemos registrado. No es culpa tuya; usa tu propia clave por ahora."
+  },
+  "grant_err_revoked": {
+    "message": "Este crédito gratuito se ha desactivado (cerrar sesión o eliminar la cuenta lo desactiva). Vuelve a iniciar sesión con la misma cuenta y regresa, con el mismo saldo."
+  },
+  "grant_err_invalid": {
+    "message": "Este crédito gratuito ya no se reconoce. Abre los ajustes y vuelve a solicitarlo."
+  },
+  "grant_err_model": {
+    "message": "El crédito gratuito solo funciona con el modelo que fija. Has cambiado el modelo en «Avanzado»: vuelve a ponerlo o añade tu propia clave."
+  },
+  "grant_err_busy": {
+    "message": "Ahora mismo hay demasiadas peticiones. Espera unos segundos e inténtalo de nuevo."
   }
 }

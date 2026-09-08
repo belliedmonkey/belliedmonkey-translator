@@ -2405,5 +2405,26 @@
   },
   "listen_leave_ok": {
     "message": "結束並離開"
+  },
+  "grant_err_exhausted": {
+    "message": "免費額度已經用完了。你可以填一把自己的 key 繼續用（一把通吃翻譯、朗讀、轉寫），或者到社群裡問問。"
+  },
+  "grant_err_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_err_misconfigured": {
+    "message": "免費額度這條路我們這邊設定錯了，已經記下。這不是你的問題；先用自己的 key。"
+  },
+  "grant_err_revoked": {
+    "message": "這份免費額度已經停用了（登出或刪除帳號會停用它）。重新登入同一個帳號就會回來，餘額不變。"
+  },
+  "grant_err_invalid": {
+    "message": "這份免費額度認不出來了。到設定裡重新領一次。"
+  },
+  "grant_err_model": {
+    "message": "免費額度只能用它指定的那個模型。你在「詳細」裡改過模型 —— 改回去，或者填一把自己的 key。"
+  },
+  "grant_err_busy": {
+    "message": "這會兒請求太密了，等幾秒再試。"
   }
 }

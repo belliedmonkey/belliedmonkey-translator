@@ -2404,5 +2404,26 @@
   },
   "listen_leave_ok": {
     "message": "End and leave"
+  },
+  "grant_err_exhausted": {
+    "message": "Your free credit is used up. You can add your own API key to keep going (one key covers translation, speech and transcription), or ask in the community."
+  },
+  "grant_err_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_err_misconfigured": {
+    "message": "Something is misconfigured on our side for free credit, and we've logged it. This isn't your fault; use your own key for now."
+  },
+  "grant_err_revoked": {
+    "message": "This free credit has been deactivated (signing out or deleting your account deactivates it). Sign back in to the same account and it returns, with the same balance."
+  },
+  "grant_err_invalid": {
+    "message": "This free credit is no longer recognised. Open settings and claim it again."
+  },
+  "grant_err_model": {
+    "message": "Free credit only works with the model it pins. You changed the model under Advanced — change it back, or add your own key."
+  },
+  "grant_err_busy": {
+    "message": "Too many requests right now. Wait a few seconds and try again."
   }
 }

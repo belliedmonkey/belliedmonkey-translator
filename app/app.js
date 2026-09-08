@@ -68,6 +68,16 @@
     // 升级的对象在两个界面上不是同一个东西（那边是扩展，这里是 App），所以这一句
     // 必须有自己的键。
     if (code === 'enc_unsupported') return t('app_err_upgrade', '云端有这个版本还读不了的内容（可能来自更新版本的扩展）。请升级 App 后再同步——那些内容没有丢，只是暂时读不了。');
+    // ── 免费额度（§8.10）。七句与扩展**逐字共用同一批键** —— 措辞与在哪个界面
+    // 无关，抄第二份只会漂（enc_unsupported 那种「升级的对象两边不是一个东西」
+    // 才需要各自的键）。
+    if (code === 'credit_exhausted') return t('grant_err_exhausted', '免费额度已经用完了。你可以填一把自己的 key 继续用（一把通吃翻译、朗读、转写），或者到社群里问问。');
+    if (code === 'grant_unavailable') return t('grant_err_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。');
+    if (code === 'grant_misconfigured') return t('grant_err_misconfigured', '免费额度这条路我们这边配错了，已经记下。这不是你的问题；先用自己的 key。');
+    if (code === 'grant_revoked') return t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+    if (code === 'grant_invalid') return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
+    if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「详细」里改过模型 —— 改回去，或者填一把自己的 key。');
+    if (code === 'busy') return t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
     const msg = String((e && e.message) || e);
     if (/invalid login credentials/i.test(msg)) return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (/expired|invalid|otp/i.test(msg)) return codeBad();
