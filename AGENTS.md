@@ -31,8 +31,17 @@ these in order when designing anything new:
    plaintext unreachable. That justification no longer holds — see rule 4 and
    `docs/learning-design.md` §8.4 — so the rule was narrowed to the part that was
    actually load-bearing: the free path's independence, not our abstinence.)*
+   *(Amended 2026-09-08 — 免费额度。「free path never needs a server of ours」仍然逐字成立：
+   翻译的默认路径是用户自己的 key、浏览器 → 提供方直连。新加的**免费额度**
+   （`docs/learning-design.md` §8.10）不是第二条路径 —— 它是我们替已登录用户在提供方那里
+   铸一把封顶 0.2 美元的 key，交给设备后走的**就是这条 BYO 路径**；我们的服务器只铸造与
+   停用 key，从不出现在任何一次翻译请求上。它不降级免费路径：用完之后回到的仍是
+   BYO 与免费引擎，一字不改。)*
 3. **Accounts and sync are free.** The server carries only what genuinely cannot work
    without it — and the product must be complete for a signed-out user.
+   *(Note 2026-09-08:)* 免费额度是**登录的附带权益**，不是登录换来的功能。用户裁定
+   「必须登录才能用」：退出登录时额度的 key 从本机清掉，翻译路径回到 BYO / 免费引擎，
+   产品仍然完整；再登录自动领回同一把。
 4. **No tracking, no content, no identity in telemetry — and server-side computation
    only as a paid, opt-in exception.** The product sends **anonymous usage events**
    (`docs/telemetry-design.md`): a fixed whitelist of event names, a random per-install
@@ -46,6 +55,9 @@ these in order when designing anything new:
    user chose it and is paying for it, because it is a real recurring cost (rule 8).
    Whatever such a path processes must be disclosed for that path specifically —
    never averaged away in a claim about the product as a whole.
+   *(Note 2026-09-08:)* 免费额度的台账（`bt_grants`：账号 ↔ key 的 hash ↔ 该 key 的花费
+   总数）是**账号级数据**，与遥测**永不 join** —— 遥测里只多两个匿名事件（领了 / 用完了），
+   不带金额、不带 hash。我们看得到的只有「这把 key 花了 0.2 美元里的多少」，看不到文本。
    *(Amended 2026-09-05. This rule used to read "No telemetry, ever … permanently
    forbidden". It was declared, never argued — issue #174 — and its cost was paid
    silently: 75 sync accounts of which 54 never produced a card, and nobody could say
@@ -74,6 +86,9 @@ these in order when designing anything new:
 8. **Charge only where the cost genuinely cannot be carried.** If some future
    feature's storage or compute is truly unaffordable, price *that feature* — and
    **never convert something already shipped free into a paid feature.**
+   *(Note 2026-09-08:)* 固定的每人样品额度（0.2 美元，`docs/learning-design.md` §8.10）
+   是我们**选择**承担、按设计封顶（key 级硬上限 + 日铸造上限 + 小池子）的成本，不是收费
+   的前奏：它永远是 BYO 之外的附加，用完的出口是「自带 key」与「社群」，不是付费。
 9. **Cost is estimated before it is incurred.** Before introducing any server-side
    storage, write the bytes-per-user-per-year estimate **and its assumptions** into
    the design doc. (`docs/learning-design.md` §8.2 is the worked example.)
@@ -93,6 +108,9 @@ these in order when designing anything new:
     version you must first build the local one**, so the easy path stops being a
     shortcut. Release check: *can someone who never signs in and never pays use this?*
     A "no" blocks the release.
+    *(Note 2026-09-08:)* 免费额度**不是**服务端模型 —— 模型仍在提供方那里、请求仍从浏览器
+    直发；服务器只铸造/停用 key。所以规则 11 不被触发，而它的发布判据照样成立：不登录不
+    付费的人有完整产品（BYO + 免费引擎），额度只是让第一次翻译不必先去申请 key。
 
 
 ## Interaction / UX constraints

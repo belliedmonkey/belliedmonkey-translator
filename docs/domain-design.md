@@ -1150,6 +1150,15 @@ is a build-time concern, not a runtime one.
   if rejected is to drop the custom endpoints from the china flavor and keep only
   pure domestic-brand providers.
 
+**代领的 key（2026-09-08，`docs/learning-design.md` §8.10）。** 免费额度在传输层眼里
+**就是一把普通的 OpenRouter key**：它经 `QuickSetup.plan()` 写进与自带 key 相同的三槽
+（翻译 / 朗读 / 转写），注册表、`wire-format.js`、`request-shape.js` 一处不改，也不知道
+这把 key 是谁铸的。唯一新增的是一个具名错误：HTTP **402** → `credit_exhausted`，不可重试，
+并让引擎**停机**（首个 402 之后未译单元直接置 error，不再发请求；`retry()` 解锁）——
+对自带 key 同样成立（余额不足的那把 key 也会 402），只是渲染器按 `EngineState.grantActive`
+分两句话。额度钉住的模型来自 `build/recommend.config.js` 新轴 `axis:'grant'`，同一条
+「先实测再登记」的台账门。
+
 ## 8. Out of scope
 
 No Readability-style full-article extraction fallback (the reference extension
@@ -1187,6 +1196,10 @@ What does **not** change, and is now load-bearing rather than incidental:
   and never signs in has a complete product.**
 - **The server runs no model and performs no computation on user data.** It stores
   opaque bytes.
+  *(Amended 2026-09-08:)* it also **mints and disables per-user API keys** at a provider
+  (`docs/learning-design.md` §8.10) — an account-level record of *which* key and *how
+  much of its cap was spent* — and still never sees a single request: the key is handed
+  to the device and used on the browser → provider path above.
 - **Anonymous usage events are the one thing the product sends unasked** *(amended
   2026-09-05)*: a whitelist of event names with a random per-install id, never page
   content, URLs, hostnames, keys or account ids, off in one switch, and none at all

@@ -116,6 +116,7 @@ node -e 'const {api,apps}=require("./scripts/lib/asc-client.js");(async()=>{
 |---|---|
 | V1 本地采集 | **Gate A** —— README 隐私段 + 两个站点的「本机存储的数据」条目 |
 | V3 同步 | **Gate B** —— 「无账号」那句必须改；`build.js` 已有闸门：`learn/backend.config.js` 的 `enabled` 为 true 而 README 仍写着旧句子时**构建失败** |
+| 免费额度（learning-design §8.10） | **Gate F** —— 新增一段而不是改口（「我们不参与该连接」仍为真）：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站一句「不提供」、卡上 `grant_privacy` ×12、ASC 隐私标签（花费总数 = 与账号关联的用量数据，**手填人审**）、CWS 披露；`build.js`：`grant.enabled:true` ⇒ README 含「免费额度」词干且 12 份 locale 有 `grant_privacy`，china 产物不得含 `bt-grant` / `MT_GRANT = {` |
 
 ## 3. 商店文案
 
