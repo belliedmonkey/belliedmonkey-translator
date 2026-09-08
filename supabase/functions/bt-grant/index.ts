@@ -75,6 +75,11 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (!KEK_B64) return json({ error: 'grant_misconfigured' }, 503);
 
+  // ⚠️ 这一支在**部署为 verify_jwt: true 时基本走不到**：平台的 JWT 校验跑在我们的
+  // 代码之前，没带 Authorization 会直接被它挡成
+  //   401 {"code":"UNAUTHORIZED_NO_AUTH_HEADER","message":"Missing authorization header"}
+  // ——**不是**我们这里的 {"error":"session"}（2026-09-08 部署后实测）。所以客户端映射
+  // 错误码时，401 的两种正文格式都要认成「登录过期了」，不能只匹配 snake_id。
   const auth = req.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'session' }, 401);
 

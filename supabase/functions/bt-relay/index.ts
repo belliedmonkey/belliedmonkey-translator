@@ -28,8 +28,15 @@ const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const OR_KEY = Deno.env.get('OPENROUTER_GRANT_KEY') || '';
 const OR_BASE = Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1';
-const MODELS = JSON.parse(Deno.env.get('GRANT_MODELS') || '{}') as Record<string, string>;
-const PRICES = JSON.parse(Deno.env.get('GRANT_PRICES') || '{}') as Record<string, number>;
+// 密钥里的 JSON 写错一个字符，模块加载期就抛 —— 整个函数变成一个没有正文的 500，
+// 而 500 不会告诉任何人「你的 GRANT_MODELS 少了个引号」。解析失败要能说出是哪一个。
+function envJson<T>(name: string): T | null {
+  const raw = Deno.env.get(name);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as T; } catch { console.log('relay: bad JSON in ' + name); return null; }
+}
+const MODELS = envJson<Record<string, string>>('GRANT_MODELS') || {};
+const PRICES = envJson<Record<string, number>>('GRANT_PRICES') || {};
 const FLOAT_MIN = Number(Deno.env.get('GRANT_FLOAT_MIN_USD') || '5');
 
 const PER_MIN = 60;                       // 每枚令牌每分钟的请求数
@@ -139,7 +146,8 @@ Deno.serve(async (req) => {
   if (!shape) return json({ error: 'not_found' }, 404);
 
   const model = MODELS[shape];
-  if (!model) return json({ error: 'grant_misconfigured' }, 503);
+  // 没配这一档的模型（或 GRANT_MODELS 根本没解出来）—— 具名 503，不是静默 500。
+  if (!model) { console.log('relay', tag, shape, 'no_model_configured'); return json({ error: 'grant_misconfigured' }, 503); }
 
   const t0 = Date.now();
   let upstream: Response;
