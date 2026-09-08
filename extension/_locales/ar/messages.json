@@ -2200,7 +2200,7 @@
     "message": "محادثة · مترجم فوري"
   },
   "listen_entry_hint": {
-    "message": "افهم لغة أجنبية وجهاً لوجه: يتحدث الطرف الآخر وتقرأ أنت بلغتك؛ اضغط مطولاً لتتحدث وأظهر له الترجمة. الصوت يذهب فقط إلى نقطة النسخ التي ضبطتها."
+    "message": "شخصان يتحدثان وجهًا لوجه: كلاهما يتكلم بشكل عادي، وتظهر اللغتان على الشاشة وتُقرأ الترجمة بصوت عالٍ. يُرسَل الصوت فقط إلى نقطة التفريغ التي أعددتها."
   },
   "listen_need_live": {
     "message": "يحتاج «محادثة · مترجم فوري» إلى محرك نسخ بنقطة زمن حقيقي"
@@ -2230,10 +2230,7 @@
     "message": "الطرف الآخر يقول"
   },
   "listen_now_me": {
-    "message": "أنا أقول (اترك للترجمة)"
-  },
-  "listen_lang_auto": {
-    "message": "الطرف الآخر {from} ← {to}"
+    "message": "أنا أتحدث"
   },
   "listen_lang_me": {
     "message": "إلى {to}"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "متوقف مؤقتاً · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "أنا أتحدث · لا يُسمع الطرف الآخر"
-  },
   "listen_pill_ended": {
     "message": "انتهى · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "ابدأ الاستماع"
-  },
-  "listen_speak_hold": {
-    "message": "اضغط مطولاً · أنا أتحدث"
-  },
-  "listen_speak_hold_mac": {
-    "message": "اضغط مطوّلًا · أنا أتحدث (أو اضغط مطوّلًا على المسافة)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "نسخ الكل",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "يعمل أيضًا في الاجتماعات عبر الإنترنت ومكالمات الفيديو: دع صوت الطرف الآخر يخرج من مكبّرات الصوت فحسب.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "اترك · ترجم للطرف الآخر"
   },
   "listen_end": {
     "message": "إنهاء"
@@ -2315,9 +2299,6 @@
   "listen_summary_title": {
     "message": "هذه المحادثة"
   },
-  "listen_summary_body": {
-    "message": "{t} · الطرف الآخر: {them} جمل · أنا: {me} · {n} أُضيفت للمراجعة (المصدر «محادثة») · {s} بنجمة"
-  },
   "listen_summary_note": {
     "message": "يُحذف التسجيل ويُحتفظ بالنص فقط. يمكن إدارة جمل المراجعة أو حذفها كاملة في المصادر › محادثة."
   },
@@ -2342,11 +2323,86 @@
   "listen_capture_note": {
     "message": "يبث «محادثة · مترجم فوري» الميكروفون إلى نقطة النسخ التي ضبطتها، فقط بعد «ابدأ الاستماع» وإلى تلك النقطة فقط؛ خوادمنا لا تلمس الصوت أبداً؛ لا يُحفظ أي تسجيل، فقط النص — وفقط ما دام هذا المفتاح مفعلاً."
   },
+  "listen_who_them": {
+    "message": "الطرف الآخر"
+  },
+  "listen_who_me": {
+    "message": "أنا"
+  },
+  "listen_who_guessed": {
+    "message": "تخمين حسب اللغة — اضغط ↔ للتغيير"
+  },
+  "listen_swap_to_them": {
+    "message": "تغيير إلى: قاله الطرف الآخر"
+  },
+  "listen_swap_to_me": {
+    "message": "تغيير إلى: قلته أنا"
+  },
+  "listen_flip_kept_card": {
+    "message": "تم تغيير الطرف — البطاقة السابقة تمت مراجعتها، لذا تبقى في «المصادر › المحادثة»"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "يتحدث…"
+  },
+  "listen_reading": {
+    "message": "جارٍ القراءة"
+  },
+  "listen_autospeak_off": {
+    "message": "توقّفت القراءة التلقائية · {why} — زر كل سطر ما زال يعمل"
+  },
+  "listen_autospeak_echo": {
+    "message": "أُوقفت القراءة التلقائية مؤقتًا — رُصدت حلقة صدى. اخفض الصوت أو استخدم سماعات ثم أعد تشغيلها."
+  },
+  "listen_read_queue_n": {
+    "message": "جارٍ القراءة · {n} في الانتظار"
+  },
+  "listen_ephemeral_label": {
+    "message": "لا تحتفظ بهذه المرة"
+  },
+  "listen_ephemeral_pill": {
+    "message": "لا يُحفظ"
+  },
+  "listen_ephemeral_summary": {
+    "message": "لم يُحفظ شيء من هذه المرة"
+  },
+  "listen_summary_kept": {
+    "message": "{n} إلى المراجعة (المصدر «محادثة») · منها {s} بنجمة"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · الطرف الآخر {them} · أنا {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} تصحيحات للطرف"
+  },
+  "listen_my_lang_label": {
+    "message": "لغتي"
+  },
+  "listen_lang_note": {
+    "message": "يجب أن تكون اللغتان مختلفتين. يمكن تغييرهما أيضًا أسفل شاشة المحادثة — نفس الإعداد."
+  },
+  "listen_lang_swapped": {
+    "message": "يجب أن تختلف اللغتان — تم التبديل"
+  },
+  "listen_autospeak_label": {
+    "message": "قراءة الترجمة بصوت عالٍ"
+  },
+  "listen_autospeak_note": {
+    "message": "تُقرأ كل جملة مترجمة بصوت عالٍ: جملته لك، وجملتك له."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "اختر أولًا محرك نطق من «الإعدادات › الصوت»"
+  },
+  "listen_lang_me_label": {
+    "message": "أنا"
+  },
+  "listen_lang_other_label": {
+    "message": "الطرف الآخر"
+  },
   "listen_sources_note": {
     "message": "كل جملة من النسخ وترجمتها من محركك؛ كلاهما قد يخطئ — الجمل ذات النجمة تدخل المراجعة أولاً."
-  },
-  "listen_speak_nothing": {
-    "message": "لم يُسمع شيء — اضغط مطولاً وتحدث مرة أخرى"
   },
   "app_today_due": {
     "message": "مستحق اليوم"
@@ -2361,7 +2417,7 @@
     "message": "مجموعة اليوم تُقرأ متتابعة دون استخدام اليدين"
   },
   "listen_entry_short": {
-    "message": "يتحدث الطرف الآخر وتقرأ أنت؛ اضغط مطولاً لتتحدث وتُظهر الترجمة"
+    "message": "شخصان وجهًا لوجه — كلاهما يتكلم وتُقرأ الترجمة"
   },
   "listen_entry_privacy": {
     "message": "الصوت يذهب فقط إلى نقطة النسخ التي ضبطتها."
@@ -2379,7 +2435,7 @@
     "message": "انقطع اتصال النسخ: {why} — جارٍ إعادة الاتصال…"
   },
   "listen_history_empty": {
-    "message": "تظهر الجمل هنا عندما يتحدث الطرف الآخر؛ المس صفاً لتكبيره"
+    "message": "تحدّثا كلاكما بشكل طبيعي — تظهر كل جملة مكتملة هنا؛ اضغط ↔ إن كان الطرف خاطئًا"
   },
   "listen_tr_failed": {
     "message": "فشلت الترجمة · أعد المحاولة"

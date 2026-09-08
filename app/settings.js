@@ -20,6 +20,27 @@ var AppSettings = (() => {
   // Chinese literals below are FALLBACKS beside their keys, never the only copy.
   const t = (k, fb) => PageI18n.t(k, fb);
 
+  // 对话模式的语言对（§9.6）。两个下拉从语言注册表填 —— 这里不重述语言列表。
+  // 用 MT_LANGS 而不是界面语言那张表：归属判断要读它的 scripts 字段，而界面语言表没有。
+  function fillLangs(sel) {
+    if (!sel) return;
+    sel.textContent = '';
+    for (const l of (window.MT_LANGS || [])) {
+      const o = document.createElement('option');
+      o.value = l.code;
+      o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
+      sel.appendChild(o);
+    }
+  }
+  // 「我的语言」没选过就跟着界面语言走；界面语言也没选就跟系统。只在读取时回落，
+  // 不往存储播种默认值 —— 播种了，用户以后改界面语言这一项就不会跟着动。
+  function myLangOf(cur) {
+    const B = ListenCore.baseCode;
+    return B(cur.listenMyLang) || B(cur.uiLang !== 'auto' ? cur.uiLang : '')
+      || B(navigator.language) || 'zh';
+  }
+  let lastLangs = { my: '', other: '' };
+
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
@@ -33,8 +54,9 @@ var AppSettings = (() => {
     // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关，
     // 以及出发前预载的天数视野（`drivePreloadDays`，0 = 今天的牌库）。
     'drivePlayNotes', 'drivePreloadDays',
-    // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）与「对方的语言」。
-    'listenCapture', 'listenOtherLang'];
+    // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）、语言对、自动朗读。
+    // 语言对两个键都在这里 —— 对话页底部那两个下拉与设置页这两个是**同一份设置**。
+    'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -116,6 +138,15 @@ var AppSettings = (() => {
     $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
     $('listen-title').textContent = t('listen_settings_title', '对话 · 实时听译');
     $('listen-capture-label').textContent = t('listen_capture_label', '对话进复习（来源「对话」）');
+    $('listen-my-lang-label').textContent = t('listen_my_lang_label', '我的语言');
+    $('listen-other-lang-label').textContent = t('listen_other_lang_label', '对方的语言');
+    $('listen-lang-note').textContent = t('listen_lang_note',
+      '两边不能是同一种语言。对话页底部也能改，两处是同一份设置。');
+    $('listen-autospeak-label').textContent = t('listen_autospeak_label', '自动朗读译文');
+    $('listen-autospeak-note').textContent = t('listen_autospeak_note',
+      '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。');
+    fillLangs($('listen-my-lang'));
+    fillLangs($('listen-other-lang'));
     $('listen-capture-note').textContent = t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。');
     $('drive-awake-note').textContent = t('drive_awake_note',
       '播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。');
@@ -421,6 +452,11 @@ var AppSettings = (() => {
     // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
     $('drive-play-notes').checked = cur.drivePlayNotes !== false;
     $('listen-capture').checked = cur.listenCapture !== false;
+    // 「我的语言」没选过就跟着界面语言走 —— 只在读取时回落，不往存储播种默认值，
+    // 这样用户改界面语言时它会跟着变，直到他自己选过一次。
+    $('listen-my-lang').value = myLangOf(cur);
+    $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
+    $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
     $('drive-preload-days').value = String(Number(cur.drivePreloadDays) > 0 ? Math.floor(Number(cur.drivePreloadDays)) : 0);
     resetPreload();
     refreshAudioCache();
@@ -689,6 +725,25 @@ var AppSettings = (() => {
       }
     }
     $('listen-capture').addEventListener('change', () => { set({ listenCapture: $('listen-capture').checked }); });
+    $('listen-autospeak').addEventListener('change', () => { set({ listenAutoSpeak: $('listen-autospeak').checked }); });
+    for (const which of ['my', 'other']) {
+      const el = $('listen-' + which + '-lang');
+      el.addEventListener('change', () => {
+        const cur = { myLang: $('listen-my-lang').value, otherLang: $('listen-other-lang').value };
+        // 取变更**之前**的那一对：change 已经把 el 改了，所以把它换回旧值再算。
+        const prev = which === 'my'
+          ? { myLang: lastLangs.my, otherLang: cur.otherLang }
+          : { myLang: cur.myLang, otherLang: lastLangs.other };
+        const p = ListenCore.langPatch(which, el.value, prev);
+        const swapped = p.swapped; delete p.swapped;
+        set(p);
+        if (p.listenMyLang !== undefined) $('listen-my-lang').value = ListenCore.baseCode(p.listenMyLang);
+        if (p.listenOtherLang !== undefined) $('listen-other-lang').value = ListenCore.baseCode(p.listenOtherLang);
+        lastLangs = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
+        if (swapped) say(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'));
+      });
+    }
+    lastLangs = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
     $('drive-play-notes').addEventListener('change', () => {
       set({ drivePlayNotes: $('drive-play-notes').checked });
       resetPreload();     // 开关变了，账单就过期了 —— 不能让它继续代表旧的计划

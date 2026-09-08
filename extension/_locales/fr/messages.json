@@ -2200,7 +2200,7 @@
     "message": "Conversation · interprète en direct"
   },
   "listen_entry_hint": {
-    "message": "Écoutez une langue étrangère en face à face : l’autre parle, vous lisez dans votre langue ; maintenez pour parler et montrez-lui la traduction. L’audio ne va qu’au point de transcription que vous avez configuré."
+    "message": "Deux personnes face à face : chacun parle normalement, les deux langues s’affichent, les traductions sont lues à voix haute. L’audio ne part que vers le point de transcription que vous avez configuré."
   },
   "listen_need_live": {
     "message": "« Conversation · interprète en direct » a besoin d’un moteur de transcription avec point temps réel"
@@ -2230,10 +2230,7 @@
     "message": "L’autre dit"
   },
   "listen_now_me": {
-    "message": "Je dis (relâchez pour traduire)"
-  },
-  "listen_lang_auto": {
-    "message": "{from} → {to}"
+    "message": "Je parle"
   },
   "listen_lang_me": {
     "message": "vers {to}"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "En pause · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "Je parle · l’autre n’est pas écouté"
-  },
   "listen_pill_ended": {
     "message": "Terminé · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "Commencer l’écoute"
-  },
-  "listen_speak_hold": {
-    "message": "Maintenir · je parle"
-  },
-  "listen_speak_hold_mac": {
-    "message": "Maintenir · Je parle (ou maintenir Espace)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "Tout copier",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "Fonctionne aussi pour les réunions en ligne et les appels vidéo : laissez simplement la voix de l’autre sortir par les haut-parleurs.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "Relâcher · traduire pour l’autre"
   },
   "listen_end": {
     "message": "Terminer"
@@ -2315,9 +2299,6 @@
   "listen_summary_title": {
     "message": "Cette conversation"
   },
-  "listen_summary_body": {
-    "message": "{t} · l’autre : {them} phrases · moi : {me} · {n} ajoutées à la révision (source « Conversation ») · {s} étoilées"
-  },
   "listen_summary_note": {
     "message": "L’enregistrement est supprimé ; seul le texte est conservé. Les phrases ajoutées se gèrent ou se suppriment en bloc dans Sources › Conversation."
   },
@@ -2342,11 +2323,86 @@
   "listen_capture_note": {
     "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après « Commencer l’écoute » et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
   },
+  "listen_who_them": {
+    "message": "Lui"
+  },
+  "listen_who_me": {
+    "message": "Moi"
+  },
+  "listen_who_guessed": {
+    "message": "Deviné d’après la langue — touchez ↔ pour changer"
+  },
+  "listen_swap_to_them": {
+    "message": "Marquer comme dit par lui"
+  },
+  "listen_swap_to_me": {
+    "message": "Marquer comme dit par moi"
+  },
+  "listen_flip_kept_card": {
+    "message": "Côté changé — la carte précédente a déjà été révisée, elle reste dans Sources › Conversation"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "En train de parler…"
+  },
+  "listen_reading": {
+    "message": "Lecture en cours"
+  },
+  "listen_autospeak_off": {
+    "message": "Lecture auto arrêtée · {why} — le bouton de chaque ligne fonctionne toujours"
+  },
+  "listen_autospeak_echo": {
+    "message": "Lecture auto en pause — boucle d’écho détectée. Baissez le volume ou utilisez des écouteurs, puis réactivez-la."
+  },
+  "listen_read_queue_n": {
+    "message": "Lecture en cours · {n} en attente"
+  },
+  "listen_ephemeral_label": {
+    "message": "Ne rien garder cette fois"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Non conservé"
+  },
+  "listen_ephemeral_summary": {
+    "message": "Rien n'a été conservé cette fois"
+  },
+  "listen_summary_kept": {
+    "message": "{n} en révision (source Conversation) · dont {s} en favori"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · lui {them} · moi {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} corrections de côté"
+  },
+  "listen_my_lang_label": {
+    "message": "Ma langue"
+  },
+  "listen_lang_note": {
+    "message": "Les deux langues doivent être différentes. Modifiable aussi en bas de l'écran de conversation — même réglage."
+  },
+  "listen_lang_swapped": {
+    "message": "Les deux langues doivent différer — inversées"
+  },
+  "listen_autospeak_label": {
+    "message": "Lire les traductions à voix haute"
+  },
+  "listen_autospeak_note": {
+    "message": "Chaque phrase traduite est lue à voix haute : la sienne pour vous, la vôtre pour lui."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Choisissez d’abord un moteur vocal dans Réglages › Voix"
+  },
+  "listen_lang_me_label": {
+    "message": "Moi"
+  },
+  "listen_lang_other_label": {
+    "message": "Lui"
+  },
   "listen_sources_note": {
     "message": "Chaque phrase vient de la transcription et sa traduction de votre moteur ; les deux peuvent se tromper — les phrases étoilées passent en révision en premier."
-  },
-  "listen_speak_nothing": {
-    "message": "Rien entendu — maintenez et répétez"
   },
   "app_today_due": {
     "message": "À réviser aujourd’hui"
@@ -2361,7 +2417,7 @@
     "message": "Le paquet du jour lu d’une traite, mains libres"
   },
   "listen_entry_short": {
-    "message": "L’autre parle, vous lisez ; maintenez pour parler et montrer la traduction"
+    "message": "Deux personnes face à face — chacun parle, les traductions sont lues"
   },
   "listen_entry_privacy": {
     "message": "L’audio ne va qu’au point de transcription que vous avez configuré."
@@ -2379,7 +2435,7 @@
     "message": "Connexion de transcription perdue : {why} — reconnexion…"
   },
   "listen_history_empty": {
-    "message": "Les phrases apparaissent ici dès que l’autre parle ; touchez une ligne pour l’agrandir"
+    "message": "Parlez tous les deux normalement : chaque phrase terminée arrive ici ; touchez ↔ si le côté est faux"
   },
   "listen_tr_failed": {
     "message": "Traduction échouée · réessayer"

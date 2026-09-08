@@ -462,15 +462,27 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-tr.pending { color: var(--dim); font-style: italic; }
 :where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
-:where(#app-listen) .listen-other select { font: inherit; }
+:where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+:where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
+:where(#app-listen) .listen-pair select { font: inherit; }
+:where(#app-listen) .listen-pair-arrow { color: var(--accent); }
+:where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
+:where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
+:where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+:where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
 :where(#app-listen) .listen-body { cursor: pointer; }
+:where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
+:where(#app-listen) .listen-row.me .listen-who { color: var(--accent-deep); }
+/* 虚线 = 这一行的归属是猜的（语言判不出，走了粘性或兜底）。点 ↔ 能改。 */
+:where(#app-listen) .listen-who.guessed { text-decoration: underline dotted; text-underline-offset: 3px; }
+:where(#app-listen) .listen-swap { font: inherit; font-size: 1.05rem; background: none; border: 0; color: var(--dim); cursor: pointer; padding: 0 6px; min-height: 44px; min-width: 44px; flex: none; }
+:where(#app-listen) .listen-act.on { color: var(--sage-strong); font-weight: 600; }
 :where(#app-listen) .listen-empty { color: var(--dim); font-size: 0.9rem; padding: 14px 0; }
 :where(#app-listen) .listen-row-acts { display: flex; gap: 12px; margin-top: 4px; }
 :where(#app-listen) .listen-act, :where(#app-listen) .listen-tr-retry { font: inherit; font-size: 0.85rem; background: none; border: 0; padding: 4px 0; color: var(--link); text-decoration: underline; cursor: pointer; min-height: 32px; }
 :where(#app-listen) .listen-tr-retry { color: var(--danger); }
-:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-act):not(.listen-tr-retry) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
 :where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
-:where(#app-listen) button.secondary.holding { background: var(--accent); color: #fff; border-color: var(--accent); }
 :where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
 :where(#app-listen) .listen-head-acts { display: flex; gap: 12px; }
 :where(#app-listen) .listen-mac-note { margin: 0; }
@@ -478,7 +490,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
   #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
-    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "note hist" "actions hist" "other hist" "cost hist" "summary summary"; }
+    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "note hist" "actions hist" "pair hist" "speakrow hist" "cost hist" "summary summary"; }
   :where(#app-listen) .listen-head { grid-area: head; }
   :where(#app-listen) .listen-langline { grid-area: lang; }
   :where(#app-listen) .listen-mac-note { grid-area: macnote; }
@@ -486,10 +498,11 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
-  :where(#app-listen) .listen-other { grid-area: other; }
+  :where(#app-listen) .listen-pair { grid-area: pair; }
+  :where(#app-listen) .listen-autospeak { grid-area: speakrow; }
   #app-listen-cost { grid-area: cost; }
   #app-listen-summary { grid-area: summary; }
-  :where(#app-listen) .listen-history { max-height: calc(100vh - 230px); }
+  :where(#app-listen) .listen-history { max-height: calc(100vh - 250px); }
 }
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
