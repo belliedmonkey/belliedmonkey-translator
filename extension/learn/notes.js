@@ -46,7 +46,12 @@ var LearnNotes = (() => {
   // drift between the gate and the picker.
   function chatEngines() {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
-    return list.filter((p) => p.type === 'chat-compat' || p.type === 'messages-compat');
+    // grantOnly（免费额度的中继，§8.10）排除在外：它不是一个可以**选**的解析引擎。
+    // 解析组的缺省是「跟随翻译引擎」（notesProvider === ''），额度生效时它自然跟着
+    // 走中继 —— 那条路本来就通，不需要在选择器里再出现一次。而它出现在选择器里，
+    // 就是一个没有 key 可填、选了必然 401 的选项。
+    return list.filter((p) => !p.grantOnly
+      && (p.type === 'chat-compat' || p.type === 'messages-compat'));
   }
 
   // Chat-capable AND keyed. `google` is excluded by type, not by name — the registry
