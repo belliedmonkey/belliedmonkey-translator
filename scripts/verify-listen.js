@@ -262,10 +262,13 @@ function say(base, text) {
     // ↔ 改边：我说的那行改成对方说的 ⇒ 重译方向反过来（译成我的语言）
     const dirsBefore = stats.chatDirs.length;
     await evalIn(cdp, sessionId, `(document.querySelectorAll('#app-listen-history .listen-swap')[1].click(), 'ok')`);
+    // 等的是**新方向的翻译真的发出去了**，不是「有译文」—— 改边那一瞬间旧译文还在，
+    // 只看 tr 有值会在重译发出之前就通过（第一版就是这么写的，结果测了个寂寞）。
     const flipped = await waitFor(async () => {
+      if (stats.chatDirs.length <= dirsBefore) return null;
       const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, pinned: x.pinned, tr: x.tr })))`));
       return (r[1].who === 'them' && r[1].tr) ? r : null;
-    }, 8000, '改边后重译完成');
+    }, 8000, '改边后按新方向重译完成');
     need(flipped[1].pinned === true && flipped[1].guessed === false, 'C: 改边后该被钉住，实际 ' + JSON.stringify(flipped[1]));
     need(stats.chatDirs.length > dirsBefore && stats.chatDirs[stats.chatDirs.length - 1] === 'zh',
       'C: 改边后该按新方向重译（译成我的语言），实际 ' + JSON.stringify(stats.chatDirs));
@@ -320,6 +323,48 @@ function say(base, text) {
     need(sockets.length === 0, 'E: 结束后 socket 该关闭，实际还开着 ' + sockets.length);
     const summaryShown = await evalIn(cdp, sessionId, `!document.getElementById('app-listen-summary').hidden`);
     need(summaryShown === true, 'E: 结束态该显示小结');
+
+    // ── F. 自动朗读 + 回声闸：自己读出去的话被录回来，必须**整句丢掉** ──────────
+    //
+    // 这是整个改动里最值钱的一条端到端。回声不是理论风险：朗读的是译文，而译文的语言
+    // 恰好是对话另一边的 —— 它一旦被录回去，就会被判成「另一个人说的」，再翻译、再朗读，
+    // 无限循环。这里把「刚朗读出去的那句」原样喂回转写端，断言它连历史都进不去。
+    //
+    // 朗读引擎打桩：无头 Chrome 里的 speechSynthesis 不出声也不稳定，而要验的是队列与
+    // 回声闸的逻辑，不是厂商的声音。
+    await evalIn(cdp, sessionId, `(() => {
+      window.__tts = [];
+      window.LearnTTS.engine = () => ({ id: 'e2e_tts' });
+      window.LearnTTS.speak = (text, lang) => { window.__tts.push({ text, lang }); return Promise.resolve({ ok: true, done: Promise.resolve() }); };
+      window.LearnTTS.stop = () => {};
+      return 'ok';
+    })()`);
+    await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.set({ listenAutoSpeak: true }, r))`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null,
+      10000, 'F: 新会话进入 listening');
+    await say(base, 'Please confirm the price.');
+    const spoke = await waitFor(async () => {
+      const a2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(window.__tts)`));
+      return a2.length ? a2 : null;
+    }, 8000, 'F: 译文自动朗读');
+    need(spoke[0].lang === 'zh' && spoke[0].text === '译：Please confirm the price.',
+      'F: 对方那句该把译文读给我听（语言 = 我的语言），实际 ' + JSON.stringify(spoke[0]));
+
+    // 把刚读出去的那句原样吐回转写端 —— 这就是回声。
+    const beforeEcho = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ rows: AppListen._debug().rows.length, dropped: AppListen._debug().echoDropped })`));
+    const callsBefore = stats.chatCalls;
+    await say(base, spoke[0].text);
+    await sleep(2000);
+    const afterEcho = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ rows: AppListen._debug().rows.length, dropped: AppListen._debug().echoDropped, tts: window.__tts.length })`));
+    need(afterEcho.dropped > beforeEcho.dropped,
+      'F: 自己朗读的内容回来了却没被回声闸丢掉 —— 这会无限循环。实际 ' + JSON.stringify(afterEcho));
+    need(afterEcho.rows === beforeEcho.rows, 'F: 回声不该进历史，实际 ' + JSON.stringify(afterEcho));
+    need(stats.chatCalls === callsBefore, 'F: 回声不该触发翻译（那是白花的钱）');
+    need(afterEcho.tts === spoke.length, 'F: 回声不该被再读一遍 —— 那就是环的第二跳');
+    // F 段自己开的这一段也要收尾，否则下面那条「桥收到 mic-stop」的计数对不上
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
+    await sleep(400);
     const fb = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeBridge.started, stopped: __fakeBridge.stopped, timer: __fakeBridge.timer })`));
     need(fb.started >= 1 && fb.stopped >= fb.started && !fb.timer, 'E: 结束后原生桥该收到 mic-stop（started ' + fb.started + ' / stopped ' + fb.stopped + '）');
   } catch (e) {
@@ -331,6 +376,6 @@ function say(base, text) {
 
   console.log(`  假端点：socket ${stats.wsOpened} 次 · PCM ${stats.wsFrames} 帧 / ${(stats.wsAudioBytes / 1024).toFixed(0)} KB · 翻译请求 ${stats.chatCalls} 次`);
   if (problems.length) { console.log('\n✗ 对话 · 实时听译端到端有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 全部通过');
+  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 全部通过');
   process.exit(0);
 })();

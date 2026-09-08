@@ -2185,6 +2185,15 @@
   "listen_reading": {
     "message": "पढ़ा जा रहा है"
   },
+  "listen_autospeak_off": {
+    "message": "स्वतः वाचन रुका · {why} — हर पंक्ति का बटन अब भी काम करता है"
+  },
+  "listen_autospeak_echo": {
+    "message": "स्वतः वाचन रोका — प्रतिध्वनि का चक्र मिला। आवाज़ कम करें या इयरफ़ोन लगाएँ, फिर दोबारा चालू करें।"
+  },
+  "listen_read_queue_n": {
+    "message": "पढ़ा जा रहा है · {n} बाकी"
+  },
   "listen_my_lang_label": {
     "message": "मेरी भाषा"
   },

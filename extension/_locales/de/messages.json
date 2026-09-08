@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "Wird vorgelesen"
   },
+  "listen_autospeak_off": {
+    "message": "Automatisches Vorlesen gestoppt · {why} — die Taste in jeder Zeile geht weiter"
+  },
+  "listen_autospeak_echo": {
+    "message": "Automatisches Vorlesen pausiert — Echo-Schleife erkannt. Lautstärke senken oder Kopfhörer nutzen, dann wieder einschalten."
+  },
+  "listen_read_queue_n": {
+    "message": "Wird vorgelesen · noch {n}"
+  },
   "listen_my_lang_label": {
     "message": "Meine Sprache"
   },

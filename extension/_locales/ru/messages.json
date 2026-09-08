@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "Читает"
   },
+  "listen_autospeak_off": {
+    "message": "Автоозвучивание остановлено · {why} — кнопка в строке всё ещё работает"
+  },
+  "listen_autospeak_echo": {
+    "message": "Автоозвучивание приостановлено — обнаружено эхо. Убавьте громкость или наденьте наушники и включите снова."
+  },
+  "listen_read_queue_n": {
+    "message": "Читает · ещё {n}"
+  },
   "listen_my_lang_label": {
     "message": "Мой язык"
   },

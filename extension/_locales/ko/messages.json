@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "읽는 중"
   },
+  "listen_autospeak_off": {
+    "message": "자동 읽어 주기를 멈췄습니다 · {why} — 각 줄의 버튼은 계속 쓸 수 있습니다"
+  },
+  "listen_autospeak_echo": {
+    "message": "자동 읽어 주기를 일시 중지했습니다 — 에코 루프가 감지되었습니다. 음량을 낮추거나 이어폰을 쓰면 다시 켤 수 있습니다."
+  },
+  "listen_read_queue_n": {
+    "message": "읽는 중 · {n}문장 대기"
+  },
   "listen_my_lang_label": {
     "message": "내 언어"
   },

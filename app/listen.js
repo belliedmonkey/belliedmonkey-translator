@@ -61,6 +61,13 @@ var AppListen = (() => {
   let cameFrom = 'signed-in';
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
   let speakingRid = 0;      // 正在朗读哪一行（0 = 没在读）
+  const sq = C.makeSpeakQueue();     // 朗读队列（裁定 7：排队逐句读完）
+  const echo = C.makeEchoGuard();    // 回声闸第一层：自己读出去的别再当成一句话收回来
+  let speakPumping = false;          // 泵在跑（同一时刻只有一个）
+  let speakFails = 0;                // 连续失败次数：三次才说话，不是每句弹一次
+  let autoSpeakOff = false;          // 只关**本次会话**的自动朗读，绝不改用户的设置
+  let autoAt = [];                   // 保险丝：最近自动入队的时刻
+  let lastSpoken = '';               // 最后读出去的那句（端到端测试的读取点）
   // 页内麦克风（无桥宿主的退路）
   let audioCtx = null, stream = null, proc = null, srcNode = null;
 
@@ -131,14 +138,14 @@ var AppListen = (() => {
   function targetLangFor(row) { return row.who === 'me' ? cfg.otherLang : cfg.myLang; }
 
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
-  async function translateRow(row, toLang) {
+  async function translateRow(row, toLang, quiet) {
     const myGen = gen;
     row.trErr = false; row.trBusy = true; renderHistory();
     const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang);
     if (myGen !== gen) return;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
-    if (row.tr) maybeWrite(row);
+    if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
   }
 
   // 归属判断的注入点。生产里就是 LearnRules.dominantScript（已在 App 包里）；
@@ -212,10 +219,18 @@ var AppListen = (() => {
 
   function onPartial(text) {
     partial = text || '';
+    // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
+    // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
+    // 对方在我朗读时插话不会被误杀：他的话与我读的内容重合度低，够不上门限。
+    if (partial && echo.isEcho(partial, now())) { renderNow(); return; }
     if (inc) inc.onPartial(partial);
     renderNow();
   }
   function onFinal(text) {
+    // 回声闸第一层：我们自己刚读出去的那句被麦克风录回来了 ⇒ **整句丢弃** —— 不进历史、
+    // 不翻译、不写语料、不朗读、不算进小结。它根本不是一句话。
+    const clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; renderNow(); return; }
     const row = C.addFinal(session, text, now(), cfg, routeDeps);
     if (!row) return;
     partial = ''; partialTr = '';
@@ -223,7 +238,7 @@ var AppListen = (() => {
     // 「我说的」在这里直接 return，等松手时整段处理 —— 那条路随按住一起没了。
     const reuse = inc ? inc.close(row.text) : '';
     renderNow(); renderHistory();
-    if (reuse) { row.tr = reuse; renderHistory(); paintNowPlaying(); maybeWrite(row); }
+    if (reuse) { row.tr = reuse; renderHistory(); paintNowPlaying(); maybeWrite(row); autoSpeak(row); }
     else translateRow(row);
   }
 
@@ -359,6 +374,8 @@ var AppListen = (() => {
     if (phase !== 'listening') return;
     phase = 'paused'; pauseReason = reason || 'user';
     C.pause(session, now());
+    sq.clear(); speakingRid = 0;
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
     if (inc) inc.reset();
     partial = ''; partialTr = '';
@@ -370,6 +387,9 @@ var AppListen = (() => {
     if (phase === 'ended' || phase === 'idle') return;
     phase = 'halted'; pauseReason = reason;
     C.pause(session, now());
+    // 停了听就别再读积压的译文 —— 那些话的上下文已经过去了
+    sq.clear(); speakingRid = 0;
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
     if (inc) inc.reset();
     partial = ''; partialTr = '';
@@ -399,6 +419,7 @@ var AppListen = (() => {
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
     if (bridged()) { NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
+    sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     closeShow();
     renderSummary();
@@ -435,29 +456,34 @@ var AppListen = (() => {
   async function flipRow(row) {
     if (!row || !session) return;
     const before = C.flipWho(row);          // 翻转并钉住，交回旧方向的快照
+    const wasWritten = row.written;
+    row.written = false;                    // 新方向的卡等译文到了再按正常的门写一次
 
-    // ① 回收旧卡。走 deleteItems 而不是绕过账本：它写删除账本，会同步到别的设备。
-    if (row.written && typeof LearnStore !== 'undefined' && typeof LearnModel !== 'undefined') {
-      row.written = false;                  // 新方向的卡等译文到了再按正常的门写一次
+    // ① 界面先一致，再做别的。旧方向的译文必须**同步**清掉：语料回收是异步的，
+    //    把清空排在它后面，屏幕上会有一段「归属已经翻了、译文还是旧方向」的时间。
+    row.tr = ''; row.trErr = false;
+    if (speakingRid === row.rid) { speakingRid = 0; if (typeof LearnTTS !== 'undefined') LearnTTS.stop(); }
+    sq.drop(row.rid);
+    renderHistory();
+    if (showRid === row.rid) renderShow();
+
+    // ② 立刻按新方向重译。**不自动重读**：用户翻历史点 ↔ 时突然大声念一句是最吓人的
+    //    副作用，而且改边这个动作本身说明前一次朗读已经发生过了。
+    translateRow(row, null, true);
+
+    // ③ 回收旧卡。用**翻转前**的快照算 id —— 语料里「学的永远是外语那一面」，改边会让
+    //    两面互换，不回收就留下一张面反了的卡。走 deleteItems 而不是绕过账本：它写删除
+    //    账本，会同步到别的设备。放在重译之后是因为它不该拖慢屏幕。
+    if (wasWritten && typeof LearnStore !== 'undefined' && typeof LearnModel !== 'undefined') {
       try {
         const old = C.draftFor(Object.assign({}, row, before), session, cfg);
         const n = await LearnStore.deleteItems([LearnModel.itemId(old.lang, old.text)], now());
-        // deleteItems 返回**真删掉的条数**。0 = 那张卡被「用户已经复习过」的保护挡下了
+        // deleteItems 返回**真删掉的条数**。0 = 被「用户已经复习过」的保护挡下了
         // （也可能它早被淘汰了，但那时这句提示无害）。如实说一声，不假装删干净了。
         if (!n) note(t('listen_flip_kept_card',
           '改边了 · 之前那张卡你已经复习过，留在「来源 › 对话」里'), false);
       } catch (_) { /* 删不掉不该挡住改边本身 */ }
     }
-
-    // ② 正在朗读这一行就停掉 —— 那句译文已经不对了。
-    if (speakingRid === row.rid) { speakingRid = 0; if (typeof LearnTTS !== 'undefined') LearnTTS.stop(); }
-
-    // ③ 按新方向重译。**不自动重读**：用户翻历史点 ↔ 时突然大声念一句是最吓人的副作用，
-    //    而且改边这个动作本身说明前一次朗读已经发生过了，再读一遍没有新信息。
-    row.tr = ''; row.trErr = false;
-    renderHistory();
-    if (showRid === row.rid) renderShow();
-    translateRow(row);
   }
 
   // ── 放大给对方看（历史行叠层，底下照常在听）────────────────────────────────
@@ -483,18 +509,92 @@ var AppListen = (() => {
     showRid = 0;
     $('app-listen-flip').hidden = true;
     $('app-listen-flip-speaking').hidden = true;
-    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+    // 关卡片只掐**一次性**的那种朗读（队列空 = 用户手点读了一句）。整场排队的自动朗读
+    // 不该因为关了一张卡就断掉 —— 它读的是整段对话，不是这张卡。
+    if (!sq.size() && typeof LearnTTS !== 'undefined') LearnTTS.stop();
   }
   let speakOutGen = 0;
-  async function speakOut(text) {
+  // 语言从参数来（对方的话读给我听、我的话读给对方听），不再写死一个方向。
+  async function speakOut(text, lang, opts) {
     if (!ttsReady() || !text) return null;
     const my = ++speakOutGen;
+    const rid = (opts && opts.rid) || 0;
     const mark = $('app-listen-flip-speaking');
     let r = null;
-    try { mark.hidden = false; r = await LearnTTS.speak(text, cfg.otherLang); }
-    catch (_) { r = null; }
+    try {
+      // 展示卡上的「朗读中」只在这一行正被放大时点亮；行内的那个由 renderHistory 按
+      // speakingRid 画。原来无条件点亮，展示卡关着时是个不可见的空操作。
+      if (showRid && showRid === rid) mark.hidden = false;
+      r = await LearnTTS.speak(text, lang || (cfg && cfg.otherLang));
+    } catch (_) { r = null; }
     if (my === speakOutGen) mark.hidden = true;
     return r;
+  }
+
+  // ── 自动朗读：一个泵 + 一条队列 ──────────────────────────────────────────────
+  //
+  // 队列不是为了优雅：朗读引擎每次开口前都会先掐掉上一次，并发调用互相打断。
+  async function speakPump() {
+    if (speakPumping) return;
+    speakPumping = true;
+    try {
+      for (let job; (job = sq.next());) {
+        if (job.gen !== gen) continue;            // 旧会话的残留
+        speakingRid = job.rid; renderHistory();
+        const at = now();
+        echo.speaking(job.text, at);              // 登记：这段话正在从扬声器出去
+        sq.noteSpoken(job.text, at);
+        lastSpoken = job.text;
+        const r = await speakOut(job.text, job.lang, { rid: job.rid, auto: true });
+        if (r && r.done) { try { await r.done; } catch (_) {} }
+        echo.spoke(now());                        // 播完：回声窗口从这里开始倒计时
+        speakingRid = 0;
+        onSpeakResult(r);
+      }
+    } finally { speakPumping = false; renderHistory(); }
+  }
+
+  // 失败要出错，但要有节制：no_voice / http 这类会**每一句都复现**，不设门槛就是满屏
+  // 错误行。三次之后只关这一场的自动朗读，行内的单句朗读照常可用。
+  function onSpeakResult(r) {
+    if (!r) return;
+    if (r.ok) { speakFails = 0; return; }
+    if (r.reason === 'superseded' || r.reason === 'empty') return;   // tts.js 明说调用方不该报错
+    speakFails++;
+    if (speakFails < 3) return;
+    autoSpeakOff = true; sq.clear();
+    const why = (typeof LearnTTS !== 'undefined' && LearnTTS.reason) ? LearnTTS.reason(r.reason, t) : r.reason;
+    note(t('listen_autospeak_off', '自动朗读已停 · {why} — 行尾的朗读仍可单句用').replace('{why}', why), false);
+  }
+
+  // 译文首次落地时自动入队。改边后的重译与手动重试**不走这里**（裁定：不自动重读）。
+  function autoSpeak(row) {
+    if (!cfg || !cfg.autoSpeak || autoSpeakOff || !ttsReady() || !row || !row.tr) return;
+    // 回声第二道闸：这段话我们刚读过 ⇒ 不再读第二遍。漏过第一层的回声，环在这里断掉。
+    if (sq.spokenRecently(row.tr, now())) return;
+    // 保险丝：任何会自己往前跑的东西都要有一个人能按下的停止。
+    const at = now();
+    autoAt = autoAt.filter((x) => at - x < 10000);
+    autoAt.push(at);
+    if (autoAt.length > 6) {
+      autoSpeakOff = true; sq.clear(); autoAt = [];
+      note(t('listen_autospeak_echo', '自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开'), false);
+      renderHistory();
+      return;
+    }
+    sq.push({ rid: row.rid, text: row.tr, lang: targetLangFor(row), gen });
+    renderHistory();
+    speakPump();
+  }
+
+  // 手点行内的朗读：优先级最高，清队直接读，并把本场的自动朗读重新打开。
+  function speakNow(row) {
+    if (!ttsReady() || !row || !row.tr) return;
+    sq.clear();
+    if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+    autoSpeakOff = false; speakFails = 0; autoAt = [];
+    sq.push({ rid: row.rid, text: row.tr, lang: targetLangFor(row), gen });
+    speakPump();
   }
 
   // ── 锁屏卡片（复用 §9.5 的 Now Playing 通道）────────────────────────────────
@@ -613,7 +713,7 @@ var AppListen = (() => {
         // 翻译失败要留下出口，不是永远的 ⏳
         const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'listen-tr-retry';
         retry.textContent = t('listen_tr_failed', '译文失败 · 重试');
-        retry.addEventListener('click', (e) => { e.stopPropagation(); translateRow(r); });
+        retry.addEventListener('click', (e) => { e.stopPropagation(); translateRow(r, null, true); });
         body.appendChild(retry);
       } else {
         const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? '' : ' pending');
@@ -628,7 +728,7 @@ var AppListen = (() => {
           const rd = document.createElement('button'); rd.type = 'button';
           rd.className = 'listen-act' + (speakingRid === r.rid ? ' on' : '');
           rd.textContent = speakingRid === r.rid ? t('listen_reading', '朗读中') : t('listen_read_aloud', '朗读');
-          rd.addEventListener('click', (e) => { e.stopPropagation(); speakOut(r.tr, targetLangFor(r), { rid: r.rid }); });
+          rd.addEventListener('click', (e) => { e.stopPropagation(); speakNow(r); });
           acts.appendChild(rd);
         }
         const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'listen-act';
@@ -652,6 +752,13 @@ var AppListen = (() => {
       list.appendChild(row);
     }
     $('app-listen-history-title').textContent = t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : '');
+    // 排队时说清还剩几句 —— 对方说得快时朗读会拖后，不说就成了「怎么读的不是刚才那句」
+    const qn = $('app-listen-queue');
+    if (qn) {
+      const n = sq.size();
+      qn.hidden = !n;
+      if (n) qn.textContent = t('listen_read_queue_n', '朗读中 · 还有 {n} 句待读').replace('{n}', String(n));
+    }
     const cp = $('app-listen-copy'); if (cp) { cp.hidden = !rows.length; if (!cp.dataset.flash) cp.textContent = t('listen_copy_all', '复制全文'); }
     if (atBottom) list.scrollTop = list.scrollHeight;
   }
@@ -776,5 +883,6 @@ var AppListen = (() => {
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
     _debug: () => ({ phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
-      pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null }) };
+      pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
+      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken }) };
 })();

@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "読み上げ中"
   },
+  "listen_autospeak_off": {
+    "message": "自動読み上げを停止しました · {why} — 行末のボタンからは読み上げられます"
+  },
+  "listen_autospeak_echo": {
+    "message": "自動読み上げを一時停止しました — エコーのループを検出。音量を下げるかイヤホンを使うと再開できます。"
+  },
+  "listen_read_queue_n": {
+    "message": "読み上げ中 · あと {n} 文"
+  },
   "listen_my_lang_label": {
     "message": "自分の言語"
   },

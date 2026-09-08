@@ -2354,6 +2354,15 @@
   "listen_reading": {
     "message": "朗读中"
   },
+  "listen_autospeak_off": {
+    "message": "自动朗读已停 · {why} — 行尾的朗读仍可单句用"
+  },
+  "listen_autospeak_echo": {
+    "message": "自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开"
+  },
+  "listen_read_queue_n": {
+    "message": "朗读中 · 还有 {n} 句待读"
+  },
   "listen_my_lang_label": {
     "message": "我的语言"
   },

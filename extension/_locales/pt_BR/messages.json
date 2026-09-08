@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "Lendo"
   },
+  "listen_autospeak_off": {
+    "message": "Leitura automática parada · {why} — o botão de cada linha continua funcionando"
+  },
+  "listen_autospeak_echo": {
+    "message": "Leitura automática pausada — detectamos um laço de eco. Abaixe o volume ou use fones e ligue de novo."
+  },
+  "listen_read_queue_n": {
+    "message": "Lendo · mais {n} na fila"
+  },
   "listen_my_lang_label": {
     "message": "Meu idioma"
   },

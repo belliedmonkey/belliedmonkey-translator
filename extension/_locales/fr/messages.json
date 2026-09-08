@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "Lecture en cours"
   },
+  "listen_autospeak_off": {
+    "message": "Lecture auto arrêtée · {why} — le bouton de chaque ligne fonctionne toujours"
+  },
+  "listen_autospeak_echo": {
+    "message": "Lecture auto en pause — boucle d’écho détectée. Baissez le volume ou utilisez des écouteurs, puis réactivez-la."
+  },
+  "listen_read_queue_n": {
+    "message": "Lecture en cours · {n} en attente"
+  },
   "listen_my_lang_label": {
     "message": "Ma langue"
   },

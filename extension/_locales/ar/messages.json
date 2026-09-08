@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "جارٍ القراءة"
   },
+  "listen_autospeak_off": {
+    "message": "توقّفت القراءة التلقائية · {why} — زر كل سطر ما زال يعمل"
+  },
+  "listen_autospeak_echo": {
+    "message": "أُوقفت القراءة التلقائية مؤقتًا — رُصدت حلقة صدى. اخفض الصوت أو استخدم سماعات ثم أعد تشغيلها."
+  },
+  "listen_read_queue_n": {
+    "message": "جارٍ القراءة · {n} في الانتظار"
+  },
   "listen_my_lang_label": {
     "message": "لغتي"
   },

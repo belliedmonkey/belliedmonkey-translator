@@ -2353,6 +2353,15 @@
   "listen_reading": {
     "message": "Reading aloud"
   },
+  "listen_autospeak_off": {
+    "message": "Auto read-aloud stopped · {why} — the per-row button still works"
+  },
+  "listen_autospeak_echo": {
+    "message": "Auto read-aloud paused — an echo loop was detected. Lower the volume or use earphones, then turn it back on."
+  },
+  "listen_read_queue_n": {
+    "message": "Reading aloud · {n} more queued"
+  },
   "listen_my_lang_label": {
     "message": "My language"
   },
