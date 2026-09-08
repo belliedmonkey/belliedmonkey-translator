@@ -305,7 +305,7 @@
         <h2 id="app-listen-title"></h2>
         <span id="app-listen-pill" class="listen-pill"></span>
       </div>
-      <p class="note listen-langline"><span id="app-listen-lang"></span></p>
+      <p class="note listen-langline"><span id="app-listen-lang"></span> <span id="app-listen-ephemeral-pill" class="listen-eph-pill" hidden></span></p>
       <p class="note listen-mac-note" id="app-listen-mac-note" hidden></p>
       <div class="drive-card listen-now" id="app-listen-now">
         <div class="listen-now-head"><span id="app-listen-now-label"></span><span id="app-listen-live" class="listen-live" hidden>● 实时</span></div>
@@ -333,6 +333,12 @@
       <label class="check listen-autospeak" id="app-listen-autospeak-row">
         <input id="app-listen-autospeak" type="checkbox">
         <span id="app-listen-autospeak-label"></span>
+      </label>
+      <!-- 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储** ——
+           记住上次的勾选反而危险，用户会以为在留记录而其实没有。 -->
+      <label class="check listen-autospeak" id="app-listen-ephemeral-row">
+        <input id="app-listen-ephemeral" type="checkbox">
+        <span id="app-listen-ephemeral-label"></span>
       </label>
       <p class="note" id="app-listen-cost"></p>
 

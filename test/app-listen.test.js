@@ -142,7 +142,8 @@ describe('ListenCore — 静音与计时', () => {
     const ZH_EN = pair('zh', 'en');
     const a = C.addFinal(s, 'One.', T0 + 51_000, ZH_EN, DEPS); a.tr = '一。'; a.written = true; a.starred = true;
     C.addFinal(s, '第二句是中文，所以归我', T0 + 53_000, ZH_EN, DEPS);
-    deepEq(C.summary(s, T0 + 55_000), { seconds: 15, them: 1, me: 1, written: 1, starred: 1 });
+    deepEq(C.summary(s, T0 + 55_000),
+      { seconds: 15, them: 1, me: 1, written: 1, starred: 1, flips: 0, ephemeral: false });
     eq(C.fmtClock(15_000), '00:15');
     eq(C.fmtClock(754_000), '12:34');
   });
@@ -370,5 +371,42 @@ describe('ListenCore — 朗读队列（裁定 7：排队逐句读完）', () =>
     eq(q.size(), 0);
     q.noteSpoken('', T0);
     ok(!q.spokenRecently('', T0));
+  });
+});
+
+
+describe('ListenCore — 这次不留记录（裁定 6）', () => {
+  const ZH_EN = pair('zh', 'en');
+  const cfg = { lang: 'en', otherLang: 'en', myLang: 'zh', targetLang: 'zh-CN', label: '对话',
+    registry: LANGS, captureOn: true, langs: null };
+  const deps = { langAllowed: () => true, shouldCapture: () => true };
+  test('默认是留记录的', () => {
+    const s = C.newSession(T0, 0.5);
+    eq(s.ephemeral, false);
+    const r = C.addFinal(s, 'Five weeks works.', T0, ZH_EN, DEPS); r.tr = '五周可以。';
+    eq(C.shouldWrite(r, s, cfg, deps), true);
+  });
+  test('勾了就一句都不写 —— 而且**星也不写**', () => {
+    const s = C.newSession(T0, 0.5);
+    s.ephemeral = true;
+    const r = C.addFinal(s, 'Five weeks works.', T0, ZH_EN, DEPS); r.tr = '五周可以。';
+    eq(C.shouldWrite(r, s, cfg, deps), false);
+    r.starred = true;                       // 星在别处绕过一切门，这里也不行
+    eq(C.shouldWrite(r, s, cfg, deps), false,
+      '星的语义是「绕过一切门确保进复习」；这一场根本不写盘，所以界面上那颗星也不该出现');
+  });
+  test('小结如实报出这一场没留记录', () => {
+    const s = C.newSession(T0, 0.5);
+    s.ephemeral = true;
+    C.addFinal(s, 'Five weeks works.', T0 + 1000, ZH_EN, DEPS);
+    const sum = C.summary(s, T0 + 5000);
+    eq(sum.ephemeral, true);
+    eq(sum.written, 0);
+  });
+  test('改过边的次数进小结 —— 归属判得准不准的唯一体感指标', () => {
+    const s = C.newSession(T0, 0.5);
+    const r = C.addFinal(s, 'Five weeks works.', T0, ZH_EN, DEPS);
+    s.flips = (s.flips || 0) + 1; C.flipWho(r);
+    eq(C.summary(s, T0 + 1000).flips, 1);
   });
 });

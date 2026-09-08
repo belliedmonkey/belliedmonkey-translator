@@ -2200,7 +2200,7 @@
     "message": "대화 · 실시간 통역"
   },
   "listen_entry_hint": {
-    "message": "대면으로 외국어 듣기: 상대가 말하면 내 언어로 읽고, 길게 눌러 말하면 외국어로 번역해 상대에게 보여줍니다. 음성은 설정한 전사 엔드포인트로만 전송됩니다."
+    "message": "마주 앉은 두 사람을 위해: 둘 다 그냥 말하면 화면에 두 언어가 뜨고 번역이 읽힙니다. 오디오는 직접 설정한 전사 엔드포인트로만 전송됩니다."
   },
   "listen_need_live": {
     "message": "「대화 · 실시간 통역」에는 실시간 인터페이스가 있는 전사 엔진이 필요합니다"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "이번 대화"
   },
-  "listen_summary_body": {
-    "message": "{t} · 상대 {them}문장 · 나 {me}문장 · 복습에 추가 {n}문장 (출처 「대화」) · 별표 {s}문장"
-  },
   "listen_summary_note": {
     "message": "녹음은 폐기되고 텍스트만 남습니다. 복습에 들어간 문장은 「출처 › 대화」에서 관리하거나 통째로 삭제할 수 있습니다."
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "읽는 중 · {n}문장 대기"
   },
+  "listen_ephemeral_label": {
+    "message": "이번은 기록하지 않기"
+  },
+  "listen_ephemeral_pill": {
+    "message": "기록 안 함"
+  },
+  "listen_ephemeral_summary": {
+    "message": "이번에는 아무것도 남기지 않았습니다"
+  },
+  "listen_summary_kept": {
+    "message": "복습으로 {n}문장 (출처 «대화») · 별표 {s}문장"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · 상대 {them}문장 · 나 {me}문장 · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "화자 {n}회 수정"
+  },
   "listen_my_lang_label": {
     "message": "내 언어"
   },
@@ -2402,7 +2417,7 @@
     "message": "오늘의 덱을 이어서 읽어 줍니다"
   },
   "listen_entry_short": {
-    "message": "상대가 말하면 읽고, 길게 눌러 말하면 상대에게 번역해 보여줍니다"
+    "message": "마주 앉아 이야기하는 두 사람 — 둘 다 그냥 말하면 번역이 읽힙니다"
   },
   "listen_entry_privacy": {
     "message": "음성은 설정한 전사 엔드포인트로만 전송됩니다."

@@ -2200,7 +2200,7 @@
     "message": "Conversación · intérprete en vivo"
   },
   "listen_entry_hint": {
-    "message": "Escucha un idioma extranjero en persona: la otra persona habla, tú lo lees en tu idioma; mantén pulsado para hablar y muéstrale la traducción. El audio solo va al punto de transcripción que configuraste."
+    "message": "Dos personas hablando cara a cara: ambas hablan sin más, los dos idiomas salen en pantalla y las traducciones se leen en voz alta. El audio va solo al punto de transcripción que configuraste."
   },
   "listen_need_live": {
     "message": "«Conversación · intérprete en vivo» necesita un motor de transcripción con punto en tiempo real"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "Esta conversación"
   },
-  "listen_summary_body": {
-    "message": "{t} · la otra persona: {them} frases · yo: {me} · {n} añadidas al repaso (fuente «Conversación») · {s} con estrella"
-  },
   "listen_summary_note": {
     "message": "La grabación se descarta; solo se conserva el texto. Las frases del repaso se gestionan o se borran en bloque en Fuentes › Conversación."
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "Leyendo · {n} en cola"
   },
+  "listen_ephemeral_label": {
+    "message": "No guardar esta vez"
+  },
+  "listen_ephemeral_pill": {
+    "message": "No se guarda"
+  },
+  "listen_ephemeral_summary": {
+    "message": "No se guardó nada de esta vez"
+  },
+  "listen_summary_kept": {
+    "message": "{n} al repaso (fuente Conversación) · {s} con estrella"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · él {them} · yo {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} correcciones de lado"
+  },
   "listen_my_lang_label": {
     "message": "Mi idioma"
   },
@@ -2402,7 +2417,7 @@
     "message": "El mazo de hoy leído seguido, sin manos"
   },
   "listen_entry_short": {
-    "message": "La otra persona habla, tú lees; mantén pulsado para hablar y mostrar la traducción"
+    "message": "Dos personas cara a cara: ambas hablan y las traducciones se leen"
   },
   "listen_entry_privacy": {
     "message": "El audio solo va al punto de transcripción que configuraste."

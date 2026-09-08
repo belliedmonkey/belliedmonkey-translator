@@ -469,6 +469,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+:where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
 :where(#app-listen) .listen-row.me .listen-who { color: var(--accent-deep); }

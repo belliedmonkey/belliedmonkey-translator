@@ -338,6 +338,10 @@ var AppListen = (() => {
     cfg = await readCfg();
     if (!liveCapable(cfg)) { note(t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎'), true); return; }
     session = C.newSession(now(), Math.random());
+    // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
+    // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
+    // 用户会以为在留记录而其实没有。
+    session.ephemeral = !!($('app-listen-ephemeral') && $('app-listen-ephemeral').checked);
     // 边说边译的方向也按半句的语言实时判：我说中文时译成外语，对方说外语时译成中文。
     // 判不出就按「对方」走 —— 与 attributeByLang 的兜底同向，免得半句和定稿打架。
     inc = C.makeIncremental((text) => translate(text,
@@ -455,6 +459,7 @@ var AppListen = (() => {
   // 反过来就算不出它的 id 了（语料里「学的永远是外语那一面」，改边会让两面互换）。
   async function flipRow(row) {
     if (!row || !session) return;
+    session.flips = (session.flips || 0) + 1;
     const before = C.flipWho(row);          // 翻转并钉住，交回旧方向的快照
     const wasWritten = row.written;
     row.written = false;                    // 新方向的卡等译文到了再按正常的门写一次
@@ -649,6 +654,13 @@ var AppListen = (() => {
     const ended = phase === 'ended';
     // 表 1（画布「状态与转移」）：每个状态下每个控件的样子。灰 = 45% 透明 + 文案不变，
     // 且屏上一定有原因（胶囊或红字行）。
+    const eph = $('app-listen-ephemeral-row');
+    if (eph) {
+      const live = !!session && phase !== 'ended';
+      $('app-listen-ephemeral').disabled = live;      // 中途不可改
+      eph.classList.toggle('off', live);
+      $('app-listen-ephemeral-pill').hidden = !(session && session.ephemeral);
+    }
     const tog = $('app-listen-toggle');
     tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
       : phase === 'preparing' ? t('listen_toggle_preparing', '准备中…')
@@ -744,11 +756,16 @@ var AppListen = (() => {
       swap.setAttribute('aria-label', r.who === 'me'
         ? t('listen_swap_to_them', '改成对方说的') : t('listen_swap_to_me', '改成我说的'));
       swap.addEventListener('click', (e) => { e.stopPropagation(); flipRow(r); });
-      const star = document.createElement('button'); star.type = 'button'; star.className = 'listen-star' + (r.starred ? ' on' : '');
-      star.textContent = r.starred ? '★' : '☆';
-      star.setAttribute('aria-label', t('listen_star', '加星'));
-      star.addEventListener('click', (e) => { e.stopPropagation(); toggleStar(r); });
-      row.appendChild(body); row.appendChild(swap); row.appendChild(star);
+      row.appendChild(body); row.appendChild(swap);
+      // 「这次不留记录」时**星整个不出现**：星的唯一语义是「绕过一切门确保进复习」，
+      // 在一个不写盘的会话里给一颗按了没用的星，就是那种「界面说它做了、其实没做」。
+      if (!(session && session.ephemeral)) {
+        const star = document.createElement('button'); star.type = 'button'; star.className = 'listen-star' + (r.starred ? ' on' : '');
+        star.textContent = r.starred ? '★' : '☆';
+        star.setAttribute('aria-label', t('listen_star', '加星'));
+        star.addEventListener('click', (e) => { e.stopPropagation(); toggleStar(r); });
+        row.appendChild(star);
+      }
       list.appendChild(row);
     }
     $('app-listen-history-title').textContent = t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : '');
@@ -764,9 +781,17 @@ var AppListen = (() => {
   }
   function renderSummary() {
     const s = C.summary(session, now());
-    $('app-listen-summary-body').textContent = t('listen_summary_body', '时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · 进复习（来源「对话」）{n} 句 · 含 {s} 句加星')
+    // 不留记录的那一场：把「进复习 N 句」换成一句话，**不显示 0** —— 0 会让人以为是
+    // 没采集到，而不是「这一场本来就不留」。
+    const kept = s.ephemeral
+      ? t('listen_ephemeral_summary', '这次没有留下记录')
+      : t('listen_summary_kept', '进复习（来源「对话」）{n} 句 · 含 {s} 句加星')
+        .replace('{n}', String(s.written)).replace('{s}', String(s.starred));
+    $('app-listen-summary-body').textContent = t('listen_summary_body2', '时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}')
       .replace('{t}', C.fmtClock(s.seconds * 1000)).replace('{them}', String(s.them)).replace('{me}', String(s.me))
-      .replace('{n}', String(s.written)).replace('{s}', String(s.starred));
+      .replace('{kept}', kept)
+      // 改过边的次数是「归属判得准不准」的唯一体感指标：一直很大就说明这个语言对不适合自动判
+      + (s.flips ? ' · ' + t('listen_summary_flips', '改过边 {n} 句').replace('{n}', String(s.flips)) : '');
     $('app-listen-summary').hidden = false;
   }
 
@@ -803,6 +828,8 @@ var AppListen = (() => {
     $('app-listen-my-label').textContent = t('listen_lang_me_label', '我');
     $('app-listen-other-label').textContent = t('listen_lang_other_label', '对方');
     $('app-listen-autospeak-label').textContent = t('listen_autospeak_label', '自动朗读译文');
+    $('app-listen-ephemeral-label').textContent = t('listen_ephemeral_label', '这次不留记录');
+    $('app-listen-ephemeral-pill').textContent = t('listen_ephemeral_pill', '这次不留记录');
 
     // 语言对：两个下拉从语言注册表列，与设置页那两个是同一份设置（listenMyLang /
     // listenOtherLang）。选重了不是拒绝而是对调 —— 判据在 ListenCore.langPatch。

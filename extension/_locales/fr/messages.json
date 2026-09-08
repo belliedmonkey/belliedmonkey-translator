@@ -2200,7 +2200,7 @@
     "message": "Conversation · interprète en direct"
   },
   "listen_entry_hint": {
-    "message": "Écoutez une langue étrangère en face à face : l’autre parle, vous lisez dans votre langue ; maintenez pour parler et montrez-lui la traduction. L’audio ne va qu’au point de transcription que vous avez configuré."
+    "message": "Deux personnes face à face : chacun parle normalement, les deux langues s’affichent, les traductions sont lues à voix haute. L’audio ne part que vers le point de transcription que vous avez configuré."
   },
   "listen_need_live": {
     "message": "« Conversation · interprète en direct » a besoin d’un moteur de transcription avec point temps réel"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "Cette conversation"
   },
-  "listen_summary_body": {
-    "message": "{t} · l’autre : {them} phrases · moi : {me} · {n} ajoutées à la révision (source « Conversation ») · {s} étoilées"
-  },
   "listen_summary_note": {
     "message": "L’enregistrement est supprimé ; seul le texte est conservé. Les phrases ajoutées se gèrent ou se suppriment en bloc dans Sources › Conversation."
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "Lecture en cours · {n} en attente"
   },
+  "listen_ephemeral_label": {
+    "message": "Ne rien garder cette fois"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Non conservé"
+  },
+  "listen_ephemeral_summary": {
+    "message": "Rien n'a été conservé cette fois"
+  },
+  "listen_summary_kept": {
+    "message": "{n} en révision (source Conversation) · dont {s} en favori"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · lui {them} · moi {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} corrections de côté"
+  },
   "listen_my_lang_label": {
     "message": "Ma langue"
   },
@@ -2402,7 +2417,7 @@
     "message": "Le paquet du jour lu d’une traite, mains libres"
   },
   "listen_entry_short": {
-    "message": "L’autre parle, vous lisez ; maintenez pour parler et montrer la traduction"
+    "message": "Deux personnes face à face — chacun parle, les traductions sont lues"
   },
   "listen_entry_privacy": {
     "message": "L’audio ne va qu’au point de transcription que vous avez configuré."

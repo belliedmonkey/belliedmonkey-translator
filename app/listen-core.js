@@ -34,6 +34,8 @@ var ListenCore = (() => {
       rows: [],           // 定稿行 {rid, who, guessed, pinned, text, tr, at, starred, written}
       seq: 0,
       lastWho: '',        // 上一条定稿归了谁 —— 判不出语言时的粘性兜底
+      ephemeral: false,   // 「这次不留记录」：这一场只在屏幕上存在（开始前决定，中途不可改）
+      flips: 0,           // 点过几次 ↔ —— 归属判得准不准的唯一体感指标
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
       listenedMs: 0,      // 真正在听的毫秒数（暂停不计）
       resumedAt: now,     // 本段计时的起点；0 = 暂停中
@@ -340,6 +342,9 @@ var ListenCore = (() => {
   //   registry  : window.MT_LANGS
   function shouldWrite(row, s, cfg, deps) {
     if (!row || row.written) return false;
+    // 「这次不留记录」在**星之前**拦：星的语义是「绕过一切门确保进复习」，而这一场
+    // 根本不写盘 —— 所以界面上那颗星也不该出现（listen.js 的 renderHistory 里）。
+    if (s && s.ephemeral) return false;
     if (!row.tr || !row.text) return false;            // 译文没到不写：卡要两面都有
     if (row.starred) return true;                        // 星绕过一切门
     if (!cfg.captureOn) return false;
@@ -356,7 +361,8 @@ var ListenCore = (() => {
       if (r.written) written++;
       if (r.starred) starred++;
     }
-    return { seconds: Math.round(listenedMs(s, now) / 1000), them, me, written, starred };
+    return { seconds: Math.round(listenedMs(s, now) / 1000), them, me, written, starred,
+      flips: s.flips || 0, ephemeral: !!s.ephemeral };
   }
 
   function fmtClock(ms) {

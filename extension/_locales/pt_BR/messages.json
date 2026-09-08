@@ -2200,7 +2200,7 @@
     "message": "Conversa · intérprete ao vivo"
   },
   "listen_entry_hint": {
-    "message": "Ouça um idioma estrangeiro pessoalmente: a outra pessoa fala, você lê no seu idioma; segure para falar e mostre a tradução. O áudio vai apenas para o endpoint de transcrição que você configurou."
+    "message": "Duas pessoas conversando frente a frente: os dois falam normalmente, os dois idiomas aparecem na tela e as traduções são lidas em voz alta. O áudio vai só para o endpoint de transcrição que você configurou."
   },
   "listen_need_live": {
     "message": "“Conversa · intérprete ao vivo” precisa de um mecanismo de transcrição com endpoint em tempo real"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "Esta conversa"
   },
-  "listen_summary_body": {
-    "message": "{t} · a outra pessoa: {them} frases · eu: {me} · {n} adicionadas à revisão (fonte “Conversa”) · {s} com estrela"
-  },
   "listen_summary_note": {
     "message": "A gravação é descartada; só o texto fica. As frases na revisão podem ser gerenciadas ou apagadas em bloco em Fontes › Conversa."
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "Lendo · mais {n} na fila"
   },
+  "listen_ephemeral_label": {
+    "message": "Não guardar desta vez"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Não guardado"
+  },
+  "listen_ephemeral_summary": {
+    "message": "Nada foi guardado desta vez"
+  },
+  "listen_summary_kept": {
+    "message": "{n} para revisão (fonte Conversa) · {s} com estrela"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · ele {them} · eu {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} correções de lado"
+  },
   "listen_my_lang_label": {
     "message": "Meu idioma"
   },
@@ -2402,7 +2417,7 @@
     "message": "O baralho de hoje lido seguido, sem usar as mãos"
   },
   "listen_entry_short": {
-    "message": "A outra pessoa fala, você lê; segure para falar e mostrar a tradução"
+    "message": "Duas pessoas frente a frente — os dois falam e as traduções são lidas"
   },
   "listen_entry_privacy": {
     "message": "O áudio vai apenas para o endpoint de transcrição que você configurou."

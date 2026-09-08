@@ -2201,7 +2201,7 @@
     "message": "对话 · 实时听译"
   },
   "listen_entry_hint": {
-    "message": "线下听外语：对方说，你看中文；按住说中文，译成外语给对方。音频只发往你配置的转写端点。"
+    "message": "两个人面对面谈事情：各说各的话，屏幕上出双语，译文自动读出来。音频只发往你配置的转写端点。"
   },
   "listen_need_live": {
     "message": "「对话 · 实时听译」需要一个带实时接口的转写引擎"
@@ -2300,9 +2300,6 @@
   "listen_summary_title": {
     "message": "这次对话"
   },
-  "listen_summary_body": {
-    "message": "时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · 进复习（来源「对话」）{n} 句 · 含 {s} 句加星"
-  },
   "listen_summary_note": {
     "message": "录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。"
   },
@@ -2363,6 +2360,24 @@
   "listen_read_queue_n": {
     "message": "朗读中 · 还有 {n} 句待读"
   },
+  "listen_ephemeral_label": {
+    "message": "这次不留记录"
+  },
+  "listen_ephemeral_pill": {
+    "message": "这次不留记录"
+  },
+  "listen_ephemeral_summary": {
+    "message": "这次没有留下记录"
+  },
+  "listen_summary_kept": {
+    "message": "进复习（来源「对话」）{n} 句 · 含 {s} 句加星"
+  },
+  "listen_summary_body2": {
+    "message": "时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "改过边 {n} 句"
+  },
   "listen_my_lang_label": {
     "message": "我的语言"
   },
@@ -2403,7 +2418,7 @@
     "message": "今天的牌库连着读，放着听"
   },
   "listen_entry_short": {
-    "message": "对方说，你看中文；按住说中文，译给对方"
+    "message": "两个人面对面谈事情，各说各的话，译文自动读出来"
   },
   "listen_entry_privacy": {
     "message": "音频只发往你配置的转写端点。"

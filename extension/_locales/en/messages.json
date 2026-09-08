@@ -2200,7 +2200,7 @@
     "message": "Conversation · live interpreter"
   },
   "listen_entry_hint": {
-    "message": "Listen to a foreign language in person: they speak, you read it in your language; hold to speak yours and show them the translation. Audio goes only to the transcription endpoint you configured."
+    "message": "Two people talking face to face: both just speak, both languages show on screen, translations are read aloud. Audio goes only to the transcription endpoint you configured."
   },
   "listen_need_live": {
     "message": "“Conversation · live interpreter” needs a transcription engine with a realtime endpoint"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "This conversation"
   },
-  "listen_summary_body": {
-    "message": "{t} · they said {them} sentences · I said {me} · {n} added to review (source “Conversation”) · {s} starred"
-  },
   "listen_summary_note": {
     "message": "The recording is discarded; only text is kept. Sentences added to review can be managed or deleted as a whole under Sources › Conversation."
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "Reading aloud · {n} more queued"
   },
+  "listen_ephemeral_label": {
+    "message": "Don't keep this one"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Not kept"
+  },
+  "listen_ephemeral_summary": {
+    "message": "Nothing was kept from this one"
+  },
+  "listen_summary_kept": {
+    "message": "{n} into review (source Conversation) · {s} starred"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · they said {them} · I said {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} side corrections"
+  },
   "listen_my_lang_label": {
     "message": "My language"
   },
@@ -2402,7 +2417,7 @@
     "message": "Today’s deck read aloud, hands-free"
   },
   "listen_entry_short": {
-    "message": "They speak, you read; hold to speak and show them the translation"
+    "message": "Two people talking face to face — both just speak, translations read aloud"
   },
   "listen_entry_privacy": {
     "message": "Audio goes only to the transcription endpoint you configured."

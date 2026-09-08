@@ -2200,7 +2200,7 @@
     "message": "会話 · リアルタイム通訳"
   },
   "listen_entry_hint": {
-    "message": "対面で外国語を聞く：相手が話すと、あなたの言語で読める。長押しして話せば、外国語に訳して相手に見せる。音声は設定した文字起こしエンドポイントにのみ送信。"
+    "message": "対面で話す二人へ：どちらもそのまま話すだけで、画面に両言語が出て訳文が読み上げられます。音声はあなたが設定した文字起こしエンドポイントにのみ送られます。"
   },
   "listen_need_live": {
     "message": "「会話 · リアルタイム通訳」にはリアルタイム対応の文字起こしエンジンが必要です"
@@ -2299,9 +2299,6 @@
   "listen_summary_title": {
     "message": "この会話"
   },
-  "listen_summary_body": {
-    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · 復習へ {n} 文（ソース「会話」）· スター {s} 文"
-  },
   "listen_summary_note": {
     "message": "録音は破棄され、テキストのみ保持します。復習に入った文は「ソース › 会話」で管理・一括削除できます。"
   },
@@ -2362,6 +2359,24 @@
   "listen_read_queue_n": {
     "message": "読み上げ中 · あと {n} 文"
   },
+  "listen_ephemeral_label": {
+    "message": "今回は記録しない"
+  },
+  "listen_ephemeral_pill": {
+    "message": "記録しません"
+  },
+  "listen_ephemeral_summary": {
+    "message": "今回は何も記録していません"
+  },
+  "listen_summary_kept": {
+    "message": "復習へ {n} 文（ソース「会話」）· うち星 {s} 文"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "話者を {n} 回修正"
+  },
   "listen_my_lang_label": {
     "message": "自分の言語"
   },
@@ -2402,7 +2417,7 @@
     "message": "今日のデッキを続けて読み上げ、置いたまま聞く"
   },
   "listen_entry_short": {
-    "message": "相手が話すと読める。長押しして話せば相手に訳して見せる"
+    "message": "対面で話す二人へ — どちらも話すだけ、訳文は読み上げ"
   },
   "listen_entry_privacy": {
     "message": "音声は設定した文字起こしエンドポイントにのみ送信。"
