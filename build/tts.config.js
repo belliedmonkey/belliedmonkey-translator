@@ -38,6 +38,11 @@
 //   returnsAudio    whether this engine yields bytes we can cache locally and,
 //                   if the user opts in, sync. False for 'browser', permanently.
 
+// 免费额度的中继（learning-design §8.10）。地址由 backend.config.js 的 url + relayPath
+// 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
+const MT_BACKEND = require('../extension/learn/backend.config.js');
+const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+
 module.exports = [
   {
     id: 'browser', type: 'browser', flavors: ['global', 'china'],
@@ -164,5 +169,17 @@ module.exports = [
     returnsAudio: true,
     labelKey: null, label: 'OpenAI Speech',
     hintKey: 'tts_hint_openai',
+  },
+  // 免费额度的中继 · 朗读档（§8.10）。同 chat 那条：grantOnly，不进下拉。
+  {
+    id: 'grant_speech', type: 'speech-compat', flavors: ['global'], grantOnly: true,
+    needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
+    requiresEndpoint: false,
+    defaultEndpoint: RELAY + '/audio/speech',
+    defaultModel: 'deepgram/aura-2',
+    voices: ['aura-2-thalia-en'],
+    returnsAudio: true,
+    label: { global: 'BelliedMonkey 免费额度' },
+    labelKey: 'grant_engine_label',
   },
 ];

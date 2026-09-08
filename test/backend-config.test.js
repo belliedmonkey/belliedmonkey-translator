@@ -24,9 +24,19 @@ describe('backend.config.js — 构建期文本替换的契约', () => {
   // build.js 的 flipSyncFlag / limitProviders / switchBackend 全都要求「恰好一处」，
   // 命中数不对就 exit(1)。那个失败发生在构建时，而这里让它发生在**改代码时** ——
   // 早一步，且不需要记得去跑 china flavor 才看得见。
-  test('`enabled: true,` 恰好一处 —— flipSyncFlag 的前提', () => {
-    const hits = code.match(/^\s*enabled: true,/gm) || [];
+  // **两格缩进**是判据的一部分。免费额度块里也有一个 enabled（四格缩进），
+  // 而 flipSyncFlag 要翻的从来只是顶层那个同步开关。2026-09-08 实测过这个坑：
+  // 用裸子串时，把 grant.enabled 翻成 true 会让中国版构建在 flipSyncFlag 处 exit(1)，
+  // 而产物停在没被覆盖的全球版上 —— 报错指向同步开关，跟真正的原因隔着十万八千里。
+  test('顶层 `enabled: true,` 恰好一处 —— flipSyncFlag 的前提', () => {
+    const hits = code.match(/^ {2}enabled: true,/gm) || [];
     eq(hits.length, 1, `实际 ${hits.length} 处；多一处或少一处都会让 build.js 的 flipSyncFlag 直接 exit(1)`);
+  });
+
+  test('嵌套的 enabled 不许写成两格缩进 —— 否则它会被当成同步开关翻掉', () => {
+    // grant.enabled 必须是四格。写成两格就是把「翻同步开关」变成一次赌博。
+    const nested = code.match(/^ {4}enabled: (true|false),/gm) || [];
+    ok(nested.length >= 1, '免费额度块里应该有一个四格缩进的 enabled');
   });
 
   test("`providers: ['apple', 'google'],` 恰好一处 —— limitProviders 的前提", () => {
@@ -49,6 +59,44 @@ describe('backend.config.js — 构建期文本替换的契约', () => {
 });
 
 describe('backend.config.js — 境内后端（§C）', () => {
+  // ── 免费额度（§8.10）─────────────────────────────────────────────────
+  test('grant 块存在，且五个键齐全', () => {
+    const B = require('../extension/learn/backend.config.js');
+    ok(B.grant && typeof B.grant === 'object', 'backend.config.js 缺 grant 块');
+    for (const k of ['enabled', 'vendor', 'limitUsd', 'relayPath', 'china']) {
+      ok(k in B.grant, `grant 块缺 ${k}`);
+    }
+    eq(typeof B.grant.enabled, 'boolean');
+    ok(B.grant.limitUsd > 0 && B.grant.limitUsd <= 1,
+      '额度上限不在合理区间 —— 0.2 是裁定值，改它要同时改卡上的进度条与 §8.10 的估算');
+  });
+
+  test('中继地址由 url + relayPath 拼出来 —— 主机名在仓库里只写一处', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const P = require('../build/providers.config.js');
+    const g = P.find((x) => x.id === 'grant');
+    ok(g, 'providers 注册表里没有 grant 那一档');
+    eq(g.defaultEndpoint, B.url + B.grant.relayPath + '/chat/completions',
+      '中继地址没有从 backend.config.js 拼出来 —— 那就是第二份主机名，换后端时必漏一处');
+    eq(g.grantOnly, true, 'grant 那一档必须 grantOnly（不进任何下拉）');
+    ok(!g.flavors.includes('china'), 'grant 那一档不许进中国版');
+  });
+
+  test('朗读与转写两档同规矩', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const base = B.url + B.grant.relayPath;
+    const T = require('../build/tts.config.js').find((x) => x.id === 'grant_speech');
+    const S = require('../build/stt.config.js').find((x) => x.id === 'grant_stt');
+    eq(T.defaultEndpoint, base + '/audio/speech');
+    eq(S.defaultEndpoint, base + '/audio/transcriptions');
+    for (const e of [T, S]) {
+      eq(e.grantOnly, true);
+      ok(!e.flavors.includes('china'));
+    }
+    // 中继没有实时接口 —— 「对话 · 实时听译」不在额度覆盖范围内，卡上要提前说。
+    ok(!S.liveEndpoint, '转写那一档不该有 liveEndpoint：中继只转发一次性请求');
+  });
+
   test('china 块存在，且三个键齐全', () => {
     ok(CFG.china && typeof CFG.china === 'object', 'MT_BACKEND.china 不见了');
     eq(typeof CFG.china.ready, 'boolean', 'china.ready 必须是布尔 —— 它是「切没切」的唯一判据');

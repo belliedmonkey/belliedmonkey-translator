@@ -57,6 +57,11 @@ var QuickSetup = (() => {
   // needsKey 挡掉、custom_* 被 requiresEndpoint 挡掉）。多写一份 type 白名单就是
   // LearnNotes.chatEngines() 的第二份副本，而那正是它的注释在防的事。
   function eligible(e) {
+    // `grantOnly` 的条目（免费额度的中继，§8.10）**不是一个用户可以选的平台**：
+    // 它没有可粘的 key —— 令牌是登录之后系统发的。放进这张卡里，用户会看到一个
+    // 「把 key 粘进来」的输入框，而正确的动作是点「领取」。同理它也不该进任何下拉。
+    // 少了这一条，一键配置会凭空多出第三个平台，而它一次都配不成功。
+    if (e && e.grantOnly) return false;
     return !!e && e.needsKey === true && !e.requiresEndpoint && !!hostOf(e.defaultEndpoint || '');
   }
 

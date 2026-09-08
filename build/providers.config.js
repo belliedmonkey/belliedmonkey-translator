@@ -43,6 +43,11 @@
 // Qwen dashscope.aliyuncs.com vs dashscope-intl.aliyuncs.com; DeepSeek single
 // api.deepseek.com for both.
 
+// 免费额度的中继（learning-design §8.10）。地址由 backend.config.js 的 url + relayPath
+// 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
+const MT_BACKEND = require('../extension/learn/backend.config.js');
+const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+
 module.exports = [
   {
     id: 'google', type: 'google', flavors: ['global'],
@@ -175,5 +180,17 @@ module.exports = [
     defaultModel: '',
     label: { china: '自定义 · Messages 格式', global: 'Custom (Anthropic-compatible)' },
     hintKey: 'hint_custom_msg',
+  },
+  // 免费额度的中继。**不进任何下拉**（grantOnly）—— 它不是一个用户可以选的引擎，
+  // 是领取额度之后系统替他填上的那一档。手动选它只会得到 401（没有令牌）。
+  // 模型由服务端钉住；客户端在「详细」里改模型会拿到 403 model_not_allowed，
+  // 那句话有专门的文案（改回去，或填自己的 key）。
+  {
+    id: 'grant', type: 'chat-compat', flavors: ['global'], grantOnly: true,
+    needsKey: true, supportsBaseUrl: false, supportsModel: false,
+    defaultEndpoint: RELAY + '/chat/completions',
+    defaultModel: 'deepseek/deepseek-v4-flash',
+    label: { global: 'BelliedMonkey 免费额度' },
+    labelKey: 'grant_engine_label',
   },
 ];

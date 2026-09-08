@@ -812,4 +812,15 @@ module.exports = [
       + '（qwen-plus 与 qwen3-max 基线思考均为 0，加 enable_thinking:false 无变化），'
       + '本域按同结论处理 —— 即 reasoning 一列留空 —— 直到拿到该域的 key 实测',
   },
+
+  // ── 免费额度的中继（learning-design §8.10）。这一行量的**不是模型**，模型早就在
+  // openrouter.ai 那几行里了 —— 它量的是**我们自己这一跳加了多少**。这正是台账该有
+  // 的东西：中继是我们引入的、用户绕不开的一段路，它的代价必须有个数，否则「经我们
+  // 的服务端转发」这句话在性能上是没有账的。
+  {
+    host: 'cavezcufztzqsohpjmup.supabase.co', model: 'deepseek/deepseek-v4-flash', date: '2026-09-08',
+    baseline: { ms: 3727, thinkTokens: 0, outChars: 15, finish: 'stop' },
+    verdict: 'reachable',
+    why: '免费额度中继（Supabase Edge Function `bt-relay`，东京）端到端实测：造一个测试账号 → 领取 → 转发 → 读账 → 删号。**领取幂等**：第二次回 reused=true 且令牌逐字相同（裁定 D1）。**转发正确**：同一段商务文本译文可用。**模型被钉住**：改成 openai/gpt-4o 回 403 model_not_allowed 并带上正确的模型名。**计量落账**：5 次翻译共 $0.000087（≈$0.0000174/次 ⇒ 0.2 美元约 11500 次翻译请求，所以烧钱的是朗读与转写，不是翻译）。删账号后 cascade 带走额度行，账本归零。**耗时**：经中继 5 次 1928/3011/3727/4005/7516 ms，中位 3727；同一时刻同模型**直连 openrouter.ai** 5 次 875/2191/2328/2481/2544，中位 2328 ⇒ **中继这一跳中位加约 1.4 秒**，且方差明显更大（边缘函数冷启动）。样本只有 5 次，是量级不是精度。**参数层面没扫过** —— 中继只透传白名单字段，可调的东西在上游那几行。',
+  },
 ];

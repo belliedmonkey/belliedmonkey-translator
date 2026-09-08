@@ -54,15 +54,20 @@ const SYNC_ON = process.env.MT_SYNC === 'on';
 // release decision.
 function flipSyncFlag(text, what, direction) {
   const on = direction === 'on';
-  const NEEDLE = on ? 'enabled: false,' : 'enabled: true,';
-  const first = text.indexOf(NEEDLE);
-  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
-    console.error(`✗ sync flip: expected exactly one \`${NEEDLE}\` in ${what}`);
+  // **缩进是判据的一部分**（2026-09-08）。原来用的是裸子串 `enabled: true,`，
+  // 而免费额度那个块里也有一个 `enabled`（四格缩进）—— 今天它是 false 所以碰巧
+  // 只命中一处；G6 把它翻成 true 的那一刻，中国版构建会当场以「expected exactly one」
+  // 死掉，而报错指向的是同步开关，跟真正的原因隔着十万八千里。
+  // 顶层那个同步开关是**两格缩进**，只认它。
+  const re = on ? /^ {2}enabled: false,/m : /^ {2}enabled: true,/m;
+  const all = text.match(new RegExp(re.source, 'gm')) || [];
+  if (all.length !== 1) {
+    console.error(`✗ sync flip: expected exactly one top-level \`${re.source}\` in ${what}, got ${all.length}`);
     process.exit(1);
   }
-  return text.replace(NEEDLE, on
-    ? 'enabled: true, // flipped at build time — NOT SHIPPABLE'
-    : 'enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
+  return text.replace(re, on
+    ? '  enabled: true, // flipped at build time — NOT SHIPPABLE'
+    : '  enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
 }
 
 // 中国版只提供 Apple 登录（2026-09-03 用户裁定）。
@@ -243,6 +248,10 @@ function generateProviders(dir, flavor) {
       defaultModel: pick(p.defaultModel) || '',
       needsKey: !!p.needsKey, supportsBaseUrl: !!p.supportsBaseUrl,
       supportsModel: !!p.supportsModel, requiresEndpoint: !!p.requiresEndpoint, hintKey: p.hintKey || null,
+      // §8.10：免费额度那一档。运行时靠它把中继排除出一键配置与所有下拉 ——
+      // 它没有可粘的 key（令牌是登录之后系统发的），出现在选择器里就是一个必然
+      // 配不成功的选项。生成器漏掉这个字段的话，运行时那道判断永远读到 undefined。
+      grantOnly: !!p.grantOnly,
       // 「去哪儿申请这把 key」。按 flavor 取，同 defaultEndpoint / label。
       keyUrl: pick(p.keyUrl) || null,
     }));
@@ -298,8 +307,12 @@ function generateProviders(dir, flavor) {
   // 这个布尔值是 true，而它决定要不要对用户说「登录之后卡片才到 App」。
   // 匹配不到就硬失败：一个静默取错的布尔值，比构建红一次贵得多。
   const cfgSrc = fs.readFileSync(path.join(dir, 'learn', 'backend.config.js'), 'utf8');
-  const on = cfgSrc.match(/^\s*enabled:\s*true,/gm) || [];
-  const off = cfgSrc.match(/^\s*enabled:\s*false,/gm) || [];
+  // 缩进也是判据的一部分（2026-09-08）：免费额度那个块里也有一个 `enabled`
+  // （四格缩进），而这里要的是**顶层那一个同步开关**（两格）。原来的 `^\s*` 把两个
+  // 都吃了进来，于是加一个无关的嵌套开关就会让构建红 —— 更坏的是，如果哪天顺序反了，
+  // 它会安静地读到嵌套那一个，而这个布尔值决定要不要对用户说「登录之后卡片才到 App」。
+  const on = cfgSrc.match(/^ {2}enabled:\s*true,/gm) || [];
+  const off = cfgSrc.match(/^ {2}enabled:\s*false,/gm) || [];
   if (on.length + off.length !== 1) {
     console.error(`✗ MT_SYNC_ENABLED: ${dir}/learn/backend.config.js 里 enabled 声明有 `
       + `${on.length + off.length} 处，期望恰好 1 处`);
@@ -326,7 +339,28 @@ function generateProviders(dir, flavor) {
     url: require('./extension/learn/backend.config.js').url + '/functions/v1/bt-ingest',
     spec: { common: TELEMETRY.COMMON, events: TELEMETRY.EVENTS, limits: TELEMETRY.LIMITS },
   };
-  let body = `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
+  // 免费额度（learning-design §8.10）。搭同一辆车，理由同 telemetry：设置页与引导页
+  // 都已经加载 providers.gen.js，而它们不能加载 backend.config.js（里面有 anon key）。
+  //
+  // **中国版恒为 null**，且不是「关着」而是「不存在」：中国用户的原文会经东京中转，
+  // 而境内后端未就绪。中国版走的是另一条路（引导去领百炼官方的免费额度）。
+  // 全球版也要 `grant.enabled` 为真才发 —— 那个开关是 G6 的动作，前置是两站隐私
+  // 与 README 的 Gate F 文案同版上线。发 null 时客户端所有额度分支都取不到 spec，
+  // 行为与从前逐字相同。
+  const BK = require('./extension/learn/backend.config.js');
+  const grantCfg = (flavor === 'china' || !BK.grant || !BK.grant.enabled) ? null : {
+    vendor: BK.grant.vendor,
+    limitUsd: BK.grant.limitUsd,
+    claimUrl: BK.url + '/functions/v1/bt-grant',
+    // 三个槽各自钉住的模型 —— 客户端要把它们写进配置，否则用注册表默认会撞上
+    // 服务端的 403 model_not_allowed。**这三个值必须与中继的 GRANT_MODELS 一致**，
+    // 判据是 `npm run grant:status` 那一行（它读的是中继 /spec 的实际回值）。
+    models: {
+      chat: (providers.find((p) => p.id === 'grant') || {}).defaultModel || '',
+    },
+  };
+  let body = `window.MT_GRANT = ${JSON.stringify(grantCfg)};\n`
+    + `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
     + `window.MT_VERSION = ${JSON.stringify(require('./package.json').version)};\n`
     + `window.MT_TELEMETRY = ${JSON.stringify(telemetry)};\n`
     + `window.MT_SYNC_ENABLED = ${JSON.stringify(syncOn)};\n`
@@ -603,7 +637,15 @@ function applyChinaLocales(dir) {
 
 function complianceGateChina(dir, label) {
   // bt-ingest：匿名用量事件的端点（Gate D）。中国版一个字节都不发，产物里不该有它。
-const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|bt-ingest/i;
+  //
+  // `MT_GRANT = {` 与 `bt-grant`：免费额度（Gate F，§8.10）。中国版**恒为 null**，
+  // 不是「关着」而是「不存在」—— 中国用户的原文会经东京中转，而境内后端未就绪。
+  // 判据写成**发射形式**而不是裸词 `MT_GRANT`：backend.config.js 的注释里会提到它，
+  // 而注释不是能力。`= null` 那一行必须放行，否则「恒为 null」这件事本身就没法表达。
+  // 这一条是**证伪出来的**：2026-09-08 把 grant.enabled 试着翻成 true，中国版产物里
+  // 一度真的出现了完整的 MT_GRANT 与三条中继条目 —— 因为 flipSyncFlag 撞上了嵌套的
+  // 那个 enabled 而中途退出，产物停在了没被覆盖的全球版上。
+const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|bt-ingest|MT_GRANT = \{|\/functions\/v1\/bt-grant|bt-relay\/(chat|audio)/i;
   const hits = [];
   (function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -634,6 +676,7 @@ function generateTts(dir, flavor) {
   const pick = pickFlavor(flavor);
   const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
     id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
     defaultModel: e.defaultModel || '', voices: e.voices || null,
     needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
@@ -657,6 +700,7 @@ function generateStt(dir, flavor) {
   const pick = pickFlavor(flavor);
   const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
     id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
     defaultModel: e.defaultModel || '',
     needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,

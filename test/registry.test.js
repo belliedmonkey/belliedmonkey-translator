@@ -44,16 +44,20 @@ const REGISTRIES = [
 const KNOWN_KEYS = {
   providers: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
-    'labelKey', 'hintKey', 'keyUrl'],
+    'labelKey', 'hintKey', 'keyUrl',
+    // §8.10：免费额度中继那一档。grantOnly = **不进任何下拉** —— 它不是用户可以选的
+    // 引擎，是领到额度之后系统替他填上的那一档；手动选它只会得到 401。
+    'grantOnly'],
   tts: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'voices',
-    'returnsAudio', 'label', 'labelKey', 'hintKey'],
+    'returnsAudio', 'label', 'labelKey', 'hintKey', 'grantOnly'],
   stt: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey',
     // docs/domain-design.md §2.4 / §7: the live-transcription socket and the large-file
     // upload are STORED addresses (complete URLs, used verbatim), never derived.
-    'liveEndpoint', 'liveType', 'liveModel', 'liveRate', 'liveKeyProtocol', 'liveParams', 'uploadEndpoint'],
+    'liveEndpoint', 'liveType', 'liveModel', 'liveRate', 'liveKeyProtocol', 'liveParams', 'uploadEndpoint',
+    'grantOnly'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
     'systemRole', 'reasoning', 'note'],
 };
@@ -343,9 +347,11 @@ describe('MT_SYNC_ENABLED 与 backend.config.js 一致', () => {
   };
   // 源码里那一行**声明**（不是注释）说的是什么。
   const declared = (cfg) => {
-    const on = (cfg.match(/^\s*enabled:\s*true,/gm) || []).length;
-    const off = (cfg.match(/^\s*enabled:\s*false,/gm) || []).length;
-    eq(on + off, 1, 'backend.config.js 里 enabled 声明不是恰好一处');
+    // **两格缩进** = 顶层那个同步开关。免费额度块里也有一个 enabled（四格），
+    // 而这里要读的从来只是同步那一个（build.js 的判据与此逐字相同）。
+    const on = (cfg.match(/^ {2}enabled:\s*true,/gm) || []).length;
+    const off = (cfg.match(/^ {2}enabled:\s*false,/gm) || []).length;
+    eq(on + off, 1, 'backend.config.js 里顶层 enabled 声明不是恰好一处');
     return on === 1;
   };
 

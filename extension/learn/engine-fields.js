@@ -78,7 +78,12 @@ var EngineFields = (() => {
   function populate(sel, entries, opts) {
     if (!sel) return '';
     const o = opts || {};
-    const list = Array.isArray(entries) ? entries : [];
+    // `grantOnly` 的条目（免费额度的中继，§8.10）**不进任何下拉**：它没有可粘的
+    // key，令牌是登录之后系统发的。手选它只会得到 401，而那是一个用户无法自己解决
+    // 的失败。**例外是它正被选中时** —— 那时必须留在列表里，否则下拉会显示成空白，
+    // 用户看到的是「我明明配好了，这里却什么都没有」（半配显示不出来那一类）。
+    const all = Array.isArray(entries) ? entries : [];
+    const list = all.filter((e) => !e.grantOnly || e.id === (opts || {}).selected);
     const doc = sel.ownerDocument || document;
     sel.innerHTML = '';
     if (o.sentinel) {
