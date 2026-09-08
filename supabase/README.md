@@ -8,7 +8,35 @@
 ```bash
 psql "$DATABASE_URL" -f supabase/schema.sql        # 1. 库结构、RLS、配额
 supabase functions deploy bt-delete-account        # 2. 一键删除的后半截（§8.7）
+supabase functions deploy bt-ingest --no-verify-jwt    # 匿名用量事件（telemetry-design §4）
+supabase functions deploy bt-grant                     # 免费额度：领取（§8.10）
+supabase functions deploy bt-relay --no-verify-jwt     # 免费额度：中继（§8.10）
 ```
+
+免费额度那两个函数还要四个密钥，缺一个就整体 503（不会半开着跑）：
+
+```bash
+supabase secrets set \
+  GRANT_KEK="$(openssl rand -base64 32)" \
+  GRANT_LIMIT_USD=0.2 \
+  GRANT_DAILY_CAP=50 \
+  OPENROUTER_GRANT_KEY=sk-or-... \
+  GRANT_MODELS='{"chat":"deepseek/deepseek-v4-flash","tts":"openai/gpt-4o-mini-tts","stt":"openai/whisper-1"}' \
+  GRANT_PRICES='{"ttsPerKChar":0.015,"sttPerMB":0.02,"chatPerKTok":0.001,"chatFloor":0.0005}' \
+  GRANT_FLOAT_MIN_USD=5
+```
+
+- **`GRANT_KEK` 换掉就等于把所有人的令牌作废**（密文解不开了，D1「换设备回传同一枚」
+  会退化成 409）。它只用来加密令牌本身，不加密任何用户内容 —— 备份它，别轮换它。
+- **`--no-verify-jwt` 是 `bt-relay` 的必要条件**，不是省事：调用方是内容脚本，它拿的是
+  额度令牌而不是 Supabase 的 JWT（内容脚本永不持有 `learnAuth`，§8.4.1.1）。鉴权在函数
+  自己手里 —— `Authorization: Bearer bmg_…` → sha256 → `bt_grant_check`。
+- **`GRANT_PRICES` 的 `chatFloor` 不能是 0。** 翻译的真实花费取自提供方返回的
+  `usage.cost`；它哪天不返回了，没有地板价就意味着 `spent_usd` 永远是 0 ——
+  上限从此形同虚设，而界面上一切正常。地板价宁可估高。
+- **`GRANT_MODELS` 必须与注册表 `grant` 条目的 `defaultModel` 逐字相同。**
+  `npm run grant:status` 读 `GET …/bt-relay/spec` 回来比一次；不一致时客户端说的
+  和服务端执行的不是一回事（用户看到「免费额度只能用 A」，而服务端在跑 B）。
 
 3. 邮件模板与验证码长度（**没有 SQL 能代劳**，走 Management API）：
 
