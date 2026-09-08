@@ -69,7 +69,7 @@ var AppListen = (() => {
   // ── 设置 ──────────────────────────────────────────────────────────────────
   const READ_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang'];
+    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak'];
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS, (s) => {
@@ -77,10 +77,19 @@ var AppListen = (() => {
         const eng = (window.MT_STT_ENGINES || []).find((e) => e.id === s.sttEngine) || null;
         const tr = LearnNotes.resolveConfig(s);
         const rules = s.learnRules && typeof s.learnRules === 'object' ? s.learnRules : {};
-        const otherLang = s.listenOtherLang || 'en';
+        const B = C.baseCode;
+        const otherLang = B(s.listenOtherLang) || 'en';
+        // 「我的语言」没选过就跟着界面语言走，界面语言也没选就跟系统。只在读取时回落，
+        // 不往存储播种默认值 —— 播种了，用户以后改界面语言这一项就不会跟着动。
+        const myLang = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
+          || B(navigator.language) || 'zh';
         resolve({
           eng, sttKey: s.sttApiKey || '', tr,
-          targetLang: s.uiLang || (navigator.language || 'zh-CN'),
+          // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
+          // draftFor 与端到端测试都在读它 —— 不在同一步里既改语义又改名字。
+          targetLang: myLang,
+          myLang,
+          autoSpeak: s.listenAutoSpeak !== false,
           captureOn: s.listenCapture !== false,
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
@@ -682,18 +691,54 @@ var AppListen = (() => {
     $('app-listen-summary-note').textContent = t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。');
     $('app-listen-summary-home').textContent = t('listen_summary_home', '回到首页');
     $('app-listen-summary-again').textContent = t('listen_summary_again', '再来一段');
-    $('app-listen-other-label').textContent = t('listen_other_lang_label', '对方的语言');
+    $('app-listen-my-label').textContent = t('listen_lang_me_label', '我');
+    $('app-listen-other-label').textContent = t('listen_lang_other_label', '对方');
+    $('app-listen-autospeak-label').textContent = t('listen_autospeak_label', '自动朗读译文');
 
-    // 对方的语言：从语言注册表列，记住选择（listenOtherLang）。用于「我说」的目标语言，
-    // 与对方句子进语料时的 lang。
-    const sel = $('app-listen-other');
-    sel.textContent = '';
-    for (const l of (window.MT_LANGS || [])) {
-      const o = document.createElement('option'); o.value = l.code; o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
-      sel.appendChild(o);
+    // 语言对：两个下拉从语言注册表列，与设置页那两个是同一份设置（listenMyLang /
+    // listenOtherLang）。选重了不是拒绝而是对调 —— 判据在 ListenCore.langPatch。
+    const selMy = $('app-listen-my'), selOther = $('app-listen-other');
+    for (const sel of [selMy, selOther]) {
+      sel.textContent = '';
+      for (const l of (window.MT_LANGS || [])) {
+        const o = document.createElement('option'); o.value = l.code;
+        o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
+        sel.appendChild(o);
+      }
     }
-    chrome.storage.local.get(['listenOtherLang'], (s) => { sel.value = (s && s.listenOtherLang) || 'en'; if (!sel.value) sel.value = 'en'; });
-    sel.addEventListener('change', () => { chrome.storage.local.set({ listenOtherLang: sel.value }); if (cfg) { cfg.otherLang = sel.value; cfg.lang = sel.value; } if (session) paint(); });
+    function paintLangs(s) {
+      const B = C.baseCode;
+      selOther.value = B(s.listenOtherLang) || 'en';
+      selMy.value = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
+        || B(navigator.language) || 'zh';
+      $('app-listen-autospeak').checked = s.listenAutoSpeak !== false;
+    }
+    chrome.storage.local.get(['listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'uiLang'], (s) => paintLangs(s || {}));
+    for (const [which, sel] of [['my', selMy], ['other', selOther]]) {
+      sel.addEventListener('change', () => {
+        const prev = which === 'my'
+          ? { myLang: (cfg && cfg.myLang) || '', otherLang: selOther.value }
+          : { myLang: selMy.value, otherLang: (cfg && cfg.otherLang) || '' };
+        const p = C.langPatch(which, sel.value, prev);
+        const swapped = p.swapped; delete p.swapped;
+        chrome.storage.local.set(p);
+        if (p.listenMyLang !== undefined) selMy.value = C.baseCode(p.listenMyLang);
+        if (p.listenOtherLang !== undefined) selOther.value = C.baseCode(p.listenOtherLang);
+        if (cfg) {
+          cfg.myLang = selMy.value; cfg.targetLang = selMy.value;
+          cfg.otherLang = selOther.value; cfg.lang = selOther.value;
+        }
+        // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
+        // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
+        if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+        if (session) paint();
+      });
+    }
+    $('app-listen-autospeak').addEventListener('change', () => {
+      const on = $('app-listen-autospeak').checked;
+      chrome.storage.local.set({ listenAutoSpeak: on });
+      if (cfg) cfg.autoSpeak = on;
+    });
 
     $('app-listen-back').addEventListener('click', leave);
     $('app-listen-toggle').addEventListener('click', toggle);

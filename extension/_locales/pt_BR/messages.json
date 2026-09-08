@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "“Conversa · intérprete ao vivo” transmite o microfone ao endpoint de transcrição que você configurou, apenas após “Começar a ouvir” e apenas para esse endpoint; nossos servidores nunca tocam no áudio; nenhuma gravação é guardada, só texto — e só enquanto esta chave estiver ligada."
   },
+  "listen_my_lang_label": {
+    "message": "Meu idioma"
+  },
+  "listen_lang_note": {
+    "message": "Os dois idiomas precisam ser diferentes. Também dá para mudar no rodapé da tela de conversa — é o mesmo ajuste."
+  },
+  "listen_lang_swapped": {
+    "message": "Os idiomas precisam ser diferentes — trocamos"
+  },
+  "listen_autospeak_label": {
+    "message": "Ler as traduções em voz alta"
+  },
+  "listen_autospeak_note": {
+    "message": "Cada frase traduzida é lida em voz alta: a dele para você, a sua para ele."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Escolha primeiro um mecanismo de voz em Ajustes › Voz"
+  },
+  "listen_lang_me_label": {
+    "message": "Eu"
+  },
+  "listen_lang_other_label": {
+    "message": "Ele"
+  },
   "listen_sources_note": {
     "message": "Cada frase vem da transcrição e a tradução do seu mecanismo; ambas podem errar — frases com estrela entram na revisão primeiro."
   },

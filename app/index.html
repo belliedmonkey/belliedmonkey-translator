@@ -321,7 +321,18 @@
         <button id="app-listen-toggle" type="button"></button>
         <button id="app-listen-speak" type="button" class="secondary"></button>
       </div>
-      <label class="note listen-other"><span id="app-listen-other-label"></span> <select id="app-listen-other"></select></label>
+      <!-- 语言对摊在外面而不是收进设置里（画布画板 6，2026-09-08 定 A 版）：语言对是这个
+           模式唯一的必填配置，而它选错之后**不会报错** —— 每句都判成对方、译文语言不对，
+           只会「看起来怪」。摊在外面等于让这个错误自己暴露。 -->
+      <div class="listen-pair" id="app-listen-pair">
+        <label class="note"><span id="app-listen-my-label"></span> <select id="app-listen-my"></select></label>
+        <span class="listen-pair-arrow" aria-hidden="true">⇄</span>
+        <label class="note"><span id="app-listen-other-label"></span> <select id="app-listen-other"></select></label>
+      </div>
+      <label class="check listen-autospeak" id="app-listen-autospeak-row">
+        <input id="app-listen-autospeak" type="checkbox">
+        <span id="app-listen-autospeak-label"></span>
+      </label>
       <p class="note" id="app-listen-cost"></p>
 
       <div id="app-listen-summary" class="drive-card" hidden>
@@ -494,6 +505,23 @@
         <span id="listen-capture-label"></span>
       </label>
       <p class="note" id="listen-capture-note"></p>
+      <!-- 语言对（§9.6，2026-09-08）。两个下拉与对话页底部那两个是**同一份设置**：
+           洽谈现场发现语言选错要能立刻改，跳设置页等于中断会话，所以两处都有。
+           两边选成同一种语言时不是拒绝而是对调 —— 见 ListenCore.langPatch 的注释。 -->
+      <label class="field">
+        <span id="listen-my-lang-label"></span>
+        <select id="listen-my-lang"></select>
+      </label>
+      <label class="field">
+        <span id="listen-other-lang-label"></span>
+        <select id="listen-other-lang"></select>
+      </label>
+      <p class="note" id="listen-lang-note"></p>
+      <label class="check">
+        <input id="listen-autospeak" type="checkbox">
+        <span id="listen-autospeak-label"></span>
+      </label>
+      <p class="note" id="listen-autospeak-note"></p>
       <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
            但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
            系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->

@@ -144,6 +144,29 @@ var ListenCore = (() => {
     return { who: 'them', guessed: true };
   }
 
+  // 两边不能是同一种语言。选重了**不是拒绝，而是对调** —— 拒绝会让用户卡在一个
+  // 他不知道怎么满足的规则上，对调则一次点击就到位。
+  //
+  // 为什么必须禁在源头：两边相同会同时坏三件事 —— sideOf 恒判不出（scripts 集合相同）、
+  // 翻译变成中译中、朗读把原文念一遍；而且一件都不会报错，只会「看起来怪」。
+  // 在下游处处防守比在这里禁掉贵得多。
+  //   which  'my' | 'other'
+  //   cur    { myLang, otherLang }
+  // 返回要写进存储的 patch，外加 swapped 标记供界面出提示。
+  function langPatch(which, code, cur) {
+    const my = baseCode((cur && cur.myLang) || '');
+    const other = baseCode((cur && cur.otherLang) || '');
+    const next = baseCode(code);
+    if (which === 'my') {
+      return next === other
+        ? { listenMyLang: code, listenOtherLang: (cur && cur.myLang) || '', swapped: true }
+        : { listenMyLang: code, swapped: false };
+    }
+    return next === my
+      ? { listenOtherLang: code, listenMyLang: (cur && cur.otherLang) || '', swapped: true }
+      : { listenOtherLang: code, swapped: false };
+  }
+
   // ────────────────────────────────────────────────────────────────────────
   // 回声闸
   //
@@ -391,7 +414,7 @@ var ListenCore = (() => {
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX, HOLD_TAIL_MS,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     newSession, sessionTitle, sourceFor, attribute, addFinal, holdStart, holdEnd, transcriptText,
-    baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens,
+    baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,
     makeIncremental,

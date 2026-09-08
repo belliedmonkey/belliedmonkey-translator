@@ -2343,6 +2343,30 @@
   "listen_capture_note": {
     "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你按下「開始聽」之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
   },
+  "listen_my_lang_label": {
+    "message": "我的語言"
+  },
+  "listen_lang_note": {
+    "message": "兩邊不能是同一種語言。對話頁底部也能改，兩處是同一份設定。"
+  },
+  "listen_lang_swapped": {
+    "message": "兩邊不能是同一種語言 — 已對調"
+  },
+  "listen_autospeak_label": {
+    "message": "自動朗讀譯文"
+  },
+  "listen_autospeak_note": {
+    "message": "整句翻譯完之後自動讀出來。對方說的讀給你聽，你說的讀給對方聽。"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "先到「設定 › 語音」選一個朗讀引擎"
+  },
+  "listen_lang_me_label": {
+    "message": "我"
+  },
+  "listen_lang_other_label": {
+    "message": "對方"
+  },
   "listen_sources_note": {
     "message": "每句原文來自轉寫、譯文來自你的翻譯引擎，都可能有錯——加星的句子優先進複習。"
   },

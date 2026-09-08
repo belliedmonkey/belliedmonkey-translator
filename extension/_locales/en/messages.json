@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap “Start listening” and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
   },
+  "listen_my_lang_label": {
+    "message": "My language"
+  },
+  "listen_lang_note": {
+    "message": "The two languages must differ. You can also change them at the bottom of the conversation screen — same setting."
+  },
+  "listen_lang_swapped": {
+    "message": "The two languages must differ — swapped them"
+  },
+  "listen_autospeak_label": {
+    "message": "Read translations aloud"
+  },
+  "listen_autospeak_note": {
+    "message": "Each finished sentence is read aloud once translated — theirs for you, yours for them."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Pick a speech engine under Settings › Voice first"
+  },
+  "listen_lang_me_label": {
+    "message": "Me"
+  },
+  "listen_lang_other_label": {
+    "message": "Them"
+  },
   "listen_sources_note": {
     "message": "Each sentence comes from transcription and its translation from your engine; both can be wrong — starred sentences go to review first."
   },

@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après « Commencer l’écoute » et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
   },
+  "listen_my_lang_label": {
+    "message": "Ma langue"
+  },
+  "listen_lang_note": {
+    "message": "Les deux langues doivent être différentes. Modifiable aussi en bas de l'écran de conversation — même réglage."
+  },
+  "listen_lang_swapped": {
+    "message": "Les deux langues doivent différer — inversées"
+  },
+  "listen_autospeak_label": {
+    "message": "Lire les traductions à voix haute"
+  },
+  "listen_autospeak_note": {
+    "message": "Chaque phrase traduite est lue à voix haute : la sienne pour vous, la vôtre pour lui."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Choisissez d’abord un moteur vocal dans Réglages › Voix"
+  },
+  "listen_lang_me_label": {
+    "message": "Moi"
+  },
+  "listen_lang_other_label": {
+    "message": "Lui"
+  },
   "listen_sources_note": {
     "message": "Chaque phrase vient de la transcription et sa traduction de votre moteur ; les deux peuvent se tromper — les phrases étoilées passent en révision en premier."
   },

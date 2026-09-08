@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "「대화 · 실시간 통역」은 「듣기 시작」을 누른 뒤에만, 설정한 전사 엔드포인트로만 마이크 음성을 전송합니다. 저희 서버는 음성에 접근하지 않으며, 녹음은 저장하지 않고 텍스트만(이 스위치가 켜진 동안만) 남깁니다."
   },
+  "listen_my_lang_label": {
+    "message": "내 언어"
+  },
+  "listen_lang_note": {
+    "message": "두 언어는 서로 달라야 합니다. 대화 화면 아래에서도 바꿀 수 있으며 같은 설정입니다."
+  },
+  "listen_lang_swapped": {
+    "message": "두 언어는 달라야 합니다 — 서로 바꿨습니다"
+  },
+  "listen_autospeak_label": {
+    "message": "번역을 소리 내어 읽기"
+  },
+  "listen_autospeak_note": {
+    "message": "문장이 번역될 때마다 소리 내어 읽습니다. 상대의 말은 나에게, 내 말은 상대에게."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "먼저 설정 › 음성에서 읽어 주기 엔진을 고르세요"
+  },
+  "listen_lang_me_label": {
+    "message": "나"
+  },
+  "listen_lang_other_label": {
+    "message": "상대"
+  },
   "listen_sources_note": {
     "message": "원문은 전사, 번역은 사용자의 번역 엔진에서 나오므로 둘 다 틀릴 수 있습니다 — 별표한 문장이 먼저 복습에 들어갑니다."
   },

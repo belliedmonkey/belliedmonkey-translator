@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、「聞き始める」を押した後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
   },
+  "listen_my_lang_label": {
+    "message": "自分の言語"
+  },
+  "listen_lang_note": {
+    "message": "2 つは別の言語である必要があります。会話画面の下でも変更でき、設定は共通です。"
+  },
+  "listen_lang_swapped": {
+    "message": "2 つは別の言語である必要があります — 入れ替えました"
+  },
+  "listen_autospeak_label": {
+    "message": "訳文を自動で読み上げる"
+  },
+  "listen_autospeak_note": {
+    "message": "文が訳し終わるたびに読み上げます。相手の発言はあなたに、あなたの発言は相手に。"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "先に「設定 › 音声」で読み上げエンジンを選んでください"
+  },
+  "listen_lang_me_label": {
+    "message": "自分"
+  },
+  "listen_lang_other_label": {
+    "message": "相手"
+  },
   "listen_sources_note": {
     "message": "原文は文字起こし、訳文はあなたの翻訳エンジンによるもので、どちらも誤りうる — スター付きの文が優先して復習に入ります。"
   },

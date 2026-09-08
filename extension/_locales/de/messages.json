@@ -2342,6 +2342,30 @@
   "listen_capture_note": {
     "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, nur nach „Zuhören starten“ und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
   },
+  "listen_my_lang_label": {
+    "message": "Meine Sprache"
+  },
+  "listen_lang_note": {
+    "message": "Die beiden Sprachen müssen verschieden sein. Auch unten im Gesprächsbildschirm änderbar — dieselbe Einstellung."
+  },
+  "listen_lang_swapped": {
+    "message": "Die Sprachen müssen verschieden sein — getauscht"
+  },
+  "listen_autospeak_label": {
+    "message": "Übersetzungen vorlesen"
+  },
+  "listen_autospeak_note": {
+    "message": "Jeder fertige Satz wird vorgelesen — seiner für Sie, Ihrer für ihn."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Wähle zuerst unter Einstellungen › Stimme eine Sprachausgabe"
+  },
+  "listen_lang_me_label": {
+    "message": "Ich"
+  },
+  "listen_lang_other_label": {
+    "message": "Gegenüber"
+  },
   "listen_sources_note": {
     "message": "Jeder Satz stammt aus der Transkription, die Übersetzung aus deiner Engine; beides kann falsch sein — Sätze mit Stern kommen zuerst in die Wiederholung."
   },
