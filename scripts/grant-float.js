@@ -9,7 +9,8 @@
 // 但那时用户已经撞上了 —— 每周跑一次这个脚本是为了在那之前补钱。
 //
 // 三个读回判据（不是「没报错」）：
-//   1. 池子余额 ≥ 100 美元（`GRANT_FLOAT_MIN_USD` 的 20 倍，够 500 人领）
+//   1. 池子余额高于停转发底线（`GRANT_FLOAT_MIN_USD`，现在是 5 美元）。低于它，
+//      中继对**所有人**回 503「不是你用完了」—— 这是保护，不是故障，但你得先知道。
 //   2. 中继 /spec 钉住的模型 == 注册表里 grant 条目的 defaultModel（两处一致）
 //   3. 30 天花费 < 已领取数 × limit（大于就是记账错了，不是用得多）
 
@@ -31,6 +32,9 @@ function slots() {
   return out;
 }
 function die(msg) { console.error('✗ ' + msg); process.exit(1); }
+function limitUsd() {
+  try { return Number(backend().grant && backend().grant.limitUsd) || 0.2; } catch { return 0.2; }
+}
 const usd = (n) => '$' + Number(n).toFixed(2);
 
 // backend.config.js 是「用哪个后端」的唯一来源（learning-design §8.4.1）——
@@ -66,10 +70,15 @@ async function main() {
       const total = Number(d?.data?.total_credits ?? 0);
       const used = Number(d?.data?.total_usage ?? 0);
       const left = total - used;
-      const mark = left >= 100 ? '✓' : left >= 5 ? '⚠' : '✗';
-      console.log(`池子      ${mark} 剩 ${usd(left)}（充值 ${usd(total)} · 已用 ${usd(used)}）`);
-      if (left < 5) console.log('          低于底线 —— 中继现在对所有人回 503「不是你用完了」');
-      else if (left < 100) console.log('          够用但该补了：100 美元 ≈ 500 人份');
+      // 20 美元 = 100 人份，是「不用惦记」的线；5 美元是中继自己停下的底线。
+      const mark = left >= 20 ? '✓' : left >= 5 ? '⚠' : '✗';
+      console.log(`池子      ${mark} 剩 ${usd(left)}（充值 ${usd(total)} · 已用 ${usd(used)}）`
+        + ` ≈ ${Math.floor(left / limitUsd())} 人份`);
+      if (left < 5) console.log('          低于底线 —— 中继现在对所有人回 503「不是你用完了」，该补钱了');
+      else if (left < 20) console.log(`          还能撑 ${Math.floor((left - 5) / limitUsd())} 人；跌到 $5 中继就会自己停下`);
+      console.log('          ⚠ 这把 key 和你日常翻译用的是同一把（keys.md 有记）——');
+      console.log('            这个读数是**整个账号**的余额，你自己花的也算在里面。');
+      console.log('            免费额度单独花了多少，看下面「花费」那一行。');
     } catch (e) { console.log('池子      ✗ 读不到：' + e.message); }
   }
 
