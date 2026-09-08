@@ -50,10 +50,10 @@ If a proposed event does not serve one of these rows, it does not go in.
    ……不随版本变化」 in writing, the domestic backend is not ready, and anonymous events
    crossing the border are not a conversation worth having under PIPL. The china build
    strips the module and the URL; the sentence stays true.
-7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` 记的是账号 ↔ key 的 hash ↔ 该 key 的
-   花费总数 —— 账号级数据，归 learning-design §8.7/§8.10 管；遥测这边只多两个**匿名**事件
-   （领了 / 用完了），不带金额、不带 hash，且服务器上没有任何一列能把 `install_id` 连到
-   `bt_grants`。
+7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
+   （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
+   转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
+   且服务器上没有任何一列能把 `install_id` 连到 `bt_grants`。
 
 ## 3. Event whitelist v1
 
@@ -80,7 +80,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 加进 `build/telemetry.config.js` 的同时把它们移进上表 —— 门禁要求两边逐一对应）：
 `grant_claimed`（无属性；一次领取成功）· `grant_exhausted`（无属性；首次收到 402 且余额判定为
 用完）。另外 `translate_fail.code` 的枚举加 `credit_exhausted`（402）与 `model_not_allowed`
-（403 白名单）—— 否则用完事件会被客户端白名单静默丢掉。
+（403 钉住模型）与 `grant_unavailable`（503 池空）—— 否则用完事件会被客户端白名单静默丢掉。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
