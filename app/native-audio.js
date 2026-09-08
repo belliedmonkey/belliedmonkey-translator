@@ -42,7 +42,7 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop'],
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop', 'mic-aec'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state'],
   };
 
@@ -266,6 +266,11 @@ var NativeAudio = (() => {
     mic = null;
     return post({ type: 'mic-stop' });
   }
+
+  // 验证用：运行期开关原生回声消除（不重建音频图）。产品路径不调它。
+  function micAec(on) {
+    return post({ type: 'mic-aec', on: !!on });
+  }
   // base64 → Int16Array（小端）。同步解码，不走 fetch（同 toBlobUrl 的理由）。
   function pcmOf(b64) {
     const bin = atob(String(b64 || ''));
@@ -316,7 +321,7 @@ var NativeAudio = (() => {
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
     sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
-    micStart, micStop, pcmOf, _fromNative,
+    micStart, micStop, micAec, pcmOf, _fromNative,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

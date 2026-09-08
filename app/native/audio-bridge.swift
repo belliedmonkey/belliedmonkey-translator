@@ -128,6 +128,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
         case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000)
         case "mic-stop":       micStop()
+        case "mic-aec":        micSetAec((body["on"] as? Bool) ?? true)   // 验证用：唯一变量真的只有 AEC
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
     }
@@ -246,6 +247,23 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             return
         }
         emit(["type": "mic-state", "state": "granted", "aec": micAecOn])
+    }
+
+    // 运行期开关回声消除。**不重建音频图** —— 换成两次会话来对照的话，房间、音量、
+    // 麦克风增益都会跟着变，那就不是「唯一变量是 AEC」了，读数不能比。
+    // 事实位仍取读回值：isVoiceProcessingBypassed 在某些路由下会被系统改写。
+    private func micSetAec(_ on: Bool) {
+        guard let engine = micEngine else {
+            emit(["type": "mic-aec", "ok": false, "reason": "no-session"])
+            return
+        }
+        if #available(iOS 13.0, macOS 10.15, *) {
+            engine.inputNode.isVoiceProcessingBypassed = !on
+            let bypassed = engine.inputNode.isVoiceProcessingBypassed
+            emit(["type": "mic-aec", "ok": true, "aec": !bypassed, "enabled": engine.inputNode.isVoiceProcessingEnabled])
+        } else {
+            emit(["type": "mic-aec", "ok": false, "reason": "unavailable"])
+        }
     }
 
     private func micDeliver(_ buffer: AVAudioPCMBuffer) {
