@@ -2231,10 +2231,7 @@
     "message": "對方正在說"
   },
   "listen_now_me": {
-    "message": "我正在說（放開即譯）"
-  },
-  "listen_lang_auto": {
-    "message": "對方 {from} → {to}"
+    "message": "我正在說"
   },
   "listen_lang_me": {
     "message": "中文 → {to}"
@@ -2248,9 +2245,6 @@
   "listen_pill_paused": {
     "message": "已暫停 · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "我在說 · 暫不聽對方"
-  },
   "listen_pill_ended": {
     "message": "已結束 · {t}"
   },
@@ -2259,13 +2253,6 @@
   },
   "listen_toggle_start": {
     "message": "開始聽"
-  },
-  "listen_speak_hold": {
-    "message": "按住 · 我說"
-  },
-  "listen_speak_hold_mac": {
-    "message": "按住 · 我說（或按住空白鍵）",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "複製全文",
@@ -2282,9 +2269,6 @@
   "listen_mac_use": {
     "message": "線上會議、視訊通話也能用：讓對方的聲音從喇叭放出來即可。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "放開 · 譯給對方"
   },
   "listen_end": {
     "message": "結束"
@@ -2343,6 +2327,33 @@
   "listen_capture_note": {
     "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你按下「開始聽」之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
   },
+  "listen_who_them": {
+    "message": "對方"
+  },
+  "listen_who_me": {
+    "message": "我"
+  },
+  "listen_who_guessed": {
+    "message": "按語言猜的 · 點 ↔ 改"
+  },
+  "listen_swap_to_them": {
+    "message": "改成對方說的"
+  },
+  "listen_swap_to_me": {
+    "message": "改成我說的"
+  },
+  "listen_flip_kept_card": {
+    "message": "改邊了 · 之前那張卡你已經複習過，留在「來源 › 對話」裡"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "正在說…"
+  },
+  "listen_reading": {
+    "message": "朗讀中"
+  },
   "listen_my_lang_label": {
     "message": "我的語言"
   },
@@ -2369,9 +2380,6 @@
   },
   "listen_sources_note": {
     "message": "每句原文來自轉寫、譯文來自你的翻譯引擎，都可能有錯——加星的句子優先進複習。"
-  },
-  "listen_speak_nothing": {
-    "message": "沒有聽到你說的話 — 再按住說一次"
   },
   "app_today_due": {
     "message": "今天待複習"
@@ -2404,7 +2412,7 @@
     "message": "轉寫連線中斷：{why} — 正在重連…"
   },
   "listen_history_empty": {
-    "message": "對方開口後，整句會出現在這裡；點任一行可放大給對方看"
+    "message": "雙方隨便說，每句定稿後會出現在這裡；判錯了點 ↔ 改邊"
   },
   "listen_tr_failed": {
     "message": "譯文失敗 · 重試"

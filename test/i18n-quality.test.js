@@ -74,8 +74,10 @@ describe('i18n 译文质量 — 值，不是键', () => {
         if (ALLOW.has(`${k}:${loc}`)) continue;
         const v = msg(loc, k);
         if (!v) continue;
-        // 纯符号/数字/URL 的串没有字形可言，跳过
-        if (!/[A-Za-z]/.test(v)) continue;
+        // 纯符号/数字/URL 的串没有字形可言，跳过。**先剥掉 {占位符}** —— 占位符名是
+        // 标识符不是文案，`{a} ⇄ {b}` 这种串里一个字都没有要翻的，而 a/b 会让它看起来
+        // 像拉丁文。剥完还有字母的，才是真的有文案要翻。
+        if (!/[A-Za-z]/.test(v.replace(/\{[A-Za-z0-9_]+\}/g, ' '))) continue;
         if (!re.test(v)) bad.push(`${loc} · ${k} = ${JSON.stringify(v).slice(0, 60)}`);
       }
     }

@@ -19,28 +19,42 @@ const pair = (myLang, otherLang) => ({ myLang, otherLang, registry: LANGS });
 
 const T0 = 1_757_000_000_000;
 
-describe('ListenCore — 归属 (§9.6「我说」)', () => {
-  test('默认是对方说的', () => {
+describe('ListenCore — 定稿入表（归属按语言，§9.6）', () => {
+  const ZH_EN = pair('zh', 'en');
+  test('外语句归对方、母语句归我 —— 全程没有任何按住动作', () => {
     const s = C.newSession(T0, 0.5);
-    const r = C.addFinal(s, 'Does this bus go to the airport?', T0 + 1000);
-    eq(r.who, 'them');
+    eq(C.addFinal(s, 'Does this bus go to the airport?', T0 + 1000, ZH_EN, DEPS).who, 'them');
+    eq(C.addFinal(s, '去机场，末班车几点', T0 + 6000, ZH_EN, DEPS).who, 'me');
+    eq(C.addFinal(s, 'Yes, until midnight.', T0 + 9000, ZH_EN, DEPS).who, 'them');
+    // 会话标题摘的是对方说的第一句
     eq(s.firstText, 'Does this bus go to the airport?');
+    // 粘性兜底的依据：最后一条归了谁
+    eq(s.lastWho, 'them');
   });
-  test('按住期间到达的是我的，松手后 800 ms 内的也是', () => {
+  test('判得准的行不标「猜的」；行上带 pinned 位供 ↔ 钉住', () => {
     const s = C.newSession(T0, 0.5);
-    C.holdStart(s, T0 + 5000);
-    eq(C.addFinal(s, '去机场，末班车几点', T0 + 6000).who, 'me');
-    C.holdEnd(s, T0 + 7000);
-    eq(C.addFinal(s, '晚上还有吗', T0 + 7500).who, 'me');
-    eq(C.addFinal(s, 'Yes, until midnight.', T0 + 9000).who, 'them');
-    // 我说的句子累积成一段，松手时整段交给翻译
-    eq(s.myPartial, '去机场，末班车几点 晚上还有吗');
-    // 第一句标题摘的是对方说的
-    eq(s.firstText, 'Yes, until midnight.');
+    const r = C.addFinal(s, '这个交期可以接受', T0, ZH_EN, DEPS);
+    eq(r.guessed, false);
+    eq(r.pinned, false);
+  });
+  test('↔ 改边：翻转、钉住，并交回旧方向的快照供回收语料', () => {
+    const s = C.newSession(T0, 0.5);
+    const r = C.addFinal(s, 'Five weeks works.', T0, ZH_EN, DEPS);
+    r.tr = '五周可以。';
+    const before = C.flipWho(r);
+    eq(before.who, 'them');
+    eq(before.text, 'Five weeks works.');
+    eq(before.tr, '五周可以。');
+    eq(r.who, 'me');
+    eq(r.guessed, false);
+    eq(r.pinned, true);
+    // 再点一次转回去
+    eq(C.flipWho(r).who, 'me');
+    eq(r.who, 'them');
   });
   test('空白定稿不入表', () => {
     const s = C.newSession(T0, 0.5);
-    eq(C.addFinal(s, '   ', T0), null);
+    eq(C.addFinal(s, '   ', T0, ZH_EN, DEPS), null);
     eq(s.rows.length, 0);
   });
 });
@@ -73,10 +87,11 @@ describe('ListenCore — 进语料的门', () => {
 });
 
 describe('ListenCore — 进语料的形状', () => {
-  const cfg = { lang: 'en', otherLang: 'en', targetLang: 'zh-CN', label: '对话' };
+  // myLang / registry 是归属判断要的；lang / otherLang / targetLang 是语料形状要的。
+  const cfg = { lang: 'en', otherLang: 'en', myLang: 'zh', targetLang: 'zh-CN', label: '对话', registry: LANGS };
   test('对方说的：text=外语，tr=中文；来源与锚点按会话', () => {
     const s = C.newSession(T0, 0.5);
-    const r = C.addFinal(s, 'It leaves from across the street.', T0 + 4000); r.tr = '它从马路对面发车。';
+    const r = C.addFinal(s, 'It leaves from across the street.', T0 + 4000, cfg, DEPS); r.tr = '它从马路对面发车。';
     const d = C.draftFor(r, s, cfg);
     eq(d.text, 'It leaves from across the street.');
     eq(d.tr, '它从马路对面发车。');
@@ -93,10 +108,10 @@ describe('ListenCore — 进语料的形状', () => {
     ok(src.title.startsWith('对话 · '), src.title);
     ok(src.title.endsWith('It leaves from'), src.title);   // 标题摘第一句前 12 字
   });
-  test('我说的：text=译出的外语，tr=我说的中文', () => {
+  test('我说的：text=译出的外语，tr=我说的中文（归属由中文这件事本身判出来）', () => {
     const s = C.newSession(T0, 0.5);
-    C.holdStart(s, T0);
-    const r = C.addFinal(s, '那 12 路多久一班', T0 + 100); r.tr = 'How often does the 12 run?';
+    const r = C.addFinal(s, '那 12 路多久一班', T0 + 100, cfg, DEPS); r.tr = 'How often does the 12 run?';
+    eq(r.who, 'me');
     const d = C.draftFor(r, s, cfg);
     eq(d.text, 'How often does the 12 run?');
     eq(d.tr, '那 12 路多久一班');
@@ -124,9 +139,9 @@ describe('ListenCore — 静音与计时', () => {
     eq(C.listenedMs(s, T0 + 50_000), 10_000);
     C.resume(s, T0 + 50_000);
     eq(C.listenedMs(s, T0 + 55_000), 15_000);
-    const a = C.addFinal(s, 'One.', T0 + 51_000); a.tr = '一。'; a.written = true; a.starred = true;
-    C.holdStart(s, T0 + 52_000);
-    C.addFinal(s, '二', T0 + 53_000);
+    const ZH_EN = pair('zh', 'en');
+    const a = C.addFinal(s, 'One.', T0 + 51_000, ZH_EN, DEPS); a.tr = '一。'; a.written = true; a.starred = true;
+    C.addFinal(s, '第二句是中文，所以归我', T0 + 53_000, ZH_EN, DEPS);
     deepEq(C.summary(s, T0 + 55_000), { seconds: 15, them: 1, me: 1, written: 1, starred: 1 });
     eq(C.fmtClock(15_000), '00:15');
     eq(C.fmtClock(754_000), '12:34');

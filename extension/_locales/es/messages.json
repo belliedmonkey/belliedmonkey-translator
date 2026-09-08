@@ -2230,10 +2230,7 @@
     "message": "La otra persona dice"
   },
   "listen_now_me": {
-    "message": "Estoy diciendo (suelta para traducir)"
-  },
-  "listen_lang_auto": {
-    "message": "{from} → {to}"
+    "message": "Estoy hablando"
   },
   "listen_lang_me": {
     "message": "a {to}"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "En pausa · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "Hablo yo · no se escucha a la otra persona"
-  },
   "listen_pill_ended": {
     "message": "Terminado · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "Empezar a escuchar"
-  },
-  "listen_speak_hold": {
-    "message": "Mantener · hablo yo"
-  },
-  "listen_speak_hold_mac": {
-    "message": "Mantén · Yo hablo (o mantén Espacio)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "Copiar todo",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "También sirve para reuniones en línea y videollamadas: basta con que la voz de la otra persona salga por los altavoces.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "Soltar · traducir para la otra persona"
   },
   "listen_end": {
     "message": "Terminar"
@@ -2342,6 +2326,33 @@
   "listen_capture_note": {
     "message": "«Conversación · intérprete en vivo» envía el micrófono en continuo al punto de transcripción que configuraste, solo tras «Empezar a escuchar» y solo a ese punto; nuestros servidores nunca tocan el audio; no se guarda ninguna grabación, solo texto — y solo mientras este interruptor esté activado."
   },
+  "listen_who_them": {
+    "message": "Ellos"
+  },
+  "listen_who_me": {
+    "message": "Yo"
+  },
+  "listen_who_guessed": {
+    "message": "Deducido por el idioma: toca ↔ para cambiarlo"
+  },
+  "listen_swap_to_them": {
+    "message": "Marcar como dicho por la otra persona"
+  },
+  "listen_swap_to_me": {
+    "message": "Marcar como dicho por mí"
+  },
+  "listen_flip_kept_card": {
+    "message": "Lado cambiado: la tarjeta anterior ya se repasó, así que queda en Fuentes › Conversación"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Hablando…"
+  },
+  "listen_reading": {
+    "message": "Leyendo"
+  },
   "listen_my_lang_label": {
     "message": "Mi idioma"
   },
@@ -2368,9 +2379,6 @@
   },
   "listen_sources_note": {
     "message": "Cada frase viene de la transcripción y su traducción de tu motor; ambas pueden fallar — las frases con estrella pasan al repaso primero."
-  },
-  "listen_speak_nothing": {
-    "message": "No se oyó nada — mantén pulsado y repite"
   },
   "app_today_due": {
     "message": "Para hoy"
@@ -2403,7 +2411,7 @@
     "message": "Conexión de transcripción perdida: {why} — reconectando…"
   },
   "listen_history_empty": {
-    "message": "Las frases aparecen aquí cuando la otra persona hable; toca una fila para ampliarla"
+    "message": "Hablen los dos con normalidad: cada frase terminada aparece aquí; toca ↔ si el lado está mal"
   },
   "listen_tr_failed": {
     "message": "Traducción fallida · reintentar"

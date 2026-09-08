@@ -2230,10 +2230,7 @@
     "message": "相手が話しています"
   },
   "listen_now_me": {
-    "message": "話しています（離すと翻訳）"
-  },
-  "listen_lang_auto": {
-    "message": "相手 {from} → {to}"
+    "message": "自分が話しています"
   },
   "listen_lang_me": {
     "message": "{to} へ"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "一時停止 · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "発話中 · 相手の声は聞きません"
-  },
   "listen_pill_ended": {
     "message": "終了 · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "聞き始める"
-  },
-  "listen_speak_hold": {
-    "message": "長押し · 話す"
-  },
-  "listen_speak_hold_mac": {
-    "message": "長押し・話す（またはスペース長押し）",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "全文をコピー",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "オンライン会議やビデオ通話でも使えます。相手の声をスピーカーから流すだけです。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "離す · 相手に訳す"
   },
   "listen_end": {
     "message": "終了"
@@ -2342,6 +2326,33 @@
   "listen_capture_note": {
     "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、「聞き始める」を押した後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
   },
+  "listen_who_them": {
+    "message": "相手"
+  },
+  "listen_who_me": {
+    "message": "自分"
+  },
+  "listen_who_guessed": {
+    "message": "言語からの推測です — ↔ で変更"
+  },
+  "listen_swap_to_them": {
+    "message": "相手の発言に変更"
+  },
+  "listen_swap_to_me": {
+    "message": "自分の発言に変更"
+  },
+  "listen_flip_kept_card": {
+    "message": "話者を変更しました。前のカードは復習済みのため「ソース › 会話」に残ります"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "発話中…"
+  },
+  "listen_reading": {
+    "message": "読み上げ中"
+  },
   "listen_my_lang_label": {
     "message": "自分の言語"
   },
@@ -2368,9 +2379,6 @@
   },
   "listen_sources_note": {
     "message": "原文は文字起こし、訳文はあなたの翻訳エンジンによるもので、どちらも誤りうる — スター付きの文が優先して復習に入ります。"
-  },
-  "listen_speak_nothing": {
-    "message": "聞き取れませんでした — もう一度長押しして話してください"
   },
   "app_today_due": {
     "message": "今日の復習"
@@ -2403,7 +2411,7 @@
     "message": "文字起こしの接続が切れました：{why} — 再接続中…"
   },
   "listen_history_empty": {
-    "message": "相手が話すと文がここに出ます。行をタップすると拡大表示"
+    "message": "二人とも普通に話してください。確定した文がここに出ます。話者が違えば ↔ で変更を"
   },
   "listen_tr_failed": {
     "message": "翻訳失敗 · 再試行"

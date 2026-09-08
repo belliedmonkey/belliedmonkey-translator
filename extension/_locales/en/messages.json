@@ -2230,10 +2230,7 @@
     "message": "They are saying"
   },
   "listen_now_me": {
-    "message": "I am saying (release to translate)"
-  },
-  "listen_lang_auto": {
-    "message": "{from} → {to}"
+    "message": "I am speaking"
   },
   "listen_lang_me": {
     "message": "{to} for them"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "Paused · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "Speaking · not listening to them"
-  },
   "listen_pill_ended": {
     "message": "Ended · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "Start listening"
-  },
-  "listen_speak_hold": {
-    "message": "Hold · I speak"
-  },
-  "listen_speak_hold_mac": {
-    "message": "Hold · I speak (or hold Space)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "Copy all",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "Works for online meetings and video calls too: just let the other side's voice play through the speakers.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "Release · translate for them"
   },
   "listen_end": {
     "message": "End"
@@ -2342,6 +2326,33 @@
   "listen_capture_note": {
     "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap “Start listening” and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
   },
+  "listen_who_them": {
+    "message": "Them"
+  },
+  "listen_who_me": {
+    "message": "Me"
+  },
+  "listen_who_guessed": {
+    "message": "Guessed from the language — tap ↔ to change"
+  },
+  "listen_swap_to_them": {
+    "message": "Change to: they said this"
+  },
+  "listen_swap_to_me": {
+    "message": "Change to: I said this"
+  },
+  "listen_flip_kept_card": {
+    "message": "Side changed — the earlier card was already reviewed, so it stays under Sources › Conversation"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Speaking…"
+  },
+  "listen_reading": {
+    "message": "Reading aloud"
+  },
   "listen_my_lang_label": {
     "message": "My language"
   },
@@ -2368,9 +2379,6 @@
   },
   "listen_sources_note": {
     "message": "Each sentence comes from transcription and its translation from your engine; both can be wrong — starred sentences go to review first."
-  },
-  "listen_speak_nothing": {
-    "message": "Nothing heard — hold and say it again"
   },
   "app_today_due": {
     "message": "Due today"
@@ -2403,7 +2411,7 @@
     "message": "Transcription connection lost: {why} — reconnecting…"
   },
   "listen_history_empty": {
-    "message": "Full sentences appear here once they speak; tap a row to show it large"
+    "message": "Both of you just talk — each finished sentence lands here; tap ↔ if the side is wrong"
   },
   "listen_tr_failed": {
     "message": "Translation failed · retry"

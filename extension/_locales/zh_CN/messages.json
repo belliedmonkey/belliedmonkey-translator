@@ -2231,10 +2231,7 @@
     "message": "对方正在说"
   },
   "listen_now_me": {
-    "message": "我正在说（松手即译）"
-  },
-  "listen_lang_auto": {
-    "message": "对方 {from} → {to}"
+    "message": "我正在说"
   },
   "listen_lang_me": {
     "message": "中文 → {to}"
@@ -2248,9 +2245,6 @@
   "listen_pill_paused": {
     "message": "已暂停 · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "我在说 · 对方的声音暂不听"
-  },
   "listen_pill_ended": {
     "message": "已结束 · {t}"
   },
@@ -2259,13 +2253,6 @@
   },
   "listen_toggle_start": {
     "message": "开始听"
-  },
-  "listen_speak_hold": {
-    "message": "按住 · 我说"
-  },
-  "listen_speak_hold_mac": {
-    "message": "按住 · 我说（或按住空格）",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "复制全文",
@@ -2282,9 +2269,6 @@
   "listen_mac_use": {
     "message": "线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "松手 · 译给对方"
   },
   "listen_end": {
     "message": "结束"
@@ -2343,6 +2327,33 @@
   "listen_capture_note": {
     "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
   },
+  "listen_who_them": {
+    "message": "对方"
+  },
+  "listen_who_me": {
+    "message": "我"
+  },
+  "listen_who_guessed": {
+    "message": "按语言猜的 · 点 ↔ 改"
+  },
+  "listen_swap_to_them": {
+    "message": "改成对方说的"
+  },
+  "listen_swap_to_me": {
+    "message": "改成我说的"
+  },
+  "listen_flip_kept_card": {
+    "message": "改边了 · 之前那张卡你已经复习过，留在「来源 › 对话」里"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "正在说…"
+  },
+  "listen_reading": {
+    "message": "朗读中"
+  },
   "listen_my_lang_label": {
     "message": "我的语言"
   },
@@ -2369,9 +2380,6 @@
   },
   "listen_sources_note": {
     "message": "每句原文来自转写、译文来自你的翻译引擎，都可能有错——加星的句子优先进复习。"
-  },
-  "listen_speak_nothing": {
-    "message": "没有听到你说的话 — 再按住说一次"
   },
   "app_today_due": {
     "message": "今天待复习"
@@ -2404,7 +2412,7 @@
     "message": "转写连接中断：{why} — 正在重连…"
   },
   "listen_history_empty": {
-    "message": "对方开口后，整句会出现在这里；点任一行可放大给对方看"
+    "message": "双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边"
   },
   "listen_tr_failed": {
     "message": "译文失败 · 重试"

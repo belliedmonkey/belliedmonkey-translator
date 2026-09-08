@@ -2230,10 +2230,7 @@
     "message": "상대가 말하는 중"
   },
   "listen_now_me": {
-    "message": "말하는 중 (떼면 번역)"
-  },
-  "listen_lang_auto": {
-    "message": "상대 {from} → {to}"
+    "message": "내가 말하는 중"
   },
   "listen_lang_me": {
     "message": "{to}(으)로"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "일시정지 · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "말하는 중 · 상대 음성은 듣지 않음"
-  },
   "listen_pill_ended": {
     "message": "종료 · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "듣기 시작"
-  },
-  "listen_speak_hold": {
-    "message": "길게 누르기 · 내가 말하기"
-  },
-  "listen_speak_hold_mac": {
-    "message": "길게 누르기 · 내가 말하기（또는 스페이스 길게）",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "전체 복사",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "온라인 회의나 영상 통화에도 쓸 수 있습니다. 상대의 목소리를 스피커로 틀기만 하면 됩니다.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "떼기 · 상대에게 번역"
   },
   "listen_end": {
     "message": "종료"
@@ -2342,6 +2326,33 @@
   "listen_capture_note": {
     "message": "「대화 · 실시간 통역」은 「듣기 시작」을 누른 뒤에만, 설정한 전사 엔드포인트로만 마이크 음성을 전송합니다. 저희 서버는 음성에 접근하지 않으며, 녹음은 저장하지 않고 텍스트만(이 스위치가 켜진 동안만) 남깁니다."
   },
+  "listen_who_them": {
+    "message": "상대"
+  },
+  "listen_who_me": {
+    "message": "나"
+  },
+  "listen_who_guessed": {
+    "message": "언어로 추측한 결과 — ↔ 를 눌러 변경"
+  },
+  "listen_swap_to_them": {
+    "message": "상대가 말한 것으로 변경"
+  },
+  "listen_swap_to_me": {
+    "message": "내가 말한 것으로 변경"
+  },
+  "listen_flip_kept_card": {
+    "message": "화자를 바꿨습니다. 이전 카드는 이미 복습해서 «출처 › 대화»에 남습니다"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "말하는 중…"
+  },
+  "listen_reading": {
+    "message": "읽는 중"
+  },
   "listen_my_lang_label": {
     "message": "내 언어"
   },
@@ -2368,9 +2379,6 @@
   },
   "listen_sources_note": {
     "message": "원문은 전사, 번역은 사용자의 번역 엔진에서 나오므로 둘 다 틀릴 수 있습니다 — 별표한 문장이 먼저 복습에 들어갑니다."
-  },
-  "listen_speak_nothing": {
-    "message": "들리지 않았습니다 — 다시 길게 누르고 말하세요"
   },
   "app_today_due": {
     "message": "오늘 복습"
@@ -2403,7 +2411,7 @@
     "message": "전사 연결 끊김: {why} — 다시 연결 중…"
   },
   "listen_history_empty": {
-    "message": "상대가 말하면 문장이 여기에 나타납니다. 행을 탭하면 크게 보기"
+    "message": "두 사람 모두 그냥 말하세요. 확정된 문장이 여기 쌓입니다. 화자가 틀리면 ↔ 를 누르세요"
   },
   "listen_tr_failed": {
     "message": "번역 실패 · 다시 시도"

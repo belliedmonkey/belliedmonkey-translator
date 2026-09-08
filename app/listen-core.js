@@ -31,11 +31,8 @@ var ListenCore = (() => {
     return {
       id: now.toString(36) + r,
       startedAt: now,
-      rows: [],           // 定稿行 {rid, who, text, tr, at, starred, written}
+      rows: [],           // 定稿行 {rid, who, guessed, pinned, text, tr, at, starred, written}
       seq: 0,
-      speaking: false,    // 按住「我说」中
-      holdStart: 0,       // 这一次按住从什么时候开始
-      myPartial: '',      // 按住期间累积的中文（定稿 + 开口尾句）
       lastWho: '',        // 上一条定稿归了谁 —— 判不出语言时的粘性兜底
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
       listenedMs: 0,      // 真正在听的毫秒数（暂停不计）
@@ -56,14 +53,6 @@ var ListenCore = (() => {
     return { id: 'conv:' + s.id, url: 'conv://' + s.id, title: sessionTitle(s, label) };
   }
 
-  // 归属：按住「我说」期间到达的定稿是我的；松手之后 800 ms 内到达的也算我的
-  // （端点检测把最后一句闭合总是晚于松手）。
-  const HOLD_TAIL_MS = 800;
-  function attribute(s, at) {
-    if (s.speaking) return 'me';
-    if (s.holdStart && s.holdEnd && at >= s.holdStart && at <= s.holdEnd + HOLD_TAIL_MS) return 'me';
-    return 'them';
-  }
 
   // ────────────────────────────────────────────────────────────────────────
   // 按语言归属（2026-09-08，取代按住说话）
@@ -277,20 +266,35 @@ var ListenCore = (() => {
     };
   }
 
-  function addFinal(s, text, at) {
+  // 归属由 attributeByLang 给（见上）。**这里不再有第二个真值来源** —— 2026-09-08 之前
+  // 是按「按住『我说』的时间窗」判的，那条机制连同 speaking / holdStart / myPartial 一起
+  // 删掉了：两套判据并存，必然漂。
+  function addFinal(s, text, at, cfg, deps) {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (!clean) return null;
-    const who = attribute(s, at);
-    const row = { rid: ++s.seq, who, text: clean, tr: '', at, starred: false, written: false };
+    const a = attributeByLang(s, clean, at, cfg, deps);
+    const row = {
+      rid: ++s.seq, who: a.who,
+      guessed: a.guessed,   // 判不出、靠粘性或兜底得来 ⇒ 界面标虚线，提示可以点 ↔ 改
+      pinned: false,        // 用户点过 ↔ ⇒ 此后不再被任何自动逻辑改动
+      text: clean, tr: '', at, starred: false, written: false,
+    };
     s.rows.push(row);
     if (s.rows.length > HISTORY_MAX) s.rows.shift();
-    if (!s.firstText && who === 'them') s.firstText = clean;
-    if (who === 'me') s.myPartial = (s.myPartial ? s.myPartial + ' ' : '') + clean;
+    if (!s.firstText && a.who === 'them') s.firstText = clean;
+    s.lastWho = a.who;      // 粘性兜底的依据
     return row;
   }
 
-  function holdStart(s, now) { s.speaking = true; s.holdStart = now; s.holdEnd = 0; s.myPartial = ''; }
-  function holdEnd(s, now) { s.speaking = false; s.holdEnd = now; return s.myPartial; }
+  // 改边：翻转归属并钉住。返回翻转**之前**那一行的快照 —— 调用方要用旧方向算出旧语料
+  // 卡的 id 才能回收它（语料里「学的永远是外语那一面」，改边会让两面互换）。
+  function flipWho(row) {
+    const before = { who: row.who, text: row.text, tr: row.tr };
+    row.who = row.who === 'me' ? 'them' : 'me';
+    row.guessed = false;
+    row.pinned = true;
+    return before;
+  }
 
   function pause(s, now) {
     if (s.resumedAt) { s.listenedMs += Math.max(0, now - s.resumedAt); s.resumedAt = 0; }
@@ -411,9 +415,9 @@ var ListenCore = (() => {
   }
 
   return {
-    SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX, HOLD_TAIL_MS,
+    SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
-    newSession, sessionTitle, sourceFor, attribute, addFinal, holdStart, holdEnd, transcriptText,
+    newSession, sessionTitle, sourceFor, addFinal, flipWho, transcriptText,
     baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,

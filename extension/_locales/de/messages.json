@@ -2230,10 +2230,7 @@
     "message": "Gegenüber sagt"
   },
   "listen_now_me": {
-    "message": "Ich sage (loslassen zum Übersetzen)"
-  },
-  "listen_lang_auto": {
-    "message": "{from} → {to}"
+    "message": "Ich spreche"
   },
   "listen_lang_me": {
     "message": "nach {to}"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "Pausiert · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "Ich spreche · Gegenüber wird nicht gehört"
-  },
   "listen_pill_ended": {
     "message": "Beendet · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "Zuhören starten"
-  },
-  "listen_speak_hold": {
-    "message": "Halten · ich spreche"
-  },
-  "listen_speak_hold_mac": {
-    "message": "Halten · Ich spreche (oder Leertaste halten)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "Alles kopieren",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "Funktioniert auch bei Online-Meetings und Videoanrufen: Lassen Sie die Stimme der anderen Seite einfach über die Lautsprecher laufen.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "Loslassen · fürs Gegenüber übersetzen"
   },
   "listen_end": {
     "message": "Beenden"
@@ -2342,6 +2326,33 @@
   "listen_capture_note": {
     "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, nur nach „Zuhören starten“ und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
   },
+  "listen_who_them": {
+    "message": "Gegenüber"
+  },
+  "listen_who_me": {
+    "message": "Ich"
+  },
+  "listen_who_guessed": {
+    "message": "Aus der Sprache geraten — mit ↔ ändern"
+  },
+  "listen_swap_to_them": {
+    "message": "Als vom Gegenüber gesagt markieren"
+  },
+  "listen_swap_to_me": {
+    "message": "Als von mir gesagt markieren"
+  },
+  "listen_flip_kept_card": {
+    "message": "Seite geändert — die frühere Karte wurde schon wiederholt und bleibt unter Quellen › Gespräch"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Spricht…"
+  },
+  "listen_reading": {
+    "message": "Wird vorgelesen"
+  },
   "listen_my_lang_label": {
     "message": "Meine Sprache"
   },
@@ -2368,9 +2379,6 @@
   },
   "listen_sources_note": {
     "message": "Jeder Satz stammt aus der Transkription, die Übersetzung aus deiner Engine; beides kann falsch sein — Sätze mit Stern kommen zuerst in die Wiederholung."
-  },
-  "listen_speak_nothing": {
-    "message": "Nichts gehört — halten und noch einmal sprechen"
   },
   "app_today_due": {
     "message": "Heute fällig"
@@ -2403,7 +2411,7 @@
     "message": "Transkriptionsverbindung unterbrochen: {why} — verbinde neu…"
   },
   "listen_history_empty": {
-    "message": "Sobald das Gegenüber spricht, erscheinen die Sätze hier; Zeile antippen zum Vergrößern"
+    "message": "Sprecht einfach beide — jeder fertige Satz landet hier; bei falscher Seite auf ↔ tippen"
   },
   "listen_tr_failed": {
     "message": "Übersetzung fehlgeschlagen · erneut"
