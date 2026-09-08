@@ -61,6 +61,7 @@ var AppListen = (() => {
   let cameFrom = 'signed-in';
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
   let speakingRid = 0;      // 正在朗读哪一行（0 = 没在读）
+  let aecOn = false;        // 原生语音处理是否真的开着（原生上报的读回值）
   const sq = C.makeSpeakQueue();     // 朗读队列（裁定 7：排队逐句读完）
   const echo = C.makeEchoGuard();    // 回声闸第一层：自己读出去的别再当成一句话收回来
   let speakPumping = false;          // 泵在跑（同一时刻只有一个）
@@ -252,7 +253,11 @@ var AppListen = (() => {
     if (sock.sendPcm(int16) !== false) pcmSent++;
     if (phase === 'listening' && C.silenceCheck(session, C.rmsOf(int16), now())) pause('silence');
   }
-  function onMicState(state, reason) {
+  // 第三个参数是原生语音处理的**读回**事实位：回声消除与噪声抑制真的开起来了没有。
+  // 开着也不撤掉 JS 侧那几道软闸 —— 那些闸挡的是「消不干净」的残留，而残留是必然的
+  // （小扬声器在高音量下的失真是非线性的，回声消除只能消线性回声路径）。
+  function onMicState(state, reason, aec) {
+    if (state === 'granted') aecOn = !!aec;
     if (state === 'denied') halt('denied', '');
     else if (state === 'failed') halt('failed', reason);
     else if (state === 'interrupted') {
@@ -911,5 +916,5 @@ var AppListen = (() => {
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
     _debug: () => ({ phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
-      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken }) };
+      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, aec: aecOn }) };
 })();

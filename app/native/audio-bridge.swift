@@ -128,6 +128,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
         case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000)
         case "mic-stop":       micStop()
+        case "mic-aec":        micSetAec((body["on"] as? Bool) ?? true)   // 验证用：唯一变量真的只有 AEC
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
     }
@@ -148,7 +149,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private var micEngine: AVAudioEngine?
     private var micConverter: AVAudioConverter?
+    private var micConverterIn: AVAudioFormat?   // 转换器是按哪个输入格式建的
     private var micOutFormat: AVAudioFormat?
+    private var micAecOn = false                 // 回声消除是否真的开起来了（读回值，不是「没抛错」）
 
     private func micStart(rate: Double) {
         micStop()
@@ -179,6 +182,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         do {
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
             try session.setActive(true)
+            // 语音处理默认把输出走听筒。`.defaultToSpeaker` 理论上顶得住，但这个组合没实测过，
+            // 而「声音忽然从听筒里出来、对方听不见」在真机上几乎无法归因。这条更强，且幂等。
+            try? session.overrideOutputAudioPort(.speaker)
         } catch {
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
             return
@@ -186,20 +192,49 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 #endif
         let engine = AVAudioEngine()
         let input = engine.inputNode
+
+        // ── 回声消除 + 噪声抑制 + 自动增益：一个开关全给（裁定 5，2026-09-08）──────
+        //
+        // **位置是硬的**：必须在读格式、装 tap 之前，且引擎处于停止态。开启之后
+        // inputNode 底下的音频单元会换成 VPIO，输出格式随之改变 —— 晚一行，转换器和
+        // tap 就都是按旧格式建的，表现是「权限给了、tap 装了、一块 PCM 都不出来」。
+        //
+        // 失败**静默降级**：没有回声消除的听译仍是完整功能，而「麦克风启动失败」是四种
+        // 停止态里最贵的一种。事实位取 isVoiceProcessingEnabled 的**读回值** ——
+        // 「没抛错」不等于「开起来了」，这条纪律与 tts.js 等 start 事件同源。
+        var aecOn = false
+        if #available(iOS 13.0, macOS 10.15, *) {
+            do {
+                try input.setVoiceProcessingEnabled(true)
+                aecOn = input.isVoiceProcessingEnabled
+            } catch {
+                aecOn = false
+            }
+        }
+        micAecOn = aecOn
+        // 语音处理默认会在听到人声时把「别的音频」压小 —— 而这里「别的音频」正是我们要
+        // 读给对方听的译文。调到最轻，否则对方听到的朗读忽大忽小。
+        if #available(iOS 17.0, macOS 14.0, *), aecOn {
+            var duck = AVAudioVoiceProcessingOtherAudioDuckingConfiguration()
+            duck.enableAdvancedDucking = false
+            duck.duckingLevel = .min
+            input.voiceProcessingOtherAudioDuckingConfiguration = duck
+        }
+
         let inFormat = input.outputFormat(forBus: 0)
         guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
             emit(["type": "mic-state", "state": "failed", "reason": "input-format"])
             return
         }
-        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
-              let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
+        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true) else {
             emit(["type": "mic-state", "state": "failed", "reason": "converter"])
             return
         }
         micEngine = engine
-        micConverter = converter
         micOutFormat = outFormat
-        input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
+        micConverter = nil; micConverterIn = nil   // 转换器在第一块 PCM 到达时按它的格式建
+        // format 传 nil = 用节点当前的格式。传死的 inFormat 会在路由变化后与实际不符。
+        input.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
             self?.micDeliver(buffer)
         }
         do {
@@ -207,15 +242,42 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             try engine.start()
         } catch {
             input.removeTap(onBus: 0)
-            micEngine = nil; micConverter = nil; micOutFormat = nil
+            micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
             return
         }
-        emit(["type": "mic-state", "state": "granted"])
+        emit(["type": "mic-state", "state": "granted", "aec": micAecOn])
+    }
+
+    // 运行期开关回声消除。**不重建音频图** —— 换成两次会话来对照的话，房间、音量、
+    // 麦克风增益都会跟着变，那就不是「唯一变量是 AEC」了，读数不能比。
+    // 事实位仍取读回值：isVoiceProcessingBypassed 在某些路由下会被系统改写。
+    private func micSetAec(_ on: Bool) {
+        guard let engine = micEngine else {
+            emit(["type": "mic-aec", "ok": false, "reason": "no-session"])
+            return
+        }
+        if #available(iOS 13.0, macOS 10.15, *) {
+            engine.inputNode.isVoiceProcessingBypassed = !on
+            let bypassed = engine.inputNode.isVoiceProcessingBypassed
+            emit(["type": "mic-aec", "ok": true, "aec": !bypassed, "enabled": engine.inputNode.isVoiceProcessingEnabled])
+        } else {
+            emit(["type": "mic-aec", "ok": false, "reason": "unavailable"])
+        }
     }
 
     private func micDeliver(_ buffer: AVAudioPCMBuffer) {
-        guard let converter = micConverter, let outFormat = micOutFormat else { return }
+        guard let outFormat = micOutFormat else { return }
+        // 转换器按**这一块的实际格式**懒建 + 缓存。原来是会话开始时一次性建好的，
+        // 而路由一变（插拔耳机、语音处理重协商）输入格式就变 —— 喂进一个格式不符的块，
+        // convert 返回 FormatNotSupported，然后被下面的 guard 静默丢掉，从此一块都不出来。
+        // 这是今天就存在的缺陷，开了语音处理之后触发概率显著变高。
+        if micConverter == nil || micConverterIn != buffer.format {
+            guard let c = AVAudioConverter(from: buffer.format, to: outFormat) else { return }
+            micConverter = c
+            micConverterIn = buffer.format
+        }
+        guard let converter = micConverter else { return }
         let ratio = outFormat.sampleRate / buffer.format.sampleRate
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 16
         guard let out = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: capacity) else { return }
@@ -236,7 +298,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         guard let engine = micEngine else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
-        micEngine = nil; micConverter = nil; micOutFormat = nil
+        micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
+        micAecOn = false
         emit(["type": "mic-state", "state": "ended"])
     }
 

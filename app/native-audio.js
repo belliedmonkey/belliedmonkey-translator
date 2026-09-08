@@ -42,7 +42,7 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop'],
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop', 'mic-aec'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state'],
   };
 
@@ -254,7 +254,9 @@ var NativeAudio = (() => {
   // 每块一条 `mic-pcm`；状态一条 `mic-state`（granted / denied / failed / interrupted / ended）。
   // WebKit 在 App 不可见时一律静音页内的 getUserMedia（2026-09-07 真机三轮实证），
   // 所以锁屏后还想听，采集只能在这儿。
-  //   handlers: { onPcm(Int16Array), onState(state, reason) }
+  //   handlers: { onPcm(Int16Array), onState(state, reason, aec) }
+  //   aec = 原生的语音处理（回声消除 + 噪声抑制 + 自动增益）**实际**开起来了没有。
+  //   它是读回值，不是「没抛错」—— 消不掉的时候 JS 侧那几道软闸才是唯一防线。
   function micStart(rate, handlers) {
     if (!available()) return false;
     mic = handlers || null;
@@ -263,6 +265,11 @@ var NativeAudio = (() => {
   function micStop() {
     mic = null;
     return post({ type: 'mic-stop' });
+  }
+
+  // 验证用：运行期开关原生回声消除（不重建音频图）。产品路径不调它。
+  function micAec(on) {
+    return post({ type: 'mic-aec', on: !!on });
   }
   // base64 → Int16Array（小端）。同步解码，不走 fetch（同 toBlobUrl 的理由）。
   function pcmOf(b64) {
@@ -296,7 +303,7 @@ var NativeAudio = (() => {
       return;   // 音频块不广播
     }
     if (msg.type === 'mic-state') {
-      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || '')); } catch (_) {} }
+      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || ''), !!msg.aec); } catch (_) {} }
     }
     for (const fn of listeners.slice()) { try { fn(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
   }
@@ -314,7 +321,7 @@ var NativeAudio = (() => {
     artSizes: () => artSizes.slice(),
     suspends: () => suspends,
     sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
-    micStart, micStop, pcmOf, _fromNative,
+    micStart, micStop, micAec, pcmOf, _fromNative,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}
