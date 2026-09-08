@@ -410,3 +410,76 @@ describe('ListenCore — 这次不留记录（裁定 6）', () => {
     eq(C.summary(s, T0 + 1000).flips, 1);
   });
 });
+
+
+describe('ListenCore — 嘈杂环境下的静音门限（自适应）', () => {
+  // 每块 PCM 约 100 ms；摸底期 2500 ms ⇒ 前 25 块用来摸环境底噪。
+  const feed = (s, rms, from, blocks) => {
+    let hit = false;
+    for (let i = 0; i < blocks; i++) hit = C.silenceCheck(s, rms, from + i * 100) || hit;
+    return hit;
+  };
+  const warm = (s, noise, at) => feed(s, noise, at, 26);   // 摸完底噪
+
+  test('安静房间：门限不动，仍是 0.004 那个下限', () => {
+    const s = C.newSession(T0, 0.5);
+    warm(s, 0.001, T0);
+    eq(C.noiseGate(s), C.SILENCE_RMS || 0.004);
+  });
+
+  test('嘈杂环境：门限跟着底噪抬起来，但封顶', () => {
+    const a = C.newSession(T0, 0.5);
+    warm(a, 0.01, T0);
+    eq(Math.round(C.noiseGate(a) * 1000) / 1000, 0.025);      // 0.01 × 2.5
+    const b = C.newSession(T0, 0.5);
+    warm(b, 0.05, T0);                                         // 极吵
+    eq(C.noiseGate(b), C.NOISE_CEIL, '再吵也不能高到把正常说话判成静音');
+  });
+
+  test('★ 嘈杂环境里 30 秒没人说话 ⇒ 真的会暂停（固定门限时永远不会）', () => {
+    const s = C.newSession(T0, 0.5);
+    const noise = 0.01;                       // 咖啡厅级底噪，高过写死的 0.004
+    // 用旧的固定门限判：0.01 >= 0.004 恒成立 ⇒ lastVoiceAt 每块都被刷新 ⇒ 永不暂停。
+    // 这正是要修的那个 bug：「30 秒静音自动暂停」是防止一直烧钱的唯一闸门。
+    ok(noise >= 0.004, '前提：这个底噪确实高过旧的固定门限');
+    warm(s, noise, T0);
+    const hit = feed(s, noise, T0 + 2600, 320);   // 再喂 32 秒的纯底噪
+    ok(hit, '嘈杂环境下 30 秒只有底噪，应该判定为静音并暂停');
+  });
+
+  test('嘈杂环境里正常说话仍判为有声，不会被误暂停', () => {
+    const s = C.newSession(T0, 0.5);
+    warm(s, 0.01, T0);
+    const hit = feed(s, 0.06, T0 + 2600, 320);    // 32 秒持续说话
+    ok(!hit, '说话的能量远高于门限，不该被判成静音');
+  });
+
+  test('摸底期取最小值：开头就有人说话也不会把门限抬歪', () => {
+    const s = C.newSession(T0, 0.5);
+    // 摸底的 2.5 秒里一半在说话、一半是停顿 —— 停顿处才是底噪
+    for (let i = 0; i < 26; i++) C.silenceCheck(s, i % 2 ? 0.08 : 0.002, T0 + i * 100);
+    ok(C.noiseGate(s) <= 0.006, '门限该落在停顿处的底噪附近，实际 ' + C.noiseGate(s));
+  });
+
+  test('★ 真说话不会被当成噪声：停顿把「连续有声」的计时清掉', () => {
+    const s = C.newSession(T0, 0.5);
+    warm(s, 0.002, T0);
+    const gate0 = C.noiseGate(s);
+    // 说 3 秒、停 0.5 秒，来回十轮 —— 真实说话的样子。若没有「停顿清计时」这一条，
+    // 说话会被当成环境噪声，门限一路抬高，最后连说话都判成静音。
+    let at = T0 + 2600;
+    for (let round = 0; round < 10; round++) {
+      for (let i = 0; i < 30; i++) { C.silenceCheck(s, 0.07, at); at += 100; }
+      for (let i = 0; i < 5; i++) { C.silenceCheck(s, 0.002, at); at += 100; }
+    }
+    eq(C.noiseGate(s), gate0, '说话带停顿，门限不该被抬 —— 实际 ' + gate0 + ' → ' + C.noiseGate(s));
+  });
+
+  test('环境从安静走到嘈杂，门限跟着走（静音期的样本持续修正底噪）', () => {
+    const s = C.newSession(T0, 0.5);
+    warm(s, 0.001, T0);
+    const quiet = C.noiseGate(s);
+    feed(s, 0.008, T0 + 2600, 600);               // 环境变吵，但还没到说话的量级
+    ok(C.noiseGate(s) > quiet, '门限该跟着抬，实际 ' + quiet + ' → ' + C.noiseGate(s));
+  });
+});

@@ -14,7 +14,12 @@
 
 var ListenCore = (() => {
   const SILENCE_MS = 30000;      // 30 s 没声音 ⇒ 暂停（interaction-spec 停止态四）
-  const SILENCE_RMS = 0.004;     // Int16 归一化后的 RMS 门限；环境底噪通常 < 0.002
+  const SILENCE_RMS = 0.004;     // 安静房间的门限；也是自适应门限的**下限**
+  const NOISE_WARMUP_MS = 2500;  // 开头这么久用来摸环境底噪
+  const NOISE_FACTOR = 2.5;      // 门限 = 底噪 × 这个
+  const NOISE_CEIL = 0.03;       // 门限上限：再吵也不能高到把正常说话判成静音
+  const NOISE_DECAY = 0.98;      // 底噪估计的滑动系数（只用静音期的样本更新）
+  const NOISE_STUCK_MS = 8000;   // 连续这么久「一直有声」= 环境变吵了，不是有人在说话
   const DEBOUNCE_MS = 900;       // 边说边译的防抖（与 subtitle-adapter 同值）
   const TITLE_CHARS = 12;        // 会话标题里摘第一句的前几个字
   const HISTORY_MAX = 200;       // 屏幕上保留的定稿行数；语料里不限
@@ -37,6 +42,11 @@ var ListenCore = (() => {
       ephemeral: false,   // 「这次不留记录」：这一场只在屏幕上存在（开始前决定，中途不可改）
       flips: 0,           // 点过几次 ↔ —— 归属判得准不准的唯一体感指标
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
+      noiseFrom: 0,       // 环境底噪的摸底起点
+      noiseMin: null,     // 摸底期内的最小 RMS（≈ 底噪）
+      noiseFloor: null,   // 当前的底噪估计
+      voiceFrom: 0,       // 连续判为「有声」的起点（用来发现环境变吵）
+      voiceMin: null,     // 这段连续有声里的最小 RMS
       listenedMs: 0,      // 真正在听的毫秒数（暂停不计）
       resumedAt: now,     // 本段计时的起点；0 = 暂停中
       firstText: '',
@@ -311,9 +321,48 @@ var ListenCore = (() => {
     for (let i = 0; i < pcm.length; i++) { const v = pcm[i] / 32768; acc += v * v; }
     return Math.sqrt(acc / pcm.length);
   }
+  // 静音门限是**自适应**的，不是写死的 0.004。
+  //
+  // 为什么必须自适应：那个常量的注释写着「环境底噪通常 < 0.002」，这在安静房间成立，
+  // 在咖啡厅、展会、马路边不成立 —— 底噪一直高过门限，于是「30 秒没声音就暂停以免计费」
+  // **永远不会触发**，而那是这个模式里防止一直烧钱的唯一闸门。
+  //
+  // 怎么摸底噪：开头 2.5 秒取**最小值**而不是平均 —— 这几秒里可能已经有人在说话，
+  // 而说话是断续的，最小值落在停顿处，比平均值更接近真正的底噪。之后用**静音期**的
+  // 样本做慢速滑动平均，所以从安静走到嘈杂（或反过来）都跟得上。
+  // 上下都有夹：下限是安静房间的 0.004，上限 0.03 —— 再吵也不能高到把正常说话判成静音。
+  function noiseGate(s) {
+    const floor = s.noiseFloor == null ? null : s.noiseFloor;
+    if (floor == null) return SILENCE_RMS;
+    return Math.min(NOISE_CEIL, Math.max(SILENCE_RMS, floor * NOISE_FACTOR));
+  }
+
   // 每来一块 PCM 调一次；返回 true 表示已经静了 SILENCE_MS，该暂停了。
   function silenceCheck(s, rms, now) {
-    if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; return false; }
+    if (!s.noiseFrom) s.noiseFrom = now;
+    if (s.noiseFloor == null) {
+      // 摸底期：只收最小值
+      s.noiseMin = s.noiseMin == null ? rms : Math.min(s.noiseMin, rms);
+      if (now - s.noiseFrom >= NOISE_WARMUP_MS) s.noiseFloor = s.noiseMin;
+    }
+    const gate = noiseGate(s);
+    if (rms >= gate) {
+      s.lastVoiceAt = now;
+      // 门限只靠「低于门限的样本」修正是不够的：环境一变吵，所有底噪都高过旧门限、
+      // 全被当成语音，底噪估计就再也升不上去了（2026-09-08 被单测逼出来的漏洞）。
+      // 补一条相反方向的判据：**持续稳定的高能量是噪声，不是语音** —— 没人能连说
+      // 8 秒不带一次落到底噪的停顿。真说话会在停顿处把这个计时清掉。
+      if (!s.voiceFrom) { s.voiceFrom = now; s.voiceMin = rms; }
+      else s.voiceMin = Math.min(s.voiceMin == null ? rms : s.voiceMin, rms);
+      if (now - s.voiceFrom >= NOISE_STUCK_MS) {
+        s.noiseFloor = s.voiceMin;      // 这段时间的最小值就是新的底噪
+        s.voiceFrom = 0; s.voiceMin = null;
+      }
+      return false;
+    }
+    s.voiceFrom = 0; s.voiceMin = null;   // 静下来了：连续有声的计时作废
+    // 低于门限 = 这一块是环境音，用它慢慢修正底噪估计（环境变安静也跟得上）
+    if (s.noiseFloor != null) s.noiseFloor = s.noiseFloor * NOISE_DECAY + rms * (1 - NOISE_DECAY);
     return now - s.lastVoiceAt >= SILENCE_MS;
   }
 
@@ -423,6 +472,7 @@ var ListenCore = (() => {
   return {
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
+    NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
     newSession, sessionTitle, sourceFor, addFinal, flipWho, transcriptText,
     baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
