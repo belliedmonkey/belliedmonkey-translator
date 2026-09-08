@@ -36,6 +36,7 @@ var ListenCore = (() => {
       speaking: false,    // 按住「我说」中
       holdStart: 0,       // 这一次按住从什么时候开始
       myPartial: '',      // 按住期间累积的中文（定稿 + 开口尾句）
+      lastWho: '',        // 上一条定稿归了谁 —— 判不出语言时的粘性兜底
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
       listenedMs: 0,      // 真正在听的毫秒数（暂停不计）
       resumedAt: now,     // 本段计时的起点；0 = 暂停中
@@ -62,6 +63,195 @@ var ListenCore = (() => {
     if (s.speaking) return 'me';
     if (s.holdStart && s.holdEnd && at >= s.holdStart && at <= s.holdEnd + HOLD_TAIL_MS) return 'me';
     return 'them';
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // 按语言归属（2026-09-08，取代按住说话）
+  //
+  // 「这句是谁说的」= 比两边语言的**文字系统**。判断器不在这里：dominantScript 由
+  // 调用方经 deps 注入（生产里是 LearnRules.dominantScript，它已经在 App 包里），
+  // 而每门语言写在哪些文字系统里，读的是语言注册表自己的 scripts 字段
+  // （build/langs.config.js）—— 这里不重述任何语言列表，也不新写识别逻辑。
+  // ────────────────────────────────────────────────────────────────────────
+
+  function baseCode(lang) {
+    return String(lang == null ? '' : lang).toLowerCase().split('-')[0];
+  }
+
+  // 一门语言写在哪些文字系统里。注册表不认识的语言 ⇒ 空集 ⇒ 判不出 ⇒ 走兜底。
+  function scriptsOf(code, registry) {
+    const want = baseCode(code);
+    const list = Array.isArray(registry) ? registry : [];
+    for (const e of list) {
+      if (e && baseCode(e.code) === want) return new Set(e.scripts || []);
+    }
+    return new Set();
+  }
+
+  // 汉字圈消歧。**顺序是纪律**：日文里也有汉字，所以假名要先判；韩文同理。
+  // 与 translation-core.js 的 SCRIPT_OF_TARGET 是姐妹表，两处顺序必须一致
+  // （test/app-listen.test.js 有一条一致性用例钉着）。
+  //
+  // 注意这里是「出现即判」而不是「计数取多」—— 一句汉字很多的日文，
+  // dominantScript 会说 Han，但只要有一个假名，它就是日文。
+  const CJK_RULES = [
+    ['ja', /[\p{Script=Hiragana}\p{Script=Katakana}]/u],
+    ['ko', /\p{Script=Hangul}/u],
+    ['zh', /\p{Script=Han}/u],
+  ];
+  function cjkLangOf(text) {
+    const t = String(text == null ? '' : text);
+    for (const [lang, re] of CJK_RULES) if (re.test(t)) return lang;
+    return '';
+  }
+
+  // 主判据。返回 'me' | 'them' | ''（空 = 判不出，由 attributeByLang 兜底）。
+  //   cfg  { myLang, otherLang, registry }
+  //   deps { dominantScript }
+  function sideOf(text, cfg, deps) {
+    const ds = deps && deps.dominantScript;
+    if (typeof ds !== 'function' || !cfg) return '';
+    const script = ds(text);
+    if (!script) return '';                       // 纯数字、纯标点：没有文字系统可比
+    const mine = scriptsOf(cfg.myLang, cfg.registry);
+    const theirs = scriptsOf(cfg.otherLang, cfg.registry);
+    const inMine = mine.has(script);
+    const inTheirs = theirs.has(script);
+    if (inMine && !inTheirs) return 'me';
+    if (inTheirs && !inMine) return 'them';
+    // 两边都含这个文字系统（中↔日、中↔韩 都含 Han）：再用汉字圈消歧试一次。
+    if (inMine && inTheirs) {
+      const lang = cjkLangOf(text);
+      if (lang) {
+        const my = baseCode(cfg.myLang);
+        const other = baseCode(cfg.otherLang);
+        if (lang === my && lang !== other) return 'me';
+        if (lang === other && lang !== my) return 'them';
+      }
+    }
+    return '';                                    // 拉丁对拉丁，或消歧也分不开
+  }
+
+  // 归属的完整阶梯。判不出时先粘性、再归对方。
+  //
+  // 为什么兜底是「对方」而不是「我」：归错成「我」会把这句译成对方的语言**并朗读
+  // 出来**，等于当着客户念一句莫名其妙的话；归错成「对方」只是屏幕上多一行我看得懂
+  // 的字。错误要往安静的方向倒。
+  function attributeByLang(s, text, at, cfg, deps) {
+    const side = sideOf(text, cfg, deps);
+    if (side) return { who: side, guessed: false };
+    if (s && s.lastWho) return { who: s.lastWho, guessed: true };
+    return { who: 'them', guessed: true };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // 回声闸
+  //
+  // 朗读的是**译文**，而译文的语言恰好是对话另一边的语言 —— 所以朗读一旦被自己的
+  // 麦克风录回去，它会被 sideOf 判成「另一个人说的」，再翻译、再朗读，形成闭环。
+  // 原生回声消除是第一道防线，这是第二道：**它不能依赖原生那道成立**。
+  //
+  // 用包含度而不是 Jaccard：回声常常只截到我们朗读内容的一段（消除器半路才收敛）。
+  // ────────────────────────────────────────────────────────────────────────
+
+  const ECHO_TAIL_MS = 1500;     // 播完之后还要防这么久（房间混响 + 桥上在飞的 PCM）
+  const ECHO_KEEP_MS = 20000;    // 一条登记项活多久
+  const ECHO_SIM = 0.6;          // 包含度门限
+  const ECHO_MAX = 4;            // 最多同时记几条
+
+  const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+  const DROP_PUNCT = /[\s.,!?;:'"()\[\]{}—–\-。，！？；：、「」『』（）《》…]+/gu;
+
+  // 归一化成词/字的集合。中日韩按字切，其余按词切。
+  function echoTokens(text) {
+    const t = String(text == null ? '' : text).toLowerCase().replace(DROP_PUNCT, ' ').trim();
+    if (!t) return new Set();
+    if (CJK_CHAR.test(t)) return new Set([...t].filter((c) => !/\s/.test(c)));
+    return new Set(t.split(/\s+/).filter(Boolean));
+  }
+
+  function makeEchoGuard() {
+    let items = [];        // { tokens, from, to }  to=0 表示还在读
+    let dropped = 0;
+    function sweep(at) { items = items.filter((it) => at - (it.to || at) < ECHO_KEEP_MS); }
+    return {
+      // 开始朗读一段文本
+      speaking(text, at) {
+        const tokens = echoTokens(text);
+        if (!tokens.size) return;
+        sweep(at);
+        items.push({ tokens, from: at, to: 0 });
+        if (items.length > ECHO_MAX) items.shift();
+      },
+      // 播完（或被打断）
+      spoke(at) {
+        for (let i = items.length - 1; i >= 0; i--) {
+          if (!items[i].to) { items[i].to = at; break; }
+        }
+      },
+      // 这一句是不是我们自己刚读出去的？
+      isEcho(text, at) {
+        const b = echoTokens(text);
+        if (!b.size) return false;
+        for (const it of items) {
+          const until = (it.to || at) + ECHO_TAIL_MS;
+          if (at < it.from || at > until) continue;
+          let hit = 0;
+          for (const tk of b) if (it.tokens.has(tk)) hit++;
+          if (hit / b.size >= ECHO_SIM) { dropped++; return true; }
+        }
+        return false;
+      },
+      dropped() { return dropped; },
+      size() { return items.length; },
+    };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // 朗读队列
+  //
+  // 队列不是为了优雅：朗读引擎每次开口前都会先掐掉上一次，并发调用会互相打断。
+  // 裁定 7 是「排队逐句读完，不漏句」。
+  // ────────────────────────────────────────────────────────────────────────
+
+  const SPOKEN_WINDOW_MS = 60000;   // 同一段文本这么久内不再读第二遍（回声第二道闸）
+  const SPOKEN_MAX = 8;
+
+  function makeSpeakQueue() {
+    let q = [];
+    let spoken = [];      // { tokens, at }
+    return {
+      // 同一行重复入队 ⇒ 后来的替换先前的（改边、重译）
+      push(job) {
+        if (!job || !job.text) return;
+        const i = q.findIndex((x) => x.rid === job.rid);
+        if (i >= 0) q[i] = job; else q.push(job);
+      },
+      next() { return q.shift() || null; },
+      drop(rid) { q = q.filter((x) => x.rid !== rid); },
+      clear() { q = []; },
+      size() { return q.length; },
+      peek() { return q[0] || null; },
+      // 第二道回声闸：这段话我们最近读过吗
+      spokenRecently(text, at) {
+        const b = echoTokens(text);
+        if (!b.size) return false;
+        for (const it of spoken) {
+          if (at - it.at > SPOKEN_WINDOW_MS) continue;
+          let hit = 0;
+          for (const tk of b) if (it.tokens.has(tk)) hit++;
+          if (hit / b.size >= ECHO_SIM) return true;
+        }
+        return false;
+      },
+      noteSpoken(text, at) {
+        const tokens = echoTokens(text);
+        if (!tokens.size) return;
+        spoken = spoken.filter((it) => at - it.at <= SPOKEN_WINDOW_MS);
+        spoken.push({ tokens, at });
+        if (spoken.length > SPOKEN_MAX) spoken.shift();
+      },
+    };
   }
 
   function addFinal(s, text, at) {
@@ -199,7 +389,10 @@ var ListenCore = (() => {
 
   return {
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX, HOLD_TAIL_MS,
+    ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     newSession, sessionTitle, sourceFor, attribute, addFinal, holdStart, holdEnd, transcriptText,
+    baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens,
+    makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,
     makeIncremental,
   };

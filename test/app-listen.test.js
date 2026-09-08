@@ -5,8 +5,17 @@
 //   2. 进语料的门：译文没到不写；星绕过一切；开关关着不写；白名单与 §6 的门各挡各的。
 //   3. 进语料的形状：来源 conv:<id>、锚点 k:'conv'、学的永远是外语那一侧。
 //   4. 静音计时与会话计时：30 s 没声音才算静，暂停不计入已听时长。
+const fs = require('fs');
+const path = require('path');
 const { describe, test, ok, eq, deepEq } = require('./harness');
 const C = require('../app/listen-core.js');
+const LANGS = require('../build/langs.config.js');
+const LearnRules = require('../extension/content/learn-rules.js');
+
+// 生产里 listen.js 注入的就是这一个；测试里也用真的，不用替身 —— 归属判得准不准，
+// 一半取决于它对真实句子的表现。
+const DEPS = { dominantScript: LearnRules.dominantScript };
+const pair = (myLang, otherLang) => ({ myLang, otherLang, registry: LANGS });
 
 const T0 = 1_757_000_000_000;
 
@@ -159,5 +168,192 @@ describe('ListenCore — 复制全文（macOS 宽屏右栏）', () => {
     eq(C.transcriptText(s, '我：'), 'Where is the gate?\n登机口在哪？\n\n我：往前走。\nGo straight.\n\nThanks.');
     eq(C.transcriptText({ rows: [] }, '我：'), '');
     eq(C.transcriptText(null, '我：'), '');
+  });
+});
+
+
+describe('ListenCore — 按语言归属（2026-09-08，取代按住说话）', () => {
+  const zhEn = pair('zh', 'en');
+  test('中英：中文归我、英文归对方，都不是猜的', () => {
+    const s = C.newSession(T0, 0.5);
+    eq(C.sideOf('Our lead time is about six weeks.', zhEn, DEPS), 'them');
+    eq(C.sideOf('能压到四周吗？我们客户那边催得紧。', zhEn, DEPS), 'me');
+    deepEq(C.attributeByLang(s, 'Five weeks works.', T0, zhEn, DEPS), { who: 'them', guessed: false });
+    deepEq(C.attributeByLang(s, '好，就这么定。', T0, zhEn, DEPS), { who: 'me', guessed: false });
+  });
+
+  test('中日：假名一出现就判得出，哪怕句子里汉字更多', () => {
+    const zhJa = pair('zh', 'ja');
+    // dominantScript 对这句会说 Han（汉字比假名多），但只要有假名它就是日文 ——
+    // 这正是 CJK_RULES「出现即判」而不是「计数取多」的理由。
+    eq(LearnRules.dominantScript('納期は六週間です'), 'Han');
+    eq(C.sideOf('納期は六週間です', zhJa, DEPS), 'them');
+    eq(C.sideOf('这个交期我们可以接受', zhJa, DEPS), 'me');
+  });
+
+  test('中韩、中俄、中阿：另一边有独立文字系统，全判得出', () => {
+    eq(C.sideOf('안녕하세요 반갑습니다', pair('zh', 'ko'), DEPS), 'them');
+    eq(C.sideOf('Это слишком дорого', pair('zh', 'ru'), DEPS), 'them');
+    eq(C.sideOf('هذا سعر جيد', pair('zh', 'ar'), DEPS), 'them');
+  });
+
+  test('拉丁对拉丁：判不出，返回空 —— 这是已知边界，不是 bug', () => {
+    const enFr = pair('en', 'fr');
+    eq(C.sideOf('Our lead time is six weeks.', enFr, DEPS), '');
+    eq(C.sideOf('Le delai nous convient.', enFr, DEPS), '');
+  });
+
+  test('没有文字系统可比时（纯数字、纯标点、空串）返回空', () => {
+    const zh = pair('zh', 'en');
+    eq(C.sideOf('3.20', zh, DEPS), '');
+    eq(C.sideOf('...!?', zh, DEPS), '');
+    eq(C.sideOf('', zh, DEPS), '');
+  });
+
+  test('注册表不认识的语言 ⇒ 空集 ⇒ 判不出，不抛', () => {
+    eq(C.sideOf('anything', pair('zz', 'yy'), DEPS), '');
+    eq(C.scriptsOf('zz', LANGS).size, 0);
+  });
+
+  test('没注入判断器时不判，也不抛', () => {
+    eq(C.sideOf('Hello', pair('zh', 'en'), {}), '');
+    eq(C.sideOf('Hello', pair('zh', 'en'), null), '');
+  });
+
+  test('判不出时：先跟上一句同一边（粘性）', () => {
+    const s = C.newSession(T0, 0.5);
+    s.lastWho = 'me';
+    deepEq(C.attributeByLang(s, '3.20', T0, pair('en', 'fr'), DEPS), { who: 'me', guessed: true });
+    s.lastWho = 'them';
+    deepEq(C.attributeByLang(s, '3.20', T0, pair('en', 'fr'), DEPS), { who: 'them', guessed: true });
+  });
+
+  test('判不出、又没有上一句 ⇒ 归对方（错误往安静的方向倒）', () => {
+    const s = C.newSession(T0, 0.5);
+    eq(s.lastWho, '');
+    // 归错成「我」会把这句译成对方的语言并朗读出来 —— 当着客户念一句莫名其妙的话。
+    deepEq(C.attributeByLang(s, 'Le delai nous convient.', T0, pair('en', 'fr'), DEPS),
+      { who: 'them', guessed: true });
+  });
+
+  test('两边选成同一种语言时恒判不出 —— 界面必须在源头禁掉它', () => {
+    // 这条是回归护栏：设置那边要做「选重了自动对调」，万一漏了，这里说明后果。
+    const same = pair('zh', 'zh');
+    eq(C.sideOf('这个交期可以吗', same, DEPS), '');
+    eq(C.sideOf('Hello there', same, DEPS), '');
+  });
+});
+
+describe('ListenCore — 汉字圈的顺序纪律，两处必须一致', () => {
+  test('listen-core 的 CJK_RULES 与 translation-core 的 SCRIPT_OF_TARGET 同序（ja 在 zh 前）', () => {
+    const order = (src, re) => [...src.matchAll(re)].map((m) => m[1]);
+    const core = fs.readFileSync(path.join(__dirname, '..', 'app', 'listen-core.js'), 'utf8');
+    const tc = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content', 'translation-core.js'), 'utf8');
+    const mine = order(core.slice(core.indexOf('const CJK_RULES')), /\['(ja|ko|zh)',/g).slice(0, 3);
+    const theirs = order(tc.slice(tc.indexOf('const SCRIPT_OF_TARGET')), /\/\^(ja|ko|zh)\\b\/i/g).slice(0, 3);
+    eq(mine.length, 3, '没在 listen-core.js 里解析到 CJK_RULES 的三条 —— 改名了就同步改这条门禁');
+    eq(theirs.length, 3, '没在 translation-core.js 里解析到 SCRIPT_OF_TARGET 的三条');
+    eq(mine.join(','), theirs.join(','),
+      '两张汉字圈的表漂了。日文里也有汉字，所以假名必须先判 —— 顺序反了，'
+      + '一句日文会被当成中文，归属和翻译方向一起错。');
+    eq(mine[0], 'ja', 'ja 必须排在最前');
+  });
+});
+
+describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
+  test('朗读窗口内、同一段文本 ⇒ 判为回声', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('从付定金起，我们的交期大约是六周。', T0);
+    ok(g.isEcho('从付定金起，我们的交期大约是六周。', T0 + 800));
+    eq(g.dropped(), 1);
+  });
+
+  test('朗读期间对方插话 ⇒ 不误杀（裁定 5 要保住的正是这一句）', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('从付定金起，我们的交期大约是六周。', T0);
+    ok(!g.isEcho('Can you do four weeks instead?', T0 + 900));
+    ok(!g.isEcho('这个价格我们再谈谈。', T0 + 900));
+    eq(g.dropped(), 0);
+  });
+
+  test('只截到后半段也算 —— 回声消除半路才收敛', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('At ten thousand units we can do three twenty per piece', T0);
+    ok(g.isEcho('we can do three twenty per piece', T0 + 600));
+  });
+
+  test('播完之后还防一会儿，过了窗口就不再拦', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('五周可以。', T0);
+    g.spoke(T0 + 2000);
+    ok(g.isEcho('五周可以。', T0 + 2000 + C.ECHO_TAIL_MS - 50));
+    ok(!g.isEcho('五周可以。', T0 + 2000 + C.ECHO_TAIL_MS + 50));
+  });
+
+  test('登记项有上限，最老的会被挤掉', () => {
+    const g = C.makeEchoGuard();
+    for (let i = 0; i < 6; i++) g.speaking('句子编号 ' + i + ' 的内容在这里', T0 + i);
+    ok(g.size() <= 4);
+  });
+
+  test('空文本不登记也不误判', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('', T0);
+    g.speaking('   ', T0);
+    eq(g.size(), 0);
+    ok(!g.isEcho('', T0));
+  });
+});
+
+describe('ListenCore — 朗读队列（裁定 7：排队逐句读完）', () => {
+  test('三句接连入队，按顺序出队', () => {
+    const q = C.makeSpeakQueue();
+    q.push({ rid: 1, text: '五周可以。', lang: 'zh' });
+    q.push({ rid: 2, text: '我们今天把形式发票发给你。', lang: 'zh' });
+    q.push({ rid: 3, text: '模具费是一次性的。', lang: 'zh' });
+    eq(q.size(), 3);
+    eq(q.next().rid, 1);
+    eq(q.next().rid, 2);
+    eq(q.next().rid, 3);
+    eq(q.next(), null);
+  });
+
+  test('同一行重复入队 ⇒ 覆盖，不排两遍（改边后重译会走到这里）', () => {
+    const q = C.makeSpeakQueue();
+    q.push({ rid: 7, text: '旧译文', lang: 'zh' });
+    q.push({ rid: 7, text: '改边后的新译文', lang: 'en' });
+    eq(q.size(), 1);
+    const j = q.next();
+    eq(j.text, '改边后的新译文');
+    eq(j.lang, 'en');
+  });
+
+  test('drop 摘掉还没出队的那一行；clear 清空', () => {
+    const q = C.makeSpeakQueue();
+    q.push({ rid: 1, text: 'a a a', lang: 'en' });
+    q.push({ rid: 2, text: 'b b b', lang: 'en' });
+    q.drop(1);
+    eq(q.size(), 1);
+    eq(q.peek().rid, 2);
+    q.clear();
+    eq(q.size(), 0);
+    eq(q.peek(), null);
+  });
+
+  test('同一段话 60 秒内不读第二遍 —— 回声漏过第一层时，环在这里断掉', () => {
+    const q = C.makeSpeakQueue();
+    q.noteSpoken('从付定金起，我们的交期大约是六周。', T0);
+    ok(q.spokenRecently('从付定金起，我们的交期大约是六周。', T0 + 5000));
+    ok(!q.spokenRecently('这是完全不同的另一句话内容。', T0 + 5000));
+    ok(!q.spokenRecently('从付定金起，我们的交期大约是六周。', T0 + C.SPOKEN_WINDOW_MS + 1000));
+  });
+
+  test('空文本不入队、不登记', () => {
+    const q = C.makeSpeakQueue();
+    q.push({ rid: 1, text: '', lang: 'zh' });
+    q.push(null);
+    eq(q.size(), 0);
+    q.noteSpoken('', T0);
+    ok(!q.spokenRecently('', T0));
   });
 });
