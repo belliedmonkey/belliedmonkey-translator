@@ -2488,5 +2488,11 @@
   },
   "grant_claimed_toast": {
     "message": "Gratis-Guthaben ist eingerichtet"
+  },
+  "grant_page_halt": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_page_halt_ours": {
+    "message": "Gratis-Guthaben gerade nicht verfügbar (nicht du bist am Ende) — tippen, um weiterzumachen"
   }
 }

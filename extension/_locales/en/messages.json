@@ -2488,5 +2488,11 @@
   },
   "grant_claimed_toast": {
     "message": "Free credit is set up"
+  },
+  "grant_page_halt": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_page_halt_ours": {
+    "message": "Free credit is unavailable right now (not you running out) — tap to see how to carry on"
   }
 }

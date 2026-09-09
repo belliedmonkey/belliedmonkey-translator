@@ -132,3 +132,29 @@ describe('§8.10 引擎停机 —— 额度用完后一个请求都不再发', (
     eq(seen[0].grant, true);
   });
 });
+
+describe('§8.10 停机时页面上那一行 —— 只分两句，方向不能说反', () => {
+  const TC = loadCore();
+
+  test('「你用完了」与「不是你的问题」是两句不同的话', () => {
+    const mine = TC.grantHaltMessage('credit_exhausted');
+    const ours = TC.grantHaltMessage('grant_unavailable');
+    ok(mine && ours, '有一句是空的');
+    ok(mine !== ours, '两种情况说了同一句话 —— 方向说反的代价是用户去查自己的账户');
+    ok(/不是你/.test(ours), '「我们的池子空了」那句没说清不是用户的问题：' + ours);
+    ok(!/不是你/.test(mine), '「你用完了」那句却说了「不是你」：' + mine);
+  });
+
+  test('其余额度错误都归到「不是你的问题」那一句 —— 一行的地方不解释三种原因', () => {
+    const ours = TC.grantHaltMessage('grant_unavailable');
+    for (const c of ['grant_misconfigured', 'grant_revoked', 'grant_invalid', 'model_not_allowed', 'busy']) {
+      eq(TC.grantHaltMessage(c), ours, c + ' 说了第三句话');
+    }
+  });
+
+  test('没有码就没有这一行 —— 不是额度问题时必须走原来的「点此重试」', () => {
+    eq(TC.grantHaltMessage(''), '');
+    eq(TC.grantHaltMessage(null), '');
+    eq(TC.grantHaltMessage(undefined), '');
+  });
+});

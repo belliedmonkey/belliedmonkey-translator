@@ -2488,5 +2488,11 @@
   },
   "grant_claimed_toast": {
     "message": "El crédito gratuito está configurado"
+  },
+  "grant_page_halt": {
+    "message": "Crédito gratuito agotado: toca para ver cómo seguir"
+  },
+  "grant_page_halt_ours": {
+    "message": "Crédito gratuito no disponible ahora (no eres tú): toca para ver cómo seguir"
   }
 }

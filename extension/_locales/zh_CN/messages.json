@@ -2489,5 +2489,11 @@
   },
   "grant_claimed_toast": {
     "message": "免费额度已配好"
+  },
+  "grant_page_halt": {
+    "message": "免费额度已用完 —— 点此看怎么继续"
+  },
+  "grant_page_halt_ours": {
+    "message": "免费额度暂时用不了（不是你用完了）—— 点此看怎么继续"
   }
 }

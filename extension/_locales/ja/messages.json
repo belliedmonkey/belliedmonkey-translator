@@ -2488,5 +2488,11 @@
   },
   "grant_claimed_toast": {
     "message": "無料クレジットを設定しました"
+  },
+  "grant_page_halt": {
+    "message": "無料クレジットを使い切りました — 続け方はこちら"
+  },
+  "grant_page_halt_ours": {
+    "message": "無料クレジットは今使えません（あなたが使い切ったのではありません）— 続け方はこちら"
   }
 }

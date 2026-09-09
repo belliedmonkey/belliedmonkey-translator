@@ -308,6 +308,23 @@ var TranslationCore = (() => {
     return { pageize, destroy };
   }
 
+  // 免费额度停机时，页面上那一行说什么（learning-design §8.10）。
+  //
+  // **两个渲染器共用一份**：网页翻译（content-webpage.js）与字幕叠层
+  // （subtitle-adapter.js）都要说这句话，而两份实现会漂 —— 这个仓库里已经有过
+  // 一次（DeepSeek 的提示写死了模型名，API 早就不认了还在那儿）。
+  //
+  // 只分两句，不是七句。这一行只有一行的地方，「是不是你的问题」比「具体哪种原因」
+  // 重要得多：说错方向会让用户去查自己的账户，而那边根本没有问题。
+  // 七句完整的解释在设置页那张卡上，点过去就看得到。
+  function grantHaltMessage(code) {
+    if (!code) return '';
+    if (code === 'credit_exhausted') {
+      return i18n('grant_page_halt', '免费额度已用完 —— 点此看怎么继续');
+    }
+    return i18n('grant_page_halt_ours', '免费额度暂时用不了（不是你用完了）—— 点此看怎么继续');
+  }
+
   // ─── Generic translation engine: per-unit state machine + retry ───────
   // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
   // `_`-prefixed state — see reset() for the authoritative set, so this list cannot
@@ -560,6 +577,7 @@ var TranslationCore = (() => {
   }
 
   return {
+    grantHaltMessage,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,

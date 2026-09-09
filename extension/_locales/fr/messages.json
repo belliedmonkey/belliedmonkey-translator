@@ -2488,5 +2488,11 @@
   },
   "grant_claimed_toast": {
     "message": "Le crédit gratuit est configuré"
+  },
+  "grant_page_halt": {
+    "message": "Crédit gratuit épuisé — appuyez pour voir comment continuer"
+  },
+  "grant_page_halt_ours": {
+    "message": "Crédit gratuit indisponible pour l'instant (ce n'est pas vous) — appuyez pour voir comment continuer"
   }
 }
