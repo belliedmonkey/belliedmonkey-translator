@@ -35,7 +35,8 @@
     "test:asr": "node scripts/verify-asr.js",
     "test:listen": "node scripts/verify-listen.js",
     "grant:status": "node scripts/grant-float.js",
-    "test:grant": "node scripts/verify-grant.js"
+    "test:grant": "node scripts/verify-grant.js",
+    "issues": "node scripts/issues-triage.js"
   },
   "engines": {
     "node": ">=20.0.0"
