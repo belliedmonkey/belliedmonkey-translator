@@ -2425,5 +2425,68 @@
   },
   "grant_err_busy": {
     "message": "Muitas requisições agora. Espere alguns segundos e tente de novo."
+  },
+  "grant_title": {
+    "message": "Crédito gratuito"
+  },
+  "grant_body_signin": {
+    "message": "Entre na sua conta para pegar um crédito gratuito — dá para algumas centenas de páginas. Cobre tradução, leitura em voz alta e transcrição."
+  },
+  "grant_signin": {
+    "message": "Entrar para pegar o crédito gratuito"
+  },
+  "grant_signin_again": {
+    "message": "Entrar de novo"
+  },
+  "grant_no_live": {
+    "message": "A conversa ao vivo não está incluída: ela precisa de conexão em tempo real, e este relé só encaminha requisições avulsas."
+  },
+  "grant_body_signed_out": {
+    "message": "Sair da conta desativou seu crédito gratuito. O saldo continua lá — entre de novo na mesma conta e ele volta."
+  },
+  "grant_body_unclaimed": {
+    "message": "Você ainda não pegou seu crédito gratuito. Dá para algumas centenas de páginas, em tradução, leitura em voz alta e transcrição."
+  },
+  "grant_claim": {
+    "message": "Pegar"
+  },
+  "grant_claiming": {
+    "message": "Pegando…"
+  },
+  "grant_privacy": {
+    "message": "Depois de pego, esses três passam pelo nosso servidor a caminho do fornecedor do modelo. Não guardamos nem registramos seu texto — só quanto este crédito gastou."
+  },
+  "grant_body_active": {
+    "message": "Seu crédito gratuito está em uso. Quando acabar, você pode adicionar sua própria chave de API e continuar."
+  },
+  "grant_body_low": {
+    "message": "Seu crédito gratuito está quase no fim. Depois, você pode adicionar sua própria chave de API e continuar."
+  },
+  "grant_body_exhausted": {
+    "message": "Seu crédito gratuito acabou. Adicione sua própria chave de API para continuar — uma chave cobre tradução, leitura em voz alta e transcrição."
+  },
+  "grant_body_unavailable": {
+    "message": "Não foi você que acabou o crédito — nosso fundo de crédito gratuito está vazio e estamos repondo. Use sua própria chave por enquanto, ou volte mais tarde."
+  },
+  "grant_body_replaced": {
+    "message": "No momento você está usando sua própria chave. O crédito gratuito continua lá; dá para voltar a ele quando quiser."
+  },
+  "grant_restore": {
+    "message": "Voltar ao crédito gratuito"
+  },
+  "grant_byo": {
+    "message": "Usar minha própria chave"
+  },
+  "grant_community": {
+    "message": "Perguntar na comunidade"
+  },
+  "grant_engine_label": {
+    "message": "Crédito gratuito BelliedMonkey"
+  },
+  "grant_restore_confirm": {
+    "message": "Voltar ao crédito gratuito vai substituir a chave que você digitou. Continuar?"
+  },
+  "grant_claimed_toast": {
+    "message": "Crédito gratuito configurado"
   }
 }

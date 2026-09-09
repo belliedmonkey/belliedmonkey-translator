@@ -2426,5 +2426,68 @@
   },
   "grant_err_busy": {
     "message": "這會兒請求太密了，等幾秒再試。"
+  },
+  "grant_title": {
+    "message": "免費額度"
+  },
+  "grant_body_signin": {
+    "message": "登入之後可以領一份免費額度，夠翻幾百頁。翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_signin": {
+    "message": "登入領免費額度"
+  },
+  "grant_signin_again": {
+    "message": "重新登入"
+  },
+  "grant_no_live": {
+    "message": "即時聽譯不在額度範圍內 —— 它要即時介面，而這條中繼只轉發一次性請求。"
+  },
+  "grant_body_signed_out": {
+    "message": "登出後免費額度停用了。餘額保留著 —— 用同一個帳號再登入就回來。"
+  },
+  "grant_body_unclaimed": {
+    "message": "你還沒領這份免費額度。夠翻幾百頁，翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_claim": {
+    "message": "領取"
+  },
+  "grant_claiming": {
+    "message": "領取中…"
+  },
+  "grant_privacy": {
+    "message": "領取之後，這三樣會經我們的伺服器轉發給模型廠商。我們不保存、不記錄你的文字，只記這份額度花了多少。"
+  },
+  "grant_body_active": {
+    "message": "免費額度正在用。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_low": {
+    "message": "免費額度快用完了。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_exhausted": {
+    "message": "免費額度已經用完了。填一把自己的 key 就能繼續 —— 一把通吃翻譯、朗讀、轉寫。"
+  },
+  "grant_body_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_body_replaced": {
+    "message": "你現在用的是自己的 key。免費額度還留著，隨時可以換回來。"
+  },
+  "grant_restore": {
+    "message": "改回免費額度"
+  },
+  "grant_byo": {
+    "message": "用自己的 key"
+  },
+  "grant_community": {
+    "message": "加入社群問問"
+  },
+  "grant_engine_label": {
+    "message": "大肚猴免費額度"
+  },
+  "grant_restore_confirm": {
+    "message": "改回免費額度會替換掉你現在填的 key。要繼續嗎？"
+  },
+  "grant_claimed_toast": {
+    "message": "免費額度已設好"
   }
 }

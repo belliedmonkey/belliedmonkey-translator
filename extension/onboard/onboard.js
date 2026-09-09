@@ -111,7 +111,7 @@
     // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -207,6 +207,31 @@
   // 「一把 key 配好全部」与「三引擎分别配」都写局部 patch（storageSet），
   // **不是** options.js 的 saveAll()：那一份是整体覆盖式的，而这一页没有
   // notes / 音色 / 语速 的控件，覆盖会把它们全部清空。
+  // 免费额度那张卡（§8.10）。这一页**只展示、只指路**，不自己实现领取：
+  // 登录表单与写盘路径都在设置页，而两个页面同时备 PKCE verifier 会互相覆盖。
+  // 所以这里唯一的动作是把人送到设置页的 #grant 锚点上。
+  async function paintGrant() {
+    const box = $('ob-grant');
+    if (!box || typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) {
+      if (box) box.hidden = true;
+      return false;
+    }
+    // 这一页不加载 auth.js（那会把整套同步栈拉进引导流程）。读不到登录态就按
+    // **未登录**画 —— 引导中的人几乎必然还没登录，而万一登录了，卡上那句
+    // 「登录领免费额度」把他送到设置页，那里显示的是真实状态。
+    // 宁可在这里说得保守，也不要在引导页里维护第二份登录状态。
+    const s = (typeof LearnAuth !== 'undefined')
+      ? await LearnAuth.current().catch(() => null) : null;
+    LearnGrant.render(box, {
+      t,
+      status: LearnGrant.status(settings, { signedIn: !!s }),
+      onAction: () => {
+        try { window.open(chrome.runtime.getURL('options/options.html#grant'), '_blank'); } catch (_) {}
+      },
+    });
+    return !box.hidden;
+  }
+
   let quickMounted = false;
   function paintQuick() {
     const box = $('ob-quick');
@@ -301,12 +326,17 @@
   }
 
   function paintModes() {
+    // 额度卡跟一键卡同属「一键配置」这一档，所以显隐跟着 manual 走。
+    // 它是 async 的（要读登录态），但显隐由它自己在回调里落定 —— 这里不等它，
+    // 等它会让整屏的绘制被一次存储读拖住。
+    paintGrant().then((shown) => { if (manualMode && shown) $('ob-grant').hidden = true; });
     const quickShown = paintQuick();
     // 一键卡渲染不出来的 flavor：没有可选的东西，就不给一个只有一边的二选一。
     $('ob-modes').hidden = !quickShown;
     const manual = manualMode || !quickShown;
     if (manual) paintManual();
     $('ob-quick').hidden = manual || !quickShown;
+    if (manual && $('ob-grant')) $('ob-grant').hidden = true;
     $('ob-manual').hidden = !manual;
     $('ob-mode-quick').textContent = t('extob_mode_quick', '一键配置');
     $('ob-mode-manual').textContent = t('extob_mode_manual', '三引擎分别配');

@@ -193,9 +193,166 @@ var LearnGrant = (function () {
     return { writes, marks: { grantTail: '', grantBalance: null } };
   }
 
+
+  // ── 卡面：状态 → 说什么、能点什么 ────────────────────────────────────────
+  //
+  // 做成**纯函数**是刻意的：render() 需要 DOM，跑不进纯逻辑套件，于是「哪个状态说哪句
+  // 话」这件最容易说错的事就只有真机看得见。这里把它单独拎出来，让门禁看得见。
+  // （同 quick-setup.js 把 tryVisible 单独具名的理由。）
+  //
+  // 每个状态**至多一个主按钮**。两个并列的主按钮等于没有主按钮 —— 用户要先做一次
+  // 「该点哪个」的判断，而这张卡的全部意义就是省掉判断。
+  function cardFor(status, opts) {
+    const o = opts || {};
+    const t = o.t || ((k, d) => d);
+    const limit = Number((spec() && spec().limitUsd) || 0);
+    const left = leftUsd(o.balance);
+    const money = (v) => '$' + Number(v).toFixed(2);
+
+    // 标题里**不写数字**（裁定：卡标题写「够翻几百页」）。数字只出现在进度那一行 ——
+    // 标题里的金额会被当成承诺，而它是一个会变的运营参数。
+    const base = { title: t('grant_title', '免费额度'), action: null, links: [], progress: null, note: '' };
+    const byo = { id: 'byo', text: t('grant_byo', '用自己的 key') };
+    const community = { id: 'community', text: t('grant_community', '加入社群问问') };
+
+    switch (status) {
+      case 'none':
+        // 未登录、也从没领过。**登录是选项不是墙**（裁定 D2）：这张卡旁边永远并排
+        // 站着「用自己的 key」，而「继续」始终可点。
+        return Object.assign({}, base, {
+          body: t('grant_body_signin', '登录之后可以领一份免费额度，够翻几百页。翻译、朗读、转写都能用。'),
+          action: { id: 'signin', text: t('grant_signin', '登录领免费额度') },
+          note: t('grant_no_live', '实时听译不在额度范围内 —— 它要实时接口，而这条中继只转发一次性请求。'),
+        });
+      case 'signed_out':
+        // 退出登录会停用额度（裁定 D4）。**先说余额还在**，否则用户以为钱没了。
+        return Object.assign({}, base, {
+          body: t('grant_body_signed_out', '退出登录后免费额度停用了。余额保留着 —— 用同一个账号再登录就回来。'),
+          action: { id: 'signin', text: t('grant_signin_again', '重新登录') },
+        });
+      case 'unclaimed':
+        return Object.assign({}, base, {
+          body: t('grant_body_unclaimed', '你还没领这份免费额度。够翻几百页，翻译、朗读、转写都能用。'),
+          action: { id: 'claim', text: t('grant_claim', '领取') },
+          note: t('grant_privacy', '领取之后，这三样会经我们的服务器转发给模型厂商。我们不保存、不记录你的文本，只记这份额度花了多少。'),
+        });
+      case 'active':
+      case 'low':
+        return Object.assign({}, base, {
+          body: status === 'low'
+            ? t('grant_body_low', '免费额度快用完了。用完之后可以填一把自己的 key 继续。')
+            : t('grant_body_active', '免费额度正在用。用完之后可以填一把自己的 key 继续。'),
+          progress: left == null ? null : { left, limit, text: money(left) + ' / ' + money(limit) },
+          links: [byo],
+        });
+      case 'exhausted':
+        return Object.assign({}, base, {
+          body: t('grant_body_exhausted', '免费额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。'),
+          progress: { left: 0, limit, text: money(0) + ' / ' + money(limit) },
+          links: [byo, community],
+        });
+      case 'unavailable':
+        // **头一句先说不是你的问题。** 不说的话，用户会去查自己的账户 —— 查一晚上也
+        // 查不出来，因为那边根本没有问题。
+        return Object.assign({}, base, {
+          body: t('grant_body_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。'),
+          links: [byo, community],
+        });
+      case 'replaced':
+        return Object.assign({}, base, {
+          body: t('grant_body_replaced', '你现在用的是自己的 key。免费额度还留着，随时可以换回来。'),
+          action: { id: 'restore', text: t('grant_restore', '改回免费额度') },
+        });
+      default:
+        return null;                                   // 认不出的状态：什么都不画
+    }
+  }
+
+  // render(box, opts) —— 只画，不碰存储、不发请求。动作由 host 接。
+  //   opts: { t, status, balance, onAction(id), busy }
+  function render(box, opts) {
+    if (!box) return null;
+    const o = opts || {};
+    const t = o.t || ((k, d) => d);
+    const doc = box.ownerDocument;
+    const card = cardFor(o.status, o);
+    box.textContent = '';
+    if (!card) { box.hidden = true; return null; }
+    box.hidden = false;
+    injectGrantStyle(doc);
+
+    const el = (tag, cls, txt) => {
+      const n = doc.createElement(tag);
+      if (cls) n.className = cls;
+      if (txt != null) n.textContent = txt;
+      return n;
+    };
+    const wrap = el('div', 'gr-wrap');
+    wrap.append(el('h3', 'gr-title', card.title));
+    wrap.append(el('p', 'gr-body', card.body));
+
+    if (card.progress) {
+      const bar = el('div', 'gr-bar');
+      const fill = el('div', 'gr-fill');
+      const pct = card.progress.limit > 0
+        ? Math.max(0, Math.min(100, (card.progress.left / card.progress.limit) * 100)) : 0;
+      fill.style.width = pct + '%';
+      bar.append(fill);
+      wrap.append(bar);
+      wrap.append(el('p', 'gr-num', card.progress.text));
+    }
+
+    if (card.action) {
+      const b = el('button', 'gr-action', o.busy ? t('grant_claiming', '领取中…') : card.action.text);
+      b.type = 'button';
+      b.disabled = !!o.busy;
+      // IO 在途时禁按（画布状态 S2）。不禁的话双击就是两次领取请求 —— 服务端幂等
+      // 挡得住，但界面会闪两次，而用户读到的是「我是不是点坏了」。
+      b.addEventListener('click', () => { if (o.onAction) o.onAction(card.action.id); });
+      wrap.append(b);
+    }
+
+    if (card.links.length) {
+      const row = el('div', 'gr-links');
+      for (const l of card.links) {
+        const a = el('a', 'gr-link', l.text);
+        a.href = '#';
+        a.addEventListener('click', (e) => { e.preventDefault(); if (o.onAction) o.onAction(l.id); });
+        row.append(a);
+      }
+      wrap.append(row);
+    }
+    if (card.note) wrap.append(el('p', 'gr-note', card.note));
+    box.append(wrap);
+    return card;
+  }
+
+  let grantStyled = false;
+  const GRANT_STYLE = `
+    .gr-wrap { display:flex; flex-direction:column; gap:8px; }
+    .gr-title { margin:0; font-size:1em; }
+    /* 次要文字走 --text-secondary，不走 opacity：透明度把 4.5:1 压成 3.4:1，
+       而三个宿主的样式表里没有一张管它（2026-09-06 深浅色核查的结论）。 */
+    .gr-body { margin:0; font-size:.9em; color:var(--text-secondary, inherit); }
+    .gr-note { margin:0; font-size:.85em; color:var(--text-secondary, inherit); }
+    .gr-num { margin:0; font-size:.85em; color:var(--text-secondary, inherit); }
+    .gr-bar { height:6px; border-radius:3px; background:var(--border, #ddd); overflow:hidden; }
+    .gr-fill { height:100%; background:var(--accent, #6b8f71); }
+    .gr-links { display:flex; gap:12px; flex-wrap:wrap; }
+    /* 链接必须自带颜色：这三个宿主原来没有一张样式表给 <a> 上色，
+       浏览器默认蓝在深色底上是 1.9:1（2026-09-06 报障）。 */
+    .gr-link { font-size:.85em; color:var(--link, inherit); text-decoration:underline; cursor:pointer; }
+    .gr-action { align-self:flex-start; }
+  `;
+  function injectGrantStyle(doc) {
+    if (grantStyled || !doc || !doc.head) return;
+    const el = doc.createElement('style'); el.textContent = GRANT_STYLE; doc.head.appendChild(el);
+    grantStyled = true;
+  }
+
   return {
     spec, enabled, claim, plan, platform, status, active, activeIn,
-    fresh, leftUsd, clearOnSignOut, tail, CACHE_MS, LOW_USD,
+    fresh, leftUsd, clearOnSignOut, tail, cardFor, render, CACHE_MS, LOW_USD,
   };
 })();
 

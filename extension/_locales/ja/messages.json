@@ -2425,5 +2425,68 @@
   },
   "grant_err_busy": {
     "message": "現在リクエストが集中しています。数秒待ってからお試しください。"
+  },
+  "grant_title": {
+    "message": "無料クレジット"
+  },
+  "grant_body_signin": {
+    "message": "ログインすると無料クレジットを受け取れます。数百ページ分あり、翻訳・読み上げ・文字起こしすべてに使えます。"
+  },
+  "grant_signin": {
+    "message": "ログインして無料クレジットを受け取る"
+  },
+  "grant_signin_again": {
+    "message": "もう一度ログイン"
+  },
+  "grant_no_live": {
+    "message": "リアルタイム通訳は対象外です。あれにはリアルタイム接続が必要ですが、この中継は一度きりのリクエストしか転送しません。"
+  },
+  "grant_body_signed_out": {
+    "message": "ログアウトで無料クレジットは停止しました。残高はそのままです。同じアカウントで再度ログインすれば戻ります。"
+  },
+  "grant_body_unclaimed": {
+    "message": "無料クレジットをまだ受け取っていません。数百ページ分あり、翻訳・読み上げ・文字起こしに使えます。"
+  },
+  "grant_claim": {
+    "message": "受け取る"
+  },
+  "grant_claiming": {
+    "message": "受け取り中…"
+  },
+  "grant_privacy": {
+    "message": "受け取ると、この三つはモデル提供元へ向かう途中で当方のサーバーを経由します。本文は保存も記録もしません。記録するのはこのクレジットの使用額だけです。"
+  },
+  "grant_body_active": {
+    "message": "無料クレジットを使用中です。使い切ったら自分の API キーを入れて続けられます。"
+  },
+  "grant_body_low": {
+    "message": "無料クレジットが残りわずかです。使い切ったら自分の API キーを入れて続けられます。"
+  },
+  "grant_body_exhausted": {
+    "message": "無料クレジットを使い切りました。自分の API キーを入れれば続けられます。1 つのキーで翻訳・読み上げ・文字起こしすべてに対応します。"
+  },
+  "grant_body_unavailable": {
+    "message": "あなたが使い切ったのではありません。こちらの無料クレジットの残高が尽きており、補充中です。今は自分のキーを使うか、しばらくしてからお試しください。"
+  },
+  "grant_body_replaced": {
+    "message": "今は自分のキーを使っています。無料クレジットは残っているので、いつでも戻せます。"
+  },
+  "grant_restore": {
+    "message": "無料クレジットに戻す"
+  },
+  "grant_byo": {
+    "message": "自分のキーを使う"
+  },
+  "grant_community": {
+    "message": "コミュニティで聞く"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey 無料クレジット"
+  },
+  "grant_restore_confirm": {
+    "message": "無料クレジットに戻すと、今入力しているキーが置き換わります。続けますか？"
+  },
+  "grant_claimed_toast": {
+    "message": "無料クレジットを設定しました"
   }
 }

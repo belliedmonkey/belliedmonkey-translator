@@ -36,6 +36,13 @@
            它只返回 patch，写盘由本页的 applyQuickSetup() 负责：saveAll() 是整体
            覆盖式的、DOM 才是真相源，组件自己写存储的话，用户下一次改任何一个字段
            都会用旧 DOM 把刚配好的三组覆盖回去。 -->
+      <!-- 免费额度（§8.10）。**与一键卡并排在同一个 tab 里**，不是二选一的另一屏 ——
+           裁定 D2：登录永远不是墙，这张卡旁边始终站着「用自己的 key」。
+           中国版与开关未翻时 MT_GRANT 为 null，render() 把整块藏起来，一个字都不出。 -->
+      <section class="card quick-only" id="grant-card" hidden>
+        <div id="grant-box"></div>
+      </section>
+
       <section class="card quick-only" id="quick-setup-card">
         <h2 data-i18n="qs_title">用一把 key 配好全部</h2>
         <div id="quick-setup"></div>

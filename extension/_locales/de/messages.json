@@ -2425,5 +2425,68 @@
   },
   "grant_err_busy": {
     "message": "Gerade zu viele Anfragen. Warte ein paar Sekunden und versuch es erneut."
+  },
+  "grant_title": {
+    "message": "Gratis-Guthaben"
+  },
+  "grant_body_signin": {
+    "message": "Melde dich an, dann kannst du Gratis-Guthaben holen — genug für ein paar hundert Seiten. Es deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_signin": {
+    "message": "Anmelden für Gratis-Guthaben"
+  },
+  "grant_signin_again": {
+    "message": "Erneut anmelden"
+  },
+  "grant_no_live": {
+    "message": "Live-Dolmetschen ist nicht abgedeckt: Es braucht eine Echtzeitverbindung, und dieses Relais leitet nur einzelne Anfragen weiter."
+  },
+  "grant_body_signed_out": {
+    "message": "Durch das Abmelden wurde dein Gratis-Guthaben deaktiviert. Der Stand bleibt erhalten — melde dich mit demselben Konto wieder an, dann ist es zurück."
+  },
+  "grant_body_unclaimed": {
+    "message": "Du hast dein Gratis-Guthaben noch nicht geholt. Es reicht für ein paar hundert Seiten, für Übersetzung, Vorlesen und Transkription."
+  },
+  "grant_claim": {
+    "message": "Holen"
+  },
+  "grant_claiming": {
+    "message": "Wird geholt …"
+  },
+  "grant_privacy": {
+    "message": "Nach dem Holen laufen diese drei auf dem Weg zum Modellanbieter über unseren Server. Wir speichern und protokollieren deinen Text nicht — nur, was dieses Guthaben ausgegeben hat."
+  },
+  "grant_body_active": {
+    "message": "Dein Gratis-Guthaben ist in Gebrauch. Wenn es aufgebraucht ist, kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_low": {
+    "message": "Dein Gratis-Guthaben ist fast aufgebraucht. Danach kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Trag einen eigenen API-Schlüssel ein und mach weiter — ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_body_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_body_replaced": {
+    "message": "Du nutzt gerade deinen eigenen Schlüssel. Das Gratis-Guthaben ist noch da; du kannst jederzeit zurückwechseln."
+  },
+  "grant_restore": {
+    "message": "Zurück zum Gratis-Guthaben"
+  },
+  "grant_byo": {
+    "message": "Eigenen Schlüssel nutzen"
+  },
+  "grant_community": {
+    "message": "In der Community fragen"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey Gratis-Guthaben"
+  },
+  "grant_restore_confirm": {
+    "message": "Zurück zum Gratis-Guthaben ersetzt den Schlüssel, den du eingetragen hast. Fortfahren?"
+  },
+  "grant_claimed_toast": {
+    "message": "Gratis-Guthaben ist eingerichtet"
   }
 }

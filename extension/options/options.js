@@ -1406,6 +1406,9 @@ async function init() {
     : (n / 1024 / 1024).toFixed(1) + ' MB');
 
   async function refreshSyncUI() {
+    // 额度卡跟着登录态走。refreshSyncUI 在页面加载与每次登录/退出后都会跑 ——
+    // 那正好是「这张卡该说什么」会变的全部时刻。
+    try { await paintGrant(); } catch (_) {}
     const s = await LearnAuth.current().catch(() => null);
     // Re-bind on every refresh: this runs at page load AND after every sign-in /
     // sign-out, which is exactly the set of moments the answer can change.
@@ -1680,10 +1683,99 @@ async function init() {
       if ($('adv-custom')) { $('adv-custom').value = customParams[w.provider] || ''; }
       updateCustomNote(); updateAdvancedNotes();
     }
+    // **先按新值重填下拉，再赋值。** grantOnly 的条目（免费额度那一档，§8.10）
+    // 平时不进下拉，所以直接 `select.value = 'grant_stt'` 会落空 —— select 静静地
+    // 变成空串，saveAll() 于是把一个空引擎存了下去。populate 在 selected 命中时
+    // 会把它放回列表，这一行就是那个例外存在的理由。
+    if ('ttsEngine' in w && $('tts-engine')) {
+      EngineFields.populate($('tts-engine'), window.MT_TTS_ENGINES || [], { t, selected: w.ttsEngine });
+    }
+    if ('sttEngine' in w && $('stt-engine')) {
+      EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], { t, selected: w.sttEngine });
+    }
+    if ('provider' in w && $('provider')) {
+      EngineFields.populate($('provider'), PROVIDERS, { t, selected: w.provider });
+    }
     if ('ttsEngine' in w) { $('tts-engine').value = w.ttsEngine; await updateTtsUI(w.ttsVoice || ''); }
     if ('sttEngine' in w) { $('stt-engine').value = w.sttEngine; updateSttUI(w.sttEngine); }
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
     if ('provider' in w && (typeof MTTelemetry !== 'undefined')) MTTelemetry.track('engine_set', { provider: String(w.provider || '') });
+  }
+
+
+  // ── 免费额度（§8.10）─────────────────────────────────────────────────
+  //
+  // 这一页是领取的**唯一落点**：登录表单在这里，写盘路径也在这里。引导页那张卡
+  // 只负责把人送过来（一个锚点），不自己实现半套登录流程 —— 两个页面同时备
+  // PKCE verifier 会互相覆盖，那是已知的坑。
+  let _grantBusy = false;
+  let _grantUnavailable = false;      // 收到 503 grant_unavailable 之后为真，只影响这一次会话
+
+  async function paintGrant() {
+    const box = $('grant-box');
+    const card = $('grant-card');
+    if (!box || typeof LearnGrant === 'undefined') return;
+    if (!LearnGrant.enabled()) { if (card) card.hidden = true; box.hidden = true; return; }
+    const s = await LearnAuth.current().catch(() => null);
+    const cur = PageSettings.read(SETTINGS_KEYS);
+    let marks = {};
+    try {
+      marks = await new Promise((res) => chrome.storage.local.get(['grant', 'grantTail', 'grantBalance'], (v) => res(v || {})));
+    } catch (_) {}
+    const st = LearnGrant.status(Object.assign({}, cur, marks),
+      { signedIn: !!s, unavailable: _grantUnavailable });
+    LearnGrant.render(box, {
+      t, status: st, balance: marks.grantBalance || null, busy: _grantBusy,
+      onAction: (id) => grantAction(id),
+    });
+    if (card) card.hidden = box.hidden;
+  }
+
+  async function grantAction(id) {
+    if (id === 'signin') {
+      // 登录表单就在本页。滚过去并聚焦，而不是开一个新页面 —— 换页会丢掉「我是为了
+      // 领额度才登录的」这个上下文，回来还得自己找回这张卡。
+      const sec = $('sync-section');
+      if (sec && !sec.hidden) {
+        try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
+        const f = $('btn-sync-apple') && !$('btn-sync-apple').hidden ? $('btn-sync-apple') : $('btn-sync-email');
+        if (f) { try { f.focus({ preventScroll: true }); } catch (_) { f.focus(); } }
+      }
+      return;
+    }
+    if (id === 'byo') {
+      const p = (window.MT_PROVIDERS || []).find((x) => x.keyUrl);
+      if (p && p.keyUrl) window.open(p.keyUrl, '_blank', 'noopener');
+      return;
+    }
+    if (id === 'community') { window.open(MTFeedback.discussUrl(), '_blank', 'noopener'); return; }
+    if (id !== 'claim' && id !== 'restore') return;
+
+    // 「改回免费额度」会覆盖用户自己粘的 key —— 那是他花时间申请来的东西，
+    // 必须先问一句。页内确认框，不用 window.confirm（App 里它恒为 false）。
+    if (id === 'restore' && typeof LearnDialog !== 'undefined') {
+      const ok = await LearnDialog.confirm(t('grant_restore_confirm',
+        '改回免费额度会替换掉你现在填的 key。要继续吗？'));
+      if (!ok) return;
+    }
+
+    _grantBusy = true; await paintGrant();
+    try {
+      const claimed = await LearnGrant.claim();
+      const cur = PageSettings.read(SETTINGS_KEYS);
+      const plan = LearnGrant.plan(claimed, cur, window);
+      await applyQuickSetup(plan);
+      try { chrome.storage.local.set(plan.marks); } catch (_) {}
+      if (typeof MTTelemetry !== 'undefined' && !claimed.reused) MTTelemetry.track('grant_claimed', {});
+      showToast(t('grant_claimed_toast', '免费额度已配好'));
+    } catch (e) {
+      // 服务端的具名 error 走 syncError 那一套人话（G2 已经把七句都写进去了）。
+      if (e && e.code === 'grant_unavailable') _grantUnavailable = true;
+      showToast(syncError(e));
+    } finally {
+      _grantBusy = false;
+      await paintGrant();
+    }
   }
 
   // ── 快速 / 详细 ──────────────────────────────────────────────────────
@@ -1790,10 +1882,18 @@ async function init() {
     // 是哪一个。
     '#learn': { sec: 'learn-card', focus: () => $('learn-enabled'),
       flash: () => $('learn-enabled') && $('learn-enabled').closest('.field') },
+    // 免费额度（§8.10）。页内的停机提示、弹窗、引导页那张卡都往这里送。
+    // **落点前必须先切到快速 tab**：这张卡是 .quick-only，在详细档里整块是 hidden 的，
+    // 送过去只会滚到一片看不见的东西上 —— 那和送到页面顶部一样没用。
+    '#grant': { sec: 'grant-card', before: () => { if (_quickAvailable) applyDetailMode(false); },
+      focus: () => $('grant-box') && $('grant-box').querySelector('button, a') },
   };
   const target = ANCHORS[location.hash];
   if (target) {
     const jump = () => {
+      // before：落点自己先把自己变得可见（#grant 要先切回快速 tab）。
+      // 放在读 sec 之前 —— 反过来就会读到一个仍然 hidden 的节点然后直接返回。
+      if (target.before) { try { target.before(); } catch (_) {} }
       const sec = $(target.sec);
       if (!sec || sec.hidden) return;      // 这个构建里整节被 remove 掉了（如中国版的同步）
       try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }

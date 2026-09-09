@@ -2425,5 +2425,68 @@
   },
   "grant_err_busy": {
     "message": "Too many requests right now. Wait a few seconds and try again."
+  },
+  "grant_title": {
+    "message": "Free credit"
+  },
+  "grant_body_signin": {
+    "message": "Sign in and you can claim free credit — enough for a few hundred pages. It covers translation, speech and transcription."
+  },
+  "grant_signin": {
+    "message": "Sign in for free credit"
+  },
+  "grant_signin_again": {
+    "message": "Sign back in"
+  },
+  "grant_no_live": {
+    "message": "Live conversation is not covered — it needs a realtime socket, and this relay only forwards one-shot requests."
+  },
+  "grant_body_signed_out": {
+    "message": "Signing out deactivated your free credit. The balance is still there — sign back in to the same account and it returns."
+  },
+  "grant_body_unclaimed": {
+    "message": "You haven't claimed your free credit yet. It is good for a few hundred pages, across translation, speech and transcription."
+  },
+  "grant_claim": {
+    "message": "Claim"
+  },
+  "grant_claiming": {
+    "message": "Claiming…"
+  },
+  "grant_privacy": {
+    "message": "Once claimed, these three go through our server on their way to the model vendor. We do not store or log your text — only what this credit has spent."
+  },
+  "grant_body_active": {
+    "message": "Your free credit is in use. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_low": {
+    "message": "Your free credit is nearly gone. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_exhausted": {
+    "message": "Your free credit is used up. Add your own API key to carry on — one key covers translation, speech and transcription."
+  },
+  "grant_body_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_body_replaced": {
+    "message": "You are using your own key right now. The free credit is still there; you can switch back any time."
+  },
+  "grant_restore": {
+    "message": "Switch back to free credit"
+  },
+  "grant_byo": {
+    "message": "Use your own key"
+  },
+  "grant_community": {
+    "message": "Ask in the community"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey free credit"
+  },
+  "grant_restore_confirm": {
+    "message": "Switching back to free credit will replace the key you have entered. Continue?"
+  },
+  "grant_claimed_toast": {
+    "message": "Free credit is set up"
   }
 }

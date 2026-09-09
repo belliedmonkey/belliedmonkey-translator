@@ -199,3 +199,72 @@ describe('§8.10 余额缓存', () => {
     eq(G.leftUsd({ spentUsd: 0.1 }), null, '0 会被画成「用完了」');
   });
 });
+
+describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
+  const { G } = load();
+  const t = (k, d) => d;
+  const bal = (spent) => ({ limitUsd: 0.2, spentUsd: spent, at: Date.now() });
+
+  test('★ 每个状态至多一个主按钮 —— 两个并列等于没有', () => {
+    for (const st of ['none', 'signed_out', 'unclaimed', 'active', 'low', 'exhausted', 'unavailable', 'replaced']) {
+      const c = G.cardFor(st, { t, balance: bal(0.05) });
+      ok(c, `${st} 没画出卡`);
+      ok(!c.action || typeof c.action.id === 'string', `${st} 的按钮形状不对`);
+    }
+  });
+
+  test('★ 标题里不写金额 —— 数字只出现在进度那一行', () => {
+    for (const st of ['none', 'unclaimed', 'active', 'exhausted']) {
+      const c = G.cardFor(st, { t, balance: bal(0.05) });
+      ok(!/\$|美元|0\.2/.test(c.title), `${st} 的标题里出现了金额：${c.title}`);
+    }
+  });
+
+  test('★ 「池子空了」那句头一句先说不是你的问题', () => {
+    const c = G.cardFor('unavailable', { t });
+    ok(/不是你/.test(c.body.slice(0, 12)),
+      '头一句没说「不是你」—— 用户会去查自己的账户，查一晚上也查不出来：' + c.body);
+    ok(!c.action, '池子空了时不该给「领取」按钮 —— 点了必然失败');
+  });
+
+  test('未登录那张卡：主按钮是登录，且提前说清实时听译不含在内', () => {
+    const c = G.cardFor('none', { t });
+    eq(c.action.id, 'signin');
+    ok(/实时听译/.test(c.note), '没提前说实时听译不在范围内，用户会点进去发现入口不存在');
+  });
+
+  test('领取前要出隐私那一句 —— 文本经我们的服务器转发', () => {
+    const c = G.cardFor('unclaimed', { t });
+    eq(c.action.id, 'claim');
+    ok(/服务器/.test(c.note) && /不保存|不记录/.test(c.note), '领取前没说清文本去哪：' + c.note);
+  });
+
+  test('用完了给两个出口，且没有主按钮（没有可点的补救动作）', () => {
+    const c = G.cardFor('exhausted', { t, balance: bal(0.2) });
+    eq(c.action, null);
+    deepEq(c.links.map((l) => l.id).sort(), ['byo', 'community']);
+    eq(c.progress.left, 0);
+  });
+
+  test('退出登录那句先说余额还在', () => {
+    const c = G.cardFor('signed_out', { t });
+    ok(/余额保留|余额还在/.test(c.body), '没说余额还在，用户以为钱没了：' + c.body);
+  });
+
+  test('换成自己的 key 之后给「改回免费额度」', () => {
+    const c = G.cardFor('replaced', { t });
+    eq(c.action.id, 'restore');
+  });
+
+  test('认不出的状态什么都不画 —— 不猜', () => {
+    eq(G.cardFor('who-knows', { t }), null);
+    eq(G.cardFor('', { t }), null);
+  });
+
+  test('进度条：余额未知时不画一条空条（空条看着像用完了）', () => {
+    const c = G.cardFor('active', { t });          // 没传 balance
+    eq(c.progress, null);
+    const c2 = G.cardFor('active', { t, balance: bal(0.05) });
+    eq(c2.progress.left, 0.15);
+  });
+});
