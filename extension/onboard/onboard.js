@@ -210,23 +210,29 @@
   // 免费额度那张卡（§8.10）。这一页**只展示、只指路**，不自己实现领取：
   // 登录表单与写盘路径都在设置页，而两个页面同时备 PKCE verifier 会互相覆盖。
   // 所以这里唯一的动作是把人送到设置页的 #grant 锚点上。
-  async function paintGrant() {
+  // **同步的，返回「画出来了没有」** —— 显隐由 paintModes 在一个地方落定，
+  // 与 ob-quick 逐字同构。第一版写成 async 然后在 .then 里改 hidden：那样「谁最后
+  // 设了 hidden」就取决于微任务顺序，而这一页每次切屏都会先把所有块重置成 hidden。
+  // 异步只该用在真的要等的地方，而这里没有要等的东西（这一页不加载 auth.js）。
+  //
+  // 这一页**不加载 auth.js**（那会把整套同步栈拉进引导流程），所以一律按未登录画：
+  // 引导中的人几乎必然还没登录；万一登录了，卡上那句把他送到设置页，那里是真实状态。
+  function paintGrant() {
     const box = $('ob-grant');
     if (!box || typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) {
       if (box) box.hidden = true;
       return false;
     }
-    // 这一页不加载 auth.js（那会把整套同步栈拉进引导流程）。读不到登录态就按
-    // **未登录**画 —— 引导中的人几乎必然还没登录，而万一登录了，卡上那句
-    // 「登录领免费额度」把他送到设置页，那里显示的是真实状态。
-    // 宁可在这里说得保守，也不要在引导页里维护第二份登录状态。
-    const s = (typeof LearnAuth !== 'undefined')
-      ? await LearnAuth.current().catch(() => null) : null;
     LearnGrant.render(box, {
       t,
-      status: LearnGrant.status(settings, { signedIn: !!s }),
+      status: LearnGrant.status(settings, { signedIn: false }),
+      // 这一屏的主行动是「配好」（一键卡那个填色按钮）。两个填色按钮并排时用户
+      // 看不出该点哪个 —— 2026-09-02 就为这件事把「继续」降过一次级，门禁也是
+      // 那次立的。所以额度卡在引导页上是**次级**样式；到了设置页它是那张卡里
+      // 唯一的按钮，不需要降级。
+      secondary: true,
       onAction: () => {
-        try { window.open(chrome.runtime.getURL('options/options.html#grant'), '_blank'); } catch (_) {}
+        try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {}
       },
     });
     return !box.hidden;
@@ -326,17 +332,18 @@
   }
 
   function paintModes() {
-    // 额度卡跟一键卡同属「一键配置」这一档，所以显隐跟着 manual 走。
-    // 它是 async 的（要读登录态），但显隐由它自己在回调里落定 —— 这里不等它，
-    // 等它会让整屏的绘制被一次存储读拖住。
-    paintGrant().then((shown) => { if (manualMode && shown) $('ob-grant').hidden = true; });
+    const grantShown = paintGrant();
     const quickShown = paintQuick();
     // 一键卡渲染不出来的 flavor：没有可选的东西，就不给一个只有一边的二选一。
     $('ob-modes').hidden = !quickShown;
     const manual = manualMode || !quickShown;
     if (manual) paintManual();
     $('ob-quick').hidden = manual || !quickShown;
-    if (manual && $('ob-grant')) $('ob-grant').hidden = true;
+    // 额度卡的显隐只看**用户选的那个 tab**（manualMode），不看派生出来的 manual
+    // （后者 = `manualMode || !quickShown`）。理由是语义：额度卡属于「一键配置」这一档，
+    // 而「一键卡里有没有可选平台」是另一个问题 —— 一个 flavor 里没有可一键的平台、
+    // 却有免费额度，那张卡照样该出。
+    $('ob-grant').hidden = manualMode || !grantShown;
     $('ob-manual').hidden = !manual;
     $('ob-mode-quick').textContent = t('extob_mode_quick', '一键配置');
     $('ob-mode-manual').textContent = t('extob_mode_manual', '三引擎分别配');

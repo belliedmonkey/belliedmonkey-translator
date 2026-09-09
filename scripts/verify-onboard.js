@@ -71,6 +71,16 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         title:(document.getElementById('ob-title')||{}).textContent||'',
         text:(document.getElementById('ob-text')||{}).textContent||'',
         w:(document.getElementById('ob-fill')||{style:{}}).style.width,
+        // 额度卡（§8.10）**必须在逐屏采样里取**。第一版把它放在走完四屏之后单独读一次，
+        // 那时页面停在第 4 屏，引擎屏上的两张卡自然都读不到 —— 门禁于是报「看不到那张卡」，
+        // 而卡其实好好地画在第 2 屏上。判据要问「那一屏怎么样」，不是「现在怎么样」。
+        grant:(()=>{const b=document.getElementById('ob-grant');
+          const next=document.getElementById('ob-next');
+          return {on: typeof LearnGrant!=='undefined' && LearnGrant.enabled(),
+            vis:vis(b), text:b?(b.textContent||''):'',
+            why:!b?'no-node':(b.hidden?'hidden':(b.children.length?'painted':'empty')),
+            quickVis:vis(document.getElementById('ob-quick')),
+            nextVis:vis(next), nextOff:!!(next&&next.disabled)};})(),
         quick:(()=>{const b=document.getElementById('ob-quick');
           return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
@@ -170,7 +180,33 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(asksLogin.length) fail(`第 ${seen.indexOf(asksLogin[0])+1} 屏（${asksLogin[0].step}）又在引导里要人登录了：`
       + JSON.stringify(asksLogin[0].title)
       + ' —— 登录的请求归官网交接块与复习页，都在用户看到译文之后');
-    else pass('引导里不提登录 —— 那一步在看到价值之后才问');
+    else pass('引导里的**标题与正文**不提登录 —— 那一步在看到价值之后才问');
+
+    // ★ 2026-09-08 起有一个**有界的例外**：免费额度那张卡（§8.10，裁定 D2）。
+    //
+    // 上面那条判的是屏的标题与正文；这条判的是那张卡。两者不是一回事：
+    // 「在人还没看到价值之前就用登录挡住他」仍然禁止，而「给他一个可以不点的选项」
+    // 不是墙。所以判据是**并存**，不是「有没有出现登录字样」：
+    //   · 额度卡里可以提登录；
+    //   · 但「用自己的 key」那张卡必须同屏可见；
+    //   · 「继续」必须同屏可见**且没被禁用**。
+    // 三条里任何一条不成立，它就从选项变回了墙。
+    //
+    // MT_GRANT 为 null 时（今天的两个 flavor）这张卡整块不出，于是这条断言说的是
+    // 「它确实一个字都没出」—— 那也是一个真判据，不是空转。
+    const eng = seen.find(x=>x.step==='engine');
+    const g = eng && eng.grant;
+    if(!g) fail('没采到引擎屏的额度卡状态 —— 这条断言在空转');
+    else if(!g.on){
+      if(g.vis) fail('MT_GRANT 是 null，额度卡却画出来了');
+      else pass('这个构建没有免费额度（MT_GRANT=null），卡一个字都没出');
+    } else {
+      if(!g.vis) fail(`开了免费额度，引擎屏却看不到那张卡（原因位=${g.why}）`);
+      else if(!loginish.test(g.text)) fail('额度卡上没有登录入口 —— 那它就不是这张卡了');
+      else if(!g.quickVis) fail('额度卡在，但「用自己的 key」那张卡不同屏 —— 登录就成了墙');
+      else if(!g.nextVis || g.nextOff) fail('额度卡在，但「继续」不可见或被禁用 —— 登录就成了墙');
+      else pass('额度卡与「用自己的 key」同屏，「继续」可点 —— 登录是选项不是墙');
+    }
     const dim=seen.filter(s=>s.contrast&&s.contrast.length);
     if(dim.length) fail(`第 ${seen.indexOf(dim[0])+1} 屏有看不清的文字：${dim[0].contrast.slice(0,5).join(' | ')}${dim[0].contrast.length>5?' …共 '+dim[0].contrast.length+' 处':''}`);
     else pass('每屏文字在深色与浅色下都 ≥ 4.5:1');

@@ -303,7 +303,10 @@ var LearnGrant = (function () {
     }
 
     if (card.action) {
-      const b = el('button', 'gr-action', o.busy ? t('grant_claiming', '领取中…') : card.action.text);
+      // secondary：并排还有别的填色按钮时降级。两个填色按钮并排等于没有主按钮 ——
+      // 用户要先做一次「该点哪个」的判断，而这两张卡的意义就是省掉判断。
+      const b = el('button', 'gr-action' + (o.secondary ? ' secondary' : ''),
+        o.busy ? t('grant_claiming', '领取中…') : card.action.text);
       b.type = 'button';
       b.disabled = !!o.busy;
       // IO 在途时禁按（画布状态 S2）。不禁的话双击就是两次领取请求 —— 服务端幂等
