@@ -42,7 +42,7 @@ function prepareDist(port) {
   t = t.replace(/https:\/\/[a-z0-9]+\.supabase\.co/g, base);
   if (t === before) throw new Error('providers.gen.js 里没有后端地址可替换 —— 注册表形状变了？');
   t = t.replace('window.MT_GRANT = null;',
-    `window.MT_GRANT = ${JSON.stringify({ vendor: 'test', limitUsd: 0.2, claimUrl: base + '/functions/v1/bt-grant', models: { chat: MODEL } })};`);
+    `window.MT_GRANT = ${JSON.stringify({ vendor: 'test', vendorLabel: 'TestVendor', limitUsd: 0.2, claimUrl: base + '/functions/v1/bt-grant', models: { chat: MODEL } })};`);
   fs.writeFileSync(gen, t);
   for (const f of ['tts.gen.js', 'stt.gen.js']) {
     const p = path.join(run, 'content', f);
@@ -170,6 +170,80 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
     const sentModel = seen.chat.map((c) => { try { return JSON.parse(c.body).model; } catch (_) { return ''; } });
     if (sentModel.some((m) => m !== MODEL)) fail(`发出去的模型不是钉住的那个：${JSON.stringify(sentModel)}`);
     else pass('每次都发钉住的模型 —— 不发就会撞 403 model_not_allowed');
+    // ── 第二幕：真的点一次「领取」──────────────────────────────────────
+    //
+    // 上面那一幕验的是「额度用完之后」。而**领取这个按钮从没在真界面上点过** ——
+    // 纯逻辑套件验的是 plan() 算出什么，端到端验的是停机，中间这一段（点击 → 领取
+    // → 写三槽）只有真扩展页答得了。按钮点了什么都不发生，是这个仓库反复撞到的
+    // 那一类：代码看着对、单测全绿。
+    {
+      const loaded = await cdp.send('Extensions.loadUnpacked', { path: runDist }).catch(() => null);
+      const extId = (loaded && loaded.id) || null;
+      // 上面已经装过一次，第二次会回同一个 id 或报已装 —— 两种都行，取得到就继续。
+      let id = extId;
+      if (!id) {
+        const { targetInfos } = await cdp.send('Target.getTargets', {});
+        const sw = (targetInfos || []).find((x) => x.type === 'service_worker' && /chrome-extension:/.test(x.url || ''));
+        id = sw ? String(sw.url).split('/')[2] : null;
+      }
+      if (!id) fail('拿不到扩展 id —— 领取那一幕没法验');
+      else {
+        const { targetId: t2 } = await cdp.send('Target.createTarget',
+          { url: `chrome-extension://${id}/options/options.html#grant` });
+        const { sessionId: s2 } = await cdp.send('Target.attachToTarget', { targetId: t2, flatten: true });
+        await cdp.send('Runtime.enable', {}, s2);
+        const ev2 = async (expr) => {
+          const r = await cdp.send('Runtime.evaluate',
+            { expression: expr, awaitPromise: true, returnByValue: true }, s2);
+          if (r.exceptionDetails) throw new Error(r.exceptionDetails.text);
+          return r.result ? r.result.value : undefined;
+        };
+        // 种一个「已登录」的会话。auth.js 只在 token 过期时才去刷新，所以给一个
+        // 远未过期的就够 —— 这一幕要验的是领取按钮，不是登录本身。
+        const SESSION = {
+          accessToken: 'fake-session-jwt', refreshToken: 'fake-refresh',
+          expiresAt: Date.now() + 3600e3, user: { id: 'u-test', email: 't@example.invalid' },
+        };
+        await ev2(`new Promise(r => chrome.storage.local.set({ learnAuth: ${JSON.stringify(SESSION)} }, r))`);
+        await new Promise((r) => setTimeout(r, 2500));
+        // 重画一次：卡是跟着登录态画的，而我们是在页面起来之后才种的会话。
+        await ev2('typeof refreshSyncUI === "function" ? refreshSyncUI() : null').catch(() => {});
+        await new Promise((r) => setTimeout(r, 1500));
+
+        const card = await ev2(`(() => { const b = document.getElementById('grant-box');
+          const btn = b && b.querySelector('button.gr-action');
+          const note = b && b.querySelector('.gr-note');
+          return JSON.stringify({ vis: !!(b && b.getClientRects().length),
+            btn: btn ? btn.textContent : null, note: note ? note.textContent : '' }); })()`);
+        const c = JSON.parse(card);
+        if (!c.vis) fail('设置页上看不到额度卡');
+        else if (!c.btn) fail('额度卡上没有「领取」按钮');
+        else if (!c.note || c.note.length < 80) fail(`领取按钮前没有那段披露（长度 ${c.note.length}）—— Gate F 的构成要件`);
+        else if (/\{vendor\}/.test(c.note)) fail('披露里的占位符没被代掉');
+        else pass('卡在、按钮在、披露在（且占位符已代掉）');
+
+        if (c.btn) {
+          await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
+          await new Promise((r) => setTimeout(r, 3000));
+          const got = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(
+            ['provider','apiKey','apiModel','ttsEngine','sttEngine','grantTail','grant','grantBalance'],
+            o => r(JSON.stringify(o))))`));
+          if (!seen.grant.length) fail('点了领取，但假后端一次请求都没收到 —— 按钮是死的');
+          else pass(`领取请求发出去了（${seen.grant.length} 次），且带着会话凭证`);
+          if (got.provider !== 'grant') fail(`翻译那一槽没写成额度：${got.provider}`);
+          else if (got.apiKey !== TOKEN) fail('翻译那一槽的 key 不是领到的令牌');
+          else if (got.apiModel !== MODEL) fail(`模型没被钉住：${got.apiModel}`);
+          else if (got.ttsEngine !== 'grant_speech' || got.sttEngine !== 'grant_stt') {
+            fail(`朗读/转写两槽没写对：${got.ttsEngine} / ${got.sttEngine}`);
+          } else pass('三槽都写成了额度那一档，且模型被钉住');
+          if (got.grantTail !== TOKEN.slice(-8)) fail('grantTail 没写对');
+          else if (!got.grant || !got.grantBalance) fail('领取记录或余额缓存没写');
+          else pass('三个标记都落盘了（尾八位 / 领取记录 / 余额缓存）');
+          if (JSON.stringify(got.grant).includes(TOKEN)) fail('领取记录里出现了完整令牌 —— 只该存尾八位');
+          else pass('落盘的记录里没有完整令牌');
+        }
+      }
+    }
   } catch (e) {
     fail(String((e && e.message) || e));
   } finally {
