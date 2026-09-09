@@ -97,6 +97,39 @@ describe('backend.config.js — 境内后端（§C）', () => {
     ok(!S.liveEndpoint, '转写那一档不该有 liveEndpoint：中继只转发一次性请求');
   });
 
+  // ── 模型锁死（用户 2026-09-09 裁定：「锁定免费额度固定好默认模型，不允许换，
+  //    要换就自己去申请自己的 apikey」）────────────────────────────────────
+  //
+  // 这件事有**三道锁**，缺一道都会让用户撞上一次自己解不开的失败：
+  //   1. 注册表：supportsModel/supportsBaseUrl 为假 ⇒ 界面上根本没有那两个输入框。
+  //   2. 客户端：LearnGrant.plan 的 pinModel 把模型**显式写进配置**（留空会走注册表
+  //      默认，而用户可能在别处改过 apiModel）。
+  //   3. 服务端：中继按白名单放行，模型不对回 403 model_not_allowed。
+  // 这里守第 1 道。第 2 道在 test/grant.test.js，第 3 道是端到端实测过的。
+  test('免费额度那三档：模型与端点都不给改', () => {
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    const grantOnly = [...P, ...T, ...S].filter((e) => e.grantOnly);
+    eq(grantOnly.length, 3, `grantOnly 的条目应有三档（翻译/朗读/转写），实际 ${grantOnly.length}`);
+    for (const e of grantOnly) {
+      eq(!!e.supportsModel, false, `${e.id} 允许改模型 —— 改了必然撞 403，而用户看不出为什么`);
+      eq(!!e.supportsBaseUrl, false, `${e.id} 允许改端点 —— 那就绕开中继了，额度也就不计量了`);
+      ok(e.defaultModel, `${e.id} 没有钉住的默认模型 —— 留空会让请求带不上 model`);
+    }
+  });
+
+  test('这道门真的在读注册表 —— 扫不到东西的断言不是门禁', () => {
+    // 上一条如果因为「一条 grantOnly 都没扫到」而绿，它就什么也没守。
+    // 这一条把「扫到了三条」单独钉住，且顺带确认三档各自属于不同的注册表。
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    eq(P.filter((e) => e.grantOnly).length, 1, '翻译那一档不是恰好一条');
+    eq(T.filter((e) => e.grantOnly).length, 1, '朗读那一档不是恰好一条');
+    eq(S.filter((e) => e.grantOnly).length, 1, '转写那一档不是恰好一条');
+  });
+
   test('china 块存在，且三个键齐全', () => {
     ok(CFG.china && typeof CFG.china === 'object', 'MT_BACKEND.china 不见了');
     eq(typeof CFG.china.ready, 'boolean', 'china.ready 必须是布尔 —— 它是「切没切」的唯一判据');

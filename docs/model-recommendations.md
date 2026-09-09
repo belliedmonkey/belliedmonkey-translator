@@ -73,7 +73,7 @@
 
 ## 实测台账（全部）
 
-共 70 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 71 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -156,6 +156,7 @@
 | `openai/gpt-audio-mini` | 2026-08-30 | 🔵 可达（参数未扫） | 基线 1411ms | — | 朗读可达性（真 Chrome 扩展页）：1411ms、290444 字节 WAV、浏览器解码 6.05 秒。走 speech-audio-chat 形状（stream:true + pcm16，自己补 WAV 头）。**参数层面没扫过**。 |
 | `google/gemini-3.7-flash` | 2026-08-30 | ✅ 采纳 | 基线 13329ms · 思考 1369tok · 降档后 3152ms | `{"reasoning":{"effort":"low"}}` | 为「官网教程推荐哪个模型」而测，真 key。基线每段思考 1369 tok / 13.3 秒；降档后思考归零、2.9–3.3 秒，译文长度不变 —— 同一段快 4 倍。要紧的是它**不在** openrouter-reasoning 那行的前缀里（那行只覆盖 openai/gpt-5\|o1\|o3\|o4），所以在补上 openrouter-gemini 行之前，推荐它等于让用户拿 13 秒那一档。 |
 | `openai/gpt-oss-120b` | 2026-08-30 | ⬜ 测过不写 | 基线 2294ms · 思考 37tok · 降档后 1541ms | — | 同一轮的翻译候选。它**基线本来就几乎不思考**（19–37 tok），降档没有可拿的收益，而 minimal 反而让它思考得更多。测过、决定不写 —— 记下来是为了下一个人不会照文档把它补进参数表。同轮另一个发现：deepseek/deepseek-v4-flash-latest 被网关判为「is not a valid model ID」，那是模型清单里带 ~ 前缀的条目，不能当模型名用。 |
+| `deepgram/nova-3` | 2026-09-09 | ⬜ 测过不写 | — | — | 走 /audio/transcriptions。英文很好（3.6s 音频 $0.00026，约 $0.26/小时，比 whisper 便宜）且 verbose_json 带 segments。**但非英语上不可用**，三种参数各坏一种：不带 language ⇒ 中文回 **HTTP 200 而 text 为空**（静默失败，最坏的一种）；`language=zh` ⇒ 正确；`language=multi` ⇒ 中文变成乱码「你好、我情めいじゃ、甚tien tien chi hen buzón」，中英混说的音频里**整段中文被丢掉**只留英文；`detect_language=true` ⇒ 仍然空。而字幕那条路（asr-source.js:359）**故意不发 language** —— 媒体的语言无从得知，那是设计裁定不是疏漏。所以钉它等于让所有非英语媒体静默无字幕。同一段音频 openai/whisper-1 不带任何参数就把中英三段全部转对。⇒ 免费额度的转写档保持 openai/gpt-4o-mini-transcribe。 |
 
 ### `generativelanguage.googleapis.com`
 

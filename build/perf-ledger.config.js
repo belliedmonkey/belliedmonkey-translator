@@ -823,4 +823,14 @@ module.exports = [
     verdict: 'reachable',
     why: '免费额度中继（Supabase Edge Function `bt-relay`，东京）端到端实测：造一个测试账号 → 领取 → 转发 → 读账 → 删号。**领取幂等**：第二次回 reused=true 且令牌逐字相同（裁定 D1）。**转发正确**：同一段商务文本译文可用。**模型被钉住**：改成 openai/gpt-4o 回 403 model_not_allowed 并带上正确的模型名。**计量落账**：5 次翻译共 $0.000087（≈$0.0000174/次 ⇒ 0.2 美元约 11500 次翻译请求，所以烧钱的是朗读与转写，不是翻译）。删账号后 cascade 带走额度行，账本归零。**耗时**：经中继 5 次 1928/3011/3727/4005/7516 ms，中位 3727；同一时刻同模型**直连 openrouter.ai** 5 次 875/2191/2328/2481/2544，中位 2328 ⇒ **中继这一跳中位加约 1.4 秒**，且方差明显更大（边缘函数冷启动）。样本只有 5 次，是量级不是精度。**参数层面没扫过** —— 中继只透传白名单字段，可调的东西在上游那几行。',
   },
+
+  // 免费额度那一档的转写模型选型（2026-09-09）。用户被 OpenRouter 提醒「不能用
+  // openai / anthropic / google 三家的模型」，所以去找了一个非那三家的替代。
+  // **结论是没有可用的替代**，记在这里免得下一个人再试一遍。
+  {
+    host: 'openrouter.ai', model: 'deepgram/nova-3', date: '2026-09-09',
+    baseline: { ms: null, thinkTokens: null, outChars: 56, finish: 'stop' },
+    verdict: 'rejected',
+    why: '走 /audio/transcriptions。英文很好（3.6s 音频 $0.00026，约 $0.26/小时，比 whisper 便宜）且 verbose_json 带 segments。**但非英语上不可用**，三种参数各坏一种：不带 language ⇒ 中文回 **HTTP 200 而 text 为空**（静默失败，最坏的一种）；`language=zh` ⇒ 正确；`language=multi` ⇒ 中文变成乱码「你好、我情めいじゃ、甚tien tien chi hen buzón」，中英混说的音频里**整段中文被丢掉**只留英文；`detect_language=true` ⇒ 仍然空。而字幕那条路（asr-source.js:359）**故意不发 language** —— 媒体的语言无从得知，那是设计裁定不是疏漏。所以钉它等于让所有非英语媒体静默无字幕。同一段音频 openai/whisper-1 不带任何参数就把中英三段全部转对。⇒ 免费额度的转写档保持 openai/gpt-4o-mini-transcribe。',
+  },
 ];
