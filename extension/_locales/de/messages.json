@@ -2506,5 +2506,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "Nicht angemeldet — nur dieses Gerät. Beim Anmelden gibt es außerdem Gratis-Guthaben →"
+  },
+  "grant_cn_title": {
+    "message": "Fang mit dem Gratis-Guthaben des Anbieters an"
+  },
+  "grant_cn_body": {
+    "message": "Nach der Anmeldung bringt jedes Modell ein Gratis-Guthaben mit, das eine Weile reicht. Es kommt vom Anbieter, nicht von uns."
+  },
+  "grant_cn_step1": {
+    "message": "Anmelden und die Konsole öffnen"
+  },
+  "grant_cn_step2": {
+    "message": "Gratis-Guthaben holen (den genauen Betrag nennt deren Seite)"
+  },
+  "grant_cn_step3": {
+    "message": "Den API-Schlüssel unten einfügen — Übersetzung, Vorlesen und Transkription auf einmal"
+  },
+  "grant_cn_open": {
+    "message": "Konsole öffnen ↗"
+  },
+  "grant_cn_why": {
+    "message": "Wir geben hier noch kein eigenes Guthaben aus: dafür braucht es einen Server im Land, der noch nicht steht."
   }
 }

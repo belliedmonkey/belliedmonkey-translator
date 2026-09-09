@@ -521,12 +521,13 @@ var AppSettings = (() => {
     const box = $('grant-box');
     const card = $('grant-card');
     if (!box || typeof LearnGrant === 'undefined') return;
-    if (!LearnGrant.enabled()) { if (card) card.hidden = true; box.hidden = true; return; }
     let cur = {};
     try { cur = await get(KEYS.concat(['grant', 'grantTail', 'grantBalance'])); } catch (_) {}
     LearnGrant.render(box, {
       t,
       status: LearnGrant.status(cur, { signedIn: !!session, unavailable: _grantUnavailable }),
+      flavor: window.MT_FLAVOR,       // 中国版：官方免费额度那张卡（G5）
+      keyUrl: ((window.MT_PROVIDERS || []).find((x) => x.keyUrl) || {}).keyUrl || '',
       balance: cur.grantBalance || null,
       busy: _grantBusy,
       onAction: (id) => grantAction(id, session),

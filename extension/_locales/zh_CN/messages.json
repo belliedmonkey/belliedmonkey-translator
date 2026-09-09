@@ -2507,5 +2507,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "未登录，仅本机数据 —— 登录还能领一份免费额度 →"
+  },
+  "grant_cn_title": {
+    "message": "先领一份官方免费额度"
+  },
+  "grant_cn_body": {
+    "message": "注册后每个模型有一份免费额度，够用一阵子。它是阿里云给你的，不经我们的手。"
+  },
+  "grant_cn_step1": {
+    "message": "注册并打开控制台"
+  },
+  "grant_cn_step2": {
+    "message": "领免费额度（具体多少以它的页面为准）"
+  },
+  "grant_cn_step3": {
+    "message": "把 API Key 粘到下面，一键配好翻译、朗读、转写"
+  },
+  "grant_cn_open": {
+    "message": "去开通 ↗"
+  },
+  "grant_cn_why": {
+    "message": "我们暂时不提供代领的免费额度：那需要一台境内的服务器，还没就绪。"
   }
 }

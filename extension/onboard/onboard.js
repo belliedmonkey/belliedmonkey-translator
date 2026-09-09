@@ -219,13 +219,14 @@
   // 引导中的人几乎必然还没登录；万一登录了，卡上那句把他送到设置页，那里是真实状态。
   function paintGrant() {
     const box = $('ob-grant');
-    if (!box || typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) {
-      if (box) box.hidden = true;
-      return false;
-    }
+    if (!box || typeof LearnGrant === 'undefined') { if (box) box.hidden = true; return false; }
     LearnGrant.render(box, {
       t,
       status: LearnGrant.status(settings, { signedIn: false }),
+      // 中国版走的是另一张卡（官方免费额度）。flavor 与地址都从生成的注册表来，
+      // 不在这一页判 flavor 名 —— 那是 build 的事，不是运行时的事。
+      flavor: window.MT_FLAVOR,
+      keyUrl: ((window.MT_PROVIDERS || []).find((x) => x.keyUrl) || {}).keyUrl || '',
       // 这一屏的主行动是「配好」（一键卡那个填色按钮）。两个填色按钮并排时用户
       // 看不出该点哪个 —— 2026-09-02 就为这件事把「继续」降过一次级，门禁也是
       // 那次立的。所以额度卡在引导页上是**次级**样式；到了设置页它是那张卡里

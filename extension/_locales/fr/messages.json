@@ -2506,5 +2506,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "Déconnecté — cet appareil seulement. Se connecter donne aussi du crédit gratuit →"
+  },
+  "grant_cn_title": {
+    "message": "Commencez par le crédit gratuit du fournisseur"
+  },
+  "grant_cn_body": {
+    "message": "Après inscription, chaque modèle vient avec un crédit gratuit qui dure un moment. Il vient du fournisseur, pas de nous."
+  },
+  "grant_cn_step1": {
+    "message": "Inscrivez-vous et ouvrez la console"
+  },
+  "grant_cn_step2": {
+    "message": "Réclamez le crédit gratuit (leur page indique le montant exact)"
+  },
+  "grant_cn_step3": {
+    "message": "Collez la clé API ci-dessous pour tout configurer d’un coup"
+  },
+  "grant_cn_open": {
+    "message": "Ouvrir la console ↗"
+  },
+  "grant_cn_why": {
+    "message": "Nous ne distribuons pas encore de crédit ici : cela demande un serveur dans le pays, pas encore prêt."
   }
 }

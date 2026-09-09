@@ -312,3 +312,37 @@ describe('§8.10 弹窗那一行 —— 一切正常时不占地方', () => {
     eq(G2.popupRow(on({ grantBalance: { limitUsd: 0.2, spentUsd: 0.2, at: 1 } }), { t }), null);
   });
 });
+
+describe('§8.10 没有额度就没有那张卡（中国版 / 开关未翻）', () => {
+  const t = (k, d) => d;
+
+  test('★ MT_GRANT 为 null 时 cardFor 一律返回 null —— 包括 none 那个状态', () => {
+    const { G } = load(null);
+    for (const st of ['none', 'unclaimed', 'active', 'exhausted', 'unavailable', 'replaced', 'signed_out']) {
+      eq(G.cardFor(st, { t }), null, `${st} 在没有额度的构建里画出了卡`);
+    }
+  });
+
+  test('中国版那个位置放的是官方免费额度卡，且不提登录', () => {
+    const { G } = load(null);
+    const c = G.officialCard({ t, flavor: 'china', keyUrl: 'https://example.invalid/keys' });
+    ok(c, '中国版没有画出那张卡');
+    eq(c.steps.length, 3);
+    ok(!/登录|登入/.test(c.title + c.body + c.steps.join('') + c.note),
+      '中国版那张卡上出现了登录字样 —— 那个 flavor 里没有登录');
+    ok(/不经我们的手|不经我们/.test(c.body), '没说清这份额度是谁给的：' + c.body);
+    ok(/境内|服务器/.test(c.note), '没诚实说明我们为什么暂时不提供：' + c.note);
+    eq(c.links[0].href, 'https://example.invalid/keys', '链接必须是注册表来的真地址');
+  });
+
+  test('全球版不出那张卡；没有地址时也不出（不画一张点不动的卡）', () => {
+    const { G } = load(null);
+    eq(G.officialCard({ t, flavor: 'global', keyUrl: 'https://x.invalid' }), null);
+    eq(G.officialCard({ t, flavor: 'china', keyUrl: '' }), null);
+  });
+
+  test('有我们自己的额度时不出官方那张 —— 两张卡互斥', () => {
+    const { G } = load();
+    eq(G.officialCard({ t, flavor: 'china', keyUrl: 'https://x.invalid' }), null);
+  });
+});

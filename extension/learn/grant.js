@@ -203,6 +203,11 @@ var LearnGrant = (function () {
   // 每个状态**至多一个主按钮**。两个并列的主按钮等于没有主按钮 —— 用户要先做一次
   // 「该点哪个」的判断，而这张卡的全部意义就是省掉判断。
   function cardFor(status, opts) {
+    // **没有额度就没有这张卡。** 这个守卫原来在三个宿主里各写了一遍（提前 return），
+    // 而为了让中国版那张卡走到 render 里，那三处被删掉了 —— 于是 status('none')
+    // （「有额度但没登录」）在**没有额度**的构建里也画出了一张「登录领免费额度」。
+    // 守卫属于卡自己：调用方不该需要知道「先问 enabled 再问 status」。
+    if (!enabled()) return null;
     const o = opts || {};
     const t = o.t || ((k, d) => d);
     const limit = Number((spec() && spec().limitUsd) || 0);
@@ -268,6 +273,37 @@ var LearnGrant = (function () {
     }
   }
 
+  // ── 中国版那张卡（画布 A10 / G5）──────────────────────────────────────
+  //
+  // 中国版**没有**我们代领的额度（MT_GRANT 恒为 null）：中国用户的原文会经东京中转，
+  // 而境内后端未就绪。所以那个位置放的是另一件真事 —— **阿里云百炼自己给的免费额度**。
+  //
+  // 三点必须说清，而且顺序就是这个顺序：
+  //   1. 这份额度是阿里云给你的，**不经我们的手**。说反了就是替别人许诺。
+  //   2. 具体额度以百炼页面为准。我们抄一个数字下来，它变了我们就在说假话。
+  //   3. 我们**暂时**不提供代领的额度，原因是境内后端没就绪 —— 诚实地说出来，
+  //      而不是让中国用户觉得这个功能对他不存在。
+  //
+  // 地址只从注册表取（keyUrl），文案里不出现任何境外平台名 —— 中国合规门会逐行扫。
+  function officialCard(opts) {
+    const o = opts || {};
+    const t = o.t || ((k, d) => d);
+    if (enabled()) return null;                        // 有我们自己的额度时不出这张
+    if (o.flavor !== 'china') return null;
+    if (!o.keyUrl) return null;                        // 没有可去的地址就不画一张点不动的卡
+    return {
+      title: t('grant_cn_title', '先领一份官方免费额度'),
+      body: t('grant_cn_body', '注册后每个模型有一份免费额度，够用一阵子。它是阿里云给你的，不经我们的手。'),
+      steps: [
+        t('grant_cn_step1', '注册并打开控制台'),
+        t('grant_cn_step2', '领免费额度（具体多少以它的页面为准）'),
+        t('grant_cn_step3', '把 API Key 粘到下面，一键配好翻译、朗读、转写'),
+      ],
+      links: [{ id: 'keyurl', text: t('grant_cn_open', '去开通 ↗'), href: o.keyUrl }],
+      note: t('grant_cn_why', '我们暂时不提供代领的免费额度：那需要一台境内的服务器，还没就绪。'),
+    };
+  }
+
   // ── 弹窗那一行（画布 A5）────────────────────────────────────────────────
   //
   // 弹窗是**只读的、活得极短的**一个面：它不发任何网络请求（余额只用缓存那一份），
@@ -306,7 +342,9 @@ var LearnGrant = (function () {
     const o = opts || {};
     const t = o.t || ((k, d) => d);
     const doc = box.ownerDocument;
-    const card = cardFor(o.status, o);
+    // 两张卡共用这一个位置：有我们的额度时画额度卡，中国版画官方额度那张。
+    // 二者互斥（officialCard 在 enabled() 时返回 null），所以不会同时出现。
+    const card = cardFor(o.status, o) || officialCard(o);
     box.textContent = '';
     if (!card) { box.hidden = true; return null; }
     box.hidden = false;
@@ -346,12 +384,23 @@ var LearnGrant = (function () {
       wrap.append(b);
     }
 
+    if (card.steps && card.steps.length) {
+      const ol = el('ol', 'gr-steps');
+      for (const st of card.steps) ol.append(el('li', null, st));
+      wrap.append(ol);
+    }
+
     if (card.links.length) {
       const row = el('div', 'gr-links');
       for (const l of card.links) {
         const a = el('a', 'gr-link', l.text);
-        a.href = '#';
-        a.addEventListener('click', (e) => { e.preventDefault(); if (o.onAction) o.onAction(l.id); });
+        // 带 href 的链接**就让它是链接**（中国版那张卡去的是外部控制台）：真链接可以
+        // 长按复制、可以在新标签打开，而一个 href="#" 加 onclick 的假链接三样都做不到。
+        if (l.href) { a.href = l.href; a.target = '_blank'; a.rel = 'noopener'; }
+        else {
+          a.href = '#';
+          a.addEventListener('click', (e) => { e.preventDefault(); if (o.onAction) o.onAction(l.id); });
+        }
         row.append(a);
       }
       wrap.append(row);
@@ -373,6 +422,8 @@ var LearnGrant = (function () {
     .gr-bar { height:6px; border-radius:3px; background:var(--border, #ddd); overflow:hidden; }
     .gr-fill { height:100%; background:var(--accent, #6b8f71); }
     .gr-links { display:flex; gap:12px; flex-wrap:wrap; }
+    .gr-steps { margin:0; padding-left:1.2em; font-size:.9em; color:var(--text-secondary, inherit); }
+    .gr-steps li { margin:2px 0; }
     /* 链接必须自带颜色：这三个宿主原来没有一张样式表给 <a> 上色，
        浏览器默认蓝在深色底上是 1.9:1（2026-09-06 报障）。 */
     .gr-link { font-size:.85em; color:var(--link, inherit); text-decoration:underline; cursor:pointer; }
@@ -386,7 +437,7 @@ var LearnGrant = (function () {
 
   return {
     spec, enabled, claim, plan, platform, status, active, activeIn,
-    fresh, leftUsd, clearOnSignOut, tail, cardFor, render, popupRow, CACHE_MS, LOW_USD,
+    fresh, leftUsd, clearOnSignOut, tail, cardFor, officialCard, render, popupRow, CACHE_MS, LOW_USD,
   };
 })();
 

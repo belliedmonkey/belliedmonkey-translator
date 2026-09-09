@@ -2506,5 +2506,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "Signed out — this device only. Signing in also gets you free credit →"
+  },
+  "grant_cn_title": {
+    "message": "Start with the provider’s own free credit"
+  },
+  "grant_cn_body": {
+    "message": "After signing up, each model comes with free credit that lasts a while. It comes from the provider, not from us."
+  },
+  "grant_cn_step1": {
+    "message": "Sign up and open the console"
+  },
+  "grant_cn_step2": {
+    "message": "Claim the free credit (their page states the exact amount)"
+  },
+  "grant_cn_step3": {
+    "message": "Paste the API key below to set up translation, speech and transcription at once"
+  },
+  "grant_cn_open": {
+    "message": "Open the console ↗"
+  },
+  "grant_cn_why": {
+    "message": "We do not hand out credit ourselves here yet: that needs a server inside the country, and it is not ready."
   }
 }

@@ -2506,5 +2506,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "Sin sesión: solo este dispositivo. Al iniciar sesión también consigues crédito gratuito →"
+  },
+  "grant_cn_title": {
+    "message": "Empieza con el crédito gratuito del proveedor"
+  },
+  "grant_cn_body": {
+    "message": "Al registrarte, cada modelo trae crédito gratuito que dura un tiempo. Lo da el proveedor, no nosotros."
+  },
+  "grant_cn_step1": {
+    "message": "Regístrate y abre la consola"
+  },
+  "grant_cn_step2": {
+    "message": "Reclama el crédito gratuito (su página indica la cantidad exacta)"
+  },
+  "grant_cn_step3": {
+    "message": "Pega la clave API abajo para configurar traducción, voz y transcripción de una vez"
+  },
+  "grant_cn_open": {
+    "message": "Abrir la consola ↗"
+  },
+  "grant_cn_why": {
+    "message": "Aquí todavía no repartimos crédito propio: hace falta un servidor en el país y aún no está listo."
   }
 }

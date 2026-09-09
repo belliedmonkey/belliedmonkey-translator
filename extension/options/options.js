@@ -1715,8 +1715,7 @@ async function init() {
     const box = $('grant-box');
     const card = $('grant-card');
     if (!box || typeof LearnGrant === 'undefined') return;
-    if (!LearnGrant.enabled()) { if (card) card.hidden = true; box.hidden = true; return; }
-    const s = await LearnAuth.current().catch(() => null);
+    const s = LearnGrant.enabled() ? await LearnAuth.current().catch(() => null) : null;
     const cur = PageSettings.read(SETTINGS_KEYS);
     let marks = {};
     try {
@@ -1726,6 +1725,9 @@ async function init() {
       { signedIn: !!s, unavailable: _grantUnavailable });
     LearnGrant.render(box, {
       t, status: st, balance: marks.grantBalance || null, busy: _grantBusy,
+      // 中国版没有我们代领的额度，这个位置放的是官方免费额度那张卡（§8.10 / G5）。
+      flavor: window.MT_FLAVOR,
+      keyUrl: (PROVIDERS.find((x) => x.keyUrl) || {}).keyUrl || '',
       onAction: (id) => grantAction(id),
     });
     if (card) card.hidden = box.hidden;

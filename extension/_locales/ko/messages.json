@@ -2506,5 +2506,26 @@
   },
   "sync_status_signed_out_grant": {
     "message": "로그인 안 됨 · 이 기기에만 저장 — 로그인하면 무료 크레딧도 받습니다 →"
+  },
+  "grant_cn_title": {
+    "message": "먼저 제공사의 무료 크레딧을"
+  },
+  "grant_cn_body": {
+    "message": "가입하면 모델마다 한동안 쓸 수 있는 무료 크레딧이 붙습니다. 제공사가 주는 것이며 저희를 거치지 않습니다."
+  },
+  "grant_cn_step1": {
+    "message": "가입하고 콘솔 열기"
+  },
+  "grant_cn_step2": {
+    "message": "무료 크레딧 받기(정확한 양은 해당 페이지 기준)"
+  },
+  "grant_cn_step3": {
+    "message": "아래에 API 키를 붙여 번역·읽어주기·받아쓰기를 한 번에 설정"
+  },
+  "grant_cn_open": {
+    "message": "콘솔 열기 ↗"
+  },
+  "grant_cn_why": {
+    "message": "저희가 대신 크레딧을 드리는 건 아직 안 됩니다. 국내 서버가 필요한데 준비되지 않았습니다."
   }
 }

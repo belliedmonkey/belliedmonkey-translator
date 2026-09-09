@@ -79,6 +79,8 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
           return {on: typeof LearnGrant!=='undefined' && LearnGrant.enabled(),
             vis:vis(b), text:b?(b.textContent||''):'',
             why:!b?'no-node':(b.hidden?'hidden':(b.children.length?'painted':'empty')),
+            steps:b?b.querySelectorAll('.gr-steps li').length:0,
+            hrefs:b?[...b.querySelectorAll('a[href]')].map(x=>x.getAttribute('href')).filter(h=>h&&h!=='#'):[],
             quickVis:vis(document.getElementById('ob-quick')),
             nextVis:vis(next), nextOff:!!(next&&next.disabled)};})(),
         quick:(()=>{const b=document.getElementById('ob-quick');
@@ -197,6 +199,17 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     const eng = seen.find(x=>x.step==='engine');
     const g = eng && eng.grant;
     if(!g) fail('没采到引擎屏的额度卡状态 —— 这条断言在空转');
+    else if(!g.on && /china/.test(DIST)){
+      // 中国版**没有**我们代领的额度（原文会经东京中转，境内后端未就绪），
+      // 那个位置放的是另一件真事：阿里云百炼自己给的免费额度（G5 / 画布 A10）。
+      // 三条判据缺一不可 —— 有卡、有三步、**没有登录字样**（中国版一个登录入口都没有），
+      // 而且链接是真地址（来自注册表 keyUrl），不是一个 href="#" 的假链接。
+      if(!g.vis) fail(`中国版引擎屏没有那张官方额度卡（原因位=${g.why}）`);
+      else if(loginish.test(g.text)) fail('中国版那张卡上出现了登录字样 —— 那个 flavor 里没有登录');
+      else if(g.steps!==3) fail(`那张卡有 ${g.steps} 步，期望 3`);
+      else if(!g.hrefs.some(h=>/^https:/.test(h))) fail(`那张卡没有可点的真地址：${JSON.stringify(g.hrefs)}`);
+      else pass('中国版：官方免费额度三步卡在，链接是真地址，没有登录字样');
+    }
     else if(!g.on){
       if(g.vis) fail('MT_GRANT 是 null，额度卡却画出来了');
       else pass('这个构建没有免费额度（MT_GRANT=null），卡一个字都没出');
