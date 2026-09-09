@@ -36,9 +36,16 @@ const ramps = {
   sage900: '#272e1b',
   cream: '#f5ead8', creamWell: '#f9f4ed',
   ink: '#201e1d', neutral300: '#dcd3c4', neutral600: '#82796a',
-  // neutral700：次要文字在奶油底上过 AA（4.55:1）的最浅一档；neutral600 只有 3.61:1，
-  // 整个浅色模式的「灰字」都偏淡（2026-09-06 深浅色全页对比度核查）。
-  neutral700: '#71695c',
+  // neutral700：浅色模式的次要文字。2026-09-06 从 neutral600（奶油底上只有 3.61:1）
+  // 提到 #71695c，那是「过 AA 的最浅一档」—— 奶油底上 4.55:1，只高出门槛 0.05。
+  //
+  // 2026-09-09 再提一档到 #6a6255。触发点是免费额度卡的全矩阵验证：扩展页的卡压在
+  // 白底上读 5.42，而**宿主 App 的同一张卡压在奶油底上只有 4.55** —— 同一个 token、
+  // 同一段文字，两个宿主差 0.87，而低的那个正好贴着线。门禁只问「过不过 AA」，所以
+  // 它一直是绿的；贴线意味着任何一次底色微调都会把它推到线下，而那种回归没人看得见。
+  //   #6a6255 → 奶油 5.05 / 奶油井 5.50 / 白 6.02（最差项余量从 0.05 涨到 0.55）
+  //   与正文 ink 的层级比 3.07 → 2.76，次要文字仍明显浅于正文。
+  neutral700: '#6a6255',
   danger: '#b3261e',
   // dark-mode neutrals (Organic ships no dark ramp — handoff §1 keeps the
   // pre-rebrand slate structure, greens swapped for sage light steps)
