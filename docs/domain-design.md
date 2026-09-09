@@ -865,6 +865,17 @@ in PR3, not assumed.
 The transport is **provider-agnostic and format-keyed**, and the provider *list*
 is a build-time concern, not a runtime one.
 
+> **Authentication is a key the user owns.** Every entry is BYO-key or the metered
+> free-grant relay (§8.10 of `docs/learning-design.md`). Routing a provider through
+> someone's **subscription** was researched to exhaustion and the product **does not do
+> it**: no vendor issues us our own OAuth client, GLM/Qwen/Kimi Coding Plans forbid our
+> app shape in writing, and the ChatGPT/Codex route works only by impersonating another
+> client. The clean path for a user who wants their subscription is a **local proxy**
+> (cliproxyapi and the like) behind our existing **custom-endpoint** provider — the
+> credentials and the terms risk live in the proxy on the user's own machine, exactly
+> like a corporate gateway. See [`docs/subscription-auth-research.md`](subscription-auth-research.md)
+> (2026-09-09) and the superseded [`docs/oauth-design.md`](oauth-design.md). Related: #149, #150.
+
 - **Single source of truth.** `build/providers.config.js` is the one registry of
   translation providers. Each entry declares `{ id, type, flavors, needsKey,
   supportsBaseUrl, supportsModel, requiresEndpoint, defaultEndpoint, placeholder,
