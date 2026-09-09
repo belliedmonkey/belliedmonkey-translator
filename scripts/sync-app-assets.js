@@ -240,17 +240,27 @@ function patchViewController(sharedDir) {
   // 判据带版本号：老的 needle 只认「有没有 MT_OPEN_URL」，于是一棵已打过 v1 的树
   // 会永远停在 v1，而 app:sync 照样打印「already patched」。升级时先把 v1 块整段
   // 摘掉（从标记到锚点之间），再按插入路径走一遍 —— 结果幂等，不靠特判。
+  // v3（2026-09-08）：白名单加 openrouter.ai（免费额度用完后「用自己的 key」的落点，
+  // 来自注册表 keyUrl）与 github.com（「加入社群」）。**顺带修一个今天就有的缺陷**：
+  // App 里那个「参与讨论」按钮指向 github.com，而 v2 的白名单里没有它 —— 点了什么都
+  // 不发生，静默失败，正是这个仓库反复在修的那一类。
+  //
+  // 升级路径同 v1→v2：把旧块整段摘掉再按插入路径走一遍，结果幂等、不靠特判。
+  // 老的 needle 只认「有没有 MT_OPEN_URL」，所以每一版都必须带自己的版本号 ——
+  // 不带的话，一棵已打过旧补丁的树会永远停在旧版，而 app:sync 照样打印 already patched。
   const V1_MARK = '// MT_OPEN_URL — patched';
-  if (!src.includes('MT_OPEN_URL v2') && src.includes(V1_MARK) && src.includes(URL_ANCHOR)) {
-    const b = src.indexOf(V1_MARK);
+  const V2_MARK = '// MT_OPEN_URL v2 — patched by scripts/sync-app-assets.js';
+  for (const MARK of [V1_MARK, V2_MARK]) {
+    if (src.includes('MT_OPEN_URL v3') || !src.includes(MARK) || !src.includes(URL_ANCHOR)) continue;
+    const b = src.indexOf(MARK);
     const e = src.indexOf(URL_ANCHOR, b);
-    if (e > b) { src = src.slice(0, b) + src.slice(e); notes.push('open-url bridge v1 block removed'); }
+    if (e > b) { src = src.slice(0, b) + src.slice(e); notes.push(`open-url bridge ${MARK.includes('v2') ? 'v2' : 'v1'} block removed`); }
   }
-  if (src.includes('MT_OPEN_URL v2')) {
-    notes.push('open-url bridge already patched (v2)');
+  if (src.includes('MT_OPEN_URL v3')) {
+    notes.push('open-url bridge already patched (v3)');
   } else if (src.includes(URL_ANCHOR)) {
     src = src.replace(URL_ANCHOR,
-      '// MT_OPEN_URL v2 — patched by scripts/sync-app-assets.js\n'
+      '// MT_OPEN_URL v3 — patched by scripts/sync-app-assets.js\n'
       + '        if let s = message.body as? String, s.hasPrefix("open-url:") {\n'
       + '            let raw = String(s.dropFirst("open-url:".count))\n'
       + '            // A native side that opens ANY url on request is a redirector reachable\n'
@@ -260,7 +270,10 @@ function patchViewController(sharedDir) {
       + '            var allowed = false\n'
       + '            if url.scheme == "mailto" { allowed = raw.hasPrefix("mailto:belliedmonkey@gmail.com") }\n'
       + '            else if url.scheme == "https", let host = url.host {\n'
-      + '                allowed = host == "belliedmonkey.cc" || host == "belliedmonkey.com" || host == "apps.apple.com"\n'
+      + '                allowed = host == "belliedmonkey.cc" || host == "belliedmonkey.com"\n'
+      + '                    || host == "apps.apple.com"\n'
+      + '                    || host == "openrouter.ai"      // 免费额度用完后去申请自己的 key\n'
+      + '                    || host == "github.com"         // 社群（Discussions）\n'
       + '            }\n'
       + '            guard allowed else { return }\n'
       + '#if os(iOS)\n'

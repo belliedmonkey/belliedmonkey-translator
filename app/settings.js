@@ -439,6 +439,7 @@ var AppSettings = (() => {
       + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
 
     await paintGovernance(say);
+    await paintGrant(session);          // 额度卡排在一键卡之前（界面上也在它上面）
     await setupQuickCard(session, say);
   }
 
@@ -506,6 +507,70 @@ var AppSettings = (() => {
     await paint(session, say);
   }
 
+
+  // ── 免费额度（§8.10）─────────────────────────────────────────────────
+  //
+  // 与扩展设置页同一套：卡面来自 LearnGrant.cardFor，动作由这一页接。
+  // App 里开外链必须走原生桥（WKWebView 的 window.open 是哑的），所以 openExternal
+  // 由 app.js 通过 wire() 传进来 —— 这一页自己 postMessage 的话，宿主判断会散成两份。
+  let _grantBusy = false;
+  let _grantUnavailable = false;
+  let _grantHooks = null;
+
+  async function paintGrant(session) {
+    const box = $('grant-box');
+    const card = $('grant-card');
+    if (!box || typeof LearnGrant === 'undefined') return;
+    if (!LearnGrant.enabled()) { if (card) card.hidden = true; box.hidden = true; return; }
+    let cur = {};
+    try { cur = await get(KEYS.concat(['grant', 'grantTail', 'grantBalance'])); } catch (_) {}
+    LearnGrant.render(box, {
+      t,
+      status: LearnGrant.status(cur, { signedIn: !!session, unavailable: _grantUnavailable }),
+      balance: cur.grantBalance || null,
+      busy: _grantBusy,
+      onAction: (id) => grantAction(id, session),
+    });
+    if (card) card.hidden = box.hidden;
+  }
+
+  async function grantAction(id, session) {
+    const hooks = _grantHooks || {};
+    if (id === 'signin') { if (hooks.onSignIn) hooks.onSignIn(); return; }
+    if (id === 'byo') {
+      const p = (window.MT_PROVIDERS || []).find((x) => x.keyUrl);
+      if (p && p.keyUrl && hooks.openExternal) hooks.openExternal(p.keyUrl);
+      return;
+    }
+    if (id === 'community') {
+      if (hooks.openExternal && typeof MTFeedback !== 'undefined') hooks.openExternal(MTFeedback.discussUrl());
+      return;
+    }
+    if (id !== 'claim' && id !== 'restore') return;
+    // 页内确认框，不用 window.confirm —— App 的宿主没实现确认回调，它恒为 false。
+    if (id === 'restore' && typeof LearnDialog !== 'undefined') {
+      const ok = await LearnDialog.confirm(t('grant_restore_confirm',
+        '改回免费额度会替换掉你现在填的 key。要继续吗？'));
+      if (!ok) return;
+    }
+    _grantBusy = true; await paintGrant(session);
+    try {
+      const claimed = await LearnGrant.claim();
+      const cur = await get(KEYS);
+      const plan = LearnGrant.plan(claimed, cur, window);
+      if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
+      if (plan.marks) await set(plan.marks);
+      if (hooks.say) hooks.say(t('grant_claimed_toast', '免费额度已配好'));
+    } catch (e) {
+      if (e && e.code === 'grant_unavailable') _grantUnavailable = true;
+      if (hooks.say) hooks.say(String((e && e.message) || e));
+    } finally {
+      _grantBusy = false;
+      await paintGrant(session);
+      await paint(session, hooks.say);
+    }
+  }
+
   async function setupQuickCard(session, say) {
     if (!$('quick-setup')) return;
     // **已经挂上的卡不重画。** paint() 在每次写盘之后都会跑一遍（一键配好 → 写盘 → 重画
@@ -547,6 +612,8 @@ var AppSettings = (() => {
 
   function wire(opts) {
     const say = opts.say;
+    // 额度卡要的三样都在宿主那边：开外链走原生桥、登录切视图、提示条。
+    _grantHooks = { say, openExternal: opts.openExternal, onSignIn: opts.onSignIn };
     $('mode-quick').addEventListener('click', () => setDetail(false));
     $('mode-detail').addEventListener('click', () => setDetail(true));
 

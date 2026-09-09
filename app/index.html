@@ -365,6 +365,12 @@
            组件**。它算出 patch 交给 host 写盘，本页的 applyQuickSetup() 负责落地。
            它 plan() 出来的 chat 三键正是 provider / apiKey / apiBaseUrl / apiModel
            —— 与 App 这一档用的键完全对齐，零适配。 -->
+      <!-- 免费额度（§8.10）。与一键卡并排在同一个 tab 里（裁定 D2：登录不是墙）。
+           MT_GRANT 为 null 时整块不出 —— 中国版恒是这样，全球版在开关翻之前也是。 -->
+      <section class="quick-only" id="grant-card" hidden>
+        <div id="grant-box"></div>
+      </section>
+
       <section class="quick-only" id="quick-setup-card">
         <h3 id="quick-setup-title"></h3>
         <div id="quick-setup"></div>

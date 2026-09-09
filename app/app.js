@@ -988,6 +988,10 @@
     AppSettings.wire({
       say,
       session: () => currentSession,
+      // 免费额度那张卡要的两样。开外链必须走原生桥（WKWebView 里 window.open 是哑的），
+      // 判断只放在这一处 —— 设置页自己 postMessage 的话，宿主判断就成了两份。
+      openExternal,
+      onSignIn: () => { show(null); },
       onSignOut: async () => {
         await LearnAuth.signOut();
         await show(null);
