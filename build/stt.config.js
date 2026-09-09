@@ -145,7 +145,13 @@ module.exports = [
     needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
     requiresEndpoint: false,
     defaultEndpoint: RELAY + '/audio/transcriptions',
-    defaultModel: 'openai/gpt-4o-mini-transcribe',
+    defaultModel: 'openai/whisper-1',
+    // **必须是能出时间戳的那个。** gpt-4o-mini-transcribe 便宜约三倍，但它拒绝
+    // verbose_json（经中继实测三段音频全 400），而字幕正是靠 segments 拿时间轴 ——
+    // 钉它等于这一档只能做「说题」，做不了字幕。这个坑台账里对同族的另一个模型
+    // 记过一次，2026-09-09 又在免费额度这一档上撞了第二次。
+    // 换模型要**同时**改这里与服务端的 GRANT_MODELS，两处不一致每次请求都撞 403；
+    // `npm run grant:status` 会当场点名（它 2026-09-09 真的抓到过一次）。
     label: { global: 'BelliedMonkey 免费额度' },
     labelKey: 'grant_engine_label',
   },

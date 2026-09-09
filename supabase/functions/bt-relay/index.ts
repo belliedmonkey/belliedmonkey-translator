@@ -174,6 +174,9 @@ Deno.serve(async (req) => {
       });
       // 转写按上传字节估价，且**往高了估** —— 估低了就是我们替所有人多付钱，而
       // 我们看不到它。G6 由 /perf-tune 用真实账单校准 GRANT_PRICES.sttPerMB。
+      // **这只是兜底**，真实花费在下面用上游的 usage.cost 覆盖（见 shape==='stt' 那一段）。
+      // 按字节估转写在两个方向上都错得离谱：未压缩 PCM 高约 6 倍，mp3 低约 10 倍 ——
+      // 同一句话，编码不同价钱差 60 倍。所以它只配当最后一级。
       charged = (file.size / (1024 * 1024)) * (PRICES.sttPerMB ?? 0.02);
     } else {
       const len = Number(req.headers.get('content-length') || 0);
@@ -228,6 +231,27 @@ Deno.serve(async (req) => {
     });
   } else {
     const text = await upstream.text();
+    // 转写也有真实花费可拿 —— 这一段原来没有，注释里还写着「我们看不到它」。
+    // 2026-09-09 实测：`/audio/transcriptions` 的返回带 `usage: { seconds, cost }`，
+    // **两种 response_format 都带**（说题那条路不要 verbose_json，照样有）。
+    // 于是这一档一直在按字节记账：同一轮实测里中继扣 $0.0106，上游实收 $0.0018。
+    //
+    // 三级，理由同 chat 那一段：只认 usage.cost 的话，提供方哪天不返回它，
+    // spent_usd 就永远是 0 —— 上限从此不再生效，而界面上一切正常。
+    //   1. usage.cost —— 精确
+    //   2. duration × 每分钟价 —— verbose_json 会报 duration，是个好得多的代理
+    //   3. 字节 × 每 MB 价 —— 最后一级，只为「永远有个数」而存在
+    if (shape === 'stt' && upstream.ok) {
+      try {
+        const d = JSON.parse(text);
+        const cost = Number(d?.usage?.cost);
+        if (Number.isFinite(cost) && cost > 0) charged = cost;
+        else {
+          const secs = Number(d?.usage?.seconds ?? d?.duration);
+          if (Number.isFinite(secs) && secs > 0) charged = (secs / 60) * (PRICES.sttPerMin ?? 0.007);
+        }
+      } catch { /* 解不出来就留着上面那个按字节的兜底 */ }
+    }
     if (shape === 'chat' && upstream.ok) {
       // 三级兜底，而且**必须**有第三级：只认 usage.cost 的话，提供方哪天不返回它，
       // spent_usd 就永远是 0 —— 上限从此不再生效，而界面上一切正常。这正是这个仓库
