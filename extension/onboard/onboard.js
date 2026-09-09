@@ -393,6 +393,21 @@
 
   // ── 导航 ────────────────────────────────────────────────────────────────────
   $('ob-next').addEventListener('click', () => {
+    // 「继续」不许把已经填好的 key 静默丢掉。选引擎屏上，提交键（#qs-apply）在一键卡
+    // 的**最下面**，而这一屏在手机宽度上装不下两张卡 —— 2026-09-09 iPhone Safari 实测
+    // 393×659：额度卡把 #qs-apply 顶到 y=635，吸底页脚从 554 起，于是首屏唯一看得见的
+    // 按钮就是这颗「继续」，而它当时只前进、不提交。粘完 key 点它 = key 没了，界面还
+    // 说设置完成 —— 正是「静默失败」那一类。
+    //
+    // 所以：填了 key 又还没提交过（结果行 #qs-res 仍是 hidden）时，这颗键先替他提交，
+    // **并且不前进** —— 三行绿勾要让他看见，那是「真的配上了」的唯一证据。
+    if (OB[at] === 'engine') {
+      const qk = $('qs-key'), qa = $('qs-apply'), qr = $('qs-res');
+      if (qk && qa && qr && qr.hidden && qk.value.trim() && !$('ob-quick').hidden) {
+        qa.click();
+        return;
+      }
+    }
     if (at < OB.length - 1) { at += 1; paint(); return; }
     finish();
   });

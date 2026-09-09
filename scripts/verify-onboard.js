@@ -401,6 +401,45 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       else pass(`一键配置自检跑通 ${sc.rows.length} 项，无一失败`);
     }
 
+
+    // ── 「继续」不许把填好的 key 静默丢掉 ──────────────────────────────────
+    //
+    // 提交键 #qs-apply 在一键卡的最下面，而这一屏在手机宽度上装不下两张卡：
+    // 2026-09-09 iPhone Safari 实测 393×659，免费额度卡把 #qs-apply 顶到 y=635，
+    // 吸底页脚从 554 起 —— 首屏唯一看得见的按钮是「继续」。它当时只前进不提交，
+    // 于是粘完 key 点它 = key 没了、界面还说设置完成。**静默失败**，而当时三道
+    // 引导门禁一条都没红：它们只看「有没有画出来」，从不按一次那颗最显眼的键。
+    //
+    // 与上面那段同样打桩 EngineTest —— 验的是「继续」这条代码路径，不是端点通不通。
+    const keep = await evA(`(async()=>{
+      const vis = el => !!(el && el.getClientRects().length);
+      window.EngineTest = Object.assign({}, window.EngineTest, {
+        translation: async () => ({ ms: 11, text: '你好' }),
+        tts: async () => ({ ms: 12 }),
+        stt: async () => ({ ms: 13 }),
+      });
+      const res = document.getElementById('qs-res');
+      if (res) { res.hidden = true; res.textContent = ''; }      // 回到「还没提交过」
+      const k = document.getElementById('qs-key');
+      if (!k) return JSON.stringify({ err: '引擎屏上没有 qs-key' });
+      k.value = 'sk-verify-continue-0123456789';
+      k.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('ob-next').click();
+      await new Promise(r => setTimeout(r, 500));
+      const h2 = document.querySelector('#ob-body h2');
+      return JSON.stringify({ err: null, res: vis(document.getElementById('qs-res')),
+                              stillEngine: vis(document.getElementById('ob-quick')),
+                              head: h2 ? h2.textContent.slice(0, 20) : '' });
+    })()`);
+    if(keep.err) fail(keep.err);
+    else if(!keep.res)
+      fail('引擎屏填了 key 之后点「继续」，一键配置没有提交（#qs-res 仍不可见）'
+        + ' —— 手机上它是首屏唯一可见的按钮，这等于把 key 静默丢掉');
+    else if(!keep.stillEngine)
+      fail('点「继续」替用户提交了，却同时翻页了 —— 三行结果是「真的配上了」的唯一证据，'
+        + `不能让它一闪而过（当前标题「${keep.head}」）`);
+    else pass('引擎屏填了 key 点「继续」：先提交、且停在原屏让结果看得见');
+
     if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);
     if(errs.length){ok=false;console.log('  控制台错误:');errs.slice(0,4).forEach(e=>console.log('    '+e));}
