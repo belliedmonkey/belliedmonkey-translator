@@ -6,7 +6,10 @@ name: test
 
 on:
   push:
-    branches: [main]
+    # release/** 也要跑。1.9.0 出包时才发现：发布分支从来拿不到 CI，而它正是**要打 tag
+    # 的那棵树** —— 本地能跑十道门禁，唯独跑不到 Node 20 那条底线（本机最高的 20.x
+    # 没有 deflate-raw）。「一条没人跑的底线只是一句注释」，对发布分支同样成立。
+    branches: [main, 'release/**']
   pull_request:
 
 permissions:
