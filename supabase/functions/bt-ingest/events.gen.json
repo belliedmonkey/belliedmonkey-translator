@@ -52,7 +52,10 @@
         "http",
         "reasoning_starved",
         "no_base",
-        "unknown_provider"
+        "unknown_provider",
+        "credit_exhausted",
+        "grant_unavailable",
+        "model_not_allowed"
       ],
       "status": "int",
       "route": [
@@ -74,6 +77,8 @@
     "review_session": {
       "graded": "int"
     },
+    "grant_claimed": {},
+    "grant_exhausted": {},
     "sync_on": {},
     "telemetry_off": {}
   },

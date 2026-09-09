@@ -40,6 +40,9 @@ var WebpageTranslator = (() => {
         MTTelemetry.track('translate_ok', { provider: String(settings.provider || ''), kind: 'page', ms: Date.now() - enabledAt });
       },
       onFail: (e) => {
+        // 免费额度停机（§8.10）。记下**码**而不是布尔：「你用完了」与「我们的池子空了」
+        // 在页面上要说两句不同的话，而后者说错会让用户去查自己的账户。
+        if (e && e.grant && typeof e.code === 'string') grantHalt = e.code;
         if (!(typeof MTTelemetry !== 'undefined')) return;
         MTTelemetry.track('translate_fail', {
           provider: String(settings.provider || ''),
@@ -623,6 +626,15 @@ var WebpageTranslator = (() => {
     });
   }
 
+  // 本页会话里最后一次额度停机的码。停机是**整台引擎**的状态（engine.halted），
+  // 所以这里也是页面级的一个值，不是每段一份。
+  let grantHalt = '';
+
+  // 文案挑选在 TranslationCore 里**只有一份**（字幕叠层要说同一句话）。
+  // 这里只负责「有没有停机」这一个位。与普通失败的区别不只是文案，更是**动作**：
+  // 重试在这里没有意义（额度用完了，重试多少次都一样），所以点击去的是设置页那张卡。
+  const grantNotice = () => (grantHalt ? TranslationCore.grantHaltMessage(grantHalt) : null);
+
   function renderUnit(u, st) {
     const node = u.node;
     if (st.state === 'pending') {
@@ -636,8 +648,14 @@ var WebpageTranslator = (() => {
       restoreOriginal(node);
       const d = ensureTrans(node);
       d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + placementCss(node, true);
-      d.textContent = TranslationCore.MSG.error;
-      d.onclick = () => { engine.retry(u); u._shownKey = ''; };
+      const halt = grantNotice();
+      d.textContent = halt || TranslationCore.MSG.error;
+      d.onclick = halt
+        // 在**点击这个手势里**开设置页。不走 sendMessage —— Safari iOS 上后台
+        // service worker 锁屏后会永久 undefined（项目说明里的 Critical Safari Bug 一节），
+        // 而这条出口恰恰是用户已经卡住之后才会点的。
+        ? () => { try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {} }
+        : () => { engine.retry(u); u._shownKey = ''; };
       return;
     }
     // Backstop for the targets the engine cannot pre-skip (Latin ones — script can't

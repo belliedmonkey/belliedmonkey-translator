@@ -24,9 +24,19 @@ describe('backend.config.js — 构建期文本替换的契约', () => {
   // build.js 的 flipSyncFlag / limitProviders / switchBackend 全都要求「恰好一处」，
   // 命中数不对就 exit(1)。那个失败发生在构建时，而这里让它发生在**改代码时** ——
   // 早一步，且不需要记得去跑 china flavor 才看得见。
-  test('`enabled: true,` 恰好一处 —— flipSyncFlag 的前提', () => {
-    const hits = code.match(/^\s*enabled: true,/gm) || [];
+  // **两格缩进**是判据的一部分。免费额度块里也有一个 enabled（四格缩进），
+  // 而 flipSyncFlag 要翻的从来只是顶层那个同步开关。2026-09-08 实测过这个坑：
+  // 用裸子串时，把 grant.enabled 翻成 true 会让中国版构建在 flipSyncFlag 处 exit(1)，
+  // 而产物停在没被覆盖的全球版上 —— 报错指向同步开关，跟真正的原因隔着十万八千里。
+  test('顶层 `enabled: true,` 恰好一处 —— flipSyncFlag 的前提', () => {
+    const hits = code.match(/^ {2}enabled: true,/gm) || [];
     eq(hits.length, 1, `实际 ${hits.length} 处；多一处或少一处都会让 build.js 的 flipSyncFlag 直接 exit(1)`);
+  });
+
+  test('嵌套的 enabled 不许写成两格缩进 —— 否则它会被当成同步开关翻掉', () => {
+    // grant.enabled 必须是四格。写成两格就是把「翻同步开关」变成一次赌博。
+    const nested = code.match(/^ {4}enabled: (true|false),/gm) || [];
+    ok(nested.length >= 1, '免费额度块里应该有一个四格缩进的 enabled');
   });
 
   test("`providers: ['apple', 'google'],` 恰好一处 —— limitProviders 的前提", () => {
@@ -49,6 +59,77 @@ describe('backend.config.js — 构建期文本替换的契约', () => {
 });
 
 describe('backend.config.js — 境内后端（§C）', () => {
+  // ── 免费额度（§8.10）─────────────────────────────────────────────────
+  test('grant 块存在，且五个键齐全', () => {
+    const B = require('../extension/learn/backend.config.js');
+    ok(B.grant && typeof B.grant === 'object', 'backend.config.js 缺 grant 块');
+    for (const k of ['enabled', 'vendor', 'limitUsd', 'relayPath', 'china']) {
+      ok(k in B.grant, `grant 块缺 ${k}`);
+    }
+    eq(typeof B.grant.enabled, 'boolean');
+    ok(B.grant.limitUsd > 0 && B.grant.limitUsd <= 1,
+      '额度上限不在合理区间 —— 0.2 是裁定值，改它要同时改卡上的进度条与 §8.10 的估算');
+  });
+
+  test('中继地址由 url + relayPath 拼出来 —— 主机名在仓库里只写一处', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const P = require('../build/providers.config.js');
+    const g = P.find((x) => x.id === 'grant');
+    ok(g, 'providers 注册表里没有 grant 那一档');
+    eq(g.defaultEndpoint, B.url + B.grant.relayPath + '/chat/completions',
+      '中继地址没有从 backend.config.js 拼出来 —— 那就是第二份主机名，换后端时必漏一处');
+    eq(g.grantOnly, true, 'grant 那一档必须 grantOnly（不进任何下拉）');
+    ok(!g.flavors.includes('china'), 'grant 那一档不许进中国版');
+  });
+
+  test('朗读与转写两档同规矩', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const base = B.url + B.grant.relayPath;
+    const T = require('../build/tts.config.js').find((x) => x.id === 'grant_speech');
+    const S = require('../build/stt.config.js').find((x) => x.id === 'grant_stt');
+    eq(T.defaultEndpoint, base + '/audio/speech');
+    eq(S.defaultEndpoint, base + '/audio/transcriptions');
+    for (const e of [T, S]) {
+      eq(e.grantOnly, true);
+      ok(!e.flavors.includes('china'));
+    }
+    // 中继没有实时接口 —— 「对话 · 实时听译」不在额度覆盖范围内，卡上要提前说。
+    ok(!S.liveEndpoint, '转写那一档不该有 liveEndpoint：中继只转发一次性请求');
+  });
+
+  // ── 模型锁死（用户 2026-09-09 裁定：「锁定免费额度固定好默认模型，不允许换，
+  //    要换就自己去申请自己的 apikey」）────────────────────────────────────
+  //
+  // 这件事有**三道锁**，缺一道都会让用户撞上一次自己解不开的失败：
+  //   1. 注册表：supportsModel/supportsBaseUrl 为假 ⇒ 界面上根本没有那两个输入框。
+  //   2. 客户端：LearnGrant.plan 的 pinModel 把模型**显式写进配置**（留空会走注册表
+  //      默认，而用户可能在别处改过 apiModel）。
+  //   3. 服务端：中继按白名单放行，模型不对回 403 model_not_allowed。
+  // 这里守第 1 道。第 2 道在 test/grant.test.js，第 3 道是端到端实测过的。
+  test('免费额度那三档：模型与端点都不给改', () => {
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    const grantOnly = [...P, ...T, ...S].filter((e) => e.grantOnly);
+    eq(grantOnly.length, 3, `grantOnly 的条目应有三档（翻译/朗读/转写），实际 ${grantOnly.length}`);
+    for (const e of grantOnly) {
+      eq(!!e.supportsModel, false, `${e.id} 允许改模型 —— 改了必然撞 403，而用户看不出为什么`);
+      eq(!!e.supportsBaseUrl, false, `${e.id} 允许改端点 —— 那就绕开中继了，额度也就不计量了`);
+      ok(e.defaultModel, `${e.id} 没有钉住的默认模型 —— 留空会让请求带不上 model`);
+    }
+  });
+
+  test('这道门真的在读注册表 —— 扫不到东西的断言不是门禁', () => {
+    // 上一条如果因为「一条 grantOnly 都没扫到」而绿，它就什么也没守。
+    // 这一条把「扫到了三条」单独钉住，且顺带确认三档各自属于不同的注册表。
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    eq(P.filter((e) => e.grantOnly).length, 1, '翻译那一档不是恰好一条');
+    eq(T.filter((e) => e.grantOnly).length, 1, '朗读那一档不是恰好一条');
+    eq(S.filter((e) => e.grantOnly).length, 1, '转写那一档不是恰好一条');
+  });
+
   test('china 块存在，且三个键齐全', () => {
     ok(CFG.china && typeof CFG.china === 'object', 'MT_BACKEND.china 不见了');
     eq(typeof CFG.china.ready, 'boolean', 'china.ready 必须是布尔 —— 它是「切没切」的唯一判据');

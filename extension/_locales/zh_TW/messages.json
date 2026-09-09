@@ -2461,5 +2461,128 @@
   },
   "listen_leave_ok": {
     "message": "結束並離開"
+  },
+  "grant_err_exhausted": {
+    "message": "免費額度已經用完了。你可以填一把自己的 key 繼續用（一把通吃翻譯、朗讀、轉寫），或者到社群裡問問。"
+  },
+  "grant_err_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_err_misconfigured": {
+    "message": "免費額度這條路我們這邊設定錯了，已經記下。這不是你的問題；先用自己的 key。"
+  },
+  "grant_err_revoked": {
+    "message": "這份免費額度已經停用了（登出或刪除帳號會停用它）。重新登入同一個帳號就會回來，餘額不變。"
+  },
+  "grant_err_invalid": {
+    "message": "這份免費額度認不出來了。到設定裡重新領一次。"
+  },
+  "grant_err_model": {
+    "message": "免費額度只能用它指定的那個模型。你在「詳細」裡改過模型 —— 改回去，或者填一把自己的 key。"
+  },
+  "grant_err_busy": {
+    "message": "這會兒請求太密了，等幾秒再試。"
+  },
+  "grant_title": {
+    "message": "免費額度"
+  },
+  "grant_body_signin": {
+    "message": "登入之後可以領一份免費額度，夠翻幾百頁。翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_signin": {
+    "message": "登入領免費額度"
+  },
+  "grant_signin_again": {
+    "message": "重新登入"
+  },
+  "grant_no_live": {
+    "message": "即時聽譯不在額度範圍內 —— 它要即時介面，而這條中繼只轉發一次性請求。"
+  },
+  "grant_body_signed_out": {
+    "message": "登出後免費額度停用了。餘額保留著 —— 用同一個帳號再登入就回來。"
+  },
+  "grant_body_unclaimed": {
+    "message": "你還沒領這份免費額度。夠翻幾百頁，翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_claim": {
+    "message": "領取"
+  },
+  "grant_claiming": {
+    "message": "領取中…"
+  },
+  "grant_privacy": {
+    "message": "免費額度（可選）。登入並領取後，你可以用我們出的 0.2 美元額度翻譯、朗讀、轉寫。這條路上，你的文字會經過我們的伺服器轉發到模型提供方（{vendor}），我們不保存、不記錄內容，只記錄每次花了多少；額度用完即停，不會自動收費。自帶 key 的路徑不變：文字仍從你的瀏覽器直接發往提供方，我們看不到。登出時額度在這台裝置上停用；刪除帳號會一併刪除額度記錄。"
+  },
+  "grant_body_active": {
+    "message": "免費額度正在用。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_low": {
+    "message": "免費額度快用完了。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_exhausted": {
+    "message": "免費額度已經用完了。填一把自己的 key 就能繼續 —— 一把通吃翻譯、朗讀、轉寫。"
+  },
+  "grant_body_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_body_replaced": {
+    "message": "你現在用的是自己的 key。免費額度還留著，隨時可以換回來。"
+  },
+  "grant_restore": {
+    "message": "改回免費額度"
+  },
+  "grant_byo": {
+    "message": "用自己的 key"
+  },
+  "grant_community": {
+    "message": "加入社群問問"
+  },
+  "grant_engine_label": {
+    "message": "大肚猴免費額度"
+  },
+  "grant_restore_confirm": {
+    "message": "改回免費額度會替換掉你現在填的 key。要繼續嗎？"
+  },
+  "grant_claimed_toast": {
+    "message": "免費額度已設好"
+  },
+  "grant_page_halt": {
+    "message": "免費額度已用完 —— 點此看怎麼繼續"
+  },
+  "grant_page_halt_ours": {
+    "message": "免費額度暫時用不了（不是你用完了）—— 點此看怎麼繼續"
+  },
+  "grant_popup_model": {
+    "message": "免費額度只能用它指定的模型 —— 點這裡改回去"
+  },
+  "grant_popup_exhausted": {
+    "message": "免費額度已用完 —— 點這裡看怎麼繼續"
+  },
+  "grant_popup_low": {
+    "message": "免費額度快用完了 —— 點這裡看看"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未登入，僅本機資料 —— 登入還能領一份免費額度 →"
+  },
+  "grant_cn_title": {
+    "message": "先領一份官方免費額度"
+  },
+  "grant_cn_body": {
+    "message": "註冊後每個模型有一份免費額度，夠用一陣子。它是阿里雲給你的，不經我們的手。"
+  },
+  "grant_cn_step1": {
+    "message": "註冊並打開主控台"
+  },
+  "grant_cn_step2": {
+    "message": "領免費額度（具體多少以它的頁面為準）"
+  },
+  "grant_cn_step3": {
+    "message": "把 API Key 貼到下面，一鍵配好翻譯、朗讀、轉寫"
+  },
+  "grant_cn_open": {
+    "message": "去開通 ↗"
+  },
+  "grant_cn_why": {
+    "message": "我們暫時不提供代領的免費額度：那需要一台境內的伺服器，還沒就緒。"
   }
 }

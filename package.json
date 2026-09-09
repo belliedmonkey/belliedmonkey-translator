@@ -1,6 +1,6 @@
 {
   "name": "belliedmonkeytranslator",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Safari iOS browser extension for bilingual translation — fully open source, free, configurable LLM APIs",
   "license": "GPL-3.0-or-later",
   "scripts": {
@@ -33,7 +33,9 @@
     "test:signin": "node scripts/verify-signin-flow.js",
     "test:oauth": "node scripts/verify-oauth-flow.js",
     "test:asr": "node scripts/verify-asr.js",
-    "test:listen": "node scripts/verify-listen.js"
+    "test:listen": "node scripts/verify-listen.js",
+    "grant:status": "node scripts/grant-float.js",
+    "test:grant": "node scripts/verify-grant.js"
   },
   "engines": {
     "node": ">=20.0.0"

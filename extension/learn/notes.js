@@ -46,7 +46,12 @@ var LearnNotes = (() => {
   // drift between the gate and the picker.
   function chatEngines() {
     const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
-    return list.filter((p) => p.type === 'chat-compat' || p.type === 'messages-compat');
+    // grantOnly（免费额度的中继，§8.10）排除在外：它不是一个可以**选**的解析引擎。
+    // 解析组的缺省是「跟随翻译引擎」（notesProvider === ''），额度生效时它自然跟着
+    // 走中继 —— 那条路本来就通，不需要在选择器里再出现一次。而它出现在选择器里，
+    // 就是一个没有 key 可填、选了必然 401 的选项。
+    return list.filter((p) => !p.grantOnly
+      && (p.type === 'chat-compat' || p.type === 'messages-compat'));
   }
 
   // Chat-capable AND keyed. `google` is excluded by type, not by name — the registry
@@ -172,8 +177,16 @@ var LearnNotes = (() => {
       method: 'POST', headers: req.headers, body: JSON.stringify(req.body),
     });
     if (!resp.ok) {
+      // 有的调用方（含测试里的假响应）给的不是完整 Response —— 没有 text() 就当没有正文，
+      // 绝不让「读不到正文」变成一个抛出去的异常，那会把真正的错误码整个吃掉。
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
       const e = new Error('HTTP ' + resp.status);
-      e.code = 'http'; e.status = resp.status; e.url = url;
+      // 免费额度中继的具名错误优先（§8.10）——「额度用完了」和「服务端出错了」
+      // 指向完全不同的出口，混成一个 http 就等于把用户支到错的地方。
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
+      e.code = gcode || 'http'; e.status = resp.status; e.url = url;
+      if (gcode) { e.grant = true; e.retryable = false; }
       throw e;
     }
     const d = await resp.json();

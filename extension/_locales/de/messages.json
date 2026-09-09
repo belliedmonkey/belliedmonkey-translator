@@ -2460,5 +2460,128 @@
   },
   "listen_leave_ok": {
     "message": "Beenden und verlassen"
+  },
+  "grant_err_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Du kannst mit einem eigenen API-Schlüssel weitermachen (ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab) oder in der Community nachfragen."
+  },
+  "grant_err_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_err_misconfigured": {
+    "message": "Beim Gratis-Guthaben ist auf unserer Seite etwas falsch konfiguriert; wir haben es notiert. Das liegt nicht an dir; nutze vorerst deinen eigenen Schlüssel."
+  },
+  "grant_err_revoked": {
+    "message": "Dieses Gratis-Guthaben wurde deaktiviert (Abmelden oder Konto löschen deaktiviert es). Melde dich mit demselben Konto wieder an, dann ist es zurück — mit gleichem Stand."
+  },
+  "grant_err_invalid": {
+    "message": "Dieses Gratis-Guthaben wird nicht mehr erkannt. Öffne die Einstellungen und hole es dir erneut."
+  },
+  "grant_err_model": {
+    "message": "Gratis-Guthaben funktioniert nur mit dem festgelegten Modell. Du hast das Modell unter „Erweitert“ geändert — stelle es zurück oder trage einen eigenen Schlüssel ein."
+  },
+  "grant_err_busy": {
+    "message": "Gerade zu viele Anfragen. Warte ein paar Sekunden und versuch es erneut."
+  },
+  "grant_title": {
+    "message": "Gratis-Guthaben"
+  },
+  "grant_body_signin": {
+    "message": "Melde dich an, dann kannst du Gratis-Guthaben holen — genug für ein paar hundert Seiten. Es deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_signin": {
+    "message": "Anmelden für Gratis-Guthaben"
+  },
+  "grant_signin_again": {
+    "message": "Erneut anmelden"
+  },
+  "grant_no_live": {
+    "message": "Live-Dolmetschen ist nicht abgedeckt: Es braucht eine Echtzeitverbindung, und dieses Relais leitet nur einzelne Anfragen weiter."
+  },
+  "grant_body_signed_out": {
+    "message": "Durch das Abmelden wurde dein Gratis-Guthaben deaktiviert. Der Stand bleibt erhalten — melde dich mit demselben Konto wieder an, dann ist es zurück."
+  },
+  "grant_body_unclaimed": {
+    "message": "Du hast dein Gratis-Guthaben noch nicht geholt. Es reicht für ein paar hundert Seiten, für Übersetzung, Vorlesen und Transkription."
+  },
+  "grant_claim": {
+    "message": "Holen"
+  },
+  "grant_claiming": {
+    "message": "Wird geholt …"
+  },
+  "grant_privacy": {
+    "message": "Gratis-Guthaben (optional). Sobald du dich anmeldest und es holst, stehen dir 0,20 $ auf unsere Kosten für Übersetzung, Vorlesen und Transkription zur Verfügung. Auf diesem Weg läuft dein Text auf dem Weg zum Modellanbieter ({vendor}) über unseren Server; wir speichern und protokollieren den Inhalt nicht, nur was jeder Aufruf gekostet hat. Das Guthaben stoppt, wenn es aufgebraucht ist, und rechnet nie etwas ab. Der Weg mit eigenem Schlüssel bleibt unverändert: Dieser Text geht von deinem Browser direkt zum Anbieter, und wir sehen ihn nie. Beim Abmelden wird das Guthaben auf diesem Gerät deaktiviert; beim Löschen des Kontos wird auch sein Datensatz gelöscht."
+  },
+  "grant_body_active": {
+    "message": "Dein Gratis-Guthaben ist in Gebrauch. Wenn es aufgebraucht ist, kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_low": {
+    "message": "Dein Gratis-Guthaben ist fast aufgebraucht. Danach kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Trag einen eigenen API-Schlüssel ein und mach weiter — ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_body_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_body_replaced": {
+    "message": "Du nutzt gerade deinen eigenen Schlüssel. Das Gratis-Guthaben ist noch da; du kannst jederzeit zurückwechseln."
+  },
+  "grant_restore": {
+    "message": "Zurück zum Gratis-Guthaben"
+  },
+  "grant_byo": {
+    "message": "Eigenen Schlüssel nutzen"
+  },
+  "grant_community": {
+    "message": "In der Community fragen"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey Gratis-Guthaben"
+  },
+  "grant_restore_confirm": {
+    "message": "Zurück zum Gratis-Guthaben ersetzt den Schlüssel, den du eingetragen hast. Fortfahren?"
+  },
+  "grant_claimed_toast": {
+    "message": "Gratis-Guthaben ist eingerichtet"
+  },
+  "grant_page_halt": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_page_halt_ours": {
+    "message": "Gratis-Guthaben gerade nicht verfügbar (nicht du bist am Ende) — tippen, um weiterzumachen"
+  },
+  "grant_popup_model": {
+    "message": "Gratis-Guthaben läuft nur mit dem festgelegten Modell — tippen zum Zurücksetzen"
+  },
+  "grant_popup_exhausted": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_popup_low": {
+    "message": "Gratis-Guthaben fast aufgebraucht — tippen zum Ansehen"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Nicht angemeldet — nur dieses Gerät. Beim Anmelden gibt es außerdem Gratis-Guthaben →"
+  },
+  "grant_cn_title": {
+    "message": "Fang mit dem Gratis-Guthaben des Anbieters an"
+  },
+  "grant_cn_body": {
+    "message": "Nach der Anmeldung bringt jedes Modell ein Gratis-Guthaben mit, das eine Weile reicht. Es kommt vom Anbieter, nicht von uns."
+  },
+  "grant_cn_step1": {
+    "message": "Anmelden und die Konsole öffnen"
+  },
+  "grant_cn_step2": {
+    "message": "Gratis-Guthaben holen (den genauen Betrag nennt deren Seite)"
+  },
+  "grant_cn_step3": {
+    "message": "Den API-Schlüssel unten einfügen — Übersetzung, Vorlesen und Transkription auf einmal"
+  },
+  "grant_cn_open": {
+    "message": "Konsole öffnen ↗"
+  },
+  "grant_cn_why": {
+    "message": "Wir geben hier noch kein eigenes Guthaben aus: dafür braucht es einen Server im Land, der noch nicht steht."
   }
 }

@@ -34,3 +34,4 @@ dist-app-china/
 # 本地凭证（scripts/local-keys.js 生成，永不提交）
 .local/
 design/.thumbnail
+supabase/.temp/

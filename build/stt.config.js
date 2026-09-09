@@ -25,6 +25,11 @@
 //   servers implement. One format therefore covers both "my own machine" and
 //   "a cloud key" — exactly what 本地优先 needs.
 
+// 免费额度的中继（learning-design §8.10）。地址由 backend.config.js 的 url + relayPath
+// 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
+const MT_BACKEND = require('../extension/learn/backend.config.js');
+const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+
 module.exports = [
   {
     // Any server implementing the /v1/audio/transcriptions request shape on the
@@ -131,5 +136,23 @@ module.exports = [
     // 滞后 p50 8.6s。ws-bidi 适配器已实现并有单元测试；付费档复测过线后把下面三行放开：
     //   liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
     //   liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
+  },
+  // 免费额度的中继 · 转写档（§8.10）。**没有 live 字段** —— 中继只转发一次性的
+  // /audio/transcriptions，没有实时接口。所以「对话 · 实时听译」不在额度覆盖范围内，
+  // 这一点必须在卡上提前说，而不是让用户点进去发现入口不存在。
+  {
+    id: 'grant_stt', type: 'transcribe-compat', flavors: ['global'], grantOnly: true,
+    needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
+    requiresEndpoint: false,
+    defaultEndpoint: RELAY + '/audio/transcriptions',
+    defaultModel: 'openai/whisper-1',
+    // **必须是能出时间戳的那个。** gpt-4o-mini-transcribe 便宜约三倍，但它拒绝
+    // verbose_json（经中继实测三段音频全 400），而字幕正是靠 segments 拿时间轴 ——
+    // 钉它等于这一档只能做「说题」，做不了字幕。这个坑台账里对同族的另一个模型
+    // 记过一次，2026-09-09 又在免费额度这一档上撞了第二次。
+    // 换模型要**同时**改这里与服务端的 GRANT_MODELS，两处不一致每次请求都撞 403；
+    // `npm run grant:status` 会当场点名（它 2026-09-09 真的抓到过一次）。
+    label: { global: 'BelliedMonkey 免费额度' },
+    labelKey: 'grant_engine_label',
   },
 ];

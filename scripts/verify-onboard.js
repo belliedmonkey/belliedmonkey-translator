@@ -71,6 +71,18 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         title:(document.getElementById('ob-title')||{}).textContent||'',
         text:(document.getElementById('ob-text')||{}).textContent||'',
         w:(document.getElementById('ob-fill')||{style:{}}).style.width,
+        // 额度卡（§8.10）**必须在逐屏采样里取**。第一版把它放在走完四屏之后单独读一次，
+        // 那时页面停在第 4 屏，引擎屏上的两张卡自然都读不到 —— 门禁于是报「看不到那张卡」，
+        // 而卡其实好好地画在第 2 屏上。判据要问「那一屏怎么样」，不是「现在怎么样」。
+        grant:(()=>{const b=document.getElementById('ob-grant');
+          const next=document.getElementById('ob-next');
+          return {on: typeof LearnGrant!=='undefined' && LearnGrant.enabled(),
+            vis:vis(b), text:b?(b.textContent||''):'',
+            why:!b?'no-node':(b.hidden?'hidden':(b.children.length?'painted':'empty')),
+            steps:b?b.querySelectorAll('.gr-steps li').length:0,
+            hrefs:b?[...b.querySelectorAll('a[href]')].map(x=>x.getAttribute('href')).filter(h=>h&&h!=='#'):[],
+            quickVis:vis(document.getElementById('ob-quick')),
+            nextVis:vis(next), nextOff:!!(next&&next.disabled)};})(),
         quick:(()=>{const b=document.getElementById('ob-quick');
           return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
@@ -170,7 +182,44 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(asksLogin.length) fail(`第 ${seen.indexOf(asksLogin[0])+1} 屏（${asksLogin[0].step}）又在引导里要人登录了：`
       + JSON.stringify(asksLogin[0].title)
       + ' —— 登录的请求归官网交接块与复习页，都在用户看到译文之后');
-    else pass('引导里不提登录 —— 那一步在看到价值之后才问');
+    else pass('引导里的**标题与正文**不提登录 —— 那一步在看到价值之后才问');
+
+    // ★ 2026-09-08 起有一个**有界的例外**：免费额度那张卡（§8.10，裁定 D2）。
+    //
+    // 上面那条判的是屏的标题与正文；这条判的是那张卡。两者不是一回事：
+    // 「在人还没看到价值之前就用登录挡住他」仍然禁止，而「给他一个可以不点的选项」
+    // 不是墙。所以判据是**并存**，不是「有没有出现登录字样」：
+    //   · 额度卡里可以提登录；
+    //   · 但「用自己的 key」那张卡必须同屏可见；
+    //   · 「继续」必须同屏可见**且没被禁用**。
+    // 三条里任何一条不成立，它就从选项变回了墙。
+    //
+    // MT_GRANT 为 null 时（今天的两个 flavor）这张卡整块不出，于是这条断言说的是
+    // 「它确实一个字都没出」—— 那也是一个真判据，不是空转。
+    const eng = seen.find(x=>x.step==='engine');
+    const g = eng && eng.grant;
+    if(!g) fail('没采到引擎屏的额度卡状态 —— 这条断言在空转');
+    else if(!g.on && /china/.test(DIST)){
+      // 中国版**没有**我们代领的额度（原文会经东京中转，境内后端未就绪），
+      // 那个位置放的是另一件真事：阿里云百炼自己给的免费额度（G5 / 画布 A10）。
+      // 三条判据缺一不可 —— 有卡、有三步、**没有登录字样**（中国版一个登录入口都没有），
+      // 而且链接是真地址（来自注册表 keyUrl），不是一个 href="#" 的假链接。
+      if(!g.vis) fail(`中国版引擎屏没有那张官方额度卡（原因位=${g.why}）`);
+      else if(loginish.test(g.text)) fail('中国版那张卡上出现了登录字样 —— 那个 flavor 里没有登录');
+      else if(g.steps!==3) fail(`那张卡有 ${g.steps} 步，期望 3`);
+      else if(!g.hrefs.some(h=>/^https:/.test(h))) fail(`那张卡没有可点的真地址：${JSON.stringify(g.hrefs)}`);
+      else pass('中国版：官方免费额度三步卡在，链接是真地址，没有登录字样');
+    }
+    else if(!g.on){
+      if(g.vis) fail('MT_GRANT 是 null，额度卡却画出来了');
+      else pass('这个构建没有免费额度（MT_GRANT=null），卡一个字都没出');
+    } else {
+      if(!g.vis) fail(`开了免费额度，引擎屏却看不到那张卡（原因位=${g.why}）`);
+      else if(!loginish.test(g.text)) fail('额度卡上没有登录入口 —— 那它就不是这张卡了');
+      else if(!g.quickVis) fail('额度卡在，但「用自己的 key」那张卡不同屏 —— 登录就成了墙');
+      else if(!g.nextVis || g.nextOff) fail('额度卡在，但「继续」不可见或被禁用 —— 登录就成了墙');
+      else pass('额度卡与「用自己的 key」同屏，「继续」可点 —— 登录是选项不是墙');
+    }
     const dim=seen.filter(s=>s.contrast&&s.contrast.length);
     if(dim.length) fail(`第 ${seen.indexOf(dim[0])+1} 屏有看不清的文字：${dim[0].contrast.slice(0,5).join(' | ')}${dim[0].contrast.length>5?' …共 '+dim[0].contrast.length+' 处':''}`);
     else pass('每屏文字在深色与浅色下都 ≥ 4.5:1');
@@ -351,6 +400,45 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       else if(bad.length) fail(`打桩全都成功，却有 ${bad.length} 行失败：${bad[0].txt}`);
       else pass(`一键配置自检跑通 ${sc.rows.length} 项，无一失败`);
     }
+
+
+    // ── 「继续」不许把填好的 key 静默丢掉 ──────────────────────────────────
+    //
+    // 提交键 #qs-apply 在一键卡的最下面，而这一屏在手机宽度上装不下两张卡：
+    // 2026-09-09 iPhone Safari 实测 393×659，免费额度卡把 #qs-apply 顶到 y=635，
+    // 吸底页脚从 554 起 —— 首屏唯一看得见的按钮是「继续」。它当时只前进不提交，
+    // 于是粘完 key 点它 = key 没了、界面还说设置完成。**静默失败**，而当时三道
+    // 引导门禁一条都没红：它们只看「有没有画出来」，从不按一次那颗最显眼的键。
+    //
+    // 与上面那段同样打桩 EngineTest —— 验的是「继续」这条代码路径，不是端点通不通。
+    const keep = await evA(`(async()=>{
+      const vis = el => !!(el && el.getClientRects().length);
+      window.EngineTest = Object.assign({}, window.EngineTest, {
+        translation: async () => ({ ms: 11, text: '你好' }),
+        tts: async () => ({ ms: 12 }),
+        stt: async () => ({ ms: 13 }),
+      });
+      const res = document.getElementById('qs-res');
+      if (res) { res.hidden = true; res.textContent = ''; }      // 回到「还没提交过」
+      const k = document.getElementById('qs-key');
+      if (!k) return JSON.stringify({ err: '引擎屏上没有 qs-key' });
+      k.value = 'sk-verify-continue-0123456789';
+      k.dispatchEvent(new Event('input', { bubbles: true }));
+      document.getElementById('ob-next').click();
+      await new Promise(r => setTimeout(r, 500));
+      const h2 = document.querySelector('#ob-body h2');
+      return JSON.stringify({ err: null, res: vis(document.getElementById('qs-res')),
+                              stillEngine: vis(document.getElementById('ob-quick')),
+                              head: h2 ? h2.textContent.slice(0, 20) : '' });
+    })()`);
+    if(keep.err) fail(keep.err);
+    else if(!keep.res)
+      fail('引擎屏填了 key 之后点「继续」，一键配置没有提交（#qs-res 仍不可见）'
+        + ' —— 手机上它是首屏唯一可见的按钮，这等于把 key 静默丢掉');
+    else if(!keep.stillEngine)
+      fail('点「继续」替用户提交了，却同时翻页了 —— 三行结果是「真的配上了」的唯一证据，'
+        + `不能让它一闪而过（当前标题「${keep.head}」）`);
+    else pass('引擎屏填了 key 点「继续」：先提交、且停在原屏让结果看得见');
 
     if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);

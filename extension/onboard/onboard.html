@@ -57,6 +57,11 @@
             <button id="ob-mode-manual" type="button" role="tab"></button>
           </div>
 
+          <!-- 免费额度（§8.10）。与一键卡**并排在同一个 tab 里**（裁定 D2：
+               登录永远不是墙，这张卡旁边始终站着「用自己的 key」，「继续」始终可点）。
+               MT_GRANT 为 null 时整块不出 —— 中国版与开关未翻时就是这样。 -->
+          <div id="ob-grant" hidden></div>
+
           <!-- 一把 key 配好全部（QuickSetup） -->
           <div id="ob-quick" hidden></div>
 
@@ -153,6 +158,7 @@
   <script src="../learn/engine-fields.js"></script>
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
+  <script src="../learn/grant.js"></script>   <!-- 免费额度（§8.10）。必须在 quick-setup.js 之后：它调 QuickSetup.plan -->
   <script src="../learn/app-link.js"></script>
   <script src="../learn/feedback.js"></script>
   <script src="../learn/telemetry.js"></script>

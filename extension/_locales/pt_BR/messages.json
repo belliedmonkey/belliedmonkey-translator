@@ -2460,5 +2460,128 @@
   },
   "listen_leave_ok": {
     "message": "Encerrar e sair"
+  },
+  "grant_err_exhausted": {
+    "message": "Seu crédito gratuito acabou. Você pode adicionar sua própria chave de API para continuar (uma chave cobre tradução, leitura em voz alta e transcrição), ou perguntar na comunidade."
+  },
+  "grant_err_unavailable": {
+    "message": "Não foi você que acabou o crédito — nosso fundo de crédito gratuito está vazio e estamos repondo. Use sua própria chave por enquanto, ou volte mais tarde."
+  },
+  "grant_err_misconfigured": {
+    "message": "O crédito gratuito está mal configurado do nosso lado, e já registramos isso. A culpa não é sua; use sua própria chave por enquanto."
+  },
+  "grant_err_revoked": {
+    "message": "Este crédito gratuito foi desativado (sair da conta ou excluí-la o desativa). Entre de novo na mesma conta e ele volta, com o mesmo saldo."
+  },
+  "grant_err_invalid": {
+    "message": "Este crédito gratuito não é mais reconhecido. Abra as configurações e solicite de novo."
+  },
+  "grant_err_model": {
+    "message": "O crédito gratuito só funciona com o modelo que ele fixa. Você mudou o modelo em «Avançado» — volte atrás ou adicione sua própria chave."
+  },
+  "grant_err_busy": {
+    "message": "Muitas requisições agora. Espere alguns segundos e tente de novo."
+  },
+  "grant_title": {
+    "message": "Crédito gratuito"
+  },
+  "grant_body_signin": {
+    "message": "Entre na sua conta para pegar um crédito gratuito — dá para algumas centenas de páginas. Cobre tradução, leitura em voz alta e transcrição."
+  },
+  "grant_signin": {
+    "message": "Entrar para pegar o crédito gratuito"
+  },
+  "grant_signin_again": {
+    "message": "Entrar de novo"
+  },
+  "grant_no_live": {
+    "message": "A conversa ao vivo não está incluída: ela precisa de conexão em tempo real, e este relé só encaminha requisições avulsas."
+  },
+  "grant_body_signed_out": {
+    "message": "Sair da conta desativou seu crédito gratuito. O saldo continua lá — entre de novo na mesma conta e ele volta."
+  },
+  "grant_body_unclaimed": {
+    "message": "Você ainda não pegou seu crédito gratuito. Dá para algumas centenas de páginas, em tradução, leitura em voz alta e transcrição."
+  },
+  "grant_claim": {
+    "message": "Pegar"
+  },
+  "grant_claiming": {
+    "message": "Pegando…"
+  },
+  "grant_privacy": {
+    "message": "Crédito gratuito (opcional). Depois de entrar e pegá-lo, você tem US$ 0,20 por nossa conta para tradução, leitura em voz alta e transcrição. Neste caminho, seu texto passa pelo nosso servidor a caminho do fornecedor do modelo ({vendor}); não guardamos nem registramos o conteúdo, só quanto cada chamada gastou. O crédito para quando acaba e nunca cobra de você. O caminho com sua própria chave não muda: esse texto vai do seu navegador direto ao fornecedor, e nós não o vemos. Sair da conta desativa o crédito neste aparelho; excluir a conta apaga também o registro dele."
+  },
+  "grant_body_active": {
+    "message": "Seu crédito gratuito está em uso. Quando acabar, você pode adicionar sua própria chave de API e continuar."
+  },
+  "grant_body_low": {
+    "message": "Seu crédito gratuito está quase no fim. Depois, você pode adicionar sua própria chave de API e continuar."
+  },
+  "grant_body_exhausted": {
+    "message": "Seu crédito gratuito acabou. Adicione sua própria chave de API para continuar — uma chave cobre tradução, leitura em voz alta e transcrição."
+  },
+  "grant_body_unavailable": {
+    "message": "Não foi você que acabou o crédito — nosso fundo de crédito gratuito está vazio e estamos repondo. Use sua própria chave por enquanto, ou volte mais tarde."
+  },
+  "grant_body_replaced": {
+    "message": "No momento você está usando sua própria chave. O crédito gratuito continua lá; dá para voltar a ele quando quiser."
+  },
+  "grant_restore": {
+    "message": "Voltar ao crédito gratuito"
+  },
+  "grant_byo": {
+    "message": "Usar minha própria chave"
+  },
+  "grant_community": {
+    "message": "Perguntar na comunidade"
+  },
+  "grant_engine_label": {
+    "message": "Crédito gratuito BelliedMonkey"
+  },
+  "grant_restore_confirm": {
+    "message": "Voltar ao crédito gratuito vai substituir a chave que você digitou. Continuar?"
+  },
+  "grant_claimed_toast": {
+    "message": "Crédito gratuito configurado"
+  },
+  "grant_page_halt": {
+    "message": "Crédito gratuito esgotado — toque para ver como continuar"
+  },
+  "grant_page_halt_ours": {
+    "message": "Crédito gratuito indisponível agora (não foi você) — toque para ver como continuar"
+  },
+  "grant_popup_model": {
+    "message": "O crédito gratuito só funciona com o modelo fixado — toque para voltar"
+  },
+  "grant_popup_exhausted": {
+    "message": "Crédito gratuito esgotado — toque para ver como continuar"
+  },
+  "grant_popup_low": {
+    "message": "Crédito gratuito quase no fim — toque para ver"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Sem login — só neste aparelho. Entrar também dá crédito gratuito →"
+  },
+  "grant_cn_title": {
+    "message": "Comece com o crédito gratuito do provedor"
+  },
+  "grant_cn_body": {
+    "message": "Depois do cadastro, cada modelo vem com crédito gratuito que dura um tempo. Ele vem do provedor, não de nós."
+  },
+  "grant_cn_step1": {
+    "message": "Cadastre-se e abra o console"
+  },
+  "grant_cn_step2": {
+    "message": "Pegue o crédito gratuito (a página deles diz o valor exato)"
+  },
+  "grant_cn_step3": {
+    "message": "Cole a chave de API abaixo para configurar tradução, voz e transcrição de uma vez"
+  },
+  "grant_cn_open": {
+    "message": "Abrir o console ↗"
+  },
+  "grant_cn_why": {
+    "message": "Aqui ainda não distribuímos crédito nosso: isso exige um servidor no país, e ele não está pronto."
   }
 }

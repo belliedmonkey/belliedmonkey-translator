@@ -2460,5 +2460,128 @@
   },
   "listen_leave_ok": {
     "message": "End and leave"
+  },
+  "grant_err_exhausted": {
+    "message": "Your free credit is used up. You can add your own API key to keep going (one key covers translation, speech and transcription), or ask in the community."
+  },
+  "grant_err_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_err_misconfigured": {
+    "message": "Something is misconfigured on our side for free credit, and we've logged it. This isn't your fault; use your own key for now."
+  },
+  "grant_err_revoked": {
+    "message": "This free credit has been deactivated (signing out or deleting your account deactivates it). Sign back in to the same account and it returns, with the same balance."
+  },
+  "grant_err_invalid": {
+    "message": "This free credit is no longer recognised. Open settings and claim it again."
+  },
+  "grant_err_model": {
+    "message": "Free credit only works with the model it pins. You changed the model under Advanced — change it back, or add your own key."
+  },
+  "grant_err_busy": {
+    "message": "Too many requests right now. Wait a few seconds and try again."
+  },
+  "grant_title": {
+    "message": "Free credit"
+  },
+  "grant_body_signin": {
+    "message": "Sign in and you can claim free credit — enough for a few hundred pages. It covers translation, speech and transcription."
+  },
+  "grant_signin": {
+    "message": "Sign in for free credit"
+  },
+  "grant_signin_again": {
+    "message": "Sign back in"
+  },
+  "grant_no_live": {
+    "message": "Live conversation is not covered — it needs a realtime socket, and this relay only forwards one-shot requests."
+  },
+  "grant_body_signed_out": {
+    "message": "Signing out deactivated your free credit. The balance is still there — sign back in to the same account and it returns."
+  },
+  "grant_body_unclaimed": {
+    "message": "You haven't claimed your free credit yet. It is good for a few hundred pages, across translation, speech and transcription."
+  },
+  "grant_claim": {
+    "message": "Claim"
+  },
+  "grant_claiming": {
+    "message": "Claiming…"
+  },
+  "grant_privacy": {
+    "message": "Free credit (optional). Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider ({vendor}); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record."
+  },
+  "grant_body_active": {
+    "message": "Your free credit is in use. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_low": {
+    "message": "Your free credit is nearly gone. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_exhausted": {
+    "message": "Your free credit is used up. Add your own API key to carry on — one key covers translation, speech and transcription."
+  },
+  "grant_body_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_body_replaced": {
+    "message": "You are using your own key right now. The free credit is still there; you can switch back any time."
+  },
+  "grant_restore": {
+    "message": "Switch back to free credit"
+  },
+  "grant_byo": {
+    "message": "Use your own key"
+  },
+  "grant_community": {
+    "message": "Ask in the community"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey free credit"
+  },
+  "grant_restore_confirm": {
+    "message": "Switching back to free credit will replace the key you have entered. Continue?"
+  },
+  "grant_claimed_toast": {
+    "message": "Free credit is set up"
+  },
+  "grant_page_halt": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_page_halt_ours": {
+    "message": "Free credit is unavailable right now (not you running out) — tap to see how to carry on"
+  },
+  "grant_popup_model": {
+    "message": "Free credit only works with its pinned model — tap to change it back"
+  },
+  "grant_popup_exhausted": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_popup_low": {
+    "message": "Free credit is nearly gone — tap to take a look"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Signed out — this device only. Signing in also gets you free credit →"
+  },
+  "grant_cn_title": {
+    "message": "Start with the provider’s own free credit"
+  },
+  "grant_cn_body": {
+    "message": "After signing up, each model comes with free credit that lasts a while. It comes from the provider, not from us."
+  },
+  "grant_cn_step1": {
+    "message": "Sign up and open the console"
+  },
+  "grant_cn_step2": {
+    "message": "Claim the free credit (their page states the exact amount)"
+  },
+  "grant_cn_step3": {
+    "message": "Paste the API key below to set up translation, speech and transcription at once"
+  },
+  "grant_cn_open": {
+    "message": "Open the console ↗"
+  },
+  "grant_cn_why": {
+    "message": "We do not hand out credit ourselves here yet: that needs a server inside the country, and it is not ready."
   }
 }

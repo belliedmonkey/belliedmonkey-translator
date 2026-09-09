@@ -267,9 +267,17 @@ var LearnTTS = (() => {
       if (timer) clearTimeout(timer);
     }
     if (!resp.ok) {
+      // 有的调用方（含测试里的假响应）给的不是完整 Response —— 没有 text() 就当没有正文，
+      // 绝不让「读不到正文」变成一个抛出去的异常，那会把真正的错误码整个吃掉。
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
       const err = new Error('speech ' + resp.status);
       err.status = resp.status;
-      err.code = 'http';
+      // 免费额度中继的具名错误优先（§8.10）。朗读比翻译更容易先烧完额度，
+      // 所以这条路径上「用完了」是常态而不是边角。
+      err.code = gcode || 'http';
+      if (gcode) { err.grant = true; err.retryable = false; }
       err.url = url;
       throw err;
     }

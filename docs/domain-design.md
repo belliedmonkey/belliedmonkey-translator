@@ -1150,6 +1150,20 @@ is a build-time concern, not a runtime one.
   if rejected is to drop the custom endpoints from the china flavor and keep only
   pure domestic-brand providers.
 
+**免费额度的中继（2026-09-08，`docs/learning-design.md` §8.10）。** 免费额度在传输层眼里
+**就是又一个提供方**：注册表加三个 `flavors:['global']` 条目（翻译 / 朗读 / 转写），
+`defaultEndpoint` 是我们边缘函数的完整地址（`…/functions/v1/bt-relay/chat/completions`、
+`…/audio/speech`、`…/audio/transcriptions` —— 路径后缀就是现有三种形状，`wire-format.js`
+一处不改），key 槽里放的是登录后领到的**额度令牌**（`bmg_` 前缀，不是提供方的 key）。
+它经 `QuickSetup.plan()` 写进与自带 key 相同的三槽，所以一键配置的「同一 host 一把 key
+通吃三样」规则原样成立。中继在服务端把 `model` 钉死、计量、到顶即停，**从不改写请求
+形状**。新增的具名错误：HTTP **402** → `credit_exhausted`（不可重试，引擎**停机**：首个
+402 之后未译单元直接置 error，不再发请求；`retry()` 解锁）—— 对自带 key 同样成立（余额
+不足的 key 也会 402），渲染器按 `EngineState.grantActive` 分两句话；**503** `grant_unavailable`
+（我们的池子空了，不是用户用完了）；**403** `model_not_allowed`。钉住的模型来自
+`build/recommend.config.js` 新轴 `axis:'grant'`，同一条「先实测再登记」的台账门；中继主机
+本身也要一行台账。
+
 ## 8. Out of scope
 
 No Readability-style full-article extraction fallback (the reference extension
@@ -1187,6 +1201,12 @@ What does **not** change, and is now load-bearing rather than incidental:
   and never signs in has a complete product.**
 - **The server runs no model and performs no computation on user data.** It stores
   opaque bytes.
+  *(Amended 2026-09-08 — one bounded exception, `docs/learning-design.md` §8.10:)* the
+  **free-grant relay** forwards a signed-in user's translation / speech / transcription
+  requests to the provider on our account, meters them, and stops at 0.2 USD per
+  account. It runs no model and stores no content — the text passes through and is
+  neither logged nor kept; what is written is the spend. That path is disclosed on its
+  own (§10 Gate F); the BYO path above is untouched and remains the default.
 - **Anonymous usage events are the one thing the product sends unasked** *(amended
   2026-09-05)*: a whitelist of event names with a random per-install id, never page
   content, URLs, hostnames, keys or account ids, off in one switch, and none at all

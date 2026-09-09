@@ -33,6 +33,7 @@
 | 2026-08-24 | belliedmonkey | 播客模式后台/锁屏播放与遥控（用户提议）：**范围 = iOS 与 macOS 两个宿主 App，扩展一个字节都不进**（播客模式本来就是 App 专属）。推翻 §12 2026-08-17 的「前台 only」裁定 —— iOS 加 `UIBackgroundModes: audio` + 原生音频会话、macOS 只需解掉我们自己那行「隐藏即暂停」，退到后台/锁屏继续播，锁屏与车机遥控映射到既有的 `tap_*` 事件（上一曲 = 再听一遍），锁屏显示卡片正文。连带一条规约让位：§9.5「隐藏即暂停，恢复只能手点」缩窄为「**真正的中断**才暂停，且中断结束带 `.shouldResume` 时自动续播」 | **已评审通过 2026-08-24**，一条裁定：**中国版必须同样有后台播放**（AGENTS.md 规则 10「无阉割版本」）。若实测证明设备内置语音在后台会停，解法是**把音频做成真的**（原生语音合成桥），而不是让中国版没有这个功能 —— 见 §9.5「后台与锁屏播放」 |
 | 2026-08-26 | belliedmonkey | 播客模式：解析跟读（锁屏封面逐行高亮）+ 亮屏。**连带推翻一条规约**：§9.5「封面只承载卡级为真的事实」—— 它的依据是「跟着段走就要每段过桥、一张 123 KB」，而 iOS 改走 `navigator.mediaSession` 之后逐行更新不过桥，依据不复存在。收窄为「封面上不放没有对应语音段的东西」（遍次仍出局）。另：解析拆成三块逐行念，旧的整段音频缓存成为孤儿，已有用户需重新预载一次 | **已评审通过 2026-08-26** —— 见 §9.5「解析跟读」 |
 | 2026-09-08 | belliedmonkey | 对话模式改成**双方自由说话 + 译文自动朗读**（商务洽谈场景）：去掉「按住我说」，归属按**语言**判（现成的字符集函数 + 语言注册表的 `scripts` 字段，不新写识别），判不出时先粘性再归对方、每行可点 ↔ 改边并回收语料；两边都自动朗读、排队逐句读完；「我的语言」与「对方的语言」分别可设；新增「这次不留记录」（一场为单位）。**推翻两条旧裁定**：裁定 D「朗读只在点了才读」、09-07「我说 = 按住说话，按住期间对方的话接受漏掉」。回声由 JS 自己堵四道闸，原生回声消除是升级不是前提 | **待评审** —— 见 §9.6、§12，interaction-spec「对话 · 实时听译」 |
+| 2026-09-08 | belliedmonkey | 免费额度（用户提议）：每个登录的国际版用户 **0.2 美元**的额度，请求经我们的服务端中继转发到提供方、服务端计量到顶即停（用户裁定「额度走我们服务端」）；客户端走现有一键配置三槽（key 槽放额度令牌）；402 停机并引导「自带 key / 社群」；中国版不出钱、引导百炼官方额度。画布 D1–D5 已裁定（D4 改为「必须登录才能用」）。**规约加注五处**（`AGENTS.md` 规则 2/3/4/8/11）、§2.1 加一条**有界免费样品**例外、§12 2026-08-03 那行部分重开 | **待评审** —— 见 §8.10 / §10 Gate F / §11 / §12，domain-design §7–§8，telemetry §2–§3，interaction-spec「免费额度」 |
 | 2026-09-07 | belliedmonkey | 对话 · 实时听译（用户提议，App 专属）：随时录音 → 转写 → 翻译，双显（当下逐词 + 整句定稿历史）；定稿句对进复习作为**新来源类别「对话」**（默认开）；锁屏也继续；双向（按住「我说」中文 → 译成外语给对方看并朗读）。真机 spike（PR-L0）三轮读数：WebKit 在后台一律静音 `getUserMedia`，页内音频保活能让 JS 活着但采集帧为 0 ⇒ **麦克风采集必须原生**（用户 09-07 裁定「原生做吧」）。见 §9.6 | **待评审（本 PR）**：三处裁定 —— ①「我说」的句子是否也进复习（默认进，标「我」）；②语言对是否给手动选（默认自动识别 → 界面语言）；③翻面大字卡是否保留（默认保留） |
 
 > **关于上面那批「已评审通过 2026-08-23（回溯批量确认）」。** 它们不是九次独立的审议，
@@ -109,7 +110,7 @@ designed under.
 
 | | Everyone |
 |---|---|
-| Translation | **defaults** to the user's own key, browser → provider directly, and that path stays free and fully capable forever. A server-side model may be offered as an opt-in **paid** alternative (§2.1) |
+| Translation | **defaults** to the user's own key, browser → provider directly, and that path stays free and fully capable forever. A server-side model may be offered as an opt-in **paid** alternative (§2.1). *(2026-09-08:)* a signed-in global-flavor user may claim a **0.2 USD sample** spent through **our relay** on our provider account (§8.10) — a bounded exception to §2.1, disclosed on its own |
 | Learning corpus | device-local IndexedDB; optionally synced to our server under a fixed free quota (§8), with one-action export at any time |
 | LLM quizzes | the user's own key by default; a paid server-side path is permitted under §2.1 |
 | Account & sync | free, optional, opt-in. A signed-out user has a complete product |
@@ -143,6 +144,14 @@ Three conditions, all required:
 **Local deployment stays first.** Default, recommended, and the one the onboarding
 teaches. A hosted model is an alternative for people who want it, never the path of
 least resistance.
+
+**有界的免费样品 —— 本节的唯一例外（2026-09-08，用户裁定）。** 免费额度（§8.10）让已登录
+用户经**我们的服务端中继**用我们的提供方账号翻译 / 朗读 / 转写，不收费。它不满足第 1 条
+「正在付费」，而第 1 条的理由是推理是**无上限**的经常性成本 —— 例外的形状正好把上限补回来：
+（a）每账号封顶 0.2 美元，服务端计量强制、到顶即停（`AGENTS.md` 规则 7 的形状）；（b）成本
+按规则 9 事先估算（§8.10）；（c）这条路处理什么**单独披露**（第 3 条照旧，§10 Gate F）；
+（d）本地 / 自带 key 的等价物早已出货且仍是默认（规则 11 通过）；（e）中继不跑模型、不存
+内容 —— 它转发、计量、停。「托管模型仍是付费可选或不上」对样品之外的一切照旧成立。
 
 > **核心约束 — a server-side model feature may not ship before its local equivalent.**
 > *(Added 2026-08-04 by domain review; `AGENTS.md` rule 11.)* Any capability that depends on a model
@@ -1727,6 +1736,10 @@ Two consequences worth stating, because both are easy to undo by accident:
 - **TLS in transit, provider encryption at rest** — table stakes, not features;
 - **retention that is stated and honoured**, including what happens to an abandoned
   account.
+- **the free-grant relay holds nothing but the spend** (§8.10, 2026-09-08): the text it
+  forwards is not logged and not stored — the only rows are the account's spend total
+  and a per-request cost line (kind, cost, ms; no content, 90-day retention); deleting
+  the account deletes them with it, and the grant token stops working the same moment.
 
 *This is the engineering shape of the argument, not legal advice. Have it reviewed
 before any of it is published as a privacy claim.*
@@ -1808,6 +1821,86 @@ App 里读到「同步完成，但服务器上还没有内容」，而他什么�
   `chrome.storage.local`（§7 origin 边界）。App 侧经 chrome-shim 落 localStorage。
 - 压实快照携带当前 `g` 行（§7.4 机制 4），游标落后的设备从快照拿到最新规则。
 - 读取失败（`PageSettings` `ok:false`）按 §7.4 机制 5 **失败开放**。
+
+### 8.10 免费额度 — 每个登录用户 0.2 美元，经我们的服务端中继（2026-09-08，用户裁定）
+
+交互稿：https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 （12 块画板：10 个表面 × 13 种状态，
+文案清单，五个裁定）。上位规约：`AGENTS.md` 规则 2 / 3 / 4 / 8 / 11 的 2026-09-08 注；§2.1 的
+「有界的免费样品」例外。
+
+**为什么。** 外部 40 个用户经 App 进来 0 激活，多半死在「先填 key」这一步；一键配置把
+「一把 key 通吃翻译 + 朗读 + 转写」做成了主推，但 key 本身仍是门槛。额度让第一次翻译
+不必先去申请 key。
+
+**它是什么，一句话。** 已登录的国际版用户在「一键配置」里点「领取」，扩展页 / App 调边缘函数
+`bt-grant` 领到一枚**额度令牌**（`bmg_` 前缀的随机串；服务端只存 hash）；客户端把令牌当作
+key 喂给**现有的** `QuickSetup.plan()`，平台 = 我们的中继（注册表里三个 `flavors:['global']`
+条目：`…/functions/v1/bt-relay/chat/completions`、`/audio/speech`、`/audio/transcriptions`），
+三槽写法与自带 key 完全一样。之后每次翻译 / 朗读 / 转写：浏览器 → **`bt-relay`**（验令牌、
+查余额、钉模型、转发到 OpenRouter、按返回的 `usage.cost` 或价目表记账）→ 提供方。到 0.2 美元
+即回 402，客户端停机并引导。
+
+**为什么走服务端而不是给用户铸一把提供方的 key（用户 2026-09-08 裁定「额度走我们服务端」）。**
+一套机制两个 flavor（境内后端就绪后中国版直接复用，DashScope 本来就没有 key 级上限）；
+上限由我们自己的计量表强制，不依赖提供方的管理 API 与条款；提供方的 key 永不离开服务器，
+用户从存储里挖到的只是一枚封顶 0.2 美元、随账号作废的令牌。代价如实写：**这条路上用户的
+文本经过我们的服务端**，所以它是 §2.1 的例外而不是 BYO 的变体，隐私要对这条路单独披露
+（§10 Gate F），且不保存、不记录内容。
+
+**它不是什么。** 不是订阅制的前奏（§12 2026-08-03 那行的**部分重开**：重开的是「我们出钱、
+免费、封顶的样品额度」，付费本身仍否决）；不是第二条默认路径（自带 key 仍是默认、引导仍
+教它；用完回到 BYO 与免费引擎，一字不改）；不是遥测（台账与遥测永不 join，telemetry §2 原则 7）。
+
+#### 六条裁定（画布 D1–D5 + 金额，2026-09-08）
+
+| # | 裁定 | 理由 |
+|---|---|---|
+| 金额 | **0.2 美元**，卡上不写数字（「够翻几百页」），进度条显示 $x / $0.20，金额从 `MT_GRANT.limitUsd` 注入 | 翻译一页约 0.0004 美元：0.2 美元 ≈ 560 页 + 几十句朗读 + 约 30 分钟转写。烧钱的是朗读与转写，不是翻译；用户原话「体验个十来个网页就好」。100 美元的池子够 500 人领 |
+| D1 | 换设备 / App↔扩展再领 = **回传同一枚令牌**（`reused:true`，余额共用） | 吊旧发新会让另一台设备突然 401，而它什么都没做错。令牌只在服务端 hash 存着，回传要能重现明文 ⇒ 令牌用 KEK 加密另存一份（`token_ct`），**不走同步通道**（§12 2026-08-08 (二)：凭证不进 chunk） |
+| D2 | 引导第三屏一键 tab 里**两张并列卡**：「登录领免费额度」/「用自己的 key」；「三引擎分别配」与免费 Google 引擎不动；「继续」永远可点 | 推翻 interaction-spec 09-02 不变量 1「登录不在引导里」，改写为「登录永远不是墙」。门禁改判据，见 interaction-spec |
+| D3 | **在额度卡上完成登录 = 领取**（一个手势）；从 App 首页 / 同步区登录的回到卡上显式点「领取」 | 领取会写三槽引擎配置，不该在别处静默发生 |
+| D4 | **必须登录才能用。** 退出登录的动作本身清掉本机三槽里的额度令牌与 `grantTail` / `grantBalance`，只留 `grant` 记录；弹窗与页面回到「未配」；再登录同一账号在卡上自动再领（`reused`）；登另一账号 = 领它自己的；`grantActive` 时退出登录先确认一次 | 用户裁定（推翻推荐的「退出后照用」）。规则 3 仍成立：额度是登录的附带权益，BYO 与免费引擎不受影响。令牌本身随账号存亡，退出登录不吊销（否则 D1 的「同一枚」就没有了）；挖走令牌的人最多用到 0.2 美元 |
+| D5 | 余额低（< $0.02）只在设置页一键卡与弹窗提示；阅读中不打断、叠层不出字；用完（S5a）才在叠层出一句 | 「快用完了」不是错误，不该打断一次阅读 |
+
+#### 后端
+
+- **表 `bt_grants`**（`supabase/schema.sql`）：`user_id uuid primary key references auth.users on delete cascade`、`token_hash text unique`、`token_ct` / `token_iv`（AES-256-GCM，KEK 只在函数密钥 `GRANT_KEK`；只为 D1 回传同一枚）、`limit_usd numeric`、`spent_usd numeric default 0`、`status active | revoked`、`created_at`、`last_used_at`。**表 `bt_grant_usage`**：`user_id`、`at`、`kind chat | tts | stt`、`model`、`cost_usd`、`ms` —— **没有内容列，也没有 URL 列**；90 天清扫。两表 RLS 开、**零策略**（同 `bt_events`：只有 service role）。记账走一个 SQL 函数 `bt_grant_charge(hash, cost)`：`update … set spent_usd = spent_usd + cost where token_hash = $1 and status = 'active' returning limit_usd - spent_usd` —— 原子，且是**唯一**的写路径。
+- **`bt-grant`**（领取；鉴权照抄 `bt-delete-account`：经 `GET /auth/v1/user` 解析调用者，不接受任何 user id 入参；限流照抄 `bt-ingest`）：OPTIONS → 鉴权 → 每 IP ≤ 5/小时 → 已有行 `active` ⇒ 解密回传 `reused:true`；`revoked` ⇒ 409 → 全局日上限 `GRANT_DAILY_CAP=50` → 生成令牌、写 hash + 密文 → `200 {token, limit_usd, reused:false}`。错误只回 `{error:<snake_id>}`，日志不带 user id。
+- **`bt-relay`**（中继；**不用 Supabase JWT**，用令牌 —— 内容脚本永不持有 `learnAuth`，§8.4.1.1）：OPTIONS（ACAO `*`，同 `bt-ingest`）→ `Authorization: Bearer bmg_…` → hash 查行（`active` 且 `spent_usd < limit_usd`，否则 **402** `credit_exhausted`）→ 每令牌限速（≤ 60 请求/分钟）、体积上限（chat 64 KB、stt 25 MB）→ 按路径后缀分三种：`chat/completions` 只放行 `{model, messages, temperature, max_tokens, response_format}`，`model` 必须等于钉住的模型（否则 **403** `model_not_allowed`），补 `usage:{include:true}`；`audio/speech` 放行 `{model, input, voice, response_format}`，`model` 钉住；`audio/transcriptions` 透传 multipart，`model` 钉住 → 用我们的 `OPENROUTER_GRANT_KEY` 转发 → 记账：chat 用返回的 `usage.cost`，tts 按字符数 × 价目表，stt 按时长 × 价目表（价目表是函数环境变量，改价不发版）→ 原样回传状态码与正文（**不改写请求或响应的形状**，`wire-format` / `request-shape` 眼里它就是一个兼容端点）。池子：转发前每 10 分钟查一次 `GET /api/v1/credits`，低于 `GRANT_FLOAT_MIN_USD=5` 回 **503** `grant_unavailable`。`GET bt-relay/balance`（带令牌）→ `{spent_usd, limit_usd}`。**不记日志正文**：日志只有 hash 前 8 位、kind、cost、ms、状态码。
+- **`bt-delete-account`**：`on delete cascade` 带走两表；响应加 `grant: true|false`。
+- **`scripts/grant-float.js`**（`npm run grant:status`）：池子余额、各状态计数、30 天花费总和与分布、清扫 `bt_grant_usage` 90 天以外的行。先手动每周跑，日上限兜底。
+
+#### 规则 9 的估算（写在花钱之前）
+
+约 200 下载/月、约 40% 登录 ⇒ 约 100 次领取/月；**最大暴露 20 美元/月**（100 × 0.2），实际消耗
+预计 15–30%（翻译烧不完 0.2 美元，朗读 / 转写能）。中继本身：按每人 300 次请求算，3 万次
+边缘函数调用/月 + 约 1 GB 出流量，在 Supabase 免费档（50 万次、5 GB）之内；超出档位的价格是
+每百万次 2 美元。刷号的对策：上限在**我们的表**里（服务端强制，不靠客户端）；日领取上限 50；
+池子小（100 美元，手动补）且低于 5 美元停转发；每令牌限速与体积上限；模型钉死。**池子空 =
+所有人同时 503**：客户端把「你用完了」（402）与「我们的池子空了，不是你用完了」（503）分成
+两句（状态 `unavailable`），后者只给社群出口。记账的误差：转发前查余额、转发后记账，最后一次
+请求可能让 `spent_usd` 略过 0.2（几分钱）—— 接受，不做预扣。
+
+#### 客户端形状（G2–G4）
+
+- **注册表**：`build/providers.config.js` / `tts.config.js` / `stt.config.js` 各加一个 `grant` 条目（`flavors:['global']`，`needsKey:true`，`defaultEndpoint` 是中继的完整地址，`defaultModel` 是钉住的模型，`grantOnly:true` 让它不出现在平台下拉里 —— 令牌只能领，不能手粘）。`build/perf-ledger.config.js` 给中继主机一行（G6 前 `unreachable` 欠条，G6 `/perf-tune` 实测填上）。
+- `extension/learn/grant.js`（`LearnGrant`），与 `quick-setup.js` 同纪律：**只算 patch，宿主写**。`spec()` 读 `window.MT_GRANT`（中国版为 null）；`claim()`（Supabase JWT，走 `sync.js` 那种头）；`plan(token, settings)` = `QuickSetup.plan({platform: grant, key: token, settings, pinModel, replaceKeyTail})` + marks `{grant:{limitUsd, at, userId}, grantTail}`；`balance()` = `GET bt-relay/balance`（令牌），缓存 `grantBalance` 10 分钟；`status()` → none / unclaimed / active / replaced / low / exhausted / unavailable；`render(box)`（ids `gr-*`）。
+- `EngineState.grantActive(s)` = `apiKey` 以 `bmg_` 开头（无身份）；`grant` 记录只在扩展页。三个新键不进 `SETTINGS_KEYS`。
+- 402 → `credit_exhausted`、503 `grant_unavailable` → `unavailable`、403 `model_not_allowed` —— 三个都具名、不可重试；引擎 `halt`（domain-design §7）。不再需要猜「是谁的钱用完了」：中继的状态码就是答案。
+- 出口一律 `MTFeedback.open()`：「一键配置自带 key」= 注册表 `keyUrl`（自带 key 的那家），「加入社群」= `COMMUNITY_URL`。
+- 构建：`build.js` 发射 `window.MT_GRANT = {relay, limitUsd, model}`（global 且 `backend.config.js grant.enabled`），china 恒 null；中国合规门加字节级断言：`dist-china` 不得出现 `bt-grant` / `bt-relay` / `MT_GRANT = {`。翻开关只在 G6。
+
+#### 中国版：不出钱，引导百炼官方额度
+
+中继机制本身中国版**可以**复用 —— 但它要跑在境内后端上，而境内后端还等 ICP / SES /
+Lighthouse 三件外部事（§8.4.1.2）；用东京的中继就是把中国用户原文经东京转发，现在不上。
+卡是静态三步：「注册阿里云百炼 ↗」「领官方免费额度（每模型 100 万 token、90 天，以百炼
+页面为准）↗」「把 API Key 粘到下面」+「这份额度是阿里云给你的，不经我们的手」+ 诚实的
+「境内后端未就绪，中国版暂不提供我们代领的免费额度」。链接全部来自注册表 `keyUrl`；文案零
+「登录」、零 OpenRouter。原因记三处（同同步先关着的先例）：`backend.config.js grant.china`
+注释、`build.js` 日志、本节。
+
+#### 隐私：§10 Gate F
 
 ## 9. Module map additions
 
@@ -2833,6 +2926,40 @@ audio; no recording is kept, only text — and text only while 「对话进复�
 README (both), the App transcription-engine hint, `NSMicrophoneUsageDescription`, and
 both sites' privacy pages carry it in the same version.
 
+### Gate F — ships with 免费额度 (§8.10)
+
+*(Added 2026-09-08.)* This is the first path on which **user text passes through a
+server of ours**. The sites' 「我们不参与该连接，也看不到这些文本」 stays true **for the BYO
+path** and must now be said *per path* (domain-design §8 already requires that). So the
+disclosure is a **new paragraph** beside the BYO sentence, never a softening of it.
+Verbatim, on every surface, in the same PR as the code:
+
+> **免费额度（可选）。** 登录并领取后，你可以用我们出的 0.2 美元额度翻译、朗读、转写。这条路
+> 上，你的文本会经过我们的服务器转发到模型提供方（OpenRouter），我们不保存、不记录内容，
+> 只记录每次花了多少；额度用完即停，不会自动收费。自带 key 的路径不变：文本仍从你的浏览器
+> 直接发往提供方，我们看不到。退出登录时额度在这台设备上停用；删除账号会一并删除额度记录。
+
+英文面（`README.md`、两个站点的英文版）用的是同一段话的英文，权威版本是
+`_locales/en` 的 `grant_privacy`，逐字如下：
+
+> Free credit (optional). Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
+
+**`{vendor}` 是占位符，不是抄下来的名字。** 12 份 locale 里写的都是 `{vendor}`，
+运行时从 `MT_GRANT.vendorLabel` 代入，而那个名字只在 `backend.config.js` 写一处 ——
+把厂商名抄进十几个面，就是十几份会在换供应商那天集体说谎的副本。
+取不到名字时**退到厂商 id，绝不因此把整段丢掉**：少露一个好看的名字，
+远好过在没有披露的情况下让人点「领取」。
+
+| Surface | Gate F |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above; the BYO sentence stays and is scoped: 「用自己的 key 时，文本从不经过我们的服务器」 |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + the prerendered language sets | the paragraph above as its own section; the 「我们不参与该连接」 sentence gains 「（自带 key 时）」; **regenerate the language pages** |
+| `belliedmonkey.com` | one line: 中国版不提供我们代领的免费额度（百炼官方额度不经我们的手） |
+| The claim card (`grant_privacy` ×12 locales) | the paragraph above, shown **before** the claim button (same place as `qs_privacy`) |
+| App Store privacy labels | spend total = **Usage Data, linked to you**; the relayed text is **not collected** (not stored) — refill both app records at submission, **by hand, reviewed** |
+| Chrome Web Store data disclosure | + the same item; the three attestations stay |
+| `build.js` Gate F coupling | `grant.enabled:true` ⇒ README ×2 carry the 「免费额度」 stem **and** all 12 locales have `grant_privacy`; the **china artifact must contain none of** `bt-grant` / `bt-relay` / `MT_GRANT = {` |
+
 ## 11. Out of scope
 
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
@@ -2846,6 +2973,10 @@ both sites' privacy pages carry it in the same version.
 - **A hosted model as the DEFAULT path** (§2.1). Local/BYO-key is the default and
   stays fully capable; a server-side model is an opt-in paid alternative or it does
   not ship at all.
+  *(Amended 2026-09-08:)* one bounded exception — §2.1's **free sample**: a signed-in
+  user's requests relayed through our server on our account, capped at 0.2 USD per
+  account and stopped there (§8.10). The default stays local/BYO; the sample is never the
+  path onboarding teaches first.
 - **Telemetry that carries content or identity**, permanently: page text, URLs,
   hostnames, keys, emails, account ids, server error text, or any join between an
   install and an account. *(Narrowed 2026-09-05 from "telemetry and usage analytics,
@@ -2919,4 +3050,8 @@ matters more than the detail.
 | 2026-09-08 | ~~裁定 D「朗读只在点了才读」~~ **已推翻** | 那时朗读是「给对方看一句」的辅助动作；现在它是把话传过去的主通道，每句都要。开关默认开、可关（§9.6） |
 | 2026-09-08 | 「朗读期间到达的句子，若语言等于正在朗读的那个就直接丢」（回声的第五道闸） | 它会把**对方在我朗读时插话**整句吃掉，而插话在洽谈里正是最要紧的那一句 —— 也正是「边放边听」这条裁定要保住的东西。回声只用相似度判，不用语言（§9.6） |
 | 2026-09-08 | 「这次不留记录」记进存储、下次沿用 | 记住上次的勾选反而危险：用户会以为在留记录而其实没有。它是**单场决定**，每次进来默认不勾（§9.6） |
+| 2026-09-08 | ~~服务端 LLM 额度~~（2026-08-03 那行的**部分重开**） | 重开的只是「我们出钱、免费、每账号封顶 0.2 美元的样品」：请求经我们的中继、服务端计量到顶即停（§8.10，§2.1 例外）。**订阅制 / Stripe / IAP 仍否决**：出口是自带 key 与社群，不是付费 |
+| 2026-09-08 | 国际版每人铸一把提供方的封顶 key 交给设备（画布第一稿的方案） | 用户裁定「额度走我们服务端」：一套机制两个 flavor、上限由我们的表强制、不依赖提供方管理 API 与条款、提供方 key 永不离开服务器。代价是文本经过我们的服务端 —— 单独披露（Gate F） |
+| 2026-09-08 | 中国版也每人一把 DashScope key | DashScope 的 key / 空间 / 子账号都没有金额上限（只有限流与事后分账），新用户免费额度全账号共享 ⇒ 一把 key 就是一个无上限的口子。计量代理要境内后端，而它未就绪且会把原文经东京转发 ⇒ 现在只引导百炼官方额度（§8.10） |
+| 2026-09-08 | 退出登录后免费额度的 key 留在设备上照用（画布 D4 的推荐项） | 用户裁定「必须登录才能用」：额度是登录的附带权益。退出登录清掉本机额度 key，再登录自动领回同一把（§8.10 D4） |
 | 2026-09-07 | 对话的句子复用 `anchor.k:'media'`（`mediaKey:'conv:…'`） | 媒体锚点的语义是「跳回那段音频」，而对话录音已丢弃 —— 复习卡会长出一个永远失败的 ▶，来源管理会拿一个假 host 分组。新 kind `conv` 让每个读者显式分支（§9.6） |

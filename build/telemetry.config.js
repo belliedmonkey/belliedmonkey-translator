@@ -31,7 +31,11 @@ const EVENTS = {
   translate_ok: { provider: 'id', kind: ['page', 'subtitle'], ms: 'int' },
   translate_fail: {
     provider: 'id',
-    code: ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider'],
+    // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
+    // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
+    // —— 而那正是判断这笔钱该不该继续花的唯一依据。
+    code: ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
+      'credit_exhausted', 'grant_unavailable', 'model_not_allowed'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -39,6 +43,11 @@ const EVENTS = {
   subtitle_on: { site: ['youtube', 'substack', 'podcast', 'other'] },
   capture_first: {},
   review_session: { graded: 'int' },
+  // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
+  // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
+  // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
+  grant_claimed: {},
+  grant_exhausted: {},
   sync_on: {},
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };

@@ -53,6 +53,12 @@ const POPUP_KEYS = [
   // 这份清单是全仓第四份手抄的设置键表，没有任何门禁盯着它。
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'engineChosen',
   'extObSeen',
+  // 免费额度（§8.10）。三个都是**只读**的：
+  //   apiModel     —— 判「有没有在详细里把模型改掉」（改了必然撞 403，一次都翻不出来）
+  //   grantTail    —— 判「现在用的是不是额度」（八位，不含身份）
+  //   grantBalance —— 缓存的余额。**弹窗不发网络请求**，所以只能用这一份；
+  //                   没有它就什么都不说，而不是画一个猜出来的数字。
+  'apiModel', 'grantTail', 'grantBalance',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
 ];
@@ -81,7 +87,15 @@ async function saveSettings(patch) {
 // no-key engine (works, but it is not a stable endpoint and can hand back the
 // original text unchanged, which reads as "the extension is broken"). A configured
 // keyed engine shows nothing.
-function updateSetupNote(provider, apiKey, chosen) {
+// 免费额度钉住的翻译模型。来自构建时发射的那份规格，**不是第二份写死的字符串** ——
+// 换模型只改 build/providers.config.js 一处。取不到就返回空串，那时模型那一条不判：
+// 拿一个猜出来的模型名去说「你改错了」，比不说更糟。
+function pinnedGrantModel() {
+  try { return (window.MT_GRANT && window.MT_GRANT.models && window.MT_GRANT.models.chat) || ''; }
+  catch (_) { return ''; }
+}
+
+function updateSetupNote(provider, apiKey, chosen, grantState) {
   const el = $('setup-note');
   if (!el) return;
   // 判据取自 content/engine-state.js —— 与悬浮球、设置页同一份，且**先归一化 provider**。
@@ -100,9 +114,22 @@ function updateSetupNote(provider, apiKey, chosen) {
     el.classList.add('warn', 'clickable');
     el.onclick = () => { try { chrome.runtime.openOptionsPage(); } catch (_) {} window.close(); };
     el.style.display = 'block';
-  } else {
-    el.style.display = 'none';
+    return;
   }
+  // 免费额度那三种「挡住他现在要做的事」的情况（§8.10，画布 A5）。
+  // 一切正常时这一行不出现 —— 用户是在「我要翻这一页」的路上顺手打开弹窗的，
+  // 一句「你的额度还好」占掉那一行，只是噪音。
+  const row = (typeof LearnGrant !== 'undefined')
+    ? LearnGrant.popupRow(grantState, { t, pinnedModel: pinnedGrantModel() })
+    : null;
+  if (row) {
+    el.textContent = row.text;
+    el.classList.add('warn', 'clickable');
+    el.onclick = () => { try { chrome.runtime.openOptionsPage(); } catch (_) {} window.close(); };
+    el.style.display = 'block';
+    return;
+  }
+  el.style.display = 'none';
 }
 
 // 「还没配好」时，弹窗只留一个入口。
@@ -234,7 +261,7 @@ async function init() {
   $('target-lang').value = s.targetLang || 'zh-CN';
   // provider / apiKey 只读不写：弹窗用它们判断「配没配好」，配置本身在设置页。
   // out-of-flavor 的引擎迁移也随之去掉 —— 那是配置动作，属于设置页。
-  updateSetupNote(s.provider, s.apiKey, s.engineChosen);
+  updateSetupNote(s.provider, s.apiKey, s.engineChosen, s);
   updateFirstRun(s.extObSeen);
   // 顺序要紧：先让两条提示各自决定显不显示，再由这一步把其余的收起来。
   applyUnconfigured(EngineState.needsSetup(s));

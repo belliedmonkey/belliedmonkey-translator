@@ -244,9 +244,17 @@ Rules:
       }
     }
     if (!resp.ok) {
-      const said = serverSays(await resp.text().catch(() => ''));
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
+      const said = serverSays(raw);
       const e = new Error(`${label} ${resp.status}: ${said || resp.statusText}`);
       e.status = resp.status;
+      // 免费额度中继的具名错误（§8.10）。**必须在 code='http' 之前**，否则渲染器
+      // 只会看到一个普通的 HTTP 错误，用户读到的是「服务端拒绝了这次请求」——
+      // 而正确的那句话是「免费额度已用完，点这里看怎么继续」，带着出口。
+      // 不可重试：额度用完了重试多少次都一样，只会把停机推迟到更晚、更混乱的时刻。
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
+      if (gcode) { e.code = gcode; e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e; }
       // `code`/`url` are for the settings page's engine self-check: without a code it
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.

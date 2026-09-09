@@ -2460,5 +2460,128 @@
   },
   "listen_leave_ok": {
     "message": "Terminer et quitter"
+  },
+  "grant_err_exhausted": {
+    "message": "Votre crédit gratuit est épuisé. Vous pouvez ajouter votre propre clé API pour continuer (une seule clé couvre traduction, synthèse vocale et transcription), ou demander de l'aide dans la communauté."
+  },
+  "grant_err_unavailable": {
+    "message": "Ce n'est pas vous qui êtes à court : notre réserve de crédit gratuit est vide et nous la rechargeons. Utilisez votre propre clé pour l'instant, ou revenez plus tard."
+  },
+  "grant_err_misconfigured": {
+    "message": "Le crédit gratuit est mal configuré de notre côté, et nous l'avons noté. Ce n'est pas votre faute ; utilisez votre propre clé pour l'instant."
+  },
+  "grant_err_revoked": {
+    "message": "Ce crédit gratuit a été désactivé (se déconnecter ou supprimer son compte le désactive). Reconnectez-vous au même compte et il revient, avec le même solde."
+  },
+  "grant_err_invalid": {
+    "message": "Ce crédit gratuit n'est plus reconnu. Ouvrez les réglages et réclamez-le à nouveau."
+  },
+  "grant_err_model": {
+    "message": "Le crédit gratuit ne fonctionne qu'avec le modèle qu'il impose. Vous avez changé le modèle dans « Avancé » — remettez-le, ou ajoutez votre propre clé."
+  },
+  "grant_err_busy": {
+    "message": "Trop de requêtes en ce moment. Attendez quelques secondes et réessayez."
+  },
+  "grant_title": {
+    "message": "Crédit gratuit"
+  },
+  "grant_body_signin": {
+    "message": "Connectez-vous pour réclamer un crédit gratuit — de quoi traduire quelques centaines de pages. Il couvre traduction, synthèse vocale et transcription."
+  },
+  "grant_signin": {
+    "message": "Se connecter pour le crédit gratuit"
+  },
+  "grant_signin_again": {
+    "message": "Se reconnecter"
+  },
+  "grant_no_live": {
+    "message": "La conversation en direct n'est pas couverte : elle exige une connexion temps réel, et ce relais ne transmet que des requêtes ponctuelles."
+  },
+  "grant_body_signed_out": {
+    "message": "La déconnexion a désactivé votre crédit gratuit. Le solde est toujours là — reconnectez-vous au même compte et il revient."
+  },
+  "grant_body_unclaimed": {
+    "message": "Vous n'avez pas encore réclamé votre crédit gratuit. De quoi traduire quelques centaines de pages, en traduction, synthèse vocale et transcription."
+  },
+  "grant_claim": {
+    "message": "Réclamer"
+  },
+  "grant_claiming": {
+    "message": "Réclamation…"
+  },
+  "grant_privacy": {
+    "message": "Crédit gratuit (facultatif). Une fois connecté et le crédit réclamé, vous disposez de 0,20 $ à notre charge pour la traduction, la synthèse vocale et la transcription. Sur ce chemin, votre texte passe par notre serveur avant d'atteindre le fournisseur du modèle ({vendor}) ; nous ne stockons ni ne journalisons le contenu, seulement ce que chaque appel a coûté. Le crédit s'arrête une fois épuisé et ne vous facture jamais. Le chemin avec votre propre clé est inchangé : ce texte va de votre navigateur directement au fournisseur, et nous ne le voyons jamais. La déconnexion désactive le crédit sur cet appareil ; la suppression du compte efface aussi son relevé."
+  },
+  "grant_body_active": {
+    "message": "Votre crédit gratuit est en cours d’utilisation. Quand il sera épuisé, vous pourrez ajouter votre propre clé API et continuer."
+  },
+  "grant_body_low": {
+    "message": "Votre crédit gratuit est presque épuisé. Ensuite, vous pourrez ajouter votre propre clé API et continuer."
+  },
+  "grant_body_exhausted": {
+    "message": "Votre crédit gratuit est épuisé. Ajoutez votre propre clé API pour continuer — une seule clé couvre traduction, synthèse vocale et transcription."
+  },
+  "grant_body_unavailable": {
+    "message": "Ce n'est pas vous qui êtes à court : notre réserve de crédit gratuit est vide et nous la rechargeons. Utilisez votre propre clé pour l'instant, ou revenez plus tard."
+  },
+  "grant_body_replaced": {
+    "message": "Vous utilisez actuellement votre propre clé. Le crédit gratuit est toujours là ; vous pouvez revenir dessus à tout moment."
+  },
+  "grant_restore": {
+    "message": "Revenir au crédit gratuit"
+  },
+  "grant_byo": {
+    "message": "Utiliser ma propre clé"
+  },
+  "grant_community": {
+    "message": "Demander à la communauté"
+  },
+  "grant_engine_label": {
+    "message": "Crédit gratuit BelliedMonkey"
+  },
+  "grant_restore_confirm": {
+    "message": "Revenir au crédit gratuit remplacera la clé que vous avez saisie. Continuer ?"
+  },
+  "grant_claimed_toast": {
+    "message": "Le crédit gratuit est configuré"
+  },
+  "grant_page_halt": {
+    "message": "Crédit gratuit épuisé — appuyez pour voir comment continuer"
+  },
+  "grant_page_halt_ours": {
+    "message": "Crédit gratuit indisponible pour l'instant (ce n'est pas vous) — appuyez pour voir comment continuer"
+  },
+  "grant_popup_model": {
+    "message": "Le crédit gratuit ne marche qu’avec son modèle imposé — appuyez pour le remettre"
+  },
+  "grant_popup_exhausted": {
+    "message": "Crédit gratuit épuisé — appuyez pour voir comment continuer"
+  },
+  "grant_popup_low": {
+    "message": "Crédit gratuit presque épuisé — appuyez pour voir"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Déconnecté — cet appareil seulement. Se connecter donne aussi du crédit gratuit →"
+  },
+  "grant_cn_title": {
+    "message": "Commencez par le crédit gratuit du fournisseur"
+  },
+  "grant_cn_body": {
+    "message": "Après inscription, chaque modèle vient avec un crédit gratuit qui dure un moment. Il vient du fournisseur, pas de nous."
+  },
+  "grant_cn_step1": {
+    "message": "Inscrivez-vous et ouvrez la console"
+  },
+  "grant_cn_step2": {
+    "message": "Réclamez le crédit gratuit (leur page indique le montant exact)"
+  },
+  "grant_cn_step3": {
+    "message": "Collez la clé API ci-dessous pour tout configurer d’un coup"
+  },
+  "grant_cn_open": {
+    "message": "Ouvrir la console ↗"
+  },
+  "grant_cn_why": {
+    "message": "Nous ne distribuons pas encore de crédit ici : cela demande un serveur dans le pays, pas encore prêt."
   }
 }

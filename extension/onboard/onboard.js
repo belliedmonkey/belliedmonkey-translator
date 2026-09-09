@@ -111,7 +111,7 @@
     // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-modes', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -207,6 +207,38 @@
   // 「一把 key 配好全部」与「三引擎分别配」都写局部 patch（storageSet），
   // **不是** options.js 的 saveAll()：那一份是整体覆盖式的，而这一页没有
   // notes / 音色 / 语速 的控件，覆盖会把它们全部清空。
+  // 免费额度那张卡（§8.10）。这一页**只展示、只指路**，不自己实现领取：
+  // 登录表单与写盘路径都在设置页，而两个页面同时备 PKCE verifier 会互相覆盖。
+  // 所以这里唯一的动作是把人送到设置页的 #grant 锚点上。
+  // **同步的，返回「画出来了没有」** —— 显隐由 paintModes 在一个地方落定，
+  // 与 ob-quick 逐字同构。第一版写成 async 然后在 .then 里改 hidden：那样「谁最后
+  // 设了 hidden」就取决于微任务顺序，而这一页每次切屏都会先把所有块重置成 hidden。
+  // 异步只该用在真的要等的地方，而这里没有要等的东西（这一页不加载 auth.js）。
+  //
+  // 这一页**不加载 auth.js**（那会把整套同步栈拉进引导流程），所以一律按未登录画：
+  // 引导中的人几乎必然还没登录；万一登录了，卡上那句把他送到设置页，那里是真实状态。
+  function paintGrant() {
+    const box = $('ob-grant');
+    if (!box || typeof LearnGrant === 'undefined') { if (box) box.hidden = true; return false; }
+    LearnGrant.render(box, {
+      t,
+      status: LearnGrant.status(settings, { signedIn: false }),
+      // 中国版走的是另一张卡（官方免费额度）。flavor 与地址都从生成的注册表来，
+      // 不在这一页判 flavor 名 —— 那是 build 的事，不是运行时的事。
+      flavor: window.MT_FLAVOR,
+      keyUrl: ((window.MT_PROVIDERS || []).find((x) => x.keyUrl) || {}).keyUrl || '',
+      // 这一屏的主行动是「配好」（一键卡那个填色按钮）。两个填色按钮并排时用户
+      // 看不出该点哪个 —— 2026-09-02 就为这件事把「继续」降过一次级，门禁也是
+      // 那次立的。所以额度卡在引导页上是**次级**样式；到了设置页它是那张卡里
+      // 唯一的按钮，不需要降级。
+      secondary: true,
+      onAction: () => {
+        try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {}
+      },
+    });
+    return !box.hidden;
+  }
+
   let quickMounted = false;
   function paintQuick() {
     const box = $('ob-quick');
@@ -301,12 +333,18 @@
   }
 
   function paintModes() {
+    const grantShown = paintGrant();
     const quickShown = paintQuick();
     // 一键卡渲染不出来的 flavor：没有可选的东西，就不给一个只有一边的二选一。
     $('ob-modes').hidden = !quickShown;
     const manual = manualMode || !quickShown;
     if (manual) paintManual();
     $('ob-quick').hidden = manual || !quickShown;
+    // 额度卡的显隐只看**用户选的那个 tab**（manualMode），不看派生出来的 manual
+    // （后者 = `manualMode || !quickShown`）。理由是语义：额度卡属于「一键配置」这一档，
+    // 而「一键卡里有没有可选平台」是另一个问题 —— 一个 flavor 里没有可一键的平台、
+    // 却有免费额度，那张卡照样该出。
+    $('ob-grant').hidden = manualMode || !grantShown;
     $('ob-manual').hidden = !manual;
     $('ob-mode-quick').textContent = t('extob_mode_quick', '一键配置');
     $('ob-mode-manual').textContent = t('extob_mode_manual', '三引擎分别配');
@@ -355,6 +393,21 @@
 
   // ── 导航 ────────────────────────────────────────────────────────────────────
   $('ob-next').addEventListener('click', () => {
+    // 「继续」不许把已经填好的 key 静默丢掉。选引擎屏上，提交键（#qs-apply）在一键卡
+    // 的**最下面**，而这一屏在手机宽度上装不下两张卡 —— 2026-09-09 iPhone Safari 实测
+    // 393×659：额度卡把 #qs-apply 顶到 y=635，吸底页脚从 554 起，于是首屏唯一看得见的
+    // 按钮就是这颗「继续」，而它当时只前进、不提交。粘完 key 点它 = key 没了，界面还
+    // 说设置完成 —— 正是「静默失败」那一类。
+    //
+    // 所以：填了 key 又还没提交过（结果行 #qs-res 仍是 hidden）时，这颗键先替他提交，
+    // **并且不前进** —— 三行绿勾要让他看见，那是「真的配上了」的唯一证据。
+    if (OB[at] === 'engine') {
+      const qk = $('qs-key'), qa = $('qs-apply'), qr = $('qs-res');
+      if (qk && qa && qr && qr.hidden && qk.value.trim() && !$('ob-quick').hidden) {
+        qa.click();
+        return;
+      }
+    }
     if (at < OB.length - 1) { at += 1; paint(); return; }
     finish();
   });

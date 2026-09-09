@@ -57,6 +57,11 @@ var QuickSetup = (() => {
   // needsKey 挡掉、custom_* 被 requiresEndpoint 挡掉）。多写一份 type 白名单就是
   // LearnNotes.chatEngines() 的第二份副本，而那正是它的注释在防的事。
   function eligible(e) {
+    // `grantOnly` 的条目（免费额度的中继，§8.10）**不是一个用户可以选的平台**：
+    // 它没有可粘的 key —— 令牌是登录之后系统发的。放进这张卡里，用户会看到一个
+    // 「把 key 粘进来」的输入框，而正确的动作是点「领取」。同理它也不该进任何下拉。
+    // 少了这一条，一键配置会凭空多出第三个平台，而它一次都配不成功。
+    if (e && e.grantOnly) return false;
     return !!e && e.needsKey === true && !e.requiresEndpoint && !!hostOf(e.defaultEndpoint || '');
   }
 
@@ -186,16 +191,44 @@ var QuickSetup = (() => {
   // ⚠️ writes 的每个键都必须在 options.js 的 SETTINGS_KEYS 里 —— 不在里面的键
   // saveAll() 读不回来，下次任何字段变更就会把它清掉，静默且必然。
   // test/quick-setup.test.js 把这条做成了断言。
+  // 尾八位。用它判「这一槽里装的是不是我们上次发的那枚令牌」——
+  // **只存尾八位**，因为判定不需要更多，而内容脚本里少一份完整凭证就少一处泄漏面。
+  function tailOf(v) { const x = String(v == null ? '' : v).trim(); return x ? x.slice(-8) : ''; }
+
   function plan(input) {
     const p = input.platform;
     const key = String(input.key || '').trim();
     const s = input.settings || {};
-    const st = state(s);
+    // ── 两个只给免费额度用的参数（§8.10）────────────────────────────────
+    //
+    // `pinModel`：写注册表默认模型，而不是留空。留空的语义是「走注册表默认」，
+    //   对自带 key 是对的；但中继**按模型白名单放行**，而用户可能在「详细」里
+    //   改过 apiModel —— 那时留空不会覆盖它，下一次请求就撞 403 model_not_allowed。
+    //   把模型显式写进去，是让「领取」这个动作真的把配置带到可用状态。
+    //
+    // `replaceKeyTail`：尾八位命中的槽视为**可覆盖**。免费额度会重领（换设备、
+    //   退出再登录），那时槽里装的是上一枚令牌 —— 它不是用户自己配的东西，
+    //   拿新的盖掉是对的。而**别人自己粘的 key 一个字节都不许动**，所以判据是
+    //   尾号命中，不是「反正是我们写的」。被覆盖的槽走 replaced 而不是 skipped，
+    //   界面要如实说「替换了免费额度的 key」，不能假装是新配的。
+    const pinModel = !!input.pinModel;
+    const replaceTail = tailOf(input.replaceKeyTail);
+    const overridable = (stored) => !!replaceTail && tailOf(stored) === replaceTail;
+    const st0 = state(s);
+    const st = {
+      chat: st0.chat === 'configured' && overridable(s.apiKey) ? 'empty' : st0.chat,
+      tts: st0.tts === 'configured' && overridable(s.ttsApiKey) ? 'empty' : st0.tts,
+      stt: st0.stt === 'configured' && overridable(s.sttApiKey) ? 'empty' : st0.stt,
+    };
+    const replaced = [];
+    if (st0.chat !== st.chat) replaced.push('chat');
+    if (st0.tts !== st.tts) replaced.push('tts');
+    if (st0.stt !== st.stt) replaced.push('stt');
     const writes = {};
     const skipped = [];
     const tests = [];
 
-    if (!p || !key) return { writes, skipped, tests };
+    if (!p || !key) return { writes, skipped, tests, replaced };
 
     const ttsEngine = p.tts.id;
     const sttEngine = p.stt.id;
@@ -207,7 +240,7 @@ var QuickSetup = (() => {
       writes.provider = p.chat.id;
       writes.apiKey = key;
       writes.apiBaseUrl = '';
-      writes.apiModel = '';
+      writes.apiModel = pinModel ? (p.chat.defaultModel || '') : '';
       tests.push('chat');
     } else {
       skipped.push({ slot: 'chat', reason: 'already', current: s.provider || '' });
@@ -217,7 +250,7 @@ var QuickSetup = (() => {
       writes.ttsEngine = ttsEngine;
       writes.ttsApiKey = key;
       writes.ttsBaseUrl = '';
-      writes.ttsModel = '';
+      writes.ttsModel = pinModel ? (p.tts.defaultModel || '') : '';
       writes.ttsVoice = '';
       // 不写 ttsMode，用户会看到上面说「朗读 ✓ 通了」而下面语音卡只剩一个「关闭」
       // 下拉 —— options.js 在 mode 为 off 时把整块 hidden。那是既有的坑，而这次
@@ -237,7 +270,7 @@ var QuickSetup = (() => {
       writes.sttEngine = sttEngine;
       writes.sttApiKey = key;
       writes.sttBaseUrl = '';
-      writes.sttModel = '';
+      writes.sttModel = pinModel ? (p.stt.defaultModel || '') : '';
       tests.push('stt');
     } else {
       skipped.push({ slot: 'stt', reason: 'already', current: s.sttEngine || '' });
@@ -248,7 +281,7 @@ var QuickSetup = (() => {
     // 默认。写 notesProvider 会永久打断 follow 关系：用户以后换翻译引擎，解析会
     // 留在这个平台上。结果区仍要**显式说出来**，不说它看起来就像被漏了。
 
-    return { writes, skipped, tests };
+    return { writes, skipped, tests, replaced };
   }
 
   // summarize(results) → { done, failed, ok }
@@ -578,7 +611,7 @@ var QuickSetup = (() => {
     return null;
   }
 
-  return { platforms, plan, summarize, state, represents, prefill, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, _eligible: eligible };
+  return { platforms, plan, summarize, state, represents, prefill, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, tailOf, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

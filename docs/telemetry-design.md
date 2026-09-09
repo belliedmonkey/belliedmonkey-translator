@@ -50,6 +50,10 @@ If a proposed event does not serve one of these rows, it does not go in.
    ……不随版本变化」 in writing, the domestic backend is not ready, and anonymous events
    crossing the border are not a conversation worth having under PIPL. The china build
    strips the module and the URL; the sentence stays true.
+7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
+   （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
+   转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
+   且服务器上没有任何一列能把 `install_id` 连到 `bt_grants`。
 
 ## 3. Event whitelist v1
 
@@ -65,12 +69,21 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `onboarding_done` | `surface: ext \| app` | onboarding finishes | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` |
 | `engine_set` | `provider` | provider changed and saved | `options.js` provider `change` (next to `engineChosen`) · `applyQuickSetup` |
 | `translate_ok` | `provider` `kind: page \| subtitle` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `tick()` where `painted = true` · `content-youtube.js` `onActiveChange` |
-| `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider` from `translation-api.js` |
+| `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed` from `translation-api.js`（后三个来自免费额度中继，§8.10） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `review_session` | `graded` | a deck is finished | `review.js` `!deck.length` branch, same spot as the rating prompt |
+| `grant_claimed` | — | 一次领取成功（每装机一次） | `learn/grant.js` 的 `claim()` 落定处 |
+| `grant_exhausted` | — | 首次收到 402 且余额判定为用完 | 收到 `credit_exhausted` 且 `balance(force)` 判定余额 ≤ 0 处 |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
+
+**免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
+`grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
+`translate_fail.code` 的枚举同时加了 `credit_exhausted`（402）、`model_not_allowed`
+（403 钉住模型）、`grant_unavailable`（503 池空）—— 不在枚举里的 code 会被客户端白名单
+**静默丢掉**，于是「有多少人用完了」这个数永远是 0，而那正是判断这笔钱该不该继续花的
+唯一依据。台账与遥测**永不 join**（原则 7）。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the

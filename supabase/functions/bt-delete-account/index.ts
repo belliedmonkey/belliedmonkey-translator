@@ -11,6 +11,12 @@
 // `on delete cascade`, so the rows go with the account even if the client's own
 // delete pass failed halfway.
 //
+// 免费额度（§8.10）走同一条 cascade：`bt_grants` / `bt_grant_usage` 也是
+// `on delete cascade`，所以删号那一刻令牌就不再存在，中继下一次查 `bt_grant_check`
+// 会零行 → 401。这里**先读一次**只是为了如实告诉客户端「额度也一并删了」——
+// 它据此清掉本机三槽里的令牌，而不是猜。读失败不阻塞删除：删号是不可撤销的那一步，
+// 不该被一次可有可无的读挡住。
+//
 //   supabase functions deploy bt-delete-account
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -46,6 +52,14 @@ Deno.serve(async (req) => {
   const user = await who.json();
   if (!user?.id) return json({ error: 'no user' }, 401);
 
+  let hadGrant = false;
+  try {
+    const g = await fetch(`${URL_}/rest/v1/bt_grants?user_id=eq.${user.id}&select=user_id`, {
+      headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
+    });
+    if (g.ok) hadGrant = ((await g.json()) as unknown[]).length > 0;
+  } catch { /* 见上：不阻塞删除 */ }
+
   const del = await fetch(`${URL_}/auth/v1/admin/users/${user.id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${SERVICE}`, apikey: SERVICE },
@@ -53,5 +67,5 @@ Deno.serve(async (req) => {
   if (!del.ok) {
     return json({ error: 'delete failed', detail: await del.text() }, 500);
   }
-  return json({ deleted: user.id });
+  return json({ deleted: user.id, grant: hadGrant });
 });

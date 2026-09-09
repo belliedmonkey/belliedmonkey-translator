@@ -308,6 +308,23 @@ var TranslationCore = (() => {
     return { pageize, destroy };
   }
 
+  // 免费额度停机时，页面上那一行说什么（learning-design §8.10）。
+  //
+  // **两个渲染器共用一份**：网页翻译（content-webpage.js）与字幕叠层
+  // （subtitle-adapter.js）都要说这句话，而两份实现会漂 —— 这个仓库里已经有过
+  // 一次（DeepSeek 的提示写死了模型名，API 早就不认了还在那儿）。
+  //
+  // 只分两句，不是七句。这一行只有一行的地方，「是不是你的问题」比「具体哪种原因」
+  // 重要得多：说错方向会让用户去查自己的账户，而那边根本没有问题。
+  // 七句完整的解释在设置页那张卡上，点过去就看得到。
+  function grantHaltMessage(code) {
+    if (!code) return '';
+    if (code === 'credit_exhausted') {
+      return i18n('grant_page_halt', '免费额度已用完 —— 点此看怎么继续');
+    }
+    return i18n('grant_page_halt_ours', '免费额度暂时用不了（不是你用完了）—— 点此看怎么继续');
+  }
+
   // ─── Generic translation engine: per-unit state machine + retry ───────
   // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
   // `_`-prefixed state — see reset() for the authoritative set, so this list cannot
@@ -323,6 +340,9 @@ var TranslationCore = (() => {
   // Rendering stays in the adapter. This is the shared core for BOTH the webpage
   // path and the subtitle path (see docs/domain-design.md).
   function createEngine(cfg) {
+    // 引擎级停机。只有「额度用完」这一族会置上 —— 它与别的失败不同：重试**必然**
+    // 再失败，而且每一次都花掉一个来回。其余错误仍走每单元的重试计数。
+    let halted = false;
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
     // MERGE, not replace: an adapter's override lists only the knobs it cares about,
@@ -365,6 +385,14 @@ var TranslationCore = (() => {
       // Loop-invariant for this tick — hoisted so the script-family regexes aren't
       // re-run once per unit per 350ms tick.
       const useDetector = !!detect && !!targetLang && !isScriptDecidableTarget(targetLang);
+      // 免费额度用完之后**一个请求都不再发**（learning-design §8.10）。没有这道闸，
+      // 一页 60 段就是 60 次注定 402 的请求 —— 每一次都要等一个来回，用户盯着一页
+      // 「翻译中…」慢慢变成一页错误，而第一次就已经知道结局了。
+      // 未译的单元当场置错，渲染器按 grantActive 分两句话；retry() 解锁。
+      if (halted) {
+        for (const it of active) { if (!it.tr && !it._done) { it._err = true; it._fetching = false; } }
+        return;
+      }
       let started = 0;
       for (let i = 0; i < active.length && started < win.MAX_PER_TICK; i++) {
         const it = active[i];
@@ -437,6 +465,12 @@ var TranslationCore = (() => {
           it._tries = 0;
           if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
+          // 额度用完 / 池子空了：整台引擎停机，不再计重试次数（§8.10）。
+          if (e && e.grant) {
+            halted = true; it._err = true; it._tries = 0;
+            if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+            return;
+          }
           if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout' }); } catch (_) {} } return; }  // 卡死 → 直接可重试
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) { it._err = true; if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} } } // exhausted → error UI
@@ -455,15 +489,18 @@ var TranslationCore = (() => {
       return { state: '', translation: '' };
     }
 
-    function retry(it) { if (it) { it._err = false; it._tries = 0; } }
+    // 用户点重试 = 他自己决定再试一次（可能刚配好自带 key），解锁停机。
+    function retry(it) { halted = false; if (it) { it._err = false; it._tries = 0; } }
     function reset() {
+      halted = false;
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
         it._detectWaits = 0;
       });
     }
 
-    return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset, get units() { return units; } };
+    return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset,
+      get halted() { return halted; }, get units() { return units; } };
   }
 
   // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
@@ -540,6 +577,7 @@ var TranslationCore = (() => {
   }
 
   return {
+    grantHaltMessage,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,
