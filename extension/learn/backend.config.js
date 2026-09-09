@@ -127,7 +127,7 @@ var MT_BACKEND = {
   // 而境内后端未就绪（同 `china.ready` 的三件外部事）。中国版走的是另一条路 ——
   // 引导用户去领百炼官方的免费额度，那份额度是阿里云给的，不经我们的手。
   grant: {
-    enabled: false,
+    enabled: true,
     vendor: 'openrouter',
     // 披露文案里要显示的名字。**只写这一处** —— Gate F 那段话要出现在 README ×2、
     // 两个站点、12 份 locale 的卡上；把厂商名抄进那些地方就是十几份会漂的副本，

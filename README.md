@@ -180,10 +180,12 @@ just practised.
 
 ## Why bring your own key
 
-- **No server of ours in the translation path.** Translation requests go from your browser
-  straight to the provider you chose. There is nothing in between to log, store, or resell —
-  because there is nothing in between. (Sync and anonymous usage events do use a server of
-  ours; both are described under [Privacy](#privacy), and neither ever sees what you translate.)
+- **No server of ours in the translation path — with your own key.** Those requests go from
+  your browser straight to the provider you chose. There is nothing in between to log, store,
+  or resell — because there is nothing in between. (Sync and anonymous usage events do use a
+  server of ours; both are described under [Privacy](#privacy), and neither ever sees what you
+  translate. The optional **free credit** is the one path that does route your text through us —
+  see [Privacy](#privacy).)
 - **Your key stays local.** It lives in `chrome.storage.local` and never leaves your device.
 - **You control the cost.** Which engine, which model, how much you spend — all yours. A free
   engine is available if you'd rather not configure anything, though a real model is
@@ -234,8 +236,9 @@ Stated up front, because finding them yourself is worse.
 
 ## Privacy
 
-- **No servers of ours in the translation path.** Requests go from your browser to the engine
-  you picked.
+- **No servers of ours in the translation path — with your own key.** Requests go from your
+  browser to the engine you picked.
+- **Free credit (optional).** Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
 - **No tracking, no third-party analytics — and no account unless you want one.** Syncing your
   learning material between your own devices needs a free account; everything else works without one.
