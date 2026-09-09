@@ -2454,7 +2454,7 @@
     "message": "Pegando…"
   },
   "grant_privacy": {
-    "message": "Depois de pego, esses três passam pelo nosso servidor a caminho do fornecedor do modelo. Não guardamos nem registramos seu texto — só quanto este crédito gastou."
+    "message": "Crédito gratuito (opcional). Depois de entrar e pegá-lo, você tem US$ 0,20 por nossa conta para tradução, leitura em voz alta e transcrição. Neste caminho, seu texto passa pelo nosso servidor a caminho do fornecedor do modelo ({vendor}); não guardamos nem registramos o conteúdo, só quanto cada chamada gastou. O crédito para quando acaba e nunca cobra de você. O caminho com sua própria chave não muda: esse texto vai do seu navegador direto ao fornecedor, e nós não o vemos. Sair da conta desativa o crédito neste aparelho; excluir a conta apaga também o registro dele."
   },
   "grant_body_active": {
     "message": "Seu crédito gratuito está em uso. Quando acabar, você pode adicionar sua própria chave de API e continuar."

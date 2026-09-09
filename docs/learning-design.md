@@ -2919,6 +2919,17 @@ Verbatim, on every surface, in the same PR as the code:
 > 只记录每次花了多少；额度用完即停，不会自动收费。自带 key 的路径不变：文本仍从你的浏览器
 > 直接发往提供方，我们看不到。退出登录时额度在这台设备上停用；删除账号会一并删除额度记录。
 
+英文面（`README.md`、两个站点的英文版）用的是同一段话的英文，权威版本是
+`_locales/en` 的 `grant_privacy`，逐字如下：
+
+> Free credit (optional). Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
+
+**`{vendor}` 是占位符，不是抄下来的名字。** 12 份 locale 里写的都是 `{vendor}`，
+运行时从 `MT_GRANT.vendorLabel` 代入，而那个名字只在 `backend.config.js` 写一处 ——
+把厂商名抄进十几个面，就是十几份会在换供应商那天集体说谎的副本。
+取不到名字时**退到厂商 id，绝不因此把整段丢掉**：少露一个好看的名字，
+远好过在没有披露的情况下让人点「领取」。
+
 | Surface | Gate F |
 |---|---|
 | `README.md` / `README.zh-CN.md` | the paragraph above; the BYO sentence stays and is scoped: 「用自己的 key 时，文本从不经过我们的服务器」 |

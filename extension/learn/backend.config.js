@@ -129,6 +129,11 @@ var MT_BACKEND = {
   grant: {
     enabled: false,
     vendor: 'openrouter',
+    // 披露文案里要显示的名字。**只写这一处** —— Gate F 那段话要出现在 README ×2、
+    // 两个站点、12 份 locale 的卡上；把厂商名抄进那些地方就是十几份会漂的副本，
+    // 而这个仓库已经为「抄下来的名字不再跟着注册表走」付过一次学费（DeepSeek 的
+    // 提示写死了模型名，API 早就不认了还在那儿）。文案里用 {vendor} 占位。
+    vendorLabel: 'OpenRouter',
     limitUsd: 0.2,
     // 中继的三个地址。**在这里由 url 拼出来，不在别处再写一遍主机名** ——
     // 换后端时只改上面那个 `url`。生成到产物里的是完整地址，运行时原样使用

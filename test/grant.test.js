@@ -10,7 +10,7 @@
 const { describe, test, eq, ok, deepEq, loadModule } = require('./harness');
 
 const SPEC = {
-  vendor: 'openrouter', limitUsd: 0.2,
+  vendor: 'openrouter', vendorLabel: 'OpenRouter', limitUsd: 0.2,
   claimUrl: 'https://backend.example/functions/v1/bt-grant',
   models: { chat: 'deepseek/deepseek-v4-flash' },
 };
@@ -233,10 +233,30 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     ok(/实时听译/.test(c.note), '没提前说实时听译不在范围内，用户会点进去发现入口不存在');
   });
 
-  test('领取前要出隐私那一句 —— 文本经我们的服务器转发', () => {
-    const c = G.cardFor('unclaimed', { t });
+  test('★ 领取前要出 Gate F 那整段披露，且 {vendor} 必须被代掉', () => {
+    // 这一段是 learning-design §10 Gate F 的逐字要求。少说一句就是把一条
+    // 「文本经过我们的服务器」的事实藏起来 —— 而这条路正是整个产品里唯一的一条。
+    const tt = (k, d) => (k === 'grant_privacy'
+      ? '免费额度（可选）。…你的文本会经过我们的服务器转发到模型提供方（{vendor}），我们不保存、不记录内容…' : d);
+    const c = G.cardFor('unclaimed', { t: tt });
     eq(c.action.id, 'claim');
     ok(/服务器/.test(c.note) && /不保存|不记录/.test(c.note), '领取前没说清文本去哪：' + c.note);
+    ok(!/\{vendor\}/.test(c.note), '占位符没被代掉，用户会看到花括号：' + c.note);
+    ok(/OpenRouter/.test(c.note), '没代入厂商名 —— 披露里必须说清转给谁');
+  });
+
+  test('★ 开着额度时这段披露永远不为空 —— 没有名字也要说', () => {
+    // 取不到显示名时退到厂商 id，而不是把整段丢掉：那等于在没有披露的情况下
+    // 让人点「领取」，而这段是 Gate F 的构成要件。
+    const win = Object.assign({ MT_GRANT: { vendor: 'somevendor', limitUsd: 0.2, claimUrl: 'x', models: {} } }, REG);
+    const ctx = loadModule(['learn/quick-setup.js', 'learn/grant.js'], {
+      window: win, document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
+      chrome: { i18n: { getMessage: () => '' } },
+    });
+    const c = ctx.LearnGrant.cardFor('unclaimed', { t });
+    ok(c.note && c.note.length > 40, '没有 vendorLabel 时披露段被丢掉了');
+    ok(!/\{vendor\}/.test(c.note), '占位符没被代掉');
+    ok(/somevendor/.test(c.note), '没退到厂商 id');
   });
 
   test('用完了给两个出口，且没有主按钮（没有可点的补救动作）', () => {

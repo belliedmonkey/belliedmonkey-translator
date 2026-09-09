@@ -216,6 +216,19 @@ var LearnGrant = (function () {
 
     // 标题里**不写数字**（裁定：卡标题写「够翻几百页」）。数字只出现在进度那一行 ——
     // 标题里的金额会被当成承诺，而它是一个会变的运营参数。
+    // 披露段里的 {vendor} 由这里代入。名字只在 backend.config.js 写一处 —— 抄进
+    // 12 份 locale 就是 12 份会漂的副本（同 qs_privacy 用 {host} 的先例）。
+    //
+    // **退到厂商 id，绝不因为取不到名字就把整段丢掉。** 第一版写的是「代不出来就不出」，
+    // 那等于在没有披露的情况下让人点「领取」—— 而这段话是 Gate F 的构成要件，
+    // 是整个产品里唯一一条「你的文本会经过我们的服务器」的告知。少露一个好看的名字，
+    // 远好过少说一件事。
+    const sp0 = spec() || {};
+    const vend = sp0.vendorLabel || sp0.vendor || '';
+    const priv = vend
+      ? t('grant_privacy', '免费额度（可选）。登录并领取后，你可以用我们出的 0.2 美元额度翻译、朗读、转写。这条路上，你的文本会经过我们的服务器转发到模型提供方（{vendor}），我们不保存、不记录内容，只记录每次花了多少；额度用完即停，不会自动收费。自带 key 的路径不变：文本仍从你的浏览器直接发往提供方，我们看不到。退出登录时额度在这台设备上停用；删除账号会一并删除额度记录。').replace('{vendor}', vend)
+      : '';
+
     const base = { title: t('grant_title', '免费额度'), action: null, links: [], progress: null, note: '' };
     const byo = { id: 'byo', text: t('grant_byo', '用自己的 key') };
     const community = { id: 'community', text: t('grant_community', '加入社群问问') };
@@ -239,7 +252,8 @@ var LearnGrant = (function () {
         return Object.assign({}, base, {
           body: t('grant_body_unclaimed', '你还没领这份免费额度。够翻几百页，翻译、朗读、转写都能用。'),
           action: { id: 'claim', text: t('grant_claim', '领取') },
-          note: t('grant_privacy', '领取之后，这三样会经我们的服务器转发给模型厂商。我们不保存、不记录你的文本，只记这份额度花了多少。'),
+          // Gate F 的披露段，**领取按钮之前**（同 qs_privacy 的位置）。
+          note: priv,
         });
       case 'active':
       case 'low':

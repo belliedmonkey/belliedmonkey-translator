@@ -2454,7 +2454,7 @@
     "message": "Reclamando…"
   },
   "grant_privacy": {
-    "message": "Una vez reclamado, estos tres pasan por nuestro servidor camino del proveedor del modelo. No almacenamos ni registramos tu texto: solo lo que ha gastado este crédito."
+    "message": "Crédito gratuito (opcional). Cuando inicies sesión y lo reclames, dispondrás de 0,20 $ a nuestra cuenta para traducción, lectura en voz alta y transcripción. En esta ruta tu texto pasa por nuestro servidor camino del proveedor del modelo ({vendor}); no almacenamos ni registramos el contenido, solo cuánto ha gastado cada llamada. El crédito se detiene al agotarse y nunca te cobra. La ruta con tu propia clave no cambia: ese texto va de tu navegador directo al proveedor y nosotros no lo vemos. Cerrar sesión desactiva el crédito en este dispositivo; eliminar la cuenta borra también su registro."
   },
   "grant_body_active": {
     "message": "Tu crédito gratuito está en uso. Cuando se acabe podrás añadir tu propia clave API y seguir."

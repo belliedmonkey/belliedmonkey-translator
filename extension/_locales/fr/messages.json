@@ -2454,7 +2454,7 @@
     "message": "Réclamation…"
   },
   "grant_privacy": {
-    "message": "Une fois réclamé, ces trois usages passent par notre serveur en route vers le fournisseur du modèle. Nous ne stockons ni ne journalisons votre texte — seulement ce que ce crédit a dépensé."
+    "message": "Crédit gratuit (facultatif). Une fois connecté et le crédit réclamé, vous disposez de 0,20 $ à notre charge pour la traduction, la synthèse vocale et la transcription. Sur ce chemin, votre texte passe par notre serveur avant d'atteindre le fournisseur du modèle ({vendor}) ; nous ne stockons ni ne journalisons le contenu, seulement ce que chaque appel a coûté. Le crédit s'arrête une fois épuisé et ne vous facture jamais. Le chemin avec votre propre clé est inchangé : ce texte va de votre navigateur directement au fournisseur, et nous ne le voyons jamais. La déconnexion désactive le crédit sur cet appareil ; la suppression du compte efface aussi son relevé."
   },
   "grant_body_active": {
     "message": "Votre crédit gratuit est en cours d’utilisation. Quand il sera épuisé, vous pourrez ajouter votre propre clé API et continuer."

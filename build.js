@@ -350,6 +350,7 @@ function generateProviders(dir, flavor) {
   const BK = require('./extension/learn/backend.config.js');
   const grantCfg = (flavor === 'china' || !BK.grant || !BK.grant.enabled) ? null : {
     vendor: BK.grant.vendor,
+    vendorLabel: BK.grant.vendorLabel || BK.grant.vendor,   // 披露文案里的 {vendor}
     limitUsd: BK.grant.limitUsd,
     claimUrl: BK.url + '/functions/v1/bt-grant',
     // 三个槽各自钉住的模型 —— 客户端要把它们写进配置，否则用注册表默认会撞上
@@ -846,6 +847,45 @@ function validateManifest(distDir, isFirefox) {
   // whose upkeep depends on someone remembering at release time is the kind that
   // gets broken; this makes forgetting fail the build instead.
   const backend = require('./extension/learn/backend.config.js');
+
+  // ── Gate F（docs/learning-design.md §10；2026-09-08）─────────────────────
+  //
+  // 免费额度是**整个产品里唯一一条用户文本会经过我们服务器的路**。所以它的披露
+  // 与开关必须同版上线 —— 而「同版」这件事靠人记着是不成立的（Gate B 与 Gate D
+  // 都为此立过同样形状的门）。
+  //
+  // 两个方向都查：
+  //   · 开关翻了而披露没跟上 ⇒ 我们在没有告知的情况下让用户的文本经过了我们。
+  //   · 中国版产物里出现额度的任何痕迹 ⇒ 那个 flavor 恒不提供它（已在合规门里查）。
+  // 只查一个方向的话，把披露整段删掉也能过。
+  const grant = backend.grant || {};
+  if (grant.enabled) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    // 词干而不是整句：整句一改标点就漏，而词干在的话那一段一定在。
+    if (!/free credit/i.test(rdEn)) miss.push('README.md 没有免费额度的披露（Gate F）');
+    if (!/免费额度/.test(rdZh)) miss.push('README.zh-CN.md 没有「免费额度」的披露（Gate F）');
+    // 每一门 locale 都要有那段披露，且**必须提到「经过我们的服务器」这件事**。
+    // 只查键在不在的话，写一句「有免费额度可以领」也能过，而那正是要防的那种话。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.grant_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 grant_privacy（Gate F）`); continue; }
+      if (!v.includes('{vendor}')) miss.push(`_locales/${loc} 的 grant_privacy 没有 {vendor} 占位符`);
+      if (v.length < 80) miss.push(`_locales/${loc} 的 grant_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    if (miss.length) {
+      err('Gate F FAILED —— grant.enabled 已翻，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate F：README ×2、两个站点、12 份 locale、商店隐私标签');
+      process.exit(1);
+    }
+    log('Gate F OK（免费额度的披露与开关同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may

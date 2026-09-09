@@ -2454,7 +2454,7 @@
     "message": "Wird geholt …"
   },
   "grant_privacy": {
-    "message": "Nach dem Holen laufen diese drei auf dem Weg zum Modellanbieter über unseren Server. Wir speichern und protokollieren deinen Text nicht — nur, was dieses Guthaben ausgegeben hat."
+    "message": "Gratis-Guthaben (optional). Sobald du dich anmeldest und es holst, stehen dir 0,20 $ auf unsere Kosten für Übersetzung, Vorlesen und Transkription zur Verfügung. Auf diesem Weg läuft dein Text auf dem Weg zum Modellanbieter ({vendor}) über unseren Server; wir speichern und protokollieren den Inhalt nicht, nur was jeder Aufruf gekostet hat. Das Guthaben stoppt, wenn es aufgebraucht ist, und rechnet nie etwas ab. Der Weg mit eigenem Schlüssel bleibt unverändert: Dieser Text geht von deinem Browser direkt zum Anbieter, und wir sehen ihn nie. Beim Abmelden wird das Guthaben auf diesem Gerät deaktiviert; beim Löschen des Kontos wird auch sein Datensatz gelöscht."
   },
   "grant_body_active": {
     "message": "Dein Gratis-Guthaben ist in Gebrauch. Wenn es aufgebraucht ist, kannst du mit einem eigenen API-Schlüssel weitermachen."
