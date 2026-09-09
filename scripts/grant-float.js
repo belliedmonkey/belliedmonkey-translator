@@ -146,7 +146,12 @@ function registryModels() {
     try {
       const list = require(p);
       const arr = Array.isArray(list) ? list : (list.PROVIDERS || list.ENGINES || list.default || []);
-      const hit = (Array.isArray(arr) ? arr : []).find((e) => e && e.id === 'grant');
+      // **按 grantOnly 认，不按 id 认。** 原来写的是 `e.id === 'grant'`，而三档的 id
+      // 分别是 grant / grant_speech / grant_stt —— 于是朗读与转写两档**一直被静默
+      // 跳过**，这道「两处一致」的检查其实只比了三分之一。2026-09-09 实测：把注册表
+      // 的转写模型改掉、服务端不动，它照样打 ✓。
+      // grantOnly 是语义标记，id 改了也不会失效。
+      const hit = (Array.isArray(arr) ? arr : []).find((e) => e && e.grantOnly);
       if (hit) out[slot] = hit.defaultModel;
     } catch { /* 注册表还没加 grant 条目 —— G3 的事 */ }
   }
