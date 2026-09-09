@@ -268,3 +268,47 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     eq(c2.progress.left, 0.15);
   });
 });
+
+describe('§8.10 弹窗那一行 —— 一切正常时不占地方', () => {
+  const { G } = load();
+  const t = (k, d) => d;
+  const t8 = TOKEN.slice(-8);
+  const on = (extra) => Object.assign({ grantTail: t8, apiKey: TOKEN }, extra || {});
+
+  test('★ 还有余额时什么都不说 —— 用户是在「我要翻这一页」的路上打开弹窗的', () => {
+    eq(G.popupRow(on({ grantBalance: { limitUsd: 0.2, spentUsd: 0.05, at: Date.now() } }), { t }), null);
+  });
+
+  test('没在用额度时这一行不归它管', () => {
+    eq(G.popupRow({ apiKey: 'sk-mine' }, { t }), null);
+    eq(G.popupRow(on({}), { t }), null, '没有余额缓存时也不该猜');
+  });
+
+  test('用完了与快用完了是两句不同的话', () => {
+    const done = G.popupRow(on({ grantBalance: { limitUsd: 0.2, spentUsd: 0.2, at: 1 } }), { t });
+    const low = G.popupRow(on({ grantBalance: { limitUsd: 0.2, spentUsd: 0.195, at: 1 } }), { t });
+    eq(done.kind, 'exhausted');
+    eq(low.kind, 'low');
+    ok(done.text !== low.text);
+  });
+
+  test('★ 模型被改排在余额之前 —— 余额再多，模型不对也是一次都翻不出来', () => {
+    const st = on({ apiModel: 'openai/gpt-4o', grantBalance: { limitUsd: 0.2, spentUsd: 0.2, at: 1 } });
+    eq(G.popupRow(st, { t, pinnedModel: 'deepseek/deepseek-v4-flash' }).kind, 'model');
+  });
+
+  test('取不到钉住的模型时不判那一条 —— 拿猜出来的模型名说「你改错了」比不说更糟', () => {
+    const st = on({ apiModel: 'whatever', grantBalance: { limitUsd: 0.2, spentUsd: 0.01, at: 1 } });
+    eq(G.popupRow(st, { t, pinnedModel: '' }), null);
+  });
+
+  test('模型与钉住的一致时不报', () => {
+    const st = on({ apiModel: 'deepseek/deepseek-v4-flash', grantBalance: { limitUsd: 0.2, spentUsd: 0.01, at: 1 } });
+    eq(G.popupRow(st, { t, pinnedModel: 'deepseek/deepseek-v4-flash' }), null);
+  });
+
+  test('MT_GRANT 不存在时永远不出这一行（中国版）', () => {
+    const { G: G2 } = load(null);
+    eq(G2.popupRow(on({ grantBalance: { limitUsd: 0.2, spentUsd: 0.2, at: 1 } }), { t }), null);
+  });
+});

@@ -2495,5 +2495,17 @@
   },
   "grant_page_halt_ours": {
     "message": "免费额度暂时用不了（不是你用完了）—— 点此看怎么继续"
+  },
+  "grant_popup_model": {
+    "message": "免费额度只能用它指定的模型 —— 点这里改回去"
+  },
+  "grant_popup_exhausted": {
+    "message": "免费额度已用完 —— 点这里看怎么继续"
+  },
+  "grant_popup_low": {
+    "message": "免费额度快用完了 —— 点这里看看"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未登录，仅本机数据 —— 登录还能领一份免费额度 →"
   }
 }

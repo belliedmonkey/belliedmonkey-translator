@@ -2494,5 +2494,17 @@
   },
   "grant_page_halt_ours": {
     "message": "Gratis-Guthaben gerade nicht verfügbar (nicht du bist am Ende) — tippen, um weiterzumachen"
+  },
+  "grant_popup_model": {
+    "message": "Gratis-Guthaben läuft nur mit dem festgelegten Modell — tippen zum Zurücksetzen"
+  },
+  "grant_popup_exhausted": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_popup_low": {
+    "message": "Gratis-Guthaben fast aufgebraucht — tippen zum Ansehen"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Nicht angemeldet — nur dieses Gerät. Beim Anmelden gibt es außerdem Gratis-Guthaben →"
   }
 }

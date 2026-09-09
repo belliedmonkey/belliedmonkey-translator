@@ -2494,5 +2494,17 @@
   },
   "grant_page_halt_ours": {
     "message": "Free credit is unavailable right now (not you running out) — tap to see how to carry on"
+  },
+  "grant_popup_model": {
+    "message": "Free credit only works with its pinned model — tap to change it back"
+  },
+  "grant_popup_exhausted": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_popup_low": {
+    "message": "Free credit is nearly gone — tap to take a look"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Signed out — this device only. Signing in also gets you free credit →"
   }
 }

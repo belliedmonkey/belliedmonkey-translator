@@ -2494,5 +2494,17 @@
   },
   "grant_page_halt_ours": {
     "message": "無料クレジットは今使えません（あなたが使い切ったのではありません）— 続け方はこちら"
+  },
+  "grant_popup_model": {
+    "message": "無料クレジットは指定モデルでのみ動きます — タップして戻す"
+  },
+  "grant_popup_exhausted": {
+    "message": "無料クレジットを使い切りました — 続け方はこちら"
+  },
+  "grant_popup_low": {
+    "message": "無料クレジットが残りわずかです — タップして確認"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未ログイン・この端末のみ — ログインすると無料クレジットももらえます →"
   }
 }

@@ -2494,5 +2494,17 @@
   },
   "grant_page_halt_ours": {
     "message": "Crédito gratuito no disponible ahora (no eres tú): toca para ver cómo seguir"
+  },
+  "grant_popup_model": {
+    "message": "El crédito gratuito solo funciona con su modelo fijado: toca para restaurarlo"
+  },
+  "grant_popup_exhausted": {
+    "message": "Crédito gratuito agotado: toca para ver cómo seguir"
+  },
+  "grant_popup_low": {
+    "message": "Al crédito gratuito le queda poco: toca para verlo"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Sin sesión: solo este dispositivo. Al iniciar sesión también consigues crédito gratuito →"
   }
 }

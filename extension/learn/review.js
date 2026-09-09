@@ -992,8 +992,15 @@
           break;
         }
         const a = document.createElement('a');
-        a.textContent = t('sync_status_signed_out_cta', '未登录，仅本机数据 —— 登录后也能在 App 里复习 →');
-        a.href = chrome.runtime.getURL('options/options.html') + '#sync';
+        // 开着免费额度时，这一行多说一件**此刻就能拿到**的东西（§8.10，画布 A6）。
+        // 登录的理由从「以后也能在 App 里复习」变成「现在就有额度可领」——
+        // 后者是当下的收益，而这一行本来就是全扩展里唯一一处主动提登录的地方。
+        // 落点也随之从 #sync 变成 #grant：把人送到他刚读到的那句话对应的卡上。
+        const grantOn = (typeof LearnGrant !== 'undefined') && LearnGrant.enabled();
+        a.textContent = grantOn
+          ? t('sync_status_signed_out_grant', '未登录，仅本机数据 —— 登录还能领一份免费额度 →')
+          : t('sync_status_signed_out_cta', '未登录，仅本机数据 —— 登录后也能在 App 里复习 →');
+        a.href = chrome.runtime.getURL('options/options.html') + (grantOn ? '#grant' : '#sync');
         a.target = '_blank';
         line.appendChild(a);
         break;

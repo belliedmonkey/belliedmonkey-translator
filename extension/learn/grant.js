@@ -268,6 +268,37 @@ var LearnGrant = (function () {
     }
   }
 
+  // ── 弹窗那一行（画布 A5）────────────────────────────────────────────────
+  //
+  // 弹窗是**只读的、活得极短的**一个面：它不发任何网络请求（余额只用缓存那一份），
+  // 也不改配置。所以这里返回的是「说哪句话、点了去哪」，不是一个状态机。
+  //
+  // 与卡面共用 status()，但**说的不是同一批话**：卡上有位置解释来龙去脉，弹窗只有
+  // 一行，而且用户是在「我要翻这一页」的路上顺手打开它的。所以这里只说三种**挡住他
+  // 现在要做的事**的情况；「已领、还有余额」什么都不说 —— 一切正常时不该占那一行。
+  //
+  // `pinnedModel` 由调用方从注册表取（弹窗读不到 MT_GRANT.models 之外的东西）。
+  function popupRow(settings, opts) {
+    const o = opts || {};
+    const t = o.t || ((k, d) => d);
+    if (!enabled()) return null;
+    const s = settings || {};
+    if (!active(s)) return null;                 // 没在用额度：这一行不归它管
+    // 模型被改（会撞 403 model_not_allowed）。**排在余额之前** —— 余额再多，
+    // 模型不对也是一次都翻不出来，而后者是用户自己改出来的、也只有他能改回去。
+    const pinned = String(o.pinnedModel || '');
+    if (pinned && s.apiModel && String(s.apiModel) !== pinned) {
+      return { kind: 'model', text: t('grant_popup_model', '免费额度只能用它指定的模型 —— 点这里改回去') };
+    }
+    const bal = s.grantBalance || null;
+    const left = leftUsd(bal);
+    if (left === 0) return { kind: 'exhausted', text: t('grant_popup_exhausted', '免费额度已用完 —— 点这里看怎么继续') };
+    if (left != null && left < LOW_USD) {
+      return { kind: 'low', text: t('grant_popup_low', '免费额度快用完了 —— 点这里看看') };
+    }
+    return null;                                  // 一切正常：不占那一行
+  }
+
   // render(box, opts) —— 只画，不碰存储、不发请求。动作由 host 接。
   //   opts: { t, status, balance, onAction(id), busy }
   function render(box, opts) {
@@ -355,7 +386,7 @@ var LearnGrant = (function () {
 
   return {
     spec, enabled, claim, plan, platform, status, active, activeIn,
-    fresh, leftUsd, clearOnSignOut, tail, cardFor, render, CACHE_MS, LOW_USD,
+    fresh, leftUsd, clearOnSignOut, tail, cardFor, render, popupRow, CACHE_MS, LOW_USD,
   };
 })();
 

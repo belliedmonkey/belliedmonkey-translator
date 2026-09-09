@@ -2495,5 +2495,17 @@
   },
   "grant_page_halt_ours": {
     "message": "免費額度暫時用不了（不是你用完了）—— 點此看怎麼繼續"
+  },
+  "grant_popup_model": {
+    "message": "免費額度只能用它指定的模型 —— 點這裡改回去"
+  },
+  "grant_popup_exhausted": {
+    "message": "免費額度已用完 —— 點這裡看怎麼繼續"
+  },
+  "grant_popup_low": {
+    "message": "免費額度快用完了 —— 點這裡看看"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未登入，僅本機資料 —— 登入還能領一份免費額度 →"
   }
 }
