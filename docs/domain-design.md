@@ -865,15 +865,18 @@ in PR3, not assumed.
 The transport is **provider-agnostic and format-keyed**, and the provider *list*
 is a build-time concern, not a runtime one.
 
-> **Authentication is always a key the user owns.** Every entry here is BYO-key
-> (or the metered free-grant relay, §8.10 of `docs/learning-design.md`). Routing a
-> provider through someone's **subscription** — an OAuth token minted for another
-> vendor's official client, or a "Coding Plan" quota — has been researched and is
-> **not currently possible within the vendors' own terms**: see
-> [`docs/subscription-auth-research.md`](subscription-auth-research.md) (2026-09-09),
-> which quotes GLM / Qwen / Kimi forbidding it in writing and shows why the
-> ChatGPT/Codex route only works by impersonating another client. Read it before
-> reopening the idea. Related: #149, #150, and the superseded
+> **Authentication is a key the user owns — routing a provider through someone's
+> SUBSCRIPTION is a separate question, and it has been researched.** See
+> [`docs/subscription-auth-research.md`](subscription-auth-research.md) (2026-09-09)
+> before reopening the idea. Short version: GLM / Qwen / Kimi **Coding Plans forbid it
+> in writing** (self-built apps, websites, non-interactive batch calls) and GLM has no
+> onboarding path for new tools; the **ChatGPT/Codex** route works only by impersonating
+> another vendor's official client (its `client_id`, its `originator`, and a spoofed
+> `User-Agent`). The one route **not** excluded is a **Claude Pro/Max subscription** —
+> it needs no impersonation (Anthropic documents
+> `anthropic-dangerous-direct-browser-access`, which `messages-compat` already sends),
+> but whether it is permitted is **undetermined** and the next step there is a question
+> to Anthropic, not code. Related: #149, #150, and the superseded
 > [`docs/oauth-design.md`](oauth-design.md).
 
 - **Single source of truth.** `build/providers.config.js` is the one registry of
