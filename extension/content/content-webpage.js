@@ -652,7 +652,7 @@ var WebpageTranslator = (() => {
       d.textContent = halt || TranslationCore.MSG.error;
       d.onclick = halt
         // 在**点击这个手势里**开设置页。不走 sendMessage —— Safari iOS 上后台
-        // service worker 锁屏后会永久 undefined（见 CLAUDE.md 的 Critical Safari Bug），
+        // service worker 锁屏后会永久 undefined（项目说明里的 Critical Safari Bug 一节），
         // 而这条出口恰恰是用户已经卡住之后才会点的。
         ? () => { try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {} }
         : () => { engine.retry(u); u._shownKey = ''; };
