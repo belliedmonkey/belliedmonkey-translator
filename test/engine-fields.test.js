@@ -282,8 +282,12 @@ describe('app/settings.js 也不许有第二份同能力的判断', () => {
 // 所以这里钉的是**不变量本身**，而不是某一处读取：读得到的键，必须要么设置页管得到，
 // 要么在下面这张写明理由的白名单上。往清单里加一个键会撞上这道门，那是刻意的 ——
 // 「加一个 App 读得到却改不了的设置」必须是一次自觉的动作。
+// 读取清单不止一份：播客模式与对话模式各有一份，而这道门禁**两份都要看**。
+// 2026-09-08 之前它只解析 driving.js —— 于是对话模式那边可以随便加读得到、改不到的
+// 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
+// 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
-  const drv = fs.readFileSync(path.join(ROOT, 'app', 'driving.js'), 'utf8');
+  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['listen.js', 'READ_KEYS']];
   const set = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
   const listOf = (src, name) => {
     const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
@@ -303,12 +307,16 @@ describe('App 读得到的设置，设置页必须管得到', () => {
   };
 
   test('差集恰好等于白名单 —— 多一个少一个都要说明', () => {
-    const read = listOf(drv, 'SETTINGS_KEYS');
+    const read = new Set();
+    for (const [file, name] of SOURCES) {
+      const src = fs.readFileSync(path.join(ROOT, 'app', file), 'utf8');
+      for (const k of listOf(src, name)) read.add(k);
+    }
     const known = new Set(listOf(set, 'KEYS'));
-    const gap = read.filter((k) => !known.has(k)).sort();
+    const gap = [...read].filter((k) => !known.has(k)).sort();
     const allow = Object.keys(ALLOW).sort();
     eq(gap.join(','), allow.join(','),
-      'driving.js 读得到但设置页管不到的键变了。\n'
+      'App 读得到但设置页管不到的键变了（driving.js 的 SETTINGS_KEYS + listen.js 的 READ_KEYS）。\n'
       + '  实际：' + (gap.join(' ') || '（无）') + '\n'
       + '  白名单：' + allow.join(' ') + '\n'
       + '  多出来的那个会**静默赢过**设置页写的值，而用户看不见也清不掉它 ——'

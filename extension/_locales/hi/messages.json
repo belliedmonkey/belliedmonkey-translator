@@ -2032,7 +2032,7 @@
     "message": "बातचीत · लाइव दुभाषिया"
   },
   "listen_entry_hint": {
-    "message": "आमने-सामने विदेशी भाषा समझें: सामने वाला बोले, आप अपनी भाषा में पढ़ें; दबाकर रखें और बोलें, अनुवाद उसे दिखाएँ। ऑडियो केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाता है।"
+    "message": "आमने-सामने बात कर रहे दो लोग: दोनों बस बोलें, स्क्रीन पर दोनों भाषाएँ आती हैं और अनुवाद पढ़ा जाता है। ऑडियो केवल आपके तय किए गए ट्रांसक्रिप्शन एंडपॉइंट पर जाता है।"
   },
   "listen_need_live": {
     "message": "“बातचीत · लाइव दुभाषिया” के लिए रीयलटाइम एंडपॉइंट वाला ट्रांसक्रिप्शन इंजन चाहिए"
@@ -2062,10 +2062,7 @@
     "message": "सामने वाला कह रहा है"
   },
   "listen_now_me": {
-    "message": "मैं कह रहा हूँ (छोड़ें तो अनुवाद)"
-  },
-  "listen_lang_auto": {
-    "message": "सामने वाला {from} → {to}"
+    "message": "मैं बोल रहा हूँ"
   },
   "listen_lang_me": {
     "message": "{to} में"
@@ -2079,9 +2076,6 @@
   "listen_pill_paused": {
     "message": "रुका हुआ · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "मैं बोल रहा हूँ · सामने वाला नहीं सुना जा रहा"
-  },
   "listen_pill_ended": {
     "message": "समाप्त · {t}"
   },
@@ -2090,13 +2084,6 @@
   },
   "listen_toggle_start": {
     "message": "सुनना शुरू करें"
-  },
-  "listen_speak_hold": {
-    "message": "दबाकर रखें · मैं बोलूँ"
-  },
-  "listen_speak_hold_mac": {
-    "message": "दबाए रखें · मैं बोलूँ (या Space दबाए रखें)",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "सब कॉपी करें",
@@ -2113,9 +2100,6 @@
   "listen_mac_use": {
     "message": "ऑनलाइन मीटिंग और वीडियो कॉल में भी काम करता है: बस सामने वाले की आवाज़ स्पीकर से बजने दें।",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "छोड़ें · सामने वाले के लिए अनुवाद"
   },
   "listen_end": {
     "message": "समाप्त"
@@ -2147,9 +2131,6 @@
   "listen_summary_title": {
     "message": "यह बातचीत"
   },
-  "listen_summary_body": {
-    "message": "{t} · सामने वाला: {them} वाक्य · मैं: {me} · {n} रिव्यू में जोड़े गए (स्रोत “बातचीत”) · {s} स्टार वाले"
-  },
   "listen_summary_note": {
     "message": "रिकॉर्डिंग हटा दी जाती है; केवल टेक्स्ट रहता है। रिव्यू के वाक्य स्रोत › बातचीत में प्रबंधित या पूरे हटाए जा सकते हैं।"
   },
@@ -2174,11 +2155,86 @@
   "listen_capture_note": {
     "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल “सुनना शुरू करें” के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
   },
+  "listen_who_them": {
+    "message": "सामने वाला"
+  },
+  "listen_who_me": {
+    "message": "मैं"
+  },
+  "listen_who_guessed": {
+    "message": "भाषा से अनुमान लगाया — बदलने के लिए ↔ दबाएँ"
+  },
+  "listen_swap_to_them": {
+    "message": "बदलें: यह सामने वाले ने कहा"
+  },
+  "listen_swap_to_me": {
+    "message": "बदलें: यह मैंने कहा"
+  },
+  "listen_flip_kept_card": {
+    "message": "पक्ष बदला — पिछला कार्ड पहले ही दोहराया जा चुका है, इसलिए वह «स्रोत › बातचीत» में रहेगा"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "बोल रहे हैं…"
+  },
+  "listen_reading": {
+    "message": "पढ़ा जा रहा है"
+  },
+  "listen_autospeak_off": {
+    "message": "स्वतः वाचन रुका · {why} — हर पंक्ति का बटन अब भी काम करता है"
+  },
+  "listen_autospeak_echo": {
+    "message": "स्वतः वाचन रोका — प्रतिध्वनि का चक्र मिला। आवाज़ कम करें या इयरफ़ोन लगाएँ, फिर दोबारा चालू करें।"
+  },
+  "listen_read_queue_n": {
+    "message": "पढ़ा जा रहा है · {n} बाकी"
+  },
+  "listen_ephemeral_label": {
+    "message": "इस बार कुछ न रखें"
+  },
+  "listen_ephemeral_pill": {
+    "message": "सहेजा नहीं जाएगा"
+  },
+  "listen_ephemeral_summary": {
+    "message": "इस बार कुछ नहीं रखा गया"
+  },
+  "listen_summary_kept": {
+    "message": "{n} दोहराव में (स्रोत «बातचीत») · {s} तारांकित"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · सामने वाला {them} · मैं {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "{n} बार पक्ष बदला"
+  },
+  "listen_my_lang_label": {
+    "message": "मेरी भाषा"
+  },
+  "listen_lang_note": {
+    "message": "दोनों भाषाएँ अलग होनी चाहिए। इन्हें बातचीत स्क्रीन के नीचे भी बदल सकते हैं — वही सेटिंग है।"
+  },
+  "listen_lang_swapped": {
+    "message": "दोनों भाषाएँ अलग होनी चाहिए — बदल दी गईं"
+  },
+  "listen_autospeak_label": {
+    "message": "अनुवाद ज़ोर से पढ़ें"
+  },
+  "listen_autospeak_note": {
+    "message": "हर पूरी हुई पंक्ति अनुवाद के बाद पढ़ी जाती है — उनकी आपके लिए, आपकी उनके लिए।"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "पहले सेटिंग्स › आवाज़ में एक वाचन इंजन चुनें"
+  },
+  "listen_lang_me_label": {
+    "message": "मैं"
+  },
+  "listen_lang_other_label": {
+    "message": "सामने वाला"
+  },
   "listen_sources_note": {
     "message": "हर वाक्य ट्रांसक्रिप्शन से और उसका अनुवाद आपके इंजन से आता है; दोनों गलत हो सकते हैं — स्टार वाले वाक्य पहले रिव्यू में जाते हैं।"
-  },
-  "listen_speak_nothing": {
-    "message": "कुछ सुनाई नहीं दिया — फिर दबाकर रखें और बोलें"
   },
   "app_today_due": {
     "message": "आज देय"
@@ -2193,7 +2249,7 @@
     "message": "आज का डेक लगातार पढ़ा जाता है, हाथ-मुक्त"
   },
   "listen_entry_short": {
-    "message": "सामने वाला बोले, आप पढ़ें; दबाकर रखें, बोलें और अनुवाद दिखाएँ"
+    "message": "आमने-सामने दो लोग — दोनों बोलें, अनुवाद पढ़ा जाता है"
   },
   "listen_entry_privacy": {
     "message": "ऑडियो केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाता है।"
@@ -2211,7 +2267,7 @@
     "message": "ट्रांसक्रिप्शन कनेक्शन टूटा: {why} — फिर से जुड़ रहा है…"
   },
   "listen_history_empty": {
-    "message": "सामने वाला बोलेगा तो वाक्य यहाँ आएँगे; बड़ा दिखाने के लिए किसी पंक्ति को टैप करें"
+    "message": "दोनों सामान्य रूप से बोलें — हर पूरी पंक्ति यहाँ आएगी; पक्ष ग़लत हो तो ↔ दबाएँ"
   },
   "listen_tr_failed": {
     "message": "अनुवाद विफल · फिर कोशिश करें"

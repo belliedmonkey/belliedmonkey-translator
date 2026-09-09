@@ -1418,8 +1418,9 @@ Same dual display as the extension's live subtitles: **now** on top (word-by-wor
 original + provisional translation), **finalized sentences** below.
 
 #### Entry & gating
-- Home gains a row 「对话 · 实时听译」 with one line: 「对方说，你看中文；按住说中文，译给对方」
-  and, under the group, 「音频只发往你配置的转写端点。」
+- Home gains a row 「对话 · 实时听译」 with one line:
+  「两个人面对面谈事情，各说各的话，译文自动读出来」 and, under the group,
+  「音频只发往你配置的转写端点。」
 - Gating *(ruled 2026-09-07, differs from 播客模式)*: when the transcription engine has no
   live endpoint or no key, the row **stays visible but disabled** (45 % opacity) and the
   sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 + 「去设置里选择 →」 sits
@@ -1431,12 +1432,11 @@ original + provisional translation), **finalized sentences** below.
 - **preparing**: pill 「准备中」; 「开始听」 reads 「准备中…」 and is disabled; 「按住 · 我说」
   disabled. Early interruptions (≤ 3 s after start) retry with backoff ×3 *inside* this
   state — no red line until all three fail.
-- **listening**: pill 「听译中 · mm:ss」; top card 「对方正在说 ● 实时」 with words as they
-  arrive and the provisional translation; history auto-scrolls unless the user scrolled up.
-- **speaking** (held): pill 「我在说 · 对方的声音暂不听」; top card becomes 「我正在说（松手即译）」
-  on a light terracotta tint; the pause button is disabled while held. Whatever the mic
-  hears while held is attributed to me (ruled: the other side's words in that window are
-  accepted as lost).
+- **listening**: pill 「听译中 · mm:ss」; the top card names **who is talking right now** —
+  「对方正在说」/「我正在说」 decided from the partial's script, or 「正在说…」 while it is
+  still undecidable — with words as they arrive and the provisional translation; history
+  auto-scrolls unless the user scrolled up. *(2026-09-08: there is no **speaking** state
+  any more — nothing to hold, both sides just talk.)*
 - **paused** (user / 30 s silence) and **stopped** (socket / interrupted / failed): pill
   「已暂停 · mm:ss」, one reason line (none for a user pause; grey for silence; red for the
   rest), 「开始听」 resumes. Socket loss first **reconnects once after 2 s** — button reads
@@ -1449,13 +1449,29 @@ original + provisional translation), **finalized sentences** below.
   in preparing, while held (the pause button), microphone denied, and socket reconnecting;
   in paused/stopped it works and brings the microphone up itself.
 
-#### 我说 (push-to-talk) — stays on this page
-- Press and hold from listening **or** from paused/stopped (it starts the microphone).
-  Release ⇒ back to listening; the held words merge into one history row 「我：中文 /
-  外语」; translation arrives in place. **No page change, no flip card.** Under the row:
-  「朗读」 (only when a TTS engine is configured; spoken only when tapped — ruled D) and
-  「给对方看」.
-- Release with nothing heard ⇒ 「没有听到你说的话 — 再按住说一次」 and back to listening.
+#### 谁在说 — 按语言自动判，判错了点 ↔（2026-09-08，取代按住说话）
+
+**推翻 2026-09-07 的裁定「我说 = 按住说话（walkie-talkie），按住期间对方的话接受漏掉」。**
+那条裁定的场景是「线下听外语」，我偶尔说一句；商务洽谈里双方话量相当，每说一句按一次
+是对讲机不是对话，而漏掉对方的话不可接受。
+
+- 语言对（我的语言 / 对方的语言）设好之后，每句定稿**比两边语言的文字系统**判归属：
+  只命中一边就定，两边都含汉字（中↔日、中↔韩）再按假名/谚文消歧一次。判断器是
+  `LearnRules.dominantScript`，文字系统表读的是语言注册表自己的 `scripts` 字段 ——
+  **不新写语种识别，也不重述任何语言列表**。
+- **能判到什么程度，如实说**：中↔英法德西葡意俄阿全判准；中↔日、中↔韩多数判准（日文
+  假名多、韩文谚文占绝大多数；纯汉字的日文短句判不出）；**拉丁对拉丁（英↔法等）判不出**，
+  进会话时在提示行留一句灰字说清楚，不禁用功能。
+- 判不出时**先粘性**（跟上一句同一边 —— 一个人一轮通常说好几句），**再归对方**。
+  归对方不是随手选的：归错成「我」会把这句译成对方的语言**并朗读出来**，等于当着客户
+  念一句莫名其妙的话；归错成「对方」只是屏幕上多一行我看得懂的字。错误往安静的方向倒。
+- 凡是走到兜底的行，归属标带**虚线下划线**，可读名是「按语言猜的 · 点 ↔ 改」。
+- 每行行尾一个 **↔**。点它：翻转归属并**钉住**（此后不被任何自动逻辑改动）→ 先按旧方向
+  算出已写进语料的那张卡并删掉（语料里「学的永远是外语那一面」，改边会让两面互换，
+  不回收就留下一张面反了的卡）→ 按新方向重译。旧卡若**已经被复习过**，删除会被保护
+  挡下，这时如实说一句「之前那张卡你已经复习过，留在来源里」，**不假装删干净了**。
+  正在朗读这一行就停掉；改边后**不自动重读** —— 翻历史时突然大声念一句是最吓人的副作用。
+- 两边的行都给「朗读」（配了 TTS 引擎时）与「给对方看」。
 
 #### 给对方看 (show card) — an overlay on a history row, not a state
 - Tapping any history row (or 「给对方看」) opens a full-screen card: the foreign line
@@ -1489,13 +1505,57 @@ original + provisional translation), **finalized sentences** below.
 
 #### macOS
 - Same section in a wide layout (≥ 720 px, CSS grid over the unchanged DOM): left = now
-  card + the two buttons (「按住 · 我说（或按住空格）」 on a keyboard host), right = the
+  card + the one button + the language pair + the read-aloud switch, right = the
   finalized list, taller and self-scrolling, with 「复制全文」 in its head (one line
   original, one line translation, blank line between; 「我：」 on my rows; untranslated
   rows copy the original only). Typical use named in one grey line under the language
   line: online meetings and video calls — let the other side play through the speakers.
   *(Not done: naming the input device in the status pill — the bridge does not report
   the device name.)*
+
+#### 自动朗读与回声（2026-09-08）
+
+**推翻裁定 D「朗读只在点了才读」。** 那时朗读是「给对方看一句」时的辅助动作；现在它是把
+话传过去的主通道，每句都要。开关默认开，没配 TTS 引擎时**灰掉 + 一句原因**，不消失。
+
+- **两边都读**：对方说的读给我听（我的语言），我说的读给对方听（对方的语言）。
+- **排队逐句读完，不漏句**（裁定 7）。朗读引擎每次开口前会先掐掉上一次，并发调用互相
+  打断 —— 队列不是为了优雅。排队时列表下方显示「还有 N 句待读」，因为对方说得快时朗读
+  会拖后，不说就成了「怎么读的不是刚才那句」。
+- **改边后的重译与手动重试不自动读**：翻历史时突然大声念一句是最吓人的副作用。
+- 连续三次朗读失败才说话（引擎类的失败会每一句都复现，不设门槛就是满屏错误行），
+  且只关**这一场**的自动朗读，绝不改用户的设置；行内的单句朗读照常可用。
+- 暂停 / 停止 / 结束都清空队列并掐掉朗读 —— 停了听就别再读积压的译文，那些话的上下文
+  已经过去了。关闭「放大给对方看」只掐**一次性**的那种朗读（队列空时），整场排队的不断。
+
+**回声必须由 JS 自己堵，不能只靠原生回声消除。** 朗读的是译文，而译文的语言恰好是对话
+另一边的 —— 它一旦被自己的麦克风录回去，就会被判成「另一个人说的」，再翻译、再朗读，
+无限循环。四道闸：
+
+| 层 | 在哪 | 做什么 |
+|---|---|---|
+| 0 | 原生 | 回声消除。**是升级不是前提** —— 能不能消掉网页播放器的声音没有依据，要真机实测 |
+| 1 | 定稿前 | 朗读时登记文本；转写句落在朗读窗口内、且与它高度重合 ⇒ **整句丢弃**：不进历史、不翻译、不写语料、不朗读、不算进小结 |
+| 1b | 半句 | 同一道闸也拦 partial —— 边说边译在半句上就会发翻译请求，环虽断在定稿那层，钱已经花了 |
+| 2 | 入队前 | 同一段话 60 秒内不读第二遍。漏过第 1 层的，环在第二跳断掉 |
+| 3 | 保险丝 | 10 秒内自动入队超过 6 句 ⇒ 停掉本场自动朗读 + 一句灰字。任何会自己往前跑的东西都要有一个人能按下的停止 |
+
+**明确不做的一层**：「朗读期间到达的句子，若语言恰好等于正在朗读的那个，就直接丢」。
+它会把**对方在我朗读时插话**整句吃掉，而插话在洽谈里正是最要紧的那一句。只用相似度，
+不用语言。
+
+#### 语言对 — 两处，同一份设置
+- 「我的语言」与「对方的语言」在**对话页底部**和**设置页**各有一组，读写同两个键。
+  摊在对话页底部而不是收进齿轮，理由不是排版：语言对是这个模式唯一的必填配置，
+  而它选错之后**不会报错** —— 每句都判成对方、译文语言不对，只会「看起来怪」。
+  摊在外面等于让这个错误自己暴露。洽谈现场发现选错也能立刻改，跳设置页等于中断会话。
+- 两边选成同一种语言时**不是拒绝，而是对调**，并说一句「两边不能是同一种语言 — 已对调」。
+  相同会同时坏三件事（归属恒判不出、翻译变成中译中、朗读把原文念一遍），而且一件都不
+  会报错 —— 禁在源头比在下游处处防守便宜。
+- 「我的语言」没选过时跟着界面语言走，**只在读取时回落，不往存储播种默认值** ——
+  播种了，用户以后改界面语言这一项就不会跟着动。
+- 改语言**不重连** socket：语言从来没下发给转写端（靠厂商自动检测），所以它只影响翻译
+  方向与归属判断。已定稿的行不动 —— 要改用 ↔。
 
 #### Settings & sources
 - Settings 学习 gains 「对话进复习」 (default on) next to the capture switch, with the

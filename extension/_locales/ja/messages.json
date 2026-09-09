@@ -2200,7 +2200,7 @@
     "message": "会話 · リアルタイム通訳"
   },
   "listen_entry_hint": {
-    "message": "対面で外国語を聞く：相手が話すと、あなたの言語で読める。長押しして話せば、外国語に訳して相手に見せる。音声は設定した文字起こしエンドポイントにのみ送信。"
+    "message": "対面で話す二人へ：どちらもそのまま話すだけで、画面に両言語が出て訳文が読み上げられます。音声はあなたが設定した文字起こしエンドポイントにのみ送られます。"
   },
   "listen_need_live": {
     "message": "「会話 · リアルタイム通訳」にはリアルタイム対応の文字起こしエンジンが必要です"
@@ -2230,10 +2230,7 @@
     "message": "相手が話しています"
   },
   "listen_now_me": {
-    "message": "話しています（離すと翻訳）"
-  },
-  "listen_lang_auto": {
-    "message": "相手 {from} → {to}"
+    "message": "自分が話しています"
   },
   "listen_lang_me": {
     "message": "{to} へ"
@@ -2247,9 +2244,6 @@
   "listen_pill_paused": {
     "message": "一時停止 · {t}"
   },
-  "listen_pill_speaking": {
-    "message": "発話中 · 相手の声は聞きません"
-  },
   "listen_pill_ended": {
     "message": "終了 · {t}"
   },
@@ -2258,13 +2252,6 @@
   },
   "listen_toggle_start": {
     "message": "聞き始める"
-  },
-  "listen_speak_hold": {
-    "message": "長押し · 話す"
-  },
-  "listen_speak_hold_mac": {
-    "message": "長押し・話す（またはスペース長押し）",
-    "description": "macOS host: the hold button also names the Space key"
   },
   "listen_copy_all": {
     "message": "全文をコピー",
@@ -2281,9 +2268,6 @@
   "listen_mac_use": {
     "message": "オンライン会議やビデオ通話でも使えます。相手の声をスピーカーから流すだけです。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
-  },
-  "listen_speak_release": {
-    "message": "離す · 相手に訳す"
   },
   "listen_end": {
     "message": "終了"
@@ -2315,9 +2299,6 @@
   "listen_summary_title": {
     "message": "この会話"
   },
-  "listen_summary_body": {
-    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · 復習へ {n} 文（ソース「会話」）· スター {s} 文"
-  },
   "listen_summary_note": {
     "message": "録音は破棄され、テキストのみ保持します。復習に入った文は「ソース › 会話」で管理・一括削除できます。"
   },
@@ -2342,11 +2323,86 @@
   "listen_capture_note": {
     "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、「聞き始める」を押した後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
   },
+  "listen_who_them": {
+    "message": "相手"
+  },
+  "listen_who_me": {
+    "message": "自分"
+  },
+  "listen_who_guessed": {
+    "message": "言語からの推測です — ↔ で変更"
+  },
+  "listen_swap_to_them": {
+    "message": "相手の発言に変更"
+  },
+  "listen_swap_to_me": {
+    "message": "自分の発言に変更"
+  },
+  "listen_flip_kept_card": {
+    "message": "話者を変更しました。前のカードは復習済みのため「ソース › 会話」に残ります"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "発話中…"
+  },
+  "listen_reading": {
+    "message": "読み上げ中"
+  },
+  "listen_autospeak_off": {
+    "message": "自動読み上げを停止しました · {why} — 行末のボタンからは読み上げられます"
+  },
+  "listen_autospeak_echo": {
+    "message": "自動読み上げを一時停止しました — エコーのループを検出。音量を下げるかイヤホンを使うと再開できます。"
+  },
+  "listen_read_queue_n": {
+    "message": "読み上げ中 · あと {n} 文"
+  },
+  "listen_ephemeral_label": {
+    "message": "今回は記録しない"
+  },
+  "listen_ephemeral_pill": {
+    "message": "記録しません"
+  },
+  "listen_ephemeral_summary": {
+    "message": "今回は何も記録していません"
+  },
+  "listen_summary_kept": {
+    "message": "復習へ {n} 文（ソース「会話」）· うち星 {s} 文"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "話者を {n} 回修正"
+  },
+  "listen_my_lang_label": {
+    "message": "自分の言語"
+  },
+  "listen_lang_note": {
+    "message": "2 つは別の言語である必要があります。会話画面の下でも変更でき、設定は共通です。"
+  },
+  "listen_lang_swapped": {
+    "message": "2 つは別の言語である必要があります — 入れ替えました"
+  },
+  "listen_autospeak_label": {
+    "message": "訳文を自動で読み上げる"
+  },
+  "listen_autospeak_note": {
+    "message": "文が訳し終わるたびに読み上げます。相手の発言はあなたに、あなたの発言は相手に。"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "先に「設定 › 音声」で読み上げエンジンを選んでください"
+  },
+  "listen_lang_me_label": {
+    "message": "自分"
+  },
+  "listen_lang_other_label": {
+    "message": "相手"
+  },
   "listen_sources_note": {
     "message": "原文は文字起こし、訳文はあなたの翻訳エンジンによるもので、どちらも誤りうる — スター付きの文が優先して復習に入ります。"
-  },
-  "listen_speak_nothing": {
-    "message": "聞き取れませんでした — もう一度長押しして話してください"
   },
   "app_today_due": {
     "message": "今日の復習"
@@ -2361,7 +2417,7 @@
     "message": "今日のデッキを続けて読み上げ、置いたまま聞く"
   },
   "listen_entry_short": {
-    "message": "相手が話すと読める。長押しして話せば相手に訳して見せる"
+    "message": "対面で話す二人へ — どちらも話すだけ、訳文は読み上げ"
   },
   "listen_entry_privacy": {
     "message": "音声は設定した文字起こしエンドポイントにのみ送信。"
@@ -2379,7 +2435,7 @@
     "message": "文字起こしの接続が切れました：{why} — 再接続中…"
   },
   "listen_history_empty": {
-    "message": "相手が話すと文がここに出ます。行をタップすると拡大表示"
+    "message": "二人とも普通に話してください。確定した文がここに出ます。話者が違えば ↔ で変更を"
   },
   "listen_tr_failed": {
     "message": "翻訳失敗 · 再試行"
