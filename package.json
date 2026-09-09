@@ -34,7 +34,8 @@
     "test:oauth": "node scripts/verify-oauth-flow.js",
     "test:asr": "node scripts/verify-asr.js",
     "test:listen": "node scripts/verify-listen.js",
-    "grant:status": "node scripts/grant-float.js"
+    "grant:status": "node scripts/grant-float.js",
+    "test:grant": "node scripts/verify-grant.js"
   },
   "engines": {
     "node": ">=20.0.0"
