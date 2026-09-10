@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "Transcription engine changed — stopped"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 Transcribe audio into subtitles"
+  "popup_asr_go": {
+    "message": "🎙 Live transcription + translation"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Live transcription + translation — choose an engine first →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} has no live interface: streams can't be transcribed, downloadable audio still can · set up a live engine →"
+  },
+  "popup_asr_no_media": {
+    "message": "No playing video or audio found on this page — press play, then tap here to look again"
+  },
+  "popup_asr_none_found": {
+    "message": "No transcribable video or audio found. The player may be in another frame, or hasn't started playing."
+  },
+  "popup_asr_iframe": {
+    "message": "The player is in another frame on this page; open it in a new tab to transcribe ↗"
+  },
+  "popup_asr_live": {
+    "message": "Live"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "length unknown"
   },
   "asr_incremental": {
     "message": "Translate as they speak (fast, may revise)"

@@ -61,6 +61,8 @@ const POPUP_KEYS = [
   'apiModel', 'grantTail', 'grantBalance',
   'textColor', 'ytTextColor', 'fontSize', 'showFab', 'learnEnabled', 'learnDailyNew',
   'learnRules',
+  // 实时转写那一行（只读）：判「配了没有 / 有没有实时接口」，配置本身在设置页。
+  'sttEngine', 'sttApiKey', 'sttBaseUrl',
 ];
 async function getSettings() {
   const r = await PageSettings.read(POPUP_KEYS);
@@ -187,6 +189,39 @@ function updateTranslateUI() {
   badge.classList.toggle('on', pageTranslated);
 }
 
+function paintAsrEntry(pageStatus, s) {
+  const sec = $('asr-section');
+  if (!sec || typeof AsrEntry === 'undefined') return;
+  const st = AsrEntry.state({ pageStatus, settings: s, engines: window.MT_STT_ENGINES || [] });
+  if (st.kind === 'no_script' || EngineState.needsSetup(s)) { sec.hidden = true; return; }
+  sec.hidden = false;
+  const label = $('transcribe-media-label'), hint = $('transcribe-media-hint'), note = $('transcribe-media-note'), btn = $('transcribe-media');
+  const engName = st.engine ? (st.engine.labelKey ? t(st.engine.labelKey, st.engine.label) : st.engine.label) : '';
+  const setNote = (text, onClick) => { note.textContent = text || ''; note.hidden = !text; note.onclick = onClick || null; note.classList.toggle('clickable', !!onClick); };
+  const openOptions = (hash) => { try { window.open(chrome.runtime.getURL('options/options.html') + hash, '_blank'); } catch (_) {} window.close(); };
+  label.textContent = st.kind === 'no_engine' ? t('popup_asr_no_engine', '🎙 实时转写 + 翻译 — 先选一个转写引擎 →') : t('popup_asr_go', '🎙 实时转写 + 翻译');
+  hint.textContent = st.media ? AsrEntry.durationText(st.media, t) : '';
+  setNote('');
+  if (st.kind === 'no_engine') { btn.onclick = () => openOptions('#stt'); return; }
+  if (st.kind === 'file_only') {
+    setNote(t('popup_asr_file_only', '{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →').replace('{engine}', engName), () => openOptions('#stt'));
+  }
+  if (st.kind === 'iframe_only') {
+    setNote(t('popup_asr_iframe', '播放器在页内的另一个框架里；在新标签页打开它再转写 ↗'));
+    btn.onclick = () => { try { chrome.tabs.create({ url: st.frames[0].href }); } catch (_) {} window.close(); };
+    return;
+  }
+  if (st.kind === 'no_media') setNote(t('popup_asr_no_media', '这一页没找到正在播放的视频/音频 — 先点播放，再点这里重找'));
+  btn.onclick = async () => {
+    const r = await sendToPage('transcribeMedia');
+    if (r && r.ok) { window.close(); return; }
+    const reason = (r && r.reason) || 'no_media';
+    if (reason === 'no_engine') { openOptions('#stt'); return; }
+    if (reason === 'busy') { window.close(); return; }
+    setNote(t('popup_asr_none_found', '没找到能转写的视频/音频。播放器可能在另一个框架里，或还没开始播放。'));
+  };
+}
+
 async function sendToPage(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return null;
@@ -271,21 +306,10 @@ async function init() {
   pageTranslated = !!(pageStatus && pageStatus.enabled);
   updateTranslateUI();
 
-  // §2.4 「转写音频字幕」: shown only when the page has a media element ≥ 30 s. The
-  // click starts the session in the page and closes the popup — the overlay is where
-  // progress and every stop reason are shown.
-  const asrSection = $('asr-section');
-  const durationS = (pageStatus && pageStatus.media && pageStatus.media.durationS) || 0;
-  const live = !!(pageStatus && pageStatus.media && pageStatus.media.live);
-  if (asrSection && (live || durationS >= 30)) {
-    asrSection.hidden = false;
-    const hint = $('transcribe-media-hint');
-    if (hint) hint.textContent = live ? 'LIVE' : Math.floor(durationS / 60) + ':' + String(Math.round(durationS % 60)).padStart(2, '0');
-    $('transcribe-media').addEventListener('click', async () => {
-      const r = await sendToPage('transcribeMedia');
-      if (r && r.ok) window.close();
-    });
-  }
+  // §2.4 「🎙 实时转写 + 翻译」五态（popup/asr-entry.js；interaction-spec 2026-09-11）。那一行常显：
+  // 有媒体就开始，没找到就说没找到，引擎没配就送去配 —— 不再整节消失。翻译引擎未配置时随其它节
+  // 一起收起（applyUnconfigured），免得两条「先配置」打架。
+  paintAsrEntry(pageStatus, s);
 
   // 本站 section — only meaningful while capture is on at all.
   siteRules = s.learnRules || null;

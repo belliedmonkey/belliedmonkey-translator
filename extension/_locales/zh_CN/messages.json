@@ -2200,8 +2200,29 @@
   "asr_err_settings": {
     "message": "转写引擎已更改，已停止转写"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 转写音频字幕"
+  "popup_asr_go": {
+    "message": "🎙 实时转写 + 翻译"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 实时转写 + 翻译 — 先选一个转写引擎 →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →"
+  },
+  "popup_asr_no_media": {
+    "message": "这一页没找到正在播放的视频/音频 — 先点播放，再点这里重找"
+  },
+  "popup_asr_none_found": {
+    "message": "没找到能转写的视频/音频。播放器可能在另一个框架里，或还没开始播放。"
+  },
+  "popup_asr_iframe": {
+    "message": "播放器在页内的另一个框架里；在新标签页打开它再转写 ↗"
+  },
+  "popup_asr_live": {
+    "message": "直播"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "时长未知"
   },
   "asr_incremental": {
     "message": "边说边译（快，译文会改）"

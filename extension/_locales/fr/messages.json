@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "Moteur de transcription modifié — arrêté"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 Transcrire l’audio en sous-titres"
+  "popup_asr_go": {
+    "message": "🎙 Transcription en direct + traduction"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Transcription en direct + traduction — choisissez d'abord un moteur →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} n'a pas d'interface en direct : les flux ne peuvent pas être transcrits, l'audio téléchargeable si · configurer un moteur en direct →"
+  },
+  "popup_asr_no_media": {
+    "message": "Aucune vidéo ni audio en lecture sur cette page — lancez la lecture, puis touchez ici"
+  },
+  "popup_asr_none_found": {
+    "message": "Aucune vidéo ni audio transcriptible. Le lecteur est peut-être dans un autre cadre, ou n'a pas démarré."
+  },
+  "popup_asr_iframe": {
+    "message": "Le lecteur est dans un autre cadre de la page ; ouvrez-le dans un nouvel onglet pour transcrire ↗"
+  },
+  "popup_asr_live": {
+    "message": "Direct"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "durée inconnue"
   },
   "asr_incremental": {
     "message": "Traduire au fil de la parole (rapide, peut se corriger)"

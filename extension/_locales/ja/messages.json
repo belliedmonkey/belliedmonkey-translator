@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "文字起こしエンジンが変更されたため停止しました"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 音声を字幕に文字起こし"
+  "popup_asr_go": {
+    "message": "🎙 リアルタイム文字起こし + 翻訳"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 リアルタイム文字起こし + 翻訳 — まず認識エンジンを選ぶ →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} はリアルタイムに非対応：配信は文字起こしできませんが、ダウンロード可能な音声は全体を文字起こしできます · リアルタイム対応エンジンを設定 →"
+  },
+  "popup_asr_no_media": {
+    "message": "このページで再生中の動画・音声が見つかりません — 再生してからここをもう一度"
+  },
+  "popup_asr_none_found": {
+    "message": "文字起こしできる動画・音声が見つかりません。プレーヤーが別のフレームにあるか、まだ再生されていません。"
+  },
+  "popup_asr_iframe": {
+    "message": "プレーヤーはこのページ内の別フレームにあります。新しいタブで開いてから文字起こし ↗"
+  },
+  "popup_asr_live": {
+    "message": "ライブ"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "長さ不明"
   },
   "asr_incremental": {
     "message": "話しながら翻訳（速い・訳文は更新される）"

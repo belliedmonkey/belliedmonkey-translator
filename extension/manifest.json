@@ -81,6 +81,16 @@
     },
     {
       "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/media-probe.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
         "*://*.x.com/*",
         "*://*.twitter.com/*"
       ],

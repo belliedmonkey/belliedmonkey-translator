@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "전사 엔진이 변경되어 중지했습니다"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 오디오를 자막으로 전사"
+  "popup_asr_go": {
+    "message": "🎙 실시간 받아쓰기 + 번역"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 실시간 받아쓰기 + 번역 — 먼저 엔진을 고르세요 →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine}에는 실시간 인터페이스가 없어요: 스트리밍은 받아쓸 수 없지만 다운로드 가능한 오디오는 통째로 받아쓸 수 있어요 · 실시간 엔진 설정 →"
+  },
+  "popup_asr_no_media": {
+    "message": "이 페이지에서 재생 중인 영상/오디오를 찾지 못했어요 — 재생한 뒤 여기를 다시 누르세요"
+  },
+  "popup_asr_none_found": {
+    "message": "받아쓸 수 있는 영상/오디오를 찾지 못했어요. 플레이어가 다른 프레임에 있거나 아직 재생되지 않았어요."
+  },
+  "popup_asr_iframe": {
+    "message": "플레이어가 이 페이지의 다른 프레임에 있어요. 새 탭에서 열고 받아쓰세요 ↗"
+  },
+  "popup_asr_live": {
+    "message": "라이브"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "길이 알 수 없음"
   },
   "asr_incremental": {
     "message": "말하는 대로 번역（빠름, 번역이 바뀔 수 있음）"
