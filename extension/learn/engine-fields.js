@@ -95,7 +95,10 @@ var EngineFields = (() => {
     for (const e of list) {
       const opt = doc.createElement('option');
       opt.value = e.id;
-      opt.textContent = labelOf(e, o.t);
+      // 「· 实时」后缀（2026-09-11）：带 liveEndpoint+liveType 的转写条目在下拉里标出来，
+      // 让「哪一项能实时」对用户可见 —— 此前 visibility() 不读 live 字段，三处下拉都看不出。
+      const live = !!(e.liveEndpoint && e.liveType);
+      opt.textContent = labelOf(e, o.t) + (live && o.t ? ' ' + o.t('stt_live_suffix', '· 实时') : '');
       sel.appendChild(opt);
     }
     const known = list.some((e) => e.id === o.selected);

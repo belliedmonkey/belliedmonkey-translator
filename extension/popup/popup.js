@@ -204,7 +204,7 @@ function paintAsrEntry(pageStatus, s) {
   setNote('');
   if (st.kind === 'no_engine') { btn.onclick = () => openOptions('#stt'); return; }
   if (st.kind === 'file_only') {
-    setNote(t('popup_asr_file_only', '{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →').replace('{engine}', engName), () => openOptions('#stt'));
+    setNote(t('popup_asr_file_only', '{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →').replace('{engine}', engName), () => openOptions('#quick-live'));
   }
   if (st.kind === 'iframe_only') {
     setNote(t('popup_asr_iframe', '播放器在页内的另一个框架里；在新标签页打开它再转写 ↗'));

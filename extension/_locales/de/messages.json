@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "Die Transkription sendet deine Aufnahme an {host}. Sie wird sofort nach der Erkennung verworfen – nie gespeichert, nie synchronisiert."
   },
+  "qs_live_key": {
+    "message": "Live-Schlüssel"
+  },
+  "qs_live_key_ph": {
+    "message": "Optional: Schlüssel eines anderen Anbieters"
+  },
+  "qs_live_title": {
+    "message": "Live-Transkription (optional)"
+  },
+  "qs_live_sub": {
+    "message": "{p} hat keine Live-Schnittstelle. Live-Transkription von Videos/Podcasts und „Gespräch · Live-Dolmetscher“ in der App brauchen sie – einen {live}-Schlüssel hinzufügen, fertig; leer lassen geht auch, dann läuft die Transkription im Ganzdatei-Modus."
+  },
+  "qs_get_live_key": {
+    "message": "Noch kein Schlüssel? Bei {live} holen ↗"
+  },
+  "qs_live_privacy": {
+    "message": "Die Live-Transkription sendet das Seitenaudio zur Erkennung an {liveHost} und verwirft es danach."
+  },
+  "qs_untouched_live": {
+    "message": "— unverändert · du hast bereits eine Engine mit Live-Schnittstelle ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "(hat {cur} ersetzt, das keine Live-Schnittstelle hatte; jetzt mit Live-Schnittstelle)"
+  },
+  "qs_live_ok": {
+    "message": "(mit Live-Schnittstelle)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine} hat keine Live-Schnittstelle – bei Bedarf oben ergänzen ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· Live"
+  },
+  "grant_live_go": {
+    "message": "Live-Engine hinzufügen →"
+  },
   "qs_apply": {
     "message": "Übersetzung, Vorlesen und Transkription einrichten"
   },

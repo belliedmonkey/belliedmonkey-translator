@@ -1882,6 +1882,42 @@
   "qs_privacy": {
     "message": "轉寫會把你的錄音傳到 {host} 辨識，辨識完立即丟棄，不儲存也不同步。"
   },
+  "qs_live_key": {
+    "message": "即時 key"
+  },
+  "qs_live_key_ph": {
+    "message": "可選：另一家的 key"
+  },
+  "qs_live_title": {
+    "message": "即時轉寫（可選）"
+  },
+  "qs_live_sub": {
+    "message": "{p} 沒有即時介面。影片/播客的即時轉寫，和 App 的「對話 · 即時聽譯」都需要它 —— 另配一把 {live} 的 key 就能用；不填也行，轉寫走整段模式。"
+  },
+  "qs_get_live_key": {
+    "message": "還沒有 key？去 {live} 申請 ↗"
+  },
+  "qs_live_privacy": {
+    "message": "即時轉寫會把頁面音訊送到 {liveHost} 辨識，辨識完即棄。"
+  },
+  "qs_untouched_live": {
+    "message": "— 沒動 · 你已經配過一個帶即時介面的引擎（{cur}）"
+  },
+  "qs_live_replaced": {
+    "message": "（替換了原來的 {cur}，它沒有即時介面；現在含即時介面）"
+  },
+  "qs_live_ok": {
+    "message": "（含即時介面）"
+  },
+  "qs_stt_no_live": {
+    "message": "（{engine} 沒有即時介面 —— 需要即時轉寫時在上面另配 ↑）"
+  },
+  "stt_live_suffix": {
+    "message": "· 即時"
+  },
+  "grant_live_go": {
+    "message": "另配即時引擎 →"
+  },
   "qs_apply": {
     "message": "設定好翻譯、朗讀、轉寫"
   },

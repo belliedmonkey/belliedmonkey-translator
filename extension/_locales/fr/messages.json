@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "La transcription envoie votre enregistrement à {host}. Il est supprimé dès la reconnaissance — jamais stocké, jamais synchronisé."
   },
+  "qs_live_key": {
+    "message": "Clé en direct"
+  },
+  "qs_live_key_ph": {
+    "message": "Facultatif : la clé d'un autre fournisseur"
+  },
+  "qs_live_title": {
+    "message": "Transcription en direct (facultatif)"
+  },
+  "qs_live_sub": {
+    "message": "{p} n'a pas d'interface en direct. La transcription en direct des vidéos/podcasts et « Conversation · interprète en direct » de l'app en ont besoin — ajoutez une clé {live} et ça marche ; sinon la transcription passe en mode fichier entier."
+  },
+  "qs_get_live_key": {
+    "message": "Pas de clé ? Obtenez-en une chez {live} ↗"
+  },
+  "qs_live_privacy": {
+    "message": "La transcription en direct envoie l'audio de la page à {liveHost} pour reconnaissance, puis l'efface."
+  },
+  "qs_untouched_live": {
+    "message": "— inchangé · vous avez déjà un moteur en direct ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "(a remplacé {cur}, sans interface en direct ; interface en direct désormais incluse)"
+  },
+  "qs_live_ok": {
+    "message": "(interface en direct incluse)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine} n'a pas d'interface en direct — ajoutez-en une ci-dessus au besoin ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· direct"
+  },
+  "grant_live_go": {
+    "message": "Ajouter un moteur en direct →"
+  },
   "qs_apply": {
     "message": "Configurer traduction, lecture et transcription"
   },

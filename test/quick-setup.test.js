@@ -223,6 +223,84 @@ const PLATFORM = {
 };
 const KEY = 'sk-or-v1-test';
 
+// ── 实时转写（可选）—— 第九期，2026-09-11 ────────────────────────────────
+// 默认平台 OpenRouter 官方没有实时转写接口（09-10 查证）。一键卡多一格「实时 key」：填了才把
+// 转写槽换成有实时接口的那一家；不填一字不动。判据从注册表 liveEndpoint+liveType 推导。
+describe('QuickSetup.liveFor / platforms.liveAlt — 对真实产物跑', () => {
+  test('global：openrouter 组自身无实时 ⇒ liveAlt 是 api.openai.com 的转写条目，keyUrl 是 https；openai 组自身有实时', () => {
+    const d = fromDist('dist'); if (!d) { ok(true, 'dist/ 不在，跳过（先跑 node build.js）'); return; }
+    const list = d.Q.platforms();
+    const or = list.find((p) => p.host === 'openrouter.ai');
+    ok(or, '有 openrouter 组');
+    eq(or.live, null, 'openrouter_transcribe 没有实时接口');
+    ok(or.liveAlt && or.liveAlt.stt.id === 'openai_transcribe', 'liveAlt 应是 openai_transcribe：' + JSON.stringify(or.liveAlt && or.liveAlt.stt.id));
+    eq(or.liveAlt.host, 'api.openai.com');
+    ok(/^https:\/\//.test(or.liveAlt.keyUrl), 'liveAlt.keyUrl 来自同 host 的 chat 条目：' + or.liveAlt.keyUrl);
+    const oa = list.find((p) => p.host === 'api.openai.com');
+    ok(oa && oa.live && oa.live.id === 'openai_transcribe' && oa.liveAlt === null, 'openai 组自身有实时，不需要 liveAlt');
+  });
+  test('china：唯一一组（千问）自身有实时 ⇒ 不出「实时转写（可选）」那一段', () => {
+    const d = fromDist('dist-china'); if (!d) { ok(true, 'dist-china/ 不在，跳过'); return; }
+    for (const p of d.Q.platforms()) { ok(p.live, p.host + ' 应自带实时接口'); eq(p.liveAlt, null); }
+  });
+  test('state().sttLive：live / file_only / empty（认不出的 id 也是 file_only）', () => {
+    const d = fromDist('dist'); if (!d) { ok(true, '跳过'); return; }
+    eq(d.Q.state({ sttEngine: 'openai_transcribe' }).sttLive, 'live');
+    eq(d.Q.state({ sttEngine: 'openrouter_transcribe' }).sttLive, 'file_only');
+    eq(d.Q.state({ sttEngine: 'grant_stt' }).sttLive, 'file_only', '免费额度的中继没有实时接口');
+    eq(d.Q.state({ sttEngine: 'nope' }).sttLive, 'file_only');
+    eq(d.Q.state({}).sttLive, 'empty');
+  });
+});
+
+describe('QuickSetup.plan — 实时 key（只在填了时才动转写槽）', () => {
+  const LIVE = { stt: { id: 'openai_transcribe', defaultModel: 'gpt-4o-mini-transcribe', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }, host: 'api.openai.com', keyUrl: 'https://k' };
+  const REG = { stt: [
+    { id: 'openrouter_transcribe', liveEndpoint: null },
+    { id: 'openai_transcribe', liveEndpoint: 'wss://x', liveType: 'ws-realtime' },
+    { id: 'local', liveEndpoint: null },
+  ] };
+  test('空存储 + 实时 key ⇒ 转写槽写成实时那一家、key 是实时 key、恰好四个 stt 键；翻译/朗读仍是主平台', () => {
+    const { Q } = load();
+    const r = Q.plan({ platform: PLATFORM, key: KEY, settings: {}, liveKey: 'sk-live', livePlatform: LIVE, reg: REG });
+    eq(r.writes.sttEngine, 'openai_transcribe'); eq(r.writes.sttApiKey, 'sk-live'); eq(r.writes.sttBaseUrl, ''); eq(r.writes.sttModel, '');
+    eq(r.writes.provider, 'openrouter'); eq(r.writes.apiKey, KEY); eq(r.writes.ttsEngine, 'openrouter_speech');
+    eq(r.liveHost, 'api.openai.com');
+    deepEq(Object.keys(r.writes).filter((k) => /^stt/.test(k)).sort(), ['sttApiKey', 'sttBaseUrl', 'sttEngine', 'sttModel']);
+  });
+  test('转写槽已配但没有实时接口（用户明确填了实时 key）⇒ 替换，如实记 replaced', () => {
+    const { Q } = load();
+    for (const cur of ['openrouter_transcribe', 'local']) {
+      const r = Q.plan({ platform: PLATFORM, key: KEY, settings: { sttEngine: cur, sttApiKey: 'old' }, liveKey: 'sk-live', livePlatform: LIVE, reg: REG });
+      eq(r.writes.sttEngine, 'openai_transcribe', cur + ' 应被替换');
+      ok(r.replaced.includes('stt'), '结果行要如实说「替换了 ' + cur + '」');
+      ok(!r.skipped.some((x) => x.slot === 'stt'));
+    }
+  });
+  test('转写槽已有实时接口 ⇒ 跳过（already_live），不动', () => {
+    const { Q } = load();
+    const r = Q.plan({ platform: PLATFORM, key: KEY, settings: { sttEngine: 'openai_transcribe', sttApiKey: 'mine' }, liveKey: 'sk-live', livePlatform: LIVE, reg: REG });
+    ok(!('sttEngine' in r.writes));
+    ok(r.skipped.some((x) => x.slot === 'stt' && x.reason === 'already_live'));
+    ok(!r.replaced.includes('stt'));
+  });
+  test('实时 key 为空 ⇒ writes 与今天逐字相同（不动转写槽的既有规则）', () => {
+    const { Q } = load();
+    const a = Q.plan({ platform: PLATFORM, key: KEY, settings: {} });
+    const b = Q.plan({ platform: PLATFORM, key: KEY, settings: {}, liveKey: '', livePlatform: LIVE, reg: REG });
+    deepEq(b.writes, a.writes);
+    // 已配、无实时、但实时框没填 ⇒ 仍然不覆盖（「半配不覆盖」那条不变）
+    const c = Q.plan({ platform: PLATFORM, key: KEY, settings: { sttEngine: 'local' }, liveKey: '', livePlatform: LIVE, reg: REG });
+    ok(!('sttEngine' in c.writes)); ok(c.skipped.some((x) => x.slot === 'stt' && x.reason === 'already'));
+  });
+  test('prefill：转写槽指向 liveAlt 且有 key ⇒ 实时框回显', () => {
+    const d = fromDist('dist'); if (!d) { ok(true, '跳过'); return; }
+    const pre = d.Q.prefill({ provider: 'openrouter', apiKey: 'sk-main', sttEngine: 'openai_transcribe', sttApiKey: 'sk-live' });
+    eq(pre.host, 'openrouter.ai'); eq(pre.liveKey, 'sk-live');
+    eq(d.Q.prefill({ provider: 'openrouter', apiKey: 'sk-main', sttEngine: 'openrouter_transcribe', sttApiKey: 'sk-main' }).liveKey, '');
+  });
+});
+
 describe('QuickSetup.plan — 只填空，不覆盖', () => {
   test('空存储：三组键必须全部出现，且**恰好**是这些', () => {
     const { Q } = load();

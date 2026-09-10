@@ -418,7 +418,7 @@ var AsrSource = (() => {
       }
       // 引擎没有实时接口：这句话此前没有出口。落到设置页转写引擎那一栏（PR3 起落到一键卡的实时框）。
       if (lastFail.code === 'nolive' && lastFail.el === el) {
-        return { label: T('asr_go_live_engine', '去配一个带实时接口的引擎 →'), onClick: () => openOptions('#stt') };
+        return { label: T('asr_go_live_engine', '去配一个带实时接口的引擎 →'), onClick: () => openOptions('#quick-live') };
       }
       // Safari：弹窗那一下不是页内手势，这里再点一次就是。
       if (lastFail.code === 'gesture' && lastFail.el === el) {

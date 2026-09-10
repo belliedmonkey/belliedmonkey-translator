@@ -232,7 +232,9 @@
       // 那次立的。所以额度卡在引导页上是**次级**样式；到了设置页它是那张卡里
       // 唯一的按钮，不需要降级。
       secondary: true,
-      onAction: () => {
+      onAction: (id) => {
+        // 'live' = 「另配实时引擎 →」：引导页的一键卡就在旁边，直接聚焦那一格；其余去设置页的额度卡。
+        if (id === 'live') { const k = $('qs-live-key'); if (k) { try { k.scrollIntoView({ block: 'center' }); } catch (_) {} try { k.focus({ preventScroll: true }); } catch (_) { k.focus(); } } return; }
         try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {}
       },
     });

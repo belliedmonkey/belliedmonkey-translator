@@ -100,7 +100,26 @@ var QuickSetup = (() => {
         // openrouter_speech 赢过 openrouter_audio（专用语音端点，不是带音频输出
         // 的对话模型）。
         chat: g.chat[0], tts: g.tts[0], stt: g.stt[0],
-      }));
+      }))
+      // 派生：自身转写条目有实时接口 ⇒ live；否则 liveAlt = 本 flavor 里能补实时的那一家。
+      .map((p) => Object.assign(p, { live: hasLive(p.stt) ? p.stt : null, liveAlt: hasLive(p.stt) ? null : liveFor(p.host, reg) }));
+  }
+
+  // ── 实时转写（可选）—— 2026-09-11 ────────────────────────────────────────
+  // 「哪个转写引擎有实时接口」从注册表 liveEndpoint+liveType 推导（domain-design §7），
+  // 不加旗标。默认平台 OpenRouter 官方没有实时接口（09-10 查证），于是一键配好的人在
+  // 直播 / 流媒体、或 App 的「对话 · 实时听译」上撞到「没有实时接口」且没有出口。
+  // liveFor(host)：本 flavor 里第一个可一键（eligible）且带实时接口的转写条目，同 host 优先；
+  // keyUrl 取同 host 的 chat 条目的（stt 注册表没有这个字段，且不该多一份）。
+  function hasLive(e) { return !!(e && e.liveEndpoint && e.liveType); }
+  function liveFor(host, reg) {
+    const r = registries(reg);
+    const cands = r.stt.filter((e) => eligible(e) && hasLive(e));
+    const pick = cands.find((e) => hostOf(e.defaultEndpoint) === host) || cands[0];
+    if (!pick) return null;
+    const h = hostOf(pick.defaultEndpoint);
+    const chat = r.providers.find((e) => hostOf(e.defaultEndpoint || '') === h && e.keyUrl);
+    return { stt: pick, host: h, keyUrl: (chat && chat.keyUrl) || '', label: chat || pick };
   }
 
   // 「这个组里的条目 needsKey 必须一致」—— 推导法唯一的自检。不一致说明这个 host
@@ -153,12 +172,16 @@ var QuickSetup = (() => {
   //   转写：这一组不一样 —— '' 是 options.html 明确设计的哨兵（「未配置（不出说题）」），
   //         所以空 engine id 就是无歧义的「从没配过」。反过来，engine 已选而 key 为空
   //         的**半配**状态也算已配、不覆盖：录音去处是用户碰过的东西。
-  function state(s) {
+  function state(s, reg) {
     s = s || {};
+    const sttId = String(s.sttEngine || '');
+    const sttEntry = sttId ? registries(reg).stt.find((e) => e.id === sttId) : null;
     return {
       chat: has(s.apiKey) ? 'configured' : 'empty',
       tts: has(s.ttsApiKey) ? 'configured' : 'empty',
-      stt: String(s.sttEngine || '') ? 'configured' : 'empty',
+      stt: sttId ? 'configured' : 'empty',
+      // 存着的转写引擎有没有实时接口：live / file_only / empty（引擎 id 认不出也算 file_only）。
+      sttLive: !sttId ? 'empty' : (hasLive(sttEntry) ? 'live' : 'file_only'),
     };
   }
 
@@ -219,13 +242,19 @@ var QuickSetup = (() => {
     //   走同一条不覆盖的路，点了永远换不回来 —— 一个死按钮。
     const overwrite = !!input.overwrite;
     const overridable = (stored) => overwrite || (!!replaceTail && tailOf(stored) === replaceTail);
-    const st0 = state(s);
+    // `liveKey` + `livePlatform`（2026-09-11）：一键卡「实时转写（可选）」那一格。**只在用户在那一格
+    //   填了 key 时**才把转写槽换成有实时接口的引擎（文件档与实时档都走它）；转写槽已配但没有
+    //   实时接口（含用户自配的本机引擎、免费额度的 grant_stt）⇒ 视为可覆盖，结果行如实写
+    //   「替换了原来的 {cur}」；已有实时接口 ⇒ 跳过（already_live）；不填一字不动。
+    const liveKey = String(input.liveKey || '').trim();
+    const livePlat = liveKey && input.livePlatform && input.livePlatform.stt ? input.livePlatform : null;
+    const st0 = state(s, input.reg);
     const st = {
       chat: st0.chat === 'configured' && overridable(s.apiKey) ? 'empty' : st0.chat,
       tts: st0.tts === 'configured' && overridable(s.ttsApiKey) ? 'empty' : st0.tts,
       // 转写那一槽的「已配」判据是引擎而不是 key（本机 / 免费引擎没有 key），所以
-      // 尾号比对对它常常落空；overwrite 下不看 key。
-      stt: st0.stt === 'configured' && (overwrite || overridable(s.sttApiKey)) ? 'empty' : st0.stt,
+      // 尾号比对对它常常落空；overwrite 下不看 key；填了实时 key 时没有实时接口的也可覆盖。
+      stt: st0.stt === 'configured' && (overwrite || overridable(s.sttApiKey) || (livePlat && st0.sttLive === 'file_only')) ? 'empty' : st0.stt,
     };
     const replaced = [];
     if (st0.chat !== st.chat) replaced.push('chat');
@@ -235,10 +264,11 @@ var QuickSetup = (() => {
     const skipped = [];
     const tests = [];
 
-    if (!p || !key) return { writes, skipped, tests, replaced };
+    if (!p || !key) return { writes, skipped, tests, replaced, liveHost: '' };
 
     const ttsEngine = p.tts.id;
     const sttEngine = p.stt.id;
+    const liveHost = livePlat ? livePlat.host : '';
 
     // 端点 / 模型 / 音色写空是构成要件：留着上一个引擎的地址配新引擎的 key，正是
     // notes.js 明文禁止的「把 key 和一个不是发给它的端点配在一起」。空 = 走注册表
@@ -274,13 +304,14 @@ var QuickSetup = (() => {
     }
 
     if (st.stt === 'empty') {
-      writes.sttEngine = sttEngine;
-      writes.sttApiKey = key;
+      // 填了实时 key ⇒ 转写槽指向有实时接口的那一家（它的文件档也走同一把 key）。
+      writes.sttEngine = livePlat ? livePlat.stt.id : sttEngine;
+      writes.sttApiKey = livePlat ? liveKey : key;
       writes.sttBaseUrl = '';
-      writes.sttModel = pinModel ? (p.stt.defaultModel || '') : '';
+      writes.sttModel = pinModel ? ((livePlat ? livePlat.stt : p.stt).defaultModel || '') : '';
       tests.push('stt');
     } else {
-      skipped.push({ slot: 'stt', reason: 'already', current: s.sttEngine || '' });
+      skipped.push({ slot: 'stt', reason: livePlat && st0.sttLive === 'live' ? 'already_live' : 'already', current: s.sttEngine || '' });
     }
 
     // 解析（notes）**一个键都不写**。notesProvider === '' 的语义是「整组跟随翻译
@@ -288,7 +319,7 @@ var QuickSetup = (() => {
     // 默认。写 notesProvider 会永久打断 follow 关系：用户以后换翻译引擎，解析会
     // 留在这个平台上。结果区仍要**显式说出来**，不说它看起来就像被漏了。
 
-    return { writes, skipped, tests, replaced };
+    return { writes, skipped, tests, replaced, liveHost };
   }
 
   // summarize(results) → { done, failed, ok }
@@ -325,6 +356,8 @@ var QuickSetup = (() => {
     .qs-bad { color:var(--danger, #c0392b); }
     .qs-idle { color:var(--text-secondary, inherit); }
     .qs-res button { font-size:.8em; padding:2px 8px; width:auto; margin:0 0 0 6px; }
+    .qs-live { display:flex; flex-direction:column; gap:6px; padding:8px 10px; border:1px dashed var(--border, #ccc); border-radius:8px; }
+    .qs-live-title { margin:0; font-size:.9em; font-weight:600; }
   `;
   let styled = false;
   function injectStyle(doc) {
@@ -419,6 +452,27 @@ var QuickSetup = (() => {
     keyLink.target = '_blank'; keyLink.rel = 'noopener noreferrer';
     wrap.append(keyLink);
 
+    // ── 实时转写（可选）——interaction-spec「实时转写（可选）」（2026-09-11）─────────
+    // 只在所选平台自身没有实时接口且本 flavor 里有能补的那一家时出现（global：OpenRouter →
+    // 另配一把带实时接口那一家的 key；china 千问自带实时 ⇒ 不出现）。串里不写品牌：{p}/{live} 从注册表
+    // 标签注入，中国版合规门禁扫的是字面量。
+    const liveBox = el('div', 'qs-live'); liveBox.id = 'qs-live'; liveBox.hidden = true;
+    const liveTitle = el('p', 'qs-live-title'); liveTitle.id = 'qs-live-title';
+    const liveSub = el('p', 'qs-sub'); liveSub.id = 'qs-live-sub';
+    const liveRow = el('div', 'qs-row');
+    liveRow.append(el('label', null, t('qs_live_key', '实时 key')));
+    const liveKey = doc.createElement('input');
+    liveKey.id = 'qs-live-key'; liveKey.type = 'password'; liveKey.autocomplete = 'off';
+    liveKey.placeholder = t('qs_live_key_ph', '可选：另一家的 key');
+    if (pre && pre.liveKey) liveKey.value = pre.liveKey;
+    liveRow.append(liveKey);
+    const liveLink = el('a', 'qs-key-link'); liveLink.id = 'qs-live-key-link';
+    liveLink.target = '_blank'; liveLink.rel = 'noopener noreferrer';
+    const livePrivacy = el('p', 'qs-privacy'); livePrivacy.id = 'qs-live-privacy'; livePrivacy.hidden = true;
+    liveBox.append(liveTitle, liveSub, liveRow, liveLink, livePrivacy);
+    wrap.append(liveBox);
+    liveKey.addEventListener('input', () => { livePrivacy.hidden = !liveKey.value.trim(); });
+
     // 这张卡里**没有**模型选择器。原本有一个「改一改用哪个模型」的折叠，
     // 2026-08-31 去掉：它与下面那个（同样折叠着的）手动引擎配置重复，而一张承诺
     // 「最少操作」的卡里放一个模型选择器，本身就在跟这个承诺打架。写进去的永远是
@@ -437,6 +491,19 @@ var QuickSetup = (() => {
       privacy.textContent = t('qs_privacy',
         '转写会把你的**录音**发到 {host} 识别，识别完立即丢弃，不存储也不同步。')
         .replace('{host}', current.host).replace(/\*\*/g, '');
+      // 实时转写（可选）那一段：平台自身没有实时接口、且有能补的那一家时才出现。
+      const alt = current.liveAlt;
+      liveBox.hidden = !alt;
+      if (alt) {
+        liveTitle.textContent = t('qs_live_title', '实时转写（可选）');
+        liveSub.textContent = t('qs_live_sub',
+          '{p} 没有实时接口。视频/播客的实时转写，和 App 的「对话 · 实时听译」都需要它 —— 另配一把 {live} 的 key 就能用；不填也行，转写走整段模式。')
+          .replace('{p}', labelOf(current.chat, t)).replace('{live}', labelOf(alt.label, t));
+        liveLink.hidden = !alt.keyUrl;
+        if (alt.keyUrl) { liveLink.href = alt.keyUrl; liveLink.textContent = t('qs_get_live_key', '还没有 key？去 {live} 申请 ↗').replace('{live}', labelOf(alt.label, t)); }
+        livePrivacy.textContent = t('qs_live_privacy', '实时转写会把页面音频送到 {liveHost} 识别，识别完即弃。').replace('{liveHost}', alt.host);
+        livePrivacy.hidden = !liveKey.value.trim();
+      }
     }
 
     // 常显、不可折叠。「录音去哪儿必须是一次显式选择」这条裁定的落点从一个复选框
@@ -500,7 +567,7 @@ var QuickSetup = (() => {
         }
         cur = r.data || {};
       }
-      const p = plan({ platform: current, key: k, settings: cur });
+      const p = plan({ platform: current, key: k, settings: cur, liveKey: current.liveAlt ? liveKey.value : '', livePlatform: current.liveAlt });
       btn.disabled = true;
       // 四行**在按下那一刻就存在**，不是「成功后才冒出来的绿框」—— 那种形状让失败
       // 看起来像什么都没发生。
@@ -521,9 +588,20 @@ var QuickSetup = (() => {
 
       for (const sk of p.skipped) {
         rows[sk.slot].className = 'qs-idle';
-        rows[sk.slot].textContent = t('qs_untouched', '— 没动 · 你已经配过了（{cur}）')
+        rows[sk.slot].textContent = (sk.reason === 'already_live'
+          ? t('qs_untouched_live', '— 没动 · 你已经配过一个带实时接口的引擎（{cur}）')
+          : t('qs_untouched', '— 没动 · 你已经配过了（{cur}）'))
           .replace('{cur}', sk.current || t('qs_unknown', '已有配置'));
       }
+      // 转写行的「实时」注脚：测通之后再补一句（runOne 会先写「✓ 通了」）。
+      const sttNote = (() => {
+        if (!p.tests.includes('stt')) return '';
+        if (p.liveHost) return '\n' + (p.replaced.includes('stt')
+          ? t('qs_live_replaced', '（替换了原来的 {cur}，它没有实时接口；现在含实时接口）').replace('{cur}', cur.sttEngine || '')
+          : t('qs_live_ok', '（含实时接口）'));
+        return current.live ? '\n' + t('qs_live_ok', '（含实时接口）')
+          : '\n' + t('qs_stt_no_live', '（{engine} 没有实时接口 —— 需要实时转写时在上面另配 ↑）').replace('{engine}', labelOf(current.stt, t));
+      })();
 
       try { await opts.onApply(p); } catch (e) {
         for (const slot of p.tests) {
@@ -536,6 +614,7 @@ var QuickSetup = (() => {
 
       const results = await Promise.all(p.tests.map((slot) =>
         runOne(slot, p, current, rows[slot], t, doc, opts.targetLang)));
+      if (sttNote && rows.stt && rows.stt.className === 'qs-ok') rows.stt.textContent += sttNote;
       btn.disabled = false;
 
       // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败
@@ -610,7 +689,11 @@ var QuickSetup = (() => {
   function prefill(settings, reg) {
     const s = settings || {};
     const rep = represents(s, reg);
-    if (rep && has(s.apiKey)) return { host: rep.host, key: s.apiKey, slot: 'chat' };
+    if (rep && has(s.apiKey)) {
+      // 转写槽指向该平台的 liveAlt（另配的实时引擎）且有 key ⇒ 实时框也回显。
+      const liveKey = rep.liveAlt && rep.liveAlt.stt.id === s.sttEngine && has(s.sttApiKey) ? s.sttApiKey : '';
+      return { host: rep.host, key: s.apiKey, slot: 'chat', liveKey };
+    }
     for (const p of platforms(reg)) {
       if (has(s.ttsApiKey) && p.tts && p.tts.id === s.ttsEngine) return { host: p.host, key: s.ttsApiKey, slot: 'tts' };
       if (has(s.sttApiKey) && p.stt && p.stt.id === s.sttEngine) return { host: p.host, key: s.sttApiKey, slot: 'stt' };
@@ -618,7 +701,7 @@ var QuickSetup = (() => {
     return null;
   }
 
-  return { platforms, plan, summarize, state, represents, prefill, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, tailOf, _eligible: eligible };
+  return { platforms, plan, summarize, state, represents, prefill, consistent, render, siteUrl, tryUrl, TRY_LANGS, tryVisible, tailOf, liveFor, hasLive, _eligible: eligible };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = QuickSetup;

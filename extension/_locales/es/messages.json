@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "La transcripción envía tu grabación a {host}. Se descarta en cuanto se reconoce: nunca se almacena ni se sincroniza."
   },
+  "qs_live_key": {
+    "message": "Clave en vivo"
+  },
+  "qs_live_key_ph": {
+    "message": "Opcional: clave de otro proveedor"
+  },
+  "qs_live_title": {
+    "message": "Transcripción en vivo (opcional)"
+  },
+  "qs_live_sub": {
+    "message": "{p} no tiene interfaz en vivo. La transcripción en vivo de vídeos/podcasts y «Conversación · intérprete en vivo» de la app la necesitan: añade una clave de {live} y listo; si la dejas vacía, la transcripción va en modo de archivo completo."
+  },
+  "qs_get_live_key": {
+    "message": "¿Sin clave? Consíguela en {live} ↗"
+  },
+  "qs_live_privacy": {
+    "message": "La transcripción en vivo envía el audio de la página a {liveHost} para reconocerlo y lo descarta después."
+  },
+  "qs_untouched_live": {
+    "message": "— sin cambios · ya tienes un motor con interfaz en vivo ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "(reemplazó a {cur}, que no tenía interfaz en vivo; ahora la incluye)"
+  },
+  "qs_live_ok": {
+    "message": "(incluye interfaz en vivo)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine} no tiene interfaz en vivo: añade una arriba cuando la necesites ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· en vivo"
+  },
+  "grant_live_go": {
+    "message": "Añadir motor en vivo →"
+  },
   "qs_apply": {
     "message": "Configurar traducción, lectura y transcripción"
   },
