@@ -2386,6 +2386,18 @@
   "grant_page_halt_ours": {
     "message": "मुफ़्त क्रेडिट अभी उपलब्ध नहीं (आपका ख़त्म नहीं हुआ) — आगे कैसे बढ़ें, देखने के लिए टैप करें"
   },
+  "auth_page_halt": {
+    "message": "प्रदाता ने यह कुंजी अस्वीकार कर दी (HTTP 401/403) — जाँचने के लिए टैप करें",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "सेटिंग्स खोलें",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "प्रदाता ने यह कुंजी अस्वीकार कर दी (HTTP 401/403)। जाँचें कि कुंजी सही है और इस मॉडल की अनुमति है।",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "मुफ़्त क्रेडिट सिर्फ़ तय मॉडल के साथ चलता है — वापस करने के लिए टैप करें"
   },

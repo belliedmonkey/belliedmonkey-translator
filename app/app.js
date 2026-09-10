@@ -78,6 +78,7 @@
     if (code === 'grant_invalid') return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
     if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「详细」里改过模型 —— 改回去，或者填一把自己的 key。');
     if (code === 'busy') return t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
+    if (code === 'auth') return t('auth_err_key', '服务商拒绝了这把 key（HTTP 401/403）。检查 key 是否填对、有没有这个模型的权限。');
     const msg = String((e && e.message) || e);
     if (/invalid login credentials/i.test(msg)) return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (/expired|invalid|otp/i.test(msg)) return codeBad();

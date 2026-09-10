@@ -317,13 +317,20 @@ var TranslationCore = (() => {
   // 只分两句，不是七句。这一行只有一行的地方，「是不是你的问题」比「具体哪种原因」
   // 重要得多：说错方向会让用户去查自己的账户，而那边根本没有问题。
   // 七句完整的解释在设置页那张卡上，点过去就看得到。
-  function grantHaltMessage(code) {
+  function haltMessage(code) {
     if (!code) return '';
     if (code === 'credit_exhausted') {
       return i18n('grant_page_halt', '免费额度已用完 —— 点此看怎么继续');
     }
+    // key 被服务商拒绝（401/403，第八期）：第三句，方向是「去检查 key」，不是额度。
+    if (code === 'auth') {
+      return i18n('auth_page_halt', '这把 key 被服务商拒绝了（HTTP 401/403）—— 点此检查');
+    }
     return i18n('grant_page_halt_ours', '免费额度暂时用不了（不是你用完了）—— 点此看怎么继续');
   }
+  const grantHaltMessage = haltMessage;   // 旧名保留：verify-grant.js 与 grant-errors.test.js 在用
+  // 停机码 → 设置页锚点。额度那一族去快速卡（#grant），key 被拒去引擎块（#engine）。
+  function haltAnchor(code) { return code === 'auth' ? '#engine' : '#grant'; }
 
   // ─── Generic translation engine: per-unit state machine + retry ───────
   // units: [{text, ...payload}]. The engine adds `tr` (the translation) plus private
@@ -465,8 +472,8 @@ var TranslationCore = (() => {
           it._tries = 0;
           if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
-          // 额度用完 / 池子空了：整台引擎停机，不再计重试次数（§8.10）。
-          if (e && e.grant) {
+          // 额度用完 / 池子空了 / key 被拒：整台引擎停机，不再计重试次数（§8.10 / 第八期）。
+          if (e && (e.grant || e.halt)) {
             halted = true; it._err = true; it._tries = 0;
             if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
             return;
@@ -577,7 +584,7 @@ var TranslationCore = (() => {
   }
 
   return {
-    grantHaltMessage,
+    grantHaltMessage, haltMessage, haltAnchor,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,

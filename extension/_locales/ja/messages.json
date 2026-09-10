@@ -2554,6 +2554,18 @@
   "grant_page_halt_ours": {
     "message": "無料クレジットは今使えません（あなたが使い切ったのではありません）— 続け方はこちら"
   },
+  "auth_page_halt": {
+    "message": "このキーは提供元に拒否されました（HTTP 401/403）— タップして確認",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "設定を開く",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "提供元がこのキーを拒否しました（HTTP 401/403）。キーが正しいか、このモデルの権限があるか確認してください。",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "無料クレジットは指定モデルでのみ動きます — タップして戻す"
   },

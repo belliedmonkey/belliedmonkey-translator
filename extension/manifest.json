@@ -101,6 +101,7 @@
         "content/providers.gen.js",
         "content/langs.gen.js",
         "content/stt.gen.js",
+        "learn/telemetry.js",
         "content/translation-core.js",
         "content/lang-detect.js",
         "content/engine-state.js",

@@ -42,7 +42,7 @@ var WebpageTranslator = (() => {
       onFail: (e) => {
         // 免费额度停机（§8.10）。记下**码**而不是布尔：「你用完了」与「我们的池子空了」
         // 在页面上要说两句不同的话，而后者说错会让用户去查自己的账户。
-        if (e && e.grant && typeof e.code === 'string') grantHalt = e.code;
+        if (e && (e.grant || e.halt) && typeof e.code === 'string') grantHalt = e.code;
         if (!(typeof MTTelemetry !== 'undefined')) return;
         MTTelemetry.track('translate_fail', {
           provider: String(settings.provider || ''),
@@ -633,7 +633,7 @@ var WebpageTranslator = (() => {
   // 文案挑选在 TranslationCore 里**只有一份**（字幕叠层要说同一句话）。
   // 这里只负责「有没有停机」这一个位。与普通失败的区别不只是文案，更是**动作**：
   // 重试在这里没有意义（额度用完了，重试多少次都一样），所以点击去的是设置页那张卡。
-  const grantNotice = () => (grantHalt ? TranslationCore.grantHaltMessage(grantHalt) : null);
+  const grantNotice = () => (grantHalt ? TranslationCore.haltMessage(grantHalt) : null);
 
   function renderUnit(u, st) {
     const node = u.node;
@@ -654,7 +654,7 @@ var WebpageTranslator = (() => {
         // 在**点击这个手势里**开设置页。不走 sendMessage —— Safari iOS 上后台
         // service worker 锁屏后会永久 undefined（项目说明里的 Critical Safari Bug 一节），
         // 而这条出口恰恰是用户已经卡住之后才会点的。
-        ? () => { try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {} }
+        ? () => { try { window.open(chrome.runtime.getURL('options/options.html') + TranslationCore.haltAnchor(grantHalt), '_blank'); } catch (_) {} }
         : () => { engine.retry(u); u._shownKey = ''; };
       return;
     }

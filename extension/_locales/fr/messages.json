@@ -2554,6 +2554,18 @@
   "grant_page_halt_ours": {
     "message": "Crédit gratuit indisponible pour l'instant (ce n'est pas vous) — appuyez pour voir comment continuer"
   },
+  "auth_page_halt": {
+    "message": "Cette clé a été refusée par le fournisseur (HTTP 401/403) — appuyez pour la vérifier",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Ouvrir les réglages",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "Le fournisseur a refusé cette clé (HTTP 401/403). Vérifiez qu'elle est correcte et autorisée pour ce modèle.",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "Le crédit gratuit ne marche qu’avec son modèle imposé — appuyez pour le remettre"
   },

@@ -23,12 +23,22 @@ const path = require('path');
 const { launchChrome } = require('../test/layout/chrome.js');
 const { CDP } = require('../test/layout/cdp.js');
 
+const { sandboxDist } = require('./lib/dist-sandbox.js');
+
 const DIST = process.argv[2] || path.join(__dirname, '..', 'dist');
 const MARK = '【译文到达】';
+// 第六幕的开关：置真之后 /v1/chat/completions 一律回 401（一把错的 key）。
+const mode = { auth401: false };
+// 遥测桩收到的事件（telemetry-design §8：translate_ok 真的到达，且没有 URL / 文本字段）。
+const ingest = [];
 
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>smoke</title></head>
 <body><p id="p1">Spaced repetition is an evidence-based learning technique.</p>
 <p id="p2">The forgetting curve describes how memory fades over time.</p></body></html>`;
+// 第六幕用的单段页：401 停机时同批在飞的请求各自也拒绝，多段页面会得到「几条」
+// translate_fail 而不是「一条」—— 单段页把断言钉死成恰好一条。
+const ONE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>one</title></head>
+<body><p id="only">A single paragraph is enough to prove the engine stopped.</p></body></html>`;
 
 // 端点**故意不带** Access-Control-Allow-Origin：这正是用户那个企业网关的形状。
 // 直连会被浏览器挡在预检那一步，只有走扩展后台才通得过 —— 于是这个 fixture 同时
@@ -36,17 +46,37 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 // 陷阱被打中的记录。数组而不是布尔：打中时要能说出**当时发了哪些字段**，
 // 「多发了一个」和「整套乐观请求体又回来了」是两种不同的回归。
 const trapHits = [];
+// 第六幕里 401 端点收到的请求正文（按段落文本）—— 停机的判据是同一段不被请求第二次。
+const chatSeen = [];
 
 function serve() {
   return new Promise((resolve) => {
     const srv = http.createServer((req, res) => {
       if (req.method === 'OPTIONS') { res.writeHead(403); res.end('nope'); return; }
+      // 遥测桩：内容脚本从页面 origin 直接 POST（text/plain，简单请求），端点回 ACAO:*。
+      if (req.url.startsWith('/functions/v1/bt-ingest')) {
+        let body = '';
+        req.on('data', (d) => { body += d; });
+        req.on('end', () => {
+          try { for (const e of JSON.parse(body)) ingest.push(e); } catch (_) {}
+          res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+          res.end(JSON.stringify({ accepted: ingest.length }));
+        });
+        return;
+      }
+      if (req.url.startsWith('/one.html')) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(ONE); return; }
       if (req.url.startsWith('/v1/chat/completions')) {
         let body = '';
         req.on('data', (d) => { body += d; });
         req.on('end', () => {
           let parsed = {};
           try { parsed = JSON.parse(body); } catch (_) {}
+          if (mode.auth401) {
+            chatSeen.push(((parsed.messages || []).slice(-1)[0] || {}).content || '');
+            res.writeHead(401, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ error: { message: 'Incorrect API key provided: bad-key', type: 'invalid_request_error', code: 'invalid_api_key' } }));
+            return;
+          }
           // 这条 400 是**一个永远不该被打中的陷阱**。
           //
           // 它以前是相反的意思：带 temperature 就拒，靠请求体协商让掉再发才拿得到
@@ -98,13 +128,15 @@ async function evalIn(cdp, sessionId, expression, contextId) {
 (async () => {
   const srv = await serve();
   const base = `http://127.0.0.1:${srv.address().port}`;
+  // 装的是 dist/ 的副本：遥测端点指到本机桩并允许自动化 —— 线上产物永远没有这个字段。
+  const RUN_DIST = sandboxDist(DIST, { telemetry: { url: `${base}/functions/v1/bt-ingest` } });
   const chrome = await launchChrome();
   const cdp = await CDP.connect(chrome.port);
   const problems = [];
   const notes = [];
 
   try {
-    const loaded = await cdp.send('Extensions.loadUnpacked', { path: DIST });
+    const loaded = await cdp.send('Extensions.loadUnpacked', { path: RUN_DIST });
     const extId = loaded && loaded.id;
     if (!extId) throw new Error('Extensions.loadUnpacked 没有回 id');
     // 装的到底是哪个版本 —— 一天下来「你测的是哪版」问了三次，让产物自己说。
@@ -564,6 +596,22 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       if (d.bodyKeys && d.bodyKeys.some((k) => k !== 'model' && k !== 'messages')) {
         problems.push(`表外端点收到了可选字段: ${d.bodyKeys.join(',')} —— 最小必要集只该有 model 与 messages`);
       }
+
+      // ── 4b. 遥测真的到达了吗（telemetry-design §8 —— 这条承诺此前只写在文档里）────
+      // track() 只入队，满 10 条或 60 s 才自己 flush；这里显式 flush，不等定时器。
+      await evalIn(cdp, sessionId, `MTTelemetry.flush()`, ctxId);
+      let okEv = null;
+      for (let i = 0; i < 40 && !okEv; i++) {
+        okEv = ingest.find((e) => e.name === 'translate_ok' && e.props && e.props.kind === 'page');
+        if (!okEv) await sleep(200);
+      }
+      if (!okEv) problems.push(`遥测桩没有收到 translate_ok{kind:page}（收到的: ${ingest.map((e) => e.name).join(',') || '无'}）—— <all_urls> 那块 content_scripts 没带 learn/telemetry.js？`);
+      else {
+        const flat = JSON.stringify(okEv);
+        if (/http|@|Spaced repetition|forgetting curve/i.test(flat.replace(okEv.install_id || '', ''))) {
+          problems.push(`translate_ok 事件里带了 URL / 邮箱 / 页面文本: ${flat.slice(0, 200)}`);
+        } else notes.push(`遥测: translate_ok{kind:page} 到达（host ${okEv.host}, v ${okEv.v}），无 URL / 文本字段`);
+      }
     }
 
     // ── 5. 先翻译、**后**打开采集 —— 交接块引导的正是这条路 ────────────────
@@ -613,10 +661,88 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       }
     }
     offCtx();
+
+    // ── 6. 一把错的 key：401 ⇒ 引擎停机、页面说「key 被拒」、点了去引擎块（第八期）────
+    //
+    // 起因：5 天里 308 条 translate_fail 来自同一台机器 —— 401，每段砸一次，界面上没有
+    // 一个出口。判据照 verify-grant.js：停机 = 同一段不被请求第二次；文案 = 与共享的
+    // haltMessage('auth') 逐字相同、且没有段落退回普通重试句；落点 = 点击打开的 URL 以
+    // options.html#engine 结尾（window.open 打桩读回）；遥测 = translate_fail{auth} 恰好
+    // 一条（单段页）且停机后不再增长。
+    if (swSession) {
+      mode.auth401 = true;
+      const t6 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+      const s6 = (await cdp.send('Target.attachToTarget', { targetId: t6.targetId, flatten: true })).sessionId;
+      const iso6 = new Set();
+      const off6 = cdp.on('Runtime.executionContextCreated', (p, sid) => {
+        if (sid === s6 && p.context.auxData && p.context.auxData.type === 'isolated') iso6.add(p.context.id);
+      });
+      await cdp.send('Page.enable', {}, s6);
+      await cdp.send('Runtime.enable', {}, s6);
+      await cdp.send('Page.navigate', { url: `${base}/one.html` }, s6);
+      let c6 = null;
+      for (let i = 0; i < 80 && !c6; i++) {
+        for (const id of [...iso6].reverse()) {
+          try { if (await evalIn(cdp, s6, "typeof WebpageTranslator === 'object'", id)) { c6 = id; break; } } catch (_) {}
+        }
+        if (!c6) await sleep(150);
+      }
+      if (!c6) problems.push('第六幕：内容脚本从未就绪');
+      else {
+        await evalIn(cdp, s6, `window.__mtOpened = ''; window.open = (u) => { window.__mtOpened = String(u); return null; }; true`, c6);
+        await evalIn(cdp, s6, `WebpageTranslator.enable(${JSON.stringify({
+          provider: 'custom_chat', apiKey: 'bad-key',
+          apiBaseUrl: `${base}/v1/chat/completions`, apiModel: 'smoke-model', targetLang: 'zh-CN',
+        })}); true`, c6);
+        const want = await evalIn(cdp, s6, "TranslationCore.haltMessage('auth')", c6);
+        const plain = await evalIn(cdp, s6, 'TranslationCore.MSG.error', c6);
+        let shown = [];
+        for (let i = 0; i < 60; i++) {
+          shown = await evalIn(cdp, s6, `[...document.querySelectorAll('.mt-translation')].map(e => e.textContent)`, c6) || [];
+          if (shown.some((x) => x === want)) break;
+          await sleep(200);
+        }
+        // 再给引擎几拍：不停机的话这几拍里就会出现重复请求。
+        await sleep(2500);
+        const dup = new Map();
+        for (const x of chatSeen) dup.set(x, (dup.get(x) || 0) + 1);
+        const repeated = [...dup.entries()].filter(([, n]) => n > 1);
+        if (!chatSeen.length) problems.push('第六幕：401 端点一次请求都没收到 —— 这一幕什么也没证明');
+        else if (repeated.length) problems.push(`401 之后还在重试：${repeated.length} 段被请求了多次（最多 ${Math.max(...repeated.map(([, n]) => n))} 次）—— 引擎没停机`);
+        else notes.push(`401 停机：${chatSeen.length} 次请求覆盖 ${dup.size} 段，没有任何一段被重试`);
+        if (!want || want === plain) problems.push('auth 的停机文案与普通失败文案相同，或者是空的');
+        if (!shown.some((x) => x === want)) problems.push(`页面上没有 auth 那一行。期望 ${JSON.stringify(want)}，实际 ${JSON.stringify(shown.slice(0, 3))}`);
+        else notes.push('页面上显示了「key 被拒」那一行，与共享文案逐字相同');
+        if (shown.some((x) => x === plain)) problems.push('401 之后还有段落显示普通「翻译失败，点此重试」—— 重试同一把错 key 没有意义');
+        const opened = await evalIn(cdp, s6, `(() => { const el = [...document.querySelectorAll('.mt-translation')].find(e => e.textContent === ${JSON.stringify(want)}); if (el) el.click(); return window.__mtOpened; })()`, c6);
+        if (!/options\/options\.html#engine$/.test(String(opened))) problems.push(`点击停机行打开的是 ${JSON.stringify(opened)}，期望 …options/options.html#engine`);
+        else notes.push('点击停机行 → options.html#engine');
+        // 遥测：距上一次 flush 要 > 5 s（软锁），否则这次 flush 被推回定时器。
+        await sleep(5200);
+        await evalIn(cdp, s6, `MTTelemetry.flush()`, c6);
+        let fails = [];
+        for (let i = 0; i < 40; i++) {
+          fails = ingest.filter((e) => e.name === 'translate_fail' && e.props && e.props.code === 'auth');
+          if (fails.length) break;
+          await sleep(200);
+        }
+        if (fails.length !== 1) problems.push(`translate_fail{code:auth} 收到 ${fails.length} 条，单段页期望恰好 1 条（status ${fails.map((e) => e.props.status).join(',')}）`);
+        else if (fails[0].props.status !== 401) problems.push(`translate_fail{auth} 的 status 是 ${fails[0].props.status}，期望 401`);
+        else notes.push('遥测: translate_fail{code:auth,status:401} 恰好一条');
+        await sleep(5200);
+        await evalIn(cdp, s6, `MTTelemetry.flush()`, c6);
+        await sleep(600);
+        const later = ingest.filter((e) => e.name === 'translate_fail' && e.props && e.props.code === 'auth').length;
+        if (later !== fails.length) problems.push(`停机后 translate_fail{auth} 还在增长：${fails.length} → ${later}`);
+      }
+      off6();
+      mode.auth401 = false;
+    }
   } finally {
     try { await cdp.close(); } catch (_) {}
     chrome.cleanup();
     srv.close();
+    try { require('fs').rmSync(RUN_DIST, { recursive: true, force: true }); } catch (_) {}
   }
 
   if (trapHits.length) {
@@ -631,5 +757,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文，全通（通路：扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文 → 遥测到达 → 401 停机带出口，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });

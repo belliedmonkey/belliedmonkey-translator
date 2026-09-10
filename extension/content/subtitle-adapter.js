@@ -174,6 +174,8 @@ var SubtitleAdapter = (() => {
 
     const pager = TranslationCore.createPager({ measurerId: ID.meas });
     let subOkSent = false, subSince = 0;
+    let haltCode = '';   // 本会话最后一次停机码（额度 / key 被拒）—— 与 content-webpage 同一份文案
+    const openHaltSettings = () => { try { window.open(chrome.runtime.getURL('options/options.html') + TranslationCore.haltAnchor(haltCode), '_blank'); } catch (_) {} };
     const engine = TranslationCore.createSubtitleEngine({
       getCurrentTime: () => spec.getCurrentTime(),
       onOk: () => {
@@ -182,6 +184,7 @@ var SubtitleAdapter = (() => {
         MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
       },
       onFail: (e) => {
+        if (e && (e.grant || e.halt) && typeof e.code === 'string') haltCode = e.code;
         if (!(typeof MTTelemetry !== 'undefined')) return;
         MTTelemetry.track('translate_fail', {
           provider: String((settings && settings.provider) || ''),
@@ -252,8 +255,10 @@ var SubtitleAdapter = (() => {
       else if (zh) { zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || window.MT_PALETTE.ytTextColor); zhEl.textContent = zh; }
       else if (state === 'error') {
         zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
-        zhEl.textContent = TranslationCore.MSG.error;
-        zhEl.onclick = () => { engine.retry(sentence); lastShownKey = ''; };
+        // 停机（额度用完 / key 被拒）时重试没有意义 —— 这一行说停机那句，点了去设置页。
+        const halt = haltCode ? TranslationCore.haltMessage(haltCode) : '';
+        zhEl.textContent = halt || TranslationCore.MSG.error;
+        zhEl.onclick = halt ? openHaltSettings : () => { engine.retry(sentence); lastShownKey = ''; };
       } else if (state === 'pending') {
         zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
         zhEl.textContent = TranslationCore.MSG.preparing;
@@ -381,8 +386,10 @@ var SubtitleAdapter = (() => {
               try { LearnCollector.noteSubtitle({ text: u.text, tr: st.translation, startMs: u.start, endMs: u.end, mediaKey: spec.mediaKey ? spec.mediaKey() : '' }); } catch (_) {}
             }
           } else if (st.state === 'error') {
-            r.trans.style.cssText = historyLine('#ffb3b3', false) + 'cursor:pointer;pointer-events:auto;'; r.trans.textContent = TranslationCore.MSG.error;
-            r.trans.onclick = () => { engine.retry(u); r.state = null; };
+            r.trans.style.cssText = historyLine('#ffb3b3', false) + 'cursor:pointer;pointer-events:auto;';
+            const halt = haltCode ? TranslationCore.haltMessage(haltCode) : '';
+            r.trans.textContent = halt || TranslationCore.MSG.error;
+            r.trans.onclick = halt ? openHaltSettings : () => { engine.retry(u); r.state = null; };
           } else {
             r.trans.style.cssText = historyLine('#d6d6d6', true); r.trans.textContent = TranslationCore.MSG.preparing;
           }

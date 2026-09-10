@@ -490,7 +490,9 @@
       sendResponse({ ok });
     }
   });
-})();
 
-// 用量事件：每个自然日一次心跳（只入队；扩展页打开时统一发送）。
-try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init(); } catch (_) {}
+  // 用量事件：首装一条 installed、每个自然日一次心跳；入队后满 10 条或 60 s 自己 flush
+  // （内容脚本从页面 origin 直接 POST，端点回 ACAO:*，不带任何 key）。放在重入守卫**之内**：
+  // Safari 同帧二次注入时两个并发 init() 在首装/日切那一刻会各写一条（2026-09-10 评审）。
+  try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init(); } catch (_) {}
+})();

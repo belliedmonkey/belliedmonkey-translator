@@ -2555,6 +2555,18 @@
   "grant_page_halt_ours": {
     "message": "免費額度暫時用不了（不是你用完了）—— 點此看怎麼繼續"
   },
+  "auth_page_halt": {
+    "message": "這把 key 被服務商拒絕了（HTTP 401/403）—— 點此檢查",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "去設定",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "服務商拒絕了這把 key（HTTP 401/403）。檢查 key 是否填對、有沒有這個模型的權限。",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "免費額度只能用它指定的模型 —— 點這裡改回去"
   },
