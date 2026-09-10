@@ -208,12 +208,31 @@ Gemini and Meta are measured the same way before their entries ship.
 
 1. **User-initiated only. Never automatic.** Nothing is captured, fetched or sent until
    the user taps the offer — a button inside the `字幕不可用` notice, or the popup's
-   「转写音频字幕」 action (shown only when the page has a media element ≥ 30 s long).
-   The offer states the per-minute cost. A decorative `<video>` never surfaces subtitle
+   「实时转写 + 翻译」 action. A decorative `<video>` never surfaces subtitle
    UI (`docs/regression-tests.md` §4) — the popup action is the *only* entry for a
    video with no transcript hint, so `drivesPodcast()` is unchanged. After any stop the
    offer must be tapped again; there is no auto-restart (a media-key flap must not
    restart a paid session).
+   *Amended 2026-09-11 (第九期 — the entry was too deep):* the popup action is shown
+   **whenever the page has any media element** — including one inside an open shadow
+   root and one whose metadata has not loaded yet (`duration` NaN) — because opening
+   the popup and tapping the row *is* the user's initiative; the ≥ 30 s gate stays only
+   on the in-notice offer (which appears on its own). When no element is found the row
+   still exists and says so (「没找到正在播放的视频/音频」) instead of vanishing: a
+   silent absence was the bug the users reported (「明明有视频却什么都没有」). Media
+   lookup is **one shared module** (`content/media-finder.js`) used by every subtitle
+   backend and by `getPageStatus`: it walks open shadow roots (the same traversal
+   `DomSegmenter` already performs for text), waits up to 3 s for `loadedmetadata`
+   when asked to start, and picks *playing › live (`duration === Infinity`) › longest
+   › metadata-less › first*. A player inside an **iframe** is reported by a
+   lightweight `all_frames` probe (`content/media-probe.js`, duration / playing /
+   frame `href` only, never page content) so the popup can offer 「在新标签页打开播放器」;
+   the probe never starts a session — the subtitle stack stays top-frame-only.
+   The in-notice offer appears from the **first** failed acquire attempt (inside the
+   `⏳ 字幕加载中…` line, ≈ 2.5 s) rather than after six; once acquisition settles the
+   line is `字幕不可用` + offer as before. On YouTube the popup action dispatches to
+   the YouTube backend only — there is no fall-through to the podcast backend (it is
+   never initialised there).
 2. **Tier A — file mode — is the baseline, and it obeys §2.1 rule 1 literally.** When
    the media has a fetchable `http(s)` URL, the whole file is fetched and transcribed
    *once*; the complete timed transcript arrives before it is used, exactly like a VTT.
@@ -660,6 +679,14 @@ departure from rule 3: because the user *tapped* for this, the degradation is
 in" outranks rule 3's silence, which was written for automatic sharpening nobody asked
 for. iOS native HLS (`src=.m3u8`) is expected to yield silence from Web Audio and is a
 matrix row, not an assumption.
+*2026-09-11:* Safari (both) requires the `AudioContext` to be created **inside a user
+gesture in the page**; the toolbar popup is a gesture in the popup, not in the page, so
+a popup-started live session on Safari cannot capture. The adapter therefore treats
+`AudioContext.state !== 'running'` after attach as a named stop (`gesture`) and the
+notice offer becomes 「▶ 点此开始实时转写」 — one more tap, inside the page, and the
+same `start()` runs with the gesture. This is a capability check, not a UA check: it
+never fires inside a real gesture, and it would catch Chrome's autoplay policy the same
+way. Tier A (file mode) needs no AudioContext and starts from the popup on every surface.
 
 > **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
 > other two: DEVICE and SITE change *where* things are drawn, whereas this one can
@@ -898,7 +925,13 @@ is a build-time concern, not a runtime one.
   derivations: `https://…/interactions` → `wss://…/BidiGenerateContent` has no regular
   mapping, and inventing one would be the `defaultBase + path` mistake again. A
   user-supplied `sttBaseUrl` overrides the file endpoint only; the live socket stays the
-  registry's (v1). Its sibling `content/request-shape.js` answers the question that is left
+  registry's (v1). *2026-09-11:* "which transcription engine in this flavor has a live
+  interface" is **derived** from the presence of `liveEndpoint` + `liveType` — no
+  `live: true` flag, no second list — so the one-key card's optional 「实时转写」 row,
+  the `· 实时` suffix in the engine dropdown and the popup's `file_only` state all read
+  the same two fields. OpenRouter has no realtime endpoint (checked 2026-09-10: only
+  `POST /api/v1/audio/transcriptions`), which is why the global one-key platform needs
+  a second key for live transcription rather than a second entry. Its sibling `content/request-shape.js` answers the question that is left
   once the shape is fixed — **which optional fields go in the body** — and the same
   four transports go through that one instead of each carrying its own copy (two of
   them used to, character for character, comments included).

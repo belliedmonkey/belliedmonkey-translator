@@ -265,8 +265,10 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   bilingual pair follows playback, one upload per ≤ 6 MB slice, no per-sentence requests to
   the STT endpoint. With no engine configured the button reads 「先在设置里选择转写引擎」 and
   opens settings. A decorative `<video>` still surfaces nothing (below); the popup's
-  「🎙 转写音频字幕」 row is the only entry there and appears only when the page's media is
-  ≥ 30 s long.
+  「🎙 实时转写 + 翻译」 row is the only entry there and (since 2026-09-11) is shown whenever
+  the page has any media element — inside open shadow roots too, metadata loaded or not;
+  with no element found the row stays and says 「没找到正在播放的视频/音频」 rather than
+  disappearing. The in-notice offer appears from the first failed acquire (≈ 2.5 s).
 - [ ] **AI 转写字幕 — live tier stops are visible, never silent.** On a YouTube video with
   captions disabled (MSE ⇒ live tier): tap the offer → 「● 实时转写中」 → the overlay shows
   words as they are spoken with a provisional translation ending in `…`, and the
