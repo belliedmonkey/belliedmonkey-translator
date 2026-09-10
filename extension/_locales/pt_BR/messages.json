@@ -2554,6 +2554,18 @@
   "grant_page_halt_ours": {
     "message": "Crédito gratuito indisponível agora (não foi você) — toque para ver como continuar"
   },
+  "auth_page_halt": {
+    "message": "Esta chave foi recusada pelo provedor (HTTP 401/403) — toque para verificar",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Abrir configurações",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "O provedor recusou esta chave (HTTP 401/403). Verifique se ela está correta e tem permissão para este modelo.",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "O crédito gratuito só funciona com o modelo fixado — toque para voltar"
   },

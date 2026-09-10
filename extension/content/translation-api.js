@@ -199,6 +199,21 @@ Rules:
 
   // `diag` 是可选的诊断出参（设置页的「测试连接」传它）。放在这里而不是改返回值：
   // 返回值是 Response，四个适配器都在解它；而「走了哪条路」只有这一层知道。
+  // 这次请求带了「真正的、用户自己的」key 吗。判据是头部**值非空**（RequestShape 空 key
+  // 也会发 `Bearer `）且不是免费额度令牌（`bmg_` 前缀：中继会把上游 401 原样透传，那不是
+  // 用户的 key 被拒，把人送去改一把不存在的 key 是错的方向）。免费 Google 通道不带任何
+  // 头，所以它的 4xx 永远不会被判成 auth。
+  function sentRealKey(opts) {
+    const h = (opts && opts.headers) || {};
+    for (const k of Object.keys(h)) {
+      const v = String(h[k] == null ? '' : h[k]).trim();
+      const lk = k.toLowerCase();
+      if (lk === 'authorization') { if (/^bearer\s+\S/i.test(v) && !/^bearer\s+bmg_/i.test(v)) return true; continue; }
+      if ((lk === 'x-api-key' || lk === 'x-goog-api-key') && v) return true;
+    }
+    return false;
+  }
+
   async function apiFetch(url, opts, label, diag) {
     let resp;
     let usedRoute = null;
@@ -255,6 +270,12 @@ Rules:
       const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
         ? WireFormat.grantError(resp.status, raw) : '';
       if (gcode) { e.code = gcode; e.grant = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e; }
+      // key 被服务商拒绝（2026-09-10，第八期）：401/403 且请求带了用户自己的 key。与额度
+      // 用完同一套停机 —— 5 天里 308 条 401 来自同一台机器，每个段落砸一次，界面上没有
+      // 一个「key 被拒了」的出口。`halt` 是引擎停机位，`grant` 仍只给额度那一族。
+      if ((resp.status === 401 || resp.status === 403) && sentRealKey(opts)) {
+        e.code = 'auth'; e.halt = true; e.retryable = false; e.url = url; e.serverMessage = said; e.route = usedRoute; throw e;
+      }
       // `code`/`url` are for the settings page's engine self-check: without a code it
       // fell through to the raw message, so a 404 never got the "the endpoint URL or
       // the model name is wrong" hint the learning engines already had.
@@ -594,5 +615,5 @@ Rules:
   // 判据在这里，不在调用方，因为 providerById 读的是同一份注册表生成物。
   const needsKey = (provider) => !!(EngineState.entry({ provider }) || {}).needsKey;
 
-  return { translate, defaultProvider, resolveProvider, needsKey, serverSays, LANG_NAMES };
+  return { translate, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES };
 })();

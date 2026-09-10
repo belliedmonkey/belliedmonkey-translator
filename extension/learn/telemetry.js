@@ -22,10 +22,16 @@ var MTTelemetry = (() => {
   let flushTimer = null;
 
   function spec() {
+    let sp = null;
+    try { sp = (typeof window !== 'undefined' && window.MT_TELEMETRY) || null; } catch (_) { return null; }
+    if (!sp) return null;
+    // 门禁把端点指到本机桩、并注入 allowAutomation 之后，自动化里也要发 —— 那正是 smoke
+    // 断言「translate_ok 真的到达」要看的东西（telemetry-design §8）。线上产物永远没有这个字段。
+    if (sp.allowAutomation === true) return sp;
     // 自动化里的浏览器（门禁、语料、真机驱动）不算用户：headless / CDP 驱动的 Chrome 会把
     // navigator.webdriver 置真。不加这一条，每跑一次 test:app 就往表里写两行。
     try { if (typeof navigator !== 'undefined' && navigator.webdriver === true) return null; } catch (_) {}
-    try { return (typeof window !== 'undefined' && window.MT_TELEMETRY) || null; } catch (_) { return null; }
+    return sp;
   }
   function storage() {
     try { return chrome.storage && chrome.storage.local; } catch (_) { return null; }
@@ -136,7 +142,16 @@ var MTTelemetry = (() => {
   }
 
   // ── 入队 / 发送 ─────────────────────────────────────────────────────────────
-  async function track(name, props, now) {
+  // 同一页面里的入队串行化：队列是「读-改-写」，两条 track 交错会互相覆盖（页面上
+  // translate_fail 一段一条，401 那种一拍五条并发正好撞上）。跨标签页的交错仍在 ——
+  // storage 没有原子操作，那部分由日聚合的 count(distinct install_id) 吸收。
+  let trackChain = Promise.resolve();
+  function track(name, props, now) {
+    const run = trackChain.then(() => trackOne(name, props, now), () => trackOne(name, props, now));
+    trackChain = run.catch(() => {});
+    return run;
+  }
+  async function trackOne(name, props, now) {
     try {
       if (!(await enabled())) return false;
       const e = shape(name, props, now);

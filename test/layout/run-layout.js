@@ -443,8 +443,9 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
   // Load a per-run COPY of dist/: unpacked extensions live-read their load path, so
   // a concurrent `node build.js` (second suite run, another worktree) would swap
   // files under a running Chrome mid-fixture.
-  const runDist = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mt-layout-dist-'));
-  fs.cpSync(DIST, runDist, { recursive: true });
+  // 遥测 url 置空：<all_urls> 之后每个 fixture 都会入队并自己 flush，headed 跑法
+  // （webdriver 为假）会把事件打进线上表（scripts/lib/dist-sandbox.js）。
+  const runDist = require('../../scripts/lib/dist-sandbox.js').sandboxDist(DIST, { telemetry: false });
 
   let chrome, cdp;
   const results = [];

@@ -2554,6 +2554,18 @@
   "grant_page_halt_ours": {
     "message": "Бесплатный лимит сейчас недоступен (дело не в вас) — нажмите, чтобы узнать, как продолжить"
   },
+  "auth_page_halt": {
+    "message": "Провайдер отклонил этот ключ (HTTP 401/403) — нажмите, чтобы проверить",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Открыть настройки",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "Провайдер отклонил этот ключ (HTTP 401/403). Проверьте, что ключ верный и у него есть доступ к этой модели.",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "Бесплатный лимит работает только с закреплённой моделью — нажмите, чтобы вернуть"
   },

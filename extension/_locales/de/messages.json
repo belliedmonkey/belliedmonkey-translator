@@ -2554,6 +2554,18 @@
   "grant_page_halt_ours": {
     "message": "Gratis-Guthaben gerade nicht verfügbar (nicht du bist am Ende) — tippen, um weiterzumachen"
   },
+  "auth_page_halt": {
+    "message": "Dieser Schlüssel wurde vom Anbieter abgelehnt (HTTP 401/403) – tippen, um ihn zu prüfen",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Einstellungen öffnen",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "Der Anbieter hat diesen Schlüssel abgelehnt (HTTP 401/403). Prüfe, ob er stimmt und für dieses Modell freigegeben ist.",
+    "description": "Settings/App error sentence for code auth"
+  },
   "grant_popup_model": {
     "message": "Gratis-Guthaben läuft nur mit dem festgelegten Modell — tippen zum Zurücksetzen"
   },

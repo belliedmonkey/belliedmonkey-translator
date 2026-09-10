@@ -1395,6 +1395,7 @@ async function init() {
     if (code === 'grant_invalid') return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
     if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「详细」里改过模型 —— 改回去，或者填一把自己的 key。');
     if (code === 'busy') return t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
+    if (code === 'auth') return t('auth_err_key', '服务商拒绝了这把 key（HTTP 401/403）。检查 key 是否填对、有没有这个模型的权限。');
     return (e && e.message) || t('sync_err_generic', '同步没能完成');
   }
 
@@ -1904,6 +1905,10 @@ async function init() {
     // 送过去只会滚到一片看不见的东西上 —— 那和送到页面顶部一样没用。
     '#grant': { sec: 'grant-card', before: () => { if (_quickAvailable) applyDetailMode(false); },
       focus: () => $('grant-box') && $('grant-box').querySelector('button, a') },
+    // key 被服务商拒绝（401/403，第八期）：页内那一行停机提示往这里送。引擎块是 .adv-only，
+    // 快速档下整块 hidden —— 不先切到详细，jump() 会读到一个 hidden 的节点然后直接返回。
+    '#engine': { sec: 'engine-card', before: () => applyDetailMode(true),
+      focus: () => $('api-key'), flash: () => $('api-key') && $('api-key').closest('.field') },
   };
   const target = ANCHORS[location.hash];
   if (target) {
