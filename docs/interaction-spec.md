@@ -365,6 +365,26 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 - Skip non-content regions and non-text (nav/header/footer/aside, buttons, code,
   scripts, hidden elements). Idempotent (never duplicate if injected twice).
 
+### 评分提示 — 译文末尾一行（2026-09-10）
+
+用户裁定：放在**译文末尾一行**，不是悬浮气泡、不是弹窗。
+
+- **出现条件**：这台装机**第 3 个成功翻译的页面会话**（`translate_ok` 的口径：一页一次，跨页累计，
+  键 `mtOkSessions`）之后；`mtRatingAskedAt` 为空或距今 ≥ 90 天；这个宿主有商店条目（`MTFeedback.rateUrl()`
+  非 null —— 中国版 Chrome/Firefox 永不出现）。同一页至多一次。
+- **位置**：挂在文档序**最后一个已译段落的原文节点之后**（后一个兄弟，不进原文盒子），随着翻译往下
+  推进而跟到新的最后一段之下 —— 它永远在用户刚读完的那一段下面，不遮内容、不 fixed、不打断。
+- **形状**：一句「觉得好用？去商店给个评分 →」+ 一个 ×。带 `translate="no"` 与 `data-mt-skip-region`
+  （自家 UI 的契约，见 §States）；样式继承译文字号，颜色来自注册表调色板。
+- **点句子**：在点击手势里**同步** `window.open(rateUrl)`（Safari → App Store `?action=write-review`，
+  Chrome → CWS reviews，Firefox → AMO reviews），然后写 `mtRatingAskedAt`、发 `rate_prompt{tap}`、移除。
+  **点 ×**：写 `mtRatingAskedAt`、发 `rate_prompt{dismiss}`、移除。挂上时发 `rate_prompt{shown}`。
+  点或关**一次即 90 天不再出**（与 App 侧 `maybeRequestRating` 共用同一个键与同一个冷却）。
+- **不动的**：弹窗 / 设置页 / 引导页的评分行仍是常驻链接（那是入口不是打扰）；App 侧「刷完一轮复习
+  ≥ 3 张」的系统评分弹窗照旧。
+- **为什么是 3 个页面而不是 3 句**：`translate_ok` 一页只发一次；只在一页上反复翻的人永远到不了 3，
+  提示只给「不止试了一次」的人。
+
 ### One unified path (incl. YouTube) — see [`domain-design.md`](domain-design.md)
 - All DOM — normal pages **and** YouTube title/description/comments — goes through
   the **single general `DomSegmenter`** (standard-HTML semantics, **no per-site
@@ -682,10 +702,18 @@ https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 。这里�
   再登录同一账号在卡上自动领回同一把（余额不变）；登另一账号 = 领它自己的。
 - **卡上的态只有一种来源**：`status()` ∈ none / unclaimed / active / replaced / low /
   exhausted / unavailable，判据是本机三个键 + 10 分钟缓存的余额；弹窗只读缓存、不发请求。
-- **余额低不打断阅读。** < $0.02 只在设置页一键卡与弹窗提示。**用完才在叠层出一句**：
-  网页未译段 / 字幕叠层 notice / 复习卡解析·朗读·转写各一句同文「免费额度已用完 — 点此
-  查看」，点击在手势内 `open(options.html#grant)`；引擎停机（首个 402 后不再发请求）。
-  自带 key 的 402 用另一句「这把 key 的余额不足 — 点此查看」，落到 `#quick`。
+- **余额低不打断阅读。** < $0.02 只在设置页一键卡与弹窗提示。
+- **停机提示 —— 额度用完与 key 被拒是同一种 UI，两个码、两句话、两个落点**（2026-09-10 改写，
+  原文写的 `#quick` 锚点从未存在过）：
+  - 引擎停机（`translation-core.js` 的 `halted`）由**两类**具名错误触发：额度类（`credit_exhausted` /
+    `grant_unavailable` / `model_not_allowed` …，来自中继）与 **`auth`**（HTTP 401/403 且请求带了非空、
+    非额度令牌的 key —— 这把 key 被服务商拒绝）。停机后未译单元当场置 error，不再发请求；`retry()` 解锁。
+  - **网页未译段**各一句、**字幕叠层**一条 `notice`（带「去设置」按钮，走现成的 `renderNotice(msg, action)`
+    —— 这条此前只写在规约里，代码没做）、复习卡解析·朗读·转写各一句：额度类是「免费额度已用完 — 点此
+    查看」（池子空了另有一句「不是你用完了」），`auth` 是「key 被服务商拒绝了（HTTP 401/403）— 点此检查」。
+  - 点击在手势内 `open(options.html#…)`：额度类落 **`#grant`**（快速卡），`auth` 落 **`#engine`**（详细档的
+    引擎块；锚点自带「先切到详细」的前置，否则那块是 hidden 的）。
+  - 免费 Google 通道不带 key，它的 401/403 不算 `auth`、不停机，仍是普通「翻译失败，点此重试」。
 - **「你用完了」与「我们的池子空了」是两句话。** 中继的状态码就是答案：402 = 用完 ⇒ 两条路
   并列，「一键配置自带 key ↗」（注册表 `keyUrl`）在前、「加入社群寻求帮助 ↗」（`COMMUNITY_URL`）
   在后；503 = 我们的池子空了 ⇒ 状态 `unavailable`，卡上明写「不是你用完了」，只给社群出口。
@@ -913,8 +941,18 @@ Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到
   高度链是断的，靠 `overflow` 会静默失效。判据是渲染坐标，不是 CSS 里写了什么。
 
 `#ext-banner` 说的是「材料来源没开」，**不是「你没登录」**——两件事不许混。它的出现
-条件是：没有别的视图开着、`browserSideOk === false`、引导没在进行中、且 `state.enabled`
-不为真。
+条件是：没有别的视图开着、`browserSideOk === false`、引导没在进行中、`state.enabled`
+不为真、**且用户没点过「我已打开」**（2026-09-10 加，键 `extBannerDoneAt`，UI 状态键，不进
+`settings.js KEYS`，同 `onboardSeen` 先例）。
+
+**iOS 形态（2026-09-10 重做）**：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人大多
+没把扩展打开，而横幅上 iOS 唯一能用的动作是一个次级按钮。改成：标题「Safari 扩展还没打开」+
+三步（与引导 `ext` 屏同一份文案与插图，容器另建，不搬 `#ob-steps` 那个节点）+ **填色主按钮
+「在 Safari 里打开扩展 →」**（开 `setup.html` 检测页，绿灯亮了自己收步骤）+ 次级链接**「我已打开」**
+（用户裁定：只有用户说了才收起 —— iOS 上 App 判不了，诚实的做法是由用户告诉我们）+ 一句灰字
+「不确定？打开检测页看绿灯 →」。macOS 形态不变（直达按钮 + fail-closed）。
+横幅在场时首页 `#review` 降为次级 —— 「每屏至多一个填色按钮」这条家规同样管首页，而扩展没开
+的人本来也没有复习材料。三个动作各发一条 `ext_banner`（telemetry-design §3.1）。
 
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player

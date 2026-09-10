@@ -1171,7 +1171,11 @@ is a build-time concern, not a runtime one.
 形状**。新增的具名错误：HTTP **402** → `credit_exhausted`（不可重试，引擎**停机**：首个
 402 之后未译单元直接置 error，不再发请求；`retry()` 解锁）—— 对自带 key 同样成立（余额
 不足的 key 也会 402），渲染器按 `EngineState.grantActive` 分两句话；**503** `grant_unavailable`
-（我们的池子空了，不是用户用完了）；**403** `model_not_allowed`。钉住的模型来自
+（我们的池子空了，不是用户用完了）；**403** `model_not_allowed`。**2026-09-10 加 `auth`**：任何提供方的
+HTTP **401/403**，只要请求头带了**非空、非 `bmg_` 额度令牌**的 key，就是「这把 key 被服务商拒绝」——
+与 402 同一套停机（不可重试、未译单元置 error、`retry()` 解锁），渲染器落到设置页的引擎块；
+不带 key 的免费通道仍是普通 `http`，不停机。起因：5 天里 308 条 401 来自同一台机器逐段重试。
+钉住的模型来自
 `build/recommend.config.js` 新轴 `axis:'grant'`，同一条「先实测再登记」的台账门；中继主机
 本身也要一行台账。
 

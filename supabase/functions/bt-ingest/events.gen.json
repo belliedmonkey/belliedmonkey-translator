@@ -55,7 +55,8 @@
         "unknown_provider",
         "credit_exhausted",
         "grant_unavailable",
-        "model_not_allowed"
+        "model_not_allowed",
+        "auth"
       ],
       "status": "int",
       "route": [
@@ -80,6 +81,20 @@
     "grant_claimed": {},
     "grant_exhausted": {},
     "sync_on": {},
+    "rate_prompt": {
+      "action": [
+        "shown",
+        "tap",
+        "dismiss"
+      ]
+    },
+    "ext_banner": {
+      "action": [
+        "shown",
+        "setup",
+        "done"
+      ]
+    },
     "telemetry_off": {}
   },
   "limits": {

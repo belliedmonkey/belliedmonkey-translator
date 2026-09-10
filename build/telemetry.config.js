@@ -35,7 +35,10 @@ const EVENTS = {
     // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
     // —— 而那正是判断这笔钱该不该继续花的唯一依据。
     code: ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
-      'credit_exhausted', 'grant_unavailable', 'model_not_allowed'],
+      'credit_exhausted', 'grant_unavailable', 'model_not_allowed',
+      // auth（2026-09-10，第八期）：401/403 且请求带了非空、非 bmg_ 额度令牌的 key ——
+      // 「这把 key 被服务商拒绝」，引擎停机。5 天里 308 条 401 来自同一台机器逐段重试。
+      'auth'],
     status: 'int',
     route: ['direct', 'proxy', ''],
     ms: 'int',
@@ -49,6 +52,10 @@ const EVENTS = {
   grant_claimed: {},
   grant_exhausted: {},
   sync_on: {},
+  // 第六问（telemetry-design §1，2026-09-10）：我们的提示被看见了吗、有人点吗。
+  // 只有一个枚举属性，永不带页面、文案或输入。
+  rate_prompt: { action: ['shown', 'tap', 'dismiss'] },   // 译文末尾的评分行
+  ext_banner: { action: ['shown', 'setup', 'done'] },     // App 首页「扩展还没打开」横幅
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };
 
