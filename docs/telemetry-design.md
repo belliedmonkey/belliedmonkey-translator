@@ -87,6 +87,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
 | `ext_banner` | `action: shown \| setup \| done` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」（2026-09-10，§3.1） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个按钮的 listener |
+| `asr_entry` | `surface: popup \| notice \| pill` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed` | 用户从某个入口尝试开始 AI 转写字幕（2026-09-11，§3.2） | `asr-source.js` `startFrom(surface, …)`（started / no_engine / gesture_needed）、`liveTier` 抛 `nolive` 处（no_live）、`content-main.js` `transcribeMedia` 找不到媒体处（no_media）；`pill` = 页内 「▶ 点此开始实时转写」 那一下 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
@@ -114,6 +115,15 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
    （App 里刷完一轮复习 ≥ 3 张）5 天里一次没发生；App 装机 72、Safari 扩展装机 25，装了 App 的人
    大多没把扩展打开。两个提示各自要能回答「被看见了吗、有人点吗」—— 这是 §1 的第六问。
    两个事件都**只有一个枚举属性**，不带页面、不带文案、不带任何输入。
+
+### 3.2 2026-09-11 amendment（第九期：实时转写入口）
+
+转写功能上线以来**零遥测**：入口有没有被看见、有没有人点、点了停在哪一档，一条数据都没有。
+`asr_entry` 只有两个枚举属性：`surface`（从哪个入口：弹窗 / 叠层通知行 / 页内「再点一次」）与
+`result`（开始了 / 没找到媒体 / 没配引擎 / 引擎没有实时接口 / Safari 需要页内手势）。不带媒体
+URL、不带 frame href（探针上报给弹窗的 href 只在客户端用于「新标签页打开」，不进事件）、不带
+引擎 id（引擎已在 `engine_set`）。它回答 §1 的第一问（激活：多少人真的走到了转写）与第六问
+（这个入口被看见了吗）。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the

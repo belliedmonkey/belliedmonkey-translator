@@ -95,6 +95,20 @@
         "done"
       ]
     },
+    "asr_entry": {
+      "surface": [
+        "popup",
+        "notice",
+        "pill"
+      ],
+      "result": [
+        "started",
+        "no_media",
+        "no_engine",
+        "no_live",
+        "gesture_needed"
+      ]
+    },
     "telemetry_off": {}
   },
   "limits": {

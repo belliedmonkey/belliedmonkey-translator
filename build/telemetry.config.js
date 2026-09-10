@@ -56,6 +56,8 @@ const EVENTS = {
   // 只有一个枚举属性，永不带页面、文案或输入。
   rate_prompt: { action: ['shown', 'tap', 'dismiss'] },   // 译文末尾的评分行
   ext_banner: { action: ['shown', 'setup', 'done'] },     // App 首页「扩展还没打开」横幅
+  // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。
+  asr_entry: { surface: ['popup', 'notice', 'pill'], result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed'] },
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };
 

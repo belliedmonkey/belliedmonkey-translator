@@ -234,15 +234,32 @@ states. Differences from YouTube are noted below.
 Governed by [`domain-design.md`](domain-design.md) §2.4. One behaviour on every subtitle
 surface (YouTube, podcast/generic media, x.com).
 
-### Offer
-- Appears **only** inside the `字幕不可用` notice (same overlay line, a button after the
-  text) and as a popup action 「转写音频字幕」 when the page's media element is ≥ 30 s
-  long. Nothing else surfaces it; a decorative video never does.
-- The button text names the cost from the registry pick, e.g. 「🎙 AI 转写字幕（约
-  $0.006/分钟）」; the notice under it says where the audio goes: 「音频将发送到你配置的
-  转写端点」.
-- With no transcription engine configured, the button reads 「先在设置里选择转写引擎」 and
-  opens `options.html#stt`. Nothing is captured.
+### Offer（2026-09-11 重写：入口太深）
+- 两个入口，**都由用户主动触发**：叠层通知行里的按钮，和弹窗里的一行 「🎙 实时转写 + 翻译」。
+  装饰性视频仍然不会长出字幕 UI（`drivesPodcast()` 不变）。
+- **叠层**：offer 从**第一次** acquire 失败起就出现在 `⏳ 字幕加载中…` 那一行里（podcast
+  第 1 次、YouTube 第 2 次 —— 它前 3 s 有 grace）；采集落定后仍是 `字幕不可用` + offer。
+  此前要等 6–8 次重试（≈ 15–20 s），多数人已经走了。
+- **弹窗**：那一行**常显**（只随「引擎未配置」整组隐藏，避免两条「先配置」打架），五态：
+
+  | 态 | 主行 | 副行 · 点击 |
+  |---|---|---|
+  | `ready` | 「🎙 实时转写 + 翻译」 | 副行 `mm:ss` / 「直播」/ 「时长未知」；点 → 页内开始，成功关弹窗，失败原因回显在副行 |
+  | `file_only` | 同上 | 「{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →」（副行可点 → `options.html#quick-live`）；主行仍可点（文件档可能成功） |
+  | `no_engine` | 「🎙 实时转写 + 翻译 — 先选一个转写引擎 →」 | → `options.html#stt`（锚点落在转写引擎下拉上） |
+  | `no_media` | 「🎙 实时转写 + 翻译」 | 「这一页没找到正在播放的视频/音频 — 先点播放，再点这里重找」；点 → 页内深扫（open shadow root）+ 等 3 s 元数据；仍没有 ⇒ 副行「没找到」 |
+  | `iframe_only` | 「🎙 实时转写 + 翻译」 | 「播放器在页内的另一个框架里；在新标签页打开它再转写 ↗」→ 新标签页打开该 frame |
+
+- **Safari 要在页内再点一次**：弹窗里的点击不是页面里的手势，AudioContext 起不来。弹窗点击后
+  页内通知行变成 「▶ 点此开始实时转写」，用户点它即开始（Chrome / Firefox 直接开始，不多这一下）。
+- 没配转写引擎：按钮读 「先在设置里选择转写引擎」，打开 `options.html#stt`。什么都不采集。
+- 引擎没有实时接口（`nolive` 停机）：通知行 「{engine} 没有实时接口，此媒体无法实时转写」+
+  按钮 「去配一个带实时接口的引擎 →」（`options.html#quick-live`；中国版回落 `#stt`）。
+  此前这句没有出口。
+- 弹窗点击的回码：`started | no_media | no_engine | busy`，页内按站分派（YouTube → YouTube
+  后端，x.com → Twitter 后端，其它 → 通用媒体后端），不再兜底到未初始化的后端。
+- 成本句与去向句（「约 $/分钟」「音频将发送到你配置的转写端点」）**仍是规约要求**，代码此前
+  未实现 —— 与本轮一起补上（副行）。
 
 ### While running
 - File tier: 「⏳ 正在转写整段音频…」 (dimmed, italic — the loading style) until the
@@ -722,7 +739,8 @@ https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 。这里�
   改了模型 ⇒ 中继 403（服务端钉死模型）⇒ 一句「免费额度只能用 {model} — 改回」，只写 `apiModel`。
 - **额度不含实时听译**（中继只有三个 HTTP 端点，没有流式转写的 socket）。三处提前说：引导左卡的转写行、
   设置页一键卡的转写行、App 首页听译入口灰掉的原因句。以后注册表有了 `liveEndpoint`，
-  三句自动消失。
+  三句自动消失。*2026-09-11：* 「设置页一键卡的转写行」由下一节「实时转写（可选）」那一段
+  兑现 —— 存储里的转写引擎没有实时接口时（含 `grant_stt`），一键卡显示那段副文。
 - **中国版是静态卡**：百炼三步 + 「这份额度是阿里云给你的，不经我们的手」+ 「境内后端
   未就绪，中国版暂不提供我们代领的免费额度」；零「登录」、零 OpenRouter。
 - **文案**：键名前缀 `grant_`（清单在画布 12），金额从 `MT_GRANT.limitUsd` 注入 `{limit}`、
@@ -773,6 +791,34 @@ https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 。这里�
 
 *(2026-09-08:)* 免费额度段落（`#grant-card`，见「免费额度」一节）住在一键卡**里面**，
 不含任何引擎控件，所以不构成第二张卡；它与「用自己的 key」表单同 tab 并列。
+
+### 实时转写（可选）— 2026-09-11
+
+**起因**：一键配置的默认平台 OpenRouter 没有实时转写接口（官方只有 HTTP 转写），于是一键配好的人
+在直播 / 流媒体上按「实时转写」、或打开 App 的「对话 · 实时听译」时撞到「没有实时接口」，且没有出口。
+用户裁定：**一键卡多一段可选的实时转写 key**，不改默认平台。
+
+- **出现条件**：所选平台自身的转写条目没有 `liveEndpoint`（从注册表推导，domain-design §7）。
+  中国版千问有实时接口 ⇒ 不出现。另一触发：现读存储后转写引擎没有实时接口（含免费额度的
+  `grant_stt`、本机引擎）⇒ 即使平台自身有实时接口也显示这段的副文。
+- **形状**（住在一键卡里，`keyLink` 之后、隐私句之前，`#qs-live`）：标题 「实时转写（可选）」；
+  副文 「{p} 没有实时接口。视频/播客的实时转写，和 App 的『对话 · 实时听译』都需要它 —— 另配一把
+  {live} 的 key 就能用；不填也行，转写走整段模式。」（`{p}`/`{live}` 从注册表标签注入，**串里不写
+  品牌**，中国版合规门会红）；key 输入框；「还没有 key？去 {live} 申请 ↗」（同 host 的 chat 条目的
+  `keyUrl`）；隐私句 「实时转写会把页面音频送到 {liveHost}」只在填了时显示。
+- **写盘规则**：**只在实时框里填了 key 时**才把转写槽换成有实时接口的引擎（`sttEngine` = 该条目、
+  `sttApiKey` = 这把 key、端点/模型清空 = 走注册表默认；文件档与实时档都走它）。转写槽已配但没有
+  实时接口（含用户自配的本机引擎）⇒ 视为可覆盖，结果行如实写 「替换了原来的 {cur}（它没有实时
+  接口）」；已有实时接口 ⇒ 跳过 「已有实时接口」；**不填一字不动**（与今天逐字相同）。
+- **结果区转写行三态**：「✓ 通了（{live}，含实时接口）」/「✓ 通了 · {engine} 没有实时接口 —— 需要
+  实时转写时在上面另配 ↑」/「替换了原来的 {cur}」。
+- **配套出口**：`asr_err_nolive` 停机行带 「去配一个带实时接口的引擎 →」（`options.html#quick-live`，
+  锚点先切到快速 tab、聚焦实时框；中国版无此段时回落 `#stt`）；免费额度卡上 「实时听译不在额度
+  范围内」那句加尾巴 「另配实时引擎 →」；App 「去设置里选择 →」落到一键卡的实时框。
+- **转写引擎下拉标注**：三处（设置页 / App 设置页 / 引导页）的转写下拉，有实时接口的条目后缀
+  「· 实时」（`engine-fields.js populate` 的 `liveSuffix`），让「哪一项能实时」对用户可见。
+- **不做**：默认平台改 OpenAI（要补三条实测推荐轴、改钉死的顺序、翻译成本上升、官网教程改口，
+  只解决国际版；本方案用一格可选输入换来同样的结果）。
 
 落点：设置页是「快速 | 详细」两个 tab；扩展引导页第 2 屏是「一键配置 | 三引擎分别配」
 两个 tab，后面几屏共用。门禁在 `scripts/verify-onboard.js`（互斥、旧块不在 DOM、
