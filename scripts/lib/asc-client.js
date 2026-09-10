@@ -29,7 +29,17 @@ function slot(name) {
 // 抛而不是 exit：`asc.js` 顶层有 .catch 打印 `✗ <message>` 并退 1，行为不变；
 // 而 `store-stats.js` 要的是「这一面读不到，其余照常打印」—— 一个 exit 会让
 // 缺一把 key 就整张报表消失。
+// 2026-09-11：一次提审有上百个请求，每个请求都签一枚新 JWT 时，Apple 会在中途随机回 401
+// （「credentials are missing or invalid」，同一端点单独打 6 次全 200 —— 不是时钟也不是权限）。
+// 令牌在有效期内复用，剩不到 60 s 再换；api() 撞到 401 时换一枚重试一次。
+let _jwt = null, _jwtExp = 0;
 function jwt() {
+  const nowS = Math.floor(Date.now() / 1000);
+  if (_jwt && _jwtExp - nowS > 60) return _jwt;
+  _jwt = mintJwt(); _jwtExp = nowS + 900;
+  return _jwt;
+}
+function mintJwt() {
   const missing = ['ascIssuerId', 'ascKeyId', 'ascKeyPath'].filter((n) => !slot(n));
   if (missing.length) throw new Error('.local/keys.md 缺：' + missing.join(', '));
   const keyPath = slot('ascKeyPath').replace(/^~/, process.env.HOME);
@@ -44,7 +54,7 @@ function jwt() {
   return `${head}.${body}.${sig}`;
 }
 
-async function api(method, url, body) {
+async function api(method, url, body, _retried) {
   const r = await fetch(url.startsWith('http') ? url : API + url, {
     method,
     headers: Object.assign({ Authorization: 'Bearer ' + jwt() },
@@ -55,6 +65,8 @@ async function api(method, url, body) {
   let d = null;
   try { d = JSON.parse(text); } catch (_) { /* 非 JSON 也要留住原文 */ }
   if (!r.ok) {
+    // 瞬时 401（见 jwt() 的注释）：换一枚令牌重试一次，再失败才算失败。
+    if (r.status === 401 && !_retried) { _jwt = null; return api(method, url, body, true); }
     const detail = d && d.errors ? d.errors.map((e) => `${e.title}: ${e.detail}`).join('; ')
       : String(text).slice(0, 300);
     throw new Error(`HTTP ${r.status} ${method} ${url} — ${detail}`);
