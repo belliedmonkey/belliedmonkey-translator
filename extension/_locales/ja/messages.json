@@ -2578,6 +2578,12 @@
     "message": "提供元がこのキーを拒否しました（HTTP 401/403）。キーが正しいか、このモデルの権限があるか確認してください。",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "役に立ちましたか？ストアで評価する →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "今後表示しない"
+  },
   "grant_popup_model": {
     "message": "無料クレジットは指定モデルでのみ動きます — タップして戻す"
   },

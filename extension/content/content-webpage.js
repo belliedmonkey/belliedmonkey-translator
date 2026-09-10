@@ -16,6 +16,9 @@ var WebpageTranslator = (() => {
   let engine = null;
   let tickTimer = null;
   let enabledAt = 0, okSent = false;   // 用量事件：本次会话的起点 + translate_ok 只发一次
+  // 评分提示（第八期 C，interaction-spec「评分提示」）：onOk 只置旗，tick 里 painted 之后
+  // 再挂 —— onOk 在译文落地时触发，早于绘制，那时最后一段还没有 DOM。
+  let rateNoted = false, rateArmed = false, rateRow = null;
   let tickCount = 0;
   let domObs = null;              // SPA re-render fix-up (see installDomObserver)
 
@@ -35,6 +38,13 @@ var WebpageTranslator = (() => {
       // 用量事件（docs/telemetry-design.md §3）：每个页面会话一次 translate_ok；每次最终失败
       // 一条 translate_fail（引擎 id + 错误码 + 状态码 + 通路，没有原文、没有地址）。
       onOk: () => {
+        if (!rateNoted && typeof MTFeedback !== 'undefined' && MTFeedback.noteOkSession) {
+          rateNoted = true;
+          MTFeedback.noteOkSession()
+            .then((n) => MTFeedback.shouldOfferRating(n))
+            .then((yes) => { if (yes && active) rateArmed = true; })
+            .catch(() => {});
+        }
         if (okSent || !(typeof MTTelemetry !== 'undefined')) return;
         okSent = true;
         MTTelemetry.track('translate_ok', { provider: String(settings.provider || ''), kind: 'page', ms: Date.now() - enabledAt });
@@ -856,7 +866,7 @@ var WebpageTranslator = (() => {
   // so our own div moves can never re-trigger it. The ~1s poll remains the backstop.
   function isOwnEl(n) {
     return n.nodeType === 1 && (
-      (n.classList && (n.classList.contains(CLASS) || n.classList.contains('mt-translate-chip'))) ||
+      (n.classList && (n.classList.contains(CLASS) || n.classList.contains('mt-translate-chip') || n.classList.contains('mt-rate-row'))) ||
       (n.id && n.id.indexOf('mt-') === 0) ||
       (n.getAttribute && n.getAttribute('translate') === 'no')); // every own-UI root carries this (hardSkip contract)
   }
@@ -1155,6 +1165,66 @@ var WebpageTranslator = (() => {
     // The page's own scroller (if it has one) recorded a height BEFORE these
     // translations existed; reconcile it once the batch has landed.
     if (painted) scheduleHeightFix();
+    if (rateArmed) placeRateRow();
+  }
+
+  // ─── 评分提示行：跟着阅读走，挂在最后一段译文之下 ─────────────────────
+  // 位置 = 文档序最靠后的那个已译单元之后。默认放置把译文 appendChild 进原文节点并
+  // 强制为最后子元素（anchor()），所以行不能进原文盒子 —— 挂为原文节点的**后一个兄弟**
+  // （interleave 时译文本身是兄弟，取二者中靠后的那个）。每拍重算，同一页只有一行。
+  function rateAnchor() {
+    let best = null;
+    for (const u of engine ? engine.units : []) {
+      const node = u.node, tr = node && node.__mtTrans;
+      if (!node || !node.isConnected || !tr || !tr.isConnected) continue;
+      const ref = (node.contains(tr) || !(node.compareDocumentPosition(tr) & Node.DOCUMENT_POSITION_FOLLOWING)) ? node : tr;
+      if (!best || (best.compareDocumentPosition(ref) & Node.DOCUMENT_POSITION_FOLLOWING)) best = ref;
+    }
+    return best;
+  }
+  function rateTrack(action) {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('rate_prompt', { action }); } catch (_) {}
+  }
+  function removeRateRow() {
+    if (rateRow) { try { rateRow.remove(); } catch (_) {} }
+    rateRow = null; rateArmed = false;
+  }
+  function placeRateRow() {
+    const ref = rateAnchor();
+    if (!ref) return;
+    if (!rateRow) {
+      const row = document.createElement('div');
+      row.className = 'mt-rate-row';
+      row.setAttribute('translate', 'no');           // 自家 UI 契约：hardSkip + 采集器跳过
+      row.setAttribute('data-mt-skip-region', '');
+      const text = document.createElement('span');
+      text.className = 'mt-rate-text';
+      text.setAttribute('role', 'link');
+      text.textContent = TranslationCore.t('rate_prompt_text', '觉得好用？去商店给个评分 →');
+      text.onclick = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        // window.open 必须同步发生在点击里（test/user-gesture.test.js）—— 先开再记。
+        MTFeedback.open(MTFeedback.rateUrl());
+        MTFeedback.markRatingAsked();
+        rateTrack('tap');
+        removeRateRow();
+      };
+      const x = document.createElement('button');
+      x.className = 'mt-rate-x';
+      x.type = 'button';
+      x.setAttribute('aria-label', TranslationCore.t('rate_prompt_dismiss', '不再提示'));
+      x.textContent = '×';
+      x.onclick = (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        MTFeedback.markRatingAsked();
+        rateTrack('dismiss');
+        removeRateRow();
+      };
+      row.append(text, x);
+      rateRow = row;
+      rateTrack('shown');
+    }
+    if (ref.nextElementSibling !== rateRow) ref.insertAdjacentElement('afterend', rateRow);
   }
 
   // ─── Public API ───────────────────────────────────────────────────────
@@ -1209,6 +1279,8 @@ var WebpageTranslator = (() => {
     document.querySelectorAll('[data-mt-flow-fix]').forEach(undoFlowFix);
     if (heightFixTimer) { clearTimeout(heightFixTimer); heightFixTimer = null; }
     document.querySelectorAll('[' + HEIGHT_FIX + ']').forEach(undoHeightFix);
+    removeRateRow(); rateNoted = false;
+    document.querySelectorAll('.mt-rate-row').forEach((e) => e.remove());
     units = [];
     engine = null;
   }

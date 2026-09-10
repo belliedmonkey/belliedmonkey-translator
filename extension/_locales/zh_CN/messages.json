@@ -2579,6 +2579,12 @@
     "message": "服务商拒绝了这把 key（HTTP 401/403）。检查 key 是否填对、有没有这个模型的权限。",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "觉得好用？去商店给个评分 →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "不再提示"
+  },
   "grant_popup_model": {
     "message": "免费额度只能用它指定的模型 —— 点这里改回去"
   },

@@ -21,6 +21,30 @@
   overflow-anchor: none;
 }
 
+/* 评分提示行（interaction-spec「评分提示」）：挂在最后一段译文之下，跟着阅读走，
+   不 fixed、不遮内容。颜色与译文同一对（sage700 / sage400 —— 与上面的 .mt-translation
+   逐字相同，palette 门禁认这两个值；test/rate-row.test.js 钉住两处一致）。 */
+.mt-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 2px 0;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: #56633f;
+  overflow-anchor: none;
+}
+.mt-rate-text { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.mt-rate-x {
+  background: none; border: 0; padding: 0 6px; margin: 0;
+  font: inherit; font-size: 1.1em; line-height: 1; color: inherit; cursor: pointer; opacity: .7;
+}
+.mt-rate-x:hover { opacity: 1; }
+@media (prefers-color-scheme: dark) {
+  .mt-rate-row { color: #aebf92; }
+}
+
 /* Subtle source indicator */
 .mt-translation::before {
   display: none;

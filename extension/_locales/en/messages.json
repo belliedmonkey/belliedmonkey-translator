@@ -2578,6 +2578,12 @@
     "message": "The provider rejected this key (HTTP 401/403). Check that the key is correct and has permission for this model.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "Finding it useful? Leave a rating in the store →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Don't ask again"
+  },
   "grant_popup_model": {
     "message": "Free credit only works with its pinned model — tap to change it back"
   },

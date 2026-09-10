@@ -2578,6 +2578,12 @@
     "message": "Der Anbieter hat diesen Schlüssel abgelehnt (HTTP 401/403). Prüfe, ob er stimmt und für dieses Modell freigegeben ist.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "Gefällt es dir? Bewerte uns im Store →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Nicht mehr fragen"
+  },
   "grant_popup_model": {
     "message": "Gratis-Guthaben läuft nur mit dem festgelegten Modell — tippen zum Zurücksetzen"
   },

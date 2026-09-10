@@ -2410,6 +2410,12 @@
     "message": "प्रदाता ने यह कुंजी अस्वीकार कर दी (HTTP 401/403)। जाँचें कि कुंजी सही है और इस मॉडल की अनुमति है।",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "उपयोगी लगा? स्टोर पर रेटिंग दें →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "फिर से न पूछें"
+  },
   "grant_popup_model": {
     "message": "मुफ़्त क्रेडिट सिर्फ़ तय मॉडल के साथ चलता है — वापस करने के लिए टैप करें"
   },

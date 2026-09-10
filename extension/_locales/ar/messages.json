@@ -2578,6 +2578,12 @@
     "message": "رفض المزوّد هذا المفتاح (HTTP 401/403). تحقّق من صحة المفتاح ومن أن لديه صلاحية لهذا النموذج.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "هل أعجبك؟ قيّمنا في المتجر ←"
+  },
+  "rate_prompt_dismiss": {
+    "message": "لا تسأل مجددًا"
+  },
   "grant_popup_model": {
     "message": "الرصيد المجاني يعمل مع النموذج المحدد فقط — اضغط لإعادته"
   },
