@@ -68,14 +68,15 @@ const OG_MIN = { w: 1200, h: 630 };
 
 // 「可引用段落」的形状（SE Ranking / Ahrefs 2025 的实测区间）：h2 之下一段 100–220 词，
 // 最优 134–167。只对这里列出的页面数；别的页不是给 AI 引用写的。
-const CITABLE_PAGES = ['alternatives.html'];
+const CITABLE_PAGES = ['alternatives.html', 'pricing.html'];
 const BLOCK_WORDS = { min: 100, max: 220, bestMin: 134, bestMax: 167 };
 
 // llms.txt 的 Links 段必须指到信息密度最高的那几页 —— 2026-09-10 它只链了 home/setup/privacy/support。
-const LLMS_MUST_LINK = ['/faq.html', '/guide.html', '/youtube-dual-subtitles.html', '/safari-ios-translate-extension.html'];
+const LLMS_MUST_LINK = ['/faq.html', '/guide.html', '/youtube-dual-subtitles.html', '/safari-ios-translate-extension.html',
+  '/alternatives.html', '/pricing.html', '/changelog.html'];
 
 const FRESH_DAYS = 90;    // SE Ranking：6 个月不动失去引用资格，3 个月内 ~3×；90 天黄一次
-const FRESH_PAGES = ['index.html', 'alternatives.html'];
+const FRESH_PAGES = ['index.html', 'alternatives.html', 'pricing.html'];
 
 const HYGIENE_BAD = /(\.bad|\.orig|\.tmp|~)$/;
 

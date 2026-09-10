@@ -469,6 +469,8 @@ i18n/{ar,en,es,fr,hi,pt,ru,zh-CN}.json
 ```bash
 node scripts/gen-site-langs.js           # 生成到 ~/belliedmonkey-cc
 node scripts/gen-site-langs.js --check   # 门禁：与字典不一致就红
+npm run changelog                        # 从 store-assets/release-notes-*.md 重出 CHANGELOG.md + 官网 changelog.html
+                                         # （唯一会随发版自动刷新的新鲜度信号；--check 是门禁）
 npm run site:audit                       # 门禁：两站的 SEO/GEO 底子（title/canonical/og/alt/JSON-LD 版本/
                                          # 口径黑名单/sitemap↔noindex/llms.txt）—— 判据见 docs/seo-geo-checklist.md
 ```
