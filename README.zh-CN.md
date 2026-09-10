@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+大肚猴翻译（BelliedMonkey Translator）是一款免费、开源（GPL-3.0）的浏览器扩展，支持 Safari（iPhone、iPad、Mac）、Chrome 与 Firefox。它让网页和视频字幕同时显示两种语言，把你真正读过的句子变成间隔重复的复习卡；用你自己的 AI 密钥，或者不填密钥用免费通道。没有订阅，不强制注册账号。
+</p>
+
+<p align="center">
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-0a7a3c"></a>
@@ -41,7 +45,7 @@
 |---|---|
 | **iPhone · iPad · Mac**（Safari） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录 |
 | **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)（当前 v1.4.2），步骤见下 |
-| **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
+| **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
@@ -102,6 +106,17 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
   <img src="docs/media/shot-subtitles.png" alt="YouTube 视频，原文字幕在上、译文在下" width="30%">
   <img src="docs/media/shot-review.png" alt="由读过的句子生成的复习卡，带四个难度按钮" width="30%">
 </p>
+
+一眼看完：
+
+- **网页双语对照** —— 原文留在原处，译文紧跟在下面
+- **视频双语字幕** —— YouTube、x.com 视频与播客，合并成整句、在播放头之前提前翻译
+- **AI 转写字幕** —— 完全没有字幕的音视频，用你自己的转写密钥生成（不点按钮不转写）
+- **复习卡** —— 由你真正读过的句子生成，读 / 听 / 写三档间隔重复；默认关闭
+- **自带密钥** —— 任何 OpenAI / Anthropic 兼容端点，或不填密钥的免费 Google 通道
+- **不强制账号**；多设备同步可选；只有匿名用量事件，一个开关关掉
+- **Safari（iPhone、iPad、Mac）、Chrome、Firefox** —— 同一份代码，六个商店面
+- **免费、GPL-3.0**；登录后可领一份我们出的 0.2 美元免费额度
 
 **网页双语对照。** 每个段落保留原文，译文以不同颜色显示在正下方 —— 不用切标签页，不会丢失
 阅读位置。译文继承原文的字体、字号、字重与对齐方式，**只有颜色不同**，并在窗口缩放后重新
@@ -303,6 +318,52 @@ extension/
 ├── popup/ · options/       设置界面
 └── _locales/               11 种语言
 ```
+
+---
+
+## 常见问题
+
+<details>
+<summary><b>和沉浸式翻译有什么不同？</b></summary>
+
+阅读模型是一样的 —— 原文段落、译文紧跟其下、视频双语字幕。差别在于：大肚猴翻译是 GPL-3.0 开源、没有订阅、不强制账号，而且用自己的密钥时，翻译请求从你的浏览器直达模型服务商，中间没有我们的服务器。反过来说，沉浸式翻译靠手写适配支持的站点多得多，还有不用填密钥的托管方案；这两样我们都没有 —— 分段器只靠 HTML 语义工作，大多数站点不需要逐站代码，但奇怪的版式仍可能翻不好。完整对比（含 Readlang、Trancy 与浏览器自带翻译）在 [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html)。
+</details>
+
+<details>
+<summary><b>真的免费吗？有什么代价？</b></summary>
+
+扩展和 App 免费，没有广告、没有付费档、没有内购。唯一的花费是翻译本身：用自己的 AI 密钥时按服务商价格直接付给它（便宜的模型一页约 0.0004 美元）；免费 Google 通道不花钱，但是普通机器翻译。登录后可以领一份我们出的小额免费额度（约 0.2 美元）；这条路上你的文本会经过我们的中继转发给模型服务商，我们不保存。细节见 [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html)。
+</details>
+
+<details>
+<summary><b>哪些数据会离开我的设备？</b></summary>
+
+用自己的密钥时，你要翻的文本从浏览器直达你选的服务商。除非你打开同步并登录，否则别的什么都不会离开；打开后，你保存的句子、来源网址和复习时间会存在你的账号下。没有广告、没有追踪；唯一收集的是匿名用量事件（用了哪些功能，从不含页面内容），一个开关关掉。见[隐私](#隐私)。
+</details>
+
+<details>
+<summary><b>能用哪些翻译引擎？</b></summary>
+
+不填密钥的免费通道，或者你自己任何 AI 服务的密钥 —— 内置清单在 [`build/providers.config.js`](build/providers.config.js)，任何 OpenAI / Anthropic 兼容端点都能接，包括公司网关或你自建的模型。你填完整的接口地址，我们就请求那个地址。
+</details>
+
+<details>
+<summary><b>为什么不直接用浏览器自带的翻译？</b></summary>
+
+自带翻译会替换整页，原文就没了；这里两种语言同时留在原处。自带翻译也不做视频字幕，而且没法选引擎。
+</details>
+
+<details>
+<summary><b>iPhone 上能用吗？</b></summary>
+
+能 —— iPhone 与 iPad 上的 Safari 是首要目标，不是移植。锁屏后那边的 service worker 不可用，所以所有网络请求都在内容脚本里；见[Safari iOS，以及为什么 service worker 什么都不做](#safari-ios以及为什么-service-worker-什么都不做)。iOS 上的 Firefox 根本不能装扩展。
+</details>
+
+<details>
+<summary><b>复习是怎么回事，能关掉吗？</b></summary>
+
+打开学习后，你真正停下来读过的句子 —— 不是滑过去的 —— 会连同来源页一起保存，按遗忘曲线回来复习，读 / 听 / 写三种题型，带句子笔记和朗读。默认关闭；关掉之后翻译和原来一模一样。
+</details>
 
 ---
 

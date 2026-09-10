@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you refer to this software, please cite it as below."
+title: "BelliedMonkey Translator"
+type: software
+authors:
+  - name: "BelliedMonkey, LLC"
+    email: belliedmonkey@gmail.com
+abstract: >-
+  A free, open-source bilingual translation extension for Safari (iPhone, iPad, Mac),
+  Chrome and Firefox: web pages and video subtitles in two languages at once, with
+  spaced-repetition review cards built from the sentences you actually read. Bring your
+  own LLM API key; no server of the author's in the translation path.
+version: 1.9.0
+date-released: 2026-09-09
+license: GPL-3.0
+url: https://belliedmonkey.cc
+repository-code: https://github.com/belliedmonkey/belliedmonkey-translator
+keywords:
+  - translation
+  - bilingual
+  - browser-extension
+  - safari-extension
+  - language-learning
+  - spaced-repetition
