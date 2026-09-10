@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "Einrichtung im Web abschließen"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Die Safari-Erweiterung ist noch nicht aktiviert"
+  },
+  "app_ext_open_safari": {
+    "message": "Erweiterung in Safari aktivieren →"
+  },
+  "app_ext_done": {
+    "message": "Ich habe sie aktiviert"
+  },
+  "app_ext_check_hint": {
+    "message": "Unsicher? Prüfseite öffnen und auf das grüne Licht achten →"
+  },
   "app_signin_why": {
     "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
   },

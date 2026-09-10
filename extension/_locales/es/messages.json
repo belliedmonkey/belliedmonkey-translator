@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "Completar la configuración en la web"
   },
+  "app_ext_banner_title_ios": {
+    "message": "La extensión de Safari aún no está activada"
+  },
+  "app_ext_open_safari": {
+    "message": "Activar la extensión en Safari →"
+  },
+  "app_ext_done": {
+    "message": "Ya la activé"
+  },
+  "app_ext_check_hint": {
+    "message": "¿No estás seguro? Abre la página de comprobación y busca la luz verde →"
+  },
   "app_signin_why": {
     "message": "Las tarjetas las captura la extensión del navegador. Inicia sesión con la misma cuenta y se sincronizan con este dispositivo."
   },

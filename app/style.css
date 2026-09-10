@@ -293,6 +293,34 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   font-weight: 600;
 }
 #ext-banner-act:hover { background: var(--accent-hover); }
+/* iOS 形态：#ext-banner-setup 是填色主按钮（macOS 上它带 .secondary，退回次级）。
+   #ext-banner 与 #signed-in 平级，:where(#signed-in) 那套按钮基样式够不到这里 ——
+   2026-09-10 评审证伪：只摘掉 secondary 类不会变成填色，规则要自己给。 */
+#ext-banner-setup:not(.secondary) {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 18px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+}
+#ext-banner-setup:not(.secondary):hover { background: var(--accent-hover); }
+#ext-banner button.secondary {
+  align-self: flex-start;
+  background: none;
+  color: var(--accent-deep);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+}
+#ext-banner-check { font-size: 0.85rem; }
+#ext-banner-check a { color: var(--accent-deep); text-decoration: underline; }
 
 /* A3：未登录首屏的登录邀请。它是一张说明卡，不是一道闸门 —— 一键登录就在卡上，
    邮箱表单按需展开（design/signin/，2026-09-05）。 */
@@ -350,13 +378,13 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #ob-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
 #ob-title { margin: 0; font-size: 1.35rem; line-height: 1.3; }
 #ob-text { margin: 0; color: var(--dim); line-height: 1.55; }
-#ob-steps { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-#ob-steps li {
+.ob-steps { margin: 4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ob-steps li {
   background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-sm);
   padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; line-height: 1.45;
 }
 .ob-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-#ob-steps svg {
+.ob-steps svg {
   /* 固定高度、宽度按比例、居中。原来是 width:100% —— 280×150 的画在手机上会占满
      卡宽，三张下来光插图就 500px 以上，把「继续」顶出首屏。插图是**佐证**，
      不是主体：它该让人一眼认出那个界面，不该把要点的按钮挤走。 */
@@ -364,7 +392,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   border: 1px solid var(--line); border-radius: 10px; background: var(--field);
   direction: ltr;   /* 画的是浏览器 UI，RTL 下不镜像 */
 }
-#ob-steps b {
+.ob-steps b {
   flex: none; width: 22px; height: 22px; border-radius: 999px;
   background: var(--accent-track); color: var(--accent-deep);
   font-size: 0.8rem; display: flex; align-items: center; justify-content: center;

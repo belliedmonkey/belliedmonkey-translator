@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "Finish setup on the web"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Safari extension isn't on yet"
+  },
+  "app_ext_open_safari": {
+    "message": "Open the extension in Safari →"
+  },
+  "app_ext_done": {
+    "message": "I've turned it on"
+  },
+  "app_ext_check_hint": {
+    "message": "Not sure? Open the check page and look for the green light →"
+  },
   "app_signin_why": {
     "message": "Cards are captured by the browser extension. Sign in with the same account and they sync to this device."
   },

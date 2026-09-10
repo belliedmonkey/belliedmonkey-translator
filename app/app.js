@@ -267,10 +267,22 @@
   // 收材料），所以 App 里的任何一张卡都必然是某个扩展写的。iOS 上查不到扩展状态，
   // 但「卡片从哪来的」这个问题本身已经把答案带上了。
   let browserSideOk = false;
+  // 「我已打开」点过了（extBannerDoneAt）。paintExtBanner 是同步函数（paintCounts 与
+  // Swift 的 window.show 直接调），所以这个键在 init 时预读进内存，画的时候只看变量 ——
+  // 否则先画再收会闪一下。
+  const EXT_DONE = 'extBannerDoneAt';
+  let extBannerDone = false;
+  let extBannerShownDay = '';
+  function extBannerTrack(action) {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('ext_banner', { action }); } catch (_) {}
+  }
 
   function paintExtBanner(state) {
     const sec = $('ext-banner');
     if (!sec) return;
+    // 横幅在场时首页 #review 降为次级：「每屏至多一个填色按钮」这条家规同样管首页，
+    // 而扩展没开的人本来也没有复习材料。
+    const syncReview = () => { const r = $('review'); if (r) r.classList.toggle('secondary', !sec.hidden); };
     // 横幅只属于首页。它原来与 #review-view / #app-settings 平级，而没有任何代码在
     // 进那些视图时收起它 —— 于是它横跨每一个界面钉在最顶上，在一台明显已经在用的
     // 设备上反复说「先去把扩展打开」。
@@ -279,23 +291,48 @@
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
     const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-settings').hidden;
-    if (away || browserSideOk) { sec.hidden = true; return; }
+    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
-    if (onboarding || !state || state.enabled === true) { sec.hidden = true; return; }
+    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); return; }
     sec.hidden = false;
-    $('ext-banner-title').textContent = state.known
-      ? t('app_ext_off_title', '扩展还没启用')
-      : t('app_ext_unknown_title', '先把浏览器那半边打通');
+    syncReview();
+    // iOS 形态（2026-09-10）：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人
+    // 大多没把扩展打开，而这里 iOS 唯一能用的动作曾是一个次级按钮。改成标题 + 三步
+    // （与引导 ext 屏同一份文案与插图）+ 填色主按钮 + 「我已打开」。macOS 形态不变。
+    const ios = !state.canOpenPrefs && !state.known;
+    $('ext-banner-title').textContent = ios
+      ? t('app_ext_banner_title_ios', 'Safari 扩展还没打开')
+      : (state.known ? t('app_ext_off_title', '扩展还没启用') : t('app_ext_unknown_title', '先把浏览器那半边打通'));
+    const steps = $('ext-banner-steps');
+    if (steps) {
+      if (ios) obSteps(iosSteps(), steps); else { steps.hidden = true; steps.textContent = ''; }
+    }
+    const done = $('ext-banner-done');
+    if (done) { done.hidden = !ios; done.textContent = t('app_ext_done', '我已打开'); }
+    const check = $('ext-banner-check');
+    if (check) { check.hidden = !ios; $('ext-banner-check-link').textContent = t('app_ext_check_hint', '不确定？打开检测页看绿灯 →'); }
+    if (ios) {
+      // 每装机每天至多一条 shown（telemetry-design §3.1）。
+      const today = new Date().toISOString().slice(0, 10);
+      if (extBannerShownDay !== today) {
+        extBannerShownDay = today;
+        try { chrome.storage.local.set({ 'tm:extBannerDay': today }, () => {}); } catch (_) {}
+        extBannerTrack('shown');
+      }
+    }
     // 正文按「有没有可点的东西」选，不是按「知不知道状态」选。
     // 2026-08-29 真机撞到：#177 的回退触发后按钮被收起，而正文仍走 known 分支，
     // 于是横幅变成一句「它没启用」加一片空白 —— 收起了动作却没补上说明，
     // 等于把一条死路换成了另一条。有按钮才说「没启用」，没按钮就得给步骤。
-    $('ext-banner-body').textContent = state.canOpenPrefs
+    // iOS 形态下三步已经把话说完，正文只留一句「卡片从哪来」。
+    $('ext-banner-body').textContent = ios
       ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
-      : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。');
+      : (state.canOpenPrefs
+        ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
+        : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。'));
     const act = $('ext-banner-act');
     // 只有 macOS 有直达入口。iOS 给按钮却跳不过去，比不给按钮更糟。
     act.hidden = !state.canOpenPrefs;
@@ -305,8 +342,20 @@
     const setup = $('ext-banner-setup');
     if (setup) {
       setup.hidden = false;
-      setup.textContent = t('app_ext_open_setup', '在网页上完成设置');
+      // 主/次跟着平台走（与引导 ext 屏 :417 同一写法）：iOS 上它是唯一能用的动作。
+      setup.classList.toggle('secondary', !ios);
+      setup.textContent = ios
+        ? t('app_ext_open_safari', '在 Safari 里打开扩展 →')
+        : t('app_ext_open_setup', '在网页上完成设置');
     }
+  }
+
+  function iosSteps() {
+    return [
+      { text: t('ob_ios_1', '在 Safari 里点地址栏左边的扩展图标'), art: 'app-art-1' },
+      { text: t('ob_ios_2', '选「管理扩展」，把「大肚猴翻译」打开'), art: 'app-art-2' },
+      { text: t('ob_ios_3', '权限选「允许」，网站选「所有网站」'), art: 'app-art-3' },
+    ];
   }
 
   function setupPageUrl() {
@@ -403,11 +452,7 @@
         ? t('app_ext_off_body', '卡片来自 Safari 扩展。它还没启用，所以这里会一直是空的。')
         : t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。');
       if (mac) { $('ob-prefs').hidden = false; $('ob-prefs').textContent = t('app_ext_open_prefs', '打开 Safari 扩展设置'); }
-      else obSteps([
-        { text: t('ob_ios_1', '在 Safari 里点地址栏左边的扩展图标'), art: 'app-art-1' },
-        { text: t('ob_ios_2', '选「管理扩展」，把「大肚猴翻译」打开'), art: 'app-art-2' },
-        { text: t('ob_ios_3', '权限选「允许」，网站选「所有网站」'), art: 'app-art-3' },
-      ]);
+      else obSteps(iosSteps());
       // 「设完了到底成没成」在 iOS 上只有官网那一页答得出（它被扩展注入后自己亮
       // 绿灯），所以这一屏两个平台都给它 —— macOS 有直达设置，但没有回执。
       $('ob-setup').hidden = false;
@@ -466,8 +511,9 @@
   //
   // ⚠️ #ob-steps 必须恰好三个直接子元素（verify-app-bundle.js 的断言）。图画在 <li>
   // 内部，不要因为想加一张图就多一个兄弟节点。
-  function obSteps(lines) {
-    const ol = $('ob-steps');
+  function obSteps(lines, container) {
+    const ol = container || $('ob-steps');
+    if (!ol) return;
     ol.textContent = '';
     lines.forEach((line, i) => {
       const item = (typeof line === 'string') ? { text: line } : line;
@@ -929,7 +975,14 @@
   }
 
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
-  $('ext-banner-setup').addEventListener('click', () => openExternal(setupPageUrl()));
+  $('ext-banner-setup').addEventListener('click', () => { extBannerTrack('setup'); openExternal(setupPageUrl()); });
+  $('ext-banner-done').addEventListener('click', () => {
+    extBannerDone = true;
+    extBannerTrack('done');
+    try { chrome.storage.local.set({ [EXT_DONE]: Date.now() }, () => {}); } catch (_) {}
+    paintExtBanner(extState);
+  });
+  $('ext-banner-check-link').addEventListener('click', (ev) => { ev.preventDefault(); extBannerTrack('setup'); openExternal(setupPageUrl()); });
   $('ob-setup').addEventListener('click', () => {
     openExternal(setupPageUrl());
     // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做
@@ -1070,6 +1123,12 @@
 
     try {
       const session = await LearnAuth.current();
+      // 横幅的两个 UI 状态键预读进内存（paintExtBanner 是同步的）。读失败按「没点过」。
+      try {
+        const o = await new Promise((r) => chrome.storage.local.get([EXT_DONE, 'tm:extBannerDay'], r));
+        extBannerDone = !!(o && o[EXT_DONE]);
+        extBannerShownDay = (o && o['tm:extBannerDay']) || '';
+      } catch (_) {}
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
       const seen = await new Promise((r) => chrome.storage.local.get([OB_SEEN], r))
         .then((o) => !!(o && o[OB_SEEN])).catch(() => true);

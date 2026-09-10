@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "Terminer la configuration sur le web"
   },
+  "app_ext_banner_title_ios": {
+    "message": "L'extension Safari n'est pas encore activée"
+  },
+  "app_ext_open_safari": {
+    "message": "Activer l'extension dans Safari →"
+  },
+  "app_ext_done": {
+    "message": "Je l'ai activée"
+  },
+  "app_ext_check_hint": {
+    "message": "Pas sûr ? Ouvrez la page de vérification et cherchez le voyant vert →"
+  },
   "app_signin_why": {
     "message": "Les cartes sont capturées par l'extension de navigateur. Connectez-vous avec le même compte et elles se synchronisent sur cet appareil."
   },

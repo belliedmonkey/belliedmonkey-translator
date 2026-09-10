@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "웹에서 설정 완료하기"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Safari 확장 프로그램이 아직 꺼져 있어요"
+  },
+  "app_ext_open_safari": {
+    "message": "Safari에서 확장 프로그램 켜기 →"
+  },
+  "app_ext_done": {
+    "message": "켰어요"
+  },
+  "app_ext_check_hint": {
+    "message": "확실하지 않다면 확인 페이지에서 초록불을 보세요 →"
+  },
   "app_signin_why": {
     "message": "카드는 브라우저 확장이 수집합니다. 같은 계정으로 로그인하면 이 기기로 동기화됩니다."
   },
