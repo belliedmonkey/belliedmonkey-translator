@@ -1882,6 +1882,42 @@
   "qs_privacy": {
     "message": "转写会把你的录音发到 {host} 识别，识别完立即丢弃，不存储也不同步。"
   },
+  "qs_live_key": {
+    "message": "实时 key"
+  },
+  "qs_live_key_ph": {
+    "message": "可选：另一家的 key"
+  },
+  "qs_live_title": {
+    "message": "实时转写（可选）"
+  },
+  "qs_live_sub": {
+    "message": "{p} 没有实时接口。视频/播客的实时转写，和 App 的「对话 · 实时听译」都需要它 —— 另配一把 {live} 的 key 就能用；不填也行，转写走整段模式。"
+  },
+  "qs_get_live_key": {
+    "message": "还没有 key？去 {live} 申请 ↗"
+  },
+  "qs_live_privacy": {
+    "message": "实时转写会把页面音频送到 {liveHost} 识别，识别完即弃。"
+  },
+  "qs_untouched_live": {
+    "message": "— 没动 · 你已经配过一个带实时接口的引擎（{cur}）"
+  },
+  "qs_live_replaced": {
+    "message": "（替换了原来的 {cur}，它没有实时接口；现在含实时接口）"
+  },
+  "qs_live_ok": {
+    "message": "（含实时接口）"
+  },
+  "qs_stt_no_live": {
+    "message": "（{engine} 没有实时接口 —— 需要实时转写时在上面另配 ↑）"
+  },
+  "stt_live_suffix": {
+    "message": "· 实时"
+  },
+  "grant_live_go": {
+    "message": "另配实时引擎 →"
+  },
   "qs_apply": {
     "message": "配好翻译、朗读、转写"
   },

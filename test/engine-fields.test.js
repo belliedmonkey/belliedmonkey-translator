@@ -97,6 +97,23 @@ describe('EngineFields.visibility — 一条规则，对三张真表都成立', 
   });
 });
 
+describe('EngineFields.populate — 「· 实时」后缀（第九期，2026-09-11）', () => {
+  function fakeSelect() {
+    const kids = [];
+    return { innerHTML: '', value: '', ownerDocument: { createElement: () => ({ value: '', textContent: '' }) }, appendChild: (o) => kids.push(o), options: kids };
+  }
+  test('带 liveEndpoint+liveType 的条目以后缀结尾，其它不带；没给 t 时不加', () => {
+    const s = fakeSelect();
+    const t = (k, d) => (k === 'stt_live_suffix' ? '· LIVE' : d);
+    EF.populate(s, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C', liveEndpoint: 'wss://y' }], { t });
+    const texts = s.options.map((o) => o.textContent);
+    deepEq(texts, ['A · LIVE', 'B', 'C'], 'liveType 缺失的不算实时');
+    const s2 = fakeSelect();
+    EF.populate(s2, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }], {});
+    eq(s2.options[0].textContent, 'A');
+  });
+});
+
 describe('EngineFields.populate — 哨兵项与回落', () => {
   // 极小的 document 替身：只要 createElement / appendChild / value 三样。
   function fakeSelect() {

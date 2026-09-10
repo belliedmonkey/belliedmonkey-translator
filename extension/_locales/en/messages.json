@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "Transcription sends your recording to {host}. It is discarded as soon as it is recognised — never stored, never synced."
   },
+  "qs_live_key": {
+    "message": "Live key"
+  },
+  "qs_live_key_ph": {
+    "message": "Optional: a key from the other provider"
+  },
+  "qs_live_title": {
+    "message": "Live transcription (optional)"
+  },
+  "qs_live_sub": {
+    "message": "{p} has no live interface. Live transcription of videos/podcasts, and the app's Conversation · live interpreter, need one — add a {live} key and it works; leave it empty and transcription runs in whole-file mode."
+  },
+  "qs_get_live_key": {
+    "message": "No key yet? Get one at {live} ↗"
+  },
+  "qs_live_privacy": {
+    "message": "Live transcription sends page audio to {liveHost} for recognition; it is discarded once recognised."
+  },
+  "qs_untouched_live": {
+    "message": "— untouched · you already have an engine with a live interface ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "(replaced {cur}, which had no live interface; live interface now included)"
+  },
+  "qs_live_ok": {
+    "message": "(live interface included)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine} has no live interface — add one above when you need live transcription ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· live"
+  },
+  "grant_live_go": {
+    "message": "Add a live engine →"
+  },
   "qs_apply": {
     "message": "Set up translation, read-aloud and transcription"
   },

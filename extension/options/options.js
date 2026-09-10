@@ -1757,6 +1757,7 @@ async function init() {
       return;
     }
     if (id === 'community') { window.open(MTFeedback.discussUrl(), '_blank', 'noopener'); return; }
+    if (id === 'live') { const k = $('qs-live-key') || $('stt-engine'); if (k) { try { k.scrollIntoView({ block: 'center' }); } catch (_) {} try { k.focus({ preventScroll: true }); } catch (_) { k.focus(); } } return; }
     if (id !== 'claim' && id !== 'restore') return;
 
     // 「改回免费额度」会覆盖用户自己粘的 key —— 那是他花时间申请来的东西，
@@ -1904,6 +1905,12 @@ async function init() {
     // 此前 `#stt` 根本不存在，落在页顶让人自己找。转写字段在 learn-card 里，两档都可见，不必切档。
     '#stt': { sec: 'learn-card', focus: () => $('stt-engine'),
       flash: () => $('stt-engine') && $('stt-engine').closest('.field') },
+    // 一键卡「实时转写（可选）」那一格（2026-09-11）：叠层的 nolive 停机行、弹窗的 file_only 副行
+    // 往这里送。中国版没有这一段（千问自带实时）⇒ 回落 #stt。
+    '#quick-live': { sec: () => ($('qs-live') && _quickAvailable ? 'quick-setup-card' : 'learn-card'),
+      before: () => { if ($('qs-live') && _quickAvailable) applyDetailMode(false); },
+      focus: () => ($('qs-live') && _quickAvailable ? $('qs-live-key') : $('stt-engine')),
+      flash: () => ($('qs-live') && _quickAvailable ? $('qs-live') : ($('stt-engine') && $('stt-engine').closest('.field'))) },
     // 免费额度（§8.10）。页内的停机提示、弹窗、引导页那张卡都往这里送。
     // **落点前必须先切到快速 tab**：这张卡是 .quick-only，在详细档里整块是 hidden 的，
     // 送过去只会滚到一片看不见的东西上 —— 那和送到页面顶部一样没用。
@@ -1920,7 +1927,7 @@ async function init() {
       // before：落点自己先把自己变得可见（#grant 要先切回快速 tab）。
       // 放在读 sec 之前 —— 反过来就会读到一个仍然 hidden 的节点然后直接返回。
       if (target.before) { try { target.before(); } catch (_) {} }
-      const sec = $(target.sec);
+      const sec = $(typeof target.sec === 'function' ? target.sec() : target.sec);
       if (!sec || sec.hidden) return;      // 这个构建里整节被 remove 掉了（如中国版的同步）
       try { sec.scrollIntoView({ block: 'start' }); } catch (_) { sec.scrollIntoView(); }
       let el = null;

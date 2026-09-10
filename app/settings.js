@@ -583,6 +583,7 @@ var AppSettings = (() => {
       if (hooks.openExternal && typeof MTFeedback !== 'undefined') hooks.openExternal(MTFeedback.discussUrl());
       return;
     }
+    if (id === 'live') { const k = $('qs-live-key') || $('stt-engine'); if (k) { try { k.scrollIntoView({ block: 'center' }); } catch (_) {} try { k.focus({ preventScroll: true }); } catch (_) { k.focus(); } } return; }
     if (id !== 'claim' && id !== 'restore') return;
     // 页内确认框，不用 window.confirm —— App 的宿主没实现确认回调，它恒为 false。
     if (id === 'restore' && typeof LearnDialog !== 'undefined') {

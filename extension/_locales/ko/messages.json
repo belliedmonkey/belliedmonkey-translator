@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "받아쓰기는 녹음을 {host} 로 보냅니다. 인식이 끝나면 즉시 폐기되며 저장도 동기화도 하지 않습니다."
   },
+  "qs_live_key": {
+    "message": "실시간 키"
+  },
+  "qs_live_key_ph": {
+    "message": "선택: 다른 제공업체의 키"
+  },
+  "qs_live_title": {
+    "message": "실시간 받아쓰기 (선택)"
+  },
+  "qs_live_sub": {
+    "message": "{p}에는 실시간 인터페이스가 없어요. 영상/팟캐스트 실시간 받아쓰기와 앱의 「대화 · 실시간 통역」에 필요해요 —— {live} 키를 하나 더 넣으면 됩니다. 비워 두면 받아쓰기는 전체 파일 모드로 동작해요."
+  },
+  "qs_get_live_key": {
+    "message": "키가 없나요? {live}에서 발급 ↗"
+  },
+  "qs_live_privacy": {
+    "message": "실시간 받아쓰기는 페이지 오디오를 {liveHost}로 보내 인식하고, 인식 후 바로 버립니다."
+  },
+  "qs_untouched_live": {
+    "message": "— 그대로 · 이미 실시간 엔진이 있어요 ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "({cur}을(를) 교체했어요. 이전엔 실시간 없음, 지금은 실시간 포함)"
+  },
+  "qs_live_ok": {
+    "message": "(실시간 포함)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine}에는 실시간 인터페이스가 없어요 —— 필요하면 위에서 추가 ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· 실시간"
+  },
+  "grant_live_go": {
+    "message": "실시간 엔진 추가 →"
+  },
   "qs_apply": {
     "message": "번역·읽어주기·받아쓰기 설정"
   },

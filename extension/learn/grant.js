@@ -243,6 +243,8 @@ var LearnGrant = (function () {
           body: t('grant_body_signin', '登录之后可以领一份免费额度，够翻几百页。翻译、朗读、转写都能用。'),
           action: { id: 'signin', text: t('grant_signin', '登录领免费额度') },
           note: t('grant_no_live', '实时听译不在额度范围内 —— 它要实时接口，而这条中继只转发一次性请求。'),
+          // 2026-09-11：那句话有了出口 —— 一键卡里的「实时转写（可选）」那一格。
+          links: [{ id: 'live', text: t('grant_live_go', '另配实时引擎 →') }],
         });
       case 'signed_out':
         // 退出登录会停用额度（裁定 D4）。**先说余额还在**，否则用户以为钱没了。

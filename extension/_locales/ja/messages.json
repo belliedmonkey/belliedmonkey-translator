@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "文字起こしは録音を {host} に送ります。認識が済み次第すぐ破棄され、保存も同期もされません。"
   },
+  "qs_live_key": {
+    "message": "リアルタイム用キー"
+  },
+  "qs_live_key_ph": {
+    "message": "任意：別プロバイダーのキー"
+  },
+  "qs_live_title": {
+    "message": "リアルタイム文字起こし（任意）"
+  },
+  "qs_live_sub": {
+    "message": "{p} にはリアルタイム API がありません。動画・ポッドキャストのリアルタイム文字起こしと、アプリの「会話・リアルタイム通訳」に必要です —— {live} のキーを追加すれば使えます。空欄でも可（文字起こしはファイル全体モード）。"
+  },
+  "qs_get_live_key": {
+    "message": "キーがない？{live} で取得 ↗"
+  },
+  "qs_live_privacy": {
+    "message": "リアルタイム文字起こしはページの音声を {liveHost} に送って認識し、認識後すぐ破棄します。"
+  },
+  "qs_untouched_live": {
+    "message": "— 変更なし · リアルタイム対応エンジンを設定済み（{cur}）"
+  },
+  "qs_live_replaced": {
+    "message": "（{cur} を置き換えました。以前はリアルタイム非対応、現在は対応）"
+  },
+  "qs_live_ok": {
+    "message": "（リアルタイム対応）"
+  },
+  "qs_stt_no_live": {
+    "message": "（{engine} はリアルタイム非対応 —— 必要なら上で追加 ↑）"
+  },
+  "stt_live_suffix": {
+    "message": "· リアルタイム"
+  },
+  "grant_live_go": {
+    "message": "リアルタイム用エンジンを追加 →"
+  },
   "qs_apply": {
     "message": "翻訳・読み上げ・文字起こしを設定"
   },

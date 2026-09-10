@@ -1881,6 +1881,42 @@
   "qs_privacy": {
     "message": "A transcrição envia sua gravação para {host}. Ela é descartada assim que é reconhecida — nunca armazenada, nunca sincronizada."
   },
+  "qs_live_key": {
+    "message": "Chave ao vivo"
+  },
+  "qs_live_key_ph": {
+    "message": "Opcional: chave de outro provedor"
+  },
+  "qs_live_title": {
+    "message": "Transcrição ao vivo (opcional)"
+  },
+  "qs_live_sub": {
+    "message": "{p} não tem interface ao vivo. A transcrição ao vivo de vídeos/podcasts e o «Conversa · intérprete ao vivo» do app precisam dela — adicione uma chave da {live} e pronto; deixando vazio, a transcrição roda no modo de arquivo inteiro."
+  },
+  "qs_get_live_key": {
+    "message": "Sem chave? Obtenha em {live} ↗"
+  },
+  "qs_live_privacy": {
+    "message": "A transcrição ao vivo envia o áudio da página para {liveHost} reconhecer e descarta em seguida."
+  },
+  "qs_untouched_live": {
+    "message": "— sem alteração · você já tem um mecanismo com interface ao vivo ({cur})"
+  },
+  "qs_live_replaced": {
+    "message": "(substituiu {cur}, que não tinha interface ao vivo; agora inclui)"
+  },
+  "qs_live_ok": {
+    "message": "(inclui interface ao vivo)"
+  },
+  "qs_stt_no_live": {
+    "message": "({engine} não tem interface ao vivo — adicione uma acima quando precisar ↑)"
+  },
+  "stt_live_suffix": {
+    "message": "· ao vivo"
+  },
+  "grant_live_go": {
+    "message": "Adicionar mecanismo ao vivo →"
+  },
   "qs_apply": {
     "message": "Configurar tradução, leitura e transcrição"
   },
