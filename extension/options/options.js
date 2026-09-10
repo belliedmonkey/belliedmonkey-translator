@@ -1716,7 +1716,12 @@ async function init() {
     const card = $('grant-card');
     if (!box || typeof LearnGrant === 'undefined') return;
     const s = LearnGrant.enabled() ? await LearnAuth.current().catch(() => null) : null;
-    const cur = PageSettings.read(SETTINGS_KEYS);
+    // **必须 await 并取 .data**：PageSettings.read 是异步的、返回 {ok, data}。2026-09-10
+    // 用户实测：这里把 Promise 当设置传给 status()，apiKey 恒 undefined ⇒ 领完额度卡上
+    // 永远显示「你现在用的是自己的 key」；下面 grantAction 同一个错让 plan() 把三槽
+    // 全看成空 ⇒ 用户自己的 key 被令牌盖掉。
+    const rd = await PageSettings.read(SETTINGS_KEYS);
+    const cur = (rd && rd.data) || {};
     let marks = {};
     try {
       marks = await new Promise((res) => chrome.storage.local.get(['grant', 'grantTail', 'grantBalance'], (v) => res(v || {})));
@@ -1764,12 +1769,22 @@ async function init() {
     _grantBusy = true; await paintGrant();
     try {
       const claimed = await LearnGrant.claim();
-      const cur = PageSettings.read(SETTINGS_KEYS);
-      const plan = LearnGrant.plan(claimed, cur, window);
+      const rd = await PageSettings.read(SETTINGS_KEYS);
+      // 读不出已存设置就不许写：往一份读不出来的档案上盖三组配置，正是
+      // 「你的 key 静默变成了免费通道」那一类事故（quick-setup 同一条规则）。
+      if (!rd || !rd.ok) throw Object.assign(new Error(rd && rd.error || 'settings_unreadable'), { code: 'storage' });
+      const cur = rd.data || {};
+      // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
+      const plan = LearnGrant.plan(claimed, cur, window, { overwrite: id === 'restore' });
       await applyQuickSetup(plan);
       try { chrome.storage.local.set(plan.marks); } catch (_) {}
       if (typeof MTTelemetry !== 'undefined' && !claimed.reused) MTTelemetry.track('grant_claimed', {});
-      showToast(t('grant_claimed_toast', '免费额度已配好'));
+      // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话：额度领到了，但
+      // 现在用的仍是他自己的 key。说清楚，并指向能换过来的那个按钮。
+      const wroteAny = plan.tests && plan.tests.length > 0;
+      showToast(wroteAny
+        ? t('grant_claimed_toast', '免费额度已配好')
+        : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
     } catch (e) {
       // 服务端的具名 error 走 syncError 那一套人话（G2 已经把七句都写进去了）。
       if (e && e.code === 'grant_unavailable') _grantUnavailable = true;

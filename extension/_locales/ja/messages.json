@@ -2545,6 +2545,9 @@
   "grant_claimed_toast": {
     "message": "無料クレジットを設定しました"
   },
+  "grant_claimed_kept_toast": {
+    "message": "無料枠を受け取りました。ご自身のキーはそのままです。無料枠に切り替えるには「無料枠に戻す」を押してください。"
+  },
   "grant_page_halt": {
     "message": "無料クレジットを使い切りました — 続け方はこちら"
   },

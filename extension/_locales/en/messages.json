@@ -2545,6 +2545,9 @@
   "grant_claimed_toast": {
     "message": "Free credit is set up"
   },
+  "grant_claimed_kept_toast": {
+    "message": "Free credit claimed. Your own key stays in place — tap “Switch back to free credit” to use the credit instead."
+  },
   "grant_page_halt": {
     "message": "Free credit used up — tap to see how to carry on"
   },

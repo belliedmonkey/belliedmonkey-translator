@@ -594,10 +594,15 @@ var AppSettings = (() => {
     try {
       const claimed = await LearnGrant.claim();
       const cur = await get(KEYS);
-      const plan = LearnGrant.plan(claimed, cur, window);
+      // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
+      const plan = LearnGrant.plan(claimed, cur, window, { overwrite: id === 'restore' });
       if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
       if (plan.marks) await set(plan.marks);
-      if (hooks.say) hooks.say(t('grant_claimed_toast', '免费额度已配好'));
+      // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
+      const wroteAny = plan.tests && plan.tests.length > 0;
+      if (hooks.say) hooks.say(wroteAny
+        ? t('grant_claimed_toast', '免费额度已配好')
+        : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
     } catch (e) {
       if (e && e.code === 'grant_unavailable') _grantUnavailable = true;
       if (hooks.say) hooks.say(String((e && e.message) || e));

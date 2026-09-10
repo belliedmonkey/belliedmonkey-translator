@@ -109,6 +109,22 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     deepEq(r.replaced.sort(), ['chat', 'stt', 'tts']);
   });
 
+  test('「改回免费额度」（overwrite）：三槽无论装着什么都换成额度，且如实记为 replaced', () => {
+    // 2026-09-10 用户实测：三槽都是自己的 key 时，领取一个字节没写却弹「已配好」，
+    // 「改回」走同一条不覆盖的路 —— 一个死按钮。转写那一槽的「已配」看引擎不看 key，
+    // 尾号比对对它必然落空，overwrite 下必须一并换掉。
+    const s = { apiKey: 'sk-users-own-key', ttsApiKey: 'sk-users-own-key', sttEngine: 'local', sttApiKey: '' };
+    const r = G.plan(claimed, s, REG, { overwrite: true });
+    eq(r.writes.apiKey, TOKEN); eq(r.writes.ttsApiKey, TOKEN); eq(r.writes.sttApiKey, TOKEN);
+    eq(r.writes.provider, 'grant');
+    deepEq(r.replaced.sort(), ['chat', 'stt', 'tts']);
+    eq(r.skipped.length, 0);
+    eq(r.tests.length, 3);
+    // 不带 overwrite 的普通领取仍然一个字节都不动
+    const r2 = G.plan(claimed, s, REG);
+    eq(r2.tests.length, 0, '普通领取写了用户自己的槽');
+  });
+
   test('尾号只差一位就不许覆盖 —— 判宽了会盖掉别人的 key', () => {
     const NEAR = 'sk-something-OLDTAIL8';                 // 与 grantTail 差一位
     const s = { apiKey: NEAR, grantTail: 'OLDTAIL9' };
