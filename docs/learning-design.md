@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-11 | belliedmonkey | 文档翻译（用户提议，扩展与 App 两端）：上传 PDF / Word / 图片，**打开一页翻一页**、并发走既有传输队列、不一次性翻整份；译文进学习语料但**限量**（每页 ≤ 10 句、每份 ≤ 100 句，用户裁定）；新来源类别「文档」与新 anchor kind `doc`；图片与扫描页发用户自配的多模态引擎识别；文档与译文存独立 IDB 不同步；新 Gate G。domain-design §2 第四种来源 + §2.5 + §8 收窄 | **待评审** —— 见 §9.7 / §10 Gate G / §11 / §12，domain-design §2.5，interaction-spec「文档翻译」，telemetry §3 |
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
 | 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | **已评审通过 2026-08-23（回溯批量确认）** —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
 | 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
@@ -239,6 +240,7 @@ Item = {
       { k:'dom',   url, title, siteKind, quote }            // passage re-read: quote locates it again
     | { k:'media', url, mediaKey, title, startMs, endMs },  // clip replay: jumps back to the segment
     | { k:'conv',  sessionId, title, startMs, endMs, who },  // 对话 (§9.6): no replay — the recording is gone; who = 'them' | 'me'
+    | { k:'doc',   docId, title, page, quote },               // 文档 (§9.7): re-opens the document at that page; quote locates the sentence
   createdAt, lastSeenAt, seenCount, dwellMs,
   salience,        // 0..1, computed deterministically at capture time
   state: 'candidate' | 'learning' | 'known' | 'muted',
@@ -2727,6 +2729,85 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 | 原生输入半边 | `app/native/audio-bridge.swift` | tap、重采样、桥推 PCM、权限、会话类别 |
 | 来源管理 | `extension/learn/sources-view.js` | `conv://` 来源按会话一行，只有「删除已存」（屏蔽规则对会话无意义） |
 
+## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
+
+把 domain-design §2.5 那条「上传的文件是第四种来源」落到学习层：用户上传 PDF / Word /
+图片，阅读器**打开一页翻一页**；读过的页里的句对进语料，来源类别叫**「文档」**，默认开
+（设置项「文档进复习」`docCapture`），且**限量**。
+
+**两端都有**（与 §9.5/§9.6 的 App 专属不同）：扩展页 `learn/docs.html` 与 App 的 `#app-docs`
+共用同一套模块（`learn/doc-*.js`，同 `sources-view.js` 的「一个渲染器、两个宿主」）。
+`learn-collector.js` 仍不进 App 包，写入点在宿主（§9.2 第五点）。
+
+### 用户裁定（2026-09-11）
+
+| 事 | 裁定 |
+|---|---|
+| 版本 | 另起 **1.10.0**，先出本节过评审再写代码（第九期 A/B 进 1.9.2） |
+| 格式 | 第一版 = `.pdf .docx .txt .md` + 图片（`.png .jpg .webp`）与扫描版 PDF 页；`.doc .pptx .epub .xlsx .rtf` 明说不支持 |
+| 图片 / 扫描页 | 走**用户自配的多模态翻译引擎**（按页计费）；本地 OCR（tesseract 是 wasm）过不了扩展 CSP 与 Safari iOS 底线，出局 |
+| 语料上限 | **每页最多 10 句、每份文档最多 100 句**；句长过既有 `BAND`（8–60 字 / 40–220 字符）门槛 |
+
+### 它写什么：读过的页里的句对，作为新来源「文档」
+
+| 字段 | 取值 | 为什么 |
+|---|---|---|
+| `sourceId` | `doc:<docId>`（`docId` = 文件大小 + 头尾采样的 `LearnModel.hash16`） | 来源治理按**文档**分组（「📄 合同草案.pdf · 32 句」），可整份删除；同一文件在两端上传得到同一个 id |
+| `sources` 记录 | `{ id, url: 'doc://<docId>', title }`，`title` = 文件名（去后缀）+ ` · N 页` | `url` 不可点：文档只在本机；复习卡 ⓘ 行显示 `title` |
+| `anchor` | `{ k:'doc', docId, title, page, quote }` | **显式新 kind**（§12 2026-09-07 那条裁定同样适用）：不复用 `dom`（没有 URL 可回）、不复用 `conv`（有页可回）。每个读者显式分支：复习卡（扩展里可点 → `docs.html#doc=<id>&page=<n>`；App 里回调 `AppDocs.open`；文档已删则纯文本）、来源管理（`isDoc` / `groupDocuments`）、`driving.js` 的媒体计数（不计） |
+| `kind` | `'sentence'`：`LearnModel.splitPair(text, tr, lang, targetLang)` 配对成功的每一句；配不上且整段 ≤ `BAND.hi × 1.5` 时整段 `'passage'`；再长就跳过 | 与网页采集同一套切分，不写第二份 |
+| `lang` | 用户在文档页选的「文档语言」，默认 `LearnRules.dominantScript` 推断 | Safari 上没有语言检测器，与 §4.1 同一回落 |
+| 采集时机 | 该段译文**首次渲染到打开的页上**时一次，`playedThrough = true, dwellMs = 0` | 与 §9.6 同一先例：打开这一页就是「看过」；不是停留时长 |
+| 写入路径 | 宿主 `LearnStore.mergeBatch([item], [source])`（同 `listen.js maybeWrite`），随同步上行 | 语料本来就同步；**文档本体与译文不同步**（`DocStore`，见下） |
+
+### 门（`DocCore.shouldWrite`，纯函数，七条按顺序）
+
+1. 这一单元已写过 ⇒ 否；`text` 或 `tr` 为空 ⇒ 否。
+2. **★ ⇒ 是**（绕过下面所有门，含配额 —— 星是用户逐句手点，成本本身是闸）。
+3. `docCapture` 关 ⇒ 否。
+4. `LearnRules.langAllowed` 否 ⇒ 否（语言白名单照走）。
+5. **句长硬闸**：长度 > `BAND[dense|sparse][1] × 1.5`（90 / 330）⇒ 否。§6 的 `lengthScore` 是
+   taper 不是硬切（一个 800 字的段落 salience ≈ 0.577 仍过门），所以这里显式硬切。
+6. **配额**：本页已 ≥ **10** 句、或本文档已 ≥ **100** 句 ⇒ 否（`DocCore.CAPS`，不做设置键；
+   计数回写 `DocStore.docs.captured`）。超过的页只翻不采。
+7. `LearnModel.shouldCapture(draft)`（§6 的门）。
+
+每日新卡上限（`learnDailyNew`）仍在 scheduler，不动：语料是消防水管，牌库是涓流。
+
+### 文档本体：独立存储，不同步，可整份删
+
+| 存哪 | `DocStore`：独立 IndexedDB `mt-docs` v1（`docs` / `pages` 两个 store），宿主自己的 origin | 不 bump `LearnStore.DB_VERSION`（那是对全体用户语料的风险，§7.4）；文档可能几十 MB，语义是**缓存**不是语料 |
+| 存什么 | 文档元数据 + 原始字节（PDF）、每页段落文本、OCR 结果、译文（记 provider/base/model 三元组） | 换了引擎显示「用旧引擎译的 · 重译」，不自动重发（费用） |
+| 上限 | 单文件 ≤ 30 MB；本机最多 50 份（LRU 提示删除） | 页数不限：按页解析本来就 O(1) |
+| 删除 | 来源管理里删「这份文档的卡」**连文档本体一起删**（确认框写明）；「清除本机全部数据」多调一次 `DocStore.wipe()` | 一份没了卡的文档和一份没了文档的卡，都是半状态 |
+| 预取 | 设置键 `docPrefetch`：`0`（默认）/ `1`（下一页）；预取页用剩余名额，当前页永远先排 | 「打开一页翻一页」是裁定，预取是可选的便利 |
+
+### 图片与扫描页：两步，走用户的多模态引擎
+
+- 注册表加 `vision` 布尔（`build/providers.config.js`，§7 单一登记处）：该引擎的默认模型接受
+  `image_url` 内容块（第一版只做 `chat-compat` 形状；`messages-compat` 与其它形状回
+  `vision_unsupported`）。不支持 ⇒ 段位显示「当前引擎不支持识别图片 · 去设置换模型 →」且
+  **0 次请求**；未知（自定义端点）⇒ 试发一次，400 且报文含 image ⇒ 同一句话并记住不再重发。
+- OCR 提示词只要原文（逐字、按阅读顺序、段落间空行、不翻译不解释）；结果存 `pages.ocr`，
+  再走普通翻译。**两步而不是一步**：(text, tr) 对齐、翻译缓存复用、写卡不写第二份。
+- **免费额度**：文字走中继（与 Gate F 同一句）；图片**不经中继**（第一版），额度用户上传图片时
+  说清楚要自带 key。
+
+### 与「打开一页翻一页」相关的模块边界
+
+| 谁 | 做什么 | 不做什么 |
+|---|---|---|
+| `DocReader` | 解析：pdf.js 文本层 / 自写 docx / 文本 / 图片缩放 | 不翻译、不存储 |
+| `DocCore` | 分段、分页（`maxChars 1800 / maxParas 60`）、切句（>1200 字）、`draftFor / shouldWrite / CAPS` | 无 DOM、无 IO |
+| `DocView` | 阅读器 + `createEngine{ selectActive: u.page === cur }` + 350 ms tick；回调上报 | 不碰存储，不写卡 |
+| 宿主（`docs-page.js` / `app/docs.js`） | 文件选择、`TranslationAPI.translate/ocr`、`DocStore`、`LearnStore.mergeBatch` | 不写第二份并发闸（传输层 `reqConcurrency` 是唯一的） |
+
+### 隐私：§10 Gate G
+
+用户本地文件的内容是一个**新披露面**（不是网页内容，不是麦克风音频）。措辞见 Gate G。
+
+---
+
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
 `README.md`, `README.zh-CN.md` and `belliedmonkey.cc/privacy.html` currently make
@@ -2960,8 +3041,39 @@ Verbatim, on every surface, in the same PR as the code:
 | Chrome Web Store data disclosure | + the same item; the three attestations stay |
 | `build.js` Gate F coupling | `grant.enabled:true` ⇒ README ×2 carry the 「免费额度」 stem **and** all 12 locales have `grant_privacy`; the **china artifact must contain none of** `bt-grant` / `bt-relay` / `MT_GRANT = {` |
 
+### Gate G — ships with 文档翻译 (§9.7)
+
+*(Added 2026-09-11.)* A new disclosure surface: the contents of **files the user
+uploads**. Same shape as Gate C/E/F — a new paragraph per path, never a softening of the
+existing sentences. Verbatim, on every surface, in the same PR as the code:
+
+> **文档翻译（可选）。** 你上传的 PDF、Word、图片只保存在这台设备上，不同步、不进导出。翻译时，
+> 文档的文字**按你点开的页**发往你配置的翻译端点 —— 不是整份，也不是打开就发。图片与没有文字层
+> 的扫描页会以图片形式发往同一端点识别，只在你的引擎支持识别图片时。使用免费额度时，文字经我们
+> 的服务器转发到模型提供方（不保存、不记录内容），图片不经过我们。译文里被你读过的句子可以进
+> 学习语料（可关）；删除这份文档会一并删除它的卡。
+
+English (authoritative in `_locales/en` `doc_privacy`):
+
+> Document translation (optional). The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); images never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
+
+| Surface | Gate G |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above under Privacy |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + prerendered language sets | the paragraph as its own section; **regenerate the language pages** |
+| `belliedmonkey.com` | 「本机存储的数据」 gains 「上传的文档与译文」; the same paragraph without the free-credit sentence |
+| In-page (`docs.html`, `#app-docs`) | `doc_privacy` ×12 above the upload button; `doc_privacy_grant` variant when the credit is active |
+| App Store privacy labels | no new category (file contents are not collected by us); re-check the 「用户内容」 questionnaire at submission, **by hand** |
+| Chrome Web Store / AMO | no new category on the BYO path; AMO `data_collection_permissions` reviewed for whether uploaded files count as `personalContent` |
+| `build.js` Gate G coupling | `learn/doc-view.js` present in the artifact ⇒ README ×2 carry the 「上传的文档」 stem **and** all 12 locales have `doc_privacy` |
+
 ## 11. Out of scope
 
+- **In-browser OCR** (2026-09-11, §9.7). A WebAssembly recogniser fails the extension
+  CSP and the Safari iOS floor; recognition is the user's multimodal endpoint or nothing.
+- **Translating a whole uploaded document at once** (2026-09-11, §9.7). Pages are sent
+  when opened; there is no "translate all" and no background sweep — a large document
+  must cost what the user chose to read.
 - **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
   *(Re-examined 2026-08-08 with the mastery ladder: still out. §9.2's sentence notes
   surface vocabulary and grammar as a FACET of the sentence card — they aid
@@ -3055,3 +3167,8 @@ matters more than the detail.
 | 2026-09-08 | 中国版也每人一把 DashScope key | DashScope 的 key / 空间 / 子账号都没有金额上限（只有限流与事后分账），新用户免费额度全账号共享 ⇒ 一把 key 就是一个无上限的口子。计量代理要境内后端，而它未就绪且会把原文经东京转发 ⇒ 现在只引导百炼官方额度（§8.10） |
 | 2026-09-08 | 退出登录后免费额度的 key 留在设备上照用（画布 D4 的推荐项） | 用户裁定「必须登录才能用」：额度是登录的附带权益。退出登录清掉本机额度 key，再登录自动领回同一把（§8.10 D4） |
 | 2026-09-07 | 对话的句子复用 `anchor.k:'media'`（`mediaKey:'conv:…'`） | 媒体锚点的语义是「跳回那段音频」，而对话录音已丢弃 —— 复习卡会长出一个永远失败的 ▶，来源管理会拿一个假 host 分组。新 kind `conv` 让每个读者显式分支（§9.6） |
+| 2026-09-11 | 文档翻译用 tesseract.js 在本地 OCR | wasm：扩展页默认 CSP 无 `wasm-unsafe-eval`（加了要进三个商店审核），且违反 Safari iOS 底线（§5.3）。识别走用户自配的多模态引擎，与「录音只发用户端点」同一信任形状（§9.7） |
+| 2026-09-11 | 文档翻译一次性翻整份 / 后台预翻 | 用户裁定「打开一页翻一页」：有些文档几百页，整份翻是一张看不见的账单。页面打开才发；预取至多下一页且可关（§9.7） |
+| 2026-09-11 | 文档与译文存进 `LearnStore`（bump DB_VERSION） | 每次 bump 都是对全体用户语料的风险；文档可能几十 MB，语义是缓存不是语料，且不同步。独立 IDB `mt-docs`，删除语义单独定义（§9.7） |
+| 2026-09-11 | 支持 `.doc` / `.pptx` / `.epub` | `.doc` 是 OLE 二进制复合文档，零依赖下不值得写；`.pptx`/`.epub` 是另外两种页模型。第一版明说不支持，让用户在 Word 里另存为 `.docx`（§9.7） |
+

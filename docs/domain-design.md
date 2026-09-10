@@ -59,6 +59,13 @@ translation output byte-for-byte identical.
   the resulting timed cues feed the **same Engine** through the same harness. It is a
   source, never a different pipeline — the Engine and Renderer cannot tell it apart
   from a fetched transcript.
+- **A fourth source kind — `DocumentSource` (§2.5, added 2026-09-11).** A file the
+  user *uploads* (PDF, Word `.docx`, plain text, an image) is neither DOM nor a timed
+  transcript: it is a sequence of pages, each a list of paragraphs. The document
+  reader turns **one page at a time** into units and feeds the **same Engine** through
+  a page-scoped scheduler; the Renderer is a reader view (original paragraph, translation
+  beneath), not an injected sibling. Same pipeline, same Engine, same Collector sink —
+  the Engine cannot tell a PDF page from a web page.
 - **Podcast bilingual subtitles** are the audio analogue of video subtitles — see
   **§2.2**. Where a podcast has no timed transcript, it is just a **page** (show
   notes / a text transcript) and falls to the normal `DomSegmenter` text path —
@@ -309,6 +316,61 @@ key carve-outs). Module consequences are in §6. Per-surface expectations are na
    runs — `docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」). Per §5.3 this is
    a host-app capability: **the extension never gains a microphone source**, and the
    streaming adapter (`ws-transcribe.js`) stays one file shared by both hosts.
+
+### 2.5 文档翻译 — uploaded documents, one page at a time (核心约束 — do not break)
+
+Added 2026-09-11 (第九期, `docs/learning-design.md` §9.7). The user asked for PDF /
+Word / image translation in **both** hosts (extension pages and the host app), with the
+translations usable as learning material, and with an explicit cost shape: *open a page,
+translate a page; never the whole document at once*.
+
+1. **A document is a source, not a mode.** `DocumentSource` produces units
+   `{page, idx, text}` exactly as `DomSegmenter` produces `{node, text}`; the Engine
+   is `createEngine` with a **page-scoped `selectActive`** (the document's analogue of
+   the webpage viewport scheduler): only units on the page the user has open — plus at
+   most the next page when the user opts into prefetch — are ever offered to `pump()`.
+   Concurrency is the transport queue's (`TranslationAPI` `enqueue`, `reqConcurrency`);
+   the reader writes no second concurrency gate.
+2. **Parsing is local and dependency-light; recognition is the user's endpoint.** Text
+   PDFs are read through the vendored pdf.js text layer (Apache-2.0, unmodified files,
+   version + sha256 pinned by `test/vendor.test.js`); `.docx` through our own ~120-line
+   zip + `word/document.xml` reader (`DecompressionStream('deflate-raw')`, the same
+   primitive `learn/chunk.js` already uses); plain text and Markdown directly. **Images
+   and scanned PDF pages** (a page whose text layer is empty) have no local path — a
+   WebAssembly OCR fails the extension CSP and §5.3's floor — so they are sent **as
+   images to the translation engine the user configured**, only when that engine's
+   registry entry says it accepts images (`vision`), and the page says so when it does
+   not. Two steps, not one: OCR returns the source text, then the normal translation
+   path runs — so (text, tr) pairs align, the translation cache applies, and the
+   learning sink sees ordinary units.
+3. **The floor is complete on Safari iOS.** pdf.js is pure JS (the WebAssembly it can
+   use is only for JPX/JBIG2 image decoding, never for the text layer) and runs in a
+   WKWebView and a Safari extension page alike; `<input type="file">` works in iOS
+   WKWebView without host code. macOS is the surface that *lacks* something —
+   `WKUIDelegate.runOpenPanel` — and the host app must gain it (D5), because a button
+   that silently does nothing violates §5.3 rule 3 (degradation must be total, not a
+   half-state). Whether pdf.js can run inside the host app's `file://` origin (Worker
+   and `import()` policy) is **measured first** (D0); if it cannot, the app uses a
+   native PDFKit bridge with the same three operations (open / text of page n / image of
+   page n) so both hosts stay a single design.
+4. **Nothing is sent that the user has not opened.** Uploading parses metadata and the
+   first page only (PDF is lazily indexed; `.docx` is parsed once, then paginated).
+   Turning to a page is what sends that page. There is no "translate all"; a document of
+   500 pages costs 500 deliberate page turns. Per-page unit caps (≤ 80 units; a paragraph
+   over ~1 200 characters is split at sentence terminals) bound a single request burst.
+5. **Files stay on the device.** The document, its page texts, OCR results and
+   translations live in a **separate** IndexedDB (`mt-docs`) in the host's own origin,
+   never in the learning corpus store and never in sync (documents can be tens of MB;
+   the corpus is sentences). What *does* enter the corpus is governed by the Collector
+   laws (§9): the reader is a **Renderer**, the sink reads what it displayed.
+6. **Disclosure is per path (Gate G).** A document's text goes, page by page, to the
+   user's own translation endpoint (or, on the free-credit path, through our relay under
+   Gate F's existing promise); images go only to the user's endpoint and never through
+   the relay in this version. The privacy copy ships in the same version
+   (`release-checklist` §2).
+
+Module consequences are in §6 (`DocCore` / `DocReader` / `DocStore` / `DocView`); the
+learning-side contract (anchor kind `doc`, caps) is `docs/learning-design.md` §9.7.
 
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
@@ -688,6 +750,17 @@ same `start()` runs with the gesture. This is a capability check, not a UA check
 never fires inside a real gesture, and it would catch Chrome's autoplay policy the same
 way. Tier A (file mode) needs no AudioContext and starts from the popup on every surface.
 
+**Third instance — 文档翻译 (§2.5), 2026-09-11.** The baseline is the text layer:
+pdf.js (pure JS) and our own `.docx` reader run identically on every surface, and the
+file picker is native on iOS. The capability here is **image recognition**, and it is
+deliberately not a browser capability at all: it is the user's multimodal endpoint,
+gated by the registry (`vision`) exactly the way transcription is gated by
+`liveEndpoint`. Where the engine lacks it the reader says so on the page and sends
+nothing — rule 3's silence is again outranked by "never silent to a user who opted
+in", because the user just uploaded a scan and is waiting. The one surface that lacks
+something is macOS's host app (no `runOpenPanel`), and per rule 1 that is fixed in the
+host, not papered over in the page.
+
 > **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
 > other two: DEVICE and SITE change *where* things are drawn, whereas this one can
 > change *what the user sees*. With an `en` target on an English page, Chrome draws
@@ -877,6 +950,10 @@ in PR3, not assumed.
 | `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime`. Supplies the §2.4 offer (`unavailableAction`) and starts an `AsrSource` session on the user's tap |
 | `AsrSource` | `content/asr-source.js` | the §2.4 source: resolves the media URL, runs tier A (fetch bytes → transcription endpoint → cues) or tier B (CORS probe → crossorigin reload → `captureStream` / `createMediaElementSource` → PCM → `WsTranscribe`), the 3-second silence guard, and one `AbortController` per session. Pushes closed sentences into the harness; never touches the Engine directly |
 | `WsTranscribe` | `content/ws-transcribe.js` | the live-tier transport: one WebSocket client with per-vendor message adapters keyed by the registry's `liveType` (`ws-openai` subprotocol key + `input_audio_buffer.append`; `ws-gemini` `?key=` + `realtimeInput.audio` with the 10-minute reconnect; `ws-meta`). Emits `{kind:'partial'|'final', text, startMs?, endMs?}`; connect timeout, idle heartbeat, never a silent close |
+| `DocCore` | `learn/doc-core.js` | the §2.5 source's pure logic (both hosts): `docId` (content hash), text-item → paragraph grouping for pdf.js pages, pagination for `.docx`/text (`maxChars` / `maxParas`), `unitsFor(page)` (sentence split above ~1 200 chars), `pageStats`, and the learning-side `sourceFor` / `draftFor` / `shouldWrite` with the per-page / per-document caps (`CAPS`). No DOM, no storage — unit-tested in the vm harness |
+| `DocReader` | `learn/doc-reader.js` | file IO: `sniff` (extension + magic bytes), `openPdf(bytes, pdfjs)` → `{pages, textOf(n), imageOf(n)}`, `openDocx(bytes)` (own zip central-directory reader + `DecompressionStream('deflate-raw')` + `DOMParser` over `word/document.xml`), `openText`, `openImage` (canvas downscale → JPEG data URL). pdf.js is injected, never required — the app may hand in a native bridge instead |
+| `DocStore` | `learn/doc-store.js` | the separate IndexedDB `mt-docs` (documents, page texts, OCR results, translations keyed by provider/base/model). Never synced, never in the corpus store, wiped alongside 「清除本机全部数据」 |
+| `DocView` | `learn/doc-view.js` | the reader (both hosts, ids prefixed `docv-`): document list, pager, original + translation per paragraph, ★, retry rows; owns the page-scoped `createEngine` and its tick; reports through callbacks (`pickFile`, `translate`, `ocr`, `onShown`, `onStar`, `onDelete`) and touches no storage itself |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
@@ -1217,6 +1294,9 @@ HTTP **401/403**，只要请求头带了**非空、非 `bmg_` 额度令牌**的 
 No Readability-style full-article extraction fallback (the reference extension
 uses one for unstructured pages); rule-based semantic segmentation is sufficient
 for bilingual injection. Revisit only if unstructured pages prove inadequate.
+*(Narrowed 2026-09-11:)* this rules out extracting **web pages** into an article
+view. An **uploaded file** is explicit user intent, not a page, and §2.5 reads it
+through a dedicated reader — that is not the fallback this paragraph forbids.
 
 **In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
 browser itself is infeasible on Safari iOS, and the learning layer's optional backend
@@ -1346,6 +1426,12 @@ source → Extractor → Engine → Renderer
 > `app/listen.js`, when a finalized pair is first rendered into the history list
 > (`docs/learning-design.md` §9.6). It writes through `LearnStore.putItem` in the app's
 > own origin (§9.3); `learn-collector.js` still ships in no app bundle.
+>
+> *(Amended 2026-09-11:)* 文档翻译 (§2.5) adds a fifth point, present in **both** hosts
+> but again outside `learn-collector.js`: `DocView`'s `onShown(unit, page)`, fired when a
+> paragraph's translation is first rendered on an open page. The host (`learn/docs-page.js`
+> or `app/docs.js`) runs `DocCore.shouldWrite` — the same laws, plus the §9.7 caps — and
+> writes through `LearnStore.mergeBatch`. Still a sink: it never requests a translation.
 
 | Surface | Attachment | Why there |
 |---|---|---|
