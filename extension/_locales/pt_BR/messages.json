@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "Mecanismo de transcrição alterado — interrompido"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 Transcrever áudio em legendas"
+  "popup_asr_go": {
+    "message": "🎙 Transcrição ao vivo + tradução"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Transcrição ao vivo + tradução — escolha um mecanismo primeiro →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} não tem interface ao vivo: streams não podem ser transcritos, áudio baixável sim · configurar um mecanismo ao vivo →"
+  },
+  "popup_asr_no_media": {
+    "message": "Nenhum vídeo ou áudio em reprodução nesta página — dê play e toque aqui de novo"
+  },
+  "popup_asr_none_found": {
+    "message": "Nenhum vídeo ou áudio transcritível encontrado. O player pode estar em outro frame ou ainda não começou."
+  },
+  "popup_asr_iframe": {
+    "message": "O player está em outro frame desta página; abra em uma nova aba para transcrever ↗"
+  },
+  "popup_asr_live": {
+    "message": "Ao vivo"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "duração desconhecida"
   },
   "asr_incremental": {
     "message": "Traduzir enquanto falam (rápido, pode mudar)"

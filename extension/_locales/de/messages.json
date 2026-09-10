@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "Transkriptions-Engine geändert — gestoppt"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 Audio in Untertitel transkribieren"
+  "popup_asr_go": {
+    "message": "🎙 Live-Transkription + Übersetzung"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Live-Transkription + Übersetzung — zuerst eine Engine wählen →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} hat keine Live-Schnittstelle: Streams lassen sich nicht transkribieren, herunterladbares Audio schon · Live-Engine einrichten →"
+  },
+  "popup_asr_no_media": {
+    "message": "Auf dieser Seite wurde kein laufendes Video/Audio gefunden — erst abspielen, dann hier erneut tippen"
+  },
+  "popup_asr_none_found": {
+    "message": "Kein transkribierbares Video/Audio gefunden. Der Player ist vielleicht in einem anderen Frame oder spielt noch nicht."
+  },
+  "popup_asr_iframe": {
+    "message": "Der Player liegt in einem anderen Frame dieser Seite; in neuem Tab öffnen und dort transkribieren ↗"
+  },
+  "popup_asr_live": {
+    "message": "Live"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "Länge unbekannt"
   },
   "asr_incremental": {
     "message": "Beim Sprechen übersetzen (schnell, wird nachgebessert)"

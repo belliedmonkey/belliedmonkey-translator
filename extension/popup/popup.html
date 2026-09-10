@@ -99,11 +99,14 @@
     </a>
   </div>
 
+  <!-- 「🎙 实时转写 + 翻译」常显（interaction-spec 五态表，2026-09-11）：此前只在媒体 ≥ 30 s 时出现，
+       否则整节 hidden —— 元数据没到、播放器在 shadow root 或 iframe 里，用户看到的都是「什么都没有」。 -->
   <div class="section" id="asr-section" hidden>
     <button class="row row-btn" id="transcribe-media" type="button">
-      <span class="row-label" data-i18n="popup_transcribe_media">🎙 转写音频字幕</span>
+      <span class="row-label" id="transcribe-media-label" data-i18n="popup_asr_go">🎙 实时转写 + 翻译</span>
       <span class="row-value hint" id="transcribe-media-hint"></span>
     </button>
+    <div class="setup-note" id="transcribe-media-note" hidden></div>
   </div>
 
   <div class="section actions" id="actions-section">
@@ -117,6 +120,8 @@
 
   <script src="../content/i18n-messages.js"></script>
   <script src="../content/providers.gen.js"></script>
+  <script src="../content/stt.gen.js"></script>   <!-- 转写引擎注册表：判「有没有实时接口」（中国版生成物无品牌词） -->
+  <script src="asr-entry.js"></script>
   <script src="../content/engine-state.js"></script>
   <script src="../content/wire-format.js"></script>
   <script src="../learn/grant.js"></script>   <!-- 免费额度那一行（§8.10）。弹窗只用它的 popupRow/status，不发任何请求 -->

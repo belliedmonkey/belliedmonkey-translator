@@ -58,6 +58,9 @@ class MP extends HTMLElement { constructor() { super(); const r = this.attachSha
 customElements.define('media-player', MP);
 fetch('/tone.wav').then(r => r.blob()).then(b => { const a = document.getElementById('mp').shadowRoot.getElementById('sa'); a.src = URL.createObjectURL(b); document.body.dataset.ready = '1'; });
 </script>`;
+// G：顶层没有媒体，播放器在 iframe 里（第三方嵌入播放器的形状）。
+const PAGE_FRAME = `<!doctype html><meta charset=utf-8><title>embed host</title><h1>Article</h1><p>The player below is an iframe.</p>
+<iframe id="f" src="/blob.html" width="640" height="200"></iframe>`;
 // D：一个没有任何媒体元素的页。
 const PAGE_NONE = `<!doctype html><meta charset=utf-8><title>no media</title><h1>Just text</h1><p>Nothing plays here.</p>`;
 const PAGE_BLOB = `<!doctype html><meta charset=utf-8><title>asr live tier</title>
@@ -75,6 +78,7 @@ function serve() {
     if (u === '/blob.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_BLOB); return; }
     if (u === '/shadow.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_SHADOW); return; }
     if (u === '/none.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_NONE); return; }
+    if (u === '/frame.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_FRAME); return; }
     if (u === '/tone.wav') {
       // Range 支持：探针用 bytes=0-1023 试 CORS；Chrome 播放也会带 Range
       const m = /bytes=(\d+)-(\d*)/.exec(req.headers.range || '');
@@ -464,6 +468,17 @@ async function liveRun(url, seconds) {
       await cdp.send('Target.closeTarget', { targetId: pg.targetId });
     }
 
+    // ── G. 播放器在 iframe 里：顶层 media 为 null，探针报出 frame 的 href ──────
+    {
+      const pg = await openPage(base + '/frame.html');
+      await sleep(1500);
+      const st = await sendToTab(base + '/frame.html', 'getPageStatus');
+      if (st.media !== null) problems.push(`G: 顶层不该找到媒体，实际 ${JSON.stringify(st.media)}`);
+      if (!Array.isArray(st.frames) || st.frames.length !== 1 || !/\/blob\.html$/.test(st.frames[0].href)) problems.push(`G: 探针应报出 1 个 frame（/blob.html），实际 ${JSON.stringify(st.frames)}`);
+      else notes.push(`G: iframe 里的播放器由探针报出：${st.frames[0].href}（${JSON.stringify(st.frames[0].media)}）`);
+      await cdp.send('Target.closeTarget', { targetId: pg.targetId });
+    }
+
     // ── E. Safari 手势形状：AudioContext 起不来 ⇒ 通知行「▶ 点此开始」，页内再点即开始 ──
     // 隔离世界里把 AudioContext 换成 state 恒 suspended、resume() 永不落定的子类（Safari 上
     // 页外手势建的 AudioContext 就是这个样子）。
@@ -510,5 +525,5 @@ async function liveRun(url, seconds) {
   }
   for (const n of notes) console.log('  ' + n);
   if (problems.length) { for (const p of problems) console.log('✗ ' + p); process.exit(1); }
-  console.log('✓ test:asr — 文件一档、流式一档、shadow root 弹窗入口、无媒体回码、页内手势再点都过');
+  console.log('✓ test:asr — 文件一档、流式一档、shadow root 弹窗入口、无媒体回码、iframe 探针、页内手势再点都过');
 })().catch((e) => { console.error('✗ ' + (e.stack || e.message)); process.exit(1); });

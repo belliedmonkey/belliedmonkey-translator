@@ -2199,8 +2199,29 @@
   "asr_err_settings": {
     "message": "Motor de transcripción cambiado — detenido"
   },
-  "popup_transcribe_media": {
-    "message": "🎙 Transcribir audio a subtítulos"
+  "popup_asr_go": {
+    "message": "🎙 Transcripción en vivo + traducción"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Transcripción en vivo + traducción — elige primero un motor →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} no tiene interfaz en vivo: los streams no se pueden transcribir, el audio descargable sí · configurar un motor en vivo →"
+  },
+  "popup_asr_no_media": {
+    "message": "No se encontró vídeo ni audio en reproducción en esta página — dale a reproducir y vuelve a tocar aquí"
+  },
+  "popup_asr_none_found": {
+    "message": "No se encontró vídeo ni audio transcribible. Puede que el reproductor esté en otro marco o aún no haya empezado."
+  },
+  "popup_asr_iframe": {
+    "message": "El reproductor está en otro marco de la página; ábrelo en una pestaña nueva para transcribir ↗"
+  },
+  "popup_asr_live": {
+    "message": "En vivo"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "duración desconocida"
   },
   "asr_incremental": {
     "message": "Traducir mientras hablan (rápido, puede corregirse)"

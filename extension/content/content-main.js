@@ -474,7 +474,20 @@
         media = el ? MediaFinder.describe(el) : null;
         if (media) media.count = MediaFinder.all().length;
       } catch (_) {}
-      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href, media });
+      // iframe 里的播放器：广播给探针（content/media-probe.js），等 300 ms 收齐回报。
+      // 只上报不启动；弹窗据此给「在新标签页打开播放器」的出口。
+      const frames = [];
+      const probeId = 'p' + Date.now();
+      const onReport = (ev) => { const d = ev && ev.data; if (d && d.type === 'mt-media-report' && d.id === probeId && d.href) frames.push({ href: d.href, media: d.media }); };
+      try {
+        window.addEventListener('message', onReport);
+        for (let i = 0; i < window.frames.length; i++) { try { window.frames[i].postMessage({ type: 'mt-media-probe', id: probeId }, '*'); } catch (_) {} }
+      } catch (_) {}
+      setTimeout(() => {
+        try { window.removeEventListener('message', onReport); } catch (_) {}
+        sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href, media, frames });
+      }, window.frames.length ? 300 : 0);
+      return true; // async sendResponse
     }
 
     // §2.4 popup entry — the ONLY way to transcribe a <video> that surfaces no subtitle UI
