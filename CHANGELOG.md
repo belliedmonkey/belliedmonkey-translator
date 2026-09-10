@@ -3,7 +3,7 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
-## 1.9.1
+## 1.9.1 — 2026-09-10
 
 - When a provider rejects your API key (401/403), translation now stops right away and tells you on the page to check that key in Settings — no more failing paragraph by paragraph.
 - The app's home screen now guides you to turn on the Safari extension: three illustrated steps, a one-tap jump to the check page, and an “I've turned it on” button to dismiss.
