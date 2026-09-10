@@ -37,9 +37,11 @@ const LEDGER = require(path.join(ROOT, 'build/perf-ledger.config.js'));
 // 每个 flavor 的产出位置与站点身份。域名也只写在这一处。
 const SITES = {
   global: { dir: process.env.MT_SITE_CC || path.join(process.env.HOME, 'belliedmonkey-cc'),
-            host: 'belliedmonkey.cc', lang: 'en' },
+            host: 'belliedmonkey.cc', lang: 'en',
+            appName: 'BelliedMonkey Translator', orgName: 'BelliedMonkey, LLC' },
   china:  { dir: process.env.MT_SITE_CN || path.join(process.env.HOME, 'belliedmonkey-com'),
-            host: 'belliedmonkey.com', lang: 'zh-Hans' },
+            host: 'belliedmonkey.com', lang: 'zh-Hans',
+            appName: '大肚猴翻译', orgName: '大肚猴翻译' },   // 个人非经营性备案：落款是品牌，不是公司主体
 };
 
 // 控制台地址。**刻意不进注册表**：注册表管的是代码会用到的东西（端点、模型、能力），

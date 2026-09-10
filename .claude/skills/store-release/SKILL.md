@@ -469,7 +469,14 @@ i18n/{ar,en,es,fr,hi,pt,ru,zh-CN}.json
 ```bash
 node scripts/gen-site-langs.js           # 生成到 ~/belliedmonkey-cc
 node scripts/gen-site-langs.js --check   # 门禁：与字典不一致就红
+npm run changelog                        # 从 store-assets/release-notes-*.md 重出 CHANGELOG.md + 官网 changelog.html
+                                         # （唯一会随发版自动刷新的新鲜度信号；--check 是门禁）
+npm run site:audit                       # 门禁：两站的 SEO/GEO 底子（title/canonical/og/alt/JSON-LD 版本/
+                                         # 口径黑名单/sitemap↔noindex/llms.txt）—— 判据见 docs/seo-geo-checklist.md
 ```
+
+`site:audit` 是 2026-09-10 加的：那天审计发现 JSON-LD 的 `softwareVersion` 停在 1.7.18 而站已跟到
+1.9.0、站上同时有「No telemetry」（假）与「匿名用量事件」（真）两种口径 —— 都是发版时没人看的地方。
 
 `llms.txt` 也是给爬虫和模型看的一份文案，不在字典里 —— Gate D 那类改口要单独改它。
 

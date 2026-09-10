@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+BelliedMonkey Translator is a free, open-source (GPL-3.0) browser extension for Safari on iPhone, iPad and Mac, and for Chrome and Firefox. It shows web pages and video subtitles in two languages at once, turns the sentences you actually read into spaced-repetition review cards, and works with your own AI key — or with a free channel that needs none. No subscription, no account required.
+</p>
+
+<p align="center">
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
@@ -41,7 +45,7 @@ Install from a store — building from source is for contributors, not for using
 |---|---|
 | **iPhone · iPad · Mac** (Safari) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three |
 | **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip); steps below |
-| **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/) |
+| **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
@@ -103,6 +107,17 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
   <img src="docs/media/shot-subtitles.png" alt="YouTube video with the original subtitle above and the translation below" width="30%">
   <img src="docs/media/shot-review.png" alt="A review card built from a sentence read earlier, with four difficulty buttons" width="30%">
 </p>
+
+At a glance:
+
+- **Bilingual web pages** — the original stays in place, the translation appears directly beneath it
+- **Dual subtitles** for YouTube, x.com video and podcasts, merged into whole sentences and translated ahead of the playhead
+- **AI transcript subtitles** for media that has no captions at all, using your own transcription key (nothing is transcribed unless you tap the button)
+- **Review cards** from the sentences you actually read — spaced repetition with read / listen / write tiers; off by default
+- **Bring your own key** — any OpenAI- or Anthropic-compatible endpoint, or a free Google channel with no key
+- **No account required**; multi-device sync is optional; only anonymous usage events, and one switch turns them off
+- **Safari on iPhone, iPad and Mac, Chrome and Firefox** — one codebase, six store surfaces
+- **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
 
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
@@ -345,6 +360,52 @@ extension/
 ├── popup/ · options/       Settings UI
 └── _locales/               11 languages
 ```
+
+---
+
+## FAQ
+
+<details>
+<summary><b>How is this different from Immersive Translate?</b></summary>
+
+Same reading model — original paragraph, translation right under it, dual video subtitles. The differences: BelliedMonkey Translator is GPL-3.0 open source, has no subscription and no account requirement, and with your own key the translation request goes straight from your browser to the model provider with no server of ours in between. In the other direction, Immersive Translate supports far more sites through hand-written adapters and offers a hosted plan that needs no key; this project has neither — the segmenter works from HTML semantics alone, so most sites work without site-specific code, but unusual layouts can still break. The full comparison, including Readlang, Trancy and built-in browser translation, is at [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html).
+</details>
+
+<details>
+<summary><b>Is it really free? What is the catch?</b></summary>
+
+The extension and the apps are free with no ads, no paid tier and no in-app purchase. The only cost is the translation itself: with your own AI key you pay the provider directly at their prices (roughly $0.0004 per page on a budget model); the free Google channel costs nothing but is general-purpose machine translation. After sign-in you can claim a small free credit we pay for (about $0.20); on that path your text passes through our relay to the model provider and is not stored. Details: [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html).
+</details>
+
+<details>
+<summary><b>What data leaves my device?</b></summary>
+
+With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no tracking; the only thing collected is anonymous usage events (which features you used, never page content), and one switch turns them off. See [Privacy](#privacy).
+</details>
+
+<details>
+<summary><b>Which translation engines can I use?</b></summary>
+
+A free channel that needs no key, or your own key for any AI service — the built-in list lives in [`build/providers.config.js`](build/providers.config.js), and any OpenAI- or Anthropic-compatible endpoint works, including a company gateway or a model you host yourself. You enter the complete endpoint URL and that exact address is what gets requested.
+</details>
+
+<details>
+<summary><b>Why not just use the browser's built-in translation?</b></summary>
+
+Built-in translation replaces the page, so the original disappears; this keeps both languages visible in the same place. Built-in translation also does nothing for video subtitles and gives you no choice of engine.
+</details>
+
+<details>
+<summary><b>Does it work on iPhone?</b></summary>
+
+Yes — Safari on iPhone and iPad is the primary target, not a port. The service worker is unusable there after the device locks, so every network call lives in the content script; see [Safari iOS, and why the service worker does nothing](#safari-ios-and-why-the-service-worker-does-nothing). Firefox on iOS cannot run extensions at all.
+</details>
+
+<details>
+<summary><b>What is the review part, and can I turn it off?</b></summary>
+
+If you turn learning on, sentences you genuinely stopped and read — not ones you scrolled past — are saved with the page they came from and come back on a forgetting curve, with read / listen / write reviews, sentence notes and read-aloud. It is off by default, and turning it off leaves translation exactly as it was.
+</details>
 
 ---
 

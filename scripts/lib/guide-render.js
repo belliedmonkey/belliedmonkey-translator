@@ -58,19 +58,19 @@ function engineTable(rows, cols) {
 // 处理一种差异（空白），而不是两种。
 const plain = (s) => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
-function howToJsonLd(site, title, desc, steps) {
+// 2023-09 起 Google 不再给 HowTo 出富结果（2026 年的官方退役清单也列着它），留着只会在
+// Search Console 里报警。教程页改标 TechArticle：仍然告诉引擎「这是关于哪个软件的一篇技术
+// 文章」，步骤本身在可见正文里，不再复制进结构化数据。
+function articleJsonLd(site, title, desc, lang) {
   return JSON.stringify({
     '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    name: title,
+    '@type': 'TechArticle',
+    headline: title,
     description: desc,
     url: `https://${site.host}/guide.html`,
-    totalTime: 'PT5M',
-    supply: [], tool: [],
-    step: steps.map((s, i) => ({
-      '@type': 'HowToStep', position: i + 1, name: plain(s.name), text: plain(s.text),
-      url: `https://${site.host}/guide.html#step${i + 1}`,
-    })),
+    inLanguage: lang,
+    about: { '@type': 'SoftwareApplication', name: site.appName, url: `https://${site.host}/` },
+    publisher: { '@type': 'Organization', name: site.orgName, url: `https://${site.host}/` },
   }, null, 2);
 }
 
@@ -124,22 +124,23 @@ function renderEn(d) {
   return `<!DOCTYPE html>
 <html lang="en" data-page="guide">
 <head>
-<title>Setup guide: your own translation engine, step by step</title>
+<title>Bring your own API key: your translation engine, step by step</title>
 <link rel="canonical" href="https://${site.host}/guide.html">
 <meta name="description" content="A complete, working configuration: which key to get, the exact endpoint and model to enter, how to add read-aloud and transcription, and what to do when a request fails.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://${site.host}/guide.html">
-<meta property="og:title" content="Setup guide: your own translation engine, step by step">
+<meta property="og:title" content="Bring your own API key: your translation engine, step by step">
 <meta property="og:description" content="The exact endpoint, model and key for a configuration that works — plus the measurements behind the recommendation.">
-<meta property="og:image" content="https://${site.host}/icon.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://${site.host}/media/og-card.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://${site.host}/media/og-card.jpg">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/icon.png">
 ${STYLE}
 <script type="application/ld+json">
-${howToJsonLd(site, 'Setup guide: your own translation engine, step by step',
-  'A complete working configuration for BelliedMonkey Translator: key, endpoint, model, read-aloud and transcription.', steps)}
+${articleJsonLd(site, 'Bring your own API key: your translation engine, step by step',
+  'A complete working configuration for BelliedMonkey Translator: key, endpoint, model, read-aloud and transcription.', 'en')}
 </script>
 </head>
 <body>
@@ -150,7 +151,7 @@ ${howToJsonLd(site, 'Setup guide: your own translation engine, step by step',
   <a href="/setup.html">Set up</a>
 </nav>
 
-<h1>Setup guide: your own translation engine, step by step</h1>
+<h1>Bring your own API key: your translation engine, step by step</h1>
 <p class="lede">One configuration that works end to end — the exact endpoint, the exact model, and the measurements behind the choice.</p>
 
 <p>Translation needs an engine, and an engine needs a key of your own. That is the whole setup: this guide walks through one configuration end to end — translation good enough to read closely, plus the listening and speaking review that needs speech and transcription. The point of bringing your own keys is that your text goes from your browser to that provider directly; there is no server of ours in between.</p>
@@ -256,15 +257,16 @@ function renderZh(d) {
 <meta property="og:url" content="https://${site.host}/guide.html">
 <meta property="og:title" content="配置教程：把自己的翻译引擎接上，一步一步来">
 <meta property="og:description" content="端点、模型、Key 一个不含糊，附推荐背后的实测数据。">
-<meta property="og:image" content="https://${site.host}/icon.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://${site.host}/media/og-card.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://${site.host}/media/og-card.jpg">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/icon.png">
 ${STYLE}
 <script type="application/ld+json">
-${howToJsonLd(site, '配置教程：把自己的翻译引擎接上，一步一步来',
-  '大肚猴翻译的完整配置流程：Key、端点、模型、朗读与转写。', steps)}
+${articleJsonLd(site, '配置教程：把自己的翻译引擎接上，一步一步来',
+  '大肚猴翻译的完整配置流程：Key、端点、模型、朗读与转写。', 'zh-Hans')}
 </script>
 </head>
 <body>

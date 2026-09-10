@@ -31,8 +31,11 @@ open-sourced it.
 
 The extension is free and GPL-licensed. Google translation works with no key. If you want an
 LLM (better with idioms and long sentences), you paste your own OpenAI / Claude / DeepSeek /
-GLM key and pay your provider directly — nothing goes through a server of mine, there's no
-account unless you want sync, and there's no telemetry at all.
+GLM key and pay your provider directly (roughly $0.0004 a page on a budget model) — nothing
+goes through a server of mine, and there's no account unless you want sync. It does send
+anonymous usage events (which features you used, never page content); one switch turns them
+off. If you sign in there's a small free credit I pay for, enough for a few hundred pages, to
+try an AI engine before you create any provider account.
 
 **Where**: iPhone/iPad/Mac Safari (one App Store listing), Chrome, Firefox.
 Links in the first comment so this doesn't get filtered.
@@ -44,5 +47,5 @@ language pairs read badly? I'm the only developer, and the fixes usually ship wi
 
 App Store: https://apps.apple.com/app/belliedmonkey-translator/id6787190032
 Chrome: https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf
-Firefox: https://addons.mozilla.org/firefox/addon/%E5%A4%A7%E8%82%9A%E7%8C%B4%E7%BF%BB%E8%AF%91/
+Firefox: https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/
 Source: https://github.com/belliedmonkey/belliedmonkey-translator

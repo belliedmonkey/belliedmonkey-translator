@@ -31,8 +31,23 @@ const path = require('path');
 const SITE = process.env.MT_SITE_CC || path.join(process.env.HOME, 'belliedmonkey-cc');
 const HOST = 'belliedmonkey.cc';
 const PAGES = ['index.html', 'setup.html', 'privacy.html', 'support.html'];
+// 答案页只出**真翻译过的**语种（2026-09-10 先出 zh-CN / ja —— 下载量第 2、3 的语种）。
+// 不给其余 9 门语言出英文正文的「语言页」：hreflang=fr 指向一页英文，对 Google 是重复内容，
+// 对读者是假承诺。哪天某门语言的字典真翻了，把它加进这张表即可。
+const PARTIAL_PAGES = {
+  'faq.html': ['zh-CN', 'ja'],
+  'youtube-dual-subtitles.html': ['zh-CN', 'ja'],
+  'safari-ios-translate-extension.html': ['zh-CN', 'ja'],
+};
+const ALL_PAGES = PAGES.concat(Object.keys(PARTIAL_PAGES));
+// 某页在哪些语言下存在（英文永远在）
+function langsFor(page, langs) {
+  const only = PARTIAL_PAGES[page];
+  return only ? langs.filter((l) => l.code === 'en' || only.includes(l.code)) : langs;
+}
 // 只有这几个页面有字典，因此也只有它们的站内链接需要跟着语言走。
-const LOCALIZED_HREFS = new Set(['/', '/privacy.html', '/support.html', '/setup.html']);
+const LOCALIZED_HREFS = new Set(['/', '/privacy.html', '/support.html', '/setup.html',
+  '/faq.html', '/youtube-dual-subtitles.html', '/safari-ios-translate-extension.html']);
 const RTL = new Set(['ar']);
 
 // 语言清单与显示名的唯一来源是 i18n.js 里那个 LANGS 字面量 —— 不在这里再抄一份。
@@ -128,16 +143,21 @@ function render(srcHtml, page, lang, dict, langs, version) {
   const self = `https://${HOST}${urlFor(page, lang)}`;
   h = h.replace(/(<link rel="canonical" href=")[^"]*(">)/, `$1${self}$2`);
   h = h.replace(/(<meta property="og:url" content=")[^"]*(">)/, `$1${self}$2`);
-  h = withHreflang(h, page, langs);
+  h = withHreflang(h, page, langsFor(page, langs));
 
   // ⑤ 站内链接跟着语言走 —— 但只对有字典的那几页。guide/faq 那些只有英文，
   //    指向 /zh-CN/faq.html 会是一个 404。
-  h = h.replace(/href="(\/[^"]*)"/g, (m, href) =>
-    (LOCALIZED_HREFS.has(href) ? `href="${urlFor(href === '/' ? 'index.html' : href.slice(1), lang)}"` : m));
+  h = h.replace(/href="(\/[^"]*)"/g, (m, href) => {
+    if (!LOCALIZED_HREFS.has(href)) return m;
+    const target = href === '/' ? 'index.html' : href.slice(1);
+    // 目标页在这门语言下不存在（答案页只出了部分语种）→ 留英文那份，别造 404
+    if (!langsFor(target, langs).some((l) => l.code === lang)) return m;
+    return `href="${urlFor(target, lang)}"`;
+  });
 
   // ⑥ 语言选择器换成直接跳转的静态 select；同时把选择存进 localStorage，
   //    这样回到根页时它记得。
-  const opts = langs.map((l) =>
+  const opts = langsFor(page, langs).map((l) =>
     `<option value="${urlFor(page, l.code)}" data-lang="${l.code}"${l.code === lang ? ' selected' : ''}>${esc(l.name)}</option>`).join('');
   h = h.replace(/<select id="lang-select"([^>]*)>[\s\S]*?<\/select>/,
     `<select id="lang-select"$1 onchange="try{localStorage.setItem('bm-lang',this.selectedOptions[0].dataset.lang)}catch(e){}location.href=this.value">${opts}</select>`);
@@ -153,9 +173,33 @@ function render(srcHtml, page, lang, dict, langs, version) {
   // 说一句假话（noscript 的内容是会被读的），也会劝退关掉 JS 的读者。
   h = h.replace(/<noscript>[\s\S]*?requires JavaScript[\s\S]*?<\/noscript>\s*/g, '');
 
-  h = withLangRow(h, page, langs, lang);
+  h = withLangRow(h, page, langsFor(page, langs), lang);
   h = sub(h);   // 兜底：内联的英文文案里也可能带 {v}
-  return h;
+  h = withFaqLd(h);
+  return withVersion(h, version);
+}
+
+// FAQPage 的问答必须与可见正文逐字一致（verify-setup-page 守根页）。语言页的正文换了语言，
+// 结构化数据不能还是英文 —— 从渲染后的 <h2>/<p> 对重新生成 mainEntity。
+const plainText = (t) => String(t).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+function withFaqLd(h) {
+  return h.replace(/(<script type="application\/ld\+json">)([\s\S]*?)(<\/script>)/g, (m, a, body, z) => {
+    let d; try { d = JSON.parse(body); } catch { return m; }
+    if (d['@type'] !== 'FAQPage') return m;
+    const pairs = [...h.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>\s*<p\b[^>]*>([\s\S]*?)<\/p>/g)]
+      .map((x) => ({ '@type': 'Question', name: plainText(x[1]),
+        acceptedAnswer: { '@type': 'Answer', text: plainText(x[2]) } }));
+    if (!pairs.length) return m;
+    d.mainEntity = pairs;
+    return a + '\n' + JSON.stringify(d, null, 2) + '\n' + z;
+  });
+}
+
+// JSON-LD 里的 softwareVersion 不能靠人记着改 —— 2026-09-10 它停在 1.7.18 而站已跟到 1.9.0。
+// 根页与语言页都从 VERSION 文件取。
+function withVersion(h, version) {
+  return h.replace(/("softwareVersion"\s*:\s*")[^"]*(")/g, `$1${version}$2`);
 }
 
 function main(argv) {
@@ -199,31 +243,41 @@ function main(argv) {
   for (const l of langs) {
     if (l.code === 'en') continue;          // 根就是英文，不做 /en/
     const dict = JSON.parse(fs.readFileSync(path.join(SITE, 'i18n', l.code + '.json'), 'utf8'));
-    for (const page of PAGES) {
+    for (const page of ALL_PAGES) {
+      if (!langsFor(page, langs).some((x) => x.code === l.code)) continue;
       const src = fs.readFileSync(path.join(SITE, page), 'utf8');
       out.push({ file: path.join(SITE, l.code, page), html: render(src, page, l.code, dict, langs, version) });
     }
   }
   // 根页面也要有 hreflang，否则互指是单向的，Google 会忽略整组。
-  for (const page of PAGES) {
+  for (const page of ALL_PAGES) {
     const src = fs.readFileSync(path.join(SITE, page), 'utf8');
-    out.push({ file: path.join(SITE, page), html: withLangRow(withHreflang(src, page, langs), page, langs, 'en') });
+    const sub = langsFor(page, langs);
+    out.push({ file: path.join(SITE, page), html: withVersion(withLangRow(withHreflang(src, page, sub), page, sub, 'en'), version) });
   }
 
   // sitemap 也由这里产出。手写的那份必然会漏掉新语言/新页面，而漏掉的表现是
   // 「搜索引擎不知道它存在」—— 不报错的那一类。优先级：根 1.0 > 语言首页/教程/启用页
   // 0.8 > 内容页 0.7 > 其余。
+  // 页内标了 noindex 的（beta.html 那种临时页）不进 sitemap —— 一边 noindex 一边在 sitemap 里，
+  // Search Console 会报「已提交的网址被标记为 noindex」，而这里以前只看文件名不看页内。
   const extras = fs.readdirSync(SITE)
-    .filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f) && !PAGES.includes(f));
+    .filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f) && !ALL_PAGES.includes(f))
+    .filter((f) => !/<meta\s+name="robots"\s+content="[^"]*noindex/i.test(fs.readFileSync(path.join(SITE, f), 'utf8')));
   const PRI = { 'index.html': 1.0, 'setup.html': 0.8, 'guide.html': 0.8,
                 'support.html': 0.5, 'privacy.html': 0.3 };
   const entries = [];
-  for (const page of PAGES) entries.push([urlFor(page, 'en'), PRI[page] ?? 0.7]);
+  for (const page of ALL_PAGES) entries.push([urlFor(page, 'en'), PRI[page] ?? 0.7]);
   for (const f of extras.sort()) entries.push(['/' + f, PRI[f] ?? 0.7]);
+  // llms.txt 是给模型读的产品说明；进 sitemap 让爬虫不用猜路径
+  if (fs.existsSync(path.join(SITE, 'llms.txt'))) entries.push(['/llms.txt', 0.5]);
   for (const l of langs) {
     if (l.code === 'en') continue;
     // 语言页优先级压半档：它们是同一内容的翻译，不该和主版本抢
-    for (const page of PAGES) entries.push([urlFor(page, l.code), Math.max(0.3, (PRI[page] ?? 0.7) - 0.2)]);
+    for (const page of ALL_PAGES) {
+      if (!langsFor(page, langs).some((x) => x.code === l.code)) continue;
+      entries.push([urlFor(page, l.code), Math.max(0.3, (PRI[page] ?? 0.7) - 0.2)]);
+    }
   }
   const today = new Date().toISOString().slice(0, 10);
   const sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -243,11 +297,11 @@ function main(argv) {
   }
   if (check) {
     if (changed) { console.error(`✗ ${changed} 个文件需要重新生成 —— 跑 node scripts/gen-site-langs.js`); process.exit(1); }
-    console.log(`  ✓ ${out.length} 个语言页与字典一致（${langs.length - 1} 种语言 × ${PAGES.length} 页 + ${PAGES.length} 个根页）`);
+    console.log(`  ✓ ${out.length} 个语言页与字典一致（${langs.length - 1} 种语言 × ${PAGES.length} 页 + 答案页 ${Object.keys(PARTIAL_PAGES).length} × 部分语种 + ${ALL_PAGES.length} 个根页）`);
     return;
   }
-  console.log(`  已生成/更新 ${changed} 个文件，共 ${out.length}（${langs.length - 1} 种语言 × ${PAGES.length} 页 + 根页 hreflang）`);
+  console.log(`  已生成/更新 ${changed} 个文件，共 ${out.length}（${langs.length - 1} 种语言 × ${PAGES.length} 页 + 答案页部分语种 + 根页 hreflang）`);
 }
 
-module.exports = { render, langsFrom, urlFor, withHreflang, PAGES, SITE, HOST };
+module.exports = { render, langsFrom, urlFor, withHreflang, withVersion, langsFor, PAGES, ALL_PAGES, PARTIAL_PAGES, SITE, HOST };
 if (require.main === module) main(process.argv.slice(2));

@@ -327,7 +327,8 @@ async function checkSite(site) {
         for (const l of langs) {
           if (l.code === 'en') continue;
           const dict = JSON.parse(fs.readFileSync(path.join(site.dir, 'i18n', l.code + '.json'), 'utf8'));
-          for (const page of gen.PAGES) {
+          for (const page of gen.ALL_PAGES) {
+            if (!gen.langsFor(page, langs).some((x) => x.code === l.code)) continue;   // 答案页只出部分语种
             const f = path.join(site.dir, l.code, page);
             if (!fs.existsSync(f)) { bad.push(`缺 ${l.code}/${page} —— 跑 node scripts/gen-site-langs.js`); continue; }
             const html = fs.readFileSync(f, 'utf8');
@@ -347,7 +348,8 @@ async function checkSite(site) {
             // 只数 <link rel="alternate">。语言行里的 <a hreflang> 也带这个属性
             // （那是对的，它告诉爬虫链接目标的语言），但它不是 alternate 声明。
             const alts = (html.match(/<link rel="alternate" hreflang="/g) || []).length;
-            if (alts !== langs.length + 1) bad.push(`${l.code}/${page} 的 hreflang 有 ${alts} 条，应为 ${langs.length + 1}（含 x-default）`);
+            const want = gen.langsFor(page, langs).length + 1;   // 答案页只出部分语种，hreflang 只列存在的
+            if (alts !== want) bad.push(`${l.code}/${page} 的 hreflang 有 ${alts} 条，应为 ${want}（含 x-default）`);
             const re = SCRIPTS[l.code];
             if (re) {
               const prose = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ');
@@ -431,7 +433,10 @@ async function checkSite(site) {
         && fs.statSync(path.join(site.dir, d)).isDirectory()
         ? fs.readdirSync(path.join(site.dir, d)).filter((f) => f.endsWith('.html')).map((f) => prefix + f)
         : [];
-      const top = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f));
+      // 页内标了 noindex 的（beta.html 那种临时页）**不该**在 sitemap 里 —— 一边 noindex 一边提交，
+      // Search Console 报「已提交的网址被标记为 noindex」。与 gen-site-langs.js 的 extras 过滤同一条规则。
+      const noindex = (f) => /<meta\s+name="robots"\s+content="[^"]*noindex/i.test(fs.readFileSync(path.join(site.dir, f), 'utf8'));
+      const top = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f) && !noindex(f));
       const langDirs = fs.readdirSync(site.dir)
         .filter((f) => /^[a-z]{2}(-[A-Za-z]+)?$/.test(f) && fs.statSync(path.join(site.dir, f)).isDirectory());
       const onDisk = top.concat(...langDirs.map((d) => htmlUnder(d, d + '/')));

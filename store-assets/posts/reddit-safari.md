@@ -18,8 +18,11 @@ translation right beneath in a distinct color. YouTube gets dual subtitles the s
 
 Why I made it instead of using what's out there: the existing options on iOS are subscriptions
 that route the page text through their own servers. This one is GPL open source, has no
-account, no telemetry, and no server of mine in the translation path. Google's free endpoint
-works with zero setup; or paste your own OpenAI / Claude / DeepSeek / GLM key and use that.
+account requirement, and no server of mine in the translation path when you use your own key.
+Google's free endpoint works with zero setup; or paste your own OpenAI / Claude / DeepSeek / GLM
+key and use that. The only thing it reports is anonymous usage events (which features, never
+page content), and there's a switch for that. Honest comparison with the other options:
+https://belliedmonkey.cc/alternatives.html
 
 Safari-iOS specifics people here may care about:
 
