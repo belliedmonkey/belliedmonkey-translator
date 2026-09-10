@@ -2188,6 +2188,15 @@
   "asr_err_nolive": {
     "message": "该转写引擎没有实时接口，此媒体无法转写"
   },
+  "asr_gesture_needed": {
+    "message": "需要在页面上点一下才能开始采集"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ 点此开始实时转写"
+  },
+  "asr_go_live_engine": {
+    "message": "去配一个带实时接口的引擎 →"
+  },
   "asr_err_settings": {
     "message": "转写引擎已更改，已停止转写"
   },

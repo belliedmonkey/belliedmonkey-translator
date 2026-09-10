@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "Diese Engine hat keine Live-Schnittstelle; dieses Medium kann nicht transkribiert werden"
   },
+  "asr_gesture_needed": {
+    "message": "Auf der Seite tippen, um die Aufnahme zu starten"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Tippen, um die Live-Transkription zu starten"
+  },
+  "asr_go_live_engine": {
+    "message": "Eine Engine mit Live-Schnittstelle einrichten →"
+  },
   "asr_err_settings": {
     "message": "Transkriptions-Engine geändert — gestoppt"
   },

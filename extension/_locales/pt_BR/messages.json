@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "Este mecanismo não tem interface ao vivo; esta mídia não pode ser transcrita"
   },
+  "asr_gesture_needed": {
+    "message": "Toque na página para começar a captura"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Toque para iniciar a transcrição ao vivo"
+  },
+  "asr_go_live_engine": {
+    "message": "Configurar um mecanismo com interface ao vivo →"
+  },
   "asr_err_settings": {
     "message": "Mecanismo de transcrição alterado — interrompido"
   },

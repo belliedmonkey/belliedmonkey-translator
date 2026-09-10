@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "Ce moteur n’a pas d’interface en direct ; ce média ne peut pas être transcrit"
   },
+  "asr_gesture_needed": {
+    "message": "Touchez la page pour démarrer la capture"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Touchez pour lancer la transcription en direct"
+  },
+  "asr_go_live_engine": {
+    "message": "Configurer un moteur avec interface en direct →"
+  },
   "asr_err_settings": {
     "message": "Moteur de transcription modifié — arrêté"
   },

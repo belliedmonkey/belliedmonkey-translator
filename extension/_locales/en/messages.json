@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "This engine has no live interface; this media cannot be transcribed"
   },
+  "asr_gesture_needed": {
+    "message": "Tap here to start live transcription"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Tap to start live transcription"
+  },
+  "asr_go_live_engine": {
+    "message": "Set up an engine with a live interface →"
+  },
   "asr_err_settings": {
     "message": "Transcription engine changed — stopped"
   },

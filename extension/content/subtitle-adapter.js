@@ -546,7 +546,13 @@ var SubtitleAdapter = (() => {
           renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_unavailable', '字幕不可用'), action);
         }
         else if (status === 'streaming') renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
-        else renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'));
+        else {
+          // 2026-09-11：offer 从第一次 acquire 失败起就出现在「⏳ 字幕加载中…」这一行里（podcast 1 次，
+          // YouTube 2 次 —— 前 3 s 有 grace）。此前要等 6–8 次重试 ≈ 15–20 s，多数人已经走了。
+          // 落定后仍是「字幕不可用 + offer」（上一分支），规约不变。
+          const early = !inFlight && attempts >= (spec.offerAfterAttempts || 1) && spec.unavailableAction ? spec.unavailableAction() : null;
+          renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'), early);
+        }
       }
     }
     function startLoop() { if (pollTimer) clearInterval(pollTimer); pollTimer = setInterval(tick, TICK_MS); }

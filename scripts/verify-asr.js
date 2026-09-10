@@ -49,6 +49,17 @@ for (let i = 0; i < 8; i++) CUES.push({ start: i * 5 + 0.3, end: i * 5 + 4.8, te
 const PAGE_FILE = `<!doctype html><meta charset=utf-8><title>asr file tier</title>
 <h1>Podcast page</h1><p>Some show notes text for the page path.</p>
 <audio id="a" src="/tone.wav" controls preload="auto" loop></audio>`;
+// C：<audio> 在 open shadow root 里（web-component 播放器的形状）；没有任何字幕来源。
+const PAGE_SHADOW = `<!doctype html><meta charset=utf-8><title>asr shadow</title>
+<h1>Component player</h1><p>The media element lives inside an open shadow root.</p>
+<media-player id="mp"></media-player>
+<script>
+class MP extends HTMLElement { constructor() { super(); const r = this.attachShadow({ mode: 'open' }); r.innerHTML = '<audio id="sa" controls preload="auto" loop></audio>'; } }
+customElements.define('media-player', MP);
+fetch('/tone.wav').then(r => r.blob()).then(b => { const a = document.getElementById('mp').shadowRoot.getElementById('sa'); a.src = URL.createObjectURL(b); document.body.dataset.ready = '1'; });
+</script>`;
+// D：一个没有任何媒体元素的页。
+const PAGE_NONE = `<!doctype html><meta charset=utf-8><title>no media</title><h1>Just text</h1><p>Nothing plays here.</p>`;
 const PAGE_BLOB = `<!doctype html><meta charset=utf-8><title>asr live tier</title>
 <h1>Video-ish page</h1><p>A page whose media has no fetchable URL.</p>
 <audio id="a" controls preload="auto" loop></audio>
@@ -62,6 +73,8 @@ function serve() {
     const u = req.url.split('?')[0];
     if (u === '/file.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_FILE); return; }
     if (u === '/blob.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_BLOB); return; }
+    if (u === '/shadow.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_SHADOW); return; }
+    if (u === '/none.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_NONE); return; }
     if (u === '/tone.wav') {
       // Range 支持：探针用 bytes=0-1023 试 CORS；Chrome 播放也会带 Range
       const m = /bytes=(\d+)-(\d*)/.exec(req.headers.range || '');
@@ -343,8 +356,13 @@ async function liveRun(url, seconds) {
       await evalIn(cdp, pg.sessionId, `document.getElementById('a').play().catch(() => {})`);
       // 打开字幕（FAB 驱动播客路径；这里直接调后端，与 FAB 同一入口）
       await evalIn(cdp, pg.sessionId, `PodcastTranslator.enable({ provider: 'custom_chat', apiKey: 'k', apiBaseUrl: ${JSON.stringify(base + '/v1/chat/completions')}, apiModel: 'm', targetLang: 'zh-CN' }); 'ok'`, pg.isoId);
-      // 入口按钮出现在 字幕不可用 里（无字幕来源，重试 6 次 × 2.5s 后落定；这里等它）
+      // 入口按钮：2026-09-11 起从第一次 acquire 失败就出现在「⏳ 字幕加载中…」行里（≈ 2.5 s），
+      // 此前要等 6 × 2.5 s 落定为 字幕不可用。判据 < 5 s（第九期 F，修前 ≈ 15 s 红）。
+      const t0 = Date.now();
       await waitFor(() => evalIn(cdp, pg.sessionId, `!!document.querySelector('#mt-pod-overlay .mt-pod-trans-action')`), 30000, '字幕不可用 里的转写入口按钮');
+      const offerMs = Date.now() - t0;
+      notes.push(`F: 开字幕到 offer 出现 ${offerMs} ms`);
+      if (offerMs > 5000) problems.push(`F: offer 出现用了 ${offerMs} ms，应 < 5000（第一次 acquire 失败就该出现）`);
       const label = await evalIn(cdp, pg.sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').textContent`);
       notes.push(`A: 入口按钮「${label}」`);
       const uploadsBefore = stats.uploads;
@@ -396,6 +414,93 @@ async function liveRun(url, seconds) {
       if (pg.errs.length) problems.push('B: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
       await cdp.send('Target.closeTarget', { targetId: pg.targetId });
     }
+
+    // 弹窗那条路：从 SW 会话 chrome.tabs.sendMessage 给标签页，就是 popup.js 的 sendToPage。
+    async function sendToTab(url, action) {
+      return JSON.parse(await evalIn(cdp, swSession, `new Promise((r) => chrome.tabs.query({ url: ${JSON.stringify(url)} }, (tabs) => {
+        if (!tabs || !tabs[0]) return r(JSON.stringify({ error: 'no tab' }));
+        chrome.tabs.sendMessage(tabs[0].id, { action: ${JSON.stringify(action)} }, (resp) => r(JSON.stringify(resp || { error: chrome.runtime.lastError && chrome.runtime.lastError.message })));
+      }))`));
+    }
+
+    // ── C. <audio> 在 open shadow root 里 + 弹窗入口 ─────────────────────
+    // 修前：getPageStatus 的 querySelectorAll 进不了 shadow root ⇒ 弹窗整节 hidden，「明明有
+    // 视频却什么都没有」。修后：MediaFinder 找到它，transcribeMedia 回 {ok:true}，面板出定稿句。
+    {
+      const pg = await openPage(base + '/shadow.html');
+      await waitFor(() => evalIn(cdp, pg.sessionId, `document.body.dataset.ready === '1'`), 10000, 'C: shadow 音频就绪');
+      await evalIn(cdp, pg.sessionId, `document.getElementById('mp').shadowRoot.getElementById('sa').play().catch(() => {})`);
+      await evalIn(cdp, pg.sessionId, `window.MT_STT_ENGINES.push({ id: 'e2e_live', type: 'transcribe-compat', label: 'e2e', needsKey: false, supportsKey: false, supportsBaseUrl: true, supportsModel: false, requiresEndpoint: false, defaultEndpoint: ${JSON.stringify(base + '/v1/audio/transcriptions')}, placeholder: null, defaultModel: 'x', liveEndpoint: ${JSON.stringify('ws://127.0.0.1:' + srv.address().port + '/live')}, liveType: 'ws-realtime', liveModel: 'live', liveRate: 16000, liveKeyProtocol: 'e2e-key.', uploadEndpoint: null }); 'ok'`, pg.isoId);
+      // 注册表副本是页面加载后才追加的，而 asr-source 的配置缓存只在 STT 键**变化**时刷新
+      // （B 已把 sttEngine 设成 e2e_live，同值不触发 onChanged）—— 改一个会变的键让它重读。
+      await evalIn(cdp, swSession, `chrome.storage.local.set({ sttEngine: 'e2e_live', sttBaseUrl: '', sttModel: 'c' + Date.now() })`);
+      await sleep(600);
+      const st = await sendToTab(base + '/shadow.html', 'getPageStatus');
+      if (!st.media || st.media.tag !== 'audio') problems.push(`C: getPageStatus 没找到 shadow root 里的 <audio>：${JSON.stringify(st.media)}`);
+      else notes.push(`C: getPageStatus 找到了 shadow root 里的媒体（${JSON.stringify(st.media)}）`);
+      const r = await sendToTab(base + '/shadow.html', 'transcribeMedia');
+      if (!r.ok) problems.push(`C: transcribeMedia 应回 ok，实际 ${JSON.stringify(r)}`);
+      else {
+        try {
+          const orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'C: 历史面板出现定稿整句');
+          notes.push(`C: 弹窗入口 → shadow root 音频 → 面板定稿「${orig}」`);
+        } catch (e) {
+          const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+          problems.push(`${e.message}；叠层提示「${notice}」`);
+        }
+      }
+      if (pg.errs.length) problems.push('C: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
+      await cdp.send('Target.closeTarget', { targetId: pg.targetId });
+    }
+
+    // ── D. 没有媒体的页：状态说没有，弹窗入口回 no_media（不再静默）───────
+    {
+      const pg = await openPage(base + '/none.html');
+      const st = await sendToTab(base + '/none.html', 'getPageStatus');
+      if (st.media !== null) problems.push(`D: 无媒体页的 media 应为 null，实际 ${JSON.stringify(st.media)}`);
+      const r = await sendToTab(base + '/none.html', 'transcribeMedia');
+      if (r.ok !== false || r.reason !== 'no_media') problems.push(`D: 无媒体页 transcribeMedia 应回 {ok:false, reason:'no_media'}，实际 ${JSON.stringify(r)}`);
+      else notes.push('D: 无媒体页 → media:null，transcribeMedia 回 no_media');
+      await cdp.send('Target.closeTarget', { targetId: pg.targetId });
+    }
+
+    // ── E. Safari 手势形状：AudioContext 起不来 ⇒ 通知行「▶ 点此开始」，页内再点即开始 ──
+    // 隔离世界里把 AudioContext 换成 state 恒 suspended、resume() 永不落定的子类（Safari 上
+    // 页外手势建的 AudioContext 就是这个样子）。
+    {
+      const pg = await openPage(base + '/blob.html');
+      await waitFor(() => evalIn(cdp, pg.sessionId, `document.getElementById('a').dataset.ready === '1'`), 10000, 'E: blob 音频就绪');
+      await evalIn(cdp, pg.sessionId, `document.getElementById('a').play().catch(() => {})`);
+      await evalIn(cdp, pg.sessionId, `window.MT_STT_ENGINES.push({ id: 'e2e_live', type: 'transcribe-compat', label: 'e2e', needsKey: false, supportsKey: false, supportsBaseUrl: true, supportsModel: false, requiresEndpoint: false, defaultEndpoint: ${JSON.stringify(base + '/v1/audio/transcriptions')}, placeholder: null, defaultModel: 'x', liveEndpoint: ${JSON.stringify('ws://127.0.0.1:' + srv.address().port + '/live')}, liveType: 'ws-realtime', liveModel: 'live', liveRate: 16000, liveKeyProtocol: 'e2e-key.', uploadEndpoint: null }); 'ok'`, pg.isoId);
+      await evalIn(cdp, pg.sessionId, `window.__RealAC = window.AudioContext; window.AudioContext = class extends window.__RealAC { get state() { return 'suspended'; } resume() { return new Promise(() => {}); } }; 'stubbed'`, pg.isoId);
+      await evalIn(cdp, swSession, `chrome.storage.local.set({ sttEngine: 'e2e_live', sttBaseUrl: '', sttModel: 'e' + Date.now() })`);
+      await sleep(600);
+      const r = await sendToTab(base + '/blob.html', 'transcribeMedia');
+      if (!r.ok) problems.push(`E: 弹窗入口应先接受（started），实际 ${JSON.stringify(r)}`);
+      let label = '';
+      try {
+        label = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const b = document.querySelector('#mt-pod-overlay .mt-pod-trans-action'); return b && /点此开始|Tap to start/.test(b.textContent) ? b.textContent : ''; })()`), 15000, 'E: 通知行出现「▶ 点此开始实时转写」');
+        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+        notes.push(`E: AudioContext 起不来 ⇒ 通知「${notice.replace(label, '').trim()}」+ 按钮「${label}」`);
+      } catch (e) {
+        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+        problems.push(`${e.message}；叠层提示「${notice}」`);
+      }
+      if (label) {
+        // 还原 AudioContext（= 用户在页内真点了一下），点那个按钮 ⇒ 会话真正开始
+        await evalIn(cdp, pg.sessionId, `window.AudioContext = window.__RealAC; 'restored'`, pg.isoId);
+        await evalIn(cdp, pg.sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').click(); 'clicked'`);
+        try {
+          const orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'E: 页内再点一次后面板出现定稿整句');
+          notes.push(`E: 页内再点一次 → 面板定稿「${orig}」`);
+        } catch (e) {
+          const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+          problems.push(`${e.message}；叠层提示「${notice}」`);
+        }
+      }
+      if (pg.errs.length) problems.push('E: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
+      await cdp.send('Target.closeTarget', { targetId: pg.targetId });
+    }
   } catch (e) {
     problems.push(e.message);
   } finally {
@@ -405,5 +510,5 @@ async function liveRun(url, seconds) {
   }
   for (const n of notes) console.log('  ' + n);
   if (problems.length) { for (const p of problems) console.log('✗ ' + p); process.exit(1); }
-  console.log('✓ test:asr — 文件一档与流式一档都在真 Chrome 里出了字幕');
+  console.log('✓ test:asr — 文件一档、流式一档、shadow root 弹窗入口、无媒体回码、页内手势再点都过');
 })().catch((e) => { console.error('✗ ' + (e.stack || e.message)); process.exit(1); });

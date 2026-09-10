@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "이 엔진에는 실시간 인터페이스가 없어 이 미디어를 전사할 수 없습니다"
   },
+  "asr_gesture_needed": {
+    "message": "페이지에서 한 번 눌러야 캡처를 시작할 수 있어요"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ 눌러서 실시간 받아쓰기 시작"
+  },
+  "asr_go_live_engine": {
+    "message": "실시간 인터페이스가 있는 엔진 설정하기 →"
+  },
   "asr_err_settings": {
     "message": "전사 엔진이 변경되어 중지했습니다"
   },

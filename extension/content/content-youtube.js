@@ -215,7 +215,8 @@ var YouTubeTranslator = (() => {
     },
     beforeRender: () => (adShowing() ? 'clear' : undefined), // during an ad, currentTime is the ad timeline
     // §2.4: YouTube is MSE, so only the live tier can serve a caption-less video.
-    unavailableAction: AsrSource.offerFor(() => document.querySelector('video'), () => ui, () => ui.settings),
+    unavailableAction: AsrSource.offerFor(() => (document.querySelector('.html5-main-video') || document.querySelector('video')), () => ui, () => ui.settings),
+    offerAfterAttempts: 2,   // 前 3 s 有 grace（acquire 稳定返回 null），攒 2 次 ≈ 5 s，免得有字幕的视频闪一下 offer
     placeHistory,
     syncNative: (active) => { if (!active) removeCaptionStyle(); }, // belt: restore if turned off
     showButton: () => IS_EMBED || (!!document.querySelector(RIGHT_CONTROLS) && !TranslationCore.isMobileLayout()),
@@ -236,6 +237,8 @@ var YouTubeTranslator = (() => {
     if (IS_EMBED && !/\/embed\//.test(location.pathname)) return;
     ui.init(cfg);
   }
-  function startAsr() { return AsrSource.start(document.querySelector('video'), ui, ui.settings); }
+  // 主播放器的 <video> 优先（YouTube 有内联预览 <video>，querySelector('video') 可能拿错）。
+  function mainVideo() { return document.querySelector('.html5-main-video') || document.querySelector(PLAYER + ' video') || MediaFinder.pick(MediaFinder.all()); }
+  function startAsr(surface) { return AsrSource.startFrom(surface || 'popup', mainVideo(), ui, ui.settings); }
   return { init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, startAsr };
 })();

@@ -294,9 +294,10 @@
   // no <audio> companion) engages only when a timed-transcript source is
   // discoverable, so decorative/hero videos never surface subtitle UI or a
   // 字幕不可用 notice.
+  // 2026-09-11：媒体查找收敛到 MediaFinder（进 open shadow root）；规则本身不变。
   const drivesPodcast = () => !isYouTube && !isTextOnlyPodcast && (
-    isPodcastHost || !!document.querySelector('audio')
-    || (!!document.querySelector('video') && PodcastTranslator.hasTranscriptHint()));
+    isPodcastHost || MediaFinder.all().some((m) => m.tagName === 'AUDIO')
+    || (MediaFinder.all().some((m) => m.tagName === 'VIDEO') && PodcastTranslator.hasTranscriptHint()));
 
   if (isEmbed) {
     if (isYouTube) YouTubeTranslator.init(cfg);
@@ -464,30 +465,38 @@
       // `url` feeds the popup's 本站 section. From here rather than chrome.tabs
       // so the popup shows the SAME url the capture gate judged — and it works
       // identically on Safari, where tabs.query quirks are not worth relying on.
-      // `media` feeds the popup's 「转写音频字幕」 action (§2.4): the longest media
-      // element's duration, so a decorative clip never surfaces it.
-      // A live stream reports duration = Infinity — that is the most eligible media of all
-      // (Twitch / YouTube live / Spaces), not "no duration".
-      let durationS = 0, live = false;
+      // `media` feeds the popup's 「实时转写 + 翻译」 row (§2.4, 2026-09-11)：页面上**任一**
+      // 媒体元素（含 open shadow root、元数据未到的）都算有；没有 ⇒ null，弹窗那一行留着
+      // 并说明「没找到」，而不是消失 —— 消失正是用户报的「明明有视频却什么都没有」。
+      let media = null;
       try {
-        for (const m of document.querySelectorAll('audio, video')) {
-          if (m.duration === Infinity) live = true;
-          else if (isFinite(m.duration) && m.duration > durationS) durationS = m.duration;
-        }
+        const el = MediaFinder.pick(MediaFinder.all(true));
+        media = el ? MediaFinder.describe(el) : null;
+        if (media) media.count = MediaFinder.all().length;
       } catch (_) {}
-      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href, media: { durationS: Math.round(durationS), live } });
+      sendResponse({ enabled: cfg.enabled, isYouTube, url: location.href, media });
     }
 
     // §2.4 popup entry — the ONLY way to transcribe a <video> that surfaces no subtitle UI
     // of its own (drivesPodcast() is unchanged: decorative videos stay silent).
+    // 2026-09-11：按站分派、不兜底（YouTube 上 PodcastTranslator 从未 init，兜过去是死路）；
+    // 回 {ok, reason} 给弹窗当副行；元数据未到先等一拍（≤ 3 s）再判「没找到」。
     if (msg.action === 'transcribeMedia') {
-      let ok = false;
-      try {
-        if (isYouTube) ok = YouTubeTranslator.startAsr();
-        else if (isTwitter && TwitterTranslator.startAsr) ok = TwitterTranslator.startAsr();
-        if (!ok) ok = PodcastTranslator.startAsr();
-      } catch (_) { ok = false; }
-      sendResponse({ ok });
+      (async () => {
+        let r = { ok: false, reason: 'no_media' };
+        try {
+          const el = MediaFinder.pick(MediaFinder.all(true));
+          if (el) await MediaFinder.whenMeta(el, 3000);
+          if (isYouTube) r = YouTubeTranslator.startAsr('popup');
+          else if (isTwitter && TwitterTranslator.startAsr) r = TwitterTranslator.startAsr('popup');
+          else r = PodcastTranslator.startAsr('popup');
+        } catch (_) { r = { ok: false, reason: 'no_media' }; }
+        if (!r.ok && r.reason === 'no_media') {
+          try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'popup', result: 'no_media' }); } catch (_) {}
+        }
+        sendResponse(r);
+      })();
+      return true; // async sendResponse
     }
   });
 
