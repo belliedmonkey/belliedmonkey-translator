@@ -182,6 +182,8 @@ var SubtitleAdapter = (() => {
         if (subOkSent || !(typeof MTTelemetry !== 'undefined')) return;
         subOkSent = true;
         MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
+        // 字幕会话也算一次成功会话（评分提示的计数），只计数：叠层里没有位置出那一行。
+        try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteOkSession) MTFeedback.noteOkSession().catch(() => {}); } catch (_) {}
       },
       onFail: (e) => {
         if (e && (e.grant || e.halt) && typeof e.code === 'string') haltCode = e.code;

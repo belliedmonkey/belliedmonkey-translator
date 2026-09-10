@@ -2578,6 +2578,12 @@
     "message": "Провайдер отклонил этот ключ (HTTP 401/403). Проверьте, что ключ верный и у него есть доступ к этой модели.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "Нравится? Оставьте оценку в магазине →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Больше не спрашивать"
+  },
   "grant_popup_model": {
     "message": "Бесплатный лимит работает только с закреплённой моделью — нажмите, чтобы вернуть"
   },

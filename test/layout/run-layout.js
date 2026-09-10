@@ -346,8 +346,42 @@ async function runFixture(cdp, baseUrl, file, assertLibSrc) {
     await evalIn(cdp, sessionId, ctxId,
       'new Promise(r => requestAnimationFrame(() => r(window.__mtLayout.captureBaseline())))');
 
+    // 评分提示的两个 UI 状态键（mtOkSessions / mtRatingAskedAt）跨 fixture 累积：整轮共用
+    // 一个 profile，而 onOk 每个 fixture 都会 +1 —— 第 3 个 fixture 起每页都会多出一行，
+    // 几何断言就全变了。每个 fixture 前清掉；要种子的 fixture 在 manifest.storage 里显式给。
+    await evalIn(cdp, sessionId, ctxId, `new Promise((r) => chrome.storage.local.remove(['mtOkSessions', 'mtRatingAskedAt'], () => {
+      ${manifest.storage ? `chrome.storage.local.set(${JSON.stringify(manifest.storage)}, () => r(true))` : 'r(true)'}
+    }))`);
     await evalIn(cdp, sessionId, ctxId, `WebpageTranslator.enable(${JSON.stringify(fixtureCfg)}); true`);
     await awaitStable(cdp, sessionId, ctxId, manifest);
+    // 评分提示行（第八期 C）：manifest.rateRow = { count } —— 恰好 count 行；有行时它必须在
+    // 文档序最后一个 .mt-translation 之后、不在任何单元之前，且带自家 UI 契约（translate=no）。
+    if (manifest.rateRow) {
+      await new Promise((r) => setTimeout(r, 800)); // onOk → storage → armed → 下一拍 tick 才挂
+      const rr = await evalIn(cdp, sessionId, ctxId, `JSON.stringify((() => {
+        const rows = [...document.querySelectorAll('.mt-rate-row')];
+        const trs = [...document.querySelectorAll('.mt-translation')];
+        const units = [...document.querySelectorAll('[data-mt-processed]')];
+        const row = rows[0];
+        const after = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING);
+        return { count: rows.length,
+          afterLastTr: row && trs.length ? after(row, trs[trs.length - 1]) : null,
+          beforeAnyUnit: row ? units.some((u) => after(u, row)) : null,
+          ownUi: row ? row.getAttribute('translate') === 'no' && row.hasAttribute('data-mt-skip-region') : null,
+          inUnit: row ? units.some((u) => u.contains(row)) : null };
+      })())`);
+      const v = JSON.parse(rr);
+      const want = manifest.rateRow.count;
+      const fails = [];
+      if (v.count !== want) fails.push(`rateRow: 期望 ${want} 行评分提示，实际 ${v.count}`);
+      if (want > 0 && v.count > 0) {
+        if (!v.afterLastTr) fails.push('rateRow: 评分行不在文档序最后一个 .mt-translation 之后');
+        if (v.beforeAnyUnit) fails.push('rateRow: 评分行出现在某个翻译单元之前 —— 它应当跟在最后一段之下');
+        if (v.inUnit) fails.push('rateRow: 评分行被塞进了原文盒子 —— 每次重绘都会被排到译文上面');
+        if (!v.ownUi) fails.push('rateRow: 评分行缺 translate="no" / data-mt-skip-region');
+      }
+      if (fails.length) result = mergeFailures(result, fails.map((detail) => ({ name: 'rateRow', sel: '.mt-rate-row', detail })));
+    }
 
     const manifestJs = JSON.stringify(manifest);
     let result = await evalIn(cdp, sessionId, ctxId, `window.__mtLayout.runAsserts(${manifestJs})`);

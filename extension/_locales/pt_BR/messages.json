@@ -2578,6 +2578,12 @@
     "message": "O provedor recusou esta chave (HTTP 401/403). Verifique se ela está correta e tem permissão para este modelo.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "Está gostando? Deixe uma avaliação na loja →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Não perguntar de novo"
+  },
   "grant_popup_model": {
     "message": "O crédito gratuito só funciona com o modelo fixado — toque para voltar"
   },

@@ -738,6 +738,75 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       off6();
       mode.auth401 = false;
     }
+
+    // ── 7. 第 3 次成功会话之后，译文末尾出一行「觉得好用？给个评分」（第八期 C）────
+    //
+    // 种 mtOkSessions:2 → 翻一页 → 行恰好一条、在最后一段之下 → 点 × → mtRatingAskedAt 落盘、
+    // 行消失、遥测桩收到 rate_prompt{shown} 与 {dismiss}。Chrome 上 rateUrl 是 CWS 评论页。
+    if (swSession) {
+      const t7 = await cdp.send('Target.createTarget', { url: 'about:blank' });
+      const s7 = (await cdp.send('Target.attachToTarget', { targetId: t7.targetId, flatten: true })).sessionId;
+      const iso7 = new Set();
+      const off7 = cdp.on('Runtime.executionContextCreated', (p, sid) => {
+        if (sid === s7 && p.context.auxData && p.context.auxData.type === 'isolated') iso7.add(p.context.id);
+      });
+      await cdp.send('Page.enable', {}, s7);
+      await cdp.send('Runtime.enable', {}, s7);
+      await cdp.send('Page.navigate', { url: `${base}/page.html` }, s7);
+      let c7 = null;
+      for (let i = 0; i < 80 && !c7; i++) {
+        for (const id of [...iso7].reverse()) {
+          try { if (await evalIn(cdp, s7, "typeof WebpageTranslator === 'object' && typeof MTFeedback === 'object'", id)) { c7 = id; break; } } catch (_) {}
+        }
+        if (!c7) await sleep(150);
+      }
+      if (!c7) problems.push('第七幕：内容脚本从未就绪（MTFeedback 没进 <all_urls> 那块？）');
+      else {
+        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.set({ mtOkSessions: 2 }, () => chrome.storage.local.remove('mtRatingAskedAt', () => r(true))))`, c7);
+        await evalIn(cdp, s7, `WebpageTranslator.enable(${JSON.stringify({
+          provider: 'custom_chat', apiKey: 'smoke-key',
+          apiBaseUrl: `${base}/v1/chat/completions`, apiModel: 'smoke-model', targetLang: 'zh-CN',
+        })}); true`, c7);
+        let st = null;
+        for (let i = 0; i < 60; i++) {
+          st = JSON.parse(await evalIn(cdp, s7, `JSON.stringify((() => {
+            const rows = [...document.querySelectorAll('.mt-rate-row')];
+            const trs = [...document.querySelectorAll('.mt-translation')];
+            const row = rows[0];
+            return { rows: rows.length, trs: trs.length,
+              afterLast: row && trs.length ? !!(row.compareDocumentPosition(trs[trs.length - 1]) & Node.DOCUMENT_POSITION_PRECEDING) : null,
+              text: row ? row.querySelector('.mt-rate-text').textContent : '' };
+          })())`, c7));
+          if (st.rows === 1 && st.trs >= 2) break;
+          await sleep(250);
+        }
+        if (st.rows !== 1) problems.push(`第七幕：期望恰好 1 行评分提示，实际 ${st.rows}（译文 ${st.trs} 段）`);
+        else {
+          if (!st.afterLast) problems.push('第七幕：评分行不在最后一段译文之后');
+          if (!st.text) problems.push('第七幕：评分行文案为空');
+          notes.push(`评分行出现在第 3 次成功会话、最后一段译文之下：「${st.text}」`);
+          await evalIn(cdp, s7, `document.querySelector('.mt-rate-x').click(); true`, c7);
+          await sleep(200);
+          const after = JSON.parse(await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.get(['mtRatingAskedAt', 'mtOkSessions'], (o) => r(JSON.stringify({ asked: !!(o && o.mtRatingAskedAt), n: o && o.mtOkSessions, rows: document.querySelectorAll('.mt-rate-row').length }))))`, c7));
+          if (after.rows !== 0) problems.push('第七幕：点 × 之后评分行还在');
+          if (!after.asked) problems.push('第七幕：点 × 之后 mtRatingAskedAt 没落盘 —— 下一页又会问');
+          if (after.n !== 3) problems.push(`第七幕：mtOkSessions 应为 3，实际 ${after.n}`);
+          else notes.push('点 × → 行消失、mtRatingAskedAt 落盘、计数 3');
+        }
+        await sleep(5200);
+        await evalIn(cdp, s7, `MTTelemetry.flush()`, c7);
+        let acts = [];
+        for (let i = 0; i < 40; i++) {
+          acts = ingest.filter((e) => e.name === 'rate_prompt').map((e) => e.props && e.props.action);
+          if (acts.includes('dismiss')) break;
+          await sleep(200);
+        }
+        if (!acts.includes('shown') || !acts.includes('dismiss')) problems.push(`第七幕：遥测桩应收到 rate_prompt{shown} 与 {dismiss}，实际 ${JSON.stringify(acts)}`);
+        else notes.push(`遥测: rate_prompt ${acts.join(' → ')}`);
+        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.remove(['mtOkSessions', 'mtRatingAskedAt'], () => r(true)))`, c7);
+      }
+      off7();
+    }
   } finally {
     try { await cdp.close(); } catch (_) {}
     chrome.cleanup();
@@ -757,5 +826,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文 → 遥测到达 → 401 停机带出口，全通（通路：扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文 → 遥测到达 → 401 停机带出口 → 第 3 次会话出评分行，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });

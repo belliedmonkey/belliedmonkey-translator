@@ -111,3 +111,44 @@ describe('MTFeedback.open — 宿主 App 走原生桥，浏览器走 window.open
   });
   test('空地址 ⇒ false，什么都不做', () => eq(load({ app: true }).F.open(null), false));
 });
+
+// 第八期 C（2026-09-10）：浏览器侧的评分提示 —— 成功会话计数 + 要不要问。
+describe('MTFeedback.noteOkSession / shouldOfferRating / markRatingAsked — 浏览器侧评分提示', () => {
+  test('noteOkSession 累加并落盘，返回新值', async () => {
+    const { F, store } = load({ ua: CHROME_MAC });
+    eq(await F.noteOkSession(), 1);
+    eq(await F.noteOkSession(), 2);
+    eq(store[F.OK_SESSIONS_KEY], 2);
+  });
+  test('第 RATING_MIN_DONE 次才问；之前不问', async () => {
+    const { F } = load({ ua: CHROME_MAC });
+    eq(await F.shouldOfferRating(F.RATING_MIN_DONE - 1), false);
+    eq(await F.shouldOfferRating(F.RATING_MIN_DONE), true);
+    eq(await F.shouldOfferRating(F.RATING_MIN_DONE + 7), true);
+  });
+  test('中国版 Chrome / Firefox 没有商店条目 ⇒ 永远不问（rateUrl 为 null）', async () => {
+    eq(await load({ flavor: 'china', ua: CHROME_MAC }).F.shouldOfferRating(99), false);
+    eq(await load({ flavor: 'china', ua: FIREFOX, firefox: true }).F.shouldOfferRating(99), false);
+    // 中国版 Safari 有 App Store 条目 ⇒ 照问
+    eq(await load({ flavor: 'china', ua: SAFARI_IPHONE }).F.shouldOfferRating(3), true);
+  });
+  test('冷却：点了或关了都记 mtRatingAskedAt，90 天内不再问，过了再问', async () => {
+    const { F, store } = load({ ua: CHROME_MAC });
+    await F.markRatingAsked(1000);
+    eq(store[F.RATING_KEY], 1000);
+    eq(await F.shouldOfferRating(10, 1000 + F.RATING_COOLDOWN_MS - 1), false);
+    eq(await F.shouldOfferRating(10, 1000 + F.RATING_COOLDOWN_MS + 1), true);
+  });
+  test('storage 永不回调时 3 s 内落定（内容脚本里 Safari 后台死掉的形状）', async () => {
+    const { F } = load({ ua: CHROME_MAC });
+    // 换成一个永不回调的 storage
+    const ctx = loadModule(['learn/app-link.js', 'learn/feedback.js'], {
+      window: { MT_FLAVOR: 'global' }, navigator: { userAgent: CHROME_MAC, platform: '' },
+      chrome: { runtime: { getManifest: () => ({ version: '1' }) }, storage: { local: { get: () => {}, set: () => {} } } },
+    });
+    const t0 = Date.now();
+    eq(await ctx.MTFeedback.noteOkSession(), 1);      // 读不到 ⇒ 当 0，+1
+    ok(Date.now() - t0 < 7000, '两次 storage 各 3 s 上限，不能挂死');
+    void F;
+  });
+});

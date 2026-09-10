@@ -2578,6 +2578,12 @@
     "message": "제공사가 이 키를 거부했습니다(HTTP 401/403). 키가 맞는지, 이 모델 권한이 있는지 확인하세요.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "도움이 되셨나요? 스토어에서 평가하기 →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "다시 묻지 않기"
+  },
   "grant_popup_model": {
     "message": "무료 크레딧은 지정된 모델에서만 작동합니다 — 눌러서 되돌리기"
   },

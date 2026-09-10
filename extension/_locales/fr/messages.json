@@ -2578,6 +2578,12 @@
     "message": "Le fournisseur a refusé cette clé (HTTP 401/403). Vérifiez qu'elle est correcte et autorisée pour ce modèle.",
     "description": "Settings/App error sentence for code auth"
   },
+  "rate_prompt_text": {
+    "message": "Ça vous plaît ? Laissez une note sur la boutique →"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Ne plus demander"
+  },
   "grant_popup_model": {
     "message": "Le crédit gratuit ne marche qu’avec son modèle imposé — appuyez pour le remettre"
   },

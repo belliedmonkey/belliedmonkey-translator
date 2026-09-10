@@ -26,6 +26,14 @@ var MTFeedback = (() => {
   const RATING_KEY = 'mtRatingAskedAt';
   const RATING_COOLDOWN_MS = 90 * 24 * 3600 * 1000;
   const RATING_MIN_DONE = 3;
+  // 浏览器侧的成功会话计数（第八期 C，2026-09-10）。评分为 0 的真因是唯一触发点在
+  // App 里「刷完一轮复习」，5 天里一次都没发生；而「翻成功一页」每天都在发生。
+  // 第 RATING_MIN_DONE 次成功会话之后，译文末尾出一行「觉得好用？给个评分」。
+  // 独立 UI 状态键，不进 SETTINGS_KEYS（同 optDetailMode 先例）。
+  const OK_SESSIONS_KEY = 'mtOkSessions';
+  // 内容脚本里任何 storage promise 都要有截止时间（request-shape.js 的先例）：Safari 上
+  // 后台死掉时回调永远不来，没有截止的 await 会把调用方挂死。
+  const STORAGE_DEADLINE_MS = 3000;
 
   function flavor() {
     return (typeof window !== 'undefined' && window.MT_FLAVOR === 'china') ? 'china' : 'global';
@@ -103,13 +111,39 @@ var MTFeedback = (() => {
 
   function storageGet(key) {
     return new Promise((resolve) => {
-      try { chrome.storage.local.get([key], (r) => resolve((r || {})[key])); } catch (_) { resolve(undefined); }
+      const timer = setTimeout(() => resolve(undefined), STORAGE_DEADLINE_MS);
+      try { chrome.storage.local.get([key], (r) => { clearTimeout(timer); resolve((r || {})[key]); }); }
+      catch (_) { clearTimeout(timer); resolve(undefined); }
     });
   }
   function storageSet(obj) {
     return new Promise((resolve) => {
-      try { chrome.storage.local.set(obj, () => resolve()); } catch (_) { resolve(); }
+      const timer = setTimeout(() => resolve(), STORAGE_DEADLINE_MS);
+      try { chrome.storage.local.set(obj, () => { clearTimeout(timer); resolve(); }); }
+      catch (_) { clearTimeout(timer); resolve(); }
     });
+  }
+
+  // 浏览器侧：记一次成功会话（一个页面会话里至少一段译文落地 / 一次字幕会话出过译文）。
+  // 返回累计次数。只计数，不决定要不要问 —— 那是 shouldOfferRating 的事。
+  async function noteOkSession() {
+    const n = (Number(await storageGet(OK_SESSIONS_KEY)) || 0) + 1;
+    await storageSet({ [OK_SESSIONS_KEY]: n });
+    return n;
+  }
+
+  // 第 n 次成功会话之后要不要出评分行：够次数、这个宿主有商店条目、且 90 天内没问过
+  // （点了或关了都算问过 —— 两个动作共用 markRatingAsked）。
+  async function shouldOfferRating(n, now) {
+    if (!(Number(n) >= RATING_MIN_DONE)) return false;
+    if (!rateUrl()) return false;
+    const t = Number(now) || Date.now();
+    const last = Number(await storageGet(RATING_KEY)) || 0;
+    return !(last && t - last < RATING_COOLDOWN_MS);
+  }
+
+  function markRatingAsked(now) {
+    return storageSet({ [RATING_KEY]: Number(now) || Date.now() });
   }
 
   // 成功时刻之后才问：一轮复习刷完、且这一轮真做了几张。只有宿主 App 有系统评分
@@ -128,7 +162,8 @@ var MTFeedback = (() => {
 
   return {
     host, device, version, mailtoUrl, rateUrl, discussUrl, communityUrl, open, maybeRequestRating,
-    CWS_ID, RATING_KEY, RATING_COOLDOWN_MS, RATING_MIN_DONE,
+    noteOkSession, shouldOfferRating, markRatingAsked,
+    CWS_ID, RATING_KEY, RATING_COOLDOWN_MS, RATING_MIN_DONE, OK_SESSIONS_KEY,
   };
 })();
 
