@@ -36,10 +36,14 @@ What it does:
 - Optional: sentences you actually read (not skimmed past) become review cards on a
   forgetting curve. Off by default, local unless you turn on sync.
 
-What it deliberately doesn't do: no telemetry, no analytics, no account required. Translation
-goes straight from your browser to the engine you picked (Google's free endpoint with no key,
-or OpenAI / Claude / DeepSeek / GLM / any OpenAI-compatible endpoint with yours). Keys stay on
-device. GPL-3.0. Same codebase ships to iOS/macOS Safari, Chrome, Firefox.
+What it deliberately doesn't do: no ads, no account required, no server of mine in the
+translation path when you use your own key. Translation goes straight from your browser to the
+engine you picked (Google's free endpoint with no key, or OpenAI / Claude / DeepSeek / GLM / any
+OpenAI-compatible endpoint with yours). Keys stay on device. The only thing it phones home with
+is anonymous usage events (which features were used, never page content), and one switch turns
+them off. If you sign in there's an optional $0.20 credit I pay for, metered through a relay of
+mine — that's the one path that sees your text, and it doesn't store it. GPL-3.0. Same codebase
+ships to iOS/macOS Safari, Chrome, Firefox.
 
 The hard part was Safari iOS: the extension's service worker goes permanently undefined
 after the device locks, so every fetch lives in the content script; and YouTube's caption
@@ -54,9 +58,10 @@ you can give me.
 - **"How is this different from Immersive Translate?"** — Same reading model. Differences:
   GPL open source, no subscription, no account, no server of ours in the translation path,
   bring your own key. They have more site adapters and a hosted plan; we have neither.
+  Longer version with a table: https://belliedmonkey.cc/alternatives.html
 - **"Why not just use Safari's built-in translation?"** — It replaces the page; this keeps
   both languages visible. Built-in also doesn't do subtitles.
 - **"Free?"** — The tool is. Google's endpoint is free without a key but unreliable under load;
   an LLM engine costs whatever your provider charges (a Wikipedia article on DeepSeek is
-  well under a cent).
+  well under a cent; roughly $0.0004/page on a budget model). Numbers: https://belliedmonkey.cc/pricing.html
 - **"Firefox on iOS?"** — Not possible; iOS only allows extensions in Safari.
