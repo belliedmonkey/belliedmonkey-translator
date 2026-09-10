@@ -101,8 +101,9 @@ var LearnGrant = (function () {
     return { host: 'grant', chat, tts, stt };
   }
 
-  // plan(claimed, settings, reg) → { writes, skipped, replaced, tests, marks }
-  function plan(claimed, settings, reg) {
+  // plan(claimed, settings, reg, opts) → { writes, skipped, replaced, tests, marks }
+  //   opts.overwrite：「改回免费额度」—— 三槽无论装着什么都换成额度（宿主先弹确认）。
+  function plan(claimed, settings, reg, opts) {
     const sp = spec();
     const p = platform(reg);
     const key = String((claimed && claimed.token) || '');
@@ -115,6 +116,7 @@ var LearnGrant = (function () {
       platform: p, key, settings: s,
       pinModel: true,                 // 中继按白名单放行，留空会撞 403
       replaceKeyTail: tail(s.grantTail),
+      overwrite: !!(opts && opts.overwrite),
     });
     return Object.assign({}, out, {
       // 这三个键**不进** SETTINGS_KEYS（同 optDetailMode 的先例）：宿主 saveAll()

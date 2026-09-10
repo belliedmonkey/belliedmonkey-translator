@@ -242,6 +242,57 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
           if (JSON.stringify(got.grant).includes(TOKEN)) fail('领取记录里出现了完整令牌 —— 只该存尾八位');
           else pass('落盘的记录里没有完整令牌');
         }
+
+        // ── 已有自己的 key 时领取 → 「改回免费额度」真的换过来（2026-09-10 用户实测）──
+        //
+        // 三槽都是用户自己的 key（转写那一槽的「已配」看引擎不看 key）：领取按设计
+        // **不碰**这些 key，但此前弹的是「已配好」；而「改回免费额度」走同一条不覆盖的
+        // 路，点了永远换不回来 —— 一个死按钮。这一幕修之前红。
+        {
+          const MINE = 'sk-users-own-key-0001';
+          await ev2(`new Promise(r => chrome.storage.local.set({ provider: 'deepseek', apiKey: ${JSON.stringify(MINE)}, apiModel: '',
+            ttsEngine: 'openai_speech', ttsApiKey: ${JSON.stringify(MINE)}, sttEngine: 'local', sttApiKey: '' },
+            () => chrome.storage.local.remove(['grant', 'grantTail', 'grantBalance'], r)))`);
+          await cdp.send('Page.reload', {}, s2);
+          await new Promise((r) => setTimeout(r, 2500));
+          const before = seen.grant.length;
+          const b1 = await ev2(`(() => { const b = document.querySelector('#grant-box button.gr-action'); return b ? b.textContent : null; })()`);
+          if (!b1) { fail('BYO 幕：额度卡上没有按钮'); }
+          else {
+            await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
+            await new Promise((r) => setTimeout(r, 2500));
+            const toast = await ev2(`document.getElementById('toast') ? document.getElementById('toast').textContent : ''`);
+            const g1 = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(['provider','apiKey','ttsApiKey','sttEngine','grantTail'], o => r(JSON.stringify(o))))`));
+            if (seen.grant.length === before) fail('BYO 幕：点了领取，假后端没收到请求');
+            if (g1.apiKey !== MINE || g1.ttsApiKey !== MINE || g1.sttEngine !== 'local') fail('BYO 幕：领取盖掉了用户自己的 key —— 那是他花时间申请来的东西 ' + JSON.stringify({ p: g1.provider, k: String(g1.apiKey).slice(-8), tk: String(g1.ttsApiKey).slice(-8), stt: g1.sttEngine }));
+            else pass('BYO 幕：领取没动用户自己的 key');
+            if (/已配好|configured/i.test(toast)) fail(`BYO 幕：一个槽都没写却弹「已配好」：「${toast}」`);
+            else if (!toast) fail('BYO 幕：领取后没有任何提示');
+            else pass(`BYO 幕：提示如实说了 key 保留着：「${toast.slice(0, 40)}…」`);
+            const b2 = await ev2(`(() => { const b = document.querySelector('#grant-box button.gr-action'); return b ? b.textContent : null; })()`);
+            const restoreWord = await ev2(`(typeof t === 'function') ? t('grant_restore', '改回免费额度') : '改回免费额度'`);
+            if (b2 !== restoreWord) fail(`BYO 幕：领取后卡上的按钮应是「${restoreWord}」，实际「${b2}」`);
+            else {
+              await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
+              await new Promise((r) => setTimeout(r, 400));
+              const hasDialog = await ev2(`!!document.querySelector('.ld-box .ld-ok')`);
+              if (!hasDialog) fail('BYO 幕：「改回免费额度」没有先弹确认 —— 它会替换掉用户自己的 key');
+              else {
+                await ev2(`document.querySelector('.ld-box .ld-ok').click(); 1`);
+                await new Promise((r) => setTimeout(r, 3000));
+                const g2 = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(['provider','apiKey','apiModel','ttsEngine','ttsApiKey','sttEngine','sttApiKey','grantTail'], o => r(JSON.stringify(o))))`));
+                if (g2.provider !== 'grant' || g2.apiKey !== TOKEN) fail(`BYO 幕：「改回免费额度」没把翻译那一槽换成额度：${g2.provider} / ${String(g2.apiKey).slice(-8)}`);
+                else if (g2.ttsEngine !== 'grant_speech' || g2.ttsApiKey !== TOKEN) fail('BYO 幕：「改回免费额度」没换朗读那一槽');
+                else if (g2.sttEngine !== 'grant_stt' || g2.sttApiKey !== TOKEN) fail(`BYO 幕：「改回免费额度」没换转写那一槽（引擎 ${g2.sttEngine}）—— 它的「已配」看引擎不看 key，尾号比对必然落空`);
+                else if (g2.apiModel !== MODEL) fail('BYO 幕：改回后模型没被钉住');
+                else pass('BYO 幕：确认后三槽都换成了额度，模型钉住');
+                const b3 = await ev2(`(() => { const b = document.querySelector('#grant-box button.gr-action'); return b ? b.textContent : null; })()`);
+                if (b3 === restoreWord) fail('BYO 幕：换回额度之后卡上还挂着「改回免费额度」');
+                else pass('BYO 幕：卡回到额度在用的状态');
+              }
+            }
+          }
+        }
       }
     }
   } catch (e) {

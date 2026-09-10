@@ -2546,6 +2546,9 @@
   "grant_claimed_toast": {
     "message": "免費額度已設好"
   },
+  "grant_claimed_kept_toast": {
+    "message": "免費額度已領到。你自己的 key 保留著 —— 想換用額度，點「改回免費額度」。"
+  },
   "grant_page_halt": {
     "message": "免費額度已用完 —— 點此看怎麼繼續"
   },

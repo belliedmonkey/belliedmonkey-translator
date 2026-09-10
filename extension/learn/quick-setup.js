@@ -213,12 +213,19 @@ var QuickSetup = (() => {
     //   界面要如实说「替换了免费额度的 key」，不能假装是新配的。
     const pinModel = !!input.pinModel;
     const replaceTail = tailOf(input.replaceKeyTail);
-    const overridable = (stored) => !!replaceTail && tailOf(stored) === replaceTail;
+    // `overwrite`：三槽**无论装着什么**都盖掉。只给「改回免费额度」用 —— 那个按钮的
+    //   语义就是「替换掉我现在填的 key」，而且宿主在调用前已经弹过确认。2026-09-10
+    //   用户实测：三槽都有自己的 key 时，领取一个字节都没写却弹「已配好」，而「改回」
+    //   走同一条不覆盖的路，点了永远换不回来 —— 一个死按钮。
+    const overwrite = !!input.overwrite;
+    const overridable = (stored) => overwrite || (!!replaceTail && tailOf(stored) === replaceTail);
     const st0 = state(s);
     const st = {
       chat: st0.chat === 'configured' && overridable(s.apiKey) ? 'empty' : st0.chat,
       tts: st0.tts === 'configured' && overridable(s.ttsApiKey) ? 'empty' : st0.tts,
-      stt: st0.stt === 'configured' && overridable(s.sttApiKey) ? 'empty' : st0.stt,
+      // 转写那一槽的「已配」判据是引擎而不是 key（本机 / 免费引擎没有 key），所以
+      // 尾号比对对它常常落空；overwrite 下不看 key。
+      stt: st0.stt === 'configured' && (overwrite || overridable(s.sttApiKey)) ? 'empty' : st0.stt,
     };
     const replaced = [];
     if (st0.chat !== st.chat) replaced.push('chat');

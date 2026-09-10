@@ -2545,6 +2545,9 @@
   "grant_claimed_toast": {
     "message": "Gratis-Guthaben ist eingerichtet"
   },
+  "grant_claimed_kept_toast": {
+    "message": "Guthaben erhalten. Dein eigener Schlüssel bleibt aktiv – tippe auf „Zurück zum Gratis-Guthaben“, um es zu nutzen."
+  },
   "grant_page_halt": {
     "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
   },

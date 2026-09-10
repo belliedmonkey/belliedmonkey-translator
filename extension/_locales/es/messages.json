@@ -2545,6 +2545,9 @@
   "grant_claimed_toast": {
     "message": "El crédito gratuito está configurado"
   },
+  "grant_claimed_kept_toast": {
+    "message": "Crédito gratis obtenido. Tu propia clave sigue activa: toca «Volver al crédito gratis» para usarlo."
+  },
   "grant_page_halt": {
     "message": "Crédito gratuito agotado: toca para ver cómo seguir"
   },
