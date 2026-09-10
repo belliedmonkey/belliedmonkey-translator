@@ -1900,6 +1900,10 @@ async function init() {
     // 是哪一个。
     '#learn': { sec: 'learn-card', focus: () => $('learn-enabled'),
       flash: () => $('learn-enabled') && $('learn-enabled').closest('.field') },
+    // 转写引擎（2026-09-11）：叠层的「先在设置里选择转写引擎」与弹窗的 no_engine 态往这里送。
+    // 此前 `#stt` 根本不存在，落在页顶让人自己找。转写字段在 learn-card 里，两档都可见，不必切档。
+    '#stt': { sec: 'learn-card', focus: () => $('stt-engine'),
+      flash: () => $('stt-engine') && $('stt-engine').closest('.field') },
     // 免费额度（§8.10）。页内的停机提示、弹窗、引导页那张卡都往这里送。
     // **落点前必须先切到快速 tab**：这张卡是 .quick-only，在详细档里整块是 hidden 的，
     // 送过去只会滚到一片看不见的东西上 —— 那和送到页面顶部一样没用。

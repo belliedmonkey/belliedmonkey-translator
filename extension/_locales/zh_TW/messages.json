@@ -2188,6 +2188,15 @@
   "asr_err_nolive": {
     "message": "該轉寫引擎沒有即時介面，此媒體無法轉寫"
   },
+  "asr_gesture_needed": {
+    "message": "需要在頁面上點一下才能開始擷取"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ 點此開始即時轉寫"
+  },
+  "asr_go_live_engine": {
+    "message": "去配一個帶即時介面的引擎 →"
+  },
   "asr_err_settings": {
     "message": "轉寫引擎已更改，已停止轉寫"
   },

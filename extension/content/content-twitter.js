@@ -9,7 +9,7 @@
 var TwitterTranslator = (() => {
   // ─── Active media selection (a feed holds many <video>) ─────────────────
   function amplifyVideos() {
-    return Array.from(document.querySelectorAll('video')).filter((v) => {
+    return MediaFinder.all().filter((v) => v.tagName === 'VIDEO').filter((v) => {
       const p = v.poster || v.currentSrc || v.src || '';
       return v.closest('article[role="article"]') || /amplify_video|twimg/.test(p);
     });
@@ -271,7 +271,7 @@ var TwitterTranslator = (() => {
   function bindFs() { if (fsBound) return; fsBound = true; FS_EVENTS.forEach((e) => document.addEventListener(e, reanchor)); }
   function unbindFs() { if (!fsBound) return; fsBound = false; FS_EVENTS.forEach((e) => document.removeEventListener(e, reanchor)); }
 
-  function startAsr() { return AsrSource.start(activeVideo(), ui, ui.settings); }
+  function startAsr(surface) { return AsrSource.startFrom(surface || 'popup', activeVideo(), ui, ui.settings); }
   return {
     startAsr,
     init: (s) => { bindFs(); return ui.init(s); },

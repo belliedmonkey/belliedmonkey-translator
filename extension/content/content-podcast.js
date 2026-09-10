@@ -14,16 +14,17 @@ var PodcastTranslator = (() => {
   let ui; // set below; sync closures reference ui.engine / ui.active
 
   // ─── Media element ─────────────────────────────────────────────────────
+  // 2026-09-11：查找走 MediaFinder（进 open shadow root）；偏好顺序保留「<audio> 优先」这一条。
   function mediaEl() {
-    const els = Array.from(document.querySelectorAll('audio, video'));
+    const els = MediaFinder.all();
     if (!els.length) return null;
     return els.find((e) => !e.paused && e.currentTime > 0)
       || els.find((e) => e.currentTime > 0)
       || els.find((e) => e.tagName === 'AUDIO')
-      || els[0];
+      || MediaFinder.pick(els);
   }
   function isSpotifyEpisode() { return /\/episode\//.test(location.pathname) || !!document.querySelector('[data-testid="transcript-tab"]'); }
-  function hasMedia() { return IS_SPOTIFY ? isSpotifyEpisode() : !!document.querySelector('audio, video'); }
+  function hasMedia() { return IS_SPOTIFY ? isSpotifyEpisode() : MediaFinder.all().length > 0; }
   function episodeKey() {
     if (IS_SPOTIFY) return location.href;
     const m = mediaEl(); return location.href + '|' + (m ? (m.currentSrc || m.src || '') : '');
@@ -298,6 +299,6 @@ var PodcastTranslator = (() => {
   // in the popup (a user gesture in the popup's own document — the AudioContext is still
   // created in the page, so iOS may keep it suspended until the in-overlay tap; the notice
   // then re-offers). Returns false when there is nothing eligible to transcribe.
-  function startAsr() { return AsrSource.start(mediaEl(), ui, ui.settings); }
+  function startAsr(surface) { return AsrSource.startFrom(surface || 'popup', mediaEl(), ui, ui.settings); }
   return { init: ui.init, enable: ui.enable, disable: ui.disable, updateSettings: ui.updateSettings, hasTranscriptHint, startAsr, mediaEl };
 })();

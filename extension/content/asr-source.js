@@ -249,6 +249,19 @@ var AsrSource = (() => {
     if (!eng.liveEndpoint || !eng.liveType) throw named('nolive', eng.label || eng.id);
     ctx.mode('live', { incremental: cfg.incremental !== false, history: cfg.history !== false });
     const { ac, sourceNode } = await attachCapture(el, url, signal);
+    // Safari：页外手势（弹窗）里建的 AudioContext 恒 suspended，resume() 永不落定 —— 抓到的
+    // 只会是静音。开 socket 之前具名停下（`gesture`），通知行换成「▶ 点此开始实时转写」，
+    // 用户在页内点一下就是真手势（domain-design §5.3 第二实例 2026-09-11）。能力判据：
+    // 真手势内 state 是 running，永不误报；Chrome 的自动播放策略挂起时同样会被它接住。
+    if (ac.state !== 'running') {
+      try { await Promise.race([ac.resume(), new Promise((r) => setTimeout(r, 400))]); } catch (_) {}
+      if (ac.state !== 'running') {
+        // 这个 AudioContext 是在页外手势里建的，永远起不来；丢掉它，页内那一下会重建一个。
+        try { ac.close(); } catch (_) {}
+        if (audioCtx === ac) audioCtx = null;
+        throw named('gesture', ac.state);
+      }
+    }
     const rate = eng.liveRate || 16000;
     const resample = makeResampler(ac.sampleRate, rate);
     ctx.notice(T('asr_status_live', '● 实时转写中'));
@@ -319,6 +332,7 @@ var AsrSource = (() => {
     if (c === 'toolarge') return T('asr_err_toolarge', '音频太大，无法整段转写') + '（' + e.message + '）';
     if (c === 'nocues') return T('asr_err_nocues', '该转写引擎不返回时间戳，无法做字幕') + '（' + e.message + '）';
     if (c === 'nolive') return T('asr_err_nolive', '该转写引擎没有实时接口，此媒体无法转写');
+    if (c === 'gesture') return T('asr_gesture_needed', '需要在页面上点一下才能开始采集');
     if (c === 'http') return T('asr_err_ws', '转写连接中断') + '：' + String(e.message).slice(0, 100);
     if (e && e.name === 'AbortError') return '';
     return T('asr_err_ws', '转写连接中断') + (e && e.message ? '：' + String(e.message).slice(0, 80) : '');
@@ -370,9 +384,24 @@ var AsrSource = (() => {
         if (e.code === 'nocues' || e.code === 'http' || e.code === 'toolarge') { ctx.fail(failMessage(e)); return; }
       }
       try { await liveTier({ el, url, cfg, ctx, signal, language }); }
-      catch (e) { if (!signal.aborted) ctx.fail(failMessage(e)); }
+      catch (e) {
+        if (signal.aborted) return;
+        lastFail = { code: e && e.code, el };
+        if (e && e.code === 'nolive') track('notice', 'no_live');
+        if (e && e.code === 'gesture') track(lastSurface, 'gesture_needed');
+        ctx.fail(failMessage(e));
+      }
     })();
     return 'streaming';
+  }
+  // 最后一次失败：`gesture` ⇒ offer 变成「▶ 点此开始实时转写」；`nolive` ⇒ offer 变成去配引擎的出口。
+  let lastFail = { code: '', el: null };
+  let lastSurface = 'notice';
+  function track(surface, result) {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface, result }); } catch (_) {}
+  }
+  function openOptions(hash) {
+    try { window.open(chrome.runtime.getURL('options/options.html') + hash, '_blank'); } catch (_) {}
   }
 
   // ─── The offer (shared by every subtitle backend) ─────────────────
@@ -385,23 +414,38 @@ var AsrSource = (() => {
       if (ui.streaming) return null;
       const c = cached;
       if (!c || !c.ok) {
-        return { label: T('asr_needs_engine', '先在设置里选择转写引擎'), onClick: () => {
-          try { window.open(chrome.runtime.getURL('options/options.html') + '#stt', '_blank'); } catch (_) {}
-        } };
+        return { label: T('asr_needs_engine', '先在设置里选择转写引擎'), onClick: () => { track('notice', 'no_engine'); openOptions('#stt'); } };
       }
-      return { label: T('asr_offer', '🎙 AI 转写字幕'), onClick: () => start(el, ui, getSettings()) };
+      // 引擎没有实时接口：这句话此前没有出口。落到设置页转写引擎那一栏（PR3 起落到一键卡的实时框）。
+      if (lastFail.code === 'nolive' && lastFail.el === el) {
+        return { label: T('asr_go_live_engine', '去配一个带实时接口的引擎 →'), onClick: () => openOptions('#stt') };
+      }
+      // Safari：弹窗那一下不是页内手势，这里再点一次就是。
+      if (lastFail.code === 'gesture' && lastFail.el === el) {
+        return { label: T('asr_gesture_tap', '▶ 点此开始实时转写'), onClick: () => startFrom('pill', el, ui, getSettings()) };
+      }
+      return { label: T('asr_offer', '🎙 AI 转写字幕'), onClick: () => startFrom('notice', el, ui, getSettings()) };
     };
   }
-  function start(el, ui, settings) {
-    if (!el || !ui) return false;
+  // 三处入口（弹窗 / 通知行 / 页内再点一次）都走这里：同一个会话、同一条遥测。
+  // 返回 {ok, reason}：弹窗把 reason 写进副行。
+  function startFrom(surface, el, ui, settings) {
+    lastSurface = surface || 'notice';
+    if (!el) { track(lastSurface, 'no_media'); return { ok: false, reason: 'no_media' }; }
+    if (!ui) return { ok: false, reason: 'busy' };
+    if (ui.streaming) return { ok: false, reason: 'busy' };
+    if (!cached || !cached.ok) { track(lastSurface, 'no_engine'); return { ok: false, reason: 'no_engine' }; }
+    lastFail = { code: '', el: null };
     prepareAudioContext(); // inside the gesture
     ui.acquireVia((ctx) => startSession({ el, ctx, settings }));
-    return true;
+    track(lastSurface, 'started');
+    return { ok: true, reason: 'started' };
   }
+  function start(el, ui, settings) { return startFrom('notice', el, ui, settings).ok; }
 
   function eligible(el) { return !!el && el.duration >= MIN_DURATION_S; }
 
-  return { startSession, offerFor, start, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES };
+  return { startSession, offerFor, start, startFrom, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES };
 })();
 
 if (typeof window !== 'undefined') window.AsrSource = AsrSource;

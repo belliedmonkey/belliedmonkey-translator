@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "Este motor no tiene interfaz en vivo; este medio no se puede transcribir"
   },
+  "asr_gesture_needed": {
+    "message": "Toca la página para empezar a capturar"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Toca para iniciar la transcripción en vivo"
+  },
+  "asr_go_live_engine": {
+    "message": "Configurar un motor con interfaz en vivo →"
+  },
   "asr_err_settings": {
     "message": "Motor de transcripción cambiado — detenido"
   },

@@ -112,7 +112,11 @@ function makeDom() {
   const byId = {};
   function el(tag) {
     const kids = [];
-    const e = { tag, id: '', className: '', style: {}, textContent: '', hidden: false, _listeners: {},
+    const e = { tag, id: '', className: '', style: {}, _text: '', hidden: false, _listeners: {},
+      // 真 DOM 语义：给 textContent 赋值会清掉全部子节点。offer 提前后，通知行会先带一个
+      // 按钮、再因 msg 变化重建 —— 桩不清子节点就会数出两个按钮。
+      get textContent() { return e._text; },
+      set textContent(v) { e._text = String(v == null ? '' : v); kids.length = 0; },
       setAttribute(n, v) { if (n === 'id') { e.id = v; byId[v] = e; } },
       getAttribute() { return null; },
       appendChild(c) { if (c.parentElement && c.parentElement !== e) { const k = c.parentElement.children; const i = k.indexOf(c); if (i >= 0) k.splice(i, 1); } if (!kids.includes(c)) kids.push(c); c.parentElement = e; if (c.id) byId[c.id] = c; return c; },
@@ -378,6 +382,22 @@ describe('§2.4 harness: streaming acquire', () => {
     const zh = ov.querySelector('.t');
     ok(zh.textContent.indexOf('捕获不到声音') === 0, 'notice shows the stop reason: ' + zh.textContent);
     ok(zh.children.length === 1 && zh.children[0].textContent === 'OFFER', 'offer button inside the notice');
+  });
+
+  // 2026-09-11（第九期）：offer 从第一次 acquire 失败起就出现在「⏳ 字幕加载中…」那一行里，
+  // 不再等 6–8 次重试（≈ 15–20 s）。YouTube 传 offerAfterAttempts:2（前 3 s 有 grace）。
+  test('★ the offer appears inside the loading notice after the FIRST failed acquire (podcast), after the 2nd with offerAfterAttempts:2', async () => {
+    for (const [after, expectAt] of [[undefined, 1], [2, 2]]) {
+      const { ui, document } = loadHarness({ spec: Object.assign({ acquire: async () => null, unavailableAction: () => ({ label: 'OFFER', onClick() {} }) }, after ? { offerAfterAttempts: after } : {}) });
+      ui.init({}); ui.enable();
+      // 第 1 拍：acquire 起飞并落定为 null（attempts=1）；第 2 拍渲染
+      ui.tick(); await flush(); ui.tick(); await flush();
+      const zh = () => document.getElementById('ov').querySelector('.t');
+      const hasBtn = () => zh().children.length === 1 && zh().children[0].textContent === 'OFFER';
+      if (expectAt === 1) ok(hasBtn(), 'podcast: offer after the first failed acquire; got ' + zh().children.length + ' buttons');
+      else ok(!hasBtn(), 'offerAfterAttempts:2 — not yet after one attempt');
+      ok(/字幕加载中|loading/i.test(zh().textContent), 'still the loading line: ' + zh().textContent);
+    }
   });
 
   test('acquireVia replaces acquire for the current media only; a media change clears it', async () => {
@@ -686,6 +706,18 @@ describe('§2.4 asr-source: pure helpers', () => {
     eq(A.mediaUrl({ currentSrc: 'https://cdn.example/a.mp3' }), 'https://cdn.example/a.mp3');
     eq(A.mediaUrl({ currentSrc: 'blob:https://x/uuid' }), '');
     eq(A.mediaUrl(null), '');
+  });
+  test('★ startFrom: no element ⇒ {ok:false, reason:no_media}; no engine ⇒ no_engine; both tracked as asr_entry', () => {
+    const tracked = [];
+    global.MTTelemetry = { track: (n, p) => tracked.push([n, p]) };
+    try {
+      deepEq(A.startFrom('popup', null, {}, {}), { ok: false, reason: 'no_media' });
+      // 测试环境里 RequestShape 缺席 ⇒ primeConfig 落到 {ok:false} ⇒ 没配引擎
+      const r = A.startFrom('popup', { duration: 100 }, { streaming: false, acquireVia() {} }, {});
+      eq(r.ok, false); eq(r.reason, 'no_engine');
+      deepEq(tracked.map((x) => x[1].result), ['no_media', 'no_engine']);
+      ok(tracked.every((x) => x[0] === 'asr_entry' && x[1].surface === 'popup'));
+    } finally { delete global.MTTelemetry; }
   });
   test('eligible: only media at least MIN_DURATION_S long', () => {
     ok(!A.eligible({ duration: 10 })); ok(A.eligible({ duration: A.MIN_DURATION_S })); ok(!A.eligible({ duration: NaN }));

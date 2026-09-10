@@ -2187,6 +2187,15 @@
   "asr_err_nolive": {
     "message": "هذا المحرك لا يملك واجهة مباشرة؛ لا يمكن تفريغ هذه الوسائط"
   },
+  "asr_gesture_needed": {
+    "message": "اضغط على الصفحة لبدء الالتقاط"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ اضغط لبدء النسخ المباشر"
+  },
+  "asr_go_live_engine": {
+    "message": "إعداد محرك يدعم الواجهة المباشرة ←"
+  },
   "asr_err_settings": {
     "message": "تغيّر محرك التفريغ — تم الإيقاف"
   },
