@@ -431,7 +431,10 @@ async function checkSite(site) {
         && fs.statSync(path.join(site.dir, d)).isDirectory()
         ? fs.readdirSync(path.join(site.dir, d)).filter((f) => f.endsWith('.html')).map((f) => prefix + f)
         : [];
-      const top = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f));
+      // 页内标了 noindex 的（beta.html 那种临时页）**不该**在 sitemap 里 —— 一边 noindex 一边提交，
+      // Search Console 报「已提交的网址被标记为 noindex」。与 gen-site-langs.js 的 extras 过滤同一条规则。
+      const noindex = (f) => /<meta\s+name="robots"\s+content="[^"]*noindex/i.test(fs.readFileSync(path.join(site.dir, f), 'utf8'));
+      const top = fs.readdirSync(site.dir).filter((f) => f.endsWith('.html') && !/-cn\.html$/.test(f) && !noindex(f));
       const langDirs = fs.readdirSync(site.dir)
         .filter((f) => /^[a-z]{2}(-[A-Za-z]+)?$/.test(f) && fs.statSync(path.join(site.dir, f)).isDirectory());
       const onDisk = top.concat(...langDirs.map((d) => htmlUnder(d, d + '/')));
