@@ -3,6 +3,36 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.9.2 — 2026-09-11
+
+- The popup now has a "Live transcription + translation" row that starts with one tap whenever the page has a video or audio element (players inside web components included); when the player lives in an embedded frame it says so and offers a way in. The in-overlay entry no longer waits 15 seconds.
+- On Safari, starting from the popup shows a "Tap to start" button on the page — one more tap and capture begins (Safari only captures audio after a tap on the page itself).
+- One-key setup gains "Live transcription (optional)": when the platform has no live interface, add one key from a provider that does; engines with a live interface are marked "· live" in the transcription list.
+
+<details><summary>中文</summary>
+
+- 弹窗里新增「实时转写 + 翻译」一行，只要页面上有视频或音频就能一键开始（包括网页组件里的播放器）；播放器在嵌入框架里时会告诉你并给出口。叠层里的转写入口不再要等十几秒。
+- Safari 上从弹窗开始转写时，页面上会出现「点此开始」再点一次即可（Safari 需要在页面里点一下才能采集声音）。
+- 一键配置里新增「实时转写（可选）」：默认平台没有实时接口时，另填一把带实时接口的 key 就能实时转写；转写引擎列表里带实时接口的会标出「· 实时」。
+
+</details>
+
+## 1.9.1 — 2026-09-11
+
+- When a provider rejects your API key (401/403), translation now stops right away and tells you on the page to check that key in Settings — no more failing paragraph by paragraph.
+- The app's home screen now guides you to turn on the Safari extension: three illustrated steps, a one-tap jump to the check page, and an “I've turned it on” button to dismiss.
+- After you've translated a few pages, a single line at the end of the translation asks whether you'd like to rate the app; dismiss it and it stays away for 90 days.
+- Fix: after claiming the free allowance, the card wrongly said you were using your own key, and “Switch back to free credit” did nothing.
+
+<details><summary>中文</summary>
+
+- API key 被服务商拒绝（401/403）时，翻译会立刻停下，并在页面上告诉你去设置里检查这把 key，不再逐段反复失败。
+- App 首页更清楚地引导打开 Safari 扩展：三步图示 + 一键跳到检测页，确认打开后点「我已打开」即可收起。
+- 翻过几页之后，会在译文末尾问一次要不要去商店评分；关掉就 90 天内不再出现。
+- 修复：领取免费额度后卡片误显示「你现在用的是自己的 key」，且「改回免费额度」点了没反应。
+
+</details>
+
 ## 1.9.0 — 2026-09-10
 
 - New free allowance: sign in to claim a small allowance we provide — enough to translate a few hundred pages, usable for translation, read-aloud, and transcription. When it runs out, add your own API key or join the community. Prefer not to sign in? Nothing changes — bring your own key or use the free Google engine.
