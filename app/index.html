@@ -33,7 +33,16 @@
       <!-- 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
            注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
            App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 -->
+      <!-- iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
+           #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 -->
       <button id="ext-banner-setup" type="button" class="secondary"></button>
+      <!-- 三步放在主按钮**之后**：320×480 下三张插图会把按钮顶出首屏（引导 ext 屏
+           靠 sticky 页脚解决，横幅在可滚动的首页里没有页脚），先给动作再给佐证。 -->
+      <ol id="ext-banner-steps" class="ob-steps" hidden></ol>
+      <!-- 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
+           用户裁定：只有点了它才收起（extBannerDoneAt）。 -->
+      <button id="ext-banner-done" type="button" class="secondary" hidden></button>
+      <p id="ext-banner-check" class="note" hidden><a href="#" id="ext-banner-check-link"></a></p>
     </section>
     <!-- Signed out. This is the only screen a new user sees, so it has to say what
          signing in is FOR — the app is empty without it (learning-design §7.2), and
@@ -130,7 +139,7 @@
       <div id="ob-body">
         <h2 id="ob-title"></h2>
         <p id="ob-text"></p>
-        <ol id="ob-steps" hidden></ol>
+        <ol id="ob-steps" class="ob-steps" hidden></ol>
         <div id="ob-kv" hidden></div>
         <p class="note" id="ob-telemetry" hidden></p>
       </div>

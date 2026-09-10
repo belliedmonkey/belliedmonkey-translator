@@ -1698,6 +1698,18 @@
   "app_ext_open_setup": {
     "message": "ウェブで設定を完了する"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Safari 拡張機能がまだオンになっていません"
+  },
+  "app_ext_open_safari": {
+    "message": "Safari で拡張機能をオンにする →"
+  },
+  "app_ext_done": {
+    "message": "オンにしました"
+  },
+  "app_ext_check_hint": {
+    "message": "不安なら確認ページを開いて緑のランプを見る →"
+  },
   "app_signin_why": {
     "message": "カードはブラウザ拡張機能が集めます。同じアカウントでサインインすると、この端末に同期されます。"
   },

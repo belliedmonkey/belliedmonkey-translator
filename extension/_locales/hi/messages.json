@@ -1547,6 +1547,18 @@
   "app_ext_open_setup": {
     "message": "वेब पर सेटअप पूरा करें"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Safari एक्सटेंशन अभी चालू नहीं है"
+  },
+  "app_ext_open_safari": {
+    "message": "Safari में एक्सटेंशन चालू करें →"
+  },
+  "app_ext_done": {
+    "message": "मैंने चालू कर दिया"
+  },
+  "app_ext_check_hint": {
+    "message": "पक्का नहीं? जाँच पेज खोलकर हरी बत्ती देखें →"
+  },
   "app_signin_why": {
     "message": "कार्ड ब्राउज़र एक्सटेंशन द्वारा कैप्चर किए जाते हैं। उसी खाते से साइन इन करें और वे इस डिवाइस पर सिंक हो जाएँगे।"
   },

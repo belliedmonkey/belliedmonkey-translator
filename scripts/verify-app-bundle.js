@@ -541,6 +541,69 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'show(\'mac\') 这个「还不知道状态」的初次调用就给了按钮 —— canOpenPrefs 必须 fail-closed');
       }
     }
+    // iOS 形态的横幅（2026-09-10，第八期 A）：5 天遥测里 App 装机 72、Safari 扩展装机 25。
+    // 四条：① iOS 下 #ext-banner-setup 不带 secondary 且**渲染背景**是 accent（类名摘掉了
+    // 而 CSS 没命中，正是 2026-09-02 扩展侧那个 bug 的形状）；② 首页 + 横幅里恰好一个
+    // 填色按钮（#review 降次级）；③ 「我已打开」可见、三步齐全、主按钮落在 320×480 首屏内；
+    // ④ 点「我已打开」→ 横幅收起、extBannerDoneAt 落盘、再来一次 show('ios') 仍收起。
+    if (o.syncEnabled) {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
+      const ib = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const $ = (id) => document.getElementById(id);
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const sget = (k) => new Promise((r) => chrome.storage.local.get(k, (o) => r(o || {})));
+          const srm = (k) => new Promise((r) => chrome.storage.local.remove(k, r));
+          await srm(['extBannerDoneAt', 'tm:extBannerDay']);
+          $('onboard').hidden = true;
+          if (!$('review-view').hidden) { $('review-back').click(); await sleep(200); }
+          window.show('ios'); await sleep(20);
+          const sec = $('ext-banner');
+          const bg = (el) => getComputedStyle(el).backgroundColor;
+          const vis = (el) => !!(el && el.getClientRects().length);
+          const accent = (() => { const d = document.createElement('div');
+            d.style.cssText = 'background:var(--accent);position:absolute;left:-9999px';
+            document.body.appendChild(d); const v = bg(d); d.remove(); return v; })();
+          const filled = [...document.querySelectorAll('#signed-in button, #ext-banner button')]
+            .filter(vis).filter((b) => bg(b) === accent).map((b) => b.id);
+          const out = { banner: !sec.hidden, title: $('ext-banner-title').textContent,
+            setupSecondary: $('ext-banner-setup').classList.contains('secondary'),
+            setupFilled: bg($('ext-banner-setup')) === accent, filled,
+            doneVis: vis($('ext-banner-done')), checkVis: vis($('ext-banner-check')),
+            steps: $('ext-banner-steps').hidden ? 0 : $('ext-banner-steps').children.length,
+            reviewSecondary: $('review').classList.contains('secondary'),
+            vh: innerHeight, setupBottom: Math.round($('ext-banner-setup').getBoundingClientRect().bottom) };
+          $('ext-banner-done').click(); await sleep(60);
+          out.afterDone = !sec.hidden;
+          out.stored = !!(await sget(['extBannerDoneAt'])).extBannerDoneAt;
+          window.show('ios'); await sleep(20);
+          out.afterReshow = !sec.hidden;
+          out.reviewAfter = $('review').classList.contains('secondary');
+          await srm(['extBannerDoneAt', 'tm:extBannerDay']);
+          return JSON.stringify(out);
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      if (ib.exceptionDetails) throw new Error("iOS 横幅探针抛错: " + JSON.stringify(ib.exceptionDetails.exception && ib.exceptionDetails.exception.description || ib.exceptionDetails.text));
+      const v = JSON.parse(ib.result.value);
+      need(v.banner, 'iOS 下横幅没显示（extBannerDoneAt 已清空、不在引导中）');
+      need(!!v.title, 'iOS 横幅标题是空的');
+      need(!v.setupSecondary && v.setupFilled,
+        `iOS 下「在 Safari 里打开扩展」不是填色主按钮（secondary=${v.setupSecondary}, filled=${v.setupFilled}）—— `
+        + '#ext-banner 与 #signed-in 平级，那套按钮基样式够不到这里，规则要自己给');
+      need(v.filled.length === 1 && v.filled[0] === 'ext-banner-setup',
+        `横幅在场时首页应恰好一个填色按钮（ext-banner-setup），实际：${v.filled.join('、') || '无'}`);
+      need(v.reviewSecondary, '横幅在场时首页 #review 没降为次级 —— 两个填色按钮并排');
+      need(v.doneVis, 'iOS 横幅上没有「我已打开」');
+      need(v.checkVis, 'iOS 横幅上没有「不确定？打开检测页看绿灯」那句');
+      need(v.steps === 3, `iOS 横幅三步不齐（${v.steps}）`);
+      need(v.setupBottom !== null && v.setupBottom <= v.vh,
+        `320×480 下横幅主按钮底边在 ${v.setupBottom}px，视口只有 ${v.vh}px —— 插图把动作顶出首屏了`);
+      need(!v.afterDone, '点了「我已打开」横幅还在');
+      need(v.stored, '点了「我已打开」而 extBannerDoneAt 没落盘 —— 下次打开又会出现');
+      need(!v.afterReshow, '点过「我已打开」之后 show(\'ios\') 又把横幅画回来了');
+      need(!v.reviewAfter, '横幅收起后 #review 没有恢复为主按钮');
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    }
     // A3：未登录首屏不能是登录墙。40 个外部用户全部经 App 进来、0 激活，
     // 其中 15 个「发了验证码从没验证」—— 多半死在这一屏。冷启动就要邮箱，
     // 而用户还不知道这个 App 是干什么的。

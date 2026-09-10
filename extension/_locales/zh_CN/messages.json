@@ -1699,6 +1699,18 @@
   "app_ext_open_setup": {
     "message": "在网页上完成设置"
   },
+  "app_ext_banner_title_ios": {
+    "message": "Safari 扩展还没打开"
+  },
+  "app_ext_open_safari": {
+    "message": "在 Safari 里打开扩展 →"
+  },
+  "app_ext_done": {
+    "message": "我已打开"
+  },
+  "app_ext_check_hint": {
+    "message": "不确定？打开检测页看绿灯 →"
+  },
   "app_signin_why": {
     "message": "卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。"
   },
