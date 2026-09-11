@@ -1,0 +1,3 @@
+pdfjs-dist 6.3.289 (npm tarball, legacy/build, unmodified)
+f401927e692efc7735e0cd528c490d0dd31b7f0972c122b7040df805be45cce4  legacy/pdf.min.mjs
+a33cfe728c584fdba4fcc1fd54bcdc2f9f2f13889ddbb5b2bd1d0f8cbe49b84e  legacy/pdf.worker.min.mjs
