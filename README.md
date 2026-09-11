@@ -118,6 +118,7 @@ At a glance:
 - **No account required**; multi-device sync is optional; only anonymous usage events, and one switch turns them off
 - **Safari on iPhone, iPad and Mac, Chrome and Firefox** — one codebase, six store surfaces
 - **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
+- **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
 
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
@@ -254,6 +255,7 @@ Stated up front, because finding them yourself is worse.
 - **No servers of ours in the translation path — with your own key.** Requests go from your
   browser to the engine you picked.
 - **Free credit (optional).** Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
+- **Document translation (optional).** The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
 - **No tracking, no third-party analytics — and no account unless you want one.** Syncing your
   learning material between your own devices needs a free account; everything else works without one.

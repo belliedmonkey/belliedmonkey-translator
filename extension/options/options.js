@@ -19,7 +19,7 @@ const $ = id => document.getElementById(id);
 const SETTINGS_KEYS = [
   'enabled', 'targetLang', 'uiLang', 'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'engineChosen',
   'textColor', 'ytTextColor', 'fontSize', 'showFab',
-  'learnEnabled', 'learnDailyNew', 'learnRules',
+  'learnEnabled', 'learnDailyNew', 'learnRules', 'docCapture',
   'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
   // §9.2 (2026-08-09 二): dedicated notes engine — empty notesProvider = follow
   // the translation engine's whole group (LearnNotes.resolveConfig owns the rule).
@@ -369,7 +369,7 @@ function updateAdvancedNotes() {
 //
 // 推论：这张页面**永不 remove() 任何 section**（sync-section 是唯一的例外，它一个
 // 字段都不进 saveAll）。要收起一张卡就用 hidden —— 元素还在 DOM 里，值照样读得到。
-const SAVE_FIELDS = ['api-base-url', 'api-key', 'api-model', 'font-size', 'learn-daily-new', 'learn-enabled', 'notes-api-key', 'notes-base-url', 'notes-model', 'notes-provider', 'provider', 'show-fab', 'stt-api-key', 'stt-base-url', 'stt-engine', 'stt-model', 'target-lang', 'text-color', 'tts-api-key', 'tts-autoplay', 'tts-base-url', 'tts-engine', 'tts-mode', 'tts-model', 'tts-rate', 'tts-voice', 'ui-lang', 'yt-text-color'];
+const SAVE_FIELDS = ['api-base-url', 'api-key', 'api-model', 'doc-capture', 'font-size', 'learn-daily-new', 'learn-enabled', 'notes-api-key', 'notes-base-url', 'notes-model', 'notes-provider', 'provider', 'show-fab', 'stt-api-key', 'stt-base-url', 'stt-engine', 'stt-model', 'target-lang', 'text-color', 'tts-api-key', 'tts-autoplay', 'tts-base-url', 'tts-engine', 'tts-mode', 'tts-model', 'tts-rate', 'tts-voice', 'ui-lang', 'yt-text-color'];
 function assertSaveFields() {
   const missing = SAVE_FIELDS.filter((id) => !$(id));
   if (missing.length) {
@@ -393,6 +393,7 @@ async function saveAll() {
     fontSize:    $('font-size').value,
     showFab:     $('show-fab').checked,
     learnEnabled: $('learn-enabled').checked,
+    docCapture:  $('doc-capture').checked,
     learnDailyNew: Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew)),
     ttsMode:     $('tts-mode').value,
     ttsAutoPlay: $('tts-autoplay').checked,
@@ -503,6 +504,8 @@ async function init() {
   $('show-fab').checked     = s.showFab !== false;
   // Capture is OFF until the user turns it on once — never default-on on upgrade.
   $('learn-enabled').checked = s.learnEnabled === true;
+  // 文档译文进复习：默认开（§9.7；与 App 设置页同一读法）。
+  $('doc-capture').checked = s.docCapture !== false;
   $('learn-daily-new').value = Number(s.learnDailyNew) > 0 ? Number(s.learnDailyNew) : LearnScheduler.DEFAULTS.dailyNew;
   // 回填是必须的，不是可选的：saveAll() 整体覆盖，任何一个控件没回填，用户下一次改
   // 别的字段就会把它清空。空值回填成空字符串 —— 那正是「没设置」的表示。
@@ -1127,6 +1130,7 @@ async function init() {
       : t('toast_learn_off', '已停止采集（已收集的内容保留）'));
     await refreshLearnStats();
   }));
+  $('doc-capture').addEventListener('change', busy($('doc-capture'), async () => { await saveAll(); }));
   $('learn-daily-new').addEventListener('change', async () => {
     await saveAll();
     $('learn-daily-new').value = Math.max(1, Math.min(200, Number($('learn-daily-new').value) || LearnScheduler.DEFAULTS.dailyNew));
