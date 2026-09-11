@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "Al eliminar también se borra el documento."
   },
+  "doc_app_entry_hint": {
+    "message": "Traduce página a página; las traducciones pueden ir al repaso"
+  },
+  "doc_app_back": {
+    "message": "‹ Volver"
+  },
+  "doc_capture_label": {
+    "message": "Las traducciones de documentos van al repaso (fuente «Documento»)"
+  },
+  "doc_prefetch_label": {
+    "message": "Analizar la página siguiente por adelantado (sin traducir)"
+  },
   "rate_prompt_dismiss": {
     "message": "No volver a preguntar"
   },

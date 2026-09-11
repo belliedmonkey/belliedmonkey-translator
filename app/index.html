@@ -118,6 +118,12 @@
           <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint2"></span></span>
           <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
+        <button id="app-docs-entry2" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-docs-entry-hint2"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
         </div>
         <p class="note" id="modes-privacy2"></p>
         <p class="note" id="app-listen-need-live2" hidden>
@@ -252,6 +258,12 @@
           <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint"></span></span>
           <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
+        <button id="app-docs-entry" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-docs-entry-hint"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
         </div>
         <p class="note" id="modes-privacy"></p>
         <p class="note" id="app-drive-need-tts" hidden>
@@ -373,6 +385,18 @@
           <button id="app-listen-flip-back" type="button"></button>
         </div>
       </div>
+    </section>
+
+    <!-- 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 extension/learn/doc-view.js
+         （与扩展页同一份字节），编排在 app/docs.js。文件选择是原生 <input type=file>：iOS 由 WKWebView
+         弹系统选择器；macOS 要宿主实现 runOpenPanel（D5），否则是死按钮。 -->
+    <section id="app-docs" hidden>
+      <div class="docs-head">
+        <button id="app-docs-back" class="link" type="button"></button>
+        <h2 id="app-docs-title"></h2>
+      </div>
+      <div id="app-docs-root"></div>
+      <input type="file" id="app-docs-file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp" hidden>
     </section>
 
     <section id="app-settings" hidden>
@@ -544,6 +568,18 @@
         <span id="listen-autospeak-label"></span>
       </label>
       <p class="note" id="listen-autospeak-note"></p>
+      <!-- 文档翻译（§9.7）：译文进复习作为来源「文档」，默认开；下面一句是 §10 Gate G 的披露 ——
+           说在配置的那个点上。预取下一页默认关（只解析不翻译；开了也只多翻一页）。 -->
+      <h3 id="docs-title"></h3>
+      <label class="check">
+        <input id="doc-capture" type="checkbox">
+        <span id="doc-capture-label"></span>
+      </label>
+      <p class="note" id="doc-capture-note"></p>
+      <label class="check">
+        <input id="doc-prefetch" type="checkbox">
+        <span id="doc-prefetch-label"></span>
+      </label>
       <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
            但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
            系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->

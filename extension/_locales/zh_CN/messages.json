@@ -2759,6 +2759,18 @@
   "doc_sources_note": {
     "message": "删除会连文档本体一起删掉。"
   },
+  "doc_app_entry_hint": {
+    "message": "打开一页翻一页；译文可收进复习"
+  },
+  "doc_app_back": {
+    "message": "‹ 返回"
+  },
+  "doc_capture_label": {
+    "message": "文档译文进复习（来源「文档」）"
+  },
+  "doc_prefetch_label": {
+    "message": "提前解析下一页（不翻译）"
+  },
   "rate_prompt_dismiss": {
     "message": "不再提示"
   },

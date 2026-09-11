@@ -16,6 +16,8 @@
 //   ⑦ 语料里出现 anchor.k==='doc'，每页 ≤ CAPS.PER_PAGE，sources 有 doc://
 //   ⑧ vision:false 的引擎上传图片 → 「去设置换模型」且 0 次请求
 //   ⑨ 免费额度在用 → 上传图片即拦，0 次请求（用户裁定 2026-09-11）
+//   App 段（dist-app，出货布局）：首页入口可见 → 进视图 → 同一份 PDF 走 __MT_PDFJS 的 blob 路 →
+//     只发第 1 页 → 返回后 [hidden] 真隐藏；设置页有「文档译文进复习」开关
 'use strict';
 const path = require('path'), fs = require('fs'), os = require('os'), http = require('http'), zlib = require('zlib');
 const ROOT = path.resolve(__dirname, '..');
@@ -295,6 +297,84 @@ function makePng(w, h) {
     else pass('⑨ 被拦的图片没入库（库里 ' + docs9.length + ' 份：' + docs9.join(',') + '）');
 
     await storageRemove(['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'grantTail', 'reqConcurrency']);
+
+    // ── App 段：宿主 App 的同一份渲染器 + pdf.js 走 blob 路（D0 探针的那条）─────────
+    console.log('App 段');
+    {
+      const APP = path.join(ROOT, 'dist-app');
+      for (const f of ['Main.html', 'Script.js', 'Style.css']) if (!fs.existsSync(path.join(APP, f))) throw new Error('dist-app/' + f + ' 不在 —— 先跑 node build.js');
+      const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
+      const asrv = http.createServer((q, r) => {
+        const rel = q.url === '/' ? '/Base.lproj/Main.html' : q.url.split('?')[0];
+        const name = path.basename(rel);
+        const okf = (name === 'Main.html' && rel.startsWith('/Base.lproj/')) || ((name === 'Script.js' || name === 'Style.css') && !rel.startsWith('/Base.lproj/'));
+        if (!okf) { r.writeHead(404); return r.end(); }
+        r.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'text/plain' });
+        r.end(fs.readFileSync(path.join(APP, name)));
+      }).listen(0);
+      await new Promise((r) => asrv.on('listening', r));
+      const aurl = 'http://127.0.0.1:' + asrv.address().port + '/Base.lproj/Main.html';
+      try {
+        const { targetId: at } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+        const { sessionId: asid } = await cdp.send('Target.attachToTarget', { targetId: at, flatten: true });
+        await cdp.send('Runtime.enable', {}, asid);
+        await cdp.send('Page.enable', {}, asid);
+        await cdp.send('DOM.enable', {}, asid);
+        const alogs = [];
+        cdp.on('Runtime.exceptionThrown', (p, s2) => { if (s2 === asid) alogs.push('EXC ' + ((p.exceptionDetails.exception && p.exceptionDetails.exception.description) || p.exceptionDetails.text)); });
+        const aev = async (expr) => {
+          const r = await cdp.send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }, asid);
+          if (r.exceptionDetails) throw new Error(r.exceptionDetails.text + ' ' + JSON.stringify((r.exceptionDetails.exception && r.exceptionDetails.exception.description) || ''));
+          return r.result ? r.result.value : undefined;
+        };
+        await cdp.send('Page.navigate', { url: aurl }, asid);
+        await sleep(2000);
+        // 设置经 chrome-shim 落 localStorage；种完重载，让 App 按「已看过引导 + 已配引擎」起
+        await aev(`new Promise(r => chrome.storage.local.set(${JSON.stringify({ onboardSeen: true, provider: 'custom_chat', apiKey: 'test-key', apiBaseUrl: ENDPOINT, apiModel: 'fake-model', reqConcurrency: CONC, uiLang: 'zh-CN' })}, r))`);
+        await cdp.send('Page.reload', {}, asid);
+        await sleep(2500);
+        const home = JSON.parse(await aev(`JSON.stringify({ out: !document.getElementById('signed-out').hidden,
+          e2: (() => { const b = document.getElementById('app-docs-entry2'); return !!(b && !b.hidden && b.getClientRects().length); })(),
+          title: (document.querySelector('#app-docs-entry2 .mode-title') || {}).textContent || '',
+          docsHidden: getComputedStyle(document.getElementById('app-docs')).display === 'none' })`));
+        if (!home.out) fail('App：未登录首页没显示（onboardSeen 已种）');
+        if (!home.e2) fail('App：未登录首页看不到「翻译文档」入口'); else pass('App：首页入口可见 · ' + home.title);
+        if (!home.docsHidden) fail('App：#app-docs 在进入前就没被 [hidden] 真隐藏');
+        const aBefore = calls.length;
+        await aev(`document.getElementById('app-docs-entry2').click(); 1`);
+        await sleep(300);
+        const entered = JSON.parse(await aev(`JSON.stringify({ shown: getComputedStyle(document.getElementById('app-docs')).display !== 'none', outHidden: document.getElementById('signed-out').hidden, up: !!document.getElementById('docv-upload') })`));
+        if (!entered.shown || !entered.outHidden || !entered.up) fail('App：点入口没进文档视图：' + JSON.stringify(entered)); else pass('App：进入文档视图，来处收起');
+        // 上传同一份 3 页 PDF：真按钮 → 真 <input> → CDP 塞文件
+        await aev(`document.getElementById('docv-upload').click(); 1`);
+        await sleep(100);
+        const { root: aroot } = await cdp.send('DOM.getDocument', { depth: 1 }, asid);
+        const { nodeId: anid } = await cdp.send('DOM.querySelector', { nodeId: aroot.nodeId, selector: '#app-docs-file' }, asid);
+        await cdp.send('DOM.setFileInputFiles', { files: [PDF], nodeId: anid }, asid);
+        const t0 = Date.now(); let apos = '';
+        while (Date.now() - t0 < 12000) { apos = await aev(`(document.getElementById('docv-pos')||{}).textContent || ''`); if (apos === '1 / 3') break; await sleep(200); }
+        if (apos !== '1 / 3') {
+          fail('App：PDF 没读出 3 页（' + apos + '）—— __MT_PDFJS 的 blob 路在 App 包里没走通？');
+          try { console.log('    页面：' + (await aev(`document.getElementById('app-docs-root').innerText.slice(0, 300)`)).replace(/\n/g, ' ⏎ ')); } catch (_) {}
+          if (alogs.length) console.log('    控制台：' + alogs.slice(-5).join('\n    ').slice(0, 800));
+        } else pass('App：pdf.js 经 __MT_PDFJS 读出 3 页');
+        const t1 = Date.now(); let adone = false;
+        while (Date.now() - t1 < 15000) { adone = await aev(rowsDone); if (adone) break; await sleep(200); }
+        const ac = calls.slice(aBefore).map((c) => c.text);
+        if (!adone) fail('App：第 1 页译文没到齐（' + ac.length + ' 次请求）');
+        else if (ac.some((t) => [...PAGE_LINES[1], ...PAGE_LINES[2]].some((l) => t.includes(l.split(' ').slice(0, 3).join(' '))))) fail('App：打开时就发了别的页');
+        else pass('App：只发了第 1 页（' + ac.length + ' 次），译文已渲染');
+        const acorpus = await aev(`LearnStore.allItems().then(items => items.filter(i => i.anchor && i.anchor.k === 'doc').length)`);
+        if (!acorpus) fail('App：语料里没有 doc 卡（App 是 §9.7 的第二写入点）'); else pass('App：语料写入 ' + acorpus + ' 张 doc 卡');
+        await aev(`document.getElementById('app-docs-back').click(); 1`);
+        await sleep(300);
+        const left = JSON.parse(await aev(`JSON.stringify({ hidden: getComputedStyle(document.getElementById('app-docs')).display === 'none', out: !document.getElementById('signed-out').hidden })`));
+        if (!left.hidden || !left.out) fail('App：返回后视图没收起 / 来处没回来：' + JSON.stringify(left)); else pass('App：返回后 [hidden] 真隐藏，来处回来');
+        const ctl = JSON.parse(await aev(`JSON.stringify({ cap: !!document.getElementById('doc-capture'), pre: !!document.getElementById('doc-prefetch'), note: ((document.getElementById('doc-capture-note')||{}).textContent || '').length })`));
+        if (!ctl.cap || !ctl.pre) fail('App：设置页缺文档开关'); else pass('App：设置页有「文档译文进复习」「提前解析下一页」两个开关');
+        if (alogs.length) { fail('App：控制台有异常：' + alogs.slice(0, 3).join(' | ').slice(0, 400)); }
+      } finally { asrv.close(); }
+    }
   } finally {
     try { if (cdp) cdp.close(); } catch (_) {}
     try { chrome.kill(); } catch (_) {}

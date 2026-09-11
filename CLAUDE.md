@@ -122,8 +122,10 @@ npm run test:docs        # 「文档翻译」真 Chrome 端到端（Node ≥22�
                          # pdfjs-loader.js、request-shape 的图片形状或 translation-api.ocr 时必跑。本机假
                          # chat 端点记下**每一次请求**：3 页 PDF 只发第 1 页、翻页只发第 2 页、并发峰值
                          # ≤ reqConcurrency 且真叠起来、docx 分页、PNG 恰好识别 1 次、重开 0 请求、语料
-                         # anchor.k=doc 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求。判据是端点收到了
-                         # 什么，不是页面画了什么 —— 整份一次翻掉在界面上看不出来。
+                         # anchor.k=doc 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求；App 段（dist-app 出货
+                         # 布局）走首页入口 → 同一份 PDF 经 __MT_PDFJS 的 blob 路 → 只发第 1 页 → 返回真隐藏。
+                         # 改 app/docs.js 或 app-bundle 的 MODULES 也必跑。判据是端点收到了什么，不是页面
+                         # 画了什么 —— 整份一次翻掉在界面上看不出来。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour
