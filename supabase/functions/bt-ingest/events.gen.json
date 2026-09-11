@@ -40,7 +40,8 @@
       "provider": "id",
       "kind": [
         "page",
-        "subtitle"
+        "subtitle",
+        "doc"
       ],
       "ms": "int"
     },
@@ -75,6 +76,15 @@
       ]
     },
     "capture_first": {},
+    "doc_open": {
+      "kind": [
+        "pdf",
+        "docx",
+        "txt",
+        "image"
+      ],
+      "pages": "int"
+    },
     "review_session": {
       "graded": "int"
     },

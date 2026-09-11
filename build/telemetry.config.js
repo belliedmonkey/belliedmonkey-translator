@@ -28,7 +28,7 @@ const EVENTS = {
   heartbeat: {},
   onboarding_done: { surface: ['ext', 'app'] },
   engine_set: { provider: 'id' },
-  translate_ok: { provider: 'id', kind: ['page', 'subtitle'], ms: 'int' },
+  translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
@@ -45,6 +45,8 @@ const EVENTS = {
   },
   subtitle_on: { site: ['youtube', 'substack', 'podcast', 'other'] },
   capture_first: {},
+  // 文档翻译（2026-09-11，learning-design §9.7）：一份文档打开一次。只有格式与页数 —— 不带文件名、字数、页文本。
+  doc_open: { kind: ['pdf', 'docx', 'txt', 'image'], pages: 'int' },
   review_session: { graded: 'int' },
   // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
   // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
