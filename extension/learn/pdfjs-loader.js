@@ -10,8 +10,10 @@
 // 为什么让 pdf.js 自己建 Worker 不行：GlobalWorkerOptions.workerSrc = blob: 时它永远不 ready（D0）。
 //
 // 两个垫片给 iOS 17.2（都缺）：Promise.withResolvers、ReadableStream 异步迭代。App 路前置在
-// blob 文本里；扩展路在 import 之前 eval 到页面（Worker 里不需要：扩展页的 Chrome/Safari 都够新，
-// iOS 17.2 只出现在 App 那条路上）。vendor 文件一个字节不改（AMO 会比对第三方库哈希）。
+// blob 文本里；扩展路主线程由 applyPolyfills 补，**Worker 由 learn/pdfjs-worker.mjs 先导入
+// learn/pdfjs-polyfill.mjs 再导入 vendor worker**（2026-09-11 全回归：iOS 17.2 Safari 扩展页的
+// Worker 同样缺 withResolvers ⇒ getTextContent 永不落定；blob: Worker 又被扩展页 CSP 拒）。
+// vendor 文件一个字节不改（AMO 会比对第三方库哈希）。
 //
 // 来源：App 里 build/app-bundle.js 把两份文本编进 Script.js（window.__MT_PDFJS）。
 'use strict';
@@ -23,6 +25,7 @@ var PdfJsLoader = (() => {
     '',
   ].join('\n');
   const LIB = 'vendor/pdfjs/legacy/pdf.min.mjs', WORKER = 'vendor/pdfjs/legacy/pdf.worker.min.mjs';
+  const WORKER_SHIM = 'learn/pdfjs-worker.mjs';   // 扩展页：垫片 + vendor worker（见文件头）
   let loading = null;
 
   function blobUrl(text) { return URL.createObjectURL(new Blob([text], { type: 'text/javascript' })); }
@@ -46,7 +49,7 @@ var PdfJsLoader = (() => {
     const w = (typeof window !== 'undefined') ? window : {};
     if (w.__MT_PDFJS && w.__MT_PDFJS.lib && w.__MT_PDFJS.worker) return { lib: w.__MT_PDFJS.lib, worker: w.__MT_PDFJS.worker };
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-      return { libUrl: chrome.runtime.getURL(LIB), workerUrl: chrome.runtime.getURL(WORKER) };
+      return { libUrl: chrome.runtime.getURL(LIB), workerUrl: chrome.runtime.getURL(WORKER_SHIM) };
     }
     throw new Error('pdfjs sources unavailable in this host');
   }
@@ -72,7 +75,7 @@ var PdfJsLoader = (() => {
     return loading;
   }
 
-  return { load, sources, applyPolyfills, POLYFILL, LIB, WORKER };
+  return { load, sources, applyPolyfills, POLYFILL, LIB, WORKER, WORKER_SHIM };
 })();
 
 if (typeof window !== 'undefined') window.PdfJsLoader = PdfJsLoader;

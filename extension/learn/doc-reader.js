@@ -112,7 +112,9 @@ var DocReader = (() => {
   // ─── PDF（pdf.js 由调用方注入）─────────────────────────────────────
   async function openPdf(bytes, pdfjs) {
     if (!pdfjs || !pdfjs.getDocument) throw named('no_pdfjs', 'pdf.js not loaded');
-    const task = pdfjs.getDocument({ data: bytes, isEvalSupported: false });
+    // 拷一份再交给 pdf.js：它把 data 的缓冲区 **transfer** 给 Worker，调用方手里的 bytes 会被掏空
+    // （2026-09-11 全回归：DocStore 里的 rec.bytes 被掏空后第二次 put 抛 DataCloneError 被吞 ⇒ 列表永远「0 页」）。
+    const task = pdfjs.getDocument({ data: new Uint8Array(bytes), isEvalSupported: false });
     const doc = await task.promise;
     return {
       kind: 'pdf', pages: doc.numPages,
