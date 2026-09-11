@@ -45,6 +45,7 @@ const KNOWN_KEYS = {
   providers: ['id', 'type', 'flavors', 'needsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey', 'keyUrl',
+    'vision',   // §9.7 文档翻译：默认模型接不接受 image_url（缺省 = 未知）
     // §8.10：免费额度中继那一档。grantOnly = **不进任何下拉** —— 它不是用户可以选的
     // 引擎，是领到额度之后系统替他填上的那一档；手动选它只会得到 401。
     'grantOnly'],

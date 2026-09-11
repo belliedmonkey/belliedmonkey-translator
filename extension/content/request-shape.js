@@ -415,6 +415,10 @@ var RequestShape = (() => {
     const p = o.prefs || _prefs;
     const caps = paramsFor(o.url, o.model);
     const bearer = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + o.apiKey };
+    // 文档翻译的识图（learning-design §9.7）：o.image 是 data URL。第一版只做 chat-compat 的
+    // `image_url` 内容块（各家兼容层都收）；messages-compat 与其余
+    // 形状具名回 vision_unsupported —— 调用方据此说「当前引擎不支持识别图片」，0 次请求。
+    if (o.image && fmt !== 'chat-compat') return { error: 'vision_unsupported', caps };
 
     if (fmt === 'messages-compat') {
       const budget = (p.reqMaxTokens > 0) ? p.reqMaxTokens : o.budget;
@@ -628,7 +632,10 @@ var RequestShape = (() => {
       model: o.model,
       messages: [
         { role: caps.systemRole || 'system', content: o.system },
-        { role: 'user', content: o.user },
+        // 带图：user 内容变成 [text, image_url] 两块（chat-compat 的标准形状）。
+        { role: 'user', content: o.image
+          ? [{ type: 'text', text: o.user }, { type: 'image_url', image_url: { url: o.image, detail: 'auto' } }]
+          : o.user },
       ],
     };
     put(body, 'temperature', optional(caps.temperature, p.reqTemperature, DEFAULT_TEMPERATURE));

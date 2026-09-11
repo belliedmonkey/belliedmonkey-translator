@@ -615,5 +615,28 @@ Rules:
   // 判据在这里，不在调用方，因为 providerById 读的是同一份注册表生成物。
   const needsKey = (provider) => !!(EngineState.entry({ provider }) || {}).needsKey;
 
-  return { translate, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES };
+  // ─── 识图（文档翻译，learning-design §9.7）─────────────────────────────
+  // 把图片（data URL）发给用户配置的对话引擎，只要**原文**（逐字、按阅读顺序、段落间空行，
+  // 不翻译不解释）；译文再走普通 translate() —— 两步而不是一步，(text, tr) 才对得齐、翻译缓存
+  // 才复用、写卡不写第二份。同一把并发闸（enqueue）；**不走缓存**（缓存键含 text 不含图）。
+  // 引擎不支持图片（形状不是 chat-compat）⇒ 具名 vision_unsupported，一次请求都不发。
+  const OCR_SYSTEM = 'You are an OCR engine. Transcribe ALL text in the image verbatim, in reading order. Separate paragraphs with a blank line. Output the text only: no translation, no commentary, no markdown fences. If the image contains no text, output an empty string.';
+  async function ocr(dataUri, provider, apiKey, baseUrl, model, opts) {
+    await RequestShape.ready();
+    return enqueue(async () => {
+      const p = providerById(provider);
+      if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
+      const url = WireFormat.resolveEndpoint(baseUrl, p);
+      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+      const mdl = model || p.defaultModel;
+      const fmt = WireFormat.formatFor(url, p.type, mdl);
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: OCR_SYSTEM, user: 'Transcribe the text in this image.', image: dataUri, budget: MAX_OUT_TRANSLATION * 2 });
+      if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
+      const diag = opts && opts.diag;
+      if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract });
+    });
+  }
+
+  return { translate, ocr, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
 })();
