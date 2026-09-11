@@ -74,7 +74,15 @@ var EngineState = (() => {
     return !!(p && p.needsKey);
   }
 
-  return { byId, defaultId, resolve, entry, needsSetup, needsKey };
+  // 「这个引擎能不能识图」（文档翻译 §9.7）：true / false / null（未知：自定义端点，试发一次）。
+  // 只读注册表的 `vision`，不猜模型名；免费额度那一档由注册表标 false（用户裁定：额度不识图）。
+  function visionOf(providerId) {
+    const p = byId(resolve(providerId));
+    if (!p) return null;
+    return p.vision === undefined ? null : !!p.vision;
+  }
+
+  return { byId, defaultId, resolve, entry, needsSetup, needsKey, visionOf };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineState;

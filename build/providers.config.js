@@ -51,6 +51,7 @@ const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
 module.exports = [
   {
     id: 'google', type: 'google', flavors: ['global'],
+    vision: false,
     needsKey: false, supportsBaseUrl: false, supportsModel: false,
     // The free endpoint builds its URL with query parameters at call time
     // (translation-api.js), so it cannot be expressed as one stored address — and the
@@ -59,8 +60,13 @@ module.exports = [
     defaultEndpoint: null, placeholder: null,
     label: { global: 'Google 翻译（免费，无需 API Key）' }, labelKey: 'provider_google_free_long', hintKey: null,
   },
+  // `vision`（2026-09-11，learning-design §9.7）：该引擎的**默认模型**接不接受 chat-compat 的
+  // `image_url` 内容块。true = 可识图；false = 不能（界面明说并 0 次请求）；缺省 = 未知
+  // （自定义端点：试发一次，400 且报文含 image 则记住不再发）。qwen / glm 的默认模型是纯文本，
+  // 要识图得在「详细」里换成各家的多模态模型 —— 那时 visionOf 仍回 false，v2 再按模型名判。
   {
     id: 'openai', type: 'chat-compat', flavors: ['global'],
+    vision: true,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: { global: 'https://api.openai.com/v1/chat/completions' }, placeholder: null,
     defaultModel: 'gpt-4o-mini', label: { global: 'ChatGPT (OpenAI)' }, hintKey: 'hint_openai',
@@ -68,18 +74,21 @@ module.exports = [
   },
   {
     id: 'claude', type: 'messages-compat', flavors: ['global'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: { global: 'https://api.anthropic.com/v1/messages' }, placeholder: null,
     defaultModel: 'claude-haiku-4-5-20251001', label: { global: 'Claude (Anthropic)' }, hintKey: 'hint_claude',
   },
   {
     id: 'deepseek', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: 'https://api.deepseek.com/v1/chat/completions', placeholder: null,
     defaultModel: 'deepseek-v4-flash', label: 'DeepSeek', hintKey: 'hint_deepseek',
   },
   {
     id: 'glm', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: {
       china: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
@@ -90,6 +99,7 @@ module.exports = [
   },
   {
     id: 'qwen', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     // The one entry whose old `defaultBase` already carried a path segment
     // (`/compatible-mode`) — the standing proof that "base = origin" never held.
@@ -119,6 +129,7 @@ module.exports = [
     // （domain-design §7 第三条）。用户把模型改成 qwen-plus 时，它就该退回普通对话，
     // 那正是 chat-compat 兜底给出的结果。
     id: 'qwen_mt', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: {
       china: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
@@ -129,6 +140,7 @@ module.exports = [
   },
   {
     id: 'kimi', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: {
       china: 'https://api.moonshot.cn/v1/chat/completions',
@@ -154,6 +166,7 @@ module.exports = [
     // flash-lite，是因为 model-params 里有为它准备的降档行（openrouter-thinking）；
     // 换一个没有对应行的模型，用户会安静地拿到最慢的那一档。
     id: 'openrouter', type: 'chat-compat', flavors: ['global'],
+    vision: true,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     defaultEndpoint: { global: 'https://openrouter.ai/api/v1/chat/completions' }, placeholder: null,
     defaultModel: 'google/gemini-3.7-flash', label: { global: 'OpenRouter' }, hintKey: null,
@@ -187,6 +200,7 @@ module.exports = [
   // 那句话有专门的文案（改回去，或填自己的 key）。
   {
     id: 'grant', type: 'chat-compat', flavors: ['global'], grantOnly: true,
+    vision: false,
     needsKey: true, supportsBaseUrl: false, supportsModel: false,
     defaultEndpoint: RELAY + '/chat/completions',
     defaultModel: 'deepseek/deepseek-v4-flash',

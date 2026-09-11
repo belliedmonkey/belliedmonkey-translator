@@ -254,6 +254,8 @@ function generateProviders(dir, flavor) {
       grantOnly: !!p.grantOnly,
       // 「去哪儿申请这把 key」。按 flavor 取，同 defaultEndpoint / label。
       keyUrl: pick(p.keyUrl) || null,
+      // 识图能力（§9.7）：true / false / 缺省=未知。缺省时不发这个键。
+      ...(p.vision === undefined ? {} : { vision: !!p.vision }),
     }));
   // The model-parameter table rides this same file rather than getting one of its own.
   // providers.gen.js is already on every surface that resolves an endpoint (both
