@@ -1906,6 +1906,9 @@
   "qs_live_replaced": {
     "message": "（替换了原来的 {cur}，它没有实时接口；现在含实时接口）"
   },
+  "qs_grant_replaced": {
+    "message": "（替换了免费额度的 key）"
+  },
   "qs_live_ok": {
     "message": "（含实时接口）"
   },
@@ -2620,6 +2623,9 @@
   },
   "grant_restore_confirm": {
     "message": "改回免费额度会替换掉你现在填的 key。要继续吗？"
+  },
+  "grant_signout_confirm": {
+    "message": "退出登录后免费额度会停用（余额保留，再登录就回来）。要退出吗？"
   },
   "grant_claimed_toast": {
     "message": "免费额度已配好"

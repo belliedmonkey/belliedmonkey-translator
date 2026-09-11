@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "（{cur} を置き換えました。以前はリアルタイム非対応、現在は対応）"
   },
+  "qs_grant_replaced": {
+    "message": "（無料枠のキーを置き換えました）"
+  },
   "qs_live_ok": {
     "message": "（リアルタイム対応）"
   },
@@ -2619,6 +2622,9 @@
   },
   "grant_restore_confirm": {
     "message": "無料クレジットに戻すと、今入力しているキーが置き換わります。続けますか？"
+  },
+  "grant_signout_confirm": {
+    "message": "サインアウトするとこの端末で無料枠が無効になります（残高は保持され、再サインインで戻ります）。サインアウトしますか？"
   },
   "grant_claimed_toast": {
     "message": "無料クレジットを設定しました"

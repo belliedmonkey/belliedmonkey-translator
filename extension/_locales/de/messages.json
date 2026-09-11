@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "(hat {cur} ersetzt, das keine Live-Schnittstelle hatte; jetzt mit Live-Schnittstelle)"
   },
+  "qs_grant_replaced": {
+    "message": "(hat den Gratis-Guthaben-Schlüssel ersetzt)"
+  },
   "qs_live_ok": {
     "message": "(mit Live-Schnittstelle)"
   },
@@ -2619,6 +2622,9 @@
   },
   "grant_restore_confirm": {
     "message": "Zurück zum Gratis-Guthaben ersetzt den Schlüssel, den du eingetragen hast. Fortfahren?"
+  },
+  "grant_signout_confirm": {
+    "message": "Beim Abmelden wird das Gratis-Guthaben auf diesem Gerät deaktiviert (der Restbetrag bleibt; nach erneuter Anmeldung ist es wieder da). Abmelden?"
   },
   "grant_claimed_toast": {
     "message": "Gratis-Guthaben ist eingerichtet"

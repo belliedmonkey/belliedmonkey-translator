@@ -231,7 +231,8 @@ async function realRun(url) {
     await evalIn(cdp, sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').click(); 'clicked'`);
     const seen = new Set();
     let firstAt = 0;
-    for (let i = 0; i < 90; i++) {
+    // 2026-09-11：25 分钟集数 6 个切片串行上传 + whisper，首对 ≈85–115 s；90 s 的上限刚好卡在门口（假红）
+    for (let i = 0; i < 200; i++) {
       await sleep(1000);
       const st = await evalIn(cdp, sessionId, `(() => { const o = document.querySelector('#mt-pod-overlay .mt-pod-orig'), t = document.querySelector('#mt-pod-overlay .mt-pod-trans'); const m = document.querySelector('audio, video'); return { orig: o ? o.textContent : '', trans: t ? t.textContent : '', t: m ? m.currentTime : 0 }; })()`);
       if (st.orig && !seen.has(st.orig)) { seen.add(st.orig); if (!firstAt) firstAt = Date.now() - t0; console.log(`  [${st.t.toFixed(1)}s] ${st.orig} ⟶ ${st.trans}`); }

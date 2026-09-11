@@ -26,7 +26,20 @@ var PdfJsLoader = (() => {
   let loading = null;
 
   function blobUrl(text) { return URL.createObjectURL(new Blob([text], { type: 'text/javascript' })); }
-  function applyPolyfills() { try { (0, eval)(POLYFILL); } catch (_) {} }
+  // 扩展页 CSP 是 script-src 'self'，eval 被禁（2026-09-11 全回归：Safari 26.5 没有 ReadableStream 异步迭代，
+  // eval 静默失败 ⇒ pdf.js getTextContent 抛「undefined is not a function」，Chrome/Firefox 原生支持所以没露）。
+  // 所以垫片直接以函数写在这里，对着传入的全局对象（默认 globalThis）补。POLYFILL 字符串只给 App 的 blob 文本前置用。
+  function applyPolyfills(g) {
+    const G = g || globalThis;
+    try {
+      if (G.Promise && typeof G.Promise.withResolvers !== 'function') {
+        G.Promise.withResolvers = function () { let res, rej; const promise = new G.Promise((a, b) => { res = a; rej = b; }); return { promise, resolve: res, reject: rej }; };
+      }
+      if (G.ReadableStream && G.ReadableStream.prototype && !G.ReadableStream.prototype[Symbol.asyncIterator]) {
+        G.ReadableStream.prototype[Symbol.asyncIterator] = async function* () { const r = this.getReader(); try { for (;;) { const x = await r.read(); if (x.done) return; yield x.value; } } finally { r.releaseLock(); } };
+      }
+    } catch (_) {}
+  }
 
   // 来源：{ lib, worker } 是文本（App）或 { libUrl, workerUrl }（扩展页）。
   function sources() {
@@ -59,7 +72,7 @@ var PdfJsLoader = (() => {
     return loading;
   }
 
-  return { load, sources, POLYFILL, LIB, WORKER };
+  return { load, sources, applyPolyfills, POLYFILL, LIB, WORKER };
 })();
 
 if (typeof window !== 'undefined') window.PdfJsLoader = PdfJsLoader;

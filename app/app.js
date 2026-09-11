@@ -1048,7 +1048,18 @@
       openExternal,
       onSignIn: () => { show(null); },
       onSignOut: async () => {
+        // 同扩展设置页（F06）：额度在用先确认，退出即清三槽令牌与 grantTail / grantBalance。
+        const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
+        const active = typeof LearnGrant !== 'undefined' && LearnGrant.active(cur);
+        if (active) {
+          const go = await LearnDialog.confirm(t('grant_signout_confirm', '退出登录后免费额度会停用（余额保留，再登录就回来）。要退出吗？'), { ok: t('app_set_signout', '退出登录') });
+          if (!go) return;
+        }
         await LearnAuth.signOut();
+        if (cur.grantTail) {
+          const c = LearnGrant.clearOnSignOut(cur);
+          await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
+        }
         await show(null);
       },
     });

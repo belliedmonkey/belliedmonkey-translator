@@ -567,7 +567,11 @@ var QuickSetup = (() => {
         }
         cur = r.data || {};
       }
-      const p = plan({ platform: current, key: k, settings: cur, liveKey: current.liveAlt ? liveKey.value : '', livePlatform: current.liveAlt });
+      // 免费额度的槽（尾号命中）可以被用户自己的 key 盖掉，结果行如实写「替换了免费额度的 key」（L737）。
+      // 尾八位由宿主给（它存在 grantTail，不在 SETTINGS_KEYS 里）；2026-09-11 回归前这里没传，免费槽永远算「已配过」。
+      let replaceKeyTail = '';
+      try { replaceKeyTail = typeof opts.replaceKeyTail === 'function' ? String((await opts.replaceKeyTail()) || '') : String(cur.grantTail || ''); } catch (_) { replaceKeyTail = ''; }
+      const p = plan({ platform: current, key: k, settings: cur, replaceKeyTail, liveKey: current.liveAlt ? liveKey.value : '', livePlatform: current.liveAlt });
       btn.disabled = true;
       // 四行**在按下那一刻就存在**，不是「成功后才冒出来的绿框」—— 那种形状让失败
       // 看起来像什么都没发生。
@@ -615,6 +619,11 @@ var QuickSetup = (() => {
       const results = await Promise.all(p.tests.map((slot) =>
         runOne(slot, p, current, rows[slot], t, doc, opts.targetLang)));
       if (sttNote && rows.stt && rows.stt.className === 'qs-ok') rows.stt.textContent += sttNote;
+      // 被盖掉的免费额度槽要如实说（L737：「替换免费额度的 key」）—— 不论自检通没通，替换这件事已经发生了。
+      for (const slot of p.replaced) {
+        if (slot === 'stt' && p.liveHost) continue;   // 转写行的实时注脚已经说了「替换了原来的 …」
+        if (rows[slot]) rows[slot].textContent += '\n' + t('qs_grant_replaced', '（替换了免费额度的 key）');
+      }
       btn.disabled = false;
 
       // 只在**翻译这一路真的通了**的时候给出口。翻译没通却请人去翻一页，是把失败
