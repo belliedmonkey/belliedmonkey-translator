@@ -238,6 +238,11 @@
       $('signin-prompt').hidden = false;
       $('signin-prompt').classList.remove('code-step');
       $('btn-signin').hidden = false;
+      // 未登录也要按当前事实重画横幅：真机上 Swift 在 didFinish 就调 window.show('ios')，
+      // 早于 init 里 extBannerDoneAt 的异步预读，那一笔画的是「没点过」；预读完成后
+      // 登录路径经 paintCounts 会再画一次，未登录路径此前没有 —— 于是点过「我已打开」
+      // 的人每次重开 App 都再看一遍横幅（2026-09-11 全回归 F 面，模拟器实测）。
+      paintExtBanner(extState);
     }
     if (session) {
       $('who').textContent = LearnAuth.displayName(session);
