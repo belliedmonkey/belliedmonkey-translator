@@ -2444,6 +2444,9 @@
   "listen_ephemeral_label": {
     "message": "这次不留记录"
   },
+  "listen_ephemeral_locked": {
+    "message": "这一场已经开始，要不留记录请先结束再重开"
+  },
   "listen_ephemeral_pill": {
     "message": "这次不留记录"
   },

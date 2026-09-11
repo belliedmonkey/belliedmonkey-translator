@@ -2443,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "Ne rien garder cette fois"
   },
+  "listen_ephemeral_locked": {
+    "message": "Cette session a déjà commencé — pour ne rien conserver, terminez-la puis recommencez"
+  },
   "listen_ephemeral_pill": {
     "message": "Non conservé"
   },

@@ -288,6 +288,10 @@ function say(base, text) {
     await sleep(200);
     const stay = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), hidden: document.getElementById('app-listen').hidden, phase: AppListen._debug().phase })`));
     need(!stay.mask && stay.hidden === false && stay.phase === 'listening', 'C2: 取消后该留在页面上继续听，实际 ' + JSON.stringify(stay));
+    // ── C3. 「这次不留记录」在会话中灰掉时屏上必须有原因（家规：灰 = 45% 透明 + 文案不变，且屏上一定有原因；
+    //        2026-09-08 用户实测没原因，2026-09-11 全回归补）──
+    const eph = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const cb = document.getElementById('app-listen-ephemeral'); const why = document.getElementById('app-listen-ephemeral-why'); return { disabled: cb.disabled, checked: cb.checked, whyVisible: !!(why && !why.hidden && why.getClientRects().length), why: why ? why.textContent : null }; })())`));
+    need(eph.disabled && !eph.checked && eph.whyVisible && /结束再重开|先结束/.test(eph.why || ''), 'C3: 「这次不留记录」会话中灰掉却没有原因行，实际 ' + JSON.stringify(eph));
 
     // ── D. 语料：定稿译文到达 ⇒ 写一次，来源 conv、锚点 conv；加星 ⇒ starred ──
     const items = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.map((x) => ({ text: x.text, tr: x.tr, sourceId: x.sourceId, anchor: x.anchor, starred: x.starred, lang: x.lang }))))`));

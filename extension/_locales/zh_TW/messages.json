@@ -2444,6 +2444,9 @@
   "listen_ephemeral_label": {
     "message": "這次不留記錄"
   },
+  "listen_ephemeral_locked": {
+    "message": "這一場已經開始，要不留記錄請先結束再重開"
+  },
   "listen_ephemeral_pill": {
     "message": "這次不留記錄"
   },

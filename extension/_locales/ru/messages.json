@@ -2443,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "Не сохранять этот разговор"
   },
+  "listen_ephemeral_locked": {
+    "message": "Этот сеанс уже начался — чтобы ничего не сохранять, завершите его и начните заново"
+  },
   "listen_ephemeral_pill": {
     "message": "Не сохраняется"
   },
