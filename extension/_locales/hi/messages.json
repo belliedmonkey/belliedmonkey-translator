@@ -2590,6 +2590,18 @@
   "doc_sources_note": {
     "message": "हटाने पर दस्तावेज़ भी हट जाएगा।"
   },
+  "doc_app_entry_hint": {
+    "message": "एक बार में एक पेज; अनुवाद रिवीज़न में जा सकते हैं"
+  },
+  "doc_app_back": {
+    "message": "‹ वापस"
+  },
+  "doc_capture_label": {
+    "message": "दस्तावेज़ अनुवाद रिवीज़न में (स्रोत «दस्तावेज़»)"
+  },
+  "doc_prefetch_label": {
+    "message": "अगला पेज पहले से पार्स करें (अनुवाद नहीं)"
+  },
   "rate_prompt_dismiss": {
     "message": "फिर से न पूछें"
   },

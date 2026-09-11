@@ -290,7 +290,7 @@
     // 判据写成「有别的视图开着就收起」，而不是「首页开着才显示」：后者在首页两个
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
-    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-settings').hidden;
+    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-docs').hidden || !$('app-settings').hidden;
     if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
@@ -1039,6 +1039,7 @@
     await AppSettings.ensureDefaults();
     AppDriving.wire();
     AppListen.wire();
+    AppDocs.wire({ openSettings });
     AppSettings.wire({
       say,
       session: () => currentSession,

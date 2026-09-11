@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "Excluir também remove o documento em si."
   },
+  "doc_app_entry_hint": {
+    "message": "Traduza uma página por vez; as traduções podem ir para a revisão"
+  },
+  "doc_app_back": {
+    "message": "‹ Voltar"
+  },
+  "doc_capture_label": {
+    "message": "Traduções de documentos vão para a revisão (fonte “Documento”)"
+  },
+  "doc_prefetch_label": {
+    "message": "Analisar a próxima página com antecedência (sem traduzir)"
+  },
   "rate_prompt_dismiss": {
     "message": "Não perguntar de novo"
   },

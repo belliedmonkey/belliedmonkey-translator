@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "Supprimer efface aussi le document lui-même."
   },
+  "doc_app_entry_hint": {
+    "message": "Une page à la fois ; les traductions peuvent aller dans la révision"
+  },
+  "doc_app_back": {
+    "message": "‹ Retour"
+  },
+  "doc_capture_label": {
+    "message": "Les traductions de documents vont dans la révision (source « Document »)"
+  },
+  "doc_prefetch_label": {
+    "message": "Analyser la page suivante à l'avance (sans traduire)"
+  },
   "rate_prompt_dismiss": {
     "message": "Ne plus demander"
   },

@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "الحذف يزيل المستند نفسه أيضًا."
   },
+  "doc_app_entry_hint": {
+    "message": "ترجمة صفحة تلو صفحة؛ يمكن إضافة الترجمات إلى المراجعة"
+  },
+  "doc_app_back": {
+    "message": "‹ رجوع"
+  },
+  "doc_capture_label": {
+    "message": "ترجمات المستندات تدخل المراجعة (المصدر «مستند»)"
+  },
+  "doc_prefetch_label": {
+    "message": "تحليل الصفحة التالية مسبقًا (دون ترجمة)"
+  },
   "rate_prompt_dismiss": {
     "message": "لا تسأل مجددًا"
   },

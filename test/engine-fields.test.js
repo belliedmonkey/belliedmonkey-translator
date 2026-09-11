@@ -304,7 +304,7 @@ describe('app/settings.js 也不许有第二份同能力的判断', () => {
 // 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
 // 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
-  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['listen.js', 'READ_KEYS']];
+  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['listen.js', 'READ_KEYS'], ['docs.js', 'READ_KEYS']];
   const set = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
   const listOf = (src, name) => {
     const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
@@ -321,6 +321,8 @@ describe('App 读得到的设置，设置页必须管得到', () => {
     notesApiKey: '同 notesProvider。',
     notesBaseUrl: '同 notesProvider。',
     notesModel: '同 notesProvider。',
+    grantTail: '免费额度令牌的尾八位：由 LearnGrant 在领取 / 退出登录时写与清，设置页上那张额度卡'
+      + '就是它的控件（不是一个可编辑字段）。docs.js 只读它判「额度在用」以拦住图片上传（用户裁定 2026-09-11）。',
   };
 
   test('差集恰好等于白名单 —— 多一个少一个都要说明', () => {
@@ -333,7 +335,7 @@ describe('App 读得到的设置，设置页必须管得到', () => {
     const gap = [...read].filter((k) => !known.has(k)).sort();
     const allow = Object.keys(ALLOW).sort();
     eq(gap.join(','), allow.join(','),
-      'App 读得到但设置页管不到的键变了（driving.js 的 SETTINGS_KEYS + listen.js 的 READ_KEYS）。\n'
+      'App 读得到但设置页管不到的键变了（driving.js 的 SETTINGS_KEYS + listen.js / docs.js 的 READ_KEYS）。\n'
       + '  实际：' + (gap.join(' ') || '（无）') + '\n'
       + '  白名单：' + allow.join(' ') + '\n'
       + '  多出来的那个会**静默赢过**设置页写的值，而用户看不见也清不掉它 ——'

@@ -60,6 +60,7 @@ const MODULES = [
                                          // App 里每次补译文都抛 `EngineState is not defined`，
                                          // 被 driving.js 收成一句 translate_failed —— 整条
                                          // 补译文在 App 上是死的，而扩展那边一切正常。
+  'extension/content/translation-core.js', // TranslationCore —— createEngine（文档阅读器按页驱动它，§9.7）
   'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape.
                                          // After providers.gen.js only for readability;
                                          // it reads its globals lazily, at call time.
@@ -133,6 +134,12 @@ const MODULES = [
                                          // Chrome 的 test:learn 里也照常加载。
   'app/listen-core.js',                  // ListenCore — §9.6 对话·实时听译的纯逻辑（归属、门、小结）
   'app/listen.js',                       // AppListen — §9.6 对话·实时听译（IO：麦克风桥、socket、界面、语料）
+  'extension/learn/doc-core.js',         // DocCore —— §9.7 文档翻译的纯逻辑（分段、分页、七门）
+  'extension/learn/doc-reader.js',       // DocReader —— PDF / docx / 文本 / 图片读取（IO）
+  'extension/learn/doc-store.js',        // DocStore —— 独立 IDB mt-docs
+  'extension/learn/pdfjs-loader.js',     // PdfJsLoader —— 按宿主装 pdf.js（App 走 blob，见下方 __MT_PDFJS）
+  'extension/learn/doc-view.js',         // DocView —— 文档阅读器渲染器（与扩展页同一份字节）
+  'app/docs.js',                         // AppDocs —— §9.7 文档翻译的 App 宿主（视图进出、入口、接线）
   'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
                                          // the extension page cannot autoplay)
 ];
@@ -157,6 +164,14 @@ function buildAppBundle(outDir, log, opts) {
     // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
     // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
     "window.MT_HOST = 'app';",
+    '',
+    // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
+    // Worker / fetch 对 file:// 一律拒绝而 blob: 三样都通（D0 探针 2026-09-11）。PdfJsLoader 看到
+    // window.__MT_PDFJS 就走 blob 路。体积 +1.8 MB，换来两宿主同构、不需要 pbxproj 加文件或 PDFKit 桥。
+    'window.__MT_PDFJS = ' + JSON.stringify({
+      lib: fs.readFileSync(path.join(ROOT, 'extension/vendor/pdfjs/legacy/pdf.min.mjs'), 'utf8'),
+      worker: fs.readFileSync(path.join(ROOT, 'extension/vendor/pdfjs/legacy/pdf.worker.min.mjs'), 'utf8'),
+    }) + ';',
     '',
   ];
   // 生成物必须跟着 flavor 走。`generateProviders/Tts/Stt` 把**全局**那一份写进

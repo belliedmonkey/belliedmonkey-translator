@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "削除すると文書本体も削除されます。"
   },
+  "doc_app_entry_hint": {
+    "message": "開いたページだけ翻訳。訳文は復習に追加できます"
+  },
+  "doc_app_back": {
+    "message": "‹ 戻る"
+  },
+  "doc_capture_label": {
+    "message": "文書の訳文を復習に追加（出典「文書」）"
+  },
+  "doc_prefetch_label": {
+    "message": "次のページを先に解析（翻訳はしない）"
+  },
   "rate_prompt_dismiss": {
     "message": "今後表示しない"
   },

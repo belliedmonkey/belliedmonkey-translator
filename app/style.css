@@ -537,3 +537,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-flip-text { font-size: 1.9rem; line-height: 1.35; font-weight: 700; margin: 0; }
 :where(#app-listen) .listen-flip-sub { color: var(--dim); font-size: 1rem; margin: 0; }
 :where(#app-listen) .listen-flip-speaking { color: var(--sage-strong); font-size: 0.9rem; margin: 0; }
+
+/* 文档翻译（§9.7）—— 同 #app-listen 的作用域纪律；阅读器自己的样式由 doc-view.js 注入（docv- 前缀） */
+#app-docs { display: flex; flex-direction: column; gap: 12px; }
+#app-docs-back { align-self: flex-start; font: inherit; background: none; border: 0; color: var(--accent-deep); font-weight: 400; min-height: 0; padding: 6px; text-decoration: underline; cursor: pointer; }
+:where(#app-docs) .docs-head { display: flex; align-items: center; gap: 12px; }
+:where(#app-docs) .docs-head h2 { font-size: 1.25rem; margin: 0; flex: 1; }

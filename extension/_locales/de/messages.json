@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "Löschen entfernt auch das Dokument selbst."
   },
+  "doc_app_entry_hint": {
+    "message": "Seite für Seite übersetzen; Übersetzungen können ins Wiederholen"
+  },
+  "doc_app_back": {
+    "message": "‹ Zurück"
+  },
+  "doc_capture_label": {
+    "message": "Dokumentübersetzungen ins Wiederholen (Quelle „Dokument“)"
+  },
+  "doc_prefetch_label": {
+    "message": "Nächste Seite vorab analysieren (nicht übersetzen)"
+  },
   "rate_prompt_dismiss": {
     "message": "Nicht mehr fragen"
   },

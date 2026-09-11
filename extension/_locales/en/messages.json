@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "Deleting also removes the document itself."
   },
+  "doc_app_entry_hint": {
+    "message": "Translate one page at a time; translations can go into review"
+  },
+  "doc_app_back": {
+    "message": "‹ Back"
+  },
+  "doc_capture_label": {
+    "message": "Document translations go into review (source “Document”)"
+  },
+  "doc_prefetch_label": {
+    "message": "Parse the next page ahead (no translation)"
+  },
   "rate_prompt_dismiss": {
     "message": "Don't ask again"
   },

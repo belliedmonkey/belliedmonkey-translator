@@ -56,7 +56,7 @@ var AppSettings = (() => {
     'drivePlayNotes', 'drivePreloadDays',
     // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）、语言对、自动朗读。
     // 语言对两个键都在这里 —— 对话页底部那两个下拉与设置页这两个是**同一份设置**。
-    'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak'];
+    'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'docCapture', 'docPrefetch'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -147,6 +147,10 @@ var AppSettings = (() => {
       '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。');
     fillLangs($('listen-my-lang'));
     fillLangs($('listen-other-lang'));
+    $('docs-title').textContent = t('doc_title', '文档翻译');
+    $('doc-capture-label').textContent = t('doc_capture_label', '文档译文进复习（来源「文档」）');
+    $('doc-capture-note').textContent = t('doc_privacy', '文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。');
+    $('doc-prefetch-label').textContent = t('doc_prefetch_label', '提前解析下一页（不翻译）');
     $('listen-capture-note').textContent = t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。');
     $('drive-awake-note').textContent = t('drive_awake_note',
       '播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。');
@@ -457,6 +461,8 @@ var AppSettings = (() => {
     $('listen-my-lang').value = myLangOf(cur);
     $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
+    $('doc-capture').checked = cur.docCapture !== false;
+    $('doc-prefetch').checked = !!cur.docPrefetch;
     $('drive-preload-days').value = String(Number(cur.drivePreloadDays) > 0 ? Math.floor(Number(cur.drivePreloadDays)) : 0);
     resetPreload();
     refreshAudioCache();
@@ -800,6 +806,8 @@ var AppSettings = (() => {
     }
     $('listen-capture').addEventListener('change', () => { set({ listenCapture: $('listen-capture').checked }); });
     $('listen-autospeak').addEventListener('change', () => { set({ listenAutoSpeak: $('listen-autospeak').checked }); });
+    $('doc-capture').addEventListener('change', () => { set({ docCapture: $('doc-capture').checked }); });
+    $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });
     for (const which of ['my', 'other']) {
       const el = $('listen-' + which + '-lang');
       el.addEventListener('change', () => {

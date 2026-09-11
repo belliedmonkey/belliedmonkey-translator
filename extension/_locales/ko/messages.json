@@ -2758,6 +2758,18 @@
   "doc_sources_note": {
     "message": "삭제하면 문서 자체도 함께 삭제돼요."
   },
+  "doc_app_entry_hint": {
+    "message": "연 페이지만 번역해요. 번역문은 복습에 넣을 수 있어요"
+  },
+  "doc_app_back": {
+    "message": "‹ 뒤로"
+  },
+  "doc_capture_label": {
+    "message": "문서 번역문을 복습에 추가(출처 「문서」)"
+  },
+  "doc_prefetch_label": {
+    "message": "다음 페이지 미리 해석(번역 안 함)"
+  },
   "rate_prompt_dismiss": {
     "message": "다시 묻지 않기"
   },

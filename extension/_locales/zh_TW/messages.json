@@ -2759,6 +2759,18 @@
   "doc_sources_note": {
     "message": "刪除會連文件本體一起刪掉。"
   },
+  "doc_app_entry_hint": {
+    "message": "打開一頁翻一頁；譯文可收進複習"
+  },
+  "doc_app_back": {
+    "message": "‹ 返回"
+  },
+  "doc_capture_label": {
+    "message": "文件譯文進複習（來源「文件」）"
+  },
+  "doc_prefetch_label": {
+    "message": "提前解析下一頁（不翻譯）"
+  },
   "rate_prompt_dismiss": {
     "message": "不再提示"
   },
