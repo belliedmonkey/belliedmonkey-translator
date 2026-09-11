@@ -2746,6 +2746,7 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 | 版本 | 另起 **1.10.0**，先出本节过评审再写代码（第九期 A/B 进 1.9.2） |
 | 格式 | 第一版 = `.pdf .docx .txt .md` + 图片（`.png .jpg .webp`）与扫描版 PDF 页；`.doc .pptx .epub .xlsx .rtf` 明说不支持 |
 | 图片 / 扫描页 | 走**用户自配的多模态翻译引擎**（按页计费）；本地 OCR（tesseract 是 wasm）过不了扩展 CSP 与 Safari iOS 底线，出局 |
+| 免费额度 × 图片 | **不允许**（用户裁定 2026-09-11）：额度在用时，上传图片**在选文件那一刻就拦下**，提示「免费额度不能识别图片 —— 用自己的 API key」并给去设置的出口；扫描版 PDF 的无文字层页同样拦（文字页照翻）。不经中继、也不发任何请求 |
 | 语料上限 | **每页最多 10 句、每份文档最多 100 句**；句长过既有 `BAND`（8–60 字 / 40–220 字符）门槛 |
 
 ### 它写什么：读过的页里的句对，作为新来源「文档」
@@ -2790,8 +2791,11 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
   **0 次请求**；未知（自定义端点）⇒ 试发一次，400 且报文含 image ⇒ 同一句话并记住不再重发。
 - OCR 提示词只要原文（逐字、按阅读顺序、段落间空行、不翻译不解释）；结果存 `pages.ocr`，
   再走普通翻译。**两步而不是一步**：(text, tr) 对齐、翻译缓存复用、写卡不写第二份。
-- **免费额度**：文字走中继（与 Gate F 同一句）；图片**不经中继**（第一版），额度用户上传图片时
-  说清楚要自带 key。
+- **免费额度不识别图片**（用户裁定 2026-09-11）：额度在用（`EngineState.grantActive`，即翻译槽装的是额度
+  令牌）时：① 选中图片文件 ⇒ **上传即拦**，不读取、不入库、不发请求，一句「免费额度不能识别图片 ——
+  用自己的 API key」+「去设置 →」（落 `options.html#quick`，App 落一键卡）；② PDF 的无文字层页 ⇒ 该页
+  显示同一句话且 0 次请求，文字页照常经中继翻译；③ 用户换成自己的 key 后，同一份文档重开即可识别。
+  判据是**翻译槽**（图片识别与翻译走同一把 key），不是转写槽。文字仍走中继（与 Gate F 同一句）。
 
 ### 与「打开一页翻一页」相关的模块边界
 
@@ -3050,12 +3054,13 @@ existing sentences. Verbatim, on every surface, in the same PR as the code:
 > **文档翻译（可选）。** 你上传的 PDF、Word、图片只保存在这台设备上，不同步、不进导出。翻译时，
 > 文档的文字**按你点开的页**发往你配置的翻译端点 —— 不是整份，也不是打开就发。图片与没有文字层
 > 的扫描页会以图片形式发往同一端点识别，只在你的引擎支持识别图片时。使用免费额度时，文字经我们
-> 的服务器转发到模型提供方（不保存、不记录内容），图片不经过我们。译文里被你读过的句子可以进
+> 的服务器转发到模型提供方（不保存、不记录内容）；**免费额度不识别图片** —— 图片和扫描页要用你自己的
+> API key，且从不经过我们。译文里被你读过的句子可以进
 > 学习语料（可关）；删除这份文档会一并删除它的卡。
 
 English (authoritative in `_locales/en` `doc_privacy`):
 
-> Document translation (optional). The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); images never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
+> Document translation (optional). The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
 
 | Surface | Gate G |
 |---|---|

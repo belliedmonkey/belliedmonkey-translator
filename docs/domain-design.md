@@ -365,8 +365,11 @@ translate a page; never the whole document at once*.
    laws (§9): the reader is a **Renderer**, the sink reads what it displayed.
 6. **Disclosure is per path (Gate G).** A document's text goes, page by page, to the
    user's own translation endpoint (or, on the free-credit path, through our relay under
-   Gate F's existing promise); images go only to the user's endpoint and never through
-   the relay in this version. The privacy copy ships in the same version
+   Gate F's existing promise); **the free credit never recognises images** (user
+   decision 2026-09-11): with the credit active, an image file is refused at the picker
+   and a text-less PDF page is refused per page — no bytes read, no request sent, one
+   sentence pointing to "use your own API key". Images go only to the user's own
+   endpoint, never through the relay. The privacy copy ships in the same version
    (`release-checklist` §2).
 
 Module consequences are in §6 (`DocCore` / `DocReader` / `DocStore` / `DocView`); the
