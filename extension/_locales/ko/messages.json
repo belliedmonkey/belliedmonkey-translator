@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "({cur}을(를) 교체했어요. 이전엔 실시간 없음, 지금은 실시간 포함)"
   },
+  "qs_grant_replaced": {
+    "message": "(무료 크레딧 키를 교체했어요)"
+  },
   "qs_live_ok": {
     "message": "(실시간 포함)"
   },
@@ -2440,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "이번은 기록하지 않기"
   },
+  "listen_ephemeral_locked": {
+    "message": "이 세션은 이미 시작되었습니다. 기록을 남기지 않으려면 먼저 종료한 뒤 다시 시작하세요"
+  },
   "listen_ephemeral_pill": {
     "message": "기록 안 함"
   },
@@ -2619,6 +2625,9 @@
   },
   "grant_restore_confirm": {
     "message": "무료 크레딧으로 되돌리면 지금 넣은 키가 교체됩니다. 계속할까요?"
+  },
+  "grant_signout_confirm": {
+    "message": "로그아웃하면 이 기기에서 무료 크레딧이 비활성화돼요(잔액은 보존되며 다시 로그인하면 돌아와요). 로그아웃할까요?"
   },
   "grant_claimed_toast": {
     "message": "무료 크레딧이 설정되었습니다"

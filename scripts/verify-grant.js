@@ -243,6 +243,52 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
           else pass('落盘的记录里没有完整令牌');
         }
 
+        // ── 额度激活时在一键卡粘自己的 key ⇒ 免费槽可覆盖、结果行写「替换」（2026-09-11 回归 F07）──
+        //
+        // 修前：render 的 apply 没把 replaceKeyTail 传给 plan，三槽都被判「已配过」，结果行
+        // 「没动 · 你已经配过了（grant）」，卡上也不出「改回免费额度」。这一幕修之前红。
+        {
+          await ev2(`new Promise(r => chrome.storage.local.set({ provider: 'grant', apiKey: ${JSON.stringify(TOKEN)}, apiModel: ${JSON.stringify(MODEL)},
+            ttsEngine: 'grant_speech', ttsApiKey: ${JSON.stringify(TOKEN)}, sttEngine: 'grant_stt', sttApiKey: ${JSON.stringify(TOKEN)},
+            grantTail: ${JSON.stringify(TOKEN.slice(-8))}, grant: { vendor: 'test', at: Date.now(), limitUsd: 0.2 }, grantBalance: { spentUsd: 0, limitUsd: 0.2, at: Date.now() } }, r))`);
+          await cdp.send('Page.reload', {}, s2);
+          await new Promise((r) => setTimeout(r, 2500));
+          const MINE2 = 'sk-or-users-own-key-0002';
+          await ev2(`document.getElementById('qs-key').value = ${JSON.stringify(MINE2)}; document.getElementById('qs-key').dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('qs-apply').click(); 1`);
+          await new Promise((r) => setTimeout(r, 4000));
+          const res = await ev2(`((document.getElementById('qs-res') || {}).innerText || '')`);
+          const g2 = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(['provider', 'apiKey'], o => r(JSON.stringify(o))))`));
+          if (g2.apiKey !== MINE2) fail(`F07 幕：额度激活时粘自己的 key 没盖掉免费槽（provider=${g2.provider}，结果区「${res.replace(/\n+/g, ' / ').slice(0, 100)}」）`);
+          else if (!/替换/.test(res)) fail('F07 幕：盖掉了但结果行没说「替换」：' + res.replace(/\n+/g, ' / ').slice(0, 100));
+          else pass('F07 幕：额度激活时粘自己的 key → 免费槽被覆盖，结果行写「替换」');
+          const restore = await ev2(`(document.querySelector('#grant-box button.gr-action') || {}).textContent || ''`);
+          if (!/改回/.test(restore)) fail('F07 幕：覆盖后卡上没有「改回免费额度」'); else pass('F07 幕：卡上出「改回免费额度」');
+        }
+
+        // ── 退出登录：额度在用先确认，退出即清三槽令牌与 grantTail / grantBalance（2026-09-11 回归 F06）──
+        {
+          await ev2(`new Promise(r => chrome.storage.local.set({ learnAuth: ${JSON.stringify(SESSION)}, provider: 'grant', apiKey: ${JSON.stringify(TOKEN)}, apiModel: ${JSON.stringify(MODEL)},
+            ttsEngine: 'grant_speech', ttsApiKey: ${JSON.stringify(TOKEN)}, sttEngine: 'grant_stt', sttApiKey: ${JSON.stringify(TOKEN)},
+            grantTail: ${JSON.stringify(TOKEN.slice(-8))}, grant: { vendor: 'test', at: Date.now(), limitUsd: 0.2 }, grantBalance: { spentUsd: 0, limitUsd: 0.2, at: Date.now() } }, r))`);
+          await cdp.send('Page.reload', {}, s2);
+          await new Promise((r) => setTimeout(r, 2500));
+          await ev2(`document.getElementById('btn-sync-out').click(); 1`);
+          await new Promise((r) => setTimeout(r, 800));
+          const dlg = await ev2(`(document.querySelector('.ld-msg') || {}).textContent || ''`);
+          if (!/额度/.test(dlg)) fail('F06 幕：额度在用时退出登录没先确认（没弹页内确认框）：' + dlg.slice(0, 60));
+          else {
+            pass('F06 幕：退出前先确认「' + dlg.slice(0, 30) + '…」');
+            await ev2(`document.querySelector('.ld-ok').click(); 1`);
+            await new Promise((r) => setTimeout(r, 2500));
+            const g3 = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'sttEngine', 'grantTail', 'grantBalance', 'grant', 'learnAuth'], o => r(JSON.stringify(o))))`));
+            const cleared = !g3.learnAuth && !g3.grantTail && !g3.grantBalance && !g3.apiKey && !g3.ttsApiKey && !g3.sttApiKey && !!g3.grant;
+            if (!cleared) fail('F06 幕：退出后没清干净：' + JSON.stringify({ apiKey: String(g3.apiKey || '').slice(0, 4), tts: String(g3.ttsApiKey || '').slice(0, 4), stt: String(g3.sttApiKey || '').slice(0, 4), tail: g3.grantTail, bal: !!g3.grantBalance, grant: !!g3.grant, auth: !!g3.learnAuth }));
+            else pass('F06 幕：退出即清三槽令牌 + grantTail + grantBalance，grant 记录保留');
+          }
+          // 后面的 BYO 幕要登录态在
+          await ev2(`new Promise(r => chrome.storage.local.set({ learnAuth: ${JSON.stringify(SESSION)} }, r))`);
+        }
+
         // ── 已有自己的 key 时领取 → 「改回免费额度」真的换过来（2026-09-10 用户实测）──
         //
         // 三槽都是用户自己的 key（转写那一槽的「已配」看引擎不看 key）：领取按设计

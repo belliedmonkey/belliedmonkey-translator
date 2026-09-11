@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "(reemplazó a {cur}, que no tenía interfaz en vivo; ahora la incluye)"
   },
+  "qs_grant_replaced": {
+    "message": "(reemplazó la clave del crédito gratis)"
+  },
   "qs_live_ok": {
     "message": "(incluye interfaz en vivo)"
   },
@@ -2440,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "No guardar esta vez"
   },
+  "listen_ephemeral_locked": {
+    "message": "Esta sesión ya ha empezado: para no guardar nada, termínala y vuelve a empezar"
+  },
   "listen_ephemeral_pill": {
     "message": "No se guarda"
   },
@@ -2619,6 +2625,9 @@
   },
   "grant_restore_confirm": {
     "message": "Volver al crédito gratuito sustituirá la clave que has introducido. ¿Continuar?"
+  },
+  "grant_signout_confirm": {
+    "message": "Al cerrar sesión se desactiva el crédito gratis en este dispositivo (el saldo se conserva; vuelve a iniciar sesión para recuperarlo). ¿Cerrar sesión?"
   },
   "grant_claimed_toast": {
     "message": "El crédito gratuito está configurado"

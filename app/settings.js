@@ -547,6 +547,7 @@ var AppSettings = (() => {
   async function applyQuickSetup(plan, session, say) {
     if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
     await paint(session, say);
+    try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
   }
 
 
@@ -642,6 +643,7 @@ var AppSettings = (() => {
       prefill: pre,
       // 现读而不是快照：拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
       readSettings: () => get(KEYS),
+      replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
       targetLang: '',
       onApply: (plan) => applyQuickSetup(plan, session, say),
       // App 配完就没有下一步了，也没有网页可翻 —— 「现在翻一页看看」属于浏览器那一侧。

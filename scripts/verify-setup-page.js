@@ -348,8 +348,8 @@ async function checkSite(site) {
             // 只数 <link rel="alternate">。语言行里的 <a hreflang> 也带这个属性
             // （那是对的，它告诉爬虫链接目标的语言），但它不是 alternate 声明。
             const alts = (html.match(/<link rel="alternate" hreflang="/g) || []).length;
-            const want = gen.langsFor(page, langs).length + 1;   // 答案页只出部分语种，hreflang 只列存在的
-            if (alts !== want) bad.push(`${l.code}/${page} 的 hreflang 有 ${alts} 条，应为 ${want}（含 x-default）`);
+            const wantAlts = gen.langsFor(page, langs).length + 1;   // 答案页只出部分语种，hreflang 只列存在的
+            if (alts !== wantAlts) bad.push(`${l.code}/${page} 的 hreflang 有 ${alts} 条，应为 ${wantAlts}（含 x-default）`);
             const re = SCRIPTS[l.code];
             if (re) {
               const prose = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ');

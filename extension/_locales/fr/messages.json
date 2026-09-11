@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "(a remplacé {cur}, sans interface en direct ; interface en direct désormais incluse)"
   },
+  "qs_grant_replaced": {
+    "message": "(a remplacé la clé du crédit gratuit)"
+  },
   "qs_live_ok": {
     "message": "(interface en direct incluse)"
   },
@@ -2440,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "Ne rien garder cette fois"
   },
+  "listen_ephemeral_locked": {
+    "message": "Cette session a déjà commencé — pour ne rien conserver, terminez-la puis recommencez"
+  },
   "listen_ephemeral_pill": {
     "message": "Non conservé"
   },
@@ -2619,6 +2625,9 @@
   },
   "grant_restore_confirm": {
     "message": "Revenir au crédit gratuit remplacera la clé que vous avez saisie. Continuer ?"
+  },
+  "grant_signout_confirm": {
+    "message": "Se déconnecter désactive le crédit gratuit sur cet appareil (le solde est conservé ; reconnectez-vous pour le retrouver). Se déconnecter ?"
   },
   "grant_claimed_toast": {
     "message": "Le crédit gratuit est configuré"

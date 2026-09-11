@@ -1614,7 +1614,22 @@ async function init() {
   $('btn-sync-now').addEventListener('click', runSync);
 
   $('btn-sync-out').addEventListener('click', busy($('btn-sync-out'), async () => {
+    // 免费额度（§8.10，裁定 D4）：额度在用时先确认一次；退出的动作本身清掉三槽里的额度令牌与
+    // grantTail / grantBalance，`grant` 记录留着（再登录同一账号会自动领回同一把）。
+    // 2026-09-11 全回归 F06：此前这里只 signOut，令牌与尾号原样留在机器上。
+    const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
+    if (typeof LearnGrant !== 'undefined' && LearnGrant.active(cur)) {
+      const go = await LearnDialog.confirm(t('grant_signout_confirm', '退出登录后免费额度会停用（余额保留，再登录就回来）。要退出吗？'), { ok: t('sync_signout', '退出登录') });
+      if (!go) return;
+    }
     await LearnAuth.signOut();
+    // 尾号与余额缓存随登录态走：不管三槽里还剩不剩额度令牌，退出即清（再登录会重新领回）。
+    if (typeof LearnGrant !== 'undefined' && cur.grantTail) {
+      const c = LearnGrant.clearOnSignOut(cur);
+      await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
+      // 让页面上的三槽回显跟着清空（函数名以文件里实际的加载器为准；没有就只靠 refreshSyncUI）
+      try { if (typeof loadSettings === 'function') await loadSettings(); else if (typeof restoreSettings === 'function') await restoreSettings(); else if (typeof restore === 'function') await restore(); } catch (_) {}
+    }
     // The corpus stays. Signing out is not a reason to lose what you learned, and a
     // user who expects otherwise is better surprised in this direction.
     await LearnSync.forget();
@@ -1709,6 +1724,8 @@ async function init() {
     if ('ttsEngine' in w) { $('tts-engine').value = w.ttsEngine; await updateTtsUI(w.ttsVoice || ''); }
     if ('sttEngine' in w) { $('stt-engine').value = w.sttEngine; updateSttUI(w.sttEngine); }
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
+    // 一键卡写过三槽之后额度卡的状态可能变了（例：用自己的 key 盖掉免费槽 ⇒ 「改回免费额度」）—— 重画（F07）
+    try { await paintGrant(); } catch (_) {}
     if ('provider' in w && (typeof MTTelemetry !== 'undefined')) MTTelemetry.track('engine_set', { provider: String(w.provider || '') });
   }
 
@@ -1852,6 +1869,8 @@ async function init() {
       // 现读而不是快照：s0 是页面加载时读的，之后永不更新。详见 quick-setup.js 里
       // 那段注释 —— 拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。
       readSettings: () => PageSettings.read(SETTINGS_KEYS),
+      // 免费额度令牌的尾八位：让一键卡知道哪几个槽是「我们写的」、可以被用户自己的 key 盖掉（F07）。
+      replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
       // 配过的回显出来。一个空输入框在已经配好的页面上是假话：它看起来像「你还没配」，
       // 而此刻唯一能做的动作（粘一把新 key）会覆盖掉现有配置。
       prefill: _quickShows ? { host: _quickShows.host, key: s0.apiKey } : null,

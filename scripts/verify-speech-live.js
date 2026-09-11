@@ -176,5 +176,6 @@ async function main() {
   }
   if (bad.length) { console.log(`\n✗ ${bad.length} 条判据没过\n`); process.exit(1); }
   console.log('\n✓ 真宿主验证通过\n');
+  process.exit(0);   // 2026-09-11：通过后进程不退出（Chrome/CDP 句柄没放干净），跑批卡 570 s —— 判决已打印，直接退出
 }
 main().catch((e) => { console.error('✗ ' + (e && e.stack || e)); process.exit(1); });

@@ -238,6 +238,11 @@
       $('signin-prompt').hidden = false;
       $('signin-prompt').classList.remove('code-step');
       $('btn-signin').hidden = false;
+      // 未登录也要按当前事实重画横幅：真机上 Swift 在 didFinish 就调 window.show('ios')，
+      // 早于 init 里 extBannerDoneAt 的异步预读，那一笔画的是「没点过」；预读完成后
+      // 登录路径经 paintCounts 会再画一次，未登录路径此前没有 —— 于是点过「我已打开」
+      // 的人每次重开 App 都再看一遍横幅（2026-09-11 全回归 F 面，模拟器实测）。
+      paintExtBanner(extState);
     }
     if (session) {
       $('who').textContent = LearnAuth.displayName(session);
@@ -1048,7 +1053,18 @@
       openExternal,
       onSignIn: () => { show(null); },
       onSignOut: async () => {
+        // 同扩展设置页（F06）：额度在用先确认，退出即清三槽令牌与 grantTail / grantBalance。
+        const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
+        const active = typeof LearnGrant !== 'undefined' && LearnGrant.active(cur);
+        if (active) {
+          const go = await LearnDialog.confirm(t('grant_signout_confirm', '退出登录后免费额度会停用（余额保留，再登录就回来）。要退出吗？'), { ok: t('app_set_signout', '退出登录') });
+          if (!go) return;
+        }
         await LearnAuth.signOut();
+        if (cur.grantTail) {
+          const c = LearnGrant.clearOnSignOut(cur);
+          await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
+        }
         await show(null);
       },
     });

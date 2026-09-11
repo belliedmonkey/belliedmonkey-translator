@@ -1906,6 +1906,9 @@
   "qs_live_replaced": {
     "message": "（替換了原來的 {cur}，它沒有即時介面；現在含即時介面）"
   },
+  "qs_grant_replaced": {
+    "message": "（替換了免費額度的 key）"
+  },
   "qs_live_ok": {
     "message": "（含即時介面）"
   },
@@ -2441,6 +2444,9 @@
   "listen_ephemeral_label": {
     "message": "這次不留記錄"
   },
+  "listen_ephemeral_locked": {
+    "message": "這一場已經開始，要不留記錄請先結束再重開"
+  },
   "listen_ephemeral_pill": {
     "message": "這次不留記錄"
   },
@@ -2620,6 +2626,9 @@
   },
   "grant_restore_confirm": {
     "message": "改回免費額度會替換掉你現在填的 key。要繼續嗎？"
+  },
+  "grant_signout_confirm": {
+    "message": "登出後免費額度會停用（餘額保留，再登入就回來）。要登出嗎？"
   },
   "grant_claimed_toast": {
     "message": "免費額度已設好"

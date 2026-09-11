@@ -660,6 +660,10 @@ var AppListen = (() => {
       $('app-listen-ephemeral').disabled = live;      // 中途不可改
       eph.classList.toggle('off', live);
       $('app-listen-ephemeral-pill').hidden = !(session && session.ephemeral);
+      // 没勾又在会话中 ⇒ 一个纯灰的勾选框；家规是「灰 = 45% 透明 + 文案不变，且屏上一定有原因」
+      // （2026-09-08 用户实测发现没原因）。勾上了的那种情况由上面的胶囊说话。
+      const why = $('app-listen-ephemeral-why');
+      if (why) { const show = live && !(session && session.ephemeral); why.hidden = !show; if (show) why.textContent = t('listen_ephemeral_locked', '这一场已经开始，要不留记录请先结束再重开'); }
     }
     const tog = $('app-listen-toggle');
     tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')

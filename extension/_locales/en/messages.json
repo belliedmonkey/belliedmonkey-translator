@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "(replaced {cur}, which had no live interface; live interface now included)"
   },
+  "qs_grant_replaced": {
+    "message": "(replaced the free-credit key)"
+  },
   "qs_live_ok": {
     "message": "(live interface included)"
   },
@@ -2440,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "Don't keep this one"
   },
+  "listen_ephemeral_locked": {
+    "message": "This session has already started — to keep nothing, end it and start again"
+  },
   "listen_ephemeral_pill": {
     "message": "Not kept"
   },
@@ -2619,6 +2625,9 @@
   },
   "grant_restore_confirm": {
     "message": "Switching back to free credit will replace the key you have entered. Continue?"
+  },
+  "grant_signout_confirm": {
+    "message": "Signing out deactivates the free credit on this device (the balance is kept; sign in again to get it back). Sign out?"
   },
   "grant_claimed_toast": {
     "message": "Free credit is set up"

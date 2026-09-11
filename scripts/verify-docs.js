@@ -228,6 +228,11 @@ function makePng(w, h) {
     console.log('⑥ 重开');
     const before6 = calls.length;
     await ev(`document.getElementById('docv-back').click(); 1`);
+    await sleep(400);
+    // 列表行的页数必须是真页数（2026-09-11 全回归：pdf.js 把 data 缓冲区 transfer 给 Worker 后
+    // rec.bytes 被掏空，第二次 put 抛 DataCloneError 被吞 ⇒ 永远「0 页」）
+    const meta = await ev(`(document.querySelector('#docv-list .docv-row .meta') || {}).textContent || ''`);
+    if (!/^3 页/.test(meta)) fail(`⑥ 列表行页数不对：「${meta}」（应以「3 页」开头）`); else pass('⑥ 列表行「3 页 · …」');
     await sleep(300);
     await ev(`document.querySelector('#docv-list .docv-row .title').click(); 1`);
     await waitFor(`!!document.getElementById('docv-page')`, 8000, '重开没进阅读器');

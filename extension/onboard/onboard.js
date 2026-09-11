@@ -249,6 +249,7 @@
       QuickSetup.render(box, {
         t,
         readSettings,
+        replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
         sub: t('extob_quick_sub', '一把 key 就能同时配好翻译、朗读、转写。'),
         // 配过的回显出来。设置页早就这么做了（options.js 的 prefill），而这一页没有 ——
         // 于是从「重看开始使用引导」回来的老用户看到一个**空 key 框**，而这一页自己

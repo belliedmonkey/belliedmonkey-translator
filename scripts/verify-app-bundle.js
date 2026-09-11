@@ -814,6 +814,23 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     await sweepView('复习视图', `(async () => { const $ = (id) => document.getElementById(id);
       $('app-settings').hidden = true; $('review-view').hidden = false;
       await LearnReview.start(); return 'ok'; })()`, '#review-view');
+
+    // ─── 冷启动：点过「我已打开」之后**重开 App**，横幅不能回来（2026-09-11 全回归 F 面）────
+    // 真机/模拟器上 Swift 在 didFinish 里就调 window.show('ios')，早于 app.js 里那次
+    // 异步的 extBannerDoneAt 预读；预读完成后未登录路径没有再画一次横幅，于是它一直挂着。
+    // 这里照原样复刻：新文档一 DOMContentLoaded 就 show('ios')，再等初始化落定后读横幅。
+    if (o.syncEnabled) {
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ extBannerDoneAt: Date.now(), onboardSeen: 1 }, r))`, awaitPromise: true }, sessionId);
+      const inj = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const cold = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({ banner: !document.getElementById('ext-banner').hidden, signedOut: !document.getElementById('signed-out').hidden, onboard: !document.getElementById('onboard').hidden })`, returnByValue: true }, sessionId);
+      const cv = JSON.parse(cold.result.value);
+      need(!cv.onboard, '冷启动探针：引导屏不该出现（onboardSeen 已写）');
+      need(!cv.banner, `冷启动（原生 show('ios') 早于 extBannerDoneAt 预读）后横幅又回来了：${JSON.stringify(cv)}`);
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: inj.identifier }, sessionId).catch(() => {});
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['extBannerDoneAt', 'onboardSeen'], r))`, awaitPromise: true }, sessionId);
+    }
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? `\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载（${FLAVOR}）` : '\n✗ App 页面有问题');

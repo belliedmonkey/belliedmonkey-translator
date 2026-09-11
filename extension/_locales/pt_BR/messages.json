@@ -1905,6 +1905,9 @@
   "qs_live_replaced": {
     "message": "(substituiu {cur}, que não tinha interface ao vivo; agora inclui)"
   },
+  "qs_grant_replaced": {
+    "message": "(substituiu a chave do crédito grátis)"
+  },
   "qs_live_ok": {
     "message": "(inclui interface ao vivo)"
   },
@@ -2440,6 +2443,9 @@
   "listen_ephemeral_label": {
     "message": "Não guardar desta vez"
   },
+  "listen_ephemeral_locked": {
+    "message": "Esta sessão já começou — para não guardar nada, encerre e comece de novo"
+  },
   "listen_ephemeral_pill": {
     "message": "Não guardado"
   },
@@ -2619,6 +2625,9 @@
   },
   "grant_restore_confirm": {
     "message": "Voltar ao crédito gratuito vai substituir a chave que você digitou. Continuar?"
+  },
+  "grant_signout_confirm": {
+    "message": "Sair desativa o crédito grátis neste aparelho (o saldo fica guardado; entre de novo para recuperá-lo). Sair?"
   },
   "grant_claimed_toast": {
     "message": "Crédito gratuito configurado"

@@ -198,7 +198,13 @@ var DocView = (() => {
       shell.page.textContent = '';
       shell.msg.hidden = true; shell.msg.className = 'docv-msg';
       const s = await settings();
-      const units = await unitsForPage(n, s, epoch);
+      let units;
+      try { units = await unitsForPage(n, s, epoch); }
+      catch (e) {
+        // 解析这一页失败（例：Safari 上 pdf.js getTextContent 抛错）—— 必须说话，不能留一页空白
+        if (epoch !== state.epoch) return;
+        pageMessage(t('doc_open_failed', '读不了这份文档：') + ((e && (e.code || e.message)) || ''), true); return;
+      }
       if (epoch !== state.epoch) return;
       state.doc.lastPage = n; try { await deps.store.touch(state.doc.id, { lastPage: n }); } catch (_) {}
       if (!units) return;   // 页级提示已经显示（扫描页被拦 / 引擎不支持）

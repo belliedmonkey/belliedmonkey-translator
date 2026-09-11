@@ -2188,3 +2188,90 @@ socket 与翻译留在 JS —— 用户 2026-09-07 裁定「原生做吧」。PR
 > `localStorage`（跨挂起、跨杀进程存活）+ 一个 `<pre>`，回前台一次读回。
 > 往 Mac 上 `fetch` 是旁证，可选，且**失败不得被读成「JS 停了」** —— 无线电可能只是
 > 休眠了。仲裁者永远是 `localStorage` 那一份。
+
+---
+
+## 矩阵执行记录：全回归（2026-09-11 起）
+
+1.8.0 → 1.10.0 六天合了 #200–#242 四十余个 PR、五个版本。用户裁定「先跑全矩阵，全回归，
+不急着发下个版本」。执行体：机器门禁本地跑、八个面用各自的驱动配方（A/B safaridriver + plist
+补丁 + 直写 extension_storage；C AppleScript `do JavaScript`；D CDP `Extensions.loadUnpacked`；
+E `web-ext` + BiDi；F/G 注入 LAN 控制通道经 sim-oracle）。翻译引擎 DeepSeek，实时转写 OpenAI，
+证据落 `.local/regress-2026-09/<面>/`（gitignored）。
+
+### 本轮发现并修复的产品缺陷（先红后绿，均合入 `regress/2026-09`）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| F14 | A（iOS 17.2 扩展页） | docs 上传 PDF 后阅读器一直空白、`textOf` 15 s 超时 | 扩展路 `new Worker(vendor worker)` 起的 Worker 全局缺 `Promise.withResolvers`（iOS 17.2），`getTextContent` 永不落定；loader 原注释误以为「Worker 里不需要垫片」 | 新 `learn/pdfjs-worker.mjs`（先 import `pdfjs-polyfill.mjs` 再 import vendor worker），扩展路 Worker 指向它；vendor 一字节不改 |
+| F15 | 全平台 | 文档列表永远「0 页」 | `openPdf` 把 `rec.bytes` 直接交给 `getDocument({data})`，pdf.js 把缓冲区 transfer 给 Worker，`rec.bytes` 变 detached，随后 `put(rec)` 抛 DataCloneError 被 `catch(_){}` 吞 | `getDocument({ data: new Uint8Array(bytes) })` 拷一份；verify-docs ⑥ 加「列表行以『3 页』开头」断言 |
+| F16 | F（iOS App 未登录冷启动） | 点过「我已打开」后重开 App 横幅又回来 | Swift `didFinish` 里 `window.show('ios')` 早于 app.js 里 `extBannerDoneAt` 的异步预读；预读完成后未登录路径没有再画横幅 | `show()` 未登录分支末尾补 `paintExtBanner`；`verify-app-bundle.js` 加「冷启动」幕（`addScriptToEvaluateOnNewDocument` 让新文档一 DOMContentLoaded 就 show('ios')，reload 后读横幅） |
+
+顺带修一条已知洞：**「这次不留记录」会话中灰掉时屏上没有原因**（TODO 2026-09-08）——
+`listen.js` `paint()` 补一行灰字「这一场已经开始，要不留记录请先结束再重开」（12 份 locale），
+`test:listen` 加 C3 先红后绿。
+
+顺带补一道门禁（§五）：**`verify:ios` 加 pbxproj 顶层目录引用完整性**——dist 每个顶层目录都
+要在两棵 Safari 工程的 pbxproj 里有引用（构建前早警报；post-build 的 dist-vs-appex 已覆盖但要先
+花一次 xcodebuild）。用旧工程验红（缺 `vendor`）、重生成后验绿。
+
+### 各面结果（R00–R14；✅ verified-live / ◐ documented-not-run 附原因 / ⬜ 本轮不跑附理由 / N/A 构造性）
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **A iPhone Safari 模拟器** | R00/R01 文件档+MSE 具名停机/R02 offer+▶+nolive/R03/R06 引导+设置卡+退出清 key/R07/R09/**R10 pdf.js（F14 修后）**/R11/R13 ✅ | R10 第 1 页 2 s 译完、★ 写 doc 卡、列表「3 页」（F15 修后）、重开直达第 2 页 |
+| **B iPad 模拟器** | 同 A（布局子集）✅ | 同构建复用 A |
+| **C macOS Safari** | R00/R01 MSE 具名停机/R02 五态+▶/R06 领取+402/503 假中继/R07 三面/R09/**R10 pdf.js（换包 UUID 经 setup 交接块取）**/R11/R13 ✅ | R10 第 1 页译完、列表「3 页」、重开直达第 2 页 |
+| **D macOS Chrome** | R00–R13 全表 ✅（R01 真厂商一次） | 全自动 CDP |
+| **E Firefox** | R00/R01 假端点/R06/R07/R09/R10/R11/R13 ✅；#84 CSP 站点对照（wikipedia 红=预期） | web-ext + BiDi |
+| **F iOS App 模拟器** | R03/R04（界面/门控/归属/两向翻译/不留记录原因/返回确认/小结）/R05/R06/**R08（F16 修后）**/R10/R11/R13 ✅；R04 phase→listening 与「有声」◐（模拟器麦克风给帧不给声） | R10 只发第 1 页（5 次）、翻页只发第 2 页、★ 写 doc 卡 |
+| **F-bis 真机 iPhone** | **go/no-go 通过**（系统升级后镜像点击恢复）；含全部修复的设备包已签名安装并跑起来；R05 引导+签收出首页（含文档翻译入口）、R08 横幅 iOS 形态 + 「我已打开」收起（F16 真机验证）、R04 门控 ✅；有声/回声/锁屏/来电/拔耳机/M15 留用户人耳与物理动作 | ZHAO的iPhone(14 Pro，iOS 26.x) |
+| **G macOS App** | R03/R04（两栏 grid + 复制全文真实点击回读剪贴板）/R05/R06/R08 对照/R10 结构/R11/R13 ✅ | 窗口 820px 两栏 382+382；复制全文经 execCommand 兜底 |
+| **中国版关键行** | 合规门两产物绿；真禁端点路径全 0（`/functions/v1/bt-grant`、`bt-relay/chat`、`bt-ingest`、`MT_GRANT = {`）；sync `enabled:false`；无 google；默认 deepseek；评分 rateUrl 中国版返回 null（评分行不出现）；test:app:china / test:onboard dist-china 绿 | — |
+
+**机器门禁（全绿）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
+test:asr · test:listen（+C3）· test:onboard · test:wipe · test:idb · test:learn · test:docs · test:app（+冷启动幕）。
+`test:setup-page` 红是既有旧账（TODO 234 站点对比度 + 站点 VERSION 1.9.2 vs 已发 1.9.0），非本次引入。
+
+**两处工具坑（记入配方）**：① macOS Safari 换包后扩展页 UUID 变，页面世界里交接块 href 显示为
+`webkit-masked-url://hidden/`，只能点开 `<a>` 再读 tabs 拿 UUID。② 两个宿主 App 共用一条 oracle
+控制通道时都会应答 `/cmd`，必须先 `simctl terminate` 模拟器 App，否则读到 iPhone 的 UA/宽度
+（一度把 macOS 宽度误判为 393px）。
+
+### E1 实测：`simctl install` 覆盖安装是否重置扩展开关/授权/存储
+
+四处文档此前不一致（§2.A「看环境」、§1.1「只有 erase 才刷新」、记忆、M15）。一次对照实验定论：
+
+| 读数 | iPad（两次覆盖） | iPhone（两次覆盖） |
+|---|---|---|
+| 扩展存储（apiKey 等键） | 保留（键数 69–77，apiKey 在） | 保留（键数 123–131，apiKey 在） |
+| 扩展开关 Enabled / 站点授权 | 保留 | **重置为空**（Enabled None、授权 None） |
+| base URI | 换新 UUID | 换新 UUID |
+
+**结论**：覆盖安装**不动扩展存储**；开关/授权**「看环境」**（同一 iOS 17.2 两台结果不同）。
+装后必须读 `Extensions.plist` 回读并补。（顺带发现 iPhone 的 plist 里还留着陈旧的签名条目
+X2Q85MABWK，历史签名包，删掉再看。`learn/` 是文件夹引用，新文件不需重生成工程即入包；
+「新增文件永不入包」只对新**顶层**目录成立。）
+
+### 免费额度（R06）各面预期表
+
+| 面 | 引导两卡 | 设置卡领取 | 退出清 key | BYO 覆盖 | 402/503 | 弹窗四态 |
+|---|---|---|---|---|---|---|
+| A/B iPhone/iPad Safari | ✅ 两并列卡，「登录」只在额度卡内 | ✅ 三槽写入、`grantTail`、中继翻页 | ✅ 先确认再清三槽 | ✅ 「替换免费额度的 key」 | ⬜ 真中继打不出（假中继验于 C/D） | ◐ 弹窗五态在 C 面验 |
+| C macOS Safari | ✅ | ✅ | ✅ | ✅ | ✅ 假中继：402「已用完」两出口/503「不是你用完了」 | — |
+| D macOS Chrome | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 四态（写 grantBalance 造 low/exhausted/model/signed_out，零请求） |
+| E Firefox | ✅ | ✅（无 CSP 页） | ✅ | ✅ | ✅ | — |
+| F/G App | ✅ 额度卡登录未领→「领取」 | ✅ | ✅ 先确认 | ✅ | ⬜ | — |
+| 中国版 | N/A（`MT_GRANT` 恒 null；百炼三步卡，无「登录」、无 OpenRouter） | N/A | N/A | N/A | N/A | N/A |
+
+### 文档翻译（R10）各面预期表
+
+| 面 | 入口 | pdf.js 起得来 | 只发当前页 | 翻页 | ★ 写卡 | 列表页数 | 重开 |
+|---|---|---|---|---|---|---|---|
+| A/B iPhone/iPad Safari 扩展页 | docs.html | ✅（**F14 修后**：Worker 垫片经扩展文件进 Worker，blob: Worker 被扩展页 CSP 拒） | ✅ 第 1 页 | ✅ 只发第 2 页 | ✅ `anchor.k=doc` | ✅「3 页」（**F15 修后**） | ✅ 直达 lastPage、缓存译文 |
+| C macOS Safari 扩展页 | docs.html | ✅ `safari-web-extension://` 下 blob import + 模块 Worker 通 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| D macOS Chrome | 弹窗/设置/复习三入口 | ✅ `chrome.runtime.getURL` 直 import | ✅ 并发峰值 ≤ reqConcurrency | ✅ | ✅ | ✅ | ✅ 0 新请求 |
+| E Firefox | docs.html | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| F iOS App | 首页两入口 → `#app-docs` | ✅ `__MT_PDFJS` blob 路（D0 探针：file:// 不通、blob: 通） | ✅ 第 1 页（5 次） | ✅ 只发第 2 页 | ✅ | ✅ | ✅ 返回 `[hidden]` 真隐藏 |
+| G macOS App | 首页两入口 | ✅ 同 F | 结构验通（NSOpenPanel 四步留人工/AX） | — | — | — | — |
+| 中国版 | 同上（图片走多模态，免费额度文字走中继、图片不走 —— 中国版无额度） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
