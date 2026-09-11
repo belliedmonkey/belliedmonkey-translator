@@ -80,10 +80,19 @@ var SourcesView = (() => {
     return Array.from(byId.values()).filter((g) => g.count > 0).sort((a, b) => (a.sourceId < b.sourceId ? 1 : -1));
   }
 
+  // 文档来源（learning-design §9.7）：`doc://<docId>`，按文档一行；删卡连文档本体一起删（宿主做）。
+  function isDoc(src) { return !!(src && typeof src.url === 'string' && src.url.startsWith('doc://')); }
+  function groupDocuments(items, sources) {
+    const byId = new Map();
+    for (const s of sources || []) if (isDoc(s)) byId.set(s.id, { sourceId: s.id, title: s.title || s.id, count: 0, itemIds: [] });
+    for (const it of items || []) { const g = it && it.sourceId ? byId.get(it.sourceId) : null; if (!g) continue; g.count++; g.itemIds.push(it.id); }
+    return Array.from(byId.values()).filter((g) => g.count > 0).sort((a, b) => b.count - a.count);
+  }
+
   // items+sources → [{host, count, blocked, blockedBy, exactRule}] sorted by count.
   function groupByHost(items, sources, rules) {
     const srcHost = new Map();
-    for (const s of sources || []) { if (s && s.id && !isConv(s)) srcHost.set(s.id, hostOf(s.url)); }
+    for (const s of sources || []) { if (s && s.id && !isConv(s) && !isDoc(s)) srcHost.set(s.id, hostOf(s.url)); }
     const counts = new Map();
     for (const it of items || []) {
       const h = it && it.sourceId ? srcHost.get(it.sourceId) : '';
@@ -197,6 +206,26 @@ var SourcesView = (() => {
       container.appendChild(wrap);
     }
 
+    // ── 文档（§9.7）：按文档一行，只有「删除已存」（连文档本体一起删，宿主负责）──
+    const docs = groupDocuments(opts.items, opts.sources);
+    if (docs.length) {
+      const wrap = el(doc, 'div');
+      wrap.id = 'srcm-doc';
+      for (const g of docs) {
+        const row = el(doc, 'div', 'srcm-row');
+        row.appendChild(el(doc, 'span', 'srcm-host', '📄 ' + g.title));
+        row.appendChild(el(doc, 'span', 'srcm-count', t('learn_sources_count', '{n} 张卡').replace('{n}', String(g.count))));
+        const del = el(doc, 'button', '', t('learn_src_delete', '删除已存'));
+        del.addEventListener('click', lock(del, () => opts.onDelete && opts.onDelete({
+          host: g.title, pattern: '', itemIds: g.itemIds.slice(), sourceIds: [g.sourceId],
+        })));
+        row.appendChild(del);
+        wrap.appendChild(row);
+      }
+      wrap.appendChild(el(doc, 'div', 'srcm-empty', t('doc_sources_note', '删除会连文档本体一起删掉。')));
+      container.appendChild(wrap);
+    }
+
     // ── block-rule chips ──
     const block = (opts.rules && opts.rules.block) || [];
     const chipsWrap = el(doc, 'div');
@@ -281,7 +310,7 @@ var SourcesView = (() => {
     container.appendChild(chips);
   }
 
-  return { render, renderLangChips, groupByHost, groupConversations };
+  return { render, renderLangChips, groupByHost, groupConversations, isDoc, groupDocuments };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = SourcesView;

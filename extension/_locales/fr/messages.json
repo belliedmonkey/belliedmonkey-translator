@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "Ça vous plaît ? Laissez une note sur la boutique →"
   },
+  "doc_title": {
+    "message": "Traduction de documents"
+  },
+  "doc_to_review": {
+    "message": "Aller réviser →"
+  },
+  "doc_upload": {
+    "message": "Importer un document (PDF / Word / image)"
+  },
+  "doc_privacy": {
+    "message": "Les documents restent sur cet appareil — jamais synchronisés ni exportés. À la traduction, seul le texte de la page ouverte est envoyé au point de terminaison configuré — pas le fichier entier, ni à l'import ; les images et pages scannées sont envoyées en tant qu'images au même point de terminaison, uniquement si votre moteur gère les images."
+  },
+  "doc_privacy_grant": {
+    "message": "Les documents restent sur cet appareil. À la traduction, la page ouverte passe par notre relais vers le fournisseur du modèle (ni stockée, ni journalisée) ; le crédit gratuit ne reconnaît pas les images — images et pages scannées nécessitent votre propre clé API."
+  },
+  "doc_list_empty": {
+    "message": "Aucun document. PDF, Word (.docx), texte brut et images sont pris en charge."
+  },
+  "doc_row_meta": {
+    "message": "{pages} pages · à la page {page} · {n} phrases collectées"
+  },
+  "doc_delete": {
+    "message": "Supprimer"
+  },
+  "doc_delete_confirm": {
+    "message": "Supprimer ce document ? Ses cartes le sont aussi (synchronisé sur tous les appareils), sans retour possible."
+  },
+  "doc_unsupported_kind": {
+    "message": "Format non pris en charge (PDF, .docx, texte brut, images). Pour .doc, enregistrez en .docx dans Word."
+  },
+  "doc_too_large": {
+    "message": "Fichier trop volumineux (limite 30 Mo)."
+  },
+  "doc_grant_no_image": {
+    "message": "Le crédit gratuit ne reconnaît pas les images — utilisez votre propre clé API."
+  },
+  "doc_no_vision": {
+    "message": "Le moteur actuel ne reconnaît pas les images · changez de modèle dans les réglages"
+  },
+  "doc_store_failed": {
+    "message": "Impossible d'enregistrer le document : "
+  },
+  "doc_missing": {
+    "message": "Ce document n'est plus sur cet appareil."
+  },
+  "doc_opening": {
+    "message": "Lecture…"
+  },
+  "doc_open_failed": {
+    "message": "Impossible de lire ce document : "
+  },
+  "doc_back": {
+    "message": "Documents"
+  },
+  "doc_lang": {
+    "message": "Langue du document"
+  },
+  "doc_lang_auto": {
+    "message": "Auto"
+  },
+  "doc_prev": {
+    "message": "Précédente"
+  },
+  "doc_next": {
+    "message": "Suivante"
+  },
+  "doc_ocr_running": {
+    "message": "Reconnaissance de cette page…"
+  },
+  "doc_ocr_failed": {
+    "message": "Échec de la reconnaissance : "
+  },
+  "doc_page_empty": {
+    "message": "Aucun texte extractible sur cette page."
+  },
+  "doc_old_engine": {
+    "message": "Cette page avait été traduite avec un ancien moteur — retraduite avec le moteur actuel."
+  },
+  "doc_page_stat": {
+    "message": "Cette page : {units} paragraphes · environ {chars} caractères"
+  },
+  "doc_go_settings": {
+    "message": "Réglages →"
+  },
+  "doc_translating": {
+    "message": "⏳ Traduction…"
+  },
+  "doc_star": {
+    "message": "Ajouter à la révision"
+  },
+  "doc_translate_failed": {
+    "message": "Échec de la traduction · toucher pour réessayer"
+  },
+  "doc_popup_row": {
+    "message": "📄 Traduire un document (PDF / Word / image)"
+  },
+  "doc_open_page": {
+    "message": "Traduire un document (PDF / Word / image)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Traduire un document"
+  },
+  "doc_source_label": {
+    "message": "Document"
+  },
+  "doc_page_n": {
+    "message": "page {n}"
+  },
+  "doc_sources_note": {
+    "message": "Supprimer efface aussi le document lui-même."
+  },
   "rate_prompt_dismiss": {
     "message": "Ne plus demander"
   },

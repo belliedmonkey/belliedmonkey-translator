@@ -118,6 +118,12 @@ npm run test:listen      # 「对话 · 实时听译」真 Chrome 端到端（No
                          # 语料里是 conv 来源/锚点、加星落盘、结束小结数字与桥收到 mic-stop。
                          # 为什么不用模拟器/真机：模拟器麦克风 0 字节、cua 的按住到不了 WKWebView 的
                          # pointerdown、真机被 iPhone 镜像占着麦克风（2026-09-07 三条路都试过）。
+npm run test:docs        # 「文档翻译」真 Chrome 端到端（Node ≥22）—— 改 learn/doc-*.js、docs-page.js、
+                         # pdfjs-loader.js、request-shape 的图片形状或 translation-api.ocr 时必跑。本机假
+                         # chat 端点记下**每一次请求**：3 页 PDF 只发第 1 页、翻页只发第 2 页、并发峰值
+                         # ≤ reqConcurrency 且真叠起来、docx 分页、PNG 恰好识别 1 次、重开 0 请求、语料
+                         # anchor.k=doc 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求。判据是端点收到了
+                         # 什么，不是页面画了什么 —— 整份一次翻掉在界面上看不出来。
 npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
                          # page; real Chrome, Node ≥22) — mandatory when the learning surface
                          # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour

@@ -1,15 +1,19 @@
 // learn/pdfjs-loader.js — 把 vendored pdf.js 装进当前宿主（domain-design §2.5 规则 3；D0 探针 2026-09-11）。
 //
-// 两个宿主走**同一条 blob 路**：库文本 → blob: URL → import()；worker 文本 → blob: 模块 Worker → workerPort。
-// 为什么不直接 import 文件：宿主 App 是 file:// 的 WKWebView，模块脚本 / Worker / fetch 对 file://
-// 一律拒绝（D0 实测），而 blob: 三样都通；扩展页也走 blob，少一条 Safari 扩展页未测的路。
+// 两个宿主，两条路，同一个出口（pdfjsLib 已挂好 workerPort）：
+//   · App（file:// 的 WKWebView）：库文本 → blob: URL → import()；worker 文本 → blob: 模块 Worker。
+//     模块脚本 / Worker / fetch 对 file:// 一律拒绝（D0 实测），而 blob: 三样都通。
+//   · 扩展页：直接 import(chrome.runtime.getURL(lib)) + new Worker(getURL(worker), {type:'module'})。
+//     MV3 扩展页的 CSP 是 script-src 'self'，**blob: 模块脚本会被拒**（test:docs 2026-09-11 实测：
+//     「Failed to fetch dynamically imported module: blob:chrome-extension://…」），而扩展自己的
+//     URL 就是 'self'。
 // 为什么让 pdf.js 自己建 Worker 不行：GlobalWorkerOptions.workerSrc = blob: 时它永远不 ready（D0）。
 //
-// 两个垫片给 iOS 17.2（都缺）：Promise.withResolvers、ReadableStream 异步迭代。前置在 blob 文本里，
-// vendor 文件一个字节不改（AMO 会比对第三方库哈希）。
+// 两个垫片给 iOS 17.2（都缺）：Promise.withResolvers、ReadableStream 异步迭代。App 路前置在
+// blob 文本里；扩展路在 import 之前 eval 到页面（Worker 里不需要：扩展页的 Chrome/Safari 都够新，
+// iOS 17.2 只出现在 App 那条路上）。vendor 文件一个字节不改（AMO 会比对第三方库哈希）。
 //
-// 来源：App 里 build/app-bundle.js 把两份文本编进 Script.js（window.__MT_PDFJS）；扩展页从
-// chrome.runtime.getURL('vendor/pdfjs/legacy/…') fetch。
+// 来源：App 里 build/app-bundle.js 把两份文本编进 Script.js（window.__MT_PDFJS）。
 'use strict';
 
 var PdfJsLoader = (() => {
@@ -24,12 +28,12 @@ var PdfJsLoader = (() => {
   function blobUrl(text) { return URL.createObjectURL(new Blob([text], { type: 'text/javascript' })); }
   function applyPolyfills() { try { (0, eval)(POLYFILL); } catch (_) {} }
 
-  async function sources() {
+  // 来源：{ lib, worker } 是文本（App）或 { libUrl, workerUrl }（扩展页）。
+  function sources() {
     const w = (typeof window !== 'undefined') ? window : {};
     if (w.__MT_PDFJS && w.__MT_PDFJS.lib && w.__MT_PDFJS.worker) return { lib: w.__MT_PDFJS.lib, worker: w.__MT_PDFJS.worker };
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-      const [lib, worker] = await Promise.all([fetch(chrome.runtime.getURL(LIB)).then((r) => r.text()), fetch(chrome.runtime.getURL(WORKER)).then((r) => r.text())]);
-      return { lib, worker };
+      return { libUrl: chrome.runtime.getURL(LIB), workerUrl: chrome.runtime.getURL(WORKER) };
     }
     throw new Error('pdfjs sources unavailable in this host');
   }
@@ -39,9 +43,15 @@ var PdfJsLoader = (() => {
     if (loading) return loading;
     loading = (async () => {
       applyPolyfills();
-      const s = src || await sources();
-      const m = await import(blobUrl(POLYFILL + s.lib));
-      const worker = new Worker(blobUrl(POLYFILL + s.worker), { type: 'module' });
+      const s = src || sources();
+      let m, worker;
+      if (s.libUrl) {
+        m = await import(s.libUrl);
+        worker = new Worker(s.workerUrl, { type: 'module' });
+      } else {
+        m = await import(blobUrl(POLYFILL + s.lib));
+        worker = new Worker(blobUrl(POLYFILL + s.worker), { type: 'module' });
+      }
       m.GlobalWorkerOptions.workerPort = worker;
       return m;
     })();

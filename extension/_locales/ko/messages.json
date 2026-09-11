@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "도움이 되셨나요? 스토어에서 평가하기 →"
   },
+  "doc_title": {
+    "message": "문서 번역"
+  },
+  "doc_to_review": {
+    "message": "복습으로 →"
+  },
+  "doc_upload": {
+    "message": "문서 업로드 (PDF / Word / 이미지)"
+  },
+  "doc_privacy": {
+    "message": "문서는 이 기기에만 저장되며 동기화·내보내기되지 않아요. 번역할 때는 연 페이지의 글자만 설정한 번역 엔드포인트로 보내요 —— 파일 전체도, 업로드 즉시도 아니에요. 이미지와 스캔 페이지는 엔진이 이미지 인식을 지원할 때만 같은 엔드포인트로 이미지로 보내요."
+  },
+  "doc_privacy_grant": {
+    "message": "문서는 이 기기에만 저장돼요. 번역할 때 연 페이지가 저희 중계를 거쳐 모델 제공업체로 가요(저장·기록 안 함). 무료 크레딧은 이미지를 인식하지 않아요 —— 이미지와 스캔 페이지는 직접 넣은 API 키가 필요해요."
+  },
+  "doc_list_empty": {
+    "message": "아직 문서가 없어요. PDF, Word(.docx), 텍스트, 이미지를 지원해요."
+  },
+  "doc_row_meta": {
+    "message": "{pages}쪽 · {page}쪽까지 읽음 · {n}문장 수집"
+  },
+  "doc_delete": {
+    "message": "삭제"
+  },
+  "doc_delete_confirm": {
+    "message": "이 문서를 삭제할까요? 카드도 함께 삭제되며(모든 기기에 동기화) 되돌릴 수 없어요."
+  },
+  "doc_unsupported_kind": {
+    "message": "지원하지 않는 형식이에요(PDF, .docx, 텍스트, 이미지 지원). .doc은 Word에서 .docx로 저장하세요."
+  },
+  "doc_too_large": {
+    "message": "파일이 너무 커요(최대 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "무료 크레딧은 이미지를 인식할 수 없어요 —— 직접 넣은 API 키를 쓰세요."
+  },
+  "doc_no_vision": {
+    "message": "현재 엔진은 이미지 인식을 지원하지 않아요 · 설정에서 모델 변경"
+  },
+  "doc_store_failed": {
+    "message": "문서를 저장하지 못했어요: "
+  },
+  "doc_missing": {
+    "message": "이 문서는 더 이상 이 기기에 없어요."
+  },
+  "doc_opening": {
+    "message": "읽는 중…"
+  },
+  "doc_open_failed": {
+    "message": "이 문서를 읽을 수 없어요: "
+  },
+  "doc_back": {
+    "message": "문서 목록"
+  },
+  "doc_lang": {
+    "message": "문서 언어"
+  },
+  "doc_lang_auto": {
+    "message": "자동"
+  },
+  "doc_prev": {
+    "message": "이전"
+  },
+  "doc_next": {
+    "message": "다음"
+  },
+  "doc_ocr_running": {
+    "message": "이 페이지를 인식하는 중…"
+  },
+  "doc_ocr_failed": {
+    "message": "인식 실패: "
+  },
+  "doc_page_empty": {
+    "message": "이 페이지에는 추출할 글자가 없어요."
+  },
+  "doc_old_engine": {
+    "message": "이 페이지는 이전 엔진으로 번역됐어요 —— 현재 엔진으로 다시 번역했어요."
+  },
+  "doc_page_stat": {
+    "message": "이 페이지: {units}단락 · 약 {chars}자"
+  },
+  "doc_go_settings": {
+    "message": "설정으로 →"
+  },
+  "doc_translating": {
+    "message": "⏳ 번역 중…"
+  },
+  "doc_star": {
+    "message": "복습에 추가"
+  },
+  "doc_translate_failed": {
+    "message": "번역 실패 · 눌러서 재시도"
+  },
+  "doc_popup_row": {
+    "message": "📄 문서 번역 (PDF / Word / 이미지)"
+  },
+  "doc_open_page": {
+    "message": "문서 번역 (PDF / Word / 이미지)"
+  },
+  "doc_review_entry": {
+    "message": "📄 문서 번역"
+  },
+  "doc_source_label": {
+    "message": "문서"
+  },
+  "doc_page_n": {
+    "message": "{n}쪽"
+  },
+  "doc_sources_note": {
+    "message": "삭제하면 문서 자체도 함께 삭제돼요."
+  },
   "rate_prompt_dismiss": {
     "message": "다시 묻지 않기"
   },

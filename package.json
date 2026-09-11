@@ -38,6 +38,7 @@
     "test:listen": "node scripts/verify-listen.js",
     "grant:status": "node scripts/grant-float.js",
     "test:grant": "node scripts/verify-grant.js",
+    "test:docs": "node scripts/verify-docs.js",
     "issues": "node scripts/issues-triage.js"
   },
   "engines": {

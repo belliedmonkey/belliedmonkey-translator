@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "Finding it useful? Leave a rating in the store →"
   },
+  "doc_title": {
+    "message": "Document translation"
+  },
+  "doc_to_review": {
+    "message": "Go to review →"
+  },
+  "doc_upload": {
+    "message": "Upload a document (PDF / Word / image)"
+  },
+  "doc_privacy": {
+    "message": "Documents stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload; images and scanned pages are sent as images to the same endpoint, only when your engine supports images."
+  },
+  "doc_privacy_grant": {
+    "message": "Documents stay on this device. When translating, the page you open goes through our relay to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key."
+  },
+  "doc_list_empty": {
+    "message": "No documents yet. PDF, Word (.docx), plain text and images are supported."
+  },
+  "doc_row_meta": {
+    "message": "{pages} pages · at page {page} · {n} sentences collected"
+  },
+  "doc_delete": {
+    "message": "Delete"
+  },
+  "doc_delete_confirm": {
+    "message": "Delete this document? Its cards are deleted too (synced to all devices) and cannot be recovered."
+  },
+  "doc_unsupported_kind": {
+    "message": "Unsupported format (PDF, .docx, plain text and images are supported). For .doc, save as .docx in Word."
+  },
+  "doc_too_large": {
+    "message": "File too large (limit 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "The free credit can't recognise images — use your own API key."
+  },
+  "doc_no_vision": {
+    "message": "Your current engine can't recognise images · switch the model in Settings"
+  },
+  "doc_store_failed": {
+    "message": "Couldn't save the document: "
+  },
+  "doc_missing": {
+    "message": "This document is no longer on this device."
+  },
+  "doc_opening": {
+    "message": "Reading…"
+  },
+  "doc_open_failed": {
+    "message": "Couldn't read this document: "
+  },
+  "doc_back": {
+    "message": "Documents"
+  },
+  "doc_lang": {
+    "message": "Document language"
+  },
+  "doc_lang_auto": {
+    "message": "Auto"
+  },
+  "doc_prev": {
+    "message": "Previous"
+  },
+  "doc_next": {
+    "message": "Next"
+  },
+  "doc_ocr_running": {
+    "message": "Recognising this page…"
+  },
+  "doc_ocr_failed": {
+    "message": "Recognition failed: "
+  },
+  "doc_page_empty": {
+    "message": "No extractable text on this page."
+  },
+  "doc_old_engine": {
+    "message": "This page was translated with an older engine — retranslated with the current one."
+  },
+  "doc_page_stat": {
+    "message": "This page: {units} paragraphs · about {chars} characters"
+  },
+  "doc_go_settings": {
+    "message": "Settings →"
+  },
+  "doc_translating": {
+    "message": "⏳ Translating…"
+  },
+  "doc_star": {
+    "message": "Add to review"
+  },
+  "doc_translate_failed": {
+    "message": "Translation failed · tap to retry"
+  },
+  "doc_popup_row": {
+    "message": "📄 Translate a document (PDF / Word / image)"
+  },
+  "doc_open_page": {
+    "message": "Translate a document (PDF / Word / image)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Translate a document"
+  },
+  "doc_source_label": {
+    "message": "Document"
+  },
+  "doc_page_n": {
+    "message": "page {n}"
+  },
+  "doc_sources_note": {
+    "message": "Deleting also removes the document itself."
+  },
   "rate_prompt_dismiss": {
     "message": "Don't ask again"
   },

@@ -2648,6 +2648,117 @@
   "rate_prompt_text": {
     "message": "覺得好用？去商店給個評分 →"
   },
+  "doc_title": {
+    "message": "文件翻譯"
+  },
+  "doc_to_review": {
+    "message": "去複習 →"
+  },
+  "doc_upload": {
+    "message": "上傳文件（PDF / Word / 圖片）"
+  },
+  "doc_privacy": {
+    "message": "文件只保存在本機，不同步、不匯出。翻譯時，文件的文字按你點開的頁發往你設定的翻譯端點 —— 不是整份，也不是打開就發；圖片與掃描頁以圖片形式發往同一端點辨識，只在你的引擎支援辨識圖片時。"
+  },
+  "doc_privacy_grant": {
+    "message": "文件只保存在本機。翻譯時按你點開的頁經我們的中繼發往模型提供方（不保存、不記錄）；免費額度不辨識圖片 —— 圖片和掃描頁要用你自己的 API key。"
+  },
+  "doc_list_empty": {
+    "message": "還沒有上傳過文件。支援 PDF、Word（.docx）、純文字、圖片。"
+  },
+  "doc_row_meta": {
+    "message": "{pages} 頁 · 讀到第 {page} 頁 · 已採 {n} 句"
+  },
+  "doc_delete": {
+    "message": "刪除"
+  },
+  "doc_delete_confirm": {
+    "message": "刪除這份文件？它的卡也會一併刪除（會同步到所有裝置），不可恢復。"
+  },
+  "doc_unsupported_kind": {
+    "message": "不支援這種格式（支援 PDF、.docx、純文字、圖片）。.doc 請在 Word 裡另存為 .docx。"
+  },
+  "doc_too_large": {
+    "message": "檔案太大（上限 30 MB）。"
+  },
+  "doc_grant_no_image": {
+    "message": "免費額度不能辨識圖片 —— 用自己的 API key。"
+  },
+  "doc_no_vision": {
+    "message": "目前引擎不支援辨識圖片 · 去設定換模型"
+  },
+  "doc_store_failed": {
+    "message": "儲存文件失敗："
+  },
+  "doc_missing": {
+    "message": "這份文件已不在本機。"
+  },
+  "doc_opening": {
+    "message": "正在讀取…"
+  },
+  "doc_open_failed": {
+    "message": "讀不了這份文件："
+  },
+  "doc_back": {
+    "message": "文件清單"
+  },
+  "doc_lang": {
+    "message": "文件語言"
+  },
+  "doc_lang_auto": {
+    "message": "自動"
+  },
+  "doc_prev": {
+    "message": "上一頁"
+  },
+  "doc_next": {
+    "message": "下一頁"
+  },
+  "doc_ocr_running": {
+    "message": "正在辨識這一頁…"
+  },
+  "doc_ocr_failed": {
+    "message": "辨識失敗："
+  },
+  "doc_page_empty": {
+    "message": "這一頁沒有可擷取的文字。"
+  },
+  "doc_old_engine": {
+    "message": "這一頁的譯文是用舊引擎譯的 —— 已按現在的引擎重譯。"
+  },
+  "doc_page_stat": {
+    "message": "本頁 {units} 段 · 約 {chars} 字"
+  },
+  "doc_go_settings": {
+    "message": "去設定 →"
+  },
+  "doc_translating": {
+    "message": "⏳ 翻譯中…"
+  },
+  "doc_star": {
+    "message": "收進複習"
+  },
+  "doc_translate_failed": {
+    "message": "翻譯失敗 · 點此重試"
+  },
+  "doc_popup_row": {
+    "message": "📄 翻譯文件（PDF / Word / 圖片）"
+  },
+  "doc_open_page": {
+    "message": "翻譯文件（PDF / Word / 圖片）"
+  },
+  "doc_review_entry": {
+    "message": "📄 翻譯文件"
+  },
+  "doc_source_label": {
+    "message": "文件"
+  },
+  "doc_page_n": {
+    "message": "第 {n} 頁"
+  },
+  "doc_sources_note": {
+    "message": "刪除會連文件本體一起刪掉。"
+  },
   "rate_prompt_dismiss": {
     "message": "不再提示"
   },

@@ -2648,6 +2648,117 @@
   "rate_prompt_text": {
     "message": "觉得好用？去商店给个评分 →"
   },
+  "doc_title": {
+    "message": "文档翻译"
+  },
+  "doc_to_review": {
+    "message": "去复习 →"
+  },
+  "doc_upload": {
+    "message": "上传文档（PDF / Word / 图片）"
+  },
+  "doc_privacy": {
+    "message": "文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。"
+  },
+  "doc_privacy_grant": {
+    "message": "文档只保存在本机。翻译时按你点开的页经我们的中继发往模型提供方（不保存、不记录）；免费额度不识别图片 —— 图片和扫描页要用你自己的 API key。"
+  },
+  "doc_list_empty": {
+    "message": "还没有上传过文档。支持 PDF、Word（.docx）、纯文本、图片。"
+  },
+  "doc_row_meta": {
+    "message": "{pages} 页 · 读到第 {page} 页 · 已采 {n} 句"
+  },
+  "doc_delete": {
+    "message": "删除"
+  },
+  "doc_delete_confirm": {
+    "message": "删除这份文档？它的卡也会一并删除（会同步到所有设备），不可恢复。"
+  },
+  "doc_unsupported_kind": {
+    "message": "不支持这种格式（支持 PDF、.docx、纯文本、图片）。.doc 请在 Word 里另存为 .docx。"
+  },
+  "doc_too_large": {
+    "message": "文件太大（上限 30 MB）。"
+  },
+  "doc_grant_no_image": {
+    "message": "免费额度不能识别图片 —— 用自己的 API key。"
+  },
+  "doc_no_vision": {
+    "message": "当前引擎不支持识别图片 · 去设置换模型"
+  },
+  "doc_store_failed": {
+    "message": "保存文档失败："
+  },
+  "doc_missing": {
+    "message": "这份文档已不在本机。"
+  },
+  "doc_opening": {
+    "message": "正在读取…"
+  },
+  "doc_open_failed": {
+    "message": "读不了这份文档："
+  },
+  "doc_back": {
+    "message": "文档列表"
+  },
+  "doc_lang": {
+    "message": "文档语言"
+  },
+  "doc_lang_auto": {
+    "message": "自动"
+  },
+  "doc_prev": {
+    "message": "上一页"
+  },
+  "doc_next": {
+    "message": "下一页"
+  },
+  "doc_ocr_running": {
+    "message": "正在识别这一页…"
+  },
+  "doc_ocr_failed": {
+    "message": "识别失败："
+  },
+  "doc_page_empty": {
+    "message": "这一页没有可提取的文字。"
+  },
+  "doc_old_engine": {
+    "message": "这一页的译文是用旧引擎译的 —— 已按现在的引擎重译。"
+  },
+  "doc_page_stat": {
+    "message": "本页 {units} 段 · 约 {chars} 字"
+  },
+  "doc_go_settings": {
+    "message": "去设置 →"
+  },
+  "doc_translating": {
+    "message": "⏳ 翻译中…"
+  },
+  "doc_star": {
+    "message": "收进复习"
+  },
+  "doc_translate_failed": {
+    "message": "翻译失败 · 点此重试"
+  },
+  "doc_popup_row": {
+    "message": "📄 翻译文档（PDF / Word / 图片）"
+  },
+  "doc_open_page": {
+    "message": "翻译文档（PDF / Word / 图片）"
+  },
+  "doc_review_entry": {
+    "message": "📄 翻译文档"
+  },
+  "doc_source_label": {
+    "message": "文档"
+  },
+  "doc_page_n": {
+    "message": "第 {n} 页"
+  },
+  "doc_sources_note": {
+    "message": "删除会连文档本体一起删掉。"
+  },
   "rate_prompt_dismiss": {
     "message": "不再提示"
   },

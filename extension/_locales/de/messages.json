@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "Gefällt es dir? Bewerte uns im Store →"
   },
+  "doc_title": {
+    "message": "Dokumentübersetzung"
+  },
+  "doc_to_review": {
+    "message": "Zum Wiederholen →"
+  },
+  "doc_upload": {
+    "message": "Dokument hochladen (PDF / Word / Bild)"
+  },
+  "doc_privacy": {
+    "message": "Dokumente bleiben auf diesem Gerät – nie synchronisiert, nie exportiert. Beim Übersetzen wird nur der Text der geöffneten Seite an den konfigurierten Endpunkt gesendet – nicht die ganze Datei und nicht beim Hochladen; Bilder und gescannte Seiten gehen als Bild an denselben Endpunkt, nur wenn deine Engine Bilder versteht."
+  },
+  "doc_privacy_grant": {
+    "message": "Dokumente bleiben auf diesem Gerät. Beim Übersetzen geht die geöffnete Seite über unser Relay zum Modellanbieter (nicht gespeichert, nicht protokolliert); das Gratis-Guthaben erkennt keine Bilder – Bilder und gescannte Seiten brauchen deinen eigenen API-Schlüssel."
+  },
+  "doc_list_empty": {
+    "message": "Noch keine Dokumente. PDF, Word (.docx), Text und Bilder werden unterstützt."
+  },
+  "doc_row_meta": {
+    "message": "{pages} Seiten · bei Seite {page} · {n} Sätze gesammelt"
+  },
+  "doc_delete": {
+    "message": "Löschen"
+  },
+  "doc_delete_confirm": {
+    "message": "Dieses Dokument löschen? Seine Karten werden ebenfalls gelöscht (auf alle Geräte synchronisiert) – nicht rückgängig zu machen."
+  },
+  "doc_unsupported_kind": {
+    "message": "Format nicht unterstützt (PDF, .docx, Text, Bilder). Für .doc in Word als .docx speichern."
+  },
+  "doc_too_large": {
+    "message": "Datei zu groß (Limit 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "Das Gratis-Guthaben erkennt keine Bilder – nutze deinen eigenen API-Schlüssel."
+  },
+  "doc_no_vision": {
+    "message": "Die aktuelle Engine erkennt keine Bilder · Modell in den Einstellungen wechseln"
+  },
+  "doc_store_failed": {
+    "message": "Dokument konnte nicht gespeichert werden: "
+  },
+  "doc_missing": {
+    "message": "Dieses Dokument ist nicht mehr auf diesem Gerät."
+  },
+  "doc_opening": {
+    "message": "Lese…"
+  },
+  "doc_open_failed": {
+    "message": "Dokument konnte nicht gelesen werden: "
+  },
+  "doc_back": {
+    "message": "Dokumente"
+  },
+  "doc_lang": {
+    "message": "Dokumentsprache"
+  },
+  "doc_lang_auto": {
+    "message": "Automatisch"
+  },
+  "doc_prev": {
+    "message": "Zurück"
+  },
+  "doc_next": {
+    "message": "Weiter"
+  },
+  "doc_ocr_running": {
+    "message": "Seite wird erkannt…"
+  },
+  "doc_ocr_failed": {
+    "message": "Erkennung fehlgeschlagen: "
+  },
+  "doc_page_empty": {
+    "message": "Kein extrahierbarer Text auf dieser Seite."
+  },
+  "doc_old_engine": {
+    "message": "Diese Seite wurde mit einer älteren Engine übersetzt – mit der aktuellen neu übersetzt."
+  },
+  "doc_page_stat": {
+    "message": "Diese Seite: {units} Absätze · etwa {chars} Zeichen"
+  },
+  "doc_go_settings": {
+    "message": "Einstellungen →"
+  },
+  "doc_translating": {
+    "message": "⏳ Übersetze…"
+  },
+  "doc_star": {
+    "message": "Zum Wiederholen hinzufügen"
+  },
+  "doc_translate_failed": {
+    "message": "Übersetzung fehlgeschlagen · tippen zum Wiederholen"
+  },
+  "doc_popup_row": {
+    "message": "📄 Dokument übersetzen (PDF / Word / Bild)"
+  },
+  "doc_open_page": {
+    "message": "Dokument übersetzen (PDF / Word / Bild)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Dokument übersetzen"
+  },
+  "doc_source_label": {
+    "message": "Dokument"
+  },
+  "doc_page_n": {
+    "message": "Seite {n}"
+  },
+  "doc_sources_note": {
+    "message": "Löschen entfernt auch das Dokument selbst."
+  },
   "rate_prompt_dismiss": {
     "message": "Nicht mehr fragen"
   },

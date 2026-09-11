@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "Está gostando? Deixe uma avaliação na loja →"
   },
+  "doc_title": {
+    "message": "Tradução de documentos"
+  },
+  "doc_to_review": {
+    "message": "Ir revisar →"
+  },
+  "doc_upload": {
+    "message": "Enviar um documento (PDF / Word / imagem)"
+  },
+  "doc_privacy": {
+    "message": "Os documentos ficam neste aparelho — nunca sincronizados nem exportados. Ao traduzir, só o texto da página aberta vai para o endpoint configurado — não o arquivo inteiro, nem no envio; imagens e páginas digitalizadas vão como imagem ao mesmo endpoint, só se o seu mecanismo aceitar imagens."
+  },
+  "doc_privacy_grant": {
+    "message": "Os documentos ficam neste aparelho. Ao traduzir, a página aberta passa pelo nosso relay até o provedor do modelo (sem guardar, sem registrar); o crédito grátis não reconhece imagens — imagens e páginas digitalizadas precisam da sua própria chave de API."
+  },
+  "doc_list_empty": {
+    "message": "Nenhum documento ainda. PDF, Word (.docx), texto e imagens são aceitos."
+  },
+  "doc_row_meta": {
+    "message": "{pages} páginas · na página {page} · {n} frases coletadas"
+  },
+  "doc_delete": {
+    "message": "Excluir"
+  },
+  "doc_delete_confirm": {
+    "message": "Excluir este documento? Os cartões dele também serão excluídos (sincronizado em todos os aparelhos), sem volta."
+  },
+  "doc_unsupported_kind": {
+    "message": "Formato não aceito (PDF, .docx, texto e imagens). Para .doc, salve como .docx no Word."
+  },
+  "doc_too_large": {
+    "message": "Arquivo grande demais (limite 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "O crédito grátis não reconhece imagens — use sua própria chave de API."
+  },
+  "doc_no_vision": {
+    "message": "O mecanismo atual não reconhece imagens · troque o modelo nos Ajustes"
+  },
+  "doc_store_failed": {
+    "message": "Não foi possível salvar o documento: "
+  },
+  "doc_missing": {
+    "message": "Este documento não está mais neste aparelho."
+  },
+  "doc_opening": {
+    "message": "Lendo…"
+  },
+  "doc_open_failed": {
+    "message": "Não foi possível ler este documento: "
+  },
+  "doc_back": {
+    "message": "Documentos"
+  },
+  "doc_lang": {
+    "message": "Idioma do documento"
+  },
+  "doc_lang_auto": {
+    "message": "Automático"
+  },
+  "doc_prev": {
+    "message": "Anterior"
+  },
+  "doc_next": {
+    "message": "Próxima"
+  },
+  "doc_ocr_running": {
+    "message": "Reconhecendo esta página…"
+  },
+  "doc_ocr_failed": {
+    "message": "Falha no reconhecimento: "
+  },
+  "doc_page_empty": {
+    "message": "Nenhum texto extraível nesta página."
+  },
+  "doc_old_engine": {
+    "message": "Esta página foi traduzida com um mecanismo antigo — retraduzida com o atual."
+  },
+  "doc_page_stat": {
+    "message": "Esta página: {units} parágrafos · cerca de {chars} caracteres"
+  },
+  "doc_go_settings": {
+    "message": "Ajustes →"
+  },
+  "doc_translating": {
+    "message": "⏳ Traduzindo…"
+  },
+  "doc_star": {
+    "message": "Adicionar à revisão"
+  },
+  "doc_translate_failed": {
+    "message": "Falha na tradução · toque para tentar de novo"
+  },
+  "doc_popup_row": {
+    "message": "📄 Traduzir um documento (PDF / Word / imagem)"
+  },
+  "doc_open_page": {
+    "message": "Traduzir um documento (PDF / Word / imagem)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Traduzir um documento"
+  },
+  "doc_source_label": {
+    "message": "Documento"
+  },
+  "doc_page_n": {
+    "message": "página {n}"
+  },
+  "doc_sources_note": {
+    "message": "Excluir também remove o documento em si."
+  },
   "rate_prompt_dismiss": {
     "message": "Não perguntar de novo"
   },
