@@ -228,3 +228,18 @@ suppressed.
 - **Desktop unchanged (by logic + unit test):** non-touch → `isMobileLayout()` false →
   `ensureControlButton` still mounts the 译 button; covered by
   `test/translation-core.test.js` (`isMobileLayout` cases).
+
+### 文档翻译 · macOS 宿主 App 的文件面板（`WKUIDelegate.runOpenPanel`，D5）(2026-09-11)
+
+来源：`app/native/file-panel-bridge.swift`，由 `npm run app:sync` 作为标记块 `mt-file-panel` 贴进
+`ViewController.swift`，并在 `navigationDelegate` 之后 `MTFilePanel.attach(self.webView)`。
+自动化能证明的只有「编得过」（`xcodebuild … (macOS) build` BUILD SUCCEEDED，两棵工程都打上、
+第二次 `app:sync` 报 already current）；面板本身是系统 UI，**只能在真 macOS App 里点**：
+
+| 步 | 判据 |
+|---|---|
+| 首页「翻译文档」→ 点「上传文档」 | 弹出系统打开面板（sheet 挂在 App 窗口上） |
+| 选一个 `.pdf` | 1 s 内阅读器出标题与「1 / N」，第 1 页译文随后到 |
+| 再点「上传文档」→ 取消 | 不报错、页面无变化 |
+| 取消之后再点一次 | **还能再弹**（取消分支必须 `completionHandler(nil)`；漏了这一下 `<input>` 永远卡住，且没有任何错误） |
+| iOS（模拟器即可） | 点「上传文档」弹「照片 / 浏览」；不需要这段桥 |
