@@ -126,6 +126,35 @@ function checkBackgroundAudio(app, appex) {
   return true;
 }
 
+// dist 顶层每个目录都必须在两棵 Safari 工程的 pbxproj 里有引用 —— 这是「转换器把文件清单
+// 固化进工程、新顶层目录永不入包」（vendor/ 那次）的**构建前**早警报。post-build 的
+// dist-vs-appex 比对已经覆盖它，但要先花一次 xcodebuild；这个只 grep 文本，秒级。
+// 只在工程存在时跑（gitignored、可重生成）。2026-09-11 全回归 §五。
+function checkPbxprojDirs() {
+  const distDir = path.join(ROOT, 'dist');
+  if (!fs.existsSync(distDir)) return true;
+  const topDirs = fs.readdirSync(distDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory()).map((e) => e.name);
+  const projects = [
+    'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj',
+    'safari-project-china/BelliedMonkey Translator CN/BelliedMonkey Translator CN.xcodeproj/project.pbxproj',
+  ].map((p) => path.join(ROOT, p)).filter((p) => fs.existsSync(p));
+  let ok = true;
+  for (const proj of projects) {
+    const txt = fs.readFileSync(proj, 'utf8');
+    const gone = topDirs.filter((d) => !txt.includes('/' + d + '/') && !txt.includes(' ' + d + ' ') && !txt.includes('"' + d + '"') && !txt.includes('= ' + d + ';') && !txt.includes(d + '.'));
+    // 目录引用在 pbxproj 里表现为路径片段（.../dist*/<dir>/... 或组名）。逐目录确认它至少出现一次。
+    const reallyGone = topDirs.filter((d) => !new RegExp('[\\/\s"=(]' + d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\/\s",;)]').test(txt));
+    if (reallyGone.length) {
+      ok = false;
+      console.error('✗ ' + path.basename(path.dirname(path.dirname(proj))) + ' 的 pbxproj 里缺 dist 顶层目录引用: ' + reallyGone.join(', '));
+      console.error('  转换器把文件清单固化进工程，新顶层目录永不入包（vendor/ 那次）。修法：挪开旧工程后 bash build-safari.sh <flavor> 重生成。');
+    }
+  }
+  if (ok && projects.length) console.log('✓ pbxproj 覆盖 dist 全部 ' + topDirs.length + ' 个顶层目录（' + projects.length + ' 棵工程）');
+  return ok;
+}
+
 function main() {
   // Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
   // (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
@@ -171,8 +200,9 @@ function main() {
     process.exit(1);
   }
   if (!checkBackgroundAudio(app, appex)) process.exit(1);
+  if (!checkPbxprojDirs()) process.exit(1);
 }
 
 if (require.main === module) main();
 
-module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio };
+module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs };
