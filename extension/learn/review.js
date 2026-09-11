@@ -51,6 +51,16 @@
 
   function srcLine(item, sources) {
     const s = sources.get(item.sourceId);
+    // 文档来源（§9.7）：「📄 标题 · 第 n 页」，扩展里可点回到那一页；App 里由 AppDocs 接（D4），
+    // 没有它就只显示文本 —— 一个点了没反应的链接比不给更糟。
+    if (item.anchor && item.anchor.k === 'doc') {
+      const label = '📄 ' + ((s && s.title) || item.anchor.title || t('doc_source_label', '文档')) + ' · ' + t('doc_page_n', '第 {n} 页').replace('{n}', String(item.anchor.page || 1));
+      if (typeof AppDocs !== 'undefined' && AppDocs.open) { const a = document.createElement('a'); a.href = '#'; a.textContent = label; a.addEventListener('click', (e) => { e.preventDefault(); AppDocs.open(item.anchor.docId, item.anchor.page || 1); }); return a; }
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL && !AppLink.inApp()) {
+        const a = document.createElement('a'); a.href = chrome.runtime.getURL('learn/docs.html') + '#doc=' + encodeURIComponent(item.anchor.docId) + '&page=' + (item.anchor.page || 1); a.target = '_blank'; a.rel = 'noopener'; a.textContent = label; return a;
+      }
+      return document.createTextNode(label);
+    }
     // 对话来源（§9.6）：没有 host、没有可回放的音频 —— 只显示会话标题，不给链接。
     if (item.anchor && item.anchor.k === 'conv') {
       const who = item.anchor.who === 'me' ? ' · ' + t('listen_me_badge', '我说的') : '';
@@ -927,6 +937,8 @@
   function goAppUrl(userId) { return AppLink.deepLink(userId); }
 
   async function renderGoApp() {
+    const gd = $('go-docs');
+    if (gd) gd.hidden = AppLink.inApp();   // App 里的入口在首页（D4），不在这里
     const btn = $('go-app');
     if (!btn) return;
     // 人已经在 App 里了 —— 这个按钮是从浏览器往 App 送人的，在 App 里出现就是自指

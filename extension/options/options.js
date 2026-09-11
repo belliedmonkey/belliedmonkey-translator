@@ -696,6 +696,8 @@ async function init() {
     try { await LearnAuth.signOut(); } catch (_) { /* 没登录 / 网络不通都不该挡住清除 */ }
     try { await LearnStore.closeDb(); } catch (_) {}
     await deleteLearnDbs();
+    // 文档翻译的本机库（§9.7 删除语义）：独立于学习库，要单独清。
+    try { if (typeof DocStore !== 'undefined') await DocStore.wipe(); } catch (_) {}
     await new Promise((r) => {
       let done = false;
       const fin = () => { if (!done) { done = true; r(); } };
@@ -1131,6 +1133,7 @@ async function init() {
     showToast(t('toast_saved', '已保存'));
   });
   $('btn-open-review').addEventListener('click', () => {
+  if ($('btn-open-docs')) $('btn-open-docs').addEventListener('click', () => { try { window.open(chrome.runtime.getURL('learn/docs.html'), '_blank'); } catch (_) {} });
     window.open(chrome.runtime.getURL('learn/review.html'), '_blank');
   });
   // Storage pressure, stated with numbers. Same live state as the review page —
@@ -1297,6 +1300,8 @@ async function init() {
         if (!window.confirm(t('learn_delete_confirm', '删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。')
           .replace('{host}', host).replace('{n}', String(itemIds.length)))) return;
         try {
+          // 文档来源（§9.7）：删卡连文档本体一起删（确认框已写明）。
+          for (const sid of (sourceIds || [])) { if (/^doc:/.test(sid) && typeof DocStore !== 'undefined') { try { await DocStore.remove(sid.slice(4)); } catch (_) {} } }
           const n = await LearnStore.deleteItems(itemIds, Date.now());
           await LearnStore.deleteSourcesIfOrphan(sourceIds);
           showToast(t('learn_delete_done', '已删除 {n} 张卡').replace('{n}', String(n)));

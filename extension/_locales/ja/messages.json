@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "役に立ちましたか？ストアで評価する →"
   },
+  "doc_title": {
+    "message": "文書翻訳"
+  },
+  "doc_to_review": {
+    "message": "復習へ →"
+  },
+  "doc_upload": {
+    "message": "文書をアップロード（PDF / Word / 画像）"
+  },
+  "doc_privacy": {
+    "message": "文書はこの端末にのみ保存され、同期も書き出しもされません。翻訳時は開いたページの文字だけが設定した翻訳エンドポイントへ送られます —— ファイル全体でも、アップロード時でもありません。画像とスキャンページは、エンジンが画像認識に対応している場合のみ、画像として同じエンドポイントへ送られます。"
+  },
+  "doc_privacy_grant": {
+    "message": "文書はこの端末にのみ保存されます。翻訳時は開いたページが当方の中継を経由してモデル提供元へ送られます（保存・記録しません）。無料枠は画像を認識しません —— 画像とスキャンページにはご自身の API キーが必要です。"
+  },
+  "doc_list_empty": {
+    "message": "まだ文書がありません。PDF、Word（.docx）、テキスト、画像に対応しています。"
+  },
+  "doc_row_meta": {
+    "message": "{pages} ページ · {page} ページ目 · {n} 文を収集"
+  },
+  "doc_delete": {
+    "message": "削除"
+  },
+  "doc_delete_confirm": {
+    "message": "この文書を削除しますか？カードも削除され（全端末に同期）、元に戻せません。"
+  },
+  "doc_unsupported_kind": {
+    "message": "この形式には対応していません（PDF、.docx、テキスト、画像に対応）。.doc は Word で .docx として保存してください。"
+  },
+  "doc_too_large": {
+    "message": "ファイルが大きすぎます（上限 30 MB）。"
+  },
+  "doc_grant_no_image": {
+    "message": "無料枠では画像を認識できません —— ご自身の API キーをお使いください。"
+  },
+  "doc_no_vision": {
+    "message": "現在のエンジンは画像認識に非対応 · 設定でモデルを変更"
+  },
+  "doc_store_failed": {
+    "message": "文書を保存できませんでした："
+  },
+  "doc_missing": {
+    "message": "この文書はもうこの端末にありません。"
+  },
+  "doc_opening": {
+    "message": "読み込み中…"
+  },
+  "doc_open_failed": {
+    "message": "この文書を読めませんでした："
+  },
+  "doc_back": {
+    "message": "文書一覧"
+  },
+  "doc_lang": {
+    "message": "文書の言語"
+  },
+  "doc_lang_auto": {
+    "message": "自動"
+  },
+  "doc_prev": {
+    "message": "前のページ"
+  },
+  "doc_next": {
+    "message": "次のページ"
+  },
+  "doc_ocr_running": {
+    "message": "このページを認識中…"
+  },
+  "doc_ocr_failed": {
+    "message": "認識に失敗："
+  },
+  "doc_page_empty": {
+    "message": "このページに抽出できる文字がありません。"
+  },
+  "doc_old_engine": {
+    "message": "このページは以前のエンジンで翻訳されていました —— 現在のエンジンで再翻訳しました。"
+  },
+  "doc_page_stat": {
+    "message": "このページ：{units} 段落 · 約 {chars} 文字"
+  },
+  "doc_go_settings": {
+    "message": "設定へ →"
+  },
+  "doc_translating": {
+    "message": "⏳ 翻訳中…"
+  },
+  "doc_star": {
+    "message": "復習に追加"
+  },
+  "doc_translate_failed": {
+    "message": "翻訳失敗 · タップで再試行"
+  },
+  "doc_popup_row": {
+    "message": "📄 文書を翻訳（PDF / Word / 画像）"
+  },
+  "doc_open_page": {
+    "message": "文書を翻訳（PDF / Word / 画像）"
+  },
+  "doc_review_entry": {
+    "message": "📄 文書を翻訳"
+  },
+  "doc_source_label": {
+    "message": "文書"
+  },
+  "doc_page_n": {
+    "message": "{n} ページ"
+  },
+  "doc_sources_note": {
+    "message": "削除すると文書本体も削除されます。"
+  },
   "rate_prompt_dismiss": {
     "message": "今後表示しない"
   },

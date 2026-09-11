@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大肚猴翻译 — 文档翻译</title>
+  <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
+  <link rel="stylesheet" href="review.css">
+</head>
+<body>
+  <div class="page">
+    <header class="bar">
+      <h1 data-i18n="doc_title">文档翻译</h1>
+      <a class="go-app" id="docs-to-review" href="review.html" data-i18n="doc_to_review">去复习 →</a>
+    </header>
+    <!-- 阅读器（learn/doc-view.js）挂在这里；两个宿主同一份渲染器。 -->
+    <section class="panel" id="docs-root"></section>
+    <!-- 文件选择：原生控件，iOS 由 WKWebView 弹系统选择器；accept 不按额度变（别让用户猜为什么选不了）。 -->
+    <input type="file" id="docs-file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp" hidden>
+  </div>
+
+  <script src="page-settings.js"></script>
+  <script src="../content/i18n-messages.js"></script>
+  <script src="i18n.js"></script>
+  <script src="../content/langs.gen.js"></script>
+  <script src="../content/providers.gen.js"></script>
+  <script src="../content/engine-state.js"></script>
+  <script src="../content/wire-format.js"></script>
+  <script src="../content/request-shape.js"></script>
+  <script src="../content/translation-core.js"></script>
+  <script src="../content/translation-api.js"></script>
+  <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-rules.js"></script>
+  <script src="../content/learn-scheduler.js"></script>
+  <script src="store.js"></script>
+  <script src="backend.config.js"></script>
+  <script src="auth.js"></script>
+  <script src="grant.js"></script>
+  <script src="dialog.js"></script>
+  <script src="telemetry.js"></script>
+  <script src="doc-core.js"></script>
+  <script src="doc-reader.js"></script>
+  <script src="doc-store.js"></script>
+  <script src="pdfjs-loader.js"></script>
+  <script src="doc-view.js"></script>
+  <script src="docs-page.js"></script>
+</body>
+</html>

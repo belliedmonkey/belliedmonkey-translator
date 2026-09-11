@@ -285,6 +285,7 @@
         <div id="sources-manager" hidden></div>
 
         <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
+        <button id="btn-open-docs" data-i18n="doc_open_page">翻译文档（PDF / Word / 图片）</button>
         <!-- 导出不是合规负担，它同时是：数据可携带权、不想注册账号时的多端路径、
              以及对「我信不过你们」最诚实的回答（learning-design §8.2）。 -->
         <button id="btn-export-learn" data-i18n="learn_export">导出学习库</button>
@@ -508,7 +509,8 @@
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
   <script src="../learn/dialog.js"></script>  <!-- LearnDialog.confirm：「改回免费额度」替换用户自己的 key 前要问一句；2026-09-10 前这里没载入，typeof 守卫让确认被静默跳过 -->
-  <script src="../learn/grant.js"></script>   <!-- 免费额度（§8.10）。必须在 quick-setup.js 之后：它调 QuickSetup.plan -->
+  <script src="../learn/grant.js"></script>
+  <script src="../learn/doc-store.js"></script>   <!-- 文档翻译的本机库（§9.7）：只为「清除本机全部数据」与来源管理里删文档 -->   <!-- 免费额度（§8.10）。必须在 quick-setup.js 之后：它调 QuickSetup.plan -->
   <script src="../learn/tts.js"></script>
   <script src="../learn/drain.js"></script>
   <script src="../learn/sources-view.js"></script>

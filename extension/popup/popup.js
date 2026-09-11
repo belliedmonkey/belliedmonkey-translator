@@ -148,7 +148,7 @@ function updateSetupNote(provider, apiKey, chosen, grantState) {
 // 随裁定作废了：出厂默认的免费引擎不再算已配好，所以全新安装的人**会**被折叠成一个
 // 入口。主动点选过免费引擎的人才不被拦（engineChosen）。
 function applyUnconfigured(blocked) {
-  for (const id of ['review-section', 'site-section', 'lang-section', 'actions-section']) {
+  for (const id of ['review-section', 'docs-section', 'site-section', 'lang-section', 'actions-section']) {
     const el = $(id);
     if (!el) continue;
     if (blocked) el.hidden = true;
@@ -188,6 +188,13 @@ function updateTranslateUI() {
   badge.textContent = pageTranslated ? t('status_translated', '已翻译') : t('status_untranslated', '未翻译');
   badge.classList.toggle('on', pageTranslated);
 }
+
+// 文档翻译入口：开新标签页（内容脚本不在 chrome-extension:// 上跑，阅读器是一个扩展页）。
+(function bindDocs() {
+  const b = document.getElementById('open-docs');
+  if (!b) return;
+  b.addEventListener('click', () => { try { window.open(chrome.runtime.getURL('learn/docs.html'), '_blank'); } catch (_) {} window.close(); });
+})();
 
 function paintAsrEntry(pageStatus, s) {
   const sec = $('asr-section');

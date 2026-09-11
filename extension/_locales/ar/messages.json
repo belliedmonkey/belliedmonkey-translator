@@ -2647,6 +2647,117 @@
   "rate_prompt_text": {
     "message": "هل أعجبك؟ قيّمنا في المتجر ←"
   },
+  "doc_title": {
+    "message": "ترجمة المستندات"
+  },
+  "doc_to_review": {
+    "message": "إلى المراجعة ←"
+  },
+  "doc_upload": {
+    "message": "رفع مستند (PDF / Word / صورة)"
+  },
+  "doc_privacy": {
+    "message": "تبقى المستندات على هذا الجهاز — لا تُزامَن ولا تُصدَّر. عند الترجمة يُرسَل نص الصفحة المفتوحة فقط إلى نقطة الترجمة التي ضبطتها — لا الملف كاملًا، ولا عند الرفع؛ وتُرسَل الصور والصفحات الممسوحة كصور إلى النقطة نفسها فقط إن كان محركك يدعم الصور."
+  },
+  "doc_privacy_grant": {
+    "message": "تبقى المستندات على هذا الجهاز. عند الترجمة تمرّ الصفحة المفتوحة عبر مرحّلنا إلى مزوّد النموذج (لا تُحفظ ولا تُسجَّل)؛ الرصيد المجاني لا يتعرّف على الصور — تحتاج الصور والصفحات الممسوحة إلى مفتاح API الخاص بك."
+  },
+  "doc_list_empty": {
+    "message": "لا مستندات بعد. المدعوم: PDF وWord (.docx) والنص والصور."
+  },
+  "doc_row_meta": {
+    "message": "{pages} صفحة · عند الصفحة {page} · جُمعت {n} جملة"
+  },
+  "doc_delete": {
+    "message": "حذف"
+  },
+  "doc_delete_confirm": {
+    "message": "حذف هذا المستند؟ ستُحذف بطاقاته أيضًا (يُزامَن إلى كل الأجهزة) ولا يمكن التراجع."
+  },
+  "doc_unsupported_kind": {
+    "message": "صيغة غير مدعومة (المدعوم: PDF و.docx والنص والصور). لملفات .doc احفظها بصيغة .docx في Word."
+  },
+  "doc_too_large": {
+    "message": "الملف كبير جدًا (الحد 30 م.ب)."
+  },
+  "doc_grant_no_image": {
+    "message": "الرصيد المجاني لا يتعرّف على الصور — استخدم مفتاح API الخاص بك."
+  },
+  "doc_no_vision": {
+    "message": "المحرك الحالي لا يتعرّف على الصور · غيّر النموذج من الإعدادات"
+  },
+  "doc_store_failed": {
+    "message": "تعذّر حفظ المستند: "
+  },
+  "doc_missing": {
+    "message": "لم يعد هذا المستند على هذا الجهاز."
+  },
+  "doc_opening": {
+    "message": "جارٍ القراءة…"
+  },
+  "doc_open_failed": {
+    "message": "تعذّرت قراءة هذا المستند: "
+  },
+  "doc_back": {
+    "message": "المستندات"
+  },
+  "doc_lang": {
+    "message": "لغة المستند"
+  },
+  "doc_lang_auto": {
+    "message": "تلقائي"
+  },
+  "doc_prev": {
+    "message": "السابقة"
+  },
+  "doc_next": {
+    "message": "التالية"
+  },
+  "doc_ocr_running": {
+    "message": "جارٍ التعرّف على هذه الصفحة…"
+  },
+  "doc_ocr_failed": {
+    "message": "فشل التعرّف: "
+  },
+  "doc_page_empty": {
+    "message": "لا نص قابل للاستخراج في هذه الصفحة."
+  },
+  "doc_old_engine": {
+    "message": "تُرجمت هذه الصفحة بمحرك أقدم — أُعيدت ترجمتها بالمحرك الحالي."
+  },
+  "doc_page_stat": {
+    "message": "هذه الصفحة: {units} فقرة · نحو {chars} حرفًا"
+  },
+  "doc_go_settings": {
+    "message": "الإعدادات ←"
+  },
+  "doc_translating": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "doc_star": {
+    "message": "إضافة إلى المراجعة"
+  },
+  "doc_translate_failed": {
+    "message": "فشلت الترجمة · اضغط لإعادة المحاولة"
+  },
+  "doc_popup_row": {
+    "message": "📄 ترجمة مستند (PDF / Word / صورة)"
+  },
+  "doc_open_page": {
+    "message": "ترجمة مستند (PDF / Word / صورة)"
+  },
+  "doc_review_entry": {
+    "message": "📄 ترجمة مستند"
+  },
+  "doc_source_label": {
+    "message": "مستند"
+  },
+  "doc_page_n": {
+    "message": "الصفحة {n}"
+  },
+  "doc_sources_note": {
+    "message": "الحذف يزيل المستند نفسه أيضًا."
+  },
   "rate_prompt_dismiss": {
     "message": "لا تسأل مجددًا"
   },
