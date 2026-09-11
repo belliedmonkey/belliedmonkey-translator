@@ -294,6 +294,21 @@ describe('sync-app-assets: the host app must stay UA-anonymous', () => {
     + '    }\n}\n';
 });
 
+describe('sync-app-assets: macOS 文件面板桥（§9.7 文档翻译 D5）', () => {
+  const R = path.resolve(__dirname, '..');
+  const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'file-panel-bridge.swift'), 'utf8');
+  const sync = fs.readFileSync(path.join(R, 'scripts', 'sync-app-assets.js'), 'utf8');
+  test('模板登记成标记块，且 attach 被打进 ViewController', () => {
+    ok(/name: 'mt-file-panel', src: 'file-panel-bridge.swift'/.test(sync), 'BLOCKS 里有 mt-file-panel');
+    ok(sync.includes("'MTFilePanel.attach(self.webView)'"), 'attach 行由 app:sync 打进去 —— 漏了它 uiDelegate 就没人设');
+  });
+  test('取消也调 completionHandler(nil)：漏了 <input> 就永远卡住、再点不弹', () => {
+    ok(/runOpenPanelWith parameters: WKOpenPanelParameters/.test(tpl), '实现的是 runOpenPanel');
+    ok(/completionHandler\(response == \.OK \? panel\.urls : nil\)/.test(tpl), '取消分支回 nil，不是空数组');
+    ok(/#if os\(macOS\)/.test(tpl), 'NSOpenPanel 只在 macOS 编译 —— 共享的 ViewController.swift 两个平台都编');
+  });
+});
+
 describe('sync-app-assets: audio bridge block (§9.5)', () => {
   const VC = 'import WebKit\n\nclass ViewController {}\n';
   const TPL = 'final class MTAudioBridge {\n    // v1\n}\n';

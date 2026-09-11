@@ -322,6 +322,8 @@ const BLOCKS = [
   { name: 'mt-apple-signin', src: 'apple-signin-bridge.swift', label: 'apple sign-in bridge' },
   // 系统评分弹窗（SKStoreReviewController）。无 attach：它不持有 webView。
   { name: 'mt-review-bridge', src: 'review-bridge.swift', label: 'review bridge' },
+  // macOS 的 <input type=file>（§9.7 文档翻译 D5）：没有 runOpenPanel 就是死按钮。attach 见下。
+  { name: 'mt-file-panel', src: 'file-panel-bridge.swift', label: 'file panel bridge' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -420,6 +422,21 @@ function patchAudioBridge(sharedDir) {
       notes.push('apple attach patched');
     }
   } else notes.push('apple attach already current');
+
+  // 文件面板（macOS）：uiDelegate 的唯一持有者。与 deeplink attach 同一个锚点、同一种幂等判据。
+  const F_ATTACH = 'MTFilePanel.attach(self.webView)';
+  vc = fs.readFileSync(f, 'utf8');
+  if (!vc.includes(F_ATTACH)) {
+    const anchor = 'self.webView.navigationDelegate = self';
+    if (!vc.includes(anchor)) notes.push('✗ file panel attach: navigationDelegate 锚点缺失');
+    else {
+      vc = vc.replace(anchor, anchor + '\n'
+        + '        // Patched by scripts/sync-app-assets.js — macOS 文件面板（§9.7 文档翻译）：没有它 <input type=file> 是死按钮。\n'
+        + '        ' + F_ATTACH);
+      fs.writeFileSync(f, vc);
+      notes.push('file panel attach patched');
+    }
+  } else notes.push('file panel attach already current');
   return notes.join(' · ');
 }
 
