@@ -10,7 +10,7 @@ OUT="$DIR/.."
 render(){ "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --window-size="$4" --screenshot="$3" "file://$DIR/scene.html?f=$1&lang=$2&w=${4%,*}&h=${4#*,}"; }
 
 for lang in zh en; do
-  for f in 1 2 3 4 5 6; do
+  for f in 1 2 3 4 5 6 7; do
     render $f $lang "$OUT/$lang-iphone-$f.png" 1242,2688     # iPhone 6.5"
     render $f $lang "$OUT/$lang-ipad-$f.png"   2064,2752     # iPad 13"
     render $f $lang "$OUT/$lang-mac-$f.png"    2880,1800     # Mac App Store 16:10
