@@ -888,6 +888,37 @@ function validateManifest(distDir, isFirefox) {
     log('Gate F OK（免费额度的披露与开关同版）');
   }
 
+  // ── Gate G（docs/learning-design.md §10；2026-09-11）─────────────────────
+  //
+  // 文档翻译是一个**新披露面**：用户上传的文件内容（不是网页、不是麦克风）。披露与功能
+  // 必须同版上线，判据形状与 Gate F 相同：产物里有阅读器 ⇒ README ×2 有那一段、12 份
+  // locale 有页内那一句。只查键在不在的话，一句「支持翻译文档」也能过 —— 所以还要它
+  // 提到「按你点开的页」这件事（整份一次发出去正是这段披露否认的）。
+  if (fs.existsSync(path.join(distDir, 'learn', 'doc-view.js'))) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/files you upload|documents? you upload/i.test(rdEn)) miss.push('README.md 没有「上传的文档」的披露（Gate G）');
+    if (!/上传的\s*(文档|PDF)/.test(rdZh)) miss.push('README.zh-CN.md 没有「上传的文档」的披露（Gate G）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of ['doc_privacy', 'doc_privacy_grant']) {
+        const v = String(m[k]?.message || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate G）`); continue; }
+        if (v.length < 60) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一段完整披露`);
+      }
+    }
+    if (miss.length) {
+      err('Gate G FAILED —— 产物带着文档翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate G：README ×2、两个站点、12 份 locale、商店问卷复核');
+      process.exit(1);
+    }
+    log('Gate G OK（文档翻译的披露与功能同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may

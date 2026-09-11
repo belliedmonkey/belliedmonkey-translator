@@ -231,6 +231,16 @@
           </label>
         </div>
 
+        <!-- 文档翻译（learning-design §9.7）：译文进复习作为来源「文档」，默认开；下面一句是 §10 Gate G 的披露。 -->
+        <div class="field row">
+          <label for="doc-capture" data-i18n="doc_capture_label">文档译文进复习（来源「文档」）</label>
+          <label class="switch">
+            <input type="checkbox" id="doc-capture">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="hint" data-i18n="doc_privacy">文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。</p>
+
         <div class="field">
           <label for="learn-daily-new" data-i18n="learn_daily_new">每天最多引入的新卡片</label>
           <input type="number" id="learn-daily-new" min="1" max="200" step="1">
