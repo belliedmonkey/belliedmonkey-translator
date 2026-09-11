@@ -52,6 +52,7 @@ const COPY = {
   2: ['用你自己的大模型 Key', 'DeepSeek · 智谱 GLM · 通义千问（含翻译版）· Kimi，也可自定义接口'],
   3: ['读过的句子，自动变成复习卡', '快速滚过的不算——只留下你真正读过的'],
   4: ['收什么、怎么学，你说了算', '按语言筛选 · 按来源管理 · 一键导出，随时清空'],
+  5: ['整份文档也能翻', 'PDF、Word、图片 —— 打开一页翻一页，译文可收进复习'],
 };
 const [big, sub] = COPY[f];
 document.getElementById('big').textContent = big;
@@ -79,7 +80,9 @@ const PHONE = { '2': 'assets/cn-options-engine.png', '3': 'assets/cn-review-card
 // 横版放 Mac 的 —— 同上面那条规矩，也是 store-assets/README.md 的硬规矩：画布是什么设备就放什么设备看到的。
 const tablet = (src) => `<div class="tablet"><img src="${src}"></div>`;
 const ARTICLE = portrait ? (W >= 1500 ? '../../store-assets/src/assets/tablet-article.png' : '../../store-assets/src/assets/phone-article.png') : '../../store-assets/src/assets/f1-article.png';
+const DOCS = portrait ? (W >= 1500 ? '../../store-assets/src/assets/zh-tablet-docs.png' : '../../store-assets/src/assets/zh-phone-docs.png') : '../../store-assets/src/assets/zh-desk-docs.png';
 if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
+else if (f === '5') stage.innerHTML = portrait ? (W >= 1500 ? tablet(DOCS) : phone(DOCS)) : mac(DOCS);
 else if (portrait && W >= 1500) stage.innerHTML = tablet(TAB[f]);
 else if (portrait) stage.innerHTML = phone(PHONE[f]);
 else stage.innerHTML = mac(DESK[f]);

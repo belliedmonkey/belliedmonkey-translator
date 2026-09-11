@@ -16,7 +16,7 @@ render(){ "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-sc
   --window-size="$3" --screenshot="$2" \
   "file://$DIR/scene.html?f=$1&w=${3%,*}&h=${3#*,}"; }
 
-for f in 1 2 3 4; do
+for f in 1 2 3 4 5; do
   render $f "$OUT/cn-iphone-$f.png" 1242,2688     # iPhone 6.5"
   render $f "$OUT/cn-ipad-$f.png"   2064,2752     # iPad 13"
   render $f "$OUT/cn-mac-$f.png"    2880,1800     # Mac App Store 16:10
