@@ -2225,7 +2225,7 @@ E `web-ext` + BiDi；F/G 注入 LAN 控制通道经 sim-oracle）。翻译引擎
 | **D macOS Chrome** | R00–R13 全表 ✅（R01 真厂商一次） | 全自动 CDP |
 | **E Firefox** | R00/R01 假端点/R06/R07/R09/R10/R11/R13 ✅；#84 CSP 站点对照（wikipedia 红=预期） | web-ext + BiDi |
 | **F iOS App 模拟器** | R03/R04（界面/门控/归属/两向翻译/不留记录原因/返回确认/小结）/R05/R06/**R08（F16 修后）**/R10/R11/R13 ✅；R04 phase→listening 与「有声」◐（模拟器麦克风给帧不给声） | R10 只发第 1 页（5 次）、翻页只发第 2 页、★ 写 doc 卡 |
-| **F-bis 真机 iPhone** | ⬜ 阻塞在用户：需解锁装包、动手、用耳朵听 TTS；记忆记镜像点击在 macOS 26.5.1 已失效 → 交 6 项人工清单 | ZHAO的iPhone(14 Pro)已配对 |
+| **F-bis 真机 iPhone** | **go/no-go 通过**（系统升级后镜像点击恢复）；含全部修复的设备包已签名安装并跑起来；R05 引导+签收出首页（含文档翻译入口）、R08 横幅 iOS 形态 + 「我已打开」收起（F16 真机验证）、R04 门控 ✅；有声/回声/锁屏/来电/拔耳机/M15 留用户人耳与物理动作 | ZHAO的iPhone(14 Pro，iOS 26.x) |
 | **G macOS App** | R03/R04（两栏 grid + 复制全文真实点击回读剪贴板）/R05/R06/R08 对照/R10 结构/R11/R13 ✅ | 窗口 820px 两栏 382+382；复制全文经 execCommand 兜底 |
 | **中国版关键行** | 合规门两产物绿；真禁端点路径全 0（`/functions/v1/bt-grant`、`bt-relay/chat`、`bt-ingest`、`MT_GRANT = {`）；sync `enabled:false`；无 google；默认 deepseek；评分 rateUrl 中国版返回 null（评分行不出现）；test:app:china / test:onboard dist-china 绿 | — |
 
