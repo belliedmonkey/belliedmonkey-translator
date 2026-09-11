@@ -652,7 +652,7 @@ const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.co
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) { walk(p); continue; }
-      if (!/\.(js|json|html|css|txt)$/.test(e.name)) continue;
+      if (!/\.(m?js|json|html|css|txt)$/.test(e.name)) continue;   // .mjs 也扫（vendor pdf.js，2026-09-11）
       const text = fs.readFileSync(p, 'utf8');
       text.split('\n').forEach((line, i) => {
         if (FORBIDDEN.test(line)) hits.push(`${path.relative(dir, p)}:${i + 1}  ${line.trim().slice(0, 100)}`);
