@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· Live"
   },
+  "stt_engine_device": {
+    "message": "Geräteinterne Transkription (kostenlos · offline · nur App)"
+  },
+  "stt_hint_device": {
+    "message": "Sprache wird auf dem Gerät erkannt und an keinen Server gesendet; benötigt iOS 26 / macOS 26. Derzeit nur im Gespräch verwendet."
+  },
+  "stt_device_suffix": {
+    "message": "· auf dem Gerät"
+  },
+  "stt_device_no_file": {
+    "message": "Geräteinterne Transkription ist derzeit nur im Gespräch verfügbar"
+  },
+  "listen_need_device_os": {
+    "message": "Geräteinterne Transkription benötigt iOS 26 / macOS 26 – oder wähle in den Einstellungen eine Cloud-Echtzeit-Engine"
+  },
+  "listen_downloading": {
+    "message": "Offline-Modell {lang} wird geladen · {pct} %"
+  },
+  "listen_assets_failed": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – tippe erneut auf „Zuhören starten“ oder wähle in den Einstellungen eine Cloud-Engine."
+  },
+  "listen_entry_privacy_device": {
+    "message": "Sprache wird auf dem Gerät erkannt und an keinen Server gesendet; der erkannte Text geht an die von dir eingerichtete Übersetzungs-Engine."
+  },
+  "listen_cost_line_device": {
+    "message": "{t} gehört · Audio verlässt das Gerät nie"
+  },
   "grant_live_go": {
     "message": "Live-Engine hinzufügen →"
   },

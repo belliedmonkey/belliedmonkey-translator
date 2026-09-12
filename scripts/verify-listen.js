@@ -22,7 +22,7 @@ const SRC = path.join(ROOT, 'dist-app');
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.exit(2); }, 90000).unref();
+setTimeout(() => { console.log('\n✗ 超时（90s），没有结论'); process.exit(2); }, 150000).unref();
 
 // ─── 假端点：dist-app 静态 + /v1/chat/completions + ws /live + /say 控制口 ───────
 const stats = { chatCalls: 0, chatTexts: [], chatDirs: [], wsOpened: 0, wsFrames: 0, wsAudioBytes: 0 };
@@ -180,7 +180,9 @@ function say(base, text) {
       const pcm = () => { const n = 1600, b = new Uint8Array(n * 2); for (let i = 0; i < n; i++) { const v = Math.round(8000 * Math.sin(i / 3)); b[2 * i] = v & 255; b[2 * i + 1] = (v >> 8) & 255; } let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
       window.webkit = { messageHandlers: { mtAudio: { postMessage(msg) {
         if (msg.type === 'session-start') setTimeout(() => emit({ type: 'session-ready', platform: 'macos', suspends: false }), 0);
-        else if (msg.type === 'mic-start') { st.started++; setTimeout(() => emit({ type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer); st.timer = setInterval(() => emit({ type: 'mic-pcm', b64: pcm() }), 100); }
+        else if (msg.type === 'mic-start') { st.started++; st.deliver = msg.deliver || 'pcm'; setTimeout(() => emit({ type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer);
+          // 本机路（§9.6.1）：deliver:'level' ⇒ 原生不发 PCM，只发电平
+          st.timer = setInterval(() => emit(st.deliver === 'level' ? { type: 'mic-level', rms: 0.2 } : { type: 'mic-pcm', b64: pcm() }), 100); }
         else if (msg.type === 'mic-stop') { st.stopped++; clearInterval(st.timer); st.timer = 0; setTimeout(() => emit({ type: 'mic-state', state: 'ended' }), 0); }
       } } } };
       return 'ok';
@@ -371,6 +373,70 @@ function say(base, text) {
     await sleep(400);
     const fb = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeBridge.started, stopped: __fakeBridge.stopped, timer: __fakeBridge.timer })`));
     need(fb.started >= 1 && fb.stopped >= fb.started && !fb.timer, 'E: 结束后原生桥该收到 mic-stop（started ' + fb.started + ' / stopped ' + fb.stopped + '）');
+    if (process.env.TRACE) console.log('  …G0（云端段全过）');
+    // ── G. 本机转写路（§9.6.1）：假 mtSpeech 桥 —— 入口门控 / 只发电平 / 两路 final 按文字系+置信度收 /
+    //    归属按 locale / 改语言重连 / 旧系统灰态具名 ────────────────────────────────────
+    await evalIn(cdp, sessionId, `(() => {
+      const fs = { os: 'new', started: 0, stopped: 0, lastLocales: null, assets: 'installed' };
+      window.__fakeSpeech = fs;
+      const emit = (m) => window.NativeSpeech && window.NativeSpeech._fromNative(m);
+      fs.say = (locale, text, conf) => { emit({ type: 'stt-partial', locale, text, conf }); emit({ type: 'stt-final', locale, text, conf, alts: [], t0: 0, t1: 1000 }); };
+      window.webkit.messageHandlers.mtSpeech = { postMessage(msg) {
+        if (msg.type === 'stt-probe') {
+          if (fs.os === 'old') { setTimeout(() => emit({ type: 'stt-state', state: 'unsupported', reason: 'os' }), 0); return; }
+          setTimeout(() => { for (const l of msg.locales) emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: fs.assets === 'installed' ? 1 : 0, state: fs.assets }); emit({ type: 'stt-state', state: 'ready', assets: fs.assets }); }, 0);
+        } else if (msg.type === 'stt-assets') {
+          setTimeout(() => { for (const l of msg.locales) { emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 0.5, state: 'downloading' }); emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 1, state: 'installed' }); } fs.assets = 'installed'; emit({ type: 'stt-state', state: 'ready', assets: 'installed' }); }, 50);
+        } else if (msg.type === 'stt-start') { fs.started++; fs.lastLocales = msg.locales; setTimeout(() => emit({ type: 'stt-state', state: 'ready' }), 0); }
+        else if (msg.type === 'stt-stop') { fs.stopped++; setTimeout(() => emit({ type: 'stt-state', state: 'ended' }), 0); }
+        else if (msg.type === 'tts-probe') { setTimeout(() => emit({ type: 'tts-state', state: 'failed', reason: 'no-engine', langs: [] }), 0); }
+      } };
+      return 'ok';
+    })()`);
+    if (process.env.TRACE) console.log('  …G1');
+    // G1. 选设备内置转写（注册表条目，不是 e2e 假条目）：入口可用、隐私句换成本机版
+    await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ sttEngine: 'device', sttApiKey: '' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
+    const g1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-listen-entry2'); const p = document.getElementById('modes-privacy2'); return { disabled: b.disabled, priv: p.textContent, privHidden: p.hidden }; })())`));
+    need(g1.disabled === false && !g1.privHidden && /不发往任何服务器|设备上识别/.test(g1.priv), 'G1: 设备内置转写探到 ready 后入口该可用、隐私句换本机版，实际 ' + JSON.stringify(g1));
+    if (process.env.TRACE) console.log('  …G2');
+    // G2. 开始听：麦克风只要电平（deliver:'level'）、识别器起了两路（zh-CN + en-US）
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'G2: 本机路进入 listening');
+    const g2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ deliver: __fakeBridge.deliver, started: __fakeSpeech.started, locales: __fakeSpeech.lastLocales, cost: document.getElementById('app-listen-cost').textContent })`));
+    need(g2.deliver === 'level', 'G2: 本机路的 mic-start 该带 deliver:level（PCM 留在原生），实际 ' + JSON.stringify(g2));
+    need(g2.started === 1 && JSON.stringify(g2.locales) === JSON.stringify(['zh-CN', 'en-US']), 'G2: 该按我方/对方各开一路（zh-CN, en-US），实际 ' + JSON.stringify(g2));
+    need(/不离开设备/.test(g2.cost), 'G2: 费用行该说「音频不离开设备」，实际 ' + g2.cost);
+    if (process.env.TRACE) console.log('  …G3');
+    // G3. 两路都会对同一段音频出 final：zh 路吐的英文垃圾、en 路吐的低置信拼音都要丢；归属按 locale
+    const callsG = stats.chatCalls;
+    await evalIn(cdp, sessionId, `(() => { const f = __fakeSpeech;
+      f.say('zh-CN', 'Where is the mee ting room', 0.88);     // zh 路对英文音频：文字系不对 ⇒ 丢
+      f.say('en-US', 'Where is the meeting room?', 0.96);     // 真的
+      f.say('en-US', 'Hui, Yi, Shi', 0.2);                    // en 路对中文音频：低置信拼音 ⇒ 丢
+      f.say('zh-CN', '会议室在几楼？', 0.93);                   // 真的
+      return 'ok'; })()`);
+    const rowsG = await waitFor(async () => {
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, text: x.text, tr: x.tr })))`));
+      return r.length >= 2 && r.every((x) => x.tr) ? r : null;
+    }, 8000, 'G3: 两句定稿 + 译文');
+    need(rowsG.length === 2, 'G3: 该只有两行（两条垃圾被丢），实际 ' + JSON.stringify(rowsG));
+    need(rowsG[0].who === 'them' && rowsG[0].text === 'Where is the meeting room?' && rowsG[0].guessed === false, 'G3: en 路的句子归对方且不是猜的，实际 ' + JSON.stringify(rowsG[0]));
+    need(rowsG[1].who === 'me' && rowsG[1].text === '会议室在几楼？' && rowsG[1].guessed === false, 'G3: zh 路的句子归我且不是猜的，实际 ' + JSON.stringify(rowsG[1]));
+    need(stats.chatCalls >= callsG + 2, 'G3: 两句都该去翻译端点');
+    if (process.env.TRACE) console.log('  …G4');
+    // G4. 改语言 ⇒ 本机路重连（一路一个 locale）
+    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('app-listen-other'); s.value = 'ja'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    const g4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeSpeech.started, stopped: __fakeSpeech.stopped, locales: __fakeSpeech.lastLocales })`)); return r.started >= 2 ? r : null; }, 5000, 'G4: 改语言后重连');
+    need(JSON.stringify(g4.locales) === JSON.stringify(['zh-CN', 'ja-JP']) && g4.stopped >= 1, 'G4: 重连后该是 zh-CN + ja-JP，实际 ' + JSON.stringify(g4));
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
+    await sleep(400);
+    if (process.env.TRACE) console.log('  …G5');
+    // G5. 旧系统：桥在但报 unsupported/os ⇒ 入口灰 + 具名原因（不是通用的「没配实时引擎」）
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'old'; await AppListen.refreshEntry(); return 'ok'; })()`);
+    const g5 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-listen-entry2'); const n = document.getElementById('app-listen-need-live2'); const w = document.getElementById('app-listen-need-live-why2'); return { disabled: b.disabled, needShown: n && !n.hidden, why: w && w.textContent }; })())`));
+    need(g5.disabled === true && g5.needShown === true && /iOS 26/.test(g5.why || ''), 'G5: 旧系统该灰掉入口并说「需要 iOS 26 / macOS 26」，实际 ' + JSON.stringify(g5));
+    // 收尾：把引擎改回云端的 e2e 条目，别让后面的断言读到本机态
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'new'; await new Promise((r) => chrome.storage.local.set({ sttEngine: 'e2e_live', sttApiKey: 'k', listenOtherLang: 'en' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
   } catch (e) {
     problems.push('THROW ' + (e && e.stack));
     // 失败时把页面状态一并读回，别让人猜
@@ -380,6 +446,6 @@ function say(base, text) {
 
   console.log(`  假端点：socket ${stats.wsOpened} 次 · PCM ${stats.wsFrames} 帧 / ${(stats.wsAudioBytes / 1024).toFixed(0)} KB · 翻译请求 ${stats.chatCalls} 次`);
   if (problems.length) { console.log('\n✗ 对话 · 实时听译端到端有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 全部通过');
+  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 / 本机转写路（假 mtSpeech 桥）全部通过');
   process.exit(0);
 })();
