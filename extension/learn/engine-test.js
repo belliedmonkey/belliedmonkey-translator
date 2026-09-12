@@ -35,6 +35,8 @@ var EngineTest = (() => {
       case 'no_base': return t('engine_test_no_base', '还没填端点地址');
       case 'no_key': return t('engine_test_no_key', '还没填 API Key');
       case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
+      // 设备内置转写（§9.6.1）没有端点可测：这一档的「测试」对它没有定义 —— 具名说清，不是「失败」
+      case 'device_no_file': return t('stt_device_no_file', '设备内置转写目前只用于对话');
       case 'unknown_provider': return t('engine_test_unknown_provider', '这个版本不认识当前存着的引擎，请在上面重新选一个');
       case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）')
         + (e && e.viaProxy ? '\n' + t('engine_test_via_proxy', '（已自动改从扩展后台重试，仍未通——所以不是跨域问题，是这个地址从这台机器真的够不着）') : '');

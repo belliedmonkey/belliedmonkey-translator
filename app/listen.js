@@ -176,6 +176,38 @@ var AppListen = (() => {
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
   }
 
+  // 本机路（§9.6.1）：每句一次远程「修正 + 翻译」。原始句先上屏（row.raw），修正稿回来换成 row.text，
+  // 语料写修正文；修正不过接受门就只取译文。失败与 translateRow 同形：留「译文失败 · 重试」。
+  function langName(code) {
+    const c = String(code || '');
+    const n = (TranslationAPI.LANG_NAMES || {})[c] || (TranslationAPI.LANG_NAMES || {})[c.split('-')[0]];
+    return n || langLabel(c) || c;
+  }
+  async function passRow(row, quiet) {
+    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; renderHistory(); return; }
+    const myGen = gen;
+    row.trErr = false; row.trBusy = true; renderHistory();
+    const srcLang = row.who === 'me' ? cfg.myLang : cfg.otherLang;
+    const dstLang = targetLangFor(row);
+    const prompt = C.buildListenPrompt({
+      text: row.raw || row.text, alts: row.alts || [], who: row.who,
+      srcLang, dstLang, srcName: langName(srcLang), dstName: langName(dstLang),
+      context: C.contextRows(session ? session.rows : [], row),
+    });
+    let reply = '';
+    try {
+      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+    } catch (_) { reply = ''; }
+    if (myGen !== gen) return;
+    const parsed = C.parseListenReply(reply, row.raw || row.text);
+    if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
+    row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
+    renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
+    if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
+  }
+  // 重译入口：本机路走修正契约，云端路走普通翻译。
+  function retranslate(row, quiet) { return row.raw != null ? passRow(row, quiet) : translateRow(row, null, quiet); }
+
   // 归属判断的注入点。生产里就是 LearnRules.dominantScript（已在 App 包里）；
   // 拿不到它时 sideOf 恒返回空，归属全走粘性兜底 —— 不抛，也不假装判得准。
   const routeDeps = {
@@ -292,6 +324,13 @@ var AppListen = (() => {
     // 「我说的」在这里直接 return，等松手时整段处理 —— 那条路随按住一起没了。
     const reuse = inc ? inc.close(row.text) : '';
     renderNow(); renderHistory();
+    if (meta && meta.locale) {
+      // 本机路：原始句立即上屏；复用的临时译文斜体，等修正稿回来换正体；修正契约必发
+      row.raw = row.text; row.alts = Array.isArray(meta.alts) ? meta.alts : [];
+      if (reuse) { row.tr = reuse; row.trTemp = true; renderHistory(); }
+      passRow(row);
+      return;
+    }
     if (reuse) { row.tr = reuse; renderHistory(); paintNowPlaying(); maybeWrite(row); autoSpeak(row); }
     else translateRow(row);
   }
@@ -558,7 +597,7 @@ var AppListen = (() => {
 
     // ② 立刻按新方向重译。**不自动重读**：用户翻历史点 ↔ 时突然大声念一句是最吓人的
     //    副作用，而且改边这个动作本身说明前一次朗读已经发生过了。
-    translateRow(row, null, true);
+    retranslate(row, true);
 
     // ③ 回收旧卡。用**翻转前**的快照算 id —— 语料里「学的永远是外语那一面」，改边会让
     //    两面互换，不回收就留下一张面反了的卡。走 deleteItems 而不是绕过账本：它写删除
@@ -812,14 +851,23 @@ var AppListen = (() => {
       const o = document.createElement('div'); o.className = 'listen-orig';
       o.textContent = r.text;
       body.appendChild(o);
+      // 本机路：修正后与识别原文不同时，行尾小字「识别原文」可点，展开一行原文（不静默改字）
+      if (r.raw != null && r.raw !== r.text) {
+        const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'listen-raw-toggle';
+        tg.textContent = t('listen_raw_label', '识别原文');
+        tg.setAttribute('aria-expanded', r.showRaw ? 'true' : 'false');
+        tg.addEventListener('click', (e) => { e.stopPropagation(); r.showRaw = !r.showRaw; renderHistory(); });
+        body.appendChild(tg);
+        if (r.showRaw) { const rw = document.createElement('div'); rw.className = 'listen-raw'; rw.textContent = r.raw; body.appendChild(rw); }
+      }
       if (r.trErr) {
         // 翻译失败要留下出口，不是永远的 ⏳
         const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'listen-tr-retry';
         retry.textContent = t('listen_tr_failed', '译文失败 · 重试');
-        retry.addEventListener('click', (e) => { e.stopPropagation(); translateRow(r, null, true); });
+        retry.addEventListener('click', (e) => { e.stopPropagation(); retranslate(r, true); });
         body.appendChild(retry);
       } else {
-        const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? '' : ' pending');
+        const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? (r.trTemp ? ' temp' : '') : ' pending');
         tr.textContent = r.tr || t('listen_pending', '⏳ 译文准备中…');
         body.appendChild(tr);
       }

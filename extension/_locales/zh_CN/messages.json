@@ -1945,6 +1945,18 @@
   "listen_cost_line_device": {
     "message": "已听 {t} · 音频不离开设备"
   },
+  "listen_raw_label": {
+    "message": "识别原文"
+  },
+  "tts_engine_device": {
+    "message": "设备内置朗读（离线模型 · 仅 App）"
+  },
+  "tts_hint_device": {
+    "message": "语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。模型不含的语言会改用系统语音并在行上说明。"
+  },
+  "tts_device_lang_fallback": {
+    "message": "用系统语音朗读（离线模型不含{lang}）"
+  },
   "grant_live_go": {
     "message": "另配实时引擎 →"
   },
