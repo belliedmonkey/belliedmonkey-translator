@@ -262,9 +262,11 @@ iPhone 播放的音频 / 视频 / TTS 语料**。用户原话（2026-09-12）：
 |---|---|---|---|
 | 句子开口 → 首个 volatile | **≤ 2 s** | 1.0–1.9 s | 云端 `delay:minimal` 是 0.18–0.35 s；本机的 volatile 只做「看到字」的反馈 |
 | 停顿 → 整句定稿 | **≤ 1.0 s** | 0.4–0.9 s | **前提是自己的静音检测（RMS，300–500 ms）调 `analyzer.finalize(through:)`**。默认定稿是懒的（停顿不收口，有声书 p90 14 s），系统 `SpeechDetector` 模块无帮助；final 是时间片不是句子，串起来按标点切 |
-| 定稿 → 修正 + 译文落地 | **≤ 1.0 s** | 0.1–0.5 s（DeepSeek `deepseek-chat` p50 ≈ 100 / p90 ≈ 200 / max 475 ms） | 一次远程调用（`T:` / `X:` 两行契约） |
-| 译文 → 朗读起声 | **≤ 0.5 s** | ≈ 0.2 s（Piper 真机首块均值 zh 176 / en 157 ms，最大 264 / 216 ms） | 边合成边播，首块到即出声 |
-| 错误率（远程修正后） | **zh CER ≤ 12% · en WER ≤ 8%** | zh 有声书 13.1% → 5.4%；en 3.1% → 1.9%；conv 中文 17.8% → 10.0% | 沿用 `scripts/asr-probe.js` 的 `THRESH`；分母是语料参照文本 |
+| 定稿 → 修正 + 译文落地 | **≤ 1.0 s** | Mac 0.1–0.5 s（DeepSeek `deepseek-v4-flash` 思考关，p50 ≈ 100 / p90 ≈ 200 / max 475 ms）；**真机 09-13：p50 0.74–0.94 / p90 1.0–1.4 s**（同一 key 同一体，手机家用 Wi-Fi 无代理直连 api.deepseek.com；裸调用 3 次 819–889 ms，App 与裸调用一致 ⇒ 差在路由不在代码）；免费额度中继 `grant` 走同一句 **p50 5.4 / p90 20 s** | 一次远程调用（`T:` / `X:` 两行契约）。手机上能连到的 16 个候选里 DeepSeek 仍最快（`docs/model-recommendations.md` DeepSeek/fast）；p90 已擦到 1.0 s 线 |
+| 译文 → 朗读起声 | **≤ 0.5 s** | Piper：≈ 0.2 s（尖刺首块均值 zh 176 / en 157 ms；**09-13 App 内 `lat.ttsStart` p50 162 / p90 266 ms**）；系统语音 `browser`（super-compact 档）：**p50 7–23 / p90 22–109 ms**（三轮） | 边合成边播，首块到即出声。两引擎都在线内，A/B 的差别在音质与 158 MB 下载，见 learning-design §9.1 `device` 条目引文 |
+| 错误率（远程修正后） | **zh CER ≤ 12% · en WER ≤ 8%** | zh 有声书 13.1% → 5.4%；en 3.1% → 1.9%；conv 中文 17.8% → 10.0%；**真机 App 内 09-13（Mac 喇叭 → 房间 → 手机麦，自动朗读关）：zh 13.3% → 4.3%，en 38.3% → 36.7%** | 沿用 `scripts/asr-probe.js` 的 `THRESH`；分母是语料参照文本。真机英文那个数**不是修正的问题**：中→英切换时英文句头丢 1–2 个词（"The quote…"→"quote…"）、一整句没听到，修正救不回丢掉的词 —— 与尖刺 S10 经声学链路的 en 28% 同量级；待办另修。打分脚本 `scripts/spike/score-rows.js` |
+
+**云端转写两条在测试机上打不到（2026-09-13）。** 同机同料的「本机路 vs 云端路」并排只做成了一半：`openai_transcribe` 两次都 `socket error`（会话停在 halted，句子还在），`gemini_transcribe` 8 s 超时，`qwen_asr` 国际版包里没有；同一时刻 `api.deepseek.com` 103 ms、`openrouter.ai` 608 ms 都通。这是家用 Wi-Fi 无代理的真实网络，不是环境故障 —— **在这种网络下本机路是唯一能用的转写**，准确率并排只能拿 Mac 侧直喂 PCM 的旧读数（OpenAI 实时 zh 3.9% / en 3.7%、千问 5.2% / 3.6%）对本机路修正后的 zh 4.3%。云端两档在真机的读数是欠条，等有代理的网络补。
 
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
