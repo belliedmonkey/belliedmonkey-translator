@@ -1944,6 +1944,9 @@
   "listen_cost_line_device": {
     "message": "{t} gehört · Audio verlässt das Gerät nie"
   },
+  "listen_device_privacy": {
+    "message": "Bei geräteinterner Transkription wird Sprache auf dem Gerät erkannt und an keinen Server gesendet; der erkannte Text geht mit einigen vorherigen Sätzen als Kontext an die von dir eingerichtete Übersetzungs-Engine zur Korrektur und Übersetzung – unsere Server sind nicht beteiligt. Bei geräteinterner Sprachausgabe wird Audio auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Es wird keine Aufnahme gespeichert, nur Text."
+  },
   "listen_raw_label": {
     "message": "Erkannter Text"
   },

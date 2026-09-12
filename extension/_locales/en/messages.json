@@ -1944,6 +1944,9 @@
   "listen_cost_line_device": {
     "message": "Listened {t} · audio never leaves the device"
   },
+  "listen_device_privacy": {
+    "message": "With on-device transcription, speech is recognised on your device and never sent to any server; the recognised text, with a few preceding sentences for context, goes to the translation engine you configured for correction and translation — our servers are not involved. With on-device speech, audio is synthesised on your device; the first use downloads the offline model once (the model file only). No recording is kept, only text."
+  },
   "listen_raw_label": {
     "message": "Recognised text"
   },

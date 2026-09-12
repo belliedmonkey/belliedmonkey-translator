@@ -1944,6 +1944,9 @@
   "listen_cost_line_device": {
     "message": "Escuchado {t} · el audio nunca sale del dispositivo"
   },
+  "listen_device_privacy": {
+    "message": "Con la transcripción en el dispositivo, la voz se reconoce en tu dispositivo y no se envía a ningún servidor; el texto reconocido, con algunas frases anteriores como contexto, va al motor de traducción que configuraste para corregir y traducir; nuestros servidores no intervienen. Con la voz en el dispositivo, el audio se sintetiza en tu dispositivo; el primer uso descarga una vez el modelo sin conexión (solo el archivo del modelo). No se guarda ninguna grabación, solo texto."
+  },
   "listen_raw_label": {
     "message": "Texto reconocido"
   },
