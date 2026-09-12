@@ -528,6 +528,8 @@ var ListenCore = (() => {
     const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
     const streams = {};   // locale → { buf, timer }
     const join = (a, b) => (!a ? b : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b));
+    // 只有标点/空白的「句子」（识别器把上一句的句号单独吐出来时常见）不算句子 —— 真机上会成一行「.」
+    const HAS_WORD = /[\p{L}\p{N}]/u;
     function emitDone(locale, st) {
       let buf = st.buf;
       const TERM = /[。！？!?]["'”’)\]]?|\.(?=\s|$)/g;
@@ -535,7 +537,7 @@ var ListenCore = (() => {
       while ((m = TERM.exec(buf))) {
         const end = m.index + m[0].length;
         const sent = buf.slice(last, end).trim();
-        if (sent) onSentence(locale, sent);
+        if (sent && HAS_WORD.test(sent)) onSentence(locale, sent);
         last = end;
       }
       st.buf = buf.slice(last).replace(/^\s+/, '');
@@ -545,7 +547,7 @@ var ListenCore = (() => {
       if (st.timer) { clearT(st.timer); st.timer = 0; }
       emitDone(locale, st);
       const rest = st.buf.trim(); st.buf = '';
-      if (rest) onSentence(locale, rest);
+      if (rest && HAS_WORD.test(rest)) onSentence(locale, rest);
     }
     return {
       add(locale, text) {

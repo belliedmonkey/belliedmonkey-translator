@@ -500,13 +500,22 @@ final class MTDeviceSpeech {
     }
 }
 
-/// 一次合成的块调度器：块一到就排进 playerNode；最后一块播完才算 tts-end。
+/// 一次合成的块调度器：块一到就排进 playerNode；「播完」按**首块时刻 + 总时长**定时收口。
+///
+/// 2026-09-12 真机实证：`scheduleBuffer(…, completionCallbackType: .dataPlayedBack)` 的完成回调在
+/// 录音会话（.playAndRecord + 输入 tap 同时在跑）下**一次都不来** —— tts-start 发了、tts-end 永远不发，
+/// 自动朗读的队列在第二句上永远等着；手点「朗读」只等开始所以看着正常。块是按顺序、比实时快得多
+/// 地排进去的，所以播放结束时刻 = 首块出声时刻 + 总样本数 / 采样率，定时器就是可靠的信号；
+/// 回调若真来了只会更早一点（两者谁先到谁算，只落定一次）。
 final class MTSpeechChunkBox {
     private let player: AVAudioPlayerNode
     private let rate: Double
     private var chunks = 0
     private var pending = 0
+    private var frames = 0
+    private var firstAt: Date?
     private var finished = false
+    private var settled = false
     private var onDone: (() -> Void)?
     private let lock = NSLock()
     var onFirst: (() -> Void)?
@@ -519,19 +528,28 @@ final class MTSpeechChunkBox {
               let buf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(n)) else { return }
         buf.frameLength = AVAudioFrameCount(n)
         memcpy(buf.floatChannelData![0], samples, n * MemoryLayout<Float>.size)
-        lock.lock(); chunks += 1; pending += 1; let first = chunks == 1; lock.unlock()
+        lock.lock(); chunks += 1; pending += 1; frames += n; let first = chunks == 1; if first { firstAt = Date() }; lock.unlock()
         if first { DispatchQueue.main.async { self.onFirst?() } }
         player.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { [weak self] _ in self?.played() }
     }
 
+    private func settle() {
+        lock.lock(); let go = !settled && finished; if go { settled = true }; let cb = onDone; lock.unlock()
+        if go { DispatchQueue.main.async { cb?() } }
+    }
     private func played() {
         lock.lock(); pending -= 1; let done = finished && pending <= 0; lock.unlock()
-        if done { DispatchQueue.main.async { self.onDone?() } }
+        if done { settle() }
     }
 
     func finish(_ done: @escaping () -> Void) {
-        lock.lock(); onDone = done; finished = true; let already = pending <= 0; lock.unlock()
-        if already { DispatchQueue.main.async { done() } }
+        lock.lock()
+        onDone = done; finished = true
+        let noAudio = chunks == 0
+        let remaining = max(0, Double(frames) / rate - (firstAt.map { Date().timeIntervalSince($0) } ?? 0))
+        lock.unlock()
+        if noAudio { settle(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + remaining + 0.15) { [weak self] in self?.settle() }
     }
 }
 

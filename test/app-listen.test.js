@@ -520,6 +520,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     const last = timers[timers.length - 1]; last.fn();
     deepEq(out.slice(2), ['zh-CN|这个报家里']);
     eq(sc.pending('zh-CN'), '');
+    // 只有标点的片段不成句（真机上识别器会把上一句的句号单独吐出来）
+    sc.add('en-US', '.'); sc.add('zh-CN', '。');
+    for (const t of timers.splice(0)) t.fn();
+    eq(out.length, 3, '「.」「。」不该成行');
   });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
