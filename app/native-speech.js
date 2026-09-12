@@ -22,8 +22,10 @@ var NativeSpeech = (() => {
   // 朗读：一次一句（JS 侧的 speakQueue 已经串行），id 对得上才回调。
   let speakJob = null;
   const progressListeners = [];
-  // 等待中的探测 Promise
-  let sttProbeWait = null, ttsProbeWait = null;
+  // 等待中的探测 Promise —— 是一串不是一个：入口刷新与设置变更会并发探两次，只留最后一个
+  // 会让第一个 await 永远不落定（2026-09-12 门禁里就是这么挂住的）。
+  let sttWaiters = [], ttsWaiters = [];
+  const wake = (list, v) => { const ws = list.splice(0); for (const w of ws) { try { w(v); } catch (_) {} } };
 
   function post(msg) {
     try { window.webkit.messageHandlers[CHANNEL].postMessage(msg); return true; } catch (_) { return false; }
@@ -38,7 +40,7 @@ var NativeSpeech = (() => {
     if (t === 'stt-state') {
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
       else if (msg.state === 'ready' && msg.assets) sttProbe = { ok: true, reason: '', assets: msg.assets, locales: sttProbe.locales };
-      if (sttProbeWait && (msg.state === 'unsupported' || msg.assets)) { const w = sttProbeWait; sttProbeWait = null; w(sttProbe); }
+      if (msg.state === 'unsupported' || msg.assets) wake(sttWaiters, sttProbe);
       if (sttSession) {
         if (msg.state === 'ready' && !msg.assets) sttSession.fire('ready', {});
         else if (msg.state === 'failed') sttSession.fire('error', { reason: msg.reason || 'failed' });
@@ -57,7 +59,7 @@ var NativeSpeech = (() => {
     }
     if (t === 'tts-state') {
       ttsProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : (msg.reason || msg.state), langs: Array.isArray(msg.langs) ? msg.langs : [] };
-      if (ttsProbeWait) { const w = ttsProbeWait; ttsProbeWait = null; w(ttsProbe); }
+      wake(ttsWaiters, ttsProbe);
       return;
     }
     if (t === 'tts-start' || t === 'tts-end' || t === 'tts-failed') {
@@ -76,8 +78,8 @@ var NativeSpeech = (() => {
     if (!available()) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; return Promise.resolve(sttProbe); }
     sttProbe = { ok: false, reason: 'pending', assets: 'missing', locales: ls };
     return new Promise((resolve) => {
-      sttProbeWait = resolve;
-      if (!post({ type: 'stt-probe', locales: ls })) { sttProbeWait = null; sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; resolve(sttProbe); }
+      sttWaiters.push(resolve);
+      if (!post({ type: 'stt-probe', locales: ls })) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; wake(sttWaiters, sttProbe); }
     });
   }
   function probeResult() { return sttProbe; }
@@ -101,8 +103,8 @@ var NativeSpeech = (() => {
         const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
         if (failed || !r.ok) reject({ reason: failed ? 'download' : (r.reason || 'failed') }); else resolve(r);
       };
-      if (kind === 'stt') { sttProbeWait = finish; post({ type: 'stt-assets', locales: spec }); }
-      else { ttsProbeWait = finish; post({ type: 'tts-assets', models: spec }); }
+      if (kind === 'stt') { sttWaiters.push(finish); post({ type: 'stt-assets', locales: spec }); }
+      else { ttsWaiters.push(finish); post({ type: 'tts-assets', models: spec }); }
     });
   }
 
@@ -139,8 +141,8 @@ var NativeSpeech = (() => {
   function ttsProbeRun(models) {
     if (!available()) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [] }; return Promise.resolve(ttsProbe); }
     return new Promise((resolve) => {
-      ttsProbeWait = resolve;
-      if (!post({ type: 'tts-probe', models: models || [] })) { ttsProbeWait = null; ttsProbe = { ok: false, reason: 'no-bridge', langs: [] }; resolve(ttsProbe); }
+      ttsWaiters.push(resolve);
+      if (!post({ type: 'tts-probe', models: models || [] })) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [] }; wake(ttsWaiters, ttsProbe); }
     });
   }
   function ttsLangs() { return ttsProbe.langs.slice(); }

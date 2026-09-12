@@ -13,11 +13,16 @@
 //   · the registry is the only place an engine, model or endpoint is written down
 //   · region/flavor never enters at runtime
 //
-// There is NO zero-config engine here and there never will be one: the browser's
+// There is NO zero-config CLOUD engine here and there never will be one: the browser's
 // own SpeechRecognition ships recordings to its vendor's servers, which the
 // no-telemetry promise cannot absorb (learning-design §12 — permanently rejected).
 // An empty `sttEngine` therefore means the 说 exercise DOES NOT EXIST (§5.4
 // capability semantics), which is the correct default.
+// *(Amended 2026-09-12:)* the `device` entry below is the ONE exception, and it is an
+// exception to the letter, not to the reason: the host app's system recogniser runs on
+// the device and sends nothing anywhere (domain-design §2.4 rule 5 amendment, §7 third
+// endpoint carve-out; learning-design §9.6.1). It exists only in the host app's dropdown
+// (`engine-fields.populate` is handed `deviceOk`), never in the extension's.
 //
 // One format covers the whole space:
 //   type 'transcribe-compat' — the OpenAI /v1/audio/transcriptions multipart shape
@@ -31,6 +36,17 @@ const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
 
 module.exports = [
+  {
+    // 设备内置转写（learning-design §9.6.1）：iOS 26 / macOS 26 的系统识别器，音频不出设备。
+    // 不说 HTTP ⇒ defaultEndpoint 显式 null（同 google / browser 那两处 carve-out），免台账；
+    // 「是否实时 / 是否本机」都由 type 推导，不加字段。第一版只接对话模式，不接「说」题
+    // （speech-input.js 对它回具名原因 device_no_file）。
+    id: 'device', type: 'device-transcribe', flavors: ['global', 'china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '',
+    labelKey: 'stt_engine_device', label: '设备内置转写（免费 · 离线 · 仅 App）',
+    hintKey: 'stt_hint_device',
+  },
   {
     // Any server implementing the /v1/audio/transcriptions request shape on the
     // user's own machine or LAN. Brand-free by design — the user supplies the

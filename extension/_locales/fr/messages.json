@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· direct"
   },
+  "stt_engine_device": {
+    "message": "Transcription intégrée à l’appareil (gratuit · hors ligne · app uniquement)"
+  },
+  "stt_hint_device": {
+    "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; nécessite iOS 26 / macOS 26. Utilisé uniquement dans Conversation pour l’instant."
+  },
+  "stt_device_suffix": {
+    "message": "· sur l’appareil"
+  },
+  "stt_device_no_file": {
+    "message": "La transcription sur l’appareil n’est disponible que dans Conversation pour l’instant"
+  },
+  "listen_need_device_os": {
+    "message": "La transcription sur l’appareil nécessite iOS 26 / macOS 26 — ou choisissez un moteur temps réel cloud dans les réglages"
+  },
+  "listen_downloading": {
+    "message": "Téléchargement du modèle hors ligne {lang} · {pct} %"
+  },
+  "listen_assets_failed": {
+    "message": "Échec du téléchargement du modèle hors ligne : {why} — appuyez de nouveau sur « Commencer à écouter » ou choisissez un moteur cloud dans les réglages."
+  },
+  "listen_entry_privacy_device": {
+    "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu va au moteur de traduction que vous avez configuré."
+  },
+  "listen_cost_line_device": {
+    "message": "Écouté {t} · l’audio ne quitte jamais l’appareil"
+  },
   "grant_live_go": {
     "message": "Ajouter un moteur en direct →"
   },
