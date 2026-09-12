@@ -373,7 +373,16 @@ final class MTDeviceSpeech {
                     do {
                         try FileManager.default.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
                         guard let url = URL(string: f.url) else { throw URLError(.badURL) }
-                        let tmp = try await MTDeviceSpeech.fetch(url)
+                        let before = done
+                        var lastEmit = 0.0
+                        let tmp = try await MTDeviceSpeech.fetch(url) { [weak self] frac in
+                            // ≤ 4 次/秒：每个字节回调都过桥会把主线程淹掉
+                            let now = Date().timeIntervalSince1970
+                            guard now - lastEmit >= 0.25 else { return }
+                            lastEmit = now
+                            let fraction = (Double(before) + frac * Double(f.size)) / Double(total)
+                            DispatchQueue.main.async { self?.emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": fraction, "state": "downloading"]) }
+                        }
                         let data = try Data(contentsOf: tmp)
                         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
                         guard digest == f.sha256.lowercased() else { try? FileManager.default.removeItem(at: tmp); throw URLError(.cannotDecodeContentData) }
@@ -402,18 +411,15 @@ final class MTDeviceSpeech {
         }
     }
 
-    /// 回调式下载包成 async：`URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS
-    /// 部署目标是 10.15。回调里的临时文件在回调返回后就被删，所以先挪走再落定。
-    static func fetch(_ url: URL) async throws -> URL {
+    /// 带进度的下载（一个模型就是一个 60 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
+    /// 2026-09-12 真机实测就是这样）。委托式 URLSession，进度按字节比例回调，调用方限频。
+    /// `URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS 部署目标是 10.15，所以是回调包成 async。
+    static func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
         try await withCheckedThrowingContinuation { c in
-            let task = URLSession.shared.downloadTask(with: url) { tmp, resp, err in
-                if let err { c.resume(throwing: err); return }
-                guard let tmp else { c.resume(throwing: URLError(.badServerResponse)); return }
-                if let h = resp as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { c.resume(throwing: URLError(.badServerResponse)); return }
-                let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                do { try FileManager.default.moveItem(at: tmp, to: keep); c.resume(returning: keep) } catch { c.resume(throwing: error) }
-            }
-            task.resume()
+            let d = MTDownloadDelegate(progress: progress) { result in c.resume(with: result) }
+            let session = URLSession(configuration: .default, delegate: d, delegateQueue: nil)
+            d.session = session
+            session.downloadTask(with: url).resume()
         }
     }
 
@@ -597,5 +603,33 @@ enum MTZip {
         }
         guard n == e.size else { throw Err.bad("inflate") }
         return out
+    }
+}
+
+/// 下载委托：进度按字节比例回调；完成时把临时文件挪到自己的位置再落定（回调返回后系统就删它）。
+final class MTDownloadDelegate: NSObject, URLSessionDownloadDelegate {
+    private let progress: (Double) -> Void
+    private var finish: ((Result<URL, Error>) -> Void)?
+    var session: URLSession?
+    init(progress: @escaping (Double) -> Void, finish: @escaping (Result<URL, Error>) -> Void) {
+        self.progress = progress; self.finish = finish
+    }
+    private func settle(_ r: Result<URL, Error>) {
+        guard let f = finish else { return }
+        finish = nil
+        f(r)
+        session?.finishTasksAndInvalidate()
+    }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        progress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+    }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { settle(.failure(URLError(.badServerResponse))); return }
+        let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        do { try FileManager.default.moveItem(at: location, to: keep); settle(.success(keep)) } catch { settle(.failure(error)) }
+    }
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error { settle(.failure(error)) }
     }
 }
