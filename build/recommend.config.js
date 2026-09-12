@@ -103,6 +103,17 @@ const PICKS = [
     model: 'qwen-tts', basis: 'default',
     why: '注册表的 defaultModel。真宿主实测 2.0 秒 / 149KB / 浏览器解码 3.1 秒。**不要换成厂商主推的 qwen-audio-3.0-tts-flash** —— 那个是 WebSocket 专属，在这个 HTTP 端点上答「url error」。',
   },
+  // ─────────────────────────────── DeepSeek（国际版 / 中国版都有，自带 key）
+  {
+    platform: 'deepseek', host: 'api.deepseek.com', capability: 'chat', axis: 'default',
+    model: 'deepseek-v4-flash', basis: 'default',
+    why: '注册表的 defaultModel，也是全仓验证基线。台账里 thinking:{type:disabled} 采纳（3549ms → 1126ms，思考 278 → 0 tok）；没关思考时它在为每一句思考。',
+  },
+  {
+    platform: 'deepseek', host: 'api.deepseek.com', capability: 'chat', axis: 'fast',
+    model: 'deepseek-v4-flash', basis: 'latency',
+    why: '**对话·实时听译的「修正 + 翻译」一次调用（T:/X: 两行契约，不是 870 字正文）**上量的：Mac p50 112 / p90 180 ms，标签合规 100%，本机转写修正后 zh CER 12.7% → 6.2%（有声书）、17.8% → 10.0%（对话），en WER 2.7% → 1.9% —— 2026-09-12 横扫 16 个候选里**最快也最准**。真机（iPhone 14 Pro，家用 Wi-Fi 无代理）同一调用 p50 811–941 ms，仍是手机上能连到的候选里最快的：dashscope qwen3.8-flash 960、qwen-plus 1125、OpenRouter mistral-small 1215、豆包 1842、glm-4-flash 2732 ms；OpenRouter 的 gemini-3.1-flash-lite / gpt-5-nano 对手机答 403「not available in your region」，Gemini / OpenAI 直连从手机根本连不上。专用翻译模型 qwen-mt-turbo 从手机 312 ms，但它做不了修正（不收 system 消息），只能当并行的临时译文腿。',
+  },
 ];
 
 module.exports = { AXES, PICKS };
