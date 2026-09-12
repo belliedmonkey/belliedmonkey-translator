@@ -101,6 +101,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                        name: AVAudioSession.interruptionNotification, object: nil)
         nc.addObserver(self, selector: #selector(onRouteChange(_:)),
                        name: AVAudioSession.routeChangeNotification, object: nil)
+        // 路由切换（插拔耳机/蓝牙）后 inputNode 的格式会变，引擎自己停下、tap 作废 ——
+        // 原来的 converter 是起会话时一次性钉死的，之后每块都转出全零而没有任何报错
+        // （2026-09-12 尖刺 S12 记录的缺陷）。听到配置变化就按同样的参数重起一次采集。
+        nc.addObserver(self, selector: #selector(onEngineConfigChange(_:)),
+                       name: .AVAudioEngineConfigurationChange, object: nil)
         // 屏幕常亮要在每次回前台重申一次。`isIdleTimerDisabled` 只在 viewDidLoad 设过
         // 一次，而它只在 App 处于前台时被系统尊重 —— 从后台回来之后不重申，播客模式
         // 放着放着屏幕就自己灭了，而用户看到的只是「屏幕黑了」，无从归因。
@@ -126,7 +131,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
         case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
-        case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000)
+        case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
+                                        deliverPcm: (body["deliver"] as? String) != "level")
         case "mic-stop":       micStop()
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
@@ -149,14 +155,39 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     private var micEngine: AVAudioEngine?
     private var micConverter: AVAudioConverter?
     private var micOutFormat: AVAudioFormat?
+    private var micRate: Double = 24000
+    /// 本机路（§9.6.1）：`mic-start {deliver: 'level'}` ⇒ 不发 base64 PCM，只发 `mic-level {rms}`（≤10 Hz）。
+    /// 每秒十几块 base64 的主线程往返在云端路是必需的（socket 在 JS），本机路里是纯浪费 —— 音频
+    /// 留在原生，由 micSink 直接交给识别器。
+    private var micDeliverPcm = true
+    private var lastLevelAt: TimeInterval = 0
+    /// 与 tap 共享一份缓冲的第二个消费者（speech-bridge.swift 的设备内置转写）。
+    /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
+    var micSink: ((AVAudioPCMBuffer) -> Void)?
 
-    private func micStart(rate: Double) {
+    private func micStart(rate: Double, deliverPcm: Bool = true) {
         micStop()
+        micRate = rate
+        micDeliverPcm = deliverPcm
         requestMicPermission { [weak self] granted in
             guard let self = self else { return }
             guard granted else { self.emit(["type": "mic-state", "state": "denied"]); return }
             self.micBegin(rate: rate)
         }
+    }
+
+    /// 缓冲的 RMS（线性，0–1）。Float32 与 Int16 两种原生格式都认；识别器的静音检测与
+    /// `mic-level` 都用它，所以它是 static 的。
+    static func rms(_ buffer: AVAudioPCMBuffer) -> Double {
+        let n = Int(buffer.frameLength)
+        guard n > 0 else { return 0 }
+        var acc = 0.0
+        if let ch = buffer.floatChannelData {
+            for i in 0..<n { let v = Double(ch[0][i]); acc += v * v }
+        } else if let ch = buffer.int16ChannelData {
+            for i in 0..<n { let v = Double(ch[0][i]) / 32768; acc += v * v }
+        } else { return 0 }
+        return (acc / Double(n)).squareRoot()
     }
 
     private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
@@ -215,6 +246,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func micDeliver(_ buffer: AVAudioPCMBuffer) {
+        micSink?(buffer)
+        if !micDeliverPcm {
+            let now = Date().timeIntervalSince1970
+            guard now - lastLevelAt >= 0.1 else { return }
+            lastLevelAt = now
+            emit(["type": "mic-level", "rms": MTAudioBridge.rms(buffer)])
+            return
+        }
         guard let converter = micConverter, let outFormat = micOutFormat else { return }
         let ratio = outFormat.sampleRate / buffer.format.sampleRate
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 16
@@ -530,6 +569,19 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     @objc private func onDidBecomeActive() {
         UIApplication.shared.isIdleTimerDisabled = true
+    }
+
+    @objc private func onEngineConfigChange(_ note: Notification) {
+        guard let engine = micEngine, (note.object as? AVAudioEngine) === engine else { return }
+        let sink = micSink
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.micEngine === engine else { return }
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+            self.micEngine = nil; self.micConverter = nil; self.micOutFormat = nil
+            self.micBegin(rate: self.micRate)
+            self.micSink = sink
+        }
     }
 
     @objc private func onRouteChange(_ note: Notification) {

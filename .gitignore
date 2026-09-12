@@ -35,3 +35,6 @@ dist-app-china/
 .local/
 design/.thumbnail
 supabase/.temp/
+
+# 原生二进制依赖（scripts/fetch-native-deps.js 拉取，钉版本 + sha256）
+app/native/vendor/
