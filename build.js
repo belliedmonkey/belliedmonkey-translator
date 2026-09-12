@@ -919,6 +919,36 @@ function validateManifest(distDir, isFirefox) {
     log('Gate G OK（文档翻译的披露与功能同版）');
   }
 
+  // ── Gate H（docs/learning-design.md §10；2026-09-12）─────────────────────
+  //
+  // 设备内置转写 / 朗读是又一个新披露面，而且**方向与 Gate E 相反**：音频不出设备，出设备的是
+  // 文字（去用户自己配置的翻译引擎），外加一次离线模型下载。判据形状同 Gate G：App 包里有本机
+  // 语音的桥 ⇒ README ×2 有那一段、12 份 locale 有页内那一句。只查键在不在的话一句「支持本机
+  // 转写」也能过 —— 所以英文要提 on-device transcription，中文要提「设备内置转写」，且 locale
+  // 那句要够长像一段完整披露。
+  if (fs.existsSync(path.join(__dirname, 'app', 'native-speech.js'))) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/on-device transcription/i.test(rdEn) || !/never sent to any server/i.test(rdEn)) miss.push('README.md 没有「设备内置转写」的披露（Gate H）');
+    if (!/设备内置转写/.test(rdZh) || !/不发往任何服务器/.test(rdZh)) miss.push('README.zh-CN.md 没有「设备内置转写」的披露（Gate H）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.listen_device_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 listen_device_privacy（Gate H）`); continue; }
+      if (v.length < 60) miss.push(`_locales/${loc} 的 listen_device_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    if (miss.length) {
+      err('Gate H FAILED —— App 带着设备内置转写/朗读，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate H：README ×2、两个站点、12 份 locale、NSMicrophoneUsageDescription');
+      process.exit(1);
+    }
+    log('Gate H OK（设备内置转写/朗读的披露与功能同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may
