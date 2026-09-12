@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· リアルタイム"
   },
+  "stt_engine_device": {
+    "message": "端末内蔵の文字起こし（無料・オフライン・アプリのみ）"
+  },
+  "stt_hint_device": {
+    "message": "音声は端末内で認識され、サーバーには送信されません。iOS 26 / macOS 26 が必要です。現在は「会話」でのみ使用します。"
+  },
+  "stt_device_suffix": {
+    "message": "· 端末内"
+  },
+  "stt_device_no_file": {
+    "message": "端末内蔵の文字起こしは現在「会話」でのみ使えます"
+  },
+  "listen_need_device_os": {
+    "message": "端末内蔵の文字起こしには iOS 26 / macOS 26 が必要です。または設定でクラウドのリアルタイムエンジンを選んでください"
+  },
+  "listen_downloading": {
+    "message": "{lang}のオフラインモデルをダウンロード中 · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "オフラインモデルのダウンロードに失敗：{why} — 「聞き始める」をもう一度押すか、設定でクラウドのリアルタイムエンジンを選んでください。"
+  },
+  "listen_entry_privacy_device": {
+    "message": "音声は端末内で認識され、サーバーには送信されません。認識したテキストは、あなたが設定した翻訳エンジンに送られます。"
+  },
+  "listen_cost_line_device": {
+    "message": "{t} 聞き取り · 音声は端末から出ません"
+  },
   "grant_live_go": {
     "message": "リアルタイム用エンジンを追加 →"
   },

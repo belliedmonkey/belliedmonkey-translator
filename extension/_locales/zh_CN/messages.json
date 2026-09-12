@@ -1918,6 +1918,33 @@
   "stt_live_suffix": {
     "message": "· 实时"
   },
+  "stt_engine_device": {
+    "message": "设备内置转写（免费 · 离线 · 仅 App）"
+  },
+  "stt_hint_device": {
+    "message": "声音只在你的设备上识别，不发往任何服务器；需要 iOS 26 / macOS 26。目前只用于「对话 · 实时听译」。"
+  },
+  "stt_device_suffix": {
+    "message": "· 本机"
+  },
+  "stt_device_no_file": {
+    "message": "设备内置转写目前只用于对话"
+  },
+  "listen_need_device_os": {
+    "message": "设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎"
+  },
+  "listen_downloading": {
+    "message": "正在下载{lang}离线模型 · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。"
+  },
+  "listen_entry_privacy_device": {
+    "message": "声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。"
+  },
+  "listen_cost_line_device": {
+    "message": "已听 {t} · 音频不离开设备"
+  },
   "grant_live_go": {
     "message": "另配实时引擎 →"
   },

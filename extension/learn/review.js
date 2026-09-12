@@ -384,6 +384,7 @@
     switch (code) {
       case 'no_engine':
       case 'no_base': return t('stt_no_base', '还没配置转写端点');
+      case 'device_no_file': return t('stt_device_no_file', '设备内置转写目前只用于对话');
       case 'no_key': return t('stt_no_key', '还没填转写 API Key');
       case 'network': return t('stt_network', '连不上转写端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
       case 'no_mic': return t('stt_no_mic', '这个浏览器拿不到麦克风');

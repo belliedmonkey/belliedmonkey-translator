@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· en vivo"
   },
+  "stt_engine_device": {
+    "message": "Transcripción integrada en el dispositivo (gratis · sin conexión · solo app)"
+  },
+  "stt_hint_device": {
+    "message": "La voz se reconoce en tu dispositivo y no se envía a ningún servidor; requiere iOS 26 / macOS 26. Por ahora solo se usa en Conversación."
+  },
+  "stt_device_suffix": {
+    "message": "· en el dispositivo"
+  },
+  "stt_device_no_file": {
+    "message": "La transcripción en el dispositivo solo está disponible en Conversación por ahora"
+  },
+  "listen_need_device_os": {
+    "message": "La transcripción en el dispositivo requiere iOS 26 / macOS 26, o elige un motor en tiempo real en la nube en Ajustes"
+  },
+  "listen_downloading": {
+    "message": "Descargando el modelo sin conexión de {lang} · {pct} %"
+  },
+  "listen_assets_failed": {
+    "message": "Falló la descarga del modelo sin conexión: {why}. Toca «Empezar a escuchar» de nuevo o elige un motor en la nube en Ajustes."
+  },
+  "listen_entry_privacy_device": {
+    "message": "La voz se reconoce en tu dispositivo y no se envía a ningún servidor; el texto reconocido va al motor de traducción que configuraste."
+  },
+  "listen_cost_line_device": {
+    "message": "Escuchado {t} · el audio nunca sale del dispositivo"
+  },
   "grant_live_go": {
     "message": "Añadir motor en vivo →"
   },

@@ -483,3 +483,51 @@ describe('ListenCore — 嘈杂环境下的静音门限（自适应）', () => {
     ok(C.noiseGate(s) > quiet, '门限该跟着抬，实际 ' + quiet + ' → ' + C.noiseGate(s));
   });
 });
+
+// ── 本机转写路（learning-design §9.6.1，2026-09-12 尖刺读数定下的规则）──────────────
+describe('ListenCore — 本机转写路：locale、收 final 的规则、串句', () => {
+  test('toLocale：短码 → 识别器 locale；不认识的原样', () => {
+    eq(C.toLocale('zh'), 'zh-CN'); eq(C.toLocale('en'), 'en-US'); eq(C.toLocale('ja'), 'ja-JP');
+    eq(C.toLocale('zh-TW'), 'zh-TW'); eq(C.toLocale('pt'), 'pt-BR'); eq(C.toLocale('xx-YY'), 'xx-YY'); eq(C.toLocale(''), '');
+  });
+  test('先看文字系：zh 路吐出的英文、en 路吐出的汉字都丢', () => {
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: 'We can chip the first bach netotayf', conf: 0.9 }, DEPS), 'zh 路对英文音频的高置信垃圾要丢');
+    ok(!C.acceptDeviceFinal({ locale: 'en-US', text: '如果定金周五之前到账', conf: 0.9 }, DEPS));
+    ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '如果定进周五之前到张', conf: 0.9 }, DEPS));
+    ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'We can ship the first batch', conf: 0.95 }, DEPS));
+  });
+  test('再看置信度：拉丁文字系低置信的碎片丢，CJK 碎片不按置信度丢', () => {
+    ok(!C.acceptDeviceFinal({ locale: 'en-US', text: 'Rugua, Ting, Xing, Cho', conf: 0.26 }, DEPS), 'en 路对中文音频的低置信拼音要丢');
+    ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'Sure.', conf: 0.59 }, DEPS));
+    ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '家', conf: 0.34 }, DEPS), '中文碎片是正文的一部分');
+    ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '。', conf: 0.42 }, DEPS), '标点不判文字系');
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: '   ', conf: 1 }, DEPS));
+  });
+  test('串句：时间片按 locale 串起来、按句末标点切；尾巴超时放出；两路互不串', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const sc = C.makeStreamCutter((l, s) => out.push(l + '|' + s), {
+      flushMs: 1200, setTimeout: (fn) => { timers.push({ id: ++id, fn }); return id; }, clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    sc.add('zh-CN', '如果定进');
+    sc.add('en-US', 'We can ship the');
+    sc.add('zh-CN', '周五之前到张我们下周二就能发第一批货');
+    sc.add('zh-CN', '。这个报家里');
+    sc.add('en-US', 'first batch next Tuesday.');
+    deepEq(out, ['zh-CN|如果定进周五之前到张我们下周二就能发第一批货。', 'en-US|We can ship the first batch next Tuesday.']);
+    eq(sc.pending('zh-CN'), '这个报家里');
+    // 尾巴：没有标点 ⇒ 等超时
+    const last = timers[timers.length - 1]; last.fn();
+    deepEq(out.slice(2), ['zh-CN|这个报家里']);
+    eq(sc.pending('zh-CN'), '');
+  });
+  test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
+    const s = C.newSession(T0, 0.5);
+    const r1 = C.addFinal(s, 'Bonjour, vous êtes prêt ?', T0 + 1000, pair('en', 'fr'), Object.assign({}, DEPS, { who: 'them' }));
+    eq(r1.who, 'them'); eq(r1.guessed, false);
+    const r2 = C.addFinal(s, 'Yes, ready when you are.', T0 + 3000, pair('en', 'fr'), Object.assign({}, DEPS, { who: 'me' }));
+    eq(r2.who, 'me'); eq(r2.guessed, false);
+    // 没给 who：照旧按语言判（zh/en 对）
+    eq(C.addFinal(s, '去机场，末班车几点', T0 + 5000, pair('zh', 'en'), DEPS).who, 'me');
+  });
+});

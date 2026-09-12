@@ -177,11 +177,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // grantOnly 的条目（免费额度的中继，§8.10）按设计**不进选择器**：
         // 它没有可粘的 key，令牌是登录之后系统发的，手选它只会得到 401。
         // 所以判据是「用户能选的引擎都在选择器里」，不是「注册表有几条就有几条」。
-        ttsEngineWant: 1 + (window.MT_TTS_ENGINES || []).filter((e) => !e.grantOnly).length,
+        // 本机条目（type device-*，§9.6.1）只在桥在的宿主里出现；这条门禁跑在真 Chrome 里、没有桥，
+        // 所以按 EngineFields.isDevice 滤掉 —— 谓词与 populate 同源，不是第二张表。
+        ttsEngineWant: 1 + (window.MT_TTS_ENGINES || []).filter((e) => !e.grantOnly && !EngineFields.isDevice(e)).length,
         // The transcription-engine picker (§9.4): one 未配置 row (the correct
         // default — no zero-config STT engine exists) plus the live registry.
         sttEngineCount: document.getElementById('stt-engine').options.length,
-        sttEngineWant: 1 + (window.MT_STT_ENGINES || []).filter((e) => !e.grantOnly).length,   // 同上（§8.10）
+        sttEngineWant: 1 + (window.MT_STT_ENGINES || []).filter((e) => !e.grantOnly && !EngineFields.isDevice(e)).length,   // 同上（§8.10 / §9.6.1）
         // chrome-shim seeds ttsMode='assist' SYNCHRONOUSLY, before review.js's
         // one-shot boot read — the async ensureDefaults path loses that race, which
         // is exactly how the app shipped with speech permanently off. Assert the
@@ -250,8 +252,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           });
           const SL = EngineFields.SLOTS;
           const cases = [
-            ['tts', 'tts', 'tts-engine', (window.MT_TTS_ENGINES || []).filter((e) => !e.grantOnly)],
-            ['stt', 'stt', 'stt-engine', (window.MT_STT_ENGINES || []).filter((e) => !e.grantOnly)],
+            ['tts', 'tts', 'tts-engine', (window.MT_TTS_ENGINES || []).filter((e) => !e.grantOnly && !EngineFields.isDevice(e))],
+            ['stt', 'stt', 'stt-engine', (window.MT_STT_ENGINES || []).filter((e) => !e.grantOnly && !EngineFields.isDevice(e))],
             ['notes', 'notes', 'notes-provider', LearnNotes.chatEngines()],
           ];
           // ── 进详细档的**第一眼**：默认（未配置）下三个框都不该露 ────────────
