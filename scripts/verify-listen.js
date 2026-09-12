@@ -45,6 +45,15 @@ function serve() {
         // 抓出来就知道这次翻译是往哪个方向 —— ↔ 改边那条断言唯一的判据。
         stats.chatDirs.push(((sys.match(/into ([^.]+)\./) || [])[1] || '?').trim());
         res.writeHead(200, { 'Content-Type': 'application/json' });
+        // 本机路的「修正 + 翻译」一次调用（§9.6.1）：system 是 correction stage，回 T:/X: 两行。
+        // 假修正只认一个错：「几搂」→「几楼」——够断言 raw / text / tr 三者的关系。
+        if (/correction stage/.test(sys)) {
+          stats.passCalls = (stats.passCalls || 0) + 1;
+          const sent = (String(user).split('Transcript sentence:\n')[1] || '').trim();
+          const fixed = sent.replace('几搂', '几楼');
+          res.end(JSON.stringify({ choices: [{ message: { content: 'T: ' + fixed + '\nX: 译：' + fixed } }] }));
+          return;
+        }
         res.end(JSON.stringify({ choices: [{ message: { content: '译：' + String(user).slice(0, 60) } }] }));
       });
       return;
@@ -413,16 +422,19 @@ function say(base, text) {
       f.say('zh-CN', 'Where is the mee ting room', 0.88);     // zh 路对英文音频：文字系不对 ⇒ 丢
       f.say('en-US', 'Where is the meeting room?', 0.96);     // 真的
       f.say('en-US', 'Hui, Yi, Shi', 0.2);                    // en 路对中文音频：低置信拼音 ⇒ 丢
-      f.say('zh-CN', '会议室在几楼？', 0.93);                   // 真的
+      f.say('zh-CN', '会议室在几搂？', 0.93);                   // 真的（带一个同音错字，留给远程修正）
       return 'ok'; })()`);
     const rowsG = await waitFor(async () => {
-      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, text: x.text, tr: x.tr })))`));
-      return r.length >= 2 && r.every((x) => x.tr) ? r : null;
-    }, 8000, 'G3: 两句定稿 + 译文');
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, text: x.text, raw: x.raw, tr: x.tr, temp: !!x.trTemp })))`));
+      return r.length >= 2 && r.every((x) => x.tr && !x.temp) ? r : null;
+    }, 8000, 'G3: 两句定稿 + 修正 + 译文');
     need(rowsG.length === 2, 'G3: 该只有两行（两条垃圾被丢），实际 ' + JSON.stringify(rowsG));
     need(rowsG[0].who === 'them' && rowsG[0].text === 'Where is the meeting room?' && rowsG[0].guessed === false, 'G3: en 路的句子归对方且不是猜的，实际 ' + JSON.stringify(rowsG[0]));
-    need(rowsG[1].who === 'me' && rowsG[1].text === '会议室在几楼？' && rowsG[1].guessed === false, 'G3: zh 路的句子归我且不是猜的，实际 ' + JSON.stringify(rowsG[1]));
-    need(stats.chatCalls >= callsG + 2, 'G3: 两句都该去翻译端点');
+    need(rowsG[1].who === 'me' && rowsG[1].raw === '会议室在几搂？' && rowsG[1].text === '会议室在几楼？' && rowsG[1].tr === '译：会议室在几楼？' && rowsG[1].guessed === false,
+      'G3: zh 路的句子该先存原文、再换成修正稿、译文来自同一次调用，实际 ' + JSON.stringify(rowsG[1]));
+    need((stats.passCalls || 0) >= 2 && stats.chatCalls >= callsG + 2, 'G3: 两句都该走「修正 + 翻译」一次调用，实际 passCalls ' + stats.passCalls);
+    const rawUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = [...document.querySelectorAll('#app-listen-history .listen-raw-toggle')]; if (!b.length) return { toggles: 0 }; b[0].click(); const rw = document.querySelector('#app-listen-history .listen-raw'); return { toggles: b.length, raw: rw && rw.textContent }; })())`));
+    need(rawUi.toggles === 1 && rawUi.raw === '会议室在几搂？', 'G3: 修正过的那一行该有「识别原文」可点展开，实际 ' + JSON.stringify(rawUi));
     if (process.env.TRACE) console.log('  …G4');
     // G4. 改语言 ⇒ 本机路重连（一路一个 locale）
     await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('app-listen-other'); s.value = 'ja'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);

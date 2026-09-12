@@ -1944,6 +1944,18 @@
   "listen_cost_line_device": {
     "message": "{t} 聞き取り · 音声は端末から出ません"
   },
+  "listen_raw_label": {
+    "message": "認識した原文"
+  },
+  "tts_engine_device": {
+    "message": "端末内蔵の読み上げ（オフラインモデル・アプリのみ）"
+  },
+  "tts_hint_device": {
+    "message": "音声は端末内で合成されます。初回のみオフラインモデルをダウンロードします（モデルファイルのみ）。モデルにない言語はシステム音声に切り替わり、行にその旨が表示されます。"
+  },
+  "tts_device_lang_fallback": {
+    "message": "システム音声で読み上げ（オフラインモデルは{lang}非対応）"
+  },
   "grant_live_go": {
     "message": "リアルタイム用エンジンを追加 →"
   },

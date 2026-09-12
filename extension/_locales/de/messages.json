@@ -1944,6 +1944,18 @@
   "listen_cost_line_device": {
     "message": "{t} gehört · Audio verlässt das Gerät nie"
   },
+  "listen_raw_label": {
+    "message": "Erkannter Text"
+  },
+  "tts_engine_device": {
+    "message": "Geräteinterne Sprachausgabe (Offline-Modell · nur App)"
+  },
+  "tts_hint_device": {
+    "message": "Sprache wird auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Nicht abgedeckte Sprachen nutzen die Systemstimme, und die Zeile sagt es."
+  },
+  "tts_device_lang_fallback": {
+    "message": "Mit Systemstimme gelesen (Offline-Modell deckt {lang} nicht ab)"
+  },
   "grant_live_go": {
     "message": "Live-Engine hinzufügen →"
   },

@@ -1944,6 +1944,18 @@
   "listen_cost_line_device": {
     "message": "Écouté {t} · l’audio ne quitte jamais l’appareil"
   },
+  "listen_raw_label": {
+    "message": "Texte reconnu"
+  },
+  "tts_engine_device": {
+    "message": "Voix intégrée à l’appareil (modèle hors ligne · app uniquement)"
+  },
+  "tts_hint_device": {
+    "message": "La voix est synthétisée sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Les langues non couvertes reviennent à la voix système, et la ligne l’indique."
+  },
+  "tts_device_lang_fallback": {
+    "message": "Lu avec la voix système (le modèle hors ligne ne couvre pas {lang})"
+  },
   "grant_live_go": {
     "message": "Ajouter un moteur en direct →"
   },

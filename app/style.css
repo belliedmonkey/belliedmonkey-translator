@@ -488,6 +488,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-row.me .listen-orig { color: var(--accent-deep); }
 :where(#app-listen) .listen-tr { color: var(--sage-strong); font-size: 0.95rem; line-height: 1.45; }
 :where(#app-listen) .listen-tr.pending { color: var(--dim); font-style: italic; }
+/* 本机路：复用半句的临时译文斜体，等修正稿回来换正体；「识别原文」可展开（§9.6.1） */
+:where(#app-listen) .listen-tr.temp { font-style: italic; }
+:where(#app-listen) .listen-raw-toggle { font: inherit; font-size: 0.78rem; background: none; border: 0; padding: 2px 0; color: var(--dim); text-decoration: underline dotted; cursor: pointer; min-height: 28px; }
+:where(#app-listen) .listen-raw { color: var(--dim); font-size: 0.85rem; line-height: 1.4; }
 :where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
 :where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
