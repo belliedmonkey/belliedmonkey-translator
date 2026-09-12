@@ -3,6 +3,20 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.10.0 — 2026-09-11
+
+- New "Document translation": upload a PDF, Word (.docx), plain text, or an image and read it page by page, original and translation side by side. Only the page you open is translated, with bounded concurrency — never the whole document at once, never the whole budget at once.
+- Scans and images are recognized by the multimodal engine you configured, then translated.
+- Any translated line can go into review as language-learning material; the source manager groups them by document and lets you delete a whole file.
+
+<details><summary>中文</summary>
+
+- 新增「文档翻译」：上传 PDF、Word（.docx）、纯文本或图片，一页一页对照翻译。打开哪一页才翻哪一页、控制并发，不会把整份文档一次翻掉、也不会一次把额度花光。
+- 扫描件和图片交给你配置的多模态引擎识别后再翻。
+- 每段译文都能一键收进复习，当外语学习资料；来源管理里按文档分组，可整份删除。
+
+</details>
+
 ## 1.9.2 — 2026-09-11
 
 - The popup now has a "Live transcription + translation" row that starts with one tap whenever the page has a video or audio element (players inside web components included); when the player lives in an embedded frame it says so and offers a way in. The in-overlay entry no longer waits 15 seconds.
