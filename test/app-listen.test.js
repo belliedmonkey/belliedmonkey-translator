@@ -576,3 +576,13 @@ describe('ListenCore — 回声 token：混排按段切，不把整句拆成字�
     ok(sq.spokenRecently('Please confirm the price', T0 + 5000), '去掉前缀与标点也算');
   });
 });
+
+describe('ListenCore — latencySummary（时延埋点的汇总）', () => {
+  test('按 lat.pass / lat.ttsStart 算 p50/p90/max，缺字段的行不算', () => {
+    const rows = [{ lat: { pass: 100, ttsStart: 200, ttsEngine: 'device' } }, { lat: { pass: 300 } }, { lat: { pass: 200, ttsStart: 400, ttsEngine: 'browser' } }, { text: 'no lat' }];
+    const s = C.latencySummary(rows);
+    eq(s.n, 3); eq(s.pass.n, 3); eq(s.pass.p50, 200); eq(s.pass.max, 300);
+    eq(s.ttsStart.n, 2); eq(s.ttsStart.p50, 400); deepEq(s.ttsEngines, { device: 1, browser: 1 });
+    eq(C.latencySummary([]).pass.p50, null);
+  });
+});
