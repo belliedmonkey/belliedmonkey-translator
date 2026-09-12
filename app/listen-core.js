@@ -187,11 +187,22 @@ var ListenCore = (() => {
   const DROP_PUNCT = /[\s.,!?;:'"()\[\]{}—–\-。，！？；：、「」『』（）《》…]+/gu;
 
   // 归一化成词/字的集合。中日韩按字切，其余按词切。
+  // 混排（一句里既有汉字又有拉丁词）按**段**切：汉字逐字、拉丁按词。原来只要有一个汉字就整句逐字符切，
+  // 于是「译：Delivery takes…」被切成一堆字母，和任何一句英文都有六成字母重合 —— 60 秒窗里的第二句
+  // 英文译文被当成「刚读过」跳掉（2026-09-12 门禁 G6 抓到）。
   function echoTokens(text) {
     const t = String(text == null ? '' : text).toLowerCase().replace(DROP_PUNCT, ' ').trim();
     if (!t) return new Set();
-    if (CJK_CHAR.test(t)) return new Set([...t].filter((c) => !/\s/.test(c)));
-    return new Set(t.split(/\s+/).filter(Boolean));
+    const out = new Set();
+    let word = '';
+    const flush = () => { if (word) { out.add(word); word = ''; } };
+    for (const c of t) {
+      if (/\s/.test(c)) { flush(); continue; }
+      if (CJK_CHAR.test(c)) { flush(); out.add(c); continue; }
+      word += c;
+    }
+    flush();
+    return out;
   }
 
   function makeEchoGuard() {
@@ -517,6 +528,8 @@ var ListenCore = (() => {
     const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
     const streams = {};   // locale → { buf, timer }
     const join = (a, b) => (!a ? b : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b));
+    // 只有标点/空白的「句子」（识别器把上一句的句号单独吐出来时常见）不算句子 —— 真机上会成一行「.」
+    const HAS_WORD = /[\p{L}\p{N}]/u;
     function emitDone(locale, st) {
       let buf = st.buf;
       const TERM = /[。！？!?]["'”’)\]]?|\.(?=\s|$)/g;
@@ -524,7 +537,7 @@ var ListenCore = (() => {
       while ((m = TERM.exec(buf))) {
         const end = m.index + m[0].length;
         const sent = buf.slice(last, end).trim();
-        if (sent) onSentence(locale, sent);
+        if (sent && HAS_WORD.test(sent)) onSentence(locale, sent);
         last = end;
       }
       st.buf = buf.slice(last).replace(/^\s+/, '');
@@ -534,7 +547,7 @@ var ListenCore = (() => {
       if (st.timer) { clearT(st.timer); st.timer = 0; }
       emitDone(locale, st);
       const rest = st.buf.trim(); st.buf = '';
-      if (rest) onSentence(locale, rest);
+      if (rest && HAS_WORD.test(rest)) onSentence(locale, rest);
     }
     return {
       add(locale, text) {
@@ -550,6 +563,61 @@ var ListenCore = (() => {
     };
   }
 
+  // ── 远程「修正 + 翻译」一次调用（§9.6.1 契约）────────────────────────────────
+  // 本机识别的错几乎全是同音字与数字（尖刺实证：定进/到张/报家/信用正业/电灰/7045天），
+  // 系统热词零效果，所以纠错放在远程、和翻译合成一次往返（DeepSeek p50 ≈ 100 ms）。
+  // 契约用行标签不用 JSON：小模型 JSON 易碎，而两行标签丢了任何一行都能兜住（原文不丢）。
+  const LISTEN_PASS = 'one';        // 'one' = 修正+翻译一次调用；'two' = 先修正再走普通 translate（备用，非设置项）
+  const LISTEN_CONTEXT_ROWS = 6;    // 带给修正的上下文行数
+  const CORRECT_RATIO_MIN = 0.7, CORRECT_RATIO_MAX = 1.3;   // 修正接受门：token 长度比
+  function buildListenPrompt(p) {
+    const src = p.srcName || p.srcLang || '', dst = p.dstName || p.dstLang || '';
+    const system = 'You are the correction stage of a live conversation interpreter. The user message is ONE sentence of a raw on-device speech-recognition transcript in ' + src
+      + ', plus the last few sentences of the conversation for context, and optionally recognizer candidates.\n'
+      + '1. Correct recognition errors only: homophones, mis-segmented words, wrong numbers. Keep the speaker\'s wording, order and length; never paraphrase, never add or drop content. If it is already right, repeat it unchanged.\n'
+      + '2. Then translate the corrected sentence into ' + dst + '.\n'
+      + 'Output exactly two lines and nothing else:\n'
+      + 'T: <corrected sentence in ' + src + '>\n'
+      + 'X: <translation in ' + dst + '>';
+    const ctx = (p.context || []).filter((c) => c && c.text);
+    const alts = (p.alts || []).map((a) => String(a || '').trim()).filter(Boolean);
+    const user = (ctx.length ? 'Context (earlier sentences, oldest first):\n' + ctx.map((c) => '- [' + (c.who === 'me' ? 'me' : 'them') + '] ' + c.text + (c.tr ? '  ⇒ ' + c.tr : '')).join('\n') + '\n\n' : '')
+      + (alts.length ? 'Recognizer candidates: ' + [...new Set(alts)].slice(0, 12).join(' | ') + '\n\n' : '')
+      + 'Transcript sentence:\n' + String(p.text || '');
+    return { system, user };
+  }
+  // 解析：双标签 ⇒ { text, tr }；只有 X / 无标签 ⇒ text 用原文、tr 取整段（原文永不丢）。
+  function parseListenReply(raw, fallbackText) {
+    const s = String(raw || '').replace(/\r/g, '').trim();
+    const T = (s.match(/^\s*T\s*[:：]\s*(.+)$/m) || [])[1];
+    const X = (s.match(/^\s*X\s*[:：]\s*(.+)$/m) || [])[1];
+    if (T && X) return { text: T.trim(), tr: X.trim(), tagged: true };
+    if (X) return { text: fallbackText, tr: X.trim(), tagged: false };
+    // 无标签：整段当译文（去掉可能的围栏与前缀）
+    const tr = s.replace(/^```[a-z]*\n?|```$/g, '').trim();
+    return { text: fallbackText, tr, tagged: false };
+  }
+  // 修正接受门：长度比 0.7–1.3 且文字系不变；不过门 ⇒ 弃修正只取译文。
+  function acceptCorrection(orig, corrected, deps) {
+    const a = String(orig || '').trim(), b = String(corrected || '').trim();
+    if (!b || a === b) return false;
+    const n = (x) => (CJK_CHAR.test(x) ? [...x.replace(DROP_PUNCT, '')].length : x.split(/\s+/).filter(Boolean).length) || 1;
+    const ratio = n(b) / n(a);
+    if (ratio < CORRECT_RATIO_MIN || ratio > CORRECT_RATIO_MAX) return false;
+    const ds = deps && deps.dominantScript;
+    if (ds) { const sa = ds(a), sb = ds(b); if (sa && sb && sa !== sb) return false; }
+    return true;
+  }
+  // 给修正当上下文的最近几行（不含这一行本身），最老的在前。
+  function contextRows(rows, row, n) {
+    const out = [];
+    for (let i = rows.length - 1; i >= 0 && out.length < (n || LISTEN_CONTEXT_ROWS); i--) {
+      const r = rows[i]; if (r === row || !r.text) continue;
+      out.push({ who: r.who, text: r.text, tr: r.tr || '' });
+    }
+    return out.reverse();
+  }
+
   function transcriptText(session, mePrefix) {
     const rows = (session && session.rows) || [];
     return rows.map((r) => {
@@ -559,6 +627,8 @@ var ListenCore = (() => {
   }
 
   return {
+    LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
+
     toLocale, scriptOfLocale, acceptDeviceFinal, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,

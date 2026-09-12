@@ -1091,6 +1091,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"stt-probe"', '"stt-assets"', '"stt-start"', '"stt-stop"', '"tts-probe"', '"tts-assets"', '"tts-speak"', '"tts-stop"',
       // 原生 → JS
       '"stt-state"', '"assets-progress"', '"stt-partial"', '"stt-final"', '"tts-state"', '"tts-start"', '"tts-end"', '"tts-failed"',
+      '"tts-debug"', '"step"', '"speak"', '"player"', '"generated"', '"n"', '"stale"',   // 朗读链路的调试事件（JS 不认就忽略）
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
@@ -1100,6 +1101,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"os"', '"locale"', '"locales"', '"format"', '"stt"', '"tts"', '"no-engine"', '"download"', '"load"', '"lang"',
       // 路径 / 杂项
       '"mt-speech"', '"mt.speech.tts"', '"%02x"',
+      // zip 解包（MTZip）：错误码与路径片段
+      '".zip"', '".installed-"', '"/"', '".."', '"."', '"eocd"', '"cdir"', '"name"', '"local"', '"range"', '"method"', '"inflate"',
       '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });

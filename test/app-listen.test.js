@@ -520,6 +520,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     const last = timers[timers.length - 1]; last.fn();
     deepEq(out.slice(2), ['zh-CN|这个报家里']);
     eq(sc.pending('zh-CN'), '');
+    // 只有标点的片段不成句（真机上识别器会把上一句的句号单独吐出来）
+    sc.add('en-US', '.'); sc.add('zh-CN', '。');
+    for (const t of timers.splice(0)) t.fn();
+    eq(out.length, 3, '「.」「。」不该成行');
   });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
@@ -529,5 +533,46 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     eq(r2.who, 'me'); eq(r2.guessed, false);
     // 没给 who：照旧按语言判（zh/en 对）
     eq(C.addFinal(s, '去机场，末班车几点', T0 + 5000, pair('zh', 'en'), DEPS).who, 'me');
+  });
+});
+
+describe('ListenCore — 远程「修正 + 翻译」契约（§9.6.1）', () => {
+  test('提示词：system 写明源/目标语言与两行标签；user 带上下文（最老在前）、候选词、原句', () => {
+    const p = C.buildListenPrompt({ text: '如果定进周五之前到张', alts: ['到账', '到账'], who: 'me', srcName: '简体中文', dstName: 'English',
+      context: [{ who: 'them', text: 'Can you ship next week?', tr: '下周能发货吗？' }] });
+    ok(/correction stage/.test(p.system) && /T: <corrected sentence in 简体中文>/.test(p.system) && /X: <translation in English>/.test(p.system), p.system);
+    ok(p.user.includes('[them] Can you ship next week?  ⇒ 下周能发货吗？'), '上下文行带译文');
+    ok(p.user.includes('Recognizer candidates: 到账') && !p.user.includes('到账 | 到账'), '候选词去重');
+    ok(p.user.endsWith('Transcript sentence:\n如果定进周五之前到张'));
+    eq(C.LISTEN_PASS, 'one');
+  });
+  test('解析：双标签取两行；只有 X 或无标签 ⇒ 原文不丢、整段当译文；全角冒号也认', () => {
+    deepEq(C.parseListenReply('T: 如果订金周五之前到账\nX: If the deposit arrives by Friday\n', '原'), { text: '如果订金周五之前到账', tr: 'If the deposit arrives by Friday', tagged: true });
+    deepEq(C.parseListenReply('X: only translation', '原'), { text: '原', tr: 'only translation', tagged: false });
+    deepEq(C.parseListenReply('```\njust text\n```', '原'), { text: '原', tr: 'just text', tagged: false });
+    eq(C.parseListenReply('T：中文冒号\nX：ok', '原').text, '中文冒号');
+  });
+  test('接受门：同音字修正过门；换语言、长度差太多、没改都不过', () => {
+    ok(C.acceptCorrection('如果定进周五之前到张', '如果订金周五之前到账', DEPS));
+    ok(!C.acceptCorrection('如果定进周五之前到张', 'If the deposit arrives', DEPS), '文字系变了');
+    ok(!C.acceptCorrection('a b c', 'a b c d e f g h', DEPS), '长度比超 1.3');
+    ok(!C.acceptCorrection('same', 'same', DEPS), '没改不算修正');
+    ok(!C.acceptCorrection('x', '', DEPS));
+  });
+  test('上下文：取最近 6 行、不含本行、最老在前', () => {
+    const rows = []; for (let i = 1; i <= 9; i++) rows.push({ who: i % 2 ? 'them' : 'me', text: 't' + i, tr: i < 9 ? 'x' + i : '' });
+    const ctx = C.contextRows(rows, rows[8]);
+    eq(ctx.length, 6); eq(ctx[0].text, 't3'); eq(ctx[5].text, 't8'); eq(ctx[5].tr, 'x8');
+    ok(!ctx.some((c) => c.text === 't9'), '不含本行');
+  });
+});
+
+describe('ListenCore — 回声 token：混排按段切，不把整句拆成字母', () => {
+  test('带一个汉字前缀的英文句不再和另一句英文「六成重合」', () => {
+    const sq = C.makeSpeakQueue();
+    sq.noteSpoken('译：Please confirm the price.', T0);
+    ok(!sq.spokenRecently('译：Delivery takes forty five days.', T0 + 5000), '两句英文只共享「译」和几个字母，不该算刚读过');
+    ok(sq.spokenRecently('译：Please confirm the price.', T0 + 5000), '同一句仍算刚读过');
+    ok(sq.spokenRecently('Please confirm the price', T0 + 5000), '去掉前缀与标点也算');
   });
 });

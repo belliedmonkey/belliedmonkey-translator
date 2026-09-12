@@ -1944,6 +1944,18 @@
   "listen_cost_line_device": {
     "message": "Listened {t} · audio never leaves the device"
   },
+  "listen_raw_label": {
+    "message": "Recognised text"
+  },
+  "tts_engine_device": {
+    "message": "On-device speech (offline model · App only)"
+  },
+  "tts_hint_device": {
+    "message": "Speech is synthesised on your device; the first use downloads the offline model once (the model file only). Languages the model does not cover fall back to the system voice, and the row says so."
+  },
+  "tts_device_lang_fallback": {
+    "message": "Read with the system voice (the offline model does not cover {lang})"
+  },
   "grant_live_go": {
     "message": "Add a live engine →"
   },
