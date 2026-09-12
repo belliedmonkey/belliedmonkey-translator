@@ -432,6 +432,7 @@ final class MTDeviceSpeech {
         guard let m = models[lang], installed(m) else { emit?(["type": "tts-failed", "id": id, "reason": "lang"]); return }
         cancelled = false
         currentId = id
+        emit?(["type": "tts-debug", "id": id, "step": "speak"])
         queue.async { [self] in
             let tts: SherpaOnnxOfflineTtsWrapper
             if let t = loaded[lang] { tts = t } else {
@@ -452,6 +453,7 @@ final class MTDeviceSpeech {
                 DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)]) }; return
             }
             let box = MTSpeechChunkBox(player: player, rate: sampleRate)
+            DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "player"]) }
             box.onFirst = { [weak self] in self?.emit?(["type": "tts-start", "id": id]) }
             box.isCancelled = { [weak self] in self?.cancelled ?? true }
             let cb: TtsCallbackWithArg = { samples, n, arg in
@@ -462,9 +464,11 @@ final class MTDeviceSpeech {
             }
             let ptr = Unmanaged.passUnretained(box).toOpaque()
             let audio = tts.generateWithCallbackWithArg(text: text, callback: cb, arg: ptr, sid: 0, speed: Float(rate))
-            _ = audio.audio.pointee.n
+            let n = audio.audio != nil ? Int(audio.audio.pointee.n) : -1
+            DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "generated", "n": n]) }
             box.finish { [weak self] in
-                guard let self, self.currentId == id else { return }
+                guard let self else { return }
+                guard self.currentId == id else { self.emit?(["type": "tts-debug", "id": id, "step": "stale"]); return }
                 self.emit?(["type": "tts-end", "id": id])
             }
         }
@@ -502,11 +506,11 @@ final class MTDeviceSpeech {
 
 /// 一次合成的块调度器：块一到就排进 playerNode；「播完」按**首块时刻 + 总时长**定时收口。
 ///
-/// 2026-09-12 真机实证：`scheduleBuffer(…, completionCallbackType: .dataPlayedBack)` 的完成回调在
-/// 录音会话（.playAndRecord + 输入 tap 同时在跑）下**一次都不来** —— tts-start 发了、tts-end 永远不发，
-/// 自动朗读的队列在第二句上永远等着；手点「朗读」只等开始所以看着正常。块是按顺序、比实时快得多
-/// 地排进去的，所以播放结束时刻 = 首块出声时刻 + 总样本数 / 采样率，定时器就是可靠的信号；
-/// 回调若真来了只会更早一点（两者谁先到谁算，只落定一次）。
+/// 2026-09-12 真机实证：tts-start 发了、tts-end 永远不发，自动朗读的队列在第二句上永远等着（手点
+/// 「朗读」只等开始所以看着正常）。真因是**生命周期**：box 是队列块里的局部量，generate 一返回就被
+/// 释放，弱引用的完成回调全打在 nil 上 —— 不是音频会话的问题。现在回调与定时器都强引用 box 到落定。
+/// 两个信号谁先到谁算，只落定一次：播放完成回调，和「首块出声时刻 + 总样本数 / 采样率」的定时器
+/// （块比实时快得多地按序排入，所以这个估计是准的；回调若失灵也有它兜底）。
 final class MTSpeechChunkBox {
     private let player: AVAudioPlayerNode
     private let rate: Double
@@ -530,7 +534,10 @@ final class MTSpeechChunkBox {
         memcpy(buf.floatChannelData![0], samples, n * MemoryLayout<Float>.size)
         lock.lock(); chunks += 1; pending += 1; frames += n; let first = chunks == 1; if first { firstAt = Date() }; lock.unlock()
         if first { DispatchQueue.main.async { self.onFirst?() } }
-        player.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { [weak self] _ in self?.played() }
+        // 强引用：box 是 speak() 那个队列块里的局部量，generate 一返回它就会被释放 —— 弱引用的回调
+        // 与定时器全都打在 nil 上，tts-end 永远不发（2026-09-12 真机抓到：tts-start 有、tts-end 无）。
+        // 回调持有它到播放结束为止，之后随之释放，不泄漏。
+        player.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { _ in self.played() }
     }
 
     private func settle() {
@@ -549,7 +556,7 @@ final class MTSpeechChunkBox {
         let remaining = max(0, Double(frames) / rate - (firstAt.map { Date().timeIntervalSince($0) } ?? 0))
         lock.unlock()
         if noAudio { settle(); return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + remaining + 0.15) { [weak self] in self?.settle() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + remaining + 0.15) { self.settle() }   // 同上：强引用
     }
 }
 

@@ -1091,6 +1091,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"stt-probe"', '"stt-assets"', '"stt-start"', '"stt-stop"', '"tts-probe"', '"tts-assets"', '"tts-speak"', '"tts-stop"',
       // 原生 → JS
       '"stt-state"', '"assets-progress"', '"stt-partial"', '"stt-final"', '"tts-state"', '"tts-start"', '"tts-end"', '"tts-failed"',
+      '"tts-debug"', '"step"', '"speak"', '"player"', '"generated"', '"n"', '"stale"',   // 朗读链路的调试事件（JS 不认就忽略）
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
