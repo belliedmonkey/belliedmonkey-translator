@@ -562,3 +562,13 @@ describe('ListenCore — 远程「修正 + 翻译」契约（§9.6.1）', () => 
     ok(!ctx.some((c) => c.text === 't9'), '不含本行');
   });
 });
+
+describe('ListenCore — 回声 token：混排按段切，不把整句拆成字母', () => {
+  test('带一个汉字前缀的英文句不再和另一句英文「六成重合」', () => {
+    const sq = C.makeSpeakQueue();
+    sq.noteSpoken('译：Please confirm the price.', T0);
+    ok(!sq.spokenRecently('译：Delivery takes forty five days.', T0 + 5000), '两句英文只共享「译」和几个字母，不该算刚读过');
+    ok(sq.spokenRecently('译：Please confirm the price.', T0 + 5000), '同一句仍算刚读过');
+    ok(sq.spokenRecently('Please confirm the price', T0 + 5000), '去掉前缀与标点也算');
+  });
+});

@@ -1100,6 +1100,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"os"', '"locale"', '"locales"', '"format"', '"stt"', '"tts"', '"no-engine"', '"download"', '"load"', '"lang"',
       // 路径 / 杂项
       '"mt-speech"', '"mt.speech.tts"', '"%02x"',
+      // zip 解包（MTZip）：错误码与路径片段
+      '".zip"', '".installed-"', '"/"', '".."', '"."', '"eocd"', '"cdir"', '"name"', '"local"', '"range"', '"method"', '"inflate"',
       '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });
