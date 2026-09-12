@@ -128,6 +128,11 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
   不是坏了，是手机正被拿在手里。装完包请把它放下、锁屏、别再碰。
 - **窗口底部约 70px 是悬浮条，会吃掉点击** —— 目标落在那一带时先滚动，别硬点。
 - **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.1）。
+- **镜像只用来驱动屏幕；任何要读麦克风的环节先把它退出（2026-09-12）。** 镜像开着时
+  Mac 占用手机麦克风：tap 帧照流（47.7k 帧/s）、样本**全零**（Mac 弹「无法从 Mac 使用
+  iPhone 麦克风」）。09-07 的尖刺记过一次、09-12 又废掉探针的前两轮读数，所以升成规则：
+  **音频读数 = 镜像已关**。被测 App 自己留 append-only 时间戳日志，读数在重开镜像后
+  回读（同下文「关掉镜像窗口就是锁屏」那条的做法）。声源按 §0.3 用播放语料，不用真人。
 
 **把包弄上机的两条路，代价不同：**
 
@@ -204,6 +209,62 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
    **上一次**的产物 —— 2026-08-23 它就这样对着两周前的旧 appex 报「少了
    `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
    同一个默认路径也可能让一个真的漏文件的包通过。
+
+### 0.3 语音类验证：用播放代替真人（2026-09-12 用户裁定）
+
+**语音类验证一律不靠真人说话。** 凡是要往麦克风里送声音的验证 ——「对话 · 实时听译」的
+云端路与本机路、AI 转写字幕的 tier B、回声消除、锁屏续听 —— 声源一律是 **Mac 或另一台
+iPhone 播放的音频 / 视频 / TTS 语料**。用户原话（2026-09-12）：「语音类验证一律不靠真人
+说话，用 Mac / 另一台 iPhone 播放音频、视频或 TTS 语料代替，以后都这么走。」这是规则，
+不是建议；一条「我对着手机念了一句，出字了」不是验证。
+
+为什么（三条，每条都是 09-12 付过代价才写下的）：
+
+- **同一段波形可以重放。** 真人说两遍不是同一段音频，于是 AEC 开/关、VP 开/关、单路/双路
+  之间的读数没有可比性；播放语料时两次之间的差只剩被测变量。09-12 的 S10 表
+  （VP 关 zh CER 25.6% vs VP 开 32.2% / 34.4%，同一段 conv 语料）就是这么得到的 ——
+  换成真人，那张表一行都不成立。
+- **无人值守。** 读数要跑几分钟到十几分钟（有声书 3 分钟一档、实时转写 12 分钟一档、
+  锁屏 60 s 一档）。让人对着手机念 12 分钟的验证，跑一次就没有下一次（同 §0.2 的理由）。
+- **错误率要有分母。** 语料带参照文本（`.local/spike/conv/ref.txt`、`.local/asr/*`），
+  CER / WER 才算得出来；真人说的话没有参照，只剩「听着差不多」，而那不是读数。
+
+**配方**（`.local/spike/lab-server.js` + `.local/spike/SpikeApp`，09-12 真机跑通）：
+
+1. Mac 上起一个局域网小服务，**排队**要手机执行的命令（下发模型 / 语料、切阶段，
+   例如 `▶ mic-asr`）并收回读数。
+2. 手机端 App **轮询**该服务，按队列执行、回传每一档的读数（帧数、dBFS、finals、时间戳）。
+3. Mac 侧一看到 mic 阶段开始，立刻 `afplay <语料>`（手机放在 Mac 扬声器旁；用另一台
+   iPhone 播放同理）。要比较 AEC 开/关，就把**同一段语料**在两个窗口各放一遍。
+
+**语料**：
+
+| 语料 | 内容 | 用途 |
+|---|---|---|
+| `.local/spike/conv/*` | Piper 合成的中英交替 12 句对话，句间 **1.5 s 静音**，56 s，参照 `conv/ref.txt` | 停顿是刻意的：它就是「停顿 → 定稿」那条判据的测量条件；也是双识别器归属的测试集 |
+| `.local/asr/*` | 有声书（`zh-12` 鲁迅散文、`en-12` 福尔摩斯）前 3 分钟，无停顿 | 量错误率（CER / WER）与懒定稿的 p90 |
+
+**今天踩到的坑，每条都是规则：**
+
+| 现象 | 真相 | 规则 |
+|---|---|---|
+| 麦克风 tap 帧在流（47.7k 帧/s）、样本**全零**、识别器一字不出 | **iPhone 镜像在 Mac 上开着**，Mac 占了手机麦克风 | **任何要读麦克风的环节之前先退出 iPhone 镜像**；镜像只用来驱动屏幕（§0.2）。探针前两轮读数全废在这上面，09-07 的尖刺已记过一次、这次又踩，所以升成规则 |
+| 探针跑到一半没读数了，重开镜像看到它被挂起 | 探针没持有后台音频会话，锁屏 / 切走即挂起 | **探针 / 测试 App 必须持有后台音频会话**（`.playAndRecord` 已激活 + `UIBackgroundModes: audio`），否则锁屏那一档量到的是「挂起」不是功能 |
+| `xcrun devicectl device process launch` 报 `RequestDenied` | 手机锁着 | **launch 只在解锁后做**；解锁后可 launch 任意 bundle id（含 `com.apple.Preferences`，用来把人带到权限页）。与 F-bis 那张表一致：USB 要解锁、镜像要锁屏 |
+| 第二次装探针后麦克风权限没再弹，采集 0 帧 | 权限曾被拒，iOS 不再提示 | **被拒的麦克风权限不会再弹**；iOS 27 路径：设置 → 应用 → <App> → 麦克风。判据是权限状态**回读**，不是「弹没弹」 |
+| 记忆与本文都说测试机是 iOS 26.5 | 真机已升到 **iOS 27.0（24A5430a）** | 本文其它地方的「iOS 26.5」是当时读数的条件，只增不改；**新读数一律标 27.0** |
+
+**「对话 · 实时听译」延迟目标（2026-09-12；本机路与云端路同用）。** 每一行的实测来自
+`.local/spike/READINGS.md`（iPhone 14 Pro · iOS 27.0，Mac M2 Pro · macOS 26.5）；
+时间类判据一律以录像或时间戳日志为证，不许目测（§4）：
+
+| 环节 | 目标 | 09-12 实测（本机路） | 备注 |
+|---|---|---|---|
+| 句子开口 → 首个 volatile | **≤ 2 s** | 1.0–1.9 s | 云端 `delay:minimal` 是 0.18–0.35 s；本机的 volatile 只做「看到字」的反馈 |
+| 停顿 → 整句定稿 | **≤ 1.0 s** | 0.4–0.9 s | **前提是自己的静音检测（RMS，300–500 ms）调 `analyzer.finalize(through:)`**。默认定稿是懒的（停顿不收口，有声书 p90 14 s），系统 `SpeechDetector` 模块无帮助；final 是时间片不是句子，串起来按标点切 |
+| 定稿 → 修正 + 译文落地 | **≤ 1.0 s** | 0.1–0.5 s（DeepSeek `deepseek-chat` p50 ≈ 100 / p90 ≈ 200 / max 475 ms） | 一次远程调用（`T:` / `X:` 两行契约） |
+| 译文 → 朗读起声 | **≤ 0.5 s** | ≈ 0.2 s（Piper 真机首块均值 zh 176 / en 157 ms，最大 264 / 216 ms） | 边合成边播，首块到即出声 |
+| 错误率（远程修正后） | **zh CER ≤ 12% · en WER ≤ 8%** | zh 有声书 13.1% → 5.4%；en 3.1% → 1.9%；conv 中文 17.8% → 10.0% | 沿用 `scripts/asr-probe.js` 的 `THRESH`；分母是语料参照文本 |
 
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
@@ -348,6 +409,14 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 25 | `gemini_transcribe` (file tier) | global | `transcribe-gemini` | Gemini key | ✅ 2026-09-06 探针（英文 29.8 分钟 69.4s / WER 2.9%，中文 19.9 分钟 CER 12.0%；mode 必须 verbatim）+ 真 Chrome 页面源 POST 可读 |
 | 26 | `gemini_transcribe` **live tier** | global | `ws-bidi` | 同一把 Gemini key（`?key=`） | ❌ **未登记**（2026-09-06）：首测 finals 是段落级（每 ~35s 一条）⇒ 改为从累计 interim 切句；免费档 interim 被限流（12 分钟 126 帧 vs 首轮 1473），滞后 p50 8.6s，不过 §2.4 判据。适配器 `ws-bidi` 已实现有单测；付费档复测过线再登记（台账 `gemini-3.5-transcribe-live` 行） |
 | 27 | `qwen_asr` **live tier** (§2.4) | china | `ws-duplex` | 同一把千问 key（`?api_key=`） | ✅ 2026-09-07 `scripts/asr-probe.js`（12 分钟英文滞后 p90 1.56s / WER 3.6%，中文 p90 1.42s / CER 5.2%，0 断流）+ 真 Chrome 页面源握手并收到 task-started（`asr-cors-probe.js`）；单测覆盖 run-task / 二进制帧 / 累计中间态切句 / task-failed。**中国版 App「对话 · 实时听译」的存在前提**（AGENTS 规则 10） |
+| 28 | `device` (STT) | global + china | `device-transcribe`（**无 HTTP**；`defaultEndpoint: null`，iOS 26 / macOS 26 `SpeechAnalyzer` + `SpeechTranscriber`） | —（系统能力 / 离线模型：zh_CN / zh_TW 与 9 个英语变体预装，其它 locale 首次用时由系统下载，进度可读） | ✅ 2026-09-12 尖刺（`.local/spike/READINGS.md`，harness `scripts/spike/device-asr.swift` + `.local/spike/SpikeApp`；**iPhone 14 Pro · iOS 27.0** 与 Mac M2 Pro · macOS 26.5）：zh 有声书 CER 13.1% 原始 → **5.4%** 远程修正后（云端 OpenAI 3.9% / 千问 5.2%）；en 有声书 WER 3.1% → **1.9%**（云端 3.7%）；conv 中文 17.8% → 10.0%。**定稿默认是懒的**（停顿不收口，有声书 p90 14 s）—— 要自己的 VAD 调 `finalize(through:)` 才有停顿后 0.4–0.9 s；final 是时间片不是句子；`contextualStrings` 热词对同音字零效果；双识别器归属先看文字系再看置信度。真机 45 个 locale，en-US 资产 Mac 上 46 s 装完。**未测（D2 前必补，见 F-bis 2026-09-12 补充）**：真机双路 CPU（Instruments）、中国网络资产下载、转写中插拔耳机。仅宿主 App；扩展 **N/A by design**（§3.1.4） |
+| 29 | `device` (TTS) | global + china | `device-speech`（**无 HTTP**；sherpa-onnx v1.13.8 本地推理，静态链接 ≈ 35 MB；模型不进包，首次用时从我们的文件服务器下载、sha256 钉住） | —（离线模型：Piper zh_CN-huayan / en_US-lessac 各 79 MB；未覆盖的语言回落 `browser` 并在行上具名） | ✅ 2026-09-12 尖刺真机（iPhone 14 Pro · iOS 27.0，CPU provider，2 线程）：Piper zh 首块均值 / 最大 **176 / 264 ms** · RTF 0.053 · 加载 1.6 s；en **157 / 216 ms** · RTF 0.050 · 加载 1.3 s；边合成边播（playerNode 按块调度）跑通、首块到即出声。弃 Kokoro（真机首块 1.3–2 s、加载 10–20 s；int8 反比 fp32 慢 3–4×；CoreML 无提速）。**未测**：中国网络模型下载。仅宿主 App；扩展 **N/A by design** |
+
+> **两行 `device` 条目与台账（2026-09-12）。** 它们不说 HTTP，没有 host、没有 model
+> 参数可调，所以 `build/perf-ledger.config.js` 里没有它们的行。`test/perf-ledger.test.js`
+> 的「注册表条目无台账行即红」**已经**放行 `defaultEndpoint` 为空的条目（`google`、`browser`
+> 与自填地址的条目同理 —— 「量不了一个不存在的地址」），所以两行 `device` 条目不需要改那道门，
+> 也不许为它们编一行 HTTP 读数。它们的证据在本表这两行与 `.local/spike/READINGS.md`。
 
 > **⚠️ 以上 6 行都是「桌面 Node 走扩展代码路径」级别的实证，不是真机。** 三条新语音链路
 > （`transcribe-dashscope` / `speech-dashscope` / `speech-audio-chat`）**一条都没在
@@ -410,6 +479,7 @@ is named here rather than assumed:
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
+| **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
 **Check that silence is reported as silence.** iOS drops `speechSynthesis.speak()`
 without a gesture with no exception, no error event and no sound — so a test that
@@ -433,6 +503,7 @@ test with the key from `.local/keys.md`.
 | macOS Safari | ✅ **measured 2026-09-07** (Safari 26.5, transistor.fm, whisper-1 + DeepSeek, driven by AppleScript `do JavaScript` — log `.local/asr/results/2026-09-07-safari-macos-file-tier.log`): the entry appears once the page's own subtitles are ruled out (≈16 s, 6 acquire attempts), one upload of the whole 25-min file, first pair 101 s after the tap, pairs follow playback. Content-script fetch of the CDN worked as on Chrome. | ❌ **measured 2026-09-07: MSE (`blob:`) sources are SILENT** — Twitch live and a YouTube video both stayed audible while `createMediaElementSource` output RMS 0.00000, confirmed in the page world with a real click and a `running` AudioContext (`2026-09-07-safari-macos-live-tier.log`). Since #216 the session stops **before** the socket opens with the named 「Safari 抓不到这类流媒体视频的声音」; before that the silence guard reported 「捕获不到声音」 within 5 s (correct, but blamed the speakers). Http(s) `<audio>` with CORS (the crossorigin-reload path) is unmeasured on Safari — every real podcast page took tier A. | same; plus: an AudioContext created outside a user gesture stays `suspended` in Safari and `resume()` never settles, so the **toolbar-popup entry** (a gesture in the popup, not in the page) cannot start capture on Safari — the in-page notice button is the path that works. *Since 2026-09-11 (第九期)* the popup entry on Safari lands on a named `gesture` stop and the notice offer reads 「▶ 点此开始实时转写」 — one in-page tap, then capture (to be measured on a real iPhone: the Simulator cannot produce a real gesture) |
 | iPhone / iPad Safari (≥ iOS 17.1) | ✅ **measured 2026-09-08** (iPhone 15 Pro Simulator, iOS 17.2, transistor.fm, whisper-1 + DeepSeek, driven by `safaridriver` — extensions DO run inside a WebDriver session on the Simulator; log `.local/asr/results/2026-09-07-safari-ios-sim-file-tier.log`): entry after 12 s, one upload, **first pair 90 s** after the tap, pairs follow playback | ❌ **measured 2026-09-08**: native HLS (`<video src=.m3u8>`, Apple's bipbop sample) stops by name 「Safari 抓不到这类流媒体视频的声音」 within 3 s (#216 treats a manifest URL as a non-fetchable source; before that it took tier A and failed as 「无法读取该音频」 — a playlist is not audio). m.youtube.com on iOS 17.2 serves a **progressive http(s)** `googlevideo` URL (not MSE): the CORS probe passed, the element was reloaded with `crossorigin`, then 「捕获不到声音」 3 s after 「实时转写中」 — the trigger was a WebDriver click (no user gesture, AudioContext suspended), so whether a real tap captures audio on an http(s) source is **still unmeasured** (manual taps are blocked while a WebDriver session is open, and ending the session blanks the tab). iPad not run separately (same WebKit, same layout code). | same; the named stops above all appear within 3 s, no stuck state seen | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
 | iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
+| iOS / macOS host app — **本机路** (`device` STT → own VAD → `finalize(through:)` → `sentenceCutter` → **one** remote correct+translate call → `device` TTS; designed 2026-09-12, verifiable from D2) | N/A (no page media) | Source per §0.3: a played corpus, **mirroring closed**. The row shows the **raw** sentence first (`row.raw`), then swaps to the corrected text with the translation; timing per the §0.3 table (volatile ≤ 2 s · pause → final ≤ 1.0 s · final → corrected+translated ≤ 1.0 s · translation → speech ≤ 0.5 s), proven by a timestamped log or recording. The corpus stores the **corrected** text. The bridge carries `mic-level {rms}` only — never base64 PCM (`mic-start.deliver === 'level'`). iPhone real device: **60 s locked ⇒ `stt-final` keeps arriving** (M24). iOS < 26 / macOS < 26 ⇒ entry greyed with the named sentence 「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」; the cloud live engine stays the full baseline | named `downloading` / `listen_assets_failed` with the cloud exit; switching a language on the device path **reconnects** (one locale per recognizer) — a silent no-op here is a defect; an all-zero `mic-level` is an invalid reading, not silence (§4, 2026-09-12) |
 
 **Check the request, not the overlay.** A live session that re-sends an already-closed
 sentence produces byte-identical subtitles; only the socket log shows the waste. Assert
@@ -1074,6 +1145,37 @@ USB（`devicectl`）与蓝牙/Wi-Fi（iPhone 镜像）**是两条独立的路，
 FAB 注入 → 点一下整页双语（`September Event` → `九月活动`、`Latest News` → `最新新闻`），
 走存量的 DeepSeek 配置。
 
+#### F-bis 补充（2026-09-12）：真机已是 iOS 27.0；本机语音两行 M24 / M25；D2 前欠的三项读数
+
+- **真机现在是 iOS 27.0（24A5430a）。** 本节标题与 §2 各处的「iOS 26.5」是当时读数的
+  条件，只增不改；新读数一律标 27.0。
+- §0.3 那张坑表在这一行全部适用：先退出镜像再读麦克风；`devicectl … process launch`
+  要解锁；被拒的麦克风权限不再弹（设置 → 应用 → <App> → 麦克风）；探针要持有后台
+  音频会话。声源按 §0.3 用 Mac `afplay` 语料，不用真人。
+
+**本机语音（device-speech，D2–D6）在这一行新增两项，与 M21–M23 同列**（G 行 macOS
+宿主 App 同样跑 M25；M24 的锁屏一档 macOS 无对应，记 N/A）。`learn-regression.md` 的
+M 表要同步加这两行，编号在此钉住：
+
+| # | 项 | 怎么做 | 通过判据 |
+|---|---|---|---|
+| **M24** | 本机转写锁屏 60 s 续听 | 引擎选「设备内置转写」，按 §0.3 配方开始听译，Mac `afplay` conv 语料；**退出镜像 = 真锁屏**，60 s 后重开镜像回读 | 锁屏窗口内 `stt-final` 持续到达（App 内 append-only 时间戳日志，≥ 5 条 final 的时间戳落在锁屏窗口内），历史里多出对应的定稿 + 译文；`mic-level` 的 rms **不是恒 0**（恒 0 是镜像没退干净或权限被拒，§4 2026-09-12）。M22 的云端路基线同场跑一遍，不得退化 |
+| **M25** | 本机朗读后台出声 | 引擎选「设备内置朗读（离线模型）」，触发一句自动朗读，按 Home 退到后台（镜像可驱动这一步，§0.2） | 后台期间桥收到 `tts-start` / `tts-end`，且**用户人耳听到声音**（Swift 侧 playerNode 出声，JS 里没有任何可断言的音频元素 —— 这是 §4「静音要报成静音」在本机路的形态）；模型未下载时先出具名 `downloading` 态，下载失败 `listen_assets_failed` 并留 `browser` / 云端出口 |
+
+**D2 写代码之前欠的三项读数**（09-12 尖刺没拿到；不补就是「没测」，按 §0 不得写成通过）：
+
+| 欠的读数 | 为什么现在没有 | 怎么补 | 判据 |
+|---|---|---|---|
+| 真机双识别器 CPU | 探针里的采样器写错了（线程时间差出负数），**没量准**；只有旁证：四档转写 `thermalState` 全程 nominal，双路 conv 与单路 conv 的滞后 / 首字无差别 | Instruments（Time Profiler + Energy Log），zh+en 双路对 conv 语料 3 分钟，镜像已关 | 进程 CPU 均值与 max 写进 `READINGS.md`；`thermalState` 不进 `serious`；与单路的差值具名 |
+| 中国网络下的资产下载（无 VPN） | 手机一直在家里 Wi-Fi，走的是有代理的网 | 手机关 VPN，走蜂窝或国内直连 Wi-Fi；触发一个**未预装** locale（如 ja）的 `SpeechTranscriber` 资产下载 + 一次 Piper 模型下载（我们的文件服务器） | 两条进度都到 1.0，用时记下；失败必须出具名 `listen_assets_failed`，不许转圈。这一项**没有绿之前，中国版不得把两个 `device` 条目放进出货列表** |
+| 转写中插拔耳机（音频路由切换） | 没跑 | 本机路转写进行中，插入 / 拔出有线耳机各一次（蓝牙耳机与镜像互斥，§0.2；所以这一档也是镜像关着、日志回读） | `AVAudioEngineConfigurationChange` 后 tap 继续有帧、`stt-final` 继续到，历史不断；掉帧要具名，不许静默停 |
+
+另有一条尖刺**未解**，D2 必须单独验：`setVoiceProcessingEnabled(true)` 在挂了 playerNode
+的 engine 上 tap 收 **0 帧**（两次都是），不挂 player 时开 VP 能正常收帧并识别外部人声。
+正式桥里先试「先 attach player 再开 VP」与「VP 下 tap 用 nil 格式」；两条都不通就把 VP
+关掉出货，并在 `READINGS.md` 记下回声读数（不开 VP 时扬声器→麦克风回声约 +7 dB，播放中
+采集不掉帧）—— 关 VP 是一个有读数的决定，不是默认。
+
 ### G. macOS host app (real Mac) — ✅ verified 2026-08-08
 
 Same three built files as row F, same Xcode project, so what this row tests is the
@@ -1280,6 +1382,28 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 桥收到 `mic-stop`。改 `app/listen*.js`、桥的 mic 协议、Swift 输入半边、来源/复习卡的 conv 分支
 时必跑。真机上仍要人验的只剩两件：锁屏续听（M22，09-07 已实证 3 分钟不断）与朗读有没有声（M23）。
 
+**2026-09-12 追加（device-speech，D2 起）：第二个假桥 `mtSpeech`。** 本机路
+（`device-transcribe` / `device-speech`，domain-design §7）在 JS 侧能看到的只有桥消息，
+所以门禁再注入一个按 `mtSpeech` 协议回话的假原生桥：`stt-probe` → `stt-state {state:'ready'}`；
+`stt-start {locales}` → 定时吐 `stt-partial` 与 `stt-final`（**两个 locale 都吐，带 `conf` 与
+`alts`**，其中一路是另一路的噪声，好让文字系优先的归属规则真的被走到）；`tts-probe` →
+`tts-state`；`tts-speak {id}` → `tts-start {id}` / `tts-end {id}`。本机假翻译端点对本机路的
+请求回 `T: <修正后原文>` / `X: <译文>` 两行（云端路照旧回整段）。断言：
+
+- 只配了本机引擎（没有云端实时引擎、没有 key）时**入口存在且可用**；
+- 行**先出原文**（`row.raw`，与假桥 final 串起来切句后逐字相同），再换成修正文 + 译文
+  （与端点的 `T:` / `X:` 逐字相同）；修正文与原文不同时行尾有「识别原文」；
+- **语料写的是修正文**，不是原文（判据是 DB 回读，同 §3.1.3）；
+- 桥收到的 `mic-start.deliver === 'level'`（本机路只传 `mic-level {rms}`，不传 base64 PCM）；
+- 假桥回 `stt-state {state:'unsupported'}`（旧系统）⇒ 入口灰，且页面上出现具名句
+  「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」—— 断言那句话
+  的文本，不是「入口不可点」；
+- 目标语言不在 Piper 覆盖内 ⇒ 朗读回落 `browser`，且**行上具名**（断言那行的文本）；
+- 云端路（原有 `mtAudio` 假桥 + RFC 6455 假流式端点）的全部既有断言仍绿 —— 本机路是
+  加法，不是替换；两个假桥在同一次运行里都要被真的走到。
+
+真机上仍要人验的于是变成四件：M22、M23（云端路）与 M24、M25（本机路，F-bis 2026-09-12）。
+
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
@@ -1325,6 +1449,17 @@ App 里却没有任何控件，界面语言永远落到 `navigator.language`。
   于是「全部不可见」会以一种很像真发现的方式全线报错。这条已经踩过一次。
 - 门禁要**证伪**过：删掉 `MODULES` 里的一行、恢复一处手写显隐、把旧 id 放回来、
   让某个字段恒显 —— 四种破坏方式当场各红一次，才算这道门存在。
+
+**2026-09-12 追加（device-speech）：本机条目只在 App 的下拉出现。** `device`（STT）与
+`device`（TTS）两个注册表条目由 `engine-fields.populate()` 按**调用方注入的 `deviceOk`**
+决定出不出现 —— 组件自己不探桥，扩展页永远传不出 `true`。于是「真渲染」那层的引擎计数
+谓词要**按 `deviceOk` 过滤**：App 段（`test:app` 的 dist-app 布局）注入 `deviceOk:true`
+时期望多出这两个条目，且它们的三个字段行按 `EngineFields.visibility(entry)` 全部不可见
+（`supportsKey` / `supportsBaseUrl` / `supportsModel` 都是 `false`）；扩展段不注入，
+**计数不含它们**。一个在扩展下拉里出现的「设备内置转写」正是这道门要红的那种漂移 ——
+它向用户承诺了一个扩展永远到不了的桥。静态层不变：两个条目不加新字段，「是否本机 / 是否
+实时」由 `type` 推导（domain-design §7）。证伪一次：把 `deviceOk` 在扩展段硬编成 `true`，
+扩展段的计数断言必须当场红。
 
 ### 3.2 `npm run test:layout` — layout regression corpus
 
@@ -1478,6 +1613,16 @@ by an ancestor's `overflow:hidden`.
   `sysadminctl -screenLock status` 若是 `immediate`（本机即是），自动解除那条路
   永远走不通，脚本必然落到「请手动解锁」。所以它的价值是**检测 + 大声失败**，
   不是无人值守续命 —— 但正是这声失败能挡住上面那种误判。
+
+- **麦克风读数里样本全零不是「房间很安静」，是设备被别人占着或权限被拒（2026-09-12）。**
+  09-12 探针的前两轮读数全废：帧在流（47.7k 帧/s）、样本全零、识别器一字不出，真因是
+  iPhone 镜像在 Mac 上开着（Mac 占了手机麦克风）。安静的房间是 −45 到 −50 dBFS 的底噪
+  （09-12 实测环境 −46.8 dB），不是 −∞。所以任何麦克风读数**同时报帧率（帧/s）与
+  dBFS**，并且把 **−120 dBFS（rms 恒 0）判为无效读数**、大声失败 —— 报的不是
+  「未检测到声音」，而是「观察手段坏了」（§0.3 的坑表列了三种：镜像未退出、权限被拒、
+  探针被挂起）。这与本节开头那条同源：抓不到画面先怀疑观察手段，再怀疑被观察对象。
+  §0.3 的声源规则是它的另一半：真人说话时「没出字」分不清是没说清还是没收到，播放语料
+  时帧率 + dBFS 两个数就能把「没收到」钉死。
 
 - Don't trust your own injected test hacks as proof of the shipped code — verify the
   **built/loaded** extension.

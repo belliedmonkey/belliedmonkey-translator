@@ -297,6 +297,19 @@ Gemini and Meta are measured the same way before their entries ship.
    proxies or logs it. The privacy copy ships in the same version (`release-checklist`
    §2). There is no zero-config engine here for the same reason there is none for 说
    (`stt.config.js` header): an empty `sttEngine` means the offer opens settings.
+   *(Amended 2026-09-12:)* **on-device transcription in the host app is the one
+   exception, and it is an exception to the letter, not to the reason.** The rule
+   exists because recordings leave for a server the user did not choose; with the
+   `device` engine (`type: 'device-transcribe'`, `build/stt.config.js`) the audio
+   **never leaves the device** — the system recogniser runs locally — so there is
+   nothing the rule protects against. What does leave is the recognised **text**, with
+   a few preceding sentences as context, sent to the translation engine the user
+   configured for correction + translation in one call; our server is not in that
+   path either. The `stt.config.js` header's "there is NO zero-config engine" is
+   likewise read as *no zero-config **cloud** engine* — the device entry is the only
+   exception, and it is zero-config precisely because no server is involved. Pipeline
+   in `docs/learning-design.md` §9.6; the privacy copy ships in the same version as
+   the code, §10 Gate H. The extension never gains this engine (§5.3 fourth instance).
 6. **Stops are total.** A `mediaKey` change, `disable()`, or a change to the
    transcription settings aborts the capture, closes the socket and drops the open
    tail; already-appended sentences keep their translations (the Engine's `reset()`
@@ -316,6 +329,17 @@ key carve-outs). Module consequences are in §6. Per-surface expectations are na
    runs — `docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」). Per §5.3 this is
    a host-app capability: **the extension never gains a microphone source**, and the
    streaming adapter (`ws-transcribe.js`) stays one file shared by both hosts.
+   *(Amended 2026-09-12 — the on-device path changes what the microphone feeds:)*
+   with the `device` transcription engine selected, the native tap's PCM goes to the
+   system recogniser in Swift and **only `mic-level` (RMS, 10 Hz) crosses the bridge**
+   instead of base64 PCM — the tap is installed once and shared, never a second time.
+   Sentence closing is **client-side**: the recogniser's finals are lazy time-slices,
+   not sentences (measured 2026-09-12: p90 8–14 s to a final without intervention,
+   and finals cut mid-word), so the app runs its own silence detector (RMS,
+   300–500 ms) and calls `finalize(through:)` itself, after which the whole sentence
+   lands in ≈ 0.4–0.9 s; the finals are then concatenated and cut on punctuation by
+   the same `sentenceCutter` as every other source (rule 3 holds verbatim). Cloud
+   live engines are unchanged and remain the complete baseline.
 
 ### 2.5 文档翻译 — uploaded documents, one page at a time (核心约束 — do not break)
 
@@ -764,6 +788,28 @@ in", because the user just uploaded a scan and is waiting. The one surface that 
 something is macOS's host app (no `runOpenPanel`), and per rule 1 that is fixed in the
 host, not papered over in the page.
 
+**Fourth instance — on-device transcription and on-device speech in the host app
+(§2.4 rule 5 amendment, `docs/learning-design.md` §9.6), 2026-09-12.** The baseline is
+unchanged: the cloud live engine (`liveEndpoint` + `liveType` + key) remains the
+complete 对话 path, and the Safari iOS extension floor is untouched because these two
+engines (`device` in `build/stt.config.js`, `device` in `build/tts.config.js`) **exist
+only in the host app** — they never appear in an extension dropdown. The capability is
+the system recogniser (iOS 26 / macOS 26 `SpeechAnalyzer`) and an offline synthesis
+model, both behind the native bridge (`NativeSpeech.probe()`); rule 1 is satisfied
+because they make an already-working path cheaper and private, never the only working
+path. Rule 2 applied literally: `engine-fields.populate` receives a caller-injected
+`deviceOk` boolean and **never probes the bridge itself** — the host page probes and
+passes a plain value in, so the component's contract is that boolean, not the bridge
+behind it, and the extension pages simply never pass `true`. Degradation is **named,
+not silent**, under the same carve-out the second and third instances use — §9.1's
+"never silent to a user who opted in" outranks rule 3, because the user chose this
+engine: an older OS ⇒ the entry is disabled with a reason (「设备内置转写需要 iOS 26 /
+macOS 26 —— 或去设置里选一个云端实时引擎」); assets not yet on the device ⇒ a named
+`downloading` state with progress, and a failed download ⇒ a named `listen_assets_failed`
+state that leaves the cloud exit in reach; a language the offline voice does not cover
+⇒ the row says so and falls back to the platform voice (`browser`). Registry
+consequences are in §7 (third endpoint carve-out).
+
 > **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
 > other two: DEVICE and SITE change *where* things are drawn, whereas this one can
 > change *what the user sees*. With an `en` target on an English page, Chrome draws
@@ -1009,7 +1055,14 @@ is a build-time concern, not a runtime one.
   interface" is **derived** from the presence of `liveEndpoint` + `liveType` — no
   `live: true` flag, no second list — so the one-key card's optional 「实时转写」 row,
   the `· 实时` suffix in the engine dropdown and the popup's `file_only` state all read
-  the same two fields. OpenRouter has no realtime endpoint (checked 2026-09-10: only
+  the same two fields. *(Amended 2026-09-12:)* a `type` of `device-transcribe` is
+  **also** a live interface — derived from `type`, the same way `google` and `browser`
+  are dispatched by `type` — so "has a live interface" is *`liveEndpoint && liveType`,
+  or `type === 'device-transcribe'`*; still no boolean flag, still no second list, and
+  the same three consumers read it. The cloud live engine remains each flavor's
+  existence precondition (the `AGENTS.md` rule 10 gate in `test/registry.test.js` —
+  「每个 flavor 至少有一个带实时接口的转写引擎」 — is unchanged and does not count a
+  `device` entry toward it). OpenRouter has no realtime endpoint (checked 2026-09-10: only
   `POST /api/v1/audio/transcriptions`), which is why the global one-key platform needs
   a second key for live transcription rather than a second entry. Its sibling `content/request-shape.js` answers the question that is left
   once the shape is fixed — **which optional fields go in the body** — and the same
@@ -1206,6 +1259,40 @@ is a build-time concern, not a runtime one.
   that a `?key=` is stripped before suffix matching and never logged. Written down and
   gated, never an unmentioned gap.
 
+- **On-device engines are the third carve-out, same shape** *(2026-09-12, §2.4 rule 5
+  amendment, §5.3 fourth instance)*. `device` in `build/stt.config.js`
+  (`type: 'device-transcribe'`) and `device` in `build/tts.config.js`
+  (`type: 'device-speech'`) speak **no HTTP at all** — recognition and synthesis run on
+  the device — so they declare `defaultEndpoint: null` **explicitly**, exactly as
+  `google` does (an absent field is still the failure mode `test/registry.test.js`
+  catches). They are dispatched by `type` **before** any address is resolved, in the
+  same place `google` (translation) and `browser` (speech) are, so `resolveEndpoint`
+  never sees them; they need no `perf-ledger` row because there is no host to measure
+  (`test/perf-ledger.test.js` already exempts null-default entries); and they ship in
+  **both** flavors, since nothing crosses a border. The registry **field sets do not
+  change** — `KNOWN_KEYS` in `test/registry.test.js` is untouched; "is it on-device"
+  and "is it live" are both derived from `type`, never from a new boolean. The two
+  entries, verbatim:
+
+  ```js
+  // build/stt.config.js（放 local 之前；header 「永远没有零配置引擎」改为「云端无零配置项；本机条目是唯一例外」）
+  { id: 'device', type: 'device-transcribe', flavors: ['global','china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '',
+    labelKey: 'stt_engine_device', label: '设备内置转写（免费 · 离线 · 仅 App）', hintKey: 'stt_hint_device' }
+  // build/tts.config.js（放 browser 之后）
+  { id: 'device', type: 'device-speech', flavors: ['global','china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '', voices: null, returnsAudio: false,
+    labelKey: 'tts_engine_device', label: '设备内置朗读（离线模型 · 仅 App）', hintKey: 'tts_hint_device' }
+  ```
+
+  Both entries appear only in the host app's dropdowns (`engine-fields.populate` is
+  handed `deviceOk` by the caller, §5.3 rule 2); extension pages never list them. The
+  `stt.config.js` header's "there is NO zero-config engine" narrows to *no zero-config
+  **cloud** engine* — the reason (recordings leave for a vendor's server) does not
+  apply to an engine that sends nothing.
+
 - **`resolveEndpoint` has exactly two branches, and neither of them concatenates.**
   Empty stored value ⇒ the registry's `defaultEndpoint`; anything else ⇒ that value,
   trimmed and otherwise untouched. There is no capability argument, no stamp, no table.
@@ -1311,7 +1398,16 @@ neither a timed transcript nor a text transcript page get the page path plus tha
 offer, nothing automatic. *(Amended 2026-09-07:)* the host app's 对话 mode
 (`docs/learning-design.md` §9.6) transcribes the **device microphone** on the same
 terms — user's tap, user's endpoint, nothing of ours in the path — with capture done
-natively because WebKit silences it in the background.
+natively because WebKit silences it in the background. *(Amended 2026-09-12:)*
+"in-browser" stays out — recognition inside the browser is still infeasible on Safari
+iOS, and the browser's own `SpeechRecognition` still ships audio to its vendor.
+What is now **in** scope is **system-level on-device recognition and on-device
+synthesis inside the host app** (§2.4 rule 5 amendment, `docs/learning-design.md`
+§9.6): no audio leaves the device, so neither the "recordings leave for a server the
+user did not choose" objection nor the backend prohibition is touched — only the
+recognised text goes out, to the user's own translation engine. The extension never
+gains either engine (§5.3 rule 1 / fourth instance; §9.4 — the host app is an
+additional surface, never the only working path).
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
