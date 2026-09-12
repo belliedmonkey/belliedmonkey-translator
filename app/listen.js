@@ -169,8 +169,10 @@ var AppListen = (() => {
   async function translateRow(row, toLang, quiet) {
     const myGen = gen;
     row.trErr = false; row.trBusy = true; renderHistory();
+    const t0 = now();
     const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang);
     if (myGen !== gen) return;
+    if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -195,10 +197,12 @@ var AppListen = (() => {
       context: C.contextRows(session ? session.rows : [], row),
     });
     let reply = '';
+    const t0 = now();
     try {
       reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
     } catch (_) { reply = ''; }
     if (myGen !== gen) return;
+    if (row.lat) row.lat.pass = now() - t0;
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
@@ -319,6 +323,8 @@ var AppListen = (() => {
     // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
+    // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
+    row.lat = { final: now(), engine: (cfg.eng && cfg.eng.id) || '' };
     partial = ''; partialTr = '';
     // 两边的定稿走同一条路，只是目标语言相反（targetLangFor）。2026-09-08 之前
     // 「我说的」在这里直接 return，等松手时整段处理 —— 那条路随按住一起没了。
@@ -671,7 +677,10 @@ var AppListen = (() => {
       // 展示卡上的「朗读中」只在这一行正被放大时点亮；行内的那个由 renderHistory 按
       // speakingRid 画。原来无条件点亮，展示卡关着时是个不可见的空操作。
       if (showRid && showRid === rid) mark.hidden = false;
+      const t0 = now();
       r = await LearnTTS.speak(text, lang || (cfg && cfg.otherLang));
+      // 出声耗时：从要求朗读到引擎报「已开始出声」（browser 是 start 事件、device 是 tts-start）
+      if (session && rid) { const row = session.rows.find((x) => x.rid === rid); if (row && row.lat) { row.lat.ttsStart = now() - t0; row.lat.ttsEngine = (r && r.engine) || ''; row.lat.ttsOk = !!(r && r.ok); } }
     } catch (_) { r = null; }
     if (my === speakOutGen) mark.hidden = true;
     // 设备内置朗读回落到系统语音（模型不含这个语言）：行上具名，不静默
@@ -1085,5 +1094,6 @@ var AppListen = (() => {
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
     _debug: () => ({ phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
-      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping }) };
+      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
+    lat: C.latencySummary(session ? session.rows : []) }) };
 })();
