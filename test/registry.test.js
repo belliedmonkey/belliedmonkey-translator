@@ -482,7 +482,7 @@ describe('设备内置转写条目（learning-design §9.6.1 / domain-design §7
 
 describe('设备内置朗读条目（learning-design §9.6.1）', () => {
   const TTS = require('../build/tts.config.js');
-  const M = require('../extension/learn/device-models.config.js');
+  const M = require('../app/device-models.config.js');
   test('恰好一条 device 条目，两个 flavor 都在，不说 HTTP、不返回音频', () => {
     const dev = TTS.filter((e) => e.type === 'device-speech');
     eq(dev.length, 1); const e = dev[0];
