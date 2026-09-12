@@ -1,4 +1,4 @@
-// extension/learn/device-models.config.js — 设备内置朗读（learning-design §9.6.1）的**离线模型清单**。
+// app/device-models.config.js — 设备内置朗读（learning-design §9.6.1）的**离线模型清单**。
 //
 // 与 backend.config.js 同一个纪律：地址与校验和只写这一处。模型不进仓库、不进 App 包 ——
 // 首次使用时由原生（speech-bridge.swift）按这张表下载、逐文件 sha256 校验、解包到
