@@ -838,6 +838,11 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 *(2026-09-08:)* 免费额度段落（`#grant-card`，见「免费额度」一节）住在一键卡**里面**，
 不含任何引擎控件，所以不构成第二张卡；它与「用自己的 key」表单同 tab 并列。
 
+*(2026-09-12:)* 本机条目（`设备内置转写` / `设备内置朗读`，见下「实时转写（可选）」的本机段）
+不属于任何 key 组（`needsKey: false`），所以**永远不出现在一键卡上** —— 既有的 `eligible()`
+规则已经得出这个结果，不用新画任何东西；选了本机条目的人，一键卡照旧只管它覆盖的那几个
+云端槽。
+
 ### 实时转写（可选）— 2026-09-11
 
 **起因**：一键配置的默认平台 OpenRouter 没有实时转写接口（官方只有 HTTP 转写），于是一键配好的人
@@ -865,6 +870,25 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
   「· 实时」（`engine-fields.js populate` 的 `liveSuffix`），让「哪一项能实时」对用户可见。
 - **不做**：默认平台改 OpenAI（要补三条实测推荐轴、改钉死的顺序、翻译成本上升、官网教程改口，
   只解决国际版；本方案用一格可选输入换来同样的结果）。
+
+**本机引擎（2026-09-12 补记，随 device-speech 领域设计变更）**
+
+- **这段不出现的第三个条件**：现读存储后所选转写引擎是 `设备内置转写`（注册表 `type ===
+  'device-transcribe'`）。本机引擎**本身就是实时接口**（domain-design §7：是否实时由 `type`
+  推导，不加布尔字段），所以「另配一把实时 key」对它是个假问题；上面 2026-09-11 那句「含本机
+  引擎 ⇒ 显示副文」自 2026-09-12 起**只指本机之外没有实时接口的引擎**。
+- **下拉里的本机条目**：`设备内置转写（免费 · 离线 · 仅 App）` 与 `设备内置朗读（离线模型 · 仅 App）`
+  **只在宿主 App 的下拉出现**（`engine-fields.populate` 收调用方注入的 `deviceOk`，组件自己不探桥），
+  **扩展的三处下拉永远没有它们** —— 扩展没有原生桥，出现一个选了没用的项等于承诺一件做不到的事。
+  它们渲染成**只有选择、没有字段**的行：不出 key、接口地址、模型三个输入框（注册表全部
+  `supports* = false`、`requiresEndpoint: false`、`defaultEndpoint: null`）；转写条目的后缀是
+  「· 实时 · 本机」（`stt_device_suffix`，接在 2026-09-11 的 `liveSuffix` 机制上），让「这一项能实时、
+  且不出设备」在下拉里就看得见。旧系统（iOS 26 / macOS 26 之前）的 App 里桥报 `unsupported`
+  ⇒ `deviceOk=false` ⇒ 条目不出现；入口那边给具名原因（见「对话 · 实时听译 › Entry & gating」）。
+- **说题型（复习里的「朗读这句」）**：转写引擎选了 `设备内置转写` 时，说题不是「没有端点」——
+  本机引擎目前只接对话的流式路，没有整段文件档。说题控件因此 disabled 并给**具名**原因
+  `device_no_file`「设备内置转写目前只用于对话」，**不是**通用的「没有接口地址」句（那句会把
+  用户引去填一个本机引擎根本没有的地址框）。掌握阶梯照 2026-08-12 的规则跳过说题形态。
 
 落点：设置页是「快速 | 详细」两个 tab；扩展引导页第 2 屏是「一键配置 | 三引擎分别配」
 两个 tab，后面几屏共用。门禁在 `scripts/verify-onboard.js`（互斥、旧块不在 DOM、
@@ -1388,6 +1412,10 @@ Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的�
   on-device engine), endpoint URL / key / model per registry flags. It never follows
   the translation or 解析 group: where a recording goes is an explicit choice. The
   hint under the block carries the Gate C sentence.
+  *(2026-09-12:)* 「there is no on-device engine」自本日起只对**扩展**成立。宿主 App 的
+  同一块多一条 `设备内置转写（免费 · 离线 · 仅 App）`（iOS 26 / macOS 26 起），排在 `local`
+  之前，只有选择没有字段；它接的是对话的流式路，**说题在它下面是具名 disabled**
+  （`device_no_file`），规则见「一键配置与逐引擎配置永不同屏 › 实时转写（可选）› 本机引擎」。
 
 ### 播客模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
 
@@ -1555,6 +1583,14 @@ original + provisional translation), **finalized sentences** below.
   live endpoint or no key, the row **stays visible but disabled** (45 % opacity) and the
   sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 + 「去设置里选择 →」 sits
   under it. A vanished entry answered no question; a grey one says why.
+- *(2026-09-12:)* **入口可用的第二条路：本机转写。** 入口可用 ⇔ 云端 `liveEndpoint && liveType
+  && key` **或** 转写引擎是 `设备内置转写`（`type === 'device-transcribe'`）且原生桥报告本机
+  资产可用（`NativeSpeech.probe()` → `ready`）。选了本机引擎但系统太旧（iOS 26 / macOS 26 之前，
+  桥报 `unsupported`）⇒ 行**同样是灰的 + 具名**，第三句原因：
+  「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」（`listen_need_device_os`）
+  + 「去设置里选择 →」。三句原因（没实时接口 / 没 key / 系统太旧）互斥，一次只出一句。
+  本机路下入口组下面那句隐私句换成 「声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎」
+  （`listen_entry_privacy_device`）—— 「音频只发往你配置的转写端点」对本机路是假话。
 - First tap after install triggers the **native** microphone permission once; denied
   ⇒ stop state 「麦克风被拒绝」 (below), never a silent no-op.
 
@@ -1562,6 +1598,12 @@ original + provisional translation), **finalized sentences** below.
 - **preparing**: pill 「准备中」; 「开始听」 reads 「准备中…」 and is disabled; 「按住 · 我说」
   disabled. Early interruptions (≤ 3 s after start) retry with backoff ×3 *inside* this
   state — no red line until all three fail.
+- **downloading** *(2026-09-12，本机路专有)*: pill 「正在下载{lang}离线模型 · {pct}%」
+  (`listen_downloading`)；「开始听」 disabled；进度按桥的 `assets-progress {kind, locale,
+  fraction}` 走，**转写资产与朗读模型共用这一种态**（用户不关心是哪一种模型，关心的是
+  「还要等多久」），两种都要下时依次显示，`{lang}` 是当前那一路的语言名。首次使用才会进这个态；
+  之后资产在本机，直接到 preparing。`{pct}` 必须真的在动 —— 一个停住的百分比等于没有百分比。
+  下载失败 ⇒ stop state `listen_assets_failed`（见 Stop states），**留云端出口**，不自动重试下载。
 - **listening**: pill 「听译中 · mm:ss」; the top card names **who is talking right now** —
   「对方正在说」/「我正在说」 decided from the partial's script, or 「正在说…」 while it is
   still undecidable — with words as they arrive and the provisional translation; history
@@ -1603,6 +1645,19 @@ original + provisional translation), **finalized sentences** below.
   正在朗读这一行就停掉；改边后**不自动重读** —— 翻历史时突然大声念一句是最吓人的副作用。
 - 两边的行都给「朗读」（配了 TTS 引擎时）与「给对方看」。
 
+**本机转写路的归属（2026-09-12 补记）。** 本机路每种语言各跑一路识别器（我方一路、对方一路），
+同一段声音两路都会吐字，归属判的不再是「一句文字属于哪边」，而是「取哪一路的输出」。
+尖刺实测：zh 识别器会把英文音频也「认」成中文（错得离谱但置信度 0.72–0.92），en 识别器对
+中文音频置信度只有 0.05–0.27 —— 置信度单独用不可靠。规则：
+
+- **先看文字系，置信度只做第二判据。** zh 路输出以拉丁字母为主 ⇒ 这段是英文，取 en 路；
+  en 路置信度 < 0.4 且 zh 路是汉字 ⇒ 取 zh 路。判断器仍是 `LearnRules.dominantScript`，
+  文字系统表仍读语言注册表的 `scripts` —— 与上面云端路同一个判断器，不另写一套。
+- **同文字系的语言对（英↔法等）本机路同样判不出**：退回上面云端路的 `sideOf` 脚本判 +
+  粘性 + 归对方，记 `guessed:true`，归属标虚线下划线 —— 就是既有的灰字「按语言猜的 · 点 ↔ 改」
+  那一档，不新增文案。↔ 的语义不变：翻转并钉住，重译，不重读。
+- 被弃的那一路输出**整段丢弃**，不进历史、不进语料、不计入小结。
+
 #### 给对方看 (show card) — an overlay on a history row, not a state
 - Tapping any history row (or 「给对方看」) opens a full-screen card: the foreign line
   large, the Chinese line small, buttons 「朗读」 (TTS configured only) / 「关闭」; tap
@@ -1620,6 +1675,8 @@ original + provisional translation), **finalized sentences** below.
 | microphone failed to start | 「麦克风启动失败：{why} — 再点一次「开始听」。」 |
 | 30 s silence | 「听不到声音（30 秒静音）— 已暂停以免计费。」 (grey, not red) |
 | a row's translation failed | the row shows 「译文失败 · 重试」 instead of an endless ⏳ |
+| offline assets failed to download *(2026-09-12，本机路)* | 「离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎 →」（`listen_assets_failed`，红；「→」落到设置页转写引擎行）。资产没到就没有本机路可退，所以出口是**云端引擎**，不是「稍后再试」一句空话 |
+| on-device recognizer stopped *(2026-09-12，本机路)* | 桥的 `stt-state {state: failed, reason}` 走既有的「麦克风启动失败：{why}」行；`ended`（系统回收识别器）走「录音被系统停止了…」行 —— 本机路**不新增**这两类文案，原因句由桥的 `reason` 填 |
 
 #### 返回 / 结束
 - 「‹ 返回」 while a session is live asks once — 「还在听。离开会结束这次对话，已听的句子保留。」
@@ -1657,6 +1714,13 @@ original + provisional translation), **finalized sentences** below.
   且只关**这一场**的自动朗读，绝不改用户的设置；行内的单句朗读照常可用。
 - 暂停 / 停止 / 结束都清空队列并掐掉朗读 —— 停了听就别再读积压的译文，那些话的上下文
   已经过去了。关闭「放大给对方看」只掐**一次性**的那种朗读（队列空时），整场排队的不断。
+- *(2026-09-12，本机朗读：)* 朗读引擎选 `设备内置朗读` 时，译文落地 → **起声 ≤ 0.5 s**
+  （真机实测首块 0.16–0.26 s；边合成边播，音频在原生侧 playerNode 出，不经 JS）。队列语义、
+  三次失败门、回声四道闸**一字不改** —— 本机朗读只是换了一个更快的出声口。
+  **离线模型不覆盖的语言回落系统语音**（既有 `browser` 引擎），并且**在那一行上具名**：
+  行尾灰字 「用系统语音朗读（离线模型不含{lang}）」（`tts_device_lang_fallback`），不静默换声。
+  回落不算失败，不计入三次失败门；系统也没有该语言语音时才走既有的「该语言无可用语音」路。
+  首次用到某语言的离线模型时进 **downloading** 态（与转写资产共用，见 States）。
 
 **回声必须由 JS 自己堵，不能只靠原生回声消除。** 朗读的是译文，而译文的语言恰好是对话
 另一边的 —— 它一旦被自己的麦克风录回去，就会被判成「另一个人说的」，再翻译、再朗读，
@@ -1686,6 +1750,71 @@ original + provisional translation), **finalized sentences** below.
   播种了，用户以后改界面语言这一项就不会跟着动。
 - 改语言**不重连** socket：语言从来没下发给转写端（靠厂商自动检测），所以它只影响翻译
   方向与归属判断。已定稿的行不动 —— 要改用 ↔。
+- *(2026-09-12:)* **本机转写路是例外：改语言要重连。** 本机路每种语言各占一路识别器
+  （每路一个 locale），语言就是识别器的构造参数，改了必须停旧路、起新路。表现：pill 短暂显示
+  「连接中」（复用 preparing 的 pill 文案，约 1 s 空档），「开始听」这 1 s 里 disabled，
+  空档里说的话丢掉不补 —— 如实，不假装无缝。新语言的离线资产没下过 ⇒ 先进 downloading 态。
+  云端路一字不改（上一条仍成立）。两边选同一种语言仍是对调 + 一句话，本机路对调后重连一次。
+
+#### 本机转写路 — 先原始句，后修正句（2026-09-12，App 专属，iOS 26 / macOS 26 起）
+
+用户裁定：「本地转写模型快速吐字 + 断句，断句完了交由远程模型修正转写，再交由远程翻译模型
+翻译」，修正 + 翻译**合成一次**远程调用（契约见 domain-design §7 / learning-design §9.6）。
+管线：本机识别器 → 我们自己的静音检测收口 → 按标点切句 → **立即渲染原始句** → 一次远程
+调用回「修正后原文 + 译文」→ 行换成修正文、译文落地 → 语料写修正文 → 自动朗读。
+云端实时引擎不走这条路，它的行为一字不改。
+
+**行的三个时刻，每个都看得见：**
+
+1. **原始句立即上屏**（`row.raw`）。停顿 → 整句定稿目标 ≤ 1.0 s（实测 0.4–0.9），
+   行先以原始识别文出现，不等远程。此刻这一行的译文位置是**临时译文** —— 复用「正在说」
+   临时行（`partial` 机制）已经拿到的那份边说边译结果，**用斜体**显示，让「这是半成品」
+   在不读文字的情况下就能分辨；没有临时译文时显示既有的 ⏳。
+2. **远程返回**（定稿 → 修正 + 译文目标 ≤ 1.0 s，实测 p50 0.1 s / max 0.5 s）：`row.text`
+   换成修正文，译文换成正体的最终译文。修正接受门（token 长度比 0.7–1.3 且 `dominantScript`
+   不变）不过 ⇒ 行保持原始句，只落译文 —— 一个把「四十五天」改成「7045 天」的修正不该上屏。
+3. **修正后与原文不同时**，行尾一个小字可点的 「识别原文」（`listen_raw_label`）；点它翻面，
+   翻面卡副行显示 raw。修正与原文相同 ⇒ 这个字不出现（没有可看的东西就不给按钮）。
+   语料写的是修正文；翻面卡的 raw 只在对话页可见，不进复习卡。
+
+远程失败 ⇒ 既有的 「译文失败 · 重试」 行；重试重发同一次「修正 + 翻译」调用，行上的原始句
+不动（原文不丢是底线：只返回译文、无标签的响应都按 `{text: raw, tr: 整段}` 解）。
+
+**费用行**：云端路底部那句 「已听 {t} · 音频只发往你配置的转写端点」（`listen_cost_line`）在
+本机路换成 「已听 {t} · 音频不离开设备」（`listen_cost_line_device`）—— 没有按分钟计费的转写，
+**不写每分钟成本**；修正 + 翻译那次调用走用户自己的翻译引擎，成本和翻译一样按 token，
+不在这一行重述。30 s 静音自动暂停那句「已暂停以免计费」在本机路照旧显示（省的是翻译调用与电，
+句子不改 —— 一句话多一个分支不值得）。
+
+**隐私句**（Gate H，与 Gate G 同形，随代码同版上线）：对话页底部与设置页转写引擎行下
+「声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到你配置的
+翻译引擎做修正与翻译」（`listen_device_privacy`）。
+
+**延迟目标（写进规约，验证按 verification-spec）**：首个临时字 ≤ 2 s（实测 1.0–1.9，比云端的
+0.2–0.35 慢 —— 如实，「正在说…」占位照旧）；停顿 → 定稿 ≤ 1.0 s；定稿 → 修正 + 译文 ≤ 1.0 s；
+译文 → 朗读起声 ≤ 0.5 s。
+
+**本节新增的文案键（实现者对照，12 个 locale 同键集）**：
+
+| 键 | 用在哪 | 中文兜底 |
+|---|---|---|
+| `stt_engine_device` | 转写引擎下拉（仅 App） | 设备内置转写（免费 · 离线 · 仅 App） |
+| `stt_hint_device` | 该条目选中时的块下提示 | 声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎做修正与翻译。需要 iOS 26 / macOS 26 |
+| `tts_engine_device` | 朗读引擎下拉（仅 App） | 设备内置朗读（离线模型 · 仅 App） |
+| `tts_hint_device` | 该条目选中时的块下提示 | 语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。不覆盖的语言用系统语音 |
+| `stt_device_suffix` | 下拉条目后缀 | · 实时 · 本机 |
+| `listen_need_device_os` | 入口灰化的第三句原因 | 设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎 |
+| `listen_downloading` | downloading 态的 pill | 正在下载{lang}离线模型 · {pct}% |
+| `listen_assets_failed` | 停机行 | 离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎 → |
+| `listen_raw_label` | 行尾小字 / 翻面卡副行标签 | 识别原文 |
+| `listen_device_privacy` | 对话页底部、设置页转写行下（Gate H） | 声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到你配置的翻译引擎做修正与翻译 |
+| `listen_entry_privacy_device` | 首页入口组下的隐私句（本机路） | 声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎 |
+| `listen_cost_line_device` | 对话页底部费用行（本机路） | 已听 {t} · 音频不离开设备 |
+| `tts_device_lang_fallback` | 行尾灰字 | 用系统语音朗读（离线模型不含{lang}） |
+
+`device_no_file`（说题在本机转写下的具名 disabled 原因，「设备内置转写目前只用于对话」）住在
+说题的失败键族里，见「一键配置与逐引擎配置永不同屏 › 实时转写（可选）› 本机引擎」。
+所有键都带中文兜底（「Interface language」一节的规则），**串里不写品牌、不写模型名**。
 
 #### Settings & sources
 - Settings 学习 gains 「对话进复习」 (default on) next to the capture switch, with the

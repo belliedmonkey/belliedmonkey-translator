@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-12 | belliedmonkey | 对话模式的**本机转写 + 远程修正 + 本地朗读**（用户提议，App 专属）：SpeechAnalyzer（iOS 26 / macOS 26 起，每语言一路）快速吐字 + 我们自己的静音检测主动收口 → 按标点切句 → **一次**远程调用返回「修正后原文 + 译文」→ Piper 本地 TTS 朗读；注册表加 `device` STT / `device` TTS 两条本机条目（只在 App 下拉出现，rule-10 门不改）；旧系统入口灰 + 具名；新 Gate H。真机尖刺（Mac + iPhone 14 Pro）读数在 `.local/spike/READINGS.md` | **待评审（本 PR，D1 docs-only）** —— 见 §9.1「`device` 条目」/ §9.4 / §9.6 门控 / §9.6.1 / §10 Gate H / §11 / §12；domain-design、interaction-spec、verification-spec 同 PR 各自修订。**待裁定两处**：①本机转写要不要也接进「说」题型（第一版不接，§9.4）；②「朗读期间静音 analyzer 输入」那道可选闸要不要做成设置项（默认不做，§9.6 回声段） |
 | 2026-09-11 | belliedmonkey | 文档翻译（用户提议，扩展与 App 两端）：上传 PDF / Word / 图片，**打开一页翻一页**、并发走既有传输队列、不一次性翻整份；译文进学习语料但**限量**（每页 ≤ 10 句、每份 ≤ 100 句，用户裁定）；新来源类别「文档」与新 anchor kind `doc`；图片与扫描页发用户自配的多模态引擎识别；文档与译文存独立 IDB 不同步；新 Gate G。domain-design §2 第四种来源 + §2.5 + §8 收窄 | **已评审（2026-09-11，#235 合入）**；实现 D1 #237 / D2 #238 / D3 #239 / D4 #240 / D5 #241，Gate G 落点随 D6 —— 见 §9.7 / §10 Gate G / §11 / §12，domain-design §2.5，interaction-spec「文档翻译」，telemetry §3 |
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
 | 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | **已评审通过 2026-08-23（回溯批量确认）** —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
@@ -1953,6 +1954,7 @@ Two formats cover the whole space:
 |---|---|
 | `browser` | the platform's `speechSynthesis`. Free, offline, zero-config, **the default**. It only *speaks*: the Web Speech API exposes no way to obtain the audio data, so nothing from this engine can ever be cached or uploaded. That is a property of the API, not a gap to close |
 | `speech-compat` | the OpenAI `/v1/audio/speech` request shape — which is also what self-hosted TTS servers implement. **One format therefore covers both "my own machine" and "a cloud key"**, which is exactly what 本地优先 needs |
+| `device-speech` *(2026-09-12)* | **本机离线模型**（Piper，经 sherpa-onnx，Swift 侧合成与播放），仅宿主 App。上面「Two formats cover the whole space」自 2026-09-12 起不再完整：这是第三种 —— 既不是 `speechSynthesis`，也不说 HTTP。理由与规则见本节末「`device` 条目」段 |
 
 **Audio is a derived artifact, not content.** Same text + same engine + same voice =
 same audio, so the *configuration* is what syncs; each device synthesizes locally.
@@ -1982,6 +1984,41 @@ whether one gesture unlocks autoplay for the rest of the page session.
 voice is used only if it speaks the card's language; otherwise the best system voice
 for that language; otherwise **the feature reports itself unavailable with a reason**
 rather than reading the sentence in the wrong language.
+
+**`device` 条目 —— 本机离线朗读模型（2026-09-12，用户裁定）。** 用户先裁定「朗读用第三方本地
+TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音质不管，差一点没关系，确保功能先通**」。
+按第二句选 **Piper**（zh / en 各 ≈79 MB，经 sherpa-onnx v1.13.8）。真机（iPhone 14 Pro）读数：Piper zh
+首块 176 / 264 ms、RTF 0.053；en 157 / 216 ms；Matcha zh 116 / 166 ms 但只有中文；Kokoro fp32 首块
+1330–1999 ms、加载 10–20 s，int8 反而比 fp32 慢 3–4 倍 —— 后两者弃（§12）。CoreML provider 无提速。
+边合成边播（playerNode 按块调度）真机跑通。
+
+- **注册表形状**：`build/tts.config.js` 在 `browser` 之后加 `{ id:'device', type:'device-speech',
+  flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false,
+  supportsModel:false, requiresEndpoint:false, defaultEndpoint:null, placeholder:null, defaultModel:'',
+  voices:null, returnsAudio:false, labelKey:'tts_engine_device', label:'设备内置朗读（离线模型 · 仅 App）',
+  hintKey:'tts_hint_device' }`。**不加新字段**：「是否本机」由 `type` 推导（domain-design §7 既有原则）；
+  `defaultEndpoint: null` 显式写出；**免性能台账**（`build/perf-ledger.config.js` 那条门只管说 HTTP 的
+  条目，这条不说 HTTP）。条目**只在宿主 App 的下拉出现**（`engine-fields.populate` 收调用方注入的
+  `deviceOk`，组件自己不探桥）；扩展页永远不出现。
+- **模型不进包，首次使用时下载**：sherpa-onnx + onnxruntime 静态链接 ≈35 MB 已经进包；模型文件按语言
+  从我们的文件服务器下载一次，**sha256 钉住**（构建时写死、下载后校验、不符即丢），进度走 §9.6 门控的
+  `downloading` 具名态，失败具名 `listen_assets_failed`。下载的只是模型文件，不含任何用户内容
+  （§10 Gate H 的原话）。中国网络下的下载**未测**（D2 前必补读数）。
+- **`returnsAudio: false`，与 `browser` 同**：音频在 Swift 侧 playerNode 边合成边播，**永不回到 JS**，
+  所以同样不可缓存、不可上传 —— 上面「Local cache（endpoint engines only）」对它不适用；不是漏了，
+  是它和 `browser` 一样，页面拿不到字节。
+- **语言回落具名**：模型没覆盖的语言（第一版只有 zh / en）**回落 `browser`（系统语音）**，并在那一行
+  具名（「{lang} 无离线模型，用系统语音」）；上面语言感知的选声规则原样适用于回落的那一段。回落按**行**判，
+  不按会话：一场中英对话里中文走 Piper、法文走系统语音是正常态，不是错误。
+- **合成与播放在 Swift 侧**：`app/native/speech-bridge.swift`（handler `mtSpeech`，协议见 §9.6.1）；
+  块按序调度到同一个 `AVAudioEngine` 的 playerNode。**这同时闭合了 §9.5「三个待裁定」第 1 条**：朗读走
+  App 自己的音频会话出真音频，中国版（注册表里只有 `browser` + `local`）也有了后台出声路 ——
+  2026-08-24 裁定要求的「原生语音合成桥」由这个设计闭合，只是桥后面接的是 Piper 而不是
+  `AVSpeechSynthesizer`（用户裁定）。
+- **工程接法**（写在这里，免得 D2 再踩一次）：sherpa-onnx 是 SPM 包，但 `xcodebuild` 下远程二进制下载
+  会卡 ⇒ **本地包**（curl 拉 xcframework zip，`binaryTarget(path:)`，`XCLocalSwiftPackageReference`）；
+  C 类型要 `import SherpaOnnxC`。`safari-project` 是可重生成的，这些全都得是 `app:sync` 的幂等补丁
+  （§9.5 2026-08-24 的同一条代价）。
 
 ## 9.2 句子解析 (sentence notes) — 生词、短语、语法（2026-08-08）
 
@@ -2091,6 +2128,24 @@ rather than reading the sentence in the wrong language.
   `/v1/audio/transcriptions` 的 multipart 形状，自托管 whisper 服务器同样实现它）
   ——「我自己的机器」与「一朵云上的 key」共用一条传输，本地优先要的正是这个。
   china flavor 合规扫描照跑（注册表是唯一出处，别处永不复述引擎名/端点）。
+- **`device` 条目 —— 本机转写（2026-09-12，用户裁定「只上 iOS 26 / macOS 26 的 SpeechAnalyzer」）。**
+  上面「一种格式覆盖全空间」自此不再完整：`build/stt.config.js` 在 `local` 之前加第二种 `type`
+  `device-transcribe` —— 不说 HTTP、没有端点、没有 key。条目：`{ id:'device', type:'device-transcribe',
+  flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false, supportsModel:false,
+  requiresEndpoint:false, defaultEndpoint:null, placeholder:null, defaultModel:'',
+  labelKey:'stt_engine_device', label:'设备内置转写（免费 · 离线 · 仅 App）', hintKey:'stt_hint_device' }`。
+  **不加新字段**：「是否本机 / 是否实时」由 `type` 推导（`device-transcribe` 即实时，对 §9.6 门控的意义
+  等价于云端条目的 `liveEndpoint && liveType`）；`defaultEndpoint: null` 显式写出；**免性能台账**（那条门只
+  拦说 HTTP 的条目）。该文件头上那句「**永远没有零配置引擎**」改为「**云端无零配置项；本机条目是唯一
+  例外**」—— 原句的精神保留：任何说 HTTP 的条目仍必须有用户填的地址或 key。
+  - **只在宿主 App 的下拉出现**：`engine-fields.populate` 收调用方注入的 `deviceOk`（App 传桥
+    `stt-probe` 的结果；扩展页不传 ⇒ 永远过滤掉），组件自己**不探桥**。扩展里没有 SpeechAnalyzer，也没有
+    音频会话（§9.6 开头）；`npm run test:app` 两端的引擎下拉计数按 `deviceOk` 过滤。
+  - **rule-10 门不改**：云端实时引擎仍是每个 flavor 的存在前提（每个 flavor 至少一条 `liveEndpoint`
+    条目），`device` 不算数 —— 它只在 iOS 26 / macOS 26 起存在，旧系统与扩展都靠云端。
+  - **它接的是 §9.6 的对话模式**（流式 + 主动收口 + 远程修正，见 §9.6.1）。「说」题型要的是一段整体
+    录音的一次转写（`transcribe-compat` 形状），第一版**不**把本机路接进说题；接不接是后续议题（§0 待裁定）。
+
 - **设置键** `sttEngine / sttBaseUrl / sttApiKey / sttModel`，**不跟随**翻译组或
   解析组——录音去哪儿必须是一次显式选择，没有「顺便」。两宿主同面（options 学习
   区 + App 设置），App 侧是 §7.2 的设备本地凭证。
@@ -2552,6 +2607,13 @@ target，于是**整体跳过** —— 而「跳过」的表现是「中国版�
    > 和后台模式是被一起否掉的。
 
    **macOS 不受影响**：那里进程不会被挂起，设备语音本来就能在不可见时继续说。
+
+   > **2026-09-12 闭合。** 这一条由 §9.1「`device` 条目」的设计闭合：朗读改走 Swift 侧 playerNode 出
+   > 真音频（Piper 本地模型，`app/native/speech-bridge.swift`），形状与音乐 App 相同，中国版同样成立
+   > （`device` 条目 `flavors:['global','china']`）。上面的原话保留：「原生语音合成桥（`AVSpeechSynthesizer`）」
+   > 写的是当时的候选实现；用户 2026-09-12 裁定不用系统语音而用第三方本地模型 —— 桥的**位置**没变，
+   > 桥后面的合成器换了。「设备内置语音在 iOS 后台停不停」**因此不必再测**：选 `device` 时它不再是出声路；
+   > 只选 `browser` 的用户仍按原样，且那一档的回落行具名。
 2. **锁屏遥控可能根本不需要原生代码。** iOS 15+ 的 WebKit 支持 W3C Media Session API，
    并把它桥到系统的 Now Playing / 锁屏遥控。若实测成立，原生只剩「设音频会话」那几行。
    躲不掉的永远是音频会话那一半 —— WKWebView 用宿主的会话，宿主不设类别就没有后台断言。
@@ -2661,6 +2723,8 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 | 桥协议 | JS→原生：`mic-start {rate}`、`mic-stop`、既有 `record-mode` / `session-start` / `now-playing`；原生→JS：`mic-pcm {b64}`、`mic-state {state, reason}`（`granted` / `denied` / `interrupted` / `ended`）。PROTOCOL 两侧同步，`test/build-scripts.test.js` 的 Swift 字符串白名单跟着改 |
 | 保活 | 会话期间页内循环那段不可闻音频（L0f 实证）。**PR-L2 真机若证明原生录音本身已足以保住 WebContent，就删掉它**——先按实证过的做法走，别按猜测 |
 | macOS | `AVAudioEngine` 同一份代码；无 `AVAudioSession`；沙箱 entitlement `com.apple.security.device.audio-input` 已由 `app:sync` 写入（M10 实证）。进程不挂起，所以没有锁屏问题，只有「有没有多余地停」（同 §9.5 macOS 段） |
+| **本机路：PCM 不过桥**（2026-09-12，§9.6.1） | 转写引擎选 `device`（`type:'device-transcribe'`）时，tap 仍只装一次（`MTAudioBridge` 加 `micSink`），Float32 **留在 Swift 侧**直接喂 `SpeechAnalyzer` 的输入流；过桥的只有 `mic-level {rms}`（10 Hz，`mic-start` 带 `deliver:'level'`）。不发 base64 PCM —— 云端路 ≈64 KB/s 的那条管在本机路上是零。上一行「PCM 从自己录的变成桥送来的」对本机路不成立：JS 收到的是**文字**（`stt-partial` / `stt-final`），不是音频 |
+| **本机 TTS：音频不回 JS**（2026-09-12，§9.1 `device`） | Piper 在 Swift 侧合成，块按序调度到同一个 `AVAudioEngine` 的 playerNode 边合成边播（真机实证）；JS 只收 `tts-start` / `tts-end` / `tts-failed {id}`。PCM **永不过桥**：既省带宽，也让「朗读走 App 自己的音频会话」这件事在中国版同样成立（§9.5 2026-08-24 裁定的闭合点） |
 
 §12 记两条否决：整条管线搬进原生（不必要：JS 活着）；采集留在网页（不可能：WebKit 静音）。
 
@@ -2671,6 +2735,24 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 并留一条可见、有标签、直达设置页转写那一档的路（「需要一个带实时接口的转写引擎 → 去设置里
 选择」）。翻译引擎照 `LearnNotes.resolveConfig` 的整组规则；目标语言 = 界面语言（§3.1.4
 已知缺口：App 没有目标语言控件；**待裁定**是否给手动选）。
+
+> **2026-09-12 追加：入口有第二条路 —— 本机转写。** 上面「转写引擎带 `liveEndpoint` 且 key 已填」
+> 仍是云端那条路的全部条件，一字不改（且「目前只有 `openai_transcribe`」是当时的快照，读注册表为准）。
+> 现在**入口可用 ⇔ 云端 `liveEndpoint && liveType && key` 或 转写引擎 `type === 'device-transcribe'`
+> （§9.4 `device` 条目）且桥报告本机资产可用**（`NativeSpeech.probe()` → `stt-state ready`）。
+> 「是否本机 / 是否实时」由 `type` 推导，不加布尔字段（domain-design §7）。
+> - **旧系统具名**：SpeechAnalyzer 只在 iOS 26 / macOS 26 起有（用户裁定：旧系统该引擎不出现）。
+>   用户选了 `device` 而桥回 `unsupported` ⇒ 入口**灰** + 具名原因「设备内置转写需要 iOS 26 / macOS 26
+>   —— 或去设置里选一个云端实时引擎」。这是 §9.6 里唯一一处「灰按钮 + 原因」而不是「入口不存在」：
+>   引擎是用户亲手选的，入口凭空消失会让他以为选错了地方；云端实时引擎照旧是完整基线。
+> - **新具名态 `downloading`**：「正在下载{lang}离线模型 · {pct}%」—— 转写语言资产（`stt-assets`）与
+>   §9.1 的 TTS 模型（`tts-assets`）**共用这一种态**，进度来自桥的 `assets-progress {kind, locale, fraction}`。
+>   下载失败具名 **`listen_assets_failed`**，并**留云端出口**（一句直达设置页转写档的路）—— 不是死灰。
+>   读数：en-US 资产 46 s 装完（Mac）；zh / en 预装；Mac 30 / iPhone 45 个 locale。
+> - **本机路改语言要重连**：每个 SpeechTranscriber 只认**一个 locale**（我方 / 对方各一路），改「我的
+>   语言」或「对方的语言」= 停掉那一路、按新 locale 重建（资产没装先走 `downloading`）。interaction-spec
+>   「对话 · 实时听译」里「改语言**不重连** socket」这条**对云端路照旧为真**（语言从不下发给云端转写端）；
+>   本机路是它的例外：重连只动那一路，另一路照听，临时行清空、历史不动。
 
 ### 会话内的规则
 
@@ -2693,6 +2775,13 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
   被自己的麦克风录回去就会判成「另一个人说的」，再翻译、再朗读，无限循环。四道闸：定稿前
   整句丢弃 · **半句也拦**（边说边译在半句上就会花钱）· 同段 60 秒不重读 · 10 秒 6 句的保险丝。
   明确不做「按语言丢弃朗读期间的句子」那一层：它会把对方插话整句吃掉，而插话正是最要紧的。
+  *(2026-09-12 追加：)* **两端都原生之后，扬声器→麦克风的回声更直接**：真机实测不开 voice processing
+  时播放中采集不掉帧，但回声 **+7 dB**（`.local/spike/READINGS.md`）。上面四道闸照旧是**唯一前提**，
+  且在本机路上对 `row.raw` 与 `row.text` 都比（§9.6.1）。原生回声消除（`setVoiceProcessingEnabled(true)`）
+  是 **D2 要测的升级，不是前提** —— 目前读数：不挂 playerNode 时开 VP 能识别外部人声、不误伤；
+  **挂了 playerNode 的 engine 上开 VP，tap 收到 0 帧（未解）**。可选的一道追加闸（本机路专有；不是
+  §12 否掉的那道「按语言丢」）：**朗读期间把喂给 analyzer 的输入静音**（`micSink` 丢帧，tap 不停、
+  `mic-level` 照发）—— 它丢的是所有人的话，包括插话，所以只能是用户可关的选项，默认关。
 - **「这次不留记录」**（裁定 6）：开始前勾一下，这一场的句子只在屏幕上存在 —— 不写语料、
   不同步、结束就没了（报价、客户名、条款这类场合）。**中途不可改**（改了之后前半场已经写进去
   的怎么办，没有诚实的答案），**也不进存储**（记住上次的勾选反而危险，用户会以为在留记录）。
@@ -2711,6 +2800,104 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
   中断（服务端原话 ≤ 1 行，已听的句子还在）；锁屏后系统停止了录音（原生采集下不该出现，
   出现即 bug，但文案保留作兜底）；30 s 静音自动暂停。
 - **停止是彻底的**：关 socket、停 tap、丢开口尾句、停保活音频、`setActive(false)`。
+  *(2026-09-12：本机路多两件 —— `stt-stop` 关两路 analyzer、`tts-stop` 掐 playerNode 队列。)*
+
+### 9.6.1 本机转写 + 远程修正 + 本地朗读（2026-09-12）
+
+用户裁定（原话要点）：①「本地转写模型快速吐字 + 断句。断句完了交由远程模型修正转写，再交由远程翻译
+模型翻译。TTS 看看有没有快速的本地模型。」②修正 + 翻译**合成一次**远程调用。③本机转写**只上
+iOS 26 / macOS 26** 的 SpeechAnalyzer；旧系统该引擎不出现，给具名原因；云端实时引擎照旧是完整基线。
+④朗读用第三方本地模型（不选 `AVSpeechSynthesizer`），「音质不管，先通」⇒ Piper（§9.1 `device`）。
+尖刺读数全表在 `.local/spike/READINGS.md`（Mac + iPhone 14 Pro / iOS 27.0，2026-09-12）；本节只引
+**推出了规则**的那几条。
+
+**管线。** 本机 `SpeechTranscriber`（**每个语言一路**，我方 / 对方各一）→ 我们自己的静音检测
+→ `analyzer.finalize(through:)` 主动收口 → final 串起来按标点切句（复用 `WsTranscribe.sentenceCutter`）
+→ **立即**渲染原始句（`row.raw`）→ **一次**远程 chat 调用返回「修正后原文 + 译文」→ `row.text`
+换成修正文、`row.tr` 落地 → 语料写**修正文** → 自动朗读走本地 TTS（§9.1 `device`）。volatile 文本
+即时显示为「正在说」的临时行（现有 `partial` 机制，一字不改）。
+
+**每条规则背后的读数（不是猜的）：**
+
+| 读数（2026-09-12） | 推出的规则 |
+|---|---|
+| **定稿默认是懒的**：停顿不触发收口，按内部时间片成批吐（有声书 p90 **14 s**）；系统 `SpeechDetector` 模块无帮助 | 静音检测**自己做**（RMS，300–500 ms 无声）并调 `finalize(through:)`；停顿后整句 ≈0.4–0.9 s 到。不靠系统收口 |
+| **定稿是时间片不是句子**：会切在词中间（「记 / 得他…」「The / quote already…」）；文本自带标点，句末标点率 13–28% | final **串起来再按标点切句**，复用 `sentenceCutter`；绝不把一个 final 当一句 |
+| 首个 volatile 在开口后 ≈1.0–1.9 s（云端 `delay:minimal` 是 0.18–0.35 s） | 临时行照显示；延迟目标定 ≤ 2 s（下表），如实承认比云端慢 |
+| 每个 final 带置信度；约半数带 1–3 个**同音**候选（`.alternativeTranscriptions`，「由」→「有」） | 候选词随句**送给远程修正**，作为「Recognizer candidates」段 |
+| **系统热词 `AnalysisContext.contextualStrings` 对同音字零效果**（输出逐字相同） | 修正**在远程做**，不在本机做；不给用户「热词表」这种看着有用其实没用的设置 |
+| 远程修正（DeepSeek `deepseek-chat`，temperature 0，前 6 句上下文 + 候选）：鲁迅散文 CER 13.1% → **5.4%**（云端 OpenAI 3.9% / 千问 5.2%）；福尔摩斯 WER 3.1% → **1.9%**（云端 3.7%）；对话语料中文 17.8% → 10.0%（残留是数字：「四十五天」→「7045天」）。命中例：定进→订金、到张→到账、报家→报价、爆含→包含、保险单不含→保险，但不含、定单→订单、信用正业→信用证、电灰→电汇 | 修正后的本机路**与云端实时引擎同一量级**，所以它是一条正式的路而不是降级；数字仍是已知弱点，写进来源「对话」的「一句都可能有错」说明 |
+| 修正 + 翻译一次往返 p50 ≈ 100 ms / p90 ≈ 200 ms / max 475 ms | 合成一次调用（裁定 ②）成立；两次调用的变体只留一个常量 |
+
+**远程修正 + 翻译契约（行标签，不用 JSON）。**
+- system：*You are the correction stage of a live conversation interpreter…* 两件事：1. correct
+  recognition errors **only**（homophones、mis-segmented words、wrong numbers），keep wording / order /
+  length，never paraphrase；2. translate into <目标语>。Output exactly two lines：`T: <corrected>` /
+  `X: <translation>`。提示词英文（§9.2 惯例）。
+- user：**Context**（最近 **6** 行 `{who, text, tr}`，用的是修正后的 `text`）+ **Recognizer
+  candidates**（本句的候选词）+ **Transcript sentence**（`row.raw`）。
+- 解析：双标签 ⇒ `{text, tr}`；只有 `X:` 或无标签 ⇒ `{text: raw, tr: 整段}` —— **原文永不丢**，模型
+  不守格式的代价只是没修正。
+- **修正接受门**：`T:` 相对 `raw` 的 token 长度比在 **0.7–1.3** 之间**且** `LearnRules.dominantScript`
+  不变，否则弃修正、只取译文。门在这里，是因为「修正」的授权只有同音 / 分词 / 数字 —— 长度变了或文字系
+  变了，就是改写或串了语言，不是修正。
+- 两次调用的变体（先修正、再翻译）= 一个常量 `LISTEN_PASS = 'one' | 'two'`，默认 `'one'`；**不是设置项**。
+  留着它是为了将来某个引擎两步更准时能一行切换并可测，不是为了给用户选。
+
+**行语义。**
+- `row.raw` = 本机识别原文（切句后、修正前）；`row.text` = 修正后原文（到达前等于 `raw`）；`row.tr`
+  = 译文。历史行**先出 raw 再换 text**，换的时候不闪、不重排。
+- **语料写修正文**（`text = row.text`）：学的是「对方说的那句话」，不是识别器听错的那句。`raw` 不进语料。
+- **回声闸（上文四道）两个都比**：`isEcho` 对 `raw` 与 `text` 都跑 —— 朗读的是译文，被录回去时本机
+  识别器给的是 `raw`，修正后可能更像译文。
+- **「识别原文」affordance**：`text !== raw` 时行尾小字「识别原文」可点，翻面卡副行显示 `raw`。不常显 ——
+  修正命中率高时 raw 只是噪声，但它必须**一点就有**，否则「修正」是一个用户看不见的黑箱。
+- 云端路（§9.6 原有）没有 `raw`：`row.raw === undefined`，所有读者按此分支，affordance 不出现。
+
+**双语归属：先看文字系，置信度只做第二判据。** 两路识别器同时跑，同一段声音两边都会给结果：
+zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–0.92）；en 路对中文音频置信度 0.05–0.27
+—— 所以置信度不能当第一判据。规则：
+1. zh 路输出以拉丁字母为主（`dominantScript`）⇒ 这段是英文，取 en 路；
+2. en 路置信度 < 0.4 **且** zh 路输出是汉字 ⇒ 取 zh 路；
+3. 同文字系语言对（en / fr）仍是缺口：退回 §9.6 既有的 `sideOf` 脚本判并在行上记 `guessed: true`
+   （虚线 + ↔ 改边，同上文兜底行）。
+
+归属定了之后，谁在说 = 那一路的语言，其余规则（粘性、归对方、↔ 回收语料）原样。
+
+**延迟目标（写进规约；D2 起 `test:listen` 的假桥按这几个数出定时）：**
+
+| 段 | 目标 | 实测 |
+|---|---|---|
+| 开口 → 首个 volatile | ≤ 2 s | 1.0–1.9 s |
+| 停顿 → 整句定稿 | ≤ 1.0 s | 0.4–0.9 s（靠主动收口；不收口 p90 14 s） |
+| 定稿 → 修正 + 译文 | ≤ 1.0 s | 0.1–0.5 s |
+| 译文 → 朗读起声 | ≤ 0.5 s | ≈0.2 s（Piper 首块 157–264 ms） |
+| 错误率（修正后） | zh CER ≤ 12%、en WER ≤ 8%（沿用 `THRESH`） | 5.4% / 1.9%（朗读语料）、10.0%（对话语料 zh） |
+
+**原生桥协议（D2，`app/native/speech-bridge.swift`，handler `mtSpeech`，`emit()` →
+`window.NativeSpeech._fromNative(json)`）。** 与 `audio-bridge.swift` 的 `mtAudio` 并列，不合并：
+一个管音频会话与采集，一个管识别与合成。
+- JS→Swift：`stt-probe {locales}` / `stt-assets {locales}` / `stt-start {locales, rate}` / `stt-stop` /
+  `tts-probe` / `tts-assets` / `tts-speak {id, text, lang, voice, rate}` / `tts-stop`。
+- Swift→JS：`stt-state {state: ready|unsupported|failed|ended, reason}` /
+  `assets-progress {kind: stt|tts, locale, fraction, state}` / `stt-partial {locale, text, conf}` /
+  `stt-final {locale, text, conf, alts, t0, t1}` / `tts-state {state, reason, langs}` /
+  `tts-start {id}` / `tts-end {id}` / `tts-failed {id, reason}`。
+- 音频共享：**不第二次装 tap**。`MTAudioBridge` 加 `micSink`，本机路时 Float32 直接喂 analyzer 输入流，
+  JS 只收 `mic-level {rms}`（10 Hz），不发 base64 PCM（`mic-start` 带 `deliver: 'level'`）。TTS 音频在
+  Swift 侧 playerNode 播，**PCM 不回 JS**（上文原生采集表的两行）。PROTOCOL 两侧同步，
+  `test/build-scripts.test.js` 的 Swift 字符串白名单跟着改（同 `mtAudio` 的惯例）。
+- 权限、会话类别、保活仍是 `audio-bridge.swift` 的事；`speech-bridge.swift` 不碰 `AVAudioSession`。
+
+**没变的东西，点名一遍**：来源「对话」的字段表、`anchor.k:'conv'`、门、「这次不留记录」、↔ 改边回收、
+停止态、锁屏通道。计费行：本机路**没有转写计费**，只有修正 + 翻译那一次调用按翻译引擎估。`AppListen`
+的会话状态机不变；`downloading` / `listen_assets_failed` 是入口与改语言时的具名态。本机路只换了
+「转写从哪来」和「朗读怎么出声」。
+
+**验证**：语音类验证一律不靠真人说话（用户裁定：用 Mac / 另一台 iPhone 播放音频、视频或 TTS 语料代替），
+配方与门禁写在 verification-spec；`npm run test:listen` 加假 `mtSpeech` 桥，断言本机路入口、行先 raw
+后 corrected、语料写 corrected、`mic-start.deliver === 'level'`、旧系统假桥 ⇒ 入口灰 + 具名句、语言
+回落具名、云端路回归。**iPhone 镜像在 Mac 上开着时手机麦克风恒为静音** —— 真机验证前先关镜像。
 
 ### 隐私：§10 Gate E
 
@@ -2719,6 +2906,7 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 只保留文字（且只在你开着「对话进复习」时保留）。** 落点：README 两份、App 设置转写那一档
 的提示、`NSMicrophoneUsageDescription`（`scripts/sync-app-assets.js`，措辞从「识别后立即
 丢弃」扩到覆盖连续听译）、两个站的 privacy.html（发版时，`release-checklist` §2）。
+*(2026-09-12：本机路的披露是另一段、另一道门 —— §10 Gate H；Gate E 这段对云端路照旧为真，不改。)*
 
 ### 模块
 
@@ -2726,8 +2914,11 @@ https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
 |---|---|---|
 | `AppListen` | `app/listen.js` | 状态机 idle / listening / speaking / showing / ended；边说边译；定稿历史；加星；写语料；计费行；停止态 |
 | `WsTranscribe` | `extension/content/ws-transcribe.js`（进 `build/app-bundle.js` MODULES） | 与扩展同一份流式适配器 |
-| 原生输入半边 | `app/native/audio-bridge.swift` | tap、重采样、桥推 PCM、权限、会话类别 |
+| 原生输入半边 | `app/native/audio-bridge.swift` | tap、重采样、桥推 PCM、权限、会话类别。*(2026-09-12：加 `micSink`，本机路只发 `mic-level`)* |
 | 来源管理 | `extension/learn/sources-view.js` | `conv://` 来源按会话一行，只有「删除已存」（屏蔽规则对会话无意义） |
+| `NativeSpeech`（2026-09-12） | `app/native-speech.js` | `mtSpeech` 桥的 JS 半边：`probe()`、资产下载态、两路 `stt-partial` / `stt-final` 归并、`speak()` 队列 |
+| 原生识别与合成（2026-09-12） | `app/native/speech-bridge.swift` | SpeechAnalyzer 两路、静音检测 + `finalize(through:)`、资产下载（sha256 钉住）、Piper（sherpa-onnx）合成 → playerNode |
+| 修正 + 翻译（2026-09-12） | `app/listen-core.js`（纯函数） | `T:` / `X:` 解析、接受门（0.7–1.3 + `dominantScript`）、双语归属（文字系先、置信度后）、`LISTEN_PASS` |
 
 ## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
 
@@ -3072,6 +3263,36 @@ English (authoritative in `_locales/en` `doc_privacy`):
 | Chrome Web Store / AMO | no new category on the BYO path; AMO `data_collection_permissions` reviewed for whether uploaded files count as `personalContent` |
 | `build.js` Gate G coupling | `learn/doc-view.js` present in the artifact ⇒ README ×2 carry the 「上传的文档」 stem **and** all 12 locales have `doc_privacy` |
 
+### Gate H — ships with 本机转写 + 本地朗读 (§9.6.1; §9.4 / §9.1 `device`)
+
+*(Added 2026-09-12.)* Same shape as Gate G — a new paragraph per path, never a softening of
+the existing sentences. Two facts a user must be able to read before choosing the on-device
+engines: **audio never leaves the device** on this path (the opposite direction from Gate E,
+which is why it is its own paragraph and not a footnote to E), and **text does** — the
+recognised sentence plus a few preceding lines, to the translation engine they configured, for
+correction and translation; plus one **download** from our file server (the model file, never
+content). Verbatim, on every surface, in the same PR as the code and **in the same version —
+never before** (a promise about an engine that does not exist yet) **and never after** (an
+engine shipping without its disclosure):
+
+> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；首次使用会从我们的文件服务器下载一次离线模型（只是模型文件，不含任何你的内容）。不保存录音，只留文字。
+
+English (authoritative in `_locales/en`, key `listen_device_privacy` — name to be fixed by D2,
+the gate requires the same key on all 12):
+
+> **On-device transcription and speech (optional).** With "On-device transcription" selected, microphone audio is recognised on your device and never sent to any server. The recognised text, with a few preceding sentences for context, goes to the translation engine you configured for correction and translation — our servers are not involved. With "On-device speech (offline model)" selected, speech is synthesised on your device; the first use downloads the offline model once from our file server (the model file only, never any of your content). No recording is kept, only text.
+
+| Surface | Gate H |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above under Privacy, beside Gate E's; Gate E's sentence stays and is scoped to the cloud engine |
+| `_locales` ×12 | `listen_device_privacy` on all 12 |
+| App home privacy line (`#modes-privacy`, today `listen_entry_privacy` 「音频只发往你配置的转写端点」) | the on-device variant whenever `device` is the selected transcription **or** speech engine — a second variant of the existing line, not a second line; the cloud wording must not be shown on the on-device path (it would be false in the reassuring direction) |
+| `NSMicrophoneUsageDescription` (`scripts/sync-app-assets.js`) | extended to name on-device recognition: on that path audio stays on the device |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + prerendered language sets | the paragraph as its own section; **regenerate the language pages** |
+| `belliedmonkey.com` | the same paragraph; the model download is the only network access on this path and the China flavor makes it too (China-network download untested — a D2 reading, see §9.1) |
+| App Store privacy labels | no new category (audio is not collected; text goes to the user's endpoint as before); re-check at submission, **by hand** |
+| `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
+
 ## 11. Out of scope
 
 - **In-browser OCR** (2026-09-11, §9.7). A WebAssembly recogniser fails the extension
@@ -3117,6 +3338,15 @@ English (authoritative in `_locales/en` `doc_privacy`):
   the device microphone streams to the user's configured live endpoint at the user's
   tap, in the host app only. Page audio is still never transcribed by the learning
   layer; domain-design §2.4 covers page media, on the user's tap.)*
+  *(Amended 2026-09-12: the rejection reason has always been "recordings go to a vendor
+  server the user did not choose". The host app's **on-device recogniser** (Apple
+  `SpeechAnalyzer`, iOS 26 / macOS 26 — §9.4 `device`, §9.6.1) is ADMITTED because no audio
+  leaves the device at all — spike readings on a Mac and an iPhone 14 Pro, 2026-09-12,
+  `.local/spike/READINGS.md`. The reason does not apply, so neither does the rejection.
+  Browser `SpeechRecognition` stays rejected, unchanged: the page cannot see, let alone
+  guarantee, where the vendor's implementation sends the audio. What leaves the device on
+  the on-device path is TEXT — the recognised sentence plus six lines of context — to the
+  user's own configured translation engine, disclosed as §10 Gate H.)*
 - **Auto-capture without consent.** Capture is off until the user turns it on once,
   and can be disabled and purged from settings at any time. See `README.md` — the
   privacy statement is part of the product, not marketing copy.
@@ -3176,4 +3406,12 @@ matters more than the detail.
 | 2026-09-11 | 文档翻译一次性翻整份 / 后台预翻 | 用户裁定「打开一页翻一页」：有些文档几百页，整份翻是一张看不见的账单。页面打开才发；预取至多下一页且可关（§9.7） |
 | 2026-09-11 | 文档与译文存进 `LearnStore`（bump DB_VERSION） | 每次 bump 都是对全体用户语料的风险；文档可能几十 MB，语义是缓存不是语料，且不同步。独立 IDB `mt-docs`，删除语义单独定义（§9.7） |
 | 2026-09-11 | 支持 `.doc` / `.pptx` / `.epub` | `.doc` 是 OLE 二进制复合文档，零依赖下不值得写；`.pptx`/`.epub` 是另外两种页模型。第一版明说不支持，让用户在 Word 里另存为 `.docx`（§9.7） |
+| 2026-09-12 | 浏览器 `SpeechRecognition` 做对话模式的本机转写（五审） | 维持否决：页面看不见、更保证不了厂商实现把音频送到哪。**解禁的是宿主 App 的设备内置识别器**（SpeechAnalyzer，iOS 26 / macOS 26）：音频一个字节不离开设备，否决理由不成立 —— Mac + iPhone 14 Pro 尖刺读数为证（§9.4 `device`、§9.6.1、§11、§10 Gate H） |
+| 2026-09-12 | 系统语音 `AVSpeechSynthesizer` 做对话朗读 | 用户裁定用第三方本地模型；后追加「音质不管，先通」⇒ Piper。§9.5 2026-08-24 那条「原生语音合成桥」的**位置**保留、桥后面的合成器换掉（§9.1 `device`） |
+| 2026-09-12 | Kokoro（fp32 / int8）、Matcha 做本地 TTS | Kokoro：真机首块 1330–1999 ms、加载 10–20 s，int8 比 fp32 还慢 3–4 倍，与「译文 → 起声 ≤ 0.5 s」差一个数量级；Matcha 快但只有中文。Piper zh / en 首块 157–264 ms（§9.1） |
+| 2026-09-12 | 本机修正：系统热词 `AnalysisContext.contextualStrings` | 对同音字零效果（输出逐字相同）。修正必须在远程做；不给用户一个看着有用其实没用的「热词表」设置（§9.6.1） |
+| 2026-09-12 | 靠系统 `SpeechDetector` / 默认定稿节奏断句 | 定稿是懒的时间片（有声书 p90 14 s、切在词中间）。自己做 RMS 静音检测 + `finalize(through:)`，再按标点切句（§9.6.1） |
+| 2026-09-12 | 修正与翻译分两次远程调用 | 用户裁定合成一次（一次往返 p50 100 ms / p90 200 ms）。两步变体只留常量 `LISTEN_PASS`，不是设置项（§9.6.1） |
+| 2026-09-12 | 本机转写向旧系统回落（iOS < 26 用别的识别器） | 用户裁定只上 SpeechAnalyzer：旧系统该引擎不出现、入口灰 + 具名原因，云端实时引擎是完整基线（§9.6 门控） |
+| 2026-09-12 | 原生回声消除（`setVoiceProcessingEnabled`）作为本机路的前提 | 挂了 playerNode 的 engine 上开 VP，tap 收 0 帧（未解）；不挂时能用。仍是 D2 要测的升级，四道 JS 闸是唯一前提（§9.6） |
 
