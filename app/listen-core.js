@@ -618,6 +618,18 @@ var ListenCore = (() => {
     return out.reverse();
   }
 
+  // 时延汇总（纯函数）：每行的 lat.pass / lat.ttsStart 取 p50/p90，给 _debug 与真机读回。
+  function latencySummary(rows) {
+    const pick = (k) => (rows || []).map((r) => r && r.lat && r.lat[k]).filter((v) => typeof v === 'number' && v >= 0).sort((a, b) => a - b);
+    const q = (xs, f) => (xs.length ? xs[Math.min(xs.length - 1, Math.floor(xs.length * f))] : null);
+    const out = { n: (rows || []).filter((r) => r && r.lat).length };
+    for (const k of ['pass', 'ttsStart']) { const xs = pick(k); out[k] = { n: xs.length, p50: q(xs, 0.5), p90: q(xs, 0.9), max: xs.length ? xs[xs.length - 1] : null }; }
+    const engines = {};
+    for (const r of rows || []) { const e = r && r.lat && r.lat.ttsEngine; if (e) engines[e] = (engines[e] || 0) + 1; }
+    out.ttsEngines = engines;
+    return out;
+  }
+
   function transcriptText(session, mePrefix) {
     const rows = (session && session.rows) || [];
     return rows.map((r) => {
@@ -627,6 +639,8 @@ var ListenCore = (() => {
   }
 
   return {
+    latencySummary,
+
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
