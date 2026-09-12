@@ -189,6 +189,19 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ audio bridge install: userContentController.add 锚点缺失');
   }
+  // 设备内置转写/朗读的桥（§9.6.1）：第三条通道，紧跟音频桥的 install 行。幂等判据是它自己那一行，
+  // 所以已经打过音频桥的旧树也会被补上（apple attach 那次的教训：判据不能只认第一行）。
+  const SPEECH_NEEDLE = 'MTSpeechBridge.shared.install';
+  const SPEECH_LINE = '        MTSpeechBridge.shared.install(webView: self.webView)';
+  if (src.includes(SPEECH_NEEDLE)) {
+    notes.push('speech bridge install already patched');
+  } else if (src.includes(BRIDGE_NEEDLE)) {
+    src = src.replace(/^(\s*)MTAudioBridge\.shared\.install\(webView: self\.webView\)$/m,
+      (m) => m + '\n' + SPEECH_LINE);
+    notes.push('speech bridge install patched');
+  } else {
+    notes.push('✗ speech bridge install: 音频桥 install 行缺失');
+  }
 
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
@@ -324,6 +337,9 @@ const BLOCKS = [
   { name: 'mt-review-bridge', src: 'review-bridge.swift', label: 'review bridge' },
   // macOS 的 <input type=file>（§9.7 文档翻译 D5）：没有 runOpenPanel 就是死按钮。attach 见下。
   { name: 'mt-file-panel', src: 'file-panel-bridge.swift', label: 'file panel bridge' },
+  // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
+  // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
+  { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -461,8 +477,14 @@ const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克�
 // two platforms) — so the setting would land on the macOS App target too. A macOS app
 // declaring a background mode it cannot use is something review asks about, and
 // macOS needs nothing here anyway: its process is never suspended (§9.5).
+// 设备内置转写（§9.6.1）：SpeechAnalyzer 在本机跑，是否需要这个键 Apple 没写死；缺了它的
+// 后果是进程被杀而不是报错，多一个键的代价是零。文案与 Gate H 同源（D6 同版换正式版）。
+const SPEECH_KEY = 'NSSpeechRecognitionUsageDescription';
+const SPEECH_TEXT = '「设备内置转写」在你的设备上识别语音，声音不发往任何服务器。';
+
 const PLIST_KEYS = [
   { key: MIC_KEY, xml: `<string>${MIC_TEXT}</string>` },
+  { key: SPEECH_KEY, xml: `<string>${SPEECH_TEXT}</string>` },
   { key: 'UIBackgroundModes', only: 'iOS (App)',
     xml: '<array>\n\t\t<string>audio</string>\n\t</array>' },
   // 灵动岛（§9.5）。没有这个键，ActivityKit 在运行时直接拒绝启动 Live Activity ——
@@ -633,6 +655,81 @@ function patchEntitlements(sharedDir) {
   if (!hits) return 'applesignin: App target 的 INFOPLIST_FILE 没找到 — 转换器布局变了？';
   fs.writeFileSync(f, src);
   return `applesignin entitlement patched (${hits} configs)`;
+}
+
+// Patch 10 (§9.6.1): 本机离线朗读要链接 sherpa-onnx + onnxruntime（app/native/vendor/，由
+// scripts/fetch-native-deps.js 拉取、钉版本 + sha256）。走**本地 SwiftPM 包**而不是手写
+// LIBRARY_SEARCH_PATHS：xcframework 的平台切片、模拟器切片、C 模块映射全由 SPM 处理，
+// 而每平台一行搜索路径的写法在 Xcode 升级时最先坏。
+//
+// 这是这份脚本里第二处往 pbxproj 里造对象的补丁（第一处是 widget target）。造得极少：
+// 一个 XCLocalSwiftPackageReference、一个 XCSwiftPackageProductDependency，App target 的
+// `packageProductDependencies` 列表（转换器本来就生成了空列表）各加一项，PBXProject 加
+// `packageReferences`。扩展 target 不链接 —— 扩展里没有朗读模型。
+const SPM_REF_ID = 'MT10D06CA57E0000000031';
+const SPM_DEP_ID = 'MT10D06CA57E0000000032';
+function patchSwiftPackageText(src, relPath) {
+  if (src.includes(SPM_REF_ID)) return { src, note: 'sherpa package already patched' };
+  const vendorOk = fs.existsSync(path.join(ROOT, 'app', 'native', 'vendor', 'sherpa-onnx', 'Package.swift'));
+  if (!vendorOk) return { src, note: '✗ sherpa package: app/native/vendor/ 未就位 —— 先跑 node scripts/fetch-native-deps.js' };
+  let out = src;
+  // ① App target 的 packageProductDependencies（按紧邻的 name 行认，只认 (iOS)/(macOS) 两个 App）
+  let hits = 0;
+  out = out.replace(/(name = "([^"]*) \((iOS|macOS)\)";\n\t\t\tpackageProductDependencies = \(\n)(\t\t\t\);)/g, (m, head, base, plat, tail) => {
+    if (/Extension/.test(base)) return m;   // 扩展 target 的名字也带 (iOS)/(macOS)，不链接
+    hits += 1;
+    return head + `\t\t\t\t${SPM_DEP_ID} /* sherpa-onnx */,\n` + tail;
+  });
+  if (hits !== 2) return { src, note: `✗ sherpa package: App target 的 packageProductDependencies 命中 ${hits} 处（期望 2）—— 转换器布局变了？` };
+  // ② PBXProject 的 packageReferences
+  const PROJ_ANCHOR = '\t\t\tproductRefGroup = ';
+  if (!out.includes(PROJ_ANCHOR)) return { src, note: '✗ sherpa package: PBXProject 的 productRefGroup 锚点缺失' };
+  out = out.replace(PROJ_ANCHOR, `\t\t\tpackageReferences = (\n\t\t\t\t${SPM_REF_ID} /* XCLocalSwiftPackageReference "${relPath}" */,\n\t\t\t);\n` + PROJ_ANCHOR);
+  // ③ 两个对象，放在 rootObject 之前
+  const TAIL = '\t};\n\trootObject = ';
+  if (!out.includes(TAIL)) return { src, note: '✗ sherpa package: rootObject 锚点缺失' };
+  const objs = [
+    '/* Begin XCLocalSwiftPackageReference section */',
+    `\t\t${SPM_REF_ID} /* XCLocalSwiftPackageReference "${relPath}" */ = {`,
+    '\t\t\tisa = XCLocalSwiftPackageReference;',
+    `\t\t\trelativePath = "${relPath}";`,
+    '\t\t};',
+    '/* End XCLocalSwiftPackageReference section */',
+    '',
+    '/* Begin XCSwiftPackageProductDependency section */',
+    `\t\t${SPM_DEP_ID} /* sherpa-onnx */ = {`,
+    '\t\t\tisa = XCSwiftPackageProductDependency;',
+    `\t\t\tpackage = ${SPM_REF_ID} /* XCLocalSwiftPackageReference "${relPath}" */;`,
+    '\t\t\tproductName = "sherpa-onnx";',
+    '\t\t};',
+    '/* End XCSwiftPackageProductDependency section */',
+  ].join('\n');
+  out = out.replace(TAIL, objs + '\n' + TAIL);
+  return { src: out, note: 'sherpa package patched (2 App targets)' };
+}
+
+// sherpa-onnx 的包声明 macOS 10.15+，而转换器把 MACOSX_DEPLOYMENT_TARGET 钉在 10.14 ——
+// 链接就报「compiling for macOS 10.14, but module has a minimum deployment target of 10.15」。
+// 10.14 本来就是转换器的默认值而非我们的裁定（Safari 扩展 MV3 要 Safari 14 = macOS 11），
+// 抬到 10.15 对任何真实用户都没有影响。只改这一处数字，所有配置块一起。
+function patchMacDeploymentTarget(src) {
+  if (!src.includes('MACOSX_DEPLOYMENT_TARGET = 10.14;')) return { src, note: 'macOS deployment target already current' };
+  return { src: src.replace(/MACOSX_DEPLOYMENT_TARGET = 10\.14;/g, 'MACOSX_DEPLOYMENT_TARGET = 10.15;'), note: 'macOS deployment target 10.14 → 10.15' };
+}
+
+function patchSwiftPackage(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return 'no xcodeproj';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return 'no project.pbxproj';
+  // 相对路径从 .xcodeproj 所在目录算（safari-project/<App>/ → ../../app/native/vendor/sherpa-onnx）
+  const rel = path.relative(appRoot, path.join(ROOT, 'app', 'native', 'vendor', 'sherpa-onnx')).split(path.sep).join('/');
+  const { src, note } = patchSwiftPackageText(fs.readFileSync(f, 'utf8'), rel);
+  if (!/^✗/.test(note) && !/already/.test(note)) fs.writeFileSync(f, src);
+  const dt = patchMacDeploymentTarget(fs.readFileSync(f, 'utf8'));
+  if (!/already/.test(dt.note)) fs.writeFileSync(f, dt.src);
+  return note + ' · ' + dt.note;
 }
 
 function patchPbxproj(sharedDir) {
@@ -1107,7 +1204,7 @@ function main() {
         ? loud(proj, 'widget', patchWidgetFiles(shared)) + ' · '
           + loud(proj, 'widget', patchWidgetTarget(shared))
         : 'widget: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -1129,7 +1226,7 @@ if (require.main === module) main();
 
 module.exports = {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
-  patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS,
+  patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   patchWidgetTarget, patchWidgetFiles,
 };
