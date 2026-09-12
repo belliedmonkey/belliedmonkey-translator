@@ -1944,6 +1944,9 @@
   "listen_cost_line_device": {
     "message": "Écouté {t} · l’audio ne quitte jamais l’appareil"
   },
+  "listen_device_privacy": {
+    "message": "Avec la transcription sur l’appareil, la voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu, avec quelques phrases précédentes pour le contexte, va au moteur de traduction que vous avez configuré pour correction et traduction — nos serveurs n’interviennent pas. Avec la voix sur l’appareil, l’audio est synthétisé sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Aucun enregistrement n’est conservé, seulement du texte."
+  },
   "listen_raw_label": {
     "message": "Texte reconnu"
   },

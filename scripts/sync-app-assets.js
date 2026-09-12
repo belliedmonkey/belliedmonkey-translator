@@ -465,7 +465,8 @@ function patchAudioBridge(sharedDir) {
 // listening in 对话 · 实时听译, learning-design §9.6), not a generic "needs the mic".
 //
 const MIC_KEY = 'NSMicrophoneUsageDescription';
-const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克风：声音只发送到你自己配置的转写端点，识别后立即丢弃，不保存任何录音，绝不存储或上传到我们的服务器。';
+// 2026-09-12（Gate H）：加了「或只在你的设备上识别」—— 设备内置转写时声音根本不出设备。
+const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克风：声音只在你的设备上识别，或只发送到你自己配置的转写端点，识别后立即丢弃，不保存任何录音，绝不存储或上传到我们的服务器。';
 
 // One row per declaration. `only` names the platform App directory it belongs to;
 // absent means every App target.

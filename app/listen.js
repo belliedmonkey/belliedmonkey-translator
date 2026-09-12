@@ -795,6 +795,9 @@ var AppListen = (() => {
       : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
       : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
     pill.classList.toggle('live', listening);
+    // Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行
+    const dp = $('app-listen-device-privacy');
+    if (dp) { const dev = deviceEngine(cfg && cfg.eng); dp.hidden = !dev; if (dev) dp.textContent = t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'); }
     $('app-listen-cost').textContent = (deviceEngine(cfg && cfg.eng)
       ? t('listen_cost_line_device', '已听 {t} · 音频不离开设备')
       : t('listen_cost_line', '已听 {t} · 音频只发往你配置的转写端点')).replace('{t}', C.fmtClock(ms));
