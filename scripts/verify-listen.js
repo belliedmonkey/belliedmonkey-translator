@@ -349,6 +349,7 @@ function say(base, text) {
     // 回声闸的逻辑，不是厂商的声音。
     await evalIn(cdp, sessionId, `(() => {
       window.__tts = [];
+      window.__origTts = { speak: LearnTTS.speak, stop: LearnTTS.stop, engine: LearnTTS.engine };   // G6 要复原
       window.LearnTTS.engine = () => ({ id: 'e2e_tts' });
       window.LearnTTS.speak = (text, lang) => { window.__tts.push({ text, lang }); return Promise.resolve({ ok: true, done: Promise.resolve() }); };
       window.LearnTTS.stop = () => {};
@@ -398,7 +399,10 @@ function say(base, text) {
           setTimeout(() => { for (const l of msg.locales) { emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 0.5, state: 'downloading' }); emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 1, state: 'installed' }); } fs.assets = 'installed'; emit({ type: 'stt-state', state: 'ready', assets: 'installed' }); }, 50);
         } else if (msg.type === 'stt-start') { fs.started++; fs.lastLocales = msg.locales; setTimeout(() => emit({ type: 'stt-state', state: 'ready' }), 0); }
         else if (msg.type === 'stt-stop') { fs.stopped++; setTimeout(() => emit({ type: 'stt-state', state: 'ended' }), 0); }
-        else if (msg.type === 'tts-probe') { setTimeout(() => emit({ type: 'tts-state', state: 'failed', reason: 'no-engine', langs: [] }), 0); }
+        else if (msg.type === 'tts-probe') { fs.ttsModels = msg.models; setTimeout(() => emit({ type: 'tts-state', state: fs.ttsReady ? 'ready' : 'assets', langs: fs.ttsReady ? ['zh', 'en'] : [] }), 0); }
+        else if (msg.type === 'tts-assets') { fs.ttsDownloads = (fs.ttsDownloads || 0) + 1; setTimeout(() => { emit({ type: 'assets-progress', kind: 'tts', locale: 'zh', fraction: 0.5, state: 'downloading' }); fs.ttsReady = true; emit({ type: 'tts-state', state: 'ready', langs: ['zh', 'en'] }); }, 50); }
+        else if (msg.type === 'tts-speak') { (fs.spoken = fs.spoken || []).push({ id: msg.id, text: msg.text, lang: msg.lang }); setTimeout(() => { emit({ type: 'tts-start', id: msg.id }); emit({ type: 'tts-end', id: msg.id }); }, 30); }
+        else if (msg.type === 'tts-stop') { fs.ttsStops = (fs.ttsStops || 0) + 1; }
       } };
       return 'ok';
     })()`);
@@ -447,12 +451,34 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'old'; await AppListen.refreshEntry(); return 'ok'; })()`);
     const g5 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-listen-entry2'); const n = document.getElementById('app-listen-need-live2'); const w = document.getElementById('app-listen-need-live-why2'); return { disabled: b.disabled, needShown: n && !n.hidden, why: w && w.textContent }; })())`));
     need(g5.disabled === true && g5.needShown === true && /iOS 26/.test(g5.why || ''), 'G5: 旧系统该灰掉入口并说「需要 iOS 26 / macOS 26」，实际 ' + JSON.stringify(g5));
+    // G6. 设备内置朗读：模型缺失 ⇒ 先进 downloading 下载；定稿译文经原生朗读（tts-speak → tts-start/end）；
+    //     清单按 flavor 解开成字符串地址
+    if (process.env.TRACE) console.log('  …G6');
+    await evalIn(cdp, sessionId, `(async () => {
+      LearnTTS.speak = __origTts.speak; LearnTTS.stop = __origTts.stop; LearnTTS.engine = __origTts.engine;
+      LearnTTS.configure({ engineId: 'device', rate: 1 });
+      __fakeSpeech.os = 'new'; __fakeSpeech.ttsReady = false;
+      await new Promise((r) => chrome.storage.local.set({ ttsEngine: 'device', listenAutoSpeak: true, listenOtherLang: 'en' }, r));
+      await AppListen.refreshEntry();
+      return 'ok';
+    })()`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'G6: 下载完模型后进入 listening');
+    const g6a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ dl: __fakeSpeech.ttsDownloads, models: (__fakeSpeech.ttsModels || []).map((m) => [m.lang, typeof m.files[0].url]) })`));
+    need(g6a.dl === 1 && JSON.stringify(g6a.models) === JSON.stringify([['zh', 'string'], ['en', 'string']]), 'G6: 该先下载一次模型，清单按 flavor 解成字符串地址，实际 ' + JSON.stringify(g6a));
+    await evalIn(cdp, sessionId, `(__fakeSpeech.say('en-US', 'Delivery takes forty five days.', 0.97), 'ok')`);
+    const g6b = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeSpeech.spoken || [])`)); return r.length ? r : null; }, 8000, 'G6: 译文经原生朗读');
+    need(g6b[0].lang === 'zh' && g6b[0].text === '译：Delivery takes forty five days.', 'G6: 该把译文按我的语言（zh）交给原生朗读，实际 ' + JSON.stringify(g6b[0]));
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
+    await sleep(300);
+    await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ ttsEngine: '' }, r)); LearnTTS.configure({ engineId: '' }); return 'ok'; })()`);
     // 收尾：把引擎改回云端的 e2e 条目，别让后面的断言读到本机态
     await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'new'; await new Promise((r) => chrome.storage.local.set({ sttEngine: 'e2e_live', sttApiKey: 'k', listenOtherLang: 'en' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
   } catch (e) {
     problems.push('THROW ' + (e && e.stack));
     // 失败时把页面状态一并读回，别让人猜
     try { problems.push('STATE ' + await evalIn(cdp, sessionId, `JSON.stringify({ d: AppListen._debug(), note: (document.getElementById('app-listen-note') || {}).textContent, pill: (document.getElementById('app-listen-pill') || {}).textContent })`)); } catch (_) {}
+    try { problems.push('TTS ' + await evalIn(cdp, sessionId, `(async () => { const r = await LearnTTS.speak('测试一句', 'zh'); return JSON.stringify({ engine: LearnTTS.engine(), avail: NativeSpeech.available(), langs: NativeSpeech.ttsLangs(), spoken: __fakeSpeech.spoken, stops: __fakeSpeech.ttsStops, speakResult: r }); })()`)); } catch (e) { problems.push('TTS-ERR ' + e); }
   }
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 

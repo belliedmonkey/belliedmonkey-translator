@@ -187,11 +187,22 @@ var ListenCore = (() => {
   const DROP_PUNCT = /[\s.,!?;:'"()\[\]{}—–\-。，！？；：、「」『』（）《》…]+/gu;
 
   // 归一化成词/字的集合。中日韩按字切，其余按词切。
+  // 混排（一句里既有汉字又有拉丁词）按**段**切：汉字逐字、拉丁按词。原来只要有一个汉字就整句逐字符切，
+  // 于是「译：Delivery takes…」被切成一堆字母，和任何一句英文都有六成字母重合 —— 60 秒窗里的第二句
+  // 英文译文被当成「刚读过」跳掉（2026-09-12 门禁 G6 抓到）。
   function echoTokens(text) {
     const t = String(text == null ? '' : text).toLowerCase().replace(DROP_PUNCT, ' ').trim();
     if (!t) return new Set();
-    if (CJK_CHAR.test(t)) return new Set([...t].filter((c) => !/\s/.test(c)));
-    return new Set(t.split(/\s+/).filter(Boolean));
+    const out = new Set();
+    let word = '';
+    const flush = () => { if (word) { out.add(word); word = ''; } };
+    for (const c of t) {
+      if (/\s/.test(c)) { flush(); continue; }
+      if (CJK_CHAR.test(c)) { flush(); out.add(c); continue; }
+      word += c;
+    }
+    flush();
+    return out;
   }
 
   function makeEchoGuard() {

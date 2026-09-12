@@ -439,6 +439,7 @@ var LearnTTS = (() => {
 
   function stop() {
     epoch++;
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) NativeSpeech.stop(); } catch (_) {}
     try {
       if (typeof speechSynthesis !== 'undefined') {
         if (speechSynthesis.speaking || speechSynthesis.pending) lastInterruptAt = Date.now();
@@ -473,7 +474,34 @@ var LearnTTS = (() => {
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
 
-    if (e.type === 'browser') {
+    // 设备内置朗读（§9.6.1）：音频在原生合成与播放，PCM 不回 JS。模型不含这个语言 ⇒ 回落系统语音，
+    // 返回值带 fallback:'lang' 让调用方在行上具名（不静默）。桥不在 / 模型没就位 ⇒ 具名 reason。
+    if (e.type === 'device-speech') {
+      if (typeof NativeSpeech === 'undefined' || !NativeSpeech.available()) return { ok: false, reason: 'unsupported' };
+      const base = baseLang(lang) || scriptLang(clean) || '';
+      if (NativeSpeech.ttsLangs().indexOf(base) < 0) {
+        const r = await speakBrowser(clean, lang, myEpoch);
+        if (r && r.ok) r.fallback = 'lang';
+        return r;
+      }
+      const job = NativeSpeech.speak({ text: clean, lang: base, rate: cfg.rate || 1 });
+      const started = await job.started;
+      if (stale()) return { ok: false, reason: 'superseded' };
+      if (!started) return { ok: false, reason: 'blocked' };
+      let doneResolve;
+      const done = new Promise((resolve) => { doneResolve = resolve; });
+      currentDone = doneResolve;
+      job.done.then(() => doneResolve(), () => doneResolve());
+      return { ok: true, engine: e.id, done };
+    }
+    if (e.type === 'browser') return speakBrowser(clean, lang, myEpoch);
+    return speakBytes(clean, lang, e, myEpoch);
+  }
+
+  // 系统语音（Web Speech）那一支；device 引擎在模型不含该语言时也回落到这里。
+  async function speakBrowser(clean, lang, myEpoch) {
+    const stale = () => epoch !== myEpoch;
+    {
       if (typeof speechSynthesis === 'undefined' || typeof SpeechSynthesisUtterance === 'undefined') {
         return { ok: false, reason: 'unsupported' };
       }
@@ -535,7 +563,11 @@ var LearnTTS = (() => {
       });
       return { ok: true, engine: 'browser', voice: v.voiceURI, done };
     }
+  }
 
+  // 返回音频字节的引擎（云端 / 自建）：整段下载完再播。
+  async function speakBytes(clean, lang, e, myEpoch) {
+    const stale = () => epoch !== myEpoch;
     let got;
     try {
       got = await getAudio(clean, lang);
@@ -587,6 +619,14 @@ var LearnTTS = (() => {
     if (!cfg.engineId) return { ok: false, reason: 'not_configured' };
     const e = engine();
     if (!e) return { ok: false, reason: 'unsupported' };
+    if (e.type === 'device-speech') {
+      if (typeof NativeSpeech === 'undefined' || !NativeSpeech.available()) return { ok: false, reason: 'unsupported' };
+      // 模型有这个语言 ⇒ 能读；没有 ⇒ 看系统语音能不能兜（回落时行上具名）
+      if (NativeSpeech.ttsLangs().indexOf(baseLang(lang) || scriptLang(text || '') || '') >= 0) return { ok: true };
+      if (typeof speechSynthesis === 'undefined') return { ok: false, reason: 'no_voice' };
+      const voices = await loadVoices(waitMs);
+      return pickVoice(voices, lang, cfg.voice, text) ? { ok: true, fallback: 'lang' } : { ok: false, reason: undLang(lang) ? 'no_voice_und' : 'no_voice' };
+    }
     if (e.type === 'browser') {
       if (typeof speechSynthesis === 'undefined') return { ok: false, reason: 'unsupported' };
       const voices = await loadVoices(waitMs);

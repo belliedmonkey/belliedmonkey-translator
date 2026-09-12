@@ -54,6 +54,18 @@ module.exports = [
     hintKey: 'tts_hint_browser',
   },
   {
+    // 设备内置朗读（learning-design §9.6.1）：离线模型在设备上合成（Piper，经 sherpa-onnx），
+    // 模型清单在 extension/learn/device-models.config.js，首次使用时下载、sha256 钉住。
+    // 不说 HTTP ⇒ defaultEndpoint 显式 null；returnsAudio:false —— 音频在原生播，永不回 JS，
+    // 不可缓存、不可上传（同 browser）。模型不含的语言回落 browser 并在行上具名。
+    id: 'device', type: 'device-speech', flavors: ['global', 'china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '', voices: null,
+    returnsAudio: false,
+    labelKey: 'tts_engine_device', label: '设备内置朗读（离线模型 · 仅 App）',
+    hintKey: 'tts_hint_device',
+  },
+  {
     // Any server implementing the /v1/audio/speech request shape on the user's own
     // machine or LAN. Brand-free by design — the user supplies the complete endpoint
     // URL, and the placeholder below is what tells them its shape (the hint copy used

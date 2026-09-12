@@ -125,7 +125,8 @@ describe('LearnTTS — engine registry', () => {
     // 现在钉「实现了 + 同家族」，既挡住乱写的 type，也不会在加第三种形状时假红。
     const WF = require('../extension/content/wire-format.js');
     const SPEECH_FORMATS = ['speech-compat', 'speech-dashscope', 'speech-audio-chat'];
-    for (const e of REGISTRY.filter((x) => x.id !== 'browser')) {
+    // browser（系统语音）与 device（离线模型，§9.6.1）都不说 HTTP，没有语音形状可判
+    for (const e of REGISTRY.filter((x) => x.id !== 'browser' && x.type !== 'device-speech')) {
       ok(SPEECH_FORMATS.includes(e.type), `${e.id} 的 type ${e.type} 不是已实现的语音形状`);
       // 家族封闭：拿它自己的默认端点去判，结果必须仍在语音形状集合里。
       const fmt = WF.formatFor(e.defaultEndpoint || 'https://x.example/v1/audio/speech', e.type);

@@ -479,3 +479,28 @@ describe('设备内置转写条目（learning-design §9.6.1 / domain-design §7
     }
   });
 });
+
+describe('设备内置朗读条目（learning-design §9.6.1）', () => {
+  const TTS = require('../build/tts.config.js');
+  const M = require('../extension/learn/device-models.config.js');
+  test('恰好一条 device 条目，两个 flavor 都在，不说 HTTP、不返回音频', () => {
+    const dev = TTS.filter((e) => e.type === 'device-speech');
+    eq(dev.length, 1); const e = dev[0];
+    eq(e.id, 'device'); eq(JSON.stringify([...e.flavors].sort()), JSON.stringify(['china', 'global']));
+    ok('defaultEndpoint' in e && e.defaultEndpoint === null); eq(e.returnsAudio, false); eq(e.needsKey, false); eq(e.supportsKey, false);
+  });
+  test('离线模型清单：每条有 lang/dir/model/tokens/dataDir，每个文件带 64 位 sha256、正整数 size、两个 flavor 的 https 地址', () => {
+    ok(M.MT_DEVICE_TTS_MODELS.length >= 2, 'zh + en');
+    for (const m of M.MT_DEVICE_TTS_MODELS) {
+      for (const k of ['lang', 'dir', 'model', 'tokens', 'dataDir']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      ok(Array.isArray(m.files) && m.files.length, m.lang + ' 没有文件');
+      for (const f of m.files) {
+        ok(/^[0-9a-f]{64}$/.test(f.sha256), m.lang + ' sha256 不是 64 位十六进制');
+        ok(Number.isInteger(f.size) && f.size > 0, m.lang + ' size');
+        for (const fl of ['global', 'china']) ok(/^https:\/\//.test(f.url[fl]), m.lang + ' ' + fl + ' 地址不是 https');
+      }
+    }
+    const zh = M.mtDeviceTtsModelsFor('china').find((m) => m.lang === 'zh');
+    ok(typeof zh.files[0].url === 'string', '按 flavor 解开成字符串');
+  });
+});

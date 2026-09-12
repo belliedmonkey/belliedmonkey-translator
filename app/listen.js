@@ -482,6 +482,23 @@ var AppListen = (() => {
         phase = 'preparing'; paint();
       }
     }
+    // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
+    if (deviceTts() && deviceBridge()) {
+      const models = mtDeviceTtsModelsFor(window.MT_FLAVOR);
+      let r = await NativeSpeech.ttsProbe(models);
+      if (phase !== 'preparing') return;
+      if (!r.ok && r.reason === 'assets') {
+        phase = 'downloading'; dlPct = 0; dlLang = ''; paint();
+        try {
+          r = await NativeSpeech.ensureAssets('tts', models, (m) => {
+            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+          });
+        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return; }
+        if (phase !== 'downloading') return;
+        phase = 'preparing'; paint();
+      }
+      // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
+    }
     openSocket();
     paint();
     startedAt = now();
@@ -616,6 +633,7 @@ var AppListen = (() => {
 
   // ── 放大给对方看（历史行叠层，底下照常在听）────────────────────────────────
   function ttsReady() { return typeof LearnTTS !== 'undefined' && !!(LearnTTS.engine && LearnTTS.engine()); }
+  function deviceTts() { const e = ttsReady() ? LearnTTS.engine() : null; return !!(e && e.type === 'device-speech'); }
   function foreignOf(row) { return row.who === 'me' ? row.tr : row.text; }
   function nativeOf(row) { return row.who === 'me' ? row.text : row.tr; }
   function openShow(row) {
@@ -656,6 +674,11 @@ var AppListen = (() => {
       r = await LearnTTS.speak(text, lang || (cfg && cfg.otherLang));
     } catch (_) { r = null; }
     if (my === speakOutGen) mark.hidden = true;
+    // 设备内置朗读回落到系统语音（模型不含这个语言）：行上具名，不静默
+    if (r && r.ok && r.fallback === 'lang' && session && rid) {
+      const row = session.rows.find((x) => x.rid === rid);
+      if (row && !row.ttsFallback) { row.ttsFallback = lang || (cfg && cfg.otherLang) || ''; renderHistory(); }
+    }
     return r;
   }
 
@@ -696,10 +719,12 @@ var AppListen = (() => {
   }
 
   // 译文首次落地时自动入队。改边后的重译与手动重试**不走这里**（裁定：不自动重读）。
+  let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看）
   function autoSpeak(row) {
-    if (!cfg || !cfg.autoSpeak || autoSpeakOff || !ttsReady() || !row || !row.tr) return;
+    autoSkip = !cfg ? 'cfg' : !cfg.autoSpeak ? 'off' : autoSpeakOff ? 'fuse' : !ttsReady() ? 'tts' : !row || !row.tr ? 'row' : '';
+    if (autoSkip) return;
     // 回声第二道闸：这段话我们刚读过 ⇒ 不再读第二遍。漏过第一层的回声，环在这里断掉。
-    if (sq.spokenRecently(row.tr, now())) return;
+    if (sq.spokenRecently(row.tr, now())) { autoSkip = 'recent'; return; }
     // 保险丝：任何会自己往前跑的东西都要有一个人能按下的停止。
     const at = now();
     autoAt = autoAt.filter((x) => at - x < 10000);
@@ -886,6 +911,11 @@ var AppListen = (() => {
         sh.textContent = t('listen_show_other', '给对方看');
         sh.addEventListener('click', (e) => { e.stopPropagation(); openShow(r); });
         acts.appendChild(sh);
+        if (r.ttsFallback) {
+          const fb = document.createElement('span'); fb.className = 'listen-tts-fallback';
+          fb.textContent = t('tts_device_lang_fallback', '用系统语音朗读（离线模型不含{lang}）').replace('{lang}', langLabel(r.ttsFallback));
+          acts.appendChild(fb);
+        }
         body.appendChild(acts);
       }
       body.addEventListener('click', () => { openShow(r); });
@@ -1052,5 +1082,5 @@ var AppListen = (() => {
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
     _debug: () => ({ phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
-      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken }) };
+      echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping }) };
 })();
