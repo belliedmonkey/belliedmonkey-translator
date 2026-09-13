@@ -223,10 +223,12 @@ Stated up front, because finding them yourself is worse.
 - **iOS has no subtitles in video fullscreen.** iOS hands fullscreen playback to the system's
   native player, which a web overlay cannot draw on. On iPhone and iPad, subtitles are an
   inline-playback feature. This is a platform boundary, not a to-do.
-- **No speech recognition, ever.** If a video or podcast has no existing timed transcript, you
-  get an honest `字幕不可用` notice and the page-text translation as the floor — never a
-  word-by-word guess. Running ASR would mean either a backend of ours or something infeasible
-  on Safari iOS, and both are refused.
+- **The extension never transcribes on its own.** If a video or podcast has no existing timed
+  transcript, you get an honest `字幕不可用` notice and the page-text translation as the floor —
+  never a word-by-word guess. With a transcription engine of your own configured, you can tap
+  to transcribe: file mode works everywhere; live capture from the page works in Chrome and
+  Firefox, and in Safari only for directly readable audio — Safari hands extensions silence for
+  streaming video such as YouTube, Twitch and X. No server of ours ever touches the audio.
 - **x.com video usually has no caption track.** Captions on X are typically *burned into the
   video image*, which no translator can read. Of four candidate videos sampled while
   preparing demo material, three had burned-in captions and one had none — only a long-form
