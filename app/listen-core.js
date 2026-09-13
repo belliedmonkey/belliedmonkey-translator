@@ -24,6 +24,23 @@ var ListenCore = (() => {
   const TITLE_CHARS = 12;        // 会话标题里摘第一句的前几个字
   const HISTORY_MAX = 200;       // 屏幕上保留的定稿行数；语料里不限
 
+  // 「对话 · 实时听译」与「实时字幕」共用这一条管线（learning-design §9.8）。两种用法的差别
+  // **全在这张表里** —— listen.js 只查表，不在各处判模式名。
+  //   oneWay     : 每句都归对方（字幕里说话的永远是视频里的人）
+  //   autoSpeak  : 允许自动朗读译文
+  //   flip       : 允许 ↔ 改边 / 给对方看
+  //   staticGate : 静音门用固定下限，不自适应 —— 视频配乐是持续高能量，自适应那套会把它当成
+  //                「环境变吵」抬门限，最后连台词都判成静音
+  //   recognizers: 本机路开几路识别器（字幕只开「视频的语言」一路）
+  //   profile    : 原生音频会话档（record-mode 带过去）
+  //   captureKey : 「进复习」开关的设置键
+  const MODES = {
+    conv:     { id: 'conv',     oneWay: false, autoSpeak: true,  flip: true,  staticGate: false, recognizers: 2, profile: 'conv',     captureKey: 'listenCapture' },
+    subtitle: { id: 'subtitle', oneWay: true,  autoSpeak: false, flip: false, staticGate: true,  recognizers: 1, profile: 'subtitle', captureKey: 'subtitleCapture' },
+  };
+  // 不认识的模式名一律退回对话 —— 老调用（不传模式）逐字节不变。
+  function modeOf(s) { return MODES[(s && s.mode) === 'subtitle' ? 'subtitle' : 'conv']; }
+
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function stamp(now) {
     const d = new Date(now);
@@ -31,10 +48,11 @@ var ListenCore = (() => {
   }
 
   // 会话 id：时间戳 + 注入的随机，不用 crypto（file:// 与内容脚本都可能不是安全上下文）。
-  function newSession(now, rnd) {
+  function newSession(now, rnd, mode) {
     const r = Math.floor((typeof rnd === 'number' ? rnd : 0) * 0xffffff).toString(36);
     return {
       id: now.toString(36) + r,
+      mode: mode === 'subtitle' ? 'subtitle' : 'conv',
       startedAt: now,
       rows: [],           // 定稿行 {rid, who, guessed, pinned, text, tr, at, starred, written}
       seq: 0,
@@ -297,9 +315,11 @@ var ListenCore = (() => {
     if (!clean) return null;
     // 本机路（§9.6.1）：归属由「哪一路识别器认出来的」直接给（deps.who），比按文字系猜准 ——
     // 同文字系语言对（en/fr）那时也能分开。没给就照旧按语言判。
-    const a = deps && (deps.who === 'me' || deps.who === 'them')
-      ? { who: deps.who, guessed: false }
-      : attributeByLang(s, clean, at, cfg, deps);
+    // 字幕模式单向：每句都归对方，连识别器给的 who 也不认（§9.8）。
+    const a = modeOf(s).oneWay ? { who: 'them', guessed: false }
+      : deps && (deps.who === 'me' || deps.who === 'them')
+        ? { who: deps.who, guessed: false }
+        : attributeByLang(s, clean, at, cfg, deps);
     const row = {
       rid: ++s.seq, who: a.who,
       guessed: a.guessed,   // 判不出、靠粘性或兜底得来 ⇒ 界面标虚线，提示可以点 ↔ 改
@@ -354,6 +374,11 @@ var ListenCore = (() => {
 
   // 每来一块 PCM 调一次；返回 true 表示已经静了 SILENCE_MS，该暂停了。
   function silenceCheck(s, rms, now) {
+    // 字幕模式：静态门限（见 MODES.staticGate）。持续的配乐就是「有声」，不摸底噪、不抬门限。
+    if (modeOf(s).staticGate) {
+      if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; return false; }
+      return now - s.lastVoiceAt >= SILENCE_MS;
+    }
     if (!s.noiseFrom) s.noiseFrom = now;
     if (s.noiseFloor == null) {
       // 摸底期：只收最小值
@@ -387,13 +412,16 @@ var ListenCore = (() => {
     const me = row.who === 'me';
     const text = me ? row.tr : row.text;
     const tr = me ? row.text : row.tr;
+    const anchor = { k: 'conv', sessionId: s.id, title: sessionTitle(s, cfg.label), startMs: Math.max(0, row.at - s.startedAt), endMs: Math.max(0, row.at - s.startedAt), who: row.who };
+    // 字幕句子沿用 k:'conv'（不新增 kind），只多一个 mode —— 对话的锚点逐字节不变（§9.8）。
+    if (s.mode === 'subtitle') anchor.mode = 'subtitle';
     return {
       text, tr,
       lang: me ? (cfg.otherLang || 'und') : (cfg.lang || 'und'),
       targetLang: cfg.targetLang || '',
       kind: 'sentence',
       sourceId: 'conv:' + s.id,
-      anchor: { k: 'conv', sessionId: s.id, title: sessionTitle(s, cfg.label), startMs: Math.max(0, row.at - s.startedAt), endMs: Math.max(0, row.at - s.startedAt), who: row.who },
+      anchor,
       playedThrough: true,
       dwellMs: 0,
       starred: !!row.starred,
@@ -416,6 +444,32 @@ var ListenCore = (() => {
     if (deps && deps.langAllowed && !deps.langAllowed(d.lang, d.text, cfg.langs, cfg.registry)) return false;
     if (deps && deps.shouldCapture && !deps.shouldCapture(d)) return false;
     return true;
+  }
+
+  // 「实时字幕」首页入口（interaction-spec M2；learning-design §9.8 协议补充决定）。
+  //   env.caps     : 原生回的 audio-caps；没有 = 老原生壳不认识这个功能 ⇒ 'hidden'（整行不显示）
+  //   env.deviceOk : 设备内置转写可用 ⇒ 跳过 ①②
+  //   env.liveOk   : 选中的转写引擎有实时接口
+  //   env.keyOk    : 转写引擎的 key 填了（或不需要）
+  // 返回 '' = 可用；否则按 ① no-live ② no-key ③ os 的顺序给第一个原因。
+  function entryGate(env) {
+    const e = env || {};
+    if (!e.caps) return 'hidden';
+    if (!e.deviceOk) {
+      if (!e.liveOk) return 'no-live';
+      if (!e.keyOk) return 'no-key';
+    }
+    if (e.caps.system === 'os') return 'os';
+    return '';
+  }
+
+  // 声音从哪来。**没收到 audio-caps.system === 'ok' 绝不给 'system'** —— 老原生壳会无视
+  // source 字段、静默打开麦克风（§9.8）。iOS 报 'unsupported' ⇒ 麦克风听外放；其余一律 null（不开始）。
+  function captureSource(caps) {
+    if (!caps) return null;
+    if (caps.system === 'ok') return 'system';
+    if (caps.system === 'unsupported') return 'mic';
+    return null;
   }
 
   function summary(s, now) {
@@ -648,6 +702,7 @@ var ListenCore = (() => {
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
+    MODES, modeOf, entryGate, captureSource,
     newSession, sessionTitle, sourceFor, addFinal, flipWho, transcriptText,
     baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
