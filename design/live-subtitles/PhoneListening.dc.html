@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>I3 · 听译中 · 引导切走</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 390px; height: 844px; padding: 59px 20px 34px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; align-items: center; gap: 12px;"><span style="color: var(--accent-deep); text-decoration: underline; padding: 6px 0; font-size: 16px;">← 返回</span><h2 style="font-size: 20px; margin: 0; flex: 1; font-weight: 700;">实时字幕</h2><span style="font-size: 12.8px; line-height: 1.4; color: var(--sage-strong); background: var(--card); border-radius: 999px; padding: 4px 10px; white-space: nowrap; flex: none;">● 字幕中 · 00:04</span></div>
+<p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; margin: 0;">English → 中文 · 设备内置转写</p>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; "><div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12.8px; color: var(--dim);"><span>现在</span></div><p style="font-size: 17.6px; line-height: 1.5; color: var(--dim); margin: 6px 0 4px;">切到 Safari 外放播放吧 —— 字幕会出现在灵动岛和锁屏上</p></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; "><div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12.8px; color: var(--dim);"><span>整句定稿</span><span style="display: flex; gap: 12px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 12.8px;">复制全文</span><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 12.8px;">结束</span></span></div><div style="color: var(--dim); font-size: 14.4px; padding: 14px 0;">每句定稿后会出现在这里。</div></div>
+<button type="button" style="font-size: 16.8px; font-weight: 700; color: #ffffff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; min-height: 64px; ">● 正在听 · 暂停</button>
+<p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; ">已听 00:04 · 音频不离开设备</p>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

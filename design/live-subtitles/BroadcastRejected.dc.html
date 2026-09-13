@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>B5 · 未就绪被拒</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; ">
+<div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: #f4f2ee; display: flex; flex-direction: column; gap: 14px; padding: 70px 16px 20px;">
+  <div style="aspect-ratio: 16 / 9; width: 100%; border-radius: 12px; position: relative; background: linear-gradient(135deg, #4a4540 0%, #2a2724 55%, #1a1917 100%);"><div style="position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.85); font-size: 11px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6v12"></path><path d="M15 6v12"></path></svg><div style="flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25);"><div style="width: 38%; height: 100%; background: #f6a06b; border-radius: 999px;"></div></div><span>12:41</span></div></div>
+  <div style="height: 16px; width: 88%; border-radius: 6px; background: #dcd6cc;"></div><div style="height: 12px; width: 60%; border-radius: 6px; background: #e6e1d8;"></div>
+  <div style="display: flex; gap: 10px; margin-top: 6px;"><div style="flex: 1; aspect-ratio: 16 / 10; border-radius: 10px; background: #e2dcd2;"></div><div style="flex: 1; aspect-ratio: 16 / 10; border-radius: 10px; background: #e2dcd2;"></div></div>
+  <div style="height: 12px; width: 76%; border-radius: 6px; background: #e6e1d8;"></div><div style="height: 12px; width: 52%; border-radius: 6px; background: #e6e1d8;"></div>
+</div><div style="position: absolute; inset: 0; background: rgba(0,0,0,0.38);"></div>
+<div style="position: absolute; left: 50%; top: 300px; transform: translateX(-50%); width: 270px; background: rgba(242,242,247,0.96); color: #1d1d1f; border-radius: 14px; overflow: hidden; text-align: center;">
+  <span style="position: absolute; top: 12px; left: 12px; z-index: 5; font-size: 11px; font-weight: 600; color: #6a6255; background: #ffffff; border: 1px dashed #b9ad9a; border-radius: 999px; padding: 2px 9px;">系统界面示意</span>
+  <div style="padding: 36px 16px 14px; display: flex; flex-direction: column; gap: 6px;"><p style="font-size: 16px; font-weight: 700;">屏幕录制已停止</p><p style="font-size: 13px; line-height: 1.45;">请先在大肚猴翻译里点「实时字幕 › 用屏幕录制方式开始」</p></div>
+  <div style="border-top: 1px solid #c6c6c8; padding: 11px 0; font-size: 16px; font-weight: 600; color: #8c491a;">好</div>
+</div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px;"><div style="background: #fff7c7; color: #3a3326; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 6px rgba(0,0,0,0.12); ">没在 App 里点过「开始」就直接从控制中心录制：扩展立即结束录制，这句话由 App 事先写好交给系统显示（开始总是用户在 App 里点的）。</div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

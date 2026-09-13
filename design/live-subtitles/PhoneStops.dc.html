@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>I10 · iPhone 停机状态</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 560px; height: 780px; padding: 28px 32px; display: flex; flex-direction: column; gap: 12px;">
+<p style="font-size: 13.6px; color: var(--dim);">每种停下都有一行具名原因和出口；显示在 App 页面上，同时灵动岛 / 锁屏卡变成「已暂停」。</p>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--dim); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M4 14v-3a8 8 0 0 1 16 0v3"></path><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z"></path><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--text);">听不到视频声音</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">戴着耳机时 App 听不到外放 —— 摘下耳机，用外放播放。</p></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--dim); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6v12"></path><path d="M15 6v12"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--text);">30 秒没有声音</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">已暂停以免计费。视频继续播放后点「继续」。</p><div style="padding-top: 4px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 14px;">继续</span></div></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--danger); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path><path d="M9 21h6"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--danger);">麦克风被拒绝</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">去「设置 › 隐私与安全性 › 麦克风」允许大肚猴翻译。</p><div style="padding-top: 4px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 14px;">去设置</span></div></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--dim); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 4l9 16H3z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--text);">录音被系统停止了</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">来电或其它 App 占用麦克风 —— 挂断后会自动继续，或点「开始」。</p></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--danger); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><path d="M20 4v5h-5"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--danger);">转写连接中断</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">网络不可用 —— 已听的句子还在。</p><div style="padding-top: 4px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 14px;">重试</span></div></div></div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":560,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>B6 · 录制被停 / 受保护内容</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 560px; height: 520px; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px;">
+<p style="font-size: 13.6px; color: var(--dim);">二期特有的两种停下，都显示在 App 页面上，灵动岛 / 锁屏卡同步变成「已暂停」。</p>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--dim); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="3.6" fill="currentColor"></circle></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--text);">屏幕录制已结束</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">你在状态栏停止了录制；已出的句子都在。继续会重新弹出屏幕录制面板。</p><div style="padding-top: 4px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 14px;">继续</span></div></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--danger); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 4l9 16H3z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--danger);">这个内容不允许录制声音</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">部分视频 App 对屏幕录制静音（受版权保护的内容）。换「开始（外放）」试试。</p><div style="padding-top: 4px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 14px;">改用外放</span></div></div></div></div>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;"><div style="display: flex; gap: 12px; align-items: flex-start;"><span style="color: var(--dim); padding-top: 2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M4 14v-3a8 8 0 0 1 16 0v3"></path><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z"></path><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z"></path></svg></span><div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;"><p style="font-size: 15px; font-weight: 700; color: var(--text);">提示：不必再摘耳机</p><p style="font-size: 13.6px; line-height: 1.5; color: var(--dim);">屏幕录制方式下，耳机不影响字幕。</p></div></div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":560,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

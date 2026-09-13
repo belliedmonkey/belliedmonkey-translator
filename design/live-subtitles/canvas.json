@@ -1,0 +1,343 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Mac"
+    },
+    {
+      "id": "page-2",
+      "name": "iPhone 一期 · 麦克风听外放"
+    },
+    {
+      "id": "page-3",
+      "name": "iPhone 二期 · 屏幕录制"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "MacHome.dc.html",
+      "page": "page-1",
+      "title": "M1 · Mac 首页 · 新入口",
+      "x": 0,
+      "y": 0,
+      "w": 820,
+      "h": 680
+    },
+    {
+      "file": "MacEntryDisabled.dc.html",
+      "page": "page-1",
+      "title": "M2 · 入口不可用的三种说法",
+      "x": 900,
+      "y": 0,
+      "w": 820,
+      "h": 490
+    },
+    {
+      "file": "MacPrep.dc.html",
+      "page": "page-1",
+      "title": "M3 · Mac 准备页",
+      "x": 1800,
+      "y": 0,
+      "w": 820,
+      "h": 640
+    },
+    {
+      "file": "MacPermission.dc.html",
+      "page": "page-1",
+      "title": "M4 · 首次开始 · 系统录音权限",
+      "x": 2700,
+      "y": 0,
+      "w": 820,
+      "h": 640
+    },
+    {
+      "file": "Main.dc.html",
+      "page": "page-1",
+      "title": "M5 · 桌面全景 · 字幕条常态",
+      "x": 0,
+      "y": 840,
+      "w": 1440,
+      "h": 900
+    },
+    {
+      "file": "MacRunning.dc.html",
+      "page": "page-1",
+      "title": "M8 · 主窗口 · 进行中",
+      "x": 1520,
+      "y": 840,
+      "w": 820,
+      "h": 640
+    },
+    {
+      "file": "MacWindowClosed.dc.html",
+      "page": "page-1",
+      "title": "M9 · 关窗不停 · 找回",
+      "x": 2420,
+      "y": 840,
+      "w": 820,
+      "h": 480
+    },
+    {
+      "file": "MacBarStates.dc.html",
+      "page": "page-1",
+      "title": "M6 · 字幕条 · 全状态",
+      "x": 0,
+      "y": 1900,
+      "w": 1040,
+      "h": 1500
+    },
+    {
+      "file": "MacBarSize.dc.html",
+      "page": "page-1",
+      "title": "M7 · 字幕条 · 字号与拖动",
+      "x": 1120,
+      "y": 1900,
+      "w": 1040,
+      "h": 500
+    },
+    {
+      "file": "MacTranslateFail.dc.html",
+      "page": "page-1",
+      "title": "M10 · 某句翻译失败",
+      "x": 2240,
+      "y": 1900,
+      "w": 820,
+      "h": 640
+    },
+    {
+      "file": "MacSummary.dc.html",
+      "page": "page-1",
+      "title": "M11 · 结束小结",
+      "x": 1120,
+      "y": 2560,
+      "w": 820,
+      "h": 640
+    },
+    {
+      "file": "CompareModes.dc.html",
+      "page": "page-1",
+      "title": "X1 · 对话 vs 实时字幕",
+      "x": 0,
+      "y": 3560,
+      "w": 820,
+      "h": 560
+    },
+    {
+      "file": "CopyTable.dc.html",
+      "page": "page-1",
+      "title": "X2 · 文案表",
+      "x": 900,
+      "y": 3560,
+      "w": 820,
+      "h": 2860
+    },
+    {
+      "file": "PhoneHome.dc.html",
+      "page": "page-2",
+      "title": "I1 · iPhone 首页 · 新入口",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhonePrep.dc.html",
+      "page": "page-2",
+      "title": "I2 · iPhone 准备页",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhoneListening.dc.html",
+      "page": "page-2",
+      "title": "I3 · 听译中 · 引导切走",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhoneIslandCompact.dc.html",
+      "page": "page-2",
+      "title": "I4 · Safari 前台 · 灵动岛收起",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "IslandExpanded.dc.html",
+      "page": "page-2",
+      "title": "I5 · 灵动岛 · 展开",
+      "x": 1880,
+      "y": 0,
+      "w": 520,
+      "h": 420
+    },
+    {
+      "file": "IslandAutoExpand.dc.html",
+      "page": "page-2",
+      "title": "I6 · 每句自动短暂展开（待真机验证）",
+      "x": 1880,
+      "y": 540,
+      "w": 520,
+      "h": 600
+    },
+    {
+      "file": "LockLight.dc.html",
+      "page": "page-2",
+      "title": "I7 · 锁屏卡 · 浅色",
+      "x": 0,
+      "y": 1004,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "LockDark.dc.html",
+      "page": "page-2",
+      "title": "I8 · 锁屏卡 · 深色",
+      "x": 470,
+      "y": 1004,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhoneHistory.dc.html",
+      "page": "page-2",
+      "title": "I9 · 回到 App · 历史",
+      "x": 940,
+      "y": 1004,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhoneSummary.dc.html",
+      "page": "page-2",
+      "title": "I11 · iPhone 结束小结",
+      "x": 1410,
+      "y": 1004,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "PhoneStops.dc.html",
+      "page": "page-2",
+      "title": "I10 · iPhone 停机状态",
+      "x": 2480,
+      "y": 0,
+      "w": 560,
+      "h": 780
+    },
+    {
+      "file": "BroadcastPrep.dc.html",
+      "page": "page-3",
+      "title": "B1 · 准备页 · 两种开始方式",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "BroadcastWaiting.dc.html",
+      "page": "page-3",
+      "title": "B2 · 等待屏幕录制",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "BroadcastPicker.dc.html",
+      "page": "page-3",
+      "title": "B3 · 系统选择框（示意）",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "BroadcastRecording.dc.html",
+      "page": "page-3",
+      "title": "B4 · 录制中 · Safari 前台 · 戴耳机",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "BroadcastRejected.dc.html",
+      "page": "page-3",
+      "title": "B5 · 未就绪被拒",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "BroadcastStates.dc.html",
+      "page": "page-3",
+      "title": "B6 · 录制被停 / 受保护内容",
+      "x": 0,
+      "y": 1004,
+      "w": 560,
+      "h": 520
+    },
+    {
+      "file": "BroadcastControlCenter.dc.html",
+      "page": "page-3",
+      "title": "B7 · 控制中心路径",
+      "x": 640,
+      "y": 1004,
+      "w": 560,
+      "h": 420
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief-mac",
+      "page": "page-1",
+      "x": 0,
+      "y": -230,
+      "w": 820,
+      "text": "实时字幕 · Mac（2026-09-13）\nApp 直接听这台 Mac 正在播放的声音（YouTube / Twitch / X 这类扩展在 Safari 里抓不到的也行），字幕显示在 App 自己的置顶悬浮条上。管线与「对话 · 实时听译」共用，只是单向、不朗读。\n看法：第一排是开始前（M1 入口 → M2 不可用时 → M3 准备 → M4 首次权限）；第二排是进行中（M5 桌面、M8 主窗口、M9 关窗）；第三排是字幕条全部状态 M6、字号与拖动 M7、翻译失败 M10，下面是小结 M11；最后一排是对照表 X1 与文案表 X2。"
+    },
+    {
+      "id": "flow-mac-1",
+      "page": "page-1",
+      "x": 900,
+      "y": 540,
+      "w": 820,
+      "text": "点入口 → M3 准备页 → 点「开始」→ 首次出现 M4 → 允许后字幕条出现（M5），主窗口变成 M8。"
+    },
+    {
+      "id": "flow-mac-2",
+      "page": "page-1",
+      "x": 2420,
+      "y": 1370,
+      "w": 820,
+      "text": "字幕条上的 ✕、或主窗口「结束」→ M11 小结。关主窗口不会停（M9）。"
+    },
+    {
+      "id": "brief-phone1",
+      "page": "page-2",
+      "x": 0,
+      "y": -200,
+      "w": 820,
+      "text": "iPhone 一期 · 麦克风听外放\n开始后切到 Safari 外放播放，App 在后台用麦克风听；字幕在灵动岛与锁屏卡上。戴耳机时听不到（那是二期要解决的）。\n流程：I1 → I2 → I3（切走）→ I4 灵动岛收起 → 长按 I5 / 下拉锁屏 I7 → 回 App I9 → 结束 I11；停机状态见 I10。I6 是否可行待真机验证。"
+    },
+    {
+      "id": "brief-phone2",
+      "page": "page-3",
+      "x": 0,
+      "y": -200,
+      "w": 820,
+      "text": "iPhone 二期 · 屏幕录制（一期发版后再做）\n从 App 点「用屏幕录制方式开始」→ 系统直播面板 → 录制中切到 Safari，戴耳机也有字幕。只取声音，屏幕画面收到即丢。\n流程：B1 → B2 → B3 → B4；异常 B5 / B6；也可以走控制中心 B7。系统界面都是示意，以系统为准。"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

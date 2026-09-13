@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>X1 · 对话 vs 实时字幕</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 820px; height: 560px; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px;">
+<h2 style="font-size: 20px; font-weight: 700;">同一条管线，两种用法</h2><p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; ">转写 → 一次「修正 + 翻译」→ 显示，这一段完全共用；差别只在声音从哪来、往哪显示、要不要朗读。扩展本身一个字节不改。</p>
+<div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden;">
+  <div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); background: var(--section); font-size: 13px; font-weight: 700; color: var(--dim);"><div style="padding: 10px 14px;"></div><div style="padding: 10px 14px;">对话 · 实时听译</div><div style="padding: 10px 14px; color: var(--accent-deep);">实时字幕（新）</div></div>
+  <div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">听什么</div><div style="padding: 10px 14px; color: var(--dim);">麦克风（两个人说话）</div><div style="padding: 10px 14px;">Mac：这台 Mac 正在播放的声音<br>iPhone 一期：麦克风听外放<br>iPhone 二期：屏幕录制拿到的 App 声音</div></div><div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">方向</div><div style="padding: 10px 14px; color: var(--dim);">双向，按语言判「我 / 对方」，可 ↔ 改边</div><div style="padding: 10px 14px;">单向：全部是视频里的人，译成我的语言</div></div><div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">朗读</div><div style="padding: 10px 14px; color: var(--dim);">自动朗读译文</div><div style="padding: 10px 14px;">不朗读</div></div><div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">显示在哪</div><div style="padding: 10px 14px; color: var(--dim);">App 窗口</div><div style="padding: 10px 14px;">Mac：置顶悬浮字幕条<br>iPhone：灵动岛 + 锁屏卡</div></div><div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">进复习</div><div style="padding: 10px 14px; color: var(--dim);">对话进复习（来源「对话」）</div><div style="padding: 10px 14px;">字幕进复习（来源「实时字幕」），单独开关</div></div><div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1.4fr); border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5;"><div style="padding: 10px 14px; font-weight: 700;">停机与计费</div><div style="padding: 10px 14px; color: var(--dim);">30 秒静音暂停</div><div style="padding: 10px 14px;">同左；不自动恢复</div></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":820,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>
