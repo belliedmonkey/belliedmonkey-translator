@@ -17,12 +17,37 @@
 //
 // 挂成 uiDelegate 的**唯一**持有者。以后要处理 JS alert / 新窗口也在这个类里加方法，
 // 别再 new 一个 delegate 把它顶掉 —— uiDelegate 只有一个位置。
+//
+// 新窗口（2026-09-13 起也归这里）：页面里 `<a target="_blank">` 被点时，WebKit 问 uiDelegate
+// 要一个新的 WKWebView；没有实现 createWebViewWith ⇒ 返回 nil ⇒ **什么都不发生，也不报错**。
+// 中国版设置页「去开通 ↗」「还没有 key？去 通义千问 申请 ↗」点了没反应就是这个（用户报障）；
+// 同一族还有复习页的来源链接、「▶ 重听这个片段」。这些链接写在扩展与 App 共用的组件里，
+// 在扩展里本来就对，所以修在宿主：**用户亲手点的 https 链接**交给系统浏览器打开。
+//   · 只认 linkActivated —— 脚本 window.open 不走这里（那一路有 open-url 桥和它的放行名单）。
+//   · 只认 https —— 不开 file:、javascript:、自定义 scheme。
+//   · 返回 nil，永远不在 App 里开第二个 WebView（在 App 内导航会把界面换掉且回不来）。
 final class MTFilePanel: NSObject, WKUIDelegate {
     static let shared = MTFilePanel()
 
     /// ViewController 就绪时调一次（webView 最终确定之后）。
     static func attach(_ view: WKWebView) {
         view.uiDelegate = shared
+    }
+
+    func webView(_ webView: WKWebView,
+                 createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction,
+                 windowFeatures: WKWindowFeatures) -> WKWebView? {
+        guard navigationAction.targetFrame == nil,
+              navigationAction.navigationType == .linkActivated,
+              let url = navigationAction.request.url,
+              url.scheme?.lowercased() == "https" else { return nil }
+#if os(iOS)
+        UIApplication.shared.open(url)
+#elseif os(macOS)
+        NSWorkspace.shared.open(url)
+#endif
+        return nil
     }
 
 #if os(macOS)
