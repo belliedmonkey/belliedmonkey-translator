@@ -438,6 +438,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"platform"', '"suspends"', '"ios"', '"macos"',
         '"record-mode"', '"on"',   // §9.6 实时听译：可录音的音频会话请求
         '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"rate"', '"b64"', '"state"',   // §9.6 原生采集
+        '"deliver"', '"level"', '"mic-level"', '"rms"',   // §9.6.1 本机路：PCM 留在原生，只过电平
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',
@@ -1041,4 +1042,107 @@ describe('ASC 脚本必须认 DEVELOPER_REJECTED（撤审后的状态）', () =>
         + '—— 撤审之后那条记录就再也动不了了，而撤审不可逆');
     });
   }
+});
+
+// ── 设备内置转写 / 朗读的桥（learning-design §9.6.1）─────────────────────────────
+describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
+  const R = path.join(__dirname, '..');
+  const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'speech-bridge.swift'), 'utf8');
+  const audio = fs.readFileSync(path.join(R, 'app', 'native', 'audio-bridge.swift'), 'utf8');
+  const sync = fs.readFileSync(path.join(R, 'scripts', 'sync-app-assets.js'), 'utf8');
+  const { BLOCKS, patchSwiftPackageText } = require('../scripts/sync-app-assets.js');
+  const stripComments = (src) => src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+
+  test('it is a marker block and the install line rides the audio bridge install', () => {
+    ok(BLOCKS.some((b) => b.src === 'speech-bridge.swift' && b.name === 'mt-speech-bridge'), 'BLOCKS 里要有它');
+    ok(sync.includes('MTSpeechBridge.shared.install(webView: self.webView)'), 'sync 脚本装的是同一个类');
+    match(tpl, /static let channel = "mtSpeech"/);
+    const js = fs.readFileSync(path.join(R, 'app', 'native-speech.js'), 'utf8');
+    ok(js.includes("const CHANNEL = 'mtSpeech'"), 'JS 侧用的是同一个通道名');
+  });
+
+  // 协议镜像：JS 的 PROTOCOL 两组字符串必须在 .swift 里有对应的 case / "type"。
+  // 以前两个桥都只靠字符串白名单间接约束（grep -rn toNative test/ 为空）—— 一边改名
+  // 另一边没跟上时，表现是「遥控键按了没反应 / 识别结果没到」，查起来极贵。
+  const mirror = (jsFile, swift) => {
+    const src = fs.readFileSync(path.join(R, 'app', jsFile), 'utf8');
+    const grab = (k) => (src.match(new RegExp(k + ":\\s*\\[([^\\]]*)\\]")) || [])[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
+    const toNative = grab('toNative'), fromNative = grab('fromNative');
+    ok(toNative.length && fromNative.length, jsFile + ' 的 PROTOCOL 读不到');
+    const body = stripComments(swift);
+    for (const verb of toNative) ok(body.includes(`case "${verb}":`), `${jsFile} toNative「${verb}」在 .swift 里没有 case`);
+    for (const verb of fromNative) ok(body.includes(`"${verb}"`), `${jsFile} fromNative「${verb}」在 .swift 里从未发出`);
+  };
+  test('native-speech.js 的 PROTOCOL 与 speech-bridge.swift 逐字对表', () => mirror('native-speech.js', tpl));
+  test('native-audio.js 的 PROTOCOL 与 audio-bridge.swift 逐字对表', () => mirror('native-audio.js', audio));
+
+  test('AVAudioSession only ever appears inside #if os(iOS)', () => {
+    for (const line of tpl.split('\n')) {
+      if (!line.includes('AVAudioSession')) continue;
+      if (line.trim().startsWith('//')) continue;
+      ok(inIOSGuard(tpl, line), `未被 #if os(iOS) 包住：${line.trim()}`);
+    }
+  });
+
+  test('it carries no user-visible copy — states and reasons are protocol ids', () => {
+    const strings = stripComments(tpl).match(/"[^"]*"/g) || [];
+    const allowed = new Set(['""', '"mtSpeech"',
+      // JS → 原生
+      '"stt-probe"', '"stt-assets"', '"stt-start"', '"stt-stop"', '"tts-probe"', '"tts-assets"', '"tts-speak"', '"tts-stop"',
+      // 原生 → JS
+      '"stt-state"', '"assets-progress"', '"stt-partial"', '"stt-final"', '"tts-state"', '"tts-start"', '"tts-end"', '"tts-failed"',
+      // 字段
+      '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
+      '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
+      '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
+      // 状态 / 原因 id
+      '"ready"', '"unsupported"', '"failed"', '"ended"', '"installed"', '"missing"', '"downloading"',
+      '"os"', '"locale"', '"locales"', '"format"', '"stt"', '"tts"', '"no-engine"', '"download"', '"load"', '"lang"',
+      // 路径 / 杂项
+      '"mt-speech"', '"mt.speech.tts"', '"%02x"',
+      '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"']);
+    for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
+  });
+
+  test('本机路 mic-start {deliver: level} 不发 PCM，只发 mic-level；tap 只装一次、sink 共享', () => {
+    const body = stripComments(audio);
+    ok(body.includes('var micSink'), 'audio-bridge 要暴露 micSink');
+    ok(body.includes('"mic-level"'), '要发 mic-level');
+    ok(body.includes('"deliver"'), 'mic-start 要认 deliver');
+    ok(!stripComments(tpl).includes('installTap'), 'speech-bridge 不许自己再装 tap');
+    ok(stripComments(tpl).includes('MTAudioBridge.shared.micSink'), 'speech-bridge 通过 micSink 拿音频');
+  });
+
+  describe('patchSwiftPackageText（本地 SwiftPM 包进 pbxproj）', () => {
+    const fixture = [
+      '\t\tA1 /* App iOS */ = {', '\t\t\tisa = PBXNativeTarget;', '\t\t\tname = "X (iOS)";', '\t\t\tpackageProductDependencies = (', '\t\t\t);', '\t\t};',
+      '\t\tA2 /* App macOS */ = {', '\t\t\tisa = PBXNativeTarget;', '\t\t\tname = "X (macOS)";', '\t\t\tpackageProductDependencies = (', '\t\t\t);', '\t\t};',
+      '\t\tE1 /* Ext */ = {', '\t\t\tisa = PBXNativeTarget;', '\t\t\tname = "X Extension (iOS)";', '\t\t\tpackageProductDependencies = (', '\t\t\t);', '\t\t};',
+      '\t\tP /* Project object */ = {', '\t\t\tisa = PBXProject;', '\t\t\tmainGroup = M;', '\t\t\tproductRefGroup = G /* Products */;', '\t\t};',
+      '\t};', '\trootObject = P /* Project object */;', '}', '',
+    ].join('\n');
+    const vendorReady = fs.existsSync(path.join(R, 'app', 'native', 'vendor', 'sherpa-onnx', 'Package.swift'));
+
+    test('两个 App target 各挂一个产品依赖，扩展不挂；PBXProject 得到 packageReferences；幂等', () => {
+      if (!vendorReady) { ok(true, 'vendor 未就位时跳过（fetch-native-deps 未跑）'); return; }
+      const { src, note } = patchSwiftPackageText(fixture, '../../app/native/vendor/sherpa-onnx');
+      ok(/patched \(2 App targets\)/.test(note), note);
+      eq((src.match(/\/\* sherpa-onnx \*\/,/g) || []).length, 2, 'App target 两处');
+      ok(src.indexOf('E1 /* Ext */') < src.indexOf('packageReferences') || !src.slice(src.indexOf('E1 /* Ext */'), src.indexOf('P /* Project object */')).includes('sherpa-onnx'), '扩展 target 不挂');
+      ok(src.includes('isa = XCLocalSwiftPackageReference;') && src.includes('relativePath = "../../app/native/vendor/sherpa-onnx";'));
+      ok(src.includes('isa = XCSwiftPackageProductDependency;') && src.includes('productName = "sherpa-onnx";'));
+      ok(src.includes('\t\t\tpackageReferences = (\n'), 'PBXProject 的 packageReferences');
+      const again = patchSwiftPackageText(src, '../../app/native/vendor/sherpa-onnx');
+      ok(/already/.test(again.note), '第二次是 already');
+      eq(again.src, src, '第二次不改字节');
+    });
+
+    test('App target 数对不上就拒绝，不写半个补丁', () => {
+      if (!vendorReady) { ok(true, 'vendor 未就位时跳过'); return; }
+      const one = fixture.replace('name = "X (macOS)"', 'name = "Y"');
+      const { src, note } = patchSwiftPackageText(one, 'p');
+      ok(/^✗/.test(note), note);
+      eq(src, one, '拒绝时原样返回');
+    });
+  });
 });

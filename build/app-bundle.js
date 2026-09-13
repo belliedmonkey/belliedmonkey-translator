@@ -127,6 +127,7 @@ const MODULES = [
                                          // 下画外部图会污染 canvas），颜色读 CSS token。
                                          // 必须在 driving.js 之前：openCard 会调它。
   'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
+  'app/native-speech.js',                // NativeSpeech — §9.6.1 设备内置转写/朗读的桥（只在 App 里有桥）
                                          // 适配器。无依赖（锁屏上的字由调用方传入，
                                          // 同 notesToSpeech(notes, labels) 的纪律）。
                                          // 必须在 driving.js 之前：那边在 wire() 里
