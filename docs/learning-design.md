@@ -2008,7 +2008,7 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 > `speech-bridge.swift` 的第二后端 `MTSystemSpeech` 合成（`tts-speak` 带 `backend:'system'`，协议与 Piper
 > 完全相同，`tts-state` 多带 `system` / `systemLangs`），`tts.js` 的 `speakBrowser` 先问桥
 > `systemVoice(lang)`，有就走原生、没有 / 老桥 / 原生开口失败 ⇒ 照旧 WebKit；扩展一个字节不变。
-> 原生合成走 App 自己的音频会话，锁屏出声随它一起验（M25）。探针读数：原生高档声从 `speak()` 到开口
+> 原生合成走 App 自己的音频会话，**锁屏出声 2026-09-13 11:55 真机通过**（M25-sys：锁屏 83 s 内 21 句全念出、0 失败、开口 86–108 ms，用户耳朵确认）。探针读数：原生高档声从 `speak()` 到开口
 > 2–5 ms，Piper 同机首块 157–222 ms。
 
 - **注册表形状**：`build/tts.config.js` 在 `browser` 之后加 `{ id:'device', type:'device-speech',
@@ -2636,7 +2636,7 @@ target，于是**整体跳过** —— 而「跳过」的表现是「中国版�
    > **2026-09-13 部分重开并再闭合：** 用户重问「系统语音若差不多就别下大包」；真机实证 WKWebView 拿不到
    > 增强/优质档，用户听过原生高档声后裁定用系统语音 ⇒ 「原生语音合成桥（`AVSpeechSynthesizer`）」这句原话
    > **就是现在的实现**（`MTSystemSpeech`，与 Piper 共用一条桥），细节见 §9.1 `device` 条目下的引文。
-   > 「后台停不停」由原生合成走 App 音频会话回答，M25 锁屏 60 s 待真机读数。
+   > 「后台停不停」由原生合成走 App 音频会话回答：**2026-09-13 真机锁屏 83 s 不停、21 句全念出**（verification-spec M25-sys）。
 2. **锁屏遥控可能根本不需要原生代码。** iOS 15+ 的 WebKit 支持 W3C Media Session API，
    并把它桥到系统的 Now Playing / 锁屏遥控。若实测成立，原生只剩「设音频会话」那几行。
    躲不掉的永远是音频会话那一半 —— WKWebView 用宿主的会话，宿主不设类别就没有后台断言。
