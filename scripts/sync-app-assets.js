@@ -709,14 +709,25 @@ function patchSwiftPackageText(src, relPath) {
   return { src: out, note: 'sherpa package patched (2 App targets)' };
 }
 
-// sherpa-onnx 的包声明 macOS 10.15+，而转换器把 MACOSX_DEPLOYMENT_TARGET 钉在 10.14 ——
-// 链接就报「compiling for macOS 10.14, but module has a minimum deployment target of 10.15」。
-// 10.14 本来就是转换器的默认值而非我们的裁定（Safari 扩展 MV3 要 Safari 14 = macOS 11），
-// 抬到 10.15 对任何真实用户都没有影响。只改这一处数字，所有配置块一起。
-function patchMacDeploymentTarget(src) {
-  if (!src.includes('MACOSX_DEPLOYMENT_TARGET = 10.14;')) return { src, note: 'macOS deployment target already current' };
-  return { src: src.replace(/MACOSX_DEPLOYMENT_TARGET = 10\.14;/g, 'MACOSX_DEPLOYMENT_TARGET = 10.15;'), note: 'macOS deployment target 10.14 → 10.15' };
+// 部署目标钉到 build/os-floor.config.js 的下限（2026-09-13 用户裁定 iOS 16.4 / macOS 13.3，为的是
+// 「优质」档系统语音与 Safari 16.4 一代的 WebKit）。转换器每次重生成都写回它自己的默认值（iOS 15.0 /
+// macOS 10.14），所以这里每次 sync 都要重钉；只往上抬，不往下压（widget 目标自带更高的值，不动）。
+// 历史：此前只把 macOS 从 10.14 抬到 10.15（sherpa-onnx 包的要求）。
+const OS_FLOOR = require(path.join(ROOT, 'build', 'os-floor.config.js'));
+function patchDeploymentTargets(src, floor) {
+  const f = floor || OS_FLOOR.FLOOR;
+  let n = 0;
+  const bump = (text, key, want) => text.replace(new RegExp(key + ' = ([0-9.]+);', 'g'), (m, cur) => {
+    if (OS_FLOOR.cmp(cur, want) >= 0) return m;
+    n++; return `${key} = ${want};`;
+  });
+  let out = bump(src, 'IPHONEOS_DEPLOYMENT_TARGET', f.ios);
+  out = bump(out, 'MACOSX_DEPLOYMENT_TARGET', f.macos);
+  if (!n) return { src, note: `deployment targets already ≥ iOS ${f.ios} / macOS ${f.macos}` };
+  return { src: out, note: `deployment targets → iOS ${f.ios} / macOS ${f.macos}（${n} 处）` };
 }
+// 旧名保留给测试与调用方：语义已并入 patchDeploymentTargets。
+const patchMacDeploymentTarget = (src) => patchDeploymentTargets(src);
 
 function patchSwiftPackage(sharedDir) {
   const appRoot = path.dirname(sharedDir);
@@ -728,7 +739,7 @@ function patchSwiftPackage(sharedDir) {
   const rel = path.relative(appRoot, path.join(ROOT, 'app', 'native', 'vendor', 'sherpa-onnx')).split(path.sep).join('/');
   const { src, note } = patchSwiftPackageText(fs.readFileSync(f, 'utf8'), rel);
   if (!/^✗/.test(note) && !/already/.test(note)) fs.writeFileSync(f, src);
-  const dt = patchMacDeploymentTarget(fs.readFileSync(f, 'utf8'));
+  const dt = patchDeploymentTargets(fs.readFileSync(f, 'utf8'));
   if (!/already/.test(dt.note)) fs.writeFileSync(f, dt.src);
   return note + ' · ' + dt.note;
 }
@@ -1227,7 +1238,7 @@ if (require.main === module) main();
 
 module.exports = {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
-  patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget,
+  patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget, patchDeploymentTargets,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   patchWidgetTarget, patchWidgetFiles,
 };

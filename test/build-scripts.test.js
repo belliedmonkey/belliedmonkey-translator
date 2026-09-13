@@ -1152,3 +1152,33 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     });
   });
 });
+
+// ─── 系统下限（build/os-floor.config.js）：部署目标钉住 + 解析期语法门 ─────────────────
+describe('os-floor: 部署目标与解析期语法门', () => {
+  const OSF = require(path.join(__dirname, '..', 'build', 'os-floor.config.js'));
+  const { patchDeploymentTargets } = require(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'));
+  test('下限是有据的：iOS 16.4 / macOS 13.3 = Safari 16.4，带裁定日期', () => {
+    eq(OSF.FLOOR.ios, '16.4', 'iOS 下限'); eq(OSF.FLOOR.macos, '13.3', 'macOS 下限'); eq(OSF.FLOOR.safari, '16.4', 'Safari 下限');
+    ok(/^\d{4}-\d{2}-\d{2}$/.test(OSF.FLOOR.decided), '裁定日期');
+  });
+  test('sync 把转换器默认的 15.0 / 10.14 抬到下限，更高的（widget 16.1 以上）不动，第二次幂等', () => {
+    const src = 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nMACOSX_DEPLOYMENT_TARGET = 10.14;\nIPHONEOS_DEPLOYMENT_TARGET = 17.0;\nMACOSX_DEPLOYMENT_TARGET = 10.15;\n';
+    const a = patchDeploymentTargets(src);
+    ok(a.src.includes('IPHONEOS_DEPLOYMENT_TARGET = 16.4;'), '15.0 → 16.4');
+    ok(a.src.includes('IPHONEOS_DEPLOYMENT_TARGET = 17.0;'), '17.0 不动');
+    eq((a.src.match(/MACOSX_DEPLOYMENT_TARGET = 13\.3;/g) || []).length, 2, '10.14 与 10.15 都抬到 13.3');
+    ok(/3 处/.test(a.note), a.note);
+    ok(/already/.test(patchDeploymentTargets(a.src).note), '幂等');
+  });
+  test('门能红：下限 15.0 时后行断言被抓到（文件:行），下限 16.4 时不报；注释里的不算', () => {
+    const js = "// (?<=x) 注释里\nconst a = t.split(/(?<=[.!?])\\s+/u);\nconst b = 1;\n";
+    const v = OSF.syntaxViolations(js, '15.0');
+    eq(v.length, 1, JSON.stringify(v)); eq(v[0].line, 2, '行号'); eq(v[0].id, 'regex-lookbehind', 'id');
+    eq(OSF.syntaxViolations(js, '16.4').length, 0, '16.4 已支持 ⇒ 不报');
+    eq(OSF.syntaxViolations("class A { static { init(); } }", '16.0').length, 1, '静态块 16.4 起');
+  });
+  test('表里每条 since 都是版本号，且 cmp 正确', () => {
+    for (const s of OSF.SYNTAX) ok(/^\d+\.\d+$/.test(s.since), s.id + ' 的 since');
+    ok(OSF.cmp('16.4', '16.10') < 0 && OSF.cmp('17.0', '16.4') > 0 && OSF.cmp('13.3', '13.3') === 0, 'cmp');
+  });
+});
