@@ -175,7 +175,22 @@ var LearnTTS = (() => {
     if (!matches.length) return null;
     const preferred = matches.find((v) => v.voiceURI === preferredURI);
     if (preferred) return preferred;
-    return matches.find((v) => v.default) || matches[0];
+    // 音质档位：Premium > Enhanced > 其它（iOS/macOS 系统语音的命名规律：名字或 voiceURI 带
+    // 「Premium」「Enhanced」；不带的是 compact 那档机器音）。2026-09-12 之前这里不挑音质，
+    // 系统语音拿到的永远是 compact —— 任何「系统语音难听」的结论测的都是它，不是 iOS 能给的。
+    // `default` 标志只在同一档里做次序。
+    let best = null, bestRank = -1;
+    for (const v of matches) {
+      const r = voiceQuality(v) * 2 + (v.default ? 1 : 0);
+      if (r > bestRank) { best = v; bestRank = r; }
+    }
+    return best || matches[0];
+  }
+  function voiceQuality(v) {
+    const s = String((v && v.name) || '') + ' ' + String((v && v.voiceURI) || '');
+    if (/premium/i.test(s)) return 2;
+    if (/enhanced/i.test(s)) return 1;
+    return 0;
   }
 
   // ─── Cache key ───────────────────────────────────────────────────────────
@@ -671,7 +686,7 @@ var LearnTTS = (() => {
   return {
     DEFAULTS, sniffAudioType,
     configure, engines, engineById, engine,
-    loadVoices, onVoicesChanged, pickVoice, scriptLang, baseLang, undLang, cacheKey,
+    loadVoices, onVoicesChanged, pickVoice, voiceQuality, scriptLang, baseLang, undLang, cacheKey,
     getAudio, prefetch, speak, stop, available, test, reason,
     get config() { return cfg; },
   };

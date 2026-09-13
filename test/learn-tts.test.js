@@ -170,6 +170,20 @@ describe('LearnTTS — voice selection is language-aware', () => {
     eq(TTS.pickVoice(voices, 'ja', 'Samantha|en-GB').name, 'Kyoko');
   });
 
+  test('同语言里按音质挑：Premium > Enhanced > compact；default 只在同档里排序', () => {
+    const { TTS } = setup();
+    const vs = [
+      { name: 'Ting-Ting', lang: 'zh-CN', voiceURI: 'com.apple.voice.compact.zh-CN.Tingting', default: true },
+      { name: 'Ting-Ting (Enhanced)', lang: 'zh-CN', voiceURI: 'com.apple.voice.enhanced.zh-CN.Tingting', default: false },
+      { name: 'Lili (Premium)', lang: 'zh-CN', voiceURI: 'com.apple.voice.premium.zh-CN.Lili', default: false },
+      { name: 'Kyoko', lang: 'ja-JP', voiceURI: 'k', default: true },
+    ];
+    eq(TTS.pickVoice(vs, 'zh', '').name, 'Lili (Premium)');
+    eq(TTS.pickVoice(vs.slice(0, 2), 'zh', '').name, 'Ting-Ting (Enhanced)');
+    eq(TTS.pickVoice(vs, 'zh', 'com.apple.voice.compact.zh-CN.Tingting').name, 'Ting-Ting', '显式选的仍最优先');
+    eq(TTS.voiceQuality(vs[2]), 2); eq(TTS.voiceQuality(vs[1]), 1); eq(TTS.voiceQuality(vs[0]), 0);
+  });
+
   test('with no preference, a default-flagged voice for that language is preferred', () => {
     const { TTS } = setup();
     eq(TTS.pickVoice(voices, 'en', '').name, 'Alex');

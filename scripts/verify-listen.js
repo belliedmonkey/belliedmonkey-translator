@@ -469,6 +469,15 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(__fakeSpeech.say('en-US', 'Delivery takes forty five days.', 0.97), 'ok')`);
     const g6b = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeSpeech.spoken || [])`)); return r.length ? r : null; }, 8000, 'G6: 译文经原生朗读');
     need(g6b[0].lang === 'zh' && g6b[0].text === '译：Delivery takes forty five days.', 'G6: 该把译文按我的语言（zh）交给原生朗读，实际 ' + JSON.stringify(g6b[0]));
+    // G6-lat. 每行的时延埋点（final 到达墙钟 / pass 耗时 / 出声耗时 + 引擎 id）都要在，_debug().lat 是它们的汇总 —— 真机 A/B 全靠这几个字段
+    const g6lat = await waitFor(async () => {
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ rows: (AppListen._debug().rows || []).map((x) => x.lat || null), sum: AppListen._debug().lat })`));
+      return r.rows.length && r.rows.every((l) => l && l.ttsStart != null) ? r : null;
+    }, 8000, 'G6: 每行都带 lat 埋点（含 ttsStart）');
+    need(g6lat.rows.every((l) => typeof l.final === 'number' && typeof l.pass === 'number' && l.pass >= 0 && l.engine === 'device' && l.ttsEngine === 'device' && typeof l.ttsStart === 'number'),
+      'G6: lat 该有 final/pass/engine/ttsStart/ttsEngine，实际 ' + JSON.stringify(g6lat.rows));
+    need(g6lat.sum && g6lat.sum.pass && g6lat.sum.pass.n === g6lat.rows.length && typeof g6lat.sum.pass.p50 === 'number' && g6lat.sum.ttsEngines && g6lat.sum.ttsEngines.device === g6lat.rows.length,
+      'G6: _debug().lat 该汇总出 pass p50 与朗读引擎计数，实际 ' + JSON.stringify(g6lat.sum));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
     await sleep(300);
     await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ ttsEngine: '' }, r)); LearnTTS.configure({ engineId: '' }); return 'ok'; })()`);
