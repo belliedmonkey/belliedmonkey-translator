@@ -1992,6 +1992,17 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 1330–1999 ms、加载 10–20 s，int8 反而比 fp32 慢 3–4 倍 —— 后两者弃（§12）。CoreML provider 无提速。
 边合成边播（playerNode 按块调度）真机跑通。
 
+> **2026-09-12 晚用户重开这个问题：「iOS/macOS 自带语音效果若差不多，就不必让用户下这么大的包。」**
+> 真机 A/B（iPhone 14 Pro · iOS 27.0，同一段 conv.wav，自动朗读开，`row.lat.ttsStart` 打点）：
+> 系统语音 `browser` 首声 **p50 7–23 / p90 22–109 ms**（三轮），Piper `device` **p50 162 / p90 266 ms**
+> —— 系统语音快一个数量级，两者都在「译文 → 出声 ≤ 0.5 s」之内，**用户听不出快慢，差别只在音质与要不要
+> 下 158 MB**。前提修正：`pickVoice` 此前完全不挑音质（拿到的是 compact 那档机器音），2026-09-12 起按
+> Premium > Enhanced > compact 排序（P1 #249）；这轮 A/B 的系统语音仍是 super-compact（手机没装更高档）。
+> **裁定未闭合，欠两票**：① 用户装「婷婷（增强/优质）」+ 一个英文 Enhanced 声后的耳朵；② 锁屏 60 s 系统
+> 语音能不能出声（§9.5 那条悬案随本次反转重新打开 —— 若默认改回 `browser`，它又是出声路）。两票都过 ⇒
+> **对话默认朗读改回 `browser`，Piper 留作可选、只在选中时才下载**（`downloading` 态本来就是按需的）；
+> 锁屏不出声 ⇒ 做原生 `AVSpeechSynthesizer` 后端（桥位置不变，合成器换）；都不行 ⇒ 维持 Piper。
+
 - **注册表形状**：`build/tts.config.js` 在 `browser` 之后加 `{ id:'device', type:'device-speech',
   flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false,
   supportsModel:false, requiresEndpoint:false, defaultEndpoint:null, placeholder:null, defaultModel:'',
@@ -2614,6 +2625,9 @@ target，于是**整体跳过** —— 而「跳过」的表现是「中国版�
    > 写的是当时的候选实现；用户 2026-09-12 裁定不用系统语音而用第三方本地模型 —— 桥的**位置**没变，
    > 桥后面的合成器换了。「设备内置语音在 iOS 后台停不停」**因此不必再测**：选 `device` 时它不再是出声路；
    > 只选 `browser` 的用户仍按原样，且那一档的回落行具名。
+   > **2026-09-13 部分重开：** 用户重问「系统语音若差不多就别下大包」，真机 A/B 系统语音首声 7–23 ms
+   > vs Piper 162 ms（§9.1 `device` 条目下的引文）。若裁定默认改回 `browser`，「后台停不停」就又是出声路上
+   > 的问题，**要测**（M25 锁屏 60 s，用户按电源键）；结果没回来前默认不动。
 2. **锁屏遥控可能根本不需要原生代码。** iOS 15+ 的 WebKit 支持 W3C Media Session API，
    并把它桥到系统的 Now Playing / 锁屏遥控。若实测成立，原生只剩「设音频会话」那几行。
    躲不掉的永远是音频会话那一半 —— WKWebView 用宿主的会话，宿主不设类别就没有后台断言。

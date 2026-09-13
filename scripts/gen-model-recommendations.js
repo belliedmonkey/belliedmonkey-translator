@@ -23,6 +23,7 @@ const LEDGER = require(path.join(ROOT, 'build/perf-ledger.config.js'));
 const PLATFORM_LABEL = {
   openrouter: 'OpenRouter（国际版，一个 key）',
   qianwen: '千问AI平台 / DashScope（中国版，一个 key）',
+  deepseek: 'DeepSeek（两个版本都有，自带 key）',
 };
 const CAP_LABEL = { chat: '翻译 / 句子解析', transcribe: '转写（「说」题）', speech: '朗读' };
 const VERDICT_LABEL = {
