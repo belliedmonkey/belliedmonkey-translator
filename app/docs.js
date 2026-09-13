@@ -60,6 +60,7 @@ var AppDocs = (() => {
       translate: (text, s) => TranslationAPI.translate(text, s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
       ocr: (dataUri, s) => TranslationAPI.ocr(dataUri, TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
+      detectLang: (text, s) => TranslationAPI.detectLanguage(text, TranslationAPI.resolveProvider(s.provider), s.apiKey || '', s.apiBaseUrl || '', s.apiModel || ''),
       visionOf: (s) => EngineState.visionOf(s.provider),
       grantActive: (s) => (typeof LearnGrant !== 'undefined' ? LearnGrant.activeIn(s, 'chat') : false),
       engineTriple: triple,

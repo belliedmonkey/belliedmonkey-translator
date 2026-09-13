@@ -641,6 +641,21 @@ Rules:
   // ─── 对话·实时听译的「修正 + 翻译」一次调用（learning-design §9.6.1）───────────
   // 提示词与解析在 app/listen-core.js（纯、可测），这里只负责把 {system, user} 打到用户配置的
   // 对话引擎并把整段回复原样交回。同一把并发闸；**不走缓存**（上下文每句都不同）。
+  // 语言识别（2026-09-13 用户裁定「就算真的未知，也应该靠 AI 推断语言出来」）：Safari 没有 chrome.i18n.detectLanguage，
+  // 拉丁字母文本靠脚本分不出 en/fr/de…，于是问一次翻译引擎。回值只取一个 ISO 639-1 码；答非所问 ⇒ ''（调用方保持 und）。
+  // 一次调用几十个 token；调用方负责「一份文档 / 一张卡只问一次并落盘」，别把它放进循环。
+  const DETECT_SYSTEM = 'Identify the language of the user message. Reply with ONLY its ISO 639-1 two-letter code in lowercase (for example: en, fr, de, es, pt, it, ja, zh, ko, ru, ar). No words, no punctuation.';
+  function parseLangCode(reply) {
+    const m = String(reply || '').trim().toLowerCase().match(/^[`"'\s]*([a-z]{2,3})(?:[-_][a-z]{2,4})?[`"'.\s]*$/);
+    return m ? m[1] : '';
+  }
+  async function detectLanguage(text, provider, apiKey, baseUrl, model) {
+    const sample = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+    if (sample.length < 2) return '';
+    const r = await listenPass({ system: DETECT_SYSTEM, user: sample }, provider, apiKey, baseUrl, model);
+    return parseLangCode(typeof r === 'string' ? r : (r && (r.text || r.content)) || '');
+  }
+
   async function listenPass(prompt, provider, apiKey, baseUrl, model, opts) {
     await RequestShape.ready();
     return enqueue(async () => {
@@ -658,5 +673,5 @@ Rules:
     });
   }
 
-  return { translate, ocr, listenPass, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
+  return { translate, ocr, listenPass, detectLanguage, parseLangCode, DETECT_SYSTEM, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
 })();

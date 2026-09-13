@@ -754,3 +754,19 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
     eq(fetch.calls.length, 0, '静默回退到已知被拦的路径 —— #74 已经否决过这种做法');
   });
 });
+
+describe('TranslationAPI.detectLanguage — 语言识别只取一个 ISO 639-1 码', () => {
+  test('parseLangCode：干净的码、带引号/句号/地区的码都取到；一句话答复 ⇒ 空串', () => {
+    const T = require('../extension/content/translation-api.js');
+    const api = (T && T.parseLangCode) ? T : null;
+    // 模块是 IIFE 挂在 window 上：走 loadModule 取
+    const { loadModule } = require('./harness');
+    const window = { MT_PROVIDERS: [], MT_MODEL_PARAMS: [] };
+    loadModule('providers.gen.js', { window });
+    const ctx = loadModule(['content/wire-format.js', 'content/request-shape.js', 'content/translation-api.js'], { window, chrome: require('./stubs').makeChrome(), fetch: async () => { throw new Error('no'); } });
+    const P = (api || ctx.TranslationAPI).parseLangCode;
+    eq(P('en'), 'en', 'en'); eq(P(' FR\n'), 'fr', '大写+空白'); eq(P('"de".'), 'de', '引号句号'); eq(P('zh-CN'), 'zh', '带地区'); eq(P('pt_BR'), 'pt', '下划线地区');
+    eq(P('The language is English.'), '', '一句话 ⇒ 空'); eq(P(''), '', '空');
+    ok(/ISO 639-1/.test((api || ctx.TranslationAPI).DETECT_SYSTEM) && /ONLY/.test((api || ctx.TranslationAPI).DETECT_SYSTEM), '提示词要求只回码');
+  });
+});

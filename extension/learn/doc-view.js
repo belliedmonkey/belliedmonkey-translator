@@ -260,11 +260,30 @@ var DocView = (() => {
       if (hash && deps.openSettings) { const a = el('a', '', ' ' + t('doc_go_settings', '去设置 →')); a.href = '#'; a.addEventListener('click', (e) => { e.preventDefault(); deps.openSettings(hash); }); shell.msg.append(a); }
     }
 
+    // ── 文档语言推断（2026-09-13）：用户没手选时，先按脚本猜（汉字/假名/谚文…同步、免费），拉丁字母再问一次
+    // 翻译引擎；结果写回 doc.lang（下拉随之显示，用户仍可改），此后这份文档采集的每张卡都带语言，不再是 und。
+    // 每份文档只问一次（langAsked 落盘），样本取第一段（一整段属于本页，不会把别的页发出去）。
+    async function inferDocLang(units, s) {
+      const doc = state.doc;
+      if (!doc || doc.lang || doc.langAsked || !units || !units.length) return;
+      const sample = String((units.find((u) => u && u.text && u.text.trim().length >= 20) || units[0]).text || '');
+      let code = '';
+      try { code = (typeof LearnRules !== 'undefined' && LearnRules.guessLang) ? LearnRules.guessLang(sample) : ''; } catch (_) {}
+      if (!code && deps.detectLang) { try { code = await deps.detectLang(sample, s); } catch (_) { code = ''; } }
+      if (state.doc !== doc) return;
+      doc.langAsked = true;
+      if (code) doc.lang = code;
+      try { await deps.store.put(doc); } catch (_) {}
+      const sel = document.getElementById('docv-lang');
+      if (sel && code && [...sel.options].some((o) => o.value === code)) sel.value = code;
+    }
+
     // ── 页级引擎 ────────────────────────────────────────────────────────
     function stopEngine() { if (state.timer) { clearInterval(state.timer); state.timer = null; } state.engine = null; state.units = []; }
     function startEngine(units, s) {
       stopEngine();
       state.units = units;
+      inferDocLang(units, s);
       const cur = state.cur;
       const engine = TranslationCore.createEngine({
         translate: (text) => deps.translate(text, s),
