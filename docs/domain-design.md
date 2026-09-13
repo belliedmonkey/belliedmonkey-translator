@@ -361,8 +361,9 @@ key carve-outs). Module consequences are in §6. Per-surface expectations are na
    endpoint or stays on the device, and every stop is visible and total. PCM never
    outlives the session and nothing is recorded. The output is one-directional (every
    sentence is the other side, translated into the user's language), never read aloud,
-   and drawn outside the app's window: a floating always-on-top panel on macOS, the
-   Live Activity / lock-screen card on iOS. **The extension never gains a system-audio
+   and drawn outside the app's window: a floating always-on-top panel on macOS, a
+   picture-in-picture subtitle window on iOS (switched from the Live Activity /
+   lock-screen card on 2026-09-13 after an on-device check). **The extension never gains a system-audio
    source and never receives these subtitles** — no local channel from the app to the
    extension is added (§9.3 holds: the only bridge between the two corpora is the
    server), and `ws-transcribe.js` stays one file shared by both hosts.
