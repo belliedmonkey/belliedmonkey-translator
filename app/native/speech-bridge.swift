@@ -39,6 +39,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     private weak var webView: WKWebView?
     private var transcriber: AnyObject?          // MTDeviceTranscriber（iOS 26+ 才有，所以按 AnyObject 存）
     private let speech = MTDeviceSpeech()
+    private let system = MTSystemSpeech()      // 系统语音的原生后端（AVSpeechSynthesizer）：WebKit 只暴露 compact 档，增强/优质只有这里拿得到
 
     func install(webView: WKWebView) {
         self.webView = webView
@@ -46,6 +47,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         ucc.removeScriptMessageHandler(forName: MTSpeechBridge.channel)
         ucc.add(self, name: MTSpeechBridge.channel)
         speech.emit = { [weak self] in self?.emit($0) }
+        system.emit = { [weak self] in self?.emit($0) }
     }
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -56,10 +58,10 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "stt-assets": sttAssets(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
-        case "tts-probe":  speech.probe(models: body["models"])
+        case "tts-probe":  speech.probe(models: body["models"], systemLangs: system.langs())
         case "tts-assets": speech.download(models: body["models"])
-        case "tts-speak":  speech.speak(body)
-        case "tts-stop":   speech.stop()
+        case "tts-speak":  if (body["backend"] as? String) == "system" { system.speak(body) } else { speech.speak(body) }
+        case "tts-stop":   speech.stop(); system.stop()
         default: break
         }
     }
@@ -345,7 +347,8 @@ final class MTDeviceSpeech {
             && fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
     }
 
-    func probe(models v: Any?) {
+    /// tts-state 同时带系统语音后端的可用语言（`system` / `systemLangs`），JS 的 `browser` 引擎据此决定走原生还是 WebKit。
+    func probe(models v: Any?, systemLangs: [String]) {
         let list = parse(v)
         for m in list { models[m.lang] = m }
 #if canImport(SherpaOnnx)
@@ -353,9 +356,9 @@ final class MTDeviceSpeech {
         for m in list {
             emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": installed(m) ? 1 : 0, "state": installed(m) ? "installed" : "missing"])
         }
-        emit?(["type": "tts-state", "state": langs.count == list.count && !list.isEmpty ? "ready" : "assets", "langs": langs])
+        emit?(["type": "tts-state", "state": langs.count == list.count && !list.isEmpty ? "ready" : "assets", "langs": langs, "system": true, "systemLangs": systemLangs])
 #else
-        emit?(["type": "tts-state", "state": "failed", "reason": "no-engine", "langs": []])
+        emit?(["type": "tts-state", "state": "failed", "reason": "no-engine", "langs": [], "system": true, "systemLangs": systemLangs])
 #endif
     }
 
@@ -506,6 +509,93 @@ final class MTDeviceSpeech {
 
 /// 一次合成的块调度器：块一到就排进 playerNode；「播完」按**首块时刻 + 总时长**定时收口。
 ///
+// ─── 系统语音的原生后端 ───────────────────────────────────────────────────────
+/// 2026-09-13 真机实证：手机装了婷婷（增强）/ Han（优质）/ Ava（优质）等 16 个高档声音，原生
+/// `AVSpeechSynthesisVoice.speechVoices()` 有 209 个，而 WKWebView 的 `speechSynthesis.getVoices()` 只有
+/// 70 个、全是 compact / super-compact —— WebKit 那条路永远拿不到增强/优质档。所以 App 里的「设备内置语音」
+/// （注册表 `browser`）经这里合成：按 优质 > 增强 > 默认 挑同语言的声音，走 App 自己的音频会话（锁屏可出声）。
+/// 协议与 Piper 后端完全相同（tts-speak 带 `backend:"system"` → tts-start / tts-end / tts-failed），JS 不分。
+/// 合成器必须是存储属性（上面 MTSpeechChunkBox 的教训：局部量一释放，委托回调全打在 nil 上）。
+final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
+    var emit: (([String: Any]) -> Void)?
+    private var synth = AVSpeechSynthesizer()
+    private var currentId = ""
+
+    override init() {
+        super.init()
+        synth.delegate = self
+    }
+
+    /// 有声音的语言（小写、去地区），给 JS 判「这个语言原生能不能读」。
+    func langs() -> [String] {
+        var seen = Set<String>()
+        for v in AVSpeechSynthesisVoice.speechVoices() {
+            let base = v.language.split(separator: "-").first.map { String($0).lowercased() } ?? ""
+            if !base.isEmpty { seen.insert(base) }
+        }
+        return seen.sorted()
+    }
+
+    private static func tier(_ v: AVSpeechSynthesisVoice) -> Int {
+        switch v.quality { case .premium: return 3; case .enhanced: return 2; default: return 1 }
+    }
+    /// 选声：用户在设置里点过的（identifier 与 WebKit 的 voiceURI 同一命名空间）最优先；否则同语言里
+    /// 优质 > 增强 > 默认，正牌人声（com.apple.voice.* / ttsbundle）压过 eloquence / 音效声，地区全等再加一分。
+    static func pick(lang: String, preferred: String) -> AVSpeechSynthesisVoice? {
+        let all = AVSpeechSynthesisVoice.speechVoices()
+        if !preferred.isEmpty, let v = all.first(where: { $0.identifier == preferred }) { return v }
+        let want = lang.lowercased()
+        let base = want.split(separator: "-").first.map(String.init) ?? want
+        let cands = all.filter { $0.language.lowercased() == want || $0.language.lowercased().hasPrefix(base + "-") || $0.language.lowercased() == base }
+        func score(_ v: AVSpeechSynthesisVoice) -> Int {
+            var n = tier(v) * 10
+            let id = v.identifier
+            if id.hasPrefix("com.apple.voice.") || id.contains("ttsbundle") { n += 2 }
+            if id.hasPrefix("com.apple.eloquence.") || id.hasPrefix("com.apple.speech.synthesis.voice.") { n -= 5 }
+            if v.language.lowercased() == want { n += 1 }
+            return n
+        }
+        return cands.max { score($0) < score($1) }
+    }
+
+    func speak(_ body: [String: Any]) {
+        guard let id = body["id"] as? String, let text = body["text"] as? String, let lang = body["lang"] as? String else { return }
+        let rate = (body["rate"] as? Double) ?? 1.0
+        let preferred = (body["voice"] as? String) ?? ""
+        guard let voice = MTSystemSpeech.pick(lang: lang, preferred: preferred) else { emit?(["type": "tts-failed", "id": id, "reason": "lang"]); return }
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        currentId = id
+#if os(iOS)
+        // 会话类别由 MTAudioBridge 钉（听译一律 .playAndRecord + mixWithOthers）；这里只保证它是活的。
+        try? AVAudioSession.sharedInstance().setActive(true)
+#endif
+        let u = AVSpeechUtterance(string: text)
+        u.voice = voice
+        u.rate = min(AVSpeechUtteranceMaximumSpeechRate, max(AVSpeechUtteranceMinimumSpeechRate, AVSpeechUtteranceDefaultSpeechRate * Float(rate)))
+        synth.speak(u)
+    }
+
+    func stop() {
+        currentId = ""
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        let id = currentId
+        if !id.isEmpty { emit?(["type": "tts-start", "id": id]) }
+    }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        let id = currentId
+        currentId = ""
+        if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
+    }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        let id = currentId
+        currentId = ""
+        if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
+    }
+}
+
 /// 2026-09-12 真机实证：tts-start 发了、tts-end 永远不发，自动朗读的队列在第二句上永远等着（手点
 /// 「朗读」只等开始所以看着正常）。真因是**生命周期**：box 是队列块里的局部量，generate 一返回就被
 /// 释放，弱引用的完成回调全打在 nil 上 —— 不是音频会话的问题。现在回调与定时器都强引用 box 到落定。

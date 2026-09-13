@@ -1998,10 +1998,18 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 > —— 系统语音快一个数量级，两者都在「译文 → 出声 ≤ 0.5 s」之内，**用户听不出快慢，差别只在音质与要不要
 > 下 158 MB**。前提修正：`pickVoice` 此前完全不挑音质（拿到的是 compact 那档机器音），2026-09-12 起按
 > Premium > Enhanced > compact 排序（P1 #249）；这轮 A/B 的系统语音仍是 super-compact（手机没装更高档）。
-> **裁定未闭合，欠两票**：① 用户装「婷婷（增强/优质）」+ 一个英文 Enhanced 声后的耳朵；② 锁屏 60 s 系统
-> 语音能不能出声（§9.5 那条悬案随本次反转重新打开 —— 若默认改回 `browser`，它又是出声路）。两票都过 ⇒
-> **对话默认朗读改回 `browser`，Piper 留作可选、只在选中时才下载**（`downloading` 态本来就是按需的）；
-> 锁屏不出声 ⇒ 做原生 `AVSpeechSynthesizer` 后端（桥位置不变，合成器换）；都不行 ⇒ 维持 Piper。
+> **2026-09-13 00:25 闭合。** 用户装了婷婷（增强）、Han / Lili / Lilian（优质）、Samantha（增强）、Ava（优质）
+> 之后，原生 `AVSpeechSynthesisVoice.speechVoices()` 有 209 个（premium 4 / enhanced 12），而 **WKWebView 的
+> `speechSynthesis.getVoices()` 只有 70 个、全是 compact / super-compact，重启 App 两次不变** —— WebKit 那条路
+> 永远拿不到增强/优质档，`pickVoice` 的音质排序在 App 里排不到东西。探针用原生合成器念了四个高档声 + Piper
+> 中英各一句给用户听，**用户裁定「优质和增强的都挺好，你选一个」** ⇒ 选**系统语音，走原生
+> `AVSpeechSynthesizer`**，按 优质 > 增强 > 默认 自动挑（用户在系统里装了哪档就用哪档，没装就是默认档），
+> Piper 留作可选、不再是对话的推荐路。落地形状（不动注册表）：`browser` 条目在 App 里经
+> `speech-bridge.swift` 的第二后端 `MTSystemSpeech` 合成（`tts-speak` 带 `backend:'system'`，协议与 Piper
+> 完全相同，`tts-state` 多带 `system` / `systemLangs`），`tts.js` 的 `speakBrowser` 先问桥
+> `systemVoice(lang)`，有就走原生、没有 / 老桥 / 原生开口失败 ⇒ 照旧 WebKit；扩展一个字节不变。
+> 原生合成走 App 自己的音频会话，**锁屏出声 2026-09-13 11:55 真机通过**（M25-sys：锁屏 83 s 内 21 句全念出、0 失败、开口 86–108 ms，用户耳朵确认）。探针读数：原生高档声从 `speak()` 到开口
+> 2–5 ms，Piper 同机首块 157–222 ms。
 
 - **注册表形状**：`build/tts.config.js` 在 `browser` 之后加 `{ id:'device', type:'device-speech',
   flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false,
@@ -2625,9 +2633,10 @@ target，于是**整体跳过** —— 而「跳过」的表现是「中国版�
    > 写的是当时的候选实现；用户 2026-09-12 裁定不用系统语音而用第三方本地模型 —— 桥的**位置**没变，
    > 桥后面的合成器换了。「设备内置语音在 iOS 后台停不停」**因此不必再测**：选 `device` 时它不再是出声路；
    > 只选 `browser` 的用户仍按原样，且那一档的回落行具名。
-   > **2026-09-13 部分重开：** 用户重问「系统语音若差不多就别下大包」，真机 A/B 系统语音首声 7–23 ms
-   > vs Piper 162 ms（§9.1 `device` 条目下的引文）。若裁定默认改回 `browser`，「后台停不停」就又是出声路上
-   > 的问题，**要测**（M25 锁屏 60 s，用户按电源键）；结果没回来前默认不动。
+   > **2026-09-13 部分重开并再闭合：** 用户重问「系统语音若差不多就别下大包」；真机实证 WKWebView 拿不到
+   > 增强/优质档，用户听过原生高档声后裁定用系统语音 ⇒ 「原生语音合成桥（`AVSpeechSynthesizer`）」这句原话
+   > **就是现在的实现**（`MTSystemSpeech`，与 Piper 共用一条桥），细节见 §9.1 `device` 条目下的引文。
+   > 「后台停不停」由原生合成走 App 音频会话回答：**2026-09-13 真机锁屏 83 s 不停、21 句全念出**（verification-spec M25-sys）。
 2. **锁屏遥控可能根本不需要原生代码。** iOS 15+ 的 WebKit 支持 W3C Media Session API，
    并把它桥到系统的 Now Playing / 锁屏遥控。若实测成立，原生只剩「设音频会话」那几行。
    躲不掉的永远是音频会话那一半 —— WKWebView 用宿主的会话，宿主不设类别就没有后台断言。

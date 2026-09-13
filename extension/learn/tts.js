@@ -499,23 +499,41 @@ var LearnTTS = (() => {
         if (r && r.ok) r.fallback = 'lang';
         return r;
       }
-      const job = NativeSpeech.speak({ text: clean, lang: base, rate: cfg.rate || 1 });
-      const started = await job.started;
-      if (stale()) return { ok: false, reason: 'superseded' };
-      if (!started) return { ok: false, reason: 'blocked' };
-      let doneResolve;
-      const done = new Promise((resolve) => { doneResolve = resolve; });
-      currentDone = doneResolve;
-      job.done.then(() => doneResolve(), () => doneResolve());
-      return { ok: true, engine: e.id, done };
+      return speakNative({ text: clean, lang: base, rate: cfg.rate || 1 }, e.id, myEpoch);
     }
     if (e.type === 'browser') return speakBrowser(clean, lang, myEpoch);
     return speakBytes(clean, lang, e, myEpoch);
   }
 
+  // 经原生桥念一句（Piper 或系统语音的原生后端，协议相同）：started 落定即出声，done 在播完时落定。
+  async function speakNative(o, engineId, myEpoch) {
+    const stale = () => epoch !== myEpoch;
+    const job = NativeSpeech.speak(o);
+    const started = await job.started;
+    if (stale()) return { ok: false, reason: 'superseded' };
+    if (!started) return { ok: false, reason: 'blocked' };
+    let doneResolve;
+    const done = new Promise((resolve) => { doneResolve = resolve; });
+    currentDone = doneResolve;
+    job.done.then(() => doneResolve(), () => doneResolve());
+    return { ok: true, engine: engineId, done };
+  }
+
   // 系统语音（Web Speech）那一支；device 引擎在模型不含该语言时也回落到这里。
   async function speakBrowser(clean, lang, myEpoch) {
     const stale = () => epoch !== myEpoch;
+    // App 里优先走原生 AVSpeechSynthesizer（2026-09-13 真机实证：WKWebView 的 speechSynthesis 只暴露
+    // compact 档，用户装的增强/优质声只有原生拿得到；原生也走 App 的音频会话，锁屏能出声）。
+    // 桥不在 / 老桥 / 这个语言原生没声 ⇒ 照旧走 WebKit；原生开口失败也落回 WebKit，不让一句静掉。
+    if (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) {
+      const base = baseLang(lang) || scriptLang(clean) || '';
+      const native = await NativeSpeech.systemVoice(base);
+      if (stale()) return { ok: false, reason: 'superseded' };
+      if (native) {
+        const r = await speakNative({ text: clean, lang: base, rate: cfg.rate || 1, voice: cfg.voice || '', backend: 'system' }, 'browser', myEpoch);
+        if (r.ok || r.reason === 'superseded') { if (r.ok) r.native = true; return r; }
+      }
+    }
     {
       if (typeof speechSynthesis === 'undefined' || typeof SpeechSynthesisUtterance === 'undefined') {
         return { ok: false, reason: 'unsupported' };
@@ -643,6 +661,8 @@ var LearnTTS = (() => {
       return pickVoice(voices, lang, cfg.voice, text) ? { ok: true, fallback: 'lang' } : { ok: false, reason: undLang(lang) ? 'no_voice_und' : 'no_voice' };
     }
     if (e.type === 'browser') {
+      if (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()
+          && await NativeSpeech.systemVoice(baseLang(lang) || scriptLang(text || '') || '')) return { ok: true };
       if (typeof speechSynthesis === 'undefined') return { ok: false, reason: 'unsupported' };
       const voices = await loadVoices(waitMs);
       if (!voices.length) return { ok: false, reason: 'unsupported' };
