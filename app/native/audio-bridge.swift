@@ -161,6 +161,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// 留在原生，由 micSink 直接交给识别器。
     private var micDeliverPcm = true
     private var lastLevelAt: TimeInterval = 0
+    /// 朗读期间静音输入（learning-design §9.6 回声段，2026-09-13 用户裁定「App 自己朗读的声音不能再被自己听到并翻译」）。
+    /// speech-bridge 在出声时置 true、念完置 false（之后再静 350 ms 吃掉尾音与房间混响）。tap 照常在跑，
+    /// 但交给识别器 / JS 的是同长度的**静音帧**而不是丢帧：识别器的静音检测会把朗读前的半句正常收口，
+    /// JS 的电平表也如实显示 0；朗读一结束麦克风立刻恢复，不用重开会话。
+    var muteInput = false { didSet { if oldValue && !muteInput { muteUntil = Date().timeIntervalSince1970 + 0.35 } } }
+    private var muteUntil: TimeInterval = 0
     /// 与 tap 共享一份缓冲的第二个消费者（speech-bridge.swift 的设备内置转写）。
     /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
     var micSink: ((AVAudioPCMBuffer) -> Void)?
@@ -245,7 +251,13 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         emit(["type": "mic-state", "state": "granted"])
     }
 
-    private func micDeliver(_ buffer: AVAudioPCMBuffer) {
+    private func micDeliver(_ raw: AVAudioPCMBuffer) {
+        var buffer = raw
+        if muteInput || Date().timeIntervalSince1970 < muteUntil {
+            guard let z = AVAudioPCMBuffer(pcmFormat: raw.format, frameCapacity: raw.frameLength) else { return }
+            z.frameLength = raw.frameLength     // 新分配的缓冲区全零 ⇒ 静音帧
+            buffer = z
+        }
         micSink?(buffer)
         if !micDeliverPcm {
             let now = Date().timeIntervalSince1970
