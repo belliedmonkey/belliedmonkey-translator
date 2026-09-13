@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-13 | belliedmonkey | 「实时字幕」（用户提议，App 专属）：App 直接听这台设备**正在播放的声音**，给扩展在 Safari 上抓不到的视频（MSE / HLS）配双语字幕 —— 与对话·实时听译**同一条管线**，只是单向、不朗读、显示在 App 窗口之外。Mac：Core Audio process tap（macOS 14.4+）+ 置顶悬浮字幕条；iPhone 一期：后台麦克风听外放 + 灵动岛 / 锁屏卡；iPhone 二期：屏幕录制广播扩展（戴耳机可用，一期发版后另开）。交互画布用户已点头（https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19，工作文件 `design/live-subtitles/`）。新 Gate I | **待评审（本 PR，docs-only）** —— 见 §9.8 / §10 Gate I / §12；domain-design §2.4 规则 8、§2.4 规则 4 注、§5.3 第五例、§8，interaction-spec「实时字幕」，verification-spec §2.4 表与 M26–M32，learn-regression M26–M32。**待裁定两处**：①字幕句子进复习（默认开、单独开关「字幕进复习」、沿用 `k:'conv'` 加 `mode:'subtitle'`）②Safari 扩展遇流媒体停下时，要不要多一句指向 App 的「实时字幕」 |
 | 2026-09-12 | belliedmonkey | 对话模式的**本机转写 + 远程修正 + 本地朗读**（用户提议，App 专属）：SpeechAnalyzer（iOS 26 / macOS 26 起，每语言一路）快速吐字 + 我们自己的静音检测主动收口 → 按标点切句 → **一次**远程调用返回「修正后原文 + 译文」→ Piper 本地 TTS 朗读；注册表加 `device` STT / `device` TTS 两条本机条目（只在 App 下拉出现，rule-10 门不改）；旧系统入口灰 + 具名；新 Gate H。真机尖刺（Mac + iPhone 14 Pro）读数在 `.local/spike/READINGS.md` | **待评审（本 PR，D1 docs-only）** —— 见 §9.1「`device` 条目」/ §9.4 / §9.6 门控 / §9.6.1 / §10 Gate H / §11 / §12；domain-design、interaction-spec、verification-spec 同 PR 各自修订。**待裁定两处**：①本机转写要不要也接进「说」题型（第一版不接，§9.4）；②「朗读期间静音 analyzer 输入」那道可选闸要不要做成设置项（默认不做，§9.6 回声段）—— **2026-09-13 裁定：常开、不做设置项**（§9.6 回声段追加） |
 | 2026-09-11 | belliedmonkey | 文档翻译（用户提议，扩展与 App 两端）：上传 PDF / Word / 图片，**打开一页翻一页**、并发走既有传输队列、不一次性翻整份；译文进学习语料但**限量**（每页 ≤ 10 句、每份 ≤ 100 句，用户裁定）；新来源类别「文档」与新 anchor kind `doc`；图片与扫描页发用户自配的多模态引擎识别；文档与译文存独立 IDB 不同步；新 Gate G。domain-design §2 第四种来源 + §2.5 + §8 收窄 | **已评审（2026-09-11，#235 合入）**；实现 D1 #237 / D2 #238 / D3 #239 / D4 #240 / D5 #241，Gate G 落点随 D6 —— 见 §9.7 / §10 Gate G / §11 / §12，domain-design §2.5，interaction-spec「文档翻译」，telemetry §3 |
 | 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
@@ -3050,6 +3051,51 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 
 ---
 
+## 9.8 实时字幕 (live subtitles) — App 专属（2026-09-13）
+
+用户原话（2026-09-13）：「mac app 是不是可以用相同的实时听译架构解决浏览器扩展端实时字幕的问题，只是最后不播放声音而已。手机扩展端的实时听译也可以这么解决？用手机 app 在后台听译？」
+用户裁定：Mac 用 **App 自己的置顶悬浮字幕条**（不做 App → 扩展通道）；iPhone **两期都做，先麦克风**；iPhone 字幕用 **灵动岛 + 锁屏卡**（不做画中画）。交互画布已点头：https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19（工作文件 `design/live-subtitles/`，3 页 31 张；画板编号在 interaction-spec「实时字幕」里引用）。
+
+**为什么要有它。** domain-design §2.4 规则 4：Safari 对 MSE（`blob:`）恒静音、HLS 清单具名停（verification-spec §2.4 表，2026-09-07/08 实测），扩展在 Safari 上只剩文件档，而用户最想要字幕的 YouTube / Twitch / X 全在外面。这在网页里修不了；App 不经过网页。
+
+**与 §9.6 的差异（未列出的一律照 §9.6 / §9.6.1）**
+
+| | §9.6 对话 · 实时听译 | §9.8 实时字幕 |
+|---|---|---|
+| 来源 | 麦克风（两个人） | Mac：系统声音（process tap，排除本进程）· iOS 一期：麦克风听外放 · iOS 二期：广播扩展交来的 App 声音 |
+| 方向 | 双向，按语言判 me / them，可 ↔ | 单向：一律 `them`，译成「我的语言」；无 ↔、无「给对方看」 |
+| 本机识别器 | 两路（我方 + 对方语言） | 一路（「视频的语言」） |
+| 朗读 | 自动朗读 | 不朗读（`autoSpeak` 恒关） |
+| 静音 | 自适应底噪 | 静态门：持续音乐是内容不是噪声，不许抬底噪；30 秒没有声音 ⇒ 暂停以免计费，**不自动恢复** |
+| 显示 | App 窗口 | Mac：置顶悬浮字幕条（`NSPanel`，不抢焦点，盖在全屏视频上）+ 主窗口历史；iOS：灵动岛 / 锁屏卡（`paintNowPlaying`：title = 译文，subtitle = 原文）+ App 页历史 |
+| 进复习 | 「对话进复习」，来源「对话」 | 「字幕进复习」（新键 `subtitleCapture`，默认开），来源「实时字幕」 |
+
+**语料。** 沿用 `anchor.k:'conv'` 与 `sourceId conv:<sessionId>`，加 `anchor.mode:'subtitle'`、`who:'them'`；来源标题「实时字幕 · 日期时间」。理由：锚点语义与对话相同（按会话、声音不保存、不可回放）；新 kind `'live'` 会让每个读者多一个分支而行为无差别（§12）。「这次不留记录」照用；采集门、限量、写入时机与 §9.6 一致。
+
+**采集（原生；「只搬录音这一件事」照旧 —— `ws-transcribe.js`、修正 + 翻译契约都留在页面里）**
+- **Mac**：`CATapDescription`（全系统、排除本进程）+ `AudioHardwareCreateProcessTap` + 聚合设备 + IOProc，IOProc 内降混单声道，送进与麦克风**同一个出口** `deliver()`（`muteInput` → `micSink` → `mic-level` / `mic-pcm`）。权限是「仅系统录音」（`NSAudioCaptureUsageDescription`），不是屏幕录制。默认输出设备变化时重建聚合设备。WebKit 的声音来自它自己的 GPU 进程，不在「排除本进程」内 —— 字幕模式不朗读、Mac 上不放保活音频，可接受。macOS 13.3–14.3 入口灰 + 具名。**尖刺 S1 没过之前不写产品代码**；沙箱里拿不到声音就改 ScreenCaptureKit，并回来问用户（权限类别与文案都不同，§12）。
+- **iOS 一期**：§9.6 的麦克风 tap，会话 profile `subtitle` = `.playAndRecord` + `[.mixWithOthers, .defaultToSpeaker]`，**不带 `.allowBluetooth`**（连着 AirPods 会被强切通话音质，Safari 的视频声音跟着变差）。前提由尖刺 S5 证明：Safari 不被暂停、音量不被压、5 分钟不中断。戴耳机时麦克风听不到 ⇒ 静音提示里具名。
+- **iOS 二期**（一期发版后另开）：ReplayKit 广播上传扩展只收 `.audioApp`，视频帧在扩展里立即释放、不读；降混重采样后写进 App Group 容器里的固定大小环形文件（持续覆盖、不落盘）；App 轮询后以 `source:'broadcast'` 调同一个 `deliver()`。扩展里不识别、不联网、不持 key（50 MB 上限；§12 否决过整条原生化）。只在 App 已**布防**一场字幕会话时接受广播，否则立即结束，并显示 App 事先写进组里的一句话。新 App Group entitlement 只给 iOS App 与广播两个 target。
+
+**桥协议（`mtAudio`，只加字段与动词）**
+
+| 方向 | 消息 |
+|---|---|
+| JS → 原生 | `caps-probe` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast', profile?: 'conv' \| 'subtitle'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-hide`（Mac）· 二期 `broadcast-picker` · `broadcast-arm {on}` |
+| 原生 → JS | `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os`）· `remote {command}` 新增 `stop` / `open-app`（字幕条按钮） |
+
+缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
+
+**Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。尖刺 S3 证明窗口隐藏 / 被全屏盖住时 WebView 不被节流，没过就改为最小化。
+
+**门控。** 与 §9.6 同一条 `liveCapable`，Mac 另加 `audio-caps.system === 'ok'`。不可用时入口灰 + 一条具名原因（§9.6「灰按钮 + 原因」家规的延续）。首页独立入口「实时字幕」，不做成对话里的开关：权限、隐私、心智都不同。
+
+**已知限制（写给用户看的，不是待办）。** iPhone 灵动岛收起态约 24pt，放不下句子 —— 读字幕要长按展开或看锁屏卡；「每句无声短暂展开」能否做由尖刺 S6 决定。长视频持续云端转写有费用：费用行 + 30 秒无声暂停 + 不自动恢复。
+
+**中国版（AGENTS 规则 10）。** 同样有：云端路 `qwen_asr`（16 kHz）吃同一转换器输出；本机路同样可用；两棵工程都已带 Live Activity widget（2026-09-13 回读 pbxproj）。两者都要真机读数，不假设。
+
+**验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：`audio-caps`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote stop` 即停）。
+
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
 `README.md`, `README.zh-CN.md` and `belliedmonkey.cc/privacy.html` currently make
@@ -3340,6 +3386,20 @@ the gate requires the same key on all 12):
 | App Store privacy labels | no new category (audio is not collected; text goes to the user's endpoint as before); re-check at submission, **by hand** |
 | `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
 
+### Gate I — ships with 实时字幕 (§9.8)
+
+> 「实时字幕」只在你点「开始」后，听这台设备**正在播放的声音**（Mac 为系统声音；iPhone 为外放经麦克风，或屏幕录制时系统交给我们的 App 声音）。声音只在你的设备上识别，或只发送到你自己配置的转写端点；不录音、不保存，也从不经过我们的服务器。只有「字幕进复习」开着时，识别出的**文字**才会留在你的复习里。使用屏幕录制方式时，屏幕画面在收到的那一刻即被丢弃，一帧都不读。
+
+| Surface | Gate I |
+|---|---|
+| README.md / README.zh-CN.md | feature line + privacy bullet, **in the same version as the code** (not in this docs PR). This PR only replaces the stale "No speech recognition, ever / 没有语音识别，以后也不会有" caveat, which already contradicted §2.4 |
+| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app |
+| `_locales` ×12 `subtitle_privacy` | under the start button; iPhone and screen-broadcast variants (canvas X2) |
+| `NSAudioCaptureUsageDescription` (macOS App only) | 「"实时字幕"会在你点开始后识别这台 Mac 正在播放的声音；声音只在本机识别或只发往你配置的转写端点，不录音、不保存。」 |
+| `NSMicrophoneUsageDescription` | extended to name 实时字幕 (iPhone phase 1 listens to the speaker) |
+| App Store privacy labels | no new data category (audio is not collected); re-check at submission by hand; phase 2 adds the broadcast extension to the review notes |
+| `build.js` Gate I coupling | `dist-app*` uses `subtitle_privacy` ⇒ README ×2 contain the 「实时字幕」 stem, all 12 locales have the key, and the macOS plist row exists |
+
 ## 11. Out of scope
 
 - **In-browser OCR** (2026-09-11, §9.7). A WebAssembly recogniser fails the extension
@@ -3454,6 +3514,12 @@ matters more than the detail.
 | 2026-09-11 | 文档与译文存进 `LearnStore`（bump DB_VERSION） | 每次 bump 都是对全体用户语料的风险；文档可能几十 MB，语义是缓存不是语料，且不同步。独立 IDB `mt-docs`，删除语义单独定义（§9.7） |
 | 2026-09-11 | 支持 `.doc` / `.pptx` / `.epub` | `.doc` 是 OLE 二进制复合文档，零依赖下不值得写；`.pptx`/`.epub` 是另外两种页模型。第一版明说不支持，让用户在 Word 里另存为 `.docx`（§9.7） |
 | 2026-09-12 | 浏览器 `SpeechRecognition` 做对话模式的本机转写（五审） | 维持否决：页面看不见、更保证不了厂商实现把音频送到哪。**解禁的是宿主 App 的设备内置识别器**（SpeechAnalyzer，iOS 26 / macOS 26）：音频一个字节不离开设备，否决理由不成立 —— Mac + iPhone 14 Pro 尖刺读数为证（§9.4 `device`、§9.6.1、§11、§10 Gate H） |
+| 2026-09-13 | 让 App 把字幕送进扩展、画在网页的字幕层上 | 否决（用户裁定选悬浮字幕条）：要新建 App Group + 原生消息 + 视频时间对齐，只对装了扩展的 Safari 有效；悬浮条对任何 App 都可用，也不碰 §9.3「两份语料之间只有服务器」 |
+| 2026-09-13 | Mac 字幕条用第二个 WKWebView 来画 | 否决：多一个 WebContent 进程、没有 chrome 垫片与 i18n、透明与穿透难做；原生 `NSPanel` 只画 JS 传来的字 |
+| 2026-09-13 | 字幕句子用新锚点 `k:'live'` | 否决：锚点语义与 `conv` 相同（按会话、声音不保存、不可回放），新 kind 让每个读者多一个分支；改用 `k:'conv'` + `mode:'subtitle'`（§9.8） |
+| 2026-09-13 | 广播扩展自己连云端转写 | 否决：Swift 里复制一份流式实现、key 进扩展，违反 §9.6「只搬录音这一件事」；扩展只搬 PCM |
+| 2026-09-13 | iPhone 字幕用画中画浮窗 | 否决（用户裁定选灵动岛 + 锁屏卡）：要把文字渲染成视频帧，画中画本意给视频，审核有风险 |
+| 2026-09-13 | Mac 用 ScreenCaptureKit 抓系统声音 | 暂不选：权限是「屏幕录制」（与只听声音不符、难以如实披露），macOS 15 起还会每月重新询问；**只在尖刺 S1 证明 process tap 在沙箱里拿不到声音时启用**，届时回来问用户 |
 | 2026-09-12 | 系统语音 `AVSpeechSynthesizer` 做对话朗读 | 用户裁定用第三方本地模型；后追加「音质不管，先通」⇒ Piper。§9.5 2026-08-24 那条「原生语音合成桥」的**位置**保留、桥后面的合成器换掉（§9.1 `device`） |
 | 2026-09-12 | Kokoro（fp32 / int8）、Matcha 做本地 TTS | Kokoro：真机首块 1330–1999 ms、加载 10–20 s，int8 比 fp32 还慢 3–4 倍，与「译文 → 起声 ≤ 0.5 s」差一个数量级；Matcha 快但只有中文。Piper zh / en 首块 157–264 ms（§9.1） |
 | 2026-09-12 | 本机修正：系统热词 `AnalysisContext.contextualStrings` | 对同音字零效果（输出逐字相同）。修正必须在远程做；不给用户一个看着有用其实没用的「热词表」设置（§9.6.1） |

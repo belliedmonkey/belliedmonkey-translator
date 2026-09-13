@@ -290,7 +290,9 @@ Gemini and Meta are measured the same way before their entries ship.
    impossible and the notice says so. Where capture attaches but yields silence for
    3 s while the element is playing and unmuted, the session stops and the notice says
    so. **Never a silent failure**: every stop (silence, CORS refusal, socket close,
-   region refusal) is a visible line in the overlay.
+   region refusal) is a visible line in the overlay. *(2026-09-13:)* Safari's MSE silence
+   is not fixed in the extension. It is covered by the host app as an **additional
+   surface** (rule 8): the extension's named stop stays as it is.
 5. **Audio goes only to the endpoint the user configured. Our server never sees it.**
    This is AGENTS.md product rule 5 restated for this source: we transmit page media
    to the user's own STT endpoint at the user's request, and nothing of ours stores,
@@ -340,6 +342,28 @@ key carve-outs). Module consequences are in §6. Per-surface expectations are na
    lands in ≈ 0.4–0.9 s; the finals are then concatenated and cut on punctuation by
    the same `sentenceCutter` as every other source (rule 3 holds verbatim). Cloud
    live engines are unchanged and remain the complete baseline.
+
+8. **The host app may take the sound the device is playing as a source**
+   *(2026-09-13, `docs/learning-design.md` §9.8 「实时字幕」)*. Rule 7 swapped a page's
+   media for the microphone; this rule swaps it for **the device's own playback**, so
+   the sources Safari silences in the page (MSE `blob:`, HLS — rule 4) get subtitles
+   too. Three captures, all native, all inside the host app: **macOS** — a Core Audio
+   process tap on system audio (macOS 14.4+, the "System Audio Recording Only"
+   permission, our own process excluded); **iOS phase 1** — the rule-7 microphone tap
+   listening to the speaker while another app plays, the app in the background on a
+   mixable session; **iOS phase 2** — app audio from a ReplayKit broadcast upload
+   extension, handed to the host app through an App Group ring buffer, screen frames
+   discarded unread. Rules 1, 3, 5 and 6 apply verbatim: a session starts only from
+   the user's tap in the host app (a broadcast is accepted only while such a session is
+   armed), sentences close on the same cutter, audio goes only to the user's configured
+   endpoint or stays on the device, and every stop is visible and total. PCM never
+   outlives the session and nothing is recorded. The output is one-directional (every
+   sentence is the other side, translated into the user's language), never read aloud,
+   and drawn outside the app's window: a floating always-on-top panel on macOS, the
+   Live Activity / lock-screen card on iOS. **The extension never gains a system-audio
+   source and never receives these subtitles** — no local channel from the app to the
+   extension is added (§9.3 holds: the only bridge between the two corpora is the
+   server), and `ws-transcribe.js` stays one file shared by both hosts.
 
 ### 2.5 文档翻译 — uploaded documents, one page at a time (核心约束 — do not break)
 
@@ -809,6 +833,22 @@ macOS 26 —— 或去设置里选一个云端实时引擎」); assets not yet o
 state that leaves the cloud exit in reach; a language the offline voice does not cover
 ⇒ the row says so and falls back to the platform voice (`browser`). Registry
 consequences are in §7 (third endpoint carve-out).
+
+**Fifth instance — the host app's system-audio subtitles (§2.4 rule 8,
+`docs/learning-design.md` §9.8), 2026-09-13.** The baseline is unchanged: the
+extension's tier A (file) and the page-text path remain the complete Safari floor, and
+nothing on any extension surface changes. The capability is the host app hearing the
+device's playback — the macOS 14.4 process tap, the iOS microphone in the background,
+the iOS ReplayKit broadcast — and it makes a source the extension cannot reach (MSE /
+HLS on Safari) *reachable in another surface*, never the only path to something the
+baseline promises. Rule 2 applied literally: the page asks the native bridge once
+(`caps-probe` → `audio-caps`) and injects the answer; JS never sends a system-audio
+request the bridge has not reported, because an older native shell would silently
+ignore the field and open the microphone instead. Degradation is **named**, under the
+same carve-out as the fourth instance (the user opted in by tapping the entry): the
+entry is greyed with the reason (no live engine / no key /「系统声音字幕需要 macOS 14.4 或更新」),
+a denied permission is a named line with the path to System Settings, and on iOS
+phase 1 the headphones case is named because the microphone cannot hear it.
 
 > **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
 > other two: DEVICE and SITE change *where* things are drawn, whereas this one can
@@ -1407,7 +1447,13 @@ synthesis inside the host app** (§2.4 rule 5 amendment, `docs/learning-design.m
 user did not choose" objection nor the backend prohibition is touched — only the
 recognised text goes out, to the user's own translation engine. The extension never
 gains either engine (§5.3 rule 1 / fourth instance; §9.4 — the host app is an
-additional surface, never the only working path).
+additional surface, never the only working path). *(Amended 2026-09-13:)* the host app may also transcribe
+**the sound the device is playing** — system audio on macOS, the speaker through the
+microphone on iOS, and app audio from a ReplayKit broadcast — on the same terms (§2.4
+rule 8): the user's tap in the app, the user's endpoint or on-device recognition,
+nothing recorded, nothing of ours in the path. **The app never records the screen**:
+broadcast video frames are discarded inside the extension before any code reads them.
+The extension still gains no audio source of any kind.
 
 **Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
 path".** The original formulation treated *any* server of ours as out of scope. The
