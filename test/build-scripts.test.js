@@ -1110,6 +1110,16 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });
 
+  test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {
+    const a = stripComments(audio), sp = stripComments(tpl);
+    ok(/var muteInput = false/.test(a), 'audio-bridge 要有 muteInput 开关');
+    ok(/muteUntil/.test(a) && /frameCapacity: raw\.frameLength/.test(a), '静音是同长度的零帧，不是丢帧');
+    const on = (sp.match(/MTAudioBridge\.shared\.muteInput = true/g) || []).length;
+    const off = (sp.match(/MTAudioBridge\.shared\.muteInput = false/g) || []).length;
+    eq(on, 2, 'Piper 首块 + 系统语音 didStart 各一处置 true，实际 ' + on);
+    ok(off >= 5, 'Piper finish/stop + 系统语音 didFinish/didCancel/stop 都要放开，实际 ' + off);
+  });
+
   test('本机路 mic-start {deliver: level} 不发 PCM，只发 mic-level；tap 只装一次、sink 共享', () => {
     const body = stripComments(audio);
     ok(body.includes('var micSink'), 'audio-bridge 要暴露 micSink');

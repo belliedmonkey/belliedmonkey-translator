@@ -457,7 +457,7 @@ final class MTDeviceSpeech {
             }
             let box = MTSpeechChunkBox(player: player, rate: sampleRate)
             DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "player"]) }
-            box.onFirst = { [weak self] in self?.emit?(["type": "tts-start", "id": id]) }
+            box.onFirst = { [weak self] in MTAudioBridge.shared.muteInput = true; self?.emit?(["type": "tts-start", "id": id]) }
             box.isCancelled = { [weak self] in self?.cancelled ?? true }
             let cb: TtsCallbackWithArg = { samples, n, arg in
                 let b = Unmanaged<MTSpeechChunkBox>.fromOpaque(arg!).takeUnretainedValue()
@@ -471,6 +471,7 @@ final class MTDeviceSpeech {
             DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "generated", "n": n]) }
             box.finish { [weak self] in
                 guard let self else { return }
+                MTAudioBridge.shared.muteInput = false
                 guard self.currentId == id else { self.emit?(["type": "tts-debug", "id": id, "step": "stale"]); return }
                 self.emit?(["type": "tts-end", "id": id])
             }
@@ -486,6 +487,7 @@ final class MTDeviceSpeech {
         currentId = ""
         player?.stop()
         player?.play()
+        MTAudioBridge.shared.muteInput = false
         if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
     }
 
@@ -578,18 +580,23 @@ final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
     func stop() {
         currentId = ""
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        MTAudioBridge.shared.muteInput = false
     }
 
+    // 出声 → 静麦；念完 / 被停 → 放开（audio-bridge 再静 350 ms 吃尾音）。回声闸的第一道在这里，JS 的四道是兜底。
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        MTAudioBridge.shared.muteInput = true
         let id = currentId
         if !id.isEmpty { emit?(["type": "tts-start", "id": id]) }
     }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        MTAudioBridge.shared.muteInput = false
         let id = currentId
         currentId = ""
         if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
     }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        MTAudioBridge.shared.muteInput = false
         let id = currentId
         currentId = ""
         if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
