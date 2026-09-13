@@ -3082,10 +3082,20 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 
 | 方向 | 消息 |
 |---|---|
-| JS → 原生 | `caps-probe` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast', profile?: 'conv' \| 'subtitle'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-hide`（Mac）· 二期 `broadcast-picker` · `broadcast-arm {on}` |
-| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os`）· `remote {command}` 新增 `stop` / `open-app`（字幕条按钮） |
+| JS → 原生 | `caps-probe` · `record-mode {on, profile?: 'conv' \| 'subtitle'}` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-state {state, pct?}` · `subtitle-float`（iOS：重新浮出画中画）· `subtitle-hide` · 二期 `broadcast-picker` · `broadcast-arm {on}` |
+| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os` / `waiting-permission` / `headphones`）· `remote {command}` 新增 `end` / `open-app`（字幕条按钮） |
 
 缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
+
+**协议补充决定（2026-09-14，实现前澄清；上表已按此改）**
+1. **字幕条 / 画中画的状态走 `subtitle-state {state, pct?}`**，与 `subtitle-show` 分开。`state` ∈ `listening` · `waiting-permission` · `paused` · `silence` · `denied` · `socket` · `reconnecting` · `downloading`（带 `pct`）· `tr-failed`。每个状态的文字放在 `subtitle-config.labels.state[state]`，按钮提示与菜单项文字放在 `labels.controls` / `labels.menu` —— 原生照旧零文案（M6 / M9 / I8）。
+2. **会话档 `profile` 挪到 `record-mode`**。音频会话类别在 `record-mode` / `session-start` 时就定了，放在 `mic-start` 上来不及；`mic-start` 只带 `source`。缺省 `profile` = `conv`，老调用不变。
+3. **老原生壳**：`caps-probe` 发出后 1.5 s 内没收到 `audio-caps` ⇒ 这个壳不认识实时字幕 ⇒ 首页**不显示**「实时字幕」这一行（不是灰掉：没有能对用户说的原因，也没有出口）。因此 JS 可以先于原生合入 —— 在不回 `audio-caps` 的壳上功能完全不可达；§10 Gate I 的发布检查随「原生开始回 `audio-caps`」的那一步一起上。
+4. **字幕条的「结束」叫 `remote end`，不叫 `stop`**：锁屏 / 媒体控制的 `stop` 现在映射成暂停（`native-audio.js`），同名会撞。`end` 在对话模式里同样是结束。
+5. **字幕模式两个平台都不播保活音频**：iOS 的后台由麦克风引擎维持（尖刺 S5 真机 6 分钟没有保活音频照常），WebKit 的 `<audio>` 反而可能改动会话类别。
+6. **语言设置**：「视频的语言」用新键 `subtitleVideoLang`（缺省 `en`）；「我的语言」沿用 `listenMyLang`（同一个人的母语）。字号 `subtitleFontScale` 由 JS 存设置、经 `subtitle-config` 下发；字幕条位置由原生自存（窗口 frame autosave）。
+7. **耳机**：iOS 字幕档下输出路由是耳机 ⇒ `mic-state {reason:'headphones'}`，App 页与小窗具名（I10 / I8）。Mac 抓的是系统混音，不受耳机影响。
+8. **协议镜像测试**（`test/build-scripts.test.js`：JS `PROTOCOL` 的每个动词 Swift 都有 `case`）：JS 先合入时，Swift 同一个 PR 加**空的** `case`（不回复）—— 空 case 恰好就是第 3 条的「老壳」。
 
 **Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
 **尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
@@ -3100,7 +3110,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 
 **中国版（AGENTS 规则 10）。** 同样有：云端路 `qwen_asr`（16 kHz）吃同一转换器输出；本机路同样可用；画中画不需要额外的扩展 target，两棵工程同样可用（Live Activity widget 仍在，只给播客模式用）。两者都要真机读数，不假设。
 
-**验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：`audio-caps`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote stop` 即停）。
+**验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：不回 `audio-caps` ⇒ 入口不显示、`record-mode.profile`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、`subtitle-state` 随停机态变化、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote end` 即停）。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
