@@ -491,10 +491,14 @@ async function runHost(host) {
         const isUnd = orig.startsWith('Unknown language');
         seen.add(isUnd ? 'und1' : (orig.startsWith('The forgetting') ? 'read1' : 'candX'));
         if (isUnd) {
-          // 4 · The und card: play disabled, message points at OUR settings.
+          // 4 · The und card (2026-09-13 修订)：语言未知不再等于「不能读」——可用性判断带上卡文本，拉丁字母按脚本
+          // 兜底成 en 的系统语音（这张卡是英文），播放可用、没有「语言未知」的提示；review 同时会试着补语言
+          // （脚本猜不出拉丁 ⇒ 问翻译引擎；本套件的假端点答的不是语言码 ⇒ 卡保持 und 但 langAsked=true，不再重复问）。
           const note = await text('#audio-note');
-          need(/设置|语音/.test(note), 'und 卡的提示没有指路到语音设置: 「' + note + '」');
-          need(await ev(`document.getElementById('play').disabled`), 'und 卡无所选语音时播放按钮应禁用');
+          need(!/未知|unknown/i.test(note), 'und 卡（英文文本）不该再说「语言未知」: 「' + note + '」');
+          need(!(await ev(`document.getElementById('play').disabled`)), 'und 卡（英文文本）应按脚本兜底成英语语音，播放按钮可用');
+          const asked = !!((await item('und1')) || {}).langAsked;
+          need(asked, 'und 卡被看到后应记下 langAsked（只问一次）');
         } else {
           need((await text('#play')).length > 0, '认读卡播放按钮无文字');
         }

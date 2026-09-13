@@ -314,6 +314,22 @@ per §3 law 2, over-capture is recoverable (delete), silent under-capture is not
 A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
 gesture outranks a standing filter.
 
+**2026-09-13 修订（用户裁定「不知道为啥会有语言未知；就算真的未知，也应该靠 AI 推断语言出来」）。** 「stored
+`lang` stays `'und'`」这句收窄为：**采集门不改它，但两个地方会补上它**——
+- **文档打开时**（`doc-view.startEngine`）：用户没手选语言的文档，先按第一段的主导脚本猜（`LearnRules.guessLang`：
+  汉字 zh / 假名 ja / 谚文 ko / 西里尔 ru / 阿拉伯 ar / 天城 hi / 泰 th / 希腊 el / 希伯来 he，同步免费），拉丁字母
+  再问一次翻译引擎（`TranslationAPI.detectLanguage`：系统提示只允许回一个 ISO 639-1 码，答非所问 ⇒ 空）。猜到
+  就写回 `doc.lang`（下拉随之显示，用户仍可改），此后这份文档采集的每张卡都带语言。**一份文档只问一次**
+  （`doc.langAsked` 落盘），样本是本页的一整段（不会把别的页发出去）。之前的「语言未知」就是这里：`doc.lang`
+  只有用户手选才有值，于是 256 张里 250 张都是 `und`。
+- **复习看到时**（`review.backfillLang`）：`lang === 'und'` 的存量卡在被看到那一刻同样先猜脚本、再问引擎，
+  猜到写回这张卡（`LearnStore.putItem`）；一张卡只问一次（`item.langAsked`）；引擎没配 / 出错 ⇒ 仍是 `und`，
+  不报错。朗读的可用性判断同时把卡文本带上（`LearnTTS.available(lang, _, text)`）—— 此前这里没带文本，
+  于是 `pickVoice` 连脚本兜底都用不上，才会对一张纯英文的卡说「这张卡的语言未知」。
+- 仍然成立的：`itemId` 不因语言补上而变；采集门（whitelist）在 `und` 上照旧按脚本判；模型的判断可能错
+  （法语被当英语），用户在文档下拉里改一次即覆盖。这不是 domain-design §5.3 的「检测器」——那条说的是
+  Collector 不探测浏览器 API；这里是学习面事后补一次标签，Collector 一个字节没动。
+
 ### 4.2 The capture unit is the SENTENCE — split at capture (2026-08-15)
 
 §3's first law of material ("The unit of study is the sentence the user actually

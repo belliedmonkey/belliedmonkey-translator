@@ -142,6 +142,15 @@ var LearnRules = (() => {
     return best;
   }
 
+  // 由文本的主导脚本猜语言（2026-09-13，学习设计 §4.1「语言未知」段）：假名 ⇒ ja、汉字 ⇒ zh、谚文 ⇒ ko、
+  // 西里尔 ⇒ ru、阿拉伯 ⇒ ar、天城 ⇒ hi、泰 ⇒ th、希腊 ⇒ el、希伯来 ⇒ he。**拉丁字母返回 ''**（en/fr/de/es…
+  // 分不出来，交给模型 —— TranslationAPI.detectLanguage），猜不出也返回 ''。纯函数、同步、不联网。
+  const SCRIPT_LANG = { Kana: 'ja', Han: 'zh', Hangul: 'ko', Cyrillic: 'ru', Arabic: 'ar', Devanagari: 'hi', Thai: 'th', Greek: 'el', Hebrew: 'he' };
+  function guessLang(text) {
+    const sc = dominantScript(text);
+    return (sc && SCRIPT_LANG[sc]) || '';
+  }
+
   function baseCode(lang) {
     return String(lang == null ? '' : lang).toLowerCase().split('-')[0];
   }
@@ -193,7 +202,7 @@ var LearnRules = (() => {
 
   return {
     normalizePattern, matchesUrl, isBlocked, siteRuleFor,
-    doomedFor, mergeRules, dominantScript, langAllowed, withUpdate,
+    doomedFor, mergeRules, dominantScript, guessLang, langAllowed, withUpdate,
   };
 })();
 

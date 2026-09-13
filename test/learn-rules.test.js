@@ -145,6 +145,19 @@ describe('LearnRules — mergeRules (LWW over the whole set, §8.9)', () => {
   });
 });
 
+describe('LearnRules — guessLang（按脚本猜语言；拉丁字母交给模型）', () => {
+  test('汉字 zh、假名 ja、谚文 ko、西里尔 ru、阿拉伯 ar；拉丁与空文本返回空串', () => {
+    const R = load();
+    eq(R.guessLang('这个报价里已经包含了运费'), 'zh', 'Han');
+    eq(R.guessLang('お世話になっております'), 'ja', 'Kana');
+    eq(R.guessLang('안녕하세요 반갑습니다'), 'ko', 'Hangul');
+    eq(R.guessLang('Здравствуйте, коллеги'), 'ru', 'Cyrillic');
+    eq(R.guessLang('مرحبا بكم'), 'ar', 'Arabic');
+    eq(R.guessLang('No. 399 Xingguo Road, Linping District'), '', 'Latin ⇒ 交给模型');
+    eq(R.guessLang(''), '', '空');
+  });
+});
+
 describe('LearnRules — dominantScript', () => {
   test('recognizes the product scripts', () => {
     const R = load();

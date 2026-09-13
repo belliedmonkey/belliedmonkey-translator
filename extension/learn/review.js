@@ -209,6 +209,27 @@
   // 上必须说同一句话，三份手写表做不到 —— 已经做不到过。
   function reasonText(reason) { return LearnTTS.reason(reason, t); }
 
+  // 语言未知的卡（Safari 采集、文档没选语言的那些）在被看到时补上语言（2026-09-13 用户裁定「就算真的未知，
+  // 也应该靠 AI 推断」）：先按脚本猜（同步、免费），拉丁字母问一次翻译引擎；猜到就写回这张卡并落盘，
+  // 此后朗读、按语言的练习都不再把它当 und。一张卡只问一次（langAsked）；引擎没配 / 出错 ⇒ 保持 und，不报错。
+  const langAsking = new Map();
+  async function backfillLang(item) {
+    if (!item || (item.lang && item.lang !== 'und') || item.langAsked) return;
+    if (langAsking.has(item.id)) return langAsking.get(item.id);
+    const run = (async () => {
+      let code = '';
+      try { code = (typeof LearnRules !== 'undefined' && LearnRules.guessLang) ? LearnRules.guessLang(item.text) : ''; } catch (_) {}
+      if (!code && typeof TranslationAPI !== 'undefined' && TranslationAPI.detectLanguage && settings.provider) {
+        try { code = await TranslationAPI.detectLanguage(item.text, TranslationAPI.resolveProvider(settings.provider), settings.apiKey || '', settings.apiBaseUrl || '', settings.apiModel || ''); } catch (_) { code = ''; }
+      }
+      item.langAsked = true;
+      if (code) item.lang = code;
+      try { await LearnStore.putItem(item); } catch (_) {}
+    })();
+    langAsking.set(item.id, run);
+    try { await run; } finally { langAsking.delete(item.id); }
+  }
+
 
   function setNote(msg) { $('audio-note').textContent = msg || ''; }
 
@@ -274,7 +295,8 @@
     $('play').textContent = t('tts_play', '▶ 听一遍');
     if (ttsMode === 'off') { box.hidden = true; return; }
     box.hidden = false;
-    const av = await LearnTTS.available(item.lang);
+    await backfillLang(item);
+    const av = await LearnTTS.available(item.lang, undefined, item.text);
     $('play').disabled = !av.ok;
     if (!av.ok) { setNote(reasonText(av.reason)); return; }
     if (quiet) return;
@@ -638,7 +660,8 @@
     // must be known BEFORE staging: a listen card whose language cannot be spoken
     // is a read card, not a broken one. `caps.speak` stays false until the speak
     // pipeline lands (§9.4).
-    const av = ttsMode !== 'off' ? await LearnTTS.available(item.lang) : { ok: false };
+    await backfillLang(item);
+    const av = ttsMode !== 'off' ? await LearnTTS.available(item.lang, undefined, item.text) : { ok: false };
     // §9.4 — speak exists only while an engine is configured AND the mic API is
     // present AND this session has not been denied the mic.
     const caps = {
