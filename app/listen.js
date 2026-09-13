@@ -52,6 +52,8 @@ var AppListen = (() => {
   let pauseReason = '';     // 'user' | 'silence' | 'denied' | 'socket' | 'socket-retry' | 'locked' | 'failed'
   let showRid = 0;          // 放大展示中的历史行（0 = 没有）
   let socketRetried = false; // socket 断开后自动重连过一次了吗（成功 ready 时清零）
+  // 本机转写路（§9.6.1）：final 按 locale 串句的切句器；离线资产下载进度（downloading 态的胶囊）
+  let cutter = null, dlPct = 0, dlLang = '';
   let session = null;
   let cfg = null;
   let sock = null;
@@ -107,22 +109,48 @@ var AppListen = (() => {
       });
     });
   }
-  function liveCapable(c) { return !!(c && c.eng && c.eng.liveEndpoint && c.eng.liveType && (c.sttKey || !c.eng.needsKey)); }
+  // 本机转写（§9.6.1）：由 type 推导，不加字段（domain-design §7）。桥在不在由 NativeSpeech 探过才知道。
+  function deviceEngine(e) { return !!(e && e.type === 'device-transcribe'); }
+  function deviceBridge() { return typeof NativeSpeech !== 'undefined' && NativeSpeech.available(); }
+  // 一个 locale 一路识别器：我方 + 对方（两边一样时只开一路）。
+  function deviceLocales(c) {
+    const a = C.toLocale(c && c.myLang), b = C.toLocale(c && c.otherLang);
+    return a === b ? [a] : [a, b];
+  }
+  // 入口可用 ⇔ 云端「liveEndpoint && liveType && key」**或** 本机「device-transcribe 且桥探到资产可用」
+  function liveCapable(c) {
+    if (!c || !c.eng) return false;
+    if (deviceEngine(c.eng)) return deviceBridge() && NativeSpeech.probeResult().ok;
+    return !!(c.eng.liveEndpoint && c.eng.liveType && (c.sttKey || !c.eng.needsKey));
+  }
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
   // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
   const ENTRY_SUFFIXES = ['', '2'];
   async function refreshEntry() {
-    let ok = false;
-    try { ok = liveCapable(await readCfg()); } catch (_) { ok = false; }
+    let ok = false, c = null;
+    try {
+      c = await readCfg();
+      // 本机引擎：先探桥（旧系统 / 资产缺失都在这里得到具名答案），再判门
+      if (deviceEngine(c.eng) && deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
+      ok = liveCapable(c);
+    } catch (_) { ok = false; }
+    const dev = !!(c && deviceEngine(c.eng));
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     for (const sfx of ENTRY_SUFFIXES) {
       const btn = $('app-listen-entry' + sfx); if (btn) { btn.hidden = false; btn.disabled = !ok; }
       const hint = $('app-listen-entry-hint' + sfx);
       if (hint) { hint.hidden = false; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
-      const priv = $('modes-privacy' + sfx); if (priv) { priv.hidden = !ok; priv.textContent = t('listen_entry_privacy', '音频只发往你配置的转写端点。'); }
+      const priv = $('modes-privacy' + sfx); if (priv) {
+        priv.hidden = !ok;
+        priv.textContent = dev ? t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。')
+          : t('listen_entry_privacy', '音频只发往你配置的转写端点。');
+      }
       const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
+      // 灰态第三句（interaction-spec 2026-09-12）：本机引擎在旧系统 / 无桥的宿主上 —— 原因具名，不是通用的「没配实时引擎」
+      const why = $('app-listen-need-live-why' + sfx);
+      if (why && !ok && dev) why.textContent = t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎');
     }
   }
 
@@ -190,6 +218,7 @@ var AppListen = (() => {
   function openSocket() {
     const myGen = gen;
     const e = cfg.eng;
+    if (deviceEngine(e)) { openDevice(myGen); return; }
     sock = WsTranscribe.open({
       url: e.liveEndpoint, type: e.liveType, apiKey: cfg.sttKey, keyProtocol: e.liveKeyProtocol || '',
       model: e.liveModel || e.defaultModel, rate: e.liveRate || 24000, params: e.liveParams || null, langs: [],
@@ -205,7 +234,31 @@ var AppListen = (() => {
       },
     });
   }
-  function closeSocket() { const s = sock; sock = null; try { if (s) s.close(); } catch (_) {} }
+  function closeSocket() { const s = sock; sock = null; cutter = null; try { if (s) s.close(); } catch (_) {} }
+  // 本机路：NativeSpeech.sttOpen 与 WsTranscribe.open 同一个返回形状，所以 sock 的生命周期照旧。
+  // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
+  // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
+  function openDevice(myGen) {
+    const locales = deviceLocales(cfg);
+    const me = C.toLocale(cfg.myLang);
+    const cut = C.makeStreamCutter((locale, sent) => {
+      if (myGen !== gen || cutter !== cut || !sock) return;
+      onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
+    });
+    cutter = cut;
+    sock = NativeSpeech.sttOpen({
+      locales,
+      onEvent: (kind, ev) => {
+        if (myGen !== gen) return;
+        if (!sock && (kind === 'partial' || kind === 'final')) return;
+        if (kind === 'ready') { socketRetried = false; }
+        else if (kind === 'partial') { if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text); }
+        else if (kind === 'final') { if (cutter === cut && C.acceptDeviceFinal(ev, routeDeps)) cut.add(ev.locale, ev.text); }
+        else if (kind === 'error') socketLost(ev.reason || '');
+        else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
+      },
+    });
+  }
   // socket 断了：先自动重连一次（2 s），期间主按钮「重连中…」、我说灰；再断才停在具名态。
   function socketLost(why) {
     if (!socketRetried && (phase === 'listening' || phase === 'preparing')) {
@@ -226,12 +279,13 @@ var AppListen = (() => {
     if (inc) inc.onPartial(partial);
     renderNow();
   }
-  function onFinal(text) {
+  function onFinal(text, meta) {
     // 回声闸第一层：我们自己刚读出去的那句被麦克风录回来了 ⇒ **整句丢弃** —— 不进历史、
     // 不翻译、不写语料、不朗读、不算进小结。它根本不是一句话。
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; renderNow(); return; }
-    const row = C.addFinal(session, text, now(), cfg, routeDeps);
+    // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
+    const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
     partial = ''; partialTr = '';
     // 两边的定稿走同一条路，只是目标语言相反（targetLangFor）。2026-09-08 之前
@@ -251,6 +305,12 @@ var AppListen = (() => {
     if (phase !== 'listening') return;
     if (sock.sendPcm(int16) !== false) pcmSent++;
     if (phase === 'listening' && C.silenceCheck(session, C.rmsOf(int16), now())) pause('silence');
+  }
+  // 本机路：原生不发 PCM，只发电平（≤10 Hz）—— 静音守卫吃它，其余一律在原生
+  function onLevel(rms) {
+    pcmFrames++;
+    if (!session || !sock || phase !== 'listening') return;
+    if (C.silenceCheck(session, rms, now())) pause('silence');
   }
   function onMicState(state, reason) {
     if (state === 'denied') halt('denied', '');
@@ -276,7 +336,12 @@ var AppListen = (() => {
   }
   async function micStart() {
     const rate = (cfg.eng && cfg.eng.liveRate) || 24000;
-    if (bridged()) { NativeAudio.micStart(rate, { onPcm, onState: onMicState }); return true; }
+    if (bridged()) {
+      NativeAudio.micStart(rate, deviceEngine(cfg.eng)
+        ? { onLevel, onState: onMicState, deliver: 'level' }
+        : { onPcm, onState: onMicState });
+      return true;
+    }
     // 退路：页内采集（Chrome / 无桥）。AudioContext 必须在手势里建 —— start() 由点击触发。
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -361,6 +426,23 @@ var AppListen = (() => {
     pauseReason = '';
     note('');
     C.resume(session, now());
+    // 本机路：先探（旧系统 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
+    if (deviceEngine(cfg.eng)) {
+      if (!deviceBridge()) { halt('device', 'no-bridge'); return; }
+      const r = await NativeSpeech.probe(deviceLocales(cfg));
+      if (phase !== 'preparing') return;
+      if (!r.ok) { halt('device', r.reason || ''); return; }
+      if (r.assets !== 'installed') {
+        phase = 'downloading'; dlPct = 0; dlLang = ''; paint();
+        try {
+          await NativeSpeech.ensureAssets('stt', deviceLocales(cfg), (m) => {
+            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+          });
+        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return; }
+        if (phase !== 'downloading') return;
+        phase = 'preparing'; paint();
+      }
+    }
     openSocket();
     paint();
     startedAt = now();
@@ -402,6 +484,8 @@ var AppListen = (() => {
       : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
       : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
       : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
+      : reason === 'assets' ? t('listen_assets_failed', '离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。').replace('{why}', why1)
+      : reason === 'device' ? t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎')
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
     note(msg, true);
     paint();
@@ -641,12 +725,15 @@ var AppListen = (() => {
     const ms = C.listenedMs(session, now());
     const pill = $('app-listen-pill');
     const listening = phase === 'listening';
-    pill.textContent = phase === 'preparing' ? t('listen_pill_preparing', '准备中')
+    pill.textContent = phase === 'downloading' ? t('listen_downloading', '正在下载{lang}离线模型 · {pct}%').replace('{lang}', langLabel(dlLang)).replace('{pct}', String(dlPct))
+      : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
       : listening ? t('listen_pill_listening', '听译中 · {t}').replace('{t}', C.fmtClock(ms))
       : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
       : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
     pill.classList.toggle('live', listening);
-    $('app-listen-cost').textContent = t('listen_cost_line', '已听 {t} · 音频只发往你配置的转写端点').replace('{t}', C.fmtClock(ms));
+    $('app-listen-cost').textContent = (deviceEngine(cfg && cfg.eng)
+      ? t('listen_cost_line_device', '已听 {t} · 音频不离开设备')
+      : t('listen_cost_line', '已听 {t} · 音频只发往你配置的转写端点')).replace('{t}', C.fmtClock(ms));
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   function paint() {
@@ -667,10 +754,10 @@ var AppListen = (() => {
     }
     const tog = $('app-listen-toggle');
     tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
-      : phase === 'preparing' ? t('listen_toggle_preparing', '准备中…')
+      : (phase === 'preparing' || phase === 'downloading') ? t('listen_toggle_preparing', '准备中…')
       : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
       : t('listen_toggle_start', '开始听');
-    tog.disabled = phase === 'preparing' || (phase === 'halted' && pauseReason === 'socket-retry');
+    tog.disabled = phase === 'preparing' || phase === 'downloading' || (phase === 'halted' && pauseReason === 'socket-retry');
     // 结束后两个按钮不出现（要说话就「再来一段」）；小结卡替换上卡，历史留着
     const grid = $('app-listen-actions'); if (grid) grid.hidden = ended;
     const nowCard = $('app-listen-now'); if (nowCard) nowCard.hidden = ended;
@@ -871,6 +958,8 @@ var AppListen = (() => {
         // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
         // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
         if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+        // 本机路例外（§9.6.1）：一路识别器一个 locale，改语言**要重连**（云端路照旧不重连）
+        if (session && deviceEngine(cfg && cfg.eng) && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
         if (session) paint();
       });
     }

@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· 실시간"
   },
+  "stt_engine_device": {
+    "message": "기기 내장 받아쓰기 (무료 · 오프라인 · 앱 전용)"
+  },
+  "stt_hint_device": {
+    "message": "음성은 기기에서 인식되며 어떤 서버에도 전송되지 않습니다. iOS 26 / macOS 26 필요. 현재 「대화」에서만 사용됩니다."
+  },
+  "stt_device_suffix": {
+    "message": "· 기기 내"
+  },
+  "stt_device_no_file": {
+    "message": "기기 내장 받아쓰기는 현재 대화에서만 사용됩니다"
+  },
+  "listen_need_device_os": {
+    "message": "기기 내장 받아쓰기는 iOS 26 / macOS 26이 필요합니다. 또는 설정에서 클라우드 실시간 엔진을 선택하세요"
+  },
+  "listen_downloading": {
+    "message": "{lang} 오프라인 모델 다운로드 중 · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "오프라인 모델 다운로드 실패: {why} — 「듣기 시작」을 다시 눌러 재시도하거나 설정에서 클라우드 실시간 엔진을 선택하세요."
+  },
+  "listen_entry_privacy_device": {
+    "message": "음성은 기기에서 인식되며 어떤 서버에도 전송되지 않습니다. 인식된 텍스트는 직접 설정한 번역 엔진으로 전송됩니다."
+  },
+  "listen_cost_line_device": {
+    "message": "{t} 들음 · 오디오는 기기를 떠나지 않습니다"
+  },
   "grant_live_go": {
     "message": "실시간 엔진 추가 →"
   },

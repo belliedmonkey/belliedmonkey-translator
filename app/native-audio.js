@@ -43,7 +43,7 @@ var NativeAudio = (() => {
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
     toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop'],
-    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state'],
+    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-level'],
   };
 
   let ready = false;
@@ -254,11 +254,14 @@ var NativeAudio = (() => {
   // 每块一条 `mic-pcm`；状态一条 `mic-state`（granted / denied / failed / interrupted / ended）。
   // WebKit 在 App 不可见时一律静音页内的 getUserMedia（2026-09-07 真机三轮实证），
   // 所以锁屏后还想听，采集只能在这儿。
-  //   handlers: { onPcm(Int16Array), onState(state, reason) }
+  //   handlers: { onPcm(Int16Array), onState(state, reason), onLevel(rms), deliver: 'pcm'|'level' }
+  //   deliver:'level'（§9.6.1 本机路）⇒ 原生不发 PCM，只发 mic-level {rms}（≤10 Hz）；音频留在原生。
   function micStart(rate, handlers) {
     if (!available()) return false;
     mic = handlers || null;
-    return post({ type: 'mic-start', rate: Number(rate) || 24000 });
+    const body = { type: 'mic-start', rate: Number(rate) || 24000 };
+    if (mic && mic.deliver === 'level') body.deliver = 'level';
+    return post(body);
   }
   function micStop() {
     mic = null;
@@ -294,6 +297,10 @@ var NativeAudio = (() => {
     if (msg.type === 'mic-pcm') {
       if (mic && mic.onPcm) { try { mic.onPcm(pcmOf(msg.b64)); } catch (_) {} }
       return;   // 音频块不广播
+    }
+    if (msg.type === 'mic-level') {
+      if (mic && mic.onLevel) { try { mic.onLevel(Number(msg.rms) || 0); } catch (_) {} }
+      return;
     }
     if (msg.type === 'mic-state') {
       if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || '')); } catch (_) {} }

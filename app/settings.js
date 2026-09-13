@@ -108,6 +108,7 @@ var AppSettings = (() => {
     // 都会让一个合法保存过的 id 消失，留一个空 select 更糟），以及哨兵项的语义。
     // 哨兵 '' = 未配置（不朗读）。与 stt 同一套语义 —— 语音不再默认走系统自带。
     EngineFields.populate($('tts-engine'), window.MT_TTS_ENGINES || [], {
+      deviceOk: typeof NativeSpeech !== 'undefined' && NativeSpeech.available(),
       t, sentinel: { value: '', text: t('tts_engine_none', '未配置（不朗读）') },
     });
     $('tts-key-label').textContent = t('tts_api_key', '语音 API Key');
@@ -171,6 +172,7 @@ var AppSettings = (() => {
     $('btn-tts-test').textContent = t('tts_test', '试听一句');
     $('stt-note').textContent = t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。');
     EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], {
+      deviceOk: typeof NativeSpeech !== 'undefined' && NativeSpeech.available(),   // 本机条目只在桥在时出现（§9.6.1）
       t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
     });
     // 来源治理 (interaction-spec): rules follow the account (§8.9); the phone is a

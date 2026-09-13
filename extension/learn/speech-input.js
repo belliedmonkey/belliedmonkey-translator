@@ -28,6 +28,8 @@ var LearnSpeech = (() => {
   function engineReady() {
     const e = engineInfo();
     if (!e) return { ok: false, reason: 'no_engine' };
+    // 设备内置转写第一版只接「对话」，不接说题（learning-design §9.6.1）：具名，不是「没填地址」。
+    if (e.type === 'device-transcribe') return { ok: false, reason: 'device_no_file' };
     if (!(cfg.baseUrl || e.defaultEndpoint)) return { ok: false, reason: 'no_base' };
     if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
     return { ok: true };

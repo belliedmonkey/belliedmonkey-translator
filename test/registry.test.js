@@ -458,3 +458,24 @@ describe('每个 flavor 至少有一个带实时接口的转写引擎（AGENTS �
     ok(/"liveEndpoint":"wss:\/\//.test(src), 'dist-china 的 stt.gen.js 里没有 liveEndpoint —— 构建把它丢了');
   });
 });
+
+describe('设备内置转写条目（learning-design §9.6.1 / domain-design §7 第三个 carve-out）', () => {
+  const STT = require('../build/stt.config.js');
+  const dev = STT.filter((e) => e.type === 'device-transcribe');
+  test('恰好一条 device 条目，两个 flavor 都在，不说 HTTP、不要 key、不进台账', () => {
+    eq(dev.length, 1, '一条');
+    const e = dev[0];
+    eq(e.id, 'device');
+    eq(JSON.stringify([...e.flavors].sort()), JSON.stringify(['china', 'global']));
+    eq(e.defaultEndpoint, null, 'defaultEndpoint 显式 null（不是缺席）');
+    ok('defaultEndpoint' in e, '字段必须写出来');
+    eq(e.needsKey, false); eq(e.supportsKey, false); eq(e.supportsBaseUrl, false); eq(e.supportsModel, false);
+    ok(!e.liveEndpoint && !e.liveType, '实时能力由 type 推导，不写 live* 字段');
+  });
+  test('它不算进「每个 flavor 至少一个带实时接口的转写引擎」—— 云端实时引擎仍是存在前提', () => {
+    for (const flavor of KNOWN_FLAVORS) {
+      const cloudLive = STT.filter((e) => (e.flavors || []).includes(flavor) && e.liveEndpoint && e.liveType && e.type !== 'device-transcribe');
+      ok(cloudLive.length >= 1, `${flavor}：去掉 device 之后仍要有云端实时引擎`);
+    }
+  });
+});

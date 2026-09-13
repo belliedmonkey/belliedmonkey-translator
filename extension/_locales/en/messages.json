@@ -1917,6 +1917,33 @@
   "stt_live_suffix": {
     "message": "· live"
   },
+  "stt_engine_device": {
+    "message": "On-device transcription (free · offline · App only)"
+  },
+  "stt_hint_device": {
+    "message": "Speech is recognised on your device and never sent to any server; needs iOS 26 / macOS 26. Currently used only in Conversation."
+  },
+  "stt_device_suffix": {
+    "message": "· on-device"
+  },
+  "stt_device_no_file": {
+    "message": "On-device transcription is currently used only in Conversation"
+  },
+  "listen_need_device_os": {
+    "message": "On-device transcription needs iOS 26 / macOS 26 — or pick a cloud live engine in Settings"
+  },
+  "listen_downloading": {
+    "message": "Downloading the {lang} offline model · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "Offline model download failed: {why} — tap “Start listening” again to retry, or pick a cloud live engine in Settings."
+  },
+  "listen_entry_privacy_device": {
+    "message": "Speech is recognised on your device and never sent to any server; the recognised text goes to the translation engine you configured."
+  },
+  "listen_cost_line_device": {
+    "message": "Listened {t} · audio never leaves the device"
+  },
   "grant_live_go": {
     "message": "Add a live engine →"
   },

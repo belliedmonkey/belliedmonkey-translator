@@ -51,6 +51,9 @@ var EngineFields = (() => {
   //
   // needsKey ≠ supportsKey：`stt.config.js:36` 明写过这一句 ——「needsKey=false 是
   // 『不强制』，supportsKey=true 是『可以填』，两件事」。自建端点就是这一类。
+  // 本机引擎（设备内置转写 / 设备内置朗读）：由 type 推导，不加布尔字段（domain-design §7）。
+  function isDevice(e) { return !!(e && typeof e.type === 'string' && e.type.indexOf('device-') === 0); }
+
   function visibility(entry) {
     const e = entry || null;
     if (!e) return { key: false, baseUrl: false, model: false, basePlaceholder: '', modelPlaceholder: '' };
@@ -83,7 +86,11 @@ var EngineFields = (() => {
     // 的失败。**例外是它正被选中时** —— 那时必须留在列表里，否则下拉会显示成空白，
     // 用户看到的是「我明明配好了，这里却什么都没有」（半配显示不出来那一类）。
     const all = Array.isArray(entries) ? entries : [];
-    const list = all.filter((e) => !e.grantOnly || e.id === (opts || {}).selected);
+    // 本机条目（type 以 device- 开头，§9.6.1）只在**桥在**的宿主里出现：调用方探过桥后把
+    // `deviceOk` 传进来，组件自己不探（domain-design §5.3 规则 2）。扩展页从不传 true。
+    // 同 grantOnly：正被选中时必须留在列表里，否则下拉显示成空白。
+    const list = all.filter((e) => (!e.grantOnly || e.id === o.selected)
+      && (!isDevice(e) || o.deviceOk || e.id === o.selected));
     const doc = sel.ownerDocument || document;
     sel.innerHTML = '';
     if (o.sentinel) {
@@ -97,8 +104,11 @@ var EngineFields = (() => {
       opt.value = e.id;
       // 「· 实时」后缀（2026-09-11）：带 liveEndpoint+liveType 的转写条目在下拉里标出来，
       // 让「哪一项能实时」对用户可见 —— 此前 visibility() 不读 live 字段，三处下拉都看不出。
-      const live = !!(e.liveEndpoint && e.liveType);
-      opt.textContent = labelOf(e, o.t) + (live && o.t ? ' ' + o.t('stt_live_suffix', '· 实时') : '');
+      // 本机转写条目本身就是实时接口（domain-design §7，由 type 推导）：「· 实时 · 本机」。
+      const live = !!(e.liveEndpoint && e.liveType) || e.type === 'device-transcribe';
+      const local = e.type === 'device-transcribe';
+      opt.textContent = labelOf(e, o.t) + (live && o.t ? ' ' + o.t('stt_live_suffix', '· 实时') : '')
+        + (local && o.t ? ' ' + o.t('stt_device_suffix', '· 本机') : '');
       sel.appendChild(opt);
     }
     const known = list.some((e) => e.id === o.selected);
@@ -391,7 +401,7 @@ var EngineFields = (() => {
     return { el: box, paint, rows, ids: spec.ids, keys: spec.keys, testNote };
   }
 
-  return { labelOf, visibility, populate, render, SLOTS };
+  return { labelOf, visibility, populate, render, SLOTS, isDevice };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineFields;

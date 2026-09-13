@@ -284,7 +284,11 @@ var ListenCore = (() => {
   function addFinal(s, text, at, cfg, deps) {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (!clean) return null;
-    const a = attributeByLang(s, clean, at, cfg, deps);
+    // 本机路（§9.6.1）：归属由「哪一路识别器认出来的」直接给（deps.who），比按文字系猜准 ——
+    // 同文字系语言对（en/fr）那时也能分开。没给就照旧按语言判。
+    const a = deps && (deps.who === 'me' || deps.who === 'them')
+      ? { who: deps.who, guessed: false }
+      : attributeByLang(s, clean, at, cfg, deps);
     const row = {
       rid: ++s.seq, who: a.who,
       guessed: a.guessed,   // 判不出、靠粘性或兜底得来 ⇒ 界面标虚线，提示可以点 ↔ 改
@@ -461,6 +465,91 @@ var ListenCore = (() => {
 
   // 「复制全文」：整段对话的纯文本。一行原文、一行译文、空行分段；我说的行带前缀；没译出来的
   // 行只有原文（不写 ⏳ 之类的界面词进剪贴板）。
+  // ── 本机转写路（§9.6.1）────────────────────────────────────────────────────
+  // 系统识别器一路一个 locale；语言代码 → 识别器 locale。注册表只给短码，这张表是
+  // 「短码 → 系统最常见的地区变体」，不认识的原样返回（识别器自己会做等价匹配）。
+  const LOCALE_OF = { zh: 'zh-CN', 'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW', 'zh-hk': 'zh-HK', yue: 'yue-CN', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR',
+    fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', pt: 'pt-BR', 'pt-br': 'pt-BR', 'pt-pt': 'pt-PT' };
+  function toLocale(code) {
+    const c = String(code || '').trim();
+    if (!c) return '';
+    return LOCALE_OF[c.toLowerCase()] || c;
+  }
+  // 每个 locale 的文字系（决定「这路识别器认出来的字对不对得上它的语言」）。
+  const LATIN_LOCALE = /^(en|fr|de|es|it|pt|nl|sv|da|nb|fi|pl|cs|tr|id|ms|vi)\b/i;
+  const CJK_OF = { zh: 'Han', yue: 'Han', ja: 'Han', ko: 'Hangul' };
+  function scriptOfLocale(locale) {
+    const base = String(locale || '').split(/[-_]/)[0].toLowerCase();
+    if (CJK_OF[base]) return CJK_OF[base];
+    if (LATIN_LOCALE.test(base)) return 'Latin';
+    return '';
+  }
+  // 两路识别器都会对同一段音频出 final：zh 路会把英文音频「认」成一串英文（错得离谱但置信度
+  // 0.7–0.9），en 路对中文音频吐「Rugua, Ting」（置信度 0.05–0.27）—— 2026-09-12 实测。
+  // 所以收 final 的规则是：**先看文字系，再看置信度**：
+  //   · 文字系与这一路的语言对不上 ⇒ 丢（zh 路出拉丁字母、en 路出汉字）
+  //   · 拉丁文字系且置信度 < LATIN_MIN_CONF ⇒ 丢（另一路的音频漏过来的碎片）
+  //   · CJK 不按置信度丢：碎片（「家」0.34）也是正文的一部分，串起来才成句
+  // 同文字系语言对（en/fr）这条规则分不开，那时靠调用方按 locale 归属 + 置信度高者。
+  const LATIN_MIN_CONF = 0.4;
+  function acceptDeviceFinal(f, deps) {
+    const text = String((f && f.text) || '').trim();
+    if (!text) return false;
+    const want = scriptOfLocale(f.locale);
+    const got = deps && deps.dominantScript ? deps.dominantScript(text) : null;
+    if (want && got && got !== want) {
+      // 标点/数字之类判不出文字系时 dominantScript 会给别的值；只在两边都是「字」时才否
+      if (got === 'Latin' || got === 'Han' || got === 'Hangul' || got === 'Hiragana' || got === 'Katakana') {
+        if (!(want === 'Han' && (got === 'Hiragana' || got === 'Katakana'))) return false;
+      }
+    }
+    if (want === 'Latin' && typeof f.conf === 'number' && f.conf >= 0 && f.conf < LATIN_MIN_CONF) return false;
+    return true;
+  }
+  // 识别器的 final 是时间片不是句子（会切在词中间），所以每个 locale 一路串起来、按句末标点
+  // 切句；尾巴等不到标点就按超时放出（我们自己收口后的 final 常常不带句号）。
+  // cut(text) 由调用方注入（生产里是 WsTranscribe.splitSentences 这类），返回 { done: [...], rest }。
+  const STREAM_FLUSH_MS = 1200;
+  const CJK_JOIN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}，。！？、；：]$/u;
+  function makeStreamCutter(onSentence, opts) {
+    const o = opts || {};
+    const flushMs = o.flushMs || STREAM_FLUSH_MS;
+    const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
+    const streams = {};   // locale → { buf, timer }
+    const join = (a, b) => (!a ? b : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b));
+    function emitDone(locale, st) {
+      let buf = st.buf;
+      const TERM = /[。！？!?]["'”’)\]]?|\.(?=\s|$)/g;
+      let last = 0, m;
+      while ((m = TERM.exec(buf))) {
+        const end = m.index + m[0].length;
+        const sent = buf.slice(last, end).trim();
+        if (sent) onSentence(locale, sent);
+        last = end;
+      }
+      st.buf = buf.slice(last).replace(/^\s+/, '');
+    }
+    function flush(locale) {
+      const st = streams[locale]; if (!st) return;
+      if (st.timer) { clearT(st.timer); st.timer = 0; }
+      emitDone(locale, st);
+      const rest = st.buf.trim(); st.buf = '';
+      if (rest) onSentence(locale, rest);
+    }
+    return {
+      add(locale, text) {
+        const t = String(text || '').trim(); if (!t) return;
+        const st = streams[locale] || (streams[locale] = { buf: '', timer: 0 });
+        st.buf = join(st.buf, t);
+        emitDone(locale, st);
+        if (st.timer) clearT(st.timer);
+        st.timer = st.buf ? setT(() => { st.timer = 0; flush(locale); }, flushMs) : 0;
+      },
+      flushAll() { for (const l of Object.keys(streams)) flush(l); },
+      pending(locale) { const st = streams[locale]; return st ? st.buf : ''; },
+    };
+  }
+
   function transcriptText(session, mePrefix) {
     const rows = (session && session.rows) || [];
     return rows.map((r) => {
@@ -470,6 +559,8 @@ var ListenCore = (() => {
   }
 
   return {
+    toLocale, scriptOfLocale, acceptDeviceFinal, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
+
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
