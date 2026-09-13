@@ -396,7 +396,7 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 10 | `kimi` | china (`api.moonshot.cn`) | `chat-compat` | Moonshot 国内 key | ❌ **缺 key** |
 | 11 | `custom_chat` | global + china | `chat-compat` | OpenRouter key（第三方中转，见上） | ✅ 2026-08-18 Chrome 真机（`qwen/qwen3.8-27b`；`/v1/chat/completions` 自检 3538ms + 整页翻译；**同 host 换 `/v1/responses` 后自检 10317ms 通过**，同一把 key，形状由后缀判定） |
 | 12 | `custom_msg` | global + china | `messages-compat` | 需一个 Messages 形状端点 | ❌ **依赖第 3 行的 key** |
-| 13 | `browser` (TTS) | global + china | `browser` | — (系统语音) | ✅ 随复习流程长期在跑 |
+| 13 | `browser` (TTS) | global + china | `browser`；**宿主 App 内经 `mtSpeech` 桥走原生 `AVSpeechSynthesizer`（2026-09-13 起）**，桥不在 / 该语言原生无声 / 原生开口失败 ⇒ WebKit `speechSynthesis` | — (系统语音；App 内按 优质 > 增强 > 默认 挑) | ✅ 随复习流程长期在跑；原生路 2026-09-13 真机（iPhone 14 Pro · iOS 27.0）探针：婷婷增强 / Han 优质 / Ava 优质 / Samantha 增强 开口 2–5 ms。**为什么要原生**：WKWebView 的 `getVoices()` 只暴露 compact / super-compact（70 个），原生有 209 个含 premium 4 / enhanced 12 —— 用户装的高档声只有原生拿得到 |
 | 14 | `local` (TTS) | global + china | `speech-compat` | 自建 `/v1/audio/speech` 服务 | ❌ **缺服务** |
 | 15 | `openai_speech` | global | `speech-compat` | OpenAI key | ✅ 已在用 |
 | 16 | `local` (STT) | global + china | `transcribe-compat` | `scripts/dev-whisper-server.js` | ✅ M10 真机跑通 |

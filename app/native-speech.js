@@ -21,6 +21,8 @@ var NativeSpeech = (() => {
   let sttSession = null;
   // 朗读：一次一句（JS 侧的 speakQueue 已经串行），id 对得上才回调。
   let speakJob = null;
+  let ttsProbed = false;      // 桥答过一次 tts-state（含 system 字段）
+  let lastModels = [];        // 上次 tts-probe 的模型清单：systemVoice() 重探时沿用，别把 Piper 的状态探没了
   const progressListeners = [];
   // 等待中的探测 Promise —— 是一串不是一个：入口刷新与设置变更会并发探两次，只留最后一个
   // 会让第一个 await 永远不落定（2026-09-12 门禁里就是这么挂住的）。
@@ -58,7 +60,9 @@ var NativeSpeech = (() => {
       return;
     }
     if (t === 'tts-state') {
-      ttsProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : (msg.reason || msg.state), langs: Array.isArray(msg.langs) ? msg.langs : [] };
+      ttsProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : (msg.reason || msg.state), langs: Array.isArray(msg.langs) ? msg.langs : [],
+        system: !!msg.system, systemLangs: Array.isArray(msg.systemLangs) ? msg.systemLangs.map((l) => String(l).toLowerCase()) : [] };
+      ttsProbed = true;
       wake(ttsWaiters, ttsProbe);
       return;
     }
@@ -139,13 +143,27 @@ var NativeSpeech = (() => {
   // ── 朗读 ─────────────────────────────────────────────────────────────────
   /** 探本机朗读：models 是清单（见 listen.js 的 DEVICE_TTS_MODELS）。结论 { ok, reason, langs }。 */
   function ttsProbeRun(models) {
-    if (!available()) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [] }; return Promise.resolve(ttsProbe); }
+    if (!available()) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [], system: false, systemLangs: [] }; return Promise.resolve(ttsProbe); }
+    lastModels = models || lastModels;
     return new Promise((resolve) => {
       ttsWaiters.push(resolve);
-      if (!post({ type: 'tts-probe', models: models || [] })) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [] }; wake(ttsWaiters, ttsProbe); }
+      if (!post({ type: 'tts-probe', models: lastModels })) { ttsProbe = { ok: false, reason: 'no-bridge', langs: [], system: false, systemLangs: [] }; wake(ttsWaiters, ttsProbe); }
     });
   }
   function ttsLangs() { return ttsProbe.langs.slice(); }
+  /**
+   * 系统语音的原生后端能不能读这个语言（小写基础语言，如 'zh'）。没探过就先探一次（沿用上次的模型清单，
+   * 不会把 Piper 的 langs 冲掉）；桥不答 ⇒ 1.5 s 后当不能，由调用方走 WebKit。老桥（没有 system 字段）恒 false。
+   */
+  function systemVoice(lang) {
+    if (!available()) return Promise.resolve(false);
+    const has = () => !!(ttsProbe.system && (!lang || ttsProbe.systemLangs.indexOf(String(lang).toLowerCase()) >= 0));
+    if (ttsProbed) return Promise.resolve(has());
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 1500);
+      ttsProbeRun(lastModels).then(() => { clearTimeout(timer); resolve(has()); });
+    });
+  }
 
   /**
    * 念一句。返回 { started: Promise<bool>, done: Promise<void> }：started 在首块出声（或失败）时落定，
@@ -159,7 +177,8 @@ var NativeSpeech = (() => {
     doneP.catch(() => {});
     if (speakJob) { const j = speakJob; speakJob = null; j.started(false); j.fail('superseded'); }
     speakJob = { id, started, done, fail };
-    if (!available() || !post({ type: 'tts-speak', id, text: String((o && o.text) || ''), lang: String((o && o.lang) || ''), rate: (o && o.rate) || 1 })) {
+    if (!available() || !post({ type: 'tts-speak', id, text: String((o && o.text) || ''), lang: String((o && o.lang) || ''), rate: (o && o.rate) || 1,
+      backend: String((o && o.backend) || ''), voice: String((o && o.voice) || '') })) {
       speakJob = null; started(false); fail('no-bridge');
     }
     return { id, started: startedP, done: doneP };
@@ -169,5 +188,5 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, speak, stop, _fromNative };
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative };
 })();

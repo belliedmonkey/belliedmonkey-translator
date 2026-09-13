@@ -1092,6 +1092,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // 原生 → JS
       '"stt-state"', '"assets-progress"', '"stt-partial"', '"stt-final"', '"tts-state"', '"tts-start"', '"tts-end"', '"tts-failed"',
       '"tts-debug"', '"step"', '"speak"', '"player"', '"generated"', '"n"', '"stale"',   // 朗读链路的调试事件（JS 不认就忽略）
+      // 系统语音的原生后端（MTSystemSpeech）：请求字段、tts-state 的能力字段、选声用的 identifier 前缀
+      '"backend"', '"system"', '"systemLangs"', '"voice"', '"-"',
+      '"com.apple.voice."', '"ttsbundle"', '"com.apple.eloquence."', '"com.apple.speech.synthesis.voice."',
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',

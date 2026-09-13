@@ -62,6 +62,7 @@ function setup(opts = {}) {
     SpeechSynthesisUtterance: opts.SpeechSynthesisUtterance,
     Uint8Array, btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
     Audio: opts.Audio,
+    NativeSpeech: opts.NativeSpeech,
   });
   // The shipped budget is 20s; a unit test must not sit through it. Patched AFTER load
   // because tts.js reads RequestShape.timeoutMs() at CALL time, not at load time.
@@ -924,6 +925,57 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
         rel + ' 又自己写了一份 tts reason 表 —— 上一次的代价是 options.js 缺 '
         + 'not_configured，把「还没配」说成「暂时读不出来」');
     }
+  });
+
+  // ─── 系统语音的原生后端（2026-09-13）────────────────────────────────────
+  // 真机实证：WKWebView 的 speechSynthesis 只暴露 compact 档，用户装的增强/优质声只有原生
+  // AVSpeechSynthesizer 拿得到。所以 App 里 browser 引擎先问桥 systemVoice(lang)：有就走原生
+  // （协议同 Piper），没有 / 老桥 / 桥不在 ⇒ 照旧 WebKit；原生开口失败也要落回 WebKit。
+  function fakeNative(o) {
+    const posted = [];
+    return {
+      posted,
+      available: () => o.available !== false,
+      systemVoice: (lang) => Promise.resolve(!!(o.langs || []).includes(lang)),
+      speak: (m) => {
+        posted.push(m);
+        const fail = o.fail;
+        return { started: Promise.resolve(!fail), done: Promise.resolve() };   // 失败由 started=false 表达；别急切造 rejected promise，会把整套跑崩
+      },
+      stop: () => { posted.push({ stop: true }); },
+    };
+  }
+  test('browser 引擎在桥能读该语言时走原生（voice 与 backend 一起带过去），WebKit 一句都不念', async () => {
+    const sp = fakeSpeech([voice('Tingting', 'zh-CN')]);
+    const native = fakeNative({ langs: ['zh'] });
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance, NativeSpeech: native });
+    TTS.configure({ engineId: 'browser', voice: 'com.apple.voice.enhanced.zh-CN.Tingting', rate: 1.2 });
+    const r = await TTS.speak('你好', 'zh-CN');
+    eq(r.ok, true, 'r.ok'); eq(r.engine, 'browser', 'r.engine'); eq(r.native, true, 'r.native');
+    eq(native.posted.filter((m) => !m.stop).length, 1, 'native.posted.filter((m) => !m.stop).length');
+    const m = native.posted.find((mm) => !mm.stop);
+    eq(m.backend, 'system', 'm.backend'); eq(m.lang, 'zh', 'm.lang'); eq(m.voice, 'com.apple.voice.enhanced.zh-CN.Tingting', 'm.voice'); eq(m.rate, 1.2, 'm.rate');
+    eq(sp.spoken.length, 0, 'sp.spoken.length');
+    eq(JSON.stringify(await TTS.available('zh-CN')), JSON.stringify({ ok: true }), 'available 也认原生');
+  });
+  test('桥读不了这个语言（或老桥没有 system 字段）⇒ browser 引擎照旧走 WebKit', async () => {
+    const sp = fakeSpeech([voice('Thomas', 'fr-FR')]);
+    const native = fakeNative({ langs: ['zh'] });
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance, NativeSpeech: native });
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.speak('bonjour', 'fr-FR');
+    eq(r.ok, true, 'r.ok'); eq(r.native, undefined, 'r.native');
+    eq(native.posted.filter((m) => !m.stop).length, 0, 'native.posted.filter((m) => !m.stop).length');
+    eq(sp.spoken.length, 1, 'sp.spoken.length');
+  });
+  test('原生开口失败 ⇒ 落回 WebKit，不让一句静掉', async () => {
+    const sp = fakeSpeech([voice('Tingting', 'zh-CN')]);
+    const native = fakeNative({ langs: ['zh'], fail: true });
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance, NativeSpeech: native });
+    TTS.configure({ engineId: 'browser' });
+    const r = await TTS.speak('你好', 'zh-CN');
+    eq(r.ok, true, 'r.ok'); eq(r.native, undefined, 'r.native');
+    eq(sp.spoken.length, 1, 'sp.spoken.length');
   });
 
   test('App 不再同步播种 ttsMode —— 播种回来就等于把语音默认打开了', () => {
