@@ -3073,7 +3073,8 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 **语料。** 沿用 `anchor.k:'conv'` 与 `sourceId conv:<sessionId>`，加 `anchor.mode:'subtitle'`、`who:'them'`；来源标题「实时字幕 · 日期时间」。理由：锚点语义与对话相同（按会话、声音不保存、不可回放）；新 kind `'live'` 会让每个读者多一个分支而行为无差别（§12）。「这次不留记录」照用；采集门、限量、写入时机与 §9.6 一致。
 
 **采集（原生；「只搬录音这一件事」照旧 —— `ws-transcribe.js`、修正 + 翻译契约都留在页面里）**
-- **Mac**：`CATapDescription`（全系统、排除本进程）+ `AudioHardwareCreateProcessTap` + 聚合设备 + IOProc，IOProc 内降混单声道，送进与麦克风**同一个出口** `deliver()`（`muteInput` → `micSink` → `mic-level` / `mic-pcm`）。权限是「仅系统录音」（`NSAudioCaptureUsageDescription`），不是屏幕录制。默认输出设备变化时重建聚合设备。WebKit 的声音来自它自己的 GPU 进程，不在「排除本进程」内 —— 字幕模式不朗读、Mac 上不放保活音频，可接受。macOS 13.3–14.3 入口灰 + 具名。**尖刺 S1 没过之前不写产品代码**；沙箱里拿不到声音就改 ScreenCaptureKit，并回来问用户（权限类别与文案都不同，§12）。
+- **Mac**：`CATapDescription`（全系统、排除本进程）+ `AudioHardwareCreateProcessTap` + 聚合设备 + IOProc，IOProc 内降混单声道，送进与麦克风**同一个出口** `deliver()`（`muteInput` → `micSink` → `mic-level` / `mic-pcm`）。权限是「仅系统录音」（`NSAudioCaptureUsageDescription`），不是屏幕录制。默认输出设备变化时重建聚合设备。WebKit 的声音来自它自己的 GPU 进程，不在「排除本进程」内 —— 字幕模式不朗读、Mac 上不放保活音频，可接受。macOS 13.3–14.3 入口灰 + 具名（这些 API 的可用性是 14.0 / 14.2，编进 13.3 目标必须 `#available` 包住）。
+  **尖刺 S1 读数（2026-09-13，沙箱 App，macOS 26.5.1）**：建 tap、聚合设备都成功；系统弹的是「想访问以录制你的系统音频」+ 我们的 `NSAudioCaptureUsageDescription` 原文（**不是屏幕录制**）。权限框没被点时 `AudioDeviceCreateIOProcIDWithBlock` 同步等约 60 s、`AudioDeviceStart` 再等约 30 s，之后返回 0 但**一帧 IO 回调都没有**；去掉沙箱表现相同（不是沙箱的问题）。⇒ 建 tap / IOProc / Start 一律放后台队列；**以收到第一个 IO 回调为「在抓」的唯一证据**（`AudioDeviceStart` 返回 0 不算）；页面有「等待系统授权」的具名态（画布 M6 ⓪），超时按未授权处理并给「打开系统设置」。点「允许」之后的电平与识别率读数待补。
 - **iOS 一期**：§9.6 的麦克风 tap，会话 profile `subtitle` = `.playAndRecord` + `[.mixWithOthers, .defaultToSpeaker]`，**不带 `.allowBluetooth`**（连着 AirPods 会被强切通话音质，Safari 的视频声音跟着变差）。前提由尖刺 S5 证明：Safari 不被暂停、音量不被压、5 分钟不中断。戴耳机时麦克风听不到 ⇒ 静音提示里具名。
 - **iOS 二期**（一期发版后另开）：ReplayKit 广播上传扩展只收 `.audioApp`，视频帧在扩展里立即释放、不读；降混重采样后写进 App Group 容器里的固定大小环形文件（持续覆盖、不落盘）；App 轮询后以 `source:'broadcast'` 调同一个 `deliver()`。扩展里不识别、不联网、不持 key（50 MB 上限；§12 否决过整条原生化）。只在 App 已**布防**一场字幕会话时接受广播，否则立即结束，并显示 App 事先写进组里的一句话。新 App Group entitlement 只给 iOS App 与广播两个 target。
 
@@ -3082,11 +3083,12 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 | 方向 | 消息 |
 |---|---|
 | JS → 原生 | `caps-probe` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast', profile?: 'conv' \| 'subtitle'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-hide`（Mac）· 二期 `broadcast-picker` · `broadcast-arm {on}` |
-| 原生 → JS | `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os`）· `remote {command}` 新增 `stop` / `open-app`（字幕条按钮） |
+| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os`）· `remote {command}` 新增 `stop` / `open-app`（字幕条按钮） |
 
 缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
 
-**Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。尖刺 S3 证明窗口隐藏 / 被全屏盖住时 WebView 不被节流，没过就改为最小化。
+**Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
+**尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
 
 **门控。** 与 §9.6 同一条 `liveCapable`，Mac 另加 `audio-caps.system === 'ok'`。不可用时入口灰 + 一条具名原因（§9.6「灰按钮 + 原因」家规的延续）。首页独立入口「实时字幕」，不做成对话里的开关：权限、隐私、心智都不同。
 
