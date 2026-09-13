@@ -307,6 +307,69 @@ describe('sync-app-assets: macOS 文件面板桥（§9.7 文档翻译 D5）', ()
     ok(/completionHandler\(response == \.OK \? panel\.urls : nil\)/.test(tpl), '取消分支回 nil，不是空数组');
     ok(/#if os\(macOS\)/.test(tpl), 'NSOpenPanel 只在 macOS 编译 —— 共享的 ViewController.swift 两个平台都编');
   });
+  // 2026-09-13 用户报障：中国版设置页「去开通 ↗」「还没有 key？去 通义千问 申请 ↗」点了没反应。
+  // 链接是共用组件里的 <a target="_blank">，扩展里对，App 的 WKWebView 没有 createWebViewWith ⇒ 哑。
+  test('新窗口链接交系统浏览器：只接用户点的 https、两个平台、永不开第二个 WebView', () => {
+    // 找声明，不找单词：文件头的注释里也提到了 createWebViewWith。
+    const at = tpl.indexOf('createWebViewWith configuration: WKWebViewConfiguration');
+    ok(at > 0, '实现了 createWebViewWith —— 没有它，<a target="_blank"> 在 App 里点了什么都不发生');
+    const fn = tpl.slice(tpl.lastIndexOf('func webView', at), tpl.indexOf('\n    }\n', at) + 6);
+    ok(/navigationAction\.targetFrame == nil/.test(fn), '只处理新窗口');
+    ok(/navigationType == \.linkActivated/.test(fn), '只接用户亲手点的链接 —— 脚本 window.open 走 open-url 桥的放行名单');
+    ok(/scheme\?\.lowercased\(\) == "https"/.test(fn), '只开 https');
+    ok(/UIApplication\.shared\.open\(url\)/.test(fn) && /NSWorkspace\.shared\.open\(url\)/.test(fn), '两个平台都交系统浏览器');
+    eq((fn.match(/return nil/g) || []).length, 2, '两条出口都返回 nil：永远不在 App 里开第二个 WebView');
+    ok(at < tpl.indexOf('runOpenPanelWith'), '放在 #if os(macOS) 门之外 —— iOS 同样需要');
+  });
+});
+
+describe('sync-app-assets: open-url 桥放行名单 v4（从注册表生成）', () => {
+  const ANCHOR = '#if os(macOS)\n        if (message.body as! String != "open-preferences") {';
+  const VC = 'import WebKit\n\nclass ViewController {\n'
+    + '    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {\n'
+    + ANCHOR + '\n            return\n        }\n#endif\n    }\n}\n';
+  const PROVIDERS = require('../build/providers.config.js');
+  const keyHosts = (flavor) => {
+    const out = new Set();
+    for (const p of PROVIDERS) {
+      if (!p.keyUrl || (Array.isArray(p.flavors) && !p.flavors.includes(flavor))) continue;
+      const u = typeof p.keyUrl === 'string' ? p.keyUrl : p.keyUrl[flavor];
+      if (u) out.add(new URL(u).hostname);
+    }
+    return [...out];
+  };
+  function patched(proj, src = VC) {
+    const dir = path.join(tmpdir(), proj, 'Shared (App)');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'ViewController.swift'), src);
+    const notes = patchViewController(dir);
+    return { dir, notes, out: fs.readFileSync(path.join(dir, 'ViewController.swift'), 'utf8') };
+  }
+
+  test('每个 flavor 的名单覆盖注册表里该 flavor 的全部 keyUrl 主机；境外地址不进中国版', () => {
+    const g = patched('safari-project');
+    const c = patched('safari-project-china');
+    ok(/open-url bridge patched \(v4/.test(g.notes), g.notes);
+    ok(keyHosts('global').length > 0 && keyHosts('china').length > 0, '前提：两个 flavor 都有 keyUrl');
+    for (const h of keyHosts('global')) ok(g.out.includes('host == "' + h + '"'), '国际版名单缺 ' + h);
+    for (const h of keyHosts('china')) ok(c.out.includes('host == "' + h + '"'), '中国版名单缺 ' + h);
+    ok(c.out.includes('host == "bailian.console.aliyun.com"'), '报障的那个地址（中国版「去开通」）');
+    for (const h of keyHosts('global').filter((x) => !keyHosts('china').includes(x))) {
+      ok(!c.out.includes('"' + h + '"'), '境外平台地址不该进中国版：' + h);
+    }
+  });
+
+  test('第二次一字不改；旧 v3 块整段换成 v4，只剩一个标记', () => {
+    const first = patched('safari-project');
+    const again = patchViewController(first.dir);
+    ok(/open-url bridge already current \(v4\)/.test(again), again);
+    eq(fs.readFileSync(path.join(first.dir, 'ViewController.swift'), 'utf8'), first.out, '第二次必须一字不改');
+    const v3 = VC.replace(ANCHOR, '// MT_OPEN_URL v3 — patched by scripts/sync-app-assets.js\n        if oldV3Block {}\n        ' + ANCHOR);
+    const up = patched('safari-project', v3);
+    ok(/open-url bridge v3 block removed/.test(up.notes), up.notes);
+    eq((up.out.match(/\/\/ MT_OPEN_URL/g) || []).length, 1, '只剩 v4 一个标记');
+    ok(!up.out.includes('oldV3Block'), '旧块一个字都不剩');
+  });
 });
 
 describe('sync-app-assets: audio bridge block (§9.5)', () => {
