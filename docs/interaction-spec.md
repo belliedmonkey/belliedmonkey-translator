@@ -290,7 +290,7 @@ surface (YouTube, podcast/generic media, x.com).
 | Cause | Line shown |
 |---|---|
 | CDN refuses cross-origin reads and no capture path | 「无法读取该音频」 |
-| Safari and the source is `blob:` (MSE — YouTube, Twitch, X) or a streaming manifest (`.m3u8` / `.mpd`, native HLS on iOS) | 「Safari 抓不到这类流媒体视频的声音，此页无法转写」 — before any socket opens (measured 2026-09-07/08: WebKit's `createMediaElementSource` is silent for MSE while the element stays audible; a manifest is a playlist, not audio, so it never takes the file tier either) |
+| Safari and the source is `blob:` (MSE — YouTube, Twitch, X) or a streaming manifest (`.m3u8` / `.mpd`, native HLS on iOS) | 「Safari 抓不到这类流媒体视频的声音，此页无法转写」＋第二句「用 Mac / iPhone 上的大肚猴翻译 App「实时字幕」可以听这台设备播放的声音」（2026-09-13 用户裁定「加一句」；只是指路，扩展不与 App 通信） — before any socket opens (measured 2026-09-07/08: WebKit's `createMediaElementSource` is silent for MSE while the element stays audible; a manifest is a playlist, not audio, so it never takes the file tier either) |
 | capture attached but silent for 3 s while playing, unmuted | 「捕获不到声音，已停止转写」 |
 | socket closed / vendor error | 「转写连接中断」 + the server's sentence, ≤ 1 line |
 | media changed, subtitles turned off, STT settings changed | session ends; the notice reverts to `字幕不可用` + offer |

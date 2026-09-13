@@ -292,7 +292,9 @@ Gemini and Meta are measured the same way before their entries ship.
    so. **Never a silent failure**: every stop (silence, CORS refusal, socket close,
    region refusal) is a visible line in the overlay. *(2026-09-13:)* Safari's MSE silence
    is not fixed in the extension. It is covered by the host app as an **additional
-   surface** (rule 8): the extension's named stop stays as it is.
+   surface** (rule 8): the extension's named stop stays, and gains one pointer
+   sentence to the app's 「实时字幕」 (user ruling 2026-09-13 — a pointer, not a behaviour
+   change; the extension still never talks to the app).
 5. **Audio goes only to the endpoint the user configured. Our server never sees it.**
    This is AGENTS.md product rule 5 restated for this source: we transmit page media
    to the user's own STT endpoint at the user's request, and nothing of ours stores,
