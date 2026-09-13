@@ -2008,6 +2008,7 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 > `speech-bridge.swift` 的第二后端 `MTSystemSpeech` 合成（`tts-speak` 带 `backend:'system'`，协议与 Piper
 > 完全相同，`tts-state` 多带 `system` / `systemLangs`），`tts.js` 的 `speakBrowser` 先问桥
 > `systemVoice(lang)`，有就走原生、没有 / 老桥 / 原生开口失败 ⇒ 照旧 WebKit；扩展一个字节不变。
+> **系统下限随之抬到 iOS 16.4 / macOS 13.3**（`build/os-floor.config.js`，verification-spec §0）：「优质」档 iOS 16 起才有。
 > 原生合成走 App 自己的音频会话，**锁屏出声 2026-09-13 11:55 真机通过**（M25-sys：锁屏 83 s 内 21 句全念出、0 失败、开口 86–108 ms，用户耳朵确认）。探针读数：原生高档声从 `speak()` 到开口
 > 2–5 ms，Piper 同机首块 157–222 ms。
 

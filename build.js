@@ -1208,6 +1208,31 @@ nameLengthGate(DIST);
   if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
 }
 
+// ─── 系统下限的解析期语法门（build/os-floor.config.js）────────────────────
+// 2026-09-12 用户来信：iOS 15.8.8 上 App 是一扇空窗。真因是 learn-model.js 里两处正则后行断言 ——
+// 扩展里它只弄死一个内容脚本文件，而 App 把所有模块拼成一份 Script.js，一处解析失败整页空白。
+// 门按 os-floor 的 Safari 下限扫 dist/ 与 dist-app/ 的每个 .js：比下限更新的解析期语法 ⇒ 红。
+// 只看解析期（运行时 API 有特性检测，grep 会误报）。下限抬高时表里的老条目自动不再报。
+{
+  const OSF = require('./build/os-floor.config.js');
+  const APP_OUT = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+  const files = [];
+  const walk = (d) => { for (const n of fs.readdirSync(d)) { const q = path.join(d, n); if (fs.statSync(q).isDirectory()) walk(q); else if (/\.(m?js)$/.test(n)) files.push(q); } };
+  walk(DIST); walk(path.join(ROOT, APP_OUT));
+  const bad = [];
+  for (const f of files) {
+    if (/pdf\.worker|pdfjs-vendor|vendor\//.test(f)) continue;   // 第三方 vendor 自带垫片与自己的门槛（pdf.js ≥ iOS 17.2 已在 F14 记录）
+    for (const v of OSF.syntaxViolations(fs.readFileSync(f, 'utf8'), OSF.FLOOR.safari)) bad.push(`${path.relative(ROOT, f)}:${v.line} ${v.note}（Safari ${v.since}+，下限 ${OSF.FLOOR.safari}）  ${v.text}`);
+  }
+  if (bad.length) {
+    err(`OS floor gate FAILED —— ${bad.length} 处语法比下限 Safari ${OSF.FLOOR.safari} 更新，会让整份 Script.js 解析失败：`);
+    for (const b of bad.slice(0, 20)) console.error('   ' + b);
+    console.error('   改写它，或在 build/os-floor.config.js 里有据地抬下限（那是领域设计变更）');
+    process.exit(1);
+  }
+  log(`OS floor gate OK（iOS ${OSF.FLOOR.ios} / macOS ${OSF.FLOOR.macos}，${files.length} 个 js 无更新的解析期语法）`);
+}
+
 // ─── .not-shippable marker — closes the iOS archive hole ───────────────────
 // release-checklist「Gate B 的缺口」: SKIP_ZIP withholds the .zip, but the iOS
 // shippable is an .xcarchive built FROM dist/, which SKIP_ZIP never touched —
