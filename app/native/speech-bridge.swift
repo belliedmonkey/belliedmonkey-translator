@@ -326,14 +326,23 @@ final class MTDeviceSpeech {
         }
     }
 
+    /// zip 条目（清单里 path 以 .zip 结尾）解到目录后留一个以 sha256 命名的安装戳；普通文件按大小判。
+    /// 三个必需路径（模型 / tokens / 数据目录）也必须在 —— 半个模型等于没有。
     private func installed(_ m: Model) -> Bool {
         let d = root.appendingPathComponent(m.dir, isDirectory: true)
+        let fm = FileManager.default
         for f in m.files {
+            if f.path.hasSuffix(".zip") {
+                guard fm.fileExists(atPath: d.appendingPathComponent(".installed-" + f.sha256.lowercased()).path) else { return false }
+                continue
+            }
             let p = d.appendingPathComponent(f.path)
-            guard let attrs = try? FileManager.default.attributesOfItem(atPath: p.path),
-                  (attrs[.size] as? Int) == f.size else { return false }
+            guard let attrs = try? fm.attributesOfItem(atPath: p.path), (attrs[.size] as? Int) == f.size else { return false }
         }
-        return !m.files.isEmpty
+        guard !m.files.isEmpty else { return false }
+        return fm.fileExists(atPath: d.appendingPathComponent(m.model).path)
+            && fm.fileExists(atPath: d.appendingPathComponent(m.tokens).path)
+            && fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
     }
 
     func probe(models v: Any?) {
@@ -364,12 +373,28 @@ final class MTDeviceSpeech {
                     do {
                         try FileManager.default.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
                         guard let url = URL(string: f.url) else { throw URLError(.badURL) }
-                        let tmp = try await MTDeviceSpeech.fetch(url)
+                        let before = done
+                        var lastEmit = 0.0
+                        let tmp = try await MTDeviceSpeech.fetch(url) { [weak self] frac in
+                            // ≤ 4 次/秒：每个字节回调都过桥会把主线程淹掉
+                            let now = Date().timeIntervalSince1970
+                            guard now - lastEmit >= 0.25 else { return }
+                            lastEmit = now
+                            let fraction = (Double(before) + frac * Double(f.size)) / Double(total)
+                            DispatchQueue.main.async { self?.emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": fraction, "state": "downloading"]) }
+                        }
                         let data = try Data(contentsOf: tmp)
                         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
                         guard digest == f.sha256.lowercased() else { try? FileManager.default.removeItem(at: tmp); throw URLError(.cannotDecodeContentData) }
-                        try? FileManager.default.removeItem(at: dst)
-                        try FileManager.default.moveItem(at: tmp, to: dst)
+                        if f.path.hasSuffix(".zip") {
+                            // 解包到模型目录（扁平布局），成功后留安装戳；zip 本身不留
+                            try MTZip.extract(data, into: d)
+                            try? FileManager.default.removeItem(at: tmp)
+                            FileManager.default.createFile(atPath: d.appendingPathComponent(".installed-" + f.sha256.lowercased()).path, contents: Data())
+                        } else {
+                            try? FileManager.default.removeItem(at: dst)
+                            try FileManager.default.moveItem(at: tmp, to: dst)
+                        }
                         done += f.size
                         emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": Double(done) / Double(total), "state": "downloading"])
                     } catch {
@@ -386,18 +411,15 @@ final class MTDeviceSpeech {
         }
     }
 
-    /// 回调式下载包成 async：`URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS
-    /// 部署目标是 10.15。回调里的临时文件在回调返回后就被删，所以先挪走再落定。
-    static func fetch(_ url: URL) async throws -> URL {
+    /// 带进度的下载（一个模型就是一个 60 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
+    /// 2026-09-12 真机实测就是这样）。委托式 URLSession，进度按字节比例回调，调用方限频。
+    /// `URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS 部署目标是 10.15，所以是回调包成 async。
+    static func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
         try await withCheckedThrowingContinuation { c in
-            let task = URLSession.shared.downloadTask(with: url) { tmp, resp, err in
-                if let err { c.resume(throwing: err); return }
-                guard let tmp else { c.resume(throwing: URLError(.badServerResponse)); return }
-                if let h = resp as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { c.resume(throwing: URLError(.badServerResponse)); return }
-                let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                do { try FileManager.default.moveItem(at: tmp, to: keep); c.resume(returning: keep) } catch { c.resume(throwing: error) }
-            }
-            task.resume()
+            let d = MTDownloadDelegate(progress: progress) { result in c.resume(with: result) }
+            let session = URLSession(configuration: .default, delegate: d, delegateQueue: nil)
+            d.session = session
+            session.downloadTask(with: url).resume()
         }
     }
 
@@ -410,6 +432,7 @@ final class MTDeviceSpeech {
         guard let m = models[lang], installed(m) else { emit?(["type": "tts-failed", "id": id, "reason": "lang"]); return }
         cancelled = false
         currentId = id
+        emit?(["type": "tts-debug", "id": id, "step": "speak"])
         queue.async { [self] in
             let tts: SherpaOnnxOfflineTtsWrapper
             if let t = loaded[lang] { tts = t } else {
@@ -430,6 +453,7 @@ final class MTDeviceSpeech {
                 DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)]) }; return
             }
             let box = MTSpeechChunkBox(player: player, rate: sampleRate)
+            DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "player"]) }
             box.onFirst = { [weak self] in self?.emit?(["type": "tts-start", "id": id]) }
             box.isCancelled = { [weak self] in self?.cancelled ?? true }
             let cb: TtsCallbackWithArg = { samples, n, arg in
@@ -440,9 +464,11 @@ final class MTDeviceSpeech {
             }
             let ptr = Unmanaged.passUnretained(box).toOpaque()
             let audio = tts.generateWithCallbackWithArg(text: text, callback: cb, arg: ptr, sid: 0, speed: Float(rate))
-            _ = audio.audio.pointee.n
+            let n = audio.audio != nil ? Int(audio.audio.pointee.n) : -1
+            DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "generated", "n": n]) }
             box.finish { [weak self] in
-                guard let self, self.currentId == id else { return }
+                guard let self else { return }
+                guard self.currentId == id else { self.emit?(["type": "tts-debug", "id": id, "step": "stale"]); return }
                 self.emit?(["type": "tts-end", "id": id])
             }
         }
@@ -478,13 +504,22 @@ final class MTDeviceSpeech {
     }
 }
 
-/// 一次合成的块调度器：块一到就排进 playerNode；最后一块播完才算 tts-end。
+/// 一次合成的块调度器：块一到就排进 playerNode；「播完」按**首块时刻 + 总时长**定时收口。
+///
+/// 2026-09-12 真机实证：tts-start 发了、tts-end 永远不发，自动朗读的队列在第二句上永远等着（手点
+/// 「朗读」只等开始所以看着正常）。真因是**生命周期**：box 是队列块里的局部量，generate 一返回就被
+/// 释放，弱引用的完成回调全打在 nil 上 —— 不是音频会话的问题。现在回调与定时器都强引用 box 到落定。
+/// 两个信号谁先到谁算，只落定一次：播放完成回调，和「首块出声时刻 + 总样本数 / 采样率」的定时器
+/// （块比实时快得多地按序排入，所以这个估计是准的；回调若失灵也有它兜底）。
 final class MTSpeechChunkBox {
     private let player: AVAudioPlayerNode
     private let rate: Double
     private var chunks = 0
     private var pending = 0
+    private var frames = 0
+    private var firstAt: Date?
     private var finished = false
+    private var settled = false
     private var onDone: (() -> Void)?
     private let lock = NSLock()
     var onFirst: (() -> Void)?
@@ -497,18 +532,129 @@ final class MTSpeechChunkBox {
               let buf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(n)) else { return }
         buf.frameLength = AVAudioFrameCount(n)
         memcpy(buf.floatChannelData![0], samples, n * MemoryLayout<Float>.size)
-        lock.lock(); chunks += 1; pending += 1; let first = chunks == 1; lock.unlock()
+        lock.lock(); chunks += 1; pending += 1; frames += n; let first = chunks == 1; if first { firstAt = Date() }; lock.unlock()
         if first { DispatchQueue.main.async { self.onFirst?() } }
-        player.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { [weak self] _ in self?.played() }
+        // 强引用：box 是 speak() 那个队列块里的局部量，generate 一返回它就会被释放 —— 弱引用的回调
+        // 与定时器全都打在 nil 上，tts-end 永远不发（2026-09-12 真机抓到：tts-start 有、tts-end 无）。
+        // 回调持有它到播放结束为止，之后随之释放，不泄漏。
+        player.scheduleBuffer(buf, completionCallbackType: .dataPlayedBack) { _ in self.played() }
     }
 
+    private func settle() {
+        lock.lock(); let go = !settled && finished; if go { settled = true }; let cb = onDone; lock.unlock()
+        if go { DispatchQueue.main.async { cb?() } }
+    }
     private func played() {
         lock.lock(); pending -= 1; let done = finished && pending <= 0; lock.unlock()
-        if done { DispatchQueue.main.async { self.onDone?() } }
+        if done { settle() }
     }
 
     func finish(_ done: @escaping () -> Void) {
-        lock.lock(); onDone = done; finished = true; let already = pending <= 0; lock.unlock()
-        if already { DispatchQueue.main.async { done() } }
+        lock.lock()
+        onDone = done; finished = true
+        let noAudio = chunks == 0
+        let remaining = max(0, Double(frames) / rate - (firstAt.map { Date().timeIntervalSince($0) } ?? 0))
+        lock.unlock()
+        if noAudio { settle(); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + remaining + 0.15) { self.settle() }   // 同上：强引用
+    }
+}
+
+// MARK: - 最小 zip 解包（stored / deflate），给离线模型包用
+//
+// Foundation 没有解 zip 的 API；模型包一个 60 MB 的 onnx + 三百多个 espeak 小文件，逐文件下载不像话。
+// 这里只认 zip 的中央目录（名字、方法、压缩/原始大小、本地头偏移），deflate 用系统的 Compression
+// 框架（raw deflate = COMPRESSION_ZLIB 的 buffer 接口）。不认加密、不认 zip64 —— 模型包不需要。
+import Compression
+
+enum MTZip {
+    struct Entry { let name: String; let method: UInt16; let compSize: Int; let size: Int; let offset: Int }
+    enum Err: Error { case bad(String) }
+
+    static func extract(_ data: Data, into dir: URL) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        for e in try entries(data) {
+            // 防 zip-slip：条目名不许跳出目录
+            let clean = e.name.split(separator: "/").filter { $0 != ".." && $0 != "." && !$0.isEmpty }.joined(separator: "/")
+            guard !clean.isEmpty else { continue }
+            let dst = dir.appendingPathComponent(clean)
+            if e.name.hasSuffix("/") { try fm.createDirectory(at: dst, withIntermediateDirectories: true); continue }
+            try fm.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let body = try payload(data, e)
+            try body.write(to: dst, options: .atomic)
+        }
+    }
+
+    private static func u16(_ d: Data, _ i: Int) -> Int { Int(d[i]) | (Int(d[i + 1]) << 8) }
+    private static func u32(_ d: Data, _ i: Int) -> Int { u16(d, i) | (u16(d, i + 2) << 16) }
+
+    static func entries(_ d: Data) throws -> [Entry] {
+        // End of central directory：从尾部找签名 0x06054b50
+        var eocd = -1
+        var i = d.count - 22
+        let stop = max(0, d.count - 22 - 65_536)
+        while i >= stop { if u32(d, i) == 0x06054b50 { eocd = i; break }; i -= 1 }
+        guard eocd >= 0 else { throw Err.bad("eocd") }
+        let count = u16(d, eocd + 10), cdOff = u32(d, eocd + 16)
+        var out: [Entry] = []
+        var p = cdOff
+        for _ in 0..<count {
+            guard p + 46 <= d.count, u32(d, p) == 0x02014b50 else { throw Err.bad("cdir") }
+            let method = UInt16(u16(d, p + 10)), comp = u32(d, p + 20), size = u32(d, p + 24)
+            let nlen = u16(d, p + 28), xlen = u16(d, p + 30), clen = u16(d, p + 32), off = u32(d, p + 42)
+            guard p + 46 + nlen <= d.count, let name = String(data: d.subdata(in: (p + 46)..<(p + 46 + nlen)), encoding: .utf8) else { throw Err.bad("name") }
+            out.append(Entry(name: name, method: method, compSize: comp, size: size, offset: off))
+            p += 46 + nlen + xlen + clen
+        }
+        return out
+    }
+
+    static func payload(_ d: Data, _ e: Entry) throws -> Data {
+        guard e.offset + 30 <= d.count, u32(d, e.offset) == 0x04034b50 else { throw Err.bad("local") }
+        let nlen = u16(d, e.offset + 26), xlen = u16(d, e.offset + 28)
+        let start = e.offset + 30 + nlen + xlen
+        guard start + e.compSize <= d.count else { throw Err.bad("range") }
+        let raw = d.subdata(in: start..<(start + e.compSize))
+        if e.method == 0 { return raw }
+        guard e.method == 8 else { throw Err.bad("method") }
+        if e.size == 0 { return Data() }
+        var out = Data(count: e.size)
+        let n = out.withUnsafeMutableBytes { (dst: UnsafeMutableRawBufferPointer) -> Int in
+            raw.withUnsafeBytes { (src: UnsafeRawBufferPointer) -> Int in
+                compression_decode_buffer(dst.bindMemory(to: UInt8.self).baseAddress!, e.size,
+                                          src.bindMemory(to: UInt8.self).baseAddress!, raw.count, nil, COMPRESSION_ZLIB)
+            }
+        }
+        guard n == e.size else { throw Err.bad("inflate") }
+        return out
+    }
+}
+
+/// 下载委托：进度按字节比例回调；完成时把临时文件挪到自己的位置再落定（回调返回后系统就删它）。
+final class MTDownloadDelegate: NSObject, URLSessionDownloadDelegate {
+    private let progress: (Double) -> Void
+    private var finish: ((Result<URL, Error>) -> Void)?
+    var session: URLSession?
+    init(progress: @escaping (Double) -> Void, finish: @escaping (Result<URL, Error>) -> Void) {
+        self.progress = progress; self.finish = finish
+    }
+    private func settle(_ r: Result<URL, Error>) {
+        guard let f = finish else { return }
+        finish = nil
+        f(r)
+        session?.finishTasksAndInvalidate()
+    }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        guard totalBytesExpectedToWrite > 0 else { return }
+        progress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+    }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { settle(.failure(URLError(.badServerResponse))); return }
+        let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        do { try FileManager.default.moveItem(at: location, to: keep); settle(.success(keep)) } catch { settle(.failure(error)) }
+    }
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error { settle(.failure(error)) }
     }
 }

@@ -638,5 +638,25 @@ Rules:
     });
   }
 
-  return { translate, ocr, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
+  // ─── 对话·实时听译的「修正 + 翻译」一次调用（learning-design §9.6.1）───────────
+  // 提示词与解析在 app/listen-core.js（纯、可测），这里只负责把 {system, user} 打到用户配置的
+  // 对话引擎并把整段回复原样交回。同一把并发闸；**不走缓存**（上下文每句都不同）。
+  async function listenPass(prompt, provider, apiKey, baseUrl, model, opts) {
+    await RequestShape.ready();
+    return enqueue(async () => {
+      const p = providerById(provider);
+      if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
+      const url = WireFormat.resolveEndpoint(baseUrl, p);
+      if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
+      const mdl = model || p.defaultModel;
+      const fmt = WireFormat.formatFor(url, p.type, mdl);
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: prompt.system, user: prompt.user, budget: MAX_OUT_TRANSLATION });
+      if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
+      const diag = opts && opts.diag;
+      if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract });
+    });
+  }
+
+  return { translate, ocr, listenPass, defaultProvider, resolveProvider, needsKey, serverSays, sentRealKey, LANG_NAMES, OCR_SYSTEM };
 })();
