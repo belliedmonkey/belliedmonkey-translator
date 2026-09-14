@@ -74,16 +74,21 @@ var PodcastTranslator = (() => {
     out.sort((a, b) => a.start - b.start);
     return out;
   }
-  function fetchWithTimeout(url) {
+  // 10 s 上限一直管到正文读完（全回归 09-14 F12）：原来的计时器在响应头到达时就清掉了，头到了、正文挂住
+  // （macOS Safari 上跨域取 feed 的形状）就永远等下去 —— acquire 不落定，叠层永远「字幕加载中」、offer 永远不出。
+  async function fetchTextWithTimeout(url) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 10000);
-    return fetch(url, { signal: ctl.signal }).finally(() => clearTimeout(timer));
+    try {
+      const r = await fetch(url, { signal: ctl.signal }); // NO credentials: a CloudFront-signed URL 503s for cookie-bearing requests
+      if (!r.ok) return null;
+      return await r.text();
+    } finally { clearTimeout(timer); }
   }
   async function fetchTimedText(url) {
     try {
-      const r = await fetchWithTimeout(url); // NO credentials: a CloudFront-signed URL 503s for cookie-bearing requests
-      if (!r.ok) return null;
-      const txt = await r.text();
+      const txt = await fetchTextWithTimeout(url);
+      if (txt == null) return null;
       if (/^\s*<\?xml|<Error>|MissingKey/i.test(txt.slice(0, 120))) return null;
       const cues = parseTimedText(txt);
       return cues.length ? cues : null;
@@ -119,7 +124,7 @@ var PodcastTranslator = (() => {
     const link = document.querySelector('link[rel="alternate"][type="application/rss+xml"]');
     if (!link) return null;
     let feedUrl; try { feedUrl = new URL(link.getAttribute('href'), location.href).toString(); } catch (_) { return null; }
-    let xml; try { const r = await fetchWithTimeout(feedUrl); if (!r.ok) return null; xml = await r.text(); } catch (_) { return null; }
+    let xml; try { xml = await fetchTextWithTimeout(feedUrl); if (xml == null) return null; } catch (_) { return null; }
     let doc; try { doc = new DOMParser().parseFromString(xml, 'application/xml'); } catch (_) { return null; }
     const items = Array.from(doc.querySelectorAll('item'));
     if (!items.length) return null;
