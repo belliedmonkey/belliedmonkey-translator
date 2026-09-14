@@ -3088,7 +3088,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
 
 **协议补充决定（2026-09-14，实现前澄清；上表已按此改）**
-1. **字幕条 / 画中画的状态走 `subtitle-state {state, pct?}`**，与 `subtitle-show` 分开。`state` ∈ `listening` · `waiting-permission` · `paused` · `silence` · `denied` · `socket` · `reconnecting` · `downloading`（带 `pct`）· `tr-failed`。每个状态的文字放在 `subtitle-config.labels.state[state]`，按钮提示与菜单项文字放在 `labels.controls` / `labels.menu` —— 原生照旧零文案（M6 / M9 / I8）。
+1. **字幕条 / 画中画的状态走 `subtitle-state {state, pct?}`**，与 `subtitle-show` 分开。`state` ∈ `listening` · `waiting-permission` · `paused` · `silence` · `denied` · `socket` · `reconnecting` · `downloading`（带 `pct`）· `tr-failed` · `silent`（2026-09-15 补：不中断的「还没听到系统声音」提示，见决定 10 修订二；会话仍在听）。每个状态的文字放在 `subtitle-config.labels.state[state]`，按钮提示与菜单项文字放在 `labels.controls` / `labels.menu` —— 原生照旧零文案（M6 / M9 / I8）。
 2. **会话档 `profile` 挪到 `record-mode`**。音频会话类别在 `record-mode` / `session-start` 时就定了，放在 `mic-start` 上来不及；`mic-start` 只带 `source`。缺省 `profile` = `conv`，老调用不变。
 3. **老原生壳**：`caps-probe` 发出后 1.5 s 内没收到 `audio-caps` ⇒ 这个壳不认识实时字幕 ⇒ 首页**不显示**「实时字幕」这一行（不是灰掉：没有能对用户说的原因，也没有出口）。因此 JS 可以先于原生合入 —— 在不回 `audio-caps` 的壳上功能完全不可达；§10 Gate I 的发布检查随「原生开始回 `audio-caps`」的那一步一起上。
 4. **字幕条的「结束」叫 `remote end`，不叫 `stop`**：锁屏 / 媒体控制的 `stop` 现在映射成暂停（`native-audio.js`），同名会撞。`end` 在对话模式里同样是结束。
@@ -3108,7 +3108,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
     - ~~**修订（同日）**：`granted` 之后，原生若看到**连续 3 秒样本全为 0，且系统里有别的进程正在输出声音**~~（**2026-09-15 被下一条取代**，原文留作记录）：`granted` 之后，原生若看到连续 3 秒样本全为 0，且系统里有别的进程正在输出声音（`kAudioHardwarePropertyProcessObjectList` 中非本进程的 `kAudioProcessPropertyIsRunningOutput`），就撤掉这次采集并发 `mic-state {state:'denied', reason:'zero-frames', source:'system'}`，页面与条按拒绝处理（具名句 +「打开系统设置」）。两个条件缺一不可：已授权时句间停顿也是精确 0（S1 读数），没人在放声音时的全零是正常静音，交给 30 秒静音门。用户去系统设置打开权限后点「继续」⇒ 重新建 tap。
     - **修订二（2026-09-15，全回归 F13 真机实证）：零帧不再判「被拒」，改为不中断的提示。** 读数：Mac 上**权限已给**（系统设置开关回读 1、`tccutil reset` 后弹框用户点了「允许」），开始那一刻 Mac 恰好没在出声、而某个进程**开着输出但放的是静音**（`pmset -g assertions` 里常驻一条 audio-out）⇒ 3 秒内 `denied/zero-frames`，页面把用户引去系统设置改一个根本没问题的权限；同一台 Mac 先 `afplay` 再开始 ⇒ 本机转写 5 句 + 译文全对。`kAudioProcessPropertyIsRunningOutput` 只说明「输出通道开着」，不说明「在出声」；macOS 也没有能直接问「系统录音授权给了没有」的公开接口 ⇒ **只凭零帧分不开「被拒」与「真静音」**，前一条修订的判据会误伤。
       - 原生：`granted` 之后连续 3 秒全零且有别的进程在跑输出 ⇒ 发 `mic-state {state:'silent', reason:'zero-frames', source:'system'}`，**不撤掉采集**；此后第一个非零帧 ⇒ 发 `mic-state {state:'sound', source:'system'}`。每次会话各至多一次。
-      - 页面：`silent` ⇒ phase 仍是 listening，页面与条上显示一句**不中断**的提示 `labels.state['silent']`「还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限 · 打开系统设置」（条上带「打开系统设置」）；`sound` ⇒ 提示撤掉，字幕照常。
+      - 页面：`silent` ⇒ phase 仍是 listening，页面上显示一句**不中断**的提示，并发 `subtitle-state {state:'silent'}` 让条上画 `labels.state['silent']`；`sound` ⇒ 发 `subtitle-state {state:'listening'}`（2026-09-15 补：`subtitle-state` 是封闭集合，原文只写了原生 → JS 的 `mic-state`，条上没有消息可画 —— #269 Codex 评审 P2）。条上提示「还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限 · 打开系统设置」（条上带「打开系统设置」）；`sound` ⇒ 提示撤掉，字幕照常。
       - 真被拒的用户也不会静默：提示一直在；30 秒静音门照旧暂停，暂停句在「曾收到 silent 且从未收到 sound」时换成指向权限的那句（`subtitle_stop_silence_permission`），「继续」⇒ 重新建 tap。
       - `denied` 只剩两个来源：`reason:'timeout'`（权限框 90 秒没点）与系统明确拒绝（iOS / 麦克风路）。`reason:'zero-frames'` 不再出现在 `denied` 上。
 11. **iOS 在一期（画中画字幕窗）落地前继续不回 `caps-probe`**，iPhone 上入口仍不显示（第 3 条）。Mac：14.4 及以上回 `{sources:['mic','system'], system:'ok', broadcast:'unsupported'}`，以下回 `{sources:['mic'], system:'os', broadcast:'unsupported'}`（入口灰 + M2 ③ 那句）。
