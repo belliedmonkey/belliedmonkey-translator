@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "Histórico · toque ⏩ para o mais recente"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Depois de tocar em “Iniciar”, aqui fica a prévia da janela de legendas; ela flutua sobre o Safari quando você troca"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Prévia da janela de legendas — ela flutua sobre outros apps quando você sai"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Estas legendas terminaram e a janela foi fechada"
   }
 }

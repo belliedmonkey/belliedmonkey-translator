@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "기록 · ⏩ 누르면 최신으로"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "「시작」을 누르면 여기에 자막 창 미리보기가 나오고, Safari로 전환하면 위에 떠 있습니다"
+  },
+  "subtitle_pip_note_live": {
+    "message": "자막 창 미리보기 — 앱을 벗어나면 다른 앱 위에 떠 있습니다"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "이번 자막이 끝나 창이 닫혔습니다"
   }
 }

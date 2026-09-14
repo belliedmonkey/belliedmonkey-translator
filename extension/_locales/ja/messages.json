@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "履歴 · ⏩ で最新へ"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "「開始」を押すと、ここに字幕小窓のプレビューが出ます。Safari に切り替えると上に浮かびます"
+  },
+  "subtitle_pip_note_live": {
+    "message": "字幕小窓のプレビュー —— アプリを離れると他のアプリの上に浮かびます"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "今回の字幕は終了し、小窓は閉じました"
   }
 }

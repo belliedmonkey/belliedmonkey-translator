@@ -590,7 +590,8 @@ function say(base, text) {
     if (process.env.TRACE) console.log('  …H9');
     await evalIn(cdp, sessionId, `(async () => { __fakeBridge.caps = { sources: ['mic'], system: 'unsupported', broadcast: 'unsupported' }; NativeAudio._fromNative(Object.assign({ type: 'audio-caps' }, __fakeBridge.caps)); await AppListen.refreshEntry(); AppListen.open('subtitle'); return 'ok'; })()`);
     await sleep(500);
-    const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: document.getElementById('app-subs-privacy').textContent, tip: document.getElementById('app-subs-tip').textContent })`));
+    const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: document.getElementById('app-subs-privacy').textContent, tip: document.getElementById('app-subs-tip').textContent, note: document.getElementById('app-subs-pip-note').textContent })`));
+    need(/字幕小窗的预览/.test(h9a.note), 'H9: 开始前预览占位块上该有一句说明（不是一块黑），实际 ' + JSON.stringify(h9a.note));
     need(h9a.pip && h9a.partialHidden && /iPhone/.test(h9a.priv) && /画中画/.test(h9a.tip), 'H9: iPhone 准备页该显示小窗预览占位、iPhone 隐私句与画中画提示，实际 ' + JSON.stringify(h9a));
     const mark9 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
@@ -615,6 +616,8 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
     await sleep(300);
     const h9e = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, hide: __fakeBridge.msgs.slice(${mark9b}).some((m) => m.type === 'subtitle-hide'), float: document.getElementById('app-subs-float').hidden })`));
+    const note9 = await evalIn(cdp, sessionId, `document.getElementById('app-subs-pip-note').textContent`);
+    need(/已结束/.test(note9), 'H9: 结束后预览占位块上该写「已结束」，实际 ' + JSON.stringify(note9));
     need(h9e.phase === 'ended' && h9e.hide && h9e.float === true, 'H9: 结束后该发 subtitle-hide、「浮出字幕窗」藏起，实际 ' + JSON.stringify(h9e));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);

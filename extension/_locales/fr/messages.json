@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "Historique · touchez ⏩ pour le plus récent"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Après « Démarrer », voici l’aperçu de la fenêtre de sous-titres ; elle flotte au-dessus de Safari quand vous basculez"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Aperçu de la fenêtre de sous-titres : elle flotte au-dessus des autres apps quand vous quittez"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Ces sous-titres sont terminés et la fenêtre est fermée"
   }
 }

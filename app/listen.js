@@ -454,6 +454,13 @@ var AppListen = (() => {
     const b = $('app-subs-float'); if (!b) return;
     b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed');
   }
+  // 预览占位块上的一句话：开始前 / 结束后原生预览不在（会话中它盖在这句上面）——不是一块莫名其妙的黑（用户 2026-09-14 手测）
+  function paintPipNote() {
+    const n = $('app-subs-pip-note'); if (!n) return;
+    n.textContent = phase === 'ended' ? t('subtitle_pip_note_ended', '这次字幕已结束，小窗已关闭')
+      : (!session || phase === 'idle') ? t('subtitle_pip_note_idle', '点「开始」后，这里是字幕小窗的预览；切到 Safari 时它会浮在上面')
+        : t('subtitle_pip_note_live', '字幕小窗的预览 —— 离开 App 时会浮在其它 App 上');
+  }
   function subtitleLabels() {
     // iPhone（原生报 system:'unsupported'）听的是麦克风里的外放，不是系统声音 —— 两句状态文案按平台分（15 Pro 手测看到沿用了 Mac 的说法）
     const caps = bridged() ? NativeAudio.audioCaps() : null;
@@ -1056,6 +1063,7 @@ var AppListen = (() => {
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   function paint() {
+    paintPipNote();
     const active = phase === 'listening';
     const ended = phase === 'ended';
     // 表 1（画布「状态与转移」）：每个状态下每个控件的样子。灰 = 45% 透明 + 文案不变，

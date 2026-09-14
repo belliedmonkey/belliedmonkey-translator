@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "History · tap ⏩ for the latest"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "After you tap “Start”, this previews the subtitle window — it floats over Safari when you switch"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Subtitle window preview — it floats over other apps when you leave"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "These subtitles have ended and the window is closed"
   }
 }

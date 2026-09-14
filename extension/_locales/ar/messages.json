@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "السجل · اضغط ⏩ للأحدث"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "بعد الضغط على «ابدأ» تظهر هنا معاينة نافذة الترجمة، وتطفو فوق Safari عند الانتقال إليه"
+  },
+  "subtitle_pip_note_live": {
+    "message": "معاينة نافذة الترجمة — تطفو فوق التطبيقات الأخرى عند مغادرة التطبيق"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "انتهت هذه الترجمة وأُغلقت النافذة"
   }
 }

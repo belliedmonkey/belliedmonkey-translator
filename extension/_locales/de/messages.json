@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "Verlauf · ⏩ tippen für das Neueste"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Nach „Starten“ siehst du hier eine Vorschau des Untertitelfensters – beim Wechsel zu Safari schwebt es darüber"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Vorschau des Untertitelfensters – es schwebt über anderen Apps, wenn du die App verlässt"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Diese Untertitel sind beendet, das Fenster ist geschlossen"
   }
 }

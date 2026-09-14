@@ -479,7 +479,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-langline { margin: 0; }
 :where(#app-listen) .listen-now-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; color: var(--dim); }
 /* iPhone 实时字幕：画中画小窗预览占位（深色底与原生预览同色，原生叠上之前也不刺眼） */
-:where(#app-listen) .listen-subs-pip { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; margin-top: 8px; border-radius: 12px; background: #161412; }
+:where(#app-listen) .listen-subs-pip { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; margin-top: 8px; border-radius: 12px; background: #161412; display: flex; align-items: center; justify-content: center; }
+/* 原生预览没叠上来的时候（开始前 / 结束后）占位块上写一句说明，不是一块莫名其妙的黑（2026-09-14 用户 15 Pro 手测：「这个地方都黑屏很奇怪」） */
+:where(#app-listen) .listen-subs-pip-note { margin: 0; padding: 0 20px; color: rgba(255, 255, 255, 0.72); font-size: 0.9rem; line-height: 1.5; text-align: center; }
 :where(#app-listen) #app-subs-float { margin-top: 8px; min-height: 32px; }
 :where(#app-listen) .listen-live { color: var(--accent); }
 :where(#app-listen) .listen-partial { font-size: 1.35rem; line-height: 1.5; min-height: 1.5em; margin: 6px 0 0; }

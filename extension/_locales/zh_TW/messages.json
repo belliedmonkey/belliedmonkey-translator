@@ -3007,5 +3007,14 @@
   },
   "subtitle_pip_history": {
     "message": "歷史 · 點 ⏩ 回到最新"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "點「開始」後，這裡是字幕小窗的預覽；切到 Safari 時它會浮在上面"
+  },
+  "subtitle_pip_note_live": {
+    "message": "字幕小窗的預覽 —— 離開 App 時會浮在其他 App 上"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "這次字幕已結束，小窗已關閉"
   }
 }

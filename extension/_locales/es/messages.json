@@ -3006,5 +3006,14 @@
   },
   "subtitle_pip_history": {
     "message": "Historial · toca ⏩ para lo último"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Al pulsar «Iniciar», aquí verás la vista previa de la ventana de subtítulos; flotará sobre Safari al cambiar"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Vista previa de la ventana de subtítulos: flotará sobre otras apps al salir"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Estos subtítulos han terminado y la ventana está cerrada"
   }
 }
