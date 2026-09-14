@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Show subtitle window"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Listening to the speaker…"
+  },
+  "subtitle_pip_title": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_pip_hint": {
+    "message": "Play the video out loud in Safari — subtitles appear here"
+  },
+  "subtitle_pip_close": {
+    "message": "Tap the window: ⏸ pause · ⏪⏩ browse history · ✕ close (reopen from the app)"
+  },
+  "subtitle_pip_history": {
+    "message": "History · tap ⏩ for the latest"
   }
 }

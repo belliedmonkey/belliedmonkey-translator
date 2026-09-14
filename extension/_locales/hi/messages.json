@@ -2823,5 +2823,20 @@
   },
   "subtitle_pip_float": {
     "message": "सबटाइटल विंडो दिखाएँ"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "स्पीकर की आवाज़ सुन रहा है…"
+  },
+  "subtitle_pip_title": {
+    "message": "लाइव सबटाइटल"
+  },
+  "subtitle_pip_hint": {
+    "message": "Safari में वीडियो स्पीकर पर चलाएँ — सबटाइटल यहाँ दिखेंगे"
+  },
+  "subtitle_pip_close": {
+    "message": "विंडो पर टैप करें: ⏸ रोकें · ⏪⏩ इतिहास · ✕ बंद करें (ऐप से फिर खोलें)"
+  },
+  "subtitle_pip_history": {
+    "message": "इतिहास · नवीनतम के लिए ⏩ दबाएँ"
   }
 }

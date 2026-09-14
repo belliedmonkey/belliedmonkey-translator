@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "자막 창 띄우기"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "스피커 소리를 듣는 중…"
+  },
+  "subtitle_pip_title": {
+    "message": "실시간 자막"
+  },
+  "subtitle_pip_hint": {
+    "message": "Safari에서 동영상을 스피커로 재생하면 여기에 자막이 나옵니다"
+  },
+  "subtitle_pip_close": {
+    "message": "창을 탭: ⏸ 일시정지 · ⏪⏩ 기록 보기 · ✕ 닫기(앱에서 다시 열기)"
+  },
+  "subtitle_pip_history": {
+    "message": "기록 · ⏩ 누르면 최신으로"
   }
 }

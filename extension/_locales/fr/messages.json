@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Afficher la fenêtre de sous-titres"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Écoute du haut-parleur…"
+  },
+  "subtitle_pip_title": {
+    "message": "Sous-titres en direct"
+  },
+  "subtitle_pip_hint": {
+    "message": "Lisez la vidéo sur le haut-parleur dans Safari : les sous-titres s’affichent ici"
+  },
+  "subtitle_pip_close": {
+    "message": "Touchez la fenêtre : ⏸ pause · ⏪⏩ historique · ✕ fermer (rouvrir depuis l’app)"
+  },
+  "subtitle_pip_history": {
+    "message": "Historique · touchez ⏩ pour le plus récent"
   }
 }

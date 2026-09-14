@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "إظهار نافذة الترجمة"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "يستمع إلى السماعة…"
+  },
+  "subtitle_pip_title": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_pip_hint": {
+    "message": "شغّل الفيديو في Safari عبر السماعة — ستظهر الترجمة هنا"
+  },
+  "subtitle_pip_close": {
+    "message": "اضغط النافذة: ⏸ إيقاف · ⏪⏩ السجل · ✕ إغلاق (أعد فتحها من التطبيق)"
+  },
+  "subtitle_pip_history": {
+    "message": "السجل · اضغط ⏩ للأحدث"
   }
 }

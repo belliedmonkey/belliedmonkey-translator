@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Untertitelfenster zeigen"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Höre über den Lautsprecher mit…"
+  },
+  "subtitle_pip_title": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_pip_hint": {
+    "message": "Spiele das Video in Safari laut ab – die Untertitel erscheinen hier"
+  },
+  "subtitle_pip_close": {
+    "message": "Fenster antippen: ⏸ Pause · ⏪⏩ Verlauf · ✕ schließen (in der App wieder öffnen)"
+  },
+  "subtitle_pip_history": {
+    "message": "Verlauf · ⏩ tippen für das Neueste"
   }
 }

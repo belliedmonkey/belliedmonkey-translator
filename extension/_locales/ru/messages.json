@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Показать окно субтитров"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Слушаю динамик…"
+  },
+  "subtitle_pip_title": {
+    "message": "Живые субтитры"
+  },
+  "subtitle_pip_hint": {
+    "message": "Включите видео в Safari через динамик — субтитры появятся здесь"
+  },
+  "subtitle_pip_close": {
+    "message": "Коснитесь окна: ⏸ пауза · ⏪⏩ история · ✕ закрыть (снова откроется из приложения)"
+  },
+  "subtitle_pip_history": {
+    "message": "История · ⏩ — к последнему"
   }
 }

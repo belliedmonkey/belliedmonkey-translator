@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Mostrar ventana de subtítulos"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Escuchando el altavoz…"
+  },
+  "subtitle_pip_title": {
+    "message": "Subtítulos en vivo"
+  },
+  "subtitle_pip_hint": {
+    "message": "Reproduce el vídeo en Safari por el altavoz: los subtítulos aparecerán aquí"
+  },
+  "subtitle_pip_close": {
+    "message": "Toca la ventana: ⏸ pausa · ⏪⏩ historial · ✕ cerrar (vuelve a abrirla desde la app)"
+  },
+  "subtitle_pip_history": {
+    "message": "Historial · toca ⏩ para lo último"
   }
 }

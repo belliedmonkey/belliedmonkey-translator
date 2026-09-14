@@ -38,12 +38,19 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     private var restoring = false
 
     private var stateLabels: [String: String] = [:]
+    /// 小窗自己的几行字（labels.pip）：title / hint / close（空窗说明）、history（翻看历史时顶部那行）
+    private var pipLabels: [String: String] = [:]
+    /// 翻看历史：从最新往回藏掉几句（0 = 看最新）。系统后退 / 前进按钮每次翻 3 句（用户 2026-09-14 裁定借这两个按钮翻页）
+    private var historyOffset = 0
+    private static let pageSize = 3
     private var finals: [(orig: String, tr: String)] = []
     private var partialLine: (orig: String, tr: String)?
     private var state = "listening"
     private var pct = 0
-    /// 系统回报的小窗渲染尺寸（I5：捏合放大后按新尺寸重画，不是把小图拉糊）。初值与 S7 探针一致。
-    private var renderSize = CGSize(width: 720, height: 405)
+    /// 系统回报的小窗渲染尺寸（I5：捏合放大后按新尺寸重画，不是把小图拉糊）。
+    /// **小窗的宽高比由帧的宽高比决定**，用户只能等比缩放 —— 初值 4:5 偏竖，一次看 4–5 句（用户 2026-09-14 手测后裁定，
+    /// S7 探针的 16:9 一次只看得清两句）。
+    private var renderSize = CGSize(width: 640, height: 800)
     private var dirty = true
 
     // MARK: - 桥 → 小窗
@@ -52,6 +59,7 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     func configure(_ body: [String: Any], webView: WKWebView) {
         let labels = body["labels"] as? [String: Any] ?? [:]
         stateLabels = labels["state"] as? [String: String] ?? stateLabels
+        pipLabels = labels["pip"] as? [String: String] ?? pipLabels
         guard self.webView == nil else { dirty = true; return }
         self.webView = webView
         preview.isUserInteractionEnabled = false
@@ -68,7 +76,8 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             let c = AVPictureInPictureController(contentSource: .init(sampleBufferDisplayLayer: displayLayer, playbackDelegate: self))
             c.delegate = self
             c.canStartPictureInPictureAutomaticallyFromInline = true
-            c.requiresLinearPlayback = true
+            // false：让系统给出后退 / 前进两个按钮，借来翻看历史（skipByInterval）
+            c.requiresLinearPlayback = false
             pip = c
         }
 
@@ -123,7 +132,10 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         } else {
             partialLine = nil
             if meaningful(orig) || meaningful(tr) {
-                if let last = finals.last, last.orig == orig { finals[finals.count - 1] = (orig, tr) } else { finals.append((orig, tr)) }
+                if let last = finals.last, last.orig == orig { finals[finals.count - 1] = (orig, tr) } else {
+                    finals.append((orig, tr))
+                    if historyOffset > 0 { historyOffset += 1 }   // 正在翻看历史时，新句子到来不把画面拽回最新
+                }
                 if finals.count > 12 { finals.removeFirst(finals.count - 12) }
             }
         }
@@ -150,6 +162,7 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         webView = nil
         finals = []
         partialLine = nil
+        historyOffset = 0
         state = "listening"
         pct = 0
     }
@@ -167,8 +180,13 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         let fmt = UIGraphicsImageRendererFormat()
         fmt.scale = 1
         fmt.opaque = true
-        let lines = finals
-        let partial = partialLine
+        let offset = min(historyOffset, max(0, finals.count - 1))
+        let lines = Array(finals.dropLast(offset))
+        let partial = offset == 0 ? partialLine : nil
+        let historyText = offset > 0 ? (pipLabels["history"] ?? "") : ""
+        let emptyTitle = pipLabels["title"] ?? ""
+        let emptyHint = pipLabels["hint"] ?? ""
+        let emptyClose = pipLabels["close"] ?? ""
         let stateText = listening ? "" : (stateLabels[state] ?? "").replacingOccurrences(of: "{pct}", with: String(pct))
         let img = UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
             MTSubtitlePip.background.setFill()
@@ -182,6 +200,25 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
                 .foregroundColor: UIColor.white]
             let orAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.066), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
             let stAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.066, weight: .medium), .foregroundColor: MTSubtitlePip.stateColor]
+            // 空窗（还没有一句字幕）：画说明，而不是一块莫名其妙的黑（用户 2026-09-14：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙」）
+            if lines.isEmpty && partial == nil {
+                let titleAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.045, weight: .medium), .foregroundColor: UIColor(white: 1, alpha: 0.55)]
+                let hintAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.062, weight: .semibold), .foregroundColor: UIColor.white]
+                let closeAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.042), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
+                var ty = pad * 1.4
+                for (text, attr) in [(emptyTitle, titleAttr), (emptyHint, hintAttr), (emptyClose, closeAttr)] where !text.isEmpty {
+                    let r = (text as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
+                    (text as NSString).draw(with: CGRect(x: pad, y: ty, width: w, height: ceil(r.height)), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
+                    ty += ceil(r.height) + pad * 0.6
+                }
+            }
+            var top: CGFloat = 0
+            if !historyText.isEmpty {
+                let hAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.05, weight: .semibold), .foregroundColor: MTSubtitlePip.stateColor]
+                let r = (historyText as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: hAttr, context: nil)
+                (historyText as NSString).draw(with: CGRect(x: pad, y: pad * 0.8, width: w, height: ceil(r.height)), options: .usesLineFragmentOrigin, attributes: hAttr, context: nil)
+                top = pad * 0.8 + ceil(r.height) + pad * 0.5
+            }
             var y = size.height - pad
             if !stateText.isEmpty {
                 let r = (stateText as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: stAttr, context: nil)
@@ -200,7 +237,7 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
                 let t = (headText as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
                 let subH: CGFloat = sub.isEmpty ? 0 : ceil((sub as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil).height) + 2
                 // 放不下的旧句子整句不画（模拟器截图：最上面一句被截掉半截）；最新一句总是画
-                if y - subH - ceil(t.height) < 0 && item.orig != items.last?.orig { break }
+                if y - subH - ceil(t.height) < top && item.orig != items.last?.orig { break }
                 if !sub.isEmpty {
                     y -= subH - 2
                     (sub as NSString).draw(with: CGRect(x: pad, y: y, width: w, height: subH - 2), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil)
@@ -249,8 +286,12 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     func pictureInPictureController(_ c: AVPictureInPictureController, setPlaying playing: Bool) {
         onRemote?(playing ? "play" : "pause")
     }
+    /// 有限的滑动时间窗（而不是直播形状的无穷区间）：系统才会给出后退 / 前进按钮。窗口右端 = 当前帧的时间戳。
+    /// 待真机：按钮是否出现、进度条是否碍眼。
     func pictureInPictureControllerTimeRangeForPlayback(_ c: AVPictureInPictureController) -> CMTimeRange {
-        CMTimeRange(start: .negativeInfinity, duration: .positiveInfinity)
+        let now = CMClockGetTime(CMClockGetHostTimeClock())
+        let span = CMTime(seconds: 600, preferredTimescale: 600)
+        return CMTimeRange(start: CMTimeSubtract(now, span), duration: CMTimeAdd(span, CMTime(seconds: 1, preferredTimescale: 600)))
     }
     func pictureInPictureControllerIsPlaybackPaused(_ c: AVPictureInPictureController) -> Bool { !listening }
     func pictureInPictureController(_ c: AVPictureInPictureController, didTransitionToRenderSize newRenderSize: CMVideoDimensions) {
@@ -259,7 +300,14 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         renderSize = CGSize(width: CGFloat(newRenderSize.width) * 2, height: CGFloat(newRenderSize.height) * 2)
         dirty = true
     }
+    /// 后退 = 往回翻一页历史，前进 = 往新翻一页，翻到 0 就是最新（用户 2026-09-14 裁定借这两个按钮）。不动录音、不动页面。
     func pictureInPictureController(_ c: AVPictureInPictureController, skipByInterval skipInterval: CMTime, completion completionHandler: @escaping () -> Void) {
+        if skipInterval.seconds < 0 {
+            historyOffset = min(historyOffset + MTSubtitlePip.pageSize, max(0, finals.count - 1))
+        } else {
+            historyOffset = max(0, historyOffset - MTSubtitlePip.pageSize)
+        }
+        dirty = true
         completionHandler()
     }
 

@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "字幕ウインドウを表示"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "スピーカーの音を聞いています…"
+  },
+  "subtitle_pip_title": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_pip_hint": {
+    "message": "Safari で動画をスピーカー再生すると、ここに字幕が出ます"
+  },
+  "subtitle_pip_close": {
+    "message": "小窓をタップ：⏸ 一時停止 · ⏪⏩ 履歴 · ✕ 閉じる（アプリから再表示）"
+  },
+  "subtitle_pip_history": {
+    "message": "履歴 · ⏩ で最新へ"
   }
 }

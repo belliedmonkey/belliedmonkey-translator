@@ -2992,5 +2992,20 @@
   },
   "subtitle_pip_float": {
     "message": "浮出字幕窗"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "正在聽外放的聲音…"
+  },
+  "subtitle_pip_title": {
+    "message": "即時字幕"
+  },
+  "subtitle_pip_hint": {
+    "message": "在 Safari 裡外放影片，字幕會出現在這裡"
+  },
+  "subtitle_pip_close": {
+    "message": "點一下小窗：⏸ 暫停 · ⏪⏩ 翻看歷史 · ✕ 關掉（回 App 可再打開）"
+  },
+  "subtitle_pip_history": {
+    "message": "歷史 · 點 ⏩ 回到最新"
   }
 }

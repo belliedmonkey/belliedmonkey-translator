@@ -455,13 +455,24 @@ var AppListen = (() => {
     b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed');
   }
   function subtitleLabels() {
+    // iPhone（原生报 system:'unsupported'）听的是麦克风里的外放，不是系统声音 —— 两句状态文案按平台分（15 Pro 手测看到沿用了 Mac 的说法）
+    const caps = bridged() ? NativeAudio.audioCaps() : null;
+    const mic = !!(caps && caps.system === 'unsupported');
     return {
+      // 画中画小窗（iPhone）：空窗时的说明、翻看历史时顶部那行（用户 2026-09-14 手测后裁定）
+      pip: {
+        title: t('subtitle_pip_title', '实时字幕'),
+        hint: t('subtitle_pip_hint', '在 Safari 里外放视频，字幕会出现在这里'),
+        close: t('subtitle_pip_close', '点一下小窗：⏸ 暂停 · ⏪⏩ 翻看历史 · ✕ 关掉（回 App 可再打开）'),
+        history: t('subtitle_pip_history', '历史 · 点 ⏩ 回到最新'),
+      },
       state: {
         'waiting-permission': t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'),
-        listening: t('subtitle_bar_listening', '正在听系统声音…'),
+        listening: mic ? t('subtitle_bar_listening_mic', '正在听外放的声音…') : t('subtitle_bar_listening', '正在听系统声音…'),
         paused: t('subtitle_bar_paused', '已暂停'),
         silence: t('subtitle_bar_silence', '30 秒没有声音，已暂停以免计费'),
-        denied: t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」'),
+        denied: mic ? t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。')
+          : t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」'),
         socket: t('subtitle_bar_socket', '转写连接中断'),
         reconnecting: t('subtitle_bar_reconnecting', '正在重连…'),
         // {pct} 留给原生按实时进度填；{lang} 这里就填好（原生不持有语言名）

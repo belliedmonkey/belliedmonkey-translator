@@ -2991,5 +2991,20 @@
   },
   "subtitle_pip_float": {
     "message": "Mostrar janela de legendas"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Ouvindo o alto-falante…"
+  },
+  "subtitle_pip_title": {
+    "message": "Legendas ao vivo"
+  },
+  "subtitle_pip_hint": {
+    "message": "Toque o vídeo no Safari pelo alto-falante — as legendas aparecem aqui"
+  },
+  "subtitle_pip_close": {
+    "message": "Toque na janela: ⏸ pausar · ⏪⏩ histórico · ✕ fechar (reabra pelo app)"
+  },
+  "subtitle_pip_history": {
+    "message": "Histórico · toque ⏩ para o mais recente"
   }
 }
