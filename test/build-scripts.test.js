@@ -402,6 +402,7 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     ok(/let u = size\.width \* 0\.5625/.test(tpl) && !/size\.height \* 0\./.test(tpl), '字号按宽度算：窗口越高放的句子越多（按高度算只会把字放大）');
     ok(/requiresLinearPlayback = false/.test(tpl) && /skipInterval\.seconds < 0/.test(tpl) && /historyOffset/.test(tpl), '借系统后退 / 前进按钮翻看历史');
     ok(/lines\.isEmpty && partial == nil/.test(tpl) && /pipLabels\["hint"\]/.test(tpl), '空窗画说明，不是一块黑');
+    ok(/size\.height - block\) \/ 2/.test(tpl) && /u \* 0\.138/.test(tpl), '空窗说明垂直居中、字号不随字幕缩小（按宽度算后曾缩成一小条挤在顶上）');
     ok(listen.includes("subtitle_pip_hint") && listen.includes("subtitle_bar_listening_mic"), '页面把小窗说明与 iPhone 版「正在听」传给原生');
     ok(/guard let c = pip else \{ onWindow\?\(\["state": "closed", "reason": "failed"\]\); return \}/.test(tpl), '没有画中画可用时浮出也要回一句（模拟器实测：不支持时控制器是空的，曾静默返回）');
     ok(/isPictureInPictureSupported\(\)/.test(tpl), '不支持画中画时不建控制器');

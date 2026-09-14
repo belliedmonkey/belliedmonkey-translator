@@ -204,15 +204,19 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             let orAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.066), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
             let stAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.066, weight: .medium), .foregroundColor: MTSubtitlePip.stateColor]
             // 空窗（还没有一句字幕）：画说明，而不是一块莫名其妙的黑（用户 2026-09-14：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙」）
+            // 说明的字号不跟字幕走：改按宽度算后它缩成原来的 0.45 倍、挤在顶上一小条（模拟器截图）⇒ 放回 build 97 的大小，整块垂直居中
             if lines.isEmpty && partial == nil {
-                let titleAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.045, weight: .medium), .foregroundColor: UIColor(white: 1, alpha: 0.55)]
-                let hintAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.062, weight: .semibold), .foregroundColor: UIColor.white]
-                let closeAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.042), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
-                var ty = pad * 1.4
-                for (text, attr) in [(emptyTitle, titleAttr), (emptyHint, hintAttr), (emptyClose, closeAttr)] where !text.isEmpty {
-                    let r = (text as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
-                    (text as NSString).draw(with: CGRect(x: pad, y: ty, width: w, height: ceil(r.height)), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
-                    ty += ceil(r.height) + pad * 0.6
+                let titleAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.1, weight: .medium), .foregroundColor: UIColor(white: 1, alpha: 0.55)]
+                let hintAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.138, weight: .semibold), .foregroundColor: UIColor.white]
+                let closeAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.093), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
+                let items = [(emptyTitle, titleAttr), (emptyHint, hintAttr), (emptyClose, closeAttr)].filter { !$0.0.isEmpty }
+                let heights = items.map { ceil(($0.0 as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: $0.1, context: nil).height) }
+                let gap = pad * 0.8
+                let block = heights.reduce(0, +) + gap * CGFloat(max(0, heights.count - 1))
+                var ty = max(pad, (size.height - block) / 2)
+                for (i, item) in items.enumerated() {
+                    (item.0 as NSString).draw(with: CGRect(x: pad, y: ty, width: w, height: heights[i]), options: .usesLineFragmentOrigin, attributes: item.1, context: nil)
+                    ty += heights[i] + gap
                 }
             }
             var top: CGFloat = 0

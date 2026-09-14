@@ -592,6 +592,8 @@ function say(base, text) {
     await sleep(500);
     const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: document.getElementById('app-subs-privacy').textContent, tip: document.getElementById('app-subs-tip').textContent, note: document.getElementById('app-subs-pip-note').textContent })`));
     need(/字幕小窗的预览/.test(h9a.note), 'H9: 开始前预览占位块上该有一句说明（不是一块黑），实际 ' + JSON.stringify(h9a.note));
+    const ar9 = await evalIn(cdp, sessionId, `(function(){ var r=document.getElementById('app-subs-pip').getBoundingClientRect(); return r.height ? r.width / r.height : 0; })()`);
+    need(Math.abs(ar9 - 0.8) < 0.03, 'H9: 小窗预览占位块该是 4:5（与画中画同一帧），实际宽高比 ' + ar9);
     need(h9a.pip && h9a.partialHidden && /iPhone/.test(h9a.priv) && /画中画/.test(h9a.tip), 'H9: iPhone 准备页该显示小窗预览占位、iPhone 隐私句与画中画提示，实际 ' + JSON.stringify(h9a));
     const mark9 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
