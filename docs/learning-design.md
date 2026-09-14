@@ -3083,7 +3083,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 | 方向 | 消息 |
 |---|---|
 | JS → 原生 | `caps-probe` · `record-mode {on, profile?: 'conv' \| 'subtitle'}` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-state {state, pct?}` · `subtitle-float`（iOS：重新浮出画中画）· `subtitle-hide` · 二期 `broadcast-picker` · `broadcast-arm {on}` |
-| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 reason `os` / `waiting-permission` / `headphones`）· `remote {command}` 新增 `end` / `open-app`（字幕条按钮） |
+| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 state `waiting`；新 reason `os` / `waiting-permission` / `headphones` / `timeout`）· `remote {command}` 新增 `end` / `open-app` / `font-up` / `font-down`（字幕条按钮） |
 
 缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
 
@@ -3096,6 +3096,19 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 6. **语言设置**：「视频的语言」用新键 `subtitleVideoLang`（缺省 `en`）；「我的语言」沿用 `listenMyLang`（同一个人的母语）。字号 `subtitleFontScale` 由 JS 存设置、经 `subtitle-config` 下发；字幕条位置由原生自存（窗口 frame autosave）。
 7. **耳机**：iOS 字幕档下输出路由是耳机 ⇒ `mic-state {reason:'headphones'}`，App 页与小窗具名（I10 / I8）。Mac 抓的是系统混音，不受耳机影响。
 8. **协议镜像测试**（`test/build-scripts.test.js`：JS `PROTOCOL` 的每个动词 Swift 都有 `case`）：JS 先合入时，Swift 同一个 PR 加**空的** `case`（不回复）—— 空 case 恰好就是第 3 条的「老壳」。
+
+**协议补充决定（二）（2026-09-14，Mac 原生实现前澄清；上表已按此改）**
+9. **字幕条上的按钮怎么回页面。** 「暂停 / 继续」复用 `remote pause` / `remote play`；「结束」= `remote end`（第 4 条）；「A− / A+」= `remote font-down` / `remote font-up`，页面在三档（0.85 / 1 / 1.2）之间移动 `subtitleFontScale`、落盘、重发 `subtitle-config`（第 6 条：字号由 JS 存）。「主窗口」由原生直接把主窗口拉回来（页面这时可能正被节流，S3），同时发 `remote open-app` 供页面记账，页面可以忽略；「打开系统设置」由原生直接打开「隐私与安全性 › 屏幕与系统录音」，不回页面。「穿透」是原生本地状态（初值取 `subtitle-config.clickThrough`），取消只走菜单（穿透中的条收不到点击）。
+10. **等待系统授权的消息形状。** 建 tap / 聚合设备 / IOProc 放后台队列（S1：权限框没点时同步卡约 60 s + 30 s）。
+    - 2 秒内没返回 ⇒ `mic-state {state:'waiting', reason:'waiting-permission', source:'system'}`，页面停在「准备中」，条上显示 `labels.state['waiting-permission']`。
+    - 返回成功 ⇒ `mic-state {state:'granted', source:'system'}`；HAL 报错 ⇒ `failed`。
+    - 90 秒仍没返回 ⇒ 撤掉这次尝试，发 `mic-state {state:'denied', reason:'timeout', source:'system'}`，按拒绝处理（条上给「打开系统设置」）。
+    - 「在等声音」不是一个态（S1：IO 回调要等真有声音才开始）：授权后页面就是 listening，没声音由 30 秒静音门接管。
+    - 点「不允许」之后的真实返回（报错，还是立即返回但零帧）由 M30 真机读数定；读到后如与本条不符再改。
+11. **iOS 在一期（画中画字幕窗）落地前继续不回 `caps-probe`**，iPhone 上入口仍不显示（第 3 条）。Mac：14.4 及以上回 `{sources:['mic','system'], system:'ok', broadcast:'unsupported'}`，以下回 `{sources:['mic'], system:'os', broadcast:'unsupported'}`（入口灰 + M2 ③ 那句）。
+12. **菜单项也由 `labels.menu` 在运行时建**（「窗口」菜单顶部三项 + 一条分隔线），不写进 storyboard —— 原生零文案照旧；`subtitle-hide` 时移除。条上 A− / A+ 两个字形是符号，不是文案，写在原生里。
+13. **`tick` 只在字幕条存在期间发**（`subtitle-config` 之后到 `subtitle-hide`），对话模式不发。页面不可见时用它刷时钟。边说边译的 900 ms 去抖在不可见时被钳到 ≤ 1 s，差值在 M28 的 ≤ 20% 判据之内，先不改；真机读数不过再改成吃 `tick`。
+14. **会话中关主窗口 = `orderOut`。** 原生给主窗口套一层关闭守卫（其余委托方法原样转给原来的窗口委托）：会话中 `windowShouldClose` 隐藏而不关。`subtitle-hide` 时摘掉守卫；若主窗口正隐藏着就 `orderFront`（不激活 App、不把用户拽出全屏 Space），让小结可见。点 Dock 走 `applicationShouldHandleReopen` 找回。
 
 **Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
 **尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
