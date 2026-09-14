@@ -194,6 +194,10 @@ var AppListen = (() => {
       const go = $('app-subs-need-go' + sfx);
       // 系统版本不够时，没有「去设置」能解决的事 —— 不给一个点了也没用的按钮
       if (go) { go.hidden = reason === 'os'; go.textContent = reason === 'no-key' ? t('subtitle_need_key_go', '去设置里填写 →') : t('listen_need_live_go', '去设置里选择 →'); }
+      // 两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），首页只说一次 —— 同一句连写两遍像出错了
+      // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
+      const listenNeed = $('app-listen-need-live' + sfx), listenWhy = $('app-listen-need-live-why' + sfx);
+      if (need && !need.hidden && listenNeed && !listenNeed.hidden && listenWhy && why && listenWhy.textContent === why.textContent) need.hidden = true;
     }
   }
 

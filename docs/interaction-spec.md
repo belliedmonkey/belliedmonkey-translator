@@ -1588,7 +1588,7 @@ original + provisional translation), **finalized sentences** below.
   资产可用（`NativeSpeech.probe()` → `ready`）。选了本机引擎但系统太旧（iOS 26 / macOS 26 之前，
   桥报 `unsupported`）⇒ 行**同样是灰的 + 具名**，第三句原因：
   「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」（`listen_need_device_os`）
-  + 「去设置里选择 →」。三句原因（没实时接口 / 没 key / 系统太旧）互斥，一次只出一句。
+  + 「去设置里选择 →」。三句原因（没实时接口 / 没 key / 系统太旧）互斥，一次只出一句。**首页上「对话 · 实时听译」与「实时字幕」两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），原因句只出一次**——留对话那一行，字幕那行藏起，两个入口照样灰（2026-09-15 用户裁定「合成一句」；全回归观察 O1：同一句连写两遍像出错了）。
   本机路下入口组下面那句隐私句换成 「声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎」
   （`listen_entry_privacy_device`）—— 「音频只发往你配置的转写端点」对本机路是假话。
 - First tap after install triggers the **native** microphone permission once; denied
