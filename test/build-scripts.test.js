@@ -344,6 +344,21 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     ok(/stereoGlobalTapButExcludeProcesses/.test(body), '排除本进程（尖刺 S1b）');
     ok(/"waiting-permission"/.test(body) && /\.now\(\) \+ 2\)/.test(body) && /\.now\(\) \+ 90\)/.test(body), '2 s 报等待授权、90 s 超时按拒绝');
   });
+  test('权限被拒 = 放行但全零帧（M30 真机读数，协议补充决定 10 修订）：3 秒全零且别的进程在出声 ⇒ denied zero-frames', () => {
+    const body = code(audio);
+    ok(/"reason": "zero-frames"/.test(body) && /"state": "denied"/.test(body), '发 mic-state denied / zero-frames');
+    ok(/kAudioProcessPropertyIsRunningOutput/.test(body), '第二个条件：有别的进程正在输出声音');
+    ok(/pid != me/.test(body), '排除本进程');
+    ok(/now - zeroSince >= 3/.test(body), '全零要连续 3 秒');
+    ok(/if heardSound \|\| denialReported \{ return \}/.test(body), '听到过非零样本就不再判（已授权的句间停顿也是精确 0）');
+  });
+  test('条上的按钮字走 attributedTitle 白字（M27：contentTintColor 对 recessed / inline 无效）', () => {
+    const body = code(tpl);
+    ok(/attributedTitle = NSAttributedString/.test(body) && /\.foregroundColor: NSColor\.white/.test(body), '有白字 attributedTitle');
+    ok(!/contentTintColor/.test(body), '不再依赖 contentTintColor');
+    ok(!/\.title = /.test(body), '不直接赋 title（会把颜色冲掉）');
+    ok(/rangeOfCharacter\(from: \.alphanumerics\)/.test(body), '只有标点的半句不显示');
+  });
   test('plist：系统录音权限说明只给 macOS App（Gate I）', () => {
     ok(/key: 'NSAudioCaptureUsageDescription', only: 'macOS \(App\)'/.test(sync), 'PLIST_KEYS 里有只给 macOS 的那一行');
   });
@@ -560,6 +575,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"caps-probe"', '"subtitle-config"', '"subtitle-show"', '"subtitle-state"', '"subtitle-float"', '"subtitle-hide"',   // §9.8 实时字幕（字幕条文字全由 JS 传）
         '"audio-caps"', '"sources"', '"mic"', '"system"', '"ok"', '"os"', '"unsupported"', '"broadcast"', '"source"',   // §9.8 能力回话与声音来源
         '"waiting"', '"waiting-permission"', '"timeout"', '"tick"', '"t"',   // §9.8 协议补充决定 10、13
+        '"zero-frames"',   // §9.8 协议补充决定 10 修订（M30：拒绝 = 放行但全零帧）
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',
