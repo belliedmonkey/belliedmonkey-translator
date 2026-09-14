@@ -3015,5 +3015,11 @@
   },
   "subtitle_pip_note_ended": {
     "message": "이번 자막이 끝나 창이 닫혔습니다"
+  },
+  "subtitle_bar_silent": {
+    "message": "아직 시스템 소리가 들리지 않습니다 — 동영상은 재생 중인데 자막이 없나요? 시스템 오디오 녹음이 허용되지 않았을 수 있습니다"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "30초 동안 소리가 없어 일시 정지했습니다. 동영상이 재생 중인데 자막이 없었다면 시스템 오디오 녹음이 허용되지 않았을 수 있습니다: 시스템 설정 › 개인정보 보호 및 보안 › 화면 및 시스템 오디오 녹음에서 BelliedMonkey Translator를 허용한 뒤 「계속」을 누르세요."
   }
 }

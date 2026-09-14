@@ -240,7 +240,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         badge.stringValue = controlLabels["clickThrough"] ?? ""
     }
 
-    private var listening: Bool { state == "listening" || state == "tr-failed" || state == "downloading" || state == "reconnecting" }
+    private var listening: Bool { state == "listening" || state == "tr-failed" || state == "downloading" || state == "reconnecting" || state == "silent" }
 
     private func render() {
         guard let p = panel else { return }
@@ -268,8 +268,8 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         stateLabel.stringValue = text
         stateRow.isHidden = !showState
 
-        // 行内出口：拒绝 ⇒ 打开系统设置；停下 ⇒ 继续（不自动恢复）
-        if state == "denied" {
+        // 行内出口：拒绝 / 还没听到系统声音（不中断，决定 10 修订二）⇒ 打开系统设置；停下 ⇒ 继续（不自动恢复）
+        if state == "denied" || state == "silent" {
             let title = controlLabels["openSettings"] ?? ""
             setTitle(actionButton, title, size: 13 * fontScale)
             actionButton.action = #selector(tapOpenSettings)

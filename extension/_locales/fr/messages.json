@@ -3015,5 +3015,11 @@
   },
   "subtitle_pip_note_ended": {
     "message": "Ces sous-titres sont terminés et la fenêtre est fermée"
+  },
+  "subtitle_bar_silent": {
+    "message": "Aucun son système entendu pour l’instant — la vidéo joue mais pas de sous-titres ? L’enregistrement audio du système n’est peut-être pas autorisé"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "Aucun son depuis 30 secondes — en pause. Si la vidéo jouait sans sous-titres, l’enregistrement audio du système n’est peut-être pas autorisé : Réglages Système › Confidentialité et sécurité › Enregistrement de l’écran et de l’audio système, autorisez BelliedMonkey Translator, puis « Reprendre »."
   }
 }
