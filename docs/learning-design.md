@@ -3133,6 +3133,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
     - 离开 App 时自动浮出不能推迟（只能在前台触发）⇒ 还没有一句字幕时，小窗画三行说明：`labels.pip.title / hint / close`。
     - `subtitle-config.labels` 新增 `pip {title, hint, close, history}`，原生照旧零文案。
 27. **iPhone 的状态文案按平台分**：iPhone（`system:'unsupported'`）上的 `labels.state.listening` 是「正在听外放的声音…」，`denied` 是麦克风被拒；不沿用 Mac 的「系统声音」说法（15 Pro 手测时发现）。
+28. **iPhone 文案不点名 Safari**（用户：「为啥一定要提 safari。我感觉现在不管是 chrome safari 或者其他任何 app 的声音都可以用啊」）。一期听的是外放出来的声音，与哪个 App 在放无关；15 Pro 手测 YouTube 与日语广告都出了字幕。提示卡、空窗说明、预览说明一律写「任意 App」，提示卡在括号里举 Safari / Chrome / YouTube / 播客。S5 的「先开始、再去播放」顺序保留：Safari 网页视频离开前台即停，别的 App 未必，但这个顺序对谁都不吃亏。M31 加 Chrome 与 YouTube App 各一段。
 
 **Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
 **尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
