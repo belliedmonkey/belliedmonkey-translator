@@ -1298,6 +1298,18 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       eq(src, one, '拒绝时原样返回');
     });
   });
+
+  // 2026-09-14 TestFlight 被拒（ITMS-90208）：onnxruntime iOS 切片 Info.plist 写 13.0，被包成动态框架后二进制是 App 的 16.4。
+  test('原生依赖：iOS 切片框架的 MinimumOSVersion 抬到 App 系统下限（ITMS-90208）', () => {
+    const deps = require('../scripts/fetch-native-deps.js');
+    const src = fs.readFileSync(path.join(R, 'scripts', 'fetch-native-deps.js'), 'utf8');
+    ok(typeof deps.normalizeIosMinOS === 'function', '导出 normalizeIosMinOS');
+    ok(/normalizeIosMinOS\(checkOnly, problems\);/.test(src), 'main 里每次都跑（含 --check）');
+    ok(/OS_FLOOR\.FLOOR\.ios/.test(src) && /'-replace', 'MinimumOSVersion'/.test(src), '按 os-floor 的 iOS 下限改 Info.plist');
+    const problems = [];
+    deps.normalizeIosMinOS(true, problems);   // vendor 未就位时自然没有问题（CI 上跳过）
+    eq(problems.join('\n'), '', '本机已拉取的依赖不许低于下限');
+  });
 });
 
 // ─── 系统下限（build/os-floor.config.js）：部署目标钉住 + 解析期语法门 ─────────────────
