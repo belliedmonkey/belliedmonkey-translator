@@ -42,8 +42,8 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     private var pipLabels: [String: String] = [:]
     /// 翻看历史：从最新往回藏掉几句（0 = 看最新）。系统后退 / 前进按钮每次翻 3 句（用户 2026-09-14 裁定借这两个按钮翻页）
     private var historyOffset = 0
-    private static let pageSize = 3
-    private var finals: [(orig: String, tr: String)] = []
+    // at = 定稿到达的时刻：后退 / 前进按系统给的秒数翻，按钮上的数字才有意义
+    private var finals: [(orig: String, tr: String, at: TimeInterval)] = []
     private var partialLine: (orig: String, tr: String)?
     private var state = "listening"
     private var pct = 0
@@ -132,8 +132,8 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         } else {
             partialLine = nil
             if meaningful(orig) || meaningful(tr) {
-                if let last = finals.last, last.orig == orig { finals[finals.count - 1] = (orig, tr) } else {
-                    finals.append((orig, tr))
+                if let last = finals.last, last.orig == orig { finals[finals.count - 1] = (orig, tr, last.at) } else {
+                    finals.append((orig, tr, Date().timeIntervalSince1970))
                     if historyOffset > 0 { historyOffset += 1 }   // 正在翻看历史时，新句子到来不把画面拽回最新
                 }
                 if finals.count > 12 { finals.removeFirst(finals.count - 12) }
@@ -307,12 +307,18 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         renderSize = CGSize(width: CGFloat(newRenderSize.width) * 2, height: CGFloat(newRenderSize.height) * 2)
         dirty = true
     }
-    /// 后退 = 往回翻一页历史，前进 = 往新翻一页，翻到 0 就是最新（用户 2026-09-14 裁定借这两个按钮）。不动录音、不动页面。
+    /// 后退 / 前进按系统给的秒数翻（用户 2026-09-14 裁定借这两个按钮；同日：「这个数字没什么意义」）。
+    /// 按钮上的数字是系统挑的秒数、App 改不了 ⇒ 让它名副其实：⏪10 = 回到 10 秒前说的那句，⏩10 = 往新翻 10 秒。
+    /// 那段时间里一句都没有时至少翻一句，免得点了没反应。翻到 0 就是最新。不动录音、不动页面。
     func pictureInPictureController(_ c: AVPictureInPictureController, skipByInterval skipInterval: CMTime, completion completionHandler: @escaping () -> Void) {
-        if skipInterval.seconds < 0 {
-            historyOffset = min(historyOffset + MTSubtitlePip.pageSize, max(0, finals.count - 1))
-        } else {
-            historyOffset = max(0, historyOffset - MTSubtitlePip.pageSize)
+        let secs = skipInterval.seconds
+        if secs.isFinite, secs != 0, !finals.isEmpty {
+            let last = finals.count - 1
+            let bottom = last - min(historyOffset, last)            // 当前画面最下面那句
+            let target = finals[bottom].at + secs
+            let atOrBefore = finals.lastIndex(where: { $0.at <= target })
+            let newBottom = secs < 0 ? min(atOrBefore ?? 0, bottom - 1) : max(atOrBefore ?? bottom, bottom + 1)
+            historyOffset = max(0, min(last, last - newBottom))
         }
         dirty = true
         completionHandler()
