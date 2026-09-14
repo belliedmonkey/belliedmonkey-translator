@@ -361,6 +361,9 @@ const BLOCKS = [
   // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
   // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
   { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
+  // 实时字幕的 Mac 悬浮字幕条（learning-design §9.8）。整份 #if os(macOS)；无 attach —— 由 MTAudioBridge 在
+  // subtitle-config 时带着主窗口调它；AppDelegate 那两处（关窗不退出 / 点 Dock 找回）见 DELEGATE_PATCHES。
+  { name: 'mt-subtitle-bar', src: 'subtitle-bar.swift', label: 'subtitle bar' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -503,6 +506,8 @@ const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克�
 // 后果是进程被杀而不是报错，多一个键的代价是零。文案与 Gate H 同源（D6 同版换正式版）。
 const SPEECH_KEY = 'NSSpeechRecognitionUsageDescription';
 const SPEECH_TEXT = '「设备内置转写」在你的设备上识别语音，声音不发往任何服务器。';
+// Gate I 表里那句（learning-design §10）。弹窗里引号会被当成 XML 属性界符的心智负担不值得 —— 用「」。
+const AUDIO_CAPTURE_TEXT = '「实时字幕」会在你点开始后识别这台 Mac 正在播放的声音；声音只在本机识别或只发往你配置的转写端点，不录音、不保存。';
 
 const PLIST_KEYS = [
   { key: MIC_KEY, xml: `<string>${MIC_TEXT}</string>` },
@@ -512,6 +517,10 @@ const PLIST_KEYS = [
   // 灵动岛（§9.5）。没有这个键，ActivityKit 在运行时直接拒绝启动 Live Activity ——
   // 而且**不抛异常**：`Activity.request` 返回失败，岛上什么都不发生。同 iOS-only。
   { key: 'NSSupportsLiveActivities', only: 'iOS (App)', xml: '<true/>' },
+  // 实时字幕（learning-design §9.8 / §10 Gate I）：Mac 抓系统声音的权限说明。系统弹「想访问以录制你的系统音频」时，
+  // 这句就是弹窗里那行字（尖刺 S1 截图为证）—— 不是屏幕录制权限。只给 macOS App：iOS 没有这个权限。
+  // 缺了它，弹窗没有说明句、审核会问；build.js 的 Gate I 检查这一行在。
+  { key: 'NSAudioCaptureUsageDescription', only: 'macOS (App)', xml: `<string>${AUDIO_CAPTURE_TEXT}</string>` },
 ];
 
 // Pure, so the tests can run it without an Xcode tree. Returns { xml, added, note }.
@@ -592,6 +601,23 @@ const DELEGATE_PATCHES = [
       + '        if let u = urls.first { MTDeepLink.handle(u) }\n'
       + '    }\n\n' + a,
   },
+  // 实时字幕（learning-design §9.8 协议补充决定 14）：会话中主窗口「关了」其实是 orderOut，最后一个窗口
+  // 关了也不退出；点 Dock 找回主窗口。转换器模板在这里是一行 return true。
+  {
+    file: 'macOS (App)/AppDelegate.swift',
+    what: 'subtitle session',
+    needle: 'MTSubtitleBar.sessionActive',
+    anchor: '    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {\n        return true\n    }',
+    add: () => '    // Patched by scripts/sync-app-assets.js — 实时字幕（§9.8）：会话中关主窗口是隐藏，不退出。\n'
+      + '    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {\n'
+      + '        return !MTSubtitleBar.sessionActive\n'
+      + '    }\n\n'
+      + '    // 点 Dock 找回被隐藏的主窗口。\n'
+      + '    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {\n'
+      + '        if !flag { MTSubtitleBar.showMainWindow() }\n'
+      + '        return true\n'
+      + '    }',
+  },
 ];
 
 function patchDelegates(sharedDir) {
@@ -602,10 +628,11 @@ function patchDelegates(sharedDir) {
     if (!fs.existsSync(f)) continue;          // 这棵树没有这个平台
     const src = fs.readFileSync(f, 'utf8');
     const label = p.file.split('/')[0];
-    if (src.includes(p.needle)) { notes.push(`${label}: deeplink already current`); continue; }
-    if (!src.includes(p.anchor)) { notes.push(`✗ ${label}: deeplink 锚点缺失 — 转换器模板变了？`); continue; }
+    const what = p.what || 'deeplink';
+    if (src.includes(p.needle)) { notes.push(`${label}: ${what} already current`); continue; }
+    if (!src.includes(p.anchor)) { notes.push(`✗ ${label}: ${what} 锚点缺失 — 转换器模板变了？`); continue; }
     fs.writeFileSync(f, src.replace(p.anchor, p.add(p.anchor)));
-    notes.push(`${label}: deeplink patched`);
+    notes.push(`${label}: ${what} patched`);
   }
   return notes.length ? notes.join(' · ') : 'no delegates found';
 }

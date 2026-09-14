@@ -681,6 +681,18 @@ describe('ListenCore — 实时字幕入口判定与声音来源', () => {
   });
 });
 
+describe('ListenCore — 实时字幕条字号三档（§9.8 协议补充决定 9）', () => {
+  test('A− / A+ 在 0.85 / 1 / 1.2 之间走，走到头不动；不在档上的值先就近落档', () => {
+    eq(C.fontStep(1, 1), 1.2);
+    eq(C.fontStep(1.2, 1), 1.2, '最大档再 A+ 不动');
+    eq(C.fontStep(1, -1), 0.85);
+    eq(C.fontStep(0.85, -1), 0.85, '最小档再 A− 不动');
+    eq(C.fontStep(undefined, 1), 1.2, '没存过 = 1');
+    eq(C.fontStep(3, -1), 1, '手改成 3 ⇒ 落到 1.2 再往下一档');
+    deepEq(C.FONT_STEPS, [0.85, 1, 1.2]);
+  });
+});
+
 describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
   // 模块求值时读 window.MT_PALETTE 拼样式；给它构建产出的同一份注册表，读完即撤。
   const hadWindow = 'window' in global;

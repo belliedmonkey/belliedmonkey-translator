@@ -294,6 +294,61 @@ describe('sync-app-assets: the host app must stay UA-anonymous', () => {
     + '    }\n}\n';
 });
 
+describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §9.8）', () => {
+  const R = path.resolve(__dirname, '..');
+  const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'subtitle-bar.swift'), 'utf8');
+  const audio = fs.readFileSync(path.join(R, 'app', 'native', 'audio-bridge.swift'), 'utf8');
+  const sync = fs.readFileSync(path.join(R, 'scripts', 'sync-app-assets.js'), 'utf8');
+  const { BLOCKS } = require('../scripts/sync-app-assets.js');
+  const code = (src) => src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  test('登记成标记块；整份只在 macOS 编译 —— 共享的 ViewController.swift 两个平台都编', () => {
+    ok(BLOCKS.some((b) => b.src === 'subtitle-bar.swift' && b.name === 'mt-subtitle-bar'), 'BLOCKS 里有 mt-subtitle-bar');
+    const body = code(tpl).trim();
+    ok(body.startsWith('#if os(macOS)') && body.endsWith('#endif'), '整份包在 #if os(macOS) … #endif 里');
+  });
+  test('形状照尖刺 S4：不抢焦点、盖在全屏视频上、跨 Space、App 在后台也不消失', () => {
+    ok(/\.nonactivatingPanel/.test(tpl) && /\.fullScreenAuxiliary/.test(tpl) && /\.canJoinAllSpaces/.test(tpl), 'NSPanel 三件套');
+    ok(/hidesOnDeactivate = false/.test(tpl), 'App 失焦时条不藏');
+    ok(/level = \.floating/.test(tpl), '浮在普通窗口之上');
+  });
+  test('零文案：字面量只有协议 id、{pct} 占位符、省略号与 A− / A+ 两个字形', () => {
+    const strings = code(tpl).match(/"[^"]*"/g) || [];
+    const allowed = new Set(['""', '"labels"', '"state"', '"controls"', '"menu"', '"fontScale"', '"opacity"', '"clickThrough"',
+      '"orig"', '"tr"', '"partial"', '"pct"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"',
+      '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
+      '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
+      '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);
+    for (const lit of strings) ok(allowed.has(lit), `字幕条里出现了非协议字符串（可能是文案）：${lit}`);
+  });
+  test('条上按钮发的命令，listen.js 都认（§9.8 协议补充决定 9）', () => {
+    const listen = fs.readFileSync(path.join(R, 'app', 'listen.js'), 'utf8');
+    for (const cmd of ['font-up', 'font-down', 'end', 'pause', 'play']) {
+      ok(tpl.includes(`"${cmd}"`), `条会发 ${cmd}`);
+      ok(listen.includes(`'${cmd}'`), `listen.js 的 onNative 认 ${cmd}`);
+    }
+  });
+  test('会话中关窗 = 隐藏、点 Dock 找回（协议补充决定 14）', () => {
+    ok(sync.includes('MTSubtitleBar.sessionActive'), 'applicationShouldTerminateAfterLastWindowClosed 要读会话');
+    ok(sync.includes('applicationShouldHandleReopen'), '点 Dock 找回主窗口');
+    ok(/sender\.orderOut\(nil\)\s*\n\s*return false/.test(tpl), '关闭守卫：隐藏而不关');
+    ok(/forwardingTarget\(for aSelector/.test(tpl), '守卫把其余委托方法转给原来的窗口委托（storyboard 里是窗口控制器）');
+  });
+  test('桥：caps-probe 只在 macOS 回；系统声音要 14.4、排除本进程；等授权 2 s 报、90 s 按拒绝', () => {
+    const body = code(audio);
+    const at = body.indexOf('private func capsProbe');
+    ok(at > 0, '有 capsProbe');
+    const fn = body.slice(at, body.indexOf('\n    }\n', at));
+    ok(fn.includes('#if os(macOS)') && fn.indexOf('"audio-caps"') > fn.indexOf('#if os(macOS)'), 'iOS 不回 audio-caps —— 画中画一期落地前 iPhone 上入口不显示');
+    ok(/#available\(macOS 14\.4, \*\)/.test(body), '系统声音守 macOS 14.4');
+    ok(/stereoGlobalTapButExcludeProcesses/.test(body), '排除本进程（尖刺 S1b）');
+    ok(/"waiting-permission"/.test(body) && /\.now\(\) \+ 2\)/.test(body) && /\.now\(\) \+ 90\)/.test(body), '2 s 报等待授权、90 s 超时按拒绝');
+  });
+  test('plist：系统录音权限说明只给 macOS App（Gate I）', () => {
+    ok(/key: 'NSAudioCaptureUsageDescription', only: 'macOS \(App\)'/.test(sync), 'PLIST_KEYS 里有只给 macOS 的那一行');
+  });
+});
+
 describe('sync-app-assets: macOS 文件面板桥（§9.7 文档翻译 D5）', () => {
   const R = path.resolve(__dirname, '..');
   const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'file-panel-bridge.swift'), 'utf8');
@@ -503,6 +558,8 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"rate"', '"b64"', '"state"',   // §9.6 原生采集
         '"deliver"', '"level"', '"mic-level"', '"rms"',   // §9.6.1 本机路：PCM 留在原生，只过电平
         '"caps-probe"', '"subtitle-config"', '"subtitle-show"', '"subtitle-state"', '"subtitle-float"', '"subtitle-hide"',   // §9.8 实时字幕（字幕条文字全由 JS 传）
+        '"audio-caps"', '"sources"', '"mic"', '"system"', '"ok"', '"os"', '"unsupported"', '"broadcast"', '"source"',   // §9.8 能力回话与声音来源
+        '"waiting"', '"waiting-permission"', '"timeout"', '"tick"', '"t"',   // §9.8 协议补充决定 10、13
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',

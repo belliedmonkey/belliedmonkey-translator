@@ -708,6 +708,17 @@ var ListenCore = (() => {
     makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,
     makeIncremental,
+    // 实时字幕条的三档字号（§9.8 协议补充决定 9）：A− / A+ 在这三档之间走，走到头不动；
+    // 存着的值不在档上（手改过 / 老版本）时先就近落档再走。
+    FONT_STEPS: [0.85, 1, 1.2],
+    fontStep(scale, dir) {
+      const S = [0.85, 1, 1.2];
+      const v = Number(scale) || 1;
+      let i = 0;
+      for (let k = 1; k < S.length; k++) if (Math.abs(S[k] - v) < Math.abs(S[i] - v)) i = k;
+      const d = dir > 0 ? 1 : dir < 0 ? -1 : 0;
+      return S[Math.max(0, Math.min(S.length - 1, i + d))];
+    },
   };
 })();
 

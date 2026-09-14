@@ -132,16 +132,17 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "playing-state":  updatePlaybackState(body)
         case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
         case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
-                                        deliverPcm: (body["deliver"] as? String) != "level")
+                                        deliverPcm: (body["deliver"] as? String) != "level",
+                                        system: (body["source"] as? String) == "system")
         case "mic-stop":       micStop()
-        // 实时字幕（learning-design §9.8）：页面先合入，原生实现随 Mac / iOS 那一步上。空 case 不回 audio-caps
-        // ⇒ 页面把这个壳当成「老壳」、首页不显示入口（§9.8 协议补充决定 3、8）。
-        case "caps-probe":      break
-        case "subtitle-config": break
-        case "subtitle-show":   break
-        case "subtitle-state":  break
-        case "subtitle-float":  break
-        case "subtitle-hide":   break
+        // 实时字幕（learning-design §9.8）。Mac：系统声音 + 悬浮字幕条。iOS 在一期（画中画字幕窗）落地之前
+        // 不回 caps-probe ⇒ 页面按老壳处理、iPhone 上入口不显示（§9.8 协议补充决定 3、11）。
+        case "caps-probe":      capsProbe()
+        case "subtitle-config": subtitleConfig(body)
+        case "subtitle-show":   subtitleShow(body)
+        case "subtitle-state":  subtitleState(body)
+        case "subtitle-float":  break   // iOS 画中画（一期）
+        case "subtitle-hide":   subtitleHide()
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
     }
@@ -179,10 +180,19 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
     var micSink: ((AVAudioPCMBuffer) -> Void)?
 
-    private func micStart(rate: Double, deliverPcm: Bool = true) {
+    private func micStart(rate: Double, deliverPcm: Bool = true, system: Bool = false) {
         micStop()
         micRate = rate
         micDeliverPcm = deliverPcm
+        if system {
+            // 实时字幕（§9.8）：系统声音。页面只在收到 audio-caps.system === 'ok' 之后才会发 source:'system'，
+            // 这里再按系统版本守一次 —— **绝不静默改开麦克风**（老调用方以为在听视频，其实在听房间）。
+#if os(macOS)
+            if #available(macOS 14.4, *) { systemBegin(rate: rate); return }
+#endif
+            emit(["type": "mic-state", "state": "failed", "reason": "os", "source": "system"])
+            return
+        }
         requestMicPermission { [weak self] granted in
             guard let self = self else { return }
             guard granted else { self.emit(["type": "mic-state", "state": "denied"]); return }
@@ -292,6 +302,16 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func micStop() {
+#if os(macOS)
+        if let tap = systemTap {
+            systemTap = nil
+            systemGen += 1          // 还悬着的「等授权 / 超时」回调认得出自己过期了
+            if #available(macOS 14.4, *) { (tap as? MTSystemTap)?.stop() }
+            micConverter = nil; micOutFormat = nil
+            emit(["type": "mic-state", "state": "ended", "source": "system"])
+            return
+        }
+#endif
         guard let engine = micEngine else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
@@ -613,6 +633,116 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 #endif
 
+    // MARK: - 实时字幕（learning-design §9.8）
+
+    /// 能力回话（协议补充决定 11）。iOS 在画中画一期落地前**不回** ⇒ 页面按老壳处理、iPhone 上入口不显示。
+    private func capsProbe() {
+#if os(macOS)
+        if #available(macOS 14.4, *) {
+            emit(["type": "audio-caps", "sources": ["mic", "system"], "system": "ok", "broadcast": "unsupported"])
+        } else {
+            emit(["type": "audio-caps", "sources": ["mic"], "system": "os", "broadcast": "unsupported"])
+        }
+#endif
+    }
+
+    private func subtitleConfig(_ body: [String: Any]) {
+#if os(macOS)
+        let bar = MTSubtitleBar.shared
+        bar.onRemote = { [weak self] command in self?.remote(command) }
+        bar.configure(body, window: webView?.window)
+        tickOn()
+#endif
+    }
+
+    private func subtitleShow(_ body: [String: Any]) {
+#if os(macOS)
+        MTSubtitleBar.shared.show(body)
+#endif
+    }
+
+    private func subtitleState(_ body: [String: Any]) {
+#if os(macOS)
+        MTSubtitleBar.shared.setState(body)
+#endif
+    }
+
+    private func subtitleHide() {
+#if os(macOS)
+        MTSubtitleBar.shared.hide()
+#endif
+        tickOff()
+    }
+
+    /// tick（尖刺 S3，协议补充决定 13）：主窗口隐藏 / 被盖住时页面计时器被钳到 1 Hz，原生 → 页面的桥消息不受影响。
+    /// 只在字幕条存在期间发。
+    private var tickTimer: Timer?
+    private func tickOn() {
+        guard tickTimer == nil else { return }
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.emit(["type": "tick", "t": Int(Date().timeIntervalSince1970 * 1000)])
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        tickTimer = timer
+    }
+    private func tickOff() {
+        tickTimer?.invalidate()
+        tickTimer = nil
+    }
+
+#if os(macOS)
+    /// 系统声音采集（MTSystemTap 是 macOS 14.4+ 才有的类型，所以按 AnyObject 存）。
+    private var systemTap: AnyObject?
+    /// 每次开始 / 停止 +1：迟到的「等授权」「超时」「HAL 返回」回调据此认出自己已经过期。
+    private var systemGen = 0
+
+    /// 尖刺 S1：权限框没点时建 IOProc 同步卡约 60 s、Start 再卡约 30 s，之后返回 0 却一帧不来 ⇒ HAL 调用全放
+    /// MTSystemTap 自己的队列；2 s 没回来如实报「在等授权」，90 s 仍没回来按拒绝处理（协议补充决定 10）。
+    /// 就绪（granted）不等于有声音：IO 回调要等真有声音在播才开始，没声音由页面的 30 秒静音门接管。
+    @available(macOS 14.4, *)
+    private func systemBegin(rate: Double) {
+        systemGen += 1
+        let gen = systemGen
+        let tap = MTSystemTap()
+        systemTap = tap
+        var settled = false
+        tap.onFormat = { [weak self] mono in
+            guard let self = self,
+                  let out = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
+                  let conv = AVAudioConverter(from: mono, to: out) else { return }
+            self.micConverter = conv
+            self.micOutFormat = out
+        }
+        // 与麦克风同一个出口：静麦 → micSink（设备内置转写）→ mic-level / mic-pcm
+        tap.onBuffer = { [weak self] buffer in self?.micDeliver(buffer) }
+        tap.onLost = { [weak self] status in
+            guard let self = self, self.systemGen == gen else { return }
+            self.micStop()
+            self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            self.emit(["type": "mic-state", "state": "waiting", "reason": "waiting-permission", "source": "system"])
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            settled = true
+            self.micStop()
+            self.emit(["type": "mic-state", "state": "denied", "reason": "timeout", "source": "system"])
+        }
+        tap.start { [weak self] status in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            settled = true
+            if status == noErr {
+                self.emit(["type": "mic-state", "state": "granted", "source": "system"])
+            } else {
+                self.micStop()
+                self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
+            }
+        }
+    }
+#endif
+
     private func remote(_ command: String) {
         emit(["type": "remote", "command": command])
     }
@@ -631,3 +761,170 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
     }
 }
+
+#if os(macOS)
+import CoreAudio
+
+/// Mac 系统声音采集（learning-design §9.8）：Core Audio process tap（全系统、排除本进程）+ 私有聚合设备 + IOProc。
+/// IOProc 里降混成单声道 Float32，交给 MTAudioBridge 的同一个出口 micDeliver。
+/// 权限是「仅系统录音」（NSAudioCaptureUsageDescription），不是屏幕录制（尖刺 S1 截图为证）。
+/// 默认输出设备变了（插耳机、切 AirPlay）⇒ 聚合设备的主子设备跟着换，在队列上重建一次。
+@available(macOS 14.4, *)
+final class MTSystemTap {
+    /// 建好 tap、IOProc 开始之前，在主线程上调一次（桥据此建转换器）。
+    var onFormat: ((AVAudioFormat) -> Void)?
+    /// IO 线程上调：单声道 Float32、tap 的采样率。
+    var onBuffer: ((AVAudioPCMBuffer) -> Void)?
+    /// 运行中重建失败，在主线程上调。
+    var onLost: ((OSStatus) -> Void)?
+
+    private let queue = DispatchQueue(label: MTAudioBridge.channel)
+    private var tapID = AudioObjectID(kAudioObjectUnknown)
+    private var aggID = AudioObjectID(kAudioObjectUnknown)
+    private var procID: AudioDeviceIOProcID?
+    private var listener: AudioObjectPropertyListenerBlock?
+    private var running = false
+    private var stopped = false
+
+    /// done 在主线程上调：noErr = HAL 已就绪。
+    func start(_ done: @escaping (OSStatus) -> Void) {
+        queue.async {
+            let st = self.stopped ? OSStatus(-1) : self.build()
+            if st == noErr { self.running = true; self.watchDefaultOutput() } else { self.teardown() }
+            DispatchQueue.main.async { done(st) }
+        }
+    }
+
+    /// 异步：排在还卡着的 start 后面，等 HAL 返回再拆。
+    func stop() {
+        queue.async {
+            self.stopped = true
+            self.running = false
+            self.unwatch()
+            self.teardown()
+        }
+    }
+
+    private static func address(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    }
+
+    private static func defaultOutputUID() -> String? {
+        var dev = AudioObjectID(kAudioObjectUnknown)
+        var addr = address(kAudioHardwarePropertyDefaultOutputDevice)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &dev) == noErr else { return nil }
+        var uid: Unmanaged<CFString>?
+        var uaddr = address(kAudioDevicePropertyDeviceUID)
+        size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        guard AudioObjectGetPropertyData(dev, &uaddr, 0, nil, &size, &uid) == noErr, let u = uid?.takeRetainedValue() else { return nil }
+        return u as String
+    }
+
+    private func build() -> OSStatus {
+        var pid = getpid()
+        var own = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var addr = MTSystemTap.address(kAudioHardwarePropertyTranslatePIDToProcessObject)
+        _ = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &pid, &size, &own)
+        // 排除本进程（尖刺 S1b 实证有效）：App 自己的提示音不进字幕。WebKit 的声音来自它自己的 GPU 进程，不在此列（§9.8）。
+        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: own == kAudioObjectUnknown ? [] : [own])
+        desc.uuid = UUID()
+        desc.name = MTAudioBridge.channel
+        desc.isPrivate = true
+        desc.muteBehavior = .unmuted
+        var tap = AudioObjectID(kAudioObjectUnknown)
+        var st = AudioHardwareCreateProcessTap(desc, &tap)
+        guard st == noErr else { return st }
+        tapID = tap
+
+        var asbd = AudioStreamBasicDescription()
+        size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+        var fmtAddr = MTSystemTap.address(kAudioTapPropertyFormat)
+        st = AudioObjectGetPropertyData(tap, &fmtAddr, 0, nil, &size, &asbd)
+        guard st == noErr else { return st }
+        guard let format = AVAudioFormat(streamDescription: &asbd),
+              let mono = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: asbd.mSampleRate, channels: 1, interleaved: false),
+              let outUID = MTSystemTap.defaultOutputUID() else { return OSStatus(-1) }
+
+        let dict: [String: Any] = [
+            kAudioAggregateDeviceNameKey: MTAudioBridge.channel,
+            kAudioAggregateDeviceUIDKey: UUID().uuidString,
+            kAudioAggregateDeviceMainSubDeviceKey: outUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: false,
+            kAudioAggregateDeviceTapAutoStartKey: true,
+            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: outUID]],
+            kAudioAggregateDeviceTapListKey: [[kAudioSubTapDriftCompensationKey: true, kAudioSubTapUIDKey: desc.uuid.uuidString]],
+        ]
+        var agg = AudioObjectID(kAudioObjectUnknown)
+        st = AudioHardwareCreateAggregateDevice(dict as CFDictionary, &agg)
+        guard st == noErr else { return st }
+        aggID = agg
+
+        DispatchQueue.main.sync { self.onFormat?(mono) }
+        let channels = Int(format.channelCount)
+        let interleaved = format.isInterleaved
+        var proc: AudioDeviceIOProcID?
+        st = AudioDeviceCreateIOProcIDWithBlock(&proc, agg, nil) { [weak self] _, inData, _, _, _ in
+            guard let self = self, let sink = self.onBuffer,
+                  let src = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inData, deallocator: nil),
+                  src.frameLength > 0, let s = src.floatChannelData,
+                  let dst = AVAudioPCMBuffer(pcmFormat: mono, frameCapacity: src.frameLength),
+                  let d = dst.floatChannelData?[0] else { return }
+            let n = Int(src.frameLength)
+            dst.frameLength = src.frameLength
+            let k = Float(max(channels, 1))
+            for i in 0..<n {
+                var acc: Float = 0
+                for c in 0..<channels { acc += interleaved ? s[0][i * channels + c] : s[c][i] }
+                d[i] = acc / k
+            }
+            sink(dst)
+        }
+        guard st == noErr, let proc = proc else { return st == noErr ? OSStatus(-1) : st }
+        procID = proc
+        return AudioDeviceStart(agg, proc)
+    }
+
+    private func watchDefaultOutput() {
+        guard listener == nil else { return }
+        var addr = MTSystemTap.address(kAudioHardwarePropertyDefaultOutputDevice)
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard let self = self, self.running, !self.stopped else { return }
+            self.teardown()
+            let st = self.build()
+            if st != noErr {
+                self.running = false
+                self.teardown()
+                DispatchQueue.main.async { self.onLost?(st) }
+            }
+        }
+        listener = block
+        _ = AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, queue, block)
+    }
+
+    private func unwatch() {
+        guard let block = listener else { return }
+        var addr = MTSystemTap.address(kAudioHardwarePropertyDefaultOutputDevice)
+        _ = AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, queue, block)
+        listener = nil
+    }
+
+    private func teardown() {
+        if aggID != kAudioObjectUnknown, let p = procID {
+            _ = AudioDeviceStop(aggID, p)
+            _ = AudioDeviceDestroyIOProcID(aggID, p)
+        }
+        procID = nil
+        if aggID != kAudioObjectUnknown {
+            _ = AudioHardwareDestroyAggregateDevice(aggID)
+            aggID = AudioObjectID(kAudioObjectUnknown)
+        }
+        if tapID != kAudioObjectUnknown {
+            _ = AudioHardwareDestroyProcessTap(tapID)
+            tapID = AudioObjectID(kAudioObjectUnknown)
+        }
+    }
+}
+#endif

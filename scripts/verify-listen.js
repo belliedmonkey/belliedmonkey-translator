@@ -194,7 +194,7 @@ function say(base, text) {
         st.msgs.push(msg);
         if (msg.type === 'caps-probe') { if (st.caps) setTimeout(() => emit(Object.assign({ type: 'audio-caps' }, st.caps)), 0); }
         else if (msg.type === 'session-start') setTimeout(() => emit({ type: 'session-ready', platform: 'macos', suspends: false }), 0);
-        else if (msg.type === 'mic-start') { st.started++; st.deliver = msg.deliver || 'pcm'; setTimeout(() => emit({ type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer);
+        else if (msg.type === 'mic-start') { st.started++; st.deliver = msg.deliver || 'pcm'; setTimeout(() => emit(st.holdGrant ? { type: 'mic-state', state: 'waiting', reason: 'waiting-permission', source: msg.source || 'mic' } : { type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer);
           // 本机路（§9.6.1）：deliver:'level' ⇒ 原生不发 PCM，只发电平
           st.timer = setInterval(() => emit(st.deliver === 'level' ? { type: 'mic-level', rms: 0.2 } : { type: 'mic-pcm', b64: pcm() }), 100); }
         else if (msg.type === 'mic-stop') { st.stopped++; clearInterval(st.timer); st.timer = 0; setTimeout(() => emit({ type: 'mic-state', state: 'ended' }), 0); }
@@ -525,8 +525,16 @@ function say(base, text) {
       'H3: 点入口该停在准备态（不开麦）、标题「实时字幕」、按钮「开始」、Mac 隐私句可见，实际 ' + JSON.stringify(h3));
     // H4. 点「开始」⇒ 字幕档会话 + 系统声音来源 + 字幕条配置
     const msgMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    // H4a. 首次开始、系统录音权限框还没点（§9.8 协议补充决定 10）：原生报 waiting ⇒ 停在准备中，页面与字幕条都说在等授权
+    await evalIn(cdp, sessionId, `(__fakeBridge.holdGrant = true, 'ok')`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4: 字幕模式进入 listening');
+    const h4a = await waitFor(async () => {
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${msgMark}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+      return r.states.includes('waiting-permission') ? r : null;
+    }, 8000, 'H4a: 等授权时字幕条收到 waiting-permission');
+    need(h4a.phase === 'preparing' && /等待系统授权/.test(h4a.note), 'H4a: 等授权时该停在准备中、页面说在等授权，实际 ' + JSON.stringify(h4a));
+    await evalIn(cdp, sessionId, `(__fakeBridge.holdGrant = false, NativeAudio._fromNative({ type: 'mic-state', state: 'granted', source: 'system' }), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4: 授权后字幕模式进入 listening');
     const h4 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${msgMark}).filter((m) => m.type !== 'mic-pcm').map((m) => ({ type: m.type, on: m.on, profile: m.profile, source: m.source, hasLabels: !!(m.labels && m.labels.state && m.labels.controls) })))`));
     const rm = h4.find((m) => m.type === 'record-mode'), ms = h4.find((m) => m.type === 'mic-start'), sc = h4.find((m) => m.type === 'subtitle-config');
     need(rm && rm.on === true && rm.profile === 'subtitle', 'H4: record-mode 该带 profile:subtitle，实际 ' + JSON.stringify(rm));
@@ -559,6 +567,12 @@ function say(base, text) {
       'H7: 字幕句锚点该是 k:conv / mode:subtitle / who:them，实际 ' + JSON.stringify(itemsH[0]));
     const srcH = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allSources().then((a) => JSON.stringify(a.filter((s) => s.id === ${JSON.stringify(itemsH[0].sourceId)}).map((s) => s.title)))`));
     need(srcH.length === 1 && /^实时字幕 · \d{4}-\d{2}-\d{2}/.test(srcH[0]), 'H7: 来源标题该是「实时字幕 · 日期」，实际 ' + JSON.stringify(srcH));
+    // H7b. 字幕条 A+（§9.8 协议补充决定 9）：原生发 remote font-up ⇒ 页面落盘 subtitleFontScale、恰好重发一条 subtitle-config
+    const fontMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'remote', command: 'font-up' }), 'ok')`);
+    await sleep(300);
+    const h7b = JSON.parse(await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.get(['subtitleFontScale'], (s) => r(JSON.stringify({ stored: (s || {}).subtitleFontScale, cfgs: __fakeBridge.msgs.slice(${fontMark}).filter((m) => m.type === 'subtitle-config').map((m) => m.fontScale) }))))`));
+    need(h7b.stored === 1.2 && JSON.stringify(h7b.cfgs) === '[1.2]', 'H7b: A+ 该把字号存成 1.2 并恰好重发一条 subtitle-config，实际 ' + JSON.stringify(h7b));
     // H8. 字幕条上的「结束」= 原生发 remote {command:'end'} ⇒ 会话结束、字幕条收起、小结「这次字幕」
     const endMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
