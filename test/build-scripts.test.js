@@ -399,6 +399,7 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     ok(/restoring \? "inline" : "closed"/.test(tpl), '回到 App = inline，点 ✕ = closed');
     // 用户 2026-09-14 15 Pro 手测后裁定的三处
     ok(/renderSize = CGSize\(width: 640, height: 800\)/.test(tpl), '小窗默认 4:5 偏竖（宽高比由帧决定）');
+    ok(/let u = size\.width \* 0\.5625/.test(tpl) && !/size\.height \* 0\./.test(tpl), '字号按宽度算：窗口越高放的句子越多（按高度算只会把字放大）');
     ok(/requiresLinearPlayback = false/.test(tpl) && /skipInterval\.seconds < 0/.test(tpl) && /historyOffset/.test(tpl), '借系统后退 / 前进按钮翻看历史');
     ok(/lines\.isEmpty && partial == nil/.test(tpl) && /pipLabels\["hint"\]/.test(tpl), '空窗画说明，不是一块黑');
     ok(listen.includes("subtitle_pip_hint") && listen.includes("subtitle_bar_listening_mic"), '页面把小窗说明与 iPhone 版「正在听」传给原生');

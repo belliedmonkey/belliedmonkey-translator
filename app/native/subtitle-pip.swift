@@ -177,6 +177,9 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     private func render() {
         dirty = false
         let size = CGSize(width: max(320, renderSize.width), height: max(180, renderSize.height))
+        // 字号与边距按**宽度**算（16:9 时与原来一样大）：窗口越高能放的句子越多。15 Pro 复测截图：按高度算时 4:5 只是把字放大，
+        // 一屏仍只有两句半，没兑现「一次看 4–5 句」（§9.8 协议补充决定 24）
+        let u = size.width * 0.5625
         let fmt = UIGraphicsImageRendererFormat()
         fmt.scale = 1
         fmt.opaque = true
@@ -191,20 +194,20 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         let img = UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
             MTSubtitlePip.background.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
-            let pad = size.height * 0.06
+            let pad = u * 0.06
             let w = size.width - pad * 2
-            let trFont = UIFont.systemFont(ofSize: size.height * 0.095, weight: .semibold)
+            let trFont = UIFont.systemFont(ofSize: u * 0.095, weight: .semibold)
             let trAttr: [NSAttributedString.Key: Any] = [.font: trFont, .foregroundColor: UIColor.white]
             let trItalic: [NSAttributedString.Key: Any] = [
                 .font: UIFont(descriptor: trFont.fontDescriptor.withSymbolicTraits(.traitItalic) ?? trFont.fontDescriptor, size: trFont.pointSize),
                 .foregroundColor: UIColor.white]
-            let orAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.066), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
-            let stAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.066, weight: .medium), .foregroundColor: MTSubtitlePip.stateColor]
+            let orAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.066), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
+            let stAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.066, weight: .medium), .foregroundColor: MTSubtitlePip.stateColor]
             // 空窗（还没有一句字幕）：画说明，而不是一块莫名其妙的黑（用户 2026-09-14：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙」）
             if lines.isEmpty && partial == nil {
-                let titleAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.045, weight: .medium), .foregroundColor: UIColor(white: 1, alpha: 0.55)]
-                let hintAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.062, weight: .semibold), .foregroundColor: UIColor.white]
-                let closeAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.042), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
+                let titleAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.045, weight: .medium), .foregroundColor: UIColor(white: 1, alpha: 0.55)]
+                let hintAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.062, weight: .semibold), .foregroundColor: UIColor.white]
+                let closeAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.042), .foregroundColor: UIColor(white: 1, alpha: 0.62)]
                 var ty = pad * 1.4
                 for (text, attr) in [(emptyTitle, titleAttr), (emptyHint, hintAttr), (emptyClose, closeAttr)] where !text.isEmpty {
                     let r = (text as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
@@ -214,7 +217,7 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             }
             var top: CGFloat = 0
             if !historyText.isEmpty {
-                let hAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: size.height * 0.05, weight: .semibold), .foregroundColor: MTSubtitlePip.stateColor]
+                let hAttr: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: u * 0.05, weight: .semibold), .foregroundColor: MTSubtitlePip.stateColor]
                 let r = (historyText as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: hAttr, context: nil)
                 (historyText as NSString).draw(with: CGRect(x: pad, y: pad * 0.8, width: w, height: ceil(r.height)), options: .usesLineFragmentOrigin, attributes: hAttr, context: nil)
                 top = pad * 0.8 + ceil(r.height) + pad * 0.5
