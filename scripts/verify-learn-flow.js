@@ -499,6 +499,11 @@ async function runHost(host) {
           need(!(await ev(`document.getElementById('play').disabled`)), 'und 卡（英文文本）应按脚本兜底成英语语音，播放按钮可用');
           const asked = !!((await item('und1')) || {}).langAsked;
           need(asked, 'und 卡被看到后应记下 langAsked（只问一次）');
+          // langAsked 只说明「记了问过」，说明不了「真的问了」：页面没加载 TranslationAPI 时 review.js 跳过引擎、
+          // 照样记 langAsked=true，拉丁字母卡从此永远是 und（全回归 2026-09-14 F05，扩展 review.html 缺脚本）。
+          // 判据是「页面上真有这个传输」，而不是「端点收到了请求」：本步时套件还没配翻译引擎，两个宿主都不会发。
+          const detectLoaded = await ev(`typeof TranslationAPI !== 'undefined' && typeof TranslationAPI.detectLanguage === 'function'`);
+          need(detectLoaded, 'und 卡的语言推断要问翻译引擎 —— 页面上必须加载了 TranslationAPI.detectLanguage（扩展 review.html 曾漏掉 translation-api.js 及其依赖）');
         } else {
           need((await text('#play')).length > 0, '认读卡播放按钮无文字');
         }

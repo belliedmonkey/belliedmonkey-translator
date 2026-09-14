@@ -2463,3 +2463,32 @@ X2Q85MABWK，历史签名包，删掉再看。`learn/` 是文件夹引用，新�
 | F iOS App | 首页两入口 → `#app-docs` | ✅ `__MT_PDFJS` blob 路（D0 探针：file:// 不通、blob: 通） | ✅ 第 1 页（5 次） | ✅ 只发第 2 页 | ✅ | ✅ | ✅ 返回 `[hidden]` 真隐藏 |
 | G macOS App | 首页两入口 | ✅ 同 F | 结构验通（NSOpenPanel 四步留人工/AX） | — | — | — | — |
 | 中国版 | 同上（图片走多模态，免费额度文字走中继、图片不走 —— 中国版无额度） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+## 矩阵执行记录：全回归（2026-09-14）
+
+上期（2026-09-11，a2b1379）之后 main 合了 25 个提交、128 个文件：对话改本机转写 + 原生朗读（#244–#251）、
+系统下限 iOS 16.4 / macOS 13.3、学习卡语言推断（20a1460）、App 设置页外链（#256）、实时字幕 Mac 原生与
+iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro 的部分回家操作」。基线 main `a6edddf`，
+证据落 `.local/regress-2026-09-14/`（gitignored）。本期新增行：**R15** 本机转写 / 原生朗读 · **R16** 实时字幕 ·
+**R17** App 设置页外链 · **R18** 学习卡语言推断。
+
+### 本轮发现并修复的产品缺陷（先红后绿）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| F05 | 扩展复习页（全平台扩展） | 复习页里 `lang:'und'` 的拉丁字母卡被看过后 `langAsked=true` 却仍是 `und`，翻译引擎请求 0 条（日文卡按脚本猜成 ja 正常） | `extension/learn/review.html` 没加载 `content/translation-api.js`（及 translation-core / engine-state / langs.gen），`TranslationAPI` 不存在 ⇒ review.js 跳过引擎、照记 langAsked，此后永不再问。App 包 MODULES 本来就有。20a1460 合入于 1.10.0 发版之后，未发给用户 | review.html 按 docs.html 的顺序补四个脚本；`test:learn` 断言「页面上加载了 TranslationAPI.detectLanguage」——先红（扩展 ✗ / App ✓）后绿；真 Chrome + DeepSeek 复跑法文卡读回 `fr` |
+
+### 各面结果
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **机器门禁** | 28 条 ✅（`npm test` 首跑红 = 本机 vendor 的 SherpaOnnxC plist 13.0，#265 新门禁照设计抓到，修后 1700/0）；`test:setup-page` 红 = 站点启用页深色对比度旧账（TODO 234），版本链一致那一半本期已绿 | F05 修后 test:learn 双宿主 / smoke / signin / sync / app ×2 复跑绿 |
+| **A iPhone Safari 模拟器（iOS 17.2）** | R00 / R13 / R07 / R09 / R06 两卡 + 领取 + 中继 / R03 / R10 / R01 文件档 ✅；R01 HLS（data: 页不注入）◐、R02（iOS 弹窗要真手势）◐ | 覆盖安装后 `GrantedPermissionOrigins` 必须是**字典** `{来源: 过期时间}`，写成列表 = 没授权、内容脚本不注入（工具修正） |
+| **B iPad 模拟器（iOS 17.2）** | R00 / R07 / R09 / R06 / R03 / R10 ✅ | 同构建复用 A |
+| **C macOS Safari（用户输密码开「允许未签名的扩展」后）** | R00 plato 8 段 / R01 MSE 具名停 / R07 / R09 / R06 领取 + 中继 / R10 第 1·2 页 + 列表 3 页 + 重开直达 / R11 / **R18（F05 修后）日文 ja · 法文 fr** ✅ · R03 实时段可见 ✅、自动聚焦 ◐（AppleScript 驱动时窗口非 key）· YouTube 双字幕 ◐（同上期：本机 YouTube 自己不发 timedtext）· **R01 文件档 ❓ 待查**：transistor 页音频在播、叠层 150 s 停在「字幕加载中」、offer 不出现；扩展后台 ping / proxyFetch 均正常；同链接 A 面 iOS Safari 今晚通过 | 本机 Safari 扩展列表会缓存同名旧行，勾之前选中看详情里的版本号；收尾把 /tmp 调试包的登记注销、生产包登记回来 |
+| **D macOS Chrome** | R00 / R09 / R07 / R06 全表 + R11 / R03 / R02 五态 / R10 全表 / R00 YouTube / R01 实时档 + 菜单三行 + 改引擎停机 + 换视频 / **R18（F05 修后）** ✅ | R07 要干净 profile（同 profile 前面译过的页命中缓存）；R01 采集要 CDP 真指针（`.click()` 不算手势） |
+| **E Firefox 155** | R00 / R09 / R06 两卡 / R03 / R07（清缓存后）/ R06 领取 + 中继（种会话）/ R10（清库后）✅ | 持久 profile 里上期同名 PDF 会「重开直达第 2 页」；docs-page 在点「上传」时才挂 change 监听 |
+| **F iOS App 模拟器（iOS 17.2）** | **R15** 选设备内置转写 ⇒ 两入口灰 + 「需要 iOS 26 / macOS 26」✅ · **R16** 准备页（不点名 Safari / Gate I 隐私句 / 预览说明 / 4:5）+ 开始 listening·inline + 定稿 + 结束说明 ✅（首跑 denied = 模拟器未授麦克风，具名出口本身也验了）· **R17** ◐（脚本点击不算 linkActivated，留真机）· R05 / R04 门控 + 归属 + 两向翻译 + 返回确认 + 小结 / R03 / R06 / R08 / R11 / R10 全表 ✅ | 观察 O1：两个入口原因相同时首页下方同一句连写两遍（待用户判断） |
+| **F-bis 真机 14 Pro** | 验证包（国际 + 中国）已装；M31 画中画、R17 手点留用户回家 | — |
+| **G macOS App（macOS 26.5）** | R05 首页三行 / R08 横幅收起 / R03 / R06 / R11 / R04 宽屏两栏 / R10 文档视图结构 ✅ · **R15** 设备转写资产 installed、入口可用 ✅ · **R16** 准备页无画中画、提示悬浮条、开始 listening ✅ · R04 复制全文剪贴板读回空 ◐ · R17 真点击 ◐ · M26 系统声音（权限现为「不允许」）留用户 | 首跑遇 Mac 息屏，页面不应答控制通道；用户解锁后跑完。调试包与生产包共用容器 ⇒ 开跑前备份、跑完还原；/tmp 构建会被 pluginkit 登记成同 id 多行，收尾逐个注销 |
+| **中国版关键行** | 真禁端点路径全 0、无 google、默认 deepseek、同步 `enabled:false`、浏览器宿主评分行藏掉（rateUrl null）、合规门与 china 门禁全绿 ✅ | — |
