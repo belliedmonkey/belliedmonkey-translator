@@ -63,11 +63,14 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         preview.layer.addSublayer(displayLayer)
         webView.addSubview(preview)
 
-        let c = AVPictureInPictureController(contentSource: .init(sampleBufferDisplayLayer: displayLayer, playbackDelegate: self))
-        c.delegate = self
-        c.canStartPictureInPictureAutomaticallyFromInline = true
-        c.requiresLinearPlayback = true
-        pip = c
+        // 系统不支持画中画（模拟器实测：isPictureInPictureSupported NO，控制器建出来是空的）⇒ 不建；预览照画，浮出时如实回 failed
+        if AVPictureInPictureController.isPictureInPictureSupported() {
+            let c = AVPictureInPictureController(contentSource: .init(sampleBufferDisplayLayer: displayLayer, playbackDelegate: self))
+            c.delegate = self
+            c.canStartPictureInPictureAutomaticallyFromInline = true
+            c.requiresLinearPlayback = true
+            pip = c
+        }
 
         render()
         let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -98,7 +101,9 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             dirty = true
             return
         }
-        guard let c = pip, !c.isPictureInPictureActive else { return }
+        // 不静默：没有画中画可用也要回一句，页面的「浮出字幕窗」保持可点（协议补充决定 20）
+        guard let c = pip else { onWindow?(["state": "closed", "reason": "failed"]); return }
+        guard !c.isPictureInPictureActive else { return }
         let active = webView.window?.windowScene?.activationState == .foregroundActive
         guard active, c.isPictureInPicturePossible else {
             onWindow?(["state": "closed", "reason": "not-active"])
@@ -191,14 +196,16 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
                 let head = item.tr.isEmpty ? item.orig : item.tr
                 let headText = item.partial ? head + "…" : head
                 let sub = item.tr.isEmpty ? "" : item.orig
-                if !sub.isEmpty {
-                    let o = (sub as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil)
-                    y -= ceil(o.height)
-                    (sub as NSString).draw(with: CGRect(x: pad, y: y, width: w, height: ceil(o.height)), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil)
-                    y -= 2
-                }
                 let attr = item.partial ? trItalic : trAttr
                 let t = (headText as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
+                let subH: CGFloat = sub.isEmpty ? 0 : ceil((sub as NSString).boundingRect(with: CGSize(width: w, height: size.height), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil).height) + 2
+                // 放不下的旧句子整句不画（模拟器截图：最上面一句被截掉半截）；最新一句总是画
+                if y - subH - ceil(t.height) < 0 && item.orig != items.last?.orig { break }
+                if !sub.isEmpty {
+                    y -= subH - 2
+                    (sub as NSString).draw(with: CGRect(x: pad, y: y, width: w, height: subH - 2), options: .usesLineFragmentOrigin, attributes: orAttr, context: nil)
+                    y -= 2
+                }
                 y -= ceil(t.height)
                 (headText as NSString).draw(with: CGRect(x: pad, y: y, width: w, height: ceil(t.height)), options: .usesLineFragmentOrigin, attributes: attr, context: nil)
                 y -= pad * 0.7

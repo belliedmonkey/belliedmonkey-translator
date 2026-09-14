@@ -396,6 +396,8 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     ok(/setPlaying playing: Bool\) \{\s*onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play');
     ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
     ok(/restoring \? "inline" : "closed"/.test(tpl), '回到 App = inline，点 ✕ = closed');
+    ok(/guard let c = pip else \{ onWindow\?\(\["state": "closed", "reason": "failed"\]\); return \}/.test(tpl), '没有画中画可用时浮出也要回一句（模拟器实测：不支持时控制器是空的，曾静默返回）');
+    ok(/isPictureInPictureSupported\(\)/.test(tpl), '不支持画中画时不建控制器');
     ok(listen.includes("msg.type === 'subtitle-window'") && listen.includes("pipWindow === 'closed'"), '页面据 subtitle-window 显示「浮出字幕窗」');
   });
   test('字幕档会话不带蓝牙、所有重申按同一个 profile（16）；耳机判据（21）', () => {
