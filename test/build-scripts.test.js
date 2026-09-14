@@ -339,7 +339,9 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const at = body.indexOf('private func capsProbe');
     ok(at > 0, '有 capsProbe');
     const fn = body.slice(at, body.indexOf('\n    }\n', at));
-    ok(fn.includes('#if os(macOS)') && fn.indexOf('"audio-caps"') > fn.indexOf('#if os(macOS)'), 'iOS 不回 audio-caps —— 画中画一期落地前 iPhone 上入口不显示');
+    ok(fn.includes('#if os(macOS)') && fn.indexOf('"audio-caps"') > fn.indexOf('#if os(macOS)'), 'Mac 按系统版本回 ok / os');
+    const iosPart = fn.slice(fn.indexOf('#else'));
+    ok(fn.includes('#else') && /"system": "unsupported"/.test(iosPart), 'iOS 一期整体到位后回 system:unsupported（协议补充决定 15）—— 回了 iPhone 首页才出现入口');
     ok(/#available\(macOS 14\.4, \*\)/.test(body), '系统声音守 macOS 14.4');
     ok(/stereoGlobalTapButExcludeProcesses/.test(body), '排除本进程（尖刺 S1b）');
     ok(/"waiting-permission"/.test(body) && /\.now\(\) \+ 2\)/.test(body) && /\.now\(\) \+ 90\)/.test(body), '2 s 报等待授权、90 s 超时按拒绝');
@@ -361,6 +363,51 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
   });
   test('plist：系统录音权限说明只给 macOS App（Gate I）', () => {
     ok(/key: 'NSAudioCaptureUsageDescription', only: 'macOS \(App\)'/.test(sync), 'PLIST_KEYS 里有只给 macOS 的那一行');
+  });
+});
+
+describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-design §9.8 协议补充决定（三））', () => {
+  const R = path.resolve(__dirname, '..');
+  const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'subtitle-pip.swift'), 'utf8');
+  const audio = fs.readFileSync(path.join(R, 'app', 'native', 'audio-bridge.swift'), 'utf8');
+  const sync = fs.readFileSync(path.join(R, 'scripts', 'sync-app-assets.js'), 'utf8');
+  const listen = fs.readFileSync(path.join(R, 'app', 'listen.js'), 'utf8');
+  const { BLOCKS } = require('../scripts/sync-app-assets.js');
+  const code = (src) => src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  test('登记成标记块；整份只在 iOS 编译', () => {
+    ok(BLOCKS.some((b) => b.src === 'subtitle-pip.swift' && b.name === 'mt-subtitle-pip'), 'BLOCKS 里有 mt-subtitle-pip');
+    const body = code(tpl).trim();
+    ok(body.startsWith('#if os(iOS)') && body.endsWith('#endif'), '整份包在 #if os(iOS) … #endif 里');
+  });
+  test('形状照尖刺 S7：自绘帧进画中画、离开 App 自动浮出', () => {
+    ok(/AVPictureInPictureController\(contentSource: \.init\(sampleBufferDisplayLayer:/.test(tpl), 'sampleBufferDisplayLayer 做来源');
+    ok(/canStartPictureInPictureAutomaticallyFromInline = true/.test(tpl), '离开 App 时自动浮出');
+    ok(/isUserInteractionEnabled = false/.test(tpl), '预览不接触摸（下面是网页）');
+    ok(/didTransitionToRenderSize/.test(tpl) && /renderSize = /.test(tpl), '按系统回报的新尺寸重画（I5）');
+  });
+  test('零文案：字面量只有协议 id、{pct} 占位符与省略号', () => {
+    const strings = code(tpl).match(/"[^"]*"/g) || [];
+    const allowed = new Set(['""', '"labels"', '"state"', '"orig"', '"tr"', '"partial"', '"pct"', '"rect"', '"x"', '"y"', '"w"', '"h"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"play"', '"pause"',
+      '"inline"', '"floating"', '"closed"', '"reason"', '"not-active"', '"failed"', '"{pct}"', '"…"']);
+    for (const lit of strings) ok(allowed.has(lit), `画中画字幕窗里出现了非协议字符串（可能是文案）：${lit}`);
+  });
+  test('系统控件回页面（19）、浮出只在前台活跃时成（20）', () => {
+    ok(/setPlaying playing: Bool\) \{\s*onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play');
+    ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
+    ok(/restoring \? "inline" : "closed"/.test(tpl), '回到 App = inline，点 ✕ = closed');
+    ok(listen.includes("msg.type === 'subtitle-window'") && listen.includes("pipWindow === 'closed'"), '页面据 subtitle-window 显示「浮出字幕窗」');
+  });
+  test('字幕档会话不带蓝牙、所有重申按同一个 profile（16）；耳机判据（21）', () => {
+    const body = code(audio);
+    ok(!/options: \[\.defaultToSpeaker, \.allowBluetooth, \.mixWithOthers\]\)/.test(body), '不再有硬写对话档选项的 setCategory');
+    ok((body.match(/options: recordOptions/g) || []).length >= 3, '建会话 / 起引擎 / playing-state 重申都读 recordOptions');
+    ok(/recordProfile == "subtitle" \? \[\.mixWithOthers, \.defaultToSpeaker\]/.test(body), '字幕档 = mixWithOthers + defaultToSpeaker，不带 allowBluetooth');
+    ok(/\.headphones, \.bluetoothA2DP, \.bluetoothLE, \.bluetoothHFP/.test(body) && /"reason": "headphones"/.test(body), '输出走耳机 / 蓝牙 ⇒ headphones');
+    ok(/onRouteChange[\s\S]{0,120}checkHeadphones\(\)/.test(body), '路由变化时再判');
+  });
+  test('麦克风权限说明点名 iPhone「实时字幕」（Gate I）', () => {
+    ok(/const MIC_TEXT = '[^']*实时字幕/.test(sync), 'NSMicrophoneUsageDescription 要提实时字幕（一期听外放用的是麦克风）');
   });
 });
 
@@ -576,6 +623,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"audio-caps"', '"sources"', '"mic"', '"system"', '"ok"', '"os"', '"unsupported"', '"broadcast"', '"source"',   // §9.8 能力回话与声音来源
         '"waiting"', '"waiting-permission"', '"timeout"', '"tick"', '"t"',   // §9.8 协议补充决定 10、13
         '"zero-frames"',   // §9.8 协议补充决定 10 修订（M30：拒绝 = 放行但全零帧）
+        '"profile"', '"conv"', '"headphones"', '"subtitle-window"',   // §9.8 协议补充决定（三）16、19、21（iPhone 一期）
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',

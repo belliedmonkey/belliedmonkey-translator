@@ -130,7 +130,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "now-playing":    updateNowPlaying(body); updateActivity(body)
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
-        case "record-mode":    recordMode = (body["on"] as? Bool) ?? false   // 实时听译（§9.6）
+        case "record-mode":    setRecordMode(body)   // 实时听译（§9.6）/ 字幕档（§9.8 协议补充决定 2、16）
         case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
                                         deliverPcm: (body["deliver"] as? String) != "level",
                                         system: (body["source"] as? String) == "system")
@@ -141,7 +141,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "subtitle-config": subtitleConfig(body)
         case "subtitle-show":   subtitleShow(body)
         case "subtitle-state":  subtitleState(body)
-        case "subtitle-float":  break   // iOS 画中画（一期）
+        case "subtitle-float":  subtitleFloat(body)
         case "subtitle-hide":   subtitleHide()
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
@@ -232,7 +232,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 漏掉这一步的表现是「权限给了、tap 装了、块里全是 0」—— 查起来极贵。
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
+            try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
             try session.setActive(true)
         } catch {
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
@@ -267,6 +267,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             return
         }
         emit(["type": "mic-state", "state": "granted"])
+#if os(iOS)
+        checkHeadphones()
+#endif
     }
 
     private func micDeliver(_ raw: AVAudioPCMBuffer) {
@@ -323,6 +326,32 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// 由 JS 在 session-start 之前用 record-mode 声明，原生只在建会话时读它。
     private var recordMode = false
 
+    private func setRecordMode(_ body: [String: Any]) {
+        recordMode = (body["on"] as? Bool) ?? false
+#if os(iOS)
+        recordProfile = recordMode ? ((body["profile"] as? String) ?? "conv") : "conv"
+#endif
+    }
+
+#if os(iOS)
+    /// 这次录音会话的档（§9.8 协议补充决定 16）。**所有重申类别的地方都按它**：建会话、起引擎、playing-state 重申、
+    /// 路由变化后重起 —— 硬写对话档的 .allowBluetooth 会让字幕档连着 AirPods 时被强切通话音质。
+    private var recordProfile = "conv"
+    private var recordOptions: AVAudioSession.CategoryOptions {
+        recordProfile == "subtitle" ? [.mixWithOthers, .defaultToSpeaker] : [.defaultToSpeaker, .allowBluetooth, .mixWithOthers]
+    }
+
+    /// 戴耳机（协议补充决定 21）：字幕档听的是外放，输出走耳机 / 蓝牙时麦克风听不到视频。开始时判一次，路由变化再判；
+    /// 摘下不自动恢复（由用户点「继续」）。
+    private func checkHeadphones() {
+        guard recordProfile == "subtitle", micEngine != nil else { return }
+        let phones: [AVAudioSession.Port] = [.headphones, .bluetoothA2DP, .bluetoothLE, .bluetoothHFP]
+        guard AVAudioSession.sharedInstance().currentRoute.outputs.contains(where: { phones.contains($0.portType) }) else { return }
+        micStop()
+        emit(["type": "mic-state", "state": "interrupted", "reason": "headphones", "source": "mic"])
+    }
+#endif
+
     private func startSession() {
 #if os(iOS)
         let session = AVAudioSession.sharedInstance()
@@ -334,7 +363,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                 // .playAndRecord + 扬声器 + 蓝牙 + 可混音：线下对话手机放桌上，声音要从外放出、耳机要能用；
                 // **可混音是必须的** —— 页内的保活音频与朗读走 WebKit 自己（GPU 进程）的音频会话，不可混音的
                 // 录音会话会被它当场打断（2026-09-07 真机：TestFlight 84 一进来就「录音被系统停止了」）。
-                try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
+                try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
             } else {
                 try session.setCategory(.playback, mode: .spokenAudio, options: [])
             }
@@ -564,7 +593,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             // 那一档 —— 2026-09-07 真机实证：结束再开始时这句把类别打回 .playback，
             // 麦克风引擎随即起不来（第一次能成只是因为权限查询把引擎启动排到了它后面）。
             if recordMode || micEngine != nil {
-                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers])
+                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: recordOptions)
             } else {
                 try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
             }
@@ -625,6 +654,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     @objc private func onRouteChange(_ note: Notification) {
+        DispatchQueue.main.async { [weak self] in self?.checkHeadphones() }
         guard let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
               AVAudioSession.RouteChangeReason(rawValue: raw) == .oldDeviceUnavailable else { return }
         // 耳机被拔了。暂停，且重连时**不**自动播 —— 拔掉耳机后从外放里冒出声音是所有
@@ -635,7 +665,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     // MARK: - 实时字幕（learning-design §9.8）
 
-    /// 能力回话（协议补充决定 11）。iOS 在画中画一期落地前**不回** ⇒ 页面按老壳处理、iPhone 上入口不显示。
+    /// 能力回话（协议补充决定 11、15）。iOS 一期（字幕档会话 + 画中画字幕窗）整体到位，开始回 system:'unsupported'（麦克风听外放）。
     private func capsProbe() {
 #if os(macOS)
         if #available(macOS 14.4, *) {
@@ -643,6 +673,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         } else {
             emit(["type": "audio-caps", "sources": ["mic"], "system": "os", "broadcast": "unsupported"])
         }
+#else
+        emit(["type": "audio-caps", "sources": ["mic"], "system": "unsupported", "broadcast": "unsupported"])
 #endif
     }
 
@@ -651,25 +683,47 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         let bar = MTSubtitleBar.shared
         bar.onRemote = { [weak self] command in self?.remote(command) }
         bar.configure(body, window: webView?.window)
-        tickOn()
+#else
+        let pip = MTSubtitlePip.shared
+        pip.onRemote = { [weak self] command in self?.remote(command) }
+        pip.onWindow = { [weak self] info in
+            var payload = info
+            payload["type"] = "subtitle-window"
+            self?.emit(payload)
+        }
+        if let webView = webView { pip.configure(body, webView: webView) }
 #endif
+        tickOn()   // 协议补充决定 13、22：字幕会话期间两个平台都发
     }
 
     private func subtitleShow(_ body: [String: Any]) {
 #if os(macOS)
         MTSubtitleBar.shared.show(body)
+#else
+        MTSubtitlePip.shared.show(body)
 #endif
     }
 
     private func subtitleState(_ body: [String: Any]) {
 #if os(macOS)
         MTSubtitleBar.shared.setState(body)
+#else
+        MTSubtitlePip.shared.setState(body)
+#endif
+    }
+
+    /// iOS：带 rect = 小窗预览的位置；不带 = 重新浮出画中画（协议补充决定 17、20）。Mac 没有这个动作。
+    private func subtitleFloat(_ body: [String: Any]) {
+#if os(iOS)
+        MTSubtitlePip.shared.float(body)
 #endif
     }
 
     private func subtitleHide() {
 #if os(macOS)
         MTSubtitleBar.shared.hide()
+#else
+        MTSubtitlePip.shared.hide()
 #endif
         tickOff()
     }

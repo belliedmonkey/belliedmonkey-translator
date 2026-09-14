@@ -391,6 +391,7 @@ var AppListen = (() => {
   // ── 实时字幕：字幕条 / 画中画（§9.8）──────────────────────────────────────
   // 原生零文案：半句与定稿走 subtitle-show，停机态走 subtitle-state，每个态的字在 subtitle-config 里。
   function subOn() { return !!(session && session.mode === 'subtitle' && bridged()); }
+  let pipWindow = '';            // iPhone 画中画小窗状态：inline / floating / closed（subtitle-window，协议补充决定 19）
   let subPartialShown = false;   // 条上此刻是不是一个半句（停下时要清掉，否则「粗加工。…」一直挂着 —— 真机读数 2026-09-14）
   function subShow(orig, tr, isPartial) { if (subOn()) { subPartialShown = !!isPartial; NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); } }
   function subFinal(row) {
@@ -415,6 +416,43 @@ var AppListen = (() => {
     cfg.fontScale = C.fontStep(cfg.fontScale, dir);
     try { chrome.storage.local.set({ subtitleFontScale: cfg.fontScale }); } catch (_) {}
     NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale, opacity: 1 });
+  }
+
+  // iPhone 画中画（§9.8 协议补充决定（三）17、19、20）：「现在」卡里的占位块就是小窗预览的位置 —— 系统要求画中画的来源在屏幕上，
+  // 原生在同一矩形上叠预览，离开 App 时由它自动浮出。位置随版面 / 滚动节流重发；滚出视口发 null。
+  function pipHost() {
+    const c = bridged() ? NativeAudio.audioCaps() : null;
+    return !!(session && session.mode === 'subtitle' && c && c.system === 'unsupported');
+  }
+  let pipOff = null, pipLastRect = '';
+  function pipSendRect() {
+    if (!pipHost()) return;
+    const el = $('app-subs-pip'); if (!el) return;
+    const r = el.getBoundingClientRect();
+    const on = !el.hidden && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+    const rect = on ? { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    const key = JSON.stringify(rect);
+    if (key === pipLastRect) return;
+    pipLastRect = key;
+    NativeAudio.subtitleFloat(rect);
+  }
+  function pipRectOn() {
+    if (!pipHost() || pipOff) return;
+    let timer = 0;
+    const later = () => { if (timer) return; timer = setTimeout(() => { timer = 0; pipSendRect(); }, 120); };
+    const el = $('app-subs-pip');
+    const ro = (typeof ResizeObserver !== 'undefined' && el) ? new ResizeObserver(later) : null;
+    if (ro) ro.observe(el);
+    window.addEventListener('scroll', later, true);
+    window.addEventListener('resize', later);
+    pipOff = () => { if (ro) ro.disconnect(); window.removeEventListener('scroll', later, true); window.removeEventListener('resize', later); clearTimeout(timer); };
+    pipLastRect = '';
+    pipSendRect();
+  }
+  function pipRectOff() { if (pipOff) { pipOff(); pipOff = null; } pipLastRect = ''; }
+  function paintPipFloat() {
+    const b = $('app-subs-float'); if (!b) return;
+    b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed');
   }
   function subtitleLabels() {
     return {
@@ -583,7 +621,7 @@ var AppListen = (() => {
       NativeAudio.onEvent(onNative);
       NativeAudio.recordMode(true, C.modeOf(session).profile);   // 对话档不带 profile，消息逐字节不变
       NativeAudio.sessionStart();
-      if (session.mode === 'subtitle') NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 });
+      if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
     }
     $('app-listen-summary').hidden = true;
     $('app-listen-history-wrap').hidden = false;
@@ -700,6 +738,7 @@ var AppListen = (() => {
     phase = 'ended';
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
+    pipRectOff(); pipWindow = ''; paintPipFloat();
     if (bridged()) { if (session.mode === 'subtitle') NativeAudio.subtitleHide(); NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
@@ -757,6 +796,11 @@ var AppListen = (() => {
     const asRow = $('app-listen-autospeak-row'); if (asRow) asRow.hidden = sub;
     const mn = $('app-listen-mac-note'); if (mn) mn.hidden = sub || !isMacHost();
     const prep = $('app-subs-prep'); if (prep) prep.hidden = !sub;
+    // iPhone（原生报 system:'unsupported'）：「现在」卡里的半句换成画中画小窗预览占位（协议补充决定（三）17）
+    const pipOn = sub && !!caps && caps.system === 'unsupported';
+    const pipEl = $('app-subs-pip'); if (pipEl) pipEl.hidden = !pipOn;
+    for (const id of ['app-listen-partial', 'app-listen-partial-tr']) { const e = $(id); if (e) e.hidden = pipOn; }
+    const flt = $('app-subs-float'); if (flt) flt.textContent = t('subtitle_pip_float', '浮出字幕窗');
     const priv = $('app-subs-privacy');
     if (priv) {
       priv.hidden = !sub;
@@ -955,6 +999,7 @@ var AppListen = (() => {
   }
   function onNative(msg) {
     if (!msg || $('app-listen').hidden || !session) return;
+    if (msg.type === 'subtitle-window') { pipWindow = String(msg.state || ''); paintPipFloat(); return; }
     if (msg.type === 'remote') {
       if (msg.command === 'pause') { if (phase === 'listening') pause('user'); }
       else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resumeByUser(); }
@@ -1184,6 +1229,8 @@ var AppListen = (() => {
       const se = $('app-subs-entry' + sfx);
       if (se) { const st = se.querySelector('.mode-title'); (st || se).textContent = t('subtitle_entry', '实时字幕'); se.addEventListener('click', () => open('subtitle')); }
     }
+    const floatBtn = $('app-subs-float');
+    if (floatBtn) floatBtn.addEventListener('click', () => { if (bridged()) NativeAudio.subtitleFloat(); });
     refreshEntry();
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -1303,7 +1350,7 @@ var AppListen = (() => {
   }
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
-    _debug: () => ({ mode, subsReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+    _debug: () => ({ mode, subsReason, pipWindow, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }) };

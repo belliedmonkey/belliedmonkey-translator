@@ -1440,6 +1440,11 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
   `subtitle-config {fontScale: 1.2}`；
 - 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
 
+- **iPhone 一期（H9，2026-09-14，§9.8 协议补充决定（三））**：假桥改回 `audio-caps {system:'unsupported'}` ⇒ 准备页「现在」卡换成
+  小窗预览占位、隐私句与提示是 iPhone 版；开始 ⇒ `record-mode.profile === 'subtitle'`、`mic-start` **不带** `source`（麦克风）、
+  页面发 `subtitle-float {rect}`（占位块矩形，宽高 > 0）；原生报 `subtitle-window {state:'closed'}` ⇒ 出「浮出字幕窗」，
+  点它 ⇒ 一条不带 `rect` 的 `subtitle-float`；`floating` ⇒ 按钮藏起；`remote end` ⇒ `subtitle-hide`、按钮藏起。
+
 字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。
 
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
