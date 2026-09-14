@@ -586,3 +586,115 @@ describe('ListenCore — latencySummary（时延埋点的汇总）', () => {
     eq(C.latencySummary([]).pass.p50, null);
   });
 });
+
+// ── 实时字幕模式（learning-design §9.8，2026-09-14 实现第一步：纯逻辑）────────────────
+describe('ListenCore — 实时字幕模式：模式表、单向归属、进复习的形状', () => {
+  const ZH_EN = pair('zh', 'en');
+  test('MODES：字幕单向、不朗读、不改边、静态门限、字幕档会话、独立采集开关', () => {
+    const m = C.MODES.subtitle;
+    deepEq([m.oneWay, m.autoSpeak, m.flip, m.staticGate, m.recognizers, m.profile, m.captureKey],
+      [true, false, false, true, 1, 'subtitle', 'subtitleCapture']);
+    const c = C.MODES.conv;
+    deepEq([c.oneWay, c.autoSpeak, c.flip, c.staticGate, c.recognizers, c.profile, c.captureKey],
+      [false, true, true, false, 2, 'conv', 'listenCapture']);
+    eq(C.modeOf(C.newSession(T0, 0.5)).id, 'conv', '不传模式 = 对话，老调用不变');
+    eq(C.modeOf(C.newSession(T0, 0.5, 'subtitle')).id, 'subtitle');
+    eq(C.modeOf(C.newSession(T0, 0.5, 'bogus')).id, 'conv', '不认识的模式名退回对话');
+  });
+  test('字幕模式每句都归对方：外语句、母语句、识别器给了 me 都一样', () => {
+    const s = C.newSession(T0, 0.5, 'subtitle');
+    eq(C.addFinal(s, 'The quote includes freight.', T0 + 1000, ZH_EN, DEPS).who, 'them');
+    const zh = C.addFinal(s, '这个报价含运费', T0 + 2000, ZH_EN, DEPS);
+    eq(zh.who, 'them');
+    eq(zh.guessed, false);
+    eq(C.addFinal(s, 'Next one please', T0 + 3000, ZH_EN, { who: 'me' }).who, 'them', '单向：连识别器的 who 也不认');
+  });
+  test('进复习的形状：k:conv + mode:subtitle；对话的锚点逐字节不变（没有 mode 键）', () => {
+    const cfg = { lang: 'en', otherLang: 'en', targetLang: 'zh', label: '实时字幕' };
+    const s = C.newSession(T0, 0.5, 'subtitle');
+    const r = C.addFinal(s, 'Lead time is forty-five days.', T0 + 5000, ZH_EN, DEPS);
+    r.tr = '交期是四十五天。';
+    const d = C.draftFor(r, s, cfg);
+    eq(d.anchor.k, 'conv');
+    eq(d.anchor.mode, 'subtitle');
+    eq(d.anchor.who, 'them');
+    eq(d.sourceId, 'conv:' + s.id);
+    eq(d.text, 'Lead time is forty-five days.');
+    eq(d.tr, '交期是四十五天。');
+    eq(d.lang, 'en');
+    const title = C.sourceFor(s, '实时字幕').title;
+    ok(/^实时字幕 · \d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(title), title);
+    const cs = C.newSession(T0, 0.5);
+    const cr = C.addFinal(cs, 'Lead time is forty-five days.', T0 + 5000, ZH_EN, DEPS);
+    cr.tr = '交期是四十五天。';
+    ok(!('mode' in C.draftFor(cr, cs, cfg).anchor), '对话的锚点不能多出 mode 键');
+  });
+  test('采集开关：字幕进复习关着不写；星绕过；这次不留记录连星也挡', () => {
+    const s = C.newSession(T0, 0.5, 'subtitle');
+    const r = C.addFinal(s, 'Hello there', T0, ZH_EN, DEPS);
+    r.tr = '你好';
+    eq(C.shouldWrite(r, s, { captureOn: false, lang: 'en' }), false);
+    r.starred = true;
+    eq(C.shouldWrite(r, s, { captureOn: false, lang: 'en' }), true);
+    s.ephemeral = true;
+    eq(C.shouldWrite(r, s, { captureOn: true, lang: 'en' }), false);
+  });
+});
+
+describe('ListenCore — 字幕模式的静态静音门', () => {
+  const feed = (s, rms, from, blocks) => {
+    let hit = false;
+    for (let i = 0; i < blocks; i++) hit = C.silenceCheck(s, rms, from + i * 100) || hit;
+    return hit;
+  };
+  test('★ 持续配乐不抬门限、不判静音（自适应那套会把音乐当环境噪声抬门限）', () => {
+    const s = C.newSession(T0, 0.5, 'subtitle');
+    ok(!feed(s, 0.02, T0, 600), '60 秒配乐不该判静音');
+    eq(s.noiseFloor, null, '字幕模式不摸底噪');
+    eq(C.noiseGate(s), C.SILENCE_RMS);
+  });
+  test('30 秒低于固定下限才算静音；计时从最后一次有声算起', () => {
+    const s = C.newSession(T0, 0.5, 'subtitle');
+    feed(s, 0.05, T0, 50);                               // 有声到 T0+4900
+    ok(!feed(s, 0.001, T0 + 5000, 290), '29 秒还不算');
+    ok(feed(s, 0.001, T0 + 34000, 20), '过了 30 秒算静音');
+  });
+});
+
+describe('ListenCore — 实时字幕入口判定与声音来源', () => {
+  test('入口原因按顺序：老壳隐藏 → 没实时引擎 → 没 key → 系统版本；设备内置转写跳过 ①②', () => {
+    const OK = { sources: ['mic', 'system'], system: 'ok' };
+    eq(C.entryGate({ caps: null, liveOk: true, keyOk: true }), 'hidden', '老原生壳没回 audio-caps：整行不显示');
+    eq(C.entryGate({ caps: OK, liveOk: false, keyOk: false }), 'no-live');
+    eq(C.entryGate({ caps: OK, liveOk: true, keyOk: false }), 'no-key');
+    eq(C.entryGate({ caps: { system: 'os' }, liveOk: true, keyOk: true }), 'os');
+    eq(C.entryGate({ caps: { system: 'os' }, deviceOk: true }), 'os', '设备内置转写只跳过引擎两条，版本照判');
+    eq(C.entryGate({ caps: OK, deviceOk: true }), '');
+    eq(C.entryGate({ caps: { system: 'unsupported' }, liveOk: true, keyOk: true }), '', 'iOS 没有系统声音也可用（麦克风听外放）');
+  });
+  test('★ 没收到 system:ok 绝不给 system（老壳会无视 source、静默开麦克风）', () => {
+    eq(C.captureSource({ system: 'ok' }), 'system');
+    eq(C.captureSource({ system: 'unsupported' }), 'mic');
+    eq(C.captureSource({ system: 'os' }), null);
+    eq(C.captureSource(null), null);
+    eq(C.captureSource({}), null);
+  });
+});
+
+describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
+  // 模块求值时读 window.MT_PALETTE 拼样式；给它构建产出的同一份注册表，读完即撤。
+  const hadWindow = 'window' in global;
+  if (!hadWindow) global.window = { MT_PALETTE: require('../build/palette.config.js').runtime };
+  const SV = require('../extension/learn/sources-view.js');
+  if (!hadWindow) delete global.window;
+  test('conv:// 来源按卡上的 anchor.mode 分成「对话」与「实时字幕」两组，互不串', () => {
+    const sources = [{ id: 'conv:a', url: 'conv://a', title: '对话 · 1' }, { id: 'conv:b', url: 'conv://b', title: '实时字幕 · 2' }];
+    const items = [
+      { id: 'i1', sourceId: 'conv:a', anchor: { k: 'conv', who: 'them' } },
+      { id: 'i2', sourceId: 'conv:b', anchor: { k: 'conv', mode: 'subtitle', who: 'them' } },
+      { id: 'i3', sourceId: 'conv:b', anchor: { k: 'conv', mode: 'subtitle', who: 'them' } },
+    ];
+    deepEq(SV.groupConversations(items, sources).map((g) => [g.sourceId, g.count]), [['conv:a', 1]], '缺省（对话）不收字幕句');
+    deepEq(SV.groupConversations(items, sources, 'subtitle').map((g) => [g.sourceId, g.count]), [['conv:b', 2]]);
+  });
+});

@@ -42,12 +42,24 @@ var NativeAudio = (() => {
   // 协议。导出是为了让契约测试能拿这两组字符串去和 .swift 里的 case 对表：
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
-    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop'],
+    toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop',
+      // 实时字幕（learning-design §9.8）：Swift 侧先是空 case（不回复）—— 空 case 就是「老壳」，入口不显示。
+      'caps-probe', 'subtitle-config', 'subtitle-show', 'subtitle-state', 'subtitle-float', 'subtitle-hide'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-level'],
   };
 
+  // 实时字幕的两个「原生 → JS」动词：页面已经会处理，但原生还不发（随 Mac / iOS 原生那一步上，
+  // 那时挪进 PROTOCOL.fromNative，让协议镜像测试去 .swift 里对表）。
+  const PENDING_FROM_NATIVE = ['audio-caps', 'tick'];
+
   let ready = false;
   let platform = '';
+  // audio-caps（§9.8）：原生报的采集能力。null = 还没收到；probedNoReply = 问过、原生没回 ⇒ 老壳。
+  let caps = null;
+  let probedNoReply = false;
+  let capsWaiters = [];
+  let tickFn = null;
+  let lastSubtitle = '';
   // 这个宿主会不会在 App 不可见时挂起进程。由原生报（iOS 会，macOS 不会），不靠嗅
   // UA —— §5.3 规则 2 禁止用 UA 做能力判断，而这正是一个平台能力问题。
   // 未知时按**最保守**的 true 处理：宁可多暂停一次，也不要承诺一个不存在的后台。
@@ -245,7 +257,13 @@ var NativeAudio = (() => {
   // 由 app/driving.js 在 wire() 里注册。一个监听者，不是一串 —— 会话只有一个。
   // 实时听译（§9.6）：请求一个**可录音**的音频会话（.playAndRecord），让锁屏后麦克风
   // 还活着。要在 sessionStart 之前发；关掉时回到只放不录。
-  function recordMode(on) { post({ type: 'record-mode', on: !!on }); }
+  // profile（§9.8 协议补充决定 2）：'subtitle' = 字幕档会话（可混音、外放、不带蓝牙）。不传 / 'conv' 时
+  // 消息与原来逐字节相同 —— 老原生壳只认 on。
+  function recordMode(on, profile) {
+    const body = { type: 'record-mode', on: !!on };
+    if (on && profile && profile !== 'conv') body.profile = String(profile);
+    post(body);
+  }
   function onEvent(fn) { if (typeof fn === 'function' && listeners.indexOf(fn) < 0) listeners.push(fn); }
   function offEvent(fn) { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); }
 
@@ -261,8 +279,52 @@ var NativeAudio = (() => {
     mic = handlers || null;
     const body = { type: 'mic-start', rate: Number(rate) || 24000 };
     if (mic && mic.deliver === 'level') body.deliver = 'level';
+    if (mic && mic.source && mic.source !== 'mic') {
+      // **没收到 audio-caps.system === 'ok' 绝不发 source:'system'**：老原生壳会无视这个字段、
+      // 静默打开麦克风（§9.8）。规则只在这一处执行。
+      if (mic.source === 'system' && !(caps && caps.system === 'ok')) { mic = null; return false; }
+      body.source = String(mic.source);
+    }
     return post(body);
   }
+
+  // ─── 实时字幕（§9.8）──────────────────────────────────────────────────────
+  // 问一次采集能力。已知就立即给；问过没回（老壳）就立即给 null；否则发 caps-probe 等 timeoutMs。
+  function capsProbe(timeoutMs) {
+    if (caps) return Promise.resolve(caps);
+    if (!available() || probedNoReply) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (v) => { if (done) return; done = true; resolve(v); };
+      capsWaiters.push(finish);
+      post({ type: 'caps-probe' });
+      setTimeout(() => { if (!caps) probedNoReply = true; finish(caps); }, Number(timeoutMs) || 1500);
+    });
+  }
+  function audioCaps() { return caps; }
+  // 字幕条 / 画中画上的每个字都由 JS 传（原生零文案）：labels.state[state]、labels.controls、labels.menu。
+  function subtitleConfig(cfg) {
+    const c = cfg || {};
+    return post({ type: 'subtitle-config', labels: c.labels || {}, clickThrough: !!c.clickThrough,
+      fontScale: Number(c.fontScale) || 1, opacity: c.opacity == null ? 1 : Number(c.opacity) });
+  }
+  // 按 JSON 去重：半句每来一个词都会调，绝大多数时候没变。
+  function subtitleShow(info) {
+    const payload = { type: 'subtitle-show', orig: String((info && info.orig) || ''), tr: String((info && info.tr) || ''), partial: !!(info && info.partial) };
+    const key = JSON.stringify(payload);
+    if (key === lastSubtitle) return false;
+    lastSubtitle = key;
+    return post(payload);
+  }
+  function subtitleState(state, pct) {
+    const body = { type: 'subtitle-state', state: String(state || '') };
+    if (pct != null) body.pct = Number(pct) || 0;
+    return post(body);
+  }
+  function subtitleFloat() { return post({ type: 'subtitle-float' }); }
+  function subtitleHide() { lastSubtitle = ''; return post({ type: 'subtitle-hide' }); }
+  // tick（S3）：会话中原生每 250 ms 一条；页面不可见时计时器被钳到 1 Hz，靠它驱动时钟。
+  function onTick(fn) { tickFn = typeof fn === 'function' ? fn : null; }
   function micStop() {
     mic = null;
     return post({ type: 'mic-stop' });
@@ -302,14 +364,24 @@ var NativeAudio = (() => {
       if (mic && mic.onLevel) { try { mic.onLevel(Number(msg.rms) || 0); } catch (_) {} }
       return;
     }
+    if (msg.type === 'tick') {
+      if (tickFn) { try { tickFn(Number(msg.t) || 0); } catch (_) {} }
+      return;   // 4 Hz，不广播
+    }
+    if (msg.type === 'audio-caps') {
+      caps = { sources: Array.isArray(msg.sources) ? msg.sources.slice() : [], system: String(msg.system || ''), broadcast: String(msg.broadcast || '') };
+      probedNoReply = false;
+      const ws = capsWaiters; capsWaiters = [];
+      for (const w of ws) { try { w(caps); } catch (_) {} }
+    }
     if (msg.type === 'mic-state') {
-      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || '')); } catch (_) {} }
+      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || ''), String(msg.source || '')); } catch (_) {} }
     }
     for (const fn of listeners.slice()) { try { fn(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
   }
 
   const api = {
-    CHANNEL, PROTOCOL,
+    CHANNEL, PROTOCOL, PENDING_FROM_NATIVE,
     available, mediaAvailable,
     // 测试用：mediaSession 那一半有没有真的接上（Chrome 里也成立）
     mediaSessionWired: () => msWired,
@@ -322,6 +394,7 @@ var NativeAudio = (() => {
     suspends: () => suspends,
     sessionStart, sessionStop, recordMode, nowPlaying, artwork, artworkLocal, playingState, onEvent, offEvent,
     micStart, micStop, pcmOf, _fromNative,
+    capsProbe, audioCaps, subtitleConfig, subtitleShow, subtitleState, subtitleFloat, subtitleHide, onTick,
   };
   // 显式挂全局：原生就是照着这个名字回话的。
   try { window.NativeAudio = api; } catch (_) {}

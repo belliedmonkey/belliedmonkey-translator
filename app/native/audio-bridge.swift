@@ -134,6 +134,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
                                         deliverPcm: (body["deliver"] as? String) != "level")
         case "mic-stop":       micStop()
+        // 实时字幕（learning-design §9.8）：页面先合入，原生实现随 Mac / iOS 那一步上。空 case 不回 audio-caps
+        // ⇒ 页面把这个壳当成「老壳」、首页不显示入口（§9.8 协议补充决定 3、8）。
+        case "caps-probe":      break
+        case "subtitle-config": break
+        case "subtitle-show":   break
+        case "subtitle-state":  break
+        case "subtitle-float":  break
+        case "subtitle-hide":   break
         default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
         }
     }

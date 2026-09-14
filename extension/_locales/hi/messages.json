@@ -2688,5 +2688,140 @@
   },
   "grant_cn_why": {
     "message": "हम यहाँ अभी अपना क्रेडिट नहीं देते: उसके लिए देश के भीतर सर्वर चाहिए, जो तैयार नहीं है।"
+  },
+  "subtitle_source_label": {
+    "message": "लाइव सबटाइटल"
+  },
+  "subtitle_entry": {
+    "message": "लाइव सबटाइटल"
+  },
+  "subtitle_entry_hint": {
+    "message": "चल रहे वीडियो, लाइव स्ट्रीम या मीटिंग के लिए दोभाषी सबटाइटल"
+  },
+  "subtitle_need_live": {
+    "message": "लाइव सबटाइटल के लिए रियल-टाइम कनेक्शन वाला ट्रांसक्रिप्शन इंजन चाहिए"
+  },
+  "subtitle_need_key": {
+    "message": "ट्रांसक्रिप्शन इंजन की API कुंजी अभी नहीं भरी गई है"
+  },
+  "subtitle_need_key_go": {
+    "message": "सेटिंग्स में भरें →"
+  },
+  "subtitle_need_os": {
+    "message": "सिस्टम ऑडियो के सबटाइटल के लिए macOS 14.4 या नया चाहिए — या «बातचीत» में आवाज़ स्पीकर से चलाएँ"
+  },
+  "subtitle_title": {
+    "message": "लाइव सबटाइटल"
+  },
+  "subtitle_start": {
+    "message": "शुरू करें"
+  },
+  "subtitle_capture_label": {
+    "message": "सबटाइटल दोहराव में जोड़ें (स्रोत «लाइव सबटाइटल»)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "वीडियो की भाषा"
+  },
+  "subtitle_tip_mac": {
+    "message": "शुरू करने के बाद सबटाइटल स्क्रीन के नीचे तैरती पट्टी पर दिखेंगे; हर पूरा वाक्य यहाँ भी सूची में रहेगा।"
+  },
+  "subtitle_tip_ios": {
+    "message": "पहले «शुरू करें» दबाएँ, फिर Safari में जाकर वीडियो स्पीकर पर चलाएँ; सबटाइटल पिक्चर-इन-पिक्चर विंडो में दिखेंगे। हेडफ़ोन लगे हों तो वीडियो की आवाज़ सुनाई नहीं देगी।"
+  },
+  "subtitle_privacy": {
+    "message": "«शुरू करें» दबाने के बाद ही यह Mac जो चला रहा है उसे सुनता है। आवाज़ इसी डिवाइस पर पहचानी जाती है (या सिर्फ़ आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाती है); कुछ भी रिकॉर्ड या सेव नहीं होता, और हमारे सर्वर कभी शामिल नहीं होते। पहचाना गया टेक्स्ट दोहराव में तभी रहता है जब «सबटाइटल दोहराव में जोड़ें» चालू हो।"
+  },
+  "subtitle_privacy_ios": {
+    "message": "«शुरू करें» दबाने के बाद ही यह iPhone स्पीकर पर जो चला रहा है उसे सुनता है। आवाज़ इसी डिवाइस पर पहचानी जाती है (या सिर्फ़ आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर जाती है); कुछ भी रिकॉर्ड या सेव नहीं होता, और हमारे सर्वर कभी शामिल नहीं होते। पहचाना गया टेक्स्ट दोहराव में तभी रहता है जब «सबटाइटल दोहराव में जोड़ें» चालू हो।"
+  },
+  "subtitle_pill_live": {
+    "message": "● सबटाइटल चालू · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "अभी"
+  },
+  "subtitle_history_empty": {
+    "message": "हर पूरा वाक्य यहाँ दिखेगा।"
+  },
+  "subtitle_stop_silence": {
+    "message": "30 सेकंड से आवाज़ नहीं — खर्च से बचने के लिए रोका गया। वीडियो फिर चले तो «जारी रखें» दबाएँ।"
+  },
+  "subtitle_leave_confirm": {
+    "message": "अभी सुन रहा है। बाहर जाने पर सबटाइटल बंद हो जाएँगे; अब तक के वाक्य रहेंगे।"
+  },
+  "subtitle_summary_title": {
+    "message": "यह सबटाइटल सत्र"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} वाक्य · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "दोहराव में जोड़े (स्रोत «लाइव सबटाइटल») {k} · स्टार वाले {s}"
+  },
+  "subtitle_summary_note": {
+    "message": "कोई आवाज़ सेव नहीं हुई, सिर्फ़ टेक्स्ट। इन वाक्यों को «स्रोत › लाइव सबटाइटल» में संभालें या हटाएँ।"
+  },
+  "subtitle_bar_waiting": {
+    "message": "अनुमति का इंतज़ार — सिस्टम संदेश में «अनुमति दें» क्लिक करें"
+  },
+  "subtitle_bar_listening": {
+    "message": "सिस्टम ऑडियो सुन रहा है…"
+  },
+  "subtitle_bar_paused": {
+    "message": "रुका हुआ"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 सेकंड से आवाज़ नहीं — खर्च से बचने के लिए रोका गया"
+  },
+  "subtitle_bar_denied": {
+    "message": "सिस्टम ऑडियो सुनाई नहीं दे रहा — सिस्टम सेटिंग्स › गोपनीयता और सुरक्षा › स्क्रीन और सिस्टम ऑडियो रिकॉर्डिंग में BelliedMonkey Translator को अनुमति दें"
+  },
+  "subtitle_bar_socket": {
+    "message": "ट्रांसक्रिप्शन कनेक्शन टूट गया"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "फिर से जोड़ रहा है…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "{lang} पहचान डेटा डाउनलोड हो रहा है · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "इस वाक्य का अनुवाद विफल · मुख्य विंडो में फिर कोशिश करें"
+  },
+  "subtitle_bar_headphones": {
+    "message": "वीडियो सुनाई नहीं दे रहा · हेडफ़ोन उतारें और स्पीकर इस्तेमाल करें"
+  },
+  "subtitle_ctl_pause": {
+    "message": "रोकें"
+  },
+  "subtitle_ctl_resume": {
+    "message": "जारी रखें"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "क्लिक आर-पार"
+  },
+  "subtitle_ctl_main": {
+    "message": "मुख्य विंडो"
+  },
+  "subtitle_ctl_end": {
+    "message": "समाप्त"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "सिस्टम सेटिंग्स खोलें"
+  },
+  "subtitle_menu_show_main": {
+    "message": "मुख्य विंडो दिखाएँ"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "सबटाइटल पट्टी का क्लिक आर-पार बंद करें"
+  },
+  "subtitle_menu_end": {
+    "message": "लाइव सबटाइटल समाप्त करें"
+  },
+  "subtitle_pip_float": {
+    "message": "सबटाइटल विंडो दिखाएँ"
   }
 }

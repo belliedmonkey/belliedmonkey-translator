@@ -63,6 +63,8 @@
     }
     // 对话来源（§9.6）：没有 host、没有可回放的音频 —— 只显示会话标题，不给链接。
     if (item.anchor && item.anchor.k === 'conv') {
+      // 实时字幕（§9.8）沿用 k:'conv'，靠 mode 区分：没有「我说的」，来源标签是「实时字幕」。
+      if (item.anchor.mode === 'subtitle') return document.createTextNode('📺 ' + ((s && s.title) || item.anchor.title || t('subtitle_source_label', '实时字幕')));
       const who = item.anchor.who === 'me' ? ' · ' + t('listen_me_badge', '我说的') : '';
       return document.createTextNode('🎙 ' + ((s && s.title) || item.anchor.title || t('listen_source_label', '对话')) + who);
     }

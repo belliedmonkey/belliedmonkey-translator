@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "لا نوزّع رصيدًا من عندنا هنا بعد: يحتاج ذلك خادمًا داخل البلد، وهو غير جاهز."
+  },
+  "subtitle_source_label": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_entry": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_entry_hint": {
+    "message": "ترجمة ثنائية اللغة للفيديو أو البث أو الاجتماع الجاري تشغيله"
+  },
+  "subtitle_need_live": {
+    "message": "تحتاج الترجمة المباشرة إلى محرك تفريغ صوتي يدعم الاتصال الفوري"
+  },
+  "subtitle_need_key": {
+    "message": "لم يُدخل بعد مفتاح API لمحرك التفريغ الصوتي"
+  },
+  "subtitle_need_key_go": {
+    "message": "أدخله في الإعدادات ←"
+  },
+  "subtitle_need_os": {
+    "message": "تحتاج ترجمة صوت النظام إلى macOS 14.4 أو أحدث — أو استخدم «المحادثة» وشغّل الصوت عبر السماعات"
+  },
+  "subtitle_title": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_start": {
+    "message": "ابدأ"
+  },
+  "subtitle_capture_label": {
+    "message": "أضف الترجمات إلى المراجعة (المصدر «ترجمة مباشرة»)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "لغة الفيديو"
+  },
+  "subtitle_tip_mac": {
+    "message": "بعد البدء تظهر الترجمة في شريط عائم أسفل الشاشة، وتُدرج كل جملة مكتملة هنا أيضًا."
+  },
+  "subtitle_tip_ios": {
+    "message": "اضغط «ابدأ» أولًا، ثم انتقل إلى Safari وشغّل الفيديو عبر السماعة؛ تطفو الترجمة في نافذة صورة داخل صورة. مع سماعات الأذن لا يُسمع صوت الفيديو."
+  },
+  "subtitle_privacy": {
+    "message": "لا يستمع إلى ما يشغّله جهاز Mac هذا إلا بعد الضغط على «ابدأ». يُتعرّف على الصوت على هذا الجهاز (أو يُرسل فقط إلى نقطة التفريغ التي ضبطتها)؛ لا يُسجَّل شيء ولا يُحفظ، ولا تشارك خوادمنا أبدًا. يبقى النص المتعرَّف عليه في مراجعتك فقط ما دام «أضف الترجمات إلى المراجعة» مفعّلًا."
+  },
+  "subtitle_privacy_ios": {
+    "message": "لا يستمع إلى ما يشغّله هاتف iPhone هذا عبر السماعة إلا بعد الضغط على «ابدأ». يُتعرّف على الصوت على هذا الجهاز (أو يُرسل فقط إلى نقطة التفريغ التي ضبطتها)؛ لا يُسجَّل شيء ولا يُحفظ، ولا تشارك خوادمنا أبدًا. يبقى النص المتعرَّف عليه في مراجعتك فقط ما دام «أضف الترجمات إلى المراجعة» مفعّلًا."
+  },
+  "subtitle_pill_live": {
+    "message": "● الترجمة جارية · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "الآن"
+  },
+  "subtitle_history_empty": {
+    "message": "ستظهر هنا كل جملة مكتملة."
+  },
+  "subtitle_stop_silence": {
+    "message": "لا صوت منذ 30 ثانية — أُوقف مؤقتًا لتجنّب الرسوم. اضغط «متابعة» عندما يعود الفيديو للتشغيل."
+  },
+  "subtitle_leave_confirm": {
+    "message": "ما زال يستمع. المغادرة تُنهي الترجمة، وتبقى الجمل التي ظهرت."
+  },
+  "subtitle_summary_title": {
+    "message": "جلسة الترجمة هذه"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} جملة · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "أُضيف إلى المراجعة (المصدر «ترجمة مباشرة») {k} · منها بنجمة {s}"
+  },
+  "subtitle_summary_note": {
+    "message": "لم يُحفظ أي صوت، النص فقط. يمكنك إدارة هذه الجمل أو حذفها من «المصادر › ترجمة مباشرة»."
+  },
+  "subtitle_bar_waiting": {
+    "message": "بانتظار الإذن — انقر «السماح» في نافذة النظام"
+  },
+  "subtitle_bar_listening": {
+    "message": "يستمع إلى صوت النظام…"
+  },
+  "subtitle_bar_paused": {
+    "message": "متوقف مؤقتًا"
+  },
+  "subtitle_bar_silence": {
+    "message": "لا صوت منذ 30 ثانية — أُوقف مؤقتًا لتجنّب الرسوم"
+  },
+  "subtitle_bar_denied": {
+    "message": "لا يُسمع صوت النظام — اسمح لـ BelliedMonkey Translator في إعدادات النظام › الخصوصية والأمن › تسجيل الشاشة وصوت النظام"
+  },
+  "subtitle_bar_socket": {
+    "message": "انقطع اتصال التفريغ الصوتي"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "جارٍ إعادة الاتصال…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "تنزيل موارد التعرّف على {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "فشلت ترجمة هذه الجملة · أعد المحاولة في النافذة الرئيسية"
+  },
+  "subtitle_bar_headphones": {
+    "message": "صوت الفيديو غير مسموع · انزع السماعات واستخدم السماعة الخارجية"
+  },
+  "subtitle_ctl_pause": {
+    "message": "إيقاف مؤقت"
+  },
+  "subtitle_ctl_resume": {
+    "message": "متابعة"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "تمرير النقرات"
+  },
+  "subtitle_ctl_main": {
+    "message": "النافذة الرئيسية"
+  },
+  "subtitle_ctl_end": {
+    "message": "إنهاء"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "فتح إعدادات النظام"
+  },
+  "subtitle_menu_show_main": {
+    "message": "إظهار النافذة الرئيسية"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "إيقاف تمرير النقرات لشريط الترجمة"
+  },
+  "subtitle_menu_end": {
+    "message": "إنهاء الترجمة المباشرة"
+  },
+  "subtitle_pip_float": {
+    "message": "إظهار نافذة الترجمة"
   }
 }

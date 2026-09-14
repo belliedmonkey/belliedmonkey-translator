@@ -1423,6 +1423,21 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 
 真机上仍要人验的于是变成四件：M22、M23（云端路）与 M24、M25（本机路，F-bis 2026-09-12）。
 
+**2026-09-14 追加（实时字幕，learning-design §9.8，H 段）：同一个 `mtAudio` 假桥多记两件事。**
+它把收到的每条非 PCM 消息记下来，并在测试给了能力时对 `caps-probe` 回 `audio-caps`。断言：
+
+- 假桥**不回** `caps-probe`（老原生壳）⇒ 「实时字幕」整行不显示；
+- 回 `audio-caps {system:'os'}` ⇒ 行灰掉，屏上是「系统声音字幕需要 macOS 14.4 或更新」那句，且**没有**
+  「去设置」按钮（设置解决不了系统版本）；回 `{system:'ok'}` ⇒ 行可用；
+- 点入口 ⇒ 停在准备态（准备区、隐私句可见），**桥没收到新的 `mic-start`**；点「开始」⇒
+  `record-mode {on:true, profile:'subtitle'}` 与 `mic-start {source:'system'}`，并发过 `subtitle-config`；
+- 英文句与中文句**都**归对方（单向）；历史里没有 ↔、没有「给对方看 / 朗读」；自动朗读即使在设置里开着也不出声；
+- 桥收到过 `subtitle-show {partial:true}` 与带译文的 `subtitle-show {partial:false}`；
+- 语料 `anchor.k === 'conv'` 且 `anchor.mode === 'subtitle'`，来源标题「实时字幕 · 日期」；
+- 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
+
+字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。
+
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的

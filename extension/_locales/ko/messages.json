@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "저희가 대신 크레딧을 드리는 건 아직 안 됩니다. 국내 서버가 필요한데 준비되지 않았습니다."
+  },
+  "subtitle_source_label": {
+    "message": "실시간 자막"
+  },
+  "subtitle_entry": {
+    "message": "실시간 자막"
+  },
+  "subtitle_entry_hint": {
+    "message": "재생 중인 동영상·라이브·회의에 이중 언어 자막 달기"
+  },
+  "subtitle_need_live": {
+    "message": "실시간 자막에는 실시간 연결을 지원하는 받아쓰기 엔진이 필요합니다"
+  },
+  "subtitle_need_key": {
+    "message": "받아쓰기 엔진의 API 키를 아직 입력하지 않았습니다"
+  },
+  "subtitle_need_key_go": {
+    "message": "설정에서 입력 →"
+  },
+  "subtitle_need_os": {
+    "message": "시스템 오디오 자막은 macOS 14.4 이상이 필요합니다 — 또는 「대화」에서 스피커로 소리를 내 주세요"
+  },
+  "subtitle_title": {
+    "message": "실시간 자막"
+  },
+  "subtitle_start": {
+    "message": "시작"
+  },
+  "subtitle_capture_label": {
+    "message": "자막을 복습에 추가(출처 「실시간 자막」)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "동영상 언어"
+  },
+  "subtitle_tip_mac": {
+    "message": "시작하면 자막이 화면 아래 떠 있는 막대에 표시되고, 완성된 문장은 여기에도 목록으로 남습니다."
+  },
+  "subtitle_tip_ios": {
+    "message": "먼저 시작을 누른 뒤 Safari로 가서 동영상을 스피커로 재생하세요. 자막은 PIP 창에 떠서 보입니다. 이어폰을 끼면 동영상 소리를 들을 수 없습니다."
+  },
+  "subtitle_privacy": {
+    "message": "「시작」을 누른 뒤에만 이 Mac에서 재생 중인 소리를 듣습니다. 소리는 이 기기에서 인식되거나 설정한 받아쓰기 엔드포인트로만 전송되며, 녹음·저장하지 않고 저희 서버를 거치지 않습니다. 「자막을 복습에 추가」가 켜져 있을 때만 인식된 텍스트가 복습에 남습니다."
+  },
+  "subtitle_privacy_ios": {
+    "message": "「시작」을 누른 뒤에만 이 iPhone 스피커로 나오는 소리를 듣습니다. 소리는 이 기기에서 인식되거나 설정한 받아쓰기 엔드포인트로만 전송되며, 녹음·저장하지 않고 저희 서버를 거치지 않습니다. 「자막을 복습에 추가」가 켜져 있을 때만 인식된 텍스트가 복습에 남습니다."
+  },
+  "subtitle_pill_live": {
+    "message": "● 자막 중 · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "지금"
+  },
+  "subtitle_history_empty": {
+    "message": "완성된 문장이 여기에 나타납니다."
+  },
+  "subtitle_stop_silence": {
+    "message": "30초 동안 소리가 없어 요금이 나가지 않도록 일시정지했습니다. 동영상이 다시 재생되면 「계속」을 누르세요."
+  },
+  "subtitle_leave_confirm": {
+    "message": "아직 듣고 있습니다. 나가면 자막이 끝나며, 지금까지의 문장은 남습니다."
+  },
+  "subtitle_summary_title": {
+    "message": "이번 자막"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n}문장 · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "복습에 추가(출처 「실시간 자막」) {k}문장 · 별표 {s}문장"
+  },
+  "subtitle_summary_note": {
+    "message": "소리는 저장하지 않고 텍스트만 남겼습니다. 복습 문장은 「출처 › 실시간 자막」에서 관리하거나 한꺼번에 삭제할 수 있습니다."
+  },
+  "subtitle_bar_waiting": {
+    "message": "권한 대기 중 — 시스템 창에서 「허용」을 클릭하세요"
+  },
+  "subtitle_bar_listening": {
+    "message": "시스템 오디오를 듣는 중…"
+  },
+  "subtitle_bar_paused": {
+    "message": "일시정지됨"
+  },
+  "subtitle_bar_silence": {
+    "message": "30초 동안 소리가 없어 요금이 나가지 않도록 일시정지함"
+  },
+  "subtitle_bar_denied": {
+    "message": "시스템 오디오를 들을 수 없음 — 시스템 설정 › 개인정보 보호 및 보안 › 화면 및 시스템 오디오 녹음에서 BelliedMonkey Translator를 허용하세요"
+  },
+  "subtitle_bar_socket": {
+    "message": "받아쓰기 연결이 끊김"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "다시 연결 중…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "{lang} 인식 데이터 다운로드 중 · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "이 문장 번역 실패 · 메인 창에서 다시 시도"
+  },
+  "subtitle_bar_headphones": {
+    "message": "동영상 소리가 들리지 않음 · 이어폰을 빼고 스피커 사용"
+  },
+  "subtitle_ctl_pause": {
+    "message": "일시정지"
+  },
+  "subtitle_ctl_resume": {
+    "message": "계속"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "클릭 통과"
+  },
+  "subtitle_ctl_main": {
+    "message": "메인 창"
+  },
+  "subtitle_ctl_end": {
+    "message": "종료"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "시스템 설정 열기"
+  },
+  "subtitle_menu_show_main": {
+    "message": "메인 창 보기"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "자막 막대 클릭 통과 해제"
+  },
+  "subtitle_menu_end": {
+    "message": "실시간 자막 종료"
+  },
+  "subtitle_pip_float": {
+    "message": "자막 창 띄우기"
   }
 }

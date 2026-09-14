@@ -118,6 +118,12 @@
           <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint2"></span></span>
           <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <!-- 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 -->
+        <button id="app-subs-entry2" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M7 13h4"/><path d="M13 13h4"/><path d="M8 21h8"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-subs-entry-hint2"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
         <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
         <button id="app-docs-entry2" type="button" class="mode" hidden>
           <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
@@ -129,6 +135,10 @@
         <p class="note" id="app-listen-need-live2" hidden>
           <span id="app-listen-need-live-why2"></span>
           <button id="app-listen-need-live-go2" type="button" class="link"></button>
+        </p>
+        <p class="note" id="app-subs-need2" hidden>
+          <span id="app-subs-need-why2"></span>
+          <button id="app-subs-need-go2" type="button" class="link"></button>
         </p>
       </div>
     </section>
@@ -258,6 +268,12 @@
           <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint"></span></span>
           <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <!-- 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 -->
+        <button id="app-subs-entry" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M7 13h4"/><path d="M13 13h4"/><path d="M8 21h8"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-subs-entry-hint"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
         <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
         <button id="app-docs-entry" type="button" class="mode" hidden>
           <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
@@ -273,6 +289,10 @@
         <p class="note" id="app-listen-need-live" hidden>
           <span id="app-listen-need-live-why"></span>
           <button id="app-listen-need-live-go" type="button" class="link"></button>
+        </p>
+        <p class="note" id="app-subs-need" hidden>
+          <span id="app-subs-need-why"></span>
+          <button id="app-subs-need-go" type="button" class="link"></button>
         </p>
       </div>
     </section>
@@ -343,6 +363,8 @@
       <div id="app-listen-actions">
         <button id="app-listen-toggle" type="button"></button>
       </div>
+      <!-- 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 -->
+      <p class="note" id="app-subs-privacy" hidden></p>
       <!-- 语言对摊在外面而不是收进设置里（画布画板 6，2026-09-08 定 A 版）：语言对是这个
            模式唯一的必填配置，而它选错之后**不会报错** —— 每句都判成对方、译文语言不对，
            只会「看起来怪」。摊在外面等于让这个错误自己暴露。 -->
@@ -363,6 +385,14 @@
       </label>
       <!-- 灰掉时屏上一定有原因（表 1 的家规）：会话进行中且没勾上，说清为什么改不了。 -->
       <p class="note" id="app-listen-ephemeral-why" hidden></p>
+      <!-- 实时字幕（§9.8）：「字幕进复习」开关（与设置页那个是同一份设置）+ 一句按平台的提示。 -->
+      <div id="app-subs-prep" hidden>
+        <label class="check listen-autospeak">
+          <input id="app-subs-capture" type="checkbox">
+          <span id="app-subs-capture-label"></span>
+        </label>
+        <p class="note" id="app-subs-tip"></p>
+      </div>
       <p class="note" id="app-listen-cost"></p>
       <p class="note" id="app-listen-device-privacy" hidden></p>
 
@@ -554,6 +584,10 @@
         <span id="listen-capture-label"></span>
       </label>
       <p class="note" id="listen-capture-note"></p>
+      <label class="check">
+        <input id="subtitle-capture" type="checkbox">
+        <span id="subtitle-capture-label"></span>
+      </label>
       <!-- 语言对（§9.6，2026-09-08）。两个下拉与对话页底部那两个是**同一份设置**：
            洽谈现场发现语言选错要能立刻改，跳设置页等于中断会话，所以两处都有。
            两边选成同一种语言时不是拒绝而是对调 —— 见 ListenCore.langPatch 的注释。 -->

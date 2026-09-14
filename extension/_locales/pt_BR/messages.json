@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "Aqui ainda não distribuímos crédito nosso: isso exige um servidor no país, e ele não está pronto."
+  },
+  "subtitle_source_label": {
+    "message": "Legendas ao vivo"
+  },
+  "subtitle_entry": {
+    "message": "Legendas ao vivo"
+  },
+  "subtitle_entry_hint": {
+    "message": "Legendas bilíngues para o vídeo, a live ou a reunião em reprodução"
+  },
+  "subtitle_need_live": {
+    "message": "Legendas ao vivo precisam de um mecanismo de transcrição com conexão em tempo real"
+  },
+  "subtitle_need_key": {
+    "message": "O mecanismo de transcrição ainda não tem chave de API"
+  },
+  "subtitle_need_key_go": {
+    "message": "Adicionar nos Ajustes →"
+  },
+  "subtitle_need_os": {
+    "message": "Legendas do áudio do sistema exigem macOS 14.4 ou mais recente — ou use “Conversa” tocando o som pelos alto-falantes"
+  },
+  "subtitle_title": {
+    "message": "Legendas ao vivo"
+  },
+  "subtitle_start": {
+    "message": "Iniciar"
+  },
+  "subtitle_capture_label": {
+    "message": "Adicionar legendas à revisão (fonte “Legendas ao vivo”)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Idioma do vídeo"
+  },
+  "subtitle_tip_mac": {
+    "message": "Depois de iniciar, as legendas aparecem numa barra flutuante na parte de baixo da tela; cada frase concluída também fica listada aqui."
+  },
+  "subtitle_tip_ios": {
+    "message": "Toque em Iniciar primeiro, depois vá ao Safari e toque o vídeo pelo alto-falante; as legendas flutuam numa janela picture-in-picture. Com fones de ouvido, o vídeo não é ouvido."
+  },
+  "subtitle_privacy": {
+    "message": "Só escuta o que este Mac está tocando depois que você toca em “Iniciar”. O áudio é reconhecido neste dispositivo (ou enviado apenas ao endpoint de transcrição que você configurou); nada é gravado nem salvo, e nossos servidores nunca participam. O texto reconhecido só fica na sua revisão enquanto “Adicionar legendas à revisão” estiver ligado."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Só escuta o que este iPhone toca pelo alto-falante depois que você toca em “Iniciar”. O áudio é reconhecido neste dispositivo (ou enviado apenas ao endpoint de transcrição que você configurou); nada é gravado nem salvo, e nossos servidores nunca participam. O texto reconhecido só fica na sua revisão enquanto “Adicionar legendas à revisão” estiver ligado."
+  },
+  "subtitle_pill_live": {
+    "message": "● Legendando · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Agora"
+  },
+  "subtitle_history_empty": {
+    "message": "Cada frase concluída aparece aqui."
+  },
+  "subtitle_stop_silence": {
+    "message": "30 segundos sem som — pausado para evitar cobranças. Toque em “Continuar” quando o vídeo voltar a tocar."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Ainda ouvindo. Sair encerra as legendas; as frases até agora ficam guardadas."
+  },
+  "subtitle_summary_title": {
+    "message": "Esta sessão de legendas"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} frases · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} na revisão (fonte “Legendas ao vivo”) · {s} com estrela"
+  },
+  "subtitle_summary_note": {
+    "message": "Nenhum áudio foi guardado, só texto. Gerencie ou apague estas frases em Fontes › Legendas ao vivo."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Aguardando permissão — clique em “Permitir” no aviso do sistema"
+  },
+  "subtitle_bar_listening": {
+    "message": "Ouvindo o áudio do sistema…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Pausado"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 segundos sem som — pausado para evitar cobranças"
+  },
+  "subtitle_bar_denied": {
+    "message": "Não dá para ouvir o áudio do sistema — permita o BelliedMonkey Translator em Ajustes do Sistema › Privacidade e Segurança › Gravação de Tela e Áudio do Sistema"
+  },
+  "subtitle_bar_socket": {
+    "message": "Conexão de transcrição perdida"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Reconectando…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Baixando recursos de reconhecimento de {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Esta tradução falhou · tente de novo na janela principal"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Não dá para ouvir o vídeo · tire os fones e use o alto-falante"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Pausar"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Continuar"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Clicar através"
+  },
+  "subtitle_ctl_main": {
+    "message": "Janela principal"
+  },
+  "subtitle_ctl_end": {
+    "message": "Encerrar"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Abrir Ajustes do Sistema"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Mostrar janela principal"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Desativar clicar através da barra"
+  },
+  "subtitle_menu_end": {
+    "message": "Encerrar legendas ao vivo"
+  },
+  "subtitle_pip_float": {
+    "message": "Mostrar janela de legendas"
   }
 }

@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "Nous ne distribuons pas encore de crédit ici : cela demande un serveur dans le pays, pas encore prêt."
+  },
+  "subtitle_source_label": {
+    "message": "Sous-titres en direct"
+  },
+  "subtitle_entry": {
+    "message": "Sous-titres en direct"
+  },
+  "subtitle_entry_hint": {
+    "message": "Sous-titres bilingues pour la vidéo, le direct ou la réunion en cours"
+  },
+  "subtitle_need_live": {
+    "message": "Les sous-titres en direct nécessitent un moteur de transcription avec connexion en temps réel"
+  },
+  "subtitle_need_key": {
+    "message": "Le moteur de transcription n’a pas encore de clé API"
+  },
+  "subtitle_need_key_go": {
+    "message": "L’ajouter dans les réglages →"
+  },
+  "subtitle_need_os": {
+    "message": "Les sous-titres du son système nécessitent macOS 14.4 ou plus récent — ou utilisez « Conversation » en diffusant le son sur les haut-parleurs"
+  },
+  "subtitle_title": {
+    "message": "Sous-titres en direct"
+  },
+  "subtitle_start": {
+    "message": "Démarrer"
+  },
+  "subtitle_capture_label": {
+    "message": "Ajouter les sous-titres aux révisions (source « Sous-titres en direct »)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Langue de la vidéo"
+  },
+  "subtitle_tip_mac": {
+    "message": "Après le démarrage, les sous-titres s’affichent dans une barre flottante en bas de l’écran ; chaque phrase terminée est aussi listée ici."
+  },
+  "subtitle_tip_ios": {
+    "message": "Touchez d’abord Démarrer, puis passez à Safari et lisez la vidéo sur le haut-parleur ; les sous-titres flottent dans une fenêtre en incrustation. Avec des écouteurs, la vidéo n’est pas audible."
+  },
+  "subtitle_privacy": {
+    "message": "N’écoute ce que joue ce Mac qu’après avoir touché « Démarrer ». Le son est reconnu sur cet appareil (ou envoyé uniquement au point de transcription que vous avez configuré) ; rien n’est enregistré ni conservé, et nos serveurs n’interviennent jamais. Le texte reconnu ne reste dans vos révisions que tant que « Ajouter les sous-titres aux révisions » est activé."
+  },
+  "subtitle_privacy_ios": {
+    "message": "N’écoute ce que cet iPhone diffuse sur son haut-parleur qu’après avoir touché « Démarrer ». Le son est reconnu sur cet appareil (ou envoyé uniquement au point de transcription que vous avez configuré) ; rien n’est enregistré ni conservé, et nos serveurs n’interviennent jamais. Le texte reconnu ne reste dans vos révisions que tant que « Ajouter les sous-titres aux révisions » est activé."
+  },
+  "subtitle_pill_live": {
+    "message": "● Sous-titrage · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Maintenant"
+  },
+  "subtitle_history_empty": {
+    "message": "Chaque phrase terminée apparaîtra ici."
+  },
+  "subtitle_stop_silence": {
+    "message": "Aucun son depuis 30 secondes — en pause pour éviter des frais. Touchez « Reprendre » quand la vidéo reprend."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Écoute en cours. Quitter met fin aux sous-titres ; les phrases déjà obtenues sont conservées."
+  },
+  "subtitle_summary_title": {
+    "message": "Cette session de sous-titres"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} phrases · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} ajoutées aux révisions (source « Sous-titres en direct ») · {s} étoilées"
+  },
+  "subtitle_summary_note": {
+    "message": "Aucun son n’a été conservé, seulement le texte. Gérez ou supprimez ces phrases dans Sources › Sous-titres en direct."
+  },
+  "subtitle_bar_waiting": {
+    "message": "En attente d’autorisation — cliquez sur « Autoriser » dans la fenêtre du système"
+  },
+  "subtitle_bar_listening": {
+    "message": "Écoute du son système…"
+  },
+  "subtitle_bar_paused": {
+    "message": "En pause"
+  },
+  "subtitle_bar_silence": {
+    "message": "Aucun son depuis 30 secondes — en pause pour éviter des frais"
+  },
+  "subtitle_bar_denied": {
+    "message": "Son système inaudible — autorisez BelliedMonkey Translator dans Réglages Système › Confidentialité et sécurité › Enregistrement de l’écran et de l’audio système"
+  },
+  "subtitle_bar_socket": {
+    "message": "Connexion de transcription perdue"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Reconnexion…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Téléchargement des ressources de reconnaissance ({lang}) · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Cette traduction a échoué · réessayez dans la fenêtre principale"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Vidéo inaudible · retirez les écouteurs et utilisez le haut-parleur"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Mettre en pause"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Reprendre"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Clic traversant"
+  },
+  "subtitle_ctl_main": {
+    "message": "Fenêtre principale"
+  },
+  "subtitle_ctl_end": {
+    "message": "Terminer"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Ouvrir les Réglages Système"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Afficher la fenêtre principale"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Désactiver le clic traversant de la barre"
+  },
+  "subtitle_menu_end": {
+    "message": "Arrêter les sous-titres en direct"
+  },
+  "subtitle_pip_float": {
+    "message": "Afficher la fenêtre de sous-titres"
   }
 }

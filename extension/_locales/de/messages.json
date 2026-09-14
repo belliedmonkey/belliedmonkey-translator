@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "Wir geben hier noch kein eigenes Guthaben aus: dafür braucht es einen Server im Land, der noch nicht steht."
+  },
+  "subtitle_source_label": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_entry": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_entry_hint": {
+    "message": "Zweisprachige Untertitel für laufende Videos, Streams und Meetings"
+  },
+  "subtitle_need_live": {
+    "message": "Live-Untertitel brauchen eine Transkriptions-Engine mit Live-Schnittstelle"
+  },
+  "subtitle_need_key": {
+    "message": "Für die Transkriptions-Engine fehlt noch der API-Schlüssel"
+  },
+  "subtitle_need_key_go": {
+    "message": "In den Einstellungen eintragen →"
+  },
+  "subtitle_need_os": {
+    "message": "Untertitel für den Systemton brauchen macOS 14.4 oder neuer — oder nutze „Gespräch“ und spiele den Ton über die Lautsprecher ab"
+  },
+  "subtitle_title": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_start": {
+    "message": "Starten"
+  },
+  "subtitle_capture_label": {
+    "message": "Untertitel zur Wiederholung hinzufügen (Quelle „Live-Untertitel“)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Sprache des Videos"
+  },
+  "subtitle_tip_mac": {
+    "message": "Nach dem Start erscheinen die Untertitel in einer schwebenden Leiste unten am Bildschirm; jeder fertige Satz steht auch hier."
+  },
+  "subtitle_tip_ios": {
+    "message": "Tippe zuerst auf „Starten“, wechsle dann zu Safari und spiele das Video laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist das Video nicht zu hören."
+  },
+  "subtitle_privacy": {
+    "message": "Hört erst nach „Starten“, was dieser Mac abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Hört erst nach „Starten“, was dieses iPhone über den Lautsprecher abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."
+  },
+  "subtitle_pill_live": {
+    "message": "● Untertitel laufen · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Jetzt"
+  },
+  "subtitle_history_empty": {
+    "message": "Jeder fertige Satz erscheint hier."
+  },
+  "subtitle_stop_silence": {
+    "message": "30 Sekunden kein Ton — pausiert, damit keine Kosten entstehen. Tippe auf „Fortsetzen“, sobald das Video wieder läuft."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Hört noch zu. Beim Verlassen enden die Untertitel; die bisherigen Sätze bleiben erhalten."
+  },
+  "subtitle_summary_title": {
+    "message": "Diese Untertitel-Sitzung"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} Sätze · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} zur Wiederholung (Quelle „Live-Untertitel“) · {s} mit Stern"
+  },
+  "subtitle_summary_note": {
+    "message": "Es wurde kein Ton gespeichert, nur Text. Die Sätze kannst du unter Quellen › Live-Untertitel verwalten oder löschen."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Warte auf Erlaubnis — klicke im Systemdialog auf „Erlauben“"
+  },
+  "subtitle_bar_listening": {
+    "message": "Höre den Systemton…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Pausiert"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 Sekunden kein Ton — pausiert, damit keine Kosten entstehen"
+  },
+  "subtitle_bar_denied": {
+    "message": "Systemton nicht hörbar — erlaube BelliedMonkey Translator unter Systemeinstellungen › Datenschutz & Sicherheit › Bildschirm- & Systemaudioaufnahme"
+  },
+  "subtitle_bar_socket": {
+    "message": "Transkriptionsverbindung unterbrochen"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Verbinde neu…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Lade Erkennungsdaten für {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Übersetzung fehlgeschlagen · im Hauptfenster erneut versuchen"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Video nicht hörbar · Kopfhörer abnehmen und Lautsprecher nutzen"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Anhalten"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Fortsetzen"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Durchklicken"
+  },
+  "subtitle_ctl_main": {
+    "message": "Hauptfenster"
+  },
+  "subtitle_ctl_end": {
+    "message": "Beenden"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Systemeinstellungen öffnen"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Hauptfenster zeigen"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Durchklicken der Untertitelleiste ausschalten"
+  },
+  "subtitle_menu_end": {
+    "message": "Live-Untertitel beenden"
+  },
+  "subtitle_pip_float": {
+    "message": "Untertitelfenster zeigen"
   }
 }
