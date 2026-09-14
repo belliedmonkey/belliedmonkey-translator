@@ -3122,6 +3122,18 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 22. **`tick` 扩到 iOS**：第 13 条的「只在字幕条存在期间」在 iOS 上读作「只在字幕会话期间」（`subtitle-config` 到 `subtitle-hide`）。App 在后台时页面计时器同样被节流，时钟靠它。
 23. **审核**：尖刺 S7 欠账 ④ 已查证（2026-09-14，无实测）。App Review Guidelines 全文**没有**画中画条款；同类「系统声音 / 麦克风 → 画中画浮窗双语字幕」的 App 已上架（Caplo 等）。风险中低。提审时审核备注写明：「画中画窗显示的是正在播放音频的实时字幕，用户点开始才出现，关窗不影响听」。真被拒的退路：iPhone 只在 App 页显示字幕。
 
+**协议补充决定（四）（2026-09-14，iPhone 一期在 15 Pro 上手测后，用户裁定）**
+24. **小窗默认 4:5 偏竖**（用户：「这个小窗能不能垂直拉长」）。画中画窗口的宽高比由帧决定，用户只能等比缩放；16:9 一次只看得清两句 ⇒ 帧改成 4:5，一次看 4–5 句。
+25. **借系统后退 / 前进按钮翻看字幕历史**（用户：「能不能手动滚动字幕历史」；小窗不接受触摸滚动）。
+    - 做法：`requiresLinearPlayback = false`，时间范围给有限的滑动窗，系统才会给出这两个按钮。
+    - 后退 = 往回翻 3 句，前进 = 往新翻 3 句；翻看时顶部一行 `labels.pip.history`；新句子到来不把画面拽回最新。
+    - 原生本地状态，不回页面。
+    - 待真机：按钮是否出现、进度条是否碍眼。
+26. **空窗说明**（用户：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙，能不能在小窗上给客户提示」）。
+    - 离开 App 时自动浮出不能推迟（只能在前台触发）⇒ 还没有一句字幕时，小窗画三行说明：`labels.pip.title / hint / close`。
+    - `subtitle-config.labels` 新增 `pip {title, hint, close, history}`，原生照旧零文案。
+27. **iPhone 的状态文案按平台分**：iPhone（`system:'unsupported'`）上的 `labels.state.listening` 是「正在听外放的声音…」，`denied` 是麦克风被拒；不沿用 Mac 的「系统声音」说法（15 Pro 手测时发现）。
+
 **Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
 **尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
 **尖刺 S4 读数（2026-09-13）✅**：`NSPanel [.nonactivatingPanel, .borderless]` + `.floating` + `[.canJoinAllSpaces, .fullScreenAuxiliary]` + `hidesOnDeactivate = false` 盖在全屏窗口上可见、`isKey=false`，全屏窗口始终保持焦点；**跨进程同样成立**（字幕条进程以 accessory 启动、从不激活，盖在另一个进程的全屏 Space 上，截图为证）。系统 `hudWindow` 材质在深色底上显浅灰 ⇒ 自绘深色半透明底 `rgba(22,20,18,0.74)`。
