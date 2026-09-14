@@ -506,6 +506,15 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(async () => { __fakeBridge.caps = { sources: ['mic', 'system'], system: 'ok', broadcast: 'unsupported' }; NativeAudio._fromNative(Object.assign({ type: 'audio-caps' }, __fakeBridge.caps)); await AppListen.refreshEntry(); return 'ok'; })()`);
     const h2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-subs-entry2').hidden, disabled: document.getElementById('app-subs-entry2').disabled, needShown: !document.getElementById('app-subs-need2').hidden })`));
     need(h2.hidden === false && h2.disabled === false && h2.needShown === false, 'H2: system:ok 时入口该可用、原因句藏起，实际 ' + JSON.stringify(h2));
+    // H2b. 两个入口因同一个原因灰掉（旧系统上选了设备内置转写）⇒ 首页只说一次：对话那行在、字幕那行藏起，两个入口都灰
+    //      （用户 2026-09-15「合成一句」—— 全回归 O1：同一句连写两遍）
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'old'; await new Promise((r) => chrome.storage.local.set({ sttEngine: 'device' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
+    const h2b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const v = (id) => { const e = document.getElementById(id); return !!e && !e.hidden; };
+      return { listenNeed: v('app-listen-need-live2'), subsNeed: v('app-subs-need2'), listenWhy: document.getElementById('app-listen-need-live-why2').textContent,
+        listenDisabled: document.getElementById('app-listen-entry2').disabled, subsDisabled: document.getElementById('app-subs-entry2').disabled, subsReason: AppListen._debug().subsReason }; })())`));
+    need(h2b.listenNeed === true && h2b.subsNeed === false && /iOS 26/.test(h2b.listenWhy || '') && h2b.listenDisabled === true && h2b.subsDisabled === true && h2b.subsReason === 'device-os',
+      'H2b: 两个入口同因灰掉时原因句该只出一次（对话行在、字幕行藏），两个入口都灰，实际 ' + JSON.stringify(h2b));
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'new'; await new Promise((r) => chrome.storage.local.set({ sttEngine: 'e2e_live', sttApiKey: 'k' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
     // H3. 点入口 ⇒ 停在准备态：准备区 + 隐私句（Mac 版），桥**没收到**新的 mic-start。
     //     朗读打桩并在设置里开着自动朗读 —— 字幕模式必须照样不出声。
     await evalIn(cdp, sessionId, `(async () => {
