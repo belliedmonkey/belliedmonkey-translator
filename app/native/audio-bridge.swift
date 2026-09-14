@@ -775,11 +775,15 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
         }
         // M30 真机读数（2026-09-14）：点「不允许」之后 HAL 照常返回成功、IO 照常来，但每个样本都是 0。
-        // 不判的话页面一直「字幕中」却永远没字（协议补充决定 10 修订）。
-        tap.onSilentDenial = { [weak self] in
+        // 可权限已给、开始那一刻恰好静音时也是全零（全回归 F13 真机）⇒ 不判拒绝、不撤采集，
+        // 只报 silent 让页面出不中断的提示；之后第一个非零帧报 sound 撤掉提示（协议补充决定 10 修订二）。
+        tap.onSilent = { [weak self] in
             guard let self = self, self.systemGen == gen else { return }
-            self.micStop()
-            self.emit(["type": "mic-state", "state": "denied", "reason": "zero-frames", "source": "system"])
+            self.emit(["type": "mic-state", "state": "silent", "reason": "zero-frames", "source": "system"])
+        }
+        tap.onSound = { [weak self] in
+            guard let self = self, self.systemGen == gen else { return }
+            self.emit(["type": "mic-state", "state": "sound", "source": "system"])
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self = self, !settled, self.systemGen == gen else { return }
@@ -838,13 +842,16 @@ final class MTSystemTap {
     var onBuffer: ((AVAudioPCMBuffer) -> Void)?
     /// 运行中重建失败，在主线程上调。
     var onLost: ((OSStatus) -> Void)?
-    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 视为系统录音权限被拒，在主线程上调一次。
+    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 可能没开系统录音权限，在主线程上调一次。
     /// 两个条件缺一不可：已授权时句间停顿也是精确 0（尖刺 S1），没人在放声音时的全零是正常静音。
-    /// 一旦听到过非零样本就不再判（那说明权限是有的）。
-    var onSilentDenial: (() -> Void)?
+    /// 它只是提示，不是判决：权限已给而开始瞬间静音也满足（全回归 F13），所以采集照常继续。
+    var onSilent: (() -> Void)?
+    /// onSilent 之后第一个非零帧，在主线程上调一次（权限是有的，提示该撤了）。
+    var onSound: (() -> Void)?
     private var zeroSince: CFAbsoluteTime = 0
     private var heardSound = false
-    private var denialReported = false
+    private var silentReported = false
+    private var soundReported = false   // 只在主线程读写
 
     private let queue = DispatchQueue(label: MTAudioBridge.channel)
     private var tapID = AudioObjectID(kAudioObjectUnknown)
@@ -960,17 +967,33 @@ final class MTSystemTap {
 
     /// IO 线程上调。只做计时；真正去问「有没有别的进程在出声」放到自己的队列上（HAL 属性查询不进 IO 线程）。
     private func noteFrames(nonzero: Bool) {
-        if heardSound || denialReported { return }
-        if nonzero { heardSound = true; return }
+        if nonzero {
+            if heardSound { return }
+            heardSound = true
+            if silentReported { DispatchQueue.main.async { self.reportSound() } }
+            return
+        }
+        if heardSound || silentReported { return }
         let now = CFAbsoluteTimeGetCurrent()
         if zeroSince == 0 { zeroSince = now; return }
         guard now - zeroSince >= 3 else { return }
         zeroSince = now          // 这一轮不成立的话，最早 3 秒后再问一次
         queue.async {
-            guard !self.stopped, !self.denialReported, !self.heardSound, MTSystemTap.othersOutputting() else { return }
-            self.denialReported = true
-            DispatchQueue.main.async { self.onSilentDenial?() }
+            guard !self.stopped, !self.silentReported, !self.heardSound, MTSystemTap.othersOutputting() else { return }
+            self.silentReported = true
+            DispatchQueue.main.async {
+                self.onSilent?()
+                // 问 HAL 的这一拍里 IO 线程可能已经见到非零帧、却还没看到 silentReported：在这里补发
+                if self.heardSound { self.reportSound() }
+            }
         }
+    }
+
+    /// 主线程：sound 至多一次（IO 线程与上面的补发可能都走到这里）。
+    private func reportSound() {
+        guard !soundReported, !stopped else { return }
+        soundReported = true
+        onSound?()
     }
 
     /// 系统里除本进程外，有没有进程正在输出声音（kAudioProcessPropertyIsRunningOutput，macOS 14.2+）。

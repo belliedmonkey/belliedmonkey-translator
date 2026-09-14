@@ -315,7 +315,7 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const strings = code(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"labels"', '"state"', '"controls"', '"menu"', '"fontScale"', '"opacity"', '"clickThrough"',
       '"orig"', '"tr"', '"partial"', '"pct"',
-      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"',
       '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
       '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
       '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);
@@ -346,13 +346,15 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     ok(/stereoGlobalTapButExcludeProcesses/.test(body), '排除本进程（尖刺 S1b）');
     ok(/"waiting-permission"/.test(body) && /\.now\(\) \+ 2\)/.test(body) && /\.now\(\) \+ 90\)/.test(body), '2 s 报等待授权、90 s 超时按拒绝');
   });
-  test('权限被拒 = 放行但全零帧（M30 真机读数，协议补充决定 10 修订）：3 秒全零且别的进程在出声 ⇒ denied zero-frames', () => {
+  test('全零帧 ⇒ 不中断的 silent，首个非零帧 ⇒ sound，不再判 denied（协议补充决定 10 修订二，全回归 F13）', () => {
     const body = code(audio);
-    ok(/"reason": "zero-frames"/.test(body) && /"state": "denied"/.test(body), '发 mic-state denied / zero-frames');
-    ok(/kAudioProcessPropertyIsRunningOutput/.test(body), '第二个条件：有别的进程正在输出声音');
+    ok(/"state": "silent", "reason": "zero-frames"/.test(body), '3 秒全零且别的进程开着输出 ⇒ mic-state silent / zero-frames');
+    ok(/"state": "sound"/.test(body), 'silent 之后第一个非零帧 ⇒ mic-state sound');
+    ok(!/"state": "denied", "reason": "zero-frames"/.test(body), '零帧不再判 denied：权限已给、开始瞬间静音曾被误判（F13 真机）');
+    ok(!/onSilentDenial/.test(body), '零帧回调不再叫 denial，也不再 micStop 撤采集');
+    ok(/kAudioProcessPropertyIsRunningOutput/.test(body), '第二个条件：有别的进程开着输出');
     ok(/pid != me/.test(body), '排除本进程');
     ok(/now - zeroSince >= 3/.test(body), '全零要连续 3 秒');
-    ok(/if heardSound \|\| denialReported \{ return \}/.test(body), '听到过非零样本就不再判（已授权的句间停顿也是精确 0）');
   });
   test('条上的按钮字走 attributedTitle 白字（M27：contentTintColor 对 recessed / inline 无效）', () => {
     const body = code(tpl);
@@ -632,7 +634,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"caps-probe"', '"subtitle-config"', '"subtitle-show"', '"subtitle-state"', '"subtitle-float"', '"subtitle-hide"',   // §9.8 实时字幕（字幕条文字全由 JS 传）
         '"audio-caps"', '"sources"', '"mic"', '"system"', '"ok"', '"os"', '"unsupported"', '"broadcast"', '"source"',   // §9.8 能力回话与声音来源
         '"waiting"', '"waiting-permission"', '"timeout"', '"tick"', '"t"',   // §9.8 协议补充决定 10、13
-        '"zero-frames"',   // §9.8 协议补充决定 10 修订（M30：拒绝 = 放行但全零帧）
+        '"zero-frames"', '"silent"', '"sound"',   // §9.8 协议补充决定 10 修订二（全零帧 = 不中断的提示，F13）
         '"profile"', '"conv"', '"headphones"', '"subtitle-window"',   // §9.8 协议补充决定（三）16、19、21（iPhone 一期）
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',

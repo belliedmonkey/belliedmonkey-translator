@@ -411,7 +411,7 @@ var AppListen = (() => {
   function subState(state, pct) {
     if (!subOn()) return;
     // 停下的几种状态：条上悬着的半句已经作废（暂停/停机时 partial 已清空），换成空，只留状态行与出口
-    if (subPartialShown && !/^(listening|downloading|reconnecting)$/.test(state)) { subPartialShown = false; NativeAudio.subtitleShow({ orig: '', tr: '', partial: false }); }
+    if (subPartialShown && !/^(listening|downloading|reconnecting|silent)$/.test(state)) { subPartialShown = false; NativeAudio.subtitleShow({ orig: '', tr: '', partial: false }); }
     NativeAudio.subtitleState(state, pct);
   }
   // 字幕条 A− / A+（§9.8 协议补充决定 9）：字号由页面存（设置与条永远一致），改完重发 subtitle-config
@@ -489,6 +489,7 @@ var AppListen = (() => {
         // {pct} 留给原生按实时进度填；{lang} 这里就填好（原生不持有语言名）
         downloading: t('subtitle_bar_downloading', '正在下载{lang}识别资产 · {pct}%').replace('{lang}', langLabel(cfg && cfg.otherLang)),
         'tr-failed': t('subtitle_bar_tr_failed', '这句译文失败 · 主窗口里可重试'),
+        silent: silentHint(),
       },
       controls: {
         pause: t('subtitle_ctl_pause', '暂停'), resume: t('subtitle_ctl_resume', '继续'),
@@ -526,6 +527,22 @@ var AppListen = (() => {
     // Mac 系统声音：权限框还没点（§9.8 协议补充决定 10）—— 停在「准备中」，页面与字幕条都说在等授权
     if (state === 'waiting') {
       if (phase === 'preparing') { note(t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'), false); subState('waiting-permission'); }
+      return;
+    }
+    // Mac 系统声音：开始后 3 秒全零且有别的 App 开着输出（§9.8 协议补充决定 10 修订二）—— 可能没开权限，
+    // 也可能只是开始那一刻恰好静音（全回归 F13），所以不停：页面与条上一句不中断的提示；一有声音就撤掉
+    if (state === 'silent') {
+      sysSilent = true;
+      if (!sysSound && phase === 'listening') { note(silentHint(), false); subState('silent'); }
+      return;
+    }
+    if (state === 'sound') {
+      sysSound = true;
+      if (phase === 'listening' && sysSilent) {
+        const el = $('app-listen-note');
+        if (el && el.textContent === silentHint()) note('');
+        subState('listening');
+      }
       return;
     }
     if (state === 'denied') halt('denied', '');
@@ -627,6 +644,7 @@ var AppListen = (() => {
     cfg = await readCfg();
     if (!liveCapable(cfg)) { note(mode === 'subtitle' ? t('subtitle_need_live', '「实时字幕」需要一个带实时接口的转写引擎') : t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎'), true); return; }
     session = C.newSession(now(), Math.random(), mode);
+    sysSilent = false; sysSound = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
     // 用户会以为在留记录而其实没有。
@@ -703,6 +721,9 @@ var AppListen = (() => {
     paint();
   }
   let startedAt = 0, earlyRetries = 0;
+  // 本场收到过 silent / sound 没有（决定 10 修订二）：决定静音门的暂停句指不指向权限
+  let sysSilent = false, sysSound = false;
+  function silentHint() { return t('subtitle_bar_silent', '还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限'); }
   // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
   function pause(reason) {
     if (phase !== 'listening') return;
@@ -713,7 +734,9 @@ var AppListen = (() => {
     micStop(); closeSocket();
     if (inc) inc.reset();
     partial = ''; partialTr = '';
-    if (reason === 'silence') note(session.mode === 'subtitle' ? t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。') : t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。'), false);
+    if (reason === 'silence') note(session.mode !== 'subtitle' ? t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。')
+      : sysSilent && !sysSound ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
     subState(reason === 'silence' ? 'silence' : 'paused');
     paint();
   }

@@ -3015,5 +3015,11 @@
   },
   "subtitle_pip_note_ended": {
     "message": "Diese Untertitel sind beendet, das Fenster ist geschlossen"
+  },
+  "subtitle_bar_silent": {
+    "message": "Noch kein Systemton zu hören – Video läuft, aber keine Untertitel? Vielleicht ist die Systemaudioaufnahme nicht erlaubt"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "Seit 30 Sekunden kein Ton – pausiert. Lief das Video, aber es kamen keine Untertitel, ist die Systemaudioaufnahme vielleicht nicht erlaubt: Systemeinstellungen › Datenschutz & Sicherheit › Bildschirm- & Systemaudioaufnahme, BelliedMonkey Translator erlauben, dann „Fortsetzen“."
   }
 }

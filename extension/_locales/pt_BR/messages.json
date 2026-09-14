@@ -3015,5 +3015,11 @@
   },
   "subtitle_pip_note_ended": {
     "message": "Estas legendas terminaram e a janela foi fechada"
+  },
+  "subtitle_bar_silent": {
+    "message": "Ainda nenhum som do sistema — o vídeo toca mas sem legendas? Talvez a gravação de áudio do sistema não esteja permitida"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "Sem som por 30 segundos — pausado. Se o vídeo estava tocando mas sem legendas, talvez a gravação de áudio do sistema não esteja permitida: Ajustes do Sistema › Privacidade e Segurança › Gravação de Tela e Áudio do Sistema, permita o BelliedMonkey Translator e toque em “Continuar”."
   }
 }

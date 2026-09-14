@@ -549,6 +549,26 @@ function say(base, text) {
     need(rm && rm.on === true && rm.profile === 'subtitle', 'H4: record-mode 该带 profile:subtitle，实际 ' + JSON.stringify(rm));
     need(ms && ms.source === 'system', 'H4: mic-start 该带 source:system（收到过 system:ok），实际 ' + JSON.stringify(ms));
     need(sc && sc.hasLabels, 'H4: 该发 subtitle-config 且带 state / controls 文案（原生零文案），实际 ' + JSON.stringify(sc));
+    // H4b. 全零帧（§9.8 协议补充决定 10 修订二，全回归 F13）：原生报 silent ⇒ 仍在听、页面与条上是不中断的提示；
+    //      没听到过声音就到了静音门 ⇒ 暂停句指向权限；恢复后原生报 sound ⇒ 提示撤掉、条回 listening
+    const markB = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'mic-state', state: 'silent', reason: 'zero-frames', source: 'system' }), 'ok')`);
+    await sleep(300);
+    const h4b1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markB}).filter((m) => m.type === 'subtitle-state').map((m) => m.state), labelSilent: !!((__fakeBridge.msgs.filter((m) => m.type === 'subtitle-config').pop() || {}).labels || {}).state && !!__fakeBridge.msgs.filter((m) => m.type === 'subtitle-config').pop().labels.state.silent })`));
+    need(h4b1.phase === 'listening' && /还没听到系统声音/.test(h4b1.note) && h4b1.states.includes('silent') && h4b1.labelSilent,
+      'H4b: mic-state silent ⇒ 仍在听、页面出不中断提示、条收到 subtitle-state silent、labels.state 有 silent，实际 ' + JSON.stringify(h4b1));
+    await evalIn(cdp, sessionId, `(AppListen.pause('silence'), 'ok')`);
+    await sleep(200);
+    const h4b2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '' })`));
+    need(h4b2.phase === 'paused' && /系统录音权限/.test(h4b2.note), 'H4b: 收到过 silent、从没 sound 就到静音门 ⇒ 暂停句该指向权限，实际 ' + JSON.stringify(h4b2));
+    await evalIn(cdp, sessionId, `(AppListen.resume(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4b: 继续后回到 listening');
+    const markB2 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'mic-state', state: 'sound', source: 'system' }), 'ok')`);
+    await sleep(300);
+    const h4b3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markB2}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+    need(h4b3.phase === 'listening' && !/还没听到系统声音/.test(h4b3.note) && h4b3.states.includes('listening'),
+      'H4b: mic-state sound ⇒ 提示撤掉、条收到 subtitle-state listening，实际 ' + JSON.stringify(h4b3));
     // H5. 单向：英文句、中文句都归对方；没有 ↔ / 给对方看 / 朗读；自动朗读不出声
     const showMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await say(base, 'The keynote starts in five minutes.');
