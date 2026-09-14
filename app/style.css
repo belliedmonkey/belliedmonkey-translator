@@ -514,7 +514,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-row-acts { display: flex; gap: 12px; margin-top: 4px; }
 :where(#app-listen) .listen-act, :where(#app-listen) .listen-tr-retry { font: inherit; font-size: 0.85rem; background: none; border: 0; padding: 4px 0; color: var(--link); text-decoration: underline; cursor: pointer; min-height: 32px; }
 :where(#app-listen) .listen-tr-retry { color: var(--danger); }
-:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry):not(.listen-raw-toggle) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
 :where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 :where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
 :where(#app-listen) .listen-head-acts { display: flex; gap: 12px; }

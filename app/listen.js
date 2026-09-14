@@ -391,18 +391,24 @@ var AppListen = (() => {
   // ── 实时字幕：字幕条 / 画中画（§9.8）──────────────────────────────────────
   // 原生零文案：半句与定稿走 subtitle-show，停机态走 subtitle-state，每个态的字在 subtitle-config 里。
   function subOn() { return !!(session && session.mode === 'subtitle' && bridged()); }
-  function subShow(orig, tr, isPartial) { if (subOn()) NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); }
+  let subPartialShown = false;   // 条上此刻是不是一个半句（停下时要清掉，否则「粗加工。…」一直挂着 —— 真机读数 2026-09-14）
+  function subShow(orig, tr, isPartial) { if (subOn()) { subPartialShown = !!isPartial; NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); } }
   function subFinal(row) {
     if (!subOn() || !row) return;
     if (row.tr) {
-      NativeAudio.subtitleShow({ orig: row.text, tr: row.tr, partial: false });
+      subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: row.tr, partial: false });
       if (phase === 'listening') NativeAudio.subtitleState('listening');
     } else if (row.trErr) {
-      NativeAudio.subtitleShow({ orig: row.text, tr: '', partial: false });
+      subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: '', partial: false });
       NativeAudio.subtitleState('tr-failed');
     }
   }
-  function subState(state, pct) { if (subOn()) NativeAudio.subtitleState(state, pct); }
+  function subState(state, pct) {
+    if (!subOn()) return;
+    // 停下的几种状态：条上悬着的半句已经作废（暂停/停机时 partial 已清空），换成空，只留状态行与出口
+    if (subPartialShown && !/^(listening|downloading|reconnecting)$/.test(state)) { subPartialShown = false; NativeAudio.subtitleShow({ orig: '', tr: '', partial: false }); }
+    NativeAudio.subtitleState(state, pct);
+  }
   // 字幕条 A− / A+（§9.8 协议补充决定 9）：字号由页面存（设置与条永远一致），改完重发 subtitle-config
   function subFont(dir) {
     if (!subOn() || !cfg) return;

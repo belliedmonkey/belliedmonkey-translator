@@ -720,6 +720,13 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             self.micStop()
             self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
         }
+        // M30 真机读数（2026-09-14）：点「不允许」之后 HAL 照常返回成功、IO 照常来，但每个样本都是 0。
+        // 不判的话页面一直「字幕中」却永远没字（协议补充决定 10 修订）。
+        tap.onSilentDenial = { [weak self] in
+            guard let self = self, self.systemGen == gen else { return }
+            self.micStop()
+            self.emit(["type": "mic-state", "state": "denied", "reason": "zero-frames", "source": "system"])
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self = self, !settled, self.systemGen == gen else { return }
             self.emit(["type": "mic-state", "state": "waiting", "reason": "waiting-permission", "source": "system"])
@@ -777,6 +784,13 @@ final class MTSystemTap {
     var onBuffer: ((AVAudioPCMBuffer) -> Void)?
     /// 运行中重建失败，在主线程上调。
     var onLost: ((OSStatus) -> Void)?
+    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 视为系统录音权限被拒，在主线程上调一次。
+    /// 两个条件缺一不可：已授权时句间停顿也是精确 0（尖刺 S1），没人在放声音时的全零是正常静音。
+    /// 一旦听到过非零样本就不再判（那说明权限是有的）。
+    var onSilentDenial: (() -> Void)?
+    private var zeroSince: CFAbsoluteTime = 0
+    private var heardSound = false
+    private var denialReported = false
 
     private let queue = DispatchQueue(label: MTAudioBridge.channel)
     private var tapID = AudioObjectID(kAudioObjectUnknown)
@@ -875,16 +889,55 @@ final class MTSystemTap {
             let n = Int(src.frameLength)
             dst.frameLength = src.frameLength
             let k = Float(max(channels, 1))
+            var nonzero = false
             for i in 0..<n {
                 var acc: Float = 0
                 for c in 0..<channels { acc += interleaved ? s[0][i * channels + c] : s[c][i] }
                 d[i] = acc / k
+                if acc != 0 { nonzero = true }
             }
+            self.noteFrames(nonzero: nonzero)
             sink(dst)
         }
         guard st == noErr, let proc = proc else { return st == noErr ? OSStatus(-1) : st }
         procID = proc
         return AudioDeviceStart(agg, proc)
+    }
+
+    /// IO 线程上调。只做计时；真正去问「有没有别的进程在出声」放到自己的队列上（HAL 属性查询不进 IO 线程）。
+    private func noteFrames(nonzero: Bool) {
+        if heardSound || denialReported { return }
+        if nonzero { heardSound = true; return }
+        let now = CFAbsoluteTimeGetCurrent()
+        if zeroSince == 0 { zeroSince = now; return }
+        guard now - zeroSince >= 3 else { return }
+        zeroSince = now          // 这一轮不成立的话，最早 3 秒后再问一次
+        queue.async {
+            guard !self.stopped, !self.denialReported, !self.heardSound, MTSystemTap.othersOutputting() else { return }
+            self.denialReported = true
+            DispatchQueue.main.async { self.onSilentDenial?() }
+        }
+    }
+
+    /// 系统里除本进程外，有没有进程正在输出声音（kAudioProcessPropertyIsRunningOutput，macOS 14.2+）。
+    private static func othersOutputting() -> Bool {
+        var addr = address(kAudioHardwarePropertyProcessObjectList)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size) == noErr, size > 0 else { return false }
+        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &ids) == noErr else { return false }
+        let me = getpid()
+        for id in ids {
+            var pid: pid_t = 0
+            var pidAddr = address(kAudioProcessPropertyPID)
+            var pidSize = UInt32(MemoryLayout<pid_t>.size)
+            guard AudioObjectGetPropertyData(id, &pidAddr, 0, nil, &pidSize, &pid) == noErr, pid != me else { continue }
+            var running: UInt32 = 0
+            var runAddr = address(kAudioProcessPropertyIsRunningOutput)
+            var runSize = UInt32(MemoryLayout<UInt32>.size)
+            if AudioObjectGetPropertyData(id, &runAddr, 0, nil, &runSize, &running) == noErr, running != 0 { return true }
+        }
+        return false
     }
 
     private func watchDefaultOutput() {

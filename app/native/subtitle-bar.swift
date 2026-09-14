@@ -211,9 +211,17 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
     private func button(_ title: String, _ action: Selector) -> NSButton {
         let b = NSButton(title: title, target: self, action: action)
         b.bezelStyle = .recessed
-        b.font = .systemFont(ofSize: 12, weight: .medium)
-        b.contentTintColor = .white
+        setTitle(b, title, size: 12)
         return b
+    }
+
+    /// 深色底上的白字。真机读数（M27）：.recessed / .inline 两种按钮都不认 contentTintColor，字是深灰压深色底、几乎看不见 ——
+    /// 只有 attributedTitle 管用。每次改字都要走这里，直接赋 title 会把颜色冲掉。
+    private func setTitle(_ b: NSButton, _ title: String, size: CGFloat) {
+        b.attributedTitle = NSAttributedString(string: title, attributes: [
+            .foregroundColor: NSColor.white,
+            .font: NSFont.systemFont(ofSize: size, weight: .medium),
+        ])
     }
 
     /// 暂停 / 继续 · 穿透 · A− · A+ · 主窗口 · 结束（M6 ④）。文字随 labels 变，所以每次 config 重建。
@@ -244,12 +252,15 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         stateLabel.font = .systemFont(ofSize: 14 * fontScale)
         badge.font = .systemFont(ofSize: 11, weight: .medium)
 
-        // 译文大字在上、原文小字在下；还没译文（半句 / 这句译文失败）时原文顶到大字位
-        let head = tr.isEmpty ? orig : tr
+        // 译文大字在上、原文小字在下；还没译文（半句 / 这句译文失败）时原文顶到大字位。
+        // 只有标点、没有一个字母或数字的半句不显示（真机读数 M27：暂停后条上残留「••••」「.」）。
+        let meaningful = { (s: String) -> Bool in s.rangeOfCharacter(from: .alphanumerics) != nil }
+        let rawHead = tr.isEmpty ? orig : tr
+        let head = meaningful(rawHead) ? rawHead : ""
         trLabel.stringValue = partial && !head.isEmpty ? head + "…" : head
         trLabel.isHidden = head.isEmpty
         origLabel.stringValue = tr.isEmpty ? "" : orig
-        origLabel.isHidden = tr.isEmpty || orig.isEmpty
+        origLabel.isHidden = tr.isEmpty || !meaningful(orig) || head.isEmpty
 
         // 状态行：非 listening 一律显示；listening 只在还没出字时显示（「正在听系统声音…」）
         let text = (stateLabels[state] ?? "").replacingOccurrences(of: "{pct}", with: String(pct))
@@ -259,18 +270,21 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
         // 行内出口：拒绝 ⇒ 打开系统设置；停下 ⇒ 继续（不自动恢复）
         if state == "denied" {
-            actionButton.title = controlLabels["openSettings"] ?? ""
+            let title = controlLabels["openSettings"] ?? ""
+            setTitle(actionButton, title, size: 13 * fontScale)
             actionButton.action = #selector(tapOpenSettings)
-            actionButton.isHidden = actionButton.title.isEmpty
+            actionButton.isHidden = title.isEmpty
         } else if state == "paused" || state == "silence" || state == "socket" {
-            actionButton.title = controlLabels["resume"] ?? ""
+            let title = controlLabels["resume"] ?? ""
+            setTitle(actionButton, title, size: 13 * fontScale)
             actionButton.action = #selector(tapToggle)
-            actionButton.isHidden = actionButton.title.isEmpty
+            actionButton.isHidden = title.isEmpty
         } else {
             actionButton.isHidden = true
         }
-        actionButton.contentTintColor = .white
-        toggleButton?.title = listening ? (controlLabels["pause"] ?? "") : (controlLabels["resume"] ?? "")
+        if let toggle = toggleButton {
+            setTitle(toggle, listening ? (controlLabels["pause"] ?? "") : (controlLabels["resume"] ?? ""), size: 12)
+        }
 
         fitHeight(p)
     }
