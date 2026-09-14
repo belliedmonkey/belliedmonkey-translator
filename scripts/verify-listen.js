@@ -582,6 +582,47 @@ function say(base, text) {
     need(h8.sumShown && h8.sumTitle === '这次字幕' && /共 2 句/.test(h8.sumBody), 'H8: 小结该是「这次字幕 · 共 2 句」，实际 ' + JSON.stringify(h8));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);
+
+    // ── H9. iPhone 一期（原生报 system:'unsupported'，§9.8 协议补充决定（三））：麦克风听外放 + 画中画小窗 ──
+    //   准备页「现在」卡换成小窗预览占位；开始后 mic-start 不带 source（麦克风）、record-mode 带 profile:subtitle；
+    //   页面把占位块的矩形发给原生（subtitle-float {rect}）；小窗被 ✕ 关掉（subtitle-window closed）⇒ 出「浮出字幕窗」，
+    //   点它 ⇒ subtitle-float 不带 rect；小窗浮出（floating）⇒ 按钮藏起；结束 ⇒ subtitle-hide、按钮藏起。
+    if (process.env.TRACE) console.log('  …H9');
+    await evalIn(cdp, sessionId, `(async () => { __fakeBridge.caps = { sources: ['mic'], system: 'unsupported', broadcast: 'unsupported' }; NativeAudio._fromNative(Object.assign({ type: 'audio-caps' }, __fakeBridge.caps)); await AppListen.refreshEntry(); AppListen.open('subtitle'); return 'ok'; })()`);
+    await sleep(500);
+    const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: document.getElementById('app-subs-privacy').textContent, tip: document.getElementById('app-subs-tip').textContent, note: document.getElementById('app-subs-pip-note').textContent })`));
+    need(/字幕小窗的预览/.test(h9a.note), 'H9: 开始前预览占位块上该有一句说明（不是一块黑），实际 ' + JSON.stringify(h9a.note));
+    const ar9 = await evalIn(cdp, sessionId, `(function(){ var r=document.getElementById('app-subs-pip').getBoundingClientRect(); return r.height ? r.width / r.height : 0; })()`);
+    need(Math.abs(ar9 - 0.8) < 0.03, 'H9: 小窗预览占位块该是 4:5（与画中画同一帧），实际宽高比 ' + ar9);
+    need(h9a.pip && h9a.partialHidden && /iPhone/.test(h9a.priv) && /画中画/.test(h9a.tip), 'H9: iPhone 准备页该显示小窗预览占位、iPhone 隐私句与画中画提示，实际 ' + JSON.stringify(h9a));
+    const mark9 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H9: iPhone 字幕模式进入 listening');
+    await sleep(400);
+    const m9 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${mark9}).map((m) => ({ type: m.type, profile: m.profile, source: m.source, hasRect: 'rect' in m, rect: m.rect })))`));
+    const rm9 = m9.find((m) => m.type === 'record-mode'), ms9 = m9.find((m) => m.type === 'mic-start'), fl9 = m9.find((m) => m.type === 'subtitle-float');
+    need(rm9 && rm9.profile === 'subtitle', 'H9: record-mode 该带 profile:subtitle，实际 ' + JSON.stringify(rm9));
+    need(ms9 && ms9.source === undefined, 'H9: iPhone 的 mic-start 不带 source（麦克风，老壳逐字节不变），实际 ' + JSON.stringify(ms9));
+    need(fl9 && fl9.hasRect && fl9.rect && fl9.rect.w > 0 && fl9.rect.h > 0, 'H9: 该把小窗预览占位的矩形发给原生，实际 ' + JSON.stringify(fl9));
+    const floatVis = `JSON.stringify((() => { const b = document.getElementById('app-subs-float'); return { hidden: b.hidden, text: b.textContent }; })())`;
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), 'ok')`);
+    const h9c = JSON.parse(await evalIn(cdp, sessionId, floatVis));
+    need(h9c.hidden === false && h9c.text === '浮出字幕窗', 'H9: 小窗被关掉后该出「浮出字幕窗」，实际 ' + JSON.stringify(h9c));
+    const mark9b = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-subs-float').click(), 'ok')`);
+    const fl9b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${mark9b}).filter((m) => m.type === 'subtitle-float').map((m) => ('rect' in m)))`));
+    need(JSON.stringify(fl9b) === '[false]', 'H9: 点「浮出字幕窗」该发一条不带 rect 的 subtitle-float，实际 ' + JSON.stringify(fl9b));
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'floating' }), 'ok')`);
+    const h9f = JSON.parse(await evalIn(cdp, sessionId, floatVis));
+    need(h9f.hidden === true, 'H9: 小窗浮出后按钮该藏起，实际 ' + JSON.stringify(h9f));
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
+    await sleep(300);
+    const h9e = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, hide: __fakeBridge.msgs.slice(${mark9b}).some((m) => m.type === 'subtitle-hide'), float: document.getElementById('app-subs-float').hidden })`));
+    const note9 = await evalIn(cdp, sessionId, `document.getElementById('app-subs-pip-note').textContent`);
+    need(/已结束/.test(note9), 'H9: 结束后预览占位块上该写「已结束」，实际 ' + JSON.stringify(note9));
+    need(h9e.phase === 'ended' && h9e.hide && h9e.float === true, 'H9: 结束后该发 subtitle-hide、「浮出字幕窗」藏起，实际 ' + JSON.stringify(h9e));
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(300);
   } catch (e) {
     problems.push('THROW ' + (e && e.stack));
     // 失败时把页面状态一并读回，别让人猜

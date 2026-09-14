@@ -391,6 +391,7 @@ var AppListen = (() => {
   // ── 实时字幕：字幕条 / 画中画（§9.8）──────────────────────────────────────
   // 原生零文案：半句与定稿走 subtitle-show，停机态走 subtitle-state，每个态的字在 subtitle-config 里。
   function subOn() { return !!(session && session.mode === 'subtitle' && bridged()); }
+  let pipWindow = '';            // iPhone 画中画小窗状态：inline / floating / closed（subtitle-window，协议补充决定 19）
   let subPartialShown = false;   // 条上此刻是不是一个半句（停下时要清掉，否则「粗加工。…」一直挂着 —— 真机读数 2026-09-14）
   function subShow(orig, tr, isPartial) { if (subOn()) { subPartialShown = !!isPartial; NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); } }
   function subFinal(row) {
@@ -416,14 +417,69 @@ var AppListen = (() => {
     try { chrome.storage.local.set({ subtitleFontScale: cfg.fontScale }); } catch (_) {}
     NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale, opacity: 1 });
   }
+
+  // iPhone 画中画（§9.8 协议补充决定（三）17、19、20）：「现在」卡里的占位块就是小窗预览的位置 —— 系统要求画中画的来源在屏幕上，
+  // 原生在同一矩形上叠预览，离开 App 时由它自动浮出。位置随版面 / 滚动节流重发；滚出视口发 null。
+  function pipHost() {
+    const c = bridged() ? NativeAudio.audioCaps() : null;
+    return !!(session && session.mode === 'subtitle' && c && c.system === 'unsupported');
+  }
+  let pipOff = null, pipLastRect = '';
+  function pipSendRect() {
+    if (!pipHost()) return;
+    const el = $('app-subs-pip'); if (!el) return;
+    const r = el.getBoundingClientRect();
+    const on = !el.hidden && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+    const rect = on ? { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    const key = JSON.stringify(rect);
+    if (key === pipLastRect) return;
+    pipLastRect = key;
+    NativeAudio.subtitleFloat(rect);
+  }
+  function pipRectOn() {
+    if (!pipHost() || pipOff) return;
+    let timer = 0;
+    const later = () => { if (timer) return; timer = setTimeout(() => { timer = 0; pipSendRect(); }, 120); };
+    const el = $('app-subs-pip');
+    const ro = (typeof ResizeObserver !== 'undefined' && el) ? new ResizeObserver(later) : null;
+    if (ro) ro.observe(el);
+    window.addEventListener('scroll', later, true);
+    window.addEventListener('resize', later);
+    pipOff = () => { if (ro) ro.disconnect(); window.removeEventListener('scroll', later, true); window.removeEventListener('resize', later); clearTimeout(timer); };
+    pipLastRect = '';
+    pipSendRect();
+  }
+  function pipRectOff() { if (pipOff) { pipOff(); pipOff = null; } pipLastRect = ''; }
+  function paintPipFloat() {
+    const b = $('app-subs-float'); if (!b) return;
+    b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed');
+  }
+  // 预览占位块上的一句话：开始前 / 结束后原生预览不在（会话中它盖在这句上面）——不是一块莫名其妙的黑（用户 2026-09-14 手测）
+  function paintPipNote() {
+    const n = $('app-subs-pip-note'); if (!n) return;
+    n.textContent = phase === 'ended' ? t('subtitle_pip_note_ended', '这次字幕已结束，小窗已关闭')
+      : (!session || phase === 'idle') ? t('subtitle_pip_note_idle', '点「开始」后，这里是字幕小窗的预览；离开本 App 时它会浮在其它 App 上')
+        : t('subtitle_pip_note_live', '字幕小窗的预览 —— 离开 App 时会浮在其它 App 上');
+  }
   function subtitleLabels() {
+    // iPhone（原生报 system:'unsupported'）听的是麦克风里的外放，不是系统声音 —— 两句状态文案按平台分（15 Pro 手测看到沿用了 Mac 的说法）
+    const caps = bridged() ? NativeAudio.audioCaps() : null;
+    const mic = !!(caps && caps.system === 'unsupported');
     return {
+      // 画中画小窗（iPhone）：空窗时的说明、翻看历史时顶部那行（用户 2026-09-14 手测后裁定）
+      pip: {
+        title: t('subtitle_pip_title', '实时字幕'),
+        hint: t('subtitle_pip_hint', '在任意 App 里外放视频或音频，字幕会出现在这里'),
+        close: t('subtitle_pip_close', '点一下小窗：⏸ 暂停 · ⏪⏩ 翻看历史 · ✕ 关掉（回 App 可再打开）'),
+        history: t('subtitle_pip_history', '历史 · 点 ⏩ 回到最新'),
+      },
       state: {
         'waiting-permission': t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'),
-        listening: t('subtitle_bar_listening', '正在听系统声音…'),
+        listening: mic ? t('subtitle_bar_listening_mic', '正在听外放的声音…') : t('subtitle_bar_listening', '正在听系统声音…'),
         paused: t('subtitle_bar_paused', '已暂停'),
         silence: t('subtitle_bar_silence', '30 秒没有声音，已暂停以免计费'),
-        denied: t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」'),
+        denied: mic ? t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。')
+          : t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」'),
         socket: t('subtitle_bar_socket', '转写连接中断'),
         reconnecting: t('subtitle_bar_reconnecting', '正在重连…'),
         // {pct} 留给原生按实时进度填；{lang} 这里就填好（原生不持有语言名）
@@ -583,7 +639,7 @@ var AppListen = (() => {
       NativeAudio.onEvent(onNative);
       NativeAudio.recordMode(true, C.modeOf(session).profile);   // 对话档不带 profile，消息逐字节不变
       NativeAudio.sessionStart();
-      if (session.mode === 'subtitle') NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 });
+      if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
     }
     $('app-listen-summary').hidden = true;
     $('app-listen-history-wrap').hidden = false;
@@ -700,6 +756,7 @@ var AppListen = (() => {
     phase = 'ended';
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
+    pipRectOff(); pipWindow = ''; paintPipFloat();
     if (bridged()) { if (session.mode === 'subtitle') NativeAudio.subtitleHide(); NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
@@ -757,6 +814,11 @@ var AppListen = (() => {
     const asRow = $('app-listen-autospeak-row'); if (asRow) asRow.hidden = sub;
     const mn = $('app-listen-mac-note'); if (mn) mn.hidden = sub || !isMacHost();
     const prep = $('app-subs-prep'); if (prep) prep.hidden = !sub;
+    // iPhone（原生报 system:'unsupported'）：「现在」卡里的半句换成画中画小窗预览占位（协议补充决定（三）17）
+    const pipOn = sub && !!caps && caps.system === 'unsupported';
+    const pipEl = $('app-subs-pip'); if (pipEl) pipEl.hidden = !pipOn;
+    for (const id of ['app-listen-partial', 'app-listen-partial-tr']) { const e = $(id); if (e) e.hidden = pipOn; }
+    const flt = $('app-subs-float'); if (flt) flt.textContent = t('subtitle_pip_float', '浮出字幕窗');
     const priv = $('app-subs-privacy');
     if (priv) {
       priv.hidden = !sub;
@@ -767,7 +829,7 @@ var AppListen = (() => {
     const tip = $('app-subs-tip');
     if (tip && sub) tip.textContent = macLike
       ? t('subtitle_tip_mac', '开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。')
-      : t('subtitle_tip_ios', '先点开始，再切到 Safari 外放播放视频；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。');
+      : t('subtitle_tip_ios', '先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。');
     try {
       chrome.storage.local.get(['listenOtherLang', 'subtitleVideoLang', 'subtitleCapture'], (st) => {
         st = st || {};
@@ -955,6 +1017,7 @@ var AppListen = (() => {
   }
   function onNative(msg) {
     if (!msg || $('app-listen').hidden || !session) return;
+    if (msg.type === 'subtitle-window') { pipWindow = String(msg.state || ''); paintPipFloat(); return; }
     if (msg.type === 'remote') {
       if (msg.command === 'pause') { if (phase === 'listening') pause('user'); }
       else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resumeByUser(); }
@@ -1000,6 +1063,7 @@ var AppListen = (() => {
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   function paint() {
+    paintPipNote();
     const active = phase === 'listening';
     const ended = phase === 'ended';
     // 表 1（画布「状态与转移」）：每个状态下每个控件的样子。灰 = 45% 透明 + 文案不变，
@@ -1184,6 +1248,8 @@ var AppListen = (() => {
       const se = $('app-subs-entry' + sfx);
       if (se) { const st = se.querySelector('.mode-title'); (st || se).textContent = t('subtitle_entry', '实时字幕'); se.addEventListener('click', () => open('subtitle')); }
     }
+    const floatBtn = $('app-subs-float');
+    if (floatBtn) floatBtn.addEventListener('click', () => { if (bridged()) NativeAudio.subtitleFloat(); });
     refreshEntry();
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -1303,7 +1369,7 @@ var AppListen = (() => {
   }
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
-    _debug: () => ({ mode, subsReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+    _debug: () => ({ mode, subsReason, pipWindow, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }) };

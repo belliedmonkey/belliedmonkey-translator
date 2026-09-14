@@ -46,7 +46,7 @@ var NativeAudio = (() => {
       // 实时字幕（learning-design §9.8）。iOS 在一期前不回 caps-probe ⇒ 那边入口不显示（协议补充决定 11）。
       'caps-probe', 'subtitle-config', 'subtitle-show', 'subtitle-state', 'subtitle-float', 'subtitle-hide'],
     fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-level',
-      'audio-caps', 'tick'],
+      'audio-caps', 'tick', 'subtitle-window'],
   };
 
   let ready = false;
@@ -318,7 +318,12 @@ var NativeAudio = (() => {
     if (pct != null) body.pct = Number(pct) || 0;
     return post(body);
   }
-  function subtitleFloat() { return post({ type: 'subtitle-float' }); }
+  // iOS 画中画（§9.8 协议补充决定（三）17、20）：带 rect（可为 null = 滚出视口）= 小窗预览的位置；不带 = 重新浮出小窗
+  function subtitleFloat(rect) {
+    const body = { type: 'subtitle-float' };
+    if (rect !== undefined) body.rect = rect;
+    return post(body);
+  }
   function subtitleHide() { lastSubtitle = ''; return post({ type: 'subtitle-hide' }); }
   // tick（S3）：会话中原生每 250 ms 一条；页面不可见时计时器被钳到 1 Hz，靠它驱动时钟。
   function onTick(fn) { tickFn = typeof fn === 'function' ? fn : null; }

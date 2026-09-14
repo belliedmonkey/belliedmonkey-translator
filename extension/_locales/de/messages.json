@@ -2894,7 +2894,7 @@
     "message": "Nach dem Start erscheinen die Untertitel in einer schwebenden Leiste unten am Bildschirm; jeder fertige Satz steht auch hier."
   },
   "subtitle_tip_ios": {
-    "message": "Tippe zuerst auf „Starten“, wechsle dann zu Safari und spiele das Video laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist das Video nicht zu hören."
+    "message": "Tippe zuerst auf „Starten“ und spiele dann in einer beliebigen App (Safari, Chrome, YouTube, Podcasts …) laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist der Ton nicht zu hören."
   },
   "subtitle_privacy": {
     "message": "Hört erst nach „Starten“, was dieser Mac abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."
@@ -2991,5 +2991,29 @@
   },
   "subtitle_pip_float": {
     "message": "Untertitelfenster zeigen"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Höre über den Lautsprecher mit…"
+  },
+  "subtitle_pip_title": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_pip_hint": {
+    "message": "Spiele Video oder Audio in einer beliebigen App laut ab – die Untertitel erscheinen hier"
+  },
+  "subtitle_pip_close": {
+    "message": "Fenster antippen: ⏸ Pause · ⏪⏩ Verlauf · ✕ schließen (in der App wieder öffnen)"
+  },
+  "subtitle_pip_history": {
+    "message": "Verlauf · ⏩ tippen für das Neueste"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Nach „Starten“ siehst du hier eine Vorschau des Untertitelfensters – verlässt du die App, schwebt es über anderen Apps"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Vorschau des Untertitelfensters – es schwebt über anderen Apps, wenn du die App verlässt"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Diese Untertitel sind beendet, das Fenster ist geschlossen"
   }
 }

@@ -2894,7 +2894,7 @@
     "message": "시작하면 자막이 화면 아래 떠 있는 막대에 표시되고, 완성된 문장은 여기에도 목록으로 남습니다."
   },
   "subtitle_tip_ios": {
-    "message": "먼저 시작을 누른 뒤 Safari로 가서 동영상을 스피커로 재생하세요. 자막은 PIP 창에 떠서 보입니다. 이어폰을 끼면 동영상 소리를 들을 수 없습니다."
+    "message": "먼저 시작을 누른 뒤 아무 앱(Safari, Chrome, YouTube, 팟캐스트 등)에서나 스피커로 재생하세요. 자막은 PIP 창에 떠서 보입니다. 이어폰을 끼면 소리를 들을 수 없습니다."
   },
   "subtitle_privacy": {
     "message": "「시작」을 누른 뒤에만 이 Mac에서 재생 중인 소리를 듣습니다. 소리는 이 기기에서 인식되거나 설정한 받아쓰기 엔드포인트로만 전송되며, 녹음·저장하지 않고 저희 서버를 거치지 않습니다. 「자막을 복습에 추가」가 켜져 있을 때만 인식된 텍스트가 복습에 남습니다."
@@ -2991,5 +2991,29 @@
   },
   "subtitle_pip_float": {
     "message": "자막 창 띄우기"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "스피커 소리를 듣는 중…"
+  },
+  "subtitle_pip_title": {
+    "message": "실시간 자막"
+  },
+  "subtitle_pip_hint": {
+    "message": "아무 앱에서나 동영상이나 오디오를 스피커로 재생하면 여기에 자막이 나옵니다"
+  },
+  "subtitle_pip_close": {
+    "message": "창을 탭: ⏸ 일시정지 · ⏪⏩ 기록 보기 · ✕ 닫기(앱에서 다시 열기)"
+  },
+  "subtitle_pip_history": {
+    "message": "기록 · ⏩ 누르면 최신으로"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "「시작」을 누르면 여기에 자막 창 미리보기가 나오고, 이 앱을 벗어나면 다른 앱 위에 떠 있습니다"
+  },
+  "subtitle_pip_note_live": {
+    "message": "자막 창 미리보기 — 앱을 벗어나면 다른 앱 위에 떠 있습니다"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "이번 자막이 끝나 창이 닫혔습니다"
   }
 }

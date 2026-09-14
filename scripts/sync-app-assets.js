@@ -364,6 +364,9 @@ const BLOCKS = [
   // 实时字幕的 Mac 悬浮字幕条（learning-design §9.8）。整份 #if os(macOS)；无 attach —— 由 MTAudioBridge 在
   // subtitle-config 时带着主窗口调它；AppDelegate 那两处（关窗不退出 / 点 Dock 找回）见 DELEGATE_PATCHES。
   { name: 'mt-subtitle-bar', src: 'subtitle-bar.swift', label: 'subtitle bar' },
+  // 实时字幕 iPhone 一期的画中画字幕窗（learning-design §9.8 协议补充决定（三））。整份 #if os(iOS)；无 attach ——
+  // 由 MTAudioBridge 在 subtitle-config 时带着 webView 调它。
+  { name: 'mt-subtitle-pip', src: 'subtitle-pip.swift', label: 'subtitle pip' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -490,7 +493,7 @@ function patchAudioBridge(sharedDir) {
 //
 const MIC_KEY = 'NSMicrophoneUsageDescription';
 // 2026-09-12（Gate H）：加了「或只在你的设备上识别」—— 设备内置转写时声音根本不出设备。
-const MIC_TEXT = '朗读练习与「对话 · 实时听译」需要使用麦克风：声音只在你的设备上识别，或只发送到你自己配置的转写端点，识别后立即丢弃，不保存任何录音，绝不存储或上传到我们的服务器。';
+const MIC_TEXT = '朗读练习、「对话 · 实时听译」与 iPhone「实时字幕」（听外放的视频声音）需要使用麦克风：声音只在你的设备上识别，或只发送到你自己配置的转写端点，识别后立即丢弃，不保存任何录音，绝不存储或上传到我们的服务器。';
 
 // One row per declaration. `only` names the platform App directory it belongs to;
 // absent means every App target.
