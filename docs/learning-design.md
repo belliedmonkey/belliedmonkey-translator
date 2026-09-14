@@ -3083,7 +3083,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 | 方向 | 消息 |
 |---|---|
 | JS → 原生 | `caps-probe` · `record-mode {on, profile?: 'conv' \| 'subtitle'}` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-state {state, pct?}` · `subtitle-float {rect?}`（iOS：带 rect = 小窗预览在视口里的位置；不带 = 重新浮出画中画）· `subtitle-hide` · 二期 `broadcast-picker` · `broadcast-arm {on}` |
-| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 state `waiting`；新 reason `os` / `waiting-permission` / `headphones` / `timeout` / `zero-frames`）· `remote {command}` 新增 `end` / `open-app` / `font-up` / `font-down`（字幕条按钮）· iOS `subtitle-window {state: 'inline' \| 'floating' \| 'closed', reason?}`（画中画小窗的状态） |
+| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 state `waiting` / `silent` / `sound`；新 reason `os` / `waiting-permission` / `headphones` / `timeout` / `zero-frames`；`silent` 与 `sound` 见协议补充决定 10 的 2026-09-15 修订）· `remote {command}` 新增 `end` / `open-app` / `font-up` / `font-down`（字幕条按钮）· iOS `subtitle-window {state: 'inline' \| 'floating' \| 'closed', reason?}`（画中画小窗的状态） |
 
 缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
 
@@ -3105,7 +3105,12 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
     - 90 秒仍没返回 ⇒ 撤掉这次尝试，发 `mic-state {state:'denied', reason:'timeout', source:'system'}`，按拒绝处理（条上给「打开系统设置」）。
     - 「在等声音」不是一个态（S1：IO 回调要等真有声音才开始）：授权后页面就是 listening，没声音由 30 秒静音门接管。
     - ~~点「不允许」之后的真实返回由 M30 真机读数定~~ **M30 真机读数（2026-09-14，macOS 26.5.1，用户确认点的是「不允许」）**：约 15 s 后 HAL 调用照常返回成功、IO 回调照常来，但**每个样本都是 0**（播放英文句子的 5 秒里 52 次电平读数全为 0）—— 不报错、不卡住。按本条原写法，页面会显示「● 字幕中」、条上「正在听系统声音…」却永远没字，30 秒后还以「没有声音」暂停：静默失败。
-    - **修订（同日）**：`granted` 之后，原生若看到**连续 3 秒样本全为 0，且系统里有别的进程正在输出声音**（`kAudioHardwarePropertyProcessObjectList` 中非本进程的 `kAudioProcessPropertyIsRunningOutput`），就撤掉这次采集并发 `mic-state {state:'denied', reason:'zero-frames', source:'system'}`，页面与条按拒绝处理（具名句 +「打开系统设置」）。两个条件缺一不可：已授权时句间停顿也是精确 0（S1 读数），没人在放声音时的全零是正常静音，交给 30 秒静音门。用户去系统设置打开权限后点「继续」⇒ 重新建 tap。
+    - ~~**修订（同日）**：`granted` 之后，原生若看到**连续 3 秒样本全为 0，且系统里有别的进程正在输出声音**~~（**2026-09-15 被下一条取代**，原文留作记录）：`granted` 之后，原生若看到连续 3 秒样本全为 0，且系统里有别的进程正在输出声音（`kAudioHardwarePropertyProcessObjectList` 中非本进程的 `kAudioProcessPropertyIsRunningOutput`），就撤掉这次采集并发 `mic-state {state:'denied', reason:'zero-frames', source:'system'}`，页面与条按拒绝处理（具名句 +「打开系统设置」）。两个条件缺一不可：已授权时句间停顿也是精确 0（S1 读数），没人在放声音时的全零是正常静音，交给 30 秒静音门。用户去系统设置打开权限后点「继续」⇒ 重新建 tap。
+    - **修订二（2026-09-15，全回归 F13 真机实证）：零帧不再判「被拒」，改为不中断的提示。** 读数：Mac 上**权限已给**（系统设置开关回读 1、`tccutil reset` 后弹框用户点了「允许」），开始那一刻 Mac 恰好没在出声、而某个进程**开着输出但放的是静音**（`pmset -g assertions` 里常驻一条 audio-out）⇒ 3 秒内 `denied/zero-frames`，页面把用户引去系统设置改一个根本没问题的权限；同一台 Mac 先 `afplay` 再开始 ⇒ 本机转写 5 句 + 译文全对。`kAudioProcessPropertyIsRunningOutput` 只说明「输出通道开着」，不说明「在出声」；macOS 也没有能直接问「系统录音授权给了没有」的公开接口 ⇒ **只凭零帧分不开「被拒」与「真静音」**，前一条修订的判据会误伤。
+      - 原生：`granted` 之后连续 3 秒全零且有别的进程在跑输出 ⇒ 发 `mic-state {state:'silent', reason:'zero-frames', source:'system'}`，**不撤掉采集**；此后第一个非零帧 ⇒ 发 `mic-state {state:'sound', source:'system'}`。每次会话各至多一次。
+      - 页面：`silent` ⇒ phase 仍是 listening，页面与条上显示一句**不中断**的提示 `labels.state['silent']`「还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限 · 打开系统设置」（条上带「打开系统设置」）；`sound` ⇒ 提示撤掉，字幕照常。
+      - 真被拒的用户也不会静默：提示一直在；30 秒静音门照旧暂停，暂停句在「曾收到 silent 且从未收到 sound」时换成指向权限的那句（`subtitle_stop_silence_permission`），「继续」⇒ 重新建 tap。
+      - `denied` 只剩两个来源：`reason:'timeout'`（权限框 90 秒没点）与系统明确拒绝（iOS / 麦克风路）。`reason:'zero-frames'` 不再出现在 `denied` 上。
 11. **iOS 在一期（画中画字幕窗）落地前继续不回 `caps-probe`**，iPhone 上入口仍不显示（第 3 条）。Mac：14.4 及以上回 `{sources:['mic','system'], system:'ok', broadcast:'unsupported'}`，以下回 `{sources:['mic'], system:'os', broadcast:'unsupported'}`（入口灰 + M2 ③ 那句）。
 12. **菜单项也由 `labels.menu` 在运行时建**（「窗口」菜单顶部三项 + 一条分隔线），不写进 storyboard —— 原生零文案照旧；`subtitle-hide` 时移除。条上 A− / A+ 两个字形是符号，不是文案，写在原生里。
 13. **`tick` 只在字幕条存在期间发**（`subtitle-config` 之后到 `subtitle-hide`），对话模式不发。页面不可见时用它刷时钟。边说边译的 900 ms 去抖在不可见时被钳到 ≤ 1 s，差值在 M28 的 ≤ 20% 判据之内，先不改；真机读数不过再改成吃 `tick`。

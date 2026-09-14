@@ -1177,7 +1177,8 @@ M 表要同步加这两行，编号在此钉住：
 | **M27** | 悬浮条层级与焦点 | 条盖在全屏 Safari 视频与全屏 Zoom 上；点条后按空格；拖到别处后重启 App | 条始终在最上层；空格仍暂停视频（焦点没被抢）；位置、宽度、字号还在 |
 | **M28** | Mac 关主窗口不停 | 会话中关主窗口 10 min，`afplay` 循环 | 定稿与译文节奏与窗口可见时相差 ≤ 20%（`AppListen._debug().lat`）；点 Dock 回来历史完整 |
 | **M29** | Mac 系统版本门 | macOS 13.x（虚拟机） | 入口灰 +「系统声音字幕需要 macOS 14.4 或更新」 |
-| **M30** | 系统录音权限被拒 | 首次弹窗点「不允许」 | 条上具名「听不到系统声音 — 请到 系统设置 › …」+「打开系统设置」 |
+| **M30** | 系统录音权限被拒 | 首次弹窗点「不允许」，然后放视频 | 约 3 s 内条上出不中断提示「还没听到系统声音 — …可能没开系统录音权限」+「打开系统设置」，会话**不停**；30 s 后静音门暂停，暂停句指向权限（2026-09-15 修订二） |
+| **M30b** | 已授权但开始瞬间静音（F13） | 权限已给；某 App 开着输出但不出声（`pmset -g assertions` 有 audio-out）→ 开始 → 10 s 后再 `afplay conv.wav` | 开始后**不出现「被拒」、不停会话**；可以出「还没听到系统声音」提示；放声后 ≤ 3 s 提示撤掉、出双语定稿 |
 | **M31** | iPhone 后台听外放 | App 开始 → 切 Safari 外放 lab-server 页的 `conv.wav`，再放一个 YouTube 视频，再换 Chrome 与 YouTube App 各放 1 min，共 5 min（先退出 iPhone 镜像） | 三个 App 都不被暂停、音量前后 ±3 dB（Mac 麦克风测）；定稿持续；画中画小窗离开 App 自动浮出、随句滚动、捏合放大后可读；**国际版 + 中国版**各一遍 |
 | **M32** | iPhone 屏幕录制 + 耳机（二期） | App「用屏幕录制方式开始」→ Safari 播 YouTube，戴 AirPods 10 min；另测未在 App 里开始就直接录制 | 定稿持续；广播扩展内存峰值 < 25 MB；未布防 ⇒ 立即结束并显示那句话 |
 
@@ -1436,6 +1437,7 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 - 语料 `anchor.k === 'conv'` 且 `anchor.mode === 'subtitle'`，来源标题「实时字幕 · 日期」；
 - 原生先回 `mic-state {state:'waiting', reason:'waiting-permission'}`（Mac 系统录音权限框还没点，§9.8 协议补充决定 10）⇒
   页面停在准备中、页面上说「等待系统授权」、字幕条收到 `subtitle-state waiting-permission`；随后 `granted` ⇒ listening；
+- 原生发 `mic-state {state:'silent', reason:'zero-frames'}`（修订二）⇒ phase **仍是 listening**、页面与条上出不中断的「还没听到系统声音」提示；随后 `mic-state {state:'sound'}` ⇒ 提示撤掉；`silent` 之后没有 `sound` 就到了 30 秒静音门 ⇒ 暂停句是指向权限的那句；
 - 原生发 `remote {command:'font-up'}`（字幕条 A+，协议补充决定 9）⇒ `subtitleFontScale` 落盘为 1.2、桥收到恰好一条
   `subtitle-config {fontScale: 1.2}`；
 - 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
@@ -2492,3 +2494,13 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | **F-bis 真机 14 Pro** | 验证包（国际 + 中国）已装；M31 画中画、R17 手点留用户回家 | — |
 | **G macOS App（macOS 26.5）** | R05 首页三行 / R08 横幅收起 / R03 / R06 / R11 / R04 宽屏两栏 / R10 文档视图结构 ✅ · **R15** 设备转写资产 installed、入口可用 ✅ · **R16** 准备页无画中画、提示悬浮条、开始 listening ✅ · R04 复制全文剪贴板读回空 ◐ · R17 真点击 ◐ · M26 系统声音（权限现为「不允许」）留用户 | 首跑遇 Mac 息屏，页面不应答控制通道；用户解锁后跑完。调试包与生产包共用容器 ⇒ 开跑前备份、跑完还原；/tmp 构建会被 pluginkit 登记成同 id 多行，收尾逐个注销 |
 | **中国版关键行** | 真禁端点路径全 0、无 google、默认 deepseek、同步 `enabled:false`、浏览器宿主评分行藏掉（rateUrl null）、合规门与 china 门禁全绿 ✅ | — |
+
+### 全回归 2026-09-14 · 09-15 凌晨补的真机读数（用户在场）
+
+| 面 | 行 | 结果 |
+|---|---|---|
+| **F-bis 14 Pro 真机** | M31 国际版 + 中国版 | ✅ 离开 App 画中画自动浮出、随句滚动、中英对照正确、Safari 视频不被暂停（中国版首次开始弹 iOS 麦克风权限，用户点允许；UI 测试程序不代点）。每轮之间要先结束上一个 App —— 上一场的小窗会盖住下一个 App 首页入口行的中心。音量 ±3 dB 未测 ◐ |
+| **F-bis 14 Pro 真机** | R17 设置页外链（#256） | ✅ 国际版「还没有 key？去 … 申请」、中国版「去开通 ↗」手点都跳到 Safari（模拟器脚本点击不算 linkActivated，是工具限制） |
+| **G macOS App** | M26 系统声音 | ✅ 先 `afplay conv.wav` 再开始：本机转写 5 句 + DeepSeek 译文全对，悬浮字幕条随状态显示、30 秒静音自动暂停 |
+| **G macOS App** | F13（产品缺陷） | ❌ 权限已给、开始瞬间静音且有进程开着输出 ⇒ 3 秒内误判 `denied/zero-frames`。修法见 learning-design §9.8 协议补充决定 10 修订二、本表 M30 / M30b |
+| **C macOS Safari** | F12（待修） | ❌ transistor 播客页一直「字幕加载中」、不出文件档 offer：取字幕那一步（fetch 头之后读正文、或跨域请求挂着）没有总上限 ⇒ 另开修复 PR |
