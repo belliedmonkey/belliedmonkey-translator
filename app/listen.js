@@ -82,7 +82,7 @@ var AppListen = (() => {
   // ── 设置 ──────────────────────────────────────────────────────────────────
   const READ_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'subtitleCapture', 'subtitleVideoLang'];
+    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'subtitleCapture', 'subtitleVideoLang', 'subtitleFontScale'];
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS, (s) => {
@@ -105,6 +105,7 @@ var AppListen = (() => {
           targetLang: myLang,
           myLang,
           autoSpeak: !sub && s.listenAutoSpeak !== false,
+          fontScale: C.fontStep(s.subtitleFontScale, 0),
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           otherLang,
@@ -402,6 +403,13 @@ var AppListen = (() => {
     }
   }
   function subState(state, pct) { if (subOn()) NativeAudio.subtitleState(state, pct); }
+  // 字幕条 A− / A+（§9.8 协议补充决定 9）：字号由页面存（设置与条永远一致），改完重发 subtitle-config
+  function subFont(dir) {
+    if (!subOn() || !cfg) return;
+    cfg.fontScale = C.fontStep(cfg.fontScale, dir);
+    try { chrome.storage.local.set({ subtitleFontScale: cfg.fontScale }); } catch (_) {}
+    NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale, opacity: 1 });
+  }
   function subtitleLabels() {
     return {
       state: {
@@ -449,6 +457,11 @@ var AppListen = (() => {
   function onMicState(state, reason) {
     // iOS 字幕档：输出路由是耳机 ⇒ 麦克风听不到外放（§9.8 协议补充决定 7）
     if (reason === 'headphones') { halt('headphones', ''); return; }
+    // Mac 系统声音：权限框还没点（§9.8 协议补充决定 10）—— 停在「准备中」，页面与字幕条都说在等授权
+    if (state === 'waiting') {
+      if (phase === 'preparing') { note(t('subtitle_bar_waiting', '等待系统授权 — 请在弹出的权限框里点「允许」'), false); subState('waiting-permission'); }
+      return;
+    }
     if (state === 'denied') halt('denied', '');
     else if (state === 'failed') halt('failed', reason);
     else if (state === 'interrupted') {
@@ -564,7 +577,7 @@ var AppListen = (() => {
       NativeAudio.onEvent(onNative);
       NativeAudio.recordMode(true, C.modeOf(session).profile);   // 对话档不带 profile，消息逐字节不变
       NativeAudio.sessionStart();
-      if (session.mode === 'subtitle') NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: 1, opacity: 1 });
+      if (session.mode === 'subtitle') NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 });
     }
     $('app-listen-summary').hidden = true;
     $('app-listen-history-wrap').hidden = false;
@@ -652,7 +665,9 @@ var AppListen = (() => {
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
     const msg = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
       : reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
-      : reason === 'denied' ? t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。')
+      : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
+        ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
+        : t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。'))
       : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
       : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
       : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
@@ -940,6 +955,9 @@ var AppListen = (() => {
       else if (msg.command === 'toggle') toggle();
       // 字幕条的「结束」（§9.8 协议补充决定 4：叫 end，不叫 stop —— 媒体控制的 stop 映射成暂停）
       else if (msg.command === 'end') end();
+      else if (msg.command === 'font-up') subFont(1);
+      else if (msg.command === 'font-down') subFont(-1);
+      // 'open-app'：原生已经把主窗口拉回来了（协议补充决定 9），页面无事可做
     } else if (msg.type === 'interrupt' && msg.phase === 'begin') {
       if (phase === 'listening') halt('locked', '');
     } else if (msg.type === 'interrupt' && msg.phase === 'end') {

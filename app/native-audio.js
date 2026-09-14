@@ -43,14 +43,11 @@ var NativeAudio = (() => {
   // 一边改名而另一边没跟上，表现是「遥控键按了没反应」，查起来极贵。
   const PROTOCOL = {
     toNative: ['session-start', 'session-stop', 'now-playing', 'now-playing-artwork', 'playing-state', 'record-mode', 'mic-start', 'mic-stop',
-      // 实时字幕（learning-design §9.8）：Swift 侧先是空 case（不回复）—— 空 case 就是「老壳」，入口不显示。
+      // 实时字幕（learning-design §9.8）。iOS 在一期前不回 caps-probe ⇒ 那边入口不显示（协议补充决定 11）。
       'caps-probe', 'subtitle-config', 'subtitle-show', 'subtitle-state', 'subtitle-float', 'subtitle-hide'],
-    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-level'],
+    fromNative: ['session-ready', 'session-failed', 'remote', 'interrupt', 'route', 'artwork-size', 'mic-pcm', 'mic-state', 'mic-level',
+      'audio-caps', 'tick'],
   };
-
-  // 实时字幕的两个「原生 → JS」动词：页面已经会处理，但原生还不发（随 Mac / iOS 原生那一步上，
-  // 那时挪进 PROTOCOL.fromNative，让协议镜像测试去 .swift 里对表）。
-  const PENDING_FROM_NATIVE = ['audio-caps', 'tick'];
 
   let ready = false;
   let platform = '';
@@ -381,7 +378,7 @@ var NativeAudio = (() => {
   }
 
   const api = {
-    CHANNEL, PROTOCOL, PENDING_FROM_NATIVE,
+    CHANNEL, PROTOCOL,
     available, mediaAvailable,
     // 测试用：mediaSession 那一半有没有真的接上（Chrome 里也成立）
     mediaSessionWired: () => msWired,

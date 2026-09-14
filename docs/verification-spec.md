@@ -1434,6 +1434,10 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 - 英文句与中文句**都**归对方（单向）；历史里没有 ↔、没有「给对方看 / 朗读」；自动朗读即使在设置里开着也不出声；
 - 桥收到过 `subtitle-show {partial:true}` 与带译文的 `subtitle-show {partial:false}`；
 - 语料 `anchor.k === 'conv'` 且 `anchor.mode === 'subtitle'`，来源标题「实时字幕 · 日期」；
+- 原生先回 `mic-state {state:'waiting', reason:'waiting-permission'}`（Mac 系统录音权限框还没点，§9.8 协议补充决定 10）⇒
+  页面停在准备中、页面上说「等待系统授权」、字幕条收到 `subtitle-state waiting-permission`；随后 `granted` ⇒ listening；
+- 原生发 `remote {command:'font-up'}`（字幕条 A+，协议补充决定 9）⇒ `subtitleFontScale` 落盘为 1.2、桥收到恰好一条
+  `subtitle-config {fontScale: 1.2}`；
 - 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
 
 字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。

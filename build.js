@@ -949,6 +949,36 @@ function validateManifest(distDir, isFirefox) {
     log('Gate H OK（设备内置转写/朗读的披露与功能同版）');
   }
 
+  // ── Gate I（docs/learning-design.md §10；2026-09-14，随 Mac 原生开始回 audio-caps 一起上）──────────
+  //
+  // 实时字幕听的是「这台设备正在播放的声音」—— 又一个新披露面。App 页用着 subtitle_privacy ⇒
+  // README ×2 有那一段（英文提 Live Subtitles 且说「不录音不保存」，中文同）、12 份 locale 有页内那句、
+  // macOS 的系统录音权限说明在 sync-app-assets 的 plist 行里（缺了它系统弹窗没有说明句，审核会问）。
+  if (fs.readFileSync(path.join(__dirname, 'app', 'listen.js'), 'utf8').includes("'subtitle_privacy'")) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/Live Subtitles/.test(rdEn) || !/nothing is recorded or saved/i.test(rdEn)) miss.push('README.md 没有「实时字幕」（Live Subtitles）的披露（Gate I）');
+    if (!/实时字幕/.test(rdZh) || !/不录音、不保存/.test(rdZh)) miss.push('README.zh-CN.md 没有「实时字幕」的披露（Gate I）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.subtitle_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 subtitle_privacy（Gate I）`); continue; }
+      if (v.length < 60) miss.push(`_locales/${loc} 的 subtitle_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'NSAudioCaptureUsageDescription', only: 'macOS \(App\)'/.test(sync)) miss.push('scripts/sync-app-assets.js 没有只给 macOS 的 NSAudioCaptureUsageDescription 行（Gate I）');
+    if (miss.length) {
+      err('Gate I FAILED —— App 带着实时字幕，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate I：README ×2、两个站点、12 份 locale、NSAudioCaptureUsageDescription');
+      process.exit(1);
+    }
+    log('Gate I OK（实时字幕的披露与功能同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may
