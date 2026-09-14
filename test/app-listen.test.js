@@ -680,3 +680,21 @@ describe('ListenCore — 实时字幕入口判定与声音来源', () => {
     eq(C.captureSource({}), null);
   });
 });
+
+describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
+  // 模块求值时读 window.MT_PALETTE 拼样式；给它构建产出的同一份注册表，读完即撤。
+  const hadWindow = 'window' in global;
+  if (!hadWindow) global.window = { MT_PALETTE: require('../build/palette.config.js').runtime };
+  const SV = require('../extension/learn/sources-view.js');
+  if (!hadWindow) delete global.window;
+  test('conv:// 来源按卡上的 anchor.mode 分成「对话」与「实时字幕」两组，互不串', () => {
+    const sources = [{ id: 'conv:a', url: 'conv://a', title: '对话 · 1' }, { id: 'conv:b', url: 'conv://b', title: '实时字幕 · 2' }];
+    const items = [
+      { id: 'i1', sourceId: 'conv:a', anchor: { k: 'conv', who: 'them' } },
+      { id: 'i2', sourceId: 'conv:b', anchor: { k: 'conv', mode: 'subtitle', who: 'them' } },
+      { id: 'i3', sourceId: 'conv:b', anchor: { k: 'conv', mode: 'subtitle', who: 'them' } },
+    ];
+    deepEq(SV.groupConversations(items, sources).map((g) => [g.sourceId, g.count]), [['conv:a', 1]], '缺省（对话）不收字幕句');
+    deepEq(SV.groupConversations(items, sources, 'subtitle').map((g) => [g.sourceId, g.count]), [['conv:b', 2]]);
+  });
+});

@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "We do not hand out credit ourselves here yet: that needs a server inside the country, and it is not ready."
+  },
+  "subtitle_source_label": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_entry": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_entry_hint": {
+    "message": "Bilingual subtitles for the video, stream or meeting that’s playing"
+  },
+  "subtitle_need_live": {
+    "message": "Live Subtitles needs a transcription engine with a live endpoint"
+  },
+  "subtitle_need_key": {
+    "message": "The transcription engine has no API key yet"
+  },
+  "subtitle_need_key_go": {
+    "message": "Add it in Settings →"
+  },
+  "subtitle_need_os": {
+    "message": "Subtitles for system audio need macOS 14.4 or later — or use Conversation and play the sound through the speakers"
+  },
+  "subtitle_title": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_start": {
+    "message": "Start"
+  },
+  "subtitle_capture_label": {
+    "message": "Add subtitles to review (source “Live Subtitles”)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Video language"
+  },
+  "subtitle_tip_mac": {
+    "message": "After you start, subtitles appear in a floating bar at the bottom of the screen; every finished sentence is also listed here."
+  },
+  "subtitle_tip_ios": {
+    "message": "Tap Start first, then switch to Safari and play the video out loud; subtitles float in a picture-in-picture window. With headphones on, the video can’t be heard."
+  },
+  "subtitle_privacy": {
+    "message": "Listens to what this Mac is playing only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Listens to what this iPhone plays through its speaker only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."
+  },
+  "subtitle_pill_live": {
+    "message": "● Subtitling · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Now"
+  },
+  "subtitle_history_empty": {
+    "message": "Each finished sentence will appear here."
+  },
+  "subtitle_stop_silence": {
+    "message": "No sound for 30 seconds — paused to avoid charges. Tap “Resume” once the video plays again."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Still listening. Leaving ends these subtitles; the sentences so far are kept."
+  },
+  "subtitle_summary_title": {
+    "message": "This subtitle session"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} sentences · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} added to review (source “Live Subtitles”) · {s} starred"
+  },
+  "subtitle_summary_note": {
+    "message": "No audio was kept, only text. Manage or delete these sentences under Sources › Live Subtitles."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Waiting for permission — click “Allow” in the system prompt"
+  },
+  "subtitle_bar_listening": {
+    "message": "Listening to system audio…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Paused"
+  },
+  "subtitle_bar_silence": {
+    "message": "No sound for 30 seconds — paused to avoid charges"
+  },
+  "subtitle_bar_denied": {
+    "message": "Can’t hear system audio — allow BelliedMonkey Translator in System Settings › Privacy & Security › Screen & System Audio Recording"
+  },
+  "subtitle_bar_socket": {
+    "message": "Transcription connection lost"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Reconnecting…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Downloading {lang} recognition assets · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "This translation failed · retry in the main window"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Can’t hear the video · take off headphones and use the speaker"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Pause"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Resume"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Click-through"
+  },
+  "subtitle_ctl_main": {
+    "message": "Main window"
+  },
+  "subtitle_ctl_end": {
+    "message": "End"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Open System Settings"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Show Main Window"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Turn Off Subtitle Bar Click-through"
+  },
+  "subtitle_menu_end": {
+    "message": "End Live Subtitles"
+  },
+  "subtitle_pip_float": {
+    "message": "Show subtitle window"
   }
 }

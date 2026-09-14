@@ -1003,6 +1003,8 @@
   // 对话 · 实时听译的门没过时那条路：设置页转写引擎那一档（§9.6）。
   $('app-listen-need-live-go').addEventListener('click', () => openSettings('stt-engine'));
   $('app-listen-need-live-go2').addEventListener('click', () => openSettings('stt-engine'));
+  // 实时字幕（§9.8）入口灰掉时的同一条路：转写引擎那一档（没实时接口 / 没填 key）。
+  for (const id of ['app-subs-need-go', 'app-subs-need-go2']) { const b = $(id); if (b) b.addEventListener('click', () => openSettings('stt-engine')); }
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.

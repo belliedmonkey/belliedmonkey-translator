@@ -56,7 +56,9 @@ var AppSettings = (() => {
     'drivePlayNotes', 'drivePreloadDays',
     // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）、语言对、自动朗读。
     // 语言对两个键都在这里 —— 对话页底部那两个下拉与设置页这两个是**同一份设置**。
-    'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'docCapture', 'docPrefetch'];
+    'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'docCapture', 'docPrefetch',
+    // §9.8 实时字幕：字幕句子进复习（默认开，与「对话进复习」分开）。
+    'subtitleCapture'];
 
   function get(keys) {
     return new Promise((res) => chrome.storage.local.get(keys, res));
@@ -139,6 +141,7 @@ var AppSettings = (() => {
     $('drive-play-notes-label').textContent = t('drive_play_notes', '播放时朗读句子解析');
     $('listen-title').textContent = t('listen_settings_title', '对话 · 实时听译');
     $('listen-capture-label').textContent = t('listen_capture_label', '对话进复习（来源「对话」）');
+    if ($('subtitle-capture-label')) $('subtitle-capture-label').textContent = t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）');
     $('listen-my-lang-label').textContent = t('listen_my_lang_label', '我的语言');
     $('listen-other-lang-label').textContent = t('listen_other_lang_label', '对方的语言');
     $('listen-lang-note').textContent = t('listen_lang_note',
@@ -458,6 +461,7 @@ var AppSettings = (() => {
     // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
     $('drive-play-notes').checked = cur.drivePlayNotes !== false;
     $('listen-capture').checked = cur.listenCapture !== false;
+    if ($('subtitle-capture')) $('subtitle-capture').checked = cur.subtitleCapture !== false;
     // 「我的语言」没选过就跟着界面语言走 —— 只在读取时回落，不往存储播种默认值，
     // 这样用户改界面语言时它会跟着变，直到他自己选过一次。
     $('listen-my-lang').value = myLangOf(cur);
@@ -809,6 +813,7 @@ var AppSettings = (() => {
       }
     }
     $('listen-capture').addEventListener('change', () => { set({ listenCapture: $('listen-capture').checked }); });
+    if ($('subtitle-capture')) $('subtitle-capture').addEventListener('change', () => { set({ subtitleCapture: $('subtitle-capture').checked }); });
     $('listen-autospeak').addEventListener('change', () => { set({ listenAutoSpeak: $('listen-autospeak').checked }); });
     $('doc-capture').addEventListener('change', () => { set({ docCapture: $('doc-capture').checked }); });
     $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });

@@ -151,7 +151,8 @@ function say(base, text) {
   {
     const built = fs.statSync(path.join(SRC, 'Main.html')).mtimeMs;
     const srcs = ['app/index.html', 'app/listen.js', 'app/listen-core.js', 'app/settings.js',
-      'app/app.js', 'app/style.css', 'extension/content/learn-rules.js', 'extension/learn/tts.js'];
+      'app/app.js', 'app/style.css', 'app/native-audio.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
+      'extension/learn/sources-view.js', 'extension/learn/review.js'];
     const stale = srcs.filter((f) => {
       const q = path.join(ROOT, f);
       return fs.existsSync(q) && fs.statSync(q).mtimeMs > built;
@@ -183,12 +184,16 @@ function say(base, text) {
     // 而且假麦克风在这台机器的 Chrome 里挂着不落定。假桥每 100 ms 送 1600 个 16 kHz 的
     // 正弦样本（有声，静音守卫不会触发），mic-stop 就停。
     await evalIn(cdp, sessionId, `(() => {
-      const st = { timer: 0, started: 0, stopped: 0 };
+      // msgs：收到的每条消息（H 段读 record-mode / mic-start / subtitle-*）；caps：H 段给了才回 caps-probe，
+      // 没给 = 老原生壳（不认识这个动词，不回话）
+      const st = { timer: 0, started: 0, stopped: 0, msgs: [], caps: null };
       window.__fakeBridge = st;
       const emit = (m) => window.NativeAudio && window.NativeAudio._fromNative(m);
       const pcm = () => { const n = 1600, b = new Uint8Array(n * 2); for (let i = 0; i < n; i++) { const v = Math.round(8000 * Math.sin(i / 3)); b[2 * i] = v & 255; b[2 * i + 1] = (v >> 8) & 255; } let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
       window.webkit = { messageHandlers: { mtAudio: { postMessage(msg) {
-        if (msg.type === 'session-start') setTimeout(() => emit({ type: 'session-ready', platform: 'macos', suspends: false }), 0);
+        st.msgs.push(msg);
+        if (msg.type === 'caps-probe') { if (st.caps) setTimeout(() => emit(Object.assign({ type: 'audio-caps' }, st.caps)), 0); }
+        else if (msg.type === 'session-start') setTimeout(() => emit({ type: 'session-ready', platform: 'macos', suspends: false }), 0);
         else if (msg.type === 'mic-start') { st.started++; st.deliver = msg.deliver || 'pcm'; setTimeout(() => emit({ type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer);
           // 本机路（§9.6.1）：deliver:'level' ⇒ 原生不发 PCM，只发电平
           st.timer = setInterval(() => emit(st.deliver === 'level' ? { type: 'mic-level', rms: 0.2 } : { type: 'mic-pcm', b64: pcm() }), 100); }
@@ -483,6 +488,86 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ ttsEngine: '' }, r)); LearnTTS.configure({ engineId: '' }); return 'ok'; })()`);
     // 收尾：把引擎改回云端的 e2e 条目，别让后面的断言读到本机态
     await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.os = 'new'; await new Promise((r) => chrome.storage.local.set({ sttEngine: 'e2e_live', sttApiKey: 'k', listenOtherLang: 'en' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
+
+    // ── H. 实时字幕（learning-design §9.8）：老壳隐藏 / 系统版本灰态 / 准备态不开麦 / 单向 / 字幕条消息 /
+    //    语料 mode / 字幕条「结束」 ────────────────────────────────────────────────────────────────
+    if (process.env.TRACE) console.log('  …H');
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(300);
+    // H0. 假桥到现在都没回过 caps-probe —— 就是老原生壳：整行不显示（不是灰，老壳根本不会听系统声音）
+    const h0 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-subs-entry2').hidden, reason: AppListen._debug().subsReason, probes: __fakeBridge.msgs.filter((m) => m.type === 'caps-probe').length })`));
+    need(h0.hidden === true && h0.reason === 'hidden' && h0.probes >= 1, 'H0: 原生不回 caps-probe（老壳）时「实时字幕」整行该不显示，实际 ' + JSON.stringify(h0));
+    // H1. 回 system:'os'（macOS 14.4 以下）⇒ 行灰 + 具名原因；设置解决不了系统版本 ⇒ 没有「去设置」
+    await evalIn(cdp, sessionId, `(async () => { NativeAudio._fromNative({ type: 'audio-caps', sources: ['mic'], system: 'os', broadcast: 'unsupported' }); await AppListen.refreshEntry(); return 'ok'; })()`);
+    const h1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-subs-entry2'); const n = document.getElementById('app-subs-need2'); const w = document.getElementById('app-subs-need-why2'); const g = document.getElementById('app-subs-need-go2'); return { hidden: b.hidden, disabled: b.disabled, needShown: !!n && !n.hidden, why: w && w.textContent, goHidden: g ? g.hidden : null }; })())`));
+    need(h1.hidden === false && h1.disabled === true && h1.needShown && /macOS 14\.4/.test(h1.why || '') && h1.goHidden === true,
+      'H1: system:os 时入口该灰、说「需要 macOS 14.4」、不给去设置，实际 ' + JSON.stringify(h1));
+    // H2. 回 system:'ok' ⇒ 可用（之后的 caps-probe 也由假桥照这个回）
+    await evalIn(cdp, sessionId, `(async () => { __fakeBridge.caps = { sources: ['mic', 'system'], system: 'ok', broadcast: 'unsupported' }; NativeAudio._fromNative(Object.assign({ type: 'audio-caps' }, __fakeBridge.caps)); await AppListen.refreshEntry(); return 'ok'; })()`);
+    const h2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('app-subs-entry2').hidden, disabled: document.getElementById('app-subs-entry2').disabled, needShown: !document.getElementById('app-subs-need2').hidden })`));
+    need(h2.hidden === false && h2.disabled === false && h2.needShown === false, 'H2: system:ok 时入口该可用、原因句藏起，实际 ' + JSON.stringify(h2));
+    // H3. 点入口 ⇒ 停在准备态：准备区 + 隐私句（Mac 版），桥**没收到**新的 mic-start。
+    //     朗读打桩并在设置里开着自动朗读 —— 字幕模式必须照样不出声。
+    await evalIn(cdp, sessionId, `(async () => {
+      window.__tts = [];
+      LearnTTS.engine = () => ({ id: 'e2e_tts' });
+      LearnTTS.speak = (text, lang) => { window.__tts.push({ text, lang }); return Promise.resolve({ ok: true, done: Promise.resolve() }); };
+      LearnTTS.stop = () => {};
+      await new Promise((r) => chrome.storage.local.set({ listenAutoSpeak: true, subtitleVideoLang: 'en', subtitleCapture: true }, r));
+      return 'ok';
+    })()`);
+    const startedBeforeH = await evalIn(cdp, sessionId, `__fakeBridge.started`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-subs-entry2').click(), 'ok')`);
+    await sleep(600);
+    const h3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const d = AppListen._debug(); const pr = document.getElementById('app-subs-privacy'); return { mode: d.mode, phase: d.phase, listenHidden: document.getElementById('app-listen').hidden, prep: !document.getElementById('app-subs-prep').hidden, privHidden: pr.hidden, priv: pr.textContent, started: __fakeBridge.started, title: document.getElementById('app-listen-title').textContent, toggle: document.getElementById('app-listen-toggle').textContent }; })())`));
+    need(h3.mode === 'subtitle' && h3.phase === 'idle' && h3.listenHidden === false && h3.prep && !h3.privHidden && /这台 Mac/.test(h3.priv)
+      && h3.started === startedBeforeH && h3.title === '实时字幕' && h3.toggle === '开始',
+      'H3: 点入口该停在准备态（不开麦）、标题「实时字幕」、按钮「开始」、Mac 隐私句可见，实际 ' + JSON.stringify(h3));
+    // H4. 点「开始」⇒ 字幕档会话 + 系统声音来源 + 字幕条配置
+    const msgMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4: 字幕模式进入 listening');
+    const h4 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${msgMark}).filter((m) => m.type !== 'mic-pcm').map((m) => ({ type: m.type, on: m.on, profile: m.profile, source: m.source, hasLabels: !!(m.labels && m.labels.state && m.labels.controls) })))`));
+    const rm = h4.find((m) => m.type === 'record-mode'), ms = h4.find((m) => m.type === 'mic-start'), sc = h4.find((m) => m.type === 'subtitle-config');
+    need(rm && rm.on === true && rm.profile === 'subtitle', 'H4: record-mode 该带 profile:subtitle，实际 ' + JSON.stringify(rm));
+    need(ms && ms.source === 'system', 'H4: mic-start 该带 source:system（收到过 system:ok），实际 ' + JSON.stringify(ms));
+    need(sc && sc.hasLabels, 'H4: 该发 subtitle-config 且带 state / controls 文案（原生零文案），实际 ' + JSON.stringify(sc));
+    // H5. 单向：英文句、中文句都归对方；没有 ↔ / 给对方看 / 朗读；自动朗读不出声
+    const showMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await say(base, 'The keynote starts in five minutes.');
+    await waitFor(async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).some((x) => x.text === 'The keynote starts in five minutes.' && x.tr))`)) || null, 8000, 'H5: 英文句定稿带译文');
+    await say(base, '下面请看演示。');
+    const rowsH = await waitFor(async () => {
+      const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, text: x.text, tr: x.tr })))`));
+      return r.length === 2 && r.every((x) => x.tr) ? r : null;
+    }, 8000, 'H5: 两句定稿带译文');
+    need(rowsH.every((x) => x.who === 'them'), 'H5: 字幕模式单向，两句都该归对方，实际 ' + JSON.stringify(rowsH));
+    const domH = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ swap: document.querySelectorAll('#app-listen-history .listen-swap').length, acts: document.querySelectorAll('#app-listen-history .listen-act').length, text: document.getElementById('app-listen-history').textContent, tts: window.__tts.length })`));
+    need(domH.swap === 0 && domH.acts === 0 && !domH.text.includes('对方'), 'H5: 字幕历史不该有 ↔ / 给对方看 / 归属标，实际 ' + JSON.stringify(domH));
+    need(domH.tts === 0, 'H5: 字幕模式不朗读（设置里开着自动朗读也不），实际读了 ' + domH.tts + ' 次');
+    // H6. 字幕条消息：先有半句，再有带译文的定稿
+    const shows = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${showMark}).filter((m) => m.type === 'subtitle-show'))`));
+    need(shows.some((m) => m.partial === true && m.orig), 'H6: 字幕条该收到过半句（partial:true），实际 ' + shows.length + ' 条');
+    need(shows.some((m) => m.partial === false && m.orig === 'The keynote starts in five minutes.' && m.tr === '译：The keynote starts in five minutes.'),
+      'H6: 字幕条该收到带译文的定稿，实际 ' + JSON.stringify(shows.filter((m) => !m.partial)));
+    // H7. 语料：锚点 k:conv + mode:subtitle，来源标题「实时字幕 · 日期」
+    const itemsH = await waitFor(async () => {
+      const a = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.filter((x) => x.text === 'The keynote starts in five minutes.').map((x) => ({ anchor: x.anchor, sourceId: x.sourceId }))))`));
+      return a.length ? a : null;
+    }, 5000, 'H7: 字幕句进语料');
+    need(itemsH[0].anchor && itemsH[0].anchor.k === 'conv' && itemsH[0].anchor.mode === 'subtitle' && itemsH[0].anchor.who === 'them',
+      'H7: 字幕句锚点该是 k:conv / mode:subtitle / who:them，实际 ' + JSON.stringify(itemsH[0]));
+    const srcH = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allSources().then((a) => JSON.stringify(a.filter((s) => s.id === ${JSON.stringify(itemsH[0].sourceId)}).map((s) => s.title)))`));
+    need(srcH.length === 1 && /^实时字幕 · \d{4}-\d{2}-\d{2}/.test(srcH[0]), 'H7: 来源标题该是「实时字幕 · 日期」，实际 ' + JSON.stringify(srcH));
+    // H8. 字幕条上的「结束」= 原生发 remote {command:'end'} ⇒ 会话结束、字幕条收起、小结「这次字幕」
+    const endMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
+    await sleep(400);
+    const h8 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, msgs: __fakeBridge.msgs.slice(${endMark}).map((m) => m.type), sumShown: !document.getElementById('app-listen-summary').hidden, sumTitle: document.getElementById('app-listen-summary-title').textContent, sumBody: document.getElementById('app-listen-summary-body').textContent })`));
+    need(h8.phase === 'ended' && h8.msgs.includes('subtitle-hide') && h8.msgs.includes('mic-stop'), 'H8: remote end 该结束会话、发 subtitle-hide 与 mic-stop，实际 ' + JSON.stringify(h8));
+    need(h8.sumShown && h8.sumTitle === '这次字幕' && /共 2 句/.test(h8.sumBody), 'H8: 小结该是「这次字幕 · 共 2 句」，实际 ' + JSON.stringify(h8));
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(300);
   } catch (e) {
     problems.push('THROW ' + (e && e.stack));
     // 失败时把页面状态一并读回，别让人猜
@@ -493,6 +578,6 @@ function say(base, text) {
 
   console.log(`  假端点：socket ${stats.wsOpened} 次 · PCM ${stats.wsFrames} 帧 / ${(stats.wsAudioBytes / 1024).toFixed(0)} KB · 翻译请求 ${stats.chatCalls} 次`);
   if (problems.length) { console.log('\n✗ 对话 · 实时听译端到端有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 / 本机转写路（假 mtSpeech 桥）全部通过');
+  console.log('\n✓ 对话 · 实时听译端到端：入口门控 / 听 / 归属按语言自动判 / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 / 本机转写路（假 mtSpeech 桥）/ 实时字幕（老壳隐藏、系统版本灰态、准备态不开麦、单向、字幕条消息、语料 mode、字幕条结束）全部通过');
   process.exit(0);
 })();

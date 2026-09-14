@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "Aquí todavía no repartimos crédito propio: hace falta un servidor en el país y aún no está listo."
+  },
+  "subtitle_source_label": {
+    "message": "Subtítulos en vivo"
+  },
+  "subtitle_entry": {
+    "message": "Subtítulos en vivo"
+  },
+  "subtitle_entry_hint": {
+    "message": "Subtítulos bilingües para el vídeo, directo o reunión que se está reproduciendo"
+  },
+  "subtitle_need_live": {
+    "message": "Subtítulos en vivo necesita un motor de transcripción con conexión en tiempo real"
+  },
+  "subtitle_need_key": {
+    "message": "Falta la clave API del motor de transcripción"
+  },
+  "subtitle_need_key_go": {
+    "message": "Añádela en Ajustes →"
+  },
+  "subtitle_need_os": {
+    "message": "Los subtítulos del audio del sistema requieren macOS 14.4 o posterior — o usa «Conversación» y reproduce el sonido por los altavoces"
+  },
+  "subtitle_title": {
+    "message": "Subtítulos en vivo"
+  },
+  "subtitle_start": {
+    "message": "Iniciar"
+  },
+  "subtitle_capture_label": {
+    "message": "Añadir subtítulos al repaso (fuente «Subtítulos en vivo»)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Idioma del vídeo"
+  },
+  "subtitle_tip_mac": {
+    "message": "Al iniciar, los subtítulos aparecen en una barra flotante en la parte inferior de la pantalla; cada frase terminada también se lista aquí."
+  },
+  "subtitle_tip_ios": {
+    "message": "Pulsa Iniciar primero, luego ve a Safari y reproduce el vídeo por el altavoz; los subtítulos flotan en una ventana de imagen en imagen. Con auriculares no se oye el vídeo."
+  },
+  "subtitle_privacy": {
+    "message": "Solo escucha lo que reproduce este Mac después de pulsar «Iniciar». El audio se reconoce en este dispositivo (o solo se envía al punto de transcripción que configuraste); no se graba ni se guarda nada y nuestros servidores nunca intervienen. El texto reconocido solo se queda en tu repaso mientras «Añadir subtítulos al repaso» esté activado."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Solo escucha lo que este iPhone reproduce por el altavoz después de pulsar «Iniciar». El audio se reconoce en este dispositivo (o solo se envía al punto de transcripción que configuraste); no se graba ni se guarda nada y nuestros servidores nunca intervienen. El texto reconocido solo se queda en tu repaso mientras «Añadir subtítulos al repaso» esté activado."
+  },
+  "subtitle_pill_live": {
+    "message": "● Subtitulando · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Ahora"
+  },
+  "subtitle_history_empty": {
+    "message": "Cada frase terminada aparecerá aquí."
+  },
+  "subtitle_stop_silence": {
+    "message": "30 segundos sin sonido — en pausa para evitar cargos. Pulsa «Continuar» cuando el vídeo vuelva a sonar."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Sigue escuchando. Si sales terminan los subtítulos; las frases hasta ahora se conservan."
+  },
+  "subtitle_summary_title": {
+    "message": "Esta sesión de subtítulos"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} frases · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} al repaso (fuente «Subtítulos en vivo») · {s} con estrella"
+  },
+  "subtitle_summary_note": {
+    "message": "No se guardó audio, solo texto. Gestiona o borra estas frases en Fuentes › Subtítulos en vivo."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Esperando permiso — haz clic en «Permitir» en el aviso del sistema"
+  },
+  "subtitle_bar_listening": {
+    "message": "Escuchando el audio del sistema…"
+  },
+  "subtitle_bar_paused": {
+    "message": "En pausa"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 segundos sin sonido — en pausa para evitar cargos"
+  },
+  "subtitle_bar_denied": {
+    "message": "No se oye el audio del sistema — permite BelliedMonkey Translator en Ajustes del Sistema › Privacidad y seguridad › Grabación de pantalla y audio del sistema"
+  },
+  "subtitle_bar_socket": {
+    "message": "Se perdió la conexión de transcripción"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Reconectando…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Descargando recursos de reconocimiento de {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Falló esta traducción · reinténtalo en la ventana principal"
+  },
+  "subtitle_bar_headphones": {
+    "message": "No se oye el vídeo · quítate los auriculares y usa el altavoz"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Pausar"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Continuar"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Clic a través"
+  },
+  "subtitle_ctl_main": {
+    "message": "Ventana principal"
+  },
+  "subtitle_ctl_end": {
+    "message": "Terminar"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Abrir Ajustes del Sistema"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Mostrar ventana principal"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Desactivar clic a través de la barra"
+  },
+  "subtitle_menu_end": {
+    "message": "Terminar subtítulos en vivo"
+  },
+  "subtitle_pip_float": {
+    "message": "Mostrar ventana de subtítulos"
   }
 }

@@ -502,6 +502,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"record-mode"', '"on"',   // §9.6 实时听译：可录音的音频会话请求
         '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"rate"', '"b64"', '"state"',   // §9.6 原生采集
         '"deliver"', '"level"', '"mic-level"', '"rms"',   // §9.6.1 本机路：PCM 留在原生，只过电平
+        '"caps-probe"', '"subtitle-config"', '"subtitle-show"', '"subtitle-state"', '"subtitle-float"', '"subtitle-hide"',   // §9.8 实时字幕（字幕条文字全由 JS 传）
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',

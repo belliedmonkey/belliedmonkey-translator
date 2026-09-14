@@ -2857,5 +2857,140 @@
   },
   "grant_cn_why": {
     "message": "我們暫時不提供代領的免費額度：那需要一台境內的伺服器，還沒就緒。"
+  },
+  "subtitle_source_label": {
+    "message": "即時字幕"
+  },
+  "subtitle_entry": {
+    "message": "即時字幕"
+  },
+  "subtitle_entry_hint": {
+    "message": "為正在播放的影片、直播、會議配雙語字幕"
+  },
+  "subtitle_need_live": {
+    "message": "「即時字幕」需要一個有即時介面的轉寫引擎"
+  },
+  "subtitle_need_key": {
+    "message": "轉寫引擎還沒填 API Key"
+  },
+  "subtitle_need_key_go": {
+    "message": "去設定裡填寫 →"
+  },
+  "subtitle_need_os": {
+    "message": "系統聲音字幕需要 macOS 14.4 或更新 —— 或在「對話」裡讓聲音從喇叭放出來"
+  },
+  "subtitle_title": {
+    "message": "即時字幕"
+  },
+  "subtitle_start": {
+    "message": "開始"
+  },
+  "subtitle_capture_label": {
+    "message": "字幕進複習（來源「即時字幕」）"
+  },
+  "subtitle_video_lang_label": {
+    "message": "影片的語言"
+  },
+  "subtitle_tip_mac": {
+    "message": "開始後，字幕會出現在螢幕下方的浮動列上；每句定稿也會列在這裡。"
+  },
+  "subtitle_tip_ios": {
+    "message": "先點開始，再切到 Safari 外放播放影片；字幕會浮在子母畫面小窗裡。戴耳機時聽不到影片聲音。"
+  },
+  "subtitle_privacy": {
+    "message": "只在你點「開始」後聽這台 Mac 正在播放的聲音；聲音只在本機辨識（或只送往你設定的轉寫端點），不錄音、不儲存，我們的伺服器不參與。只有「字幕進複習」開著時，辨識出的文字才會留在複習裡。"
+  },
+  "subtitle_privacy_ios": {
+    "message": "只在你點「開始」後聽這台 iPhone 外放的聲音；聲音只在本機辨識（或只送往你設定的轉寫端點），不錄音、不儲存，我們的伺服器不參與。只有「字幕進複習」開著時，辨識出的文字才會留在複習裡。"
+  },
+  "subtitle_pill_live": {
+    "message": "● 字幕中 · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "現在"
+  },
+  "subtitle_history_empty": {
+    "message": "每句定稿後會出現在這裡。"
+  },
+  "subtitle_stop_silence": {
+    "message": "30 秒沒有聲音 — 已暫停以免計費。影片繼續播放後點「繼續」。"
+  },
+  "subtitle_leave_confirm": {
+    "message": "還在聽。離開會結束這次字幕，已出的句子保留。"
+  },
+  "subtitle_summary_title": {
+    "message": "這次字幕"
+  },
+  "subtitle_summary_body": {
+    "message": "時長 {t} · 共 {n} 句 · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "進複習（來源「即時字幕」）{k} 句 · 含 {s} 句加星"
+  },
+  "subtitle_summary_note": {
+    "message": "聲音沒有保存，只保留文字。進複習的句子可在「來源 › 即時字幕」裡管理或整段刪除。"
+  },
+  "subtitle_bar_waiting": {
+    "message": "等待系統授權 — 請在彈出的權限框裡點「允許」"
+  },
+  "subtitle_bar_listening": {
+    "message": "正在聽系統聲音…"
+  },
+  "subtitle_bar_paused": {
+    "message": "已暫停"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 秒沒有聲音，已暫停以免計費"
+  },
+  "subtitle_bar_denied": {
+    "message": "聽不到系統聲音 — 請到 系統設定 › 隱私權與安全性 › 螢幕與系統錄音，允許「大肚猴翻譯」"
+  },
+  "subtitle_bar_socket": {
+    "message": "轉寫連線中斷"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "正在重新連線…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "正在下載{lang}辨識資源 · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "這句譯文失敗 · 主視窗裡可重試"
+  },
+  "subtitle_bar_headphones": {
+    "message": "聽不到影片聲音 · 摘下耳機用外放"
+  },
+  "subtitle_ctl_pause": {
+    "message": "暫停"
+  },
+  "subtitle_ctl_resume": {
+    "message": "繼續"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "穿透"
+  },
+  "subtitle_ctl_main": {
+    "message": "主視窗"
+  },
+  "subtitle_ctl_end": {
+    "message": "結束"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "打開系統設定"
+  },
+  "subtitle_menu_show_main": {
+    "message": "顯示主視窗"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "取消字幕列穿透"
+  },
+  "subtitle_menu_end": {
+    "message": "結束即時字幕"
+  },
+  "subtitle_pip_float": {
+    "message": "浮出字幕窗"
   }
 }

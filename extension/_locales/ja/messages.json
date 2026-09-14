@@ -2856,5 +2856,140 @@
   },
   "grant_cn_why": {
     "message": "こちらで代わりにクレジットを配ることは今はできません。国内のサーバーが必要で、まだ用意できていません。"
+  },
+  "subtitle_source_label": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_entry": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_entry_hint": {
+    "message": "再生中の動画・ライブ配信・会議に2か国語字幕を表示"
+  },
+  "subtitle_need_live": {
+    "message": "ライブ字幕にはリアルタイム接続に対応した文字起こしエンジンが必要です"
+  },
+  "subtitle_need_key": {
+    "message": "文字起こしエンジンの API キーがまだ入力されていません"
+  },
+  "subtitle_need_key_go": {
+    "message": "設定で入力 →"
+  },
+  "subtitle_need_os": {
+    "message": "システム音声の字幕には macOS 14.4 以降が必要です —— または「会話」でスピーカーから音を出してください"
+  },
+  "subtitle_title": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_start": {
+    "message": "開始"
+  },
+  "subtitle_capture_label": {
+    "message": "字幕を復習に追加（ソース「ライブ字幕」）"
+  },
+  "subtitle_video_lang_label": {
+    "message": "動画の言語"
+  },
+  "subtitle_tip_mac": {
+    "message": "開始すると、字幕は画面下部のフローティングバーに表示されます。確定した文はここにも一覧で残ります。"
+  },
+  "subtitle_tip_ios": {
+    "message": "先に「開始」を押してから Safari に切り替え、動画をスピーカーで再生してください。字幕はピクチャ・イン・ピクチャの小窓に表示されます。イヤホン使用中は動画の音が聞こえません。"
+  },
+  "subtitle_privacy": {
+    "message": "「開始」を押した後だけ、この Mac で再生中の音を聞き取ります。音声はこのデバイス上で認識されるか、あなたが設定した文字起こしエンドポイントにだけ送られます。録音も保存もせず、当社のサーバーは関与しません。「字幕を復習に追加」がオンのときだけ、認識した文字が復習に残ります。"
+  },
+  "subtitle_privacy_ios": {
+    "message": "「開始」を押した後だけ、この iPhone のスピーカーから流れる音を聞き取ります。音声はこのデバイス上で認識されるか、あなたが設定した文字起こしエンドポイントにだけ送られます。録音も保存もせず、当社のサーバーは関与しません。「字幕を復習に追加」がオンのときだけ、認識した文字が復習に残ります。"
+  },
+  "subtitle_pill_live": {
+    "message": "● 字幕表示中 · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "いま"
+  },
+  "subtitle_history_empty": {
+    "message": "確定した文がここに表示されます。"
+  },
+  "subtitle_stop_silence": {
+    "message": "30 秒間音がありません — 課金を避けるため一時停止しました。動画を再生したら「再開」を押してください。"
+  },
+  "subtitle_leave_confirm": {
+    "message": "まだ聞き取り中です。離れると字幕は終了します。ここまでの文は残ります。"
+  },
+  "subtitle_summary_title": {
+    "message": "今回の字幕"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · 全 {n} 文 · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "復習に追加（ソース「ライブ字幕」）{k} 文 · うちスター {s} 文"
+  },
+  "subtitle_summary_note": {
+    "message": "音声は保存せず、文字だけを残しました。復習の文は「ソース › ライブ字幕」で管理・一括削除できます。"
+  },
+  "subtitle_bar_waiting": {
+    "message": "システムの許可待ち — 表示された確認で「許可」をクリックしてください"
+  },
+  "subtitle_bar_listening": {
+    "message": "システム音声を聞いています…"
+  },
+  "subtitle_bar_paused": {
+    "message": "一時停止中"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 秒間音がないため、課金を避けて一時停止しました"
+  },
+  "subtitle_bar_denied": {
+    "message": "システム音声が聞こえません — システム設定 › プライバシーとセキュリティ › 画面収録とシステムオーディオ録音 で BelliedMonkey Translator を許可してください"
+  },
+  "subtitle_bar_socket": {
+    "message": "文字起こしの接続が切れました"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "再接続中…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "{lang} の認識データをダウンロード中 · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "この文の翻訳に失敗 · メインウインドウで再試行"
+  },
+  "subtitle_bar_headphones": {
+    "message": "動画の音が聞こえません · イヤホンを外してスピーカーで再生"
+  },
+  "subtitle_ctl_pause": {
+    "message": "一時停止"
+  },
+  "subtitle_ctl_resume": {
+    "message": "再開"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "クリック透過"
+  },
+  "subtitle_ctl_main": {
+    "message": "メインウインドウ"
+  },
+  "subtitle_ctl_end": {
+    "message": "終了"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "システム設定を開く"
+  },
+  "subtitle_menu_show_main": {
+    "message": "メインウインドウを表示"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "字幕バーのクリック透過を解除"
+  },
+  "subtitle_menu_end": {
+    "message": "ライブ字幕を終了"
+  },
+  "subtitle_pip_float": {
+    "message": "字幕ウインドウを表示"
   }
 }
