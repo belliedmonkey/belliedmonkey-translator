@@ -211,9 +211,16 @@
   <script src="../content/tts.gen.js"></script>
   <script src="../content/stt.gen.js"></script>
   <script src="../content/providers.gen.js"></script>
+  <script src="../content/langs.gen.js"></script>
+  <script src="../content/engine-state.js"></script>
   <script src="../content/wire-format.js"></script>
   <script src="../learn/grant.js"></script>   <!-- 免费额度（§8.10）。这一页只用 enabled()：未登录那行说哪句话、链接落到哪 -->
   <script src="../content/request-shape.js"></script>
+  <!-- 语言未知的卡补语言（review.js backfillLang，learning-design §4.1）：拉丁字母要问一次翻译引擎。
+       缺这两行时 TranslationAPI 不存在，review.js 跳过引擎却照记 langAsked=true —— 卡永远是 und（全回归 2026-09-14 F05）。
+       顺序同 docs.html：translation-core 在 request-shape 之后、translation-api 之前。 -->
+  <script src="../content/translation-core.js"></script>
+  <script src="../content/translation-api.js"></script>
   <script src="store.js"></script>
   <script src="tts.js"></script>
   <script src="speech-input.js"></script>
