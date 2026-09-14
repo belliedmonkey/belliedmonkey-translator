@@ -48,6 +48,8 @@
 var SubtitleAdapter = (() => {
   const RESOLVE_MAX_ATTEMPTS = 6;
   const RESOLVE_RETRY_MS = 2500;
+  // 一次取现成字幕（spec.acquire）的总上限，见 tick() 里的说明（全回归 09-14 F12）
+  const ACQUIRE_TIMEOUT_MS = 20000;
   const TICK_MS = 250;
 
   function createSubtitleUI(spec) {
@@ -469,7 +471,13 @@ var SubtitleAdapter = (() => {
         const ctx = makeCtx();
         const fn = asrAcquire || spec.acquire;
         const epoch = acquireEpoch;
-        Promise.resolve().then(() => fn(ctx)).then((res) => {
+        // 取现成字幕的一次尝试有总上限（全回归 09-14 F12）：acquire 挂住时 inFlight 永远是 true，叠层永远「字幕加载中」、
+        // offer 永远不出。超时按「这次没取到」算（重试 / 落定 unavailable），迟到的结果丢掉。§2.4 已开始的转写（asrAcquire）
+        // 不设这个上限 —— 整段上传转写可以要一百多秒。
+        const run = Promise.resolve().then(() => fn(ctx));
+        const guarded = asrAcquire ? run
+          : Promise.race([run, new Promise((resolve) => setTimeout(() => resolve(null), spec.acquireTimeoutMs || ACQUIRE_TIMEOUT_MS))]);
+        guarded.then((res) => {
           if (epoch !== acquireEpoch) return; // superseded: a newer acquisition owns `status`
           if (res === 'unavailable') { status = 'unavailable'; }
           else if (res === 'streaming') { if (status !== 'unavailable') status = 'streaming'; }

@@ -61,6 +61,12 @@ fetch('/tone.wav').then(r => r.blob()).then(b => { const a = document.getElement
 // G：顶层没有媒体，播放器在 iframe 里（第三方嵌入播放器的形状）。
 const PAGE_FRAME = `<!doctype html><meta charset=utf-8><title>embed host</title><h1>Article</h1><p>The player below is an iframe.</p>
 <iframe id="f" src="/blob.html" width="640" height="200"></iframe>`;
+// F12（全回归 09-14）：播客页带 RSS 链接，而 RSS 只回响应头、正文迟迟不来（macOS Safari 上跨域取 feed 挂住的形状）。
+// 取字幕那一步没有总上限时，叠层永远停在「⏳ 字幕加载中…」、文件档 offer 永远不出。
+const PAGE_RSS_HANG = `<!doctype html><meta charset=utf-8><title>asr rss hang</title>
+<link rel="alternate" type="application/rss+xml" href="/feed-hang">
+<h1>Podcast page with a stalled feed</h1><p>Show notes for the stalled-feed path.</p>
+<audio id="a" src="/tone.wav" controls preload="auto" loop></audio>`;
 // D：一个没有任何媒体元素的页。
 const PAGE_NONE = `<!doctype html><meta charset=utf-8><title>no media</title><h1>Just text</h1><p>Nothing plays here.</p>`;
 const PAGE_BLOB = `<!doctype html><meta charset=utf-8><title>asr live tier</title>
@@ -79,6 +85,15 @@ function serve() {
     if (u === '/shadow.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_SHADOW); return; }
     if (u === '/none.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_NONE); return; }
     if (u === '/frame.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_FRAME); return; }
+    if (u === '/rss-hang.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(PAGE_RSS_HANG); return; }
+    if (u === '/feed-hang') {
+      // 头与半截 XML 立即给，正文 60 s 后才补完（真挂住的连接不会自己结束；这里给个上限，免得测试收尾卡在关服务器上）
+      res.writeHead(200, { 'Content-Type': 'text/xml; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.write('<?xml version="1.0"?><rss version="2.0"><channel><title>stalled</title>');
+      const t = setTimeout(() => { try { res.end('</channel></rss>'); } catch (_) {} }, 60000);
+      res.on('close', () => clearTimeout(t));
+      return;
+    }
     if (u === '/tone.wav') {
       // Range 支持：探针用 bytes=0-1023 试 CORS；Chrome 播放也会带 Range
       const m = /bytes=(\d+)-(\d*)/.exec(req.headers.range || '');
@@ -352,6 +367,22 @@ async function liveRun(url, seconds) {
       await sleep(2500);
       const iso = contexts.find((c) => c.auxData && c.auxData.type === 'isolated' && /belliedmonkey|translator|mt/i.test(c.name || '')) || contexts.find((c) => c.auxData && c.auxData.type === 'isolated');
       return { targetId, sessionId, isoId: iso ? iso.id : null, errs };
+    }
+
+    // ── F12. RSS 正文挂住：offer 仍要在上限内出现（全回归 09-14，macOS Safari 上叠层永远「字幕加载中」）────
+    {
+      const pg = await openPage(base + '/rss-hang.html');
+      if (!pg.isoId) throw new Error('F12: 找不到内容脚本的隔离世界（扩展没注入？）');
+      await evalIn(cdp, pg.sessionId, `document.getElementById('a').play().catch(() => {})`);
+      await evalIn(cdp, pg.sessionId, `PodcastTranslator.enable({ provider: 'custom_chat', apiKey: 'k', apiBaseUrl: ${JSON.stringify(base + '/v1/chat/completions')}, apiModel: 'm', targetLang: 'zh-CN' }); 'ok'`, pg.isoId);
+      const t12 = Date.now();
+      let offer12 = false;
+      try { await waitFor(() => evalIn(cdp, pg.sessionId, `!!document.querySelector('#mt-pod-overlay .mt-pod-trans-action')`), 25000, 'F12 offer'); offer12 = true; } catch (_) { offer12 = false; }
+      const ms12 = Date.now() - t12;
+      const notice12 = await evalIn(cdp, pg.sessionId, `((document.querySelector('#mt-pod-overlay') || {}).innerText || '').replace(/\\s+/g, ' ').slice(0, 60)`);
+      if (!offer12) problems.push(`F12: RSS 正文挂住时 25 s 内没出文件档 offer（叠层「${notice12}」）—— 取字幕那一步要有总上限`);
+      else notes.push(`F12: RSS 正文挂住，offer ${ms12} ms 出现`);
+      await cdp.send('Target.closeTarget', { targetId: pg.targetId }).catch(() => {});
     }
 
     // ── A. 文件一档 ─────────────────────────────────────────────────────
