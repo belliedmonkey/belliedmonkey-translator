@@ -19,6 +19,7 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const VENDOR = path.join(ROOT, 'app', 'native', 'vendor');
+const OS_FLOOR = require(path.join(ROOT, 'build', 'os-floor.config.js'));
 const SHERPA_VERSION = '1.13.8';
 const ORT_VERSION = '1.28.2';
 
@@ -123,6 +124,7 @@ function main() {
     fs.writeFileSync(stamp, a.sha256 + '\n');
     console.log(`  ✓ ${a.pkg}/${a.slice}/${a.name}`);
   }
+  normalizeIosMinOS(checkOnly, problems);
   // Swift 包装源
   if (!(fs.existsSync(SHERPA_SWIFT.dst) && sha256(SHERPA_SWIFT.dst) === SHERPA_SWIFT.sha256)) {
     if (checkOnly) problems.push('SherpaOnnx.swift 缺失或校验和不符');
@@ -147,5 +149,36 @@ function main() {
   console.log(`原生依赖就位：sherpa-onnx ${SHERPA_VERSION} · onnxruntime ${ORT_VERSION} → app/native/vendor/`);
 }
 
+// iOS 切片里各 .framework 的 Info.plist MinimumOSVersion 抬到 App 的系统下限（build/os-floor.config.js）。
+//
+// 2026-09-14 真实报障：TestFlight 上传后 Apple 回 ITMS-90208「onnxruntime.framework does not support the minimum
+// OS Version specified in the Info.plist」。上游 onnxruntime 的 iOS 切片是**静态库**、Info.plist 写着 13.0；
+// SwiftPM 把它包成随 App 带的动态框架时，二进制按 App 的部署目标（16.4）链出来，Info.plist 却原样沿用 13.0 ——
+// 声明比二进制低，整包判无效（归档、导出、altool 上传都不报，隔几分钟邮件才来）。
+// 抬到下限而不是删键：比二进制高是允许的（SherpaOnnxC 的二进制是 13.0，抬到 16.4 也合法）。
+// 改的是解压出来的文件，不是 zip，所以 .sha256 戳（校验的是 zip）不受影响；每次跑都重判，幂等。
+function normalizeIosMinOS(checkOnly, problems) {
+  const floor = OS_FLOOR.FLOOR.ios;
+  for (const a of ARTIFACTS.filter((x) => x.slice === 'ios')) {
+    const xc = path.join(VENDOR, a.pkg, a.slice, a.name);
+    if (!fs.existsSync(xc)) continue;
+    for (const slice of fs.readdirSync(xc)) {
+      const sliceDir = path.join(xc, slice);
+      if (!fs.statSync(sliceDir).isDirectory()) continue;
+      for (const fw of fs.readdirSync(sliceDir).filter((n) => n.endsWith('.framework'))) {
+        const plist = path.join(sliceDir, fw, 'Info.plist');
+        if (!fs.existsSync(plist)) continue;
+        let cur = '';
+        try { cur = execFileSync('plutil', ['-extract', 'MinimumOSVersion', 'raw', plist], { encoding: 'utf8' }).trim(); } catch (_) { cur = ''; }
+        if (cur && OS_FLOOR.cmp(cur, floor) >= 0) continue;
+        const where = `${a.pkg}/${a.slice}/${a.name}/${slice}/${fw}`;
+        if (checkOnly) { problems.push(`${where} 的 MinimumOSVersion=${cur || '（无）'} 低于 App 下限 ${floor}（上传会被 ITMS-90208 拒）`); continue; }
+        execFileSync('plutil', ['-replace', 'MinimumOSVersion', '-string', floor, plist]);
+        console.log(`  ✓ ${where} MinimumOSVersion ${cur || '（无）'} → ${floor}`);
+      }
+    }
+  }
+}
+
 if (require.main === module) main();
-module.exports = { ARTIFACTS, SHERPA_SWIFT, PACKAGE_SWIFT, VENDOR, SHERPA_VERSION, ORT_VERSION };
+module.exports = { ARTIFACTS, SHERPA_SWIFT, PACKAGE_SWIFT, VENDOR, SHERPA_VERSION, ORT_VERSION, normalizeIosMinOS };
