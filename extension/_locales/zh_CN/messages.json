@@ -2895,7 +2895,7 @@
     "message": "开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。"
   },
   "subtitle_tip_ios": {
-    "message": "先点开始，再切到 Safari 外放播放视频；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。"
+    "message": "先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。"
   },
   "subtitle_privacy": {
     "message": "只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。"
@@ -3000,7 +3000,7 @@
     "message": "实时字幕"
   },
   "subtitle_pip_hint": {
-    "message": "在 Safari 里外放视频，字幕会出现在这里"
+    "message": "在任意 App 里外放视频或音频，字幕会出现在这里"
   },
   "subtitle_pip_close": {
     "message": "点一下小窗：⏸ 暂停 · ⏪⏩ 翻看历史 · ✕ 关掉（回 App 可再打开）"
@@ -3009,7 +3009,7 @@
     "message": "历史 · 点 ⏩ 回到最新"
   },
   "subtitle_pip_note_idle": {
-    "message": "点「开始」后，这里是字幕小窗的预览；切到 Safari 时它会浮在上面"
+    "message": "点「开始」后，这里是字幕小窗的预览；离开本 App 时它会浮在其它 App 上"
   },
   "subtitle_pip_note_live": {
     "message": "字幕小窗的预览 —— 离开 App 时会浮在其它 App 上"

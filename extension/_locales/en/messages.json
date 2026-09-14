@@ -2894,7 +2894,7 @@
     "message": "After you start, subtitles appear in a floating bar at the bottom of the screen; every finished sentence is also listed here."
   },
   "subtitle_tip_ios": {
-    "message": "Tap Start first, then switch to Safari and play the video out loud; subtitles float in a picture-in-picture window. With headphones on, the video can’t be heard."
+    "message": "Tap Start first, then play out loud in any app (Safari, Chrome, YouTube, podcasts…); subtitles float in a picture-in-picture window. With headphones on, the audio can’t be heard."
   },
   "subtitle_privacy": {
     "message": "Listens to what this Mac is playing only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."
@@ -2999,7 +2999,7 @@
     "message": "Live Subtitles"
   },
   "subtitle_pip_hint": {
-    "message": "Play the video out loud in Safari — subtitles appear here"
+    "message": "Play video or audio out loud in any app — subtitles appear here"
   },
   "subtitle_pip_close": {
     "message": "Tap the window: ⏸ pause · ⏪⏩ browse history · ✕ close (reopen from the app)"
@@ -3008,7 +3008,7 @@
     "message": "History · tap ⏩ for the latest"
   },
   "subtitle_pip_note_idle": {
-    "message": "After you tap “Start”, this previews the subtitle window — it floats over Safari when you switch"
+    "message": "After you tap “Start”, this previews the subtitle window — it floats over other apps when you leave"
   },
   "subtitle_pip_note_live": {
     "message": "Subtitle window preview — it floats over other apps when you leave"

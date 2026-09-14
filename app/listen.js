@@ -458,7 +458,7 @@ var AppListen = (() => {
   function paintPipNote() {
     const n = $('app-subs-pip-note'); if (!n) return;
     n.textContent = phase === 'ended' ? t('subtitle_pip_note_ended', '这次字幕已结束，小窗已关闭')
-      : (!session || phase === 'idle') ? t('subtitle_pip_note_idle', '点「开始」后，这里是字幕小窗的预览；切到 Safari 时它会浮在上面')
+      : (!session || phase === 'idle') ? t('subtitle_pip_note_idle', '点「开始」后，这里是字幕小窗的预览；离开本 App 时它会浮在其它 App 上')
         : t('subtitle_pip_note_live', '字幕小窗的预览 —— 离开 App 时会浮在其它 App 上');
   }
   function subtitleLabels() {
@@ -469,7 +469,7 @@ var AppListen = (() => {
       // 画中画小窗（iPhone）：空窗时的说明、翻看历史时顶部那行（用户 2026-09-14 手测后裁定）
       pip: {
         title: t('subtitle_pip_title', '实时字幕'),
-        hint: t('subtitle_pip_hint', '在 Safari 里外放视频，字幕会出现在这里'),
+        hint: t('subtitle_pip_hint', '在任意 App 里外放视频或音频，字幕会出现在这里'),
         close: t('subtitle_pip_close', '点一下小窗：⏸ 暂停 · ⏪⏩ 翻看历史 · ✕ 关掉（回 App 可再打开）'),
         history: t('subtitle_pip_history', '历史 · 点 ⏩ 回到最新'),
       },
@@ -829,7 +829,7 @@ var AppListen = (() => {
     const tip = $('app-subs-tip');
     if (tip && sub) tip.textContent = macLike
       ? t('subtitle_tip_mac', '开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。')
-      : t('subtitle_tip_ios', '先点开始，再切到 Safari 外放播放视频；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。');
+      : t('subtitle_tip_ios', '先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。');
     try {
       chrome.storage.local.get(['listenOtherLang', 'subtitleVideoLang', 'subtitleCapture'], (st) => {
         st = st || {};

@@ -2894,7 +2894,7 @@
     "message": "Al iniciar, los subtítulos aparecen en una barra flotante en la parte inferior de la pantalla; cada frase terminada también se lista aquí."
   },
   "subtitle_tip_ios": {
-    "message": "Pulsa Iniciar primero, luego ve a Safari y reproduce el vídeo por el altavoz; los subtítulos flotan en una ventana de imagen en imagen. Con auriculares no se oye el vídeo."
+    "message": "Pulsa Iniciar primero y luego reproduce por el altavoz en cualquier app (Safari, Chrome, YouTube, pódcasts…); los subtítulos flotan en una ventana de imagen en imagen. Con auriculares no se oye el sonido."
   },
   "subtitle_privacy": {
     "message": "Solo escucha lo que reproduce este Mac después de pulsar «Iniciar». El audio se reconoce en este dispositivo (o solo se envía al punto de transcripción que configuraste); no se graba ni se guarda nada y nuestros servidores nunca intervienen. El texto reconocido solo se queda en tu repaso mientras «Añadir subtítulos al repaso» esté activado."
@@ -2999,7 +2999,7 @@
     "message": "Subtítulos en vivo"
   },
   "subtitle_pip_hint": {
-    "message": "Reproduce el vídeo en Safari por el altavoz: los subtítulos aparecerán aquí"
+    "message": "Reproduce vídeo o audio por el altavoz en cualquier app: los subtítulos aparecerán aquí"
   },
   "subtitle_pip_close": {
     "message": "Toca la ventana: ⏸ pausa · ⏪⏩ historial · ✕ cerrar (vuelve a abrirla desde la app)"
@@ -3008,7 +3008,7 @@
     "message": "Historial · toca ⏩ para lo último"
   },
   "subtitle_pip_note_idle": {
-    "message": "Al pulsar «Iniciar», aquí verás la vista previa de la ventana de subtítulos; flotará sobre Safari al cambiar"
+    "message": "Al pulsar «Iniciar», aquí verás la vista previa de la ventana de subtítulos; al salir de la app flotará sobre las demás"
   },
   "subtitle_pip_note_live": {
     "message": "Vista previa de la ventana de subtítulos: flotará sobre otras apps al salir"

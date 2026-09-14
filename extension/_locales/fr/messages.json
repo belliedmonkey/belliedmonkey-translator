@@ -2894,7 +2894,7 @@
     "message": "Après le démarrage, les sous-titres s’affichent dans une barre flottante en bas de l’écran ; chaque phrase terminée est aussi listée ici."
   },
   "subtitle_tip_ios": {
-    "message": "Touchez d’abord Démarrer, puis passez à Safari et lisez la vidéo sur le haut-parleur ; les sous-titres flottent dans une fenêtre en incrustation. Avec des écouteurs, la vidéo n’est pas audible."
+    "message": "Touchez d’abord Démarrer, puis lisez sur le haut-parleur dans n’importe quelle app (Safari, Chrome, YouTube, podcasts…) ; les sous-titres flottent dans une fenêtre en incrustation. Avec des écouteurs, le son n’est pas audible."
   },
   "subtitle_privacy": {
     "message": "N’écoute ce que joue ce Mac qu’après avoir touché « Démarrer ». Le son est reconnu sur cet appareil (ou envoyé uniquement au point de transcription que vous avez configuré) ; rien n’est enregistré ni conservé, et nos serveurs n’interviennent jamais. Le texte reconnu ne reste dans vos révisions que tant que « Ajouter les sous-titres aux révisions » est activé."
@@ -2999,7 +2999,7 @@
     "message": "Sous-titres en direct"
   },
   "subtitle_pip_hint": {
-    "message": "Lisez la vidéo sur le haut-parleur dans Safari : les sous-titres s’affichent ici"
+    "message": "Lisez une vidéo ou un son sur le haut-parleur dans n’importe quelle app : les sous-titres s’affichent ici"
   },
   "subtitle_pip_close": {
     "message": "Touchez la fenêtre : ⏸ pause · ⏪⏩ historique · ✕ fermer (rouvrir depuis l’app)"
@@ -3008,7 +3008,7 @@
     "message": "Historique · touchez ⏩ pour le plus récent"
   },
   "subtitle_pip_note_idle": {
-    "message": "Après « Démarrer », voici l’aperçu de la fenêtre de sous-titres ; elle flotte au-dessus de Safari quand vous basculez"
+    "message": "Après « Démarrer », voici l’aperçu de la fenêtre de sous-titres ; elle flotte au-dessus des autres apps quand vous quittez celle-ci"
   },
   "subtitle_pip_note_live": {
     "message": "Aperçu de la fenêtre de sous-titres : elle flotte au-dessus des autres apps quand vous quittez"

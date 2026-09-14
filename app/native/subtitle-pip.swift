@@ -8,7 +8,7 @@
 //
 // ── 形状（尖刺 S7 真机实证）─────────────────────────────────────────────────────
 // AVSampleBufferDisplayLayer 自绘深色字幕帧 → AVPictureInPictureController(contentSource: sampleBufferDisplayLayer)，
-// canStartPictureInPictureAutomaticallyFromInline = true ⇒ 离开 App（切到 Safari）时自动浮出（S7：1.7 s 内出现），
+// canStartPictureInPictureAutomaticallyFromInline = true ⇒ 离开 App（切到任意其它 App）时自动浮出（S7：1.7 s 内出现），
 // 小窗浮在 Safari 上持续更新，录音引擎不停，Safari 外放零暂停。
 // **来源必须在屏幕上**（协议补充决定 17）：页面在「现在」卡里留一个 16:9 占位块，把它在视口里的矩形发过来
 // （subtitle-float {rect}），这里在 WKWebView 上同一位置叠一个不接触摸的预览视图。

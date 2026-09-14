@@ -2894,7 +2894,7 @@
     "message": "Depois de iniciar, as legendas aparecem numa barra flutuante na parte de baixo da tela; cada frase concluída também fica listada aqui."
   },
   "subtitle_tip_ios": {
-    "message": "Toque em Iniciar primeiro, depois vá ao Safari e toque o vídeo pelo alto-falante; as legendas flutuam numa janela picture-in-picture. Com fones de ouvido, o vídeo não é ouvido."
+    "message": "Toque em Iniciar primeiro e depois reproduza pelo alto-falante em qualquer app (Safari, Chrome, YouTube, podcasts…); as legendas flutuam numa janela picture-in-picture. Com fones de ouvido, o som não é ouvido."
   },
   "subtitle_privacy": {
     "message": "Só escuta o que este Mac está tocando depois que você toca em “Iniciar”. O áudio é reconhecido neste dispositivo (ou enviado apenas ao endpoint de transcrição que você configurou); nada é gravado nem salvo, e nossos servidores nunca participam. O texto reconhecido só fica na sua revisão enquanto “Adicionar legendas à revisão” estiver ligado."
@@ -2999,7 +2999,7 @@
     "message": "Legendas ao vivo"
   },
   "subtitle_pip_hint": {
-    "message": "Toque o vídeo no Safari pelo alto-falante — as legendas aparecem aqui"
+    "message": "Reproduza vídeo ou áudio pelo alto-falante em qualquer app — as legendas aparecem aqui"
   },
   "subtitle_pip_close": {
     "message": "Toque na janela: ⏸ pausar · ⏪⏩ histórico · ✕ fechar (reabra pelo app)"
@@ -3008,7 +3008,7 @@
     "message": "Histórico · toque ⏩ para o mais recente"
   },
   "subtitle_pip_note_idle": {
-    "message": "Depois de tocar em “Iniciar”, aqui fica a prévia da janela de legendas; ela flutua sobre o Safari quando você troca"
+    "message": "Depois de tocar em “Iniciar”, aqui fica a prévia da janela de legendas; ela flutua sobre outros apps quando você sai deste"
   },
   "subtitle_pip_note_live": {
     "message": "Prévia da janela de legendas — ela flutua sobre outros apps quando você sai"
