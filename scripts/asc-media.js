@@ -72,6 +72,9 @@ const c = (n) => path.join(ROOT, 'screenshots-cn', n);
 // 以前写死「前 5 张 / 前 4 张」，于是 1.7 的一键配置帧、1.10 的文档帧渲染出来了却从没上过商店。
 const ORDER_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5, 6];
 const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
+// App 独有功能的帧（8 实时字幕、9 对话听译）：只上 App Store。扩展商店（AMO 预览图、CWS 截图）不放 ——
+// 装 Firefox / Chrome 扩展的人得不到这两样，放上去就是在宣传用户拿不到的东西。scripts/amo-listing.js 读这一行。
+const APP_ONLY_GLOBAL = [8, 9];
 const frames = (order, p) => order.map((i) => p(`${i}`));
 // 预览视频放仓库里（原来在 /tmp，重启即丢，1.10 那轮已经找不回源文件）。中国版沿用中文那两条 —— 画面里没有境外站点。
 const v = (n) => path.join(ROOT, "store-assets", "video", n);

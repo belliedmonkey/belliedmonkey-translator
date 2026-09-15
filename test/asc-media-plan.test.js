@@ -71,6 +71,15 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
     eq(missing.length, 0, `缺 ${missing.join(', ')} —— 发版当天传 AMO 时才会发现`);
   });
 
+  test('扩展商店的预览图不放 App 独有功能的帧（amo-listing.js 按 APP_ONLY_GLOBAL 剔除）', () => {
+    const appOnly = order('APP_ONLY_GLOBAL');
+    ok(appOnly.length > 0, 'APP_ONLY_GLOBAL 是空的');
+    const all = new Set(order('ORDER_GLOBAL'));
+    for (const n of appOnly) ok(all.has(n), `APP_ONLY_GLOBAL 里的 ${n} 不在 ORDER_GLOBAL 里 —— 帧号写错了`);
+    ok(/APP_ONLY_GLOBAL/.test(read('scripts/amo-listing.js')),
+      'amo-listing.js 没有读 APP_ONLY_GLOBAL —— Firefox 附加组件页会宣传装扩展得不到的实时字幕 / 对话听译');
+  });
+
   test('每条线的 id 唯一（--only 靠它点名）', () => {
     const ids = LINES.map((x) => x.id);
     eq(new Set(ids).size, ids.length, `有重复的 id：${ids.filter((x, i) => ids.indexOf(x) !== i).join(', ')}`);
