@@ -3021,5 +3021,8 @@
   },
   "subtitle_stop_silence_permission": {
     "message": "Sin sonido durante 30 segundos: en pausa. Si el vídeo sonaba pero no aparecían subtítulos, puede que la grabación de audio del sistema no esté permitida: Ajustes del Sistema › Privacidad y seguridad › Grabación de pantalla y audio del sistema, permite BelliedMonkey Translator y pulsa «Continuar»."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "Sin sonido durante 30 segundos: en pausa. ¿El vídeo suena pero no hay subtítulos? Puede que la grabación de audio del sistema no esté permitida"
   }
 }

@@ -3022,5 +3022,8 @@
   },
   "subtitle_stop_silence_permission": {
     "message": "30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。"
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限"
   }
 }

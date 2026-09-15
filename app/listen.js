@@ -490,6 +490,8 @@ var AppListen = (() => {
         downloading: t('subtitle_bar_downloading', '正在下载{lang}识别资产 · {pct}%').replace('{lang}', langLabel(cfg && cfg.otherLang)),
         'tr-failed': t('subtitle_bar_tr_failed', '这句译文失败 · 主窗口里可重试'),
         silent: silentHint(),
+        // 静音门暂停、本场出过 silent 却从没 sound（决定 10 修订二补 O2）：全屏看视频只看得见条，条上也指向权限
+        'silence-permission': t('subtitle_bar_silence_permission', '30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限'),
       },
       controls: {
         pause: t('subtitle_ctl_pause', '暂停'), resume: t('subtitle_ctl_resume', '继续'),
@@ -737,7 +739,7 @@ var AppListen = (() => {
     if (reason === 'silence') note(session.mode !== 'subtitle' ? t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。')
       : sysSilent && !sysSound ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
       : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
-    subState(reason === 'silence' ? 'silence' : 'paused');
+    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && sysSilent && !sysSound ? 'silence-permission' : 'silence');
     paint();
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。

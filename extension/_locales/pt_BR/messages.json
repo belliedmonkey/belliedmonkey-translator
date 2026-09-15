@@ -3021,5 +3021,8 @@
   },
   "subtitle_stop_silence_permission": {
     "message": "Sem som por 30 segundos — pausado. Se o vídeo estava tocando mas sem legendas, talvez a gravação de áudio do sistema não esteja permitida: Ajustes do Sistema › Privacidade e Segurança › Gravação de Tela e Áudio do Sistema, permita o BelliedMonkey Translator e toque em “Continuar”."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "Sem som por 30 segundos — pausado. O vídeo toca mas sem legendas? Talvez a gravação de áudio do sistema não esteja permitida"
   }
 }

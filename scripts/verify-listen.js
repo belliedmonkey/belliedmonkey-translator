@@ -557,10 +557,14 @@ function say(base, text) {
     const h4b1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markB}).filter((m) => m.type === 'subtitle-state').map((m) => m.state), labelSilent: !!((__fakeBridge.msgs.filter((m) => m.type === 'subtitle-config').pop() || {}).labels || {}).state && !!__fakeBridge.msgs.filter((m) => m.type === 'subtitle-config').pop().labels.state.silent })`));
     need(h4b1.phase === 'listening' && /还没听到系统声音/.test(h4b1.note) && h4b1.states.includes('silent') && h4b1.labelSilent,
       'H4b: mic-state silent ⇒ 仍在听、页面出不中断提示、条收到 subtitle-state silent、labels.state 有 silent，实际 ' + JSON.stringify(h4b1));
+    const markP = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(AppListen.pause('silence'), 'ok')`);
     await sleep(200);
-    const h4b2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '' })`));
+    const h4b2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markP}).filter((m) => m.type === 'subtitle-state').map((m) => m.state), labelPerm: !!(((__fakeBridge.msgs.filter((m) => m.type === 'subtitle-config').pop() || {}).labels || {}).state || {})['silence-permission'] })`));
     need(h4b2.phase === 'paused' && /系统录音权限/.test(h4b2.note), 'H4b: 收到过 silent、从没 sound 就到静音门 ⇒ 暂停句该指向权限，实际 ' + JSON.stringify(h4b2));
+    // O2（§9.8 决定 10 修订二补）：条上也指向权限 —— 发 silence-permission 而不是 silence，labels 里有它的文字
+    need(h4b2.states.includes('silence-permission') && !h4b2.states.includes('silence') && h4b2.labelPerm,
+      'H4b(O2): 同一条件下条该收到 subtitle-state silence-permission（不是 silence），labels.state 有 silence-permission，实际 ' + JSON.stringify(h4b2));
     await evalIn(cdp, sessionId, `(AppListen.resume(), 'ok')`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4b: 继续后回到 listening');
     const markB2 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
@@ -569,6 +573,15 @@ function say(base, text) {
     const h4b3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markB2}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
     need(h4b3.phase === 'listening' && !/还没听到系统声音/.test(h4b3.note) && h4b3.states.includes('listening'),
       'H4b: mic-state sound ⇒ 提示撤掉、条收到 subtitle-state listening，实际 ' + JSON.stringify(h4b3));
+    // O2 的反面：听到过声音再到静音门 ⇒ 条上照旧 silence，暂停句也是通用那句
+    const markP2 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(AppListen.pause('silence'), 'ok')`);
+    await sleep(200);
+    const h4b4 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markP2}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+    need(h4b4.phase === 'paused' && h4b4.states.includes('silence') && !h4b4.states.includes('silence-permission') && !/系统录音权限/.test(h4b4.note),
+      'H4b(O2): 听到过声音再到静音门 ⇒ 条上照旧 silence、暂停句不提权限，实际 ' + JSON.stringify(h4b4));
+    await evalIn(cdp, sessionId, `(AppListen.resume(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4b(O2): 继续后回到 listening');
     // H5. 单向：英文句、中文句都归对方；没有 ↔ / 给对方看 / 朗读；自动朗读不出声
     const showMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await say(base, 'The keynote starts in five minutes.');
