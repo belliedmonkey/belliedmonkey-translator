@@ -528,7 +528,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
   #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
-    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "note hist" "actions hist" "pair hist" "speakrow hist" "cost hist" "summary summary"; }
+    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "queue hist" "note hist" "actions hist" "subspriv hist" "pair hist" "speakrow hist" "ephrow hist" "ephwhy hist" "subsprep hist" "cost hist" "devpriv hist" "summary summary"; }
+  /* 每个直接子元素都要有自己的格子（test/app-listen-grid.test.js）：没写的会被自动放置，
+     共用 class 的会叠进同一格 —— 「这次不留记录」曾与「朗读译文」叠在 speakrow 里。 */
   :where(#app-listen) .listen-head { grid-area: head; }
   :where(#app-listen) .listen-langline { grid-area: lang; }
   :where(#app-listen) .listen-mac-note { grid-area: macnote; }
@@ -538,6 +540,12 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-actions { grid-area: actions; }
   :where(#app-listen) .listen-pair { grid-area: pair; }
   :where(#app-listen) .listen-autospeak { grid-area: speakrow; }
+  #app-listen-queue { grid-area: queue; }
+  #app-subs-privacy { grid-area: subspriv; }
+  #app-listen-ephemeral-row { grid-area: ephrow; }
+  #app-listen-ephemeral-why { grid-area: ephwhy; }
+  #app-subs-prep { grid-area: subsprep; }
+  #app-listen-device-privacy { grid-area: devpriv; }
   #app-listen-cost { grid-area: cost; }
   #app-listen-summary { grid-area: summary; }
   :where(#app-listen) .listen-history { max-height: calc(100vh - 250px); }
