@@ -12,18 +12,24 @@
 | 字段 | 端点 | 命令 | 分平台？ |
 |---|---|---|---|
 | `name` `subtitle` | `appInfoLocalizations` | `appinfo` | **否** —— app 级，iOS/macOS 共用一条 |
-| `keywords` `description` `promotionalText` | `appStoreVersionLocalizations` | `aso` | 是 |
+| `keywords` `description` `promotionalText` | `appStoreVersionLocalizations` | `aso` | 是（但两个平台读同一份文案，所以描述要同时讲清 Mac 与 iPhone） |
 
-## 三条不能忘的约束
+## 四条不能忘的约束
 
 1. **`keywords` 里逗号两侧不能有空格。** 空格计入那 100 个字符，而且会让 Apple 把
    `" 双语"` 当成一个**另外的**词。`test/aso-copy.test.js` 会拦。
 2. **不放竞品名**（`沉浸式翻译` / `彩云小译` / `DeepL` / `Immersive Translate`）——
-   Metadata Rejection 里最典型的一类，代价是排队位置清零。`沉浸式`（通用形容词）可以，
-   竞品全称不行。既有的引擎商标（`youtube` 国际版过审 10 次、四个中文引擎名中国版过审
-   4 次）**保留但不新增**。
+   Metadata Rejection 里最典型的一类，代价是排队位置清零。既有的引擎商标（`youtube` 国际版
+   过审 10 次、四个中文引擎名中国版过审 4 次）**保留但不新增**。国际版的**描述**里不点名服务商。
 3. **`keywords` 顶到 93–98 而不是 100。** 未用的字符是纯浪费（Apple 不因少写而加权），
    但顶满会让下次微调必须先删词 —— 而 keywords 随版本锁定，下次能改是下一版。
+4. **口径红线**（2026-09-15 起由 `test/lib/copy-redlines.js` 拦）：不说「没有追踪 / 没有埋点」
+   （我们发匿名用量事件，可关）；不说不加限定的「完全免费」；国际版不说「路径上没有我们的服务器」
+   （免费额度经我们的中继）。iPhone 的实时字幕写「任意 App」，不点名 Safari。中国版不提 YouTube。
+
+> 2026-09-15（1.11.0）整份重写：主叙事从「扩展 + 复习卡」换成「实时字幕 · 对话听译 · 网页 · 视频 ·
+> 文档 · 复习卡」。此前 1.8.0 的对话、1.9.0 的免费额度、1.10.0 的文档翻译在商店页上都一个字没有。
+> it / tr / vi / pl 四个 locale 此前从没推上 ASC（线上只有 11 个），这一版一并建。
 
 ---
 
@@ -36,48 +42,49 @@ BelliedMonkey Translator
 ## 国际版 · en-US · subtitle
 
 ```
-Bilingual web, video subtitles
+Live subtitles & bilingual web
 ```
 
 ## 国际版 · en-US · keywords
 
 ```
-immersive,dual,translate,captions,youtube,language,learning,flashcards,spaced,repetition,extension
+interpreter,conversation,captions,youtube,transcribe,flashcards,language,learning,dual,speech,pdf
 ```
 
 ## 国际版 · en-US · description
 
 ```
-Most translators stop at the translation. BelliedMonkey Translator keeps going: read the web and watch video bilingually, and the sentences you actually read come back as review cards on a forgetting curve. Free, open source, and no servers of ours in the translation path.
+BelliedMonkey Translator puts two languages on screen wherever you read, watch or talk — and the sentences you actually read come back as review cards.
+
+LIVE SUBTITLES (APP)
+Bilingual subtitles for whatever your device is playing. On Mac, the app listens to system audio and shows a floating subtitle bar that stays on top of any app, even full-screen video (macOS 14.4 or later). On iPhone, play a video or podcast out loud in any app, and a picture-in-picture window scrolls the original and the translation, sentence by sentence.
+
+CONVERSATION · LIVE INTERPRETER (APP)
+Talk across a language gap. Both sides speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 and macOS 26, on-device transcription keeps the audio on your device.
 
 WEB PAGES, SIDE BY SIDE
-Turn on translation and every paragraph keeps its original text with a fresh translation right below it, in a distinct color. No switching tabs, no losing your place — just read.
+The Safari extension (also on Chrome and Firefox) keeps every paragraph's original text with the translation right below it. No switching tabs, no losing your place.
 
-YOUTUBE DUAL SUBTITLES
-Watch with the original subtitle on top and the translation underneath, matched sentence by sentence, so you can follow along and pick up the language as you go.
+VIDEO DUAL SUBTITLES
+YouTube, podcasts and web video get sentence-matched dual subtitles. No captions? Turn on AI transcript subtitles.
+
+DOCUMENT TRANSLATION
+Open a PDF, Word file or image and read it page by page, original and translation side by side.
 
 LEARN AS YOU READ
-Sentences you actually read can become review cards on a forgetting curve — read, listen and write tiers, free practice, sentence notes, and read-aloud. Off by default, and everything stays on your device.
+Sentences you actually read can become review cards on a forgetting curve — read, listen and write practice, sentence notes and read-aloud. Optional sync lets your phone review what you read on your computer.
 
-SYNC ACROSS YOUR DEVICES (OPTIONAL)
-Sign in with a free email account and your phone can review what you read on your computer. What sync stores on our servers: your saved sentences and translations, their source page URL and title, and review times — in readable form, only for your account. Delete a source or your account and it is removed from all devices. Without signing in, nothing leaves your device.
+YOUR ENGINE, YOUR CHOICE
+Bring your own AI service key, or any compatible endpoint. Once signed in, you can also try a small free credit from us.
 
-BRING YOUR OWN ENGINE
-Google translation works instantly, with no setup. Prefer an AI model? Add your own key for OpenAI, Claude, DeepSeek, or GLM and translate with the engine you trust. You're always in control.
-
-PRIVATE BY DESIGN
-No tracking, no ads, no third-party analytics — only anonymous usage events (which features are used, never page content), off in one switch. No servers of ours in the translation path — text goes straight to the provider you choose, and your keys and settings stay on your device. No account unless you want one. The entire app is open source.
-
-FREE AND OPEN
-BelliedMonkey Translator is free and fully open source.
-
-Great for reading foreign news and blogs, studying a language, following creators who speak another language, and browsing the global web the way you'd browse your own.
+PRIVACY, SPELLED OUT
+Your keys and settings stay on your device. With your own key, text goes straight to the provider you chose; with the free credit, it passes through our relay and is not stored. Live Subtitles and on-device transcription never record audio. We send anonymous usage events (which features are used, never page content), and you can turn them off in Settings. No ads. The whole app is open source and free to download.
 ```
 
 ## 国际版 · en-US · promotionalText
 
 ```
-Not just another translator — sentences you actually read come back as review cards on a forgetting curve. Free, open source, your key stays on device.
+New: Live Subtitles for anything playing on your Mac or iPhone, plus a conversation interpreter. Bilingual web pages, documents and review cards, all in one app.
 ```
 
 ---
@@ -91,42 +98,49 @@ Not just another translator — sentences you actually read come back as review 
 ## 国际版 · zh-Hans · subtitle
 
 ```
-网页沉浸式双语对照、视频双字幕、生词复习卡
+实时双语字幕、对话听译、网页对照
 ```
 
 ## 国际版 · zh-Hans · keywords
 
 ```
-翻译器,英语,日语,韩语,学英语,背单词,生词本,遗忘曲线,间隔重复,记忆卡,语言学习,外刊,精读,划词,美剧,外语,youtube,插件,扩展,免费,开源,原文,论文,单词,阅读,法语
+同声传译,口译,画中画,视频,英语,日语,韩语,学英语,背单词,生词本,遗忘曲线,记忆卡,语言学习,外刊,美剧,youtube,插件,扩展,开源,文档,pdf,论文,播客,会议,直播,语音,转写
 ```
 
 ## 国际版 · zh-Hans · description
 
 ```
-读外网、看外语视频时，原文和译文同屏；而你真正读过的句子，第二天会回来找你。
+读网页、看视频、开会聊天，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
+
+【实时字幕（App）】
+给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 14.4 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。
+
+【对话 · 实时听译（App）】
+跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。iOS 26 / macOS 26 上可选设备内置转写，声音只在你的设备上识别。
 
 【网页双语对照】
-每段原文下方直接显示译文，用颜色区分，不跳转、不丢失阅读位置，整页一键双语。
+Safari 扩展（也支持 Chrome、Firefox）在每段原文下方显示译文，不跳转、不丢阅读位置。
 
 【视频双语字幕】
-YouTube、播客与网页视频，原文在上、译文在下逐句对齐，提前译好，播放不卡顿。
+YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频，可以开启 AI 转写字幕。
+
+【文档翻译】
+打开 PDF、Word 或图片，逐页原文译文对照阅读。
 
 【读过的句子会变成复习卡】
-这是它和别的翻译扩展最大的不同。开启学习后，你真正停下来读完的句子（快速滚过去的不算）会连同来源页面一起进入学习库，按遗忘曲线回到你面前：读 / 听 / 写三档轮换，配句子解析与朗读，每次评分都写明下次什么时候再见。电脑上读，手机上复习。
+真正读完的句子按遗忘曲线回来：读 / 听 / 写三档练习，配句子解析与朗读。可选同步，电脑上读、手机上复习。
 
 【引擎你自己选】
-免费的 Google 通道零配置就能用；想要更好的质量，填入你自己的 API Key —— 支持 OpenAI、Claude、DeepSeek、GLM（智谱）、通义千问、Kimi，也可以填任何兼容 Chat Completions / Messages 格式的自建或中转接口。
+填入你自己的 AI 服务密钥，或任何兼容的接口；登录后也可以先用我们提供的一小份免费额度。
 
-【隐私】
-没有埋点、没有广告、翻译链路上没有我们的服务器。翻译请求由你的设备直接发往你选择的服务商，API Key 与设置只留在本机。不登录也能完整使用；只有你主动开启同步，学习进度才会在你自己的设备之间流转。
-
-完全免费，完整开源。
+【隐私，说清楚】
+密钥与设置只存在你的设备上。用自己的密钥时，文字直接发往你选的服务商；用免费额度时，经我们的中继转发，不保存。实时字幕与设备内置转写都不录音。我们会发送匿名用量事件（用了哪些功能，不含网页内容），可在设置里关闭。没有广告，完整开源，免费下载。
 ```
 
 ## 国际版 · zh-Hans · promotionalText
 
 ```
-不只是翻译：你真正读过的句子会变成复习卡，按遗忘曲线回来找你。网页双语对照 + 视频双字幕，完全免费开源，API Key 只留在本机。
+新增实时字幕：Mac 与 iPhone 上正在播放的任何声音都能配双语字幕；对话听译支持设备内置转写。网页对照、文档翻译、复习卡照旧好用。
 ```
 
 ---
@@ -140,44 +154,48 @@ YouTube、播客与网页视频，原文在上、译文在下逐句对齐，提�
 ## 中国版 · zh-Hans · subtitle
 
 ```
-沉浸式网页双语对照、视频双字幕、生词复习卡
+实时字幕、对话听译、网页双语对照
 ```
 
 ## 中国版 · zh-Hans · keywords
 
 ```
-翻译器,外刊,阅读,英语,日语,记忆,间隔重复,遗忘曲线,背单词,生词本,语言学习,划词,开源,免费,原文,论文,插件,扩展,精读,美剧,DeepSeek,通义千问,Kimi,智谱
+同声传译,口译,画中画,外刊,阅读,英语,日语,记忆,间隔重复,遗忘曲线,背单词,生词本,语言学习,开源,文档,论文,会议,播客,语音,转写,美剧,DeepSeek,通义千问,Kimi,智谱
 ```
 
 ## 中国版 · zh-Hans · description
 
 ```
-大肚猴翻译是一款免费、开源的 Safari 双语翻译扩展 —— 但它不止于翻译：你真正读过的句子会留下来，按遗忘曲线回来找你复习。
+大肚猴翻译是一款开源的双语翻译工具：读网页、看视频、面对面交流，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
+
+【实时字幕（App）】
+给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 14.4 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。
+
+【对话 · 实时听译（App）】
+跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。iOS 26 / macOS 26 上可选设备内置转写，声音只在你的设备上识别。
 
 【网页双语对照】
-原文段落下方即时显示译文，边读边对照，不打断阅读节奏。
+Safari 扩展在每段原文下方即时显示译文，边读边对照，不打断阅读节奏。
+
+【文档翻译】
+打开 PDF、Word 或图片，逐页原文译文对照阅读。
 
 【用你自己的大模型 Key】
-支持 DeepSeek、智谱 GLM、通义千问、Kimi，也可填写任何兼容 Chat Completions / Messages 格式的接口地址（中转代理、自建服务都可以）。填好后点一下「测试连接」，通不通当场就知道。
+支持 DeepSeek、智谱 GLM、通义千问、Kimi，也可填写任何兼容 Chat Completions / Messages 格式的接口地址。填好后点「测试连接」，通不通当场就知道。
 
 【读过的，才会变成复习卡】
-快速滚过去的不算。真正停下来读完的句子，会连同来源页面一起存进学习库，按记忆强度安排复习：读 / 听 / 写三档轮换，配句子解析与朗读，每个评分都写明下次什么时候再见。
-
-【收什么、怎么学，你说了算】
-按语言筛选要收录的句子，按站点关闭采集，按来源批量删除；学习库随时导出，也可一键清空。
+真正停下来读完的句子会连同来源页面一起存进学习库，按记忆强度安排复习：读 / 听 / 写三档轮换，配句子解析与朗读。
 
 【关于账号与数据】
-翻译本身不需要账号：API Key 只保存在本机，翻译请求由你的设备直接发往你选择的服务商，不经过我们的服务器。
-App 内提供可选登录（邮箱验证码或密码），仅用于在你自己的设备之间同步学习进度；不登录也能完整使用翻译与本机复习。
-无广告、无第三方统计、不收集你的浏览记录。
+翻译本身不需要账号：API Key 只保存在本机，翻译请求由你的设备直接发往你选择的服务商，不经过我们的服务器。实时字幕与设备内置转写都不录音；设备内置朗读（离线模型）首次使用时，会从我们的文件服务器下载一次模型文件。App 内提供可选登录，仅用于在你自己的设备之间同步学习进度。无广告、无第三方统计、不收集你的浏览记录。
 
-需自备一个大模型服务的 API Key（部分服务提供免费额度）。完全开源，源码与常见问题见支持页面。
+需自备一个大模型服务的 API Key（部分服务商提供免费额度）。免费下载，完整开源，源码与常见问题见支持页面。
 ```
 
 ## 中国版 · zh-Hans · promotionalText
 
 ```
-不只是翻译：你真正读过的句子会变成复习卡，按遗忘曲线回来找你。网页双语对照 + 视频双字幕，自带大模型 Key，原文不经过我们的服务器。完全免费、完整开源。
+新增实时字幕：Mac 与 iPhone 上正在播放的任何声音都能配双语字幕；对话听译支持设备内置转写。自带大模型 Key，翻译请求不经过我们的服务器，免费下载、完整开源。
 ```
 
 ---
@@ -191,48 +209,49 @@ BelliedMonkey 翻訳
 ## 国际版 · ja · subtitle
 
 ```
-対訳ウェブ・二言語字幕・復習カード
+ライブ字幕・会話通訳・対訳ウェブ
 ```
 
 ## 国际版 · ja · keywords
 
 ```
-英語,韓国語,中国語,語学,単語帳,忘却曲線,間隔反復,多読,洋書,ニュース,論文,音読,発音,無料,オープンソース,拡張機能,リーディング,英語学習,海外ニュース,英字新聞,精読,字幕翻訳
+英語,韓国語,中国語,語学,単語帳,忘却曲線,間隔反復,多読,洋書,ニュース,論文,音読,発音,オープンソース,英語学習,精読,文字起こし,ピクチャインピクチャ,同時通訳,PDF,ポッドキャスト
 ```
 
 ## 国际版 · ja · description
 
 ```
-ウェブも動画も二言語で同時に読み、読んだ内容を本当に覚えるための Safari 拡張機能です。
+見る・読む・話す、そのすべてを二言語で。実際に読んだ文は復習カードになって戻ってきます。
 
-【対訳ページ】
-翻訳をオンにすると、段落ごとに原文がそのまま残り、そのすぐ下に訳文が別の色で表示されます。タブを切り替える必要も、読んでいた場所を見失うこともありません。
+【ライブ字幕（アプリ）】
+端末で再生中の音声に二言語字幕を付けます。Mac ではシステム音声を聞き取り、どのアプリや全画面動画の上にも字幕バーを表示します（macOS 14.4 以降）。iPhone では任意のアプリで動画やポッドキャストをスピーカー再生すると、ピクチャ・イン・ピクチャの小窓に原文と訳文が一文ずつ流れます。
+
+【会話 · リアルタイム通訳（アプリ）】
+言葉の壁を越えて対面で話せます。双方が自由に話し、一文ごとに文字起こし・翻訳し、読み上げもできます。iOS 26 / macOS 26 では端末内蔵の文字起こしを選べ、音声は端末の中だけで認識されます。
+
+【対訳ウェブページ】
+Safari 拡張機能（Chrome・Firefox にも対応）が段落ごとに原文を残し、すぐ下に訳文を表示します。
 
 【動画の二言語字幕】
-動画・ポッドキャスト・動画付きの投稿に、文単位で対応した二言語字幕を表示します。原文が上、訳文が下。再生に先回りして翻訳するので、途中で止まりません。
+YouTube・ポッドキャスト・ウェブ動画に文単位の二言語字幕。字幕のない動画には AI 文字起こし字幕を使えます。
+
+【文書翻訳】
+PDF・Word・画像を開き、ページごとに原文と訳文を並べて読めます。
 
 【読んだ文が身につく】
-学習をオンにすると、実際に読んだ文が復習カードになります。読む・聞く・書くの練習、文の解説、読み上げを、記憶の強さに合わせて出題します。既定ではオフで、データはすべて端末内に残ります。
-
-【端末間の同期（任意）】
-無料のメールアカウントでサインインすると、パソコンで読んだ文をスマートフォンで復習できます。同期がサーバーに保存するもの：保存した文と訳文、その出典ページの URL とタイトル、復習の日時 —— いずれも判読可能な形で、あなたのアカウントの中だけに。出典やアカウントを削除すれば、すべての端末から消えます。サインインしなければ、何一つ端末の外に出ません。
+実際に読んだ文が忘却曲線に沿った復習カードになります。読む・聞く・書くの練習、文の解説、読み上げ。同期は任意で、パソコンで読んだ文をスマートフォンで復習できます。
 
 【エンジンは自分で選ぶ】
-無料の通道は設定なしですぐ使えます。品質を上げたいときは、お使いの AI サービスのキー、または互換性のある任意のカスタムエンドポイントを設定してください。主導権は常にあなたにあります。
+お使いの AI サービスのキー、または互換性のある任意のエンドポイントを設定できます。サインインすると、当方の少額の無料クレジットも試せます。
 
-【設計からプライバシー優先】
-トラッキングなし、広告なし、第三者の分析なし — 匿名の利用データ（使った機能だけ、ページ内容は含まず）のみで、設定でオフにできます。翻訳経路に当方のサーバーは一切ありません —— テキストはあなたが選んだ提供元へ直接送られ、キーと設定は端末に残ります。アカウントは必要なときだけ。全体がオープンソースです。
-
-【無料・オープン】
-完全に無料、そして完全にオープンソースです。
-
-海外のニュースやブログを読む、語学を学ぶ、別の言語で話す作り手を追いかける —— 自国のウェブと同じ感覚で、世界中のウェブを読むために。
+【プライバシーを明確に】
+キーと設定は端末に保存されます。自分のキーを使うとテキストは選んだ提供元へ直接送られ、無料クレジットを使う場合は当方の中継を経由し、保存はしません。ライブ字幕と端末内蔵の文字起こしは録音しません。匿名の利用データ（使った機能のみ、ページ内容は含まず）を送信し、設定でオフにできます。広告なし。アプリ全体がオープンソースで、ダウンロードは無料です。
 ```
 
 ## 国际版 · ja · promotionalText
 
 ```
-ただの翻訳では終わりません。実際に読んだ文が忘却曲線に沿って復習カードになって戻ってきます。無料・オープンソース、キーは端末の中だけ。
+新機能：Mac と iPhone で再生中のあらゆる音声にライブ字幕。会話通訳は端末内蔵の文字起こしに対応。対訳ウェブ、文書翻訳、復習カードもそのまま。
 ```
 
 ---
@@ -246,48 +265,49 @@ BelliedMonkey 번역
 ## 国际版 · ko · subtitle
 
 ```
-대역 웹·이중 자막·복습 카드
+실시간 자막·대화 통역·대역 웹
 ```
 
 ## 国际版 · ko · keywords
 
 ```
-영어,일본어,중국어,어학,단어장,망각곡선,간격반복,원서,뉴스,논문,발음,독해,무료,오픈소스,확장,리딩,영어공부,자막번역,해외뉴스,영어독해,외국어,암기,플래시카드,토익,듣기
+영어,일본어,중국어,어학,단어장,망각곡선,간격반복,원서,뉴스,논문,발음,독해,오픈소스,영어공부,외국어,암기,플래시카드,토익,듣기,받아쓰기,PIP,팟캐스트,회의,PDF,동시통역
 ```
 
 ## 国际版 · ko · description
 
 ```
-웹도 영상도 두 언어로 동시에 읽고, 읽은 내용을 실제로 기억하기 위한 Safari 확장 프로그램입니다.
+보고, 읽고, 말하는 모든 순간을 두 언어로. 실제로 읽은 문장은 복습 카드가 되어 돌아옵니다.
+
+【실시간 자막（앱）】
+기기에서 재생 중인 소리에 이중 언어 자막을 붙입니다. Mac에서는 시스템 오디오를 듣고, 어떤 앱이나 전체 화면 영상 위에도 떠 있는 자막 바를 표시합니다(macOS 14.4 이상). iPhone에서는 아무 앱에서나 영상이나 팟캐스트를 스피커로 재생하면 PIP 창에 원문과 번역이 문장 단위로 흐릅니다.
+
+【대화 · 실시간 통역（앱）】
+언어가 달라도 마주 보고 이야기하세요. 양쪽이 자유롭게 말하면 문장마다 받아쓰고 번역하며, 읽어주기도 합니다. iOS 26 / macOS 26에서는 기기 내장 받아쓰기를 선택할 수 있어 음성이 기기 안에서만 인식됩니다.
 
 【대역 웹페이지】
-번역을 켜면 문단마다 원문이 그대로 남고 바로 아래에 번역문이 다른 색으로 표시됩니다. 탭을 옮길 필요도, 읽던 자리를 잃을 일도 없습니다.
+Safari 확장 프로그램(Chrome·Firefox도 지원)이 문단마다 원문을 두고 바로 아래에 번역을 표시합니다.
 
 【영상 이중 자막】
-영상, 팟캐스트, 영상 게시물에 문장 단위로 맞춘 이중 자막을 표시합니다. 원문이 위, 번역이 아래. 재생보다 앞서 번역하므로 도중에 멈추지 않습니다.
+YouTube, 팟캐스트, 웹 영상에 문장 단위 이중 자막. 자막이 없는 영상에는 AI 받아쓰기 자막을 켤 수 있습니다.
+
+【문서 번역】
+PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽습니다.
 
 【읽은 문장이 남습니다】
-학습을 켜면 실제로 읽은 문장이 복습 카드가 됩니다. 읽기·듣기·쓰기 연습, 문장 해설, 읽어주기를 기억 강도에 맞춰 배치합니다. 기본값은 꺼짐이며, 데이터는 모두 기기 안에 남습니다.
-
-【기기 간 동기화（선택）】
-무료 이메일 계정으로 로그인하면 컴퓨터에서 읽은 문장을 휴대폰에서 복습할 수 있습니다. 동기화가 서버에 저장하는 것: 저장한 문장과 번역문, 출처 페이지의 URL과 제목, 복습 시각 —— 모두 읽을 수 있는 형태로, 여러분의 계정 안에서만. 출처나 계정을 삭제하면 모든 기기에서 사라집니다. 로그인하지 않으면 어떤 것도 기기를 떠나지 않습니다.
+실제로 읽은 문장이 망각 곡선에 맞춘 복습 카드가 됩니다. 읽기·듣기·쓰기 연습, 문장 해설, 읽어주기. 동기화는 선택이며, 컴퓨터에서 읽은 문장을 휴대폰에서 복습할 수 있습니다.
 
 【엔진은 직접 고릅니다】
-무료 채널은 설정 없이 바로 쓸 수 있습니다. 품질을 높이고 싶다면 사용 중인 AI 서비스의 키, 또는 호환되는 임의의 사용자 지정 엔드포인트를 넣으세요. 주도권은 언제나 여러분에게 있습니다.
+사용 중인 AI 서비스의 키나 호환되는 엔드포인트를 넣으세요. 로그인하면 저희가 제공하는 소량의 무료 크레딧도 써 볼 수 있습니다.
 
-【설계부터 프라이버시】
-추적 없음, 광고 없음, 제3자 분석 없음 — 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용은 제외)만 보내며 설정에서 끌 수 있습니다. 번역 경로에 저희 서버는 없습니다 —— 텍스트는 여러분이 고른 제공자에게 곧바로 전송되고, 키와 설정은 기기에 남습니다. 계정은 원할 때만. 전체가 오픈 소스입니다.
-
-【무료, 오픈】
-완전히 무료이며 완전한 오픈 소스입니다.
-
-외국 뉴스와 블로그를 읽고, 언어를 공부하고, 다른 언어로 말하는 창작자를 따라가기 —— 자국 웹을 보듯 세계의 웹을 보기 위해.
+【프라이버시, 분명하게】
+키와 설정은 기기에 저장됩니다. 내 키를 쓰면 텍스트는 고른 제공자에게 곧바로 가고, 무료 크레딧을 쓰면 저희 중계를 거치며 저장하지 않습니다. 실시간 자막과 기기 내장 받아쓰기는 녹음하지 않습니다. 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용 제외)를 보내며 설정에서 끌 수 있습니다. 광고 없음. 앱 전체가 오픈 소스이며 무료로 내려받을 수 있습니다.
 ```
 
 ## 国际版 · ko · promotionalText
 
 ```
-단순한 번역기가 아닙니다. 실제로 읽은 문장이 망각 곡선에 따라 복습 카드로 돌아옵니다. 무료·오픈 소스, 키는 기기 안에만.
+새 기능: Mac과 iPhone에서 재생 중인 모든 소리에 실시간 자막. 대화 통역은 기기 내장 받아쓰기를 지원합니다. 대역 웹, 문서 번역, 복습 카드도 그대로.
 ```
 
 ---
@@ -301,45 +321,49 @@ BelliedMonkey 번역
 ## 国际版 · zh-Hant · subtitle
 
 ```
-網頁雙語對照、影片雙字幕、生詞卡
+即時雙語字幕、對話聽譯、網頁對照
 ```
 
 ## 国际版 · zh-Hant · keywords
 
 ```
-翻譯器,英文,日文,韓文,學英文,背單字,生字本,遺忘曲線,間隔重複,記憶卡,語言學習,外刊,精讀,劃詞,美劇,外語,擴充功能,免費,開源,原文,論文,閱讀,法文,發音,聽力,新聞,學日文
+同步口譯,口譯,子母畫面,影片,英文,日文,韓文,學英文,背單字,生字本,遺忘曲線,記憶卡,語言學習,外刊,美劇,youtube,擴充功能,開源,文件,pdf,論文,會議,直播,語音,轉寫
 ```
 
 ## 国际版 · zh-Hant · description
 
 ```
-讀外文網站、看外語影片時，原文與譯文同屏；而你真正讀過的句子，第二天會回來找你。
+讀網頁、看影片、開會交談，原文與譯文同屏；你真正讀過的句子，還會變成複習卡回來找你。
+
+【即時字幕（App）】
+為裝置上正在播放的聲音配上雙語字幕。Mac 上聽系統聲音，懸浮字幕列蓋在任何 App 與全螢幕影片之上（需 macOS 14.4 或更新版本）；iPhone 上在任何 App 裡外放影片或 Podcast，子母畫面小窗逐句捲動原文與譯文。
+
+【對話 · 即時聽譯（App）】
+跨語言面對面溝通：雙方自由說話，每句自動轉寫、翻譯，還能朗讀出來。iOS 26 / macOS 26 上可選用裝置內建轉寫，聲音只在你的裝置上辨識。
 
 【網頁雙語對照】
-每段原文下方直接顯示譯文，用顏色區分，不跳轉、不弄丟閱讀位置，整頁一鍵雙語。
+Safari 擴充功能（也支援 Chrome、Firefox）在每段原文下方顯示譯文，不跳轉、不弄丟閱讀位置。
 
 【影片雙語字幕】
-影片、Podcast 與網頁影片，原文在上、譯文在下逐句對齊，提前譯好，播放不卡頓。
+YouTube、Podcast 與網頁影片逐句對齊雙語字幕；沒有字幕的影片，可以開啟 AI 轉寫字幕。
+
+【文件翻譯】
+打開 PDF、Word 或圖片，逐頁原文譯文對照閱讀。
 
 【讀過的句子會變成複習卡】
-這是它和其他翻譯擴充功能最大的不同。開啟學習後，你真正停下來讀完的句子（快速滑過去的不算）會連同來源頁面一起進入學習庫，依遺忘曲線回到你面前：讀 / 聽 / 寫三檔輪換，配句子解析與朗讀，每次評分都寫明下次什麼時候再見。預設關閉，資料留在你的裝置上。
-
-【跨裝置同步（選用）】
-用免費的電子郵件帳號登入，就能在手機上複習電腦上讀過的內容。同步存在伺服器上的東西：你收藏的句子與譯文、它們的來源頁面網址與標題、複習時間 —— 都是可讀的形式，只屬於你的帳號。刪掉來源或帳號，所有裝置上都會一併移除。不登入，任何東西都不會離開你的裝置。
+真正讀完的句子依遺忘曲線回來：讀 / 聽 / 寫三檔練習，配句子解析與朗讀。可選用同步，電腦上讀、手機上複習。
 
 【引擎你自己選】
-免費通道零設定就能用；想要更好的品質，填入你自己的 AI 服務金鑰，或任何相容的自訂端點。主導權始終在你手上。
+填入你自己的 AI 服務金鑰，或任何相容的端點；登入後也可以先用我們提供的一小份免費額度。
 
-【隱私】
-沒有追蹤、沒有廣告、沒有第三方分析 —— 只傳送匿名使用資料（用了哪些功能，不含網頁內容），設定裡可關。翻譯路徑上沒有我們的伺服器 —— 翻譯請求由你的裝置直接送往你選擇的服務商，金鑰與設定只留在本機。不登入也能完整使用。
-
-完全免費，完整開放原始碼。
+【隱私，說清楚】
+金鑰與設定只存在你的裝置上。用自己的金鑰時，文字直接送往你選的服務商；用免費額度時，經我們的中繼轉送，不保存。即時字幕與裝置內建轉寫都不錄音。我們會傳送匿名使用資料（用了哪些功能，不含網頁內容），可在設定裡關閉。沒有廣告，完整開放原始碼，免費下載。
 ```
 
 ## 国际版 · zh-Hant · promotionalText
 
 ```
-不只是翻譯：你真正讀過的句子會變成複習卡，依遺忘曲線回來找你。網頁雙語對照 + 影片雙字幕，完全免費開源，API 金鑰只留在本機。
+新增即時字幕：Mac 與 iPhone 上正在播放的任何聲音都能配雙語字幕；對話聽譯支援裝置內建轉寫。網頁對照、文件翻譯、複習卡一樣好用。
 ```
 
 ---
@@ -353,46 +377,49 @@ BelliedMonkey Übersetzer
 ## 国际版 · de-DE · subtitle
 
 ```
-Zweisprachig lesen und lernen
+Live-Untertitel & Dolmetscher
 ```
 
 ## 国际版 · de-DE · keywords
 
 ```
-untertitel,vokabeln,karteikarten,englisch,wortschatz,wiederholung,kostenlos,sprachen,gedächtnis
+vokabeln,karteikarten,englisch,wortschatz,sprachen,gespräch,transkription,pdf,podcast,video,lernen
 ```
 
 ## 国际版 · de-DE · description
 
 ```
-Das Web lesen und Videos schauen – in zwei Sprachen gleichzeitig. Und die Sätze, die du wirklich gelesen hast, kommen am nächsten Tag zu dir zurück.
+Lesen, schauen, sprechen – in zwei Sprachen gleichzeitig. Und die Sätze, die du wirklich gelesen hast, kommen als Wiederholungskarten zurück.
 
-ZWEISPRACHIGE SEITEN
-Schalte die Übersetzung ein: Jeder Absatz behält seinen Originaltext, die Übersetzung steht direkt darunter, farblich abgesetzt. Kein Tab-Wechsel, kein Verlieren der Textstelle.
+LIVE-UNTERTITEL (APP)
+Zweisprachige Untertitel für alles, was dein Gerät gerade abspielt. Auf dem Mac hört die App den Systemton und zeigt eine schwebende Untertitelleiste über jeder App, auch über Vollbildvideos (ab macOS 14.4). Auf dem iPhone spielst du ein Video oder einen Podcast in einer beliebigen App über den Lautsprecher ab, und ein Bild-in-Bild-Fenster zeigt Original und Übersetzung Satz für Satz.
+
+GESPRÄCH · LIVE-DOLMETSCHER (APP)
+Unterhalte dich über Sprachgrenzen hinweg. Beide Seiten sprechen frei; jeder Satz wird transkribiert, übersetzt und auf Wunsch vorgelesen. Unter iOS 26 und macOS 26 kannst du die geräteinterne Transkription wählen – der Ton bleibt dann auf deinem Gerät.
+
+ZWEISPRACHIGE WEBSEITEN
+Die Safari-Erweiterung (auch für Chrome und Firefox) lässt jeden Absatz im Original stehen und zeigt die Übersetzung direkt darunter.
 
 DOPPELTE UNTERTITEL BEI VIDEOS
-Videos, Podcasts und Video-Beiträge bekommen satzweise zugeordnete zweisprachige Untertitel: Original oben, Übersetzung darunter. Übersetzt wird der Wiedergabe voraus, damit nichts stockt.
+YouTube, Podcasts und Webvideos bekommen satzweise zugeordnete zweisprachige Untertitel. Keine Untertitel vorhanden? Schalte KI-Transkript-Untertitel ein.
+
+DOKUMENTÜBERSETZUNG
+Öffne ein PDF, eine Word-Datei oder ein Bild und lies Seite für Seite Original und Übersetzung nebeneinander.
 
 GELESENES BLEIBT
-Schalte das Lernen ein, und die Sätze, bei denen du wirklich stehen geblieben bist (überflogene zählen nicht), werden zu Wiederholungskarten: Lese-, Hör- und Schreibübungen, Satzerklärungen und Vorlesen, geplant nach Gedächtnisstärke. Standardmäßig aus, und alles bleibt auf deinem Gerät.
+Sätze, die du wirklich gelesen hast, werden zu Wiederholungskarten nach der Vergessenskurve: Lese-, Hör- und Schreibübungen, Satzerklärungen und Vorlesen. Die Synchronisierung ist optional.
 
-SYNCHRONISIERUNG (OPTIONAL)
-Melde dich mit einer kostenlosen E-Mail-Adresse an, dann wiederholst du auf dem Handy, was du am Rechner gelesen hast. Was die Synchronisierung auf unseren Servern speichert: deine gespeicherten Sätze und Übersetzungen, die URL und den Titel der Quellseite sowie die Wiederholungszeitpunkte – in lesbarer Form und nur für dein Konto. Löschst du eine Quelle oder dein Konto, verschwindet sie von allen Geräten. Ohne Anmeldung verlässt nichts dein Gerät.
+DEINE ENGINE, DEINE WAHL
+Trage den Schlüssel deines eigenen KI-Dienstes oder einen kompatiblen Endpunkt ein. Angemeldet kannst du auch ein kleines Gratis-Guthaben von uns ausprobieren.
 
-DEINE EIGENE ENGINE
-Ein kostenloser Kanal funktioniert ohne jede Einrichtung. Willst du bessere Qualität, trage den Schlüssel deines eigenen KI-Dienstes ein oder einen beliebigen kompatiblen eigenen Endpunkt. Die Entscheidung bleibt bei dir.
-
-PRIVAT VON GRUND AUF
-Kein Tracking, keine Werbung, keine Drittanbieter-Analysen – nur anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), in den Einstellungen abschaltbar. Kein Server von uns im Übersetzungsweg – dein Text geht direkt an den Anbieter, den du gewählt hast, und Schlüssel wie Einstellungen bleiben auf deinem Gerät. Ein Konto nur, wenn du eins willst.
-
-KOSTENLOS UND QUELLOFFEN
-Vollständig kostenlos und vollständig quelloffen.
+DATENSCHUTZ, KLAR GESAGT
+Schlüssel und Einstellungen bleiben auf deinem Gerät. Mit eigenem Schlüssel geht der Text direkt an den gewählten Anbieter; mit dem Gratis-Guthaben läuft er über unser Relay und wird nicht gespeichert. Live-Untertitel und geräteinterne Transkription nehmen nichts auf. Wir senden anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), abschaltbar in den Einstellungen. Keine Werbung. Die gesamte App ist quelloffen und kostenlos herunterzuladen.
 ```
 
 ## 国际版 · de-DE · promotionalText
 
 ```
-Nicht nur übersetzen: Sätze, die du wirklich gelesen hast, kommen als Wiederholungskarten zurück – nach Vergessenskurve. Kostenlos, quelloffen, Schlüssel bleibt lokal.
+Neu: Live-Untertitel für alles, was auf Mac oder iPhone läuft, und ein Gesprächsdolmetscher. Dazu zweisprachige Webseiten, Dokumente und Lernkarten.
 ```
 
 ---
@@ -406,46 +433,49 @@ BelliedMonkey Traducteur
 ## 国际版 · fr-FR · subtitle
 
 ```
-Lire en bilingue et retenir
+Sous-titres live et interprète
 ```
 
 ## 国际版 · fr-FR · keywords
 
 ```
-traduction,sous-titres,vocabulaire,fiches,révision,langues,anglais,mémorisation,gratuit,libre
+traduction,vocabulaire,fiches,révision,langues,anglais,conversation,transcription,pdf,podcast
 ```
 
 ## 国际版 · fr-FR · description
 
 ```
-Lisez le web et regardez des vidéos en deux langues à la fois. Et les phrases que vous avez vraiment lues reviennent vers vous le lendemain.
+Lire, regarder, parler — en deux langues à la fois. Et les phrases que vous avez vraiment lues reviennent en cartes de révision.
 
-PAGES BILINGUES
-Activez la traduction : chaque paragraphe conserve son texte d'origine, la traduction s'affiche juste en dessous, dans une couleur distincte. Aucun changement d'onglet, aucune perte de repère.
+SOUS-TITRES EN DIRECT (APP)
+Des sous-titres bilingues pour tout ce que votre appareil diffuse. Sur Mac, l'app écoute le son du système et affiche une barre de sous-titres flottante au-dessus de n'importe quelle app, même en vidéo plein écran (macOS 14.4 ou ultérieur). Sur iPhone, lancez une vidéo ou un podcast sur le haut-parleur dans n'importe quelle app : une fenêtre en image dans l'image fait défiler l'original et la traduction, phrase par phrase.
+
+CONVERSATION · INTERPRÈTE EN DIRECT (APP)
+Parlez par-delà la barrière de la langue. Chacun parle librement ; chaque phrase est transcrite, traduite et peut être lue à voix haute. Sous iOS 26 et macOS 26, la transcription intégrée à l'appareil garde le son sur votre appareil.
+
+PAGES WEB BILINGUES
+L'extension Safari (aussi pour Chrome et Firefox) garde chaque paragraphe d'origine avec la traduction juste en dessous.
 
 SOUS-TITRES DOUBLES POUR LES VIDÉOS
-Vidéos, podcasts et publications vidéo reçoivent des sous-titres bilingues alignés phrase à phrase : original en haut, traduction en dessous. La traduction est faite en avance sur la lecture, rien ne s'interrompt.
+YouTube, podcasts et vidéos web reçoivent des sous-titres bilingues alignés phrase à phrase. Pas de sous-titres ? Activez les sous-titres par transcription IA.
+
+TRADUCTION DE DOCUMENTS
+Ouvrez un PDF, un fichier Word ou une image et lisez page par page l'original et la traduction côte à côte.
 
 CE QUE VOUS LISEZ RESTE
-Activez l'apprentissage : les phrases devant lesquelles vous vous êtes vraiment arrêté (celles que vous avez survolées ne comptent pas) deviennent des cartes de révision — exercices de lecture, d'écoute et d'écriture, explications de phrase et lecture à voix haute, planifiés selon la force de votre mémoire. Désactivé par défaut, et tout reste sur votre appareil.
+Les phrases vraiment lues deviennent des cartes de révision selon la courbe de l'oubli : lecture, écoute, écriture, explications de phrase et lecture à voix haute. Synchronisation facultative.
 
-SYNCHRONISATION (FACULTATIVE)
-Connectez-vous avec une adresse e-mail gratuite et révisez sur votre téléphone ce que vous avez lu sur votre ordinateur. Ce que la synchronisation conserve sur nos serveurs : vos phrases et traductions enregistrées, l'URL et le titre de la page source, et les dates de révision — sous une forme lisible, uniquement pour votre compte. Supprimez une source ou votre compte et elle disparaît de tous vos appareils. Sans connexion, rien ne quitte votre appareil.
+VOTRE MOTEUR, VOTRE CHOIX
+Renseignez la clé de votre propre service d'IA ou un endpoint compatible. Une fois connecté, vous pouvez aussi essayer un petit crédit gratuit offert par nous.
 
-VOTRE PROPRE MOTEUR
-Un canal gratuit fonctionne immédiatement, sans configuration. Pour une meilleure qualité, renseignez la clé de votre propre service d'IA, ou n'importe quel endpoint personnalisé compatible. Vous gardez la main.
-
-CONFIDENTIEL PAR CONCEPTION
-Aucun pistage, aucune publicité, aucune analyse tierce — seulement des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables dans les réglages. Aucun serveur à nous sur le chemin de la traduction — votre texte part directement vers le fournisseur que vous avez choisi, et votre clé comme vos réglages restent sur votre appareil. Un compte seulement si vous en voulez un.
-
-GRATUIT ET OUVERT
-Entièrement gratuit et entièrement open source.
+LA CONFIDENTIALITÉ, CLAIREMENT
+Vos clés et réglages restent sur votre appareil. Avec votre clé, le texte va directement au fournisseur choisi ; avec le crédit gratuit, il passe par notre relais et n'est pas conservé. Les sous-titres en direct et la transcription intégrée n'enregistrent rien. Nous envoyons des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables dans les réglages. Aucune publicité. L'app est open source et gratuite à télécharger.
 ```
 
 ## 国际版 · fr-FR · promotionalText
 
 ```
-Pas seulement traduire : les phrases vraiment lues reviennent en cartes de révision, selon la courbe de l'oubli. Gratuit, open source, clé gardée sur l'appareil.
+Nouveau : sous-titres en direct pour tout ce qui joue sur Mac ou iPhone, et un interprète de conversation. Plus pages web bilingues, documents et cartes de révision.
 ```
 
 ---
@@ -459,46 +489,49 @@ BelliedMonkey Traductor
 ## 国际版 · es-ES · subtitle
 
 ```
-Web bilingüe y subtítulos
+Subtítulos en vivo y diálogos
 ```
 
 ## 国际版 · es-ES · keywords
 
 ```
-traducción,vocabulario,tarjetas,repaso,idiomas,inglés,lectura,memoria,repetición,gratis,aprender
+traducción,vocabulario,tarjetas,repaso,idiomas,inglés,intérprete,transcripción,conversación,pdf
 ```
 
 ## 国际版 · es-ES · description
 
 ```
-Lee la web y mira vídeos en dos idiomas a la vez. Y las frases que has leído de verdad vuelven a buscarte al día siguiente.
+Lee, mira y habla en dos idiomas a la vez. Y las frases que has leído de verdad vuelven como tarjetas de repaso.
 
-PÁGINAS BILINGÜES
-Activa la traducción: cada párrafo conserva su texto original y la traducción aparece justo debajo, en un color distinto. Sin cambiar de pestaña, sin perder el hilo.
+SUBTÍTULOS EN VIVO (APP)
+Subtítulos bilingües para todo lo que suena en tu dispositivo. En Mac, la app escucha el audio del sistema y muestra una barra de subtítulos flotante sobre cualquier app, incluso con vídeo a pantalla completa (macOS 14.4 o posterior). En iPhone, reproduce un vídeo o pódcast por el altavoz en cualquier app y una ventana de imagen en imagen muestra original y traducción, frase a frase.
+
+CONVERSACIÓN · INTÉRPRETE EN VIVO (APP)
+Habla por encima de la barrera del idioma. Las dos partes hablan con libertad; cada frase se transcribe, se traduce y se puede leer en voz alta. En iOS 26 y macOS 26 puedes elegir la transcripción integrada en el dispositivo y el audio no sale de él.
+
+PÁGINAS WEB BILINGÜES
+La extensión de Safari (también para Chrome y Firefox) conserva cada párrafo original con la traducción justo debajo.
 
 SUBTÍTULOS DOBLES EN VÍDEO
-Vídeos, pódcast y publicaciones con vídeo reciben subtítulos bilingües alineados frase a frase: original arriba, traducción debajo. Se traduce por delante de la reproducción, así nada se detiene.
+YouTube, pódcast y vídeo web reciben subtítulos bilingües alineados frase a frase. ¿Sin subtítulos? Activa los subtítulos por transcripción con IA.
+
+TRADUCCIÓN DE DOCUMENTOS
+Abre un PDF, un archivo de Word o una imagen y lee página a página el original y la traducción lado a lado.
 
 LO QUE LEES SE QUEDA
-Activa el aprendizaje y las frases ante las que realmente te detuviste (las que pasaste de largo no cuentan) se convierten en tarjetas de repaso: ejercicios de lectura, escucha y escritura, notas de frase y lectura en voz alta, programados según la fuerza de tu memoria. Desactivado por defecto, y todo se queda en tu dispositivo.
+Las frases que lees de verdad se convierten en tarjetas de repaso según la curva del olvido: lectura, escucha, escritura, notas de frase y lectura en voz alta. Sincronización opcional.
 
-SINCRONIZACIÓN (OPCIONAL)
-Inicia sesión con una cuenta de correo gratuita y repasa en el móvil lo que leíste en el ordenador. Lo que la sincronización guarda en nuestros servidores: tus frases y traducciones guardadas, la URL y el título de la página de origen, y las fechas de repaso — en forma legible y solo para tu cuenta. Si borras una fuente o tu cuenta, desaparece de todos los dispositivos. Sin iniciar sesión, nada sale de tu dispositivo.
+TU MOTOR, TU ELECCIÓN
+Introduce la clave de tu propio servicio de IA o un endpoint compatible. Con sesión iniciada, también puedes probar un pequeño crédito gratuito nuestro.
 
-TU PROPIO MOTOR
-Un canal gratuito funciona al instante, sin configuración. Si quieres más calidad, introduce la clave de tu propio servicio de IA, o cualquier endpoint personalizado compatible. Tú mandas.
-
-PRIVADO POR DISEÑO
-Sin rastreo, sin anuncios, sin analíticas de terceros: solo datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables en Ajustes. Ningún servidor nuestro en la ruta de traducción: tu texto va directo al proveedor que elijas, y tu clave y tus ajustes se quedan en tu dispositivo. Cuenta solo si tú quieres una.
-
-GRATIS Y ABIERTO
-Completamente gratis y completamente de código abierto.
+PRIVACIDAD, SIN RODEOS
+Tus claves y ajustes se quedan en tu dispositivo. Con tu clave, el texto va directo al proveedor que elegiste; con el crédito gratuito, pasa por nuestro relé y no se guarda. Los subtítulos en vivo y la transcripción integrada no graban nada. Enviamos datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables en Ajustes. Sin anuncios. Toda la app es de código abierto y se descarga gratis.
 ```
 
 ## 国际版 · es-ES · promotionalText
 
 ```
-No es solo traducir: las frases que lees vuelven como tarjetas de repaso, según la curva del olvido. Gratis, código abierto, tu clave se queda en el dispositivo.
+Novedad: subtítulos en vivo para todo lo que suena en Mac o iPhone, y un intérprete de conversación. Además, web bilingüe, documentos y tarjetas de repaso.
 ```
 
 ---
@@ -512,46 +545,49 @@ BelliedMonkey Переводчик
 ## 国际版 · ru · subtitle
 
 ```
-Двуязычный веб и субтитры
+Живые субтитры и разговор
 ```
 
 ## 国际版 · ru · keywords
 
 ```
-словарь,карточки,повторение,языки,английский,чтение,память,запоминание,бесплатно,японский,статьи
+словарь,карточки,повторение,языки,английский,память,запоминание,устный,транскрипция,pdf,подкаст
 ```
 
 ## 国际版 · ru · description
 
 ```
-Читайте веб и смотрите видео сразу на двух языках. А фразы, которые вы действительно прочитали, вернутся к вам на следующий день.
+Читайте, смотрите и говорите сразу на двух языках. А фразы, которые вы действительно прочитали, вернутся карточками для повторения.
+
+ЖИВЫЕ СУБТИТРЫ (ПРИЛОЖЕНИЕ)
+Двуязычные субтитры для всего, что звучит на вашем устройстве. На Mac приложение слушает системный звук и показывает плавающую строку субтитров поверх любого приложения, даже полноэкранного видео (macOS 14.4 или новее). На iPhone включите видео или подкаст через динамик в любом приложении — окно «картинка в картинке» покажет оригинал и перевод по фразам.
+
+РАЗГОВОР · ЖИВОЙ ПЕРЕВОДЧИК (ПРИЛОЖЕНИЕ)
+Общайтесь, несмотря на языковой барьер. Обе стороны говорят свободно; каждая фраза расшифровывается, переводится и может быть озвучена. В iOS 26 и macOS 26 можно выбрать встроенную расшифровку — звук остаётся на устройстве.
 
 ДВУЯЗЫЧНЫЕ СТРАНИЦЫ
-Включите перевод: каждый абзац сохраняет оригинал, а перевод появляется прямо под ним, другим цветом. Не нужно переключать вкладки и терять место в тексте.
+Расширение Safari (а также для Chrome и Firefox) сохраняет каждый абзац оригинала и показывает перевод прямо под ним.
 
 ДВОЙНЫЕ СУБТИТРЫ К ВИДЕО
-Для видео, подкастов и видеопостов — двуязычные субтитры с пофразовым соответствием: оригинал сверху, перевод снизу. Перевод идёт с опережением воспроизведения, поэтому ничего не подвисает.
+YouTube, подкасты и веб-видео получают двуязычные субтитры с пофразовым соответствием. Нет субтитров — включите ИИ-расшифровку.
+
+ПЕРЕВОД ДОКУМЕНТОВ
+Откройте PDF, файл Word или изображение и читайте постранично оригинал и перевод рядом.
 
 ПРОЧИТАННОЕ ОСТАЁТСЯ
-Включите обучение — и фразы, на которых вы действительно остановились (пролистанные не считаются), станут карточками для повторения: упражнения на чтение, аудирование и письмо, разборы предложений и озвучивание, по силе запоминания. По умолчанию выключено, и всё остаётся на вашем устройстве.
+Действительно прочитанные фразы становятся карточками по кривой забывания: чтение, аудирование, письмо, разборы предложений и озвучивание. Синхронизация — по желанию.
 
-СИНХРОНИЗАЦИЯ (ПО ЖЕЛАНИЮ)
-Войдите с бесплатным почтовым адресом — и повторяйте на телефоне то, что прочитали на компьютере. Что синхронизация хранит на наших серверах: сохранённые фразы и переводы, адрес и заголовок страницы-источника, а также время повторений — в читаемом виде и только для вашей учётной записи. Удалите источник или учётную запись — и он исчезнет со всех устройств. Без входа ничего не покидает ваше устройство.
+ВАШ ДВИЖОК, ВАШ ВЫБОР
+Укажите ключ своего ИИ-сервиса или совместимую конечную точку. После входа можно попробовать и небольшой бесплатный лимит от нас.
 
-СВОЙ ДВИЖОК
-Бесплатный канал работает сразу, без настройки. Нужно качество выше — укажите ключ своего ИИ-сервиса или любую совместимую собственную конечную точку. Решение всегда за вами.
-
-ПРИВАТНОСТЬ ПО УМОЛЧАНИЮ
-Никакой слежки, рекламы и сторонней аналитики — только анонимные данные об использовании (какие функции, никогда содержимое страниц), отключаются в настройках. На пути перевода нет наших серверов: текст идёт напрямую выбранному вами поставщику, а ключ и настройки остаются на устройстве. Учётная запись — только если она вам нужна.
-
-БЕСПЛАТНО И ОТКРЫТО
-Полностью бесплатно и полностью с открытым исходным кодом.
+ПРИВАТНОСТЬ БЕЗ НЕДОМОЛВОК
+Ключи и настройки хранятся на устройстве. Со своим ключом текст идёт напрямую выбранному поставщику; с бесплатным лимитом — через наш ретранслятор и не сохраняется. Живые субтитры и встроенная расшифровка ничего не записывают. Мы отправляем анонимные данные об использовании (какие функции, никогда не содержимое страниц), их можно отключить в настройках. Без рекламы. Всё приложение с открытым исходным кодом и скачивается бесплатно.
 ```
 
 ## 国际版 · ru · promotionalText
 
 ```
-Не просто перевод: фразы, которые вы действительно прочитали, возвращаются карточками по кривой забывания. Бесплатно, открытый код, ключ остаётся на устройстве.
+Новое: живые субтитры для всего, что звучит на Mac или iPhone, и переводчик для разговора. А ещё двуязычные страницы, документы и карточки для повторения.
 ```
 
 ---
@@ -565,46 +601,49 @@ BelliedMonkey Tradutor
 ## 国际版 · pt-BR · subtitle
 
 ```
-Web bilíngue e legendas
+Legendas ao vivo e intérprete
 ```
 
 ## 国际版 · pt-BR · keywords
 
 ```
-tradução,vocabulário,flashcards,revisão,idiomas,inglês,leitura,memória,repetição,grátis,aprender
+tradução,vocabulário,flashcards,revisão,idiomas,inglês,memória,conversa,transcrição,pdf,podcast
 ```
 
 ## 国际版 · pt-BR · description
 
 ```
-Leia a web e assista a vídeos em dois idiomas ao mesmo tempo. E as frases que você realmente leu voltam para você no dia seguinte.
+Leia, assista e converse em dois idiomas ao mesmo tempo. E as frases que você realmente leu voltam como cartões de revisão.
 
-PÁGINAS BILÍNGUES
-Ative a tradução: cada parágrafo mantém o texto original e a tradução aparece logo abaixo, em uma cor distinta. Sem trocar de aba, sem perder o ponto da leitura.
+LEGENDAS AO VIVO (APP)
+Legendas bilíngues para tudo o que toca no seu aparelho. No Mac, o app ouve o áudio do sistema e mostra uma barra de legendas flutuante sobre qualquer app, até em vídeo em tela cheia (macOS 14.4 ou posterior). No iPhone, toque um vídeo ou podcast pelo alto-falante em qualquer app e uma janela picture-in-picture mostra original e tradução, frase a frase.
+
+CONVERSA · INTÉRPRETE AO VIVO (APP)
+Converse apesar da barreira do idioma. Os dois lados falam livremente; cada frase é transcrita, traduzida e pode ser lida em voz alta. No iOS 26 e no macOS 26, a transcrição integrada no aparelho mantém o áudio no aparelho.
+
+PÁGINAS WEB BILÍNGUES
+A extensão do Safari (também para Chrome e Firefox) mantém cada parágrafo original com a tradução logo abaixo.
 
 LEGENDAS DUPLAS EM VÍDEO
-Vídeos, podcasts e publicações em vídeo ganham legendas bilíngues alinhadas frase a frase: original em cima, tradução embaixo. A tradução vai à frente da reprodução, então nada trava.
+YouTube, podcasts e vídeos da web ganham legendas bilíngues alinhadas frase a frase. Sem legendas? Ative as legendas por transcrição com IA.
+
+TRADUÇÃO DE DOCUMENTOS
+Abra um PDF, um arquivo do Word ou uma imagem e leia página a página o original e a tradução lado a lado.
 
 O QUE VOCÊ LÊ FICA
-Ative o aprendizado e as frases em que você realmente parou (as que passou correndo não contam) viram cartões de revisão: exercícios de leitura, escuta e escrita, notas de frase e leitura em voz alta, agendados pela força da memória. Desligado por padrão, e tudo fica no seu aparelho.
+As frases que você realmente leu viram cartões de revisão pela curva do esquecimento: leitura, escuta, escrita, notas de frase e leitura em voz alta. Sincronização opcional.
 
-SINCRONIZAÇÃO (OPCIONAL)
-Entre com uma conta de e-mail gratuita e revise no celular o que leu no computador. O que a sincronização guarda nos nossos servidores: suas frases e traduções salvas, o endereço e o título da página de origem, e os horários de revisão — em forma legível e apenas para a sua conta. Apague uma fonte ou sua conta e ela some de todos os aparelhos. Sem entrar, nada sai do seu aparelho.
+SEU MOTOR, SUA ESCOLHA
+Coloque a chave do seu próprio serviço de IA ou um endpoint compatível. Com login, você também pode experimentar um pequeno crédito gratuito nosso.
 
-SEU PRÓPRIO MOTOR
-Um canal gratuito funciona na hora, sem configuração. Quer mais qualidade? Coloque a chave do seu próprio serviço de IA, ou qualquer endpoint personalizado compatível. O controle é sempre seu.
-
-PRIVADO POR PADRÃO
-Sem rastreamento, sem anúncios, sem analytics de terceiros — só dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis nos Ajustes. Nenhum servidor nosso no caminho da tradução: seu texto vai direto para o provedor que você escolheu, e sua chave e ajustes ficam no aparelho. Conta só se você quiser uma.
-
-GRÁTIS E ABERTO
-Totalmente gratuito e totalmente de código aberto.
+PRIVACIDADE, SEM RODEIOS
+Suas chaves e ajustes ficam no aparelho. Com a sua chave, o texto vai direto para o provedor escolhido; com o crédito gratuito, passa pelo nosso relé e não é armazenado. As legendas ao vivo e a transcrição integrada não gravam nada. Enviamos dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis nos Ajustes. Sem anúncios. O app inteiro é de código aberto e gratuito para baixar.
 ```
 
 ## 国际版 · pt-BR · promotionalText
 
 ```
-Não é só traduzir: as frases que você realmente leu voltam como cartões de revisão, pela curva do esquecimento. Grátis, código aberto, sua chave fica no aparelho.
+Novidade: legendas ao vivo para tudo o que toca no Mac ou no iPhone, e um intérprete de conversa. Além de web bilíngue, documentos e cartões de revisão.
 ```
 
 ---
@@ -618,47 +657,52 @@ BelliedMonkey مترجم
 ## 国际版 · ar-SA · subtitle
 
 ```
-ويب ثنائي اللغة وترجمة الفيديو
+ترجمة مباشرة ومترجم فوري
 ```
 
 ## 国际版 · ar-SA · keywords
 
 ```
-مفردات,بطاقات,مراجعة,لغات,إنجليزي,ياباني,قراءة,ذاكرة,تكرار,مجاني,مفتوح المصدر,إضافة,أخبار,تعلم
+مفردات,بطاقات,مراجعة,لغات,إنجليزي,قراءة,ذاكرة,تكرار,مفتوح المصدر,أخبار,تعلم,محادثة,PDF,بودكاست
 ```
 
 ## 国际版 · ar-SA · description
 
 ```
-اقرأ الويب وشاهد الفيديو بلغتين في آنٍ واحد. والجُمل التي قرأتها فعلاً تعود إليك في اليوم التالي.
+اقرأ وشاهد وتحدّث بلغتين في آنٍ واحد. والجُمل التي قرأتها فعلاً تعود إليك بطاقاتِ مراجعة.
 
-صفحات بلغتين
-شغّل الترجمة: تبقى كل فقرة بنصها الأصلي، وتظهر الترجمة أسفلها مباشرةً بلون مختلف. لا تنقّل بين علامات التبويب، ولا فقدان لموضع القراءة.
+ترجمة مباشرة (التطبيق)
+ترجمة ثنائية اللغة لكل ما يُشغَّل على جهازك. على Mac يستمع التطبيق إلى صوت النظام ويعرض شريط ترجمة عائمًا فوق أي تطبيق، حتى فوق الفيديو بملء الشاشة (macOS 14.4 أو أحدث). وعلى iPhone شغّل فيديو أو بودكاست عبر مكبّر الصوت في أي تطبيق، فتعرض نافذة صورة داخل صورة النص الأصلي والترجمة جملةً بجملة.
+
+محادثة · مترجم فوري (التطبيق)
+تحدّث رغم اختلاف اللغة. يتكلم الطرفان بحرية، وتُفرَّغ كل جملة وتُترجَم ويمكن قراءتها بصوت مسموع. على iOS 26 وmacOS 26 يمكنك اختيار التفريغ الصوتي المدمج في الجهاز فيبقى الصوت على جهازك.
+
+صفحات ويب بلغتين
+تُبقي إضافة Safari (وكذلك Chrome وFirefox) كل فقرة بنصها الأصلي وتعرض الترجمة أسفلها مباشرةً.
 
 ترجمة مزدوجة للفيديو
-تحصل مقاطع الفيديو والبودكاست والمنشورات المصوّرة على ترجمة ثنائية مطابقة جملةً بجملة: الأصل في الأعلى والترجمة أسفله. تتم الترجمة قبل التشغيل، فلا يتوقف شيء.
+يحصل YouTube والبودكاست وفيديو الويب على ترجمة ثنائية مطابقة جملةً بجملة. لا توجد ترجمة؟ فعّل الترجمة المولَّدة بالتفريغ الصوتي بالذكاء الاصطناعي.
+
+ترجمة المستندات
+افتح ملف PDF أو Word أو صورة واقرأ صفحةً بصفحة النص الأصلي والترجمة جنبًا إلى جنب.
 
 ما تقرأه يبقى معك
-شغّل التعلّم، فتتحول الجُمل التي توقفت عندها فعلاً (وليست التي مررت عليها سريعًا) إلى بطاقات مراجعة: تمارين قراءة واستماع وكتابة، وشرح للجُمل، وقراءة صوتية، مرتّبة حسب قوة التذكّر. مُعطّل افتراضيًا، وكل شيء يبقى على جهازك.
+تتحول الجُمل التي قرأتها فعلاً إلى بطاقات مراجعة وفق منحنى النسيان: قراءة واستماع وكتابة، مع شرح الجُمل والقراءة الصوتية. المزامنة اختيارية.
 
-المزامنة (اختيارية)
-سجّل الدخول ببريد إلكتروني مجاني لتراجع على هاتفك ما قرأته على حاسوبك. ما تحفظه المزامنة على خوادمنا: الجُمل والترجمات التي حفظتها، وعنوان صفحة المصدر وعنوانها، وأوقات المراجعة — بصيغة مقروءة ولحسابك وحدك. احذف مصدرًا أو حسابك فيُحذف من كل الأجهزة. وبدون تسجيل الدخول لا يغادر شيء جهازك.
+محرّكك واختيارك
+أدخل مفتاح خدمة الذكاء الاصطناعي الخاصة بك أو أي نقطة نهاية متوافقة. وبعد تسجيل الدخول يمكنك تجربة رصيد مجاني صغير منّا.
 
-محرّكك أنت
-هناك قناة مجانية تعمل فورًا دون أي إعداد. وإن أردت جودة أعلى، أدخل مفتاح خدمة الذكاء الاصطناعي الخاصة بك، أو أي نقطة نهاية مخصّصة متوافقة. القرار لك دائمًا.
-
-الخصوصية من التصميم
-لا تتبّع ولا قياسات ولا إعلانات. لا خادم لنا في مسار الترجمة: يذهب نصّك مباشرةً إلى المزوّد الذي اخترته، ويبقى مفتاحك وإعداداتك على جهازك. والحساب فقط إن أردته.
-
-مجاني ومفتوح
-مجاني بالكامل ومفتوح المصدر بالكامل.
+الخصوصية بوضوح
+تبقى مفاتيحك وإعداداتك على جهازك. مع مفتاحك يذهب النص مباشرةً إلى المزوّد الذي اخترته، ومع الرصيد المجاني يمرّ عبر خادم الترحيل لدينا ولا يُحفَظ. الترجمة المباشرة والتفريغ المدمج لا يسجّلان شيئًا. نرسل بيانات استخدام مجهولة (أي الميزات فقط، لا محتوى الصفحات) ويمكن إيقافها من الإعدادات. بلا إعلانات. التطبيق كله مفتوح المصدر وتنزيله مجاني.
 ```
 
 ## 国际版 · ar-SA · promotionalText
 
 ```
-ليست مجرد ترجمة: الجُمل التي قرأتها فعلاً تعود بطاقاتِ مراجعة وفق منحنى النسيان. مجاني ومفتوح المصدر، ومفتاحك يبقى على جهازك.
+جديد: ترجمة مباشرة لكل ما يُشغَّل على Mac أو iPhone، ومترجم للمحادثات. إضافة إلى صفحات ويب بلغتين والمستندات وبطاقات المراجعة.
 ```
+
+---
 
 ## 国际版 · it · name
 
@@ -669,48 +713,49 @@ BelliedMonkey Traduttore
 ## 国际版 · it · subtitle
 
 ```
-Web bilingue e sottotitoli
+Sottotitoli live e interprete
 ```
 
 ## 国际版 · it · keywords
 
 ```
-inglese,tradurre,vocaboli,ripasso,lettura,notizie,memoria,video,imparare,gratis,flashcard,podcast
+inglese,tradurre,vocaboli,ripasso,video,imparare,flashcard,podcast,conversazione,trascrizione,pdf
 ```
 
 ## 国际版 · it · description
 
 ```
-Un'estensione per Safari che ti fa leggere il web e guardare i video in due lingue insieme — e ricordare davvero quello che leggi.
+Leggi, guarda e parla in due lingue insieme. E le frasi che hai davvero letto tornano come carte di ripasso.
 
-PAGINE BILINGUI
-Attiva la traduzione e ogni paragrafo conserva il testo originale, con la traduzione subito sotto, in un colore distinto. Nessun cambio di scheda, nessun segno perso: si legge e basta.
+SOTTOTITOLI LIVE (APP)
+Sottotitoli bilingui per tutto ciò che il tuo dispositivo sta riproducendo. Su Mac l'app ascolta l'audio di sistema e mostra una barra di sottotitoli fluttuante sopra qualsiasi app, anche sui video a schermo intero (macOS 14.4 o successivo). Su iPhone riproduci un video o un podcast dall'altoparlante in qualsiasi app e una finestra picture-in-picture mostra originale e traduzione, frase per frase.
+
+CONVERSAZIONE · INTERPRETE LIVE (APP)
+Parla oltre la barriera della lingua. Entrambi parlano liberamente; ogni frase viene trascritta, tradotta e può essere letta ad alta voce. Su iOS 26 e macOS 26 puoi scegliere la trascrizione sul dispositivo e l'audio resta sul dispositivo.
+
+PAGINE WEB BILINGUI
+L'estensione per Safari (anche per Chrome e Firefox) mantiene ogni paragrafo originale con la traduzione subito sotto.
 
 SOTTOTITOLI DOPPI PER I VIDEO
-Video, podcast e post con video ottengono sottotitoli bilingui allineati frase per frase: originale sopra, traduzione sotto. La traduzione va in anticipo sulla riproduzione, così non si inceppa.
+YouTube, podcast e video sul web ottengono sottotitoli bilingui allineati frase per frase. Niente sottotitoli? Attiva quelli trascritti dall'IA.
+
+TRADUZIONE DI DOCUMENTI
+Apri un PDF, un file Word o un'immagine e leggi pagina per pagina originale e traduzione affiancati.
 
 LEGGI E TI RESTA
-Attiva l'apprendimento e le frasi che hai davvero letto diventano carte di ripasso: esercizi di lettura, ascolto e scrittura, note sulla frase e lettura ad alta voce, programmati in base alla forza della memoria. Disattivato di default, e tutto resta sul tuo dispositivo.
+Le frasi che hai davvero letto diventano carte di ripasso sulla curva dell'oblio: lettura, ascolto, scrittura, note sulla frase e lettura ad alta voce. Sincronizzazione facoltativa.
 
-SINCRONIZZAZIONE TRA DISPOSITIVI (FACOLTATIVA)
-Accedi con un account email gratuito e dal telefono potrai ripassare ciò che hai letto sul computer. Cosa conserva la sincronizzazione sui nostri server: le frasi e le traduzioni salvate, l'indirizzo e il titolo della pagina di origine e gli orari di ripasso — in forma leggibile e solo per il tuo account. Se elimini una fonte o il tuo account, spariscono da tutti i dispositivi. Senza accedere, niente lascia il tuo dispositivo.
+IL TUO MOTORE, LA TUA SCELTA
+Inserisci la chiave del tuo servizio di IA o un endpoint compatibile. Dopo l'accesso puoi provare anche un piccolo credito gratuito offerto da noi.
 
-SCEGLI TU IL MOTORE
-Il canale gratuito funziona subito, senza configurazione. Vuoi più qualità? Inserisci la chiave del tuo servizio di IA, o qualsiasi endpoint personalizzato compatibile. Il controllo resta sempre tuo.
-
-PRIVATO PER SCELTA
-Nessun tracciamento, nessuna pubblicità, nessuna analisi di terze parti — solo dati d'uso anonimi (quali funzioni, mai il contenuto delle pagine), disattivabili nelle impostazioni. Nessun nostro server sul percorso della traduzione: il testo va direttamente al fornitore che scegli, e le tue chiavi e impostazioni restano sul dispositivo. Nessun account, a meno che tu non lo voglia. Tutta l'app è open source.
-
-GRATIS E APERTA
-BelliedMonkey Traduttore è gratuita e completamente open source.
-
-Perfetta per leggere notizie e blog stranieri, studiare una lingua, seguire creator che parlano un'altra lingua e navigare il web globale come navighi quello di casa.
+PRIVACY, DETTA CHIARA
+Chiavi e impostazioni restano sul tuo dispositivo. Con la tua chiave il testo va direttamente al fornitore scelto; con il credito gratuito passa dal nostro relay e non viene conservato. I sottotitoli live e la trascrizione sul dispositivo non registrano nulla. Inviamo dati d'uso anonimi (quali funzioni, mai il contenuto delle pagine), disattivabili nelle impostazioni. Nessuna pubblicità. Tutta l'app è open source e si scarica gratis.
 ```
 
 ## 国际版 · it · promotionalText
 
 ```
-Non il solito traduttore: le frasi che leggi davvero tornano come carte di ripasso sulla curva dell'oblio. Gratis, open source, la tua chiave resta sul dispositivo.
+Novità: sottotitoli live per tutto ciò che suona su Mac o iPhone e un interprete per conversare. In più pagine web bilingui, documenti e carte di ripasso.
 ```
 
 ---
@@ -724,48 +769,49 @@ BelliedMonkey Çeviri
 ## 国际版 · tr · subtitle
 
 ```
-İki dilli web ve altyazı
+Canlı altyazı ve tercüman
 ```
 
 ## 国际版 · tr · keywords
 
 ```
-İngilizce,kelime,tekrar,okuma,haber,ezber,sözlük,yabancı,video,ücretsiz,podcast,öğrenme,dizi,film
+İngilizce,kelime,tekrar,okuma,ezber,sözlük,yabancı,video,podcast,öğrenme,sohbet,transkript,pdf
 ```
 
 ## 国际版 · tr · description
 
 ```
-Web'i okurken ve video izlerken iki dili aynı anda gösteren, okuduklarını gerçekten aklında tutmanı sağlayan bir Safari eklentisi.
+Oku, izle ve konuş — aynı anda iki dilde. Gerçekten okuduğun cümleler de tekrar kartı olarak geri gelir.
 
-İKİ DİLLİ SAYFALAR
-Çeviriyi aç: her paragraf özgün metnini korur, çevirisi hemen altında ayrı bir renkte belirir. Sekme değiştirmek yok, kaldığın yeri kaybetmek yok — sadece oku.
+CANLI ALTYAZI (UYGULAMA)
+Cihazında çalan her şey için iki dilli altyazı. Mac'te uygulama sistem sesini dinler ve her uygulamanın, hatta tam ekran videonun üstünde duran yüzen bir altyazı çubuğu gösterir (macOS 14.4 veya sonrası). iPhone'da herhangi bir uygulamada videoyu ya da podcast'i hoparlörden çal; resim içinde resim penceresi özgün metni ve çeviriyi cümle cümle gösterir.
+
+SOHBET · CANLI TERCÜMAN (UYGULAMA)
+Dil engelini aşarak yüz yüze konuş. İki taraf da serbestçe konuşur; her cümle yazıya dökülür, çevrilir ve sesli okunabilir. iOS 26 ve macOS 26'da cihaz içi transkripsiyonu seçebilirsin; ses cihazında kalır.
+
+İKİ DİLLİ WEB SAYFALARI
+Safari eklentisi (Chrome ve Firefox için de var) her paragrafın özgün metnini korur, çevirisini hemen altında gösterir.
 
 VİDEOLARDA ÇİFT ALTYAZI
-Videolar, podcast'ler ve videolu gönderiler cümle cümle eşleşen iki dilli altyazı alır: üstte özgün metin, altta çeviri. Çeviri oynatmanın önünden gittiği için takılma olmaz.
+YouTube, podcast'ler ve web videoları cümle cümle eşleşen iki dilli altyazı alır. Altyazı yok mu? Yapay zekâ transkripsiyonlu altyazıyı aç.
+
+BELGE ÇEVİRİSİ
+Bir PDF, Word dosyası ya da görsel aç; özgün metni ve çeviriyi sayfa sayfa yan yana oku.
 
 OKU, AKLINDA KALSIN
-Öğrenmeyi açtığında gerçekten okuduğun cümleler tekrar kartlarına dönüşür: okuma, dinleme ve yazma alıştırmaları, cümle açıklamaları ve sesli okuma — hafızanın gücüne göre programlanır. Varsayılan olarak kapalıdır ve her şey cihazında kalır.
-
-CİHAZLAR ARASI EŞİTLEME (İSTEĞE BAĞLI)
-Ücretsiz bir e-posta hesabıyla giriş yap, bilgisayarında okuduklarını telefonundan tekrar et. Eşitlemenin sunucularımızda tuttukları: kaydettiğin cümleler ve çevirileri, kaynak sayfanın adresi ve başlığı, tekrar zamanları — okunabilir biçimde ve yalnızca senin hesabın için. Bir kaynağı ya da hesabını silersen hepsi tüm cihazlardan kalkar. Giriş yapmazsan hiçbir şey cihazından çıkmaz.
+Gerçekten okuduğun cümleler unutma eğrisine göre tekrar kartlarına dönüşür: okuma, dinleme, yazma, cümle açıklamaları ve sesli okuma. Eşitleme isteğe bağlıdır.
 
 MOTORU SEN SEÇ
-Ücretsiz kanal kurulum gerektirmeden çalışır. Daha iyi kalite mi istiyorsun? Kendi yapay zekâ servisinin anahtarını ya da uyumlu herhangi bir özel uç noktayı gir. Kontrol her zaman sende.
+Kendi yapay zekâ servisinin anahtarını ya da uyumlu bir uç noktayı gir. Giriş yaptıktan sonra bizim sunduğumuz küçük bir ücretsiz krediyi de deneyebilirsin.
 
-TASARIMDAN GİZLİ
-Takip yok, telemetri yok, reklam yok. Çeviri yolunda bize ait hiçbir sunucu yok: metin doğrudan seçtiğin sağlayıcıya gider, anahtarların ve ayarların cihazında kalır. İstemezsen hesap gerekmez. Uygulamanın tamamı açık kaynaktır.
-
-ÜCRETSİZ VE AÇIK
-BelliedMonkey Çeviri ücretsizdir ve tamamen açık kaynaklıdır.
-
-Yabancı haber ve blogları okumak, dil öğrenmek, başka bir dilde konuşan içerik üreticilerini takip etmek ve dünya web'inde kendi dilindeymiş gibi gezinmek için.
+GİZLİLİK, AÇIKÇA
+Anahtarların ve ayarların cihazında kalır. Kendi anahtarınla metin doğrudan seçtiğin sağlayıcıya gider; ücretsiz krediyle bizim aktarma sunucumuzdan geçer ve saklanmaz. Canlı altyazı ve cihaz içi transkripsiyon hiçbir şey kaydetmez. Anonim kullanım verisi (hangi özellikler, asla sayfa içeriği) göndeririz; ayarlardan kapatabilirsin. Reklam yok. Uygulamanın tamamı açık kaynaktır ve ücretsiz indirilir.
 ```
 
 ## 国际版 · tr · promotionalText
 
 ```
-Sıradan bir çeviri aracı değil: gerçekten okuduğun cümleler unutma eğrisine göre tekrar kartı olarak geri gelir. Ücretsiz, açık kaynak, anahtarın cihazında kalır.
+Yeni: Mac ya da iPhone'da çalan her şey için canlı altyazı ve sohbet tercümanı. Ayrıca iki dilli web sayfaları, belgeler ve tekrar kartları.
 ```
 
 ---
@@ -779,48 +825,49 @@ BelliedMonkey Dịch
 ## 国际版 · vi · subtitle
 
 ```
-Web song ngữ và phụ đề kép
+Phụ đề trực tiếp và phiên dịch
 ```
 
 ## 国际版 · vi · keywords
 
 ```
-tiếng Anh,ngoại ngữ,từ vựng,ôn tập,đọc,tin tức,ghi nhớ,video,học,miễn phí,podcast,phim,luyện nghe
+tiếng Anh,ngoại ngữ,từ vựng,ôn tập,đọc,ghi nhớ,video,học,podcast,luyện nghe,hội thoại,chép lời,pdf
 ```
 
 ## 国际版 · vi · description
 
 ```
-Tiện ích Safari giúp bạn đọc web và xem video bằng hai ngôn ngữ cùng lúc — và thật sự nhớ được những gì đã đọc.
+Đọc, xem và nói chuyện bằng hai ngôn ngữ cùng lúc. Những câu bạn thực sự đã đọc sẽ quay lại thành thẻ ôn tập.
+
+PHỤ ĐỀ TRỰC TIẾP (ỨNG DỤNG)
+Phụ đề song ngữ cho mọi thứ đang phát trên thiết bị. Trên Mac, ứng dụng nghe âm thanh hệ thống và hiện một thanh phụ đề nổi trên mọi ứng dụng, kể cả video toàn màn hình (macOS 14.4 trở lên). Trên iPhone, phát video hoặc podcast qua loa ngoài trong bất kỳ ứng dụng nào, cửa sổ hình trong hình sẽ chạy bản gốc và bản dịch theo từng câu.
+
+HỘI THOẠI · PHIÊN DỊCH TRỰC TIẾP (ỨNG DỤNG)
+Trò chuyện vượt rào cản ngôn ngữ. Hai bên nói tự do; mỗi câu được chép lời, dịch và có thể đọc thành tiếng. Trên iOS 26 và macOS 26, bạn có thể chọn chép lời ngay trên thiết bị, âm thanh không rời khỏi máy.
 
 TRANG WEB SONG NGỮ
-Bật dịch: mỗi đoạn văn giữ nguyên bản gốc, bản dịch hiện ngay bên dưới bằng một màu riêng. Không phải đổi thẻ, không mất chỗ đang đọc — cứ thế mà đọc.
+Tiện ích Safari (có cả cho Chrome và Firefox) giữ nguyên từng đoạn gốc và hiện bản dịch ngay bên dưới.
 
 PHỤ ĐỀ KÉP CHO VIDEO
-Video, podcast và bài đăng có video đều có phụ đề song ngữ khớp theo từng câu: bản gốc ở trên, bản dịch ở dưới. Bản dịch chạy trước phần phát nên không bị khựng.
+YouTube, podcast và video trên web có phụ đề song ngữ khớp theo từng câu. Không có phụ đề? Bật phụ đề chép lời bằng AI.
+
+DỊCH TÀI LIỆU
+Mở PDF, tệp Word hoặc hình ảnh và đọc từng trang bản gốc cạnh bản dịch.
 
 ĐỌC XONG LÀ NHỚ
-Bật phần học, những câu bạn thực sự đã đọc sẽ thành thẻ ôn tập: bài tập đọc, nghe và viết, ghi chú câu và đọc thành tiếng, được sắp lịch theo độ bền của trí nhớ. Mặc định tắt, và mọi thứ nằm trên máy bạn.
-
-ĐỒNG BỘ GIỮA CÁC THIẾT BỊ (TÙY CHỌN)
-Đăng nhập bằng một tài khoản email miễn phí, rồi ôn trên điện thoại những gì đã đọc trên máy tính. Đồng bộ lưu gì trên máy chủ của chúng tôi: các câu và bản dịch bạn đã lưu, địa chỉ và tiêu đề trang nguồn, thời điểm ôn tập — ở dạng đọc được và chỉ thuộc tài khoản của bạn. Xóa một nguồn hoặc xóa tài khoản là chúng biến mất khỏi mọi thiết bị. Không đăng nhập thì không có gì rời khỏi máy bạn.
+Những câu bạn thực sự đã đọc thành thẻ ôn tập theo đường cong quên: đọc, nghe, viết, ghi chú câu và đọc thành tiếng. Đồng bộ là tùy chọn.
 
 TỰ CHỌN CỖ MÁY DỊCH
-Kênh miễn phí chạy ngay, không cần cài đặt gì. Muốn chất lượng cao hơn? Điền khóa dịch vụ AI của riêng bạn, hoặc bất kỳ điểm cuối tùy chỉnh tương thích nào. Quyền quyết định luôn thuộc về bạn.
+Điền khóa dịch vụ AI của riêng bạn hoặc một điểm cuối tương thích. Sau khi đăng nhập, bạn cũng có thể dùng thử một khoản tín dụng miễn phí nhỏ từ chúng tôi.
 
-RIÊNG TƯ NGAY TỪ THIẾT KẾ
-Không theo dõi, không quảng cáo, không phân tích của bên thứ ba — chỉ dữ liệu sử dụng ẩn danh (tính năng nào được dùng, không bao giờ là nội dung trang), tắt được trong Cài đặt. Không có máy chủ nào của chúng tôi nằm trên đường dịch: văn bản đi thẳng tới nhà cung cấp bạn chọn, còn khóa và cài đặt thì ở lại trên máy bạn. Không cần tài khoản trừ khi bạn muốn. Toàn bộ ứng dụng là mã nguồn mở.
-
-MIỄN PHÍ VÀ MỞ
-BelliedMonkey Dịch miễn phí và hoàn toàn mã nguồn mở.
-
-Rất hợp để đọc tin tức và blog nước ngoài, học một ngoại ngữ, theo dõi những người sáng tạo nói thứ tiếng khác, và lướt web toàn cầu như lướt web tiếng mẹ đẻ.
+QUYỀN RIÊNG TƯ, NÓI RÕ RÀNG
+Khóa và cài đặt ở lại trên thiết bị. Dùng khóa của bạn thì văn bản đi thẳng tới nhà cung cấp bạn chọn; dùng tín dụng miễn phí thì đi qua máy chủ chuyển tiếp của chúng tôi và không được lưu. Phụ đề trực tiếp và chép lời trên thiết bị không ghi âm. Chúng tôi gửi dữ liệu sử dụng ẩn danh (tính năng nào được dùng, không bao giờ là nội dung trang), có thể tắt trong Cài đặt. Không quảng cáo. Toàn bộ ứng dụng là mã nguồn mở và tải về miễn phí.
 ```
 
 ## 国际版 · vi · promotionalText
 
 ```
-Không chỉ là một công cụ dịch: những câu bạn thực sự đọc sẽ quay lại thành thẻ ôn tập theo đường cong quên. Miễn phí, mã nguồn mở, khóa nằm trên máy bạn.
+Mới: phụ đề trực tiếp cho mọi thứ đang phát trên Mac hoặc iPhone, cùng trình phiên dịch hội thoại. Thêm web song ngữ, tài liệu và thẻ ôn tập.
 ```
 
 ---
@@ -834,46 +881,47 @@ BelliedMonkey Tłumacz
 ## 国际版 · pl · subtitle
 
 ```
-Dwujęzyczny web i napisy
+Napisy na żywo i tłumacz mowy
 ```
 
 ## 国际版 · pl · keywords
 
 ```
-angielski,języki,słówka,powtórki,czytanie,wiadomości,pamięć,fiszki,nauka,video,darmowy,podcast
+angielski,języki,słówka,powtórki,czytanie,pamięć,fiszki,nauka,podcast,rozmowa,transkrypcja,pdf
 ```
 
 ## 国际版 · pl · description
 
 ```
-Rozszerzenie Safari, dzięki któremu czytasz sieć i oglądasz filmy w dwóch językach naraz — i naprawdę zapamiętujesz to, co przeczytasz.
+Czytaj, oglądaj i rozmawiaj w dwóch językach naraz. A zdania, które naprawdę przeczytasz, wracają jako fiszki do powtórek.
+
+NAPISY NA ŻYWO (APLIKACJA)
+Dwujęzyczne napisy do wszystkiego, co gra na Twoim urządzeniu. Na Macu aplikacja słucha dźwięku systemowego i pokazuje pływający pasek napisów nad każdą aplikacją, także nad filmem na pełnym ekranie (macOS 14.4 lub nowszy). Na iPhonie odtwórz film lub podcast przez głośnik w dowolnej aplikacji, a okno obraz w obrazie pokaże oryginał i tłumaczenie zdanie po zdaniu.
+
+ROZMOWA · TŁUMACZ NA ŻYWO (APLIKACJA)
+Rozmawiaj ponad barierą językową. Obie strony mówią swobodnie; każde zdanie jest spisywane, tłumaczone i może zostać odczytane na głos. W iOS 26 i macOS 26 możesz wybrać transkrypcję na urządzeniu — dźwięk zostaje na urządzeniu.
 
 DWUJĘZYCZNE STRONY
-Włącz tłumaczenie: każdy akapit zachowuje oryginalny tekst, a tłumaczenie pojawia się tuż pod nim, w wyróżnionym kolorze. Bez przełączania kart, bez gubienia miejsca — po prostu czytasz.
+Rozszerzenie Safari (także dla Chrome i Firefox) zostawia każdy akapit w oryginale, a tłumaczenie pokazuje tuż pod nim.
 
 PODWÓJNE NAPISY DO FILMÓW
-Filmy, podcasty i wpisy z wideo dostają dwujęzyczne napisy dopasowane zdanie po zdaniu: oryginał na górze, tłumaczenie pod spodem. Tłumaczenie wyprzedza odtwarzanie, więc nic się nie zacina.
+YouTube, podcasty i filmy w sieci dostają dwujęzyczne napisy dopasowane zdanie po zdaniu. Brak napisów? Włącz napisy z transkrypcji AI.
+
+TŁUMACZENIE DOKUMENTÓW
+Otwórz PDF, plik Word lub obraz i czytaj strona po stronie oryginał obok tłumaczenia.
 
 PRZECZYTANE ZOSTAJE
-Włącz naukę, a zdania, które faktycznie przeczytasz, staną się fiszkami do powtórek: ćwiczenia z czytania, słuchania i pisania, objaśnienia zdań oraz czytanie na głos, planowane według siły pamięci. Domyślnie wyłączone, a wszystko zostaje na Twoim urządzeniu.
-
-SYNCHRONIZACJA MIĘDZY URZĄDZENIAMI (OPCJONALNA)
-Zaloguj się darmowym kontem e-mail, a na telefonie powtórzysz to, co przeczytałeś na komputerze. Co synchronizacja przechowuje na naszych serwerach: zapisane zdania i ich tłumaczenia, adres i tytuł strony źródłowej oraz terminy powtórek — w czytelnej postaci i wyłącznie dla Twojego konta. Usunięcie źródła lub konta kasuje je ze wszystkich urządzeń. Bez logowania nic nie opuszcza Twojego urządzenia.
+Zdania, które naprawdę przeczytasz, stają się fiszkami na krzywej zapominania: czytanie, słuchanie, pisanie, objaśnienia zdań i czytanie na głos. Synchronizacja jest opcjonalna.
 
 SILNIK WYBIERASZ TY
-Darmowy kanał działa od razu, bez konfiguracji. Chcesz wyższej jakości? Wpisz klucz własnej usługi AI albo dowolny zgodny własny endpoint. Kontrolę zawsze masz Ty.
+Wpisz klucz własnej usługi AI albo zgodny endpoint. Po zalogowaniu możesz też wypróbować mały darmowy kredyt od nas.
 
-PRYWATNE Z ZAŁOŻENIA
-Bez śledzenia, bez reklam, bez analityki firm trzecich — tylko anonimowe dane o użyciu (które funkcje, nigdy treść stron), do wyłączenia w ustawieniach. Na drodze tłumaczenia nie ma żadnego naszego serwera: tekst idzie prosto do wybranego przez Ciebie dostawcy, a klucze i ustawienia zostają na urządzeniu. Konto tylko wtedy, gdy sam zechcesz. Cała aplikacja jest open source.
-
-DARMOWE I OTWARTE
-BelliedMonkey Tłumacz jest darmowy i w pełni otwartoźródłowy.
-
-Świetny do czytania zagranicznych wiadomości i blogów, nauki języka, śledzenia twórców mówiących w innym języku i przeglądania światowej sieci tak, jak przeglądasz swoją.
+PRYWATNOŚĆ, JASNO
+Klucze i ustawienia zostają na urządzeniu. Z własnym kluczem tekst trafia prosto do wybranego dostawcy; z darmowym kredytem przechodzi przez nasz serwer pośredniczący i nie jest zapisywany. Napisy na żywo i transkrypcja na urządzeniu niczego nie nagrywają. Wysyłamy anonimowe dane o użyciu (które funkcje, nigdy treść stron), do wyłączenia w ustawieniach. Bez reklam. Cała aplikacja jest open source i do pobrania za darmo.
 ```
 
 ## 国际版 · pl · promotionalText
 
 ```
-To nie kolejny tłumacz: zdania, które faktycznie przeczytasz, wracają jako fiszki na krzywej zapominania. Za darmo, open source, klucz zostaje na urządzeniu.
+Nowość: napisy na żywo do wszystkiego, co gra na Macu lub iPhonie, oraz tłumacz rozmów. Do tego dwujęzyczne strony, dokumenty i fiszki.
 ```

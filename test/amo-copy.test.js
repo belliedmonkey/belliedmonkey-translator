@@ -14,6 +14,7 @@
 const { describe, test, ok, eq } = require('./harness');
 const fs = require('fs');
 const path = require('path');
+const RED = require('./lib/copy-redlines');
 
 const MD = fs.readFileSync(path.join(__dirname, '..', 'store-assets', 'amo-listing.md'), 'utf8');
 
@@ -41,6 +42,20 @@ function parse(md) {
 const D = parse(MD);
 
 describe('AMO 文案 — store-assets/amo-listing.md', () => {
+  // 口径红线（2026-09-15；来由见 test/lib/copy-redlines.js）。Firefox 版就是国际版：
+  // 有匿名用量事件、有经中继的免费额度，三条都查。
+  test('口径红线：不说「没有追踪」、不说不加限定的「完全免费」、不说「路径上没有我们的服务器」', () => {
+    for (const l of LOCALES) {
+      const v = D[l] || '';
+      const t = RED.firstHit(RED.NO_TRACKING, v);
+      ok(!t, `${l} 说了「没有追踪」类绝对话（命中 ${t}）—— 我们发匿名用量事件，只能说清楚发什么、怎么关`);
+      const fr = RED.firstHit(RED.FULLY_FREE, v);
+      ok(!fr, `${l} 说了不加限定的「完全免费」（命中 ${fr}）`);
+      const s = RED.firstHit(RED.NO_SERVER_OF_OURS, v);
+      ok(!s, `${l} 说「路径上没有我们的服务器」（命中 ${s}）—— 免费额度经我们的中继，要按路径说`);
+    }
+  });
+
   test('10 个 locale 齐全（与线上 name/summary 对齐）', () => {
     for (const l of LOCALES) ok(D[l], `缺 ${l} 的 description —— 该语言用户会读到 default_locale`);
     const extra = Object.keys(D).filter((l) => !LOCALES.includes(l));
