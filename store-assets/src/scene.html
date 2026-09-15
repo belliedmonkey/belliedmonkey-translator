@@ -119,7 +119,9 @@ else if (f === '3') stage.innerHTML = device(own('card'));
 else if (f === '4') stage.innerHTML = device(own('stats'));
 else if (f === '6') stage.innerHTML = device(own('onboard'));
 else if (f === '7') stage.innerHTML = device(own('docs'));
-else if (f === '8') stage.innerHTML = device(own('subs'));
+// 帧 8 在 Mac / 网页画布上放真机拍的「视频 + 悬浮字幕条」（QuickTime 窗口与字幕条面板分别截、按屏幕坐标合成）；
+// 手机 / 平板画布仍是 App 页面实拍，iPhone 画中画真机图拍到后再换。
+else if (f === '8') stage.innerHTML = device(own(tier === 'desk' ? 'subsbar' : 'subs'));
 else if (f === '9') stage.innerHTML = device(own('listen'));
 else if (f === '5') {
   // 跨设备闭环。横版：Mac 上读 → 手机上复习（手机是这一帧的主语，不是错放）。

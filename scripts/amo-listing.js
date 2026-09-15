@@ -83,8 +83,12 @@ function visible(html) {
 function previewFiles() {
   const src = fs.readFileSync(path.join(ROOT, 'scripts', 'asc-media.js'), 'utf8');
   const m = src.match(/const ORDER_GLOBAL = \[([^\]]*)\]/);
-  if (!m) { console.error('✗ scripts/asc-media.js 里找不到 ORDER_GLOBAL'); process.exit(1); }
-  return m[1].split(',').map((s) => path.join(ROOT, 'store-assets', `en-web-${s.trim()}.png`));
+  const a = src.match(/const APP_ONLY_GLOBAL = \[([^\]]*)\]/);
+  if (!m || !a) { console.error('✗ scripts/asc-media.js 里找不到 ORDER_GLOBAL / APP_ONLY_GLOBAL'); process.exit(1); }
+  // 去掉 App 独有功能的帧：Firefox 附加组件的页面上不该出现装扩展得不到的东西
+  const appOnly = new Set(a[1].split(',').map((s) => s.trim()));
+  return m[1].split(',').map((s) => s.trim()).filter((n) => !appOnly.has(n))
+    .map((n) => path.join(ROOT, 'store-assets', `en-web-${n}.png`));
 }
 
 async function previews(apply, id, get) {
@@ -94,7 +98,7 @@ async function previews(apply, id, get) {
   const before = await get();
   const old = before.previews || [];
   console.log(`\nAMO ${before.slug || id} · previews`);
-  console.log(`  线上 ${old.length} 张 → 换成仓库 ${files.length} 张（顺序同 App Store）`);
+  console.log(`  线上 ${old.length} 张 → 换成仓库 ${files.length} 张（App Store 的顺序、去掉 App 独有帧）`);
   files.forEach((f, i) => console.log(`    ${i}  ${path.basename(f)}`));
   if (!apply) { console.log('\n（干运行。加 --apply 才真换）'); return; }
 
@@ -125,7 +129,7 @@ async function previews(apply, id, get) {
     console.error(`\n✗ 回读不符：线上 ${after.length} 张、按 position 排是 ${JSON.stringify(ordered)}，应为 ${JSON.stringify(created)}`);
     process.exit(1);
   }
-  console.log(`\n✓ 预览图已换并回读确认：${after.length} 张，顺序同 App Store`);
+  console.log(`\n✓ 预览图已换并回读确认：${after.length} 张，App Store 的顺序、去掉 App 独有帧`);
 }
 
 async function main() {
