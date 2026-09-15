@@ -17,6 +17,39 @@ const CANDIDATES = [
   '/usr/bin/chromium',
 ].filter(Boolean);
 
+// 收尾不能只靠调用方记得 cleanup()（全回归 09-14 F14：本机积了 441 个测试 Chrome、最老挂了 5 天，
+// 负载高时 test:layout 从 42/42 掉到 34/42）。Chrome 是普通子进程，node 死了它不跟着死。三层兜底：
+//   ① 正常退出 / 抛异常 / process.exit → process 'exit' 里关掉还开着的；
+//   ② SIGINT / SIGTERM / SIGHUP（超时、任务被停）→ 收尾后按信号码退出；
+//   ③ SIGKILL（低内存强杀）谁的 handler 都跑不到 → 每个 Chrome 配一个脱离进程组的 sh 看守，
+//      父 node 一没就杀掉带这个 profile 的进程并删目录。
+// 回归门禁：npm run test:chrome-cleanup。
+const live = new Set();
+let hooked = false;
+function hookProcessExit() {
+  if (hooked) return;
+  hooked = true;
+  const all = () => { for (const c of [...live]) c.cleanup(); };
+  process.on('exit', all);
+  for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) {
+    process.once(sig, () => { all(); process.exit(code); });
+  }
+}
+function spawnReaper(chromePid, profileDir) {
+  // 参数走环境变量：看守自己的命令行里不出现 profile 路径，pkill -f 不会连它自己一起杀。
+  // 父进程成了僵尸（还没被收）时 kill -0 仍成功，所以另看 stat。
+  const script = 'while kill -0 "$W" 2>/dev/null && [ "$(ps -o stat= -p "$W" 2>/dev/null | cut -c1)" != Z ]; do sleep 1; done;'
+    + ' kill -9 "$C" 2>/dev/null; pkill -9 -f "user-data-dir=$P" 2>/dev/null; rm -rf "$P"';
+  try {
+    const r = spawn('/bin/sh', ['-c', script], {
+      detached: true, stdio: 'ignore',
+      env: { PATH: process.env.PATH || '/usr/bin:/bin', W: String(process.pid), C: String(chromePid), P: profileDir },
+    });
+    r.on('error', () => { /* 没有 /bin/sh 的平台：只剩 ①② */ });
+    r.unref();
+  } catch (_) { /* 同上 */ }
+}
+
 function findChrome() {
   for (const c of CANDIDATES) {
     try { fs.accessSync(c, fs.constants.X_OK); return c; } catch (_) { /* next */ }
@@ -53,6 +86,23 @@ async function launchChrome(extraArgs) {
     'about:blank',
   ], { stdio: 'ignore' });
 
+  // 一起就登记：等端口的 20 s 里被停掉也要收得干净。看守不在 cleanup 里杀 ——
+  // 父 node 退出后它再扫一遍（Chrome 的子进程在主进程被杀后还会写一会儿 profile）。
+  let done = false;
+  const handle = {
+    bin, proc, port: 0, profileDir,
+    cleanup() {
+      if (done) return;
+      done = true;
+      live.delete(handle);
+      try { proc.kill('SIGKILL'); } catch (_) { /* already dead */ }
+      try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (_) { /* best effort */ }
+    },
+  };
+  live.add(handle);
+  hookProcessExit();
+  spawnReaper(proc.pid, profileDir);
+
   // Chrome writes "<port>\n<path>" to DevToolsActivePort once the endpoint is up.
   const portFile = path.join(profileDir, 'DevToolsActivePort');
   const deadline = Date.now() + 20000;
@@ -66,18 +116,11 @@ async function launchChrome(extraArgs) {
     await new Promise((r) => setTimeout(r, 100));
   }
   if (!port) {
-    try { proc.kill('SIGKILL'); } catch (_) { /* already dead */ }
-    fs.rmSync(profileDir, { recursive: true, force: true });
+    handle.cleanup();
     throw new Error(`Chrome did not expose DevToolsActivePort within 20s (${bin})`);
   }
-
-  return {
-    bin, proc, port, profileDir,
-    cleanup() {
-      try { proc.kill('SIGKILL'); } catch (_) { /* already dead */ }
-      try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (_) { /* best effort */ }
-    },
-  };
+  handle.port = port;
+  return handle;
 }
 
 module.exports = { launchChrome };

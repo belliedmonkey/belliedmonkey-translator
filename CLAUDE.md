@@ -99,6 +99,10 @@ npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — man
                          # learn/store.js's DB_VERSION changes. It is the only change that touches
                          # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
                          # vm harness). See docs/verification-spec.md §3.1.2
+npm run test:chrome-cleanup # 门禁起的无头 Chrome 怎么结束都收干净（real Chrome）—— 改 test/layout/chrome.js 必跑。
+                         # 正常结束 / SIGTERM / 抛异常 / process.exit / SIGKILL 五种方式各起一个子 node，
+                         # 回读 Chrome 主进程、带该 profile 的进程、profile 目录都没了（全回归 09-14 F14：
+                         # 本机积过 441 个测试 Chrome，负载高时 test:layout 42/42 掉到 34/42）。
 npm run test:wipe        # 「清除本机全部数据」真的清干净了吗（real Chrome, Node ≥22）——
                          # 改 options 的清除路径、learn/store.js 的库命名或 chrome.storage
                          # 键面时必跑。种两个学习库（mt-learn + mt-learn-<uid>，**并故意开着
