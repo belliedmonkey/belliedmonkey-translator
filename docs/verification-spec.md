@@ -2507,3 +2507,14 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | **G macOS App** | M30（09-15 07:5x，同一验证包） | ✅（拒绝用系统设置开关造）两次 `tccutil reset` + 用户点弹框都被 TCC 记成 `auth_value=2 / auth_reason=2`、声音照常进来，测不到拒绝；用户关掉「仅系统录音」开关（读回 `auth_value=0`）后：HAL 152 ms 返回、+3.0 s `silent` 不中断提示 + 条上「打开系统设置」、会话不停 → +30.7 s 静音门暂停，页面暂停句指向权限 |
 | **G macOS App** | O2（观察 → 用户裁定改） | 同一次 M30 暂停时，底部字幕条仍是通用的「30 秒没有声音，已暂停以免计费 · 继续」，不提权限；全屏看视频只看得见条。修法见 learning-design §9.8 决定 10 修订二「补（O2）」：条上改发 `silence-permission` |
 | **C macOS Safari** | F12（待修） | ❌ transistor 播客页一直「字幕加载中」、不出文件档 offer：取字幕那一步（fetch 头之后读正文、或跨域请求挂着）没有总上限 ⇒ 另开修复 PR |
+
+### 全回归 2026-09-14 · 09-15 上午补的真机读数与修复
+
+| 面 | 行 | 结果 |
+|---|---|---|
+| **G macOS App** | M30（O2 修复后复跑，#274 合入的 main 49a7158） | ✅ 拒绝仍用「仅系统录音」开关造（TCC 读回 `auth_value=0`）：+3.0 s `silent` 不中断提示 → +30.6 s 静音门暂停，页面暂停句指向权限，**条收到 `silence-permission`（没有 `silence`），截图里条上「30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限 · 打开系统设置」** |
+| **C macOS Safari** | F12 复验（#270 合入后，main 49a7158 的测试包；读回包内有 `fetchTextWithTimeout` 与 `ACQUIRE_TIMEOUT_MS`） | ✅ FAB 开启后 2–3 s「⏳ 字幕加载中… 🎙 AI 转写字幕」、15 s 落定「字幕不可用 🎙 AI 转写字幕」，不再卡在加载中（修前 150 s 无 offer）；落定后点 offer ⇒「⏳ 正在转写整段音频…」⇒ 首对 96 s / 108 s（上期 115 s） |
+| **C macOS Safari** | F12 首轮旁支（未复现） | ◐ 首轮在「加载中」一行里 3 s 点 offer，240 s 没字幕、最后回到「字幕不可用 + offer」，点击之后的叠层过程没记下；两次复现未再现（0.7 s 点 ⇒ 2.9 s 进入「正在转写」）。原因未定，记录在案 |
+| **C macOS Safari** | O3（观察 → 用户裁定修） | 「加载中」一行里的 offer 一闪一闪：2.7 s 有、11.1 s 没、16.7 s 落定再出 —— `subtitle-adapter` 只在两次 acquire 之间（`!inFlight`）渲染它，与 interaction-spec「offer 从**第一次** acquire 失败起就出现在 `⏳ 字幕加载中…` 那一行里」不符（实现缺陷，不改设计）⇒ 另开修复 PR |
+| **F-bis 14 Pro 真机** | M31 国际版 · 音量 ±3 dB（Mac 麦克风测） | ✅ UI 测试 `testM31Vol`：音量键按满 → A 段只有 Safari 外放 `conv.wav`（循环）75 s → App「实时字幕」开始 → 回 Safari 再放 75 s；Mac 按设备名录「MacBook Pro麦克风」，两段各取一整圈 56.3 s 算 RMS：**A −29.4 dB、B −28.2 dB，差 +1.2 dB**（第二个整圈窗口 −29.4 / −28.1）；房间底噪 −53 dB。B 段结束截图 Safari「播放中」、画中画双语字幕滚动。前两轮不作数：验证包首启停在引导页 / 手机离 Mac 远只高出底噪 3 dB；重装清掉麦克风权限、权限框挡住 Safari 播放键 |
+| **机器门禁（本机）** | F14 修复 | ✅ #275（main 320eced）：`test/layout/chrome.js` 在进程退出 / 信号时关掉还开着的测试 Chrome，每个 Chrome 另配一个 `sh` 看守兜 SIGKILL；新门禁 `npm run test:chrome-cleanup` 先红（SIGTERM / 抛异常 / `process.exit` / SIGKILL 四种泄漏）后绿（五种 ≤ 1 s 收干净）；`test:layout` 42/42、跑完本机残留 0 |
