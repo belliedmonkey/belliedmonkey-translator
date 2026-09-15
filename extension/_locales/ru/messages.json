@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "Говорит…"
   },
+  "listen_live_badge": {
+    "message": "● В эфире"
+  },
   "listen_reading": {
     "message": "Читает"
   },

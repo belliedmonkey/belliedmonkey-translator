@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "発話中…"
   },
+  "listen_live_badge": {
+    "message": "● ライブ"
+  },
   "listen_reading": {
     "message": "読み上げ中"
   },

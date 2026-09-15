@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "Hablando…"
   },
+  "listen_live_badge": {
+    "message": "● En vivo"
+  },
   "listen_reading": {
     "message": "Leyendo"
   },

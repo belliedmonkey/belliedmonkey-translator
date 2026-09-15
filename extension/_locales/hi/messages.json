@@ -2302,6 +2302,9 @@
   "listen_now_any": {
     "message": "बोल रहे हैं…"
   },
+  "listen_live_badge": {
+    "message": "● लाइव"
+  },
   "listen_reading": {
     "message": "पढ़ा जा रहा है"
   },
