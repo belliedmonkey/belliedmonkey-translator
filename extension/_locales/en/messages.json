@@ -2894,7 +2894,7 @@
     "message": "After you start, subtitles appear in a floating bar at the bottom of the screen; every finished sentence is also listed here."
   },
   "subtitle_tip_ios": {
-    "message": "Tap Start first, then play out loud in any app (Safari, Chrome, YouTube, podcasts…); subtitles float in a picture-in-picture window. With headphones on, the audio can’t be heard."
+    "message": "Tap Start first, then play out loud in any app (browser, video, podcasts…); subtitles float in a picture-in-picture window. With headphones on, the audio can’t be heard."
   },
   "subtitle_privacy": {
     "message": "Listens to what this Mac is playing only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."

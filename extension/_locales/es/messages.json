@@ -2894,7 +2894,7 @@
     "message": "Al iniciar, los subtítulos aparecen en una barra flotante en la parte inferior de la pantalla; cada frase terminada también se lista aquí."
   },
   "subtitle_tip_ios": {
-    "message": "Pulsa Iniciar primero y luego reproduce por el altavoz en cualquier app (Safari, Chrome, YouTube, pódcasts…); los subtítulos flotan en una ventana de imagen en imagen. Con auriculares no se oye el sonido."
+    "message": "Pulsa Iniciar primero y luego reproduce por el altavoz en cualquier app (navegador, vídeo, pódcasts…); los subtítulos flotan en una ventana de imagen en imagen. Con auriculares no se oye el sonido."
   },
   "subtitle_privacy": {
     "message": "Solo escucha lo que reproduce este Mac después de pulsar «Iniciar». El audio se reconoce en este dispositivo (o solo se envía al punto de transcripción que configuraste); no se graba ni se guarda nada y nuestros servidores nunca intervienen. El texto reconocido solo se queda en tu repaso mientras «Añadir subtítulos al repaso» esté activado."
