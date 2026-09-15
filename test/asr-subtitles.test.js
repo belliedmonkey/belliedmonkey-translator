@@ -148,6 +148,8 @@ function loadHarness(opts = {}) {
     window, chrome, document, navigator: {}, LearnCollector: opts.collector || { noteSubtitle() {} },
     setInterval: () => { timers.intervals++; return 1; }, clearInterval: () => { timers.cleared++; },
     setTimeout: (fn) => { if (opts.timersOut) opts.timersOut.push(fn); return 0; }, clearTimeout: () => {},
+    // opts.clock = { t }：可拨的时钟（重试间隔 RESOLVE_RETRY_MS 是按 Date.now() 算的，测试里不真等）
+    ...(opts.clock ? { Date: Object.assign(function FakeDate(...a) { return a.length ? new Date(...a) : new Date(opts.clock.t); }, { now: () => opts.clock.t, parse: Date.parse, UTC: Date.UTC }) } : {}),
   });
   const calls = [];
   const spec = Object.assign({
@@ -397,6 +399,32 @@ describe('§2.4 harness: streaming acquire', () => {
       if (expectAt === 1) ok(hasBtn(), 'podcast: offer after the first failed acquire; got ' + zh().children.length + ' buttons');
       else ok(!hasBtn(), 'offerAfterAttempts:2 — not yet after one attempt');
       ok(/字幕加载中|loading/i.test(zh().textContent), 'still the loading line: ' + zh().textContent);
+    }
+  });
+
+  // 全回归 09-15 O3（macOS Safari 真机）：早出的 offer 只在两次 acquire 之间（!inFlight）渲染 ——
+  // 2.7 s 有、下一次 acquire 起飞后没了、16.7 s 落定又出，一闪一闪，人去点时它可能刚好不在。
+  // 规约（interaction-spec §Offer）是「从第一次 acquire 失败起就出现在 ⏳ 字幕加载中… 那一行里」。
+  test('★ once shown, the early offer STAYS while the next acquire is in flight — no flicker (O3)', async () => {
+    for (const [after, failsBefore] of [[undefined, 1], [2, 2]]) {
+      const clock = { t: 1e12 };
+      let calls = 0;
+      const pending = new Promise(() => {});
+      const { ui, document } = loadHarness({ clock, spec: Object.assign({
+        acquire: () => { calls++; return calls <= failsBefore ? Promise.resolve(null) : pending; },
+        unavailableAction: () => ({ label: 'OFFER', onClick() {} }),
+      }, after ? { offerAfterAttempts: after } : {}) });
+      ui.init({}); ui.enable();
+      const zh = () => (document.getElementById('ov') || { querySelector: () => null }).querySelector('.t');
+      const hasBtn = () => !!zh() && zh().children.length === 1 && zh().children[0].textContent === 'OFFER';
+      const tag = after ? 'offerAfterAttempts:2' : 'podcast';
+      for (let i = 0; i < failsBefore; i++) { if (i) clock.t += 2600; ui.tick(); await flush(); }
+      ui.tick(); await flush();
+      ok(hasBtn(), `${tag}: offer shown after ${failsBefore} failed acquire(s)`);
+      clock.t += 2600; ui.tick(); await flush();
+      eq(calls, failsBefore + 1, `${tag}: the next acquire did start (and is still in flight)`);
+      ok(hasBtn(), `${tag}: offer must stay while the next acquire is in flight; got ${zh() ? zh().children.length : 'no notice'} buttons`);
+      ok(/字幕加载中|loading/i.test(zh().textContent), `${tag}: still the loading line: ` + zh().textContent);
     }
   });
 

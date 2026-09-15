@@ -64,7 +64,9 @@ var SubtitleAdapter = (() => {
     // sentence. Reset whenever the sentence changes; see the capture site in tick().
     let watchAcc = { key: '', ms: 0, done: false };
     let status = '';           // '' | 'loading' | 'ready' | 'unavailable' | 'streaming'
-    let inFlight = false, attempts = 0, nextAt = 0;
+    // failures：已落定的「这次没取到」次数（null / 超时 / 抛错）。早出的 offer 按它判，不按 !inFlight ——
+    // 否则下一次 acquire 一起飞 offer 就消失、落定又出，一闪一闪（全回归 09-15 O3）。
+    let inFlight = false, attempts = 0, nextAt = 0, failures = 0;
     // Every (re)start of acquisition bumps the epoch; an acquire that resolves after
     // the epoch moved (media changed, acquireVia took over) must not touch `status`.
     let acquireEpoch = 0;
@@ -459,7 +461,7 @@ var SubtitleAdapter = (() => {
         if (realChange) { abortStream('media'); asrAcquire = null; removeHistory(); }
         noticeMsg = ''; applyWindow(FILE_WINDOW);
         engine.setItems([]); engine.reset();
-        inFlight = false; attempts = 0; nextAt = 0; status = ''; clearOverlay(); acquireEpoch++;
+        inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; clearOverlay(); acquireEpoch++;
         if (spec.onMediaKeyChange) spec.onMediaKeyChange(); // backend resets its own acquire state
       }
 
@@ -482,10 +484,10 @@ var SubtitleAdapter = (() => {
           if (res === 'unavailable') { status = 'unavailable'; }
           else if (res === 'streaming') { if (status !== 'unavailable') status = 'streaming'; }
           else if (res && res.length) { engine.setItems(TranslationCore.mergeSentences(res)); status = 'ready'; }
-          else if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; }
-          else { nextAt = Date.now() + RESOLVE_RETRY_MS; }
+          else { failures++; if (attempts >= MAX_ATTEMPTS) status = 'unavailable'; else nextAt = Date.now() + RESOLVE_RETRY_MS; }
         }).catch(() => {
           if (epoch !== acquireEpoch) return;
+          failures++;
           if (attempts >= MAX_ATTEMPTS) status = 'unavailable';
           else nextAt = Date.now() + RESOLVE_RETRY_MS;
         }).finally(() => { if (epoch === acquireEpoch) inFlight = false; });
@@ -558,7 +560,8 @@ var SubtitleAdapter = (() => {
           // 2026-09-11：offer 从第一次 acquire 失败起就出现在「⏳ 字幕加载中…」这一行里（podcast 1 次，
           // YouTube 2 次 —— 前 3 s 有 grace）。此前要等 6–8 次重试 ≈ 15–20 s，多数人已经走了。
           // 落定后仍是「字幕不可用 + offer」（上一分支），规约不变。
-          const early = !inFlight && attempts >= (spec.offerAfterAttempts || 1) && spec.unavailableAction ? spec.unavailableAction() : null;
+          // 按已落定的失败次数判，下一次 acquire 在飞时 offer 也留在原处（全回归 09-15 O3：此前按 !inFlight 判，一闪一闪）。
+          const early = failures >= (spec.offerAfterAttempts || 1) && spec.unavailableAction ? spec.unavailableAction() : null;
           renderNotice(noticeMsg || TranslationCore.t('yt_subtitle_loading', '⏳ 字幕加载中…'), early);
         }
       }
@@ -703,7 +706,7 @@ var SubtitleAdapter = (() => {
     // ─── Public API ────────────────────────────────────────────────────
     function setActive(on) {
       active = on;
-      if (on) { lastKey = ''; inFlight = false; attempts = 0; nextAt = 0; status = ''; acquireEpoch++; }
+      if (on) { lastKey = ''; inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; acquireEpoch++; }
       // 用量事件：字幕会话开始，只记站点**类别**（youtube / substack / podcast / other），不记域名。
       if (on && (typeof MTTelemetry !== 'undefined')) {
         subOkSent = false; subSince = Date.now();
@@ -719,7 +722,7 @@ var SubtitleAdapter = (() => {
     function acquireVia(fn) {
       abortStream('restart');
       asrAcquire = fn; noticeMsg = '';
-      status = ''; attempts = 0; nextAt = 0; inFlight = false; acquireEpoch++;
+      status = ''; attempts = 0; failures = 0; nextAt = 0; inFlight = false; acquireEpoch++;
       engine.setItems([]); engine.reset(); clearOverlay();
       // With subtitles off, setActive's own tick sees the FIRST media key (not a change,
       // so the session registered above survives) and runs it. Found live: an earlier
