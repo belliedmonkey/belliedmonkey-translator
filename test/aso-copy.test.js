@@ -14,6 +14,7 @@
 const { describe, test, ok, eq } = require('./harness');
 const fs = require('fs');
 const path = require('path');
+const RED = require('./lib/copy-redlines');
 
 const MD = fs.readFileSync(path.join(__dirname, '..', 'store-assets', 'aso.md'), 'utf8');
 
@@ -42,6 +43,48 @@ const ASO = parseAso(MD);
 const GROUPS = Object.keys(ASO);
 
 describe('ASO 文案 — store-assets/aso.md', () => {
+  // 口径红线（2026-09-15，1.11.0 前审文案时补；来由见 test/lib/copy-redlines.js）。
+  // 只查面向读者的三个字段 —— keywords 是索引词，name 是品牌名，都不是陈述句。
+  const PROSE = ['subtitle', 'description', 'promotionalText'];
+
+  test('口径红线：不说「没有追踪 / 没有埋点」、不说不加限定的「完全免费」', () => {
+    for (const g of GROUPS) {
+      for (const f of PROSE) {
+        const v = ASO[g][f] || '';
+        const t = RED.firstHit(RED.NO_TRACKING, v);
+        ok(!t, `${g} · ${f} 说了「没有追踪」类绝对话（命中 ${t}）—— 我们发匿名用量事件，只能说清楚发什么、怎么关`);
+        const fr = RED.firstHit(RED.FULLY_FREE, v);
+        ok(!fr, `${g} · ${f} 说了不加限定的「完全免费」（命中 ${fr}）—— 自带 key 付服务商的钱，免费额度有上限`);
+      }
+    }
+  });
+
+  test('口径红线（国际版）：不说「翻译路径上没有我们的服务器」、不点名服务商', () => {
+    for (const g of GROUPS.filter((x) => x.startsWith('国际版'))) {
+      for (const f of PROSE) {
+        const v = ASO[g][f] || '';
+        const s = RED.firstHit(RED.NO_SERVER_OF_OURS, v);
+        ok(!s, `${g} · ${f} 说「路径上没有我们的服务器」（命中 ${s}）—— 免费额度经我们的中继，要按路径说`);
+        const b = v.match(RED.PROVIDER_BRANDS);
+        ok(!b, `${g} · ${f} 点名了服务商「${b && b[0]}」—— 注册表变了这里不会跟着变`);
+      }
+    }
+  });
+
+  // 1.11.0 起 App 的主打是这两个；1.8.0 上线的「对话 · 实时听译」在商店页上一个字都没出现过。
+  // 按语种查写法太脆，只钉住英文与中文三组（其余语种由人审）。
+  test('主打功能写进了描述：实时字幕 + 对话听译（en-US / zh-Hans ×2 / zh-Hant）', () => {
+    const MUST = {
+      '国际版·en-US': [/Live Subtitles/, /conversation/i],
+      '国际版·zh-Hans': [/实时字幕/, /对话/],
+      '国际版·zh-Hant': [/即時字幕/, /對話/],
+      '中国版·zh-Hans': [/实时字幕/, /对话/],
+    };
+    for (const [g, res] of Object.entries(MUST)) {
+      for (const re of res) ok(re.test((ASO[g] || {}).description || ''), `${g} · description 没写到 ${re}`);
+    }
+  });
+
   // 2026-08-30 从 3 组扩到 12 组：国际版补齐产品自己的 11 种语言（此前 ja/ko/de/fr/es/
   // ru/pt/ar/zh-Hant 的用户在商店页读英文，装完却是母语 App —— 决定要不要装的那一页
   // 是断的）。中国版只有 zh-Hans，那是它的储区决定的，不是漏了。
