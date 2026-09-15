@@ -2,13 +2,14 @@
 
 <p align="center">
   <b>Read the world's web — both languages at once. And actually remember it.</b><br>
-  Bilingual pages, plus dual subtitles for video and podcasts.<br>
+  Bilingual pages, dual subtitles for video and podcasts, and live subtitles for anything your Mac or iPhone plays.<br>
+  A live interpreter for face-to-face conversations, in the app.<br>
   Sentences you actually read become review cards — on your phone too, if you turn on sync.<br>
-  Bring your own LLM key. No server of ours in the translation path.
+  Bring your own LLM key, and no server of ours is in the translation path.
 </p>
 
 <p align="center">
-BelliedMonkey Translator is a free, open-source (GPL-3.0) browser extension for Safari on iPhone, iPad and Mac, and for Chrome and Firefox. It shows web pages and video subtitles in two languages at once, turns the sentences you actually read into spaced-repetition review cards, and works with your own AI key — or with a free channel that needs none. No subscription, no account required.
+BelliedMonkey Translator is a free, open-source (GPL-3.0) app and browser extension for Safari on iPhone, iPad and Mac, and for Chrome and Firefox. It shows web pages and video subtitles in two languages at once; the app adds Live Subtitles for whatever your Mac or iPhone is playing, and a live interpreter for conversations. It turns the sentences you actually read into spaced-repetition review cards, and works with your own AI key — or with a free channel that needs none. No subscription, no account required.
 </p>
 
 <p align="center">
@@ -43,7 +44,7 @@ Install from a store — building from source is for contributors, not for using
 
 | Platform | |
 |---|---|
-| **iPhone · iPad · Mac** (Safari) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three |
+| **iPhone · iPad · Mac** (app + Safari extension) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three; iOS 16.4 / macOS 13.3 or later |
 | **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip); steps below |
 | **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
@@ -111,6 +112,8 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 At a glance:
 
 - **Bilingual web pages** — the original stays in place, the translation appears directly beneath it
+- **Live Subtitles (app)** — bilingual subtitles for whatever your device is playing. On Mac, a floating bar above every window, full-screen video included (macOS 14.4 or later); on iPhone, a picture-in-picture window over any app, from what plays through the speaker
+- **Conversation · live interpreter (app)** — both people speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 / macOS 26 speech can be recognised on the device (no audio leaves it), with only the text sent to your translation engine, and read aloud by an offline voice model
 - **Dual subtitles** for YouTube, x.com video and podcasts, merged into whole sentences and translated ahead of the playhead
 - **AI transcript subtitles** for media that has no captions at all, using your own transcription key (nothing is transcribed unless you tap the button)
 - **Review cards** from the sentences you actually read — spaced repetition with read / listen / write tiers; off by default
@@ -118,9 +121,7 @@ At a glance:
 - **No account required**; multi-device sync is optional; only anonymous usage events, and one switch turns them off
 - **Safari on iPhone, iPad and Mac, Chrome and Firefox** — one codebase, six store surfaces
 - **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
-- **On-device conversation mode** — on iOS 26 / macOS 26 the app can recognise speech on the device (no audio leaves it), send only the text to your translation engine for correction + translation, and read the result with an offline voice model
 - **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
-- **Live Subtitles (Mac app)** — bilingual subtitles for whatever your Mac is playing (YouTube, Twitch, a meeting) in a floating bar that stays above every window, full-screen video included; macOS 14.4 or later
 
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
@@ -223,13 +224,16 @@ Stated up front, because finding them yourself is worse.
 
 - **iOS has no subtitles in video fullscreen.** iOS hands fullscreen playback to the system's
   native player, which a web overlay cannot draw on. On iPhone and iPad, subtitles are an
-  inline-playback feature. This is a platform boundary, not a to-do.
+  inline-playback feature. This is a platform boundary, not a to-do. On iPhone the way around
+  it is the app's **Live Subtitles**: it listens to what plays through the speaker and shows
+  subtitles in a picture-in-picture window over any app.
 - **The extension never transcribes on its own.** If a video or podcast has no existing timed
   transcript, you get an honest `字幕不可用` notice and the page-text translation as the floor —
   never a word-by-word guess. With a transcription engine of your own configured, you can tap
   to transcribe: file mode works everywhere; live capture from the page works in Chrome and
   Firefox, and in Safari only for directly readable audio — Safari hands extensions silence for
-  streaming video such as YouTube, Twitch and X. No server of ours ever touches the audio.
+  streaming video such as YouTube, Twitch and X. For those, use the app's **Live Subtitles**
+  (Mac: system audio; iPhone: the speaker). With your own key, no server of ours touches the audio.
 - **x.com video usually has no caption track.** Captions on X are typically *burned into the
   video image*, which no translator can read. Of four candidate videos sampled while
   preparing demo material, three had burned-in captions and one had none — only a long-form
@@ -263,7 +267,7 @@ Stated up front, because finding them yourself is worse.
 - **Document translation (optional).** The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
 - **Live Subtitles (optional, app only).** Only after you tap "Start", the app listens to the sound this device is playing (on a Mac, the system audio). The audio is recognised on your device or sent only to the transcription endpoint you configured; nothing is recorded or saved, and it never passes through our servers. Recognised text stays in your review only while "Add subtitles to review" is on.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
-- **No tracking, no third-party analytics — and no account unless you want one.** Syncing your
+- **No ad tracking, no third-party analytics — and no account unless you want one.** Syncing your
   learning material between your own devices needs a free account; everything else works without one.
 - **Anonymous usage events, off in one switch.** The extension sends which features are used, on
   which browser, and whether a translation succeeded or failed — never the pages you read, the
@@ -388,7 +392,7 @@ The extension and the apps are free with no ads, no paid tier and no in-app purc
 <details>
 <summary><b>What data leaves my device?</b></summary>
 
-With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no tracking; the only thing collected is anonymous usage events (which features you used, never page content), and one switch turns them off. See [Privacy](#privacy).
+With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no ad tracking; the only thing collected is anonymous usage events (which features you used, never page content), and one switch turns them off. See [Privacy](#privacy).
 </details>
 
 <details>
