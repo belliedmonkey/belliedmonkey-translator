@@ -315,11 +315,19 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const strings = code(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"labels"', '"state"', '"controls"', '"menu"', '"fontScale"', '"opacity"', '"clickThrough"',
       '"orig"', '"tr"', '"partial"', '"pct"',
-      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"',
       '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
       '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
       '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);
     for (const lit of strings) ok(allowed.has(lit), `字幕条里出现了非协议字符串（可能是文案）：${lit}`);
+  });
+  test('静音门暂停且没听到过声音（silence-permission）：行内出口是「打开系统设置」，不是「继续」（决定 10 修订二补 O2）', () => {
+    const body = code(tpl);
+    const m = /if ([^{]*)\{\s*let title = controlLabels\["openSettings"\]/.exec(body);
+    ok(m && /state == "silence-permission"/.test(m[1]), '打开系统设置那一支的条件里有 silence-permission');
+    const r = /\} else if ([^{]*)\{\s*let title = controlLabels\["resume"\]/.exec(body);
+    ok(r && !/silence-permission/.test(r[1]), '「继续」那一支不含 silence-permission');
+    ok(!/private var listening: Bool \{[^}]*silence-permission/.test(body), 'silence-permission 是停下的态，不算在听（悬停控件显示「继续」）');
   });
   test('条上按钮发的命令，listen.js 都认（§9.8 协议补充决定 9）', () => {
     const listen = fs.readFileSync(path.join(R, 'app', 'listen.js'), 'utf8');

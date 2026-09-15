@@ -3021,5 +3021,8 @@
   },
   "subtitle_stop_silence_permission": {
     "message": "No sound for 30 seconds — paused. If the video was playing but no subtitles appeared, system audio recording may not be allowed: go to System Settings › Privacy & Security › Screen & System Audio Recording, allow BelliedMonkey Translator, then tap “Resume”."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "No sound for 30 seconds — paused. Video playing but no subtitles? System audio recording may not be allowed"
   }
 }

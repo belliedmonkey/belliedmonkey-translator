@@ -268,8 +268,9 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         stateLabel.stringValue = text
         stateRow.isHidden = !showState
 
-        // 行内出口：拒绝 / 还没听到系统声音（不中断，决定 10 修订二）⇒ 打开系统设置；停下 ⇒ 继续（不自动恢复）
-        if state == "denied" || state == "silent" {
+        // 行内出口：拒绝 / 还没听到系统声音（不中断，决定 10 修订二）/ 没听到过声音就静音暂停（O2）⇒ 打开系统设置；
+        // 停下 ⇒ 继续（不自动恢复）。silence-permission 的「继续」在悬停控件的切换钮上
+        if state == "denied" || state == "silent" || state == "silence-permission" {
             let title = controlLabels["openSettings"] ?? ""
             setTitle(actionButton, title, size: 13 * fontScale)
             actionButton.action = #selector(tapOpenSettings)
