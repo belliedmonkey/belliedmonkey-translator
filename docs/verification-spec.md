@@ -1177,7 +1177,7 @@ M 表要同步加这两行，编号在此钉住：
 | **M27** | 悬浮条层级与焦点 | 条盖在全屏 Safari 视频与全屏 Zoom 上；点条后按空格；拖到别处后重启 App | 条始终在最上层；空格仍暂停视频（焦点没被抢）；位置、宽度、字号还在 |
 | **M28** | Mac 关主窗口不停 | 会话中关主窗口 10 min，`afplay` 循环 | 定稿与译文节奏与窗口可见时相差 ≤ 20%（`AppListen._debug().lat`）；点 Dock 回来历史完整 |
 | **M29** | Mac 系统版本门 | macOS 13.x（虚拟机） | 入口灰 +「系统声音字幕需要 macOS 14.4 或更新」 |
-| **M30** | 系统录音权限被拒 | 首次弹窗点「不允许」，然后放视频 | HAL 返回（点「不允许」后约 15 s，M30 读数）再过约 3 s —— 即点完约 18 s 内 —— 条上出不中断提示「还没听到系统声音 — …可能没开系统录音权限」+「打开系统设置」，会话**不停**；30 s 后静音门暂停，暂停句指向权限（2026-09-15 修订二） |
+| **M30** | 系统录音权限被拒 | 首次弹窗点「不允许」，然后放视频（或：系统设置 › 屏幕与系统录音 › 仅系统录音 关掉「大肚猴翻译」再开始 —— 09-15 两次 `tccutil reset` 后点弹框都被 TCC 记成允许，关开关才稳定造出拒绝；TCC 读回 `auth_value=0`） | HAL 返回（点「不允许」后约 15 s，M30 读数；关开关时立即返回）再过约 3 s，条上出不中断提示「还没听到系统声音 — …可能没开系统录音权限」+「打开系统设置」，会话**不停**；30 s 后静音门暂停，页面暂停句**与条上**都指向权限：条上「30 秒没有声音，已暂停 — …可能没开系统录音权限」+「打开系统设置」（2026-09-15 修订二 + O2） |
 | **M30b** | 已授权但开始瞬间静音（F13） | 权限已给；某 App 开着输出但不出声（`pmset -g assertions` 有 audio-out）→ 开始 → 10 s 后再 `afplay conv.wav` | 开始后**不出现「被拒」、不停会话**；可以出「还没听到系统声音」提示；放声后 ≤ 3 s 提示撤掉、出双语定稿 |
 | **M31** | iPhone 后台听外放 | App 开始 → 切 Safari 外放 lab-server 页的 `conv.wav`，再放一个 YouTube 视频，再换 Chrome 与 YouTube App 各放 1 min，共 5 min（先退出 iPhone 镜像） | 三个 App 都不被暂停、音量前后 ±3 dB（Mac 麦克风测）；定稿持续；画中画小窗离开 App 自动浮出、随句滚动、捏合放大后可读；**国际版 + 中国版**各一遍 |
 | **M32** | iPhone 屏幕录制 + 耳机（二期） | App「用屏幕录制方式开始」→ Safari 播 YouTube，戴 AirPods 10 min；另测未在 App 里开始就直接录制 | 定稿持续；广播扩展内存峰值 < 25 MB；未布防 ⇒ 立即结束并显示那句话 |
@@ -1437,7 +1437,7 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 - 语料 `anchor.k === 'conv'` 且 `anchor.mode === 'subtitle'`，来源标题「实时字幕 · 日期」；
 - 原生先回 `mic-state {state:'waiting', reason:'waiting-permission'}`（Mac 系统录音权限框还没点，§9.8 协议补充决定 10）⇒
   页面停在准备中、页面上说「等待系统授权」、字幕条收到 `subtitle-state waiting-permission`；随后 `granted` ⇒ listening；
-- 原生发 `mic-state {state:'silent', reason:'zero-frames'}`（修订二）⇒ phase **仍是 listening**、页面出不中断的「还没听到系统声音」提示、桥收到 `subtitle-state {state:'silent'}`；随后 `mic-state {state:'sound'}` ⇒ 提示撤掉、桥收到 `subtitle-state {state:'listening'}`；`silent` 之后没有 `sound` 就到了 30 秒静音门 ⇒ 暂停句是指向权限的那句；
+- 原生发 `mic-state {state:'silent', reason:'zero-frames'}`（修订二）⇒ phase **仍是 listening**、页面出不中断的「还没听到系统声音」提示、桥收到 `subtitle-state {state:'silent'}`；随后 `mic-state {state:'sound'}` ⇒ 提示撤掉、桥收到 `subtitle-state {state:'listening'}`；`silent` 之后没有 `sound` 就到了 30 秒静音门 ⇒ 暂停句是指向权限的那句，且桥收到 `subtitle-state {state:'silence-permission'}`（不是 `silence`）、`labels.state` 里有 `silence-permission`；听到过声音再到静音门 ⇒ 照旧 `silence`（O2）；
 - 原生发 `remote {command:'font-up'}`（字幕条 A+，协议补充决定 9）⇒ `subtitleFontScale` 落盘为 1.2、桥收到恰好一条
   `subtitle-config {fontScale: 1.2}`；
 - 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
@@ -2503,4 +2503,7 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | **F-bis 14 Pro 真机** | R17 设置页外链（#256） | ✅ 国际版「还没有 key？去 … 申请」、中国版「去开通 ↗」手点都跳到 Safari（模拟器脚本点击不算 linkActivated，是工具限制） |
 | **G macOS App** | M26 系统声音 | ✅ 先 `afplay conv.wav` 再开始：本机转写 5 句 + DeepSeek 译文全对，悬浮字幕条随状态显示、30 秒静音自动暂停 |
 | **G macOS App** | F13（产品缺陷） | ❌ 权限已给、开始瞬间静音且有进程开着输出 ⇒ 3 秒内误判 `denied/zero-frames`。修法见 learning-design §9.8 协议补充决定 10 修订二、本表 M30 / M30b |
+| **G macOS App** | M30b（09-15 07:4x，#272 验证包） | ✅ `afplay` 静音文件占着输出 → 开始：+3.0 s `silent`、页面与条出「还没听到系统声音」+「打开系统设置」，没有 `denied`、会话不停 → 放 `conv.wav` 后 148 ms 收到 `sound`、1.2 s 内提示撤掉 → 双语定稿 |
+| **G macOS App** | M30（09-15 07:5x，同一验证包） | ✅（拒绝用系统设置开关造）两次 `tccutil reset` + 用户点弹框都被 TCC 记成 `auth_value=2 / auth_reason=2`、声音照常进来，测不到拒绝；用户关掉「仅系统录音」开关（读回 `auth_value=0`）后：HAL 152 ms 返回、+3.0 s `silent` 不中断提示 + 条上「打开系统设置」、会话不停 → +30.7 s 静音门暂停，页面暂停句指向权限 |
+| **G macOS App** | O2（观察 → 用户裁定改） | 同一次 M30 暂停时，底部字幕条仍是通用的「30 秒没有声音，已暂停以免计费 · 继续」，不提权限；全屏看视频只看得见条。修法见 learning-design §9.8 决定 10 修订二「补（O2）」：条上改发 `silence-permission` |
 | **C macOS Safari** | F12（待修） | ❌ transistor 播客页一直「字幕加载中」、不出文件档 offer：取字幕那一步（fetch 头之后读正文、或跨域请求挂着）没有总上限 ⇒ 另开修复 PR |
