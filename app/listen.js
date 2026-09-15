@@ -396,6 +396,8 @@ var AppListen = (() => {
   // 原生零文案：半句与定稿走 subtitle-show，停机态走 subtitle-state，每个态的字在 subtitle-config 里。
   function subOn() { return !!(session && session.mode === 'subtitle' && bridged()); }
   let pipWindow = '';            // iPhone 画中画小窗状态：inline / floating / closed（subtitle-window，协议补充决定 19）
+  // closed 的原因：**空 = 用户点了小窗上的 ✕**（⇒ 暂停听，19 修订）；failed / not-active = 根本没浮出来（⇒ 出「浮出字幕窗」）
+  let pipReason = '';
   let subPartialShown = false;   // 条上此刻是不是一个半句（停下时要清掉，否则「粗加工。…」一直挂着 —— 真机读数 2026-09-14）
   function subShow(orig, tr, isPartial) { if (subOn()) { subPartialShown = !!isPartial; NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); } }
   function subFinal(row) {
@@ -441,7 +443,8 @@ var AppListen = (() => {
     NativeAudio.subtitleFloat(rect);
   }
   function pipRectOn() {
-    if (!pipHost() || pipOff) return;
+    if (!pipHost()) return;
+    pipRectOff();   // 重入安全：✕ 暂停后点「继续」会再调一次，别叠第二份监听
     let timer = 0;
     const later = () => { if (timer) return; timer = setTimeout(() => { timer = 0; pipSendRect(); }, 120); };
     const el = $('app-subs-pip');
@@ -456,7 +459,8 @@ var AppListen = (() => {
   function pipRectOff() { if (pipOff) { pipOff(); pipOff = null; } pipLastRect = ''; }
   function paintPipFloat() {
     const b = $('app-subs-float'); if (!b) return;
-    b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed');
+    // 只有**小窗没浮出来**（failed / not-active）才给这个按钮；用户自己 ✕ 关掉的那次是暂停，回来的路是主按钮「继续」
+    b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed' && !!pipReason);
   }
   // 预览占位块上的一句话：开始前 / 结束后原生预览不在（会话中它盖在这句上面）——不是一块莫名其妙的黑（用户 2026-09-14 手测）
   function paintPipNote() {
@@ -677,6 +681,8 @@ var AppListen = (() => {
     pauseReason = '';
     note('');
     C.resume(session, now());
+    // 恢复听 ⇒ 预览矩形重新发给原生（✕ 暂停时发过 rect:null 收起预览），之后离开 App 照旧自动浮出（19 修订）
+    if (bridged() && session && session.mode === 'subtitle') pipRectOn();
     // 本机路：先探（旧系统 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
     if (deviceEngine(cfg.eng)) {
       if (!deviceBridge()) { halt('device', 'no-bridge'); return; }
@@ -785,7 +791,7 @@ var AppListen = (() => {
     phase = 'ended';
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
-    pipRectOff(); pipWindow = ''; paintPipFloat();
+    pipRectOff(); pipWindow = ''; pipReason = ''; paintPipFloat();
     if (bridged()) { if (session.mode === 'subtitle') NativeAudio.subtitleHide(); NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
@@ -1046,7 +1052,17 @@ var AppListen = (() => {
   }
   function onNative(msg) {
     if (!msg || $('app-listen').hidden || !session) return;
-    if (msg.type === 'subtitle-window') { pipWindow = String(msg.state || ''); paintPipFloat(); return; }
+    if (msg.type === 'subtitle-window') {
+      pipWindow = String(msg.state || ''); pipReason = String(msg.reason || '');
+      // ✕ 关掉小窗 = 暂停听（§9.8 协议补充决定（三）19 修订，2026-09-15 用户裁定）：关掉后屏幕上一个字都看不到，
+      // 麦克风却还在听、云端转写还在计费。不带 reason 的 closed 才是用户关的；failed / not-active 不暂停。
+      // 一并发 rect:null 收起预览：不然离开 App 时，刚被关掉的窗又自动浮出来。
+      if (pipWindow === 'closed' && !pipReason && phase === 'listening') {
+        pipRectOff(); NativeAudio.subtitleFloat(null); pause('user');
+      }
+      paintPipFloat();
+      return;
+    }
     if (msg.type === 'remote') {
       if (msg.command === 'pause') { if (phase === 'listening') pause('user'); }
       else if (msg.command === 'play') { if (phase === 'paused' || phase === 'halted') resumeByUser(); }
@@ -1399,7 +1415,7 @@ var AppListen = (() => {
   }
 
   return { wire, open, leave, start, pause, resume, end, refreshEntry,
-    _debug: () => ({ mode, subsReason, pipWindow, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+    _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }) };
