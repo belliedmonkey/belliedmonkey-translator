@@ -177,6 +177,24 @@ Window ▸ Point Accurate       选上  ⇒ 按设备点数渲染，放大倍数
 得到窗口 414×948 点 ⇒ `cap` 录到 **828×1896** 物理像素（含 104px 标题栏）
 ⇒ `crop=828:1792:0:104` 去掉标题栏 ⇒ 缩到 886×1920，**只放大 1.07 倍**，几乎无损。
 
+### iOS：真机 USB 录屏（模拟器拍不到的东西 —— 画中画、麦克风听外放）
+
+1.11.0 实时字幕那一帧与 `{zh,en}-ios.mp4` 是 14 Pro 真机拍的（2026-09-16）。
+配方：`store-assets/src/compose-preview-ios.sh`（合成）+ `preview-card.html?size=ios`（竖版题卡）。
+
+- **录法**：命令行程序置 CMIO `kCMIOHardwarePropertyAllowScreenCaptureDevices = 1`，
+  AVFoundation 里出现 `modelID == "iOS Device"` 的设备（1180×2556 · 60fps，与 886×1920 同宽高比）。
+  权限记在**终端宿主**的「相机」上，首次弹框要人点。别按名字挑 —— 「“XX的iPhone”的相机」是连续互通相机。
+- **会断段**：XCUITest 起 UI 自动化那一刻 `AVCaptureMovieFileOutput` 以「达到最大长度」收尾，要断了接着录下一段。
+- **录屏一开，手机扬声器就静音**（声音转给 Mac；只接视频端口也一样）⇒ 靠麦克风听外放的功能听不到手机上的视频。
+  解：Mac 扬声器 `afplay` 同一条音轨；成片对白也用那条音轨，按「录屏段起点 epoch」与「外放起点 epoch」对齐。
+- **Safari 缓存 mp4 就不发 Range**，拿「开播请求」当外放触发会等空 ⇒ 测试页的视频地址带每次不同的 `?v=`。
+- **`devicectl device info processes` 列的是可执行文件路径，不是 bundle id** —— 按 bundle id grep 等于从没结束过任何进程；
+  两个 flavor 的调试包同时开着会抢同一个控制口。按路径结束，并回读控制口答话的是哪个 flavor。
+- **画中画的 ⏸ ⏪⏩ 控件在 iOS 26 上全程挂着**（sampleBufferDisplayLayer 来源；不是 UI 自动化、不是 invalidatePlaybackState、
+  不是缺 timebase、直播形状也一样 —— 四轮真机证伪），公开 API 隐藏不了。素材按现状拍，挑字幕句子最完整的帧。
+- 状态栏在 USB 采集期间自动变成 9:41 满格，不用另外处理。
+
 ### macOS：一比一，不缩放
 
 Safari 窗口设成 **1280×800 点** ⇒ `cap` 录到 2560×1600 ⇒ 正好是 `DESKTOP` 规格，

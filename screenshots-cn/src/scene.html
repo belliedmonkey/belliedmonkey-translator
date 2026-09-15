@@ -87,7 +87,8 @@ const DOCS = portrait ? (W >= 1500 ? '../../store-assets/src/assets/zh-tablet-do
 const APP = { '6': 'subs', '7': 'listen' };
 const appShot = (k) => `assets/cn-${portrait ? (W >= 1500 ? 'tablet' : 'phone') : 'desk'}-${k}.png`;
 // 帧 6 的 Mac 画布放中国版调试包真机拍的「视频 + 悬浮字幕条」合成图（cn-desk-subsbar）
-if (APP[f]) stage.innerHTML = portrait ? (W >= 1500 ? tablet(appShot(APP[f])) : phone(appShot(APP[f]))) : mac(appShot(f === '6' ? 'subsbar' : APP[f]));
+// 帧 6 的手机画布放中国版调试包 14 Pro 真机 USB 录屏抽的帧「Safari 测试页 + 画中画字幕窗」（cn-phone-subspip）
+if (APP[f]) stage.innerHTML = portrait ? (W >= 1500 ? tablet(appShot(APP[f])) : phone(appShot(f === '6' ? 'subspip' : APP[f]))) : mac(appShot(f === '6' ? 'subsbar' : APP[f]));
 else if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
 else if (f === '5') stage.innerHTML = portrait ? (W >= 1500 ? tablet(DOCS) : phone(DOCS)) : mac(DOCS);
 else if (portrait && W >= 1500) stage.innerHTML = tablet(TAB[f]);

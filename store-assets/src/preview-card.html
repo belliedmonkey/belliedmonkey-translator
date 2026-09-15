@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- Mac 预览视频（App Preview · DESKTOP 2560×1600）的题卡。preview-card.html?t=subs|talk|end&lang=zh|en
+<!-- App Preview 视频的题卡。preview-card.html?t=subs|talk|end&lang=zh|en[&size=ios]
+     默认 Mac（DESKTOP 2560×1600）；size=ios 出 iPhone 竖版（886×1920），字幕题卡的副标题换成画中画。
      配色与商店截图同源（陶土 / 奶油），不画任何产品界面 —— 界面全部来自真机录屏。 -->
 <html>
 <head>
@@ -17,6 +18,12 @@
   .logo { width: 220px; height: 220px; margin-bottom: 60px; }
   .brand { font-size: 110px; font-weight: 800; }
   .accent { color: #c67139; }
+  html.ios, html.ios body { width: 886px; height: 1920px; }
+  html.ios body { padding: 0 64px; }
+  html.ios .big { font-size: 84px; }
+  html.ios .sub { font-size: 40px; margin-top: 44px; line-height: 1.4; }
+  html.ios .logo { width: 180px; height: 180px; margin-bottom: 48px; }
+  html.ios .brand { font-size: 60px; line-height: 1.25; }
 </style>
 </head>
 <body>
@@ -24,17 +31,20 @@
 <script>
 const q = new URLSearchParams(location.search);
 const t = q.get('t') || 'subs', lang = q.get('lang') === 'zh' ? 'zh' : 'en';
+const ios = q.get('size') === 'ios';
+if (ios) document.documentElement.classList.add('ios');
 const logo = '<img class="logo" src="../../extension/icons/icon.svg" alt="">';
 const C = {
   zh: {
-    subs: '<div class="big">任何 App 的声音<br><span class="accent">都有双语字幕</span></div><div class="sub">Mac 上是悬浮字幕条</div>',
+    subs: '<div class="big">任何 App 的声音<br><span class="accent">都有双语字幕</span></div><div class="sub">' + (ios ? 'iPhone 上是画中画字幕窗' : 'Mac 上是悬浮字幕条') + '</div>',
     talk: '<div class="big">面对面<br><span class="accent">实时听译</span></div><div class="sub">两个人自由说话，每句自动转写、翻译</div>',
-    end: logo + '<div class="brand">大肚猴翻译</div><div class="sub">网页双语 · 实时字幕 · 对话听译 · 文档翻译</div>',
+    // 竖版窄：四样拆两行，不让最后一个字单独掉到下一行
+    end: logo + '<div class="brand">大肚猴翻译</div><div class="sub">网页双语 · 实时字幕' + (ios ? '<br>' : ' · ') + '对话听译 · 文档翻译</div>',
   },
   en: {
-    subs: '<div class="big">Live subtitles<br><span class="accent">for any app</span></div><div class="sub">A floating subtitle bar on Mac</div>',
+    subs: '<div class="big">Live subtitles<br><span class="accent">for any app</span></div><div class="sub">' + (ios ? 'Picture in Picture on iPhone' : 'A floating subtitle bar on Mac') + '</div>',
     talk: '<div class="big">Face to face,<br><span class="accent">translated live</span></div><div class="sub">Both of you speak freely — every sentence transcribed and translated</div>',
-    end: logo + '<div class="brand">BelliedMonkey Translator</div><div class="sub">Bilingual web · Live Subtitles · Conversation · Documents</div>',
+    end: logo + '<div class="brand">BelliedMonkey Translator</div><div class="sub">Bilingual web · Live Subtitles' + (ios ? '<br>' : ' · ') + 'Conversation · Documents</div>',
   },
 }[lang];
 document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
