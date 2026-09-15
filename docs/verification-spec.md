@@ -1444,8 +1444,11 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 
 - **iPhone 一期（H9，2026-09-14，§9.8 协议补充决定（三））**：假桥改回 `audio-caps {system:'unsupported'}` ⇒ 准备页「现在」卡换成
   小窗预览占位、隐私句与提示是 iPhone 版；开始 ⇒ `record-mode.profile === 'subtitle'`、`mic-start` **不带** `source`（麦克风）、
-  页面发 `subtitle-float {rect}`（占位块矩形，宽高 > 0）；原生报 `subtitle-window {state:'closed'}` ⇒ 出「浮出字幕窗」，
-  点它 ⇒ 一条不带 `rect` 的 `subtitle-float`；`floating` ⇒ 按钮藏起；`remote end` ⇒ `subtitle-hide`、按钮藏起。
+  页面发 `subtitle-float {rect}`（占位块矩形，宽高 > 0）；原生报 `subtitle-window {state:'closed', reason:'not-active'}` ⇒ 出「浮出字幕窗」、
+  **不暂停**，点它 ⇒ 一条不带 `rect` 的 `subtitle-float`；`floating` ⇒ 按钮藏起；`remote end` ⇒ `subtitle-hide`、按钮藏起。
+  **✕ 关窗（2026-09-15 修订，§9.8 协议补充决定（三）19）**：正在听时原生报**不带 `reason`** 的 `subtitle-window {state:'closed'}` ⇒
+  phase 变 `paused`、`pauseReason === 'user'`、桥收到 `mic-stop` 与 `subtitle-float {rect: null}`、页面主按钮是「继续」、**不出小结**；
+  点「继续」⇒ phase 回 `listening`、桥收到 `mic-start` 与一条带 `rect` 的 `subtitle-float`。
 
 字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。
 
