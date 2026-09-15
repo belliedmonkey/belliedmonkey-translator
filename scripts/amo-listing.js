@@ -5,6 +5,8 @@
 // 用法：
 //   node scripts/amo-listing.js            # 干运行：逐 locale 打印「一致 / 将写入」
 //   node scripts/amo-listing.js --apply    # 真写（对外动作，必须显式给）
+//   node scripts/amo-listing.js --previews           # 预览图干运行：线上几张 → 换成哪几张、什么顺序
+//   node scripts/amo-listing.js --previews --apply   # 真换预览图（先传新图再删旧图，回读核张数与顺序）
 //
 // 同 asc.js 的分档：默认什么都不做，且**干运行本身就是校验器** —— 全部打印
 // 「一致，无需改动」就等于线上与仓库同步。
@@ -70,6 +72,62 @@ function visible(html) {
     .trim();
 }
 
+// ── 预览图（--previews）────────────────────────────────────────────────────
+// 线上预览图换成仓库里渲染的 1280×800 web 帧，顺序与 App Store 一致 —— 直接读
+// scripts/asc-media.js 的 ORDER_GLOBAL，不再抄一份顺序（抄的那份就是下一次漂移）。
+// AMO 的预览图不分语种，一套英文图。
+//
+// 先传新图、再删旧图：中途失败时商店页上最多是新旧都在，而不是一张图都没有。
+// 2026-09-15 读到的线上状态：6 张、没有说明文字、两张都是 position 0 —— 顺序本来就是乱的，
+// 所以回读除了张数与 id，还要核顺序。
+function previewFiles() {
+  const src = fs.readFileSync(path.join(ROOT, 'scripts', 'asc-media.js'), 'utf8');
+  const m = src.match(/const ORDER_GLOBAL = \[([^\]]*)\]/);
+  if (!m) { console.error('✗ scripts/asc-media.js 里找不到 ORDER_GLOBAL'); process.exit(1); }
+  return m[1].split(',').map((s) => path.join(ROOT, 'store-assets', `en-web-${s.trim()}.png`));
+}
+
+async function previews(apply, id, get) {
+  const files = previewFiles();
+  const missing = files.filter((f) => !fs.existsSync(f));
+  if (missing.length) { console.error('✗ 缺预览图（先跑 store-assets/src/render.sh）：' + missing.map((f) => path.basename(f)).join(', ')); process.exit(1); }
+  const before = await get();
+  const old = before.previews || [];
+  console.log(`\nAMO ${before.slug || id} · previews`);
+  console.log(`  线上 ${old.length} 张 → 换成仓库 ${files.length} 张（顺序同 App Store）`);
+  files.forEach((f, i) => console.log(`    ${i}  ${path.basename(f)}`));
+  if (!apply) { console.log('\n（干运行。加 --apply 才真换）'); return; }
+
+  const created = [];
+  for (let i = 0; i < files.length; i++) {
+    const fd = new FormData();
+    fd.append('image', new Blob([fs.readFileSync(files[i])], { type: 'image/png' }), path.basename(files[i]));
+    fd.append('position', String(i));
+    const r = await fetch(`${API}/addons/addon/${id}/previews/`, { method: 'POST', headers: { Authorization: 'JWT ' + jwt() }, body: fd });
+    const txt = await r.text();
+    if (!r.ok) {
+      console.error(`\n✗ 传 ${path.basename(files[i])} 失败 ${r.status}: ${txt.slice(0, 300)}（已传 ${created.length} 张，旧图一张没删）`);
+      process.exit(1);
+    }
+    created.push(JSON.parse(txt).id);
+    process.stdout.write('.');
+  }
+  console.log(` 新图 ${created.length} 张已传`);
+  for (const p of old) {
+    const r = await fetch(`${API}/addons/addon/${id}/previews/${p.id}/`, { method: 'DELETE', headers: { Authorization: 'JWT ' + jwt() } });
+    if (!r.ok && r.status !== 404) { console.error(`\n✗ 删旧图 ${p.id} 失败 ${r.status}（新图都在，线上此时新旧并存）`); process.exit(1); }
+  }
+
+  // 回读：张数、id 集合、顺序。POST 返回 201 不是判据（同 ASC 的 204）。
+  const after = (await get()).previews || [];
+  const ordered = [...after].sort((a, b) => a.position - b.position).map((p) => p.id);
+  if (JSON.stringify(ordered) !== JSON.stringify(created)) {
+    console.error(`\n✗ 回读不符：线上 ${after.length} 张、按 position 排是 ${JSON.stringify(ordered)}，应为 ${JSON.stringify(created)}`);
+    process.exit(1);
+  }
+  console.log(`\n✓ 预览图已换并回读确认：${after.length} 张，顺序同 App Store`);
+}
+
 async function main() {
   const apply = process.argv.includes('--apply');
   const id = slot('amo_addon_id');
@@ -85,6 +143,7 @@ async function main() {
     if (!r.ok) { console.error(`✗ GET ${r.status}: ${(await r.text()).slice(0, 300)}`); process.exit(1); }
     return r.json();
   };
+  if (process.argv.includes('--previews')) { await previews(apply, id, get); return; }
 
   // AMO 的 PATCH 会把 HTML **转义成文字**：写 `<a href>` 进去，商店页上显示的就是
   // 标签本身。所以文案里一个标签都不该有 —— 裸网址由 AMO 自己 linkify。

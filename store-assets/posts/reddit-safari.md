@@ -14,7 +14,10 @@
 
 Developer here. This is a Safari extension (one App Store listing covers iPhone, iPad and
 Mac) that translates a page without replacing it: each paragraph keeps its original, with the
-translation right beneath in a distinct color. YouTube gets dual subtitles the same way.
+translation right beneath in a distinct color. YouTube gets dual subtitles the same way. The
+app that carries the extension now also does Live Subtitles — bilingual subtitles for whatever
+the device plays, as a picture-in-picture window on iPhone or a floating bar on Mac — and a live
+conversation interpreter.
 
 Why I made it instead of using what's out there: the existing options on iOS are subscriptions
 that route the page text through their own servers. This one is GPL open source, has no
@@ -30,6 +33,8 @@ Safari-iOS specifics people here may care about:
   behavior), so everything runs from the content script — it keeps working after you unlock.
 - YouTube's caption endpoint is token-gated on iOS. We don't fight it: YouTube fetches its own
   captions, we read the URL back from the Resource Timing API. No word-by-word fallback.
+- Safari hands extensions silence for YouTube's audio, so transcribing inside the page can't
+  work there. That's why Live Subtitles lives in the app and listens to the device's sound.
 - Optional learning mode: sentences you actually read become review cards. Off by default.
 
 App Store: https://apps.apple.com/app/belliedmonkey-translator/id6787190032
