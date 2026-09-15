@@ -53,6 +53,9 @@ const COPY = {
   3: ['读过的句子，自动变成复习卡', '快速滚过的不算——只留下你真正读过的'],
   4: ['收什么、怎么学，你说了算', '按语言筛选 · 按来源管理 · 一键导出，随时清空'],
   5: ['整份文档也能翻', 'PDF、Word、图片 —— 打开一页翻一页，译文可收进复习'],
+  // 6 / 7：1.11 的 App 功能，原料是 dist-app-china 的实拍（capture-app.js）。
+  6: ['任何 App 的声音，都有双语字幕', 'Mac 上是悬浮字幕条，iPhone 上是画中画字幕窗'],
+  7: ['面对面，实时听译', '两个人自由说话，自动分边、自动朗读'],
 };
 const [big, sub] = COPY[f];
 document.getElementById('big').textContent = big;
@@ -81,7 +84,10 @@ const PHONE = { '2': 'assets/cn-options-engine.png', '3': 'assets/cn-review-card
 const tablet = (src) => `<div class="tablet"><img src="${src}"></div>`;
 const ARTICLE = portrait ? (W >= 1500 ? '../../store-assets/src/assets/tablet-article.png' : '../../store-assets/src/assets/phone-article.png') : '../../store-assets/src/assets/f1-article.png';
 const DOCS = portrait ? (W >= 1500 ? '../../store-assets/src/assets/zh-tablet-docs.png' : '../../store-assets/src/assets/zh-phone-docs.png') : '../../store-assets/src/assets/zh-desk-docs.png';
-if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
+const APP = { '6': 'subs', '7': 'listen' };
+const appShot = (k) => `assets/cn-${portrait ? (W >= 1500 ? 'tablet' : 'phone') : 'desk'}-${k}.png`;
+if (APP[f]) stage.innerHTML = portrait ? (W >= 1500 ? tablet(appShot(APP[f])) : phone(appShot(APP[f]))) : mac(appShot(APP[f]));
+else if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
 else if (f === '5') stage.innerHTML = portrait ? (W >= 1500 ? tablet(DOCS) : phone(DOCS)) : mac(DOCS);
 else if (portrait && W >= 1500) stage.innerHTML = tablet(TAB[f]);
 else if (portrait) stage.innerHTML = phone(PHONE[f]);

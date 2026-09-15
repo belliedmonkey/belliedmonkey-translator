@@ -65,37 +65,45 @@ async function api(method, url, body) {
 // 每条线要替换哪些集合、用哪些文件。文件顺序 = 商店里的显示顺序。
 const g = (n) => path.join(ROOT, 'store-assets', n);
 const c = (n) => path.join(ROOT, 'screenshots-cn', n);
-const five = (p) => [1, 2, 3, 4, 5].map((i) => p(`${i}`));
-const four = (p) => [1, 2, 3, 4].map((i) => p(`${i}`));
+// 帧号 = 两份 scene.html 里的 f（只往后加、不重排 —— 官网直接拷 web-1/4/7）；数组顺序 = 商店里的显示顺序。
+// 1.11.0：App 的两个新功能排到网页双语之后。商店页前三张决定人点不点开，而这两样是这一版的主角。
+//   国际版 1 网页双语 · 8 实时字幕 · 9 对话听译 · 2 视频字幕 · 7 文档 · 3 复习卡 · 4 手机复习 · 5 跨设备 · 6 一键配置
+//   中国版 1 网页双语 · 6 实时字幕 · 7 对话听译 · 5 文档 · 3 复习卡 · 2 自带 Key · 4 学习设置
+// 以前写死「前 5 张 / 前 4 张」，于是 1.7 的一键配置帧、1.10 的文档帧渲染出来了却从没上过商店。
+const ORDER_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5, 6];
+const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
+const frames = (order, p) => order.map((i) => p(`${i}`));
+// 预览视频放仓库里（原来在 /tmp，重启即丢，1.10 那轮已经找不回源文件）。中国版沿用中文那两条 —— 画面里没有境外站点。
+const v = (n) => path.join(ROOT, "store-assets", "video", n);
 
 const PLAN = [
   {
     id: 'global-ios', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'en-US',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
-    previews: { IPHONE_65: '/tmp/ios-preview.mp4' },
+    previews: { IPHONE_65: v('en-ios.mp4') },
   },
   {
     id: 'global-mac', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'en-US',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
-    previews: { DESKTOP: '/tmp/mac-preview.mp4' },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    previews: { DESKTOP: v('en-mac.mp4') },
   },
   // 国际版的 zh-Hans 本地化原本一张截图都没有 ⇒ 中文用户看到的是 en-US 那套英文图。
   // 这两条只是把已有的 zh-* 出货图配上去，不动 en-US。
   {
     id: 'global-ios-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`zh-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`zh-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
     },
-    previews: {},
+    previews: { IPHONE_65: v('zh-ios.mp4') },
   },
   {
     id: 'global-mac-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hans',
-    screenshots: { APP_DESKTOP: five((i) => g(`zh-mac-${i}.png`)) },
-    previews: {},
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`zh-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
   },
   // 其余九份本地化（2026-09-03 补）。它们有文案、有关键词，**却一张截图都没有** ——
   // 而截图是必填项，缺了会让整条线在提审时被 409 挡下，且 Apple 的报错只说
@@ -107,132 +115,185 @@ const PLAN = [
   {
     id: 'global-ios-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ru',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ru',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'de-DE',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'de-DE',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ja',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ja',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'fr-FR',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'fr-FR',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ko',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ko',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pt-BR',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pt-BR',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'es-ES',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'es-ES',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ar-SA',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
   {
     id: 'global-mac-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ar-SA',
-    screenshots: { APP_DESKTOP: five((i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  // 1.11.0 新增的四个语种（it / tr / vi / pl）：文案在 store-assets/aso.md，截图用英文那套（理由同上）。
+  {
+    id: 'global-ios-it', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'it',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-it', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'it',
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'tr',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'tr',
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'vi',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'vi',
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pl',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pl',
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
     id: 'global-ios-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hant',
     screenshots: {
-      APP_IPHONE_65: five((i) => g(`zh-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: five((i) => g(`zh-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
     },
-    previews: {},
+    previews: { IPHONE_65: v('zh-ios.mp4') },
   },
   {
     id: 'global-mac-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hant',
-    screenshots: { APP_DESKTOP: five((i) => g(`zh-mac-${i}.png`)) },
-    previews: {},
+    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`zh-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
   },
   {
     id: 'cn-ios', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
-      APP_IPHONE_65: four((i) => c(`cn-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: four((i) => c(`cn-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_CN, (i) => c(`cn-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_CN, (i) => c(`cn-ipad-${i}.png`)),
     },
-    previews: {},
+    previews: { IPHONE_65: v('zh-ios.mp4') },
   },
   {
     id: 'cn-mac', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'MAC_OS', locale: 'zh-Hans',
-    screenshots: { APP_DESKTOP: four((i) => c(`cn-mac-${i}.png`)) },
-    previews: {},
+    screenshots: { APP_DESKTOP: frames(ORDER_CN, (i) => c(`cn-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
   },
 ];
 
