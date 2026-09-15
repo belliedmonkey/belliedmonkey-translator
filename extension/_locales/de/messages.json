@@ -2897,7 +2897,7 @@
     "message": "Nach dem Start erscheinen die Untertitel in einer schwebenden Leiste unten am Bildschirm; jeder fertige Satz steht auch hier."
   },
   "subtitle_tip_ios": {
-    "message": "Tippe zuerst auf „Starten“ und spiele dann in einer beliebigen App (Safari, Chrome, YouTube, Podcasts …) laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist der Ton nicht zu hören."
+    "message": "Tippe zuerst auf „Starten“ und spiele dann in einer beliebigen App (Browser, Video, Podcasts …) laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist der Ton nicht zu hören."
   },
   "subtitle_privacy": {
     "message": "Hört erst nach „Starten“, was dieser Mac abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."

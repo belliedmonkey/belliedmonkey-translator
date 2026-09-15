@@ -2897,7 +2897,7 @@
     "message": "Depois de iniciar, as legendas aparecem numa barra flutuante na parte de baixo da tela; cada frase concluída também fica listada aqui."
   },
   "subtitle_tip_ios": {
-    "message": "Toque em Iniciar primeiro e depois reproduza pelo alto-falante em qualquer app (Safari, Chrome, YouTube, podcasts…); as legendas flutuam numa janela picture-in-picture. Com fones de ouvido, o som não é ouvido."
+    "message": "Toque em Iniciar primeiro e depois reproduza pelo alto-falante em qualquer app (navegador, vídeo, podcasts…); as legendas flutuam numa janela picture-in-picture. Com fones de ouvido, o som não é ouvido."
   },
   "subtitle_privacy": {
     "message": "Só escuta o que este Mac está tocando depois que você toca em “Iniciar”. O áudio é reconhecido neste dispositivo (ou enviado apenas ao endpoint de transcrição que você configurou); nada é gravado nem salvo, e nossos servidores nunca participam. O texto reconhecido só fica na sua revisão enquanto “Adicionar legendas à revisão” estiver ligado."
