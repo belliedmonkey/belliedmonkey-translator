@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "En train de parler…"
   },
+  "listen_live_badge": {
+    "message": "● En direct"
+  },
   "listen_reading": {
     "message": "Lecture en cours"
   },

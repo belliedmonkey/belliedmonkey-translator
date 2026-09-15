@@ -2471,6 +2471,9 @@
   "listen_now_any": {
     "message": "正在说…"
   },
+  "listen_live_badge": {
+    "message": "● 实时"
+  },
   "listen_reading": {
     "message": "朗读中"
   },

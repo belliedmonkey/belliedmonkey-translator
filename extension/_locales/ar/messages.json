@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "يتحدث…"
   },
+  "listen_live_badge": {
+    "message": "● مباشر"
+  },
   "listen_reading": {
     "message": "جارٍ القراءة"
   },

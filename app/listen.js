@@ -1129,6 +1129,7 @@ var AppListen = (() => {
     $('app-listen-now-label').textContent = mode === 'subtitle' ? t('subtitle_now_label', '现在') : side === 'me' ? t('listen_now_me', '我正在说')
       : side === 'them' ? t('listen_now_them', '对方正在说')
         : t('listen_now_any', '正在说…');
+    $('app-listen-live').textContent = t('listen_live_badge', '● 实时');
     $('app-listen-live').hidden = !active;
     paintClock();
     paintNowPlaying();

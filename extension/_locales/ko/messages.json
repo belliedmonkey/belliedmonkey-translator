@@ -2470,6 +2470,9 @@
   "listen_now_any": {
     "message": "말하는 중…"
   },
+  "listen_live_badge": {
+    "message": "● 실시간"
+  },
   "listen_reading": {
     "message": "읽는 중"
   },
