@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- Mac 预览视频（App Preview · DESKTOP 2560×1600）的题卡。preview-card.html?t=subs|talk|end&lang=zh|en
+     配色与商店截图同源（陶土 / 奶油），不画任何产品界面 —— 界面全部来自真机录屏。 -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 2560px; height: 1600px; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: linear-gradient(160deg, #f5ead8 0%, #f9f4ed 45%, #ebddc5 100%);
+    color: #201e1d; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  .big { font-size: 150px; font-weight: 800; line-height: 1.2; }
+  .sub { font-size: 64px; font-weight: 500; color: #645c50; margin-top: 56px; }
+  .logo { width: 220px; height: 220px; margin-bottom: 60px; }
+  .brand { font-size: 110px; font-weight: 800; }
+  .accent { color: #c67139; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const t = q.get('t') || 'subs', lang = q.get('lang') === 'zh' ? 'zh' : 'en';
+const logo = '<img class="logo" src="../../extension/icons/icon.svg" alt="">';
+const C = {
+  zh: {
+    subs: '<div class="big">任何 App 的声音<br><span class="accent">都有双语字幕</span></div><div class="sub">Mac 上是悬浮字幕条</div>',
+    talk: '<div class="big">面对面<br><span class="accent">实时听译</span></div><div class="sub">两个人自由说话，每句自动转写、翻译</div>',
+    end: logo + '<div class="brand">大肚猴翻译</div><div class="sub">网页双语 · 实时字幕 · 对话听译 · 文档翻译</div>',
+  },
+  en: {
+    subs: '<div class="big">Live subtitles<br><span class="accent">for any app</span></div><div class="sub">A floating subtitle bar on Mac</div>',
+    talk: '<div class="big">Face to face,<br><span class="accent">translated live</span></div><div class="sub">Both of you speak freely — every sentence transcribed and translated</div>',
+    end: logo + '<div class="brand">BelliedMonkey Translator</div><div class="sub">Bilingual web · Live Subtitles · Conversation · Documents</div>',
+  },
+}[lang];
+document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+document.getElementById('root').innerHTML = C[t];
+</script>
+</body>
+</html>
