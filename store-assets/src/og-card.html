@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!-- store-assets/src/og-card.html — 两个官网的分享卡（og:image / twitter:image），1200×630。
      用法: og-card.html?lang=en → belliedmonkey.cc；og-card.html?lang=zh → belliedmonkey.com（中国版）
+           og-card.html?lang=en&size=social → GitHub 仓库社交预览（1280×640，Settings 里人工上传）
      渲染: Chrome --headless --window-size=1200,630 --screenshot，再 sips 转 JPEG（两站引用的都是 media/og-card.jpg）。
      素材全是出货产物的实拍（capture.js / capture-app.js 拍的），不画 mock。
      中国版那张：手机图用 dist-app-china 拍的，文案不出现境外站点。
@@ -10,12 +11,14 @@
 <meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  html, body { width: var(--w, 1200px); height: var(--h, 630px); overflow: hidden; }
   body {
     font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
     background: linear-gradient(160deg, #f5ead8 0%, #f9f4ed 45%, #ebddc5 100%);
-    color: #201e1d; position: relative;
+    color: #201e1d; display: flex; align-items: center; justify-content: center;
   }
+  /* 画面永远按 1200×630 排；社交预览（1280×640）只是在外面多一圈底色，不另排一版 */
+  #stage { position: relative; width: 1200px; height: 630px; flex: none; }
   .head { position: absolute; left: 64px; top: 72px; width: 470px; }
   .kicker { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 700; color: #8c491a; }
   .kicker img { width: 44px; height: 44px; }
@@ -32,6 +35,7 @@
 </style>
 </head>
 <body>
+<div id="stage">
 <div class="head">
   <div class="kicker"><img src="../../extension/icons/icon.svg" alt=""><span id="brand"></span></div>
   <div class="big" id="big"></div>
@@ -39,8 +43,14 @@
 </div>
 <div class="mac"><div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div><img id="mac" alt=""></div>
 <div class="phone"><img id="phone" alt=""></div>
+</div>
 <script>
-const lang = new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en';
+const params = new URLSearchParams(location.search);
+const lang = params.get('lang') === 'zh' ? 'zh' : 'en';
+if (params.get('size') === 'social') {
+  document.documentElement.style.setProperty('--w', '1280px');
+  document.documentElement.style.setProperty('--h', '640px');
+}
 const C = {
   en: {
     brand: 'BelliedMonkey Translator',

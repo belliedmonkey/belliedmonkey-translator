@@ -10,7 +10,7 @@
 Show HN: Open-source bilingual web/video translator for Safari iOS, bring your own LLM key
 ```
 ```
-Show HN: BelliedMonkey – read the web in two languages at once, no server in the middle
+Show HN: BelliedMonkey – read, watch and talk in two languages (open source)
 ```
 
 ## URL
@@ -31,10 +31,14 @@ What it does:
 - Web pages: every paragraph keeps its original with the translation beneath it. Zero site
   selectors — the segmenter works from HTML semantics only, so most sites need no per-site code.
 - Video and podcasts: dual subtitles (YouTube, Substack video, anything with a WebVTT/SRT
-  track or a Podcasting 2.0 transcript). No speech recognition — if there's no transcript,
-  it says so instead of guessing.
+  track or a Podcasting 2.0 transcript). No transcript? It says so instead of guessing word by
+  word — or, with a transcription key of your own, you tap to transcribe (Chrome and Firefox).
 - Optional: sentences you actually read (not skimmed past) become review cards on a
   forgetting curve. Off by default, local unless you turn on sync.
+- New in 1.11, in the iPhone/iPad/Mac app: Live Subtitles — bilingual subtitles for whatever
+  the device is playing (a floating bar over any app on Mac, a picture-in-picture window on
+  iPhone) — and a live conversation interpreter. On iOS 26 / macOS 26 the speech can be
+  recognised on the device.
 
 What it deliberately doesn't do: no ads, no account required, no server of mine in the
 translation path when you use your own key. Translation goes straight from your browser to the
@@ -56,8 +60,8 @@ you can give me.
 ## 常见追问的备答
 
 - **"How is this different from Immersive Translate?"** — Same reading model. Differences:
-  GPL open source, no subscription, no account, no server of ours in the translation path,
-  bring your own key. They have more site adapters and a hosted plan; we have neither.
+  GPL open source, no subscription, no account, and with your own key no server of ours in the
+  translation path. They have more site adapters and a hosted plan; we have neither.
   Longer version with a table: https://belliedmonkey.cc/alternatives.html
 - **"Why not just use Safari's built-in translation?"** — It replaces the page; this keeps
   both languages visible. Built-in also doesn't do subtitles.

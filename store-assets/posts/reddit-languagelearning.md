@@ -7,7 +7,7 @@
 ## 标题
 
 ```
-I made an open-source Safari/Chrome extension that shows both languages at once — and turns sentences you actually read into review cards
+I made an open-source translator that shows both languages at once — web pages, videos, live subtitles for any app — and turns sentences you actually read into review cards
 ```
 
 ## 正文
@@ -23,13 +23,16 @@ open-sourced it.
   different color. You read at your own pace and only glance down when you need to.
 - YouTube (and any video/podcast with a transcript) gets dual subtitles — original on top,
   translation below, matched sentence by sentence.
+- In the iPhone/iPad/Mac app, **Live Subtitles** put bilingual subtitles on whatever the device
+  is playing — a podcast app, a streaming app, a video call — and a **conversation mode**
+  transcribes and translates both sides of a face-to-face talk.
 - If you turn it on, the sentences you actually read — not the ones you scrolled past —
   become spaced-repetition cards. Reading, listening, and writing tiers, read-aloud, notes.
   Off by default. Stays on your device unless you enable sync.
 
 **What it costs**
 
-The extension is free and GPL-licensed. Google translation works with no key. If you want an
+The app and the extensions are free and GPL-licensed. Google translation works with no key. If you want an
 LLM (better with idioms and long sentences), you paste your own OpenAI / Claude / DeepSeek /
 GLM key and pay your provider directly (roughly $0.0004 a page on a budget model) — nothing
 goes through a server of mine, and there's no account unless you want sync. It does send
@@ -37,7 +40,7 @@ anonymous usage events (which features you used, never page content); one switch
 off. If you sign in there's a small free credit I pay for, enough for a few hundred pages, to
 try an AI engine before you create any provider account.
 
-**Where**: iPhone/iPad/Mac Safari (one App Store listing), Chrome, Firefox.
+**Where**: iPhone/iPad/Mac (app + Safari extension, one App Store listing), Chrome, Firefox.
 Links in the first comment so this doesn't get filtered.
 
 I'd honestly rather hear what's wrong with it than what's right. Which sites break? Which

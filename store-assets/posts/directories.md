@@ -7,22 +7,23 @@
 
 **一句话**（≤ 100 字符）
 ```
-Read the web and watch video in two languages at once. Open source, bring your own key.
+Read, watch and talk in two languages. Open source, bring your own key.
 ```
 
 **一段话**
 ```
 BelliedMonkey Translator shows the original paragraph with its translation right beneath it,
-and adds dual subtitles to YouTube and any video or podcast with a transcript. Sentences you
-actually read can become spaced-repetition cards. Free and GPL-3.0; Google translation works
+and adds dual subtitles to YouTube and any video or podcast with a transcript. The iPhone, iPad
+and Mac app adds Live Subtitles for whatever the device is playing and a live conversation
+interpreter. Sentences you actually read can become spaced-repetition cards. Free and GPL-3.0; Google translation works
 with no key, or bring your own OpenAI / Claude / DeepSeek / GLM key (an optional $0.20 free credit
 after sign-in). No account required, no server of the author's in the translation path with your
-own key; only anonymous usage events, with a switch to turn them off. iPhone, iPad, Mac (Safari),
-Chrome, Firefox.
+own key; only anonymous usage events, with a switch to turn them off. iPhone, iPad, Mac (app +
+Safari), Chrome, Firefox.
 ```
 
 **标签**：translation, bilingual, language-learning, browser-extension, safari, youtube-subtitles,
-spaced-repetition, open-source, privacy
+spaced-repetition, open-source, privacy, live-subtitles, speech-to-text
 
 ## 站点
 
@@ -37,5 +38,5 @@ spaced-repetition, open-source, privacy
 
 **每个 PR 一行的格式**（按目标仓库调整）：
 ```
-- [BelliedMonkey Translator](https://github.com/belliedmonkey/belliedmonkey-translator) - Bilingual page translation and dual video subtitles for Safari (iOS/macOS), Chrome and Firefox; sentences you read become review cards. Bring your own LLM key, no account required. GPL-3.0.
+- [BelliedMonkey Translator](https://github.com/belliedmonkey/belliedmonkey-translator) - Bilingual page translation and dual video subtitles for Safari (iOS/macOS), Chrome and Firefox; sentences you read become review cards; Live Subtitles and a conversation interpreter in the iPhone/iPad/Mac app. Bring your own LLM key, no account required. GPL-3.0.
 ```
