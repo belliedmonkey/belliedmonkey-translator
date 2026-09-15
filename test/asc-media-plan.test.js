@@ -64,6 +64,13 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
     }
   });
 
+  test('AMO 预览图（amo-listing.js --previews 按 ORDER_GLOBAL 取 en-web-N.png）每一张都在', () => {
+    ok(/ORDER_GLOBAL/.test(read('scripts/amo-listing.js')), 'amo-listing.js 没有读 ORDER_GLOBAL —— 预览图顺序又抄了一份');
+    const missing = order('ORDER_GLOBAL').map((n) => `store-assets/en-web-${n}.png`)
+      .filter((f) => !fs.existsSync(path.join(ROOT, f)));
+    eq(missing.length, 0, `缺 ${missing.join(', ')} —— 发版当天传 AMO 时才会发现`);
+  });
+
   test('每条线的 id 唯一（--only 靠它点名）', () => {
     const ids = LINES.map((x) => x.id);
     eq(new Set(ids).size, ids.length, `有重复的 id：${ids.filter((x, i) => ids.indexOf(x) !== i).join(', ')}`);
