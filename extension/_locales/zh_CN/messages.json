@@ -2323,6 +2323,30 @@
   "popup_asr_go": {
     "message": "🎙 实时转写 + 翻译"
   },
+  "popup_asr_go2": {
+    "message": "🎙 转写这段音视频 + 翻译"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 转写这段音视频 — 先选一个转写引擎 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 用 App 听设备的声音"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "先开始听，再回来播放"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "直播、视频站都能转"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 用 App 听设备的声音 →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 先去 App 开始听，再回来播放 →"
+  },
+  "asr_media_app_only": {
+    "message": "这段媒体扩展取不出音轨（视频站与直播都是这样）。用 App 听设备正在放的声音，什么来源都能转。"
+  },
   "popup_asr_no_engine": {
     "message": "🎙 实时转写 + 翻译 — 先选一个转写引擎 →"
   },

@@ -166,20 +166,6 @@ var YouTubeTranslator = (() => {
       'display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;';
     return true;
   }
-  // 字幕历史面板 (§2.4)：挂在播放器里、右下角、控制条之上 —— 视口固定的默认位置会压在
-  // 直播页右侧的聊天栏上（实测截图）。全屏时播放器就是全屏元素，面板自然跟进。
-  function placeHistory(el) {
-    const player = document.querySelector(PLAYER);
-    if (!player) return false;
-    if (el.parentElement !== player) player.appendChild(el);
-    const h = player.clientHeight || 400;
-    // sit ABOVE the overlay band (overlay bottom 11% + two lines), so a long stream line
-    // never covers the panel's newest row
-    const above = Math.round(h * 0.11) + Math.round(fontPx() * 1.3 * 2) + 12;
-    el.style.position = 'absolute'; el.style.right = '12px'; el.style.bottom = above + 'px'; el.style.left = '';
-    el.style.width = 'min(380px,36%)'; el.style.maxHeight = Math.max(120, Math.round(h * 0.55) - above + 64) + 'px'; el.style.zIndex = '24';
-    return true;
-  }
   function fontPx() { const v = document.querySelector('video'); const h = (v && v.clientHeight) || 400; return Math.max(16, Math.min(40, Math.round(h * 0.042))); }
   function textWidth() { const p = document.querySelector(PLAYER); return Math.max(200, Math.round((p ? p.clientWidth : 800) * 0.82) - 24); }
 
@@ -214,10 +200,10 @@ var YouTubeTranslator = (() => {
       else removeCaptionStyle();
     },
     beforeRender: () => (adShowing() ? 'clear' : undefined), // during an ad, currentTime is the ad timeline
-    // §2.4: YouTube is MSE, so only the live tier can serve a caption-less video.
+    // §2.4: YouTube 是 MSE ⇒ 扩展取不出音轨。实时档 2026-09-16 下掉后，没有字幕的
+    // 视频由 offerFor 给出去 App 的出口（App 听设备的声音，不受 MSE 限制）。
     unavailableAction: AsrSource.offerFor(() => (document.querySelector('.html5-main-video') || document.querySelector('video')), () => ui, () => ui.settings),
     offerAfterAttempts: 2,   // 前 3 s 有 grace（acquire 稳定返回 null），攒 2 次 ≈ 5 s，免得有字幕的视频闪一下 offer
-    placeHistory,
     syncNative: (active) => { if (!active) removeCaptionStyle(); }, // belt: restore if turned off
     showButton: () => IS_EMBED || (!!document.querySelector(RIGHT_CONTROLS) && !TranslationCore.isMobileLayout()),
     buttonCss: () => floatingBtnCss(IS_EMBED ? 10 : 150),

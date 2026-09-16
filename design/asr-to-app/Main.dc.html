@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+    .pop { width:320px; background:#f5ead8; border:1px solid #dcd3c4; border-radius:14px; overflow:hidden; }
+    .sec { border-top:1px solid #dcd3c4; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+    .sec:first-child { border-top:none; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; }
+    .lab { font-size:.95rem; }
+    .val { color:#6a6255; font-size:.84rem; }
+    .note { background:#f9f4ed; border:1px solid #dcd3c4; border-radius:10px; padding:10px; font-size:.84rem; color:#6a6255; line-height:1.5; }
+    .cta { background:#ac6231; color:#fff; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:.92rem; }
+    .quiet { border:1px solid #dcd3c4; color:#8c491a; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+    .cap { font-size:.78rem; font-weight:700; color:#6a6255; letter-spacing:.04em; }
+    .foot { border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:13px 16px; display:flex; flex-direction:column; gap:6px; font-size:.84rem; line-height:1.5; color:#6a6255; }
+    b { color:#201e1d; } code { font-family:ui-monospace,Menlo,monospace; font-size:.8rem; color:#8c491a; }
+    .gone { text-decoration:line-through; opacity:.45; }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; height:620px; padding:20px; gap:12px; box-sizing:border-box">
+  <div class="cap">新形态 · 走得通的时候（Tier A 不变）</div>
+  <div class="pop">
+    <div class="sec"><div class="row"><span class="lab">翻译这个页面</span><span class="val">DeepSeek</span></div></div>
+    <div class="sec">
+      <div class="row"><span class="lab">🎙 转写这段音视频 + 翻译</span><span class="val">整段 · 约 1 分钟</span></div>
+      <div class="note">整段音频转写一次，出完整字幕 —— 和一份现成的字幕文件一样用。</div>
+    </div>
+    <div class="sec"><div class="row"><span class="lab">设置</span><span class="val">›</span></div></div>
+  </div>
+  <div style="flex:1"></div>
+  <div class="foot">
+    <div class="cap" style="margin-bottom:2px">只改了一处：入口名字里的「实时」去掉</div>
+    <div>扩展端只剩整段转写，再叫「实时转写」就是**说了做不到的事**。文案说清它是什么：一次转完、出完整字幕 —— 那正是 §2.1 规则 1 要的形状。</div>
+    <div><b>走得通的时候不提 App。</b>这一屏没有任何指路 —— 人正在成功的路上，不该被推荐别的东西。（若你想让它常驻一行「听直播？用 App →」，说一声，那是另一个选择。）</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

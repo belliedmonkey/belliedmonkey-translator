@@ -73,60 +73,18 @@ var SubtitleAdapter = (() => {
     // §2.4 streaming state: the backend-supplied acquire (set by acquireVia), its abort
     // hook, the open-tail merger, and a custom notice line (a stop reason, never silent).
     let asrAcquire = null, streamAbort = null, merger = null, noticeMsg = '';
-    // Live-tier partial (the sentence being spoken, words arriving as they are recognised).
-    // DISPLAY ONLY — it never reaches the Engine, so nothing is translated word by word;
-    // it fills the original line between closed sentences so the overlay reads like live
-    // captions instead of going blank for the length of every sentence.
-    let livePartial = { text: '', at: 0 };
-    const PARTIAL_TTL_MS = 8000;
-    // 边说边译 (§2.4 rule 3 as amended 2026-09-06): in a live session the growing partial
-    // is translated too — debounced, one request in flight, stale answers dropped — and
-    // the translation line is REPLACED as the sentence grows. When the sentence closes,
-    // a partial translation of that exact text becomes the unit's `tr`, so the Engine
-    // does not pay for it twice. Off ⇒ today's whole-sentence behaviour.
-    let liveIncremental = true;
-    // 字幕历史面板 (§2.4 as amended 2026-09-06): in a live session the overlay shows only
-    // the stream (partial + provisional translation); every CLOSED sentence and its
-    // whole-sentence translation goes to a floating multi-line panel instead — the
-    // "corrected" record. Renderer-only: the Engine still translates closed sentences.
-    let historyOn = true;
-    const HISTORY_MAX = 40;
-    let historyRows = new Map();   // unit → { row, orig, trans, state }
-    let historyStick = true;       // auto-scroll unless the user scrolled up
-    // Draggable anywhere on the page: once the viewer drags the panel by its header it
-    // becomes viewport-fixed at that spot (inside the fullscreen element when there is
-    // one), the backend's placeHistory anchor no longer applies, and the spot is
-    // remembered (asrHistoryPos). Same 5 px tap-vs-drag threshold as the page FAB.
-    let historyPos = null;         // { x, y } in viewport px, or null = anchored
-    let historyPosLoaded = false;
-    let historyCaptured = new Set();
-    let partialTr = { text: '', tr: '' };
-    let partialTimer = null, partialInFlight = '';
-    const PARTIAL_DEBOUNCE_MS = 900;
-    const normText = (t) => String(t || '').toLowerCase().replace(/[\s\p{P}]+/gu, '');
-    function schedulePartialTranslate() {
-      if (!liveIncremental) return;
-      clearTimeout(partialTimer);
-      partialTimer = setTimeout(() => {
-        const text = livePartial.text;
-        if (!text || partialInFlight || normText(text) === normText(partialTr.text)) return;
-        // too short to mean anything yet: 2 Latin words or 4 CJK characters
-        if (!(/\s\S/.test(text.trim()) || normText(text).length >= 4)) return;
-        partialInFlight = text;
-        Promise.resolve().then(() => spec.translate(text, settings)).then((tr) => {
-          if (partialInFlight !== text) return; // a newer partial superseded this one
-          if (TranslationCore.isTranslated(text, tr)) partialTr = { text, tr };
-        }).catch(() => {}).finally(() => {
-          if (partialInFlight === text) partialInFlight = '';
-          if (livePartial.text && livePartial.text !== text) schedulePartialTranslate();
-        });
-      }, PARTIAL_DEBOUNCE_MS);
-    }
+    // Tier B（边说边出的实时档）已于 2026-09-16 从扩展端下掉（domain-design §2.4
+    // 第 3 条）。随它一起消失的是三个**只为它存在**的概念：开口的尾句（partial）、
+    // 边说边译（partial 的即时翻译）、字幕历史面板。它们此前占这个文件约 150 行。
+    //
+    // 留这段注释而不是留代码：`ctx.mode()` 现在唯一的调用方是 asr-source.js 的
+    // `ctx.mode('file')`，也就是说 `live` 恒为 false —— 那些分支一行都执行不到，
+    // 而不可达代码会让下一个读这个文件的人以为它们还在工作。
+    //
+    // ⚠️ App 的听译里有**同名**的「边说边译」与「字幕历史」（app/listen-core.js、
+    // scripts/verify-listen.js）。那是另一套实现，与这里无关，不要一起清。
     let lastNoticeKey = '';
-    // Live: a sentence closes only after it was spoken (§2.4), so the pair stays for
-    // HOLD_MS past its end and the "pending" flicker waits a longer grace. File/default:
-    // the production window, read from the core (never restated here).
-    const LIVE_WINDOW = { GRACE_MS: 4000, HOLD_MS: 6000 };
+    // 生产窗口，从 core 读（永不在这里重述一遍）。
     const FILE_WINDOW = { GRACE_MS: (TranslationCore.WINDOW || {}).GRACE_MS, HOLD_MS: 0 };
     function applyWindow(w) {
       const clean = {};
@@ -136,27 +94,14 @@ var SubtitleAdapter = (() => {
     function abortStream(why) {
       const fn = streamAbort; streamAbort = null;
       if (fn) { try { fn(why); } catch (_) {} }
-      merger = null; livePartial = { text: '', at: 0 }; partialTr = { text: '', tr: '' }; partialInFlight = ''; clearTimeout(partialTimer);
-      // the panel's rows stay readable after a stop; only the live dot goes
-      const dot = document.getElementById(HID) && document.getElementById(HID).querySelector('.' + HID + '-dot');
-      if (dot) dot.textContent = '';
+      merger = null;
     }
     function makeCtx() {
-      let live = false;
       return {
         push(cues) {
           if (!merger) merger = TranslationCore.createCueMerger();
           const closed = merger.push(cues);
-          for (const u of closed) {
-            // reuse the incremental translation when it was for this very text
-            if (partialTr.tr && normText(u.text) === normText(partialTr.text)) { u.tr = partialTr.tr; u._done = true; }
-          }
-          if (closed.length) {
-            engine.appendItems(closed);
-            // the stream moved on: a partial translation still in flight is for the
-            // sentence that just closed and must not surface under the next one
-            livePartial = { text: '', at: 0 }; partialTr = { text: '', tr: '' }; partialInFlight = ''; clearTimeout(partialTimer);
-          }
+          if (closed.length) engine.appendItems(closed);
         },
         done() {
           if (merger) { const t = merger.flush(); if (t.length) engine.appendItems(t); }
@@ -165,13 +110,9 @@ var SubtitleAdapter = (() => {
         },
         fail(msg) { abortStream('fail'); status = 'unavailable'; noticeMsg = msg || ''; lastShownKey = ''; },
         notice(msg) { noticeMsg = msg || ''; },
-        partial(text) { livePartial = { text: String(text || ''), at: Date.now() }; schedulePartialTranslate(); },
-        mode(kind, opts) {
-          live = kind === 'live';
-          if (opts && typeof opts.incremental === 'boolean') liveIncremental = opts.incremental;
-          if (opts && typeof opts.history === 'boolean') historyOn = opts.history;
-          applyWindow(live ? LIVE_WINDOW : FILE_WINDOW);
-        },
+        // 只剩 'file' 一种（asr-source.js 是唯一调用方）。保留这个方法而不是内联，
+        // 是因为它是 ctx 的对外形状 —— 后端换一种取字幕的方式时，窗口该由它来说。
+        mode() { applyWindow(FILE_WINDOW); },
         onAbort(fn) { streamAbort = fn; },
       };
     }
@@ -304,142 +245,7 @@ var SubtitleAdapter = (() => {
       if (ov) for (const cls of [ID.orig, ID.trans]) { const el = ov.querySelector('.' + cls); if (el) { el.textContent = ''; el.style.display = 'none'; } }
       lastShownKey = ''; lastNoticeKey = '';
     }
-    function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); removeHistory(); }
-
-    // ─── 字幕历史面板 ───────────────────────────────────────────────────
-    const HID = ID.history || (ID.overlay + '-history');
-    function historyMount() { return document.fullscreenElement || document.webkitFullscreenElement || document.body; }
-    function ensureHistory() {
-      let el = document.getElementById(HID);
-      if (!el) {
-        el = document.createElement('div');
-        el.id = HID;
-        el.setAttribute('translate', 'no');
-        el.style.cssText = 'position:fixed;right:16px;bottom:206px;width:min(380px,40vw);max-height:40vh;overflow-y:auto;' +
-          'box-sizing:border-box;background:rgba(8,8,8,.92);color:#eee;border-radius:10px;padding:8px 10px;' +
-          'font-size:13px;line-height:1.4;z-index:2147482000;pointer-events:auto;display:flex;flex-direction:column;gap:8px;';
-        el.addEventListener('scroll', () => { historyStick = el.scrollTop + el.clientHeight >= el.scrollHeight - 8; });
-        const head = document.createElement('div');
-        head.className = HID + '-head';
-        head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#9a9a9a;padding:0 2px 2px;' +
-          'cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;';
-        const title = document.createElement('span'); title.textContent = TranslationCore.t('asr_history_title', '字幕历史 · 整句定稿');
-        const dot = document.createElement('span'); dot.className = HID + '-dot';
-        head.appendChild(title); head.appendChild(dot);
-        el.appendChild(head);
-        bindHistoryDrag(el, head);
-        if (!historyPosLoaded) {
-          historyPosLoaded = true;
-          try { chrome.storage.local.get('asrHistoryPos', (r) => { const p = r && r.asrHistoryPos; if (p && isFinite(p.x) && isFinite(p.y)) historyPos = { x: p.x, y: p.y }; }); } catch (_) {}
-        }
-      }
-      if (historyPos) {
-        const mount = historyMount();
-        if (el.parentElement !== mount) mount.appendChild(el);
-        const c = clampHistoryPos(historyPos.x, historyPos.y, el.offsetWidth || 380, el.offsetHeight || 120, window.innerWidth, window.innerHeight);
-        el.style.position = 'fixed'; el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto';
-        el.style.display = '';
-      } else if (spec.placeHistory) {
-        if (!spec.placeHistory(el)) { el.style.display = 'none'; return el; }
-        el.style.display = '';
-      } else {
-        const mount = historyMount();
-        if (el.parentElement !== mount) mount.appendChild(el);
-      }
-      const dot = el.querySelector('.' + HID + '-dot');
-      if (dot) dot.textContent = status === 'streaming' ? TranslationCore.t('asr_status_live', '● 实时转写中') : '';
-      return el;
-    }
-    function historyLine(color, italic) {
-      return 'color:' + color + ';white-space:pre-wrap;overflow-wrap:anywhere;' + (italic ? 'font-style:italic;opacity:.85;' : '');
-    }
-    function renderHistory() {
-      const el = ensureHistory();
-      const items = engine.items;
-      const from = Math.max(0, items.length - HISTORY_MAX);
-      // drop rows for units that fell out of the window (or were reset)
-      for (const [u, r] of historyRows) if (items.indexOf(u) < from) { r.row.remove(); historyRows.delete(u); }
-      const trColor = settings.ytTextColor || window.MT_PALETTE.ytTextColor;
-      let appended = false;
-      for (let i = from; i < items.length; i++) {
-        const u = items[i];
-        let r = historyRows.get(u);
-        if (!r) {
-          const row = document.createElement('div');
-          row.className = HID + '-row';
-          row.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
-          const orig = document.createElement('div'); orig.className = HID + '-orig'; orig.style.cssText = historyLine('#fff', false); orig.textContent = u.text;
-          const trans = document.createElement('div'); trans.className = HID + '-trans';
-          row.appendChild(orig); row.appendChild(trans);
-          el.appendChild(row);
-          r = { row, orig, trans, state: null };
-          historyRows.set(u, r);
-          appended = true;
-        }
-        r.orig.style.display = displayMode === 'trans' ? 'none' : '';
-        r.trans.style.display = displayMode === 'orig' ? 'none' : '';
-        const st = engine.stateOf(u, u.end);
-        const key = st.translation ? 'tr:' + st.translation : st.state;
-        if (key !== r.state) {
-          r.state = key;
-          r.trans.onclick = null;
-          if (st.translation) {
-            r.trans.style.cssText = historyLine(trColor, false); r.trans.textContent = st.translation;
-            // Learning layer (§9.1 sink): the pair is "displayed" the moment its final
-            // translation lands in the panel — once per sentence, only while the session runs.
-            if (status === 'streaming' && !historyCaptured.has(u)) {
-              historyCaptured.add(u);
-              try { LearnCollector.noteSubtitle({ text: u.text, tr: st.translation, startMs: u.start, endMs: u.end, mediaKey: spec.mediaKey ? spec.mediaKey() : '' }); } catch (_) {}
-            }
-          } else if (st.state === 'error') {
-            r.trans.style.cssText = historyLine('#ffb3b3', false) + 'cursor:pointer;pointer-events:auto;';
-            const halt = haltCode ? TranslationCore.haltMessage(haltCode) : '';
-            r.trans.textContent = halt || TranslationCore.MSG.error;
-            r.trans.onclick = halt ? openHaltSettings : () => { engine.retry(u); r.state = null; };
-          } else {
-            r.trans.style.cssText = historyLine('#d6d6d6', true); r.trans.textContent = TranslationCore.MSG.preparing;
-          }
-        }
-        r.row.style.opacity = i < items.length - 3 ? '0.7' : '1';
-      }
-      if (appended && historyStick) { try { el.scrollTop = el.scrollHeight; } catch (_) {} }
-    }
-    function removeHistory() { document.getElementById(HID)?.remove(); historyRows = new Map(); historyCaptured = new Set(); historyStick = true; }
-    function clampHistoryPos(x, y, w, h, vw, vh) {
-      const maxX = Math.max(0, vw - Math.min(w, vw)), maxY = Math.max(0, vh - Math.min(h, vh));
-      return { x: Math.round(Math.min(maxX, Math.max(0, x))), y: Math.round(Math.min(maxY, Math.max(0, y))) };
-    }
-    function bindHistoryDrag(el, handle) {
-      let startX = 0, startY = 0, originX = 0, originY = 0, dragging = false, pid = null;
-      handle.addEventListener('pointerdown', (e) => {
-        if (e.button != null && e.button !== 0) return;
-        pid = e.pointerId; startX = e.clientX; startY = e.clientY; dragging = false;
-        const r = el.getBoundingClientRect(); originX = r.left; originY = r.top;
-        try { handle.setPointerCapture(pid); } catch (_) {}
-        e.stopPropagation();
-      });
-      handle.addEventListener('pointermove', (e) => {
-        if (pid == null || e.pointerId !== pid) return;
-        const dx = e.clientX - startX, dy = e.clientY - startY;
-        if (!dragging && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-        dragging = true;
-        historyPos = clampHistoryPos(originX + dx, originY + dy, el.offsetWidth, el.offsetHeight, window.innerWidth, window.innerHeight);
-        const mount = historyMount();
-        if (el.parentElement !== mount) mount.appendChild(el);
-        el.style.position = 'fixed'; el.style.left = historyPos.x + 'px'; el.style.top = historyPos.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto';
-        handle.style.cursor = 'grabbing';
-        e.preventDefault();
-      });
-      const end = (e) => {
-        if (pid == null || (e && e.pointerId !== pid)) return;
-        try { handle.releasePointerCapture(pid); } catch (_) {}
-        pid = null; handle.style.cursor = 'grab';
-        if (dragging && historyPos) { try { chrome.storage.local.set({ asrHistoryPos: historyPos }); } catch (_) {} }
-        dragging = false;
-      };
-      handle.addEventListener('pointerup', end);
-      handle.addEventListener('pointercancel', end);
-    }
+    function removeOverlay() { document.getElementById(ID.overlay)?.remove(); document.getElementById(ID.meas)?.remove(); }
 
     // ─── Display loop ──────────────────────────────────────────────────
     const MAX_ATTEMPTS = spec.maxAttempts || RESOLVE_MAX_ATTEMPTS;
@@ -458,7 +264,7 @@ var SubtitleAdapter = (() => {
         // registered the session for exactly this media.
         const realChange = lastKey !== '';
         lastKey = key;
-        if (realChange) { abortStream('media'); asrAcquire = null; removeHistory(); }
+        if (realChange) { abortStream('media'); asrAcquire = null; }
         noticeMsg = ''; applyWindow(FILE_WINDOW);
         engine.setItems([]); engine.reset();
         inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; clearOverlay(); acquireEpoch++;
@@ -500,22 +306,6 @@ var SubtitleAdapter = (() => {
       const tMs = spec.getCurrentTime();
       let s = null;
       if (engine.items.length) { engine.pump(); s = engine.activeAt(tMs); }
-      if (status === 'streaming') {
-        if (historyOn) { renderHistory(); s = null; } // panel shows closed sentences; overlay shows only the stream
-        else if (document.getElementById(HID)) removeHistory();
-      }
-      if (!s) {
-        // Between closed sentences in a live session: show what is being said right now
-        // (and, in 边说边译 mode, the latest partial translation under it).
-        const fresh = livePartial.text && Date.now() - livePartial.at < PARTIAL_TTL_MS;
-        if (status === 'streaming' && fresh) {
-          const en = displayMode === 'trans' ? '' : livePartial.text;
-          const zh = (displayMode !== 'orig' && liveIncremental && partialTr.tr) ? partialTr.tr + '…' : null;
-          const k = 'partial|' + en + '|' + (zh || '');
-          if (k !== lastShownKey) { renderOverlay(en, zh, '', null); lastShownKey = k; }
-          return;
-        }
-      }
       if (engine.items.length) {
         if (!s) { if (lastShownKey) clearOverlay(); return; }
         const fp = spec.fontPx();
@@ -637,18 +427,7 @@ var SubtitleAdapter = (() => {
         menu.appendChild(sep());
       }
       if (streamAbort) {
-        menu.appendChild(row(T('asr_history', '字幕历史面板'), { checked: historyOn, onClick: () => {
-          historyOn = !historyOn;
-          try { chrome.storage.local.set({ asrHistoryPanel: historyOn ? 'on' : 'off' }); } catch (_) {}
-          if (!historyOn) removeHistory();
-          lastShownKey = '';
-          closeMenu();
-        } }));
-        menu.appendChild(row(T('asr_incremental', '边说边译（快，译文会改）'), { checked: liveIncremental, onClick: () => {
-          liveIncremental = !liveIncremental;
-          try { chrome.storage.local.set({ asrLiveMode: liveIncremental ? 'incremental' : 'sentence' }); } catch (_) {}
-          closeMenu();
-        } }));
+        // 「字幕历史面板」与「边说边译」两项随 Tier B 一起下掉（2026-09-16）。
         menu.appendChild(row(T('asr_stop', '停止转写'), { onClick: () => { stopAsr(); closeMenu(); } }));
         menu.appendChild(sep());
       }
@@ -751,9 +530,6 @@ var SubtitleAdapter = (() => {
   }
 
   // exported for tests: the clamp keeps a dragged panel fully inside the viewport
-  function clampHistoryPos(x, y, w, h, vw, vh) {
-    const maxX = Math.max(0, vw - Math.min(w, vw)), maxY = Math.max(0, vh - Math.min(h, vh));
-    return { x: Math.round(Math.min(maxX, Math.max(0, x))), y: Math.round(Math.min(maxY, Math.max(0, y))) };
-  }
-  return { createSubtitleUI, clampHistoryPos };
+  return { createSubtitleUI };
+
 })();

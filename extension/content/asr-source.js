@@ -244,79 +244,19 @@ var AsrSource = (() => {
   }
   function concatF32(a, b) { const o = new Float32Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
 
-  async function liveTier({ el, url, cfg, ctx, signal, language }) {
-    const eng = cfg.eng;
-    if (!eng.liveEndpoint || !eng.liveType) throw named('nolive', eng.label || eng.id);
-    ctx.mode('live', { incremental: cfg.incremental !== false, history: cfg.history !== false });
-    const { ac, sourceNode } = await attachCapture(el, url, signal);
-    // Safari：页外手势（弹窗）里建的 AudioContext 恒 suspended，resume() 永不落定 —— 抓到的
-    // 只会是静音。开 socket 之前具名停下（`gesture`），通知行换成「▶ 点此开始实时转写」，
-    // 用户在页内点一下就是真手势（domain-design §5.3 第二实例 2026-09-11）。能力判据：
-    // 真手势内 state 是 running，永不误报；Chrome 的自动播放策略挂起时同样会被它接住。
-    if (ac.state !== 'running') {
-      try { await Promise.race([ac.resume(), new Promise((r) => setTimeout(r, 400))]); } catch (_) {}
-      if (ac.state !== 'running') {
-        // 这个 AudioContext 是在页外手势里建的，永远起不来；丢掉它，页内那一下会重建一个。
-        try { ac.close(); } catch (_) {}
-        if (audioCtx === ac) audioCtx = null;
-        throw named('gesture', ac.state);
-      }
-    }
-    const rate = eng.liveRate || 16000;
-    const resample = makeResampler(ac.sampleRate, rate);
-    ctx.notice(T('asr_status_live', '● 实时转写中'));
+  // ── Tier B（边说边出的实时档）已于 2026-09-16 从扩展端下掉 ──────────────
+  //
+  // 用户裁定：「实时语音和实时听译一样做成只有 app 才能用。纯 api 效果太差，
+  // 必须结合本地模型转写 + 修正，效果和实时性才到位。」领域设计见
+  // docs/domain-design.md §2.4 第 3 条（PR #298）。
+  //
+  // 结构性原因，不是调优问题：扩展**够不到本机转写**。build/stt.config.js 里
+  // device 与 local 在扩展侧只能 live:false（那是原生能力，要走原生桥），于是这一档
+  // 在扩展里只剩纯远程流式 API —— 七个条目里够格的只有两个。
+  //
+  // 走不通的媒体现在落到 appPointer()：一句具名原因 + 一个去 App 的出口。
+  // content/ws-transcribe.js **保留**（app/listen.js 仍在用），只是这里不再调用它。
 
-    let sentenceStart = null; // media clock when the current sentence began (first partial)
-    let stopped = false;
-    const sock = WsTranscribe.open({
-      url: eng.liveEndpoint, type: eng.liveType, apiKey: cfg.apiKey, keyProtocol: eng.liveKeyProtocol || '', model: eng.liveModel || cfg.model, rate,
-      params: eng.liveParams || null,
-      langs: language ? [language] : [],
-      onEvent: (ev) => {
-        if (stopped) return;
-        const now = Math.round(el.currentTime * 1000);
-        if (ev.kind === 'partial') { if (sentenceStart == null) sentenceStart = now; if (ctx.partial) ctx.partial(ev.text); }
-        else if (ev.kind === 'final') {
-          const start = sentenceStart == null ? Math.max(0, now - 2000) : sentenceStart;
-          sentenceStart = null;
-          ctx.push([{ start, end: Math.max(start + 1, now), text: ev.text }]);
-        }
-        else if (ev.kind === 'error') stop(T('asr_err_ws', '转写连接中断') + (ev.message ? '：' + String(ev.message).slice(0, 80) : ''));
-        else if (ev.kind === 'close') { if (!stopped) stop(T('asr_err_ws', '转写连接中断')); }
-      },
-    });
-
-    const proc = ac.createScriptProcessor(PROCESSOR_FRAMES, 1, 1);
-    let silentSince = 0;
-    proc.onaudioprocess = (e) => {
-      if (stopped) return;
-      const f32 = e.inputBuffer.getChannelData(0);
-      if (el.paused) return; // paused media: send nothing, pay nothing
-      let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i];
-      const rms = Math.sqrt(s / f32.length);
-      const audible = !el.muted && el.volume > 0;
-      if (rms < SILENCE_RMS && audible) {
-        if (!silentSince) silentSince = Date.now();
-        else if (Date.now() - silentSince > SILENCE_MS) { stop(T('asr_err_silent', '捕获不到声音，已停止转写')); return; }
-      } else silentSince = 0;
-      const pcm = resample(f32);
-      if (pcm.length) sock.sendPcm(pcm);
-    };
-    sourceNode.connect(proc);
-    // ScriptProcessorNode needs a sink to run; a zero-gain node keeps the captured
-    // signal out of the speakers on the captureStream path (the element still plays).
-    const mute = ac.createGain(); mute.gain.value = 0; proc.connect(mute); mute.connect(ac.destination);
-
-    function stop(msg) {
-      if (stopped) return; stopped = true;
-      try { sourceNode.disconnect(proc); } catch (_) {}
-      try { proc.disconnect(); mute.disconnect(); } catch (_) {}
-      try { sock.close(); } catch (_) {}
-      if (msg) ctx.fail(msg); else ctx.done();
-    }
-    signal.addEventListener('abort', () => stop(null), { once: true });
-    ctx.onAbort(() => stop(null));
-  }
 
   // ─── Session ───────────────────────────────────────────────────────
   function named(code, detail) { const e = new Error(detail || code); e.code = code; return e; }
@@ -331,8 +271,7 @@ var AsrSource = (() => {
     if (c === 'silent') return T('asr_err_silent', '捕获不到声音，已停止转写');
     if (c === 'toolarge') return T('asr_err_toolarge', '音频太大，无法整段转写') + '（' + e.message + '）';
     if (c === 'nocues') return T('asr_err_nocues', '该转写引擎不返回时间戳，无法做字幕') + '（' + e.message + '）';
-    if (c === 'nolive') return T('asr_err_nolive', '该转写引擎没有实时接口，此媒体无法转写');
-    if (c === 'gesture') return T('asr_gesture_needed', '需要在页面上点一下才能开始采集');
+    // `nolive` / `gesture` 随 Tier B 一起下掉（2026-09-16）：不再产生这两个码。
     if (c === 'http') return T('asr_err_ws', '转写连接中断') + '：' + String(e.message).slice(0, 100);
     if (e && e.name === 'AbortError') return '';
     return T('asr_err_ws', '转写连接中断') + (e && e.message ? '：' + String(e.message).slice(0, 80) : '');
@@ -379,22 +318,20 @@ var AsrSource = (() => {
         if (url && await corsReadable(url, signal)) { await fileTier({ url, cfg, ctx, signal, language }); return; }
       } catch (e) {
         if (signal.aborted) return;
-        // A file-tier failure that is about the ENGINE (no timestamps, http error) is final;
-        // one about the MEDIA falls through to capture.
+        // 引擎类失败（没有时间戳、HTTP 错、文件过大）是终局，与媒体无关 —— 换个面也一样。
         if (e.code === 'nocues' || e.code === 'http' || e.code === 'toolarge') { ctx.fail(failMessage(e)); return; }
       }
-      try { await liveTier({ el, url, cfg, ctx, signal, language }); }
-      catch (e) {
-        if (signal.aborted) return;
-        lastFail = { code: e && e.code, el };
-        if (e && e.code === 'nolive') track('notice', 'no_live');
-        if (e && e.code === 'gesture') track(lastSurface, 'gesture_needed');
-        ctx.fail(failMessage(e));
-      }
+      // 到这里 = 这段媒体扩展转不了（blob:/MSE、CORS 拒绝、或 fileTier 的媒体类失败）。
+      // 以前落到 Tier B 流式；现在落到一句具名原因 + 去 App 的出口。
+      if (signal.aborted) return;
+      lastFail = { code: 'to_app', el };
+      ctx.fail(T('asr_media_app_only',
+        '这段媒体扩展取不出音轨（视频站与直播都是这样）。用 App 听设备正在放的声音，什么来源都能转。'));
     })();
     return 'streaming';
   }
-  // 最后一次失败：`gesture` ⇒ offer 变成「▶ 点此开始实时转写」；`nolive` ⇒ offer 变成去配引擎的出口。
+  // 最后一次失败：`to_app` ⇒ offer 变成去 App 的出口（2026-09-16，取代原来的
+  // `gesture`（再点一次）与 `nolive`（去配带实时接口的引擎）两支）。
   let lastFail = { code: '', el: null };
   let lastSurface = 'notice';
   function track(surface, result) {
@@ -402,6 +339,39 @@ var AsrSource = (() => {
   }
   function openOptions(hash) {
     try { window.open(chrome.runtime.getURL('options/options.html') + hash, '_blank'); } catch (_) {}
+  }
+
+  // ── 去 App 的出口（2026-09-16）────────────────────────────────────────────
+  //
+  // 这是 2026-09-13 那句 pointer 的推广（§2.4 规则 4 末段）：那天只对「Safari 的 MSE
+  // 静音」给指路，现在每一种走不通都落到这里。**形式不变 —— 只是一句指路，扩展仍然
+  // 不与 App 通信。**
+  //
+  // 三个平台说三句话，因为这是能力差异不是本地化差异：
+  //   · Mac —— 取系统音频，切过去视频不会停 ⇒ 可以「现在就去」
+  //   · iPhone/iPad —— 一离开前台 iOS 立刻暂停网页视频（尖刺 S5 实测：pause 与
+  //     visibility=hidden 同一毫秒）⇒ 必须说清「先去 App 开始，再回来播放」，
+  //     否则就是教人走一条必然失败的路
+  //   · 其它平台 —— App 根本不存在 ⇒ 返回 null，一个字都不提
+  //
+  // 文案**不点名 Safari**（用户 2026-09-13 裁定）：App 听的是设备的声音，与哪个
+  // 浏览器或 App 在放无关。
+  function appPointer(surface) {
+    if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) return null;
+    const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+    const handheld = /iPhone|iPad|iPod/i.test(ua);
+    const label = handheld
+      ? T('asr_app_go_ios', '🔊 先去 App 开始听，再回来播放 →')
+      : T('asr_app_go_mac', '🔊 用 App 听设备的声音 →');
+    return {
+      label,
+      onClick: () => {
+        track(surface || 'notice', 'no_media');
+        // AppLink.open 自己处理「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 把出口说出来」，
+        // 这正是本仓最怕的「点了没反应」。没装 App 的人由它送去 App Store。
+        try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
+      },
+    };
   }
 
   // ─── The offer (shared by every subtitle backend) ─────────────────
@@ -416,13 +386,11 @@ var AsrSource = (() => {
       if (!c || !c.ok) {
         return { label: T('asr_needs_engine', '先在设置里选择转写引擎'), onClick: () => { track('notice', 'no_engine'); openOptions('#stt'); } };
       }
-      // 引擎没有实时接口：这句话此前没有出口。落到设置页转写引擎那一栏（PR3 起落到一键卡的实时框）。
-      if (lastFail.code === 'nolive' && lastFail.el === el) {
-        return { label: T('asr_go_live_engine', '去配一个带实时接口的引擎 →'), onClick: () => openOptions('#quick-live') };
-      }
-      // Safari：弹窗那一下不是页内手势，这里再点一次就是。
-      if (lastFail.code === 'gesture' && lastFail.el === el) {
-        return { label: T('asr_gesture_tap', '▶ 点此开始实时转写'), onClick: () => startFrom('pill', el, ui, getSettings()) };
+      // 这段媒体扩展转不了 ⇒ 去 App。非 Apple 平台上 App 不存在，那里回 null，
+      // 于是 offer 退回下面那条默认的「再试一次」—— 绝不给一个装不了的去处。
+      if (lastFail.code === 'to_app' && lastFail.el === el) {
+        const p = appPointer('notice');
+        if (p) return p;
       }
       return { label: T('asr_offer', '🎙 AI 转写字幕'), onClick: () => startFrom('notice', el, ui, getSettings()) };
     };

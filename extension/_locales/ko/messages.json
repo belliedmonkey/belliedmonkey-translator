@@ -2322,6 +2322,30 @@
   "popup_asr_go": {
     "message": "🎙 실시간 받아쓰기 + 번역"
   },
+  "popup_asr_go2": {
+    "message": "🎙 이 미디어 받아쓰기 + 번역"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 이 미디어 받아쓰기 — 엔진을 먼저 선택 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 앱으로 기기 소리 듣기"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "앱에서 먼저 시작한 뒤 재생"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "라이브와 동영상 사이트도 가능"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 앱으로 기기 소리 듣기 →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 앱에서 먼저 시작하고 돌아와 재생 →"
+  },
+  "asr_media_app_only": {
+    "message": "이 미디어는 확장에서 오디오를 가져올 수 없어요(동영상 사이트와 라이브는 모두 그렇습니다). 앱으로 기기가 재생 중인 소리를 들으면 어떤 소스든 받아쓸 수 있어요."
+  },
   "popup_asr_no_engine": {
     "message": "🎙 실시간 받아쓰기 + 번역 — 먼저 엔진을 고르세요 →"
   },

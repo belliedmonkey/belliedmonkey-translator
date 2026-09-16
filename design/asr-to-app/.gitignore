@@ -1,0 +1,2 @@
+# 设计画布的打包产物。源是同目录的 *.dc.html + canvas.json，用 /design 重新拼出来即可，不进版本库。
+asr-to-app.html

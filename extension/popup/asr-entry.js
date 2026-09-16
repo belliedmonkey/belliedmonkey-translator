@@ -13,7 +13,10 @@ var AsrEntry = (() => {
     return (engines || []).find((e) => e && e.id === id) || null;
   }
   // state({ pageStatus, settings, engines }) → { kind, engine, label, hint, media, frames }
-  //   kind ∈ 'no_script' | 'no_engine' | 'file_only' | 'ready' | 'no_media' | 'iframe_only'
+  //   kind ∈ 'no_script' | 'no_engine' | 'ready' | 'no_media' | 'iframe_only'
+  //   （'file_only' 随 Tier B 于 2026-09-16 下掉：扩展端只剩整段转写，
+  //     「这个引擎有没有实时接口」在扩展里不再是一个有意义的问题。
+  //     QuickSetup.state().sttLive 的同名值**不受影响** —— 那是给 App 的听译用的。）
   function state(o) {
     const ps = o && o.pageStatus;
     if (!ps) return { kind: 'no_script', engine: null, media: null, frames: [] };
@@ -23,8 +26,7 @@ var AsrEntry = (() => {
     const frames = Array.isArray(ps.frames) ? ps.frames.filter((f) => f && f.href) : [];
     const base = { engine: eng, media, frames };
     if (!eng || (eng.needsKey && !s.sttApiKey) || (eng.requiresEndpoint && !s.sttBaseUrl)) return Object.assign({ kind: 'no_engine' }, base);
-    const live = !!(eng.liveEndpoint && eng.liveType);
-    if (media) return Object.assign({ kind: live ? 'ready' : 'file_only' }, base);
+    if (media) return Object.assign({ kind: 'ready' }, base);
     if (frames.length) return Object.assign({ kind: 'iframe_only' }, base);
     return Object.assign({ kind: 'no_media' }, base);
   }

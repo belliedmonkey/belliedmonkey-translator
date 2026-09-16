@@ -2322,6 +2322,30 @@
   "popup_asr_go": {
     "message": "🎙 リアルタイム文字起こし + 翻訳"
   },
+  "popup_asr_go2": {
+    "message": "🎙 このメディアを文字起こし＋翻訳"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 このメディアを文字起こし — まずエンジンを選択 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 App で端末の音を聞く"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "先に App で開始してから再生"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "ライブや動画サイトにも対応"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 App で端末の音を聞く →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 先に App で開始し、戻って再生 →"
+  },
+  "asr_media_app_only": {
+    "message": "この メディアは拡張機能では音声を取り出せません（動画サイトやライブは全てこうです）。App で端末が再生中の音を聞けば、どんなソースでも文字起こしできます。"
+  },
   "popup_asr_no_engine": {
     "message": "🎙 リアルタイム文字起こし + 翻訳 — まず認識エンジンを選ぶ →"
   },

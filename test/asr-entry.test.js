@@ -1,5 +1,5 @@
 // test/asr-entry.test.js — 弹窗「🎙 实时转写 + 翻译」的五态判定（第九期，2026-09-11）。
-// interaction-spec「AI 转写字幕 › Offer」那张表逐行钉住；file_only 的判据只读 liveEndpoint+liveType
+// interaction-spec「AI 转写字幕 › Offer」那张表逐行钉住；file_only 已随 Tier B 于 2026-09-16 下掉
 //（domain-design §7：实时接口从这两个字段推导，不加 live 旗标）。
 const { describe, test, eq, ok, loadModule } = require('./harness');
 const A = loadModule('popup/asr-entry.js', { window: {} }).AsrEntry;
@@ -20,10 +20,16 @@ describe('AsrEntry.state — 五态', () => {
     eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'oa', sttApiKey: '' }, engines: ENGINES }).kind, 'no_engine');
     eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'local', sttBaseUrl: '' }, engines: ENGINES }).kind, 'no_engine');
   });
-  test('ready vs file_only 只看 liveEndpoint + liveType', () => {
+  // 2026-09-16：Tier B（实时档）从扩展端下掉（domain-design §2.4 第 3 条）之后，
+  // 「这个引擎有没有实时接口」在扩展里不再是一个有意义的区分 —— 只剩整段转写，
+  // 而整段转写对任何引擎都一样。配好了引擎 + 有媒体 = ready，就这么两条。
+  //
+  // 这条断言**反过来钉**：三个引擎（有实时接口的、没有的、本机的）必须给出**同一个**
+  // kind。写成「都等于 ready」而不是删掉它，是因为区分回来的那天这里要红。
+  test('引擎有没有实时接口，扩展端不再区分 —— 三个都是 ready', () => {
     eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'oa', sttApiKey: 'k' }, engines: ENGINES }).kind, 'ready');
-    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'or', sttApiKey: 'k' }, engines: ENGINES }).kind, 'file_only');
-    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'local', sttBaseUrl: 'http://x' }, engines: ENGINES }).kind, 'file_only');
+    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'or', sttApiKey: 'k' }, engines: ENGINES }).kind, 'ready');
+    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'local', sttBaseUrl: 'http://x' }, engines: ENGINES }).kind, 'ready');
   });
   test('元数据未到（durationS 0、ready false）也是 ready —— 不再因 NaN 消失', () => {
     const st = A.state({ pageStatus: { media: { durationS: 0, live: false, ready: false } }, settings: { sttEngine: 'oa', sttApiKey: 'k' }, engines: ENGINES });

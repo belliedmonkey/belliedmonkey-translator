@@ -114,6 +114,14 @@
       <span class="row-value hint" id="transcribe-media-hint"></span>
     </button>
     <div class="setup-note" id="transcribe-media-note" hidden></div>
+    <!-- 常驻的 App 出口（2026-09-16 用户裁定「常驻」）。扩展端只剩整段转写，
+         取不出音轨的媒体（视频站、直播、DRM）一律落到 App —— 它听的是设备正在放的
+         声音。**非 Apple 平台整行不出**（App 在那里根本不存在），由 popup.js 按
+         AppLink.applePlatform() 决定，不在这里判 UA。 -->
+    <button class="row row-btn" id="asr-app-row" type="button" hidden>
+      <span class="row-label" id="asr-app-label"></span>
+      <span class="row-value hint" id="asr-app-hint"></span>
+    </button>
   </div>
 
   <div class="section actions" id="actions-section">
