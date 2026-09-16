@@ -77,7 +77,17 @@ const EVENTS = {
   // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。
   // `app_home`（2026-09-16）= App 首页那两张模式卡。App 的听译/实时字幕**不经过**
   // asr-source.js，前三个值都是网页里的入口，一个都落不到它头上（telemetry-design §3.3）。
-  asr_entry: { surface: ['popup', 'notice', 'pill', 'app_home'], result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed'] },
+  // `popup_app_row` / `to_app`（2026-09-17）：实时档从扩展端下掉之后，弹窗里多了一条
+  // **常驻**的「用 App 听设备的声音」，走不通的媒体也统一落到去 App 的出口。这两处点击
+  // 需要自己的具名值 —— 第一版用 `no_media` 记它，那是拿「没找到媒体」冒充「用户选择
+  // 去 App」，与 engine_set 那次语义漂移同型（§3.3.1）。
+  //
+  // `gesture_needed` **保留但不再产生**：Safari 页内手势那套机制随 Tier B 一起下掉了
+  // （domain-design §2.4 第 3 条）。枚举留着是因为历史行还在表里，删掉会让旧数据读不回来。
+  asr_entry: {
+    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
+    result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
+  },
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };
 

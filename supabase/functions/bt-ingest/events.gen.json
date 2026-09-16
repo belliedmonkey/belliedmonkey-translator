@@ -139,14 +139,16 @@
         "popup",
         "notice",
         "pill",
-        "app_home"
+        "app_home",
+        "popup_app_row"
       ],
       "result": [
         "started",
         "no_media",
         "no_engine",
         "no_live",
-        "gesture_needed"
+        "gesture_needed",
+        "to_app"
       ]
     },
     "telemetry_off": {}

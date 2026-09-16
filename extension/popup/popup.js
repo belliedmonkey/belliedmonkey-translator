@@ -252,6 +252,11 @@ function paintAsrAppRow() {
     ? t('popup_asr_app_hint_ios', '先开始听，再回来播放')
     : t('popup_asr_app_hint_mac', '直播、视频站都能转');
   row.onclick = () => {
+    // 这一行是**主动发现**的入口，与页内「撞墙之后」那个出口分开记（surface 不同）——
+    // 免费额度那次的教训：83% vs 14% 的差距是按入口劈开才看见的（telemetry-design §3.3.2）。
+    try {
+      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'popup_app_row', result: 'to_app' });
+    } catch (_) {}
     // AppLink.open 自己兜「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 说出来」，那正是本仓
     // 最怕的「点了没反应」；没装 App 的人由兜底送去 App Store。
     try {

@@ -366,7 +366,10 @@ var AsrSource = (() => {
     return {
       label,
       onClick: () => {
-        track(surface || 'notice', 'no_media');
+        // `to_app` 而不是 `no_media`（2026-09-17，telemetry-design §3.3.2）：
+        // 第一版拿「这一页没找到媒体」记「用户选择去 App」，那是 engine_set 那次
+        // 语义漂移的同型——两件事从此在数据里分不开，而旧数据看起来完全正常。
+        track(surface || 'notice', 'to_app');
         // AppLink.open 自己处理「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 把出口说出来」，
         // 这正是本仓最怕的「点了没反应」。没装 App 的人由它送去 App Store。
         try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
