@@ -3,6 +3,22 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.11.0 — 2026-09-15
+
+- Live Subtitles: bilingual subtitles for whatever your device is playing. On Mac, a floating subtitle bar over any app and full-screen video (macOS 14.4 or later); on iPhone, a picture-in-picture window over any app.
+- Conversation · live interpreter: on iOS 26 and macOS 26 you can choose on-device transcription and speech, so the audio stays on your device.
+- The app now requires iOS 16.4 or macOS 13.3.
+- Fixes: podcast pages no longer get stuck on "Loading subtitles…"; the "AI transcript subtitles" button no longer flickers while subtitles load; review cards with an unknown language now get one.
+
+<details><summary>中文</summary>
+
+- 实时字幕：给设备上正在播放的声音配双语字幕。Mac 上是盖在任意 App 与全屏视频之上的悬浮字幕条（macOS 14.4 起），iPhone 上是浮在任意 App 之上的画中画小窗。
+- 对话 · 实时听译：iOS 26 / macOS 26 上可选设备内置转写与朗读，声音只在你的设备上识别。
+- 系统要求提高到 iOS 16.4 / macOS 13.3。
+- 修复：播客页不再卡在「字幕加载中」；「AI 转写字幕」按钮加载时不再一闪一闪；语言未知的复习卡会自动补上语言。
+
+</details>
+
 ## 1.10.0 — 2026-09-11
 
 - New "Document translation": upload a PDF, Word (.docx), plain text, or an image and read it page by page, original and translation side by side. Only the page you open is translated, with bounded concurrency — never the whole document at once, never the whole budget at once.
