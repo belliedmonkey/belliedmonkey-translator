@@ -419,6 +419,33 @@ async function saveAll() {
     sttModel:      $('stt-model').value.trim(),
   };
   await new Promise(resolve => chrome.storage.local.set(settings, resolve));
+  maybeTrackEngineSet(settings);
+}
+
+// engine_set 的判据是 **EngineState.needsSetup**，不是「在下拉里选了什么」。
+//
+// 2026-09-16：原先这条挂在 provider 的 `change` 上，于是「点开下拉看了一眼」也记一条
+// engine_set —— 而 quick-setup.js §「空」的判据早就写明：「非空 key 是『用户有意配过』的
+// 唯一无歧义证据。provider 不能当判据 —— 『选了 google』与『从没碰过』在存储里一模一样。」
+// 遥测里的后果：7 台「配了 openai」的装机有 6 台从没翻译过、且**一条失败都没有**，看上去
+// 像「配好了不用」，实际是根本没配完。激活漏斗的分母因此虚高。
+//
+// 判据不另写一份（engine-state.js 那条「没有人再另写一份判据」由
+// test/engine-state.test.js 守着），这里只调它。放在 saveAll 末尾而不是某个控件的监听上：
+// 保存是所有路径的唯一汇合处（一键卡、引导页、逐个字段改都会走到），挂在这里就不会漏。
+let _engineSetSent = '';
+function maybeTrackEngineSet(settings) {
+  if (typeof MTTelemetry === 'undefined' || typeof EngineState === 'undefined') return;
+  try {
+    const s = {
+      provider: settings.provider, apiKey: settings.apiKey, engineChosen: _engineChosen,
+    };
+    if (EngineState.needsSetup(s)) return;        // 还没配完 —— 这不是一次「配好了」
+    const id = EngineState.resolve(s.provider);
+    if (!id || id === _engineSetSent) return;     // 同一个引擎不重复记
+    _engineSetSent = id;
+    MTTelemetry.track('engine_set', { provider: String(id) });
+  } catch (_) {}
 }
 
 // Map a stored fontSize to a valid scale option. Legacy values ('0.9em', '14px')
@@ -605,7 +632,6 @@ async function init() {
     // 单独写盘，不进 saveAll()：它是一次事件的记录，不是一个可编辑的设置。
     _engineChosen = true;
     try { chrome.storage.local.set({ engineChosen: 1 }); } catch (_) {}
-    if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('engine_set', { provider: String(e.target.value || '') });
     updateProviderUI(e.target.value);
     await saveAll();
     updateAdvancedNotes();     // 换引擎 = 换 host = 能力可能整组变了
@@ -1726,7 +1752,8 @@ async function init() {
     await saveAll();                       // 现在 DOM 就是真相，覆盖是安全的
     // 一键卡写过三槽之后额度卡的状态可能变了（例：用自己的 key 盖掉免费槽 ⇒ 「改回免费额度」）—— 重画（F07）
     try { await paintGrant(); } catch (_) {}
-    if ('provider' in w && (typeof MTTelemetry !== 'undefined')) MTTelemetry.track('engine_set', { provider: String(w.provider || '') });
+    // engine_set 由 saveAll() 末尾的 maybeTrackEngineSet 统一记（判据见那里）——
+    // 这里曾另发一条，判据与设置页那条不同，是同一个事件的第二份判据。
   }
 
 
