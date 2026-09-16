@@ -554,6 +554,13 @@ var AppSettings = (() => {
     if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
     await paint(session, say);
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
+    // 对称于扩展设置页 options.js 的 applyQuickSetup 末尾。一键卡是 App 里设置**主翻译
+    // 引擎**的唯一入口 —— app/index.html 没有 provider 下拉（只有 tts-engine /
+    // notes-provider / stt-engine），writes.provider 只可能来自 quick-setup.js。所以
+    // engine_set 只能挂在这里；漏了它，telemetry-design §1 第一问的激活漏斗
+    //「配了引擎 → 翻出东西」在 App 上就是黑的（2026-09-16 查实：App 侧 0 条）。
+    const w = (plan && plan.writes) || {};
+    if ('provider' in w && (typeof MTTelemetry !== 'undefined')) MTTelemetry.track('engine_set', { provider: String(w.provider || '') });
   }
 
 

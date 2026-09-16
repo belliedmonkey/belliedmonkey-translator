@@ -281,6 +281,9 @@ var AppListen = (() => {
       const draft = C.draftFor(row, session, cfg);
       const item = LearnModel.makeItem(draft, now());
       await LearnStore.mergeBatch([item], [C.sourceFor(session, cfg.label)]);
+      // 写成功之后才记（Collector law 2）—— 失败会走下面的 catch 把 written 退回去。
+      // 同 app/docs.js：内容脚本 learn-collector.js 不进 App 包，App 的采集 seam 只有这里。
+      try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.once('capture_first'); } catch (_) {}
     } catch (_) { row.written = false; }
     renderHistory();
   }

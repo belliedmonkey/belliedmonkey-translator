@@ -65,7 +65,15 @@ var AppDocs = (() => {
       grantActive: (s) => (typeof LearnGrant !== 'undefined' ? LearnGrant.activeIn(s, 'chat') : false),
       engineTriple: triple,
       gates: { langAllowed: LearnRules.langAllowed, shouldCapture: (d) => LearnModel.shouldCapture(d) },
-      write: (draft, source) => LearnStore.mergeBatch([LearnModel.makeItem(draft, Date.now())], [source]),
+      // 采集是 sink，只在**写成功之后**记一次（Collector law 2：绝不在失败路径）。
+      // 这条 seam 在 App 里必须自己接：capture_first 的另一个发送点是内容脚本
+      // learn-collector.js，而内容脚本不进 App 包 —— 漏了这里，App 侧的
+      // capture_first 永远是 0，且看上去像「没人用」而不是「没接线」（2026-09-16）。
+      write: async (draft, source) => {
+        const r = await LearnStore.mergeBatch([LearnModel.makeItem(draft, Date.now())], [source]);
+        try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.once('capture_first'); } catch (_) {}
+        return r;
+      },
       onDelete: async (docId) => {
         try {
           const items = await LearnStore.allItems();
