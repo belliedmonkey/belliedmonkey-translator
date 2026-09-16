@@ -3,7 +3,11 @@
 > Status: **design approved 2026-09-05; backend (PR-D1) live; client + copy (PR-D2/D3) implemented the same day.**
 > **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
 > `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
-> 起因写在 §3.1。Governed by
+> 起因写在 §3.1。
+> **2026-09-16 amendment（第十二期，待人评审）**：新事件 `engine_test`（引擎测试整个是盲区）；
+> `engine_set` 的判据从「选了下拉」改成 `EngineState.needsSetup`；`asr_entry.surface` 加 `app_home`；
+> 澄清 App 的听译/实时字幕出译文归 `translate_ok{kind:'subtitle'}`（不新增 kind），以及补译文**不发**
+> `translate_ok`。起因写在 §3.3。Governed by
 > `AGENTS.md` rule 4 (amended the same day) and released through
 > `docs/learning-design.md` §10 **Gate D**. The event whitelist in §3 is a
 > domain-design artifact: adding an event, a property, or a join is a change to this
@@ -76,8 +80,8 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `installed` | — | the id is first generated | telemetry module first init |
 | `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
 | `onboarding_done` | `surface: ext \| app` | onboarding finishes | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` |
-| `engine_set` | `provider` | provider changed and saved | `options.js` provider `change` (next to `engineChosen`) · `applyQuickSetup` |
-| `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` |
+| `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `applyQuickSetup`。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
+| `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
 | `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
@@ -88,7 +92,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
 | `ext_banner` | `action: shown \| setup \| done` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」（2026-09-10，§3.1） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个按钮的 listener |
-| `asr_entry` | `surface: popup \| notice \| pill` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed` | 用户从某个入口尝试开始 AI 转写字幕（2026-09-11，§3.2） | `asr-source.js` `startFrom(surface, …)`（started / no_engine / gesture_needed）、`liveTier` 抛 `nolive` 处（no_live）、`content-main.js` `transcribeMedia` 找不到媒体处（no_media）；`pill` = 页内 「▶ 点此开始实时转写」 那一下 |
+| `asr_entry` | `surface: popup \| notice \| pill \| app_home` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed` | 用户从某个入口尝试开始 AI 转写字幕（2026-09-11，§3.2） | `asr-source.js` `startFrom(surface, …)`（started / no_engine / gesture_needed）、`liveTier` 抛 `nolive` 处（no_live）、`content-main.js` `transcribeMedia` 找不到媒体处（no_media）；`pill` = 页内 「▶ 点此开始实时转写」 那一下。**`app_home`（2026-09-16）** = App 首页那两张模式卡（`app-listen-entry` / `app-listen-entry2`），seam 在 `app/listen.js` 的入口门控处 —— App 的听译/实时字幕**不经过** `asr-source.js`，所以现有三个值一个都落不到它头上，这是本次唯一必须动枚举的一处 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
@@ -125,6 +129,99 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 URL、不带 frame href（探针上报给弹窗的 href 只在客户端用于「新标签页打开」，不进事件）、不带
 引擎 id（引擎已在 `engine_set`）。它回答 §1 的第一问（激活：多少人真的走到了转写）与第六问
 （这个入口被看见了吗）。
+
+### 3.3 2026-09-16 amendment（第十二期：装机最多的那个面是黑的）
+
+起因是一次「现在有哪些活跃用户」的例行查询。`bt_events` 里 **App 宿主 138 台装机（占全部
+244 台的 57%）**，除 `installed` / `heartbeat` / `ext_banner` / `onboarding_done` /
+`sync_on` 外**一条核心事件都没有**。静态查实：不是没人用，是这些 seam 在 App 侧**代码层面
+就不存在**——
+
+| 事件 | App 里的发送点 | |
+|---|---|---|
+| `engine_set` | 只在 `extension/options/options.js`；`app/settings.js` 一处都没有 | ❌ 缺口 |
+| `capture_first` | 只在 `content/learn-collector.js`，内容脚本不进 App 包 | ❌ 缺口 |
+| `translate_ok` | 只有 `doc-view.js`（文档）；听译 / 实时字幕 / 补译文零 seam | ❌ 缺口 |
+| `asr_entry` | 只在内容脚本；App 的实时字幕是 `app/listen*.js` 另一套 | ❌ 缺口 |
+| `review_session` | `review.js` 在 App 包里，能发 | ✅ 真的没人刷完一轮 |
+| `doc_open` | `doc-view.js`，两宿主的 `track` 都接了 | ✅ 真的没人开过文档 |
+
+**这是 §3.1 第 1 条那次 `<all_urls>` 漏统计的第二次发作**，而且更贵：漏掉的是装机最多的面，
+后果是 §1 第一问的激活漏斗在 App 上整条是黑的，而且数字看上去像「用户不活跃」——
+一个从未被接线的 seam 与一个没人触发的 seam，在表里都记成 0，这正是 §1 第六问那条教训的
+另一种形状。**凡是新宿主上线，都要逐条问「这个事件在这个宿主有发送点吗」，不能假定同名模块
+进了包就等于接上了。**
+
+三条判断，两条不动白名单：
+
+1. **App 的听译 / 实时字幕出译文 ⇒ `translate_ok{kind:'subtitle'}`，不新增 kind。**
+   领域设计里已经有这条先例：`listen-core.js` 的语料锚点「字幕句子沿用 `k:'conv'`
+   （不新增 kind），只多一个 `mode`」（learning-design §9.8）。同理，每条事件都带 `host`，
+   于是 `host='app'` + `kind='subtitle'` 本就唯一地指向 App 的听译/字幕，而
+   `host='safari'` + `kind='subtitle'` 是网页视频字幕 —— **不需要第四个 kind 就已经分得开**。
+   少一个枚举值，就少一处会和 `host` 打架的维度。
+2. **`translate-fill.js` 的补译文不发 `translate_ok`。** 它是学习层给一张已捕获的卡片补一个
+   译文（§9.5），不是一次用户发起的翻译会话；而 `translate_ok` 的定义是「一次会话里第一次
+   译文落地」。把它算进来会让激活漏斗的分子里混进后台动作，比漏掉它更糟。**结论是不做**，
+   写在这里是为了下次有人再问时不必重新推一遍。
+3. **`asr_entry.surface` 加 `app_home`。** 理由见 §3 表格那行：App 的听译/实时字幕不经过
+   `asr-source.js`，现有 `popup | notice | pill` 三个值都是网页里的入口，一个都落不到 App
+   首页那两张模式卡头上。
+
+### 3.3.1 激活漏斗的第二个洞：引擎测试是盲区，而 `engine_set` 在说谎
+
+同一次排查里翻出来的，比 App 那个洞更贵，因为它**污染的是已有的数**而不只是缺数。
+
+**`engine_set` 记的是「在下拉里选了一下」，不是「配好了」。** 它挂在 provider 的 `change` 上，
+key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.js` §「空」的判据）：
+
+> 非空 key 是「用户有意配过」的**唯一无歧义证据**。provider 不能当判据 ——「选了 google」
+> 与「从没碰过」在存储里一模一样。
+
+遥测里的后果：7 台「配了 `openai`」的装机，6 台从没翻译过，**且一条失败记录都没有**。
+那不是「配好了不用」，是根本没配完 —— 激活漏斗的分母虚高，卡点被记错了位置。对照组很刺眼：
+
+| 配置方式 | 要填 key | 装机 | 翻成功 |
+|---|---|---|---|
+| 免费额度 `grant` | **不用** | 12 | **10（83%）** |
+| 自带 key `openrouter` | 要 | 13 | 5（38%） |
+| 自带 key `openai` | 要 | 7 | 1（14%） |
+
+**而「填 key → 点测试 → 失败 → 放弃」这一整段没有任何事件。** `learn/engine-test.js` 零遥测，
+四个调用方全在激活路径上，其中一个就是**引导页**。于是漏斗上最关键的一跳——人有没有跨过
+「配一把能用的 key」——我们既看不见成功，也看不见失败。
+
+两条改法，性质不同：
+
+- **`engine_set` 改判据**（不动白名单，只改 Seam）：调 `EngineState.needsSetup`，挂在
+  `saveAll()` 末尾——保存是所有配置路径的唯一汇合处。两个宿主同一个出口，不另写一份判据。
+  **已在 #293 落地**。注意这改变了该事件的语义，与 09-16 之前的历史数据不可直接比。
+- **新事件 `engine_test`**（动白名单，本 PR 要裁定的第 4 条）。提议的白名单行：
+
+  ```
+  engine_test · slot: chat | tts | stt · result: ok | fail · code（失败时，复用
+                translate_fail.code 的枚举）
+  何时：用户点了一次「测试」并拿到结果
+  Seam：learn/engine-test.js 的四个调用方各自的结果回调 —— options.js（设置页）、
+        engine-fields.js（字段行）、quick-setup.js（一键卡三个槽）、onboard.js（引导页）
+  ```
+
+  不带 key、不带端点、不带服务器原文——`serverMessage` 可能引用用户输入，原则 1 已禁。
+  它回答的是 §1 第一问里一直缺的那半：**人卡在配置这一步，是因为没试，还是因为试了不通。**
+
+**为什么这一行还没进 §3 的表**（下一个提案的人会撞上同一件事，写在这里省一轮）：
+`test/telemetry-registry.test.js` 用正则从 §3 的表里抓事件名，与 `build/telemetry.config.js`
+**双向**比对——文档有而注册表没有，同样红。所以「新增事件」的正确流程不是「docs PR 先改表」，
+而是：**docs PR 只写提案（不进表）→ 人评审 → 一个 PR 同时改表 + 注册表 + 生成物 + 代码**。
+本 PR 另外两处改动不受影响：`engine_set` 是改已有行的判据，`asr_entry.surface` 是加枚举值，
+门禁只认事件名。**另注**：那条正则认的是「行首 `| \`x\` |`」这个形状，所以本文档里任何表格
+的第一格都不要写成孤零零一个反引号词——引擎名 `openai` 会被当成事件名（本节那张对比表
+因此在第一格加了「自带 key」前缀）。
+
+落地顺序（本文档合并之后）：`build/telemetry.config.js`（唯一登记处）→
+`node scripts/gen-telemetry.js` 重新生成 → 服务端 `bt-ingest` 随之更新 →
+`test/telemetry-registry.test.js` 钉两边一致。判断 1、2 与 `engine_set` / `capture_first`
+两处缺口**不动白名单**，已在 PR #293 先行落地。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
