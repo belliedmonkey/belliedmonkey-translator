@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "The translation appears under the original; sentences you actually finish reading become review cards"
   },
+  "ob_fork_title": {
+    "message": "How do you want to start?"
+  },
+  "ob_fork_sub": {
+    "message": "Both work. You can switch any time."
+  },
+  "ob_fork_grant_title": {
+    "message": "Start with free credit"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Recommended"
+  },
+  "ob_fork_grant_desc": {
+    "message": "No API key needed — just sign in and translate. Enough for a few hundred paragraphs of pages and subtitles."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Start free →"
+  },
+  "ob_fork_key_title": {
+    "message": "I have my own API key"
+  },
+  "ob_fork_key_desc": {
+    "message": "One key sets up translation, speech and transcription — or configure each engine separately."
+  },
+  "ob_fork_key_cta": {
+    "message": "Set it up →"
+  },
+  "ob_fork_foot": {
+    "message": "Run out? Switch to your own key any time — one step in settings."
+  },
+  "ob_fork_waiting": {
+    "message": "Claiming in a new tab… come back here when you are signed in and it continues automatically."
+  },
+  "ob_fork_landed": {
+    "message": "Credit received — taking you to the next step…"
+  },
+  "ob_fork_reopen": {
+    "message": "Reopen the claim page"
+  },
   "extob_engine_title": {
     "message": "Pick a translation engine"
   },

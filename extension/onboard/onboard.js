@@ -94,6 +94,7 @@
     'ttsEngine', 'ttsApiKey', 'ttsBaseUrl', 'ttsModel', 'ttsMode', 'ttsAutoPlay',
     'sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
     'learnEnabled', 'learnRules', 'uiLang', 'targetLang',
+    'grantTail',   // 分流屏用：已经领过额度的人不再问「你想怎么开始」
   ];
 
   // 一键卡在**点下按钮那一刻**用它现读一次，而不是拿加载时的快照。
@@ -111,7 +112,7 @@
     // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-fork', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -126,6 +127,9 @@
         '原文留在原地，译文长在下面。你真正停下来读完的句子会变成复习卡，按遗忘曲线回来找你。');
       $('ob-next').textContent = t('ob_start', '开始设置');
       paintSteps();
+    } else if (step === 'engine' && forkOpen()) {
+      // 分流屏（画布方案 A）。只在**有免费额度可领**且用户还没在这一屏做过选择时出。
+      paintFork();
     } else if (step === 'engine') {
       $('ob-title').textContent = t('extob_engine_title', '选一个翻译引擎');
       // 不再按「有没有免费通道」分支。2026-09-01 裁定：决策不为免费通道开特例，
@@ -334,6 +338,99 @@
     }
     manualMounted = true;
   }
+
+  // ── 第 2 屏的前置分流（2026-09-16，画布方案 A）──────────────────────────
+  //
+  // 遥测查实：不用填 key 的那条路激活率 83%，要填 key 的 14–38%；而这一屏原来把
+  // 「要填 key」做成填色主行动、免费额度是次级样式 —— 产品和数据正好反着。
+  //
+  // 这**不是多一屏**：OB 数组、进度条、现有 id 全不动，只是 engine 屏多了一个前置态。
+  // 选②之后的一切逐字不变。
+  //
+  // forkPick: null = 还没选 · 'grant' = 选了免费额度（等领取回来）· 'key' = 自己配
+  let forkPick = null;
+  let forkLanded = false;
+
+  // 这一屏该不该出分流？判据是 **LearnGrant.enabled()**，即注册表里有没有
+  // `MT_GRANT` —— 「我们代领的额度」这条路存不存在。按注册表内容判、不按 flavor 名
+  // （沿用本文件顶部与 app/app.js:308-312 已确立的规则）。
+  //
+  // ⚠️ **不能用 paintGrant() 的返回值**。它只回答「有没有一张卡要画」，而中国版画的是
+  // 另一张卡（grant.js 的 officialCard：「去阿里云注册领额度，然后把 key 粘到下面」）——
+  // 那是「自己配 key」那条路的说明，不是第二条路。拿它当判据，中国版会出现一个
+  // 两选一，而其中一个选项在那一版根本不存在（2026-09-16 被 verify-onboard 抓到）。
+  //
+  // 已经领过的人（grantTail 非空）也不问：对他「用免费额度开始」已经发生过了，
+  // 再问一遍只是多一次点击。
+  function forkOpen() {
+    if (forkPick === 'key') return false;
+    if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return false;
+    if (settings && String(settings.grantTail || '').trim()) return false;
+    return true;
+  }
+
+  function paintFork() {
+    $('ob-title').textContent = t('ob_fork_title', '你想怎么开始？');
+    $('ob-text').textContent = t('ob_fork_sub', '两条路都能用，之后随时能换。');
+    $('ob-fork').hidden = false;
+    // 「继续」**保留**，降为次级。裁定 D2（见 onboard.html 里额度卡那段注释）：
+    // 登录永远不是墙，「继续」始终可点 —— 既不想领额度、也还不想配 key 的人，必须
+    // 有一条往下走的路，否则这一屏就成了墙。填色留给「免费开始」，一屏仍只有一个
+    // 填色按钮（2026-09-02 立的规矩）。
+    // 2026-09-16 第一版把它藏了（想让「选择本身就是前进」），被 verify-onboard 挡下：
+    // 门禁逐屏点「继续」遍历，藏了它之后整条遍历卡死在第 2 屏 —— 那也正是用户会卡的地方。
+    $('ob-next').classList.add('secondary');
+
+    const waiting = forkPick === 'grant';
+    $('ob-fork-pick').hidden = waiting;
+    $('ob-fork-wait').hidden = !waiting;
+
+    $('ob-fork-grant-title').textContent = t('ob_fork_grant_title', '用免费额度开始');
+    $('ob-fork-grant-badge').textContent = t('ob_fork_grant_badge', '推荐');
+    $('ob-fork-grant-desc').textContent = t('ob_fork_grant_desc',
+      '不用申请 API key，登录一下就能翻。够日常读几百段网页和字幕。');
+    $('ob-fork-grant-cta').textContent = t('ob_fork_grant_cta', '免费开始 →');
+    $('ob-fork-key-title').textContent = t('ob_fork_key_title', '我有自己的 API key');
+    $('ob-fork-key-desc').textContent = t('ob_fork_key_desc',
+      '一把 key 同时配好翻译、朗读、转写；也可以三个引擎分别配。');
+    $('ob-fork-key-cta').textContent = t('ob_fork_key_cta', '去配置 →');
+    $('ob-fork-foot').textContent = t('ob_fork_foot', '额度用完了随时能换成自己的 key —— 设置里一步。');
+
+    $('ob-fork-wait-line').textContent = forkLanded
+      ? t('ob_fork_landed', '额度已到账，正带你去下一步…')
+      : t('ob_fork_waiting', '正在新标签页里领取…登录完成后回到这里，会自动继续。');
+    $('ob-fork-reopen').textContent = t('ob_fork_reopen', '重新打开领取页');
+    $('ob-fork-reopen').hidden = forkLanded;
+    $('ob-fork-fallback').textContent = t('ob_fork_key_title', '我有自己的 API key');
+    // 到账之后「继续」升为主行动：这时它不再是「先不配」，而是「带我去下一步」——
+    // 自动前进万一没跑到，人不该卡在一句提示上。
+    if (forkLanded) $('ob-next').classList.remove('secondary');
+  }
+
+  function openGrantPage() {
+    try { window.open(chrome.runtime.getURL('options/options.html') + '#grant', '_blank'); } catch (_) {}
+  }
+  $('ob-fork-grant').addEventListener('click', () => { forkPick = 'grant'; openGrantPage(); paint(); });
+  $('ob-fork-key').addEventListener('click', () => { forkPick = 'key'; paint(); });
+  $('ob-fork-fallback').addEventListener('click', () => { forkPick = 'key'; paint(); });
+  $('ob-fork-reopen').addEventListener('click', openGrantPage);
+
+  // 领取在设置页发生，但人不必自己走回来：领到会写 grantTail，这里听着。
+  // 只认**从空变非空**，因为 onChanged 也会因为别的写入触发。
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area && area !== 'local') return;
+      const ch = changes && changes.grantTail;
+      if (!ch || !ch.newValue || ch.oldValue) return;
+      if (forkPick !== 'grant' || forkLanded) return;
+      forkLanded = true;
+      if (OB[at] === 'engine') {
+        paint();
+        // 让人看见「到账」再走，否则屏幕闪一下就换了，没人知道刚才发生了什么。
+        setTimeout(() => { if (OB[at] === 'engine' && forkLanded) $('ob-next').click(); }, 1500);
+      }
+    });
+  } catch (_) {}
 
   function paintModes() {
     const grantShown = paintGrant();

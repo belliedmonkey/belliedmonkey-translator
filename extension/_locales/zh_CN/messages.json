@@ -1792,6 +1792,45 @@
   "extob_use_3": {
     "message": "译文长在原文下面；你真正读完的句子会变成复习卡"
   },
+  "ob_fork_title": {
+    "message": "你想怎么开始？"
+  },
+  "ob_fork_sub": {
+    "message": "两条路都能用，之后随时能换。"
+  },
+  "ob_fork_grant_title": {
+    "message": "用免费额度开始"
+  },
+  "ob_fork_grant_badge": {
+    "message": "推荐"
+  },
+  "ob_fork_grant_desc": {
+    "message": "不用申请 API key，登录一下就能翻。够日常读几百段网页和字幕。"
+  },
+  "ob_fork_grant_cta": {
+    "message": "免费开始 →"
+  },
+  "ob_fork_key_title": {
+    "message": "我有自己的 API key"
+  },
+  "ob_fork_key_desc": {
+    "message": "一把 key 同时配好翻译、朗读、转写；也可以三个引擎分别配。"
+  },
+  "ob_fork_key_cta": {
+    "message": "去配置 →"
+  },
+  "ob_fork_foot": {
+    "message": "额度用完了随时能换成自己的 key —— 设置里一步。"
+  },
+  "ob_fork_waiting": {
+    "message": "正在新标签页里领取…登录完成后回到这里，会自动继续。"
+  },
+  "ob_fork_landed": {
+    "message": "额度已到账，正带你去下一步…"
+  },
+  "ob_fork_reopen": {
+    "message": "重新打开领取页"
+  },
   "extob_engine_title": {
     "message": "选一个翻译引擎"
   },

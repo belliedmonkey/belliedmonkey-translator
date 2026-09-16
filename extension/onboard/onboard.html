@@ -48,6 +48,40 @@
                「每个 [data-i18n] 调 innerText」的门禁崩掉（SVGElement 没有 innerText）。 -->
           <ol id="ob-steps" hidden></ol>
 
+          <!-- 第 2 屏的**前置分流**（2026-09-16，画布方案 A）。
+               先问一句「你想怎么开始」，而不是把两条路并排摆着让人比较。
+               起因是遥测：不用填 key 的那条路激活率 83%，要填 key 的 14–38%，
+               而这一屏此前把「要填 key」做成了填色主行动、免费额度是次级样式。
+               整块**只在有免费额度可领时才出**（判据是 paintGrant() 的返回值，
+               按注册表内容判、不按 flavor 名）—— 中国版注册表里没有 grant，
+               于是这一块一张卡都画不出来，那一版直接沿用下面的原样一屏。 -->
+          <div id="ob-fork" hidden>
+            <div id="ob-fork-pick">
+              <button id="ob-fork-grant" type="button" class="ob-fork-card ob-fork-primary">
+                <span class="ob-fork-head">
+                  <span class="ob-fork-title" id="ob-fork-grant-title"></span>
+                  <span class="ob-fork-badge" id="ob-fork-grant-badge"></span>
+                </span>
+                <span class="ob-fork-desc" id="ob-fork-grant-desc"></span>
+                <span class="ob-fork-cta" id="ob-fork-grant-cta"></span>
+              </button>
+              <button id="ob-fork-key" type="button" class="ob-fork-card">
+                <span class="ob-fork-head"><span class="ob-fork-title" id="ob-fork-key-title"></span></span>
+                <span class="ob-fork-desc" id="ob-fork-key-desc"></span>
+                <span class="ob-fork-cta ob-fork-cta-quiet" id="ob-fork-key-cta"></span>
+              </button>
+              <p id="ob-fork-foot" class="hint"></p>
+            </div>
+            <!-- 领取在**设置页**发生（引导页不加载 auth.js：两个页面同时备 PKCE
+                 verifier 会互相覆盖）。所以这一档不是干等 —— 领到会往
+                 chrome.storage.local 写 grantTail，这一页监听 onChanged 自己往下走。 -->
+            <div id="ob-fork-wait" hidden>
+              <p id="ob-fork-wait-line"></p>
+              <button id="ob-fork-reopen" type="button" class="secondary"></button>
+              <button id="ob-fork-fallback" type="button" class="link"></button>
+            </div>
+          </div>
+
           <!-- 第 2 屏：两个**互斥**的入口。同屏只显示其中一个。
                裁定见 docs/interaction-spec.md：一键配置与逐引擎配置永不同屏 ——
                两者共存时，在下面改了引擎，上面那张卡显示的状态就成了谎话。

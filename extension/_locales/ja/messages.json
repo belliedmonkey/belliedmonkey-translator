@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "訳文が原文の下に現れ、最後まで読んだ文は復習カードになります"
   },
+  "ob_fork_title": {
+    "message": "どちらで始めますか？"
+  },
+  "ob_fork_sub": {
+    "message": "どちらでも使えます。あとからいつでも変更できます。"
+  },
+  "ob_fork_grant_title": {
+    "message": "無料クレジットで始める"
+  },
+  "ob_fork_grant_badge": {
+    "message": "おすすめ"
+  },
+  "ob_fork_grant_desc": {
+    "message": "API キーの申請は不要。サインインするだけで翻訳できます。ページや字幕を数百段落分読むのに十分です。"
+  },
+  "ob_fork_grant_cta": {
+    "message": "無料で始める →"
+  },
+  "ob_fork_key_title": {
+    "message": "自分の API キーを使う"
+  },
+  "ob_fork_key_desc": {
+    "message": "キー 1 つで翻訳・読み上げ・文字起こしをまとめて設定。エンジンごとの設定も可能です。"
+  },
+  "ob_fork_key_cta": {
+    "message": "設定する →"
+  },
+  "ob_fork_foot": {
+    "message": "使い切っても、設定からいつでも自分のキーに切り替えられます。"
+  },
+  "ob_fork_waiting": {
+    "message": "新しいタブで受け取り中…サインインが済んだらこの画面に戻ってください。自動で続きます。"
+  },
+  "ob_fork_landed": {
+    "message": "クレジットを受け取りました。次のステップへ移動します…"
+  },
+  "ob_fork_reopen": {
+    "message": "受け取りページを開き直す"
+  },
   "extob_engine_title": {
     "message": "翻訳エンジンを選ぶ"
   },
