@@ -206,6 +206,9 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
 
 ### 2.4 AI 转写字幕 — user-initiated transcription (核心约束 — do not break)
 
+> **2026-09-16 修订（待人评审）**：Tier B（边说边出的实时档）**从扩展端下掉**，只保留在 App。
+> 理由与后果写在下方第 3 条。Tier A（整段转写）逐字不变。
+
 Added 2026-09-06 after PR0 measurement (`scripts/asr-probe.js`, `scripts/asr-cors-probe.js`;
 ledger rows `api.openai.com × whisper-1 / gpt-live-transcribe`). The measured question was
 "is a transcription endpoint fast and accurate enough to be a subtitle *source*"; the
@@ -244,41 +247,35 @@ Gemini and Meta are measured the same way before their entries ship.
    the media has a fetchable `http(s)` URL, the whole file is fetched and transcribed
    *once*; the complete timed transcript arrives before it is used, exactly like a VTT.
    This tier needs nothing Safari iOS lacks (§5.3).
-3. **Tier B — live mode — is the one written exception to "complete transcript up
-   front".** When there is no fetchable URL (`blob:`/MSE — YouTube, Twitch, X video and
-   Spaces, live streams) the element's audio is captured in-page and streamed to the
-   endpoint; cues are **appended in playback order as whole sentences** (closed on a
-   sentence terminal, `MAX_LEN`, or a silence gap — the same closing rules as
-   `mergeSentences`). The open tail sentence is never handed to the Engine, so no unit
-   is ever replaced and no translation is ever discarded. **No word-by-word, no
-   per-caption translation** — the Engine still receives sentences, in a window, and
-   translates them exactly as it does a fetched transcript. Because a sentence can only
-   close after it has been spoken, the pair appears **after** the speech (measured
-   ≈ 1.8 s p50 before translation); the Renderer holds it on screen for `HOLD_MS`
-   after its end or until the next sentence, and the live window uses a longer
-   `GRACE_MS` so `⏳ 译文准备中…` does not flicker on every sentence.
-   *Amended 2026-09-06 (user decision, after trying a YouTube live stream):* the live
-   tier may additionally **translate the growing partial** — 「边说边译」, on by default
-   for live sessions, a menu toggle. The original line shows words as they are
-   recognised; the translation line shows a debounced (≈ 0.9 s), one-in-flight
-   translation of the partial and is **replaced** as the sentence grows; when the
-   sentence closes, a partial translation of that exact text becomes the unit's `tr`
-   (no second request). This is a Renderer/harness affair: the Engine still receives
-   only closed sentences, and the "no word-by-word" clause is read as *no per-word
-   units in the Engine and never for fetched transcripts*, not as *no live feedback*.
-   The cost is bounded by the debounce (≈ 3–5 partial requests per sentence) and the
-   quality of a partial is by construction provisional — the UI marks it with an
-   ellipsis. Run-on speech is closed at a clause boundary past ~90 characters so a
-   speaker who never lands a period does not hold the pair back indefinitely.
-   *Same day, second step:* the Renderer gains a **second output surface** for the
-   live tier — a floating multi-line 「字幕历史」 panel (bottom-right of the viewport,
-   inside the fullscreen element when there is one) that lists the closed sentences
-   with their whole-sentence translations, the corrected record; while it is on
-   (default, a menu toggle remembered in storage) the in-video overlay shows ONLY the
-   stream — the partial and its provisional translation — and never a closed
-   sentence. The Engine is unchanged; the learning Collector treats a pair as
-   displayed the moment its final translation lands in the panel, once per sentence.
-4. **Capture is the capability, not the floor.** Tier B depends on
+3. **Tier B — live mode — 不在扩展里做。**（2026-09-16 用户裁定，取代下方原文。）
+   浏览器扩展**够不到本机转写**：`build/stt.config.js` 里 `device` 与 `local` 两档
+   在扩展侧只能是 `live:false`，因为那是 iOS / macOS 的原生能力，要走原生桥。于是
+   扩展端的实时转写只剩**纯远程流式 API** —— 全注册表里够格的只有两个条目
+   （国际版一个、中国版一个），其余五个 `live:false`。这不是调优能解决的差距，是结构性的：
+   用户裁定「纯 API 效果太差，必须结合本机模型转写 + 远程修正，效果和实时性才到位」。
+   那套架构（本机识别 → 一次远程修正 → 本地朗读）只有 App 跑得起来，写在
+   `docs/learning-design.md` §9.8。
+
+   **后果，按重要性排序：**
+
+   - **§2.1 规则 1 在扩展端重新变成没有例外。** 「先拿到完整转录，再 60 秒滑窗译在前面」
+     这条核心约束，此前唯一的书面例外就是 Tier B。扩展端不再有边说边出的路径，
+     也就不再有「开口的尾句」「provisional 的 partial」「字幕历史面板」这些只为它存在的概念。
+   - **实时场景从扩展端移出，不是消失。** 没有可取 URL 的媒体（`blob:`/MSE — 视频站、
+     直播、语音房）仍然可以转写，但落点是 App：它听的是**设备正在放的声音**
+     （macOS 取系统音频，iPhone 听外放），与哪个 App 在放无关 —— 扩展那四道门
+     （DRM、无媒体元素、页内手势、引擎要有实时接口）在那条路上一道都不存在。
+     扩展端遇到这类媒体时给出口，交互形态另行评审。
+   - **Tier A 不动。** 整段模式仍是 baseline，仍逐字遵守 §2.1 规则 1，仍不需要
+     Safari iOS 缺的任何东西（§5.3）。它不是实时场景，用户裁定明确只针对实时那一档。
+   - **`content/ws-transcribe.js` 不删** —— App 的听译仍在用它（`app/listen.js`）。
+     变的是扩展侧不再调用它，不是这个模块的存废。
+
+4. **Capture is the capability, not the floor.**
+   *(2026-09-16：Tier B 下掉之后，这一条从「扩展里怎么做实时」变成「扩展为什么做不了实时」
+   的证据，逐字保留。下面每一个约束都是实测得来的，而它们加起来正是第 3 条那个裁定的
+   技术依据 —— 删掉它等于把结论留下、把论据丢了。)*
+   Tier B depends on
    `HTMLMediaElement.captureStream()` (Chrome, Firefox) or Web Audio's
    `createMediaElementSource` (Safari), both of which refuse or silence cross-origin
    media loaded without `crossorigin` — and Safari's node is silent for MSE (`blob:`)
@@ -295,6 +292,10 @@ Gemini and Meta are measured the same way before their entries ship.
    surface** (rule 8): the extension's named stop stays, and gains one pointer
    sentence to the app's 「实时字幕」 (user ruling 2026-09-13 — a pointer, not a behaviour
    change; the extension still never talks to the app).
+   *(2026-09-16：)* **第 3 条的裁定正是把这一句从特例推广成通例。** 2026-09-13 只对
+   「Safari 的 MSE 静音」这一种走不通给了指路；现在**每一种**走不通（没有实时接口的引擎、
+   页内手势、CORS 拒绝、采集静音、页面根本没有媒体元素）都落到同一个出口。形式不变 ——
+   仍然只是一句指路，扩展仍然不与 App 通信。
 5. **Audio goes only to the endpoint the user configured. Our server never sees it.**
    This is AGENTS.md product rule 5 restated for this source: we transmit page media
    to the user's own STT endpoint at the user's request, and nothing of ours stores,
