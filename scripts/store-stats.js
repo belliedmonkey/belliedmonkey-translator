@@ -148,6 +148,23 @@ async function apple(days) {
     live: sales.live, quiet: sales.quiet, byApp, byDev, terr, ratings };
 }
 
+// 我自己的测试账号，统计时排除。清单在 .local/stats/own-accounts.txt（gitignored），
+// 一行一个 SQL ilike 模式。**不硬编码进这个文件**：仓库是公开的，作者的私人邮箱不该
+// 躺在里面（`belliedmonkey%` 是例外 —— 它是 git 作者邮箱，本来就公开，所以能当兜底）。
+//
+// 2026-09-16 的教训：原来只排 `belliedmonkey%` 一个模式，于是另外两个测试号一直被算成
+// 真实用户，其中一个有 221 次中继调用和 35 KB 语料 —— 「有实质语料的用户」因此从 6 个
+// 被夸大成 8 个。**一个漏掉的自己人比十个漏掉的真用户更能歪曲结论**，因为自己人的
+// 数据形状恰恰最像重度用户。新开测试号记得加进那个文件。
+function ownAccounts() {
+  const f = path.join(SNAPDIR, 'own-accounts.txt');
+  const fallback = ['belliedmonkey%'];
+  if (!fs.existsSync(f)) return fallback;
+  const lines = fs.readFileSync(f, 'utf8').split('\n')
+    .map((l) => l.replace(/#.*$/, '').trim()).filter(Boolean);
+  return lines.length ? lines : fallback;
+}
+
 // Supabase 同步漏斗 —— 实时查（2026-09-16 起）。
 //
 // 口径与它取代的那条手工项**逐字相同**：排除 belliedmonkey% 的账号（我自己的测试号）。
@@ -166,13 +183,15 @@ async function supabase() {
   } catch (_) { /* 落到下面的 why */ }
   if (!ref) return { ok: false, why: 'backend.config.js 里找不到项目 ref' };
 
-  const NOT_MINE = "email not ilike 'belliedmonkey%'";
+  const pats = ownAccounts();
+  // 模式来自本机文件，仍然转义单引号 —— 一个手滑的 `o'brien@…` 就能让这条 SQL 变形。
+  const notMine = (a) => pats.map((x) => `${a}.email not ilike '${String(x).replace(/'/g, "''")}'`).join(' and ');
   const sql = `select
-      (select count(*) from auth.users where ${NOT_MINE}) as accounts,
+      (select count(*) from auth.users u where ${notMine('u')}) as accounts,
       (select count(distinct c.user_id) from bt_chunks c
-         join auth.users u on u.id = c.user_id where u.${NOT_MINE}) as with_data,
+         join auth.users u on u.id = c.user_id where ${notMine('u')}) as with_data,
       (select count(*) from bt_chunks c
-         join auth.users u on u.id = c.user_id where u.${NOT_MINE}) as chunks`;
+         join auth.users u on u.id = c.user_id where ${notMine('u')}) as chunks`;
   let r;
   try {
     r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
@@ -378,7 +397,7 @@ function delta(now, then) {
     console.log(`  账号 ${sb.accounts}${delta(sb.accounts, Ps.accounts)}`
       + `　有数据 ${sb.with_data}${delta(sb.with_data, Ps.with_data)}`
       + `　语料块 ${sb.chunks}${delta(sb.chunks, Ps.chunks)}`
-      + '　（不含我自己的测试账号）');
+      + `　（不含我自己的 ${ownAccounts().length} 类测试账号）`);
     // 换成实时查的**第一次**，对比基准只能是上一份快照里的手工值，而那个值是
     // 「人读到它的那天」记的，不是快照那天 —— 不说清楚，这一跳会被当成增长。
     if (!prevLive && Ps.accounts !== undefined) {
