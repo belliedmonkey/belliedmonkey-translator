@@ -647,9 +647,12 @@ function say(base, text) {
     need(ms9 && ms9.source === undefined, 'H9: iPhone 的 mic-start 不带 source（麦克风，老壳逐字节不变），实际 ' + JSON.stringify(ms9));
     need(fl9 && fl9.hasRect && fl9.rect && fl9.rect.w > 0 && fl9.rect.h > 0, 'H9: 该把小窗预览占位的矩形发给原生，实际 ' + JSON.stringify(fl9));
     const floatVis = `JSON.stringify((() => { const b = document.getElementById('app-subs-float'); return { hidden: b.hidden, text: b.textContent }; })())`;
-    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), 'ok')`);
+    // 带 reason 的 closed = 小窗没浮出来（不是用户关的）⇒ 出按钮、**不暂停**
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed', reason: 'not-active' }), 'ok')`);
     const h9c = JSON.parse(await evalIn(cdp, sessionId, floatVis));
-    need(h9c.hidden === false && h9c.text === '浮出字幕窗', 'H9: 小窗被关掉后该出「浮出字幕窗」，实际 ' + JSON.stringify(h9c));
+    const ph9c = await evalIn(cdp, sessionId, `AppListen._debug().phase`);
+    need(h9c.hidden === false && h9c.text === '浮出字幕窗', 'H9: 小窗没浮出来（带 reason）时该出「浮出字幕窗」，实际 ' + JSON.stringify(h9c));
+    need(ph9c === 'listening', 'H9: 带 reason 的 closed 不该暂停，实际 phase ' + ph9c);
     const mark9b = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-subs-float').click(), 'ok')`);
     const fl9b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${mark9b}).filter((m) => m.type === 'subtitle-float').map((m) => ('rect' in m)))`));
@@ -657,6 +660,23 @@ function say(base, text) {
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'floating' }), 'ok')`);
     const h9f = JSON.parse(await evalIn(cdp, sessionId, floatVis));
     need(h9f.hidden === true, 'H9: 小窗浮出后按钮该藏起，实际 ' + JSON.stringify(h9f));
+    // ✕ 关掉小窗 = 暂停听（§9.8 协议补充决定（三）19 修订，2026-09-15 用户裁定）：不带 reason 的 closed 才是用户关的
+    const markX = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), 'ok')`);
+    await sleep(400);
+    const h9x = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, pauseReason: AppListen._debug().pauseReason, toggle: document.getElementById('app-listen-toggle').textContent, summaryHidden: document.getElementById('app-listen-summary').hidden, float: document.getElementById('app-subs-float').hidden, rows: AppListen._debug().rows.length, msgs: __fakeBridge.msgs.slice(${markX}).map((m) => ({ type: m.type, hasRect: 'rect' in m, rect: m.rect })) })`));
+    need(h9x.phase === 'paused' && h9x.pauseReason === 'user', 'H9: ✕ 关掉小窗该按用户暂停处理，实际 ' + JSON.stringify(h9x));
+    need(h9x.msgs.some((m) => m.type === 'mic-stop'), 'H9: ✕ 暂停该发 mic-stop，实际 ' + JSON.stringify(h9x.msgs));
+    need(h9x.msgs.some((m) => m.type === 'subtitle-float' && m.hasRect && m.rect === null), 'H9: ✕ 暂停该发 subtitle-float {rect:null} 收起预览，实际 ' + JSON.stringify(h9x.msgs));
+    need(h9x.toggle === '继续' && h9x.summaryHidden === true && h9x.float === true, 'H9: ✕ 暂停后主按钮该是「继续」、不出小结、不出「浮出字幕窗」，实际 ' + JSON.stringify(h9x));
+    // 点「继续」⇒ 回到 listening，并重新把预览矩形发给原生（之后离开 App 才会再自动浮出）
+    const markR = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H9: 点「继续」该回到 listening');
+    await sleep(400);
+    const h9r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeBridge.msgs.slice(${markR}).map((m) => ({ type: m.type, hasRect: 'rect' in m, w: m.rect && m.rect.w })))`));
+    need(h9r.some((m) => m.type === 'mic-start'), 'H9: 点「继续」该重新 mic-start，实际 ' + JSON.stringify(h9r));
+    need(h9r.some((m) => m.type === 'subtitle-float' && m.hasRect && m.w > 0), 'H9: 点「继续」该重发预览矩形，实际 ' + JSON.stringify(h9r));
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
     await sleep(300);
     const h9e = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, hide: __fakeBridge.msgs.slice(${mark9b}).some((m) => m.type === 'subtitle-hide'), float: document.getElementById('app-subs-float').hidden })`));
