@@ -415,7 +415,13 @@ let VERSION = null;
             relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: locId } } } },
         })).data;
       }
-      // **先传新图，全传完再删旧图**：反过来的话上传一挂，线上就只剩一个空集合 ——
+      // **逐张替换**：删一张旧的、紧接着传一张新的。2026-09-16 一天里把两种极端都踩了一遍：
+      //   · 先删后传 ⇒ 上传一挂，线上只剩空集合（早上 cn-mac / global-mac-zh 被这样清空）；
+      //   · 先传后删 ⇒ 5 张旧 + 9 张新 = 14 张，**撞每组 10 张上限**，苹果时而报
+      //     409「Too many screenshots」、时而报 500 UNEXPECTED_ERROR，看着像服务端故障，实则是自己撑爆的；
+      //     而且每次「失败」的重试都真的塞进去了几张，集合里越积越多重复图。
+      // 逐张替换的峰值 = max(旧, 新) ≤ 9 < 10，且任何时刻集合里都有图。
+      // ↓ 旧注释（保留原因说明）：反过来的话上传一挂，线上就只剩一个空集合 ——
       // 2026-09-16 苹果 500 期间先探的两组（cn-mac、global-mac-zh）正是这样被清空的。
       for (const f of files) { await uploadAsset('screenshot', set.id, f); process.stdout.write('.'); }
       for (const old of existing) await api('DELETE', `/appScreenshots/${old.id}`);
