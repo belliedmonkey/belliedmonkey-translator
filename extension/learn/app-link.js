@@ -25,9 +25,15 @@ var AppLink = (() => {
 
   // scheme 也按 flavor 分：同名的话两版同时在场时由系统随机挑一个去接
   // （verification-spec §2.0 为「跑的是哪一份没有确定答案」付过代价）。
-  function deepLink(userId) {
+  // action 决定落到 App 的哪一屏。App 侧 parseDeepLink 早就在解析它
+  // （`u.hostname || u.pathname`，默认 'review'），只是此前三支分发都直奔复习 ——
+  // 2026-09-16 加 'listen' 时才第一次真正用上（app/app.js 的 applyDeepLink）。
+  // 白名单而不是任意透传：拼错的 action 落到 App 会是一屏静默的什么都没发生。
+  const ACTIONS = ['review', 'listen'];
+  function deepLink(userId, action) {
     const scheme = flavor() === 'china' ? 'belliedmonkeycn' : 'belliedmonkey';
-    return scheme + '://review' + (userId ? '?uid=' + encodeURIComponent(userId) : '');
+    const a = ACTIONS.indexOf(action) >= 0 ? action : 'review';
+    return scheme + '://' + a + (userId ? '?uid=' + encodeURIComponent(userId) : '');
   }
 
   function storeUrl() {
@@ -44,7 +50,7 @@ var AppLink = (() => {
   // 点一次。onFallback(kind) 在「没人接」时被调用，kind 是 'store' 或 'none'。
   // 调用方负责画那句话 —— 这里不碰 DOM，因为两个宿主（设置页 / 复习页）的版式
   // 不一样，而把版式塞进来就等于让这个文件知道两份布局。
-  function open(userId, onFallback, waitMs) {
+  function open(userId, onFallback, waitMs, action) {
     let gone = false;
     const mark = () => { gone = true; };
     try {
@@ -52,7 +58,7 @@ var AppLink = (() => {
       window.addEventListener('blur', mark, { once: true });
               window.addEventListener('pagehide', mark, { once: true });
     } catch (_) { /* 监听不上就只能靠计时器，那时一定会走兜底 —— 方向是对的 */ }
-    const url = deepLink(userId);
+    const url = deepLink(userId, action);
     setTimeout(() => {
       try {
         document.removeEventListener('visibilitychange', mark);

@@ -431,22 +431,30 @@ async function liveRun(url, seconds) {
       await evalIn(cdp, pg.sessionId, `PodcastTranslator.enable({ provider: 'custom_chat', apiKey: 'k', apiBaseUrl: ${JSON.stringify(base + '/v1/chat/completions')}, apiModel: 'm', targetLang: 'zh-CN' }); 'ok'`, pg.isoId);
       await waitFor(() => evalIn(cdp, pg.sessionId, `!!document.querySelector('#mt-pod-overlay .mt-pod-trans-action')`), 30000, 'B: 转写入口按钮');
       await evalIn(cdp, pg.sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').click(); 'clicked'`);
-      let orig;
-      try {
-        // 双显：叠层放流式 partial，整句定稿在历史面板里 —— 判据读面板的行
-        orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'B: 历史面板出现定稿整句');
-      } catch (e) {
-        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-        throw new Error(`${e.message}；叠层提示「${notice}」；ws 握手 ${stats.wsOpened} 帧 ${stats.wsFrames}；页面异常 ${pg.errs.slice(0, 2).join(' | ')}`);
-      }
-      const overlayNow = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-orig') || {}).textContent || ''`);
-      const rowCount = await evalIn(cdp, pg.sessionId, `document.querySelectorAll('#mt-pod-history .mt-pod-history-row').length`);
-      notes.push(`B: 面板定稿「${orig}」（${rowCount} 行）；叠层此刻「${overlayNow}」；服务端收到 ${stats.wsFrames} 帧 / ${stats.wsAudioBytes} 字节 PCM，握手 ${stats.wsOpened} 次`);
-      if (orig.indexOf('Hello from the live fake.') < 0 && orig.indexOf('Second sentence here.') < 0) problems.push(`B: 面板定稿不是流式回的句子：「${orig}」`);
-      if (rowCount < 1) problems.push('B: 历史面板没有行');
-      if (stats.wsFrames < 20 || stats.wsAudioBytes < 20 * 1000) problems.push(`B: 抓流没有真正把 PCM 送到端点（${stats.wsFrames} 帧 / ${stats.wsAudioBytes} 字节）`);
+
+      // ★ 2026-09-16 起，这一档验的是**相反的事**。
+      //
+      // Tier B（边说边出的实时档）已从扩展端下掉（domain-design §2.4 第 3 条，PR #298）：
+      // blob:/MSE 的媒体扩展取不出音轨，现在给的是一句具名原因 + 一个去 App 的出口。
+      // 所以判据从「流式出了字幕」翻成三条：
+      //   ① 叠层说清了原因（不是静默失败 —— 那是本仓最贵的一类 bug）
+      //   ② 出口在（否则就是死路）
+      //   ③ **一个字节都没发出去** —— 这条最要紧：删了调用却留着抓流，等于用户不知情
+      //      地还在往端点送音频。ws 握手必须是 0。
+      await sleep(2500);
       const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-      if (/捕获不到声音|No sound/.test(notice)) problems.push('B: 静音守卫误触发（抓到的是静音）');
+      const offer = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans-action') || {}).textContent || ''`);
+      notes.push(`B: 叠层「${notice.slice(0, 40)}」；出口「${offer}」；ws 握手 ${stats.wsOpened} 帧 ${stats.wsFrames} / ${stats.wsAudioBytes} 字节`);
+      if (!/取不出音轨|can't pull audio|cannot pull audio/i.test(notice)) {
+        problems.push(`B: 叠层没有说清「这段媒体取不出音轨」：「${notice}」`);
+      }
+      // 出口只在 Apple 平台出（非 Apple 上 App 不存在）。门禁跑在 Linux/macOS 的
+      // headless Chrome 上，UA 是桌面 Mac 还是 Linux 取决于机器 —— 两种都接受，
+      // 但**必须二选一地明确**：要么有 App 出口，要么退回默认的「再试一次」。
+      if (!offer.trim()) problems.push('B: 走不通之后一个出口都没有 —— 那就是死路');
+      if (stats.wsOpened > 0 || stats.wsFrames > 0) {
+        problems.push(`B: 实时档已下掉，却仍然开了 ws / 送了帧（握手 ${stats.wsOpened}、帧 ${stats.wsFrames}）—— 用户不知情地还在往端点送音频`);
+      }
       if (pg.errs.length) problems.push('B: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
       await cdp.send('Target.closeTarget', { targetId: pg.targetId });
     }
@@ -477,12 +485,14 @@ async function liveRun(url, seconds) {
       const r = await sendToTab(base + '/shadow.html', 'transcribeMedia');
       if (!r.ok) problems.push(`C: transcribeMedia 应回 ok，实际 ${JSON.stringify(r)}`);
       else {
-        try {
-          const orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'C: 历史面板出现定稿整句');
-          notes.push(`C: 弹窗入口 → shadow root 音频 → 面板定稿「${orig}」`);
-        } catch (e) {
-          const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-          problems.push(`${e.message}；叠层提示「${notice}」`);
+        // shadow.html 的音频也是 blob 源 ⇒ 2026-09-16 起同样走不通，落到 App 出口。
+        // 这一档真正要钉的是**上面那两条**（shadow root 里的媒体找得到、入口接受了），
+        // 那才是它当初被写出来的理由（用户报「明明有视频却什么都没有」）。
+        await sleep(2500);
+        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+        notes.push(`C: 弹窗入口 → shadow root 音频 → 叠层「${notice.slice(0, 32)}」`);
+        if (!/取不出音轨|can't pull audio|cannot pull audio/i.test(notice)) {
+          problems.push(`C: shadow root 的 blob 媒体没有给出具名原因：「${notice}」`);
         }
       }
       if (pg.errs.length) problems.push('C: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
@@ -511,39 +521,34 @@ async function liveRun(url, seconds) {
       await cdp.send('Target.closeTarget', { targetId: pg.targetId });
     }
 
-    // ── E. Safari 手势形状：AudioContext 起不来 ⇒ 通知行「▶ 点此开始」，页内再点即开始 ──
-    // 隔离世界里把 AudioContext 换成 state 恒 suspended、resume() 永不落定的子类（Safari 上
-    // 页外手势建的 AudioContext 就是这个样子）。
+    // ── E. AudioContext 起不起得来，已经不再影响任何行为（2026-09-16 改写）────
+    //
+    // 这一档原来验的是 Safari 的**页内手势**机制：AudioContext 在手势外创建会静音，
+    // 于是叠层给「▶ 点此开始实时转写」，页内真点一下再开始。那套机制随 Tier B 一起
+    // 下掉了（domain-design §2.4 第 3 条）—— 整段转写根本不碰 AudioContext。
+    //
+    // 所以这一档**反过来钉**：把 AudioContext 打成起不来，blob 媒体照样给同一条具名
+    // 原因，且**不再出现 gesture 那个按钮**。它回答的是「删掉一套机制之后，还有没有
+    // 残留分支在看它」—— 写成断言比删掉这一档有价值。
     {
       const pg = await openPage(base + '/blob.html');
       await waitFor(() => evalIn(cdp, pg.sessionId, `document.getElementById('a').dataset.ready === '1'`), 10000, 'E: blob 音频就绪');
       await evalIn(cdp, pg.sessionId, `document.getElementById('a').play().catch(() => {})`);
       await evalIn(cdp, pg.sessionId, `window.MT_STT_ENGINES.push({ id: 'e2e_live', type: 'transcribe-compat', label: 'e2e', needsKey: false, supportsKey: false, supportsBaseUrl: true, supportsModel: false, requiresEndpoint: false, defaultEndpoint: ${JSON.stringify(base + '/v1/audio/transcriptions')}, placeholder: null, defaultModel: 'x', liveEndpoint: ${JSON.stringify('ws://127.0.0.1:' + srv.address().port + '/live')}, liveType: 'ws-realtime', liveModel: 'live', liveRate: 16000, liveKeyProtocol: 'e2e-key.', uploadEndpoint: null }); 'ok'`, pg.isoId);
-      await evalIn(cdp, pg.sessionId, `window.__RealAC = window.AudioContext; window.AudioContext = class extends window.__RealAC { get state() { return 'suspended'; } resume() { return new Promise(() => {}); } }; 'stubbed'`, pg.isoId);
+      await evalIn(cdp, pg.sessionId, `window.AudioContext = class { constructor() { throw new Error('blocked'); } }; 'broken'`);
       await evalIn(cdp, swSession, `chrome.storage.local.set({ sttEngine: 'e2e_live', sttBaseUrl: '', sttModel: 'e' + Date.now() })`);
       await sleep(600);
       const r = await sendToTab(base + '/blob.html', 'transcribeMedia');
-      if (!r.ok) problems.push(`E: 弹窗入口应先接受（started），实际 ${JSON.stringify(r)}`);
-      let label = '';
-      try {
-        label = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const b = document.querySelector('#mt-pod-overlay .mt-pod-trans-action'); return b && /点此开始|Tap to start/.test(b.textContent) ? b.textContent : ''; })()`), 15000, 'E: 通知行出现「▶ 点此开始实时转写」');
-        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-        notes.push(`E: AudioContext 起不来 ⇒ 通知「${notice.replace(label, '').trim()}」+ 按钮「${label}」`);
-      } catch (e) {
-        const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-        problems.push(`${e.message}；叠层提示「${notice}」`);
+      if (!r.ok) problems.push(`E: 入口应先接受（started），实际 ${JSON.stringify(r)}`);
+      await sleep(2500);
+      const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
+      const label = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans-action') || {}).textContent || ''`);
+      notes.push(`E: AudioContext 被打断 ⇒ 叠层「${notice.slice(0, 32)}」+ 按钮「${label}」`);
+      if (!/取不出音轨|can't pull audio|cannot pull audio/i.test(notice)) {
+        problems.push(`E: AudioContext 不可用时没有给出那条具名原因：「${notice}」`);
       }
-      if (label) {
-        // 还原 AudioContext（= 用户在页内真点了一下），点那个按钮 ⇒ 会话真正开始
-        await evalIn(cdp, pg.sessionId, `window.AudioContext = window.__RealAC; 'restored'`, pg.isoId);
-        await evalIn(cdp, pg.sessionId, `document.querySelector('#mt-pod-overlay .mt-pod-trans-action').click(); 'clicked'`);
-        try {
-          const orig = await waitFor(() => evalIn(cdp, pg.sessionId, `(() => { const rows = document.querySelectorAll('#mt-pod-history .mt-pod-history-orig'); return rows.length ? rows[rows.length - 1].textContent : ''; })()`), 40000, 'E: 页内再点一次后面板出现定稿整句');
-          notes.push(`E: 页内再点一次 → 面板定稿「${orig}」`);
-        } catch (e) {
-          const notice = await evalIn(cdp, pg.sessionId, `(document.querySelector('#mt-pod-overlay .mt-pod-trans') || {}).textContent || ''`);
-          problems.push(`${e.message}；叠层提示「${notice}」`);
-        }
+      if (/点此开始|Tap to start/i.test(label)) {
+        problems.push(`E: gesture 那个按钮回来了（「${label}」）—— 它的机制已随实时档下掉`);
       }
       if (pg.errs.length) problems.push('E: 页面异常 ' + pg.errs.slice(0, 2).join(' | '));
       await cdp.send('Target.closeTarget', { targetId: pg.targetId });
@@ -557,5 +562,5 @@ async function liveRun(url, seconds) {
   }
   for (const n of notes) console.log('  ' + n);
   if (problems.length) { for (const p of problems) console.log('✗ ' + p); process.exit(1); }
-  console.log('✓ test:asr — 文件一档、流式一档、shadow root 弹窗入口、无媒体回码、iframe 探针、页内手势再点都过');
+  console.log('✓ test:asr — 文件一档、走不通时的 App 出口（ws 0 帧）、shadow root 弹窗入口、无媒体回码、iframe 探针、AudioContext 不可用也不再有 gesture 分支');
 })().catch((e) => { console.error('✗ ' + (e.stack || e.message)); process.exit(1); });

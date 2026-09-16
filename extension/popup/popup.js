@@ -206,13 +206,14 @@ function paintAsrEntry(pageStatus, s) {
   const engName = st.engine ? (st.engine.labelKey ? t(st.engine.labelKey, st.engine.label) : st.engine.label) : '';
   const setNote = (text, onClick) => { note.textContent = text || ''; note.hidden = !text; note.onclick = onClick || null; note.classList.toggle('clickable', !!onClick); };
   const openOptions = (hash) => { try { window.open(chrome.runtime.getURL('options/options.html') + hash, '_blank'); } catch (_) {} window.close(); };
-  label.textContent = st.kind === 'no_engine' ? t('popup_asr_no_engine', '🎙 实时转写 + 翻译 — 先选一个转写引擎 →') : t('popup_asr_go', '🎙 实时转写 + 翻译');
+  // 「实时」两个字 2026-09-16 去掉：扩展端只剩整段转写，再这么叫就是说了做不到的事。
+  label.textContent = st.kind === 'no_engine'
+    ? t('popup_asr_no_engine2', '🎙 转写这段音视频 — 先选一个转写引擎 →')
+    : t('popup_asr_go2', '🎙 转写这段音视频 + 翻译');
   hint.textContent = st.media ? AsrEntry.durationText(st.media, t) : '';
   setNote('');
+  paintAsrAppRow();
   if (st.kind === 'no_engine') { btn.onclick = () => openOptions('#stt'); return; }
-  if (st.kind === 'file_only') {
-    setNote(t('popup_asr_file_only', '{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →').replace('{engine}', engName), () => openOptions('#quick-live'));
-  }
   if (st.kind === 'iframe_only') {
     setNote(t('popup_asr_iframe', '播放器在页内的另一个框架里；在新标签页打开它再转写 ↗'));
     btn.onclick = () => { try { chrome.tabs.create({ url: st.frames[0].href }); } catch (_) {} window.close(); };
@@ -226,6 +227,37 @@ function paintAsrEntry(pageStatus, s) {
     if (reason === 'no_engine') { openOptions('#stt'); return; }
     if (reason === 'busy') { window.close(); return; }
     setNote(t('popup_asr_none_found', '没找到能转写的视频/音频。播放器可能在另一个框架里，或还没开始播放。'));
+  };
+}
+
+// 常驻的「用 App 听设备的声音」那一行（2026-09-16）。
+//
+// 三个平台说三句话，因为这是**能力差异**不是本地化差异：
+//   · Mac —— 取系统音频，切过去视频不会停 ⇒ 可以「现在就去」
+//   · iPhone/iPad —— 一离开前台 iOS 立刻暂停网页视频（尖刺 S5 实测：pause 与
+//     visibility=hidden 同一毫秒）⇒ 必须说清「先去 App 开始，再回来播放」，
+//     写成「现在就去」等于教人走一条必然失败的路
+//   · 其它平台 —— App 根本不存在 ⇒ 整行不出，一个字都不提
+//
+// 文案**不点名 Safari**（用户 2026-09-13 裁定）：听的是设备的声音，与谁在放无关。
+function paintAsrAppRow() {
+  const row = $('asr-app-row');
+  if (!row) return;
+  if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) { row.hidden = true; return; }
+  const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+  const handheld = /iPhone|iPad|iPod/i.test(ua);
+  row.hidden = false;
+  $('asr-app-label').textContent = t('popup_asr_app_row', '🔊 用 App 听设备的声音');
+  $('asr-app-hint').textContent = handheld
+    ? t('popup_asr_app_hint_ios', '先开始听，再回来播放')
+    : t('popup_asr_app_hint_mac', '直播、视频站都能转');
+  row.onclick = () => {
+    // AppLink.open 自己兜「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 说出来」，那正是本仓
+    // 最怕的「点了没反应」；没装 App 的人由兜底送去 App Store。
+    try {
+      AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen');
+    } catch (_) {}
+    window.close();
   };
 }
 

@@ -2322,6 +2322,30 @@
   "popup_asr_go": {
     "message": "🎙 Live-Transkription + Übersetzung"
   },
+  "popup_asr_go2": {
+    "message": "🎙 Dieses Medium transkribieren + übersetzen"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Dieses Medium transkribieren — erst eine Engine wählen →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Mit der App das Gerät hören"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Dort zuerst starten, dann abspielen"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Auch für Livestreams und Videoseiten"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Mit der App das Gerät hören →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Erst in der App starten, dann zurück und abspielen →"
+  },
+  "asr_media_app_only": {
+    "message": "Die Erweiterung kann aus diesem Medium keinen Ton ziehen (Videoseiten und Livestreams sind alle so). Höre mit der App, was dein Gerät gerade abspielt — jede Quelle funktioniert."
+  },
   "popup_asr_no_engine": {
     "message": "🎙 Live-Transkription + Übersetzung — zuerst eine Engine wählen →"
   },

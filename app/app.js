@@ -1106,6 +1106,29 @@
 
     // 三支，每一支都必须说得出**事实**，不猜。
     async function applyDeepLink(d) {
+      // ⓪ action='listen'（2026-09-16）：扩展那边遇到转不了的媒体，把人送到实时字幕。
+      //
+      // **排在账号三支之前，因为它与账号无关** —— 实时字幕/听译不是学习层功能，
+      // 不需要登录。落进下面那三支的话，一个没登录的人会被要求先登录才能听字幕，
+      // 而登录对这件事毫无作用。
+      //
+      // 走按钮自己的处理器，不在这里抄一份视图切换 —— 同下面 $('review').click()
+      // 那条注释的理由：那一段还带着入口门控与模式绘制，抄漏一件的表现是
+      // 「进了页面但开不了」。入口灰着（没有实时引擎等）时 click 不触发，人看到的
+      // 是首页上那条具名的灰态原因 + 去设置的链接，那已经是有意义的状态。
+      if (d.action === 'listen') {
+        $('onboard').hidden = true;
+        // 入口有登录/未登录两个变体（`app-subs-entry` 与 `…entry2`，见 listen.js 的
+        // ENTRY_SUFFIXES）。点**可见且没被禁用**的那一个：hidden 元素的 click() 照样
+        // 触发处理器，点错会让视图从一个本不该在场的来处切走；disabled 则不触发，
+        // 那正是我们要的 —— 没有实时引擎时人停在首页，看到那条具名的灰态原因。
+        try {
+          const btn = ['app-subs-entry', 'app-subs-entry2']
+            .map((id) => $(id)).find((b) => b && !b.hidden && !b.disabled);
+          if (btn) btn.click();
+        } catch (_) {}
+        return;
+      }
       const mine = (currentSession && currentSession.userId) || '';
       // ① App 未登录。扩展那边登没登录，决定这句话怎么说。
       if (!mine) {

@@ -2322,6 +2322,30 @@
   "popup_asr_go": {
     "message": "🎙 Transcripción en vivo + traducción"
   },
+  "popup_asr_go2": {
+    "message": "🎙 Transcribir este medio + traducir"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Transcribir este medio — elige un motor primero →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Usa la app para oír tu dispositivo"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Empieza allí y luego reproduce"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Sirve para directos y sitios de vídeo"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Usa la app para oír tu dispositivo →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Empieza en la app y vuelve a reproducir →"
+  },
+  "asr_media_app_only": {
+    "message": "La extensión no puede extraer el audio de este medio (los sitios de vídeo y los directos son todos así). Usa la app para oír lo que reproduce tu dispositivo: sirve cualquier fuente."
+  },
   "popup_asr_no_engine": {
     "message": "🎙 Transcripción en vivo + traducción — elige primero un motor →"
   },

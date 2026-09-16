@@ -2322,6 +2322,30 @@
   "popup_asr_go": {
     "message": "🎙 Live transcription + translation"
   },
+  "popup_asr_go2": {
+    "message": "🎙 Transcribe this media + translate"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Transcribe this media — pick an engine first →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Use the app to hear your device"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Start there first, then play"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Works for live streams and video sites"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Use the app to hear your device →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Start in the app first, then come back and play →"
+  },
+  "asr_media_app_only": {
+    "message": "The extension can't pull audio from this media (video sites and live streams are all like this). Use the app to hear what your device is playing — any source works."
+  },
   "popup_asr_no_engine": {
     "message": "🎙 Live transcription + translation — choose an engine first →"
   },

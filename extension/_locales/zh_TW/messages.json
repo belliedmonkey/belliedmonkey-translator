@@ -2323,6 +2323,30 @@
   "popup_asr_go": {
     "message": "🎙 即時轉寫 + 翻譯"
   },
+  "popup_asr_go2": {
+    "message": "🎙 轉寫這段影音 + 翻譯"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 轉寫這段影音 — 先選一個轉寫引擎 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 用 App 聽裝置的聲音"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "先開始聽，再回來播放"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "直播、影音網站都能轉"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 用 App 聽裝置的聲音 →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 先去 App 開始聽，再回來播放 →"
+  },
+  "asr_media_app_only": {
+    "message": "這段媒體擴充功能取不出音軌（影音網站與直播都是這樣）。用 App 聽裝置正在放的聲音，什麼來源都能轉。"
+  },
   "popup_asr_no_engine": {
     "message": "🎙 即時轉寫 + 翻譯 — 先選一個轉寫引擎 →"
   },
