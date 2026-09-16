@@ -2,19 +2,20 @@
 
 <p align="center">
   <b>读世界的网页 —— 两种语言同时读，读过的还能记住。</b><br>
-  网页双语对照，视频与播客双语字幕。<br>
+  网页双语对照，视频与播客双语字幕，Mac 与 iPhone 上正在播放的任何声音也有实时字幕。<br>
+  App 里还有面对面的对话实时听译。<br>
   真正读过的句子自动变成复习卡 —— 开同步后，手机上随时复习。<br>
-  用你自己的 LLM key，翻译路径上没有我们的服务器。
+  用你自己的 LLM key 时，翻译路径上没有我们的服务器。
 </p>
 
 <p align="center">
-大肚猴翻译（BelliedMonkey Translator）是一款免费、开源（GPL-3.0）的浏览器扩展，支持 Safari（iPhone、iPad、Mac）、Chrome 与 Firefox。它让网页和视频字幕同时显示两种语言，把你真正读过的句子变成间隔重复的复习卡；用你自己的 AI 密钥，或者不填密钥用免费通道。没有订阅，不强制注册账号。
+大肚猴翻译（BelliedMonkey Translator）是一款免费、开源（GPL-3.0）的 App 与浏览器扩展，支持 Safari（iPhone、iPad、Mac）、Chrome 与 Firefox。它让网页和视频字幕同时显示两种语言；App 还能给 Mac 与 iPhone 上正在播放的声音配实时字幕，并做面对面的对话听译。它把你真正读过的句子变成间隔重复的复习卡；用你自己的 AI 密钥，或者不填密钥用免费通道。没有订阅，不强制注册账号。
 </p>
 
 <p align="center">
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
-  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-0a7a3c"></a>
+  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
 </p>
 
@@ -43,8 +44,8 @@
 
 | 平台 | |
 |---|---|
-| **iPhone · iPad · Mac**（Safari） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录 |
-| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)（当前 v1.4.2），步骤见下 |
+| **iPhone · iPad · Mac**（App + Safari 扩展） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录；需要 iOS 16.4 / macOS 13.3 或更新 |
+| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)，步骤见下 |
 | **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 
@@ -110,6 +111,8 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
 一眼看完：
 
 - **网页双语对照** —— 原文留在原处，译文紧跟在下面
+- **实时字幕（App）** —— 给设备上正在播放的声音配双语字幕。Mac 上是盖在所有窗口之上的悬浮条，全屏视频也看得见（需要 macOS 14.4 或更新）；iPhone 上是浮在任意 App 之上的画中画小窗，听的是外放的声音
+- **对话 · 实时听译（App）** —— 双方自由说话，每句自动转写、翻译，还能朗读；iOS 26 / macOS 26 上可在设备上识别语音（声音不出设备），只把文字发给你的翻译引擎，并用离线语音模型朗读
 - **视频双语字幕** —— YouTube、x.com 视频与播客，合并成整句、在播放头之前提前翻译
 - **AI 转写字幕** —— 完全没有字幕的音视频，用你自己的转写密钥生成（不点按钮不转写）
 - **复习卡** —— 由你真正读过的句子生成，读 / 听 / 写三档间隔重复；默认关闭
@@ -117,9 +120,7 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
 - **不强制账号**；多设备同步可选；只有匿名用量事件，一个开关关掉
 - **Safari（iPhone、iPad、Mac）、Chrome、Firefox** —— 同一份代码，六个商店面
 - **免费、GPL-3.0**；登录后可领一份我们出的 0.2 美元免费额度
-- **对话的本机模式** —— iOS 26 / macOS 26 上 App 可在设备上识别语音（声音不出设备），只把文字发给你的翻译引擎做修正 + 翻译，并用离线语音模型朗读
 - **文档翻译** —— 上传 PDF、Word 或图片（扫描页走你自己的多模态引擎），打开一页翻一页、双语对照；读过的句子可进复习（每页、每份都有上限）
-- **实时字幕（Mac App）** —— 给 Mac 正在播放的声音（YouTube、Twitch、会议）配双语字幕，悬浮条盖在所有窗口上、全屏视频也看得见；需要 macOS 14.4 或更新
 
 **网页双语对照。** 每个段落保留原文，译文以不同颜色显示在正下方 —— 不用切标签页，不会丢失
 阅读位置。译文继承原文的字体、字号、字重与对齐方式，**只有颜色不同**，并在窗口缩放后重新
@@ -203,11 +204,13 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 提前说清楚，因为让你自己撞上更糟。
 
 - **iOS 的视频全屏没有字幕。** iOS 把全屏播放交给系统原生播放器，网页叠加层无法在它上面绘制。
-  在 iPhone 和 iPad 上，字幕是**内嵌播放**功能。这是平台边界，不是待办事项。
+  在 iPhone 和 iPad 上，字幕是**内嵌播放**功能。这是平台边界，不是待办事项。iPhone 上的出路是
+  App 的**实时字幕**：它听外放的声音，把字幕放在浮在任意 App 之上的画中画小窗里。
 - **扩展不会自己转写。** 如果视频或播客没有现成的时轴字幕，你会看到一句诚实的 `字幕不可用`，
   并回落到页面文本翻译 —— 而不是逐词硬猜。配了你自己的转写引擎后可以点按钮转写：文件模式处处可用；
   从页面实时采集只在 Chrome 和 Firefox 上可用，Safari 上仅限可直接读取的音频 —— Safari 给扩展的
-  YouTube、Twitch、X 这类流媒体视频声音是静音。我们的服务器从不接触音频。
+  YouTube、Twitch、X 这类流媒体视频声音是静音。这类视频请用 App 的**实时字幕**（Mac 听系统声音，iPhone 听外放）。
+  用你自己的密钥时，我们的服务器不接触音频。
 - **x.com 的视频通常没有字幕轨。** X 上的字幕多数是**烧进视频画面**的，任何翻译工具都读不到。
   准备演示素材时抽查了四条视频：三条是烧进画面的字幕，一条完全没有字幕，只有一条长视频带真正的
   字幕轨。判断方法很简单 —— 播放器里有可用的 CC 按钮，我们就能翻。
@@ -233,7 +236,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 - **文档翻译（可选）。** 你上传的 PDF、Word、图片只保存在这台设备上，不同步、不进导出。翻译时，文档的文字**按你点开的页**发往你配置的翻译端点 —— 不是整份，也不是打开就发。图片与没有文字层的扫描页会以图片形式发往同一端点识别，只在你的引擎支持识别图片时。使用免费额度时，文字经我们的服务器转发到模型提供方（不保存、不记录内容）；**免费额度不识别图片** —— 图片和扫描页要用你自己的 API key，且从不经过我们。译文里被你读过的句子可以进学习语料（可关）；删除这份文档会一并删除它的卡。
 - **实时字幕（可选，仅 App）。** 只在你点「开始」后，听这台设备正在播放的声音（Mac 为系统声音）。声音只在你的设备上识别，或只发送到你自己配置的转写端点；不录音、不保存，也从不经过我们的服务器。只有「字幕进复习」开着时，识别出的文字才会留在你的复习里。
 - **API Key 从不离开你的设备。** 保存在 `chrome.storage.local`。
-- **无追踪、无第三方统计 —— 账号可选，不注册也完整可用。** 只有在你自己的设备之间同步学习材料
+- **无广告追踪、无第三方统计 —— 账号可选，不注册也完整可用。** 只有在你自己的设备之间同步学习材料
   才需要一个免费账号；其它一切功能都不需要。
 - **匿名用量事件，一个开关可关。** 扩展会发送用了哪些功能、在哪个浏览器、翻译成功还是失败 ——
   不含你读的网页、文字、地址、密钥或账号。每台设备一个随机 id，永不与账号关联；在设置里
@@ -345,7 +348,7 @@ extension/
 <details>
 <summary><b>哪些数据会离开我的设备？</b></summary>
 
-用自己的密钥时，你要翻的文本从浏览器直达你选的服务商。除非你打开同步并登录，否则别的什么都不会离开；打开后，你保存的句子、来源网址和复习时间会存在你的账号下。没有广告、没有追踪；唯一收集的是匿名用量事件（用了哪些功能，从不含页面内容），一个开关关掉。见[隐私](#隐私)。
+用自己的密钥时，你要翻的文本从浏览器直达你选的服务商。除非你打开同步并登录，否则别的什么都不会离开；打开后，你保存的句子、来源网址和复习时间会存在你的账号下。没有广告、没有广告追踪；唯一收集的是匿名用量事件（用了哪些功能，从不含页面内容），一个开关关掉。见[隐私](#隐私)。
 </details>
 
 <details>
