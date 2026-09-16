@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; height:780px">
+
+  <div style="flex:1; min-height:0; padding:32px 20px 24px; display:flex; flex-direction:column; gap:18px">
+
+    <div style="display:flex; align-items:center; gap:12px; font-weight:700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ac6231" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8 5v3c0 3-1.6 5.6-4 7"/><path d="M6 11c1.4 2.4 3.6 4.2 6 5"/><path d="M13 19l4-9 4 9M14.6 16h4.8"/></svg>
+      <span>BelliedMonkey Translator</span>
+    </div>
+
+    <div style="height:4px; background:#dcd3c4; border-radius:999px; overflow:hidden; flex:none">
+      <div style="height:100%; width:33%; background:#8fa073; border-radius:999px"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-height:0">
+      <h2 style="margin:0; font-size:1.35rem; line-height:1.3">装好了，现在就能翻</h2>
+      <p style="margin:0; color:#6a6255">已经给你备好免费额度，不用配置。</p>
+
+      <div style="border:1px solid #dcd3c4; border-radius:14px; background:#fff; padding:14px; display:flex; flex-direction:column; gap:10px">
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <div style="flex:none; width:22px; height:22px; border-radius:999px; background:#ffe1d0; color:#8c491a; font-size:.8rem; font-weight:700; display:flex; align-items:center; justify-content:center">1</div>
+          <div style="flex:1; min-width:0">打开任意一个外文网页</div>
+        </div>
+        <svg viewBox="0 0 320 78" style="display:block; height:78px; width:auto; max-width:100%; margin-inline:auto; border:1px solid #dcd3c4; border-radius:10px; background:#fff" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="320" height="18" fill="#f9f4ed"/>
+          <circle cx="12" cy="9" r="3" fill="#dcd3c4"/><circle cx="24" cy="9" r="3" fill="#dcd3c4"/><circle cx="36" cy="9" r="3" fill="#dcd3c4"/>
+          <rect x="14" y="30" width="200" height="6" rx="3" fill="#dcd3c4"/>
+          <rect x="14" y="44" width="160" height="6" rx="3" fill="#dcd3c4"/>
+          <rect x="14" y="58" width="130" height="6" rx="3" fill="#8fa073"/>
+          <circle cx="290" cy="52" r="17" fill="#ac6231"/>
+          <path d="M283 47h9M287 47v2.5c0 2.4-1.3 4.5-3.2 5.6M285.5 52c1.1 1.9 2.9 3.4 4.8 4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <div style="flex:none; width:22px; height:22px; border-radius:999px; background:#ffe1d0; color:#8c491a; font-size:.8rem; font-weight:700; display:flex; align-items:center; justify-content:center">2</div>
+          <div style="flex:1; min-width:0">点右下角那个圆钮，整页出译文</div>
+        </div>
+      </div>
+
+      <div style="background:#ac6231; color:#fff; padding:15px 24px; border-radius:12px; font-weight:600; text-align:center; font-size:1rem">开始翻译 →</div>
+
+      <div style="background:#f9f4ed; border:1px solid #dcd3c4; border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6a6255" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <p style="margin:0; color:#6a6255; font-size:.86rem; line-height:1.5">用的是我们送的免费额度。想用自己的 API key（更快、无上限），设置里随时能换。</p>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:14px; flex:none; padding-top:4px">
+      <div style="color:#8c491a; font-size:.95rem">我要用自己的 key</div>
+    </div>
+  </div>
+
+  <div style="flex:none; border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:14px 20px; display:flex; flex-direction:column; gap:6px">
+    <div style="font-size:.8rem; font-weight:700; color:#6a6255; letter-spacing:.04em">方案 C · 配置后置</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">轴：把「配引擎」整个从必经路径上拿掉。</b>引导从 4 屏降到 3 屏，人直接去翻第一页 —— 针对的是那 63 台（59%）从没配过引擎的装机。</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">代价：</b>最激进。用户可能不知道自己在用额度，<b style="color:#b3261e">用完那天会突然不能翻</b>——得配一条像样的耗尽提示，否则把卡点从开头挪到了中间。中国版没有免费通道，这一屏对它不成立，要分叉。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

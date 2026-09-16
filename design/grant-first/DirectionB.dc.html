@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; height:780px">
+
+  <div style="flex:1; min-height:0; padding:32px 20px 24px; display:flex; flex-direction:column; gap:18px">
+
+    <div style="display:flex; align-items:center; gap:12px; font-weight:700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ac6231" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8 5v3c0 3-1.6 5.6-4 7"/><path d="M6 11c1.4 2.4 3.6 4.2 6 5"/><path d="M13 19l4-9 4 9M14.6 16h4.8"/></svg>
+      <span>BelliedMonkey Translator</span>
+    </div>
+
+    <div style="height:4px; background:#dcd3c4; border-radius:999px; overflow:hidden; flex:none">
+      <div style="height:100%; width:50%; background:#8fa073; border-radius:999px"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; flex:1; min-height:0">
+      <h2 style="margin:0; font-size:1.35rem; line-height:1.3">配一个翻译引擎</h2>
+      <p style="margin:0; color:#6a6255">最快的一条：用我们送的免费额度，不用申请 key。</p>
+
+      <div style="background:#fff; border:2px solid #ac6231; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px">
+        <div style="display:flex; align-items:center; gap:8px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8fa073" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8h7a3 3 0 0 1 0 6H7"/></svg>
+          <span style="font-weight:600">免费额度</span>
+          <span style="background:#ffe1d0; color:#8c491a; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:999px">推荐</span>
+        </div>
+        <p style="margin:0; color:#6a6255; font-size:.9rem">登录一下就能翻，够日常读几百段。</p>
+        <div style="background:#ac6231; color:#fff; padding:14px 24px; border-radius:12px; font-weight:600; text-align:center">免费开始 →</div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px; color:#6a6255; font-size:.85rem">
+        <div style="flex:1; height:1px; background:#dcd3c4"></div><span>或者</span><div style="flex:1; height:1px; background:#dcd3c4"></div>
+      </div>
+
+      <div style="display:flex; gap:0; border:1px solid #dcd3c4; border-radius:999px; overflow:hidden; width:fit-content">
+        <div style="padding:7px 22px; background:#ac6231; color:#fff; font-size:.92rem">一键配置</div>
+        <div style="padding:7px 22px; color:#6a6255; font-size:.92rem">三引擎分别配</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #dcd3c4; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px">
+        <div style="font-weight:600">用自己的 key</div>
+        <div style="height:40px; border:1px solid #dcd3c4; border-radius:10px; background:#f9f4ed; display:flex; align-items:center; padding:0 12px; color:#a49b8d; font-size:.9rem">sk-...</div>
+        <div style="display:flex; justify-content:flex-end">
+          <div style="border:1px solid #dcd3c4; color:#8c491a; padding:11px 20px; border-radius:12px; font-size:.92rem">配好</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:14px; flex:none; padding-top:4px">
+      <div style="border:1px solid #dcd3c4; color:#8c491a; padding:14px 28px; border-radius:12px">继续</div>
+      <div style="color:#8c491a; font-size:.95rem">跳过</div>
+    </div>
+  </div>
+
+  <div style="flex:none; border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:14px 20px; display:flex; flex-direction:column; gap:6px">
+    <div style="font-size:.8rem; font-weight:700; color:#6a6255; letter-spacing:.04em">方案 B · 主次对调</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">轴：一屏不动，只换视觉权重。</b>额度卡升到顶上、拿走那个唯一的填色按钮；一键卡降为次级。<b style="color:#201e1d">改动最小，当天能发。</b></div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">代价：</b>并列还在——人仍要在一屏上比较两条路；「去领取」的跳转断点也还在。只是把赌注押在「填色的那个会被点」。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

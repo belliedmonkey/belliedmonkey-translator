@@ -1,0 +1,24 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "落地稿" },
+    { "id": "page-2", "name": "未选方向（存档）" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",    "x": 0,    "y": 0,   "w": 560, "h": 720, "page": "page-1", "title": "分流屏 · 浅色" },
+    { "file": "Dark.dc.html",    "x": 640,  "y": 0,   "w": 560, "h": 720, "page": "page-1", "title": "分流屏 · 深色" },
+    { "file": "China.dc.html",   "x": 1280, "y": 0,   "w": 560, "h": 780, "page": "page-1", "title": "中国版 · 不出现" },
+    { "file": "States.dc.html",  "x": 0,    "y": 860, "w": 1100, "h": 456, "page": "page-1", "title": "选①之后的三个状态" },
+    { "file": "Anatomy.dc.html", "x": 1920, "y": 0,   "w": 900, "h": 872, "page": "page-1", "title": "解剖 · id / 屏序 / 门禁" },
+
+    { "file": "Current.dc.html",    "x": 0,    "y": 0, "w": 560, "h": 780, "page": "page-2", "title": "现状 · 基线" },
+    { "file": "DirectionB.dc.html", "x": 640,  "y": 0, "w": 560, "h": 780, "page": "page-2", "title": "方案 B · 主次对调（未选）" },
+    { "file": "DirectionC.dc.html", "x": 1280, "y": 0, "w": 560, "h": 780, "page": "page-2", "title": "方案 C · 配置后置（未选）" },
+    { "file": "DirectionD.dc.html", "x": 1920, "y": 0, "w": 560, "h": 780, "page": "page-2", "title": "方案 D · 就地领取（未选）" }
+  ],
+  "annotations": [
+    { "id": "picked", "x": 0, "y": -240, "w": 700, "page": "page-1", "text": "方案 A 已选定（2026-09-16）。\n\n核心：用一次明确的选择替代两张并列的卡，且「继续」按钮消失 —— 选择本身就是前进。针对的是遥测里那 14 台「配完就再没试过」、其中 12 台当天就消失的装机。\n\n落地是加一个前置态，不是加一屏：OB 数组、进度条、现有 id 全部不动；选②之后的一切逐字不变。" },
+    { "id": "gap", "x": 0, "y": 1360, "w": 1100, "page": "page-1", "text": "方案 A 唯一没解决的是「领取要跳出去」（引导页不加载 auth.js，两个页面同时备 PKCE verifier 会互相覆盖）。\n\n但它可以不疼：领取成功会往 chrome.storage.local 写 grantTail，而 onChanged 在扩展页里是能用的（options.js:1347 已经这么用）。所以人回来时，这一屏已经自己走到下一步了 —— 断点还在，但不再是断的。" },
+    { "id": "archive", "x": 0, "y": -180, "w": 620, "page": "page-2", "text": "这一页是未选中的三个方向 + 现状基线，留着是为了下次有人问「为什么不那样做」时不必重推一遍。\n\nB 改动最小但断点不解；C 最激进、要处理额度耗尽那天、且中国版不成立；D 体验上限最高但要先解 PKCE 约束。" }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}
