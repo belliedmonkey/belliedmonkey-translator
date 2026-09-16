@@ -421,10 +421,21 @@ let VERSION = null;
       //     409「Too many screenshots」、时而报 500 UNEXPECTED_ERROR，看着像服务端故障，实则是自己撑爆的；
       //     而且每次「失败」的重试都真的塞进去了几张，集合里越积越多重复图。
       // 逐张替换的峰值 = max(旧, 新) ≤ 9 < 10，且任何时刻集合里都有图。
+      // ASC 的 500 是偶发的：单次 DELETE / 上传失败**不该让整轮中止**（2026-09-16 全量推送就是被
+      // 一个 DELETE 500 打断，前 15 组已成、后 18 个集合停在旧图）。退避重试三次，仍失败才抛。
+      const retry = async (what, fn) => {
+        for (let a = 1; a <= 3; a++) {
+          try { return await fn(); } catch (e) {
+            if (a === 3) throw e;
+            process.stdout.write(`(${what} 第 ${a} 次失败，${a * 5}s 后重试)`);
+            await new Promise((r) => setTimeout(r, a * 5000));
+          }
+        }
+      };
       const pairs = Math.max(existing.length, files.length);
       for (let i = 0; i < pairs; i++) {
-        if (existing[i]) await api('DELETE', `/appScreenshots/${existing[i].id}`);
-        if (files[i]) { await uploadAsset('screenshot', set.id, files[i]); process.stdout.write('.'); }
+        if (existing[i]) await retry('删', () => api('DELETE', `/appScreenshots/${existing[i].id}`));
+        if (files[i]) { await retry('传', () => uploadAsset('screenshot', set.id, files[i])); process.stdout.write('.'); }
       }
       console.log(' ✓');
     }
