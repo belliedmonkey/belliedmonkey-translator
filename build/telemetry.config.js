@@ -28,6 +28,22 @@ const EVENTS = {
   heartbeat: {},
   onboarding_done: { surface: ['ext', 'app'] },
   engine_set: { provider: 'id' },
+  // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」
+  // 这一整段此前零遥测，而 learn/engine-test.js 的四个调用方全在激活路径上（设置页、
+  // 字段行、一键卡、**引导页**）。只记「哪一槽、成没成、哪一类错」。
+  //
+  // code 用**自己的**枚举，不复用 translate_fail 的。提案里写的是复用，落地时改了：
+  // engine-test 抛的码有一半不在那张表里（no_key / bad_url / no_path / bad_output /
+  // empty_audio…），而那几个恰恰是最有价值的——「没填 key 就点了测试」「地址写错了」。
+  // 不在枚举里的 code 会被客户端白名单**静默丢掉**（同 credit_exhausted 那条教训），
+  // 于是失败原因分布会是一片空白。`other` 兜住 reason() 的 default 分支（无 code 的错）。
+  engine_test: {
+    slot: ['chat', 'notes', 'tts', 'stt'],
+    result: ['ok', 'fail'],
+    code: ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
+      'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
+      'reasoning_starved', 'device_no_file', 'other'],
+  },
   translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
@@ -59,7 +75,9 @@ const EVENTS = {
   rate_prompt: { action: ['shown', 'tap', 'dismiss'] },   // 译文末尾的评分行
   ext_banner: { action: ['shown', 'setup', 'done'] },     // App 首页「扩展还没打开」横幅
   // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。
-  asr_entry: { surface: ['popup', 'notice', 'pill'], result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed'] },
+  // `app_home`（2026-09-16）= App 首页那两张模式卡。App 的听译/实时字幕**不经过**
+  // asr-source.js，前三个值都是网页里的入口，一个都落不到它头上（telemetry-design §3.3）。
+  asr_entry: { surface: ['popup', 'notice', 'pill', 'app_home'], result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed'] },
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };
 

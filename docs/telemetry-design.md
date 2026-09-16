@@ -4,7 +4,7 @@
 > **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
 > `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
 > 起因写在 §3.1。
-> **2026-09-16 amendment（第十二期，待人评审）**：新事件 `engine_test`（引擎测试整个是盲区）；
+> **2026-09-16 amendment（第十二期，4 条已由用户裁定通过）**：新事件 `engine_test`（引擎测试整个是盲区）；
 > `engine_set` 的判据从「选了下拉」改成 `EngineState.needsSetup`；`asr_entry.surface` 加 `app_home`；
 > 澄清 App 的听译/实时字幕出译文归 `translate_ok{kind:'subtitle'}`（不新增 kind），以及补译文**不发**
 > `translate_ok`。起因写在 §3.3。Governed by
@@ -81,6 +81,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
 | `onboarding_done` | `surface: ext \| app` | onboarding finishes | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` |
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `applyQuickSetup`。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
+| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
 | `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
@@ -196,18 +197,22 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 - **`engine_set` 改判据**（不动白名单，只改 Seam）：调 `EngineState.needsSetup`，挂在
   `saveAll()` 末尾——保存是所有配置路径的唯一汇合处。两个宿主同一个出口，不另写一份判据。
   **已在 #293 落地**。注意这改变了该事件的语义，与 09-16 之前的历史数据不可直接比。
-- **新事件 `engine_test`**（动白名单，本 PR 要裁定的第 4 条）。提议的白名单行：
-
-  ```
-  engine_test · slot: chat | tts | stt · result: ok | fail · code（失败时，复用
-                translate_fail.code 的枚举）
-  何时：用户点了一次「测试」并拿到结果
-  Seam：learn/engine-test.js 的四个调用方各自的结果回调 —— options.js（设置页）、
-        engine-fields.js（字段行）、quick-setup.js（一键卡三个槽）、onboard.js（引导页）
-  ```
-
-  不带 key、不带端点、不带服务器原文——`serverMessage` 可能引用用户输入，原则 1 已禁。
+- **新事件 `engine_test`**（动白名单；2026-09-16 用户裁定「做」，已进 §3 的表）。
   它回答的是 §1 第一问里一直缺的那半：**人卡在配置这一步，是因为没试，还是因为试了不通。**
+  不带 key、不带端点、不带服务器原文——`serverMessage` 可能引用用户输入，原则 1 已禁。
+
+  落地时与提案有**两处偏离**，都是实现时才看清的：
+
+  1. **`code` 用自己的枚举，不复用 `translate_fail.code`。** `engine-test.js` 抛的码
+     有一半不在那张表里（`no_key` / `bad_url` / `no_path` / `bad_output` / `empty_audio`…），
+     而那几个恰恰最有价值——「没填 key 就点了测试」「地址写错了」正是我们要找的卡点。
+     不在枚举里的 code 会被客户端白名单**静默丢掉**，于是失败原因分布会是一片空白：
+     这就是 `credit_exhausted` 那条教训的原样重演。`other` 兜住 `reason()` 的 default 分支。
+  2. **slot 多一个 `notes`。** 笔记解析引擎是独立的一槽（App 设置页有自己的下拉），
+     并进 `chat` 会把两件事记成一件。
+  3. **Seam 从「四个调用方」收到「`engine-test.js` 的导出处」**：四个页面都调同样这四个
+     函数，包在导出处一处覆盖全部，还顺带覆盖了 App —— 比在四个调用方各接一次少三份
+     会漂的副本。
 
 **为什么这一行还没进 §3 的表**（下一个提案的人会撞上同一件事，写在这里省一轮）：
 `test/telemetry-registry.test.js` 用正则从 §3 的表里抓事件名，与 `build/telemetry.config.js`
