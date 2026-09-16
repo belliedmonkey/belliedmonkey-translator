@@ -1,0 +1,5 @@
+# 设计画布的打包产物（2.5 MB，里面绝大部分是编辑器自己的代码）。
+# 源是同目录的 *.dc.html + canvas.json，用 /design 重新拼出来即可，不进版本库。
+# 写法照 design/live-subtitles/.gitignore —— 放这里而不是 .git/info/exclude，
+# 是为了让别的克隆也挡得住（后者只在这一台机器上生效）。
+grant-first-onboarding.html

@@ -144,3 +144,42 @@ button.link:hover { color: var(--text); background: none; }
   /* 按钮：定宽居中，不再整幅。次要按钮跟着一起收。 */
   html[data-device="desktop"] #ob-foot .btn, html[data-device="desktop"] #ob-foot button { max-width: 320px; margin-inline: auto; }
 }
+
+/* ── 第 2 屏的前置分流（2026-09-16，画布方案 A）──────────────────────────────
+   两张整卡可点的大按钮。**颜色一律走变量**（organic-tokens.gen.css）——
+   build.js 的调色板门禁会拦下任何注册表不认识的十六进制值。
+
+   ⚠️ 这个块有 display 声明，所以它同样活在本文件顶部那条
+   `[hidden]{display:none!important}` 的保护之下 —— 少了那条，hidden 属性
+   会被这里的 display 打败，而 JS 读回 el.hidden 仍是 true（2026-08-31 的疤）。 */
+#ob-fork, #ob-fork-pick, #ob-fork-wait { display: flex; flex-direction: column; gap: 12px; }
+
+.ob-fork-card {
+  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  margin: 0; padding: 16px; text-align: start; cursor: pointer;
+  background: var(--card-bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  font: inherit;
+}
+/* 主行动只有一个 —— 同 2026-09-02 立的那条规矩：一屏不许两个填色按钮。
+   这里用**描边加重**而不是整卡填色，填色留给卡内那颗 CTA。 */
+.ob-fork-primary { border: 2px solid var(--accent); }
+.ob-fork-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ob-fork-title { font-weight: 600; font-size: 1.05rem; }
+.ob-fork-badge {
+  background: var(--accent-track); color: var(--accent-deep);
+  font-size: .72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+}
+.ob-fork-desc { color: var(--text-secondary); font-size: .92rem; line-height: 1.55; }
+/* 触控下限与页脚对齐（app/style.css 的 #ob-next / #ob-skip 是 50 / 44）。 */
+.ob-fork-cta {
+  margin-top: 4px; padding: 0 20px; min-height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff;
+  border-radius: 12px; font-weight: 600;
+}
+.ob-fork-cta-quiet {
+  background: transparent; color: var(--link);
+  border: 1px solid var(--border); font-weight: 400; min-height: 44px;
+}
+#ob-fork-wait-line { margin: 0; color: var(--text-secondary); }

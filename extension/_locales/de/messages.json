@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "Die Übersetzung erscheint unter dem Original; Sätze, die Sie wirklich zu Ende lesen, werden zu Lernkarten"
   },
+  "ob_fork_title": {
+    "message": "Wie möchtest du starten?"
+  },
+  "ob_fork_sub": {
+    "message": "Beides funktioniert. Du kannst jederzeit wechseln."
+  },
+  "ob_fork_grant_title": {
+    "message": "Mit Gratis-Guthaben starten"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Empfohlen"
+  },
+  "ob_fork_grant_desc": {
+    "message": "Kein API-Schlüssel nötig — einfach anmelden und übersetzen. Reicht für ein paar hundert Absätze Seiten und Untertitel."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Gratis starten →"
+  },
+  "ob_fork_key_title": {
+    "message": "Ich habe einen eigenen API-Schlüssel"
+  },
+  "ob_fork_key_desc": {
+    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein — oder konfiguriere jede Engine einzeln."
+  },
+  "ob_fork_key_cta": {
+    "message": "Einrichten →"
+  },
+  "ob_fork_foot": {
+    "message": "Aufgebraucht? Wechsle jederzeit zu deinem eigenen Schlüssel — ein Schritt in den Einstellungen."
+  },
+  "ob_fork_waiting": {
+    "message": "Wird in einem neuen Tab abgeholt… komm hierher zurück, sobald du angemeldet bist, dann geht es automatisch weiter."
+  },
+  "ob_fork_landed": {
+    "message": "Guthaben erhalten — weiter zum nächsten Schritt…"
+  },
+  "ob_fork_reopen": {
+    "message": "Abholseite erneut öffnen"
+  },
   "extob_engine_title": {
     "message": "Wähle eine Übersetzungs-Engine"
   },

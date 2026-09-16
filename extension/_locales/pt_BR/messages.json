@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "A tradução aparece abaixo do original; as frases que você realmente termina de ler viram cartões de revisão"
   },
+  "ob_fork_title": {
+    "message": "Como você quer começar?"
+  },
+  "ob_fork_sub": {
+    "message": "As duas opções funcionam. Dá para trocar quando quiser."
+  },
+  "ob_fork_grant_title": {
+    "message": "Começar com o crédito gratuito"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Recomendado"
+  },
+  "ob_fork_grant_desc": {
+    "message": "Não precisa pedir chave de API: faça login e traduza. Dá para umas centenas de parágrafos de páginas e legendas."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Começar grátis →"
+  },
+  "ob_fork_key_title": {
+    "message": "Tenho minha própria chave de API"
+  },
+  "ob_fork_key_desc": {
+    "message": "Uma chave configura tradução, leitura em voz alta e transcrição — ou configure cada motor separadamente."
+  },
+  "ob_fork_key_cta": {
+    "message": "Configurar →"
+  },
+  "ob_fork_foot": {
+    "message": "Acabou? Troque pela sua própria chave quando quiser: um passo nas configurações."
+  },
+  "ob_fork_waiting": {
+    "message": "Resgatando em uma nova aba… volte aqui depois de entrar e continua sozinho."
+  },
+  "ob_fork_landed": {
+    "message": "Crédito recebido — levando você para o próximo passo…"
+  },
+  "ob_fork_reopen": {
+    "message": "Reabrir a página de resgate"
+  },
   "extob_engine_title": {
     "message": "Escolha um motor de tradução"
   },

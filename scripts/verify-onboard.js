@@ -59,13 +59,9 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     const evA=async e=>JSON.parse((await cdp.send('Runtime.evaluate',
       {expression:e,returnByValue:true,awaitPromise:true},sessionId)).result.value);
 
-    const seen=[];
-    for(let i=0;i<8;i++){
-      // **读渲染，不读属性。** 这一行原来写的是 `!el.hidden` —— 而 2026-08-31 真机上
-      // 漏出来的引擎块，`el.hidden` 恰恰是 true：onboard.css 的 `#ob-engine{display:flex}`
-      // 压过了 UA 的 `[hidden]{display:none}`，属性对、渲染错，于是这道门禁一路绿着
-      // 把它送上了 App Store。问「用户看不看得见」只有 getClientRects 答得了。
-      const s=await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+    // 一屏的完整采样表达式。提成常量是因为分流屏要把 engine 屏**采两次**
+    // （分流态一次、配置态一次），两次必须问同样的问题。
+    const EXPR_SCREEN = `(()=>{const vis=el=>!!(el&&el.getClientRects().length);
         return JSON.stringify({
         step:(document.body&&document.body.dataset&&document.body.dataset.obStep)||'',
         title:(document.getElementById('ob-title')||{}).textContent||'',
@@ -141,7 +137,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         // 收尾屏的反馈出口：文字非空、链接是 mailto。HTML 在而 feedback.js 抛异常时
         // 这里是空的 —— 正是这道门禁存在的理由。
         fb:(()=>{const a=document.getElementById('ob-done-feedback-link'),tx=document.getElementById('ob-done-feedback-text');
-          return {href:a?a.getAttribute('href')||'':'',text:(tx&&tx.textContent||'').trim(),link:(a&&a.textContent||'').trim()};})()})})()`);
+          return {href:a?a.getAttribute('href')||'':'',text:(tx&&tx.textContent||'').trim(),link:(a&&a.textContent||'').trim()};})()})})()`;
+    const seen=[];
+    for(let i=0;i<8;i++){
+      // **读渲染，不读属性。** 这一行原来写的是 `!el.hidden` —— 而 2026-08-31 真机上
+      // 漏出来的引擎块，`el.hidden` 恰恰是 true：onboard.css 的 `#ob-engine{display:flex}`
+      // 压过了 UA 的 `[hidden]{display:none}`，属性对、渲染错，于是这道门禁一路绿着
+      // 把它送上了 App Store。问「用户看不看得见」只有 getClientRects 答得了。
+      const s=await ev(EXPR_SCREEN);
       if(s.done){
         if(!/^mailto:/.test(s.fb.href)) fail(`收尾屏的反馈链接不是 mailto（${JSON.stringify(s.fb.href)}）—— feedback.js 没跑起来？`);
         else if(!s.fb.text||!s.fb.link) fail('收尾屏的反馈出口文字为空');
@@ -151,6 +154,59 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       // 每一屏在深色 + 浅色下各扫一遍：每段看得见的文字 ≥ 4.5:1（scripts/lib/sweep.js）。
       // 2026-09-06 用户报「申请 key 的链接在深色下看不清」—— 那个 <a> 没人上色，1.9:1。
       s.contrast=await sweepBoth(cdp,sessionId,'body');
+      // ★ 前置分流屏（2026-09-16，画布方案 A）。engine 屏现在有两个态：先问「你想
+      // 怎么开始」，选了「我有自己的 API key」才露出今天就有的一键卡/三引擎。
+      // 门禁在这里**显式走一次分流**，然后把这一屏重新采一遍 —— 于是下面所有关于
+      // 引擎屏的老断言问的仍然是配置态，一条都不用改；分流态另外单独断言。
+      // 不这么做的话，老断言会集体报「引擎屏上没有那张卡」，而卡其实在分流的另一侧。
+      if(s.step==='engine'){
+        const fk=await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+          const f=document.getElementById('ob-fork');
+          const n=document.getElementById('ob-next');
+          return JSON.stringify({vis:vis(f),
+            grantCard:vis(document.getElementById('ob-fork-grant')),
+            keyCard:vis(document.getElementById('ob-fork-key')),
+            grantCta:((document.getElementById('ob-fork-grant-cta')||{}).textContent||'').trim(),
+            keyCta:((document.getElementById('ob-fork-key-cta')||{}).textContent||'').trim(),
+            foot:((document.getElementById('ob-fork-foot')||{}).textContent||'').trim(),
+            nextVis:vis(n), nextOff:!!(n&&n.disabled),
+            grantOn: typeof LearnGrant!=='undefined' && LearnGrant.enabled()})})()`);
+        s.fork=fk;
+        if(fk.grantOn){
+          // 有我们代领的额度 ⇒ 必须先问一句。两张卡都在，才是二选一而不是墙。
+          if(!fk.vis) fail('开了免费额度，引擎屏却没有前置分流屏');
+          else if(!fk.grantCard||!fk.keyCard) fail(`分流屏缺一张卡（额度=${fk.grantCard} key=${fk.keyCard}）`);
+          else if(!fk.grantCta||!fk.keyCta||!fk.foot) fail('分流屏有卡但文案是空的 —— i18n key 漏了？');
+          // 裁定 D2 在这一屏同样成立：「继续」必须可见且没被禁用，否则选择就成了墙。
+          else if(!fk.nextVis||fk.nextOff) fail('分流屏上的「继续」不可见或被禁用 —— 那就成墙了（裁定 D2）');
+          else pass('引擎屏先问「你想怎么开始」：两张卡 + 文案齐，「继续」仍可点');
+          // 走「我有自己的 API key」那一侧，把这一屏重新采成配置态
+          await ev(`(document.getElementById('ob-fork-key').click(),'1')`);
+          await new Promise(r=>setTimeout(r,260));
+          const again=await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+            return JSON.stringify({forkVis:vis(document.getElementById('ob-fork')),
+              modes:vis(document.getElementById('ob-modes')),
+              quickVis:vis(document.getElementById('ob-quick'))})})()`);
+          if(again.forkVis) fail('选了「我有自己的 API key」之后，分流屏没有收起');
+          else if(!again.modes&&!again.quickVis) fail('选了「我有自己的 API key」之后，旧的配置块没有露出来 —— 旧路径被堵死了');
+          else pass('选「我有自己的 API key」后，今天就有的配置块原样回来');
+        }else{
+          // 没有我们代领的额度（中国版：那里放的是阿里云的官方额度指路卡，不是第二条路）
+          if(fk.vis) fail('这个构建没有我们代领的额度（MT_GRANT=null），分流屏却出来了 —— 那会给出一个不存在的选项');
+          else pass('没有代领额度的构建：分流屏一个像素都没出，引擎屏逐字照旧');
+        }
+        // 重采这一屏（现在是配置态），让下面所有老断言问的仍然是配置态
+        if(fk.grantOn){
+          const s2=await ev(EXPR_SCREEN);
+          s2.contrast=s.contrast; s2.fork=fk;
+          seen.push(s2);
+          await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
+            const n=document.getElementById('ob-next');
+            (vis(n)?n:document.getElementById('ob-cta')).click();return'1'})()`);
+          await new Promise(r=>setTimeout(r,220));
+          continue;
+        }
+      }
       seen.push(s);
       // 点**可见**的那个按钮。'try' 屏没有「继续」（唯一行动是「打开示例页面」，
       // 它同时前进），照旧点 ob-next 会点到一个 display:none 的按钮 —— click() 照样
@@ -284,6 +340,11 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     await new Promise(r=>setTimeout(r,2200));
     const tab = await ev(`(()=>{const vis=el=>!!(el&&el.getClientRects().length);
       document.getElementById('ob-next').click();          // 欢迎 → 引擎
+      // 引擎屏现在可能先出前置分流屏（2026-09-16，画布方案 A）。这一段验的是两个 tab
+      // 的互斥，那是**配置态**里的事，所以先走「我有自己的 API key」那一侧。
+      // 没有分流屏的构建（中国版）这一步是空操作。
+      const fkk=document.getElementById('ob-fork-key');
+      if(fkk&&fkk.getClientRects().length) fkk.click();
       const before={quick:vis(document.getElementById('ob-quick')),
                     manual:vis(document.getElementById('ob-manual'))};
       document.getElementById('ob-mode-manual').click();

@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.8rem; color:#8c491a; }
+    .row { display:flex; gap:10px; align-items:baseline; padding:7px 0; border-bottom:1px solid #e8dfd0; }
+    .row:last-child { border-bottom:none; }
+    .k { flex:none; width:180px; }
+    .v { flex:1; min-width:0; font-size:.86rem; color:#6a6255; line-height:1.5; }
+    h3 { margin:0 0 4px; font-size:.95rem; }
+  </style>
+</helmet>
+<div style="padding:24px; display:flex; gap:22px; height:872px; box-sizing:border-box">
+
+  <div style="flex:none; width:330px; display:flex; flex-direction:column; gap:10px">
+    <div style="font-size:.78rem; font-weight:700; color:#6a6255; letter-spacing:.04em">分流屏 · 元素与 id</div>
+
+    <div style="border:1px dashed #ac6231; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:11px; background:#fffdfa">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+        <div style="height:4px; background:#dcd3c4; border-radius:999px; flex:1"><div style="height:100%; width:50%; background:#8fa073; border-radius:999px"></div></div>
+        <code>#ob-bar / #ob-fill</code>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+        <b style="font-size:1.05rem">你想怎么开始？</b><code>#ob-title</code>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+        <span style="color:#6a6255; font-size:.9rem">两条路都能用…</span><code>#ob-text</code>
+      </div>
+
+      <div style="border:2px solid #ac6231; border-radius:12px; padding:11px; display:flex; flex-direction:column; gap:7px; background:#fff">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
+          <span style="font-weight:600; font-size:.92rem">用免费额度开始</span>
+          <code style="font-size:.74rem">#ob-fork-grant</code>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
+          <span style="background:#ac6231; color:#fff; padding:8px 14px; border-radius:9px; font-size:.84rem; font-weight:600">免费开始 →</span>
+          <code style="font-size:.74rem">…-grant-cta</code>
+        </div>
+      </div>
+
+      <div style="border:1px solid #dcd3c4; border-radius:12px; padding:11px; display:flex; flex-direction:column; gap:7px; background:#fff">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
+          <span style="font-weight:600; font-size:.92rem">我有自己的 API key</span>
+          <code style="font-size:.74rem">#ob-fork-key</code>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
+          <span style="border:1px solid #dcd3c4; color:#8c491a; padding:7px 14px; border-radius:9px; font-size:.84rem">去配置 →</span>
+          <code style="font-size:.74rem">…-key-cta</code>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+        <span style="color:#6a6255; font-size:.8rem">额度用完了随时能换…</span><code style="font-size:.74rem">…-foot</code>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+        <span style="color:#8c491a; font-size:.86rem">跳过，我先看看</span><code>#ob-skip</code>
+      </div>
+    </div>
+
+    <p style="margin:6px 0 0; font-size:.8rem; color:#6a6255; line-height:1.5">整块包在 <code>#ob-fork</code> 里。<b style="color:#201e1d">现有 id 一个不改</b> —— 新增的只有 <code>#ob-fork*</code> 这一族。</p>
+  </div>
+
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:14px">
+
+    <div>
+      <h3>屏序：engine 屏多一个前置态，不是多一屏</h3>
+      <div class="v" style="margin-bottom:6px"><code>OB = ['welcome','engine','capture','try']</code> <b style="color:#201e1d">不变</b>，进度条也不变。<code>engine</code> 屏进入时先画 <code>#ob-fork</code>；选②时原地把它收起、露出今天就有的 <code>#ob-modes</code> + <code>#ob-quick</code> + <code>#ob-manual</code>。</div>
+      <div class="row"><div class="k"><b>选① 免费开始</b></div><div class="v">新标签页开 <code>options.html#grant</code>（沿用今天 <code>onboard.js</code> 的 <code>onAction</code>），本屏转入「等待中」态</div></div>
+      <div class="row"><div class="k"><b>选② 自己的 key</b></div><div class="v"><code>#ob-fork</code> 隐藏 → 露出现有三块。<b style="color:#201e1d">这条路上的一切行为逐字不变</b></div></div>
+      <div class="row"><div class="k"><b>领到了</b></div><div class="v"><code>chrome.storage.onChanged</code> 收到 <code>grantTail</code> 变非空 ⇒ 转「到账」态并自动前进</div></div>
+      <div class="row"><div class="k"><b>中国版</b></div><div class="v">注册表无 <code>needsKey:false</code> 的引擎 ⇒ <code>#ob-fork</code> 根本不画，直接是今天这一屏</div></div>
+    </div>
+
+    <div>
+      <h3>判据按注册表内容判，不按 flavor 名</h3>
+      <div class="v">沿用 <code>app/app.js:308-312</code> 与 <code>onboard.js</code> 顶部已经确立的同一条规则。写死 <code>flavor==='china'</code> 会在下一次注册表变动时悄悄失效 —— 那是 build 的事，不是运行时的事。</div>
+    </div>
+
+    <div>
+      <h3>新增的 i18n key（12 个 locale 都要加，缺一个就是空白 UI）</h3>
+      <div class="v" style="line-height:1.8"><code>ob_fork_title</code> · <code>ob_fork_sub</code> · <code>ob_fork_grant_title</code> · <code>ob_fork_grant_badge</code> · <code>ob_fork_grant_desc</code> · <code>ob_fork_grant_cta</code> · <code>ob_fork_key_title</code> · <code>ob_fork_key_desc</code> · <code>ob_fork_key_cta</code> · <code>ob_fork_foot</code> · <code>ob_fork_waiting</code> · <code>ob_fork_reopen</code> · <code>ob_fork_landed</code><br>
+      失败那一档<b style="color:#201e1d">不新增</b>：直接用现成的 <code>grant_err_*</code>（exhausted / unavailable / misconfigured / revoked）。</div>
+    </div>
+
+    <div>
+      <h3>落地时要一起改的门禁</h3>
+      <div class="row"><div class="k"><code>test/hidden-guard</code></div><div class="v"><code>#ob-fork</code> 若带 <code>display</code> 规则，必须同时受 <code>[hidden]{display:none!important}</code> 管 —— onboard.css 顶部那条注释就是为这个 bug 写的</div></div>
+      <div class="row"><div class="k">调色板门禁</div><div class="v">本稿只用了注册表里已有的色，新增一个十六进制值就会让 <code>node build.js</code> 失败</div></div>
+      <div class="row"><div class="k">双配色可读性</div><div class="v">本稿十项全过 AA（最低 4.62，即填色按钮 terra550 + 白字，那正是它被定义出来的余量）</div></div>
+      <div class="row"><div class="k">遥测</div><div class="v">选①/选② 各是一次 <code>engine_set</code> 之前的分叉；<b style="color:#201e1d">本屏不发新事件</b> —— 真正配好了由 <code>saveAll()</code> 末尾的 <code>maybeTrackEngineSet</code> 记（#293 已落地）</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

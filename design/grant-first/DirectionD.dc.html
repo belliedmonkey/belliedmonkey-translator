@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; height:780px">
+
+  <div style="flex:1; min-height:0; padding:32px 20px 24px; display:flex; flex-direction:column; gap:18px">
+
+    <div style="display:flex; align-items:center; gap:12px; font-weight:700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ac6231" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8 5v3c0 3-1.6 5.6-4 7"/><path d="M6 11c1.4 2.4 3.6 4.2 6 5"/><path d="M13 19l4-9 4 9M14.6 16h4.8"/></svg>
+      <span>BelliedMonkey Translator</span>
+    </div>
+
+    <div style="height:4px; background:#dcd3c4; border-radius:999px; overflow:hidden; flex:none">
+      <div style="height:100%; width:50%; background:#8fa073; border-radius:999px"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-height:0">
+      <h2 style="margin:0; font-size:1.35rem; line-height:1.3">领一份免费额度</h2>
+      <p style="margin:0; color:#6a6255">登录一下，额度直接进这台设备 —— 不用离开这一页。</p>
+
+      <div style="background:#fff; border:2px solid #ac6231; border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; gap:10px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8fa073" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8h7a3 3 0 0 1 0 6H7"/></svg>
+          <span style="font-weight:600; font-size:1.05rem">免费额度</span>
+          <span style="background:#ffe1d0; color:#8c491a; font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:999px">推荐</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px">
+          <div style="display:flex; align-items:center; justify-content:center; gap:10px; border:1px solid #dcd3c4; border-radius:12px; padding:14px; background:#fff">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285f4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"/><path fill="#34a853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.4 7.6 24 12 24z"/><path fill="#fbbc05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6V7.1H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#ea4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.6 1.8 6.3l3.8 3C6.5 6.7 9 4.8 12 4.8z"/></svg>
+            <span style="font-size:.98rem">用 Google 继续</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:10px; border:1px solid #dcd3c4; border-radius:12px; padding:14px; background:#fff">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#201e1d"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.9-3.5.9-.7 0-1.8-.8-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.2 1.2-2.5 1.2-2.5s-2.4-.9-2.4-3.7zM14.2 5.6c.6-.8 1-1.9.9-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>
+            <span style="font-size:.98rem">用 Apple 继续</span>
+          </div>
+        </div>
+
+        <p style="margin:0; color:#6a6255; font-size:.84rem; line-height:1.5">只用来认这台设备的额度，不读你的邮件或文件。</p>
+      </div>
+
+      <div style="background:#fff; border:1px solid #dcd3c4; border-radius:14px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px">
+        <div style="min-width:0">
+          <div style="font-weight:600; font-size:.96rem">我有自己的 API key</div>
+          <div style="color:#6a6255; font-size:.86rem">一把 key 配好三样</div>
+        </div>
+        <div style="flex:none; color:#8c491a; font-size:.92rem">去配置 →</div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:14px; flex:none; padding-top:4px">
+      <div style="color:#8c491a; font-size:.95rem">跳过，我先看看</div>
+    </div>
+  </div>
+
+  <div style="flex:none; border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:14px 20px; display:flex; flex-direction:column; gap:6px">
+    <div style="font-size:.8rem; font-weight:700; color:#6a6255; letter-spacing:.04em">方案 D · 就地领取</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">轴：消除跳转断点。</b>登录按钮直接长在引导页上，领完就能翻 —— 体验上限最高，四个方案里唯一真正把「领取」放进主路径的。</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">代价：工程量最大，且要先解一条已知约束</b> —— 引导页不加载 auth.js（两个页面同时备 PKCE verifier 会互相覆盖，<code style="font-size:.82rem">onboard.js</code> 里写明了）。要么让引导页独占 verifier，要么换一种不占 verifier 的领取方式。<b style="color:#b3261e">没解掉之前这张稿不能落地。</b></div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

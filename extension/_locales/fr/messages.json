@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "La traduction apparaît sous l’original ; les phrases que vous lisez vraiment deviennent des cartes de révision"
   },
+  "ob_fork_title": {
+    "message": "Comment voulez-vous commencer ?"
+  },
+  "ob_fork_sub": {
+    "message": "Les deux fonctionnent. Vous pourrez changer à tout moment."
+  },
+  "ob_fork_grant_title": {
+    "message": "Commencer avec le crédit gratuit"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Recommandé"
+  },
+  "ob_fork_grant_desc": {
+    "message": "Aucune clé API à demander : connectez-vous et traduisez. De quoi lire quelques centaines de paragraphes de pages et de sous-titres."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Commencer gratuitement →"
+  },
+  "ob_fork_key_title": {
+    "message": "J'ai ma propre clé API"
+  },
+  "ob_fork_key_desc": {
+    "message": "Une seule clé configure la traduction, la lecture vocale et la transcription — ou configurez chaque moteur séparément."
+  },
+  "ob_fork_key_cta": {
+    "message": "Configurer →"
+  },
+  "ob_fork_foot": {
+    "message": "Crédit épuisé ? Passez à votre propre clé à tout moment, en une étape dans les réglages."
+  },
+  "ob_fork_waiting": {
+    "message": "Récupération dans un nouvel onglet… revenez ici une fois connecté, cela continuera tout seul."
+  },
+  "ob_fork_landed": {
+    "message": "Crédit reçu — on passe à l'étape suivante…"
+  },
+  "ob_fork_reopen": {
+    "message": "Rouvrir la page de récupération"
+  },
   "extob_engine_title": {
     "message": "Choisissez un moteur de traduction"
   },

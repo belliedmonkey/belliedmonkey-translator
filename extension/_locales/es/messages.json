@@ -1791,6 +1791,45 @@
   "extob_use_3": {
     "message": "La traducción aparece debajo del original; las frases que realmente terminas de leer se convierten en tarjetas de repaso"
   },
+  "ob_fork_title": {
+    "message": "¿Cómo quieres empezar?"
+  },
+  "ob_fork_sub": {
+    "message": "Las dos opciones funcionan. Puedes cambiar cuando quieras."
+  },
+  "ob_fork_grant_title": {
+    "message": "Empezar con el crédito gratuito"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Recomendado"
+  },
+  "ob_fork_grant_desc": {
+    "message": "No hace falta pedir una clave API: inicia sesión y traduce. Suficiente para leer unos cientos de párrafos de páginas y subtítulos."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Empezar gratis →"
+  },
+  "ob_fork_key_title": {
+    "message": "Tengo mi propia clave API"
+  },
+  "ob_fork_key_desc": {
+    "message": "Una clave configura traducción, lectura en voz alta y transcripción; también puedes configurar cada motor por separado."
+  },
+  "ob_fork_key_cta": {
+    "message": "Configurar →"
+  },
+  "ob_fork_foot": {
+    "message": "¿Se acabó? Cambia a tu propia clave cuando quieras: un paso en los ajustes."
+  },
+  "ob_fork_waiting": {
+    "message": "Reclamando en una pestaña nueva… vuelve aquí cuando hayas iniciado sesión y continuará solo."
+  },
+  "ob_fork_landed": {
+    "message": "Crédito recibido; te llevamos al siguiente paso…"
+  },
+  "ob_fork_reopen": {
+    "message": "Volver a abrir la página de reclamación"
+  },
   "extob_engine_title": {
     "message": "Elige un motor de traducción"
   },
