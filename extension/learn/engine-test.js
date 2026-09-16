@@ -122,7 +122,40 @@ var EngineTest = (() => {
     return LearnTTS.test();
   }
 
-  return { reason, serverLine, assertEndpointShape, format, translation, notes, stt, tts };
+  // ── 遥测（telemetry-design §3 的 engine_test，2026-09-16 用户裁定）──────────
+  //
+  // 接在**这一层**，不是四个调用方里：设置页 / 字段行 / 一键卡 / 引导页都调这四个
+  // 函数，包在导出处一处覆盖全部，也顺带覆盖两个宿主（这个文件在 App 包里）。
+  //
+  // 只发「哪一槽、成没成、哪一类错」。**不带 key、不带端点、不带 serverMessage** ——
+  // 服务端原话会引用用户输入（serverLine 就是把它原样贴给用户看的），原则 1 明禁。
+  //
+  // 白名单外的 code 会被客户端静默丢掉，所以这里显式收敛到 'other'：宁可记成「没归类
+  // 的失败」，也不要让那一条失败从统计里消失（同 credit_exhausted 那条教训）。
+  const TRACK_CODES = ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
+    'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
+    'reasoning_starved', 'device_no_file'];
+  function track(slot, result, code) {
+    try {
+      if (typeof MTTelemetry === 'undefined') return;
+      const props = { slot, result };
+      if (result === 'fail') props.code = TRACK_CODES.indexOf(code) >= 0 ? code : 'other';
+      MTTelemetry.track('engine_test', props);
+    } catch (_) {}
+  }
+  // 成功/失败都记，且**不改变**调用方看到的东西：原样 return、原样 throw。
+  async function probe(slot, run) {
+    try { const r = await run(); track(slot, 'ok'); return r; }
+    catch (e) { track(slot, 'fail', (e && e.code) || ''); throw e; }
+  }
+
+  return {
+    reason, serverLine, assertEndpointShape, format,
+    translation: (cfg) => probe('chat', () => translation(cfg)),
+    notes: (settings) => probe('notes', () => notes(settings)),
+    stt: (cfg) => probe('stt', () => stt(cfg)),
+    tts: (cfg) => probe('tts', () => tts(cfg)),
+  };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = EngineTest;

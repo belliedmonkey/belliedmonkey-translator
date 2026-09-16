@@ -1001,8 +1001,17 @@
   // 这个最需要出路的场景里（2026-09-06）。落点是语音引擎那个控件，不是页面顶部。
   $('app-drive-need-tts-go').addEventListener('click', () => openSettings('tts-engine'));
   // 对话 · 实时听译的门没过时那条路：设置页转写引擎那一档（§9.6）。
-  $('app-listen-need-live-go').addEventListener('click', () => openSettings('stt-engine'));
-  $('app-listen-need-live-go2').addEventListener('click', () => openSettings('stt-engine'));
+  // 点这一下 = 「我想用实时听译/字幕，但这台机器没有带实时接口的引擎」——
+  // 正是 asr_entry 的 no_live。入口本身是 disabled 的（不发 click），所以这条链接
+  // 是这一档唯一量得到的地方（telemetry-design §3）。
+  const goLiveSetup = () => {
+    try {
+      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' });
+    } catch (_) {}
+    openSettings('stt-engine');
+  };
+  $('app-listen-need-live-go').addEventListener('click', goLiveSetup);
+  $('app-listen-need-live-go2').addEventListener('click', goLiveSetup);
   // 实时字幕（§9.8）入口灰掉时的同一条路：转写引擎那一档（没实时接口 / 没填 key）。
   for (const id of ['app-subs-need-go', 'app-subs-need-go2']) { const b = $(id); if (b) b.addEventListener('click', () => openSettings('stt-engine')); }
   // Both of review.html's settings links, captured so review.js's own handler (which

@@ -820,6 +820,13 @@ var AppListen = (() => {
   // 其余（含点击事件对象）一律是对话，照旧一进来就开始听。
   function open(m) {
     mode = m === 'subtitle' ? 'subtitle' : 'conv';
+    // asr_entry（telemetry-design §3，surface 'app_home' 是 2026-09-16 加的枚举）：
+    // 两张模式卡的**共同落点**，一处覆盖「对话 · 实时听译」与「实时字幕」。
+    // 只可能是 started —— 灰态时按钮是 disabled，不发 click；「想用但被挡住」那一下
+    // 记在 app.js 的 need-live-go 上（result:'no_live'）。
+    try {
+      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
+    } catch (_) {}
     cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
     $(cameFrom).hidden = true;
     $('app-listen').hidden = false;

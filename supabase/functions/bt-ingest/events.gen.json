@@ -36,6 +36,35 @@
     "engine_set": {
       "provider": "id"
     },
+    "engine_test": {
+      "slot": [
+        "chat",
+        "notes",
+        "tts",
+        "stt"
+      ],
+      "result": [
+        "ok",
+        "fail"
+      ],
+      "code": [
+        "no_key",
+        "no_base",
+        "no_path",
+        "bad_url",
+        "no_engine",
+        "unknown_provider",
+        "network",
+        "timeout",
+        "http",
+        "bad_output",
+        "empty_output",
+        "empty_audio",
+        "reasoning_starved",
+        "device_no_file",
+        "other"
+      ]
+    },
     "translate_ok": {
       "provider": "id",
       "kind": [
@@ -109,7 +138,8 @@
       "surface": [
         "popup",
         "notice",
-        "pill"
+        "pill",
+        "app_home"
       ],
       "result": [
         "started",
