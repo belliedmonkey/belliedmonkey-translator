@@ -35,10 +35,22 @@
 //                          28 天 21 访客 / 3 次安装（转化 14.3%），平均停留 2 秒。
 //                          ⚠️ 那个属性顶部常驻一条「Report filtering is turned on」，
 //                          所以它是**下限**，不是精确值。仍然只能人工读，故走手工回填。
-//   · Supabase 漏斗   —— service key **刻意不落盘**，这条策略不动。
+//   · Supabase 漏斗   —— 2026-09-16 起**实时查**，不再手填。
+//                          「service key 刻意不落盘」那条策略**没有变**：这里用的不是
+//                          service key，是 .local/keys.md 里 2026-09-09 才加的
+//                          `supabase_access_token`（管理令牌，supabase CLI 用的同一把），
+//                          走 Management API 跑一条只读 select。写那条策略时（08-28）
+//                          这把令牌还不存在。
+//                          触发点：手填的数会过期而没人发现 —— 09-04 填的 67 个账号，
+//                          09-16 实测同口径已经 129，报表却一直显示 67。
+//                          ⚠️ 管理令牌的权限比 service key **还大**，这里只拿它跑 select。
+//                          真要收紧，下一步是建一个 security definer 的只读 RPC 用 anon key
+//                          调 —— 那要动 schema，另开。
 //
 //   手工填在 .local/stats/manual.json（见下 manual() 的注释）。**手填的数在输出里
 //   一律带 [手工 · 日期]** —— 分不清哪个是回读、哪个是人记的，整张表就都不可信了。
+//   2026-09-16 起只剩 CWS 一个面要手填；Supabase 那行改成实时查（理由见上），
+//   manual.json 里的 supabase 段留作实时查失败时的回落，输出会标出它有多旧。
 //
 // 用法: node scripts/store-stats.js [--json] [--days N]
 
@@ -134,6 +146,66 @@ async function apple(days) {
 
   return { ok: true, days, total: agg.total, from: sales.from, to: sales.to,
     live: sales.live, quiet: sales.quiet, byApp, byDev, terr, ratings };
+}
+
+// 我自己的测试账号，统计时排除。清单在 .local/stats/own-accounts.txt（gitignored），
+// 一行一个 SQL ilike 模式。**不硬编码进这个文件**：仓库是公开的，作者的私人邮箱不该
+// 躺在里面（`belliedmonkey%` 是例外 —— 它是 git 作者邮箱，本来就公开，所以能当兜底）。
+//
+// 2026-09-16 的教训：原来只排 `belliedmonkey%` 一个模式，于是另外两个测试号一直被算成
+// 真实用户，其中一个有 221 次中继调用和 35 KB 语料 —— 「有实质语料的用户」因此从 6 个
+// 被夸大成 8 个。**一个漏掉的自己人比十个漏掉的真用户更能歪曲结论**，因为自己人的
+// 数据形状恰恰最像重度用户。新开测试号记得加进那个文件。
+function ownAccounts() {
+  const f = path.join(SNAPDIR, 'own-accounts.txt');
+  const fallback = ['belliedmonkey%'];
+  if (!fs.existsSync(f)) return fallback;
+  const lines = fs.readFileSync(f, 'utf8').split('\n')
+    .map((l) => l.replace(/#.*$/, '').trim()).filter(Boolean);
+  return lines.length ? lines : fallback;
+}
+
+// Supabase 同步漏斗 —— 实时查（2026-09-16 起）。
+//
+// 口径与它取代的那条手工项**逐字相同**：排除 belliedmonkey% 的账号（我自己的测试号）。
+// 不对齐口径的话，换成实时查的当天数字会毫无理由地跳一截，而那一跳会被当成增长。
+//
+// 读不到就回落手工值 —— 报表不因为一个面取不到数就整张停摆（同 manual() 的理由）。
+async function supabase() {
+  const token = slot('supabase_access_token');
+  if (!token) return { ok: false, why: '.local/keys.md 缺 supabase_access_token' };
+  // 项目 ref 从 backend.config.js 里解析，不写死：换项目时只有一处真相。
+  let ref = null;
+  try {
+    const cfg = fs.readFileSync(path.join(ROOT, 'extension/learn/backend.config.js'), 'utf8');
+    const m = /https:\/\/([a-z0-9]{20})\.supabase\.co/.exec(cfg);
+    ref = m && m[1];
+  } catch (_) { /* 落到下面的 why */ }
+  if (!ref) return { ok: false, why: 'backend.config.js 里找不到项目 ref' };
+
+  const pats = ownAccounts();
+  // 模式来自本机文件，仍然转义单引号 —— 一个手滑的 `o'brien@…` 就能让这条 SQL 变形。
+  const notMine = (a) => pats.map((x) => `${a}.email not ilike '${String(x).replace(/'/g, "''")}'`).join(' and ');
+  const sql = `select
+      (select count(*) from auth.users u where ${notMine('u')}) as accounts,
+      (select count(distinct c.user_id) from bt_chunks c
+         join auth.users u on u.id = c.user_id where ${notMine('u')}) as with_data,
+      (select count(*) from bt_chunks c
+         join auth.users u on u.id = c.user_id where ${notMine('u')}) as chunks`;
+  let r;
+  try {
+    r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql }),
+    });
+  } catch (e) { return { ok: false, why: '连不上 Management API：' + e.message }; }
+  if (!r.ok) return { ok: false, why: `Management API ${r.status}` };
+  let rows;
+  try { rows = await r.json(); } catch (e) { return { ok: false, why: '返回不是 JSON' }; }
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || typeof row.accounts === 'undefined') return { ok: false, why: '返回里没有 accounts' };
+  return { ok: true, accounts: Number(row.accounts), with_data: Number(row.with_data), chunks: Number(row.chunks) };
 }
 
 // 手工回填。两个面读不到（CWS 无 API、Supabase 的 service key 刻意不落盘），
@@ -250,7 +322,8 @@ function delta(now, then) {
   const prev = lastSnapshot(snapFile);
   const P = (prev && prev.data) || {};
 
-  const snapshot = { at: new Date().toISOString(), days, github: gh, amo: mo, apple: ap, manual: man };
+  const sb = await supabase();
+  const snapshot = { at: new Date().toISOString(), days, github: gh, amo: mo, apple: ap, supabase: sb, manual: man };
 
   // 先落盘再打印：报表是可以重跑的，而**今天的 AMO 日活错过了就永远拿不回来**。
   fs.mkdirSync(SNAPDIR, { recursive: true });
@@ -314,17 +387,32 @@ function delta(now, then) {
   }
 
   // ── Supabase ──
+  // 「语料块」不是「句子」：bt_chunks 存的是压缩后的 bundle，一块里有多张卡
+  // （旧版这一行写作「句子」，是个会让人低估用量十几倍的标签）。
   console.log('\nSupabase（同步账号 · 学习层）');
-  if (man.supabase && typeof man.supabase.accounts === 'number') {
+  if (sb.ok) {
+    // 上一份快照可能还是手工形状 —— 两边都认，否则换成实时查的第一天没有对比。
+    const prevLive = P.supabase && typeof P.supabase.accounts === 'number';
+    const Ps = prevLive ? P.supabase : ((P.manual && P.manual.supabase) || {});
+    console.log(`  账号 ${sb.accounts}${delta(sb.accounts, Ps.accounts)}`
+      + `　有数据 ${sb.with_data}${delta(sb.with_data, Ps.with_data)}`
+      + `　语料块 ${sb.chunks}${delta(sb.chunks, Ps.chunks)}`
+      + `　（不含我自己的 ${ownAccounts().length} 类测试账号）`);
+    // 换成实时查的**第一次**，对比基准只能是上一份快照里的手工值，而那个值是
+    // 「人读到它的那天」记的，不是快照那天 —— 不说清楚，这一跳会被当成增长。
+    if (!prevLive && Ps.accounts !== undefined) {
+      console.log(`    ⚠️ 这一行的 ↑↓ 基准是上一份快照里的**手工**值（${Ps.at || '日期未填'} 读的），`
+        + '不是快照日期；下一份快照起就对齐了');
+    }
+  } else if (man.supabase && typeof man.supabase.accounts === 'number') {
     const s = man.supabase;
     const Ps = (P.manual && P.manual.supabase) || {};
     console.log(`  账号 ${s.accounts}${delta(s.accounts, Ps.accounts)}`
-      + `　有数据 ${s.with_data ?? '?'}　句子 ${s.chunks ?? '?'}`
-      + `　[手工 · ${s.at || '日期未填'}]`);
+      + `　有数据 ${s.with_data ?? '?'}　语料块 ${s.chunks ?? '?'}`
+      + `　[手工 · ${s.at || '日期未填'}]　⚠️ 实时查失败：${sb.why}`);
   } else {
-    console.log('  — service key 刻意不落盘，本脚本不查。走 bt-supabase MCP：');
-    console.log("    select count(*) from auth.users where email not ilike 'belliedmonkey%';");
-    console.log('    读到之后填进 .local/stats/manual.json 的 supabase。');
+    console.log('  — 查不到：' + sb.why);
+    console.log('    （需要 .local/keys.md 的 supabase_access_token；service key 仍然刻意不落盘）');
   }
 
   if (man._err) console.log('\n⚠️ ' + man._err);
