@@ -554,6 +554,23 @@ var AppSettings = (() => {
     if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
     await paint(session, say);
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
+    // 对称于扩展设置页 options.js 的 maybeTrackEngineSet。一键卡是 App 里设置**主翻译
+    // 引擎**的唯一入口 —— app/index.html 没有 provider 下拉（只有 tts-engine /
+    // notes-provider / stt-engine），writes.provider 只可能来自 quick-setup.js。所以
+    // engine_set 只能挂在这里；漏了它，telemetry-design §1 第一问的激活漏斗
+    //「配了引擎 → 翻出东西」在 App 上就是黑的（2026-09-16 查实：App 侧 0 条）。
+    //
+    // 判据走 EngineState.needsSetup，与扩展那侧**同一个出口**，不另写一份
+    // （engine-state.js 那条「没有人再另写一份判据」由 test/engine-state.test.js 守着）。
+    // 一键卡必带 key，所以这里几乎总为真；照样走判据，是为了两个宿主的 engine_set
+    // 永远表示同一件事 —— 否则同一个数在两张表里含义不同，比没有更糟。
+    try {
+      const cur = await get(KEYS.concat(['engineChosen']));
+      if (typeof EngineState !== 'undefined' && typeof MTTelemetry !== 'undefined'
+          && !EngineState.needsSetup(cur)) {
+        MTTelemetry.track('engine_set', { provider: String(EngineState.resolve(cur.provider) || '') });
+      }
+    } catch (_) {}
   }
 
 
