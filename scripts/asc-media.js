@@ -381,6 +381,9 @@ let VERSION = null;
 (async () => {
   const argv = process.argv.slice(2);
   const apply = argv.includes('--apply');
+  // --previews-only：只挂预览视频，跳过截图段。截图段一挂就整条抛出，预览段根本轮不到
+  // （2026-09-16：苹果 `POST /appScreenshots` 连续 500 数小时，而 `POST /appPreviews` 是另一个端点）
+  const previewsOnly = argv.includes('--previews-only');
   const onlyIdx = argv.indexOf('--only');
   const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
   VERSION = resolveVersion(argv);
@@ -396,7 +399,7 @@ let VERSION = null;
     // ── 截图 ──
     const sets = await api('GET', `/appStoreVersionLocalizations/${locId}/appScreenshotSets?limit=20`
       + '&fields[appScreenshotSets]=screenshotDisplayType');
-    for (const [displayType, files] of Object.entries(line.screenshots)) {
+    for (const [displayType, files] of Object.entries(previewsOnly ? {} : line.screenshots)) {
       for (const f of files) if (!fs.existsSync(f)) throw new Error(`缺文件 ${f}`);
       let set = sets.data.find((s) => s.attributes.screenshotDisplayType === displayType);
       const existing = set
@@ -412,8 +415,10 @@ let VERSION = null;
             relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: locId } } } },
         })).data;
       }
-      for (const old of existing) await api('DELETE', `/appScreenshots/${old.id}`);
+      // **先传新图，全传完再删旧图**：反过来的话上传一挂，线上就只剩一个空集合 ——
+      // 2026-09-16 苹果 500 期间先探的两组（cn-mac、global-mac-zh）正是这样被清空的。
       for (const f of files) { await uploadAsset('screenshot', set.id, f); process.stdout.write('.'); }
+      for (const old of existing) await api('DELETE', `/appScreenshots/${old.id}`);
       console.log(' ✓');
     }
 
