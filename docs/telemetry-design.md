@@ -4,6 +4,7 @@
 > **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
 > `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
 > 起因写在 §3.1。
+> **2026-09-17**：`asr_entry` 加 `popup_app_row` / `to_app`（实时档下掉后的去 App 出口），起因写在 §3.3.2。
 > **2026-09-16 amendment（第十二期，4 条已由用户裁定通过）**：新事件 `engine_test`（引擎测试整个是盲区）；
 > `engine_set` 的判据从「选了下拉」改成 `EngineState.needsSetup`；`asr_entry.surface` 加 `app_home`；
 > 澄清 App 的听译/实时字幕出译文归 `translate_ok{kind:'subtitle'}`（不新增 kind），以及补译文**不发**
@@ -93,7 +94,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
 | `ext_banner` | `action: shown \| setup \| done` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」（2026-09-10，§3.1） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个按钮的 listener |
-| `asr_entry` | `surface: popup \| notice \| pill \| app_home` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed` | 用户从某个入口尝试开始 AI 转写字幕（2026-09-11，§3.2） | `asr-source.js` `startFrom(surface, …)`（started / no_engine / gesture_needed）、`liveTier` 抛 `nolive` 处（no_live）、`content-main.js` `transcribeMedia` 找不到媒体处（no_media）；`pill` = 页内 「▶ 点此开始实时转写」 那一下。**`app_home`（2026-09-16）** = App 首页那两张模式卡（`app-listen-entry` / `app-listen-entry2`），seam 在 `app/listen.js` 的入口门控处 —— App 的听译/实时字幕**不经过** `asr-source.js`，所以现有三个值一个都落不到它头上，这是本次唯一必须动枚举的一处 |
+| `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `app/app.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
@@ -227,6 +228,25 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 `node scripts/gen-telemetry.js` 重新生成 → 服务端 `bt-ingest` 随之更新 →
 `test/telemetry-registry.test.js` 钉两边一致。判断 1、2 与 `engine_set` / `capture_first`
 两处缺口**不动白名单**，已在 PR #293 先行落地。
+
+### 3.3.2 2026-09-17：去 App 的那两处点击要有自己的名字
+
+实时档从扩展端下掉之后（domain-design §2.4 第 3 条），扩展里多了两处「去 App」的点击：
+弹窗里那条**常驻**的「用 App 听设备的声音」，以及走不通的媒体落到的那个出口。
+
+第一版把它们记成 `asr_entry{result:'no_media'}` —— 拿「这一页没找到媒体」冒充「用户选择
+去 App 听」。**这与 `engine_set` 那次语义漂移是同一型**（§3.3.1）：一个值被借去表示另一件事，
+两件事从此在数据里分不开，而且旧数据看起来完全正常。所以给它们自己的名字：
+
+- **`result: 'to_app'`** —— 用户点了去 App 的出口。它与 `started`（在扩展里开始转写）是
+  互斥的两件事；合并记录等于放弃「下掉实时档之后，人是留在扩展里还是去了 App」这个问题。
+- **`surface: 'popup_app_row'`** —— 弹窗里那条常驻行，与 `notice`（页内走不通时的出口）
+  分开。两者回答的问题不同：一个是「主动发现」，一个是「撞墙之后」。这正是免费额度那次
+  学到的 —— 83% vs 14% 的差距是**按入口**劈开才看见的。
+
+**`gesture_needed` 保留但不再产生。** Safari 页内手势那套机制随 Tier B 一起下掉了。枚举留在
+表里是因为历史行还在（180 天保留期内），删掉枚举会让那些行读不回来 —— **白名单同时是读的
+契约，不只是写的闸门。**
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
