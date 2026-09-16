@@ -195,164 +195,25 @@ describe('§2.4 harness: streaming acquire', () => {
     eq(ui.engine.items[1].text, 'tail');
   });
 
-  test('live partial shows on the original line between sentences, and is never translated', async () => {
-    let ctxRef = null, now = 0;
-    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: false, history: false });
-    ctxRef.partial('words arriving right');
-    ui.tick(); await flush();
-    const ov = document.getElementById('ov');
-    eq(ov.querySelector('.o').textContent, 'words arriving right');
-    eq(calls.length, 0, 'in whole-sentence mode a partial is display only');
-    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
-    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
-    eq(ov.querySelector('.o').textContent, 'Words arriving right now.', 'the closed sentence takes over (held by HOLD_MS)');
-    eq(calls.length, 1);
-  });
 
-  test('边说边译: the growing partial is translated (debounced, one in flight) and reused when the sentence closes', async () => {
-    let ctxRef = null, now = 0;
-    const timers = [];
-    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } },
-      timersOut: timers });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: true, history: false });
-    ctxRef.partial('Words arriving'); ctxRef.partial('Words arriving right');
-    // the debounce timer fires once (our fake setTimeout records callbacks)
-    eq(timers.length >= 1, true); timers.splice(0).forEach((fn) => fn());
-    await flush(); await flush();
-    eq(calls.length, 1, 'one partial translation'); eq(calls[0], 'Words arriving right');
-    ui.tick(); await flush();
-    const ov = document.getElementById('ov');
-    eq(ov.querySelector('.t').textContent, 'T:Words arriving right…', 'partial translation shown with an ellipsis');
-    ctxRef.partial('Words arriving right now');
-    timers.splice(0).forEach((fn) => fn()); await flush(); await flush();
-    eq(calls.length, 2);
-    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
-    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
-    eq(calls.length, 2, 'the closed sentence REUSES the partial translation of the same text — no third request');
-    eq(ov.querySelector('.t').textContent, 'T:Words arriving right now');
-  });
 
-  test('边说边译: a partial translation that lands AFTER its sentence closed never shows under the next partial', async () => {
-    let ctxRef = null, now = 0;
-    const timers = []; let release = null;
-    const { ui, document } = loadHarness({ now: () => now, timersOut: timers,
-      spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; }, translate: (x) => new Promise((r) => { release = () => r('T:' + x); }) } });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: true, history: false });
-    ctxRef.partial('First sentence going');
-    timers.splice(0).forEach((fn) => fn()); await flush();          // request for the first partial is in flight
-    ctxRef.push([{ start: 0, end: 1000, text: 'First sentence going on.' }]); // …and the sentence closes
-    ctxRef.partial('Second one');
-    const late = release; release = null; late(); await flush(); await flush(); // the stale answer arrives now
-    now = 1100; ui.tick(); await flush();
-    const ov = document.getElementById('ov');
-    ok(ov.querySelector('.t').textContent.indexOf('First sentence') < 0, 'stale translation not shown: ' + ov.querySelector('.t').textContent);
-  });
 
-  test('字幕历史面板 (default on): closed sentences go to the panel, the overlay keeps only the stream', async () => {
-    let ctxRef = null, now = 0;
-    const captured = [];
-    const { ui, calls, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } },
-      collector: { noteSubtitle: (x) => captured.push(x) } });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: false }); // history defaults to on
-    ctxRef.partial('Words arriving right');
-    ctxRef.push([{ start: 0, end: 2000, text: 'Words arriving right now.' }]);
-    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
-    const panel = document.getElementById('ov-history');
-    ok(panel, 'panel exists');
-    const rows = panel.children.filter((c) => c.className === 'ov-history-row');
-    eq(rows.length, 1, 'one closed sentence in the panel');
-    eq(rows[0].children[0].textContent, 'Words arriving right now.');
-    const ov = document.getElementById('ov');
-    ok(ov.querySelector('.o').textContent !== 'Words arriving right now.', 'overlay never shows the closed sentence while the panel is on');
-    ctxRef.partial('Next words');
-    ui.tick(); await flush();
-    eq(ov.querySelector('.o').textContent, 'Next words', 'overlay shows the stream');
-    eq(calls.length, 1, 'the Engine translated the closed sentence');
-    // translation lands → panel row updates, collector captures exactly once
-    ui.tick(); await flush(); ui.tick(); await flush();
-    eq(rows[0].children[1].textContent, 'T:Words arriving right now.');
-    eq(captured.length, 1); eq(captured[0].text, 'Words arriving right now.');
-    ui.tick(); await flush();
-    eq(captured.length, 1, 'never twice');
-    // media change removes the panel
-    ui.disable();
-    eq(document.getElementById('ov-history'), null, 'panel removed with the overlay');
-  });
 
-  test('字幕历史面板 off: the overlay shows closed sentences again (HOLD_MS path)', async () => {
-    let ctxRef = null, now = 0;
-    const { ui, document } = loadHarness({ now: () => now, spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: false, history: false });
-    ctxRef.push([{ start: 0, end: 2000, text: 'Closed one.' }]);
-    now = 2500; ui.tick(); await flush(); ui.tick(); await flush();
-    eq(document.getElementById('ov-history'), null, 'no panel');
-    eq(document.getElementById('ov').querySelector('.o').textContent, 'Closed one.');
-  });
 
-  test('字幕历史面板 drag: the clamp keeps the panel inside the viewport', () => {
-    const { ui } = loadHarness({});
-    void ui;
-    const { runtime: P } = require('../build/palette.config.js'); void P;
-    const chrome = makeChrome({ uiLanguage: 'en-US' });
-    const ctx = loadModule(['translation-core.js', 'subtitle-adapter.js'], { window: { MT_I18N_MESSAGES: MSGS, MT_PALETTE: {} }, chrome, document: makeDom(), navigator: {}, setInterval: () => 0, clearInterval() {}, setTimeout: () => 0, clearTimeout() {} });
-    const clamp = ctx.SubtitleAdapter.clampHistoryPos;
-    deepEq(clamp(-50, -50, 380, 200, 1400, 900), { x: 0, y: 0 });
-    deepEq(clamp(1300, 850, 380, 200, 1400, 900), { x: 1020, y: 700 });
-    deepEq(clamp(100, 100, 380, 200, 1400, 900), { x: 100, y: 100 });
-    deepEq(clamp(10, 10, 2000, 3000, 800, 600), { x: 0, y: 0 }, 'a panel larger than the viewport pins to the origin');
-  });
 
-  test('字幕历史面板 drag: after a drag past the threshold the panel is viewport-fixed at the drop point and remembered', async () => {
-    let ctxRef = null;
-    const stored = {};
-    const { ui, document } = loadHarness({ spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } }, storeInto: stored });
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: false });
-    ctxRef.push([{ start: 0, end: 1000, text: 'Row one.' }]);
-    ui.tick(); await flush();
-    const panel = document.getElementById('ov-history');
-    const head = panel.children[0];
-    panel.getBoundingClientRect = () => ({ left: 900, top: 500, width: 380, height: 200 });
-    panel.offsetWidth = 380; panel.offsetHeight = 200;
-    head._listeners.pointerdown({ pointerId: 1, button: 0, clientX: 950, clientY: 510, stopPropagation() {} });
-    head._listeners.pointermove({ pointerId: 1, clientX: 952, clientY: 511, preventDefault() {} }); // under the 5 px threshold: a tap
-    eq(panel.style.position, undefined, 'no move yet');
-    head._listeners.pointermove({ pointerId: 1, clientX: 650, clientY: 300, preventDefault() {} });
-    eq(panel.style.position, 'fixed'); eq(panel.style.left, '600px'); eq(panel.style.top, '290px');
-    head._listeners.pointerup({ pointerId: 1 });
-    deepEq(stored.asrHistoryPos, { x: 600, y: 290 }, 'position remembered');
-    // the next render keeps the dragged spot instead of the anchor
-    ui.tick(); await flush();
-    eq(panel.style.left, '600px');
-  });
 
-  test('字幕历史面板 mounts inside the fullscreen element when there is one', async () => {
-    let ctxRef = null;
-    const { ui, document } = loadHarness({ spec: { acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
-    const fs = document.createElement('div'); fs.id = 'fs';
-    document.fullscreenElement = fs;
-    ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live', { incremental: false });
-    ctxRef.push([{ start: 0, end: 1000, text: 'In fullscreen.' }]);
-    ui.tick(); await flush();
-    const panel = document.getElementById('ov-history');
-    eq(panel.parentElement, fs, 'panel lives inside the fullscreen element');
-  });
 
-  test('mode("live") applies the live window; media-key change restores the production window', async () => {
+  // 2026-09-16：实时档下掉后 mode() 只剩一种窗口。这条断言保留的是它**原本**的价值 ——
+  // 「生产窗口从 core 读，never restated here」，以及媒体切换后窗口仍然正确。
+  test('mode() 只应用生产窗口 —— 实时档下掉后没有第二种窗口', async () => {
     let ctxRef = null, key = 'm1';
     const { ui, TC } = loadHarness({ spec: { mediaKey: () => key, acquire: async (ctx) => { ctxRef = ctx; return 'streaming'; } } });
     ui.init({}); ui.enable(); ui.tick(); await flush();
-    ctxRef.mode('live');
-    eq(ui.engine.window.HOLD_MS, 6000); eq(ui.engine.window.GRACE_MS, 4000);
+    ctxRef.mode();
+    eq(ui.engine.window.HOLD_MS, 0);
+    eq(ui.engine.window.GRACE_MS, TC.WINDOW.GRACE_MS, 'grace 读自 core，不在适配器里重述');
     key = 'm2'; ui.tick(); await flush();
-    eq(ui.engine.window.HOLD_MS, 0); eq(ui.engine.window.GRACE_MS, TC.WINDOW.GRACE_MS, 'back to the production grace, read from the core');
+    eq(ui.engine.window.HOLD_MS, 0, '媒体切换后仍是生产窗口');
   });
 
   test('onAbort fires on media change, on disable, and on stopAsr — and never twice', async () => {
