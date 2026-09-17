@@ -1939,7 +1939,7 @@
     "message": "Offline-Modell {lang} wird geladen · {pct} %"
   },
   "listen_assets_failed": {
-    "message": "Download des Offline-Modells fehlgeschlagen: {why} – tippe erneut auf „Zuhören starten“ oder wähle in den Einstellungen eine Cloud-Engine."
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen – tippe erneut auf „Zuhören starten“ oder wähle in den Einstellungen eine Cloud-Engine."
   },
   "listen_entry_privacy_device": {
     "message": "Sprache wird auf dem Gerät erkannt und an keinen Server gesendet; der erkannte Text geht an die von dir eingerichtete Übersetzungs-Engine."
@@ -3032,7 +3032,7 @@
     "message": "Die integrierte Erkennung unterstützt diese Sprache nicht – versuche eine andere"
   },
   "listen_assets_failed2": {
-    "message": "Download des Offline-Modells fehlgeschlagen: {why} – tippe erneut auf „Zuhören starten“, um es noch einmal zu versuchen."
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen – tippe erneut auf „Zuhören starten“, um es noch einmal zu versuchen."
   },
   "tts_engine_device": {
     "message": "Geräteinterne Sprachausgabe (Offline-Modell · nur App)"
@@ -3062,7 +3062,7 @@
     "message": "Offline-Modell wird geladen · {lang} · {pct} %"
   },
   "tts_pack_failed": {
-    "message": "Download des Offline-Modells fehlgeschlagen: {why}"
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen"
   },
   "tts_pack_no_bridge": {
     "message": "Das integrierte Vorlesen ist nur in der App verfügbar"
@@ -3089,7 +3089,7 @@
     "message": "Sprachpaket wird geladen · {lang} · {pct} %"
   },
   "listen_pack_failed": {
-    "message": "Download des Sprachpakets fehlgeschlagen: {why}"
+    "message": "Download des Sprachpakets fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen"
   },
   "opt_sec_engines": {
     "message": "Engines & Schlüssel"

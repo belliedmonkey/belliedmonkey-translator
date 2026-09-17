@@ -401,7 +401,7 @@ var AppSettings = (() => {
       ttsPackBusy = false;
       if (!r.ok) {
         prog.hidden = true;
-        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why}').replace('{why}', r.why || r.reason || '');
+        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', r.why || r.reason || '');
         dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
         return;
       }
@@ -459,7 +459,7 @@ var AppSettings = (() => {
     } catch (e) {
       listenPackBusy = false;
       prog.hidden = true;
-      state.textContent = t('listen_pack_failed', '识别语言包下载失败：{why}').replace('{why}', (e && e.reason) || '');
+      state.textContent = t('listen_pack_failed', '识别语言包下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', (e && e.reason) || '');
       dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
     } finally { listenPackBusy = false; dl.disabled = false; }
   }

@@ -1939,7 +1939,7 @@
     "message": "Downloading the {lang} offline model · {pct}%"
   },
   "listen_assets_failed": {
-    "message": "Offline model download failed: {why} — tap “Start listening” again to retry, or pick a cloud live engine in Settings."
+    "message": "Offline model download failed: {why} — usually a network problem; try again later — tap “Start listening” again to retry, or pick a cloud live engine in Settings."
   },
   "listen_entry_privacy_device": {
     "message": "Speech is recognised on your device and never sent to any server; the recognised text goes to the translation engine you configured."
@@ -3032,7 +3032,7 @@
     "message": "The on-device recognizer doesn't support this language — try another"
   },
   "listen_assets_failed2": {
-    "message": "Offline model download failed: {why} — tap “Start listening” again to retry."
+    "message": "Offline model download failed: {why} — usually a network problem; try again later — tap “Start listening” again to retry."
   },
   "tts_engine_device": {
     "message": "On-device speech (offline model · App only)"
@@ -3062,7 +3062,7 @@
     "message": "Downloading offline model · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "Offline model download failed: {why}"
+    "message": "Offline model download failed: {why} — usually a network problem; try again later"
   },
   "tts_pack_no_bridge": {
     "message": "On-device read-aloud is only available in the app"
@@ -3089,7 +3089,7 @@
     "message": "Downloading recognition language pack · {lang} · {pct}%"
   },
   "listen_pack_failed": {
-    "message": "Recognition language pack download failed: {why}"
+    "message": "Recognition language pack download failed: {why} — usually a network problem; try again later"
   },
   "opt_sec_engines": {
     "message": "Engines & keys"
