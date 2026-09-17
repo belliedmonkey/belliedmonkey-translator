@@ -573,10 +573,12 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings .sec-head .mode-tabs { margin: 0; }
 #app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 #app-settings .sgroup h3 { margin: 0; color: var(--fg); }
+/* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句） */
+#app-settings #g-listen.na > :not(h3):not(#listen-pack-row) { display: none; }
 #app-adv-hint { margin: 0; }
 /* 功能块首行的「依赖」行（learn/dep-line.js）：只读、标签来自注册表 */
 .dep { display: block; font-size: .84rem; line-height: 1.5; color: var(--dim); background: var(--bg); border-radius: 12px; padding: 8px 12px; }
 .dep .dep-k { font-weight: 600; color: var(--fg); }
 .dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
 .dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
-.dep .dep-go { background: none; border: none; padding: 0; margin: 0; width: auto; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; }
+.dep .dep-go { background: none; border: none; padding: 0; margin: 0 0 0 .35em; width: auto; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; }
