@@ -21,7 +21,7 @@ READ IT, KEEP IT — Turn on learning and the sentences you actually read become
 YOUR ENGINE — Plug in your own AI service key or any compatible endpoint; once signed in, you can also try a small free credit from us.
 PRIVACY, SPELLED OUT — No account needed. Your keys and settings stay in your browser. With your own key, text goes straight to the provider you picked; with the free credit it passes through our relay and is not stored. We send anonymous usage events (which features are used, never page content), off in one switch. Multi-device sync is optional, off until you sign in. Open source.
 
-Also on iPhone, iPad and Mac: the BelliedMonkey Translator app adds Live Subtitles for anything playing on the device and a conversation interpreter.
+Also on iPhone, iPad and Mac: the BelliedMonkey Translator app adds Live Subtitles for anything playing on the device and a conversation interpreter. Both recognise speech on the device and need iOS 26 / macOS 26.
 
 Website: https://belliedmonkey.cc
 ```
@@ -38,7 +38,7 @@ Website: https://belliedmonkey.cc
 【引擎你来选】填入你自己的 AI 服务密钥，或任何兼容的自定义接口；登录后也可以先用我们提供的一小份免费额度。
 【隐私说清楚】不需要账号，密钥与设置只存在你的浏览器里。用自己的密钥时，文字直接发往你选的服务商；用免费额度时经我们的中继转发、不保存。会发送匿名用量事件（用了哪些功能，不含网页内容），一个开关即可关闭。多设备同步是可选的，登录后才开启。开源。
 
-iPhone、iPad 与 Mac 上的大肚猴翻译 App 还有「实时字幕」（给设备上正在播放的声音配双语字幕）和「对话 · 实时听译」。
+iPhone、iPad 与 Mac 上的大肚猴翻译 App 还有「实时字幕」（给设备上正在播放的声音配双语字幕）和「对话 · 实时听译」。两者都在设备上识别语音，需要 iOS 26 / macOS 26。
 
 官网：https://belliedmonkey.cc
 ```

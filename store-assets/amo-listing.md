@@ -43,7 +43,7 @@ LESEN UND BEHALTEN – Schalte das Lernen ein, und die Sätze, die du wirklich g
 DEINE ENGINE – Trage den Schlüssel deines eigenen KI-Dienstes oder einen kompatiblen Endpunkt ein; angemeldet kannst du auch ein kleines Gratis-Guthaben von uns ausprobieren.
 DATENSCHUTZ, KLAR GESAGT – Kein Konto nötig. Schlüssel und Einstellungen bleiben in deinem Browser. Mit eigenem Schlüssel geht der Text direkt an den gewählten Anbieter; mit dem Gratis-Guthaben läuft er über unser Relay und wird nicht gespeichert. Wir senden anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), mit einem Schalter abschaltbar. Die Synchronisierung über mehrere Geräte ist optional und bleibt aus, bis du dich anmeldest. Quelloffen.
 
-Auf iPhone und Mac bringt die BelliedMonkey-App außerdem Live-Untertitel für alles, was auf dem Gerät läuft, und einen Gesprächsdolmetscher.
+Auf iPhone und Mac bringt die BelliedMonkey-App außerdem Live-Untertitel für alles, was auf dem Gerät läuft, und einen Gesprächsdolmetscher. Beide erkennen Sprache auf dem Gerät und benötigen iOS 26 / macOS 26.
 
 Website: https://belliedmonkey.cc
 ```
@@ -60,7 +60,7 @@ LÉELO Y QUÉDATELO — Activa el aprendizaje y las frases que realmente lees se
 TU MOTOR — Introduce la clave de tu propio servicio de IA o un endpoint compatible; con sesión iniciada, también puedes probar un pequeño crédito gratuito nuestro.
 PRIVACIDAD, SIN RODEOS — No hace falta cuenta. Tus claves y ajustes se quedan en tu navegador. Con tu clave, el texto va directo al proveedor que elegiste; con el crédito gratuito, pasa por nuestro relé y no se guarda. Enviamos datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables con un interruptor. La sincronización entre dispositivos es opcional y está desactivada hasta que inicies sesión. Código abierto.
 
-En iPhone y Mac, la app BelliedMonkey añade subtítulos en vivo para todo lo que suena en el dispositivo y un intérprete de conversación.
+En iPhone y Mac, la app BelliedMonkey añade subtítulos en vivo para todo lo que suena en el dispositivo y un intérprete de conversación. Ambos reconocen la voz en el dispositivo y requieren iOS 26 / macOS 26.
 
 Sitio web: https://belliedmonkey.cc
 ```
@@ -77,7 +77,7 @@ LIRE ET RETENIR — Activez l'apprentissage : les phrases que vous avez vraiment
 VOTRE MOTEUR — Renseignez la clé de votre propre service d'IA ou un endpoint compatible ; une fois connecté, vous pouvez aussi essayer un petit crédit gratuit offert par nous.
 LA CONFIDENTIALITÉ, CLAIREMENT — Aucun compte nécessaire. Vos clés et réglages restent dans votre navigateur. Avec votre clé, le texte va directement au fournisseur choisi ; avec le crédit gratuit, il passe par notre relais et n'est pas conservé. Nous envoyons des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables d'un interrupteur. La synchronisation multi-appareils est facultative et reste désactivée tant que vous ne vous connectez pas. Open source.
 
-Sur iPhone et Mac, l'app BelliedMonkey ajoute des sous-titres en direct pour tout ce qui joue sur l'appareil et un interprète de conversation.
+Sur iPhone et Mac, l'app BelliedMonkey ajoute des sous-titres en direct pour tout ce qui joue sur l'appareil et un interprète de conversation. Les deux reconnaissent la parole sur l'appareil et nécessitent iOS 26 / macOS 26.
 
 Site web : https://belliedmonkey.cc
 ```
@@ -94,7 +94,7 @@ Site web : https://belliedmonkey.cc
 【エンジンは自分で】お使いの AI サービスのキー、または互換性のある任意のエンドポイントを設定できます。サインインすると、当方の少額の無料クレジットも試せます。
 【プライバシーを明確に】アカウント不要。キーと設定はブラウザーの中に保存されます。自分のキーならテキストは選んだ提供元へ直接、無料クレジットなら当方の中継を経由し、保存はしません。匿名の利用データ（使った機能のみ、ページ内容は含まず）を送信し、スイッチ一つでオフにできます。複数端末の同期は任意で、サインインするまで無効のままです。オープンソース。
 
-iPhone と Mac の BelliedMonkey アプリには、端末で再生中の音声に付くライブ字幕と会話通訳もあります。
+iPhone と Mac の BelliedMonkey アプリには、端末で再生中の音声に付くライブ字幕と会話通訳もあります。どちらも端末上で音声を認識し、iOS 26 / macOS 26 が必要です。
 
 ウェブサイト：https://belliedmonkey.cc
 ```
@@ -111,7 +111,7 @@ iPhone と Mac の BelliedMonkey アプリには、端末で再生中の音声�
 【엔진은 직접】사용 중인 AI 서비스의 키나 호환되는 엔드포인트를 넣으세요. 로그인하면 저희가 제공하는 소량의 무료 크레딧도 써 볼 수 있습니다.
 【프라이버시, 분명하게】계정이 필요 없습니다. 키와 설정은 브라우저 안에 저장됩니다. 내 키를 쓰면 텍스트는 고른 제공자에게 곧바로 가고, 무료 크레딧을 쓰면 저희 중계를 거치며 저장하지 않습니다. 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용 제외)를 보내며 스위치 하나로 끌 수 있습니다. 여러 기기 동기화는 선택 사항이며 로그인하기 전까지 꺼져 있습니다. 오픈 소스.
 
-iPhone과 Mac용 BelliedMonkey 앱에는 기기에서 재생 중인 소리에 붙는 실시간 자막과 대화 통역도 있습니다.
+iPhone과 Mac용 BelliedMonkey 앱에는 기기에서 재생 중인 소리에 붙는 실시간 자막과 대화 통역도 있습니다. 둘 다 기기에서 음성을 인식하며 iOS 26 / macOS 26이 필요합니다.
 
 웹사이트: https://belliedmonkey.cc
 ```
@@ -128,7 +128,7 @@ LEU, GUARDOU — Ative o aprendizado e as frases que você realmente leu viram c
 SEU MOTOR — Use a chave do seu próprio serviço de IA ou um endpoint compatível; com login, você também pode experimentar um pequeno crédito gratuito nosso.
 PRIVACIDADE, SEM RODEIOS — Não precisa de conta. Suas chaves e ajustes ficam no navegador. Com a sua chave, o texto vai direto para o provedor escolhido; com o crédito gratuito, passa pelo nosso relé e não é armazenado. Enviamos dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis com um botão. A sincronização entre dispositivos é opcional e fica desligada até você entrar. Código aberto.
 
-No iPhone e no Mac, o app BelliedMonkey traz também legendas ao vivo para tudo o que toca no aparelho e um intérprete de conversa.
+No iPhone e no Mac, o app BelliedMonkey traz também legendas ao vivo para tudo o que toca no aparelho e um intérprete de conversa. Os dois reconhecem a fala no aparelho e exigem iOS 26 / macOS 26.
 
 Site: https://belliedmonkey.cc
 ```
@@ -162,7 +162,7 @@ Site: https://belliedmonkey.cc
 【引擎你來選】填入你自己的 AI 服務金鑰，或任何相容的自訂端點；登入後也可以先用我們提供的一小份免費額度。
 【隱私說清楚】不需帳號，金鑰與設定只存在你的瀏覽器裡。用自己的金鑰時，文字直接送往你選的服務商；用免費額度時經我們的中繼轉送、不保存。會傳送匿名使用資料（用了哪些功能，不含網頁內容），一個開關即可關閉。跨裝置同步是選用功能，登入後才開啟。開放原始碼。
 
-iPhone 與 Mac 上的大肚猴翻譯 App 還有「即時字幕」（為裝置上正在播放的聲音配雙語字幕）與「對話 · 即時聽譯」。
+iPhone 與 Mac 上的大肚猴翻譯 App 還有「即時字幕」（為裝置上正在播放的聲音配雙語字幕）與「對話 · 即時聽譯」。兩者都在裝置上辨識語音，需要 iOS 26 / macOS 26。
 
 網站：https://belliedmonkey.cc
 ```
@@ -179,7 +179,7 @@ READ IT, KEEP IT — Turn on learning and the sentences you actually read become
 YOUR ENGINE — Plug in your own AI service key or any compatible endpoint; once signed in, you can also try a small free credit from us.
 PRIVACY, SPELLED OUT — No account needed. Your keys and settings stay in your browser. With your own key, text goes straight to the provider you picked; with the free credit it passes through our relay and is not stored. We send anonymous usage events (which features are used, never page content), off in one switch. Multi-device sync is optional, off until you sign in. Open source.
 
-On iPhone and Mac, the BelliedMonkey Translator app adds Live Subtitles for anything playing on the device and a conversation interpreter.
+On iPhone and Mac, the BelliedMonkey Translator app adds Live Subtitles for anything playing on the device and a conversation interpreter. Both recognise speech on the device and need iOS 26 / macOS 26.
 
 Website: https://belliedmonkey.cc
 ```
@@ -196,7 +196,7 @@ Website: https://belliedmonkey.cc
 【引擎你来选】填入你自己的 AI 服务密钥，或任何兼容的自定义接口；登录后也可以先用我们提供的一小份免费额度。
 【隐私说清楚】不需要账号，密钥与设置只存在你的浏览器里。用自己的密钥时，文字直接发往你选的服务商；用免费额度时经我们的中继转发、不保存。会发送匿名用量事件（用了哪些功能，不含网页内容），一个开关即可关闭。多设备同步是可选的，登录后才开启。开源。
 
-iPhone 与 Mac 上的大肚猴翻译 App 还有「实时字幕」（给设备上正在播放的声音配双语字幕）和「对话 · 实时听译」。
+iPhone 与 Mac 上的大肚猴翻译 App 还有「实时字幕」（给设备上正在播放的声音配双语字幕）和「对话 · 实时听译」。两者都在设备上识别语音，需要 iOS 26 / macOS 26。
 
 官网：https://belliedmonkey.cc
 ```
