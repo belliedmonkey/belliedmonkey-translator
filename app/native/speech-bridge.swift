@@ -62,11 +62,28 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "tts-assets": speech.download(models: body["models"])
         case "tts-speak":  if (body["backend"] as? String) == "system" { system.speak(body) } else { speech.speak(body) }
         case "tts-stop":   speech.stop(); system.stop()
+        case "url-probe":  probeUrl(id: (body["id"] as? String) ?? "", url: (body["url"] as? String) ?? "")
         default: break
         }
     }
 
     private func strings(_ v: Any?) -> [String] { (v as? [Any])?.compactMap { $0 as? String } ?? [] }
+
+    // MARK: - 地址可用性探测（learning-design §9.6.1.1）
+
+    /// Range 0-0 的 GET（有的托管不认 HEAD），5 s 超时；2xx 算可用。只回 ok / status，不下内容。
+    private func probeUrl(id: String, url: String) {
+        guard let u = URL(string: url), u.scheme == "https" else {
+            emit(["type": "url-probe", "id": id, "ok": false, "status": 0]); return
+        }
+        var req = URLRequest(url: u, timeoutInterval: 5)
+        req.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+        URLSession.shared.dataTask(with: req) { [weak self] _, resp, err in
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            let ok = err == nil && code >= 200 && code < 300
+            DispatchQueue.main.async { self?.emit(["type": "url-probe", "id": id, "ok": ok, "status": code]) }
+        }.resume()
+    }
 
     // MARK: - 转写
 

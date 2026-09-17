@@ -108,10 +108,16 @@ const FAKE_BRIDGES = `(() => {
     } else if (msg.type === 'stt-start') { fs.started++; fs.lastLocales = msg.locales; setTimeout(() => emit({ type: 'stt-state', state: 'ready' }), 0); }
     else if (msg.type === 'stt-stop') { fs.stopped++; setTimeout(() => emit({ type: 'stt-state', state: 'ended' }), 0); }
     else if (msg.type === 'tts-probe') { fs.ttsModels = msg.models; setTimeout(() => emit({ type: 'tts-state', state: fs.ttsReady ? 'ready' : 'assets', langs: fs.ttsReady ? ['zh', 'en'] : [] }), 0); }
-    else if (msg.type === 'tts-assets') { fs.ttsDownloads = (fs.ttsDownloads || 0) + 1; setTimeout(() => { emit({ type: 'assets-progress', kind: 'tts', locale: 'zh', fraction: 0.5, state: 'downloading' }); fs.ttsReady = true; emit({ type: 'tts-state', state: 'ready', langs: ['zh', 'en'] }); }, 50); }
+    else if (msg.type === 'tts-assets') { fs.ttsDownloads = (fs.ttsDownloads || 0) + 1; (fs.assetsUrls = fs.assetsUrls || []).push(msg.models.map((m) => m.files[0].url)); fs.lastAssetsSha = msg.models.map((m) => m.files[0].sha256);
+      if (fs.ttsFailNext > 0) { fs.ttsFailNext--; setTimeout(() => { emit({ type: 'assets-progress', kind: 'tts', locale: 'zh', fraction: 0, state: 'failed', reason: 'fake' }); emit({ type: 'tts-state', state: 'failed', reason: 'download', langs: [] }); }, 50); }
+      else setTimeout(() => { emit({ type: 'assets-progress', kind: 'tts', locale: 'zh', fraction: 0.5, state: 'downloading' }); fs.ttsReady = true; emit({ type: 'tts-state', state: 'ready', langs: ['zh', 'en'] }); }, 50); }
+    else if (msg.type === 'url-probe') { (fs.probed = fs.probed || []).push(msg.url); setTimeout(() => emit({ type: 'url-probe', id: msg.id, ok: fs.probeOk !== false, status: fs.probeOk !== false ? 206 : 0 }), 0); }
     else if (msg.type === 'tts-speak') { (fs.spoken = fs.spoken || []).push({ id: msg.id, text: msg.text, lang: msg.lang }); setTimeout(() => { emit({ type: 'tts-start', id: msg.id }); emit({ type: 'tts-end', id: msg.id }); }, 30); }
     else if (msg.type === 'tts-stop') { fs.ttsStops = (fs.ttsStops || 0) + 1; }
   } };
+  // §9.6.1.1：离线模型下载地址由后端表决定 —— 这里接一个假后端（默认 srv / 备用 alt），ModelSources 只吃它，不碰真 Supabase
+  window.__fakeSources = { fail: false, asked: 0, rows: [ { path: 'piper-zh.zip', url: 'https://srv.example/piper-zh.zip', url_alt: 'https://alt.example/piper-zh.zip', sha256: 'EVIL' }, { path: 'piper-en.zip', url: 'https://srv.example/piper-en.zip', url_alt: 'https://alt.example/piper-en.zip' } ] };
+  if (window.ModelSources) ModelSources.configure({ backend: { url: 'https://fake-backend.example', anonKey: 'k' }, fetch: async (u) => { __fakeSources.asked++; __fakeSources.lastUrl = u; if (__fakeSources.fail) throw new Error('net'); return { ok: true, json: async () => __fakeSources.rows }; } });
   return 'ok';
 })()`;
 
@@ -369,7 +375,7 @@ const FAKE_BRIDGES = `(() => {
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);
     // 朗读引擎下拉是启动时按「桥在不在」填的（本机条目只在桥在时出现）；假桥是页面起来之后才装的，所以重填一次
-    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; AppSettings.paintStatic(); document.getElementById('gear').click(); return 'ok'; })()`);
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSources.asked = 0; localStorage.removeItem('mt:deviceModelSources'); AppSettings.paintStatic(); document.getElementById('gear').click(); return 'ok'; })()`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S: 设置页打开');
     await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
     await sleep(200);
@@ -398,6 +404,33 @@ const FAKE_BRIDGES = `(() => {
     await evalIn(cdp, sessionId, `(document.getElementById('tts-offline-dl').click(), 'ok')`);
     const s4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, prog: document.getElementById('tts-offline-progress').hidden, test: document.getElementById('btn-tts-test').textContent, n: __fakeSpeech.ttsDownloads })`)); return /已安装/.test(r.text) ? r : null; }, 8000, 'S4: 下载后离线模型行说「已安装」');
     need(s4.dl === true && s4.prog === true && s4.test === '试听一句' && s4.n === 1, 'S4: 已安装态该收起按钮与进度条、试听按钮回「试听一句」、恰好下载一次，实际 ' + JSON.stringify(s4));
+    // S4b. 地址来源（§9.6.1.1）：没缓存 ⇒ 先问了服务器一次，原生收到的是服务器的默认地址，而 sha256 仍是清单里的；默认地址落进缓存、备用没有
+    const s4b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ asked: __fakeSources.asked, url: __fakeSources.lastUrl, urls: __fakeSpeech.assetsUrls, sha: __fakeSpeech.lastAssetsSha, cache: JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'), builtinSha: mtDeviceTtsModelsFor(window.MT_FLAVOR || 'global').map((m) => m.files[0].sha256) })`));
+    need(s4b.asked === 1 && /bt_model_sources\?select=path,url,url_alt&kind=eq\.tts&flavor=eq\./.test(s4b.url || ''), 'S4b: 没缓存该先问服务器一次（表 bt_model_sources），实际 ' + JSON.stringify({ asked: s4b.asked, url: s4b.url }));
+    need(JSON.stringify(s4b.urls[s4b.urls.length - 1]) === JSON.stringify(['https://srv.example/piper-zh.zip', 'https://srv.example/piper-en.zip']), 'S4b: 原生收到的该是服务器的默认地址，实际 ' + JSON.stringify(s4b.urls));
+    need(JSON.stringify(s4b.sha) === JSON.stringify(s4b.builtinSha), 'S4b: sha256 该仍是清单里的（服务器给的 EVIL 被忽略），实际 ' + JSON.stringify(s4b.sha));
+    need(s4b.cache && Object.values(s4b.cache)[0] && Object.values(s4b.cache)[0]['piper-zh.zip'] === 'https://srv.example/piper-zh.zip' && !JSON.stringify(s4b.cache).includes('alt.example'), 'S4b: 默认地址该落缓存、备用不落，实际 ' + JSON.stringify(s4b.cache));
+    // S4c. 有缓存 ⇒ 先探；探不通 ⇒ 重问；新默认下载失败 ⇒ 用备用；进度行中途说过「换一个重试」；最后仍「已安装」
+    await evalIn(cdp, sessionId, `(() => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSpeech.probeOk = false; __fakeSpeech.ttsFailNext = 1; __fakeSources.asked = 0; window.__sawFallback = false; for (const r of __fakeSources.rows) r.url = r.url.replace('srv.example', 'srv2.example');
+      const st = document.getElementById('tts-offline-state'); new MutationObserver(() => { if (/换一个重试/.test(st.textContent)) window.__sawFallback = true; }).observe(st, { childList: true, characterData: true, subtree: true });
+      const s = document.getElementById('tts-engine'); s.value = ''; s.dispatchEvent(new Event('change')); s.value = 'device'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `document.getElementById('tts-offline-dl').hidden === false`)) || null, 5000, 'S4c: 重新出现「下载」按钮');
+    await evalIn(cdp, sessionId, `(document.getElementById('tts-offline-dl').click(), 'ok')`);
+    const s4c = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, n: __fakeSpeech.ttsDownloads, urls: __fakeSpeech.assetsUrls, probed: __fakeSpeech.probed, asked: __fakeSources.asked, saw: window.__sawFallback })`)); return /已安装/.test(r.text) ? r : null; }, 8000, 'S4c: 换备用地址后仍到「已安装」');
+    need(s4c.probed && s4c.probed.some((u) => u.startsWith('https://srv.example/')), 'S4c: 有缓存该先探缓存的地址，实际 ' + JSON.stringify(s4c.probed));
+    need(s4c.asked === 1, 'S4c: 探不通该重新问服务器一次，实际 ' + s4c.asked);
+    need(s4c.n === 2 && JSON.stringify(s4c.urls.map((u) => u[0])) === JSON.stringify(['https://srv2.example/piper-zh.zip', 'https://alt.example/piper-zh.zip']), 'S4c: 缓存探不通 ⇒ 重问拿到新默认（srv2）先试、失败后用当次备用（alt），实际 ' + JSON.stringify(s4c.urls));
+    need(s4c.saw === true, 'S4c: 换地址时进度行该说过「地址不可用，换一个重试…」');
+    const s4cache = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'))`));
+    need(s4cache && JSON.stringify(s4cache).includes('srv2.example') && !JSON.stringify(s4cache).includes('alt.example'), 'S4c: 重问后缓存该更新成新默认（srv2），备用仍不落缓存，实际 ' + JSON.stringify(s4cache));
+    // S4d. 服务器连不上且无缓存 ⇒ 用清单内置默认值，不出失败态
+    await evalIn(cdp, sessionId, `(() => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probeOk = true; __fakeSources.fail = true; localStorage.removeItem('mt:deviceModelSources');
+      const s = document.getElementById('tts-engine'); s.value = ''; s.dispatchEvent(new Event('change')); s.value = 'device'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `document.getElementById('tts-offline-dl').hidden === false`)) || null, 5000, 'S4d: 重新出现「下载」按钮');
+    await evalIn(cdp, sessionId, `(document.getElementById('tts-offline-dl').click(), 'ok')`);
+    const s4d = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, urls: __fakeSpeech.assetsUrls, builtin: mtDeviceTtsModelsFor(window.MT_FLAVOR || 'global').map((m) => m.files[0].url) })`)); return /已安装|失败/.test(r.text) ? r : null; }, 8000, 'S4d: 服务器不可达时仍到「已安装」');
+    need(/已安装/.test(s4d.text) && JSON.stringify(s4d.urls[0]) === JSON.stringify(s4d.builtin), 'S4d: 服务器连不上该用清单内置地址且不出失败态，实际 ' + JSON.stringify(s4d));
+    await evalIn(cdp, sessionId, `(__fakeSources.fail = false, 'ok')`);
     // S5. 试听：模型已装 ⇒ 直接原生念（不再下载）
     await evalIn(cdp, sessionId, `(__fakeSpeech.spoken = [], document.getElementById('btn-tts-test').click(), 'ok')`);
     const s5 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ spoken: (__fakeSpeech.spoken || []).length, n: __fakeSpeech.ttsDownloads, note: document.getElementById('test-tts-note').textContent })`)); return r.spoken >= 1 && /播放中/.test(r.note) ? r : null; }, 8000, 'S5: 试听经原生朗读且结果行「播放中」');

@@ -3056,6 +3056,10 @@
   "tts_pack_dl": {
     "message": "下載"
   },
+  "tts_pack_fallback": {
+    "message": "位址不可用，換一個重試…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
   "tts_pack_retry": {
     "message": "重試"
   },
