@@ -50,6 +50,9 @@
     <section id="signed-out" hidden>
       <h1>大肚猴翻译</h1>
       <p class="lede" id="lede"></p>
+      <!-- 未登录也要能进设置（2026-09-17）：此前这张首页通向设置的唯一路径是对话入口灰态下的「去设置里选择 →」，
+           实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 -->
+      <p class="note" id="signed-out-actions"><button id="gear2" type="button" class="link"></button></p>
 
       <!-- A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
            #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
