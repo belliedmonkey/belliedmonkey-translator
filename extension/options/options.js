@@ -238,9 +238,33 @@ async function refreshTtsCache() {
 // Voices for the browser engine are discovered at runtime and arrive LATE — see
 // LearnTTS.loadVoices. Registry engines declare their voices, and a self-hosted one
 // declares none, so the field falls back to free text via a single "default" option.
+// 功能块首行的「依赖」行（interaction-spec「设置页信息架构」②，learn/dep-line.js）。
+// 快速档且一键卡表示得了这份配置 ⇒ 一句「由一键配置提供」；详细档逐个列。「去配置 →」切到详细并落到那个槽。
+// 只用函数声明与 DOM 状态，不碰下面那些 let（paint 在初始化早期就跑，那些 let 还在 TDZ 里）。
+let _depsCur = null;
+function paintDeps(s) {
+  if (s) _depsCur = s;
+  const cur = _depsCur;
+  if (!cur || typeof DepLine === 'undefined') return;
+  const detail = !!($('mode-detail') && $('mode-detail').getAttribute('aria-selected') === 'true');
+  const quick = !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(cur);
+  const go = (slot) => {
+    applyDetailMode(true);
+    try { chrome.storage.local.set({ optDetailMode: true }); } catch (_) {}
+    const el = $(slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'provider');
+    if (!el) return;
+    try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+    try { el.focus({ preventScroll: true }); } catch (_) {}
+  };
+  DepLine.render($('dep-review'), cur, { slots: ['tts', 'notes'], quick, t, onGo: go });
+  DepLine.render($('dep-docs'), cur, { slots: ['chat'], quick, t, onGo: go });
+}
+
 async function updateTtsUI(selectedVoice) {
-  const mode = $('tts-mode').value;
-  $('tts-config').hidden = mode === 'off';
+  // 2026-09-17 起朗读引擎块不再随「语音模式 = 关闭」整块藏起：模式是复习的偏好（在「复习」卡），
+  // 引擎是「引擎与密钥」里的一张槽卡 —— 两件事。此前那个耦合正是 quick-setup.js 注释里说的
+  // 「上面说朗读 ✓ 通了、下面语音卡只剩一个关闭下拉」那个坑。
+  $('tts-config').hidden = false;
   // **没有回落到第一个引擎。** 那个 `|| TTS_ENGINES[0]` 会让「未配置」在界面上
   // 显示成「已选 browser」—— 与 tts.js 里刚删掉的那个回落是同一个谎，只是换了个地方。
   const e = ttsEngineById($('tts-engine').value);
@@ -552,6 +576,7 @@ async function init() {
   // 就是第二份「哪几个字段」的清单，加字段时必然漏。
   mountTtsCore({ ...s, ttsEngine: s.ttsEngine || LearnTTS.DEFAULTS.engineId });
   await updateTtsUI(s.ttsVoice || '');
+  paintDeps(s);
 
   // §9.2 (2026-08-09 二) — dedicated notes engine. Option "" = follow the
   // translation engine (the default, and the pre-feature behaviour); the
@@ -1791,6 +1816,9 @@ async function init() {
       onAction: (id) => grantAction(id),
     });
     if (card) card.hidden = box.hidden;
+    // ③ 账号与数据里的只读摘要行（2026-09-17 设置页信息架构）：只在领过额度时出现，链回 ① 的额度卡
+    const sum = $('grant-summary');
+    if (sum) sum.hidden = box.hidden || !marks.grantTail;
   }
 
   async function grantAction(id) {
@@ -1871,6 +1899,7 @@ async function init() {
     const q = $('mode-quick'); const d = $('mode-detail');
     if (q) q.setAttribute('aria-selected', String(!on));
     if (d) d.setAttribute('aria-selected', String(!!on));
+    paintDeps();   // 档位一换，依赖行从「由一键配置提供」变成逐个列（或反过来）
   }
   const setDetail = (on) => {
     applyDetailMode(on);
@@ -1878,6 +1907,13 @@ async function init() {
   };
   if ($('mode-quick')) $('mode-quick').addEventListener('click', () => setDetail(false));
   if ($('mode-detail')) $('mode-detail').addEventListener('click', () => setDetail(true));
+  // 详细档顶上那一行「一键配置在「快速」里 →」：永不同屏，但路必须有（interaction-spec 第二句）
+  if ($('adv-hint-go')) $('adv-hint-go').addEventListener('click', () => { setDetail(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
+  // 账号与数据那一节里的免费额度摘要行：链回快速档的额度卡
+  if ($('grant-summary-go')) $('grant-summary-go').addEventListener('click', () => {
+    if (_quickAvailable) setDetail(false);
+    const card = $('grant-card'); if (card && !card.hidden) { try { card.scrollIntoView({ block: 'start' }); } catch (_) {} }
+  });
 
   // 这份已存的配置，一键卡表示得了吗（null = 表示不了 / 还没配过）。
   _engineChosen = !!s0.engineChosen;
@@ -1957,9 +1993,14 @@ async function init() {
     '#learn': { sec: 'learn-card', focus: () => $('learn-enabled'),
       flash: () => $('learn-enabled') && $('learn-enabled').closest('.field') },
     // 转写引擎（2026-09-11）：叠层的「先在设置里选择转写引擎」与弹窗的 no_engine 态往这里送。
-    // 此前 `#stt` 根本不存在，落在页顶让人自己找。转写字段在 learn-card 里，两档都可见，不必切档。
-    '#stt': { sec: 'learn-card', focus: () => $('stt-engine'),
+    // 2026-09-17 起它是「引擎与密钥」里的一张 .adv-only 槽卡 ⇒ 先切到详细（同 #engine）。
+    '#stt': { sec: 'stt-card', before: () => applyDetailMode(true), focus: () => $('stt-engine'),
       flash: () => $('stt-engine') && $('stt-engine').closest('.field') },
+    // 朗读引擎与复习偏好（2026-09-17 设置页信息架构）：前者 .adv-only 要切档，后者两档都在。
+    '#tts': { sec: 'tts-card', before: () => applyDetailMode(true), focus: () => $('tts-engine'),
+      flash: () => $('tts-engine') && $('tts-engine').closest('.field') },
+    '#review': { sec: 'review-card', focus: () => $('tts-mode'),
+      flash: () => $('tts-mode') && $('tts-mode').closest('.field') },
     // 2026-09-11 → 09-17 这里有过 '#quick-live'（一键卡「实时转写（可选）」那一格）。实时转写
     // 固定为设备内置后那一格不存在了，旧链接落回 #stt（下面那条）。
     // 免费额度（§8.10）。页内的停机提示、弹窗、引导页那张卡都往这里送。

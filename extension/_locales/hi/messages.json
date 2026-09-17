@@ -462,7 +462,7 @@
     "message": "स्रोत को उस टाइमस्टैम्प पर नए टैब में खोलता है — द्विभाषी उपशीर्षक वहाँ भी काम करते हैं।"
   },
   "tts_section": {
-    "message": "भाषण"
+    "message": "पढ़कर सुनाना"
   },
   "tts_section_hint": {
     "message": "समीक्षा कार्ड को सुनने का अभ्यास बनाएँ। डिफ़ॉल्ट रूप से आपके डिवाइस की अपनी आवाज़ का उपयोग करता है — कोई नेटवर्क नहीं, कोई लागत नहीं। आप इसे अपने द्वारा चलाए जाने वाले भाषण सर्वर की ओर भी इंगित कर सकते हैं।"
@@ -2922,5 +2922,56 @@
   },
   "listen_pack_failed": {
     "message": "भाषा पैक डाउनलोड विफल: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "इंजन और कुंजियाँ"
+  },
+  "opt_sec_features": {
+    "message": "सुविधाएँ"
+  },
+  "opt_sec_account": {
+    "message": "खाता और डेटा"
+  },
+  "opt_adv_hint": {
+    "message": "एक-कुंजी सेटअप “त्वरित” में है →"
+  },
+  "stt_section": {
+    "message": "पूरे क्लिप का ट्रांसक्रिप्शन"
+  },
+  "stt_section_use": {
+    "message": "बोलने का अभ्यास · पूरे ऑडियो/वीडियो का ट्रांसक्रिप्शन"
+  },
+  "review_section": {
+    "message": "रिव्यू"
+  },
+  "data_section": {
+    "message": "लर्निंग लाइब्रेरी"
+  },
+  "notes_block_title": {
+    "message": "यह वाक्य समझाएँ (वैकल्पिक)"
+  },
+  "grant_summary_claimed": {
+    "message": "मुफ़्त क्रेडिट लिया गया · प्रबंधन →"
+  },
+  "dep_label": {
+    "message": "निर्भरता"
+  },
+  "dep_unset": {
+    "message": "सेट नहीं"
+  },
+  "dep_go": {
+    "message": "सेट करें →"
+  },
+  "dep_follow": {
+    "message": "अनुवाद इंजन के अनुसार"
+  },
+  "dep_quick": {
+    "message": "एक-कुंजी सेटअप से ✓"
+  },
+  "dep_live": {
+    "message": "लाइव ट्रांसक्रिप्शन"
+  },
+  "dep_live_device": {
+    "message": "डिवाइस पर (iOS 26 / macOS 26)"
   }
 }

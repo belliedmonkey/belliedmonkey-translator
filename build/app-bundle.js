@@ -106,6 +106,7 @@ const MODULES = [
                                          // ReferenceError —— 同 engine-state.js 那次。
                                          // 依赖 LearnNotes/LearnTTS/LearnSpeech/
                                          // TranslationAPI/WireFormat，都排在它前面。
+  'extension/learn/dep-line.js',         // DepLine —— 功能块首行的「依赖」行（两宿主共用，2026-09-17）；用 EngineFields.labelOf
   'extension/learn/engine-fields.js',    // EngineFields —— 「这个引擎该露出哪几个框」的
                                          // **唯一**实现。它抽出来正是因为规则已经漂了，
                                          // 而它自己的文件头点名了 app/settings.js 的三处

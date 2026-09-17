@@ -463,7 +463,7 @@
     "message": "يفتح المصدر في تبويب جديد عند تلك اللحظة — والترجمة الثنائية تعمل هناك أيضًا."
   },
   "tts_section": {
-    "message": "النطق"
+    "message": "القراءة بصوت عالٍ"
   },
   "tts_section_hint": {
     "message": "حوّل بطاقات المراجعة إلى تدريب استماع. يستخدم صوت جهازك افتراضيًا — بلا شبكة ولا تكلفة. ويمكنك توجيهه إلى خادم نطق تشغّله بنفسك."
@@ -3090,5 +3090,56 @@
   },
   "listen_pack_failed": {
     "message": "فشل تنزيل حزمة اللغة: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "المحركات والمفاتيح"
+  },
+  "opt_sec_features": {
+    "message": "الميزات"
+  },
+  "opt_sec_account": {
+    "message": "الحساب والبيانات"
+  },
+  "opt_adv_hint": {
+    "message": "الإعداد بمفتاح واحد تحت «سريع» →"
+  },
+  "stt_section": {
+    "message": "تفريغ المقطع كاملًا"
+  },
+  "stt_section_use": {
+    "message": "تمرين النطق · تفريغ مقطع صوتي/مرئي كامل"
+  },
+  "review_section": {
+    "message": "المراجعة"
+  },
+  "data_section": {
+    "message": "مكتبة التعلّم"
+  },
+  "notes_block_title": {
+    "message": "شرح هذه الجملة (اختياري)"
+  },
+  "grant_summary_claimed": {
+    "message": "تم استلام الرصيد المجاني · إدارة →"
+  },
+  "dep_label": {
+    "message": "يعتمد على"
+  },
+  "dep_unset": {
+    "message": "غير مُعدّ"
+  },
+  "dep_go": {
+    "message": "إعداد →"
+  },
+  "dep_follow": {
+    "message": "يتبع محرك الترجمة"
+  },
+  "dep_quick": {
+    "message": "يوفّره الإعداد بمفتاح واحد ✓"
+  },
+  "dep_live": {
+    "message": "التفريغ المباشر"
+  },
+  "dep_live_device": {
+    "message": "مدمج في الجهاز (iOS 26 / macOS 26)"
   }
 }

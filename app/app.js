@@ -971,6 +971,10 @@
     if (!anchorId) return;
     const el = $(anchorId);
     if (!el) return;
+    // 落点在「引擎与密钥」的某一档里 ⇒ 先切到那一档（2026-09-17 设置页信息架构：档位只管第一节，
+    // 但那一节里的东西在另一档下是 hidden 的，滚过去只会落到一片看不见的东西上）。
+    if (el.closest('.adv-only')) await AppSettings.setDetail(true);
+    else if (el.closest('.quick-only')) await AppSettings.setDetail(false);
     // paint 之后再滚：paint 会增删 .adv-only 的 hidden，滚在它之前会落到旧布局上。
     try { el.scrollIntoView({ block: 'center' }); } catch (_) { el.scrollIntoView(); }
     el.classList.add('anchor-flash');

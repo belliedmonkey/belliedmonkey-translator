@@ -158,7 +158,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'feedback-title','feedback-mail','feedback-rate','feedback-note',
           // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
           'telemetry-block','telemetry-on','telemetry-note',
-          'clean-known','settings-signout','delete-account','gear']
+          'clean-known','settings-signout','delete-account','gear',
+          // 2026-09-17 设置页信息架构：四节节头、依赖行、视频的语言、离线模型行、识别语言包行
+          'sec-engines','sec-features','sec-account','sec-about','dep-review','dep-drive','dep-listen','dep-docs',
+          'subtitle-video-lang','tts-offline-row','listen-pack-row','app-adv-hint-go']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus
         // every chat-capable registry entry, and never the google translation
@@ -797,6 +800,33 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       + '（含哨兵项）');
     need(o.sttEngineCount === o.sttEngineWant && o.sttEngineWant > 1,
       '转写引擎选择器与注册表不同步：' + o.sttEngineCount + ' 项，应为 ' + o.sttEngineWant);
+
+    // ─── 档位只管「引擎与密钥」一节（2026-09-17 设置页信息架构；interaction-spec）────────
+    // ②③④ 三节与档位无关、永远可见；.adv-only / .quick-only 只许出现在第一节里；四个功能块首行有「依赖」行。
+    {
+      const r = await cdp.send('Runtime.evaluate', { expression: `(async () => {
+        const vis = (el) => !!(el && el.offsetParent !== null); const $ = (id) => document.getElementById(id);
+        $('gear').click(); await new Promise((r) => setTimeout(r, 120));
+        $('mode-quick').click(); await new Promise((r) => setTimeout(r, 80));
+        const pick = () => ({ ttsMode: vis($('tts-mode')), daily: vis($('daily')), listenLang: vis($('listen-my-lang')), videoLang: vis($('subtitle-video-lang')), counts: vis($('settings-counts')),
+          ttsEngine: vis($('tts-engine')), sttEngine: vis($('stt-engine')), card: vis($('quick-setup-card')), hint: vis($('app-adv-hint-go')) });
+        const quick = Object.assign(pick(), {
+          advOutside: [...document.querySelectorAll('#app-settings .adv-only')].filter((e) => !e.closest('#sec-engines')).length,
+          quickOutside: [...document.querySelectorAll('#app-settings .quick-only')].filter((e) => !e.closest('#sec-engines')).length,
+          deps: ['dep-review', 'dep-drive', 'dep-listen', 'dep-docs'].map((id) => ($(id) || {}).textContent || '') });
+        $('mode-detail').click(); await new Promise((r) => setTimeout(r, 80));
+        const detail = pick();
+        $('mode-quick').click(); $('settings-back').click(); await new Promise((r) => setTimeout(r, 120));   // 收尾：别把设置页留给下面的首页扫描
+        return JSON.stringify({ quick, detail });
+      })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      if (r.exceptionDetails) throw new Error('档位作用域断言失败: ' + ((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text));
+      const m = JSON.parse(r.result.value);
+      need(m.quick.ttsMode && m.quick.daily && m.quick.listenLang && m.quick.videoLang && m.quick.counts, '快速档里②③节的控件该可见（语音模式 / 每日新卡 / 对话语言 / 视频语言 / 学习库计数），实际 ' + JSON.stringify(m.quick));
+      need(!m.quick.ttsEngine && !m.quick.sttEngine && m.quick.card && !m.quick.hint, '快速档不该露引擎下拉与「一键配置在快速里」、该有一键卡，实际 ' + JSON.stringify(m.quick));
+      need(m.quick.advOutside === 0 && m.quick.quickOutside === 0, '.adv-only / .quick-only 只许出现在「引擎与密钥」一节里，实际 adv ' + m.quick.advOutside + ' / quick ' + m.quick.quickOutside);
+      need(m.detail.ttsMode && m.detail.daily && m.detail.listenLang && m.detail.counts && m.detail.ttsEngine && m.detail.sttEngine && !m.detail.card && m.detail.hint, '详细档里②③节照旧可见、引擎下拉出来、一键卡收起、顶上有「一键配置在快速里」，实际 ' + JSON.stringify(m.detail));
+      need(m.quick.deps.every((x) => /依赖|Needs/.test(x)), '四个功能块首行都该有「依赖」行，实际 ' + JSON.stringify(m.quick.deps));
+    }
 
     // ─── 深浅两色的表面扫描（scripts/lib/sweep.js）：首页、设置页、复习视图 ────────
     // 每段看得见的文字 ≥ 4.5:1。2026-09-06 之前所有门禁只跑浅色、只判「前景 ≠ 背景」。

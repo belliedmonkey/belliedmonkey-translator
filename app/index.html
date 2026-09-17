@@ -439,21 +439,21 @@
       <button id="settings-back" type="button" class="link"></button>
       <h2 id="settings-title"></h2>
 
-      <!-- 「快速 | 详细」两档 —— 与扩展设置页同一套类名契约（.adv-only / .quick-only）
-           和同一条不变量：一键配置卡与逐引擎控件**永不同屏**（interaction-spec）。
-           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护，
-           从 DOM 里拿掉一张卡会让每次保存静默失败。 -->
-      <div class="mode-tabs" id="mode-tabs" role="tablist">
-        <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
-        <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
-      </div>
+      <!-- 2026-09-17 设置页信息架构（interaction-spec「设置页信息架构」，画布 design/settings-ia）：四节按用途 ——
+           ① 引擎与密钥 ② 功能 ③ 账号与数据 ④ 关于。控件只搬不改 id；「快速 / 详细」只管第一节。
+           与扩展设置页同一套类名契约（.adv-only / .quick-only）和同一条不变量：一键配置卡与逐引擎控件**永不同屏**。
+           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护。 -->
+      <div class="sec" id="sec-engines">
+        <div class="sec-head">
+          <div class="sec-title"><span class="sec-n">1</span><h3 id="sec-engines-title"></h3></div>
+          <div class="mode-tabs" id="mode-tabs" role="tablist">
+            <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
+            <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+          </div>
+        </div>
 
-      <!-- 一把 key 配好全部（QuickSetup）。与扩展设置页、扩展引导第 2 屏是**同一个
-           组件**。它算出 patch 交给 host 写盘，本页的 applyQuickSetup() 负责落地。
-           它 plan() 出来的 chat 三键正是 provider / apiKey / apiBaseUrl / apiModel
-           —— 与 App 这一档用的键完全对齐，零适配。 -->
-      <!-- 免费额度（§8.10）。与一键卡并排在同一个 tab 里（裁定 D2：登录不是墙）。
-           MT_GRANT 为 null 时整块不出 —— 中国版恒是这样，全球版在开关翻之前也是。 -->
+      <!-- 一把 key 配好全部（QuickSetup）：与扩展设置页、扩展引导第 2 屏是**同一个组件**；它算出 patch 交给 host 写盘。 -->
+      <!-- 免费额度（§8.10）。与一键卡并排在同一个 tab 里（裁定 D2：登录不是墙）。MT_GRANT 为 null 时整块不出。 -->
       <section class="quick-only" id="grant-card" hidden>
         <div id="grant-box"></div>
       </section>
@@ -463,96 +463,11 @@
         <div id="quick-setup"></div>
       </section>
 
-      <!-- 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项 —— 两边存储不通，
-           但**选项集合必须一致**，由 test/engine-fields.test.js 的门禁钉在 _locales/ 上。
-           在 App 里它不只是「界面文字」：driving.js 拿它当用户的母语，决定句子解析用
-           哪种语言生成、用哪个语音朗读，**播客模式入口还按它有没有语音做门控** ——
-           在没有这个控件之前，系统语言不是母语的人会拿到一个默认消失的入口。 -->
-      <label class="field">
-        <span id="ui-lang-label"></span>
-        <select id="ui-lang">
-          <option value="auto" id="ui-lang-auto"></option>
-          <option value="zh_CN">简体中文</option>
-          <option value="zh_TW">繁體中文</option>
-          <option value="en">English</option>
-          <option value="ja">日本語</option>
-          <option value="ko">한국어</option>
-          <option value="fr">Français</option>
-          <option value="de">Deutsch</option>
-          <option value="es">Español</option>
-          <option value="hi">हिन्दी</option>
-          <option value="ar">العربية</option>
-          <option value="pt_BR">Português</option>
-          <option value="ru">Русский</option>
-        </select>
-      </label>
+      <!-- 永不同屏，但路必须有：详细档顶上一行指回快速档 -->
+      <p class="note adv-only" id="app-adv-hint"><button type="button" class="link" id="app-adv-hint-go"></button></p>
 
-      <label class="field">
-        <span id="daily-label"></span>
-        <input id="daily" type="number" min="1" max="200" step="1" inputmode="numeric">
-      </label>
-
-      <label class="field" id="app-tts-section">
-        <span id="tts-mode-label"></span>
-        <select id="tts-mode">
-          <option value="off" id="tts-mode-off"></option>
-          <option value="assist" id="tts-mode-assist"></option>
-          <option value="audio-first" id="tts-mode-audio-first"></option>
-        </select>
-      </label>
-
-      <label class="check">
-        <input id="tts-auto" type="checkbox">
-        <span id="tts-auto-label"></span>
-      </label>
-
-      <label class="field adv-only">
-        <span id="tts-engine-label"></span>
-        <select id="tts-engine"></select>
-      </label>
-      <label class="field adv-only" id="tts-key-field">
-        <span id="tts-key-label"></span>
-        <input id="tts-api-key" type="password" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-      <label class="field adv-only" id="tts-base-field">
-        <span id="tts-base-label"></span>
-        <input id="tts-base-url" type="url" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-      <label class="field adv-only" id="tts-model-field">
-        <span id="tts-model-label"></span>
-        <input id="tts-model" type="text" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-
-      <label class="field">
-        <span id="tts-voice-label"></span>
-        <select id="tts-voice"></select>
-      </label>
-
-      <!-- 离线模型行（learning-design §9.1.1，2026-09-17）：只在选了「设备内置朗读」时出现。此前模型只在
-           对话开始那一步下载，设置里选了、试听了都静默回落系统语音 —— 用户「没感受到下载」。
-           五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。 -->
-      <div class="field adv-only" id="tts-offline-row" hidden>
-        <span id="tts-offline-label"></span>
-        <p class="note" id="tts-offline-state" role="status" aria-live="polite"></p>
-        <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
-        <button id="tts-offline-dl" type="button" class="secondary"></button>
-      </div>
-
-      <label class="field">
-        <span id="tts-rate-label"></span>
-        <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1">
-        <output id="tts-rate-out"></output>
-      </label>
-
-      <label class="field adv-only">
-        <button id="btn-tts-test" type="button"></button>
-      </label>
-      <p class="note" id="test-tts-note"></p>
-      <p class="note" id="tts-note"></p>
-
+      <!-- App 没有翻译引擎的逐项控件（只有一键卡），所以详细档是三张槽卡：句子解析 / 整段转写 / 朗读 -->
+      <div class="sgroup adv-only" id="g-notes">
       <h3 id="notes-title"></h3>
       <label class="field adv-only">
         <span id="notes-provider-label"></span>
@@ -578,20 +493,182 @@
       </label>
       <p class="note" id="test-notes-note"></p>
       <p class="note" id="notes-note"></p>
+      </div>
 
-      <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的端点，
-           识别后即弃；不配置则说题不存在。设备本地凭证（§7.2），永不同步。 -->
-      <!-- 播客模式（learning-design §9.5）。播放顺序是播放器里的按钮；这里只放
-           **要花钱**的那个开关，因为它需要一句解释，而解释属于设置页。 -->
+      <!-- 整段转写（learning-design §9.4）：「说」题的录音只发到这里配置的端点，识别后即弃；设备本地凭证（§7.2）。
+           实时转写不在这里 —— 它固定为设备内置，不是引擎（2026-09-17）。 -->
+      <div class="sgroup adv-only" id="g-stt">
+      <h3 id="stt-title"></h3>
+      <label class="field adv-only">
+        <span id="stt-engine-label"></span>
+        <select id="stt-engine"></select>
+      </label>
+      <label class="field adv-only" id="stt-key-field">
+        <span id="stt-key-label"></span>
+        <input id="stt-api-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="stt-base-field">
+        <span id="stt-base-label"></span>
+        <input id="stt-base-url" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="stt-model-field">
+        <span id="stt-model-label"></span>
+        <input id="stt-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only">
+        <button id="btn-test-stt" type="button"></button>
+      </label>
+      <p class="note" id="test-stt-note"></p>
+      <p class="note" id="stt-note"></p>
+      </div>
+
+      <div class="sgroup adv-only" id="g-tts">
+      <h3 id="tts-title"></h3>
+      <label class="field adv-only">
+        <span id="tts-engine-label"></span>
+        <select id="tts-engine"></select>
+      </label>
+      <label class="field adv-only" id="tts-key-field">
+        <span id="tts-key-label"></span>
+        <input id="tts-api-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="tts-base-field">
+        <span id="tts-base-label"></span>
+        <input id="tts-base-url" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="tts-model-field">
+        <span id="tts-model-label"></span>
+        <input id="tts-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field">
+        <span id="tts-voice-label"></span>
+        <select id="tts-voice"></select>
+      </label>
+      <!-- 离线模型行（learning-design §9.1.1，2026-09-17）：只在选了「设备内置朗读」时出现。此前模型只在
+           对话开始那一步下载，设置里选了、试听了都静默回落系统语音 —— 用户「没感受到下载」。
+           五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。 -->
+      <div class="field adv-only" id="tts-offline-row" hidden>
+        <span id="tts-offline-label"></span>
+        <p class="note" id="tts-offline-state" role="status" aria-live="polite"></p>
+        <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
+        <button id="tts-offline-dl" type="button" class="secondary"></button>
+      </div>
+      <label class="field adv-only">
+        <button id="btn-tts-test" type="button"></button>
+      </label>
+      <p class="note" id="test-tts-note"></p>
+      <p class="note" id="tts-note"></p>
+      </div>
+      </div>
+
+      <div class="sec" id="sec-features">
+        <div class="sec-head">
+          <div class="sec-title"><span class="sec-n">2</span><h3 id="sec-features-title"></h3></div>
+        </div>
+
+      <!-- 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项；在 App 里它还是 driving.js 眼里用户的母语。 -->
+      <label class="field">
+        <span id="ui-lang-label"></span>
+        <select id="ui-lang">
+          <option value="auto" id="ui-lang-auto"></option>
+          <option value="zh_CN">简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ar">العربية</option>
+          <option value="pt_BR">Português</option>
+          <option value="ru">Русский</option>
+        </select>
+      </label>
+
+      <!-- 复习：怎么听、每天多少张。语音模式 / 自动朗读 / 语速此前混在「语音」组里，与引擎字段同屏。 -->
+      <div class="sgroup" id="g-review">
+      <h3 id="app-review-title"></h3>
+      <div class="dep" id="dep-review"></div>
+      <label class="field" id="app-tts-section">
+        <span id="tts-mode-label"></span>
+        <select id="tts-mode">
+          <option value="off" id="tts-mode-off"></option>
+          <option value="assist" id="tts-mode-assist"></option>
+          <option value="audio-first" id="tts-mode-audio-first"></option>
+        </select>
+      </label>
+      <label class="check">
+        <input id="tts-auto" type="checkbox">
+        <span id="tts-auto-label"></span>
+      </label>
+      <label class="field">
+        <span id="tts-rate-label"></span>
+        <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1">
+        <output id="tts-rate-out"></output>
+      </label>
+      <label class="field">
+        <span id="daily-label"></span>
+        <input id="daily" type="number" min="1" max="200" step="1" inputmode="numeric">
+      </label>
+      </div>
+
+      <div class="sgroup" id="g-capture">
+      <!-- 来源治理（interaction-spec）：规则随账号同步（§8.9），在手机上改是
+           自然场景。App 自身不采集 —— 这里改的是浏览器扩展那头的采集行为。 -->
+      <h3 id="app-langs-title"></h3>
+      <div id="app-langs"></div>
+      <p class="note" id="app-langs-note"></p>
+
+      <h3 id="app-sources-title"></h3>
+      <div id="app-sources"></div>
+      </div>
+
+      <!-- 播客模式（learning-design §9.5）。这里只放**要花钱**的那个开关与出发前预载。 -->
+      <div class="sgroup" id="g-drive">
       <h3 id="drive-title"></h3>
+      <div class="dep" id="dep-drive"></div>
       <label class="check">
         <input id="drive-play-notes" type="checkbox">
         <span id="drive-play-notes-label"></span>
       </label>
       <p class="note" id="drive-play-notes-note"></p>
-      <!-- 对话 · 实时听译（§9.6）：定稿句对进复习作为来源「对话」，默认开；下面一句是
-           §10 Gate E 的披露 —— 说在配置的那个点上。 -->
+      <!-- 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
+           这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
+           可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 -->
+      <label class="field">
+        <span id="drive-preload-days-label"></span>
+        <select id="drive-preload-days">
+          <option value="0" id="drive-preload-days-0"></option>
+          <option value="3" id="drive-preload-days-3"></option>
+          <option value="7" id="drive-preload-days-7"></option>
+        </select>
+      </label>
+      <!-- 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
+           那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
+           里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
+           这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 -->
+      <button id="btn-drive-preload" type="button" class="secondary"></button>
+      <p class="note" id="drive-preload-note" role="status" aria-live="polite"></p>
+      <p class="note" id="drive-preload-hint"></p>
+      <p class="note" id="drive-audio-cache"></p>
+      <button id="btn-drive-clear-audio" type="button" class="danger"></button>
+      <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
+           但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
+           系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->
+      <p class="note" id="drive-awake-note"></p>
+      </div>
+
+      <!-- 对话 · 实时听译 与 实时字幕（§9.6 / §9.8）：实时转写固定为设备内置 —— 依赖行说它在不在，语言包行说包在不在。 -->
+      <div class="sgroup" id="g-listen">
       <h3 id="listen-title"></h3>
+      <div class="dep" id="dep-listen"></div>
       <label class="check">
         <input id="listen-capture" type="checkbox">
         <span id="listen-capture-label"></span>
@@ -620,14 +697,22 @@
         <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
         <button id="listen-pack-dl" type="button" class="secondary"></button>
       </div>
+      <!-- 实时字幕「视频的语言」（§9.8 协议补充决定 6）进设置页（2026-09-17）：与准备页那处是「两处一份设置」。 -->
+      <label class="field">
+        <span id="subtitle-video-lang-label"></span>
+        <select id="subtitle-video-lang"></select>
+      </label>
       <label class="check">
         <input id="listen-autospeak" type="checkbox">
         <span id="listen-autospeak-label"></span>
       </label>
       <p class="note" id="listen-autospeak-note"></p>
-      <!-- 文档翻译（§9.7）：译文进复习作为来源「文档」，默认开；下面一句是 §10 Gate G 的披露 ——
-           说在配置的那个点上。预取下一页默认关（只解析不翻译；开了也只多翻一页）。 -->
+      </div>
+
+      <!-- 文档翻译（§9.7） -->
+      <div class="sgroup" id="g-docs">
       <h3 id="docs-title"></h3>
+      <div class="dep" id="dep-docs"></div>
       <label class="check">
         <input id="doc-capture" type="checkbox">
         <span id="doc-capture-label"></span>
@@ -637,90 +722,14 @@
         <input id="doc-prefetch" type="checkbox">
         <span id="doc-prefetch-label"></span>
       </label>
-      <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
-           但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
-           系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->
-      <p class="note" id="drive-awake-note"></p>
-
-      <!-- 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
-           这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
-           可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 -->
-      <label class="field">
-        <span id="drive-preload-days-label"></span>
-        <select id="drive-preload-days">
-          <option value="0" id="drive-preload-days-0"></option>
-          <option value="3" id="drive-preload-days-3"></option>
-          <option value="7" id="drive-preload-days-7"></option>
-        </select>
-      </label>
-      <!-- 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
-           那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
-           里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
-           这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 -->
-      <button id="btn-drive-preload" type="button" class="secondary"></button>
-      <p class="note" id="drive-preload-note" role="status" aria-live="polite"></p>
-      <p class="note" id="drive-preload-hint"></p>
-      <p class="note" id="drive-audio-cache"></p>
-      <button id="btn-drive-clear-audio" type="button" class="danger"></button>
-
-      <h3 id="stt-title"></h3>
-      <label class="field adv-only">
-        <span id="stt-engine-label"></span>
-        <select id="stt-engine"></select>
-      </label>
-      <label class="field adv-only" id="stt-key-field">
-        <span id="stt-key-label"></span>
-        <input id="stt-api-key" type="password" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-      <label class="field adv-only" id="stt-base-field">
-        <span id="stt-base-label"></span>
-        <input id="stt-base-url" type="url" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-      <label class="field adv-only" id="stt-model-field">
-        <span id="stt-model-label"></span>
-        <input id="stt-model" type="text" autocomplete="off" autocapitalize="none"
-               autocorrect="off" spellcheck="false">
-      </label>
-      <label class="field adv-only">
-        <button id="btn-test-stt" type="button"></button>
-      </label>
-      <p class="note" id="test-stt-note"></p>
-      <p class="note" id="stt-note"></p>
-
-      <!-- 来源治理（interaction-spec）：规则随账号同步（§8.9），在手机上改是
-           自然场景。App 自身不采集 —— 这里改的是浏览器扩展那头的采集行为。 -->
-      <h3 id="app-langs-title"></h3>
-      <div id="app-langs"></div>
-      <p class="note" id="app-langs-note"></p>
-
-      <h3 id="app-sources-title"></h3>
-      <div id="app-sources"></div>
-
-      <h3 id="corpus-title"></h3>
-      <div class="counts" id="settings-counts"></div>
-      <button id="split-long" type="button" class="secondary"></button>
-      <button id="clean-known" type="button" class="secondary"></button>
-      <!-- 本机卫生，不是同步功能：一台设备换过账号之后，唯一的出路不该是删应用
-           重装。刻意**不受** MT_BACKEND.enabled 门控 —— 先例是扩展设置页的同一个
-           按钮就在同步块之外，所以中国版扩展照样有它。 -->
-      <button id="clear-learn" type="button" class="secondary danger"></button>
-
-      <!-- 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
-           打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 -->
-      <h3 id="feedback-title"></h3>
-      <button id="feedback-mail" type="button" class="secondary"></button>
-      <button id="feedback-rate" type="button" class="secondary"></button>
-      <p class="note" id="feedback-note"></p>
-
-      <!-- 匿名用量事件的开关（docs/telemetry-design.md §5）。中国版 MT_TELEMETRY 为 null，整块藏掉。 -->
-      <div id="telemetry-block" hidden>
-        <h3 id="telemetry-title"></h3>
-        <label class="row-toggle"><span id="telemetry-label"></span><input type="checkbox" id="telemetry-on"></label>
-        <p class="note" id="telemetry-note"></p>
+      </div>
       </div>
 
+      <div class="sec" id="sec-account">
+        <div class="sec-head">
+          <div class="sec-title"><span class="sec-n">3</span><h3 id="sec-account-title"></h3></div>
+        </div>
+      <div class="sgroup" id="g-account">
       <h3 id="account-title"></h3>
       <p class="note" id="account-who"></p>
       <button id="settings-signout" type="button" class="secondary"></button>
@@ -729,6 +738,38 @@
            ship. Destructive, so it confirms and says exactly what goes. -->
       <button id="delete-account" type="button" class="danger"></button>
       <p class="note" id="delete-note"></p>
+      </div>
+      <div class="sgroup" id="g-corpus">
+      <h3 id="corpus-title"></h3>
+      <div class="counts" id="settings-counts"></div>
+      <button id="split-long" type="button" class="secondary"></button>
+      <button id="clean-known" type="button" class="secondary"></button>
+      <!-- 本机卫生，不是同步功能：一台设备换过账号之后，唯一的出路不该是删应用
+           重装。刻意**不受** MT_BACKEND.enabled 门控 —— 先例是扩展设置页的同一个
+           按钮就在同步块之外，所以中国版扩展照样有它。 -->
+      <button id="clear-learn" type="button" class="secondary danger"></button>
+      </div>
+      </div>
+
+      <div class="sec" id="sec-about">
+        <div class="sec-head">
+          <div class="sec-title"><span class="sec-n">4</span><h3 id="sec-about-title"></h3></div>
+        </div>
+      <div class="sgroup" id="g-feedback">
+      <!-- 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
+           打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 -->
+      <h3 id="feedback-title"></h3>
+      <button id="feedback-mail" type="button" class="secondary"></button>
+      <button id="feedback-rate" type="button" class="secondary"></button>
+      <p class="note" id="feedback-note"></p>
+      </div>
+      <!-- 匿名用量事件的开关（docs/telemetry-design.md §5）。中国版 MT_TELEMETRY 为 null，整块藏掉。 -->
+      <div id="telemetry-block" hidden>
+        <h3 id="telemetry-title"></h3>
+        <label class="row-toggle"><span id="telemetry-label"></span><input type="checkbox" id="telemetry-on"></label>
+        <p class="note" id="telemetry-note"></p>
+      </div>
+      </div>
     </section>
 
     <!-- The review surface, lifted from extension/learn/review.html at build time

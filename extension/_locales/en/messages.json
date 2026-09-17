@@ -463,7 +463,7 @@
     "message": "Opens the source in a new tab at that timestamp — bilingual subtitles work there too."
   },
   "tts_section": {
-    "message": "Speech"
+    "message": "Read-aloud"
   },
   "tts_section_hint": {
     "message": "Turn review cards into listening practice. Uses your device's own voice by default — no network, no cost. You can also point it at a speech server you run yourself."
@@ -3090,5 +3090,56 @@
   },
   "listen_pack_failed": {
     "message": "Recognition language pack download failed: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "Engines & keys"
+  },
+  "opt_sec_features": {
+    "message": "Features"
+  },
+  "opt_sec_account": {
+    "message": "Account & data"
+  },
+  "opt_adv_hint": {
+    "message": "One-key setup is under “Quick” →"
+  },
+  "stt_section": {
+    "message": "Whole-clip transcription"
+  },
+  "stt_section_use": {
+    "message": "Speaking practice · transcribe a whole audio/video clip"
+  },
+  "review_section": {
+    "message": "Review"
+  },
+  "data_section": {
+    "message": "Learning library"
+  },
+  "notes_block_title": {
+    "message": "Explain this sentence (optional)"
+  },
+  "grant_summary_claimed": {
+    "message": "Free credit claimed · manage →"
+  },
+  "dep_label": {
+    "message": "Needs"
+  },
+  "dep_unset": {
+    "message": "not set up"
+  },
+  "dep_go": {
+    "message": "Set up →"
+  },
+  "dep_follow": {
+    "message": "follows the translation engine"
+  },
+  "dep_quick": {
+    "message": "provided by one-key setup ✓"
+  },
+  "dep_live": {
+    "message": "Live transcription"
+  },
+  "dep_live_device": {
+    "message": "on-device (iOS 26 / macOS 26)"
   }
 }

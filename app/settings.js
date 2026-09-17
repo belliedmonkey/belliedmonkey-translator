@@ -58,6 +58,7 @@ var AppSettings = (() => {
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
   const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang',
+    'subtitleVideoLang',   // 实时字幕「视频的语言」进设置页（2026-09-17，§9.8）；与准备页那处是两处一份设置
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
     'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
@@ -158,6 +159,16 @@ var AppSettings = (() => {
     if ($('subtitle-capture-label')) $('subtitle-capture-label').textContent = t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）');
     $('listen-my-lang-label').textContent = t('listen_my_lang_label', '我的语言');
     $('listen-other-lang-label').textContent = t('listen_other_lang_label', '对方的语言');
+    $('subtitle-video-lang-label').textContent = t('subtitle_video_lang_label', '视频的语言');
+    fillLangs($('subtitle-video-lang'));
+    // 四节节头与详细档顶上那一行（2026-09-17 设置页信息架构）
+    $('sec-engines-title').textContent = t('opt_sec_engines', '引擎与密钥');
+    $('sec-features-title').textContent = t('opt_sec_features', '功能');
+    $('sec-account-title').textContent = t('opt_sec_account', '账号与数据');
+    $('sec-about-title').textContent = t('options_about_section', '关于');
+    $('app-adv-hint-go').textContent = t('opt_adv_hint', '一键配置在「快速」里 →');
+    $('tts-title').textContent = t('tts_section', '朗读');
+    $('app-review-title').textContent = t('review_section', '复习');
     $('listen-lang-note').textContent = t('listen_lang_note',
       '两边不能是同一种语言。对话页底部也能改，两处是同一份设置。');
     $('listen-autospeak-label').textContent = t('listen_autospeak_label', '自动朗读译文');
@@ -597,9 +608,12 @@ var AppSettings = (() => {
     // 语言下拉在每次进设置页时重填：本机识别器支持的语种清单是探过桥才有的（paintStatic 时还没有）
     fillLangs($('listen-my-lang'));
     fillLangs($('listen-other-lang'));
+    fillLangs($('subtitle-video-lang'));
     $('listen-my-lang').value = myLangOf(cur);
     $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
+    $('subtitle-video-lang').value = ListenCore.baseCode(cur.subtitleVideoLang) || 'en';
     paintListenPack();
+    paintDeps(cur);
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
     $('doc-capture').checked = cur.docCapture !== false;
     $('doc-prefetch').checked = !!cur.docPrefetch;
@@ -675,6 +689,33 @@ var AppSettings = (() => {
     }
     $('mode-quick').setAttribute('aria-selected', String(!on));
     $('mode-detail').setAttribute('aria-selected', String(!!on));
+    paintDeps();   // 快速档只说「由一键配置提供」，详细档逐个列 —— 档位一换要重画
+  }
+
+  // ── 功能块首行的「依赖」行（interaction-spec「设置页信息架构」②）──────────
+  // 判据与标签都来自既有的地方（learn/dep-line.js 只是把它们摆到功能块首行）；
+  // 实时转写不是引擎，它的结论来自 NativeSpeech.probe。「去配置 →」切到详细档并落到那个槽的下拉上；
+  // 翻译在 App 里没有逐项控件，落到快速档的一键卡。
+  let _depsCur = null;
+  function paintDeps(cur) {
+    if (cur) _depsCur = cur;
+    const s = _depsCur || {};
+    if (typeof DepLine === 'undefined') return;
+    const detail = $('mode-detail').getAttribute('aria-selected') === 'true';
+    const quick = !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(s);
+    const live = (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) ? NativeSpeech.probeResult() : { ok: false, reason: 'os' };
+    const go = (slot) => {
+      const id = slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'quick-setup-card';
+      setDetail(slot !== 'chat');
+      const el = $(id); if (!el) return;
+      try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+      if (slot !== 'chat') { try { el.focus({ preventScroll: true }); } catch (_) {} }
+    };
+    const o = (slots) => ({ slots, quick, live, t, onGo: go });
+    DepLine.render($('dep-review'), s, o(['tts', 'notes']));
+    DepLine.render($('dep-drive'), s, o(['tts', 'notes']));
+    DepLine.render($('dep-listen'), s, o(['live', 'chat', 'tts']));
+    DepLine.render($('dep-docs'), s, o(['chat']));
   }
 
   async function setDetail(on) {
@@ -823,6 +864,8 @@ var AppSettings = (() => {
     _grantHooks = { say, openExternal: opts.openExternal, onSignIn: opts.onSignIn };
     $('mode-quick').addEventListener('click', () => setDetail(false));
     $('mode-detail').addEventListener('click', () => setDetail(true));
+    $('app-adv-hint-go').addEventListener('click', () => { setDetail(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
+    $('subtitle-video-lang').addEventListener('change', () => { set({ subtitleVideoLang: $('subtitle-video-lang').value }); });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
     // keep consistent here, and a Save button is one more thing to forget to press.
@@ -1224,5 +1267,5 @@ var AppSettings = (() => {
     });
   }
 
-  return { KEYS, ensureDefaults, paintStatic, paint, wire };
+  return { KEYS, ensureDefaults, paintStatic, paint, wire, setDetail };
 })();
