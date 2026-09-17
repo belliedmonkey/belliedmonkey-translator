@@ -422,6 +422,8 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 28 | `device` (STT) | global + china | `device-transcribe`（**无 HTTP**；`defaultEndpoint: null`，iOS 26 / macOS 26 `SpeechAnalyzer` + `SpeechTranscriber`） | —（系统能力 / 离线模型：zh_CN / zh_TW 与 9 个英语变体预装，其它 locale 首次用时由系统下载，进度可读） | ✅ 2026-09-12 尖刺（`.local/spike/READINGS.md`，harness `scripts/spike/device-asr.swift` + `.local/spike/SpikeApp`；**iPhone 14 Pro · iOS 27.0** 与 Mac M2 Pro · macOS 26.5）：zh 有声书 CER 13.1% 原始 → **5.4%** 远程修正后（云端 OpenAI 3.9% / 千问 5.2%）；en 有声书 WER 3.1% → **1.9%**（云端 3.7%）；conv 中文 17.8% → 10.0%。**定稿默认是懒的**（停顿不收口，有声书 p90 14 s）—— 要自己的 VAD 调 `finalize(through:)` 才有停顿后 0.4–0.9 s；final 是时间片不是句子；`contextualStrings` 热词对同音字零效果；双识别器归属先看文字系再看置信度。真机 45 个 locale，en-US 资产 Mac 上 46 s 装完。**未测（D2 前必补，见 F-bis 2026-09-12 补充）**：真机双路 CPU（Instruments）、中国网络资产下载、转写中插拔耳机。仅宿主 App；扩展 **N/A by design**（§3.1.4） |
 | 29 | `device` (TTS) | global + china | `device-speech`（**无 HTTP**；sherpa-onnx v1.13.8 本地推理，静态链接 ≈ 35 MB；模型不进包，首次用时从我们的文件服务器下载、sha256 钉住） | —（离线模型：Piper zh_CN-huayan / en_US-lessac 各 79 MB；未覆盖的语言回落 `browser` 并在行上具名） | ✅ 2026-09-12 尖刺真机（iPhone 14 Pro · iOS 27.0，CPU provider，2 线程）：Piper zh 首块均值 / 最大 **176 / 264 ms** · RTF 0.053 · 加载 1.6 s；en **157 / 216 ms** · RTF 0.050 · 加载 1.3 s；边合成边播（playerNode 按块调度）跑通、首块到即出声。弃 Kokoro（真机首块 1.3–2 s、加载 10–20 s；int8 反比 fp32 慢 3–4×；CoreML 无提速）。**未测**：中国网络模型下载。仅宿主 App；扩展 **N/A by design** |
 
+> **2026-09-17（待人评审）**：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
+
 > **两行 `device` 条目与台账（2026-09-12）。** 它们不说 HTTP，没有 host、没有 model
 > 参数可调，所以 `build/perf-ledger.config.js` 里没有它们的行。`test/perf-ledger.test.js`
 > 的「注册表条目无台账行即红」**已经**放行 `defaultEndpoint` 为空的条目（`google`、`browser`
@@ -1452,6 +1454,23 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 
 字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。
 
+**2026-09-17 追加（待人评审，实时转写固定为设备内置 · learning-design §9.6 门控修订）：云端路的段删除，本机路成为唯一路。**
+上文「云端路（原有 `mtAudio` 假桥 + RFC 6455 假流式端点）的全部既有断言仍绿」那句作废：假流式端点与 `e2e_live`
+测试引擎一起删，`mtSpeech` 假桥是转写的唯一来源。新增断言：
+
+- **不配任何转写引擎**（`sttEngine` 为空）时入口**照样可用** —— 入口只看桥；反过来 `sttEngine` 填了云端
+  条目也**不影响**入口（说题的槽与对话无关）。
+- 假桥回 `stt-state {state:'unsupported', reason:'os'}` ⇒ 入口灰，屏上是「对话 · 实时字幕需要 iOS 26 / macOS 26」，
+  且页面上**没有**「去设置里选择」按钮（设置解决不了系统版本）；设置页「对话 · 实时听译 与 实时字幕」块整块是那一句。
+- 假桥 `stt-probe` 回 `locales` 只含 zh / en ⇒ 设置页与准备页的三个语言下拉**只列这两种**；选不到 ar / ru。
+- **启动迁移**：种 `{sttEngine:'device', sttApiKey:'', sttBaseUrl:'', sttModel:''}` 启动 ⇒ 回读四键为空；
+  种 `{sttEngine:'openai_transcribe', sttApiKey:'k'}` ⇒ 回读**不变**。
+- 「识别语言包」行三态：`assets:'installed'` ⇒ 「已就绪」；`assets:'supported'` 后 `stt-assets` 按 `assets-progress`
+  回进度 ⇒ 「正在下载 … pct%」；失败 ⇒ 具名 + 重试。
+- 朗读卡「离线模型」行五态与试听两态（learning-design §9.1.1），假桥 `tts-probe` 回 `assets:'missing'` 起跑。
+
+真机上仍要人验的：M24 / M25（本机路）+ 离线模型行进度 + 语言包行进度（ZHAO的iPhone）。M22 / M23（云端路）作废。
+
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
@@ -1508,6 +1527,17 @@ App 里却没有任何控件，界面语言永远落到 `navigator.language`。
 它向用户承诺了一个扩展永远到不了的桥。静态层不变：两个条目不加新字段，「是否本机 / 是否
 实时」由 `type` 推导（domain-design §7）。证伪一次：把 `deviceOk` 在扩展段硬编成 `true`，
 扩展段的计数断言必须当场红。
+
+**2026-09-17 追加（待人评审）：上一段撤回 —— 本机条目不再存在于 STT 注册表。** `device`（STT）随实时转写
+固定为设备内置一起从 `build/stt.config.js` 删除（domain-design §7），`deviceOk` 只剩 TTS 那一个用途
+（`device`（TTS）条目照旧只在 App 段出现）。真渲染层：**三个下拉**（翻译 / 解析 / 整段转写 / 朗读 —— 解析
+与翻译共用注册表，计四张槽卡三个注册表）× 每一个引擎，断言字段行渲染后可见性 == `EngineFields.visibility(entry)`；
+整段转写下拉在**两个宿主**都不含任何 `device-*` 条目。设置页重组（interaction-spec「设置页信息架构」）
+之后这道门多守三件：① `#mode-tabs` 切档只影响「引擎与密钥」一节 —— ②③④ 节里的每个控件在两档都 `offsetParent`
+非空；② 从 `adv-only` 搬进 ②③ 的控件（`tts-mode` / `tts-rate` / `tts-autoplay` / `learn-daily-new` /
+`cache-card` / `tts-cache`）快速档可见，`verify-extension-smoke` 的 `ENGINE_CARDS` 互斥清单加 `stt-card`；
+③ 锚点规则：对每个 `.adv-only` 内的锚点目标调 `openSettings` / `#anchor` 后目标 `offsetParent` 非空（先切档）。
+证伪：把 `tts-mode` 的 `adv-only` 加回去，快速档可见性断言当场红。
 
 ### 3.2 `npm run test:layout` — layout regression corpus
 

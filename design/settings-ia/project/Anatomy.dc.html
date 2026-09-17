@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1000px; height:1100px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>解剖 · 搬家表 / 删除清单 / 锚点 / 门禁</h1><span class="mini">「搬」= 移动 DOM 节点，id 一个不改；新 id 只有三组</span></div>
+<div class="grid2" style="align-items:start">
+<section class="card"><h3>搬家表（节选）</h3><table class="tbl"><tr><th>控件</th><th>宿主</th><th>旧 → 新</th><th>档位</th></tr>
+<tr><td>mode-tabs</td><td>E A</td><td>页顶 → ① 节头</td><td>—</td></tr>
+<tr><td>notes-core / btn-test-notes</td><td>E</td><td>learn-card → engine-card 子块</td><td>both → adv</td></tr>
+<tr><td>stt-core / btn-test-stt</td><td>E</td><td>learn-card → 新 #stt-card</td><td>both → adv</td></tr>
+<tr><td>stt-engine…stt-model</td><td>A</td><td>「转写引擎」→ ① #stt-card</td><td>adv</td></tr>
+<tr><td>tts-voice</td><td>A</td><td>「语音」→ ① 朗读卡</td><td>both → adv</td></tr>
+<tr><td><b>tts-model-row / -dl / -progress</b></td><td>A</td><td><b>新增</b> ① 朗读卡</td><td>adv</td></tr>
+<tr><td>tts-mode / tts-autoplay / tts-rate</td><td>E A</td><td>tts-card → ② 复习</td><td>E: adv → both</td></tr>
+<tr><td>tts-cache / btn-clear-tts</td><td>E</td><td>tts-card → ③ 缓存</td><td>adv → both</td></tr>
+<tr><td>learn-daily-new / daily</td><td>E A</td><td>→ ② 复习</td><td>both</td></tr>
+<tr><td>导入导出 / 统计 / 拆分 / 清理</td><td>E</td><td>learn-card → ③ 学习库</td><td>both</td></tr>
+<tr><td>cache-card</td><td>E</td><td>→ ③</td><td>adv → both</td></tr>
+<tr><td>listen-* / subtitle-capture / <b>subtitle-video-lang</b> / <b>listen-pack-row</b></td><td>A</td><td>→ ② 对话与字幕</td><td>both</td></tr>
+<tr><td>drive-*</td><td>A</td><td>→ ② 播客</td><td>both</td></tr>
+<tr><td><b>dep-*</b>（8 条）</td><td>E A</td><td><b>新增</b> 各功能块首行</td><td>both</td></tr>
+</table></section>
+<div class="stack">
+<section class="card"><h3>删除清单（走 docs PR）</h3><table class="tbl">
+<tr><td>注册表 <span class="kbd">liveEndpoint / liveType / liveModel / liveRate / liveKeyProtocol</span></td><td>两条云端实时条目降为纯文件档</td></tr>
+<tr><td>stt 注册表的 <span class="kbd">device</span> 条目</td><td>本机识别不是可选引擎；整段下拉自然没有它</td></tr>
+<tr><td><span class="kbd">ws-transcribe.js</span> 传输、<span class="kbd">wire-format</span> 的 ws 分支</td><td>留 <span class="kbd">splitSentences</span></td></tr>
+<tr><td>一键卡实时格 <span class="kbd">#qs-live*</span>、锚点 <span class="kbd">#quick-live</span>、<span class="kbd">grant_no_live</span></td><td>所有宿主</td></tr>
+<tr><td>门禁「每个 flavor 至少一个云端实时引擎」</td><td>改为「实时转写是本机能力」</td></tr></table></section>
+<section class="card"><h3>存储与迁移</h3><p class="hint">不新增键。sttEngine 四元组只表示整段转写；App 启动时若 sttEngine === "device" ⇒ 清空（说题哨兵 —— 它在文件槽从未工作过）。subtitleVideoLang 进设置页。对话与字幕读 NativeSpeech，不再读 sttEngine。</p></section>
+<section class="card"><h3>锚点 · 门禁</h3><p class="hint">E：#engine · #stt（改为切详细）· #grant · #learn · #sync · 新 #tts · 新 #review；删 #quick-live。A：stt · tts · notes · listen · account，目标带 .adv-only ⇒ 先切详细。首页灰态（旧系统）不再跳设置，原因写在按钮上方。</p><p class="hint">SAVE_FIELDS 29 个 id 不动 · smoke ENGINE_CARDS += stt-card，新增「快速档 tts-mode / learn-daily-new / cache-card 可见」「#qs-live 不存在」· test:app 三个下拉 × 每引擎可见性，整段下拉无 device · test:listen 改假原生桥出 stt-partial / stt-final，加语言包行三态 · registry 门改写 · telemetry：asr_entry.no_live 保留，含义改为「本机不可用」</p></section>
+</div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1000,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

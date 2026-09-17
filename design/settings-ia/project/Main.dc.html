@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:860px; height:2100px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>设置 · 扩展 · 详细</h1><span class="mini">Chrome / Safari / Firefox 设置页 · 浅色</span></div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">1</span><h2>引擎与密钥</h2><span class="sub">一键配置在「快速」里 →</span></div><div class="tabs" role="tablist"><span class="tab">快速</span><span class="tab on">详细</span></div></div>
+<section class="card"><h3>翻译</h3><div class="field"><label>引擎</label><div class="select"><span>DeepSeek</span></div></div><div class="field"><label>API Key · <a href="#k">去拿 key ↗</a></label><div class="input">••••••••••••••••••••</div></div><div class="grid2"><div class="field"><label>接口地址</label><div class="input ph">注册表默认</div></div><div class="field"><label>模型</label><div class="input ph">注册表默认</div></div></div>
+  <div class="split"><a href="#adv">高级参数 ▸</a><div class="split"><button class="btn s sm" type="button">测试连接</button><span class="res">✓ 通了 · 412 ms</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><span class="lbl">解析这句（可选）</span>
+  <div class="rad on"><i></i>跟随翻译引擎</div>
+  <div class="rad"><i></i>改用别的引擎 ▸</div>
+  <p class="hint">例句与释义走这里的引擎；不另配就跟着翻译走。</p></div></section>
+<section class="card"><h3>整段转写<span class="use">说题 · 转写整段音视频</span></h3><div class="field"><label>引擎</label><div class="select"><span>OpenRouter · transcription</span></div></div><div class="field"><label>API Key · <a href="#k">去拿 key ↗</a></label><div class="input">••••••••••••••••••••</div></div><div class="grid2"><div class="field"><label>接口地址</label><div class="input ph">注册表默认</div></div><div class="field"><label>模型</label><div class="input ph">注册表默认</div></div></div><div class="split"><button class="btn s sm" type="button">测试连接</button><span class="res">✓ 通了 · 890 ms</span></div><p class="hint">Gate C：说题与整段转写的录音只发到这里配置的端点，识别后即弃。</p></section>
+<section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置语音（免费 · 离线）</span></div></div><div class="field"><label>声音</label><div class="select"><span>Tingting · 中文（普通话）</span></div></div><div class="split"><button class="btn s sm" type="button">试听一句</button><span class="res">✓ 播放中</span></div><p class="hint">默认用设备自带语音，不联网不花钱；也可指向自己搭的语音服务。语速与自动播放在下面「复习」里。</p></section>
+<p class="mini" style="margin:0 4px">对话 · 实时字幕（App）用设备内置识别，不是一个引擎项，也不需要 key。</p>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">2</span><h2>功能</h2></div></div>
+<section class="card"><h3>网页翻译显示</h3><div class="grid2"><div class="field"><label>目标语言</label><div class="select"><span>简体中文</span></div></div><div class="field"><label>界面语言</label><div class="select"><span>跟随浏览器</span></div></div></div><div class="grid3"><div class="field"><label>字号</label><div class="select"><span>默认</span></div></div><div class="field"><label>译文颜色</label><div class="select"><span>鼠尾草绿</span></div></div><div class="field"><label>位置</label><div class="select"><span>原文下方</span></div></div></div><div class="row"><div class="l"><span>页面上的悬浮按钮</span><small>拖动可移；长按翻译当前段落</small></div><span class="sw on"></span></div></section>
+<section class="card"><h3>复习</h3><div class="dep"><b>依赖</b> · 朗读：设备内置语音 <span class="ok">✓</span> · 解析：跟随翻译引擎 <span class="ok">✓</span></div><div class="grid2"><div class="field"><label>语音模式</label><div class="select"><span>显示原文，可点播放</span></div></div><div class="field"><label>语速</label><div class="select"><span>1.0×</span></div></div></div><div class="row"><div class="l"><span>进入卡片自动播放</span></div><span class="sw on"></span></div><div class="grid2"><div class="field"><label>每日新卡</label><div class="input">20</div></div><div class="field"><label>&nbsp;</label><button class="btn s" type="button">打开复习页</button></div></div></section>
+<section class="card"><h3>学习采集</h3><div class="row"><div class="l"><span>采集读到的句子</span><small>翻译过的句子进复习，作为「网页」来源</small></div><span class="sw on"></span></div><div class="row"><div class="l"><span>采集文档翻译</span><small>译文进复习，作为「文档」来源</small></div><span class="sw on"></span></div><div class="field"><label>学习语言</label><div class="chips"><span class="chip on">English</span><span class="chip on">日本語</span><span class="chip">Français</span><span class="chip">＋</span></div></div><div class="row"><span>来源管理</span><a href="#src">3 条规则 →</a></div></section>
+<section class="card"><h3>文档翻译</h3><div class="dep"><b>依赖</b> · 翻译：DeepSeek <span class="ok">✓</span> · 识图：<span class="no">不支持</span> → 图片只显示不翻</div><div><button class="btn s" type="button">打开文档翻译</button></div></section>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">3</span><h2>账号与数据</h2></div></div>
+<section class="card"><h3>登录 · 多设备同步</h3><div class="row"><div class="l"><span>已登录 · Apple</span><small>句子与来源规则同步到 App 和你的其它设备</small></div><button class="btn s sm" type="button">退出</button></div><span class="stat">上次同步 2 分钟前 · 312 条</span>
+<div class="row" style="border-top:1px solid var(--rule); padding-top:10px"><span class="stat">免费额度：已领取 · 剩 63%</span><a href="#grant">管理 →</a></div></section>
+<section class="card"><h3>学习库</h3><span class="stat">312 张卡 · 48 张待复习 · 27 条候选</span><div class="btns"><button class="btn s sm" type="button">导出</button><button class="btn s sm" type="button">导入</button><button class="btn s sm" type="button">拆分长段卡</button><button class="btn s sm" type="button">清理已掌握</button><button class="btn d sm" type="button">清空学习库</button></div></section>
+<section class="card"><h3>缓存</h3><div class="row"><span>翻译缓存 · 1.2 MB</span><button class="btn s sm" type="button">清空</button></div><div class="row"><span>语音缓存 · 3.4 MB</span><button class="btn s sm" type="button">清空</button></div></section>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">4</span><h2>关于</h2></div></div>
+<section class="card"><h3>大肚猴翻译 · v1.12.0</h3><div class="split"><a href="#fb">发送反馈</a><span class="mini">·</span><a href="#gh">GitHub 讨论区</a><span class="mini">·</span><a href="#rate">去商店评分</a></div><div class="row"><div class="l"><span>分享匿名用量数据</span><small>只有用了哪些功能、成功还是失败；不含网页、文字、密钥或账号 · 关掉即删</small></div><span class="sw on"></span></div><div class="btns"><button class="btn s sm" type="button">重看开始使用引导</button></div><p class="hint">删除 App 不会清除这里的数据。要彻底清干净，先在这里清除。</p><div><button class="btn d sm" type="button">清除本机全部数据</button></div></section>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":860,"height":2100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

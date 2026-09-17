@@ -124,6 +124,13 @@ node -e 'const {api,apps}=require("./scripts/lib/asc-client.js");(async()=>{
 `extension_description` 与商店描述由注册表驱动，不要手写服务商清单（AGENTS.md「一个注册表，
 N 个消费者」；已因此漂移过两次：DeepSeek 模型名、版本号）。
 
+**系统要求写在功能旁边，不写在 App 头上（2026-09-17）。** App 与扩展的下限是 `build/os-floor.config.js`
+里的 iOS 16.4 / macOS 13.3；「对话 · 实时听译」与「实时字幕」另外要求 **iOS 26 / macOS 26**（本机识别器，
+learning-design §9.6 门控 2026-09-17 修订）。商店描述、官网功能页、发布说明里凡提到这两项，紧跟一句
+「需要 iOS 26 / macOS 26」；**不许**把 ASC 的最低系统版本抬到 26 —— 那会让旧系统的网页翻译用户拿不到更新
+（learning-design §12 2026-09-17 否决记录）。判据：`asc.js versions` 读回的 `minimumOsVersion` 仍是 16.4 / 13.3，
+且描述里两项功能旁有那句。
+
 ## 4. Issue 与 PR
 
 AGENTS.md 要求每个改动一个 issue。**修复合并进 `main` 之后才关闭 issue**——分支上就关，

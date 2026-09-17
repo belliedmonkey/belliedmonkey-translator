@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:390px; height:1180px; padding:16px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1 style="font-size:1.15rem">现状 · App 设置（基线）</h1></div><p class="mini" style="margin:0 4px">17 组一条长页；转写四行全是 adv-only，首页灰态按钮跳过来落在隐藏控件上</p>
+<div class="old">
+<div class="c"><span>mode-tabs</span><span class="split"><span class="tag n">—</span></span></div><div class="c"><span>grant-card</span><span class="split"><span class="tag n">quick</span></span></div><div class="c bad"><span>quick-setup-card（含实时格）</span><span class="split"><span class="tag n">quick</span><span class="mini">写的是同一把 sttEngine</span></span></div><div class="c"><span>ui-lang</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>daily</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>语音：模式 · 自动 · 引擎×4(adv) · 声音 · 语速 · 试听(adv)</span><span class="split"><span class="tag n">混</span></span></div><div class="c"><span>句子解析 ×4</span><span class="split"><span class="tag n">adv</span></span></div><div class="c"><span>播客模式</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>对话 · 实时听译（采集 · 语言对 · 自动朗读）</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>文档翻译</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>亮屏说明 · 预载 · 音频缓存</span><span class="split"><span class="tag n">both</span></span></div><div class="c bad"><span>转写引擎 ×4 + 测试（含设备内置 · 云端实时）</span><span class="split"><span class="tag n">adv</span><span class="mini">openSettings 不切档 ⇒ 落到隐藏下拉</span></span></div><div class="c"><span>学习语言</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>来源管理</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>学习库</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>反馈</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>匿名用量</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>账号</span><span class="split"><span class="tag n">both</span></span></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:900px; height:440px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>「依赖」行 · 每个功能块的第一行</h1><span class="mini">只读；标签来自注册表；点「去配置」按锚点表翻到对应槽卡（在「详细」里就先切档）</span></div>
+<div class="stack">
+<div class="dep"><b>依赖</b> · 实时转写：<b>设备内置</b>（本机 · iOS 26 / macOS 26）<span class="ok">✓</span> · 翻译：DeepSeek <span class="ok">✓</span> · 朗读：设备内置朗读 <span class="ok">✓</span></div>
+<div class="dep"><b>依赖</b> · 朗读：<span class="no">未配置</span> <a href="#go">去配置 →</a> · 翻译：DeepSeek <span class="ok">✓</span></div>
+<div class="dep"><b>依赖</b> · <span class="ok">由一键配置提供 ✓</span> · <span class="mini">（快速档 · 一键卡已配好的槽不再逐个列）</span></div>
+<div class="dep"><b>依赖</b> · 实时转写：设备内置 <span class="no">需要 iOS 26 / macOS 26</span> · <span class="mini">（旧系统 · 没有「去配置」，因为不是配置问题）</span></div>
+<div class="dep"><b>依赖</b> · 整段转写：OpenRouter · transcription <span class="ok">✓</span> · <span class="mini">说题 · 录音只发到这个端点</span></div>
+<div class="dark" style="background:#1f1c19; border-radius:16px; padding:12px"><div class="dep"><b>依赖</b> · 朗读：设备内置朗读 <span class="ok">✓</span> · 解析：<span class="no">未配置</span> <a href="#go">去配置 →</a></div></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":900,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
