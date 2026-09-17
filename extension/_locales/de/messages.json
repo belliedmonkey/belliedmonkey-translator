@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "Gratis-Guthaben eingelöst · verwalten →"
+  },
+  "dep_label": {
+    "message": "Braucht"
+  },
+  "dep_unset": {
+    "message": "nicht eingerichtet"
+  },
+  "dep_go": {
+    "message": "Einrichten →"
+  },
+  "dep_follow": {
+    "message": "folgt der Übersetzungs-Engine"
+  },
+  "dep_quick": {
+    "message": "durch Ein-Schlüssel-Einrichtung ✓"
+  },
+  "dep_live": {
+    "message": "Live-Transkription"
+  },
+  "dep_live_device": {
+    "message": "auf dem Gerät (iOS 26 / macOS 26)"
   }
 }

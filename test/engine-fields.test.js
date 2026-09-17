@@ -319,8 +319,7 @@ describe('App 读得到的设置，设置页必须管得到', () => {
     notesModel: '同 notesProvider。',
     grantTail: '免费额度令牌的尾八位：由 LearnGrant 在领取 / 退出登录时写与清，设置页上那张额度卡'
       + '就是它的控件（不是一个可编辑字段）。docs.js 只读它判「额度在用」以拦住图片上传（用户裁定 2026-09-11）。',
-    subtitleVideoLang: '实时字幕「视频的语言」：由实时字幕页自己的语言下拉写（learning-design §9.8 协议补充决定），'
-      + '与对话的 listenOtherLang 分开存，免得看一场日语视频把对话的对方语言也改了。控件在字幕页上，看得见也改得到。',
+    // subtitleVideoLang：2026-09-17 起设置页「对话与字幕」块有它的控件（两处一份设置），不再需要白名单。
     subtitleFontScale: '实时字幕条的字号：由 Mac 字幕条上的 A− / A+ 写（原生发 remote font-down / font-up，页面落盘并重发 '
       + 'subtitle-config，§9.8 协议补充决定 9）。控件在字幕条上，看得见也改得到。',
   };

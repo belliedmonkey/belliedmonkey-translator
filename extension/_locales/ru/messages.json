@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "Бесплатный кредит получен · управлять →"
+  },
+  "dep_label": {
+    "message": "Зависит от"
+  },
+  "dep_unset": {
+    "message": "не настроено"
+  },
+  "dep_go": {
+    "message": "Настроить →"
+  },
+  "dep_follow": {
+    "message": "как у движка перевода"
+  },
+  "dep_quick": {
+    "message": "настроено одним ключом ✓"
+  },
+  "dep_live": {
+    "message": "Живая транскрипция"
+  },
+  "dep_live_device": {
+    "message": "на устройстве (iOS 26 / macOS 26)"
   }
 }

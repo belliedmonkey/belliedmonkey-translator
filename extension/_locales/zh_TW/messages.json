@@ -3121,5 +3121,26 @@
   },
   "grant_summary_claimed": {
     "message": "免費額度已領取 · 管理 →"
+  },
+  "dep_label": {
+    "message": "依賴"
+  },
+  "dep_unset": {
+    "message": "未設定"
+  },
+  "dep_go": {
+    "message": "去設定 →"
+  },
+  "dep_follow": {
+    "message": "跟隨翻譯引擎"
+  },
+  "dep_quick": {
+    "message": "由一鍵設定提供 ✓"
+  },
+  "dep_live": {
+    "message": "即時轉寫"
+  },
+  "dep_live_device": {
+    "message": "裝置內建（本機 · iOS 26 / macOS 26）"
   }
 }

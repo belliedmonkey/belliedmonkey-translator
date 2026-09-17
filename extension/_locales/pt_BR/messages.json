@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "Crédito grátis resgatado · gerenciar →"
+  },
+  "dep_label": {
+    "message": "Depende de"
+  },
+  "dep_unset": {
+    "message": "não configurado"
+  },
+  "dep_go": {
+    "message": "Configurar →"
+  },
+  "dep_follow": {
+    "message": "segue o motor de tradução"
+  },
+  "dep_quick": {
+    "message": "fornecido pela configuração com uma chave ✓"
+  },
+  "dep_live": {
+    "message": "Transcrição ao vivo"
+  },
+  "dep_live_device": {
+    "message": "no dispositivo (iOS 26 / macOS 26)"
   }
 }

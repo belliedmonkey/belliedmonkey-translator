@@ -263,6 +263,7 @@
            不是引擎配置，此前要开「详细」才看得到。 -->
       <section class="card" id="review-card">
         <h2 data-i18n="review_section">复习</h2>
+        <div class="dep" id="dep-review"></div>
         <div class="field">
           <label for="tts-mode" data-i18n="tts_mode">语音模式</label>
           <select id="tts-mode">
@@ -335,6 +336,7 @@
       <!-- 文档翻译（learning-design §9.7）：入口。采集开关在上面「学习」卡里（它是采集的事）。 -->
       <section class="card" id="docs-card">
         <h2 data-i18n="doc_title">文档翻译</h2>
+        <div class="dep" id="dep-docs"></div>
         <button id="btn-open-docs" data-i18n="doc_open_page">翻译文档（PDF / Word / 图片）</button>
       </section>
       </div>
@@ -522,6 +524,7 @@
   <script src="../learn/auth.js"></script>
   <script src="../learn/sync.js"></script>
   <script src="../learn/engine-fields.js"></script>
+  <script src="../learn/dep-line.js"></script>
   <script src="../learn/app-link.js"></script>
   <script src="../learn/feedback.js"></script>
   <script src="../learn/telemetry.js"></script>

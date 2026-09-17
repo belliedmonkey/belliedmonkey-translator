@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "تم استلام الرصيد المجاني · إدارة →"
+  },
+  "dep_label": {
+    "message": "يعتمد على"
+  },
+  "dep_unset": {
+    "message": "غير مُعدّ"
+  },
+  "dep_go": {
+    "message": "إعداد →"
+  },
+  "dep_follow": {
+    "message": "يتبع محرك الترجمة"
+  },
+  "dep_quick": {
+    "message": "يوفّره الإعداد بمفتاح واحد ✓"
+  },
+  "dep_live": {
+    "message": "التفريغ المباشر"
+  },
+  "dep_live_device": {
+    "message": "مدمج في الجهاز (iOS 26 / macOS 26)"
   }
 }

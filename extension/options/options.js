@@ -238,6 +238,28 @@ async function refreshTtsCache() {
 // Voices for the browser engine are discovered at runtime and arrive LATE — see
 // LearnTTS.loadVoices. Registry engines declare their voices, and a self-hosted one
 // declares none, so the field falls back to free text via a single "default" option.
+// 功能块首行的「依赖」行（interaction-spec「设置页信息架构」②，learn/dep-line.js）。
+// 快速档且一键卡表示得了这份配置 ⇒ 一句「由一键配置提供」；详细档逐个列。「去配置 →」切到详细并落到那个槽。
+// 只用函数声明与 DOM 状态，不碰下面那些 let（paint 在初始化早期就跑，那些 let 还在 TDZ 里）。
+let _depsCur = null;
+function paintDeps(s) {
+  if (s) _depsCur = s;
+  const cur = _depsCur;
+  if (!cur || typeof DepLine === 'undefined') return;
+  const detail = !!($('mode-detail') && $('mode-detail').getAttribute('aria-selected') === 'true');
+  const quick = !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(cur);
+  const go = (slot) => {
+    applyDetailMode(true);
+    try { chrome.storage.local.set({ optDetailMode: true }); } catch (_) {}
+    const el = $(slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'provider');
+    if (!el) return;
+    try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+    try { el.focus({ preventScroll: true }); } catch (_) {}
+  };
+  DepLine.render($('dep-review'), cur, { slots: ['tts', 'notes'], quick, t, onGo: go });
+  DepLine.render($('dep-docs'), cur, { slots: ['chat'], quick, t, onGo: go });
+}
+
 async function updateTtsUI(selectedVoice) {
   // 2026-09-17 起朗读引擎块不再随「语音模式 = 关闭」整块藏起：模式是复习的偏好（在「复习」卡），
   // 引擎是「引擎与密钥」里的一张槽卡 —— 两件事。此前那个耦合正是 quick-setup.js 注释里说的
@@ -554,6 +576,7 @@ async function init() {
   // 就是第二份「哪几个字段」的清单，加字段时必然漏。
   mountTtsCore({ ...s, ttsEngine: s.ttsEngine || LearnTTS.DEFAULTS.engineId });
   await updateTtsUI(s.ttsVoice || '');
+  paintDeps(s);
 
   // §9.2 (2026-08-09 二) — dedicated notes engine. Option "" = follow the
   // translation engine (the default, and the pre-feature behaviour); the
@@ -1876,6 +1899,7 @@ async function init() {
     const q = $('mode-quick'); const d = $('mode-detail');
     if (q) q.setAttribute('aria-selected', String(!on));
     if (d) d.setAttribute('aria-selected', String(!!on));
+    paintDeps();   // 档位一换，依赖行从「由一键配置提供」变成逐个列（或反过来）
   }
   const setDetail = (on) => {
     applyDetailMode(on);

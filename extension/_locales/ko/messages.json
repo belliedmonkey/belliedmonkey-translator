@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "무료 크레딧 받음 · 관리 →"
+  },
+  "dep_label": {
+    "message": "의존"
+  },
+  "dep_unset": {
+    "message": "미설정"
+  },
+  "dep_go": {
+    "message": "설정하기 →"
+  },
+  "dep_follow": {
+    "message": "번역 엔진을 따름"
+  },
+  "dep_quick": {
+    "message": "원키 설정에서 제공 ✓"
+  },
+  "dep_live": {
+    "message": "실시간 전사"
+  },
+  "dep_live_device": {
+    "message": "기기 내장 (iOS 26 / macOS 26)"
   }
 }

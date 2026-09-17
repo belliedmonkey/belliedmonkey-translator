@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "無料クレジット取得済み · 管理 →"
+  },
+  "dep_label": {
+    "message": "依存"
+  },
+  "dep_unset": {
+    "message": "未設定"
+  },
+  "dep_go": {
+    "message": "設定する →"
+  },
+  "dep_follow": {
+    "message": "翻訳エンジンに従う"
+  },
+  "dep_quick": {
+    "message": "ワンキー設定で提供 ✓"
+  },
+  "dep_live": {
+    "message": "リアルタイム文字起こし"
+  },
+  "dep_live_device": {
+    "message": "デバイス内蔵（iOS 26 / macOS 26）"
   }
 }

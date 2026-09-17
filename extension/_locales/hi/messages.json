@@ -2952,5 +2952,26 @@
   },
   "grant_summary_claimed": {
     "message": "मुफ़्त क्रेडिट लिया गया · प्रबंधन →"
+  },
+  "dep_label": {
+    "message": "निर्भरता"
+  },
+  "dep_unset": {
+    "message": "सेट नहीं"
+  },
+  "dep_go": {
+    "message": "सेट करें →"
+  },
+  "dep_follow": {
+    "message": "अनुवाद इंजन के अनुसार"
+  },
+  "dep_quick": {
+    "message": "एक-कुंजी सेटअप से ✓"
+  },
+  "dep_live": {
+    "message": "लाइव ट्रांसक्रिप्शन"
+  },
+  "dep_live_device": {
+    "message": "डिवाइस पर (iOS 26 / macOS 26)"
   }
 }

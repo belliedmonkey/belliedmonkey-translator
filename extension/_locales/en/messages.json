@@ -3120,5 +3120,26 @@
   },
   "grant_summary_claimed": {
     "message": "Free credit claimed · manage →"
+  },
+  "dep_label": {
+    "message": "Needs"
+  },
+  "dep_unset": {
+    "message": "not set up"
+  },
+  "dep_go": {
+    "message": "Set up →"
+  },
+  "dep_follow": {
+    "message": "follows the translation engine"
+  },
+  "dep_quick": {
+    "message": "provided by one-key setup ✓"
+  },
+  "dep_live": {
+    "message": "Live transcription"
+  },
+  "dep_live_device": {
+    "message": "on-device (iOS 26 / macOS 26)"
   }
 }

@@ -410,3 +410,10 @@ button:disabled, input:disabled, select:disabled {
 .link-btn, .card .link-btn { background: none; border: none; padding: 0; margin: 0; width: auto; color: var(--accent-deep, var(--accent)); font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
 .link-btn:hover, .card .link-btn:hover { text-decoration: underline; background: none; color: var(--accent-deep, var(--accent)); }
 #adv-hint { margin: -4px 4px 14px; }
+
+/* 功能块首行的「依赖」行（learn/dep-line.js，两宿主同形） */
+.dep { display: block; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); background: var(--bg); border-radius: 12px; padding: 8px 12px; margin-bottom: 14px; }
+.dep .dep-k { font-weight: 600; color: var(--text); }
+.dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
+.dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
+.card .dep .dep-go { background: none; border: none; padding: 0; margin: 0; width: auto; color: var(--link, var(--accent-deep)); font: inherit; cursor: pointer; text-decoration: underline; }
