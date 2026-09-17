@@ -554,19 +554,63 @@ var ListenCore = (() => {
   //   · CJK 不按置信度丢：碎片（「家」0.34）也是正文的一部分，串起来才成句
   // 同文字系语言对（en/fr）这条规则分不开，那时靠调用方按 locale 归属 + 置信度高者。
   const LATIN_MIN_CONF = 0.4;
-  function acceptDeviceFinal(f, deps) {
+  // rejectDeviceFinal(f, deps) → '' | 'empty' | 'script' | 'conf'（空串 = 收）
+  function rejectDeviceFinal(f, deps) {
     const text = String((f && f.text) || '').trim();
-    if (!text) return false;
+    if (!text) return 'empty';
     const want = scriptOfLocale(f.locale);
     const got = deps && deps.dominantScript ? deps.dominantScript(text) : null;
     if (want && got && got !== want) {
       // 标点/数字之类判不出文字系时 dominantScript 会给别的值；只在两边都是「字」时才否
       if (got === 'Latin' || got === 'Han' || got === 'Hangul' || got === 'Hiragana' || got === 'Katakana') {
-        if (!(want === 'Han' && (got === 'Hiragana' || got === 'Katakana'))) return false;
+        if (!(want === 'Han' && (got === 'Hiragana' || got === 'Katakana'))) return 'script';
       }
     }
-    if (want === 'Latin' && typeof f.conf === 'number' && f.conf >= 0 && f.conf < LATIN_MIN_CONF) return false;
-    return true;
+    if (want === 'Latin' && typeof f.conf === 'number' && f.conf >= 0 && f.conf < LATIN_MIN_CONF) return 'conf';
+    return '';
+  }
+  function acceptDeviceFinal(f, deps) { return !rejectDeviceFinal(f, deps); }
+
+  // ── 句头救回（2026-09-18，修真机 conv 英文 WER 38% 的「丢句头」）────────────────
+  // Mac harness 拿 conv.pcm 逐片读回（单开 en 路也一样）：英文句子的第一个词落在一个**跨过中文尾巴**的
+  // 时间片里 ——「,... The」[16200–17520] conf 0.25、「 we」[31300–31780] conf 0.01 —— 均值被标点垃圾拖到
+  // 门下，整片被丢，于是「The quote…」成了「quote…」、「We need…」成了「need…」。而紧接着的下一片就是
+  // 高置信的正文（「quote already includes…」0.98，t0 == 上一片 t1）。
+  // 所以低置信的拉丁片不立刻丢：**扣住一片**；下一片同 locale、紧接（≤ HOLD_GAP_MS）且过门 ⇒ 把扣住的
+  // 去掉开头标点后接回去；否则丢。只扣**短**片（≤ HOLD_MAX_MS 且 ≤ HOLD_MAX_WORDS 个词）：中文整句期间
+  // en 路吐的「Rugua, Ting, Xing, Cho,」是几秒长的一串，不会被当成句头。文字系不对的片（zh 路吐英文）永不扣。
+  const HOLD_MAX_MS = 1500, HOLD_MAX_WORDS = 2, HOLD_GAP_MS = 120;
+  const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
+  const HAS_LETTER = /[\p{L}\p{N}]/u;
+  function makeFinalGate(deps) {
+    const held = {};   // locale → { text, t0, t1 }
+    const words = (t) => t.trim().split(/\s+/).filter(Boolean).length;
+    return {
+      // push(f) → [text, …] 这一片应当交给串句器的文字（可能带着救回的句头），空数组 = 什么都别加
+      push(f) {
+        const locale = String((f && f.locale) || '');
+        const text = String((f && f.text) || '').trim();
+        const why = rejectDeviceFinal(f, deps);
+        const t0 = Number(f && f.t0), t1 = Number(f && f.t1);
+        if (!why) {
+          const h = held[locale]; held[locale] = null;
+          const out = [];
+          if (h && Number.isFinite(t0) && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS) {
+            const head = h.text.replace(LEAD_PUNCT, '').trim();
+            if (head && HAS_LETTER.test(head)) out.push(head);
+          }
+          out.push(text);
+          return out;
+        }
+        if (why === 'conf' && Number.isFinite(t0) && Number.isFinite(t1) && t1 - t0 <= HOLD_MAX_MS && words(text.replace(LEAD_PUNCT, '')) <= HOLD_MAX_WORDS) {
+          held[locale] = { text, t0, t1 };   // 替换上一片：只扣最近的一小片
+        } else {
+          held[locale] = null;               // 长的垃圾 / 文字系不对 ⇒ 断开，前面扣的也作废
+        }
+        return [];
+      },
+      held(locale) { const h = held[locale]; return h ? h.text : ''; },
+    };
   }
   // 识别器的 final 是时间片不是句子（会切在词中间），所以每个 locale 一路串起来、按句末标点
   // 切句；尾巴等不到标点就按超时放出（我们自己收口后的 final 常常不带句号）。
@@ -694,7 +738,7 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
-    toLocale, scriptOfLocale, acceptDeviceFinal, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
+    toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,

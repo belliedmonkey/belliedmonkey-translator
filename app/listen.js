@@ -325,6 +325,7 @@ var AppListen = (() => {
       onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
     });
     cutter = cut;
+    const gate = C.makeFinalGate(routeDeps);   // 低置信的拉丁句头先扣住，紧接的高置信片来了再接回（listen-core 注释）
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -332,7 +333,7 @@ var AppListen = (() => {
         if (!sock && (kind === 'partial' || kind === 'final')) return;
         if (kind === 'ready') { socketRetried = false; }
         else if (kind === 'partial') { if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text); }
-        else if (kind === 'final') { if (cutter === cut && C.acceptDeviceFinal(ev, routeDeps)) cut.add(ev.locale, ev.text); }
+        else if (kind === 'final') { if (cutter === cut) for (const t of gate.push(ev)) cut.add(ev.locale, t); }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
