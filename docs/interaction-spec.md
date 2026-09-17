@@ -845,6 +845,15 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 
 ### 实时转写（可选）— 2026-09-11
 
+> **2026-09-17：本节整体退役（待人评审）。** 实时转写固定为设备内置识别（learning-design §9.6 门控
+> 2026-09-17 修订、domain-design §2.4 / §7），云端实时引擎从产品里去掉。于是一键卡**没有**「实时转写
+> （可选）」格（所有宿主）、`#quick-live` 锚点删除、转写下拉没有「· 实时」「· 实时 · 本机」后缀、
+> 弹窗没有 `file_only` 态、免费额度卡上「另配实时引擎 →」尾巴删除、`grant_no_live` 删除。
+> 一键卡结果区两宿主都是**三行**（翻译 / 朗读 / 整段转写），卡下一行小字「对话 · 实时字幕（App）
+> 用设备内置识别，不需要 key」。「本机引擎（2026-09-12 补记）」段里的 `设备内置转写` 下拉条目与
+> `device_no_file` 随注册表条目一起消失；`设备内置朗读` 条目**不受影响**（它仍是朗读下拉里的一项）。
+> 下文逐字保留作为 2026-09-11 → 09-17 这段路的记录。设置页的新形状见下一节「设置页信息架构」。
+
 **起因**：一键配置的默认平台 OpenRouter 没有实时转写接口（官方只有 HTTP 转写），于是一键配好的人
 在直播 / 流媒体上按「实时转写」、或打开 App 的「对话 · 实时听译」时撞到「没有实时接口」，且没有出口。
 用户裁定：**一键卡多一段可选的实时转写 key**，不改默认平台。
@@ -893,6 +902,54 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 落点：设置页是「快速 | 详细」两个 tab；扩展引导页第 2 屏是「一键配置 | 三引擎分别配」
 两个 tab，后面几屏共用。门禁在 `scripts/verify-onboard.js`（互斥、旧块不在 DOM、
 两个 tab 之外没有任何引擎控件）与 `scripts/verify-extension-smoke.js`。
+
+## 设置页信息架构 — 2026-09-17（两宿主，待人评审）
+
+画布（用户已按默认便签点头）：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo；工作文件
+`design/settings-ia/`（`gen.mjs` 生成 `project/*.dc.html`）。起因是用户 2026-09-17 的五条投诉：一键卡 /
+快速 / 详细三层叠在一起；朗读的模式 / 引擎 / 音色 / 语速 / 试听散在一堆；听译一组孤立；账号 / 额度 /
+遥测等非引擎项混在长页；「系统 tts 下载触发也没感受到」。
+
+**四节，按「用户想做什么」分，两宿主同一词表**（【E】仅扩展，【A】仅 App）：
+
+1. **引擎与密钥**（页顶）。`#mode-tabs` 搬到本节标题右侧，**「快速 / 详细」只管这一节**（用户裁定
+   2026-09-17）—— 其余三节与档位无关、永远可见，这正是「采集开关与登录入口不属于逐引擎配置那一档」
+   那条的推广。快速档：`#grant-card`【国际版】→ `#quick-setup-card`（结果区三行）。详细档（`.adv-only`）
+   **三张**槽卡，同一个 `EngineFields.render`：**翻译** `#engine-card` + 折叠子块「解析这句：跟随翻译引擎 /
+   改用别的引擎 ▸」（notes 槽从 learn-card 搬入）；**整段转写** `#stt-card`（新包裹节，`stt-*` id 原样；
+   用途一句「说题 · 转写整段音视频」【E】/「说题」【A】+ Gate C 句；下拉只列云端 / 自建）；**朗读**
+   `#tts-card`（引擎 + 字段 + **音色** `tts-voice`（App 从两档可见变为详细才可见）+ **离线模型行**（仅
+   `device-speech` 选中时，learning-design §9.1.1 五态）+「试听一句」两态）。详细卡顶一行小字「一键配置在
+   『快速』里 →」——「永不同屏」照旧，但路必须有。
+2. **功能**。每块**首行一条只读「依赖」行**（新共享组件 `learn/dep-line.js`，进 app-bundle MODULES）：
+   「依赖 · 朗读：{label} ✓ · 解析：跟随翻译引擎 ✓」/「实时转写：设备内置（本机 · iOS 26 / macOS 26）✓」/
+   「{slot}：未配置 → 去配置」/ 快速档「由一键配置提供 ✓」。标签走 `EngineFields.labelOf`（不在注册表外
+   复述引擎名）；「去配置」按下面的锚点表翻到对应槽卡。块：**网页翻译显示**【E】（`#lang-card` +
+   `#style-card` 合排；App 只有 `ui-lang`）；**复习**（`tts-mode`、`tts-autoplay`【E】/ `tts-auto`【A】、
+   `tts-rate`、`learn-daily-new`【E】/ `daily`【A】、`btn-open-review`【E】）；**学习采集**（`learn-enabled`
+   【E】、`doc-capture`、学习语言、来源管理）；**播客模式**【A】（`drive-*`）；**对话 · 实时听译 与 实时字幕**
+   【A】（依赖行 + 「识别语言包」行 `listen-pack-row` + `listen-my-lang` / `listen-other-lang` / **新**
+   `subtitle-video-lang` + `listen-autospeak` / `listen-capture` / `subtitle-capture` + Gate H 句；语言下拉
+   只列本机识别器支持的；**旧系统态整块换成一句**「需要 iOS 26 / macOS 26 —— 本机识别器在这台设备上不可用」）；
+   **文档翻译**（`doc-capture`、`doc-prefetch`【A】、`btn-open-docs`【E】）。
+3. **账号与数据**。`#sync-section`【E】/ `account-*`【A】原样；**免费额度只读摘要行**【国际版】
+   「免费额度：{status} · 剩 {left} · 管理 →」链回 `#grant`（卡本身留在 ①，不含引擎控件，不构成第二张卡）；
+   学习库（统计 · 导入导出 · 拆分 · 清理）；缓存（`#cache-card` 去 `adv-only`，`tts-cache` / `btn-clear-tts`
+   从 tts-card 搬出 —— 缓存不是引擎配置）。
+4. **关于**。版本 · 反馈 · 遥测开关 · 重看引导 · 清除本机全部数据。
+
+**搬家规则**：「搬」= 移动 DOM 节点，**id 一个不改**（`SAVE_FIELDS` 29 个、`verify-app-bundle` 的
+`settingsMissing`、smoke / onboard 门禁都钉着 id）；新 id 只有 `subtitle-video-lang`、`listen-pack-*`、
+`tts-model-*`、`dep-*`。控件搬家表见画布「解剖」板；从 `adv-only` 卡搬进 ②③ 的控件（`tts-mode` /
+`tts-rate` / `tts-autoplay` / `learn-daily-new` / `cache-card` / `tts-cache`）**去掉 `adv-only`**，
+`verify-extension-smoke` 反过来断言它们在快速档可见；`ENGINE_CARDS` 互斥清单加 `stt-card`。
+
+**锚点**：统一规则「目标或祖先带 `.adv-only` ⇒ 先切详细；带 `.quick-only` ⇒ 先切快速」（`options.js`
+`#engine` 的 `before` 先例推广到全部）。【E】`#engine` · `#stt`（改为切详细）· `#grant` · `#learn` ·
+`#sync` · 新 `#tts` · 新 `#review`；删 `#quick-live`。【A】新增与 options.js 同形的 `ANCHORS`：
+`stt / tts / notes / listen / account`。首页灰态（旧系统）**不跳设置**，原因写在按钮上方。
+
+**不做**：按引擎类型分组 + 加「用途」列（画布第 2 页存档）—— 只回应了投诉 ④ 的一半。
 
 ## 从翻译到复习：跨面交接 — 2026-09-01
 
@@ -1217,6 +1274,14 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 
 ### 语音 (TTS)
 
+> **2026-09-17（待人评审）：设置页里这一块拆成两处。** 引擎 · 字段 · 音色 · 试听归「① 引擎与密钥 › 朗读」
+> 槽卡；语音模式 · 语速 · 自动播放归「② 功能 › 复习」（见「设置页信息架构」）。朗读卡在选了 `设备内置朗读`
+> 时多一行「离线模型」（未下载 · 大小 · [下载] / 下载中 pct% / 已安装 · [重新下载] / 下载失败 · [重试] · 或换
+> 系统语音），试听按钮在模型未装时写「下载并试听（{size}）」；四处首播（设置试听 · 复习 ▶ · 播客 · 对话）
+> 统一走 `LearnTTS.ensureDeviceReady`，进度在各自状态行，不弹框 —— 规则与读数在 learning-design §9.1.1。
+> **「设备内置语音」在没有系统语音的浏览器上**（Linux 桌面常见；`LearnTTS.available()` 回 `unsupported`）
+> 下拉条目标灰并写原因，不让人选了再试听才发现。Windows 上的 `speechSynthesis` 尚未实机验过（待办）。
+
 Turns a review card into listening practice. **Off until the user turns it on** in
 the browser extension, like capture — with one dated exception:
 
@@ -1416,6 +1481,9 @@ Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的�
   同一块多一条 `设备内置转写（免费 · 离线 · 仅 App）`（iOS 26 / macOS 26 起），排在 `local`
   之前，只有选择没有字段；它接的是对话的流式路，**说题在它下面是具名 disabled**
   （`device_no_file`），规则见「一键配置与逐引擎配置永不同屏 › 实时转写（可选）› 本机引擎」。
+  *(2026-09-17，待人评审:)* 上一条撤回：`设备内置转写` 从注册表删除（learning-design §9.4 同日修订），
+  「there is no on-device engine」对**两个宿主**重新成立，`device_no_file` 随之消失。用户裁定说题不接本机；
+  这一块在设置页里改叫「整段转写」，用途一句「说题 · 转写整段音视频」【扩展】/「说题」【App】，见「设置页信息架构」。
 
 ### 播客模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
 
@@ -1591,6 +1659,13 @@ original + provisional translation), **finalized sentences** below.
   + 「去设置里选择 →」。三句原因（没实时接口 / 没 key / 系统太旧）互斥，一次只出一句。**首页上「对话 · 实时听译」与「实时字幕」两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），原因句只出一次**——留对话那一行，字幕那行藏起，两个入口照样灰（2026-09-15 用户裁定「合成一句」；全回归观察 O1：同一句连写两遍像出错了）。
   本机路下入口组下面那句隐私句换成 「声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎」
   （`listen_entry_privacy_device`）—— 「音频只发往你配置的转写端点」对本机路是假话。
+- *(2026-09-17，待人评审:)* **上面两条门控整体改写：入口只看本机识别器。** 没有云端路了
+  （learning-design §9.6 门控 2026-09-17 修订）。入口可用 ⇔ `NativeSpeech.probe(locales)` → `ready`。
+  灰态只剩两句、互斥：系统太旧「对话 · 实时字幕需要 iOS 26 / macOS 26」（**没有**「去设置里选择 →」——
+  不是配置问题，App 下限仍 iOS 16.4 / macOS 13.3）；语言不支持「本机识别器不支持{lang}」+ 换语言。
+  「需要一个带实时接口的转写引擎」「没填 key」两句原因、`listen_need_device_os` 里「—— 或去设置里选一个
+  云端实时引擎」半句、`openSettings('stt-engine')` 深链全部删除。首页入口组下的隐私句**只剩本机那句**
+  （`listen_entry_privacy_device`）。「两个入口因同一个原因灰掉时原因句只出一次」照旧。
 - First tap after install triggers the **native** microphone permission once; denied
   ⇒ stop state 「麦克风被拒绝」 (below), never a silent no-op.
 
@@ -1828,6 +1903,12 @@ original + provisional translation), **finalized sentences** below.
 交互画布（用户已点头）：https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19；工作文件 `design/live-subtitles/`。下文括号里是画板编号（M = Mac，I = iPhone 一期，B = iPhone 二期，X2 = 文案表）。**文案以 X2 为准。** 管线与规则见 learning-design §9.8；未提到的行为同「对话 · 实时听译」。
 
 **入口与门控**（M1 / M2 / I1）。首页「听」组新行「实时字幕 · 给正在播放的视频、直播、会议配双语字幕」。门没过整行 45% + 一条原因 + 直达设置，三种互斥、按顺序判：① 没有带实时接口的转写引擎 ② 转写引擎没填 key（「设备内置转写」可用时 ① ② 不拦）③ Mac 低于 14.4：「系统声音字幕需要 macOS 14.4 或更新 —— 或在『对话』里让声音从扬声器放出来」。
+
+*(2026-09-17，待人评审:)* 上一段三种原因里的 ① ② 随云端路一起删除（learning-design §9.6 / §9.8 同日修订）；
+只剩系统版本一句（iPhone / Mac 各自的）与语言不支持一句。准备页「转写 / 翻译引擎一行」改为只写翻译引擎，
+转写固定显示「设备内置识别」；「视频的语言」下拉只列本机识别器支持的语种，且**同一份设置也出现在设置页**
+（`subtitleVideoLang`，「对话 · 实时听译 与 实时字幕」块）—— 语言对「两处一份设置」的规则推广到它。费用行改为
+只算修正 + 翻译那一次远程调用。
 
 **准备页**（M3 / I2 / B1）。「视频的语言 → 我的语言」摊在外面（理由同对话的语言对）；转写 / 翻译引擎一行；「字幕进复习（来源『实时字幕』）」默认开、「这次不留记录」默认关（开始即钉住）；主按钮「开始」；费用行；Gate I 隐私段。iPhone 多一张提示卡「先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。」（2026-09-14 起不点名 Safari，learning-design §9.8 协议补充决定 28）（顺序是尖刺 S5 定的：Safari 一离开前台 iOS 就暂停网页视频，所以先放视频再切来 App 开始，视频会停）二期多一个次按钮「用屏幕录制方式开始 · 戴耳机也能用」，隐私段换成屏幕录制版本。
 

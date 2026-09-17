@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:860px; height:900px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>现状 · 扩展设置页（基线）</h1><span class="mini">10 张卡一条长页；档位切整页；转写与解析藏在「学习」卡里</span></div>
+<div class="old">
+<div class="c"><span>setup-note · 提示条</span><span class="split"><span class="tag n">both</span></span></div><div class="c bad"><span>mode-tabs 快速 | 详细（切整页）</span><span class="split"><span class="tag n">—</span><span class="mini">档位与「学习」「登录」无关却一起被切</span></span></div><div class="c"><span>grant-card 免费额度</span><span class="split"><span class="tag n">quick</span></span></div><div class="c bad"><span>quick-setup-card 一键（含「实时转写（可选）」格）</span><span class="split"><span class="tag n">quick</span><span class="mini">填了会替换 sttEngine，说题录音改道</span></span></div><div class="c"><span>engine-card 翻译引擎</span><span class="split"><span class="tag n">adv</span></span></div><div class="c"><span>lang-card 语言</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>style-card 显示样式</span><span class="split"><span class="tag n">both</span></span></div><div class="c"><span>cache-card 缓存</span><span class="split"><span class="tag n">adv</span></span></div><div class="c bad"><span>learn-card 学习（采集 + 每日新卡 + 语言 + 解析引擎 ×4 + 转写引擎 ×4 + 来源 + 导入导出 + 统计 + 清理）</span><span class="split"><span class="tag n">both</span><span class="mini">一张卡装了三种东西</span></span></div><div class="c"><span>sync-section 登录 · 同步</span><span class="split"><span class="tag n">both</span></span></div><div class="c bad"><span>tts-card 语音（模式 + 引擎 ×4 + 声音 + 语速 + 自动播放 + 试听 + 缓存）</span><span class="split"><span class="tag n">adv</span><span class="mini">模式/语速是复习的事，却要开「详细」才看得到</span></span></div><div class="c"><span>about-card 关于（版本 · 反馈 · 遥测 · 重看引导 · 清除）</span><span class="split"><span class="tag n">both</span></span></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":860,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

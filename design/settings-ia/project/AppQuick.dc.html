@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#1f1c19; }
+    a { color:#e9a978; } a:hover { color:#f6c9ac; }
+  </style>
+</helmet>
+<div class="page dark phone" style="width:390px; height:2150px; padding:16px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1 style="font-size:1.15rem">设置 · App · 快速 · 深色</h1></div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">1</span><h2>引擎与密钥</h2></div><div class="tabs" role="tablist"><span class="tab on">快速</span><span class="tab">详细</span></div></div>
+<p class="mini" style="margin:0 4px">分别配每个引擎 → 详细</p>
+<section class="card"><h3>免费额度 <span class="tag g">已领取</span></h3><div class="row"><span class="stat">剩 63% · 下月 1 日重置</span></div><div class="prog"><div style="width:63%"></div></div><p class="hint">翻译、朗读、说题都在额度内。对话 · 实时字幕用本机识别，不花额度。</p></section>
+<section class="card"><h3>用一把 key 配好全部</h3><div class="field"><label>平台</label><div class="select"><span>OpenRouter</span></div></div><div class="field"><label>API Key · <a href="#k">去拿 key ↗</a></label><div class="input">••••••••••••••••••••</div></div><button class="btn p blk" type="button">配置并测试</button>
+<div><div class="qs-row"><span class="k">翻译</span><span class="res">✓ 通了</span></div><div class="qs-row"><span class="k">朗读</span><span class="res">✓ 通了</span></div><div class="qs-row"><span class="k">整段转写</span><span class="res">✓ 通了</span></div></div></section>
+<p class="mini" style="margin:0 4px">对话 · 实时字幕用设备内置识别，不需要 key。</p>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">2</span><h2>功能</h2></div></div>
+<div class="field"><label>界面语言</label><div class="select"><span>跟随系统</span></div></div>
+<section class="card"><h3>复习</h3><div class="dep"><b>依赖</b> · <span class="ok">由一键配置提供 ✓</span></div><div class="field"><label>语音模式</label><div class="select"><span>显示原文，可点播放</span></div></div><div class="field"><label>语速</label><div class="select"><span>1.0×</span></div></div><div class="row"><div class="l"><span>进入卡片自动播放</span></div><span class="sw on"></span></div><div class="field"><label>每日新卡</label><div class="input">20</div></div></section>
+<section class="card"><h3>学习采集</h3><p class="hint">这里改的是浏览器扩展那头的采集。</p><div class="field"><label>学习语言</label><div class="chips"><span class="chip on">English</span><span class="chip on">日本語</span><span class="chip">＋</span></div></div><div class="row"><span>来源管理</span><a href="#src">3 条规则 →</a></div></section>
+<section class="card"><h3>播客模式</h3><div class="dep"><b>依赖</b> · <span class="ok">由一键配置提供 ✓</span></div><div class="row"><div class="l"><span>播放句子解析</span><small>每张卡多一次付费调用</small></div><span class="sw"></span></div><div class="field"><label>出发前预载</label><div class="select"><span>3 天</span></div></div><button class="btn s" type="button">先算账（约 12 次调用）</button><div class="row"><span class="stat">音频缓存 · 8.6 MB</span><button class="btn s sm" type="button">清空</button></div></section>
+<section class="card"><h3>对话 · 实时听译 与 实时字幕</h3><div class="dep"><b>依赖</b> · 实时转写：<b>设备内置</b>（本机 · iOS 26 / macOS 26）<span class="ok">✓</span> · <span class="ok">其余由一键配置提供 ✓</span></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>识别语言包 <span class="tag g">已就绪</span></span><small>中文 ✓ · English ✓ · 换语言时由系统按需下载</small></div></div></div>
+<div class="grid2"><div class="field"><label>我的语言</label><div class="select"><span>中文</span></div></div><div class="field"><label>对方的语言</label><div class="select"><span>English</span></div></div></div><div class="field"><label>视频的语言 <span class="tag n">新</span></label><div class="select"><span>English</span></div></div><p class="mini" style="margin:0 4px">只列本机识别器支持的语言（由设备当场报出，不写死清单）：中 · 粤 · 英 · 日 · 韩 · 法 · 德 · 西 · 葡 · 意。</p>
+<div class="row"><div class="l"><span>自动朗读对方的话</span></div><span class="sw on"></span></div><div class="row"><div class="l"><span>对话进复习</span><small>定稿句对作为「对话」来源</small></div><span class="sw on"></span></div><div class="row"><div class="l"><span>字幕进复习</span><small>作为「字幕」来源</small></div><span class="sw on"></span></div>
+<p class="hint">原文在本机识别，一个字节不离开设备；译文经你配置的翻译引擎。</p></section>
+<section class="card"><h3>文档翻译</h3><div class="dep"><b>依赖</b> · <span class="ok">由一键配置提供 ✓</span></div><div class="row"><div class="l"><span>译文进复习</span><small>作为「文档」来源</small></div><span class="sw on"></span></div><div class="row"><div class="l"><span>预取下一页</span><small>只解析不翻译</small></div><span class="sw"></span></div></section>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">3</span><h2>账号与数据</h2></div></div>
+<section class="card"><h3>账号</h3><div class="row"><div class="l"><span>已登录 · Apple</span><small>句子与来源规则同步到扩展和其它设备</small></div><button class="btn s sm" type="button">退出</button></div><div><button class="btn d sm" type="button">删除账号</button></div></section>
+<section class="card"><h3>学习库</h3><span class="stat">312 张卡 · 48 张待复习 · 27 条候选</span><div class="btns"><button class="btn s sm" type="button">拆分长段卡</button><button class="btn s sm" type="button">清理已掌握</button><button class="btn d sm" type="button">清空学习库</button></div></section>
+</div><div class="sec">
+<div class="sec-h"><div class="t"><span class="n">4</span><h2>关于</h2></div></div>
+<section class="card"><h3>大肚猴翻译 · v1.12.0</h3><div class="btns"><button class="btn s sm" type="button">发送反馈</button><button class="btn s sm" type="button">去评分</button></div><div class="row"><div class="l"><span>分享匿名用量数据</span><small>不含文字、密钥或账号 · 关掉即删</small></div><span class="sw on"></span></div></section>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":2150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

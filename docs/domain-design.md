@@ -209,6 +209,20 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
 > **2026-09-16 修订（待人评审）**：Tier B（边说边出的实时档）**从扩展端下掉**，只保留在 App。
 > 理由与后果写在下方第 3 条。Tier A（整段转写）逐字不变。
 
+> **2026-09-17 修订（待人评审）**：实时转写在 App 里也**不再是一个引擎**。云端实时条目
+> （`openai_transcribe` / `qwen_asr` 上的 `liveEndpoint / liveType / liveModel / liveRate /
+> liveKeyProtocol`）与 `device` 这条 STT 注册表条目一并**从注册表删除**；「对话 · 实时听译」与
+> 「实时字幕」**固定**走本机识别器（SpeechAnalyzer，iOS 26 / macOS 26），`app/listen.js` 直接读
+> `NativeSpeech`，不再读 `sttEngine`。用户裁定（2026-09-17）原话要点：「实时语音…纯 api 效果太差…
+> 必须结合本地模型转写修正」，这是把 2026-09-12 的判断推到底。连带三条：**系统要求只管对话 · 实时字幕**
+> （App 与扩展的下限仍是 iOS 16.4 / macOS 13.3，`build/os-floor.config.js` 不动；旧系统上这两块不出现，
+> 其余功能照常）；对话的语言只列本机识别器支持的语种（设备当场报出，不写死清单）；说题**不接**本机
+> （整段转写下拉只列云端 / 自建，§9.4 那条悬案关闭）。后果：转写从此只剩**一个**槽 —— 整段转写
+> （`sttEngine` 四元组）—— 没有第二把 key、没有「填了实时 key 就替换整段引擎」、没有四处各算一遍的
+> 「有没有实时接口」。第 3 条里「`content/ws-transcribe.js` 不删 —— App 的听译仍在用它」自此失效：
+> 只留 `splitSentences` / `sentenceCutter`，ws 传输与 `wire-format.js` 的 ws 分支一起删。
+> 每个 flavor 的门（下 §7）改写。Tier A 仍逐字不变。
+
 Added 2026-09-06 after PR0 measurement (`scripts/asr-probe.js`, `scripts/asr-cors-probe.js`;
 ledger rows `api.openai.com × whisper-1 / gpt-live-transcribe`). The measured question was
 "is a transcription endpoint fast and accurate enough to be a subtitle *source*"; the
@@ -1108,7 +1122,23 @@ is a build-time concern, not a runtime one.
   「每个 flavor 至少有一个带实时接口的转写引擎」 — is unchanged and does not count a
   `device` entry toward it). OpenRouter has no realtime endpoint (checked 2026-09-10: only
   `POST /api/v1/audio/transcriptions`), which is why the global one-key platform needs
-  a second key for live transcription rather than a second entry. Its sibling `content/request-shape.js` answers the question that is left
+  a second key for live transcription rather than a second entry. *(Amended 2026-09-17,
+  待人评审:)* the whole "has a live interface" derivation above is **retired**, together
+  with the thing it derived. No `build/stt.config.js` entry carries `liveEndpoint`,
+  `liveType`, `liveModel`, `liveRate` or `liveKeyProtocol`; there is no
+  `device-transcribe` type and no `device` STT entry; `content/ws-transcribe.js` keeps
+  only `splitSentences`. Live transcription is a **device capability** reached through
+  the native bridge (`NativeSpeech`), not a provider the user picks — the same standing
+  as the microphone itself. The transcription registry therefore answers exactly one
+  question again, "where does a whole recording go", which is what §9.4 always said it
+  was for. The rule-10 gate in `test/registry.test.js` inverts: it now asserts that **no**
+  stt entry carries a `live*` field and none is `device-transcribe` (the way back would
+  be a registry change, and a registry change goes through this document). Downstream
+  consumers of the derivation go with it: the one-key card has no 「实时转写」 row, the
+  engine dropdown has no `· 实时` suffix, the popup has no `file_only` state, and the
+  App's home-screen grey state for an unsupported OS no longer offers 「去设置里选择 →」
+  (there is nothing to configure). OpenRouter was re-checked 2026-09-17 — still only
+  `POST /api/v1/audio/transcriptions`; the question is now moot. Its sibling `content/request-shape.js` answers the question that is left
   once the shape is fixed — **which optional fields go in the body** — and the same
   four transports go through that one instead of each carrying its own copy (two of
   them used to, character for character, comments included).

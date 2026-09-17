@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1100px; height:620px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>朗读卡 · 离线模型行的五种状态</h1><span class="mini">回应「系统 TTS 下载触发没感受到」：今天只有对话开始那一步会下载，设置里选了、试听了都静默失败</span></div>
+<div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start">
+  <div class="stack"><span class="lbl">浅色 · ① 未下载 → ② 下载中 → ③ 已安装</span><div class="grid3" style="gap:12px"><section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置朗读（离线模型 · 仅 App）</span></div></div><div class="field"><label>声音</label><div class="select"><span>自动 · 按卡片语言</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>离线模型 <span class="tag a">未下载</span></span><small>中文 + English · 129 MB</small></div><button class="btn p sm" type="button">下载</button></div><p class="mini" style="margin:0 4px">首次朗读也会自动下载；只下模型文件，不上传任何内容。</p></div><div class="split"><button class="btn s sm" type="button">下载并试听（129 MB）</button><span class="res"></span></div></section><section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置朗读（离线模型 · 仅 App）</span></div></div><div class="field"><label>声音</label><div class="select"><span>自动 · 按卡片语言</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>正在下载 · 中文</span><small>43% · 55 / 129 MB</small></div><button class="btn s sm" type="button">停止</button></div><div class="prog"><div style="width:43%"></div></div></div><div class="split"><button class="btn s sm" type="button">试听一句</button><span class="res no">等模型就位…</span></div></section><section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置朗读（离线模型 · 仅 App）</span></div></div><div class="field"><label>声音</label><div class="select"><span>自动 · 按卡片语言</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>离线模型 <span class="tag g">已安装</span></span><small>中文 · English · 129 MB</small></div><button class="btn s sm" type="button">重新下载</button></div></div><div class="split"><button class="btn s sm" type="button">试听一句</button><span class="res">✓ 播放中</span></div></section></div></div>
+  <div class="dark" style="background:#1f1c19; border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:10px"><span class="lbl">深色 · ④ 失败有出口 · ⑤ 回落具名</span><div class="grid2" style="gap:12px"><section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置朗读（离线模型 · 仅 App）</span></div></div><div class="field"><label>声音</label><div class="select"><span>自动 · 按卡片语言</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>下载失败 <span class="tag a">网络中断</span></span><small>已下 55 / 129 MB，重试会续传</small></div><button class="btn s sm" type="button">重试</button></div><p class="mini" style="margin:0 4px">或先 <a href="#sys">换成系统语音</a> —— 不下载也能朗读。</p></div><div class="split"><button class="btn s sm" type="button">试听一句</button><span class="res no">✗ 模型未就位 · 先下载或换系统语音</span></div></section><section class="card"><h3>朗读</h3><div class="field"><label>引擎</label><div class="select"><span>设备内置朗读（离线模型 · 仅 App）</span></div></div><div class="field"><label>声音</label><div class="select"><span>自动 · 按卡片语言</span></div></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>离线模型 <span class="tag g">已安装</span></span><small>中文 · English · 129 MB</small></div><button class="btn s sm" type="button">重新下载</button></div></div><div class="split"><button class="btn s sm" type="button">试听一句</button><span class="res">✓ 播放中 · 日本語 无离线模型，用系统语音</span></div></section></div><p class="mini" style="margin:0 4px">四处首播（设置试听 · 复习 · 播客 · 对话）统一走同一个下载入口，进度显示在各自的状态行，不弹框。对话块的「识别语言包」行同一形状。</p></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1100,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

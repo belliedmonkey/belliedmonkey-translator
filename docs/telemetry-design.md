@@ -248,6 +248,18 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 表里是因为历史行还在（180 天保留期内），删掉枚举会让那些行读不回来 —— **白名单同时是读的
 契约，不只是写的闸门。**
 
+### 3.3.3 2026-09-17：实时转写固定为设备内置 —— 白名单不变，两个值改含义（待人评审）
+
+云端实时引擎下线、实时转写固定为本机（learning-design §9.6 门控 2026-09-17 修订）之后，**不加事件、不加
+属性、不加值**。变的是两个既有值的含义，写在这里免得下次读数时按旧义解：
+
+- **`asr_entry.result: 'no_live'`**（`surface: 'app_home'`）—— 原义「转写引擎没有实时接口 / 没填 key」，
+  现在只可能是「本机识别器不可用」（系统太旧或语言不支持）。它仍回答同一个问题「首页入口灰了多少次」，
+  所以不改名；但 09-17 前后的 `no_live` **不可比** —— 之前含配置问题，之后不含。
+- **`engine_test.code: 'device_no_file'`** —— 随 `device` STT 注册表条目一起**不可达**（说题下拉里没有本机项了）。
+  枚举保留（读的契约，同上一节），文档注明它自 09-17 起应恒为 0；如果不是 0，那是旧客户端还在跑。
+- `engine_test.slot` **不加 `stt_live`**：上午两槽方案里要加的那个值，随方案一起作废。
+
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
 edge function neither stores nor logs them as a field).

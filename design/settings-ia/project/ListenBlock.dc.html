@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1180px; height:760px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>「对话与字幕」块 · 三种状态</h1><span class="mini">实时转写固定为设备内置，所以这块没有引擎下拉、没有 key；只有语言、语言包、采集开关</span></div>
+<div class="grid3" style="align-items:start">
+<div class="stack"><span class="lbl">① 就绪</span><section class="card"><h3>对话 · 实时听译 与 实时字幕</h3><div class="dep"><b>依赖</b> · 实时转写：<b>设备内置</b>（本机 · iOS 26 / macOS 26）<span class="ok">✓</span> · 翻译：DeepSeek <span class="ok">✓</span> · 朗读：设备内置朗读 <span class="ok">✓</span></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>识别语言包 <span class="tag g">已就绪</span></span><small>中文 ✓ · English ✓ · 换语言时由系统按需下载</small></div></div></div>
+<div class="grid2"><div class="field"><label>我的语言</label><div class="select"><span>中文</span></div></div><div class="field"><label>对方的语言</label><div class="select"><span>English</span></div></div></div><div class="field"><label>视频的语言 <span class="tag n">新</span></label><div class="select"><span>English</span></div></div><p class="mini" style="margin:0 4px">只列本机识别器支持的语言（由设备当场报出，不写死清单）：中 · 粤 · 英 · 日 · 韩 · 法 · 德 · 西 · 葡 · 意。</p>
+<div class="row"><div class="l"><span>自动朗读对方的话</span></div><span class="sw on"></span></div><div class="row"><div class="l"><span>对话进复习</span><small>定稿句对作为「对话」来源</small></div><span class="sw on"></span></div><div class="row"><div class="l"><span>字幕进复习</span><small>作为「字幕」来源</small></div><span class="sw on"></span></div>
+<p class="hint">原文在本机识别，一个字节不离开设备；译文经你配置的翻译引擎。</p></section></div>
+<div class="stack"><span class="lbl">② 换了语言 · 语言包下载中</span><section class="card"><h3>对话 · 实时听译 与 实时字幕</h3><div class="dep"><b>依赖</b> · 实时转写：<b>设备内置</b>（本机 · iOS 26 / macOS 26）<span class="ok">✓</span> · 翻译：DeepSeek <span class="ok">✓</span> · 朗读：设备内置朗读 <span class="ok">✓</span></div><div style="background:var(--tint); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:8px"><div class="row"><div class="l"><span>正在下载 日本語 识别语言包</span><small>62% · 由系统下载，只下模型文件</small></div><button class="btn s sm" type="button">停止</button></div><div class="prog"><div style="width:62%"></div></div></div>
+<div class="grid2"><div class="field"><label>我的语言</label><div class="select"><span>中文</span></div></div><div class="field"><label>对方的语言</label><div class="select"><span>日本語</span></div></div></div><div class="field"><label>视频的语言 <span class="tag n">新</span></label><div class="select"><span>English</span></div></div><p class="mini" style="margin:0 4px">只列本机识别器支持的语言（由设备当场报出，不写死清单）：中 · 粤 · 英 · 日 · 韩 · 法 · 德 · 西 · 葡 · 意。</p>
+<div class="row"><div class="l"><span>自动朗读对方的话</span></div><span class="sw on"></span></div><div class="row"><div class="l"><span>对话进复习</span><small>定稿句对作为「对话」来源</small></div><span class="sw on"></span></div><div class="row"><div class="l"><span>字幕进复习</span><small>作为「字幕」来源</small></div><span class="sw on"></span></div>
+<p class="hint">原文在本机识别，一个字节不离开设备；译文经你配置的翻译引擎。</p></section></div>
+<div class="stack"><span class="lbl">③ 旧系统（iOS &lt; 26 / macOS &lt; 26）</span><section class="card"><h3>对话 · 实时听译 与 实时字幕</h3>
+<div class="note w">需要 iOS 26 / macOS 26 —— 本机识别器在这台设备上不可用。网页翻译、复习、文档翻译不受影响。</div>
+<p class="hint">入口在首页是灰的，原因写在按钮上方；没有「去设置」可跳 —— 这不是配置问题。</p></section><p class="mini" style="margin:0 4px">App 与扩展的下限仍是 iOS 16.4 / macOS 13.3；只有这一块要 26。商店描述与官网把这句写在功能旁边。</p></div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1180,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
