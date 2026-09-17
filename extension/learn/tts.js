@@ -602,6 +602,9 @@ var LearnTTS = (() => {
       }
       const voices = await loadVoices();
       if (stale()) return { ok: false, reason: 'superseded' };
+      // 一个语音都没有（Linux 没装 speech-dispatcher、精简的 Chromium）是「这个浏览器不提供内置语音」，
+      // 不是「没有这门语言的语音」—— 后者会让人去换语言，而换什么都没用。canSpeak() 早就这么分，speak() 补齐（2026-09-18）。
+      if (!voices.length) return { ok: false, reason: 'unsupported' };
       const v = pickVoice(voices, lang, cfg.voice, clean);
       if (!v) return { ok: false, reason: undLang(lang) ? 'no_voice_und' : 'no_voice' };
       // iOS silently drops a speak() issued right after a cancel() that

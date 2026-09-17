@@ -272,6 +272,19 @@ describe('LearnTTS — availability is checked BEFORE offering a button', () => 
     eq(r.reason, 'unsupported');
   });
 
+  // Linux 上没装 speech-dispatcher / 精简 Chromium：speechSynthesis 在、getVoices() 恒为 []。
+  // 2026-09-18 无头 Chrome 实测：available() 说 unsupported，speak() 却说 no_voice（「没有这门语言的语音」）——
+  // 让人去换语言，而换什么都没用。两条路都要是「这个浏览器不提供内置语音」。
+  test('speechSynthesis present but zero voices: both available() and speak() report unsupported', async () => {
+    const sp = fakeSpeech([]);
+    const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
+    TTS.configure({ engineId: 'browser' });
+    eq((await TTS.available('en')).reason, 'unsupported');
+    const r = await TTS.speak('Hello world', 'en');
+    eq(r.ok, false); eq(r.reason, 'unsupported');
+    ok(/不提供内置语音/.test(TTS.reason('unsupported', (k, d) => d)));
+  });
+
   test('a language the system cannot speak reports no_voice', async () => {
     const sp = fakeSpeech([voice('Alex', 'en-US')]);
     const { TTS } = setup({ speechSynthesis: sp.api, SpeechSynthesisUtterance: sp.Utterance });
