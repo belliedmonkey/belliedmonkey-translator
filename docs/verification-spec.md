@@ -75,6 +75,11 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 
+> **不在矩阵里的（2026-09-18 用户裁定）：Windows 与 Linux 上的 Chrome / Firefox 暂不进验收矩阵。** 不为它们装虚拟机或容器、
+> 不留待办。能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
+> 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
+> 用户改口时再加回。
+
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
 not run there, and `domain-design.md` §9.4's constraint (the app is an *additional*
