@@ -128,7 +128,9 @@ async function cancelReview(version, bundleIds, apply) {
       // 撤审重提正是要从这里走回去。REJECTED 才是被拒（2026-09-18 1.12.1 国际 iOS，
       // Guideline 4）：修完换 build 重提，此时那次提交还挂着（UNRESOLVED_ISSUES），
       // 不能再 POST 一个新提交，要复用它 —— 见下面 ①。在审中的一律跳过（不去动别人的排队）。
-      const SUBMITTABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED'];
+      // READY_FOR_REVIEW：版本已挂在一个**还没递出去**的提交里（被拒条目标 resolved 之后就是这个状态，
+      // 或上一次跑到 ③ 之前断了）—— 只差最后一步 PATCH submitted:true。
+      const SUBMITTABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'READY_FOR_REVIEW'];
       if (!SUBMITTABLE.includes(v.attributes.appStoreState)) {
         console.log(`  跳过 ${label}: 状态 ${v.attributes.appStoreState}`);
         continue;
@@ -233,11 +235,28 @@ async function cancelReview(version, bundleIds, apply) {
     let attached = false;
     // ①' 被拒后的重提（2026-09-18）：那次提交还在 UNRESOLVED_ISSUES，版本已经挂在它的条目里。
     // 这时 POST 新提交会被拒（同平台只能有一个开着的），正确动作是复用它、跳过②、直接 ③ 递出去。
-    for (const cand of subsAll.filter((r) => r.attributes.state === 'UNRESOLVED_ISSUES')) {
+    for (const cand of subsAll.filter((r) => ['UNRESOLVED_ISSUES', 'READY_FOR_REVIEW'].includes(r.attributes.state))) {
       const items = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=10&include=appStoreVersion`);
       const hit = (items.data || []).some((it) => it.relationships && it.relationships.appStoreVersion
         && it.relationships.appStoreVersion.data && it.relationships.appStoreVersion.data.id === t.versionId);
-      if (hit) { sub = cand; attached = true; console.log(`    （复用被拒的那次提交 ${cand.id.slice(0, 8)}，版本已在其条目里）`); break; }
+      if (hit) {
+        sub = cand; attached = true;
+        console.log(`    （复用${cand.attributes.state === 'UNRESOLVED_ISSUES' ? '被拒的' : '还没递出去的'}那次提交 ${cand.id.slice(0, 8)}，版本已在其条目里）`);
+        // 被拒的条目要先标 resolved，否则 ③ 回 409「appStoreVersions … is not in valid state」——
+        // 与 whatsNew 为空时同一句话，但这次的真因是条目还是 REJECTED（2026-09-18 当场撞到）。
+        for (const it of items.data) {
+          if (it.attributes && it.attributes.state === 'REJECTED' && it.relationships.appStoreVersion.data.id === t.versionId) {
+            await api('PATCH', `/reviewSubmissionItems/${it.id}`, {
+              data: { type: 'reviewSubmissionItems', id: it.id, attributes: { resolved: true } },
+            });
+            // reviewSubmissionItems 不允许 GET_INSTANCE（只有 CREATE/DELETE/UPDATE）—— 回读走提交的 items 列表
+            const again = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=10&fields[reviewSubmissionItems]=state,resolved`);
+            const me = (again.data || []).find((x) => x.id === it.id);
+            console.log(`    （条目标 resolved → state=${me && me.attributes.state} resolved=${me && me.attributes.resolved}）`);
+          }
+        }
+        break;
+      }
     }
     for (const cand of sub ? [] : open) {
       const items = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=5`);

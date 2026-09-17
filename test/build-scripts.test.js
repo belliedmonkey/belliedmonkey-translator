@@ -1257,14 +1257,14 @@ describe('ASC 脚本必须认 REJECTED（被审核拒了）并复用那次提交
   const path = require('path');
   const ROOT = path.join(__dirname, '..');
   test('asc.js 与 asc-submit.js 的可编辑 / 可提交集合里有 REJECTED', () => {
-    for (const f of ['scripts/asc.js', 'scripts/asc-submit.js']) {
-      const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
-      match(src, /\[\s*'PREPARE_FOR_SUBMISSION',\s*'DEVELOPER_REJECTED',\s*'REJECTED'\s*\]/, f);
-    }
+    match(fs.readFileSync(path.join(ROOT, 'scripts/asc.js'), 'utf8'), /\[\s*'PREPARE_FOR_SUBMISSION',\s*'DEVELOPER_REJECTED',\s*'REJECTED'\s*\]/);
+    // asc-submit 还多认 READY_FOR_REVIEW：版本已挂在没递出去的提交里，只差 submitted:true
+    match(fs.readFileSync(path.join(ROOT, 'scripts/asc-submit.js'), 'utf8'), /\[\s*'PREPARE_FOR_SUBMISSION',\s*'DEVELOPER_REJECTED',\s*'REJECTED',\s*'READY_FOR_REVIEW'\s*\]/);
   });
   test('asc-submit.js 复用 UNRESOLVED_ISSUES 的提交，且已挂版本时跳过 POST reviewSubmissionItems', () => {
     const src = fs.readFileSync(path.join(ROOT, 'scripts/asc-submit.js'), 'utf8');
-    ok(/state === 'UNRESOLVED_ISSUES'/.test(src), '要找被拒的那次提交');
+    ok(/\['UNRESOLVED_ISSUES', 'READY_FOR_REVIEW'\]\.includes\(r\.attributes\.state\)/.test(src), '要找被拒的 / 没递出去的那次提交');
+    ok(/attributes: \{ resolved: true \}/.test(src), '被拒条目先标 resolved，否则 ③ 回 409');
     ok(/if \(!attached\) await api\('POST', '\/reviewSubmissionItems'/.test(src), '版本已在条目里就不再挂一次');
   });
 });
