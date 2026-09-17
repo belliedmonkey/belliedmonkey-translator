@@ -1920,50 +1920,8 @@
   "qs_privacy": {
     "message": "Die Transkription sendet deine Aufnahme an {host}. Sie wird sofort nach der Erkennung verworfen – nie gespeichert, nie synchronisiert."
   },
-  "qs_live_key": {
-    "message": "Live-Schlüssel"
-  },
-  "qs_live_key_ph": {
-    "message": "Optional: Schlüssel eines anderen Anbieters"
-  },
-  "qs_live_title": {
-    "message": "Live-Transkription (optional)"
-  },
-  "qs_live_sub": {
-    "message": "{p} hat keine Live-Schnittstelle. Live-Transkription von Videos/Podcasts und „Gespräch · Live-Dolmetscher“ in der App brauchen sie – einen {live}-Schlüssel hinzufügen, fertig; leer lassen geht auch, dann läuft die Transkription im Ganzdatei-Modus."
-  },
-  "qs_get_live_key": {
-    "message": "Noch kein Schlüssel? Bei {live} holen ↗"
-  },
-  "qs_live_privacy": {
-    "message": "Die Live-Transkription sendet das Seitenaudio zur Erkennung an {liveHost} und verwirft es danach."
-  },
-  "qs_untouched_live": {
-    "message": "— unverändert · du hast bereits eine Engine mit Live-Schnittstelle ({cur})"
-  },
-  "qs_live_replaced": {
-    "message": "(hat {cur} ersetzt, das keine Live-Schnittstelle hatte; jetzt mit Live-Schnittstelle)"
-  },
   "qs_grant_replaced": {
     "message": "(hat den Gratis-Guthaben-Schlüssel ersetzt)"
-  },
-  "qs_live_ok": {
-    "message": "(mit Live-Schnittstelle)"
-  },
-  "qs_stt_no_live": {
-    "message": "({engine} hat keine Live-Schnittstelle – bei Bedarf oben ergänzen ↑)"
-  },
-  "stt_live_suffix": {
-    "message": "· Live"
-  },
-  "stt_engine_device": {
-    "message": "Geräteinterne Transkription (kostenlos · offline · nur App)"
-  },
-  "stt_hint_device": {
-    "message": "Sprache wird auf dem Gerät erkannt und an keinen Server gesendet; benötigt iOS 26 / macOS 26. Derzeit nur im Gespräch verwendet."
-  },
-  "stt_device_suffix": {
-    "message": "· auf dem Gerät"
   },
   "stt_device_no_file": {
     "message": "Die Transkription auf dem Gerät gilt nur für Gespräche und Live-Untertitel; Sprechübungen werden noch nicht unterstützt"
@@ -1976,9 +1934,6 @@
   },
   "engine_test_device_timeout": {
     "message": "Die Erkennung auf dem Gerät antwortet nicht — App beenden, neu öffnen und erneut versuchen"
-  },
-  "listen_need_device_os": {
-    "message": "Geräteinterne Transkription benötigt iOS 26 / macOS 26 – oder wähle in den Einstellungen eine Cloud-Echtzeit-Engine"
   },
   "listen_downloading": {
     "message": "Offline-Modell {lang} wird geladen · {pct} %"
@@ -1998,17 +1953,8 @@
   "listen_raw_label": {
     "message": "Erkannter Text"
   },
-  "tts_engine_device": {
-    "message": "Geräteinterne Sprachausgabe (Offline-Modell · nur App)"
-  },
-  "tts_hint_device": {
-    "message": "Sprache wird auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Nicht abgedeckte Sprachen nutzen die Systemstimme, und die Zeile sagt es."
-  },
   "tts_device_lang_fallback": {
     "message": "Mit Systemstimme gelesen (Offline-Modell deckt {lang} nicht ab)"
-  },
-  "grant_live_go": {
-    "message": "Live-Engine hinzufügen →"
   },
   "qs_apply": {
     "message": "Übersetzung, Vorlesen und Transkription einrichten"
@@ -2288,9 +2234,6 @@
   "asr_status_file": {
     "message": "⏳ Gesamtes Audio wird transkribiert…"
   },
-  "asr_status_live": {
-    "message": "● Live-Transkription"
-  },
   "asr_stop": {
     "message": "Transkription stoppen"
   },
@@ -2313,17 +2256,11 @@
   "asr_err_nocues": {
     "message": "Diese Engine liefert keine Zeitstempel und kann keine Untertitel erzeugen"
   },
-  "asr_err_nolive": {
-    "message": "Diese Engine hat keine Live-Schnittstelle; dieses Medium kann nicht transkribiert werden"
-  },
   "asr_gesture_needed": {
     "message": "Auf der Seite tippen, um die Aufnahme zu starten"
   },
   "asr_gesture_tap": {
     "message": "▶ Tippen, um die Live-Transkription zu starten"
-  },
-  "asr_go_live_engine": {
-    "message": "Eine Engine mit Live-Schnittstelle einrichten →"
   },
   "asr_err_settings": {
     "message": "Transkriptions-Engine geändert — gestoppt"
@@ -2396,12 +2333,6 @@
   },
   "listen_entry_hint": {
     "message": "Zwei Menschen im Gespräch: beide sprechen einfach, beide Sprachen stehen auf dem Bildschirm, Übersetzungen werden vorgelesen. Audio geht nur an den von dir eingerichteten Transkriptions-Endpunkt."
-  },
-  "listen_need_live": {
-    "message": "„Gespräch · Live-Dolmetscher“ braucht eine Transkriptions-Engine mit Echtzeit-Endpunkt"
-  },
-  "listen_need_live_go": {
-    "message": "In den Einstellungen wählen →"
   },
   "listen_title": {
     "message": "Gespräch"
@@ -2695,9 +2626,6 @@
   "grant_signin_again": {
     "message": "Erneut anmelden"
   },
-  "grant_no_live": {
-    "message": "Live-Dolmetschen ist nicht abgedeckt: Es braucht eine Echtzeitverbindung, und dieses Relais leitet nur einzelne Anfragen weiter."
-  },
   "grant_body_signed_out": {
     "message": "Durch das Abmelden wurde dein Gratis-Guthaben deaktiviert. Der Stand bleibt erhalten — melde dich mit demselben Konto wieder an, dann ist es zurück."
   },
@@ -2941,9 +2869,6 @@
   "subtitle_entry_hint": {
     "message": "Zweisprachige Untertitel für laufende Videos, Streams und Meetings"
   },
-  "subtitle_need_live": {
-    "message": "Live-Untertitel brauchen eine Transkriptions-Engine mit Live-Schnittstelle"
-  },
   "subtitle_need_key": {
     "message": "Für die Transkriptions-Engine fehlt noch der API-Schlüssel"
   },
@@ -3099,5 +3024,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "Seit 30 Sekunden kein Ton – pausiert. Video läuft, aber keine Untertitel? Vielleicht ist die Systemaudioaufnahme nicht erlaubt"
+  },
+  "listen_need_os": {
+    "message": "Gespräch und Live-Untertitel benötigen iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "Die integrierte Erkennung unterstützt diese Sprache nicht – versuche eine andere"
+  },
+  "listen_assets_failed2": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – tippe erneut auf „Zuhören starten“, um es noch einmal zu versuchen."
+  },
+  "tts_engine_device": {
+    "message": "Geräteinterne Sprachausgabe (Offline-Modell · nur App)"
+  },
+  "tts_hint_device": {
+    "message": "Sprache wird auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Nicht abgedeckte Sprachen nutzen die Systemstimme, und die Zeile sagt es."
   }
 }

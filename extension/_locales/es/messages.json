@@ -1920,50 +1920,8 @@
   "qs_privacy": {
     "message": "La transcripción envía tu grabación a {host}. Se descarta en cuanto se reconoce: nunca se almacena ni se sincroniza."
   },
-  "qs_live_key": {
-    "message": "Clave en vivo"
-  },
-  "qs_live_key_ph": {
-    "message": "Opcional: clave de otro proveedor"
-  },
-  "qs_live_title": {
-    "message": "Transcripción en vivo (opcional)"
-  },
-  "qs_live_sub": {
-    "message": "{p} no tiene interfaz en vivo. La transcripción en vivo de vídeos/podcasts y «Conversación · intérprete en vivo» de la app la necesitan: añade una clave de {live} y listo; si la dejas vacía, la transcripción va en modo de archivo completo."
-  },
-  "qs_get_live_key": {
-    "message": "¿Sin clave? Consíguela en {live} ↗"
-  },
-  "qs_live_privacy": {
-    "message": "La transcripción en vivo envía el audio de la página a {liveHost} para reconocerlo y lo descarta después."
-  },
-  "qs_untouched_live": {
-    "message": "— sin cambios · ya tienes un motor con interfaz en vivo ({cur})"
-  },
-  "qs_live_replaced": {
-    "message": "(reemplazó a {cur}, que no tenía interfaz en vivo; ahora la incluye)"
-  },
   "qs_grant_replaced": {
     "message": "(reemplazó la clave del crédito gratis)"
-  },
-  "qs_live_ok": {
-    "message": "(incluye interfaz en vivo)"
-  },
-  "qs_stt_no_live": {
-    "message": "({engine} no tiene interfaz en vivo: añade una arriba cuando la necesites ↑)"
-  },
-  "stt_live_suffix": {
-    "message": "· en vivo"
-  },
-  "stt_engine_device": {
-    "message": "Transcripción integrada en el dispositivo (gratis · sin conexión · solo app)"
-  },
-  "stt_hint_device": {
-    "message": "La voz se reconoce en tu dispositivo y no se envía a ningún servidor; requiere iOS 26 / macOS 26. Por ahora solo se usa en Conversación."
-  },
-  "stt_device_suffix": {
-    "message": "· en el dispositivo"
   },
   "stt_device_no_file": {
     "message": "La transcripción en el dispositivo solo sirve para conversaciones y subtítulos en directo; la práctica oral aún no es compatible"
@@ -1976,9 +1934,6 @@
   },
   "engine_test_device_timeout": {
     "message": "El reconocimiento en el dispositivo no responde: cierra y vuelve a abrir la app e inténtalo de nuevo"
-  },
-  "listen_need_device_os": {
-    "message": "La transcripción en el dispositivo requiere iOS 26 / macOS 26, o elige un motor en tiempo real en la nube en Ajustes"
   },
   "listen_downloading": {
     "message": "Descargando el modelo sin conexión de {lang} · {pct} %"
@@ -1998,17 +1953,8 @@
   "listen_raw_label": {
     "message": "Texto reconocido"
   },
-  "tts_engine_device": {
-    "message": "Voz integrada en el dispositivo (modelo sin conexión · solo app)"
-  },
-  "tts_hint_device": {
-    "message": "La voz se sintetiza en tu dispositivo; el primer uso descarga una vez el modelo sin conexión (solo el archivo del modelo). Los idiomas que el modelo no cubre usan la voz del sistema, y la fila lo indica."
-  },
   "tts_device_lang_fallback": {
     "message": "Leído con la voz del sistema (el modelo sin conexión no cubre {lang})"
-  },
-  "grant_live_go": {
-    "message": "Añadir motor en vivo →"
   },
   "qs_apply": {
     "message": "Configurar traducción, lectura y transcripción"
@@ -2288,9 +2234,6 @@
   "asr_status_file": {
     "message": "⏳ Transcribiendo todo el audio…"
   },
-  "asr_status_live": {
-    "message": "● Transcripción en vivo"
-  },
   "asr_stop": {
     "message": "Detener transcripción"
   },
@@ -2313,17 +2256,11 @@
   "asr_err_nocues": {
     "message": "Este motor no devuelve marcas de tiempo; no puede crear subtítulos"
   },
-  "asr_err_nolive": {
-    "message": "Este motor no tiene interfaz en vivo; este medio no se puede transcribir"
-  },
   "asr_gesture_needed": {
     "message": "Toca la página para empezar a capturar"
   },
   "asr_gesture_tap": {
     "message": "▶ Toca para iniciar la transcripción en vivo"
-  },
-  "asr_go_live_engine": {
-    "message": "Configurar un motor con interfaz en vivo →"
   },
   "asr_err_settings": {
     "message": "Motor de transcripción cambiado — detenido"
@@ -2396,12 +2333,6 @@
   },
   "listen_entry_hint": {
     "message": "Dos personas hablando cara a cara: ambas hablan sin más, los dos idiomas salen en pantalla y las traducciones se leen en voz alta. El audio va solo al punto de transcripción que configuraste."
-  },
-  "listen_need_live": {
-    "message": "«Conversación · intérprete en vivo» necesita un motor de transcripción con punto en tiempo real"
-  },
-  "listen_need_live_go": {
-    "message": "Elegir en ajustes →"
   },
   "listen_title": {
     "message": "Conversación"
@@ -2695,9 +2626,6 @@
   "grant_signin_again": {
     "message": "Volver a iniciar sesión"
   },
-  "grant_no_live": {
-    "message": "La conversación en directo no está cubierta: necesita una conexión en tiempo real, y este relé solo reenvía peticiones puntuales."
-  },
   "grant_body_signed_out": {
     "message": "Al cerrar sesión se desactivó tu crédito gratuito. El saldo sigue ahí: vuelve a iniciar sesión con la misma cuenta y regresa."
   },
@@ -2941,9 +2869,6 @@
   "subtitle_entry_hint": {
     "message": "Subtítulos bilingües para el vídeo, directo o reunión que se está reproduciendo"
   },
-  "subtitle_need_live": {
-    "message": "Subtítulos en vivo necesita un motor de transcripción con conexión en tiempo real"
-  },
   "subtitle_need_key": {
     "message": "Falta la clave API del motor de transcripción"
   },
@@ -3099,5 +3024,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "Sin sonido durante 30 segundos: en pausa. ¿El vídeo suena pero no hay subtítulos? Puede que la grabación de audio del sistema no esté permitida"
+  },
+  "listen_need_os": {
+    "message": "La conversación y los subtítulos en vivo requieren iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "El reconocedor integrado no admite este idioma — prueba con otro"
+  },
+  "listen_assets_failed2": {
+    "message": "Falló la descarga del modelo sin conexión: {why} — toca “Empezar a escuchar” de nuevo para reintentar."
+  },
+  "tts_engine_device": {
+    "message": "Voz integrada en el dispositivo (modelo sin conexión · solo app)"
+  },
+  "tts_hint_device": {
+    "message": "La voz se sintetiza en tu dispositivo; el primer uso descarga una vez el modelo sin conexión (solo el archivo del modelo). Los idiomas que el modelo no cubre usan la voz del sistema, y la fila lo indica."
   }
 }

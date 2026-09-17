@@ -446,19 +446,16 @@ var ListenCore = (() => {
     return true;
   }
 
-  // 「实时字幕」首页入口（interaction-spec M2；learning-design §9.8 协议补充决定）。
-  //   env.caps     : 原生回的 audio-caps；没有 = 老原生壳不认识这个功能 ⇒ 'hidden'（整行不显示）
-  //   env.deviceOk : 设备内置转写可用 ⇒ 跳过 ①②
-  //   env.liveOk   : 选中的转写引擎有实时接口
-  //   env.keyOk    : 转写引擎的 key 填了（或不需要）
-  // 返回 '' = 可用；否则按 ① no-live ② no-key ③ os 的顺序给第一个原因。
+  // 「实时字幕」首页入口（interaction-spec M2；learning-design §9.8 协议补充决定；2026-09-17 修订）。
+  //   env.caps         : 原生回的 audio-caps；没有 = 老原生壳不认识这个功能 ⇒ 'hidden'（整行不显示）
+  //   env.deviceOk     : 本机识别器可用（实时转写固定为设备内置，没有云端路，也没有 key 可填）
+  //   env.deviceReason : 不可用的原因，'locale'（语言不支持）或其它（系统太旧 / 无桥）
+  // 返回 '' = 可用；否则按 ① device-os / locale ② os（Mac 系统声音版本）的顺序给第一个原因。
+  // 2026-09-17 之前这里还有 no-live / no-key 两条（转写引擎没实时接口 / 没填 key）—— 随云端实时档一起删。
   function entryGate(env) {
     const e = env || {};
     if (!e.caps) return 'hidden';
-    if (!e.deviceOk) {
-      if (!e.liveOk) return 'no-live';
-      if (!e.keyOk) return 'no-key';
-    }
+    if (!e.deviceOk) return e.deviceReason === 'locale' ? 'locale' : 'device-os';
     if (e.caps.system === 'os') return 'os';
     return '';
   }

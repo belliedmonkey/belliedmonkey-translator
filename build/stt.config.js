@@ -18,11 +18,13 @@
 // no-telemetry promise cannot absorb (learning-design §12 — permanently rejected).
 // An empty `sttEngine` therefore means the 说 exercise DOES NOT EXIST (§5.4
 // capability semantics), which is the correct default.
-// *(Amended 2026-09-12:)* the `device` entry below is the ONE exception, and it is an
-// exception to the letter, not to the reason: the host app's system recogniser runs on
-// the device and sends nothing anywhere (domain-design §2.4 rule 5 amendment, §7 third
-// endpoint carve-out; learning-design §9.6.1). It exists only in the host app's dropdown
-// (`engine-fields.populate` is handed `deviceOk`), never in the extension's.
+// *(2026-09-12 → 09-17:)* for five days this registry carried a `device` entry (the host
+// app's on-device recogniser) and two entries carried `live*` fields (cloud streaming
+// sockets). Both are gone: live transcription is fixed to the device recogniser and is
+// reached through the native bridge, not chosen here (domain-design §2.4 / §7 2026-09-17
+// amendments; learning-design §9.4). This registry answers exactly one question again —
+// where does a WHOLE recording go — and the registry gate asserts no entry carries a
+// `live*` field or a `device-transcribe` type.
 //
 // One format covers the whole space:
 //   type 'transcribe-compat' — the OpenAI /v1/audio/transcriptions multipart shape
@@ -36,17 +38,6 @@ const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
 
 module.exports = [
-  {
-    // 设备内置转写（learning-design §9.6.1）：iOS 26 / macOS 26 的系统识别器，音频不出设备。
-    // 不说 HTTP ⇒ defaultEndpoint 显式 null（同 google / browser 那两处 carve-out），免台账；
-    // 「是否实时 / 是否本机」都由 type 推导，不加字段。第一版只接对话模式，不接「说」题
-    // （speech-input.js 对它回具名原因 device_no_file）。
-    id: 'device', type: 'device-transcribe', flavors: ['global', 'china'],
-    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
-    defaultEndpoint: null, placeholder: null, defaultModel: '',
-    labelKey: 'stt_engine_device', label: '设备内置转写（免费 · 离线 · 仅 App）',
-    hintKey: 'stt_hint_device',
-  },
   {
     // Any server implementing the /v1/audio/transcriptions request shape on the
     // user's own machine or LAN. Brand-free by design — the user supplies the
@@ -84,15 +75,6 @@ module.exports = [
     defaultModel: 'qwen-audio-3.0-asr-flash',
     labelKey: null, label: '通义千问 · 语音转写',
     hintKey: 'stt_hint',
-    // §2.4 tier B（流式一档）—— 中国版唯一带实时接口的转写引擎，也是 App「对话 · 实时听译」
-    // 在中国版存在的前提（AGENTS 规则 10：不出阉割版）。实测 2026-09-07（scripts/asr-probe.js）：
-    // `api-ws/v1/inference` 的 run-task/duplex 协议，pcm 16k 二进制帧，逐句 result-generated；
-    // 英文 12 分钟滞后 p50 1.20s / p90 1.56s、WER 3.6%、100% 以标点闭合；中文 12 分钟
-    // p50 1.03s / p90 1.42s、CER 5.2%、98.1%；0 断流。key 走 `?api_key=`（握手实测只认这一种
-    // 无头写法；真 Chrome 页面源握手 + task-started 成功，scripts/asr-cors-probe.js）。
-    // 同一把 key；用户改 sttBaseUrl 只影响上面那个文件端点。
-    liveEndpoint: 'wss://dashscope.aliyuncs.com/api-ws/v1/inference',
-    liveType: 'ws-duplex', liveModel: 'qwen-audio-3.0-asr-flash-streaming', liveRate: 16000,
   },
   {
     // 聚合网关的转写。走**已有的** transcribe-compat 形状（multipart /audio/transcriptions），
@@ -121,18 +103,6 @@ module.exports = [
     defaultModel: 'whisper-1',
     labelKey: null, label: 'OpenAI Transcribe',
     hintKey: 'stt_hint',
-    // §2.4 tier B（AI 转写字幕的流式一档）。实测 2026-09-06（scripts/asr-probe.js）：
-    // ?intent=transcription、子协议 openai-insecure-api-key 鉴权、pcm 24k、逐词 delta 带标点，
-    // 英文 12 分钟滞后 p90 2.24s / WER 3.7%，中文 p90 2.45s / CER 3.9%。地址原样存原样用；
-    // 用户改 sttBaseUrl 只影响上面那个文件端点。
-    // 文件一档仍走 whisper-1 + verbose_json（gpt-transcribe 拒绝 verbose_json，没有时间戳）。
-    liveEndpoint: 'wss://api.openai.com/v1/realtime?intent=transcription',
-    liveType: 'ws-realtime', liveModel: 'gpt-live-transcribe', liveRate: 24000,
-    liveKeyProtocol: 'openai-insecure-api-key.',
-    // 会话参数（直接并进 transcription 配置）。实测 2026-09-06 A/B（3 分钟英文，同一段音频）：
-    // 默认档滞后 p50 1.72s / p90 2.63s；`delay:'low'` 0.78s / 2.29s；`delay:'minimal'`
-    // **0.18s / 0.35s**，三档 WER 相同 —— 见台账 gpt-live-transcribe 行。
-    liveParams: { delay: 'minimal' },
   },
   {
     // GLOBAL ONLY（Gemini 在中国大陆不开放）。文件一档走 Interactions 接口：JSON 内联
@@ -147,15 +117,9 @@ module.exports = [
     labelKey: null, label: 'Gemini Transcribe (Google)',
     hintKey: 'stt_hint',
     uploadEndpoint: 'https://generativelanguage.googleapis.com/upload/v1beta/files',
-    // 流式一档**暂不登记**（台账 gemini-3.5-transcribe-live 行，verdict rejected）：免费档下
-    // interim 被限流（12 分钟只有 126 帧，首次干净的一轮是 1473 帧），句子成批到达，
-    // 滞后 p50 8.6s。ws-bidi 适配器已实现并有单元测试；付费档复测过线后把下面三行放开：
-    //   liveEndpoint: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
-    //   liveType: 'ws-bidi', liveModel: 'gemini-3.5-transcribe-live', liveRate: 16000,
   },
-  // 免费额度的中继 · 转写档（§8.10）。**没有 live 字段** —— 中继只转发一次性的
-  // /audio/transcriptions，没有实时接口。所以「对话 · 实时听译」不在额度覆盖范围内，
-  // 这一点必须在卡上提前说，而不是让用户点进去发现入口不存在。
+  // 免费额度的中继 · 转写档（§8.10）：中继只转发一次性的 /audio/transcriptions，给说题与
+  // 整段字幕用。对话 · 实时字幕自 2026-09-17 起走本机识别，不花额度也不经中继。
   {
     id: 'grant_stt', type: 'transcribe-compat', flavors: ['global'], grantOnly: true,
     needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,

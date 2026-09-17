@@ -1921,50 +1921,8 @@
   "qs_privacy": {
     "message": "转写会把你的录音发到 {host} 识别，识别完立即丢弃，不存储也不同步。"
   },
-  "qs_live_key": {
-    "message": "实时 key"
-  },
-  "qs_live_key_ph": {
-    "message": "可选：另一家的 key"
-  },
-  "qs_live_title": {
-    "message": "实时转写（可选）"
-  },
-  "qs_live_sub": {
-    "message": "{p} 没有实时接口。视频/播客的实时转写，和 App 的「对话 · 实时听译」都需要它 —— 另配一把 {live} 的 key 就能用；不填也行，转写走整段模式。"
-  },
-  "qs_get_live_key": {
-    "message": "还没有 key？去 {live} 申请 ↗"
-  },
-  "qs_live_privacy": {
-    "message": "实时转写会把页面音频送到 {liveHost} 识别，识别完即弃。"
-  },
-  "qs_untouched_live": {
-    "message": "— 没动 · 你已经配过一个带实时接口的引擎（{cur}）"
-  },
-  "qs_live_replaced": {
-    "message": "（替换了原来的 {cur}，它没有实时接口；现在含实时接口）"
-  },
   "qs_grant_replaced": {
     "message": "（替换了免费额度的 key）"
-  },
-  "qs_live_ok": {
-    "message": "（含实时接口）"
-  },
-  "qs_stt_no_live": {
-    "message": "（{engine} 没有实时接口 —— 需要实时转写时在上面另配 ↑）"
-  },
-  "stt_live_suffix": {
-    "message": "· 实时"
-  },
-  "stt_engine_device": {
-    "message": "设备内置转写（免费 · 离线 · 仅 App）"
-  },
-  "stt_hint_device": {
-    "message": "声音只在你的设备上识别，不发往任何服务器；需要 iOS 26 / macOS 26。目前只用于「对话 · 实时听译」。"
-  },
-  "stt_device_suffix": {
-    "message": "· 本机"
   },
   "stt_device_no_file": {
     "message": "设备内置转写只用于对话与实时字幕，说题暂不支持"
@@ -1977,9 +1935,6 @@
   },
   "engine_test_device_timeout": {
     "message": "本机识别没有回应 —— 关掉 App 重开再试"
-  },
-  "listen_need_device_os": {
-    "message": "设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎"
   },
   "listen_downloading": {
     "message": "正在下载{lang}离线模型 · {pct}%"
@@ -1999,17 +1954,8 @@
   "listen_raw_label": {
     "message": "识别原文"
   },
-  "tts_engine_device": {
-    "message": "设备内置朗读（离线模型 · 仅 App）"
-  },
-  "tts_hint_device": {
-    "message": "语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。模型不含的语言会改用系统语音并在行上说明。"
-  },
   "tts_device_lang_fallback": {
     "message": "用系统语音朗读（离线模型不含{lang}）"
-  },
-  "grant_live_go": {
-    "message": "另配实时引擎 →"
   },
   "qs_apply": {
     "message": "配好翻译、朗读、转写"
@@ -2289,9 +2235,6 @@
   "asr_status_file": {
     "message": "⏳ 正在转写整段音频…"
   },
-  "asr_status_live": {
-    "message": "● 实时转写中"
-  },
   "asr_stop": {
     "message": "停止转写"
   },
@@ -2314,17 +2257,11 @@
   "asr_err_nocues": {
     "message": "该转写引擎不返回时间戳，无法做字幕"
   },
-  "asr_err_nolive": {
-    "message": "该转写引擎没有实时接口，此媒体无法转写"
-  },
   "asr_gesture_needed": {
     "message": "需要在页面上点一下才能开始采集"
   },
   "asr_gesture_tap": {
     "message": "▶ 点此开始实时转写"
-  },
-  "asr_go_live_engine": {
-    "message": "去配一个带实时接口的引擎 →"
   },
   "asr_err_settings": {
     "message": "转写引擎已更改，已停止转写"
@@ -2397,12 +2334,6 @@
   },
   "listen_entry_hint": {
     "message": "两个人面对面谈事情：各说各的话，屏幕上出双语，译文自动读出来。音频只发往你配置的转写端点。"
-  },
-  "listen_need_live": {
-    "message": "「对话 · 实时听译」需要一个带实时接口的转写引擎"
-  },
-  "listen_need_live_go": {
-    "message": "去设置里选择 →"
   },
   "listen_title": {
     "message": "对话"
@@ -2696,9 +2627,6 @@
   "grant_signin_again": {
     "message": "重新登录"
   },
-  "grant_no_live": {
-    "message": "实时听译不在额度范围内 —— 它要实时接口，而这条中继只转发一次性请求。"
-  },
   "grant_body_signed_out": {
     "message": "退出登录后免费额度停用了。余额保留着 —— 用同一个账号再登录就回来。"
   },
@@ -2942,9 +2870,6 @@
   "subtitle_entry_hint": {
     "message": "给正在播放的视频、直播、会议配双语字幕"
   },
-  "subtitle_need_live": {
-    "message": "「实时字幕」需要一个带实时接口的转写引擎"
-  },
   "subtitle_need_key": {
     "message": "转写引擎还没填 API Key"
   },
@@ -3100,5 +3025,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限"
+  },
+  "listen_need_os": {
+    "message": "对话 · 实时字幕需要 iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "本机识别器不支持这门语言 —— 换一种语言试试"
+  },
+  "listen_assets_failed2": {
+    "message": "离线模型下载失败：{why} — 再点一次「开始听」重试。"
+  },
+  "tts_engine_device": {
+    "message": "设备内置朗读（离线模型 · 仅 App）"
+  },
+  "tts_hint_device": {
+    "message": "语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。模型不含的语言会改用系统语音并在行上说明。"
   }
 }

@@ -1920,50 +1920,8 @@
   "qs_privacy": {
     "message": "La transcription envoie votre enregistrement à {host}. Il est supprimé dès la reconnaissance — jamais stocké, jamais synchronisé."
   },
-  "qs_live_key": {
-    "message": "Clé en direct"
-  },
-  "qs_live_key_ph": {
-    "message": "Facultatif : la clé d'un autre fournisseur"
-  },
-  "qs_live_title": {
-    "message": "Transcription en direct (facultatif)"
-  },
-  "qs_live_sub": {
-    "message": "{p} n'a pas d'interface en direct. La transcription en direct des vidéos/podcasts et « Conversation · interprète en direct » de l'app en ont besoin — ajoutez une clé {live} et ça marche ; sinon la transcription passe en mode fichier entier."
-  },
-  "qs_get_live_key": {
-    "message": "Pas de clé ? Obtenez-en une chez {live} ↗"
-  },
-  "qs_live_privacy": {
-    "message": "La transcription en direct envoie l'audio de la page à {liveHost} pour reconnaissance, puis l'efface."
-  },
-  "qs_untouched_live": {
-    "message": "— inchangé · vous avez déjà un moteur en direct ({cur})"
-  },
-  "qs_live_replaced": {
-    "message": "(a remplacé {cur}, sans interface en direct ; interface en direct désormais incluse)"
-  },
   "qs_grant_replaced": {
     "message": "(a remplacé la clé du crédit gratuit)"
-  },
-  "qs_live_ok": {
-    "message": "(interface en direct incluse)"
-  },
-  "qs_stt_no_live": {
-    "message": "({engine} n'a pas d'interface en direct — ajoutez-en une ci-dessus au besoin ↑)"
-  },
-  "stt_live_suffix": {
-    "message": "· direct"
-  },
-  "stt_engine_device": {
-    "message": "Transcription intégrée à l’appareil (gratuit · hors ligne · app uniquement)"
-  },
-  "stt_hint_device": {
-    "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; nécessite iOS 26 / macOS 26. Utilisé uniquement dans Conversation pour l’instant."
-  },
-  "stt_device_suffix": {
-    "message": "· sur l’appareil"
   },
   "stt_device_no_file": {
     "message": "La transcription sur l'appareil sert uniquement aux conversations et aux sous-titres en direct ; l'expression orale n'est pas encore prise en charge"
@@ -1976,9 +1934,6 @@
   },
   "engine_test_device_timeout": {
     "message": "La reconnaissance sur l'appareil ne répond pas — quittez et rouvrez l'app, puis réessayez"
-  },
-  "listen_need_device_os": {
-    "message": "La transcription sur l’appareil nécessite iOS 26 / macOS 26 — ou choisissez un moteur temps réel cloud dans les réglages"
   },
   "listen_downloading": {
     "message": "Téléchargement du modèle hors ligne {lang} · {pct} %"
@@ -1998,17 +1953,8 @@
   "listen_raw_label": {
     "message": "Texte reconnu"
   },
-  "tts_engine_device": {
-    "message": "Voix intégrée à l’appareil (modèle hors ligne · app uniquement)"
-  },
-  "tts_hint_device": {
-    "message": "La voix est synthétisée sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Les langues non couvertes reviennent à la voix système, et la ligne l’indique."
-  },
   "tts_device_lang_fallback": {
     "message": "Lu avec la voix système (le modèle hors ligne ne couvre pas {lang})"
-  },
-  "grant_live_go": {
-    "message": "Ajouter un moteur en direct →"
   },
   "qs_apply": {
     "message": "Configurer traduction, lecture et transcription"
@@ -2288,9 +2234,6 @@
   "asr_status_file": {
     "message": "⏳ Transcription de tout l’audio…"
   },
-  "asr_status_live": {
-    "message": "● Transcription en direct"
-  },
   "asr_stop": {
     "message": "Arrêter la transcription"
   },
@@ -2313,17 +2256,11 @@
   "asr_err_nocues": {
     "message": "Ce moteur ne renvoie pas d’horodatage, impossible de créer des sous-titres"
   },
-  "asr_err_nolive": {
-    "message": "Ce moteur n’a pas d’interface en direct ; ce média ne peut pas être transcrit"
-  },
   "asr_gesture_needed": {
     "message": "Touchez la page pour démarrer la capture"
   },
   "asr_gesture_tap": {
     "message": "▶ Touchez pour lancer la transcription en direct"
-  },
-  "asr_go_live_engine": {
-    "message": "Configurer un moteur avec interface en direct →"
   },
   "asr_err_settings": {
     "message": "Moteur de transcription modifié — arrêté"
@@ -2396,12 +2333,6 @@
   },
   "listen_entry_hint": {
     "message": "Deux personnes face à face : chacun parle normalement, les deux langues s’affichent, les traductions sont lues à voix haute. L’audio ne part que vers le point de transcription que vous avez configuré."
-  },
-  "listen_need_live": {
-    "message": "« Conversation · interprète en direct » a besoin d’un moteur de transcription avec point temps réel"
-  },
-  "listen_need_live_go": {
-    "message": "Choisir dans les réglages →"
   },
   "listen_title": {
     "message": "Conversation"
@@ -2695,9 +2626,6 @@
   "grant_signin_again": {
     "message": "Se reconnecter"
   },
-  "grant_no_live": {
-    "message": "La conversation en direct n'est pas couverte : elle exige une connexion temps réel, et ce relais ne transmet que des requêtes ponctuelles."
-  },
   "grant_body_signed_out": {
     "message": "La déconnexion a désactivé votre crédit gratuit. Le solde est toujours là — reconnectez-vous au même compte et il revient."
   },
@@ -2941,9 +2869,6 @@
   "subtitle_entry_hint": {
     "message": "Sous-titres bilingues pour la vidéo, le direct ou la réunion en cours"
   },
-  "subtitle_need_live": {
-    "message": "Les sous-titres en direct nécessitent un moteur de transcription avec connexion en temps réel"
-  },
   "subtitle_need_key": {
     "message": "Le moteur de transcription n’a pas encore de clé API"
   },
@@ -3099,5 +3024,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "Aucun son depuis 30 secondes — en pause. La vidéo joue mais pas de sous-titres ? L’enregistrement audio du système n’est peut-être pas autorisé"
+  },
+  "listen_need_os": {
+    "message": "La conversation et les sous-titres en direct nécessitent iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "La reconnaissance intégrée ne prend pas en charge cette langue — essayez-en une autre"
+  },
+  "listen_assets_failed2": {
+    "message": "Échec du téléchargement du modèle hors ligne : {why} — appuyez à nouveau sur « Commencer à écouter » pour réessayer."
+  },
+  "tts_engine_device": {
+    "message": "Voix intégrée à l’appareil (modèle hors ligne · app uniquement)"
+  },
+  "tts_hint_device": {
+    "message": "La voix est synthétisée sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Les langues non couvertes reviennent à la voix système, et la ligne l’indique."
   }
 }

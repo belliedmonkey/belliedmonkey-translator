@@ -57,7 +57,7 @@ const KNOWN_KEYS = {
     'labelKey', 'hintKey',
     // docs/domain-design.md §2.4 / §7: the live-transcription socket and the large-file
     // upload are STORED addresses (complete URLs, used verbatim), never derived.
-    'liveEndpoint', 'liveType', 'liveModel', 'liveRate', 'liveKeyProtocol', 'liveParams', 'uploadEndpoint',
+    'uploadEndpoint',
     'grantOnly'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
     'systemRole', 'reasoning', 'note'],
@@ -437,45 +437,25 @@ describe('中国版的登录方式（两条发射路径）', () => {
   });
 });
 
-// AGENTS 规则 10：不出阉割版。App「对话 · 实时听译」与扩展「AI 转写字幕」的流式一档都以
-// 「转写引擎带 liveEndpoint」为存在前提（learning-design §9.6、domain-design §2.4），所以
-// **每个出货 flavor** 都必须至少有一个带实时接口的转写引擎 —— 中国版 2026-09-07 之前没有，
-// 这个模式在中国版里根本不存在，而没有任何门禁会为此变红。
-describe('每个 flavor 至少有一个带实时接口的转写引擎（AGENTS 规则 10）', () => {
+// 2026-09-17：实时转写固定为设备内置（domain-design §2.4 / §7 同日修订），云端实时引擎下线。
+// 转写注册表从此只回答一个问题「整段录音去哪儿」：**不得**有条目带 live* 字段，也不得有
+// device-transcribe 类型 —— 回来的路是改注册表，而改注册表要过领域设计评审。
+// （此前这里是反向的门：「每个 flavor 至少一个带实时接口的转写引擎」，AGENTS 规则 10。）
+describe('转写注册表没有实时档（2026-09-17，实时转写 = 设备内置）', () => {
   const STT = require('../build/stt.config.js');
-  for (const flavor of ['global', 'china']) {
-    test(`${flavor}：有 liveEndpoint + liveType 的条目`, () => {
-      const live = STT.filter((e) => (e.flavors || []).includes(flavor) && e.liveEndpoint && e.liveType);
-      ok(live.length >= 1, `${flavor} 没有带实时接口的转写引擎 —— 对话 · 实时听译在这个 flavor 里不存在`);
-      for (const e of live) ok(/^wss:\/\//.test(e.liveEndpoint), `${e.id} 的 liveEndpoint 不是 wss://`);
-    });
-  }
-  test('产物里也是（dist-china/content/stt.gen.js）', () => {
+  test('没有条目带 liveEndpoint / liveType / liveModel / liveRate / liveKeyProtocol / liveParams', () => {
+    for (const e of STT) for (const k of ['liveEndpoint', 'liveType', 'liveModel', 'liveRate', 'liveKeyProtocol', 'liveParams']) ok(!(k in e), `${e.id} 带 ${k} —— 云端实时档已下线`);
+  });
+  test('没有 device-transcribe 条目（本机识别不是可选引擎）', () => {
+    eq(STT.filter((e) => e.type === 'device-transcribe').length, 0);
+    ok(!STT.some((e) => e.id === 'device'), 'stt 注册表里不该有 id=device');
+  });
+  test('产物里也是（dist*/content/stt.gen.js 没有 liveEndpoint）', () => {
     const fs = require('fs'), path = require('path');
-    const p = path.join(__dirname, '..', 'dist-china', 'content', 'stt.gen.js');
-    if (!fs.existsSync(p)) return;   // 没跑过 china 构建就跳过 —— 上面那条已经守住源头
-    const src = fs.readFileSync(p, 'utf8');
-    ok(/"liveEndpoint":"wss:\/\//.test(src), 'dist-china 的 stt.gen.js 里没有 liveEndpoint —— 构建把它丢了');
-  });
-});
-
-describe('设备内置转写条目（learning-design §9.6.1 / domain-design §7 第三个 carve-out）', () => {
-  const STT = require('../build/stt.config.js');
-  const dev = STT.filter((e) => e.type === 'device-transcribe');
-  test('恰好一条 device 条目，两个 flavor 都在，不说 HTTP、不要 key、不进台账', () => {
-    eq(dev.length, 1, '一条');
-    const e = dev[0];
-    eq(e.id, 'device');
-    eq(JSON.stringify([...e.flavors].sort()), JSON.stringify(['china', 'global']));
-    eq(e.defaultEndpoint, null, 'defaultEndpoint 显式 null（不是缺席）');
-    ok('defaultEndpoint' in e, '字段必须写出来');
-    eq(e.needsKey, false); eq(e.supportsKey, false); eq(e.supportsBaseUrl, false); eq(e.supportsModel, false);
-    ok(!e.liveEndpoint && !e.liveType, '实时能力由 type 推导，不写 live* 字段');
-  });
-  test('它不算进「每个 flavor 至少一个带实时接口的转写引擎」—— 云端实时引擎仍是存在前提', () => {
-    for (const flavor of KNOWN_FLAVORS) {
-      const cloudLive = STT.filter((e) => (e.flavors || []).includes(flavor) && e.liveEndpoint && e.liveType && e.type !== 'device-transcribe');
-      ok(cloudLive.length >= 1, `${flavor}：去掉 device 之后仍要有云端实时引擎`);
+    for (const d of ['dist', 'dist-china']) {
+      const p = path.join(__dirname, '..', d, 'content', 'stt.gen.js');
+      if (!fs.existsSync(p)) continue;   // 没构建过就跳过 —— 上面两条已经守住源头
+      ok(!/liveEndpoint|device-transcribe/.test(fs.readFileSync(p, 'utf8')), d + ' 的 stt.gen.js 里还有实时档 —— 产物没重建');
     }
   });
 });

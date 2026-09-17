@@ -82,7 +82,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         quick:(()=>{const b=document.getElementById('ob-quick');
           return vis(b)?{n:b.querySelectorAll('button,select,input').length,
             plat:b.querySelectorAll('#qs-platform option').length,
-            apply:!!b.querySelector('#qs-apply')}:null;})(),
+            apply:!!b.querySelector('#qs-apply'),live:!!b.querySelector('#qs-live')}:null;})(),
         steps:(()=>{const ol=document.getElementById('ob-steps');
           if(!vis(ol)) return null;
           const li=[...ol.children];
@@ -174,6 +174,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         s.fork=fk;
         if(fk.grantOn){
           // 有我们代领的额度 ⇒ 必须先问一句。两张卡都在，才是二选一而不是墙。
+          if(s.quick&&s.quick.live) fail('引导页一键卡里又出现了 #qs-live（实时转写格）—— 2026-09-17 起实时转写固定为设备内置');
           if(!fk.vis) fail('开了免费额度，引擎屏却没有前置分流屏');
           else if(!fk.grantCard||!fk.keyCard) fail(`分流屏缺一张卡（额度=${fk.grantCard} key=${fk.keyCard}）`);
           else if(!fk.grantCta||!fk.keyCta||!fk.foot) fail('分流屏有卡但文案是空的 —— i18n key 漏了？');

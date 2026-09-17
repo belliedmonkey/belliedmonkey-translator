@@ -80,14 +80,13 @@ var AppListen = (() => {
   const now = () => Date.now();
 
   // ── 设置 ──────────────────────────────────────────────────────────────────
-  const READ_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel',
-    'provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
+  // 2026-09-17：不再读 stt* 四键 —— 那是说题（整段转写）的槽；对话 · 实时字幕固定走本机识别器。
+  const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
     'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'subtitleCapture', 'subtitleVideoLang', 'subtitleFontScale'];
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS, (s) => {
         s = s || {};
-        const eng = (window.MT_STT_ENGINES || []).find((e) => e.id === s.sttEngine) || null;
         const tr = LearnNotes.resolveConfig(s);
         const rules = s.learnRules && typeof s.learnRules === 'object' ? s.learnRules : {};
         const B = C.baseCode;
@@ -99,7 +98,7 @@ var AppListen = (() => {
         const myLang = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
           || B(navigator.language) || 'zh';
         resolve({
-          eng, sttKey: s.sttApiKey || '', tr,
+          tr,
           // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
           // draftFor 与端到端测试都在读它 —— 不在同一步里既改语义又改名字。
           targetLang: myLang,
@@ -117,8 +116,8 @@ var AppListen = (() => {
       });
     });
   }
-  // 本机转写（§9.6.1）：由 type 推导，不加字段（domain-design §7）。桥在不在由 NativeSpeech 探过才知道。
-  function deviceEngine(e) { return !!(e && e.type === 'device-transcribe'); }
+  // 本机转写（§9.6.1）是这一页**唯一**的转写路（2026-09-17 起，learning-design §9.6 门控修订）：
+  // 没有云端 socket、没有引擎下拉、没有 key。桥在不在由 NativeSpeech 探过才知道。
   function deviceBridge() { return typeof NativeSpeech !== 'undefined' && NativeSpeech.available(); }
   // 一个 locale 一路识别器：我方 + 对方（两边一样时只开一路）。
   function deviceLocales(c) {
@@ -127,12 +126,21 @@ var AppListen = (() => {
     const a = C.toLocale(c && c.myLang), b = C.toLocale(c && c.otherLang);
     return a === b ? [a] : [a, b];
   }
-  // 入口可用 ⇔ 云端「liveEndpoint && liveType && key」**或** 本机「device-transcribe 且桥探到资产可用」
-  function liveCapable(c) {
-    if (!c || !c.eng) return false;
-    if (deviceEngine(c.eng)) return deviceBridge() && NativeSpeech.probeResult().ok;
-    return !!(c.eng.liveEndpoint && c.eng.liveType && (c.sttKey || !c.eng.needsKey));
+  // 入口可用 ⇔ 原生桥报告本机识别器可用（探过 probe 之后读缓存的结果）
+  function liveCapable() { return deviceBridge() && NativeSpeech.probeResult().ok; }
+  // 不可用的原因只有两句、互斥：系统太旧（桥回 os / 无桥）或语言不支持（桥回 locale）。
+  // 都不是配置问题 —— 所以没有「去设置里选择 →」。
+  function unavailableReason() {
+    if (!deviceBridge()) return 'os';
+    const r = NativeSpeech.probeResult();
+    return r.ok ? '' : (r.reason === 'locale' ? 'locale' : 'os');
   }
+  function needText(reason) {
+    return reason === 'locale'
+      ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试')
+      : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
+  }
+  let trackedNoLive = false;
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
   // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
@@ -141,43 +149,41 @@ var AppListen = (() => {
     let ok = false, c = null;
     try {
       c = await readCfg();
-      // 本机引擎：先探桥（旧系统 / 资产缺失都在这里得到具名答案），再判门
-      if (deviceEngine(c.eng) && deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
-      ok = liveCapable(c);
+      // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门
+      if (deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
+      ok = liveCapable();
     } catch (_) { ok = false; }
-    const dev = !!(c && deviceEngine(c.eng));
+    const reason = ok ? '' : unavailableReason();
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
+    // 2026-09-17 起原因只有两句（系统 / 语言），都不是配置问题 ⇒ 「去设置里选择 →」常藏。
+    // asr_entry{no_live}（telemetry §3.3.3）：含义改为「本机识别器不可用」，每次启动记一次。
+    if (!ok && !trackedNoLive) {
+      trackedNoLive = true;
+      try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' }); } catch (_) {}
+    }
     for (const sfx of ENTRY_SUFFIXES) {
       const btn = $('app-listen-entry' + sfx); if (btn) { btn.hidden = false; btn.disabled = !ok; }
       const hint = $('app-listen-entry-hint' + sfx);
       if (hint) { hint.hidden = false; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
       const priv = $('modes-privacy' + sfx); if (priv) {
         priv.hidden = !ok;
-        priv.textContent = dev ? t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。')
-          : t('listen_entry_privacy', '音频只发往你配置的转写端点。');
+        priv.textContent = t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。');
       }
       const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
-      // 灰态第三句（interaction-spec 2026-09-12）：本机引擎在旧系统 / 无桥的宿主上 —— 原因具名，不是通用的「没配实时引擎」
       const why = $('app-listen-need-live-why' + sfx);
-      if (why && !ok && dev) why.textContent = t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎');
+      if (why && !ok) why.textContent = needText(reason);
+      const go = $('app-listen-need-live-go' + sfx); if (go) go.hidden = true;
     }
-    await refreshSubtitleEntry(c, ok, dev);
+    await refreshSubtitleEntry(ok, reason);
   }
 
   // 实时字幕入口（learning-design §9.8 + 协议补充决定 3）：原生不回 audio-caps ⇒ 整行不显示（老壳）；
-  // 回了就按 ListenCore.entryGate 的顺序给灰态原因。设备内置转写在旧系统上沿用对话那句具名原因。
-  async function refreshSubtitleEntry(c, ok, dev) {
+  // 回了就按 ListenCore.entryGate 的顺序给灰态原因（本机识别器不可用 → Mac 系统声音版本）。
+  async function refreshSubtitleEntry(ok, deviceReason) {
     let caps = null;
     try { caps = bridged() ? await NativeAudio.capsProbe(1500) : null; } catch (_) { caps = null; }
-    const e = c && c.eng;
-    let reason = C.entryGate({
-      caps,
-      deviceOk: !!(dev && ok),
-      liveOk: !!(e && !deviceEngine(e) && e.liveEndpoint && e.liveType),
-      keyOk: !!(c && (c.sttKey || !(e && e.needsKey))),
-    });
-    if (caps && dev && !ok) reason = 'device-os';
+    const reason = C.entryGate({ caps, deviceOk: ok, deviceReason });
     subsReason = reason;
     for (const sfx of ENTRY_SUFFIXES) {
       const btn = $('app-subs-entry' + sfx);
@@ -187,13 +193,11 @@ var AppListen = (() => {
       const need = $('app-subs-need' + sfx);
       if (need) need.hidden = !reason || reason === 'hidden';
       const why = $('app-subs-need-why' + sfx);
-      if (why) why.textContent = reason === 'no-key' ? t('subtitle_need_key', '转写引擎还没填 API Key')
-        : reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
-          : reason === 'device-os' ? t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎')
-            : t('subtitle_need_live', '「实时字幕」需要一个带实时接口的转写引擎');
+      if (why) why.textContent = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
+        : needText(reason === 'locale' ? 'locale' : 'os');
+      // 没有任何一种灰态是「去设置」能解决的（系统版本 / 语言）—— 不给一个点了也没用的按钮
       const go = $('app-subs-need-go' + sfx);
-      // 系统版本不够时，没有「去设置」能解决的事 —— 不给一个点了也没用的按钮
-      if (go) { go.hidden = reason === 'os'; go.textContent = reason === 'no-key' ? t('subtitle_need_key_go', '去设置里填写 →') : t('listen_need_live_go', '去设置里选择 →'); }
+      if (go) go.hidden = true;
       // 两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），首页只说一次 —— 同一句连写两遍像出错了
       // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
       const listenNeed = $('app-listen-need-live' + sfx), listenWhy = $('app-listen-need-live-why' + sfx);
@@ -303,27 +307,12 @@ var AppListen = (() => {
   }
 
   // ── socket ────────────────────────────────────────────────────────────────
-  function openSocket() {
-    const myGen = gen;
-    const e = cfg.eng;
-    if (deviceEngine(e)) { openDevice(myGen); return; }
-    sock = WsTranscribe.open({
-      url: e.liveEndpoint, type: e.liveType, apiKey: cfg.sttKey, keyProtocol: e.liveKeyProtocol || '',
-      model: e.liveModel || e.defaultModel, rate: e.liveRate || 24000, params: e.liveParams || null, langs: [],
-      onEvent: (ev) => {
-        if (myGen !== gen) return;
-        // 我们自己关的 socket（暂停/结束）会把开口尾句 flush 成一个 final —— 那时 sock 已置空，丢掉
-        if (!sock && (ev.kind === 'partial' || ev.kind === 'final')) return;
-        if (ev.kind === 'ready') { socketRetried = false; }
-        else if (ev.kind === 'partial') onPartial(ev.text);
-        else if (ev.kind === 'final') onFinal(ev.text);
-        else if (ev.kind === 'error') socketLost(ev.message || '');
-        else if (ev.kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
-      },
-    });
-  }
+  // 2026-09-17 之前这里按引擎分流：云端 socket（WsTranscribe.open）或本机路。云端实时档下线后
+  // 只剩本机路；`sock` 这个名字与生命周期（open / close / socketLost 重连一次）原样保留 ——
+  // NativeSpeech.sttOpen 本来就是照 socket 的返回形状做的。
+  function openSocket() { openDevice(gen); }
   function closeSocket() { const s = sock; sock = null; cutter = null; try { if (s) s.close(); } catch (_) {} }
-  // 本机路：NativeSpeech.sttOpen 与 WsTranscribe.open 同一个返回形状，所以 sock 的生命周期照旧。
+  // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
   // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
   // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
   function openDevice(myGen) {
@@ -377,7 +366,7 @@ var AppListen = (() => {
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
-    row.lat = { final: now(), engine: (cfg.eng && cfg.eng.id) || '' };
+    row.lat = { final: now(), engine: 'device' };   // 2026-09-17 起只有本机路
     partial = ''; partialTr = '';
     // 两边的定稿走同一条路，只是目标语言相反（targetLangFor）。2026-09-08 之前
     // 「我说的」在这里直接 return，等松手时整段处理 —— 那条路随按住一起没了。
@@ -576,11 +565,10 @@ var AppListen = (() => {
     }
   }
   async function micStart() {
-    const rate = (cfg.eng && cfg.eng.liveRate) || 24000;
+    // 本机路：PCM 留在原生侧喂识别器，过桥的只有电平（§9.6.1）；采样率只给原生建 tap 用
+    const rate = 16000;
     if (bridged()) {
-      const h = deviceEngine(cfg.eng)
-        ? { onLevel, onState: onMicState, deliver: 'level' }
-        : { onPcm, onState: onMicState };
+      const h = { onLevel, onState: onMicState, deliver: 'level' };
       if (session && session.mode === 'subtitle') {
         // 声音来源只从原生报的能力来（§9.8）：既没有 system:'ok'、也不是 iOS 的 'unsupported' ⇒ 不开始
         const src = C.captureSource(NativeAudio.audioCaps());
@@ -651,7 +639,7 @@ var AppListen = (() => {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
     cfg = await readCfg();
-    if (!liveCapable(cfg)) { note(mode === 'subtitle' ? t('subtitle_need_live', '「实时字幕」需要一个带实时接口的转写引擎') : t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎'), true); return; }
+    if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
     sysSilent = false; sysSound = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
@@ -686,9 +674,9 @@ var AppListen = (() => {
     C.resume(session, now());
     // 恢复听 ⇒ 预览矩形重新发给原生（✕ 暂停时发过 rect:null 收起预览），之后离开 App 照旧自动浮出（19 修订）
     if (bridged() && session && session.mode === 'subtitle') pipRectOn();
-    // 本机路：先探（旧系统 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
-    if (deviceEngine(cfg.eng)) {
-      if (!deviceBridge()) { halt('device', 'no-bridge'); return; }
+    // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
+    {
+      if (!deviceBridge()) { halt('device', 'os'); return; }
       const r = await NativeSpeech.probe(deviceLocales(cfg));
       if (phase !== 'preparing') return;
       if (!r.ok) { halt('device', r.reason || ''); return; }
@@ -771,8 +759,8 @@ var AppListen = (() => {
       : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
       : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
       : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
-      : reason === 'assets' ? t('listen_assets_failed', '离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。').replace('{why}', why1)
-      : reason === 'device' ? t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎')
+      : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。').replace('{why}', why1)
+      : reason === 'device' ? needText(why1 === 'locale' ? 'locale' : 'os')
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
     note(msg, true);
     subState(reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
@@ -1111,10 +1099,8 @@ var AppListen = (() => {
     if (phase === 'downloading') subState('downloading', dlPct);
     // Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行
     const dp = $('app-listen-device-privacy');
-    if (dp) { const dev = deviceEngine(cfg && cfg.eng); dp.hidden = !dev; if (dev) dp.textContent = t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'); }
-    $('app-listen-cost').textContent = (deviceEngine(cfg && cfg.eng)
-      ? t('listen_cost_line_device', '已听 {t} · 音频不离开设备')
-      : t('listen_cost_line', '已听 {t} · 音频只发往你配置的转写端点')).replace('{t}', C.fmtClock(ms));
+    if (dp) { dp.hidden = false; dp.textContent = t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'); }
+    $('app-listen-cost').textContent = t('listen_cost_line_device', '已听 {t} · 音频不离开设备').replace('{t}', C.fmtClock(ms));
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   function paint() {
@@ -1299,8 +1285,8 @@ var AppListen = (() => {
     for (const sfx of ENTRY_SUFFIXES) {
       const entry = $('app-listen-entry' + sfx);
       if (entry) { const title = entry.querySelector('.mode-title'); (title || entry).textContent = t('listen_entry', '对话 · 实时听译'); entry.addEventListener('click', open); }
-      const why = $('app-listen-need-live-why' + sfx); if (why) why.textContent = t('listen_need_live', '「对话 · 实时听译」需要一个带实时接口的转写引擎');
-      const go = $('app-listen-need-live-go' + sfx); if (go) go.textContent = t('listen_need_live_go', '去设置里选择 →');
+      const why = $('app-listen-need-live-why' + sfx); if (why) why.textContent = needText('os');
+      const go = $('app-listen-need-live-go' + sfx); if (go) go.hidden = true;   // 灰态不是配置问题，没有「去设置」
       const se = $('app-subs-entry' + sfx);
       if (se) { const st = se.querySelector('.mode-title'); (st || se).textContent = t('subtitle_entry', '实时字幕'); se.addEventListener('click', () => open('subtitle')); }
     }
@@ -1310,7 +1296,8 @@ var AppListen = (() => {
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area && area !== 'local') return;
-        if (['sttEngine', 'sttApiKey', 'sttBaseUrl'].some((k) => k in (changes || {}))) refreshEntry();
+        // 语言变了要重探（本机识别器按 locale 判支持）；转写引擎那四键与这一页无关了（2026-09-17）
+        if (['listenMyLang', 'listenOtherLang', 'subtitleVideoLang', 'uiLang'].some((k) => k in (changes || {}))) refreshEntry();
       });
     } catch (_) {}
 
@@ -1379,8 +1366,8 @@ var AppListen = (() => {
         // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
         // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
         if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
-        // 本机路例外（§9.6.1）：一路识别器一个 locale，改语言**要重连**（云端路照旧不重连）
-        if (session && deviceEngine(cfg && cfg.eng) && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
+        // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）
+        if (session && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
         if (session) paint();
       });
     }

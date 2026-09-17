@@ -1920,50 +1920,8 @@
   "qs_privacy": {
     "message": "A transcrição envia sua gravação para {host}. Ela é descartada assim que é reconhecida — nunca armazenada, nunca sincronizada."
   },
-  "qs_live_key": {
-    "message": "Chave ao vivo"
-  },
-  "qs_live_key_ph": {
-    "message": "Opcional: chave de outro provedor"
-  },
-  "qs_live_title": {
-    "message": "Transcrição ao vivo (opcional)"
-  },
-  "qs_live_sub": {
-    "message": "{p} não tem interface ao vivo. A transcrição ao vivo de vídeos/podcasts e o «Conversa · intérprete ao vivo» do app precisam dela — adicione uma chave da {live} e pronto; deixando vazio, a transcrição roda no modo de arquivo inteiro."
-  },
-  "qs_get_live_key": {
-    "message": "Sem chave? Obtenha em {live} ↗"
-  },
-  "qs_live_privacy": {
-    "message": "A transcrição ao vivo envia o áudio da página para {liveHost} reconhecer e descarta em seguida."
-  },
-  "qs_untouched_live": {
-    "message": "— sem alteração · você já tem um mecanismo com interface ao vivo ({cur})"
-  },
-  "qs_live_replaced": {
-    "message": "(substituiu {cur}, que não tinha interface ao vivo; agora inclui)"
-  },
   "qs_grant_replaced": {
     "message": "(substituiu a chave do crédito grátis)"
-  },
-  "qs_live_ok": {
-    "message": "(inclui interface ao vivo)"
-  },
-  "qs_stt_no_live": {
-    "message": "({engine} não tem interface ao vivo — adicione uma acima quando precisar ↑)"
-  },
-  "stt_live_suffix": {
-    "message": "· ao vivo"
-  },
-  "stt_engine_device": {
-    "message": "Transcrição integrada no aparelho (grátis · offline · só no app)"
-  },
-  "stt_hint_device": {
-    "message": "A voz é reconhecida no seu aparelho e nunca enviada a nenhum servidor; requer iOS 26 / macOS 26. Por enquanto usada só em Conversa."
-  },
-  "stt_device_suffix": {
-    "message": "· no aparelho"
   },
   "stt_device_no_file": {
     "message": "A transcrição no aparelho serve só para conversas e legendas ao vivo; a prática de fala ainda não é compatível"
@@ -1976,9 +1934,6 @@
   },
   "engine_test_device_timeout": {
     "message": "O reconhecimento no aparelho não respondeu — feche e reabra o app e tente de novo"
-  },
-  "listen_need_device_os": {
-    "message": "A transcrição no aparelho requer iOS 26 / macOS 26 — ou escolha um motor em tempo real na nuvem em Ajustes"
   },
   "listen_downloading": {
     "message": "Baixando o modelo offline de {lang} · {pct}%"
@@ -1998,17 +1953,8 @@
   "listen_raw_label": {
     "message": "Texto reconhecido"
   },
-  "tts_engine_device": {
-    "message": "Voz integrada no aparelho (modelo offline · só no app)"
-  },
-  "tts_hint_device": {
-    "message": "A voz é sintetizada no seu aparelho; o primeiro uso baixa o modelo offline uma vez (só o arquivo do modelo). Idiomas que o modelo não cobre usam a voz do sistema, e a linha avisa."
-  },
   "tts_device_lang_fallback": {
     "message": "Lido com a voz do sistema (o modelo offline não cobre {lang})"
-  },
-  "grant_live_go": {
-    "message": "Adicionar mecanismo ao vivo →"
   },
   "qs_apply": {
     "message": "Configurar tradução, leitura e transcrição"
@@ -2288,9 +2234,6 @@
   "asr_status_file": {
     "message": "⏳ Transcrevendo todo o áudio…"
   },
-  "asr_status_live": {
-    "message": "● Transcrição ao vivo"
-  },
   "asr_stop": {
     "message": "Parar transcrição"
   },
@@ -2313,17 +2256,11 @@
   "asr_err_nocues": {
     "message": "Este mecanismo não retorna marcas de tempo, então não gera legendas"
   },
-  "asr_err_nolive": {
-    "message": "Este mecanismo não tem interface ao vivo; esta mídia não pode ser transcrita"
-  },
   "asr_gesture_needed": {
     "message": "Toque na página para começar a captura"
   },
   "asr_gesture_tap": {
     "message": "▶ Toque para iniciar a transcrição ao vivo"
-  },
-  "asr_go_live_engine": {
-    "message": "Configurar um mecanismo com interface ao vivo →"
   },
   "asr_err_settings": {
     "message": "Mecanismo de transcrição alterado — interrompido"
@@ -2396,12 +2333,6 @@
   },
   "listen_entry_hint": {
     "message": "Duas pessoas conversando frente a frente: os dois falam normalmente, os dois idiomas aparecem na tela e as traduções são lidas em voz alta. O áudio vai só para o endpoint de transcrição que você configurou."
-  },
-  "listen_need_live": {
-    "message": "“Conversa · intérprete ao vivo” precisa de um mecanismo de transcrição com endpoint em tempo real"
-  },
-  "listen_need_live_go": {
-    "message": "Escolher nas configurações →"
   },
   "listen_title": {
     "message": "Conversa"
@@ -2695,9 +2626,6 @@
   "grant_signin_again": {
     "message": "Entrar de novo"
   },
-  "grant_no_live": {
-    "message": "A conversa ao vivo não está incluída: ela precisa de conexão em tempo real, e este relé só encaminha requisições avulsas."
-  },
   "grant_body_signed_out": {
     "message": "Sair da conta desativou seu crédito gratuito. O saldo continua lá — entre de novo na mesma conta e ele volta."
   },
@@ -2941,9 +2869,6 @@
   "subtitle_entry_hint": {
     "message": "Legendas bilíngues para o vídeo, a live ou a reunião em reprodução"
   },
-  "subtitle_need_live": {
-    "message": "Legendas ao vivo precisam de um mecanismo de transcrição com conexão em tempo real"
-  },
   "subtitle_need_key": {
     "message": "O mecanismo de transcrição ainda não tem chave de API"
   },
@@ -3099,5 +3024,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "Sem som por 30 segundos — pausado. O vídeo toca mas sem legendas? Talvez a gravação de áudio do sistema não esteja permitida"
+  },
+  "listen_need_os": {
+    "message": "Conversa e legendas ao vivo exigem iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "O reconhecedor integrado não suporta este idioma — tente outro"
+  },
+  "listen_assets_failed2": {
+    "message": "Falha ao baixar o modelo offline: {why} — toque em “Começar a ouvir” novamente para tentar de novo."
+  },
+  "tts_engine_device": {
+    "message": "Voz integrada no aparelho (modelo offline · só no app)"
+  },
+  "tts_hint_device": {
+    "message": "A voz é sintetizada no seu aparelho; o primeiro uso baixa o modelo offline uma vez (só o arquivo do modelo). Idiomas que o modelo não cobre usam a voz do sistema, e a linha avisa."
   }
 }

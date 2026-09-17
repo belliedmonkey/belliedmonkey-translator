@@ -1,45 +1,21 @@
-// ws-transcribe.js — the live-transcription transport (docs/domain-design.md §2.4 tier B,
-// §7 "live-transcription sockets are the second carve-out").
+// ws-transcribe.js — sentence cutters for streaming transcripts.
 //
-// ONE WebSocket client; the vendor differences are message adapters keyed by the
-// registry's `liveType`. Every adapter turns its wire into the same events:
-//   { kind: 'partial', text }                — the sentence being spoken (display only)
-//   { kind: 'final',   text }                — a sentence closed on a terminal
-//   { kind: 'error',   message }             — the server's own sentence, ≤ 1 line
-//   { kind: 'close',   code, reason }        — never silent (§2.4 rule 4)
-// The caller (asr-source.js) stamps times from the media clock; the socket never
-// sees the page.
+// History: until 2026-09-17 this file was the live-transcription WebSocket transport
+// (domain-design §2.4 tier B — one client, vendor differences as message adapters keyed
+// by the registry's `liveType`). Live transcription is now a DEVICE capability reached
+// through the native bridge (`app/native-speech.js`, learning-design §9.6 门控 2026-09-17
+// 修订); no registry entry carries a live endpoint any more, so the socket adapters were
+// removed rather than left to rot. What stayed is the part every streaming source still
+// needs — turning a stream of words into whole sentences — because the on-device
+// recogniser's finals are time slices that cut mid-word (measured 2026-09-12, §9.6.1),
+// exactly the shape the cloud deltas had. The name stayed so the bundle lists and the
+// probe script keep pointing at one file.
 //
-// Why the key rides the handshake (§7): a browser WebSocket cannot send headers.
-//   ws-realtime → subprotocol `<registry liveKeyProtocol><key>` (the vendor's documented
-//                 browser path; the prefix is a STORED registry value, not restated here)
-//   ws-bidi     → `?key=` on the URL (the vendor's documented path)
-//   ws-duplex   → `?api_key=` on the URL (measured 2026-09-07: the handshake accepts it;
-//                 `?apikey=`, `?Authorization=` and every subprotocol spelling are refused)
-// The key is never logged and never appears in an error message: adapters strip it
-// before quoting a URL. Names are protocol shapes, never vendors — this file ships in
-// every flavor and the compliance gate scans it line by line.
-//
-// Measured shapes (scripts/asr-probe.js, 2026-09-06):
-//   ws-realtime: ?intent=transcription; session.update{type:'transcription', audio.input:{format:
-//     {type:'audio/pcm',rate:24000}, transcription:{model}, turn_detection:null}}; the model
-//     streams WORD-LEVEL deltas WITH punctuation; `completed` only on commit. Sending the
-//     retired `…-beta.realtime-v1` subprotocol selects the Beta shape → 400.
-//   ws-bidi: setup{model:'models/<liveModel>', generationConfig:{responseModalities:['TEXT']},
-//     inputAudioTranscription:{…}}; realtimeInput.audio{data,mimeType:'audio/pcm;rate=16000'};
-//     serverContent.interimInputTranscription / inputTranscription (utterance-level, no
-//     timestamps); a session lasts 10 minutes → reconnect at 9:30 replaying a 2 s ring buffer.
-//   ws-duplex (measured 2026-09-07): run-task{header:{action,task_id,streaming:'duplex'},
-//     payload:{task_group:'audio',task:'asr',function:'recognition',model,parameters:{format:'pcm',
-//     sample_rate}}} → task-started; audio as BINARY frames; result-generated carries one
-//     sentence at a time — `sentence_end:false` frames are the growing partial, `true` is the
-//     final (with begin_time/end_time in ms); finish-task → task-finished; task-failed carries
-//     header.error_code/error_message.
+// Consumers: asr-source.js (file-tier cue splitting), listen-core.js's stream cutter
+// (`cut` injection), scripts/asr-probe.js (research tool).
 'use strict';
 
 var WsTranscribe = (() => {
-  const CONNECT_TIMEOUT_MS = 8000;
-  const IDLE_TIMEOUT_MS = 60000;      // no server frame for this long while we are sending ⇒ dead socket
   // A sentence ends at a CJK terminal (no space follows in CJK text), or at a Latin
   // terminal that is followed by whitespace / end — so "michael.com" and "3.5" never cut.
   const SENTENCE_RE = /[\s\S]*?(?:[。！？]+["'”’)\]]*|[.!?…]+["'”’)\]]*(?=\s|$))|[\s\S]+$/g;
@@ -51,16 +27,6 @@ var WsTranscribe = (() => {
     const parts = splitSentences(text);
     if (parts.length && !/(?:[。！？.!?…]+["'”’)\]]*)$/.test(parts[parts.length - 1])) return { done: parts.slice(0, -1), tail: parts[parts.length - 1] };
     return { done: parts, tail: '' };
-  }
-  const BIDI_RECONNECT_MS = 570000;   // 9:30 — before the 10-minute session cap
-  const RING_MS = 2000;
-
-  function stripKey(url) { return String(url || '').replace(/([?&](?:api_)?key=)[^&]*/i, '$1…'); }
-
-  function b64(bytes) {
-    let s = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-    return btoa(s);
   }
 
   // A tiny sentence cutter for word-delta streams: emits a final as soon as the buffer
@@ -106,16 +72,15 @@ var WsTranscribe = (() => {
     };
   }
 
-  // For CUMULATIVE interim hypotheses (ws-bidi: each interim is the whole utterance so
-  // far, occasionally revising earlier words; a final arrives only when the speaker
-  // pauses — on continuous speech every ~35 s, ~100 words). Subtitles cannot wait for
-  // that, so sentences are cut from the interim as soon as they are no longer the tail
-  // (text follows the terminal ⇒ the model has moved on ⇒ revisions are rare). Already
+  // For CUMULATIVE interim hypotheses (each interim is the whole utterance so far,
+  // occasionally revising earlier words; a final arrives only when the speaker pauses).
+  // Sentences are cut from the interim as soon as they are no longer the tail (text
+  // follows the terminal ⇒ the recogniser has moved on ⇒ revisions are rare). Already
   // emitted sentences are never re-emitted; the final only flushes what is left.
   function interimCutter(emit) {
     let emitted = 0;   // sentences already emitted for the current utterance
     let head = '';     // the current utterance's opening characters — a text that does not
-                       // start with them is a NEW utterance (measured: the vendor's final for
+                       // start with them is a NEW utterance (measured: a vendor's final for
                        // utterance N can arrive AFTER the first interim of N+1, so an
                        // activity-start event is not a safe reset point; the text is)
     const recent = []; // last few emitted sentences — a revised final never re-emits one
@@ -142,212 +107,7 @@ var WsTranscribe = (() => {
     };
   }
 
-  function openSocket(url, protocols, onOpen, onMessage, onClose, onError) {
-    const ws = protocols ? new WebSocket(url, protocols) : new WebSocket(url);
-    ws.onopen = onOpen;
-    ws.onmessage = (ev) => {
-      if (typeof ev.data === 'string') { onMessage(ev.data); return; }
-      // Blob frames (ws-bidi sends some): read then hand over — order is preserved by
-      // chaining on a promise so a fast text frame can't overtake a slow blob.
-      readQueue = readQueue.then(() => ev.data.text()).then(onMessage).catch(() => {});
-    };
-    let readQueue = Promise.resolve();
-    ws.onclose = onClose;
-    ws.onerror = onError;
-    return ws;
-  }
-
-  // ─── ws-realtime ─────────────────────────────────────────────────────
-  function openRealtime(o, emit) {
-    if (!o.keyProtocol) throw new Error('ws-realtime needs the registry liveKeyProtocol');
-    const cutter = sentenceCutter(emit);
-    let ws = null, closed = false, lastFrame = Date.now(), ready = false;
-    const timer = setTimeout(() => { if (!ready) fail('connect timeout'); }, CONNECT_TIMEOUT_MS);
-    const idle = setInterval(() => { if (ready && Date.now() - lastFrame > IDLE_TIMEOUT_MS) fail('idle'); }, 5000);
-    function fail(message) { if (closed) return; emit({ kind: 'error', message }); close(); }
-    function close() {
-      if (closed) return; closed = true; clearTimeout(timer); clearInterval(idle);
-      try { ws && ws.close(); } catch (_) {}
-    }
-    ws = openSocket(o.url, ['realtime', o.keyProtocol + o.apiKey],
-      () => {
-        ws.send(JSON.stringify({ type: 'session.update', session: {
-          type: 'transcription',
-          audio: { input: {
-            format: { type: 'audio/pcm', rate: o.rate },
-            transcription: Object.assign({ model: o.model }, o.langs && o.langs.length ? { languages: o.langs } : {}, o.params || {}),
-            turn_detection: null,
-          } },
-        } }));
-      },
-      (txt) => {
-        lastFrame = Date.now();
-        let m; try { m = JSON.parse(txt); } catch (_) { return; }
-        const type = m.type || '';
-        if (type === 'session.updated' || type === 'transcription_session.updated') { ready = true; clearTimeout(timer); emit({ kind: 'ready' }); }
-        else if (type === 'conversation.item.input_audio_transcription.delta') cutter.add(m.delta);
-        else if (type === 'conversation.item.input_audio_transcription.completed') cutter.flush();
-        else if (type === 'error') fail(String((m.error && m.error.message) || 'server error').slice(0, 200));
-      },
-      (ev) => { cutter.flush(); if (!closed) { closed = true; clearTimeout(timer); clearInterval(idle); emit({ kind: 'close', code: ev.code, reason: ev.reason || '' }); } },
-      () => fail('socket error'));
-    return {
-      sendPcm(int16) {
-        if (closed || !ready || ws.readyState !== 1) return false;
-        ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: b64(new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength)) }));
-        return true;
-      },
-      close() { try { if (ready && ws.readyState === 1) ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' })); } catch (_) {} close(); },
-      reset() { cutter.reset(); },
-    };
-  }
-
-  // ─── ws-bidi ─────────────────────────────────────────────────────────
-  function openBidi(o, emit) {
-    const url = o.url + (o.url.indexOf('?') < 0 ? '?' : '&') + 'key=' + encodeURIComponent(o.apiKey);
-    const setup = { setup: {
-      model: 'models/' + o.model,
-      generationConfig: { responseModalities: ['TEXT'] },
-      inputAudioTranscription: Object.assign({ mode: 'SMART' }, o.langs && o.langs.length ? { languageCodes: o.langs } : {}),
-    } };
-    let ws = null, closed = false, ready = false, lastFrame = Date.now(), openedAt = 0;
-    const cutter = interimCutter(emit);
-    const ring = []; let ringBytes = 0; const ringCap = (o.rate * 2 * RING_MS) / 1000;
-    let timer = null;
-    const idle = setInterval(() => {
-      if (!ready || closed) return;
-      if (Date.now() - lastFrame > IDLE_TIMEOUT_MS) { fail('idle'); return; }
-      if (Date.now() - openedAt > BIDI_RECONNECT_MS) reconnect();
-    }, 2000);
-    function fail(message) { if (closed) return; emit({ kind: 'error', message }); close(); }
-    function close() {
-      if (closed) return; closed = true; clearTimeout(timer); clearInterval(idle);
-      try { ws && ws.close(); } catch (_) {}
-    }
-    function connect(isReconnect) {
-      ready = false;
-      clearTimeout(timer);
-      timer = setTimeout(() => { if (!ready) fail('connect timeout'); }, CONNECT_TIMEOUT_MS);
-      const sock = openSocket(url, null,
-        () => { sock.send(JSON.stringify(setup)); },
-        (txt) => {
-          lastFrame = Date.now();
-          let m; try { m = JSON.parse(txt); } catch (_) { return; }
-          if (m.setupComplete) {
-            ready = true; openedAt = Date.now(); clearTimeout(timer);
-            if (isReconnect) { // replay the last 2 s so the seam loses no words
-              if (ring.length) sock.send(JSON.stringify({ realtimeInput: { audio: { data: b64(concat(ring)), mimeType: 'audio/pcm;rate=' + o.rate } } }));
-            } else emit({ kind: 'ready' });
-            return;
-          }
-          const sc = m.serverContent || {};
-          if (sc.interimInputTranscription && sc.interimInputTranscription.text) cutter.interim(sc.interimInputTranscription.text);
-          if (sc.inputTranscription && sc.inputTranscription.text) cutter.final(sc.inputTranscription.text);
-          if (m.voiceActivity && m.voiceActivity.type === 'ACTIVITY_START') cutter.reset();
-          if (m.error) fail(String(m.error.message || JSON.stringify(m.error)).slice(0, 200));
-        },
-        (ev) => { if (sock !== ws) return; if (!closed) { closed = true; clearTimeout(timer); clearInterval(idle); emit({ kind: 'close', code: ev.code, reason: ev.reason || '' }); } },
-        () => { if (sock === ws) fail('socket error'); });
-      return sock;
-    }
-    function reconnect() {
-      const old = ws;
-      ws = connect(true);
-      try { old.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch (_) {}
-      setTimeout(() => { try { old.onclose = null; old.close(); } catch (_) {} }, 3000);
-    }
-    function concat(chunks) {
-      let n = 0; for (const c of chunks) n += c.length;
-      const out = new Uint8Array(n); let off = 0;
-      for (const c of chunks) { out.set(c, off); off += c.length; }
-      return out;
-    }
-    ws = connect(false);
-    return {
-      sendPcm(int16) {
-        if (closed || !ready || ws.readyState !== 1) return false;
-        const bytes = new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength);
-        ring.push(bytes.slice()); ringBytes += bytes.length;
-        while (ringBytes > ringCap && ring.length > 1) ringBytes -= ring.shift().length;
-        ws.send(JSON.stringify({ realtimeInput: { audio: { data: b64(bytes), mimeType: 'audio/pcm;rate=' + o.rate } } }));
-        return true;
-      },
-      close() { try { if (ready && ws.readyState === 1) ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch (_) {} close(); },
-    };
-  }
-
-  // ─── ws-duplex ───────────────────────────────────────────────────────
-  function openDuplex(o, emit) {
-    const url = o.url + (o.url.indexOf('?') < 0 ? '?' : '&') + 'api_key=' + encodeURIComponent(o.apiKey);
-    const taskId = hex32();
-    // The vendor closes a "sentence" on a pause (measured: 36–50 tokens, often two or three
-    // sentences), and its `sentence_end:false` frames are the CUMULATIVE text of that chunk
-    // with punctuation — the same shape as ws-bidi's interims, so the same cutter releases
-    // the leading sentences before the vendor closes the chunk.
-    const cutter = interimCutter(emit);
-    let ws = null, closed = false, ready = false, lastFrame = Date.now();
-    const timer = setTimeout(() => { if (!ready) fail('connect timeout'); }, CONNECT_TIMEOUT_MS);
-    const idle = setInterval(() => { if (ready && Date.now() - lastFrame > IDLE_TIMEOUT_MS) fail('idle'); }, 5000);
-    function fail(message) { if (closed) return; emit({ kind: 'error', message }); close(); }
-    function close() {
-      if (closed) return; closed = true; clearTimeout(timer); clearInterval(idle);
-      try { ws && ws.close(); } catch (_) {}
-    }
-    ws = openSocket(url, null,
-      () => {
-        ws.send(JSON.stringify({
-          header: { action: 'run-task', task_id: taskId, streaming: 'duplex' },
-          payload: { task_group: 'audio', task: 'asr', function: 'recognition', model: o.model,
-            parameters: Object.assign({ format: 'pcm', sample_rate: o.rate }, o.params || {}), input: {} },
-        }));
-      },
-      (txt) => {
-        lastFrame = Date.now();
-        let m; try { m = JSON.parse(txt); } catch (_) { return; }
-        const evn = (m.header && m.header.event) || '';
-        if (evn === 'task-started') { ready = true; clearTimeout(timer); emit({ kind: 'ready' }); }
-        else if (evn === 'result-generated') {
-          const sen = m.payload && m.payload.output && m.payload.output.sentence;
-          if (!sen) return;
-          const text = String(sen.text || '').trim();
-          if (!text) return;
-          if (sen.sentence_end) cutter.final(text); else cutter.interim(text);
-        }
-        else if (evn === 'task-failed') fail(String((m.header && (m.header.error_message || m.header.error_code)) || 'server error').slice(0, 200));
-      },
-      (ev) => { if (!closed) { closed = true; clearTimeout(timer); clearInterval(idle); emit({ kind: 'close', code: ev.code, reason: ev.reason || '' }); } },
-      () => fail('socket error'));
-    return {
-      sendPcm(int16) {
-        if (closed || !ready || ws.readyState !== 1) return false;
-        ws.send(new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength));
-        return true;
-      },
-      close() { try { if (ready && ws.readyState === 1) ws.send(JSON.stringify({ header: { action: 'finish-task', task_id: taskId, streaming: 'duplex' }, payload: { input: {} } })); } catch (_) {} close(); },
-      reset() { cutter.reset(); },
-    };
-  }
-  function hex32() {
-    let s = '';
-    try { const a = new Uint8Array(16); crypto.getRandomValues(a); for (const b of a) s += (b < 16 ? '0' : '') + b.toString(16); return s; } catch (_) {}
-    while (s.length < 32) s += Math.floor(Math.random() * 16).toString(16);
-    return s;
-  }
-
-  const ADAPTERS = { 'ws-realtime': openRealtime, 'ws-bidi': openBidi, 'ws-duplex': openDuplex };
-
-  // open({ url, type, apiKey, keyProtocol, model, rate, langs, onEvent }) → { sendPcm(Int16Array), close() }
-  // Throws synchronously for an unknown type or a missing WebSocket — a caller must
-  // know before it starts capturing.
-  function open(o) {
-    const fn = ADAPTERS[o.type];
-    if (!fn) throw new Error('unknown live type ' + o.type);
-    if (typeof WebSocket === 'undefined') throw new Error('no WebSocket');
-    const emit = (ev) => { try { o.onEvent(ev); } catch (_) {} };
-    return fn(o, emit);
-  }
-
-  return { open, sentenceCutter, interimCutter, splitSentences, completeSentences, clauseCut, stripKey, TYPES: Object.keys(ADAPTERS), RING_MS, BIDI_RECONNECT_MS, CLAUSE_CHARS, HARD_CHARS };
+  return { sentenceCutter, interimCutter, splitSentences, completeSentences, clauseCut, CLAUSE_CHARS, HARD_CHARS };
 })();
 
 if (typeof window !== 'undefined') window.WsTranscribe = WsTranscribe;

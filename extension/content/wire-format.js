@@ -37,11 +37,9 @@ var WireFormat = (() => {
     'transcribe-compat': 'transcribe',
     'transcribe-dashscope': 'transcribe',
     'transcribe-gemini': 'transcribe',
-    // 流式转写（docs/domain-design.md §2.4 tier B）是第五种传输：一条 WebSocket。它自成
-    // 一个家族 —— 与文件式转写同能力不同协议，后缀表只在家族内选变体。
-    'ws-realtime': 'transcribe-live',
-    'ws-bidi': 'transcribe-live',
-    'ws-duplex': 'transcribe-live',
+    // 2026-09-06 → 09-17 这里还有第五个家族 transcribe-live（ws-realtime / ws-bidi / ws-duplex，
+    // 一条 WebSocket）。实时转写自 2026-09-17 起固定为设备内置、经原生桥，注册表里没有 wss 地址，
+    // 那个家族连同它的后缀表一起删除（domain-design §7 同日修订）。
     'speech-dashscope': 'speech',
     'speech-audio-chat': 'speech',
   };
@@ -73,11 +71,6 @@ var WireFormat = (() => {
       ['/multimodal-generation/generation', 'transcribe-dashscope'],
       // 去掉版本段之后只剩一段 —— 与 chat 家族的 /responses 同一种情形
       ['/interactions', 'transcribe-gemini'],
-    ],
-    'transcribe-live': [
-      ['/realtime', 'ws-realtime'],
-      ['/generativeservice.bidigeneratecontent', 'ws-bidi'],
-      ['/inference', 'ws-duplex'],
     ],
   };
   // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。
