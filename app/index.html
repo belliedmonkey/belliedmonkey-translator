@@ -531,6 +531,16 @@
         <select id="tts-voice"></select>
       </label>
 
+      <!-- 离线模型行（learning-design §9.1.1，2026-09-17）：只在选了「设备内置朗读」时出现。此前模型只在
+           对话开始那一步下载，设置里选了、试听了都静默回落系统语音 —— 用户「没感受到下载」。
+           五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。 -->
+      <div class="field adv-only" id="tts-offline-row" hidden>
+        <span id="tts-offline-label"></span>
+        <p class="note" id="tts-offline-state" role="status" aria-live="polite"></p>
+        <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
+        <button id="tts-offline-dl" type="button" class="secondary"></button>
+      </div>
+
       <label class="field">
         <span id="tts-rate-label"></span>
         <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1">
@@ -603,6 +613,13 @@
         <select id="listen-other-lang"></select>
       </label>
       <p class="note" id="listen-lang-note"></p>
+      <!-- 识别语言包（§9.1.1，镜像 §9.6 的 downloading 态）：本机识别器的语言包由系统按需下载；
+           换了语言先在这里说清在不在，而不是等到点「开始听」才发现要等。 -->
+      <div class="field" id="listen-pack-row" hidden>
+        <p class="note" id="listen-pack-state" role="status" aria-live="polite"></p>
+        <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
+        <button id="listen-pack-dl" type="button" class="secondary"></button>
+      </div>
       <label class="check">
         <input id="listen-autospeak" type="checkbox">
         <span id="listen-autospeak-label"></span>

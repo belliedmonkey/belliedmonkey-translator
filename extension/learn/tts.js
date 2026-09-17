@@ -73,6 +73,52 @@ var LearnTTS = (() => {
   // 说出原因、由界面给出去配置的路。
   function engine() { return engineById(cfg.engineId) || null; }
 
+  // ── 设备内置朗读的离线模型 —— 四处首播同一个下载入口（learning-design §9.1.1，2026-09-17）──
+  // 「首次使用会下载一次离线模型」此前只在对话开始那一步为真（app/listen.js 自己探、自己下）。
+  // 设置试听、复习 ▶、播客首播选了 device，模型缺失时 ttsLangs() 是空的，于是每种语言都
+  // 「回落系统语音」—— 静默，用户永远感受不到下载。所以下载入口收到这里，speak() 自己先走它。
+  function deviceBridge() { return typeof NativeSpeech !== 'undefined' && NativeSpeech.available(); }
+  function deviceModels() {
+    if (typeof mtDeviceTtsModelsFor !== 'function') return null;   // 清单只在 App 包里（app/device-models.config.js）
+    return mtDeviceTtsModelsFor((typeof window !== 'undefined' && window.MT_FLAVOR) || 'global');
+  }
+  function deviceSize(models) {
+    return (models || []).reduce((n, m) => n + (m.files || []).reduce((k, f) => k + (Number(f.size) || 0), 0), 0);
+  }
+  // deviceStatus() → { device, bridge, ready, langs, size, models, reason }
+  //   device: 当前引擎是不是设备内置朗读；bridge: 原生桥在不在；ready: 模型已就位；
+  //   reason: 'assets'（缺模型）| 'no-bridge' | 'not_device' | 其它原生原因
+  //   engineIdOpt：设置页在**保存之前**就要画这一行（下拉刚换、cfg 还是旧的），所以允许指定引擎；不给就看当前配置。
+  async function deviceStatus(engineIdOpt) {
+    const e = engineIdOpt ? engineById(engineIdOpt) : engine();
+    const device = !!(e && e.type === 'device-speech');
+    const models = deviceModels();
+    const out = { device, bridge: deviceBridge(), ready: false, langs: [], size: deviceSize(models), models, reason: '' };
+    if (!device) { out.reason = 'not_device'; return out; }
+    if (!out.bridge || !models) { out.reason = 'no-bridge'; return out; }
+    const r = await NativeSpeech.ttsProbe(models);
+    out.ready = !!(r && r.ok);
+    out.langs = (r && r.langs) || [];
+    out.reason = out.ready ? '' : ((r && r.reason) || 'failed');
+    return out;
+  }
+  // ensureDeviceReady(onProgress) → { ok, downloaded, reason?, why? }
+  //   onProgress 收原生 assets-progress 原样 { kind:'tts', locale, fraction, state }；调用方画在自己的状态行上，不弹框。
+  //   不是 device 引擎 ⇒ ok（跳过）。缺模型 ⇒ 下载；失败 ⇒ reason 'assets' + why。
+  async function ensureDeviceReady(onProgress, engineIdOpt) {
+    const st = await deviceStatus(engineIdOpt);
+    if (!st.device) return { ok: true, downloaded: false, skipped: true };
+    if (!st.bridge || !st.models) return { ok: false, downloaded: false, reason: 'unsupported' };
+    if (st.ready) return { ok: true, downloaded: false };
+    if (st.reason !== 'assets') return { ok: false, downloaded: false, reason: 'unsupported', why: st.reason };
+    try {
+      await NativeSpeech.ensureAssets('tts', st.models, onProgress);
+      return { ok: true, downloaded: true };
+    } catch (err) {
+      return { ok: false, downloaded: false, reason: 'assets', why: (err && err.reason) || 'download' };
+    }
+  }
+
   function configure(next) {
     cfg = Object.assign({}, DEFAULTS, next || {});
     return cfg;
@@ -477,7 +523,8 @@ var LearnTTS = (() => {
   // Resolves { ok: false, reason: 'superseded' } when another speak()/stop()
   // took over while this one was in flight — the caller should show NOTHING for
   // it (the newer call owns the UI).
-  async function speak(text, lang) {
+  // speak(text, lang[, opts]) — opts.onProgress：设备内置朗读首次要下载模型时的进度回调（§9.1.1）
+  async function speak(text, lang, opts) {
     stop();   // records the interrupt (if any) and bumps the epoch
     const myEpoch = epoch;
     const stale = () => epoch !== myEpoch;
@@ -493,6 +540,11 @@ var LearnTTS = (() => {
     // 返回值带 fallback:'lang' 让调用方在行上具名（不静默）。桥不在 / 模型没就位 ⇒ 具名 reason。
     if (e.type === 'device-speech') {
       if (typeof NativeSpeech === 'undefined' || !NativeSpeech.available()) return { ok: false, reason: 'unsupported' };
+      // 模型没就位 ⇒ 先下载（四处首播同一入口）。此前这里直接看 ttsLangs()，模型缺失时它是空的，
+      // 于是无声地「回落系统语音」—— 那正是「系统 tts 下载触发没感受到」的根因（2026-09-17）。
+      const rd = await ensureDeviceReady(opts && opts.onProgress);
+      if (stale()) return { ok: false, reason: 'superseded' };
+      if (!rd.ok) return { ok: false, reason: rd.reason || 'assets', why: rd.why };
       const base = baseLang(lang) || scriptLang(clean) || '';
       if (NativeSpeech.ttsLangs().indexOf(base) < 0) {
         const r = await speakBrowser(clean, lang, myEpoch);
@@ -689,6 +741,7 @@ var LearnTTS = (() => {
       // 「没配过」与「这平台做不到」分开说 —— 前者有出路，后者没有。
       case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
       case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
+      case 'assets': return t('tts_assets', '离线模型还没下载好 —— 到「设置 › 语音」里下载，或换系统语音');
       case 'no_base': return t('tts_no_base', '还没填语音端点地址');
       case 'no_key': return t('tts_no_key', '还没填语音 API Key');
       case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');
@@ -708,6 +761,7 @@ var LearnTTS = (() => {
     configure, engines, engineById, engine,
     loadVoices, onVoicesChanged, pickVoice, voiceQuality, scriptLang, baseLang, undLang, cacheKey,
     getAudio, prefetch, speak, stop, available, test, reason,
+    deviceStatus, ensureDeviceReady,
     get config() { return cfg; },
   };
 })();

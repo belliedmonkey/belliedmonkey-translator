@@ -3039,5 +3039,56 @@
   },
   "tts_hint_device": {
     "message": "Speech is synthesised on your device; the first use downloads the offline model once (the model file only). Languages the model does not cover fall back to the system voice, and the row says so."
+  },
+  "tts_pack_label": {
+    "message": "Offline model"
+  },
+  "tts_pack_installed": {
+    "message": "Offline model installed · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "Offline model not downloaded · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "The first read-aloud downloads it automatically too; only model files are downloaded, nothing is uploaded."
+  },
+  "tts_pack_dl": {
+    "message": "Download"
+  },
+  "tts_pack_retry": {
+    "message": "Retry"
+  },
+  "tts_pack_downloading": {
+    "message": "Downloading offline model · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "Offline model download failed: {why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "On-device read-aloud is only available in the app"
+  },
+  "tts_test_dl": {
+    "message": "Download and play a sample ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "Playing · the offline model has no voice for this language, using the system voice"
+  },
+  "tts_assets": {
+    "message": "The offline model isn’t downloaded yet — download it in Settings › Speech, or switch to the system voice"
+  },
+  "listen_pack_ready": {
+    "message": "Recognition language packs ready · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "Recognition language packs not downloaded · {langs} · downloaded by the system; starting to listen downloads them too"
+  },
+  "listen_pack_dl": {
+    "message": "Download"
+  },
+  "listen_pack_downloading": {
+    "message": "Downloading recognition language pack · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "Recognition language pack download failed: {why}"
   }
 }

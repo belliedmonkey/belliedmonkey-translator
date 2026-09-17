@@ -102,7 +102,7 @@ const FAKE_BRIDGES = `(() => {
   window.webkit.messageHandlers.mtSpeech = { postMessage(msg) {
     if (msg.type === 'stt-probe') {
       if (fs.os === 'old') { setTimeout(() => emit({ type: 'stt-state', state: 'unsupported', reason: 'os' }), 0); return; }
-      setTimeout(() => { for (const l of msg.locales) emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: fs.assets === 'installed' ? 1 : 0, state: fs.assets }); emit({ type: 'stt-state', state: 'ready', assets: fs.assets }); }, 0);
+      setTimeout(() => { for (const l of msg.locales) emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: fs.assets === 'installed' ? 1 : 0, state: fs.assets }); emit({ type: 'stt-state', state: 'ready', assets: fs.assets, supported: ['zh-CN', 'zh-TW', 'yue-CN', 'en-US', 'en-GB', 'ja-JP', 'ko-KR', 'fr-FR', 'de-DE', 'es-ES', 'pt-BR', 'it-IT'] }); }, 0);
     } else if (msg.type === 'stt-assets') {
       setTimeout(() => { for (const l of msg.locales) { emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 0.5, state: 'downloading' }); emit({ type: 'assets-progress', kind: 'stt', locale: l, fraction: 1, state: 'installed' }); } fs.assets = 'installed'; emit({ type: 'stt-state', state: 'ready', assets: 'installed' }); }, 50);
     } else if (msg.type === 'stt-start') { fs.started++; fs.lastLocales = msg.locales; setTimeout(() => emit({ type: 'stt-state', state: 'ready' }), 0); }
@@ -363,6 +363,52 @@ const FAKE_BRIDGES = `(() => {
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
     await sleep(300);
     await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ ttsEngine: '', listenAutoSpeak: false }, r)); LearnTTS.configure({ engineId: '' }); await AppListen.refreshEntry(); return 'ok'; })()`);
+
+    // ── S. 设置页（learning-design §9.1.1，2026-09-17）：离线模型行五态 / 试听两态 / 识别语言包行 / 语言下拉只列本机支持的 ──
+    if (process.env.TRACE) console.log('  …S');
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(300);
+    // 朗读引擎下拉是启动时按「桥在不在」填的（本机条目只在桥在时出现）；假桥是页面起来之后才装的，所以重填一次
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; AppSettings.paintStatic(); document.getElementById('gear').click(); return 'ok'; })()`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S: 设置页打开');
+    await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
+    await sleep(200);
+    // S1. 语言下拉只列本机识别器支持的语种（探过桥之后）：ar / ru 不在，en / ja 在；会话内的下拉同规则
+    const s1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ settings: [...document.getElementById('listen-other-lang').options].map((o) => o.value), session: [...document.getElementById('app-listen-other').options].map((o) => o.value) })`));
+    for (const [name, list] of Object.entries(s1)) {
+      need(list.includes('en') && list.includes('ja') && !list.includes('ar') && !list.includes('ru'), 'S1: ' + name + ' 的语言下拉该只列本机支持的（有 en/ja、无 ar/ru），实际 ' + JSON.stringify(list));
+    }
+    // S2. 识别语言包行：语言包已装 ⇒ 「已就绪」无按钮；缺 ⇒ 「未下载」+ 下载按钮 ⇒ 点了进度 ⇒ 已就绪
+    const s2a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('listen-pack-row').hidden, text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 语言包行说「已就绪」');
+    need(s2a.hidden === false && s2a.dl === true && /zh-CN/.test(s2a.text) && /en-US/.test(s2a.text), 'S2: 已装时该列出 locale、不给下载按钮，实际 ' + JSON.stringify(s2a));
+    await evalIn(cdp, sessionId, `(() => { __fakeSpeech.assets = 'missing'; const s = document.getElementById('listen-other-lang'); s.value = 'ja'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    const s2b = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden, dlText: document.getElementById('listen-pack-dl').textContent })`)); return /未下载/.test(r.text) ? r : null; }, 5000, 'S2: 换语言后语言包行说「未下载」');
+    need(s2b.dl === false && s2b.dlText === '下载' && /ja-JP/.test(s2b.text), 'S2: 缺包时该给「下载」按钮并列出新 locale，实际 ' + JSON.stringify(s2b));
+    await evalIn(cdp, sessionId, `(document.getElementById('listen-pack-dl').click(), 'ok')`);
+    const s2c = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden, prog: document.getElementById('listen-pack-progress').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 下载后语言包行回到「已就绪」');
+    need(s2c.dl === true && s2c.prog === true, 'S2: 下载完该收起按钮与进度条，实际 ' + JSON.stringify(s2c));
+    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('listen-other-lang'); s.value = 'en'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    // S3. 离线模型行：选设备内置朗读 ⇒ 行出现「未下载 · 129 MB」+ 「下载」，试听按钮写「下载并试听（129 MB）」
+    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('tts-engine'); s.value = 'device'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    const s3a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('tts-offline-row').hidden, text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, dlText: document.getElementById('tts-offline-dl').textContent, test: document.getElementById('btn-tts-test').textContent })`)); return /未下载/.test(r.text) ? r : null; }, 5000, 'S3: 离线模型行说「未下载」');
+    need(s3a.hidden === false && /129 MB/.test(s3a.text) && /zh/.test(s3a.text) && /en/.test(s3a.text) && /自动下载/.test(s3a.text), 'S3: 未下载态该带大小、语言与「首次朗读也会自动下载」，实际 ' + JSON.stringify(s3a));
+    need(s3a.dl === false && s3a.dlText === '下载', 'S3: 该有「下载」按钮，实际 ' + JSON.stringify(s3a));
+    need(/下载并试听（129 MB）/.test(s3a.test), 'S3: 模型未装时试听按钮该写「下载并试听（129 MB）」，实际 ' + JSON.stringify(s3a.test));
+    // S4. 点「下载」⇒ 进度 ⇒ 已安装；试听按钮回到「试听一句」；恰好下载了一次
+    await evalIn(cdp, sessionId, `(document.getElementById('tts-offline-dl').click(), 'ok')`);
+    const s4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, prog: document.getElementById('tts-offline-progress').hidden, test: document.getElementById('btn-tts-test').textContent, n: __fakeSpeech.ttsDownloads })`)); return /已安装/.test(r.text) ? r : null; }, 8000, 'S4: 下载后离线模型行说「已安装」');
+    need(s4.dl === true && s4.prog === true && s4.test === '试听一句' && s4.n === 1, 'S4: 已安装态该收起按钮与进度条、试听按钮回「试听一句」、恰好下载一次，实际 ' + JSON.stringify(s4));
+    // S5. 试听：模型已装 ⇒ 直接原生念（不再下载）
+    await evalIn(cdp, sessionId, `(__fakeSpeech.spoken = [], document.getElementById('btn-tts-test').click(), 'ok')`);
+    const s5 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ spoken: (__fakeSpeech.spoken || []).length, n: __fakeSpeech.ttsDownloads, note: document.getElementById('test-tts-note').textContent })`)); return r.spoken >= 1 && /播放中/.test(r.note) ? r : null; }, 8000, 'S5: 试听经原生朗读且结果行「播放中」');
+    need(s5.n === 1 && /播放中/.test(s5.note), 'S5: 已装时试听不该再下载，结果行「播放中」，实际 ' + JSON.stringify(s5));
+    // 收尾：朗读引擎清空，回首页
+    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('tts-engine'); s.value = ''; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    await sleep(300);
+    const s6 = await evalIn(cdp, sessionId, `document.getElementById('tts-offline-row').hidden`);
+    need(s6 === true, 'S: 换成别的引擎后离线模型行该收起');
+    await evalIn(cdp, sessionId, `(async () => { LearnTTS.configure({ engineId: '' }); document.getElementById('settings-back').click(); window.scrollTo(0, 0); return 'ok'; })()`);
+    await sleep(400);
 
     // ── H. 实时字幕（learning-design §9.8）：老壳隐藏 / 系统版本灰态 / 准备态不开麦 / 单向 / 字幕条消息 / 语料 mode / 字幕条「结束」──
     if (process.env.TRACE) console.log('  …H');
