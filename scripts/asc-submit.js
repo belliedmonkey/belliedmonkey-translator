@@ -123,10 +123,12 @@ async function cancelReview(version, bundleIds, apply) {
       const plat = v.attributes.platform;
       const label = `${app.attributes.name} [${plat}] ${version}`;
 
-      // 可提交的两种状态：还没提交过，或开发者自己撤回过。
+      // 可提交的三种状态：还没提交过；开发者自己撤回过；被 App Review 拒了。
       // DEVELOPER_REJECTED 是**撤审后 Apple 给的状态**，不是「被审核拒了」——
-      // 撤审重提正是要从这里走回去。在审中的一律跳过（不去动别人的排队）。
-      const SUBMITTABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+      // 撤审重提正是要从这里走回去。REJECTED 才是被拒（2026-09-18 1.12.1 国际 iOS，
+      // Guideline 4）：修完换 build 重提，此时那次提交还挂着（UNRESOLVED_ISSUES），
+      // 不能再 POST 一个新提交，要复用它 —— 见下面 ①。在审中的一律跳过（不去动别人的排队）。
+      const SUBMITTABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED'];
       if (!SUBMITTABLE.includes(v.attributes.appStoreState)) {
         console.log(`  跳过 ${label}: 状态 ${v.attributes.appStoreState}`);
         continue;
@@ -223,11 +225,21 @@ async function cancelReview(version, bundleIds, apply) {
     //
     // reviewSubmissions **不允许 DELETE**（只有 CREATE/GET/UPDATE）。所以一旦②失败，
     // 那个 READY_FOR_REVIEW 的空提交就永久留在账号里；再跑一次又新建一个，越堆越多。
-    const open = (await api('GET', `/apps/${t.appId}/reviewSubmissions?limit=20`
+    const subsAll = (await api('GET', `/apps/${t.appId}/reviewSubmissions?limit=20`
       + '&fields[reviewSubmissions]=state,platform')).data
-      .filter((r) => r.attributes.platform === t.platform && r.attributes.state === 'READY_FOR_REVIEW');
+      .filter((r) => r.attributes.platform === t.platform);
+    const open = subsAll.filter((r) => r.attributes.state === 'READY_FOR_REVIEW');
     let sub = null;
-    for (const cand of open) {
+    let attached = false;
+    // ①' 被拒后的重提（2026-09-18）：那次提交还在 UNRESOLVED_ISSUES，版本已经挂在它的条目里。
+    // 这时 POST 新提交会被拒（同平台只能有一个开着的），正确动作是复用它、跳过②、直接 ③ 递出去。
+    for (const cand of subsAll.filter((r) => r.attributes.state === 'UNRESOLVED_ISSUES')) {
+      const items = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=10&include=appStoreVersion`);
+      const hit = (items.data || []).some((it) => it.relationships && it.relationships.appStoreVersion
+        && it.relationships.appStoreVersion.data && it.relationships.appStoreVersion.data.id === t.versionId);
+      if (hit) { sub = cand; attached = true; console.log(`    （复用被拒的那次提交 ${cand.id.slice(0, 8)}，版本已在其条目里）`); break; }
+    }
+    for (const cand of sub ? [] : open) {
       const items = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=5`);
       if (!items.data.length) { sub = cand; console.log(`    （复用空提交 ${cand.id.slice(0, 8)}）`); break; }
     }
@@ -237,8 +249,8 @@ async function cancelReview(version, bundleIds, apply) {
           relationships: { app: { data: { type: 'apps', id: t.appId } } } },
       })).data;
     }
-    // ② 挂版本
-    await api('POST', '/reviewSubmissionItems', {
+    // ② 挂版本（被拒重提时已经挂着，跳过）
+    if (!attached) await api('POST', '/reviewSubmissionItems', {
       data: { type: 'reviewSubmissionItems',
         relationships: { reviewSubmission: { data: { type: 'reviewSubmissions', id: sub.id } },
           appStoreVersion: { data: { type: 'appStoreVersions', id: t.versionId } } } },

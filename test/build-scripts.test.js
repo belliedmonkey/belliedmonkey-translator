@@ -1249,6 +1249,26 @@ describe('ASC 脚本必须认 DEVELOPER_REJECTED（撤审后的状态）', () =>
   }
 });
 
+// 被 App Review 拒了是另一个状态：REJECTED。2026-09-18 1.12.1 国际 iOS 因 Guideline 4 被拒，
+// 修完要 bind 新 build 再重提 —— 而那次提交还挂着（UNRESOLVED_ISSUES），不能 POST 新的，
+// 要复用它、跳过挂版本那步、直接递出去。
+describe('ASC 脚本必须认 REJECTED（被审核拒了）并复用那次提交', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  test('asc.js 与 asc-submit.js 的可编辑 / 可提交集合里有 REJECTED', () => {
+    for (const f of ['scripts/asc.js', 'scripts/asc-submit.js']) {
+      const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+      match(src, /\[\s*'PREPARE_FOR_SUBMISSION',\s*'DEVELOPER_REJECTED',\s*'REJECTED'\s*\]/, f);
+    }
+  });
+  test('asc-submit.js 复用 UNRESOLVED_ISSUES 的提交，且已挂版本时跳过 POST reviewSubmissionItems', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'scripts/asc-submit.js'), 'utf8');
+    ok(/state === 'UNRESOLVED_ISSUES'/.test(src), '要找被拒的那次提交');
+    ok(/if \(!attached\) await api\('POST', '\/reviewSubmissionItems'/.test(src), '版本已在条目里就不再挂一次');
+  });
+});
+
 // ── 设备内置转写 / 朗读的桥（learning-design §9.6.1）─────────────────────────────
 describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
   const R = path.join(__dirname, '..');

@@ -23,9 +23,13 @@
 // 于是「撤完就走不回去」—— 而撤审是不可逆的，排队位置已经清零了。asc-media.js 与
 // asc-submit.js 早就认了两个，这个文件的四处没跟上。判据写在一处，别再抄第五份。
 //
+// 2026-09-18 加第三个：
+//   REJECTED               —— **被 App Review 拒了**（1.12.1 国际 iOS，Guideline 4）。修完要换 build
+//                             重提，走的就是 bind → asc-submit；不认它就只能去网页点。
+//
 // 不在这里面的（READY_FOR_SALE / WAITING_FOR_REVIEW / IN_REVIEW）是**对外事实**，
 // 改它等于篡改历史，所以仍然一律拒绝。
-const EDITABLE_STATES = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+const EDITABLE_STATES = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED'];
 const isEditable = (v) => EDITABLE_STATES.includes(v.attributes.appStoreState);
 
 // 凭证、JWT、请求、销售报表都在 lib 里 —— `store-stats.js` 要问 Apple 同样的问题，
