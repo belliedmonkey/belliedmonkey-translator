@@ -141,6 +141,7 @@ var AppListen = (() => {
       : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
   }
   let trackedNoLive = false;
+  let langSelFill = null;   // 会话内两个语言下拉的重填（探到本机支持的语种清单后调）
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
   // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
@@ -153,6 +154,7 @@ var AppListen = (() => {
       if (deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
       ok = liveCapable();
     } catch (_) { ok = false; }
+    try { if (langSelFill) langSelFill(); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
     const reason = ok ? '' : unavailableReason();
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
@@ -693,19 +695,16 @@ var AppListen = (() => {
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
     if (deviceTts() && deviceBridge()) {
-      const models = mtDeviceTtsModelsFor(window.MT_FLAVOR);
-      let r = await NativeSpeech.ttsProbe(models);
-      if (phase !== 'preparing') return;
-      if (!r.ok && r.reason === 'assets') {
-        phase = 'downloading'; dlPct = 0; dlLang = ''; paint();
-        try {
-          r = await NativeSpeech.ensureAssets('tts', models, (m) => {
-            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
-          });
-        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return; }
+      // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
+      // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
+      const rd = await LearnTTS.ensureDeviceReady((m) => {
+        if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; paint(); }
         if (phase !== 'downloading') return;
-        phase = 'preparing'; paint();
-      }
+        dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+      });
+      if (phase !== 'preparing' && phase !== 'downloading') return;
+      if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return; }
+      if (phase === 'downloading') { phase = 'preparing'; paint(); }
       // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
     }
     openSocket();
@@ -1330,14 +1329,23 @@ var AppListen = (() => {
     // 语言对：两个下拉从语言注册表列，与设置页那两个是同一份设置（listenMyLang /
     // listenOtherLang）。选重了不是拒绝而是对调 —— 判据在 ListenCore.langPatch。
     const selMy = $('app-listen-my'), selOther = $('app-listen-other');
-    for (const sel of [selMy, selOther]) {
+    // 2026-09-17：只列本机识别器支持的语种（清单由桥在 stt-probe 时报出；没探过就不过滤）。
+    // 与设置页那两个下拉同一条规则（app/settings.js fillLangs）；正选中的照旧留着。
+    function fillLangSel(sel) {
+      const keep = sel.value;
+      let allowed = null;
+      try { const l = deviceBridge() ? NativeSpeech.supportedLocales() : []; if (l.length) allowed = new Set(l.map((x) => String(x).split(/[-_]/)[0].toLowerCase())); } catch (_) { allowed = null; }
       sel.textContent = '';
       for (const l of (window.MT_LANGS || [])) {
+        if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
         const o = document.createElement('option'); o.value = l.code;
         o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
         sel.appendChild(o);
       }
+      if (keep) sel.value = keep;
     }
+    for (const sel of [selMy, selOther]) fillLangSel(sel);
+    langSelFill = () => { for (const sel of [selMy, selOther]) fillLangSel(sel); };
     function paintLangs(s) {
       const B = C.baseCode;
       selOther.value = B(s.listenOtherLang) || 'en';

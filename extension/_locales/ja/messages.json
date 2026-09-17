@@ -3039,5 +3039,56 @@
   },
   "tts_hint_device": {
     "message": "音声は端末内で合成されます。初回のみオフラインモデルをダウンロードします（モデルファイルのみ）。モデルにない言語はシステム音声に切り替わり、行にその旨が表示されます。"
+  },
+  "tts_pack_label": {
+    "message": "オフラインモデル"
+  },
+  "tts_pack_installed": {
+    "message": "オフラインモデルはインストール済み · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "オフラインモデルは未ダウンロード · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "初回の読み上げ時にも自動でダウンロードされます。モデルファイルのダウンロードのみで、何もアップロードしません。"
+  },
+  "tts_pack_dl": {
+    "message": "ダウンロード"
+  },
+  "tts_pack_retry": {
+    "message": "再試行"
+  },
+  "tts_pack_downloading": {
+    "message": "オフラインモデルをダウンロード中 · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "オフラインモデルのダウンロードに失敗しました：{why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "デバイス内蔵の読み上げはアプリ内でのみ使えます"
+  },
+  "tts_test_dl": {
+    "message": "ダウンロードして試聴（{size}）"
+  },
+  "tts_test_ok_fallback": {
+    "message": "再生中 · オフラインモデルにこの言語がないためシステム音声を使用"
+  },
+  "tts_assets": {
+    "message": "オフラインモデルがまだダウンロードされていません — 「設定 › 音声」でダウンロードするか、システム音声に切り替えてください"
+  },
+  "listen_pack_ready": {
+    "message": "認識用言語パックは準備済み · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "認識用言語パックは未ダウンロード · {langs} · システムがダウンロードします。聞き始めるときにも自動で取得"
+  },
+  "listen_pack_dl": {
+    "message": "ダウンロード"
+  },
+  "listen_pack_downloading": {
+    "message": "認識用言語パックをダウンロード中 · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "認識用言語パックのダウンロードに失敗しました：{why}"
   }
 }

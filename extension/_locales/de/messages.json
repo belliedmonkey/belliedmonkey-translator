@@ -3039,5 +3039,56 @@
   },
   "tts_hint_device": {
     "message": "Sprache wird auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Nicht abgedeckte Sprachen nutzen die Systemstimme, und die Zeile sagt es."
+  },
+  "tts_pack_label": {
+    "message": "Offline-Modell"
+  },
+  "tts_pack_installed": {
+    "message": "Offline-Modell installiert · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "Offline-Modell nicht geladen · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "Beim ersten Vorlesen wird es auch automatisch geladen; es werden nur Modelldateien geladen, nichts hochgeladen."
+  },
+  "tts_pack_dl": {
+    "message": "Laden"
+  },
+  "tts_pack_retry": {
+    "message": "Erneut versuchen"
+  },
+  "tts_pack_downloading": {
+    "message": "Offline-Modell wird geladen · {lang} · {pct} %"
+  },
+  "tts_pack_failed": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "Das integrierte Vorlesen ist nur in der App verfügbar"
+  },
+  "tts_test_dl": {
+    "message": "Laden und Probe anhören ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "Wird abgespielt · Offline-Modell hat diese Sprache nicht, Systemstimme wird verwendet"
+  },
+  "tts_assets": {
+    "message": "Das Offline-Modell ist noch nicht geladen – lade es unter Einstellungen › Sprache oder wechsle zur Systemstimme"
+  },
+  "listen_pack_ready": {
+    "message": "Sprachpakete für die Erkennung bereit · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "Sprachpakete nicht geladen · {langs} · das System lädt sie; auch beim Zuhören-Start"
+  },
+  "listen_pack_dl": {
+    "message": "Laden"
+  },
+  "listen_pack_downloading": {
+    "message": "Sprachpaket wird geladen · {lang} · {pct} %"
+  },
+  "listen_pack_failed": {
+    "message": "Download des Sprachpakets fehlgeschlagen: {why}"
   }
 }

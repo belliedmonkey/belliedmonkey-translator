@@ -3039,5 +3039,56 @@
   },
   "tts_hint_device": {
     "message": "음성은 기기에서 합성됩니다. 처음 사용할 때 오프라인 모델을 한 번 다운로드합니다(모델 파일만). 모델에 없는 언어는 시스템 음성으로 대체되며 행에 표시됩니다."
+  },
+  "tts_pack_label": {
+    "message": "오프라인 모델"
+  },
+  "tts_pack_installed": {
+    "message": "오프라인 모델 설치됨 · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "오프라인 모델 미다운로드 · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "첫 읽기 때도 자동으로 다운로드됩니다. 모델 파일만 내려받고 아무것도 업로드하지 않습니다."
+  },
+  "tts_pack_dl": {
+    "message": "다운로드"
+  },
+  "tts_pack_retry": {
+    "message": "다시 시도"
+  },
+  "tts_pack_downloading": {
+    "message": "오프라인 모델 다운로드 중 · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "오프라인 모델 다운로드 실패: {why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "기기 내장 읽기는 앱에서만 사용할 수 있습니다"
+  },
+  "tts_test_dl": {
+    "message": "다운로드 후 미리 듣기 ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "재생 중 · 오프라인 모델에 이 언어가 없어 시스템 음성을 사용합니다"
+  },
+  "tts_assets": {
+    "message": "오프라인 모델이 아직 다운로드되지 않았습니다 — 설정 › 음성에서 다운로드하거나 시스템 음성으로 바꾸세요"
+  },
+  "listen_pack_ready": {
+    "message": "인식 언어 팩 준비됨 · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "인식 언어 팩 미다운로드 · {langs} · 시스템이 다운로드합니다. 듣기 시작 시에도 자동 다운로드"
+  },
+  "listen_pack_dl": {
+    "message": "다운로드"
+  },
+  "listen_pack_downloading": {
+    "message": "인식 언어 팩 다운로드 중 · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "인식 언어 팩 다운로드 실패: {why}"
   }
 }

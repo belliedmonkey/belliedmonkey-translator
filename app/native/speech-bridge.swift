@@ -78,6 +78,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             guard SpeechTranscriber.isAvailable else {
                 self.emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
             }
+            // 本机识别器支持的 locale 清单（2026-09-17）：JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
+            let supported = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
             var allInstalled = true
             for id in locales {
                 let t = SpeechTranscriber(locale: Locale(identifier: id), preset: .transcription)
@@ -85,7 +87,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 switch st {
                 case .unsupported:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale"])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
                     return
                 case .installed:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
@@ -94,7 +96,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing"])
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing"])
+            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported])
         }
     }
 

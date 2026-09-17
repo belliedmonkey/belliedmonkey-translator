@@ -957,8 +957,13 @@
   // `anchorId` 是可选的落点。**落点是那个控件本身，不是页面顶部** ——
   // 「按钮点了、人到了、控件没找到」是 2026-09-02 真机实测过的失败形状
   // （interaction-spec 有这条：任何把人往某个控件送的按钮，落点是那个控件）。
+  // 从哪个首页进的设置，关掉就回哪个。此前这里只藏 signed-in、closeSettings 恒显 signed-in ——
+  // 从未登录首页进设置再退出，两个首页同时可见（2026-09-17 test:listen 把它暴露出来）。
+  let settingsFrom = 'signed-in';
   async function openSettings(anchorId) {
+    settingsFrom = $('signed-in').hidden && !$('signed-out').hidden ? 'signed-out' : 'signed-in';
     $('signed-in').hidden = true;
+    $('signed-out').hidden = true;
     $('review-view').hidden = true;
     $('app-settings').hidden = false;
     await AppSettings.paint(currentSession, say);
@@ -985,7 +990,7 @@
 
   async function closeSettings() {
     $('app-settings').hidden = true;
-    $('signed-in').hidden = false;
+    $(settingsFrom).hidden = false;
     await paintCounts();
     say('');
   }

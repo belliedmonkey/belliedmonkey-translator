@@ -3039,5 +3039,56 @@
   },
   "tts_hint_device": {
     "message": "يُصنَّع الصوت على جهازك؛ يُنزَّل النموذج دون اتصال مرة واحدة عند أول استخدام (ملف النموذج فقط). اللغات غير المشمولة تعود إلى صوت النظام، ويُذكر ذلك في السطر."
+  },
+  "tts_pack_label": {
+    "message": "النموذج دون اتصال"
+  },
+  "tts_pack_installed": {
+    "message": "النموذج دون اتصال مثبّت · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "النموذج دون اتصال غير منزَّل · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "تنزّله أول قراءة تلقائيًا أيضًا؛ تُنزَّل ملفات النموذج فقط ولا يُرفع أي شيء."
+  },
+  "tts_pack_dl": {
+    "message": "تنزيل"
+  },
+  "tts_pack_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "tts_pack_downloading": {
+    "message": "يجري تنزيل النموذج دون اتصال · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "فشل تنزيل النموذج دون اتصال: {why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "القراءة المدمجة متاحة في التطبيق فقط"
+  },
+  "tts_test_dl": {
+    "message": "تنزيل وتشغيل عينة ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "يعمل · النموذج دون اتصال لا يتضمن هذه اللغة، يُستخدم صوت النظام"
+  },
+  "tts_assets": {
+    "message": "لم يُنزَّل النموذج دون اتصال بعد — نزّله من الإعدادات › الصوت، أو بدّل إلى صوت النظام"
+  },
+  "listen_pack_ready": {
+    "message": "حزم لغات التعرف جاهزة · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "حزم لغات التعرف غير منزَّلة · {langs} · ينزّلها النظام؛ بدء الاستماع ينزّلها أيضًا"
+  },
+  "listen_pack_dl": {
+    "message": "تنزيل"
+  },
+  "listen_pack_downloading": {
+    "message": "يجري تنزيل حزمة اللغة · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "فشل تنزيل حزمة اللغة: {why}"
   }
 }

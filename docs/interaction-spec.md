@@ -940,7 +940,7 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 
 **搬家规则**：「搬」= 移动 DOM 节点，**id 一个不改**（`SAVE_FIELDS` 29 个、`verify-app-bundle` 的
 `settingsMissing`、smoke / onboard 门禁都钉着 id）；新 id 只有 `subtitle-video-lang`、`listen-pack-*`、
-`tts-model-*`、`dep-*`。控件搬家表见画布「解剖」板；从 `adv-only` 卡搬进 ②③ 的控件（`tts-mode` /
+`tts-offline-*`（原拟 `tts-model-*`，与既有的 `tts-model-label` 撞名，落地时改名）、`dep-*`。控件搬家表见画布「解剖」板；从 `adv-only` 卡搬进 ②③ 的控件（`tts-mode` /
 `tts-rate` / `tts-autoplay` / `learn-daily-new` / `cache-card` / `tts-cache`）**去掉 `adv-only`**，
 `verify-extension-smoke` 反过来断言它们在快速档可见；`ENGINE_CARDS` 互斥清单加 `stt-card`。
 

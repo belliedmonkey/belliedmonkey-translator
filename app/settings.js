@@ -22,15 +22,28 @@ var AppSettings = (() => {
 
   // 对话模式的语言对（§9.6）。两个下拉从语言注册表填 —— 这里不重述语言列表。
   // 用 MT_LANGS 而不是界面语言那张表：归属判断要读它的 scripts 字段，而界面语言表没有。
+  // 2026-09-17：对话的语言只列**本机识别器支持的语种**（learning-design §9.6 门控修订）。清单由原生桥
+  // 在 stt-probe 时当场报出（NativeSpeech.supportedLocales），不写死；还没探过 / 老壳不报 ⇒ 不过滤。
+  // 正选中的那个照旧留着 —— 过滤掉它会让下拉显示成空白（「我明明选过」那一类）。
+  function sttSupportedBases() {
+    try {
+      const l = (typeof NativeSpeech !== 'undefined' && NativeSpeech.supportedLocales) ? NativeSpeech.supportedLocales() : [];
+      return l.length ? new Set(l.map((x) => String(x).split(/[-_]/)[0].toLowerCase())) : null;
+    } catch (_) { return null; }
+  }
   function fillLangs(sel) {
     if (!sel) return;
+    const keep = sel.value;
+    const allowed = sttSupportedBases();
     sel.textContent = '';
     for (const l of (window.MT_LANGS || [])) {
+      if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
       const o = document.createElement('option');
       o.value = l.code;
       o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
       sel.appendChild(o);
     }
+    if (keep) sel.value = keep;
   }
   // 「我的语言」没选过就跟着界面语言走；界面语言也没选就跟系统。只在读取时回落，
   // 不往存储播种默认值 —— 播种了，用户以后改界面语言这一项就不会跟着动。
@@ -117,6 +130,7 @@ var AppSettings = (() => {
     $('tts-base-label').textContent = t('tts_base_url', '语音端点地址');
     $('tts-model-label').textContent = t('tts_model', '语音模型');
     $('tts-voice-label').textContent = t('app_set_tts_voice', '朗读语音');
+    $('tts-offline-label').textContent = t('tts_pack_label', '离线模型');
     $('tts-auto-label').textContent = t('app_set_tts_auto', '显示译文时自动朗读');
     $('tts-rate-label').textContent = t('app_set_tts_rate', '朗读速度');
     $('tts-note').textContent = t('app_set_tts_note', '语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。语音 API Key 与句子解析的密钥一样：只存这台设备、不随账号同步，本机明文保存。');
@@ -319,6 +333,121 @@ var AppSettings = (() => {
 
   function paintTtsFields(engineId) {
     applyFields(EngineFields.visibility(engineById(engineId)), 'tts', 'tts');
+    paintTtsPack(engineId);
+  }
+
+  // ── 离线模型行（learning-design §9.1.1，2026-09-17）────────────────────────
+  // 只在选了「设备内置朗读」时出现。状态来自 LearnTTS.deviceStatus()（探原生桥），下载走
+  // LearnTTS.ensureDeviceReady —— 与复习 ▶、播客首播、对话开始是**同一个**入口，这里只是把它
+  // 摆到人看得见、点得到的地方。「已安装」不给「重新下载」：原生桥没有这个动作，给一个按了
+  // 什么都不发生的按钮比不给更糟。
+  const fmtMB = (n) => Math.round((Number(n) || 0) / 1048576) + ' MB';
+  let ttsPackBusy = false;
+  function paintTtsTestLabel(st) {
+    $('btn-tts-test').textContent = st && st.device && st.bridge && !st.ready
+      ? t('tts_test_dl', '下载并试听（{size}）').replace('{size}', fmtMB(st.size))
+      : t('tts_test', '试听一句');
+  }
+  async function paintTtsPack(engineId) {
+    const row = $('tts-offline-row'); if (!row) return;
+    const e = engineById(engineId);
+    const dev = !!(e && e.type === 'device-speech');
+    row.hidden = !dev;
+    if (!dev) { paintTtsTestLabel(null); return; }
+    if (ttsPackBusy) return;   // 下载中由 downloadTtsPack 自己画进度
+    const st = await LearnTTS.deviceStatus(engineId);   // 下拉刚换、还没保存时 LearnTTS 的 cfg 还是旧的 ⇒ 指定引擎
+    if ($('tts-engine').value !== engineId || ttsPackBusy) return;
+    const state = $('tts-offline-state'), dl = $('tts-offline-dl'), prog = $('tts-offline-progress');
+    prog.hidden = true;
+    const langs = (st.models || []).map((m) => m.lang).join(' · ');
+    if (!st.bridge) {
+      state.textContent = t('tts_pack_no_bridge', '设备内置朗读只在 App 里可用');
+      dl.hidden = true;
+    } else if (st.ready) {
+      state.textContent = t('tts_pack_installed', '离线模型已安装 · {langs}').replace('{langs}', (st.langs.length ? st.langs : (st.models || []).map((m) => m.lang)).join(' · '));
+      dl.hidden = true;
+    } else if (st.reason === 'assets') {
+      state.textContent = t('tts_pack_missing', '离线模型未下载 · {langs} · {size}').replace('{langs}', langs).replace('{size}', fmtMB(st.size))
+        + '\n' + t('tts_pack_note', '首次朗读也会自动下载；只下模型文件，不上传任何内容。');
+      dl.hidden = false; dl.textContent = t('tts_pack_dl', '下载');
+    } else {
+      state.textContent = '✗ ' + LearnTTS.reason('unsupported', t);
+      dl.hidden = true;
+    }
+    paintTtsTestLabel(st);
+  }
+  async function downloadTtsPack() {
+    if (ttsPackBusy) return;
+    ttsPackBusy = true;
+    const state = $('tts-offline-state'), dl = $('tts-offline-dl'), prog = $('tts-offline-progress');
+    dl.disabled = true; prog.hidden = false; prog.value = 0;
+    try {
+      const r = await LearnTTS.ensureDeviceReady((m) => {
+        const pct = Math.round((Number(m.fraction) || 0) * 100);
+        prog.value = pct;
+        state.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(pct));
+      }, $('tts-engine').value);
+      ttsPackBusy = false;
+      if (!r.ok) {
+        prog.hidden = true;
+        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why}').replace('{why}', r.why || r.reason || '');
+        dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
+        return;
+      }
+      await paintTtsPack($('tts-engine').value);
+    } finally { ttsPackBusy = false; dl.disabled = false; }
+  }
+
+  // ── 识别语言包行（对话 · 实时字幕；§9.1.1 镜像 §9.6 的 downloading 态）──────
+  // 语言包由**系统**下载（不是我们的文件服务器），换语言时系统也会自动下 —— 这一行只是
+  // 让「在不在」在开始听之前就看得见，并给一个手动的「下载」。
+  function listenLocales() {
+    const L = ListenCore.toLocale;
+    const a = L($('listen-my-lang').value), b = L($('listen-other-lang').value);
+    return a === b ? [a] : [a, b];
+  }
+  let listenPackBusy = false;
+  async function paintListenPack() {
+    const row = $('listen-pack-row'); if (!row) return;
+    const bridge = typeof NativeSpeech !== 'undefined' && NativeSpeech.available();
+    row.hidden = !bridge;
+    if (!bridge || listenPackBusy) return;
+    const locales = listenLocales();
+    const r = await NativeSpeech.probe(locales);
+    if (listenPackBusy) return;
+    const state = $('listen-pack-state'), dl = $('listen-pack-dl'), prog = $('listen-pack-progress');
+    prog.hidden = true;
+    if (!r.ok) {
+      state.textContent = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
+      dl.hidden = true; return;
+    }
+    if (r.assets === 'installed') {
+      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', locales.join(' · '));
+      dl.hidden = true;
+    } else {
+      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', locales.join(' · '));
+      dl.hidden = false; dl.textContent = t('listen_pack_dl', '下载');
+    }
+  }
+  async function downloadListenPack() {
+    if (listenPackBusy) return;
+    listenPackBusy = true;
+    const state = $('listen-pack-state'), dl = $('listen-pack-dl'), prog = $('listen-pack-progress');
+    dl.disabled = true; prog.hidden = false; prog.value = 0;
+    try {
+      await NativeSpeech.ensureAssets('stt', listenLocales(), (m) => {
+        const pct = Math.round((Number(m.fraction) || 0) * 100);
+        prog.value = pct;
+        state.textContent = t('listen_pack_downloading', '正在下载识别语言包 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(pct));
+      });
+      listenPackBusy = false;
+      await paintListenPack();
+    } catch (e) {
+      listenPackBusy = false;
+      prog.hidden = true;
+      state.textContent = t('listen_pack_failed', '识别语言包下载失败：{why}').replace('{why}', (e && e.reason) || '');
+      dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
+    } finally { listenPackBusy = false; dl.disabled = false; }
   }
 
   // Voice list is engine-aware, same three cases as the extension options page:
@@ -465,8 +594,12 @@ var AppSettings = (() => {
     if ($('subtitle-capture')) $('subtitle-capture').checked = cur.subtitleCapture !== false;
     // 「我的语言」没选过就跟着界面语言走 —— 只在读取时回落，不往存储播种默认值，
     // 这样用户改界面语言时它会跟着变，直到他自己选过一次。
+    // 语言下拉在每次进设置页时重填：本机识别器支持的语种清单是探过桥才有的（paintStatic 时还没有）
+    fillLangs($('listen-my-lang'));
+    fillLangs($('listen-other-lang'));
     $('listen-my-lang').value = myLangOf(cur);
     $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
+    paintListenPack();
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
     $('doc-capture').checked = cur.docCapture !== false;
     $('doc-prefetch').checked = !!cur.docPrefetch;
@@ -849,8 +982,11 @@ var AppSettings = (() => {
         if (p.listenOtherLang !== undefined) $('listen-other-lang').value = ListenCore.baseCode(p.listenOtherLang);
         lastLangs = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
         if (swapped) say(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'));
+        paintListenPack();   // 换了语言，语言包在不在要重新说
       });
     }
+    $('listen-pack-dl').addEventListener('click', downloadListenPack);
+    $('tts-offline-dl').addEventListener('click', downloadTtsPack);
     lastLangs = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
     $('drive-play-notes').addEventListener('change', () => {
       set({ drivePlayNotes: $('drive-play-notes').checked });
@@ -975,8 +1111,12 @@ var AppSettings = (() => {
       note.textContent = t('tts_testing', '正在合成…');
       try {
         liveTtsConfigure();
-        const r = await LearnTTS.speak(t('tts_test_sample', 'This is what your review cards will sound like.'), 'en');
-        note.textContent = r.ok ? t('tts_test_ok', '播放中') : ('✗ ' + LearnTTS.reason(r.reason, t));
+        // 设备内置朗读首次要下载模型：进度画在结果行上（四处首播同一个入口，§9.1.1），完了重画离线模型行
+        const r = await LearnTTS.speak(t('tts_test_sample', 'This is what your review cards will sound like.'), 'en', {
+          onProgress: (m) => { note.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(Math.round((Number(m.fraction) || 0) * 100))); },
+        });
+        note.textContent = r.ok ? (r.fallback === 'lang' ? t('tts_test_ok_fallback', '播放中 · 离线模型不含这门语言，用系统语音') : t('tts_test_ok', '播放中')) : ('✗ ' + LearnTTS.reason(r.reason, t));
+        paintTtsPack($('tts-engine').value);
         if (r.ok) await Promise.race([(r.done || Promise.resolve()).catch(() => {}),
           new Promise((res) => setTimeout(res, 15000))]);
       } finally { btn.disabled = false; }

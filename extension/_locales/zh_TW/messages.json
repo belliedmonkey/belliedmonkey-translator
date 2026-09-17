@@ -3040,5 +3040,56 @@
   },
   "tts_hint_device": {
     "message": "語音在你的裝置上合成；首次使用會下載一次離線模型（只是模型檔）。模型不含的語言會改用系統語音並在行上說明。"
+  },
+  "tts_pack_label": {
+    "message": "離線模型"
+  },
+  "tts_pack_installed": {
+    "message": "離線模型已安裝 · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "離線模型未下載 · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "首次朗讀也會自動下載；只下載模型檔，不上傳任何內容。"
+  },
+  "tts_pack_dl": {
+    "message": "下載"
+  },
+  "tts_pack_retry": {
+    "message": "重試"
+  },
+  "tts_pack_downloading": {
+    "message": "正在下載離線模型 · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "離線模型下載失敗：{why}"
+  },
+  "tts_pack_no_bridge": {
+    "message": "裝置內建朗讀只在 App 裡可用"
+  },
+  "tts_test_dl": {
+    "message": "下載並試聽（{size}）"
+  },
+  "tts_test_ok_fallback": {
+    "message": "播放中 · 離線模型不含這個語言，改用系統語音"
+  },
+  "tts_assets": {
+    "message": "離線模型還沒下載好 —— 到「設定 › 語音」裡下載，或改用系統語音"
+  },
+  "listen_pack_ready": {
+    "message": "辨識語言包已就緒 · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下"
+  },
+  "listen_pack_dl": {
+    "message": "下載"
+  },
+  "listen_pack_downloading": {
+    "message": "正在下載辨識語言包 · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "辨識語言包下載失敗：{why}"
   }
 }
