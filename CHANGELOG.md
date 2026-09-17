@@ -3,6 +3,22 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.12.0
+
+- Settings reorganized into four sections by purpose: Engines & keys · Features · Account & data · About. Each feature now shows which engines it depends on and whether they are set up, with a one-tap jump to fix it.
+- Conversation · live interpreter and Live Subtitles now always use on-device recognition, so audio never leaves your device. These two need iOS 26 / macOS 26.
+- The offline voice model for on-device speech has a visible download button with progress; conversation languages list only what this device supports and show whether the recognition language pack is installed.
+- Fix: Settings can be opened without signing in.
+
+<details><summary>中文</summary>
+
+- 设置页重新整理：按用途分成「引擎与密钥 · 功能 · 账号与数据 · 关于」四节；每个功能块第一行写清它依赖哪些引擎、配好了没有，一键跳到对应设置。
+- 对话 · 实时听译与实时字幕固定使用设备内置识别，声音只在你的设备上识别；这两项需要 iOS 26 / macOS 26。
+- 设备内置朗读的离线模型有了看得见的下载入口和进度；对话语言只列这台设备支持的，并显示识别语言包是否就位。
+- 修复：未登录时也能打开设置页。
+
+</details>
+
 ## 1.11.0 — 2026-09-15
 
 - Live Subtitles: bilingual subtitles for whatever your device is playing. On Mac, a floating subtitle bar over any app and full-screen video (macOS 14.4 or later); on iPhone, a picture-in-picture window over any app.

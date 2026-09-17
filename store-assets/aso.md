@@ -57,10 +57,10 @@ interpreter,conversation,captions,youtube,transcribe,flashcards,language,learnin
 BelliedMonkey Translator puts two languages on screen wherever you read, watch or talk — and the sentences you actually read come back as review cards.
 
 LIVE SUBTITLES (APP)
-Bilingual subtitles for whatever your device is playing. On Mac, the app listens to system audio and shows a floating subtitle bar that stays on top of any app, even full-screen video (macOS 14.4 or later). On iPhone, play a video or podcast out loud in any app, and a picture-in-picture window scrolls the original and the translation, sentence by sentence.
+Bilingual subtitles for whatever your device is playing. On Mac, the app listens to system audio and shows a floating subtitle bar that stays on top of any app, even full-screen video (macOS 26 or later). On iPhone, play a video or podcast out loud in any app, and a picture-in-picture window scrolls the original and the translation, sentence by sentence. Recognition happens on the device; Live Subtitles need iOS 26 / macOS 26.
 
 CONVERSATION · LIVE INTERPRETER (APP)
-Talk across a language gap. Both sides speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 and macOS 26, on-device transcription keeps the audio on your device.
+Talk across a language gap. Both sides speak freely; each sentence is transcribed, translated and can be read aloud. Speech is recognised on the device, so the audio never leaves it. Requires iOS 26 / macOS 26.
 
 WEB PAGES, SIDE BY SIDE
 The Safari extension (also on Chrome and Firefox) keeps every paragraph's original text with the translation right below it. No switching tabs, no losing your place.
@@ -113,10 +113,10 @@ New: Live Subtitles for anything playing on your Mac or iPhone, plus a conversat
 读网页、看视频、开会聊天，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
 
 【实时字幕（App）】
-给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 14.4 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。
+给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 26 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。声音在设备上识别；实时字幕需要 iOS 26 / macOS 26。
 
 【对话 · 实时听译（App）】
-跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。iOS 26 / macOS 26 上可选设备内置转写，声音只在你的设备上识别。
+跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。声音只在你的设备上识别，不上传；需要 iOS 26 / macOS 26。
 
 【网页双语对照】
 Safari 扩展（也支持 Chrome、Firefox）在每段原文下方显示译文，不跳转、不丢阅读位置。
@@ -169,10 +169,10 @@ YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频�
 大肚猴翻译是一款开源的双语翻译工具：读网页、看视频、面对面交流，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
 
 【实时字幕（App）】
-给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 14.4 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。
+给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 26 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。声音在设备上识别；实时字幕需要 iOS 26 / macOS 26。
 
 【对话 · 实时听译（App）】
-跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。iOS 26 / macOS 26 上可选设备内置转写，声音只在你的设备上识别。
+跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。声音只在你的设备上识别，不上传；需要 iOS 26 / macOS 26。
 
 【网页双语对照】
 Safari 扩展在每段原文下方即时显示译文，边读边对照，不打断阅读节奏。
@@ -224,10 +224,10 @@ BelliedMonkey 翻訳
 見る・読む・話す、そのすべてを二言語で。実際に読んだ文は復習カードになって戻ってきます。
 
 【ライブ字幕（アプリ）】
-端末で再生中の音声に二言語字幕を付けます。Mac ではシステム音声を聞き取り、どのアプリや全画面動画の上にも字幕バーを表示します（macOS 14.4 以降）。iPhone では任意のアプリで動画やポッドキャストをスピーカー再生すると、ピクチャ・イン・ピクチャの小窓に原文と訳文が一文ずつ流れます。
+端末で再生中の音声に二言語字幕を付けます。Mac ではシステム音声を聞き取り、どのアプリや全画面動画の上にも字幕バーを表示します（macOS 26 以降）。iPhone では任意のアプリで動画やポッドキャストをスピーカー再生すると、ピクチャ・イン・ピクチャの小窓に原文と訳文が一文ずつ流れます。音声は端末内で認識します。ライブ字幕には iOS 26 / macOS 26 が必要です。
 
 【会話 · リアルタイム通訳（アプリ）】
-言葉の壁を越えて対面で話せます。双方が自由に話し、一文ごとに文字起こし・翻訳し、読み上げもできます。iOS 26 / macOS 26 では端末内蔵の文字起こしを選べ、音声は端末の中だけで認識されます。
+言葉の壁を越えて対面で話せます。双方が自由に話し、一文ごとに文字起こし・翻訳し、読み上げもできます。音声は端末の中だけで認識され、外に出ません。iOS 26 / macOS 26 が必要です。
 
 【対訳ウェブページ】
 Safari 拡張機能（Chrome・Firefox にも対応）が段落ごとに原文を残し、すぐ下に訳文を表示します。
@@ -280,10 +280,10 @@ BelliedMonkey 번역
 보고, 읽고, 말하는 모든 순간을 두 언어로. 실제로 읽은 문장은 복습 카드가 되어 돌아옵니다.
 
 【실시간 자막（앱）】
-기기에서 재생 중인 소리에 이중 언어 자막을 붙입니다. Mac에서는 시스템 오디오를 듣고, 어떤 앱이나 전체 화면 영상 위에도 떠 있는 자막 바를 표시합니다(macOS 14.4 이상). iPhone에서는 아무 앱에서나 영상이나 팟캐스트를 스피커로 재생하면 PIP 창에 원문과 번역이 문장 단위로 흐릅니다.
+기기에서 재생 중인 소리에 이중 언어 자막을 붙입니다. Mac에서는 시스템 오디오를 듣고, 어떤 앱이나 전체 화면 영상 위에도 떠 있는 자막 바를 표시합니다(macOS 26 이상). iPhone에서는 아무 앱에서나 영상이나 팟캐스트를 스피커로 재생하면 PIP 창에 원문과 번역이 문장 단위로 흐릅니다. 음성은 기기 안에서 인식합니다. 실시간 자막은 iOS 26 / macOS 26이 필요합니다.
 
 【대화 · 실시간 통역（앱）】
-언어가 달라도 마주 보고 이야기하세요. 양쪽이 자유롭게 말하면 문장마다 받아쓰고 번역하며, 읽어주기도 합니다. iOS 26 / macOS 26에서는 기기 내장 받아쓰기를 선택할 수 있어 음성이 기기 안에서만 인식됩니다.
+언어가 달라도 마주 보고 이야기하세요. 양쪽이 자유롭게 말하면 문장마다 받아쓰고 번역하며, 읽어주기도 합니다. 음성은 기기 안에서만 인식되며 밖으로 나가지 않습니다. iOS 26 / macOS 26이 필요합니다.
 
 【대역 웹페이지】
 Safari 확장 프로그램(Chrome·Firefox도 지원)이 문단마다 원문을 두고 바로 아래에 번역을 표시합니다.
@@ -336,10 +336,10 @@ PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽
 讀網頁、看影片、開會交談，原文與譯文同屏；你真正讀過的句子，還會變成複習卡回來找你。
 
 【即時字幕（App）】
-為裝置上正在播放的聲音配上雙語字幕。Mac 上聽系統聲音，懸浮字幕列蓋在任何 App 與全螢幕影片之上（需 macOS 14.4 或更新版本）；iPhone 上在任何 App 裡外放影片或 Podcast，子母畫面小窗逐句捲動原文與譯文。
+為裝置上正在播放的聲音配上雙語字幕。Mac 上聽系統聲音，懸浮字幕列蓋在任何 App 與全螢幕影片之上（需 macOS 26 或更新版本）；iPhone 上在任何 App 裡外放影片或 Podcast，子母畫面小窗逐句捲動原文與譯文。聲音在裝置上辨識；即時字幕需要 iOS 26 / macOS 26。
 
 【對話 · 即時聽譯（App）】
-跨語言面對面溝通：雙方自由說話，每句自動轉寫、翻譯，還能朗讀出來。iOS 26 / macOS 26 上可選用裝置內建轉寫，聲音只在你的裝置上辨識。
+跨語言面對面溝通：雙方自由說話，每句自動轉寫、翻譯，還能朗讀出來。聲音只在你的裝置上辨識，不上傳；需要 iOS 26 / macOS 26。
 
 【網頁雙語對照】
 Safari 擴充功能（也支援 Chrome、Firefox）在每段原文下方顯示譯文，不跳轉、不弄丟閱讀位置。
@@ -392,10 +392,10 @@ vokabeln,karteikarten,englisch,wortschatz,sprachen,gespräch,transkription,pdf,p
 Lesen, schauen, sprechen – in zwei Sprachen gleichzeitig. Und die Sätze, die du wirklich gelesen hast, kommen als Wiederholungskarten zurück.
 
 LIVE-UNTERTITEL (APP)
-Zweisprachige Untertitel für alles, was dein Gerät gerade abspielt. Auf dem Mac hört die App den Systemton und zeigt eine schwebende Untertitelleiste über jeder App, auch über Vollbildvideos (ab macOS 14.4). Auf dem iPhone spielst du ein Video oder einen Podcast in einer beliebigen App über den Lautsprecher ab, und ein Bild-in-Bild-Fenster zeigt Original und Übersetzung Satz für Satz.
+Zweisprachige Untertitel für alles, was dein Gerät gerade abspielt. Auf dem Mac hört die App den Systemton und zeigt eine schwebende Untertitelleiste über jeder App, auch über Vollbildvideos (ab macOS 26). Auf dem iPhone spielst du ein Video oder einen Podcast in einer beliebigen App über den Lautsprecher ab, und ein Bild-in-Bild-Fenster zeigt Original und Übersetzung Satz für Satz. Die Erkennung läuft auf dem Gerät; Live-Untertitel benötigen iOS 26 / macOS 26.
 
 GESPRÄCH · LIVE-DOLMETSCHER (APP)
-Unterhalte dich über Sprachgrenzen hinweg. Beide Seiten sprechen frei; jeder Satz wird transkribiert, übersetzt und auf Wunsch vorgelesen. Unter iOS 26 und macOS 26 kannst du die geräteinterne Transkription wählen – der Ton bleibt dann auf deinem Gerät.
+Unterhalte dich über Sprachgrenzen hinweg. Beide Seiten sprechen frei; jeder Satz wird transkribiert, übersetzt und auf Wunsch vorgelesen. Die Sprache wird auf dem Gerät erkannt, der Ton verlässt es nicht. Benötigt iOS 26 / macOS 26.
 
 ZWEISPRACHIGE WEBSEITEN
 Die Safari-Erweiterung (auch für Chrome und Firefox) lässt jeden Absatz im Original stehen und zeigt die Übersetzung direkt darunter.
@@ -448,10 +448,10 @@ traduction,vocabulaire,fiches,révision,langues,anglais,conversation,transcripti
 Lire, regarder, parler — en deux langues à la fois. Et les phrases que vous avez vraiment lues reviennent en cartes de révision.
 
 SOUS-TITRES EN DIRECT (APP)
-Des sous-titres bilingues pour tout ce que votre appareil diffuse. Sur Mac, l'app écoute le son du système et affiche une barre de sous-titres flottante au-dessus de n'importe quelle app, même en vidéo plein écran (macOS 14.4 ou ultérieur). Sur iPhone, lancez une vidéo ou un podcast sur le haut-parleur dans n'importe quelle app : une fenêtre en image dans l'image fait défiler l'original et la traduction, phrase par phrase.
+Des sous-titres bilingues pour tout ce que votre appareil diffuse. Sur Mac, l'app écoute le son du système et affiche une barre de sous-titres flottante au-dessus de n'importe quelle app, même en vidéo plein écran (macOS 26 ou ultérieur). Sur iPhone, lancez une vidéo ou un podcast sur le haut-parleur dans n'importe quelle app : une fenêtre en image dans l'image fait défiler l'original et la traduction, phrase par phrase. La reconnaissance se fait sur l'appareil ; les sous-titres en direct nécessitent iOS 26 / macOS 26.
 
 CONVERSATION · INTERPRÈTE EN DIRECT (APP)
-Parlez par-delà la barrière de la langue. Chacun parle librement ; chaque phrase est transcrite, traduite et peut être lue à voix haute. Sous iOS 26 et macOS 26, la transcription intégrée à l'appareil garde le son sur votre appareil.
+Parlez par-delà la barrière de la langue. Chacun parle librement ; chaque phrase est transcrite, traduite et peut être lue à voix haute. La parole est reconnue sur l'appareil, le son ne le quitte jamais. Nécessite iOS 26 / macOS 26.
 
 PAGES WEB BILINGUES
 L'extension Safari (aussi pour Chrome et Firefox) garde chaque paragraphe d'origine avec la traduction juste en dessous.
@@ -504,10 +504,10 @@ traducción,vocabulario,tarjetas,repaso,idiomas,inglés,intérprete,transcripci�
 Lee, mira y habla en dos idiomas a la vez. Y las frases que has leído de verdad vuelven como tarjetas de repaso.
 
 SUBTÍTULOS EN VIVO (APP)
-Subtítulos bilingües para todo lo que suena en tu dispositivo. En Mac, la app escucha el audio del sistema y muestra una barra de subtítulos flotante sobre cualquier app, incluso con vídeo a pantalla completa (macOS 14.4 o posterior). En iPhone, reproduce un vídeo o pódcast por el altavoz en cualquier app y una ventana de imagen en imagen muestra original y traducción, frase a frase.
+Subtítulos bilingües para todo lo que suena en tu dispositivo. En Mac, la app escucha el audio del sistema y muestra una barra de subtítulos flotante sobre cualquier app, incluso con vídeo a pantalla completa (macOS 26 o posterior). En iPhone, reproduce un vídeo o pódcast por el altavoz en cualquier app y una ventana de imagen en imagen muestra original y traducción, frase a frase. El reconocimiento se hace en el dispositivo; los subtítulos en directo requieren iOS 26 / macOS 26.
 
 CONVERSACIÓN · INTÉRPRETE EN VIVO (APP)
-Habla por encima de la barrera del idioma. Las dos partes hablan con libertad; cada frase se transcribe, se traduce y se puede leer en voz alta. En iOS 26 y macOS 26 puedes elegir la transcripción integrada en el dispositivo y el audio no sale de él.
+Habla por encima de la barrera del idioma. Las dos partes hablan con libertad; cada frase se transcribe, se traduce y se puede leer en voz alta. La voz se reconoce en el dispositivo y el audio nunca sale de él. Requiere iOS 26 / macOS 26.
 
 PÁGINAS WEB BILINGÜES
 La extensión de Safari (también para Chrome y Firefox) conserva cada párrafo original con la traducción justo debajo.
@@ -560,10 +560,10 @@ BelliedMonkey Переводчик
 Читайте, смотрите и говорите сразу на двух языках. А фразы, которые вы действительно прочитали, вернутся карточками для повторения.
 
 ЖИВЫЕ СУБТИТРЫ (ПРИЛОЖЕНИЕ)
-Двуязычные субтитры для всего, что звучит на вашем устройстве. На Mac приложение слушает системный звук и показывает плавающую строку субтитров поверх любого приложения, даже полноэкранного видео (macOS 14.4 или новее). На iPhone включите видео или подкаст через динамик в любом приложении — окно «картинка в картинке» покажет оригинал и перевод по фразам.
+Двуязычные субтитры для всего, что звучит на вашем устройстве. На Mac приложение слушает системный звук и показывает плавающую строку субтитров поверх любого приложения, даже полноэкранного видео (macOS 26 или новее). На iPhone включите видео или подкаст через динамик в любом приложении — окно «картинка в картинке» покажет оригинал и перевод по фразам. Распознавание идёт на устройстве; живым субтитрам нужны iOS 26 / macOS 26.
 
 РАЗГОВОР · ЖИВОЙ ПЕРЕВОДЧИК (ПРИЛОЖЕНИЕ)
-Общайтесь, несмотря на языковой барьер. Обе стороны говорят свободно; каждая фраза расшифровывается, переводится и может быть озвучена. В iOS 26 и macOS 26 можно выбрать встроенную расшифровку — звук остаётся на устройстве.
+Общайтесь, несмотря на языковой барьер. Обе стороны говорят свободно; каждая фраза расшифровывается, переводится и может быть озвучена. Речь распознаётся на устройстве, звук его не покидает. Требуются iOS 26 / macOS 26.
 
 ДВУЯЗЫЧНЫЕ СТРАНИЦЫ
 Расширение Safari (а также для Chrome и Firefox) сохраняет каждый абзац оригинала и показывает перевод прямо под ним.
@@ -616,10 +616,10 @@ tradução,vocabulário,flashcards,revisão,idiomas,inglês,memória,conversa,tr
 Leia, assista e converse em dois idiomas ao mesmo tempo. E as frases que você realmente leu voltam como cartões de revisão.
 
 LEGENDAS AO VIVO (APP)
-Legendas bilíngues para tudo o que toca no seu aparelho. No Mac, o app ouve o áudio do sistema e mostra uma barra de legendas flutuante sobre qualquer app, até em vídeo em tela cheia (macOS 14.4 ou posterior). No iPhone, toque um vídeo ou podcast pelo alto-falante em qualquer app e uma janela picture-in-picture mostra original e tradução, frase a frase.
+Legendas bilíngues para tudo o que toca no seu aparelho. No Mac, o app ouve o áudio do sistema e mostra uma barra de legendas flutuante sobre qualquer app, até em vídeo em tela cheia (macOS 26 ou posterior). No iPhone, toque um vídeo ou podcast pelo alto-falante em qualquer app e uma janela picture-in-picture mostra original e tradução, frase a frase. O reconhecimento acontece no aparelho; as legendas ao vivo exigem iOS 26 / macOS 26.
 
 CONVERSA · INTÉRPRETE AO VIVO (APP)
-Converse apesar da barreira do idioma. Os dois lados falam livremente; cada frase é transcrita, traduzida e pode ser lida em voz alta. No iOS 26 e no macOS 26, a transcrição integrada no aparelho mantém o áudio no aparelho.
+Converse apesar da barreira do idioma. Os dois lados falam livremente; cada frase é transcrita, traduzida e pode ser lida em voz alta. A fala é reconhecida no aparelho e o áudio nunca sai dele. Exige iOS 26 / macOS 26.
 
 PÁGINAS WEB BILÍNGUES
 A extensão do Safari (também para Chrome e Firefox) mantém cada parágrafo original com a tradução logo abaixo.
@@ -672,10 +672,10 @@ BelliedMonkey مترجم
 اقرأ وشاهد وتحدّث بلغتين في آنٍ واحد. والجُمل التي قرأتها فعلاً تعود إليك بطاقاتِ مراجعة.
 
 ترجمة مباشرة (التطبيق)
-ترجمة ثنائية اللغة لكل ما يُشغَّل على جهازك. على Mac يستمع التطبيق إلى صوت النظام ويعرض شريط ترجمة عائمًا فوق أي تطبيق، حتى فوق الفيديو بملء الشاشة (macOS 14.4 أو أحدث). وعلى iPhone شغّل فيديو أو بودكاست عبر مكبّر الصوت في أي تطبيق، فتعرض نافذة صورة داخل صورة النص الأصلي والترجمة جملةً بجملة.
+ترجمة ثنائية اللغة لكل ما يُشغَّل على جهازك. على Mac يستمع التطبيق إلى صوت النظام ويعرض شريط ترجمة عائمًا فوق أي تطبيق، حتى فوق الفيديو بملء الشاشة (macOS 26 أو أحدث). وعلى iPhone شغّل فيديو أو بودكاست عبر مكبّر الصوت في أي تطبيق، فتعرض نافذة صورة داخل صورة النص الأصلي والترجمة جملةً بجملة. يتم التعرّف على الكلام داخل الجهاز؛ وتحتاج الترجمة المباشرة إلى iOS 26 / macOS 26.
 
 محادثة · مترجم فوري (التطبيق)
-تحدّث رغم اختلاف اللغة. يتكلم الطرفان بحرية، وتُفرَّغ كل جملة وتُترجَم ويمكن قراءتها بصوت مسموع. على iOS 26 وmacOS 26 يمكنك اختيار التفريغ الصوتي المدمج في الجهاز فيبقى الصوت على جهازك.
+تحدّث رغم اختلاف اللغة. يتكلم الطرفان بحرية، وتُفرَّغ كل جملة وتُترجَم ويمكن قراءتها بصوت مسموع. يُتعرَّف على الكلام داخل الجهاز فلا يخرج الصوت منه. يتطلب iOS 26 / macOS 26.
 
 صفحات ويب بلغتين
 تُبقي إضافة Safari (وكذلك Chrome وFirefox) كل فقرة بنصها الأصلي وتعرض الترجمة أسفلها مباشرةً.
@@ -728,10 +728,10 @@ inglese,tradurre,vocaboli,ripasso,video,imparare,flashcard,podcast,conversazione
 Leggi, guarda e parla in due lingue insieme. E le frasi che hai davvero letto tornano come carte di ripasso.
 
 SOTTOTITOLI LIVE (APP)
-Sottotitoli bilingui per tutto ciò che il tuo dispositivo sta riproducendo. Su Mac l'app ascolta l'audio di sistema e mostra una barra di sottotitoli fluttuante sopra qualsiasi app, anche sui video a schermo intero (macOS 14.4 o successivo). Su iPhone riproduci un video o un podcast dall'altoparlante in qualsiasi app e una finestra picture-in-picture mostra originale e traduzione, frase per frase.
+Sottotitoli bilingui per tutto ciò che il tuo dispositivo sta riproducendo. Su Mac l'app ascolta l'audio di sistema e mostra una barra di sottotitoli fluttuante sopra qualsiasi app, anche sui video a schermo intero (macOS 26 o successivo). Su iPhone riproduci un video o un podcast dall'altoparlante in qualsiasi app e una finestra picture-in-picture mostra originale e traduzione, frase per frase. Il riconoscimento avviene sul dispositivo; i sottotitoli dal vivo richiedono iOS 26 / macOS 26.
 
 CONVERSAZIONE · INTERPRETE LIVE (APP)
-Parla oltre la barriera della lingua. Entrambi parlano liberamente; ogni frase viene trascritta, tradotta e può essere letta ad alta voce. Su iOS 26 e macOS 26 puoi scegliere la trascrizione sul dispositivo e l'audio resta sul dispositivo.
+Parla oltre la barriera della lingua. Entrambi parlano liberamente; ogni frase viene trascritta, tradotta e può essere letta ad alta voce. La voce viene riconosciuta sul dispositivo e l'audio non lo lascia mai. Richiede iOS 26 / macOS 26.
 
 PAGINE WEB BILINGUI
 L'estensione per Safari (anche per Chrome e Firefox) mantiene ogni paragrafo originale con la traduzione subito sotto.
@@ -784,10 +784,10 @@ Canlı altyazı ve tercüman
 Oku, izle ve konuş — aynı anda iki dilde. Gerçekten okuduğun cümleler de tekrar kartı olarak geri gelir.
 
 CANLI ALTYAZI (UYGULAMA)
-Cihazında çalan her şey için iki dilli altyazı. Mac'te uygulama sistem sesini dinler ve her uygulamanın, hatta tam ekran videonun üstünde duran yüzen bir altyazı çubuğu gösterir (macOS 14.4 veya sonrası). iPhone'da herhangi bir uygulamada videoyu ya da podcast'i hoparlörden çal; resim içinde resim penceresi özgün metni ve çeviriyi cümle cümle gösterir.
+Cihazında çalan her şey için iki dilli altyazı. Mac'te uygulama sistem sesini dinler ve her uygulamanın, hatta tam ekran videonun üstünde duran yüzen bir altyazı çubuğu gösterir (macOS 26 veya sonrası). iPhone'da herhangi bir uygulamada videoyu ya da podcast'i hoparlörden çal; resim içinde resim penceresi özgün metni ve çeviriyi cümle cümle gösterir. Tanıma cihazda yapılır; Canlı Altyazı iOS 26 / macOS 26 gerektirir.
 
 SOHBET · CANLI TERCÜMAN (UYGULAMA)
-Dil engelini aşarak yüz yüze konuş. İki taraf da serbestçe konuşur; her cümle yazıya dökülür, çevrilir ve sesli okunabilir. iOS 26 ve macOS 26'da cihaz içi transkripsiyonu seçebilirsin; ses cihazında kalır.
+Dil engelini aşarak yüz yüze konuş. İki taraf da serbestçe konuşur; her cümle yazıya dökülür, çevrilir ve sesli okunabilir. Konuşma cihazda tanınır, ses cihazından çıkmaz. iOS 26 / macOS 26 gerektirir.
 
 İKİ DİLLİ WEB SAYFALARI
 Safari eklentisi (Chrome ve Firefox için de var) her paragrafın özgün metnini korur, çevirisini hemen altında gösterir.
@@ -840,10 +840,10 @@ tiếng Anh,ngoại ngữ,từ vựng,ôn tập,đọc,ghi nhớ,video,học,pod
 Đọc, xem và nói chuyện bằng hai ngôn ngữ cùng lúc. Những câu bạn thực sự đã đọc sẽ quay lại thành thẻ ôn tập.
 
 PHỤ ĐỀ TRỰC TIẾP (ỨNG DỤNG)
-Phụ đề song ngữ cho mọi thứ đang phát trên thiết bị. Trên Mac, ứng dụng nghe âm thanh hệ thống và hiện một thanh phụ đề nổi trên mọi ứng dụng, kể cả video toàn màn hình (macOS 14.4 trở lên). Trên iPhone, phát video hoặc podcast qua loa ngoài trong bất kỳ ứng dụng nào, cửa sổ hình trong hình sẽ chạy bản gốc và bản dịch theo từng câu.
+Phụ đề song ngữ cho mọi thứ đang phát trên thiết bị. Trên Mac, ứng dụng nghe âm thanh hệ thống và hiện một thanh phụ đề nổi trên mọi ứng dụng, kể cả video toàn màn hình (macOS 26 trở lên). Trên iPhone, phát video hoặc podcast qua loa ngoài trong bất kỳ ứng dụng nào, cửa sổ hình trong hình sẽ chạy bản gốc và bản dịch theo từng câu. Nhận dạng diễn ra ngay trên thiết bị; Phụ đề trực tiếp cần iOS 26 / macOS 26.
 
 HỘI THOẠI · PHIÊN DỊCH TRỰC TIẾP (ỨNG DỤNG)
-Trò chuyện vượt rào cản ngôn ngữ. Hai bên nói tự do; mỗi câu được chép lời, dịch và có thể đọc thành tiếng. Trên iOS 26 và macOS 26, bạn có thể chọn chép lời ngay trên thiết bị, âm thanh không rời khỏi máy.
+Trò chuyện vượt rào cản ngôn ngữ. Hai bên nói tự do; mỗi câu được chép lời, dịch và có thể đọc thành tiếng. Giọng nói được nhận dạng ngay trên thiết bị, âm thanh không rời khỏi máy. Cần iOS 26 / macOS 26.
 
 TRANG WEB SONG NGỮ
 Tiện ích Safari (có cả cho Chrome và Firefox) giữ nguyên từng đoạn gốc và hiện bản dịch ngay bên dưới.
@@ -896,10 +896,10 @@ angielski,języki,słówka,powtórki,czytanie,pamięć,fiszki,nauka,podcast,rozm
 Czytaj, oglądaj i rozmawiaj w dwóch językach naraz. A zdania, które naprawdę przeczytasz, wracają jako fiszki do powtórek.
 
 NAPISY NA ŻYWO (APLIKACJA)
-Dwujęzyczne napisy do wszystkiego, co gra na Twoim urządzeniu. Na Macu aplikacja słucha dźwięku systemowego i pokazuje pływający pasek napisów nad każdą aplikacją, także nad filmem na pełnym ekranie (macOS 14.4 lub nowszy). Na iPhonie odtwórz film lub podcast przez głośnik w dowolnej aplikacji, a okno obraz w obrazie pokaże oryginał i tłumaczenie zdanie po zdaniu.
+Dwujęzyczne napisy do wszystkiego, co gra na Twoim urządzeniu. Na Macu aplikacja słucha dźwięku systemowego i pokazuje pływający pasek napisów nad każdą aplikacją, także nad filmem na pełnym ekranie (macOS 26 lub nowszy). Na iPhonie odtwórz film lub podcast przez głośnik w dowolnej aplikacji, a okno obraz w obrazie pokaże oryginał i tłumaczenie zdanie po zdaniu. Rozpoznawanie odbywa się na urządzeniu; napisy na żywo wymagają iOS 26 / macOS 26.
 
 ROZMOWA · TŁUMACZ NA ŻYWO (APLIKACJA)
-Rozmawiaj ponad barierą językową. Obie strony mówią swobodnie; każde zdanie jest spisywane, tłumaczone i może zostać odczytane na głos. W iOS 26 i macOS 26 możesz wybrać transkrypcję na urządzeniu — dźwięk zostaje na urządzeniu.
+Rozmawiaj ponad barierą językową. Obie strony mówią swobodnie; każde zdanie jest spisywane, tłumaczone i może zostać odczytane na głos. Mowa jest rozpoznawana na urządzeniu, dźwięk go nie opuszcza. Wymaga iOS 26 / macOS 26.
 
 DWUJĘZYCZNE STRONY
 Rozszerzenie Safari (także dla Chrome i Firefox) zostawia każdy akapit w oryginale, a tłumaczenie pokazuje tuż pod nim.
