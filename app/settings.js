@@ -78,7 +78,7 @@ var AppSettings = (() => {
     return new Promise((res) => chrome.storage.local.get(keys, res));
   }
   function set(items) {
-    return new Promise((res) => chrome.storage.local.set(items, res));
+    return new Promise((res) => chrome.storage.local.set(items, res)).then((r) => { depsOnWrite(items); return r; });
   }
 
   // `learnEnabled` 被强制打开，因为「有没有材料来源」在 App 上确实为真：材料经同步
@@ -428,6 +428,9 @@ var AppSettings = (() => {
     if (listenPackBusy) return;
     const state = $('listen-pack-state'), dl = $('listen-pack-dl'), prog = $('listen-pack-progress');
     prog.hidden = true;
+    // 旧系统态整块换成一句（interaction-spec「设置页信息架构」②）：本机识别器不可用时，
+    // 这块里的开关与语言下拉都没有意义，只留标题 + 这一句；依赖行也收起，免得同一句写两遍。
+    $('g-listen').classList.toggle('na', !r.ok);
     if (!r.ok) {
       state.textContent = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
       dl.hidden = true; return;
@@ -697,8 +700,17 @@ var AppSettings = (() => {
   // 实时转写不是引擎，它的结论来自 NativeSpeech.probe。「去配置 →」切到详细档并落到那个槽的下拉上；
   // 翻译在 App 里没有逐项控件，落到快速档的一键卡。
   let _depsCur = null;
+  // 本页是写入方，不订阅 storage.onChanged（见上）—— 所以引擎一换，依赖行要在这里跟着重画：
+  // set() 写完把改动并进快照再画一遍。模拟器复验（2026-09-17）：选了设备内置朗读，复习块还说「朗读：未配置」。
+  const DEP_KEY_RE = /^(provider|api(Key|BaseUrl|Model)|tts|stt|notes)/;
+  function depsOnWrite(items) {
+    if (!_depsCur || !items) return;
+    let hit = false;
+    for (const k of Object.keys(items)) { if (DEP_KEY_RE.test(k)) { _depsCur[k] = items[k]; hit = true; } }
+    if (hit) paintDeps();
+  }
   function paintDeps(cur) {
-    if (cur) _depsCur = cur;
+    if (cur) _depsCur = Object.assign({}, cur);
     const s = _depsCur || {};
     if (typeof DepLine === 'undefined') return;
     const detail = $('mode-detail').getAttribute('aria-selected') === 'true';

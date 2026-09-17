@@ -105,6 +105,7 @@
     $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
+    $('gear2').textContent = t('app_settings_link', '设置');   // 未登录首页的设置入口（2026-09-17）
     AppSettings.paintStatic();
     $('review').textContent = t('app_review_start', '开始复习');
     $('review-back').textContent = t('app_review_back', '← 返回');
@@ -1015,6 +1016,7 @@
     if (OB[obAt] === 'ext' && obAt < OB.length - 1) { obAt += 1; obPaint(); }
   });
   $('gear').addEventListener('click', openSettings);
+  $('gear2').addEventListener('click', openSettings);
   $('settings-back').addEventListener('click', closeSettings);
   // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
   // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」

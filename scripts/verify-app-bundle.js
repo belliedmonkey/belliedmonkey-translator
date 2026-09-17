@@ -158,7 +158,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'feedback-title','feedback-mail','feedback-rate','feedback-note',
           // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
           'telemetry-block','telemetry-on','telemetry-note',
-          'clean-known','settings-signout','delete-account','gear',
+          'clean-known','settings-signout','delete-account','gear','gear2',
           // 2026-09-17 设置页信息架构：四节节头、依赖行、视频的语言、离线模型行、识别语言包行
           'sec-engines','sec-features','sec-account','sec-about','dep-review','dep-drive','dep-listen','dep-docs',
           'subtitle-video-lang','tts-offline-row','listen-pack-row','app-adv-hint-go']
