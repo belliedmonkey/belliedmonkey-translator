@@ -1305,6 +1305,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
+      '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
       // 状态 / 原因 id
       '"ready"', '"unsupported"', '"failed"', '"ended"', '"installed"', '"missing"', '"downloading"',
       '"os"', '"locale"', '"locales"', '"format"', '"stt"', '"tts"', '"no-engine"', '"download"', '"load"', '"lang"',

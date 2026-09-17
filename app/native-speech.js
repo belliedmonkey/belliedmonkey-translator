@@ -58,6 +58,11 @@ var NativeSpeech = (() => {
       for (const fn of progressListeners) { try { fn(msg); } catch (_) {} }
       return;
     }
+    if (t === 'url-probe') {
+      const r = urlProbes.get(msg.id);
+      if (r) { urlProbes.delete(msg.id); r(!!msg.ok); }
+      return;
+    }
     if (t === 'stt-partial' || t === 'stt-final') {
       if (sttSession) sttSession.fire(t === 'stt-final' ? 'final' : 'partial', msg);
       return;
@@ -90,6 +95,18 @@ var NativeSpeech = (() => {
     });
   }
   function probeResult() { return sttProbe; }
+  // ── 地址可用性探测（learning-design §9.6.1.1）：原生发 Range 0-0 的 GET，5 s 超时；2xx 算可用。
+  //    ModelSources 用它决定「缓存的地址还能不能用」；桥不在 / 没回应 ⇒ false（当作不可用，交给下一级）。
+  const urlProbes = new Map(); let probeSeq = 0;
+  function probeUrl(url) {
+    if (!available()) return Promise.resolve(false);
+    const id = 'p' + (++probeSeq);
+    return new Promise((resolve) => {
+      urlProbes.set(id, resolve);
+      if (!post({ type: 'url-probe', id, url: String(url) })) { urlProbes.delete(id); resolve(false); return; }
+      setTimeout(() => { if (urlProbes.delete(id)) resolve(false); }, 6000);
+    });
+  }
   /** 本机识别器支持的 locale 清单（探过之后才有；空数组 = 不知道，调用方别据此过滤）。 */
   function supportedLocales() { return sttSupported.slice(); }
 
@@ -193,5 +210,5 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative };
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative };
 })();

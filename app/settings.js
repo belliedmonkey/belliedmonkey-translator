@@ -394,6 +394,8 @@ var AppSettings = (() => {
     dl.disabled = true; prog.hidden = false; prog.value = 0;
     try {
       const r = await LearnTTS.ensureDeviceReady((m) => {
+        // §9.6.1.1：换地址重试时进度归零、说一句；三处都失败才是下面的「下载失败」
+        if (m.state === 'switching') { prog.value = 0; state.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…'); return; }
         const pct = Math.round((Number(m.fraction) || 0) * 100);
         prog.value = pct;
         state.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(pct));

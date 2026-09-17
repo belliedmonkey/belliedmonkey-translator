@@ -111,6 +111,16 @@ var LearnTTS = (() => {
     if (!st.bridge || !st.models) return { ok: false, downloaded: false, reason: 'unsupported' };
     if (st.ready) return { ok: true, downloaded: false };
     if (st.reason !== 'assets') return { ok: false, downloaded: false, reason: 'unsupported', why: st.reason };
+    // 地址从哪来（§9.6.1.1）：App 里有 ModelSources ⇒ 后端表决定默认 / 备用，探测与换地址重试都在它里面；
+    // 扩展侧没有它（模型只有 App 用）⇒ 清单里的单地址。sha256 两条路都来自清单。
+    if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
+      const flavor = (typeof window !== 'undefined' && window.MT_FLAVOR) || 'global';
+      const r = await ModelSources.run(st.models, flavor,
+        (spec) => NativeSpeech.ensureAssets('tts', spec, onProgress),
+        (source) => { try { onProgress && onProgress({ kind: 'tts', state: 'switching', source }); } catch (_) {} });
+      if (!r.ok) return { ok: false, downloaded: false, reason: 'assets', why: r.why || 'download', attempts: r.attempts };
+      return { ok: true, downloaded: true, source: r.source, attempts: r.attempts };
+    }
     try {
       await NativeSpeech.ensureAssets('tts', st.models, onProgress);
       return { ok: true, downloaded: true };
