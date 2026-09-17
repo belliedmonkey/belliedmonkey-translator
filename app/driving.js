@@ -171,7 +171,7 @@ var AppDriving = (() => {
     switch (reason) {
       case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
       case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
-      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
+      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 朗读」里选一个');
       case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
       case 'no_base': return t('tts_no_base', '还没填语音端点地址');
       case 'no_key': return t('tts_no_key', '还没填语音 API Key');
@@ -471,7 +471,7 @@ var AppDriving = (() => {
         case 'no_key': return t('drive_tts_not_configured',
           '语音引擎还没配置好，这一轮读不出声（设置 → 语音引擎）');
         case 'blocked': return t('drive_tts_blocked', '系统拦下了自动播放，点一下继续');
-        case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
+        case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 朗读」里选一个');
         case 'unsupported': return t('drive_tts_unsupported', '这台设备上没有可用的语音引擎');
         default: return t('drive_tts_unreachable',
           '连不上语音引擎，这一轮读不出声。已经预载过的卡才能离线播放（设置 → 预载离线资源）');

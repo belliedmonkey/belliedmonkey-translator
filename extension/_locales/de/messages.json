@@ -2178,7 +2178,7 @@
     "message": "Nicht eingerichtet (kein Vorlesen)"
   },
   "tts_not_configured": {
-    "message": "Sprachausgabe ist nicht eingerichtet — wähle eine Engine unter Einstellungen › Sprache"
+    "message": "Sprachausgabe ist nicht eingerichtet — wähle eine Engine unter Einstellungen › Vorlesen"
   },
   "feedback_section": {
     "message": "Feedback"
@@ -2525,7 +2525,7 @@
     "message": "Jeder fertige Satz wird vorgelesen — seiner für Sie, Ihrer für ihn."
   },
   "listen_autospeak_need_tts": {
-    "message": "Wähle zuerst unter Einstellungen › Stimme eine Sprachausgabe"
+    "message": "Wähle zuerst unter Einstellungen › Vorlesen eine Sprachausgabe"
   },
   "listen_lang_me_label": {
     "message": "Ich"
@@ -3074,7 +3074,7 @@
     "message": "Wird abgespielt · Offline-Modell hat diese Sprache nicht, Systemstimme wird verwendet"
   },
   "tts_assets": {
-    "message": "Das Offline-Modell ist noch nicht geladen – lade es unter Einstellungen › Sprache oder wechsle zur Systemstimme"
+    "message": "Das Offline-Modell ist noch nicht geladen – lade es unter Einstellungen › Vorlesen oder wechsle zur Systemstimme"
   },
   "listen_pack_ready": {
     "message": "Sprachpakete für die Erkennung bereit · {langs}"

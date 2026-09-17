@@ -2178,7 +2178,7 @@
     "message": "Non configuré (pas de lecture)"
   },
   "tts_not_configured": {
-    "message": "La synthèse vocale n'est pas configurée — choisissez un moteur dans Réglages › Voix"
+    "message": "La synthèse vocale n'est pas configurée — choisissez un moteur dans Réglages › Lecture à voix haute"
   },
   "feedback_section": {
     "message": "Retour"
@@ -2525,7 +2525,7 @@
     "message": "Chaque phrase traduite est lue à voix haute : la sienne pour vous, la vôtre pour lui."
   },
   "listen_autospeak_need_tts": {
-    "message": "Choisissez d’abord un moteur vocal dans Réglages › Voix"
+    "message": "Choisissez d’abord un moteur vocal dans Réglages › Lecture à voix haute"
   },
   "listen_lang_me_label": {
     "message": "Moi"
@@ -3074,7 +3074,7 @@
     "message": "Lecture · le modèle hors ligne n’a pas cette langue, voix système utilisée"
   },
   "tts_assets": {
-    "message": "Le modèle hors ligne n’est pas encore téléchargé — téléchargez-le dans Réglages › Voix, ou passez à la voix système"
+    "message": "Le modèle hors ligne n’est pas encore téléchargé — téléchargez-le dans Réglages › Lecture à voix haute, ou passez à la voix système"
   },
   "listen_pack_ready": {
     "message": "Packs de langue de reconnaissance prêts · {langs}"
