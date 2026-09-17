@@ -3,7 +3,21 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
-## 1.12.0
+## 1.12.1 — 2026-09-18
+
+- On-device speech: the offline model's download address is now served by our server, with a backup address used automatically when the default is unreachable.
+- Conversation · live interpreter: the first words of English sentences are no longer dropped; starting again right after ending no longer occasionally stalls.
+- Wording: hints now point to the renamed “Read-aloud” settings section; when the browser has no voices at all, it says so plainly.
+
+<details><summary>中文</summary>
+
+- 设备内置朗读：离线模型的下载地址改由服务器分发，默认地址不可用时自动换备用地址，下载更稳。
+- 对话 · 实时听译：英文句子开头的词不再丢失；结束后立刻再开始，不再偶发没有反应。
+- 文案修正：提示里指向的设置节名改为「朗读」；浏览器没有任何语音时明确说明「这个浏览器不提供内置语音」。
+
+</details>
+
+## 1.12.0 — 2026-09-17
 
 - Settings reorganized into four sections by purpose: Engines & keys · Features · Account & data · About. Each feature now shows which engines it depends on and whether they are set up, with a one-tap jump to fix it.
 - Conversation · live interpreter and Live Subtitles now always use on-device recognition, so audio never leaves your device. These two need iOS 26 / macOS 26.
