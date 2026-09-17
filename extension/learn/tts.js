@@ -739,9 +739,9 @@ var LearnTTS = (() => {
       case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
       case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
       // 「没配过」与「这平台做不到」分开说 —— 前者有出路，后者没有。
-      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 语音」里选一个');
+      case 'not_configured': return t('tts_not_configured', '还没配语音引擎 —— 到「设置 › 朗读」里选一个');
       case 'unsupported': return t('tts_unsupported', '这个浏览器不提供内置语音');
-      case 'assets': return t('tts_assets', '离线模型还没下载好 —— 到「设置 › 语音」里下载，或换系统语音');
+      case 'assets': return t('tts_assets', '离线模型还没下载好 —— 到「设置 › 朗读」里下载，或换系统语音');
       case 'no_base': return t('tts_no_base', '还没填语音端点地址');
       case 'no_key': return t('tts_no_key', '还没填语音 API Key');
       case 'blocked': return t('tts_blocked', '浏览器拦下了自动播放，点一下播放');

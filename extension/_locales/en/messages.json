@@ -2178,7 +2178,7 @@
     "message": "Not set up (no read-aloud)"
   },
   "tts_not_configured": {
-    "message": "Speech is not set up yet — choose an engine in Settings › Speech"
+    "message": "Speech is not set up yet — choose an engine in Settings › Read-aloud"
   },
   "feedback_section": {
     "message": "Feedback"
@@ -2525,7 +2525,7 @@
     "message": "Each finished sentence is read aloud once translated — theirs for you, yours for them."
   },
   "listen_autospeak_need_tts": {
-    "message": "Pick a speech engine under Settings › Voice first"
+    "message": "Pick a speech engine under Settings › Read-aloud first"
   },
   "listen_lang_me_label": {
     "message": "Me"
@@ -3074,7 +3074,7 @@
     "message": "Playing · the offline model has no voice for this language, using the system voice"
   },
   "tts_assets": {
-    "message": "The offline model isn’t downloaded yet — download it in Settings › Speech, or switch to the system voice"
+    "message": "The offline model isn’t downloaded yet — download it in Settings › Read-aloud, or switch to the system voice"
   },
   "listen_pack_ready": {
     "message": "Recognition language packs ready · {langs}"

@@ -2178,7 +2178,7 @@
     "message": "Não configurado (sem leitura)"
   },
   "tts_not_configured": {
-    "message": "A voz não está configurada — escolha um motor em Configurações › Voz"
+    "message": "A voz não está configurada — escolha um motor em Configurações › Leitura em voz alta"
   },
   "feedback_section": {
     "message": "Feedback"
@@ -2525,7 +2525,7 @@
     "message": "Cada frase traduzida é lida em voz alta: a dele para você, a sua para ele."
   },
   "listen_autospeak_need_tts": {
-    "message": "Escolha primeiro um mecanismo de voz em Ajustes › Voz"
+    "message": "Escolha primeiro um mecanismo de voz em Ajustes › Leitura em voz alta"
   },
   "listen_lang_me_label": {
     "message": "Eu"
@@ -3074,7 +3074,7 @@
     "message": "Reproduzindo · o modelo offline não tem este idioma, usando a voz do sistema"
   },
   "tts_assets": {
-    "message": "O modelo offline ainda não foi baixado — baixe em Ajustes › Voz ou mude para a voz do sistema"
+    "message": "O modelo offline ainda não foi baixado — baixe em Ajustes › Leitura em voz alta ou mude para a voz do sistema"
   },
   "listen_pack_ready": {
     "message": "Pacotes de idioma de reconhecimento prontos · {langs}"

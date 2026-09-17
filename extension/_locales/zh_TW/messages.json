@@ -2179,7 +2179,7 @@
     "message": "未設定（不朗讀）"
   },
   "tts_not_configured": {
-    "message": "還沒設定語音引擎 —— 到「設定 › 語音」裡選一個"
+    "message": "還沒設定語音引擎 —— 到「設定 › 朗讀」裡選一個"
   },
   "feedback_section": {
     "message": "意見回饋"
@@ -2526,7 +2526,7 @@
     "message": "整句翻譯完之後自動讀出來。對方說的讀給你聽，你說的讀給對方聽。"
   },
   "listen_autospeak_need_tts": {
-    "message": "先到「設定 › 語音」選一個朗讀引擎"
+    "message": "先到「設定 › 朗讀」選一個朗讀引擎"
   },
   "listen_lang_me_label": {
     "message": "我"
@@ -3075,7 +3075,7 @@
     "message": "播放中 · 離線模型不含這個語言，改用系統語音"
   },
   "tts_assets": {
-    "message": "離線模型還沒下載好 —— 到「設定 › 語音」裡下載，或改用系統語音"
+    "message": "離線模型還沒下載好 —— 到「設定 › 朗讀」裡下載，或改用系統語音"
   },
   "listen_pack_ready": {
     "message": "辨識語言包已就緒 · {langs}"

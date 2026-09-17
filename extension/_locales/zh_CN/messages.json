@@ -2179,7 +2179,7 @@
     "message": "未配置（不朗读）"
   },
   "tts_not_configured": {
-    "message": "还没配语音引擎 —— 到「设置 › 语音」里选一个"
+    "message": "还没配语音引擎 —— 到「设置 › 朗读」里选一个"
   },
   "feedback_section": {
     "message": "反馈"
@@ -2526,7 +2526,7 @@
     "message": "整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。"
   },
   "listen_autospeak_need_tts": {
-    "message": "先到「设置 › 语音」选一个朗读引擎"
+    "message": "先到「设置 › 朗读」选一个朗读引擎"
   },
   "listen_lang_me_label": {
     "message": "我"
@@ -3075,7 +3075,7 @@
     "message": "播放中 · 离线模型不含这门语言，用系统语音"
   },
   "tts_assets": {
-    "message": "离线模型还没下载好 —— 到「设置 › 语音」里下载，或换系统语音"
+    "message": "离线模型还没下载好 —— 到「设置 › 朗读」里下载，或换系统语音"
   },
   "listen_pack_ready": {
     "message": "识别语言包已就绪 · {langs}"
