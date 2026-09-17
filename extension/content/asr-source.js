@@ -46,11 +46,10 @@ var AsrSource = (() => {
   }
   async function readSttConfig() {
     const s = await RequestShape.storageGet(STT_KEYS.concat([MODE_KEY, HISTORY_KEY]));
-    const eng = engineById(s.sttEngine);
-    if (!eng) return { ok: false, reason: 'no_engine' };
-    if (eng.requiresEndpoint && !s.sttBaseUrl) return { ok: false, reason: 'no_base' };
-    if (eng.needsKey && !s.sttApiKey) return { ok: false, reason: 'no_key' };
-    return { ok: true, eng, apiKey: s.sttApiKey || '', baseUrl: s.sttBaseUrl || '', model: s.sttModel || eng.defaultModel || '',
+    // 「配好了没有」只有一份判据（content/stt-state.js）：这里、说题、弹窗三处此前各算一遍
+    const r = SttState.fileReady(s);
+    if (!r.ok) return { ok: false, reason: r.reason };
+    return { ok: true, eng: r.eng, apiKey: r.apiKey, baseUrl: r.baseUrl, model: r.model,
       incremental: s[MODE_KEY] !== 'sentence', history: s[HISTORY_KEY] !== 'off' };
   }
   // §2.4 rule 6: a change to the transcription settings stops every running session,

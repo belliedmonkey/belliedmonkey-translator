@@ -457,6 +457,7 @@ describe('§2.4 ws-transcribe: cutters', () => {
 // ─── asr-source pure parts ────────────────────────────────────────────
 describe('§2.4 asr-source: pure helpers', () => {
   global.WsTranscribe = require('../extension/content/ws-transcribe.js');
+  global.SttState = require('../extension/content/stt-state.js');
   const A = require('../extension/content/asr-source.js');
   test('splitSentences: a Latin terminal cuts only before whitespace/end; CJK terminals always cut', () => {
     const W = global.WsTranscribe;

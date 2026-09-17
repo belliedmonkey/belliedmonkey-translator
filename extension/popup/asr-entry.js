@@ -21,11 +21,11 @@ var AsrEntry = (() => {
     const ps = o && o.pageStatus;
     if (!ps) return { kind: 'no_script', engine: null, media: null, frames: [] };
     const eng = engineOf(o.settings, o.engines);
-    const s = o.settings || {};
     const media = ps.media || null;
     const frames = Array.isArray(ps.frames) ? ps.frames.filter((f) => f && f.href) : [];
     const base = { engine: eng, media, frames };
-    if (!eng || (eng.needsKey && !s.sttApiKey) || (eng.requiresEndpoint && !s.sttBaseUrl)) return Object.assign({ kind: 'no_engine' }, base);
+    // 「配好了没有」只有一份判据（content/stt-state.js）；弹窗把三种原因并成一种 no_engine 态
+    if (!SttState.fileReady(o.settings, o.engines).ok) return Object.assign({ kind: 'no_engine' }, base);
     if (media) return Object.assign({ kind: 'ready' }, base);
     if (frames.length) return Object.assign({ kind: 'iframe_only' }, base);
     return Object.assign({ kind: 'no_media' }, base);

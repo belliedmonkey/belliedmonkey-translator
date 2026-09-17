@@ -25,12 +25,9 @@ var LearnSpeech = (() => {
   }
 
   // Engine-side readiness, with a named reason — same shape as LearnTTS.available.
+  // The judgement itself lives in content/stt-state.js (one copy for 说题 / 字幕 / 弹窗).
   function engineReady() {
-    const e = engineInfo();
-    if (!e) return { ok: false, reason: 'no_engine' };
-    if (!(cfg.baseUrl || e.defaultEndpoint)) return { ok: false, reason: 'no_base' };
-    if (e.needsKey && !cfg.apiKey) return { ok: false, reason: 'no_key' };
-    return { ok: true };
+    return SttState.fileReady({ sttEngine: cfg.engineId, sttBaseUrl: cfg.baseUrl, sttApiKey: cfg.apiKey, sttModel: cfg.model });
   }
 
   function micPresent() {
