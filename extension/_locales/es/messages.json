@@ -1966,7 +1966,16 @@
     "message": "· en el dispositivo"
   },
   "stt_device_no_file": {
-    "message": "La transcripción en el dispositivo solo está disponible en Conversación por ahora"
+    "message": "La transcripción en el dispositivo solo sirve para conversaciones y subtítulos en directo; la práctica oral aún no es compatible"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Reconocimiento en el dispositivo disponible · paquete de idioma listo (sin red, sin punto de conexión que probar)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Reconocimiento en el dispositivo disponible · el paquete de idioma se descarga la primera vez que empiezas a escuchar"
+  },
+  "engine_test_device_timeout": {
+    "message": "El reconocimiento en el dispositivo no responde: cierra y vuelve a abrir la app e inténtalo de nuevo"
   },
   "listen_need_device_os": {
     "message": "La transcripción en el dispositivo requiere iOS 26 / macOS 26, o elige un motor en tiempo real en la nube en Ajustes"

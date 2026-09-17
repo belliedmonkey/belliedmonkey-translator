@@ -1966,7 +1966,16 @@
     "message": "· auf dem Gerät"
   },
   "stt_device_no_file": {
-    "message": "Geräteinterne Transkription ist derzeit nur im Gespräch verfügbar"
+    "message": "Die Transkription auf dem Gerät gilt nur für Gespräche und Live-Untertitel; Sprechübungen werden noch nicht unterstützt"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Erkennung auf dem Gerät verfügbar · Sprachpaket bereit (kein Netzwerk, kein Endpunkt zu testen)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Erkennung auf dem Gerät verfügbar · das Sprachpaket wird beim ersten Zuhören automatisch geladen"
+  },
+  "engine_test_device_timeout": {
+    "message": "Die Erkennung auf dem Gerät antwortet nicht — App beenden, neu öffnen und erneut versuchen"
   },
   "listen_need_device_os": {
     "message": "Geräteinterne Transkription benötigt iOS 26 / macOS 26 – oder wähle in den Einstellungen eine Cloud-Echtzeit-Engine"

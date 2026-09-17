@@ -1966,7 +1966,16 @@
     "message": "· sur l’appareil"
   },
   "stt_device_no_file": {
-    "message": "La transcription sur l’appareil n’est disponible que dans Conversation pour l’instant"
+    "message": "La transcription sur l'appareil sert uniquement aux conversations et aux sous-titres en direct ; l'expression orale n'est pas encore prise en charge"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Reconnaissance sur l'appareil disponible · pack de langue prêt (sans réseau, aucun point de terminaison à tester)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Reconnaissance sur l'appareil disponible · le pack de langue se télécharge la première fois que vous lancez l'écoute"
+  },
+  "engine_test_device_timeout": {
+    "message": "La reconnaissance sur l'appareil ne répond pas — quittez et rouvrez l'app, puis réessayez"
   },
   "listen_need_device_os": {
     "message": "La transcription sur l’appareil nécessite iOS 26 / macOS 26 — ou choisissez un moteur temps réel cloud dans les réglages"

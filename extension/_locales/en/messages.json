@@ -1966,7 +1966,16 @@
     "message": "· on-device"
   },
   "stt_device_no_file": {
-    "message": "On-device transcription is currently used only in Conversation"
+    "message": "On-device transcription is only for conversation and live subtitles; speaking practice is not supported yet"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ On-device recognition works · language pack ready (no network, no endpoint to test)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ On-device recognition works · the language pack downloads the first time you start listening"
+  },
+  "engine_test_device_timeout": {
+    "message": "On-device recognition didn't respond — quit and reopen the app, then try again"
   },
   "listen_need_device_os": {
     "message": "On-device transcription needs iOS 26 / macOS 26 — or pick a cloud live engine in Settings"

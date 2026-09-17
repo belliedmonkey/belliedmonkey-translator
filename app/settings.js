@@ -939,47 +939,22 @@ var AppSettings = (() => {
     // ── 引擎自检 ×3（与扩展 options 同一套语义：走功能真正用的传输、
     // 在途禁用、失败具名）。App 端的 key 是设备本地凭证（§7.2），
     // 能当场自检尤其重要——这里配错了，用户在复习页只会看到功能「不出现」。
-    function engineTestReason(e) {
-      const code = (e && e.code) || '';
-      if (code === 'no_base') return t('engine_test_no_base', '还没填端点地址');
-      if (code === 'no_key') return t('engine_test_no_key', '还没填 API Key');
-      if (code === 'no_engine') return t('engine_test_no_engine', '还没选引擎');
-      if (code === 'network') return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）');
-      if (code === 'timeout') return t('engine_test_timeout', '端点没有在超时前回应');
-      if (code === 'no_path') return t('engine_test_no_path', '这个地址只有主机名，没有接口路径 —— 请填完整的接口地址（参考输入框里的示例）');
-      if (code === 'bad_url') return t('engine_test_bad_url', '地址不是以 http:// 或 https:// 开头 —— 缺协议头会被当成相对路径，请求根本发不出去');
-      if (code === 'empty_output') return t('notes_test_empty', '模型没有返回正文——思考（推理）型模型不适合，请换对话模型');
-      if (code === 'bad_output') return t('engine_test_bad_output', '端点通了，但返回的内容无法解析');
-      if (code === 'http') {
-        const hint = (e.status === 401 || e.status === 403)
-          ? t('engine_test_hint_key', 'key 不对或没有权限')
-          : e.status === 404 ? t('engine_test_hint_404', '地址或模型名不对')
-          : t('engine_test_hint_other', '服务端拒绝了这次请求');
-        return t('engine_test_http', 'HTTP {n} —— {hint}').replace('{n}', String(e.status || '?')).replace('{hint}', hint);
-      }
-      return (e && e.message) || t('engine_test_failed', '没通');
-    }
-    // Second line: the URL the transport actually requested. Same reason as the
-    // extension's options page — with a user-supplied endpoint the commonest failure is
-    // a wrong ADDRESS, and a 404 and a CORS rejection read identically without it. The
-    // key never appears here. (`r.url` on success is wired for the shared endpoint
-    // resolver in #147; no test callback returns it yet.)
-    const withUrl = (text, url) => text + (url
-      ? '\n' + t('engine_test_url', '请求地址：{url}').replace('{url}', String(url))
-      : '');
+    // 失败原因只有一份表：learn/engine-test.js 的 EngineTest.reason / format（四个页面共用）。
+    // 2026-09-17 之前这里自留了一份旧表，缺 device_no_file 等新码，于是 App 把原始代码
+    // 「✗ device_no_file」直接显示给用户 —— 正是 engine-test.js 文件头说的那种「同一个错误
+    // 在两个页面说两种话」。删掉它，不再维护第二份。
+    // 请求地址那一行（错误最常见的是地址填错，404 与 CORS 拒绝不带地址时读起来一样）
+    // 也由 EngineTest.format 一并给出 —— 同一份，不在这里再拼一次。
     const runTest = (btnId, noteId, fn) => async () => {
       const btn = $(btnId), note = $(noteId);
       btn.disabled = true;
       note.textContent = t('engine_test_running', '测试中…');
       try {
         const r = await fn();
-        note.textContent = withUrl(
-          t('engine_test_ok', '✓ 通了 · {ms}ms').replace('{ms}', String(r.ms))
-            + (r.sample ? ' · ' + t('engine_test_sample', '返回：') + r.sample : ''),
-          r.url);
+        note.textContent = EngineTest.format(r, null, t);
       } catch (e) {
         console.error('[engine-test]', (e && e.url) || '', e);
-        note.textContent = withUrl('✗ ' + engineTestReason(e), e && e.url);
+        note.textContent = EngineTest.format(null, e, t);
       } finally { btn.disabled = false; }
     };
     $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
@@ -988,6 +963,14 @@ var AppSettings = (() => {
     }));
     $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
       await saveSttCfg();
+      // 设备内置转写没有端点可测 ⇒ 测本机识别器能不能用、语言包在不在（EngineTest.device）。
+      // 语言取「对话」两边的语言 —— 与 app/listen.js 开始听时探的是同一组。
+      const eng = (window.MT_STT_ENGINES || []).find((x) => x.id === $('stt-engine').value);
+      if (eng && eng.type === 'device-transcribe') {
+        const loc = (id) => ListenCore.toLocale(($(id) && $(id).value) || '');
+        const ls = [loc('listen-my-lang'), loc('listen-other-lang')].filter((v, k, a) => v && a.indexOf(v) === k);
+        return EngineTest.device(ls);
+      }
       if (typeof LearnSpeech === 'undefined') { const e = new Error('no module'); e.code = 'no_engine'; throw e; }
       return LearnSpeech.test();
     }));
