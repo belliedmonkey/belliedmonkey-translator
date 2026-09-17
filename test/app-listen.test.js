@@ -496,6 +496,37 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '如果定进周五之前到张', conf: 0.9 }, DEPS));
     ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'We can ship the first batch', conf: 0.95 }, DEPS));
   });
+  // 2026-09-18：Mac harness 用 conv.pcm 读回的真实序列（en-US 路，t0/t1 毫秒、conf 均值）
+  test('句头救回：低置信的拉丁短片被紧接的高置信片接回，去掉开头的标点垃圾', () => {
+    const g = C.makeFinalGate(DEPS);
+    deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), []);
+    eq(g.held('en-US'), ',... The');
+    deepEq(g.push({ locale: 'en-US', text: 'quote already includes freight and insurance, but not customs duties.', conf: 0.98, t0: 17520, t1: 21420 }),
+      ['The', 'quote already includes freight and insurance, but not customs duties.']);
+    eq(g.held('en-US'), '', '接回之后不再扣着');
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), []);
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample first before we decide on the order', conf: 0.99, t0: 31780, t1: 34360 }),
+      ['we', 'need to see a sample first before we decide on the order']);
+  });
+  test('句头救回：中文整句期间 en 路吐的长串垃圾不扣、只有标点的片接回来也不会出字', () => {
+    const g = C.makeFinalGate(DEPS);
+    deepEq(g.push({ locale: 'en-US', text: 'Rugua, Ting, Xing, Cho,', conf: 0.27, t0: 0, t1: 1200 }), []);
+    eq(g.held('en-US'), '', '四个词的垃圾不算句头');
+    deepEq(g.push({ locale: 'en-US', text: ' Wu,', conf: 0.21, t0: 1200, t1: 1500 }), []);
+    deepEq(g.push({ locale: 'en-US', text: ' P, Hua.', conf: 0.16, t0: 4019, t1: 4900 }), []);
+    deepEq(g.push({ locale: 'en-US', text: ',...', conf: 0.01, t0: 4900, t1: 5800 }), []);
+    eq(g.held('en-US'), ',...', '只扣最近的一小片，前面的 P, Hua. 已作废');
+    deepEq(g.push({ locale: 'en-US', text: 'We can ship the 1st batch next', conf: 0.91, t0: 5800, t1: 7540 }), ['We can ship the 1st batch next'], '扣住的只有标点 ⇒ 不出字');
+  });
+  test('句头救回：不紧接（隔了停顿）的低置信片丢掉；文字系不对的片永不扣；zh 路不受影响', () => {
+    const g = C.makeFinalGate(DEPS);
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), []);
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，不是同一句');
+    deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢');
+    eq(g.held('zh-CN'), '');
+    deepEq(g.push({ locale: 'zh-CN', text: '报', conf: 0.78, t0: 12000, t1: 12180 }), ['报'], 'CJK 碎片照收');
+    deepEq(g.push({ locale: 'en-US', text: 'Sure.', conf: 0.59, t0: 24300, t1: 25700 }), ['Sure.']);
+  });
   test('再看置信度：拉丁文字系低置信的碎片丢，CJK 碎片不按置信度丢', () => {
     ok(!C.acceptDeviceFinal({ locale: 'en-US', text: 'Rugua, Ting, Xing, Cho', conf: 0.26 }, DEPS), 'en 路对中文音频的低置信拼音要丢');
     ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'Sure.', conf: 0.59 }, DEPS));
