@@ -210,6 +210,61 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
    `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
    同一个默认路径也可能让一个真的漏文件的包通过。
 
+### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
+
+Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18 或更高版本**并设置为使用密码**」。
+测试机把密码去掉之后，`open -b com.apple.ScreenContinuity` 直接弹配对向导，「继续」→「无法连接 iPhone，
+请确保已开机…蓝牙和 Wi-Fi」—— 而 `devicectl` 明明 `connected localNetwork`、蓝牙也配着。**排查顺序：先问手机
+有没有密码，再查网络。** 没密码这条路就不存在，别在「重试」上耗。
+
+### 0.2.2 真机：镜像之外的两条路，以及哪条能走（2026-09-17 实测）
+
+09-17 晚要在真机上验设置页改版（离线模型行、识别语言包行），镜像因上面那条连不上，把另外两条路都走了一遍。
+**结论先写：XCUITest 在 Wi-Fi 连接下被拒，走不通；「调试包 + 局域网控制通道 + devicectl 截屏」走通了全部真机项。**
+
+| 路 | 结果 | 一句话 |
+|---|---|---|
+| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试 |
+| Device Hub「View Screen」（Xcode 27 `Contents/Applications/DeviceHub.app`） | 半通 | 能实时看真机屏幕（AX 里 `AXButton (View Screen)` 可按），但 cua 的像素点击 / 前台点击 / 按住松开都**落不到手机上** —— 只当监视器 |
+| 调试包 + 局域网控制通道 + `devicectl` 截屏 | ✓ | 下面这一节 |
+
+**配方（脚本在 `.local/spike/ctl/`：`ctl-server.js` 服务端 + `run '<js>'` 客户端、`inject-ctl.js` 注入器，`MT_CTL_LAN=<Mac 局域网 IP>` 给真机）：**
+
+1. `node build.js`（**两个 flavor 都出**，否则 `app:sync` 的产物过期守卫会拦）→ 往 `dist-app/Script.js` 的
+   `// ─── app/app.js ─` 标记**之前**插控制通道：每 600 ms `fetch('http://<Mac 局域网 IP>:8766/cmd')` → `eval` →
+   POST `/report`；Mac 端一个 30 行的 node 服务（`/enqueue` `/cmd` `/report` `/result`），**listen `0.0.0.0`**，并按
+   `req.socket.remoteAddress` 打一行日志。
+2. `npm run app:sync` → `xcodebuild build -destination id=<UDID> -derivedDataPath … DEVELOPMENT_TEAM=X2Q85MABWK
+   -allowProvisioningUpdates` → `xcrun devicectl device install app` → `devicectl device process launch --terminate-existing`。
+3. **调试包的 iOS `Info.plist` 必须先加两项，否则手机永远不来拉、而且哪里都不报错**：
+   `NSLocalNetworkUsageDescription`（本地网络权限）与 `NSAppTransportSecurity.NSAllowsLocalNetworking = true`
+   （局域网明文 HTTP 被 ATS 拦；模拟器里 `127.0.0.1` 在 ATS 白名单，所以模拟器上看不出这个问题）。
+   用 `PlistBuddy -c 'Add …'` 改 `safari-project/…/iOS (App)/Info.plist`，**验完还原**。
+4. 新装包首次联网会弹系统框「允许"大肚猴翻译"使用无线数据？」（境内 iOS），点掉之前通道不通。
+   这个框我们点不到（见上表）—— 要么请用户点，要么走能点系统框的 XCUITest（`allowSystemAlerts`）。
+5. **真机截屏不需要镜像也不需要 XCUITest**：`xcrun devicectl device capture screenshot --device <id> --destination x.png`
+   （Xcode 27，出 1179×2556 PNG）。判据 = DOM 回读 + 这张图，两样都要。
+6. 验完：还原 Swift / Info.plist 的临时改动，`node build.js`（两个 flavor）+ `npm run app:sync` 把工程刷回干净，`git status` 必须 0 改动。
+
+**三个当天各花了半小时以上的坑（都要写进判据）：**
+
+- **模拟器会抢通道。** iPhone 17 模拟器里同一个调试包也在拉 `/cmd`（服务端 listen `0.0.0.0` 后 `localhost` 也算），
+  一小时内所有「真机」结果其实全是模拟器的：`SpeechTranscriber.isAvailable=false`、`supportedLocales=[]`、UA `iPhone OS 18_7`，
+  差一点被当成 1.12.0 的发版 bug（「iOS 27 真机报需要 iOS 26」）。**验真机前 `xcrun simctl shutdown all`；服务端日志里
+  必须看到手机的局域网 IP 才算通道是真机的。**
+- **`app:sync` 的产物过期守卫会静默丢掉 Swift 补丁。** 改了 `app/native/*.swift` 后没先 `node build.js`，sync 打印一行
+  `✗ dist-app-china/ 比源码旧` 就跳过，而 `xcodebuild` 照样 BUILD SUCCEEDED、装上去的还是旧原生代码。判据：sync 输出
+  无 `✗`，且 `grep` 工程里的 `ViewController.swift` 能找到你的改动。**标记字符串要 > 15 字节**，短字符串被 Swift 内联，
+  `strings` 二进制 grep 不到，会误判成「没编进去」。
+- **控制通道的命令回调里一定 `try/catch` 后 `r("ERR …")`**：`setTimeout` 回调里一抛，promise 永不落定 ⇒ 只看到 TIMEOUT，
+  没有任何线索。
+
+**这一轮真机读到的事实（ZHAO的iPhone / iPhone 14 Pro / iOS 27.0，有截图）：**
+`SpeechTranscriber.isAvailable = true`，`supportedLocales` 45 个，已装 `zh-CN` / `en-US`（`ja-JP` 未装）；
+识别语言包行从「未下载 · zh-CN · ja-JP」到「已就绪」用了 15 s；离线朗读模型（GitHub Releases，129 MB）在这台手机的网络下
+`HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败，行进入「下载失败 · 重试」—— **失败态是对的，但境内网络拉不动 GitHub 是事实**，
+china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
+
 ### 0.3 语音类验证：用播放代替真人（2026-09-12 用户裁定）
 
 **语音类验证一律不靠真人说话。** 凡是要往麦克风里送声音的验证 ——「对话 · 实时听译」的
