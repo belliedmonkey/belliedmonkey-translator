@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型的下载地址改为后端配置表决定**（用户提议「地址存入数据库，每次从数据库获取，以后地址不能用了还可以换」）。清单 `app/device-models.config.js` 继续钉 **sha256 与 size**（服务器只能说「去哪下」，不能说「下什么」——换了文件过不了校验照旧丢），`url` 变成兜底默认值；下载前向 `bt_model_sources` 表问一次当前地址（匿名 GET，不带任何个人数据，5 s 超时，24 h 缓存），问不到就用清单里的。动因：09-17 真机实测境内拉不动 GitHub，换托管每次都要发版；同日用户从三个候选里选了 hf-mirror 作为中国版地址。不进包（用户同日收回「存包」：不同语言要不同模型）。§9.6.1 新增 §9.6.1.1；§10 Gate H 隐私文案补一句。 | 待评审 |
 | 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
 | 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
 | 2026-09-13 | belliedmonkey | 「实时字幕」（用户提议，App 专属）：App 直接听这台设备**正在播放的声音**，给扩展在 Safari 上抓不到的视频（MSE / HLS）配双语字幕 —— 与对话·实时听译**同一条管线**，只是单向、不朗读、显示在 App 窗口之外。Mac：Core Audio process tap（macOS 14.4+）+ 置顶悬浮字幕条；iPhone 一期：后台麦克风听外放 + 画中画悬浮字幕窗（09-13 晚用户看真机后改选，取代灵动岛 / 锁屏卡）；iPhone 二期：屏幕录制广播扩展（戴耳机可用，一期发版后另开）。交互画布用户已点头（https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19，工作文件 `design/live-subtitles/`）。新 Gate I | **待评审（本 PR，docs-only）** —— 见 §9.8 / §10 Gate I / §12；domain-design §2.4 规则 8、§2.4 规则 4 注、§5.3 第五例、§8，interaction-spec「实时字幕」，verification-spec §2.4 表与 M26–M32，learn-regression M26–M32。**两处已裁定（用户 2026-09-13：「进复习。加一句。」）**：①字幕句子进复习 —— 默认开、单独开关「字幕进复习」、沿用 `k:'conv'` 加 `mode:'subtitle'` ②Safari 扩展遇流媒体停下时，停机提示后**加一句**指向 App 的「实时字幕」（domain-design §2.4 规则 4 注、interaction-spec「AI 转写字幕」停机表） |
@@ -2042,7 +2043,8 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 - **模型不进包，首次使用时下载**：sherpa-onnx + onnxruntime 静态链接 ≈35 MB 已经进包；模型文件按语言
   从我们的文件服务器下载一次，**sha256 钉住**（构建时写死、下载后校验、不符即丢），进度走 §9.6 门控的
   `downloading` 具名态，失败具名 `listen_assets_failed`。下载的只是模型文件，不含任何用户内容
-  （§10 Gate H 的原话）。中国网络下的下载**未测**（D2 前必补读数）。
+  （§10 Gate H 的原话）。中国网络下的下载 **2026-09-17 真机测了：GitHub Releases 拉不动**（HEAD 10 s 超时、2.5 分钟
+  停在 1%），所以**地址不再写死**，见 §9.6.1.1；清单里的 `url` 降为兜底默认值，中国版默认值改为 hf-mirror。
 - **`returnsAudio: false`，与 `browser` 同**：音频在 Swift 侧 playerNode 边合成边播，**永不回到 JS**，
   所以同样不可缓存、不可上传 —— 上面「Local cache（endpoint engines only）」对它不适用；不是漏了，
   是它和 `browser` 一样，页面拿不到字节。
@@ -2058,6 +2060,50 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
   会卡 ⇒ **本地包**（curl 拉 xcframework zip，`binaryTarget(path:)`，`XCLocalSwiftPackageReference`）；
   C 类型要 `import SherpaOnnxC`。`safari-project` 是可重生成的，这些全都得是 `app:sync` 的幂等补丁
   （§9.5 2026-08-24 的同一条代价）。
+
+### 9.6.1.1 离线模型的下载地址由后端配置表决定（2026-09-17，待人评审）
+
+**问题**：模型托管在哪里是会变的（GitHub 在境内拉不动；镜像站也可能有一天关掉），而地址写死在清单里，
+换一次就要发一版、等一轮审核，存量用户在过审前一直失败。用户裁定（2026-09-17）：「下载地址存入数据库，
+每次从数据库获取，以后这个地址不能用了我还可以换。」
+
+**规则（三条，缺一条就是另一个设计）：**
+
+1. **服务器只能说「去哪下」，不能说「下什么」。** `app/device-models.config.js` 继续是唯一注册表，
+   **sha256 与 size 钉在构建里**，下载后照旧校验、不符即丢（§9.6.1 既有）。远端能改的只有 `url`。
+   于是被人换了文件的托管**只会让下载失败**，不会让别的东西跑进设备 —— 这是把地址交给可变配置的前提。
+2. **问一次，问不到就用清单里的。** 只在**即将下载**时（`NativeSpeech.ensureAssets('tts', …)` 之前）向
+   后端问当前地址：匿名 `GET {MT_BACKEND.url}/rest/v1/bt_model_sources?select=path,url&kind=eq.tts&flavor=eq.{flavor}&active=is.true`
+   （只带 anon key，**不带任何个人数据、不带账号**），5 s 超时；成功则按 `path` 覆盖清单里的 `url`，并把
+   `{at, map}` 缓存到 `chrome.storage.local` 的 `deviceModelSources`（24 h）；超时 / 出错 / 空表 / 后端关着
+   （`MT_BACKEND.enabled=false`）一律**静默回到清单默认值**，不多出一个失败态 —— 这一步永远不能成为下载失败的原因。
+   启动时不问，扩展侧不问（模型只有 App 用）。
+3. **换地址是一条 SQL，不是一次发版。** `update bt_model_sources set url = … where kind='tts' and flavor='china' and path='piper-zh.zip'`
+   ⇒ 新下载立刻用新地址，已缓存的设备最迟 24 h 后跟上。清单里的默认值仍要维护（首次启动离线、后端整个不可达时用它），
+   但它不再是「唯一的那份」。
+
+**表**（`public.bt_model_sources`，与 §8 的 `bt_*` 同一个后端）：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `kind` | text | `'tts'`（将来 STT 语言包不走这里 —— 那是系统下载的） |
+| `flavor` | text | `'global'` / `'china'` |
+| `path` | text | 与清单 `files[].path` 相同（`piper-zh.zip`），**按它对上**，不按 lang |
+| `url` | text | 完整 https 地址 |
+| `active` | boolean | 关掉一行 = 回到清单默认值 |
+| `note` / `updated_at` | text / timestamptz | 运维用 |
+
+主键 `(kind, flavor, path)`。RLS：anon **只读**、且只读 `active = true` 的行；写只走 SQL 控制台 / service role，**没有任何写接口**。
+不记录谁来问过（不是事件，不进 `bt_events`；telemetry-design 白名单不动）。
+
+**隐私文案随之补一句**（§10 Gate H、官网隐私页 §8、商店描述「设备内置朗读」段）：
+「下载前会向我们的服务器询问一次最新的下载地址，请求里不含任何个人数据；模型文件本身从该地址下载。」
+中国版 App 本来就与这个后端通信（登录 / 同步），这一句对两个 flavor 同样成立。
+
+**验证：** `npm test`：`ModelSources.resolve` 按 `path` 覆盖、非 200 / 超时 / 空表 / `enabled:false` 回默认、
+24 h 内走缓存、**server 返回的 sha256/size 字段被忽略**。`test:listen`：假后端返回覆盖地址 ⇒ 原生收到的
+`tts-assets` 清单 `url` 是覆盖值而 sha256 是构建里的；假后端 500 ⇒ 是清单默认值、且没有多出任何失败态。
+真机：改一行 SQL 指向 hf-mirror ⇒ 下载到「已安装」、试听出声。
 
 ### 9.1.1 离线模型的下载入口 —— 四处首播同一条路（2026-09-17，待人评审）
 
@@ -3496,7 +3542,7 @@ content). Verbatim, on every surface, in the same PR as the code and **in the sa
 never before** (a promise about an engine that does not exist yet) **and never after** (an
 engine shipping without its disclosure):
 
-> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；首次使用会从我们的文件服务器下载一次离线模型（只是模型文件，不含任何你的内容）。不保存录音，只留文字。
+> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件，不含任何你的内容）；下载前会向我们的服务器询问一次最新的下载地址，请求里不含任何个人数据。不保存录音，只留文字。
 
 English (authoritative in `_locales/en`, key `listen_device_privacy` — name to be fixed by D2,
 the gate requires the same key on all 12):
