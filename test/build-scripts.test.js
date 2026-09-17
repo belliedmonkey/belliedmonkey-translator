@@ -1411,3 +1411,86 @@ describe('os-floor: 部署目标与解析期语法门', () => {
     ok(OSF.cmp('16.4', '16.10') < 0 && OSF.cmp('17.0', '16.4') > 0 && OSF.cmp('13.3', '13.3') === 0, 'cmp');
   });
 });
+
+describe('sync-app-assets: 权限说明本地化（2026-09-18 国际 iOS 1.12.1 被拒 · Guideline 4）', () => {
+  const R = path.resolve(__dirname, '..');
+  const S = require('../scripts/sync-app-assets');
+  const fs2 = require('fs');
+  // 审核原话：「权限请求的文案与 App 的本地化语言不一致」—— 审核机是英文 iPad，App 界面是英文，
+  // 弹窗却是中文。判据不是「有翻译」，而是：Info.plist 的默认值是英文，且 App 界面支持的每个语种都有一份。
+  test('Info.plist 里三句权限说明的默认值是英文（CFBundleDevelopmentRegion = en 落到它）', () => {
+    for (const k of ['NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDescription', 'NSAudioCaptureUsageDescription']) {
+      const row = S.PLIST_KEYS.find((x) => x.key === k);
+      ok(row, k);
+      ok(!/[一-鿿]/.test(row.xml), `${k} 的 Info.plist 默认值不该含中文：${row.xml.slice(0, 40)}`);
+      ok(/^<string>[^<]{20,}<\/string>$/.test(row.xml), `${k} 是一句话`);
+    }
+  });
+  test('lproj 清单与 extension/_locales 一一对应（zh_CN→zh-Hans、zh_TW→zh-Hant、pt_BR→pt-BR）', () => {
+    const map = { zh_CN: 'zh-Hans', zh_TW: 'zh-Hant', pt_BR: 'pt-BR' };
+    const want = fs2.readdirSync(path.join(R, 'extension', '_locales')).filter((d) => !d.startsWith('.')).map((d) => map[d] || d).sort();
+    deepEq(Object.keys(S.PLIST_L10N).sort(), want);
+  });
+  test('每个语种三句都在、非空、不与英文相同（除 en）、zh-Hans 就是中文常量', () => {
+    for (const [l, rows] of Object.entries(S.PLIST_L10N)) {
+      eq(rows.length, 3, l);
+      for (const r of rows) ok(typeof r === 'string' && r.trim().length > 10, `${l} 有空句`);
+      if (l !== 'en') for (let i = 0; i < 3; i++) ok(rows[i] !== S.PLIST_L10N.en[i], `${l} 第 ${i} 句没翻，还是英文`);
+    }
+    ok(/实时字幕/.test(S.PLIST_L10N['zh-Hans'][0]) && /设备内置转写/.test(S.PLIST_L10N['zh-Hans'][1]), 'zh-Hans 是原来的中文文案');
+  });
+  test('生成的 .strings 转义了引号，且是合法的老式 strings（plutil -lint）', () => {
+    for (const l of Object.keys(S.PLIST_L10N)) {
+      const t = S.infoPlistStringsText(l);
+      for (const k of S.PLIST_L10N_KEYS) ok(t.includes(`"${k}" = "`), `${l} 缺 ${k}`);
+      // 每一行值里的裸引号都必须是 \" —— pt-BR 那份带直引号，最容易漏
+      const bad = t.split('\n').filter((line) => /^"[A-Za-z]+" = "/.test(line)).filter((line) => {
+        const val = line.slice(line.indexOf(' = "') + 4, -2);   // 去掉 `"KEY" = "` 与结尾 `";`
+        return val.replace(/\\"/g, '').includes('"');
+      });
+      eq(bad.length, 0, `${l} 有没转义的引号：${bad.join(' | ')}`);
+    }
+    if (process.platform !== 'darwin') return;
+    const { execFileSync } = require('child_process');
+    const dir = fs2.mkdtempSync(path.join(require('os').tmpdir(), 'mt-strings-'));
+    for (const l of Object.keys(S.PLIST_L10N)) {
+      const f = path.join(dir, `${l}.strings`);
+      fs2.writeFileSync(f, S.infoPlistStringsText(l));
+      execFileSync('plutil', ['-lint', f], { stdio: 'pipe' });
+    }
+  });
+  const PBX = [
+    '/* Begin PBXBuildFile section */',
+    '\t\tAAAA000000000000000000E4 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = AAAA000000000000000000A9 /* Main.html */; };',
+    '/* End PBXBuildFile section */',
+    '/* Begin PBXFileReference section */',
+    '/* End PBXFileReference section */',
+    '/* Begin PBXGroup section */',
+    '\t\tAAAA000000000000000000A8 /* Resources */ = {\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\tAAAA000000000000000000A9 /* Main.html */,\n\t\t\t\tAAAA000000000000000000AB /* Icon.png */,\n\t\t\t);\n\t\t\tpath = Resources;\n\t\t};',
+    '/* End PBXGroup section */',
+    '\t\t\tknownRegions = (\n\t\t\t\ten,\n\t\t\t\tBase,\n\t\t\t);',
+    '/* Begin PBXResourcesBuildPhase section */',
+    '\t\tAAAA000000000000000000B4 /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tfiles = (\n\t\t\t\tAAAA000000000000000000E4 /* Main.html in Resources */,\n\t\t\t);\n\t\t};',
+    '\t\tAAAA000000000000000000C6 /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tfiles = (\n\t\t\t\tAAAA000000000000000000E5 /* Main.html in Resources */,\n\t\t\t);\n\t\t};',
+    '\t\tAAAA000000000000000000D2 /* Resources */ = {\n\t\t\tisa = PBXResourcesBuildPhase;\n\t\t\tfiles = (\n\t\t\t\tAAAA000000000000000000EE /* Assets.xcassets in Resources */,\n\t\t\t);\n\t\t};',
+    '/* End PBXResourcesBuildPhase section */',
+    '/* Begin PBXVariantGroup section */',
+    '/* End PBXVariantGroup section */',
+  ].join('\n');
+  test('pbxproj：变体组进 Resources 组、两个 App target 的 Resources 阶段各挂一条、扩展的阶段不动、knownRegions 补齐、幂等', () => {
+    const { src, note } = S.patchPbxprojInfoPlistStrings(PBX, ['en', 'zh-Hans', 'pt-BR']);
+    match(note, /added \(3 lproj · 2 app targets\)/);
+    eq((src.match(/\/\* InfoPlist\.strings in Resources \*\/,/g) || []).length, 2, '两个 App 阶段各一条');
+    ok(!/Assets\.xcassets in Resources \*\/,\n\t\t\t\tMT1F/.test(src), '扩展 target 的阶段不该被挂');
+    match(src, /AAAA000000000000000000A9 \/\* Main\.html \*\/,\n\t\t\t\tMT1F[0-9A-Z]+ \/\* InfoPlist\.strings \*\/,/);
+    match(src, /isa = PBXVariantGroup;[\s\S]*?name = InfoPlist\.strings;/);
+    match(src, /path = "zh-Hans\.lproj\/InfoPlist\.strings"/);
+    match(src, /knownRegions = \(\n\t\t\t\ten,\n\t\t\t\tBase,\n\t\t\t\t"zh-Hans",\n\t\t\t\t"pt-BR",\n\t\t\t\);/);
+    eq(S.patchPbxprojInfoPlistStrings(src, ['en', 'zh-Hans', 'pt-BR']).src, src, '第二次一字不改');
+  });
+  test('pbxproj：找不到两个 App 阶段就明说、不写', () => {
+    const one = PBX.replace('AAAA000000000000000000E5 /* Main.html in Resources */', 'AAAA000000000000000000E5 /* Other */');
+    const r = S.patchPbxprojInfoPlistStrings(one, ['en']);
+    match(r.note, /^✗/); eq(r.src, one);
+  });
+});

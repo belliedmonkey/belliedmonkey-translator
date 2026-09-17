@@ -512,9 +512,77 @@ const SPEECH_TEXT = '「设备内置转写」在你的设备上识别语音，�
 // Gate I 表里那句（learning-design §10）。弹窗里引号会被当成 XML 属性界符的心智负担不值得 —— 用「」。
 const AUDIO_CAPTURE_TEXT = '「实时字幕」会在你点开始后识别这台 Mac 正在播放的声音；声音只在本机识别或只发往你配置的转写端点，不录音、不保存。';
 
+// 2026-09-18：1.12.1 国际 iOS 被拒（Guideline 4 - Design）：「权限请求的文案与 App 的本地化语言不一致」——
+// 审核机是英文 iPad，App 界面跟着系统是英文，而上面三句只有中文、且包里没有任何 InfoPlist.strings。
+// 修法：Info.plist 里放**英文**（CFBundleDevelopmentRegion = en，任何我们没翻的语言都落到它），
+// 再给 App 界面支持的每个语种（与 extension/_locales 同一份清单）各出一份 <lproj>/InfoPlist.strings。
+// 中文原文仍是这三个常量（zh-Hans 那一行就是它们），别在别处再抄一份。
+const AUDIO_CAPTURE_KEY = 'NSAudioCaptureUsageDescription';
+const MIC_TEXT_EN = 'Read-aloud practice, Conversation · Live Interpreter and iPhone Live Subtitles (listening to a video played out loud) need the microphone. Audio is recognized only on your device, or sent only to the transcription endpoint you configured, and discarded right after recognition. No recording is saved, and nothing is ever stored on or uploaded to our servers.';
+const SPEECH_TEXT_EN = 'On-device transcription recognizes speech on your device. Audio is never sent to any server.';
+const AUDIO_CAPTURE_TEXT_EN = 'Live Subtitles recognizes the audio this Mac is playing after you press Start. Audio is recognized only on this Mac or sent only to the transcription endpoint you configured; nothing is recorded or saved.';
+
+// lproj 名 → 三句。键顺序：麦克风 / 语音识别 / macOS 系统录音。清单 = extension/_locales 的 12 个
+// （zh_CN→zh-Hans、zh_TW→zh-Hant、pt_BR→pt-BR，其余同名）；test/build-scripts.test.js 钉住两边一致。
+const PLIST_L10N = {
+  en: [MIC_TEXT_EN, SPEECH_TEXT_EN, AUDIO_CAPTURE_TEXT_EN],
+  'zh-Hans': [MIC_TEXT, SPEECH_TEXT, AUDIO_CAPTURE_TEXT],
+  'zh-Hant': [
+    '朗讀練習、「對話 · 即時聽譯」與 iPhone「即時字幕」（聽外放的影片聲音）需要使用麥克風：聲音只在你的裝置上辨識，或只傳送到你自己設定的轉寫端點，辨識後立即捨棄，不保存任何錄音，絕不儲存或上傳到我們的伺服器。',
+    '「裝置內建轉寫」在你的裝置上辨識語音，聲音不會傳送到任何伺服器。',
+    '「即時字幕」會在你按下開始後辨識這台 Mac 正在播放的聲音；聲音只在本機辨識或只傳往你設定的轉寫端點，不錄音、不保存。',
+  ],
+  ja: [
+    '読み上げ練習、「会話 · リアルタイム通訳」、iPhone の「リアルタイム字幕」（外部再生中の動画音声を聞き取る）にマイクを使用します。音声は端末内でのみ認識するか、ご自身で設定した文字起こしエンドポイントにのみ送信し、認識後すぐに破棄します。録音は保存せず、当社のサーバーに保存・アップロードすることは一切ありません。',
+    '「端末内文字起こし」は端末内で音声を認識します。音声はどのサーバーにも送信されません。',
+    '「リアルタイム字幕」は開始後にこの Mac で再生中の音声を認識します。音声はこの Mac 上でのみ認識するか、設定した文字起こしエンドポイントにのみ送信し、録音も保存もしません。',
+  ],
+  ko: [
+    '읽기 연습, 「대화 · 실시간 통역」, iPhone 「실시간 자막」(외부로 재생되는 동영상 소리 듣기)에 마이크가 필요합니다. 음성은 기기에서만 인식하거나 직접 설정한 전사 엔드포인트로만 전송되며 인식 후 즉시 삭제됩니다. 녹음은 저장하지 않으며 당사 서버에 저장하거나 업로드하지 않습니다.',
+    '「기기 내장 전사」는 기기에서 음성을 인식합니다. 음성은 어떤 서버로도 전송되지 않습니다.',
+    '「실시간 자막」은 시작을 누른 뒤 이 Mac에서 재생 중인 소리를 인식합니다. 소리는 이 Mac에서만 인식하거나 설정한 전사 엔드포인트로만 전송되며, 녹음하거나 저장하지 않습니다.',
+  ],
+  fr: [
+    'L\'entraînement à la lecture, « Conversation · interprète en direct » et les « Sous-titres en direct » sur iPhone (écoute d\'une vidéo diffusée à haute voix) ont besoin du micro. Le son est reconnu uniquement sur votre appareil, ou envoyé uniquement au point de transcription que vous avez configuré, puis supprimé aussitôt. Aucun enregistrement n\'est conservé ; rien n\'est jamais stocké ni envoyé sur nos serveurs.',
+    '« Transcription sur l\'appareil » reconnaît la parole sur votre appareil ; le son n\'est envoyé à aucun serveur.',
+    '« Sous-titres en direct » reconnaît le son que ce Mac est en train de lire après que vous avez appuyé sur Démarrer. Le son est reconnu uniquement sur ce Mac ou envoyé uniquement au point de transcription que vous avez configuré ; rien n\'est enregistré ni conservé.',
+  ],
+  de: [
+    'Vorleseübungen, „Gespräch · Live-Dolmetscher“ und „Live-Untertitel“ auf dem iPhone (Mithören eines laut abgespielten Videos) benötigen das Mikrofon. Ton wird nur auf Ihrem Gerät erkannt oder nur an den von Ihnen eingerichteten Transkriptions-Endpunkt gesendet und direkt nach der Erkennung verworfen. Es wird keine Aufnahme gespeichert; nichts wird je auf unseren Servern gespeichert oder dorthin hochgeladen.',
+    '„Transkription auf dem Gerät“ erkennt Sprache auf Ihrem Gerät; Ton wird an keinen Server gesendet.',
+    '„Live-Untertitel“ erkennt nach dem Start den Ton, den dieser Mac gerade wiedergibt. Ton wird nur auf diesem Mac erkannt oder nur an den von Ihnen eingerichteten Transkriptions-Endpunkt gesendet; nichts wird aufgenommen oder gespeichert.',
+  ],
+  es: [
+    'La práctica de lectura, «Conversación · intérprete en directo» y los «Subtítulos en directo» en iPhone (escuchar un vídeo reproducido en voz alta) necesitan el micrófono. El audio se reconoce solo en tu dispositivo, o se envía solo al punto de transcripción que hayas configurado, y se descarta justo después. No se guarda ninguna grabación; nunca se almacena ni se sube nada a nuestros servidores.',
+    '«Transcripción en el dispositivo» reconoce la voz en tu dispositivo; el audio no se envía a ningún servidor.',
+    '«Subtítulos en directo» reconoce el sonido que este Mac está reproduciendo después de pulsar Iniciar. El audio se reconoce solo en este Mac o se envía solo al punto de transcripción que hayas configurado; no se graba ni se guarda nada.',
+  ],
+  ar: [
+    'يحتاج تدريب القراءة بصوت عالٍ و«المحادثة · المترجم الفوري» و«الترجمة الفورية» على iPhone (الاستماع إلى فيديو يُشغَّل بصوت مسموع) إلى الميكروفون. يُعرَف الصوت على جهازك فقط، أو يُرسَل فقط إلى نقطة النسخ التي أعددتها بنفسك، ثم يُحذَف فور التعرّف عليه. لا يُحفَظ أي تسجيل، ولا يُخزَّن أو يُرفَع أي شيء إلى خوادمنا أبدًا.',
+    'تتعرّف «النسخ على الجهاز» على الكلام على جهازك؛ لا يُرسَل الصوت إلى أي خادم.',
+    'تتعرّف «الترجمة الفورية» على الصوت الذي يشغّله هذا الـ Mac بعد أن تضغط «بدء». يُعرَف الصوت على هذا الـ Mac فقط أو يُرسَل فقط إلى نقطة النسخ التي أعددتها؛ لا يُسجَّل ولا يُحفَظ شيء.',
+  ],
+  'pt-BR': [
+    'A prática de leitura, "Conversa · intérprete ao vivo" e as "Legendas ao vivo" no iPhone (ouvir um vídeo tocado em voz alta) precisam do microfone. O áudio é reconhecido só no seu aparelho, ou enviado só para o endpoint de transcrição que você configurou, e descartado logo após o reconhecimento. Nenhuma gravação é salva; nada é armazenado ou enviado aos nossos servidores.',
+    'A "Transcrição no aparelho" reconhece a fala no seu aparelho; o áudio não é enviado a nenhum servidor.',
+    'As "Legendas ao vivo" reconhecem o som que este Mac está tocando depois que você toca em Iniciar. O áudio é reconhecido só neste Mac ou enviado só para o endpoint de transcrição que você configurou; nada é gravado nem salvo.',
+  ],
+  ru: [
+    'Тренировка чтения, «Разговор · живой переводчик» и «Живые субтитры» на iPhone (прослушивание видео через динамик) используют микрофон. Звук распознаётся только на вашем устройстве или отправляется только на настроенную вами точку транскрипции и сразу после распознавания удаляется. Записи не сохраняются; ничего никогда не хранится на наших серверах и не загружается на них.',
+    '«Распознавание на устройстве» распознаёт речь на вашем устройстве; звук не отправляется ни на какой сервер.',
+    '«Живые субтитры» распознают звук, который воспроизводит этот Mac, после нажатия «Начать». Звук распознаётся только на этом Mac или отправляется только на настроенную вами точку транскрипции; ничего не записывается и не сохраняется.',
+  ],
+  hi: [
+    'पढ़ने का अभ्यास, «बातचीत · लाइव दुभाषिया» और iPhone पर «लाइव सबटाइटल» (लाउडस्पीकर पर चल रहे वीडियो को सुनना) के लिए माइक्रोफ़ोन चाहिए। आवाज़ केवल आपके डिवाइस पर पहचानी जाती है, या केवल आपके द्वारा सेट किए गए ट्रांसक्रिप्शन एंडपॉइंट को भेजी जाती है, और पहचान के तुरंत बाद हटा दी जाती है। कोई रिकॉर्डिंग सहेजी नहीं जाती; हमारे सर्वर पर कभी कुछ संग्रहीत या अपलोड नहीं किया जाता।',
+    '«डिवाइस पर ट्रांसक्रिप्शन» आपके डिवाइस पर ही बोली पहचानता है; आवाज़ किसी सर्वर को नहीं भेजी जाती।',
+    '«लाइव सबटाइटल» आपके «शुरू करें» दबाने के बाद इस Mac पर चल रही आवाज़ को पहचानता है। आवाज़ केवल इसी Mac पर पहचानी जाती है या केवल आपके सेट किए गए ट्रांसक्रिप्शन एंडपॉइंट को भेजी जाती है; कुछ भी रिकॉर्ड या सहेजा नहीं जाता।',
+  ],
+};
+const PLIST_L10N_KEYS = [MIC_KEY, SPEECH_KEY, AUDIO_CAPTURE_KEY];
+
 const PLIST_KEYS = [
-  { key: MIC_KEY, xml: `<string>${MIC_TEXT}</string>` },
-  { key: SPEECH_KEY, xml: `<string>${SPEECH_TEXT}</string>` },
+  { key: MIC_KEY, xml: `<string>${MIC_TEXT_EN}</string>` },
+  { key: SPEECH_KEY, xml: `<string>${SPEECH_TEXT_EN}</string>` },
   { key: 'UIBackgroundModes', only: 'iOS (App)',
     xml: '<array>\n\t\t<string>audio</string>\n\t</array>' },
   // 灵动岛（§9.5）。没有这个键，ActivityKit 在运行时直接拒绝启动 Live Activity ——
@@ -523,8 +591,88 @@ const PLIST_KEYS = [
   // 实时字幕（learning-design §9.8 / §10 Gate I）：Mac 抓系统声音的权限说明。系统弹「想访问以录制你的系统音频」时，
   // 这句就是弹窗里那行字（尖刺 S1 截图为证）—— 不是屏幕录制权限。只给 macOS App：iOS 没有这个权限。
   // 缺了它，弹窗没有说明句、审核会问；build.js 的 Gate I 检查这一行在。
-  { key: 'NSAudioCaptureUsageDescription', only: 'macOS (App)', xml: `<string>${AUDIO_CAPTURE_TEXT}</string>` },
+  { key: 'NSAudioCaptureUsageDescription', only: 'macOS (App)', xml: `<string>${AUDIO_CAPTURE_TEXT_EN}</string>` },
 ];
+
+// 一份 <lproj>/InfoPlist.strings 的内容（老式 .strings，plutil -lint 认）。三个键都写：iOS 用不到
+// NSAudioCaptureUsageDescription，多一行无害；少写一份分支就多一处会漏的地方。
+function infoPlistStringsText(lproj) {
+  const rows = PLIST_L10N[lproj];
+  if (!rows) throw new Error(`PLIST_L10N 没有 ${lproj}`);
+  const esc = (s) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return '/* 权限请求文案 —— 由 scripts/sync-app-assets.js 的 PLIST_L10N 生成，不要手改（工程会被重生成）。 */\n'
+    + PLIST_L10N_KEYS.map((k, i) => `"${k}" = "${esc(rows[i])}";`).join('\n') + '\n';
+}
+
+// 纯函数：把 InfoPlist.strings 变体组挂进 pbxproj。照抄转换器给 Main.html 的写法（PBXVariantGroup +
+// 每个 lproj 一个 PBXFileReference），挂到 Shared (App)/Resources 组、两个 App target 的 Resources 阶段
+// （以「有 Main.html in Resources 的阶段」为准 —— 扩展与小组件都没有），knownRegions 补齐。
+// 幂等：变体组已在就一字不改（文案改了只需重写 .strings 文件，不用动工程）。
+const LID = (n) => 'MT1F0057A1B9' + String(n).padStart(12, '0');
+function patchPbxprojInfoPlistStrings(src, lprojs) {
+  if (src.includes('/* InfoPlist.strings */')) return { src, note: 'InfoPlist.strings already in project' };
+  const need = ['/* End PBXBuildFile section */', '/* End PBXFileReference section */', '/* End PBXVariantGroup section */', 'knownRegions = ('];
+  for (const n of need) if (!src.includes(n)) return { src, note: `✗ InfoPlist.strings: 缺 ${n} —— 转换器布局变了？` };
+  const groupRe = /(\t\t\t\t[0-9A-F]{24} \/\* Main\.html \*\/,\n)/;
+  const phaseRe = /(\t\t\t\t[0-9A-F]{24} \/\* Main\.html in Resources \*\/,\n)/g;
+  if (!groupRe.test(src)) return { src, note: '✗ InfoPlist.strings: Resources 组里找不到 Main.html' };
+  const phases = (src.match(phaseRe) || []).length;
+  if (phases !== 2) return { src, note: `✗ InfoPlist.strings: 期望 2 个 App Resources 阶段，找到 ${phases}` };
+
+  const vg = LID(1);
+  const refs = lprojs.map((l, i) => ({ l, id: LID(10 + i) }));
+  let out = src;
+  // ① PBXBuildFile：两个 App target 各一条
+  out = out.replace('/* End PBXBuildFile section */',
+    `\t\t${LID(2)} /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* InfoPlist.strings */; };\n`
+    + `\t\t${LID(3)} /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* InfoPlist.strings */; };\n`
+    + '/* End PBXBuildFile section */');
+  // ② PBXFileReference：每个 lproj 一条
+  out = out.replace('/* End PBXFileReference section */',
+    refs.map((r) => `\t\t${r.id} /* ${r.l} */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "${r.l}"; path = "${r.l}.lproj/InfoPlist.strings"; sourceTree = "<group>"; };\n`).join('')
+    + '/* End PBXFileReference section */');
+  // ③ PBXVariantGroup
+  out = out.replace('/* End PBXVariantGroup section */',
+    `\t\t${vg} /* InfoPlist.strings */ = {\n\t\t\tisa = PBXVariantGroup;\n\t\t\tchildren = (\n`
+    + refs.map((r) => `\t\t\t\t${r.id} /* ${r.l} */,\n`).join('')
+    + `\t\t\t);\n\t\t\tname = InfoPlist.strings;\n\t\t\tsourceTree = "<group>";\n\t\t};\n`
+    + '/* End PBXVariantGroup section */');
+  // ④ Resources 组 children
+  out = out.replace(groupRe, `$1\t\t\t\t${vg} /* InfoPlist.strings */,\n`);
+  // ⑤ 两个 App target 的 Resources 阶段
+  let n = 0;
+  out = out.replace(phaseRe, (m) => m + `\t\t\t\t${n++ === 0 ? LID(2) : LID(3)} /* InfoPlist.strings in Resources */,\n`);
+  // ⑥ knownRegions
+  out = out.replace(/knownRegions = \(\n([\s\S]*?)(\t\t\t\);)/, (m, body, close) => {
+    const have = new Set(body.split('\n').map((s) => s.trim().replace(/,$/, '')).filter(Boolean));
+    const add = lprojs.filter((l) => !have.has(l) && !have.has(`"${l}"`));
+    return 'knownRegions = (\n' + body + add.map((l) => `\t\t\t\t${/[^A-Za-z0-9]/.test(l) ? `"${l}"` : l},\n`).join('') + close;
+  });
+  return { src: out, note: `InfoPlist.strings variant group added (${lprojs.length} lproj · 2 app targets)` };
+}
+
+function patchInfoPlistStrings(sharedDir) {
+  const res = path.join(sharedDir, 'Resources');
+  if (!fs.existsSync(res)) return 'no Resources/';
+  const lprojs = Object.keys(PLIST_L10N);
+  let written = 0;
+  for (const l of lprojs) {
+    const dir = path.join(res, `${l}.lproj`);
+    fs.mkdirSync(dir, { recursive: true });
+    const f = path.join(dir, 'InfoPlist.strings');
+    const text = infoPlistStringsText(l);
+    if (!fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== text) { fs.writeFileSync(f, text); written++; }
+  }
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return 'no xcodeproj';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return 'no project.pbxproj';
+  const before = fs.readFileSync(f, 'utf8');
+  const { src, note } = patchPbxprojInfoPlistStrings(before, lprojs);
+  if (src !== before) fs.writeFileSync(f, src);
+  return `${note}${written ? `（写了 ${written} 份 .strings）` : ''}`;
+}
 
 // Pure, so the tests can run it without an Xcode tree. Returns { xml, added, note }.
 function patchPlistXml(src, keys) {
@@ -1260,7 +1408,7 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
       const vc = loud(proj, 'ViewController', patchViewController(shared));
       const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared));
-      const plists = loud(proj, 'Info.plist', patchInfoPlists(shared));
+      const plists = loud(proj, 'Info.plist', patchInfoPlists(shared)) + ' · ' + loud(proj, 'InfoPlist.strings', patchInfoPlistStrings(shared));
       const dlg = loud(proj, 'delegates', patchDelegates(shared));
       // 灵动岛（§9.5）：只做 iOS，且只对已经带 iOS App target 的工程。macOS 没有灵动岛。
       const widget = fs.existsSync(path.join(path.dirname(shared), 'iOS (App)'))
@@ -1291,5 +1439,6 @@ module.exports = {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
   patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget, patchDeploymentTargets,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
+  PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
   patchWidgetTarget, patchWidgetFiles, openUrlHosts,
 };

@@ -136,6 +136,28 @@ learning-design §9.6 门控 2026-09-17 修订）。商店描述、官网功能�
 AGENTS.md 要求每个改动一个 issue。**修复合并进 `main` 之后才关闭 issue**——分支上就关，
 等于声称一件还没进产品的事已经做完了。
 
+## 权限弹窗的文案也是本地化的一部分（2026-09-18，1.12.1 国际 iOS 被拒）
+
+审核原话（Guideline 4 - Design）：「the app includes permissions requests that are not written in
+the same language as the app's localization」。审核机是英文 iPad Air，App 界面跟着系统是英文，
+而麦克风 / 语音识别的权限弹窗是中文 —— 因为 `NSMicrophoneUsageDescription` 等三句只写在
+Info.plist 里、只有中文，包里没有任何 `InfoPlist.strings`。之前七个版本都带着这个问题过了审，
+说明它只在审核员恰好碰到权限弹窗时才炸。
+
+规则：**Info.plist 里放英文**（`CFBundleDevelopmentRegion = en`，没翻的语言落到它），App 界面支持的
+每个语种（`extension/_locales` 的 12 个）各一份 `<lproj>/InfoPlist.strings`。三句原文与 12 份翻译都在
+`scripts/sync-app-assets.js` 的 `PLIST_L10N`，`app:sync` 把它们写进工程并挂到两个 App target 的
+Resources 阶段（`patchInfoPlistStrings`）；`test/build-scripts.test.js` 钉住语种清单与 `_locales` 一致、
+Info.plist 默认值无中文。
+
+出包后的回读（归档之后翻 `.app`，不看构建日志）：
+
+```bash
+ls "<archive>/Products/Applications/*.app" | grep -c lproj          # 期望 13（Base + 12）
+plutil -p "<app>/en.lproj/InfoPlist.strings" | head -3              # 三个键都是英文
+/usr/libexec/PlistBuddy -c 'Print NSMicrophoneUsageDescription' "<app>/Info.plist"   # 英文
+```
+
 ## iOS：重新生成 Safari 工程会静默重置三样东西
 
 `xcrun safari-web-extension-converter --force` 每跑一次，都会把工程恢复成转换器的
