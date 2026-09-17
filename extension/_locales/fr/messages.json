@@ -1939,7 +1939,7 @@
     "message": "Téléchargement du modèle hors ligne {lang} · {pct} %"
   },
   "listen_assets_failed": {
-    "message": "Échec du téléchargement du modèle hors ligne : {why} — appuyez de nouveau sur « Commencer à écouter » ou choisissez un moteur cloud dans les réglages."
+    "message": "Échec du téléchargement du modèle hors ligne : {why} — le plus souvent un problème réseau ; réessayez plus tard — appuyez de nouveau sur « Commencer à écouter » ou choisissez un moteur cloud dans les réglages."
   },
   "listen_entry_privacy_device": {
     "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu va au moteur de traduction que vous avez configuré."
@@ -3032,7 +3032,7 @@
     "message": "La reconnaissance intégrée ne prend pas en charge cette langue — essayez-en une autre"
   },
   "listen_assets_failed2": {
-    "message": "Échec du téléchargement du modèle hors ligne : {why} — appuyez à nouveau sur « Commencer à écouter » pour réessayer."
+    "message": "Échec du téléchargement du modèle hors ligne : {why} — le plus souvent un problème réseau ; réessayez plus tard — appuyez à nouveau sur « Commencer à écouter » pour réessayer."
   },
   "tts_engine_device": {
     "message": "Voix intégrée à l’appareil (modèle hors ligne · app uniquement)"
@@ -3062,7 +3062,7 @@
     "message": "Téléchargement du modèle hors ligne · {lang} · {pct} %"
   },
   "tts_pack_failed": {
-    "message": "Échec du téléchargement du modèle hors ligne : {why}"
+    "message": "Échec du téléchargement du modèle hors ligne : {why} — le plus souvent un problème réseau ; réessayez plus tard"
   },
   "tts_pack_no_bridge": {
     "message": "La lecture intégrée n’est disponible que dans l’app"
@@ -3089,7 +3089,7 @@
     "message": "Téléchargement du pack de langue · {lang} · {pct} %"
   },
   "listen_pack_failed": {
-    "message": "Échec du téléchargement du pack de langue : {why}"
+    "message": "Échec du téléchargement du pack de langue : {why} — le plus souvent un problème réseau ; réessayez plus tard"
   },
   "opt_sec_engines": {
     "message": "Moteurs et clés"

@@ -18,7 +18,9 @@ var MT_DEVICE_TTS_MODELS = [
       sha256: '071b226531f829851c0df15ac5f5050d8c56e9a24e479c9f3b531cd377e84c92',
       url: {
         global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-zh.zip',
-        china: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-zh.zip',
+        // 境内走 Hugging Face 镜像站（2026-09-17 真机实测：GitHub Releases 在境内 HEAD 超时、下载停在 1%；hf-mirror 约 700 KB/s）。
+        // 同一份 zip、同一个 sha256，只是换了托管：https://huggingface.co/belliedmonkey/belliedmonkey-device-models
+        china: 'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-zh.zip',
       },
     }],
   },
@@ -29,7 +31,9 @@ var MT_DEVICE_TTS_MODELS = [
       sha256: '1c69a1f2332238e52594c22beeac204430740bff549bf0e58701e730d2c34c1c',
       url: {
         global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-en.zip',
-        china: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-en.zip',
+        // 境内走 Hugging Face 镜像站（2026-09-17 真机实测：GitHub Releases 在境内 HEAD 超时、下载停在 1%；hf-mirror 约 700 KB/s）。
+        // 同一份 zip、同一个 sha256，只是换了托管：https://huggingface.co/belliedmonkey/belliedmonkey-device-models
+        china: 'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-en.zip',
       },
     }],
   },

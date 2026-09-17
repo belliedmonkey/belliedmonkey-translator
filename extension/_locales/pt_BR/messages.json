@@ -1939,7 +1939,7 @@
     "message": "Baixando o modelo offline de {lang} · {pct}%"
   },
   "listen_assets_failed": {
-    "message": "Falha ao baixar o modelo offline: {why} — toque em «Começar a ouvir» de novo ou escolha um motor na nuvem em Ajustes."
+    "message": "Falha ao baixar o modelo offline: {why} — geralmente é um problema de rede; tente de novo mais tarde — toque em «Começar a ouvir» de novo ou escolha um motor na nuvem em Ajustes."
   },
   "listen_entry_privacy_device": {
     "message": "A voz é reconhecida no seu aparelho e nunca enviada a nenhum servidor; o texto reconhecido vai para o motor de tradução que você configurou."
@@ -3032,7 +3032,7 @@
     "message": "O reconhecedor integrado não suporta este idioma — tente outro"
   },
   "listen_assets_failed2": {
-    "message": "Falha ao baixar o modelo offline: {why} — toque em “Começar a ouvir” novamente para tentar de novo."
+    "message": "Falha ao baixar o modelo offline: {why} — geralmente é um problema de rede; tente de novo mais tarde — toque em “Começar a ouvir” novamente para tentar de novo."
   },
   "tts_engine_device": {
     "message": "Voz integrada no aparelho (modelo offline · só no app)"
@@ -3062,7 +3062,7 @@
     "message": "Baixando modelo offline · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "Falha ao baixar o modelo offline: {why}"
+    "message": "Falha ao baixar o modelo offline: {why} — geralmente é um problema de rede; tente de novo mais tarde"
   },
   "tts_pack_no_bridge": {
     "message": "A leitura integrada só está disponível no app"
@@ -3089,7 +3089,7 @@
     "message": "Baixando pacote de idioma · {lang} · {pct}%"
   },
   "listen_pack_failed": {
-    "message": "Falha ao baixar o pacote de idioma: {why}"
+    "message": "Falha ao baixar o pacote de idioma: {why} — geralmente é um problema de rede; tente de novo mais tarde"
   },
   "opt_sec_engines": {
     "message": "Motores e chaves"

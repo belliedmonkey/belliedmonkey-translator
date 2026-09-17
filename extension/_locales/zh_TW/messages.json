@@ -1940,7 +1940,7 @@
     "message": "正在下載{lang}離線模型 · {pct}%"
   },
   "listen_assets_failed": {
-    "message": "離線模型下載失敗：{why} — 再點一次「開始聽」重試，或到設定裡選一個雲端即時引擎。"
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試 — 再點一次「開始聽」重試，或到設定裡選一個雲端即時引擎。"
   },
   "listen_entry_privacy_device": {
     "message": "聲音只在你的裝置上辨識，不傳往任何伺服器；辨識出的文字傳到你自己設定的翻譯引擎。"
@@ -3033,7 +3033,7 @@
     "message": "裝置內建辨識器不支援這個語言 —— 換一種語言試試"
   },
   "listen_assets_failed2": {
-    "message": "離線模型下載失敗：{why} — 再點一次「開始聽」重試。"
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試 — 再點一次「開始聽」重試。"
   },
   "tts_engine_device": {
     "message": "裝置內建朗讀（離線模型 · 僅 App）"
@@ -3063,7 +3063,7 @@
     "message": "正在下載離線模型 · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "離線模型下載失敗：{why}"
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試"
   },
   "tts_pack_no_bridge": {
     "message": "裝置內建朗讀只在 App 裡可用"
@@ -3090,7 +3090,7 @@
     "message": "正在下載辨識語言包 · {lang} · {pct}%"
   },
   "listen_pack_failed": {
-    "message": "辨識語言包下載失敗：{why}"
+    "message": "辨識語言包下載失敗：{why}—— 多半是網路問題，稍後重試"
   },
   "opt_sec_engines": {
     "message": "引擎與密鑰"

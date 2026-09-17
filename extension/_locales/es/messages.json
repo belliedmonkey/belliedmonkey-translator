@@ -1939,7 +1939,7 @@
     "message": "Descargando el modelo sin conexión de {lang} · {pct} %"
   },
   "listen_assets_failed": {
-    "message": "Falló la descarga del modelo sin conexión: {why}. Toca «Empezar a escuchar» de nuevo o elige un motor en la nube en Ajustes."
+    "message": "Falló la descarga del modelo sin conexión: {why} — suele ser un problema de red; inténtalo más tarde. Toca «Empezar a escuchar» de nuevo o elige un motor en la nube en Ajustes."
   },
   "listen_entry_privacy_device": {
     "message": "La voz se reconoce en tu dispositivo y no se envía a ningún servidor; el texto reconocido va al motor de traducción que configuraste."
@@ -3032,7 +3032,7 @@
     "message": "El reconocedor integrado no admite este idioma — prueba con otro"
   },
   "listen_assets_failed2": {
-    "message": "Falló la descarga del modelo sin conexión: {why} — toca “Empezar a escuchar” de nuevo para reintentar."
+    "message": "Falló la descarga del modelo sin conexión: {why} — suele ser un problema de red; inténtalo más tarde — toca “Empezar a escuchar” de nuevo para reintentar."
   },
   "tts_engine_device": {
     "message": "Voz integrada en el dispositivo (modelo sin conexión · solo app)"
@@ -3062,7 +3062,7 @@
     "message": "Descargando modelo sin conexión · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "Falló la descarga del modelo sin conexión: {why}"
+    "message": "Falló la descarga del modelo sin conexión: {why} — suele ser un problema de red; inténtalo más tarde"
   },
   "tts_pack_no_bridge": {
     "message": "La lectura integrada solo está disponible en la app"
@@ -3089,7 +3089,7 @@
     "message": "Descargando paquete de idioma · {lang} · {pct}%"
   },
   "listen_pack_failed": {
-    "message": "Falló la descarga del paquete de idioma: {why}"
+    "message": "Falló la descarga del paquete de idioma: {why} — suele ser un problema de red; inténtalo más tarde"
   },
   "opt_sec_engines": {
     "message": "Motores y claves"

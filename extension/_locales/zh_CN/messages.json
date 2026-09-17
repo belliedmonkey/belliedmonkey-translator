@@ -1940,7 +1940,7 @@
     "message": "正在下载{lang}离线模型 · {pct}%"
   },
   "listen_assets_failed": {
-    "message": "离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。"
+    "message": "离线模型下载失败：{why}—— 多半是网络问题，稍后重试 — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。"
   },
   "listen_entry_privacy_device": {
     "message": "声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。"
@@ -3033,7 +3033,7 @@
     "message": "本机识别器不支持这门语言 —— 换一种语言试试"
   },
   "listen_assets_failed2": {
-    "message": "离线模型下载失败：{why} — 再点一次「开始听」重试。"
+    "message": "离线模型下载失败：{why}—— 多半是网络问题，稍后重试 — 再点一次「开始听」重试。"
   },
   "tts_engine_device": {
     "message": "设备内置朗读（离线模型 · 仅 App）"
@@ -3063,7 +3063,7 @@
     "message": "正在下载离线模型 · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "离线模型下载失败：{why}"
+    "message": "离线模型下载失败：{why}—— 多半是网络问题，稍后重试"
   },
   "tts_pack_no_bridge": {
     "message": "设备内置朗读只在 App 里可用"
@@ -3090,7 +3090,7 @@
     "message": "正在下载识别语言包 · {lang} · {pct}%"
   },
   "listen_pack_failed": {
-    "message": "识别语言包下载失败：{why}"
+    "message": "识别语言包下载失败：{why}—— 多半是网络问题，稍后重试"
   },
   "opt_sec_engines": {
     "message": "引擎与密钥"
