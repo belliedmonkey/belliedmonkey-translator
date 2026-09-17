@@ -1920,50 +1920,8 @@
   "qs_privacy": {
     "message": "文字起こしは録音を {host} に送ります。認識が済み次第すぐ破棄され、保存も同期もされません。"
   },
-  "qs_live_key": {
-    "message": "リアルタイム用キー"
-  },
-  "qs_live_key_ph": {
-    "message": "任意：別プロバイダーのキー"
-  },
-  "qs_live_title": {
-    "message": "リアルタイム文字起こし（任意）"
-  },
-  "qs_live_sub": {
-    "message": "{p} にはリアルタイム API がありません。動画・ポッドキャストのリアルタイム文字起こしと、アプリの「会話・リアルタイム通訳」に必要です —— {live} のキーを追加すれば使えます。空欄でも可（文字起こしはファイル全体モード）。"
-  },
-  "qs_get_live_key": {
-    "message": "キーがない？{live} で取得 ↗"
-  },
-  "qs_live_privacy": {
-    "message": "リアルタイム文字起こしはページの音声を {liveHost} に送って認識し、認識後すぐ破棄します。"
-  },
-  "qs_untouched_live": {
-    "message": "— 変更なし · リアルタイム対応エンジンを設定済み（{cur}）"
-  },
-  "qs_live_replaced": {
-    "message": "（{cur} を置き換えました。以前はリアルタイム非対応、現在は対応）"
-  },
   "qs_grant_replaced": {
     "message": "（無料枠のキーを置き換えました）"
-  },
-  "qs_live_ok": {
-    "message": "（リアルタイム対応）"
-  },
-  "qs_stt_no_live": {
-    "message": "（{engine} はリアルタイム非対応 —— 必要なら上で追加 ↑）"
-  },
-  "stt_live_suffix": {
-    "message": "· リアルタイム"
-  },
-  "stt_engine_device": {
-    "message": "端末内蔵の文字起こし（無料・オフライン・アプリのみ）"
-  },
-  "stt_hint_device": {
-    "message": "音声は端末内で認識され、サーバーには送信されません。iOS 26 / macOS 26 が必要です。現在は「会話」でのみ使用します。"
-  },
-  "stt_device_suffix": {
-    "message": "· 端末内"
   },
   "stt_device_no_file": {
     "message": "端末内文字起こしは会話とリアルタイム字幕専用です。スピーキング練習にはまだ対応していません"
@@ -1976,9 +1934,6 @@
   },
   "engine_test_device_timeout": {
     "message": "端末内認識から応答がありません —— App を終了して開き直してください"
-  },
-  "listen_need_device_os": {
-    "message": "端末内蔵の文字起こしには iOS 26 / macOS 26 が必要です。または設定でクラウドのリアルタイムエンジンを選んでください"
   },
   "listen_downloading": {
     "message": "{lang}のオフラインモデルをダウンロード中 · {pct}%"
@@ -1998,17 +1953,8 @@
   "listen_raw_label": {
     "message": "認識した原文"
   },
-  "tts_engine_device": {
-    "message": "端末内蔵の読み上げ（オフラインモデル・アプリのみ）"
-  },
-  "tts_hint_device": {
-    "message": "音声は端末内で合成されます。初回のみオフラインモデルをダウンロードします（モデルファイルのみ）。モデルにない言語はシステム音声に切り替わり、行にその旨が表示されます。"
-  },
   "tts_device_lang_fallback": {
     "message": "システム音声で読み上げ（オフラインモデルは{lang}非対応）"
-  },
-  "grant_live_go": {
-    "message": "リアルタイム用エンジンを追加 →"
   },
   "qs_apply": {
     "message": "翻訳・読み上げ・文字起こしを設定"
@@ -2288,9 +2234,6 @@
   "asr_status_file": {
     "message": "⏳ 音声全体を文字起こし中…"
   },
-  "asr_status_live": {
-    "message": "● リアルタイム文字起こし中"
-  },
   "asr_stop": {
     "message": "文字起こしを停止"
   },
@@ -2313,17 +2256,11 @@
   "asr_err_nocues": {
     "message": "このエンジンはタイムスタンプを返さないため字幕にできません"
   },
-  "asr_err_nolive": {
-    "message": "このエンジンにはリアルタイム接続がなく、このメディアは文字起こしできません"
-  },
   "asr_gesture_needed": {
     "message": "ページ上でタップすると取り込みを開始します"
   },
   "asr_gesture_tap": {
     "message": "▶ タップしてリアルタイム文字起こしを開始"
-  },
-  "asr_go_live_engine": {
-    "message": "リアルタイム対応の認識エンジンを設定する →"
   },
   "asr_err_settings": {
     "message": "文字起こしエンジンが変更されたため停止しました"
@@ -2396,12 +2333,6 @@
   },
   "listen_entry_hint": {
     "message": "対面で話す二人へ：どちらもそのまま話すだけで、画面に両言語が出て訳文が読み上げられます。音声はあなたが設定した文字起こしエンドポイントにのみ送られます。"
-  },
-  "listen_need_live": {
-    "message": "「会話 · リアルタイム通訳」にはリアルタイム対応の文字起こしエンジンが必要です"
-  },
-  "listen_need_live_go": {
-    "message": "設定で選ぶ →"
   },
   "listen_title": {
     "message": "会話"
@@ -2695,9 +2626,6 @@
   "grant_signin_again": {
     "message": "もう一度ログイン"
   },
-  "grant_no_live": {
-    "message": "リアルタイム通訳は対象外です。あれにはリアルタイム接続が必要ですが、この中継は一度きりのリクエストしか転送しません。"
-  },
   "grant_body_signed_out": {
     "message": "ログアウトで無料クレジットは停止しました。残高はそのままです。同じアカウントで再度ログインすれば戻ります。"
   },
@@ -2941,9 +2869,6 @@
   "subtitle_entry_hint": {
     "message": "再生中の動画・ライブ配信・会議に2か国語字幕を表示"
   },
-  "subtitle_need_live": {
-    "message": "ライブ字幕にはリアルタイム接続に対応した文字起こしエンジンが必要です"
-  },
   "subtitle_need_key": {
     "message": "文字起こしエンジンの API キーがまだ入力されていません"
   },
@@ -3099,5 +3024,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "30 秒間音がないため一時停止しました — 動画は再生中なのに字幕が出ない？システム音声の収録が許可されていないかもしれません"
+  },
+  "listen_need_os": {
+    "message": "会話・ライブ字幕には iOS 26 / macOS 26 が必要です"
+  },
+  "listen_need_locale": {
+    "message": "デバイス内蔵の認識器はこの言語に対応していません — 別の言語をお試しください"
+  },
+  "listen_assets_failed2": {
+    "message": "オフラインモデルのダウンロードに失敗しました：{why} — 「聞き始める」をもう一度タップして再試行してください。"
+  },
+  "tts_engine_device": {
+    "message": "端末内蔵の読み上げ（オフラインモデル・アプリのみ）"
+  },
+  "tts_hint_device": {
+    "message": "音声は端末内で合成されます。初回のみオフラインモデルをダウンロードします（モデルファイルのみ）。モデルにない言語はシステム音声に切り替わり、行にその旨が表示されます。"
   }
 }

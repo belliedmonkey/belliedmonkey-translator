@@ -314,6 +314,8 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       // 三条连通性测试在这里必定失败（配的是注册表里的真实 host，这台机器上打不通），
       // 无所谓 —— 写入在测试之前就已经发生，而这一幕验的正是写入活不活得下来。
       const qsHave = await evalIn(cdp, sessionId, `!!document.getElementById('qs-apply')`);
+      // 2026-09-17：一键卡里没有「实时转写（可选）」那一格了 —— 实时转写固定为设备内置，这一格没有对象
+      if (await evalIn(cdp, sessionId, `!!document.getElementById('qs-live')`)) problems.push('一键卡里又出现了 #qs-live（实时转写格）—— 实时转写已固定为设备内置，云端实时档已下线');
       if (!qsHave) {
         problems.push('设置页上没有「一把 key 配好全部」的按钮 —— 卡没渲染');
       } else {

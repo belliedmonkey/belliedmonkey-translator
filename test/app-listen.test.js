@@ -662,15 +662,17 @@ describe('ListenCore — 字幕模式的静态静音门', () => {
 });
 
 describe('ListenCore — 实时字幕入口判定与声音来源', () => {
-  test('入口原因按顺序：老壳隐藏 → 没实时引擎 → 没 key → 系统版本；设备内置转写跳过 ①②', () => {
+  test('入口原因按顺序：老壳隐藏 → 本机识别器不可用（系统 / 语言）→ Mac 系统声音版本（2026-09-17：没有 no-live / no-key）', () => {
     const OK = { sources: ['mic', 'system'], system: 'ok' };
-    eq(C.entryGate({ caps: null, liveOk: true, keyOk: true }), 'hidden', '老原生壳没回 audio-caps：整行不显示');
-    eq(C.entryGate({ caps: OK, liveOk: false, keyOk: false }), 'no-live');
-    eq(C.entryGate({ caps: OK, liveOk: true, keyOk: false }), 'no-key');
-    eq(C.entryGate({ caps: { system: 'os' }, liveOk: true, keyOk: true }), 'os');
-    eq(C.entryGate({ caps: { system: 'os' }, deviceOk: true }), 'os', '设备内置转写只跳过引擎两条，版本照判');
+    eq(C.entryGate({ caps: null, deviceOk: true }), 'hidden', '老原生壳没回 audio-caps：整行不显示');
+    eq(C.entryGate({ caps: OK, deviceOk: false }), 'device-os', '本机识别器不可用 ⇒ 系统太旧那句');
+    eq(C.entryGate({ caps: OK, deviceOk: false, deviceReason: 'os' }), 'device-os');
+    eq(C.entryGate({ caps: OK, deviceOk: false, deviceReason: 'locale' }), 'locale', '语言不支持是另一句');
+    eq(C.entryGate({ caps: { system: 'os' }, deviceOk: false }), 'device-os', '本机不可用先说本机');
+    eq(C.entryGate({ caps: { system: 'os' }, deviceOk: true }), 'os', '本机可用再判 Mac 系统声音版本');
     eq(C.entryGate({ caps: OK, deviceOk: true }), '');
-    eq(C.entryGate({ caps: { system: 'unsupported' }, liveOk: true, keyOk: true }), '', 'iOS 没有系统声音也可用（麦克风听外放）');
+    eq(C.entryGate({ caps: { system: 'unsupported' }, deviceOk: true }), '', 'iOS 没有系统声音也可用（麦克风听外放）');
+    for (const k of ['liveOk', 'keyOk']) ok(!/no-live|no-key/.test(C.entryGate({ caps: OK, deviceOk: true, [k]: false })), k + ' 不再是判据');
   });
   test('★ 没收到 system:ok 绝不给 system（老壳会无视 source、静默开麦克风）', () => {
     eq(C.captureSource({ system: 'ok' }), 'system');

@@ -36,9 +36,8 @@ var EngineTest = (() => {
       case 'no_key': return t('engine_test_no_key', '还没填 API Key');
       case 'no_engine': return t('engine_test_no_engine', '还没选引擎');
       // 设备内置转写（§9.6.1）没有端点可测：这一档的「测试」对它没有定义 —— 具名说清，不是「失败」
-      case 'device_no_file': return t('stt_device_no_file', '设备内置转写只用于对话与实时字幕，说题暂不支持');
       // 本机识别器不可用 / 没回应（device() 抛的）。沿用听译页那句已有文案，不另写一份。
-      case 'device_unavailable': return t('listen_need_device_os', '设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎');
+      case 'device_unavailable': return t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
       case 'device_timeout': return t('engine_test_device_timeout', '本机识别没有回应 —— 关掉 App 重开再试');
       case 'unknown_provider': return t('engine_test_unknown_provider', '这个版本不认识当前存着的引擎，请在上面重新选一个');
       case 'network': return t('stt_network', '连不上端点——检查地址是否可达；自建服务还需允许跨域访问（CORS）')
@@ -169,7 +168,7 @@ var EngineTest = (() => {
   // 的失败」，也不要让那一条失败从统计里消失（同 credit_exhausted 那条教训）。
   const TRACK_CODES = ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
     'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
-    'reasoning_starved', 'device_no_file'];
+    'reasoning_starved'];   // device_no_file 留在白名单里给历史行读回，客户端自 2026-09-17 起不再产生
   function track(slot, result, code) {
     try {
       if (typeof MTTelemetry === 'undefined') return;

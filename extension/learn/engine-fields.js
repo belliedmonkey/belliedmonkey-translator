@@ -102,13 +102,9 @@ var EngineFields = (() => {
     for (const e of list) {
       const opt = doc.createElement('option');
       opt.value = e.id;
-      // 「· 实时」后缀（2026-09-11）：带 liveEndpoint+liveType 的转写条目在下拉里标出来，
-      // 让「哪一项能实时」对用户可见 —— 此前 visibility() 不读 live 字段，三处下拉都看不出。
-      // 本机转写条目本身就是实时接口（domain-design §7，由 type 推导）：「· 实时 · 本机」。
-      const live = !!(e.liveEndpoint && e.liveType) || e.type === 'device-transcribe';
-      const local = e.type === 'device-transcribe';
-      opt.textContent = labelOf(e, o.t) + (live && o.t ? ' ' + o.t('stt_live_suffix', '· 实时') : '')
-        + (local && o.t ? ' ' + o.t('stt_device_suffix', '· 本机') : '');
+      // 2026-09-11 → 09-17 这里给带实时接口的转写条目加过「· 实时」后缀；实时转写固定为设备内置
+      // 之后注册表里没有实时档，后缀连同它的判据一起删除（domain-design §7 2026-09-17 修订）。
+      opt.textContent = labelOf(e, o.t);
       sel.appendChild(opt);
     }
     const known = list.some((e) => e.id === o.selected);

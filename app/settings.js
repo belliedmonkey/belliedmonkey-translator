@@ -174,8 +174,9 @@ var AppSettings = (() => {
     $('btn-test-stt').textContent = t('engine_test', '测试连接');
     $('btn-tts-test').textContent = t('tts_test', '试听一句');
     $('stt-note').textContent = t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。');
+    // 2026-09-17 起转写注册表里没有本机条目（实时转写固定为设备内置，不是可选引擎），
+    // 不再注入 deviceOk —— 这一档只列云端 / 自建，只管说题。
     EngineFields.populate($('stt-engine'), window.MT_STT_ENGINES || [], {
-      deviceOk: typeof NativeSpeech !== 'undefined' && NativeSpeech.available(),   // 本机条目只在桥在时出现（§9.6.1）
       t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
     });
     // 来源治理 (interaction-spec): rules follow the account (§8.9); the phone is a
@@ -613,7 +614,6 @@ var AppSettings = (() => {
       if (hooks.openExternal && typeof MTFeedback !== 'undefined') hooks.openExternal(MTFeedback.discussUrl());
       return;
     }
-    if (id === 'live') { const k = $('qs-live-key') || $('stt-engine'); if (k) { try { k.scrollIntoView({ block: 'center' }); } catch (_) {} try { k.focus({ preventScroll: true }); } catch (_) { k.focus(); } } return; }
     if (id !== 'claim' && id !== 'restore') return;
     // 页内确认框，不用 window.confirm —— App 的宿主没实现确认回调，它恒为 false。
     if (id === 'restore' && typeof LearnDialog !== 'undefined') {
@@ -963,14 +963,8 @@ var AppSettings = (() => {
     }));
     $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
       await saveSttCfg();
-      // 设备内置转写没有端点可测 ⇒ 测本机识别器能不能用、语言包在不在（EngineTest.device）。
-      // 语言取「对话」两边的语言 —— 与 app/listen.js 开始听时探的是同一组。
-      const eng = (window.MT_STT_ENGINES || []).find((x) => x.id === $('stt-engine').value);
-      if (eng && eng.type === 'device-transcribe') {
-        const loc = (id) => ListenCore.toLocale(($(id) && $(id).value) || '');
-        const ls = [loc('listen-my-lang'), loc('listen-other-lang')].filter((v, k, a) => v && a.indexOf(v) === k);
-        return EngineTest.device(ls);
-      }
+      // 2026-09-17 之前这里对「设备内置转写」分流到 EngineTest.device；那条注册表条目已删
+      // （实时转写固定为设备内置，不是可选引擎），这一档只剩说 HTTP 的端点。
       if (typeof LearnSpeech === 'undefined') { const e = new Error('no module'); e.code = 'no_engine'; throw e; }
       return LearnSpeech.test();
     }));

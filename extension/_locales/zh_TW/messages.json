@@ -1921,50 +1921,8 @@
   "qs_privacy": {
     "message": "轉寫會把你的錄音傳到 {host} 辨識，辨識完立即丟棄，不儲存也不同步。"
   },
-  "qs_live_key": {
-    "message": "即時 key"
-  },
-  "qs_live_key_ph": {
-    "message": "可選：另一家的 key"
-  },
-  "qs_live_title": {
-    "message": "即時轉寫（可選）"
-  },
-  "qs_live_sub": {
-    "message": "{p} 沒有即時介面。影片/播客的即時轉寫，和 App 的「對話 · 即時聽譯」都需要它 —— 另配一把 {live} 的 key 就能用；不填也行，轉寫走整段模式。"
-  },
-  "qs_get_live_key": {
-    "message": "還沒有 key？去 {live} 申請 ↗"
-  },
-  "qs_live_privacy": {
-    "message": "即時轉寫會把頁面音訊送到 {liveHost} 辨識，辨識完即棄。"
-  },
-  "qs_untouched_live": {
-    "message": "— 沒動 · 你已經配過一個帶即時介面的引擎（{cur}）"
-  },
-  "qs_live_replaced": {
-    "message": "（替換了原來的 {cur}，它沒有即時介面；現在含即時介面）"
-  },
   "qs_grant_replaced": {
     "message": "（替換了免費額度的 key）"
-  },
-  "qs_live_ok": {
-    "message": "（含即時介面）"
-  },
-  "qs_stt_no_live": {
-    "message": "（{engine} 沒有即時介面 —— 需要即時轉寫時在上面另配 ↑）"
-  },
-  "stt_live_suffix": {
-    "message": "· 即時"
-  },
-  "stt_engine_device": {
-    "message": "裝置內建轉寫（免費 · 離線 · 僅 App）"
-  },
-  "stt_hint_device": {
-    "message": "聲音只在你的裝置上辨識，不傳往任何伺服器；需要 iOS 26 / macOS 26。目前只用於「對話 · 即時聽譯」。"
-  },
-  "stt_device_suffix": {
-    "message": "· 本機"
   },
   "stt_device_no_file": {
     "message": "裝置內建轉寫只用於對話與即時字幕，說題暫不支援"
@@ -1977,9 +1935,6 @@
   },
   "engine_test_device_timeout": {
     "message": "本機辨識沒有回應 —— 關掉 App 重開再試"
-  },
-  "listen_need_device_os": {
-    "message": "裝置內建轉寫需要 iOS 26 / macOS 26 —— 或到設定裡選一個雲端即時引擎"
   },
   "listen_downloading": {
     "message": "正在下載{lang}離線模型 · {pct}%"
@@ -1999,17 +1954,8 @@
   "listen_raw_label": {
     "message": "辨識原文"
   },
-  "tts_engine_device": {
-    "message": "裝置內建朗讀（離線模型 · 僅 App）"
-  },
-  "tts_hint_device": {
-    "message": "語音在你的裝置上合成；首次使用會下載一次離線模型（只是模型檔）。模型不含的語言會改用系統語音並在行上說明。"
-  },
   "tts_device_lang_fallback": {
     "message": "用系統語音朗讀（離線模型不含{lang}）"
-  },
-  "grant_live_go": {
-    "message": "另配即時引擎 →"
   },
   "qs_apply": {
     "message": "設定好翻譯、朗讀、轉寫"
@@ -2289,9 +2235,6 @@
   "asr_status_file": {
     "message": "⏳ 正在轉寫整段音訊…"
   },
-  "asr_status_live": {
-    "message": "● 即時轉寫中"
-  },
   "asr_stop": {
     "message": "停止轉寫"
   },
@@ -2314,17 +2257,11 @@
   "asr_err_nocues": {
     "message": "該轉寫引擎不回傳時間戳，無法做字幕"
   },
-  "asr_err_nolive": {
-    "message": "該轉寫引擎沒有即時介面，此媒體無法轉寫"
-  },
   "asr_gesture_needed": {
     "message": "需要在頁面上點一下才能開始擷取"
   },
   "asr_gesture_tap": {
     "message": "▶ 點此開始即時轉寫"
-  },
-  "asr_go_live_engine": {
-    "message": "去配一個帶即時介面的引擎 →"
   },
   "asr_err_settings": {
     "message": "轉寫引擎已更改，已停止轉寫"
@@ -2397,12 +2334,6 @@
   },
   "listen_entry_hint": {
     "message": "兩個人面對面談事情：各說各的話，螢幕上出雙語，譯文自動讀出來。音訊只送往你設定的轉寫端點。"
-  },
-  "listen_need_live": {
-    "message": "「對話 · 即時聽譯」需要一個帶即時介面的轉寫引擎"
-  },
-  "listen_need_live_go": {
-    "message": "去設定裡選擇 →"
   },
   "listen_title": {
     "message": "對話"
@@ -2696,9 +2627,6 @@
   "grant_signin_again": {
     "message": "重新登入"
   },
-  "grant_no_live": {
-    "message": "即時聽譯不在額度範圍內 —— 它要即時介面，而這條中繼只轉發一次性請求。"
-  },
   "grant_body_signed_out": {
     "message": "登出後免費額度停用了。餘額保留著 —— 用同一個帳號再登入就回來。"
   },
@@ -2942,9 +2870,6 @@
   "subtitle_entry_hint": {
     "message": "為正在播放的影片、直播、會議配雙語字幕"
   },
-  "subtitle_need_live": {
-    "message": "「即時字幕」需要一個有即時介面的轉寫引擎"
-  },
   "subtitle_need_key": {
     "message": "轉寫引擎還沒填 API Key"
   },
@@ -3100,5 +3025,20 @@
   },
   "subtitle_bar_silence_permission": {
     "message": "30 秒沒有聲音，已暫停 — 影片在放卻沒字？可能沒開系統錄音權限"
+  },
+  "listen_need_os": {
+    "message": "對話 · 即時字幕需要 iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "裝置內建辨識器不支援這個語言 —— 換一種語言試試"
+  },
+  "listen_assets_failed2": {
+    "message": "離線模型下載失敗：{why} — 再點一次「開始聽」重試。"
+  },
+  "tts_engine_device": {
+    "message": "裝置內建朗讀（離線模型 · 僅 App）"
+  },
+  "tts_hint_device": {
+    "message": "語音在你的裝置上合成；首次使用會下載一次離線模型（只是模型檔）。模型不含的語言會改用系統語音並在行上說明。"
   }
 }

@@ -972,6 +972,17 @@
     setTimeout(() => el.classList.remove('anchor-flash'), 2400);
   }
 
+  // 2026-09-17：实时转写固定为设备内置，转写注册表里不再有 `device` 条目（learning-design §9.4 修订）。
+  // 老装机若存着 sttEngine:'device'，四元组清空 —— 它在文件槽（说题）从未工作过，清掉不是丢配置，
+  // 而是让说题回到「未配置」这个诚实的哨兵态。幂等：只在命中时写一次，之后再也命不中。
+  async function migrateSttDevice() {
+    try {
+      const s = await new Promise((r) => chrome.storage.local.get(['sttEngine'], (v) => r(v || {})));
+      if (s.sttEngine !== 'device') return;
+      await new Promise((r) => chrome.storage.local.set({ sttEngine: '', sttApiKey: '', sttBaseUrl: '', sttModel: '' }, r));
+    } catch (_) {}
+  }
+
   async function closeSettings() {
     $('app-settings').hidden = true;
     $('signed-in').hidden = false;
@@ -1000,20 +1011,9 @@
   // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
   // 这个最需要出路的场景里（2026-09-06）。落点是语音引擎那个控件，不是页面顶部。
   $('app-drive-need-tts-go').addEventListener('click', () => openSettings('tts-engine'));
-  // 对话 · 实时听译的门没过时那条路：设置页转写引擎那一档（§9.6）。
-  // 点这一下 = 「我想用实时听译/字幕，但这台机器没有带实时接口的引擎」——
-  // 正是 asr_entry 的 no_live。入口本身是 disabled 的（不发 click），所以这条链接
-  // 是这一档唯一量得到的地方（telemetry-design §3）。
-  const goLiveSetup = () => {
-    try {
-      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' });
-    } catch (_) {}
-    openSettings('stt-engine');
-  };
-  $('app-listen-need-live-go').addEventListener('click', goLiveSetup);
-  $('app-listen-need-live-go2').addEventListener('click', goLiveSetup);
-  // 实时字幕（§9.8）入口灰掉时的同一条路：转写引擎那一档（没实时接口 / 没填 key）。
-  for (const id of ['app-subs-need-go', 'app-subs-need-go2']) { const b = $(id); if (b) b.addEventListener('click', () => openSettings('stt-engine')); }
+  // 2026-09-17 之前：对话 · 实时字幕入口灰掉时有一条「去设置里选择 →」通向转写引擎那一档。
+  // 实时转写固定为设备内置后，灰掉只可能是系统太旧或语言不支持 —— 设置里没有能解决它的东西，
+  // 那几个按钮由 app/listen.js 常藏；asr_entry{no_live} 改在入口刷出灰态时记（listen.js refreshEntry）。
   // Both of review.html's settings links, captured so review.js's own handler (which
   // throws through the shim) never runs. Capture phase, because review.js attached
   // first and `preventDefault` alone would not stop a listener already registered.
@@ -1053,6 +1053,7 @@
     try { await LearnAuth.bindCorpus(); } catch (_) {}
 
     await AppSettings.ensureDefaults();
+    await migrateSttDevice();
     AppDriving.wire();
     AppListen.wire();
     AppDocs.wire({ openSettings });

@@ -97,20 +97,16 @@ describe('EngineFields.visibility — 一条规则，对三张真表都成立', 
   });
 });
 
-describe('EngineFields.populate — 「· 实时」后缀（第九期，2026-09-11）', () => {
+describe('EngineFields.populate — 下拉文字就是注册表标签（2026-09-17 起没有「· 实时」后缀）', () => {
   function fakeSelect() {
     const kids = [];
     return { innerHTML: '', value: '', ownerDocument: { createElement: () => ({ value: '', textContent: '' }) }, appendChild: (o) => kids.push(o), options: kids };
   }
-  test('带 liveEndpoint+liveType 的条目以后缀结尾，其它不带；没给 t 时不加', () => {
+  test('条目文字逐字等于标签 —— 实时转写固定为设备内置后，注册表里没有实时档可标', () => {
     const s = fakeSelect();
-    const t = (k, d) => (k === 'stt_live_suffix' ? '· LIVE' : d);
-    EF.populate(s, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C', liveEndpoint: 'wss://y' }], { t });
-    const texts = s.options.map((o) => o.textContent);
-    deepEq(texts, ['A · LIVE', 'B', 'C'], 'liveType 缺失的不算实时');
-    const s2 = fakeSelect();
-    EF.populate(s2, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }], {});
-    eq(s2.options[0].textContent, 'A');
+    const t = (k, d) => d;
+    EF.populate(s, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }, { id: 'b', label: 'B' }], { t });
+    deepEq(s.options.map((o) => o.textContent), ['A', 'B'], '就算条目带着旧的 live* 字段，下拉也不再给它后缀');
   });
 });
 
