@@ -2105,6 +2105,15 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
 主键 `(kind, flavor, path)`。RLS：anon **只读**、且只读 `active = true` 的行；写只走 SQL 控制台 / service role，**没有任何写接口**。
 
 **清单里也允许每个文件带 `urlAlt`**（同样按 flavor 分），作为服务器不可达且无缓存时的第二兜底。
+
+**表里首次填入的地址（2026-09-17 用户裁定；三处都是同一份 zip、同一个 sha256）：**
+
+| flavor | `url`（默认） | `url_alt`（备用） |
+|---|---|---|
+| `global` | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip` | huggingface.co `…/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-{zh,en}.zip`（直连，不走镜像） |
+| `china` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（真机 18.7 MB/s） | hf-mirror.com 同名仓库（真机 ≈580 KB/s） |
+
+Supabase 公开桶 `device-models` 也传了同一份，按流量计费（Pro 250 GB/月后 0.09 美元/GB），**不进表**，留作两处都倒下时手工切换的最后一手。
 不记录谁来问过（不是事件，不进 `bt_events`；telemetry-design 白名单不动）。
 
 **隐私文案随之补一句**（§10 Gate H、官网隐私页 §8、商店描述「设备内置朗读」段）：
