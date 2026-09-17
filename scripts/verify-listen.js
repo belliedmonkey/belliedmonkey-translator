@@ -298,6 +298,7 @@ const FAKE_BRIDGES = `(() => {
     await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.set({ listenAutoSpeak: true }, r))`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'F: 新会话进入 listening');
+    await sleep(100);   // 让上一会话的 ended 回执先到（2026-09-18 起它只销账、不再误杀新会话 —— 这一拍只是让读数稳定）
     await say('en-US', 'Please confirm the price.');
     const spoke = await waitFor(async () => { const a2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(window.__tts)`)); return a2.length ? a2 : null; }, 8000, 'F: 译文自动朗读');
     need(spoke[0].lang === 'zh' && spoke[0].text === '译：Please confirm the price.', 'F: 对方那句该把译文读给我听（语言 = 我的语言），实际 ' + JSON.stringify(spoke[0]));

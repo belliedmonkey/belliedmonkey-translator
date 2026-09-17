@@ -28,6 +28,7 @@ var NativeSpeech = (() => {
   // 等待中的探测 Promise —— 是一串不是一个：入口刷新与设置变更会并发探两次，只留最后一个
   // 会让第一个 await 永远不落定（2026-09-12 门禁里就是这么挂住的）。
   let sttWaiters = [], ttsWaiters = [];
+  let sttStopsPending = 0;   // 自己发出去、还没收到「ended」回执的 stt-stop 数（见 _fromNative 里的注释）
   const wake = (list, v) => { const ws = list.splice(0); for (const w of ws) { try { w(v); } catch (_) {} } };
 
   function post(msg) {
@@ -41,6 +42,11 @@ var NativeSpeech = (() => {
     if (!msg || typeof msg !== 'object') return;
     const t = msg.type;
     if (t === 'stt-state') {
+      // 「ended」是 stt-stop 的回执，原生总晚一拍才到（postMessage 与 evaluateJavaScript 各排一次队）。
+      // closeSocket() 紧接 openSocket()（改语言重连 / 结束后立刻再开）时，回执落在**新**会话开好之后 ——
+      // 2026-09-14 起 test:listen F 段偶发失败就是它把刚开的会话当成「结束」杀掉了。所以自己叫停的每一路
+      // 记一笔待收回执，回执到了只销账，不碰当前会话；只有没人等的「ended」（原生自己停了）才算当前会话结束。
+      if (msg.state === 'ended' && sttStopsPending > 0) { sttStopsPending--; return; }
       // 本机识别器支持的 locale 清单（2026-09-17）：对话的语言下拉只列它支持的，由设备当场报出、不写死
       if (Array.isArray(msg.supported)) sttSupported = msg.supported.map(String);
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
@@ -146,7 +152,7 @@ var NativeSpeech = (() => {
       closed: false,
       fire(kind, payload) { if (this.closed && kind !== 'close') return; try { onEvent(kind, payload); } catch (_) {} },
     };
-    if (sttSession) { const s = sttSession; sttSession = null; s.closed = true; }
+    if (sttSession) { const s = sttSession; sttSession = null; s.closed = true; sttStopsPending++; }   // 原生的 stt-start 会先停掉在跑的那一路并回一个 ended
     sttSession = session;
     const body = { type: 'stt-start', locales: (o && o.locales) || [] };
     if (o && o.vadMs) body.vadMs = o.vadMs;
@@ -157,7 +163,7 @@ var NativeSpeech = (() => {
       close() {
         if (session.closed) return;
         session.closed = true;
-        if (sttSession === session) { sttSession = null; post({ type: 'stt-stop' }); }
+        if (sttSession === session) { sttSession = null; if (post({ type: 'stt-stop' })) sttStopsPending++; }
       },
     };
   }
