@@ -463,7 +463,7 @@
     "message": "원본을 해당 시점에서 새 탭으로 엽니다(거기서도 이중 자막이 동작합니다)"
   },
   "tts_section": {
-    "message": "음성"
+    "message": "읽어주기"
   },
   "tts_section_hint": {
     "message": "복습 카드를 듣기 자료로 만듭니다. 기본값은 기기 내장 음성이라 네트워크도 비용도 필요 없습니다. 직접 운영하는 음성 서버를 지정할 수도 있습니다."
@@ -3090,5 +3090,35 @@
   },
   "listen_pack_failed": {
     "message": "인식 언어 팩 다운로드 실패: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "엔진과 키"
+  },
+  "opt_sec_features": {
+    "message": "기능"
+  },
+  "opt_sec_account": {
+    "message": "계정과 데이터"
+  },
+  "opt_adv_hint": {
+    "message": "원키 설정은 「빠른」에 있습니다 →"
+  },
+  "stt_section": {
+    "message": "전체 구간 전사"
+  },
+  "stt_section_use": {
+    "message": "말하기 연습 · 오디오/영상 전체 전사"
+  },
+  "review_section": {
+    "message": "복습"
+  },
+  "data_section": {
+    "message": "학습 라이브러리"
+  },
+  "notes_block_title": {
+    "message": "이 문장 해설(선택)"
+  },
+  "grant_summary_claimed": {
+    "message": "무료 크레딧 받음 · 관리 →"
   }
 }

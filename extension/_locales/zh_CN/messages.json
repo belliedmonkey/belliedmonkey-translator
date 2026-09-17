@@ -464,7 +464,7 @@
     "message": "在新标签页打开原视频并跳到该处（那里也会有双语字幕）"
   },
   "tts_section": {
-    "message": "语音"
+    "message": "朗读"
   },
   "tts_section_hint": {
     "message": "把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。"
@@ -3091,5 +3091,35 @@
   },
   "listen_pack_failed": {
     "message": "识别语言包下载失败：{why}"
+  },
+  "opt_sec_engines": {
+    "message": "引擎与密钥"
+  },
+  "opt_sec_features": {
+    "message": "功能"
+  },
+  "opt_sec_account": {
+    "message": "账号与数据"
+  },
+  "opt_adv_hint": {
+    "message": "一键配置在「快速」里 →"
+  },
+  "stt_section": {
+    "message": "整段转写"
+  },
+  "stt_section_use": {
+    "message": "说题 · 转写整段音视频"
+  },
+  "review_section": {
+    "message": "复习"
+  },
+  "data_section": {
+    "message": "学习库"
+  },
+  "notes_block_title": {
+    "message": "解析这句（可选）"
+  },
+  "grant_summary_claimed": {
+    "message": "免费额度已领取 · 管理 →"
   }
 }

@@ -463,7 +463,7 @@
     "message": "Öffnet die Quelle an dieser Stelle in einem neuen Tab — die zweisprachigen Untertitel funktionieren dort ebenfalls."
   },
   "tts_section": {
-    "message": "Sprache"
+    "message": "Vorlesen"
   },
   "tts_section_hint": {
     "message": "Macht aus Karten Hörübungen. Nutzt standardmäßig die Stimme Ihres Geräts — ohne Netz, ohne Kosten. Sie können auch einen eigenen Sprachserver angeben."
@@ -3090,5 +3090,35 @@
   },
   "listen_pack_failed": {
     "message": "Download des Sprachpakets fehlgeschlagen: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "Engines & Schlüssel"
+  },
+  "opt_sec_features": {
+    "message": "Funktionen"
+  },
+  "opt_sec_account": {
+    "message": "Konto & Daten"
+  },
+  "opt_adv_hint": {
+    "message": "Die Ein-Schlüssel-Einrichtung ist unter „Schnell“ →"
+  },
+  "stt_section": {
+    "message": "Ganze Aufnahme transkribieren"
+  },
+  "stt_section_use": {
+    "message": "Sprechübung · ganze Audio-/Videodatei transkribieren"
+  },
+  "review_section": {
+    "message": "Wiederholen"
+  },
+  "data_section": {
+    "message": "Lernbibliothek"
+  },
+  "notes_block_title": {
+    "message": "Diesen Satz erklären (optional)"
+  },
+  "grant_summary_claimed": {
+    "message": "Gratis-Guthaben eingelöst · verwalten →"
   }
 }

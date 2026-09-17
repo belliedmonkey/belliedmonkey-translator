@@ -463,7 +463,7 @@
     "message": "元の動画をその時刻で新しいタブに開きます（そこでも二言語字幕が使えます）"
   },
   "tts_section": {
-    "message": "音声"
+    "message": "読み上げ"
   },
   "tts_section_hint": {
     "message": "復習カードをリスニング教材にします。既定では端末内蔵の音声を使い、通信も費用も不要です。自分で立てた音声サーバーを指定することもできます。"
@@ -3090,5 +3090,35 @@
   },
   "listen_pack_failed": {
     "message": "認識用言語パックのダウンロードに失敗しました：{why}"
+  },
+  "opt_sec_engines": {
+    "message": "エンジンとキー"
+  },
+  "opt_sec_features": {
+    "message": "機能"
+  },
+  "opt_sec_account": {
+    "message": "アカウントとデータ"
+  },
+  "opt_adv_hint": {
+    "message": "ワンキー設定は「クイック」にあります →"
+  },
+  "stt_section": {
+    "message": "一括文字起こし"
+  },
+  "stt_section_use": {
+    "message": "スピーキング練習 · 音声/動画を一括文字起こし"
+  },
+  "review_section": {
+    "message": "復習"
+  },
+  "data_section": {
+    "message": "学習ライブラリ"
+  },
+  "notes_block_title": {
+    "message": "この文を解説（任意）"
+  },
+  "grant_summary_claimed": {
+    "message": "無料クレジット取得済み · 管理 →"
   }
 }

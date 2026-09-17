@@ -21,24 +21,26 @@
            Filled and shown/hidden by options.js — never both states at once. -->
       <div class="setup-note" id="setup-note" style="display:none"></div>
 
-      <!-- 快速 / 详细。刻意**不叫「高级」** —— 翻译引擎卡里已经有一个 #btn-advanced
-           （高级参数），同屏两个同名不同义的控件是必然的困惑。
-           实现只用 hidden，永不 remove()：saveAll() 按字面量读 41 个字段、零 null
-           保护，从 DOM 里拿掉任何一张卡都会让它在 null 上抛，于是**每次保存都静默
-           什么都不存**。见 options.js 里 saveAll() 开头那道断言。 -->
-      <div class="mode-tabs" id="mode-tabs" role="tablist">
-        <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
-        <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+      <!-- 2026-09-17 设置页信息架构（interaction-spec「设置页信息架构」，画布 design/settings-ia）：
+           四节按「用户想做什么」分 —— ① 引擎与密钥 ② 功能 ③ 账号与数据 ④ 关于。
+           控件只搬不改 id（SAVE_FIELDS / 门禁都钉着 id）；「快速 / 详细」只管第一节。 -->
+      <div class="sec" id="sec-engines">
+      <div class="sec-head">
+        <div class="sec-title"><span class="sec-n">1</span><h2 data-i18n="opt_sec_engines">引擎与密钥</h2></div>
+        <!-- 快速 / 详细。刻意**不叫「高级」** —— 翻译引擎卡里已经有一个 #btn-advanced（高级参数）。
+             2026-09-17 起**只管这一节**（用户裁定）：功能 / 账号与数据 / 关于三节与档位无关、永远可见。
+             实现只用 hidden，永不 remove()：saveAll() 按字面量读字段、零 null 保护，
+             从 DOM 里拿掉任何一张卡都会让它在 null 上抛。 -->
+        <div class="mode-tabs" id="mode-tabs" role="tablist">
+          <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
+          <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+        </div>
       </div>
 
-      <!-- 一把 key 配好全部（QuickSetup）。渲染在 learn/quick-setup.js，与扩展引导
-           第 2 屏是**同一个组件** —— 两处说两套话是这一整块要消灭的东西。
-           它只返回 patch，写盘由本页的 applyQuickSetup() 负责：saveAll() 是整体
-           覆盖式的、DOM 才是真相源，组件自己写存储的话，用户下一次改任何一个字段
-           都会用旧 DOM 把刚配好的三组覆盖回去。 -->
-      <!-- 免费额度（§8.10）。**与一键卡并排在同一个 tab 里**，不是二选一的另一屏 ——
-           裁定 D2：登录永远不是墙，这张卡旁边始终站着「用自己的 key」。
-           中国版与开关未翻时 MT_GRANT 为 null，render() 把整块藏起来，一个字都不出。 -->
+      <!-- 一把 key 配好全部（QuickSetup）。渲染在 learn/quick-setup.js，与扩展引导第 2 屏是**同一个组件**。
+           它只返回 patch，写盘由本页的 applyQuickSetup() 负责。 -->
+      <!-- 免费额度（§8.10）。**与一键卡并排在同一个 tab 里**（裁定 D2：登录永远不是墙）。
+           中国版与开关未翻时 MT_GRANT 为 null，render() 把整块藏起来。 -->
       <section class="card quick-only" id="grant-card" hidden>
         <div id="grant-box"></div>
       </section>
@@ -48,7 +50,10 @@
         <div id="quick-setup"></div>
       </section>
 
-      <!-- 翻译引擎 -->
+      <!-- 永不同屏，但路必须有：详细档顶上一行指回快速档（interaction-spec「一键配置与逐引擎配置永不同屏」第二句）。 -->
+      <p class="hint adv-only" id="adv-hint"><button type="button" class="link-btn" id="adv-hint-go" data-i18n="opt_adv_hint">一键配置在「快速」里 →</button></p>
+
+      <!-- 翻译引擎（含「解析这句」可选覆盖） -->
       <section class="card adv-only" id="engine-card">
         <h2 data-i18n="options_engine_section">翻译引擎</h2>
 
@@ -122,9 +127,59 @@
           <button id="btn-test-provider" data-i18n="engine_test">测试连接</button>
           <p class="hint" id="test-provider-note"></p>
         </div>
+        <!-- 解析引擎（learning-design §9.2）：翻译卡里的可选覆盖。默认跟随翻译引擎；选定后整组四字段覆盖。
+             2026-09-17 从「学习」卡搬进来 —— 它是翻译的一个可选覆盖，不是学习设置。 -->
+        <div class="subblock" id="notes-block">
+          <p class="lbl" data-i18n="notes_block_title">解析这句（可选）</p>
+          <div id="notes-core"></div>
+          <p class="hint" data-i18n="notes_engine_hint">「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。</p>
+          <div id="notes-config" hidden>
+            <div class="field">
+              <button id="btn-test-notes" data-i18n="engine_test">测试连接</button>
+              <p class="hint" id="test-notes-note"></p>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <!-- 翻译语言 -->
+      <!-- 整段转写（learning-design §9.4）：「说」题与扩展端整段字幕的录音只发到这里配置的端点，识别后即弃；
+           不配置则说题不存在。**永不隐式跟随**翻译或解析组。2026-09-17 从「学习」卡搬出来成为自己的槽卡；
+           实时转写不在这里 —— 它固定为设备内置，不是引擎（domain-design §7）。 -->
+      <section class="card adv-only" id="stt-card">
+        <h2 data-i18n="stt_section">整段转写</h2>
+        <p class="hint" data-i18n="stt_section_use">说题 · 转写整段音视频</p>
+        <div id="stt-core"></div>
+        <div id="stt-config" hidden>
+          <div class="field">
+            <button id="btn-test-stt" data-i18n="engine_test">测试连接</button>
+            <p class="hint" id="test-stt-note"></p>
+          </div>
+        </div>
+        <p class="hint" data-i18n="stt_hint">「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。</p>
+      </section>
+
+      <!-- 朗读（TTS）引擎 + 音色 + 试听。语音模式 / 语速 / 自动播放是复习的事，在下面「复习」卡里；语音缓存在「缓存」卡里。 -->
+      <section class="card adv-only" id="tts-card">
+        <h2 data-i18n="tts_section">朗读</h2>
+        <p class="hint" data-i18n="tts_section_hint">把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。</p>
+        <div id="tts-config">
+          <div id="tts-core"></div>
+          <p class="hint" id="tts-engine-hint"></p>
+          <div class="field">
+            <label for="tts-voice" data-i18n="tts_voice">声音</label>
+            <select id="tts-voice"></select>
+            <p class="hint" data-i18n="tts_voice_hint">按卡片的语言自动挑选。这里选的声音只在它会说那门语言时才会被采用。</p>
+          </div>
+          <button id="btn-tts-test" data-i18n="tts_test">试听一句</button>
+        </div>
+      </section>
+      </div>
+
+      <div class="sec" id="sec-features">
+      <div class="sec-head">
+        <div class="sec-title"><span class="sec-n">2</span><h2 data-i18n="opt_sec_features">功能</h2></div>
+      </div>
+
       <section class="card" id="lang-card">
         <h2 data-i18n="options_lang_section">语言</h2>
         <div class="field">
@@ -165,7 +220,6 @@
         </div>
       </section>
 
-      <!-- 显示样式 -->
       <section class="card" id="style-card">
         <h2 data-i18n="options_style_section">显示样式</h2>
 
@@ -205,20 +259,45 @@
         </div>
       </section>
 
-      <!-- 缓存 -->
-      <section class="card adv-only" id="cache-card">
-        <h2 data-i18n="options_cache_section">缓存管理</h2>
-        <p class="hint" data-i18n="options_cache_hint">翻译结果会缓存 12 小时以减少 API 请求。</p>
-        <button class="btn-danger" id="btn-clear-cache" data-i18n="options_clear_cache">清除翻译缓存</button>
-        <div id="cache-status" class="cache-status"></div>
+      <!-- 复习：怎么听、每天多少张。语音模式 / 语速 / 自动播放 2026-09-17 从「语音」卡搬来 —— 它们是复习的偏好，
+           不是引擎配置，此前要开「详细」才看得到。 -->
+      <section class="card" id="review-card">
+        <h2 data-i18n="review_section">复习</h2>
+        <div class="field">
+          <label for="tts-mode" data-i18n="tts_mode">语音模式</label>
+          <select id="tts-mode">
+            <option value="off" data-i18n="tts_mode_off">关闭</option>
+            <option value="assist" data-i18n="tts_mode_assist">显示原文，可点播放</option>
+            <option value="audio-first" data-i18n="tts_mode_audio_first">先听后看（原文先隐藏）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tts-rate" data-i18n="tts_rate">语速</label>
+          <select id="tts-rate">
+            <option value="0.7">0.7×</option>
+            <option value="0.85">0.85×</option>
+            <option value="1">1.0×</option>
+            <option value="1.15">1.15×</option>
+            <option value="1.3">1.3×</option>
+          </select>
+        </div>
+        <div class="field row">
+          <label for="tts-autoplay" data-i18n="tts_autoplay">进入卡片自动播放</label>
+          <label class="switch">
+            <input type="checkbox" id="tts-autoplay" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="field">
+          <label for="learn-daily-new" data-i18n="learn_daily_new">每天最多引入的新卡片</label>
+          <input type="number" id="learn-daily-new" min="1" max="200" step="1">
+        </div>
+        <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
       </section>
 
-      <!-- 学习（记忆层）。采集默认关闭 —— 升级不会自己开始记录。 -->
-      <!-- ⚠️ **不带 adv-only**，理由同 #sync-section：那个类是「逐引擎配置」那一档
-           （与一键配置卡互斥），而「要不要采集」跟引擎配置毫无关系 —— 它只是被顺手
-           扫了进去。后果是默认模式下这个开关**根本看不见**，而官网试翻页上那个
-           「去打开采集」的按钮正是把人往这里送的。2026-09-02 用户实测：按钮点了，
-           人到了，开关不在。 -->
+      <!-- 学习采集（记忆层）。采集默认关闭 —— 升级不会自己开始记录。
+           ⚠️ **不带 adv-only**：「要不要采集」跟引擎配置毫无关系；官网试翻页的「去打开采集」把人往这里送
+           （2026-09-02 用户实测：按钮点了，人到了，开关不在）。 -->
       <section class="card" id="learn-card">
         <h2 data-i18n="learn_section">学习</h2>
         <p class="hint" data-i18n="learn_section_hint">打开后，你**真正读过**的句子会连同页面地址、标题和停留时长一起存在**这台设备**上，按遗忘曲线重新推给你。快速滚过去的不算。除非你开启同步，否则不上传；一键可清空。</p>
@@ -241,83 +320,31 @@
         </div>
         <p class="hint" data-i18n="doc_privacy">文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。</p>
 
-        <div class="field">
-          <label for="learn-daily-new" data-i18n="learn_daily_new">每天最多引入的新卡片</label>
-          <input type="number" id="learn-daily-new" min="1" max="200" step="1">
-        </div>
-
-        <!-- 学习语言白名单（learning-design §4.1）：默认「全部」= 一切 ≠ 目标语言。
-             收紧白名单不会删除已存内容 —— 删除是来源管理里的另一个动作。 -->
+        <!-- 学习语言白名单（learning-design §4.1）：默认「全部」= 一切 ≠ 目标语言。 -->
         <div class="field">
           <label data-i18n="learn_langs_label">学习语言</label>
           <div id="learn-langs"></div>
           <p class="hint" data-i18n="learn_langs_hint">只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。</p>
         </div>
 
-        <!-- 解析引擎（learning-design §9.2, 2026-08-09 二）：默认跟随翻译引擎；
-             选定后整组四字段覆盖，key/地址/模型都不再从翻译组借。 -->
-        <!-- 引擎 / Key / 地址 / 模型：learn/engine-fields.js 生成。四组
-             （翻译 / 朗读 / 解析 / 转写）现在是同一个组件的四个槽，一处改动四处生效。 -->
-        <div id="notes-core"></div>
-        <p class="hint" data-i18n="notes_engine_hint">「解析这句」用的对话引擎。默认跟随上面的翻译引擎；思考（推理）型模型不适合解析。</p>
-        <div id="notes-config" hidden>
-          <div class="field">
-            <button id="btn-test-notes" data-i18n="engine_test">测试连接</button>
-            <p class="hint" id="test-notes-note"></p>
-          </div>
-        </div>
-
-        <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的
-             端点，识别后即弃；不配置则说题不存在。**永不隐式跟随**翻译或解析组 ——
-             LearnNotes.resolveConfig 那种「没单独配就整组借用」对录音不成立。
-             2026-08-31 修订：这条原本写作「录音去哪儿必须是一次显式选择」，并据此
-             拒绝任何自动配置。上面的「一把 key 配好全部」现在会配它 —— 但那不是
-             隐式跟随：那张卡在按钮**上方**常显一句「转写会把你的录音发到 <host>
-             识别，识别完立即丢弃」，按钮本身也点名三样。显式选择的落点从一个复选框
-             挪到了「按下之前就看得见的一句话 + 一个说清楚要做什么的按钮」，规约
-             要保护的东西没变，形状变了。 -->
-        <p class="hint" data-i18n="stt_hint">「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。</p>
-        <!-- 引擎 / Key / 地址 / 模型四个控件由 learn/engine-fields.js 生成，
-             与扩展引导页第 2 屏**是同一个组件、同一套 id**（stt-engine / stt-api-key /
-             stt-base-url / stt-model）。以后加一个字段只改一处。
-             这里不能写死那四个框：写死就又是两份实现了。 -->
-        <div id="stt-core"></div>
-        <div id="stt-config" hidden>
-          <div class="field">
-            <button id="btn-test-stt" data-i18n="engine_test">测试连接</button>
-            <p class="hint" id="test-stt-note"></p>
-          </div>
-        </div>
-
-        <!-- 来源管理（interaction-spec「来源治理」）：按域名列表点选是主路径，
-             通配符输入是补充。删除会同步到所有设备。 -->
+        <!-- 来源管理（interaction-spec「来源治理」）：按域名列表点选是主路径，通配符输入是补充。删除会同步到所有设备。 -->
         <button id="btn-manage-sources" data-i18n="learn_sources_manage">来源管理</button>
         <div id="sources-manager" hidden></div>
-
-        <button id="btn-open-review" data-i18n="learn_open_review">打开复习页</button>
-        <button id="btn-open-docs" data-i18n="doc_open_page">翻译文档（PDF / Word / 图片）</button>
-        <!-- 导出不是合规负担，它同时是：数据可携带权、不想注册账号时的多端路径、
-             以及对「我信不过你们」最诚实的回答（learning-design §8.2）。 -->
-        <button id="btn-export-learn" data-i18n="learn_export">导出学习库</button>
-        <button id="btn-import-learn" data-i18n="learn_import">从文件导入</button>
-        <input type="file" id="import-file" accept=".mtlearn,.jsonl,.gz" hidden>
-        <div id="learn-stats" class="cache-status"></div>
-        <!-- 定向清理优先于核弹式清空：已掌握的卡是调度器自己判定你不再需要的。 -->
-        <div id="learn-pressure" class="cache-status"></div>
-        <!-- §4.2 存量长段卡的显式治愈:按句拆分,经删除台账传播到所有设备。 -->
-        <button id="btn-split-long" data-i18n="learn_split_long">拆分长段卡</button>
-        <button id="btn-clean-known" data-i18n="learn_clean_known">清理已掌握的卡</button>
-        <button class="btn-danger" id="btn-clear-learn" data-i18n="learn_clear">清空学习库</button>
       </section>
 
-      <!-- 同步（可选）。不登录是默认状态，不是降级版本：本地学习功能完全一样。
-           learning-design.md §8。
+      <!-- 文档翻译（learning-design §9.7）：入口。采集开关在上面「学习」卡里（它是采集的事）。 -->
+      <section class="card" id="docs-card">
+        <h2 data-i18n="doc_title">文档翻译</h2>
+        <button id="btn-open-docs" data-i18n="doc_open_page">翻译文档（PDF / Word / 图片）</button>
+      </section>
+      </div>
 
-           ⚠️ **不带 adv-only。** 那个类是「逐引擎配置」那一档（与一键配置卡互斥，
-           见 interaction-spec 的「永不同屏」），而同步跟引擎配置毫无关系 —— 它当初
-           只是被顺手扫了进去。后果是：默认模式是「快速」（options.js 的 _detail 默认
-           false），于是**整个扩展里唯一的登录入口默认是藏起来的**，而引导页第 5 屏
-           偏偏写着「打开设置去登录」。人到了，看不见登录框。2026-09-01 探查抓到。 -->
+      <div class="sec" id="sec-account">
+      <div class="sec-head">
+        <div class="sec-title"><span class="sec-n">3</span><h2 data-i18n="opt_sec_account">账号与数据</h2></div>
+      </div>
+
+      <!-- 同步（可选）。不登录是默认状态，不是降级版本。learning-design.md §8。⚠️ **不带 adv-only**（登录入口快速档必须可见）。 -->
       <section class="card" id="sync-section">
         <h2 data-i18n="sync_section">登录 · 多设备同步</h2>
 
@@ -397,60 +424,40 @@
         </div>
 
         <div id="sync-status" class="cache-status"></div>
+        <!-- 免费额度的只读摘要（2026-09-17 设置页信息架构 ③）：卡本身留在「引擎与密钥」的快速档里，这里只是一行链回去。 -->
+        <p class="cache-status" id="grant-summary" hidden><button type="button" class="link-btn" id="grant-summary-go" data-i18n="grant_summary_claimed">免费额度已领取 · 管理 →</button></p>
       </section>
 
-      <!-- 语音（TTS）。本地优先：默认用设备内置语音，零配置零成本可离线。 -->
-      <section class="card adv-only" id="tts-card">
-        <h2 data-i18n="tts_section">语音</h2>
-        <p class="hint" data-i18n="tts_section_hint">把复习卡当成听力材料。默认使用你设备自带的语音，不联网、不花钱；也可以指向你自己搭的语音服务。</p>
-
-        <div class="field">
-          <label for="tts-mode" data-i18n="tts_mode">语音模式</label>
-          <select id="tts-mode">
-            <option value="off" data-i18n="tts_mode_off">关闭</option>
-            <option value="assist" data-i18n="tts_mode_assist">显示原文，可点播放</option>
-            <option value="audio-first" data-i18n="tts_mode_audio_first">先听后看（原文先隐藏）</option>
-          </select>
-        </div>
-
-        <div id="tts-config" hidden>
-          <!-- 引擎 / Key / 地址 / 模型：learn/engine-fields.js 生成，与引导页同源。
-               这里不写死那四个框 —— 写死就又是两份实现了。 -->
-          <div id="tts-core"></div>
-          <p class="hint" id="tts-engine-hint"></p>
-
-          <div class="field">
-            <label for="tts-voice" data-i18n="tts_voice">声音</label>
-            <select id="tts-voice"></select>
-            <p class="hint" data-i18n="tts_voice_hint">按卡片的语言自动挑选。这里选的声音只在它会说那门语言时才会被采用。</p>
-          </div>
-
-          <div class="field">
-            <label for="tts-rate" data-i18n="tts_rate">语速</label>
-            <select id="tts-rate">
-              <option value="0.7">0.7×</option>
-              <option value="0.85">0.85×</option>
-              <option value="1">1.0×</option>
-              <option value="1.15">1.15×</option>
-              <option value="1.3">1.3×</option>
-            </select>
-          </div>
-
-          <div class="field row">
-            <label for="tts-autoplay" data-i18n="tts_autoplay">进入卡片自动播放</label>
-            <label class="switch">
-              <input type="checkbox" id="tts-autoplay" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <button id="btn-tts-test" data-i18n="tts_test">试听一句</button>
-          <div id="tts-cache" class="cache-status"></div>
-          <button class="btn-danger" id="btn-clear-tts" data-i18n="tts_clear_cache">清空语音缓存</button>
-        </div>
+      <!-- 学习库：统计、导入导出、治理、清空。2026-09-17 从「学习」卡搬出 —— 这些是数据，不是采集设置。 -->
+      <section class="card" id="data-card">
+        <h2 data-i18n="data_section">学习库</h2>
+        <div id="learn-stats" class="cache-status"></div>
+        <div id="learn-pressure" class="cache-status"></div>
+        <!-- 导出不是合规负担，它同时是：数据可携带权、不想注册账号时的多端路径、以及对「我信不过你们」最诚实的回答（learning-design §8.2）。 -->
+        <button id="btn-export-learn" data-i18n="learn_export">导出学习库</button>
+        <button id="btn-import-learn" data-i18n="learn_import">从文件导入</button>
+        <input type="file" id="import-file" accept=".mtlearn,.jsonl,.gz" hidden>
+        <!-- §4.2 存量长段卡的显式治愈；定向清理优先于核弹式清空。 -->
+        <button id="btn-split-long" data-i18n="learn_split_long">拆分长段卡</button>
+        <button id="btn-clean-known" data-i18n="learn_clean_known">清理已掌握的卡</button>
+        <button class="btn-danger" id="btn-clear-learn" data-i18n="learn_clear">清空学习库</button>
       </section>
 
-      <!-- 关于 -->
+      <!-- 缓存：翻译缓存 + 语音缓存。2026-09-17 去掉 adv-only（缓存不是引擎配置），语音缓存从「语音」卡搬来。 -->
+      <section class="card" id="cache-card">
+        <h2 data-i18n="options_cache_section">缓存管理</h2>
+        <p class="hint" data-i18n="options_cache_hint">翻译结果会缓存 12 小时以减少 API 请求。</p>
+        <button class="btn-danger" id="btn-clear-cache" data-i18n="options_clear_cache">清除翻译缓存</button>
+        <div id="cache-status" class="cache-status"></div>
+        <div id="tts-cache" class="cache-status"></div>
+        <button class="btn-danger" id="btn-clear-tts" data-i18n="tts_clear_cache">清空语音缓存</button>
+      </section>
+      </div>
+
+      <div class="sec" id="sec-about">
+      <div class="sec-head">
+        <div class="sec-title"><span class="sec-n">4</span><h2 data-i18n="options_about_section">关于</h2></div>
+      </div>
       <section class="card about" id="about-card">
         <h2 data-i18n="options_about_section">关于</h2>
         <!-- 版本号来自 manifest，不来自翻译。写死在 11 份译文里的结果是：
@@ -487,6 +494,7 @@
         <p id="wipe-hint" class="note" data-i18n="options_wipe_hint">删除 App 不会清除这里的数据。要彻底清干净，先在这里清除。</p>
         <button id="btn-wipe-all" type="button" class="btn-danger" data-i18n="options_wipe_all">清除本机全部数据</button>
       </section>
+      </div>
     </main>
 
     <div id="toast" class="toast"></div>

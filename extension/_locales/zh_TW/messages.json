@@ -464,7 +464,7 @@
     "message": "在新分頁開啟原影片並跳到該處（那裡也會有雙語字幕）"
   },
   "tts_section": {
-    "message": "語音"
+    "message": "朗讀"
   },
   "tts_section_hint": {
     "message": "把複習卡當成聽力材料。預設使用你裝置自帶的語音，不連網、不花錢；也可以指向你自己架的語音服務。"
@@ -3091,5 +3091,35 @@
   },
   "listen_pack_failed": {
     "message": "辨識語言包下載失敗：{why}"
+  },
+  "opt_sec_engines": {
+    "message": "引擎與密鑰"
+  },
+  "opt_sec_features": {
+    "message": "功能"
+  },
+  "opt_sec_account": {
+    "message": "帳號與資料"
+  },
+  "opt_adv_hint": {
+    "message": "一鍵設定在「快速」裡 →"
+  },
+  "stt_section": {
+    "message": "整段轉寫"
+  },
+  "stt_section_use": {
+    "message": "說題 · 轉寫整段影音"
+  },
+  "review_section": {
+    "message": "複習"
+  },
+  "data_section": {
+    "message": "學習庫"
+  },
+  "notes_block_title": {
+    "message": "解析這句（選用）"
+  },
+  "grant_summary_claimed": {
+    "message": "免費額度已領取 · 管理 →"
   }
 }

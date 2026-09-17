@@ -463,7 +463,7 @@
     "message": "Abre a fonte em uma nova aba nesse ponto — as legendas bilíngues também funcionam lá."
   },
   "tts_section": {
-    "message": "Voz"
+    "message": "Leitura em voz alta"
   },
   "tts_section_hint": {
     "message": "Transforme os cartões em prática de escuta. Usa a voz do seu aparelho por padrão — sem rede, sem custo. Você também pode apontar para um servidor de voz próprio."
@@ -3090,5 +3090,35 @@
   },
   "listen_pack_failed": {
     "message": "Falha ao baixar o pacote de idioma: {why}"
+  },
+  "opt_sec_engines": {
+    "message": "Motores e chaves"
+  },
+  "opt_sec_features": {
+    "message": "Recursos"
+  },
+  "opt_sec_account": {
+    "message": "Conta e dados"
+  },
+  "opt_adv_hint": {
+    "message": "A configuração com uma chave está em “Rápido” →"
+  },
+  "stt_section": {
+    "message": "Transcrição do trecho inteiro"
+  },
+  "stt_section_use": {
+    "message": "Prática de fala · transcrever um clipe inteiro de áudio/vídeo"
+  },
+  "review_section": {
+    "message": "Revisão"
+  },
+  "data_section": {
+    "message": "Biblioteca de aprendizado"
+  },
+  "notes_block_title": {
+    "message": "Explicar esta frase (opcional)"
+  },
+  "grant_summary_claimed": {
+    "message": "Crédito grátis resgatado · gerenciar →"
   }
 }

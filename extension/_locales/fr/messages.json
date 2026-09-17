@@ -463,7 +463,7 @@
     "message": "Ouvre la source dans un nouvel onglet à cet instant — les sous-titres bilingues y fonctionnent aussi."
   },
   "tts_section": {
-    "message": "Voix"
+    "message": "Lecture à voix haute"
   },
   "tts_section_hint": {
     "message": "Transformez les cartes en exercices d'écoute. Utilise par défaut la voix de votre appareil — sans réseau ni coût. Vous pouvez aussi pointer vers votre propre serveur vocal."
@@ -3090,5 +3090,35 @@
   },
   "listen_pack_failed": {
     "message": "Échec du téléchargement du pack de langue : {why}"
+  },
+  "opt_sec_engines": {
+    "message": "Moteurs et clés"
+  },
+  "opt_sec_features": {
+    "message": "Fonctions"
+  },
+  "opt_sec_account": {
+    "message": "Compte et données"
+  },
+  "opt_adv_hint": {
+    "message": "La configuration en une clé est sous « Rapide » →"
+  },
+  "stt_section": {
+    "message": "Transcription intégrale"
+  },
+  "stt_section_use": {
+    "message": "Exercice oral · transcrire un clip audio/vidéo entier"
+  },
+  "review_section": {
+    "message": "Révision"
+  },
+  "data_section": {
+    "message": "Bibliothèque d’apprentissage"
+  },
+  "notes_block_title": {
+    "message": "Expliquer cette phrase (facultatif)"
+  },
+  "grant_summary_claimed": {
+    "message": "Crédit gratuit réclamé · gérer →"
   }
 }

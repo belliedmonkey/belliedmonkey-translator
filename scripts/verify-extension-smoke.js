@@ -396,7 +396,8 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       // 那个误分组的代价是实打实的：默认模式下**采集开关和登录入口都看不见**，
       // 而官网上那两个按钮（「去打开采集」「打开设置去登录」）正是往那里送人的
       // （2026-09-01 / 09-02 两次真机实测）。清单收回它真正管的那几个。
-      const ENGINE_CARDS = ['engine-card', 'tts-card'];
+      // 2026-09-17 设置页信息架构：转写成了自己的槽卡 stt-card；「快速 / 详细」只管「引擎与密钥」一节。
+      const ENGINE_CARDS = ['engine-card', 'tts-card', 'stt-card'];
       const mode1 = JSON.parse(await evalIn(cdp, sessionId, `(()=>{const vis=${vis};
         return JSON.stringify({quick:vis(document.getElementById('quick-setup-card')),
           adv:${JSON.stringify(ENGINE_CARDS)}
@@ -404,7 +405,15 @@ async function evalIn(cdp, sessionId, expression, contextId) {
           // 反过来也要断言：采集开关与登录入口在**快速模式下必须看得见** ——
           // 它们是这个产品的另外两个入口，藏起来等于没有。
           learn:vis(document.getElementById('learn-card')),
-          sync:vis(document.getElementById('sync-section'))});})()`));
+          sync:vis(document.getElementById('sync-section')),
+          // 2026-09-17：②③④ 三节与档位无关 —— 复习偏好 / 学习库 / 缓存在快速档必须可见（此前 tts-mode、cache-card 是 adv-only）
+          review:vis(document.getElementById('review-card')), ttsMode:vis(document.getElementById('tts-mode')), daily:vis(document.getElementById('learn-daily-new')),
+          data:vis(document.getElementById('data-card')), cache:vis(document.getElementById('cache-card')), docs:vis(document.getElementById('docs-card')),
+          sttInQuick:vis(document.getElementById('stt-engine'))});})()`));
+      for (const [k, label] of [['review', '复习卡 #review-card'], ['ttsMode', '语音模式 #tts-mode'], ['daily', '每日新卡 #learn-daily-new'], ['data', '学习库 #data-card'], ['cache', '缓存 #cache-card'], ['docs', '文档翻译 #docs-card']]) {
+        if (!mode1[k]) problems.push(`快速视图里 ${label} 不可见 —— 2026-09-17 起「快速 / 详细」只管「引擎与密钥」一节，其余三节永远可见`);
+      }
+      if (mode1.sttInQuick) problems.push('快速视图里露着整段转写引擎下拉（#stt-engine）—— 它是「引擎与密钥」的槽卡，与一键卡永不同屏');
       if (!mode1.quick || mode1.adv.length) {
         problems.push(`快速视图不对：一键卡 ${mode1.quick}，却露着 ${mode1.adv.join('/') || '（无）'}`);
       }
