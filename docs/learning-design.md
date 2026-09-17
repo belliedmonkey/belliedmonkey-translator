@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型随 App 进包**（用户裁定「存包吧」）：两个 flavor 的 Piper 模型（zh / en，zip 共 ≈129 MB）作为 App 资源随包安装，不再首次使用时从 GitHub Releases 下载；下载路只作为「包里没有这个语言」的兜底保留。动因：09-17 真机实测境内网络对 GitHub `HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败，而中国版清单里的地址与国际版相同 —— 中国版用户等于没有这个功能；商店描述「从我们的文件服务器下载一次」在境内是假话。代价：iOS 包 ≈15 MB → ≈145 MB、Mac ≈30 MB → ≈160 MB。§9.6.1 / §9.1.1 / §10 Gate H 隐私文案随之改；模型文件**不进 git**（构建时按 sha256 拉到 `.local/device-models/`，`app:sync` 灌进两棵工程，`verify:ios` 查目录在不在）。 | 待评审 |
 | 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
 | 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
 | 2026-09-13 | belliedmonkey | 「实时字幕」（用户提议，App 专属）：App 直接听这台设备**正在播放的声音**，给扩展在 Safari 上抓不到的视频（MSE / HLS）配双语字幕 —— 与对话·实时听译**同一条管线**，只是单向、不朗读、显示在 App 窗口之外。Mac：Core Audio process tap（macOS 14.4+）+ 置顶悬浮字幕条；iPhone 一期：后台麦克风听外放 + 画中画悬浮字幕窗（09-13 晚用户看真机后改选，取代灵动岛 / 锁屏卡）；iPhone 二期：屏幕录制广播扩展（戴耳机可用，一期发版后另开）。交互画布用户已点头（https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19，工作文件 `design/live-subtitles/`）。新 Gate I | **待评审（本 PR，docs-only）** —— 见 §9.8 / §10 Gate I / §12；domain-design §2.4 规则 8、§2.4 规则 4 注、§5.3 第五例、§8，interaction-spec「实时字幕」，verification-spec §2.4 表与 M26–M32，learn-regression M26–M32。**两处已裁定（用户 2026-09-13：「进复习。加一句。」）**：①字幕句子进复习 —— 默认开、单独开关「字幕进复习」、沿用 `k:'conv'` 加 `mode:'subtitle'` ②Safari 扩展遇流媒体停下时，停机提示后**加一句**指向 App 的「实时字幕」（domain-design §2.4 规则 4 注、interaction-spec「AI 转写字幕」停机表） |
@@ -2039,10 +2040,16 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
   `defaultEndpoint: null` 显式写出；**免性能台账**（`build/perf-ledger.config.js` 那条门只管说 HTTP 的
   条目，这条不说 HTTP）。条目**只在宿主 App 的下拉出现**（`engine-fields.populate` 收调用方注入的
   `deviceOk`，组件自己不探桥）；扩展页永远不出现。
-- **模型不进包，首次使用时下载**：sherpa-onnx + onnxruntime 静态链接 ≈35 MB 已经进包；模型文件按语言
-  从我们的文件服务器下载一次，**sha256 钉住**（构建时写死、下载后校验、不符即丢），进度走 §9.6 门控的
-  `downloading` 具名态，失败具名 `listen_assets_failed`。下载的只是模型文件，不含任何用户内容
-  （§10 Gate H 的原话）。中国网络下的下载**未测**（D2 前必补读数）。
+- **模型随 App 进包（2026-09-17 用户裁定，替代原「不进包、首次使用时下载」）**：sherpa-onnx + onnxruntime 静态链接
+  ≈35 MB 已经进包；zh / en 两个 Piper 模型（解开后各 ≈65 MB）作为 App 资源放在 `Resources/mt-speech/<dir>/`，
+  **两个 flavor 都进**，装上即有，不发任何网络请求。原因是实测（09-17，ZHAO的iPhone，境内 Wi-Fi）：GitHub Releases
+  `HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败 —— 「首次使用下载一次」对境内用户是「永远用不上」。
+  模型文件**不进 git**：`scripts/fetch-device-models.js` 按清单里的 url + **sha256** 拉到 `.local/device-models/`
+  （校验不符即丢），`app:sync` 从那里灌进两棵工程；`.local/device-models/` 缺文件时 `app:sync` **必须红**，
+  `verify:ios` 逐目录查 `模型 / tokens / 数据目录` 三样都在 —— 少一样的包不能发。原生侧 `installed(m)` 先看
+  `Bundle.main.resourceURL/mt-speech/<dir>/`，再看 Application Support（旧版本下载过的）；**下载路整套保留**
+  （`tts-assets` / `downloading` / `listen_assets_failed`），只为将来「包里没有的语言」兜底，第一版不会走到。
+  代价写明：iOS 包 ≈15 MB → ≈145 MB、Mac ≈30 MB → ≈160 MB（Apple 无硬上限；蜂窝下载超 200 MB 才会多一个确认）。
 - **`returnsAudio: false`，与 `browser` 同**：音频在 Swift 侧 playerNode 边合成边播，**永不回到 JS**，
   所以同样不可缓存、不可上传 —— 上面「Local cache（endpoint engines only）」对它不适用；不是漏了，
   是它和 `browser` 一样，页面拿不到字节。
@@ -2085,6 +2092,13 @@ TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音�
   （`ensureAssets('stt', locales)`），不是我们的文件服务器 —— 副句如实区分。
 - 系统语音仍是推荐路（§9.1 2026-09-13 裁定「Piper 留作可选」）；这一节只保证选了 Piper 的人**能看见**
   它在做什么。
+
+
+**2026-09-17 晚修订（模型进包之后，待人评审）：** 模型随 App 安装（§9.6.1），所以这一行的**默认态是「已内置 · {langs}」**
+（`tts_pack_bundled`），没有下载按钮，试听按钮恒为「试听一句」；「未下载 / 正在下载 / 下载失败」三态**只对包里没有的模型**
+出现（第一版 zh / en 都内置，用户看不到它们）；副句「首次朗读也会自动下载」删掉。四处首播仍走 `ensureDeviceReady`，
+它对内置模型立即返回 `{ok:true, downloaded:false}`。`test:listen` 加一档：假桥回 `tts-state {assets:'installed', bundled:true}`
+⇒ 行文案「已内置」、无下载按钮、试听按钮「试听一句」。
 
 验证：`test:listen` 假 `mtSpeech` 桥回 `tts-state {assets:'missing'}` ⇒ 朗读卡出「未下载」行、试听按钮
 文案是「下载并试听」；`tts-assets` 后按 `assets-progress` 回进度 ⇒ 行变「正在下载 · 43%」；`installed`
@@ -3496,7 +3510,7 @@ content). Verbatim, on every surface, in the same PR as the code and **in the sa
 never before** (a promise about an engine that does not exist yet) **and never after** (an
 engine shipping without its disclosure):
 
-> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；首次使用会从我们的文件服务器下载一次离线模型（只是模型文件，不含任何你的内容）。不保存录音，只留文字。
+> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；模型随 App 一起安装，不从任何服务器下载（2026-09-17 起；此前版本首次使用会从我们的文件服务器下载一次，只是模型文件，不含任何你的内容）。不保存录音，只留文字。
 
 English (authoritative in `_locales/en`, key `listen_device_privacy` — name to be fixed by D2,
 the gate requires the same key on all 12):

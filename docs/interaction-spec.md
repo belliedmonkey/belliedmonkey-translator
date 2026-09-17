@@ -1279,6 +1279,8 @@ Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
 > 时多一行「离线模型」（未下载 · 大小 · [下载] / 下载中 pct% / 已安装 · [重新下载] / 下载失败 · [重试] · 或换
 > 系统语音），试听按钮在模型未装时写「下载并试听（{size}）」；四处首播（设置试听 · 复习 ▶ · 播客 · 对话）
 > 统一走 `LearnTTS.ensureDeviceReady`，进度在各自状态行，不弹框 —— 规则与读数在 learning-design §9.1.1。
+> **2026-09-17 晚（待人评审）：模型随 App 进包**（learning-design §9.6.1），这一行默认态变成「已内置 · {langs}」、无下载按钮，
+> 试听按钮恒为「试听一句」；下载三态只对包里没有的模型出现，第一版看不到。
 > **「设备内置语音」在没有系统语音的浏览器上**（Linux 桌面常见；`LearnTTS.available()` 回 `unsupported`）
 > 下拉条目标灰并写原因，不让人选了再试听才发现。Windows 上的 `speechSynthesis` 尚未实机验过（待办）。
 
@@ -1795,7 +1797,7 @@ original + provisional translation), **finalized sentences** below.
   **离线模型不覆盖的语言回落系统语音**（既有 `browser` 引擎），并且**在那一行上具名**：
   行尾灰字 「用系统语音朗读（离线模型不含{lang}）」（`tts_device_lang_fallback`），不静默换声。
   回落不算失败，不计入三次失败门；系统也没有该语言语音时才走既有的「该语言无可用语音」路。
-  首次用到某语言的离线模型时进 **downloading** 态（与转写资产共用，见 States）。
+  包里没有的语言才进 **downloading** 态（与转写资产共用，见 States）；第一版 zh / en 随 App 进包，不会走到（2026-09-17）。
 
 **回声必须由 JS 自己堵，不能只靠原生回声消除。** 朗读的是译文，而译文的语言恰好是对话
 另一边的 —— 它一旦被自己的麦克风录回去，就会被判成「另一个人说的」，再翻译、再朗读，
@@ -1876,7 +1878,8 @@ original + provisional translation), **finalized sentences** below.
 | `stt_engine_device` | 转写引擎下拉（仅 App） | 设备内置转写（免费 · 离线 · 仅 App） |
 | `stt_hint_device` | 该条目选中时的块下提示 | 声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎做修正与翻译。需要 iOS 26 / macOS 26 |
 | `tts_engine_device` | 朗读引擎下拉（仅 App） | 设备内置朗读（离线模型 · 仅 App） |
-| `tts_hint_device` | 该条目选中时的块下提示 | 语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。不覆盖的语言用系统语音 |
+| `tts_hint_device` | 该条目选中时的块下提示 | 语音在你的设备上合成；离线模型随 App 安装，不下载。不覆盖的语言用系统语音 |
+| `tts_pack_bundled` | 朗读卡「离线模型」行的默认态（2026-09-17） | 离线模型已内置 · {langs} |
 | `stt_device_suffix` | 下拉条目后缀 | · 实时 · 本机 |
 | `listen_need_device_os` | 入口灰化的第三句原因 | 设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎 |
 | `listen_downloading` | downloading 态的 pill | 正在下载{lang}离线模型 · {pct}% |
