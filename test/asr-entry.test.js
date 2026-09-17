@@ -2,12 +2,14 @@
 // interaction-spec「AI 转写字幕 › Offer」那张表逐行钉住；file_only 已随 Tier B 于 2026-09-16 下掉
 //（domain-design §7：实时接口从这两个字段推导，不加 live 旗标）。
 const { describe, test, eq, ok, loadModule } = require('./harness');
-const A = loadModule('popup/asr-entry.js', { window: {} }).AsrEntry;
+const A = loadModule(['content/stt-state.js', 'popup/asr-entry.js'], { window: {} }).AsrEntry;
 
+// 夹具与真注册表同形：云端条目带 defaultEndpoint（判据在 content/stt-state.js，没端点会判成 no_base）；
+// live* 字段自 2026-09-17 起注册表里没有了，这里也不再写。
 const ENGINES = [
-  { id: 'or', label: 'OpenRouter', needsKey: true, liveEndpoint: null, liveType: null },
-  { id: 'oa', label: 'OpenAI', needsKey: true, liveEndpoint: 'wss://x/realtime', liveType: 'ws-realtime' },
-  { id: 'local', label: 'Local', needsKey: false, requiresEndpoint: true, liveEndpoint: null },
+  { id: 'or', label: 'OpenRouter', needsKey: true, defaultEndpoint: 'https://or.example/v1/audio/transcriptions' },
+  { id: 'oa', label: 'OpenAI', needsKey: true, defaultEndpoint: 'https://oa.example/v1/audio/transcriptions' },
+  { id: 'local', label: 'Local', needsKey: false, requiresEndpoint: true, defaultEndpoint: null },
 ];
 const media = { durationS: 120, live: false, ready: true, playing: true, srcKind: 'blob', tag: 'video' };
 

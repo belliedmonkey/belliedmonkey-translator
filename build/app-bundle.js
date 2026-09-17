@@ -53,6 +53,7 @@ const MODULES = [
                                          // 加载期 ReferenceError —— 同 engine-state 那次（见下）。
   'extension/learn/feedback.js',         // MTFeedback —— 反馈 / 评分出口；settings.js 与 review.js 引用
   'extension/learn/telemetry.js',        // MTTelemetry —— 匿名用量事件（docs/telemetry-design.md）
+  'extension/content/stt-state.js',      // SttState — 转写四键「配好了没有」的唯一判据（说题 / 字幕 / 弹窗共用，§9.4）
   'extension/content/engine-state.js',   // EngineState — provider 归一化 + 「配好了没有」。
                                          // translation-api.js 的 providerById /
                                          // defaultProvider / resolveProvider 全部转调它，
