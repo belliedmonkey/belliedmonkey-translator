@@ -1967,7 +1967,16 @@
     "message": "· 本机"
   },
   "stt_device_no_file": {
-    "message": "设备内置转写目前只用于对话"
+    "message": "设备内置转写只用于对话与实时字幕，说题暂不支持"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 本机识别可用 · 语言包已就绪（不走网络，没有端点可测）"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 本机识别可用 · 语言包会在第一次开始听时自动下载"
+  },
+  "engine_test_device_timeout": {
+    "message": "本机识别没有回应 —— 关掉 App 重开再试"
   },
   "listen_need_device_os": {
     "message": "设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎"

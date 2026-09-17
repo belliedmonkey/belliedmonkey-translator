@@ -1966,7 +1966,16 @@
     "message": "· no aparelho"
   },
   "stt_device_no_file": {
-    "message": "A transcrição no aparelho só está disponível em Conversa por enquanto"
+    "message": "A transcrição no aparelho serve só para conversas e legendas ao vivo; a prática de fala ainda não é compatível"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Reconhecimento no aparelho disponível · pacote de idioma pronto (sem rede, sem endpoint para testar)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Reconhecimento no aparelho disponível · o pacote de idioma é baixado na primeira vez que você começa a ouvir"
+  },
+  "engine_test_device_timeout": {
+    "message": "O reconhecimento no aparelho não respondeu — feche e reabra o app e tente de novo"
   },
   "listen_need_device_os": {
     "message": "A transcrição no aparelho requer iOS 26 / macOS 26 — ou escolha um motor em tempo real na nuvem em Ajustes"

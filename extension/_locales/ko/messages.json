@@ -1966,7 +1966,16 @@
     "message": "· 기기 내"
   },
   "stt_device_no_file": {
-    "message": "기기 내장 받아쓰기는 현재 대화에서만 사용됩니다"
+    "message": "기기 내 받아쓰기는 대화와 실시간 자막에만 쓰이며, 말하기 연습은 아직 지원하지 않아요"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 기기 내 인식 사용 가능 · 언어 팩 준비됨(네트워크 미사용, 테스트할 엔드포인트 없음)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 기기 내 인식 사용 가능 · 언어 팩은 처음 듣기를 시작할 때 자동으로 내려받습니다"
+  },
+  "engine_test_device_timeout": {
+    "message": "기기 내 인식이 응답하지 않아요 —— 앱을 종료하고 다시 열어 보세요"
   },
   "listen_need_device_os": {
     "message": "기기 내장 받아쓰기는 iOS 26 / macOS 26이 필요합니다. 또는 설정에서 클라우드 실시간 엔진을 선택하세요"

@@ -1966,7 +1966,16 @@
     "message": "· 端末内"
   },
   "stt_device_no_file": {
-    "message": "端末内蔵の文字起こしは現在「会話」でのみ使えます"
+    "message": "端末内文字起こしは会話とリアルタイム字幕専用です。スピーキング練習にはまだ対応していません"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 端末内認識が使えます · 言語パック準備済み（ネットワーク不要、テストするエンドポイントなし）"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 端末内認識が使えます · 言語パックは初めて聞き取りを始めるときに自動でダウンロードされます"
+  },
+  "engine_test_device_timeout": {
+    "message": "端末内認識から応答がありません —— App を終了して開き直してください"
   },
   "listen_need_device_os": {
     "message": "端末内蔵の文字起こしには iOS 26 / macOS 26 が必要です。または設定でクラウドのリアルタイムエンジンを選んでください"

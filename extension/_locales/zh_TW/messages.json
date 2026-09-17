@@ -1967,7 +1967,16 @@
     "message": "· 本機"
   },
   "stt_device_no_file": {
-    "message": "裝置內建轉寫目前只用於對話"
+    "message": "裝置內建轉寫只用於對話與即時字幕，說題暫不支援"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 本機辨識可用 · 語言包已就緒（不走網路，沒有端點可測）"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 本機辨識可用 · 語言包會在第一次開始聽時自動下載"
+  },
+  "engine_test_device_timeout": {
+    "message": "本機辨識沒有回應 —— 關掉 App 重開再試"
   },
   "listen_need_device_os": {
     "message": "裝置內建轉寫需要 iOS 26 / macOS 26 —— 或到設定裡選一個雲端即時引擎"
