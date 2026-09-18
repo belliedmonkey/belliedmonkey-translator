@@ -1110,10 +1110,23 @@ loaded fresh each run, driven **from the Mac** so the recipe stays scriptable an
 in-VM state stays throwaway. Nothing is installed permanently except the browsers.
 
 **One-time setup inside the VM (⬜):** install Chrome, Edge and Firefox (ARM64 builds);
-share the repo into the VM (Fusion 虚拟机 → 共享 → `~/mobiletranslator`, appears as
-`\\vmware-host\Shared Folders\mobiletranslator`) — or copy `dist/` over on each run;
 allow inbound on the private-network profile for the debug port
 (`netsh advfirewall firewall add rule name=cdp dir=in action=allow protocol=TCP localport=9222`).
+
+**Getting `dist/` into the VM — there are NO shared folders on this guest (read back
+2026-09-18: the ARM Windows VM's settings panel has no 「共享」 pane at all).** Serve the
+build from the Mac over vmnet8 and download it inside the VM, every run (the build changes,
+the VM copy must follow):
+
+```bash
+# Mac side — the host's vmnet8 address is 192.168.2.1 (bridge101); zip dist/ and dist-firefox/
+python3 -m http.server 8765 --bind 0.0.0.0        # in a folder holding dist-chrome.zip / dist-firefox.zip
+curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # expect 200 — this shell's
+                                                                            # proxy env returns 503 without --noproxy
+```
+
+In the VM open `http://192.168.2.1:8765/`, download, unzip to `C:\mt\dist` (Chrome / Edge)
+and `C:\mt\dist-firefox`. Those are the paths `Extensions.loadUnpacked` and `web-ext` get.
 
 **Chrome / Edge (⬜):** launch inside the VM with a throwaway profile:
 
