@@ -74,11 +74,15 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 在虚拟机里带 `--remote-debugging-port` + `--remote-debugging-address=0.0.0.0` 启动，然后用 §2.D **同一套** CDP `Extensions.loadUnpacked`；Firefox 走 `web-ext` + WebDriver BiDi | ⬜ **未跑**（2026-09-18 用户裁定进矩阵，虚拟机同日装好；首跑欠着 — see §2.H）|
 
-> **不在矩阵里的（2026-09-18 用户裁定）：Windows 与 Linux 上的 Chrome / Firefox 暂不进验收矩阵。** 不为它们装虚拟机或容器、
-> 不留待办。能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
+> **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
+> 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
 > 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
 > 用户改口时再加回。
+>
+> **Windows 曾与 Linux 同列（同日凌晨的裁定，#321），当晚用户改口「windows 进入验收矩阵」，于是有了第 8 行。** 按 §0
+> 「矩阵只增不减」，它从此是每次回归的一行；没跑就写 ⬜，不写 N/A。
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -517,6 +521,7 @@ in fullscreen — so it is added forever):
 | macOS Safari | required | required | N/A (audio, no video) |
 | macOS Chrome / Edge | required | required | N/A |
 | Firefox | required | required | N/A |
+| Windows Chrome / Edge · Firefox | required | required | N/A |
 
 **iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
 fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
@@ -542,6 +547,7 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage`. Measured on all three: macOS Safari 2026-07-28, iPhone (iOS 26.5) and iPad Air (iOS 17.2) 2026-07-28 via §1.1 | no translation lines, nothing sent (script layer, unchanged) |
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
+| Windows Chrome / Edge · Firefox | same as macOS Chrome / Edge（`chrome.i18n.detectLanguage` 同样存在）— ⬜ 未量 | same — ⬜ 未量 |
 
 **Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
 a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
@@ -550,6 +556,7 @@ is named here rather than assumed:
 | Surface | Expected |
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 未量。语音清单来自 Windows 自己（OneCore / SAPI），与 macOS 完全不同：试听必须按目标语言选到一个**真实存在**的声音，且 #320 那句「这个浏览器不提供内置语音」在这里**不该**出现（出现即缺陷，不是平台限制）|
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
 | **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
@@ -572,6 +579,7 @@ test with the key from `.local/keys.md`.
 |---|---|---|---|
 | macOS Chrome / Edge | pair appears after one upload; no per-sentence requests to the STT endpoint (check the network log) | `captureStream` after the crossorigin reload keeps the playhead position; sentences appear ≈ 2 s after speech | Substack episode ⇒ 「无法读取该音频」 within 10 s; muting a tainted source ⇒ 「捕获不到声音」 within 3 s |
 | Firefox | same, via `apiFetch`'s background route where the CDN has no CORS (R1: body must survive `sendMessage`) | `captureStream` (Firefox ≥ 149); **measure** whether the content-script socket obeys the page's `connect-src` on a strict-CSP page | same |
+| Windows Chrome / Edge · Firefox | expected as the macOS rows above — ⬜ 未量 | expected as the macOS rows — ⬜ 未量 | same — ⬜ 未量 |
 | macOS Safari | ✅ **measured 2026-09-07** (Safari 26.5, transistor.fm, whisper-1 + DeepSeek, driven by AppleScript `do JavaScript` — log `.local/asr/results/2026-09-07-safari-macos-file-tier.log`): the entry appears once the page's own subtitles are ruled out (≈16 s, 6 acquire attempts), one upload of the whole 25-min file, first pair 101 s after the tap, pairs follow playback. Content-script fetch of the CDN worked as on Chrome. | ❌ **measured 2026-09-07: MSE (`blob:`) sources are SILENT** — Twitch live and a YouTube video both stayed audible while `createMediaElementSource` output RMS 0.00000, confirmed in the page world with a real click and a `running` AudioContext (`2026-09-07-safari-macos-live-tier.log`). Since #216 the session stops **before** the socket opens with the named 「Safari 抓不到这类流媒体视频的声音」; before that the silence guard reported 「捕获不到声音」 within 5 s (correct, but blamed the speakers). Http(s) `<audio>` with CORS (the crossorigin-reload path) is unmeasured on Safari — every real podcast page took tier A. | same; plus: an AudioContext created outside a user gesture stays `suspended` in Safari and `resume()` never settles, so the **toolbar-popup entry** (a gesture in the popup, not in the page) cannot start capture on Safari — the in-page notice button is the path that works. *Since 2026-09-11 (第九期)* the popup entry on Safari lands on a named `gesture` stop and the notice offer reads 「▶ 点此开始实时转写」 — one in-page tap, then capture (to be measured on a real iPhone: the Simulator cannot produce a real gesture) |
 | iPhone / iPad Safari (≥ iOS 17.1) | ✅ **measured 2026-09-08** (iPhone 15 Pro Simulator, iOS 17.2, transistor.fm, whisper-1 + DeepSeek, driven by `safaridriver` — extensions DO run inside a WebDriver session on the Simulator; log `.local/asr/results/2026-09-07-safari-ios-sim-file-tier.log`): entry after 12 s, one upload, **first pair 90 s** after the tap, pairs follow playback | ❌ **measured 2026-09-08**: native HLS (`<video src=.m3u8>`, Apple's bipbop sample) stops by name 「Safari 抓不到这类流媒体视频的声音」 within 3 s (#216 treats a manifest URL as a non-fetchable source; before that it took tier A and failed as 「无法读取该音频」 — a playlist is not audio). m.youtube.com on iOS 17.2 serves a **progressive http(s)** `googlevideo` URL (not MSE): the CORS probe passed, the element was reloaded with `crossorigin`, then 「捕获不到声音」 3 s after 「实时转写中」 — the trigger was a WebDriver click (no user gesture, AudioContext suspended), so whether a real tap captures audio on an http(s) source is **still unmeasured** (manual taps are blocked while a WebDriver session is open, and ending the session blanks the tab). iPad not run separately (same WebKit, same layout code). | same; the named stops above all appear within 3 s, no stuck state seen | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
 | iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
@@ -1076,6 +1084,71 @@ verification in one connection, or restart web-ext between attempts.
 > advancing ("That this was your natural choice." / "这是你自然的选择。"); trusted click
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
+
+### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ⬜ not yet run
+
+Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
+exclusion in #321). The VM exists and boots; **no verification has been run on it yet**,
+so everything below the first paragraph is the plan, not a record. Turn each ⬜ into a
+dated ✅/❌ with a read-back the first time it is actually driven.
+
+**What exists (read back 2026-09-18):** VMware Fusion 13.6.4, VM
+`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`, NAT on vmnet8, hostname
+`DESKTOP-1ME3A1R`. The Mac reaches it by IP; read the current lease rather than
+remembering one:
+
+```bash
+grep -A3 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -4   # ip + hostname
+```
+
+OOBE had no network (Fusion's virtual NIC needs VMware Tools); it was bypassed with
+`oobe\bypassnro`, then VMware Tools installed from the 虚拟机 menu — after that NAT
+works with no configuration.
+
+**Principle (§0, device principle):** the same `dist/` / `dist-firefox/` the stores get,
+loaded fresh each run, driven **from the Mac** so the recipe stays scriptable and the
+in-VM state stays throwaway. Nothing is installed permanently except the browsers.
+
+**One-time setup inside the VM (⬜):** install Chrome, Edge and Firefox (ARM64 builds);
+share the repo into the VM (Fusion 虚拟机 → 共享 → `~/mobiletranslator`, appears as
+`\\vmware-host\Shared Folders\mobiletranslator`) — or copy `dist/` over on each run;
+allow inbound on the private-network profile for the debug port
+(`netsh advfirewall firewall add rule name=cdp dir=in action=allow protocol=TCP localport=9222`).
+
+**Chrome / Edge (⬜):** launch inside the VM with a throwaway profile:
+
+```
+chrome.exe --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check ^
+  --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 chrome://newtab/
+```
+
+then from the Mac, `http://<vm-ip>:9222/json/version` → browser WS →
+`Extensions.loadUnpacked {path: "<Windows path to dist>"}` — the §2.D flow unchanged
+except the host. **Read back** `!!document.querySelector('#mt-fab')` on the test page and
+the `.mt-translation` count, same as §2.D. `chrome://inspect/#devices` style discovery is
+not needed; the JSON endpoint is enough.
+
+**Firefox (⬜):** `npx web-ext run --source-dir dist-firefox --firefox <path>` inside the
+VM (same trap as §2.E: it live-references the folder), or a throwaway profile with
+`--remote-debugging-port` + WebDriver BiDi bound to `0.0.0.0` (`remote.hosts` /
+`remote.origins` prefs must list the Mac, or Firefox rejects the connection).
+
+**What the row is FOR — the differences this VM can see and macOS cannot:**
+
+- **Speech.** `speechSynthesis.getVoices()` on Windows lists OneCore / SAPI voices;
+  per-language availability differs from macOS (some languages exist on one and not the
+  other), and Edge additionally exposes its online 「Natural」 voices. The settings page
+  試听 and the review-card ▶ must pick a real voice per target language here.
+- **Layout.** The bilingual line under CJK fonts Windows actually has (Microsoft YaHei /
+  Yu Gothic / Malgun Gothic) and Windows' default line-height; the FAB's `position:
+  fixed` with the Windows scrollbar taking layout width (macOS overlay scrollbars hide
+  this class of overlap).
+- **Fullscreen** on Windows Chrome / Firefox (a separate compositor path from macOS).
+- **Input** is not a concern (extension has no keyboard shortcuts), but IME composition
+  on a Windows CJK IME is worth one look at the settings page's text fields.
+
+**Not in scope of this row:** the host app (Apple only), and anything the Windows
+browser shares byte-for-byte with its macOS build (the transports, the engine).
 
 ### Stage 2 spike — what the app's `WKWebView` can actually do (2026-08-07)
 
