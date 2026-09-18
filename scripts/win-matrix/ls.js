@@ -1,0 +1,6 @@
+'use strict';
+// ls.js <host> <port> <C:/some/dir/> —— 借浏览器的 file:// 目录列表看 Windows 上的目录（Chrome / Edge）。
+// 用户目录名不一定是登录名（虚拟机上登录名 zhao、目录是 C:\\Users\\张钊）：猜路径之前先列一下 C:/Users/。
+const http=require('http');const [host,port,dir]=process.argv.slice(2);
+http.get({host,port,path:'/json/version'},r=>{let d='';r.on('data',c=>d+=c);r.on('end',async()=>{const ws=new WebSocket(JSON.parse(d).webSocketDebuggerUrl.replace(/ws:\/\/[^/]+/,`ws://${host}:${port}`));let id=0;const P=new Map();ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&P.has(m.id)){P.get(m.id)(m.result||m.error);P.delete(m.id);}};const send=(method,params={},sessionId)=>new Promise(r=>{P.set(++id,r);ws.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});
+ws.onopen=async()=>{const {targetId}=await send('Target.createTarget',{url:'about:blank'});const {sessionId}=await send('Target.attachToTarget',{targetId,flatten:true});await send('Page.navigate',{url:'file:///'+dir},sessionId);await new Promise(r=>setTimeout(r,1500));const r=await send('Runtime.evaluate',{expression:'document.body.innerText',returnByValue:true},sessionId);console.log(r.result?r.result.value:JSON.stringify(r));await send('Target.closeTarget',{targetId});ws.close();};});});

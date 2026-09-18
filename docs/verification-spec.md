@@ -521,7 +521,7 @@ in fullscreen — so it is added forever):
 | macOS Safari | required | required | N/A (audio, no video) |
 | macOS Chrome / Edge | required | required | N/A |
 | Firefox | required | required | N/A |
-| Windows Chrome / Edge · Firefox | required — Firefox 156 mechanics ✅ 2026-09-18 (enter / overlay inside / exit), subtitles ⬜ until the VM profile is signed in to YouTube (§2.H); Chrome / Edge ⬜ | required — ⬜ | N/A |
+| Windows Chrome / Edge · Firefox | required — **Chrome 153 ✅ 2026-09-18 with real subtitles** (real desktop: overlay inside the fullscreen element, visible, translation advancing; exit via `exitFullscreen()` keeps it); Firefox 156 mechanics ✅ (VM, with the notice in the overlay); Edge ⬜ — see §2.H | required — ⬜ | N/A |
 
 **iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
 fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
@@ -1085,7 +1085,20 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
+### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM + a real desktop) — ✅ verified 2026-09-18
+
+> **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
+> read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
+>
+> **Two targets since 2026-09-18.** Besides the VM below there is a **real Windows 11 x64 desktop on the
+> LAN**, driven over SSH: `scripts/win-matrix/setup.ps1` once on the machine (firewall + portproxy,
+> OpenSSH Server, the Mac's key, `C:\mt`, a scheduled task that starts browsers inside the interactive
+> desktop session — a GUI app launched straight from SSH lands in the invisible session 0), then
+> `scripts/win-matrix/desktop.sh chrome|edge` from the Mac does the rest: scp the build, copy the everyday
+> browser profile (Chrome 136+ refuses a debug port on the default user-data-dir; the copy keeps the
+> sign-ins), launch, load, translate, speech, fullscreen, YouTube. First run: Chrome 153, 1.12.1, page
+> translation in 1.06 s with 12 network events, 29 voices, scrollbar 0 px, fullscreen with real subtitles.
+> The test page address is `MT_WIN_PAGE` (the VM default is `http://192.168.2.1:8765/page.html`).
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
 exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
@@ -1244,28 +1257,41 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
     first call. Note the en-US pick differed between runs (Aria en-US, then William
     Multilingual en-AU): Edge's `getVoices()` order is not stable, so pick by `lang`, never by
     index.
-- **Fullscreen mechanics, Firefox 156 (measured):** on a YouTube watch page the in-player
-  「译」 button appears; `#mt-yt-btn` opens a menu and the **first row** is the on/off switch
-  (a `.click()` on the button alone only opens the menu). A trusted `f` (BiDi
-  `input.performActions`) enters fullscreen, `#mt-yt-overlay` is inside
-  `document.fullscreenElement` and visible, the video advances, Esc exits and the overlay
-  survives. **But the overlay only ever showed 「字幕不可用 · 先在设置里选择转写引擎」**:
-  the video stalls at ≈ 48 s and snaps back to 0:00 paused, and YouTube never serves the
-  caption track. **User ruling 2026-09-18: YouTube needs a signed-in session to serve video
-  and captions** — the VM's throwaway profiles are never signed in (and the NAT exits in
-  Japan, ad first), so this is an environment fact, not a Windows / Firefox defect.
-  **Signed in (same day, same profile):** playback no longer snaps back (153 s continuous),
-  CC is turned on, `ytInitialPlayerResponse` lists 31 caption tracks, and YouTube itself
-  fetches `/api/timedtext?…pot=…&fmt=json3` — **HTTP 200 with a 0-byte body**, and YouTube's
-  own caption element (`.ytp-caption-segment`) never renders either; a minute later even the
-  play button stops responding. That is the §2.1 pot-block shape, served by YouTube to this
-  VM session (proxy exit + automation), and nothing the extension can recover from: **the
-  test for "is it us" is whether YouTube's native captions show — if they don't, stop.**
-  Do not verify YouTube subtitles on this VM; verify the fullscreen mechanics here (done on
-  Firefox) and subtitles on a session YouTube trusts. Later the same day Chrome 153 could not
-  even load the watch page (two `Page.navigate` timeouts, then a page with no video) — the
-  VM session is now refused outright. Fullscreen **with real subtitles** ⬜ here, Chrome /
-  Edge fullscreen mechanics ⬜ (blocked by the same refusal, not by the browsers).
+- **Fullscreen (measured):** on a YouTube watch page the in-player 「译」 button appears;
+  `#mt-yt-btn` opens a menu and the **first row** is the on/off switch (a `.click()` on the
+  button alone only opens the menu).
+  - Firefox 156 (VM): a trusted `f` (BiDi `input.performActions`) enters fullscreen,
+    `#mt-yt-overlay` is inside `document.fullscreenElement` and visible, the video advances,
+    Esc exits and the overlay survives — measured with the *notice* in the overlay, not yet
+    with real subtitles.
+  - **Chrome 153 (real desktop, 2026-09-18): ✅ with real subtitles** — the trusted click on
+    `.ytp-fullscreen-button` enters fullscreen, the overlay is inside the fullscreen element and
+    visible, and the translation moves on between t = 16 s and t = 24 s. A CDP-dispatched Esc
+    does **not** leave fullscreen (it only reaches the page); exit with
+    `document.exitFullscreen()` — the overlay survives.
+  - Edge (either target) ⬜.
+- **⚠ Correction (2026-09-18, same evening): everything this section said earlier that day
+  about YouTube on the VM was wrong.** It claimed, in turn, that the video "stalls at ≈ 48 s
+  and snaps back to 0:00" because YouTube blocks signed-out sessions; that "YouTube needs a
+  signed-in session to serve video and captions"; that a 200 / 0-byte `/api/timedtext`
+  proved a server-side pot-block of the VM; and that Chrome was "refused outright". None of
+  it holds: **the signed-out VM Edge shows subtitles 4 s after its pre-roll ad is skipped.**
+  The snap-back was a 45 s pre-roll ending (the main video does not autoplay without a
+  gesture); the 0-byte timedtext was read while the video sat at 0:00 and was not filtered by
+  video id — an ad's own caption request is empty; the navigation timeouts were a slow VM.
+  The one real cause was a product defect: nobody in an automated run clicks "skip", the ad
+  outlasted the 8 × 2.5 s acquisition budget, and the status latched at 「字幕不可用」
+  (#325, fixed by `acquireGate` in PR #326). **Rules that came out of it** — a YouTube
+  reading is only valid if it carries the ad state (`#movie_player.ad-showing` /
+  `.ad-interrupting`); filter `timedtext` Resource Timing entries by the current `v=`; never
+  judge YouTube's native captions by eye while 「译」 is on, because the extension hides them
+  with `.ytp-caption-window-container{opacity:0}` (`injectCaptionStyle`) — read
+  `.ytp-caption-segment` instead; and before attributing, run the cheapest test that could
+  falsify the attribution (here: skip the ad and look — ten seconds).
+  `scripts/win-matrix/yt-subtitles.js` does all of this; `yt-probe.js` is the read-only form.
+- One more reading: with a Chinese browser UI YouTube auto-selects the video's human-made
+  **Chinese** caption track, so the original is already the target language, the same-language
+  skip applies, and the overlay shows one Chinese line with no translation. By design.
 - **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
 
 **Not in scope of this row:** the host app (Apple only), and anything the Windows
