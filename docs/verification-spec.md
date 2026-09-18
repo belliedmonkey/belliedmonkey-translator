@@ -74,11 +74,15 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
 
-> **不在矩阵里的（2026-09-18 用户裁定）：Windows 与 Linux 上的 Chrome / Firefox 暂不进验收矩阵。** 不为它们装虚拟机或容器、
-> 不留待办。能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
+> **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
+> 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
 > 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
 > 用户改口时再加回。
+>
+> **Windows 曾与 Linux 同列（同日凌晨的裁定，#321），当晚用户改口「windows 进入验收矩阵」，于是有了第 8 行。** 按 §0
+> 「矩阵只增不减」，它从此是每次回归的一行；没跑就写 ⬜，不写 N/A。
 
 Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
 (`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
@@ -517,6 +521,7 @@ in fullscreen — so it is added forever):
 | macOS Safari | required | required | N/A (audio, no video) |
 | macOS Chrome / Edge | required | required | N/A |
 | Firefox | required | required | N/A |
+| Windows Chrome / Edge · Firefox | required — Firefox 156 mechanics ✅ 2026-09-18 (enter / overlay inside / exit), subtitles ⬜ until the VM profile is signed in to YouTube (§2.H); Chrome / Edge ⬜ | required — ⬜ | N/A |
 
 **iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
 fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
@@ -542,6 +547,7 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage`. Measured on all three: macOS Safari 2026-07-28, iPhone (iOS 26.5) and iPad Air (iOS 17.2) 2026-07-28 via §1.1 | no translation lines, nothing sent (script layer, unchanged) |
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
+| Windows Chrome / Edge · Firefox | same as macOS Chrome / Edge — `chrome.i18n.detectLanguage` **present on all three**（2026-09-18 读回：Chrome 153 / Edge 145 / Firefox 156）；the request-level check itself ⬜ 未量 | same — ⬜ 未量 |
 
 **Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
 a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
@@ -550,6 +556,7 @@ is named here rather than assumed:
 | Surface | Expected |
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**），且 **三处都真播了**（`start` 事件）：Firefox zh 373 ms / en 94 ms；Chrome zh 57 ms / en（Google 在线声）**首次 15 s 无声无错、第二次 802 ms**；Edge zh 52 ms / en（微软在线 Natural）1.8–2.1 s。Chrome/Edge 需要一次用户激活，否则 `speak()` 被静默丢弃。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
 | **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
@@ -572,6 +579,7 @@ test with the key from `.local/keys.md`.
 |---|---|---|---|
 | macOS Chrome / Edge | pair appears after one upload; no per-sentence requests to the STT endpoint (check the network log) | `captureStream` after the crossorigin reload keeps the playhead position; sentences appear ≈ 2 s after speech | Substack episode ⇒ 「无法读取该音频」 within 10 s; muting a tainted source ⇒ 「捕获不到声音」 within 3 s |
 | Firefox | same, via `apiFetch`'s background route where the CDN has no CORS (R1: body must survive `sendMessage`) | `captureStream` (Firefox ≥ 149); **measure** whether the content-script socket obeys the page's `connect-src` on a strict-CSP page | same |
+| Windows Chrome / Edge · Firefox | expected as the macOS rows above — ⬜ 未量 | expected as the macOS rows — ⬜ 未量 | same — ⬜ 未量 |
 | macOS Safari | ✅ **measured 2026-09-07** (Safari 26.5, transistor.fm, whisper-1 + DeepSeek, driven by AppleScript `do JavaScript` — log `.local/asr/results/2026-09-07-safari-macos-file-tier.log`): the entry appears once the page's own subtitles are ruled out (≈16 s, 6 acquire attempts), one upload of the whole 25-min file, first pair 101 s after the tap, pairs follow playback. Content-script fetch of the CDN worked as on Chrome. | ❌ **measured 2026-09-07: MSE (`blob:`) sources are SILENT** — Twitch live and a YouTube video both stayed audible while `createMediaElementSource` output RMS 0.00000, confirmed in the page world with a real click and a `running` AudioContext (`2026-09-07-safari-macos-live-tier.log`). Since #216 the session stops **before** the socket opens with the named 「Safari 抓不到这类流媒体视频的声音」; before that the silence guard reported 「捕获不到声音」 within 5 s (correct, but blamed the speakers). Http(s) `<audio>` with CORS (the crossorigin-reload path) is unmeasured on Safari — every real podcast page took tier A. | same; plus: an AudioContext created outside a user gesture stays `suspended` in Safari and `resume()` never settles, so the **toolbar-popup entry** (a gesture in the popup, not in the page) cannot start capture on Safari — the in-page notice button is the path that works. *Since 2026-09-11 (第九期)* the popup entry on Safari lands on a named `gesture` stop and the notice offer reads 「▶ 点此开始实时转写」 — one in-page tap, then capture (to be measured on a real iPhone: the Simulator cannot produce a real gesture) |
 | iPhone / iPad Safari (≥ iOS 17.1) | ✅ **measured 2026-09-08** (iPhone 15 Pro Simulator, iOS 17.2, transistor.fm, whisper-1 + DeepSeek, driven by `safaridriver` — extensions DO run inside a WebDriver session on the Simulator; log `.local/asr/results/2026-09-07-safari-ios-sim-file-tier.log`): entry after 12 s, one upload, **first pair 90 s** after the tap, pairs follow playback | ❌ **measured 2026-09-08**: native HLS (`<video src=.m3u8>`, Apple's bipbop sample) stops by name 「Safari 抓不到这类流媒体视频的声音」 within 3 s (#216 treats a manifest URL as a non-fetchable source; before that it took tier A and failed as 「无法读取该音频」 — a playlist is not audio). m.youtube.com on iOS 17.2 serves a **progressive http(s)** `googlevideo` URL (not MSE): the CORS probe passed, the element was reloaded with `crossorigin`, then 「捕获不到声音」 3 s after 「实时转写中」 — the trigger was a WebDriver click (no user gesture, AudioContext suspended), so whether a real tap captures audio on an http(s) source is **still unmeasured** (manual taps are blocked while a WebDriver session is open, and ending the session blanks the tab). iPad not run separately (same WebKit, same layout code). | same; the named stops above all appear within 3 s, no stuck state seen | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
 | iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
@@ -1076,6 +1084,192 @@ verification in one connection, or restart web-ext between attempts.
 > advancing ("That this was your natural choice." / "这是你自然的选择。"); trusted click
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
+
+### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
+
+Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
+exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
+loading the 1.12.1 `dist/` / `dist-firefox/`, all rendering the bilingual page through
+DeepSeek. Everything below is what was measured; the traps are listed because every one
+of them cost a loop.
+
+**What exists:** VMware Fusion 13.6.4, VM
+`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`, NAT on vmnet8, hostname
+`DESKTOP-1ME3A1R`, Windows in Simplified Chinese. The Mac reaches it by IP; read the
+current lease rather than remembering one:
+
+```bash
+grep -A5 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -6   # ip … client-hostname (6 lines per block)
+```
+
+OOBE had no network (Fusion's virtual NIC needs VMware Tools); bypassed with
+`oobe\bypassnro`, then VMware Tools from the 虚拟机 menu — after that NAT works with no
+configuration. **The Windows profile folder is `C:\Users\张钊`, not the login name `zhao`**
+— list `file:///C:/Users/` through the browser before guessing a path.
+
+**Principle (§0, device principle):** the same `dist/` / `dist-firefox/` the stores get,
+loaded fresh each run, driven **from the Mac** so the recipe stays scriptable and the
+in-VM state stays throwaway. Nothing is installed permanently except the browsers.
+Pixel-driving the Fusion window from cua-driver does **not** work (measured: the hover
+tooltip appears, the click never reaches the guest) — everything goes over the network.
+
+**One-time setup inside the VM (done 2026-09-18):** Chrome, Edge, Firefox (ARM64 builds).
+Then, in an **elevated** PowerShell — a normal one answers 「请求的操作需要提升」 and
+installs nothing, and Windows PowerShell 5.1 has no `&&`; use `;` — forward an outside
+port to the browsers' loopback debug port and open it:
+
+```
+netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1; netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223; netsh interface portproxy show v4tov4
+```
+
+**Why a port proxy (measured):** desktop Chrome **ignores `--remote-debugging-address`**
+(only headless honours it) — with `=0.0.0.0` the VM never bound 9222 on its NIC. Firefox's
+remote agent is loopback-only too. The proxy makes 9222 reachable as 9223; the firewall
+rule lets the packet in; both are silent when missing (the Mac just times out), so read
+the proxy table back. The proxy has one side effect that bites Firefox — see below.
+
+**Getting `dist/` into the VM — there are NO shared folders on this guest** (the ARM
+Windows VM's settings panel has no 「共享」 pane). Serve from the Mac and download inside:
+
+```bash
+# Mac side — vmnet8 host address 192.168.2.1 (bridge101); a folder holding dist-chrome.zip, dist-firefox.zip, page.html
+python3 -m http.server 8765 --bind 0.0.0.0
+curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # 200 — this shell's proxy env gives 503 without --noproxy
+```
+
+In the VM open `http://192.168.2.1:8765/`, unzip to `C:\Users\<user>\Downloads\mt\dist` and
+`…\mt\dist-firefox`. **`scripts/win-matrix/page.html` is the test page** (three English
+paragraphs + a heading); the drivers load it from that same server.
+
+**Mac side, all three:** run with the shell's proxy variables cleared — Node 22 honours
+`NODE_USE_ENV_PROXY` and the proxy answers 503 for the VM:
+
+```bash
+env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy -u ALL_PROXY \
+  node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' chrome
+env … node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' edge
+env … node scripts/win-matrix/firefox.js  192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist-firefox'
+```
+
+Each writes `.local/win/<label>.json` + screenshots and asserts: extension loaded and its
+version, options page renders with **no** `Runtime.exceptionThrown`, `#mt-fab` present with
+title 开启翻译, click → **≥ 3 `.mt-translation` all containing Han and none still the
+「⏳ 翻译中…」 placeholder** (the placeholder contains Han too — the first assertion passed
+on it in 5 ms and read as a 30 s stall until the log was read), plus the Windows readings:
+`speechSynthesis.getVoices()`, `chrome.i18n.detectLanguage` presence, scrollbar width,
+translation font. The Chromium driver also logs every request the service worker makes.
+
+**Chrome (✅ 153):** launch from **Win+R** (it expands `%TEMP%`; in PowerShell `%TEMP%` is a
+literal, a trailing `^` doesn't continue the line, and `chrome.exe` in quotes needs `&`):
+
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* about:blank
+```
+
+`Extensions.loadUnpacked` works over the proxied port. Repeating it on the same path
+**reloads** the extension, and the service-worker target you just matched may be the one
+on its way out (`chrome is not defined` on evaluate) — the driver re-finds the worker and
+retries. Read-back: FAB, 4 translations (title + 3 paragraphs), scrollbar **15 px**
+(classic scrollbar takes layout width), `detectLanguage` present, 22 voices.
+
+**Edge (✅ 145):** `Extensions.loadUnpacked` answers **「Method not available」** on Edge.
+What works: `--enable-unsafe-extension-debugging --load-extension=<dist>` at launch (the
+`--load-extension` block Chrome ≥ 137 has is not in Edge 145), and the driver falls back
+to finding the already-loaded extension's service worker. PowerShell form (Win+R's
+`msedge` short name is not a PowerShell command):
+
+```
+Start-Process msedge -ArgumentList "--user-data-dir=$env:TEMP\mt-edge2 --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* --enable-unsafe-extension-debugging --load-extension=C:\Users\张钊\Downloads\mt\dist about:blank"
+```
+
+Read-back: FAB, 4 translations in 1.45 s, **service worker → api.deepseek.com ×4, all 200
+at 0.3 s** (the proof the request left the machine — Chrome's run was cache-warm),
+scrollbar **0 px** (overlay scrollbars), 26 voices.
+
+**Firefox (✅ 156, WebDriver BiDi — five traps, in order):**
+
+```
+Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe" -ArgumentList "--remote-debugging-port 9222 --remote-allow-hosts 192.168.2.128 --remote-allow-origins http://192.168.2.128:9223 -remote-allow-system-access -no-remote -profile $env:TEMP\mt-ff about:blank"
+```
+
+1. **The WebSocket upgrade must carry `Host: 127.0.0.1:9222`** — every other Host (the
+   VM's IP with either port, `localhost:9222`) is 400 even with `--remote-allow-hosts`.
+   Node's built-in `WebSocket` cannot set Host, so `firefox.js` carries a 60-line RFC 6455
+   client. (`curl -i` with the upgrade headers and different `Host:` values is how this
+   was found: only the loopback one answers 101.)
+2. **`webExtension.install {type:'path'}` installs the temporary add-on** — but BiDi refuses
+   `browsingContext.navigate` to `about:debugging` *and* to any `moz-extension://` URL
+   (「not allowed in this context」), so neither the internal UUID nor the options page is
+   reachable the obvious way. The UUID is read from the throwaway profile's `prefs.js`
+   over `file://` (`extensions.webextensions.uuids`), and the options page is reached by
+   letting a normal web page **navigate itself** there — `options/options.html` is
+   `web_accessible` for `<all_urls>`, and a page-initiated navigation is not policed.
+3. **Evaluating inside that extension page needs `-remote-allow-system-access`** at launch
+   (「System access is required」 otherwise). With it, `browser.storage.local.set(...)` seeds
+   DeepSeek and `getVoices()` is read there. `captureScreenshot` of that page still refuses
+   (「privileged scope」) — cosmetic, the web page screenshot is the evidence.
+4. **One BiDi session at a time, and the port proxy keeps a dead client's session alive**:
+   a driver killed by a watchdog leaves Firefox saying 「Maximum number of active sessions」
+   until Firefox is restarted — the Mac side shows only TIME_WAIT, the inner 127.0.0.1
+   leg is what the proxy holds. `firefox.js` therefore ends its session on **every** exit
+   path (normal, error, watchdog, SIGTERM). If you see that error, restart Firefox; no
+   amount of retrying frees it.
+5. Reinstalling the add-on closes its own pages, and onboarding opens only on a first
+   install — never count on an extension tab already being there.
+
+Read-back: FAB, 4 translations in 1.55 s (fresh profile — a real DeepSeek round trip),
+scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira en-US).
+
+**What this row can see that macOS cannot — first readings, 2026-09-18:**
+
+- **Speech.** A Chinese-locale Windows ships **only three local voices, all zh-CN**. Chrome
+  and Edge pad the list with online voices (Google / Microsoft Natural); Firefox exposes
+  the SAPI set only (5, incl. one English). Any language-specific fallback logic must be
+  checked against this shape, not macOS's ~100-voice list. Actual playback ⬜ unmeasured.
+- **Layout.** CJK text renders in Microsoft YaHei (screenshots in `.local/win/`), the
+  bilingual line and the FAB sit where they do on macOS. Chrome's classic scrollbar eats
+  15 px of layout width; Edge's and Firefox's overlay scrollbars eat 0.
+- **Speech playback (measured, `start` / `end` events on the utterance):**
+  - Firefox 156: zh-CN Huihui `start` 373 ms (`end` 4070), en-US Zira Desktop `start` 94 ms
+    (`end` 3391) — no user activation needed.
+  - Chrome 153 (after one CDP-dispatched click for user activation — without it Chrome
+    drops `speak()`): zh-CN Huihui `start` 57–272 ms. en-US has **no local voice** on this
+    system, so the pick is 「Google US English」 (online): the **first** utterance of the
+    session produced no `start`, `end` or `error` within 15 s — silence with no signal, the
+    exact shape §1.0 warns about — and the second call 30 s later fired `start` at 802 ms
+    (`end` 3136). Treat the first online-voice utterance as a warm-up that may be silent;
+    the review-card ▶ must not report 「播放中」 on `speak()` returning alone.
+  - Edge 145 (same activation click): zh-CN Huihui `start` 52–230 ms; en-US picks a Microsoft
+    Online (Natural) voice — `start` 1757 ms and 2055 ms on two runs (`end` ≈ 5 s), no silent
+    first call. Note the en-US pick differed between runs (Aria en-US, then William
+    Multilingual en-AU): Edge's `getVoices()` order is not stable, so pick by `lang`, never by
+    index.
+- **Fullscreen mechanics, Firefox 156 (measured):** on a YouTube watch page the in-player
+  「译」 button appears; `#mt-yt-btn` opens a menu and the **first row** is the on/off switch
+  (a `.click()` on the button alone only opens the menu). A trusted `f` (BiDi
+  `input.performActions`) enters fullscreen, `#mt-yt-overlay` is inside
+  `document.fullscreenElement` and visible, the video advances, Esc exits and the overlay
+  survives. **But the overlay only ever showed 「字幕不可用 · 先在设置里选择转写引擎」**:
+  the video stalls at ≈ 48 s and snaps back to 0:00 paused, and YouTube never serves the
+  caption track. **User ruling 2026-09-18: YouTube needs a signed-in session to serve video
+  and captions** — the VM's throwaway profiles are never signed in (and the NAT exits in
+  Japan, ad first), so this is an environment fact, not a Windows / Firefox defect.
+  **Signed in (same day, same profile):** playback no longer snaps back (153 s continuous),
+  CC is turned on, `ytInitialPlayerResponse` lists 31 caption tracks, and YouTube itself
+  fetches `/api/timedtext?…pot=…&fmt=json3` — **HTTP 200 with a 0-byte body**, and YouTube's
+  own caption element (`.ytp-caption-segment`) never renders either; a minute later even the
+  play button stops responding. That is the §2.1 pot-block shape, served by YouTube to this
+  VM session (proxy exit + automation), and nothing the extension can recover from: **the
+  test for "is it us" is whether YouTube's native captions show — if they don't, stop.**
+  Do not verify YouTube subtitles on this VM; verify the fullscreen mechanics here (done on
+  Firefox) and subtitles on a session YouTube trusts. Later the same day Chrome 153 could not
+  even load the watch page (two `Page.navigate` timeouts, then a page with no video) — the
+  VM session is now refused outright. Fullscreen **with real subtitles** ⬜ here, Chrome /
+  Edge fullscreen mechanics ⬜ (blocked by the same refusal, not by the browsers).
+- **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
+
+**Not in scope of this row:** the host app (Apple only), and anything the Windows
+browser shares byte-for-byte with its macOS build (the transports, the engine).
 
 ### Stage 2 spike — what the app's `WKWebView` can actually do (2026-08-07)
 
