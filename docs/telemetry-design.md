@@ -4,6 +4,8 @@
 > **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
 > `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
 > 起因写在 §3.1。
+> **2026-09-19 amendment（待人评审）**：§3 表的 Seam 一列进注册表、由 `npm test` 对着代码核（§3.4）——
+> 起因是 1.12.x 首次回读时同一种洞第三次发作：三个事件登记了却没有发送点。事件、属性、枚举值**一个不加**。
 > **2026-09-17**：`asr_entry` 加 `popup_app_row` / `to_app`（实时档下掉后的去 App 出口），起因写在 §3.3.2。
 > **2026-09-16 amendment（第十二期，4 条已由用户裁定通过）**：新事件 `engine_test`（引擎测试整个是盲区）；
 > `engine_set` 的判据从「选了下拉」改成 `EngineState.needsSetup`；`asr_entry.surface` 加 `app_home`；
@@ -259,6 +261,86 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 - **`engine_test.code: 'device_no_file'`** —— 随 `device` STT 注册表条目一起**不可达**（说题下拉里没有本机项了）。
   枚举保留（读的契约，同上一节），文档注明它自 09-17 起应恒为 0；如果不是 0，那是旧客户端还在跑。
 - `engine_test.slot` **不加 `stt_live`**：上午两槽方案里要加的那个值，随方案一起作废。
+
+### 3.4 2026-09-19 amendment：Seam 一列要能自己变红（待人评审）
+
+**起因。** 1.12.0 带着 first grant 分流屏（#297）与 §3.3 的四条裁定出货。09-19 首次回读
+（出货约 1.5 天），想回答「选『免费开始』的人里多少走完了领取」，答不了 —— 又是发送点不存在：
+
+| 事件 | 本文档 §3 写的 Seam | 代码里实际的 | 后果 |
+|---|---|---|---|
+| `grant_claimed` | `learn/grant.js` 的 `claim()` 落定处（两宿主同一份字节） | 只在 `extension/options/options.js` 领取按钮的 handler 里；`app/settings.js` 的领取路径没有 | App 的领取恒为 0。而 #297 恰好把「免费开始」提成了 **App 引导的默认路径** —— 流量被引向一条没有读数的路 |
+| `engine_set`（领取这条路） | `app/settings.js` 的 `applyQuickSetup` | App 的领取路径直接 `set(plan.writes)`，不经 `applyQuickSetup` | 领了额度 = 配好了引擎，却不记 `engine_set`。§3.3 补的 seam 只接住了一键卡；#293 的依据「一键卡是 App 里设置主翻译引擎的唯一入口」当时就不成立 |
+| `translate_ok{kind:'subtitle'}`（App） | `app/listen.js` 定稿出译文处（§3.3 裁定 1，09-16 写进上表） | 没有 | 1.12.x 有 7 台 App 开始了听译，译文事件 0 条 |
+| `grant_exhausted` | 收到 `credit_exhausted` 且余额判定用完处 | **全仓库零发送点**（两个宿主都没有） | 线上表 0 行。而 §3 自己写着这个数是「判断这笔钱该不该继续花的唯一依据」—— 09-08 进注册表至今从未被量过 |
+
+同一次核对里顺带查到、需要裁定的两处（不是漏接线，是从未决定过）：`translate_fail` 在
+App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有发送点 —— 于是这两条路只有成功数、
+没有失败数，成功率算不出来。
+
+**为什么每一道门禁都是绿的。** 现有的遥测门禁守三件事：白名单与服务端一致、白名单里没有
+内容/身份字段（`telemetry-registry.test.js`）、`MTTelemetry` 模块自己的行为
+（`telemetry.test.js`）。**没有任何一道守「这个事件有人调用」。** 一个登记了却没接线的事件，
+对所有测试来说与「一切正常」无法区分；到了线上，与「没人触发」同样是 0。§3.3 已经写下
+「凡是新宿主上线，都要逐条问这个事件在这个宿主有发送点吗」—— 那是一句话，不是门禁，
+三天后就复发了。上表第 1、3 行更直接：**文档的 Seam 一列与代码不一致，而没有任何东西在比对它们。**
+
+另有一处流程上的原因：§3.3 裁定 1 的结论是「不动白名单」，于是它没有走「改注册表 → 重生成
+→ 部署 bt-ingest」那条有清单的路，也没有留下代码侧的待办；裁定随文档合并，待办按「PR 合并」
+标了完成。
+
+**修法（本次修订的全部内容）：Seam 一列进注册表，由 `npm test` 对着代码核。**
+
+1. `build/telemetry.config.js` 每个事件加 `seams`：一个数组，每项
+   `{ host: 'ext' | 'app', file, match? }` —— `file` 是仓库内路径，`match` 是可选的、
+   必须与调用同现的字面量（如 `kind: 'subtitle'`），用来区分同名事件的不同表面。两宿主同一份
+   字节的模块（`learn/*.js`）写一项 `host: 'ext'` 加一项 `host: 'app'`，后者的 `file` 相同，
+   门禁额外核它在 `build/app-bundle.js` 的 `MODULES` 里 —— 「同名模块进了包」与「接上了」
+   是两件事（§3.3），两件都要核。
+2. 某个宿主**有意**不发的，写 `{ host, none: '<一句理由>' }`，不许留空。例：`subtitle_on`
+   在 App 是 `none`（App 的入口由 `asr_entry{surface:'app_home'}` 回答）；`rate_prompt` 在
+   App 是 `none`（评分提示挂在网页译文末尾，App 没有这个表面）；`ext_banner` 在扩展是 `none`。
+   §3.3 裁定 2（补译文不发 `translate_ok`）也落成这样一项，于是「不做」第一次有了机器可读的形状。
+3. 新门禁（并入 `test/telemetry-registry.test.js`）：① 每个事件、每个宿主，要么有 `seams`
+   项要么有 `none`；② 每个 `seams` 项的 `file` 里真的有 `track('<事件>'` / `once('<事件>'`
+   （或该事件在 `telemetry.js` 内部直发的等价形状），带 `match` 的还要同现；③ `host:'app'` 且
+   `file` 在 `extension/` 下的，必须在 App 包的 `MODULES` 里。
+4. **`seams` 不出注册表。** 它是构建期的元数据：不进 `events.gen.json`（服务端不需要知道
+   谁在发），不进 `window.MT_TELEMETRY`（客户端不需要），也就不改线上契约 —— 事件、属性、
+   枚举值一个不加。本文档 §3 表的 Seam 一列保留给人读，但**以注册表为准**；两者打架时改文档。
+5. 静态核对只证明「有调用」，证明不了「走得到」。两条用户路径各加一条行为断言，挂在已有的
+   端到端门禁里，读 `tm:queue`（§8 为 smoke 留的同一个手段）：`npm run test:listen` ——
+   第一条译文定稿后队列里有 `translate_ok{kind:'subtitle'}`；`scripts/verify-onboard.js` ——
+   「免费开始」领取成功后队列里有 `grant_claimed` 与 `engine_set`。
+6. **遥测待办的完成判据**一律写成「在 `bt_events` 里读到 `<host>` 的 `<event>`」，不写
+   「PR 合并」。判据写成合并，就等于把「接上了」交给下一次偶然的回读去发现。
+
+**随代码 PR 一起补的发送点（白名单不变）：**
+
+- `grant_claimed` 挪回本文档一直写着的位置：`learn/grant.js` 的 `claim()` 落定处
+  （`!reused` 时发）—— 一处覆盖两个宿主，`options.js` 那一处删掉。与 `engine_test` 包在
+  导出处是同一个理由（§3.3.1 第 3 条）。
+- App 的领取路径在写完配置后走与 `applyQuickSetup` 相同的 `EngineState.needsSetup` 判据发
+  `engine_set`。
+- `app/listen.js`：每个会话第一条译文定稿时发一次 `translate_ok{kind:'subtitle'}`
+  （与网页侧「每会话一次」同义）。
+- `grant_exhausted`：中继回 402、`wire-format.js` 归类为 `credit_exhausted`、并在
+  `translation-core.js` 落成最终失败的那一处，`once`（每装机一次，定义见 §3 表）。§3 表里写的
+  `balance(force)` 二次判定在代码里并不存在 —— 中继的 402 本身就是「用完了」的判定，不再加一道；
+  确切行号由代码 PR 定，并登记进 `seams`。
+
+**要人裁定的两条（都不动白名单；枚举现成）：**
+
+- **A. App 听译 / 实时字幕的 `translate_fail`** —— 建议**发**：译文请求最终失败（界面出
+  「译文失败 · 重试」）时一条，`code` 用现有枚举，节流沿用 `telemetry.js` 现有的那一道。
+  理由：没有失败数，`translate_ok` 只能说明「有人成功过」，说明不了「这条路通不通」。
+- **B. 文档阅读器的 `translate_fail`**（两宿主）—— 建议**发**，同上，挂在 `doc-view.js`
+  页状态落到 `error` 处，每页至多一条。
+
+**历史数据怎么读。** `grant_claimed` 在 App 上、`translate_ok{subtitle}` 在 App 上、
+`grant_exhausted` 在所有宿主上，**修复版本出货之前的 0 都是「量不到」**，不可与之后比较；
+账号侧 `bt_grants` 的逐日新领数（09-15 起每天 2–6 个）是这段时间唯一可用的领取读数，
+按原则 7 它不与遥测 join。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
