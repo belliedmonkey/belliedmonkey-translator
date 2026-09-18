@@ -107,6 +107,17 @@ The YouTube subtitle path follows **one** logic, identical on every platform
    capture that hands us the body directly on platforms that support it (Chrome) —
    never the sole source.
 
+   **Acquisition is paused while an ad plays** (`acquireGate: () => !adShowing()`, #325,
+   2026-09-18). During a pre-roll the main video's `/api/timedtext` request does not exist
+   yet, so every attempt is a miss; with the attempt cap (8 × 2.5 s ≈ 20 s) a longer ad
+   used to exhaust it and latch 「字幕不可用」 for the whole video even though YouTube served
+   the track seconds later — measured on a signed-in desktop Chrome: 200 / 46 KB json3, the
+   URL recorded, our own re-fetch succeeding, the overlay still saying unavailable. While
+   the gate is closed no attempt starts and nothing is counted; when the ad ends the budget
+   is fresh, a cap-exhausted `unavailable` is un-latched, and the CC / forced-refetch
+   one-shots are re-armed so their grace runs from the main video. A backend's own final
+   `'unavailable'` and a started §2.4 session are not affected.
+
 If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
 show a one-line notice — **do not** silently regress to per-caption translation.
 

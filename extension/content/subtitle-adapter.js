@@ -42,6 +42,11 @@
 //   buttonCss():    string — (optional) the floating button's cssText
 //   onActiveChange(on): void — (optional) e.g. inject/remove native-caption-hiding CSS
 //   beforeRender():'clear'|'skip'|void — (optional) e.g. suppress overlay during an ad
+//   acquireGate():  bool   — (optional) false ⇒ acquisition is PAUSED: no attempt is started and
+//                   nothing is counted (e.g. a YouTube pre-roll ad — the main video's transcript
+//                   does not exist yet, and maxAttempts would be spent on nothing; #325). When it
+//                   turns true again the attempt budget is fresh and a cap-exhausted `unavailable`
+//                   is un-latched. A backend's own final 'unavailable' / fail(msg) is NOT.
 //   syncNative(active, hasItems): void — (optional) native <track>/UI suppression, every tick
 //   srtName():      string — (optional) download filename base
 
@@ -67,6 +72,9 @@ var SubtitleAdapter = (() => {
     // failures：已落定的「这次没取到」次数（null / 超时 / 抛错）。早出的 offer 按它判，不按 !inFlight ——
     // 否则下一次 acquire 一起飞 offer 就消失、落定又出，一闪一闪（全回归 09-15 O3）。
     let inFlight = false, attempts = 0, nextAt = 0, failures = 0;
+    // acquireGate（#325）：gateWasClosed 记「上一拍闸门关着」，capExhausted 记「unavailable 是次数耗尽落定的」——
+    // 只有这一种 unavailable 会在闸门重开时解开；后端自己给的最终结论（'unavailable' / fail(msg)）不解。
+    let gateWasClosed = false, capExhausted = false;
     // Every (re)start of acquisition bumps the epoch; an acquire that resolves after
     // the epoch moved (media changed, acquireVia took over) must not touch `status`.
     let acquireEpoch = 0;
@@ -267,14 +275,29 @@ var SubtitleAdapter = (() => {
         if (realChange) { abortStream('media'); asrAcquire = null; }
         noticeMsg = ''; applyWindow(FILE_WINDOW);
         engine.setItems([]); engine.reset();
-        inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; clearOverlay(); acquireEpoch++;
+        inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; capExhausted = false; clearOverlay(); acquireEpoch++;
         if (spec.onMediaKeyChange) spec.onMediaKeyChange(); // backend resets its own acquire state
       }
 
       // 'streaming' latches the gate exactly like 'unavailable': the backend now owns
       // acquisition and feeds the engine through ctx.push — re-calling acquire would
       // start a second capture of the same media.
-      if (!engine.items.length && status !== 'unavailable' && status !== 'streaming' && !inFlight && Date.now() >= nextAt) {
+      // 取字幕的闸门（#325，2026-09-18）。YouTube 片头广告期间正片的 timedtext 还不存在：那 20 s（8 × 2.5 s）
+      // 的尝试全落空，status 锁死在 unavailable，广告结束后地址来了也不再试 —— 而界面只说「字幕不可用」。
+      // 闸门关着：不起飞、不计次。重新打开：预算清零；只解开「次数耗尽」落定的 unavailable。
+      // 用户已经点过的 §2.4 转写（asrAcquire）不归这道闸门管 —— 那是一次付费会话，不能因为一条广告重来。
+      const gateOpen = spec.acquireGate ? !!spec.acquireGate() : true;
+      if (!gateOpen) gateWasClosed = true;
+      else if (gateWasClosed) {
+        gateWasClosed = false;
+        if (!engine.items.length && status !== 'streaming' && !asrAcquire) {
+          attempts = 0; failures = 0; nextAt = 0;
+          if (status === 'unavailable' && capExhausted) { status = ''; lastShownKey = ''; }
+        }
+        capExhausted = false;
+      }
+
+      if (gateOpen && !engine.items.length && status !== 'unavailable' && status !== 'streaming' && !inFlight && Date.now() >= nextAt) {
         inFlight = true; status = status === 'ready' ? 'ready' : 'loading'; attempts++;
         const ctx = makeCtx();
         const fn = asrAcquire || spec.acquire;
@@ -290,11 +313,11 @@ var SubtitleAdapter = (() => {
           if (res === 'unavailable') { status = 'unavailable'; }
           else if (res === 'streaming') { if (status !== 'unavailable') status = 'streaming'; }
           else if (res && res.length) { engine.setItems(TranslationCore.mergeSentences(res)); status = 'ready'; }
-          else { failures++; if (attempts >= MAX_ATTEMPTS) status = 'unavailable'; else nextAt = Date.now() + RESOLVE_RETRY_MS; }
+          else { failures++; if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; capExhausted = true; } else nextAt = Date.now() + RESOLVE_RETRY_MS; }
         }).catch(() => {
           if (epoch !== acquireEpoch) return;
           failures++;
-          if (attempts >= MAX_ATTEMPTS) status = 'unavailable';
+          if (attempts >= MAX_ATTEMPTS) { status = 'unavailable'; capExhausted = true; }
           else nextAt = Date.now() + RESOLVE_RETRY_MS;
         }).finally(() => { if (epoch === acquireEpoch) inFlight = false; });
       }
@@ -485,7 +508,7 @@ var SubtitleAdapter = (() => {
     // ─── Public API ────────────────────────────────────────────────────
     function setActive(on) {
       active = on;
-      if (on) { lastKey = ''; inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; acquireEpoch++; }
+      if (on) { lastKey = ''; inFlight = false; attempts = 0; failures = 0; nextAt = 0; status = ''; capExhausted = false; acquireEpoch++; }
       // 用量事件：字幕会话开始，只记站点**类别**（youtube / substack / podcast / other），不记域名。
       if (on && (typeof MTTelemetry !== 'undefined')) {
         subOkSent = false; subSince = Date.now();
@@ -501,7 +524,7 @@ var SubtitleAdapter = (() => {
     function acquireVia(fn) {
       abortStream('restart');
       asrAcquire = fn; noticeMsg = '';
-      status = ''; attempts = 0; failures = 0; nextAt = 0; inFlight = false; acquireEpoch++;
+      status = ''; attempts = 0; failures = 0; nextAt = 0; inFlight = false; capExhausted = false; acquireEpoch++;
       engine.setItems([]); engine.reset(); clearOverlay();
       // With subtitles off, setActive's own tick sees the FIRST media key (not a change,
       // so the session registered above survives) and runs it. Found live: an earlier

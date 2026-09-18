@@ -339,6 +339,65 @@ describe('§2.4 wire-format: transcribe-gemini', () => {
 });
 
 // ─── request-shape ────────────────────────────────────────────────────
+// ─── acquireGate：片头广告不能把取字幕的次数耗光（#325，2026-09-18 Windows 台式机实测）──────────
+//
+// 现场：YouTube 的字幕数据完好地到了浏览器（200 / 46 KB json3），扩展也记到了地址、照自己的方式重取也成功，
+// 叠层却锁在「字幕不可用」。因为 maxAttempts:8 × 2.5 s ≈ 20 s 的窗口在片头广告期间就耗光了 ——
+// adShowing() 只接在 beforeRender（清叠层），不影响 acquire 的计数。判据是调用数，不是叠层文案：
+// 广告期间叠层本来就被清掉，看画面看不出「悄悄试了 8 次」。
+describe('acquireGate: a pre-roll ad must not burn the acquisition attempts (#325)', () => {
+  const zhOf = (document) => (document.getElementById('ov') || { querySelector: () => null }).querySelector('.t');
+
+  test('★ gate closed ⇒ acquire is never called and nothing latches; gate opens ⇒ the first attempt wins', async () => {
+    const clock = { t: 1e12 }; let open = false, calls = 0;
+    const { ui, document } = loadHarness({ clock, spec: { maxAttempts: 8, acquireGate: () => open,
+      acquire: async () => { calls++; return open ? [{ start: 0, end: 1000, text: 'Hello.' }] : null; } } });
+    ui.init({}); ui.enable();
+    for (let i = 0; i < 14; i++) { clock.t += 2600; ui.tick(); await flush(); } // 36 s of ad — more than 8 × 2.5 s
+    eq(calls, 0, 'no attempt may be spent while the ad plays');
+    const zh = zhOf(document);
+    ok(!zh || !/字幕不可用|unavailable/i.test(zh.textContent), 'must not settle on 字幕不可用 during the ad: ' + (zh && zh.textContent));
+    open = true; clock.t += 300; ui.tick(); await flush(); ui.tick(); await flush();
+    eq(calls, 1, 'one attempt right after the ad');
+    eq(ui.engine.items.length, 1, 'and it is the one that loads the transcript');
+  });
+
+  test('attempts spent BEFORE the ad are not carried past it — the full budget is back', async () => {
+    const clock = { t: 1e12 }; let open = true, calls = 0;
+    const { ui, document } = loadHarness({ clock, spec: { maxAttempts: 8, acquireGate: () => open, acquire: async () => { calls++; return null; } } });
+    ui.init({}); ui.enable();
+    for (let i = 0; i < 5; i++) { clock.t += 2600; ui.tick(); await flush(); }
+    eq(calls, 5);
+    open = false; for (let i = 0; i < 6; i++) { clock.t += 2600; ui.tick(); await flush(); }
+    eq(calls, 5, 'nothing during the ad');
+    open = true; for (let i = 0; i < 12; i++) { clock.t += 2600; ui.tick(); await flush(); }
+    eq(calls, 13, '8 fresh attempts after the ad, then it settles');
+    ok(/字幕不可用|unavailable/i.test(zhOf(document).textContent), 'a video that really has no track still ends in 字幕不可用');
+  });
+
+  test('a cap reached before the ad is un-latched when it ends (the track may only exist after it)', async () => {
+    const clock = { t: 1e12 }; let open = true, calls = 0, ready = false;
+    const { ui, document } = loadHarness({ clock, spec: { maxAttempts: 3, acquireGate: () => open,
+      acquire: async () => { calls++; return ready ? [{ start: 0, end: 1000, text: 'Hello.' }] : null; } } });
+    ui.init({}); ui.enable();
+    for (let i = 0; i < 5; i++) { clock.t += 2600; ui.tick(); await flush(); }
+    eq(calls, 3); ok(/字幕不可用|unavailable/i.test(zhOf(document).textContent), 'settled before the ad');
+    open = false; clock.t += 2600; ui.tick(); await flush();
+    open = true; ready = true; clock.t += 2600; ui.tick(); await flush(); ui.tick(); await flush();
+    eq(calls, 4, 'tried again once the ad ended');
+    eq(ui.engine.items.length, 1);
+  });
+
+  test("a backend's final 'unavailable' is NOT un-latched by the gate", async () => {
+    const clock = { t: 1e12 }; let open = true, calls = 0;
+    const { ui } = loadHarness({ clock, spec: { acquireGate: () => open, acquire: async () => { calls++; return 'unavailable'; } } });
+    ui.init({}); ui.enable(); ui.tick(); await flush();
+    open = false; clock.t += 2600; ui.tick(); await flush();
+    open = true; for (let i = 0; i < 4; i++) { clock.t += 2600; ui.tick(); await flush(); }
+    eq(calls, 1, "'unavailable' from the backend means no track — an ad ending changes nothing");
+  });
+});
+
 function loadRS() {
   const vm = require('vm');
   const WireFormat = require('../extension/content/wire-format.js');
