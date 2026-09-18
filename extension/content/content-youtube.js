@@ -174,6 +174,7 @@ var YouTubeTranslator = (() => {
       window.MT_PALETTE.roundBtnCss(15) +
       'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
   }
+  let adWas = false; // 上一拍是否在放广告（#325）
   function adShowing() {
     const pl = document.querySelector(PLAYER);
     return (pl && (pl.classList.contains('ad-showing') || pl.classList.contains('ad-interrupting'))) ||
@@ -193,7 +194,16 @@ var YouTubeTranslator = (() => {
     placeOverlay,
     fontPx,
     textWidth,
-    onTick: (active) => { if (active) ensureCaptionsOn(); }, // per-tick until CC is on
+    // 片头广告期间不取字幕（#325）：正片的 /api/timedtext 要等广告结束 YouTube 才会去取，这之前的每一次尝试都是空转，
+    // 8 次耗光就锁死在「字幕不可用」。广告结束的那一拍把一次性标记还原，让「3 s 宽限后强制重取」从正片开始算；
+    // 广告期间也不去碰 CC 按钮 —— 那是广告自己的字幕开关。
+    acquireGate: () => !adShowing(),
+    onTick: (active) => {
+      const ad = adShowing();
+      if (adWas && !ad) { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
+      adWas = ad;
+      if (active && !ad) ensureCaptionsOn(); // per-tick until CC is on
+    },
     onMediaKeyChange: () => { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); hookCues = null; },
     onActiveChange: (on) => {
       if (on) { injectCaptionStyle(); ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
