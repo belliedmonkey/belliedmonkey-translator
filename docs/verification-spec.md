@@ -1098,7 +1098,7 @@ dated ✅/❌ with a read-back the first time it is actually driven.
 remembering one:
 
 ```bash
-grep -A3 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -4   # ip + hostname
+grep -A5 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -6   # ip … client-hostname (6 lines per block)
 ```
 
 OOBE had no network (Fusion's virtual NIC needs VMware Tools); it was bypassed with
@@ -1109,9 +1109,23 @@ works with no configuration.
 loaded fresh each run, driven **from the Mac** so the recipe stays scriptable and the
 in-VM state stays throwaway. Nothing is installed permanently except the browsers.
 
-**One-time setup inside the VM (⬜):** install Chrome, Edge and Firefox (ARM64 builds);
-allow inbound on the private-network profile for the debug port
-(`netsh advfirewall firewall add rule name=cdp dir=in action=allow protocol=TCP localport=9222`).
+**One-time setup inside the VM (⬜):** install Chrome, Edge and Firefox (ARM64 builds).
+Then, in an **elevated** PowerShell (右键 → 以管理员身份运行 — a normal shell answers
+「请求的操作需要提升」 and installs nothing), forward an outside port to Chrome's loopback
+port and open it in the firewall:
+
+```
+netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1
+netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223
+netsh interface portproxy show v4tov4      # read back: the 9223 → 127.0.0.1:9222 row must be listed
+```
+
+**Why a port proxy (measured 2026-09-18):** desktop Chrome **ignores
+`--remote-debugging-address`** — only headless honours it. Launched with
+`--remote-debugging-address=0.0.0.0`, the VM never bound 9222 on its NIC (`nc -z <vm-ip> 9222`
+from the Mac: refused / timeout while `localhost:9222` inside the VM answered). The proxy is
+what makes the port reachable; the firewall rule is what lets the packet in. Both are silent
+when missing — the Mac just times out — so read the proxy table back as above.
 
 **Getting `dist/` into the VM — there are NO shared folders on this guest (read back
 2026-09-18: the ARM Windows VM's settings panel has no 「共享」 pane at all).** Serve the
@@ -1125,19 +1139,25 @@ curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # exp
                                                                             # proxy env returns 503 without --noproxy
 ```
 
-In the VM open `http://192.168.2.1:8765/`, download, unzip to `C:\mt\dist` (Chrome / Edge)
-and `C:\mt\dist-firefox`. Those are the paths `Extensions.loadUnpacked` and `web-ext` get.
+In the VM open `http://192.168.2.1:8765/`, download, unzip to `C:\Users\<user>\Downloads\mt\dist`
+(Chrome / Edge) and `…\mt\dist-firefox` (on 2026-09-18 the user is `zhao`). Those are the
+paths `Extensions.loadUnpacked` and `web-ext` get — Windows paths, backslashes, as the VM sees them.
 
-**Chrome / Edge (⬜):** launch inside the VM with a throwaway profile:
+**Chrome / Edge (⬜):** launch inside the VM with a throwaway profile. This is **one line for
+the Win+R Run box** (it expands `%TEMP%`); in PowerShell `%TEMP%` is a literal and a trailing
+`^` does not continue the line, so don't paste it there:
 
 ```
-chrome.exe --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check ^
-  --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 chrome://newtab/
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* about:blank
 ```
 
-then from the Mac, `http://<vm-ip>:9222/json/version` → browser WS →
+then from the Mac, `http://<vm-ip>:9223/json/version` (the **proxied** port) → rewrite the
+returned `webSocketDebuggerUrl` host to `<vm-ip>:9223` (Chrome reports `127.0.0.1:9222`) →
 `Extensions.loadUnpacked {path: "<Windows path to dist>"}` — the §2.D flow unchanged
-except the host. **Read back** `!!document.querySelector('#mt-fab')` on the test page and
+except the host. `--remote-allow-origins=*` is there because since Chrome 111 a WebSocket
+upgrade that carries a non-loopback `Origin` is refused with 403 while the JSON endpoint
+still answers 200 — a client that sends no `Origin` (Node's built-in `WebSocket`) passes
+either way, but the flag makes the recipe independent of that detail. **Read back** `!!document.querySelector('#mt-fab')` on the test page and
 the `.mt-translation` count, same as §2.D. `chrome://inspect/#devices` style discovery is
 not needed; the JSON endpoint is enough.
 
@@ -1151,7 +1171,7 @@ VM (same trap as §2.E: it live-references the folder), or a throwaway profile w
 - **Speech.** `speechSynthesis.getVoices()` on Windows lists OneCore / SAPI voices;
   per-language availability differs from macOS (some languages exist on one and not the
   other), and Edge additionally exposes its online 「Natural」 voices. The settings page
-  試听 and the review-card ▶ must pick a real voice per target language here.
+  试听 and the review-card ▶ must pick a real voice per target language here.
 - **Layout.** The bilingual line under CJK fonts Windows actually has (Microsoft YaHei /
   Yu Gothic / Malgun Gothic) and Windows' default line-height; the FAB's `position:
   fixed` with the Windows scrollbar taking layout width (macOS overlay scrollbars hide
