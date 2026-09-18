@@ -74,7 +74,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
-| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 在虚拟机里带 `--remote-debugging-port` + `--remote-debugging-address=0.0.0.0` 启动，然后用 §2.D **同一套** CDP `Extensions.loadUnpacked`；Firefox 走 `web-ext` + WebDriver BiDi | ⬜ **未跑**（2026-09-18 用户裁定进矩阵，虚拟机同日装好；首跑欠着 — see §2.H）|
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
 
 > **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
 > 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
@@ -547,7 +547,7 @@ translation line"; it does not, and reading the DOM would have passed a broken d
 | iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage`. Measured on all three: macOS Safari 2026-07-28, iPhone (iOS 26.5) and iPad Air (iOS 17.2) 2026-07-28 via §1.1 | no translation lines, nothing sent (script layer, unchanged) |
 | macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
 | Firefox | same as Chrome / Edge | same as Chrome / Edge |
-| Windows Chrome / Edge · Firefox | same as macOS Chrome / Edge（`chrome.i18n.detectLanguage` 同样存在）— ⬜ 未量 | same — ⬜ 未量 |
+| Windows Chrome / Edge · Firefox | same as macOS Chrome / Edge — `chrome.i18n.detectLanguage` **present on all three**（2026-09-18 读回：Chrome 153 / Edge 145 / Firefox 156）；the request-level check itself ⬜ 未量 | same — ⬜ 未量 |
 
 **Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
 a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
@@ -556,7 +556,7 @@ is named here rather than assumed:
 | Surface | Expected |
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
-| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 未量。语音清单来自 Windows 自己（OneCore / SAPI），与 macOS 完全不同：试听必须按目标语言选到一个**真实存在**的声音，且 #320 那句「这个浏览器不提供内置语音」在这里**不该**出现（出现即缺陷，不是平台限制）|
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**）。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
 | **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
@@ -1085,100 +1085,151 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ⬜ not yet run
+### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
-exclusion in #321). The VM exists and boots; **no verification has been run on it yet**,
-so everything below the first paragraph is the plan, not a record. Turn each ⬜ into a
-dated ✅/❌ with a read-back the first time it is actually driven.
+exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
+loading the 1.12.1 `dist/` / `dist-firefox/`, all rendering the bilingual page through
+DeepSeek. Everything below is what was measured; the traps are listed because every one
+of them cost a loop.
 
-**What exists (read back 2026-09-18):** VMware Fusion 13.6.4, VM
+**What exists:** VMware Fusion 13.6.4, VM
 `~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`, NAT on vmnet8, hostname
-`DESKTOP-1ME3A1R`. The Mac reaches it by IP; read the current lease rather than
-remembering one:
+`DESKTOP-1ME3A1R`, Windows in Simplified Chinese. The Mac reaches it by IP; read the
+current lease rather than remembering one:
 
 ```bash
 grep -A5 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -6   # ip … client-hostname (6 lines per block)
 ```
 
-OOBE had no network (Fusion's virtual NIC needs VMware Tools); it was bypassed with
-`oobe\bypassnro`, then VMware Tools installed from the 虚拟机 menu — after that NAT
-works with no configuration.
+OOBE had no network (Fusion's virtual NIC needs VMware Tools); bypassed with
+`oobe\bypassnro`, then VMware Tools from the 虚拟机 menu — after that NAT works with no
+configuration. **The Windows profile folder is `C:\Users\张钊`, not the login name `zhao`**
+— list `file:///C:/Users/` through the browser before guessing a path.
 
 **Principle (§0, device principle):** the same `dist/` / `dist-firefox/` the stores get,
 loaded fresh each run, driven **from the Mac** so the recipe stays scriptable and the
 in-VM state stays throwaway. Nothing is installed permanently except the browsers.
+Pixel-driving the Fusion window from cua-driver does **not** work (measured: the hover
+tooltip appears, the click never reaches the guest) — everything goes over the network.
 
-**One-time setup inside the VM (⬜):** install Chrome, Edge and Firefox (ARM64 builds).
-Then, in an **elevated** PowerShell (右键 → 以管理员身份运行 — a normal shell answers
-「请求的操作需要提升」 and installs nothing), forward an outside port to Chrome's loopback
-port and open it in the firewall:
+**One-time setup inside the VM (done 2026-09-18):** Chrome, Edge, Firefox (ARM64 builds).
+Then, in an **elevated** PowerShell — a normal one answers 「请求的操作需要提升」 and
+installs nothing, and Windows PowerShell 5.1 has no `&&`; use `;` — forward an outside
+port to the browsers' loopback debug port and open it:
 
 ```
-netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1
-netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223
-netsh interface portproxy show v4tov4      # read back: the 9223 → 127.0.0.1:9222 row must be listed
+netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1; netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223; netsh interface portproxy show v4tov4
 ```
 
-**Why a port proxy (measured 2026-09-18):** desktop Chrome **ignores
-`--remote-debugging-address`** — only headless honours it. Launched with
-`--remote-debugging-address=0.0.0.0`, the VM never bound 9222 on its NIC (`nc -z <vm-ip> 9222`
-from the Mac: refused / timeout while `localhost:9222` inside the VM answered). The proxy is
-what makes the port reachable; the firewall rule is what lets the packet in. Both are silent
-when missing — the Mac just times out — so read the proxy table back as above.
+**Why a port proxy (measured):** desktop Chrome **ignores `--remote-debugging-address`**
+(only headless honours it) — with `=0.0.0.0` the VM never bound 9222 on its NIC. Firefox's
+remote agent is loopback-only too. The proxy makes 9222 reachable as 9223; the firewall
+rule lets the packet in; both are silent when missing (the Mac just times out), so read
+the proxy table back. The proxy has one side effect that bites Firefox — see below.
 
-**Getting `dist/` into the VM — there are NO shared folders on this guest (read back
-2026-09-18: the ARM Windows VM's settings panel has no 「共享」 pane at all).** Serve the
-build from the Mac over vmnet8 and download it inside the VM, every run (the build changes,
-the VM copy must follow):
+**Getting `dist/` into the VM — there are NO shared folders on this guest** (the ARM
+Windows VM's settings panel has no 「共享」 pane). Serve from the Mac and download inside:
 
 ```bash
-# Mac side — the host's vmnet8 address is 192.168.2.1 (bridge101); zip dist/ and dist-firefox/
-python3 -m http.server 8765 --bind 0.0.0.0        # in a folder holding dist-chrome.zip / dist-firefox.zip
-curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # expect 200 — this shell's
-                                                                            # proxy env returns 503 without --noproxy
+# Mac side — vmnet8 host address 192.168.2.1 (bridge101); a folder holding dist-chrome.zip, dist-firefox.zip, page.html
+python3 -m http.server 8765 --bind 0.0.0.0
+curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # 200 — this shell's proxy env gives 503 without --noproxy
 ```
 
-In the VM open `http://192.168.2.1:8765/`, download, unzip to `C:\Users\<user>\Downloads\mt\dist`
-(Chrome / Edge) and `…\mt\dist-firefox` (on 2026-09-18 the user is `zhao`). Those are the
-paths `Extensions.loadUnpacked` and `web-ext` get — Windows paths, backslashes, as the VM sees them.
+In the VM open `http://192.168.2.1:8765/`, unzip to `C:\Users\<user>\Downloads\mt\dist` and
+`…\mt\dist-firefox`. **`scripts/win-matrix/page.html` is the test page** (three English
+paragraphs + a heading); the drivers load it from that same server.
 
-**Chrome / Edge (⬜):** launch inside the VM with a throwaway profile. This is **one line for
-the Win+R Run box** (it expands `%TEMP%`); in PowerShell `%TEMP%` is a literal and a trailing
-`^` does not continue the line, so don't paste it there:
+**Mac side, all three:** run with the shell's proxy variables cleared — Node 22 honours
+`NODE_USE_ENV_PROXY` and the proxy answers 503 for the VM:
+
+```bash
+env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy -u ALL_PROXY \
+  node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' chrome
+env … node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' edge
+env … node scripts/win-matrix/firefox.js  192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist-firefox'
+```
+
+Each writes `.local/win/<label>.json` + screenshots and asserts: extension loaded and its
+version, options page renders with **no** `Runtime.exceptionThrown`, `#mt-fab` present with
+title 开启翻译, click → **≥ 3 `.mt-translation` all containing Han and none still the
+「⏳ 翻译中…」 placeholder** (the placeholder contains Han too — the first assertion passed
+on it in 5 ms and read as a 30 s stall until the log was read), plus the Windows readings:
+`speechSynthesis.getVoices()`, `chrome.i18n.detectLanguage` presence, scrollbar width,
+translation font. The Chromium driver also logs every request the service worker makes.
+
+**Chrome (✅ 153):** launch from **Win+R** (it expands `%TEMP%`; in PowerShell `%TEMP%` is a
+literal, a trailing `^` doesn't continue the line, and `chrome.exe` in quotes needs `&`):
 
 ```
 "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* about:blank
 ```
 
-then from the Mac, `http://<vm-ip>:9223/json/version` (the **proxied** port) → rewrite the
-returned `webSocketDebuggerUrl` host to `<vm-ip>:9223` (Chrome reports `127.0.0.1:9222`) →
-`Extensions.loadUnpacked {path: "<Windows path to dist>"}` — the §2.D flow unchanged
-except the host. `--remote-allow-origins=*` is there because since Chrome 111 a WebSocket
-upgrade that carries a non-loopback `Origin` is refused with 403 while the JSON endpoint
-still answers 200 — a client that sends no `Origin` (Node's built-in `WebSocket`) passes
-either way, but the flag makes the recipe independent of that detail. **Read back** `!!document.querySelector('#mt-fab')` on the test page and
-the `.mt-translation` count, same as §2.D. `chrome://inspect/#devices` style discovery is
-not needed; the JSON endpoint is enough.
+`Extensions.loadUnpacked` works over the proxied port. Repeating it on the same path
+**reloads** the extension, and the service-worker target you just matched may be the one
+on its way out (`chrome is not defined` on evaluate) — the driver re-finds the worker and
+retries. Read-back: FAB, 4 translations (title + 3 paragraphs), scrollbar **15 px**
+(classic scrollbar takes layout width), `detectLanguage` present, 22 voices.
 
-**Firefox (⬜):** `npx web-ext run --source-dir dist-firefox --firefox <path>` inside the
-VM (same trap as §2.E: it live-references the folder), or a throwaway profile with
-`--remote-debugging-port` + WebDriver BiDi bound to `0.0.0.0` (`remote.hosts` /
-`remote.origins` prefs must list the Mac, or Firefox rejects the connection).
+**Edge (✅ 145):** `Extensions.loadUnpacked` answers **「Method not available」** on Edge.
+What works: `--enable-unsafe-extension-debugging --load-extension=<dist>` at launch (the
+`--load-extension` block Chrome ≥ 137 has is not in Edge 145), and the driver falls back
+to finding the already-loaded extension's service worker. PowerShell form (Win+R's
+`msedge` short name is not a PowerShell command):
 
-**What the row is FOR — the differences this VM can see and macOS cannot:**
+```
+Start-Process msedge -ArgumentList "--user-data-dir=$env:TEMP\mt-edge2 --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* --enable-unsafe-extension-debugging --load-extension=C:\Users\张钊\Downloads\mt\dist about:blank"
+```
 
-- **Speech.** `speechSynthesis.getVoices()` on Windows lists OneCore / SAPI voices;
-  per-language availability differs from macOS (some languages exist on one and not the
-  other), and Edge additionally exposes its online 「Natural」 voices. The settings page
-  试听 and the review-card ▶ must pick a real voice per target language here.
-- **Layout.** The bilingual line under CJK fonts Windows actually has (Microsoft YaHei /
-  Yu Gothic / Malgun Gothic) and Windows' default line-height; the FAB's `position:
-  fixed` with the Windows scrollbar taking layout width (macOS overlay scrollbars hide
-  this class of overlap).
-- **Fullscreen** on Windows Chrome / Firefox (a separate compositor path from macOS).
-- **Input** is not a concern (extension has no keyboard shortcuts), but IME composition
-  on a Windows CJK IME is worth one look at the settings page's text fields.
+Read-back: FAB, 4 translations in 1.45 s, **service worker → api.deepseek.com ×4, all 200
+at 0.3 s** (the proof the request left the machine — Chrome's run was cache-warm),
+scrollbar **0 px** (overlay scrollbars), 26 voices.
+
+**Firefox (✅ 156, WebDriver BiDi — five traps, in order):**
+
+```
+Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe" -ArgumentList "--remote-debugging-port 9222 --remote-allow-hosts 192.168.2.128 --remote-allow-origins http://192.168.2.128:9223 -remote-allow-system-access -no-remote -profile $env:TEMP\mt-ff about:blank"
+```
+
+1. **The WebSocket upgrade must carry `Host: 127.0.0.1:9222`** — every other Host (the
+   VM's IP with either port, `localhost:9222`) is 400 even with `--remote-allow-hosts`.
+   Node's built-in `WebSocket` cannot set Host, so `firefox.js` carries a 60-line RFC 6455
+   client. (`curl -i` with the upgrade headers and different `Host:` values is how this
+   was found: only the loopback one answers 101.)
+2. **`webExtension.install {type:'path'}` installs the temporary add-on** — but BiDi refuses
+   `browsingContext.navigate` to `about:debugging` *and* to any `moz-extension://` URL
+   (「not allowed in this context」), so neither the internal UUID nor the options page is
+   reachable the obvious way. The UUID is read from the throwaway profile's `prefs.js`
+   over `file://` (`extensions.webextensions.uuids`), and the options page is reached by
+   letting a normal web page **navigate itself** there — `options/options.html` is
+   `web_accessible` for `<all_urls>`, and a page-initiated navigation is not policed.
+3. **Evaluating inside that extension page needs `-remote-allow-system-access`** at launch
+   (「System access is required」 otherwise). With it, `browser.storage.local.set(...)` seeds
+   DeepSeek and `getVoices()` is read there. `captureScreenshot` of that page still refuses
+   (「privileged scope」) — cosmetic, the web page screenshot is the evidence.
+4. **One BiDi session at a time, and the port proxy keeps a dead client's session alive**:
+   a driver killed by a watchdog leaves Firefox saying 「Maximum number of active sessions」
+   until Firefox is restarted — the Mac side shows only TIME_WAIT, the inner 127.0.0.1
+   leg is what the proxy holds. `firefox.js` therefore ends its session on **every** exit
+   path (normal, error, watchdog, SIGTERM). If you see that error, restart Firefox; no
+   amount of retrying frees it.
+5. Reinstalling the add-on closes its own pages, and onboarding opens only on a first
+   install — never count on an extension tab already being there.
+
+Read-back: FAB, 4 translations in 1.55 s (fresh profile — a real DeepSeek round trip),
+scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira en-US).
+
+**What this row can see that macOS cannot — first readings, 2026-09-18:**
+
+- **Speech.** A Chinese-locale Windows ships **only three local voices, all zh-CN**. Chrome
+  and Edge pad the list with online voices (Google / Microsoft Natural); Firefox exposes
+  the SAPI set only (5, incl. one English). Any language-specific fallback logic must be
+  checked against this shape, not macOS's ~100-voice list. Actual playback ⬜ unmeasured.
+- **Layout.** CJK text renders in Microsoft YaHei (screenshots in `.local/win/`), the
+  bilingual line and the FAB sit where they do on macOS. Chrome's classic scrollbar eats
+  15 px of layout width; Edge's and Firefox's overlay scrollbars eat 0.
+- **Fullscreen** (§1.0 table) and **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
 
 **Not in scope of this row:** the host app (Apple only), and anything the Windows
 browser shares byte-for-byte with its macOS build (the transports, the engine).
