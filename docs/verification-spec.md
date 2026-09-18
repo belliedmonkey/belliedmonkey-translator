@@ -556,7 +556,7 @@ is named here rather than assumed:
 | Surface | Expected |
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
-| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**），且 **Firefox 上真播了**：`start` 事件 zh-CN 373 ms / en-US 94 ms（Chrome / Edge 播放 ⬜）。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**），且 **三处都真播了**（`start` 事件）：Firefox zh 373 ms / en 94 ms；Chrome zh 57 ms / en（Google 在线声）**首次 15 s 无声无错、第二次 802 ms**；Edge zh 52 ms / en（微软在线 Natural）1.8–2.1 s。Chrome/Edge 需要一次用户激活，否则 `speak()` 被静默丢弃。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
 | **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
@@ -1229,9 +1229,21 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
 - **Layout.** CJK text renders in Microsoft YaHei (screenshots in `.local/win/`), the
   bilingual line and the FAB sit where they do on macOS. Chrome's classic scrollbar eats
   15 px of layout width; Edge's and Firefox's overlay scrollbars eat 0.
-- **Speech playback, Firefox 156 (measured):** `speechSynthesis.speak()` fires `start` —
-  zh-CN Huihui at 373 ms (`end` 4070 ms), en-US Zira Desktop at 94 ms (`end` 3391 ms) —
-  no user activation needed. Chrome / Edge playback ⬜.
+- **Speech playback (measured, `start` / `end` events on the utterance):**
+  - Firefox 156: zh-CN Huihui `start` 373 ms (`end` 4070), en-US Zira Desktop `start` 94 ms
+    (`end` 3391) — no user activation needed.
+  - Chrome 153 (after one CDP-dispatched click for user activation — without it Chrome
+    drops `speak()`): zh-CN Huihui `start` 57–272 ms. en-US has **no local voice** on this
+    system, so the pick is 「Google US English」 (online): the **first** utterance of the
+    session produced no `start`, `end` or `error` within 15 s — silence with no signal, the
+    exact shape §1.0 warns about — and the second call 30 s later fired `start` at 802 ms
+    (`end` 3136). Treat the first online-voice utterance as a warm-up that may be silent;
+    the review-card ▶ must not report 「播放中」 on `speak()` returning alone.
+  - Edge 145 (same activation click): zh-CN Huihui `start` 52–230 ms; en-US picks a Microsoft
+    Online (Natural) voice — `start` 1757 ms and 2055 ms on two runs (`end` ≈ 5 s), no silent
+    first call. Note the en-US pick differed between runs (Aria en-US, then William
+    Multilingual en-AU): Edge's `getVoices()` order is not stable, so pick by `lang`, never by
+    index.
 - **Fullscreen mechanics, Firefox 156 (measured):** on a YouTube watch page the in-player
   「译」 button appears; `#mt-yt-btn` opens a menu and the **first row** is the on/off switch
   (a `.click()` on the button alone only opens the menu). A trusted `f` (BiDi
@@ -1249,9 +1261,11 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
   play button stops responding. That is the §2.1 pot-block shape, served by YouTube to this
   VM session (proxy exit + automation), and nothing the extension can recover from: **the
   test for "is it us" is whether YouTube's native captions show — if they don't, stop.**
-  Do not verify YouTube subtitles on this VM; verify the fullscreen mechanics here (done)
-  and subtitles on a session YouTube trusts. Fullscreen **with real subtitles** ⬜ here,
-  Chrome / Edge fullscreen ⬜.
+  Do not verify YouTube subtitles on this VM; verify the fullscreen mechanics here (done on
+  Firefox) and subtitles on a session YouTube trusts. Later the same day Chrome 153 could not
+  even load the watch page (two `Page.navigate` timeouts, then a page with no video) — the
+  VM session is now refused outright. Fullscreen **with real subtitles** ⬜ here, Chrome /
+  Edge fullscreen mechanics ⬜ (blocked by the same refusal, not by the browsers).
 - **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
 
 **Not in scope of this row:** the host app (Apple only), and anything the Windows
