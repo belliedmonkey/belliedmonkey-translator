@@ -1085,20 +1085,17 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM + a real desktop) — ✅ verified 2026-09-18
+### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
 
 > **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
 > read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
 >
-> **Two targets since 2026-09-18.** Besides the VM below there is a **real Windows 11 x64 desktop on the
-> LAN**, driven over SSH: `scripts/win-matrix/setup.ps1` once on the machine (firewall + portproxy,
-> OpenSSH Server, the Mac's key, `C:\mt`, a scheduled task that starts browsers inside the interactive
-> desktop session — a GUI app launched straight from SSH lands in the invisible session 0), then
-> `scripts/win-matrix/desktop.sh chrome|edge` from the Mac does the rest: scp the build, copy the everyday
-> browser profile (Chrome 136+ refuses a debug port on the default user-data-dir; the copy keeps the
-> sign-ins), launch, load, translate, speech, fullscreen, YouTube. First run: Chrome 153, 1.12.1, page
-> translation in 1.06 s with 12 network events, 29 voices, scrollbar 0 px, fullscreen with real subtitles.
-> The test page address is `MT_WIN_PAGE` (the VM default is `http://192.168.2.1:8765/page.html`).
+> **Target: the VM only (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」).** The same
+> day a second target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and
+> measured once (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real
+> subtitles** ✅ — it is where #325 was found) and then retired; its scripts are not in the repo (see the
+> first commit of PR #327). Readings from it stay in this section as records, marked "real desktop".
+> The test page address is `MT_WIN_PAGE` (default `http://192.168.2.1:8765/page.html`, the VM's view of the Mac).
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
 exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
@@ -1269,7 +1266,7 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
     visible, and the translation moves on between t = 16 s and t = 24 s. A CDP-dispatched Esc
     does **not** leave fullscreen (it only reaches the page); exit with
     `document.exitFullscreen()` — the overlay survives.
-  - Edge (either target) ⬜.
+  - VM Chrome / Edge ⬜ (nothing blocks it since #325 — just not run yet).
 - **⚠ Correction (2026-09-18, same evening): everything this section said earlier that day
   about YouTube on the VM was wrong.** It claimed, in turn, that the video "stalls at ≈ 48 s
   and snaps back to 0:00" because YouTube blocks signed-out sessions; that "YouTube needs a

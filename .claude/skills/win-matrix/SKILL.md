@@ -1,9 +1,9 @@
 ---
 name: win-matrix
-description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows 11 Chrome / Edge / Firefox）。两个目标——Mac 上的 VMware Fusion 虚拟机、局域网里的 Windows 真机——都从 Mac 走网络驱动，不进 Windows 点鼠标。任何全回归、任何动了字幕 / 语音 / 排版的改动要补 Windows 这一行时跑它；用户说「在 Windows 上看看」「台式机上跑一下」也跑它。
+description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows 11 Chrome / Edge / Firefox）。目标是 Mac 上的 VMware Fusion 虚拟机，从 Mac 走网络驱动，不进 Windows 点鼠标。任何全回归、任何动了字幕 / 语音 / 排版的改动要补 Windows 这一行时跑它；用户说「在 Windows 上看看」也跑它。
 ---
 
-# win-matrix —— Windows 这一行，从 Mac 上一条命令跑完
+# win-matrix —— Windows 这一行：虚拟机，从 Mac 上驱动
 
 规约在 `docs/verification-spec.md` §1 第 8 行与 §2.H；这里是**可执行**的那一半：命令、参数、每一步回读什么才算数。
 脚本全在 `scripts/win-matrix/`，结果落在 `.local/win/`（不提交）。
@@ -14,17 +14,14 @@ description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows
 - 改了 `extension/content/**`、`styles/**`、字幕适配器、语音（TTS）相关代码。
 - 用户报的问题只在 Windows 上出现，或者要排除「是不是 Windows 特有」。
 
-## 两个目标，怎么选
+## 目标：只有虚拟机（2026-09-18 用户裁定）
 
-| | 虚拟机（VMware Fusion · Windows 11 **ARM**） | 真机（局域网台式机 · Windows 11 x64） |
-|---|---|---|
-| 地址 | vmnet8 NAT，IP 从 `/var/db/vmware/vmnet-dhcpd-vmnet8.leases` 读（09-18 是 192.168.2.128）；Mac 在它眼里是 192.168.2.1 | `ssh -G win-desktop` 里的 HostName（09-18 是 192.168.50.5）；Mac 是自己的局域网地址 |
-| 命令通道 | **没有**。起浏览器要人在虚拟机里粘一行 PowerShell | **SSH**（`ssh win-desktop`），推包、起浏览器全自动 |
-| 浏览器配置 | 一次性空配置 | 日常配置的**副本**（带登录态） |
-| 共享文件夹 | 没有（ARM 客户机的设置面板里根本没有「共享」） | 不需要，走 scp |
-| 适合 | 装载、整页翻译、语音清单、排版读数；Firefox（真机上没装） | 一条命令的常规回归；需要登录态的场景 |
+**跑矩阵时 Windows 部分就是虚拟机流程。** VMware Fusion · Windows 11 **ARM**，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，
+vmnet8 NAT；IP 从 `/var/db/vmware/vmnet-dhcpd-vmnet8.leases` 读（09-18 是 192.168.2.128），Mac 在它眼里是 192.168.2.1。
+没有命令通道（起浏览器要人在虚拟机里粘一行 PowerShell）、没有共享文件夹（ARM 客户机的设置面板里根本没有「共享」）、浏览器是一次性空配置。
 
-先选真机：`scripts/win-matrix/desktop.sh chrome`。真机睡了 / 关了（`nc -z <ip> 22` 不通）再用虚拟机。
+> 同一天还走通过一条「局域网 Windows 真机」的路（SSH + 计划任务在桌面会话里起浏览器 + 一条命令跑完），当晚用户裁定**不跑了**，
+> 脚本已从仓库移除。要考古看 PR #327 的第一笔提交。它留下的、对虚拟机同样成立的教训都并在下面的陷阱索引里。
 
 ## 0. 共同前提
 
@@ -33,7 +30,7 @@ node build.js                                   # dist/ 与 dist-firefox/ 要是
 node scripts/local-keys.js check                # 翻译引擎必须是 deepseek 且 key 已填 —— 脚本从 .local/keys.md 读，不回显
 ```
 
-**每一条在 Mac 上跑的 node 命令都要清掉代理变量**（`desktop.sh` 里的 `clean` 已经做了；手跑时自己加）：
+**每一条在 Mac 上跑的 node 命令都要清掉代理变量**：
 
 ```bash
 env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy -u ALL_PROXY node …
@@ -42,51 +39,7 @@ env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_pr
 这台 Mac 的 shell 带着代理变量，Node 22 认 `NODE_USE_ENV_PROXY`：不清掉，连 192.168.x 的请求都会被送去代理，换回 503 / 空 body，
 报错是 `bad json`，看不出是代理。`curl` 同理要 `--noproxy '*'`。
 
-## A. 真机：一次性底座（换机器才重做）
-
-1. Mac 上：`scripts/win-matrix/desktop.sh serve` —— 起文件服务并打印下一步要在台式机上敲的那一行。
-2. 台式机上，**管理员** PowerShell：`$u='http://<Mac局域网IP>:8765'; irm $u/setup.ps1 | iex`。
-   它做：防火墙 + 端口转发 9223→127.0.0.1:9222、OpenSSH Server、放 Mac 的公钥、`C:\mt` 与启动器、计划任务 `mt-launch`。
-   回读（脚本末尾自己打印）：`sshd Running / Automatic`、转发表里有 `0.0.0.0 9223 → 127.0.0.1 9222`、`whoami` 的输出。
-3. Mac 上 `~/.ssh/config`：
-
-   ```
-   Host win-desktop
-     HostName <台式机IP>
-     User <微软账号的邮箱>          # 不是 whoami 给的短名，见陷阱索引
-     IdentityFile ~/.ssh/id_ed25519
-     IdentitiesOnly yes
-     UseKeychain yes
-     AddKeysToAgent yes
-   ```
-
-4. 私钥有密码的话，**用户**在终端里跑一次 `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`（要输密码，代理做不了）。
-5. 回读：`ssh -o BatchMode=yes win-desktop whoami` 打印 `<机器名>\<账号>`。
-
-Claude Code 的 auto 模式分类器会把「远程操作计划任务」判成持久化拦下，也不允许代理给自己加权限。需要用户在
-`.claude/settings.local.json` 的 `permissions.allow` 里手动加：`Bash(ssh win-desktop *)`、`Bash(ssh -T -o BatchMode=yes win-desktop *)`、
-`Bash(scp * win-desktop:*)`、`Bash(scripts/win-matrix/desktop.sh *)`。
-
-## B. 真机：每次
-
-```bash
-scripts/win-matrix/desktop.sh chrome      # 或 edge
-```
-
-它依次：推 `dist/` → 传 `launch.ps1` → 在**你的桌面会话**里起带调试口的浏览器（配置是日常配置的副本）→ `chromium.js`
-（装载 + 整页翻译 + Windows 读数）→ `speech-fullscreen-chromium.js`（语音 `start` 事件 + 带真字幕的全屏）→ `yt-subtitles.js`。
-
-每段的判据：
-
-| 段 | 回读什么才算过 |
-|---|---|
-| 起浏览器 | `listening9222=True` 且 `session` **不是 0**（0 = 落在不可见的会话里，计划任务没起作用）|
-| 装载 + 翻译 | `problems: []`、`version` 等于 `package.json`、`translations: 4`（标题 + 三段，**全含汉字且没有一条还是「⏳ 翻译中…」**）|
-| 语音 | 中文、英文各自的 `start` 是数字。`start: null, timeout: true` 就是静音，不是通过 |
-| 全屏 | `enter = [true, true, true, <译文>]`，`later` 的译文与 `enter` 不同（在走），`exit = [false, true]` |
-| YouTube 字幕 | 末行 `subtitleAfterAdMs` 是数字；有广告时前面应有「广告结束」一行 |
-
-## C. 虚拟机：每次
+## 每次怎么跑
 
 没有命令通道，起浏览器要用户在虚拟机里粘一行。用 `pbcopy` 把命令放进剪贴板（VMware Tools 会同步过去；没同步就让用户在虚拟机里先随便复制点东西再粘）。
 **用 PowerShell 写法**，别给 cmd 写法：
@@ -116,6 +69,16 @@ clean node scripts/win-matrix/firefox.js $V 9223 'C:\Users\张钊\Downloads\mt\d
 clean node scripts/win-matrix/speech-fullscreen-firefox.js $V 9223 <firefox.js 打印的扩展 uuid>
 ```
 
+每段的判据：
+
+| 段 | 回读什么才算过 |
+|---|---|
+| 连得上 | `curl -s --noproxy '*' http://$V:9223/json/version` 回出 `Browser`（Firefox 没有这个端点，直接跑 `firefox.js`）|
+| 装载 + 翻译 | `problems: []`、`version` 等于 `package.json`、4 条译文（标题 + 三段，**全含汉字且没有一条还是「⏳ 翻译中…」**）|
+| 语音 | 中文、英文各自的 `start` 是数字。`start: null, timeout: true` 就是静音，不是通过 |
+| 全屏 | 进全屏后叠层在 `document.fullscreenElement` 里且可见，隔 8 秒译文换了一句，退出后叠层还在 |
+| YouTube 字幕 | `yt-subtitles.js` 末行 `subtitleAfterAdMs` 是数字；有广告时前面应有「广告结束」一行 |
+
 ## YouTube 怎么验才算数
 
 2026-09-18 一整天，「虚拟机上 YouTube 字幕拿不到」先后被归因成未登录、服务端拦截、日本出口节点、会话被拒，还写进了规约和记忆。
@@ -137,11 +100,11 @@ clean node scripts/win-matrix/speech-fullscreen-firefox.js $V 9223 <firefox.js �
 
 | 看到什么 | 其实是 | 怎么办 |
 |---|---|---|
-| Mac 连 `<ip>:9222` 超时，Windows 本机 `127.0.0.1:9222` 是通的 | 桌面 Chrome / Firefox **不认** `--remote-debugging-address`，只听回环 | 端口转发 9223→9222 + 防火墙放行 9223（`setup.ps1` 第 1 步）。回读 `netsh interface portproxy show v4tov4` |
+| Mac 连 `<ip>:9222` 超时，Windows 本机 `127.0.0.1:9222` 是通的 | 桌面 Chrome / Firefox **不认** `--remote-debugging-address`，只听回环 | 管理员 PowerShell：`netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1; netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223`（虚拟机上 09-18 已做，重装系统才重做）。回读 `netsh interface portproxy show v4tov4` |
 | `netsh …` 回一大段帮助文本，或「请求的操作需要提升」 | 命令没被接受 / 不是管理员 | 管理员 PowerShell；一行一条，别粘带 `&&` 的（Windows PowerShell 5.1 不认 `&&`，用 `;`） |
 | PowerShell 报 `--` 运算符错误、`%TEMP%` 原样出现 | 把 cmd / Win+R 写法粘进了 PowerShell | 带引号的路径前加 `&`，或用 `Start-Process … -ArgumentList`；`%TEMP%` 写成 `$env:TEMP`；`msedge` 短名只有 Win+R 认 |
 | `FAILED bad json` / curl 回 503 | Mac 这边的代理变量 | 清代理变量；curl 加 `--noproxy '*'` |
-| `CDP File path cannot be resolved` | Windows 路径不对：**用户目录名不一定是登录名**（登录名 zhao，目录 `C:\Users\张钊`；真机目录 `belli`，账号 `belliedmonkey`） | `node scripts/win-matrix/ls.js <ip> 9223 'C:/Users/'` 先列目录 |
+| `CDP File path cannot be resolved` | Windows 路径不对：**用户目录名不一定是登录名**（登录名 zhao，目录 `C:\Users\张钊`） | `node scripts/win-matrix/ls.js <ip> 9223 'C:/Users/'` 先列目录 |
 | Edge：`CDP Method not available` | Edge 145 不开放 `Extensions.loadUnpacked` | 启动时加 `--enable-unsafe-extension-debugging --load-extension=<dist>`；`chromium.js` 会自动退回去找已装的扩展 |
 | `没找到扩展的 service worker` | MV3 的 worker 空闲 30 秒就退出 | 补充脚本会退回读 `.local/win/<label>.json` 里的 `extId` —— 所以同一次浏览器会话里先跑 `chromium.js` |
 | `eval: ReferenceError: chrome is not defined`（种配置时） | 重复 `loadUnpacked` 会重载扩展，刚匹配到的 worker 正在退场 | `chromium.js` 已重找重试；自己写脚本时别缓存 worker 的 session |
@@ -151,11 +114,6 @@ clean node scripts/win-matrix/speech-fullscreen-firefox.js $V 9223 <firefox.js �
 | Firefox：`System access is required` | 在扩展页里执行脚本要启动参数 `-remote-allow-system-access` | 加上重启 |
 | Firefox：`Maximum number of active sessions`，怎么重试都不行 | 只许一个 BiDi 会话；上一个客户端被强杀后，**portproxy 攥着内侧那条连接**不放 | 只能重启 Firefox。脚本必须在每条退出路径（正常 / 报错 / 看门狗 / SIGTERM）上 `session.end` |
 | Google 登录页「此浏览器或应用可能不安全」 | 带远程调试参数启动的浏览器会被 Google 拒登 | 同一个配置目录**不带调试参数**开一次登录，再带参数重开；账号有 passkey 时点「试试其他方式」 |
-| Chrome 起来了但拒绝调试口 / 走的是已有实例 | Chrome 136+ 拒绝在**默认配置目录**上开调试口；已有 Chrome 在跑时新进程会并进旧实例、参数全丢 | 用配置副本（`launch.ps1`）；起之前先杀干净 |
-| 经 SSH 起的浏览器看不见、`session=0` | 从 SSH 会话直接起 GUI 程序落在会话 0 | 走计划任务 `mt-launch`（`/it`，只在交互会话里跑）|
-| `ssh` 一直 `Permission denied`，钥匙和权限都对 | ① 微软账号要用**邮箱**当用户名（服务端日志里只有它出现 `Postponed publickey`）② Mac 私钥带密码且不在 agent 里：`Server accepts key` 之后客户端签不了名 | ① `User <邮箱>` ② `ssh-add --apple-use-keychain` + 配置里 `UseKeychain yes`。看服务端：`Get-WinEvent -LogName 'OpenSSH/Operational' -MaxEvents 15` |
-| `irm … | iex` 的中文输出是乱码 | 响应体被按 Latin-1 解码 | 给 Windows 的脚本只输出 ASCII |
-| `setup.ps1` 卡在 OpenSSH 那步几分钟 | `Add-WindowsCapability` 在等 Windows 更新 | 已经有 sshd 就跳过（脚本已处理）；22 端口通了就不用等它 |
 | 全屏：发了 Esc 还在全屏 | CDP 的按键只到页面，浏览器级的退出全屏不吃 | `document.exitFullscreen()` |
 | Chrome：英文在线声第一次 `speak()` 15 秒无声无错 | Google 在线声首次调用的预热 | 第二次再量；产品侧：不能凭 `speak()` 返回就说「播放中」|
 | 从 Mac 合成点击点 Fusion 窗口：有悬停提示、点不进去 | 合成事件进不了客户机 | 不走这条路。也别在用户看着的时候反复重开浏览器 —— 他会中断你 |
@@ -168,6 +126,6 @@ clean node scripts/win-matrix/speech-fullscreen-firefox.js $V 9223 <firefox.js �
 
 ## 还欠着的（2026-09-18）
 
-- 真机上的 Edge、Firefox（真机没装 Firefox）。
+- 虚拟机上 Chrome / Edge 的全屏（机制与带真字幕的）。当天在虚拟机上只做了 Firefox 的全屏机制；#325 修好之后这项已经没有障碍。
 - Windows 上的 AI 转写字幕那张表（要一个有 key 的转写引擎）。
-- `desktop.sh` 自身只在写成当天手工分段跑通过；整条命令的首次端到端还没回读（写它的那晚台式机睡了）。第一次用的人请把结果补在这里。
+- `speech-fullscreen-firefox.js` 写于 #325 查明之前，YouTube 段不点「跳过广告」，撞上长广告要多等。
