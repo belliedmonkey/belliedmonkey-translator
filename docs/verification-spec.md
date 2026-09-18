@@ -521,7 +521,7 @@ in fullscreen — so it is added forever):
 | macOS Safari | required | required | N/A (audio, no video) |
 | macOS Chrome / Edge | required | required | N/A |
 | Firefox | required | required | N/A |
-| Windows Chrome / Edge · Firefox | required | required | N/A |
+| Windows Chrome / Edge · Firefox | required — Firefox 156 mechanics ✅ 2026-09-18 (enter / overlay inside / exit), subtitles ⬜ until the VM profile is signed in to YouTube (§2.H); Chrome / Edge ⬜ | required — ⬜ | N/A |
 
 **iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
 fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
@@ -556,7 +556,7 @@ is named here rather than assumed:
 | Surface | Expected |
 |---|---|
 | macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
-| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**）。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**），且 **Firefox 上真播了**：`start` 事件 zh-CN 373 ms / en-US 94 ms（Chrome / Edge 播放 ⬜）。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
 | **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
 | **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
 
@@ -1229,7 +1229,22 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
 - **Layout.** CJK text renders in Microsoft YaHei (screenshots in `.local/win/`), the
   bilingual line and the FAB sit where they do on macOS. Chrome's classic scrollbar eats
   15 px of layout width; Edge's and Firefox's overlay scrollbars eat 0.
-- **Fullscreen** (§1.0 table) and **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
+- **Speech playback, Firefox 156 (measured):** `speechSynthesis.speak()` fires `start` —
+  zh-CN Huihui at 373 ms (`end` 4070 ms), en-US Zira Desktop at 94 ms (`end` 3391 ms) —
+  no user activation needed. Chrome / Edge playback ⬜.
+- **Fullscreen mechanics, Firefox 156 (measured):** on a YouTube watch page the in-player
+  「译」 button appears; `#mt-yt-btn` opens a menu and the **first row** is the on/off switch
+  (a `.click()` on the button alone only opens the menu). A trusted `f` (BiDi
+  `input.performActions`) enters fullscreen, `#mt-yt-overlay` is inside
+  `document.fullscreenElement` and visible, the video advances, Esc exits and the overlay
+  survives. **But the overlay only ever showed 「字幕不可用 · 先在设置里选择转写引擎」**:
+  the video stalls at ≈ 48 s and snaps back to 0:00 paused, and YouTube never serves the
+  caption track. **User ruling 2026-09-18: YouTube needs a signed-in session to serve video
+  and captions** — the VM's throwaway profiles are never signed in (and the NAT exits in
+  Japan, ad first), so this is an environment fact, not a Windows / Firefox defect. Before
+  the fullscreen row can be ✅ here, sign the profile into YouTube once and reuse that
+  profile directory. Fullscreen **with real subtitles** ⬜, Chrome / Edge fullscreen ⬜.
+- **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
 
 **Not in scope of this row:** the host app (Apple only), and anything the Windows
 browser shares byte-for-byte with its macOS build (the transports, the engine).
