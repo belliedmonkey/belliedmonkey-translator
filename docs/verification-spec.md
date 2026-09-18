@@ -1241,9 +1241,17 @@ scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira e
   the video stalls at ≈ 48 s and snaps back to 0:00 paused, and YouTube never serves the
   caption track. **User ruling 2026-09-18: YouTube needs a signed-in session to serve video
   and captions** — the VM's throwaway profiles are never signed in (and the NAT exits in
-  Japan, ad first), so this is an environment fact, not a Windows / Firefox defect. Before
-  the fullscreen row can be ✅ here, sign the profile into YouTube once and reuse that
-  profile directory. Fullscreen **with real subtitles** ⬜, Chrome / Edge fullscreen ⬜.
+  Japan, ad first), so this is an environment fact, not a Windows / Firefox defect.
+  **Signed in (same day, same profile):** playback no longer snaps back (153 s continuous),
+  CC is turned on, `ytInitialPlayerResponse` lists 31 caption tracks, and YouTube itself
+  fetches `/api/timedtext?…pot=…&fmt=json3` — **HTTP 200 with a 0-byte body**, and YouTube's
+  own caption element (`.ytp-caption-segment`) never renders either; a minute later even the
+  play button stops responding. That is the §2.1 pot-block shape, served by YouTube to this
+  VM session (proxy exit + automation), and nothing the extension can recover from: **the
+  test for "is it us" is whether YouTube's native captions show — if they don't, stop.**
+  Do not verify YouTube subtitles on this VM; verify the fullscreen mechanics here (done)
+  and subtitles on a session YouTube trusts. Fullscreen **with real subtitles** ⬜ here,
+  Chrome / Edge fullscreen ⬜.
 - **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
 
 **Not in scope of this row:** the host app (Apple only), and anything the Windows
