@@ -27,6 +27,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > (Xcode Simulator), macOS Safari/Chrome/Firefox (real Mac, sandboxed) — via cua-driver
 > only. Follow it for any test/QA/bug-repro task.
 >
+> **Windows（验收矩阵第 8 行）:** run **`/win-matrix`**
+> (`.claude/skills/win-matrix/SKILL.md`) — Windows 11 Chrome / Edge / Firefox on the VMware
+> Fusion VM (the only Windows target, user ruling 2026-09-18), driven from the Mac over the network
+> (`scripts/win-matrix/`). It carries the read-back criteria and the trap index, including
+> how to verify YouTube subtitles without being fooled by a pre-roll ad (#325).
+>
 > **Shipping (发布):** run **`/store-release`**
 > (`.claude/skills/store-release/SKILL.md`) for any release to any of the six
 > surfaces — Apple iOS/macOS × global/China, Chrome Web Store, Firefox AMO, GitHub

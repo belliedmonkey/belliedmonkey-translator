@@ -5,6 +5,8 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const [host, port, DIST, label] = process.argv.slice(2);
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(ROOT, '.local', 'win'); fs.mkdirSync(OUT, { recursive: true });
+// 测试页由 Mac 上的 http.server 提供；地址随 Mac 在哪个网段变（虚拟机 vmnet8 是 192.168.2.1，局域网台式机是 Mac 的 LAN 地址）。
+const PAGE = process.env.MT_WIN_PAGE || 'http://192.168.2.1:8765/page.html';
 const keys = {}; for (const l of fs.readFileSync(path.join(ROOT, '.local/keys.md'), 'utf8').split('\n')) { const m = /^\s*([A-Za-z][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(l); if (m && m[2].trim()) keys[m[1]] = m[2].trim(); }
 if (!keys.apiKey || keys.provider !== 'deepseek') throw new Error('keys.md 里翻译引擎不是 deepseek 或没 key');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -63,7 +65,7 @@ async function evalIn(cdp, sid, expression, contextId) { const r = await cdp.sen
   const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' }); const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
   const iso = new Set(); cdp.on('Runtime.executionContextCreated', (p, sid) => { if (sid === sessionId && p.context.auxData && p.context.auxData.type === 'isolated') iso.add(p.context.id); });
   await cdp.send('Page.enable', {}, sessionId); await cdp.send('Runtime.enable', {}, sessionId); await cdp.send('Network.enable', {}, sessionId);
-  await cdp.send('Page.navigate', { url: 'http://192.168.2.1:8765/page.html' }, sessionId);
+  await cdp.send('Page.navigate', { url: PAGE }, sessionId);
   let ctx = null; for (let i = 0; i < 80 && !ctx; i++) { for (const id of [...iso].reverse()) { try { if (await evalIn(cdp, sessionId, "typeof WebpageTranslator === 'object'", id)) { ctx = id; break; } } catch (_) {} } if (!ctx) await sleep(150); }
   if (!ctx) log.problems.push('内容脚本未就绪'); else {
     await sleep(1500);
