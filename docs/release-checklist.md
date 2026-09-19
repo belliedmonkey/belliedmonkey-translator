@@ -118,6 +118,7 @@ node -e 'const {api,apps}=require("./scripts/lib/asc-client.js");(async()=>{
 | V3 同步 | **Gate B** —— 「无账号」那句必须改；`build.js` 已有闸门：`learn/backend.config.js` 的 `enabled` 为 true 而 README 仍写着旧句子时**构建失败** |
 | 免费额度（learning-design §8.10） | **Gate F** —— 新增一段而不是改口（「我们不参与该连接」对自带 key 仍为真，改成按路径说；额度这条路文本经我们的中继，不保存不记录）：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站一句「不提供」、卡上 `grant_privacy` ×12、ASC 隐私标签（花费总数 = 与账号关联的用量数据，**手填人审**）、CWS 披露；`build.js`：`grant.enabled:true` ⇒ README 含「免费额度」词干且 12 份 locale 有 `grant_privacy`，china 产物不得含 `bt-grant` / `bt-relay` / `MT_GRANT = {` |
 | 文档翻译（learning-design §9.7） | **Gate G** —— 新披露面「用户上传的文件内容」，新增一段不改口：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站「本机存储的数据」加「上传的文档与译文」、页内 `doc_privacy` ×12（额度激活时 `doc_privacy_grant`）、ASC「用户内容」问卷复核（手填）、AMO `data_collection_permissions` 复核；`build.js`：产物含 `learn/doc-view.js` ⇒ README ×2 含「上传的文档」词干且 12 份 locale 有 `doc_privacy` |
+| 系统翻译与快速翻译（learning-design §9.9） | **Gate J** —— 新披露面「你在别的 App 里交给我们的文字」，新增一段不改口：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站同步、产品内文案 ×12（`sys_disclose_*`、`quick_enh_*`、`quick_shot_*`、`quick_clip_concealed` —— 录屏与「增强取词」**没有**系统的用途说明键，披露全靠这几句，缺一个语种 = 1.12.1 那次被拒的同一类问题）、`ServicesMenu.strings` ×12、ASC 隐私标签复核（手填）、**审核备注写明「增强取词」用的是系统的请求接口、不引导用户手动添加**；`build.js`：产物用到 `sys_disclose_direct` ⇒ README ×2 含「系统翻译」词干、12 份 locale 齐、联网键在 iOS App 的 plist 而**不在**扩展的。**首次带这个功能出包**：归档要用 Xcode 登录态（新增了 `DEFAULT_TRANSLATION_APP` 与 `APP_GROUPS` 两项能力；带 API key 三参数会报认证失败）；三个产物各跑一次 `codesign -d --entitlements` 回读 |
 
 ## 3. 商店文案
 

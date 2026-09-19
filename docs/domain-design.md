@@ -452,6 +452,92 @@ translate a page; never the whole document at once*.
 Module consequences are in §6 (`DocCore` / `DocReader` / `DocStore` / `DocView`); the
 learning-side contract (anchor kind `doc`, caps) is `docs/learning-design.md` §9.7.
 
+### 2.6 交来的文字 — text handed over by the system, another app, or the screen (核心约束 — do not break)
+
+Added 2026-09-19 (`docs/learning-design.md` §9.9). Two host-app surfaces translate text
+that did **not** come from a page, a player or a file the user opened in us: on iOS the
+system hands us the user's selection when we are the **default translation app**
+(`TranslationUIProvider`, iOS 18.4+); on macOS the user hands it over with a global
+shortcut, the Services menu, a typed line, or a region of the screen (「快速翻译」).
+Interaction: canvas `design/system-translate/` (user-approved 2026-09-19, 12 rulings) and
+`docs/interaction-spec.md`. Every number below was **measured first** (spikes T1 / T2,
+`.local/spike/READINGS.md`), the same order §2.5 used for D0.
+
+1. **Handed-over text is a source, not a mode.** `HandoffSource` yields exactly one unit
+   `{text, via}` (`via ∈ system | select | input | shot | service`); the Engine cannot
+   tell it from a paragraph of a web page. There is no DOM, no timeline and no page, so
+   there is no scheduler either: one hand-over is one `TranslationAPI.translate` call
+   (a long selection is split at paragraph breaks and offered in order — the document
+   path's per-unit cap applies). Target language is the app-wide 「译成」 setting
+   (`targetLang`; default = follow the UI language, which is what the app silently did
+   before); source language is ours to guess — **the system tells us neither** — and a
+   unit already in the target language is translated the other way (中↔英) rather than
+   answered with "nothing to do".
+2. **One transport — even inside another process.** The iOS extension is a separate
+   process with no WebView. It does **not** get a Swift translator: it runs the *same
+   bytes* (`providers.gen.js`, `langs.gen.js`, `engine-state.js`, `wire-format.js`,
+   `request-shape.js`, `translation-api.js`) in JavaScriptCore behind a shim that supplies
+   only what those files touch (`window`, a dictionary-backed `chrome.storage.local`,
+   `chrome.runtime.getURL`, `fetch`→`URLSession`, `AbortController`, `setTimeout`).
+   Measured: 87 KB, ready in 3–10 ms, +3 MB, against a ~230 MB extension limit; the
+   request it sends is key-for-key the app's (`bodyKeys`, `paramRow`, `route: direct`).
+   A second prompt or a second format branch is exactly what §7 forbids; `npm test`
+   proves the equality (`test/ext-bundle.test.js`). On macOS the panel is a second
+   `WKWebView` on the app's own `file://` origin loading the shipped bundle in a
+   `#quick` mode — same origin ⇒ same `localStorage` ⇒ same engine configuration, with
+   nothing mirrored.
+3. **The default path asks for no permission.** macOS: the Services menu (the host app
+   *gives* us the selection) and a Carbon hot key that translates the **clipboard** need
+   no TCC grant and work in the App Store sandbox. Reading another app's selection
+   directly is forbidden there; the only compliant way to spare the user ⌘C is
+   `PostEvent` — we press ⌘C *for* them, read, and **restore the pasteboard
+   byte-for-byte** — and that lives behind a switch that is **off by default**
+   (「增强取词」), requested through the system API only (never "drag the app into the
+   list"), and effective after a relaunch. Screenshot translation asks for Screen
+   Recording the first time it is used, not before. A feature the user never invokes
+   never prompts.
+4. **Three clipboard traps are product rules, not edge cases.** (a) empty or non-text ⇒
+   no request, one sentence teaching both routes; (b) identical to the last hand-over ⇒
+   show the previous result and say "forgot ⌘C?" — no second request; (c) the pasteboard
+   carries the *concealed / transient* marker password managers set ⇒ **do not read, do
+   not send, do not capture**. (c) is not a setting. And with 「增强取词」 on, a
+   pasteboard that does not change within 0.3 s means *nothing was selected* — we stop;
+   we never fall back to whatever was on the clipboard before.
+5. **Recognition of the screen is local first** *(this reverses §2.5 rule 2 for this
+   source only)*. §2.5 sends images to the user's multimodal engine because a
+   WebAssembly OCR fails the extension CSP and the Safari floor. Neither constraint
+   exists in the native macOS host: Vision is on the device, free, offline, and measured
+   at 100 % on Simplified Chinese, 94–98 % on English / Japanese, ~0.1–0.4 s per region.
+   So the pixels **stay on the Mac**; only the recognised text follows the normal
+   translation path. If Vision finds nothing *and* the configured engine accepts images,
+   one explicit button sends that one screenshot to the user's own endpoint — never the
+   relay, never silently. §2.5's rule is unchanged for documents.
+6. **The reader is a Renderer; capture is still a sink (§9).** The sheet and the panel
+   display; they never write the corpus. The iOS extension cannot even reach it — it
+   drops `{text, tr, lang, trLang, ts, via}` into a **bounded inbox** in the App Group
+   container and the app ingests it on next launch through the ordinary gates; the
+   macOS panel relays to the main page, which is the single writer (§9.2, §9.3).
+   Hand-overs longer than 2 000 characters are translated and **not** captured.
+7. **Configuration crosses the process boundary one way.** The app mirrors the
+   *resolved* engine triple + `targetLang` + the capture switches into App Group
+   `UserDefaults`, and the key into a shared Keychain access group; the extension only
+   reads. A full snapshot, not a delta — so signing out, clearing local data or removing
+   a key removes it there too. This is step 1 of the Keychain migration approved
+   2026-08-23 (`learning-design` §8); `localStorage` remains the source of truth until
+   step 2.
+8. **Disclosure is per path (Gate J).** "Text you select in other apps is sent to the
+   engine you configured" is a new disclosure surface. iOS shows its own one-time page
+   first ("所选内容将发送给…进行翻译处理"); ours follows it, names the engine, and is
+   never a gate. The screenshot, 「增强取词」 and clipboard sentences are listed in the
+   canvas copy table and ship in the same version as the feature (`release-checklist` §2).
+9. **No crippled flavor.** The China artifact carries both surfaces (the row is present
+   and selectable on a mainland-model iPhone — measured); it differs only where it
+   already does: no free credit, no telemetry, brand-free strings.
+
+Module consequences are in §6 (`HandoffCore` / `AppHandoff` / `AppQuick` / `MTExt`); the
+learning-side contract (anchor kind `handoff`, inbox format, the two bridge protocols)
+is `docs/learning-design.md` §9.9.
+
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
 `DomSegmenter` relies on: block/inline classification (by computed `display` —
@@ -692,6 +778,12 @@ for the same reason: the adapter already carried it (`yt-hook.js` exists only wh
 `world:"MAIN"` does, §2.1), and leaving it unnamed would make the next
 capability-conditional feature read as an exception too. What must stay closed is
 the boundary: three axes, in one layer, and nowhere else.
+
+*(Scoped 2026-09-19:)* the three axes constrain the **content-script adapter** — the
+layer that anchors controls and renders into somebody else's page. §2.6's two surfaces
+(the iOS system-translation sheet, the macOS quick-translate panel) render into a
+surface the host app owns outright; they are hosts in §9.4's sense, not a fourth axis.
+They add no branch to the adapter, the segmenter or the Engine, which is the whole test.
 
 **When a SITE difference is legitimate** — all three must hold, or it is an
 anti-pattern:
@@ -1072,6 +1164,11 @@ in PR3, not assumed.
 | `DocReader` | `learn/doc-reader.js` | file IO: `sniff` (extension + magic bytes), `openPdf(bytes, pdfjs)` → `{pages, textOf(n), imageOf(n)}`, `openDocx(bytes)` (own zip central-directory reader + `DecompressionStream('deflate-raw')` + `DOMParser` over `word/document.xml`), `openText`, `openImage` (canvas downscale → JPEG data URL). pdf.js is injected, never required — the app may hand in a native bridge instead |
 | `DocStore` | `learn/doc-store.js` | the separate IndexedDB `mt-docs` (documents, page texts, OCR results, translations keyed by provider/base/model). Never synced, never in the corpus store, wiped alongside 「清除本机全部数据」 |
 | `DocView` | `learn/doc-view.js` | the reader (both hosts, ids prefixed `docv-`): document list, pager, original + translation per paragraph, ★, retry rows; owns the page-scoped `createEngine` and its tick; reports through callbacks (`pickFile`, `translate`, `ocr`, `onShown`, `onStar`, `onDelete`) and touches no storage itself |
+| `HandoffCore` | `app/quick-core.js` | the §2.6 source's pure logic (vm-testable): target-language choice incl. the same-language reversal, the clipboard traps (empty / same-as-last / concealed marker), the 2 000-character capture cap, paragraph splitting for long hand-overs, and reading-order assembly of Vision line boxes |
+| `AppHandoff` | `app/handoff.js` | the single corpus writer for §2.6 (app main page only): `ingest(records)` runs the ordinary gates and `LearnStore.mergeBatch`; drains the iOS App Group inbox on launch / foreground and receives the macOS panel's relayed captures. Anchor kind `handoff` (`learning-design` §9.9) |
+| `AppQuick` | `app/quick.js` | the macOS quick-translate panel page: the shipped bundle in `#quick` mode (boots only `TranslationAPI` + i18n + error copy — no sync, no telemetry init, no `LearnStore`); talks to native over `mtQuick` |
+| `MTExt` | `build/ext-bundle.js` → `dist-app/ExtEngine.js` (+ `app/ext-shim.js`, `app/ext-entry.js`) | the iOS system-translation extension's engine: the transport files of §7, unmodified, behind a JavaScriptCore shim. One export, `MTExt.translate(text, cfg)`. Byte-equality of the request with the app bundle's is a `npm test` gate |
+| `VaultMirror` | `app/vault-mirror.js` + `app/native/vault-bridge.swift` (`mtVault`) | one-way, full-snapshot mirror of the *resolved* engine configuration into App Group `UserDefaults` and of the key into the shared Keychain group, for the extension to read (§2.6 rule 7) |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
 | Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
@@ -1472,6 +1569,11 @@ for bilingual injection. Revisit only if unstructured pages prove inadequate.
 *(Narrowed 2026-09-11:)* this rules out extracting **web pages** into an article
 view. An **uploaded file** is explicit user intent, not a page, and §2.5 reads it
 through a dedicated reader — that is not the fallback this paragraph forbids.
+*(Narrowed 2026-09-19, §2.6:)* text the user **hands over** from another app — the
+system's Translate action, a shortcut, the Services menu, a region of the screen — is in
+scope for the host app. Still out of scope, permanently: reading other apps' selections
+through the Accessibility API, Apple Events, a resident clipboard or keyboard monitor,
+and anything that observes the user when they did not invoke us.
 
 **In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
 browser itself is infeasible on Safari iOS, and the learning layer's optional backend
@@ -1622,6 +1724,15 @@ source → Extractor → Engine → Renderer
 > paragraph's translation is first rendered on an open page. The host (`learn/docs-page.js`
 > or `app/docs.js`) runs `DocCore.shouldWrite` — the same laws, plus the §9.7 caps — and
 > writes through `LearnStore.mergeBatch`. Still a sink: it never requests a translation.
+>
+> *(Amended 2026-09-19:)* §2.6 adds a sixth, **app-only** point with two feeders and one
+> writer: `AppHandoff.ingest(records)` in the app's main page. The iOS extension feeds it
+> through the App Group inbox (drained on launch / foreground), the macOS panel through
+> the native relay (`mtQuick` `quick-capture`). Neither feeder opens `LearnStore` — the
+> store is per-account (`useDb`) and a second opener would hold a stale database name.
+> `ingest` runs `LearnRules.langAllowed` → `LearnModel.shouldCapture` → `mergeBatch`;
+> with the capture switch off it **discards and empties** the inbox rather than keeping
+> a backlog the user cannot see.
 
 | Surface | Attachment | Why there |
 |---|---|---|
@@ -1658,6 +1769,13 @@ Consequences, both counter-intuitive enough to be worth stating:
 
 - **On one iPhone, Safari's corpus and the app's corpus still meet by going through
   the server.** Same device, same user, two origins.
+- *(2026-09-19)* **The App Group inbox is not a second bridge.** It connects the app to
+  *its own* extension process, not one corpus to another: a bounded outbox for the app's
+  corpus, the same shape as the `lq:` tier above (producer that cannot open the store →
+  bounded queue → the one page that can). The rejected 2026-08-07 design failed because
+  it put the *extension's upload* in the hands of a process the user may never launch;
+  here review only ever happens in the app, so a user who never opens it loses nothing,
+  and the caps (200 records / 512 KB / 30 days) bound what an unopened app accumulates.
 - **The extension owns the upload.** It pushes its own captures and holds its own
   progress cursor; the app is downstream. The rejected alternative — draining the
   outbox to native and letting the app upload — is recorded in `learning-design.md`

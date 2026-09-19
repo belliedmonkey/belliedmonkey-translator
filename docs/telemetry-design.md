@@ -4,6 +4,7 @@
 > **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
 > `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
 > 起因写在 §3.1。
+> **2026-09-19 amendment（二，待人评审）**：`translate_ok.kind` 加 `quick`（Mac 快速翻译）；iOS 系统翻译扩展**不发**任何事件（§3.5）。
 > **2026-09-19 amendment（当日用户裁定通过；A、B 两条都发）**：§3 表的 Seam 一列进注册表、由 `npm test` 对着代码核（§3.4）——
 > 起因是 1.12.x 首次回读时同一种洞第三次发作：三个事件登记了却没有发送点。事件、属性、枚举值**一个不加**。
 > **2026-09-17**：`asr_entry` 加 `popup_app_row` / `to_app`（实时档下掉后的去 App 出口），起因写在 §3.3.2。
@@ -356,6 +357,28 @@ App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有�
 `grant_exhausted` 在所有宿主上，**修复版本出货之前的 0 都是「量不到」**，不可与之后比较；
 账号侧 `bt_grants` 的逐日新领数（09-15 起每天 2–6 个）是这段时间唯一可用的领取读数，
 按原则 7 它不与遥测 join。
+
+### 3.5 2026-09-19 amendment（二）：系统翻译与快速翻译（待人评审）
+
+domain-design §2.6 / learning-design §9.9 加了两个 App 专属的表面。白名单的改动只有**一个枚举值**。
+
+1. **`translate_ok.kind` 加 `quick`** —— Mac 的快速翻译（划词 / 剪贴板 / 服务 / 输入 / 截图，五个入口同一个值）。
+   不能归进 `page`（没有网页）、`subtitle`（§3.3 裁定 1 已把 `host='app' + kind='subtitle'` 定义为听译 / 实时字幕，
+   再塞进来这个数就读不出来了）或 `doc`。**不按入口再分**：`via` 是五个值，拆开之后每个值的日量都是个位数，
+   而「哪个入口有人用」由 `asr_entry` 式的入口事件回答更合适 —— 第一版不加，满一个月看 `quick` 的量再议。
+   `translate_fail` 不加属性：它本来就不带 `kind`。每次面板会话一条（同 §3「每会话一次」），不是每次重翻一条。
+2. **发送点在主页面，不在面板页。** 面板是第二个 WKWebView，若它也启动 `MTTelemetry`，两个页面会各发一次
+   `heartbeat`、各持一份队列。面板页经 `mtQuick` 把「翻成了 / 失败了 + 码」交给主页面，由 `app/handoff.js` 代发。
+   `SEAMS`：`translate_ok` 加 `{ host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" }`，`translate_fail` 同。
+3. **iOS 系统翻译扩展不发任何事件**，`SEAMS` 写
+   `{ host: 'app', surface: 'system-translate', none: '系统翻译扩展是独立进程，够不到 App 的遥测队列与开关；不为它开第二条发送路径' }`。
+   理由是 §2 的两条原则：关掉开关必须**一处生效并删掉本机 id** —— 扩展要么自带一个 id（第二个 id），要么读镜像过去的
+   id 自己发（第二条发送实现）；而把事件排进采集收件箱让 App 代发，会破坏收件箱「只存六个字段」的承诺，`ts` 也会漂出
+   ±7 天窗口。它的用量由一个不带内容的既有信号间接回答：收件箱第一次摄入成功时的 `capture_first`。够不够，出货一个月后再看。
+4. **`host` 不加值。** Mac 面板在 App 进程里，仍是 `app`。
+5. **中国版照旧一条不发**，`ExtEngine.js` 里本来也没有遥测模块。
+
+合并后的顺序照旧：`build/telemetry.config.js` → `node scripts/gen-telemetry.js` → 部署 `bt-ingest` → registry 测试。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
