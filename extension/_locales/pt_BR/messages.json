@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "Tradução digitada"
+  },
+  "quick_title": {
+    "message": "Tradução rápida"
+  },
+  "quick_enabled_label": {
+    "message": "Permanecer na barra de menus"
+  },
+  "quick_enabled_note": {
+    "message": "Quando desativado, o ícone some da barra de menus e fechar a janela encerra o app."
+  },
+  "quick_menu_open": {
+    "message": "Abrir BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "Ajustes da tradução rápida…"
+  },
+  "quick_menu_quit": {
+    "message": "Encerrar"
+  },
+  "quick_resident_title": {
+    "message": "O BelliedMonkey continua na barra de menus"
+  },
+  "quick_resident_body": {
+    "message": "Os atalhos continuam funcionando. Para encerrar de vez, use “Encerrar” no ícone da barra de menus ou pressione ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "Entendi"
+  },
+  "quick_resident_off": {
+    "message": "Não permanecer residente"
   }
 }

@@ -3001,5 +3001,35 @@
   },
   "src_handoff_input": {
     "message": "टाइप किया गया अनुवाद"
+  },
+  "quick_title": {
+    "message": "त्वरित अनुवाद"
+  },
+  "quick_enabled_label": {
+    "message": "मेनू बार में बने रहें"
+  },
+  "quick_enabled_note": {
+    "message": "बंद करने पर मेनू बार का आइकन हट जाता है और विंडो बंद करने पर ऐप बंद हो जाता है।"
+  },
+  "quick_menu_open": {
+    "message": "BelliedMonkey Translator खोलें"
+  },
+  "quick_menu_settings": {
+    "message": "त्वरित अनुवाद सेटिंग्स…"
+  },
+  "quick_menu_quit": {
+    "message": "बंद करें"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey अब भी मेनू बार में है"
+  },
+  "quick_resident_body": {
+    "message": "शॉर्टकट काम करते रहेंगे। पूरी तरह बंद करने के लिए मेनू बार आइकन में “बंद करें” चुनें या ⌘Q दबाएँ।"
+  },
+  "quick_resident_ok": {
+    "message": "ठीक है"
+  },
+  "quick_resident_off": {
+    "message": "मेनू बार में न रहें"
   }
 }

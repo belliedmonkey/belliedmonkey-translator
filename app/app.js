@@ -1068,6 +1068,13 @@
     AppDriving.wire();
     AppListen.wire();
     AppDocs.wire({ openSettings });
+    // 快速翻译（§9.9）：macOS 才有原生半边；别的壳上 quick-probe 没人回，这一行就是空操作。
+    // 确认框用页内的 LearnDialog —— App 里 window.confirm 恒为 false。
+    try {
+      if (typeof AppQuickHost !== 'undefined') {
+        AppQuickHost.start({ openSettings, confirm: (m, o) => (typeof LearnDialog !== 'undefined' ? LearnDialog.confirm(m, o) : Promise.resolve(true)) });
+      }
+    } catch (_) {}
     AppSettings.wire({
       say,
       session: () => currentSession,

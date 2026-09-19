@@ -736,6 +736,17 @@
       </div>
 
       <!-- 文档翻译（§9.7） -->
+      <!-- 快速翻译（learning-design §9.9）。只在 macOS 出现：原生回了 quick-caps 才显示（AppQuickHost.onCaps），
+           iOS 与老原生壳整块不出现。M-1 只有「在菜单栏常驻」这一个开关，快捷键 / 增强取词 / 截图随各自的 PR 进来。 -->
+      <div class="sgroup" id="g-quick" hidden>
+      <h3 id="quick-title"></h3>
+      <label class="check">
+        <input id="quick-enabled" type="checkbox">
+        <span id="quick-enabled-label"></span>
+      </label>
+      <p class="note" id="quick-enabled-note"></p>
+      </div>
+
       <div class="sgroup" id="g-docs">
       <h3 id="docs-title"></h3>
       <div class="dep" id="dep-docs"></div>

@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "Перевод введённого"
+  },
+  "quick_title": {
+    "message": "Быстрый перевод"
+  },
+  "quick_enabled_label": {
+    "message": "Оставаться в строке меню"
+  },
+  "quick_enabled_note": {
+    "message": "Если выключить, значок исчезнет из строки меню, а закрытие окна завершит приложение."
+  },
+  "quick_menu_open": {
+    "message": "Открыть BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "Настройки быстрого перевода…"
+  },
+  "quick_menu_quit": {
+    "message": "Завершить"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey остаётся в строке меню"
+  },
+  "quick_resident_body": {
+    "message": "Сочетания клавиш продолжают работать. Чтобы выйти полностью, выберите «Завершить» в значке строки меню или нажмите ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "Понятно"
+  },
+  "quick_resident_off": {
+    "message": "Не оставаться в строке меню"
   }
 }

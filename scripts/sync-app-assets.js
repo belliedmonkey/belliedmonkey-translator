@@ -217,6 +217,17 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ speech bridge install: 音频桥 install 行缺失');
   }
+  // 快速翻译的常驻桥（§9.9）：第四条通道，只在 macOS 编进来。幂等判据同样是它自己那一行。
+  const RESIDENT_NEEDLE = 'MTResident.shared.install';
+  const RESIDENT_LINES = '        #if os(macOS)\n        MTResident.shared.install(webView: self.webView)\n        #endif';
+  if (src.includes(RESIDENT_NEEDLE)) {
+    notes.push('resident install already patched');
+  } else if (src.includes(SPEECH_NEEDLE)) {
+    src = src.replace(/^(\s*)MTSpeechBridge\.shared\.install\(webView: self\.webView\)$/m, (m) => m + '\n' + RESIDENT_LINES);
+    notes.push('resident install patched');
+  } else {
+    notes.push('✗ resident install: 语音桥 install 行缺失');
+  }
 
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
@@ -367,6 +378,9 @@ const BLOCKS = [
   // 实时字幕 iPhone 一期的画中画字幕窗（learning-design §9.8 协议补充决定（三））。整份 #if os(iOS)；无 attach ——
   // 由 MTAudioBridge 在 subtitle-config 时带着 webView 调它。
   { name: 'mt-subtitle-pip', src: 'subtitle-pip.swift', label: 'subtitle pip' },
+  // 快速翻译的菜单栏常驻 + mtQuick 桥（learning-design §9.9）。整份 #if os(macOS)；attach 见 patchViewController 的
+  // install 行；AppDelegate「关窗不退出」那一处与实时字幕共用一条补丁，见 DELEGATE_PATCHES。
+  { name: 'mt-resident', src: 'resident.swift', label: 'resident' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -757,13 +771,18 @@ const DELEGATE_PATCHES = [
   {
     file: 'macOS (App)/AppDelegate.swift',
     what: 'subtitle session',
-    needle: 'MTSubtitleBar.sessionActive',
+    // 2026-09-19：快速翻译的常驻（§9.9）要同一条规则 ——「含 needle 即跳过」式的补丁叠不了第二个，
+    // 所以是**改写**这一项：needle 换成两个条件都在的那一行。已经打过旧版补丁的树（只认字幕会话的那一行）
+    // 由 upgrade 原地升级：那一行是我们自己写进去的、逐字已知，换掉它比逼着人重新生成整棵工程便宜，
+    // 也比落到「锚点缺失」更有用。两种形状都不是 ⇒ 仍然响亮地失败。
+    upgrade: { from: '        return !MTSubtitleBar.sessionActive\n', to: '        return !(MTSubtitleBar.sessionActive || MTResident.keepAlive)\n' },
+    needle: 'MTSubtitleBar.sessionActive || MTResident.keepAlive',
     anchor: '    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {\n        return true\n    }',
-    add: () => '    // Patched by scripts/sync-app-assets.js — 实时字幕（§9.8）：会话中关主窗口是隐藏，不退出。\n'
+    add: () => '    // Patched by scripts/sync-app-assets.js — 实时字幕（§9.8）会话中、或快速翻译常驻开着（§9.9）时，关主窗口是收起，不退出。\n'
       + '    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {\n'
-      + '        return !MTSubtitleBar.sessionActive\n'
+      + '        return !(MTSubtitleBar.sessionActive || MTResident.keepAlive)\n'
       + '    }\n\n'
-      + '    // 点 Dock 找回被隐藏的主窗口。\n'
+      + '    // 点 Dock 找回被收起的主窗口。\n'
       + '    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {\n'
       + '        if !flag { MTSubtitleBar.showMainWindow() }\n'
       + '        return true\n'
@@ -781,6 +800,10 @@ function patchDelegates(sharedDir) {
     const label = p.file.split('/')[0];
     const what = p.what || 'deeplink';
     if (src.includes(p.needle)) { notes.push(`${label}: ${what} already current`); continue; }
+    if (p.upgrade && src.includes(p.upgrade.from)) {
+      fs.writeFileSync(f, src.replace(p.upgrade.from, p.upgrade.to));
+      notes.push(`${label}: ${what} upgraded`); continue;
+    }
     if (!src.includes(p.anchor)) { notes.push(`✗ ${label}: ${what} 锚点缺失 — 转换器模板变了？`); continue; }
     fs.writeFileSync(f, src.replace(p.anchor, p.add(p.anchor)));
     notes.push(`${label}: ${what} patched`);
@@ -1440,5 +1463,5 @@ module.exports = {
   patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget, patchDeploymentTargets,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
-  patchWidgetTarget, patchWidgetFiles, openUrlHosts,
+  patchWidgetTarget, patchWidgetFiles, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };

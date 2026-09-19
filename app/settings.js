@@ -57,7 +57,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang', 'targetLang',
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang', 'targetLang', 'quickEnabled',
     'subtitleVideoLang',   // 实时字幕「视频的语言」进设置页（2026-09-17，§9.8）；与准备页那处是两处一份设置
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
@@ -177,6 +177,11 @@ var AppSettings = (() => {
       '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。');
     fillLangs($('listen-my-lang'));
     fillLangs($('listen-other-lang'));
+    if ($('g-quick')) {
+      $('quick-title').textContent = t('quick_title', '快速翻译');
+      $('quick-enabled-label').textContent = t('quick_enabled_label', '在菜单栏常驻');
+      $('quick-enabled-note').textContent = t('quick_enabled_note', '关掉后菜单栏图标消失，关闭窗口即退出 App。');
+    }
     $('docs-title').textContent = t('doc_title', '文档翻译');
     $('doc-capture-label').textContent = t('doc_capture_label', '文档译文进复习（来源「文档」）');
     $('doc-capture-note').textContent = t('doc_privacy', '文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。');
@@ -637,6 +642,7 @@ var AppSettings = (() => {
     paintDeps(cur);
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
     $('doc-capture').checked = cur.docCapture !== false;
+    if ($('quick-enabled')) $('quick-enabled').checked = cur.quickEnabled !== false;
     $('doc-prefetch').checked = !!cur.docPrefetch;
     $('drive-preload-days').value = String(Number(cur.drivePreloadDays) > 0 ? Math.floor(Number(cur.drivePreloadDays)) : 0);
     resetPreload();
@@ -1053,6 +1059,11 @@ var AppSettings = (() => {
     if ($('subtitle-capture')) $('subtitle-capture').addEventListener('change', () => { set({ subtitleCapture: $('subtitle-capture').checked }); });
     $('listen-autospeak').addEventListener('change', () => { set({ listenAutoSpeak: $('listen-autospeak').checked }); });
     $('doc-capture').addEventListener('change', () => { set({ docCapture: $('doc-capture').checked }); });
+    // 快速翻译：这一块只在原生回了 quick-caps 时显示（macOS）；AppQuickHost 订阅设置总线，开关一变菜单栏就跟着变。
+    if ($('quick-enabled')) {
+      $('quick-enabled').addEventListener('change', () => { set({ quickEnabled: $('quick-enabled').checked }); });
+      if (typeof AppQuickHost !== 'undefined') AppQuickHost.onCaps((c) => { $('g-quick').hidden = !(c && c.resident); });
+    }
     $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });
     for (const which of ['my', 'other']) {
       const el = $('listen-' + which + '-lang');

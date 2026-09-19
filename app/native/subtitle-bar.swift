@@ -108,8 +108,13 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         panel = nil
         removeMenu()
         if let g = closeGuard, let w = mainWindow {
-            w.delegate = g.original
-            if !w.isVisible { w.orderFront(nil) }
+            // 我们的守卫可能被快速翻译的常驻守卫包在里面（resident.swift，两者谁先装不一定）。
+            // 还是最外层 ⇒ 照旧摘掉；被包着 ⇒ 把自己从链上剪出去。两个守卫的 original 都是 weak：
+            // 直接把 delegate 设回 g.original 会连常驻守卫一起摘掉，而留着不剪，我们一释放链就断在这里。
+            if w.delegate === g { w.delegate = g.original }
+            else if let outer = w.delegate as? MTResidentCloseGuard, outer.original === g { outer.original = g.original }
+            // 常驻开着时用户把主窗口收起来是有意的，字幕会话结束不该把它弹回来。
+            if !w.isVisible && !MTResident.keepAlive { w.orderFront(nil) }
         }
         closeGuard = nil
         if let a = activity { ProcessInfo.processInfo.endActivity(a) }

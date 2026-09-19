@@ -1514,3 +1514,81 @@ describe('sync-app-assets: 权限说明本地化（2026-09-18 国际 iOS 1.12.1 
     match(r.note, /^✗/); eq(r.src, one);
   });
 });
+
+// 快速翻译的菜单栏常驻（learning-design §9.9，2026-09-19）。
+describe('sync-app-assets: 快速翻译的菜单栏常驻（learning-design §9.9）', () => {
+  const R = path.resolve(__dirname, '..');
+  const os = require('os');
+  const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'resident.swift'), 'utf8');
+  const bar = fs.readFileSync(path.join(R, 'app', 'native', 'subtitle-bar.swift'), 'utf8');
+  const { BLOCKS, patchDelegates, patchViewController } = require('../scripts/sync-app-assets.js');
+  const code = (src) => src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  const TEMPLATE = 'import Cocoa\n\n@main\nclass AppDelegate: NSObject, NSApplicationDelegate {\n\n'
+    + '    func applicationDidFinishLaunching(_ notification: Notification) {\n        // Override point for customization after application launch.\n    }\n\n'
+    + '    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {\n        return true\n    }\n\n}\n';
+  const tree = (appDelegate) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-resident-'));
+    fs.mkdirSync(path.join(root, 'Shared (App)')); fs.mkdirSync(path.join(root, 'macOS (App)'));
+    fs.writeFileSync(path.join(root, 'macOS (App)', 'AppDelegate.swift'), appDelegate);
+    return { shared: path.join(root, 'Shared (App)'), read: () => fs.readFileSync(path.join(root, 'macOS (App)', 'AppDelegate.swift'), 'utf8') };
+  };
+
+  test('登记成标记块；整份只在 macOS 编译', () => {
+    ok(BLOCKS.some((b) => b.src === 'resident.swift' && b.name === 'mt-resident'), 'BLOCKS 里有 mt-resident');
+    const body = code(tpl).trim();
+    ok(body.startsWith('#if os(macOS)') && body.endsWith('#endif'), '整份包在 #if os(macOS) … #endif 里');
+  });
+  test('原生那份文件里没有任何给用户看的文案 —— 菜单标题全部由页面给', () => {
+    ok(!/[一-鿿]/.test(code(tpl).replace(/\/\/\/.*$/gm, '')), 'resident.swift 的代码里出现了中文字面量');
+    ok(/labels\["open"\]/.test(tpl) && /labels\["settings"\]/.test(tpl) && /labels\["quit"\]/.test(tpl));
+  });
+  test('关窗不退出：模板 ⇒ 两个条件都在的那一行；再跑一遍不动', () => {
+    const t = tree(TEMPLATE);
+    const n1 = patchDelegates(t.shared);
+    ok(!/✗/.test(n1), n1);
+    ok(t.read().includes('return !(MTSubtitleBar.sessionActive || MTResident.keepAlive)'), t.read());
+    const once = t.read(); const n2 = patchDelegates(t.shared);
+    eq(t.read(), once, '第二遍改了文件'); ok(/already current/.test(n2), n2);
+  });
+  test('已经打过旧版补丁的树（只认字幕会话的那一行）⇒ 原地升级，不逼人重新生成工程；再跑一遍不动', () => {
+    const old = TEMPLATE.replace('        return true\n', '        return !MTSubtitleBar.sessionActive\n');
+    const t = tree(old);
+    const n = patchDelegates(t.shared);
+    ok(/subtitle session upgraded/.test(n) && !/✗/.test(n), n);
+    ok(t.read().includes('return !(MTSubtitleBar.sessionActive || MTResident.keepAlive)'));
+    const once = t.read(); patchDelegates(t.shared); eq(t.read(), once);
+  });
+  test('两种已知形状都不是 ⇒ 响亮地失败，而不是悄悄少一个条件', () => {
+    const t = tree(TEMPLATE.replace('        return true\n', '        return false\n'));
+    ok(/✗ macOS \(App\): subtitle session/.test(patchDelegates(t.shared)));
+  });
+  test('install 行只在 macOS 编进来，紧跟语音桥；幂等', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-resident-vc-'));
+    const shared = path.join(root, 'Shared (App)'); fs.mkdirSync(shared);
+    const vc = 'import WebKit\n\nclass ViewController {\n    func viewDidLoad() {\n        self.webView.configuration.userContentController.add(self, name: "controller")\n    }\n}\n';
+    fs.writeFileSync(path.join(shared, 'ViewController.swift'), vc);
+    patchViewController(shared);
+    const out = fs.readFileSync(path.join(shared, 'ViewController.swift'), 'utf8');
+    ok(/MTSpeechBridge\.shared\.install\(webView: self\.webView\)\n\s*#if os\(macOS\)\n\s*MTResident\.shared\.install\(webView: self\.webView\)\n\s*#endif/.test(out), 'install 行的形状不对');
+    patchViewController(shared);
+    eq((fs.readFileSync(path.join(shared, 'ViewController.swift'), 'utf8').match(/MTResident\.shared\.install/g) || []).length, 1, '第二遍又加了一行');
+  });
+  test('两个关闭守卫互不覆盖：字幕会话结束时只摘自己，被包着就把自己从链上剪出去', () => {
+    ok(/if w\.delegate === g \{ w\.delegate = g\.original \}/.test(bar), '字幕条还在无条件地把 delegate 设回 original —— 会连常驻守卫一起摘掉');
+    ok(/as\? MTResidentCloseGuard, outer\.original === g \{ outer\.original = g\.original \}/.test(bar), '没有从链上剪出自己');
+    ok(/!w\.isVisible && !MTResident\.keepAlive/.test(bar), '常驻开着时，字幕会话结束不该把用户收起来的主窗口弹回来');
+  });
+  test('quick-host.js 的 PROTOCOL 与 resident.swift 逐字对表', () => {
+    const src = fs.readFileSync(path.join(R, 'app', 'quick-host.js'), 'utf8');
+    const grab = (k) => (src.match(new RegExp(k + ':\\s*\\[([^\\]]*)\\]')) || [])[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
+    const body = code(tpl);
+    for (const v of grab('toNative')) ok(body.includes(`case "${v}":`), `toNative「${v}」在 resident.swift 里没有 case`);
+    for (const v of grab('fromNative')) ok(body.includes(`"${v}"`), `fromNative「${v}」在 resident.swift 里从未发出`);
+    match(tpl, /static let channel = "mtQuick"/); ok(src.includes("const CHANNEL = 'mtQuick'"));
+  });
+  test('第一次关窗：先让页面说话，读完才收；之后直接收起', () => {
+    ok(/if !seen \{[\s\S]*?"quick-first-close"[\s\S]*?return false/.test(tpl), '第一次关窗没有把事情交给页面');
+    ok(/case "quick-close-main":\s*\n\s*seen = true\s*\n\s*mainWindowNow\(\)\?\.orderOut\(nil\)/.test(tpl));
+    ok(/static var keepAlive: Bool \{ shared\.enabled \}/.test(tpl) && /private var enabled = false/.test(tpl), '页面还没发来配置之前必须是老行为（关窗即退出）');
+  });
+});

@@ -3170,5 +3170,35 @@
   },
   "src_handoff_input": {
     "message": "輸入翻譯"
+  },
+  "quick_title": {
+    "message": "快速翻譯"
+  },
+  "quick_enabled_label": {
+    "message": "常駐在選單列"
+  },
+  "quick_enabled_note": {
+    "message": "關掉後選單列圖示會消失，關閉視窗即結束 App。"
+  },
+  "quick_menu_open": {
+    "message": "打開大肚猴翻譯"
+  },
+  "quick_menu_settings": {
+    "message": "快速翻譯設定…"
+  },
+  "quick_menu_quit": {
+    "message": "結束"
+  },
+  "quick_resident_title": {
+    "message": "大肚猴還在選單列"
+  },
+  "quick_resident_body": {
+    "message": "快速鍵照常可用。要完全結束，請用選單列圖示裡的「結束」，或按 ⌘Q。"
+  },
+  "quick_resident_ok": {
+    "message": "知道了"
+  },
+  "quick_resident_off": {
+    "message": "不想常駐"
   }
 }
