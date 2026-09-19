@@ -132,3 +132,21 @@ describe('AppQuickHost — 增强取词：意图、权限、对账', () => {
     for (const m of posted) ok(H.PROTOCOL.toNative.indexOf(m.type) >= 0, m.type); restore();
   });
 });
+
+describe('AppQuickHost — 增强取词：先重开、后授权（真机 2026-09-19 实测的顺序）', () => {
+  const caps = (postEvent) => ({ type: 'quick-caps', resident: true, panel: true, postEvent });
+  test('重开发生在授权之前 ⇒ 这一次弹回是对的；用户随后授权、再重开 ⇒ 兑现原来的意图，不再挂着「系统没有给权限」', async () => {
+    const a = load({ quickEnhanced: true, quickEnhancedNote: 'pending' });
+    a.H.start({}); await a.H._fromNative(caps(false)); await tick();
+    eq(a.st.quickEnhanced, false); eq(a.st.quickEnhancedNote, 'denied'); a.restore();
+    const b = load(Object.assign({}, a.st));
+    b.H.start({}); await b.H._fromNative(caps(true)); await tick();
+    eq(b.st.quickEnhanced, true, '权限已经在了，开关却还是关的'); eq(b.st.quickEnhancedNote, '', '「系统没有给权限」这句话此刻是假的');
+    eq(b.posted.filter((m) => m.type === 'quick-config').pop().enhanced, true); b.restore();
+  });
+  test('用户自己在设置里关掉的（说明是空的）⇒ 权限在也不替他打开', async () => {
+    const { H, st, restore } = load({ quickEnhanced: false, quickEnhancedNote: '' });
+    H.start({}); await H._fromNative(caps(true)); await tick();
+    eq(st.quickEnhanced, false); restore();
+  });
+});

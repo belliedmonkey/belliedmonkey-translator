@@ -73,8 +73,12 @@
     const s = await get(KEYS);
     if (s.quickEnhanced === true && !hasPostEvent()) {
       await set({ quickEnhanced: false, quickEnhancedNote: 'denied', quickEnhancedLost: s.quickEnhancedNote === 'pending' ? false : true });
-    } else if (s.quickEnhanced === true && hasPostEvent() && s.quickEnhancedNote) {
-      await set({ quickEnhancedNote: '' });
+    } else if (hasPostEvent() && s.quickEnhancedNote) {
+      // 权限在，而说明还停在 pending / denied ⇒ 用户终究是给了：兑现他原来的意图，清掉那句话。
+      // 真机实测的顺序（2026-09-19）：重开发生在授权**之前**，那一次对账把意图弹回了「关」并标成 denied；用户随后授权、
+      // 再重开，权限有了，开关却还是关的，旁边还挂着「系统没有给权限」—— 那句话此刻是假的。
+      // 用户自己在设置里关掉的不在此列：那时说明是空的（setEnhanced(false) 会清掉它）。
+      await set({ quickEnhanced: true, quickEnhancedNote: '', quickEnhancedLost: false });
     }
   }
 

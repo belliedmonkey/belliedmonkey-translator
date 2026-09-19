@@ -367,6 +367,14 @@ async function main() {
     need(l5.on === false && /系统没有给权限/.test(l5.state) && l5.privacy && !l5.relaunch, 'L: 权限没了 ⇒ 开关弹回 + 一句话 +「打开系统设置」（没有「现在重开」），实际 ' + JSON.stringify(l5));
     need((await hostOut('quick-config')).pop().enhanced === false && (await E(`new Promise((r) => chrome.storage.local.get(['quickEnhancedLost'], (v) => r(v.quickEnhancedLost)))`)) === true, 'L: 意图弹回 + 给面板留一次性的那一句');
     await surf2('增强取词 · 被拒');
+    // 真机实测的顺序：重开发生在授权之前（上面那一步已经弹回并写着「系统没有给权限」）；用户随后授权、再重开
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(500);
+    const l6 = await enh();
+    need(l6.on === true && l6.state === '' && (await hostOut('quick-config')).pop().enhanced === true, 'L: 先重开、后授权、再重开 ⇒ 兑现原来的意图，不再挂着「系统没有给权限」，实际 ' + JSON.stringify(l6));
+    // 用户自己关掉的 ⇒ 权限在也不替他打开
+    await E(`(document.getElementById('quick-enhanced').click(), 'ok')`); await sleep(400);
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(400);
+    need((await enh()).on === false, 'L: 用户自己关掉的，重开后权限在也不该替他打开');
   } catch (e) { problems.push('脚本中断：' + (e && e.message || e)); }
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 
