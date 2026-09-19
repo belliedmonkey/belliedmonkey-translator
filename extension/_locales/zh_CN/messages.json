@@ -3281,5 +3281,14 @@
   },
   "quick_shot_again": {
     "message": "重新框选"
+  },
+  "quick_menu_clip": {
+    "message": "翻译剪贴板"
+  },
+  "quick_menu_input": {
+    "message": "输入翻译"
+  },
+  "quick_clip_blocked": {
+    "message": "系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。"
   }
 }

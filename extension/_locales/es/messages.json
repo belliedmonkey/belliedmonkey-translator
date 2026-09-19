@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "Seleccionar de nuevo"
+  },
+  "quick_menu_clip": {
+    "message": "Traducir el portapapeles"
+  },
+  "quick_menu_input": {
+    "message": "Escribir para traducir"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS no nos ha dejado leer el portapapeles. Permítelo en Ajustes del Sistema › Privacidad y seguridad › Pegar desde otras apps, o usa el menú Servicios del clic derecho."
   }
 }

@@ -44,7 +44,7 @@ const EVENTS = {
       'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
       'reasoning_starved', 'device_no_file', 'other'],
   },
-  translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc', 'quick'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
     provider: 'id',
     // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
@@ -130,6 +130,8 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
     ...SHARED('extension/learn/doc-view.js', { match: "kind: 'doc'" }),
     { host: 'app', file: 'app/listen.js', match: "kind: 'subtitle'" },
+    // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
+    { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
     { host: 'ext', surface: 'translate-fill', none: '补译文是学习层给已捕获的卡片补一个译文，不是一次用户发起的翻译会话（§3.3 裁定 2）' },
     { host: 'app', surface: 'translate-fill', none: '同一份 translate-fill.js，同一条裁定：后台补译文不算翻译会话' },
   ],
@@ -138,6 +140,7 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
     ...SHARED('extension/learn/doc-view.js'),
     { host: 'app', file: 'app/listen.js' },
+    { host: 'app', file: 'app/handoff.js' },
   ],
   subtitle_on: [
     { host: 'ext', file: 'extension/content/subtitle-adapter.js' },

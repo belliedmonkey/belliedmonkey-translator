@@ -10,7 +10,7 @@
   // 与 resident.swift 逐字对表（test/build-scripts.test.js 的协议镜像门）
   const PROTOCOL = {
     toNative: ['quick-probe', 'quick-config', 'quick-close-main'],
-    fromNative: ['quick-caps', 'quick-first-close', 'quick-open-settings'],
+    fromNative: ['quick-caps', 'quick-first-close', 'quick-open-settings', 'quick-capture', 'quick-result'],
   };
   const KEYS = ['quickEnabled', 'quickResidentSeen'];
   const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);
@@ -37,6 +37,8 @@
         open: t('quick_menu_open', '打开大肚猴翻译'),
         settings: t('quick_menu_settings', '快速翻译设置…'),
         quit: t('quick_menu_quit', '退出'),
+        clip: t('quick_menu_clip', '翻译剪贴板'),
+        input: t('quick_menu_input', '输入翻译'),
       },
     });
   }
@@ -57,7 +59,11 @@
     if (!msg || typeof msg.type !== 'string') return;
     if (msg.type === 'quick-caps') { caps = msg; pushConfig(); for (const fn of listeners) { try { fn(caps); } catch (_) {} } return; }
     if (msg.type === 'quick-first-close') { onFirstClose(); return; }
-    if (msg.type === 'quick-open-settings') { if (hooks.openSettings) hooks.openSettings('g-quick'); }
+    if (msg.type === 'quick-open-settings') { if (hooks.openSettings) hooks.openSettings('g-quick'); return; }
+    // 面板页经原生中继过来的两样东西（面板是第二个 WKWebView：不开学习库、不初始化遥测）。
+    // 进不进复习库由那个唯一写入者按同一套门裁定 —— 这里不预判，只转交。
+    if (msg.type === 'quick-capture') { if (typeof AppHandoff !== 'undefined') return AppHandoff.ingestLive([msg]); return; }
+    if (msg.type === 'quick-result') { if (typeof AppHandoff !== 'undefined') AppHandoff.relayResult(msg); }
   }
 
   function start(h) {

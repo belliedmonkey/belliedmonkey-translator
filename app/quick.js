@@ -6,10 +6,10 @@
 // 它**不**启动同步、不初始化遥测、不打开 LearnStore —— 学习库按账号分库，第二个打开者会握着过期的库名；
 // 「这句进复习库」与「翻成了 / 失败了」都经原生中继交给主页面（quick-capture / quick-result）。
 //
-// 原生 → 页面：quick-show {via, origin, text?, concealed?}   origin: selection | clipboard | service | screen | typed
+// 原生 → 页面：quick-show {via, origin, text?, concealed?, own?, blocked?, fresh?}   origin: selection | clipboard | service | screen | typed
 //             quick-ocr {lines}                                截图识别出的行框（拼段在 HandoffCore）
 // 页面 → 原生：quick-ready · quick-resize {h} · quick-close · quick-pin {on} · quick-copy {text}
-//             quick-capture {v,text,tr,lang,trLang,ts,via} · quick-result {ok, code, provider, ms}
+//             quick-capture {v,text,tr,lang,trLang,ts,via} · quick-result {ok, code, provider, ms, status, route}（每个面板会话至多一条成功）
 //             quick-open-settings · quick-reselect（重新框选）
 (function (root) {
   'use strict';
@@ -30,6 +30,7 @@
   let lastText = '';           // 上一次交来的文字（陷阱②）
   let lastShown = null;        // 上一次的结果（陷阱②：显示它，不重发请求）
   let pinned = false;
+  let sess = { ok: false, failed: {} };   // 一个面板会话（原生说 fresh 起算）：成功至多报一次、每个错误码至多一次
 
   function post(payload) { try { root.webkit.messageHandlers[CHANNEL].postMessage(payload); return true; } catch (_) { return false; } }
   const get = (keys) => new Promise((res) => chrome.storage.local.get(keys, (v) => res(v || {})));
@@ -85,18 +86,29 @@
   function message(text) { const d = document.createElement('div'); d.className = 'qk-note'; d.textContent = text; $('qk-out').appendChild(d); }
 
   // ── 交来文字 ──────────────────────────────────────────────────────────────
+  function report(ok, e, provider, ms) {
+    const code = ok ? '' : ((e && e.code) || 'network');
+    if (ok ? sess.ok : sess.failed[code]) return;
+    if (ok) sess.ok = true; else sess.failed[code] = true;
+    post({ type: 'quick-result', ok, code, provider, ms, status: e && Number.isInteger(e.status) ? e.status : 0, route: (e && e.route) || '' });
+  }
+
   async function show(msg) {
     gen += 1;
+    if (msg.fresh) sess = { ok: false, failed: {} };
     const origin = msg.origin || 'selection'; const via = C().VIAS.indexOf(msg.via) >= 0 ? msg.via : 'select';
     $('quick-root').hidden = false;
     $('qk-tag').textContent = originLabel(origin);
     clearOut();
     // 零权限路径的三个陷阱只对「剪贴板」成立；别的来源直接是交来的文字。
     if (origin === 'clipboard') {
-      const c = C().classifyClipboard({ text: msg.text, concealed: !!msg.concealed }, lastText);
+      // blocked：系统没让读（剪贴板隐私开着时后台读取会卡住，原生 1 秒超时后这样报）
+      if (msg.blocked) { setSrc('', false); message(t('quick_clip_blocked', '系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。')); hideLang(); return fit(); }
+      // own：剪贴板里是我们自己刚复制出去的译文 —— 再翻一遍它没有意义，当作「和上次一样」
+      const c = C().classifyClipboard({ text: msg.text, concealed: !!msg.concealed, own: !!msg.own }, lastText);
       if (c.kind === 'concealed') { setSrc('', false); message(t('quick_clip_concealed', '剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。')); hideLang(); return fit(); }
       if (c.kind === 'empty') { setSrc('', false); message(t('quick_clip_empty', '剪贴板里没有文字。先选中并按 ⌘C，再按快捷键。')); hideLang(); return fit(); }
-      if (c.kind === 'same' && lastShown) { setSrc(c.text, true); note(t('quick_clip_same', '和上次翻的是同一段 —— 是不是忘了按 ⌘C？')); renderDone(lastShown); return fit(); }
+      if (c.kind === 'same' && lastShown) { setSrc(lastShown.text, true); note(t('quick_clip_same', '和上次翻的是同一段 —— 是不是忘了按 ⌘C？')); renderDone(lastShown); return fit(); }
     }
     if (origin === 'typed') { cur = { via: 'input', origin, text: '' }; setSrc('', true); showLang(null); $('qk-src').focus(); return fit(); }
     const text = String(msg.text || '').trim();
@@ -152,14 +164,14 @@
       const code = (e && e.code) || '';
       actions(RETRYABLE[code] ? [{ text: t('quick_retry', '重试'), primary: true, run: () => run(forceLang) }]
         : [{ text: t('quick_open_settings', '打开设置'), primary: true, run: () => post({ type: 'quick-open-settings' }) }]);
-      post({ type: 'quick-result', ok: false, code: code || 'network', provider: String(tr.provider || ''), ms: Date.now() - t0 });
+      report(false, e, String(tr.provider || ''), Date.now() - t0);
       return fit();
     }
     clearTimeout(slow); note('');
     const done = { text, tr: out.join('\n\n'), lang: choice.lang, captureOn: s.learnEnabled !== false && s.quickCapture !== false };
     lastText = text; lastShown = done;
     renderDone(done, true);
-    post({ type: 'quick-result', ok: true, code: '', provider: String(tr.provider || ''), ms: Date.now() - t0 });
+    report(true, null, String(tr.provider || ''), Date.now() - t0);
     fit();
   }
 

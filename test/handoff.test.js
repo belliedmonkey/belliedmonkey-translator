@@ -133,3 +133,19 @@ describe('SourcesView.groupHandoff —— 按入口 + 月份一行，新月份�
   });
   test('isHandoff 只认 handoff://', () => { ok(SV.isHandoff(sources[0])); ok(!SV.isHandoff(sources[4])); ok(!SV.isHandoff({ url: 'conv://x' })); });
 });
+
+describe('AppHandoff.relayResult — 面板页的遥测由主页面代发（telemetry-design §3.5）', () => {
+  const sent = []; const track = { track: (n, p) => sent.push({ n, p }) };
+  test('成功 ⇒ translate_ok{provider, kind:quick, ms}，属性全在白名单里', () => {
+    const { EVENTS } = require(path.join(ROOT, 'build', 'telemetry.config.js'));
+    sent.length = 0; eq(H.relayResult({ ok: true, provider: 'deepseek', ms: 640, text: '不该出现' }, track), 'ok');
+    deepEq(sent[0], { n: 'translate_ok', p: { provider: 'deepseek', kind: 'quick', ms: 640 } });
+    ok(EVENTS.translate_ok.kind.indexOf('quick') >= 0, '白名单里没有 quick ⇒ 客户端会静默丢掉');
+  });
+  test('失败 ⇒ translate_fail，不带 kind；缺的字段落到安全默认', () => {
+    sent.length = 0; eq(H.relayResult({ ok: false, code: 'auth', provider: 'openai', status: 401, route: 'direct', ms: 12.5 }, track), 'fail');
+    deepEq(sent[0], { n: 'translate_fail', p: { provider: 'openai', code: 'auth', status: 401, route: 'direct', ms: 0 } });
+    sent.length = 0; H.relayResult({ ok: false }, track);
+    deepEq(sent[0].p, { provider: '', code: 'network', status: 0, route: '', ms: 0 });
+  });
+});

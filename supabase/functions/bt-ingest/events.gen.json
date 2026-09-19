@@ -70,7 +70,8 @@
       "kind": [
         "page",
         "subtitle",
-        "doc"
+        "doc",
+        "quick"
       ],
       "ms": "int"
     },

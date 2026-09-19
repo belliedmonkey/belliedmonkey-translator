@@ -610,4 +610,6 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .qk-actions button { font: inherit; font-weight: 600; font-size: .86rem; border-radius: 999px; padding: 6px 14px; min-height: 32px; cursor: pointer; border: 1px solid var(--line); background: var(--card-bg); color: var(--accent-deep); }
 .qk-actions button.p { background: var(--accent); border-color: transparent; color: #fff; }
 .qk-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; font-size: .78rem; color: var(--dim); }
+/* 底栏两样都没有（未配置 / 失败 / 提示态）⇒ 整条不占地方：真机上量到面板底下空出一截 */
+.qk-foot:has(.qk-state:empty):has(#qk-copy[hidden]) { display: none; }
 .qk-state.saved { color: var(--sage-strong); font-weight: 600; }

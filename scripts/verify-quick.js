@@ -168,10 +168,16 @@ async function main() {
     await sleep(600); const c3 = await dom();
     need(stats.calls.length === n && c3.tr[0] === b.tr[0] && /⌘C/.test(c3.note), 'C3: 和上次一样 ⇒ 显示上次的结果、0 请求、提示忘了 ⌘C，实际 ' + JSON.stringify(c3) + ' 请求 +' + (stats.calls.length - n));
     need((await out('quick-capture')).length === 1, 'C: 三个陷阱都不该再交一条进复习库');
+    // 我们自己刚复制出去的译文（原生按 changeCount 认出来，报 own）⇒ 不再翻一遍；系统没让读 ⇒ 说原因
+    await show({ via: 'select', origin: 'clipboard', text: b.tr[0], own: true }); await sleep(500); const c4 = await dom();
+    need(stats.calls.length === n && c4.src === b.src && c4.tr[0] === b.tr[0], 'C4: 剪贴板里是我们自己的译文 ⇒ 0 请求、显示上次那一对，实际 ' + JSON.stringify(c4));
+    await show({ via: 'select', origin: 'clipboard', blocked: true }); await sleep(300); const c5 = await dom();
+    need(stats.calls.length === n && /粘贴自其他 App/.test(c5.msg), 'C5: 系统没让读剪贴板 ⇒ 0 请求 + 说去哪里允许，实际 ' + JSON.stringify(c5.msg));
 
     // ── D. 原文已是目标语言 ⇒ 反向 + 写明原因；符号 ⇒ 没有可翻译的文字 ──
     await show({ via: 'select', origin: 'selection', text: '委员会推迟了表决。' });
     const d = await settled();
+    need((await out('quick-result')).length === 1, 'D: 同一个面板会话里第二次成功不该再报一条 quick-result（每会话一条），实际 ' + (await out('quick-result')).length);
     need(/English/i.test(stats.calls[stats.calls.length - 1].dir) && d.lang === 'en' && /简体中文|中文/.test(d.from), 'D: 该反向译成英文并写明「原文已是…」，实际 ' + JSON.stringify([stats.calls[stats.calls.length - 1], d.lang, d.from]));
     n = stats.calls.length;
     await show({ via: 'select', origin: 'selection', text: ' 12 → 34 ' }); await sleep(400);
@@ -213,7 +219,7 @@ async function main() {
     // ── G. 失败两态的出口不同 ──
     const resBefore = (await out('quick-result')).length;
     stats.mode = '401';
-    await show({ via: 'select', origin: 'selection', text: 'Rejected sentence.' });
+    await show({ via: 'select', origin: 'selection', text: 'Rejected sentence.', fresh: true });   // fresh = 新的面板会话
     const g1 = await settled();
     need(/key/i.test(g1.err) && g1.acts.join() === '打开设置' && g1.state === '', 'G: 401 ⇒ 说 key 被拒 + 只给「打开设置」，实际 ' + JSON.stringify(g1));
     await surf('失败态');
@@ -242,6 +248,7 @@ async function main() {
     await show({ via: 'select', origin: 'selection', text: 'No engine yet.' }); await sleep(500);
     const h2 = await dom();
     need(stats.calls.length === n && h2.acts.join() === '打开设置' && /引擎/.test(h2.msg), 'H: 未配置 ⇒ 0 请求 + 「打开设置」，实际 ' + JSON.stringify(h2));
+    need(await E(`getComputedStyle(document.querySelector('.qk-foot')).display`) === 'none', 'H: 底栏两样都没有时该整条不占地方（真机上量到过面板底下空一截）');
     await surf('未配置态');
     await E(`(document.querySelector('#qk-actions button').click(), 'ok')`);
     need((await out('quick-open-settings')).length === 1, 'H: 「打开设置」该交给原生去聚焦主窗口');
@@ -252,11 +259,30 @@ async function main() {
     const stray = JSON.parse(await E(`JSON.stringify([...new Set(__out.map((m) => m.type))].filter((t) => AppQuick.PROTOCOL.toNative.indexOf(t) < 0))`));
     need(stray.length === 0, 'I: 出站消息该全在协议表里，多出 ' + JSON.stringify(stray));
     need(await E(`__idb`) === 0, 'I: 全程都不该打开学习库');
+
+    // ── J. 主页面这一头：中继来的两条消息真的落地（进复习库的唯一写入者 + 遥测代发）──
+    await cdp.send('Page.navigate', { url: base + '/Base.lproj/Main.html?main' }, sessionId);
+    await until(() => E(`typeof AppQuickHost !== 'undefined' && typeof LearnStore !== 'undefined' && typeof AppHandoff !== 'undefined'`), 8000, 'J: 主页面就绪');
+    await sleep(1200);
+    await E(`(async () => { window.__tm = []; MTTelemetry.track = (n, p) => { __tm.push({ n, p: p || {} }); return Promise.resolve(true); };
+      await new Promise((r) => chrome.storage.local.set({ learnEnabled: true, quickCapture: true }, r)); return 'ok'; })()`);
+    const rec = { type: 'quick-capture', v: 1, text: 'The relay delivers this sentence.', tr: '中继把这一句送到了。', lang: 'und', trLang: 'zh-CN', ts: Date.now(), via: 'select' };
+    const j1 = JSON.parse(await E(`(async () => { const r = await AppQuickHost._fromNative(${JSON.stringify(rec)}); const all = await LearnStore.allItems();
+      const it = all.find((x) => x.text === ${JSON.stringify(rec.text)}); return JSON.stringify({ r, it: it && { tr: it.tr, anchor: it.anchor, sourceId: it.sourceId } }); })()`));
+    need(j1.r && j1.r.written === 1 && j1.it && j1.it.tr === rec.tr && j1.it.anchor.k === 'handoff' && j1.it.anchor.via === 'select' && /^handoff:select:\d{4}-\d{2}$/.test(j1.it.sourceId),
+      'J: 中继来的句子该经 AppHandoff 进复习库（锚点 handoff / via select），实际 ' + JSON.stringify(j1));
+    const j2 = JSON.parse(await E(`(async () => { await new Promise((r) => chrome.storage.local.set({ quickCapture: false }, r));
+      const r = await AppQuickHost._fromNative(${JSON.stringify(Object.assign({}, rec, { text: 'Capture switch is off.' }))}); return JSON.stringify(r); })()`));
+    need(j2 && j2.written === 0 && j2.skipped['capture-off'] === 1, 'J: 采集关着时，就算面板页交来了也不该写（门在写入者这一头），实际 ' + JSON.stringify(j2));
+    await E(`(AppQuickHost._fromNative({ type: 'quick-result', ok: true, provider: 'custom_chat', ms: 321 }), AppQuickHost._fromNative({ type: 'quick-result', ok: false, code: 'auth', provider: 'custom_chat', status: 401, route: 'direct', ms: 9 }), 'ok')`);
+    const tm = JSON.parse(await E(`JSON.stringify(__tm.filter((e) => /^translate_/.test(e.n)))`));
+    need(tm.length === 2 && tm[0].n === 'translate_ok' && tm[0].p.kind === 'quick' && tm[0].p.ms === 321 && tm[1].n === 'translate_fail' && tm[1].p.code === 'auth' && tm[1].p.status === 401 && !('kind' in tm[1].p),
+      'J: quick-result 该由主页面代发 translate_ok{kind:quick} / translate_fail，实际 ' + JSON.stringify(tm));
   } catch (e) { problems.push('脚本中断：' + (e && e.message || e)); }
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 
   if (problems.length) { console.log('\n✗ 快速翻译面板页有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1');
+  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发');
   process.exit(0);
 }
 main();

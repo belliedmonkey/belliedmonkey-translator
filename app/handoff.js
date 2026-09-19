@@ -115,7 +115,27 @@
     });
   }
 
-  const api = { VIAS, MAX_CHARS, MAX_AGE_MS, captureKeyOf, monthOf, sourceFor, draftFor, whyNot, ingest, ingestLive };
+  // 面板页交来的「翻成了 / 失败了」（telemetry-design §3.5）：面板是第二个 WKWebView，不初始化遥测 ——
+  // 否则两个页面各发一次心跳、各持一份队列。它每个面板会话至多交一条成功、每个码一条失败；这里只管代发。
+  // 没有原文、没有地址：只有引擎 id、错误码、状态码、通路、毫秒数。
+  function relayResult(msg, tracker) {
+    const m = msg || {};
+    const T = tracker || (typeof MTTelemetry !== 'undefined' ? MTTelemetry : null);
+    if (!T) return '';
+    const ms = Number.isInteger(m.ms) && m.ms >= 0 ? m.ms : 0;
+    const provider = String(m.provider || '');
+    try {
+      if (m.ok === true) { T.track('translate_ok', { provider, kind: 'quick', ms }); return 'ok'; }
+      T.track('translate_fail', {
+        provider, code: typeof m.code === 'string' && m.code ? m.code : 'network',
+        status: Number.isInteger(m.status) ? m.status : 0,
+        route: m.route === 'proxy' ? 'proxy' : (m.route === 'direct' ? 'direct' : ''), ms,
+      });
+      return 'fail';
+    } catch (_) { return ''; }
+  }
+
+  const api = { VIAS, MAX_CHARS, MAX_AGE_MS, captureKeyOf, monthOf, sourceFor, draftFor, whyNot, ingest, ingestLive, relayResult };
   root.AppHandoff = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
