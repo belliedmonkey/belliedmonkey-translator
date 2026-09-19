@@ -19,6 +19,7 @@
     fromNative: ['quick-show', 'quick-ocr'],
   };
   const SLOW_MS = 5000;
+  const SRC_MAX_PX = 168;      // 与 style.css 的 #qk-src max-height 同值。固定像素，不按窗口高度算：窗口高度是内容决定的
   const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
     'uiLang', 'targetLang', 'learnEnabled', 'quickCapture', 'grantTail'];
   const $ = (id) => document.getElementById(id);
@@ -32,6 +33,8 @@
   let pinned = false;
   let sess = { ok: false, failed: {} };   // 一个面板会话（原生说 fresh 起算）：成功至多报一次、每个错误码至多一次
 
+  // 钉住：页面与原生各有一份，必须同进同退。原生在收起面板时清掉它那一份 ⇒ 新会话开始时这里也清（不回报）。
+  function setPinned(on, tell) { pinned = !!on; const b = $('qk-pin'); if (b) b.setAttribute('aria-pressed', String(pinned)); if (tell) post({ type: 'quick-pin', on: pinned }); }
   function post(payload) { try { root.webkit.messageHandlers[CHANNEL].postMessage(payload); return true; } catch (_) { return false; } }
   const get = (keys) => new Promise((res) => chrome.storage.local.get(keys, (v) => res(v || {})));
   function fit() { requestAnimationFrame(() => post({ type: 'quick-resize', h: Math.ceil($('quick-root').getBoundingClientRect().height) })); }
@@ -95,7 +98,7 @@
 
   async function show(msg) {
     gen += 1;
-    if (msg.fresh) sess = { ok: false, failed: {} };
+    if (msg.fresh) { sess = { ok: false, failed: {} }; setPinned(false, false); }
     const origin = msg.origin || 'selection'; const via = C().VIAS.indexOf(msg.via) >= 0 ? msg.via : 'select';
     $('quick-root').hidden = false;
     $('qk-tag').textContent = originLabel(origin);
@@ -118,7 +121,7 @@
     await run();
   }
   function setSrc(text, visible) { $('qk-src').value = text; $('qk-src').hidden = !visible; autosize(); }
-  function autosize() { const el = $('qk-src'); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, Math.round(root.innerHeight * 0.3) || 160) + 'px'; }
+  function autosize() { const el = $('qk-src'); el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, SRC_MAX_PX) + 'px'; }
   function hideLang() { $('qk-lang').hidden = true; $('qk-from').textContent = ''; }
   function showLang(choice) {
     $('qk-lang').hidden = false;
@@ -205,8 +208,9 @@
     paintStatic();
     $('quick-root').hidden = false;
     $('qk-close').addEventListener('click', () => post({ type: 'quick-close' }));
-    $('qk-pin').addEventListener('click', () => { pinned = !pinned; $('qk-pin').setAttribute('aria-pressed', String(pinned)); post({ type: 'quick-pin', on: pinned }); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); post({ type: 'quick-close' }); } });
+    $('qk-pin').addEventListener('click', () => setPinned(!pinned, true));
+    // 钉住 ⇒ Esc 也不关（只有 ✕ 关）：点图钉会让面板成为键盘窗口，随后的 Esc 进的是这一页，不经原生那道闸。
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); if (!pinned) post({ type: 'quick-close' }); } });
     // 原文可编辑：回车重翻、⇧回车换行。输入法组字中的回车不算。
     $('qk-src').addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;

@@ -260,6 +260,28 @@ async function main() {
     need(stray.length === 0, 'I: 出站消息该全在协议表里，多出 ' + JSON.stringify(stray));
     need(await E(`__idb`) === 0, 'I: 全程都不该打开学习库');
 
+    // ── K. 真机上量出来的三件事（2026-09-19，macOS 27）──
+    // K1 面板刚弹出时窗口只有 120 高；原文框的上限若按「窗口高度的百分比」算，两行的原文只露出一行。
+    await E(`new Promise((r) => chrome.storage.local.set({ provider: 'custom_chat', apiKey: 'x', apiBaseUrl: ${JSON.stringify(base + '/v1/chat/completions')}, apiModel: 'm', quickCapture: true }, () => r('ok')))`);
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: 400, height: 120, deviceScaleFactor: 2, mobile: false }, sessionId);
+    await show({ via: 'select', origin: 'clipboard', fresh: true, text: 'Quarterly earnings beat expectations for the third time in a row this year.' });
+    await settled();
+    const k1 = JSON.parse(await E(`(() => { const el = document.getElementById('qk-src'); return JSON.stringify({ client: el.clientHeight, scroll: el.scrollHeight, win: innerHeight }); })()`));
+    need(k1.scroll > 40 && k1.client >= k1.scroll - 2, 'K1: 窗口还很矮时，两行的原文也该整段露出来（上限不能跟着窗口高度走），实际 ' + JSON.stringify(k1));
+    const lastResize = (await out('quick-resize')).pop();
+    need(lastResize && lastResize.h > 150, 'K1: 报给原生的高度该是内容的高度、不受当前窗口高度限制，实际 ' + JSON.stringify(lastResize));
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    // K2 钉住时，焦点在面板里按 Esc 也不关（点图钉会让面板成为键盘窗口，随后的 Esc 进的是页面）
+    const closeBefore = (await out('quick-close')).length;
+    await E(`(() => { const b = document.getElementById('qk-pin'); if (b.getAttribute('aria-pressed') !== 'true') b.click(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return 'ok'; })()`);
+    need((await out('quick-close')).length === closeBefore, 'K2: 钉住时 Esc 不该关面板');
+    // K3 原生在收起时把钉住清掉了；新的面板会话（fresh）开始时页面这一侧也得清，不然图钉一出来就是按下的
+    await show({ via: 'select', origin: 'clipboard', fresh: true, text: 'A brand new panel session.' });
+    await settled();
+    need(await E(`document.getElementById('qk-pin').getAttribute('aria-pressed')`) === 'false', 'K3: 新会话开始时图钉该是没按下的');
+    await E(`(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })), 'ok')`);
+    need((await out('quick-close')).length === closeBefore + 1, 'K3: 没钉住时 Esc 照常关');
+
     // ── J. 主页面这一头：中继来的两条消息真的落地（进复习库的唯一写入者 + 遥测代发）──
     await cdp.send('Page.navigate', { url: base + '/Base.lproj/Main.html?main' }, sessionId);
     await until(() => E(`typeof AppQuickHost !== 'undefined' && typeof LearnStore !== 'undefined' && typeof AppHandoff !== 'undefined'`), 8000, 'J: 主页面就绪');

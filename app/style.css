@@ -599,10 +599,12 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .qk-ibtn { width: 32px; height: 32px; padding: 0; box-sizing: border-box; border-radius: 999px; border: 0; background: transparent; color: var(--dim); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
 .qk-ibtn svg { width: 17px; height: 17px; flex: none; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .qk-ibtn[aria-pressed="true"] { color: var(--accent-deep); background: var(--warn-bg, var(--card-bg)); }
-#qk-src { font: inherit; line-height: 1.5; width: 100%; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--card-bg); color: var(--fg); max-height: 30vh; }
+#qk-src { font: inherit; line-height: 1.5; width: 100%; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--card-bg); color: var(--fg); max-height: 168px; }
 #qk-src:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .qk-note { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
-.qk-out { display: flex; flex-direction: column; gap: 10px; max-height: 46vh; overflow: auto; padding: 0 2px; }
+/* 上限一律固定像素：面板窗口的高度由内容决定（页面报高度、原生照着长），按窗口高度的百分比算就是循环依赖 ——
+   真机上面板刚弹出时窗口只有 120 高，两行的原文只露出一行。原生另有「不超过屏幕 70%」的总闸。 */
+.qk-out { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow: auto; padding: 0 2px; }
 .qk-out .qk-tr { color: var(--sage-strong); font-size: 1rem; line-height: 1.6; font-weight: 500; white-space: pre-wrap; }
 .qk-out .qk-sk { height: 11px; border-radius: 999px; background: var(--line); opacity: .6; }
 .qk-out .qk-err { background: var(--warn-bg, var(--card-bg)); border: 1px solid var(--warn-bd, var(--line)); color: var(--warn-tx, var(--fg)); border-radius: 12px; padding: 8px 10px; font-size: .86rem; line-height: 1.5; white-space: pre-wrap; }
