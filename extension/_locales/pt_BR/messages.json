@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "no dispositivo (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Traduzir para"
+  },
+  "target_lang_follow": {
+    "message": "Seguir o idioma da interface ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Usado na tradução de documentos, na tradução do sistema e na tradução rápida. A conversa e as legendas ao vivo têm suas próprias configurações de idioma."
   }
 }

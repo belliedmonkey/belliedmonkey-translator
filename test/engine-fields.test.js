@@ -414,3 +414,42 @@ describe('界面语言 = build/ui-langs.config.js', () => {
     });
   }
 });
+
+// 目标语言：四份清单必须都等于 build/target-langs.config.js —— 2026-09-19。
+//
+// 与上面「界面语言」同一个形状、同一个理由。立这道门时已经漂了一处：弹窗的选择器 11 项、
+// 设置页 12 项（缺 it）—— 意大利语用户在弹窗里选不到自己在设置页里选过的语言，两边都不报错。
+// App 此前根本没有这个设置；补上「译成」= 多一个端点 = 多一处会漂的地方，所以门与端点同一个 PR 进。
+describe('目标语言 = build/target-langs.config.js', () => {
+  const REG = require(path.join(ROOT, 'build', 'target-langs.config.js'));
+  const ids = REG.map((l) => l.id);
+  const optionsOf = (html, where) => {
+    const m = html.match(/<select id="target-lang"[^>]*>([\s\S]*?)<\/select>/);
+    ok(!!m, where + '：找不到 target-lang 选择器');
+    return [...m[1].matchAll(/value="([^"]*)"[^>]*>([^<]*)</g)].map((x) => [x[1], x[2].trim()]);
+  };
+  test('注册表自洽：id 与 endonym 都不重复', () => {
+    eq(new Set(ids).size, ids.length); eq(new Set(REG.map((l) => l.endonym)).size, REG.length);
+  });
+  for (const [label, file, follow] of [
+    ['扩展设置页', path.join('extension', 'options', 'options.html'), false],
+    ['扩展弹窗', path.join('extension', 'popup', 'popup.html'), false],
+    ['宿主 App 设置页', path.join('app', 'index.html'), true],
+  ]) {
+    test(label + '：逐项等于注册表（含顺序与 endonym）' + (follow ? '，且第一项是空值「跟随界面语言」' : ''), () => {
+      let list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'), label);
+      if (follow) { eq(list[0][0], '', label + ' 的第一项必须是空值 —— 「跟随界面语言」是默认，老用户升级后行为不变'); list = list.slice(1); }
+      eq(list.map((x) => x[0]).join(','), ids.join(','), label + ' 的语言项与注册表对不上（顺序也算）');
+      const bad = list.filter((x, i) => x[1] !== REG[i].endonym);
+      eq(bad.length, 0, label + ' 的 endonym 与注册表不同：' + bad.map((x) => x.join('=')).join(' '));
+    });
+  }
+  test('传输层提示词里的语言名（LANG_NAMES）与注册表一一对应', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'extension', 'content', 'translation-api.js'), 'utf8');
+    const m = src.match(/const LANG_NAMES = \{([\s\S]*?)\};/);
+    ok(!!m, '找不到 LANG_NAMES');
+    const got = [...m[1].matchAll(/'([^']+)':\s*'([^']+)'/g)].map((x) => [x[1], x[2]]);
+    eq(got.map((x) => x[0]).sort().join(','), ids.slice().sort().join(','), 'LANG_NAMES 的键与注册表不同 —— 选得到却没有语言名，提示词里就只剩一个语言码');
+    for (const [id, name] of got) eq(name, REG.find((l) => l.id === id).endonym, id + ' 的语言名与注册表不同');
+  });
+});

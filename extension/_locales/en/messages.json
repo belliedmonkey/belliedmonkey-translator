@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "on-device (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Translate into"
+  },
+  "target_lang_follow": {
+    "message": "Follow interface language ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Used by document translation, system translation and quick translate. Conversation and live subtitles have their own language settings."
   }
 }

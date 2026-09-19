@@ -57,7 +57,7 @@ var AppSettings = (() => {
   // The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
   // a rename over there fails loudly at the next read rather than silently reverting
   // a user's setting to a default.
-  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang',
+  const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang', 'targetLang',
     'subtitleVideoLang',   // 实时字幕「视频的语言」进设置页（2026-09-17，§9.8）；与准备页那处是两处一份设置
     'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
     // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
@@ -109,6 +109,7 @@ var AppSettings = (() => {
     $('settings-back').textContent = t('app_review_back', '← 返回');
     $('ui-lang-label').textContent = t('ui_lang_label', '界面语言');
     $('ui-lang-auto').textContent = t('ui_lang_auto', '跟随系统');
+    paintTargetLangStatic();
     $('daily-label').textContent = t('app_set_daily', '每天最多学几张新卡');
     // The three modes reuse the extension options page's keys — same feature, same
     // words, one translation to maintain.
@@ -583,9 +584,24 @@ var AppSettings = (() => {
     });
   }
 
+  // 「译成」的静态文案。「跟随界面语言（简体中文）」里的括号要随界面语言当场重算，
+  // 所以界面语言一变也要重画（paintStatic 会走到这里）。
+  function paintTargetLangStatic() {
+    if (!$('target-lang')) return;
+    $('target-lang-label').textContent = t('target_lang_label', '译成');
+    $('target-lang-hint').textContent = t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。');
+    const follow = AppTargetLang.resolve({ uiLang: _uiLangNow }, navigator.language);
+    const opt = [...$('target-lang').options].find((o) => o.value === follow);
+    $('target-lang-follow').textContent = t('target_lang_follow', '跟随界面语言（{lang}）').replace('{lang}', opt ? opt.textContent : follow);
+  }
+  let _uiLangNow = 'auto';
+
   async function paint(session, say) {
     const cur = await get(KEYS);
     $('ui-lang').value = cur.uiLang || 'auto';
+    _uiLangNow = cur.uiLang || 'auto';
+    $('target-lang').value = cur.targetLang || '';
+    paintTargetLangStatic();
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'off';
     // 不认识的 id（换 flavor / 降级安装 / 厂商下架）落到**哨兵**，不是第一个引擎 ——
@@ -905,10 +921,16 @@ var AppSettings = (() => {
     $('ui-lang').addEventListener('change', async () => {
       const v = $('ui-lang').value || 'auto';
       await set({ uiLang: v });
+      _uiLangNow = v;
       try { PageI18n.setUiLang(v); } catch (_) {}
       paintStatic();
       try { document.documentElement.lang = PageI18n.effectiveLocale().replace('_', '-'); } catch (_) {}
       try { AppDriving.refreshEntry(); } catch (_) {}
+    });
+    // 空值 = 跟随界面语言：**删键**而不是存空串，存储里只有用户明说过的选择。
+    $('target-lang').addEventListener('change', async () => {
+      const v = $('target-lang').value;
+      if (v) await set({ targetLang: v }); else await new Promise((r) => chrome.storage.local.remove(['targetLang'], r));
     });
     $('tts-mode').addEventListener('change', () => set({ ttsMode: $('tts-mode').value }));
     // Every speech knob reconfigures LearnTTS LIVE, not just at next launch —

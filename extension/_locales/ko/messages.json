@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "기기 내장 (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "번역 대상 언어"
+  },
+  "target_lang_follow": {
+    "message": "인터페이스 언어를 따름 ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "문서 번역, 시스템 번역, 빠른 번역에 사용됩니다. 대화와 실시간 자막에는 별도의 언어 설정이 있습니다."
   }
 }

@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "デバイス内蔵（iOS 26 / macOS 26）"
+  },
+  "target_lang_label": {
+    "message": "翻訳先の言語"
+  },
+  "target_lang_follow": {
+    "message": "表示言語に合わせる（{lang}）"
+  },
+  "target_lang_hint": {
+    "message": "文書翻訳・システム翻訳・クイック翻訳で使います。会話とライブ字幕には専用の言語設定があります。"
   }
 }

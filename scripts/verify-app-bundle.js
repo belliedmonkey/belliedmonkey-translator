@@ -143,7 +143,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // Apple-required in-app account deletion is among them: per learning-design
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
-        settingsMissing: ['app-settings','settings-back','daily','tts-mode',
+        settingsMissing: ['app-settings','settings-back','daily','tts-mode','target-lang',
           // speech engine + its registry-declared credential fields (§7.2 / §9.1)
           'tts-engine','tts-api-key','tts-base-url','tts-model',
           'tts-voice','tts-auto','tts-rate',
@@ -843,6 +843,31 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
       AppSettings.paintStatic(); await AppSettings.paint(null, () => {}); return 'ok'; })()`, '#app-settings');
+    // ─── 「译成」（2026-09-19）：选了落盘、选回「跟随界面语言」是**删键**、读取走同一个出口 ─────
+    // App 此前没有目标语言设置，文档翻译默默译成界面语言。补上之后最要紧的是老用户行为不变：
+    // 存储里没有这个键 ⇒ AppTargetLang.resolve 给出的仍是界面语言。
+    {
+      const tl = JSON.parse((await cdp.send('Runtime.evaluate', { expression: `(async () => {
+        const $ = (id) => document.getElementById(id);
+        const get = (k) => new Promise((r) => chrome.storage.local.get(k, (s) => r(s || {})));
+        const fire = (v) => { $('target-lang').value = v; $('target-lang').dispatchEvent(new Event('change', { bubbles: true })); return new Promise((r) => setTimeout(r, 150)); };
+        await new Promise((r) => chrome.storage.local.set({ uiLang: 'zh_CN' }, r));
+        const before = await get(['targetLang', 'uiLang']);
+        const follow = $('target-lang-follow').textContent;
+        await fire('ja'); const afterJa = await get(['targetLang', 'uiLang']);
+        const resolvedJa = AppTargetLang.resolve(afterJa, 'en-US');
+        await fire(''); const afterFollow = await get(['targetLang', 'uiLang']);
+        const resolvedFollow = AppTargetLang.resolve(afterFollow, 'en-US');
+        return JSON.stringify({ hadKey: 'targetLang' in before, follow, ja: afterJa.targetLang, resolvedJa, keyGone: !('targetLang' in afterFollow), resolvedFollow,
+          options: [...$('target-lang').options].length });
+      })()`, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
+      need(tl.hadKey === false, '「译成」：全新状态下存储里不该有 targetLang（不播种默认值）');
+      need(/简体中文/.test(tl.follow), '「译成」：第一项该写明跟随的是哪门语言，实际「' + tl.follow + '」');
+      need(tl.ja === 'ja' && tl.resolvedJa === 'ja', '「译成」：选日语后该落盘并生效，实际 ' + JSON.stringify(tl));
+      need(tl.keyGone && tl.resolvedFollow === 'zh-CN', '「译成」：选回「跟随界面语言」该删键并回到界面语言，实际 ' + JSON.stringify(tl));
+      need(tl.options === 13, '「译成」：该是 1 + 12 项，实际 ' + tl.options);
+    }
+
     await sweepView('复习视图', `(async () => { const $ = (id) => document.getElementById(id);
       $('app-settings').hidden = true; $('review-view').hidden = false;
       await LearnReview.start(); return 'ok'; })()`, '#review-view');
