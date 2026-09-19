@@ -161,7 +161,7 @@ function loadHarness(opts = {}) {
     labels: { btnTitle: '', subOn: '', subOff: '' },
   }, opts.spec || {});
   const ui = ctx.SubtitleAdapter.createSubtitleUI(spec);
-  return { ui, spec, calls, document, timers, TC: ctx.TranslationCore };
+  return { ui, spec, calls, document, timers, TC: ctx.TranslationCore, SA: ctx.SubtitleAdapter };
 }
 const flush = () => new Promise((r) => setImmediate(r));
 
@@ -395,6 +395,53 @@ describe('acquireGate: a pre-roll ad must not burn the acquisition attempts (#32
     open = false; clock.t += 2600; ui.tick(); await flush();
     open = true; for (let i = 0; i < 4; i++) { clock.t += 2600; ui.tick(); await flush(); }
     eq(calls, 1, "'unavailable' from the backend means no track — an ad ending changes nothing");
+  });
+});
+
+// ─── playbackLatch：视频还没播起来时也不能把取字幕的次数耗光（#345，2026-09-19 全回归 · Windows 虚拟机实测）──
+//
+// 现场：Edge 153，「译」开着，视频暂停在 0（自动播放被拦）。27 s 后叠层锁在「字幕不可用」；随后让视频播放，
+// 正片播到 138 s、YouTube 自己的 CC 开着，叠层仍然是「字幕不可用」。与 #325 同一类：YouTube 只有在正片真的
+// 播起来之后才去取 /api/timedtext，在那之前的每一次尝试都是空转 —— #326 只挡了广告，没挡「还没播」。
+// 闩是按 mediaKey 记一次的：播起来过就一直算数（中途暂停不重开闸门、不白送 8 次），换视频才重来。
+describe("playbackLatch: a video that has not started must not burn the acquisition attempts (#345)", () => {
+  test("★ paused at 0 ⇒ false; an ad playing ⇒ false; main video playing ⇒ true and stays true across a pause; new video ⇒ false again", () => {
+    const { SA } = loadHarness({});
+    const media = { paused: true, currentTime: 0 }; let ad = false, key = "v1";
+    const started = SA.playbackLatch({ getMedia: () => media, mediaKey: () => key, exclude: () => ad });
+    eq(started(), false, "paused at 0");
+    media.paused = false; media.currentTime = 4; ad = true;
+    eq(started(), false, "the ad is playing, not the main video");
+    ad = false; media.currentTime = 0.4;
+    eq(started(), true, "main video is running");
+    media.paused = true;
+    eq(started(), true, "a pause mid-video must not close the gate again");
+    key = "v2"; media.currentTime = 0;
+    eq(started(), false, "a new video starts over");
+    eq(SA.playbackLatch({ getMedia: () => null, mediaKey: () => "x" })(), false, "no media element ⇒ not started");
+  });
+
+  test("★ 60 s paused at 0 spends nothing and never says 字幕不可用; pressing play ⇒ the first attempt loads the transcript", async () => {
+    const clock = { t: 1e12 }; let calls = 0; const media = { paused: true, currentTime: 0 };
+    const h = loadHarness({ clock, spec: { maxAttempts: 8, acquire: async () => { calls++; return media.paused ? null : [{ start: 0, end: 1000, text: "Hello." }]; } } });
+    // 先拿到适配器再造闩 —— 与 content-youtube.js 的接法同形：acquireGate 里读闩
+    const started = h.SA.playbackLatch({ getMedia: () => media, mediaKey: () => "m1" });
+    h.spec.acquireGate = () => started();
+    h.ui.init({}); h.ui.enable();
+    for (let i = 0; i < 24; i++) { clock.t += 2600; h.ui.tick(); await flush(); } // 62 s，远超 8 × 2.5 s
+    eq(calls, 0, "no attempt may be spent before playback starts");
+    const zh = (h.document.getElementById("ov") || { querySelector: () => null }).querySelector(".t");
+    ok(!zh || !/字幕不可用|unavailable/i.test(zh.textContent), "must not settle on 字幕不可用 before playback: " + (zh && zh.textContent));
+    media.paused = false; media.currentTime = 0.5; clock.t += 300; h.ui.tick(); await flush(); h.ui.tick(); await flush();
+    eq(calls, 1, "one attempt right after playback starts");
+    eq(h.ui.engine.items.length, 1, "and it loads the transcript");
+  });
+
+  test("content-youtube.js wires it: the gate needs BOTH no ad AND a started main video, and nothing is drawn before playback", () => {
+    const src = require("fs").readFileSync(require("path").join(__dirname, "../extension/content/content-youtube.js"), "utf8");
+    ok(/SubtitleAdapter\.playbackLatch\(/.test(src), "the latch comes from the adapter — one implementation");
+    ok(/acquireGate:\s*\(\)\s*=>\s*!adShowing\(\)\s*&&\s*mainStarted\(\)/.test(src), "acquireGate = !adShowing() && mainStarted()");
+    ok(/beforeRender:\s*\(\)\s*=>\s*\(\(adShowing\(\)\s*\|\|\s*!mainStarted\(\)\)\s*\?\s*.clear./.test(src), "before playback the overlay is cleared, not left on 字幕加载中");
   });
 });
 

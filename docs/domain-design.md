@@ -118,6 +118,19 @@ The YouTube subtitle path follows **one** logic, identical on every platform
    one-shots are re-armed so their grace runs from the main video. A backend's own final
    `'unavailable'` and a started §2.4 session are not affected.
 
+   **…and until the main video has actually started** (`!adShowing() && mainStarted()`,
+   #345, 2026-09-19). Same cause, different trigger: YouTube requests the main video's
+   `/api/timedtext` only once that video is running, so a page whose video sits paused at 0
+   (autoplay blocked, opened in a background tab, a slow start after a skipped ad) spent the
+   whole budget on nothing and latched 「字幕不可用」 — measured on Windows 11 Edge 153: latched
+   after 27 s paused at 0, and still latched with the main video 138 s in and YouTube's own
+   CC on. `SubtitleAdapter.playbackLatch` answers "has this media played yet", once per media
+   key: it turns true the first time the element is unpaused with `currentTime > 0` while no
+   ad is showing, and then STAYS true — a mid-video pause must not reopen the gate and hand
+   out eight more attempts — until the video id changes. Before it turns true nothing is
+   drawn (no 「字幕加载中…」 over a video nobody has started); the tick it turns true re-arms
+   the same one-shots as the end of an ad.
+
 If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
 show a one-line notice — **do not** silently regress to per-caption translation.
 
