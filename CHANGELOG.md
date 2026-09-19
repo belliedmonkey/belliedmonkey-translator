@@ -3,6 +3,20 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.13.0
+
+- New: Quick Translate (Mac) — select text in any app and press ⌃⌥T, use the right-click Services menu, or type; for text you can’t select, drag a box on screen (⌃⌥S). The translation appears in a small panel by the pointer without taking focus. On-screen text is recognised on your Mac and the screenshot is not saved. Shortcuts are configurable; it lives in the menu bar and can be turned off.
+- New: “Translate into” setting — choose the target language in the app; document translation and other features use it. It follows the interface language by default.
+- Fixed: YouTube pre-roll ads no longer use up the subtitle attempts, so subtitles appear normally once the ad ends.
+
+<details><summary>中文</summary>
+
+- 新：快速翻译（Mac）—— 在任何 App 里选中文字按 ⌃⌥T，或用右键「服务」、直接输入；选不了、复制不了的字就在屏幕上框一块（截图翻译，⌃⌥S）。译文出现在鼠标旁的小面板里，不抢焦点；屏幕上的字在本机识别，截图不保存。快捷键可改，常驻菜单栏、可以关。
+- 新：「译成」设置 —— 在 App 里选目标语言，文档翻译等功能都用它；默认跟随界面语言。
+- 修复：YouTube 片头广告期间不再把取字幕的次数耗光，广告播完后字幕正常出现。
+
+</details>
+
 ## 1.12.1 — 2026-09-18
 
 - On-device speech: the offline model's download address is now served by our server, with a backup address used automatically when the default is unreachable.
