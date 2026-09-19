@@ -19,6 +19,7 @@
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
 | 2026-09-19 | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | **通过（2026-09-19，用户评审 PR #331；五个重点判断全部按原文）** |
+| 2026-09-19 | belliedmonkey | **Gate J 拆成 J-1（Mac 快速翻译，随 1.13.0）与 J-2（iPhone 系统翻译，随 iPhone 线 I-8）**。用户同日裁定：Mac 先发、版本号 1.13.0、中国版带上。原稿把两个面写成同一段隐私说明、同一版出货；Mac 线 M-1…M-7 已全部合入 main，iPhone 线未动 —— 隐私文案必须与那一版真的有的功能逐字对得上，所以 J-1 只说 Mac，J-2 出货时**新增一段**、不改 J-1 的口。J-1 的段落比原稿多两句落地后才说得准的细节（截图不保存；增强取词只在按下快捷键的那一刻替你按一次 ⌘C 并恢复剪贴板）；键名以落地后的为准（原稿表里的 `quick_enh_does` / `quick_shot_pre` 是拟名）；审核备注从一条扩到三条；`build.js` 的耦合判据各自独立。本次改动：§10 Gate J、§12、`release-checklist.md` Gate 表。docs-only。 | **通过（2026-09-19，用户评审 PR #342；四处重点全部按原文）** |
 | 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型的下载地址改为后端配置表决定**（用户提议「地址存入数据库，每次从数据库获取，以后地址不能用了还可以换」）。清单 `app/device-models.config.js` 继续钉 **sha256 与 size**（服务器只能说「去哪下」，不能说「下什么」——换了文件过不了校验照旧丢），`url` 变成兜底默认值；表里每个文件放**默认 + 备用**两个地址；客户端：没缓存先问服务器，有缓存先探可用性、可用直下、不可用重新问，新默认也不可用才用当次的备用（备用不缓存），服务器连不上才回清单。动因：09-17 真机实测境内拉不动 GitHub，换托管每次都要发版；同日建了两处我们自己的托管：ModelScope `belliedmonkey/belliedmonkey-device-models`（真机 18.7 MB/s，中国版默认）与 Hugging Face 同名仓库（经 hf-mirror ≈580 KB/s，备选）；Supabase 公开桶也可用但按流量计费，只作最后备选。不进包（用户同日收回「存包」：不同语言要不同模型）。§9.6.1 新增 §9.6.1.1；§10 Gate H 隐私文案补一句。 | 待评审 |
 | 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
 | 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
@@ -3806,22 +3807,48 @@ the gate requires the same key on all 12):
 | App Store privacy labels | no new data category (audio is not collected); re-check at submission by hand; phase 2 adds the broadcast extension to the review notes |
 | `build.js` Gate I coupling | `dist-app*` uses `subtitle_privacy` ⇒ README ×2 contain the 「实时字幕」 stem, all 12 locales have the key, and the macOS plist row exists |
 
-### Gate J — ships with 系统翻译与快速翻译 (§9.9)
+### Gate J — 系统翻译与快速翻译 (§9.9)，**分两次出货**
 
-*(Added 2026-09-19.)* Same shape as Gate G — a new paragraph per path. The new fact is
-that text the user selects **in other apps** reaches the engine they configured.
+*(Added 2026-09-19；同日修订：用户裁定 Mac 先发（1.13.0），iPhone「系统翻译」那条线做完再发 —— 一个 Gate 拆成 J-1 / J-2。)*
+Same shape as Gate G — a new paragraph per path. The new fact is that text the user hands over
+**from other apps or from the screen** reaches the engine they configured.
 
-> 「系统翻译」与「快速翻译」只在你主动发起时工作：在 iPhone 上点系统菜单里的「翻译」，或在 Mac 上按快捷键、用右键「服务」、输入、框选屏幕。你交来的文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。截图里的文字在你的 Mac 上识别，截图不离开设备 —— 除非没认出来、而你点了「用我的识图引擎再试」。我们不读取你没有交给我们的内容：不监听键盘，不常驻读取剪贴板；剪贴板里被标记为隐藏的内容（例如密码）不读取、不发送。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+**为什么拆，而不是等。** 原稿把两个面写成同一段、同一版出货。Mac 线 M-1…M-7 已全部合入 main 并逐步真机读回，iPhone 线
+I-1…I-8 一行未写、且带外部风险（新能力首次出包、审核）。隐私文案必须与**这一版真的有的功能**逐字对得上：写了
+「在 iPhone 上点系统菜单里的翻译」而那一版没有这个功能，是一句假话，也会在审核里被问。所以 J-1 只说 Mac；J-2 在 iPhone
+上线的那一版**新增一段**（不改 J-1 那一段的口），届时两段并列。
 
-| Surface | Gate J |
+#### Gate J-1 — Mac 快速翻译，随 **1.13.0** 出货
+
+> 「快速翻译」只在你主动发起时工作：在 Mac 上按快捷键、用右键「服务」、输入、或框选屏幕。你交来的文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。截图里的文字在你的 Mac 上识别，截图不保存、不离开设备 —— 除非没认出来、而你点了「用我的识图引擎再试」。我们不读取你没有交给我们的内容：不监听键盘，不常驻读取剪贴板；「增强取词」默认关闭，打开后也只在你按下快捷键的那一刻替你按一次 ⌘C，读到选中的文字后把剪贴板恢复原样；剪贴板里被标记为隐藏的内容（例如密码）不读取、不发送。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+
+比原稿多出的两句（「截图不保存」「增强取词…替你按一次 ⌘C…恢复原样」）不是新事实，是 M-5 / M-6 落地后才说得准的细节：
+两者都由 `npm test` 对着原生源码钉着（`capture.swift` 四条不变量、`screen-ocr.swift` 全文件无写文件调用）。
+
+| Surface | Gate J-1 |
 |---|---|
-| README.md / README.zh-CN.md | feature line + privacy bullet, **in the same version as the code** (not in this docs PR) |
-| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app |
-| `_locales` ×12 | `sys_disclose_direct` / `sys_disclose_grant` (first-use line in the iOS sheet, after the system's own page), `quick_enh_does` / `quick_enh_doesnt`, `quick_shot_pre`, `quick_shot_cloud`, `quick_clip_concealed` — the canvas copy table is the list |
-| Info.plist (iOS App) | `com.apple.developer.translation-ui-provider.network-access` — not a usage string, but it is what makes the system show its one-time "所选内容将发送给…" page |
-| Info.plist (macOS App) | `NSServices` menu title ×12 (`ServicesMenu.strings`); Screen Recording and PostEvent have **no** usage-description key, so the in-product sentences above carry the whole disclosure and must be localized ×12 (the 1.12.1 rejection) |
-| App Store privacy labels | no new data category on the BYO path (we receive nothing); re-check by hand at submission. Review notes: state that 「增强取词」 uses `CGRequestPostEventAccess` and never asks the user to add the app manually |
-| `build.js` Gate J coupling | `dist-app*` uses `sys_disclose_direct` ⇒ README ×2 contain the 「系统翻译」 stem, all 12 locales have the Gate J keys, the iOS App plist carries the network key and the extension's does not |
+| README.md / README.zh-CN.md | feature line（Mac：划词 / 剪贴板 / 服务 / 输入 / 截图）+ privacy bullet, **in the same version as the code** |
+| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app；改完字典**必须重生成语言页** |
+| `_locales` ×12（已随 M-2…M-7 合入，这里只是点名） | `quick_enh_explain_does` / `quick_enh_explain_doesnt`（增强取词：会做 / 不会做）、`quick_shot_perm_explain`（录屏：只截你框的那一块、本机识别、识别完即丢弃）、`quick_shot_perm_second`（系统还会再确认一次）、`quick_shot_cloud_note`（截图会发给谁）、`quick_clip_concealed`。**原稿表里写的 `quick_enh_does` / `quick_shot_pre` 是落地前的拟名，以这里为准。** |
+| Info.plist (macOS App) | `NSServices`（含 `NSRequiredContext`）+ `ServicesMenu.strings` ×12。Screen Recording 与 PostEvent **没有**用途说明键，披露全靠上面那几句 ×12（缺一个语种 = 1.12.1 被拒的同一类问题）|
+| App Store privacy labels | no new data category on the BYO path (we receive nothing); re-check by hand at submission |
+| 审核备注（macOS 两线）| 写明三件事：①「增强取词」默认关，用的是系统的请求接口 `CGRequestPostEventAccess`，**不引导用户手动把 App 加进列表**；② 截图翻译只截用户框选的区域、在本机识别、不保存；③ 常驻菜单栏是为了让全局快捷键可用，设置里可关 |
+| 商店文案 | 「新功能」与描述里提到快速翻译的那几句，Mac 两线各 12 语种；iOS 两线与扩展两店**不提**（那边没有这个功能）|
+| `build.js` Gate J-1 coupling | `dist-app*` 用到 `quick_enh_explain_does` ⇒ README ×2 含「快速翻译」词干、12 份 locale 上表的键齐、`scripts/sync-app-assets.js` 的 `servicesXml()` 含 `NSRequiredContext` |
+
+#### Gate J-2 — iPhone「系统翻译」，随 iPhone 线 I-8 出货（**未出货**）
+
+> 「系统翻译」只在你主动发起时工作：在 iPhone / iPad 上选中文字、点系统菜单里的「翻译」。选中的那段文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+
+**新增一段，不改 J-1 的口。** 出货那一版的隐私页上两段并列。
+
+| Surface | Gate J-2 |
+|---|---|
+| README ×2 · 两站隐私 ×12 + `llms.txt` | 上面这一段 + feature line，same version as the code |
+| `_locales` ×12 | `sys_disclose_direct` / `sys_disclose_grant`（弹层里的首次披露，排在系统自己那一页之后）|
+| Info.plist (iOS App) | `com.apple.developer.translation-ui-provider.network-access` —— 不是用途说明，但正是它让系统弹出那页一次性的「所选内容将发送给…」；**必须在宿主 App 的 plist，不能在扩展的**（T1 读数：放错 ⇒ 全部请求 `-1009`）|
+| App Store privacy labels · 审核备注 | 同上人工复核；首次带 `DEFAULT_TRANSLATION_APP` / `APP_GROUPS` 出包要用 Xcode 登录态 |
+| `build.js` Gate J-2 coupling | `dist-app*` 用到 `sys_disclose_direct` ⇒ README ×2 含「系统翻译」词干、12 份 locale 齐、联网键在 iOS App 的 plist 而不在扩展的 |
 
 ## 11. Out of scope
 
@@ -3956,6 +3983,7 @@ matters more than the detail.
 
 | 2026-09-17 | 给实时转写第二个槽（`sttLiveEngine / sttLiveApiKey`，云端实时 + 本机并列可选） | 同日上午的画布方案，下午被用户裁定取代：实时转写固定为设备内置、云端实时下线。两槽方案要新增两把键、启动迁移、四处谓词收编与一键卡第四行 —— 全部为了保留一条用户已判「效果太差」的路（§9.4 / §9.6 门控 2026-09-17 修订；工作文件历史在 `design/settings-ia` 的 git 记录里） |
 | 2026-09-17 | 把 App 与扩展的系统下限整体抬到 iOS 26 / macOS 26 | 抬整个 App 等于让 iOS 17–25 与全部 Intel Mac 的网页翻译用户拿不到更新；而想要的效果（实时功能只走本机）只需这两块自己要求 26。用户裁定「只管实时功能」，`build/os-floor.config.js` 不动 |
+| 2026-09-19 | Gate J 不拆：等 iPhone「系统翻译」做完，两个面同一版出货、同一段隐私说明 | 用户裁定 Mac 先发。不拆的代价是 Mac 七步与 #326 的修复一起压着；而把原稿那一段原样发出去（含「在 iPhone 上点系统菜单里的翻译」）是一句那一版不成立的话。拆开后 J-2 **新增一段**，不回头改 J-1 |
 | 2026-09-19 | 系统翻译扩展里用 Swift 重写一份翻译传输 | 第二份提示词 + 第二条格式分支，`request-shape` 每次调参都会让两份漂开（`build/app-bundle.js` 那条注释就是为此而写）。尖刺 T1：同一份 87 KB 的 JS 在 JavaScriptCore 里 3–10 ms 就绪、+3 MB，扩展上限约 230 MB —— 没有理由移植。退路保留：若将来内存吃紧，移植 + 由 JS 生成金向量逐条比对（§9.9）|
 | 2026-09-19 | 系统翻译扩展里放一个 WKWebView 跑 App 的整包 | 多起一个 WebContent 进程、内存不可控；而且扩展里的 `file://` 源是另一个容器，`localStorage` 并不共享，白付代价 |
 | 2026-09-19 | 扩展 / 快译面板直接打开 `LearnStore` 写语料 | 学习库按账号分库（`useDb`），第二个打开者握着过期的库名；扩展进程根本够不着 App 的 IndexedDB。改为收件箱 / 原生中继汇到主页面的单一写入者（§9.9）。**这不推翻 2026-08-07 对 App Group 的否决**：那次否的是「把扩展的上传交给一个用户可能永不打开的进程」；这里复习只发生在 App 里，不开 App 的人什么也没丢 |
