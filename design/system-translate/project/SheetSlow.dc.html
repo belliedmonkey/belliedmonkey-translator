@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>慢速与超时</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1200px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">慢的时候要诚实</h1><span>免费额度中位 5 秒、慢的时候 20 秒；放在系统弹层后面尤其显眼。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>0–5 秒</b><span>只有骨架。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><span class="eng">免费额度</span><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src">The committee postponed the vote until the new figures were published.</div><div class="langrow"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="trbox"><div class="sk" style="width:94%"></div><div class="sk" style="width:81%"></div><div class="sk" style="width:46%"></div></div><div class="foot"><button class="btn s" type="button">取消</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>5 秒后</b><span>骨架下多一行：在等谁、为什么慢、怎么更快。不转圈、不假进度条。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><span class="eng">免费额度</span><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src">The committee postponed the vote until the new figures were published.</div><div class="langrow"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="trbox"><div class="sk" style="width:94%"></div><div class="sk" style="width:81%"></div><div class="sk" style="width:46%"></div></div><div class="disc" style="border-top:0; padding-top:0">还在翻 —— 免费额度走我们的中转，比自己的 key 慢。</div><div class="foot"><button class="btn s" type="button">取消</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>到了超时上限</b><span>用 App 里设的「单次超时」；文案与网页翻译同一句。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><span class="eng">免费额度</span><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src">The committee postponed the vote until the new figures were published.</div><div class="langrow"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="err"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg><div>端点没有在超时前回应。<div class="code">timeout</div></div></div><div class="foot"><button class="btn s" type="button">完成</button><button class="btn p" type="button">重试</button></div></div></div></div>
+</div><p class="mini" style="margin:0">取消 = 真的中断请求（不是只关界面）；已经花掉的额度照实计。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

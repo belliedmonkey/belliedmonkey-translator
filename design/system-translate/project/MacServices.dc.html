@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>右键「服务」入口</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">右键 › 服务 › 用大肚猴翻译</h1><span>零权限、不碰剪贴板：宿主 App 主动把选中的字交过来。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>入口（系统的菜单）</b><span>菜单标题 12 个语种各一份。</span></div><div class="desk" style="height:380px"><div style="position:absolute; left:24px; top:30px"><div class="menu" style="width:230px"><div class="mi"><span>查询「postponed the vote」</span></div><div class="mi"><span>翻译「postponed the vote」</span></div><div class="mi"><span>搜索网页</span></div><div class="msep"></div><div class="mi"><span>拷贝</span></div><div class="mi"><span>共享…</span></div><div class="msep"></div><div class="mi hot"><span>服务</span><span>›</span></div></div></div><div style="position:absolute; left:246px; top:204px"><div class="menu" style="width:230px"><div class="mi hot"><span>用大肚猴翻译</span></div><div class="mi"><span>添加到音乐…</span></div><div class="mi"><span>新建便笺</span></div></div></div></div></div>
+<div class="cell"><div class="cap"><b>给它绑一个快捷键</b><span>设置块里放一张指引卡（系统的设置，我们改不了，只能指路）。</span></div><section class="card"><h3>给「服务」绑快捷键</h3><div class="steps"><div>系统设置 › 键盘 › 键盘快捷键…</div><div>左侧选「服务」› 展开「文本」</div><div>找到「用大肚猴翻译」，双击右侧设置按键</div></div><div class="split"><button class="btn s sm" type="button">打开键盘设置</button></div></section></div>
+<div class="cell"><div class="cap"><b>有些 App 没有服务菜单 <span class="pend">待 人工补验 读数</span></b><span>T2 读数：文本编辑、Safari、Chrome、Firefox、预览、Pages 六个都有、文字一字不差；一个代码编辑器里没出现，但当时没能确认编辑区里真有选区 —— 这一类 App 要人工再验一次。设置块里照实说，并指向另外两条路。</span></div><div class="note">在少数 App 里右键菜单没有「服务」。那里可以：先 <span class="keys"><i>⌘</i><i>C</i></span> 再按 <span class="keys"><i>⌃</i><i>⌥</i><i>T</i></span>；或打开「增强取词」；或用截图翻译。</div><p class="hint">六个常用 App 都通 ⇒ 设置块里「右键 › 服务」与快捷键并列写，不必把哪一条藏到后面。</p></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

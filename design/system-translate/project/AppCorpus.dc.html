@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>复习库 · 来源与收件箱</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1320px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">进复习库</h1><span>系统翻译在另一个进程里，够不着复习库：句子先落进一个有上限的收件箱，App 下次打开时过正常的采集门再收进来。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>来源管理</b><span>按月一组，不是每天一条。删除整组 = 删这一组的卡。</span></div><section class="card"><h3>来源</h3><div class="qs-row"><span>系统翻译 · 2026-09</span><span class="split"><span class="stat">12 句</span><button class="btn d sm" type="button">删除</button></span></div><div class="qs-row"><span>文档 · Annual Report.pdf</span><span class="split"><span class="stat">31 句</span></span></div><div class="qs-row"><span>对话 · 9 月 14 日 下午</span><span class="split"><span class="stat">18 句</span></span></div><div class="qs-row"><span>网页 · nytimes.com</span><span class="split"><span class="stat">46 句</span></span></div></section></div>
+<div class="cell"><div class="cap"><b>复习卡上的来源行</b><span>纯文字，不可点 —— 没有网页可回、没有页码可翻。</span></div><section class="card" style="gap:8px"><div class="src">The committee postponed the vote until the new figures were published.</div><div class="tr">委员会把表决推迟到新数据公布之后。</div><div class="stat">来自 系统翻译 · 9 月 19 日</div></section></div>
+<div class="cell"><div class="cap"><b>收件箱的两支</b></div><div class="flow" style="grid-template-columns:1fr"><div class="node s">App 打开 / 回到前台</div><div class="arr">↓</div><div class="node">采集开着 ⇒ 逐句过门（学习语言、长度、去重）⇒ 写进复习库 ⇒ 删收件箱里的这一条</div><div class="node w">采集关着 ⇒ 整个收件箱<b>丢弃并清空</b>，不留暗箱</div></div><p class="hint">静默，不弹「收进 N 句」的提示；数字在来源管理里看得到。收件箱上限 200 句 / 30 天，超了挤掉最旧的 —— 长期不开 App 也不会越积越多。</p></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

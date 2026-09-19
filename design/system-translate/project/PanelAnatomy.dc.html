@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>面板解剖</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:640px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">面板解剖</h1><span>一个面板，五个来源共用。</span></div></div>
+<div style="display:grid; grid-template-columns:440px minmax(0,1fr); gap:32px; align-items:start">
+<div class="desk" style="height:440px; display:flex; align-items:center; justify-content:center"><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">选中文字</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox">The committee postponed the vote until the new figures were published.</div><div class="tr" style="padding:0 2px">委员会把表决推迟到新数据公布之后。</div><div class="pfoot"><span class="saved"><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>已存入复习库</span><span class="split" style="gap:2px"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></span></div></div></div>
+<div style="display:flex; flex-direction:column; gap:12px">
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">1</span></span><span><b>来源标签</b>：选中文字 / 剪贴板 / 截图 / 输入 / 服务。用户永远知道这段字是从哪来的 —— 零权限路径下这一点尤其要紧（见「三个陷阱」）。</span></div>
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">2</span></span><span><b>语言对</b>：源语言我们自己判；目标语言点开可改，<b>会写回</b>「译成」设置（与 iPhone 弹层不同，Mac 面板就在 App 进程里）。</span></div>
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">3</span></span><span><b>钉住</b>：钉住后不自动关、可拖动；再次触发在同一个面板里换内容。</span></div>
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">4</span></span><span><b>原文可编辑</b>：改完回车重翻。截图识别错一个字、或只想翻其中一句时用。</span></div>
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">5</span></span><span><b>译文</b>：鼠尾草绿，与网页双语同色。</span></div>
+<div style="display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.5"><span class="sec-h"><span class="n" style="margin:0">6</span></span><span><b>底栏</b>：左边是这句有没有进复习库（存了 / 采集关着 / 太长不存），右边复制。没有朗读、没有历史 —— 见便签。</span></div>
+</div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

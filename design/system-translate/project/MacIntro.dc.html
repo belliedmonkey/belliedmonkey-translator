@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>首次介绍卡 · 复习库分组</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:560px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">让人知道有这回事</h1></div></div>
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>App 首页的介绍卡（Mac）</b><span>升级到这一版后出现一次，可关。三种用法各一行。</span></div><section class="card" style="gap:14px"><h3>在任何 App 里翻译</h3><div style="display:flex; gap:10px; align-items:flex-start"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M12 6v13M9 19h6"/></svg><div class="cap"><b>选中文字</b><span>先 ⌘C，再按 ⌃⌥T；或右键 › 服务 › 用大肚猴翻译</span></div></div><div style="display:flex; gap:10px; align-items:flex-start"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v14h14M3 7h14v14"/></svg><div class="cap"><b>截图</b><span>按 ⌃⌥S 框一块，图片和视频里的字也能翻</span></div></div><div style="display:flex; gap:10px; align-items:flex-start"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="16" rx="2.5"/><path d="M9 5a3 3 0 0 1 6 0"/></svg><div class="cap"><b>输入</b><span>从菜单栏图标里打开，打字或粘贴</span></div></div><div class="split"><button class="btn s sm" type="button">改快捷键</button><button class="btn p sm" type="button">知道了</button></div></section></div>
+<div class="cell"><div class="cap"><b>复习库 · 来源分组</b><span>按入口 + 月份。来源行纯文字、不可点。</span></div><section class="card"><h3>来源</h3><div class="qs-row"><span>划词翻译 · 2026-09</span><span class="stat">34 句</span></div><div class="qs-row"><span>截图翻译 · 2026-09</span><span class="stat">9 句</span></div><div class="qs-row"><span>输入翻译 · 2026-09</span><span class="stat">5 句</span></div><div class="qs-row"><span>系统翻译 · 2026-09（来自 iPhone，登录同步后可见）</span><span class="stat">12 句</span></div></section></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

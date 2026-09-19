@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>关闭 · 钉住 · 重复触发</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:640px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">什么时候消失</h1></div></div>
+<div style="display:grid; grid-template-columns:minmax(0,1fr) 440px; gap:32px; align-items:start">
+<table class="tbl" style="font-size:.9rem"><tr><th>动作</th><th>没钉住</th><th>钉住了</th></tr>
+<tr><td>按 <span class="keys"><i>Esc</i></span></td><td>关</td><td>关（钉住不拦 Esc）</td></tr>
+<tr><td>点面板以外任何地方</td><td>关</td><td>留着</td></tr>
+<tr><td>切到别的 App / 别的桌面</td><td>关</td><td>跟着过去（所有桌面可见）</td></tr>
+<tr><td>再按一次翻译快捷键</td><td colspan="2">同一个面板换内容，位置不动；不会叠出第二个</td></tr>
+<tr><td>上一句还在翻，又触发一次</td><td colspan="2">取消上一句的请求，直接翻新的</td></tr>
+<tr><td>点 <span class="keys"><i>✕</i></span></td><td colspan="2">关</td></tr>
+<tr><td>拖动</td><td>自动变成钉住（拖了说明想留着）</td><td>移动</td></tr>
+<tr><td>退出 App</td><td colspan="2">关</td></tr></table>
+<div class="desk" style="height:360px; display:flex; align-items:center; justify-content:center"><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">选中文字</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn on" type="button" aria-label="取消钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox">The committee postponed the vote until the new figures were published.</div><div class="tr" style="padding:0 2px">委员会把表决推迟到新数据公布之后。</div><div class="pfoot"><span class="saved"><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>已存入复习库</span><span class="split" style="gap:2px"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></span></div></div></div>
+</div><p class="mini" style="margin:0">钉住的状态不跨重启记忆：每次启动都从「没钉住」开始，免得用户找不到一个上次钉在屏幕外的面板。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

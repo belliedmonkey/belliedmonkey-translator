@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>菜单栏图标与菜单</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:620px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">菜单栏</h1><span>图标常驻（总开关开着时）。菜单是所有入口的目录，每项右侧显示当前快捷键 —— 用户忘了快捷键时，这里就是答案。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>常态</b></div><div class="desk" style="height:400px"><div class="mbar"><span>Wi-Fi</span><span>100%</span><span class="mark" style="width:16px; height:16px; border-radius:5px"></span><span>9月19日 周六 14:02</span></div><div style="position:absolute; top:30px; right:120px"><div class="menu">
+<div class="mi hot"><span>翻译选中的文字或剪贴板</span><span class="kb">⌃⌥T</span></div>
+<div class="mi"><span>截图翻译</span><span class="kb">⌃⌥S</span></div>
+<div class="mi"><span>输入翻译</span><span class="kb">未设置</span></div>
+<div class="msep"></div><div class="mi"><span>打开大肚猴翻译</span></div><div class="mi"><span>快速翻译设置…</span></div>
+<div class="msep"></div><div class="mi"><span>退出</span><span class="kb">⌘Q</span></div></div></div></div></div>
+<div class="cell"><div class="cap"><b>还没配引擎</b><span>顶部一行警示，点它进设置。入口照常可点（点了面板里也会说同一件事）。</span></div><div class="desk" style="height:400px"><div class="mbar"><span>Wi-Fi</span><span>100%</span><span class="mark" style="width:16px; height:16px; border-radius:5px"></span><span>9月19日 周六 14:02</span></div><div style="position:absolute; top:30px; right:120px"><div class="menu"><div class="mwarn">还没有翻译引擎 · 打开设置配置</div>
+<div class="mi hot"><span>翻译选中的文字或剪贴板</span><span class="kb">⌃⌥T</span></div>
+<div class="mi"><span>截图翻译</span><span class="kb">⌃⌥S</span></div>
+<div class="mi"><span>输入翻译</span><span class="kb">未设置</span></div>
+<div class="msep"></div><div class="mi"><span>打开大肚猴翻译</span></div><div class="mi"><span>快速翻译设置…</span></div>
+<div class="msep"></div><div class="mi"><span>退出</span><span class="kb">⌘Q</span></div></div></div></div></div>
+<div class="cell"><div class="cap"><b>macOS 低于 14</b><span>「截图翻译」整项不出现（不是灰掉）。</span></div><div class="desk" style="height:400px"><div class="mbar"><span>Wi-Fi</span><span>100%</span><span class="mark" style="width:16px; height:16px; border-radius:5px"></span><span>9月19日 周六 14:02</span></div><div style="position:absolute; top:30px; right:120px"><div class="menu">
+<div class="mi hot"><span>翻译选中的文字或剪贴板</span><span class="kb">⌃⌥T</span></div>
+
+<div class="mi"><span>输入翻译</span><span class="kb">未设置</span></div>
+<div class="msep"></div><div class="mi"><span>打开大肚猴翻译</span></div><div class="mi"><span>快速翻译设置…</span></div>
+<div class="msep"></div><div class="mi"><span>退出</span><span class="kb">⌘Q</span></div></div></div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
