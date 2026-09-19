@@ -385,6 +385,8 @@ const BLOCKS = [
   { name: 'mt-quick-panel', src: 'quick-panel.swift', label: 'quick panel' },
   // 右键「服务」的提供方（M-4）。Info.plist 的 NSServices 条目与 ServicesMenu.strings 见上面的 PLIST_KEYS / SERVICES_L10N。
   { name: 'mt-services', src: 'services.swift', label: 'services' },
+  // 增强取词（M-5）：替用户按一次 ⌘C、读到后把剪贴板原样写回。默认关，要 PostEvent 权限。
+  { name: 'mt-capture', src: 'capture.swift', label: 'capture' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

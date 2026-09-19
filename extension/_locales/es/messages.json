@@ -3234,7 +3234,7 @@
     "message": "El contenido del portapapeles está marcado como oculto (seguramente una contraseña). No se ha leído ni se ha enviado nada."
   },
   "quick_clip_empty": {
-    "message": "No hay texto en el portapapeles. Selecciona un texto, pulsa ⌘C y luego el atajo."
+    "message": "No hay texto en el portapapeles. Selecciona un texto, pulsa ⌘C y luego el atajo, o activa la captura mejorada en los ajustes para ahorrarte ⌘C."
   },
   "quick_clip_same": {
     "message": "Es el mismo texto que la última vez: ¿olvidaste pulsar ⌘C?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "macOS no nos ha dejado leer el portapapeles. Permítelo en Ajustes del Sistema › Privacidad y seguridad › Pegar desde otras apps, o usa el menú Servicios del clic derecho."
+  },
+  "quick_enh_label": {
+    "message": "Captura mejorada"
+  },
+  "quick_enh_hint": {
+    "message": "Selecciona texto y pulsa el atajo, sin ⌘C antes. Necesita un permiso del sistema. Desactivada por defecto."
+  },
+  "quick_enh_explain_title": {
+    "message": "Activar la captura mejorada"
+  },
+  "quick_enh_explain_does": {
+    "message": "Qué hace: cuando pulsas el atajo, pulsa ⌘C una vez por ti, lee el texto seleccionado y deja tu portapapeles exactamente como estaba."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "Qué no hace nunca: no vigila tu teclado y no lee nada si no pulsas el atajo."
+  },
+  "quick_enh_continue": {
+    "message": "Continuar"
+  },
+  "quick_enh_not_now": {
+    "message": "Ahora no"
+  },
+  "quick_enh_relaunch": {
+    "message": "Reabrir ahora"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Abrir Ajustes del Sistema"
+  },
+  "quick_enh_pending": {
+    "message": "En la ventana del sistema que ha aparecido, elige Abrir Ajustes del Sistema y permite BelliedMonkey Translator. Surte efecto al reabrir la app."
+  },
+  "quick_enh_denied": {
+    "message": "macOS no ha concedido el permiso, así que la captura mejorada sigue desactivada. Pulsar ⌘C y luego el atajo sigue funcionando."
+  },
+  "quick_enh_lost": {
+    "message": "Se retiró el permiso de la captura mejorada, así que esta vez se tradujo el portapapeles. Vuelve a activarla en los ajustes para recuperarla."
   }
 }

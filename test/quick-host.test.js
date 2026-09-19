@@ -69,3 +69,66 @@ describe('AppQuickHost — 能力靠探测，配置靠推', () => {
     restore();
   });
 });
+
+// ── 增强取词（M-5）──────────────────────────────────────────────────────────────
+// 平台现实：系统权限弹窗不回调允许 / 拒绝，授权后正在运行的进程也读不到新权限。所以「想开」与「真的开了」是两件事，
+// 分晓在下一次启动。这里会静默出错的：开关显示为开而权限其实没有（用户以为能用）；拒绝之后意图一直挂着，每次启动都去问。
+describe('AppQuickHost — 增强取词：意图、权限、对账', () => {
+  const caps = (postEvent) => ({ type: 'quick-caps', resident: true, panel: true, postEvent });
+  test('老原生壳不报 postEvent ⇒ 不支持（设置里那一行整个不出现）', async () => {
+    const { H, restore } = load();
+    H.start({}); await H._fromNative({ type: 'quick-caps', resident: true }); await tick();
+    eq(H.supportsEnhanced(), false); restore();
+  });
+  test('没权限时打开：先出我们自己的说明；点「先不开」⇒ 什么都不发、什么都不存', async () => {
+    const { H, posted, st, restore } = load();
+    let asked = null;
+    H.start({ confirm: async (m, o) => { asked = { m, o }; return false; } }); await H._fromNative(caps(false)); await tick();
+    eq(await H.setEnhanced(true), false);
+    ok(/会做/.test(asked.m) && /不会做/.test(asked.m) && /⌘C/.test(asked.m), '说明里该有「会做 / 不会做」');
+    eq(asked.o.ok, '继续'); eq(asked.o.cancel, '先不开');
+    ok(!posted.some((m) => m.type === 'quick-request-perm'), '用户没点继续就去问系统了');
+    ok(!('quickEnhanced' in st)); restore();
+  });
+  test('点「继续」⇒ 记下意图 + pending、调系统的请求接口；**开关仍显示为关**（还没生效）；配置里 enhanced:true', async () => {
+    const { H, posted, st, restore } = load();
+    H.start({ confirm: async () => true }); await H._fromNative(caps(false)); await tick();
+    eq(await H.setEnhanced(true), false, '还没生效就不能显示为开');
+    await tick();
+    eq(st.quickEnhanced, true); eq(st.quickEnhancedNote, 'pending');
+    deepEq(posted.filter((m) => m.type === 'quick-request-perm'), [{ type: 'quick-request-perm', which: 'postEvent' }]);
+    eq(posted.filter((m) => m.type === 'quick-config').pop().enhanced, true, '原生要知道用户想开：权限一到、重开之后就直接生效');
+    restore();
+  });
+  test('重开后权限在 ⇒ 开关是开的、说明清掉', async () => {
+    const { H, st, restore } = load({ quickEnhanced: true, quickEnhancedNote: 'pending' });
+    H.start({}); await H._fromNative(caps(true)); await tick();
+    eq(st.quickEnhanced, true); eq(st.quickEnhancedNote, ''); eq(H.hasPostEvent(), true); restore();
+  });
+  test('重开后权限仍不在（用户拒绝了）⇒ 意图弹回关 + denied；不给面板留「权限被关掉了」那句（他是知情拒绝的）', async () => {
+    const { H, posted, st, restore } = load({ quickEnhanced: true, quickEnhancedNote: 'pending' });
+    H.start({}); await H._fromNative(caps(false)); await tick();
+    eq(st.quickEnhanced, false); eq(st.quickEnhancedNote, 'denied'); eq(st.quickEnhancedLost, false);
+    eq(posted.filter((m) => m.type === 'quick-config').pop().enhanced, false);
+    ok(!posted.some((m) => m.type === 'quick-request-perm'), '启动时不该自己去问系统');
+    restore();
+  });
+  test('用着用着被用户在系统设置里撤销 ⇒ 弹回关 + 给面板留一次性的那一句', async () => {
+    const { H, st, restore } = load({ quickEnhanced: true, quickEnhancedNote: '' });
+    H.start({}); await H._fromNative(caps(false)); await tick();
+    eq(st.quickEnhanced, false); eq(st.quickEnhancedLost, true); restore();
+  });
+  test('已有权限时打开 ⇒ 不出说明、不问系统，直接开；关 ⇒ 意图与说明一起清', async () => {
+    const { H, posted, st, restore } = load();
+    let asked = false;
+    H.start({ confirm: async () => { asked = true; return true; } }); await H._fromNative(caps(true)); await tick();
+    eq(await H.setEnhanced(true), true); eq(asked, false); ok(!posted.some((m) => m.type === 'quick-request-perm'));
+    eq(await H.setEnhanced(false), false); eq(st.quickEnhanced, false); eq(st.quickEnhancedNote, ''); restore();
+  });
+  test('「现在重开」「打开系统设置」各发一条，名字在协议表里', async () => {
+    const { H, posted, restore } = load();
+    H.start({}); H.relaunch(); H.openPrivacy();
+    deepEq(posted.slice(-2), [{ type: 'quick-relaunch' }, { type: 'quick-open-privacy', which: 'postEvent' }]);
+    for (const m of posted) ok(H.PROTOCOL.toNative.indexOf(m.type) >= 0, m.type); restore();
+  });
+});

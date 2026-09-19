@@ -745,6 +745,19 @@
         <span id="quick-enabled-label"></span>
       </label>
       <p class="note" id="quick-enabled-note"></p>
+      <!-- 增强取词（M-5）：默认关，打开才问系统权限。原生没回 postEvent 能力时整行不出现。 -->
+      <div id="quick-enhanced-row" hidden>
+      <label class="check">
+        <input id="quick-enhanced" type="checkbox">
+        <span id="quick-enhanced-label"></span>
+      </label>
+      <p class="note" id="quick-enhanced-hint"></p>
+      <p class="note" id="quick-enhanced-state" role="status" hidden></p>
+      <div class="row" id="quick-enhanced-actions" hidden>
+        <button id="quick-enhanced-relaunch" type="button"></button>
+        <button id="quick-enhanced-privacy" type="button" class="secondary"></button>
+      </div>
+      </div>
       </div>
 
       <div class="sgroup" id="g-docs">

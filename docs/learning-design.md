@@ -3365,8 +3365,8 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 |---|---|
 | 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh}` · `quick-ocr{lines}` |
 | 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` |
-| 原生 → 主页面 | `quick-caps{resident, panel, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
-| 主页面 → 原生 | `quick-probe` · `quick-config{…}` · `quick-close-main` · `quick-request-perm{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
+| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
 
 **一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
 `app/quick-host.js`（`AppQuickHost`：设置、权限、常驻），面板页那头是 `app/quick.js`（`AppQuick`：显示与翻译）。
@@ -3377,6 +3377,16 @@ service | screen | typed`）只决定来源标签与「零权限三陷阱」走�
 不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
 `fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
 面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
+
+**增强取词（M-5，`app/native/capture.swift` + `AppQuickHost.setEnhanced / reconcile`）。** 两个键：`quickEnhanced` 是用户的
+**意图**，真正生效还要系统权限在（`quick-caps.postEvent`，启动那一刻的 `CGPreflightPostEventAccess()`）；原生在**每次按键时**
+再现读一次权限，想开且权限在才取词，否则落回「翻译剪贴板」—— 事后被撤销不报错、不卡住。系统弹窗不回调、授权后正在运行的进程
+读不到新权限 ⇒ 点了「继续」之后只有一态「允许之后要重开才生效」（`quickEnhancedNote:'pending'`，开关仍显示为关）；下一次启动
+`reconcile()` 对账：权限在 ⇒ 开；不在 ⇒ 意图弹回 + `'denied'`；**原来是开着的**却没了（用户在系统设置里撤销）⇒ 另给面板页留一次性的
+`quickEnhancedLost`，下一次面板出来时说一句。启动时**从不**自己去调系统的请求接口。取词的四条不变量写在 `capture.swift` 头上并由
+`npm test` 对着源码钉：先快照再按键、变过就原样写回且写回在交结果之前；0.3 秒没变 ⇒ 交空文字、**这条分支里不读剪贴板**；带隐藏 /
+临时标记不读文字；全程后台队列 + 1 秒总时限。按键前先等用户松开快捷键的修饰键（最多 0.4 秒），否则宿主收到的是 ⌃⌥⌘C。
+协议新增 `quick-open-privacy{which}`；`quick-show` 的 `concealed` / `blocked` 从此对「取词」来源同样成立（读的也是通用剪贴板）。
 
 **右键「服务」（M-4，`app/native/services.swift`）。** 宿主 App 把选中的文字放在一块**专用的**剪贴板里交过来 —— 不经过
 通用剪贴板，所以零权限三陷阱不适用，来源标签是「服务」、`via:'service'`（进复习库时与划词并成一组）。三条落地时定的事：
