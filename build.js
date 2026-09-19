@@ -977,6 +977,42 @@ function validateManifest(distDir, isFirefox) {
     log('Gate I OK（实时字幕的披露与功能同版）');
   }
 
+  // ── Gate J-1（docs/learning-design.md §10；2026-09-19，随 Mac 快速翻译 1.13.0 一起上）──────────────
+  //
+  // 快速翻译把「你在别的 App 里、或从屏幕上交给我们的文字」发给用户配置的引擎 —— 又一个新披露面。而且这一面
+  // **没有系统的用途说明键**：增强取词（PostEvent）与截图（录屏）的系统弹窗里没有我们的一个字，披露全靠产品里那几句 ×12
+  // （缺一个语种 = 1.12.1 国际 iOS 被拒的同一类问题）。App 页用着 quick_enh_explain_does ⇒ README ×2 有那一段、
+  // 12 份 locale 六个键齐且不是半句话、macOS 的 NSServices 条目带 NSRequiredContext（不带 ⇒ 服务登记了却默认不启用、无报错）。
+  // J-2（iPhone 系统翻译）未出货，它的判据等那条线落地时再加 —— 两个判据各自独立，见 §10。
+  if (fs.readFileSync(path.join(__dirname, 'app', 'quick-host.js'), 'utf8').includes("'quick_enh_explain_does'")) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/Quick Translate/.test(rdEn) || !/restores your clipboard/i.test(rdEn) || !/screenshot is not saved/i.test(rdEn) || !/concealed/i.test(rdEn)) miss.push('README.md 没有「快速翻译」（Quick Translate）的完整披露（Gate J-1）');
+    if (!/快速翻译/.test(rdZh) || !/剪贴板恢复原样/.test(rdZh) || !/截图不保存/.test(rdZh) || !/标记为隐藏/.test(rdZh)) miss.push('README.zh-CN.md 没有「快速翻译」的完整披露（Gate J-1）');
+    const J1_KEYS = ['quick_enh_explain_does', 'quick_enh_explain_doesnt', 'quick_shot_perm_explain', 'quick_shot_perm_second', 'quick_shot_cloud_note', 'quick_clip_concealed'];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of J1_KEYS) {
+        const v = String(m[k]?.message || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate J-1）`); continue; }
+        if (v.length < 20) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一句完整披露`);
+      }
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'NSServices', only: 'macOS \(App\)'/.test(sync)) miss.push('scripts/sync-app-assets.js 没有只给 macOS 的 NSServices 行（Gate J-1）');
+    if (!/<key>NSRequiredContext<\/key>/.test(sync)) miss.push('NSServices 条目没有 NSRequiredContext —— 服务会「已登记、默认不启用、无报错」（Gate J-1）');
+    if (miss.length) {
+      err('Gate J-1 FAILED —— App 带着快速翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate J-1：README ×2、两个站点、12 份 locale 六个键、NSServices + NSRequiredContext');
+      process.exit(1);
+    }
+    log('Gate J-1 OK（快速翻译的披露与功能同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may

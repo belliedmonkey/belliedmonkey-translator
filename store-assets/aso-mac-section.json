@@ -1,0 +1,62 @@
+{
+  "zh-Hans": {
+    "heading": "快速翻译（Mac App）",
+    "body": "在任何 App 里选中文字按 ⌃⌥T，或用右键「服务」、直接输入；选不了、复制不了的字就在屏幕上框一块（截图翻译，⌃⌥S）。译文出现在鼠标旁的小面板里，不抢焦点；屏幕上的字在本机识别，截图不保存。快捷键可改，常驻菜单栏、可以关。"
+  },
+  "en-US": {
+    "heading": "QUICK TRANSLATE (MAC APP)",
+    "body": "Select text in any app and press ⌃⌥T, use the right-click Services menu, or type; for text you can’t select, drag a box on screen (⌃⌥S). The translation appears in a small panel by the pointer without taking focus. On-screen text is recognised on your Mac and the screenshot is not saved. Shortcuts are configurable; it lives in the menu bar and can be turned off."
+  },
+  "zh-Hant": {
+    "heading": "快速翻譯（Mac App）",
+    "body": "在任何 App 裡選取文字按 ⌃⌥T，或用右鍵「服務」、直接輸入；選不了、複製不了的字就在螢幕上框一塊（螢幕截圖翻譯，⌃⌥S）。譯文出現在游標旁的小面板裡，不搶焦點；螢幕上的字在本機辨識，截圖不保存。快速鍵可改，常駐選單列、可以關。"
+  },
+  "ja": {
+    "heading": "クイック翻訳（Mac App）",
+    "body": "どの App でもテキストを選択して ⌃⌥T を押すか、右クリックの「サービス」、または直接入力。選択できない文字は画面上で範囲を囲みます（⌃⌥S）。訳文はポインタのそばの小さなパネルに表示され、フォーカスを奪いません。画面の文字はこの Mac 上で認識し、スクリーンショットは保存しません。ショートカットは変更可能。メニューバーに常駐し、オフにもできます。"
+  },
+  "ko": {
+    "heading": "빠른 번역(Mac 앱)",
+    "body": "어떤 앱에서든 텍스트를 선택하고 ⌃⌥T를 누르거나, 오른쪽 클릭 「서비스」, 또는 직접 입력하세요. 선택할 수 없는 글자는 화면에서 영역을 드래그합니다(⌃⌥S). 번역은 포인터 옆의 작은 패널에 표시되며 포커스를 빼앗지 않습니다. 화면의 글자는 이 Mac에서 인식하고 스크린샷은 저장하지 않습니다. 단축키는 변경할 수 있고, 메뉴 막대에 상주하며 끌 수 있습니다."
+  },
+  "de-DE": {
+    "heading": "SCHNELLÜBERSETZUNG (MAC-APP)",
+    "body": "Text in einer beliebigen App auswählen und ⌃⌥T drücken, das Dienste-Menü per Rechtsklick nutzen oder tippen; für nicht auswählbaren Text einen Bereich auf dem Bildschirm aufziehen (⌃⌥S). Die Übersetzung erscheint in einem kleinen Fenster beim Zeiger, ohne den Fokus zu übernehmen. Bildschirmtext wird auf dem Mac erkannt, das Bildschirmfoto wird nicht gespeichert. Kurzbefehle sind anpassbar; die App sitzt in der Menüleiste und lässt sich dort abschalten."
+  },
+  "fr-FR": {
+    "heading": "TRADUCTION RAPIDE (APP MAC)",
+    "body": "Sélectionnez du texte dans n’importe quelle app et appuyez sur ⌃⌥T, utilisez le menu Services du clic droit, ou saisissez ; pour du texte non sélectionnable, tracez un cadre à l’écran (⌃⌥S). La traduction s’affiche dans un petit panneau près du pointeur, sans prendre le focus. Le texte à l’écran est reconnu sur votre Mac et la capture n’est pas enregistrée. Raccourcis personnalisables ; l’app reste dans la barre des menus et peut être désactivée."
+  },
+  "es-ES": {
+    "heading": "TRADUCCIÓN RÁPIDA (APP PARA MAC)",
+    "body": "Selecciona texto en cualquier app y pulsa ⌃⌥T, usa el menú Servicios del clic derecho o escribe; para texto que no se puede seleccionar, dibuja un recuadro en la pantalla (⌃⌥S). La traducción aparece en un pequeño panel junto al puntero sin quitar el foco. El texto de la pantalla se reconoce en tu Mac y la captura no se guarda. Los atajos son configurables; la app vive en la barra de menús y se puede desactivar."
+  },
+  "pt-BR": {
+    "heading": "TRADUÇÃO RÁPIDA (APP PARA MAC)",
+    "body": "Selecione um texto em qualquer app e pressione ⌃⌥T, use o menu Serviços do clique direito ou digite; para texto que não dá para selecionar, arraste um quadro na tela (⌃⌥S). A tradução aparece em um pequeno painel ao lado do ponteiro, sem tirar o foco. O texto da tela é reconhecido no seu Mac e a captura não é salva. Atalhos configuráveis; o app fica na barra de menus e pode ser desativado."
+  },
+  "ru": {
+    "heading": "БЫСТРЫЙ ПЕРЕВОД (ПРИЛОЖЕНИЕ ДЛЯ MAC)",
+    "body": "Выделите текст в любом приложении и нажмите ⌃⌥T, используйте меню «Службы» по правому клику или введите текст; если текст нельзя выделить, обведите область на экране (⌃⌥S). Перевод появляется в небольшой панели рядом с указателем и не забирает фокус. Текст с экрана распознаётся на вашем Mac, снимок не сохраняется. Сочетания клавиш настраиваются; приложение живёт в строке меню, его можно отключить."
+  },
+  "ar-SA": {
+    "heading": "الترجمة السريعة (تطبيق Mac)",
+    "body": "حدّد نصًا في أي تطبيق واضغط ⌃⌥T، أو استخدم قائمة «الخدمات» بالنقر بالزر الأيمن، أو اكتب؛ وللنص الذي لا يمكن تحديده ارسم إطارًا على الشاشة (⌃⌥S). تظهر الترجمة في لوحة صغيرة بجوار المؤشر دون أن تأخذ التركيز. يُتعرَّف على نص الشاشة على جهاز Mac ولا تُحفظ لقطة الشاشة. الاختصارات قابلة للتعديل، ويبقى التطبيق في شريط القوائم ويمكن إيقافه."
+  },
+  "it": {
+    "heading": "TRADUZIONE RAPIDA (APP PER MAC)",
+    "body": "Seleziona del testo in qualsiasi app e premi ⌃⌥T, usa il menu Servizi del clic destro oppure scrivi; per il testo non selezionabile, traccia un riquadro sullo schermo (⌃⌥S). La traduzione compare in un piccolo pannello accanto al puntatore senza togliere il focus. Il testo sullo schermo viene riconosciuto sul Mac e lo screenshot non viene salvato. Scorciatoie configurabili; l’app resta nella barra dei menu e si può disattivare."
+  },
+  "tr": {
+    "heading": "HIZLI ÇEVİRİ (MAC UYGULAMASI)",
+    "body": "Herhangi bir uygulamada metni seçip ⌃⌥T’ye basın, sağ tık Servisler menüsünü kullanın veya yazın; seçilemeyen metinler için ekranda bir alan çizin (⌃⌥S). Çeviri, odağı almadan imlecin yanındaki küçük bir panelde görünür. Ekrandaki metin Mac’inizde tanınır, ekran görüntüsü kaydedilmez. Kısayollar değiştirilebilir; uygulama menü çubuğunda durur ve kapatılabilir."
+  },
+  "vi": {
+    "heading": "DỊCH NHANH (ỨNG DỤNG MAC)",
+    "body": "Chọn văn bản trong bất kỳ ứng dụng nào rồi nhấn ⌃⌥T, dùng menu Dịch vụ khi nhấp chuột phải, hoặc gõ trực tiếp; với chữ không chọn được, hãy kéo một khung trên màn hình (⌃⌥S). Bản dịch hiện trong một bảng nhỏ cạnh con trỏ và không chiếm tiêu điểm. Chữ trên màn hình được nhận dạng ngay trên máy Mac, ảnh chụp không được lưu. Phím tắt có thể đổi; ứng dụng nằm trên thanh menu và có thể tắt."
+  },
+  "pl": {
+    "heading": "SZYBKIE TŁUMACZENIE (APLIKACJA NA MACA)",
+    "body": "Zaznacz tekst w dowolnej aplikacji i naciśnij ⌃⌥T, użyj menu Usługi pod prawym przyciskiem albo wpisz tekst; gdy tekstu nie da się zaznaczyć, zaznacz obszar na ekranie (⌃⌥S). Tłumaczenie pojawia się w małym panelu obok wskaźnika i nie przejmuje fokusu. Tekst z ekranu jest rozpoznawany na Macu, a zrzut nie jest zapisywany. Skróty można zmieniać; aplikacja działa w pasku menu i można ją wyłączyć."
+  }
+}
