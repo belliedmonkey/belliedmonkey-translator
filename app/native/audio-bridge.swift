@@ -163,6 +163,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private var micEngine: AVAudioEngine?
     private var micConverter: AVAudioConverter?
+    /// 转换器是按哪个输入格式建的。路由一变（插拔耳机、蓝牙切换）tap 交上来的格式就变，
+    /// 拿旧转换器去转会返回 FormatNotSupported —— 见 micDeliver 里的懒建。
+    private var micConverterIn: AVAudioFormat?
     private var micOutFormat: AVAudioFormat?
     private var micRate: Double = 24000
     /// 本机路（§9.6.1）：`mic-start {deliver: 'level'}` ⇒ 不发 base64 PCM，只发 `mic-level {rms}`（≤10 Hz）。
@@ -253,6 +256,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
         micEngine = engine
         micConverter = converter
+        micConverterIn = inFormat
         micOutFormat = outFormat
         input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
             self?.micDeliver(buffer)
@@ -262,7 +266,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             try engine.start()
         } catch {
             input.removeTap(onBus: 0)
-            micEngine = nil; micConverter = nil; micOutFormat = nil
+            micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
             return
         }
@@ -287,7 +291,17 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             emit(["type": "mic-level", "rms": MTAudioBridge.rms(buffer)])
             return
         }
-        guard let converter = micConverter, let outFormat = micOutFormat else { return }
+        guard let outFormat = micOutFormat else { return }
+        // 转换器按**这一块的实际格式**懒建 + 缓存。原来是会话开始时按 inFormat 一次性钉死的，
+        // 而路由一变（插拔耳机、蓝牙切换、系统重协商）输入格式就跟着变 —— 喂进一个格式不符的块，
+        // convert 返回 FormatNotSupported，然后被 guard 静默丢掉，从此一块 PCM 都不出来：
+        // 界面上看不出任何异常，听译就是「不出字」。（原在 #222 里顺手修的，那条线已关，单独取出来。）
+        if micConverter == nil || micConverterIn != buffer.format {
+            guard let c = AVAudioConverter(from: buffer.format, to: outFormat) else { return }
+            micConverter = c
+            micConverterIn = buffer.format
+        }
+        guard let converter = micConverter else { return }
         let ratio = outFormat.sampleRate / buffer.format.sampleRate
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 16
         guard let out = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: capacity) else { return }
@@ -318,7 +332,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         guard let engine = micEngine else { return }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
-        micEngine = nil; micConverter = nil; micOutFormat = nil
+        micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
         emit(["type": "mic-state", "state": "ended"])
     }
 
