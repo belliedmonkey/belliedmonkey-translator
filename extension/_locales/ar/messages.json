@@ -3352,5 +3352,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "تم حذف لقطة الشاشة هذه بالفعل. حدّد المنطقة مرة أخرى."
+  },
+  "quick_hk_title": {
+    "message": "الاختصارات"
+  },
+  "quick_hk_reset": {
+    "message": "استعادة الإعدادات الافتراضية"
+  },
+  "quick_hk_translate": {
+    "message": "ترجمة النص المحدد أو الحافظة"
+  },
+  "quick_hk_shot": {
+    "message": "ترجمة لقطة شاشة"
+  },
+  "quick_hk_input": {
+    "message": "اكتب للترجمة"
+  },
+  "quick_hk_unset": {
+    "message": "غير معيَّن"
+  },
+  "quick_hk_record": {
+    "message": "تسجيل"
+  },
+  "quick_hk_cancel": {
+    "message": "إلغاء"
+  },
+  "quick_hk_change": {
+    "message": "تغيير"
+  },
+  "quick_hk_clear": {
+    "message": "مسح"
+  },
+  "quick_hk_press": {
+    "message": "اضغط التركيبة التي تريدها…"
+  },
+  "quick_hk_clash": {
+    "message": "يستخدم تطبيق آخر هذه التركيبة بالفعل، فلن تصل إلينا عند الضغط عليها. اختر تركيبة أخرى."
+  },
+  "quick_hk_deny": {
+    "message": "التركيبات التي تستخدم ⌥ وحده غير موثوقة. اختر تركيبة تتضمن ⌃ أو ⌘."
+  },
+  "quick_hk_system": {
+    "message": "هذه التركيبة يستخدمها macOS أو التطبيقات نفسها. اختر تركيبة أخرى."
+  },
+  "quick_hk_nomod": {
+    "message": "أضف مفتاح تعديل مثل ⌃ أو ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "هذه التركيبة نفسها المستخدمة في «{name}»."
+  },
+  "quick_capture_label": {
+    "message": "الحفظ في مكتبة المراجعة"
+  },
+  "quick_capture_hint": {
+    "message": "الجمل التي تترجمها تدخل المراجعة (المصدر: التحديد أو لقطة الشاشة أو الإدخال). عند الإيقاف تستمر الترجمة ولا يُحفظ شيء."
+  },
+  "quick_login_label": {
+    "message": "الفتح عند تسجيل الدخول"
+  },
+  "quick_login_hint": {
+    "message": "يبدأ في شريط القوائم عند تسجيل الدخول. متوقف افتراضيًا."
+  },
+  "quick_login_approval": {
+    "message": "يجب أيضًا السماح به مرة واحدة في إعدادات النظام › عناصر تسجيل الدخول."
+  },
+  "quick_screen_ok": {
+    "message": "تسجيل الشاشة · مسموح ✓ (لترجمة لقطة الشاشة)"
+  },
+  "quick_screen_off": {
+    "message": "تسجيل الشاشة · غير مسموح بعد. ستُسأل عند أول استخدام لترجمة لقطة الشاشة."
+  },
+  "quick_shot_needs14": {
+    "message": "تتطلب ترجمة لقطة الشاشة macOS 14 أو أحدث."
+  },
+  "quick_services_link": {
+    "message": "تعيين اختصار لعنصر قائمة «الخدمات» →"
+  },
+  "quick_more": {
+    "message": "خيارات إضافية"
+  },
+  "quick_shot_perm_second": {
+    "message": "عند تحديد منطقة لأول مرة، سيطلب macOS تأكيدًا إضافيًا، فاسمح به. بعد ذلك سيسأل macOS مجددًا بين حين وآخر، وهذا ما يفعله مع كل تطبيق يلتقط الشاشة."
   }
 }

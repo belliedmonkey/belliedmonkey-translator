@@ -3352,5 +3352,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "Cette capture a déjà été supprimée. Sélectionnez de nouveau la zone."
+  },
+  "quick_hk_title": {
+    "message": "Raccourcis"
+  },
+  "quick_hk_reset": {
+    "message": "Rétablir les réglages par défaut"
+  },
+  "quick_hk_translate": {
+    "message": "Traduire la sélection ou le presse-papiers"
+  },
+  "quick_hk_shot": {
+    "message": "Traduire une capture d’écran"
+  },
+  "quick_hk_input": {
+    "message": "Saisir pour traduire"
+  },
+  "quick_hk_unset": {
+    "message": "Non défini"
+  },
+  "quick_hk_record": {
+    "message": "Enregistrer"
+  },
+  "quick_hk_cancel": {
+    "message": "Annuler"
+  },
+  "quick_hk_change": {
+    "message": "Modifier"
+  },
+  "quick_hk_clear": {
+    "message": "Effacer"
+  },
+  "quick_hk_press": {
+    "message": "Appuyez sur la combinaison souhaitée…"
+  },
+  "quick_hk_clash": {
+    "message": "Une autre app utilise déjà cette combinaison : elle ne nous parviendra pas. Choisissez-en une autre."
+  },
+  "quick_hk_deny": {
+    "message": "Les combinaisons avec ⌥ seul ne sont pas fiables. Choisissez-en une avec ⌃ ou ⌘."
+  },
+  "quick_hk_system": {
+    "message": "Cette combinaison est utilisée par macOS ou par les apps elles-mêmes. Choisissez-en une autre."
+  },
+  "quick_hk_nomod": {
+    "message": "Ajoutez une touche de modification comme ⌃ ou ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "C’est la même combinaison que « {name} »."
+  },
+  "quick_capture_label": {
+    "message": "Enregistrer dans la bibliothèque de révision"
+  },
+  "quick_capture_hint": {
+    "message": "Les phrases traduites vont dans la révision (source : sélection, capture ou saisie). Désactivé, la traduction fonctionne toujours, rien n’est enregistré."
+  },
+  "quick_login_label": {
+    "message": "Ouvrir à la connexion"
+  },
+  "quick_login_hint": {
+    "message": "Se lance dans la barre des menus à la connexion. Désactivé par défaut."
+  },
+  "quick_login_approval": {
+    "message": "Il faut aussi l’autoriser une fois dans Réglages Système › Ouverture."
+  },
+  "quick_screen_ok": {
+    "message": "Enregistrement de l’écran · autorisé ✓ (pour la traduction par capture)"
+  },
+  "quick_screen_off": {
+    "message": "Enregistrement de l’écran · pas encore autorisé. La question vous sera posée à la première traduction par capture."
+  },
+  "quick_shot_needs14": {
+    "message": "La traduction par capture nécessite macOS 14 ou ultérieur."
+  },
+  "quick_services_link": {
+    "message": "Attribuer un raccourci à l’élément du menu Services →"
+  },
+  "quick_more": {
+    "message": "Plus d’options"
+  },
+  "quick_shot_perm_second": {
+    "message": "La première fois que vous sélectionnez une zone, macOS demande une confirmation supplémentaire : autorisez-la. Ensuite, macOS reposera la question de temps en temps, comme pour toute app qui capture l’écran."
   }
 }

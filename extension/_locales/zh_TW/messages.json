@@ -3353,5 +3353,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "這張截圖已經捨棄了。重新框選一次。"
+  },
+  "quick_hk_title": {
+    "message": "快速鍵"
+  },
+  "quick_hk_reset": {
+    "message": "恢復預設"
+  },
+  "quick_hk_translate": {
+    "message": "翻譯選取的文字或剪貼簿"
+  },
+  "quick_hk_shot": {
+    "message": "螢幕截圖翻譯"
+  },
+  "quick_hk_input": {
+    "message": "輸入翻譯"
+  },
+  "quick_hk_unset": {
+    "message": "未設定"
+  },
+  "quick_hk_record": {
+    "message": "錄製"
+  },
+  "quick_hk_cancel": {
+    "message": "取消"
+  },
+  "quick_hk_change": {
+    "message": "更改"
+  },
+  "quick_hk_clear": {
+    "message": "清除"
+  },
+  "quick_hk_press": {
+    "message": "按下想用的組合…"
+  },
+  "quick_hk_clash": {
+    "message": "別的 App 已經佔了這個組合，按了不會到我們這裡。換一個。"
+  },
+  "quick_hk_deny": {
+    "message": "只有 ⌥ 的組合不穩定，換一個帶 ⌃ 或 ⌘ 的。"
+  },
+  "quick_hk_system": {
+    "message": "這個組合被系統或各個 App 自己佔著，換一個。"
+  },
+  "quick_hk_nomod": {
+    "message": "要帶上 ⌃ 或 ⌘ 這樣的修飾鍵。"
+  },
+  "quick_hk_dup": {
+    "message": "和「{name}」用的是同一個組合。"
+  },
+  "quick_capture_label": {
+    "message": "存入複習庫"
+  },
+  "quick_capture_hint": {
+    "message": "翻過的句子進複習，來源「劃詞翻譯 / 螢幕截圖翻譯 / 輸入翻譯」。關掉後照常翻譯，只是不存。"
+  },
+  "quick_login_label": {
+    "message": "登入時啟動"
+  },
+  "quick_login_hint": {
+    "message": "開機後自動待在選單列。預設關閉。"
+  },
+  "quick_login_approval": {
+    "message": "還要在系統設定的「登入項目」裡允許一次。"
+  },
+  "quick_screen_ok": {
+    "message": "螢幕錄製 · 已允許 ✓（螢幕截圖翻譯用）"
+  },
+  "quick_screen_off": {
+    "message": "螢幕錄製 · 還沒有允許。第一次用螢幕截圖翻譯時會問你。"
+  },
+  "quick_shot_needs14": {
+    "message": "螢幕截圖翻譯需要 macOS 14 或更新的系統。"
+  },
+  "quick_services_link": {
+    "message": "給右鍵「服務」綁快速鍵 →"
+  },
+  "quick_more": {
+    "message": "更多選項"
+  },
+  "quick_shot_perm_second": {
+    "message": "第一次框選時，系統還會再彈一次確認，允許即可。之後每隔一段時間系統會再問一次 —— 這是系統對所有截圖類 App 的做法。"
   }
 }

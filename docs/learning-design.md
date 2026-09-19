@@ -3365,8 +3365,8 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 |---|---|
 | 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh, perm?, busy?, first?, appName?}` · `quick-ocr{lines}` · `quick-image{dataUri}` |
 | 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-relaunch` · `quick-ocr-cloud` |
-| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, screen}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
-| 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
+| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, screen, loginItem}` · `quick-hotkeys-result{failed}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which: postEvent / screen / services / loginItems}` · `quick-hotkeys{translate, shot, input, paused}` · `quick-login-item{on}` · `quick-relaunch` |
 
 **一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
 `app/quick-host.js`（`AppQuickHost`：设置、权限、常驻），面板页那头是 `app/quick.js`（`AppQuick`：显示与翻译）。
@@ -3377,6 +3377,21 @@ service | screen | typed`）只决定来源标签与「零权限三陷阱」走�
 不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
 `fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
 面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
+
+**设置块与快捷键（M-7，`app/hotkey-core.js` + `app/quick-settings.js` + `app/native/login-item.swift`）。** 三个全局快捷键可改、可清、
+可恢复默认：存储键 `quickHotkeys = {translate, shot, input}`，每项 `{code, modifiers}` 或 `null`；**没存过 = 默认值（⌃⌥T · ⌃⌥S · 空），
+存的是 `null` = 用户清掉了、重启后仍是空**（`HotkeyCore.normalize`）。键码表只有一份、在页面这边（`KeyboardEvent.code` → macOS 虚拟键码，
+`npm test` 钉锚点）；原生只收两个数和菜单上要写的字符。校验在录制当场做，**被拒的不保存、留着上一个值并说怎么改**：没有修饰键
+（`nomod`）、只有 ⌥ 加字母数字（`deny`，新系统上对沙盒 App 不稳）、系统占着或只有 ⌘ 加字母数字（`system`，会盖掉每个 App 自己的
+快捷键）、和另一个功能撞了（`dup`）。**录制期间全局快捷键全部放开**（`quick-hotkeys{paused:true}`）：不然按下现有的组合会被 Carbon
+抢在网页之前吃掉，既录不到、又真的触发一次翻译。原生注册失败（别的 App 占了同一个组合）经 `quick-hotkeys-result{failed}` 报回，
+那一行显示「已设 + 一句冲突」，值留着由用户决定。菜单栏菜单上写的是当前的快捷键。「存入复习库」= `quickCapture`（默认开，受学习总闸
+控制）。「登录时启动」= `SMAppService.mainApp`，**默认关**，界面显示的是系统的**实际状态**（`quick-caps.loginItem`：on / off /
+approval / unsupported；拨完由原生重发能力回执，登记失败时开关自己弹回去），任何地方都不自己把它打开。块内的「更多选项」折叠区
+（默认收起）里是：输入翻译的快捷键、屏幕录制状态（未允许时一个「打开系统设置」）、登录时启动、给右键「服务」绑快捷键的直达。
+**画布写的是「详细档多露几行」，落地时没有照做**：「快速 / 详细」两档只许管「引擎与密钥」一节是设置体验重设计立下、由 `test:app`
+守着的不变量，这一块不跟全局档位（`test:quick` 断言块内没有 `.adv-only` / `.quick-only`）。macOS 低于 14 ⇒ 截图的快捷键行
+不出现，状态行写明原因。
 
 **截图翻译（M-6，`app/native/screen-ocr.swift`）。** ⌃⌥S / 菜单 / 面板里的「重新框选」「改用截图翻译」都到 `MTQuickPanel.translateScreenshot()`：
 没有录屏权限 ⇒ **不框选**，面板里先说话（`quick-show{perm:'screen', appName}`）—— 我们自己那句「只在你框选的那一刻截你框的那一块，

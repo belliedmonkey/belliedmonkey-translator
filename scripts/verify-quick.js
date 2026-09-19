@@ -237,14 +237,16 @@ async function main() {
     need(!/20 秒/.test((await dom()).msg), 'F: 不是第一次就不该有那一行');
     await E(`new Promise((r) => chrome.storage.local.remove(['quickShotAsked'], () => r('ok')))`);
     const permBefore = (await out('quick-request-perm')).length;
-    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'BelliedMonkey Translator CN' }); await sleep(400); const q2 = await dom();
+    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'BelliedMonkey Translator CN', second: true }); await sleep(400); const q2 = await dom();
     need(/屏幕录制/.test(q2.msg) && /识别完即丢弃/.test(q2.msg) && q2.acts.join() === '继续' && (await out('quick-request-perm')).length === permBefore, 'F: 没有录屏权限 ⇒ 系统弹窗之前我们自己的话先到，此时还没去问系统，实际 ' + JSON.stringify(q2));
     await E(`(document.querySelector('#qk-actions button').click(), 'ok')`); await sleep(400); const q3 = await dom();
     need((await out('quick-request-perm')).slice(-1)[0].which === 'screen' && /「BelliedMonkey Translator CN」/.test(q3.msg) && /重新打开 App 才生效/.test(q3.msg) && q3.acts.join() === '现在重开,打开系统设置',
       'F: 「继续」⇒ 调系统的请求接口 + 「还差一步」（原样说出系统列表里的名字）+ 两个出口，实际 ' + JSON.stringify(q3));
+    need(/系统还会再弹一次确认/.test(q3.msg) && !/系统还会再弹/.test(q2.msg), 'F: 会有第二道系统框的系统上（second）⇒「还差一步」里预告它；我们自己那句说明里不提，实际 ' + JSON.stringify(q3.msg));
     await E(`([...document.querySelectorAll('#qk-actions button')].forEach((b) => b.click()), 'ok')`);
     need((await out('quick-relaunch')).length === 1 && (await out('quick-open-privacy')).slice(-1)[0].which === 'screen', 'F: 两个按钮各交给原生一条');
     await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'X' }); await sleep(300);
+    need(!/系统还会再弹/.test((await dom()).msg), 'F: 不会有第二道的系统上（macOS 14）不该预告一件不会发生的事');
     need((await dom()).acts.join() === '现在重开,打开系统设置', 'F: 说过一次之后再触发 ⇒ 直接是「还差一步」那一态（入口不因为被拒而消失）');
     await surf('截图 · 等重开');
     // 本机没认出 + 引擎支持识图 ⇒ 多一个次级按钮，旁边写明发给谁；**点之前端点一张图都没收到**
@@ -419,11 +421,71 @@ async function main() {
     await E(`(document.getElementById('quick-enhanced').click(), 'ok')`); await sleep(400);
     await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(400);
     need((await enh()).on === false, 'L: 用户自己关掉的，重开后权限在也不该替他打开');
+
+    // ── M. 主页面 · 设置里的快捷键录制控件与 M-7 的其余几行 ──
+    const key = (code, mods) => E(`(document.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ code: ${JSON.stringify(code)}, key: ${JSON.stringify(code === 'Escape' ? 'Escape' : 'x')}, bubbles: true, cancelable: true }, ${JSON.stringify(mods || {})}))), 'ok')`);
+    const hkRow = async (id) => JSON.parse(await E(`(() => { const r = document.querySelector('[data-hk="${id}"]'); if (!r) return 'null'; return JSON.stringify({ hidden: !r.checkVisibility(),
+      keys: [...r.querySelectorAll('kbd')].map((k) => k.textContent).join(''), empty: !!r.querySelector('.hk-empty'), live: !!r.querySelector('.hk-live'), why: (r.querySelector('.hk-why') || {}).textContent || '', btns: [...r.querySelectorAll('button')].map((b) => b.textContent) }); })()`));
+    const clickIn = (id, text) => E(`([...document.querySelectorAll('[data-hk="${id}"] button')].find((b) => b.textContent === ${JSON.stringify(text)}).click(), 'ok')`);
+    const stored = async () => JSON.parse(await E(`new Promise((r) => chrome.storage.local.get(['quickHotkeys'], (v) => r(JSON.stringify(v.quickHotkeys === undefined ? 'unset' : v.quickHotkeys))))`));
+    await E(`(async () => { await new Promise((r) => chrome.storage.local.remove(['quickHotkeys', 'quickCapture'], r)); document.getElementById('quick-more').open = false;
+      await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false, sck: true, screen: false, loginItem: 'off', appName: 'X' }); return 'ok'; })()`);
+    await sleep(500);
+    const m0 = { t: await hkRow('translate'), s: await hkRow('shot'), i: await hkRow('input') };
+    need(m0.t.keys === '⌃⌥T' && m0.s.keys === '⌃⌥S' && m0.t.btns.join() === '改,清除' && m0.i.hidden === true, 'M: 默认 ⌃⌥T / ⌃⌥S；「输入翻译」那一行收在「更多选项」里、默认不露，实际 ' + JSON.stringify(m0));
+    need(await E(`document.querySelectorAll('#g-quick .adv-only, #g-quick .quick-only').length`) === 0, 'M: 这一块不许跟全局的「快速 / 详细」档位（那两档只管「引擎与密钥」一节）');
+    await E(`(document.querySelector('#quick-more > summary').click(), 'ok')`); await sleep(400);
+    const m1 = await hkRow('input');
+    need(m1.hidden === false && m1.empty && m1.btns.join() === '录制', 'M: 展开「更多选项」⇒「输入翻译」出现，空态 +「录制」，实际 ' + JSON.stringify(m1));
+    // 录制中：全局快捷键放开；Esc = 取消，不是把 Esc 设成快捷键
+    await clickIn('input', '录制'); await sleep(300);
+    need((await hkRow('input')).live && (await hostOut('quick-hotkeys')).pop().paused === true, 'M: 录制中 ⇒ 一句「按下想用的组合…」且原生收到 paused:true');
+    await key('Escape'); await sleep(300);
+    need((await hkRow('input')).empty && (await stored()) === 'unset' && (await hostOut('quick-hotkeys')).pop().paused === false, 'M: Esc ⇒ 取消、什么都没存、全局快捷键恢复');
+    // 被拒绝的组合不保存，并说怎么改
+    await clickIn('input', '录制'); await key('KeyD', { altKey: true }); await sleep(300);
+    const m2 = await hkRow('input');
+    need(m2.empty && /带 ⌃ 或 ⌘/.test(m2.why) && (await stored()) === 'unset', 'M: 只有 ⌥ 的组合 ⇒ 不保存 + 说怎么改，实际 ' + JSON.stringify(m2));
+    await clickIn('input', '录制'); await key('KeyS', { ctrlKey: true, altKey: true }); await sleep(300);
+    need(/「截图翻译」/.test((await hkRow('input')).why) && (await stored()) === 'unset', 'M: 和另一个功能撞了 ⇒ 不保存 + 说出是哪一个');
+    await clickIn('input', '录制'); await key('ControlLeft', { ctrlKey: true }); await sleep(150);
+    need((await hkRow('input')).live, 'M: 只按了修饰键 ⇒ 继续等');
+    await key('KeyI', { ctrlKey: true, altKey: true }); await sleep(400);
+    const m3 = await hkRow('input');
+    need(m3.keys === '⌃⌥I' && m3.why === '' && JSON.stringify(await stored()) === JSON.stringify({ input: { code: 'KeyI', modifiers: 6144 } }), 'M: 合法组合 ⇒ 已设 + 落盘只有 {code, modifiers}，实际 ' + JSON.stringify([m3, await stored()]));
+    need(JSON.stringify((await hostOut('quick-hotkeys')).pop().input) === JSON.stringify({ keyCode: 34, modifiers: 6144, char: 'i' }), 'M: 新的一组推给了原生（键码 34 = I）');
+    // 原生回报「别的 App 占了」⇒ 已设 + 一句冲突
+    await E(`(AppQuickHost._fromNative({ type: 'quick-hotkeys-result', failed: ['shot'] }), 'ok')`); await sleep(300);
+    const m4 = await hkRow('shot');
+    need(m4.keys === '⌃⌥S' && /别的 App 已经占了/.test(m4.why), 'M: 原生没注册上 ⇒ 这一行说冲突（值留着，由用户决定改不改），实际 ' + JSON.stringify(m4));
+    await surf2('快捷键 · 已设 / 冲突');
+    await E(`(AppQuickHost._fromNative({ type: 'quick-hotkeys-result', failed: [] }), 'ok')`);
+    // 清除 ⇒ 空态并存 null；恢复默认 ⇒ 三个回到默认
+    await clickIn('translate', '清除'); await sleep(400);
+    need((await hkRow('translate')).empty && (await stored()).translate === null && (await hostOut('quick-hotkeys')).pop().translate === null, 'M: 清除 ⇒ 空态、存 null、原生收到 null');
+    await E(`(document.getElementById('quick-hotkeys-reset').click(), 'ok')`); await sleep(500);
+    need((await hkRow('translate')).keys === '⌃⌥T' && (await hkRow('input')).empty && (await stored()) === 'unset', 'M: 恢复默认 ⇒ ⌃⌥T 回来、输入翻译回到空');
+    // 存入复习库 / 屏幕录制状态 / 登录时启动 / 服务菜单直达
+    await E(`(document.getElementById('quick-capture').click(), 'ok')`); await sleep(300);
+    need(await E(`new Promise((r) => chrome.storage.local.get(['quickCapture'], (v) => r(v.quickCapture)))`) === false, 'M: 「存入复习库」默认开，拨掉 ⇒ quickCapture:false');
+    const m5 = JSON.parse(await E(`JSON.stringify({ screen: document.getElementById('quick-screen-state').textContent, go: !document.getElementById('quick-screen-privacy').hidden,
+      loginRow: !document.getElementById('quick-login-row').hidden, login: document.getElementById('quick-login').checked })`));
+    need(/还没有允许/.test(m5.screen) && m5.go && m5.loginRow && m5.login === false, 'M: 录屏未允许 ⇒ 一句话 + 出口；登录时启动默认关，实际 ' + JSON.stringify(m5));
+    await E(`(document.getElementById('quick-login').click(), document.getElementById('quick-services-go').click(), document.getElementById('quick-screen-privacy').click(), 'ok')`);
+    need((await hostOut('quick-login-item')).pop().on === true && (await hostOut('quick-open-privacy')).slice(-2).map((x) => x.which).join() === 'services,screen', 'M: 登录项与两个直达各交给原生一条');
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false, sck: true, screen: true, loginItem: 'approval', appName: 'X' }); return 'ok'; })()`); await sleep(400);
+    const m6 = JSON.parse(await E(`JSON.stringify({ screen: document.getElementById('quick-screen-state').textContent, go: !document.getElementById('quick-screen-privacy').hidden, login: document.getElementById('quick-login').checked,
+      ap: !document.getElementById('quick-login-approval').hidden })`));
+    need(/已允许/.test(m6.screen) && !m6.go && m6.login && m6.ap, 'M: 界面跟着原生的回执走：录屏已允许 ✓；登录项要去系统设置批准一次，实际 ' + JSON.stringify(m6));
+    await surf2('快速翻译块 · 更多选项展开');
+    // macOS 低于 14：截图那一行整个不出现，一句原因
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false, sck: false, screen: false, loginItem: 'unsupported', appName: 'X' }); return 'ok'; })()`); await sleep(400);
+    need((await hkRow('shot')) === null && /需要 macOS 14/.test(await E(`document.getElementById('quick-screen-state').textContent`)) && await E(`document.getElementById('quick-login-row').hidden`), 'M: macOS 低于 14 ⇒ 截图的快捷键行不出现 + 一句原因；登录项不支持 ⇒ 那一行不出现');
   } catch (e) { problems.push('脚本中断：' + (e && e.message || e)); }
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 
   if (problems.length) { console.log('\n✗ 快速翻译面板页有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发；增强取词：说明先到、等重开、重开后生效、被撤销弹回；截图：权限先说话、识别中、点了才发图');
+  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发；增强取词：说明先到、等重开、重开后生效、被撤销弹回；截图：权限先说话、识别中、点了才发图；设置块：快捷键五态、录制时放开、清除 / 恢复默认、登录项与录屏状态跟着回执走');
   process.exit(0);
 }
 main();

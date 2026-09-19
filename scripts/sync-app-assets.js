@@ -389,6 +389,8 @@ const BLOCKS = [
   { name: 'mt-capture', src: 'capture.swift', label: 'capture' },
   // 截图翻译（M-6）：框选层 + ScreenCaptureKit 区域截图 + 本机 Vision 识别。截图不落盘、不离开设备。
   { name: 'mt-screen-ocr', src: 'screen-ocr.swift', label: 'screen ocr' },
+  // 登录时启动（SMAppService，默认关）+ 两个系统设置页的直达（M-7）。
+  { name: 'mt-login-item', src: 'login-item.swift', label: 'login item' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

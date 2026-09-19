@@ -150,3 +150,58 @@ describe('AppQuickHost — 增强取词：先重开、后授权（真机 2026-09
     eq(st.quickEnhanced, false); restore();
   });
 });
+
+// ── 快捷键（M-7）：主页面这一头只管「存」与「推」—— 校验在 HotkeyCore，界面在 quick-settings ──────────────
+describe('AppQuickHost — 快捷键：推送、录制时放开、清掉就是清掉', () => {
+  const HK = require(path.join(__dirname, '..', 'app', 'hotkey-core.js'));
+  const withCore = (store) => { global.HotkeyCore = HK; const x = load(store); const r = x.restore; x.restore = () => { r(); delete global.HotkeyCore; }; return x; };
+  const caps = { type: 'quick-caps', resident: true, panel: true };
+  const last = (posted, type) => posted.filter((m) => m.type === type).pop();
+  test('收到能力回执 ⇒ 先推快捷键、再推配置（原生 enable() 注册的就是刚发过去的这一组）；没存过 = 默认值', async () => {
+    const { H, posted, restore } = withCore();
+    H.start({}); await H._fromNative(caps); await tick(30);
+    const types = posted.map((m) => m.type);
+    ok(types.indexOf('quick-hotkeys') >= 0 && types.indexOf('quick-hotkeys') < types.indexOf('quick-config'), types.join());
+    deepEq(last(posted, 'quick-hotkeys'), { type: 'quick-hotkeys', translate: { keyCode: 17, modifiers: 6144, char: 't' }, shot: { keyCode: 1, modifiers: 6144, char: 's' }, input: null, paused: false });
+    restore();
+  });
+  test('★ 录制开始 ⇒ paused:true（全局快捷键全部放开）；结束 ⇒ paused:false', async () => {
+    const { H, posted, restore } = withCore();
+    H.start({}); await H._fromNative(caps); await tick(30);
+    await H.setRecording(true); eq(last(posted, 'quick-hotkeys').paused, true);
+    await H.setRecording(false); eq(last(posted, 'quick-hotkeys').paused, false);
+    restore();
+  });
+  test('存一个 ⇒ 落盘的只有 {code, modifiers}；设置总线把新的一组推给原生', async () => {
+    const { H, posted, st, restore } = withCore();
+    H.start({}); await H._fromNative(caps); await tick(30);
+    await H.setHotkey('input', HK.fromEvent({ code: 'KeyI', ctrlKey: true, altKey: true, shiftKey: false, metaKey: false })); await tick(40);
+    deepEq(st.quickHotkeys, { input: { code: 'KeyI', modifiers: 6144 } });
+    deepEq(last(posted, 'quick-hotkeys').input, { keyCode: 34, modifiers: 6144, char: 'i' });
+    restore();
+  });
+  test('★ 清掉 ⇒ 存 null，下次启动仍是空（不回落到默认值）；「恢复默认」才把键删掉', async () => {
+    const a = withCore();
+    a.H.start({}); await a.H._fromNative(caps); await tick(30);
+    await a.H.setHotkey('translate', null); await tick(40);
+    eq(a.st.quickHotkeys.translate, null); eq(last(a.posted, 'quick-hotkeys').translate, null);
+    const saved = Object.assign({}, a.st); a.restore();
+    const b = withCore(saved);
+    b.H.start({}); await b.H._fromNative(caps); await tick(30);
+    eq(last(b.posted, 'quick-hotkeys').translate, null, '清掉的快捷键重启后又回来了');
+    b.restore();
+  });
+  test('原生回报没注册上的 ⇒ 记下来并通知界面；下一次回报空 ⇒ 清掉', async () => {
+    const { H, restore } = withCore();
+    const seen = []; H.start({}); H.onClashes((c) => seen.push(c.slice()));
+    H._fromNative({ type: 'quick-hotkeys-result', failed: ['shot'] }); deepEq(H.clashes(), ['shot']);
+    H._fromNative({ type: 'quick-hotkeys-result', failed: [] }); deepEq(H.clashes(), []); deepEq(seen, [['shot'], []]);
+    restore();
+  });
+  test('登录时启动、打开系统设置的某一页：各发一条，名字在协议表里', async () => {
+    const { H, posted, restore } = withCore();
+    H.start({}); H.setLoginItem(true); H.openPane('services');
+    deepEq(posted.slice(-2), [{ type: 'quick-login-item', on: true }, { type: 'quick-open-privacy', which: 'services' }]);
+    for (const m of posted) ok(H.PROTOCOL.toNative.indexOf(m.type) >= 0, m.type); restore();
+  });
+});

@@ -3353,5 +3353,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "这张截图已经丢弃了。重新框选一次。"
+  },
+  "quick_hk_title": {
+    "message": "快捷键"
+  },
+  "quick_hk_reset": {
+    "message": "恢复默认"
+  },
+  "quick_hk_translate": {
+    "message": "翻译选中的文字或剪贴板"
+  },
+  "quick_hk_shot": {
+    "message": "截图翻译"
+  },
+  "quick_hk_input": {
+    "message": "输入翻译"
+  },
+  "quick_hk_unset": {
+    "message": "未设置"
+  },
+  "quick_hk_record": {
+    "message": "录制"
+  },
+  "quick_hk_cancel": {
+    "message": "取消"
+  },
+  "quick_hk_change": {
+    "message": "改"
+  },
+  "quick_hk_clear": {
+    "message": "清除"
+  },
+  "quick_hk_press": {
+    "message": "按下想用的组合…"
+  },
+  "quick_hk_clash": {
+    "message": "别的 App 已经占了这个组合，按了不会到我们这里。换一个。"
+  },
+  "quick_hk_deny": {
+    "message": "只有 ⌥ 的组合不稳定，换一个带 ⌃ 或 ⌘ 的。"
+  },
+  "quick_hk_system": {
+    "message": "这个组合被系统或各个 App 自己占着，换一个。"
+  },
+  "quick_hk_nomod": {
+    "message": "要带上 ⌃ 或 ⌘ 这样的修饰键。"
+  },
+  "quick_hk_dup": {
+    "message": "和「{name}」用的是同一个组合。"
+  },
+  "quick_capture_label": {
+    "message": "存入复习库"
+  },
+  "quick_capture_hint": {
+    "message": "翻过的句子进复习，来源「划词翻译 / 截图翻译 / 输入翻译」。关掉后照常翻译，只是不存。"
+  },
+  "quick_login_label": {
+    "message": "登录时启动"
+  },
+  "quick_login_hint": {
+    "message": "开机后自动待在菜单栏。默认关闭。"
+  },
+  "quick_login_approval": {
+    "message": "还要在系统设置的「登录项」里允许一次。"
+  },
+  "quick_screen_ok": {
+    "message": "屏幕录制 · 已允许 ✓（截图翻译用）"
+  },
+  "quick_screen_off": {
+    "message": "屏幕录制 · 还没有允许。第一次用截图翻译时会问你。"
+  },
+  "quick_shot_needs14": {
+    "message": "截图翻译需要 macOS 14 或更新的系统。"
+  },
+  "quick_services_link": {
+    "message": "给右键「服务」绑快捷键 →"
+  },
+  "quick_more": {
+    "message": "更多选项"
+  },
+  "quick_shot_perm_second": {
+    "message": "第一次框选时，系统还会再弹一次确认，允许即可。之后每隔一段时间系统会再问一次 —— 这是系统对所有截屏类 App 的做法。"
   }
 }

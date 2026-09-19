@@ -1096,6 +1096,8 @@ var AppSettings = (() => {
       $('quick-enhanced-relaunch').addEventListener('click', () => AppQuickHost.relaunch());
       $('quick-enhanced-privacy').addEventListener('click', () => AppQuickHost.openPrivacy());
       try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnhanced || ch.quickEnhancedNote)) paintEnhanced(); }); } catch (_) {}
+      // M-7 的那几行（快捷键录制、存入复习库、登录时启动、屏幕录制状态、服务菜单直达）在 app/quick-settings.js。
+      if (typeof AppQuickSettings !== 'undefined') AppQuickSettings.wire();
     }
     $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });
     for (const which of ['my', 'other']) {

@@ -23,6 +23,9 @@ final class MTScreenShot {
 
     static var supported: Bool { if #available(macOS 14.0, *) { return true } else { return false } }
     static var granted: Bool { CGPreflightScreenCaptureAccess() }
+    /// macOS 15 起，第一次真的截屏时系统还会再弹一道确认（「请求绕过系统窗口选择器，直接访问屏幕和音频」），之后定期重问。
+    /// 页面据此预告这一道 —— 只在会有的系统上说（真机 2026-09-19 实测，macOS 27）。
+    static var asksAgainOnFirstCapture: Bool { if #available(macOS 15.0, *) { return true } else { return false } }
     static func requestAccess() { _ = CGRequestScreenCaptureAccess() }
     static func openPrivacySettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {

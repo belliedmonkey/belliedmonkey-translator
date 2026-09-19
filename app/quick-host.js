@@ -9,13 +9,14 @@
   const CHANNEL = 'mtQuick';
   // 与 resident.swift 逐字对表（test/build-scripts.test.js 的协议镜像门）
   const PROTOCOL = {
-    toNative: ['quick-probe', 'quick-config', 'quick-close-main', 'quick-request-perm', 'quick-open-privacy', 'quick-relaunch'],
-    fromNative: ['quick-caps', 'quick-first-close', 'quick-open-settings', 'quick-capture', 'quick-result'],
+    toNative: ['quick-probe', 'quick-config', 'quick-close-main', 'quick-request-perm', 'quick-open-privacy', 'quick-relaunch', 'quick-hotkeys', 'quick-login-item'],
+    fromNative: ['quick-caps', 'quick-first-close', 'quick-open-settings', 'quick-capture', 'quick-result', 'quick-hotkeys-result'],
   };
   // quickEnhanced：用户的**意图**（想开）。真正生效还要原生读到系统权限（caps.postEvent）。
   // quickEnhancedNote：设置块里那一行该说什么 —— 'pending'（问过系统了，等重开）| 'denied'（重开后仍没有权限，开关已弹回）| ''。
   // quickEnhancedLost：给面板页看的一次性标记 —— 权限没了、热键已退回剪贴板路径，下一次面板出来时说一句。
-  const KEYS = ['quickEnabled', 'quickResidentSeen', 'quickEnhanced', 'quickEnhancedNote'];
+  // quickHotkeys：{translate, shot, input}，每项是 {code, modifiers} 或 null（用户清掉了）；没存过 = 默认值（HotkeyCore.normalize）。
+  const KEYS = ['quickEnabled', 'quickResidentSeen', 'quickEnhanced', 'quickEnhancedNote', 'quickHotkeys'];
   const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);
 
   let caps = null;               // 原生回执；null = 还没回 / 这个壳没有
@@ -30,9 +31,34 @@
   // 常驻默认开（`!== false`，不往存储里播种默认值）。
   const enabledOf = (s) => s.quickEnabled !== false;
 
+  // ── 快捷键（M-7）──
+  let clashes = [];              // 原生上一次回报「没注册上」的那些 id（别的 App 占了同一个组合）
+  let recording = false;
+  const clashListeners = [];
+  const hotkeysOf = (s) => (typeof HotkeyCore !== 'undefined' ? HotkeyCore.normalize(s.quickHotkeys) : null);
+
+  async function pushHotkeys() {
+    if (!caps || typeof HotkeyCore === 'undefined') return false;
+    const hk = hotkeysOf(await get(KEYS));
+    return post({ type: 'quick-hotkeys', translate: HotkeyCore.wire(hk.translate), shot: HotkeyCore.wire(hk.shot), input: HotkeyCore.wire(hk.input), paused: recording });
+  }
+  // 录制开始 / 结束：录制时全局快捷键要全部放开，不然按下现有的组合会被 Carbon 抢在网页之前吃掉 —— 既录不到，又真的触发一次翻译。
+  function setRecording(on) { recording = !!on; return pushHotkeys(); }
+  // 存一个（combo = null 即清掉）。校验与「三个之间不撞」由调用方先过 HotkeyCore；这里只管落盘，推送由设置总线触发。
+  async function setHotkey(id, combo) {
+    const s = await get(KEYS);
+    const cur = Object.assign({}, s.quickHotkeys && typeof s.quickHotkeys === 'object' ? s.quickHotkeys : {});
+    cur[id] = combo ? { code: combo.code, modifiers: combo.modifiers } : null;
+    await set({ quickHotkeys: cur });
+  }
+  const resetHotkeys = () => new Promise((res) => chrome.storage.local.remove(['quickHotkeys'], res));
+  const setLoginItem = (on) => post({ type: 'quick-login-item', on: !!on });
+  const openPane = (which) => post({ type: 'quick-open-privacy', which });
+
   async function pushConfig() {
     if (!caps) return false;
     const s = await get(KEYS);
+    await pushHotkeys();               // 先于 quick-config：原生 enable() 注册的就是刚发过去的这一组
     return post({
       type: 'quick-config', enabled: enabledOf(s), seen: !!s.quickResidentSeen,
       // 原生每次按快捷键时还会自己再读一次系统权限：这里只是「用户想不想」。
@@ -107,6 +133,7 @@
       return reconcile().then(() => { pushConfig(); for (const fn of listeners) { try { fn(caps); } catch (_) {} } });
     }
     if (msg.type === 'quick-first-close') { onFirstClose(); return; }
+    if (msg.type === 'quick-hotkeys-result') { clashes = Array.isArray(msg.failed) ? msg.failed.slice() : []; for (const fn of clashListeners) { try { fn(clashes); } catch (_) {} } return; }
     if (msg.type === 'quick-open-settings') { if (hooks.openSettings) hooks.openSettings('g-quick'); return; }
     // 面板页经原生中继过来的两样东西（面板是第二个 WKWebView：不开学习库、不初始化遥测）。
     // 进不进复习库由那个唯一写入者按同一套门裁定 —— 这里不预判，只转交。
@@ -118,12 +145,14 @@
     hooks = h || {};
     post({ type: 'quick-probe' });
     // 开关或界面语言变了 ⇒ 菜单与常驻状态跟着变（设置总线，同 app/settings.js 的约定）
-    try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnabled || ch.quickResidentSeen || ch.quickEnhanced || ch.uiLang)) pushConfig(); }); } catch (_) {}
+    try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnabled || ch.quickResidentSeen || ch.quickEnhanced || ch.quickHotkeys || ch.uiLang)) pushConfig(); }); } catch (_) {}
   }
 
   const api = {
     CHANNEL, PROTOCOL, KEYS, start, _fromNative, pushConfig, enabledOf,
     setEnhanced, relaunch, openPrivacy, hasPostEvent, supportsEnhanced, reconcile,
+    pushHotkeys, setRecording, setHotkey, resetHotkeys, setLoginItem, openPane,
+    clashes: () => clashes.slice(), onClashes: (fn) => { clashListeners.push(fn); },
     caps: () => caps,
     onCaps: (fn) => { listeners.push(fn); if (caps) fn(caps); },
   };

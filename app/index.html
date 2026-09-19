@@ -745,6 +745,9 @@
         <span id="quick-enabled-label"></span>
       </label>
       <p class="note" id="quick-enabled-note"></p>
+      <!-- 三个全局快捷键（M-7）。行由 app/quick-settings.js 画：录制控件五态；「输入翻译」那一行在下面的「更多选项」里。 -->
+      <div class="hk-head"><h4 id="quick-hotkeys-title"></h4><button id="quick-hotkeys-reset" type="button" class="link"></button></div>
+      <div id="quick-hotkeys"></div>
       <!-- 增强取词（M-5）：默认关，打开才问系统权限。原生没回 postEvent 能力时整行不出现。 -->
       <div id="quick-enhanced-row" hidden>
       <label class="check">
@@ -758,6 +761,31 @@
         <button id="quick-enhanced-privacy" type="button" class="secondary"></button>
       </div>
       </div>
+      <!-- 存入复习库（quickCapture，默认开；受学习总闸控制）。 -->
+      <label class="check">
+        <input id="quick-capture" type="checkbox">
+        <span id="quick-capture-label"></span>
+      </label>
+      <p class="note" id="quick-capture-hint"></p>
+      <!-- 「更多选项」：输入翻译的快捷键、屏幕录制状态、登录时启动（默认关）、给右键「服务」绑快捷键。
+           画布写的是「详细档多露几行」，但「快速 / 详细」两档只许管「引擎与密钥」一节（test:app 的不变量）⇒
+           这一块不跟全局档位，用块内自己的折叠区，默认收起。 -->
+      <details class="quick-more" id="quick-more">
+        <summary id="quick-more-title"></summary>
+        <div id="quick-hotkeys-more"></div>
+        <p class="note" id="quick-screen-state" role="status"></p>
+        <div class="row"><button id="quick-screen-privacy" type="button" class="secondary" hidden></button></div>
+        <div id="quick-login-row" hidden>
+          <label class="check">
+            <input id="quick-login" type="checkbox">
+            <span id="quick-login-label"></span>
+          </label>
+          <p class="note" id="quick-login-hint"></p>
+          <p class="note" id="quick-login-approval" role="status" hidden></p>
+          <div class="row"><button id="quick-login-go" type="button" class="secondary" hidden></button></div>
+        </div>
+        <p class="note"><button id="quick-services-go" type="button" class="link"></button></p>
+      </details>
       </div>
 
       <div class="sgroup" id="g-docs">

@@ -3352,5 +3352,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "이 스크린샷은 이미 폐기되었습니다. 영역을 다시 선택하세요."
+  },
+  "quick_hk_title": {
+    "message": "단축키"
+  },
+  "quick_hk_reset": {
+    "message": "기본값으로 복원"
+  },
+  "quick_hk_translate": {
+    "message": "선택한 텍스트 또는 클립보드 번역"
+  },
+  "quick_hk_shot": {
+    "message": "스크린샷 번역"
+  },
+  "quick_hk_input": {
+    "message": "입력하여 번역"
+  },
+  "quick_hk_unset": {
+    "message": "설정 안 됨"
+  },
+  "quick_hk_record": {
+    "message": "기록"
+  },
+  "quick_hk_cancel": {
+    "message": "취소"
+  },
+  "quick_hk_change": {
+    "message": "변경"
+  },
+  "quick_hk_clear": {
+    "message": "지우기"
+  },
+  "quick_hk_press": {
+    "message": "사용할 조합을 누르세요…"
+  },
+  "quick_hk_clash": {
+    "message": "다른 앱이 이미 이 조합을 사용하고 있어 눌러도 전달되지 않습니다. 다른 조합을 선택하세요."
+  },
+  "quick_hk_deny": {
+    "message": "⌥만 사용하는 조합은 불안정합니다. ⌃ 또는 ⌘가 포함된 조합을 선택하세요."
+  },
+  "quick_hk_system": {
+    "message": "이 조합은 macOS 또는 각 앱에서 사용 중입니다. 다른 조합을 선택하세요."
+  },
+  "quick_hk_nomod": {
+    "message": "⌃ 또는 ⌘ 같은 보조 키를 포함하세요."
+  },
+  "quick_hk_dup": {
+    "message": "「{name}」와(과) 같은 조합입니다."
+  },
+  "quick_capture_label": {
+    "message": "복습 라이브러리에 저장"
+  },
+  "quick_capture_hint": {
+    "message": "번역한 문장이 복습에 들어갑니다(출처: 선택 / 스크린샷 / 입력). 꺼도 번역은 그대로 되고 저장만 되지 않습니다."
+  },
+  "quick_login_label": {
+    "message": "로그인 시 열기"
+  },
+  "quick_login_hint": {
+    "message": "로그인하면 자동으로 메뉴 막대에 상주합니다. 기본은 꺼짐입니다."
+  },
+  "quick_login_approval": {
+    "message": "시스템 설정의 「로그인 항목」에서도 한 번 허용해야 합니다."
+  },
+  "quick_screen_ok": {
+    "message": "화면 기록 · 허용됨 ✓(스크린샷 번역에 사용)"
+  },
+  "quick_screen_off": {
+    "message": "화면 기록 · 아직 허용되지 않았습니다. 스크린샷 번역을 처음 사용할 때 묻습니다."
+  },
+  "quick_shot_needs14": {
+    "message": "스크린샷 번역에는 macOS 14 이상이 필요합니다."
+  },
+  "quick_services_link": {
+    "message": "「서비스」 메뉴 항목에 단축키 지정 →"
+  },
+  "quick_more": {
+    "message": "옵션 더 보기"
+  },
+  "quick_shot_perm_second": {
+    "message": "처음 영역을 선택할 때 macOS가 한 번 더 확인을 요청합니다. 허용하면 됩니다. 이후에도 일정 기간마다 다시 묻는데, 화면을 캡처하는 모든 앱에 대해 macOS가 하는 일입니다."
   }
 }

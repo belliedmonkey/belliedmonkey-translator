@@ -3352,5 +3352,86 @@
   },
   "quick_shot_cloud_gone": {
     "message": "このスクリーンショットはすでに破棄されています。もう一度範囲を選んでください。"
+  },
+  "quick_hk_title": {
+    "message": "ショートカット"
+  },
+  "quick_hk_reset": {
+    "message": "デフォルトに戻す"
+  },
+  "quick_hk_translate": {
+    "message": "選択したテキストまたはクリップボードを翻訳"
+  },
+  "quick_hk_shot": {
+    "message": "スクリーンショットを翻訳"
+  },
+  "quick_hk_input": {
+    "message": "入力して翻訳"
+  },
+  "quick_hk_unset": {
+    "message": "未設定"
+  },
+  "quick_hk_record": {
+    "message": "記録"
+  },
+  "quick_hk_cancel": {
+    "message": "キャンセル"
+  },
+  "quick_hk_change": {
+    "message": "変更"
+  },
+  "quick_hk_clear": {
+    "message": "消去"
+  },
+  "quick_hk_press": {
+    "message": "使いたい組み合わせを押してください…"
+  },
+  "quick_hk_clash": {
+    "message": "この組み合わせはほかの App が使用中のため、押してもこちらには届きません。別の組み合わせにしてください。"
+  },
+  "quick_hk_deny": {
+    "message": "⌥ だけの組み合わせは不安定です。⌃ または ⌘ を含むものにしてください。"
+  },
+  "quick_hk_system": {
+    "message": "この組み合わせは macOS または各 App 自身が使用しています。別のものにしてください。"
+  },
+  "quick_hk_nomod": {
+    "message": "⌃ や ⌘ などの修飾キーを含めてください。"
+  },
+  "quick_hk_dup": {
+    "message": "「{name}」と同じ組み合わせです。"
+  },
+  "quick_capture_label": {
+    "message": "復習ライブラリに保存"
+  },
+  "quick_capture_hint": {
+    "message": "翻訳した文は復習に入ります（出どころ：選択 / スクリーンショット / 入力）。オフにしても翻訳はそのまま使え、保存だけされなくなります。"
+  },
+  "quick_login_label": {
+    "message": "ログイン時に開く"
+  },
+  "quick_login_hint": {
+    "message": "ログイン後、自動的にメニューバーに常駐します。初期設定はオフです。"
+  },
+  "quick_login_approval": {
+    "message": "システム設定の「ログイン項目」でも一度許可する必要があります。"
+  },
+  "quick_screen_ok": {
+    "message": "画面収録 · 許可済み ✓（スクリーンショット翻訳で使用）"
+  },
+  "quick_screen_off": {
+    "message": "画面収録 · まだ許可されていません。スクリーンショット翻訳を初めて使うときに確認されます。"
+  },
+  "quick_shot_needs14": {
+    "message": "スクリーンショット翻訳には macOS 14 以降が必要です。"
+  },
+  "quick_services_link": {
+    "message": "「サービス」メニュー項目にショートカットを割り当てる →"
+  },
+  "quick_more": {
+    "message": "その他のオプション"
+  },
+  "quick_shot_perm_second": {
+    "message": "初めて範囲を選ぶとき、macOS からもう一度確認が表示されます。許可してください。その後も一定期間ごとに再確認されますが、これは画面を取り込むすべての App に対する macOS の仕様です。"
   }
 }
