@@ -1,11 +1,11 @@
-# 1.13.0 审核备注 · macOS 两线（国际版 + 中国版同文）
+# 1.13.1 审核备注 · macOS 两线（国际版 + 中国版同文）
 
 > Gate J-1（docs/learning-design.md §10）要求的三条。填在 App Store Connect › 该版本 ›「App 审核信息」›「备注」里，
 > **提审前由人看一眼再提交**。审核员读英文，所以只有英文；下面的中文是给我们自己对照的。
 > iOS 两线这一版没有新的权限或常驻行为，不需要这份备注。
 
 ```
-New in 1.13.0 (macOS only): "Quick Translate" — translate text from any app into a small floating panel.
+New in 1.13.1 (macOS only): "Quick Translate" — translate text from any app into a small floating panel.
 
 1. Menu bar item. The app keeps a menu bar item so its global shortcuts keep working after the main window is closed. This is on by default and can be turned off in Settings > Quick Translate > "Stay in the menu bar"; with it off, closing the window quits the app as before. The first time the window is closed, the app explains this.
 

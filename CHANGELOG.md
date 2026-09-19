@@ -3,7 +3,17 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
-## 1.13.0
+## 1.13.1 — 2026-09-19
+
+- Fixed: turning on subtitle translation before a YouTube video starts playing no longer gets stuck on “Subtitles unavailable”; subtitles appear normally once playback begins.
+
+<details><summary>中文</summary>
+
+- 修复：YouTube 视频还没开始播放时就打开字幕翻译，不再锁在「字幕不可用」；开始播放后字幕正常出现。
+
+</details>
+
+## 1.13.0 — 2026-09-19
 
 - New: Quick Translate (Mac) — select text in any app and press ⌃⌥T, use the right-click Services menu, or type; for text you can’t select, drag a box on screen (⌃⌥S). The translation appears in a small panel by the pointer without taking focus. On-screen text is recognised on your Mac and the screenshot is not saved. Shortcuts are configurable; it lives in the menu bar and can be turned off.
 - New: “Translate into” setting — choose the target language in the app; document translation and other features use it. It follows the interface language by default.
