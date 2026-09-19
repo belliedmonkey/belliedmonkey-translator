@@ -3318,7 +3318,7 @@
     "message": "Abrir Ajustes do Sistema"
   },
   "quick_enh_pending": {
-    "message": "Na janela do sistema que apareceu, escolha Abrir Ajustes do Sistema e permita o BelliedMonkey Translator. Passa a valer depois de reabrir o app."
+    "message": "Na janela do sistema que apareceu, escolha Abrir Ajustes do Sistema, encontre “{app}” na lista e ative o interruptor. Passa a valer depois de reabrir o app."
   },
   "quick_enh_denied": {
     "message": "O macOS não concedeu a permissão, então a captura aprimorada continua desativada. Pressionar ⌘C e depois o atalho continua funcionando."

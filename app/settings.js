@@ -711,7 +711,10 @@ var AppSettings = (() => {
     const live = s.quickEnhanced === true && AppQuickHost.hasPostEvent();
     $('quick-enhanced').checked = live;
     const note = live ? '' : (s.quickEnhancedNote || '');
-    const text = note === 'pending' ? t('quick_enh_pending', '请在系统弹出的窗口里点「打开系统设置」并允许大肚猴翻译。允许之后要重新打开 App 才生效。')
+    // {app}：系统那张列表里显示的是**包名**，不是界面上的「大肚猴翻译」，两个 flavor 还不一样（真机 2026-09-19：中文用户
+    // 照着「允许大肚猴翻译」去找，列表里只有一行英文名）。名字由原生报（quick-caps.appName），文案里不写死。
+    const appName = String(((AppQuickHost.caps() || {}).appName) || 'BelliedMonkey Translator');
+    const text = note === 'pending' ? t('quick_enh_pending', '请在系统弹出的窗口里点「打开系统设置」，在列表里找到「{app}」并打开它的开关。打开之后要重新打开 App 才生效。').replace('{app}', appName)
       : note === 'denied' ? t('quick_enh_denied', '系统没有给权限，增强取词没有打开。先按 ⌘C 再按快捷键照常能用。') : '';
     $('quick-enhanced-state').textContent = text;
     $('quick-enhanced-state').hidden = !text;

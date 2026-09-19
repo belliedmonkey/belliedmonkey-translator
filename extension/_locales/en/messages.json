@@ -3318,7 +3318,7 @@
     "message": "Open System Settings"
   },
   "quick_enh_pending": {
-    "message": "In the system window that appeared, choose Open System Settings and allow BelliedMonkey Translator. It takes effect after you relaunch the app."
+    "message": "In the system window that appeared, choose Open System Settings, find “{app}” in the list and turn its switch on. It takes effect after you relaunch the app."
   },
   "quick_enh_denied": {
     "message": "macOS has not granted the permission, so Enhanced Capture is off. Pressing ⌘C and then the shortcut still works."

@@ -3318,7 +3318,7 @@
     "message": "Systemeinstellungen öffnen"
   },
   "quick_enh_pending": {
-    "message": "Wähle im angezeigten Systemfenster „Systemeinstellungen öffnen“ und erlaube BelliedMonkey Translator. Wirksam wird es nach einem Neustart der App."
+    "message": "Wähle im angezeigten Systemfenster „Systemeinstellungen öffnen“, suche „{app}“ in der Liste und schalte den Schalter ein. Wirksam wird es nach einem Neustart der App."
   },
   "quick_enh_denied": {
     "message": "macOS hat die Berechtigung nicht erteilt, die erweiterte Übernahme bleibt aus. ⌘C und danach der Kurzbefehl funktioniert weiterhin."

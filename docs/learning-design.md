@@ -3365,7 +3365,7 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 |---|---|
 | 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh}` · `quick-ocr{lines}` |
 | 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` |
-| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
 | 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
 
 **一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是

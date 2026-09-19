@@ -336,7 +336,7 @@ async function main() {
     await E(`(async () => { await new Promise((r) => chrome.storage.local.remove(['quickEnhanced', 'quickEnhancedNote', 'quickEnhancedLost'], r)); document.getElementById('gear').click(); await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true }); return 'ok'; })()`);
     await sleep(400);
     need((await enh()).rowHidden === true, 'L: 原生不报 postEvent（老原生壳）⇒ 增强取词那一行整个不出现');
-    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false }); return 'ok'; })()`); await sleep(400);
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false, appName: 'BelliedMonkey Translator CN' }); return 'ok'; })()`); await sleep(400);
     const l0 = await enh();
     need(!l0.rowHidden && l0.on === false && l0.state === '', 'L: 默认是关的、旁边没有多余的话，实际 ' + JSON.stringify(l0));
     const askedBefore = (await hostOut('quick-request-perm')).length;
@@ -352,6 +352,7 @@ async function main() {
     const l3 = await enh();
     need((await hostOut('quick-request-perm')).length === askedBefore + 1 && l3.on === false && /重新打开 App 才生效/.test(l3.state) && l3.relaunch && l3.privacy,
       'L: 「继续」⇒ 调系统请求接口；**开关仍是关**（还没生效）+ 一句话 +「现在重开」「打开系统设置」，实际 ' + JSON.stringify(l3));
+    need(/「BelliedMonkey Translator CN」/.test(l3.state) && !/\{app\}/.test(l3.state), 'L: 指引里该原样说出系统列表里显示的那个名字（包名，由原生报），实际 ' + l3.state);
     need((await hostOut('quick-config')).pop().enhanced === true, 'L: 原生要知道用户想开（重开后权限一到直接生效）');
     await E(`(document.getElementById('quick-enhanced-relaunch').click(), document.getElementById('quick-enhanced-privacy').click(), 'ok')`);
     need((await hostOut('quick-relaunch')).length === 1 && (await hostOut('quick-open-privacy'))[0].which === 'postEvent', 'L: 两个按钮各交给原生一条');

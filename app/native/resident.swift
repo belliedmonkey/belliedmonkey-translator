@@ -54,7 +54,9 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
         case "quick-probe":
-            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted])
+            // appName：系统隐私列表里显示的那个名字（包名；两个 flavor 不同）。页面的授权指引要原样说出它。
+            let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
+            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName])
         case "quick-config":
             enabled = (body["enabled"] as? Bool) ?? false
             seen = (body["seen"] as? Bool) ?? false
