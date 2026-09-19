@@ -387,6 +387,8 @@ const BLOCKS = [
   { name: 'mt-services', src: 'services.swift', label: 'services' },
   // 增强取词（M-5）：替用户按一次 ⌘C、读到后把剪贴板原样写回。默认关，要 PostEvent 权限。
   { name: 'mt-capture', src: 'capture.swift', label: 'capture' },
+  // 截图翻译（M-6）：框选层 + ScreenCaptureKit 区域截图 + 本机 Vision 识别。截图不落盘、不离开设备。
+  { name: 'mt-screen-ocr', src: 'screen-ocr.swift', label: 'screen ocr' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

@@ -1365,6 +1365,11 @@ template from bouncing and would trap a scrolling review list.
 3. **服务菜单**：宿主 App 里选中文字 → System Events 打开「应用菜单 › 服务」→ 读子菜单项 → 点我们那一项。
    **服务子菜单是惰性的**：不真的打开它，AX 树里只有「服务设置…」。判据：面板里的原文与选中文字一致，且 1 秒后前台仍是原来的 App。
    至少过：Safari、Chrome、Firefox、文本编辑、预览（PDF）、Pages；跨平台框架做的 App 单独记。
+4a. **截图翻译的录屏权限是两道系统框，不是一道（macOS 27 实测，2026-09-19）。** 第一道是「想要录制此电脑的屏幕和音频」
+   （`CGRequestScreenCaptureAccess`，去「录屏与系统录音」打开开关，授权后要重开）。**第二道在第一次真的截屏时才出现**：
+   「正在请求绕过系统无痕浏览窗口选择器，直接访问屏幕和音频」，按钮是「打开系统设置 / 允许」—— 这是系统对「不经系统选择器、
+   直接用 ScreenCaptureKit 截屏」的 App 追加的确认，**系统还会定期重新问**。两道都**由人点**。第二道弹出时那一次截屏已经完成
+   （面板里已经是结果）。系统选择器只能选窗口 / 整块屏，选不了任意矩形，所以这道框绕不开。
 4. **增强取词**：系统弹窗与系统设置里的开关**由人点**。那一页在 macOS 27 上叫 **隐私与安全性 ›「设备控制和数据访问」**（更早的系统叫「辅助功能」；`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility` 两边都能直达，2026-09-19 实测），列表里显示的是**包名**（国际版 `BelliedMonkey Translator`、中国版带 ` CN`），不是界面上的「大肚猴翻译」。判「生效没有」别看界面：`sqlite3 -readonly '/Library/Application Support/com.apple.TCC/TCC.db'` 读 `kTCCServicePostEvent` 的值与时间，`ps -o lstart` 读进程启动时间 —— 进程早于授权就是读不到。授权后**要重开 App** 才读到（`CGPreflightPostEventAccess`）。
    判据：选中一句 → 热键 → 面板原文一致；`clipboard_read` 读回的旧剪贴板**逐字节不变**。不选任何东西再按 ⇒ 什么都不翻。
 5. **剪贴板隐私**：沙盒 App 的偏好在**容器里** ——

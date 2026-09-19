@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "拡張キャプチャの許可がオフにされたため、今回はクリップボードを翻訳しました。元に戻すには設定でもう一度オンにしてください。"
+  },
+  "quick_menu_shot": {
+    "message": "スクリーンショットを翻訳"
+  },
+  "quick_shot_busy": {
+    "message": "この Mac でテキストを認識中…"
+  },
+  "quick_shot_first": {
+    "message": "この Mac では初回のため、準備に約 20 秒かかります。次回からは 0.5 秒もかかりません。"
+  },
+  "quick_shot_perm_explain": {
+    "message": "スクリーンショット翻訳には「画面収録」の許可が必要です。範囲を選んだその瞬間に、選んだ部分だけを取り込み、この Mac 上で認識し、終わりしだい破棄します。"
+  },
+  "quick_shot_perm_pending": {
+    "message": "あと一歩：システム設定のリストで「{app}」のスイッチをオンにしてください。App を再起動すると有効になります。"
+  },
+  "quick_shot_cloud": {
+    "message": "自分の画像対応エンジンでもう一度試す"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「自分の画像対応エンジンでもう一度試す」を選ぶと、このスクリーンショットが設定済みのエンジン（{engine}）に送信されます。"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "あなたのエンジンで認識中…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "このスクリーンショットはすでに破棄されています。もう一度範囲を選んでください。"
   }
 }

@@ -3363,9 +3363,9 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 
 | 方向 | 消息 |
 |---|---|
-| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh}` · `quick-ocr{lines}` |
-| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` |
-| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh, perm?, busy?, first?, appName?}` · `quick-ocr{lines}` · `quick-image{dataUri}` |
+| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-relaunch` · `quick-ocr-cloud` |
+| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, screen}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
 | 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
 
 **一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
@@ -3377,6 +3377,19 @@ service | screen | typed`）只决定来源标签与「零权限三陷阱」走�
 不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
 `fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
 面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
+
+**截图翻译（M-6，`app/native/screen-ocr.swift`）。** ⌃⌥S / 菜单 / 面板里的「重新框选」「改用截图翻译」都到 `MTQuickPanel.translateScreenshot()`：
+没有录屏权限 ⇒ **不框选**，面板里先说话（`quick-show{perm:'screen', appName}`）—— 我们自己那句「只在你框选的那一刻截你框的那一块，
+在本机识别，识别完即丢弃」在系统弹窗之前；系统同样不回调允许 / 拒绝、授权后要重开 ⇒ 说过一次（`quickShotAsked`）之后只有一态
+「还差一步 · 打开之后要重开」+「现在重开」「打开系统设置」，入口不因为被拒而消失。有权限 ⇒ 每块屏一层变暗的框选层（十字光标、
+尺寸标注、Esc 取消、小于 12 × 12 当误触）→ `SCScreenshotManager` 只截 `sourceRect`（我们自己的窗口排除在外；AppKit 左下原点换成
+显示器内左上原点）→ 面板立刻出现「正在本机识别文字…」（`busy`；这台 Mac 上 Vision 没跑过时多一行「大约 20 秒」，`first`）→
+`VNRecognizeTextRequest` 的行框换成左上原点 → `quick-ocr{lines}` → `HandoffCore.assembleLines` 拼段 → 照常翻译。Vision 在 App 空闲时
+预热一次（识别的是一张自己画的小图，不碰屏幕、不要权限）。**截图不落盘；像素只经一条路离开原生** —— 本机零产出、引擎支持识图且
+不是免费额度时，面板多一个次级按钮「用我的识图引擎再试」，旁边写明发给谁；**点了**才发 `quick-ocr-cloud`，原生才回
+`quick-image{dataUri}`（长边压到 1600），页面走既有的 `TranslationAPI.ocr` 拿原文、再照常 `translate()`。内存里那一张在下一次框选
+开始或面板收起时丢弃。macOS 低于 14 ⇒ `quick-caps.sck:false`：热键不注册、菜单里没有这一项。以上各条由 `npm test` 对着源码钉，
+`test:quick` 用假端点数「带图片的请求」：点之前 0 张、点之后恰好 1 张、免费额度在用时没有那个按钮。
 
 **增强取词（M-5，`app/native/capture.swift` + `AppQuickHost.setEnhanced / reconcile`）。** 两个键：`quickEnhanced` 是用户的
 **意图**，真正生效还要系统权限在（`quick-caps.postEvent`，启动那一刻的 `CGPreflightPostEventAccess()`）；原生在**每次按键时**

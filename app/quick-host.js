@@ -44,6 +44,7 @@
         quit: t('quick_menu_quit', '退出'),
         clip: t('quick_menu_clip', '翻译剪贴板'),
         input: t('quick_menu_input', '输入翻译'),
+        shot: t('quick_menu_shot', '截图翻译'),
       },
     });
   }

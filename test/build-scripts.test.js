@@ -1654,6 +1654,64 @@ describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => 
   });
 });
 
+// ── 截图翻译（M-6）：screen-ocr.swift 的不变量，对着源码钉 ───────────────────────────────────────────
+describe('quick screenshot — app/native/screen-ocr.swift', () => {
+  const R5 = path.join(__dirname, '..');
+  const strip = (x) => x.replace(/\/\/.*$/gm, '');
+  const c = strip(fs.readFileSync(path.join(R5, 'app', 'native', 'screen-ocr.swift'), 'utf8'));
+  const panel = strip(fs.readFileSync(path.join(R5, 'app', 'native', 'quick-panel.swift'), 'utf8'));
+  const res = strip(fs.readFileSync(path.join(R5, 'app', 'native', 'resident.swift'), 'utf8'));
+  test('登记成标记块、整份 #if os(macOS)、没有给用户看的文案', () => {
+    const { BLOCKS } = require(path.join(R5, 'scripts', 'sync-app-assets.js'));
+    ok(BLOCKS.some((b) => b.src === 'screen-ocr.swift' && b.name === 'mt-screen-ocr'));
+    ok(c.trim().startsWith('#if os(macOS)') && c.trim().endsWith('#endif'));
+    ok(!/[一-鿿]/.test(c.replace(/\/\/\/.*$/gm, '')));
+  });
+  test('① 截图不落盘：全文件没有任何写文件 / 写剪贴板的调用', () => {
+    for (const bad of ['write(to', 'writeToFile', 'FileManager', 'createFile', 'CGImageDestination', 'NSPasteboard', 'NSSavePanel', 'temporaryDirectory', 'NSTemporaryDirectory'])
+      ok(c.indexOf(bad) < 0, '出现了 ' + bad);
+  });
+  test('② 像素只经一条路离开原生：用户点了「用我的识图引擎再试」（quick-ocr-cloud）', () => {
+    eq((panel.match(/lastImageDataURL\(\)/g) || []).length, 1, '把截图编码交出去的调用点只该有一处');
+    ok(/case "quick-ocr-cloud":\s*send\(\["type": "quick-image", "dataUri": MTScreenShot\.shared\.lastImageDataURL\(\) \?\? ""\]\)/.test(panel));
+    ok(!/lastImageDataURL/.test(res), '主页面那一头拿不到截图');
+    ok(/func hide\(\) \{\s*stopDismissWatch\(\)\s*MTScreenShot\.shared\.discardImage\(\)/.test(panel), '面板收起时该丢弃截图');
+    ok(/func pickRegion[\s\S]*?lastImage = nil/.test(c), '下一次框选开始时该丢弃上一张');
+  });
+  test('③ 只截框的那一块（sourceRect），我们自己的窗口不进截图；坐标从左下原点换到左上原点', () => {
+    ok(/cfg\.sourceRect = CGRect\(x: rect\.minX, y: top, width: rect\.width, height: rect\.height\)/.test(c));
+    ok(/let top = screen\.frame\.height - rect\.maxY/.test(c));
+    ok(/excludingApplications: mine/.test(c) && /\$0\.bundleIdentifier == Bundle\.main\.bundleIdentifier/.test(c));
+    ok(/cfg\.width = Int\(rect\.width \* scale\)/.test(c) && /cfg\.showsCursor = false/.test(c));
+  });
+  test('框选层不抢焦点：是不激活 App 的面板（普通窗口一成为键盘窗口就把主窗口带到前面 —— 真机实测）', () => {
+    ok(/final class MTShotOverlayWindow: NSPanel \{/.test(c));
+    ok(/styleMask: \[\.borderless, \.nonactivatingPanel\]/.test(c) && /hidesOnDeactivate = false/.test(c));
+    ok(!/NSApp\.activate|activate\(ignoringOtherApps/.test(c), '这份文件里不许激活 App');
+  });
+  test('④ 小于 12 × 12 当误触、Esc 取消：都不截、不出面板', () => {
+    ok(/guard let r = rect, r\.width >= 12, r\.height >= 12 else \{ done\?\(nil\); return \}/.test(c));
+    ok(/if event\.keyCode == 53 \{ pick\(nil, target\) \}/.test(c));
+    ok(/guard let s = self, let image = image else \{ return \}/.test(panel), '取消之后面板不该出现');
+  });
+  test('⑤ 权限只用系统的请求接口；没有权限 ⇒ 不框选，面板里先说话（入口不消失）', () => {
+    ok(/CGRequestScreenCaptureAccess\(\)/.test(c) && /CGPreflightScreenCaptureAccess\(\)/.test(c));
+    ok(/guard MTScreenShot\.granted else \{[\s\S]*?"perm": "screen"[\s\S]*?return\s*\}\s*hide\(\)\s*MTScreenShot\.shared\.pickRegion/.test(panel));
+  });
+  test('识别：行框换成左上原点再交出去；第一次要准备模型 ⇒ 记下「跑过了」并在空闲时预热（预热用的是自己画的图）', () => {
+    ok(/"y": 1 - b\.maxY/.test(c), 'Vision 的原点在左下，HandoffCore.assembleLines 要的是左上');
+    ok(/UserDefaults\.standard\.set\(true, forKey: warmKey\)/.test(c) && /"first": !MTScreenShot\.visionWarm/.test(panel));
+    ok(/static func prewarmIfNeeded\(\) \{\s*guard supported, !visionWarm else \{ return \}/.test(c));
+    const warm = c.slice(c.indexOf('static func prewarmIfNeeded'), c.indexOf('func lastImageDataURL'));
+    ok(!/SCScreenshotManager|SCShareableContent|CGWindowList/.test(warm), '预热不许碰屏幕');
+  });
+  test('macOS 低于 14 ⇒ 入口整个不出现：热键不注册、菜单里没有这一项、能力回执里 sck:false', () => {
+    ok(/static var supported: Bool \{ if #available\(macOS 14\.0, \*\) \{ return true \} else \{ return false \} \}/.test(c));
+    ok(/if MTScreenShot\.supported \{\s*MTHotkey\.shared\.register\(id: MTQuickPanel\.hotkeyScreenshot/.test(panel));
+    ok(/if MTScreenShot\.supported \{\s*let shot = NSMenuItem/.test(res) && /"sck": MTScreenShot\.supported/.test(res));
+  });
+});
+
 // ── 增强取词（M-5）：capture.swift 的四条不变量，对着源码钉 ─────────────────────────────────────────
 describe('quick capture — app/native/capture.swift', () => {
   const R4 = path.join(__dirname, '..');

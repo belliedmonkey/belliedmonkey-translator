@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "Se retiró el permiso de la captura mejorada, así que esta vez se tradujo el portapapeles. Vuelve a activarla en los ajustes para recuperarla."
+  },
+  "quick_menu_shot": {
+    "message": "Traducir captura"
+  },
+  "quick_shot_busy": {
+    "message": "Reconociendo el texto en este Mac…"
+  },
+  "quick_shot_first": {
+    "message": "Primera vez en este Mac: necesita unos 20 segundos de preparación. Después tarda menos de medio segundo."
+  },
+  "quick_shot_perm_explain": {
+    "message": "La traducción por captura necesita el permiso de Grabación de pantalla. Solo captura la zona que seleccionas, solo en ese momento, la reconoce en este Mac y la descarta enseguida."
+  },
+  "quick_shot_perm_pending": {
+    "message": "Falta un paso: en Ajustes del Sistema, activa el interruptor de «{app}» en la lista. Surte efecto al reabrir la app."
+  },
+  "quick_shot_cloud": {
+    "message": "Reintentar con mi motor con visión"
+  },
+  "quick_shot_cloud_note": {
+    "message": "«Reintentar con mi motor con visión» envía esta captura al motor que configuraste ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Reconociendo con tu motor…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "Esta captura ya se ha descartado. Selecciona la zona otra vez."
   }
 }

@@ -24,7 +24,7 @@ const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('\n✗ 超时（120s），没有结论'); process.exit(2); }, 120000).unref();
 
-const stats = { calls: [], mode: 'ok', delayMs: 0, other: [] };
+const stats = { calls: [], images: 0, mode: 'ok', delayMs: 0, other: [] };
 function serve() {
   const srv = http.createServer((req, res) => {
     const u = req.url.split('?')[0];
@@ -34,6 +34,11 @@ function serve() {
       req.on('end', () => {
         let user = '', sys = '';
         try { const j = JSON.parse(body); user = (j.messages.find((x) => x.role === 'user') || {}).content || ''; sys = (j.messages.find((x) => x.role === 'system') || {}).content || ''; } catch (_) {}
+        // 识图请求（截图翻译的「用我的识图引擎再试」）：带图片的那一条单独数 —— 「截图被发出去了」在界面上看不出来。
+        if (/image_url|data:image\//.test(body)) {
+          stats.images++;
+          res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ choices: [{ message: { content: 'Text the cloud engine read.' } }] })); return;
+        }
         stats.calls.push({ user: String(user), dir: ((sys.match(/into ([^.]+)\./) || [])[1] || '?').trim() });
         if (stats.mode === '401') { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":{"message":"bad key"}}'); return; }
         if (stats.mode === '503') { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{"error":{"message":"down"}}'); return; }
@@ -205,7 +210,7 @@ async function main() {
     need((await out('quick-capture')).pop().via === 'shot', 'F: 截图来的句子 via 该是 shot');
     await E(`(AppQuick._fromNative({ type: 'quick-ocr', lines: [] }), 'ok')`); await sleep(300);
     const f3 = await dom();
-    need(/没有认出/.test(f3.msg) && f3.acts.join() === '重新框选', 'F: 零产出 ⇒ 一句话 +「重新框选」，实际 ' + JSON.stringify(f3));
+    need(/没有认出/.test(f3.msg) && f3.acts[0] === '重新框选', 'F: 零产出 ⇒ 一句话 + 主按钮「重新框选」，实际 ' + JSON.stringify(f3));
     await E(`(document.querySelector('#qk-actions button').click(), 'ok')`);
     need((await out('quick-reselect')).length === 1, 'F: 「重新框选」该交给原生');
     await show({ via: 'input', origin: 'typed' }); await sleep(300);
@@ -224,6 +229,44 @@ async function main() {
     n = stats.calls.length;
     await show({ via: 'service', origin: 'service', text: '' }); await sleep(300);
     need(stats.calls.length === n && /没有可翻译/.test((await dom()).msg), 'F: 服务交来空文字 ⇒ 0 请求 + 一句话');
+
+    // ── 截图翻译（M-6）：识别中 / 第一次 / 权限 / 「点了才发图」──
+    await show({ via: 'shot', origin: 'screen', busy: true, first: true, fresh: true }); await sleep(300); const q1 = await dom();
+    need(q1.tag === '截图' && /正在本机识别/.test(q1.msg) && /大约 20 秒/.test(q1.msg) && q1.srcHidden, 'F: 识别中 + 这台 Mac 上第一次的那一行，实际 ' + JSON.stringify(q1.msg));
+    await show({ via: 'shot', origin: 'screen', busy: true, first: false }); await sleep(200);
+    need(!/20 秒/.test((await dom()).msg), 'F: 不是第一次就不该有那一行');
+    await E(`new Promise((r) => chrome.storage.local.remove(['quickShotAsked'], () => r('ok')))`);
+    const permBefore = (await out('quick-request-perm')).length;
+    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'BelliedMonkey Translator CN' }); await sleep(400); const q2 = await dom();
+    need(/屏幕录制/.test(q2.msg) && /识别完即丢弃/.test(q2.msg) && q2.acts.join() === '继续' && (await out('quick-request-perm')).length === permBefore, 'F: 没有录屏权限 ⇒ 系统弹窗之前我们自己的话先到，此时还没去问系统，实际 ' + JSON.stringify(q2));
+    await E(`(document.querySelector('#qk-actions button').click(), 'ok')`); await sleep(400); const q3 = await dom();
+    need((await out('quick-request-perm')).slice(-1)[0].which === 'screen' && /「BelliedMonkey Translator CN」/.test(q3.msg) && /重新打开 App 才生效/.test(q3.msg) && q3.acts.join() === '现在重开,打开系统设置',
+      'F: 「继续」⇒ 调系统的请求接口 + 「还差一步」（原样说出系统列表里的名字）+ 两个出口，实际 ' + JSON.stringify(q3));
+    await E(`([...document.querySelectorAll('#qk-actions button')].forEach((b) => b.click()), 'ok')`);
+    need((await out('quick-relaunch')).length === 1 && (await out('quick-open-privacy')).slice(-1)[0].which === 'screen', 'F: 两个按钮各交给原生一条');
+    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'X' }); await sleep(300);
+    need((await dom()).acts.join() === '现在重开,打开系统设置', 'F: 说过一次之后再触发 ⇒ 直接是「还差一步」那一态（入口不因为被拒而消失）');
+    await surf('截图 · 等重开');
+    // 本机没认出 + 引擎支持识图 ⇒ 多一个次级按钮，旁边写明发给谁；**点之前端点一张图都没收到**
+    const imgBefore = stats.images;
+    await E(`(AppQuick._fromNative({ type: 'quick-ocr', lines: [] }), 'ok')`); await sleep(500); const q4 = await dom();
+    need(q4.acts.join() === '重新框选,用我的识图引擎再试' && /会把这张截图发给你配置的引擎/.test(q4.note) && stats.images === imgBefore, 'F: 零产出 ⇒ 次级按钮 + 写明发给谁，且此刻 0 张图，实际 ' + JSON.stringify([q4.acts, q4.note, stats.images]));
+    await surf('截图 · 没认出');
+    await E(`(document.querySelectorAll('#qk-actions button')[1].click(), 'ok')`); await sleep(300);
+    need((await out('quick-ocr-cloud')).length === 1 && stats.images === imgBefore && /正在用你的引擎识别/.test((await dom()).msg), 'F: 点了 ⇒ 向原生要截图；原生交来之前仍是 0 张图');
+    await E(`(AppQuick._fromNative({ type: 'quick-image', dataUri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' }), 'ok')`);
+    const q5 = await until(async () => { const d = await dom(); return d.tr.length ? d : null; }, 8000, 'F: 云端识图后的译文');
+    need(stats.images === imgBefore + 1 && q5.src === 'Text the cloud engine read.' && q5.tr[0] === '译：Text the cloud engine read.' && q5.tag === '截图', 'F: 图恰好发 1 次、识出的原文进输入框、再照常翻译，实际 ' + JSON.stringify([stats.images - imgBefore, q5.src, q5.tr]));
+    await E(`(AppQuick._fromNative({ type: 'quick-image', dataUri: '' }), 'ok')`); await sleep(300);
+    need(/已经丢弃了/.test((await dom()).msg) && stats.images === imgBefore + 1, 'F: 截图已丢弃 ⇒ 说一句 + 重新框选，不发请求');
+    // 免费额度在用 ⇒ 不给那个按钮（额度不发图，同文档翻译的裁定）
+    await E(`new Promise((r) => chrome.storage.local.get(['apiKey'], (v) => chrome.storage.local.set({ grantTail: String(v.apiKey || '').slice(-4) || 'x' }, () => r('ok'))))`);
+    const onGrant = await E(`new Promise((r) => chrome.storage.local.get(null, (s) => r(!!(typeof LearnGrant !== 'undefined' && LearnGrant.active && LearnGrant.active(s)))))`);
+    if (onGrant) {
+      await E(`(AppQuick._fromNative({ type: 'quick-ocr', lines: [] }), 'ok')`); await sleep(500);
+      need((await dom()).acts.join() === '重新框选', 'F: 免费额度在用 ⇒ 只有「重新框选」');
+    } else process.stdout.write('(额度态造不出来，跳过这一条)');
+    await E(`new Promise((r) => chrome.storage.local.remove(['grantTail'], () => r('ok')))`);
 
     // 增强取词交来的（M-5）：读的也是通用剪贴板 ⇒ 隐藏标记与「系统不让读」同样成立；没取到 ⇒ **不翻旧剪贴板**
     n = stats.calls.length;
@@ -380,7 +423,7 @@ async function main() {
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 
   if (problems.length) { console.log('\n✗ 快速翻译面板页有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发；增强取词：说明先到、等重开、重开后生效、被撤销弹回');
+  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发；增强取词：说明先到、等重开、重开后生效、被撤销弹回；截图：权限先说话、识别中、点了才发图');
   process.exit(0);
 }
 main();

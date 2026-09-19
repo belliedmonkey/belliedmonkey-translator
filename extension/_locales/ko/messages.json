@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "향상된 가져오기 권한이 꺼져서 이번에는 클립보드를 번역했습니다. 되돌리려면 설정에서 다시 켜세요."
+  },
+  "quick_menu_shot": {
+    "message": "스크린샷 번역"
+  },
+  "quick_shot_busy": {
+    "message": "이 Mac에서 텍스트 인식 중…"
+  },
+  "quick_shot_first": {
+    "message": "이 Mac에서 처음 사용합니다. 준비에 약 20초가 걸리며, 그다음부터는 0.5초도 걸리지 않습니다."
+  },
+  "quick_shot_perm_explain": {
+    "message": "스크린샷 번역에는 「화면 기록」 권한이 필요합니다. 영역을 선택한 그 순간에 선택한 부분만 캡처하여 이 Mac에서 인식하고, 인식이 끝나면 바로 폐기합니다."
+  },
+  "quick_shot_perm_pending": {
+    "message": "한 단계 남았습니다. 시스템 설정의 목록에서 「{app}」의 스위치를 켜세요. 앱을 다시 열어야 적용됩니다."
+  },
+  "quick_shot_cloud": {
+    "message": "내 이미지 인식 엔진으로 다시 시도"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「내 이미지 인식 엔진으로 다시 시도」를 누르면 이 스크린샷이 설정한 엔진({engine})으로 전송됩니다."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "내 엔진으로 인식 중…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "이 스크린샷은 이미 폐기되었습니다. 영역을 다시 선택하세요."
   }
 }

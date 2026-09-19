@@ -3326,5 +3326,32 @@
   },
   "quick_enh_lost": {
     "message": "增強取詞的權限被關掉了，這次翻的是剪貼簿。要恢復，到設定裡重新打開它。"
+  },
+  "quick_menu_shot": {
+    "message": "螢幕截圖翻譯"
+  },
+  "quick_shot_busy": {
+    "message": "正在本機辨識文字…"
+  },
+  "quick_shot_first": {
+    "message": "這台 Mac 上第一次用：要準備一下，大約 20 秒，之後每次不到半秒。"
+  },
+  "quick_shot_perm_explain": {
+    "message": "螢幕截圖翻譯要用到「螢幕錄製」權限。只在你框選的那一刻截你框的那一塊，在本機辨識，辨識完即捨棄。"
+  },
+  "quick_shot_perm_pending": {
+    "message": "還差一步：在系統設定的列表裡打開「{app}」的開關。打開之後要重新打開 App 才生效。"
+  },
+  "quick_shot_cloud": {
+    "message": "用我的識圖引擎再試"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「用我的識圖引擎再試」會把這張截圖傳給你設定的引擎（{engine}）。"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "正在用你的引擎辨識…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "這張截圖已經捨棄了。重新框選一次。"
   }
 }

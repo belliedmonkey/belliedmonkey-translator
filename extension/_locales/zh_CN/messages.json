@@ -3326,5 +3326,32 @@
   },
   "quick_enh_lost": {
     "message": "增强取词的权限被关掉了，这次翻的是剪贴板。要恢复，到设置里重新打开它。"
+  },
+  "quick_menu_shot": {
+    "message": "截图翻译"
+  },
+  "quick_shot_busy": {
+    "message": "正在本机识别文字…"
+  },
+  "quick_shot_first": {
+    "message": "这台 Mac 上第一次用：要准备一下，大约 20 秒，之后每次不到半秒。"
+  },
+  "quick_shot_perm_explain": {
+    "message": "截图翻译要用到「屏幕录制」权限。只在你框选的那一刻截你框的那一块，在本机识别，识别完即丢弃。"
+  },
+  "quick_shot_perm_pending": {
+    "message": "还差一步：在系统设置的列表里打开「{app}」的开关。打开之后要重新打开 App 才生效。"
+  },
+  "quick_shot_cloud": {
+    "message": "用我的识图引擎再试"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「用我的识图引擎再试」会把这张截图发给你配置的引擎（{engine}）。"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "正在用你的引擎识别…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "这张截图已经丢弃了。重新框选一次。"
   }
 }

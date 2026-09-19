@@ -56,7 +56,8 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         case "quick-probe":
             // appName：系统隐私列表里显示的那个名字（包名；两个 flavor 不同）。页面的授权指引要原样说出它。
             let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
-            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName])
+            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName,
+                  "sck": MTScreenShot.supported, "screen": MTScreenShot.granted])
         case "quick-config":
             enabled = (body["enabled"] as? Bool) ?? false
             seen = (body["seen"] as? Bool) ?? false
@@ -106,7 +107,14 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         clip.target = self
         let input = NSMenuItem(title: labels["input"] ?? "", action: #selector(menuInput), keyEquivalent: "")
         input.target = self
-        m.addItem(clip); m.addItem(input); m.addItem(.separator())
+        m.addItem(clip)
+        if MTScreenShot.supported {
+            let shot = NSMenuItem(title: labels["shot"] ?? "", action: #selector(menuScreenshot), keyEquivalent: "s")
+            shot.keyEquivalentModifierMask = [.control, .option]
+            shot.target = self
+            m.addItem(shot)
+        }
+        m.addItem(input); m.addItem(.separator())
         let open = NSMenuItem(title: labels["open"] ?? "", action: #selector(menuOpen), keyEquivalent: "")
         open.target = self
         let settings = NSMenuItem(title: labels["settings"] ?? "", action: #selector(menuSettings), keyEquivalent: "")
@@ -120,6 +128,7 @@ final class MTResident: NSObject, WKScriptMessageHandler {
     @objc private func menuSettings() { openSettings() }
     @objc private func menuClipboard() { MTQuickPanel.shared.translateClipboard() }
     @objc private func menuInput() { MTQuickPanel.shared.typeToTranslate() }
+    @objc private func menuScreenshot() { MTQuickPanel.shared.translateScreenshot() }
 
     func openSettings() { showMainWindow(); emit(["type": "quick-open-settings"]) }
 

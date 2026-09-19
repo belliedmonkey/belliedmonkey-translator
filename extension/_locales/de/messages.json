@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "Die Berechtigung für die erweiterte Übernahme wurde entzogen, deshalb wurde diesmal die Zwischenablage übersetzt. Schalte sie in den Einstellungen wieder ein."
+  },
+  "quick_menu_shot": {
+    "message": "Bildschirmfoto übersetzen"
+  },
+  "quick_shot_busy": {
+    "message": "Text wird auf diesem Mac erkannt…"
+  },
+  "quick_shot_first": {
+    "message": "Erste Verwendung auf diesem Mac: Die Vorbereitung dauert etwa 20 Sekunden. Danach jeweils unter einer halben Sekunde."
+  },
+  "quick_shot_perm_explain": {
+    "message": "Die Bildschirmfoto-Übersetzung braucht die Berechtigung „Bildschirmaufnahme“. Erfasst wird nur der ausgewählte Bereich, nur in diesem Moment; die Erkennung läuft auf diesem Mac, danach wird das Bild sofort verworfen."
+  },
+  "quick_shot_perm_pending": {
+    "message": "Noch ein Schritt: In den Systemeinstellungen den Schalter für „{app}“ in der Liste einschalten. Wirksam wird es nach einem Neustart der App."
+  },
+  "quick_shot_cloud": {
+    "message": "Mit meiner bildfähigen Engine erneut versuchen"
+  },
+  "quick_shot_cloud_note": {
+    "message": "„Mit meiner bildfähigen Engine erneut versuchen“ sendet dieses Bildschirmfoto an die von dir konfigurierte Engine ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Erkennung mit deiner Engine…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "Dieses Bildschirmfoto wurde bereits verworfen. Bereich erneut auswählen."
   }
 }
