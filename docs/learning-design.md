@@ -18,7 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
-| 2026-09-19（待人评审） | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | 待评审（本 PR，docs-only）|
+| 2026-09-19 | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | **通过（2026-09-19，用户评审 PR #331；五个重点判断全部按原文）** |
 | 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型的下载地址改为后端配置表决定**（用户提议「地址存入数据库，每次从数据库获取，以后地址不能用了还可以换」）。清单 `app/device-models.config.js` 继续钉 **sha256 与 size**（服务器只能说「去哪下」，不能说「下什么」——换了文件过不了校验照旧丢），`url` 变成兜底默认值；表里每个文件放**默认 + 备用**两个地址；客户端：没缓存先问服务器，有缓存先探可用性、可用直下、不可用重新问，新默认也不可用才用当次的备用（备用不缓存），服务器连不上才回清单。动因：09-17 真机实测境内拉不动 GitHub，换托管每次都要发版；同日建了两处我们自己的托管：ModelScope `belliedmonkey/belliedmonkey-device-models`（真机 18.7 MB/s，中国版默认）与 Hugging Face 同名仓库（经 hf-mirror ≈580 KB/s，备选）；Supabase 公开桶也可用但按流量计费，只作最后备选。不进包（用户同日收回「存包」：不同语言要不同模型）。§9.6.1 新增 §9.6.1.1；§10 Gate H 隐私文案补一句。 | 待评审 |
 | 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
 | 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
@@ -866,7 +866,7 @@ App 的设置页**可以**配置：一个 chat 类引擎 + key（供 §9.2 解�
 > Keychain，然后删掉 `localStorage` 里那份；反过来永不回写。否则一次降级安装就会把明文
 > 那份留在原地，等于既没搬走也多了一处。
 >
-> *（2026-09-19，待人评审：）* **第 1 步随系统翻译落地（§9.9）：镜像，不搬家。** iOS 的系统翻译
+> *（2026-09-19，同日评审通过：）* **第 1 步随系统翻译落地（§9.9）：镜像，不搬家。** iOS 的系统翻译
 > 扩展是另一个进程，读不到 WKWebView 的 `localStorage`，所以宿主 App 把**解析后的**翻译引擎
 > 三元组与 key **单向**抄一份：非机密进 App Group `UserDefaults`，key 进共享 Keychain 组
 > （`kSecAttrAccessibleAfterFirstUnlock`、不进 iCloud 钥匙串）。方向与上面那条规则一致 ——
@@ -3301,7 +3301,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 
 **验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：不回 `audio-caps` ⇒ 入口不显示、`record-mode.profile`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、`subtitle-state` 随停机态变化、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote end` 即停）。
 
-## 9.9 系统翻译与快速翻译 (system translation & quick translate) — App 专属（2026-09-19，待人评审）
+## 9.9 系统翻译与快速翻译 (system translation & quick translate) — App 专属（2026-09-19）
 
 用户提议：iPhone 上让大肚猴翻译出现在「设置 › 翻译 › 默认翻译 App」里（在任何 App 里选字 › 翻译，
 弹出来的是我们）；Mac 上选中文字 → 快捷键 → 鼠标旁浮窗出译文，外加输入翻译、菜单栏图标、截图翻译。

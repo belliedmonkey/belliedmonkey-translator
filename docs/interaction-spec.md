@@ -951,7 +951,7 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 
 **不做**：按引擎类型分组 + 加「用途」列（画布第 2 页存档）—— 只回应了投诉 ④ 的一半。
 
-## 系统翻译（iPhone）与快速翻译（Mac）— 2026-09-19（App 专属，待人评审）
+## 系统翻译（iPhone）与快速翻译（Mac）— 2026-09-19（App 专属）
 
 展开见画布 `design/system-translate/`（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，6 页 35 板；用户 2026-09-19
 「按默认」落定 12 条）。这里只记**不变量**；来源模型在 domain-design §2.6，桥与采集在 learning-design §9.9。
