@@ -23,6 +23,11 @@ final class MTQuickServices: NSObject {
     func install() {
         guard !installed else { return }
         installed = true
+        // 冷启动（App 正是被这次服务调用拉起来的）：激活通知还一条都没收到过，而此刻最前面的仍是宿主 App ——
+        // 先记下它，不然第一次调用没处还焦点，我们的主窗口会盖在用户正在读的东西上（真机实测）。
+        if let front = NSWorkspace.shared.frontmostApplication, front.bundleIdentifier != Bundle.main.bundleIdentifier {
+            lastOther = front
+        }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification,
                                                           object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,

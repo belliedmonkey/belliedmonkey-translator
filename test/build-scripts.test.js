@@ -1716,6 +1716,8 @@ describe('quick services — NSServices / ServicesMenu.strings / services.swift'
   });
   test('把焦点还给刚才那个 App；「刚才那个」来自激活通知（回调时最前面的已经是我们自己）', () => {
     const c = strip(swift);
+    // 冷启动：App 正是被这次调用拉起来的，激活通知一条都没收到过 —— 登记的那一刻先记下最前面的 App（真机实测：不记就没处还焦点）
+    ok(/installed = true\s*if let front = NSWorkspace\.shared\.frontmostApplication, front\.bundleIdentifier != Bundle\.main\.bundleIdentifier \{\s*lastOther = front/.test(c.replace(/\n\s*\n/g, '\n')), '冷启动没有先记下最前面的 App');
     ok(/didActivateApplicationNotification/.test(c) && /app\.bundleIdentifier != Bundle\.main\.bundleIdentifier/.test(c));
     ok(/lastOther\?\.activate\(\)\s*\n\s*MTQuickPanel\.shared\.translateFromService\(text\)/.test(c), '该先还焦点、再出面板');
   });
