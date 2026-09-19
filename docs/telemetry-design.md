@@ -83,16 +83,16 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `installed` | — | the id is first generated | telemetry module first init |
 | `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
 | `onboarding_done` | `surface: ext \| app` | onboarding finishes | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` |
-| `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `applyQuickSetup`。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
+| `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
 | `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
-| `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） |
+| `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
 | `review_session` | `graded` | a deck is finished | `review.js` `!deck.length` branch, same spot as the rating prompt |
-| `grant_claimed` | — | 一次领取成功（每装机一次） | `learn/grant.js` 的 `claim()` 落定处 |
-| `grant_exhausted` | — | 首次收到 402 且余额判定为用完 | 收到 `credit_exhausted` 且 `balance(force)` 判定余额 ≤ 0 处 |
+| `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
+| `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
 | `ext_banner` | `action: shown \| setup \| done` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」（2026-09-10，§3.1） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个按钮的 listener |
@@ -264,15 +264,22 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 
 ### 3.4 2026-09-19 amendment：Seam 一列要能自己变红（当日用户裁定通过）
 
-**起因。** 1.12.0 带着 first grant 分流屏（#297）与 §3.3 的四条裁定出货。09-19 首次回读
-（出货约 1.5 天），想回答「选『免费开始』的人里多少走完了领取」，答不了 —— 又是发送点不存在：
+**起因。** 1.12.0 带着 §3.3 的四条裁定出货。09-19 首次回读（出货约 1.5 天），逐个事件、逐个
+宿主核发送点，又是发送点不存在：
 
 | 事件 | 本文档 §3 写的 Seam | 代码里实际的 | 后果 |
 |---|---|---|---|
-| `grant_claimed` | `learn/grant.js` 的 `claim()` 落定处（两宿主同一份字节） | 只在 `extension/options/options.js` 领取按钮的 handler 里；`app/settings.js` 的领取路径没有 | App 的领取恒为 0。而 #297 恰好把「免费开始」提成了 **App 引导的默认路径** —— 流量被引向一条没有读数的路 |
-| `engine_set`（领取这条路） | `app/settings.js` 的 `applyQuickSetup` | App 的领取路径直接 `set(plan.writes)`，不经 `applyQuickSetup` | 领了额度 = 配好了引擎，却不记 `engine_set`。§3.3 补的 seam 只接住了一键卡；#293 的依据「一键卡是 App 里设置主翻译引擎的唯一入口」当时就不成立 |
+| `grant_claimed` | `learn/grant.js` 的 `claim()` 落定处（两宿主同一份字节） | 只在 `extension/options/options.js` 领取按钮的 handler 里；`app/settings.js` 的领取路径没有 | App 的领取恒为 0（1.12.x：App 0 条，safari 3 条）。App 是装机最多的面，账号侧 `bt_grants` 每天新领 2–6 个，其中多少来自 App 无从得知 |
+| `engine_set`（领取这条路） | `app/settings.js` 的 `applyQuickSetup` | App 的领取路径直接 `set(plan.writes)`，不经 `applyQuickSetup` | 在 App 里领了额度 = 配好了引擎，却不记 `engine_set`。§3.3 补的 seam 只接住了一键卡；#293 的依据「一键卡是 App 里设置主翻译引擎的唯一入口」当时就不成立 |
 | `translate_ok{kind:'subtitle'}`（App） | `app/listen.js` 定稿出译文处（§3.3 裁定 1，09-16 写进上表） | 没有 | 1.12.x 有 7 台 App 开始了听译，译文事件 0 条 |
 | `grant_exhausted` | 收到 `credit_exhausted` 且余额判定用完处 | **全仓库零发送点**（两个宿主都没有） | 线上表 0 行。而 §3 自己写着这个数是「判断这笔钱该不该继续花的唯一依据」—— 09-08 进注册表至今从未被量过 |
+
+> **更正（同日）。** 这一节的初稿写「#297 把『免费开始』提成了 App 引导的默认路径，于是流量被
+> 引向一条没有读数的路」—— **错的**。first grant 分流屏在**扩展**的引导页
+> （`extension/onboard/`），领取落在扩展设置页，那条路上 `grant_claimed` 与 `engine_set` 一直
+> 在发；#297 的效果在扩展一侧是量得到的（只是样本还小）。量不到的是 App 设置页里那张额度卡。
+> 错因与本节要治的是同一种病：没去读代码，凭一句待办摘要就断言了「哪个宿主」。留下这段更正
+> 而不是悄悄改掉，是因为它正好说明为什么「哪个宿主有发送点」不能靠人记。
 
 同一次核对里顺带查到、需要裁定的两处（不是漏接线，是从未决定过）：`translate_fail` 在
 App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有发送点 —— 于是这两条路只有成功数、
@@ -309,9 +316,12 @@ App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有�
    谁在发），不进 `window.MT_TELEMETRY`（客户端不需要），也就不改线上契约 —— 事件、属性、
    枚举值一个不加。本文档 §3 表的 Seam 一列保留给人读，但**以注册表为准**；两者打架时改文档。
 5. 静态核对只证明「有调用」，证明不了「走得到」。两条用户路径各加一条行为断言，挂在已有的
-   端到端门禁里，读 `tm:queue`（§8 为 smoke 留的同一个手段）：`npm run test:listen` ——
-   第一条译文定稿后队列里有 `translate_ok{kind:'subtitle'}`；`scripts/verify-onboard.js` ——
-   「免费开始」领取成功后队列里有 `grant_claimed` 与 `engine_set`。
+   端到端门禁里。自动化下 `MTTelemetry` 是空操作（`navigator.webdriver`，§8），所以断言的是
+   **`track` 被以什么参数调用**，并拿注册表核参数在白名单内：`npm run test:listen` 的 T 段 ——
+   一场定稿两句 ⇒ `translate_ok{kind:'subtitle'}` **恰好 1 条**；端点 401 连说两句 ⇒
+   `translate_fail` **恰好 1 条**；T2 段 —— 在 App 设置页真点「领取」（只换掉网络与登录）⇒
+   `grant_claimed` ×1 + `engine_set{provider:'grant'}`。`npm run test:grant` 对扩展设置页钉同一对
+   事件 —— 发送点挪进 `claim()` 之后，扩展这一侧不能反过来丢掉。
 6. **遥测待办的完成判据**一律写成「在 `bt_events` 里读到 `<host>` 的 `<event>`」，不写
    「PR 合并」。判据写成合并，就等于把「接上了」交给下一次偶然的回读去发现。
 
@@ -324,20 +334,25 @@ App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有�
   `engine_set`。
 - `app/listen.js`：每个会话第一条译文定稿时发一次 `translate_ok{kind:'subtitle'}`
   （与网页侧「每会话一次」同义）。
-- `grant_exhausted`：中继回 402、`wire-format.js` 归类为 `credit_exhausted`、并在
-  `translation-core.js` 落成最终失败的那一处，`once`（每装机一次，定义见 §3 表）。§3 表里写的
-  `balance(force)` 二次判定在代码里并不存在 —— 中继的 402 本身就是「用完了」的判定，不再加一道；
-  确切行号由代码 PR 定，并登记进 `seams`。
+- `grant_exhausted`：挂在 `learn/telemetry.js` 内部 —— `track('translate_fail', {code:
+  'credit_exhausted'})` 经过时带出一条 `once('grant_exhausted')`（每装机一次，定义见 §3 表）。
+  `credit_exhausted` 会从网页、字幕、文档、App 听译四条路上来，挂在任何一个调用方都会漏另外三条，
+  而四条路都经过这一行。§3 表里原先写的 `balance(force)` 二次判定在代码里并不存在 —— 中继的 402
+  本身就是「用完了」的判定，不再加一道。它因此依赖裁定 A、B：那两条路不发 `translate_fail`，
+  在那两条路上用完额度的人就不会被数到。
 
 **裁定的两条（2026-09-19 用户裁定：A、B 都发；都不动白名单，枚举现成）：**
 
-- **A. App 听译 / 实时字幕的 `translate_fail`** —— 建议**发**：译文请求最终失败（界面出
-  「译文失败 · 重试」）时一条，`code` 用现有枚举，节流沿用 `telemetry.js` 现有的那一道。
+- **A. App 听译 / 实时字幕的 `translate_fail`** —— **发**：定稿句的译文请求失败（界面出
+  「译文失败 · 重试」）时记，`code` 用现有枚举，**每会话每个 code 至多一条**（一场里三十句全
+  401 是一件事；网页侧一段一条，§3.1 那 308 条 401 就是这么来的）。半句的增量翻译失败不记；
+  没配引擎不算一次失败的翻译。
   理由：没有失败数，`translate_ok` 只能说明「有人成功过」，说明不了「这条路通不通」。
 - **B. 文档阅读器的 `translate_fail`**（两宿主）—— 建议**发**，同上，挂在 `doc-view.js`
   页状态落到 `error` 处，每页至多一条。
 
-**历史数据怎么读。** `grant_claimed` 在 App 上、`translate_ok{subtitle}` 在 App 上、
+**历史数据怎么读。** first grant 分流屏（#297）的效果看 `host in (safari, chrome, firefox)` 的
+`onboarding_done → grant_claimed → engine_set`，这条线一直是通的。`grant_claimed` 在 App 上、`translate_ok{subtitle}` 在 App 上、
 `grant_exhausted` 在所有宿主上，**修复版本出货之前的 0 都是「量不到」**，不可与之后比较；
 账号侧 `bt_grants` 的逐日新领数（09-15 起每天 2–6 个）是这段时间唯一可用的领取读数，
 按原则 7 它不与遥测 join。
@@ -424,6 +439,10 @@ is not restated here. The one-sentence disclosure used verbatim everywhere:
   自动化下的遥测只许打本机桩 —— `MT_TELEMETRY` 加 `allowAutomation` 字段由测试注入，`spec()`
   先看它再看 `navigator.webdriver`（headed 跑法 `webdriver` 为假，此前会把 `installed/heartbeat`
   打进线上表）。
+- **发送点（2026-09-19，§3.4）**：`npm test` 的 `telemetry seams` —— 注册表的 `SEAMS` 去掉注释后对着
+  代码逐项核，并带「门禁自己能红」的用例（同一张表对修复前的 main：8 处红）。走得到由
+  `test:listen` 的 T / T2 段与 `test:grant` 守，两段在修复前均实测为红。**新增事件、新增宿主、
+  挪动发送点 ⇒ 改 `SEAMS`**；门禁红了先问「接上了吗」，不是改门禁。
 - Real device: Safari iOS, translate a page →
   `select name, host from bt_events order by id desc limit 5` shows
   `translate_ok / safari`; flip the switch off → zero rows for that `install_id`.
