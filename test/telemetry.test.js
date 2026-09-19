@@ -105,3 +105,24 @@ describe('MTTelemetry — 开关与心跳', () => {
     eq(sends.length, 0); eq(Object.keys(store).length, 0);
   });
 });
+
+// grant_exhausted（telemetry-design §3.4）：09-08 进注册表，到 09-19 全仓库零发送点、线上 0 行。
+// 它挂在模块内部 —— credit_exhausted 从网页 / 字幕 / 文档 / App 听译四条路上来，四条路都经过 track()。
+describe('MTTelemetry — grant_exhausted 由 translate_fail{credit_exhausted} 带出，每装机一次', () => {
+  const drain = () => new Promise((r) => setTimeout(r, 20));
+  test('第一次 credit_exhausted ⇒ 多一条 grant_exhausted；第二次不再发', async () => {
+    const { T, store } = load();
+    const fail = (code) => T.track('translate_fail', { provider: 'grant', code, status: 402, route: 'direct', ms: 1 });
+    eq(await fail('credit_exhausted'), true); await drain();
+    eq(await fail('credit_exhausted'), true); await drain();
+    const names = q(store, T).map((e) => e.name);
+    eq(names.filter((n) => n === 'translate_fail').length, 2);
+    eq(names.filter((n) => n === 'grant_exhausted').length, 1);
+  });
+  test('别的失败码不带出 grant_exhausted —— 池子空了（grant_unavailable）不是「你用完了」', async () => {
+    const { T, store } = load();
+    await T.track('translate_fail', { provider: 'grant', code: 'grant_unavailable', status: 503, route: 'direct', ms: 1 });
+    await T.track('translate_fail', { provider: 'openai', code: 'auth', status: 401, route: 'direct', ms: 1 }); await drain();
+    eq(q(store, T).filter((e) => e.name === 'grant_exhausted').length, 0);
+  });
+});

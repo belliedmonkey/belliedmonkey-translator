@@ -1861,7 +1861,7 @@ async function init() {
       const plan = LearnGrant.plan(claimed, cur, window, { overwrite: id === 'restore' });
       await applyQuickSetup(plan);
       try { chrome.storage.local.set(plan.marks); } catch (_) {}
-      if (typeof MTTelemetry !== 'undefined' && !claimed.reused) MTTelemetry.track('grant_claimed', {});
+      // grant_claimed 由 LearnGrant.claim() 自己记（telemetry-design §3.4）—— 不在调用方。
       // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话：额度领到了，但
       // 现在用的仍是他自己的 key。说清楚，并指向能换过来的那个按钮。
       const wroteAny = plan.tests && plan.tests.length > 0;

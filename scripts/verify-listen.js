@@ -25,7 +25,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 setTimeout(() => { console.log('\n✗ 超时（150s），没有结论'); process.exit(2); }, 150000).unref();
 
 // ─── 假端点：dist-app 静态 + /v1/chat/completions ─────────────────────────────
-const stats = { chatCalls: 0, chatTexts: [], chatDirs: [], passCalls: 0 };
+const stats = { chatCalls: 0, chatTexts: [], chatDirs: [], passCalls: 0, fail401: false };
 function serve() {
   const srv = http.createServer((req, res) => {
     const u = req.url.split('?')[0];
@@ -33,6 +33,8 @@ function serve() {
       let body = ''; req.on('data', (c) => { body += c; });
       req.on('end', () => {
         stats.chatCalls++;
+        // T 段：端点整个拒绝（企业网关 / 过期 key 的形状）—— 看 translate_fail 发不发、发几条。
+        if (stats.fail401) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":{"message":"bad key"}}'); return; }
         let user = '', sys = '';
         try {
           const j = JSON.parse(body);
@@ -150,7 +152,7 @@ const FAKE_BRIDGES = `(() => {
   let cdp, sessionId;
   // 假识别器「听到」一句：两路识别器各自吐 partial + final（locale 决定归属，§9.6.1）
   const say = (locale, text, conf = 0.95) => evalIn(cdp, sessionId, `(__fakeSpeech.say(${JSON.stringify(locale)}, ${JSON.stringify(text)}, ${conf}), 'ok')`);
-  const rowsOf = async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, pinned: x.pinned, text: x.text, raw: x.raw, tr: x.tr, temp: !!x.trTemp })))`));
+  const rowsOf = async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, pinned: x.pinned, text: x.text, raw: x.raw, tr: x.tr, temp: !!x.trTemp, err: !!x.trErr })))`));
   try {
     cdp = await CDP.connect(chrome.port);
     const targets = await cdp.send('Target.getTargets', {});
@@ -164,6 +166,9 @@ const FAKE_BRIDGES = `(() => {
 
     // ── 0. 两个假原生桥 + 翻译端点配置（转写引擎**不配**：对话不再看它）──
     await evalIn(cdp, sessionId, FAKE_BRIDGES);
+    // 遥测探针（telemetry-design §3.4）：自动化里 MTTelemetry 是空操作（navigator.webdriver），
+    // 所以这里看的是**调用有没有走到**，不是队列。白名单那一半由 T 段拿注册表核。
+    await evalIn(cdp, sessionId, `(() => { window.__tm = []; MTTelemetry.track = (n, p) => { __tm.push({ n, p: p || {} }); return Promise.resolve(true); }; return 'ok'; })()`);
     await evalIn(cdp, sessionId, `(async () => {
       await new Promise((r) => chrome.storage.local.set({ sttEngine: '', sttApiKey: '', provider: 'custom_chat', apiKey: 'x', apiBaseUrl: ${JSON.stringify(base + '/v1/chat/completions')}, apiModel: 'm', uiLang: 'zh-CN', listenOtherLang: 'en' }, r));
       await AppListen.refreshEntry();
@@ -285,6 +290,35 @@ const FAKE_BRIDGES = `(() => {
     need(e1.stopped >= e1.started, 'E: 结束后识别器该收到 stt-stop，实际 ' + JSON.stringify(e1));
     need(e1.mStarted >= 1 && e1.mStopped >= e1.mStarted && !e1.timer, 'E: 结束后原生桥该收到 mic-stop，实际 ' + JSON.stringify(e1));
     need((await evalIn(cdp, sessionId, `!document.getElementById('app-listen-summary').hidden`)) === true, 'E: 结束态该显示小结');
+
+    // ── T. 用量事件真的走得到（telemetry-design §3.3 裁定 1、§3.4）──────────────────
+    // 09-16 裁定「App 听译出译文 ⇒ translate_ok{kind:'subtitle'}」只进了文档没进代码：1.12.x 有
+    // 7 台开始了听译、0 条译文事件，而每一道门禁都是绿的。静态门禁（npm test 的 seams）证明
+    // 「有调用」，这一段证明「走得到」，并钉住**每会话一次**（上面那一场定稿了两句）。
+    const TM = require('../build/telemetry.config.js').EVENTS;
+    const tmOf = async (name) => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__tm)`)).filter((e) => e.n === name);
+    const inList = (ev) => Object.keys(ev.p).every((k) => k in TM[ev.n] && (!Array.isArray(TM[ev.n][k]) || TM[ev.n][k].includes(ev.p[k])));
+    const okEv = await tmOf('translate_ok');
+    need(okEv.length === 1, 'T: 一场听译（两句定稿）该恰好 1 条 translate_ok，实际 ' + JSON.stringify(okEv));
+    need(okEv[0] && okEv[0].p.kind === 'subtitle' && okEv[0].p.provider === 'custom_chat' && Number.isInteger(okEv[0].p.ms) && inList(okEv[0]), 'T: translate_ok 该是 {provider, kind:subtitle, ms:int} 且全在白名单里，实际 ' + JSON.stringify(okEv[0]));
+    need((await tmOf('translate_fail')).length === 0, 'T: 译文都成功的一场不该有 translate_fail');
+    // 失败的一场：端点 401，连说两句 ⇒ 两行都落「译文失败 · 重试」，而 translate_fail **只发 1 条**
+    // （每会话每个 code 一条 —— 网页侧一段一条，5 天里 308 条 401 来自同一台机器，§3.1）。
+    stats.fail401 = true;
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry2').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'T: 进入 listening');
+    await say('en-US', 'Where is the ticket office?');
+    await waitFor(async () => (await rowsOf()).find((x) => x.text === 'Where is the ticket office?' && x.err) || null, 20000, 'T: 第一句落「译文失败」');
+    await say('en-US', 'Is there a later train?');
+    await waitFor(async () => (await rowsOf()).find((x) => x.text === 'Is there a later train?' && x.err) || null, 20000, 'T: 第二句落「译文失败」');
+    const failEv = await tmOf('translate_fail');
+    need(failEv.length === 1, 'T: 同一场两句同码失败该恰好 1 条 translate_fail，实际 ' + JSON.stringify(failEv));
+    need(failEv[0] && failEv[0].p.provider === 'custom_chat' && failEv[0].p.status === 401 && inList(failEv[0]), 'T: translate_fail 该带 provider / code（白名单内）/ status:401，实际 ' + JSON.stringify(failEv[0]));
+    need((await tmOf('translate_ok')).length === 1, 'T: 失败的一场不该多出 translate_ok');
+    stats.fail401 = false;
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    await sleep(800);
 
     // ── F. 自动朗读 + 回声闸：自己读出去的话被录回来，必须**整句丢掉** ──────────
     await evalIn(cdp, sessionId, `(() => {
@@ -622,6 +656,50 @@ const FAKE_BRIDGES = `(() => {
     need(h9e.phase === 'ended' && h9e.hide && h9e.float === true, 'H9: 结束后该发 subtitle-hide、「浮出字幕窗」藏起，实际 ' + JSON.stringify(h9e));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);
+
+    // ── T2. App 里领免费额度：grant_claimed + engine_set 真的走得到（telemetry-design §3.4）──
+    // 09-19 查实：grant_claimed 只挂在扩展设置页的按钮 handler 里，App 的领取路径没有；
+    // 且 App 领取直接 set(plan.writes)、不经 applyQuickSetup ⇒ engine_set 也不记。
+    // 这一段只换掉**网络与登录**两样（claimUrl 的 fetch、LearnAuth.token），其余全是出货的代码：
+    // 卡由 LearnGrant.render 画、按钮真点、claim() 真跑 —— grant_claimed 就记在 claim() 里。
+    if (process.env.TRACE) console.log('  …T2');
+    const t2 = JSON.parse(await evalIn(cdp, sessionId, `(async () => {
+      if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return JSON.stringify({ skip: true });
+      const $ = (id) => document.getElementById(id);
+      const keep = await new Promise((r) => chrome.storage.local.get(null, (s) => r(s || {})));
+      const claimUrl = window.MT_GRANT.claimUrl, realFetch = window.fetch, realToken = LearnAuth.token;
+      let calls = 0;
+      window.fetch = (u, o) => String(u) === claimUrl
+        ? (calls++, Promise.resolve(new Response(JSON.stringify({ token: 'bmg_verifylistenverifylistenverifylisten0001', limit_usd: 0.2, spent_usd: 0, reused: false }), { status: 200, headers: { 'content-type': 'application/json' } })))
+        : realFetch(u, o);
+      LearnAuth.token = async () => 'fake-session-jwt';
+      await new Promise((r) => chrome.storage.local.remove(['apiKey', 'provider', 'apiBaseUrl', 'apiModel', 'grant', 'grantTail', 'grantBalance', 'engineChosen'], r));
+      __tm.length = 0;
+      $('signed-out').hidden = true; $('app-listen').hidden = true; $('app-settings').hidden = false;
+      await AppSettings.paint({ user: { id: 'u-test' } }, () => {});
+      const btn = document.querySelector('#grant-box button.gr-action');
+      const label = btn ? btn.textContent : null;
+      if (btn) btn.click();
+      for (let i = 0; i < 40 && !__tm.some((e) => e.n === 'engine_set'); i++) await new Promise((r) => setTimeout(r, 100));
+      const got = await new Promise((r) => chrome.storage.local.get(['provider', 'grantTail'], (s) => r(s || {})));
+      const out = { label, calls, tm: __tm.slice(), provider: got.provider, tail: got.grantTail };
+      // 复原：后面的 M 段与任何重跑都不该看见这一幕留下的配置
+      window.fetch = realFetch; LearnAuth.token = realToken;
+      // 垫片没有 clear()：先删掉这一幕新写的键，再把原值写回
+      const after = await new Promise((r) => chrome.storage.local.get(null, (s) => r(s || {})));
+      await new Promise((r) => chrome.storage.local.remove(Object.keys(after).filter((k) => !(k in keep)), r));
+      await new Promise((r) => chrome.storage.local.set(keep, r));
+      $('app-settings').hidden = true; $('signed-out').hidden = false;
+      return JSON.stringify(out);
+    })()`));
+    if (t2.skip) console.log('  （这个构建没有代领额度，T2 跳过）');
+    else {
+      need(!!t2.label && t2.calls === 1, 'T2: 额度卡该有「领取」按钮且点下去发出 1 次领取请求，实际 ' + JSON.stringify({ label: t2.label, calls: t2.calls }));
+      need(t2.provider === 'grant' && !!t2.tail, 'T2: 领取后主引擎该是 grant 且记下尾号，实际 ' + JSON.stringify({ provider: t2.provider, tail: t2.tail }));
+      const gc = t2.tm.filter((e) => e.n === 'grant_claimed'), es = t2.tm.filter((e) => e.n === 'engine_set');
+      need(gc.length === 1, 'T2: App 里领取成功该恰好 1 条 grant_claimed，实际 ' + JSON.stringify(t2.tm));
+      need(es.length === 1 && es[0].p.provider === 'grant', 'T2: 领到额度 = 引擎配好了，该有 1 条 engine_set{provider:grant}，实际 ' + JSON.stringify(es));
+    }
 
     // ── M. 启动迁移（2026-09-17）：老装机存着 sttEngine:'device' ⇒ 四键清空；云端条目不动 ──
     if (process.env.TRACE) console.log('  …M');

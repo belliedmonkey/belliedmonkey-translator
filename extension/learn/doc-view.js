@@ -285,13 +285,27 @@ var DocView = (() => {
       state.units = units;
       inferDocLang(units, s);
       const cur = state.cur;
+      // translate_fail（telemetry-design §3.4 裁定 B）：这条路此前只有成功数没有失败数，成功率
+      // 算不出来。**每页至多一条** —— 这个 engine 本来就是按页建的，一页里十段全 401 是一件事。
+      // 没有文件名、页文本、地址：只有引擎 id、错误码、状态码、通路。
+      let failSent = false;
       const engine = TranslationCore.createEngine({
         translate: (text) => deps.translate(text, s),
         targetLang: () => (settingsCache && settingsCache.targetLang) || s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         selectActive: (us) => us.filter((u) => u.page === cur),
         window: { AHEAD_MS: 0, GRACE_MS: 0, MAX_PER_TICK: 4, MAX_RETRIES: 3, RETRY_GAP_MS: 800 },
         onOk: () => { if (!state.okSent) { state.okSent = true; track('translate_ok', { provider: String(s.provider || ''), kind: 'doc', ms: 0 }); } },
-        onFail: () => {},
+        onFail: (e) => {
+          if (failSent) return;
+          failSent = true;
+          track('translate_fail', {
+            provider: String(s.provider || ''),
+            code: (e && typeof e.code === 'string') ? e.code : 'network',
+            status: Number.isInteger(e && e.status) ? e.status : 0,
+            route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
+            ms: 0,
+          });
+        },
       });
       engine.setUnits(units);
       state.engine = engine;

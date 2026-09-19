@@ -223,8 +223,17 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
         else pass('卡在、按钮在、披露在（且占位符已代掉）');
 
         if (c.btn) {
+          // 遥测探针（telemetry-design §3.4）：自动化里 MTTelemetry 是空操作，所以看的是调用有没有走到。
+          // grant_claimed 09-19 从这一页的按钮 handler 挪进了 LearnGrant.claim()（两宿主同一份字节，
+          // App 那条路此前一条都不记）—— 挪完之后扩展这一侧不能反过来丢掉。
+          await ev2(`(() => { window.__tm = []; MTTelemetry.track = (n, p) => { __tm.push({ n, p: p || {} }); return Promise.resolve(true); }; return 1; })()`);
           await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
           await new Promise((r) => setTimeout(r, 3000));
+          const tm = JSON.parse(await ev2('JSON.stringify(window.__tm || [])'));
+          const gc = tm.filter((e) => e.n === 'grant_claimed'), es = tm.filter((e) => e.n === 'engine_set');
+          if (gc.length !== 1) fail(`领取成功该恰好 1 条 grant_claimed，实际 ${JSON.stringify(tm)}`);
+          else if (es.length < 1 || es[0].p.provider !== 'grant') fail(`领到额度 = 引擎配好了，该有 engine_set{provider:grant}，实际 ${JSON.stringify(es)}`);
+          else pass('用量事件：grant_claimed ×1 + engine_set{provider:grant}');
           const got = JSON.parse(await ev2(`new Promise(r => chrome.storage.local.get(
             ['provider','apiKey','apiModel','ttsEngine','sttEngine','grantTail','grant','grantBalance'],
             o => r(JSON.stringify(o))))`));

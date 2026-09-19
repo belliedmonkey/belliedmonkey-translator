@@ -156,6 +156,12 @@ var MTTelemetry = (() => {
       if (!(await enabled())) return false;
       const e = shape(name, props, now);
       if (!e) return false;
+      // grant_exhausted（telemetry-design §3.4）：09-08 进注册表，到 09-19 全仓库**零发送点**，
+      // 线上 0 行 —— 而它是「这笔钱该不该继续花」的唯一依据。挂在这里而不是某个调用方：
+      // credit_exhausted 会从网页、字幕、文档、App 听译四条路上来，挂在任何一条上都会漏另外
+      // 三条；而四条路都经过这一行。中继的 402 本身就是「用完了」的判定，不再加第二道。
+      // once ⇒ 每装机一次（§3 表的定义）。不 await：它自己会排进 trackChain。
+      if (name === 'translate_fail' && e.props && e.props.code === 'credit_exhausted') once('grant_exhausted', {}, now);
       const r = await sget([K.queue]);
       const q = Array.isArray(r[K.queue]) ? r[K.queue] : [];
       q.push(e);
