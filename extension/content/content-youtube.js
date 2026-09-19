@@ -175,11 +175,19 @@ var YouTubeTranslator = (() => {
       'box-shadow:0 1px 6px rgba(0,0,0,.5);z-index:2147483000;';
   }
   let adWas = false; // 上一拍是否在放广告（#325）
+  let startedWas = false; // 上一拍正片是否已经播起来过（#345）
   function adShowing() {
     const pl = document.querySelector(PLAYER);
     return (pl && (pl.classList.contains('ad-showing') || pl.classList.contains('ad-interrupting'))) ||
       !!document.querySelector('.ytp-ad-player-overlay, .ytp-ad-player-overlay-layout, .ad-showing, .ad-interrupting');
   }
+
+  // 正片播起来过没有（#345）：还没播 ⇒ 不取字幕、不计次、叠层什么都不画。广告在播不算正片。
+  const mainStarted = SubtitleAdapter.playbackLatch({
+    getMedia: () => document.querySelector('.html5-main-video') || document.querySelector('video'),
+    mediaKey: currentVideoId,
+    exclude: adShowing,
+  });
 
   const T = TranslationCore.t;
   const ui = SubtitleAdapter.createSubtitleUI({
@@ -197,11 +205,15 @@ var YouTubeTranslator = (() => {
     // 片头广告期间不取字幕（#325）：正片的 /api/timedtext 要等广告结束 YouTube 才会去取，这之前的每一次尝试都是空转，
     // 8 次耗光就锁死在「字幕不可用」。广告结束的那一拍把一次性标记还原，让「3 s 宽限后强制重取」从正片开始算；
     // 广告期间也不去碰 CC 按钮 —— 那是广告自己的字幕开关。
-    acquireGate: () => !adShowing(),
+    // 正片还没播起来时同理（#345）：YouTube 要等正片真的在走才去取 timedtext，暂停在 0 的那段时间不该计次。
+    acquireGate: () => !adShowing() && mainStarted(),
     onTick: (active) => {
       const ad = adShowing();
-      if (adWas && !ad) { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
-      adWas = ad;
+      // 广告结束、或正片刚播起来的那一拍：把一次性标记还原，「3 s 宽限后强制重取」从正片开始算（#325 / #345）——
+      // 否则宽限在暂停的那段时间里就过完了，强制重开 CC 的那一次机会也用在了 YouTube 还不会去取字幕的时候。
+      const started = mainStarted();
+      if ((adWas && !ad) || (!startedWas && started)) { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
+      adWas = ad; startedWas = started;
       if (active && !ad) ensureCaptionsOn(); // per-tick until CC is on
     },
     onMediaKeyChange: () => { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); hookCues = null; },
@@ -209,7 +221,8 @@ var YouTubeTranslator = (() => {
       if (on) { injectCaptionStyle(); ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
       else removeCaptionStyle();
     },
-    beforeRender: () => (adShowing() ? 'clear' : undefined), // during an ad, currentTime is the ad timeline
+    // during an ad, currentTime is the ad timeline; before the main video starts there is nothing to say yet (#345)
+    beforeRender: () => ((adShowing() || !mainStarted()) ? 'clear' : undefined),
     // §2.4: YouTube 是 MSE ⇒ 扩展取不出音轨。实时档 2026-09-16 下掉后，没有字幕的
     // 视频由 offerFor 给出去 App 的出口（App 听设备的声音，不受 MSE 限制）。
     unavailableAction: AsrSource.offerFor(() => (document.querySelector('.html5-main-video') || document.querySelector('video')), () => ui, () => ui.settings),

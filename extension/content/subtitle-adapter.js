@@ -553,6 +553,28 @@ var SubtitleAdapter = (() => {
   }
 
   // exported for tests: the clamp keeps a dragged panel fully inside the viewport
-  return { createSubtitleUI };
+  // playbackLatch（#345，2026-09-19）：「这段媒体真的播起来过没有」，按 mediaKey 记一次。
+  // 给 acquireGate 用：YouTube 只有在正片真的播起来之后才去取 /api/timedtext，视频还停在 0（自动播放被拦、
+  // 后台标签页、正片起播慢）时的每一次尝试都是空转，8 次耗光就锁死「字幕不可用」，之后按播放也不恢复。
+  // 闩住之后中途暂停不再开关闸门（否则每暂停一次白送 8 次重试）；换视频重来。
+  //   o.getMedia():  HTMLMediaElement | null
+  //   o.mediaKey():  string（可选）
+  //   o.exclude():   bool（可选）—— true 时此刻在播的不是正片（例：片头广告），不算数
+  function playbackLatch(o) {
+    let latched = false, key = '';
+    return () => {
+      const k = o.mediaKey ? String(o.mediaKey() || '') : '';
+      if (latched && key === k) return true;
+      latched = false;
+      if (o.exclude && o.exclude()) return false;
+      const m = o.getMedia ? o.getMedia() : null;
+      // 判「播起来过」看的是时间走过没有，不看此刻是不是在播：用户暂停在中途再打开字幕，应当立刻有字幕
+      // （YouTube 早就取过 timedtext 了）；只有停在 0 的那种「还没开始」才需要等。
+      if (m && m.currentTime > 0) { latched = true; key = k; return true; }
+      return false;
+    };
+  }
+
+  return { createSubtitleUI, playbackLatch };
 
 })();
