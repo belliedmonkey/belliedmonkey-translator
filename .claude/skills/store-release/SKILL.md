@@ -131,6 +131,8 @@ env -u NODE_OPTIONS xcodebuild -project "safari-project/BelliedMonkey Translator
 > `--mac` 是那次一并补上的：`cmdDevices` 原来把 platform 写死成 IOS，注册 Mac 会
 > 静默注册成一台 iPhone，而 ASC 的报错指不到这里。
 
+> **2026-09-19 补：App ID 要*新增* capability 的那一次（不是只拉新描述文件），这三个参数反而会坏事。** 系统翻译尖刺给 App ID 加 `DEFAULT_TRANSLATION_APP` 与 `APP_GROUPS` 时，带三参数连试 5 次都是 `Authentication failed: Make sure a bearer token was provided…`（同一把 key 走我们自己的脚本读 `/bundleIds` 是通的 —— 多半是这把 key 没有改 App ID 的权限）；去掉三参数、用 Xcode 里登录的账号一次就过。判据照旧是回读：`codesign -d --entitlements - --xml`，以及 ASC API `/bundleIds?include=bundleIdCapabilities` 里真的多了那两项。
+
 **导出也要那三个参数**，不只是归档 —— 归档用的是**开发型**描述文件，导出重签名用的
 是**分发型**，那是两张，各自都要含新 capability：
 

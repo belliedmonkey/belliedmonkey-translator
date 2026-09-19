@@ -75,7 +75,8 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 | 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
-
+| 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。模拟器能否承载这个扩展点未量，不当作通过依据 | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
+| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ⬜ 未出货。尖刺 T2（2026-09-19，macOS 27）已走通：沙盒内热键、常驻、服务菜单六个宿主、取词并还原剪贴板、区域截图 + 本机识别 — see §2.J |
 > **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
 > 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
 > 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
@@ -1327,6 +1328,53 @@ template from bouncing and would trap a scrolling review list.
 > exactly like a real one. `rm -rf` the derivedData before believing an app-resource
 > measurement. (Related to, but distinct from, the ios-sim issue where *new* files
 > never enter the bundle at all.)
+
+### I. iOS 系统翻译扩展（真机）— ⬜ 配方来自尖刺 T1（2026-09-19）
+
+**为什么只认真机**：共享钥匙串、扩展的内存上限、「默认翻译 App」那一行出不出现，这三样在模拟器上的读数不能当真。
+
+1. **装包**：`xcodebuild … -destination id=<UDID> -allowProvisioningUpdates build` → `xcrun devicectl device install app`。
+   **新增 capability 的那一次构建要用 Xcode 登录态** —— 带 ASC API key 三参数会报 `Authentication failed`（T1 连试 5 次）。
+   读回：`codesign -d --entitlements - --xml <app>`：App 有 `com.apple.developer.translation-app` + App Group + 钥匙串组；
+   `<app>/Extensions/<ext>.appex`（**不是 `PlugIns/`**）有 App Group + 钥匙串组。
+2. **配引擎**：在 App 里配 DeepSeek（§0 规则：不用免费 Google），读回 `vault-ack`。调试包可用
+   `devicectl device process launch --environment-variables '{"…":"…"}'` 或 UI 测试的 `launchEnvironment` 把 key 传进去 ——
+   **key 不进包、不进日志**（xcodebuild 会把 `TEST_RUNNER_<NAME>` 去掉前缀传给测试进程）。
+3. **设为默认**（UI 测试程序）：设置 › App › 搜「翻译」› 翻译 › 默认翻译App › 选我们。**iOS 27 的设置页里行不是 cell** ——
+   按文字找任意后代（`descendants(matching: .any)`）；设置根页的搜索搜不到「默认翻译」。判据：页面文案变成「"…"将用于翻译文本」。
+4. **翻一次**：`XCUIDevice.shared.system.open(URL)` 开一个英文页（Safari 地址栏的元素在 iOS 27 上按标签找不到）→ 对段落
+   `press(forDuration: 1.3)` → 点「翻译」。**第一次（以及每次重装后）系统先弹一页「所选内容将发送给…进行翻译处理」** —— 点「继续」。
+   判据：弹层里出现译文（截整屏），设备日志里 `translate ok`。
+5. **可替换**：**不要往用户的备忘录里写东西**（打开就是用户的真笔记）。在宿主 App 自己的可编辑文本框里全选 › 翻译 › 「替换原文」，
+   读回文本框的值。编辑菜单翻页的「›」**没有可用的标签**：按屏宽 87.5%、与菜单项同一行的位置点。
+6. **取日志**：`devicectl device copy from --domain-type appGroupDataContainer` **被拒**（Access restricted）⇒ 让宿主把
+   App Group 里的日志抄一份到自己的 `Documents/`，从 `appDataContainer` 拉。
+7. **进复习库**：翻完后打开 App ⇒ 来源管理里出现「系统翻译 · <月份>」、卡片来源行是纯文字；关掉 `handoffCapture` 再翻一次 ⇒
+   App 读回收件箱目录为空。清除本机数据后再翻 ⇒ 弹层是未配置态。
+8. **收尾**：把手机装回正常的包；`devicectl device info apps` 读回版本。
+
+陷阱：联网键写在**宿主 App** 的 Info.plist（写在扩展里 ⇒ `NSURLError -1009`，而宿主自己联网是 200，很像「手机没网」）；
+`openURL` 拉不起宿主 = 宿主没注册那个地址协议，不是系统不许。
+
+### J. macOS 快速翻译（真机、签名构建）— ⬜ 配方来自尖刺 T2（2026-09-19）
+
+1. **装**：签名构建拷到 `/Applications`，跑一次；`/System/Library/CoreServices/pbs -update` 后
+   `pbs -dump | grep -A14 <App>` 读回服务条目**含 `NSRequiredContext`**（不含 ⇒ 已登记但默认不启用，菜单里永远找不到，无报错）。
+2. **热键**：别的 App 在前台时用 System Events 发 `key code 17 using {control down, option down}`；判据：面板窗口出现
+   （`list_windows`）且前台 App 没变。
+3. **服务菜单**：宿主 App 里选中文字 → System Events 打开「应用菜单 › 服务」→ 读子菜单项 → 点我们那一项。
+   **服务子菜单是惰性的**：不真的打开它，AX 树里只有「服务设置…」。判据：面板里的原文与选中文字一致，且 1 秒后前台仍是原来的 App。
+   至少过：Safari、Chrome、Firefox、文本编辑、预览（PDF）、Pages；跨平台框架做的 App 单独记。
+4. **增强取词**：系统弹窗与「辅助功能」里的开关**由人点**。授权后**要重开 App** 才读到（`CGPreflightPostEventAccess`）。
+   判据：选中一句 → 热键 → 面板原文一致；`clipboard_read` 读回的旧剪贴板**逐字节不变**。不选任何东西再按 ⇒ 什么都不翻。
+5. **剪贴板隐私**：沙盒 App 的偏好在**容器里** ——
+   `defaults write ~/Library/Containers/<bundle>/Data/Library/Preferences/<bundle> EnablePasteboardPrivacyDeveloperPreview -bool yes`
+   （写到宿主域无效，会误读成「无影响」）。判据：面板 1 秒内落到「系统没有让我们读到剪贴板」，**不卡死**。验完删掉这个键。
+6. **截图翻译**：录屏授权由人点。三张固定图（英 / 简中 / 日）各框一次；判据：面板原文与真值的字符级一致率 ≥ 0.9，
+   且设备上没有任何截图文件落盘。macOS 13.x 上入口不出现。
+7. **常驻与复习**：关主窗口后进程仍在、热键仍响应；主窗口的来源管理里出现「划词翻译 / 截图翻译 · <月份>」；
+   `quickEnabled` 关掉后关窗即退出。
+8. **收尾**：系统设置里两处授权条目由人删。**测试时打开的别人的 App 不要替用户退出**（先记下原来开着哪些）。
 
 ### F. iOS host app (Xcode Simulator) — ✅ Stage 2 + 3 verified 2026-08-07
 

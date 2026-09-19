@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-19 | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | **通过（2026-09-19，用户评审 PR #331；五个重点判断全部按原文）** |
 | 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型的下载地址改为后端配置表决定**（用户提议「地址存入数据库，每次从数据库获取，以后地址不能用了还可以换」）。清单 `app/device-models.config.js` 继续钉 **sha256 与 size**（服务器只能说「去哪下」，不能说「下什么」——换了文件过不了校验照旧丢），`url` 变成兜底默认值；表里每个文件放**默认 + 备用**两个地址；客户端：没缓存先问服务器，有缓存先探可用性、可用直下、不可用重新问，新默认也不可用才用当次的备用（备用不缓存），服务器连不上才回清单。动因：09-17 真机实测境内拉不动 GitHub，换托管每次都要发版；同日建了两处我们自己的托管：ModelScope `belliedmonkey/belliedmonkey-device-models`（真机 18.7 MB/s，中国版默认）与 Hugging Face 同名仓库（经 hf-mirror ≈580 KB/s，备选）；Supabase 公开桶也可用但按流量计费，只作最后备选。不进包（用户同日收回「存包」：不同语言要不同模型）。§9.6.1 新增 §9.6.1.1；§10 Gate H 隐私文案补一句。 | 待评审 |
 | 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
 | 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
@@ -864,6 +865,15 @@ App 的设置页**可以**配置：一个 chat 类引擎 + key（供 §9.2 解�
 > 迁移必须是**单向且不丢**的：首次读优先 Keychain，回落 `localStorage` 并顺手写回
 > Keychain，然后删掉 `localStorage` 里那份；反过来永不回写。否则一次降级安装就会把明文
 > 那份留在原地，等于既没搬走也多了一处。
+>
+> *（2026-09-19，同日评审通过：）* **第 1 步随系统翻译落地（§9.9）：镜像，不搬家。** iOS 的系统翻译
+> 扩展是另一个进程，读不到 WKWebView 的 `localStorage`，所以宿主 App 把**解析后的**翻译引擎
+> 三元组与 key **单向**抄一份：非机密进 App Group `UserDefaults`，key 进共享 Keychain 组
+> （`kSecAttrAccessibleAfterFirstUnlock`、不进 iCloud 钥匙串）。方向与上面那条规则一致 ——
+> 只有 `localStorage → Keychain`，扩展只读，永不回写。**代价要明说：第 2 步（翻转真源、删掉
+> `localStorage` 那一份）落地之前，key 同时存在于两处。** 现在不做全量迁移的理由：它改的是
+> `chrome.storage` 垫片的读路径，回归面是整个 App，与这次新增的表面无关；另开 issue，不挡路。
+> 真机读数（T1）：扩展里读共享 Keychain `status 0`、值一致；写在 App 这边同样 `status 0`。
 
 3. **存放风险如实陈述**：App 的 `chrome.storage` 垫片背靠 `localStorage`，明文，
    与扩展侧 `chrome.storage.local` 的现状同级（都不加密）。这不是新增风险面，
@@ -3291,6 +3301,137 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 
 **验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：不回 `audio-caps` ⇒ 入口不显示、`record-mode.profile`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、`subtitle-state` 随停机态变化、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote end` 即停）。
 
+## 9.9 系统翻译与快速翻译 (system translation & quick translate) — App 专属（2026-09-19）
+
+用户提议：iPhone 上让大肚猴翻译出现在「设置 › 翻译 › 默认翻译 App」里（在任何 App 里选字 › 翻译，
+弹出来的是我们）；Mac 上选中文字 → 快捷键 → 鼠标旁浮窗出译文，外加输入翻译、菜单栏图标、截图翻译。
+来源模型与九条核心约束在 domain-design §2.6；交互在画布 `design/system-translate/`（用户 2026-09-19
+「按默认」，12 条裁定）与 interaction-spec「系统翻译」「快速翻译」两节；这里只写学习层与桥的契约。
+
+**先量后写。** 两个一次性尖刺（`.local/spike/TranslateExtSpike`、`.local/spike/QuickTranslateSpike`，
+读数 `.local/spike/READINGS.md`「T1」「T2」）在动笔之前把每一条「Apple 没写明」的事量了一遍；下面凡是
+写成事实的句子都有一条读数。
+
+### 来源字段
+
+| 字段 | 值 | 理由 |
+|---|---|---|
+| `sourceId` | `handoff:<via>:<YYYY-MM>` | **按月一组**，不是每次一条：这是几十次零散的查词，不是一场会话。来源管理里显示「系统翻译 · 2026-09」「划词翻译 · 2026-09」「截图翻译 · …」「输入翻译 · …」|
+| `url` | `handoff://<via>/<YYYY-MM>` | 不可点（同 `conv://` / `doc://`）：没有网页可回 |
+| `anchor` | `{ k: 'handoff', via, at }`，`via ∈ system \| select \| input \| shot \| service` | **显式新 kind**（§12 2026-09-07 那条裁定同样适用）：不复用 `dom`（没有 URL）、不复用 `doc`（没有页）、不复用 `conv` —— `conv` 的语义是「按会话分组、有说话人、有起止」，而这里没有会话也没有说话人，读者行为确实不同（来源行纯文字、不可回放、按月分组）。未知 kind 静默落进默认分支才是坑 ⇒ `review.js` / `sources-view.js` / `driving.js` 各加显式分支，`npm test` 的读者分支门守着 |
+| `text` / `tr` | 交来的原文 / 译文 | **不记来源 App、不记窗口标题**：系统本来也不给；给了也不记 |
+| 长度上限 | 原文 > 2 000 字 ⇒ **照翻、不采集** | 那是一篇文章，不是一张卡（画布裁定 10）|
+| 采集开关 | `handoffCapture`（iPhone）· `quickCapture`（Mac），默认开，受 `learnEnabled` 总闸控制 | 与 `docCapture` / `listenCapture` / `subtitleCapture` 同形：每个来源各有一个找得回来的开关 |
+| 过门 | `LearnRules.langAllowed` → `LearnModel.shouldCapture({ playedThrough: true, dwellMs: 0 })` | 「用户亲手要的译文」算已消费，先例 `doc-core.js` / `listen-core.js` |
+
+### 唯一写入者：`AppHandoff.ingest(records)`（`app/handoff.js`，只在 App 主页面里）
+
+两个输入端都**不开** `LearnStore` —— 学习库按账号分库（`store.js` `useDb`），第二个打开者手里会握着过期的库名。
+
+- **iPhone · App Group 收件箱。** 扩展把每条记录写成 `<AppGroup>/handoff-inbox/<msEpoch>-<8hex>.json`
+  （**每条一个文件、原子写** —— 不用追加文件，避开两个进程并发追加与半行损坏），内容**只有**
+  `{ v: 1, text, tr, lang, trLang, ts, via: 'system' }`。扩展只在镜像里 `learnEnabled && handoffCapture`
+  为真、翻译成功、原文 ≠ 译文、原文 ≤ 2 000 字时写；失败路径永不写（Collector law 2）。
+  上限 **200 条 / 512 KB**，超了删最旧的；摄入时丢弃 `ts` 超过 30 天的。
+  App 启动与回到前台时发 `inbox-drain` → 原生回 `inbox-batch` → 逐条过门 → `mergeBatch` → `inbox-ack{names}`
+  → 原生删文件。**先写库后删文件**：item id 是内容哈希、merge 幂等，中途崩溃下次重来即可。
+  **开关关着 ⇒ 整个收件箱丢弃并清空**，不留用户看不见的积压。摄入静默，不弹「收进 N 句」（画布裁定 4）。
+- **Mac · 原生中继。** 面板页发 `mtQuick` `quick-capture{text,tr,lang,trLang,ts,via}` → 原生 `MTQuick`
+  转给主 WebView 的 `window.NativeQuick._fromNative` → 同一个 `ingest`。主页面没就绪时原生侧排队
+  （照抄 `MTDeepLink.pending`）。S3 已量过：桥消息在隐藏态 1–2 ms 送达，不受计时器节流影响。
+
+「清除本机全部数据」与「清空学习库」同时发 `inbox-clear`；前者再加 `vault-clear`（清 Keychain 组里那一份与
+App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻译还能拿旧 key 接着翻。退出登录（额度在用）
+⇒ 镜像里的额度令牌随之清掉，扩展落回未配置态。
+
+### 桥协议
+
+**`mtVault`（iOS；`app/vault-mirror.js` ↔ `app/native/vault-bridge.swift`，整份 `#if os(iOS)`）**
+
+| 方向 | 消息 | 内容 |
+|---|---|---|
+| JS → 原生 | `vault-sync` | **全量快照**（不是增量：快照里没有的键要在原生侧删掉 —— iOS 的 Keychain 卸载后仍在，增量会留下「扩展里有 key、App 里没配」）。`nonSecret`：`provider`（先过 `EngineState.byId`，过期 id 不许静默回落到免费引擎）、`baseUrl`、`model`、`targetLang`、`uiLang`、`req*` 五项、`grantTail`、`learnEnabled`、`learnLangs`、`handoffCapture`、`flavor`、`schema: 1`；`secret.apiKey`（额度在用时是 `bmg_…` 令牌）|
+| 原生 → JS | `vault-ack` | 键名列表 + `OSStatus`。**永不回传 key 的值** |
+| JS → 原生 | `vault-clear` | 清空两处 |
+| JS → 原生 | `inbox-drain` / `inbox-ack{names}` / `inbox-clear` | 见上 |
+| 原生 → JS | `inbox-batch{records}` | 文件名 + 记录 |
+
+镜像的是**解析后的结果**（`LearnNotes.resolveConfig` 的「解析引擎优先」规则留在 JS 里，Swift 不重写解析）。
+触发：启动时一次 + `chrome-shim.js` 的 `onChanged` 总线上相关键变化时。
+
+**`mtQuick`（macOS；`app/quick.js` ↔ `app/native/quick-panel.swift` 等，整份 `#if os(macOS)`）**
+
+| 方向 | 消息 |
+|---|---|
+| 原生 → 页面 | `quick-show{text, via, anchor}` · `quick-ocr{lines}` · `quick-perm{postEvent, screen}` · `quick-caps{sck, vision, services}` |
+| 页面 → 原生 | `quick-resize{h}` · `quick-close` · `quick-copy{text}` · `quick-capture{…}` · `quick-request-perm{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
+
+`quick-caps` 沿用 §9.8 老原生壳那条纪律：原生不回 ⇒ 设置块与菜单入口**不显示**（不是灰掉）。`sck:false`
+（macOS < 14）⇒ 截图入口整个不出现。两张协议表由 `npm test` 钉住（JS 与 Swift 两边的消息名逐字一致）。
+
+### 扩展里的翻译引擎（`build/ext-bundle.js` → `dist-app/ExtEngine.js`）
+
+同一份字节，不写 Swift 版（domain-design §2.6 规则 2）。`MODULES` = `app/ext-shim.js`、`providers.gen.js`、
+`langs.gen.js`、`engine-state.js`、`wire-format.js`、`request-shape.js`、`translation-api.js`、`app/ext-entry.js`。
+垫片清单来自逐文件 grep，尖刺在一个只有三个原生钩子的空上下文里验过：不碰 `URL` / `TextDecoder` /
+`crypto` / `document` / `navigator`；`chrome.runtime.sendMessage` **故意缺席** ⇒ 代理探测抛错 ⇒ 走直连
+（与 `app/chrome-shim.js` 同形）。真机读数：87 KB、就绪 3–10 ms、+3 MB、总占用 ≈ 18 MB，扩展上限 ≈ 230 MB。
+
+### 原生侧的形状（与 §9.5 灵动岛的先例不同，别照抄）
+
+- **这个扩展是 ExtensionKit 类型**：产品类型 `com.apple.product-type.extensionkit-extension`，嵌在
+  `<App>.app/Extensions/`（copy-files `dstSubfolderSpec = 16`），Info.plist 用
+  `EXAppExtensionAttributes › EXExtensionPointIdentifier = com.apple.public.translation-ui-provider`，
+  **没有** `NSExtension` 字典。`patchWidgetTarget` 造的是 `app-extension` + `PlugIns/`，不能直接参数化 ——
+  重构成 `patchExtensionTarget(spec)` 时要多支持一种产品类型与一个独立的嵌入阶段（widget 输出逐字节不变是门）。
+  开发者论坛上「上传被拒：缺 `NSExtensionPrincipalClass`」的死结正是拿 app-extension 的壳装这个扩展点；
+  用对形状后 `altool --validate-app` 读到 `VERIFY SUCCEEDED with no errors`。
+- **entitlement**：`com.apple.developer.translation-app` 只给 **iOS App**（自助能力，不用申请）；App Group 与
+  Keychain 组给 iOS App 与扩展两个 target。现在一份 `app.entitlements` 被 iOS 与 macOS 两个 App 共用 ⇒ 拆成
+  每 target 一份，`patchEntitlements` 的全局守卫改为按配置块判断。**新增能力的那一次归档必须用 Xcode 登录态**
+  （带 ASC API key 三参数会报认证失败，读数 T1）。
+- **联网键写在宿主 App 的 Info.plist**：`com.apple.developer.translation-ui-provider.network-access = true`
+  （`PLIST_KEYS` 的 `only: 'iOS (App)'`）。写在扩展的 plist 里无效 —— 三个地址一律 `NSURLError -1009`（读数 T1）。
+  写对之后可达任意 https 端点（不按域名限制），并且系统在**第一次使用时自己弹一页告知**。
+- **Mac**：`NSServices` 条目必须带 `NSRequiredContext`（空字典即可），否则服务「已登记、默认不启用、无报错」；
+  服务被调用时系统会把我们激活到前台 ⇒ 回调里立刻 `prev.activate()` 把焦点还回去；热键用 Carbon
+  `RegisterEventHotKey`（零权限、沙盒可用）；`CGRequestPostEventAccess()` 授权后**要重开 App 才生效**；
+  读剪贴板放后台队列 + 1 秒上限（系统的剪贴板隐私预览开启时，后台读取会卡住 90 秒以上）；
+  `WKWebView.loadFileURL` 不接受 `#fragment` ⇒ document-start 注入 `location.hash`；Vision 用旧 API 即可
+  （新旧两条结果逐项相同），一台机器上的首次调用 20 秒量级 ⇒ App 空闲时预热一次。
+- **常驻**：`MTResident` 持有 `NSStatusItem`；`applicationShouldTerminateAfterLastWindowClosed` 那条既有补丁
+  **改写**为 `!(MTSubtitleBar.sessionActive || MTResident.keepAlive)`（它是「含 needle 即跳过」式的，不能叠第二个）。
+  `quickEnabled`（默认开）关掉 ⇒ 回到今天「关窗即退出」；`quickLoginItem`（`SMAppService.mainApp`）**默认关**。
+
+### 门控
+
+| 面 | 条件 | 不满足时 |
+|---|---|---|
+| iPhone 系统翻译 | iOS 18.4+（扩展 target 的部署下限单独是 18.4，App 仍是 16.4）| 设置块变淡 + 「需要 iOS 18.4 或更新的系统」；首页发现卡不出现 |
+| Mac 快速翻译 | 原生回了 `quick-caps` | 设置块与菜单入口不显示 |
+| Mac 截图翻译 | macOS 14+（ScreenCaptureKit 的截图接口）| 入口整个不出现；设置块里那一行写明原因 |
+| 引擎没配 | — | 弹层 / 面板出未配置态 + 「打开大肚猴翻译 / 打开设置」（T1：弹层里 `openURL` 拉得起宿主）|
+
+### 中国版（AGENTS 规则 10）
+
+两个面都带。国行 iPhone 上「默认翻译 App」这一行存在且可选（读数 T1）。差别只在既有的三处：没有免费额度
+（未配置态只有「配置引擎」一个主按钮）、不发遥测、文案无第三方品牌。`ExtEngine.js` 同样过 brand / strip 门。
+
+### 遥测
+
+扩展进程**不发**（`SEAMS` 写 `none` 行）；Mac 快译照常发，`translate_ok.kind` 加 `quick`，由主页面代发（面板页
+不启动 `MTTelemetry`，免得两个页面各发一次心跳）。理由与白名单改动见 telemetry-design §3.5。
+
+### 验证
+
+`npm test`：`test/ext-bundle.test.js`（裁剪包在空 vm 上下文里对四种请求形状与 App 包**深度相等**；Abort ⇒
+`timeout`、401 ⇒ `auth`、`credit_exhausted` 透传）、`test/handoff.test.js`、`test/quick-core.test.js`、
+`test/build-scripts.test.js`（widget 逐字节不变、第二次 `app:sync` 零改动、两个 flavor、每 target entitlements、
+`NSServices` 含 `NSRequiredContext`、联网键在 iOS App 的 plist 而不在扩展的）、协议表门、读者分支门、
+telemetry seams。新真 Chrome 门 `npm run test:quick`（`Main.html#quick` + 假 `mtQuick` 桥：读回译文与出站消息，
+确认没有启动同步 / 心跳 / `LearnStore`）。`test:listen` 式假桥门里加 `vault-sync` 是全量快照、清除 ⇒
+`vault-clear` + `inbox-clear`。真机：verification-spec 矩阵第 9、10 行与配方 I / J。
+
 ## 10. Privacy statement changes — a release gate, not a follow-up
 
 `README.md`, `README.zh-CN.md` and `belliedmonkey.cc/privacy.html` currently make
@@ -3596,6 +3737,23 @@ the gate requires the same key on all 12):
 | App Store privacy labels | no new data category (audio is not collected); re-check at submission by hand; phase 2 adds the broadcast extension to the review notes |
 | `build.js` Gate I coupling | `dist-app*` uses `subtitle_privacy` ⇒ README ×2 contain the 「实时字幕」 stem, all 12 locales have the key, and the macOS plist row exists |
 
+### Gate J — ships with 系统翻译与快速翻译 (§9.9)
+
+*(Added 2026-09-19.)* Same shape as Gate G — a new paragraph per path. The new fact is
+that text the user selects **in other apps** reaches the engine they configured.
+
+> 「系统翻译」与「快速翻译」只在你主动发起时工作：在 iPhone 上点系统菜单里的「翻译」，或在 Mac 上按快捷键、用右键「服务」、输入、框选屏幕。你交来的文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。截图里的文字在你的 Mac 上识别，截图不离开设备 —— 除非没认出来、而你点了「用我的识图引擎再试」。我们不读取你没有交给我们的内容：不监听键盘，不常驻读取剪贴板；剪贴板里被标记为隐藏的内容（例如密码）不读取、不发送。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+
+| Surface | Gate J |
+|---|---|
+| README.md / README.zh-CN.md | feature line + privacy bullet, **in the same version as the code** (not in this docs PR) |
+| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app |
+| `_locales` ×12 | `sys_disclose_direct` / `sys_disclose_grant` (first-use line in the iOS sheet, after the system's own page), `quick_enh_does` / `quick_enh_doesnt`, `quick_shot_pre`, `quick_shot_cloud`, `quick_clip_concealed` — the canvas copy table is the list |
+| Info.plist (iOS App) | `com.apple.developer.translation-ui-provider.network-access` — not a usage string, but it is what makes the system show its one-time "所选内容将发送给…" page |
+| Info.plist (macOS App) | `NSServices` menu title ×12 (`ServicesMenu.strings`); Screen Recording and PostEvent have **no** usage-description key, so the in-product sentences above carry the whole disclosure and must be localized ×12 (the 1.12.1 rejection) |
+| App Store privacy labels | no new data category on the BYO path (we receive nothing); re-check by hand at submission. Review notes: state that 「增强取词」 uses `CGRequestPostEventAccess` and never asks the user to add the app manually |
+| `build.js` Gate J coupling | `dist-app*` uses `sys_disclose_direct` ⇒ README ×2 contain the 「系统翻译」 stem, all 12 locales have the Gate J keys, the iOS App plist carries the network key and the extension's does not |
+
 ## 11. Out of scope
 
 - **In-browser OCR** (2026-09-11, §9.7). A WebAssembly recogniser fails the extension
@@ -3729,4 +3887,10 @@ matters more than the detail.
 
 | 2026-09-17 | 给实时转写第二个槽（`sttLiveEngine / sttLiveApiKey`，云端实时 + 本机并列可选） | 同日上午的画布方案，下午被用户裁定取代：实时转写固定为设备内置、云端实时下线。两槽方案要新增两把键、启动迁移、四处谓词收编与一键卡第四行 —— 全部为了保留一条用户已判「效果太差」的路（§9.4 / §9.6 门控 2026-09-17 修订；工作文件历史在 `design/settings-ia` 的 git 记录里） |
 | 2026-09-17 | 把 App 与扩展的系统下限整体抬到 iOS 26 / macOS 26 | 抬整个 App 等于让 iOS 17–25 与全部 Intel Mac 的网页翻译用户拿不到更新；而想要的效果（实时功能只走本机）只需这两块自己要求 26。用户裁定「只管实时功能」，`build/os-floor.config.js` 不动 |
+| 2026-09-19 | 系统翻译扩展里用 Swift 重写一份翻译传输 | 第二份提示词 + 第二条格式分支，`request-shape` 每次调参都会让两份漂开（`build/app-bundle.js` 那条注释就是为此而写）。尖刺 T1：同一份 87 KB 的 JS 在 JavaScriptCore 里 3–10 ms 就绪、+3 MB，扩展上限约 230 MB —— 没有理由移植。退路保留：若将来内存吃紧，移植 + 由 JS 生成金向量逐条比对（§9.9）|
+| 2026-09-19 | 系统翻译扩展里放一个 WKWebView 跑 App 的整包 | 多起一个 WebContent 进程、内存不可控；而且扩展里的 `file://` 源是另一个容器，`localStorage` 并不共享，白付代价 |
+| 2026-09-19 | 扩展 / 快译面板直接打开 `LearnStore` 写语料 | 学习库按账号分库（`useDb`），第二个打开者握着过期的库名；扩展进程根本够不着 App 的 IndexedDB。改为收件箱 / 原生中继汇到主页面的单一写入者（§9.9）。**这不推翻 2026-08-07 对 App Group 的否决**：那次否的是「把扩展的上传交给一个用户可能永不打开的进程」；这里复习只发生在 App 里，不开 App 的人什么也没丢 |
+| 2026-09-19 | 截图翻译沿用 §9.7 的做法：把截图发给用户的多模态引擎识别 | §9.7 那样做是因为 WebAssembly OCR 过不了扩展 CSP 与 Safari 下限；原生 macOS 宿主没有这两条约束。Vision 在本机、免费、离线，T2 量到简中 100%、英日 94–98%、每块 0.1–0.4 s ⇒ **截图不离开设备**；只有「没认出来」且用户点了按钮才发给用户自己的端点，永不走中继。§9.7 对文档的规则不变 |
+| 2026-09-19 | Mac 取词直接读别的 App 的选区（辅助功能 API）或 AppleScript | 沙盒禁用，App Store 上被拒的案例都是这一类。合规的只有 `PostEvent`（替用户按 ⌘C），而它要权限 ⇒ 放在默认关的开关后面；零权限的服务菜单 + 剪贴板热键必须单独够用（用户裁定 2026-09-19）|
+| 2026-09-19 | 真实上传一个带扩展的包到 App Store Connect 来验「上传被拒」 | TestFlight 内部组 `hasAccessToAllBuilds = true`，传上去会自动进组、可能通知组员，与用户同意的范围不符。改为 `altool --validate-app`（不产生构建）⇒ 通过；用户裁定「校验通过就够」。处理阶段的退回留到正式版第一次出包时自然验到 |
 | 2026-09-17 | 说题接本机识别器（给 SpeechAnalyzer 补一条整段文件档） | 用户裁定不接：整段转写只列云端 / 自建。原生侧要新做一条「整段喂流式识别器」的路，换来的只是说题免费离线；且会让「整段转写」这个槽再次装两种能力（§9.4 2026-09-17 修订） |
