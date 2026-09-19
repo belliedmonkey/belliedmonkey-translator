@@ -76,7 +76,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
 | 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
 | 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。模拟器能否承载这个扩展点未量，不当作通过依据 | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
-| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ⬜ 未出货。尖刺 T2（2026-09-19，macOS 27）已走通：沙盒内热键、常驻、服务菜单六个宿主、取词并还原剪贴板、区域截图 + 本机识别 — see §2.J |
+| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
 > **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
 > 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
 > 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
@@ -1356,7 +1356,7 @@ template from bouncing and would trap a scrolling review list.
 陷阱：联网键写在**宿主 App** 的 Info.plist（写在扩展里 ⇒ `NSURLError -1009`，而宿主自己联网是 200，很像「手机没网」）；
 `openURL` 拉不起宿主 = 宿主没注册那个地址协议，不是系统不许。
 
-### J. macOS 快速翻译（真机、签名构建）— ⬜ 配方来自尖刺 T2（2026-09-19）
+### J. macOS 快速翻译（真机、签名构建）— ✅ verified 2026-09-19（配方来自尖刺 T2）
 
 1. **装**：签名构建拷到 `/Applications`，跑一次；`/System/Library/CoreServices/pbs -update` 后
    `pbs -dump | grep -A14 <App>` 读回服务条目**含 `NSRequiredContext`**（不含 ⇒ 已登记但默认不启用，菜单里永远找不到，无报错）。
@@ -2909,3 +2909,34 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | **C macOS Safari** | O3（观察 → 用户裁定修） | 「加载中」一行里的 offer 一闪一闪：2.7 s 有、11.1 s 没、16.7 s 落定再出 —— `subtitle-adapter` 只在两次 acquire 之间（`!inFlight`）渲染它，与 interaction-spec「offer 从**第一次** acquire 失败起就出现在 `⏳ 字幕加载中…` 那一行里」不符（实现缺陷，不改设计）⇒ 另开修复 PR |
 | **F-bis 14 Pro 真机** | M31 国际版 · 音量 ±3 dB（Mac 麦克风测） | ✅ UI 测试 `testM31Vol`：音量键按满 → A 段只有 Safari 外放 `conv.wav`（循环）75 s → App「实时字幕」开始 → 回 Safari 再放 75 s；Mac 按设备名录「MacBook Pro麦克风」，两段各取一整圈 56.3 s 算 RMS：**A −29.4 dB、B −28.2 dB，差 +1.2 dB**（第二个整圈窗口 −29.4 / −28.1）；房间底噪 −53 dB。B 段结束截图 Safari「播放中」、画中画双语字幕滚动。前两轮不作数：验证包首启停在引导页 / 手机离 Mac 远只高出底噪 3 dB；重装清掉麦克风权限、权限框挡住 Safari 播放键 |
 | **机器门禁（本机）** | F14 修复 | ✅ #275（main 320eced）：`test/layout/chrome.js` 在进程退出 / 信号时关掉还开着的测试 Chrome，每个 Chrome 另配一个 `sh` 看守兜 SIGKILL；新门禁 `npm run test:chrome-cleanup` 先红（SIGTERM / 抛异常 / `process.exit` / SIGKILL 四种泄漏）后绿（五种 ≤ 1 s 收干净）；`test:layout` 42/42、跑完本机残留 0 |
+
+## 矩阵执行记录：全回归（2026-09-19，1.13.x 提审前）
+
+上期（2026-09-14，a6edddf）之后发过 1.11.0 / 1.12.0 / 1.12.1。本期基线 `v1.13.0`（609918a），用户裁定「提审前完整真机回归」；
+回归查出 #345 后用户裁定「先修」，后半程（C / F-bis 与发版）用 **1.13.1**（`v1.13.1` = e0d3a96）的包。证据落
+`.local/regress-2026-09-19/`（gitignored）。相对 1.12.1 的改动面：YouTube 片头广告（#326）、遥测补线（#329）、「译成」设置、
+`handoff` 锚点三个读者、Mac 快速翻译 M-1…M-7。本期新增行：**R19**「译成」设置 · **R20** handoff 锚点读者 · **J 面**（矩阵第 10 行，首跑）。
+第 9 行（iOS 系统翻译扩展）N/A：未出货（Gate J-2）。
+
+### 本轮发现并修复的产品缺陷（先红后绿）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| #345 | YouTube 字幕（全平台扩展）；非本期引入，线上 1.12.1 同样 | 「译」开着而视频还停在 0（iPhone Safari 视频页不自动播最典型）：约 20–27 s 后锁「字幕不可用」，之后按播放、正片播到 138 s、YouTube 自己的 CC 开着也不恢复 | YouTube 只有在正片真的播起来之后才去取 `/api/timedtext`；那之前 8 次取字幕全是空转。#326 只把广告挡在计数之外，没挡「还没开始」 | #346：`SubtitleAdapter.playbackLatch`（`currentTime > 0` 且非广告才算播起来过，按视频 id 记一次）接进 `acquireGate`；开播前叠层不画；4 条用例先红后绿。第一版把闩写成「此刻正在播」，暂停在中途开「译」会空着 —— 在用户日常 Chrome 上复验时发现并改掉 |
+
+### 各面结果
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **机器门禁** | 30 条，29 ✅ | `test:setup-page` 红 = 站点（不是包）：启用页深色对比度旧账 + cc 站 `alternatives.html` 的 FAQPage 有 1 条问答不在可见正文里（新） |
+| **A iPhone Safari 模拟器（iOS 17.2）** | R00 / R07 / R09 / R06 两卡 + 领取 + 中继 / R10 ✅ | 上期脚本里 R03 `#qs-live` 与 R06「登录」计数 = **脚本过时**（1.12.0 设置页重做、云端实时转写下线）；R06 领取 = 脚本时序（清存储晚于点击），按正确时序重跑通过 |
+| **B iPad 模拟器（iOS 17.2）** | 同 A ✅ | 同构建复用 A |
+| **C macOS Safari（1.13.1，用户输密码 + 亲手勾扩展）** | 全新实例点悬浮按钮 ⇒ 引导页 ✅ · R00 plato 15 段 ✅ · #326：长广告结束后 5 s 双语字幕、全程 0 次「字幕不可用」✅ · **#345 整条路**：后台标签页里视频停在 0、开「译」共 38 s（后 18 s 已非广告）叠层为空 → 切过去开播 5 s 内双语字幕 ✅ | 扩展列表里 6 行同名（幽灵行），逐行看版本号才知道哪条是要验的；代点扩展复选框会触发「检测到干扰点按的 App…使用触控 ID」，那一步只能人来；本机出包要传 `MARKETING_VERSION`，否则 pluginkit 登记转换时的旧版本号 |
+| **D macOS Chrome** | R00 / R09 / R07（干净 profile）/ R06 领取 + 中继 + 弹窗四态 / R10 全表 / R11 / R18 ✅ | 用户日常 Chrome（已登录）复验 #345：两段片头广告 → 正片 → 开「译」10 s 内双语字幕；暂停在 2:18 开「译」立刻出。受控 Chrome 里 YouTube 不给 timedtext（同上期） |
+| **E Firefox 156** | R00 plato 5 段 · en.wikipedia 30 段全通（#84 对照，0 失败）· R09 → AMO · R07（清缓存后）· R06 领取 + 中继 · R10 第 1·2 页 ✅ | **Firefox 156 的 BiDi 不再允许对扩展页（特权作用域）发命令**：文档段后半与 H 面 firefox.js 的后续段因此中止 —— 驱动脚本待跟进，不是扩展缺陷 |
+| **F iOS App 模拟器（iOS 17.2）** | R05 首页三行 · **R19**「译成」13 项、落盘、还原 · 快速翻译块不出现（caps=null）· **R20** 来源管理渲染 ✅ | Mac 调试版与模拟器会抢同一个控制通道：首跑读数混进了 Mac 的回报（caps 里出现 Mac 才有的字段），退出 Mac 调试版后重跑干净 |
+| **F-bis 真机 14 Pro（1.13.1 调试包 + 局域网控制通道）** | R08 首页横幅三步 · R05 / R19 / R20 / 快速翻译块不出现 ✅；扩展 + #345 整条路：**用户亲手操作并报告通过**（不是回读） | 覆盖安装后黑屏 ×5：手机上占着正式 bundle id 的「1.12.1 (1)」是白天 T1 尖刺的宿主（SwiftUI 生命周期），系统按旧场景会话恢复窗口 ⇒ 黑；任务切换器里划掉即好。尖刺收尾要加一条「手机上装回正式包」 |
+| **G macOS App** | R05 · **R19** · **R20**（库内 handoff 18 条，via = select / shot / service / input）✅ · M26 系统声音出字 ✅ · **M26+**（本期 `subtitle-bar.swift` 的改动点）：会话中关窗进程与会话都在 → 窗口收着时结束会话不被弹回 → 叫回再关进程仍在 ⇒ 字幕守卫摘掉时没连常驻守卫一起摘 ✅ | 系统框「想访问以录制你的系统音频」由用户点；脚本用 `pgrep -f` 数进程会把包着命令的 shell 也数进去，按 pid 核对 |
+| **H Windows 11 虚拟机（Chrome 153 / Edge 153 / Firefox 156）** | 三个浏览器装载 + 翻译 ✅（1.4–1.6 s，标题 + 三段全中文）· Edge 英文在线声 ✅ · Chrome 中文声 ✅、英文在线声两次超时（环境，未过）· YouTube：有广告跳过后 4 s 出字幕（#326 ✅），并查出 #345 | 带远程调试参数的会话跑久了 YouTube 播放器会报「出了点问题。请刷新或稍后重试」，之后视频停在 0 不走 —— 不是扩展的事；调试协议没法让虚拟机里的标签页变成可见（`visibilityState` 恒 `hidden`），「开播后」的读数要人点或换到 Mac 上验 |
+| **J macOS 快速翻译（矩阵第 10 行，首跑）** | 见 §1 第 10 行 ✅；J4 增强取词「有权限」一支 ◐（用户当晚关了权限，沿用同日读数）· J5 剪贴板隐私预览 ◐（本期无改动点） | 观察：同 bundle id 换签名装进 /Applications 后系统横幅「登录项已添加」，而系统「登录时打开」列表里没有我们、设置页读数为关 —— 系统侧旧记录被重新通告，非缺陷 |
+| **中国版关键行** | 出货归档拆包：`.cn`、同步 `enabled:false`、品牌词 0、无 google、默认 deepseek；china 门禁全绿 ✅ | 拆包判据要直接读文件：`grep enabled:` 会先命中注释里的 `enabled:true` |
