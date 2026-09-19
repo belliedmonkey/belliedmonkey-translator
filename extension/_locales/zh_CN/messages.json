@@ -3170,5 +3170,35 @@
   },
   "src_handoff_input": {
     "message": "输入翻译"
+  },
+  "quick_title": {
+    "message": "快速翻译"
+  },
+  "quick_enabled_label": {
+    "message": "在菜单栏常驻"
+  },
+  "quick_enabled_note": {
+    "message": "关掉后菜单栏图标消失，关闭窗口即退出 App。"
+  },
+  "quick_menu_open": {
+    "message": "打开大肚猴翻译"
+  },
+  "quick_menu_settings": {
+    "message": "快速翻译设置…"
+  },
+  "quick_menu_quit": {
+    "message": "退出"
+  },
+  "quick_resident_title": {
+    "message": "大肚猴还在菜单栏"
+  },
+  "quick_resident_body": {
+    "message": "快捷键照常可用。要完全退出，用菜单栏图标里的「退出」，或按 ⌘Q。"
+  },
+  "quick_resident_ok": {
+    "message": "知道了"
+  },
+  "quick_resident_off": {
+    "message": "不想常驻"
   }
 }

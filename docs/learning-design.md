@@ -3400,7 +3400,10 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
   `WKWebView.loadFileURL` 不接受 `#fragment` ⇒ document-start 注入 `location.hash`；Vision 用旧 API 即可
   （新旧两条结果逐项相同），一台机器上的首次调用 20 秒量级 ⇒ App 空闲时预热一次。
 - **常驻**：`MTResident` 持有 `NSStatusItem`；`applicationShouldTerminateAfterLastWindowClosed` 那条既有补丁
-  **改写**为 `!(MTSubtitleBar.sessionActive || MTResident.keepAlive)`（它是「含 needle 即跳过」式的，不能叠第二个）。
+  **改写**为 `!(MTSubtitleBar.sessionActive || MTResident.keepAlive)`（它是「含 needle 即跳过」式的，不能叠第二个）；
+  已经打过旧版那一行的工程由补丁**原地升级**（那一行是我们自己写进去的、逐字已知），两种形状都不是才报锚点缺失。
+  两个关闭守卫（实时字幕的 `MTCloseGuard`、常驻的 `MTResidentCloseGuard`）谁先装不一定，`original` 都是 weak ——
+  字幕会话结束时只摘自己；被包着就把自己从链上剪出去，否则会连常驻守卫一起摘掉，或让链断在一个已释放的对象上。
   `quickEnabled`（默认开）关掉 ⇒ 回到今天「关窗即退出」；`quickLoginItem`（`SMAppService.mainApp`）**默认关**。
 
 ### 门控

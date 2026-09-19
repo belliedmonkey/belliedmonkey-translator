@@ -123,6 +123,7 @@ const MODULES = [
   'extension/learn/dialog.js',           // LearnDialog — 页内确认框（App 的 WKWebView 没有 window.confirm）
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
+  'app/quick-host.js',                // AppQuickHost —— 快速翻译在主页面这一侧的接线（mtQuick；macOS 才有原生半边）
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
   'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
   'app/settings.js',                     // AppSettings — the learning layer's own knobs

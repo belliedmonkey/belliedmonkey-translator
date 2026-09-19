@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "ترجمة النص المكتوب"
+  },
+  "quick_title": {
+    "message": "الترجمة السريعة"
+  },
+  "quick_enabled_label": {
+    "message": "البقاء في شريط القوائم"
+  },
+  "quick_enabled_note": {
+    "message": "عند الإيقاف تختفي الأيقونة من شريط القوائم، وإغلاق النافذة ينهي التطبيق."
+  },
+  "quick_menu_open": {
+    "message": "فتح BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "إعدادات الترجمة السريعة…"
+  },
+  "quick_menu_quit": {
+    "message": "إنهاء"
+  },
+  "quick_resident_title": {
+    "message": "لا يزال BelliedMonkey في شريط القوائم"
+  },
+  "quick_resident_body": {
+    "message": "تبقى الاختصارات تعمل. للإنهاء الكامل اختر «إنهاء» من أيقونة شريط القوائم أو اضغط ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "حسنًا"
+  },
+  "quick_resident_off": {
+    "message": "لا أريد البقاء"
   }
 }

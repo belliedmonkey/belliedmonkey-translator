@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "入力翻訳"
+  },
+  "quick_title": {
+    "message": "クイック翻訳"
+  },
+  "quick_enabled_label": {
+    "message": "メニューバーに常駐"
+  },
+  "quick_enabled_note": {
+    "message": "オフにするとメニューバーのアイコンが消え、ウインドウを閉じるとアプリが終了します。"
+  },
+  "quick_menu_open": {
+    "message": "BelliedMonkey Translator を開く"
+  },
+  "quick_menu_settings": {
+    "message": "クイック翻訳の設定…"
+  },
+  "quick_menu_quit": {
+    "message": "終了"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey はメニューバーに残っています"
+  },
+  "quick_resident_body": {
+    "message": "ショートカットは引き続き使えます。完全に終了するには、メニューバーのアイコンから「終了」を選ぶか ⌘Q を押してください。"
+  },
+  "quick_resident_ok": {
+    "message": "わかりました"
+  },
+  "quick_resident_off": {
+    "message": "常駐しない"
   }
 }

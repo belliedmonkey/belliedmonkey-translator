@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "Eingabe übersetzen"
+  },
+  "quick_title": {
+    "message": "Schnellübersetzung"
+  },
+  "quick_enabled_label": {
+    "message": "In der Menüleiste bleiben"
+  },
+  "quick_enabled_note": {
+    "message": "Wenn aus, verschwindet das Symbol aus der Menüleiste und das Schließen des Fensters beendet die App."
+  },
+  "quick_menu_open": {
+    "message": "BelliedMonkey Translator öffnen"
+  },
+  "quick_menu_settings": {
+    "message": "Einstellungen für Schnellübersetzung…"
+  },
+  "quick_menu_quit": {
+    "message": "Beenden"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey ist noch in der Menüleiste"
+  },
+  "quick_resident_body": {
+    "message": "Kurzbefehle funktionieren weiter. Zum vollständigen Beenden „Beenden“ im Menüleistensymbol wählen oder ⌘Q drücken."
+  },
+  "quick_resident_ok": {
+    "message": "Verstanden"
+  },
+  "quick_resident_off": {
+    "message": "Nicht in der Menüleiste bleiben"
   }
 }

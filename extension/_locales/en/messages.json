@@ -3169,5 +3169,35 @@
   },
   "src_handoff_input": {
     "message": "Typed translate"
+  },
+  "quick_title": {
+    "message": "Quick translate"
+  },
+  "quick_enabled_label": {
+    "message": "Stay in the menu bar"
+  },
+  "quick_enabled_note": {
+    "message": "When off, the menu bar icon goes away and closing the window quits the app."
+  },
+  "quick_menu_open": {
+    "message": "Open BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "Quick translate settings…"
+  },
+  "quick_menu_quit": {
+    "message": "Quit"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey is still in the menu bar"
+  },
+  "quick_resident_body": {
+    "message": "Shortcuts keep working. To quit completely, use “Quit” in the menu bar icon, or press ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "Got it"
+  },
+  "quick_resident_off": {
+    "message": "Don’t stay resident"
   }
 }
