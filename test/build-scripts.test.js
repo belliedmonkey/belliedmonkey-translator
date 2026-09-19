@@ -1684,6 +1684,11 @@ describe('quick screenshot — app/native/screen-ocr.swift', () => {
     ok(/excludingApplications: mine/.test(c) && /\$0\.bundleIdentifier == Bundle\.main\.bundleIdentifier/.test(c));
     ok(/cfg\.width = Int\(rect\.width \* scale\)/.test(c) && /cfg\.showsCursor = false/.test(c));
   });
+  test('框选层不抢焦点：是不激活 App 的面板（普通窗口一成为键盘窗口就把主窗口带到前面 —— 真机实测）', () => {
+    ok(/final class MTShotOverlayWindow: NSPanel \{/.test(c));
+    ok(/styleMask: \[\.borderless, \.nonactivatingPanel\]/.test(c) && /hidesOnDeactivate = false/.test(c));
+    ok(!/NSApp\.activate|activate\(ignoringOtherApps/.test(c), '这份文件里不许激活 App');
+  });
   test('④ 小于 12 × 12 当误触、Esc 取消：都不截、不出面板', () => {
     ok(/guard let r = rect, r\.width >= 12, r\.height >= 12 else \{ done\?\(nil\); return \}/.test(c));
     ok(/if event\.keyCode == 53 \{ pick\(nil, target\) \}/.test(c));

@@ -157,14 +157,18 @@ final class MTScreenShot {
 }
 
 /// 一块屏一层：变暗、十字光标、拖出矩形（矩形里不变暗）、右下角标尺寸、Esc 取消。
-final class MTShotOverlayWindow: NSWindow {
+/// **必须是不激活 App 的面板**：普通窗口一成为键盘窗口就把整个 App 激活，主窗口跟着盖到用户正在看的东西前面
+/// （真机 2026-09-19 实测）。要收 Esc 就得当键盘窗口，所以靠 .nonactivatingPanel 而不是「不当键盘窗口」。
+final class MTShotOverlayWindow: NSPanel {
     private let pick: (NSRect?, NSScreen) -> Void
     private let target: NSScreen
 
     init(screen: NSScreen, pick: @escaping (NSRect?, NSScreen) -> Void) {
         self.pick = pick
         self.target = screen
-        super.init(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        super.init(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        isFloatingPanel = true
+        hidesOnDeactivate = false
         isOpaque = false
         backgroundColor = .clear
         level = .screenSaver
