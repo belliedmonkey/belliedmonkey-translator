@@ -44,7 +44,9 @@ describe('App 外壳 — app/index.html 没有无人本地化的中文', () => {
       if (!CJK.test(text)) continue;
       if (/\bdata-i18n=/.test(attrs)) continue;
       if (text === BRAND) continue;
-      if (tag === 'option' && /\bvalue="(zh_CN|zh_TW|ja)"/.test(attrs)) continue;
+      // 语言的 endonym 按定义不翻译。两个选择器：界面语言用 Chrome 的 locale 码（zh_CN），
+      // 「译成」（2026-09-19）用目标语言码（zh-CN）。
+      if (tag === 'option' && /\bvalue="(zh_CN|zh_TW|zh-CN|zh-TW|ja)"/.test(attrs)) continue;
       const id = (attrs.match(/\bid="([^"]+)"/) || [])[1];
       if (id && setsText(id)) continue;
       bad.push(`<${tag}${id ? ` id="${id}"` : ''}>${text}`);

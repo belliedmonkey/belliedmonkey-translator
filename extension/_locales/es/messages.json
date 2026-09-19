@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "integrado en el dispositivo (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Traducir a"
+  },
+  "target_lang_follow": {
+    "message": "Seguir el idioma de la interfaz ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Se usa en la traducción de documentos, la traducción del sistema y la traducción rápida. La conversación y los subtítulos en vivo tienen sus propios ajustes de idioma."
   }
 }

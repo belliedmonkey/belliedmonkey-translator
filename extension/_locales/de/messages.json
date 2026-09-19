@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "auf dem Gerät (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Übersetzen nach"
+  },
+  "target_lang_follow": {
+    "message": "Der Oberflächensprache folgen ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Gilt für Dokumentübersetzung, Systemübersetzung und Schnellübersetzung. Gespräch und Live-Untertitel haben eigene Spracheinstellungen."
   }
 }

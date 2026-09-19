@@ -3145,5 +3145,14 @@
   },
   "dep_live_device": {
     "message": "intégré à l’appareil (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Traduire en"
+  },
+  "target_lang_follow": {
+    "message": "Suivre la langue de l’interface ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Utilisé par la traduction de documents, la traduction système et la traduction rapide. La conversation et les sous-titres en direct ont leurs propres réglages de langue."
   }
 }

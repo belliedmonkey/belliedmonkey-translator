@@ -17,7 +17,7 @@ var AppDocs = (() => {
   // notes* 四个与 listen.js 同理：从不写，只为 LearnNotes.resolveConfig 解出同一个引擎。
   const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel',
     'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    'uiLang', 'learnRules', 'learnEnabled', 'docCapture', 'docPrefetch', 'grantTail'];
+    'uiLang', 'targetLang', 'learnRules', 'learnEnabled', 'docCapture', 'docPrefetch', 'grantTail'];
 
   let view = null;
   let cameFrom = 'signed-in';
@@ -28,11 +28,10 @@ var AppDocs = (() => {
       chrome.storage.local.get(READ_KEYS, (s) => {
         s = s || {};
         const tr = LearnNotes.resolveConfig(s);
-        // App 没有 targetLang 控件：译成界面语言（§3.1.4 已知缺口，与听译/播客同一回落）。
-        const ui = s.uiLang && s.uiLang !== 'auto' ? s.uiLang : '';
+        // 「译成」（2026-09-19 补上的设置）；没选过就跟随界面语言，即此前的行为。唯一出口 AppTargetLang。
         resolve({
           provider: tr.provider || '', apiKey: tr.apiKey || '', apiBaseUrl: tr.baseUrl || '', apiModel: tr.model || '',
-          targetLang: ui || navigator.language || TranslationCore.DEFAULT_TARGET_LANG,
+          targetLang: AppTargetLang.resolve(s, navigator.language, TranslationCore.DEFAULT_TARGET_LANG),
           uiLang: s.uiLang, learnRules: s.learnRules, learnEnabled: s.learnEnabled,
           docCapture: s.docCapture, docPrefetch: s.docPrefetch, grantTail: s.grantTail,
         });

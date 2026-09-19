@@ -123,6 +123,7 @@ const MODULES = [
   'extension/learn/dialog.js',           // LearnDialog — 页内确认框（App 的 WKWebView 没有 window.confirm）
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
+  'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
   'app/settings.js',                     // AppSettings — the learning layer's own knobs
   'app/now-playing-art.js',              // NowPlayingArt — §9.5 锁屏封面：把当前卡片画成
                                          // 一张 1024² 的图交给原生。纯 canvas 图元（file://

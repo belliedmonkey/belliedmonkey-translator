@@ -3146,5 +3146,14 @@
   },
   "dep_live_device": {
     "message": "裝置內建（本機 · iOS 26 / macOS 26）"
+  },
+  "target_lang_label": {
+    "message": "譯成"
+  },
+  "target_lang_follow": {
+    "message": "跟隨介面語言（{lang}）"
+  },
+  "target_lang_hint": {
+    "message": "文件翻譯、系統翻譯與快速翻譯會用它。對話 · 即時字幕有自己的語言設定。"
   }
 }
