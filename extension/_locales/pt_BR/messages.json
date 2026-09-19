@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "Selecionar de novo"
+  },
+  "quick_menu_clip": {
+    "message": "Traduzir a área de transferência"
+  },
+  "quick_menu_input": {
+    "message": "Digitar para traduzir"
+  },
+  "quick_clip_blocked": {
+    "message": "O macOS não nos deixou ler a área de transferência. Permita em Ajustes do Sistema › Privacidade e Segurança › Colar de Outros Apps, ou use o menu Serviços do clique direito."
   }
 }

@@ -11,9 +11,10 @@
 //   JS → 原生  quick-probe                       问原生有哪些能力（老原生壳不回 ⇒ 页面不显示这一块）
 //              quick-config {enabled, seen, labels}   开关、是否已经看过「还在菜单栏」的提示、菜单文案
 //              quick-close-main                  页面上的提示读完了：现在把主窗口收起来
-//   原生 → JS  quick-caps {resident}             能力回执
+//   原生 → JS  quick-caps {resident, panel}      能力回执
 //              quick-first-close                 用户第一次关主窗口：先别关，让页面说一句
-//              quick-open-settings               菜单里点了「快速翻译设置…」
+//              quick-open-settings               菜单里点了「快速翻译设置…」（或面板里点了「打开设置」）
+//              quick-capture · quick-result      面板页交来的，原样中继（quick-panel.swift）：进复习库 / 遥测只归主页面
 //
 // 这里没有任何给用户看的文案：菜单标题全部由 JS 经 labels 给（12 个语种在 _locales 里）。
 #if os(macOS)
@@ -48,7 +49,7 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
         case "quick-probe":
-            emit(["type": "quick-caps", "resident": true])
+            emit(["type": "quick-caps", "resident": true, "panel": true])
         case "quick-config":
             enabled = (body["enabled"] as? Bool) ?? false
             seen = (body["seen"] as? Bool) ?? false
@@ -76,14 +77,22 @@ final class MTResident: NSObject, WKScriptMessageHandler {
             }
             item?.menu = buildMenu()
             installCloseGuard()
-        } else if let it = item {
-            NSStatusBar.system.removeStatusItem(it)
-            item = nil
+            MTQuickPanel.shared.enable()
+        } else {
+            if let it = item { NSStatusBar.system.removeStatusItem(it); item = nil }
+            MTQuickPanel.shared.disable()
         }
     }
 
     private func buildMenu() -> NSMenu {
         let m = NSMenu()
+        let clip = NSMenuItem(title: labels["clip"] ?? "", action: #selector(menuClipboard), keyEquivalent: "t")
+        // 只是把全局快捷键写在菜单上；真正的注册在 MTHotkey
+        clip.keyEquivalentModifierMask = [.control, .option]
+        clip.target = self
+        let input = NSMenuItem(title: labels["input"] ?? "", action: #selector(menuInput), keyEquivalent: "")
+        input.target = self
+        m.addItem(clip); m.addItem(input); m.addItem(.separator())
         let open = NSMenuItem(title: labels["open"] ?? "", action: #selector(menuOpen), keyEquivalent: "")
         open.target = self
         let settings = NSMenuItem(title: labels["settings"] ?? "", action: #selector(menuSettings), keyEquivalent: "")
@@ -94,7 +103,14 @@ final class MTResident: NSObject, WKScriptMessageHandler {
     }
 
     @objc private func menuOpen() { showMainWindow() }
-    @objc private func menuSettings() { showMainWindow(); emit(["type": "quick-open-settings"]) }
+    @objc private func menuSettings() { openSettings() }
+    @objc private func menuClipboard() { MTQuickPanel.shared.translateClipboard() }
+    @objc private func menuInput() { MTQuickPanel.shared.typeToTranslate() }
+
+    func openSettings() { showMainWindow(); emit(["type": "quick-open-settings"]) }
+
+    /// 面板页交来的消息原样交给主页面（quick-capture / quick-result）。
+    func relay(_ payload: [String: Any]) { emit(payload) }
 
     private func mainWindowNow() -> NSWindow? {
         if let w = mainWindow { return w }

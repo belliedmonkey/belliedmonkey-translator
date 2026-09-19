@@ -3281,5 +3281,14 @@
   },
   "quick_shot_again": {
     "message": "重新框選"
+  },
+  "quick_menu_clip": {
+    "message": "翻譯剪貼簿"
+  },
+  "quick_menu_input": {
+    "message": "輸入翻譯"
+  },
+  "quick_clip_blocked": {
+    "message": "系統沒有讓我們讀取剪貼簿。到「系統設定 › 隱私權與安全性 › 從其他 App 貼上」裡允許，或改用右鍵「服務」。"
   }
 }

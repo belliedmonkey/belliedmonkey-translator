@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "Sélectionner à nouveau"
+  },
+  "quick_menu_clip": {
+    "message": "Traduire le presse-papiers"
+  },
+  "quick_menu_input": {
+    "message": "Saisir pour traduire"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS ne nous a pas laissé lire le presse-papiers. Autorisez-le dans Réglages Système › Confidentialité et sécurité › Coller depuis d’autres apps, ou utilisez le menu Services du clic droit."
   }
 }

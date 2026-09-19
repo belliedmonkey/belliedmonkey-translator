@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "Select again"
+  },
+  "quick_menu_clip": {
+    "message": "Translate Clipboard"
+  },
+  "quick_menu_input": {
+    "message": "Type to Translate"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS did not let us read the clipboard. Allow it in System Settings › Privacy & Security › Paste from Other Apps, or use the right-click Services menu instead."
   }
 }

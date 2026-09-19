@@ -381,6 +381,8 @@ const BLOCKS = [
   // 快速翻译的菜单栏常驻 + mtQuick 桥（learning-design §9.9）。整份 #if os(macOS)；attach 见 patchViewController 的
   // install 行；AppDelegate「关窗不退出」那一处与实时字幕共用一条补丁，见 DELEGATE_PATCHES。
   { name: 'mt-resident', src: 'resident.swift', label: 'resident' },
+  { name: 'mt-hotkey', src: 'hotkey.swift', label: 'hotkey' },
+  { name: 'mt-quick-panel', src: 'quick-panel.swift', label: 'quick panel' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

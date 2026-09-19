@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "다시 선택"
+  },
+  "quick_menu_clip": {
+    "message": "클립보드 번역"
+  },
+  "quick_menu_input": {
+    "message": "입력하여 번역"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS가 클립보드 읽기를 허용하지 않았습니다. 「시스템 설정 › 개인정보 보호 및 보안 › 다른 앱에서 붙여넣기」에서 허용하거나, 오른쪽 클릭 「서비스」를 사용하세요."
   }
 }

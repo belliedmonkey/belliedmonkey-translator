@@ -30,6 +30,7 @@
     if (c.concealed) return { kind: 'concealed', text: '' };
     const text = typeof c.text === 'string' ? c.text.trim() : '';
     if (!text) return { kind: 'empty', text: '' };
+    if (c.own && typeof last === 'string' && last.trim()) return { kind: 'same', text: last.trim() };
     if (typeof last === 'string' && last.trim() === text) return { kind: 'same', text };
     return { kind: 'ok', text };
   }

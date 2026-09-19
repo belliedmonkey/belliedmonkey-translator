@@ -3363,9 +3363,9 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 
 | 方向 | 消息 |
 |---|---|
-| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?}` · `quick-ocr{lines}` |
-| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms}` · `quick-open-settings` · `quick-reselect` |
-| 原生 → 主页面 | `quick-caps{resident, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh}` · `quick-ocr{lines}` |
+| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` |
+| 原生 → 主页面 | `quick-caps{resident, panel, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
 | 主页面 → 原生 | `quick-probe` · `quick-config{…}` · `quick-close-main` · `quick-request-perm{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
 
 **一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
@@ -3373,6 +3373,10 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 各自的 `PROTOCOL` 表是闭集，`test:quick` 断言面板页的出站消息全在表内。`origin`（`selection | clipboard |
 service | screen | typed`）只决定来源标签与「零权限三陷阱」走不走；`via` 才是进复习库的那个闭集。
 `concealed:true` 时原生**不带 `text`**，面板页也不会去读它（`HandoffCore.classifyClipboard` 先看标记）。
+`own:true` = 剪贴板里是我们自己刚复制出去的译文（原生在 `quick-copy` 时记下 `changeCount`）⇒ 当作「和上次一样」，
+不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
+`fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
+面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
 `quick-result` 是遥测的中继：面板页不初始化 `MTTelemetry`（心跳与补发只归主页面），成功 / 失败交给主页面去发
 `translate_ok{kind:'quick'}` / `translate_fail`。
 

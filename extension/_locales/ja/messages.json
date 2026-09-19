@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "もう一度範囲を選ぶ"
+  },
+  "quick_menu_clip": {
+    "message": "クリップボードを翻訳"
+  },
+  "quick_menu_input": {
+    "message": "入力して翻訳"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS がクリップボードの読み取りを許可しませんでした。「システム設定 › プライバシーとセキュリティ › ほかの App からペースト」で許可するか、右クリックの「サービス」をお使いください。"
   }
 }

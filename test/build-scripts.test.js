@@ -1583,13 +1583,74 @@ describe('sync-app-assets: 快速翻译的菜单栏常驻（learning-design §9.
     const grab = (k) => (src.match(new RegExp(k + ':\\s*\\[([^\\]]*)\\]')) || [])[1].match(/'([^']+)'/g).map((s) => s.slice(1, -1));
     const body = code(tpl);
     for (const v of grab('toNative')) ok(body.includes(`case "${v}":`), `toNative「${v}」在 resident.swift 里没有 case`);
-    for (const v of grab('fromNative')) ok(body.includes(`"${v}"`), `fromNative「${v}」在 resident.swift 里从未发出`);
+    // 两条是面板页交来、由 quick-panel.swift 原样中继的：字面量在那份文件的 relay 分支里。
+    const relayed = (code(fs.readFileSync(path.join(R, 'app', 'native', 'quick-panel.swift'), 'utf8')).match(/case ([^\n]*):\s*\n\s*MTResident\.shared\.relay\(body\)/) || [])[1] || '';
+    for (const v of grab('fromNative')) ok(body.includes(`"${v}"`) || relayed.includes(`"${v}"`), `fromNative「${v}」既没有在 resident.swift 里发出，也不在 quick-panel.swift 的中继分支里`);
+    deepEq(relayed.match(/"([^"]+)"/g).map((x) => x.slice(1, -1)).sort(), ['quick-capture', 'quick-result'], '中继的只该是这两条 —— 多一条就是面板页能直接指挥主页面');
     match(tpl, /static let channel = "mtQuick"/); ok(src.includes("const CHANNEL = 'mtQuick'"));
   });
   test('第一次关窗：先让页面说话，读完才收；之后直接收起', () => {
     ok(/if !seen \{[\s\S]*?"quick-first-close"[\s\S]*?return false/.test(tpl), '第一次关窗没有把事情交给页面');
     ok(/case "quick-close-main":\s*\n\s*seen = true\s*\n\s*mainWindowNow\(\)\?\.orderOut\(nil\)/.test(tpl));
     ok(/static var keepAlive: Bool \{ shared\.enabled \}/.test(tpl) && /private var enabled = false/.test(tpl), '页面还没发来配置之前必须是老行为（关窗即退出）');
+  });
+});
+
+// ── 快速翻译面板（M-3）：面板页 ↔ quick-panel.swift 的协议镜像、零权限路径的三条纪律 ─────────────────
+describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => {
+  const R2 = path.join(__dirname, '..');
+  const strip = (s) => s.replace(/\/\/.*$/gm, '');
+  const swift = fs.readFileSync(path.join(R2, 'app', 'native', 'quick-panel.swift'), 'utf8');
+  const hot = fs.readFileSync(path.join(R2, 'app', 'native', 'hotkey.swift'), 'utf8');
+  const js = fs.readFileSync(path.join(R2, 'app', 'quick.js'), 'utf8');
+  const grab = (k) => (js.match(new RegExp(k + ':\\s*\\[([^\\]]*)\\]')) || [])[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1));
+  test('面板页发的每一条，原生都有 case；原生发的每一条，面板页都认', () => {
+    const body = strip(swift);
+    const cases = [...body.matchAll(/case ((?:"[^"]+"(?:, )?)+):/g)].flatMap((m) => m[1].match(/"([^"]+)"/g).map((x) => x.slice(1, -1)));
+    deepEq(cases.slice().sort(), grab('toNative').slice().sort(), 'toNative 与 swift 的 case 不是同一个集合');
+    for (const v of grab('fromNative')) ok(body.includes(`"${v}"`) || v === 'quick-ocr', `fromNative「${v}」从未发出`);   // quick-ocr 在 M-6
+    match(swift, /static let channel = "mtQuick"/); ok(js.includes("const CHANNEL = 'mtQuick'"));
+  });
+  test('两个块都在 BLOCKS 里、整份 #if os(macOS)、代码里没有给用户看的文案', () => {
+    const { BLOCKS } = require(path.join(R2, 'scripts', 'sync-app-assets.js'));
+    for (const [src, name] of [['hotkey.swift', 'mt-hotkey'], ['quick-panel.swift', 'mt-quick-panel']]) ok(BLOCKS.some((b) => b.src === src && b.name === name), name);
+    for (const s of [swift, hot]) {
+      const c = strip(s).trim(); ok(c.startsWith('#if os(macOS)') && c.endsWith('#endif'));
+      ok(!/[一-鿿]/.test(strip(s).replace(/\/\/\/.*$/gm, '')), '代码里出现了中文字面量');
+    }
+  });
+  test('隐藏 / 临时标记 ⇒ 根本不读文字（读文字的那一行只在 else 里）', () => {
+    const body = strip(swift);
+    ok(/org\.nspasteboard\.ConcealedType/.test(body) && /org\.nspasteboard\.TransientType/.test(body));
+    eq((body.match(/pb\.string\(forType/g) || []).length, 1, '读剪贴板文字的地方只该有一处');
+    ok(/if concealed \{\s*out\["concealed"\] = true\s*\} else \{[\s\S]*?pb\.string\(forType: \.string\)/.test(body), '读文字不在 concealed 的 else 分支里');
+  });
+  test('读剪贴板在后台队列 + 1 秒超时（剪贴板隐私开着时后台读取会卡住不返回）', () => {
+    const body = strip(swift);
+    ok(/DispatchQueue\.global\(qos: \.userInitiated\)\.async \{\s*let pb = NSPasteboard\.general/.test(body), '读取不在后台队列');
+    ok(/asyncAfter\(deadline: \.now\(\) \+ 1\) \{ if !finished \{ finished = true; done\(\["blocked": true\]\) \} \}/.test(body), '没有超时出口');
+  });
+  test('自己复制出去的译文记下 changeCount ⇒ 下次报 own，不再翻一遍', () => {
+    const body = strip(swift);
+    ok(/ownChangeCount = pb\.changeCount/.test(body) && /if pb\.changeCount == own \{ out\["own"\] = true \}/.test(body));
+    const C = require(path.join(R2, 'app', 'quick-core.js'));
+    deepEq(C.classifyClipboard({ text: '译文', own: true }, 'Source text'), { kind: 'same', text: 'Source text' });
+    eq(C.classifyClipboard({ text: '译文', own: true }, '').kind, 'ok', '没有上一次（App 刚重开）⇒ 照常翻');
+  });
+  test('钉住后 Esc 与点外面都不关；Esc 的全局占用只在面板可见且未钉住时', () => {
+    const body = strip(swift);
+    ok(/private func startDismissWatch\(\) \{\s*stopDismissWatch\(\)\s*guard !pinned else \{ return \}/.test(body));
+    ok(/func hide\(\) \{\s*stopDismissWatch\(\)/.test(body), '收起时没有释放 Esc');
+  });
+  test('面板不是 key 窗口时，第一下点击就算数（不然复制 / 钉住 / 关闭要点两次）', () => {
+    const body = strip(swift);
+    ok(/final class MTQuickWebView: WKWebView \{\s*override func acceptsFirstMouse\(for event: NSEvent\?\) -> Bool \{ true \}/.test(body));
+    ok(/let w = MTQuickWebView\(frame:/.test(body), '面板用的不是放开了第一下点击的那个子类');
+  });
+  test('常驻关 ⇒ 面板与快捷键一起拆掉', () => {
+    const res = strip(fs.readFileSync(path.join(R2, 'app', 'native', 'resident.swift'), 'utf8'));
+    ok(/MTQuickPanel\.shared\.enable\(\)/.test(res) && /MTQuickPanel\.shared\.disable\(\)/.test(res));
+    ok(/func disable\(\) \{\s*MTHotkey\.shared\.unregister\(id: MTQuickPanel\.hotkeyClipboard\)/.test(strip(swift)));
   });
 });
 

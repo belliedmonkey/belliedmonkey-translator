@@ -3280,5 +3280,14 @@
   },
   "quick_shot_again": {
     "message": "Erneut auswählen"
+  },
+  "quick_menu_clip": {
+    "message": "Zwischenablage übersetzen"
+  },
+  "quick_menu_input": {
+    "message": "Text eingeben und übersetzen"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS hat das Lesen der Zwischenablage nicht erlaubt. In Systemeinstellungen › Datenschutz & Sicherheit › Aus anderen Apps einsetzen erlauben, oder stattdessen das Dienste-Menü per Rechtsklick verwenden."
   }
 }
