@@ -89,7 +89,7 @@ function langRow(page, langs, current) {
     ? `<strong>${esc(l.name)}</strong>`
     : `<a href="${urlFor(page, l.code)}" hreflang="${l.code}">${esc(l.name)}</a>`)).join('\n  ');
   return '<!-- langrow:start -->\n<nav aria-label="Language" style="max-width:760px;margin:28px auto 12px;'
-    + 'padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem;opacity:.75">\n  '
+    + 'padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;font-size:.85rem">\n  '
     + links + '\n</nav>\n<!-- langrow:end -->';
 }
 
