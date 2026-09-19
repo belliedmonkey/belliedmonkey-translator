@@ -383,3 +383,37 @@ describe('§8.10 没有额度就没有那张卡（中国版 / 开关未翻）', 
     eq(G.officialCard({ t, flavor: 'china', keyUrl: 'https://x.invalid' }), null);
   });
 });
+
+// grant_claimed 记在 claim() 里，不记在调用方（telemetry-design §3.4）。09-19 查实：它此前只挂在
+// 扩展设置页的按钮 handler 里，App 的领取路径一条都不记 —— 而 claim() 是两个宿主同一份字节。
+describe('§3.4 grant_claimed —— claim() 自己记，两个宿主一处覆盖', () => {
+  const run = async (body, status) => {
+    const seen = [];
+    const win = Object.assign({ MT_GRANT: SPEC }, REG);
+    const ctx = loadModule(['learn/quick-setup.js', 'learn/grant.js'], {
+      window: win, document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
+      chrome: { i18n: { getMessage: () => '' } },
+      MTTelemetry: { track: (n, p) => { seen.push([n, p]); return Promise.resolve(true); } },
+    });
+    let err = null;
+    try {
+      await ctx.LearnGrant.claim({
+        auth: { token: async () => 'jwt' }, backend: { anonKey: 'anon' },
+        fetch: async () => ({ ok: (status || 200) < 300, status: status || 200, json: async () => body }),
+      });
+    } catch (e) { err = e; }
+    return { seen, err };
+  };
+  test('新领到一枚 ⇒ 恰好一条 grant_claimed，无属性', async () => {
+    const { seen, err } = await run({ token: TOKEN, limit_usd: 0.2, spent_usd: 0, reused: false });
+    eq(err, null); eq(seen.length, 1); eq(seen[0][0], 'grant_claimed'); deepEq(seen[0][1], {});
+  });
+  test('reused（读余额 / 重新登录拿回同一枚）⇒ 不记：那不是一次新的领取', async () => {
+    const { seen } = await run({ token: TOKEN, limit_usd: 0.2, spent_usd: 0.05, reused: true });
+    eq(seen.length, 0);
+  });
+  test('领取失败 ⇒ 不记（Collector law 2 的同一条：绝不在失败路径上）', async () => {
+    const { seen, err } = await run({ error: 'grant_unavailable' }, 503);
+    eq(err && err.code, 'grant_unavailable'); eq(seen.length, 0);
+  });
+});

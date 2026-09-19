@@ -76,12 +76,19 @@ var LearnGrant = (function () {
       e.status = res.status;
       throw e;
     }
-    return {
+    const claimed = {
       token: String(body.token || ''),
       limitUsd: Number(body.limit_usd || sp.limitUsd || 0),
       spentUsd: Number(body.spent_usd || 0),
       reused: !!body.reused,
     };
+    // grant_claimed 记在**这里**，不记在调用方（telemetry-design §3.4）。此前它挂在扩展设置页
+    // 的按钮 handler 里，App 的领取路径没有 —— 于是 #297 把「免费开始」提成 App 引导的默认
+    // 路径之后，那条路上一条读数都没有。claim() 是两个宿主同一份字节，包在这一层一处覆盖全部
+    // （同 engine-test.js 包在导出处的理由）。`reused` = 服务端回传的是已有的那一枚（读余额、
+    // 重新登录）⇒ 不是一次新的领取，不记。
+    try { if (!claimed.reused && typeof MTTelemetry !== 'undefined') MTTelemetry.track('grant_claimed', {}); } catch (_) {}
+    return claimed;
   }
 
   // ── 把令牌变成三槽配置 ─────────────────────────────────────────────────

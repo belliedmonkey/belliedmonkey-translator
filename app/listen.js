@@ -208,11 +208,51 @@ var AppListen = (() => {
   }
 
   // ── 翻译 ──────────────────────────────────────────────────────────────────
-  async function translate(text, toLang) {
+  // errOut：定稿行的调用方传一个空对象进来接住错误（遥测要它的 code）；半句的增量翻译不传 ——
+  // 半句失败没有界面后果，也不记。
+  async function translate(text, toLang, errOut) {
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
     try {
       return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-    } catch (_) { return ''; }
+    } catch (e) { if (errOut) errOut.err = e; return ''; }
+  }
+
+  // ── 用量事件（docs/telemetry-design.md §3.3 裁定 1、§3.4 裁定 A）────────────────
+  // App 的听译 / 实时字幕出译文 ⇒ translate_ok{kind:'subtitle'}：`host='app'` 已经把它与网页
+  // 视频字幕分开，不新增 kind。与网页侧同义 —— **每个会话一次**（第一句定稿译文落地），
+  // 不是每句一条。这条 09-16 就裁定了，却只进了文档没进代码：1.12.x 有 7 台开始了听译，
+  // 译文事件 0 条（§3.4）。
+  //
+  // 失败同理：每个会话、每个 code 至多一条 —— 一场里三十句全 401 是一件事，不是三十件
+  // （网页侧一段一条，5 天里 308 条 401 来自同一台机器，§3.1）。只记**请求真的失败**：
+  // 没配引擎（没有 err）不是一次失败的翻译，那是 asr_entry / engine_set 回答的问题。
+  // 没有原文、没有地址 —— 只有引擎 id、错误码、状态码、通路。
+  function tmProvider() { return String((cfg && cfg.tr && cfg.tr.provider) || ''); }
+  function tmOk() {
+    if (!session || session.tmOk) return;
+    session.tmOk = true;
+    try {
+      if (typeof MTTelemetry !== 'undefined') {
+        MTTelemetry.track('translate_ok', { provider: tmProvider(), kind: 'subtitle', ms: Math.max(0, now() - session.startedAt) });
+      }
+    } catch (_) {}
+  }
+  function tmFail(e) {
+    if (!session || !e) return;
+    const code = typeof e.code === 'string' ? e.code : 'network';
+    session.tmFailed = session.tmFailed || {};
+    if (session.tmFailed[code]) return;
+    session.tmFailed[code] = true;
+    try {
+      if (typeof MTTelemetry !== 'undefined') {
+        MTTelemetry.track('translate_fail', {
+          provider: tmProvider(), code,
+          status: Number.isInteger(e.status) ? e.status : 0,
+          route: e.route === 'proxy' ? 'proxy' : (e.route === 'direct' ? 'direct' : ''),
+          ms: Math.max(0, now() - session.startedAt),
+        });
+      }
+    } catch (_) {}
   }
   // 方向的唯一来源：我说的译成对方的语言，对方说的译成我的语言。改边（↔）之后同一行
   // 会换一个方向重译，所以它必须**按 row.who 现算**，不能记在行上。
@@ -223,10 +263,12 @@ var AppListen = (() => {
     const myGen = gen;
     row.trErr = false; row.trBusy = true; renderHistory();
     const t0 = now();
-    const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang);
+    const eo = {};
+    const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang, eo);
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
+    if (row.tr) tmOk(); else tmFail(eo.err);
     renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -250,16 +292,17 @@ var AppListen = (() => {
       srcLang, dstLang, srcName: langName(srcLang), dstName: langName(dstLang),
       context: C.contextRows(session ? session.rows : [], row),
     });
-    let reply = '';
+    let reply = '', passErr = null;
     const t0 = now();
     try {
       reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-    } catch (_) { reply = ''; }
+    } catch (e) { reply = ''; passErr = e; }
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
+    if (row.tr) tmOk(); else tmFail(passErr);
     renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }

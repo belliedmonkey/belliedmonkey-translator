@@ -743,16 +743,22 @@ var AppSettings = (() => {
     if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
     await paint(session, say);
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
-    // 对称于扩展设置页 options.js 的 maybeTrackEngineSet。一键卡是 App 里设置**主翻译
-    // 引擎**的唯一入口 —— app/index.html 没有 provider 下拉（只有 tts-engine /
-    // notes-provider / stt-engine），writes.provider 只可能来自 quick-setup.js。所以
-    // engine_set 只能挂在这里；漏了它，telemetry-design §1 第一问的激活漏斗
-    //「配了引擎 → 翻出东西」在 App 上就是黑的（2026-09-16 查实：App 侧 0 条）。
-    //
-    // 判据走 EngineState.needsSetup，与扩展那侧**同一个出口**，不另写一份
-    // （engine-state.js 那条「没有人再另写一份判据」由 test/engine-state.test.js 守着）。
-    // 一键卡必带 key，所以这里几乎总为真；照样走判据，是为了两个宿主的 engine_set
-    // 永远表示同一件事 —— 否则同一个数在两张表里含义不同，比没有更糟。
+    await trackEngineSet();
+  }
+
+  // 对称于扩展设置页 options.js 的 maybeTrackEngineSet。App 里写**主翻译引擎**的路有两条：
+  // 一键卡（applyQuickSetup）与领免费额度（onGrantAction 的 claim / restore）——
+  // app/index.html 没有 provider 下拉（只有 tts-engine / notes-provider / stt-engine）。
+  // 两条都要走到这里；漏了任何一条，telemetry-design §1 第一问的激活漏斗「配了引擎 →
+  // 翻出东西」在 App 上就缺一段。09-16 补一键卡时写的是「一键卡是唯一入口」，那句话当时
+  // 就不成立：领取直接 set(plan.writes)、不经 applyQuickSetup，于是 #297 把「免费开始」
+  // 提成引导的默认路径之后，默认路径上没有 engine_set（telemetry-design §3.4）。
+  //
+  // 判据走 EngineState.needsSetup，与扩展那侧**同一个出口**，不另写一份
+  // （engine-state.js 那条「没有人再另写一份判据」由 test/engine-state.test.js 守着）。
+  // 两条路写完都带 key，所以这里几乎总为真；照样走判据，是为了两个宿主的 engine_set
+  // 永远表示同一件事 —— 否则同一个数在两张表里含义不同，比没有更糟。
+  async function trackEngineSet() {
     try {
       const cur = await get(KEYS.concat(['engineChosen']));
       if (typeof EngineState !== 'undefined' && typeof MTTelemetry !== 'undefined'
@@ -817,6 +823,8 @@ var AppSettings = (() => {
       const plan = LearnGrant.plan(claimed, cur, window, { overwrite: id === 'restore' });
       if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
       if (plan.marks) await set(plan.marks);
+      // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。
+      if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
       // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
       const wroteAny = plan.tests && plan.tests.length > 0;
       if (hooks.say) hooks.say(wroteAny
