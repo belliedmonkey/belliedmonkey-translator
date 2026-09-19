@@ -1654,6 +1654,59 @@ describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => 
   });
 });
 
+// ── 增强取词（M-5）：capture.swift 的四条不变量，对着源码钉 ─────────────────────────────────────────
+describe('quick capture — app/native/capture.swift', () => {
+  const R4 = path.join(__dirname, '..');
+  const strip = (x) => x.replace(/\/\/.*$/gm, '');
+  const raw = fs.readFileSync(path.join(R4, 'app', 'native', 'capture.swift'), 'utf8');
+  const c = strip(raw);
+  const panel = strip(fs.readFileSync(path.join(R4, 'app', 'native', 'quick-panel.swift'), 'utf8'));
+  const at = (needle) => { const i = c.indexOf(needle); ok(i >= 0, '找不到：' + needle); return i; };
+  test('登记成标记块、整份 #if os(macOS)、没有给用户看的文案', () => {
+    const { BLOCKS } = require(path.join(R4, 'scripts', 'sync-app-assets.js'));
+    ok(BLOCKS.some((b) => b.src === 'capture.swift' && b.name === 'mt-capture'));
+    ok(c.trim().startsWith('#if os(macOS)') && c.trim().endsWith('#endif'));
+    ok(!/[一-鿿]/.test(c.replace(/\/\/\/.*$/gm, '')));
+  });
+  test('① 先记下剪贴板，再按 ⌘C；剪贴板变过之后、任何一条返回之前，都先原样写回', () => {
+    ok(at('let before = snapshot(pb)') < at('down?.post(tap: .cghidEventTap)'), '快照必须在按键之前');
+    const gate = 'if pb.changeCount == count { finish(.text("")); return }';
+    const changed = c.slice(at(gate) + gate.length);
+    ok(changed.indexOf('restore(before, to: pb)') >= 0, '变过之后没有写回');
+    ok(changed.indexOf('restore(before, to: pb)') < changed.indexOf('finish('), '写回必须在交结果之前 —— 面板一出来，剪贴板就已经是原样');
+    eq((changed.match(/finish\(/g) || []).length, 2, '变过之后只该有两种结果：文字 / 隐藏');
+  });
+  test('② 0.3 秒内没变 ⇒ 交空文字；**这条分支里不读剪贴板**（绝不退回去翻旧剪贴板）', () => {
+    ok(/while pb\.changeCount == count, Date\(\)\.timeIntervalSince\(t1\) < 0\.3/.test(c));
+    ok(/if pb\.changeCount == count \{ finish\(\.text\(""\)\); return \}/.test(c));
+    const before = c.slice(0, at('if pb.changeCount == count { finish(.text("")); return }'));
+    ok(!/pb\.string\(forType/.test(before), '在确认剪贴板变过之前就读了文字');
+  });
+  test('③ 带隐藏 / 临时标记 ⇒ 根本不读文字；全文件读文字的地方只有一处', () => {
+    ok(/org\.nspasteboard\.ConcealedType/.test(c) && /org\.nspasteboard\.TransientType/.test(c));
+    ok(/let got = concealed \? nil : \(pb\.string\(forType: \.string\) \?\? ""\)/.test(c));
+    eq((c.match(/pb\.string\(forType/g) || []).length, 1);
+  });
+  test('④ 整个过程在后台队列、总时限 1 秒；回调恒在主线程、恒只来一次', () => {
+    ok(/DispatchQueue\.main\.asyncAfter\(deadline: \.now\(\) \+ 1\) \{ if !finished \{ finished = true; done\(\.blocked\) \} \}/.test(c));
+    ok(/DispatchQueue\.global\(qos: \.userInitiated\)\.async \{\s*let pb = NSPasteboard\.general/.test(c));
+    ok(/DispatchQueue\.main\.async \{ if !finished \{ finished = true; done\(o\) \} \}/.test(c));
+  });
+  test('按键只带 ⌘；先等用户松开快捷键的修饰键（不然宿主收到的是 ⌃⌥⌘C）', () => {
+    eq((c.match(/\.flags = \.maskCommand/g) || []).length, 2);
+    ok(at('flagsState(.combinedSessionState)') < at('down?.post(tap: .cghidEventTap)'));
+  });
+  test('用的是系统的请求接口；全仓库没有任何地方教用户手动把 App 加进列表', () => {
+    ok(/CGRequestPostEventAccess\(\)/.test(c) && /CGPreflightPostEventAccess\(\)/.test(c));
+    ok(!/AXIsProcessTrusted|kAXTrustedCheckOptionPrompt|AXUIElement/.test(c), '不读别的 App 的选区：沙盒里不可用，也过不了审');
+  });
+  test('快捷键：想开且**此刻**权限在 ⇒ 取词；否则落回剪贴板 —— 每次按键都重新读权限', () => {
+    ok(/func hotkeyPressed\(\) \{\s*if enhanced && MTQuickCapture\.granted \{ translateSelection\(\) \} else \{ translateClipboard\(\) \}/.test(panel));
+    ok(/static var granted: Bool \{ CGPreflightPostEventAccess\(\) \}/.test(c), 'granted 必须是现读的，不能缓存');
+    ok(/\{ \[weak self\] in self\?\.hotkeyPressed\(\) \}/.test(panel));
+  });
+});
+
 // ── 右键「服务」（M-4）：Info.plist 条目、12 语种菜单名、提供方 ─────────────────────────────────────
 describe('quick services — NSServices / ServicesMenu.strings / services.swift', () => {
   const R3 = path.join(__dirname, '..');

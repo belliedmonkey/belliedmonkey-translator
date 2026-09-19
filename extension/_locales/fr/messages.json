@@ -3234,7 +3234,7 @@
     "message": "Le contenu du presse-papiers est marqué comme masqué (sans doute un mot de passe). Il n’a pas été lu et rien n’a été envoyé."
   },
   "quick_clip_empty": {
-    "message": "Le presse-papiers ne contient pas de texte. Sélectionnez du texte, appuyez sur ⌘C, puis sur le raccourci."
+    "message": "Le presse-papiers ne contient pas de texte. Sélectionnez du texte, appuyez sur ⌘C, puis sur le raccourci — ou activez la capture améliorée dans les réglages pour vous passer de ⌘C."
   },
   "quick_clip_same": {
     "message": "Même texte que la dernière fois — avez-vous oublié ⌘C ?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "macOS ne nous a pas laissé lire le presse-papiers. Autorisez-le dans Réglages Système › Confidentialité et sécurité › Coller depuis d’autres apps, ou utilisez le menu Services du clic droit."
+  },
+  "quick_enh_label": {
+    "message": "Capture améliorée"
+  },
+  "quick_enh_hint": {
+    "message": "Sélectionnez du texte et appuyez sur le raccourci, sans ⌘C au préalable. Nécessite une autorisation système. Désactivée par défaut."
+  },
+  "quick_enh_explain_title": {
+    "message": "Activer la capture améliorée"
+  },
+  "quick_enh_explain_does": {
+    "message": "Ce qu’elle fait : quand vous appuyez sur le raccourci, elle appuie une fois sur ⌘C à votre place, lit le texte sélectionné, puis remet votre presse-papiers exactement comme avant."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "Ce qu’elle ne fait jamais : elle ne surveille pas votre clavier et ne lit rien tant que vous n’appuyez pas sur le raccourci."
+  },
+  "quick_enh_continue": {
+    "message": "Continuer"
+  },
+  "quick_enh_not_now": {
+    "message": "Pas maintenant"
+  },
+  "quick_enh_relaunch": {
+    "message": "Relancer maintenant"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Ouvrir Réglages Système"
+  },
+  "quick_enh_pending": {
+    "message": "Dans la fenêtre système qui s’est affichée, choisissez Ouvrir Réglages Système, trouvez « {app} » dans la liste et activez son interrupteur. Le réglage prend effet après avoir relancé l’app."
+  },
+  "quick_enh_denied": {
+    "message": "macOS n’a pas accordé l’autorisation : la capture améliorée reste désactivée. ⌘C puis le raccourci fonctionne toujours."
+  },
+  "quick_enh_lost": {
+    "message": "L’autorisation de la capture améliorée a été retirée : cette fois, c’est le presse-papiers qui a été traduit. Réactivez-la dans les réglages pour la rétablir."
   }
 }

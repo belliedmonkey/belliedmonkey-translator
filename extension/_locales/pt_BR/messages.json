@@ -3234,7 +3234,7 @@
     "message": "O conteúdo da área de transferência está marcado como oculto (provavelmente uma senha). Ele não foi lido e nada foi enviado."
   },
   "quick_clip_empty": {
-    "message": "Não há texto na área de transferência. Selecione um texto, pressione ⌘C e depois o atalho."
+    "message": "Não há texto na área de transferência. Selecione um texto, pressione ⌘C e depois o atalho — ou ative a captura aprimorada nos ajustes para dispensar o ⌘C."
   },
   "quick_clip_same": {
     "message": "É o mesmo texto da última vez — esqueceu de pressionar ⌘C?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "O macOS não nos deixou ler a área de transferência. Permita em Ajustes do Sistema › Privacidade e Segurança › Colar de Outros Apps, ou use o menu Serviços do clique direito."
+  },
+  "quick_enh_label": {
+    "message": "Captura aprimorada"
+  },
+  "quick_enh_hint": {
+    "message": "Selecione o texto e pressione o atalho, sem ⌘C antes. Precisa de uma permissão do sistema. Desativada por padrão."
+  },
+  "quick_enh_explain_title": {
+    "message": "Ativar a captura aprimorada"
+  },
+  "quick_enh_explain_does": {
+    "message": "O que faz: quando você pressiona o atalho, pressiona ⌘C uma vez por você, lê o texto selecionado e devolve sua área de transferência exatamente como estava."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "O que nunca faz: não monitora seu teclado e não lê nada a menos que você pressione o atalho."
+  },
+  "quick_enh_continue": {
+    "message": "Continuar"
+  },
+  "quick_enh_not_now": {
+    "message": "Agora não"
+  },
+  "quick_enh_relaunch": {
+    "message": "Reabrir agora"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Abrir Ajustes do Sistema"
+  },
+  "quick_enh_pending": {
+    "message": "Na janela do sistema que apareceu, escolha Abrir Ajustes do Sistema, encontre “{app}” na lista e ative o interruptor. Passa a valer depois de reabrir o app."
+  },
+  "quick_enh_denied": {
+    "message": "O macOS não concedeu a permissão, então a captura aprimorada continua desativada. Pressionar ⌘C e depois o atalho continua funcionando."
+  },
+  "quick_enh_lost": {
+    "message": "A permissão da captura aprimorada foi desativada, então desta vez a área de transferência foi traduzida. Ative-a de novo nos ajustes para restaurar."
   }
 }

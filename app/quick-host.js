@@ -9,10 +9,13 @@
   const CHANNEL = 'mtQuick';
   // 与 resident.swift 逐字对表（test/build-scripts.test.js 的协议镜像门）
   const PROTOCOL = {
-    toNative: ['quick-probe', 'quick-config', 'quick-close-main'],
+    toNative: ['quick-probe', 'quick-config', 'quick-close-main', 'quick-request-perm', 'quick-open-privacy', 'quick-relaunch'],
     fromNative: ['quick-caps', 'quick-first-close', 'quick-open-settings', 'quick-capture', 'quick-result'],
   };
-  const KEYS = ['quickEnabled', 'quickResidentSeen'];
+  // quickEnhanced：用户的**意图**（想开）。真正生效还要原生读到系统权限（caps.postEvent）。
+  // quickEnhancedNote：设置块里那一行该说什么 —— 'pending'（问过系统了，等重开）| 'denied'（重开后仍没有权限，开关已弹回）| ''。
+  // quickEnhancedLost：给面板页看的一次性标记 —— 权限没了、热键已退回剪贴板路径，下一次面板出来时说一句。
+  const KEYS = ['quickEnabled', 'quickResidentSeen', 'quickEnhanced', 'quickEnhancedNote'];
   const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);
 
   let caps = null;               // 原生回执；null = 还没回 / 这个壳没有
@@ -32,6 +35,8 @@
     const s = await get(KEYS);
     return post({
       type: 'quick-config', enabled: enabledOf(s), seen: !!s.quickResidentSeen,
+      // 原生每次按快捷键时还会自己再读一次系统权限：这里只是「用户想不想」。
+      enhanced: s.quickEnhanced === true,
       // 菜单标题由页面给：原生那份文件里没有任何给用户看的文案。
       labels: {
         open: t('quick_menu_open', '打开大肚猴翻译'),
@@ -55,9 +60,51 @@
     if (hooks.openSettings) hooks.openSettings('g-quick');
   }
 
+  // ── 增强取词（learning-design §9.9，M-5）────────────────────────────────────
+  // 平台现实：系统权限弹窗**不回调**允许还是拒绝，而且授权之后**正在运行的进程读不到**新权限（T2 读数：轮询数分钟
+  // 一直是 false，重开后第一行就是 true）。所以点了「继续」之后我们分不清两者，只能如实说「允许后重开才生效」；
+  // 真正的分晓在下一次启动：有权限 ⇒ 开关是开的；没有 ⇒ 意图弹回「关」+ 一句话（reconcile）。
+  const hasPostEvent = () => !!(caps && caps.postEvent === true);
+  const supportsEnhanced = () => !!(caps && typeof caps.postEvent === 'boolean');
+
+  // 启动时（原生回了 caps）对一次账：想开、却没有权限 ⇒ 弹回。事后被用户在系统设置里撤销也走这里。
+  async function reconcile() {
+    if (!supportsEnhanced()) return;
+    const s = await get(KEYS);
+    if (s.quickEnhanced === true && !hasPostEvent()) {
+      await set({ quickEnhanced: false, quickEnhancedNote: 'denied', quickEnhancedLost: s.quickEnhancedNote === 'pending' ? false : true });
+    } else if (hasPostEvent() && s.quickEnhancedNote) {
+      // 权限在，而说明还停在 pending / denied ⇒ 用户终究是给了：兑现他原来的意图，清掉那句话。
+      // 真机实测的顺序（2026-09-19）：重开发生在授权**之前**，那一次对账把意图弹回了「关」并标成 denied；用户随后授权、
+      // 再重开，权限有了，开关却还是关的，旁边还挂着「系统没有给权限」—— 那句话此刻是假的。
+      // 用户自己在设置里关掉的不在此列：那时说明是空的（setEnhanced(false) 会清掉它）。
+      await set({ quickEnhanced: true, quickEnhancedNote: '', quickEnhancedLost: false });
+    }
+  }
+
+  // 设置页的开关调这里。返回最终的开关状态（true = 显示为开）。
+  async function setEnhanced(on) {
+    if (!on) { await set({ quickEnhanced: false, quickEnhancedNote: '' }); return false; }
+    if (hasPostEvent()) { await set({ quickEnhanced: true, quickEnhancedNote: '' }); return true; }
+    // 系统弹窗之前，我们自己的话先到：会做 / 不会做各两条。
+    const msg = t('quick_enh_explain_title', '打开增强取词') + '\n\n'
+      + t('quick_enh_explain_does', '会做：你按快捷键时，替你按一次 ⌘C；读到选中的文字后，把剪贴板恢复成原来的样子。') + '\n\n'
+      + t('quick_enh_explain_doesnt', '不会做：不监听键盘，不在你没按快捷键时读任何东西。');
+    const go = hooks.confirm ? await hooks.confirm(msg, { ok: t('quick_enh_continue', '继续'), cancel: t('quick_enh_not_now', '先不开') }) : false;
+    if (!go) return false;
+    await set({ quickEnhanced: true, quickEnhancedNote: 'pending' });
+    post({ type: 'quick-request-perm', which: 'postEvent' });
+    return false;                      // 还没生效：开关保持「关」的样子，旁边那一行说明为什么
+  }
+  const relaunch = () => post({ type: 'quick-relaunch' });
+  const openPrivacy = () => post({ type: 'quick-open-privacy', which: 'postEvent' });
+
   function _fromNative(msg) {
     if (!msg || typeof msg.type !== 'string') return;
-    if (msg.type === 'quick-caps') { caps = msg; pushConfig(); for (const fn of listeners) { try { fn(caps); } catch (_) {} } return; }
+    if (msg.type === 'quick-caps') {
+      caps = msg;
+      return reconcile().then(() => { pushConfig(); for (const fn of listeners) { try { fn(caps); } catch (_) {} } });
+    }
     if (msg.type === 'quick-first-close') { onFirstClose(); return; }
     if (msg.type === 'quick-open-settings') { if (hooks.openSettings) hooks.openSettings('g-quick'); return; }
     // 面板页经原生中继过来的两样东西（面板是第二个 WKWebView：不开学习库、不初始化遥测）。
@@ -70,11 +117,12 @@
     hooks = h || {};
     post({ type: 'quick-probe' });
     // 开关或界面语言变了 ⇒ 菜单与常驻状态跟着变（设置总线，同 app/settings.js 的约定）
-    try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnabled || ch.quickResidentSeen || ch.uiLang)) pushConfig(); }); } catch (_) {}
+    try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnabled || ch.quickResidentSeen || ch.quickEnhanced || ch.uiLang)) pushConfig(); }); } catch (_) {}
   }
 
   const api = {
     CHANNEL, PROTOCOL, KEYS, start, _fromNative, pushConfig, enabledOf,
+    setEnhanced, relaunch, openPrivacy, hasPostEvent, supportsEnhanced, reconcile,
     caps: () => caps,
     onCaps: (fn) => { listeners.push(fn); if (caps) fn(caps); },
   };

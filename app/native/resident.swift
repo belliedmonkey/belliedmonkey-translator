@@ -9,9 +9,12 @@
 //
 // 协议（通道 mtQuick；与 app/quick-host.js 的 PROTOCOL 逐字对表，npm test 守着）：
 //   JS → 原生  quick-probe                       问原生有哪些能力（老原生壳不回 ⇒ 页面不显示这一块）
+//              quick-request-perm {which}        调系统的权限请求接口（postEvent = 增强取词）；系统不回调结果
+//              quick-open-privacy {which}        打开系统设置里对应的那一页
+//              quick-relaunch                    重开 App（授权之后正在运行的进程读不到新权限）
 //              quick-config {enabled, seen, labels}   开关、是否已经看过「还在菜单栏」的提示、菜单文案
 //              quick-close-main                  页面上的提示读完了：现在把主窗口收起来
-//   原生 → JS  quick-caps {resident, panel}      能力回执
+//   原生 → JS  quick-caps {resident, panel, postEvent}   能力回执；postEvent = 启动这一刻系统权限在不在
 //              quick-first-close                 用户第一次关主窗口：先别关，让页面说一句
 //              quick-open-settings               菜单里点了「快速翻译设置…」（或面板里点了「打开设置」）
 //              quick-capture · quick-result      面板页交来的，原样中继（quick-panel.swift）：进复习库 / 遥测只归主页面
@@ -51,12 +54,21 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
         case "quick-probe":
-            emit(["type": "quick-caps", "resident": true, "panel": true])
+            // appName：系统隐私列表里显示的那个名字（包名；两个 flavor 不同）。页面的授权指引要原样说出它。
+            let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
+            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName])
         case "quick-config":
             enabled = (body["enabled"] as? Bool) ?? false
             seen = (body["seen"] as? Bool) ?? false
             labels = (body["labels"] as? [String: String]) ?? labels
+            MTQuickPanel.shared.enhanced = (body["enhanced"] as? Bool) ?? false
             refresh()
+        case "quick-request-perm":
+            if (body["which"] as? String) == "postEvent" { MTQuickCapture.requestAccess() }
+        case "quick-open-privacy":
+            if (body["which"] as? String) == "postEvent" { MTQuickCapture.openPrivacySettings() }
+        case "quick-relaunch":
+            MTQuickCapture.relaunch()
         case "quick-close-main":
             seen = true
             mainWindowNow()?.orderOut(nil)

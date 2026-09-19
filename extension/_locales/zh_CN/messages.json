@@ -3235,7 +3235,7 @@
     "message": "剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。"
   },
   "quick_clip_empty": {
-    "message": "剪贴板里没有文字。先选中并按 ⌘C，再按快捷键。"
+    "message": "剪贴板里没有文字。先选中并按 ⌘C，再按快捷键；或者在设置里打开「增强取词」，省掉 ⌘C。"
   },
   "quick_clip_same": {
     "message": "和上次翻的是同一段 —— 是不是忘了按 ⌘C？"
@@ -3290,5 +3290,41 @@
   },
   "quick_clip_blocked": {
     "message": "系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。"
+  },
+  "quick_enh_label": {
+    "message": "增强取词"
+  },
+  "quick_enh_hint": {
+    "message": "选中文字后直接按快捷键，不用先按 ⌘C。需要一项系统权限，默认关闭。"
+  },
+  "quick_enh_explain_title": {
+    "message": "打开增强取词"
+  },
+  "quick_enh_explain_does": {
+    "message": "会做：你按快捷键时，替你按一次 ⌘C；读到选中的文字后，把剪贴板恢复成原来的样子。"
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "不会做：不监听键盘，不在你没按快捷键时读任何东西。"
+  },
+  "quick_enh_continue": {
+    "message": "继续"
+  },
+  "quick_enh_not_now": {
+    "message": "先不开"
+  },
+  "quick_enh_relaunch": {
+    "message": "现在重开"
+  },
+  "quick_enh_open_privacy": {
+    "message": "打开系统设置"
+  },
+  "quick_enh_pending": {
+    "message": "请在系统弹出的窗口里点「打开系统设置」，在列表里找到「{app}」并打开它的开关。打开之后要重新打开 App 才生效。"
+  },
+  "quick_enh_denied": {
+    "message": "系统没有给权限，增强取词没有打开。先按 ⌘C 再按快捷键照常能用。"
+  },
+  "quick_enh_lost": {
+    "message": "增强取词的权限被关掉了，这次翻的是剪贴板。要恢复，到设置里重新打开它。"
   }
 }

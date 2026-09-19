@@ -144,6 +144,7 @@ async function main() {
       return { id, w: Math.round(r.width), h: Math.round(r.height), bw: Math.round(b.getBoundingClientRect().width), stroke: p.stroke, sw: p.strokeWidth, fill: p.fill }; }))`));
     need(icons.every((i) => i.w >= 14 && i.h >= 14 && i.bw >= 28 && i.stroke !== 'none' && parseFloat(i.sw) >= 1.5), 'B: 三个图标钮该看得见（SVG ≥ 14px、有描边），实际 ' + JSON.stringify(icons));
     await installSweep(cdp, sessionId);
+    const surf2 = async (label) => { for (const x of await sweepBoth(cdp, sessionId, '#g-quick')) problems.push(`可读性 · ${label} ${x}`); };
     const surf = async (label) => { for (const x of await sweepBoth(cdp, sessionId, '#quick-root')) problems.push(`可读性 · ${label} ${x}`); 
       // MT_SHOTS=<目录>：顺手留两色截图给人看（门禁本身不看图）
       if (process.env.MT_SHOTS) for (const scheme of ['light', 'dark']) {
@@ -223,6 +224,23 @@ async function main() {
     n = stats.calls.length;
     await show({ via: 'service', origin: 'service', text: '' }); await sleep(300);
     need(stats.calls.length === n && /没有可翻译/.test((await dom()).msg), 'F: 服务交来空文字 ⇒ 0 请求 + 一句话');
+
+    // 增强取词交来的（M-5）：读的也是通用剪贴板 ⇒ 隐藏标记与「系统不让读」同样成立；没取到 ⇒ **不翻旧剪贴板**
+    n = stats.calls.length;
+    await show({ via: 'select', origin: 'selection', concealed: true }); await sleep(300); const s1 = await dom();
+    need(stats.calls.length === n && /隐藏/.test(s1.msg) && s1.srcHidden && s1.tag === '选中文字', 'F: 取词取到带隐藏标记的内容 ⇒ 0 请求 + 只说原因，实际 ' + JSON.stringify(s1));
+    await show({ via: 'select', origin: 'selection', blocked: true }); await sleep(300); const s2 = await dom();
+    need(stats.calls.length === n && /粘贴自其他 App/.test(s2.msg), 'F: 取词时系统不让读剪贴板 ⇒ 0 请求 + 说去哪里允许，实际 ' + JSON.stringify(s2.msg));
+    await show({ via: 'select', origin: 'selection', text: '' }); await sleep(300); const s3 = await dom();
+    need(stats.calls.length === n && /没有取到选中的文字/.test(s3.msg) && s3.acts.join() === '改用截图翻译', 'F: 没取到 ⇒ 0 请求（绝不退回去翻旧剪贴板）+ 改用截图，实际 ' + JSON.stringify(s3));
+    await E(`new Promise((r) => chrome.storage.local.set({ quickEnhancedLost: true }, () => r('ok')))`);
+    await show({ via: 'select', origin: 'clipboard', text: 'The permission was revoked meanwhile.' });
+    const s4 = await settled(); await sleep(200); const s4b = await dom();
+    need(/权限被关掉了/.test(s4b.note) && s4.tr.length === 1, 'F: 增强取词的权限没了 ⇒ 照翻剪贴板 + 说一句，实际 ' + JSON.stringify(s4b.note));
+    need((await E(`new Promise((r) => chrome.storage.local.get(['quickEnhancedLost'], (v) => r(String(v.quickEnhancedLost))))`)) === 'undefined', 'F: 那一句只说一次（标记该清掉）');
+    await show({ via: 'select', origin: 'clipboard', text: 'Second time there is no notice.' });
+    await settled(); await sleep(200);
+    need(!/权限被关掉了/.test((await dom()).note), 'F: 第二次不该再说');
 
     // ── G. 失败两态的出口不同 ──
     const resBefore = (await out('quick-result')).length;
@@ -308,11 +326,61 @@ async function main() {
     const tm = JSON.parse(await E(`JSON.stringify(__tm.filter((e) => /^translate_/.test(e.n)))`));
     need(tm.length === 2 && tm[0].n === 'translate_ok' && tm[0].p.kind === 'quick' && tm[0].p.ms === 321 && tm[1].n === 'translate_fail' && tm[1].p.code === 'auth' && tm[1].p.status === 401 && !('kind' in tm[1].p),
       'J: quick-result 该由主页面代发 translate_ok{kind:quick} / translate_fail，实际 ' + JSON.stringify(tm));
+
+    // ── L. 主页面 · 设置里的「增强取词」（M-5）。假桥记下出站消息；「重开」用重新报一次能力来模拟 ──
+    const hostOut = async (type) => JSON.parse(await E(`JSON.stringify(__out.filter((m) => m.type === ${JSON.stringify(type)}))`));
+    const enh = async () => JSON.parse(await E(`JSON.stringify({ rowHidden: document.getElementById('quick-enhanced-row').hidden, on: document.getElementById('quick-enhanced').checked,
+      state: document.getElementById('quick-enhanced-state').hidden ? '' : document.getElementById('quick-enhanced-state').textContent,
+      relaunch: !document.getElementById('quick-enhanced-actions').hidden && !document.getElementById('quick-enhanced-relaunch').hidden,
+      privacy: !document.getElementById('quick-enhanced-actions').hidden, dialog: (document.querySelector('.ld-ok') || {}).textContent || '' })`));
+    await E(`(async () => { await new Promise((r) => chrome.storage.local.remove(['quickEnhanced', 'quickEnhancedNote', 'quickEnhancedLost'], r)); document.getElementById('gear').click(); await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true }); return 'ok'; })()`);
+    await sleep(400);
+    need((await enh()).rowHidden === true, 'L: 原生不报 postEvent（老原生壳）⇒ 增强取词那一行整个不出现');
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false, appName: 'BelliedMonkey Translator CN' }); return 'ok'; })()`); await sleep(400);
+    const l0 = await enh();
+    need(!l0.rowHidden && l0.on === false && l0.state === '', 'L: 默认是关的、旁边没有多余的话，实际 ' + JSON.stringify(l0));
+    const askedBefore = (await hostOut('quick-request-perm')).length;
+    await E(`(document.getElementById('quick-enhanced').click(), 'ok')`); await sleep(400);
+    const l1 = await enh();
+    need(l1.dialog === '继续' && (await hostOut('quick-request-perm')).length === askedBefore, 'L: 点开关 ⇒ 先出我们自己的说明，此时还没去问系统，实际 ' + JSON.stringify(l1));
+    need(/会做/.test(await E(`document.querySelector('.ld-ok').closest('[role=dialog], .ld-box, div').parentElement.textContent`)), 'L: 说明里该有「会做 / 不会做」');
+    await E(`(document.querySelector('.ld-cancel').click(), 'ok')`); await sleep(400);
+    const l2 = await enh();
+    need(l2.on === false && l2.state === '' && (await hostOut('quick-request-perm')).length === askedBefore, 'L: 「先不开」⇒ 开关回到关、什么都没问，实际 ' + JSON.stringify(l2));
+    await E(`(document.getElementById('quick-enhanced').click(), 'ok')`); await sleep(300);
+    await E(`(document.querySelector('.ld-ok').click(), 'ok')`); await sleep(500);
+    const l3 = await enh();
+    need((await hostOut('quick-request-perm')).length === askedBefore + 1 && l3.on === false && /重新打开 App 才生效/.test(l3.state) && l3.relaunch && l3.privacy,
+      'L: 「继续」⇒ 调系统请求接口；**开关仍是关**（还没生效）+ 一句话 +「现在重开」「打开系统设置」，实际 ' + JSON.stringify(l3));
+    need(/「BelliedMonkey Translator CN」/.test(l3.state) && !/\{app\}/.test(l3.state), 'L: 指引里该原样说出系统列表里显示的那个名字（包名，由原生报），实际 ' + l3.state);
+    need((await hostOut('quick-config')).pop().enhanced === true, 'L: 原生要知道用户想开（重开后权限一到直接生效）');
+    await E(`(document.getElementById('quick-enhanced-relaunch').click(), document.getElementById('quick-enhanced-privacy').click(), 'ok')`);
+    need((await hostOut('quick-relaunch')).length === 1 && (await hostOut('quick-open-privacy'))[0].which === 'postEvent', 'L: 两个按钮各交给原生一条');
+    await installSweep(cdp, sessionId);      // 换过页面了，清扫函数要重装
+    await surf2('增强取词 · 等重开');
+    // 重开，权限到了
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(500);
+    const l4 = await enh();
+    need(l4.on === true && l4.state === '' && !l4.privacy, 'L: 重开后权限在 ⇒ 开关是开的、那句话与按钮都收掉，实际 ' + JSON.stringify(l4));
+    // 后来被用户在系统设置里撤销
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: false }); return 'ok'; })()`); await sleep(500);
+    const l5 = await enh();
+    need(l5.on === false && /系统没有给权限/.test(l5.state) && l5.privacy && !l5.relaunch, 'L: 权限没了 ⇒ 开关弹回 + 一句话 +「打开系统设置」（没有「现在重开」），实际 ' + JSON.stringify(l5));
+    need((await hostOut('quick-config')).pop().enhanced === false && (await E(`new Promise((r) => chrome.storage.local.get(['quickEnhancedLost'], (v) => r(v.quickEnhancedLost)))`)) === true, 'L: 意图弹回 + 给面板留一次性的那一句');
+    await surf2('增强取词 · 被拒');
+    // 真机实测的顺序：重开发生在授权之前（上面那一步已经弹回并写着「系统没有给权限」）；用户随后授权、再重开
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(500);
+    const l6 = await enh();
+    need(l6.on === true && l6.state === '' && (await hostOut('quick-config')).pop().enhanced === true, 'L: 先重开、后授权、再重开 ⇒ 兑现原来的意图，不再挂着「系统没有给权限」，实际 ' + JSON.stringify(l6));
+    // 用户自己关掉的 ⇒ 权限在也不替他打开
+    await E(`(document.getElementById('quick-enhanced').click(), 'ok')`); await sleep(400);
+    await E(`(async () => { await AppQuickHost._fromNative({ type: 'quick-caps', resident: true, panel: true, postEvent: true }); return 'ok'; })()`); await sleep(400);
+    need((await enh()).on === false, 'L: 用户自己关掉的，重开后权限在也不该替他打开');
   } catch (e) { problems.push('脚本中断：' + (e && e.message || e)); }
   finally { try { cdp && cdp.close(); } catch (_) {} chrome.cleanup(); srv.close(); }
 
   if (problems.length) { console.log('\n✗ 快速翻译面板页有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发');
+  console.log('\n✓ 快速翻译面板页：#quick 只起面板、译文上屏、三个陷阱 0 请求、取消 / 逐段 / 截图 / 输入 / 失败两态 / 写回「译成」/ 采集关 / 未配置 全部读回；三态 × 深浅两色对比度 ≥ 4.5:1；主页面中继：进复习库过门、遥测代发；增强取词：说明先到、等重开、重开后生效、被撤销弹回');
   process.exit(0);
 }
 main();

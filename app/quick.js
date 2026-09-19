@@ -31,6 +31,7 @@
   let lastText = '';           // 上一次交来的文字（陷阱②）
   let lastShown = null;        // 上一次的结果（陷阱②：显示它，不重发请求）
   let pinned = false;
+  let lostNote = false;        // 这一次面板要不要带那句「增强取词的权限被关掉了」
   let sess = { ok: false, failed: {} };   // 一个面板会话（原生说 fresh 起算）：成功至多报一次、每个错误码至多一次
 
   // 钉住：页面与原生各有一份，必须同进同退。原生在收起面板时清掉它那一份 ⇒ 新会话开始时这里也清（不回报）。
@@ -103,14 +104,20 @@
     $('quick-root').hidden = false;
     $('qk-tag').textContent = originLabel(origin);
     clearOut();
-    // 零权限路径的三个陷阱只对「剪贴板」成立；别的来源直接是交来的文字。
+    // 这两条对**凡是经过通用剪贴板的来源**都成立 —— 「翻译剪贴板」与「增强取词」（它替你按 ⌘C，读的也是通用剪贴板）：
+    // blocked：系统没让读（剪贴板隐私开着时后台读取会卡住，原生 1 秒超时后这样报）；concealed：带隐藏 / 临时标记，原生根本不带文字。
+    if (msg.blocked) { setSrc('', false); message(t('quick_clip_blocked', '系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。')); hideLang(); return fit(); }
+    if (msg.concealed && origin !== 'clipboard') { setSrc('', false); message(t('quick_clip_concealed', '剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。')); hideLang(); return fit(); }
+    // 零权限路径的另外两个陷阱（空 / 和上次一样）只对「剪贴板」成立；别的来源直接是交来的文字。
     if (origin === 'clipboard') {
-      // blocked：系统没让读（剪贴板隐私开着时后台读取会卡住，原生 1 秒超时后这样报）
-      if (msg.blocked) { setSrc('', false); message(t('quick_clip_blocked', '系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。')); hideLang(); return fit(); }
+      // 增强取词的权限没了（用户在系统设置里关掉了）：热键已自动退回这条路，说一句，只说一次。
+      const mine = gen;
+      try { const f = await get(['quickEnhancedLost']); if (f.quickEnhancedLost) { lostNote = true; chrome.storage.local.remove(['quickEnhancedLost']); } } catch (_) {}
+      if (mine !== gen) return;      // 等存储的这一拍里又来了新的一次
       // own：剪贴板里是我们自己刚复制出去的译文 —— 再翻一遍它没有意义，当作「和上次一样」
       const c = C().classifyClipboard({ text: msg.text, concealed: !!msg.concealed, own: !!msg.own }, lastText);
       if (c.kind === 'concealed') { setSrc('', false); message(t('quick_clip_concealed', '剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。')); hideLang(); return fit(); }
-      if (c.kind === 'empty') { setSrc('', false); message(t('quick_clip_empty', '剪贴板里没有文字。先选中并按 ⌘C，再按快捷键。')); hideLang(); return fit(); }
+      if (c.kind === 'empty') { setSrc('', false); message(t('quick_clip_empty', '剪贴板里没有文字。先选中并按 ⌘C，再按快捷键；或者在设置里打开「增强取词」，省掉 ⌘C。')); hideLang(); return fit(); }
       if (c.kind === 'same' && lastShown) { setSrc(lastShown.text, true); note(t('quick_clip_same', '和上次翻的是同一段 —— 是不是忘了按 ⌘C？')); renderDone(lastShown); return fit(); }
     }
     if (origin === 'typed') { cur = { via: 'input', origin, text: '' }; setSrc('', true); showLang(null); $('qk-src').focus(); return fit(); }
@@ -170,7 +177,7 @@
       report(false, e, String(tr.provider || ''), Date.now() - t0);
       return fit();
     }
-    clearTimeout(slow); note('');
+    clearTimeout(slow); note(lostNote ? t('quick_enh_lost', '增强取词的权限被关掉了，这次翻的是剪贴板。要恢复，到设置里重新打开它。') : ''); lostNote = false;
     const done = { text, tr: out.join('\n\n'), lang: choice.lang, captureOn: s.learnEnabled !== false && s.quickCapture !== false };
     lastText = text; lastShown = done;
     renderDone(done, true);

@@ -54,6 +54,9 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
     private var monitors: [Any] = []
     private var ownChangeCount = -1
 
+    /// 用户想不想用增强取词（页面经 quick-config 给）。真的用不用，每次按键时再读一次系统权限。
+    var enhanced = false
+
     var isEnabled: Bool { web != nil }
 
     // MARK: - 开 / 关（跟着「在菜单栏常驻」走）
@@ -62,7 +65,7 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         guard web == nil else { return }
         // 默认 ⌃⌥T。不用纯 ⌥ 组合：macOS 15 的沙盒对它有限制。录制控件在 M-7。
         MTHotkey.shared.register(id: MTQuickPanel.hotkeyClipboard, keyCode: UInt32(kVK_ANSI_T),
-                                 modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.translateClipboard() }
+                                 modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.hotkeyPressed() }
         // 预热：第二个 WebContent 进程约 70–80 MB，冷启动 70 ms；主窗口先就绪，2 秒后再建。
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.buildIfNeeded() }
     }
@@ -105,7 +108,26 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
 
     // MARK: - 入口
 
-    /// 快捷键 / 菜单「翻译剪贴板」
+    /// 快捷键：想用增强取词**且此刻系统权限在** ⇒ 取选中的文字；否则就是「翻译剪贴板」。
+    /// 权限事后被用户撤销时，这里自动落回剪贴板那条路 —— 不报错、不卡住。
+    func hotkeyPressed() {
+        if enhanced && MTQuickCapture.granted { translateSelection() } else { translateClipboard() }
+    }
+
+    /// 增强取词：替用户按一次 ⌘C，读到后把剪贴板原样写回（capture.swift）。
+    func translateSelection() {
+        MTQuickCapture.captureSelection { [weak self] outcome in
+            var m: [String: Any] = ["type": "quick-show", "via": "select", "origin": "selection"]
+            switch outcome {
+            case .text(let t): m["text"] = t
+            case .concealed: m["concealed"] = true
+            case .blocked: m["blocked"] = true
+            }
+            self?.present(m, focus: false)
+        }
+    }
+
+    /// 菜单「翻译剪贴板」
     func translateClipboard() {
         readClipboard { [weak self] payload in
             var m = payload

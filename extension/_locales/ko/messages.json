@@ -3234,7 +3234,7 @@
     "message": "클립보드 내용이 숨김으로 표시되어 있습니다(아마 비밀번호일 것입니다). 읽지 않았고 아무것도 보내지 않았습니다."
   },
   "quick_clip_empty": {
-    "message": "클립보드에 텍스트가 없습니다. 텍스트를 선택하고 ⌘C를 누른 다음 단축키를 누르세요."
+    "message": "클립보드에 텍스트가 없습니다. 텍스트를 선택하고 ⌘C를 누른 다음 단축키를 누르세요. 설정에서 「향상된 가져오기」를 켜면 ⌘C를 생략할 수 있습니다."
   },
   "quick_clip_same": {
     "message": "지난번과 같은 텍스트입니다 — ⌘C를 누르는 것을 잊으셨나요?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "macOS가 클립보드 읽기를 허용하지 않았습니다. 「시스템 설정 › 개인정보 보호 및 보안 › 다른 앱에서 붙여넣기」에서 허용하거나, 오른쪽 클릭 「서비스」를 사용하세요."
+  },
+  "quick_enh_label": {
+    "message": "향상된 가져오기"
+  },
+  "quick_enh_hint": {
+    "message": "텍스트를 선택하고 단축키만 누르세요. ⌘C를 먼저 누를 필요가 없습니다. 시스템 권한 하나가 필요하며 기본은 꺼짐입니다."
+  },
+  "quick_enh_explain_title": {
+    "message": "향상된 가져오기 켜기"
+  },
+  "quick_enh_explain_does": {
+    "message": "하는 일: 단축키를 누르면 대신 ⌘C를 한 번 누르고, 선택한 텍스트를 읽은 뒤 클립보드를 원래대로 되돌립니다."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "하지 않는 일: 키보드를 감시하지 않으며, 단축키를 누르지 않으면 아무것도 읽지 않습니다."
+  },
+  "quick_enh_continue": {
+    "message": "계속"
+  },
+  "quick_enh_not_now": {
+    "message": "나중에"
+  },
+  "quick_enh_relaunch": {
+    "message": "지금 다시 열기"
+  },
+  "quick_enh_open_privacy": {
+    "message": "시스템 설정 열기"
+  },
+  "quick_enh_pending": {
+    "message": "표시된 시스템 창에서 「시스템 설정 열기」를 선택하고, 목록에서 「{app}」을(를) 찾아 스위치를 켜세요. 앱을 다시 열어야 적용됩니다."
+  },
+  "quick_enh_denied": {
+    "message": "macOS가 권한을 부여하지 않아 향상된 가져오기가 꺼져 있습니다. ⌘C를 누른 뒤 단축키를 누르는 방법은 그대로 사용할 수 있습니다."
+  },
+  "quick_enh_lost": {
+    "message": "향상된 가져오기 권한이 꺼져서 이번에는 클립보드를 번역했습니다. 되돌리려면 설정에서 다시 켜세요."
   }
 }

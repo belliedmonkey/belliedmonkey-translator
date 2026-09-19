@@ -3234,7 +3234,7 @@
     "message": "The clipboard content is marked as concealed (most likely a password). It was not read and nothing was sent."
   },
   "quick_clip_empty": {
-    "message": "There is no text on the clipboard. Select some text, press ⌘C, then press the shortcut."
+    "message": "There is no text on the clipboard. Select some text, press ⌘C, then press the shortcut — or turn on Enhanced Capture in Settings to skip ⌘C."
   },
   "quick_clip_same": {
     "message": "Same text as last time — did you forget to press ⌘C?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "macOS did not let us read the clipboard. Allow it in System Settings › Privacy & Security › Paste from Other Apps, or use the right-click Services menu instead."
+  },
+  "quick_enh_label": {
+    "message": "Enhanced Capture"
+  },
+  "quick_enh_hint": {
+    "message": "Select text and press the shortcut — no ⌘C first. Needs one system permission. Off by default."
+  },
+  "quick_enh_explain_title": {
+    "message": "Turn on Enhanced Capture"
+  },
+  "quick_enh_explain_does": {
+    "message": "What it does: when you press the shortcut, it presses ⌘C once for you, reads the selected text, then puts your clipboard back exactly as it was."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "What it never does: it does not watch your keyboard, and it reads nothing unless you press the shortcut."
+  },
+  "quick_enh_continue": {
+    "message": "Continue"
+  },
+  "quick_enh_not_now": {
+    "message": "Not now"
+  },
+  "quick_enh_relaunch": {
+    "message": "Relaunch now"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Open System Settings"
+  },
+  "quick_enh_pending": {
+    "message": "In the system window that appeared, choose Open System Settings, find “{app}” in the list and turn its switch on. It takes effect after you relaunch the app."
+  },
+  "quick_enh_denied": {
+    "message": "macOS has not granted the permission, so Enhanced Capture is off. Pressing ⌘C and then the shortcut still works."
+  },
+  "quick_enh_lost": {
+    "message": "The permission for Enhanced Capture was turned off, so this time the clipboard was translated. Turn it back on in Settings to restore it."
   }
 }

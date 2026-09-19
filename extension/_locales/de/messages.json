@@ -3234,7 +3234,7 @@
     "message": "Der Inhalt der Zwischenablage ist als verborgen markiert (vermutlich ein Passwort). Er wurde nicht gelesen und nichts wurde gesendet."
   },
   "quick_clip_empty": {
-    "message": "In der Zwischenablage ist kein Text. Text auswählen, ⌘C drücken, dann den Kurzbefehl drücken."
+    "message": "In der Zwischenablage ist kein Text. Text auswählen, ⌘C drücken, dann den Kurzbefehl – oder in den Einstellungen die erweiterte Übernahme einschalten und ⌘C weglassen."
   },
   "quick_clip_same": {
     "message": "Derselbe Text wie beim letzten Mal — ⌘C vergessen?"
@@ -3289,5 +3289,41 @@
   },
   "quick_clip_blocked": {
     "message": "macOS hat das Lesen der Zwischenablage nicht erlaubt. In Systemeinstellungen › Datenschutz & Sicherheit › Aus anderen Apps einsetzen erlauben, oder stattdessen das Dienste-Menü per Rechtsklick verwenden."
+  },
+  "quick_enh_label": {
+    "message": "Erweiterte Übernahme"
+  },
+  "quick_enh_hint": {
+    "message": "Text auswählen und Kurzbefehl drücken – ohne vorher ⌘C. Benötigt eine Systemberechtigung. Standardmäßig aus."
+  },
+  "quick_enh_explain_title": {
+    "message": "Erweiterte Übernahme einschalten"
+  },
+  "quick_enh_explain_does": {
+    "message": "Was sie tut: Wenn du den Kurzbefehl drückst, drückt sie einmal ⌘C für dich, liest den ausgewählten Text und stellt deine Zwischenablage danach genau wieder her."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "Was sie nie tut: Sie überwacht deine Tastatur nicht und liest nichts, solange du den Kurzbefehl nicht drückst."
+  },
+  "quick_enh_continue": {
+    "message": "Weiter"
+  },
+  "quick_enh_not_now": {
+    "message": "Jetzt nicht"
+  },
+  "quick_enh_relaunch": {
+    "message": "Jetzt neu starten"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Systemeinstellungen öffnen"
+  },
+  "quick_enh_pending": {
+    "message": "Wähle im angezeigten Systemfenster „Systemeinstellungen öffnen“, suche „{app}“ in der Liste und schalte den Schalter ein. Wirksam wird es nach einem Neustart der App."
+  },
+  "quick_enh_denied": {
+    "message": "macOS hat die Berechtigung nicht erteilt, die erweiterte Übernahme bleibt aus. ⌘C und danach der Kurzbefehl funktioniert weiterhin."
+  },
+  "quick_enh_lost": {
+    "message": "Die Berechtigung für die erweiterte Übernahme wurde entzogen, deshalb wurde diesmal die Zwischenablage übersetzt. Schalte sie in den Einstellungen wieder ein."
   }
 }

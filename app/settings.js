@@ -181,6 +181,10 @@ var AppSettings = (() => {
       $('quick-title').textContent = t('quick_title', '快速翻译');
       $('quick-enabled-label').textContent = t('quick_enabled_label', '在菜单栏常驻');
       $('quick-enabled-note').textContent = t('quick_enabled_note', '关掉后菜单栏图标消失，关闭窗口即退出 App。');
+      $('quick-enhanced-label').textContent = t('quick_enh_label', '增强取词');
+      $('quick-enhanced-hint').textContent = t('quick_enh_hint', '选中文字后直接按快捷键，不用先按 ⌘C。需要一项系统权限，默认关闭。');
+      $('quick-enhanced-relaunch').textContent = t('quick_enh_relaunch', '现在重开');
+      $('quick-enhanced-privacy').textContent = t('quick_enh_open_privacy', '打开系统设置');
     }
     $('docs-title').textContent = t('doc_title', '文档翻译');
     $('doc-capture-label').textContent = t('doc_capture_label', '文档译文进复习（来源「文档」）');
@@ -698,6 +702,26 @@ var AppSettings = (() => {
   const DETAIL_KEY = 'optDetailMode';
   let _quickAvailable = true;
 
+  // 增强取词那一行的三种说明：pending（问过系统了，允许后要重开才生效）/ denied（重开后仍没有权限，开关已弹回）/ 无。
+  async function paintEnhanced() {
+    if (!$('quick-enhanced-row') || typeof AppQuickHost === 'undefined') return;
+    $('quick-enhanced-row').hidden = !AppQuickHost.supportsEnhanced();
+    if ($('quick-enhanced-row').hidden) return;
+    const s = await get(['quickEnhanced', 'quickEnhancedNote']);
+    const live = s.quickEnhanced === true && AppQuickHost.hasPostEvent();
+    $('quick-enhanced').checked = live;
+    const note = live ? '' : (s.quickEnhancedNote || '');
+    // {app}：系统那张列表里显示的是**包名**，不是界面上的「大肚猴翻译」，两个 flavor 还不一样（真机 2026-09-19：中文用户
+    // 照着「允许大肚猴翻译」去找，列表里只有一行英文名）。名字由原生报（quick-caps.appName），文案里不写死。
+    const appName = String(((AppQuickHost.caps() || {}).appName) || 'BelliedMonkey Translator');
+    const text = note === 'pending' ? t('quick_enh_pending', '请在系统弹出的窗口里点「打开系统设置」，在列表里找到「{app}」并打开它的开关。打开之后要重新打开 App 才生效。').replace('{app}', appName)
+      : note === 'denied' ? t('quick_enh_denied', '系统没有给权限，增强取词没有打开。先按 ⌘C 再按快捷键照常能用。') : '';
+    $('quick-enhanced-state').textContent = text;
+    $('quick-enhanced-state').hidden = !text;
+    $('quick-enhanced-actions').hidden = !text;
+    $('quick-enhanced-relaunch').hidden = note !== 'pending';
+  }
+
   // ⚠️ **两套机制在写同一个 `hidden`，必须有明确的先后。**
   //
   // `.adv-only` 管的是「这一档要不要露」，`applyFields` 管的是「这个引擎需不需要
@@ -1062,7 +1086,16 @@ var AppSettings = (() => {
     // 快速翻译：这一块只在原生回了 quick-caps 时显示（macOS）；AppQuickHost 订阅设置总线，开关一变菜单栏就跟着变。
     if ($('quick-enabled')) {
       $('quick-enabled').addEventListener('change', () => { set({ quickEnabled: $('quick-enabled').checked }); });
-      if (typeof AppQuickHost !== 'undefined') AppQuickHost.onCaps((c) => { $('g-quick').hidden = !(c && c.resident); });
+      if (typeof AppQuickHost !== 'undefined') AppQuickHost.onCaps((c) => { $('g-quick').hidden = !(c && c.resident); paintEnhanced(); });
+      // 增强取词：开关显示为「开」当且仅当 用户想开 **且** 系统权限真的在。其余情形旁边那一行说明为什么。
+      $('quick-enhanced').addEventListener('change', async () => {
+        const want = $('quick-enhanced').checked;
+        $('quick-enhanced').checked = await AppQuickHost.setEnhanced(want);
+        paintEnhanced();
+      });
+      $('quick-enhanced-relaunch').addEventListener('click', () => AppQuickHost.relaunch());
+      $('quick-enhanced-privacy').addEventListener('click', () => AppQuickHost.openPrivacy());
+      try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnhanced || ch.quickEnhancedNote)) paintEnhanced(); }); } catch (_) {}
     }
     $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });
     for (const which of ['my', 'other']) {
