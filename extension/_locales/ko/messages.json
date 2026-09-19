@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "문서 번역, 시스템 번역, 빠른 번역에 사용됩니다. 대화와 실시간 자막에는 별도의 언어 설정이 있습니다."
+  },
+  "handoff_source_label": {
+    "message": "전달된 텍스트"
+  },
+  "src_handoff_system": {
+    "message": "시스템 번역"
+  },
+  "src_handoff_select": {
+    "message": "선택 번역"
+  },
+  "src_handoff_shot": {
+    "message": "스크린샷 번역"
+  },
+  "src_handoff_input": {
+    "message": "입력 번역"
   }
 }

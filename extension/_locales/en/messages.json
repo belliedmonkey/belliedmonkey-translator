@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "Used by document translation, system translation and quick translate. Conversation and live subtitles have their own language settings."
+  },
+  "handoff_source_label": {
+    "message": "Text handed over"
+  },
+  "src_handoff_system": {
+    "message": "System translation"
+  },
+  "src_handoff_select": {
+    "message": "Selection translate"
+  },
+  "src_handoff_shot": {
+    "message": "Screenshot translate"
+  },
+  "src_handoff_input": {
+    "message": "Typed translate"
   }
 }

@@ -2986,5 +2986,20 @@
   },
   "target_lang_hint": {
     "message": "दस्तावेज़ अनुवाद, सिस्टम अनुवाद और त्वरित अनुवाद में इसका उपयोग होता है। बातचीत और लाइव उपशीर्षक की अपनी भाषा सेटिंग हैं।"
+  },
+  "handoff_source_label": {
+    "message": "सौंपा गया पाठ"
+  },
+  "src_handoff_system": {
+    "message": "सिस्टम अनुवाद"
+  },
+  "src_handoff_select": {
+    "message": "चयन का अनुवाद"
+  },
+  "src_handoff_shot": {
+    "message": "स्क्रीनशॉट अनुवाद"
+  },
+  "src_handoff_input": {
+    "message": "टाइप किया गया अनुवाद"
   }
 }

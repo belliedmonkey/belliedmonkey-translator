@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "Usado na tradução de documentos, na tradução do sistema e na tradução rápida. A conversa e as legendas ao vivo têm suas próprias configurações de idioma."
+  },
+  "handoff_source_label": {
+    "message": "Texto recebido"
+  },
+  "src_handoff_system": {
+    "message": "Tradução do sistema"
+  },
+  "src_handoff_select": {
+    "message": "Tradução da seleção"
+  },
+  "src_handoff_shot": {
+    "message": "Tradução de captura"
+  },
+  "src_handoff_input": {
+    "message": "Tradução digitada"
   }
 }

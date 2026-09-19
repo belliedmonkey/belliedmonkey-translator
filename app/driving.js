@@ -657,8 +657,16 @@ var AppDriving = (() => {
     // 前者无解（那张卡是视频字幕的锚点），后者去设置里配个语音引擎就好了。
     // 合成一句「读不出来的卡（媒体卡或无语音）」等于让他猜自己该做什么。
     let media = 0; let noVoice = 0;
+    const READABLE_ANCHOR_KINDS = ['dom', 'conv', 'doc', 'handoff']; const warnedKinds = {};
     for (const it of full) {
       if (it.anchor && it.anchor.k === 'media') { media += 1; continue; }
+      // 其余已知的 kind（dom / conv / doc / handoff）都是「一句原文 + 一句译文」，照常往下读。
+      // 交来的文字（k:'handoff'，§9.9）没有媒体锚点，不计入「媒体卡」。未知 kind 也照常读，但要留一行痕迹 ——
+      // 静默落进默认分支才是坑（learning-design §12）：新增锚点 kind 的人应当来这里表态。
+      if (it.anchor && it.anchor.k && READABLE_ANCHOR_KINDS.indexOf(it.anchor.k) < 0 && !warnedKinds[it.anchor.k]) {
+        warnedKinds[it.anchor.k] = true;
+        try { console.warn('[driving] unregistered anchor kind: ' + it.anchor.k); } catch (_) {}
+      }
       // eslint-disable-next-line no-await-in-loop
       const srcOk = await can(it.lang, it.text);
       // eslint-disable-next-line no-await-in-loop

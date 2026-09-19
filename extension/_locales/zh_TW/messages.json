@@ -3155,5 +3155,20 @@
   },
   "target_lang_hint": {
     "message": "文件翻譯、系統翻譯與快速翻譯會用它。對話 · 即時字幕有自己的語言設定。"
+  },
+  "handoff_source_label": {
+    "message": "交來的文字"
+  },
+  "src_handoff_system": {
+    "message": "系統翻譯"
+  },
+  "src_handoff_select": {
+    "message": "劃詞翻譯"
+  },
+  "src_handoff_shot": {
+    "message": "截圖翻譯"
+  },
+  "src_handoff_input": {
+    "message": "輸入翻譯"
   }
 }

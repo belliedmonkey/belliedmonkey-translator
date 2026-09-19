@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "تُستخدم في ترجمة المستندات وترجمة النظام والترجمة السريعة. للمحادثة والترجمة النصية المباشرة إعدادات لغة خاصة بهما."
+  },
+  "handoff_source_label": {
+    "message": "نص مُرسل إلينا"
+  },
+  "src_handoff_system": {
+    "message": "ترجمة النظام"
+  },
+  "src_handoff_select": {
+    "message": "ترجمة التحديد"
+  },
+  "src_handoff_shot": {
+    "message": "ترجمة لقطة الشاشة"
+  },
+  "src_handoff_input": {
+    "message": "ترجمة النص المكتوب"
   }
 }

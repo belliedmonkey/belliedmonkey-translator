@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "文書翻訳・システム翻訳・クイック翻訳で使います。会話とライブ字幕には専用の言語設定があります。"
+  },
+  "handoff_source_label": {
+    "message": "渡されたテキスト"
+  },
+  "src_handoff_system": {
+    "message": "システム翻訳"
+  },
+  "src_handoff_select": {
+    "message": "選択テキストの翻訳"
+  },
+  "src_handoff_shot": {
+    "message": "スクリーンショット翻訳"
+  },
+  "src_handoff_input": {
+    "message": "入力翻訳"
   }
 }

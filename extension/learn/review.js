@@ -68,6 +68,11 @@
       const who = item.anchor.who === 'me' ? ' · ' + t('listen_me_badge', '我说的') : '';
       return document.createTextNode('🎙 ' + ((s && s.title) || item.anchor.title || t('listen_source_label', '对话')) + who);
     }
+    // 交来的文字（§9.9）：系统翻译 / 划词 / 截图 / 输入。没有网页可回、没有页码、没有会话 —— 纯文字，不给链接。
+    // 标题已经带了入口与月份（「系统翻译 · 2026-09」）；来源记录还没同步到时退回一个通用标签。
+    if (item.anchor && item.anchor.k === 'handoff') {
+      return document.createTextNode('↪ ' + ((s && s.title) || t('handoff_source_label', '交来的文字')));
+    }
     const host = (() => { try { return new URL(s && s.url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
     const title = (s && s.title) || host || t('learn_unknown_source', '未知来源');
     const url = mediaUrl(item, s) || (s && s.url) || '';

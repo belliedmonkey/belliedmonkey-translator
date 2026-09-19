@@ -27,7 +27,7 @@ board('TargetLang.dc.html', 1320, 700, '「译成」下拉（两宿主同一个�
 <div style="display:grid; grid-template-columns:390px 390px minmax(0,1fr); gap:24px; align-items:start">
 ${cell('App 设置 · 收起', '默认「跟随界面语言」—— 就是今天的实际行为，老用户升级后什么都不变。', card('语言', `${sel('界面语言', '跟随系统')}${sel('译成', '跟随界面语言（简体中文）')}`))}
 ${cell('App 设置 · 展开', '选项来自同一张语言注册表，不另列清单。', `<div class="menu" style="width:100%; box-sizing:border-box">${['跟随界面语言（简体中文）', '简体中文', '繁體中文', 'English', '日本語', '한국어', 'Français', 'Deutsch', 'Español'].map((l, i) => `<div class="mi${i === 0 ? ' hot' : ''}"><span>${l}</span>${i === 0 ? ic('check', 'sm') : ''}</div>`).join('')}</div>`)}
-${cell('它管哪些地方', '一个值，处处同义。', `<table class="tbl"><tr><th>表面</th><th>以前</th><th>以后</th></tr><tr><td>文档翻译</td><td>界面语言</td><td>译成</td></tr><tr><td>播客补译文</td><td>界面语言</td><td>译成</td></tr><tr><td>系统翻译（iPhone）</td><td>—</td><td>译成</td></tr><tr><td>快速翻译（Mac）</td><td>—</td><td>译成（面板里改会写回）</td></tr><tr><td>对话 · 实时字幕</td><td>我的语言 / 对方的语言</td><td>不变（它有自己的一对）</td></tr><tr><td>扩展的网页翻译</td><td>扩展自己的「目标语言」</td><td>不变（两边存储不通）</td></tr></table>`)}
+${cell('它管哪些地方', '一个值，处处同义。', `<table class="tbl"><tr><th>表面</th><th>以前</th><th>以后</th></tr><tr><td>文档翻译</td><td>界面语言</td><td>译成</td></tr><tr><td>播客模式</td><td>界面语言（= 你的母语）</td><td>不变：解析、提示语、语音门控都按母语走，补译文单独改会让一集里说两种语言</td></tr><tr><td>系统翻译（iPhone）</td><td>—</td><td>译成</td></tr><tr><td>快速翻译（Mac）</td><td>—</td><td>译成（面板里改会写回）</td></tr><tr><td>对话 · 实时字幕</td><td>我的语言 / 对方的语言</td><td>不变（它有自己的一对）</td></tr><tr><td>扩展的网页翻译</td><td>扩展自己的「目标语言」</td><td>不变（两边存储不通）</td></tr></table>`)}
 </div>`, { page: PG });
 
 // 首页发现卡
