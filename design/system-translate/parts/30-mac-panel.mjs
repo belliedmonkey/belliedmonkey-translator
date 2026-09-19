@@ -59,7 +59,7 @@ ${grid(3, `
 ${cell('鼠标右下方', '左上角离鼠标 12 px；不盖住选中的那一行。', `<div class="desk" style="height:460px">${hostwin(24, 30, 330, 200, 'postponed the vote')}<div class="cursor" style="left:150px; top:150px"></div><div style="position:absolute; left:166px; top:176px; transform:scale(.62); transform-origin:top left">${panel({ body: tr(S.zh), foot: '' })}</div></div>`)}
 ${cell('贴边时翻转', '右边或下边放不下 ⇒ 翻到鼠标左边 / 上边；多屏时留在鼠标所在的那块屏。', `<div class="desk" style="height:460px">${hostwin(120, 210, 270, 200, 'new figures')}<div class="cursor" style="left:350px; top:330px"></div><div style="position:absolute; left:96px; top:36px; transform:scale(.62); transform-origin:top left">${panel({ src: 'new figures', body: tr('新数据'), foot: '' })}</div></div>`)}
 ${cell('全屏 App 与字幕条', '盖在别的 App 的全屏窗口之上（和实时字幕条同一种窗口）。两者同时在时：面板在上，字幕条不动、不被遮住的部分照常出字。', `<div class="desk" style="height:460px; background:#15130f"><div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#6a6255; font-size:.84rem">别的 App · 全屏视频</div><div style="position:absolute; left:40px; right:40px; bottom:26px; background:rgba(22,20,18,.74); border-radius:14px; padding:10px 14px; color:#fff; font-size:.8rem; line-height:1.5">We’ll come back to that in a moment.<div style="color:#aebf92">我们一会儿再回到这一点。</div></div><div style="position:absolute; left:60px; top:60px; transform:scale(.62); transform-origin:top left">${panel({ body: tr(S.zh), foot: '' })}</div></div>`)}
-`)}${mini('面板默认<b>不抢焦点</b>：出现时别的 App 里的光标、选区、全屏状态都不变。只有「输入翻译」和用户主动点进原文框时才拿键盘焦点。')}`, { page: PG });
+`)}${mini('面板默认<b>不抢焦点</b>：出现时别的 App 里的光标、选区、全屏状态都不变。只有「输入翻译」和用户主动点进原文框时才拿键盘焦点。T2 读数：从右键「服务」进来时，系统会先把大肚猴翻译拉到前台 —— 我们在收到文字的同一刻把焦点还给刚才那个 App（已验：1 秒后前台仍是原来的 App）。主窗口若开着会闪一下，真机上要再看一眼观感。')}`, { page: PG });
 
 // 24 · 关闭与重复触发
 board('PanelDismiss.dc.html', 1240, 640, '关闭 · 钉住 · 重复触发', `${head('什么时候消失', '')}
@@ -99,5 +99,5 @@ board('MacServices.dc.html', 1320, 700, '右键「服务」入口', `${head('右
 ${grid(3, `
 ${cell('入口（系统的菜单）', '菜单标题 12 个语种各一份。', `<div class="desk" style="height:380px"><div style="position:absolute; left:24px; top:30px">${ctxMenu}</div><div style="position:absolute; left:246px; top:204px">${svcMenu}</div></div>`)}
 ${cell('给它绑一个快捷键', '设置块里放一张指引卡（系统的设置，我们改不了，只能指路）。', `<section class="card"><h3>给「服务」绑快捷键</h3><div class="steps"><div>系统设置 › 键盘 › 键盘快捷键…</div><div>左侧选「服务」› 展开「文本」</div><div>找到「用大肚猴翻译」，双击右侧设置按键</div></div><div class="split">${btn('打开键盘设置', 's', 'sm')}</div></section>`)}
-${cell(`有些 App 没有服务菜单 ${pend('T2')}`, '部分跨平台框架做的 App 右键里没有「服务」。设置块里照实说，并指向另外两条路。', `<div class="note">在少数 App 里右键菜单没有「服务」。那里可以：先 ${keys('⌘', 'C')} 再按 ${keys('⌃', '⌥', 'T')}；或打开「增强取词」；或用截图翻译。</div>${hint('T2 会把常用 App 逐个测一遍；结果决定设置块里把哪条路写在最前面。')}`)}
+${cell(`有些 App 没有服务菜单 ${pend('人工补验')}`, 'T2 读数：文本编辑、Safari、Chrome、Firefox、预览、Pages 六个都有、文字一字不差；一个代码编辑器里没出现，但当时没能确认编辑区里真有选区 —— 这一类 App 要人工再验一次。设置块里照实说，并指向另外两条路。', `<div class="note">在少数 App 里右键菜单没有「服务」。那里可以：先 ${keys('⌘', 'C')} 再按 ${keys('⌃', '⌥', 'T')}；或打开「增强取词」；或用截图翻译。</div>${hint('六个常用 App 都通 ⇒ 设置块里「右键 › 服务」与快捷键并列写，不必把哪一条藏到后面。')}`)}
 `)}`, { page: PG });

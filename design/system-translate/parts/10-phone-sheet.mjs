@@ -34,7 +34,7 @@ ${cell('点了「替换原文」之后', '弹层由系统关闭，宿主 App 里
 const para = (en, zh, state = 'ok') => `<div style="display:flex; flex-direction:column; gap:6px"><div class="src q" style="font-size:.84rem">${en}</div>${state === 'ok' ? `<div class="tr" style="font-size:.94rem">${zh}</div>` : '<div class="sk" style="width:88%"></div><div class="sk" style="width:52%"></div>'}</div>`;
 board('SheetLong.dc.html', 1200, 920, '长文本', `${head('长文本', '选了一整段或一整页。')}
 ${grid(3, `
-${cell('半屏 · 第一段先出', '按段翻、按段出；出第一段就请求系统把弹层展开。', phone(sheet({ src: '', lang: ['英语', '简体中文'], body: `<div class="trbox" style="gap:14px">${para('The committee postponed the vote until the new figures were published.', '委员会把表决推迟到新数据公布之后。')}${para('Members said the delay would give them time to study the revised forecast.', '', 'wait')}</div>`, foot: btn('取消', 's') })))}
+${cell(`半屏 · 第一段先出 ${pend('长文本真机')}`, '按段翻、按段出；出第一段就请求系统把弹层展开。T1 读数：短内容时请求展开<b>没有可见变化</b>，长内容时是否生效还要再量一次 —— 不生效就靠用户自己上拉，界面不变。', phone(sheet({ src: '', lang: ['英语', '简体中文'], body: `<div class="trbox" style="gap:14px">${para('The committee postponed the vote until the new figures were published.', '委员会把表决推迟到新数据公布之后。')}${para('Members said the delay would give them time to study the revised forecast.', '', 'wait')}</div>`, foot: btn('取消', 's') })))}
 ${cell('展开后', '整屏可滚；每段原文在上（灰）、译文在下（鼠尾草绿），与网页双语同一套视觉。', phone(sheet({ full: true, src: '', body: `<div class="trbox" style="gap:14px">${para('The committee postponed the vote until the new figures were published.', '委员会把表决推迟到新数据公布之后。')}${para('Members said the delay would give them time to study the revised forecast.', '委员们说，推迟能让他们有时间研究修订后的预测。')}${para('A final decision is now expected in early November.', '', 'wait')}</div>`, foot: btn('复制全部译文', 's') + btn('完成', 'p') }), { h: 760 }))}
 ${cell('超过 2000 字', '照常翻译，但<b>不进复习库</b> —— 那是一篇文章，不是一张卡。底部一行说明，不弹框。', `<div class="ctx" style="width:350px; height:300px"><div class="sheet" style="margin-top:0; flex:1">${'<div class="grab"></div>'}<div class="disc" style="border-top:0; padding-top:0">这段很长（2,340 字），只翻译、不存入复习库。</div></div></div>${hint('某一段失败：那一段原地出「这段没翻出来 · 重试」，其余段落不受影响；不整页报错。')}`)}
 `)}`, { page: PG });
@@ -79,14 +79,14 @@ board('SheetUnconfigured.dc.html', 1200, 900, '未配置的三种情形', `${hea
 ${grid(3, `
 ${cell('① 从没配过引擎', '国际版：主行动是免费额度（登录即可用），次行动是自己的 key。', phone(unconf('还没有翻译引擎', '领一份免费额度，登录一下就能翻；也可以填自己的 API key。', btn('领免费额度', 'p') + btn('用自己的 key', 's'))))}
 ${cell('② App 里配了，但还没同步过来', '装了新版还没打开过 App，或刚在 App 里清过数据。', phone(unconf('打开一次 App 就好', 'App 里的引擎配置要同步给系统翻译才用得上 —— 打开一次即可，之后不用再管。', btn('打开大肚猴翻译', 'p'))))}
-${cell(`③ 弹层里拉不起 App ${pend('T1')}`, '如果系统不允许从弹层里打开 App：按钮整个不出现，只留文字指路。', phone(unconf('还没有翻译引擎', '到主屏幕打开「大肚猴翻译」，在设置里领免费额度或填自己的 key，再回来翻。', btn('知道了', 's'))))}
+${cell('③ 点了按钮之后', 'T1 真机读数：弹层里能把 App 拉起来（宿主注册了地址协议即可）。App 落在设置的「引擎与密钥」一节，顶上一行说明是从哪来的；配好后回到原来的 App 再翻一次即可，不用回弹层。', `<section class="card" style="width:350px; box-sizing:border-box"><div class="note">从系统翻译过来的：配好引擎后，回到刚才的 App 再点一次「翻译」。</div><h3>引擎与密钥</h3>${btn('领免费额度', 'p', 'blk')}${btn('用自己的 key', 's', 'blk')}</section>`)}
 `)}${mini('中国版：①里没有「领免费额度」，只有「配置引擎」一个主按钮。见第 6 页「中国版总览」。')}`, { page: PG });
 
 // 10–11 · 空输入、首次披露、采集提示
 board('SheetEdge.dc.html', 1200, 900, '空输入 · 首次披露 · 采集提示', `${head('边角', '')}
 ${grid(3, `
 ${cell('选中的只有空白或符号', '不发请求，不报错。', phone(sheet({ engine: '', src: '', lang: null, body: `<div class="trbox"><div class="hint" style="font-size:.9rem">没有可翻译的文字。</div></div>`, foot: btn('完成', 'p') }), { sel: '· · · — — 2026' }))}
-${cell('第一次使用：一行披露', '只出现一次，读过即止。说清三件事：字发给谁、我们不经手、在哪关采集。', phone(sheet({ body: trbox(S.zh, copyRow), foot: btn('完成', 'p'), tail: `<div class="disc">选中的文字会直接发给你配置的引擎（DeepSeek），不经过我们的服务器。<a href="#p">了解更多</a></div>` })))}
+${cell('第一次使用：系统先说一句，我们再说一句', 'T1 真机读数：第一次用时<b>系统自己</b>先弹一页「所选内容将发送给大肚猴翻译进行翻译处理 · 继续 / 更改默认翻译App」，点「继续」才进我们的弹层（左）。系统那句只说「发给这个 App」，没说最终发给谁 —— 所以我们自己那一行仍然要有（右下），但<b>不可点、不拦路</b>，读过即止。', `<div style="display:flex; gap:10px"><div class="ctx" style="width:170px; height:360px"><div class="sheet" style="margin-top:auto; padding:10px 12px 14px; gap:8px; align-items:center; text-align:center"><div class="grab"></div><b style="font-size:.8rem">翻译</b><span style="font-size:.7rem; line-height:1.4">所选内容将发送给大肚猴翻译进行翻译处理。</span><span class="lchip" style="font-size:.7rem">继续</span><span style="font-size:.66rem; color:#2f7bf6">更改默认翻译App</span></div></div><div class="ctx" style="width:170px; height:360px"><div class="sheet" style="margin-top:auto; padding:10px 12px 12px; gap:8px"><div class="grab"></div><div class="tr" style="font-size:.78rem">${S.zh}</div><div class="disc" style="font-size:.64rem">选中的文字会直接发给你配置的引擎（DeepSeek），不经过我们的服务器。</div></div></div></div>`)}
 ${cell('采集开着时', '译文下方一行小字；关采集在 App 里，弹层不放开关（弹层是一次性的，开关该在一个找得回来的地方）。', phone(sheet({ body: trbox(S.zh, copyRow), foot: btn('完成', 'p'), tail: `<div class="disc">这句会存入复习库 · 在 App 的设置里可关</div>` })))}
 `)}${mini('用免费额度时披露那句换成：「选中的文字会经我们的中转发给 OpenRouter，我们不保存内容。」—— 与免费额度在别处的披露同一句。')}`, { page: PG });
 
