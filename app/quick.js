@@ -6,7 +6,7 @@
 // 它**不**启动同步、不初始化遥测、不打开 LearnStore —— 学习库按账号分库，第二个打开者会握着过期的库名；
 // 「这句进复习库」与「翻成了 / 失败了」都经原生中继交给主页面（quick-capture / quick-result）。
 //
-// 原生 → 页面：quick-show {via, origin, text?, concealed?, own?, blocked?, fresh?, perm?, busy?, first?, appName?}   origin: selection | clipboard | service | screen | typed
+// 原生 → 页面：quick-show {via, origin, text?, concealed?, own?, blocked?, fresh?, perm?, second?, busy?, first?, appName?}   origin: selection | clipboard | service | screen | typed
 //             quick-ocr {lines}                                截图识别出的行框（拼段在 HandoffCore）
 // 页面 → 原生：quick-ready · quick-resize {h} · quick-close · quick-pin {on} · quick-copy {text}
 //             quick-capture {v,text,tr,lang,trLang,ts,via} · quick-result {ok, code, provider, ms, status, route}（每个面板会话至多一条成功）
@@ -216,6 +216,8 @@
     const pending = () => {
       clearOut();
       message(t('quick_shot_perm_pending', '还差一步：在系统设置的列表里打开「{app}」的开关。打开之后要重新打开 App 才生效。').replace('{app}', String(msg.appName || 'BelliedMonkey Translator')));
+      // 预告第二道系统框（macOS 15 起才有，由原生告诉我们）：它措辞很重、出现在第一次真的框选时，不预告的话用户会以为出了事。
+      if (msg.second) message(t('quick_shot_perm_second', '第一次框选时，系统还会再弹一次确认，允许即可。之后每隔一段时间系统会再问一次 —— 这是系统对所有截屏类 App 的做法。'));
       actions([{ text: t('quick_enh_relaunch', '现在重开'), primary: true, run: () => post({ type: 'quick-relaunch' }) },
         { text: t('quick_enh_open_privacy', '打开系统设置'), run: () => post({ type: 'quick-open-privacy', which: 'screen' }) }]);
       fit();

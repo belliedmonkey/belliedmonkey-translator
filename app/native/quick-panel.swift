@@ -217,7 +217,8 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         guard MTScreenShot.supported else { return }
         guard MTScreenShot.granted else {
             let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
-            present(["type": "quick-show", "via": "shot", "origin": "screen", "perm": "screen", "appName": appName], focus: false, force: true)
+            present(["type": "quick-show", "via": "shot", "origin": "screen", "perm": "screen", "appName": appName,
+                     "second": MTScreenShot.asksAgainOnFirstCapture], focus: false, force: true)
             return
         }
         hide()

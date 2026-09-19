@@ -3430,5 +3430,8 @@
   },
   "quick_more": {
     "message": "More options"
+  },
+  "quick_shot_perm_second": {
+    "message": "The first time you select an area, macOS asks for one more confirmation — just allow it. After that, macOS asks again every so often; it does this for every app that captures the screen."
   }
 }

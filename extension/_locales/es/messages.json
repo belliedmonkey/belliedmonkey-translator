@@ -3430,5 +3430,8 @@
   },
   "quick_more": {
     "message": "Más opciones"
+  },
+  "quick_shot_perm_second": {
+    "message": "La primera vez que selecciones una zona, macOS pedirá una confirmación más: permítela. Después, macOS volverá a preguntar cada cierto tiempo; lo hace con todas las apps que capturan la pantalla."
   }
 }

@@ -3430,5 +3430,8 @@
   },
   "quick_more": {
     "message": "Weitere Optionen"
+  },
+  "quick_shot_perm_second": {
+    "message": "Beim ersten Auswählen eines Bereichs fragt macOS noch einmal nach – einfach erlauben. Danach fragt macOS in Abständen erneut; das tut es bei jeder App, die den Bildschirm aufnimmt."
   }
 }

@@ -237,14 +237,16 @@ async function main() {
     need(!/20 秒/.test((await dom()).msg), 'F: 不是第一次就不该有那一行');
     await E(`new Promise((r) => chrome.storage.local.remove(['quickShotAsked'], () => r('ok')))`);
     const permBefore = (await out('quick-request-perm')).length;
-    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'BelliedMonkey Translator CN' }); await sleep(400); const q2 = await dom();
+    await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'BelliedMonkey Translator CN', second: true }); await sleep(400); const q2 = await dom();
     need(/屏幕录制/.test(q2.msg) && /识别完即丢弃/.test(q2.msg) && q2.acts.join() === '继续' && (await out('quick-request-perm')).length === permBefore, 'F: 没有录屏权限 ⇒ 系统弹窗之前我们自己的话先到，此时还没去问系统，实际 ' + JSON.stringify(q2));
     await E(`(document.querySelector('#qk-actions button').click(), 'ok')`); await sleep(400); const q3 = await dom();
     need((await out('quick-request-perm')).slice(-1)[0].which === 'screen' && /「BelliedMonkey Translator CN」/.test(q3.msg) && /重新打开 App 才生效/.test(q3.msg) && q3.acts.join() === '现在重开,打开系统设置',
       'F: 「继续」⇒ 调系统的请求接口 + 「还差一步」（原样说出系统列表里的名字）+ 两个出口，实际 ' + JSON.stringify(q3));
+    need(/系统还会再弹一次确认/.test(q3.msg) && !/系统还会再弹/.test(q2.msg), 'F: 会有第二道系统框的系统上（second）⇒「还差一步」里预告它；我们自己那句说明里不提，实际 ' + JSON.stringify(q3.msg));
     await E(`([...document.querySelectorAll('#qk-actions button')].forEach((b) => b.click()), 'ok')`);
     need((await out('quick-relaunch')).length === 1 && (await out('quick-open-privacy')).slice(-1)[0].which === 'screen', 'F: 两个按钮各交给原生一条');
     await show({ via: 'shot', origin: 'screen', perm: 'screen', appName: 'X' }); await sleep(300);
+    need(!/系统还会再弹/.test((await dom()).msg), 'F: 不会有第二道的系统上（macOS 14）不该预告一件不会发生的事');
     need((await dom()).acts.join() === '现在重开,打开系统设置', 'F: 说过一次之后再触发 ⇒ 直接是「还差一步」那一态（入口不因为被拒而消失）');
     await surf('截图 · 等重开');
     // 本机没认出 + 引擎支持识图 ⇒ 多一个次级按钮，旁边写明发给谁；**点之前端点一张图都没收到**

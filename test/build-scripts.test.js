@@ -1733,6 +1733,10 @@ describe('quick screenshot — app/native/screen-ocr.swift', () => {
     ok(/if event\.keyCode == 53 \{ pick\(nil, target\) \}/.test(c));
     ok(/guard let s = self, let image = image else \{ return \}/.test(panel), '取消之后面板不该出现');
   });
+  test('第二道系统框只在 macOS 15 起才有 ⇒ 由原生告诉页面会不会有，页面才预告', () => {
+    ok(/static var asksAgainOnFirstCapture: Bool \{ if #available\(macOS 15\.0, \*\) \{ return true \} else \{ return false \} \}/.test(c));
+    ok(/"second": MTScreenShot\.asksAgainOnFirstCapture/.test(panel));
+  });
   test('⑤ 权限只用系统的请求接口；没有权限 ⇒ 不框选，面板里先说话（入口不消失）', () => {
     ok(/CGRequestScreenCaptureAccess\(\)/.test(c) && /CGPreflightScreenCaptureAccess\(\)/.test(c));
     ok(/guard MTScreenShot\.granted else \{[\s\S]*?"perm": "screen"[\s\S]*?return\s*\}\s*hide\(\)\s*MTScreenShot\.shared\.pickRegion/.test(panel));
