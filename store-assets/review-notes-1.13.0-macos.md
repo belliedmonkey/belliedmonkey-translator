@@ -13,7 +13,7 @@ New in 1.13.0 (macOS only): "Quick Translate" — translate text from any app in
 
 3. Screenshot translation (Screen Recording permission). Requested only the first time the user triggers it, after an in-app explanation. The app captures only the rectangle the user drags, at that moment, recognises the text on-device with Vision, and discards the image. Nothing is written to disk. The image leaves the device only if on-device recognition finds nothing AND the user explicitly taps "Try again with my image-capable engine", which sends it to the translation service the user configured.
 
-How to try it: copy any sentence, press Control-Option-T. Or select text in any app and choose Services > "Translate with BelliedMonkey". Translation uses the engine configured in Settings (the reviewer account's free credit works).
+How to try it: copy any sentence, press Control-Option-T. Or select text in any app and choose Services > "Translate with BelliedMonkey". Translation uses the engine configured in the app's Settings.
 ```
 
 ## 对照（中文）
