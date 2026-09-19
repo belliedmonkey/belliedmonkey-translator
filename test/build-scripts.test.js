@@ -1654,6 +1654,83 @@ describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => 
   });
 });
 
+// ── 右键「服务」（M-4）：Info.plist 条目、12 语种菜单名、提供方 ─────────────────────────────────────
+describe('quick services — NSServices / ServicesMenu.strings / services.swift', () => {
+  const R3 = path.join(__dirname, '..');
+  const S3 = require(path.join(R3, 'scripts', 'sync-app-assets.js'));
+  const strip = (x) => x.replace(/\/\/.*$/gm, '');
+  const swift = fs.readFileSync(path.join(R3, 'app', 'native', 'services.swift'), 'utf8');
+  const PLIST = '<?xml version="1.0"?>\n<plist version="1.0">\n<dict>\n\t<key>CFBundleName</key>\n\t<string>x</string>\n</dict>\n</plist>\n';
+  test('★ 条目里有 NSRequiredContext —— 没有它，服务「已登记、默认不启用、菜单里找不到、无报错」（T2 实测）', () => {
+    const xml = S3.servicesXml();
+    ok(/<key>NSRequiredContext<\/key>\s*<dict\/>/.test(xml), '缺 NSRequiredContext');
+    ok(xml.includes('<string>$(PRODUCT_NAME)</string>'), 'NSPortName 必须等于 App 名；两个 flavor 名字不同，所以用构建变量');
+    ok(xml.includes('<string>NSStringPboardType</string>') && xml.includes('<string>public.utf8-plain-text</string>'));
+  });
+  test('只进 macOS App 的 Info.plist；第二遍一字不改', () => {
+    const entry = S3.PLIST_KEYS.find((k) => k.key === 'NSServices');
+    eq(entry.only, 'macOS (App)');
+    const once = S3.patchPlistXml(PLIST, [entry]);
+    ok(once.xml.includes('<key>NSServices</key>') && once.added.join() === 'NSServices');
+    eq(S3.patchPlistXml(once.xml, [entry]).xml, once.xml);
+  });
+  test('NSMessage = Swift 里 @objc 方法名的第一段；方法签名是 AppKit 规定的三段式', () => {
+    ok(S3.servicesXml().includes(`<string>${S3.SERVICE_MESSAGE}</string>`));
+    ok(new RegExp('@objc func ' + S3.SERVICE_MESSAGE + '\\(_ pboard: NSPasteboard, userData: String\\?, error: AutoreleasingUnsafeMutablePointer<NSString>\\)').test(swift));
+  });
+  test('菜单名：与权限文案同一份 12 个 lproj；default 的英文就是 .strings 的键；非英文都翻了', () => {
+    deepEq(Object.keys(S3.SERVICES_L10N), Object.keys(S3.PLIST_L10N));
+    eq(S3.SERVICES_L10N.en, S3.SERVICE_TITLE_EN);
+    ok(S3.servicesXml().includes(`<string>${S3.SERVICE_TITLE_EN}</string>`));
+    for (const [l, v] of Object.entries(S3.SERVICES_L10N)) {
+      if (l !== 'en') ok(v !== S3.SERVICE_TITLE_EN && v.trim().length > 3, l + ' 没翻');
+      ok(S3.servicesMenuStringsText(l).includes(`"${S3.SERVICE_TITLE_EN}" = "${v}";`), l);
+    }
+    ok(/大肚猴/.test(S3.SERVICES_L10N['zh-Hans']) && /BelliedMonkey/.test(S3.SERVICES_L10N.ja), '品牌名：中文里是「大肚猴」，其余不译');
+  });
+  test('生成的 .strings 是合法的老式 strings（plutil -lint）', () => {
+    const os2 = require('os'); const cp = require('child_process');
+    if (process.platform !== 'darwin') return;
+    const d = fs.mkdtempSync(path.join(os2.tmpdir(), 'mt-svc-'));
+    try { for (const l of Object.keys(S3.SERVICES_L10N)) { const f = path.join(d, l + '.strings'); fs.writeFileSync(f, S3.servicesMenuStringsText(l)); cp.execFileSync('plutil', ['-lint', f], { stdio: 'pipe' }); } }
+    finally { fs.rmSync(d, { recursive: true, force: true }); }
+  });
+  test('变体组补丁：两份 .strings 各挂各的、ID 段不撞、各自幂等', () => {
+    const PBX2 = ['/* Begin PBXBuildFile section */', '/* End PBXBuildFile section */', '/* Begin PBXFileReference section */', '/* End PBXFileReference section */',
+      '/* Begin PBXVariantGroup section */', '/* End PBXVariantGroup section */', '\t\t\tchildren = (', '\t\t\t\tAAAAAAAAAAAAAAAAAAAAAAAA /* Main.html */,', '\t\t\t);',
+      '\t\t\tfiles = (', '\t\t\t\tBBBBBBBBBBBBBBBBBBBBBBBB /* Main.html in Resources */,', '\t\t\t);', '\t\t\tfiles = (', '\t\t\t\tCCCCCCCCCCCCCCCCCCCCCCCC /* Main.html in Resources */,', '\t\t\t);',
+      '\t\t\tknownRegions = (', '\t\t\t\ten,', '\t\t\t\tBase,', '\t\t\t);', ''].join('\n');
+    const a = S3.patchPbxprojInfoPlistStrings(PBX2, ['en', 'zh-Hans']);
+    const b = S3.patchPbxprojStringsGroup(a.src, ['en', 'zh-Hans'], 'ServicesMenu.strings', 100);
+    ok(!/✗/.test(a.note + b.note), a.note + ' | ' + b.note);
+    eq((b.src.match(/ServicesMenu\.strings in Resources \*\/,/g) || []).length, 2, '两个 App target 的 Resources 阶段各一条');
+    eq((b.src.match(/InfoPlist\.strings in Resources \*\/,/g) || []).length, 2, '挂第二份不能碰第一份');
+    const ids = b.src.match(/MT1F0057A1B9\d{12}(?= \/\* [^*]+ \*\/ = \{)/g); eq(new Set(ids).size, ids.length, 'ID 撞了：' + ids.join());
+    eq(S3.patchPbxprojStringsGroup(b.src, ['en', 'zh-Hans'], 'ServicesMenu.strings', 100).src, b.src, '第二遍一字不改');
+    eq(S3.patchPbxprojInfoPlistStrings(b.src, ['en', 'zh-Hans']).src, b.src);
+  });
+  test('提供方：登记成标记块、整份 #if os(macOS)、没有给用户看的文案', () => {
+    ok(S3.BLOCKS.some((x) => x.src === 'services.swift' && x.name === 'mt-services'));
+    const c = strip(swift).trim(); ok(c.startsWith('#if os(macOS)') && c.endsWith('#endif'));
+    ok(!/[一-鿿]/.test(strip(swift).replace(/\/\/\/.*$/gm, '')));
+  });
+  test('把焦点还给刚才那个 App；「刚才那个」来自激活通知（回调时最前面的已经是我们自己）', () => {
+    const c = strip(swift);
+    // 冷启动：App 正是被这次调用拉起来的，激活通知一条都没收到过 —— 登记的那一刻先记下最前面的 App（真机实测：不记就没处还焦点）
+    ok(/installed = true\s*if let front = NSWorkspace\.shared\.frontmostApplication, front\.bundleIdentifier != Bundle\.main\.bundleIdentifier \{\s*lastOther = front/.test(c.replace(/\n\s*\n/g, '\n')), '冷启动没有先记下最前面的 App');
+    ok(/didActivateApplicationNotification/.test(c) && /app\.bundleIdentifier != Bundle\.main\.bundleIdentifier/.test(c));
+    ok(/lastOther\?\.activate\(\)\s*\n\s*MTQuickPanel\.shared\.translateFromService\(text\)/.test(c), '该先还焦点、再出面板');
+  });
+  test('服务是用户明确点的：不看常驻开关；一启动就登记；页面随后发来的「常驻关着」拆不掉正在用的面板', () => {
+    const panel = strip(fs.readFileSync(path.join(R3, 'app', 'native', 'quick-panel.swift'), 'utf8'));
+    const res = strip(fs.readFileSync(path.join(R3, 'app', 'native', 'resident.swift'), 'utf8'));
+    ok(/"via": "service", "origin": "service", "text": text\], focus: false, force: true\)/.test(panel));
+    ok(/guard web == nil, force \|\| MTResident\.keepAlive,/.test(panel));
+    ok(/if panel\?\.isVisible == true \|\| !pending\.isEmpty \{ return \}/.test(panel));
+    ok(/func install\(webView: WKWebView\) \{[\s\S]*?MTQuickServices\.shared\.install\(\)/.test(res));
+  });
+});
+
 // ── 快速翻译面板页（learning-design §9.9）：同一份包以 #quick 加载时，加载即自启动的模块整段不执行 ──────
 describe('app bundle — 面板页不启动主壳（MAIN_ONLY）', () => {
   const ROOT = path.join(__dirname, '..');

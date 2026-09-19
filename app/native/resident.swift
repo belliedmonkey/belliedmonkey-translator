@@ -43,6 +43,8 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         let ucc = webView.configuration.userContentController
         ucc.removeScriptMessageHandler(forName: MTResident.channel)
         ucc.add(self, name: MTResident.channel)
+        // 右键「服务」不看常驻开关，也可能正是它把 App 冷启动起来的 ⇒ 一启动就登记，不等页面的 quick-config。
+        MTQuickServices.shared.install()
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {

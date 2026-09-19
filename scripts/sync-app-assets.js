@@ -383,6 +383,8 @@ const BLOCKS = [
   { name: 'mt-resident', src: 'resident.swift', label: 'resident' },
   { name: 'mt-hotkey', src: 'hotkey.swift', label: 'hotkey' },
   { name: 'mt-quick-panel', src: 'quick-panel.swift', label: 'quick panel' },
+  // 右键「服务」的提供方（M-4）。Info.plist 的 NSServices 条目与 ServicesMenu.strings 见上面的 PLIST_KEYS / SERVICES_L10N。
+  { name: 'mt-services', src: 'services.swift', label: 'services' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -596,6 +598,42 @@ const PLIST_L10N = {
 };
 const PLIST_L10N_KEYS = [MIC_KEY, SPEECH_KEY, AUDIO_CAPTURE_KEY];
 
+// ── 右键「服务」的菜单名 ───────────────────────────────────────────────────────────────────────
+// Info.plist 里 NSMenuItem.default 的值既是英文菜单名，也是 ServicesMenu.strings 的键。品牌名在中文里是
+// 「大肚猴」，其余语种不译（与 _locales 里 quick_menu_open 的写法一致）。清单与 PLIST_L10N 同一份 lproj。
+const SERVICE_MESSAGE = 'translateSelection';           // = services.swift 里 @objc 方法名的第一段
+const SERVICE_TITLE_EN = 'Translate with BelliedMonkey';
+const SERVICES_L10N = {
+  en: SERVICE_TITLE_EN,
+  'zh-Hans': '用大肚猴翻译',
+  'zh-Hant': '用大肚猴翻譯',
+  ja: 'BelliedMonkey で翻訳',
+  ko: 'BelliedMonkey로 번역',
+  fr: 'Traduire avec BelliedMonkey',
+  de: 'Mit BelliedMonkey übersetzen',
+  es: 'Traducir con BelliedMonkey',
+  ar: 'الترجمة باستخدام BelliedMonkey',
+  'pt-BR': 'Traduzir com BelliedMonkey',
+  ru: 'Перевести в BelliedMonkey',
+  hi: 'BelliedMonkey से अनुवाद करें',
+};
+function servicesXml() {
+  return '<array>\n\t\t<dict>\n'
+    + `\t\t\t<key>NSMenuItem</key>\n\t\t\t<dict>\n\t\t\t\t<key>default</key>\n\t\t\t\t<string>${SERVICE_TITLE_EN}</string>\n\t\t\t</dict>\n`
+    + `\t\t\t<key>NSMessage</key>\n\t\t\t<string>${SERVICE_MESSAGE}</string>\n`
+    + '\t\t\t<key>NSPortName</key>\n\t\t\t<string>$(PRODUCT_NAME)</string>\n'
+    + '\t\t\t<key>NSRequiredContext</key>\n\t\t\t<dict/>\n'
+    + '\t\t\t<key>NSSendTypes</key>\n\t\t\t<array>\n\t\t\t\t<string>NSStringPboardType</string>\n\t\t\t\t<string>public.utf8-plain-text</string>\n\t\t\t</array>\n'
+    + '\t\t</dict>\n\t</array>';
+}
+function servicesMenuStringsText(lproj) {
+  const title = SERVICES_L10N[lproj];
+  if (!title) throw new Error(`SERVICES_L10N 没有 ${lproj}`);
+  const esc = (x) => x.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return '/* 右键「服务」的菜单名 —— 由 scripts/sync-app-assets.js 的 SERVICES_L10N 生成，不要手改（工程会被重生成）。 */\n'
+    + `"${esc(SERVICE_TITLE_EN)}" = "${esc(title)}";\n`;
+}
+
 const PLIST_KEYS = [
   { key: MIC_KEY, xml: `<string>${MIC_TEXT_EN}</string>` },
   { key: SPEECH_KEY, xml: `<string>${SPEECH_TEXT_EN}</string>` },
@@ -608,6 +646,11 @@ const PLIST_KEYS = [
   // 这句就是弹窗里那行字（尖刺 S1 截图为证）—— 不是屏幕录制权限。只给 macOS App：iOS 没有这个权限。
   // 缺了它，弹窗没有说明句、审核会问；build.js 的 Gate I 检查这一行在。
   { key: 'NSAudioCaptureUsageDescription', only: 'macOS (App)', xml: `<string>${AUDIO_CAPTURE_TEXT_EN}</string>` },
+  // 快速翻译的右键「服务」（learning-design §9.9，M-4）。零权限取词的另一半：宿主 App 把选中的文字交过来。
+  // **`NSRequiredContext` 必须在（空字典即可）**：没有它，服务「已登记、默认不启用、菜单里永远找不到、无报错」
+  // （T2 尖刺实测）。NSPortName 用 $(PRODUCT_NAME)：两个 flavor 的 App 名不同，而它必须等于 App 名。
+  // 菜单名的 12 个语种在 ServicesMenu.strings（SERVICES_L10N），这里的 default 是英文、也是那份表的键。
+  { key: 'NSServices', only: 'macOS (App)', xml: servicesXml() },
 ];
 
 // 一份 <lproj>/InfoPlist.strings 的内容（老式 .strings，plutil -lint 认）。三个键都写：iOS 用不到
@@ -625,58 +668,70 @@ function infoPlistStringsText(lproj) {
 // （以「有 Main.html in Resources 的阶段」为准 —— 扩展与小组件都没有），knownRegions 补齐。
 // 幂等：变体组已在就一字不改（文案改了只需重写 .strings 文件，不用动工程）。
 const LID = (n) => 'MT1F0057A1B9' + String(n).padStart(12, '0');
-function patchPbxprojInfoPlistStrings(src, lprojs) {
-  if (src.includes('/* InfoPlist.strings */')) return { src, note: 'InfoPlist.strings already in project' };
+// 两份 .strings 共用这一个补丁：InfoPlist.strings（权限文案，idBase 0 —— 出货至今的 ID 不动）与
+// ServicesMenu.strings（右键「服务」的菜单名，idBase 100）。只有文件名与 ID 段不同。
+function patchPbxprojStringsGroup(src, lprojs, file, idBase) {
+  return _patchStringsGroup(src, lprojs, file, (n) => LID(idBase + n));
+}
+function patchPbxprojInfoPlistStrings(src, lprojs) { return patchPbxprojStringsGroup(src, lprojs, 'InfoPlist.strings', 0); }
+function _patchStringsGroup(src, lprojs, FILE, LID) {
+  if (src.includes(`/* ${FILE} */`)) return { src, note: `${FILE} already in project` };
   const need = ['/* End PBXBuildFile section */', '/* End PBXFileReference section */', '/* End PBXVariantGroup section */', 'knownRegions = ('];
-  for (const n of need) if (!src.includes(n)) return { src, note: `✗ InfoPlist.strings: 缺 ${n} —— 转换器布局变了？` };
+  for (const n of need) if (!src.includes(n)) return { src, note: `✗ ${FILE}: 缺 ${n} —— 转换器布局变了？` };
   const groupRe = /(\t\t\t\t[0-9A-F]{24} \/\* Main\.html \*\/,\n)/;
   const phaseRe = /(\t\t\t\t[0-9A-F]{24} \/\* Main\.html in Resources \*\/,\n)/g;
-  if (!groupRe.test(src)) return { src, note: '✗ InfoPlist.strings: Resources 组里找不到 Main.html' };
+  if (!groupRe.test(src)) return { src, note: `✗ ${FILE}: Resources 组里找不到 Main.html` };
   const phases = (src.match(phaseRe) || []).length;
-  if (phases !== 2) return { src, note: `✗ InfoPlist.strings: 期望 2 个 App Resources 阶段，找到 ${phases}` };
+  if (phases !== 2) return { src, note: `✗ ${FILE}: 期望 2 个 App Resources 阶段，找到 ${phases}` };
 
   const vg = LID(1);
   const refs = lprojs.map((l, i) => ({ l, id: LID(10 + i) }));
   let out = src;
   // ① PBXBuildFile：两个 App target 各一条
   out = out.replace('/* End PBXBuildFile section */',
-    `\t\t${LID(2)} /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* InfoPlist.strings */; };\n`
-    + `\t\t${LID(3)} /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* InfoPlist.strings */; };\n`
+    `\t\t${LID(2)} /* ${FILE} in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* ${FILE} */; };\n`
+    + `\t\t${LID(3)} /* ${FILE} in Resources */ = {isa = PBXBuildFile; fileRef = ${vg} /* ${FILE} */; };\n`
     + '/* End PBXBuildFile section */');
   // ② PBXFileReference：每个 lproj 一条
   out = out.replace('/* End PBXFileReference section */',
-    refs.map((r) => `\t\t${r.id} /* ${r.l} */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "${r.l}"; path = "${r.l}.lproj/InfoPlist.strings"; sourceTree = "<group>"; };\n`).join('')
+    refs.map((r) => `\t\t${r.id} /* ${r.l} */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "${r.l}"; path = "${r.l}.lproj/${FILE}"; sourceTree = "<group>"; };\n`).join('')
     + '/* End PBXFileReference section */');
   // ③ PBXVariantGroup
   out = out.replace('/* End PBXVariantGroup section */',
-    `\t\t${vg} /* InfoPlist.strings */ = {\n\t\t\tisa = PBXVariantGroup;\n\t\t\tchildren = (\n`
+    `\t\t${vg} /* ${FILE} */ = {\n\t\t\tisa = PBXVariantGroup;\n\t\t\tchildren = (\n`
     + refs.map((r) => `\t\t\t\t${r.id} /* ${r.l} */,\n`).join('')
-    + `\t\t\t);\n\t\t\tname = InfoPlist.strings;\n\t\t\tsourceTree = "<group>";\n\t\t};\n`
+    + `\t\t\t);\n\t\t\tname = ${FILE};\n\t\t\tsourceTree = "<group>";\n\t\t};\n`
     + '/* End PBXVariantGroup section */');
   // ④ Resources 组 children
-  out = out.replace(groupRe, `$1\t\t\t\t${vg} /* InfoPlist.strings */,\n`);
+  out = out.replace(groupRe, `$1\t\t\t\t${vg} /* ${FILE} */,\n`);
   // ⑤ 两个 App target 的 Resources 阶段
   let n = 0;
-  out = out.replace(phaseRe, (m) => m + `\t\t\t\t${n++ === 0 ? LID(2) : LID(3)} /* InfoPlist.strings in Resources */,\n`);
+  out = out.replace(phaseRe, (m) => m + `\t\t\t\t${n++ === 0 ? LID(2) : LID(3)} /* ${FILE} in Resources */,\n`);
   // ⑥ knownRegions
   out = out.replace(/knownRegions = \(\n([\s\S]*?)(\t\t\t\);)/, (m, body, close) => {
     const have = new Set(body.split('\n').map((s) => s.trim().replace(/,$/, '')).filter(Boolean));
     const add = lprojs.filter((l) => !have.has(l) && !have.has(`"${l}"`));
     return 'knownRegions = (\n' + body + add.map((l) => `\t\t\t\t${/[^A-Za-z0-9]/.test(l) ? `"${l}"` : l},\n`).join('') + close;
   });
-  return { src: out, note: `InfoPlist.strings variant group added (${lprojs.length} lproj · 2 app targets)` };
+  return { src: out, note: `${FILE} variant group added (${lprojs.length} lproj · 2 app targets)` };
 }
 
 function patchInfoPlistStrings(sharedDir) {
+  return writeStringsGroup(sharedDir, Object.keys(PLIST_L10N), 'InfoPlist.strings', infoPlistStringsText, patchPbxprojInfoPlistStrings);
+}
+function patchServicesMenuStrings(sharedDir) {
+  return writeStringsGroup(sharedDir, Object.keys(SERVICES_L10N), 'ServicesMenu.strings', servicesMenuStringsText,
+    (src, lprojs) => patchPbxprojStringsGroup(src, lprojs, 'ServicesMenu.strings', 100));
+}
+function writeStringsGroup(sharedDir, lprojs, FILE, textOf, patchPbx) {
   const res = path.join(sharedDir, 'Resources');
   if (!fs.existsSync(res)) return 'no Resources/';
-  const lprojs = Object.keys(PLIST_L10N);
   let written = 0;
   for (const l of lprojs) {
     const dir = path.join(res, `${l}.lproj`);
     fs.mkdirSync(dir, { recursive: true });
-    const f = path.join(dir, 'InfoPlist.strings');
-    const text = infoPlistStringsText(l);
+    const f = path.join(dir, FILE);
+    const text = textOf(l);
     if (!fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== text) { fs.writeFileSync(f, text); written++; }
   }
   const appRoot = path.dirname(sharedDir);
@@ -685,7 +740,7 @@ function patchInfoPlistStrings(sharedDir) {
   const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
   if (!fs.existsSync(f)) return 'no project.pbxproj';
   const before = fs.readFileSync(f, 'utf8');
-  const { src, note } = patchPbxprojInfoPlistStrings(before, lprojs);
+  const { src, note } = patchPbx(before, lprojs);
   if (src !== before) fs.writeFileSync(f, src);
   return `${note}${written ? `（写了 ${written} 份 .strings）` : ''}`;
 }
@@ -1433,7 +1488,8 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
       const vc = loud(proj, 'ViewController', patchViewController(shared));
       const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared));
-      const plists = loud(proj, 'Info.plist', patchInfoPlists(shared)) + ' · ' + loud(proj, 'InfoPlist.strings', patchInfoPlistStrings(shared));
+      const plists = loud(proj, 'Info.plist', patchInfoPlists(shared)) + ' · ' + loud(proj, 'InfoPlist.strings', patchInfoPlistStrings(shared))
+        + ' · ' + loud(proj, 'ServicesMenu.strings', patchServicesMenuStrings(shared));
       const dlg = loud(proj, 'delegates', patchDelegates(shared));
       // 灵动岛（§9.5）：只做 iOS，且只对已经带 iOS App target 的工程。macOS 没有灵动岛。
       const widget = fs.existsSync(path.join(path.dirname(shared), 'iOS (App)'))
@@ -1465,5 +1521,6 @@ module.exports = {
   patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget, patchDeploymentTargets,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
+  SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
   patchWidgetTarget, patchWidgetFiles, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };

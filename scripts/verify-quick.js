@@ -216,6 +216,14 @@ async function main() {
     const f4 = await settled();
     need(f4.tr[0] === '译：Typed text here.' && (await out('quick-capture')).pop().via === 'input', 'F: 回车该翻译、via 是 input，实际 ' + JSON.stringify(f4.tr));
 
+    // 右键「服务」交来的（M-4）：来源标签是「服务」，进复习库时 via 是 service（与划词并成一组，由 AppHandoff 定）
+    await show({ via: 'service', origin: 'service', text: 'Handed over by the Services menu.' });
+    const f5 = await settled();
+    need(f5.tag === '服务' && f5.tr[0] === '译：Handed over by the Services menu.' && (await out('quick-capture')).pop().via === 'service', 'F: 服务来的句子该有「服务」标签、via 是 service，实际 ' + JSON.stringify([f5.tag, f5.tr]));
+    n = stats.calls.length;
+    await show({ via: 'service', origin: 'service', text: '' }); await sleep(300);
+    need(stats.calls.length === n && /没有可翻译/.test((await dom()).msg), 'F: 服务交来空文字 ⇒ 0 请求 + 一句话');
+
     // ── G. 失败两态的出口不同 ──
     const resBefore = (await out('quick-result')).length;
     stats.mode = '401';

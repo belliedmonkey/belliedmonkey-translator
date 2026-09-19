@@ -3377,6 +3377,15 @@ service | screen | typed`）只决定来源标签与「零权限三陷阱」走�
 不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
 `fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
 面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
+
+**右键「服务」（M-4，`app/native/services.swift`）。** 宿主 App 把选中的文字放在一块**专用的**剪贴板里交过来 —— 不经过
+通用剪贴板，所以零权限三陷阱不适用，来源标签是「服务」、`via:'service'`（进复习库时与划词并成一组）。三条落地时定的事：
+① **不看「在菜单栏常驻」**：菜单项是 `Info.plist` 里的静态条目，运行时撤不掉，点了没反应才是坏行为 ⇒ 开关关着、甚至 App
+是被这次点击冷启动的，都照样翻（面板按需建；页面随后发来的「常驻关着」拆不掉正在用的面板）；提供方在原生安装时就登记，
+不等页面的 `quick-config`。② 系统调用服务时会把我们激活到前台 ⇒ 收到文字的同一刻 `lastOther.activate()` 还回去；
+「刚才那个 App」靠监听激活通知记下来，因为回调发生时最前面的已经是我们自己。③ `NSPortName` 写 `$(PRODUCT_NAME)`（两个
+flavor 的 App 名不同而它必须等于 App 名）；菜单名 12 个语种在 `ServicesMenu.strings`，与 `InfoPlist.strings` 共用同一个
+变体组补丁（`patchPbxprojStringsGroup`，ID 段各自独立）。
 `quick-result` 是遥测的中继：面板页不初始化 `MTTelemetry`（心跳与补发只归主页面），成功 / 失败交给主页面去发
 `translate_ok{kind:'quick'}` / `translate_fail`。
 
