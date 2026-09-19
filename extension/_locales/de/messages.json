@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "Nicht in der Menüleiste bleiben"
+  },
+  "quick_tag_selection": {
+    "message": "Auswahl"
+  },
+  "quick_tag_clipboard": {
+    "message": "Zwischenablage"
+  },
+  "quick_tag_service": {
+    "message": "Dienste"
+  },
+  "quick_tag_shot": {
+    "message": "Bildschirmfoto"
+  },
+  "quick_tag_input": {
+    "message": "Eingabe"
+  },
+  "quick_pin": {
+    "message": "Anheften"
+  },
+  "quick_close": {
+    "message": "Schließen"
+  },
+  "quick_copy": {
+    "message": "Übersetzung kopieren"
+  },
+  "quick_src_label": {
+    "message": "Originaltext"
+  },
+  "quick_src_placeholder": {
+    "message": "Text zum Übersetzen eingeben oder einfügen"
+  },
+  "quick_clip_concealed": {
+    "message": "Der Inhalt der Zwischenablage ist als verborgen markiert (vermutlich ein Passwort). Er wurde nicht gelesen und nichts wurde gesendet."
+  },
+  "quick_clip_empty": {
+    "message": "In der Zwischenablage ist kein Text. Text auswählen, ⌘C drücken, dann den Kurzbefehl drücken."
+  },
+  "quick_clip_same": {
+    "message": "Derselbe Text wie beim letzten Mal — ⌘C vergessen?"
+  },
+  "quick_no_selection": {
+    "message": "Der ausgewählte Text konnte nicht gelesen werden — vielleicht ist nichts ausgewählt, oder diese App erlaubt kein Kopieren."
+  },
+  "quick_use_shot": {
+    "message": "Stattdessen Bildschirmfoto übersetzen"
+  },
+  "quick_same_lang": {
+    "message": "Bereits auf {lang}"
+  },
+  "sys_empty": {
+    "message": "Kein Text zum Übersetzen."
+  },
+  "sys_slow": {
+    "message": "Übersetzung läuft noch — das Gratisguthaben läuft über unser Relay und ist langsamer als ein eigener Schlüssel."
+  },
+  "quick_slow": {
+    "message": "Übersetzung läuft noch…"
+  },
+  "quick_unconfigured": {
+    "message": "Noch keine Übersetzungs-Engine. Gratisguthaben holen oder eigenen API-Schlüssel eintragen."
+  },
+  "quick_open_settings": {
+    "message": "Einstellungen öffnen"
+  },
+  "quick_retry": {
+    "message": "Erneut versuchen"
+  },
+  "quick_saved": {
+    "message": "In der Lernbibliothek gespeichert"
+  },
+  "quick_saved_off": {
+    "message": "Nicht gespeichert · Erfassung ist aus"
+  },
+  "quick_saved_long": {
+    "message": "Zu lang für die Lernbibliothek"
+  },
+  "quick_shot_nothing": {
+    "message": "In diesem Bereich wurde kein Text erkannt."
+  },
+  "quick_shot_again": {
+    "message": "Erneut auswählen"
   }
 }

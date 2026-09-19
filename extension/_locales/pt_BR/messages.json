@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "Não permanecer residente"
+  },
+  "quick_tag_selection": {
+    "message": "Seleção"
+  },
+  "quick_tag_clipboard": {
+    "message": "Área de transferência"
+  },
+  "quick_tag_service": {
+    "message": "Serviços"
+  },
+  "quick_tag_shot": {
+    "message": "Captura de tela"
+  },
+  "quick_tag_input": {
+    "message": "Digitado"
+  },
+  "quick_pin": {
+    "message": "Fixar"
+  },
+  "quick_close": {
+    "message": "Fechar"
+  },
+  "quick_copy": {
+    "message": "Copiar tradução"
+  },
+  "quick_src_label": {
+    "message": "Texto original"
+  },
+  "quick_src_placeholder": {
+    "message": "Digite ou cole o texto para traduzir"
+  },
+  "quick_clip_concealed": {
+    "message": "O conteúdo da área de transferência está marcado como oculto (provavelmente uma senha). Ele não foi lido e nada foi enviado."
+  },
+  "quick_clip_empty": {
+    "message": "Não há texto na área de transferência. Selecione um texto, pressione ⌘C e depois o atalho."
+  },
+  "quick_clip_same": {
+    "message": "É o mesmo texto da última vez — esqueceu de pressionar ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "Não foi possível obter o texto selecionado — talvez nada esteja selecionado, ou este app não permite copiar."
+  },
+  "quick_use_shot": {
+    "message": "Usar tradução por captura de tela"
+  },
+  "quick_same_lang": {
+    "message": "Já está em {lang}"
+  },
+  "sys_empty": {
+    "message": "Não há texto para traduzir."
+  },
+  "sys_slow": {
+    "message": "Ainda traduzindo — o crédito gratuito passa pelo nosso relay, que é mais lento que a sua própria chave."
+  },
+  "quick_slow": {
+    "message": "Ainda traduzindo…"
+  },
+  "quick_unconfigured": {
+    "message": "Ainda não há mecanismo de tradução. Resgate o crédito gratuito ou informe sua própria chave de API."
+  },
+  "quick_open_settings": {
+    "message": "Abrir ajustes"
+  },
+  "quick_retry": {
+    "message": "Tentar de novo"
+  },
+  "quick_saved": {
+    "message": "Salvo na biblioteca de revisão"
+  },
+  "quick_saved_off": {
+    "message": "Não salvo · a captura está desativada"
+  },
+  "quick_saved_long": {
+    "message": "Longo demais para a biblioteca de revisão"
+  },
+  "quick_shot_nothing": {
+    "message": "Nenhum texto foi reconhecido nesta área."
+  },
+  "quick_shot_again": {
+    "message": "Selecionar de novo"
   }
 }

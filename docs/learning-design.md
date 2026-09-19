@@ -3363,8 +3363,23 @@ App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻�
 
 | 方向 | 消息 |
 |---|---|
-| 原生 → 页面 | `quick-show{text, via, anchor}` · `quick-ocr{lines}` · `quick-perm{postEvent, screen}` · `quick-caps{sck, vision, services}` |
-| 页面 → 原生 | `quick-resize{h}` · `quick-close` · `quick-copy{text}` · `quick-capture{…}` · `quick-request-perm{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
+| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?}` · `quick-ocr{lines}` |
+| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms}` · `quick-open-settings` · `quick-reselect` |
+| 原生 → 主页面 | `quick-caps{resident, sck, vision, services}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 主页面 → 原生 | `quick-probe` · `quick-config{…}` · `quick-close-main` · `quick-request-perm{which}` · `quick-hotkeys{…}` · `quick-relaunch` |
+
+**一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
+`app/quick-host.js`（`AppQuickHost`：设置、权限、常驻），面板页那头是 `app/quick.js`（`AppQuick`：显示与翻译）。
+各自的 `PROTOCOL` 表是闭集，`test:quick` 断言面板页的出站消息全在表内。`origin`（`selection | clipboard |
+service | screen | typed`）只决定来源标签与「零权限三陷阱」走不走；`via` 才是进复习库的那个闭集。
+`concealed:true` 时原生**不带 `text`**，面板页也不会去读它（`HandoffCore.classifyClipboard` 先看标记）。
+`quick-result` 是遥测的中继：面板页不初始化 `MTTelemetry`（心跳与补发只归主页面），成功 / 失败交给主页面去发
+`translate_ok{kind:'quick'}` / `translate_fail`。
+
+**面板页不启动主壳。** `app.js` 的 IIFE 在 `#quick` 下第一行就返回；而 `review.js` 与扩展**同字节**、加载即自
+启动（开学习库、发心跳），不能为 App 的一个模式去改它 —— 由 `build/app-bundle.js` 的 `MAIN_ONLY` 在包里包一层
+`if (!#quick) { … }`，字节不动。漏列的模块由 `npm run test:quick` 抓：它在 document-start 装探针，数
+`indexedDB.open` 与 `MTTelemetry.init` 的次数、记下每一次 `fetch`，三者在面板页都必须是 0。
 
 `quick-caps` 沿用 §9.8 老原生壳那条纪律：原生不回 ⇒ 设置块与菜单入口**不显示**（不是灰掉）。`sck:false`
 （macOS < 14）⇒ 截图入口整个不出现。两张协议表由 `npm test` 钉住（JS 与 Swift 两边的消息名逐字一致）。

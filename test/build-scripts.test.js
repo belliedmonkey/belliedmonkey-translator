@@ -1592,3 +1592,27 @@ describe('sync-app-assets: 快速翻译的菜单栏常驻（learning-design §9.
     ok(/static var keepAlive: Bool \{ shared\.enabled \}/.test(tpl) && /private var enabled = false/.test(tpl), '页面还没发来配置之前必须是老行为（关窗即退出）');
   });
 });
+
+// ── 快速翻译面板页（learning-design §9.9）：同一份包以 #quick 加载时，加载即自启动的模块整段不执行 ──────
+describe('app bundle — 面板页不启动主壳（MAIN_ONLY）', () => {
+  const ROOT = path.join(__dirname, '..');
+  const src = fs.readFileSync(path.join(ROOT, 'build/app-bundle.js'), 'utf8');
+  test('面板的两个模块在 MODULES 里，且 HandoffCore 先于 AppQuick', () => {
+    const a = src.indexOf("'app/quick-core.js'"), b = src.indexOf("'app/quick.js'");
+    ok(a > 0 && b > a, '顺序：quick-core → quick');
+  });
+  test('review.js 被列为 MAIN_ONLY —— 它与扩展同字节、加载即开学习库并发心跳', () => {
+    ok(/const MAIN_ONLY = new Set\(\[[^\]]*'extension\/learn\/review\.js'/.test(src));
+  });
+  test('包出来的守卫是一段能执行的正则（转义没有在模板里丢一层）', () => {
+    const m = src.match(/const PANEL_HASH_TEST = (".*");/); ok(m, '找不到 PANEL_HASH_TEST');
+    const expr = JSON.parse(m[1]);
+    const run = (hash) => new Function('location', 'return ' + expr)({ hash });
+    eq(run('#quick'), true); eq(run('#quick?x'), true); eq(run(''), false); eq(run('#quickly'), false); eq(run('#settings'), false);
+  });
+  test('app.js 的两处副作用都在 #quick 下让路：IIFE 第一行返回 + 末尾的遥测初始化', () => {
+    const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
+    ok(/AppQuick\.isQuickMode\(\)\) \{ AppQuick\.boot\(\); return; \}/.test(app));
+    ok(/MTTelemetry !== 'undefined' && !\(typeof AppQuick !== 'undefined' && AppQuick\.isQuickMode\(\)\)\) MTTelemetry\.init/.test(app));
+  });
+});

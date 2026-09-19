@@ -3031,5 +3031,86 @@
   },
   "quick_resident_off": {
     "message": "मेनू बार में न रहें"
+  },
+  "quick_tag_selection": {
+    "message": "चुना हुआ टेक्स्ट"
+  },
+  "quick_tag_clipboard": {
+    "message": "क्लिपबोर्ड"
+  },
+  "quick_tag_service": {
+    "message": "सेवाएँ"
+  },
+  "quick_tag_shot": {
+    "message": "स्क्रीनशॉट"
+  },
+  "quick_tag_input": {
+    "message": "टाइप किया"
+  },
+  "quick_pin": {
+    "message": "पिन करें"
+  },
+  "quick_close": {
+    "message": "बंद करें"
+  },
+  "quick_copy": {
+    "message": "अनुवाद कॉपी करें"
+  },
+  "quick_src_label": {
+    "message": "मूल पाठ"
+  },
+  "quick_src_placeholder": {
+    "message": "अनुवाद के लिए टेक्स्ट लिखें या पेस्ट करें"
+  },
+  "quick_clip_concealed": {
+    "message": "क्लिपबोर्ड की सामग्री छिपी हुई के रूप में चिह्नित है (शायद पासवर्ड है)। इसे पढ़ा नहीं गया और कुछ भी भेजा नहीं गया।"
+  },
+  "quick_clip_empty": {
+    "message": "क्लिपबोर्ड में कोई टेक्स्ट नहीं है। टेक्स्ट चुनें, ⌘C दबाएँ, फिर शॉर्टकट दबाएँ।"
+  },
+  "quick_clip_same": {
+    "message": "पिछली बार वाला ही टेक्स्ट है — क्या ⌘C दबाना भूल गए?"
+  },
+  "quick_no_selection": {
+    "message": "चुना हुआ टेक्स्ट नहीं मिल सका — शायद कुछ चुना नहीं गया, या यह ऐप कॉपी करने नहीं देता।"
+  },
+  "quick_use_shot": {
+    "message": "स्क्रीनशॉट अनुवाद इस्तेमाल करें"
+  },
+  "quick_same_lang": {
+    "message": "मूल पाठ पहले से {lang} में है"
+  },
+  "sys_empty": {
+    "message": "अनुवाद के लिए कोई टेक्स्ट नहीं है।"
+  },
+  "sys_slow": {
+    "message": "अनुवाद अभी चल रहा है — मुफ़्त क्रेडिट हमारे रिले से होकर जाता है, जो आपकी अपनी कुंजी से धीमा है।"
+  },
+  "quick_slow": {
+    "message": "अनुवाद अभी चल रहा है…"
+  },
+  "quick_unconfigured": {
+    "message": "अभी कोई अनुवाद इंजन नहीं है। मुफ़्त क्रेडिट लें, या अपनी API कुंजी भरें।"
+  },
+  "quick_open_settings": {
+    "message": "सेटिंग खोलें"
+  },
+  "quick_retry": {
+    "message": "फिर कोशिश करें"
+  },
+  "quick_saved": {
+    "message": "रिव्यू लाइब्रेरी में सहेजा गया"
+  },
+  "quick_saved_off": {
+    "message": "सहेजा नहीं गया · कैप्चर बंद है"
+  },
+  "quick_saved_long": {
+    "message": "बहुत लंबा है, रिव्यू लाइब्रेरी में नहीं सहेजा जाएगा"
+  },
+  "quick_shot_nothing": {
+    "message": "इस हिस्से में कोई टेक्स्ट नहीं पहचाना गया।"
+  },
+  "quick_shot_again": {
+    "message": "फिर से चुनें"
   }
 }

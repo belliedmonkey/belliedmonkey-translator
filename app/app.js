@@ -12,6 +12,9 @@
 // a shim, which is why there is none.
 
 (() => {
+  // 快速翻译的面板页（learning-design §9.9）：同一份页面以 #quick 加载时只启动 AppQuick —— 不登录、不同步、
+  // 不开学习库、不发心跳。主壳的一切副作用都在这个 IIFE 里，所以在这里返回就是全部。
+  if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) { AppQuick.boot(); return; }
   const $ = (id) => document.getElementById(id);
 
   // Declared up here, not beside the sign-in code: `show()` reads it and is defined
@@ -1228,4 +1231,4 @@
 })();
 
 // 用量事件：App 打开即 flush + 当日心跳。
-try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}
+try { if (typeof MTTelemetry !== 'undefined' && !(typeof AppQuick !== 'undefined' && AppQuick.isQuickMode())) MTTelemetry.init({ flushNow: true }); } catch (_) {}

@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "Ne pas rester résident"
+  },
+  "quick_tag_selection": {
+    "message": "Sélection"
+  },
+  "quick_tag_clipboard": {
+    "message": "Presse-papiers"
+  },
+  "quick_tag_service": {
+    "message": "Services"
+  },
+  "quick_tag_shot": {
+    "message": "Capture d’écran"
+  },
+  "quick_tag_input": {
+    "message": "Saisie"
+  },
+  "quick_pin": {
+    "message": "Épingler"
+  },
+  "quick_close": {
+    "message": "Fermer"
+  },
+  "quick_copy": {
+    "message": "Copier la traduction"
+  },
+  "quick_src_label": {
+    "message": "Texte original"
+  },
+  "quick_src_placeholder": {
+    "message": "Saisissez ou collez le texte à traduire"
+  },
+  "quick_clip_concealed": {
+    "message": "Le contenu du presse-papiers est marqué comme masqué (sans doute un mot de passe). Il n’a pas été lu et rien n’a été envoyé."
+  },
+  "quick_clip_empty": {
+    "message": "Le presse-papiers ne contient pas de texte. Sélectionnez du texte, appuyez sur ⌘C, puis sur le raccourci."
+  },
+  "quick_clip_same": {
+    "message": "Même texte que la dernière fois — avez-vous oublié ⌘C ?"
+  },
+  "quick_no_selection": {
+    "message": "Impossible de récupérer le texte sélectionné — rien n’est peut-être sélectionné, ou cette app n’autorise pas la copie."
+  },
+  "quick_use_shot": {
+    "message": "Utiliser la traduction par capture"
+  },
+  "quick_same_lang": {
+    "message": "Déjà en {lang}"
+  },
+  "sys_empty": {
+    "message": "Aucun texte à traduire."
+  },
+  "sys_slow": {
+    "message": "Traduction en cours — le crédit gratuit passe par notre relais, plus lent que votre propre clé."
+  },
+  "quick_slow": {
+    "message": "Traduction en cours…"
+  },
+  "quick_unconfigured": {
+    "message": "Pas encore de moteur de traduction. Récupérez le crédit gratuit ou saisissez votre propre clé API."
+  },
+  "quick_open_settings": {
+    "message": "Ouvrir les réglages"
+  },
+  "quick_retry": {
+    "message": "Réessayer"
+  },
+  "quick_saved": {
+    "message": "Enregistré dans la bibliothèque de révision"
+  },
+  "quick_saved_off": {
+    "message": "Non enregistré · la collecte est désactivée"
+  },
+  "quick_saved_long": {
+    "message": "Trop long pour la bibliothèque de révision"
+  },
+  "quick_shot_nothing": {
+    "message": "Aucun texte reconnu dans cette zone."
+  },
+  "quick_shot_again": {
+    "message": "Sélectionner à nouveau"
   }
 }

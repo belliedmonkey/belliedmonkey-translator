@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "상주하지 않기"
+  },
+  "quick_tag_selection": {
+    "message": "선택한 텍스트"
+  },
+  "quick_tag_clipboard": {
+    "message": "클립보드"
+  },
+  "quick_tag_service": {
+    "message": "서비스"
+  },
+  "quick_tag_shot": {
+    "message": "스크린샷"
+  },
+  "quick_tag_input": {
+    "message": "입력"
+  },
+  "quick_pin": {
+    "message": "고정"
+  },
+  "quick_close": {
+    "message": "닫기"
+  },
+  "quick_copy": {
+    "message": "번역 복사"
+  },
+  "quick_src_label": {
+    "message": "원문"
+  },
+  "quick_src_placeholder": {
+    "message": "번역할 텍스트를 입력하거나 붙여넣으세요"
+  },
+  "quick_clip_concealed": {
+    "message": "클립보드 내용이 숨김으로 표시되어 있습니다(아마 비밀번호일 것입니다). 읽지 않았고 아무것도 보내지 않았습니다."
+  },
+  "quick_clip_empty": {
+    "message": "클립보드에 텍스트가 없습니다. 텍스트를 선택하고 ⌘C를 누른 다음 단축키를 누르세요."
+  },
+  "quick_clip_same": {
+    "message": "지난번과 같은 텍스트입니다 — ⌘C를 누르는 것을 잊으셨나요?"
+  },
+  "quick_no_selection": {
+    "message": "선택한 텍스트를 가져오지 못했습니다 — 선택된 것이 없거나 이 앱이 복사를 허용하지 않습니다."
+  },
+  "quick_use_shot": {
+    "message": "스크린샷 번역 사용"
+  },
+  "quick_same_lang": {
+    "message": "원문이 이미 {lang}입니다"
+  },
+  "sys_empty": {
+    "message": "번역할 텍스트가 없습니다."
+  },
+  "sys_slow": {
+    "message": "아직 번역 중입니다 — 무료 크레딧은 저희 중계 서버를 거치므로 본인 키보다 느립니다."
+  },
+  "quick_slow": {
+    "message": "아직 번역 중…"
+  },
+  "quick_unconfigured": {
+    "message": "아직 번역 엔진이 없습니다. 무료 크레딧을 받거나 본인의 API 키를 입력하세요."
+  },
+  "quick_open_settings": {
+    "message": "설정 열기"
+  },
+  "quick_retry": {
+    "message": "다시 시도"
+  },
+  "quick_saved": {
+    "message": "복습 라이브러리에 저장됨"
+  },
+  "quick_saved_off": {
+    "message": "저장 안 됨 · 수집이 꺼져 있음"
+  },
+  "quick_saved_long": {
+    "message": "너무 길어서 복습 라이브러리에 저장하지 않습니다"
+  },
+  "quick_shot_nothing": {
+    "message": "이 영역에서 텍스트를 인식하지 못했습니다."
+  },
+  "quick_shot_again": {
+    "message": "다시 선택"
   }
 }

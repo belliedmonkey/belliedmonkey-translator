@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "No permanecer residente"
+  },
+  "quick_tag_selection": {
+    "message": "Selección"
+  },
+  "quick_tag_clipboard": {
+    "message": "Portapapeles"
+  },
+  "quick_tag_service": {
+    "message": "Servicios"
+  },
+  "quick_tag_shot": {
+    "message": "Captura"
+  },
+  "quick_tag_input": {
+    "message": "Escrito"
+  },
+  "quick_pin": {
+    "message": "Fijar"
+  },
+  "quick_close": {
+    "message": "Cerrar"
+  },
+  "quick_copy": {
+    "message": "Copiar traducción"
+  },
+  "quick_src_label": {
+    "message": "Texto original"
+  },
+  "quick_src_placeholder": {
+    "message": "Escribe o pega el texto que quieres traducir"
+  },
+  "quick_clip_concealed": {
+    "message": "El contenido del portapapeles está marcado como oculto (seguramente una contraseña). No se ha leído ni se ha enviado nada."
+  },
+  "quick_clip_empty": {
+    "message": "No hay texto en el portapapeles. Selecciona un texto, pulsa ⌘C y luego el atajo."
+  },
+  "quick_clip_same": {
+    "message": "Es el mismo texto que la última vez: ¿olvidaste pulsar ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "No se pudo obtener el texto seleccionado: quizá no hay nada seleccionado o esta app no permite copiar."
+  },
+  "quick_use_shot": {
+    "message": "Usar traducción por captura"
+  },
+  "quick_same_lang": {
+    "message": "Ya está en {lang}"
+  },
+  "sys_empty": {
+    "message": "No hay texto para traducir."
+  },
+  "sys_slow": {
+    "message": "Sigue traduciendo: el crédito gratuito pasa por nuestro relé, que es más lento que tu propia clave."
+  },
+  "quick_slow": {
+    "message": "Sigue traduciendo…"
+  },
+  "quick_unconfigured": {
+    "message": "Aún no hay motor de traducción. Reclama el crédito gratuito o introduce tu propia clave de API."
+  },
+  "quick_open_settings": {
+    "message": "Abrir ajustes"
+  },
+  "quick_retry": {
+    "message": "Reintentar"
+  },
+  "quick_saved": {
+    "message": "Guardado en la biblioteca de repaso"
+  },
+  "quick_saved_off": {
+    "message": "No guardado · la captura está desactivada"
+  },
+  "quick_saved_long": {
+    "message": "Demasiado largo para la biblioteca de repaso"
+  },
+  "quick_shot_nothing": {
+    "message": "No se reconoció texto en esta zona."
+  },
+  "quick_shot_again": {
+    "message": "Seleccionar de nuevo"
   }
 }

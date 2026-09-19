@@ -582,3 +582,32 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 .dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
 .dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
 .dep .dep-go { background: none; border: none; padding: 0; margin: 0 0 0 .35em; width: auto; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* ── 快速翻译面板（#quick 模式，learning-design §9.9）────────────────────────────
+   同一份页面：html.quick-mode 时只显示 #quick-root。颜色只用共享 token（上面的规矩）。 */
+html.quick-mode, html.quick-mode body { background: transparent; margin: 0; padding: 0; }
+html.quick-mode #app, html.quick-mode #status { display: none !important; }
+#quick-root { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; background: var(--bg); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 18px; font-size: 14px; }
+#quick-root[hidden] { display: none; }
+.qk-head { display: flex; align-items: center; gap: 6px; }
+.qk-sp { flex: 1; }
+.qk-tag { font-size: .74rem; font-weight: 700; color: var(--dim); background: var(--tint, var(--card-bg)); border-radius: 999px; padding: 3px 10px; }
+.qk-from { font-size: .78rem; color: var(--dim); }
+#qk-lang { font: inherit; font-size: .8rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; background: var(--card-bg); color: var(--fg); }
+#qk-lang.auto { border-color: var(--sage-fill, var(--line)); }
+.qk-ibtn { width: 32px; height: 32px; padding: 0; box-sizing: border-box; border-radius: 999px; border: 0; background: transparent; color: var(--dim); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+.qk-ibtn svg { width: 17px; height: 17px; flex: none; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.qk-ibtn[aria-pressed="true"] { color: var(--accent-deep); background: var(--warn-bg, var(--card-bg)); }
+#qk-src { font: inherit; line-height: 1.5; width: 100%; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--card-bg); color: var(--fg); max-height: 30vh; }
+#qk-src:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.qk-note { margin: 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
+.qk-out { display: flex; flex-direction: column; gap: 10px; max-height: 46vh; overflow: auto; padding: 0 2px; }
+.qk-out .qk-tr { color: var(--sage-strong); font-size: 1rem; line-height: 1.6; font-weight: 500; white-space: pre-wrap; }
+.qk-out .qk-sk { height: 11px; border-radius: 999px; background: var(--line); opacity: .6; }
+.qk-out .qk-err { background: var(--warn-bg, var(--card-bg)); border: 1px solid var(--warn-bd, var(--line)); color: var(--warn-tx, var(--fg)); border-radius: 12px; padding: 8px 10px; font-size: .86rem; line-height: 1.5; white-space: pre-wrap; }
+.qk-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qk-actions button { font: inherit; font-weight: 600; font-size: .86rem; border-radius: 999px; padding: 6px 14px; min-height: 32px; cursor: pointer; border: 1px solid var(--line); background: var(--card-bg); color: var(--accent-deep); }
+.qk-actions button.p { background: var(--accent); border-color: transparent; color: #fff; }
+.qk-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; font-size: .78rem; color: var(--dim); }
+.qk-state.saved { color: var(--sage-strong); font-weight: 600; }

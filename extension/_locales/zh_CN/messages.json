@@ -3200,5 +3200,86 @@
   },
   "quick_resident_off": {
     "message": "不想常驻"
+  },
+  "quick_tag_selection": {
+    "message": "选中文字"
+  },
+  "quick_tag_clipboard": {
+    "message": "剪贴板"
+  },
+  "quick_tag_service": {
+    "message": "服务"
+  },
+  "quick_tag_shot": {
+    "message": "截图"
+  },
+  "quick_tag_input": {
+    "message": "输入"
+  },
+  "quick_pin": {
+    "message": "钉住"
+  },
+  "quick_close": {
+    "message": "关闭"
+  },
+  "quick_copy": {
+    "message": "复制译文"
+  },
+  "quick_src_label": {
+    "message": "原文"
+  },
+  "quick_src_placeholder": {
+    "message": "输入或粘贴要翻译的文字"
+  },
+  "quick_clip_concealed": {
+    "message": "剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。"
+  },
+  "quick_clip_empty": {
+    "message": "剪贴板里没有文字。先选中并按 ⌘C，再按快捷键。"
+  },
+  "quick_clip_same": {
+    "message": "和上次翻的是同一段 —— 是不是忘了按 ⌘C？"
+  },
+  "quick_no_selection": {
+    "message": "没有取到选中的文字 —— 可能没有选中，或这个 App 不允许复制。"
+  },
+  "quick_use_shot": {
+    "message": "改用截图翻译"
+  },
+  "quick_same_lang": {
+    "message": "原文已是{lang}"
+  },
+  "sys_empty": {
+    "message": "没有可翻译的文字。"
+  },
+  "sys_slow": {
+    "message": "还在翻 —— 免费额度走我们的中转，比自己的 key 慢。"
+  },
+  "quick_slow": {
+    "message": "还在翻…"
+  },
+  "quick_unconfigured": {
+    "message": "还没有翻译引擎。领一份免费额度，或填自己的 API key。"
+  },
+  "quick_open_settings": {
+    "message": "打开设置"
+  },
+  "quick_retry": {
+    "message": "重试"
+  },
+  "quick_saved": {
+    "message": "已存入复习库"
+  },
+  "quick_saved_off": {
+    "message": "未存入 · 采集已关"
+  },
+  "quick_saved_long": {
+    "message": "太长，不存入复习库"
+  },
+  "quick_shot_nothing": {
+    "message": "这一块里没有认出文字。"
+  },
+  "quick_shot_again": {
+    "message": "重新框选"
   }
 }
