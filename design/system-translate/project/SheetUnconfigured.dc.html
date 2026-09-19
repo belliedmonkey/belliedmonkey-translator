@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>未配置的三种情形</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1200px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">还翻不了的时候</h1><span>弹层读不到可用的引擎配置。三种原因，三句不同的话。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>① 从没配过引擎</b><span>国际版：主行动是免费额度（登录即可用），次行动是自己的 key。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet" style="margin-top:auto"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src q" style="font-size:.84rem">The committee postponed the vote until the new figures were published.</div><div class="trbox"><b style="font-size:.95rem">还没有翻译引擎</b><div class="hint" style="font-size:.86rem">领一份免费额度，登录一下就能翻；也可以填自己的 API key。</div></div><div class="foot" style="flex-direction:column; align-items:stretch"><button class="btn p" type="button">领免费额度</button><button class="btn s" type="button">用自己的 key</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>② App 里配了，但还没同步过来</b><span>装了新版还没打开过 App，或刚在 App 里清过数据。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet" style="margin-top:auto"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src q" style="font-size:.84rem">The committee postponed the vote until the new figures were published.</div><div class="trbox"><b style="font-size:.95rem">打开一次 App 就好</b><div class="hint" style="font-size:.86rem">App 里的引擎配置要同步给系统翻译才用得上 —— 打开一次即可，之后不用再管。</div></div><div class="foot" style="flex-direction:column; align-items:stretch"><button class="btn p" type="button">打开大肚猴翻译</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>③ 弹层里拉不起 App <span class="pend">待 T1 读数</span></b><span>如果系统不允许从弹层里打开 App：按钮整个不出现，只留文字指路。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet" style="margin-top:auto"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src q" style="font-size:.84rem">The committee postponed the vote until the new figures were published.</div><div class="trbox"><b style="font-size:.95rem">还没有翻译引擎</b><div class="hint" style="font-size:.86rem">到主屏幕打开「大肚猴翻译」，在设置里领免费额度或填自己的 key，再回来翻。</div></div><div class="foot" style="flex-direction:column; align-items:stretch"><button class="btn s" type="button">知道了</button></div></div></div></div>
+</div><p class="mini" style="margin:0">中国版：①里没有「领免费额度」，只有「配置引擎」一个主按钮。见第 6 页「中国版总览」。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

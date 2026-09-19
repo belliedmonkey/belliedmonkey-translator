@@ -1,0 +1,561 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-19T09:30:00Z"
+  },
+  "title": "系统翻译与快速翻译 · 交互稿",
+  "launch": {
+    "view": "canvas",
+    "page": "p1"
+  },
+  "pages": [
+    {
+      "id": "p1",
+      "name": "iPhone · 系统翻译弹层"
+    },
+    {
+      "id": "p2",
+      "name": "iPhone · App 侧"
+    },
+    {
+      "id": "p3",
+      "name": "Mac · 快译面板"
+    },
+    {
+      "id": "p4",
+      "name": "Mac · 增强取词与截图"
+    },
+    {
+      "id": "p5",
+      "name": "Mac · 设置与常驻"
+    },
+    {
+      "id": "p6",
+      "name": "全局 · 状态机 · 文案 · 待裁定"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "入口 · 加载 · 译文"
+    },
+    "SheetReplace.dc.html": {
+      "x": 1280,
+      "y": 0,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "可替换原文"
+    },
+    "SheetLong.dc.html": {
+      "x": 2560,
+      "y": 0,
+      "w": 1200,
+      "h": 920,
+      "page": "p1",
+      "title": "长文本"
+    },
+    "SheetLang.dc.html": {
+      "x": 0,
+      "y": 1080,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "语言判定与切换"
+    },
+    "SheetSlow.dc.html": {
+      "x": 1280,
+      "y": 1080,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "慢速与超时"
+    },
+    "SheetErrors.dc.html": {
+      "x": 2560,
+      "y": 1080,
+      "w": 1200,
+      "h": 1180,
+      "page": "p1",
+      "title": "失败分态"
+    },
+    "SheetUnconfigured.dc.html": {
+      "x": 0,
+      "y": 2420,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "未配置的三种情形"
+    },
+    "SheetEdge.dc.html": {
+      "x": 1280,
+      "y": 2420,
+      "w": 1200,
+      "h": 900,
+      "page": "p1",
+      "title": "空输入 · 首次披露 · 采集提示"
+    },
+    "SheetVariants.dc.html": {
+      "x": 2560,
+      "y": 2420,
+      "w": 1560,
+      "h": 900,
+      "page": "p1",
+      "title": "iPad · 深色 · 从右到左 · 大字号"
+    },
+    "AppSysBlock.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1700,
+      "h": 760,
+      "page": "p2",
+      "title": "App 设置 ·「系统翻译」块四态"
+    },
+    "TargetLang.dc.html": {
+      "x": 1780,
+      "y": 0,
+      "w": 1320,
+      "h": 700,
+      "page": "p2",
+      "title": "「译成」下拉（两宿主同一个组件）"
+    },
+    "AppDiscover.dc.html": {
+      "x": 0,
+      "y": 920,
+      "w": 1320,
+      "h": 620,
+      "page": "p2",
+      "title": "App 首页 · 发现卡"
+    },
+    "AppCorpus.dc.html": {
+      "x": 1400,
+      "y": 920,
+      "w": 1320,
+      "h": 760,
+      "page": "p2",
+      "title": "复习库 · 来源与收件箱"
+    },
+    "AppConfirms.dc.html": {
+      "x": 2800,
+      "y": 920,
+      "w": 1000,
+      "h": 560,
+      "page": "p2",
+      "title": "两处确认框的新增文案"
+    },
+    "MacMenu.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1240,
+      "h": 620,
+      "page": "p3",
+      "title": "菜单栏图标与菜单"
+    },
+    "PanelAnatomy.dc.html": {
+      "x": 1320,
+      "y": 0,
+      "w": 1240,
+      "h": 640,
+      "page": "p3",
+      "title": "面板解剖"
+    },
+    "PanelStates.dc.html": {
+      "x": 2640,
+      "y": 0,
+      "w": 1320,
+      "h": 900,
+      "page": "p3",
+      "title": "面板各态"
+    },
+    "PanelPlacement.dc.html": {
+      "x": 0,
+      "y": 1060,
+      "w": 1320,
+      "h": 760,
+      "page": "p3",
+      "title": "位置与层级"
+    },
+    "PanelDismiss.dc.html": {
+      "x": 1400,
+      "y": 1060,
+      "w": 1240,
+      "h": 640,
+      "page": "p3",
+      "title": "关闭 · 钉住 · 重复触发"
+    },
+    "PanelTraps.dc.html": {
+      "x": 2720,
+      "y": 1060,
+      "w": 1320,
+      "h": 680,
+      "page": "p3",
+      "title": "零权限路径 · 三个陷阱"
+    },
+    "PanelInput.dc.html": {
+      "x": 0,
+      "y": 1980,
+      "w": 1240,
+      "h": 560,
+      "page": "p3",
+      "title": "输入翻译"
+    },
+    "MacServices.dc.html": {
+      "x": 1320,
+      "y": 1980,
+      "w": 1320,
+      "h": 700,
+      "page": "p3",
+      "title": "右键「服务」入口"
+    },
+    "EnhancedFlow.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1700,
+      "h": 760,
+      "page": "p4",
+      "title": "增强取词 · 开关全流程"
+    },
+    "EnhancedFail.dc.html": {
+      "x": 1780,
+      "y": 0,
+      "w": 1320,
+      "h": 680,
+      "page": "p4",
+      "title": "增强取词 · 失败支"
+    },
+    "ShotFlow.dc.html": {
+      "x": 0,
+      "y": 920,
+      "w": 1700,
+      "h": 800,
+      "page": "p4",
+      "title": "截图翻译 · 全流程"
+    },
+    "ShotFail.dc.html": {
+      "x": 1780,
+      "y": 920,
+      "w": 1320,
+      "h": 680,
+      "page": "p4",
+      "title": "截图翻译 · 失败支"
+    },
+    "MacSettings.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1000,
+      "h": 900,
+      "page": "p5",
+      "title": "App 设置 ·「快速翻译」块"
+    },
+    "HotkeyRecorder.dc.html": {
+      "x": 1080,
+      "y": 0,
+      "w": 1320,
+      "h": 460,
+      "page": "p5",
+      "title": "快捷键录制 · 五态"
+    },
+    "Resident.dc.html": {
+      "x": 2480,
+      "y": 0,
+      "w": 1240,
+      "h": 560,
+      "page": "p5",
+      "title": "常驻行为"
+    },
+    "MacIntro.dc.html": {
+      "x": 0,
+      "y": 1060,
+      "w": 1240,
+      "h": 560,
+      "page": "p5",
+      "title": "首次介绍卡 · 复习库分组"
+    },
+    "FlowPhone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1500,
+      "h": 760,
+      "page": "p6",
+      "title": "状态机 · iPhone 系统翻译弹层"
+    },
+    "FlowMac.dc.html": {
+      "x": 1580,
+      "y": 0,
+      "w": 1500,
+      "h": 860,
+      "page": "p6",
+      "title": "状态机 · Mac 快速翻译"
+    },
+    "PermTimeline.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1500,
+      "h": 640,
+      "page": "p6",
+      "title": "权限与披露 · 时序"
+    },
+    "CopyTable.dc.html": {
+      "x": 1580,
+      "y": 1020,
+      "w": 1500,
+      "h": 1500,
+      "page": "p6",
+      "title": "文案总表"
+    },
+    "ChinaDark.dc.html": {
+      "x": 0,
+      "y": 2680,
+      "w": 1500,
+      "h": 900,
+      "page": "p6",
+      "title": "中国版 · 深色 总览"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "SheetReplace.dc.html",
+    "SheetLong.dc.html",
+    "SheetLang.dc.html",
+    "SheetSlow.dc.html",
+    "SheetErrors.dc.html",
+    "SheetUnconfigured.dc.html",
+    "SheetEdge.dc.html",
+    "SheetVariants.dc.html",
+    "AppSysBlock.dc.html",
+    "TargetLang.dc.html",
+    "AppDiscover.dc.html",
+    "AppCorpus.dc.html",
+    "AppConfirms.dc.html",
+    "MacMenu.dc.html",
+    "PanelAnatomy.dc.html",
+    "PanelStates.dc.html",
+    "PanelPlacement.dc.html",
+    "PanelDismiss.dc.html",
+    "PanelTraps.dc.html",
+    "PanelInput.dc.html",
+    "MacServices.dc.html",
+    "EnhancedFlow.dc.html",
+    "EnhancedFail.dc.html",
+    "ShotFlow.dc.html",
+    "ShotFail.dc.html",
+    "MacSettings.dc.html",
+    "HotkeyRecorder.dc.html",
+    "Resident.dc.html",
+    "MacIntro.dc.html",
+    "FlowPhone.dc.html",
+    "FlowMac.dc.html",
+    "PermTimeline.dc.html",
+    "CopyTable.dc.html",
+    "ChinaDark.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -320,
+      "text": "iPhone · 在任何 App 里选字 › 翻译 ⇒ 我们的弹层",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p1"
+    },
+    "t2": {
+      "x": 0,
+      "y": -320,
+      "text": "iPhone · App 里要跟着变的地方",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p2"
+    },
+    "t3": {
+      "x": 0,
+      "y": -320,
+      "text": "Mac · 快速翻译面板",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p3"
+    },
+    "t4": {
+      "x": 0,
+      "y": -320,
+      "text": "Mac · 增强取词（可选权限）与截图翻译",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p4"
+    },
+    "t5": {
+      "x": 0,
+      "y": -320,
+      "text": "Mac · 设置、快捷键与常驻",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p5"
+    },
+    "t6": {
+      "x": 0,
+      "y": -320,
+      "text": "全局 · 状态机 · 权限时序 · 文案总表 · 待裁定",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p6"
+    },
+    "why": {
+      "x": 4360,
+      "y": 0,
+      "w": 460,
+      "maxH": 340,
+      "text": "怎么读这张画布：每块板 = 一个状态或一个分支。板名旁的蓝色小标「待 T1 / T2 读数」= 这件事要等尖刺在真机上量过才知道，两支都画了，量完回来收敛成一支。\n\nT1 = iPhone 尖刺（系统翻译扩展）；T2 = Mac 尖刺（沙盒里的快捷键、取词、截图）。",
+      "page": "p1",
+      "color": "orange"
+    },
+    "done": {
+      "x": 4360,
+      "y": 380,
+      "w": 460,
+      "maxH": 340,
+      "text": "已定（2026-09-19）：\n① Mac 第一版 = 划词 + 输入 + 菜单栏 + 截图翻译。\n② Mac 取词分层：默认零权限，「增强取词」是默认关的开关。\n③ 两个面翻过的句子都进复习库。\n④ 先出这张交互稿 → 两个尖刺 → 再定先做哪个面。",
+      "page": "p1",
+      "color": "green"
+    },
+    "d1": {
+      "x": 4360,
+      "y": 0,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 1 · 弹层与面板第一版都不放「朗读」按钮。理由：系统弹层里再起一路朗读（引擎、离线模型、下载态）会把一个一秒钟的动作拖成一个小 App；要听就去复习库。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d2": {
+      "x": 4860,
+      "y": 0,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 2 · 不做独立的「翻译历史」面板。进了复习库的句子在来源管理里按月可查；没进的（采集关着、太长）就是不留 —— 这与「不留暗箱」是同一件事。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d3": {
+      "x": 4360,
+      "y": 330,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 3 · 不进新手引导（已经四屏）。iPhone 放首页发现卡、Mac 放首页介绍卡，都可关，入口常驻在设置里。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d4": {
+      "x": 4860,
+      "y": 330,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 4 · 收件箱收进复习库是静默的，不弹「收进 N 句」。数字在来源管理里看得到。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d5": {
+      "x": 4360,
+      "y": 660,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 5 · Mac 面板默认不抢焦点（输入翻译除外）；拖动即钉住；钉住不跨重启记忆。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d6": {
+      "x": 4860,
+      "y": 660,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 6 · 默认快捷键：翻译 ⌃⌥T、截图 ⌃⌥S、输入翻译留空。只有 ⌥ 加字母的组合直接不让设。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d7": {
+      "x": 4360,
+      "y": 990,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 7 · iPhone 弹层里不放加星、不放采集开关。弹层是一次性的；开关放在 App 设置里一个找得回来的地方。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d8": {
+      "x": 4860,
+      "y": 990,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 8 · 剪贴板带「隐藏 / 临时」标记时不读、不发、不存 —— 硬规则，不做成设置项。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d9": {
+      "x": 4360,
+      "y": 1320,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 9 · 截图的文字识别默认在本机做；只有「没认出来」且用户点了「用我的识图引擎再试」，截图才离开设备。这改了此前「图片一律发给用户自己的多模态引擎」的做法，要在文档评审里单独论证。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d10": {
+      "x": 4860,
+      "y": 1320,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 10 · 超过 2000 字：照常翻译，但不进复习库（那是文章，不是卡）。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d11": {
+      "x": 4360,
+      "y": 1650,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 11 · iPhone 弹层里改目标语言只在这一次生效；Mac 面板里改会写回「译成」设置。两边不一样是因为弹层回写不了 App 的设置，不是设计偏好 —— 文案里要让人看得出来。",
+      "page": "p6",
+      "color": "green"
+    },
+    "d12": {
+      "x": 4860,
+      "y": 1650,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 12 · 新增的「译成」设置默认「跟随界面语言」，老用户升级后行为不变；它不管对话 · 实时字幕（那里有自己的一对语言），也不管扩展的网页翻译（两边存储不通）。",
+      "page": "p6",
+      "color": "green"
+    },
+    "say": {
+      "x": 4360,
+      "y": 2020,
+      "w": 960,
+      "maxH": 200,
+      "text": "2026-09-19 用户裁定：「按默认」—— 上面 12 条全部按原文落定。下一步：T1（iPhone 扩展尖刺）与 T2（Mac 沙盒尖刺）；读数回来后把带「待 T1 / T2 读数」小标的板收敛成一支，再点一次头，然后才出文档 PR。",
+      "page": "p6",
+      "color": "orange"
+    },
+    "p3n": {
+      "x": 4360,
+      "y": 0,
+      "w": 460,
+      "maxH": 300,
+      "text": "面板的窗口行为借用已经出货的实时字幕条：不抢焦点、盖在全屏 App 之上、跨桌面。所以「位置与层级」那块板里的行为不是新发明，是同一种窗口。",
+      "page": "p3",
+      "color": "gray"
+    },
+    "p4n": {
+      "x": 4360,
+      "y": 0,
+      "w": 460,
+      "maxH": 300,
+      "text": "增强取词被审核卡住的退路：它本来就隔在一个开关后面。真被拒，下一版把这个开关藏掉即可，其余功能不受影响 —— 这也是为什么零权限那条路必须单独就够用。",
+      "page": "p4",
+      "color": "gray"
+    }
+  },
+  "designSystems": []
+}

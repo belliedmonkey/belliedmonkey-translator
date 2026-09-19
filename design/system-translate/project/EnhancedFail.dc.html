@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>增强取词 · 失败支</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:680px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">开了增强取词之后，仍然取不到字的时候</h1></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>没有选中，或这个 App 不让复制</b><span>判据：发出 ⌘C 后 0.3 秒内剪贴板没变。<b>此时什么都不翻</b> —— 绝不退回去翻旧剪贴板。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">选中文字</span><span style="flex:1"></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="hint" style="font-size:.9rem">没有取到选中的文字 —— 可能没有选中，或这个 App 不允许复制。</div><div class="split"><button class="btn s sm" type="button">改用截图翻译</button></div></div></div>
+<div class="cell"><div class="cap"><b>剪贴板原样奉还</b><span>用户此前复制的东西（文字、图片、文件）在取词后完好如初。这是不变量，不是「尽量」。</span></div><div class="flow" style="grid-template-columns:1fr"><div class="node">记下剪贴板现在的全部内容</div><div class="arr">↓</div><div class="node">替你按 ⌘C ⇒ 读到选中的文字</div><div class="arr">↓</div><div class="node s">把第一步记下的内容原样写回</div></div><p class="hint">取到的文字若带「隐藏」标记，同样不读、不发（同「三个陷阱」③）。</p></div>
+<div class="cell"><div class="cap"><b>系统的「剪贴板隐私」提示 <span class="pend">待 T2 读数</span></b><span>较新的 macOS 在程序读剪贴板时可能弹系统提示。目前不是默认开；若将来默认开，这一支就是用户会看到的。</span></div><div style="display:flex; flex-direction:column; gap:12px; align-items:flex-start"><div class="sys"><b>「大肚猴翻译」想要粘贴</b><span>允许后，它可以读取你拷贝的内容。</span><div class="sb"><span>不允许</span><span class="p">允许粘贴</span></div></div><div class="note" style="font-size:.82rem">设置块里提前说一句：「较新的系统可能会再问一次『允许粘贴』—— 选『允许』后不再问。」</div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":680}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

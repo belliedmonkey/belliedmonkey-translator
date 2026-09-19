@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>文案总表</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1500px; height:1500px; padding:24px; display:flex; flex-direction:column; gap:14px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">文案总表</h1><span>新文案每句 12 个语种；标「复用」的逐字用产品里已有的那一句，不另写。隐私披露的几句单列在最前 —— 商店、官网、README 的隐私说明要与它们同口径。</span></div></div>
+<table class="tbl" style="font-size:.84rem"><tr><th style="width:20%">key</th><th>中文</th><th style="width:22%">出现在</th><th style="width:6%"></th></tr>
+<tr><td colspan="4" class="lbl" style="padding-top:12px">隐私披露（发布门禁原样引用）</td></tr>
+<tr><td class="code">sys_disclose_direct</td><td>选中的文字会直接发给你配置的引擎（{engine}），不经过我们的服务器。</td><td>iPhone 弹层 · 首次</td><td>新</td></tr>
+<tr><td class="code">sys_disclose_grant</td><td>选中的文字会经我们的中转发给 {vendor}，我们不保存内容。</td><td>iPhone 弹层 · 首次（用免费额度时）</td><td>新</td></tr>
+<tr><td class="code">sys_capture_line</td><td>这句会存入复习库 · 在 App 的设置里可关</td><td>iPhone 弹层</td><td>新</td></tr>
+<tr><td class="code">quick_enh_does</td><td>你按快捷键时，替你按一次 ⌘C；读到选中的文字后，把剪贴板恢复成原来的样子。</td><td>Mac · 增强取词说明卡</td><td>新</td></tr>
+<tr><td class="code">quick_enh_doesnt</td><td>不监听键盘，不在你没按快捷键时读任何东西。</td><td>Mac · 增强取词说明卡</td><td>新</td></tr>
+<tr><td class="code">quick_shot_pre</td><td>截图翻译要用到「屏幕录制」权限。只在你框选的那一刻截你框的那一块，识别完即丢弃。</td><td>Mac · 首次截图</td><td>新</td></tr>
+<tr><td class="code">quick_shot_cloud</td><td>会把这张截图发给你配置的引擎（{engine}）。</td><td>Mac · 识图再试按钮旁</td><td>新</td></tr>
+<tr><td class="code">quick_clip_concealed</td><td>剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。</td><td>Mac 面板</td><td>新</td></tr>
+<tr><td colspan="4" class="lbl" style="padding-top:12px">iPhone 系统翻译</td></tr>
+<tr><td class="code">sys_empty</td><td>没有可翻译的文字。</td><td>弹层</td><td>新</td></tr>
+<tr><td class="code">sys_slow</td><td>还在翻 —— 免费额度走我们的中转，比自己的 key 慢。</td><td>弹层 / 面板 · 5 秒后</td><td>新</td></tr>
+<tr><td class="code">sys_long</td><td>这段很长（{n} 字），只翻译、不存入复习库。</td><td>弹层</td><td>新</td></tr>
+<tr><td class="code">sys_same_lang</td><td>原文已是{lang}</td><td>语言 chip 旁</td><td>新</td></tr>
+<tr><td class="code">sys_replace</td><td>替换原文</td><td>弹层按钮</td><td>新</td></tr>
+<tr><td class="code">sys_none_title / _body</td><td>还没有翻译引擎 / 领一份免费额度，登录一下就能翻；也可以填自己的 API key。</td><td>弹层 · 未配置①</td><td>新</td></tr>
+<tr><td class="code">sys_sync_title / _body</td><td>打开一次 App 就好 / App 里的引擎配置要同步给系统翻译才用得上 —— 打开一次即可，之后不用再管。</td><td>弹层 · 未配置②</td><td>新</td></tr>
+<tr><td class="code">sys_open_app</td><td>打开大肚猴翻译</td><td>弹层按钮</td><td>新</td></tr>
+<tr><td class="code">sys_block_title / _use</td><td>系统翻译 / 在任何 App 里选字 › 翻译</td><td>App 设置块</td><td>新</td></tr>
+<tr><td class="code">sys_block_old</td><td>需要 iOS 18.4 或更新的系统</td><td>App 设置块</td><td>新</td></tr>
+<tr><td class="code">sys_block_synced</td><td>{engine} ✓ 已同步给系统翻译 · 译成 {lang}</td><td>App 设置块</td><td>新</td></tr>
+<tr><td class="code">sys_guide_1..3</td><td>打开 iPhone 的「设置」/ 往下找到「翻译」/ 点「默认翻译 App」，选「大肚猴翻译」</td><td>App 设置块 · 首页发现卡</td><td>新</td></tr>
+<tr><td class="code">sys_discover_title / _body</td><td>让 iPhone 自带的「翻译」用上大肚猴 / 在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎。设一次就好。</td><td>App 首页</td><td>新</td></tr>
+<tr><td class="code">handoff_capture</td><td>存入复习库</td><td>两个设置块的开关</td><td>新</td></tr>
+<tr><td class="code">src_handoff_system / _select / _shot / _input</td><td>系统翻译 · {month} / 划词翻译 · {month} / 截图翻译 · {month} / 输入翻译 · {month}</td><td>来源管理</td><td>新</td></tr>
+<tr><td class="code">target_lang / _follow</td><td>译成 / 跟随界面语言（{lang}）</td><td>App 设置 · 语言卡</td><td>新</td></tr>
+<tr><td colspan="4" class="lbl" style="padding-top:12px">Mac 快速翻译</td></tr>
+<tr><td class="code">quick_menu_translate / _shot / _input</td><td>翻译选中的文字或剪贴板 / 截图翻译 / 输入翻译</td><td>菜单栏菜单</td><td>新</td></tr>
+<tr><td class="code">quick_service</td><td>用大肚猴翻译</td><td>系统的「服务」菜单</td><td>新</td></tr>
+<tr><td class="code">quick_tag_*</td><td>选中文字 / 剪贴板 / 截图 / 输入 / 服务</td><td>面板来源标签</td><td>新</td></tr>
+<tr><td class="code">quick_clip_empty</td><td>剪贴板里没有文字。先选中并按 ⌘C，再按 {hotkey}。</td><td>面板</td><td>新</td></tr>
+<tr><td class="code">quick_clip_same</td><td>和上次翻的是同一段 —— 是不是忘了按 ⌘C？</td><td>面板</td><td>新</td></tr>
+<tr><td class="code">quick_no_selection</td><td>没有取到选中的文字 —— 可能没有选中，或这个 App 不允许复制。</td><td>面板（增强取词）</td><td>新</td></tr>
+<tr><td class="code">quick_enh_revoked</td><td>增强取词的权限被关掉了 · 重新打开</td><td>面板</td><td>新</td></tr>
+<tr><td class="code">quick_enh_denied</td><td>系统没有给权限，增强取词没打开。先 ⌘C 再按快捷键照常能用。</td><td>设置块</td><td>新</td></tr>
+<tr><td class="code">quick_shot_relaunch</td><td>权限已经给了，但要重新打开大肚猴翻译才生效。</td><td>截图 · 首次授权后</td><td>新</td></tr>
+<tr><td class="code">quick_shot_nothing</td><td>这一块里没有认出文字。</td><td>面板</td><td>新</td></tr>
+<tr><td class="code">quick_shot_old</td><td>需要 macOS 14 或更新的系统</td><td>设置块</td><td>新</td></tr>
+<tr><td class="code">quick_saved / _off / _long</td><td>已存入复习库 / 未存入 · 采集已关 / 太长，不存入复习库</td><td>面板底栏</td><td>新</td></tr>
+<tr><td class="code">quick_resident_title / _body</td><td>大肚猴还在菜单栏 / 快捷键照常可用。要完全退出，用菜单栏图标里的「退出」，或按 ⌘Q。</td><td>第一次关主窗口</td><td>新</td></tr>
+<tr><td class="code">quick_hotkey_clash / _deny</td><td>被系统占用 / 换一个带 ⌃ 或 ⌘ 的</td><td>快捷键录制</td><td>新</td></tr>
+<tr><td colspan="4" class="lbl" style="padding-top:12px">复用（不另写）</td></tr>
+<tr><td class="code">auth_err_key</td><td>服务商拒绝了这把 key（HTTP 401/403）…</td><td>弹层 / 面板</td><td>复用</td></tr>
+<tr><td class="code">grant_err_exhausted / _unavailable / _model</td><td>免费额度已经用完了… / 不是你用完了… / 免费额度只能用它指定的那个模型…</td><td>弹层 / 面板</td><td>复用</td></tr>
+<tr><td class="code">err_reasoning_starved</td><td>模型把整个输出预算用在了思考上…</td><td>弹层 / 面板</td><td>复用</td></tr>
+<tr><td class="code">engine_test_timeout / _unknown_provider</td><td>端点没有在超时前回应 / 这个版本不认识当前存着的引擎…</td><td>弹层 / 面板</td><td>复用</td></tr>
+</table>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

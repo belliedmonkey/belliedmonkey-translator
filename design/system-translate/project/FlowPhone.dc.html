@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>状态机 · iPhone 系统翻译弹层</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1500px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">状态机 · iPhone 弹层</h1><span>每个状态都有出口；没有任何一态只能靠下拉关掉。</span></div></div>
+<div style="display:flex; flex-direction:column; gap:16px">
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">进来</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node s">系统交来文字</div><div class="arr">→</div><div class="node">空白 / 只有符号？</div><div class="arr">是 →</div><div class="node x">「没有可翻译的文字」· 完成</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">能不能翻</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">读同步过来的引擎配置</div><div class="arr">→</div><div class="node w">没有 ⇒ 未配置三态之一 · 打开 App / 知道了</div><div class="arr">有 →</div><div class="node">判语种 ⇒ 定目标语言（同语言则反向）</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">翻</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node s">加载（原文 + 骨架）</div><div class="arr">→</div><div class="node">5 秒未回 ⇒ 多一行「还在翻」</div><div class="arr">→</div><div class="node w">到超时上限 ⇒ 超时</div><div class="arr">或 →</div><div class="node x">取消 ⇒ 关</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">翻成了</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node s">译文</div><div class="arr">→</div><div class="node">可替换？⇒ 多「替换原文」</div><div class="arr">→</div><div class="node">改目标语言 ⇒ 回到加载</div><div class="arr">→</div><div class="node x">完成 / 替换 ⇒ 关</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">翻成了 · 副作用</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">采集开着 且 ≤ 2000 字 且 译文 ≠ 原文</div><div class="arr">→</div><div class="node">写一条进收件箱</div><div class="arr">否则 →</div><div class="node x">什么都不写</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">没翻成</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node w">具名错误（9 种）</div><div class="arr">→</div><div class="node">能自己好的 ⇒ 重试 ⇒ 回到加载</div><div class="arr">要改配置的 →</div><div class="node x">打开大肚猴翻译</div></div></div>
+</div><p class="mini" style="margin:0">弹层是一次性的：关掉即销毁，不留状态。目标语言的临时改动不带到下一次。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

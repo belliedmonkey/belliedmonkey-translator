@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>两处确认框的新增文案</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1000px; height:560px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">两处既有的确认框，各多一句</h1><span>同步出去的那一份也要跟着清 —— 否则 App 里看着清干净了，系统翻译还能接着用旧 key。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>清除本机全部数据</b></div><section class="card" style="gap:14px"><h3>清除本机全部数据？</h3><div class="hint" style="font-size:.9rem; color:var(--text)">学习库、设置、API key、翻译缓存都会删掉。<b>同步给系统翻译的引擎配置，和还没收进来的句子，也一起清。</b>这一步撤不回。</div><div class="foot" style="display:flex; gap:10px"><button class="btn s" type="button">取消</button><button class="btn d" type="button">全部清除</button></div></section></div>
+<div class="cell"><div class="cap"><b>退出登录（免费额度在用）</b></div><section class="card" style="gap:14px"><h3>退出登录？</h3><div class="hint" style="font-size:.9rem; color:var(--text)">退出登录后免费额度会停用（余额保留，再登录就回来）。<b>系统翻译也会跟着停用，直到你重新登录或填自己的 key。</b></div><div class="foot" style="display:flex; gap:10px"><button class="btn s" type="button">取消</button><button class="btn d" type="button">退出登录</button></div></section></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

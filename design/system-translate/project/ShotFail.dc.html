@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>截图翻译 · 失败支</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:680px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">截图之后没翻出来的时候</h1></div></div>
+<div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>没认出文字</b><span>引擎<b>不</b>支持识图时：只有「换个区域」。</span></div><div class="panel" style="width:290px"><div class="panel-h"><span class="ptag">截图</span><span style="flex:1"></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="hint" style="font-size:.9rem">这一块里没有认出文字。</div><div class="split"><button class="btn p sm" type="button">重新框选</button></div></div></div>
+<div class="cell"><div class="cap"><b>没认出文字 · 引擎支持识图</b><span>多一个次级按钮。<b>点了之后，截图才会离开设备</b>，按钮旁写明发给谁。</span></div><div class="panel" style="width:290px"><div class="panel-h"><span class="ptag">截图</span><span style="flex:1"></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="hint" style="font-size:.9rem">这一块里没有认出文字。</div><div class="split"><button class="btn p sm" type="button">重新框选</button><button class="btn s sm" type="button">用我的识图引擎再试</button></div><div class="mini">会把这张截图发给你配置的引擎（OpenAI）。</div></div></div>
+<div class="cell"><div class="cap"><b>选区太小</b><span>小于 12 × 12：当作误触，直接取消，不出面板。</span></div><div class="old"><div class="c"><span>（什么都不出现）</span></div></div></div>
+<div class="cell"><div class="cap"><b>macOS 低于 14</b><span>入口整个不出现：菜单栏没有这一项，设置块里这一行写明原因。</span></div><section class="card"><div class="row"><div class="l"><span style="opacity:.55">截图翻译</span><small>需要 macOS 14 或更新的系统</small></div></div></section></div>
+</div><p class="mini" style="margin:0">认出的字里夹着目标语言（一张中英混排的图）：整段照翻，不逐行挑 —— 挑错比多翻一行更糟。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":680}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>可替换原文</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1200px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">原文可替换时（系统给 allowsReplacement = true）</h1><span>只在可编辑的地方出现：备忘录、邮件正文、输入框。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>可替换</b><span>多一个主按钮「替换原文」；「完成」降为次级。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><span class="eng">DeepSeek</span><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src">The committee postponed the vote until the new figures were published.</div><div class="langrow"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="trbox"><div class="tr">委员会把表决推迟到新数据公布之后。</div><div class="split" style="justify-content:flex-end"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></div></div><div class="foot"><button class="btn s" type="button">完成</button><button class="btn p" type="button">替换原文</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>不可替换</b><span>按钮<b>不存在</b>，不是灰掉 —— 灰按钮会让人以为是自己没弄对。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel">The committee postponed the vote until the new figures were published.</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:84%"></div><div class="ln" style="width:60%"></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="sheet-h"><span class="brand"><span class="mark"></span>大肚猴翻译</span><span class="split"><span class="eng">DeepSeek</span><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="src">The committee postponed the vote until the new figures were published.</div><div class="langrow"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div><div class="trbox"><div class="tr">委员会把表决推迟到新数据公布之后。</div><div class="split" style="justify-content:flex-end"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></div></div><div class="foot"><button class="btn p" type="button">完成</button></div></div></div></div>
+<div class="cell"><div class="cap"><b>点了「替换原文」之后</b><span>弹层由系统关闭，宿主 App 里那段字换成译文。撤销靠宿主 App 自己的 ⌘Z / 摇一摇，我们不另做。</span></div><div class="ctx" style="width:350px; height:720px"><div class="host" style="opacity:1"><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><span class="sel" style="background:#d9e6c4; color:#272e1b">委员会把表决推迟到新数据公布之后。</span><div class="ln" style="width:88%"></div><div class="ln" style="width:95%"></div><div class="ln" style="width:70%"></div></div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
