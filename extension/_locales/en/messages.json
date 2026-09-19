@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "The permission for Enhanced Capture was turned off, so this time the clipboard was translated. Turn it back on in Settings to restore it."
+  },
+  "quick_menu_shot": {
+    "message": "Translate Screenshot"
+  },
+  "quick_shot_busy": {
+    "message": "Recognizing text on this Mac…"
+  },
+  "quick_shot_first": {
+    "message": "First time on this Mac: it needs about 20 seconds to get ready. After that it takes under half a second."
+  },
+  "quick_shot_perm_explain": {
+    "message": "Screenshot translation needs the Screen Recording permission. It captures only the area you select, only at that moment, recognizes it on this Mac, and discards it right after."
+  },
+  "quick_shot_perm_pending": {
+    "message": "One more step: in System Settings, turn on the switch for “{app}” in the list. It takes effect after you relaunch the app."
+  },
+  "quick_shot_cloud": {
+    "message": "Try again with my image-capable engine"
+  },
+  "quick_shot_cloud_note": {
+    "message": "“Try again with my image-capable engine” sends this screenshot to the engine you configured ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Recognizing with your engine…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "This screenshot has already been discarded. Select the area again."
   }
 }

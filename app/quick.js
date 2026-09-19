@@ -6,7 +6,7 @@
 // 它**不**启动同步、不初始化遥测、不打开 LearnStore —— 学习库按账号分库，第二个打开者会握着过期的库名；
 // 「这句进复习库」与「翻成了 / 失败了」都经原生中继交给主页面（quick-capture / quick-result）。
 //
-// 原生 → 页面：quick-show {via, origin, text?, concealed?, own?, blocked?, fresh?}   origin: selection | clipboard | service | screen | typed
+// 原生 → 页面：quick-show {via, origin, text?, concealed?, own?, blocked?, fresh?, perm?, busy?, first?, appName?}   origin: selection | clipboard | service | screen | typed
 //             quick-ocr {lines}                                截图识别出的行框（拼段在 HandoffCore）
 // 页面 → 原生：quick-ready · quick-resize {h} · quick-close · quick-pin {on} · quick-copy {text}
 //             quick-capture {v,text,tr,lang,trLang,ts,via} · quick-result {ok, code, provider, ms, status, route}（每个面板会话至多一条成功）
@@ -15,11 +15,13 @@
   'use strict';
   const CHANNEL = 'mtQuick';
   const PROTOCOL = {
-    toNative: ['quick-ready', 'quick-resize', 'quick-close', 'quick-pin', 'quick-copy', 'quick-capture', 'quick-result', 'quick-open-settings', 'quick-reselect'],
-    fromNative: ['quick-show', 'quick-ocr'],
+    toNative: ['quick-ready', 'quick-resize', 'quick-close', 'quick-pin', 'quick-copy', 'quick-capture', 'quick-result', 'quick-open-settings', 'quick-reselect',
+      'quick-request-perm', 'quick-open-privacy', 'quick-relaunch', 'quick-ocr-cloud'],
+    fromNative: ['quick-show', 'quick-ocr', 'quick-image'],
   };
   const SLOW_MS = 5000;
   const SRC_MAX_PX = 168;      // 与 style.css 的 #qk-src max-height 同值。固定像素，不按窗口高度算：窗口高度是内容决定的
+  const SHOT_ASKED = 'quickShotAsked';   // 录屏权限：我们自己那句话说过没有（说过之后直接是「等重开」那一态）
   const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
     'uiLang', 'targetLang', 'learnEnabled', 'quickCapture', 'grantTail'];
   const $ = (id) => document.getElementById(id);
@@ -104,6 +106,18 @@
     $('quick-root').hidden = false;
     $('qk-tag').textContent = originLabel(origin);
     clearOut();
+    // ── 截图翻译（M-6）──
+    // perm：没有录屏权限。系统弹窗之前我们自己的话先到；系统不回调允许 / 拒绝、授权后要重开才生效（同增强取词）
+    // ⇒ 说过一次之后就只有一态「允许之后要重开」+ 两个出口。入口不因为被拒而消失，所以每次触发都会到这里。
+    if (msg.perm === 'screen') { setSrc('', false); hideLang(); await shotPermission(msg); return fit(); }
+    // busy：截好了，正在本机识别。一台 Mac 上第一次要准备模型（二十秒量级）⇒ 多一行，别让人以为卡死了。
+    if (msg.busy) {
+      setSrc('', false); hideLang();
+      message(t('quick_shot_busy', '正在本机识别文字…'));
+      if (msg.first) message(t('quick_shot_first', '这台 Mac 上第一次用：要准备一下，大约 20 秒，之后每次不到半秒。'));
+      return fit();
+    }
+
     // 这两条对**凡是经过通用剪贴板的来源**都成立 —— 「翻译剪贴板」与「增强取词」（它替你按 ⌘C，读的也是通用剪贴板）：
     // blocked：系统没让读（剪贴板隐私开着时后台读取会卡住，原生 1 秒超时后这样报）；concealed：带隐藏 / 临时标记，原生根本不带文字。
     if (msg.blocked) { setSrc('', false); message(t('quick_clip_blocked', '系统没有让我们读取剪贴板。到「系统设置 › 隐私与安全性 › 粘贴自其他 App」里允许，或改用右键「服务」。')); hideLang(); return fit(); }
@@ -195,19 +209,74 @@
     if (fresh && st === 'saved' && cur) post({ type: 'quick-capture', v: 1, text: done.text, tr: done.tr, lang: 'und', trLang: done.lang, ts: Date.now(), via: cur.via });
   }
 
+  async function shotPermission(msg) {
+    const mine = gen;
+    const s = await get([SHOT_ASKED]);
+    if (mine !== gen) return;
+    const pending = () => {
+      clearOut();
+      message(t('quick_shot_perm_pending', '还差一步：在系统设置的列表里打开「{app}」的开关。打开之后要重新打开 App 才生效。').replace('{app}', String(msg.appName || 'BelliedMonkey Translator')));
+      actions([{ text: t('quick_enh_relaunch', '现在重开'), primary: true, run: () => post({ type: 'quick-relaunch' }) },
+        { text: t('quick_enh_open_privacy', '打开系统设置'), run: () => post({ type: 'quick-open-privacy', which: 'screen' }) }]);
+      fit();
+    };
+    if (s[SHOT_ASKED]) return pending();
+    message(t('quick_shot_perm_explain', '截图翻译要用到「屏幕录制」权限。只在你框选的那一刻截你框的那一块，在本机识别，识别完即丢弃。'));
+    actions([{ text: t('quick_enh_continue', '继续'), primary: true, run: () => {
+      chrome.storage.local.set({ [SHOT_ASKED]: true }, () => { post({ type: 'quick-request-perm', which: 'screen' }); pending(); });
+    } }]);
+  }
+
+  // 本机没认出文字。引擎支持识图、且不是免费额度（额度不发图，同文档翻译的裁定）⇒ 多一个次级按钮，
+  // **旁边写明截图会发给谁** —— 点了之后截图才离开设备（D8）。
+  async function shotNothing() {
+    gen += 1; const mine = gen;
+    $('quick-root').hidden = false; $('qk-tag').textContent = originLabel('screen'); clearOut(); setSrc('', false); hideLang();
+    message(t('quick_shot_nothing', '这一块里没有认出文字。'));
+    const acts = [{ text: t('quick_shot_again', '重新框选'), primary: true, run: () => post({ type: 'quick-reselect' }) }];
+    const s = await get(READ_KEYS);
+    if (mine !== gen) return;
+    const tr = typeof LearnNotes !== 'undefined' ? LearnNotes.resolveConfig(s) : { provider: s.provider, apiKey: s.apiKey, baseUrl: s.apiBaseUrl };
+    const configured = !(typeof EngineState !== 'undefined' && EngineState.needsSetup({ provider: tr.provider, apiKey: tr.apiKey, apiBaseUrl: tr.baseUrl }));
+    const onGrant = typeof LearnGrant !== 'undefined' && LearnGrant.active && LearnGrant.active(s);
+    const vision = typeof EngineState !== 'undefined' && EngineState.visionOf ? EngineState.visionOf(tr.provider) : false;
+    if (configured && !onGrant && vision !== false) {
+      const entry = (typeof EngineState !== 'undefined' && EngineState.entry) ? (EngineState.entry({ provider: tr.provider }) || {}) : {};
+      acts.push({ text: t('quick_shot_cloud', '用我的识图引擎再试'), run: () => { clearOut(); message(t('quick_shot_cloud_busy', '正在用你的引擎识别…')); fit(); post({ type: 'quick-ocr-cloud' }); } });
+      note(t('quick_shot_cloud_note', '「用我的识图引擎再试」会把这张截图发给你配置的引擎（{engine}）。').replace('{engine}', String(entry.label || tr.provider || '')));
+    }
+    actions(acts);
+    fit();
+  }
+
+  // 用户点了「用我的识图引擎再试」之后，原生才把截图交过来。识图只要原文；译文照常走 translate()。
+  async function cloudOcr(dataUri) {
+    gen += 1; const mine = gen;
+    if (!dataUri) { clearOut(); message(t('quick_shot_cloud_gone', '这张截图已经丢弃了。重新框选一次。')); actions([{ text: t('quick_shot_again', '重新框选'), primary: true, run: () => post({ type: 'quick-reselect' }) }]); return fit(); }
+    const s = await get(READ_KEYS);
+    const tr = typeof LearnNotes !== 'undefined' ? LearnNotes.resolveConfig(s) : { provider: s.provider, apiKey: s.apiKey, baseUrl: s.apiBaseUrl, model: s.apiModel };
+    try {
+      const text = await TranslationAPI.ocr(dataUri, TranslationAPI.resolveProvider(tr.provider), tr.apiKey, tr.baseUrl || '', tr.model || '');
+      if (mine !== gen) return;
+      if (!C().hasLetters(text)) { clearOut(); message(t('quick_shot_nothing', '这一块里没有认出文字。')); actions([{ text: t('quick_shot_again', '重新框选'), primary: true, run: () => post({ type: 'quick-reselect' }) }]); return fit(); }
+      show({ via: 'shot', origin: 'screen', text: String(text) });
+    } catch (e) {
+      if (mine !== gen) return;
+      clearOut(); const d = document.createElement('div'); d.className = 'qk-err'; d.textContent = failText(e); $('qk-out').appendChild(d);
+      actions([{ text: t('quick_shot_again', '重新框选'), primary: true, run: () => post({ type: 'quick-reselect' }) }]); fit();
+    }
+  }
+
   function _fromNative(msg) {
     if (!msg || typeof msg.type !== 'string') return;
     if (msg.type === 'quick-show') { show(msg); return; }
     if (msg.type === 'quick-ocr') {
       const text = C().assembleLines(msg.lines);
-      if (!text) {
-        gen += 1; $('quick-root').hidden = false; $('qk-tag').textContent = originLabel('screen'); clearOut(); setSrc('', false); hideLang();
-        message(t('quick_shot_nothing', '这一块里没有认出文字。'));
-        actions([{ text: t('quick_shot_again', '重新框选'), primary: true, run: () => post({ type: 'quick-reselect' }) }]);
-        return fit();
-      }
+      if (!text) { shotNothing(); return; }
       show({ via: 'shot', origin: 'screen', text });
+      return;
     }
+    if (msg.type === 'quick-image') cloudOcr(String(msg.dataUri || ''));
   }
 
   function boot() {

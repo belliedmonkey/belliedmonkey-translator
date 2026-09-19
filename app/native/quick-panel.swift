@@ -7,11 +7,14 @@
 //
 // 协议（通道 mtQuick；与 app/quick.js 的 PROTOCOL 逐字对表，npm test 守着）：
 //   原生 → 面板页  quick-show {via, origin, text?, concealed?, own?, blocked?, fresh}
-//                 quick-ocr {lines}                         （M-6）
+//                 quick-ocr {lines}                         截图识别出的行框（screen-ocr.swift）
+//                 quick-image {dataUri}                     只在用户点了「用我的识图引擎再试」之后
 //   面板页 → 原生  quick-ready · quick-resize {h} · quick-close · quick-pin {on} · quick-copy {text}
 //                 quick-capture {…} · quick-result {…}      ⇒ 原样中继给主页面
 //                 quick-open-settings                       ⇒ 聚焦主窗口的设置
-//                 quick-reselect                            （M-6）
+//                 quick-reselect                            重新框选 / 改用截图翻译
+//                 quick-request-perm {which} · quick-open-privacy {which} · quick-relaunch   录屏权限（which = screen）
+//                 quick-ocr-cloud                           用户点了「用我的识图引擎再试」
 //
 // 零权限路径：快捷键 ⇒ 读剪贴板。三件不能错的事 ——
 //   · 带隐藏 / 临时标记（密码管理器打的）⇒ **根本不读文字**，只告诉页面 concealed
@@ -43,6 +46,7 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
     private static let width: CGFloat = 400
     private static let minHeight: CGFloat = 120
     private static let hotkeyClipboard: UInt32 = 1
+    private static let hotkeyScreenshot: UInt32 = 2
     private static let hotkeyEscape: UInt32 = 9
 
     private var panel: MTQuickPanelWindow?
@@ -66,12 +70,19 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         // 默认 ⌃⌥T。不用纯 ⌥ 组合：macOS 15 的沙盒对它有限制。录制控件在 M-7。
         MTHotkey.shared.register(id: MTQuickPanel.hotkeyClipboard, keyCode: UInt32(kVK_ANSI_T),
                                  modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.hotkeyPressed() }
+        // 截图翻译 ⌃⌥S（macOS 14+；更低的系统上入口整个不出现）。
+        if MTScreenShot.supported {
+            MTHotkey.shared.register(id: MTQuickPanel.hotkeyScreenshot, keyCode: UInt32(kVK_ANSI_S),
+                                     modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.translateScreenshot() }
+            MTScreenShot.prewarmIfNeeded()
+        }
         // 预热：第二个 WebContent 进程约 70–80 MB，冷启动 70 ms；主窗口先就绪，2 秒后再建。
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.buildIfNeeded() }
     }
 
     func disable() {
         MTHotkey.shared.unregister(id: MTQuickPanel.hotkeyClipboard)
+        MTHotkey.shared.unregister(id: MTQuickPanel.hotkeyScreenshot)
         // 右键「服务」不看常驻开关：App 被它冷启动时，页面随后发来的「常驻关着」不能把正在用的面板拆掉。
         if panel?.isVisible == true || !pending.isEmpty { return }
         hide()
@@ -139,6 +150,24 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
     /// 右键「服务」交来的文字（services.swift）。不是通用剪贴板 ⇒ 三个陷阱都不适用，来源标签是「服务」。
     func translateFromService(_ text: String) {
         present(["type": "quick-show", "via": "service", "origin": "service", "text": text], focus: false, force: true)
+    }
+
+    /// 截图翻译（screen-ocr.swift）：快捷键 ⌃⌥S、菜单、面板里的「重新框选」/「改用截图翻译」都到这里。
+    /// 没有录屏权限 ⇒ 不框选，面板里先把话说清楚（系统弹窗之前我们自己的话先到；入口不因为被拒而消失）。
+    func translateScreenshot() {
+        guard MTScreenShot.supported else { return }
+        guard MTScreenShot.granted else {
+            let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
+            present(["type": "quick-show", "via": "shot", "origin": "screen", "perm": "screen", "appName": appName], focus: false, force: true)
+            return
+        }
+        hide()
+        MTScreenShot.shared.pickRegion { [weak self] image in
+            guard let s = self, let image = image else { return }      // Esc / 太小 / 截不到：什么都不出现
+            s.present(["type": "quick-show", "via": "shot", "origin": "screen", "busy": true, "first": !MTScreenShot.visionWarm],
+                      focus: false, force: true)
+            MTScreenShot.recognize(image) { lines in s.send(["type": "quick-ocr", "lines": lines]) }
+        }
     }
 
     /// 菜单「输入翻译」
@@ -227,6 +256,7 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
 
     func hide() {
         stopDismissWatch()
+        MTScreenShot.shared.discardImage()                     // 截图只留到面板收起为止
         pinned = false
         panel?.orderOut(nil)
     }
@@ -260,7 +290,16 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
             hide()
             MTResident.shared.openSettings()
         case "quick-reselect":
-            break                                              // 截图翻译在 M-6
+            translateScreenshot()
+        case "quick-request-perm":
+            if (body["which"] as? String) == "screen" { MTScreenShot.requestAccess() }
+        case "quick-open-privacy":
+            if (body["which"] as? String) == "screen" { MTScreenShot.openPrivacySettings() }
+        case "quick-relaunch":
+            MTQuickCapture.relaunch()
+        case "quick-ocr-cloud":
+            // 用户点了「用我的识图引擎再试」：只有这一条会把截图的像素交给页面（screen-ocr.swift 不变量 ②）。
+            send(["type": "quick-image", "dataUri": MTScreenShot.shared.lastImageDataURL() ?? ""])
         default:
             break
         }

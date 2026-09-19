@@ -3325,5 +3325,32 @@
   },
   "quick_enh_lost": {
     "message": "A permissão da captura aprimorada foi desativada, então desta vez a área de transferência foi traduzida. Ative-a de novo nos ajustes para restaurar."
+  },
+  "quick_menu_shot": {
+    "message": "Traduzir captura de tela"
+  },
+  "quick_shot_busy": {
+    "message": "Reconhecendo o texto neste Mac…"
+  },
+  "quick_shot_first": {
+    "message": "Primeira vez neste Mac: leva cerca de 20 segundos para preparar. Depois disso, menos de meio segundo."
+  },
+  "quick_shot_perm_explain": {
+    "message": "A tradução por captura precisa da permissão de Gravação de Tela. Ela captura só a área selecionada, só naquele momento, reconhece neste Mac e descarta em seguida."
+  },
+  "quick_shot_perm_pending": {
+    "message": "Falta um passo: nos Ajustes do Sistema, ative o interruptor de “{app}” na lista. Passa a valer depois de reabrir o app."
+  },
+  "quick_shot_cloud": {
+    "message": "Tentar de novo com meu mecanismo com visão"
+  },
+  "quick_shot_cloud_note": {
+    "message": "“Tentar de novo com meu mecanismo com visão” envia esta captura ao mecanismo que você configurou ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Reconhecendo com o seu mecanismo…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "Esta captura já foi descartada. Selecione a área de novo."
   }
 }
