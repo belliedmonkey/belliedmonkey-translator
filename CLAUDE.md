@@ -128,6 +128,13 @@ npm run test:listen      # 「对话 · 实时听译」真 Chrome 端到端（No
                          # 语料里是 conv 来源/锚点、加星落盘、结束小结数字与桥收到 mic-stop。
                          # 为什么不用模拟器/真机：模拟器麦克风 0 字节、cua 的按住到不了 WKWebView 的
                          # pointerdown、真机被 iPhone 镜像占着麦克风（2026-09-07 三条路都试过）。
+npm run test:quick       # macOS「快速翻译」面板页真 Chrome 端到端（Node ≥22）—— 改 app/quick*.js、app.js 的 #quick 分流、
+                         # build/app-bundle.js 的 MODULES / MAIN_ONLY 时必跑。出货布局以 #quick 加载 + 假 mtQuick 桥 +
+                         # 本机假翻译端点：断言面板页**不开学习库、不初始化遥测、启动 0 请求**（探针在 document-start
+                         # 数 indexedDB.open / MTTelemetry.init / fetch），带隐藏标记的剪贴板**端点 0 请求**且文字不上屏，
+                         # 「和上次一样」0 请求，迟到的上一句不上屏不进库，401 只给「打开设置」、5xx 只给「重试」，
+                         # 三态 × 深浅两色对比度。判据是端点与桥收到了什么 —— 「密码被发出去了」在界面上看不出来。
+                         # 原生那一半（面板、热键、剪贴板、截图）走真机配方（verification-spec 矩阵第 10 行）。
 npm run test:docs        # 「文档翻译」真 Chrome 端到端（Node ≥22）—— 改 learn/doc-*.js、docs-page.js、
                          # pdfjs-loader.js、request-shape 的图片形状或 translation-api.ocr 时必跑。本机假
                          # chat 端点记下**每一次请求**：3 页 PDF 只发第 1 页、翻页只发第 2 页、并发峰值

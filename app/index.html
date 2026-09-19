@@ -820,6 +820,28 @@
   </main>
 
   <p id="status" role="status" aria-live="polite"></p>
+
+  <!-- 快速翻译面板（learning-design §9.9；macOS）。同一份页面以 #quick 加载时，<main> 整个不显示、只显示这一块 ——
+       同源 ⇒ 引擎配置、界面语言、错误文案全部复用，不改 pbxproj。平时（没有 #quick）它永远是 hidden。
+       文案全部由 app/quick.js 按 id 设；目标语言的选项在运行时从上面的 #target-lang 克隆，不另抄一份清单。 -->
+  <section id="quick-root" hidden>
+    <div class="qk-head">
+      <span id="qk-tag" class="qk-tag"></span>
+      <span class="qk-sp"></span>
+      <span id="qk-from" class="qk-from"></span>
+      <select id="qk-lang"></select>
+      <button id="qk-pin" type="button" class="qk-ibtn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button>
+      <button id="qk-close" type="button" class="qk-ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <textarea id="qk-src" rows="2" spellcheck="false"></textarea>
+    <p id="qk-note" class="qk-note" hidden></p>
+    <div id="qk-out" class="qk-out" aria-live="polite"></div>
+    <div id="qk-actions" class="qk-actions" hidden></div>
+    <div class="qk-foot">
+      <span id="qk-state" class="qk-state"></span>
+      <button id="qk-copy" type="button" class="qk-ibtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button>
+    </div>
+  </section>
   <script src="../Script.js"></script>
 </body>
 </html>

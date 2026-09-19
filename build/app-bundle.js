@@ -123,6 +123,8 @@ const MODULES = [
   'extension/learn/dialog.js',           // LearnDialog — 页内确认框（App 的 WKWebView 没有 window.confirm）
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
+  'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
+  'app/quick.js',                     // AppQuick —— #quick 模式的面板页（macOS 快速翻译；平时不启动）
   'app/quick-host.js',                // AppQuickHost —— 快速翻译在主页面这一侧的接线（mtQuick；macOS 才有原生半边）
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
   'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
@@ -158,6 +160,14 @@ const MODULES = [
 // (domain-design §9.2); the app receives material through sync, never through a drain.
 
 const APP_JS = 'app/app.js';             // always last: it drives the modules above
+
+// 加载即自启动的模块（不是「定义一个对象等人来调」）。快速翻译的面板页是同一份包以 #quick 加载的第二个
+// WKWebView（learning-design §9.9），它不该打开学习库、不该发心跳 —— 学习库按账号分库，第二个打开者会握着
+// 过期的库名。app.js 自己在 IIFE 里分流；这里的模块与扩展**同字节**，不能为 App 的一个模式去改它们，
+// 所以由包来包一层：字节不动，只是 #quick 下整段不执行。漏列的由 test:quick 抓（它数 indexedDB.open 与
+// MTTelemetry.init 的次数），2026-09-19 第一次跑就抓到了 review.js。
+const MAIN_ONLY = new Set(['extension/learn/review.js']);
+const PANEL_HASH_TEST = "/^#quick\\b/.test(String(location.hash || ''))";
 
 function buildAppBundle(outDir, log, opts) {
   opts = opts || {};
@@ -228,7 +238,8 @@ function buildAppBundle(outDir, log, opts) {
       text = opts.limitProviders(text, rel + ' (app bundle)', ['apple']);
     }
     parts.push(`// ─── ${rel} ${'─'.repeat(Math.max(0, 60 - rel.length))}`);
-    parts.push(text);
+    if (MAIN_ONLY.has(rel)) { parts.push(`if (!${PANEL_HASH_TEST}) {`); parts.push(text); parts.push('}'); }
+    else parts.push(text);
     parts.push('');
   }
 

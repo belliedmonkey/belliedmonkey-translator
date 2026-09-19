@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "常駐しない"
+  },
+  "quick_tag_selection": {
+    "message": "選択したテキスト"
+  },
+  "quick_tag_clipboard": {
+    "message": "クリップボード"
+  },
+  "quick_tag_service": {
+    "message": "サービス"
+  },
+  "quick_tag_shot": {
+    "message": "スクリーンショット"
+  },
+  "quick_tag_input": {
+    "message": "入力"
+  },
+  "quick_pin": {
+    "message": "固定"
+  },
+  "quick_close": {
+    "message": "閉じる"
+  },
+  "quick_copy": {
+    "message": "訳文をコピー"
+  },
+  "quick_src_label": {
+    "message": "原文"
+  },
+  "quick_src_placeholder": {
+    "message": "翻訳するテキストを入力またはペースト"
+  },
+  "quick_clip_concealed": {
+    "message": "クリップボードの内容は非表示としてマークされています（おそらくパスワードです）。読み取っておらず、送信もしていません。"
+  },
+  "quick_clip_empty": {
+    "message": "クリップボードにテキストがありません。テキストを選択して ⌘C を押してから、ショートカットを押してください。"
+  },
+  "quick_clip_same": {
+    "message": "前回と同じテキストです — ⌘C を押し忘れていませんか？"
+  },
+  "quick_no_selection": {
+    "message": "選択したテキストを取得できませんでした — 何も選択されていないか、この App がコピーを許可していません。"
+  },
+  "quick_use_shot": {
+    "message": "スクリーンショット翻訳を使う"
+  },
+  "quick_same_lang": {
+    "message": "原文はすでに{lang}です"
+  },
+  "sys_empty": {
+    "message": "翻訳できるテキストがありません。"
+  },
+  "sys_slow": {
+    "message": "翻訳中です — 無料クレジットは当方の中継を経由するため、ご自身のキーより遅くなります。"
+  },
+  "quick_slow": {
+    "message": "翻訳中です…"
+  },
+  "quick_unconfigured": {
+    "message": "翻訳エンジンがまだありません。無料クレジットを受け取るか、ご自身の API キーを入力してください。"
+  },
+  "quick_open_settings": {
+    "message": "設定を開く"
+  },
+  "quick_retry": {
+    "message": "再試行"
+  },
+  "quick_saved": {
+    "message": "復習ライブラリに保存しました"
+  },
+  "quick_saved_off": {
+    "message": "未保存 · 取り込みはオフです"
+  },
+  "quick_saved_long": {
+    "message": "長すぎるため復習ライブラリには保存しません"
+  },
+  "quick_shot_nothing": {
+    "message": "この範囲ではテキストを認識できませんでした。"
+  },
+  "quick_shot_again": {
+    "message": "もう一度範囲を選ぶ"
   }
 }

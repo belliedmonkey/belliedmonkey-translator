@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "لا أريد البقاء"
+  },
+  "quick_tag_selection": {
+    "message": "النص المحدد"
+  },
+  "quick_tag_clipboard": {
+    "message": "الحافظة"
+  },
+  "quick_tag_service": {
+    "message": "الخدمات"
+  },
+  "quick_tag_shot": {
+    "message": "لقطة شاشة"
+  },
+  "quick_tag_input": {
+    "message": "إدخال"
+  },
+  "quick_pin": {
+    "message": "تثبيت"
+  },
+  "quick_close": {
+    "message": "إغلاق"
+  },
+  "quick_copy": {
+    "message": "نسخ الترجمة"
+  },
+  "quick_src_label": {
+    "message": "النص الأصلي"
+  },
+  "quick_src_placeholder": {
+    "message": "اكتب النص المراد ترجمته أو الصقه"
+  },
+  "quick_clip_concealed": {
+    "message": "محتوى الحافظة موسوم بأنه مخفي (غالبًا كلمة مرور). لم تتم قراءته ولم يُرسَل أي شيء."
+  },
+  "quick_clip_empty": {
+    "message": "لا يوجد نص في الحافظة. حدّد نصًا واضغط ⌘C ثم اضغط الاختصار."
+  },
+  "quick_clip_same": {
+    "message": "النص نفسه كالمرة السابقة — هل نسيت الضغط على ⌘C؟"
+  },
+  "quick_no_selection": {
+    "message": "تعذّر الحصول على النص المحدد — ربما لم يتم تحديد شيء، أو أن هذا التطبيق لا يسمح بالنسخ."
+  },
+  "quick_use_shot": {
+    "message": "استخدم ترجمة لقطة الشاشة"
+  },
+  "quick_same_lang": {
+    "message": "النص بالفعل بـ {lang}"
+  },
+  "sys_empty": {
+    "message": "لا يوجد نص للترجمة."
+  },
+  "sys_slow": {
+    "message": "ما زالت الترجمة جارية — الرصيد المجاني يمر عبر خادمنا الوسيط، وهو أبطأ من مفتاحك الخاص."
+  },
+  "quick_slow": {
+    "message": "ما زالت الترجمة جارية…"
+  },
+  "quick_unconfigured": {
+    "message": "لا يوجد محرك ترجمة بعد. احصل على الرصيد المجاني أو أدخل مفتاح API الخاص بك."
+  },
+  "quick_open_settings": {
+    "message": "فتح الإعدادات"
+  },
+  "quick_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "quick_saved": {
+    "message": "تم الحفظ في مكتبة المراجعة"
+  },
+  "quick_saved_off": {
+    "message": "لم يُحفظ · الالتقاط متوقف"
+  },
+  "quick_saved_long": {
+    "message": "طويل جدًا، لن يُحفظ في مكتبة المراجعة"
+  },
+  "quick_shot_nothing": {
+    "message": "لم يتم التعرف على أي نص في هذه المنطقة."
+  },
+  "quick_shot_again": {
+    "message": "حدّد مرة أخرى"
   }
 }

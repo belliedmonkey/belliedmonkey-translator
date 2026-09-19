@@ -1796,6 +1796,32 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 
 真机上仍要人验的：M24 / M25（本机路）+ 离线模型行进度 + 语言包行进度（ZHAO的iPhone）。M22 / M23（云端路）作废。
 
+### 3.1.6 `npm run test:quick` — macOS「快速翻译」面板页端到端（2026-09-19）
+
+**何时必跑：** 改 `app/quick.js`、`app/quick-core.js`、`app/app.js` 的 `#quick` 分流、`build/app-bundle.js` 的
+`MODULES` / `MAIN_ONLY`，或面板用到的共享样式 token。
+
+面板是同一份 `Main.html` 以 `#quick` 加载的第二个 WKWebView（`learning-design.md` §9.9）。这条门用出货布局
+（`dist-app`）+ 假 `mtQuick` 桥 + 本机假翻译端点，判据一律是**端点收到了什么、桥收到了什么**：
+
+| 段 | 断言 |
+|---|---|
+| A 冷启动 | 只显示面板；document-start 探针读回 `indexedDB.open` 0 次、`MTTelemetry.init` 0 次、`fetch` 0 次；目标语言选项从「译成」克隆、没有「跟随界面语言」 |
+| B 译文 | 译文上屏；端点恰好 1 次且方向对；`quick-capture` 恰好 1 条、字段是闭集；`quick-result{ok,provider,ms:int}`；复制交给原生；三个图标钮量几何与描边（SVG 没有自有文字，对比度清扫量不到） |
+| C 三陷阱 | 隐藏标记 ⇒ **端点 0 请求**且那段文字不出现在页面任何地方；空 ⇒ 0 请求 + 指引；和上次一样 ⇒ 显示上次的、0 请求；三者都不再交一条进复习库 |
+| D | 原文已是目标语言 ⇒ 反向并写明原因；只有数字符号 ⇒ 0 请求 |
+| E 取消 | 上一句还在翻时再触发：迟到的结果不上屏、不进复习库 |
+| F | 两段各出一条译文；行框乱序交来按阅读顺序拼；零产出 ⇒「重新框选」交原生；输入翻译聚焦、⇧回车不发请求、回车翻译且 `via:'input'` |
+| G 失败两态 | 401 ⇒ 只给「打开设置」；5xx ⇒ 只给「重试」，重试成功后错误消失；`quick-result` 依次是 失败(auth) / 失败 / 成功 |
+| H | 改目标语言写回 `targetLang` 并立刻重翻；采集关 ⇒ 照翻、不交、底栏照实说；未配置 ⇒ 0 请求 +「打开设置」交原生 |
+| I | Esc ⇒ `quick-close`；钉住 ⇒ `quick-pin{on:true}`；出站消息全在 `AppQuick.PROTOCOL` 内；全程学习库 0 次打开 |
+
+译文 / 失败 / 未配置三态各过一遍 `scripts/lib/sweep.js` 的深浅两色清扫。`MT_SHOTS=<目录>` 顺手留两色截图给人看，
+门禁本身不看图。**先红后绿的记录：** 第一次跑就红在 A —— `review.js` 在面板页里照常自启动并打开了 `mt-learn`
+（`app.js` 的分流管不到它，它是另一个加载即执行的模块），由此才有 `MAIN_ONLY`；同一轮还量出三个图标钮的 SVG
+宽度是 0（弹性容器里被压没了）与浅色下译文 3.53:1。原生那一半（面板、热键、剪贴板、截图）不在这条门里，走矩阵
+第 10 行的真机配方。
+
 ### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的

@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "Don’t stay resident"
+  },
+  "quick_tag_selection": {
+    "message": "Selection"
+  },
+  "quick_tag_clipboard": {
+    "message": "Clipboard"
+  },
+  "quick_tag_service": {
+    "message": "Services"
+  },
+  "quick_tag_shot": {
+    "message": "Screenshot"
+  },
+  "quick_tag_input": {
+    "message": "Typed"
+  },
+  "quick_pin": {
+    "message": "Pin"
+  },
+  "quick_close": {
+    "message": "Close"
+  },
+  "quick_copy": {
+    "message": "Copy translation"
+  },
+  "quick_src_label": {
+    "message": "Original"
+  },
+  "quick_src_placeholder": {
+    "message": "Type or paste text to translate"
+  },
+  "quick_clip_concealed": {
+    "message": "The clipboard content is marked as concealed (most likely a password). It was not read and nothing was sent."
+  },
+  "quick_clip_empty": {
+    "message": "There is no text on the clipboard. Select some text, press ⌘C, then press the shortcut."
+  },
+  "quick_clip_same": {
+    "message": "Same text as last time — did you forget to press ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "Couldn’t get the selected text — nothing may be selected, or this app doesn’t allow copying."
+  },
+  "quick_use_shot": {
+    "message": "Use screenshot translation instead"
+  },
+  "quick_same_lang": {
+    "message": "Already in {lang}"
+  },
+  "sys_empty": {
+    "message": "There is no text to translate."
+  },
+  "sys_slow": {
+    "message": "Still translating — the free credit goes through our relay, which is slower than your own key."
+  },
+  "quick_slow": {
+    "message": "Still translating…"
+  },
+  "quick_unconfigured": {
+    "message": "No translation engine yet. Claim the free credit, or enter your own API key."
+  },
+  "quick_open_settings": {
+    "message": "Open Settings"
+  },
+  "quick_retry": {
+    "message": "Retry"
+  },
+  "quick_saved": {
+    "message": "Saved to review library"
+  },
+  "quick_saved_off": {
+    "message": "Not saved · capture is off"
+  },
+  "quick_saved_long": {
+    "message": "Too long to save to the review library"
+  },
+  "quick_shot_nothing": {
+    "message": "No text was recognized in this area."
+  },
+  "quick_shot_again": {
+    "message": "Select again"
   }
 }

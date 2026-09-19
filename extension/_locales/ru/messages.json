@@ -3199,5 +3199,86 @@
   },
   "quick_resident_off": {
     "message": "Не оставаться в строке меню"
+  },
+  "quick_tag_selection": {
+    "message": "Выделенный текст"
+  },
+  "quick_tag_clipboard": {
+    "message": "Буфер обмена"
+  },
+  "quick_tag_service": {
+    "message": "Службы"
+  },
+  "quick_tag_shot": {
+    "message": "Снимок экрана"
+  },
+  "quick_tag_input": {
+    "message": "Ввод"
+  },
+  "quick_pin": {
+    "message": "Закрепить"
+  },
+  "quick_close": {
+    "message": "Закрыть"
+  },
+  "quick_copy": {
+    "message": "Копировать перевод"
+  },
+  "quick_src_label": {
+    "message": "Оригинал"
+  },
+  "quick_src_placeholder": {
+    "message": "Введите или вставьте текст для перевода"
+  },
+  "quick_clip_concealed": {
+    "message": "Содержимое буфера обмена помечено как скрытое (скорее всего, это пароль). Оно не было прочитано, и ничего не отправлено."
+  },
+  "quick_clip_empty": {
+    "message": "В буфере обмена нет текста. Выделите текст, нажмите ⌘C, затем сочетание клавиш."
+  },
+  "quick_clip_same": {
+    "message": "Тот же текст, что и в прошлый раз — забыли нажать ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "Не удалось получить выделенный текст — возможно, ничего не выделено или это приложение не разрешает копирование."
+  },
+  "quick_use_shot": {
+    "message": "Перевести снимок экрана"
+  },
+  "quick_same_lang": {
+    "message": "Уже на языке: {lang}"
+  },
+  "sys_empty": {
+    "message": "Нет текста для перевода."
+  },
+  "sys_slow": {
+    "message": "Перевод ещё идёт — бесплатный кредит проходит через наш ретранслятор, это медленнее, чем свой ключ."
+  },
+  "quick_slow": {
+    "message": "Перевод ещё идёт…"
+  },
+  "quick_unconfigured": {
+    "message": "Движок перевода ещё не настроен. Получите бесплатный кредит или укажите свой API-ключ."
+  },
+  "quick_open_settings": {
+    "message": "Открыть настройки"
+  },
+  "quick_retry": {
+    "message": "Повторить"
+  },
+  "quick_saved": {
+    "message": "Сохранено в библиотеку повторения"
+  },
+  "quick_saved_off": {
+    "message": "Не сохранено · сбор выключен"
+  },
+  "quick_saved_long": {
+    "message": "Слишком длинно — в библиотеку повторения не сохраняется"
+  },
+  "quick_shot_nothing": {
+    "message": "В этой области текст не распознан."
+  },
+  "quick_shot_again": {
+    "message": "Выбрать заново"
   }
 }
