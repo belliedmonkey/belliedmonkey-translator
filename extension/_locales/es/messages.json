@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "Se usa en la traducción de documentos, la traducción del sistema y la traducción rápida. La conversación y los subtítulos en vivo tienen sus propios ajustes de idioma."
+  },
+  "handoff_source_label": {
+    "message": "Texto recibido"
+  },
+  "src_handoff_system": {
+    "message": "Traducción del sistema"
+  },
+  "src_handoff_select": {
+    "message": "Traducción de selección"
+  },
+  "src_handoff_shot": {
+    "message": "Traducción de captura"
+  },
+  "src_handoff_input": {
+    "message": "Traducción escrita"
   }
 }

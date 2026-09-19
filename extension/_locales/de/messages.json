@@ -3154,5 +3154,20 @@
   },
   "target_lang_hint": {
     "message": "Gilt für Dokumentübersetzung, Systemübersetzung und Schnellübersetzung. Gespräch und Live-Untertitel haben eigene Spracheinstellungen."
+  },
+  "handoff_source_label": {
+    "message": "Übergebener Text"
+  },
+  "src_handoff_system": {
+    "message": "Systemübersetzung"
+  },
+  "src_handoff_select": {
+    "message": "Auswahl übersetzen"
+  },
+  "src_handoff_shot": {
+    "message": "Screenshot übersetzen"
+  },
+  "src_handoff_input": {
+    "message": "Eingabe übersetzen"
   }
 }

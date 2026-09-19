@@ -3155,5 +3155,20 @@
   },
   "target_lang_hint": {
     "message": "文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。"
+  },
+  "handoff_source_label": {
+    "message": "交来的文字"
+  },
+  "src_handoff_system": {
+    "message": "系统翻译"
+  },
+  "src_handoff_select": {
+    "message": "划词翻译"
+  },
+  "src_handoff_shot": {
+    "message": "截图翻译"
+  },
+  "src_handoff_input": {
+    "message": "输入翻译"
   }
 }

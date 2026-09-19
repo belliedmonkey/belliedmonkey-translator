@@ -93,10 +93,24 @@ var SourcesView = (() => {
     return Array.from(byId.values()).filter((g) => g.count > 0).sort((a, b) => b.count - a.count);
   }
 
+  // 交来的文字（learning-design §9.9）：`handoff://<入口>/<YYYY-MM>`，按入口 + 月份一行（卡上的锚点是 k:'handoff'）。
+  // 没有 host，所以必须从下面的按站点分组里排除 —— 否则 hostOf 会把入口名当成域名。
+  function isHandoff(src) { return !!(src && typeof src.url === 'string' && src.url.startsWith('handoff://')); }
+  function groupHandoff(items, sources) {
+    const byId = new Map();
+    for (const s of sources || []) if (isHandoff(s)) byId.set(s.id, { sourceId: s.id, title: s.title || s.id, count: 0, itemIds: [] });
+    for (const it of items || []) { const g = it && it.sourceId ? byId.get(it.sourceId) : null; if (!g) continue; g.count++; g.itemIds.push(it.id); }
+    // id 末尾是 YYYY-MM：新的月份在前；同月按入口名稳定排序
+    return Array.from(byId.values()).filter((g) => g.count > 0).sort((a, b) => {
+      const ma = a.sourceId.slice(-7), mb = b.sourceId.slice(-7);
+      return ma === mb ? (a.sourceId < b.sourceId ? -1 : 1) : (ma < mb ? 1 : -1);
+    });
+  }
+
   // items+sources → [{host, count, blocked, blockedBy, exactRule}] sorted by count.
   function groupByHost(items, sources, rules) {
     const srcHost = new Map();
-    for (const s of sources || []) { if (s && s.id && !isConv(s) && !isDoc(s)) srcHost.set(s.id, hostOf(s.url)); }
+    for (const s of sources || []) { if (s && s.id && !isConv(s) && !isDoc(s) && !isHandoff(s)) srcHost.set(s.id, hostOf(s.url)); }
     const counts = new Map();
     for (const it of items || []) {
       const h = it && it.sourceId ? srcHost.get(it.sourceId) : '';
@@ -250,6 +264,25 @@ var SourcesView = (() => {
       container.appendChild(wrap);
     }
 
+    // ── 交来的文字（§9.9）：按入口 + 月份一行，只有「删除已存」──
+    const hands = groupHandoff(opts.items, opts.sources);
+    if (hands.length) {
+      const wrap = el(doc, 'div');
+      wrap.id = 'srcm-handoff';
+      for (const g of hands) {
+        const row = el(doc, 'div', 'srcm-row');
+        row.appendChild(el(doc, 'span', 'srcm-host', '↪ ' + g.title));
+        row.appendChild(el(doc, 'span', 'srcm-count', t('learn_sources_count', '{n} 张卡').replace('{n}', String(g.count))));
+        const del = el(doc, 'button', '', t('learn_src_delete', '删除已存'));
+        del.addEventListener('click', lock(del, () => opts.onDelete && opts.onDelete({
+          host: g.title, pattern: '', itemIds: g.itemIds.slice(), sourceIds: [g.sourceId],
+        })));
+        row.appendChild(del);
+        wrap.appendChild(row);
+      }
+      container.appendChild(wrap);
+    }
+
     // ── block-rule chips ──
     const block = (opts.rules && opts.rules.block) || [];
     const chipsWrap = el(doc, 'div');
@@ -334,7 +367,7 @@ var SourcesView = (() => {
     container.appendChild(chips);
   }
 
-  return { render, renderLangChips, groupByHost, groupConversations, isDoc, groupDocuments };
+  return { render, renderLangChips, groupByHost, groupConversations, isDoc, groupDocuments, isHandoff, groupHandoff };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = SourcesView;
