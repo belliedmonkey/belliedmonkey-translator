@@ -69,14 +69,17 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
 
     func disable() {
         MTHotkey.shared.unregister(id: MTQuickPanel.hotkeyClipboard)
+        // 右键「服务」不看常驻开关：App 被它冷启动时，页面随后发来的「常驻关着」不能把正在用的面板拆掉。
+        if panel?.isVisible == true || !pending.isEmpty { return }
         hide()
         web?.configuration.userContentController.removeScriptMessageHandler(forName: MTQuickPanel.channel)
         panel?.contentView = nil
         panel = nil; web = nil; ready = false; pending = []
     }
 
-    private func buildIfNeeded() {
-        guard web == nil, MTResident.keepAlive,
+    /// force：右键「服务」是用户明确点的，不看常驻开关（services.swift）。预热那一路照旧只在常驻开着时建。
+    private func buildIfNeeded(force: Bool = false) {
+        guard web == nil, force || MTResident.keepAlive,
               let page = Bundle.main.url(forResource: "Main", withExtension: "html"),
               let root = Bundle.main.resourceURL else { return }
         let conf = WKWebViewConfiguration()
@@ -111,6 +114,11 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    /// 右键「服务」交来的文字（services.swift）。不是通用剪贴板 ⇒ 三个陷阱都不适用，来源标签是「服务」。
+    func translateFromService(_ text: String) {
+        present(["type": "quick-show", "via": "service", "origin": "service", "text": text], focus: false, force: true)
+    }
+
     /// 菜单「输入翻译」
     func typeToTranslate() {
         present(["type": "quick-show", "via": "input", "origin": "typed"], focus: true)
@@ -135,8 +143,8 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { if !finished { finished = true; done(["blocked": true]) } }
     }
 
-    private func present(_ message: [String: Any], focus: Bool) {
-        buildIfNeeded()
+    private func present(_ message: [String: Any], focus: Bool, force: Bool = false) {
+        buildIfNeeded(force: force)
         guard let p = panel else { return }
         var m = message
         let wasVisible = p.isVisible
