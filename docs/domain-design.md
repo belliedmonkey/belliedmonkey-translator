@@ -125,8 +125,9 @@ The YouTube subtitle path follows **one** logic, identical on every platform
    whole budget on nothing and latched 「字幕不可用」 — measured on Windows 11 Edge 153: latched
    after 27 s paused at 0, and still latched with the main video 138 s in and YouTube's own
    CC on. `SubtitleAdapter.playbackLatch` answers "has this media played yet", once per media
-   key: it turns true the first time the element is unpaused with `currentTime > 0` while no
-   ad is showing, and then STAYS true — a mid-video pause must not reopen the gate and hand
+   key: it turns true the first time the element has `currentTime > 0` while no ad is showing
+   (paused mid-video counts — YouTube fetched that transcript long ago, and turning subtitles
+   on while paused must show them at once), and then STAYS true — a mid-video pause must not reopen the gate and hand
    out eight more attempts — until the video id changes. Before it turns true nothing is
    drawn (no 「字幕加载中…」 over a video nobody has started); the tick it turns true re-arms
    the same one-shots as the end of an ad.

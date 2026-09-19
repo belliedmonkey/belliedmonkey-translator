@@ -568,7 +568,9 @@ var SubtitleAdapter = (() => {
       latched = false;
       if (o.exclude && o.exclude()) return false;
       const m = o.getMedia ? o.getMedia() : null;
-      if (m && !m.paused && m.currentTime > 0) { latched = true; key = k; return true; }
+      // 判「播起来过」看的是时间走过没有，不看此刻是不是在播：用户暂停在中途再打开字幕，应当立刻有字幕
+      // （YouTube 早就取过 timedtext 了）；只有停在 0 的那种「还没开始」才需要等。
+      if (m && m.currentTime > 0) { latched = true; key = k; return true; }
       return false;
     };
   }

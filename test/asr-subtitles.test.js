@@ -418,6 +418,8 @@ describe("playbackLatch: a video that has not started must not burn the acquisit
     eq(started(), true, "a pause mid-video must not close the gate again");
     key = "v2"; media.currentTime = 0;
     eq(started(), false, "a new video starts over");
+    media.paused = true; media.currentTime = 73;
+    eq(started(), true, "paused MID-video counts as started — turning subtitles on while paused must show them at once");
     eq(SA.playbackLatch({ getMedia: () => null, mediaKey: () => "x" })(), false, "no media element ⇒ not started");
   });
 
