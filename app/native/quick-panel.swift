@@ -47,6 +47,18 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
     private static let minHeight: CGFloat = 120
     private static let hotkeyClipboard: UInt32 = 1
     private static let hotkeyScreenshot: UInt32 = 2
+    private static let hotkeyInput: UInt32 = 3
+
+    /// 一个快捷键：Carbon 要的两个数 + 菜单上写的那个字符。数字由页面算（app/hotkey-core.js 的键码表），原生不重复那张表。
+    struct Combo { let keyCode: UInt32; let modifiers: UInt32; let char: String }
+
+    /// 当前三个快捷键。页面没发来之前是默认值（⌃⌥T · ⌃⌥S · 输入翻译留空）；nil = 用户清掉了。
+    private(set) var hotkeys: [String: Combo?] = [
+        "translate": Combo(keyCode: UInt32(kVK_ANSI_T), modifiers: UInt32(controlKey | optionKey), char: "t"),
+        "shot": Combo(keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(controlKey | optionKey), char: "s"),
+        "input": nil,
+    ]
+    private var hotkeysPaused = false
     private static let hotkeyEscape: UInt32 = 9
 
     private var panel: MTQuickPanelWindow?
@@ -67,22 +79,16 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
 
     func enable() {
         guard web == nil else { return }
-        // 默认 ⌃⌥T。不用纯 ⌥ 组合：macOS 15 的沙盒对它有限制。录制控件在 M-7。
-        MTHotkey.shared.register(id: MTQuickPanel.hotkeyClipboard, keyCode: UInt32(kVK_ANSI_T),
-                                 modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.hotkeyPressed() }
-        // 截图翻译 ⌃⌥S（macOS 14+；更低的系统上入口整个不出现）。
-        if MTScreenShot.supported {
-            MTHotkey.shared.register(id: MTQuickPanel.hotkeyScreenshot, keyCode: UInt32(kVK_ANSI_S),
-                                     modifiers: UInt32(controlKey | optionKey)) { [weak self] in self?.translateScreenshot() }
-            MTScreenShot.prewarmIfNeeded()
-        }
+        enabledNow = true
+        _ = registerHotkeys()
+        if MTScreenShot.supported { MTScreenShot.prewarmIfNeeded() }
         // 预热：第二个 WebContent 进程约 70–80 MB，冷启动 70 ms；主窗口先就绪，2 秒后再建。
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.buildIfNeeded() }
     }
 
     func disable() {
-        MTHotkey.shared.unregister(id: MTQuickPanel.hotkeyClipboard)
-        MTHotkey.shared.unregister(id: MTQuickPanel.hotkeyScreenshot)
+        enabledNow = false
+        unregisterHotkeys()
         // 右键「服务」不看常驻开关：App 被它冷启动时，页面随后发来的「常驻关着」不能把正在用的面板拆掉。
         if panel?.isVisible == true || !pending.isEmpty { return }
         hide()
@@ -115,6 +121,59 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
         p.contentView = w
         panel = p; web = w
         w.loadFileURL(page, allowingReadAccessTo: root)
+    }
+
+    // MARK: - 快捷键（M-7：可改、可清、可恢复默认）
+
+    private var enabledNow = false
+
+    private func unregisterHotkeys() {
+        for id in [MTQuickPanel.hotkeyClipboard, MTQuickPanel.hotkeyScreenshot, MTQuickPanel.hotkeyInput] { MTHotkey.shared.unregister(id: id) }
+    }
+
+    /// 按当前配置注册。返回**没注册上**的那些（别的 App 已经占了同一个组合）—— 页面据此显示「冲突」。
+    /// 截图翻译在 macOS 14 以下不注册（入口整个不出现）。常驻关着、或正在录制（paused）时一个都不注册。
+    private func registerHotkeys() -> [String] {
+        unregisterHotkeys()
+        guard enabledNow, !hotkeysPaused else { return [] }
+        var failed: [String] = []
+        let table: [(String, UInt32, () -> Void)] = [
+            ("translate", MTQuickPanel.hotkeyClipboard, { [weak self] in self?.hotkeyPressed() }),
+            ("shot", MTQuickPanel.hotkeyScreenshot, { [weak self] in self?.translateScreenshot() }),
+            ("input", MTQuickPanel.hotkeyInput, { [weak self] in self?.typeToTranslate() }),
+        ]
+        for (name, id, action) in table {
+            guard let c = hotkeys[name] ?? nil else { continue }
+            if name == "shot" && !MTScreenShot.supported { continue }
+            if !MTHotkey.shared.register(id: id, keyCode: c.keyCode, modifiers: c.modifiers, action: action) { failed.append(name) }
+        }
+        return failed
+    }
+
+    /// 页面发来的 quick-hotkeys。paused = 正在录制：全局快捷键先全部放开，不然用户按下现有的组合时
+    /// Carbon 抢在网页之前把它吃掉 —— 既录不到，又会真的触发一次翻译。
+    func applyHotkeys(_ body: [String: Any]) -> [String] {
+        hotkeysPaused = (body["paused"] as? Bool) ?? false
+        for name in ["translate", "shot", "input"] {
+            guard let raw = body[name] else { continue }
+            if let d = raw as? [String: Any], let k = d["keyCode"] as? Int, let m = d["modifiers"] as? Int {
+                hotkeys[name] = Combo(keyCode: UInt32(k), modifiers: UInt32(m), char: (d["char"] as? String) ?? "")
+            } else {
+                hotkeys[name] = .some(nil)
+            }
+        }
+        return registerHotkeys()
+    }
+
+    /// 菜单上写快捷键用。
+    func menuShortcut(_ name: String) -> (String, NSEvent.ModifierFlags)? {
+        guard let c = hotkeys[name] ?? nil, !c.char.isEmpty else { return nil }
+        var f: NSEvent.ModifierFlags = []
+        if c.modifiers & UInt32(cmdKey) != 0 { f.insert(.command) }
+        if c.modifiers & UInt32(shiftKey) != 0 { f.insert(.shift) }
+        if c.modifiers & UInt32(optionKey) != 0 { f.insert(.option) }
+        if c.modifiers & UInt32(controlKey) != 0 { f.insert(.control) }
+        return (c.char, f)
     }
 
     // MARK: - 入口

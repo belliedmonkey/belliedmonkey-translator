@@ -1650,7 +1650,46 @@ describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => 
   test('常驻关 ⇒ 面板与快捷键一起拆掉', () => {
     const res = strip(fs.readFileSync(path.join(R2, 'app', 'native', 'resident.swift'), 'utf8'));
     ok(/MTQuickPanel\.shared\.enable\(\)/.test(res) && /MTQuickPanel\.shared\.disable\(\)/.test(res));
-    ok(/func disable\(\) \{\s*MTHotkey\.shared\.unregister\(id: MTQuickPanel\.hotkeyClipboard\)/.test(strip(swift)));
+    ok(/func disable\(\) \{\s*enabledNow = false\s*unregisterHotkeys\(\)/.test(strip(swift)), '常驻关掉时三个全局快捷键都要放开');
+    ok(/for id in \[MTQuickPanel\.hotkeyClipboard, MTQuickPanel\.hotkeyScreenshot, MTQuickPanel\.hotkeyInput\] \{ MTHotkey\.shared\.unregister\(id: id\) \}/.test(strip(swift)));
+  });
+});
+
+// ── 快捷键可改 + 登录时启动（M-7）：原生那一半 ──────────────────────────────────────────────────────
+describe('quick settings — 原生：按配置注册快捷键、回报冲突、登录时启动', () => {
+  const R6 = path.join(__dirname, '..');
+  const strip = (x) => x.replace(/\/\/.*$/gm, '');
+  const panel = strip(fs.readFileSync(path.join(R6, 'app', 'native', 'quick-panel.swift'), 'utf8'));
+  const res = strip(fs.readFileSync(path.join(R6, 'app', 'native', 'resident.swift'), 'utf8'));
+  const login = strip(fs.readFileSync(path.join(R6, 'app', 'native', 'login-item.swift'), 'utf8'));
+  const H = require(path.join(R6, 'app', 'hotkey-core.js'));
+  test('原生的默认值 = 页面的默认值（页面还没发来配置之前用的就是它）', () => {
+    ok(/"translate": Combo\(keyCode: UInt32\(kVK_ANSI_T\), modifiers: UInt32\(controlKey \| optionKey\), char: "t"\)/.test(panel));
+    ok(/"shot": Combo\(keyCode: UInt32\(kVK_ANSI_S\), modifiers: UInt32\(controlKey \| optionKey\), char: "s"\)/.test(panel));
+    ok(/"input": nil,/.test(panel));
+    deepEq([H.wire(H.DEFAULTS.translate).char, H.wire(H.DEFAULTS.shot).char, H.DEFAULTS.input], ['t', 's', null]);
+  });
+  test('★ 录制时（paused）与常驻关着时一个都不注册 —— 不然用户按下现有的组合，Carbon 抢在网页之前吃掉它', () => {
+    ok(/guard enabledNow, !hotkeysPaused else \{ return \[\] \}/.test(panel));
+    ok(/hotkeysPaused = \(body\["paused"\] as\? Bool\) \?\? false/.test(panel));
+  });
+  test('没注册上的（别的 App 占了）要报回去；清掉的（null）不注册', () => {
+    ok(/if !MTHotkey\.shared\.register\(id: id, keyCode: c\.keyCode, modifiers: c\.modifiers, action: action\) \{ failed\.append\(name\) \}/.test(panel));
+    ok(/guard let c = hotkeys\[name\] \?\? nil else \{ continue \}/.test(panel));
+    ok(/case "quick-hotkeys":\s*let failed = MTQuickPanel\.shared\.applyHotkeys\(body\)[\s\S]*?emit\(\["type": "quick-hotkeys-result", "failed": failed\]\)/.test(res));
+  });
+  test('菜单上写的是当前的快捷键，改了之后菜单跟着重建', () => {
+    ok(/if let \(ch, flags\) = MTQuickPanel\.shared\.menuShortcut\(hotkey\) \{ it\.keyEquivalent = ch; it\.keyEquivalentModifierMask = flags \}/.test(res));
+    ok(/applyHotkeys\(body\)\s*if item != nil \{ item\?\.menu = buildMenu\(\) \}/.test(res));
+  });
+  test('登录时启动：状态现读系统的、默认什么都不做、低版本 unsupported；登记成标记块', () => {
+    const { BLOCKS } = require(path.join(R6, 'scripts', 'sync-app-assets.js'));
+    ok(BLOCKS.some((b) => b.src === 'login-item.swift' && b.name === 'mt-login-item'));
+    ok(login.trim().startsWith('#if os(macOS)') && login.trim().endsWith('#endif'));
+    ok(/switch SMAppService\.mainApp\.status/.test(login) && /guard #available\(macOS 13\.0, \*\) else \{ return "unsupported" \}/.test(login));
+    eq((login.match(/\.register\(\)/g) || []).length, 1); ok(/static func set\(_ on: Bool\)/.test(login), '只有用户拨开关才登记');
+    ok(!/MTLoginItem\.set\(true\)/.test(res + panel), '任何地方都不许自己把登录项打开');
+    ok(/"loginItem": MTLoginItem\.status/.test(res));
   });
 });
 
@@ -1707,8 +1746,8 @@ describe('quick screenshot — app/native/screen-ocr.swift', () => {
   });
   test('macOS 低于 14 ⇒ 入口整个不出现：热键不注册、菜单里没有这一项、能力回执里 sck:false', () => {
     ok(/static var supported: Bool \{ if #available\(macOS 14\.0, \*\) \{ return true \} else \{ return false \} \}/.test(c));
-    ok(/if MTScreenShot\.supported \{\s*MTHotkey\.shared\.register\(id: MTQuickPanel\.hotkeyScreenshot/.test(panel));
-    ok(/if MTScreenShot\.supported \{\s*let shot = NSMenuItem/.test(res) && /"sck": MTScreenShot\.supported/.test(res));
+    ok(/if name == "shot" && !MTScreenShot\.supported \{ continue \}/.test(panel), '低版本系统上截图的快捷键不该注册');
+    ok(/if MTScreenShot\.supported \{ m\.addItem\(item\("shot"/.test(res) && /"sck": MTScreenShot\.supported/.test(res));
   });
 });
 

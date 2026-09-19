@@ -3352,5 +3352,83 @@
   },
   "quick_shot_cloud_gone": {
     "message": "Esta captura ya se ha descartado. Selecciona la zona otra vez."
+  },
+  "quick_hk_title": {
+    "message": "Atajos"
+  },
+  "quick_hk_reset": {
+    "message": "Restaurar valores por defecto"
+  },
+  "quick_hk_translate": {
+    "message": "Traducir la selección o el portapapeles"
+  },
+  "quick_hk_shot": {
+    "message": "Traducir captura"
+  },
+  "quick_hk_input": {
+    "message": "Escribir para traducir"
+  },
+  "quick_hk_unset": {
+    "message": "Sin definir"
+  },
+  "quick_hk_record": {
+    "message": "Grabar"
+  },
+  "quick_hk_cancel": {
+    "message": "Cancelar"
+  },
+  "quick_hk_change": {
+    "message": "Cambiar"
+  },
+  "quick_hk_clear": {
+    "message": "Borrar"
+  },
+  "quick_hk_press": {
+    "message": "Pulsa la combinación que quieras…"
+  },
+  "quick_hk_clash": {
+    "message": "Otra app ya usa esta combinación, así que no nos llegará. Elige otra."
+  },
+  "quick_hk_deny": {
+    "message": "Las combinaciones que solo usan ⌥ no son fiables. Elige una que incluya ⌃ o ⌘."
+  },
+  "quick_hk_system": {
+    "message": "Esta combinación la usan macOS o las propias apps. Elige otra."
+  },
+  "quick_hk_nomod": {
+    "message": "Incluye una tecla modificadora como ⌃ o ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "Es la misma combinación que «{name}»."
+  },
+  "quick_capture_label": {
+    "message": "Guardar en la biblioteca de repaso"
+  },
+  "quick_capture_hint": {
+    "message": "Las frases que traduces pasan al repaso (origen: selección, captura o escrito). Si lo desactivas, se sigue traduciendo pero no se guarda nada."
+  },
+  "quick_login_label": {
+    "message": "Abrir al iniciar sesión"
+  },
+  "quick_login_hint": {
+    "message": "Se abre en la barra de menús al iniciar sesión. Desactivado por defecto."
+  },
+  "quick_login_approval": {
+    "message": "También debes permitirlo una vez en Ajustes del Sistema › Ítems de inicio."
+  },
+  "quick_screen_ok": {
+    "message": "Grabación de pantalla · permitida ✓ (para la traducción por captura)"
+  },
+  "quick_screen_off": {
+    "message": "Grabación de pantalla · aún sin permitir. Se te preguntará la primera vez que uses la traducción por captura."
+  },
+  "quick_shot_needs14": {
+    "message": "La traducción por captura requiere macOS 14 o posterior."
+  },
+  "quick_services_link": {
+    "message": "Asignar un atajo al elemento del menú Servicios →"
+  },
+  "quick_more": {
+    "message": "Más opciones"
   }
 }

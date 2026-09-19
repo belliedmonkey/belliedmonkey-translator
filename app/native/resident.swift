@@ -8,6 +8,8 @@
 // 而且那个开关必须找得回来（设置页「快速翻译」块）。
 //
 // 协议（通道 mtQuick；与 app/quick-host.js 的 PROTOCOL 逐字对表，npm test 守着）：
+//   JS → 原生  quick-hotkeys {translate, shot, input, paused}   三个全局快捷键（null = 清掉）；paused = 正在录制，先全部放开
+//              quick-login-item {on}             登录时启动（SMAppService）；之后重发一次 quick-caps
 //   JS → 原生  quick-probe                       问原生有哪些能力（老原生壳不回 ⇒ 页面不显示这一块）
 //              quick-request-perm {which}        调系统的权限请求接口（postEvent = 增强取词）；系统不回调结果
 //              quick-open-privacy {which}        打开系统设置里对应的那一页
@@ -17,6 +19,7 @@
 //   原生 → JS  quick-caps {resident, panel, postEvent}   能力回执；postEvent = 启动这一刻系统权限在不在
 //              quick-first-close                 用户第一次关主窗口：先别关，让页面说一句
 //              quick-open-settings               菜单里点了「快速翻译设置…」（或面板里点了「打开设置」）
+//              quick-hotkeys-result {failed}     没注册上的那些（别的 App 占了同一个组合）
 //              quick-capture · quick-result      面板页交来的，原样中继（quick-panel.swift）：进复习库 / 遥测只归主页面
 //
 // 这里没有任何给用户看的文案：菜单标题全部由 JS 经 labels 给（12 个语种在 _locales 里）。
@@ -55,19 +58,31 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         switch type {
         case "quick-probe":
             // appName：系统隐私列表里显示的那个名字（包名；两个 flavor 不同）。页面的授权指引要原样说出它。
-            let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
-            emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName,
-                  "sck": MTScreenShot.supported, "screen": MTScreenShot.granted])
+            emitCaps()
         case "quick-config":
             enabled = (body["enabled"] as? Bool) ?? false
             seen = (body["seen"] as? Bool) ?? false
             labels = (body["labels"] as? [String: String]) ?? labels
             MTQuickPanel.shared.enhanced = (body["enhanced"] as? Bool) ?? false
             refresh()
+        case "quick-hotkeys":
+            let failed = MTQuickPanel.shared.applyHotkeys(body)
+            if item != nil { item?.menu = buildMenu() }
+            emit(["type": "quick-hotkeys-result", "failed": failed])
+        case "quick-login-item":
+            MTLoginItem.set((body["on"] as? Bool) ?? false)
+            emitCaps()
         case "quick-request-perm":
             if (body["which"] as? String) == "postEvent" { MTQuickCapture.requestAccess() }
+            if (body["which"] as? String) == "screen" { MTScreenShot.requestAccess() }
         case "quick-open-privacy":
-            if (body["which"] as? String) == "postEvent" { MTQuickCapture.openPrivacySettings() }
+            switch (body["which"] as? String) ?? "" {
+            case "postEvent": MTQuickCapture.openPrivacySettings()
+            case "screen": MTScreenShot.openPrivacySettings()
+            case "services": MTLoginItem.openKeyboardShortcuts()
+            case "loginItems": MTLoginItem.openLoginItems()
+            default: break
+            }
         case "quick-relaunch":
             MTQuickCapture.relaunch()
         case "quick-close-main":
@@ -76,6 +91,13 @@ final class MTResident: NSObject, WKScriptMessageHandler {
         default:
             break
         }
+    }
+
+    /// 能力回执。loginItem 读的是系统的**实际状态**，不是我们存的意图：用户可以在系统设置里把登录项关掉。
+    private func emitCaps() {
+        let appName = (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String) ?? ""
+        emit(["type": "quick-caps", "resident": true, "panel": true, "postEvent": MTQuickCapture.granted, "appName": appName,
+              "sck": MTScreenShot.supported, "screen": MTScreenShot.granted, "loginItem": MTLoginItem.status])
     }
 
     // MARK: - 菜单栏
@@ -101,20 +123,16 @@ final class MTResident: NSObject, WKScriptMessageHandler {
 
     private func buildMenu() -> NSMenu {
         let m = NSMenu()
-        let clip = NSMenuItem(title: labels["clip"] ?? "", action: #selector(menuClipboard), keyEquivalent: "t")
-        // 只是把全局快捷键写在菜单上；真正的注册在 MTHotkey
-        clip.keyEquivalentModifierMask = [.control, .option]
-        clip.target = self
-        let input = NSMenuItem(title: labels["input"] ?? "", action: #selector(menuInput), keyEquivalent: "")
-        input.target = self
-        m.addItem(clip)
-        if MTScreenShot.supported {
-            let shot = NSMenuItem(title: labels["shot"] ?? "", action: #selector(menuScreenshot), keyEquivalent: "s")
-            shot.keyEquivalentModifierMask = [.control, .option]
-            shot.target = self
-            m.addItem(shot)
+        // 菜单上写的是**当前**的全局快捷键（页面经 quick-hotkeys 给）；真正的注册在 MTHotkey。清掉了就不写。
+        func item(_ label: String, _ action: Selector, _ hotkey: String) -> NSMenuItem {
+            let it = NSMenuItem(title: labels[label] ?? "", action: action, keyEquivalent: "")
+            if let (ch, flags) = MTQuickPanel.shared.menuShortcut(hotkey) { it.keyEquivalent = ch; it.keyEquivalentModifierMask = flags }
+            it.target = self
+            return it
         }
-        m.addItem(input); m.addItem(.separator())
+        m.addItem(item("clip", #selector(menuClipboard), "translate"))
+        if MTScreenShot.supported { m.addItem(item("shot", #selector(menuScreenshot), "shot")) }
+        m.addItem(item("input", #selector(menuInput), "input")); m.addItem(.separator())
         let open = NSMenuItem(title: labels["open"] ?? "", action: #selector(menuOpen), keyEquivalent: "")
         open.target = self
         let settings = NSMenuItem(title: labels["settings"] ?? "", action: #selector(menuSettings), keyEquivalent: "")

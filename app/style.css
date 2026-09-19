@@ -615,3 +615,20 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 /* 底栏两样都没有（未配置 / 失败 / 提示态）⇒ 整条不占地方：真机上量到面板底下空出一截 */
 .qk-foot:has(.qk-state:empty):has(#qk-copy[hidden]) { display: none; }
 .qk-state.saved { color: var(--sage-strong); font-weight: 600; }
+
+/* ── 设置 ·「快速翻译」块的快捷键录制控件（M-7）。颜色只用共享 token。 ── */
+.hk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.hk-head h4 { margin: 0; font-size: .9rem; color: var(--dim); font-weight: 600; }
+.hk-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+.hk-row[hidden] { display: none; }
+.hk-row:first-child { border-top: 0; }
+.hk-name { font-size: .92rem; }
+.hk-ctl { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.hk-ctl button { min-height: 32px; padding: 4px 12px; font-size: .84rem; }
+.hk-keys { display: inline-flex; gap: 4px; }
+.hk-keys kbd { font: inherit; font-size: .86rem; font-weight: 600; min-width: 1.7em; text-align: center; padding: 3px 7px; border-radius: 7px; border: 1px solid var(--line); background: var(--card-bg); color: var(--fg); }
+.hk-empty, .hk-live { font-size: .86rem; color: var(--dim); }
+.hk-live { color: var(--accent-deep); font-weight: 600; }
+.hk-why { grid-column: 1 / -1; margin: 0; }
+.quick-more { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.quick-more > summary { cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--accent-deep); padding: 6px 0; }

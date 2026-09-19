@@ -3352,5 +3352,83 @@
   },
   "quick_shot_cloud_gone": {
     "message": "This screenshot has already been discarded. Select the area again."
+  },
+  "quick_hk_title": {
+    "message": "Shortcuts"
+  },
+  "quick_hk_reset": {
+    "message": "Restore defaults"
+  },
+  "quick_hk_translate": {
+    "message": "Translate selection or clipboard"
+  },
+  "quick_hk_shot": {
+    "message": "Translate screenshot"
+  },
+  "quick_hk_input": {
+    "message": "Type to translate"
+  },
+  "quick_hk_unset": {
+    "message": "Not set"
+  },
+  "quick_hk_record": {
+    "message": "Record"
+  },
+  "quick_hk_cancel": {
+    "message": "Cancel"
+  },
+  "quick_hk_change": {
+    "message": "Change"
+  },
+  "quick_hk_clear": {
+    "message": "Clear"
+  },
+  "quick_hk_press": {
+    "message": "Press the combination you want…"
+  },
+  "quick_hk_clash": {
+    "message": "Another app already uses this combination, so pressing it won’t reach us. Choose a different one."
+  },
+  "quick_hk_deny": {
+    "message": "Combinations that use only ⌥ are unreliable. Choose one that includes ⌃ or ⌘."
+  },
+  "quick_hk_system": {
+    "message": "This combination is used by macOS or by apps themselves. Choose a different one."
+  },
+  "quick_hk_nomod": {
+    "message": "Include a modifier key such as ⌃ or ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "This is the same combination as “{name}”."
+  },
+  "quick_capture_label": {
+    "message": "Save to review library"
+  },
+  "quick_capture_hint": {
+    "message": "Sentences you translate go into review, under Selection, Screenshot or Typed. Turn it off and translation still works — nothing is saved."
+  },
+  "quick_login_label": {
+    "message": "Open at login"
+  },
+  "quick_login_hint": {
+    "message": "Starts in the menu bar when you log in. Off by default."
+  },
+  "quick_login_approval": {
+    "message": "You also need to allow it once in System Settings › Login Items."
+  },
+  "quick_screen_ok": {
+    "message": "Screen Recording · allowed ✓ (used by screenshot translation)"
+  },
+  "quick_screen_off": {
+    "message": "Screen Recording · not allowed yet. You’ll be asked the first time you use screenshot translation."
+  },
+  "quick_shot_needs14": {
+    "message": "Screenshot translation requires macOS 14 or later."
+  },
+  "quick_services_link": {
+    "message": "Assign a shortcut to the Services menu item →"
+  },
+  "quick_more": {
+    "message": "More options"
   }
 }

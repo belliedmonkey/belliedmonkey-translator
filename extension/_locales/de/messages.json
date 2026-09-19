@@ -3352,5 +3352,83 @@
   },
   "quick_shot_cloud_gone": {
     "message": "Dieses Bildschirmfoto wurde bereits verworfen. Bereich erneut auswählen."
+  },
+  "quick_hk_title": {
+    "message": "Kurzbefehle"
+  },
+  "quick_hk_reset": {
+    "message": "Standard wiederherstellen"
+  },
+  "quick_hk_translate": {
+    "message": "Auswahl oder Zwischenablage übersetzen"
+  },
+  "quick_hk_shot": {
+    "message": "Bildschirmfoto übersetzen"
+  },
+  "quick_hk_input": {
+    "message": "Text eingeben und übersetzen"
+  },
+  "quick_hk_unset": {
+    "message": "Nicht festgelegt"
+  },
+  "quick_hk_record": {
+    "message": "Aufnehmen"
+  },
+  "quick_hk_cancel": {
+    "message": "Abbrechen"
+  },
+  "quick_hk_change": {
+    "message": "Ändern"
+  },
+  "quick_hk_clear": {
+    "message": "Löschen"
+  },
+  "quick_hk_press": {
+    "message": "Gewünschte Kombination drücken…"
+  },
+  "quick_hk_clash": {
+    "message": "Eine andere App belegt diese Kombination bereits – sie kommt bei uns nicht an. Bitte eine andere wählen."
+  },
+  "quick_hk_deny": {
+    "message": "Kombinationen nur mit ⌥ sind unzuverlässig. Bitte eine mit ⌃ oder ⌘ wählen."
+  },
+  "quick_hk_system": {
+    "message": "Diese Kombination wird von macOS oder von den Apps selbst verwendet. Bitte eine andere wählen."
+  },
+  "quick_hk_nomod": {
+    "message": "Bitte eine Sondertaste wie ⌃ oder ⌘ verwenden."
+  },
+  "quick_hk_dup": {
+    "message": "Das ist dieselbe Kombination wie „{name}“."
+  },
+  "quick_capture_label": {
+    "message": "In der Lernbibliothek speichern"
+  },
+  "quick_capture_hint": {
+    "message": "Übersetzte Sätze landen in der Wiederholung (Quelle: Auswahl, Bildschirmfoto oder Eingabe). Ausgeschaltet wird weiter übersetzt, nur nichts gespeichert."
+  },
+  "quick_login_label": {
+    "message": "Bei der Anmeldung öffnen"
+  },
+  "quick_login_hint": {
+    "message": "Startet bei der Anmeldung in der Menüleiste. Standardmäßig aus."
+  },
+  "quick_login_approval": {
+    "message": "Zusätzlich einmal in Systemeinstellungen › Anmeldeobjekte erlauben."
+  },
+  "quick_screen_ok": {
+    "message": "Bildschirmaufnahme · erlaubt ✓ (für die Bildschirmfoto-Übersetzung)"
+  },
+  "quick_screen_off": {
+    "message": "Bildschirmaufnahme · noch nicht erlaubt. Bei der ersten Bildschirmfoto-Übersetzung wirst du gefragt."
+  },
+  "quick_shot_needs14": {
+    "message": "Die Bildschirmfoto-Übersetzung erfordert macOS 14 oder neuer."
+  },
+  "quick_services_link": {
+    "message": "Dem Dienste-Menüeintrag einen Kurzbefehl zuweisen →"
+  },
+  "quick_more": {
+    "message": "Weitere Optionen"
   }
 }
