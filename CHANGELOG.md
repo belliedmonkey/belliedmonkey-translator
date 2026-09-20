@@ -3,6 +3,24 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.14.0
+
+- iPhone / iPad · New: System translation — select text in any app, tap “Translate,” and it goes to the engine you configured, never through our servers. First choose BelliedMonkey in Settings › Apps › Translate › Default Translate App. Requires iOS 18.4 or later.
+- iPhone / iPad · New: A card on the home screen walks you through making BelliedMonkey your default translate app.
+- App (iPhone / iPad / Mac) · New: After you set up an engine, it is tested right there and the result is shown — it only says “Ready” once the test passes, and names the item that failed if one does. Previously setup gave no receipt at all, and claiming free credit said “configured” without running a single check.
+- App (iPhone / iPad / Mac) · Fixed: Conversation · Live interpreting no longer goes silent after switching between headphones and speaker (requires iOS 26 / macOS 26).
+- Browser extension · New: Discord community link — “Discuss” in Settings now opens our Discord.
+
+<details><summary>中文</summary>
+
+- iPhone / iPad · 新：系统翻译 —— 在任何 App 里选中文字点「翻译」，就用你自己配的引擎翻，不经过我们的服务器。先到「设置 › App › 翻译 › 默认翻译App」里选大肚猴翻译。需要 iOS 18.4 及以上。
+- iPhone / iPad · 新：首页多一张卡，引导把大肚猴翻译设成系统默认的翻译 App。
+- App（iPhone / iPad / Mac）· 新：配好引擎之后当场测一遍并把结果摆出来 —— 通了才说「可以用了」，没通会指出是哪一项、错在哪。以前配完没有任何回执，领完免费额度更是一次自检都不跑就说「已配好」。
+- App（iPhone / iPad / Mac）· 修复：「对话 · 实时听译」中途切换耳机或扬声器之后不再收不到声音（需要 iOS 26 / macOS 26）。
+- 浏览器扩展 · 新：Discord 社区入口 —— 设置里的「讨论」现在指向我们的 Discord。
+
+</details>
+
 ## 1.13.1 — 2026-09-19
 
 - Fixed: turning on subtitle translation before a YouTube video starts playing no longer gets stuck on “Subtitles unavailable”; subtitles appear normally once playback begins.
