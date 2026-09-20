@@ -300,14 +300,15 @@
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
     const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-docs').hidden || !$('app-settings').hidden;
-    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); return; }
+    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
-    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); return; }
+    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
+    paintSysBanner();   // 扩展那张在场 ⇒ 这一张让位（AppSysBanner.decide 读的就是它）
     // iOS 形态（2026-09-10）：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人
     // 大多没把扩展打开，而这里 iOS 唯一能用的动作曾是一个次级按钮。改成标题 + 三步
     // （与引导 ext 屏同一份文案与插图）+ 填色主按钮 + 「我已打开」。macOS 形态不变。
@@ -384,6 +385,20 @@
   }
 
   let extState = null;
+  // 系统翻译的发现横幅。**跟着扩展横幅一起决定** —— 首页不能同时挂两张「还差一步」，
+  // 而「扩展那张在不在」正是这一张的判据之一（画布第 7 页 DiscoverWhen）。
+  function paintSysBanner() {
+    if (typeof AppSysBanner === 'undefined') return;
+    const ext = $('ext-banner');
+    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
+      || !$('app-docs').hidden || !$('app-settings').hidden;
+    AppSysBanner.paint({
+      away,
+      onboarding: !!($('onboard') && !$('onboard').hidden),
+      extBannerShown: !!(ext && !ext.hidden),
+    }).catch(() => {});
+  }
+
   function setExtState(next) { extState = next; paintExtBanner(extState); }
 
   // ViewController 在页面加载完时调它。签名跟转换器模板一致，别改 —— 改了 Swift 侧就对不上。
@@ -998,6 +1013,10 @@
 
   async function closeSettings() {
     $('app-settings').hidden = true;
+    // 回执与「从哪来」那一行都只属于这一次配置，离开就收掉 —— 留着的话，
+    // 下一次进设置页会看到一段与此刻无关的「可以用了」。
+    try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.hide(); } catch (_) {}
+    if ($('setup-from')) $('setup-from').hidden = true;
     $(settingsFrom).hidden = false;
     await paintCounts();
     say('');
@@ -1116,6 +1135,9 @@
     //
     // Swift 侧（app/native/open-url-bridge.swift）两头都兜：页面没就绪时它写
     // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。所以这里两样都读。
+    try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.wire({ close: () => closeSettings() }); } catch (_) {}
+    try { if (typeof AppSysBanner !== 'undefined') AppSysBanner.wire({ openReview: () => { const r = $('review'); if (r) r.click(); } }); } catch (_) {}
+
     function parseDeepLink(raw) {
       try {
         const u = new URL(String(raw || ''));
@@ -1124,10 +1146,24 @@
         // 「登录了但 id 读不出来」—— 两者要给的话不一样。
         const has = u.searchParams.has('uid');
         return { action: (u.hostname || u.pathname.replace(/^\/+/, '')) || 'review',
+          // `from` 说的是「谁把我推过来的」。此前它被整个丢弃，于是弹层那句
+          // 「配好后回到刚才的 App 再点一次翻译」（interaction-spec :980）无从落地。
+          from: String(u.searchParams.get('from') || ''),
           hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
       } catch (_) { return null; }
     }
     window.__mtDeepLink = (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); };
+
+    // 「从哪来」的那一行。只有真的被推过来时才出现 —— 自己走进设置页的人不需要它。
+    // 配好之后它不必自己变：回执块就在同一屏上，那才是「你可以回去了」的载体。
+    function paintSetupFrom(src) {
+      const el = $('setup-from');
+      if (!el) return;
+      if (src !== 'systrans') { el.hidden = true; return; }
+      el.textContent = t('setup_from_systrans',
+        '从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。');
+      el.hidden = false;
+    }
 
     // 三支，每一支都必须说得出**事实**，不猜。
     async function applyDeepLink(d) {
@@ -1148,7 +1184,12 @@
       // 送到「引擎与密钥」那一节，不是设置页顶部：人是带着「这里不能用」这个问题来的。
       if (d.action === 'setup') {
         $('onboard').hidden = true;
+        // 人是带着「那边不能用」这个问题来的：先记下从哪来（决定配好之后说什么），
+        // 再在「引擎与密钥」顶上说清楚他为什么在这儿。
+        const src = d.from === 'system-translate' ? 'systrans' : 'settings';
+        try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.mark(src); } catch (_) {}
         try { openSettings('sec-engines'); } catch (_) { openSettings(); }
+        paintSetupFrom(src);
         return;
       }
       if (d.action === 'listen') {

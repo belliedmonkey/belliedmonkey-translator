@@ -3352,5 +3352,47 @@
   },
   "sys_ui_open_app": {
     "message": "BelliedMonkey Translator खोलें"
+  },
+  "setup_done_title": {
+    "message": "इस्तेमाल के लिए तैयार"
+  },
+  "setup_done_failed_title": {
+    "message": "अभी इस्तेमाल नहीं हो सकता"
+  },
+  "setup_done_failed": {
+    "message": "ऊपर ✗ से चिह्नित चीज़ अभी पास नहीं हुई। ठीक करते ही दोबारा जाँच हो जाएगी।"
+  },
+  "setup_done_settings": {
+    "message": "इंजन सेट हो गया। दस्तावेज़ अनुवाद, लाइव दुभाषिया और लाइव सबटाइटल अब सब चलते हैं।"
+  },
+  "setup_done_systrans": {
+    "message": "इंजन सेट हो गया। जिस ऐप में थे वहाँ लौटकर फिर से «अनुवाद» दबाएँ — यहाँ और कुछ नहीं करना है।"
+  },
+  "setup_done_quick": {
+    "message": "इंजन सेट हो गया। क्विक ट्रांसलेट पैनल पर लौटकर वह वाक्य दोबारा अनुवाद करें।"
+  },
+  "setup_done_home": {
+    "message": "होम पर लौटें"
+  },
+  "setup_from_systrans": {
+    "message": "आप सिस्टम अनुवाद से आए हैं। सेट हो जाने पर उसी ऐप में लौटकर फिर से «अनुवाद» दबाएँ।"
+  },
+  "systrans_discover_title": {
+    "message": "iPhone के अपने «अनुवाद» में BelliedMonkey चलाएँ"
+  },
+  "systrans_discover_body": {
+    "message": "किसी भी ऐप में टेक्स्ट चुनकर «अनुवाद» दबाएँ — जो विंडो खुलेगी वह आपके कॉन्फ़िगर किए इंजन से अनुवाद करेगी। एक बार सेट करना है।"
+  },
+  "systrans_discover_done": {
+    "message": "मैंने सेट कर लिया"
+  },
+  "systrans_discover_used_title": {
+    "message": "सिस्टम अनुवाद · चालू"
+  },
+  "systrans_discover_used": {
+    "message": "किसी भी ऐप में टेक्स्ट चुनकर «अनुवाद» दबाएँ — अनुवाद आपका इंजन करता है। अनुवादित वाक्य आपकी रिव्यू लाइब्रेरी में हैं।"
+  },
+  "systrans_discover_see": {
+    "message": "रिव्यू में देखें →"
   }
 }

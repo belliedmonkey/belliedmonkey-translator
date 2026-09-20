@@ -3520,5 +3520,47 @@
   },
   "sys_ui_open_app": {
     "message": "BelliedMonkey Translator öffnen"
+  },
+  "setup_done_title": {
+    "message": "Einsatzbereit"
+  },
+  "setup_done_failed_title": {
+    "message": "Noch nicht nutzbar"
+  },
+  "setup_done_failed": {
+    "message": "Der oben mit ✗ markierte Punkt ist nicht durchgekommen. Beheben Sie ihn, dann wird erneut getestet."
+  },
+  "setup_done_settings": {
+    "message": "Die Engine ist eingerichtet. Dokumentübersetzung, Live-Dolmetscher und Live-Untertitel funktionieren jetzt."
+  },
+  "setup_done_systrans": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück in die App von vorhin und tippen Sie erneut auf „Übersetzen“ — hier ist nichts weiter zu tun."
+  },
+  "setup_done_quick": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück zum Schnellübersetzungs-Panel und übersetzen Sie den Satz erneut."
+  },
+  "setup_done_home": {
+    "message": "Zurück zur Startseite"
+  },
+  "setup_from_systrans": {
+    "message": "Sie kommen von der Systemübersetzung. Sobald das hier eingerichtet ist, gehen Sie zurück in jene App und tippen Sie erneut auf „Übersetzen“."
+  },
+  "systrans_discover_title": {
+    "message": "Die iPhone-Übersetzen-Funktion mit BelliedMonkey nutzen"
+  },
+  "systrans_discover_body": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ — das Fenster nutzt die von Ihnen eingerichtete Engine. Einmal einrichten genügt."
+  },
+  "systrans_discover_done": {
+    "message": "Ist eingerichtet"
+  },
+  "systrans_discover_used_title": {
+    "message": "Systemübersetzung · aktiv"
+  },
+  "systrans_discover_used": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ — es übersetzt Ihre Engine. Die übersetzten Sätze liegen in Ihrer Lernbibliothek."
+  },
+  "systrans_discover_see": {
+    "message": "In der Wiederholung ansehen →"
   }
 }

@@ -44,6 +44,18 @@
       <button id="ext-banner-done" type="button" class="secondary" hidden></button>
       <p id="ext-banner-check" class="note" hidden><a href="#" id="ext-banner-check-link"></a></p>
     </section>
+    <!-- 系统翻译的发现横幅（画布第 7 页 Discover）。形状与 #ext-banner 逐样对齐，
+         连「iOS 上 App 判不了，由用户告诉我们」那条纪律也是从它继承的。
+         **没有「打开设置」按钮**：openSettingsURLString 只会打开我们自己 App 的设置页，
+         而能直达「设置 › App › 翻译」的 prefs:root= 是私有接口 —— 见 app/sys-banner.js。
+         排在 #ext-banner 之后：首页不能同时挂两张「还差一步」，扩展那张先。 -->
+    <section id="systrans-banner" hidden>
+      <p id="systrans-banner-title"></p>
+      <p id="systrans-banner-body" class="note"></p>
+      <ol id="systrans-banner-steps" class="ob-steps" hidden></ol>
+      <button id="systrans-banner-done" type="button" class="secondary" hidden></button>
+      <button id="systrans-banner-go" type="button" class="secondary" hidden></button>
+    </section>
     <!-- Signed out. This is the only screen a new user sees, so it has to say what
          signing in is FOR — the app is empty without it (learning-design §7.2), and
          an empty deck with no explanation reads as a broken app. -->
@@ -464,6 +476,20 @@
       <section class="quick-only" id="quick-setup-card">
         <h3 id="quick-setup-title"></h3>
         <div id="quick-setup"></div>
+      </section>
+
+      <!-- 「从哪来」的那一行（画布第 7 页 SetupFrom）。系统翻译的弹层 / Mac 快译面板把人
+           推过来配引擎时，先说清楚他为什么在这儿；配好之后同一行就地变成「你可以回去了」。 -->
+      <p class="note" id="setup-from" hidden></p>
+
+      <!-- 「配好了」的回执（画布第 7 页 SetupDone）。四个落点一种回执：先摆出自检行，
+           再逐行落成 ✓/✗，最后一句话 + 一个随「从哪来」变的下一步。
+           **没通过就不说「可以用了」** —— 见 app/setup-done.js 的文件头。 -->
+      <section id="setup-done" hidden>
+        <h3 id="setup-done-title"></h3>
+        <div id="setup-done-rows"></div>
+        <p id="setup-done-note"></p>
+        <div class="row" id="setup-done-act" hidden></div>
       </section>
 
       <!-- 永不同屏，但路必须有：详细档顶上一行指回快速档 -->

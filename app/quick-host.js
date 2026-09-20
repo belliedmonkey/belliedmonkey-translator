@@ -134,7 +134,13 @@
     }
     if (msg.type === 'quick-first-close') { onFirstClose(); return; }
     if (msg.type === 'quick-hotkeys-result') { clashes = Array.isArray(msg.failed) ? msg.failed.slice() : []; for (const fn of clashListeners) { try { fn(clashes); } catch (_) {} } return; }
-    if (msg.type === 'quick-open-settings') { if (hooks.openSettings) hooks.openSettings('g-quick'); return; }
+    if (msg.type === 'quick-open-settings') {
+      // 面板未配置时也走这一条。记下「从快速翻译过来的」，配好之后那句话才说得对
+      // （画布第 7 页：Mac 是唯一能真的回到原处的一条 —— 面板与设置在同一个进程里）。
+      try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.mark('quick'); } catch (_) {}
+      if (hooks.openSettings) hooks.openSettings('g-quick');
+      return;
+    }
     // 面板页经原生中继过来的两样东西（面板是第二个 WKWebView：不开学习库、不初始化遥测）。
     // 进不进复习库由那个唯一写入者按同一套门裁定 —— 这里不预判，只转交。
     if (msg.type === 'quick-capture') { if (typeof AppHandoff !== 'undefined') return AppHandoff.ingestLive([msg]); return; }

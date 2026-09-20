@@ -3520,5 +3520,47 @@
   },
   "sys_ui_open_app": {
     "message": "大肚猴翻译を開く"
+  },
+  "setup_done_title": {
+    "message": "使えます"
+  },
+  "setup_done_failed_title": {
+    "message": "まだ使えません"
+  },
+  "setup_done_failed": {
+    "message": "上の ✗ が付いた項目がまだ通っていません。直すと自動でもう一度テストします。"
+  },
+  "setup_done_settings": {
+    "message": "エンジンを設定しました。ドキュメント翻訳・リアルタイム通訳・リアルタイム字幕がすべて使えます。"
+  },
+  "setup_done_systrans": {
+    "message": "エンジンを設定しました。さっきのアプリに戻って、もう一度「翻訳」をタップしてください —— ここですることはもうありません。"
+  },
+  "setup_done_quick": {
+    "message": "エンジンを設定しました。クイック翻訳のパネルに戻って、さっきの文をもう一度翻訳してください。"
+  },
+  "setup_done_home": {
+    "message": "ホームに戻る"
+  },
+  "setup_from_systrans": {
+    "message": "システム翻訳から来ました。設定が終わったら、さっきのアプリに戻ってもう一度「翻訳」をタップしてください。"
+  },
+  "systrans_discover_title": {
+    "message": "iPhone 標準の「翻訳」で大肚猴を使う"
+  },
+  "systrans_discover_body": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンで翻訳します。一度設定するだけです。"
+  },
+  "systrans_discover_done": {
+    "message": "設定しました"
+  },
+  "systrans_discover_used_title": {
+    "message": "システム翻訳 · 使用中"
+  },
+  "systrans_discover_used": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンが使われます。翻訳した文は復習ライブラリにあります。"
+  },
+  "systrans_discover_see": {
+    "message": "復習ライブラリで見る →"
   }
 }

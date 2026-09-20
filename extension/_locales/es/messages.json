@@ -3520,5 +3520,47 @@
   },
   "sys_ui_open_app": {
     "message": "Abrir BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "Listo para usar"
+  },
+  "setup_done_failed_title": {
+    "message": "Todavía no se puede usar"
+  },
+  "setup_done_failed": {
+    "message": "El elemento marcado con ✗ arriba no pasó. Corrígelo y se volverá a probar automáticamente."
+  },
+  "setup_done_settings": {
+    "message": "El motor está configurado. La traducción de documentos, el intérprete en directo y los subtítulos en directo ya funcionan."
+  },
+  "setup_done_systrans": {
+    "message": "El motor está configurado. Vuelve a la app donde estabas y toca Traducir otra vez: aquí no hay nada más que hacer."
+  },
+  "setup_done_quick": {
+    "message": "El motor está configurado. Vuelve al panel de traducción rápida y traduce esa frase de nuevo."
+  },
+  "setup_done_home": {
+    "message": "Volver al inicio"
+  },
+  "setup_from_systrans": {
+    "message": "Vienes de la traducción del sistema. Cuando esté configurado, vuelve a esa app y toca Traducir otra vez."
+  },
+  "systrans_discover_title": {
+    "message": "Que la función Traducir del iPhone use BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "Selecciona texto en cualquier app y toca Traducir: la ventana que se abre usa el motor que configuraste. Se ajusta una sola vez."
+  },
+  "systrans_discover_done": {
+    "message": "Ya está configurado"
+  },
+  "systrans_discover_used_title": {
+    "message": "Traducción del sistema · en uso"
+  },
+  "systrans_discover_used": {
+    "message": "Selecciona texto en cualquier app y toca Traducir: traduce tu motor. Las frases traducidas están en tu biblioteca de repaso."
+  },
+  "systrans_discover_see": {
+    "message": "Verlas en repaso →"
   }
 }

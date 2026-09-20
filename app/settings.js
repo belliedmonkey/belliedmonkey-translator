@@ -787,9 +787,23 @@ var AppSettings = (() => {
   // 三组必须在「详细」里立刻看得见，否则用户下一次改任何一个字段都会用旧 DOM 覆盖回去。
   async function applyQuickSetup(plan, session, say) {
     if (plan && plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
+    await markEngineChosen(plan);
     await paint(session, say);
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
     await trackEngineSet();
+    // 「配好了」的回执（画布第 7 页）。卡内那三行是卡自己的事；这一块回答的是另一个
+    // 问题 ——「所以我配好了没有、接下来干什么」。用户 2026-09-20 的原话：
+    // 「用户甚至不知道怎么样才算配置完成」。
+    try { if (typeof AppSetupDone !== 'undefined') await AppSetupDone.show(plan && plan.tests); } catch (_) {}
+  }
+
+  // `engineChosen` 此前**在 App 里一处都没写**（只有扩展设置页与扩展引导页写过），
+  // 而 `EngineState.needsSetup` 要读它：于是在 App 里选了一个不需要 key 的引擎之后，
+  // 界面仍然说「还没配过翻译引擎」。写入点跟着「真的写了 provider」走。
+  async function markEngineChosen(plan) {
+    const w = (plan && plan.writes) || {};
+    if (!w.provider) return;
+    try { await set({ engineChosen: 1 }); } catch (_) {}
   }
 
   // 对称于扩展设置页 options.js 的 maybeTrackEngineSet。App 里写**主翻译引擎**的路有两条：
@@ -873,9 +887,15 @@ var AppSettings = (() => {
       if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
       // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
       const wroteAny = plan.tests && plan.tests.length > 0;
+      await markEngineChosen(plan);
       if (hooks.say) hooks.say(wroteAny
         ? t('grant_claimed_toast', '免费额度已配好')
         : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
+      // **这句「已配好」此前没有证据** —— 领取这条路一次自检都不跑（plan.tests 只用来
+      // 数槽位）。与一键卡走同一份回执：跑一次真的请求，通了才算。
+      if (wroteAny) {
+        try { if (typeof AppSetupDone !== 'undefined') await AppSetupDone.show(plan.tests); } catch (_) {}
+      }
     } catch (e) {
       if (e && e.code === 'grant_unavailable') _grantUnavailable = true;
       if (hooks.say) hooks.say(String((e && e.message) || e));
