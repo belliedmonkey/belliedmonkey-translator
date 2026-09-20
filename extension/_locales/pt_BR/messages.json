@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "Na primeira vez que você selecionar uma área, o macOS pedirá mais uma confirmação — é só permitir. Depois, o macOS volta a perguntar de tempos em tempos; ele faz isso com todo app que captura a tela."
+  },
+  "systrans_title": {
+    "message": "Tradução do sistema"
+  },
+  "systrans_intro": {
+    "message": "Selecione um texto em qualquer app e toque em Traduzir para traduzir com o motor que você configurou. Antes, defina o BelliedMonkey Translator como padrão:"
+  },
+  "systrans_step1": {
+    "message": "Abra o app Ajustes"
+  },
+  "systrans_step2": {
+    "message": "Vá em Apps → Tradução"
+  },
+  "systrans_step3": {
+    "message": "Toque em «App de Tradução Padrão» e escolha BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Requer iOS ou iPadOS 18.4 ou mais recente. Em sistemas anteriores não aparecemos nessa lista."
+  },
+  "systrans_state_pending": {
+    "message": "Ainda não sincronizado. A sincronização acontece ao abrir este app."
+  },
+  "systrans_state_ok": {
+    "message": "Motor sincronizado: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "Nenhum motor configurado ainda. Assim que configurar um, ele sincroniza sozinho."
+  },
+  "systrans_state_failed": {
+    "message": "Falha na sincronização ({code}). Tente salvar de novo em «Motores e chaves»."
+  },
+  "systrans_capture_label": {
+    "message": "Salvar na biblioteca de revisão"
+  },
+  "systrans_capture_hint": {
+    "message": "As frases traduzidas vão para a revisão, com a origem «Tradução do sistema». Desligado, a tradução continua funcionando, só não é salva."
   }
 }

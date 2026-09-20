@@ -1141,6 +1141,16 @@
       // 那条注释的理由：那一段还带着入口门控与模式绘制，抄漏一件的表现是
       // 「进了页面但开不了」。入口灰着（没有实时引擎等）时 click 不触发，人看到的
       // 是首页上那条具名的灰态原因 + 去设置的链接，那已经是有意义的状态。
+      // ①' action='setup'（2026-09-20，§9.9）：系统翻译的弹层在未配置时把人送过来。
+      //
+      // 与 'listen' 同理排在账号三支之前 —— 配引擎与登不登录无关，落进下面那三支会让
+      // 一个没登录的人被要求先登录才能填 key，而登录对这件事毫无作用。
+      // 送到「引擎与密钥」那一节，不是设置页顶部：人是带着「这里不能用」这个问题来的。
+      if (d.action === 'setup') {
+        $('onboard').hidden = true;
+        try { openSettings('sec-engines'); } catch (_) { openSettings(); }
+        return;
+      }
       if (d.action === 'listen') {
         $('onboard').hidden = true;
         // 入口有登录/未登录两个变体（`app-subs-entry` 与 `…entry2`，见 listen.js 的

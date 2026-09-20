@@ -3265,5 +3265,41 @@
   },
   "quick_shot_perm_second": {
     "message": "पहली बार हिस्सा चुनते समय macOS एक और पुष्टि माँगेगा — बस अनुमति दे दें। इसके बाद macOS समय-समय पर फिर पूछेगा; वह स्क्रीन कैप्चर करने वाले हर ऐप के साथ ऐसा करता है।"
+  },
+  "systrans_title": {
+    "message": "सिस्टम अनुवाद"
+  },
+  "systrans_intro": {
+    "message": "किसी भी ऐप में टेक्स्ट चुनकर «अनुवाद» दबाएँ — अनुवाद आपके अपने कॉन्फ़िगर किए इंजन से होगा। पहले BelliedMonkey Translator को डिफ़ॉल्ट बनाएँ:"
+  },
+  "systrans_step1": {
+    "message": "«सेटिंग्स» ऐप खोलें"
+  },
+  "systrans_step2": {
+    "message": "«ऐप्स» → «अनुवाद» में जाएँ"
+  },
+  "systrans_step3": {
+    "message": "«डिफ़ॉल्ट अनुवाद ऐप» दबाएँ और BelliedMonkey Translator चुनें"
+  },
+  "systrans_need": {
+    "message": "iOS या iPadOS 18.4 या उससे नया चाहिए। इससे पुराने सिस्टम पर हम उस सूची में नहीं दिखेंगे।"
+  },
+  "systrans_state_pending": {
+    "message": "अभी सिंक नहीं हुआ। यह ऐप खोलते ही अपने आप सिंक हो जाता है।"
+  },
+  "systrans_state_ok": {
+    "message": "इंजन सिंक हो गया: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "अभी कोई इंजन सेट नहीं है। सेट करते ही अपने आप सिंक हो जाएगा।"
+  },
+  "systrans_state_failed": {
+    "message": "सिंक विफल ({code})। «इंजन और कुंजियाँ» में एक बार फिर सहेजकर देखें।"
+  },
+  "systrans_capture_label": {
+    "message": "रिव्यू लाइब्रेरी में सहेजें"
+  },
+  "systrans_capture_hint": {
+    "message": "अनुवादित वाक्य «सिस्टम अनुवाद» स्रोत के साथ रिव्यू में जाते हैं। बंद करने पर अनुवाद चलता रहेगा, बस सहेजा नहीं जाएगा।"
   }
 }

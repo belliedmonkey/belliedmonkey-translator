@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "初めて範囲を選ぶとき、macOS からもう一度確認が表示されます。許可してください。その後も一定期間ごとに再確認されますが、これは画面を取り込むすべての App に対する macOS の仕様です。"
+  },
+  "systrans_title": {
+    "message": "システム翻訳"
+  },
+  "systrans_intro": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンで翻訳します。まず既定の翻訳アプリに設定してください："
+  },
+  "systrans_step1": {
+    "message": "「設定」アプリを開く"
+  },
+  "systrans_step2": {
+    "message": "「アプリ」→「翻訳」へ進む"
+  },
+  "systrans_step3": {
+    "message": "「デフォルトの翻訳App」をタップし、大肚猴翻译を選ぶ"
+  },
+  "systrans_need": {
+    "message": "iOS / iPadOS 18.4 以降が必要です。それより古いシステムではこのアプリは一覧に表示されません。"
+  },
+  "systrans_state_pending": {
+    "message": "まだ同期していません。このアプリを開くと自動で同期します。"
+  },
+  "systrans_state_ok": {
+    "message": "エンジンを同期しました：{name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "エンジンが未設定です。設定すると自動で同期します。"
+  },
+  "systrans_state_failed": {
+    "message": "同期に失敗しました（{code}）。「エンジンとキー」でもう一度保存してみてください。"
+  },
+  "systrans_capture_label": {
+    "message": "復習ライブラリに保存"
+  },
+  "systrans_capture_hint": {
+    "message": "翻訳した文は「システム翻訳」という出典で復習に入ります。オフにしても翻訳はできますが、保存されません。"
   }
 }

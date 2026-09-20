@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "Beim ersten Auswählen eines Bereichs fragt macOS noch einmal nach – einfach erlauben. Danach fragt macOS in Abständen erneut; das tut es bei jeder App, die den Bildschirm aufnimmt."
+  },
+  "systrans_title": {
+    "message": "Systemübersetzung"
+  },
+  "systrans_intro": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ – übersetzt wird mit der Engine, die Sie eingerichtet haben. Legen Sie BelliedMonkey Translator zuerst als Standard fest:"
+  },
+  "systrans_step1": {
+    "message": "Öffnen Sie die App „Einstellungen“"
+  },
+  "systrans_step2": {
+    "message": "Gehen Sie zu „Apps“ → „Übersetzen“"
+  },
+  "systrans_step3": {
+    "message": "Tippen Sie auf „Standard-Übersetzungs-App“ und wählen Sie BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Erfordert iOS oder iPadOS 18.4 oder neuer. Auf älteren Systemen erscheinen wir nicht in dieser Liste."
+  },
+  "systrans_state_pending": {
+    "message": "Noch nicht synchronisiert. Beim Öffnen dieser App wird automatisch synchronisiert."
+  },
+  "systrans_state_ok": {
+    "message": "Engine synchronisiert: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "Noch keine Engine eingerichtet. Sobald Sie eine einrichten, wird automatisch synchronisiert."
+  },
+  "systrans_state_failed": {
+    "message": "Synchronisierung fehlgeschlagen ({code}). Speichern Sie es unter „Engines & Schlüssel“ noch einmal."
+  },
+  "systrans_capture_label": {
+    "message": "In der Lernbibliothek speichern"
+  },
+  "systrans_capture_hint": {
+    "message": "Übersetzte Sätze landen in der Wiederholung, Quelle „Systemübersetzung“. Ausgeschaltet wird weiterhin übersetzt, nur nichts gespeichert."
   }
 }

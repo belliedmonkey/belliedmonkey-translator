@@ -788,6 +788,27 @@
       </details>
       </div>
 
+      <!-- 系统翻译（learning-design §9.9 / iOS 线 I-7）。只在 iPhone / iPad 上出现：
+           原生装了 mtVault 通道才显示（AppVault.available()），macOS 与老原生壳整块不出现。
+           系统不提供「我是不是默认翻译 App」的接口 —— 所以这里说的是**我们答得上来的那件事**：
+           引擎配置有没有同步过去。选没选成默认，让用户自己在那三步里看。 -->
+      <div class="sgroup" id="g-systrans" hidden>
+      <h3 id="systrans-title"></h3>
+      <p class="note" id="systrans-state" role="status" aria-live="polite"></p>
+      <p class="note" id="systrans-intro"></p>
+      <ol class="steps" id="systrans-steps">
+        <li id="systrans-step1"></li>
+        <li id="systrans-step2"></li>
+        <li id="systrans-step3"></li>
+      </ol>
+      <p class="note" id="systrans-need"></p>
+      <label class="check">
+        <input id="systrans-capture" type="checkbox">
+        <span id="systrans-capture-label"></span>
+      </label>
+      <p class="note" id="systrans-capture-hint"></p>
+      </div>
+
       <div class="sgroup" id="g-docs">
       <h3 id="docs-title"></h3>
       <div class="dep" id="dep-docs"></div>
