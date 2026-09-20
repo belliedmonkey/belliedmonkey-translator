@@ -57,7 +57,10 @@ const APP_SRC = {
   'safari-project-china': 'dist-app-china',
   'safari-project-macos': 'dist-app',
 };
-const FILES = ['Main.html', 'Script.js', 'Style.css'];
+// 宿主 App 包里必须有的东西。ExtEngine.js 是系统翻译扩展的引擎（§9.9 / I-5）——
+// 它也走这条过期守卫：装进扩展的引擎比 App 旧，症状是「Mac 上好好的，弹层里少一个字段」，
+// 而那不会有任何一行输出说。
+const FILES = ['Main.html', 'Script.js', 'Style.css', 'ExtEngine.js'];
 
 // Every project the converter can produce. A flavor that exists but is not listed
 // here would silently keep stale assets, so missing ones are reported, not skipped.
@@ -228,6 +231,21 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ resident install: 语音桥 install 行缺失');
   }
+  // 系统翻译的配置镜像（§9.9 / I-4 原生半边）：第五条通道，只在 iOS 编进来。
+  // `webkit.messageHandlers.mtVault` 在不在，正是 JS 那边判断「这台设备有没有系统翻译
+  // 扩展」的唯一依据 —— 少了这一行，App 那侧会安静地整个不做，而界面上看不出来。
+  const VAULT_NEEDLE = 'MTVault.shared.install';
+  const VAULT_LINES = '        #if os(iOS)\n        MTVault.shared.install(webView: self.webView)\n        #endif';
+  if (src.includes(VAULT_NEEDLE)) {
+    notes.push('vault install already patched');
+  } else if (src.includes(RESIDENT_NEEDLE)) {
+    // 锚在常驻那**一整块**（含它的 #endif）上，不是那一行 —— 插在 #if os(macOS) 里面
+    // 会让这条通道在 iOS 上永远不存在，而 macOS 上多一个它用不到的处理器。
+    src = src.replace(RESIDENT_LINES, RESIDENT_LINES + '\n' + VAULT_LINES);
+    notes.push(src.includes(VAULT_NEEDLE) ? 'vault install patched' : '✗ vault install: 常驻 install 块锚点缺失');
+  } else {
+    notes.push('✗ vault install: 常驻 install 行缺失');
+  }
 
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
@@ -391,6 +409,12 @@ const BLOCKS = [
   { name: 'mt-screen-ocr', src: 'screen-ocr.swift', label: 'screen ocr' },
   // 登录时启动（SMAppService，默认关）+ 两个系统设置页的直达（M-7）。
   { name: 'mt-login-item', src: 'login-item.swift', label: 'login item' },
+  // 系统翻译（§9.9 / iOS 线 I-4 的原生半边 + I-5）。两块，都是 iOS-only：
+  //   · VaultNames 是 App 与扩展**共用的那一份**（扩展那边直接编进 target，见
+  //     TRANSLATE_EXT_SPEC.srcs）—— 一份文件两个消费者，抄第二份的那天两边就开始漂
+  //   · vault-bridge 是 mtVault 通道本身；attach 见 patchViewController 的 install 行
+  { name: 'mt-vault-names', src: 'translate-ext/VaultNames.swift', label: 'vault names' },
+  { name: 'mt-vault-bridge', src: 'vault-bridge.swift', label: 'vault bridge' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {
@@ -657,6 +681,12 @@ const PLIST_KEYS = [
   // （T2 尖刺实测）。NSPortName 用 $(PRODUCT_NAME)：两个 flavor 的 App 名不同，而它必须等于 App 名。
   // 菜单名的 12 个语种在 ServicesMenu.strings（SERVICES_L10N），这里的 default 是英文、也是那份表的键。
   { key: 'NSServices', only: 'macOS (App)', xml: servicesXml() },
+  // 系统翻译扩展的联网许可（§9.9 / iOS 线 I-5）。**这个键写在宿主 App 的 Info.plist 里** ——
+  // Apple 文档那句 “your app's Info.plist” 是字面意思。T1 尖刺把它写在扩展自己的 plist 里
+  // 时，扩展里三个地址一律 NSURLError -1009（而同一时刻宿主 App 联网是 200）：不报权限
+  // 错误，只是永远连不上。写进宿主之后，`api.deepseek.com` 与额度中继都可达，
+  // 而且**不按域名限制** —— 自定义端点的自带 key 用户不受影响。
+  { key: 'com.apple.developer.translation-ui-provider.network-access', only: 'iOS (App)', xml: '<true/>' },
 ];
 
 // 一份 <lproj>/InfoPlist.strings 的内容（老式 .strings，plutil -lint 认）。三个键都写：iOS 用不到
@@ -791,6 +821,20 @@ function patchPlistXml(src, keys) {
 // 那件事。scheme 跟着工程树走（safari-project-china 是中国版）。
 function schemeFor(sharedDir) {
   return /-china\b/.test(sharedDir) ? 'belliedmonkeycn' : 'belliedmonkey';
+}
+
+// 这棵树的 **App** bundle id（国际版 com.belliedmonkeytranslator、中国版 …cn）。
+// 问工程，不按目录名猜：`build-safari.sh` 是唯一写它的地方，而 App Group 与共享
+// Keychain 组的名字都跟着它走（§9.9）。两个 flavor 共用一个组，等于让两份装在同一台
+// 机器上的 App 互相看得见对方的 key。
+function appBundleId(sharedDir) {
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return '';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return '';
+  const m = fs.readFileSync(f, 'utf8').match(/PRODUCT_BUNDLE_IDENTIFIER = "?([a-zA-Z0-9.]+)"?;/);
+  return m ? m[1].replace(/\.extension$/, '') : '';
 }
 
 function urlTypeXml(scheme) {
@@ -941,7 +985,15 @@ function patchEntitlements(sharedDir) {
     // ① 文件本身（放进 Shared (App)/，与一次性的工程同生共死）
     const tplPath = path.join(ROOT, 'app', 'native', 'entitlements', e.src);
     if (!fs.existsSync(tplPath)) return `✗ entitlements: app/native/entitlements/${e.src} 不存在`;
-    const tpl = fs.readFileSync(tplPath, 'utf8');
+    // `__MT_APP_BUNDLE_ID__` → 这棵树的 App bundle id（App Group 与共享 Keychain 组的名字
+    // 都跟着它走）。读不到就整体放弃：写进去的组名会指向一个不存在的组，而那不报错 ——
+    // 症状是「App 写了、扩展读不到」，钥匙串只回一个 -25300。
+    const subs = extSubs(sharedDir);
+    const raw = fs.readFileSync(tplPath, 'utf8');
+    if (raw.includes('__MT_APP_BUNDLE_ID__') && !subs.__MT_APP_BUNDLE_ID__) {
+      return `✗ entitlements: 工程里读不到 App 的 bundle id —— ${e.src} 会指向一个不存在的组`;
+    }
+    const tpl = applySubs(raw, subs);
     const dst = path.join(sharedDir, e.src);
     if (!fs.existsSync(dst) || fs.readFileSync(dst, 'utf8') !== tpl) { fs.writeFileSync(dst, tpl); updated += 1; }
 
@@ -1316,6 +1368,43 @@ const WIDGET_SPEC = {
   settings: {},
 };
 
+// 系统翻译扩展（§9.9 / iOS 线 I-5）。与 widget 的差别全在规格里，代码一行没有分叉。
+//   · ExtensionKit：产品类型与嵌入位置都是另一种（见 EMBED_EXTENSIONKIT 上面的注释）
+//   · 部署下限 18.4：TranslationUIProvider 从那一版才有。App 本体照常装在更老的系统上，
+//     只是那些机器的「设置 › 翻译 › 默认翻译 App」里不会出现我们
+//   · ExtEngine.js 打进扩展 bundle：**与 App 同一份字节**的传输栈（domain-design §2.6 规则 2）
+//   · 自己的 entitlements：只有 App Group 与共享 Keychain，没有 translation-app、没有
+//     applesignin（那两项属于宿主）
+const TRANSLATE_EXT_DIR = 'iOS (TranslateExt)';
+const TRANSLATE_EXT_SPEC = {
+  needle: 'MT_TRANSLATE_EXT_TARGET',
+  label: 'translate ext',
+  dir: TRANSLATE_EXT_DIR,
+  name: 'MTTranslateExt',
+  deploy: '18.4',
+  srcDir: 'translate-ext',
+  // VaultNames 在最前：另外三个都用它。顺序不影响 Swift 编译，但让人一眼看得出依赖。
+  srcs: ['VaultNames.swift', 'ExtVault.swift', 'ExtEngineHost.swift', 'ExtCopy.swift', 'TranslateExt.swift'],
+  productType: 'com.apple.product-type.extensionkit-extension',
+  productFileType: 'wrapper.extensionkit-extension',
+  embed: EMBED_EXTENSIONKIT,
+  // ExtensionKit 用 EXAppExtensionAttributes，**不是** NSExtension（T1 尖刺）。
+  // MTDeepLinkScheme 是我们自己的键：未配置时「打开大肚猴翻译」要用它，而两个 flavor
+  // 的 scheme 不同 —— 由 app:sync 按这棵树替换，扩展运行时读 Info.plist。
+  plist: '\t<key>EXAppExtensionAttributes</key>\n\t<dict>\n'
+    + '\t\t<key>EXExtensionPointIdentifier</key>\n\t\t<string>com.apple.public.translation-ui-provider</string>\n'
+    + '\t</dict>\n'
+    + '\t<key>MTDeepLinkScheme</key>\n\t<string>__MT_SCHEME__</string>\n',
+  settings: {
+    CODE_SIGN_ENTITLEMENTS: `"${TRANSLATE_EXT_DIR}/translate-ext.entitlements"`,
+    INFOPLIST_KEY_CFBundleDisplayName: '"$(PRODUCT_NAME)"',
+    // iPhone + iPad。系统翻译在两边都有。
+    TARGETED_DEVICE_FAMILY: '"1,2"',
+  },
+  resources: [{ name: 'ExtEngine.js', fromApp: 'ExtEngine.js' }],
+  plain: [{ name: 'translate-ext.entitlements', from: 'app/native/entitlements/translate-ext.entitlements' }],
+};
+
 // pbxproj 的对象 id 是 24 位十六进制。用固定前缀 + 序号，**不随机** —— 随机 id 会让
 // 每次 app:sync 都产生一个不同的 pbxproj，幂等就无从谈起（也没法 diff）。
 // 前缀带上 needle 的长度 ⇒ 不同扩展的 id 天然不会撞。
@@ -1516,30 +1605,60 @@ function patchExtensionTarget(sharedDir, spec) {
 // 没有任何一行输出会说。
 function patchWidgetFiles(sharedDir) { return patchExtensionFiles(sharedDir, WIDGET_SPEC); }
 
-function patchExtensionFiles(sharedDir, spec) {
+// 模板里的占位符。两个都**必须按这棵树取**，不能写死：两个 flavor 是两个 App ID、
+// 两个 scheme，写死会让中国版的扩展去读国际版的 App Group（读不到，且不报错）。
+function extSubs(sharedDir) {
+  return {
+    __MT_APP_BUNDLE_ID__: appBundleId(sharedDir),
+    __MT_SCHEME__: schemeFor(sharedDir),
+  };
+}
+function applySubs(text, subs) {
+  let out = text;
+  for (const k of Object.keys(subs)) out = out.split(k).join(subs[k]);
+  return out;
+}
+
+function patchExtensionFiles(sharedDir, spec, opts) {
   const appRoot = path.dirname(sharedDir);
   const dir = path.join(appRoot, spec.dir);
+  const subs = extSubs(sharedDir);
+  const appSrc = (opts && opts.appSrc) || '';
   const put = (dst, text) => {
     if (fs.existsSync(dst) && fs.readFileSync(dst, 'utf8') === text) return;
     fs.writeFileSync(dst, text);
   };
+  // 资源来自**这个 flavor 的**宿主 App 包目录（dist-app / dist-app-china）。
+  const resFrom = (r) => (r.fromApp ? path.join(appSrc, r.fromApp) : path.join(ROOT, r.from));
+  // 先全部检查再写：任何一样缺了就整体放弃 —— 半个扩展比没有扩展更糟，而它编得过。
   for (const name of spec.srcs) {
-    const srcFile = path.join(ROOT, 'app', 'native', spec.srcDir, name);
-    if (!fs.existsSync(srcFile)) return `✗ ${spec.label}: app/native/${spec.srcDir}/${name} 不存在`;
+    if (!fs.existsSync(path.join(ROOT, 'app', 'native', spec.srcDir, name))) {
+      return `✗ ${spec.label}: app/native/${spec.srcDir}/${name} 不存在`;
+    }
   }
   for (const r of spec.resources || []) {
-    if (!fs.existsSync(path.join(ROOT, r.from))) return `✗ ${spec.label}: ${r.from} 不存在 —— 先跑 node build.js`;
+    if (r.fromApp && !appSrc) return `✗ ${spec.label}: 没告诉我这棵树的宿主 App 包目录`;
+    if (!fs.existsSync(resFrom(r))) {
+      return `✗ ${spec.label}: ${r.fromApp || r.from} 不存在 —— 先跑 node build.js`;
+    }
+  }
+  for (const p of spec.plain || []) {
+    if (!fs.existsSync(path.join(ROOT, p.from))) return `✗ ${spec.label}: ${p.from} 不存在`;
+  }
+  if ((spec.plain || []).length && !subs.__MT_APP_BUNDLE_ID__) {
+    return `✗ ${spec.label}: 工程里读不到 App 的 bundle id —— entitlements 会指向一个不存在的组`;
   }
   fs.mkdirSync(dir, { recursive: true });
   for (const name of spec.srcs) {
     put(path.join(dir, name), fs.readFileSync(path.join(ROOT, 'app', 'native', spec.srcDir, name), 'utf8'));
   }
-  for (const r of spec.resources || []) {
-    put(path.join(dir, r.name), fs.readFileSync(path.join(ROOT, r.from), 'utf8'));
+  for (const r of spec.resources || []) put(path.join(dir, r.name), fs.readFileSync(resFrom(r), 'utf8'));
+  for (const p of spec.plain || []) {
+    put(path.join(dir, p.name), applySubs(fs.readFileSync(path.join(ROOT, p.from), 'utf8'), subs));
   }
   put(path.join(dir, 'Info.plist'), '<?xml version="1.0" encoding="UTF-8"?>\n'
     + '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
-    + '<plist version="1.0">\n<dict>\n' + spec.plist + '</dict>\n</plist>\n');
+    + '<plist version="1.0">\n<dict>\n' + applySubs(spec.plist, subs) + '</dict>\n</plist>\n');
   return `${spec.label} files synced`;
 }
 
@@ -1616,11 +1735,18 @@ function main() {
         + ' · ' + loud(proj, 'ServicesMenu.strings', patchServicesMenuStrings(shared));
       const dlg = loud(proj, 'delegates', patchDelegates(shared));
       // 灵动岛（§9.5）：只做 iOS，且只对已经带 iOS App target 的工程。macOS 没有灵动岛。
-      const widget = fs.existsSync(path.join(path.dirname(shared), 'iOS (App)'))
+      const hasIOS = fs.existsSync(path.join(path.dirname(shared), 'iOS (App)'));
+      const widget = hasIOS
         ? loud(proj, 'widget', patchWidgetFiles(shared)) + ' · '
           + loud(proj, 'widget', patchWidgetTarget(shared))
         : 'widget: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      // 系统翻译（§9.9 / I-5）：同样只做 iOS。macOS 没有 TranslationUIProvider ——
+      // Apple 至今没有对应物，所以那边不是「以后再说」，是根本没有这个扩展点。
+      const transExt = hasIOS
+        ? loud(proj, 'translate ext', patchExtensionFiles(shared, TRANSLATE_EXT_SPEC, { appSrc: SRC })) + ' · '
+          + loud(proj, 'translate ext', patchExtensionTarget(shared, TRANSLATE_EXT_SPEC))
+        : 'translate ext: 无 iOS App target，跳过';
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · ${transExt} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -1648,5 +1774,5 @@ module.exports = {
   SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
   patchEntitlements, ENTITLEMENTS,
   patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, patchExtensionFiles,
-  EMBED_PLUGINS, EMBED_EXTENSIONKIT, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
+  EMBED_PLUGINS, EMBED_EXTENSIONKIT, TRANSLATE_EXT_SPEC, appBundleId, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };

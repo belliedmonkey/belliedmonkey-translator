@@ -3,6 +3,11 @@
      由 scripts/sync-app-assets.js 复制进生成的工程并挂上 CODE_SIGN_ENTITLEMENTS。
      **改这里，然后跑 `npm run app:sync`**；工程是一次性的，直接改那边会被覆盖。
 
+     `__MT_APP_BUNDLE_ID__` 由 app:sync 换成**这个 flavor 的** App bundle id
+     （国际版 com.belliedmonkeytranslator、中国版 …cn）。两个 flavor 是两个 App ID，
+     共用一个 App Group 等于让两份装在同一台机器上的 App 互相看得见对方的 key ——
+     同一个开发者也不该这么做。
+
      为什么必须是文件而不是构建设置：这个工程的沙箱与录音权限走的是 Xcode 15 的
      构建设置式 entitlement（ENABLE_APP_SANDBOX / ENABLE_RESOURCE_ACCESS_AUDIO_INPUT），
      但 Sign in with Apple **没有**对应的构建设置 —— 它只能来自 .entitlements。
@@ -10,15 +15,29 @@
      的回读，不是「构建没报错」（macOS 沙箱丢了会被 App Review 拒，而本地跑得好好的）。
 
      **这里只放 iOS App 真正用到的。** 每多一项能力，App ID 上就多一项，审核就多一个
-     可问的点；而且新增能力的那一次归档必须用 Xcode 登录态（带 ASC API key 三参数会报
-     认证失败，尖刺 T1 的读数）。
-     将来随系统翻译（I-4 / I-5）加进来的：App Group、共享 Keychain 组、
-     com.apple.developer.translation-app —— **现在不加**，没人用的 entitlement 不该出现在包里。 -->
+     可问的点；而且新增能力的那一次归档必须用 **Xcode 登录态**（带 ASC API key 三参数会报
+     `Authentication failed`，尖刺 T1 的读数）。
+
+     下面三项是系统翻译（§9.9 / iOS 线 I-5）加的，都是自助能力、不用向 Apple 申请
+     （T1 已回读：App ID 上多了 DEFAULT_TRANSLATION_APP 与 APP_GROUPS）：
+       · App Group      弹层翻完的句子放进收件箱，App 回前台时摄入（I-6）
+       · 共享 Keychain   引擎的 key 镜像给扩展 —— **明文放进 App Group 是不行的**
+       · translation-app 「设置 › 翻译 › 默认翻译 App」那一行的前提 -->
 <plist version="1.0">
 <dict>
     <key>com.apple.developer.applesignin</key>
     <array>
         <string>Default</string>
     </array>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.__MT_APP_BUNDLE_ID__</string>
+    </array>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)__MT_APP_BUNDLE_ID__.shared</string>
+    </array>
+    <key>com.apple.developer.translation-app</key>
+    <true/>
 </dict>
 </plist>
