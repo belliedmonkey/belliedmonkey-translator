@@ -46,6 +46,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > Store-asset production (deciding what is stale, reshooting screenshots,
 > producing the preview videos) lives in the skill's `assets.md`.
 
+> **运营 / 社区（growth）:** 面向用户的**非产品面** —— 社区、README、官网文案、商店文案、
+> 对外发的每一句话 —— 归 [`docs/growth-spec.md`](docs/growth-spec.md)。**Discord 里一律用英文**
+> （2026-09-20 用户裁定，理由在 §1），中国版的微信 / QQ 群一律用中文；对外的地址发我们自己域名下的
+> 307 短链而不是第三方码（§3）；文案与它描述的功能必须同版上线（§4）；别人后台的界面会撒谎，
+> 判据一律是独立回读（§5）。
+>
 ## 待办（人要做的事）
 
 **所有需要用户人工去做、或要等外部结果的事，一律写进 `.local/TODO.md`**（gitignored，
