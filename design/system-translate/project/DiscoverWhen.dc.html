@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>发现卡的出现与消失</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:640px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">每一条都写明判据</h1><span>照 #ext-banner 的既有机制：横幅在场时首页主行动自动让位（app/app.js:294 syncReview）。</span></div></div>
+<table class="tbl">
+<tr><th>情形</th><th>出不出现</th><th>判据（代码里问得出来的那个）</th></tr>
+<tr><td>刚装 App 的新用户</td><td>出现</td><td>引导走完（onboardSeen=1）之后的第一次首页</td></tr>
+<tr><td>老用户升级上来</td><td>出现</td><td>没有 systransBannerDoneAt，且没收到过系统翻译的句子</td></tr>
+<tr><td>点了「我已设好」</td><td>永不再出现</td><td>systransBannerDoneAt 有值（UI 状态键，不进 settings.js KEYS）</td></tr>
+<tr><td>已经在用</td><td>换成「已在用」</td><td>收件箱收进过至少一句 via='system'</td></tr>
+<tr><td>系统低于 18.4</td><td>不出现</td><td>问不出来系统版本 ⇒ 用 mtVault 通道在不在代替；两者都不在就整块不出现</td></tr>
+<tr><td>引擎还没配</td><td>不出现</td><td>先配引擎再谈入口；此时首页该说的是别的</td></tr>
+<tr><td>Safari 扩展横幅在场</td><td>让位</td><td>#ext-banner 未收起时不出现</td></tr>
+</table>
+<p class="mini" style="margin:0">「系统低于 18.4」这一条是妥协：App 问不出系统版本（问得出来也只能多一条要维护的协议）。用「有没有 mtVault 通道」代替 —— 它答的是「这台设备上有没有这个扩展」，与我们真正关心的那件事足够接近。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -33,6 +33,10 @@
     {
       "id": "p6",
       "name": "全局 · 状态机 · 文案 · 待裁定"
+    },
+    {
+      "id": "p7",
+      "name": "配好了没有 · 与怎么被引导过去"
     }
   ],
   "boards": {
@@ -315,6 +319,70 @@
       "h": 900,
       "page": "p6",
       "title": "中国版 · 深色 总览"
+    },
+    "SetupDone.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1760,
+      "h": 700,
+      "page": "p7",
+      "title": "配好了的那一刻（全 App 通用）"
+    },
+    "SetupFrom.dc.html": {
+      "x": 1840,
+      "y": 0,
+      "w": 1320,
+      "h": 700,
+      "page": "p7",
+      "title": "从系统翻译过来的那一支"
+    },
+    "SetupUnsure.dc.html": {
+      "x": 0,
+      "y": 860,
+      "w": 1760,
+      "h": 720,
+      "page": "p7",
+      "title": "「我到底配好了没有」"
+    },
+    "SetupReturn.dc.html": {
+      "x": 1840,
+      "y": 860,
+      "w": 1320,
+      "h": 720,
+      "page": "p7",
+      "title": "去配置 → 配完回来"
+    },
+    "Discover.dc.html": {
+      "x": 0,
+      "y": 1740,
+      "w": 1760,
+      "h": 700,
+      "page": "p7",
+      "title": "首页发现卡（落地化）"
+    },
+    "DiscoverWhen.dc.html": {
+      "x": 1840,
+      "y": 1740,
+      "w": 1320,
+      "h": 640,
+      "page": "p7",
+      "title": "发现卡的出现与消失"
+    },
+    "SysBlockV2.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 1320,
+      "h": 620,
+      "page": "p7",
+      "title": "设置块 · 补上画过但没落地的两样"
+    },
+    "CopyDelta.dc.html": {
+      "x": 1400,
+      "y": 2600,
+      "w": 1500,
+      "h": 820,
+      "page": "p7",
+      "title": "新增文案总表"
     }
   },
   "order": [
@@ -352,7 +420,15 @@
     "FlowMac.dc.html",
     "PermTimeline.dc.html",
     "CopyTable.dc.html",
-    "ChinaDark.dc.html"
+    "ChinaDark.dc.html",
+    "SetupDone.dc.html",
+    "SetupFrom.dc.html",
+    "SetupUnsure.dc.html",
+    "SetupReturn.dc.html",
+    "Discover.dc.html",
+    "DiscoverWhen.dc.html",
+    "SysBlockV2.dc.html",
+    "CopyDelta.dc.html"
   ],
   "notes": {
     "t1": {
@@ -546,6 +622,68 @@
       "text": "2026-09-19 用户裁定：「按默认」—— 上面 12 条全部按原文落定。下一步：T1（iPhone 扩展尖刺）与 T2（Mac 沙盒尖刺）；读数回来后把带「待 T1 / T2 读数」小标的板收敛成一支，再点一次头，然后才出文档 PR。",
       "page": "p6",
       "color": "orange"
+    },
+    "t7": {
+      "x": 0,
+      "y": -320,
+      "text": "配好了没有 · 与怎么被引导过去",
+      "kind": "title1",
+      "maxW": 4000,
+      "page": "p7"
+    },
+    "g1": {
+      "x": 4360,
+      "y": 0,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 1（2026-09-20）· 引导落点 = 首页发现卡 + 设置块，不动新手引导 —— 维持 2026-09-19 的「已定 3」，不加第五屏。",
+      "page": "p7",
+      "color": "green"
+    },
+    "g2": {
+      "x": 4360,
+      "y": 330,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 2（2026-09-20）· 「配好了」的回执是**全 App 通用**的一种：三行自检 + 一句「可以用了」+ 一个随「从哪来」变的下一步。不是只修系统翻译那一条路。",
+      "page": "p7",
+      "color": "green"
+    },
+    "g3": {
+      "x": 4360,
+      "y": 660,
+      "w": 460,
+      "maxH": 300,
+      "text": "已定 3（2026-09-20）· 弹层底部「完成」按钮点了不关这件事，先查真因再定处置 —— 真机上从没验过 finish(translation: nil) 这条路（T1 只验过带译文的「替换原文」）。",
+      "page": "p7",
+      "color": "green"
+    },
+    "b1": {
+      "x": 4360,
+      "y": 990,
+      "w": 460,
+      "maxH": 360,
+      "text": "待点头 A · interaction-spec:1163-1165 写着「配翻译引擎那一屏 App 做不到 —— 在 App 里画一个引擎选择器是假控件」。这句话写于 2026-09-01，已被 1.12.0 的设置重设计推翻（App 现在有真的「引擎与密钥」一节）。同意在落地那一步把它改掉吗？",
+      "page": "p7",
+      "color": "blue"
+    },
+    "b2": {
+      "x": 4860,
+      "y": 990,
+      "w": 460,
+      "maxH": 360,
+      "text": "待点头 B · 领免费额度这条路要不要也跑三行自检？代价：多一次真实请求、花掉一点点额度。好处：那句「免费额度已配好」才有证据 —— 现在它一次自检都不跑。",
+      "page": "p7",
+      "color": "blue"
+    },
+    "b3": {
+      "x": 4360,
+      "y": 1370,
+      "w": 460,
+      "maxH": 360,
+      "text": "待点头 C · engineChosen 在 App 里一处都没写（只有扩展设置页与扩展引导页写过）⇒ 在 App 里选了不需要 key 的引擎之后，needsSetup 仍可能为真、界面还说「没配过」。这是现存 bug：单独修，还是随这一轮一起改？",
+      "page": "p7",
+      "color": "blue"
     },
     "p3n": {
       "x": 4360,
