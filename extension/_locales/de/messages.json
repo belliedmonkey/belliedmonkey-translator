@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "Übersetzte Sätze landen in der Wiederholung, Quelle „Systemübersetzung“. Ausgeschaltet wird weiterhin übersetzt, nur nichts gespeichert."
+  },
+  "sys_disclose_direct": {
+    "message": "Der markierte Text geht direkt an die von Ihnen eingerichtete Engine ({name}) und niemals über unsere Server."
+  },
+  "sys_disclose_grant": {
+    "message": "Mit Gratis-Guthaben: Der markierte Text wird von uns an den Anbieter weitergeleitet. Wir speichern den Inhalt nicht."
+  },
+  "sys_fail_network": {
+    "message": "Die Übersetzungs-Engine ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+  },
+  "sys_fail_timeout": {
+    "message": "Die Engine hat nicht rechtzeitig geantwortet."
+  },
+  "sys_fail_http": {
+    "message": "Die Engine hat einen Fehler zurückgegeben."
+  },
+  "sys_fail_no_base": {
+    "message": "Diese Engine braucht eine Adresse, und es ist keine eingetragen. Öffnen Sie BelliedMonkey Translator und tragen Sie sie ein."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Diese Engine gibt es nicht mehr. Wählen Sie in BelliedMonkey Translator eine andere."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Es ist noch keine Übersetzungs-Engine eingerichtet. Öffnen Sie BelliedMonkey Translator einmal, dann funktioniert es hier."
+  },
+  "sys_fail_not_synced": {
+    "message": "Öffnen Sie BelliedMonkey Translator einmal, damit Ihre Engine-Einstellungen hierher übernommen werden."
+  },
+  "sys_fail_empty": {
+    "message": "In der Auswahl ist nichts zu übersetzen."
+  },
+  "sys_fail_empty_result": {
+    "message": "Die Engine hat diesmal nichts zurückgegeben."
+  },
+  "sys_fail_engine": {
+    "message": "Die Übersetzungs-Engine ist nicht gestartet."
+  },
+  "sys_fail_unknown": {
+    "message": "Übersetzung fehlgeschlagen."
+  },
+  "sys_ui_translating": {
+    "message": "Wird übersetzt…"
+  },
+  "sys_ui_slow": {
+    "message": "Läuft noch — Gratis-Guthaben kann langsam sein."
+  },
+  "sys_ui_replace": {
+    "message": "Ersetzen"
+  },
+  "sys_ui_open_app": {
+    "message": "BelliedMonkey Translator öffnen"
   }
 }

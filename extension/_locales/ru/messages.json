@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "Переведённые фразы попадают в повторение с источником «Системный перевод». Если выключить, перевод продолжит работать, просто не будет сохраняться."
+  },
+  "sys_disclose_direct": {
+    "message": "Выделенный текст отправляется напрямую в настроенный вами движок ({name}) и никогда не проходит через наши серверы."
+  },
+  "sys_disclose_grant": {
+    "message": "Используется бесплатный лимит: выделенный текст передаётся через нас поставщику. Содержимое мы не храним."
+  },
+  "sys_fail_network": {
+    "message": "Не удалось связаться с движком перевода. Проверьте соединение и попробуйте снова."
+  },
+  "sys_fail_timeout": {
+    "message": "Движок не ответил вовремя."
+  },
+  "sys_fail_http": {
+    "message": "Движок вернул ошибку."
+  },
+  "sys_fail_no_base": {
+    "message": "Этому движку нужен адрес, а он не задан. Откройте BelliedMonkey Translator и укажите его."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Этого движка больше нет. Выберите другой в BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Движок перевода ещё не настроен. Откройте BelliedMonkey Translator один раз, и здесь всё заработает."
+  },
+  "sys_fail_not_synced": {
+    "message": "Откройте BelliedMonkey Translator один раз, чтобы настройки движка попали сюда."
+  },
+  "sys_fail_empty": {
+    "message": "В выделении нечего переводить."
+  },
+  "sys_fail_empty_result": {
+    "message": "На этот раз движок ничего не вернул."
+  },
+  "sys_fail_engine": {
+    "message": "Движок перевода не запустился."
+  },
+  "sys_fail_unknown": {
+    "message": "Перевести не удалось."
+  },
+  "sys_ui_translating": {
+    "message": "Перевод…"
+  },
+  "sys_ui_slow": {
+    "message": "Ещё переводим — с бесплатным лимитом бывает медленно."
+  },
+  "sys_ui_replace": {
+    "message": "Заменить"
+  },
+  "sys_ui_open_app": {
+    "message": "Открыть BelliedMonkey Translator"
   }
 }

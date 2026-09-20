@@ -3470,5 +3470,56 @@
   },
   "systrans_capture_hint": {
     "message": "翻过的句子进复习，来源「系统翻译」。关掉后照常翻译，只是不存。"
+  },
+  "sys_disclose_direct": {
+    "message": "选中的文字会直接发送给你配置的引擎（{name}），不经过我们的服务器。"
+  },
+  "sys_disclose_grant": {
+    "message": "用的是免费额度：选中的文字经我们的中转发给服务商，我们不保存内容。"
+  },
+  "sys_fail_network": {
+    "message": "连不上翻译引擎。检查一下网络再试。"
+  },
+  "sys_fail_timeout": {
+    "message": "引擎这次没有按时回话。"
+  },
+  "sys_fail_http": {
+    "message": "引擎回了一个错误。"
+  },
+  "sys_fail_no_base": {
+    "message": "这个引擎要填地址，而现在是空的。打开大肚猴翻译填一次。"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "这个引擎已经不在了。到大肚猴翻译里另选一个。"
+  },
+  "sys_fail_needs_setup": {
+    "message": "还没配置翻译引擎。打开大肚猴翻译配置一次，这里就能用了。"
+  },
+  "sys_fail_not_synced": {
+    "message": "打开一次大肚猴翻译，把引擎配置同步过来。"
+  },
+  "sys_fail_empty": {
+    "message": "选中的内容里没有可翻译的文字。"
+  },
+  "sys_fail_empty_result": {
+    "message": "引擎这次什么都没返回。"
+  },
+  "sys_fail_engine": {
+    "message": "翻译引擎没能启动。"
+  },
+  "sys_fail_unknown": {
+    "message": "这次没翻成。"
+  },
+  "sys_ui_translating": {
+    "message": "正在翻译…"
+  },
+  "sys_ui_slow": {
+    "message": "还在翻 · 免费额度会慢一些。"
+  },
+  "sys_ui_replace": {
+    "message": "替换原文"
+  },
+  "sys_ui_open_app": {
+    "message": "打开大肚猴翻译"
   }
 }
