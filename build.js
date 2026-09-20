@@ -1268,6 +1268,11 @@ nameLengthGate(DIST);
   // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
   buildAppBundle(path.join(ROOT, APP_OUT), log,
     FLAVOR === 'china' ? { genRoot: DIST, limitProviders } : {});
+  // 系统翻译扩展的裁剪包（learning-design §9.9）。与 App 包同一条 flavor 纪律：
+  // 中国版从 dist-china/ 取生成物。它也要过下面那两道门 —— 同一份传输代码，
+  // 品牌词与合规判据一个都不能少（AGENTS 规则 10）。
+  const { buildExtBundle } = require("./build/ext-bundle.js");
+  buildExtBundle(path.join(ROOT, APP_OUT), log, FLAVOR === "china" ? { genRoot: DIST } : {});
   legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]);
   if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
 }
