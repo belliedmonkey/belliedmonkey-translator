@@ -2268,6 +2268,37 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     eq(TRANSLATE_EXT_SPEC.deploy, '18.4', 'TranslationUIProvider 从 iOS 18.4 才有');
   });
 
+  test('★ 弹层标题栏那一行是宿主 App 名，不是 MTTranslateExt', () => {
+    if (!fs.existsSync(path.join(ROOT, 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj'))) return;
+    ok(TRANSLATE_EXT_SPEC.settings.INFOPLIST_KEY_CFBundleDisplayName.includes('__MT_APP_DISPLAY_NAME__'),
+      '显示名要从工程里取，不在这份脚本里抄一份中文字面量');
+    const REALPBX = fs.readFileSync(path.join(ROOT, 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj'), 'utf8');
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    const proj = path.join(dir, 'X.xcodeproj'); fs.mkdirSync(proj);
+    let skel = REALPBX.replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
+      skel = skel.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
+        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
+    }
+    const pbx = path.join(proj, 'project.pbxproj');
+    fs.writeFileSync(pbx, skel);
+    patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC);
+    const out = fs.readFileSync(pbx, 'utf8');
+    const at = out.lastIndexOf(`INFOPLIST_FILE = "${TRANSLATE_EXT_SPEC.dir}/Info.plist";`);
+    const line = out.slice(at, at + 200).split('\n')[1];
+    ok(!line.includes('$(PRODUCT_NAME)') && !line.includes(TRANSLATE_EXT_SPEC.name),
+      '系统用它画弹层标题栏，写内部名等于给用户看一个他不认得的词：' + line.trim());
+
+    // 已经造过的树也要跟上 —— 「见到 needle 就跳过」会让后来改的设置永远追不上
+    fs.writeFileSync(pbx, out.replace(
+      new RegExp('(INFOPLIST_FILE = "iOS \\(TranslateExt\\)\\/Info\\.plist";\\n\\s*INFOPLIST_KEY_CFBundleDisplayName = )"[^"]*";', 'g'),
+      '$1"$(PRODUCT_NAME)";'));
+    const note = patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC);
+    match(note, /显示名已升到/, '已有的树要原地升级，实际回执：' + note);
+    ok(!fs.readFileSync(pbx, 'utf8').includes('INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)"'));
+  });
+
   test('★ 规格里点名的源文件与资源都真的在', () => {
     for (const s of TRANSLATE_EXT_SPEC.srcs) {
       ok(fs.existsSync(path.join(NATIVE, TRANSLATE_EXT_SPEC.srcDir, s)), s + ' 不存在');

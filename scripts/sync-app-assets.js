@@ -1397,7 +1397,9 @@ const TRANSLATE_EXT_SPEC = {
     + '\t<key>MTDeepLinkScheme</key>\n\t<string>__MT_SCHEME__</string>\n',
   settings: {
     CODE_SIGN_ENTITLEMENTS: `"${TRANSLATE_EXT_DIR}/translate-ext.entitlements"`,
-    INFOPLIST_KEY_CFBundleDisplayName: '"$(PRODUCT_NAME)"',
+    // **系统用扩展的显示名画弹层的标题栏**（T1 真机截图为证）。`$(PRODUCT_NAME)` 会让
+    // 那一行写着 `MTTranslateExt` —— 一个只有我们自己认得的内部名字。跟宿主 App 同名。
+    INFOPLIST_KEY_CFBundleDisplayName: '"__MT_APP_DISPLAY_NAME__"',
     // iPhone + iPad。系统翻译在两边都有。
     TARGETED_DEVICE_FAMILY: '"1,2"',
   },
@@ -1413,6 +1415,36 @@ const WID = (spec, n) => 'MT' + spec.needle.length.toString(16).toUpperCase().pa
 
 function patchWidgetTarget(sharedDir) { return patchExtensionTarget(sharedDir, WIDGET_SPEC); }
 
+// 已经造过的 target 里，把显示名那一行升到现在的值。
+//
+// 「见到 needle 就跳过」是这个补丁的幂等判据，代价是**后来改的设置追不上已有的树**：
+// 显示名从 `$(PRODUCT_NAME)` 改成宿主 App 名之后，所有已生成的工程仍然写着
+// `MTTranslateExt`，而那一行是系统画在弹层标题栏上的（T1 真机截图）。重新生成整棵树
+// 太贵，所以这里原地升级 —— 与 DELEGATE_PATCHES 的 upgrade 同一条思路。
+//
+// 指纹是**相邻的那一对**：buildSettings 按字母序，`INFOPLIST_FILE` 紧挨着
+// `INFOPLIST_KEY_CFBundleDisplayName`，而前者点名了是哪个 target 的哪一档配置。
+// 不能按整份 pbxproj 替换 —— 那会把两个 App target 的显示名也改掉。
+function upgradeDisplayName(f, src, spec) {
+  const want = (spec.settings || {}).INFOPLIST_KEY_CFBundleDisplayName || '';
+  if (!want.includes('__MT_APP_DISPLAY_NAME__')) return `${spec.label} target already patched`;
+  const appDisplay = ((src.match(/INFOPLIST_KEY_CFBundleDisplayName = "([^"]+)";/g) || [])
+    .map((m) => m.match(/"([^"]+)"/)[1])
+    .find((v) => !v.startsWith('$(')) || '');
+  if (!appDisplay) return `${spec.label} target already patched`;
+  const quoted = spec.dir.replace(/[.()]/g, (c) => '\\' + c);
+  const re = new RegExp('(INFOPLIST_FILE = "' + quoted + '\\/Info\\.plist";\\n(\\s*)INFOPLIST_KEY_CFBundleDisplayName = )"[^"]*";', 'g');
+  let n = 0;
+  const out = src.replace(re, (m, head) => {
+    if (m.endsWith(`"${appDisplay}";`)) return m;
+    n += 1;
+    return head + `"${appDisplay}";`;
+  });
+  if (!n) return `${spec.label} target already patched`;
+  fs.writeFileSync(f, out);
+  return `${spec.label} target already patched（显示名已升到「${appDisplay}」×${n}）`;
+}
+
 // buildSettings 一行。值原样写出（LD_RUNPATH 那种多行的也在内），键按字母序 —— Xcode 自己
 // 就是这么排的，而**现有 widget 的那一串正好已经是字母序**，所以 spec.settings 为空时
 // 输出逐字节不变（这是 I-1 立下的判据，I-5 不许破）。
@@ -1427,7 +1459,7 @@ function patchExtensionTarget(sharedDir, spec) {
   const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
   if (!fs.existsSync(f)) return `${spec.label}: no project.pbxproj`;
   let src = fs.readFileSync(f, 'utf8');
-  if (src.includes(spec.needle)) return `${spec.label} target already patched`;
+  if (src.includes(spec.needle)) return upgradeDisplayName(f, src, spec);
 
   // 锚点：iOS App target 的 id、它的 Embed 阶段、以及 iOS 扩展的一份 Debug 配置
   // （照抄它的构建设置，只改该改的几项）。任何一个找不到就整体放弃。
@@ -1496,7 +1528,15 @@ function patchExtensionTarget(sharedDir, spec) {
     SWIFT_VERSION: '5.0',
     TARGETED_DEVICE_FAMILY: '"1,2"',
   };
+  // 宿主 App 的显示名。问工程，不写死：它由 build-safari.sh 写进去，而**中文字面量不该
+  // 在这份脚本里再抄一份**。认不出来就退回 $(PRODUCT_NAME)（老工程的形状），不阻断。
+  const appDisplay = ((src.match(/INFOPLIST_KEY_CFBundleDisplayName = "([^"]+)";/g) || [])
+    .map((m) => m.match(/"([^"]+)"/)[1])
+    .find((v) => !v.startsWith('$(')) || '$(PRODUCT_NAME)');
   const settings = Object.assign({}, baseSettings, spec.settings || {});
+  for (const k of Object.keys(settings)) {
+    settings[k] = String(settings[k]).split('__MT_APP_DISPLAY_NAME__').join(appDisplay);
+  }
   const settingsText = Object.keys(settings).sort().map((k) => cfgLine(k, settings[k])).join('');
   const cfg = (name) => `\t\t${name === 'Debug' ? ids.cfgDebug : ids.cfgRelease} /* ${name} */ = {\n`
     + '\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {\n'
