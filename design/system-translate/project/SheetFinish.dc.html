@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>为什么弹层里没有「完成」</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1320px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">一个点了没反应的按钮，比没有按钮更糟</h1><span>交互稿原来在每一态底部都画了「完成」，代码里它调的是 <code>context.finish(translation: nil)</code>。2026-09-21 真机（iPhone 14 Pro / iOS 27）逐条验过：<b>两种宿主、两种坏法，同一个按钮</b>。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>Safari 网页</b><span>译文已落定之后点，三次全不关。2 秒与 6 秒各读一次，六次读回全是「弹层还在」。</span></div><div class="old"><div class="c"><b>Safari（不可编辑）</b></div><div class="c">allowsReplacement = false</div><div class="c">hittable = true</div><div class="c bad">点了 3 次 · 关掉 0 次</div></div></div>
+<div class="cell"><div class="cap"><b>备忘录</b><span>可编辑，「替换原文」真的出现了（所以 allowsReplacement = true）。但「完成」看得见、点不到。</span></div><div class="old"><div class="c"><b>备忘录（可编辑）</b></div><div class="c">allowsReplacement = true</div><div class="c bad">hittable = false</div><div class="c bad">点不到</div></div></div>
+<div class="cell"><div class="cap"><b>结论与改法</b><span>布局逐行读过：按钮就在 HStack 里、在 Spacer() 之后，渲染完全正常 —— 坏的是行为，不是排版。</span></div><div class="old"><div class="c">✕ 是<b>系统给的</b>，每一轮都靠它关掉</div><div class="c">替换原文 / 复制译文 是真能用的动作</div><div class="c bad">完成 ⇒ 删掉</div></div><p class="mini" style="margin:0">依据是我们自己立过的两条：「灰掉不如不存在」、「不存在的功能不许长死状态条」。</p></div>
+</div>
+<p class="mini" style="margin:0"><b>我们没有别的出口。</b><code>finish(translation:)</code> 是 Apple 给扩展的唯一关闭入口，而它带 nil 时不工作。所以不是「换个实现」，是这个按钮不该存在。<br>用户 2026-09-20 报的原话就是「点完成没用」——，这一板记的是它的验尸报告。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

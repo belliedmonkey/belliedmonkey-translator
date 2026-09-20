@@ -112,6 +112,14 @@
       "page": "p1",
       "title": "iPad · 深色 · 从右到左 · 大字号"
     },
+    "SheetFinish.dc.html": {
+      "x": 0,
+      "y": 3480,
+      "w": 1320,
+      "h": 700,
+      "page": "p1",
+      "title": "为什么弹层里没有「完成」"
+    },
     "AppSysBlock.dc.html": {
       "x": 0,
       "y": 0,
@@ -395,6 +403,7 @@
     "SheetUnconfigured.dc.html",
     "SheetEdge.dc.html",
     "SheetVariants.dc.html",
+    "SheetFinish.dc.html",
     "AppSysBlock.dc.html",
     "TargetLang.dc.html",
     "AppDiscover.dc.html",

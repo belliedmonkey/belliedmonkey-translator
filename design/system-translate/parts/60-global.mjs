@@ -11,10 +11,10 @@ const lane = (label, nodes) => `<div style="display:grid; grid-template-columns:
 // 37a · iPhone 弹层状态机
 board('FlowPhone.dc.html', 1500, 760, '状态机 · iPhone 系统翻译弹层', `${head('状态机 · iPhone 弹层', '每个状态都有出口；没有任何一态只能靠下拉关掉。')}
 <div style="display:flex; flex-direction:column; gap:16px">
-${lane('进来', n('系统交来文字', 's') + a() + n('空白 / 只有符号？') + a('是 →') + n('「没有可翻译的文字」· 完成', 'x'))}
+${lane('进来', n('系统交来文字', 's') + a() + n('空白 / 只有符号？') + a('是 →') + n('「没有可翻译的文字」', 'x'))}
 ${lane('能不能翻', n('读同步过来的引擎配置') + a() + n('没有 ⇒ 未配置三态之一 · 打开 App / 知道了', 'w') + a('有 →') + n('判语种 ⇒ 定目标语言（同语言则反向）'))}
 ${lane('翻', n('加载（原文 + 骨架）', 's') + a() + n('5 秒未回 ⇒ 多一行「还在翻」') + a() + n('到超时上限 ⇒ 超时', 'w') + a('或 →') + n('取消 ⇒ 关', 'x'))}
-${lane('翻成了', n('译文', 's') + a() + n('可替换？⇒ 多「替换原文」') + a() + n('改目标语言 ⇒ 回到加载') + a() + n('完成 / 替换 ⇒ 关', 'x'))}
+${lane('翻成了', n('译文', 's') + a() + n('可替换？⇒ 多「替换原文」') + a() + n('改目标语言 ⇒ 回到加载') + a() + n('替换 ⇒ 系统关掉；否则走右上角 ✕', 'x'))}
 ${lane('翻成了 · 副作用', n('采集开着 且 ≤ 2000 字 且 译文 ≠ 原文') + a() + n('写一条进收件箱') + a('否则 →') + n('什么都不写', 'x'))}
 ${lane('没翻成', n('具名错误（9 种）', 'w') + a() + n('能自己好的 ⇒ 重试 ⇒ 回到加载') + a('要改配置的 →') + n('打开大肚猴翻译', 'x'))}
 </div>${mini('弹层是一次性的：关掉即销毁，不留状态。目标语言的临时改动不带到下一次。')}`, { page: PG });
@@ -107,7 +107,7 @@ const chinaSheet = `<div class="sheet" style="margin-top:auto"><div class="grab"
 board('ChinaDark.dc.html', 1500, 900, '中国版 · 深色 总览', `${head('中国版与深色', '中国版与国际版同功能（不做残缺版），差别只在下面这几处。')}
 <div style="display:grid; grid-template-columns:350px 350px minmax(0,1fr); gap:26px; align-items:start">
 ${cell('中国版 · 未配置', '没有「领免费额度」（中国版没有这项服务）；一个主按钮。', phone(chinaSheet))}
-${cell('中国版 · 首次披露', '同一句，引擎名换成用户配的那家。不发任何用量数据。', phone(sheet({ engine: '通义千问', body: `<div class="trbox"><div class="tr">${S.zh}</div></div>`, foot: btn('完成', 'p'), tail: `<div class="disc">选中的文字会直接发给你配置的引擎（通义千问），不经过我们的服务器。</div>` })))}
+${cell('中国版 · 首次披露', '同一句，引擎名换成用户配的那家。不发任何用量数据。', phone(sheet({ engine: '通义千问', body: `<div class="trbox"><div class="tr">${S.zh}</div></div>`, foot: '', tail: `<div class="disc">选中的文字会直接发给你配置的引擎（通义千问），不经过我们的服务器。</div>` })))}
 <div style="display:flex; flex-direction:column; gap:18px">
 ${cell('国行 iPhone 上「默认翻译 App」这一行', '', `<div class="note">T1 真机读数：国行 iPhone 上这一行<b>存在且可选</b>，选中后弹的就是我们的弹层 ⇒ 中国版照常带这个部件。中国区商店的审核口径仍是未知数，提审时才知道。</div>`)}
 ${cell('深色 · Mac 面板', '', `<div class="dark"><div class="desk dark" style="height:300px; display:flex; align-items:center; justify-content:center">${panel({ body: `<div class="tr" style="padding:0 2px">${S.zh}</div>`, foot: '' })}</div></div>`)}
