@@ -1352,6 +1352,12 @@ template from bouncing and would trap a scrolling review list.
    判据：弹层里出现译文（截整屏），设备日志里 `translate ok`。
 5. **可替换**：**不要往用户的备忘录里写东西**（打开就是用户的真笔记）。在宿主 App 自己的可编辑文本框里全选 › 翻译 › 「替换原文」，
    读回文本框的值。编辑菜单翻页的「›」**没有可用的标签**：按屏宽 87.5%、与菜单项同一行的位置点。
+5.5 **`app:sync` 的输出必须看。** 改了 `app/**`（含 `app/native/**`）之后 `dist-app/` 就比源码旧，
+   这时 `app:sync` **整个退出 1**，Swift 一个字都不会进工程 —— 而你照样能构建成功、照样能装上去，
+   装的是**上一版**。2026-09-20 我把它的输出重定向到 `/dev/null`，然后花了三轮去查「为什么新加的那行
+   没生效」，真因就是这个。修法是那行输出自己说的：先 `node build.js`，再 `app:sync`。
+   **别把 `app:sync` 的输出丢掉。**
+
 6. **读 App Group 的内容**：`devicectl device info files --domain-type appGroupDataContainer --domain-identifier group.<bundle>`
    与同域的 `copy from` **是通的**（2026-09-20 实测，开发签名包）。回读镜像过来的配置就靠它：
    `Library/Preferences/group.<bundle>.plist` 里的 `mt.vault.snapshot.v1`（key 不在这里，按设计只进共享钥匙串）。
@@ -1374,10 +1380,19 @@ Unable to launch cc.belliedmonkey.spike.s56uitests.xctrunner because … its pro
 has not been explicitly trusted by the user
 ```
 
-这不是代码问题，也不是签名坏了 —— **我们自己的 App 照常启动**，只有测试程序被挡。要人在手机上点一次：
-设置 → 通用 → VPN 与设备管理 → 开发者 App → 信任。**这一步没有自动化的替代**（镜像那条路也不行：
-ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上镜像）。排验证计划时把它当成一个「要人」的步骤，
-别排在无人值守的那一段里。
+这不是代码问题，也不是签名坏了。逐条排除过（2026-09-20）：主 App 用同一把
+`Apple Development: … (DT6MT97DP4)` 签名、**照常启动**；runner 的描述文件有效到 2027、这台设备在
+`ProvisionedDevices` 里、`codesign` 读回同一个 TeamIdentifier。**只有测试程序被挡。**
+
+要人在手机上点一次：设置 → 通用 → VPN 与设备管理 → 开发者 App → 信任。
+
+**卸载 runner 再装一遍偶尔能绕过一次，但不可靠。** 同一天里：第一次这么做通了，之后每次重装主 App
+它就又被挡，再用同样的办法（卸载 + `build-for-testing` + `test-without-building`、`xcodebuild test`
+整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。**触发条件像是「重装了主 App」** ——
+所以真机那一轮要一次装好、一次跑完，别边改边装。
+
+**这一步没有自动化的替代**：镜像那条路也不行（ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上
+镜像）。排验证计划时把它当成一个「要人」的步骤，别排在无人值守的那一段里。
 
 ### J. macOS 快速翻译（真机、签名构建）— ✅ verified 2026-09-19（配方来自尖刺 T2）
 
