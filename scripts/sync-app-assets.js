@@ -1250,23 +1250,44 @@ function patchAppIcon(sharedDir) {
 //
 // 幂等：见到 needle 就跳过。**造了一半就中断会留下一个编译不了的工程**，所以每一步都
 // 先检查、任何一步的锚点缺失都整体放弃（而不是写一半），并把原因说出来。
-const WIDGET_NEEDLE = 'MT_WIDGET_TARGET';
-const WIDGET_DIR = 'iOS (Widget)';
-const WIDGET_NAME = 'MTPodcastWidget';
+// iOS 扩展 target 的规格。转换器只会生成 App 与 Safari 扩展两个 target，别的（灵动岛
+// 的 widget、系统翻译的扩展点）都得由这里凭空造进 pbxproj。一个规格描述一个扩展：
+//   needle   写在 target 注释里的哨兵 —— 幂等靠它（已经有了就整体跳过），也是 id 前缀的料
+//   label    出错与回执里的自称（'widget' / 'translate'），让「跳过了」这件事在输出里说得出口
+//   dir      工程里的目录名，同时是 Info.plist 的路径
+//   name     target 名 = 产物名 = bundle id 的最后一段
+//   deploy   这个扩展自己的部署下限（可以高于 App 本体：App 照常装，只是老系统上没有这个能力）
+//   srcs     要编进去的 Swift 文件（按顺序）
+//   settings 额外的构建设置（键 → 值，原样写进 buildSettings；两档配置共用）
+const WIDGET_SPEC = {
+  needle: 'MT_WIDGET_TARGET',
+  label: 'widget',
+  dir: 'iOS (Widget)',
+  name: 'MTPodcastWidget',
+  // Live Activity 要 iOS 16.1+，而 App 本体的部署目标更低。
+  deploy: '16.1',
+  srcs: ['LiveActivity.swift'],
+  settings: {},
+};
 
 // pbxproj 的对象 id 是 24 位十六进制。用固定前缀 + 序号，**不随机** —— 随机 id 会让
 // 每次 app:sync 都产生一个不同的 pbxproj，幂等就无从谈起（也没法 diff）。
-const WID = (n) => 'MT' + WIDGET_NEEDLE.length.toString(16).toUpperCase().padStart(2, '0')
+// 前缀带上 needle 的长度 ⇒ 不同扩展的 id 天然不会撞。
+const WID = (spec, n) => 'MT' + spec.needle.length.toString(16).toUpperCase().padStart(2, '0')
   + 'D06CA57E' + String(n).padStart(10, '0');
 
-function patchWidgetTarget(sharedDir) {
+function patchWidgetTarget(sharedDir) { return patchExtensionTarget(sharedDir, WIDGET_SPEC); }
+
+// 凭空造一个 iOS 扩展 target 并挂进工程：targets 列表、App 的依赖、Embed 阶段。
+// 这是整个 sync 里唯一「无中生有」的补丁 —— 别处都是改已有的东西。
+function patchExtensionTarget(sharedDir, spec) {
   const appRoot = path.dirname(sharedDir);
   const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
-  if (!xcodeproj) return 'widget: no xcodeproj';
+  if (!xcodeproj) return `${spec.label}: no xcodeproj`;
   const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
-  if (!fs.existsSync(f)) return 'widget: no project.pbxproj';
+  if (!fs.existsSync(f)) return `${spec.label}: no project.pbxproj`;
   let src = fs.readFileSync(f, 'utf8');
-  if (src.includes(WIDGET_NEEDLE)) return 'widget target already patched';
+  if (src.includes(spec.needle)) return `${spec.label} target already patched`;
 
   // 锚点：iOS App target 的 id、它的 Embed 阶段、以及 iOS 扩展的一份 Debug 配置
   // （照抄它的构建设置，只改该改的几项）。任何一个找不到就整体放弃。
@@ -1275,14 +1296,14 @@ function patchWidgetTarget(sharedDir) {
   // 按 `productType = application` + SDK 找，才是这个 target 的定义特征。
   const appTarget = src.match(
     /([0-9A-F]{24}) \/\* [^*]*\(iOS\) \*\/ = \{\s*isa = PBXNativeTarget;[\s\S]*?productType = "com\.apple\.product-type\.application";/);
-  if (!appTarget) return '✗ widget: 找不到 iOS App target —— 转换器布局变了？';
+  if (!appTarget) return `✗ ${spec.label}: 找不到 iOS App target —— 转换器布局变了？`;
   const appTargetLabel = (src.match(/([0-9A-F]{24}) \/\* ([^*]*\(iOS\)) \*\/ = \{\s*isa = PBXNativeTarget;[\s\S]*?productType = "com\.apple\.product-type\.application";/) || [])[2];
   // Embed 阶段两个平台各有一个同名的 —— 必须取 **iOS App target 自己列出的那一个**，
   // 否则会把 widget 塞进 macOS App（那儿没有灵动岛，而且 SDK 也对不上）。
   const appTargetId0 = appTarget[1];
   const appPhases = (src.slice(src.indexOf(appTargetId0 + ' /* ')).match(/buildPhases = \(([\s\S]*?)\);/) || [])[1] || '';
   const embedId0 = (appPhases.match(/([0-9A-F]{24}) \/\* Embed Foundation Extensions \*\//) || [])[1];
-  if (!embedId0) return '✗ widget: iOS App target 没有 Embed Foundation Extensions 阶段';
+  if (!embedId0) return `✗ ${spec.label}: iOS App target 没有 Embed Foundation Extensions 阶段`;
   const embed = [null, embedId0];
   const deployMatch = src.match(/IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);/);
   const marketing = (src.match(/MARKETING_VERSION = ([^;]+);/) || [null, '1.0'])[1];
@@ -1290,15 +1311,19 @@ function patchWidgetTarget(sharedDir) {
   const bundlePrefix = (src.match(/PRODUCT_BUNDLE_IDENTIFIER = ([a-zA-Z0-9.]+);/) || [null, 'com.belliedmonkeytranslator'])[1]
     .replace(/\.extension$/, '');
 
-  // Live Activity 要 iOS 16.1+，而 App 本体的部署目标更低。扩展**可以**有自己的
-  // 更高目标 —— App 在低版本系统上照常安装，只是那儿不会有灵动岛。
-  const widgetDeploy = '16.1';
   const ids = {
-    target: WID(1), product: WID(2), group: WID(3), sources: WID(4), frameworks: WID(5),
-    resources: WID(6), cfgList: WID(7), cfgDebug: WID(8), cfgRelease: WID(9),
-    srcFile: WID(10), srcBuild: WID(11), dep: WID(12), proxy: WID(13), embedFile: WID(14),
+    target: WID(spec, 1), product: WID(spec, 2), group: WID(spec, 3), sources: WID(spec, 4), frameworks: WID(spec, 5),
+    resources: WID(spec, 6), cfgList: WID(spec, 7), cfgDebug: WID(spec, 8), cfgRelease: WID(spec, 9),
+    dep: WID(spec, 12), proxy: WID(spec, 13), embedFile: WID(spec, 14),
   };
-  const bid = bundlePrefix + '.' + WIDGET_NAME;
+  // 每个源文件一对 id（引用 + 编译）。第一个沿用 10 / 11（widget 那一版就是这两个号，
+  // 保留它才能做到「重构后 widget 的输出逐字节不变」），其余从 20 起两两排。
+  const srcIds = spec.srcs.map((name, i) => ({
+    name,
+    file: WID(spec, i === 0 ? 10 : 20 + (i - 1) * 2),
+    build: WID(spec, i === 0 ? 11 : 21 + (i - 1) * 2),
+  }));
+  const bid = bundlePrefix + '.' + spec.name;
 
   const cfg = (name) => `\t\t${name === 'Debug' ? ids.cfgDebug : ids.cfgRelease} /* ${name} */ = {
 \t\t\tisa = XCBuildConfiguration;
@@ -1307,10 +1332,10 @@ function patchWidgetTarget(sharedDir) {
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = ${current};
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
-\t\t\t\tINFOPLIST_FILE = "${WIDGET_DIR}/Info.plist";
-\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = "${WIDGET_NAME}";
+\t\t\t\tINFOPLIST_FILE = "${spec.dir}/Info.plist";
+\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = "${spec.name}";
 \t\t\t\tINFOPLIST_KEY_NSHumanReadableCopyright = "";
-\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = ${widgetDeploy};
+\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = ${spec.deploy};
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/Frameworks",
@@ -1330,31 +1355,31 @@ function patchWidgetTarget(sharedDir) {
 
   // ① PBXBuildFile：源文件 + 嵌入产物
   src = src.replace('/* End PBXBuildFile section */',
-    `\t\t${ids.srcBuild} /* LiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = ${ids.srcFile} /* LiveActivity.swift */; };\n`
-    + `\t\t${ids.embedFile} /* ${WIDGET_NAME}.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = ${ids.product} /* ${WIDGET_NAME}.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };\n`
+    srcIds.map((x) => `\t\t${x.build} /* ${x.name} in Sources */ = {isa = PBXBuildFile; fileRef = ${x.file} /* ${x.name} */; };\n`).join('')
+    + `\t\t${ids.embedFile} /* ${spec.name}.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = ${ids.product} /* ${spec.name}.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };\n`
     + '/* End PBXBuildFile section */');
 
   // ② PBXFileReference：源文件 + 产物
   src = src.replace('/* End PBXFileReference section */',
-    `\t\t${ids.srcFile} /* LiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivity.swift; sourceTree = "<group>"; };\n`
-    + `\t\t${ids.product} /* ${WIDGET_NAME}.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "${WIDGET_NAME}.appex"; sourceTree = BUILT_PRODUCTS_DIR; };\n`
+    srcIds.map((x) => `\t\t${x.file} /* ${x.name} */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ${x.name}; sourceTree = "<group>"; };\n`).join('')
+    + `\t\t${ids.product} /* ${spec.name}.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "${spec.name}.appex"; sourceTree = BUILT_PRODUCTS_DIR; };\n`
     + '/* End PBXFileReference section */');
 
   // ③ PBXGroup：把源文件挂进主 group，产物挂进 Products
   src = src.replace('/* End PBXGroup section */',
-    `\t\t${ids.group} /* ${WIDGET_DIR} */ = {\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n\t\t\t\t${ids.srcFile} /* LiveActivity.swift */,\n\t\t\t);\n\t\t\tpath = "${WIDGET_DIR}";\n\t\t\tsourceTree = SOURCE_ROOT;\n\t\t};\n`
+    `\t\t${ids.group} /* ${spec.dir} */ = {\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = (\n${srcIds.map((x) => `\t\t\t\t${x.file} /* ${x.name} */,\n`).join('')}\t\t\t);\n\t\t\tpath = "${spec.dir}";\n\t\t\tsourceTree = SOURCE_ROOT;\n\t\t};\n`
     + '/* End PBXGroup section */');
   const mainGroupId = (src.match(/mainGroup = ([0-9A-F]{24});/) || [])[1];
   if (!mainGroupId) return '✗ widget: 找不到 mainGroup';
   src = src.replace(new RegExp('(' + mainGroupId + ' = \\{\\s*isa = PBXGroup;\\s*children = \\()'),
-    `$1\n\t\t\t\t${ids.group} /* ${WIDGET_DIR} */,`);
+    `$1\n\t\t\t\t${ids.group} /* ${spec.dir} */,`);
   const productsGroup = src.match(/([0-9A-F]{24}) \/\* Products \*\/ = \{\s*isa = PBXGroup;\s*children = \(/);
   if (!productsGroup) return '✗ widget: 找不到 Products group';
-  src = src.replace(productsGroup[0], productsGroup[0] + `\n\t\t\t\t${ids.product} /* ${WIDGET_NAME}.appex */,`);
+  src = src.replace(productsGroup[0], productsGroup[0] + `\n\t\t\t\t${ids.product} /* ${spec.name}.appex */,`);
 
   // ④ 三个构建阶段
   src = src.replace('/* End PBXSourcesBuildPhase section */',
-    `\t\t${ids.sources} /* Sources */ = {\n\t\t\tisa = PBXSourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t${ids.srcBuild} /* LiveActivity.swift in Sources */,\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n`
+    `\t\t${ids.sources} /* Sources */ = {\n\t\t\tisa = PBXSourcesBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n${srcIds.map((x) => `\t\t\t\t${x.build} /* ${x.name} in Sources */,\n`).join('')}\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n`
     + '/* End PBXSourcesBuildPhase section */');
   src = src.replace('/* End PBXFrameworksBuildPhase section */',
     `\t\t${ids.frameworks} /* Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);\n\t\t\trunOnlyForDeploymentPostprocessing = 0;\n\t\t};\n`
@@ -1365,31 +1390,31 @@ function patchWidgetTarget(sharedDir) {
 
   // ⑤ target 本体 —— MT_WIDGET_TARGET 这个 needle 就写在它的注释里
   src = src.replace('/* End PBXNativeTarget section */',
-    `\t\t${ids.target} /* ${WIDGET_NAME} */ = {\n\t\t\tisa = PBXNativeTarget;\n\t\t\t/* ${WIDGET_NEEDLE} — patched by scripts/sync-app-assets.js */\n`
-    + `\t\t\tbuildConfigurationList = ${ids.cfgList} /* Build configuration list for PBXNativeTarget "${WIDGET_NAME}" */;\n`
+    `\t\t${ids.target} /* ${spec.name} */ = {\n\t\t\tisa = PBXNativeTarget;\n\t\t\t/* ${spec.needle} — patched by scripts/sync-app-assets.js */\n`
+    + `\t\t\tbuildConfigurationList = ${ids.cfgList} /* Build configuration list for PBXNativeTarget "${spec.name}" */;\n`
     + `\t\t\tbuildPhases = (\n\t\t\t\t${ids.sources} /* Sources */,\n\t\t\t\t${ids.frameworks} /* Frameworks */,\n\t\t\t\t${ids.resources} /* Resources */,\n\t\t\t);\n`
-    + `\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t);\n\t\t\tname = ${WIDGET_NAME};\n\t\t\tproductName = ${WIDGET_NAME};\n`
-    + `\t\t\tproductReference = ${ids.product} /* ${WIDGET_NAME}.appex */;\n\t\t\tproductType = "com.apple.product-type.app-extension";\n\t\t};\n`
+    + `\t\t\tbuildRules = (\n\t\t\t);\n\t\t\tdependencies = (\n\t\t\t);\n\t\t\tname = ${spec.name};\n\t\t\tproductName = ${spec.name};\n`
+    + `\t\t\tproductReference = ${ids.product} /* ${spec.name}.appex */;\n\t\t\tproductType = "com.apple.product-type.app-extension";\n\t\t};\n`
     + '/* End PBXNativeTarget section */');
 
   // ⑥ 配置列表
   src = src.replace('/* End XCConfigurationList section */',
-    `\t\t${ids.cfgList} /* Build configuration list for PBXNativeTarget "${WIDGET_NAME}" */ = {\n\t\t\tisa = XCConfigurationList;\n\t\t\tbuildConfigurations = (\n\t\t\t\t${ids.cfgDebug} /* Debug */,\n\t\t\t\t${ids.cfgRelease} /* Release */,\n\t\t\t);\n\t\t\tdefaultConfigurationIsVisible = 0;\n\t\t\tdefaultConfigurationName = Release;\n\t\t};\n`
+    `\t\t${ids.cfgList} /* Build configuration list for PBXNativeTarget "${spec.name}" */ = {\n\t\t\tisa = XCConfigurationList;\n\t\t\tbuildConfigurations = (\n\t\t\t\t${ids.cfgDebug} /* Debug */,\n\t\t\t\t${ids.cfgRelease} /* Release */,\n\t\t\t);\n\t\t\tdefaultConfigurationIsVisible = 0;\n\t\t\tdefaultConfigurationName = Release;\n\t\t};\n`
     + '/* End XCConfigurationList section */');
   src = src.replace('/* End XCBuildConfiguration section */',
     cfg('Debug') + cfg('Release') + '/* End XCBuildConfiguration section */');
 
   // ⑦ 挂进工程的 targets 列表
-  src = src.replace(/(targets = \(\n)/, `$1\t\t\t\t${ids.target} /* ${WIDGET_NAME} */,\n`);
+  src = src.replace(/(targets = \(\n)/, `$1\t\t\t\t${ids.target} /* ${spec.name} */,\n`);
 
   // ⑧ 让 App 依赖它并把 .appex 嵌进去 —— 少了这一步，扩展会编译但装不进 App。
   const appTargetId = appTarget[1];
   src = src.replace('/* End PBXTargetDependency section */',
-    `\t\t${ids.dep} /* PBXTargetDependency */ = {\n\t\t\tisa = PBXTargetDependency;\n\t\t\ttarget = ${ids.target} /* ${WIDGET_NAME} */;\n\t\t\ttargetProxy = ${ids.proxy} /* PBXContainerItemProxy */;\n\t\t};\n`
+    `\t\t${ids.dep} /* PBXTargetDependency */ = {\n\t\t\tisa = PBXTargetDependency;\n\t\t\ttarget = ${ids.target} /* ${spec.name} */;\n\t\t\ttargetProxy = ${ids.proxy} /* PBXContainerItemProxy */;\n\t\t};\n`
     + '/* End PBXTargetDependency section */');
   const projectId = (src.match(/([0-9A-F]{24}) \/\* Project object \*\//) || [])[1];
   src = src.replace('/* End PBXContainerItemProxy section */',
-    `\t\t${ids.proxy} /* PBXContainerItemProxy */ = {\n\t\t\tisa = PBXContainerItemProxy;\n\t\t\tcontainerPortal = ${projectId} /* Project object */;\n\t\t\tproxyType = 1;\n\t\t\tremoteGlobalIDString = ${ids.target};\n\t\t\tremoteInfo = ${WIDGET_NAME};\n\t\t};\n`
+    `\t\t${ids.proxy} /* PBXContainerItemProxy */ = {\n\t\t\tisa = PBXContainerItemProxy;\n\t\t\tcontainerPortal = ${projectId} /* Project object */;\n\t\t\tproxyType = 1;\n\t\t\tremoteGlobalIDString = ${ids.target};\n\t\t\tremoteInfo = ${spec.name};\n\t\t};\n`
     + '/* End PBXContainerItemProxy section */');
   // App target：加依赖 + 把 appex 塞进 Embed 阶段
   const appBlock = src.slice(src.indexOf(appTargetId + ' /* ' + appTargetLabel + ' */ = {'));
@@ -1399,10 +1424,10 @@ function patchWidgetTarget(sharedDir) {
   src = src.replace(appSlice, newAppSlice);
   const embedId = embed[1];
   src = src.replace(new RegExp('(' + embedId + ' /\\* Embed Foundation Extensions \\*/ = \\{[\\s\\S]*?files = \\(\n)'),
-    `$1\t\t\t\t${ids.embedFile} /* ${WIDGET_NAME}.appex in Embed Foundation Extensions */,\n`);
+    `$1\t\t\t\t${ids.embedFile} /* ${spec.name}.appex in Embed Foundation Extensions */,\n`);
 
   fs.writeFileSync(f, src);
-  return `widget target patched (${WIDGET_NAME}, iOS ${widgetDeploy}+)`;
+  return `${spec.label} target patched (${spec.name}, iOS ${spec.deploy}+)`;
 }
 
 // Live Activity 的源文件与它自己的 Info.plist。扩展有独立 bundle，所以 plist 也独立。
@@ -1528,5 +1553,5 @@ module.exports = {
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
   SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
-  patchWidgetTarget, patchWidgetFiles, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
+  patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };
