@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>配好了的那一刻（全 App 通用）</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1760px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">「怎样才算配置完成」的正面回答</h1><span>一种回执，四个落点。回执本身永远一样：三行自检 + 一句「可以用了」+ 一个下一步；变的只有下一步那个按钮。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>从新手引导进来</b><span>引导现有四屏里就能配 —— 2026-09-01 那句「App 做不到配引擎」已被 1.12.0 的设置重设计推翻。</span></div><section class="card"><h3>可以用了 <span class="tag g">DeepSeek</span></h3><div class="qs-row"><span class="k">翻译</span><span class="res">✓ 通了 · 512 ms</span></div><div class="qs-row"><span class="k">解析</span><span class="res">✓ 通了 · 486 ms</span></div><div class="qs-row"><span class="k">朗读</span><span class="res">✓ 通了 · 试听一句</span></div><div class="note">引擎配好了，浏览器那半边照常用。</div><button class="btn p blk" type="button">去读一篇 →</button></section></div>
+<div class="cell"><div class="cap"><b>从设置页自己进来</b><span>App 设置页现在 showTry:false，注释写「配完就没有下一步了」。Mac 快译与 iPhone 系统翻译出现之后，这句话不成立了。</span></div><section class="card"><h3>可以用了 <span class="tag g">DeepSeek</span></h3><div class="qs-row"><span class="k">翻译</span><span class="res">✓ 通了 · 512 ms</span></div><div class="qs-row"><span class="k">解析</span><span class="res">✓ 通了 · 486 ms</span></div><div class="qs-row"><span class="k">朗读</span><span class="res">✓ 通了 · 试听一句</span></div><div class="note">引擎配好了。文档翻译、对话听译、实时字幕现在都能用了。</div><button class="btn s blk" type="button">回到首页</button></section></div>
+<div class="cell"><div class="cap"><b>从系统翻译的弹层过来</b><span><b>我们送不回去</b>（iOS 不给这个能力），所以话要说满：回哪、做什么。</span></div><section class="card"><h3>可以用了 <span class="tag g">DeepSeek</span></h3><div class="qs-row"><span class="k">翻译</span><span class="res">✓ 通了 · 512 ms</span></div><div class="qs-row"><span class="k">解析</span><span class="res">✓ 通了 · 486 ms</span></div><div class="qs-row"><span class="k">朗读</span><span class="res">✓ 通了 · 试听一句</span></div><div class="note">引擎配好了。<b>回到刚才那个 App，再点一次「翻译」即可</b> —— 这里不用再做什么。</div><button class="btn s blk" type="button">知道了</button></section></div>
+<div class="cell"><div class="cap"><b>从 Mac 快译面板过来</b><span>面板还在，那句待翻的文字也还在 —— 这一条是唯一能真的「回到原处」的。</span></div><section class="card"><h3>可以用了 <span class="tag g">DeepSeek</span></h3><div class="qs-row"><span class="k">翻译</span><span class="res">✓ 通了 · 512 ms</span></div><div class="qs-row"><span class="k">解析</span><span class="res">✓ 通了 · 486 ms</span></div><div class="qs-row"><span class="k">朗读</span><span class="res">✓ 通了 · 试听一句</span></div><div class="note">引擎配好了。刚才那句已经重新翻好，在面板里。</div><button class="btn p blk" type="button">回到刚才那句</button></section></div>
+</div>
+<p class="mini" style="margin:0">三行自检不是装饰：<b>领免费额度这条路现在一次自检都不跑</b>（app/settings.js:846-887 里 plan.tests 只用来数槽位），却直接说「免费额度已配好」。那句话没有证据 —— 与本仓「只信回读」的家规冲突。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1760,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

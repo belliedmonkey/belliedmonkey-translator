@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>去配置 → 配完回来</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1320px; height:720px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">三条路，能力不一样，话就要不一样</h1><span>形状 B 已经在扩展引导里跑了很久（onboard.js:416-431）。把它搬到 App，但不许承诺 iOS 给不了的事。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>已有的那一个</b><span>搬形状的来源。</span></div><section class="card"><h3>扩展引导（已有，唯一的闭环）</h3><p class="hint">领取在另一个标签页发生，人不必自己走回来。</p><div class="steps"><div>去设置页领额度</div><div>监听 grantTail「从空变非空」</div><div>先 paint 再停 1.5 秒，让人看见「到账」</div><div>自动前进到下一屏</div></div></section></div>
+<div class="cell"><div class="cap"><b>系统翻译</b><span><b>不许画「自动跳回」</b>。</span></div><section class="card"><h3>系统翻译弹层（做不到自动回）</h3><p class="hint">弹层是系统拉起的一次性进程；我们跳去 App 之后，回不去那段文字。</p><div class="old"><div class="c">能做：把话说满 —— 回哪个 App、做什么</div><div class="c bad">做不到：自动回到那段文字</div></div></section></div>
+<div class="cell"><div class="cap"><b>Mac 快译</b><span>唯一能真的回到原处的。</span></div><section class="card"><h3>Mac 快译面板（能真的回）</h3><p class="hint">面板与设置在同一个进程里，那句待翻的文字还在。</p><div class="steps"><div>面板上「打开设置」</div><div>配好，自检通过</div><div>面板里那句自动重翻</div></div></section></div>
+</div>
+<p class="mini" style="margin:0">共同：监听的是<b>「从无到有」</b>，不是「有变化」—— storage.onChanged 会因为别的写入触发（onboard.js:421 的原注释）。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

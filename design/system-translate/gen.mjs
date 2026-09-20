@@ -11,6 +11,7 @@ import './parts/30-mac-panel.mjs';
 import './parts/40-mac-capture.mjs';
 import './parts/50-mac-settings.mjs';
 import './parts/60-global.mjs';
+import './parts/70-setup-done.mjs';
 
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) if (f.endsWith('.dc.html') && !W[f]) fs.unlinkSync(path.join(OUT, f));
@@ -21,6 +22,8 @@ for (const [name, html] of Object.entries(W)) fs.writeFileSync(path.join(OUT, na
 const PAGES = [
   ['p1', 'iPhone · 系统翻译弹层'], ['p2', 'iPhone · App 侧'], ['p3', 'Mac · 快译面板'],
   ['p4', 'Mac · 增强取词与截图'], ['p5', 'Mac · 设置与常驻'], ['p6', '全局 · 状态机 · 文案 · 待裁定'],
+  // 2026-09-20 追加：真机跑通之后用户报的两条缺口（「怎样才算配好了」「没人引导我去设成默认」）。
+  ['p7', '配好了没有 · 与怎么被引导过去'],
 ];
 const ROW_W = 4200, GAP_X = 80, GAP_Y = 160;
 const boards = {}; const order = []; const rowEnd = {};
@@ -71,6 +74,14 @@ const D = [
 // 2026-09-19 用户回「按默认」⇒ 12 条全部按原文落定；便签由蓝（待点头）改绿（已定），文字里的「待点头」换成「已定」。
 D.forEach(([id, text], i) => sticky(id, 'p6', NX + (i % 2) * 500, Math.floor(i / 2) * 330, text.replace('待点头', '已定'), { maxH: 300, color: 'green' }));
 sticky('say', 'p6', NX, 6 * 330 + 40, '2026-09-19 用户裁定：「按默认」—— 上面 12 条全部按原文落定。下一步：T1（iPhone 扩展尖刺）与 T2（Mac 沙盒尖刺）；读数回来后把带「待 T1 / T2 读数」小标的板收敛成一支，再点一次头，然后才出文档 PR。', { color: 'orange', w: 960, maxH: 200 });
+// ── 第 7 页的便签（2026-09-20）──────────────────────────────────────────────
+title('t7', 'p7', '配好了没有 · 与怎么被引导过去');
+sticky('g1', 'p7', NX, 0, '已定 1（2026-09-20）· 引导落点 = 首页发现卡 + 设置块，不动新手引导 —— 维持 2026-09-19 的「已定 3」，不加第五屏。', { color: 'green' });
+sticky('g2', 'p7', NX, 330, '已定 2（2026-09-20）· 「配好了」的回执是**全 App 通用**的一种：三行自检 + 一句「可以用了」+ 一个随「从哪来」变的下一步。不是只修系统翻译那一条路。', { color: 'green' });
+sticky('g3', 'p7', NX, 660, '已定 3（2026-09-20）· 弹层底部「完成」按钮点了不关这件事，先查真因再定处置 —— 真机上从没验过 finish(translation: nil) 这条路（T1 只验过带译文的「替换原文」）。', { color: 'green' });
+sticky('b1', 'p7', NX, 990, '待点头 A · interaction-spec:1163-1165 写着「配翻译引擎那一屏 App 做不到 —— 在 App 里画一个引擎选择器是假控件」。这句话写于 2026-09-01，已被 1.12.0 的设置重设计推翻（App 现在有真的「引擎与密钥」一节）。同意在落地那一步把它改掉吗？', { color: 'blue', maxH: 360 });
+sticky('b2', 'p7', NX + 500, 990, '待点头 B · 领免费额度这条路要不要也跑三行自检？代价：多一次真实请求、花掉一点点额度。好处：那句「免费额度已配好」才有证据 —— 现在它一次自检都不跑。', { color: 'blue', maxH: 360 });
+sticky('b3', 'p7', NX, 1370, '待点头 C · engineChosen 在 App 里一处都没写（只有扩展设置页与扩展引导页写过）⇒ 在 App 里选了不需要 key 的引擎之后，needsSetup 仍可能为真、界面还说「没配过」。这是现存 bug：单独修，还是随这一轮一起改？', { color: 'blue', maxH: 360 });
 sticky('p3n', 'p3', NX, 0, '面板的窗口行为借用已经出货的实时字幕条：不抢焦点、盖在全屏 App 之上、跨桌面。所以「位置与层级」那块板里的行为不是新发明，是同一种窗口。', { color: 'gray' });
 sticky('p4n', 'p4', NX, 0, '增强取词被审核卡住的退路：它本来就隔在一个开关后面。真被拒，下一版把这个开关藏掉即可，其余功能不受影响 —— 这也是为什么零权限那条路必须单独就够用。', { color: 'gray' });
 

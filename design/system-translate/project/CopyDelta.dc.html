@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>新增文案总表</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1500px; height:820px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">这一稿新增的句子</h1><span>12 语种在落地那一步补。复用既有键的不重写 —— 同一件事在两处说得不一样是本仓踩过的坑。</span></div></div>
+<table class="tbl">
+<tr><th>key</th><th>中文</th><th>出现位置</th><th>来源</th></tr>
+<tr><td><code style="font-size:.78rem">setup_done_title</code></td><td>可以用了</td><td>配好之后的卡标题（四个落点共用）</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_done_onboard</code></td><td>引擎配好了，浏览器那半边照常用。</td><td>从引导来</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_done_settings</code></td><td>引擎配好了。文档翻译、对话听译、实时字幕现在都能用了。</td><td>从设置页来</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_done_systrans</code></td><td>引擎配好了。回到刚才那个 App，再点一次「翻译」即可。</td><td>从系统翻译来</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_done_quick</code></td><td>引擎配好了。刚才那句已经重新翻好，在面板里。</td><td>从 Mac 面板来</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_from_systrans</code></td><td>从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。</td><td>设置页顶部那一行</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_unsaved</code></td><td>key 填在框里，但还没保存 —— 这个框是「改完自动存」，你点一下别处就好。</td><td>半配好 ①</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">setup_need_signin</code></td><td>免费额度要先登录才领得到 —— 登录只用来认人，不同步任何内容。</td><td>半配好 ③</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">auth_err_key</code></td><td>服务商拒绝了这把 key（HTTP 401/403）…</td><td>半配好 ②</td><td><b>复用既有</b></td></tr><tr><td><code style="font-size:.78rem">systrans_discover_title</code></td><td>让 iPhone 自带的「翻译」用上大肚猴</td><td>首页发现卡标题</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_discover_body</code></td><td>在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎。设一次就好。</td><td>发现卡正文</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_discover_done</code></td><td>我已设好</td><td>发现卡次级动作（用户自己说）</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_discover_used</code></td><td>本月从系统翻译收进 {n} 句。</td><td>发现卡「已在用」</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_open_settings</code></td><td>打开「设置」</td><td>发现卡与设置块共用</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_no_direct_link</code></td><td>只能带你到「设置」首页，系统不提供直达那一页的链接。</td><td>两处共用的灰字</td><td>新增</td></tr><tr><td><code style="font-size:.78rem">systrans_step1/2/3</code></td><td>打开「设置」App / 进入「App」→「翻译」/ 点「默认翻译App」…</td><td>三步指引</td><td><b>复用既有</b></td></tr>
+</table>
+<p class="mini" style="margin:0">自检那三行的文案（「测试中…」「✓ 通了 · {ms}ms」）全部复用 quick-setup 与 engine-test 已有的键，一个新的都不加。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

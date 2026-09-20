@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>设置块 · 补上画过但没落地的两样</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1320px; height:620px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">app/sys-settings.js 与画布的差</h1><span>三态落地了（还没同步 / 还没配引擎 / 已同步 / 同步失败）。画布里另外两样没落地。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>补：「打开『设置』」按钮</b><span>画布 AppSysBlock 的 ok 态里有它 + 一句「只能带你到设置首页」。代码里只剩纯文字三步。</span></div><section class="card"><h3>系统翻译</h3><div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步 · 译成 简体中文</div><div class="steps"><div>打开「设置」App</div><div>进入「App」→「翻译」</div><div>点「默认翻译App」，选「大肚猴翻译」</div></div><div class="split"><button class="btn s sm" type="button">打开「设置」</button><span class="mini">只能带你到「设置」首页，系统不提供直达那一页的链接。</span></div></section></div>
+<div class="cell"><div class="cap"><b>补：从发现卡滚过来的高亮</b><span>发现卡上「打开『设置』」旁边还有一条「在 App 里看设置」——滚到这一块并闪一下（复用既有 anchor-flash）。</span></div><section class="card"><h3>系统翻译 <span class="tag a">刚滚过来</span></h3><div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步</div><p class="hint">这一块会闪一下（2.4 秒），与 openSettings(anchorId) 的既有行为一致。</p></section></div>
+</div>
+<p class="mini" style="margin:0">画布里还有一态「系统太旧 ⇒ 整块变淡」，代码里落成了一句常驻说明 —— 因为 App 问不出系统版本。两者的差要在这一页记一笔，不是悄悄改掉。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
