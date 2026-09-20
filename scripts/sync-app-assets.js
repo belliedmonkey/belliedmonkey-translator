@@ -60,7 +60,7 @@ const APP_SRC = {
 // 宿主 App 包里必须有的东西。ExtEngine.js 是系统翻译扩展的引擎（§9.9 / I-5）——
 // 它也走这条过期守卫：装进扩展的引擎比 App 旧，症状是「Mac 上好好的，弹层里少一个字段」，
 // 而那不会有任何一行输出说。
-const FILES = ['Main.html', 'Script.js', 'Style.css', 'ExtEngine.js'];
+const FILES = ['Main.html', 'Script.js', 'Style.css', 'ExtEngine.js', 'ExtCopy.json'];
 
 // Every project the converter can produce. A flavor that exists but is not listed
 // here would silently keep stale assets, so missing ones are reported, not skipped.
@@ -1416,7 +1416,7 @@ const TRANSLATE_EXT_SPEC = {
     // iPhone + iPad。系统翻译在两边都有。
     TARGETED_DEVICE_FAMILY: '"1,2"',
   },
-  resources: [{ name: 'ExtEngine.js', fromApp: 'ExtEngine.js' }],
+  resources: [{ name: 'ExtEngine.js', fromApp: 'ExtEngine.js' }, { name: 'ExtCopy.json', fromApp: 'ExtCopy.json' }],
   plain: [{ name: 'translate-ext.entitlements', from: 'app/native/entitlements/translate-ext.entitlements' }],
 };
 
@@ -1452,10 +1452,16 @@ function stripExtensionTarget(src, spec) {
     .replace(new RegExp('\\n[^\\n]*' + spec.name + '[^\\n]*', 'g'), '');
 }
 
-// 工程里那个 target 还是这份规格描述的那个吗。少一个源文件的症状是「文件在 Xcode 里
-// 看得见，却不参与编译」—— 没有一行输出会说，而运行时是一句 `cannot find … in scope`。
+// 工程里那个 target 还是这份规格描述的那个吗。
+//
+// **源文件与资源都要看。** 少一个源文件的症状是「文件在 Xcode 里看得见，却不参与编译」
+// （运行时一句 `cannot find … in scope`）；少一个资源的症状更隐蔽 —— 文件在工程目录里躺着，
+// 但不在 Resources 阶段，于是**装出来的包里没有它**，而构建一个字都不说（ExtCopy.json 就是
+// 这么差点漏掉的：弹层会变成一片空文案，且不报错）。
 function sourcesDrifted(src, spec) {
-  return spec.srcs.some((name, i) => !src.includes(WID(spec, i === 0 ? 10 : 20 + (i - 1) * 2)));
+  const want = spec.srcs.map((name, i) => WID(spec, i === 0 ? 10 : 20 + (i - 1) * 2))
+    .concat((spec.resources || []).map((r, i) => WID(spec, 40 + i * 2)));
+  return want.some((id) => !src.includes(id));
 }
 
 // 已经造过的 target 里，把显示名那一行升到现在的值。

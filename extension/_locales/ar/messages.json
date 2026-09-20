@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "تدخل الجمل المترجمة إلى المراجعة تحت المصدر «ترجمة النظام». عند الإيقاف تستمر الترجمة، لكنها لا تُحفظ."
+  },
+  "sys_disclose_direct": {
+    "message": "يُرسَل النص المحدّد مباشرةً إلى المحرّك الذي أعددته ({name})، ولا يمر عبر خوادمنا إطلاقًا."
+  },
+  "sys_disclose_grant": {
+    "message": "تستخدم الرصيد المجاني: يُمرَّر النص المحدّد عبرنا إلى مزوّد الخدمة، ولا نحتفظ بالمحتوى."
+  },
+  "sys_fail_network": {
+    "message": "تعذّر الوصول إلى محرّك الترجمة. تحقّق من الاتصال وحاول مرة أخرى."
+  },
+  "sys_fail_timeout": {
+    "message": "لم يردّ المحرّك في الوقت المحدّد."
+  },
+  "sys_fail_http": {
+    "message": "أعاد المحرّك خطأً."
+  },
+  "sys_fail_no_base": {
+    "message": "يحتاج هذا المحرّك إلى عنوان، ولا يوجد عنوان محدّد. افتح BelliedMonkey Translator وأدخِله."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "لم يعد هذا المحرّك متاحًا. اختر محرّكًا آخر في BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "لم يُعدّ أي محرّك ترجمة بعد. افتح BelliedMonkey Translator مرة واحدة وسيعمل هنا."
+  },
+  "sys_fail_not_synced": {
+    "message": "افتح BelliedMonkey Translator مرة واحدة لمشاركة إعدادات المحرّك مع هذه الورقة."
+  },
+  "sys_fail_empty": {
+    "message": "لا يوجد نص قابل للترجمة في التحديد."
+  },
+  "sys_fail_empty_result": {
+    "message": "لم يُعِد المحرّك شيئًا هذه المرة."
+  },
+  "sys_fail_engine": {
+    "message": "لم يبدأ محرّك الترجمة."
+  },
+  "sys_fail_unknown": {
+    "message": "فشلت الترجمة."
+  },
+  "sys_ui_translating": {
+    "message": "جارٍ الترجمة…"
+  },
+  "sys_ui_slow": {
+    "message": "ما زالت جارية — قد يكون الرصيد المجاني بطيئًا."
+  },
+  "sys_ui_replace": {
+    "message": "استبدال"
+  },
+  "sys_ui_open_app": {
+    "message": "فتح BelliedMonkey Translator"
   }
 }

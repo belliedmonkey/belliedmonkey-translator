@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "Sentences you translate go into review, under the source \"System translation\". Turn it off and translation still works, it just isn't saved."
+  },
+  "sys_disclose_direct": {
+    "message": "The selected text goes straight to the engine you configured ({name}); it never passes through our servers."
+  },
+  "sys_disclose_grant": {
+    "message": "Using free credit: the selected text is relayed by us to the provider. We do not keep the content."
+  },
+  "sys_fail_network": {
+    "message": "Couldn't reach the translation engine. Check your connection and try again."
+  },
+  "sys_fail_timeout": {
+    "message": "The engine didn't answer in time."
+  },
+  "sys_fail_http": {
+    "message": "The engine returned an error."
+  },
+  "sys_fail_no_base": {
+    "message": "This engine needs an address and none is set. Open BelliedMonkey Translator and fill it in."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "This engine is no longer available. Pick another one in BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "No translation engine is set up yet. Open BelliedMonkey Translator once and it will work here."
+  },
+  "sys_fail_not_synced": {
+    "message": "Open BelliedMonkey Translator once so it can share your engine settings with this sheet."
+  },
+  "sys_fail_empty": {
+    "message": "Nothing to translate in the selection."
+  },
+  "sys_fail_empty_result": {
+    "message": "The engine returned nothing this time."
+  },
+  "sys_fail_engine": {
+    "message": "The translation engine didn't start."
+  },
+  "sys_fail_unknown": {
+    "message": "Translation failed."
+  },
+  "sys_ui_translating": {
+    "message": "Translating…"
+  },
+  "sys_ui_slow": {
+    "message": "Still going — free credit can be slow."
+  },
+  "sys_ui_replace": {
+    "message": "Replace"
+  },
+  "sys_ui_open_app": {
+    "message": "Open BelliedMonkey Translator"
   }
 }

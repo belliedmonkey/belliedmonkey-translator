@@ -2320,6 +2320,32 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     ok(!cap.includes('failCode'), '失败路径永不写');
   });
 
+  test('★ Gate J-2 的两句披露：自带 key 说「不经过我们」，免费额度说「经我们中转」', () => {
+    const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
+    for (const l of locales) {
+      const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
+      ok(m.sys_disclose_direct.message.includes('{name}'), l + '：直连那句要说得出是哪个引擎');
+      ok(!m.sys_disclose_grant.message.includes('{name}'), l + '：免费额度那句不点引擎名（那是中转后面的服务商）');
+      ok(m.sys_disclose_grant.message.length >= 20, l + '：免费额度那句太短，不像一句完整披露');
+    }
+    // 一句话套两种事实，其中一种必然是假的 —— 弹层必须按 provider 分支
+    const view = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'TranslateExt.swift'), 'utf8');
+    ok(/provider == "grant"/.test(view) && /sys_disclose_grant/.test(view) && /sys_disclose_direct/.test(view),
+      '弹层要按免费额度 / 自带 key 分两句');
+  });
+
+  test('★ 文案表真的会被打进扩展 bundle —— 不在包里的表现是一片空白，且不报错', () => {
+    const { COPY_KEYS } = require('../build/ext-bundle.js');
+    ok(TRANSLATE_EXT_SPEC.resources.some((r) => r.name === 'ExtCopy.json'), 'ExtCopy.json 要在资源清单里');
+    ok(COPY_KEYS.includes('sys_disclose_direct') && COPY_KEYS.includes('sys_disclose_grant'));
+    const out = path.join(ROOT, 'dist-app', 'ExtCopy.json');
+    if (!fs.existsSync(out)) return;   // 还没构建过
+    const j = JSON.parse(fs.readFileSync(out, 'utf8'));
+    eq(Object.keys(j).length, 12, '12 个语种');
+    ok(j['zh-Hans'] && j['zh-Hant'] && j['pt-BR'], '目录名要换成系统的语言码');
+    for (const lang of Object.keys(j)) for (const k of COPY_KEYS) ok(j[lang][k], lang + ' 缺 ' + k);
+  });
+
   test('★ ack 只认文件名本身 —— 一个能删任意路径的口子不该存在', () => {
     const sw = fs.readFileSync(path.join(NATIVE, 'vault-bridge.swift'), 'utf8');
     const ack = sw.slice(sw.indexOf('private func ack(names:'), sw.indexOf('private func clearInbox'));
@@ -2435,27 +2461,28 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     ok(/#if os\(iOS\)/.test(s) && /#endif/.test(s), 'macOS 没有这个扩展点，整份要被条件编译挡住');
   });
 
-  test('★ 扩展的文案与产品里已有的那几句逐字相同 —— 抄一句改一个字就是两套说法', () => {
+  test('★ 扩展的文案没有第二份登记处 —— 全部来自 extension/_locales', () => {
     const copy = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'ExtCopy.swift'), 'utf8');
-    const zh = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', 'zh_CN', 'messages.json'), 'utf8'));
-    const en = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', 'en', 'messages.json'), 'utf8'));
-    // 形如：Row(loc: "auth_err_key",\n  en: "…",\n  zh: "…")
-    const re = /Row\(loc: "([a-z_]+)",\s*\n?\s*en: "((?:[^"\\]|\\.)*)",\s*\n?\s*zh: "((?:[^"\\]|\\.)*)"\)/g;
-    let m; let n = 0;
-    while ((m = re.exec(copy))) {
-      const [, key, e, z] = m;
-      ok(zh[key], '_locales/zh_CN 里没有 ' + key);
-      eq(z.replace(/\\"/g, '"'), zh[key].message, key + ' 的中文与 _locales 不一致');
-      eq(e.replace(/\\"/g, '"'), en[key].message, key + ' 的英文与 _locales 不一致');
-      n += 1;
+    // 判据是**字符串字面量**里不许有人话（注释里当然有，这个仓库的注释是中文的）。
+    // 上一版把中英两语写死在这里，而共用的那几句在产品别处早就有 12 个语种 ——
+    // 两处各写一套，同一件事在 Mac 面板和 iPhone 弹层上说得不一样，而两边都「没报错」。
+    for (const lit of copy.match(/"(?:[^"\\\n]|\\.)*"/g) || []) {
+      ok(!/[\u4e00-\u9fff]/.test(lit), 'ExtCopy.swift 的字面量里不该有中文：' + lit);
+      ok(!/ [a-z]+ [a-z]+ [a-z]+/.test(lit), 'ExtCopy.swift 的字面量里不该有成句英文：' + lit);
     }
-    ok(n >= 8, '至少那几条失败文案要标上 _locales 的键，实际 ' + n);
+    const { COPY_KEYS } = require('../build/ext-bundle.js');
+    const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
+    eq(locales.length, 12);
+    for (const l of locales) {
+      const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
+      for (const k of COPY_KEYS) ok(m[k] && m[k].message, `${l} 缺 ${k}`);
+    }
   });
 
   test('★ 每个会上屏的停机码都有一行文案 —— 没有的那一个会显示成「这次没翻成」', () => {
     const copy = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'ExtCopy.swift'), 'utf8');
     const view = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'TranslateExt.swift'), 'utf8');
-    const have = new Set((copy.match(/^\s*"([a-z_]+)": Row\(/gm) || []).map((s) => s.match(/"([a-z_]+)"/)[1]));
+    const have = new Set((copy.match(/^\s*"([a-z_]+)": "[a-z_]+",/gm) || []).map((s) => s.match(/"([a-z_]+)"/)[1]));
     // ext-entry.js 会返回的 + translation-api.js 会抛的 + 这一侧自己判的
     for (const c of ['empty', 'no_settings', 'needs_setup', 'empty_result', 'not_synced', 'engine_unavailable',
       'auth', 'http', 'no_base', 'unknown_provider', 'credit_exhausted', 'grant_unavailable',

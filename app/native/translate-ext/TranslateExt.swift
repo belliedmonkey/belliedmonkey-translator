@@ -57,15 +57,15 @@ struct MTTranslateSheet: View {
                     // 骨架 + 一行状态。**不转圈就完了** —— 免费额度慢起来是 20 s 量级，
                     // 一个没有进度也没有出口的转圈是这条路上最贵的失败。
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(ExtCopy.text("ui_translating"))
+                        Text(ExtCopy.key("sys_ui_translating"))
                             .font(.subheadline).foregroundStyle(.secondary)
                         if slow {
-                            Text(ExtCopy.text("ui_slow"))
+                            Text(ExtCopy.key("sys_ui_slow"))
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
                     }
                 } else if let code = failCode {
-                    Text(ExtCopy.text(code))
+                    Text(ExtCopy.fail(code))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
@@ -80,7 +80,11 @@ struct MTTranslateSheet: View {
                 // 但那句只说「发给这个 App」，没说「发给你配置的引擎」。所以这一行仍要在，
                 // 而且**不可点、不拦路**（交互稿修订 3）。
                 if !config.provider.isEmpty {
-                    Text(String(format: ExtCopy.text("ui_disclose"), config.provider))
+                    // 免费额度那条路要说**经我们中转**，自带 key 那条要说**不经过我们**——
+                    // 一句话套两种事实，其中一种必然是假的（Gate J-2 定的两句并列）。
+                    Text(config.provider == "grant"
+                         ? ExtCopy.key("sys_disclose_grant")
+                         : ExtCopy.key("sys_disclose_direct").replacingOccurrences(of: "{name}", with: config.provider))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -95,22 +99,22 @@ struct MTTranslateSheet: View {
         HStack(spacing: 12) {
             if let code = failCode {
                 if needsApp(code) {
-                    Button(ExtCopy.text("ui_open_app")) { openApp() }.buttonStyle(.borderedProminent)
+                    Button(ExtCopy.key("sys_ui_open_app")) { openApp() }.buttonStyle(.borderedProminent)
                 } else if ExtCopy.retryable.contains(code) {
-                    Button(ExtCopy.text("ui_retry")) { retry() }.buttonStyle(.borderedProminent)
+                    Button(ExtCopy.key("quick_retry")) { retry() }.buttonStyle(.borderedProminent)
                 }
             } else if !translated.isEmpty {
                 // 可替换时才有这个按钮。网页里 `allowsReplacement` 是 false（T1 实测），
                 // 可编辑的文本框里是 true。
                 if context.allowsReplacement {
-                    Button(ExtCopy.text("ui_replace")) {
+                    Button(ExtCopy.key("sys_ui_replace")) {
                         context.finish(translation: AttributedString(translated))
                     }.buttonStyle(.borderedProminent)
                 }
-                Button(ExtCopy.text("ui_copy")) { UIPasteboard.general.string = translated }
+                Button(ExtCopy.key("quick_copy")) { UIPasteboard.general.string = translated }
             }
             Spacer()
-            Button(ExtCopy.text("ui_done")) { context.finish(translation: nil) }
+            Button(ExtCopy.key("extob_finish")) { context.finish(translation: nil) }
         }
         .font(.subheadline)
     }

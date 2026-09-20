@@ -49,6 +49,63 @@ const MODULES = [
 // 「拿到了另一个 flavor 的东西，而全程没有一行警告」那个 bug 的形状。
 const GENERATED = new Set(['i18n-messages.js', 'providers.gen.js', 'langs.gen.js']);
 
+
+// 弹层里的文案。**唯一登记处仍然是 `extension/_locales`** —— 扩展读不到那些 JSON
+// （裁剪包里没有 i18n-messages.js：整份 1 MB，而这个扩展只肯用 18 MB），所以这里把它
+// 需要的那几十个键挑出来，按语种出一份小表打进扩展 bundle。
+//
+// 抄第二份的那天，就是两套说法开始漂的那天。上一版把中英两语写死在 ExtCopy.swift 里，
+// 而共用的那几句（auth / grant_err_*）在产品别处早就有 12 个语种 —— 两处各写一套的结果
+// 是同一件事在 Mac 面板上和 iPhone 弹层上说得不一样。
+//
+// 键分两类：**共用的**（auth_err_key / grant_err_* —— 与 Mac 快速翻译面板逐字相同）
+// 与**弹层独有的**（sys_fail_* / sys_ui_* / sys_disclose_*）。
+const COPY_KEYS = [
+  // 停机码 → 文案。左边是 translation-api / ext-entry 会给出的码。
+  'auth_err_key', 'grant_err_exhausted', 'grant_err_unavailable', 'grant_err_misconfigured',
+  'grant_err_revoked', 'grant_err_invalid', 'grant_err_model', 'grant_err_busy',
+  'sys_fail_network', 'sys_fail_timeout', 'sys_fail_http', 'sys_fail_no_base',
+  'sys_fail_unknown_provider', 'sys_fail_needs_setup', 'sys_fail_not_synced',
+  'sys_fail_empty', 'sys_fail_empty_result', 'sys_fail_engine', 'sys_fail_unknown',
+  // 按钮与提示
+  'sys_ui_translating', 'sys_ui_slow', 'sys_ui_replace', 'sys_ui_open_app',
+  'quick_retry', 'quick_copy', 'extob_finish',
+  // 首次披露（Gate J-2）。两句并列：自带 key 直连 / 免费额度经我们中转。
+  'sys_disclose_direct', 'sys_disclose_grant',
+];
+
+// `_locales` 的目录名（zh_CN）→ 系统的语言码（zh-Hans）。与 sync-app-assets.js 的
+// PLIST_L10N 同一张对照，理由也一样：`Locale.preferredLanguages` 给的是后者。
+const LPROJ = { zh_CN: 'zh-Hans', zh_TW: 'zh-Hant', pt_BR: 'pt-BR' };
+
+function buildExtCopy(outDir, log) {
+  const root = path.join(ROOT, 'extension', '_locales');
+  const out = {};
+  const missing = [];
+  for (const dir of fs.readdirSync(root)) {
+    const f = path.join(root, dir, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+    const lang = LPROJ[dir] || dir;
+    const rows = {};
+    for (const k of COPY_KEYS) {
+      const v = m[k] && m[k].message;
+      if (!v) { missing.push(`${dir}/${k}`); continue; }
+      rows[k] = v;
+    }
+    out[lang] = rows;
+  }
+  // 硬失败。少一个语种的一个键，表现是那一格在弹层里是空白 —— 而空白不报错。
+  if (missing.length) {
+    throw new Error('ext copy: _locales 缺 ' + missing.slice(0, 8).join(' / ')
+      + (missing.length > 8 ? ` …共 ${missing.length} 处` : ''));
+  }
+  const json = JSON.stringify(out);
+  fs.writeFileSync(path.join(outDir, 'ExtCopy.json'), json);
+  if (log) log(`  ✓ ExtCopy.json（${Object.keys(out).length} 语种 × ${COPY_KEYS.length} 键，${Math.round(json.length / 1024)} KB）`);
+  return json.length;
+}
+
 function buildExtBundle(outDir, log, opts) {
   opts = opts || {};
   fs.mkdirSync(outDir, { recursive: true });
@@ -82,7 +139,8 @@ function buildExtBundle(outDir, log, opts) {
   const out = parts.join('\n');
   fs.writeFileSync(path.join(outDir, 'ExtEngine.js'), out);
   if (log) log(`  ✓ ExtEngine.js（${MODULES.length} 个模块，${Math.round(out.length / 1024)} KB）`);
+  buildExtCopy(outDir, log);
   return out.length;
 }
 
-module.exports = { buildExtBundle, MODULES };
+module.exports = { buildExtBundle, buildExtCopy, MODULES, COPY_KEYS, LPROJ };

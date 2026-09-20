@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "翻訳した文は「システム翻訳」という出典で復習に入ります。オフにしても翻訳はできますが、保存されません。"
+  },
+  "sys_disclose_direct": {
+    "message": "選択したテキストは、設定したエンジン（{name}）に直接送られます。当社のサーバーを経由しません。"
+  },
+  "sys_disclose_grant": {
+    "message": "無料クレジットを使用中：選択したテキストは当社を経由して提供元に送られます。内容は保存しません。"
+  },
+  "sys_fail_network": {
+    "message": "翻訳エンジンに接続できません。通信を確認してもう一度お試しください。"
+  },
+  "sys_fail_timeout": {
+    "message": "エンジンから時間内に応答がありませんでした。"
+  },
+  "sys_fail_http": {
+    "message": "エンジンがエラーを返しました。"
+  },
+  "sys_fail_no_base": {
+    "message": "このエンジンにはアドレスが必要ですが、未設定です。大肚猴翻译を開いて入力してください。"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "このエンジンはもうありません。大肚猴翻译で別のものを選んでください。"
+  },
+  "sys_fail_needs_setup": {
+    "message": "翻訳エンジンが未設定です。大肚猴翻译を一度開いて設定すれば、ここで使えます。"
+  },
+  "sys_fail_not_synced": {
+    "message": "大肚猴翻译を一度開いて、エンジン設定をこのシートに共有してください。"
+  },
+  "sys_fail_empty": {
+    "message": "選択範囲に翻訳できるテキストがありません。"
+  },
+  "sys_fail_empty_result": {
+    "message": "エンジンから何も返りませんでした。"
+  },
+  "sys_fail_engine": {
+    "message": "翻訳エンジンを起動できませんでした。"
+  },
+  "sys_fail_unknown": {
+    "message": "翻訳できませんでした。"
+  },
+  "sys_ui_translating": {
+    "message": "翻訳中…"
+  },
+  "sys_ui_slow": {
+    "message": "まだ翻訳中 · 無料クレジットは遅いことがあります。"
+  },
+  "sys_ui_replace": {
+    "message": "置き換える"
+  },
+  "sys_ui_open_app": {
+    "message": "大肚猴翻译を開く"
   }
 }

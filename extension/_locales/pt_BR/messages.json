@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "As frases traduzidas vão para a revisão, com a origem «Tradução do sistema». Desligado, a tradução continua funcionando, só não é salva."
+  },
+  "sys_disclose_direct": {
+    "message": "O texto selecionado vai direto para o motor que você configurou ({name}); nunca passa pelos nossos servidores."
+  },
+  "sys_disclose_grant": {
+    "message": "Usando crédito gratuito: o texto selecionado é retransmitido por nós ao provedor. Não guardamos o conteúdo."
+  },
+  "sys_fail_network": {
+    "message": "Não foi possível alcançar o motor de tradução. Verifique sua conexão e tente de novo."
+  },
+  "sys_fail_timeout": {
+    "message": "O motor não respondeu a tempo."
+  },
+  "sys_fail_http": {
+    "message": "O motor retornou um erro."
+  },
+  "sys_fail_no_base": {
+    "message": "Este motor precisa de um endereço e não há nenhum. Abra o BelliedMonkey Translator e preencha."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Este motor não existe mais. Escolha outro no BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Nenhum motor de tradução configurado ainda. Abra o BelliedMonkey Translator uma vez e funcionará aqui."
+  },
+  "sys_fail_not_synced": {
+    "message": "Abra o BelliedMonkey Translator uma vez para compartilhar aqui os ajustes do motor."
+  },
+  "sys_fail_empty": {
+    "message": "Nada para traduzir na seleção."
+  },
+  "sys_fail_empty_result": {
+    "message": "O motor não retornou nada desta vez."
+  },
+  "sys_fail_engine": {
+    "message": "O motor de tradução não iniciou."
+  },
+  "sys_fail_unknown": {
+    "message": "A tradução falhou."
+  },
+  "sys_ui_translating": {
+    "message": "Traduzindo…"
+  },
+  "sys_ui_slow": {
+    "message": "Ainda em andamento — o crédito gratuito pode ser lento."
+  },
+  "sys_ui_replace": {
+    "message": "Substituir"
+  },
+  "sys_ui_open_app": {
+    "message": "Abrir o BelliedMonkey Translator"
   }
 }
