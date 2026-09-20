@@ -1340,6 +1340,11 @@ template from bouncing and would trap a scrolling review list.
 2. **配引擎**：在 App 里配 DeepSeek（§0 规则：不用免费 Google），读回 `vault-ack`。调试包可用
    `devicectl device process launch --environment-variables '{"…":"…"}'` 或 UI 测试的 `launchEnvironment` 把 key 传进去 ——
    **key 不进包、不进日志**（xcodebuild 会把 `TEST_RUNNER_<NAME>` 去掉前缀传给测试进程）。
+   也可以直接种进 App 的 `localStorage`（一次性夹具，2026-09-20 走通）：从 `appDataContainer` 拉
+   `Library/WebKit/WebsiteData/Default/<hash>/<hash>/LocalStorage/localstorage.sqlite3`，写 `mt:provider` / `mt:apiKey`，推回去。
+   三处容易错：① **值是 JSON 编码的**（`app/chrome-shim.js` 用 `JSON.parse` 读，写裸 `deepseek` 会解析失败并**静默丢掉这个键**，
+   表现是「种了却像没种」）；② WebKit 存的是 **UTF-16LE**；③ 推回去之前要 `PRAGMA wal_checkpoint(TRUNCATE)`，
+   并把设备上的 `-wal` / `-shm` 覆盖成空文件，否则旧 WAL 会盖回来。种完启动一次 App，回读 App Group 的 plist 确认镜像出去了。
 3. **设为默认**（UI 测试程序）：设置 › App › 搜「翻译」› 翻译 › 默认翻译App › 选我们。**iOS 27 的设置页里行不是 cell** ——
    按文字找任意后代（`descendants(matching: .any)`）；设置根页的搜索搜不到「默认翻译」。判据：页面文案变成「"…"将用于翻译文本」。
 4. **翻一次**：`XCUIDevice.shared.system.open(URL)` 开一个英文页（Safari 地址栏的元素在 iOS 27 上按标签找不到）→ 对段落
@@ -1347,14 +1352,32 @@ template from bouncing and would trap a scrolling review list.
    判据：弹层里出现译文（截整屏），设备日志里 `translate ok`。
 5. **可替换**：**不要往用户的备忘录里写东西**（打开就是用户的真笔记）。在宿主 App 自己的可编辑文本框里全选 › 翻译 › 「替换原文」，
    读回文本框的值。编辑菜单翻页的「›」**没有可用的标签**：按屏宽 87.5%、与菜单项同一行的位置点。
-6. **取日志**：`devicectl device copy from --domain-type appGroupDataContainer` **被拒**（Access restricted）⇒ 让宿主把
-   App Group 里的日志抄一份到自己的 `Documents/`，从 `appDataContainer` 拉。
+6. **读 App Group 的内容**：`devicectl device info files --domain-type appGroupDataContainer --domain-identifier group.<bundle>`
+   与同域的 `copy from` **是通的**（2026-09-20 实测，开发签名包）。回读镜像过来的配置就靠它：
+   `Library/Preferences/group.<bundle>.plist` 里的 `mt.vault.snapshot.v1`（key 不在这里，按设计只进共享钥匙串）。
+   > 尖刺 T1 记的是「被拒（Access restricted）」，那条**已经不成立**；旧的绕法（宿主把日志抄一份到自己的
+   > `Documents/`，从 `appDataContainer` 拉）仍然有效，但不是必须的。第一次列目录报
+   > `The system failed to get a list of files` 时别当成被拒 —— 目录还不存在时就是这个报法。
+   **反过来写不行**：`copy to` 往 App Group 容器里放文件会**报成功但什么都没落地**（回读目录里没有，三种写法都试过）。
+   要给收件箱种记录，只能让扩展自己写。
 7. **进复习库**：翻完后打开 App ⇒ 来源管理里出现「系统翻译 · <月份>」、卡片来源行是纯文字；关掉 `handoffCapture` 再翻一次 ⇒
    App 读回收件箱目录为空。清除本机数据后再翻 ⇒ 弹层是未配置态。
 8. **收尾**：把手机装回正常的包；`devicectl device info apps` 读回版本。
 
 陷阱：联网键写在**宿主 App** 的 Info.plist（写在扩展里 ⇒ `NSURLError -1009`，而宿主自己联网是 200，很像「手机没网」）；
 `openURL` 拉不起宿主 = 宿主没注册那个地址协议，不是系统不许。
+
+**UI 测试程序会突然起不来**（2026-09-20 撞到，同一台机器上午还是好的）：
+
+```
+Unable to launch cc.belliedmonkey.spike.s56uitests.xctrunner because … its profile
+has not been explicitly trusted by the user
+```
+
+这不是代码问题，也不是签名坏了 —— **我们自己的 App 照常启动**，只有测试程序被挡。要人在手机上点一次：
+设置 → 通用 → VPN 与设备管理 → 开发者 App → 信任。**这一步没有自动化的替代**（镜像那条路也不行：
+ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上镜像）。排验证计划时把它当成一个「要人」的步骤，
+别排在无人值守的那一段里。
 
 ### J. macOS 快速翻译（真机、签名构建）— ✅ verified 2026-09-19（配方来自尖刺 T2）
 
