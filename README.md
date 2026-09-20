@@ -16,7 +16,7 @@ BelliedMonkey Translator is a free, open-source (GPL-3.0) app and browser extens
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
-  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
+  <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Install from a store — building from source is for contributors, not for using
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
 
-Using it? Tell me what for, or what to change — [the open thread in Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions). Any language.
+Using it? Tell me what for, or what to change — [come say so on Discord](https://belliedmonkey.cc/discord), or [open a thread](https://github.com/belliedmonkey/belliedmonkey-translator/discussions). Any language.
 
 <details>
 <summary><b>Installing the ZIP directly (Chrome / Edge)</b></summary>
@@ -427,13 +427,15 @@ If you turn learning on, sentences you genuinely stopped and read — not ones y
 
 ## Where to talk
 
-Everything user-facing happens in [GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) — it is the same link behind the "Discuss" button in the app and the extension.
+**[Discord](https://belliedmonkey.cc/discord)** — the chat room, opened September 2026. Three channels, on purpose: `#general` for anything, `#help` when something is broken, `#announcements` for releases. It is the same link behind the "Discuss" button in the app and the extension. Any language — Chinese, English, Russian; mixed-language chat is this project's own use case.
+
+[GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) stays open for anything worth keeping. A chat room is not searchable and Google does not index it; a thread is and does.
 
 - **Something broken or confusing?** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) — say which version and which surface (Safari on iPhone, Chrome, the Mac app…).
 - **Want a site, engine or feature?** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) — upvote an existing one before opening a new one.
 - **Using it in a way we didn't expect?** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell).
 
-Chinese and English are both fine. There is no chat server yet; one will open when there are enough people to keep it alive.
+The China edition (大肚猴翻译) points at Discussions instead — Discord is not reachable from mainland China.
 
 ## Contributing
 

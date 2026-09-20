@@ -16,7 +16,7 @@
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
-  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
+  <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
 
-在用？说说你拿它做什么、想改什么 —— [Discussions 里的开放帖](https://github.com/belliedmonkey/belliedmonkey-translator/discussions)，中英文都行。
+在用？说说你拿它做什么、想改什么 —— [来 Discord 说一声](https://belliedmonkey.cc/discord)，或者[开个帖](https://github.com/belliedmonkey/belliedmonkey-translator/discussions)，中英文都行。
 
 <details>
 <summary><b>直接安装 ZIP（Chrome / Edge）</b></summary>
@@ -383,13 +383,15 @@ extension/
 
 ## 去哪儿说话
 
-面向用户的交流都在 [GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) —— App 和扩展里那个「讨论」按钮指的就是它。
+**[Discord](https://belliedmonkey.cc/discord)** —— 聊天群，2026 年 9 月开的。只有三个频道，是故意的：`#general` 随便聊、`#help` 用不了了、`#announcements` 发版公告。App 和扩展里那个「讨论」按钮指的就是它。什么语言都行 —— 中文、英文、俄文；混着说本来就是这个产品自己的用例。
+
+[GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) 继续留着，放值得留下来的东西。聊天群搜不到、Google 也不收录；帖子可以。
 
 - **坏了或看不懂？** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) —— 写上版本号和你用的是哪一面（iPhone 上的 Safari、Chrome、Mac App……）。
 - **想要某个站点、引擎或功能？** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) —— 先给已有的点赞，再开新的。
 - **用出了我们没想到的用法？** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell)。
 
-中文英文都可以。目前没有聊天群；人够多到能让群活着的时候会开一个。
+**中国版（大肚猴翻译）里那个按钮仍然指向 Discussions** —— Discord 在中国大陆打不开，给一个白屏比不给更糟。
 
 ## 参与贡献
 
