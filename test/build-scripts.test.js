@@ -25,6 +25,8 @@ const {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
   patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
   patchWidgetTarget,
+  patchExtensionTarget,
+  WIDGET_SPEC,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -1033,6 +1035,43 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
     fs.writeFileSync(path.join(proj, 'project.pbxproj'), PBX(appName));
     return { dir, pbx: path.join(proj, 'project.pbxproj') };
   }
+
+  // I-1：patchWidgetTarget 变成 patchExtensionTarget(spec) 的一个薄包装。这是纯重构，
+  // 判据是**输出逐字节不变** —— 重构一个「凭空造 target」的补丁，最容易的失手方式是
+  // 悄悄改掉某个 id 或某行缩进，而那要到下一次真机构建才会暴露。
+  test('★ 重构不动 widget 的输出：走规格造出来的与走包装造出来的逐字节相同', () => {
+    if (!REAL) return;
+    const a = tree('Some App'); patchWidgetTarget(path.join(a.dir, 'Shared (App)'));
+    const b = tree('Some App'); patchExtensionTarget(path.join(b.dir, 'Shared (App)'), WIDGET_SPEC);
+    eq(fs.readFileSync(b.pbx, 'utf8'), fs.readFileSync(a.pbx, 'utf8'), 'widget 的 pbxproj 必须逐字节相同');
+  });
+
+  // 造第二个扩展时最先撞上的两件事：id 撞车（两个 target 抢同一个号，Xcode 打不开工程）
+  // 与源文件只能有一个。两条都在这里钉住 —— 不必等 I-5 真的写那个 target。
+  test('★ 规格是通用的：换个 needle 的扩展不与 widget 抢 id，且可以带多个源文件', () => {
+    if (!REAL) return;
+    const SPEC2 = { needle: 'MT_TRANSLATE_EXT_TARGET', label: 'translate', dir: 'iOS (TranslateExt)',
+      name: 'MTTranslateExt', deploy: '18.4', srcs: ['A.swift', 'B.swift', 'C.swift'], settings: {} };
+    const t = tree('Some App');
+    match(patchWidgetTarget(path.join(t.dir, 'Shared (App)')), /widget target patched/);
+    const note = patchExtensionTarget(path.join(t.dir, 'Shared (App)'), SPEC2);
+    match(note, /translate target patched \(MTTranslateExt, iOS 18\.4\+\)/, '回执要自称 translate');
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    for (const f of SPEC2.srcs) {
+      ok(out.includes(f + ' in Sources'), f + ' 要进 Sources 阶段');
+      ok(out.includes('path = ' + f + ';'), f + ' 要有 PBXFileReference');
+    }
+    ok(out.includes('IPHONEOS_DEPLOYMENT_TARGET = 18.4;'), '扩展有自己的部署下限');
+    // id 撞车会让 Xcode 直接打不开工程。注意判据不能写成「所有 id 去重后数目不变」——
+    // pbxproj 里同一个 id 本来就出现多次（定义一次、被引用多次），那样写必然红。
+    // 真判据：两个扩展各自的 id 集合**不相交**，这由 needle 长度决定的前缀保证。
+    const pre = (spec) => "MT" + spec.needle.length.toString(16).toUpperCase().padStart(2, "0");
+    ok(pre(WIDGET_SPEC) !== pre(SPEC2), "两个扩展的 id 前缀必须不同（否则 Xcode 打不开工程）");
+    const setOf = (pfx) => new Set((out.match(new RegExp(pfx + "[0-9A-F]{20}", "g")) || []));
+    const inter = [...setOf(pre(SPEC2))].filter((x) => setOf(pre(WIDGET_SPEC)).has(x));
+    eq(inter.length, 0, "两个扩展的 id 不能有交集");
+    ok(out.includes('MTPodcastWidget.appex') && out.includes('MTTranslateExt.appex'), '两个产物都在');
+  });
 
   test('造出 target，并把它挂进工程的 targets、依赖与嵌入阶段', () => {
     if (!REAL) return;   // 工程还没生成过，这节无从谈起
