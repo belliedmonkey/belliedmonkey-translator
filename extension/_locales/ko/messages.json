@@ -3520,5 +3520,29 @@
   },
   "sys_ui_open_app": {
     "message": "大肚猴翻译 열기"
+  },
+  "setup_done_title": {
+    "message": "사용할 수 있습니다"
+  },
+  "setup_done_failed_title": {
+    "message": "아직 사용할 수 없습니다"
+  },
+  "setup_done_failed": {
+    "message": "위에 ✗ 표시된 항목이 아직 통과하지 못했습니다. 고치면 자동으로 다시 테스트합니다."
+  },
+  "setup_done_settings": {
+    "message": "엔진을 설정했습니다. 문서 번역, 실시간 통역, 실시간 자막을 모두 쓸 수 있습니다."
+  },
+  "setup_done_systrans": {
+    "message": "엔진을 설정했습니다. 방금 있던 앱으로 돌아가 「번역」을 다시 누르세요 —— 여기서 더 할 일은 없습니다."
+  },
+  "setup_done_quick": {
+    "message": "엔진을 설정했습니다. 빠른 번역 패널로 돌아가 방금 그 문장을 다시 번역하세요."
+  },
+  "setup_done_home": {
+    "message": "홈으로"
+  },
+  "setup_from_systrans": {
+    "message": "시스템 번역에서 오셨습니다. 설정이 끝나면 방금 있던 앱으로 돌아가 「번역」을 다시 누르세요."
   }
 }

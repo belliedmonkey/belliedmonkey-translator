@@ -3521,5 +3521,29 @@
   },
   "sys_ui_open_app": {
     "message": "打开大肚猴翻译"
+  },
+  "setup_done_title": {
+    "message": "可以用了"
+  },
+  "setup_done_failed_title": {
+    "message": "还不能用"
+  },
+  "setup_done_failed": {
+    "message": "上面标 ✗ 的那一项还没通。改完会自动再测一次。"
+  },
+  "setup_done_settings": {
+    "message": "引擎配好了。文档翻译、对话听译、实时字幕现在都能用了。"
+  },
+  "setup_done_systrans": {
+    "message": "引擎配好了。回到刚才那个 App，再点一次「翻译」即可 —— 这里不用再做什么。"
+  },
+  "setup_done_quick": {
+    "message": "引擎配好了。回到快速翻译面板，刚才那句可以重新翻一次。"
+  },
+  "setup_done_home": {
+    "message": "回到首页"
+  },
+  "setup_from_systrans": {
+    "message": "从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。"
   }
 }

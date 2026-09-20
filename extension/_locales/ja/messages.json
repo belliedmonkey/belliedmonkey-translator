@@ -3520,5 +3520,29 @@
   },
   "sys_ui_open_app": {
     "message": "大肚猴翻译を開く"
+  },
+  "setup_done_title": {
+    "message": "使えます"
+  },
+  "setup_done_failed_title": {
+    "message": "まだ使えません"
+  },
+  "setup_done_failed": {
+    "message": "上の ✗ が付いた項目がまだ通っていません。直すと自動でもう一度テストします。"
+  },
+  "setup_done_settings": {
+    "message": "エンジンを設定しました。ドキュメント翻訳・リアルタイム通訳・リアルタイム字幕がすべて使えます。"
+  },
+  "setup_done_systrans": {
+    "message": "エンジンを設定しました。さっきのアプリに戻って、もう一度「翻訳」をタップしてください —— ここですることはもうありません。"
+  },
+  "setup_done_quick": {
+    "message": "エンジンを設定しました。クイック翻訳のパネルに戻って、さっきの文をもう一度翻訳してください。"
+  },
+  "setup_done_home": {
+    "message": "ホームに戻る"
+  },
+  "setup_from_systrans": {
+    "message": "システム翻訳から来ました。設定が終わったら、さっきのアプリに戻ってもう一度「翻訳」をタップしてください。"
   }
 }

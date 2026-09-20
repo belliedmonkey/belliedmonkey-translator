@@ -466,6 +466,20 @@
         <div id="quick-setup"></div>
       </section>
 
+      <!-- 「从哪来」的那一行（画布第 7 页 SetupFrom）。系统翻译的弹层 / Mac 快译面板把人
+           推过来配引擎时，先说清楚他为什么在这儿；配好之后同一行就地变成「你可以回去了」。 -->
+      <p class="note" id="setup-from" hidden></p>
+
+      <!-- 「配好了」的回执（画布第 7 页 SetupDone）。四个落点一种回执：先摆出自检行，
+           再逐行落成 ✓/✗，最后一句话 + 一个随「从哪来」变的下一步。
+           **没通过就不说「可以用了」** —— 见 app/setup-done.js 的文件头。 -->
+      <section id="setup-done" hidden>
+        <h3 id="setup-done-title"></h3>
+        <div id="setup-done-rows"></div>
+        <p id="setup-done-note"></p>
+        <div class="row" id="setup-done-act" hidden></div>
+      </section>
+
       <!-- 永不同屏，但路必须有：详细档顶上一行指回快速档 -->
       <p class="note adv-only" id="app-adv-hint"><button type="button" class="link" id="app-adv-hint-go"></button></p>
 

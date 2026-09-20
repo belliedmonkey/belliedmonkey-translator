@@ -3520,5 +3520,29 @@
   },
   "sys_ui_open_app": {
     "message": "BelliedMonkey Translator öffnen"
+  },
+  "setup_done_title": {
+    "message": "Einsatzbereit"
+  },
+  "setup_done_failed_title": {
+    "message": "Noch nicht nutzbar"
+  },
+  "setup_done_failed": {
+    "message": "Der oben mit ✗ markierte Punkt ist nicht durchgekommen. Beheben Sie ihn, dann wird erneut getestet."
+  },
+  "setup_done_settings": {
+    "message": "Die Engine ist eingerichtet. Dokumentübersetzung, Live-Dolmetscher und Live-Untertitel funktionieren jetzt."
+  },
+  "setup_done_systrans": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück in die App von vorhin und tippen Sie erneut auf „Übersetzen“ — hier ist nichts weiter zu tun."
+  },
+  "setup_done_quick": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück zum Schnellübersetzungs-Panel und übersetzen Sie den Satz erneut."
+  },
+  "setup_done_home": {
+    "message": "Zurück zur Startseite"
+  },
+  "setup_from_systrans": {
+    "message": "Sie kommen von der Systemübersetzung. Sobald das hier eingerichtet ist, gehen Sie zurück in jene App und tippen Sie erneut auf „Übersetzen“."
   }
 }

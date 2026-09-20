@@ -998,6 +998,10 @@
 
   async function closeSettings() {
     $('app-settings').hidden = true;
+    // 回执与「从哪来」那一行都只属于这一次配置，离开就收掉 —— 留着的话，
+    // 下一次进设置页会看到一段与此刻无关的「可以用了」。
+    try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.hide(); } catch (_) {}
+    if ($('setup-from')) $('setup-from').hidden = true;
     $(settingsFrom).hidden = false;
     await paintCounts();
     say('');
@@ -1116,6 +1120,8 @@
     //
     // Swift 侧（app/native/open-url-bridge.swift）两头都兜：页面没就绪时它写
     // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。所以这里两样都读。
+    try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.wire({ close: () => closeSettings() }); } catch (_) {}
+
     function parseDeepLink(raw) {
       try {
         const u = new URL(String(raw || ''));
@@ -1124,10 +1130,24 @@
         // 「登录了但 id 读不出来」—— 两者要给的话不一样。
         const has = u.searchParams.has('uid');
         return { action: (u.hostname || u.pathname.replace(/^\/+/, '')) || 'review',
+          // `from` 说的是「谁把我推过来的」。此前它被整个丢弃，于是弹层那句
+          // 「配好后回到刚才的 App 再点一次翻译」（interaction-spec :980）无从落地。
+          from: String(u.searchParams.get('from') || ''),
           hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
       } catch (_) { return null; }
     }
     window.__mtDeepLink = (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); };
+
+    // 「从哪来」的那一行。只有真的被推过来时才出现 —— 自己走进设置页的人不需要它。
+    // 配好之后它不必自己变：回执块就在同一屏上，那才是「你可以回去了」的载体。
+    function paintSetupFrom(src) {
+      const el = $('setup-from');
+      if (!el) return;
+      if (src !== 'systrans') { el.hidden = true; return; }
+      el.textContent = t('setup_from_systrans',
+        '从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。');
+      el.hidden = false;
+    }
 
     // 三支，每一支都必须说得出**事实**，不猜。
     async function applyDeepLink(d) {
@@ -1148,7 +1168,12 @@
       // 送到「引擎与密钥」那一节，不是设置页顶部：人是带着「这里不能用」这个问题来的。
       if (d.action === 'setup') {
         $('onboard').hidden = true;
+        // 人是带着「那边不能用」这个问题来的：先记下从哪来（决定配好之后说什么），
+        // 再在「引擎与密钥」顶上说清楚他为什么在这儿。
+        const src = d.from === 'system-translate' ? 'systrans' : 'settings';
+        try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.mark(src); } catch (_) {}
         try { openSettings('sec-engines'); } catch (_) { openSettings(); }
+        paintSetupFrom(src);
         return;
       }
       if (d.action === 'listen') {

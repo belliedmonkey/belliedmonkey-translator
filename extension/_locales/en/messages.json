@@ -3520,5 +3520,29 @@
   },
   "sys_ui_open_app": {
     "message": "Open BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "Ready to use"
+  },
+  "setup_done_failed_title": {
+    "message": "Not usable yet"
+  },
+  "setup_done_failed": {
+    "message": "The item marked ✗ above didn't get through. Fix it and it will be tested again."
+  },
+  "setup_done_settings": {
+    "message": "The engine is set up. Document translation, live interpreting and live subtitles all work now."
+  },
+  "setup_done_systrans": {
+    "message": "The engine is set up. Go back to the app you were in and tap Translate again — nothing more to do here."
+  },
+  "setup_done_quick": {
+    "message": "The engine is set up. Go back to the Quick Translate panel and translate that sentence again."
+  },
+  "setup_done_home": {
+    "message": "Back to home"
+  },
+  "setup_from_systrans": {
+    "message": "You came here from System translation. Once this is set up, go back to that app and tap Translate again."
   }
 }

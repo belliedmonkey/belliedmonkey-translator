@@ -3521,5 +3521,29 @@
   },
   "sys_ui_open_app": {
     "message": "打開大肚猴翻譯"
+  },
+  "setup_done_title": {
+    "message": "可以用了"
+  },
+  "setup_done_failed_title": {
+    "message": "還不能用"
+  },
+  "setup_done_failed": {
+    "message": "上面標 ✗ 的那一項還沒通。改完會自動再測一次。"
+  },
+  "setup_done_settings": {
+    "message": "引擎設定好了。文件翻譯、對話聽譯、即時字幕現在都能用了。"
+  },
+  "setup_done_systrans": {
+    "message": "引擎設定好了。回到剛才那個 App，再點一次「翻譯」即可 —— 這裡不用再做什麼。"
+  },
+  "setup_done_quick": {
+    "message": "引擎設定好了。回到快速翻譯面板，剛才那句可以重新翻一次。"
+  },
+  "setup_done_home": {
+    "message": "回到首頁"
+  },
+  "setup_from_systrans": {
+    "message": "從系統翻譯過來的：設定好之後，回到剛才的 App 再點一次「翻譯」。"
   }
 }

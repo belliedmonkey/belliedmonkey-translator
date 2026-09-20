@@ -3520,5 +3520,29 @@
   },
   "sys_ui_open_app": {
     "message": "Abrir BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "Listo para usar"
+  },
+  "setup_done_failed_title": {
+    "message": "Todavía no se puede usar"
+  },
+  "setup_done_failed": {
+    "message": "El elemento marcado con ✗ arriba no pasó. Corrígelo y se volverá a probar automáticamente."
+  },
+  "setup_done_settings": {
+    "message": "El motor está configurado. La traducción de documentos, el intérprete en directo y los subtítulos en directo ya funcionan."
+  },
+  "setup_done_systrans": {
+    "message": "El motor está configurado. Vuelve a la app donde estabas y toca Traducir otra vez: aquí no hay nada más que hacer."
+  },
+  "setup_done_quick": {
+    "message": "El motor está configurado. Vuelve al panel de traducción rápida y traduce esa frase de nuevo."
+  },
+  "setup_done_home": {
+    "message": "Volver al inicio"
+  },
+  "setup_from_systrans": {
+    "message": "Vienes de la traducción del sistema. Cuando esté configurado, vuelve a esa app y toca Traducir otra vez."
   }
 }
