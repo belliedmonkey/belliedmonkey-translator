@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "사용할 수 있습니다"
   },
+  "setup_done_checking": {
+    "message": "확인 중…"
+  },
   "setup_done_failed_title": {
     "message": "아직 사용할 수 없습니다"
   },

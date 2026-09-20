@@ -3356,6 +3356,9 @@
   "setup_done_title": {
     "message": "इस्तेमाल के लिए तैयार"
   },
+  "setup_done_checking": {
+    "message": "जाँच हो रही है…"
+  },
   "setup_done_failed_title": {
     "message": "अभी इस्तेमाल नहीं हो सकता"
   },

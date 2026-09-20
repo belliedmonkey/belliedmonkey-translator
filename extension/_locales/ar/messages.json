@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "جاهز للاستخدام"
   },
+  "setup_done_checking": {
+    "message": "جارٍ التحقق…"
+  },
   "setup_done_failed_title": {
     "message": "غير قابل للاستخدام بعد"
   },

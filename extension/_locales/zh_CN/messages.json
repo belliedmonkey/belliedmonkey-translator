@@ -3525,6 +3525,9 @@
   "setup_done_title": {
     "message": "可以用了"
   },
+  "setup_done_checking": {
+    "message": "正在检查…"
+  },
   "setup_done_failed_title": {
     "message": "还不能用"
   },

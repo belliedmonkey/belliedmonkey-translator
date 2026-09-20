@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "Einsatzbereit"
   },
+  "setup_done_checking": {
+    "message": "Wird geprüft…"
+  },
   "setup_done_failed_title": {
     "message": "Noch nicht nutzbar"
   },

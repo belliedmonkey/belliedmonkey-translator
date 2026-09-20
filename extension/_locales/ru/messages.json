@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "Готово к работе"
   },
+  "setup_done_checking": {
+    "message": "Проверка…"
+  },
   "setup_done_failed_title": {
     "message": "Пока не работает"
   },
