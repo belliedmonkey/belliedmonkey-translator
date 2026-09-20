@@ -103,7 +103,7 @@ ${mini('共同：监听的是<b>「从无到有」</b>，不是「有变化」�
 
 // ⑤ 首页发现卡（落地化：改成 #ext-banner 的既有形状）
 const disc = (k) => ({
-  none: `<section class="card"><h3>让 iPhone 自带的「翻译」用上大肚猴</h3>${hint('在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎。设一次就好。')}<div class="steps"><div>打开「设置」App</div><div>进入「App」→「翻译」</div><div>点「默认翻译App」，选「大肚猴翻译」</div></div><div class="split">${btn('打开「设置」', 'p', 'sm')}<a href="#done">我已设好</a></div><p class="mini" style="margin:0">系统不提供直达那一页的链接，只能带你到「设置」首页。</p></section>`,
+  none: `<section class="card"><h3>让 iPhone 自带的「翻译」用上大肚猴</h3>${hint('在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎。设一次就好。')}<div class="steps"><div>打开「设置」App</div><div>进入「App」→「翻译」</div><div>点「默认翻译App」，选「大肚猴翻译」</div></div><div class="split"><a href="#done">我已设好</a></div><p class="mini" style="margin:0">系统不提供直达那一页的链接，我们也带不了你过去 —— 所以这里只有三步文字。</p></section>`,
   said: `<div class="old"><div class="c"><span>（首页不再有这张卡）</span></div></div>`,
   used: `<section class="card"><h3>系统翻译 <span class="tag g">已在用</span></h3>${hint('本月从系统翻译收进 12 句。')}<div class="split"><a href="#src">在复习库里看 →</a></div></section>`,
 }[k]);
@@ -111,7 +111,7 @@ const disc = (k) => ({
 board('Discover.dc.html', 1760, 700, '首页发现卡（落地化）', `${head('把画过的那张卡，落成首页已有的形状',
   '首页唯一的横幅位是 #ext-banner（app/app.js:289-380）。它已经有这套形状，也已经立过「iOS 上 App 判不了，诚实的做法是由用户告诉我们」这条先例（键 extBannerDoneAt）。')}
 ${grid(4, `
-${cell('没设过', '三步直接摊开，不藏在「怎么设」后面 —— 这三步就是全部内容，展开比点一下便宜。', disc('none'))}
+${cell('没设过', '三步直接摊开，不藏在「怎么设」后面。<b>没有「打开设置」按钮</b> —— 落地时查清楚了：openSettingsURLString 打开的是我们自己 App 的设置页，而能直达「设置 › App › 翻译」的 prefs:root= 是私有接口。', disc('none'))}
 ${cell('点了「我已设好」', '卡片消失，不再出现；入口常驻在设置块里。键照 extBannerDoneAt 的先例。', disc('said'))}
 ${cell('已在用', '判据：第一次从收件箱收进句子。没开采集的人永远看不到这一态 —— 可以接受，卡本来就能关。', disc('used'))}
 ${cell('与 Safari 扩展横幅撞车', '<b>首页不能同时挂两张「还差一步」。</b>扩展那张先 —— 它是整个产品的前提，系统翻译只是其中一条入口。', `<div class="old"><div class="c">① Safari 扩展还没打开</div><div class="c">② 系统翻译还没设</div></div><p class="mini" style="margin:0">①收起之后②才出现。</p>`)}
@@ -139,8 +139,8 @@ ${mini('「系统低于 18.4」这一条是妥协：App 问不出系统版本（
 board('SysBlockV2.dc.html', 1320, 620, '设置块 · 补上画过但没落地的两样', `${head('app/sys-settings.js 与画布的差',
   '三态落地了（还没同步 / 还没配引擎 / 已同步 / 同步失败）。画布里另外两样没落地。')}
 ${grid(2, `
-${cell('补：「打开『设置』」按钮', '画布 AppSysBlock 的 ok 态里有它 + 一句「只能带你到设置首页」。代码里只剩纯文字三步。', card('系统翻译',
-  `<div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步 · 译成 简体中文</div><div class="steps"><div>打开「设置」App</div><div>进入「App」→「翻译」</div><div>点「默认翻译App」，选「大肚猴翻译」</div></div><div class="split">${btn('打开「设置」', 's', 'sm')}<span class="mini">只能带你到「设置」首页，系统不提供直达那一页的链接。</span></div>`))}
+${cell('<s>补：「打开『设置』」按钮</s> —— 落地时作废', '<b>这一条不做了。</b>openSettingsURLString 打开的是我们自己 App 的设置页；能直达「设置 › App › 翻译」的 prefs:root= 是私有接口。一个点了会把人带到别处的按钮，比没有按钮更糟。', card('系统翻译',
+  `<div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步 · 译成 简体中文</div><div class="steps"><div>打开「设置」App</div><div>进入「App」→「翻译」</div><div>点「默认翻译App」，选「大肚猴翻译」</div></div><span class="mini">系统不提供直达那一页的链接，我们也带不了你过去 —— 只有这三步文字。</span>`))}
 ${cell('补：从发现卡滚过来的高亮', '发现卡上「打开『设置』」旁边还有一条「在 App 里看设置」——滚到这一块并闪一下（复用既有 anchor-flash）。', card('系统翻译 <span class="tag a">刚滚过来</span>',
   `<div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步</div>${hint('这一块会闪一下（2.4 秒），与 openSettings(anchorId) 的既有行为一致。')}`))}
 `, 20)}
