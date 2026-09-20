@@ -33,6 +33,8 @@ const {
   WIDGET_SPEC,
   EMBED_PLUGINS,
   EMBED_EXTENSIONKIT,
+  TRANSLATE_EXT_SPEC,
+  appBundleId,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -1090,9 +1092,14 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
 
   const PBX = (appName) => {
     // 把 needle 与已有的 widget 痕迹剥掉，得到一份「还没打过这个补丁」的骨架。
-    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n')
-      .replace(/\n[^\n]*MT_WIDGET_TARGET[^\n]*\n/g, '\n')
-      .replace(/\n[^\n]*MTPodcastWidget[^\n]*\n/g, '\n');
+    // 剥掉**每一个**我们自己造的 target 的痕迹，得到「还没打过补丁」的骨架。
+    // 只剥 widget 是不够的：I-5 之后真工程里还有系统翻译那一个，留着它会让
+    // 「换个 needle 的扩展」那一条撞上幂等判据，然后报一个与真因无关的错。
+    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
+      t = t.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
+        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
+    }
     if (appName !== 'BelliedMonkey Translator') {
       t = t.split('BelliedMonkey Translator').join(appName);
     }
@@ -1254,8 +1261,14 @@ describe('sync-app-assets: ExtensionKit 扩展（I-5a）', () => {
     const abs = path.join(__dirname, '..', 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
     return fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : null;
   })();
-  const PBX = () => String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n')
-    .replace(/\n[^\n]*MT_WIDGET_TARGET[^\n]*\n/g, '\n').replace(/\n[^\n]*MTPodcastWidget[^\n]*\n/g, '\n');
+  const PBX = () => {
+    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
+      t = t.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
+        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
+    }
+    return t;
+  };
   function tree() {
     const dir = tmpdir();
     const proj = path.join(dir, 'X.xcodeproj');
@@ -2205,5 +2218,126 @@ describe('app bundle — 面板页不启动主壳（MAIN_ONLY）', () => {
     const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
     ok(/AppQuick\.isQuickMode\(\)\) \{ AppQuick\.boot\(\); return; \}/.test(app));
     ok(/MTTelemetry !== 'undefined' && !\(typeof AppQuick !== 'undefined' && AppQuick\.isQuickMode\(\)\)\) MTTelemetry\.init/.test(app));
+  });
+});
+
+// 系统翻译扩展本身（learning-design §9.9 / iOS 线 I-5b）。
+//
+// 这一节守的不是「代码对不对」（那由 xcodebuild 回答，见 PR 里的读数），而是几件
+// **做错了不会报错**的事：组名写死成一个 flavor、entitlements 多给一项、联网键写错位置、
+// 文案与产品里已有的那几句各说各的。
+describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
+  const ROOT = path.join(__dirname, '..');
+  const NATIVE = path.join(ROOT, 'app', 'native');
+  const ENT = path.join(NATIVE, 'entitlements');
+
+  test('★ 组名跟着 flavor 走 —— 两个 App 共用一个组 = 互相看得见对方的 key', () => {
+    for (const f of ['ios-app.entitlements', 'translate-ext.entitlements']) {
+      const s = fs.readFileSync(path.join(ENT, f), 'utf8');
+      const body = s.slice(s.indexOf('<plist'));
+      ok(body.includes('group.__MT_APP_BUNDLE_ID__'), f + ' 的 App Group 要用占位符');
+      ok(body.includes('$(AppIdentifierPrefix)__MT_APP_BUNDLE_ID__.shared'), f + ' 的钥匙串组要用占位符');
+      ok(!/group\.com\.belliedmonkeytranslator/.test(body), f + ' 里不许写死 bundle id');
+    }
+  });
+
+  test('★ 扩展的 entitlements 只有两项 —— translation-app 与 applesignin 属于宿主', () => {
+    const s = fs.readFileSync(path.join(ENT, 'translate-ext.entitlements'), 'utf8');
+    const body = s.slice(s.indexOf('<plist'));
+    ok(body.includes('application-groups') && body.includes('keychain-access-groups'));
+    for (const k of ['translation-app', 'applesignin']) {
+      ok(!body.includes(k), '扩展不该有 ' + k + '（多一项能力 = 审核多一个要解释的点）');
+    }
+  });
+
+  test('★ 联网键写在**宿主 App** 的 Info.plist —— 写在扩展里三个地址一律 -1009，且不报权限错', () => {
+    const row = PLIST_KEYS.find((k) => k.key === 'com.apple.developer.translation-ui-provider.network-access');
+    ok(row, '这个键要在 PLIST_KEYS 里');
+    eq(row.only, 'iOS (App)', 'Apple 文档那句 “your app’s Info.plist” 是字面意思（T1 实测）');
+    // 扩展自己的 plist 里不许有它 —— 那正是尖刺里连不上的那一版
+    ok(!TRANSLATE_EXT_SPEC.plist.includes('network-access'), '扩展的 plist 里不该有联网键');
+  });
+
+  test('★ 扩展点声明用 ExtensionKit 那一套，且带着这棵树的 scheme', () => {
+    ok(TRANSLATE_EXT_SPEC.plist.includes('EXAppExtensionAttributes'));
+    ok(TRANSLATE_EXT_SPEC.plist.includes('com.apple.public.translation-ui-provider'));
+    ok(!TRANSLATE_EXT_SPEC.plist.includes('NSExtension'), 'ExtensionKit 不用 NSExtension');
+    ok(TRANSLATE_EXT_SPEC.plist.includes('__MT_SCHEME__'), '深链 scheme 要按 flavor 替换');
+    eq(TRANSLATE_EXT_SPEC.productType, 'com.apple.product-type.extensionkit-extension');
+    eq(TRANSLATE_EXT_SPEC.embed, EMBED_EXTENSIONKIT);
+    eq(TRANSLATE_EXT_SPEC.deploy, '18.4', 'TranslationUIProvider 从 iOS 18.4 才有');
+  });
+
+  test('★ 规格里点名的源文件与资源都真的在', () => {
+    for (const s of TRANSLATE_EXT_SPEC.srcs) {
+      ok(fs.existsSync(path.join(NATIVE, TRANSLATE_EXT_SPEC.srcDir, s)), s + ' 不存在');
+    }
+    for (const p of TRANSLATE_EXT_SPEC.plain) ok(fs.existsSync(path.join(ROOT, p.from)), p.from + ' 不存在');
+    eq(TRANSLATE_EXT_SPEC.resources[0].fromApp, 'ExtEngine.js', '引擎从这个 flavor 的宿主包里取');
+  });
+
+  test('★ VaultNames 是一份文件两个消费者 —— App 那边走标记块，扩展那边编进 target', () => {
+    const { DELEGATE_PATCHES: _ } = require('../scripts/sync-app-assets.js');
+    const src = fs.readFileSync(path.join(ROOT, 'scripts', 'sync-app-assets.js'), 'utf8');
+    ok(src.includes("src: 'translate-ext/VaultNames.swift'"), 'App 那边要贴同一份文件');
+    ok(TRANSLATE_EXT_SPEC.srcs.includes('VaultNames.swift'), '扩展那边要编同一份文件');
+    // 抄第二份的形状：仓库里除了这一个文件，不该有第二处定义 MTVaultNames
+    const hits = fs.readdirSync(NATIVE).filter((f) => f.endsWith('.swift'))
+      .filter((f) => /enum MTVaultNames/.test(fs.readFileSync(path.join(NATIVE, f), 'utf8')));
+    eq(hits.length, 0, 'app/native/ 顶层不该再有一份 MTVaultNames：' + hits.join(', '));
+  });
+
+  test('★ 回执里永远没有 key 的值（原生这一侧）', () => {
+    const s = fs.readFileSync(path.join(NATIVE, 'vault-bridge.swift'), 'utf8');
+    const ack = s.slice(s.indexOf('private func ack('));
+    ok(!/apiKey|secret\[/.test(ack), 'ack 里不许出现 key');
+    ok(s.includes('"keys": keys') && s.includes('"status": Int(status)'), '回执只有键名与 OSStatus');
+    ok(/#if os\(iOS\)/.test(s) && /#endif/.test(s), 'macOS 没有这个扩展点，整份要被条件编译挡住');
+  });
+
+  test('★ 扩展的文案与产品里已有的那几句逐字相同 —— 抄一句改一个字就是两套说法', () => {
+    const copy = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'ExtCopy.swift'), 'utf8');
+    const zh = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', 'zh_CN', 'messages.json'), 'utf8'));
+    const en = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', 'en', 'messages.json'), 'utf8'));
+    // 形如：Row(loc: "auth_err_key",\n  en: "…",\n  zh: "…")
+    const re = /Row\(loc: "([a-z_]+)",\s*\n?\s*en: "((?:[^"\\]|\\.)*)",\s*\n?\s*zh: "((?:[^"\\]|\\.)*)"\)/g;
+    let m; let n = 0;
+    while ((m = re.exec(copy))) {
+      const [, key, e, z] = m;
+      ok(zh[key], '_locales/zh_CN 里没有 ' + key);
+      eq(z.replace(/\\"/g, '"'), zh[key].message, key + ' 的中文与 _locales 不一致');
+      eq(e.replace(/\\"/g, '"'), en[key].message, key + ' 的英文与 _locales 不一致');
+      n += 1;
+    }
+    ok(n >= 8, '至少那几条失败文案要标上 _locales 的键，实际 ' + n);
+  });
+
+  test('★ 每个会上屏的停机码都有一行文案 —— 没有的那一个会显示成「这次没翻成」', () => {
+    const copy = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'ExtCopy.swift'), 'utf8');
+    const view = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'TranslateExt.swift'), 'utf8');
+    const have = new Set((copy.match(/^\s*"([a-z_]+)": Row\(/gm) || []).map((s) => s.match(/"([a-z_]+)"/)[1]));
+    // ext-entry.js 会返回的 + translation-api.js 会抛的 + 这一侧自己判的
+    for (const c of ['empty', 'no_settings', 'needs_setup', 'empty_result', 'not_synced', 'engine_unavailable',
+      'auth', 'http', 'no_base', 'unknown_provider', 'credit_exhausted', 'grant_unavailable',
+      'model_not_allowed', 'network', 'timeout', 'unknown']) {
+      if (c === 'no_settings') continue;   // 扩展里读不到 storage 是不可能的：seed 是原生注入的
+      ok(have.has(c), '缺文案：' + c);
+    }
+    // 要去 App 里改配置的，不能给「重试」—— 再失败一次不是出口
+    const needsApp = view.slice(view.indexOf('private func needsApp'), view.indexOf('private func openApp'));
+    for (const c of ['needs_setup', 'not_synced', 'auth', 'no_base', 'unknown_provider']) {
+      ok(needsApp.includes(`"${c}"`), c + ' 要给「打开大肚猴翻译」而不是「重试」');
+    }
+  });
+
+  test('★ 扩展里没有第二份传输实现 —— 同一份字节跑在 JavaScriptCore 里', () => {
+    const dir = path.join(NATIVE, 'translate-ext');
+    const all = fs.readdirSync(dir).map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+    // 这几样一旦出现在 Swift 里，就是开始重写传输层了
+    for (const bad of ['chat/completions', 'api.deepseek.com', 'Authorization', '"messages"']) {
+      ok(!all.includes(bad), 'Swift 里不该出现 ' + bad + '（传输只有 ExtEngine.js 一份）');
+    }
+    ok(all.includes('__mtFetch') && all.includes('__mtTimer') && all.includes('__mtSeed'),
+      '三个钩子的名字要与 app/ext-shim.js 逐字一致');
   });
 });
