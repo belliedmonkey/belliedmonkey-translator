@@ -22,6 +22,7 @@
     "store:stats": "node scripts/store-stats.js",
     "test:smoke": "node scripts/verify-extension-smoke.js",
     "test:learn": "node scripts/verify-learn-flow.js",
+    "test:inbox": "node scripts/verify-ext-inbox.js",
     "test:speech": "node scripts/verify-speech-live.js",
     "models": "node scripts/gen-model-recommendations.js",
     "acct": "node scripts/test-account.js",

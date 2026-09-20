@@ -40,7 +40,12 @@ enum MTExtInbox {
             "ts": Int(Date().timeIntervalSince1970 * 1000), "via": via,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: rec, options: [.sortedKeys]) else { return false }
-        let name = String(format: "%d-%08x.json", Int(Date().timeIntervalSince1970 * 1000), UInt32.random(in: 0...UInt32.max))
+        // **别用 `String(format: "%d", …)` 拼毫秒时间戳。** `%d` 在 Swift 里按 32 位取，
+        // 而毫秒 epoch 是 1.79e12 —— 会被截成负数（实测 1789883396612 → -1117965820）。
+        // 那样文件名就不再按时间有序，而 trim() 删最旧的、drain() 读顺序**都靠这个序**：
+        // 一旦错位，删掉的是最新的几条，而没有任何一处会报错。
+        let ms = Int(Date().timeIntervalSince1970 * 1000)
+        let name = "\(ms)-" + String(format: "%08x", UInt32.random(in: 0...UInt32.max)) + ".json"
         // 原子写：读的那一侧随时可能在扫目录，看到半个文件比看不到更糟。
         guard (try? data.write(to: d.appendingPathComponent(name), options: [.atomic])) != nil else { return false }
         trim()
