@@ -70,7 +70,7 @@ const unsure = (k) => ({
   unsaved: card('还差一下', `${hint('key 填在框里，但还没保存 —— 这个框是「改完自动存」，你点一下别处就好。')}<div class="old"><div class="c">API Key<span class="tag a">未保存</span></div></div>${btn('保存并测试', 'p', 'blk')}`),
   bad: card('保存了，但用不了', `${res('bad')}<div class="note w">这把 key 服务商不认。检查有没有多复制一个空格，或换一把。</div>${btn('重新填', 'p', 'blk')}`),
   nologin: card('额度还没到', `${hint('免费额度要先登录才领得到 —— 登录只用来认人，不同步任何内容。')}<div class="old"><div class="c">免费额度<span class="tag a">未登录</span></div></div>${btn('登录并领取', 'p', 'blk')}`),
-  chosen: card('选了免费引擎，却说没配', `${hint('选了不需要 key 的引擎之后，界面仍显示「还没配过翻译引擎」。')}<div class="old"><div class="c bad">engineChosen 在 App 里一处都没写</div></div><p class="mini" style="margin:0">这是现存的 bug，不是交互问题：判据 EngineState.needsSetup 要读这个键，而它只在扩展的两处被写过。</p>`),
+  chosen: card('选了免费引擎，却说没配', `${hint('选了不需要 key 的引擎之后，界面仍显示「还没配过翻译引擎」。')}<div class="old"><div class="c bad">engineChosen 在 App 里一处都没写</div></div><p class="mini" style="margin:0">这是现存的 bug，不是交互问题：判据 EngineState.needsSetup 要读这个键，而它只在扩展的两处被写过。<b>落地时已修</b>：一键配置与领额度两条路各补了一次 markEngineChosen。</p>`),
 }[k]);
 
 board('SetupUnsure.dc.html', 1760, 720, '「我到底配好了没有」', `${head('半配好的四种样子',
@@ -88,7 +88,13 @@ ${mini('共同的判据：<b>任何一处说「配好了」之前，必须有一
 const ret = (k) => ({
   fork: card('扩展引导（已有，唯一的闭环）', `${hint('领取在另一个标签页发生，人不必自己走回来。')}<div class="steps"><div>去设置页领额度</div><div>监听 grantTail「从空变非空」</div><div>先 paint 再停 1.5 秒，让人看见「到账」</div><div>自动前进到下一屏</div></div>`),
   systrans: card('系统翻译弹层（做不到自动回）', `${hint('弹层是系统拉起的一次性进程；我们跳去 App 之后，回不去那段文字。')}<div class="old"><div class="c">能做：把话说满 —— 回哪个 App、做什么</div><div class="c bad">做不到：自动回到那段文字</div></div>`),
-  quick: card('Mac 快译面板（能真的回）', `${hint('面板与设置在同一个进程里，那句待翻的文字还在。')}<div class="steps"><div>面板上「打开设置」</div><div>配好，自检通过</div><div>面板里那句自动重翻</div></div>`),
+  // 这一格原来写的是「能真的回 —— 面板与设置在同一个进程里」。**落地时查出来是错的**：
+  // 面板是**第二个 WKWebView**（app/quick-host.js:143 的原注释），chrome-shim 的
+  // storage.onChanged 是每页各一个监听器集合（app/chrome-shim.js:57），跨不过去；
+  // 而且按下「打开设置」的那一刻面板已经 orderOut 了（quick-panel.swift:317）。
+  // 要真的自动重翻，得走一条新的原生消息（主窗口 → 原生 → 重新 present 面板），
+  // 那是另一个 PR、且要 Mac 出包才验得了。所以这一版说的是**能兑现的那句**。
+  quick: card('Mac 快译面板（回得去，但要你自己点一下）', `${hint('面板还留着那句原文，但它是第二个 WKWebView —— 主窗口配好了，它收不到通知。')}<div class="steps"><div>面板上「打开设置」（面板收起）</div><div>配好，自检通过</div><div>回执说「回到面板，刚才那句可以重新翻一次」</div></div><div class="old"><div class="c bad">做不到（这一版）：面板自己重翻</div></div>`),
 }[k]);
 
 board('SetupReturn.dc.html', 1320, 720, '去配置 → 配完回来', `${head('三条路，能力不一样，话就要不一样',
@@ -96,9 +102,9 @@ board('SetupReturn.dc.html', 1320, 720, '去配置 → 配完回来', `${head('�
 ${grid(3, `
 ${cell('已有的那一个', '搬形状的来源。', ret('fork'))}
 ${cell('系统翻译', '<b>不许画「自动跳回」</b>。', ret('systrans'))}
-${cell('Mac 快译', '唯一能真的回到原处的。', ret('quick'))}
+${cell('Mac 快译', '<b>原稿说它能自动回，落地时查出来是错的</b>：面板是第二个 WKWebView，收不到主窗口的设置总线。', ret('quick'))}
 `, 20)}
-${mini('共同：监听的是<b>「从无到有」</b>，不是「有变化」—— storage.onChanged 会因为别的写入触发（onboard.js:421 的原注释）。')}`,
+${mini('共同：监听的是<b>「从无到有」</b>，不是「有变化」—— storage.onChanged 会因为别的写入触发（onboard.js:421 的原注释）。<b>三条路里只有第一条真的闭环</b>：另外两条都只能把话说满，而话必须与能力逐字对得上。')}`,
   { page: PG, phone: true });
 
 // ⑤ 首页发现卡（落地化：改成 #ext-banner 的既有形状）
@@ -153,7 +159,7 @@ const rows = [
   ['setup_done_onboard', '引擎配好了，浏览器那半边照常用。', '从引导来', '新增'],
   ['setup_done_settings', '引擎配好了。文档翻译、对话听译、实时字幕现在都能用了。', '从设置页来', '新增'],
   ['setup_done_systrans', '引擎配好了。回到刚才那个 App，再点一次「翻译」即可。', '从系统翻译来', '新增'],
-  ['setup_done_quick', '引擎配好了。刚才那句已经重新翻好，在面板里。', '从 Mac 面板来', '新增'],
+  ['setup_done_quick', '引擎配好了。回到快速翻译面板，刚才那句可以重新翻一次。', '从 Mac 面板来', '新增'],
   ['setup_from_systrans', '从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。', '设置页顶部那一行', '新增'],
   ['setup_unsaved', 'key 填在框里，但还没保存 —— 这个框是「改完自动存」，你点一下别处就好。', '半配好 ①', '新增'],
   ['setup_need_signin', '免费额度要先登录才领得到 —— 登录只用来认人，不同步任何内容。', '半配好 ③', '新增'],
