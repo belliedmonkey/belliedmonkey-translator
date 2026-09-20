@@ -67,7 +67,7 @@ ${mini('中国版差别只有一处：左边那张卡没有「领免费额度」
 
 // ③ 「我到底配好了没有」—— 四种半配好
 const unsure = (k) => ({
-  unsaved: card('还差一下', `${hint('key 填在框里，但还没保存 —— 这个框是「改完自动存」，你点一下别处就好。')}<div class="old"><div class="c">API Key<span class="tag a">未保存</span></div></div>${btn('保存并测试', 'p', 'blk')}`),
+  unsaved: card('还差一下（扩展设置页 / App 详细档）', `${hint('key 填在框里，但还没保存 —— 这个框是「改完自动存」，你点一下别处就好。')}<div class="old"><div class="c">API Key<span class="tag a">未保存</span></div></div>${btn('保存并测试', 'p', 'blk')}`),
   bad: card('保存了，但用不了', `${res('bad')}<div class="note w">这把 key 服务商不认。检查有没有多复制一个空格，或换一把。</div>${btn('重新填', 'p', 'blk')}`),
   nologin: card('额度还没到', `${hint('免费额度要先登录才领得到 —— 登录只用来认人，不同步任何内容。')}<div class="old"><div class="c">免费额度<span class="tag a">未登录</span></div></div>${btn('登录并领取', 'p', 'blk')}`),
   chosen: card('选了免费引擎，却说没配', `${hint('选了不需要 key 的引擎之后，界面仍显示「还没配过翻译引擎」。')}<div class="old"><div class="c bad">engineChosen 在 App 里一处都没写</div></div><p class="mini" style="margin:0">这是现存的 bug，不是交互问题：判据 EngineState.needsSetup 要读这个键，而它只在扩展的两处被写过。<b>落地时已修</b>：一键配置与领额度两条路各补了一次 markEngineChosen。</p>`),
@@ -76,12 +76,12 @@ const unsure = (k) => ({
 board('SetupUnsure.dc.html', 1760, 720, '「我到底配好了没有」', `${head('半配好的四种样子',
   '用户原话：「用户甚至不知道怎么样才算配置完成」。凡是「看起来配了、其实没成」的状态，都要说出差在哪、给一个出口。')}
 ${grid(4, `
-${cell('填了没保存', '最常见。输入框是 change 触发，没失焦就没保存 —— 而界面此刻什么都不说。', unsure('unsaved'))}
+${cell('填了没保存', '最常见。输入框是 change 触发，没失焦就没保存 —— 而界面此刻什么都不说。<b>落地时查清楚了：这一态在 App 的「引擎与密钥」里不存在</b> —— App 没有翻译引擎的逐项控件（index.html:498 的原注释），只有一张带「配置」按钮的一键卡。它成立的地方是<b>扩展设置页</b>，以及 App 详细档那三张槽卡（解析 / 转写 / 朗读）。', unsure('unsaved'))}
 ${cell('保存了但 key 是错的', '自检红着。文案逐字复用既有的 auth_err_key，不另写。', unsure('bad'))}
 ${cell('领额度但没登录成功', '额度要登录才领得到；登录页在另一处，回来之后这里要自己变。', unsure('nologin'))}
 ${cell('选了免费引擎却仍显示未配置', '现存 bug，板上标红。', unsure('chosen'))}
 `, 20)}
-${mini('共同的判据：<b>任何一处说「配好了」之前，必须有一次真的成功</b>。没跑过自检就不说这句话 —— 这与「只信回读，不信没报错」是同一条。')}`,
+${mini('共同的判据：<b>任何一处说「配好了」之前，必须有一次真的成功</b>。没跑过自检就不说这句话 —— 这与「只信回读，不信没报错」是同一条。<br>落地状态：②由回执的自检覆盖（红着就说红），③早就有（LearnGrant.status 按 signedIn 给「登录并领取」），④已修；①在 App 的主引擎上<b>不成立</b>。')}`,
   { page: PG, phone: true });
 
 // ④ 去配置 → 配完回来：三条路各自能做到什么
