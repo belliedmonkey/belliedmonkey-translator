@@ -1073,6 +1073,9 @@
     AppDocs.wire({ openSettings });
     // 快速翻译（§9.9）：macOS 才有原生半边；别的壳上 quick-probe 没人回，这一行就是空操作。
     // 确认框用页内的 LearnDialog —— App 里 window.confirm 恒为 false。
+    // 引擎配置镜像给系统翻译扩展（§9.9）。iOS 才有原生半边；别的壳上 available() 是
+    // false，这一行就是空操作 —— 与 AppQuickHost 的 quick-probe 同一条纪律。
+    try { if (typeof AppVault !== 'undefined') AppVault.start(); } catch (_) {}
     try {
       if (typeof AppQuickHost !== 'undefined') {
         AppQuickHost.start({ openSettings, confirm: (m, o) => (typeof LearnDialog !== 'undefined' ? LearnDialog.confirm(m, o) : Promise.resolve(true)) });
