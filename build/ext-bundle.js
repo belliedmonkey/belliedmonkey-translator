@@ -69,7 +69,7 @@ const COPY_KEYS = [
   'sys_fail_empty', 'sys_fail_empty_result', 'sys_fail_engine', 'sys_fail_unknown',
   // 按钮与提示
   'sys_ui_translating', 'sys_ui_slow', 'sys_ui_replace', 'sys_ui_open_app',
-  'quick_retry', 'quick_copy', 'extob_finish',
+  'quick_retry', 'quick_copy',
   // 首次披露（Gate J-2）。两句并列：自带 key 直连 / 免费额度经我们中转。
   'sys_disclose_direct', 'sys_disclose_grant',
 ];

@@ -114,7 +114,22 @@ struct MTTranslateSheet: View {
                 Button(ExtCopy.key("quick_copy")) { UIPasteboard.general.string = translated }
             }
             Spacer()
-            Button(ExtCopy.key("extob_finish")) { context.finish(translation: nil) }
+            // **这里原来有一个「完成」按钮，调 `context.finish(translation: nil)`。2026-09-21
+            // 真机验尸之后删掉了**（画布第 1 页 SheetFinish 板；用户 2026-09-20 报「点完成没用」）。
+            //
+            // 两种宿主、两种坏法，同一个按钮 —— iPhone 14 Pro / iOS 27：
+            //   · Safari 网页（allowsReplacement = false）：hittable = true，译文已落定之后
+            //     点了 3 次，2 秒与 6 秒各读一次弹层是否还在 —— 六次读回全是「还在」，关掉 0 次。
+            //   · 备忘录（allowsReplacement = true，「替换原文」真的出现了）：看得见，
+            //     但 hittable = false，点不到。
+            //
+            // 布局逐行查过：它就在这个 HStack 里、在 Spacer() 之后，渲染完全正常 —— 坏的是行为。
+            // 而 `finish(translation:)` 是 Apple 给扩展的**唯一**关闭入口，带 nil 时不工作，
+            // 所以没有「换个实现」这条路。
+            //
+            // 关闭走弹层右上角**系统自己那个 ✕**（整轮验证每一次都靠它关的）。剩下的
+            // 「替换原文」「复制译文」都是真能用的动作。依据是本仓两条既有的规矩：
+            // 「灰掉不如不存在」、「不存在的功能不许长死状态条」。
         }
         .font(.subheadline)
     }
