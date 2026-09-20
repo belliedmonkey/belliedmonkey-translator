@@ -911,6 +911,19 @@ function patchInfoPlists(sharedDir) {
 //
 // 判据在别处：归档之后 `codesign -d --entitlements` 要能同时读到 applesignin 与
 // 沙箱 —— 「构建没报错」说明不了两者是否共存（verify:ios 覆盖不到 entitlement）。
+// 每个 target 一份 entitlements（I-2，learning-design §9.9）。原来是一份文件挂给两个 App
+// target —— 而系统翻译要给 **iOS App 与它的扩展** 加 App Group / 共享 Keychain，给 macOS
+// 加就是白给：那边没有 TranslationUIProvider，多出来的能力只会在审核时被问。
+//
+// 认哪个 target 用哪一份，靠的是「CODE_SIGN_ENTITLEMENTS（可能还没有）+ 紧随其后的
+// INFOPLIST_FILE」这一对 —— 补丁一直把前者插在后者正上方，所以这一对就是「某个 target 的
+// 某一档配置」的指纹。守卫也按这一对判：**不能用「整份 pbxproj 里出现过 CODE_SIGN_ENTITLEMENTS」**，
+// 那样第二个 target 永远挂不上，而且不会有任何一行输出说这件事。
+const ENTITLEMENTS = [
+  { plist: 'iOS (App)/Info.plist', src: 'ios-app.entitlements' },
+  { plist: 'macOS (App)/Info.plist', src: 'macos-app.entitlements' },
+];
+
 function patchEntitlements(sharedDir) {
   const appRoot = path.dirname(sharedDir);
   const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
@@ -918,29 +931,44 @@ function patchEntitlements(sharedDir) {
   const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
   if (!fs.existsSync(f)) return 'no project.pbxproj';
 
-  // ① 文件本身
-  const rel = path.basename(sharedDir) + '/app.entitlements';
-  const dst = path.join(sharedDir, 'app.entitlements');
-  const tpl = fs.readFileSync(path.join(ROOT, 'app', 'native', 'app.entitlements'), 'utf8');
-  const had = fs.existsSync(dst) && fs.readFileSync(dst, 'utf8') === tpl;
-  if (!had) fs.writeFileSync(dst, tpl);
-
-  // ② 构建设置
   let src = fs.readFileSync(f, 'utf8');
-  if (src.includes('CODE_SIGN_ENTITLEMENTS')) {
-    return `applesignin entitlement already patched${had ? '' : '（文件已更新）'}`;
+  const shared = path.basename(sharedDir);
+  const done = [];
+  const missing = [];
+  let updated = 0;
+
+  for (const e of ENTITLEMENTS) {
+    // ① 文件本身（放进 Shared (App)/，与一次性的工程同生共死）
+    const tplPath = path.join(ROOT, 'app', 'native', 'entitlements', e.src);
+    if (!fs.existsSync(tplPath)) return `✗ entitlements: app/native/entitlements/${e.src} 不存在`;
+    const tpl = fs.readFileSync(tplPath, 'utf8');
+    const dst = path.join(sharedDir, e.src);
+    if (!fs.existsSync(dst) || fs.readFileSync(dst, 'utf8') !== tpl) { fs.writeFileSync(dst, tpl); updated += 1; }
+
+    // ② 构建设置。三种情况都要处理：没有就插入；指着别处（例如拆分前那份共用的
+    //    app.entitlements）就改写；已经对了就不动。
+    const rel = shared + '/' + e.src;
+    const quoted = e.plist.replace(/[.()]/g, (c) => '\\' + c);
+    const pair = new RegExp('(\\n\\s*CODE_SIGN_ENTITLEMENTS = "[^"]*";)?(\\n(\\s*))INFOPLIST_FILE = "' + quoted + '";', 'g');
+    let hits = 0;
+    let found = 0;
+    src = src.replace(pair, (m, had, ws, indent) => {
+      found += 1;
+      if (had && had.indexOf('"' + rel + '"') >= 0) return m;
+      hits += 1;
+      const tail = had ? m.slice(had.length) : m;
+      return '\n' + indent + 'CODE_SIGN_ENTITLEMENTS = "' + rel + '";' + tail;
+    });
+    if (hits) done.push(`${e.src} ×${hits}`);
+    if (!found) missing.push(e.plist);
   }
-  // 与 audio-input 那处同一个纪律：只在**一个构建配置块内部**匹配（中间不许出现
-  // `}`），这样扩展 target 的设置行永远借不到 App target 的标识行。
-  const NEEDLE = /(\n\s*)INFOPLIST_FILE = "(iOS|macOS) \(App\)\/Info\.plist";/g;
-  let hits = 0;
-  src = src.replace(NEEDLE, (m, ws) => {
-    hits += 1;
-    return `${ws}CODE_SIGN_ENTITLEMENTS = "${rel}";` + m;
-  });
-  if (!hits) return 'applesignin: App target 的 INFOPLIST_FILE 没找到 — 转换器布局变了？';
-  fs.writeFileSync(f, src);
-  return `applesignin entitlement patched (${hits} configs)`;
+
+  // 一段都没认出来 ⇒ 转换器布局变了，整体放弃并说明（绝不写一半）
+  if (missing.length) {
+    return `✗ entitlements: 没找到 ${missing.join(' / ')} 那一段 —— 转换器布局变了？`;
+  }
+  if (done.length) { fs.writeFileSync(f, src); return `entitlements patched (${done.join(', ')})`; }
+  return `entitlements already patched${updated ? '（文件已更新）' : ''}`;
 }
 
 // Patch 10 (§9.6.1): 本机离线朗读要链接 sherpa-onnx + onnxruntime（app/native/vendor/，由
@@ -1553,5 +1581,6 @@ module.exports = {
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
   SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
+  patchEntitlements, ENTITLEMENTS,
   patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };
