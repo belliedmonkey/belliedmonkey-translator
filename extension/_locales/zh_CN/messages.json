@@ -3434,5 +3434,41 @@
   },
   "quick_shot_perm_second": {
     "message": "第一次框选时，系统还会再弹一次确认，允许即可。之后每隔一段时间系统会再问一次 —— 这是系统对所有截屏类 App 的做法。"
+  },
+  "systrans_title": {
+    "message": "系统翻译"
+  },
+  "systrans_intro": {
+    "message": "在任何 App 里选中文字点「翻译」，用你自己配的引擎翻。要先把大肚猴翻译设为默认："
+  },
+  "systrans_step1": {
+    "message": "打开「设置」App"
+  },
+  "systrans_step2": {
+    "message": "进入「App」→「翻译」"
+  },
+  "systrans_step3": {
+    "message": "点「默认翻译App」，选「大肚猴翻译」"
+  },
+  "systrans_need": {
+    "message": "需要 iOS 或 iPadOS 18.4 及以上。系统版本低于它时，那个列表里不会出现大肚猴翻译。"
+  },
+  "systrans_state_pending": {
+    "message": "还没同步。打开这个 App 时会自动同步一次。"
+  },
+  "systrans_state_ok": {
+    "message": "引擎已同步：{name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "还没配置引擎。配好之后会自动同步过去。"
+  },
+  "systrans_state_failed": {
+    "message": "同步失败（{code}）。到「引擎与密钥」里重新保存一次试试。"
+  },
+  "systrans_capture_label": {
+    "message": "存入复习库"
+  },
+  "systrans_capture_hint": {
+    "message": "翻过的句子进复习，来源「系统翻译」。关掉后照常翻译，只是不存。"
   }
 }

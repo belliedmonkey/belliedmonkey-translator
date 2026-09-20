@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "처음 영역을 선택할 때 macOS가 한 번 더 확인을 요청합니다. 허용하면 됩니다. 이후에도 일정 기간마다 다시 묻는데, 화면을 캡처하는 모든 앱에 대해 macOS가 하는 일입니다."
+  },
+  "systrans_title": {
+    "message": "시스템 번역"
+  },
+  "systrans_intro": {
+    "message": "어떤 앱에서든 텍스트를 선택하고 「번역」을 누르면 직접 설정한 엔진으로 번역합니다. 먼저 기본 번역 앱으로 지정하세요:"
+  },
+  "systrans_step1": {
+    "message": "「설정」 앱 열기"
+  },
+  "systrans_step2": {
+    "message": "「앱」→「번역」으로 이동"
+  },
+  "systrans_step3": {
+    "message": "「기본 번역 App」을 눌러 大肚猴翻译 선택"
+  },
+  "systrans_need": {
+    "message": "iOS 또는 iPadOS 18.4 이상이 필요합니다. 그보다 낮은 버전에서는 목록에 나타나지 않습니다."
+  },
+  "systrans_state_pending": {
+    "message": "아직 동기화되지 않았습니다. 이 앱을 열면 자동으로 동기화됩니다."
+  },
+  "systrans_state_ok": {
+    "message": "엔진 동기화됨: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "아직 엔진을 설정하지 않았습니다. 설정하면 자동으로 동기화됩니다."
+  },
+  "systrans_state_failed": {
+    "message": "동기화 실패({code}). 「엔진 및 키」에서 다시 저장해 보세요."
+  },
+  "systrans_capture_label": {
+    "message": "복습 라이브러리에 저장"
+  },
+  "systrans_capture_hint": {
+    "message": "번역한 문장이 「시스템 번역」 출처로 복습에 들어갑니다. 꺼도 번역은 되지만 저장되지 않습니다."
   }
 }

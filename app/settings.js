@@ -1098,6 +1098,7 @@ var AppSettings = (() => {
       try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnhanced || ch.quickEnhancedNote)) paintEnhanced(); }); } catch (_) {}
       // M-7 的那几行（快捷键录制、存入复习库、登录时启动、屏幕录制状态、服务菜单直达）在 app/quick-settings.js。
       if (typeof AppQuickSettings !== 'undefined') AppQuickSettings.wire();
+      if (typeof AppSysSettings !== 'undefined') AppSysSettings.wire();
     }
     $('doc-prefetch').addEventListener('change', () => { set({ docPrefetch: $('doc-prefetch').checked }); });
     for (const which of ['my', 'other']) {
@@ -1313,6 +1314,9 @@ var AppSettings = (() => {
         // would upload itself back as well. The typeof guard is mandatory: the app
         // bundle deliberately ships without LearnBackup.
         if (typeof LearnBackup !== 'undefined') { try { await LearnBackup.clear(); } catch (_) {} }
+        // 系统翻译的收件箱（§9.9）：不清的话，下一次打开 App 又从收件箱里长出几十张卡 ——
+        // 用户看着清干净了，第二天卡又回来了，而界面上没有任何地方会说这件事。
+        try { if (typeof AppVault !== 'undefined') AppVault.clearInbox(); } catch (_) {}
         await paint(opts.session(), say);   // read back: the counts must be 0 now
         say(t('toast_learn_cleared', '学习库已清空'));
       } catch (_) {

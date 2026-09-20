@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "The first time you select an area, macOS asks for one more confirmation — just allow it. After that, macOS asks again every so often; it does this for every app that captures the screen."
+  },
+  "systrans_title": {
+    "message": "System translation"
+  },
+  "systrans_intro": {
+    "message": "Select text in any app and tap Translate to translate it with the engine you configured. First set BelliedMonkey Translator as the default:"
+  },
+  "systrans_step1": {
+    "message": "Open the Settings app"
+  },
+  "systrans_step2": {
+    "message": "Go to Apps → Translate"
+  },
+  "systrans_step3": {
+    "message": "Tap Default Translation App and pick BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Requires iOS or iPadOS 18.4 or later. On older systems we will not appear in that list."
+  },
+  "systrans_state_pending": {
+    "message": "Not synced yet. It syncs automatically when you open this app."
+  },
+  "systrans_state_ok": {
+    "message": "Engine synced: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "No engine set up yet. It syncs automatically once you configure one."
+  },
+  "systrans_state_failed": {
+    "message": "Sync failed ({code}). Try saving again under Engines & keys."
+  },
+  "systrans_capture_label": {
+    "message": "Save to review library"
+  },
+  "systrans_capture_hint": {
+    "message": "Sentences you translate go into review, under the source \"System translation\". Turn it off and translation still works, it just isn't saved."
   }
 }

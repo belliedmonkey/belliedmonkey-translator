@@ -3433,5 +3433,41 @@
   },
   "quick_shot_perm_second": {
     "message": "عند تحديد منطقة لأول مرة، سيطلب macOS تأكيدًا إضافيًا، فاسمح به. بعد ذلك سيسأل macOS مجددًا بين حين وآخر، وهذا ما يفعله مع كل تطبيق يلتقط الشاشة."
+  },
+  "systrans_title": {
+    "message": "ترجمة النظام"
+  },
+  "systrans_intro": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» ليُترجَم بالمحرّك الذي أعددته. اجعل BelliedMonkey Translator التطبيق الافتراضي أولًا:"
+  },
+  "systrans_step1": {
+    "message": "افتح تطبيق «الإعدادات»"
+  },
+  "systrans_step2": {
+    "message": "انتقل إلى «التطبيقات» ← «الترجمة»"
+  },
+  "systrans_step3": {
+    "message": "اضغط «تطبيق الترجمة الافتراضي» واختر BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "يتطلب iOS أو iPadOS 18.4 أو أحدث. على الأنظمة الأقدم لن نظهر في تلك القائمة."
+  },
+  "systrans_state_pending": {
+    "message": "لم تتم المزامنة بعد. تتم المزامنة تلقائيًا عند فتح هذا التطبيق."
+  },
+  "systrans_state_ok": {
+    "message": "تمت مزامنة المحرّك: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "لم تُعدّ أي محرّك بعد. ستتم المزامنة تلقائيًا بمجرد إعداد واحد."
+  },
+  "systrans_state_failed": {
+    "message": "فشلت المزامنة ({code}). جرّب الحفظ مرة أخرى من «المحرّكات والمفاتيح»."
+  },
+  "systrans_capture_label": {
+    "message": "الحفظ في مكتبة المراجعة"
+  },
+  "systrans_capture_hint": {
+    "message": "تدخل الجمل المترجمة إلى المراجعة تحت المصدر «ترجمة النظام». عند الإيقاف تستمر الترجمة، لكنها لا تُحفظ."
   }
 }

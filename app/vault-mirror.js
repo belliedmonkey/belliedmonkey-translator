@@ -49,6 +49,7 @@
   const WATCH = new Set(READ.concat(['learnRules']));
 
   let acked = null;   // 最近一次 vault-ack（键名列表 + OSStatus），**永不含 key 的值**
+  const ackFns = [];  // 回执到了要通知的人（设置页那一块）—— 同步是异步的，先画出来的必然是「还没同步」
   let lastJson = '';  // 上一次发出去的快照，用来去重
 
   function port() { try { return root.webkit.messageHandlers[CHANNEL] || null; } catch (_) { return null; } }
@@ -169,6 +170,7 @@
     // **回执里永远没有 key 的值**，只有键名与 OSStatus。真要出问题，能说出
     // 「写了哪几个键、系统怎么答的」就够定位了。
     acked = { keys: Array.isArray(msg.keys) ? msg.keys.slice() : [], status: msg.status };
+    for (const fn of ackFns) { try { fn(acked); } catch (_) { /* 一个订阅者抛了不该连累别人 */ } }
     return undefined;
   }
 
@@ -194,6 +196,7 @@
   root.AppVault = {
     available, snapshot, sync, clear, start, onNative,
     drain, clearInbox, _onBatch: onBatch,
+    onAck: (fn) => { if (typeof fn === 'function') ackFns.push(fn); },
     PROTOCOL, NON_SECRET, READ,
     ack: () => acked,
   };

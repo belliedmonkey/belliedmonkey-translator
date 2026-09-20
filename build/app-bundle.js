@@ -128,6 +128,7 @@ const MODULES = [
   'app/hotkey-core.js',               // HotkeyCore —— 快捷键的键码表 / 校验 / 显示（纯逻辑；quick-host 与 quick-settings 都用）
   'app/quick-host.js',                // AppQuickHost —— 快速翻译在主页面这一侧的接线（mtQuick；macOS 才有原生半边）
   'app/vault-mirror.js',              // AppVault —— 引擎配置镜像给系统翻译扩展（mtVault；iOS 才有原生半边）
+  'app/sys-settings.js',              // AppSysSettings —— 设置里「系统翻译」那一块（iOS 才显示）
   'app/quick-settings.js',            // AppQuickSettings —— 设置里「快速翻译」块的 M-7 那几行
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
   'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
