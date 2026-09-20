@@ -1461,11 +1461,11 @@ function patchExtensionTarget(sharedDir, spec) {
 // Live Activity 的源文件与它自己的 Info.plist。扩展有独立 bundle，所以 plist 也独立。
 function patchWidgetFiles(sharedDir) {
   const appRoot = path.dirname(sharedDir);
-  const srcFile = path.join(ROOT, 'app', 'native', 'widget', 'LiveActivity.swift');
-  if (!fs.existsSync(srcFile)) return '✗ widget: app/native/widget/LiveActivity.swift 不存在';
-  const dir = path.join(appRoot, WIDGET_DIR);
+  const srcFile = path.join(ROOT, 'app', 'native', 'widget', WIDGET_SPEC.srcs[0]);
+  if (!fs.existsSync(srcFile)) return `✗ ${WIDGET_SPEC.label}: app/native/widget/${WIDGET_SPEC.srcs[0]} 不存在`;
+  const dir = path.join(appRoot, WIDGET_SPEC.dir);
   fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(srcFile, path.join(dir, 'LiveActivity.swift'));
+  fs.copyFileSync(srcFile, path.join(dir, WIDGET_SPEC.srcs[0]));
   const plist = path.join(dir, 'Info.plist');
   if (!fs.existsSync(plist)) {
     fs.writeFileSync(plist, '<?xml version="1.0" encoding="UTF-8"?>\n'

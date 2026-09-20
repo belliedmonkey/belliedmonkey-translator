@@ -27,6 +27,7 @@ const {
   patchEntitlements,
   ENTITLEMENTS,
   patchWidgetTarget,
+  patchWidgetFiles,
   patchExtensionTarget,
   WIDGET_SPEC,
 } = require('../scripts/sync-app-assets.js');
@@ -1108,6 +1109,21 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
   // I-1：patchWidgetTarget 变成 patchExtensionTarget(spec) 的一个薄包装。这是纯重构，
   // 判据是**输出逐字节不变** —— 重构一个「凭空造 target」的补丁，最容易的失手方式是
   // 悄悄改掉某个 id 或某行缩进，而那要到下一次真机构建才会暴露。
+  // patchWidgetFiles 此前**一条测试都没有** —— I-1 把常量换成规格时漏改了它里面的
+  // WIDGET_DIR，而 npm test 全绿：这个函数要真工程树才跑得到，单测一次都没碰过它。
+  // 是 app:sync 在真树上当场 ReferenceError 才暴露的。补这一条，让它以后不必靠人跑到。
+  test('★ 源文件与 Info.plist 落进规格说的那个目录', () => {
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    const note = patchWidgetFiles(path.join(dir, 'Shared (App)'));
+    ok(!/✗|not defined/.test(note), '不该报错，实际：' + note);
+    const out = path.join(dir, WIDGET_SPEC.dir);
+    ok(fs.existsSync(path.join(out, WIDGET_SPEC.srcs[0])), WIDGET_SPEC.srcs[0] + ' 要被拷过去');
+    ok(fs.existsSync(path.join(out, 'Info.plist')), '扩展有独立 bundle，plist 也独立');
+    ok(fs.readFileSync(path.join(out, 'Info.plist'), 'utf8').includes('widgetkit-extension'),
+      'plist 要声明 widget 的扩展点');
+  });
+
   test('★ 重构不动 widget 的输出：走规格造出来的与走包装造出来的逐字节相同', () => {
     if (!REAL) return;
     const a = tree('Some App'); patchWidgetTarget(path.join(a.dir, 'Shared (App)'));
