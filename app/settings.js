@@ -791,10 +791,9 @@ var AppSettings = (() => {
     await paint(session, say);
     try { await paintGrant(session); } catch (_) {}   // 同扩展设置页：一键卡写完后重画额度卡（F07）
     await trackEngineSet();
-    // 「配好了」的回执（画布第 7 页）。卡内那三行是卡自己的事；这一块回答的是另一个
-    // 问题 ——「所以我配好了没有、接下来干什么」。用户 2026-09-20 的原话：
-    // 「用户甚至不知道怎么样才算配置完成」。
-    try { if (typeof AppSetupDone !== 'undefined') await AppSetupDone.show(plan && plan.tests); } catch (_) {}
+    // 回执**不在这里显示**。这一刻自检还没跑（onApply 在自检之前调用），此时说任何
+    // 结论都是猜的 —— 2026-09-20 真机实测：标题「可以用了」与一个 ✗ 并排挂了几十秒。
+    // 回执改由 onResults 触发（见 QuickSetup.render 的 onResults）。
   }
 
   // `engineChosen` 此前**在 App 里一处都没写**（只有扩展设置页与扩展引导页写过），
@@ -931,6 +930,10 @@ var AppSettings = (() => {
       replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
       targetLang: '',
       onApply: (plan) => applyQuickSetup(plan, session, say),
+      // 自检跑完之后才给回执，并且**用卡自己的结果**，不再测第二遍。
+      onResults: (plan, results) => {
+        try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.show(plan && plan.tests, { results }); } catch (_) {}
+      },
       // App 配完就没有下一步了，也没有网页可翻 —— 「现在翻一页看看」属于浏览器那一侧。
       showTry: false,
     });

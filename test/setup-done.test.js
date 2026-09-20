@@ -116,10 +116,39 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
   });
 
   test('★ 两条配置路都要给回执 —— 领免费额度那条是重点', () => {
+    // 一键卡这条路走 onResults（自检跑完、拿着卡自己的结果），**不在 onApply 里显示**：
+    // onApply 在自检之前调用，那一刻说任何结论都是猜的（2026-09-20 真机：标题「可以用了」
+    // 与一个 ✗ 并排挂了几十秒）。
     const quick = settings.slice(settings.indexOf('async function applyQuickSetup'), settings.indexOf('async function markEngineChosen'));
-    ok(/AppSetupDone\.show/.test(quick), '一键卡配完要给回执');
+    ok(!/AppSetupDone\.show/.test(quick), 'applyQuickSetup 里不许显示回执 —— 那时候还没测');
+    const render = settings.slice(settings.indexOf('QuickSetup.render('), settings.indexOf('QuickSetup.render(') + 900);
+    ok(/onResults:/.test(render), '一键卡要传 onResults');
+    ok(/AppSetupDone\.show\(plan && plan\.tests, \{ results \}\)/.test(render), '回执要拿卡的结果，不自己再测一遍');
     const grant = settings.slice(settings.indexOf('grant_claimed_toast'));
     ok(/AppSetupDone\.show/.test(grant.slice(0, 900)), '领免费额度配完也要给回执（此前一次自检都不跑）');
+  });
+
+  test('★ 同一次配置只测一遍 —— 两块自检并排，既矛盾又是两倍的钱', () => {
+    const qs = fs.readFileSync(path.join(ROOT, 'extension', 'learn', 'quick-setup.js'), 'utf8');
+    ok(/opts\.onResults\(p, results\)/.test(qs), '一键卡要把结果交出去');
+    const done = fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8');
+    const body = done.slice(done.indexOf('async function show('));
+    ok(/opts && Array\.isArray\(opts\.results\)/.test(body), 'show 要认 opts.results');
+    // 给了结果就不许进自测分支：runSlot 只能在 else 里被调用
+    const elseBranch = body.slice(body.indexOf('} else {'), body.indexOf('// **没通过就不说'));
+    ok(/runSlot\(slot, s\)/.test(elseBranch), 'runSlot 只在「没给结果」那一支里跑');
+    ok(!/runSlot/.test(body.slice(0, body.indexOf('} else {'))), '给了结果的那一支不许再测');
+  });
+
+  test('★ 测完之前标题不许说「可以用了」', () => {
+    const done = fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8');
+    const body = done.slice(done.indexOf('async function show('));
+    // 自测那一支：初始标题必须是中性的
+    ok(/setup_done_checking/.test(body), '自测时初始标题要中性（正在检查…）');
+    // 第一个 ✗ 一落地就改口，而不是等 Promise.all
+    const fail = body.slice(body.indexOf('const failNow'), body.indexOf('const failNow') + 300);
+    ok(/setup_done_failed_title/.test(fail), 'failNow 要当场把标题改成「还不能用」');
+    ok(/failNow\(\);/.test(body.slice(body.indexOf('} catch (e) {'))), '失败分支要调 failNow');
   });
 
   test('★ engineChosen 在 App 里要写 —— 不写就会在选了免费引擎之后仍说「没配过」', () => {

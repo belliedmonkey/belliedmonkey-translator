@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "使えます"
   },
+  "setup_done_checking": {
+    "message": "確認中…"
+  },
   "setup_done_failed_title": {
     "message": "まだ使えません"
   },

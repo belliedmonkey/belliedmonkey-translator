@@ -3524,6 +3524,9 @@
   "setup_done_title": {
     "message": "Pronto para usar"
   },
+  "setup_done_checking": {
+    "message": "Verificando…"
+  },
   "setup_done_failed_title": {
     "message": "Ainda não dá para usar"
   },

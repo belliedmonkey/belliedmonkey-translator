@@ -86,40 +86,63 @@
 
   /// 配完之后调一次。`slots` = 这一次真的写进去的槽（`plan.tests`）。
   /// 一个槽都没写就什么都不显示 —— 那不是「配好了」，只是「什么都没变」。
-  async function show(slots) {
+  ///
+  /// `opts.results` = 调用方已经测过了（一键卡的 onResults 给的 `[{slot, ok}]`）。
+  /// **给了就不再测一遍**：2026-09-20 真机实测，一键卡与这一块各跑一次 EngineTest，
+  /// 屏幕上两块自检并排、内容还不同步，而且每次点「配好」发两倍的真实请求。
+  /// 不给（领免费额度那条路本来就一次自检都不跑）才自己测，并自己画行。
+  async function show(slots, opts) {
     const box = $('setup-done');
     if (!box) return { shown: false };
     const list = (Array.isArray(slots) ? slots : []).filter((x) => x !== 'notes');
     if (!list.length) { box.hidden = true; return { shown: false }; }
+    const given = opts && Array.isArray(opts.results) ? opts.results : null;
 
     const rowsBox = $('setup-done-rows');
     const noteEl = $('setup-done-note');
     const actEl = $('setup-done-act');
     box.hidden = false;
-    $('setup-done-title').textContent = t('setup_done_title', '可以用了');
+    // **标题在测完之前是中性的。** 原来这里先写「可以用了」、等 Promise.all 全部落定
+    // 之后才改口 —— 于是慢的那一项还在转、快的那一项已经 ✗ 时，屏幕上是「可以用了」
+    // 压着一个红叉（2026-09-20 真机，挂了几十秒）。这正是这个文件开头那条规矩反过来犯：
+    // 原话是「那种形状让失败看起来像什么都没发生」，那一版让**失败看起来像成功**。
+    $('setup-done-title').textContent = given
+      ? t('setup_done_title', '可以用了')
+      : t('setup_done_checking', '正在检查…');
     rowsBox.textContent = '';
     noteEl.textContent = '';
     actEl.textContent = '';
     actEl.hidden = true;
 
-    const labels = SLOT_LABEL();
-    const cells = {};
-    for (const slot of list) cells[slot] = row(rowsBox, slot, labels);
-
-    const s = await new Promise((res) => chrome.storage.local.get(null, (v) => res(v || {})));
     let allOk = true;
-    await Promise.all(list.map(async (slot) => {
-      const cell = cells[slot];
-      try {
-        const r = await runSlot(slot, s);
-        cell.className = 'qs-ok';
-        cell.textContent = EngineTest.format(r, null, t);
-      } catch (e) {
-        allOk = false;
-        cell.className = 'qs-no';
-        cell.textContent = EngineTest.format(null, e, t);
-      }
-    }));
+    // 第一个 ✗ 一落地就改口，不等别的项 —— 等下去的那段时间里标题说的是假话。
+    const failNow = () => {
+      allOk = false;
+      $('setup-done-title').textContent = t('setup_done_failed_title', '还不能用');
+    };
+
+    if (given) {
+      // 行由卡画了，这里只给结论 —— 同一件事不在同一屏上说两遍。
+      if (given.some((r) => r && r.ok === false)) failNow();
+    } else {
+      const labels = SLOT_LABEL();
+      const cells = {};
+      for (const slot of list) cells[slot] = row(rowsBox, slot, labels);
+      const s = await new Promise((res) => chrome.storage.local.get(null, (v) => res(v || {})));
+      await Promise.all(list.map(async (slot) => {
+        const cell = cells[slot];
+        try {
+          const r = await runSlot(slot, s);
+          cell.className = 'qs-ok';
+          cell.textContent = EngineTest.format(r, null, t);
+        } catch (e) {
+          failNow();
+          cell.className = 'qs-no';
+          cell.textContent = EngineTest.format(null, e, t);
+        }
+      }));
+      if (allOk) $('setup-done-title').textContent = t('setup_done_title', '可以用了');
+    }
 
     // **没通过就不说「可以用了」。** 失败时标题与话都换掉，出口是「回去改」而不是「回首页」。
     if (!allOk) {
