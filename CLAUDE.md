@@ -154,6 +154,13 @@ npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle +
                          # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour
                          # schemes, via scripts/lib/sweep.js — shared by every page gate) + DB-verified
                          # tier/practice/notes flow. Cases: docs/learn-regression.md
+npm run test:inbox       # 系统翻译的收件箱：在 Mac 上跑**出货的那一份** MTExtInbox（需要 swiftc，
+                         # 只在本机跑、不进 CI）—— 改 app/native/translate-ext/ExtInbox.swift 必跑。
+                         # macOS 没有 TranslationUIProvider，弹层那条路只能上真机；但写收件箱这段
+                         # 逻辑与平台无关。驱动脚本把它拷过来**只改一行**（App Group 容器 → 临时目录）
+                         # 并断言差异恰好一行。第一次跑就抓到一个真 bug：文件名用 `%d` 拼毫秒
+                         # 时间戳，按 32 位截成了负数 —— 而 trim() 删最旧的、drain() 读顺序都靠
+                         # 「文件名有序 = 时间有序」，错位之后删掉的是最新的几条，且不报错。
 ```
 
 **Sync ships ON, and a plain `node build.js` is what you want.** `MT_SYNC=on` was the
