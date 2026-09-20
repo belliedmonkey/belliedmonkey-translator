@@ -1039,13 +1039,26 @@ function patchSwiftPackageText(src, relPath) {
   const vendorOk = fs.existsSync(path.join(ROOT, 'app', 'native', 'vendor', 'sherpa-onnx', 'Package.swift'));
   if (!vendorOk) return { src, note: '✗ sherpa package: app/native/vendor/ 未就位 —— 先跑 node scripts/fetch-native-deps.js' };
   let out = src;
-  // ① App target 的 packageProductDependencies（按紧邻的 name 行认，只认 (iOS)/(macOS) 两个 App）
+  // ① App target 的 packageProductDependencies（按紧邻的 name 行认，只认 (iOS)/(macOS) 两个 App）。
+  //
+  // **空列表不一定在。** 2026-09-20 重新生成工程时发现：转换器（Xcode 27）不再输出
+  // `packageProductDependencies = ();` 这一行了，而这个补丁原来只会往已有的空列表里塞。
+  // 于是它响亮地停下 —— 这是对的，但停下之后没人能往前走：离线朗读 / 设备内置转写那一整块
+  // 链接不上，构建报的是 `Unable to resolve module dependency: 'SherpaOnnxC'`，离真因隔着两层。
+  // 现在两种形状都认：有空列表就往里塞，没有就在 name 行后面补一个。
   let hits = 0;
   out = out.replace(/(name = "([^"]*) \((iOS|macOS)\)";\n\t\t\tpackageProductDependencies = \(\n)(\t\t\t\);)/g, (m, head, base, plat, tail) => {
     if (/Extension/.test(base)) return m;   // 扩展 target 的名字也带 (iOS)/(macOS)，不链接
     hits += 1;
     return head + `\t\t\t\t${SPM_DEP_ID} /* sherpa-onnx */,\n` + tail;
   });
+  if (!hits) {
+    out = out.replace(/(\t\t\tname = "([^"]*) \((iOS|macOS)\)";\n)(?!\t\t\tpackageProductDependencies)/g, (m, head, base) => {
+      if (/Extension/.test(base)) return m;
+      hits += 1;
+      return head + `\t\t\tpackageProductDependencies = (\n\t\t\t\t${SPM_DEP_ID} /* sherpa-onnx */,\n\t\t\t);\n`;
+    });
+  }
   if (hits !== 2) return { src, note: `✗ sherpa package: App target 的 packageProductDependencies 命中 ${hits} 处（期望 2）—— 转换器布局变了？` };
   // ② PBXProject 的 packageReferences
   const PROJ_ANCHOR = '\t\t\tproductRefGroup = ';
@@ -1384,7 +1397,7 @@ const TRANSLATE_EXT_SPEC = {
   deploy: '18.4',
   srcDir: 'translate-ext',
   // VaultNames 在最前：另外三个都用它。顺序不影响 Swift 编译，但让人一眼看得出依赖。
-  srcs: ['VaultNames.swift', 'ExtVault.swift', 'ExtEngineHost.swift', 'ExtCopy.swift', 'TranslateExt.swift'],
+  srcs: ['VaultNames.swift', 'ExtVault.swift', 'ExtInbox.swift', 'ExtEngineHost.swift', 'ExtCopy.swift', 'TranslateExt.swift'],
   productType: 'com.apple.product-type.extensionkit-extension',
   productFileType: 'wrapper.extensionkit-extension',
   embed: EMBED_EXTENSIONKIT,
@@ -1414,6 +1427,36 @@ const WID = (spec, n) => 'MT' + spec.needle.length.toString(16).toUpperCase().pa
   + 'D06CA57E' + String(n).padStart(10, '0');
 
 function patchWidgetTarget(sharedDir) { return patchExtensionTarget(sharedDir, WIDGET_SPEC); }
+
+// 规格里的源文件清单变了怎么办：**拆掉重造**，不缝补。
+//
+// 对象 id 是按**序号**算出来的（第一个源文件 10/11，其余从 20 起两两排），所以在清单
+// 中间插一个文件，后面每一个的 id 都错位一格。第一版是按名字往里补的，于是它以为只缺
+// 最后一个，把 TranslateExt.swift 又加了一遍 —— 而工程照样打得开、照样编得过。
+//
+// 拆掉重造的结果**等于重新生成**：剥掉这个 spec 的全部痕迹（我们自己写的 `MT…` 对象行、
+// 带 needle 的那一行、提到产品名的那些行），然后走一遍正常的生成路径。剥的这一段与测试
+// 造骨架用的是同一个函数 —— 一份实现两个消费者，所以它被跑得很勤。
+function stripExtensionTarget(src, spec) {
+  const pfx = 'MT' + spec.needle.length.toString(16).toUpperCase().padStart(2, '0');
+  // id 一共 22 位：`MT` + needle 长度的两位十六进制（= pfx，4 位）+ 18 位。
+  const id = pfx + '[0-9A-F]{18}';
+  // ① 多行对象整块拿掉。只删头一行会留下一段无主的花括号，而那份 pbxproj Xcode 打不开。
+  //    负向前瞻把单行对象（`… = {isa = …; };`）排除在外，它们走 ②。
+  let out = src.replace(new RegExp('\\n\\t\\t' + id + ' [^\\n]*= \\{(?![^\\n]*\\};)[\\s\\S]*?\\n\\t\\t\\};', 'g'), '');
+  // ② 单行对象，以及**任何提到这些 id 的引用行**（targets 列表、某个阶段的 files、
+  //    App target 的 buildPhases…）。少删一处引用，重造出来的就是两份。
+  out = out.replace(new RegExp('\\n[^\\n]*' + id + '[^\\n]*', 'g'), '');
+  // ③ needle 与产品名那几行（产品名还出现在配置里，例如 PRODUCT_BUNDLE_IDENTIFIER）。
+  return out.replace(new RegExp('\\n[^\\n]*' + spec.needle + '[^\\n]*', 'g'), '')
+    .replace(new RegExp('\\n[^\\n]*' + spec.name + '[^\\n]*', 'g'), '');
+}
+
+// 工程里那个 target 还是这份规格描述的那个吗。少一个源文件的症状是「文件在 Xcode 里
+// 看得见，却不参与编译」—— 没有一行输出会说，而运行时是一句 `cannot find … in scope`。
+function sourcesDrifted(src, spec) {
+  return spec.srcs.some((name, i) => !src.includes(WID(spec, i === 0 ? 10 : 20 + (i - 1) * 2)));
+}
 
 // 已经造过的 target 里，把显示名那一行升到现在的值。
 //
@@ -1459,7 +1502,12 @@ function patchExtensionTarget(sharedDir, spec) {
   const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
   if (!fs.existsSync(f)) return `${spec.label}: no project.pbxproj`;
   let src = fs.readFileSync(f, 'utf8');
-  if (src.includes(spec.needle)) return upgradeDisplayName(f, src, spec);
+  let rebuilt = false;
+  if (src.includes(spec.needle)) {
+    if (!sourcesDrifted(src, spec)) return upgradeDisplayName(f, src, spec);
+    src = stripExtensionTarget(src, spec);   // 规格变了 ⇒ 拆掉，下面照常重造一遍
+    rebuilt = true;
+  }
 
   // 锚点：iOS App target 的 id、它的 Embed 阶段、以及 iOS 扩展的一份 Debug 配置
   // （照抄它的构建设置，只改该改的几项）。任何一个找不到就整体放弃。
@@ -1636,7 +1684,7 @@ function patchExtensionTarget(sharedDir, spec) {
   }
 
   fs.writeFileSync(f, src);
-  return `${spec.label} target patched (${spec.name}, iOS ${spec.deploy}+)`;
+  return `${spec.label} target ${rebuilt ? '\u6309\u65b0\u89c4\u683c\u91cd\u9020' : 'patched'} (${spec.name}, iOS ${spec.deploy}+)`;
 }
 
 // 扩展的源文件、资源与它自己的 Info.plist。扩展有独立 bundle，所以 plist 也独立。
@@ -1814,5 +1862,5 @@ module.exports = {
   SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
   patchEntitlements, ENTITLEMENTS,
   patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, patchExtensionFiles,
-  EMBED_PLUGINS, EMBED_EXTENSIONKIT, TRANSLATE_EXT_SPEC, appBundleId, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
+  EMBED_PLUGINS, EMBED_EXTENSIONKIT, TRANSLATE_EXT_SPEC, appBundleId, stripExtensionTarget, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };

@@ -35,6 +35,8 @@ const {
   EMBED_EXTENSIONKIT,
   TRANSLATE_EXT_SPEC,
   appBundleId,
+  stripExtensionTarget,
+  patchSwiftPackageText,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -1093,13 +1095,10 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
   const PBX = (appName) => {
     // 把 needle 与已有的 widget 痕迹剥掉，得到一份「还没打过这个补丁」的骨架。
     // 剥掉**每一个**我们自己造的 target 的痕迹，得到「还没打过补丁」的骨架。
-    // 只剥 widget 是不够的：I-5 之后真工程里还有系统翻译那一个，留着它会让
-    // 「换个 needle 的扩展」那一条撞上幂等判据，然后报一个与真因无关的错。
-    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
-    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
-      t = t.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
-        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
-    }
+    // 用的是脚本导出的那个 strip —— 生产代码在「规格变了就拆掉重造」时走同一条路，
+    // 一份实现两个消费者。只剥 widget 是不够的：I-5 之后真工程里还有系统翻译那一个。
+    let t = String(REAL);
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) t = stripExtensionTarget(t, sp);
     if (appName !== 'BelliedMonkey Translator') {
       t = t.split('BelliedMonkey Translator').join(appName);
     }
@@ -1262,11 +1261,8 @@ describe('sync-app-assets: ExtensionKit 扩展（I-5a）', () => {
     return fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : null;
   })();
   const PBX = () => {
-    let t = String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
-    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
-      t = t.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
-        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
-    }
+    let t = String(REAL);
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) t = stripExtensionTarget(t, sp);
     return t;
   };
   function tree() {
@@ -2276,11 +2272,8 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     const dir = tmpdir();
     fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
     const proj = path.join(dir, 'X.xcodeproj'); fs.mkdirSync(proj);
-    let skel = REALPBX.replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n');
-    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) {
-      skel = skel.replace(new RegExp('\\n[^\\n]*' + sp.needle + '[^\\n]*\\n', 'g'), '\n')
-        .replace(new RegExp('\\n[^\\n]*' + sp.name + '[^\\n]*\\n', 'g'), '\n');
-    }
+    let skel = REALPBX;
+    for (const sp of [WIDGET_SPEC, TRANSLATE_EXT_SPEC]) skel = stripExtensionTarget(skel, sp);
     const pbx = path.join(proj, 'project.pbxproj');
     fs.writeFileSync(pbx, skel);
     patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC);
@@ -2297,6 +2290,118 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     const note = patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC);
     match(note, /显示名已升到/, '已有的树要原地升级，实际回执：' + note);
     ok(!fs.readFileSync(pbx, 'utf8').includes('INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)"'));
+  });
+
+  test('★ mtVault 的 PROTOCOL 与 vault-bridge.swift 逐字对表（含收件箱）', () => {
+    const js = fs.readFileSync(path.join(ROOT, 'app', 'vault-mirror.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(NATIVE, 'vault-bridge.swift'), 'utf8');
+    const grab = (k) => (js.match(new RegExp(k + ":\\s*\\[([^\\]]*)\\]")) || [])[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1));
+    const toNative = grab('toNative'); const fromNative = grab('fromNative');
+    ok(toNative.includes('inbox-drain') && toNative.includes('inbox-ack') && toNative.includes('inbox-clear'));
+    ok(fromNative.includes('inbox-batch'));
+    for (const v of toNative) ok(sw.includes('case "' + v + '":'), 'toNative「' + v + '」在 .swift 里没有 case');
+    for (const v of fromNative) ok(sw.includes('"' + v + '"'), 'fromNative「' + v + '」在 .swift 里从未发出');
+  });
+
+  test('★ 收件箱的上限与门与 app/handoff.js 同一套 —— 两处各写一套就是两种行为', () => {
+    const sw = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'ExtInbox.swift'), 'utf8');
+    const js = fs.readFileSync(path.join(ROOT, 'app', 'handoff.js'), 'utf8');
+    ok(sw.includes('maxChars = 2000'), '单条上限要与 handoff.js 的 MAX_CHARS 一致');
+    ok(js.includes('MAX_CHARS = 2000'));
+    ok(sw.includes('maxFiles = 200') && sw.includes('maxBytes = 512 * 1024'), '200 条 / 512 KB');
+    // 失败路径永不写（Collector law 2）：写入只在译文非空、且与原文不同时发生
+    ok(sw.includes('t != r'), '译文等于原文不写');
+    ok(sw.includes('options: [.atomic]'), '原子写 —— 读的那一侧随时可能在扫目录');
+    // 两把开关都要看（learnEnabled 是总闸，handoffCapture 是这个入口的）
+    const view = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'TranslateExt.swift'), 'utf8');
+    ok(/guard config\.learnEnabled, config\.handoffCapture else \{ return \}/.test(view),
+      '两把开关都开着才写；关着就整个不写，不留看不见的积压');
+    const cap = view.slice(view.indexOf('private func capture('));
+    ok(!cap.includes('failCode'), '失败路径永不写');
+  });
+
+  test('★ ack 只认文件名本身 —— 一个能删任意路径的口子不该存在', () => {
+    const sw = fs.readFileSync(path.join(NATIVE, 'vault-bridge.swift'), 'utf8');
+    const ack = sw.slice(sw.indexOf('private func ack(names:'), sw.indexOf('private func clearInbox'));
+    ok(ack.includes('!n.contains("/")') && ack.includes('!n.contains("..")'), '路径分隔符与 .. 都要挡');
+  });
+
+  // 2026-09-20 重新生成工程时才发现的：转换器（Xcode 27）不再输出
+  // `packageProductDependencies = ();` 这一行，而离线朗读的包补丁原来只会往已有的空列表里塞。
+  // 停下来是对的，但停下之后没人能往前走 —— 构建报的是
+  // `Unable to resolve module dependency: 'SherpaOnnxC'`，离真因隔着两层。
+  // 这个洞能躺这么久，是因为工程树是 gitignored 的一次性产物：升级 Xcode 之后没人重新生成过。
+  test('★ 转换器不给空列表时也要挂得上 sherpa 包（两种形状都认）', () => {
+    const P = path.join(ROOT, 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
+    if (!fs.existsSync(P)) return;
+    const real = fs.readFileSync(P, 'utf8');
+    // 从真工程里剥掉这个补丁自己的痕迹，得到「还没挂过」的两种形状
+    const bare = real.replace(/\n[^\n]*MT10D06CA57E00000000(31|32)[^\n]*/g, '')
+      .replace(/\n\/\* (Begin|End) XCLocalSwiftPackageReference section \*\//g, '')
+      .replace(/\n\/\* (Begin|End) XCSwiftPackageProductDependency section \*\//g, '')
+      .replace(/\n\t\t\tpackageReferences = \(\n\t\t\t\);/g, '');
+    const withEmpty = bare.replace(/(\t\t\tname = "([^"]*) \((iOS|macOS)\)";\n)/g,
+      (m, head, base) => (/Extension/.test(base) ? m : head + '\t\t\tpackageProductDependencies = (\n\t\t\t);\n'));
+    for (const [what, src] of [['没有空列表（Xcode 27）', bare], ['有空列表（老转换器）', withEmpty]]) {
+      const r = patchSwiftPackageText(src, '../../../app/native/vendor/sherpa-onnx');
+      match(r.note, /sherpa package patched \(2 App targets\)/, what);
+      eq((r.src.match(/MT10D06CA57E0000000032 \/\* sherpa-onnx \*\//g) || []).length, 3,
+        what + '：两个 App target 各一条引用 + 一个对象定义');
+      ok(!/Extension \((iOS|macOS)\)";\n\t\t\tpackageProductDependencies/.test(r.src),
+        what + '：扩展 target 不该链接它');
+    }
+  });
+
+  test('★ 拆掉重造 = 重新生成：剥掉再打一遍，与真工程逐字节相同', () => {
+    const P = path.join(ROOT, 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
+    if (!fs.existsSync(P)) return;
+    const real = fs.readFileSync(P, 'utf8');
+    // 规格里的源文件清单变了时，生产代码走的就是这条路（id 是按序号算的，中间插一个
+    // 文件会让后面每一个都错位，所以不能缝补）。判据必须是**逐字节**：剥得不干净的
+    // 表现是「工程打不开」或者「同一个文件编译两遍」，而两者都要到 Xcode 里才看得见。
+    // 只比系统翻译那一个：widget 的部署下限在真工程里是 16.4，那是同一次 app:sync 里
+    // **后面**一条补丁（统一抬到 iOS 16.4 / macOS 13.3）改的，而这里只跑了造 target 这一步。
+    for (const sp of [TRANSLATE_EXT_SPEC]) {
+      const dir = tmpdir();
+      fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+      const proj = path.join(dir, 'X.xcodeproj'); fs.mkdirSync(proj);
+      const pbx = path.join(proj, 'project.pbxproj');
+      fs.writeFileSync(pbx, stripExtensionTarget(real, sp));
+      match(patchExtensionTarget(path.join(dir, 'Shared (App)'), sp), /target patched/, sp.label);
+      // 比的是**行的多重集**，不是逐字节：每一段都是往末尾追加的，所以重造出来的那一个
+      // 会排在另一个扩展之后 —— 先后顺序对 Xcode 无意义。多一行、少一行、留下半截对象，
+      // 这个判据照样红。
+      const sort = (t) => t.split('\n').sort().join('\n');
+      eq(sort(fs.readFileSync(pbx, 'utf8')), sort(real), sp.label + '：重造出来的必须与真工程一致');
+    }
+  });
+
+  test('★ 规格里多一个源文件 ⇒ 拆掉重造，不是「已经打过补丁」', () => {
+    const P = path.join(ROOT, 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
+    if (!fs.existsSync(P)) return;
+    const real = fs.readFileSync(P, 'utf8');
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    const proj = path.join(dir, 'X.xcodeproj'); fs.mkdirSync(proj);
+    const pbx = path.join(proj, 'project.pbxproj');
+    // 造一棵「按旧规格打过补丁」的树：把最后一个源文件从清单里拿掉再生成
+    const OLD = Object.assign({}, TRANSLATE_EXT_SPEC, { srcs: TRANSLATE_EXT_SPEC.srcs.slice(0, -1) });
+    fs.writeFileSync(pbx, stripExtensionTarget(real, TRANSLATE_EXT_SPEC));
+    patchExtensionTarget(path.join(dir, 'Shared (App)'), OLD);
+    const before = fs.readFileSync(pbx, 'utf8');
+    const last = TRANSLATE_EXT_SPEC.srcs[TRANSLATE_EXT_SPEC.srcs.length - 1];
+    ok(!before.includes(last + ' in Sources'), '前提：旧规格里没有它');
+    // 现在按新规格再跑一次
+    const note = patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC);
+    match(note, /重造/, '回执要说清楚是重造的，实际：' + note);
+    const after = fs.readFileSync(pbx, 'utf8');
+    eq((after.match(new RegExp(last + ' in Sources', 'g')) || []).length, 2,
+      '一条 PBXBuildFile + 一条 Sources 阶段项 —— 多了就是同一个文件编译两遍');
+    const sort = (t) => t.split('\n').sort().join('\n');
+    eq(sort(after), sort(real), '重造出来的要与真工程一致');
+    // 再跑一次不该再动它
+    match(patchExtensionTarget(path.join(dir, 'Shared (App)'), TRANSLATE_EXT_SPEC), /already patched/);
+    eq(fs.readFileSync(pbx, 'utf8'), after, '重造之后要幂等');
   });
 
   test('★ 规格里点名的源文件与资源都真的在', () => {
@@ -2320,8 +2425,12 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
 
   test('★ 回执里永远没有 key 的值（原生这一侧）', () => {
     const s = fs.readFileSync(path.join(NATIVE, 'vault-bridge.swift'), 'utf8');
-    const ack = s.slice(s.indexOf('private func ack('));
+    // 锚在**回执**那一个 ack 上（收件箱那个也叫 ack，它在前面）。切到文件末尾会把
+    // sync 一起圈进来，于是一条对的实现被判成泄漏 —— I-6 加收件箱时就撞了一次。
+    const ack = s.slice(s.indexOf('private func ack(keys:'));
     ok(!/apiKey|secret\[/.test(ack), 'ack 里不许出现 key');
+    const inboxAck = s.slice(s.indexOf('private func ack(names:'), s.indexOf('private func clearInbox'));
+    ok(!/apiKey|secret\[/.test(inboxAck), '收件箱的 ack 里同样不许出现 key');
     ok(s.includes('"keys": keys') && s.includes('"status": Int(status)'), '回执只有键名与 OSStatus');
     ok(/#if os\(iOS\)/.test(s) && /#endif/.test(s), 'macOS 没有这个扩展点，整份要被条件编译挡住');
   });

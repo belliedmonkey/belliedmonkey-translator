@@ -17,9 +17,11 @@
   const CHANNEL = 'mtVault';
 
   // 与 vault-bridge.swift 逐字对表（test/build-scripts.test.js 的协议镜像门）。
+  // 收件箱（§9.9）与配置镜像走**同一条通道**：两者都只在有系统翻译扩展的壳上存在，
+  // 分两条通道等于把同一个「这台设备有没有那个扩展」的判断写两遍。
   const PROTOCOL = {
-    toNative: ['vault-sync', 'vault-clear'],
-    fromNative: ['vault-ack'],
+    toNative: ['vault-sync', 'vault-clear', 'inbox-drain', 'inbox-ack', 'inbox-clear'],
+    fromNative: ['vault-ack', 'inbox-batch'],
   };
 
   // 快照里非机密的那部分。**逐项都是扩展真的要用的** —— 多镜像一个键，就是多一份
@@ -128,29 +130,70 @@
     return post({ type: 'vault-clear' });
   }
 
+  // ── 收件箱（§9.9）────────────────────────────────────────────────────────
+  // 扩展翻完一句，抄一份写进 App Group 的 handoff-inbox/；App 这边启动与回前台时来收。
+  // **先写库后删文件**：`ingestLive` 落定之后才 ack，原生这时才删。item id 是内容哈希、
+  // merge 幂等，所以中途崩溃下次重来无害；反过来「先删后写」会在崩溃时静默丢句子。
+  let draining = false;
+  function drain() {
+    if (!available() || draining) return false;
+    draining = true;
+    return post({ type: 'inbox-drain' });
+  }
+  // 「清除本机全部数据」/「清空学习库」要连收件箱一起清，否则 App 里看着清干净了，
+  // 下一次打开又从收件箱里长出几十张卡。
+  function clearInbox() { return post({ type: 'inbox-clear' }); }
+
+  async function onBatch(msg) {
+    draining = false;
+    const list = Array.isArray(msg && msg.records) ? msg.records : [];
+    if (!list.length) return { written: 0, names: [] };
+    let out = { written: 0, names: [] };
+    try {
+      out = (typeof AppHandoff !== 'undefined')
+        ? await AppHandoff.ingestLive(list)
+        : { written: 0, names: [] };
+    } catch (_) {
+      // 写库失败就**什么都不 ack** —— 文件留着，下次重来。这比「吞掉并假装收过了」好：
+      // 后者的症状是用户翻过的句子再也不会出现，而界面上没有任何地方会说。
+      return { written: 0, names: [] };
+    }
+    if (out.names && out.names.length) post({ type: 'inbox-ack', names: out.names });
+    return out;
+  }
+
   function onNative(msg) {
     if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'inbox-batch') return onBatch(msg);
     if (msg.type !== 'vault-ack') return;
     // **回执里永远没有 key 的值**，只有键名与 OSStatus。真要出问题，能说出
     // 「写了哪几个键、系统怎么答的」就够定位了。
     acked = { keys: Array.isArray(msg.keys) ? msg.keys.slice() : [], status: msg.status };
+    return undefined;
   }
 
   // 启动时一次 + 相关键变化时。别的键变了不发。
+  // 收件箱在**启动与每次回到前台**时收一遍：扩展是在 App 不在前台时写的，
+  // 只在启动时收，会让一个整天不重启 App 的人永远收不到。
   function start(opts) {
     if (!available()) return false;
     sync(opts);
+    drain();
     try {
       chrome.storage.onChanged.addListener((ch) => {
         if (!ch) return;
         for (const k of Object.keys(ch)) if (WATCH.has(k)) { sync(opts); return; }
       });
     } catch (_) { /* 没有总线的宿主（测试）——启动那一次已经发过了 */ }
+    try {
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) drain(); });
+    } catch (_) { /* 没有 document 的宿主（测试）——启动那一次已经收过了 */ }
     return true;
   }
 
   root.AppVault = {
     available, snapshot, sync, clear, start, onNative,
+    drain, clearInbox, _onBatch: onBatch,
     PROTOCOL, NON_SECRET, READ,
     ack: () => acked,
   };

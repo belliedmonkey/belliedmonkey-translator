@@ -48,12 +48,24 @@ function load(opts) {
   if (o.bridged !== false) {
     ctx.webkit = { messageHandlers: { mtVault: { postMessage: (m) => sent.push(m) } } };
   }
+  // 收件箱那一半要的两样：AppHandoff（摄入）与 document（回前台再收一次）。
+  const ingested = [];
+  ctx.AppHandoff = o.handoff || {
+    ingestLive: async (list) => {
+      ingested.push(list);
+      if (o.ingestThrows) throw new Error('boom');
+      return o.ingestOut || { written: list.length, names: list.map((r) => r.name).filter(Boolean) };
+    },
+  };
+  const visListeners = [];
+  ctx.document = { hidden: false, addEventListener: (t, fn) => { if (t === 'visibilitychange') visListeners.push(fn); } };
   ctx.window = ctx;
   vm.createContext(ctx);
   for (const rel of ['extension/content/engine-state.js', 'extension/learn/notes.js', 'app/vault-mirror.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel });
   }
-  return { ctx, sent, store, V: ctx.AppVault };
+  const foreground = () => { ctx.document.hidden = false; for (const fn of visListeners) fn(); };
+  return { ctx, sent, store, ingested, foreground, V: ctx.AppVault };
 }
 
 describe('vault-mirror: 把引擎配置镜像给系统翻译扩展（I-4）', () => {
@@ -153,5 +165,77 @@ describe('vault-mirror: 把引擎配置镜像给系统翻译扩展（I-4）', ()
     for (const k of Object.keys(snap.nonSecret)) ok(allowed.has(k), k + ' 不在 NON_SECRET 清单里');
     deepEq(Object.keys(snap.secret), ['apiKey'], 'secret 里只有 apiKey');
     eq(JSON.stringify(snap).includes('SECRET'), false, '登录令牌绝不进快照');
+  });
+
+  // ── 收件箱（§9.9 / iOS 线 I-6）─────────────────────────────────────────────
+  // 这一段守的是**别把用户翻过的句子弄丢**，以及反过来**别在用户关了开关之后还留着积压**。
+
+  test('★ 先写库后删文件：ack 只在 ingest 落定之后发，而且只 ack 它交回来的名字', async () => {
+    const { V, sent, ingested } = load({});
+    V.drain();
+    eq(sent[sent.length - 1].type, 'inbox-drain');
+    const recs = [{ name: 'a.json', record: { text: 'hi', tr: '你好' } },
+      { name: 'b.json', record: { text: 'yo', tr: '哟' } }];
+    await V.onNative({ type: 'inbox-batch', records: recs });
+    deepEq(ingested[0], recs, '原样交给唯一写入者，不在这一层挑挑拣拣');
+    const ack = sent[sent.length - 1];
+    eq(ack.type, 'inbox-ack');
+    deepEq(ack.names, ['a.json', 'b.json']);
+  });
+
+  test('★ 写库抛了就一个名字都不 ack —— 文件留着下次重来，比静默吞掉好', async () => {
+    const { V, sent } = load({ ingestThrows: true });
+    V.drain();
+    const before = sent.length;
+    await V.onNative({ type: 'inbox-batch', records: [{ name: 'a.json', record: {} }] });
+    eq(sent.length, before, '不该发 ack');
+  });
+
+  test('★ 被门拦下的记录也要 ack —— 留着它们不会变得可写，只会成为看不见的积压', async () => {
+    // ingest 的约定：names 里既有写进去的，也有被拦下的（handoff.js 的注释说的就是这条）
+    const { V, sent } = load({ ingestOut: { written: 0, names: ['x.json'] } });
+    await V.onNative({ type: 'inbox-batch', records: [{ name: 'x.json', record: {} }] });
+    deepEq(sent[sent.length - 1], { type: 'inbox-ack', names: ['x.json'] });
+  });
+
+  test('空批次不发 ack，也不该抛 —— 「收件箱是空的」与「原生没回话」要分得开', async () => {
+    const { V, sent } = load({});
+    V.drain();
+    const before = sent.length;
+    const out = await V.onNative({ type: 'inbox-batch', records: [] });
+    eq(out.written, 0);
+    eq(sent.length, before);
+  });
+
+  test('★ 启动收一次，之后**每次回到前台**再收 —— 扩展是在 App 不在前台时写的', async () => {
+    const { V, sent, foreground } = load({});
+    V.start();
+    await new Promise((r) => setTimeout(r, 5));
+    eq(sent.filter((m) => m.type === 'inbox-drain').length, 1, '启动时收一次');
+    // 上一轮要先落定，否则 drain 的并发闸会挡住（那正是它该干的）
+    await V.onNative({ type: 'inbox-batch', records: [] });
+    foreground();
+    eq(sent.filter((m) => m.type === 'inbox-drain').length, 2, '回前台再收一次');
+  });
+
+  test('一轮还没落定时不重复发 drain —— 否则同一批会被摄入两次', async () => {
+    const { V, sent } = load({});
+    V.drain(); V.drain();
+    eq(sent.filter((m) => m.type === 'inbox-drain').length, 1);
+    await V.onNative({ type: 'inbox-batch', records: [] });
+    V.drain();
+    eq(sent.filter((m) => m.type === 'inbox-drain').length, 2, '落定之后可以再收');
+  });
+
+  test('没有那条通道的壳（macOS / 老原生）整个不收', () => {
+    const { V } = load({ bridged: false });
+    eq(V.drain(), false);
+    eq(V.clearInbox(), false);
+  });
+
+  test('清收件箱是一条独立的消息 —— 清库时用得上', () => {
+    const { V, sent } = load({});
+    eq(V.clearInbox(), true);
+    deepEq(sent[sent.length - 1], { type: 'inbox-clear' });
   });
 });

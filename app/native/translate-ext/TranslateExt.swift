@@ -144,9 +144,17 @@ struct MTTranslateSheet: View {
             slow = false
             if (out["ok"] as? Bool) == true, let t = out["text"] as? String, !t.isEmpty {
                 translated = t
+                capture(t, lang: (out["lang"] as? String) ?? "")
             } else {
                 failCode = (out["code"] as? String) ?? "unknown"
             }
         }
+    }
+
+    /// 抄一份进收件箱，等 App 下次打开时收进复习库（§9.9）。**只在成功之后**，
+    /// 而且两把开关都开着才写 —— 关着就整个不写，不留用户看不见的积压。
+    private func capture(_ tr: String, lang: String) {
+        guard config.learnEnabled, config.handoffCapture else { return }
+        MTExtInbox.write(text: source, tr: tr, lang: "", trLang: lang, via: "system")
     }
 }
