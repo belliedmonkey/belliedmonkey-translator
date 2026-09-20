@@ -16,7 +16,7 @@ BelliedMonkey Translator is a free, open-source (GPL-3.0) app and browser extens
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
-  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/discussions"><img alt="discussions" src="https://img.shields.io/badge/community-Discussions-728157"></a>
+  <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Install from a store — building from source is for contributors, not for using
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
 
-Using it? Tell me what for, or what to change — [the open thread in Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions). Any language.
+Using it? Tell me what for, or what to change — [come say so on Discord](https://belliedmonkey.cc/discord), or [open a thread](https://github.com/belliedmonkey/belliedmonkey-translator/discussions). Any language.
 
 <details>
 <summary><b>Installing the ZIP directly (Chrome / Edge)</b></summary>
@@ -114,6 +114,7 @@ At a glance:
 - **Bilingual web pages** — the original stays in place, the translation appears directly beneath it
 - **Live Subtitles (app)** — bilingual subtitles for whatever your device is playing. On Mac, a floating bar above every window, full-screen video included (macOS 14.4 or later); on iPhone, a picture-in-picture window over any app, from what plays through the speaker
 - **Quick Translate (Mac app)** — select text in any app and press a shortcut, or use the right-click Services menu; type a sentence; or drag a box around anything on screen that cannot be selected (images, video frames, scans). The translation appears in a small panel next to the pointer without taking focus from the app you are in. On-screen text is recognised on your Mac. Shortcuts are configurable; it lives in the menu bar and can be turned off
+- **System translation (iPhone / iPad app)** — set BelliedMonkey Translator as the Default Translation App under Settings › Apps › Translate, then select text in any app and tap Translate: the sheet that opens is ours, translating with the engine you configured. Requires iOS or iPadOS 18.4 or later
 - **Conversation · live interpreter (app)** — both people speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 / macOS 26 speech can be recognised on the device (no audio leaves it), with only the text sent to your translation engine, and read aloud by an offline voice model
 - **Dual subtitles** for YouTube, x.com video and podcasts, merged into whole sentences and translated ahead of the playhead
 - **AI transcript subtitles** for media that has no captions at all, using your own transcription key (nothing is transcribed unless you tap the button)
@@ -268,6 +269,7 @@ Stated up front, because finding them yourself is worse.
 - **Document translation (optional).** The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
 - **Live Subtitles (optional, app only).** Only after you tap "Start", the app listens to the sound this device is playing (on a Mac, the system audio). The audio is recognised on your device or sent only to the transcription endpoint you configured; nothing is recorded or saved, and it never passes through our servers. Recognised text stays in your review only while "Add subtitles to review" is on.
 - **Quick Translate (optional, Mac app only).** It works only when you start it: pressing the shortcut, using the right-click Services menu, typing, or selecting an area of the screen. The text you hand over goes straight to the translation engine you configured and never passes through our servers (on the free credit it is relayed through our server to the model provider; we do not store the content). Text in a screenshot is recognised on your Mac; the screenshot is not saved and does not leave the device — unless nothing was recognised and you tap "Try again with my image-capable engine". We do not read anything you did not hand over: no keyboard monitoring, no background clipboard reading. "Enhanced Capture" is off by default; when on, it presses ⌘C once for you at the moment you press the shortcut, reads the selected text and restores your clipboard exactly as it was. Clipboard content marked as concealed (for example by a password manager) is never read or sent. The original and its translation stay in your review library only while "Save to review library" is on.
+- **System translation (optional, iPhone / iPad app).** It works only when you start it: selecting text in any app and tapping Translate from the system menu. The selected text goes straight to the translation engine you configured and never passes through our servers (on the free credit it is relayed through our server to the model provider; we do not store the content). We do not read anything you did not hand over: only the text you selected reaches us, and only at the moment you ask for it. The original and its translation stay in your review library only while "Save to review library" is on.
 - **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
 - **No ad tracking, no third-party analytics — and no account unless you want one.** Syncing your
   learning material between your own devices needs a free account; everything else works without one.
@@ -425,13 +427,15 @@ If you turn learning on, sentences you genuinely stopped and read — not ones y
 
 ## Where to talk
 
-Everything user-facing happens in [GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) — it is the same link behind the "Discuss" button in the app and the extension.
+**[Discord](https://belliedmonkey.cc/discord)** — the chat room, opened September 2026. Three channels, on purpose: `#general` for anything, `#help` when something is broken, `#announcements` for releases. It is the same link behind the "Discuss" button in the app and the extension. Any language — Chinese, English, Russian; mixed-language chat is this project's own use case.
+
+[GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) stays open for anything worth keeping. A chat room is not searchable and Google does not index it; a thread is and does.
 
 - **Something broken or confusing?** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) — say which version and which surface (Safari on iPhone, Chrome, the Mac app…).
 - **Want a site, engine or feature?** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) — upvote an existing one before opening a new one.
 - **Using it in a way we didn't expect?** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell).
 
-Chinese and English are both fine. There is no chat server yet; one will open when there are enough people to keep it alive.
+The China edition (大肚猴翻译) points at Discussions instead — Discord is not reachable from mainland China.
 
 ## Contributing
 

@@ -12,11 +12,29 @@
 // 依赖：AppLink（商店条目按 flavor 分，那里是唯一登记处）。
 var MTFeedback = (() => {
   const MAIL = 'belliedmonkey@gmail.com';
-  // 「社区在哪儿」的唯一登记处。现在 = GitHub Discussions（异步、可被搜索引擎索引、不怕人少）。
-  // 2026-09-06 裁定：实时群（Discord）等 bt_daily 连续 4 周周活 ≥ 50 或 Discussions 累计 ≥ 20 个
-  // 参与者再开；到那天只改这一行，四个面的「讨论」按钮、README 与官网徽章一起跟着走。
-  const COMMUNITY_URL = 'https://github.com/belliedmonkey/belliedmonkey-translator/discussions';
-  const DISCUSS_URL = COMMUNITY_URL;
+  // 「社区在哪儿」的唯一登记处 —— **按 flavor 分**，因为 Discord 在中国大陆打不开。
+  //
+  // 2026-09-06 立过一条门槛：实时群等 bt_daily 连续 4 周周活 ≥ 50 或 Discussions 累计
+  // ≥ 20 个参与者再开。2026-09-20 对账后开了，依据是两条分支各自的实测：
+  //   · Discussions 那条永远到不了 —— 唯一那个帖子 15 天 0 条回复，参与者 ≈ 0。
+  //   · 周活那条只差时长不差人数 —— 09-07 那周 173、09-14 那周 230，是门槛的 3.5–4.6 倍；
+  //     「连续 4 周」凑不齐只因为遥测 09-05 才开始收。门槛要挡的是「人还不够就开实时群」，
+  //     230 周活已经远远越过那个意思。
+  //
+  // **发的是我们自己域名下的 /discord，不是 discord.gg/<code>。** 两个原因：
+  //   1. 这个地址会被烤进 App Store 的二进制，改不动；而 Discord 的邀请码是会过期的
+  //      （「设置此链接为永不过期」那个勾在 2026-09 的客户端上**是坏的** —— 界面显示
+  //      「永不过期」，API 回读 expires_at 仍是 30 天后，五条路都试过）。换码只要改
+  //      belliedmonkey-cc 的 vercel.json 一行 + 部署，不用重新发版过审。
+  //   2. 顺带能量到点击（Vercel Web Analytics，2026-09-20 起）。
+  //   跳转用 307 不是 308：308 会被浏览器永久缓存，而这个目标**一定会换**。
+  //
+  // 中国版留在 Discussions：Discord 大陆打不开，给他们一个白屏比不给更糟。微信/QQ 群
+  // 建好之后换掉这一行即可（.local/TODO.md 里记着）。
+  //
+  // 改这里就够了：四个面的「讨论」按钮（popup / 设置页 / 引导页 / 宿主 App）都读它。
+  const COMMUNITY_URL_GLOBAL = 'https://belliedmonkey.cc/discord';
+  const COMMUNITY_URL_CHINA = 'https://github.com/belliedmonkey/belliedmonkey-translator/discussions';
   // Chrome Web Store 条目 id。options.js 的「未打包安装」提示也读它 —— 同一个 id 只写一处。
   const CWS_ID = 'ilnmffeejeohomjelipejdldhkjeoinf';
   // AMO 的 slug 是中文名（大肚猴翻译），URL 里必须是编码后的形式。
@@ -94,8 +112,10 @@ var MTFeedback = (() => {
     return 'https://chromewebstore.google.com/detail/' + CWS_ID + '/reviews';
   }
 
-  function discussUrl() { return DISCUSS_URL; }
-  function communityUrl() { return COMMUNITY_URL; }
+  function communityUrl() {
+    return flavor() === 'china' ? COMMUNITY_URL_CHINA : COMMUNITY_URL_GLOBAL;
+  }
+  function discussUrl() { return communityUrl(); }
 
   // 打开一个出口。宿主 App 里 window.open 是哑的（转换器模板没实现 createWebViewWith），
   // 走原生桥在系统里打开 —— 原生那侧是白名单（我们的两个站、App Store、我们自己的
