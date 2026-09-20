@@ -1718,14 +1718,39 @@ describe('os-floor: 部署目标与解析期语法门', () => {
     eq(OSF.FLOOR.ios, '16.4', 'iOS 下限'); eq(OSF.FLOOR.macos, '13.3', 'macOS 下限'); eq(OSF.FLOOR.safari, '16.4', 'Safari 下限');
     ok(/^\d{4}-\d{2}-\d{2}$/.test(OSF.FLOOR.decided), '裁定日期');
   });
-  test('sync 把转换器默认的 15.0 / 10.14 抬到下限，更高的（widget 16.1 以上）不动，第二次幂等', () => {
-    const src = 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nMACOSX_DEPLOYMENT_TARGET = 10.14;\nIPHONEOS_DEPLOYMENT_TARGET = 17.0;\nMACOSX_DEPLOYMENT_TARGET = 10.15;\n';
+  // 这一条原来写的是「17.0 不动」—— 它**把 bug 写成了判据**，而那正是 2026-09-20 那个回归
+  // 溜过去的原因：Xcode 27 的转换器给 App target 出 17.0（老的是 15.0），补丁「只抬不压」
+  // 就留着了，于是那一版会安静地把 iOS 16.4–16.7 的用户关在门外，而仓库里声明的下限仍是 16.4。
+  // 现在的语义是**钉死**：高了也压回来，只有我们自己造的扩展 target（在规格里声明了更高
+  // 下限，如系统翻译的 18.4）例外。
+  test('★ sync 把部署下限**钉死**在 16.4 / 13.3 —— 高了也压回来，第二次幂等', () => {
+    const src = 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;\nMACOSX_DEPLOYMENT_TARGET = 10.14;\n'
+      + 'IPHONEOS_DEPLOYMENT_TARGET = 17.0;\nMACOSX_DEPLOYMENT_TARGET = 10.15;\nMACOSX_DEPLOYMENT_TARGET = 15.0;\n';
     const a = patchDeploymentTargets(src);
-    ok(a.src.includes('IPHONEOS_DEPLOYMENT_TARGET = 16.4;'), '15.0 → 16.4');
-    ok(a.src.includes('IPHONEOS_DEPLOYMENT_TARGET = 17.0;'), '17.0 不动');
-    eq((a.src.match(/MACOSX_DEPLOYMENT_TARGET = 13\.3;/g) || []).length, 2, '10.14 与 10.15 都抬到 13.3');
-    ok(/3 处/.test(a.note), a.note);
-    ok(/already/.test(patchDeploymentTargets(a.src).note), '幂等');
+    eq((a.src.match(/IPHONEOS_DEPLOYMENT_TARGET = 16\.4;/g) || []).length, 2, '15.0 抬上来、17.0 压回去');
+    ok(!a.src.includes('IPHONEOS_DEPLOYMENT_TARGET = 17.0;'), '17.0 必须被压回 16.4 —— 留着就是悄悄换了下限');
+    eq((a.src.match(/MACOSX_DEPLOYMENT_TARGET = 13\.3;/g) || []).length, 3, 'macOS 三处都钉到 13.3');
+    ok(/already|已钉/.test(patchDeploymentTargets(a.src).note), '幂等');
+  });
+
+  test('★ 我们自己造的扩展 target 声明的更高下限不动 —— 系统翻译要 18.4', () => {
+    const { TRANSLATE_EXT_SPEC: T, WIDGET_SPEC: W } = require(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'));
+    eq(T.deploy, '18.4');
+    const src = `IPHONEOS_DEPLOYMENT_TARGET = 17.0;\nIPHONEOS_DEPLOYMENT_TARGET = ${T.deploy};\nIPHONEOS_DEPLOYMENT_TARGET = ${W.deploy};\n`;
+    const a = patchDeploymentTargets(src);
+    ok(a.src.includes(`IPHONEOS_DEPLOYMENT_TARGET = ${T.deploy};`), '扩展自己的 18.4 要留着');
+    eq((a.src.match(/IPHONEOS_DEPLOYMENT_TARGET = 16\.4;/g) || []).length, 2,
+      'App 的 17.0 压回 16.4，widget 的 16.1（低于下限）抬到 16.4');
+  });
+
+  test('★ 生成的工程里，App 的下限必须等于声明的下限 —— 上一版就是从这里漏的', () => {
+    const P = path.join(__dirname, '..', 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
+    if (!fs.existsSync(P)) return;
+    const { TRANSLATE_EXT_SPEC: T } = require(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'));
+    const vals = [...new Set((fs.readFileSync(P, 'utf8').match(/IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);/g) || [])
+      .map((m) => m.match(/= ([0-9.]+);/)[1]))].sort();
+    deepEq(vals, [OSF.FLOOR.ios, T.deploy].sort(),
+      '工程里只该有两种值：声明的下限，与系统翻译扩展自己的。实际 ' + vals.join(' / '));
   });
   test('门能红：下限 15.0 时后行断言被抓到（文件:行），下限 16.4 时不报；注释里的不算', () => {
     const js = "// (?<=x) 注释里\nconst a = t.split(/(?<=[.!?])\\s+/u);\nconst b = 1;\n";

@@ -1092,17 +1092,37 @@ function patchSwiftPackageText(src, relPath) {
 // macOS 10.14），所以这里每次 sync 都要重钉；只往上抬，不往下压（widget 目标自带更高的值，不动）。
 // 历史：此前只把 macOS 从 10.14 抬到 10.15（sherpa-onnx 包的要求）。
 const OS_FLOOR = require(path.join(ROOT, 'build', 'os-floor.config.js'));
+// 部署下限**钉死**在 OS_FLOOR，不是「往上抬」。
+//
+// 原来只抬不压，代价是转换器换一版就悄悄换掉我们的下限：2026-09-20 用 Xcode 27 重新生成
+// 工程，App target 出来是 **17.0**（老转换器是 15.0），补丁看它已经 ≥ 16.4 就没动 ——
+// 于是这一版会安静地把 iOS 16.4–16.7 的用户关在门外，而**仓库里声明的底线仍写着 16.4**。
+// 没有一行输出会说这件事；这次是 Apple 在上传校验里拦下来的，理由还是另一件事
+// （ITMS-90208：vendored 的 onnxruntime.framework 是 16.4，与 App 的 17.0 对不上）。
+// 也就是说：如果没有那两个 framework，它就直接上架了。
+//
+// 例外是**我们自己造的扩展 target**：它们在规格里声明了更高的下限（系统翻译要 18.4），
+// 那是有意的 —— App 照常装在更老的系统上，只是那些机器没有这个能力。按**值**认，因为
+// 这个替换是对整份 pbxproj 做的，认不出某一行属于哪个 target。
+function intentionalAbove(floor) {
+  return new Set([WIDGET_SPEC, TRANSLATE_EXT_SPEC]
+    .map((s) => s.deploy)
+    .filter((v) => OS_FLOOR.cmp(v, floor) > 0));
+}
+
 function patchDeploymentTargets(src, floor) {
   const f = floor || OS_FLOOR.FLOOR;
+  const keep = intentionalAbove(f.ios);
   let n = 0;
-  const bump = (text, key, want) => text.replace(new RegExp(key + ' = ([0-9.]+);', 'g'), (m, cur) => {
-    if (OS_FLOOR.cmp(cur, want) >= 0) return m;
+  const pin = (text, key, want, exempt) => text.replace(new RegExp(key + ' = ([0-9.]+);', 'g'), (m, cur) => {
+    if (exempt && exempt.has(cur)) return m;          // 某个扩展 target 自己声明的更高下限
+    if (OS_FLOOR.cmp(cur, want) === 0) return m;
     n++; return `${key} = ${want};`;
   });
-  let out = bump(src, 'IPHONEOS_DEPLOYMENT_TARGET', f.ios);
-  out = bump(out, 'MACOSX_DEPLOYMENT_TARGET', f.macos);
-  if (!n) return { src, note: `deployment targets already ≥ iOS ${f.ios} / macOS ${f.macos}` };
-  return { src: out, note: `deployment targets → iOS ${f.ios} / macOS ${f.macos}（${n} 处）` };
+  let out = pin(src, 'IPHONEOS_DEPLOYMENT_TARGET', f.ios, keep);
+  out = pin(out, 'MACOSX_DEPLOYMENT_TARGET', f.macos, null);
+  if (!n) return { src, note: `deployment targets 已钉在 iOS ${f.ios} / macOS ${f.macos}` };
+  return { src: out, note: `deployment targets 钉到 iOS ${f.ios} / macOS ${f.macos}（${n} 处）` };
 }
 // 旧名保留给测试与调用方：语义已并入 patchDeploymentTargets。
 const patchMacDeploymentTarget = (src) => patchDeploymentTargets(src);
