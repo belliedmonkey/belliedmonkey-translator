@@ -160,6 +160,11 @@
       return { written: 0, names: [] };
     }
     if (out.names && out.names.length) post({ type: 'inbox-ack', names: out.names });
+    // 收进过至少一句 = 用户**真的**把我们设成了默认翻译 App。系统不提供这个接口，
+    // 这是唯一能证明它的事实（画布第 7 页 DiscoverWhen）。首页那张发现横幅据此变态。
+    if (out.written > 0) {
+      try { chrome.storage.local.set({ systransSeenAt: Date.now() }); } catch (_) {}
+    }
     return out;
   }
 

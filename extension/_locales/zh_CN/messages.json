@@ -3545,5 +3545,23 @@
   },
   "setup_from_systrans": {
     "message": "从系统翻译过来的：配好之后，回到刚才的 App 再点一次「翻译」。"
+  },
+  "systrans_discover_title": {
+    "message": "让 iPhone 自带的「翻译」用上大肚猴"
+  },
+  "systrans_discover_body": {
+    "message": "在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎。设一次就好。"
+  },
+  "systrans_discover_done": {
+    "message": "我已设好"
+  },
+  "systrans_discover_used_title": {
+    "message": "系统翻译 · 已在用"
+  },
+  "systrans_discover_used": {
+    "message": "在任何 App 里选中文字点「翻译」，用的就是你配的引擎。翻过的句子在复习库里。"
+  },
+  "systrans_discover_see": {
+    "message": "在复习库里看 →"
   }
 }

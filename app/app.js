@@ -300,14 +300,15 @@
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
     const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-docs').hidden || !$('app-settings').hidden;
-    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); return; }
+    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
-    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); return; }
+    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
+    paintSysBanner();   // 扩展那张在场 ⇒ 这一张让位（AppSysBanner.decide 读的就是它）
     // iOS 形态（2026-09-10）：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人
     // 大多没把扩展打开，而这里 iOS 唯一能用的动作曾是一个次级按钮。改成标题 + 三步
     // （与引导 ext 屏同一份文案与插图）+ 填色主按钮 + 「我已打开」。macOS 形态不变。
@@ -384,6 +385,20 @@
   }
 
   let extState = null;
+  // 系统翻译的发现横幅。**跟着扩展横幅一起决定** —— 首页不能同时挂两张「还差一步」，
+  // 而「扩展那张在不在」正是这一张的判据之一（画布第 7 页 DiscoverWhen）。
+  function paintSysBanner() {
+    if (typeof AppSysBanner === 'undefined') return;
+    const ext = $('ext-banner');
+    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
+      || !$('app-docs').hidden || !$('app-settings').hidden;
+    AppSysBanner.paint({
+      away,
+      onboarding: !!($('onboard') && !$('onboard').hidden),
+      extBannerShown: !!(ext && !ext.hidden),
+    }).catch(() => {});
+  }
+
   function setExtState(next) { extState = next; paintExtBanner(extState); }
 
   // ViewController 在页面加载完时调它。签名跟转换器模板一致，别改 —— 改了 Swift 侧就对不上。
@@ -1121,6 +1136,7 @@
     // Swift 侧（app/native/open-url-bridge.swift）两头都兜：页面没就绪时它写
     // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。所以这里两样都读。
     try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.wire({ close: () => closeSettings() }); } catch (_) {}
+    try { if (typeof AppSysBanner !== 'undefined') AppSysBanner.wire({ openReview: () => { const r = $('review'); if (r) r.click(); } }); } catch (_) {}
 
     function parseDeepLink(raw) {
       try {

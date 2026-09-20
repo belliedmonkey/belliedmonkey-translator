@@ -3544,5 +3544,23 @@
   },
   "setup_from_systrans": {
     "message": "You came here from System translation. Once this is set up, go back to that app and tap Translate again."
+  },
+  "systrans_discover_title": {
+    "message": "Let iPhone's built-in Translate use BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "Select text in any app and tap Translate — the sheet that opens uses the engine you configured. Set it once."
+  },
+  "systrans_discover_done": {
+    "message": "I've set it"
+  },
+  "systrans_discover_used_title": {
+    "message": "System translation · in use"
+  },
+  "systrans_discover_used": {
+    "message": "Select text in any app and tap Translate — it uses the engine you configured. The sentences you translate are in your review library."
+  },
+  "systrans_discover_see": {
+    "message": "See them in review →"
   }
 }

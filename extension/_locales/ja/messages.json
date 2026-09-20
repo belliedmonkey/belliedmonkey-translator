@@ -3544,5 +3544,23 @@
   },
   "setup_from_systrans": {
     "message": "システム翻訳から来ました。設定が終わったら、さっきのアプリに戻ってもう一度「翻訳」をタップしてください。"
+  },
+  "systrans_discover_title": {
+    "message": "iPhone 標準の「翻訳」で大肚猴を使う"
+  },
+  "systrans_discover_body": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンで翻訳します。一度設定するだけです。"
+  },
+  "systrans_discover_done": {
+    "message": "設定しました"
+  },
+  "systrans_discover_used_title": {
+    "message": "システム翻訳 · 使用中"
+  },
+  "systrans_discover_used": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンが使われます。翻訳した文は復習ライブラリにあります。"
+  },
+  "systrans_discover_see": {
+    "message": "復習ライブラリで見る →"
   }
 }

@@ -3544,5 +3544,23 @@
   },
   "setup_from_systrans": {
     "message": "لقد وصلت من ترجمة النظام. بعد الإعداد، عُد إلى ذلك التطبيق واضغط «ترجمة» مرة أخرى."
+  },
+  "systrans_discover_title": {
+    "message": "اجعل «الترجمة» المدمجة في iPhone تستخدم BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» — ستستخدم النافذة المحرّك الذي أعددته. يُضبط مرة واحدة فقط."
+  },
+  "systrans_discover_done": {
+    "message": "أعددتها"
+  },
+  "systrans_discover_used_title": {
+    "message": "ترجمة النظام · قيد الاستخدام"
+  },
+  "systrans_discover_used": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» — المحرّك الذي أعددته هو الذي يترجم. الجمل المترجمة موجودة في مكتبة المراجعة."
+  },
+  "systrans_discover_see": {
+    "message": "عرضها في المراجعة ←"
   }
 }

@@ -3544,5 +3544,23 @@
   },
   "setup_from_systrans": {
     "message": "Vous venez de la traduction système. Une fois configuré, retournez dans cette app et touchez à nouveau Traduire."
+  },
+  "systrans_discover_title": {
+    "message": "Faire utiliser BelliedMonkey par la fonction Traduire de l'iPhone"
+  },
+  "systrans_discover_body": {
+    "message": "Sélectionnez du texte dans n'importe quelle app et touchez Traduire : la fenêtre qui s'ouvre utilise le moteur que vous avez configuré. Une seule fois à régler."
+  },
+  "systrans_discover_done": {
+    "message": "C'est fait"
+  },
+  "systrans_discover_used_title": {
+    "message": "Traduction système · active"
+  },
+  "systrans_discover_used": {
+    "message": "Sélectionnez du texte dans n'importe quelle app et touchez Traduire : c'est votre moteur qui traduit. Les phrases traduites sont dans votre bibliothèque de révision."
+  },
+  "systrans_discover_see": {
+    "message": "Les voir en révision →"
   }
 }

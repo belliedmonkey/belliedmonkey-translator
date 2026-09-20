@@ -3376,5 +3376,23 @@
   },
   "setup_from_systrans": {
     "message": "आप सिस्टम अनुवाद से आए हैं। सेट हो जाने पर उसी ऐप में लौटकर फिर से «अनुवाद» दबाएँ।"
+  },
+  "systrans_discover_title": {
+    "message": "iPhone के अपने «अनुवाद» में BelliedMonkey चलाएँ"
+  },
+  "systrans_discover_body": {
+    "message": "किसी भी ऐप में टेक्स्ट चुनकर «अनुवाद» दबाएँ — जो विंडो खुलेगी वह आपके कॉन्फ़िगर किए इंजन से अनुवाद करेगी। एक बार सेट करना है।"
+  },
+  "systrans_discover_done": {
+    "message": "मैंने सेट कर लिया"
+  },
+  "systrans_discover_used_title": {
+    "message": "सिस्टम अनुवाद · चालू"
+  },
+  "systrans_discover_used": {
+    "message": "किसी भी ऐप में टेक्स्ट चुनकर «अनुवाद» दबाएँ — अनुवाद आपका इंजन करता है। अनुवादित वाक्य आपकी रिव्यू लाइब्रेरी में हैं।"
+  },
+  "systrans_discover_see": {
+    "message": "रिव्यू में देखें →"
   }
 }

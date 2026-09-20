@@ -130,6 +130,7 @@ const MODULES = [
   'app/vault-mirror.js',              // AppVault —— 引擎配置镜像给系统翻译扩展（mtVault；iOS 才有原生半边）
   'app/sys-settings.js',              // AppSysSettings —— 设置里「系统翻译」那一块（iOS 才显示）
   'app/setup-done.js',                // AppSetupDone —— 「配好了」的回执（四个落点一种回执）
+  'app/sys-banner.js',                // AppSysBanner —— 首页「把系统翻译设成默认」横幅（iOS 才显示）
   'app/quick-settings.js',            // AppQuickSettings —— 设置里「快速翻译」块的 M-7 那几行
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
   'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
