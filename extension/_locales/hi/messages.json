@@ -3301,5 +3301,56 @@
   },
   "systrans_capture_hint": {
     "message": "अनुवादित वाक्य «सिस्टम अनुवाद» स्रोत के साथ रिव्यू में जाते हैं। बंद करने पर अनुवाद चलता रहेगा, बस सहेजा नहीं जाएगा।"
+  },
+  "sys_disclose_direct": {
+    "message": "चुना गया टेक्स्ट सीधे आपके कॉन्फ़िगर किए इंजन ({name}) को जाता है; यह कभी हमारे सर्वर से होकर नहीं गुज़रता।"
+  },
+  "sys_disclose_grant": {
+    "message": "मुफ़्त क्रेडिट का उपयोग: चुना गया टेक्स्ट हमारे ज़रिए प्रदाता तक पहुँचाया जाता है। हम सामग्री नहीं रखते।"
+  },
+  "sys_fail_network": {
+    "message": "अनुवाद इंजन तक नहीं पहुँच सके। कनेक्शन जाँचकर फिर कोशिश करें।"
+  },
+  "sys_fail_timeout": {
+    "message": "इंजन ने समय पर जवाब नहीं दिया।"
+  },
+  "sys_fail_http": {
+    "message": "इंजन ने एक त्रुटि लौटाई।"
+  },
+  "sys_fail_no_base": {
+    "message": "इस इंजन को पता चाहिए, और वह खाली है। BelliedMonkey Translator खोलकर भरें।"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "यह इंजन अब मौजूद नहीं है। BelliedMonkey Translator में कोई दूसरा चुनें।"
+  },
+  "sys_fail_needs_setup": {
+    "message": "अभी कोई अनुवाद इंजन सेट नहीं है। BelliedMonkey Translator एक बार खोलकर सेट करें, फिर यह यहाँ काम करेगा।"
+  },
+  "sys_fail_not_synced": {
+    "message": "BelliedMonkey Translator एक बार खोलें ताकि इंजन सेटिंग्स यहाँ साझा हो जाएँ।"
+  },
+  "sys_fail_empty": {
+    "message": "चयन में अनुवाद करने लायक कोई टेक्स्ट नहीं है।"
+  },
+  "sys_fail_empty_result": {
+    "message": "इस बार इंजन ने कुछ नहीं लौटाया।"
+  },
+  "sys_fail_engine": {
+    "message": "अनुवाद इंजन शुरू नहीं हुआ।"
+  },
+  "sys_fail_unknown": {
+    "message": "अनुवाद नहीं हो सका।"
+  },
+  "sys_ui_translating": {
+    "message": "अनुवाद हो रहा है…"
+  },
+  "sys_ui_slow": {
+    "message": "अभी चल रहा है — मुफ़्त क्रेडिट धीमा हो सकता है।"
+  },
+  "sys_ui_replace": {
+    "message": "बदलें"
+  },
+  "sys_ui_open_app": {
+    "message": "BelliedMonkey Translator खोलें"
   }
 }

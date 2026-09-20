@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "번역한 문장이 「시스템 번역」 출처로 복습에 들어갑니다. 꺼도 번역은 되지만 저장되지 않습니다."
+  },
+  "sys_disclose_direct": {
+    "message": "선택한 텍스트는 직접 설정한 엔진({name})으로 바로 전송되며, 당사 서버를 거치지 않습니다."
+  },
+  "sys_disclose_grant": {
+    "message": "무료 크레딧 사용 중: 선택한 텍스트는 당사를 거쳐 제공업체로 전달됩니다. 내용은 저장하지 않습니다."
+  },
+  "sys_fail_network": {
+    "message": "번역 엔진에 연결할 수 없습니다. 네트워크를 확인하고 다시 시도하세요."
+  },
+  "sys_fail_timeout": {
+    "message": "엔진이 제때 응답하지 않았습니다."
+  },
+  "sys_fail_http": {
+    "message": "엔진이 오류를 반환했습니다."
+  },
+  "sys_fail_no_base": {
+    "message": "이 엔진에는 주소가 필요한데 비어 있습니다. 大肚猴翻译를 열어 입력하세요."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "이 엔진은 더 이상 없습니다. 大肚猴翻译에서 다른 엔진을 선택하세요."
+  },
+  "sys_fail_needs_setup": {
+    "message": "아직 번역 엔진을 설정하지 않았습니다. 大肚猴翻译를 한 번 열어 설정하면 여기서 사용할 수 있습니다."
+  },
+  "sys_fail_not_synced": {
+    "message": "大肚猴翻译를 한 번 열어 엔진 설정을 이 시트에 공유하세요."
+  },
+  "sys_fail_empty": {
+    "message": "선택한 내용에 번역할 텍스트가 없습니다."
+  },
+  "sys_fail_empty_result": {
+    "message": "엔진이 아무것도 반환하지 않았습니다."
+  },
+  "sys_fail_engine": {
+    "message": "번역 엔진이 시작되지 않았습니다."
+  },
+  "sys_fail_unknown": {
+    "message": "번역하지 못했습니다."
+  },
+  "sys_ui_translating": {
+    "message": "번역 중…"
+  },
+  "sys_ui_slow": {
+    "message": "아직 번역 중 · 무료 크레딧은 느릴 수 있습니다."
+  },
+  "sys_ui_replace": {
+    "message": "바꾸기"
+  },
+  "sys_ui_open_app": {
+    "message": "大肚猴翻译 열기"
   }
 }

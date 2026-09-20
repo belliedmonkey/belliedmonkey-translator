@@ -1013,6 +1013,50 @@ function validateManifest(distDir, isFirefox) {
     log('Gate J-1 OK（快速翻译的披露与功能同版）');
   }
 
+  // ── Gate J-2（docs/learning-design.md §10；随 iPhone 线 I-8 出货）────────────────────────────
+  //
+  // 系统翻译把「你在别的 App 里选中的文字」发给用户配置的引擎 —— 第二个新披露面。
+  // 与 J-1 一样没有系统的用途说明键可借：系统那页一次性告知只说「发送给<这个 App>」，
+  // 没说「发给你配置的引擎」，更没说免费额度那条路经我们中转。所以披露全靠产品里那两句 ×12。
+  //
+  // 判据：弹层用着 sys_disclose_direct ⇒ README ×2 有「系统翻译」那一段、12 份 locale 的键齐
+  // 且不是半句话、联网键在**宿主 App** 的 plist 而不在扩展的（T1 读数：放错 ⇒ 扩展里所有请求
+  // -1009，而且不报权限错误）。J-1 与 J-2 各自独立：两个面不同版出货，隐私文案必须与那一版
+  // 真的有的功能逐字对得上。
+  if (fs.readFileSync(path.join(__dirname, 'app', 'native', 'translate-ext', 'TranslateExt.swift'), 'utf8').includes('sys_disclose_direct')) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/System translation/i.test(rdEn) || !/never passes through our servers/i.test(rdEn) || !/Default Translation App/i.test(rdEn)) miss.push('README.md 没有「系统翻译」（System translation）的完整披露（Gate J-2）');
+    if (!/系统翻译/.test(rdZh) || !/不经过我们的服务器/.test(rdZh) || !/默认翻译/.test(rdZh)) miss.push('README.zh-CN.md 没有「系统翻译」的完整披露（Gate J-2）');
+    const J2_KEYS = ['sys_disclose_direct', 'sys_disclose_grant', 'sys_fail_needs_setup', 'sys_fail_not_synced', 'systrans_intro', 'systrans_capture_hint'];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of J2_KEYS) {
+        const v = String((m[k] && m[k].message) || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate J-2）`); continue; }
+        if (v.length < 20) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一句完整披露`);
+      }
+      if (m.sys_disclose_direct && !String(m.sys_disclose_direct.message).includes('{name}')) {
+        miss.push(`_locales/${loc} 的 sys_disclose_direct 丢了 {name} —— 披露里说不出是哪个引擎`);
+      }
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'com\.apple\.developer\.translation-ui-provider\.network-access', only: 'iOS \(App\)'/.test(sync)) {
+      miss.push('联网键不在宿主 App 的 Info.plist（Gate J-2）—— 放在扩展的 plist 里，扩展的每一个请求都会 -1009 且不报权限错');
+    }
+    if (/plist:[\s\S]{0,400}network-access/.test(sync)) miss.push('扩展自己的 plist 里不该有联网键（Gate J-2）');
+    if (miss.length) {
+      err('Gate J-2 FAILED —— App 带着系统翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate J-2：README ×2、两个站点、12 份 locale、联网键在宿主 App 的 plist');
+      process.exit(1);
+    }
+    log('Gate J-2 OK（系统翻译的披露与功能同版）');
+  }
+
   if (backend.enabled) {
     // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
     // opposite direction — no stale "never uploaded / no account" sentence may

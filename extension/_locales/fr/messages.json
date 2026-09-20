@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "Les phrases traduites vont en révision, sous la source « Traduction système ». Désactivé, la traduction fonctionne toujours, elle n'est simplement pas enregistrée."
+  },
+  "sys_disclose_direct": {
+    "message": "Le texte sélectionné est envoyé directement au moteur que vous avez configuré ({name}) ; il ne passe jamais par nos serveurs."
+  },
+  "sys_disclose_grant": {
+    "message": "Crédit gratuit utilisé : le texte sélectionné transite par nous vers le fournisseur. Nous n'en conservons pas le contenu."
+  },
+  "sys_fail_network": {
+    "message": "Impossible de joindre le moteur de traduction. Vérifiez votre connexion et réessayez."
+  },
+  "sys_fail_timeout": {
+    "message": "Le moteur n'a pas répondu à temps."
+  },
+  "sys_fail_http": {
+    "message": "Le moteur a renvoyé une erreur."
+  },
+  "sys_fail_no_base": {
+    "message": "Ce moteur a besoin d'une adresse, et aucune n'est renseignée. Ouvrez BelliedMonkey Translator pour la saisir."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Ce moteur n'existe plus. Choisissez-en un autre dans BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Aucun moteur de traduction n'est configuré. Ouvrez BelliedMonkey Translator une fois et cela fonctionnera ici."
+  },
+  "sys_fail_not_synced": {
+    "message": "Ouvrez BelliedMonkey Translator une fois pour partager vos réglages de moteur avec cette fenêtre."
+  },
+  "sys_fail_empty": {
+    "message": "Rien à traduire dans la sélection."
+  },
+  "sys_fail_empty_result": {
+    "message": "Le moteur n'a rien renvoyé cette fois."
+  },
+  "sys_fail_engine": {
+    "message": "Le moteur de traduction n'a pas démarré."
+  },
+  "sys_fail_unknown": {
+    "message": "La traduction a échoué."
+  },
+  "sys_ui_translating": {
+    "message": "Traduction…"
+  },
+  "sys_ui_slow": {
+    "message": "Toujours en cours — le crédit gratuit peut être lent."
+  },
+  "sys_ui_replace": {
+    "message": "Remplacer"
+  },
+  "sys_ui_open_app": {
+    "message": "Ouvrir BelliedMonkey Translator"
   }
 }

@@ -3469,5 +3469,56 @@
   },
   "systrans_capture_hint": {
     "message": "Las frases traducidas van a repaso, con la fuente «Traducción del sistema». Si lo desactivas, la traducción sigue funcionando, solo que no se guarda."
+  },
+  "sys_disclose_direct": {
+    "message": "El texto seleccionado se envía directamente al motor que configuraste ({name}); nunca pasa por nuestros servidores."
+  },
+  "sys_disclose_grant": {
+    "message": "Usando crédito gratuito: el texto seleccionado se retransmite a través de nosotros al proveedor. No guardamos el contenido."
+  },
+  "sys_fail_network": {
+    "message": "No se pudo contactar con el motor de traducción. Revisa tu conexión e inténtalo de nuevo."
+  },
+  "sys_fail_timeout": {
+    "message": "El motor no respondió a tiempo."
+  },
+  "sys_fail_http": {
+    "message": "El motor devolvió un error."
+  },
+  "sys_fail_no_base": {
+    "message": "Este motor necesita una dirección y no hay ninguna. Abre BelliedMonkey Translator y escríbela."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Este motor ya no existe. Elige otro en BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Aún no hay ningún motor de traducción configurado. Abre BelliedMonkey Translator una vez y funcionará aquí."
+  },
+  "sys_fail_not_synced": {
+    "message": "Abre BelliedMonkey Translator una vez para compartir aquí tus ajustes de motor."
+  },
+  "sys_fail_empty": {
+    "message": "No hay nada que traducir en la selección."
+  },
+  "sys_fail_empty_result": {
+    "message": "El motor no devolvió nada esta vez."
+  },
+  "sys_fail_engine": {
+    "message": "El motor de traducción no se inició."
+  },
+  "sys_fail_unknown": {
+    "message": "La traducción falló."
+  },
+  "sys_ui_translating": {
+    "message": "Traduciendo…"
+  },
+  "sys_ui_slow": {
+    "message": "Sigue en marcha: el crédito gratuito puede ser lento."
+  },
+  "sys_ui_replace": {
+    "message": "Reemplazar"
+  },
+  "sys_ui_open_app": {
+    "message": "Abrir BelliedMonkey Translator"
   }
 }
