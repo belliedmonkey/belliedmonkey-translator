@@ -29,7 +29,10 @@ const {
   patchWidgetTarget,
   patchWidgetFiles,
   patchExtensionTarget,
+  patchExtensionFiles,
   WIDGET_SPEC,
+  EMBED_PLUGINS,
+  EMBED_EXTENSIONKIT,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -1211,6 +1214,178 @@ describe('sync-app-assets: 灵动岛 Widget target', () => {
     const note = patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
     match(note, /^✗/);
     ok(!fs.readFileSync(t.pbx, 'utf8').includes('MT_WIDGET_TARGET'), '放弃时不许留下半个 target');
+  });
+
+  // I-5a 把 buildSettings 从一段模板字面量改成「表 + 字母序」，好让第二个扩展能塞进自己的
+  // 几项。改完逐字节比对过重构前的输出（相同），但那只是当时一次 —— 这一条把它钉住：
+  // 少一项、多一项、顺序变了，都会红。**顺序也是判据**：Xcode 自己按字母序写，而一份
+  // 顺序不同的 pbxproj 会在下一次有人用 Xcode 存盘时产生一大片无关 diff。
+  test('★ widget 的 buildSettings 逐行钉住 —— 少一项、多一项、换个顺序都要红', () => {
+    if (!REAL) return;
+    const t = tree('Some App');
+    patchWidgetTarget(path.join(t.dir, 'Shared (App)'));
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    // **取最后一处**：骨架是从真工程剥出来的，剥的是「MT… 开头的那一行」与「提到产品名的
+    // 那一行」，于是上一次 app:sync 留下的 widget 配置**正文**还躺在里面（那一份的显示名与
+    // 部署下限已被 build-safari.sh 改过）。取第一处量到的是它，不是这一次造出来的。
+    const at = out.lastIndexOf(`INFOPLIST_FILE = "${WIDGET_SPEC.dir}/Info.plist";`);
+    ok(at > 0, '找不到 widget 那一档配置');
+    ok(out.slice(at, at + 300).includes(`INFOPLIST_KEY_CFBundleDisplayName = "${WIDGET_SPEC.name}"`),
+      '量错了块 —— 这一档必须是这一次生成的那一份');
+    const block = out.slice(out.lastIndexOf('buildSettings = {', at), out.indexOf('\t\t\t};', at));
+    const keys = (block.match(/^\t{4}([A-Za-z_]+) = /gm) || []).map((s) => s.trim().replace(' =', ''));
+    deepEq(keys, ['ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME', 'CODE_SIGN_STYLE',
+      'CURRENT_PROJECT_VERSION', 'GENERATE_INFOPLIST_FILE', 'INFOPLIST_FILE',
+      'INFOPLIST_KEY_CFBundleDisplayName', 'INFOPLIST_KEY_NSHumanReadableCopyright',
+      'IPHONEOS_DEPLOYMENT_TARGET', 'LD_RUNPATH_SEARCH_PATHS', 'MARKETING_VERSION',
+      'PRODUCT_BUNDLE_IDENTIFIER', 'PRODUCT_NAME', 'SDKROOT', 'SKIP_INSTALL',
+      'SWIFT_EMIT_LOC_STRINGS', 'SWIFT_VERSION', 'TARGETED_DEVICE_FAMILY']);
+    deepEq(keys.slice().sort(), keys, 'Xcode 按字母序写 buildSettings，我们也要');
+    ok(!block.includes('CODE_SIGN_ENTITLEMENTS'), 'widget 不该有 entitlements —— 它不用任何能力');
+  });
+});
+
+// I-5a：系统翻译的扩展点是 **ExtensionKit**，与灵动岛小组件不是同一种扩展
+// （T1 尖刺 2026-09-19：产品类型 `extensionkit-extension`、嵌在 `Extensions/` 而不是
+// `PlugIns/`、Info.plist 用 `EXAppExtensionAttributes`）。装错位置的后果是
+// **系统永远发现不了它，而构建、签名、上传一路都不报错** —— 所以判据只能写在这里。
+describe('sync-app-assets: ExtensionKit 扩展（I-5a）', () => {
+  const REAL = (() => {
+    const abs = path.join(__dirname, '..', 'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj');
+    return fs.existsSync(abs) ? fs.readFileSync(abs, 'utf8') : null;
+  })();
+  const PBX = () => String(REAL).replace(/\n\t\tMT[0-9A-F]{20}[^\n]*\n/g, '\n')
+    .replace(/\n[^\n]*MT_WIDGET_TARGET[^\n]*\n/g, '\n').replace(/\n[^\n]*MTPodcastWidget[^\n]*\n/g, '\n');
+  function tree() {
+    const dir = tmpdir();
+    const proj = path.join(dir, 'X.xcodeproj');
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    fs.mkdirSync(proj, { recursive: true });
+    fs.writeFileSync(path.join(proj, 'project.pbxproj'), PBX());
+    return { dir, pbx: path.join(proj, 'project.pbxproj'), shared: path.join(dir, 'Shared (App)') };
+  }
+  const SPEC = {
+    needle: 'MT_TEST_EXTKIT_TARGET', label: 'extkit', dir: 'iOS (TestExt)', name: 'MTTestExt',
+    deploy: '18.4', srcDir: 'x', srcs: ['A.swift'],
+    productType: 'com.apple.product-type.extensionkit-extension',
+    productFileType: 'wrapper.extensionkit-extension',
+    embed: EMBED_EXTENSIONKIT,
+    plist: '\t<key>EXAppExtensionAttributes</key>\n\t<dict/>\n',
+    settings: { CODE_SIGN_ENTITLEMENTS: '"Shared (App)/t.entitlements"', INFOPLIST_KEY_CFBundleDisplayName: '"起个名"' },
+    resources: [{ name: 'ExtEngine.js', from: 'package.json' }],
+  };
+
+  test('★ 产品类型与嵌入位置都换了一种 —— 装进 PlugIns 的 ExtensionKit 扩展系统看不见', () => {
+    if (!REAL) return;
+    const t = tree();
+    match(patchExtensionTarget(t.shared, SPEC), /extkit target patched/);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('productType = "com.apple.product-type.extensionkit-extension"'), '产品类型');
+    ok(out.includes('explicitFileType = "wrapper.extensionkit-extension"'), '产物类型');
+    ok(out.includes('dstSubfolderSpec = 16;') && out.includes('dstPath = "$(EXTENSIONS_FOLDER_PATH)"'),
+      '嵌入到 <App>.app/Extensions/');
+    ok(out.includes('MTTestExt.appex in Embed ExtensionKit Extensions'), '嵌入项挂在新阶段里');
+    ok(!out.includes('MTTestExt.appex in Embed Foundation Extensions'),
+      '**绝不能**同时塞进 PlugIns 那个阶段');
+  });
+
+  test('★ 新的嵌入阶段要挂进 iOS App target 的 buildPhases —— 只建不挂 = 根本不执行', () => {
+    if (!REAL) return;
+    const t = tree();
+    patchExtensionTarget(t.shared, SPEC);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    // id 是我们自己造的 `MT…`，不是转换器那种纯十六进制 —— 类别写窄了会一条都匹配不到。
+    const phaseId = (out.match(/(MT[0-9A-F]{20}) \/\* Embed ExtensionKit Extensions \*\/ = \{\n/) || [])[1];
+    ok(phaseId, '阶段对象要在');
+    // iOS App target 的 buildPhases 列表里必须点名它
+    const appIdx = out.search(/[0-9A-F]{24} \/\* [^*]*\(iOS\) \*\/ = \{\s*isa = PBXNativeTarget;/);
+    const phases = (out.slice(appIdx).match(/buildPhases = \(([\s\S]*?)\);/) || [])[1] || '';
+    ok(phases.includes(phaseId), 'iOS App 的 buildPhases 里没有它 ⇒ 这个阶段一次都不会跑');
+    // macOS App 不该被牵连（那边没有这个扩展点）
+    const macIdx = out.search(/[0-9A-F]{24} \/\* [^*]*\(macOS\) \*\/ = \{\s*isa = PBXNativeTarget;/);
+    if (macIdx > 0) {
+      const macPhases = (out.slice(macIdx).match(/buildPhases = \(([\s\S]*?)\);/) || [])[1] || '';
+      ok(!macPhases.includes(phaseId), 'macOS App 不该嵌这个扩展');
+    }
+  });
+
+  test('★ 资源进得了扩展 bundle —— 引擎不在包里，扩展起来就是一句 no ExtEngine.js', () => {
+    if (!REAL) return;
+    const t = tree();
+    patchExtensionTarget(t.shared, SPEC);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('ExtEngine.js in Resources'), '要有 PBXBuildFile');
+    ok(/MT[0-9A-F]{20} \/\* Resources \*\/ = \{\s*isa = PBXResourcesBuildPhase;[\s\S]{0,400}?ExtEngine\.js in Resources/.test(out),
+      '要真的列在这个 target 的 Resources 阶段里');
+    ok(out.includes('path = ExtEngine.js;'), '要有 PBXFileReference');
+  });
+
+  test('★ 额外的构建设置合并进去，并且仍按字母序', () => {
+    if (!REAL) return;
+    const t = tree();
+    patchExtensionTarget(t.shared, SPEC);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('CODE_SIGN_ENTITLEMENTS = "Shared (App)/t.entitlements";'), 'entitlements 要挂给扩展自己');
+    ok(out.includes('INFOPLIST_KEY_CFBundleDisplayName = "起个名";'), 'spec.settings 覆盖同名默认值');
+    eq((out.match(/= "起个名";/g) || []).length, 2, '两档配置各一条，不是四条');
+    const i = out.indexOf('CODE_SIGN_ENTITLEMENTS');
+    ok(i > 0 && out.indexOf('CODE_SIGN_STYLE', i) > i, 'CODE_SIGN_ENTITLEMENTS 要排在 CODE_SIGN_STYLE 之前');
+    ok(out.includes('IPHONEOS_DEPLOYMENT_TARGET = 18.4;'), '部署下限是扩展自己的');
+  });
+
+  test('★ 两个扩展并存：各有各的嵌入阶段，id 不相交', () => {
+    if (!REAL) return;
+    const t = tree();
+    match(patchWidgetTarget(t.shared), /widget target patched/);
+    match(patchExtensionTarget(t.shared, SPEC), /extkit target patched/);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('MTPodcastWidget.appex in Embed Foundation Extensions'), 'widget 还在 PlugIns');
+    ok(out.includes('MTTestExt.appex in Embed ExtensionKit Extensions'), '翻译扩展在 Extensions/');
+    // 结尾要带换行：`… in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile` 是那条嵌入项，不是阶段。
+    eq((out.match(/\/\* Embed ExtensionKit Extensions \*\/ = \{\n/g) || []).length, 1, '阶段只该建一次');
+    const pre = (s) => 'MT' + s.needle.length.toString(16).toUpperCase().padStart(2, '0');
+    const setOf = (p) => new Set(out.match(new RegExp(p + '[0-9A-F]{20}', 'g')) || []);
+    eq([...setOf(pre(SPEC))].filter((x) => setOf(pre(WIDGET_SPEC)).has(x)).length, 0);
+    // 幂等：再跑一次一字不改
+    const once = out;
+    match(patchExtensionTarget(t.shared, SPEC), /already patched/);
+    eq(fs.readFileSync(t.pbx, 'utf8'), once);
+  });
+
+  test('★ 工程里没有那个嵌入阶段、而规格又不许造 ⇒ 响亮地停下，不塞进 PlugIns 将就', () => {
+    if (!REAL) return;
+    const t = tree();
+    const NOCREATE = Object.assign({}, SPEC, { embed: { phase: 'Embed ExtensionKit Extensions' } });
+    match(patchExtensionTarget(t.shared, NOCREATE), /^✗ extkit: iOS App target 没有 Embed ExtensionKit Extensions 阶段/);
+    ok(!fs.readFileSync(t.pbx, 'utf8').includes(SPEC.needle), '放弃时不许留下半个 target');
+  });
+
+  test('★ 源文件或资源缺一个就整体放弃 —— 半个扩展比没有扩展更糟', () => {
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    const shared = path.join(dir, 'Shared (App)');
+    match(patchExtensionFiles(shared, Object.assign({}, SPEC, { srcs: ['NoSuch.swift'] })),
+      /✗ extkit: app\/native\/x\/NoSuch\.swift 不存在/);
+    match(patchExtensionFiles(shared, Object.assign({}, SPEC, { srcs: [], resources: [{ name: 'E.js', from: 'dist-app/NoSuch.js' }] })),
+      /✗ extkit: dist-app\/NoSuch\.js 不存在/);
+    ok(!fs.existsSync(path.join(dir, SPEC.dir)), '放弃时连目录都不该建');
+  });
+
+  test('★ plist 用 EXAppExtensionAttributes，不是 NSExtension —— 那正是论坛 779334 的死结', () => {
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    const note = patchExtensionFiles(path.join(dir, 'Shared (App)'),
+      Object.assign({}, SPEC, { srcs: [], srcDir: '.' }));
+    match(note, /extkit files synced/);
+    const p = fs.readFileSync(path.join(dir, SPEC.dir, 'Info.plist'), 'utf8');
+    ok(p.includes('EXAppExtensionAttributes'), 'ExtensionKit 的扩展点声明');
+    ok(!p.includes('NSExtension'), 'ExtensionKit 不用 NSExtension；Xcode 也不许写 NSExtensionPrincipalClass');
+    ok(fs.existsSync(path.join(dir, SPEC.dir, 'ExtEngine.js')), '资源要拷进工程树');
+    // 模板变了就跟上（这棵树是一次性的，手改不该在这里留存）
+    fs.writeFileSync(path.join(dir, SPEC.dir, 'Info.plist'), '手改的');
+    patchExtensionFiles(path.join(dir, 'Shared (App)'), Object.assign({}, SPEC, { srcs: [], srcDir: '.' }));
+    ok(fs.readFileSync(path.join(dir, SPEC.dir, 'Info.plist'), 'utf8').includes('EXAppExtensionAttributes'),
+      '第二次要把手改覆盖回模板');
   });
 });
 
