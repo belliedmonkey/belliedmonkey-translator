@@ -24,6 +24,8 @@ const { describe, test, ok, eq, deepEq, match } = require('./harness');
 const {
   classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
   patchAudioBridgeSwift, patchPlistXml, patchInfoPlists, PLIST_KEYS,
+  patchEntitlements,
+  ENTITLEMENTS,
   patchWidgetTarget,
   patchExtensionTarget,
   WIDGET_SPEC,
@@ -1002,6 +1004,73 @@ describe('verify-ios-bundle: the §9.5 background-audio declaration', () => {
 // 幂等，以及「按 productType 找 App target 而不是按产品名」—— 后者是被中国版那棵树
 // （target 叫「… CN (iOS)」）当场证伪出来的，写死英文名会让中国版整体跳过，
 // 而「跳过」的表现是「中国版没有灵动岛」，没有一行输出会提这件事。
+describe('sync-app-assets: 每 target 一份 entitlements（I-2）', () => {
+  const ROOT = path.join(__dirname, '..');
+  const REAL_PBX = (() => {
+    const f = path.join(ROOT, 'safari-project', 'BelliedMonkey Translator',
+      'BelliedMonkey Translator.xcodeproj', 'project.pbxproj');
+    try { return fs.readFileSync(f, 'utf8').replace(/\n[^\n]*CODE_SIGN_ENTITLEMENTS[^\n]*\n/g, '\n'); } catch (_) { return null; }
+  })();
+  function tree() {
+    const dir = tmpdir();
+    fs.mkdirSync(path.join(dir, 'X.xcodeproj'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'Shared (App)'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'X.xcodeproj', 'project.pbxproj'), REAL_PBX);
+    return { dir, shared: path.join(dir, 'Shared (App)'), pbx: path.join(dir, 'X.xcodeproj', 'project.pbxproj') };
+  }
+
+  test('★ 两个 App target 各挂各的，扩展一个都不沾', () => {
+    if (!REAL_PBX) return;
+    const t = tree();
+    match(patchEntitlements(t.shared), /entitlements patched/);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    for (const [plat, file] of [['iOS', 'ios-app.entitlements'], ['macOS', 'macos-app.entitlements']]) {
+      const re = new RegExp('CODE_SIGN_ENTITLEMENTS = "([^"]+)";\\s*\\n\\s*INFOPLIST_FILE = "' + plat + ' \\(App\\)/Info\\.plist";', 'g');
+      const got = [...out.matchAll(re)].map((m) => m[1]);
+      eq(got.length, 2, plat + ' 的两档配置都要挂上');
+      eq(new Set(got).size, 1, plat + ' 两档要指同一份');
+      ok(got[0].endsWith(file), plat + ' 要挂 ' + file + '，实际 ' + got[0]);
+    }
+    // 扩展不登录，多一个权限只会在审核时被问
+    ok(!/CODE_SIGN_ENTITLEMENTS[^\n]*\n\s*INFOPLIST_FILE = "(iOS|macOS) \(Extension\)/.test(out),
+      '扩展 target 不该有 CODE_SIGN_ENTITLEMENTS');
+  });
+
+  test('★ 守卫按配置块判，不按整份判 —— 否则第二个 target 永远挂不上', () => {
+    if (!REAL_PBX) return;
+    // 造一个「iOS 已挂、macOS 还没挂」的中间态：原来的全局守卫会在这里整体跳过
+    const t = tree();
+    let pbx = fs.readFileSync(t.pbx, 'utf8');
+    pbx = pbx.replace(/(\n\s*)(INFOPLIST_FILE = "iOS \(App\)\/Info\.plist";)/g,
+      '$1CODE_SIGN_ENTITLEMENTS = "Shared (App)/ios-app.entitlements";$1$2');
+    fs.writeFileSync(t.pbx, pbx);
+    const note = patchEntitlements(t.shared);
+    const out = fs.readFileSync(t.pbx, 'utf8');
+    ok(out.includes('macos-app.entitlements'), 'macOS 那一份必须补上，实际回执：' + note);
+    eq((out.match(/CODE_SIGN_ENTITLEMENTS = "Shared \(App\)\/ios-app\.entitlements";/g) || []).length, 2,
+      'iOS 已有的不能被打第二遍');
+  });
+
+  test('模板缺了就整体放弃并说明，绝不写一半', () => {
+    if (!REAL_PBX) return;
+    const t = tree();
+    const saved = ENTITLEMENTS[1].src;
+    ENTITLEMENTS[1].src = 'nope.entitlements';
+    try {
+      match(patchEntitlements(t.shared), /✗ entitlements:.*nope\.entitlements 不存在/);
+      eq(fs.readFileSync(t.pbx, 'utf8').includes('CODE_SIGN_ENTITLEMENTS'), false, '一行都不该写');
+    } finally { ENTITLEMENTS[1].src = saved; }
+  });
+
+  test('每份模板都只放该 target 用得上的 —— macOS 永远不该有 App Group / translation-app', () => {
+    const mac = fs.readFileSync(path.join(ROOT, 'app', 'native', 'entitlements', 'macos-app.entitlements'), 'utf8');
+    const body = mac.slice(mac.indexOf('<plist'));
+    for (const k of ['application-groups', 'keychain-access-groups', 'translation-app']) {
+      ok(!body.includes(k), 'macOS 的 entitlements 里不该有 ' + k + '（系统翻译是 iOS 独有的）');
+    }
+  });
+});
+
 describe('sync-app-assets: 灵动岛 Widget target', () => {
   // **样板取自真工程**，不是手写的。第一版手写的样板字段顺序和转换器的输出不同，
   // 于是测试红了而补丁其实是对的 —— 一个只存在于测试里的形状，守不住任何东西。

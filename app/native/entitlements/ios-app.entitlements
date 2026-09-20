@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- app/native/app.entitlements — Sign in with Apple 的权限声明。
+<!-- iOS App target 的 entitlements（learning-design §9.9）。
      由 scripts/sync-app-assets.js 复制进生成的工程并挂上 CODE_SIGN_ENTITLEMENTS。
      **改这里，然后跑 `npm run app:sync`**；工程是一次性的，直接改那边会被覆盖。
 
@@ -9,7 +9,11 @@
      两者同时存在时会不会把沙箱弄丢，判据是归档之后 `codesign -d --entitlements`
      的回读，不是「构建没报错」（macOS 沙箱丢了会被 App Review 拒，而本地跑得好好的）。
 
-     只给 App target，**不给扩展 target** —— 扩展不登录，多一个权限只会在审核时被问。 -->
+     **这里只放 iOS App 真正用到的。** 每多一项能力，App ID 上就多一项，审核就多一个
+     可问的点；而且新增能力的那一次归档必须用 Xcode 登录态（带 ASC API key 三参数会报
+     认证失败，尖刺 T1 的读数）。
+     将来随系统翻译（I-4 / I-5）加进来的：App Group、共享 Keychain 组、
+     com.apple.developer.translation-app —— **现在不加**，没人用的 entitlement 不该出现在包里。 -->
 <plist version="1.0">
 <dict>
     <key>com.apple.developer.applesignin</key>
