@@ -3,7 +3,7 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
-## 1.14.0
+## 1.14.0 — 2026-09-21
 
 - iPhone / iPad · New: System translation — select text in any app, tap “Translate,” and it goes to the engine you configured, never through our servers. First choose BelliedMonkey in Settings › Apps › Translate › Default Translate App. Requires iOS 18.4 or later.
 - iPhone / iPad · New: A card on the home screen walks you through making BelliedMonkey your default translate app.
