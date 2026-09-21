@@ -71,6 +71,18 @@ var EngineTest = (() => {
     if (!WireFormat.hasPath(u)) { const e = new Error('no path'); e.code = 'no_path'; e.url = u; throw e; }
   }
 
+  // 失焦即判：同一份判据（assertEndpointShape 是 bad_url / no_path 的唯一产地）、
+  // 同一份文案（reason），只是把发现的时刻从「点了测试之后」提前到「填完离开输入框」。
+  // 返回空串 = 没话说（地址为空是合法的，空 = 用注册表默认端点）。
+  //
+  // 为什么值得提前：2026-09-21 回读线上 engine_test，失败码里 http 34 条、no_path 9 条、
+  // bad_url 0 条 —— 而「只填了主机名」本来就是离线能判的错，它被当成 404 是因为要等到
+  // 发过请求才判。提前到失焦，用户改完地址当场就看见。
+  function shapeHint(url, t) {
+    try { assertEndpointShape(url); return ''; }
+    catch (e) { return reason(e, t); }
+  }
+
   // 占位符必须与 _locales 里的写法逐字一致。**兜底串不是真相** —— 它只在 locale
   // 缺键时才用得上，而 11 个 locale 一个不缺，所以代码里写 `{u}` 而 locale 写
   // `{url}` 的后果是：开发时一切正常，真机上原样显示「请求地址：{url}」。
@@ -110,9 +122,15 @@ var EngineTest = (() => {
     return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40), url: diag.url, route: diag.route };
   }
 
+  // 形状检查放在 resolveConfig **之后**：解析组可以为空并跟随翻译组（那条规则归
+  // LearnNotes.resolveConfig），所以「该检查哪个地址」只有解析完才知道。此前这一支
+  // 根本不检查，靠 options.js 在外面自己猜一次（`notes-provider` 非空就查 notes 的框）
+  // —— App 没有那一份，于是 App 上的地址错全部落进 http 404。四条传输现在一致。
   async function notes(settings) {
     if (typeof LearnNotes === 'undefined') throw missing('LearnNotes');
-    LearnNotes.configure(LearnNotes.resolveConfig(settings || {}));
+    const cfg = LearnNotes.resolveConfig(settings || {});
+    assertEndpointShape(cfg.baseUrl);
+    LearnNotes.configure(cfg);
     return LearnNotes.test();
   }
 
@@ -184,7 +202,7 @@ var EngineTest = (() => {
   }
 
   return {
-    reason, serverLine, assertEndpointShape, format,
+    reason, serverLine, assertEndpointShape, shapeHint, format,
     translation: (cfg) => probe('chat', () => translation(cfg)),
     notes: (settings) => probe('notes', () => notes(settings)),
     stt: (cfg) => probe('stt', () => stt(cfg)),

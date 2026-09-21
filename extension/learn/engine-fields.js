@@ -225,6 +225,7 @@ var EngineFields = (() => {
     .ef-row input, .ef-row select { flex:1 1 8em; min-width:0; }
     .ef-row .input-row { flex:1 1 8em; min-width:0; display:flex; gap:6px; align-items:center; }
     .ef-row .input-row input { flex:1 1 auto; }
+    .ef-field-note { flex:1 0 100%; margin:2px 0 0; font-size:.82rem; color:var(--danger); }
   `;
   let styled = false;
   function injectStyle(doc) {
@@ -319,9 +320,29 @@ var EngineFields = (() => {
       rows[f] = { row, input: inp, inputRow: wrap };
     }
 
+    // 地址填完、离开输入框就判形状（2026-09-21，#385）。判据与文案都问 EngineTest ——
+    // 组件不自己认识「什么样的地址算对」，那是 wire-format 的事，多一份必走样。
+    //
+    // 挂在**行里面**，理由同上面那条：行按 visibility 收起时提示跟着收。
+    // 空地址不提示 —— 空 = 用注册表默认端点，是合法状态。
+    const shapeNote = el('p', 'ef-field-note');
+    shapeNote.hidden = true;
+    rows.baseUrl.row.append(shapeNote);
+    function paintShape() {
+      const hint = (typeof EngineTest !== 'undefined' && typeof EngineTest.shapeHint === 'function')
+        ? EngineTest.shapeHint(rows.baseUrl.input.value, t) : '';
+      shapeNote.textContent = hint;
+      shapeNote.hidden = !hint;
+    }
+    rows.baseUrl.input.addEventListener('blur', paintShape);
+    // 已经在说话时才跟着每次输入重判：让用户改对的那一刻当场看见提示消失，而不是
+    // 一边打字一边被一句红字追着跑。
+    rows.baseUrl.input.addEventListener('input', () => { if (!shapeNote.hidden) paintShape(); });
+
     function paint() {
       const cur = entries.find((e) => e.id === sel.value) || null;
       const v = visibility(cur);
+      paintShape();
       rows.key.row.hidden = !v.key;
       rows.baseUrl.row.hidden = !v.baseUrl;
       rows.model.row.hidden = !v.model;

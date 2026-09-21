@@ -1540,6 +1540,21 @@ Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的�
 - **结果行回显真正请求的地址**（成功与失败都回显，key 永不出现在这一行）。用户填了自定义
   端点时最常见的故障就是地址错，而「我们调用了哪个地址」是唯一能把它和「连不上」分开的
   事实，没有任何错误文案能提供它。
+- *(2026-09-21，#385:)* **上面那条离线检查提前到失焦，而且不许有第二份判定。**
+  - **填完离开输入框就说**，不必等用户点「测试连接」：判据与文案都来自
+    `EngineTest.shapeHint`（它内部就是 `assertEndpointShape` + `reason`），**地址为空不提示**。
+    扩展由共用组件 `learn/engine-fields.js` 一处挂全（设置页 + 引导页），提示画在**该行
+    里面**（行随字段可见性收起时提示跟着收）；App 的输入框是静态 HTML，进不了那个组件，
+    在 `app/settings.js` 对三个槽各挂一次，提示写进该槽的**自检结果行**。
+    已经在说话时才跟着每次输入重判 —— 否则用户一边打字一边被红字追着跑。
+  - **四条传输（translation / notes / stt / tts）各自在内部做这次检查**，宿主不许在外面
+    补一份：解析组可以为空并跟随翻译组，「该检查哪个地址」归 `LearnNotes.resolveConfig`，
+    在调用方猜就是第二份判定。
+  - **「试听」是播放不是探活**（「听得见才算通」），所以它不走那四条传输；但它同样先判一次
+    地址形状，失败就在结果行具名说出来、不去合成。
+  - 为什么要提前：2026-09-21 回读线上 `engine_test`，失败码 `http` 34 条、`no_path` 9 条、
+    **`bad_url` 0 条** —— 「只填了主机名」本来离线就能判，却因为四处入口绕开了产地而被
+    当成 404。门禁在 `test/endpoint-shape.test.js`。
 
 - **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
   engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no

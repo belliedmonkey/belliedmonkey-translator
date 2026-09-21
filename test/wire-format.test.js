@@ -61,6 +61,27 @@ describe('WireFormat.formatFor — 后缀判定，家族封闭', () => {
   });
 });
 
+describe('WireFormat.isAbsolute — 缺协议头的地址会被 fetch 当相对路径', () => {
+  // 2026-09-21：这个函数此前一条单测都没有，而它是 `bad_url` 的判据
+  // （engine-test.js 的 assertEndpointShape 第一道），线上 bad_url 至今 0 条（#385）。
+  test('http/https/ws/wss 都算绝对地址', () => {
+    eq(WF.isAbsolute('https://api.example.com/v1'), true);
+    eq(WF.isAbsolute('http://127.0.0.1:8880/v1'), true);
+    eq(WF.isAbsolute('wss://api.example.com/v1/realtime'), true);
+  });
+  test('没有主机名就不算 —— 光有协议头不够', () => {
+    eq(WF.isAbsolute('https://'), false);
+    eq(WF.isAbsolute('https:///v1/chat'), false);
+  });
+  test('缺协议头、别的协议、空值都不算', () => {
+    eq(WF.isAbsolute('api.openai.com/v1/chat/completions'), false);
+    eq(WF.isAbsolute('//api.openai.com/v1'), false);
+    eq(WF.isAbsolute('ftp://files.example/v1'), false);
+    eq(WF.isAbsolute(''), false);
+    eq(WF.isAbsolute(null), false);
+  });
+});
+
 describe('WireFormat.hasPath — 把「地址少了路径」从 CORS 里切出来', () => {
   test('只有主机名 ⇒ false（这正是迁移漏网的形状）', () => {
     eq(WF.hasPath('https://api.deepseek.com'), false);
