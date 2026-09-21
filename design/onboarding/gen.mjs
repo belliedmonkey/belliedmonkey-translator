@@ -164,6 +164,87 @@ ${head('把登录提到第 2 屏，删掉「填 Key」那屏，扩展降级到�
 </div></div>
 `);
 
+// ── 第 1 页 · 扩展那 4 屏 ────────────────────────────────────────────────
+// 扩展的 OB = ['welcome','engine','capture','try']（extension/onboard/onboard.js:77）。
+// 第 2 屏 engine 里就是分流屏 —— 也就是说「登录/额度放前面」这件事扩展**早就是了**，
+// 不用改屏序。它的病在走完率（iPhone 27% · Mac 31% · Chrome 17% · Firefox 8%）。
+const fork = () => `<div style="display:flex;flex-direction:column;gap:6px">
+  <div style="border:1px solid var(--sage);border-radius:11px;padding:7px 9px;background:var(--tint)">
+    <b style="font-size:.8rem">用免费额度开始 <span class="tag keep" style="font-size:.64rem">推荐</span></b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">不用申请 API key，登录一下就能翻。</p></div>
+  <div style="border:1px solid var(--border);border-radius:11px;padding:7px 9px">
+    <b style="font-size:.8rem">我有自己的 API key</b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">一把 key 同时配好翻译、朗读、转写。</p></div>
+</div>`;
+
+board('OrderExt.dc.html', 2200, 1000, '扩展那边：4 屏 → 3 屏（登录/额度本来就在第 2 屏）', `
+${head('扩展不用改屏序 —— 分流屏早就在第 2 屏了；该动的是第 3 屏', '走完引导的人几乎 100% 配好了引擎：iPhone 20/20 · Mac 19/18')}
+
+<div><span class="tag down">现在 · 4 屏</span>
+<div class="tl" style="margin-top:8px">
+  ${scr('第 1 屏 welcome', '',
+    `<h4>读你真正在读的东西</h4><p>翻译发生在浏览器里，<b>复习发生在这个 App 里</b>。花两分钟把两边接上。</p>${btn('开始', 'p')}`,
+    '此刻用户在<b>浏览器</b>里，想要的是「能翻」—— 这一屏却先讲分工、并把他指向另一个还没装的东西。')}
+  <span class="arr">→</span>
+  ${scr('第 2 屏 engine', '<span class="tag keep">有效，不动</span>',
+    `<h4>你想怎么开始？</h4><p style="font-size:.72rem">两条路都能用，之后随时能换。</p>${fork()}`,
+    '它自己的文案就写着「<b>这一步躲不掉：不填 Key 就翻不出任何东西</b>」。走到这儿的人几乎都配好了。')}
+  <span class="arr">→</span>
+  ${scr('第 3 屏 capture', '<span class="tag cut">建议删</span>',
+    `<h4>打开「采集学习材料」</h4><p><b>已经开着了。</b>你停下来读过的句子会变成卡片；不想要可以在这里关掉。</p>${btn('继续', 'p')}`,
+    '采集<b>默认就是开的</b>。所以这一屏的净作用是：在用户还没见过一张卡、还不知道复习是什么的时候，<b>专门给他一个关掉它的机会</b>。')}
+  <span class="arr">→</span>
+  ${scr('第 4 屏 try', '<span class="tag keep">保留</span>',
+    `<h4>去读一篇</h4><p>设置完了就照常浏览、照常翻译。读过的句子会自己攒起来。</p>${btn('开始用', 'p')}`,
+    '这是「用上」那一步，留着。')}
+</div></div>
+
+<div style="margin-top:6px"><span class="tag new">提议 · 3 屏</span>
+<div class="tl" style="margin-top:8px">
+  ${scr('第 1 屏', '<span class="tag keep">改写</span>',
+    `<h4>在这个浏览器里，读什么都能有双语</h4><p>网页、YouTube 字幕、PDF —— 配一次引擎就一直能用。</p>${btn('开始', 'p')}`,
+    '只讲<b>这半边能做什么</b>，不提 App。App 的事等有卡之后再说 —— 那时它才是真价值。')}
+  <span class="arr">→</span>
+  ${scr('第 2 屏', '<span class="tag keep">一个字不动</span>',
+    `<h4>你想怎么开始？</h4><p style="font-size:.72rem">两条路都能用，之后随时能换。</p>${fork()}`)}
+  <span class="arr">→</span>
+  ${scr('第 3 屏', '<span class="tag keep">保留</span>',
+    `<h4>去读一篇</h4><p>照常浏览、照常翻译。读过的句子会自己攒起来。</p>${btn('开始用', 'p')}`)}
+  <span class="arr">→</span>
+  ${scr('～～', '<span class="tag cut">删</span>',
+    `<h4 style="opacity:.45;text-decoration:line-through">打开「采集学习材料」</h4><p style="opacity:.55">默认已开，不必在此刻说。要关的人会在设置里找到它。</p>`)}
+</div></div>
+
+${grid(2, `
+  ${cell('走完引导 ≈ 配好引擎', 'Safari 扩展按设备拆开',
+    `<div class="num">${stat('20 / 20', 'iPhone：走完引导 / 配好引擎', 'good')}${stat('18 / 19', 'Mac：走完引导 / 配好引擎', 'good')}</div>
+     ${hint('<b>这条引导只要人走到第 2 屏就成了。</b>所以问题不在它讲得对不对，在走完率。')}`)}
+  ${cell('走完率与那块真损失', '',
+    `<div class="num">${stat('27%', 'iPhone 走完')}${stat('31%', 'Mac 走完')}${stat('68', 'safari：没走完<b>也</b>没配好', 'bad')}${stat('21', 'chrome：没走完<b>但</b>配好了', 'good')}</div>
+     ${hint('Chrome 是反例，别一刀切：主动去商店装扩展的人自己会去设置页配（21 台 &gt; 走完引导的 9 台）。真损失是 safari 那 68 台。')}`)}
+`)}
+${ask('⚠️ 这一页有一条是判断、不是数据', '「砍掉第 3 屏能提高走完率」<b>证明不了</b> —— 我们看不到人在第几屏掉队（<code>onboarding_done</code> 只有「完成」一个点）。砍它的理由是「它教的是一个默认已开的开关」这个判断。真要验，得先有那条分步埋点。')}
+`);
+
+board('Loop.dc.html', 1500, 620, '两边互相指，而此刻两边都还没有价值', `
+${head('App 引导第 2 屏让你去开扩展；扩展引导第 1 屏告诉你复习在 App 里', '一个环 —— 而用户此刻一段译文都还没看到')}
+${grid(2, `
+  ${cell('现在：环', '',
+    `<div style="display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid var(--danger);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>App 引导 · 第 2 屏</b><br>「先把浏览器那半边打通」→ 把人送出 App</div>
+      <div style="text-align:center;color:var(--muted)">↓ &nbsp; ↑</div>
+      <div style="border:1px solid var(--danger);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>扩展引导 · 第 1 屏</b><br>「复习发生在这个 App 里，花两分钟把两边接上」→ 把人指回 App</div>
+    </div>
+    ${hint('两边都在说「你还得去弄另一半」，而两边此刻都还没给出任何东西。<b>先被指过去的那个人，两头都空着。</b>')}`)}
+  ${cell('提议：断开它', '各自先把自己这半边做成有价值',
+    `<div style="display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid var(--sage);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>App</b>：登录 → 有引擎 → <b>就地用上一件</b>（划词 / 听一句）。扩展降级到最后一屏的次要按钮</div>
+      <div style="border:1px solid var(--sage);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>扩展</b>：配引擎 → <b>去读一篇</b>。不提 App</div>
+      <div style="border:1px dashed var(--border);border-radius:13px;padding:10px 12px;font-size:.8rem;line-height:1.5;color:var(--muted)"><b>互指推迟到「有卡之后」</b> —— 那时 App 是真价值（有东西可复习），扩展也是（有地方采集）</div>
+    </div>`)}
+`)}
+`);
+
 // ── 第 2 页 · 新屏的样子 ──────────────────────────────────────────────────
 board('Signin.dc.html', 1560, 880, '新的第 2 屏：登录 + 自动领额度', `
 ${head('登录之后不再问「要不要领取」—— 直接到位，并就地自检', '现状：54 台登录并同步过，其中 47 台手里什么都没有')}
@@ -256,7 +337,7 @@ for (const [f, w, h, t] of OLD) {
   META[f] = { w, h, page: 'p3', title: t };
 }
 
-const PAGES = [['p1', '① 屏序：现在 vs 提议'], ['p2', '② 新屏的样子'], ['p3', '③ 旧稿（2026-08，已过时）']];
+const PAGES = [['p1', '① 屏序：两个面的现在 vs 提议'], ['p2', '② 新屏的样子'], ['p3', '③ 旧稿（2026-08，已过时）']];
 const ROW_W = 3800, GAP_X = 80, GAP_Y = 160;
 const boards = {}, order = [];
 for (const [pid] of PAGES) {
@@ -275,7 +356,7 @@ const idx = {
   pages: PAGES.map(([id, name]) => ({ id, name })),
   boards, order, notes: {}, designSystems: [],
 };
-idx.notes.t1 = { x: 0, y: -320, w: 240, text: '屏序：登录提到第 2 屏，「填 Key」那屏删掉', kind: 'title1', maxW: 3600, page: 'p1' };
+idx.notes.t1 = { x: 0, y: -320, w: 240, text: '屏序 · App：登录提到第 2 屏；扩展：砍掉采集那屏', kind: 'title1', maxW: 3600, page: 'p1' };
 idx.notes.t2 = { x: 0, y: -320, w: 240, text: '新屏的样子 —— 文案是准文案，可以直接挑字', kind: 'title1', maxW: 3600, page: 'p2' };
 idx.notes.t3 = { x: 0, y: -320, w: 240, text: '旧稿（2026-08）· 画的是更早那一版引导，与今天对不上，仅备查', kind: 'title1', maxW: 3600, page: 'p3' };
 const NX = ROW_W + 160;

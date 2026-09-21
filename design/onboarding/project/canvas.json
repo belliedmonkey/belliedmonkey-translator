@@ -12,7 +12,7 @@
   "pages": [
     {
       "id": "p1",
-      "name": "① 屏序：现在 vs 提议"
+      "name": "① 屏序：两个面的现在 vs 提议"
     },
     {
       "id": "p2",
@@ -31,6 +31,22 @@
       "h": 1020,
       "page": "p1",
       "title": "屏序：现在 5 屏 vs 提议 4 屏（逐屏对齐）"
+    },
+    "OrderExt.dc.html": {
+      "x": 0,
+      "y": 1180,
+      "w": 2200,
+      "h": 1000,
+      "page": "p1",
+      "title": "扩展那边：4 屏 → 3 屏（登录/额度本来就在第 2 屏）"
+    },
+    "Loop.dc.html": {
+      "x": 2280,
+      "y": 1180,
+      "w": 1500,
+      "h": 620,
+      "page": "p1",
+      "title": "两边互相指，而此刻两边都还没有价值"
     },
     "Signin.dc.html": {
       "x": 0,
@@ -107,6 +123,8 @@
   },
   "order": [
     "Order.dc.html",
+    "OrderExt.dc.html",
+    "Loop.dc.html",
     "Signin.dc.html",
     "FirstUse.dc.html",
     "ExtHandoff.dc.html",
@@ -122,7 +140,7 @@
       "x": 0,
       "y": -320,
       "w": 240,
-      "text": "屏序：登录提到第 2 屏，「填 Key」那屏删掉",
+      "text": "屏序 · App：登录提到第 2 屏；扩展：砍掉采集那屏",
       "kind": "title1",
       "maxW": 3600,
       "page": "p1"

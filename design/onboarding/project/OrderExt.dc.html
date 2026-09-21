@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>扩展那边：4 屏 → 3 屏（登录/额度本来就在第 2 屏）</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:2200px; height:1000px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">扩展不用改屏序 —— 分流屏早就在第 2 屏了；该动的是第 3 屏</h1><span>走完引导的人几乎 100% 配好了引擎：iPhone 20/20 · Mac 19/18</span></div></div>
+
+<div><span class="tag down">现在 · 4 屏</span>
+<div class="tl" style="margin-top:8px">
+  <div class="scr"><span class="no">第 1 屏 welcome</span><div class="ph"><h4>读你真正在读的东西</h4><p>翻译发生在浏览器里，<b>复习发生在这个 App 里</b>。花两分钟把两边接上。</p><button class="btn p" type="button">开始</button></div><p class="why">此刻用户在<b>浏览器</b>里，想要的是「能翻」—— 这一屏却先讲分工、并把他指向另一个还没装的东西。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 2 屏 engine</span><span class="tag keep">有效，不动</span><div class="ph"><h4>你想怎么开始？</h4><p style="font-size:.72rem">两条路都能用，之后随时能换。</p><div style="display:flex;flex-direction:column;gap:6px">
+  <div style="border:1px solid var(--sage);border-radius:11px;padding:7px 9px;background:var(--tint)">
+    <b style="font-size:.8rem">用免费额度开始 <span class="tag keep" style="font-size:.64rem">推荐</span></b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">不用申请 API key，登录一下就能翻。</p></div>
+  <div style="border:1px solid var(--border);border-radius:11px;padding:7px 9px">
+    <b style="font-size:.8rem">我有自己的 API key</b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">一把 key 同时配好翻译、朗读、转写。</p></div>
+</div></div><p class="why">它自己的文案就写着「<b>这一步躲不掉：不填 Key 就翻不出任何东西</b>」。走到这儿的人几乎都配好了。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 3 屏 capture</span><span class="tag cut">建议删</span><div class="ph"><h4>打开「采集学习材料」</h4><p><b>已经开着了。</b>你停下来读过的句子会变成卡片；不想要可以在这里关掉。</p><button class="btn p" type="button">继续</button></div><p class="why">采集<b>默认就是开的</b>。所以这一屏的净作用是：在用户还没见过一张卡、还不知道复习是什么的时候，<b>专门给他一个关掉它的机会</b>。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 4 屏 try</span><span class="tag keep">保留</span><div class="ph"><h4>去读一篇</h4><p>设置完了就照常浏览、照常翻译。读过的句子会自己攒起来。</p><button class="btn p" type="button">开始用</button></div><p class="why">这是「用上」那一步，留着。</p></div>
+</div></div>
+
+<div style="margin-top:6px"><span class="tag new">提议 · 3 屏</span>
+<div class="tl" style="margin-top:8px">
+  <div class="scr"><span class="no">第 1 屏</span><span class="tag keep">改写</span><div class="ph"><h4>在这个浏览器里，读什么都能有双语</h4><p>网页、YouTube 字幕、PDF —— 配一次引擎就一直能用。</p><button class="btn p" type="button">开始</button></div><p class="why">只讲<b>这半边能做什么</b>，不提 App。App 的事等有卡之后再说 —— 那时它才是真价值。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 2 屏</span><span class="tag keep">一个字不动</span><div class="ph"><h4>你想怎么开始？</h4><p style="font-size:.72rem">两条路都能用，之后随时能换。</p><div style="display:flex;flex-direction:column;gap:6px">
+  <div style="border:1px solid var(--sage);border-radius:11px;padding:7px 9px;background:var(--tint)">
+    <b style="font-size:.8rem">用免费额度开始 <span class="tag keep" style="font-size:.64rem">推荐</span></b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">不用申请 API key，登录一下就能翻。</p></div>
+  <div style="border:1px solid var(--border);border-radius:11px;padding:7px 9px">
+    <b style="font-size:.8rem">我有自己的 API key</b>
+    <p style="margin:2px 0 0;font-size:.71rem;line-height:1.4">一把 key 同时配好翻译、朗读、转写。</p></div>
+</div></div></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 3 屏</span><span class="tag keep">保留</span><div class="ph"><h4>去读一篇</h4><p>照常浏览、照常翻译。读过的句子会自己攒起来。</p><button class="btn p" type="button">开始用</button></div></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">～～</span><span class="tag cut">删</span><div class="ph"><h4 style="opacity:.45;text-decoration:line-through">打开「采集学习材料」</h4><p style="opacity:.55">默认已开，不必在此刻说。要关的人会在设置里找到它。</p></div></div>
+</div></div>
+
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>走完引导 ≈ 配好引擎</b><span>Safari 扩展按设备拆开</span></div><div class="num"><div class="stat good"><b>20 / 20</b><span>iPhone：走完引导 / 配好引擎</span></div><div class="stat good"><b>18 / 19</b><span>Mac：走完引导 / 配好引擎</span></div></div>
+     <p class="hint"><b>这条引导只要人走到第 2 屏就成了。</b>所以问题不在它讲得对不对，在走完率。</p></div>
+  <div class="cell"><div class="cap"><b>走完率与那块真损失</b></div><div class="num"><div class="stat"><b>27%</b><span>iPhone 走完</span></div><div class="stat"><b>31%</b><span>Mac 走完</span></div><div class="stat bad"><b>68</b><span>safari：没走完<b>也</b>没配好</span></div><div class="stat good"><b>21</b><span>chrome：没走完<b>但</b>配好了</span></div></div>
+     <p class="hint">Chrome 是反例，别一刀切：主动去商店装扩展的人自己会去设置页配（21 台 &gt; 走完引导的 9 台）。真损失是 safari 那 68 台。</p></div>
+</div>
+<div class="ask"><b>⚠️ 这一页有一条是判断、不是数据</b>「砍掉第 3 屏能提高走完率」<b>证明不了</b> —— 我们看不到人在第几屏掉队（<code>onboarding_done</code> 只有「完成」一个点）。砍它的理由是「它教的是一个默认已开的开关」这个判断。真要验，得先有那条分步埋点。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2200,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
