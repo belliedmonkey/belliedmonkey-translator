@@ -70,7 +70,8 @@ const grid = (n, inner, gap = 22) => `<div style="display:grid;grid-template-col
 const stat = (n, label, cls = '') => `<div class="stat${cls ? ' ' + cls : ''}"><b>${n}</b><span>${label}</span></div>`;
 const ask = (q, body) => `<div class="ask"><b>${q}</b>${body}</div>`;
 
-function board(file, w, h, title, inner, { pad = 24, page = 'p1', gap = 18 } = {}) {
+// 缺省落在第 2 页（现状与为什么）；第 1 页是提议，那几块显式传 page:'p1'。
+function board(file, w, h, title, inner, { pad = 24, page = 'p2', gap = 18 } = {}) {
   W[file] = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -104,6 +105,87 @@ class Component extends DCLogic {
 
 // 现在这张横幅的三步文案（app/app.js 的 iosSteps()，与引导第 2 屏共用同一份）
 const STEPS = `<ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol>`;
+
+// 手机壳：首页的上半截（一张横幅 + 下面被压住的首页内容）
+const phone = (inner, foot = '') => `<div class="phoneframe">${inner}${foot ? `<p class="hint" style="margin:0">${foot}</p>` : ''}</div>`;
+// 提议里的新横幅：一句话 + 一个主按钮 + 一个次按钮，不再教三步
+const newBan = ({ h4, p, main, sub, tone = '' }) => `<div class="ban${tone ? ' ' + tone : ''}">
+  <h4>${h4}</h4><p>${p}</p>${main}${sub || ''}</div>`;
+
+// ══════ 第 1 页 · 提议：改成这样 ══════════════════════════════════════════
+// 这一页是要你看的。每块板左边是现在、右边是提议，文案都是**准文案**（可以直接挑字）。
+
+board('P-Banner.dc.html', 1240, 780, '① 首页横幅：教程 → 状态行', `
+${head('改动一：横幅不再教三步，改成说「现在到底成没成」', '理由：104 台只看过它一次 —— 教程说第二遍不会更有效')}
+${grid(2, `
+  ${cell('现在', '一张教程，三步文字占满',
+    phone(`<div class="ban"><h4>${ic('alert')} Safari 扩展还没打开</h4>
+      <p>网页翻译在浏览器里，复习在这个 App 里。要先把浏览器那半边打开。</p>
+      ${STEPS}${btn('在 Safari 里打开扩展 →', 'p')}${btn('我已打开', 's')}
+      <p style="font-size:.8rem;margin:0">不确定？打开检测页看绿灯 →</p></div>`,
+      '点主按钮 = 打开我们的网页。他照没照做，我们永远不知道。'))}
+  ${cell('提议', '一句状态 + 一个按钮；三步搬进检测页',
+    phone(newBan({
+      h4: `${ic('alert')} 浏览器那半边还没打通`,
+      p: '到现在还没收到任何一张卡。网页翻译在 Safari 里，要先把扩展打开。',
+      main: btn('打开检测页，一眼看出通没通 →', 'p'),
+      sub: btn('我已经打开了', 's'),
+    }), '主按钮落到<b>检测页</b>：那一页自己知道扩展在不在（绿灯是机器判的），三步教程也在那一页上，照着做完当场能验。'))}
+`)}
+${ask('文案要你挑字（这几句会进 12 个语种）', '标题「浏览器那半边还没打通」/ 正文「到现在还没收到任何一张卡」/ 主按钮「打开检测页，一眼看出通没通 →」/ 次按钮「我已经打开了」。<br>其中<b>「还没收到任何一张卡」</b>是刻意的：它是我们真的知道的事实（本机 0 张卡且从未同步成功），比「扩展还没打开」诚实 —— 后者在 iOS 上我们其实判不了。')}
+`, { page: 'p1' });
+
+board('P-States.dc.html', 1560, 700, '② 横幅的三种状态（同一条，换一句话）', `
+${head('改动二：同一张横幅带三种状态，不是「出现 / 消失」两态', '现在只有「出现」和「被永久静音」')}
+${grid(3, `
+  ${cell('A · 还没打通', '默认态',
+    phone(newBan({ h4: `${ic('alert')} 浏览器那半边还没打通`, p: '到现在还没收到任何一张卡。',
+      main: btn('打开检测页，一眼看出通没通 →', 'p'), sub: btn('我已经打开了', 's') })))}
+  ${cell('B · 打通了', '检测页回来后 / 收到第一张卡后自动变',
+    phone(`<div class="ban" style="background:var(--tint);border-color:var(--sage)">
+      <h4>${ic('check')} 浏览器那半边通了</h4>
+      <p>在 Safari 里读到的句子会自动进这里的复习库。</p>
+      ${btn('去读一篇 →', 'p')}</div>`,
+      '这一态<b>只出现一次</b>，下次进首页就不再有 —— 它是回执，不是常驻提示。'))}
+  ${cell('C · 7 天后复核', '点过「我已经打开了」但仍然 0 张卡',
+    phone(newBan({ h4: `${ic('alert')} 还是没收到任何一张卡`,
+      p: '你之前说已经打开了 —— 要不要打开检测页看一眼？可能是漏了「允许访问网页」那一步。',
+      main: btn('打开检测页 →', 'p'), sub: btn('确实打开了，别再提示', 's') })))}
+`, 18)}
+${ask('要你裁定：C 这一态出不出、出几次', '我建议<b>出，且只出一次（7 天后）</b>。<br>理由：现在点一次「我已打开」就永久静音、从不复核 —— 真机验收时它被误点过一次，那台机器上横幅再也没出现过，App 里也没有任何入口能让它回来。C 同时解决「点错了」和「以为打开了其实没弄完」。<br>「确实打开了，别再提示」= 真正的永久静音，但那是<b>第二次</b>确认，不是第一次。')}
+`, { page: 'p1' });
+
+board('P-Mac.dc.html', 1240, 620, '③ macOS 形态：保留一键直达', `
+${head('改动三：Mac 不跟着改主按钮', 'Mac 能一键落到扩展开关上，把它降级成「去看检测页」是把好路径变差')}
+${grid(2, `
+  ${cell('macOS', '骨架与 iOS 一致，落点不同',
+    phone(newBan({ h4: `${ic('alert')} 浏览器那半边还没打通`, p: '到现在还没收到任何一张卡。',
+      main: btn('打开 Safari 扩展设置', 'p'), sub: btn('我已经打开了', 's') }),
+      '点了直接落在开关上（系统给的能力，只有 Mac 有）。Mac 还能真的读到扩展开没开 ⇒ 打开之后横幅<b>自己就变成 B 态</b>，不用人来说。'))}
+  ${cell('iOS', '同一副骨架',
+    phone(newBan({ h4: `${ic('alert')} 浏览器那半边还没打通`, p: '到现在还没收到任何一张卡。',
+      main: btn('打开检测页，一眼看出通没通 →', 'p'), sub: btn('我已经打开了', 's') }),
+      '装机大头在这边：iPhone 181 台 / Mac 54 台 / iPad 2 台。'))}
+`)}
+${ask('要你裁定：两种形态收不收敛', '我建议<b>只收敛文案骨架</b>（一句话 + 一个主按钮 + 一个次按钮），主按钮的落点各按平台。收敛到一种会让 Mac 的一键直达变成绕路。')}
+`, { page: 'p1' });
+
+board('P-Onboard.dc.html', 1240, 700, '④ 引导第 2 屏：教程留在这里', `
+${head('改动四：三步教程不删，但只留在引导里', '引导是唯一一次有人愿意读完的时刻；首页不该再教一遍')}
+${grid(2, `
+  ${cell('引导第 2 屏（保留，微调）', '5 屏里的第 2 屏',
+    phone(`<div style="display:flex;flex-direction:column;gap:10px">
+      <b style="font-size:1.05rem">先把浏览器那半边打通</b>
+      ${STEPS}${btn('打开检测页，照着做 →', 'p')}
+      <p class="hint" style="margin:0">这一屏没有「继续」按钮，上面那个兼作前进键。</p>
+    </div>`, '只改一处：按钮从「在 Safari 里打开扩展 →」改成「打开检测页，照着做 →」—— 落到同一页，但说清楚了那一页能验。'))}
+  ${cell('首页横幅（不再重复教程）', '',
+    phone(newBan({ h4: `${ic('alert')} 浏览器那半边还没打通`, p: '到现在还没收到任何一张卡。',
+      main: btn('打开检测页，一眼看出通没通 →', 'p'), sub: btn('我已经打开了', 's') }),
+      '同一件事只教一次。首页这张负责<b>回答「成没成」</b>，不负责教。'))}
+`)}
+${ask('要你裁定：这样收敛行不行', '我建议<b>行</b>。反对的理由会是「跳过引导的人就再也看不到三步了」—— 但三步现在搬到了检测页上，主按钮每次都能到那一页，所以并没有丢。')}
+`, { page: 'p1' });
 
 // ── 板 1 · 现状与读数 ────────────────────────────────────────────────────
 board('Now.dc.html', 1120, 720, '现状 · 横幅（iOS 形态）与它的读数', `
@@ -228,28 +310,33 @@ for (const f of fs.readdirSync(OUT)) if (f.endsWith('.dc.html') && !W[f]) fs.unl
 fs.writeFileSync(path.join(OUT, 'ui.css'), css());
 for (const [name, html] of Object.entries(W)) fs.writeFileSync(path.join(OUT, name), html);
 
+const PAGES = [['p1', '① 改成这样（要你看的）'], ['p2', '② 现状与为什么']];
 const ROW_W = 3800, GAP_X = 80, GAP_Y = 160;
 const boards = {}, order = [];
-let x = 0, y = 0, rowH = 0;
-for (const [file, m] of Object.entries(META)) {
-  if (x > 0 && x + m.w > ROW_W) { x = 0; y += rowH + GAP_Y; rowH = 0; }
-  boards[file] = { x, y, w: m.w, h: m.h, page: 'p1', title: m.title };
-  order.push(file); x += m.w + GAP_X; rowH = Math.max(rowH, m.h);
+for (const [pid] of PAGES) {
+  let x = 0, y = 0, rowH = 0;
+  for (const [file, m] of Object.entries(META)) {
+    if (m.page !== pid) continue;
+    if (x > 0 && x + m.w > ROW_W) { x = 0; y += rowH + GAP_Y; rowH = 0; }
+    boards[file] = { x, y, w: m.w, h: m.h, page: pid, title: m.title };
+    order.push(file); x += m.w + GAP_X; rowH = Math.max(rowH, m.h);
+  }
 }
 const idx = {
   v: 3, createdOnFiles: { v: 1, at: '2026-09-21T04:30:00Z' },
   title: '装了 App 却没打开扩展 · 交互稿',
   launch: { view: 'canvas', page: 'p1' },
-  pages: [{ id: 'p1', name: '横幅与引导' }],
+  pages: PAGES.map(([id, name]) => ({ id, name })),
   boards, order, notes: {}, designSystems: [],
 };
-idx.notes.t1 = { x: 0, y: -320, text: '装了 App 却没打开 Safari 扩展 —— 全链路上最大的一道门', kind: 'title1', maxW: 3600, page: 'p1' };
+idx.notes.t1 = { x: 0, y: -320, text: '改成这样 —— 四处改动，文案是准文案', kind: 'title1', maxW: 3600, page: 'p1' };
+idx.notes.t2 = { x: 0, y: -320, text: '为什么这么改 —— 现状、读数、三个口径洞', kind: 'title1', maxW: 3600, page: 'p2' };
 const NX = ROW_W + 160;
-idx.notes.why = { x: NX, y: 0, w: 520, maxH: 420, page: 'p1', color: 'orange',
+idx.notes.why = { x: NX, y: 0, w: 520, maxH: 420, page: 'p2', color: 'orange',
   text: '这张稿由读数驱动（issue #384）。\n\n2026-09-21 回读 bt_events：App 装机 237，155 台看过横幅，36 台点「去打开」，31 台点「我已打开」（20%）。**104 台只看过横幅 1 次。**\n\n口径三条：只从 2026-09-05 起收 · 中国版一条不发 · 我们自己的机器也在里面。install_id 按宿主分 —— App 与扩展是两条独立记录，不能当同一个人。' };
-idx.notes.ask = { x: NX, y: 460, w: 520, maxH: 460, page: 'p1', color: 'blue',
-  text: '等你裁定的四件（板上各有一处蓝框）：\n\n① 引导第 2 屏与首页横幅要不要收敛（我建议收敛：引导保留教程，横幅改成状态行）\n② 检测页的绿灯怎么回到 App（我建议先做深链那条，真回读留给 #386 那轮）\n③ 复核的 N 天与次数（我建议 7 天、只一次；设置里不加「重新显示」入口）\n④ macOS 与 iOS 要不要收敛成一种形态（我建议只收敛文案骨架，落点各按平台）' };
-idx.notes.rule = { x: NX, y: 960, w: 520, maxH: 300, page: 'p1', color: 'purple',
+idx.notes.ask = { x: NX, y: 0, w: 540, maxH: 560, page: 'p1', color: 'blue',
+  text: '这一页每块板下面都有一个蓝框，是**要你回的**。四件：\n\n① 横幅从教程改成状态行 —— 顺带挑一下那四句准文案（会进 12 个语种）\n② 三种状态里的 C（7 天后复核）出不出、出几次\n③ macOS 保留一键直达、只收敛文案骨架\n④ 三步教程只留在引导里，首页不再教\n\n回「都按你说的」也行，我照建议落地；想改哪句就直接说那句。' };
+idx.notes.rule = { x: NX, y: 640, w: 540, maxH: 340, page: 'p1', color: 'purple',
   text: '流程：画布 → 你逐条点头 → 写 docs/interaction-spec.md → 代码 PR（标题写「画布第 N 页落地」）。埋点那三条（板 6）按 AGENTS.md 属于加属性值 ⇒ 随定稿后的 docs PR 一起过评审，不夹在别的 PR 里。\n\n顺带：「改交互先出画布稿」这条规矩本身在仓库里没有成文，只记在 docs/learning-design.md §0 的评审记录里 —— 已写进 #384，建议补进 AGENTS.md 的 Interaction 节。' };
 
 fs.writeFileSync(path.join(OUT, 'canvas.json'), JSON.stringify(idx, null, 2) + '\n');
