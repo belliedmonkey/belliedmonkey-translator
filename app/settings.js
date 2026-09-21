@@ -1024,6 +1024,7 @@ var AppSettings = (() => {
         liveTtsConfigure();
       });
     }
+    wireShapeHint('tts-base-url', 'test-tts-note');   // 函数声明，提升到本作用域顶部
     $('tts-voice').addEventListener('change', async () => {
       await set({ ttsVoice: $('tts-voice').value });
       liveTtsConfigure();
@@ -1044,6 +1045,25 @@ var AppSettings = (() => {
       const e = engineById($('tts-engine').value);
       if (e && e.type === 'browser') get(['ttsVoice']).then((c) => paintVoices(c.ttsVoice || ''));
     });
+
+    // 地址失焦即判（2026-09-21，#385）：与扩展的 EngineFields 同一份判据、同一份文案
+    // （都问 EngineTest.shapeHint），只是 App 的输入框是静态 HTML、进不了那个组件，
+    // 所以在这里各挂一次。提示写进该槽的**自检结果行** —— 那正是用户看「这一项通没通」
+    // 的地方。用 dataset 记一笔是谁写的，免得把上一次真正的自检结果擦掉。
+    function wireShapeHint(inputId, noteId) {
+      const inp = $(inputId), note = $(noteId);
+      if (!inp || !note) return;
+      const paint = () => {
+        const hint = (typeof EngineTest !== 'undefined' && typeof EngineTest.shapeHint === 'function')
+          ? EngineTest.shapeHint(inp.value, t) : '';
+        if (hint) { note.textContent = '✗ ' + hint; note.dataset.shapeHint = '1'; }
+        else if (note.dataset.shapeHint) { note.textContent = ''; delete note.dataset.shapeHint; }
+      };
+      inp.addEventListener('blur', paint);
+      // 已经在说话时才跟着输入重判（同 engine-fields.js 的那条理由）。
+      inp.addEventListener('input', () => { if (note.dataset.shapeHint) paint(); });
+      paint();
+    }
 
     // §9.2 in the app: write the SAME keys review.js reads, and reconfigure
     // LearnNotes immediately — review.js only reads settings once at bundle load,
@@ -1083,6 +1103,7 @@ var AppSettings = (() => {
     for (const id of ['notes-api-key', 'notes-base-url', 'notes-model']) {
       $(id).addEventListener('change', saveNotesCfg);
     }
+    wireShapeHint('notes-base-url', 'test-notes-note');
 
     // §9.4 in the app: write the SAME keys review.js reads and reconfigure
     // LearnSpeech immediately — capable() is re-asked per card, so the next card
@@ -1228,6 +1249,7 @@ var AppSettings = (() => {
     for (const id of ['stt-api-key', 'stt-base-url', 'stt-model']) {
       $(id).addEventListener('change', saveSttCfg);
     }
+    wireShapeHint('stt-base-url', 'test-stt-note');
 
     // ── 引擎自检 ×3（与扩展 options 同一套语义：走功能真正用的传输、
     // 在途禁用、失败具名）。App 端的 key 是设备本地凭证（§7.2），
@@ -1250,21 +1272,44 @@ var AppSettings = (() => {
         note.textContent = EngineTest.format(null, e, t);
       } finally { btn.disabled = false; }
     };
+    // 走 EngineTest 而不是直接调底层（2026-09-21，#385）。此前这两支各自 `LearnNotes.test()`
+    // / `LearnSpeech.test()`，绕开了两样东西：① 发请求前的地址形状检查 ② 那一层遥测包装。
+    // 后果在线上量到了 —— `engine_test` 至今**没有一条 host='app' 的行**，而 App 是装机
+    // 最多的面。注意 SEAMS 门禁在这件事上是绿的：它只验「这个文件里有发送点」，验不了
+    // 「用户真走的那条路会不会经过它」（telemetry-design §3.4 那条教训的下一种形状）。
+    //
+    // 传进去的键名是**存储键**：App 的 `notes-*` 输入框写的是翻译引擎那组键
+    // （provider/apiKey/apiBaseUrl/apiModel，见 saveNotesCfg），不带 notesProvider ⇒
+    // LearnNotes.resolveConfig 解析出来与 saveNotesCfg 配的是同一份 cfg。
     $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
       await saveNotesCfg();
-      return LearnNotes.test();
+      return EngineTest.notes({
+        provider: $('notes-provider').value,
+        apiKey: $('notes-api-key').value.trim(),
+        apiBaseUrl: $('notes-base-url').value.trim(),
+        apiModel: $('notes-model').value.trim(),
+      });
     }));
     $('btn-test-stt').addEventListener('click', runTest('btn-test-stt', 'test-stt-note', async () => {
       await saveSttCfg();
       // 2026-09-17 之前这里对「设备内置转写」分流到 EngineTest.device；那条注册表条目已删
       // （实时转写固定为设备内置，不是可选引擎），这一档只剩说 HTTP 的端点。
-      if (typeof LearnSpeech === 'undefined') { const e = new Error('no module'); e.code = 'no_engine'; throw e; }
-      return LearnSpeech.test();
+      // `LearnSpeech` 没加载时 EngineTest.stt 自己抛 no_engine，不必在这里再判一次。
+      return EngineTest.stt({
+        engineId: $('stt-engine').value,
+        apiKey: $('stt-api-key').value.trim(),
+        baseUrl: $('stt-base-url').value.trim(),
+        model: $('stt-model').value.trim(),
+      });
     }));
     // 语音是「听得见才算通」，所以试听而不是探活——与扩展 options 的试听同义。
     $('btn-tts-test').addEventListener('click', async () => {
       const btn = $('btn-tts-test'), note = $('test-tts-note');
       btn.disabled = true;
+      // 试听是**播放**不是探活，所以不走 EngineTest 的四条传输；但地址写错离线就能判，
+      // 补这一句，语义不变（2026-09-21，#385 —— 与扩展 options 的试听同一处改动）。
+      const hint = EngineTest.shapeHint($('tts-base-url').value, t);
+      if (hint) { note.textContent = '✗ ' + hint; btn.disabled = false; return; }
       note.textContent = t('tts_testing', '正在合成…');
       try {
         liveTtsConfigure();

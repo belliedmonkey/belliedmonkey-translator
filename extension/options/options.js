@@ -1025,11 +1025,11 @@ async function init() {
     : '');
 
 
-  // 发请求之前的离线形状检查。运行时不做这件事：逐字发送是本次改动的承诺，而一个根路径
-  // 端点虽然罕见却是合法的。但自检是用户「东西坏了」时会来的地方，把「地址少了路径」从
-  // CORS / 不可达里切出来，命中率最高的位置就在这里 —— 那两种失败在 WebKit 里长得一模
-  // 一样（2026-08-13 实测），只有离线检查能确定地区分。
-  const assertEndpointShape = (url) => EngineTest.assertEndpointShape(url);
+  // 发请求之前的离线形状检查现在**在 EngineTest 的四条传输里面**（2026-09-21，#385）。
+  // 这里原来有一份别名 + 两处外部调用：一处给内联的翻译自检，一处替解析组猜「该查哪个
+  // 框」。两者都删了 —— 前者改调 EngineTest.translation，后者由 notes() 在 resolveConfig
+  // 之后自己判，比在外面猜准。理由仍然成立：把「地址少了路径」从 CORS / 不可达里切出来，
+  // 那两种失败在 WebKit 里长得一模一样（2026-08-13 实测），只有离线检查能确定地区分。
   const runTest = (btn, note, fn) => busy($(btn), async () => {
     const el = $(note);
     el.textContent = t('engine_test_running', '测试中…');
@@ -1047,27 +1047,23 @@ async function init() {
 
   $('btn-test-provider').addEventListener('click', runTest('btn-test-provider', 'test-provider-note', async () => {
     await saveAll();
-    assertEndpointShape($('api-base-url').value);
-    const t0 = Date.now();
-    // noCache: 一个可能不发请求的「测试连接」是有害的。缓存键里带了端点与模型之后
-    // 同配置重测仍然会命中，而重测的全部意义就是**再打一次**（2026-08-19 实测：改完
-    // 地址点测试，1ms 返回「通了」，一个包都没出去）。
-    // `diag` 是出参：传输层把**真正请求的地址**和**走了哪条通路**填进来。这两样以前
-    // 只有失败时才看得见（错误对象上带着），成功时反而什么都没有——于是「它到底走的
-    // 哪条路、打的哪个地址」只能靠版本号和时间戳倒推，2026-08-19 为此来回了三轮。
-    const diag = {};
-    const out = await TranslationAPI.translate('Hello.', $('target-lang').value || 'zh-CN',
-      $('provider').value, $('api-key').value.trim(), $('api-base-url').value.trim(), $('api-model').value.trim(),
-      { noCache: true, diag });
-    if (!out || !String(out).trim()) { const e = new Error('empty'); e.code = 'bad_output'; throw e; }
-    return { ms: Date.now() - t0, sample: String(out).trim().slice(0, 40), url: diag.url, route: diag.route };
+    // 2026-09-21（#385）：这里原来是 EngineTest.translation 的一份逐行复刻（形状检查、
+    // noCache、diag 出参各一份），**唯独没有那一层遥测包装** —— 于是设置页这个最常用的
+    // 自检入口，在 engine_test 里一条都没有。自留一份的代价与 test/engine-test-device.js
+    // 钉住的那条是同一个：两份判定迟早走样。
+    return EngineTest.translation({
+      targetLang: $('target-lang').value || 'zh-CN',
+      provider: $('provider').value,
+      apiKey: $('api-key').value.trim(),
+      baseUrl: $('api-base-url').value.trim(),
+      model: $('api-model').value.trim(),
+    });
   }));
 
   $('btn-test-notes').addEventListener('click', runTest('btn-test-notes', 'test-notes-note', async () => {
     await saveAll();
-    // The notes group may be empty and follow the translation group instead
-    // (LearnNotes.resolveConfig owns that rule) — check whichever field is in play.
-    assertEndpointShape($('notes-provider').value ? $('notes-base-url').value : $('api-base-url').value);
+    // 形状检查搬进 EngineTest.notes() 了：解析组可以为空并跟随翻译组，「该查哪个地址」
+    // 归 LearnNotes.resolveConfig 判，在外面猜一次就是第二份判定。
     return EngineTest.notes(await new Promise((r) =>
       chrome.storage.local.get(SETTINGS_KEYS, (v) => r(v || {}))));
   }));
@@ -1085,6 +1081,11 @@ async function init() {
     applyTtsConfig();
     const note = $('tts-cache');
     const sample = t('tts_test_sample', 'This is what your review cards will sound like.');
+    // 试听是**播放**不是探活（「听得见才算通」），所以这一支不走 EngineTest 的四条传输。
+    // 但地址写错这件事与那四条一模一样，且离线就能判 —— 只补这一句，不改试听的语义。
+    // 2026-09-21（#385）：此前这里连形状检查都没有，地址少了路径只会得到一句 CORS。
+    const hint = EngineTest.shapeHint($('tts-base-url').value, t);
+    if (hint) { note.textContent = '✗ ' + hint; return; }
     note.textContent = t('tts_testing', '正在合成…');
     const r = await LearnTTS.speak(sample, 'en');
     note.textContent = r.ok ? t('tts_test_ok', '播放中') : ttsReason(r.reason);
