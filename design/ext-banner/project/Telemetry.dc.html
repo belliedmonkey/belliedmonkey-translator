@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>埋点：三个洞，补了才能判断这一轮有没有用</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1120px; height:640px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">现在的数只能当下限读</h1><span>这一块随画布定稿后的 docs PR 过评审 —— 加属性值算领域设计改动</span></div></div>
+<table class="tbl">
+  <tr><th>洞</th><th>现在</th><th>提议</th></tr>
+  <tr><td><b>macOS 的曝光量不到</b></td><td class="no"><code class="code">shown</code> 只在 iOS 那一支发，Mac 54 台装机的横幅曝光恒为 0</td><td class="yes">两种形态都发；靠已有的每日去重挡重复</td></tr>
+  <tr><td><b>直达按钮没有埋点</b></td><td class="no">macOS 那个「打开 Safari 扩展设置」点了不记 —— 最有效的一条路完全看不见</td><td class="yes">补一条，与「去网页」分开</td></tr>
+  <tr><td><b>两个来源混在一起</b></td><td class="no">主按钮与「不确定？打开检测页」共用同一个 <code class="code">setup</code></td><td class="yes">把检测页那一路拆出来 —— 板 3 要把它升成主路径，不拆就看不出升了有没有用</td></tr>
+</table>
+<p class="hint">为什么现在提：板 3、板 4 的效果<b>只能靠这三个数回读</b>。先改交互后补埋点，等于改完不知道有没有改对 —— 那正是复习那条（#386）现在的处境。</p>
+<div class="ask"><b>判据（出货后回读 bt_events）</b>① 点过「我已打开」的装机 / 看过横幅的装机 <b>&gt; 20%</b>；② macOS 形态也有曝光数；③ 检测页那一路有自己的数；④ 中期：safari 装机 / app 装机的比值从现在的 ~0.5 上升。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

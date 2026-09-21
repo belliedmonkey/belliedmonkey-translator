@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>同一份三步，引导里说过一遍，横幅又说一遍</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1120px; height:660px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">两处同一份文案，而且引导跳过也算看过</h1><span>app/app.js 的 iosSteps() 被两处共用</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>引导第 2 屏（5 屏里的第 2 屏）</b><span>只在「未登录且没看过」时出现</span></div><div class="phoneframe"><div style="display:flex;flex-direction:column;gap:10px">
+      <b style="font-size:1.05rem">先把浏览器那半边打通</b>
+      <ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol><button class="btn p" type="button">在 Safari 里打开扩展 →</button>
+      <p class="hint" style="margin:0">这一屏没有「继续」按钮 —— 上面那个按钮兼作前进键。</p>
+    </div></div>
+    <p class="hint"><b>跳过也算看过、永不再来。</b>跳过与走完走的是同一个收尾。</p></div>
+  <div class="cell"><div class="cap"><b>首页横幅</b><span>引导进行中时不挂，两者不会同屏</span></div><div class="phoneframe"><div class="ban"><h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> Safari 扩展还没打开</h4><ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol></div></div>
+     <p class="hint">两处说的是同一件事、同一份字。区别只有：一处在引导里（只出现一次），一处在首页（每次回来都在，直到被静音）。</p></div>
+</div>
+<div class="ask"><b>要裁定的第一件：这两处该不该收敛成一处？</b>我的建议是<b>收敛</b> —— 引导第 2 屏保留（它是唯一一次有人愿意读完的时刻），首页横幅改成<b>状态行</b>而不是再教一遍三步（见板 3）。理由是那 104 台：教程说第二遍不会更有效，能有效的是告诉他「现在到底成没成」。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":660}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
