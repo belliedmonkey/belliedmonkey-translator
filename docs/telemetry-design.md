@@ -380,6 +380,37 @@ domain-design §2.6 / learning-design §9.9 加了两个 App 专属的表面。�
 
 合并后的顺序照旧：`build/telemetry.config.js` → `node scripts/gen-telemetry.js` → 部署 `bt-ingest` → registry 测试。
 
+### 3.6 2026-09-22 amendment（**提案，待人评审**）：引导是黑的
+
+> **本节只写提案，不进 §3 的表。** 按 §3.3.1 那条流程：docs PR 只写提案 → 人评审 →
+> **一个** PR 同时改表 + 注册表 + 生成物 + 代码。现在把事件名写进 §3 的表会让
+> `telemetry-registry.test.js` 当场变红（它拿文档的表与注册表**双向**比对）。
+
+**现象。** 两个面的引导都只有「完成」一个观测点，而且**跳过也发**：
+
+- App 引导 5 屏（`welcome → ext → browser → read → signin`），跳过与走完走的是同一个收尾。
+- 扩展引导 4 屏（`welcome → engine → capture → try`）。
+
+于是「走完」与「放弃」在表里**长得一模一样** —— 这正是 §3.3 / §3.4 那条教训的又一种形状：
+结果看得见，过程全黑。
+
+**读数（2026-09-21/22）。** 扩展这条引导**只要人走到第 2 屏就成了**：走完引导的装机里几乎
+全部配好了引擎（iPhone 20 / 20，Mac 19 / 18）。问题纯粹在走完率 —— iPhone 27%、Mac 31%、
+Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走完引导但自己去设置页配好的
+有 21 台，比走完的 9 台还多一倍（主动去商店装扩展的人画像不同）。真正的损失是 Safari 那
+68 台 —— 既没走完也没配好。
+
+**提案 A：让「走完」与「跳过」分得开。** 给现有的完成事件加一个属性，取值只有两种（走完 /
+跳过）。这是加属性值，不是加事件。
+
+**提案 B：停在第几屏。** 只在**离开引导时**记一条「停在第几屏」，**不是每屏一条** ——
+按 §3 的准入筛子，每屏一条是噪声，回答不了 §1 的任何一问；而「停在第几屏」直接回答
+「这 4 屏里哪一屏劝退」。屏名用稳定的短枚举（与代码里的屏序数组同源），不带任何内容。
+
+**为什么值得现在提。** 2026-09-22 已裁定要动两个面的屏序（`learning-design` §0 当日行）。
+**先补这两条，再改交互** —— 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。
+这也是复习那条（`review_session` 至今 0）现在的处境。
+
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
 edge function neither stores nor logs them as a field).
