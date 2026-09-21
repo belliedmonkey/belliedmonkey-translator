@@ -51,6 +51,23 @@ const css = () => fs.readFileSync(path.join(HERE, '..', 'settings-ia', 'project'
 .code{font-family:ui-monospace,Menlo,monospace;font-size:.76rem;color:var(--muted)}
 .ask{background:var(--tip-bg);border:1px solid var(--tip-bd);color:var(--tip-tx);border-radius:13px;padding:10px 12px;font-size:.83rem;line-height:1.55}
 .ask b{display:block;margin-bottom:3px}
+/* 时间线：一行若干个小手机 + 箭头，用来说「从什么样子变成什么样子」 */
+.tl{display:flex;align-items:flex-start;gap:8px}
+.tl .arr{align-self:center;color:var(--muted);font-size:1.3rem;padding:0 2px}
+.step{display:flex;flex-direction:column;gap:6px;width:264px;flex:none}
+.step .day{font-size:.74rem;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.step .why{font-size:.78rem;line-height:1.45;color:var(--muted)}
+.ph-sm{width:264px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;min-height:150px}
+.ph-sm .ban{padding:9px 10px;gap:6px;border-radius:12px}
+.ph-sm .ban h4{font-size:.84rem}
+.ph-sm .ban p{font-size:.76rem}
+.ph-sm .btn{font-size:.78rem;min-height:34px}
+.homeline{height:8px;border-radius:999px;background:var(--rule)}
+.homeline.w2{width:60%}.homeline.w3{width:80%}
+.empty{display:flex;flex-direction:column;gap:7px;padding:6px 2px}
+.tag-now{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--warn-bg);color:var(--warn-tx)}
+.tag-new{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--tint);color:var(--sage)}
+.diff{border:2px dashed var(--sage);border-radius:22px;padding:6px}
 `;
 
 const P = {
@@ -136,20 +153,59 @@ ${hint('<b>背景数，比横幅更大：</b>237 台 App 装机里 <b>212 台只
 ${ask('所以设计问题变了', '不是「这句话怎么写更有说服力」，而是 —— <b>离开 App 之后那一截完全是黑的</b>。主按钮把人送到我们自己的网页上，而<b>那一页一个埋点都没有</b>：多少人到了、多少人看见了绿灯、多少人照着做完了，一个数都没有。<br>在补上之前，换任何文案都只是换一种我们判断不了的写法。')}
 `, { page: 'p1' });
 
-board('E-Recheck.dc.html', 1320, 780, '有证据的：「我已打开」要复核', `
-${head('31 台点过「我已打开」，其中 17 台从来没有过一张卡', '而这个按钮现在永久静音、从不复核')}
+// 这一条改的不是「一张屏长什么样」，是**点完之后接下来会发生什么**。所以两行时间线，
+// 上下对齐：前三格逐字一样，只有第 4 格是新的。用户第一版看不懂就是因为我只画了第 4 格。
+const step = (day, body, why = '') => `<div class="step"><span class="day">${day}</span>${body}${why ? `<p class="why">${why}</p>` : ''}</div>`;
+const homeOnly = () => `<div class="ph-sm"><div class="empty">
+  <div class="homeline w3"></div><div class="homeline w2"></div><div class="homeline w3"></div><div class="homeline w2"></div></div></div>`;
+const banTap = (sub) => `<div class="ph-sm">${newBan({ h4: `${ic('alert')} Safari 扩展还没打开`,
+  p: '要先把浏览器那半边打开。', main: btn('在 Safari 里打开扩展 →', 'p'), sub })}</div>`;
+
+board('E-Recheck.dc.html', 2040, 900, '有证据的：「我已打开」之后会发生什么', `
+${head('这一条改的不是屏，是点完之后接下来会发生什么', '两行逐格对齐 —— 前三格一模一样，差别只有最后一格')}
+
+<div>
+  <span class="tag-now">现在</span>
+  <div class="tl" style="margin-top:8px">
+    ${step('第 0 天', banTap(btn('我已打开', 's')), '横幅在。用户点了「我已打开」。')}
+    <span class="arr">→</span>
+    ${step('点完当下', homeOnly(), '横幅收起。到这里为止是对的。')}
+    <span class="arr">→</span>
+    ${step('第 1 天 … 永远', homeOnly(), '<b style="color:var(--danger)">再也不出现。</b>不看有没有卡、不看有没有同步过、不看扩展到底开没开。一年后仍然 0 张卡，首页也什么都不说。')}
+    <span class="arr">→</span>
+    ${step('想让它回来', `<div class="ph-sm"><div class="err">${ic('alert')}<div>App 里<b>没有任何入口</b>能撤销。只能清数据。</div></div></div>`,
+      '真机上发生过：1.14.0 验收时这个按钮被误点（UI 测试点空白处收键盘，正好压在它上面），那台机器上横幅再没出现过。')}
+  </div>
+</div>
+
+<div style="margin-top:4px">
+  <span class="tag-new">提议</span>
+  <div class="tl" style="margin-top:8px">
+    ${step('第 0 天', banTap(btn('我已经打开了', 's')), '一模一样。')}
+    <span class="arr">→</span>
+    ${step('点完当下', homeOnly(), '一模一样 —— 立刻收起，不啰嗦。')}
+    <span class="arr">→</span>
+    ${step('第 1–6 天', homeOnly(), '一模一样 —— 这六天什么都不说。')}
+    <span class="arr">→</span>
+    ${step('第 7 天 · <b style="color:var(--sage)">唯一的差别</b>',
+      `<div class="diff"><div class="ph-sm">${newBan({ h4: `${ic('alert')} 还是没收到任何一张卡`,
+        p: '你之前说已经打开了 —— 可能是漏了「允许访问网页」那一步。',
+        main: btn('打开检测页 →', 'p'), sub: btn('确实打开了，别再提示', 's') })}</div></div>`,
+      '<b>只在三个条件同时成立时才回来</b>：点过「我已打开」· 仍然 0 张卡 · 从未成功同步过。回来一次，换一句话，<b>只这一次</b>。')}
+  </div>
+</div>
+
 ${grid(2, `
-  ${cell('证据', '上一块板那张表的另一读法',
-    `<div class="num">${stat('31', '点过「我已打开」')}${stat('17', '其中从没有过卡', 'bad')}</div>
-     ${hint('细分：D 组（先去网页、回来又说已打开）<b>20 台里 15 台（75%）没有卡</b>。「自称打开了」与「真的打开了」之间差了四分之三。')}
-     ${hint('对照真机：做 1.14.0 验收时这个按钮被误点过一次（UI 测试点空白处收键盘，正好压在它上面），那台机器上横幅再也没出现过，App 里<b>没有任何入口能让它回来</b>。')}`)}
-  ${cell('提议：静音 + 7 天后复核一次', '不是再教一遍，是换一句话',
-    phone(newBan({ h4: `${ic('alert')} 还是没收到任何一张卡`,
-      p: '你之前说已经打开了 —— 要不要打开检测页看一眼？可能是漏了「允许访问网页」那一步。',
-      main: btn('打开检测页 →', 'p'), sub: btn('确实打开了，别再提示', 's') }),
-      '条件：点过「我已打开」<b>且</b>仍然 0 张卡<b>且</b>从未成功同步过。「确实打开了，别再提示」才是真正的永久静音 —— 那是<b>第二次</b>确认。'))}
+  ${cell('两个出口', '第 7 天那一格点下去之后',
+    `<div class="flow">
+      <div class="node new"><b>打开检测页 →</b>去那一页看绿灯；真没打开就当场能发现</div>
+      <div class="node new"><b>确实打开了，别再提示</b>这才是<b>真正的永久静音</b> —— 它是第二次确认，不是第一次</div>
+    </div>`)}
+  ${cell('为什么值得做', '这是这张画布上唯一有硬证据的一条',
+    `<div class="num">${stat('31', '点过「我已打开」')}${stat('17', '其中从没有过卡', 'bad')}${stat('15/20', 'D 组：去过网页又说已打开，却没卡', 'bad')}</div>
+     ${hint('也就是说：<b>「我已打开」这个信号，超过一半是不成立的</b>，而我们现在拿它当永久静音的依据。')}`)}
 `)}
-${ask('这一条我建议直接做，不等埋点', '它不依赖任何新的度量：条件全在本机（有没有卡、有没有同步过），判据也在本机。而且它同时修掉「误点了没法回来」那个真机遇到过的坑。')}
+${ask('这一条我建议直接做，不等埋点', '它不依赖任何新的度量 —— 三个条件全在本机（点过没有、有没有卡、有没有同步过），判据也在本机（回读那三个键）。顺带修掉「误点了没法回来」那个真机踩过的坑。')}
 `, { page: 'p1' });
 
 board('E-Measure.dc.html', 1320, 700, '先补的：四条埋点，否则改完仍判断不了', `

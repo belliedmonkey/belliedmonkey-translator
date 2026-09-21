@@ -118,3 +118,20 @@
 .code{font-family:ui-monospace,Menlo,monospace;font-size:.76rem;color:var(--muted)}
 .ask{background:var(--tip-bg);border:1px solid var(--tip-bd);color:var(--tip-tx);border-radius:13px;padding:10px 12px;font-size:.83rem;line-height:1.55}
 .ask b{display:block;margin-bottom:3px}
+/* 时间线：一行若干个小手机 + 箭头，用来说「从什么样子变成什么样子」 */
+.tl{display:flex;align-items:flex-start;gap:8px}
+.tl .arr{align-self:center;color:var(--muted);font-size:1.3rem;padding:0 2px}
+.step{display:flex;flex-direction:column;gap:6px;width:264px;flex:none}
+.step .day{font-size:.74rem;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.step .why{font-size:.78rem;line-height:1.45;color:var(--muted)}
+.ph-sm{width:264px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;min-height:150px}
+.ph-sm .ban{padding:9px 10px;gap:6px;border-radius:12px}
+.ph-sm .ban h4{font-size:.84rem}
+.ph-sm .ban p{font-size:.76rem}
+.ph-sm .btn{font-size:.78rem;min-height:34px}
+.homeline{height:8px;border-radius:999px;background:var(--rule)}
+.homeline.w2{width:60%}.homeline.w3{width:80%}
+.empty{display:flex;flex-direction:column;gap:7px;padding:6px 2px}
+.tag-now{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--warn-bg);color:var(--warn-tx)}
+.tag-new{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--tint);color:var(--sage)}
+.diff{border:2px dashed var(--sage);border-radius:22px;padding:6px}
