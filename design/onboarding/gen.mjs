@@ -143,7 +143,7 @@ ${head('把登录提到第 2 屏，删掉「填 Key」那屏，扩展降级到�
 <div style="margin-top:6px"><span class="tag new">提议</span>
 <div class="tl" style="margin-top:8px">
   ${scr('第 1 屏', '<span class="tag keep">改写</span>',
-    `<h4>读你真正在读的东西</h4><p>划词翻译、听一段、看实时字幕 —— 这些<b>在这个 App 里就能用</b>；网页翻译在浏览器那半边。</p>${btn('开始', 'p')}`,
+    `<h4>学习你真正在读的东西</h4><p>划词翻译、听一段、看实时字幕 —— 这些<b>在这个 App 里就能用</b>；网页翻译在浏览器那半边。</p>${btn('开始', 'p')}`,
     '不再一上来就讲分工，先说<b>这个 App 自己能做什么</b> —— 24% 的人本来就会自己去找听译。')}
   <span class="arr">→</span>
   ${scr('第 2 屏', '<span class="tag move">从第 5 屏提上来</span>',
