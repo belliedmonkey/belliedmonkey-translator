@@ -72,9 +72,17 @@
       "page": "p2",
       "title": "扩展那边怎么接上：不是「把登录态带过去」，是扩展自己登"
     },
-    "Why.dc.html": {
+    "ChinaGrant.dc.html": {
       "x": 1880,
       "y": 1040,
+      "w": 1800,
+      "h": 900,
+      "page": "p2",
+      "title": "中国版额度 · 方案 C：身份走东京，原文只走境内"
+    },
+    "Why.dc.html": {
+      "x": 0,
+      "y": 2100,
       "w": 1560,
       "h": 760,
       "page": "p2",
@@ -128,6 +136,7 @@
     "Signin.dc.html",
     "FirstUse.dc.html",
     "ExtHandoff.dc.html",
+    "ChinaGrant.dc.html",
     "Why.dc.html",
     "Main.dc.html",
     "Home.dc.html",

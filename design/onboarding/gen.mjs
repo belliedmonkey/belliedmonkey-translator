@@ -263,7 +263,7 @@ ${grid(2, `
     ph(`<h4>${ic('alert')} 额度暂时领不到</h4><p>可能是网络，也可能是今天的名额用完了。你仍然可以填自己的 key，或者稍后再来。</p>${btn('填我自己的 key', 'p')}${btn('稍后再说', 's')}`))}
   ${cell('中国版变体', '2026-09-22 裁定：中国版也给免费额度 ⇒ 与国际版同形',
     `<div class="cn">${ph(`<h4>登录，顺手领一份免费额度</h4><p>额度由我们出，够先用一阵；也可以用你自己的 key。</p>${btn('用 Apple 登录', 'p')}${btn('先不登录，我自己填 key', 's')}`)}</div>` +
-    hint('<b>这一屏要等三件事才能上线</b>：① 构建期的中国合规门现在明文禁止产物里出现 <code>MT_GRANT = {</code> / <code>bt-grant</code> / <code>bt-relay</code>（那条门禁是证伪出来的：09-08 试翻开关时产物里真漏出过完整配置）② 中转多一个境外接收方 ⇒ <b>出境告知与单独同意必须同版落地</b> ③ 中国版一条遥测都不发 ⇒ 发出去之后只能从服务端 grant 表看，客户端一个数都没有。'))}
+    hint('中国版的额度走<b>通义千问</b>，而且<b>原文一步都不出境</b> —— 路径与前提见下一块板「中国版额度 · 方案 C」。'))}
 `)}
 `, { page: 'p2' });
 
@@ -303,6 +303,38 @@ ${grid(2, `
     ${hint('<b>额度不用管</b>：登上同一个账号，<code>claim()</code> 自己把三个槽配好。扩展那边现在就是这个形状（34 台登录 / 30 台配好）。')}`)}
 `)}
 ${ask('时序：这件事不可能发生在「跳转的那一刻」', '引导最后一屏跳转时，<b>扩展通常还没启用</b> —— 没有进程能接收任何东西。真实时序只能是：<br><b>启用扩展 → 扩展第一次打开设置页 / 检测页 → 那时一键登录 → 额度自动到位。</b><br>所以那个「把这台浏览器也登上」的按钮该放在<b>检测页</b>上，而不是 App 的跳转里。检测页本来就是扩展有内容脚本在跑的自家域名。')}
+`, { page: 'p2' });
+
+board('ChinaGrant.dc.html', 1800, 900, '中国版额度 · 方案 C：身份走东京，原文只走境内', `
+${head('中国版的免费额度走通义千问，且原文一步都不出境', '2026-09-22 裁定：模型用 Qwen · 中继放境内 · 账号与额度仍挂在现有后端')}
+${grid(2, `
+  ${cell('国际版（现状）', '一条线，全在境外',
+    `<div style="display:flex;flex-direction:column;gap:7px">
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>扩展 / App</b>（原文 + 令牌）</div>
+      <div style="text-align:center;color:var(--muted)">↓</div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>bt-relay</b>（东京）· 扣额度、钉死模型</div>
+      <div style="text-align:center;color:var(--muted)">↓</div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>OpenRouter</b> → 模型</div>
+    </div>
+    ${hint('中继今天打的是 OpenRouter（<code>bt-relay/index.ts:30</code>），模型在服务端钉死、忽略客户端送的。')}`)}
+  ${cell('中国版（提议 C）', '两条线分开 —— 这是整个方案的要点',
+    `<div style="display:flex;flex-direction:column;gap:7px">
+      <div style="border:1px solid #1f4a7a;border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5;background:#e9f0f8">
+        <b>身份线</b>：App / 扩展 → 现有后端（东京）→ 拿回额度令牌<br>
+        <span style="color:#1f4a7a;font-weight:700">只传身份与令牌，不含任何原文</span></div>
+      <div style="border:1px solid var(--sage);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5;background:var(--tint)">
+        <b>原文线</b>：App / 扩展 → <b>境内中继</b> → 阿里云百炼 · 通义千问<br>
+        <span style="color:var(--sage);font-weight:700">原文一步都不出境</span></div>
+    </div>
+    ${hint('为什么不选另外两条：<b>A（东京中继→千问）</b>原文仍然出境，还要绕中国→东京→杭州→东京→中国；<b>B（整套后端搬境内）</b>要重建 GoTrue 与库，而额度以 <code>user_id</code> 为主键、账号体系本来就在东京。')}`)}
+`)}
+${grid(2, `
+  ${cell('要新建的', '比整套境内后端小得多',
+    `<ul class="steps" style="font-size:.8rem"><li>一台<b>境内中继</b>（只转发原文 + 校验令牌 + 扣额度，不存内容）</li><li><code>bt-relay</code> 加一条中国线：不打 OpenRouter，直连百炼</li><li>构建期把中国版的额度端点指向境内中继</li><li>中国合规门那三条禁令要连同 2026-09-08 那次泄漏一起重新裁定</li></ul>`)}
+  ${cell('落地前必须先确认的两件', '不是工程问题',
+    `<ul class="steps" style="font-size:.8rem"><li><b>百炼的条款</b>：我们是<b>替用户转发</b>而不是用户自己调 —— 「代他人调用 / 转售」这类条款要单独确认（与「订阅套餐禁止自建应用」是两码事，那条针对订阅、不针对 API 计费）</li><li><b>出境告知与单独同意</b>：身份线仍然出境，所以那层文案与同意动作<b>必须同版落地</b>，不能先发额度后补</li></ul>`)}
+`)}
+${ask('成本不是问题', '国际版 47 个账号 11 天总共花了 <b>$0.72</b>；千问单价更低，中国版近 30 天下载 106 次。量级可以忽略 —— 这条的成本在工程与合规，不在钱。')}
 `, { page: 'p2' });
 
 board('Why.dc.html', 1560, 760, '为什么这么改：这一轮的读数', `
