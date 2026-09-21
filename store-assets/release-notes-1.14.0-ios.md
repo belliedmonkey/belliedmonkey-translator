@@ -1,7 +1,9 @@
 # 1.14.0 发布说明 · iOS（国际版 15 份）
 
 > **主角是 iPhone 系统翻译（Gate J-2）。** macOS 没有 TranslationUIProvider 这个扩展点，所以那份不提它。
-> **中国版 iOS 这一版不发**：`com.belliedmonkeytranslator.cn` 还没有 `DEFAULT_TRANSLATION_APP` 与 `APP_GROUPS` 两项能力，`.cn.MTTranslateExt` 这个 App ID 也还没建（用户裁定 2026-09-21：先发五面，中国 iOS 下一版补）。所以这份文件里没有「中国版」段。
+> **中国版段已备好**（2026-09-21 补）：App ID 的两项能力已由 Xcode 注册上，只差 App Group
+> `group.com.belliedmonkeytranslator.cn` 在开发者门户上建好并关联 —— 那一步 ASC API 管不了。
+> 原注：**中国版 iOS 这一版不发**：`com.belliedmonkeytranslator.cn` 还没有 `DEFAULT_TRANSLATION_APP` 与 `APP_GROUPS` 两项能力，`.cn.MTTranslateExt` 这个 App ID 也还没建（用户裁定 2026-09-21：先发五面，中国 iOS 下一版补）。所以这份文件里没有「中国版」段。
 > 提到「对话 · 实时听译」时紧跟系统要求，是 docs/release-checklist.md §3 的硬要求。
 > 用法：`node scripts/asc.js notes com.belliedmonkeytranslator IOS 1.14.0 store-assets/release-notes-1.14.0-ios.md`
 
@@ -153,4 +155,13 @@
 · Nowość: karta na ekranie głównym prowadzi przez ustawienie aplikacji jako domyślnego tłumacza.
 · Nowość: wejście do społeczności Discord w sekcji „Dyskusja”.
 · Poprawiono: „Rozmowa · tłumaczenie na żywo” nie milknie już po przełączeniu między słuchawkami a głośnikiem (wymaga iOS 26).
+```
+
+## 中国版 · zh-Hans
+
+```
+· 新：系统翻译 —— 在任何 App 里选中文字点「翻译」，就用你自己配的引擎翻，不经过我们的服务器。先到「设置 › App › 翻译 › 默认翻译App」里选大肚猴翻译。需要 iOS 18.4 及以上。
+· 新：配好引擎之后当场测一遍并把结果摆出来 —— 通了才说「可以用了」，没通会指出是哪一项、错在哪。
+· 新：首页多一张卡，引导把大肚猴翻译设成系统默认的翻译 App。
+· 修复：「对话 · 实时听译」中途切换耳机或扬声器之后不再收不到声音（需要 iOS 26）。
 ```
