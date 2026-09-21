@@ -105,9 +105,14 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 ## What it does
 
 <p align="center">
-  <img src="docs/media/shot-page.png" alt="Wikipedia article with every paragraph followed by its translation" width="30%">
-  <img src="docs/media/shot-subtitles.png" alt="YouTube video with the original subtitle above and the translation below" width="30%">
-  <img src="docs/media/shot-review.png" alt="A review card built from a sentence read earlier, with four difficulty buttons" width="30%">
+  <img src="docs/media/shot-page.png" alt="A web page on iPhone: every paragraph keeps its original text with the translation directly beneath it" width="30%">
+  <img src="docs/media/shot-subtitles.png" alt="A video with the original subtitle above and the translation below, matched sentence by sentence" width="30%">
+  <img src="docs/media/shot-review.png" alt="A review card built from a sentence read earlier, with read, listen and write tiers" width="30%">
+</p>
+<p align="center">
+  <img src="docs/media/shot-live.png" alt="Live Subtitles: bilingual captions over whatever the device is playing, in a picture-in-picture window above another app" width="30%">
+  <img src="docs/media/shot-talk.png" alt="Conversation · live interpreter: each side's sentences transcribed and translated as they speak, sorted by speaker" width="30%">
+  <img src="docs/media/shot-docs.png" alt="Document translation: a PDF read one page at a time, each paragraph with its translation beneath" width="30%">
 </p>
 
 At a glance:
