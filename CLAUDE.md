@@ -75,108 +75,47 @@ Safari iOS browser extension for bilingual translation — fully open source and
 
 ## Build & Test
 
+零依赖，不用 `npm install`。Node 底线：`npm test` **≥20**（`learn/chunk.js` 用
+`CompressionStream('deflate-raw')`），其余跑真 Chrome 的门 **≥22**（内置 WebSocket）。
+
 ```bash
-node build.js            # Copies extension/ → dist/ and creates belliedmonkeytranslator.zip
-npm test                 # Pure-logic suite (zero-dep vm harness, **Node ≥20** — learn/chunk.js uses
-                         # CompressionStream('deflate-raw'), and deflate-raw is a Node 20 addition) — every push
-npm run test:layout      # Layout regression corpus (real headless Chrome via raw CDP,
-                         # Node ≥22) — geometry asserts + in-page behavioral phases
-                         # (selection / interaction / keeperGuards manifest keys: selection
-                         # keeper + page-interaction invariance, fixtures 33-36).
-                         # Mandatory when extension/content/** or styles/** change.
-                         # Governed by docs/verification-spec.md §3.2 (incremental-adaptation
-                         # contract: new site fix ⇒ new fixture red-before-fix, old fixtures stay green)
-npm run app:sync         # Push dist-app/ into the generated Xcode project + patch ViewController.
-                         # Run after EVERY regeneration of safari-project/ — that tree is
-                         # gitignored and disposable; app/ in the repo is the real source.
-npm run test:smoke       # 真实安装冒烟（real Chrome, Node ≥22）—— **改传输层必跑**。
-                         # 把 dist/ 用 Extensions.loadUnpacked 装进真 Chrome，配一个
-                         # custom_chat 端点（故意 OPTIONS→403、不给 CORS 头，即企业网关
-                         # 的形状），打开网页翻一段，断言页面上真的出现译文、且报告走的
-                         # 是直连还是扩展后台。其余各门都只看一层：npm test 看模块、
-                         # test:layout 用 google 通道看渲染、test:app 看宿主页起不起得来
-                         # —— 都不会因为「装上去根本不工作」而变红（2026-08-19 一天之内
-                         # 三次：1.5.4 的回退是空转、1.5.5 的路线记忆毒化整页、1.5.8 被
-                         # 报完全不可用时手上没有任何证据）。
-npm run test:app         # Host app page comes up (real Chrome, Node ≥22) — mandatory when app/**
-                         # changes. Serves the SHIPPED bundle layout (Main.html in Base.lproj/,
-                         # Script.js at the root), because a flat layout hides the 404 that turns
-                         # the app into a blank white screen.
-                         # 也守**引擎配置的跨宿主一致性**（docs/verification-spec.md §3.1.4）：
-                         # 进设置页、切「详细」、把三个下拉的每个引擎都选一遍，断言字段行的
-                         # **渲染后可见性**与 EngineFields.visibility() 逐项相等。改
-                         # extension/options/** 或 build/app-bundle.js 的 MODULES 时同样必跑
-                         # —— 2026-09-04 报障的根因就是组件没进 App 包，而门禁只看扩展那侧。
-npm run test:idb         # IndexedDB migration (real Chrome, Node ≥22) — mandatory whenever
-                         # learn/store.js's DB_VERSION changes. It is the only change that touches
-                         # data users ALREADY HAVE, and npm test cannot see it (no IndexedDB in the
-                         # vm harness). See docs/verification-spec.md §3.1.2
-npm run test:chrome-cleanup # 门禁起的无头 Chrome 怎么结束都收干净（real Chrome）—— 改 test/layout/chrome.js 必跑。
-                         # 正常结束 / SIGTERM / 抛异常 / process.exit / SIGKILL 五种方式各起一个子 node，
-                         # 回读 Chrome 主进程、带该 profile 的进程、profile 目录都没了（全回归 09-14 F14：
-                         # 本机积过 441 个测试 Chrome，负载高时 test:layout 42/42 掉到 34/42）。
-npm run test:wipe        # 「清除本机全部数据」真的清干净了吗（real Chrome, Node ≥22）——
-                         # 改 options 的清除路径、learn/store.js 的库命名或 chrome.storage
-                         # 键面时必跑。种两个学习库（mt-learn + mt-learn-<uid>，**并故意开着
-                         # 一个连接**）+ API Key + 翻译缓存，点清除，然后**回读**。
-                         # 判据必须是回读：deleteDatabase 撞上未关闭的连接会发 blocked 然后
-                         # 永远不落定 —— 不报错，界面照样说「已清除」，而库原封不动。
-npm run test:asr         # 「AI 转写字幕」真 Chrome 端到端（Node ≥22）—— 改 content/asr-source.js、
-                         # content/ws-transcribe.js、subtitle-adapter.js 的流式钩子、或 stt 注册表的
-                         # live* 字段时必跑。本机假 STT 端点 + 手写 RFC 6455 假流式服务端：文件一档
-                         # 断言整段只上传一次且叠层出原文+译文；流式一档断言 captureStream 真把
-                         # PCM 送到了端点（≥20 帧）且叠层出整句。厂商本身由 scripts/asr-probe.js 验。
-npm run test:listen      # 「对话 · 实时听译」真 Chrome 端到端（Node ≥22）—— 改 app/listen*.js、
-                         # app/native-audio.js 的 mic-* 协议、audio-bridge.swift 输入半边、或
-                         # sources-view/review 的 conv 分支时必跑。页内注入假原生桥（按 mtAudio 协议
-                         # 回 mic-pcm，即出货的原生采集路）+ 本机假流式端点 + 本机假翻译端点，CDP 发
-                         # 真指针按住：断言入口门控、定稿+译文进历史、按住期间的句子归「我」并翻面、
-                         # 语料里是 conv 来源/锚点、加星落盘、结束小结数字与桥收到 mic-stop。
-                         # 为什么不用模拟器/真机：模拟器麦克风 0 字节、cua 的按住到不了 WKWebView 的
-                         # pointerdown、真机被 iPhone 镜像占着麦克风（2026-09-07 三条路都试过）。
-npm run test:quick       # macOS「快速翻译」面板页真 Chrome 端到端（Node ≥22）—— 改 app/quick*.js、app.js 的 #quick 分流、
-                         # build/app-bundle.js 的 MODULES / MAIN_ONLY 时必跑。出货布局以 #quick 加载 + 假 mtQuick 桥 +
-                         # 本机假翻译端点：断言面板页**不开学习库、不初始化遥测、启动 0 请求**（探针在 document-start
-                         # 数 indexedDB.open / MTTelemetry.init / fetch），带隐藏标记的剪贴板**端点 0 请求**且文字不上屏，
-                         # 「和上次一样」0 请求，迟到的上一句不上屏不进库，401 只给「打开设置」、5xx 只给「重试」，
-                         # 三态 × 深浅两色对比度。判据是端点与桥收到了什么 —— 「密码被发出去了」在界面上看不出来。
-                         # 原生那一半（面板、热键、剪贴板、截图）走真机配方（verification-spec 矩阵第 10 行）。
-npm run test:docs        # 「文档翻译」真 Chrome 端到端（Node ≥22）—— 改 learn/doc-*.js、docs-page.js、
-                         # pdfjs-loader.js、request-shape 的图片形状或 translation-api.ocr 时必跑。本机假
-                         # chat 端点记下**每一次请求**：3 页 PDF 只发第 1 页、翻页只发第 2 页、并发峰值
-                         # ≤ reqConcurrency 且真叠起来、docx 分页、PNG 恰好识别 1 次、重开 0 请求、语料
-                         # anchor.k=doc 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求；App 段（dist-app 出货
-                         # 布局）走首页入口 → 同一份 PDF 经 __MT_PDFJS 的 blob 路 → 只发第 1 页 → 返回真隐藏。
-                         # 改 app/docs.js 或 app-bundle 的 MODULES 也必跑。判据是端点收到了什么，不是页面
-                         # 画了什么 —— 整份一次翻掉在界面上看不出来。
-npm run test:learn       # Learning suite end-to-end in BOTH hosts (app bundle + extension review
-                         # page; real Chrome, Node ≥22) — mandatory when the learning surface
-                         # changes. Per-step surface sweep (WCAG contrast ≥ 4.5:1 in BOTH colour
-                         # schemes, via scripts/lib/sweep.js — shared by every page gate) + DB-verified
-                         # tier/practice/notes flow. Cases: docs/learn-regression.md
-npm run test:inbox       # 系统翻译的收件箱：在 Mac 上跑**出货的那一份** MTExtInbox（需要 swiftc，
-                         # 只在本机跑、不进 CI）—— 改 app/native/translate-ext/ExtInbox.swift 必跑。
-                         # macOS 没有 TranslationUIProvider，弹层那条路只能上真机；但写收件箱这段
-                         # 逻辑与平台无关。驱动脚本把它拷过来**只改一行**（App Group 容器 → 临时目录）
-                         # 并断言差异恰好一行。第一次跑就抓到一个真 bug：文件名用 `%d` 拼毫秒
-                         # 时间戳，按 32 位截成了负数 —— 而 trim() 删最旧的、drain() 读顺序都靠
-                         # 「文件名有序 = 时间有序」，错位之后删掉的是最新的几条，且不报错。
+node build.js        # extension/ → dist/ + belliedmonkeytranslator.zip
+npm run app:sync     # dist-app/ → 生成的 Xcode 工程（每次重生成 safari-project/ 之后都要跑）
 ```
 
-**Sync ships ON, and a plain `node build.js` is what you want.** `MT_SYNC=on` was the
-self-use channel for TestFlight builds 14–23, when the source switch was `false` and the
-flag flipped it in the OUTPUT only. Gate B (v1.4.0) made the source switch `true`, so the
-flag has been a **no-op** ever since — `build.js` accepts it and prints a yellow "no-op"
-line so old muscle memory doesn't break. Nothing about a build changes if you pass it, and
-nothing turns sync off if you don't. The live escape hatch is a different flag,
-`MT_SYNC_E2E=1`, which is **not for shipping**: it bypasses Gate B's stale-privacy-copy
-check for end-to-end testing and pays for it by withholding the artifact — `dist/` is
-built and loadable unpacked, but no `.zip` is produced and a `.not-shippable` marker
-blocks the iOS archive path via `verify:ios`. See `docs/learning-design.md` §10.
+**门禁：改了什么，就必须跑哪一门。** 下表只给**触发条件**；判据、证伪方法、以及每一门
+背后那次事故，全部在 [`docs/verification-spec.md`](docs/verification-spec.md) §3 ——
+那里是唯一权威，**不要在这里复述**。
 
-No npm install needed — zero dependencies. To load in Chrome: Extensions → Developer mode → Load unpacked → `dist/`.
+| 命令 | 改了这些就**必跑** | 详见 |
+|---|---|---|
+| `npm test` | 每次 push | §3.1 |
+| `npm run test:layout` | `extension/content/**`、`styles/**` | §3.2 |
+| `npm run test:smoke` | **传输层** | §3.1.7 |
+| `npm run test:app` | `app/**`、`extension/options/**`、app-bundle 的 `MODULES` | §3.1.4 |
+| `npm run test:idb` | `learn/store.js` 的 `DB_VERSION` | §3.1.2 |
+| `npm run test:learn` | 学习面（`extension/learn/**`、`content/learn-*`、复习相关 `app/**`） | §3.1.3 |
+| `npm run test:listen` | `app/listen*.js`、`native-audio.js` 的 mic-\* 协议、`audio-bridge.swift` 输入半边、sources-view/review 的 conv 分支 | §3.1.5 |
+| `npm run test:quick` | `app/quick*.js`、`app.js` 的 `#quick` 分流、app-bundle 的 `MODULES`/`MAIN_ONLY` | §3.1.6 |
+| `npm run test:asr` | `content/asr-source.js`、`ws-transcribe.js`、`subtitle-adapter.js` 的流式钩子、stt 注册表的 `live*` | §3.1.9 |
+| `npm run test:docs` | `learn/doc-*.js`、`docs-page.js`、`pdfjs-loader.js`、request-shape 的图片形状、`translation-api.ocr`、`app/docs.js` | §3.1.10 |
+| `npm run test:wipe` | options 的清除路径、`learn/store.js` 的库命名、`chrome.storage` 键面 | §3.1.8 |
+| `npm run test:inbox` | `app/native/translate-ext/ExtInbox.swift`（需 `swiftc`，只在本机跑、不进 CI） | §3.1.11 |
+| `npm run test:chrome-cleanup` | `test/layout/chrome.js` | §3.3 |
 
-To convert for Safari iOS (macOS + Xcode required):
+**一条贯穿所有门的判据纪律**：`test:smoke` / `test:docs` / `test:quick` / `test:wipe`
+的判据都是**端点或数据库收到了什么**，不是页面画了什么 —— 「整份一次翻掉」「密码被发出去了」
+「库其实根本没清掉」在界面上都看不出来。
+
+**Sync ships ON，`node build.js` 就是你要的。** `MT_SYNC=on` 自 Gate B（v1.4.0）起是
+**no-op**（`build.js` 接受它并打一行黄字，免得旧肌肉记忆报错），传不传都一样。真正还活着
+的开关是另一个 —— `MT_SYNC_E2E=1`，**不能用来发版**：它绕过 Gate B 的隐私文案陈旧检查，
+代价是不产出 artifact（`dist/` 可 load unpacked，但没有 `.zip`，且 `.not-shippable` 标记
+会让 `verify:ios` 挡住 iOS 归档路）。见 `docs/learning-design.md` §10。
+
+装进 Chrome：Extensions → Developer mode → Load unpacked → `dist/`。
+转 Safari（需 macOS + Xcode）：
+
 ```bash
 xcrun safari-web-extension-converter dist/ --project-location ./safari-project --app-name "BelliedMonkey Translator"
 ```
@@ -347,16 +286,16 @@ Acquisition (must work on Safari iOS, where `world:"MAIN"` is unsupported):
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
 
 Key routing rules:
-- Product ideas/brainstorming → invoke /office-hours
-- Strategy/scope → invoke /plan-ceo-review
-- Architecture → invoke /plan-eng-review
-- Design system/plan review → invoke /design-consultation or /plan-design-review
-- Full review pipeline → invoke /autoplan
-- Bugs/errors → invoke /investigate
-- QA/testing site behavior → invoke /qa or /qa-only
-- Code review/diff check → invoke /review
-- Visual polish → invoke /design-review
-- Ship/deploy/PR → invoke /ship or /land-and-deploy
-- Save progress → invoke /context-save
-- Resume context → invoke /context-restore
-- Author a backlog-ready spec/issue → invoke /spec
+- Release to any of the six store surfaces → invoke `/store-release`
+- Adding or measuring a provider/model → invoke `/perf-tune`
+- Windows row of the verification matrix → invoke `/win-matrix`
+- Bugs/errors → invoke `/gstack-investigate`
+- Code review/diff check → invoke `/code-review` (built in; `/code-review ultra` is the
+  cloud multi-agent one, and only the user can launch it)
+
+> **2026-09-21 清理：** 50 个从未使用过的 gstack skill 被移到 `~/.claude/skills-disabled/`
+> —— 五周 457 个会话里它们的调用次数全是 0，而描述常驻每个会话的上下文。需要哪一个就
+> `mv ~/.claude/skills-disabled/<名字> ~/.claude/skills/`。注意 `/gstack-upgrade` 会把它们
+> 全部装回来。保留的是 `gstack-browse` / `gstack-investigate` /
+> `gstack-setup-browser-cookies` / `gstack-upgrade`，以及 `gstack/` 本身（Stop hook 和
+> 全局 CLAUDE.md 里 `file://` 本地渲染用的 `gstack/browse/dist/browse` 都在里面）。
