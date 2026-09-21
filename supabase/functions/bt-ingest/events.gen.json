@@ -31,6 +31,20 @@
       "surface": [
         "ext",
         "app"
+      ],
+      "result": [
+        "done",
+        "skipped"
+      ],
+      "step": [
+        "welcome",
+        "ext",
+        "browser",
+        "read",
+        "signin",
+        "engine",
+        "capture",
+        "try"
       ]
     },
     "engine_set": {

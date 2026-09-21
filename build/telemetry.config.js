@@ -26,7 +26,20 @@ const COMMON = {
 const EVENTS = {
   installed: {},
   heartbeat: {},
-  onboarding_done: { surface: ['ext', 'app'] },
+  // 2026-09-22（§3.6 提案评审通过）：加 `result` 与 `step`，**不加事件**。
+  //
+  // 此前这条只有「完成」一个观测点，而且**跳过也发** —— 于是「走完」与「放弃」在表里
+  // 长得一模一样（§3.4 那条教训的又一种形状：结果看得见，过程全黑）。
+  //
+  // `step` = 离开引导时停在哪一屏，**只在离开的那一刻记一条**，不是每屏一条 ——
+  // 每屏一条回答不了 §1 的任何一问，只是噪声。取值与两个宿主的屏序数组**同源**
+  // （`app/app.js` 的 OB 与 `extension/onboard/onboard.js` 的 OB），所以是并集；
+  // 屏序改了这里要跟着改（加枚举值，门禁只认事件名，不会自己红）。
+  onboarding_done: {
+    surface: ['ext', 'app'],
+    result: ['done', 'skipped'],
+    step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try'],
+  },
   engine_set: { provider: 'id' },
   // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」
   // 这一整段此前零遥测，而 learn/engine-test.js 的四个调用方全在激活路径上（设置页、

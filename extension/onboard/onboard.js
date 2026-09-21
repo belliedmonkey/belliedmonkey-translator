@@ -509,10 +509,19 @@
     if (at < OB.length - 1) { at += 1; paint(); return; }
     finish();
   });
-  $('ob-skip').addEventListener('click', finish);
-  async function finish() {
+  $('ob-skip').addEventListener('click', () => finish('skipped'));
+  // `result`：走完还是跳过 —— 两条路本来就走同一个收尾，于是在表里长得一模一样
+  // （telemetry-design §3.6，2026-09-22）。`step` 是**离开时停在哪一屏**，只记这一条：
+  // 每屏一条回答不了任何一问，只是噪声。
+  async function finish(result) {
     await storageSet({ extObSeen: 1 });
-    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('onboarding_done', { surface: 'ext' }); } catch (_) {}
+    try {
+      if (typeof MTTelemetry !== 'undefined') {
+        MTTelemetry.track('onboarding_done', {
+          surface: 'ext', result: result === 'skipped' ? 'skipped' : 'done', step: OB[at],
+        });
+      }
+    } catch (_) {}
     $('onboard').hidden = true;
     $('ob-done').hidden = false;
     $('ob-done-title').textContent = t('extob_done_title', '设置好了');
