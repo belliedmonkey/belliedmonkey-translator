@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>有证据的：「我已打开」要复核</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:780px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">31 台点过「我已打开」，其中 17 台从来没有过一张卡</h1><span>而这个按钮现在永久静音、从不复核</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>证据</b><span>上一块板那张表的另一读法</span></div><div class="num"><div class="stat"><b>31</b><span>点过「我已打开」</span></div><div class="stat bad"><b>17</b><span>其中从没有过卡</span></div></div>
+     <p class="hint">细分：D 组（先去网页、回来又说已打开）<b>20 台里 15 台（75%）没有卡</b>。「自称打开了」与「真的打开了」之间差了四分之三。</p>
+     <p class="hint">对照真机：做 1.14.0 验收时这个按钮被误点过一次（UI 测试点空白处收键盘，正好压在它上面），那台机器上横幅再也没出现过，App 里<b>没有任何入口能让它回来</b>。</p></div>
+  <div class="cell"><div class="cap"><b>提议：静音 + 7 天后复核一次</b><span>不是再教一遍，是换一句话</span></div><div class="phoneframe"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 还是没收到任何一张卡</h4><p>你之前说已经打开了 —— 要不要打开检测页看一眼？可能是漏了「允许访问网页」那一步。</p><button class="btn p" type="button">打开检测页 →</button><button class="btn s" type="button">确实打开了，别再提示</button></div><p class="hint" style="margin:0">条件：点过「我已打开」<b>且</b>仍然 0 张卡<b>且</b>从未成功同步过。「确实打开了，别再提示」才是真正的永久静音 —— 那是<b>第二次</b>确认。</p></div></div>
+</div>
+<div class="ask"><b>这一条我建议直接做，不等埋点</b>它不依赖任何新的度量：条件全在本机（有没有卡、有没有同步过），判据也在本机。而且它同时修掉「误点了没法回来」那个真机遇到过的坑。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
