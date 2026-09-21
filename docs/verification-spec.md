@@ -1793,6 +1793,12 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 桥收到 `mic-stop`。改 `app/listen*.js`、桥的 mic 协议、Swift 输入半边、来源/复习卡的 conv 分支
 时必跑。真机上仍要人验的只剩两件：锁屏续听（M22，09-07 已实证 3 分钟不断）与朗读有没有声（M23）。
 
+**为什么这一门跑在真 Chrome 里而不是模拟器或真机**（2026-09-07 三条路都试过，逐条堵死）：
+① 模拟器的麦克风是 **0 字节** —— 有帧无声，链路看着通，断言全是假绿；② cua 发的「按住」
+到不了 `WKWebView` 里的 `pointerdown`，而按住正是这一门要验的交互；③ 真机的麦克风被
+iPhone 镜像占着。所以出货的原生采集路只能用**按 `mtAudio` 协议回话的假桥**来代表 ——
+这是有意的取舍，不是偷懒。
+
 **2026-09-12 追加（device-speech，D2 起）：第二个假桥 `mtSpeech`。** 本机路
 （`device-transcribe` / `device-speech`，domain-design §7）在 JS 侧能看到的只有桥消息，
 所以门禁再注入一个按 `mtSpeech` 协议回话的假原生桥：`stt-probe` → `stt-state {state:'ready'}`；
@@ -1890,7 +1896,12 @@ PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松�
 
 **Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
 设置区 · `extension/options/**` · `extension/learn/engine-fields.js` ·
-`build/app-bundle.js` 的 `MODULES`。
+`build/app-bundle.js` 的 `MODULES`，以及任何 `app/**` 改动。
+
+**这一门的第一层职责是「宿主页起不起得来」，而它只有在出货布局下才成立。**
+`test:app` 伺服的是**出货的那一份目录结构** —— `Main.html` 在 `Base.lproj/` 里、
+`Script.js` 在根上。用平铺布局跑会把 404 藏起来，而那个 404 正是让 App 变成一张
+**全白页**的东西。同 §3.1.11 的那条：跑的必须是出货的那一份，不是一份好跑的复制品。
 
 促成它的报障（2026-09-04）：用户报「App 的设置页居然没有与扩展端保持一致」。
 根因是 `engine-fields.js` —— 那个为消灭手抄而抽出来的组件 —— **不在 App 包的
@@ -1953,6 +1964,73 @@ App 里却没有任何控件，界面语言永远落到 `navigator.language`。
 `cache-card` / `tts-cache`）快速档可见，`verify-extension-smoke` 的 `ENGINE_CARDS` 互斥清单加 `stt-card`；
 ③ 锚点规则：对每个 `.adv-only` 内的锚点目标调 `openSettings` / `#anchor` 后目标 `offsetParent` 非空（先切档）。
 证伪：把 `tts-mode` 的 `adv-only` 加回去，快速档可见性断言当场红。
+
+### 3.1.7 `npm run test:smoke` — 真实安装冒烟，**改传输层必跑**
+
+把 `dist/` 用 `Extensions.loadUnpacked` 装进真 Chrome（Node ≥22），配一个 `custom_chat`
+端点 —— 故意让它 `OPTIONS → 403`、不给 CORS 头，**即企业网关的形状** —— 打开网页翻一段，
+断言页面上真的出现了译文，并报告走的是直连还是扩展后台。
+
+**为什么单独有这一门**：其余各门都只看一层。`npm test` 看模块、`test:layout` 用 google
+通道看渲染、`test:app` 看宿主页起不起得来 —— 没有一门会因为「装上去根本不工作」而变红。
+2026-08-19 一天之内被这个形状咬了三次：1.5.4 的回退是空转、1.5.5 的路线记忆毒化整页、
+1.5.8 被报完全不可用时手上没有任何证据。
+
+### 3.1.8 `npm run test:wipe` — 「清除本机全部数据」真的清干净了吗
+
+**改 options 的清除路径、`learn/store.js` 的库命名、或 `chrome.storage` 键面时必跑**
+（real Chrome, Node ≥22）。种两个学习库（`mt-learn` + `mt-learn-<uid>`，**并故意开着一个
+连接**）+ API Key + 翻译缓存，点清除，然后**回读**。
+
+**判据必须是回读**：`deleteDatabase` 撞上未关闭的连接会发 `blocked` 然后永远不落定 ——
+不报错，界面照样说「已清除」，而库原封不动。同 §4 的那条纪律：**不报错不等于做成了。**
+
+### 3.1.9 `npm run test:asr` — 「AI 转写字幕」端到端
+
+**改 `content/asr-source.js`、`content/ws-transcribe.js`、`subtitle-adapter.js` 的流式钩子、
+或 stt 注册表的 `live*` 字段时必跑**（real Chrome, Node ≥22）。本机假 STT 端点 + 手写
+RFC 6455 假流式服务端：文件一档断言整段**只上传一次**且叠层出原文 + 译文；流式一档断言
+`captureStream` 真把 PCM 送到了端点（≥20 帧）且叠层出整句。
+
+厂商本身不在这一门里 —— 由 `scripts/asr-probe.js` 对真实端点验。
+
+### 3.1.10 `npm run test:docs` — 「文档翻译」端到端
+
+**改 `learn/doc-*.js`、`docs-page.js`、`pdfjs-loader.js`、request-shape 的图片形状、
+`translation-api.ocr`、`app/docs.js`、或 app-bundle 的 `MODULES` 时必跑**（real Chrome,
+Node ≥22）。本机假 chat 端点记下**每一次请求**，断言：3 页 PDF 只发第 1 页、翻页只发第 2 页、
+并发峰值 ≤ `reqConcurrency` 且真叠起来、docx 分页、PNG 恰好识别 1 次、重开 0 请求、语料
+`anchor.k=doc` 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求。App 段走出货布局（dist-app）：
+首页入口 → 同一份 PDF 经 `__MT_PDFJS` 的 blob 路 → 只发第 1 页 → 返回真隐藏。
+
+**判据是端点收到了什么，不是页面画了什么** —— 「整份一次翻掉」在界面上看不出来，只有请求
+日志能看见。同 §3.1.1 的第 2 条：断言「没做的事」。
+
+### 3.1.11 `npm run test:inbox` — 系统翻译的收件箱（只在本机跑，不进 CI）
+
+**改 `app/native/translate-ext/ExtInbox.swift` 必跑**。需要 `swiftc`。在 Mac 上跑
+**出货的那一份** `MTExtInbox`：macOS 没有 `TranslationUIProvider`，弹层那条路只能上真机
+（矩阵 §2.I），但**写收件箱这段逻辑与平台无关**。驱动脚本把它拷过来**只改一行**（App Group
+容器 → 临时目录）并断言差异恰好一行 —— 否则跑的就不是出货的那一份了。
+
+第一次跑就抓到一个真 bug：文件名用 `%d` 拼毫秒时间戳，按 32 位截成了负数。而 `trim()`
+删最旧的、`drain()` 读顺序都靠「文件名有序 = 时间有序」，错位之后**删掉的是最新的几条，
+且不报错**。
+
+### 3.1.12 `npm run app:sync` — 把 `dist-app/` 推进生成的 Xcode 工程
+
+**每次重新生成 `safari-project/` 之后都要跑。** 那棵树是 gitignored、可丢弃的；仓库里的
+`app/` 才是真正的源。它同时会 patch `ViewController`。
+
+⚠️ 它有**产物过期守卫**，触发时会**静默丢掉 Swift 补丁** —— 见 §0.2.2 与 §F 的记录。
+
+### 3.3 `npm run test:chrome-cleanup` — 门禁自己起的 Chrome 有没有收干净
+
+**改 `test/layout/chrome.js` 必跑。** 正常结束 / SIGTERM / 抛异常 / `process.exit` / SIGKILL
+五种方式各起一个子 node，回读 Chrome 主进程、带该 profile 的进程、profile 目录**都没了**。
+
+这门守的是门禁基础设施本身：全回归 2026-09-14 的 F14 —— 本机积过 **441 个**测试 Chrome，
+负载高时 `test:layout` 从 42/42 掉到 34/42。一个会漏进程的门禁，最终表现成别的门随机变红。
 
 ### 3.2 `npm run test:layout` — layout regression corpus
 
