@@ -48,7 +48,15 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:`
       window.chrome={runtime:{getURL:s=>s,id:'x',openOptionsPage(){}},
         i18n:{getUILanguage:()=>'zh-CN',getMessage:()=>''},
-        storage:{local:{get:(k,cb)=>cb({}),set:(o,cb)=>cb&&cb(),remove:(k,cb)=>cb&&cb()}}};
+        // storage 是**真的内存存储**，不是空壳（2026-09-22）。原来 get 恒回 {}、set 丢掉 ——
+        // 那样一切「写了再读回来」的断言都测不出真话：遥测队列永远是空的、开关永远是默认值，
+        // 而「发出去的那条带没带对属性」恰恰只能从队列里读。空壳让门禁看起来绿，实际什么都没验。
+        storage:{local:(()=>{const m={};return{
+          get:(k,cb)=>{const ks=Array.isArray(k)?k:(k==null?Object.keys(m):[k]);const o={};
+            for(const x of ks) if(x in m) o[x]=m[x]; cb&&cb(o); },
+          set:(o,cb)=>{Object.assign(m,o); cb&&cb(); },
+          remove:(k,cb)=>{for(const x of (Array.isArray(k)?k:[k])) delete m[x]; cb&&cb(); },
+        };})()}};
       ${SWEEP_FN}
       window.__sweep=__sweep;`},sessionId);
     await cdp.send('Page.navigate',{url},sessionId);
@@ -503,6 +511,55 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     else pass('引擎屏填了 key 点「继续」：先提交、且停在原屏让结果看得见');
 
     if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
+
+    // 离开引导时那一条 onboarding_done 必须带上 result 与 step（telemetry-design §3.6）。
+    // **判据是队列里真的有那条、且属性是对的**，不是「代码里有 track 调用」——
+    // 静态 seam 门禁证明得了后者，证明不了前者：客户端的 shape() 会把白名单外的属性
+    // 静默丢掉，所以少生成一次 providers.gen.js，这两个属性就凭空消失而没人看得见。
+    const STEPS_OK=['welcome','engine','capture','try'];
+    const skipped=await evA(`(async()=>{
+      // 两件必须先做，否则测到的是「不发」这件废事：
+      //   ① allowAutomation —— spec() 在 navigator.webdriver 为真时返回 null（自动化不算
+      //      用户，免得每跑一次门禁就往线上表里写两行）。这是它自己留的逃生口，smoke 也用它。
+      //      **只入队、不 flush**（FLUSH_AT 10 / FLUSH_MS 60s），所以一个字节都不会发出去。
+      //   ② tm:on —— 走完这几屏的过程中那个开关被点掉了。
+      // 中国版产物里 MT_TELEMETRY **根本不存在**（不是关着）—— 那是 Gate D 的承诺。
+      // 所以这一条在中国版上反过来断言：点完跳过，队列必须仍然是空的。
+      if(!window.MT_TELEMETRY){
+        const sk0=document.getElementById('ob-skip'); if(sk0) sk0.click();
+        await new Promise(r=>setTimeout(r,400));
+        const q0=await new Promise(r=>chrome.storage.local.get(['tm:queue'],v=>r((v||{})['tm:queue']||[])));
+        return JSON.stringify({china:true,n:q0.length});
+      }
+      try{ window.MT_TELEMETRY.allowAutomation=true; }catch(_){}
+      await new Promise(r=>chrome.storage.local.set({'tm:on':true},r));
+      await new Promise(r=>chrome.storage.local.remove(['tm:queue'],r));
+      const sk=document.getElementById('ob-skip');
+      if(!sk) return JSON.stringify({err:'引导页上没有「以后再设置」'});
+      sk.click();
+      await new Promise(r=>setTimeout(r,400));
+      const q=await new Promise(r=>chrome.storage.local.get(['tm:queue'],v=>r((v||{})['tm:queue']||[])));
+      const e=q.filter(x=>x&&x.name==='onboarding_done').pop();
+      if(e) return JSON.stringify({err:null,props:e.props||{}});
+      // 空队列有好几种原因，逐个说出来 —— 「没有」本身不是诊断
+      const diag={tm:typeof MTTelemetry,spec:!!(window.MT_TELEMETRY&&window.MT_TELEMETRY.spec),
+        on:(typeof MTTelemetry!=='undefined'&&MTTelemetry.enabled)?await MTTelemetry.enabled():null,
+        names:q.map(x=>x&&x.name),obHidden:!!(document.getElementById('onboard')||{}).hidden};
+      return JSON.stringify({err:'点了跳过，队列里却没有 onboarding_done · 诊断 '+JSON.stringify(diag)});
+    })()`);
+    if(skipped.china){
+      if(skipped.n) fail(`中国版产物里竟然攒出了 ${skipped.n} 条遥测 —— Gate D 说好一条都不发`);
+      else pass('中国版：点完跳过队列仍为空（没有 MT_TELEMETRY，一条都不发）');
+    }
+    else if(skipped.err) fail(skipped.err);
+    else{
+      const p=skipped.props||{};
+      if(p.result!=='skipped')
+        fail(`跳过发出的 result 是「${p.result}」而不是 skipped —— 走完与放弃又分不开了`);
+      else if(!STEPS_OK.includes(p.step))
+        fail(`跳过发出的 step 是「${p.step}」，不在屏序里 —— 它与 OB 数组同源，对不上就是记错了`);
+      else pass(`跳过发出 onboarding_done{result:skipped, step:${p.step}}`);
+    }
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);
     if(errs.length){ok=false;console.log('  控制台错误:');errs.slice(0,4).forEach(e=>console.log('    '+e));}
     else pass('控制台无报错');

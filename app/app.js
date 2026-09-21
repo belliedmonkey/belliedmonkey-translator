@@ -566,8 +566,16 @@
   }
 
 
-  async function obFinish() {
-    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('onboarding_done', { surface: 'app' }); } catch (_) {}
+  // `result`：走完还是跳过。两条路本来就走同一个收尾，于是在表里长得一模一样
+  // （telemetry-design §3.6，2026-09-22）。`step` 是**离开时停在哪一屏**，只记这一条。
+  async function obFinish(result) {
+    try {
+      if (typeof MTTelemetry !== 'undefined') {
+        MTTelemetry.track('onboarding_done', {
+          surface: 'app', result: result === 'skipped' ? 'skipped' : 'done', step: OB[obAt],
+        });
+      }
+    } catch (_) {}
     try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
     $('onboard').hidden = true;
     paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
@@ -585,7 +593,7 @@
     // 不再直接摊开邮箱表单（那会让最费劲的路又排到最前面）。
     obFinish().then(() => { try { $('btn-apple').focus(); } catch (_) {} });
   });
-  $('ob-skip').addEventListener('click', () => { obFinish(); });
+  $('ob-skip').addEventListener('click', () => { obFinish('skipped'); });
   $('ob-prefs').addEventListener('click', openSafariPrefs);
 
   // 邮箱是备选：展开表单时一键登录仍留在卡上；只有那行链接自己消失。
