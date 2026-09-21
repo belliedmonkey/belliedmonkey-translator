@@ -50,7 +50,9 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
     ok(!/\b(five|four)\(/.test(SRC), '还有 five( / four( —— 写死张数正是帧渲染了却没上架的原因');
     const sets = [...SRC.matchAll(/APP_(?:IPHONE_65|IPAD_PRO_3GEN_129|DESKTOP):\s*([^\n]+)/g)];
     ok(sets.length > 0, '一组截图都没解析到');
-    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|CN),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
+    // ORDER_IPHONE 是 2026-09-21 加的第三张表：iPhone 那一集比别的集多一帧（10 系统翻译），
+    // 因为只有它有原料 —— iPad 没有硬件可拍、Mac 根本没有这个功能。
+    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|CN|IPHONE),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
   });
 
   test('aso.md 里的每个语种，在 iOS 与 macOS 各有一条截图线', () => {

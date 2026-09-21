@@ -19,3 +19,11 @@ for lang in zh en; do
   done
 done
 echo "Rendered $(ls "$OUT"/*.png | wc -l | tr -d ' ') screenshots to $OUT"
+
+# 帧 10（系统翻译）**只渲 iPhone 尺寸**：原料只有 phone 档。
+# iPad 拍不到（没有 iPad 硬件，模拟器里没有 TranslationUIProvider 这个扩展点）；
+# Mac 根本没有这个功能；扩展两店不放 App 独有的东西。
+for lang in zh en; do
+  [ -f "$DIR/assets/$lang-phone-systrans.png" ] || { echo "跳过 f=10（缺 $lang-phone-systrans.png）"; continue; }
+  render 10 $lang "$OUT/$lang-iphone-10.png" 1242,2688
+done
