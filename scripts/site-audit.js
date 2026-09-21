@@ -298,6 +298,46 @@ function auditSite(site, opts = {}) {
   }
   if (!ogBad && !ogSizeBad) OK('每页 og:image ≥ 1200×630，twitter:card=summary_large_image');
 
+  // ①bis 内联兜底 ↔ i18n 字典必须逐字一致（只有国际站有 i18n）
+  //
+  // 站点是**运行时 i18n**：`data-i18n` 元素里写着一份英文兜底，`i18n.js` 跑起来之后用
+  // `i18n/<lang>.json` 覆盖它。于是同一句话有两份，而只有字典那份会被人想起来更新。
+  //
+  // 2026-09-21 的审计发现两份已经差了 **9 个键**，最要命的一条：抓取器看到的是
+  // "A browser extension for Safari…"，而字典里早就是 "An app for iPhone, iPad & Mac,
+  // plus browser extensions for…" —— 实时字幕、对话听译、快速翻译、系统翻译**全在 App 里**，
+  // 也就是说不执行 JS 的读者看到的是一个少了一半的产品。index.html 自己的注释写着
+  // 「多数 AI 抓取器不执行 JS」，所以这一份正是喂给 GEO 那条渠道的。
+  //
+  // 例外只有带 `{v}` 的键：版本号要等 i18n.js 取到 /VERSION 才能替换，把字典原文搬进
+  // 兜底会让抓取器看到字面的「{v}」，那更糟。
+  if (site.i18n) {
+    const dictPath = path.join(site.dir, 'i18n', site.rootLang + '.json');
+    if (!fs.existsSync(dictPath)) R(`没有 i18n/${site.rootLang}.json`);
+    else {
+      const dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+      const norm = (t) => decode(String(t)).replace(/\s+/g, ' ').trim();
+      let fbBad = 0, fbSkip = 0;
+      for (const [rel, html] of pages) {
+        if (rel.includes('/')) continue;                 // 语言页是生成物，不是兜底的家
+        for (const attr of ['data-i18n', 'data-i18n-html']) {
+          const re = new RegExp(`<(\\w+)([^>]*\\s${attr}="([^"]+)"[^>]*)>([\\s\\S]*?)</\\1>`, 'g');
+          let m;
+          while ((m = re.exec(html))) {
+            const key = m[3];
+            if (!(key in dict)) { R(`${rel}: ${attr}="${key}" 在字典里没有这个键`); fbBad++; continue; }
+            if (String(dict[key]).includes('{v}')) { fbSkip++; continue; }
+            if (norm(m[4]) !== norm(dict[key])) {
+              R(`${rel}: ${key} 的内联兜底与字典不一致 —— 不执行 JS 的抓取器看到的是旧的那份`);
+              fbBad++;
+            }
+          }
+        }
+      }
+      if (!fbBad) OK(`内联兜底与 ${site.rootLang} 字典逐字一致（${fbSkip} 个含 {v} 的键按例外跳过）`);
+    }
+  }
+
   // ② hreflang 成对互指（只有国际站有）
   if (site.i18n) {
     let hlBad = 0;
