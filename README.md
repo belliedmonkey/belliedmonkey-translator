@@ -47,6 +47,7 @@ Install from a store — building from source is for contributors, not for using
 | **iPhone · iPad · Mac** (app + Safari extension) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three; iOS 16.4 / macOS 13.3 or later |
 | **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip); steps below |
 | **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
+| **Mainland China** | A separate edition, [**大肚猴翻译**](https://apps.apple.com/cn/app/id6789718038), with mainland engines only — site at [belliedmonkey.com](https://belliedmonkey.com/) |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
@@ -122,6 +123,8 @@ At a glance:
 - **Bring your own key** — any OpenAI- or Anthropic-compatible endpoint, or a free Google channel with no key
 - **No account required**; multi-device sync is optional; only anonymous usage events, and one switch turns them off
 - **Safari on iPhone, iPad and Mac, Chrome and Firefox** — one codebase, six store surfaces
+  (Apple iOS and macOS × international and China editions, plus the Chrome Web Store and
+  Firefox Add-ons)
 - **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
 - **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
 
@@ -139,9 +142,10 @@ whole-sentence pairs, never word-by-word fragments, and no stutter even with a s
 a viewport-anchored overlay tracks the audio clock.
 
 **Any LLM you want, or none.** Transport is keyed by request *format* rather than by vendor —
-Google, OpenAI-compatible chat completions, OpenAI-compatible responses, and
-Anthropic-compatible messages — so any endpoint speaking one of those shapes works,
-including your own. You give it the **complete endpoint URL** and that exact address is
+Google, OpenAI-compatible chat completions, and Anthropic-compatible messages — so any
+endpoint speaking one of those shapes works, including your own. (A fourth shape,
+OpenAI-compatible *responses*, is implemented but no built-in engine uses it; it is
+reachable only by typing an address whose path ends in `/responses`.) You give it the **complete endpoint URL** and that exact address is
 what gets requested; nothing is appended. The path you write is also what picks the
 request shape, so one host serving two of them is a matter of typing a different address. The list of built-in engines
 lives in the extension's settings page; the single source of truth in this repo is
@@ -183,7 +187,7 @@ Two mechanisms, each covering half of that promise:
 - **Page text and layout** — every site-specific layout fix ships with a new regression
   fixture distilled from that site's minimal markup pattern, and **that fixture must fail
   before the fix**, with the red run recorded in the issue. Pre-existing fixtures are never
-  edited to accommodate a new one. 30 fixtures today, run against a real headless Chrome.
+  edited to accommodate a new one. 42 fixtures today, run against a real headless Chrome.
 
   Worked example, issue #59: on Wikipedia the translations inside a floated infobox became an
   extra table column, doubling the table's width and collapsing the prose beside it to ~115px.
@@ -317,7 +321,7 @@ is dead until Safari is force-quit.
 So the standard MV3 architecture is inverted here: **every provider `fetch()` runs in the
 content script** ([`extension/content/translation-api.js`](extension/content/translation-api.js)),
 and content scripts read settings straight from `chrome.storage.local` rather than asking the
-worker. [`extension/background.js`](extension/background.js) is 64 lines that handle defaults,
+worker. [`extension/background.js`](extension/background.js) is 179 lines that handle defaults,
 badge text and cache clearing — it is never on the critical path.
 
 ### How subtitles are acquired
@@ -338,7 +342,7 @@ podcast feed's `<podcast:transcript>`.
 
 ```bash
 npm test              # pure-logic suite, zero dependencies, Node ≥18
-npm run test:layout   # 29 layout fixtures against real headless Chrome (Node ≥22)
+npm run test:layout   # 42 layout fixtures against real headless Chrome (Node ≥22)
 ```
 
 `npm run test:layout` is **mandatory** before any push touching `extension/content/**` or
@@ -362,19 +366,35 @@ green badge imply coverage it doesn't have.
 extension/
 ├── manifest.json           Manifest V3 — Chrome / Safari / Firefox
 ├── background.js           State only. Never translation. (See above.)
-├── content/
+├── content/                37 files — the ones worth knowing:
 │   ├── translation-core.js Platform-agnostic engine: subtitle state machine,
 │   │                       60s sliding window, sentence merge, paging, i18n
 │   ├── translation-api.js  Every provider fetch() — runs in the content script
+│   ├── wire-format.js      The one place an endpoint address is resolved
+│   ├── request-shape.js    The one place a request body is built
 │   ├── dom-processor.js    DomSegmenter — standard HTML semantics, zero site selectors
 │   ├── content-webpage.js  Bilingual page rendering
 │   ├── content-youtube.js  ├─ subtitle sources, one adapter each
 │   ├── content-podcast.js  │
 │   ├── content-twitter.js  │
 │   ├── site-twitter.js     └─ x.com chrome de-cluttering
+│   ├── asr-source.js       AI transcript subtitles, when a page has none
+│   ├── learn-*.js          Capture, scheduling, exercises (6 files)
+│   ├── *.gen.js            Generated registries: providers, langs, stt, tts, palette
 │   └── content-main.js     Entry point: reads settings, routes
-├── popup/ · options/       Settings UI
-└── _locales/               11 languages
+├── learn/                  31 files — the learning layer, sync, documents, free
+│                           credit, telemetry, read-aloud (docs/learning-design.md)
+├── onboard/ · popup/ · options/   Onboarding and settings UI
+├── styles/ · icons/ · vendor/
+└── _locales/               12 languages
+```
+
+The host app is a sibling tree:
+
+```
+app/                        iPhone · iPad · Mac: Live Subtitles, conversation
+                            interpreting, Quick Translate, System translation,
+                            document translation, review
 ```
 
 ---
