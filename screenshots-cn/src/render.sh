@@ -1,5 +1,5 @@
 #!/bin/bash
-# Renders the CHINA App Store screenshots (4 frames × iPhone 6.5" + iPad 13")
+# Renders the CHINA screenshots (7 frames × iPhone 6.5" + iPad 13" + Mac + 官网 web)
 # at exact resolutions via headless Chrome. Run from repo root:
 #   bash screenshots-cn/src/render.sh
 #
@@ -21,5 +21,6 @@ for f in 1 2 3 4 5 6 7; do
   render $f "$OUT/cn-iphone-$f.png" 1242,2688     # iPhone 6.5"
   render $f "$OUT/cn-ipad-$f.png"   2064,2752     # iPad 13"
   render $f "$OUT/cn-mac-$f.png"    2880,1800     # Mac App Store 16:10
+  render $f "$OUT/cn-web-$f.png"    1280,800      # 官网 belliedmonkey.com 首页
 done
 echo "Rendered $(ls "$OUT"/cn-*.png | wc -l | tr -d ' ') China screenshots to $OUT"

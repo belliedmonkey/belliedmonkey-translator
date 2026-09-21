@@ -1,8 +1,10 @@
 # 国际版商店素材（store-assets/）
 
 App Store（`com.belliedmonkeytranslator`）、Chrome Web Store、AMO 共用的截图与预览片。
-出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..6.png`，由 `src/scene.html` 把**实拍产品图**
-合进版式框里渲染而成。中国版的对应目录是 [`screenshots-cn/`](../screenshots-cn/)。
+出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加 **`{zh,en}-iphone-10.png`**（系统翻译，
+只有 iPhone 档有原料），由 `src/scene.html` 把**实拍产品图**合进版式框里渲染而成。
+帧号的含义见 `src/scene.html` 的 `COPY` 表，**只往后加、不重排** —— 官网直接按帧号取图，
+`scripts/asc-media.js` 的 `ORDER` 也按帧号写死了商店里的显示顺序。中国版的对应目录是 [`screenshots-cn/`](../screenshots-cn/)。
 
 ## 一条硬规矩：画布是什么设备，就放那个设备看到的东西
 
@@ -48,7 +50,7 @@ node store-assets/src/capture.js                # 18 张扩展页面（自带 ht
 node store-assets/src/capture-live.js phone article
 node store-assets/src/capture-live.js tablet article
 # 视频两张 + 桌面 f1/f2：手拍，见 .claude/skills/store-release/assets.md「手工那几张」
-bash store-assets/src/render.sh                 # 合成 48 张
+bash store-assets/src/render.sh                 # 合成 72 张（9 帧 × 2 语种 × 4 尺寸）+ iPhone 第 10 帧
 ```
 
 ### 手拍的判据
@@ -66,5 +68,10 @@ bash store-assets/src/render.sh                 # 合成 48 张
 → 提交 md5 校验和），**漏了校验和会停在 `UPLOAD_COMPLETE` 而商店页看不到图，且 API
 不报错** —— 所以传完必须回读 `assetDeliveryState.state === 'COMPLETE'`。
 
-官网首页那两张（`~/belliedmonkey-cc/media/shot-*.png`）是从这里的 `en-web-1` / `en-web-4`
-拷过去的，重出之后要跟着重拷（配方在那边的 `media/src/README.md`）。
+官网首页五张与 README 六张都是从这里拷过去的 —— **别再手工 cp**：
+`bash ~/belliedmonkey-cc/media/src/sync-from-store-assets.sh` 会把 `en-web-{1,4,7,8,9}` 与
+`en-iphone-{1,2,4,7,8,9}` 同步过去，并写一份 `PROVENANCE.txt`（来源 / 时间 / sha256）。
+**重出之后必须跟着同步**：2026-09-03 与 2026-09-21 两次事故都是「原料重拍了、拷贝没跟上」——
+第一次让官网挂了三周的「⏳ 翻译中…」和作者真实邮箱。
+
+首页那支演示视频同样取自这里的 `src/assets/`，配方见 `~/belliedmonkey-cc/media/src/README.md`。

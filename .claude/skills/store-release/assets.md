@@ -306,12 +306,22 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 
 | 面 | 截图 | 视频 |
 |---|---|---|
-| Apple iOS 国际版 | `en-iphone-1..5` + `en-ipad-1..5`（en-US）、`zh-*`（zh-Hans） | `IPHONE_65` ×1 |
-| Apple macOS 国际版 | `en-mac-1..5`、`zh-mac-1..5` | `DESKTOP` ×1 |
-| Apple iOS 中国版 | `cn-iphone-1..4` + `cn-ipad-1..4`（zh-Hans） | 无 |
-| Apple macOS 中国版 | `cn-mac-1..4` | 无 |
-| CWS / AMO | `{zh,en}-web-1..5` + `cws-promo-tile-440x280.png` | 无 |
-| 官网 | `~/belliedmonkey-cc/media/shot-*.png` | `~/belliedmonkey-cc/media/demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
+| Apple iOS 国际版 | `en-iphone-1..10` + `en-ipad-1..9`（en-US）、`zh-iphone-1..9` + `zh-ipad-1..9`（zh-Hans） | `IPHONE_65` ×1 |
+| Apple macOS 国际版 | `en-mac-1..9`、`zh-mac-1..9` | `DESKTOP` ×1 |
+| Apple iOS 中国版 | `cn-iphone-1..7` + `cn-ipad-1..7`（zh-Hans） | 无 |
+| Apple macOS 中国版 | `cn-mac-1..7` | 无 |
+| CWS / AMO | `{zh,en}-web-1..9` + `cws-promo-tile-440x280.png` | 无 |
+| 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk}.png` ← `en-web-{1,4,7,8,9}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
+| 中国官网 | `~/belliedmonkey-com/media/shot-*.png` ← `screenshots-cn/cn-web-{1,3,5,6,7}` | 无 |
+
+**帧号只往后加、不重排** —— 官网与 `scripts/asc-media.js` 的 `ORDER` 都按帧号取图。
+`en-iphone-10`（系统翻译）只有 iPhone 档有原料：iPad 拍不到（没硬件，模拟器里没有
+TranslationUIProvider），Mac 没这个功能，扩展两店不放 App 独有的东西。
+**`zh-iphone-10` 不存在** —— 缺 `zh-phone-systrans.png` 原料，`render.sh` 会跳过并打印一行。
+
+两个官网的图**不要手工 cp**，各有同步脚本，会写 `PROVENANCE.txt`（来源 / 时间 / sha256）：
+`belliedmonkey-cc/media/src/sync-from-store-assets.sh` 与
+`belliedmonkey-com/media/src/sync-from-screenshots-cn.sh`。
 
 中国版刻意少两帧（视频字幕、跨设备闭环），**不是风格差异是事实差异** ——
 YouTube 在境内不可达，china flavor 的同步是关的。见 `screenshots-cn/README.md`。

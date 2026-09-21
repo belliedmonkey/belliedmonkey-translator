@@ -86,6 +86,30 @@ describe('README ×2 里写死的仓库事实', () => {
     eq(pick(ZH, 'learn/ N 个文件', /learn\/\s+(\d+) 个文件/), ACTUAL.learnJs);
   });
 
+  // 商店素材的帧数同样是「坏了没人红」的一类 —— 2026-09-21 一次抓到三处：
+  //   · store-assets/README.md 写「1..6」，实际 en-web 是 1..9、en-iphone 是 1..10
+  //   · screenshots-cn/README.md 写「四帧、两个尺寸」，实际 7 帧 4 个尺寸
+  //   · store-release 技能的 assets.md 素材矩阵整张表都停在 1..5 / 1..4
+  // 每加一帧都要改三处文档，靠人记着必然漏。
+  test('商店素材的帧数：三份文档与磁盘上的张数一致', () => {
+    const count = (dir, prefix) => fs.readdirSync(path.join(ROOT, dir))
+      .filter((f) => f.startsWith(prefix + '-') && f.endsWith('.png')).length;
+    const enWeb = count('store-assets', 'en-web');
+    const enPhone = count('store-assets', 'en-iphone');
+    const cn = count('screenshots-cn', 'cn-web');
+
+    const SA = fs.readFileSync(path.join(ROOT, 'store-assets', 'README.md'), 'utf8');
+    const CN = fs.readFileSync(path.join(ROOT, 'screenshots-cn', 'README.md'), 'utf8');
+    const AS = fs.readFileSync(path.join(ROOT, '.claude', 'skills', 'store-release', 'assets.md'), 'utf8');
+
+    eq(pick(SA, 'store-assets/README 的 1..N', /\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), enWeb);
+    eq(pick(SA, 'store-assets/README 的 iphone-N', /iphone-(\d+)\.png/), enPhone);
+    eq(pick(CN, 'screenshots-cn/README 的 1..N', /cn-\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), cn);
+    eq(pick(AS, 'assets.md 的 {zh,en}-web-1..N', /\{zh,en\}-web-1\.\.(\d+)/), enWeb);
+    eq(pick(AS, 'assets.md 的 en-iphone-1..N', /en-iphone-1\.\.(\d+)/), enPhone);
+    eq(pick(AS, 'assets.md 的 cn-iphone-1..N', /cn-iphone-1\.\.(\d+)/), cn);
+  });
+
   // 结构树漏掉整整几个目录，是 2026-09-21 那次审计里最严重的一条 —— 数字对了、
   // 树本身却把半个代码库藏起来了。这条只查「提到没提到」，不查描述写得对不对。
   test('结构树提到了每一个真实存在的顶层目录', () => {
