@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>两边互相指，而此刻两边都还没有价值</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1500px; height:620px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">App 引导第 2 屏让你去开扩展；扩展引导第 1 屏告诉你复习在 App 里</h1><span>一个环 —— 而用户此刻一段译文都还没看到</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>现在：环</b></div><div style="display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid var(--danger);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>App 引导 · 第 2 屏</b><br>「先把浏览器那半边打通」→ 把人送出 App</div>
+      <div style="text-align:center;color:var(--muted)">↓ &nbsp; ↑</div>
+      <div style="border:1px solid var(--danger);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>扩展引导 · 第 1 屏</b><br>「复习发生在这个 App 里，花两分钟把两边接上」→ 把人指回 App</div>
+    </div>
+    <p class="hint">两边都在说「你还得去弄另一半」，而两边此刻都还没给出任何东西。<b>先被指过去的那个人，两头都空着。</b></p></div>
+  <div class="cell"><div class="cap"><b>提议：断开它</b><span>各自先把自己这半边做成有价值</span></div><div style="display:flex;flex-direction:column;gap:8px">
+      <div style="border:1px solid var(--sage);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>App</b>：登录 → 有引擎 → <b>就地用上一件</b>（划词 / 听一句）。扩展降级到最后一屏的次要按钮</div>
+      <div style="border:1px solid var(--sage);border-radius:13px;padding:10px 12px;font-size:.82rem;line-height:1.5"><b>扩展</b>：配引擎 → <b>去读一篇</b>。不提 App</div>
+      <div style="border:1px dashed var(--border);border-radius:13px;padding:10px 12px;font-size:.8rem;line-height:1.5;color:var(--muted)"><b>互指推迟到「有卡之后」</b> —— 那时 App 是真价值（有东西可复习），扩展也是（有地方采集）</div>
+    </div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
