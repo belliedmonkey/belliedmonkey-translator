@@ -121,6 +121,16 @@ function render(srcHtml, page, lang, dict, langs, version) {
   fill('data-i18n-html', true);
   fill('data-i18n', false);
 
+  // ①bis 图片的 alt。alt 是属性不是内容，走不了 fill()。此前 12 个语言页的 alt
+  //      全是英文 —— 屏幕阅读器与图片搜索拿到的是另一种语言。
+  h = h.replace(/<img\b[^>]*>/g, (tag) => {
+    const k = (tag.match(/\sdata-i18n-alt="([^"]+)"/) || [])[1];
+    if (!k) return tag;
+    const v = dict[k];
+    if (v === undefined) throw new Error(`${lang}.json 缺键 ${k}（${page} 的图片 alt）`);
+    return tag.replace(/\salt="[^"]*"/, ` alt="${esc(sub(v))}"`);
+  });
+
   // ② <html lang / dir>
   h = h.replace(/<html([^>]*)\slang="[^"]*"/, `<html$1 lang="${lang}"`);
   h = h.replace(/<html([^>]*)>/, (m, a) => `<html${a.replace(/\sdir="[^"]*"/, '')} dir="${RTL.has(lang) ? 'rtl' : 'ltr'}">`);

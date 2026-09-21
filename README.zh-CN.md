@@ -104,9 +104,14 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
 ## 它做什么
 
 <p align="center">
-  <img src="docs/media/shot-page.png" alt="维基百科文章，每一段下面跟着译文" width="30%">
-  <img src="docs/media/shot-subtitles.png" alt="YouTube 视频，原文字幕在上、译文在下" width="30%">
-  <img src="docs/media/shot-review.png" alt="由读过的句子生成的复习卡，带四个难度按钮" width="30%">
+  <img src="docs/media/shot-page.png" alt="iPhone 上的网页：每一段都保留原文，译文紧跟在下面" width="30%">
+  <img src="docs/media/shot-subtitles.png" alt="视频字幕：原文在上、译文在下，逐句对齐" width="30%">
+  <img src="docs/media/shot-review.png" alt="由读过的句子生成的复习卡，带读 / 听 / 写三档" width="30%">
+</p>
+<p align="center">
+  <img src="docs/media/shot-live.png" alt="实时字幕：给设备正在播放的声音配双语字幕，浮在另一个 App 之上的画中画小窗里" width="30%">
+  <img src="docs/media/shot-talk.png" alt="对话 · 实时听译：两个人说的每一句都被转写、翻译，并自动分边" width="30%">
+  <img src="docs/media/shot-docs.png" alt="文档翻译：PDF 一页一页读，每段下面跟着译文" width="30%">
 </p>
 
 一眼看完：
