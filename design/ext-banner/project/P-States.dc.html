@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>② 横幅的三种状态（同一条，换一句话）</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1560px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">改动二：同一张横幅带三种状态，不是「出现 / 消失」两态</h1><span>现在只有「出现」和「被永久静音」</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start">
+  <div class="cell"><div class="cap"><b>A · 还没打通</b><span>默认态</span></div><div class="phoneframe"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 浏览器那半边还没打通</h4><p>到现在还没收到任何一张卡。</p><button class="btn p" type="button">打开检测页，一眼看出通没通 →</button><button class="btn s" type="button">我已经打开了</button></div></div></div>
+  <div class="cell"><div class="cap"><b>B · 打通了</b><span>检测页回来后 / 收到第一张卡后自动变</span></div><div class="phoneframe"><div class="ban" style="background:var(--tint);border-color:var(--sage)">
+      <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> 浏览器那半边通了</h4>
+      <p>在 Safari 里读到的句子会自动进这里的复习库。</p>
+      <button class="btn p" type="button">去读一篇 →</button></div><p class="hint" style="margin:0">这一态<b>只出现一次</b>，下次进首页就不再有 —— 它是回执，不是常驻提示。</p></div></div>
+  <div class="cell"><div class="cap"><b>C · 7 天后复核</b><span>点过「我已经打开了」但仍然 0 张卡</span></div><div class="phoneframe"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 还是没收到任何一张卡</h4><p>你之前说已经打开了 —— 要不要打开检测页看一眼？可能是漏了「允许访问网页」那一步。</p><button class="btn p" type="button">打开检测页 →</button><button class="btn s" type="button">确实打开了，别再提示</button></div></div></div>
+</div>
+<div class="ask"><b>要你裁定：C 这一态出不出、出几次</b>我建议<b>出，且只出一次（7 天后）</b>。<br>理由：现在点一次「我已打开」就永久静音、从不复核 —— 真机验收时它被误点过一次，那台机器上横幅再也没出现过，App 里也没有任何入口能让它回来。C 同时解决「点错了」和「以为打开了其实没弄完」。<br>「确实打开了，别再提示」= 真正的永久静音，但那是<b>第二次</b>确认，不是第一次。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

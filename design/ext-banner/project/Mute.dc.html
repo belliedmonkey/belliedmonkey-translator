@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>「我已打开」：一次性永久静音 → 静音 + 到期复核</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:720px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">现在点一次就永远不再出现，即使一年后仍然 0 张卡</h1><span>extBannerDoneAt 写下就再不复核</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>现在</b><span>一个不可逆的按钮</span></div><div class="flow" style="flex-direction:column;align-items:stretch">
+      <div class="node now"><b>点「我已打开」</b>写下时间戳</div>
+      <div class="node now"><b>此后永不出现</b>不看卡数、不看同步、不看扩展到底开没开</div>
+      <div class="node now"><b>没有入口能让它回来</b>App 里没有任何地方能撤销</div>
+    </div>
+    <p class="hint"><b>这不是假想。</b>做真机验收时它被误点了一次（UI 测试里「点空白处收键盘」正好压在这个按钮上），于是那台机器上这张横幅再也不出现，只能靠清数据 —— 这条已经记在待办里了。</p></div>
+  <div class="cell"><div class="cap"><b>提议</b><span>静音是对的，永久不复核不对</span></div><div class="flow" style="flex-direction:column;align-items:stretch">
+      <div class="node new"><b>点「我已打开」</b>立刻收起，不再啰嗦</div>
+      <div class="node new"><b>N 天后复核一次</b>条件：仍然 0 张卡 <b>且</b> 从未成功同步过</div>
+      <div class="node new"><b>回来时换一句话</b>不是再教一遍三步，而是「还没收到任何一张卡 —— 要不要打开检测页看一眼？」</div>
+    </div>
+    <div class="ask"><b>要裁定的第三件：N 是多少、复核几次？</b>我的建议：<b>N = 7 天，只复核一次</b>。一次足够把「点错了」和「真开了」分开；多于一次就变成催促。<br>另外要不要在 App 设置里给一个「重新显示这张提示」的入口？我倾向<b>不给</b> —— 设置页不该为一个横幅长出一行，而 7 天复核已经覆盖了误点。</div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
