@@ -81,6 +81,10 @@ const COPY = {
     // 商店里的显示顺序由 scripts/asc-media.js 的 ORDER 决定。
     8: ['任何 App 的声音，都有双语字幕', 'Mac 上是悬浮字幕条，iPhone 上是画中画字幕窗'],
     9: ['面对面，实时听译', '两个人自由说话，自动分边、自动朗读'],
+    // 10：1.14 的主角，**只在 iPhone / iPad 上**（macOS 没有 TranslationUIProvider 这个扩展点）。
+    // 所以它只进 iPhone 那一集，不进 iPad（没有 iPad 硬件拍原料，模拟器里没有这个扩展点）、
+    // 不进 Mac、不进扩展两店（APP_ONLY_GLOBAL）。
+    10: ['在任何 App 里翻译', '选中文字 → 翻译。用你自己配的引擎，不经过我们的服务器'],
   },
   en: {
     1: ['Browse like you always do', 'Original and translation, side by side'],
@@ -92,6 +96,7 @@ const COPY = {
     7: ['Whole documents, too', 'PDF, Word, images — one page at a time, translations you can review'],
     8: ['Live subtitles for any app', 'A floating bar on Mac, Picture in Picture on iPhone'],
     9: ['Face to face, translated live', 'Speak freely — sorted by speaker, read aloud'],
+    10: ['Translate inside any app', 'Select text → Translate. Your own engine, never through our servers'],
   },
 };
 // 第 5 帧的竖版画布里没有 Mac（手机画布是两台手机、iPad 画布是 iPad + 手机），标题不能再说「电脑上读」。
@@ -123,6 +128,8 @@ else if (f === '7') stage.innerHTML = device(own('docs'));
 // 手机画布放 14 Pro 真机 USB 录屏抽的帧「Safari 测试页 + 画中画字幕窗」（subspip）；平板画布仍是 App 页面实拍（iPad 画中画没真机验证过）。
 else if (f === '8') stage.innerHTML = device(own({ desk: 'subsbar', phone: 'subspip', tablet: 'subs' }[tier]));
 else if (f === '9') stage.innerHTML = device(own('listen'));
+// 帧 10：系统翻译弹层的真机实拍。只有 phone 档有原料 —— 见 COPY[10] 上面那段注释。
+else if (f === '10') stage.innerHTML = device(own('systrans'));
 else if (f === '5') {
   // 跨设备闭环。横版：Mac 上读 → 手机上复习（手机是这一帧的主语，不是错放）。
   // 竖版：这台设备上读 → 手机上复习；手机画布里就是两台手机（读的那台 / 复习的那台）。
