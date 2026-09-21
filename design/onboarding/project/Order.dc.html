@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>屏序：现在 5 屏 vs 提议 4 屏（逐屏对齐）</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:2560px; height:1020px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">把登录提到第 2 屏，删掉「填 Key」那屏，扩展降级到最后</h1><span>因为没有第二次会话：176/247 台整个生命周期不到 5 分钟</span></div></div>
+
+<div><span class="tag down">现在</span>
+<div class="tl" style="margin-top:8px">
+  <div class="scr"><span class="no">第 1 屏</span><div class="ph"><h4>读你真正在读的东西</h4><p>翻译在浏览器里，复习在这个 App 里。</p><button class="btn p" type="button">开始</button></div></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 2 屏</span><div class="ph"><h4>先把浏览器那半边打通</h4><ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol><button class="btn p" type="button">在 Safari 里打开扩展 →</button></div><p class="why">把人送出 App。而送出去就不回来 —— 18 台点过「我已打开」的里 16 台点完再没有任何事件。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 3 屏</span><div class="ph"><h4>还有两件事在浏览器里做</h4><p>① 填翻译 Key<br>② 打开采集</p><button class="btn p" type="button">去浏览器 →</button></div><p class="why"><b>这正是 83% 卡住的那一步</b>，而它的零摩擦替代（登录领额度）被排在第 5 屏。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 4 屏</span><div class="ph"><h4>去读一篇</h4><p>随便打开一个网页，点「译」。</p><button class="btn p" type="button">好</button></div></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 5 屏</span><div class="ph"><h4>最后一步：登录</h4><p>登录同一个账号，卡片会同步到这台设备。</p><button class="btn p" type="button">用 Apple 登录</button></div><p class="why"><b>转化最高的一步被放在最后。</b>登录 29% vs 配引擎 13%；而登录 = 账号级额度 = 引擎就绪。</p></div>
+</div></div>
+
+<div style="margin-top:6px"><span class="tag new">提议</span>
+<div class="tl" style="margin-top:8px">
+  <div class="scr"><span class="no">第 1 屏</span><span class="tag keep">改写</span><div class="ph"><h4>读你真正在读的东西</h4><p>划词翻译、听一段、看实时字幕 —— 这些<b>在这个 App 里就能用</b>；网页翻译在浏览器那半边。</p><button class="btn p" type="button">开始</button></div><p class="why">不再一上来就讲分工，先说<b>这个 App 自己能做什么</b> —— 24% 的人本来就会自己去找听译。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 2 屏</span><span class="tag move">从第 5 屏提上来</span><div class="ph"><h4>登录，顺手领一份免费额度</h4><p>额度由我们出，够先用一阵；也可以用你自己的 key。</p><button class="btn p" type="button">用 Apple 登录</button><button class="btn s" type="button">先不登录，我自己填 key</button></div><p class="why">登录 = 额度 = 引擎就绪，<b>顺带把扩展那边也备好</b>（额度是账号级的）。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 3 屏</span><span class="tag new">新增</span><div class="ph"><h4>现在就试一句</h4><div class="qs"><div class="row"><span>翻译</span><span class="ok">✓ 通了 · 512 ms</span></div><div class="row"><span>解析</span><span class="ok">✓ 跟随翻译</span></div><div class="row"><span>朗读</span><span class="ok">✓ 通了</span></div></div><p>引擎好了。挑一段字翻翻看，或者听一句。</p><button class="btn p" type="button">试翻一段</button><button class="btn s" type="button">听一句</button></div><p class="why">让第一次会话<b>有产出</b>。现在这 5 屏里没有任何一屏让人在 App 里用上一件事。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">第 4 屏</span><span class="tag down">降级</span><div class="ph"><h4>想翻网页的时候</h4><p>浏览器那半边要单独打开一次。不急，随时可以回来。</p><button class="btn s" type="button">打开检测页看一眼 →</button><button class="btn s" type="button">以后再说</button></div><p class="why">从「必经的第 2 屏」降成「最后一屏的次要按钮」—— 它是唯一会把人送出 App 的动作。</p></div>
+  <span class="arr">→</span>
+  <div class="scr"><span class="no">～～</span><span class="tag cut">删</span><div class="ph"><h4 style="opacity:.45;text-decoration:line-through">还有两件事在浏览器里做</h4><p style="opacity:.55">填翻译 Key —— 登录之后不需要了；只在「先不登录」那一支出现。</p></div><p class="why">采集默认就是开的，不必占一屏说。</p></div>
+</div></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2560,"height":1020}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>新的第 3 屏：就地用上一件 · 与第 4 屏的降级</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1560px; height:820px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">第一次会话必须有产出，而扩展那件事排到最后</h1><span>24% 的人自己会去找听译，其中一多半手里没引擎</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>第 3 屏 · 两个入口</b><span>选一个就行，不选也能走</span></div><div class="ph"><h4>现在就试一句</h4><p>挑一段字翻翻看，或者听一句 —— 都在这个 App 里，不用去别处。</p><button class="btn p" type="button">试翻一段</button><button class="btn s" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 20a3 3 0 0 0 3-3v-2a5 5 0 1 1 5-5"/><path d="M12 10a2 2 0 1 1 4 0c0 2-2 2-2 4"/></svg>听一句</button><button class="btn s" type="button">先跳过</button></div></div>
+  <div class="cell"><div class="cap"><b>降级：这台设备不支持听译</b><span>iOS 26 / macOS 26 以下</span></div><div class="ph"><h4>现在就试一句</h4><p>挑一段字翻翻看。<br><span style="opacity:.6">听译与实时字幕需要 iOS 26 / macOS 26，这台设备用不了。</span></p><button class="btn p" type="button">试翻一段</button><button class="btn s" type="button">先跳过</button></div></div><p class="hint">清洁样本里 <b>20% 撞在这道门上</b>。不该因为设备老就把整屏堵死 —— 划词翻译、文档、Mac 快译仍然能用。</p>
+  <div class="cell"><div class="cap"><b>第 4 屏 · 扩展降级</b><span>不再教三步，也不再是必经</span></div><div class="ph"><h4>想翻网页的时候</h4><p>浏览器那半边要单独打开一次。不急 —— 随时可以从首页回到这里。</p><button class="btn s" type="button">打开检测页看一眼 →</button><button class="btn s" type="button">以后再说</button></div></div><p class="hint">三步教程搬到检测页上，那一页自己能验（绿灯是机器判的，不是人自称的）。</p>
+</div>
+<div class="ask"><b>这一页还开着三个小问题</b>① 第 3 屏「试翻一段」用什么素材 —— 内置一小段示例文字，还是让用户自己粘？（我倾向内置，粘贴又是一道摩擦）<br>② 「先跳过」要不要在第 3 屏出现 —— 给了它，多数人会点；不给，又成了强制。我倾向给，但排在最下面。<br>③ 引导现在<b>跳过也算看过、永不再来</b>；屏序改完之后，「跳过」是不是该只记「这一屏跳过」而不是整条引导？</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

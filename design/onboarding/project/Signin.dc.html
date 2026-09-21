@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>新的第 2 屏：登录 + 自动领额度</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1560px; height:880px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">登录之后不再问「要不要领取」—— 直接到位，并就地自检</h1><span>现状：54 台登录并同步过，其中 47 台手里什么都没有</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>① 登录屏</b><span>两个出口都给足</span></div><div class="ph"><h4>登录，顺手领一份免费额度</h4><p>额度由我们出，够先用一阵；也可以用你自己的 key。<br>登录还能把卡片同步到你的其它设备。</p><button class="btn p" type="button">用 Apple 登录</button><button class="btn s" type="button">用邮箱验证码</button><button class="btn s" type="button">先不登录，我自己填 key</button></div></div>
+  <div class="cell"><div class="cap"><b>② 登录成功的那一刻</b><span>自动领 + 三行自检，不再多一步</span></div><div class="ph"><h4>正在准备…</h4><div class="qs"><div class="row"><span>翻译</span><span class="run">测试中…</span></div><div class="row"><span>解析</span><span class="run">测试中…</span></div><div class="row"><span>朗读</span><span class="run">测试中…</span></div></div><p>正在把免费额度装上。</p></div><p class="hint">三行在按下那一刻就存在，不是成功后才冒出来的绿框 —— 沿用一键卡那个形状。</p></div>
+  <div class="cell"><div class="cap"><b>③ 好了</b><span>这一屏就是「配好了」的回执</span></div><div class="ph"><h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> 可以用了</h4><div class="qs"><div class="row"><span>翻译</span><span class="ok">✓ 通了 · 512 ms</span></div><div class="row"><span>解析</span><span class="ok">✓ 跟随翻译</span></div><div class="row"><span>朗读</span><span class="ok">✓ 通了</span></div></div><p>翻译、朗读、听译现在都能用了。</p><button class="btn p" type="button">现在就试一句 →</button></div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>失败态：领不到额度</b><span>不能停在「正在准备…」</span></div><div class="ph"><h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 额度暂时领不到</h4><p>可能是网络，也可能是今天的名额用完了。你仍然可以填自己的 key，或者稍后再来。</p><button class="btn p" type="button">填我自己的 key</button><button class="btn s" type="button">稍后再说</button></div></div>
+  <div class="cell"><div class="cap"><b>中国版变体</b><span>那边没有免费额度，这一屏说的是另一件事</span></div><div class="cn"><div class="ph"><h4>登录（可选）</h4><p>登录只用来把卡片同步到你的其它设备。翻译引擎需要你自己填一把 key。</p><button class="btn p" type="button">填 key</button><button class="btn s" type="button">用 Apple 登录</button><button class="btn s" type="button">跳过</button></div></div><p class="hint">中国版构建里免费额度<b>不存在</b>（不是关着）。所以这一支的主按钮是「填 key」，登录降为次要 —— 屏序仍然是提前的，只是载荷不同。</p></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":880}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

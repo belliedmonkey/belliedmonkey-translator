@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>为什么这么改：这一轮的读数</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1560px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">口径三条先说</h1><span>只从 2026-09-05 起收 · 中国版一条不发 · 我们自己的机器也在里面 · install_id 按宿主分</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>没有第二次会话</b><span>App 全量 247 台</span></div><div class="num"><div class="stat bad"><b>176 / 247</b><span>整个生命周期不到 5 分钟</span></div><div class="stat bad"><b>223</b><span>首末事件在同一天</span></div><div class="stat bad"><b>14</b><span>跨过一天的装机</span></div></div>
+     <p class="hint">所以这几屏是<b>唯一</b>的机会。任何「下次打开再说」的设计都到不了人 —— 这一点在横幅那条线上已经被证伪过一次。</p></div>
+  <div class="cell"><div class="cap"><b>登录比配引擎容易一倍多</b><span>清洁样本 45 台（两个埋点都在的版本）</span></div><div class="num"><div class="stat good"><b>29%</b><span>登录过</span></div><div class="stat bad"><b>13%</b><span>有引擎</span></div><div class="stat"><b>24%</b><span>开始过听译</span></div><div class="stat"><b>20%</b><span>撞设备不支持</span></div></div>
+     <p class="hint">全量更刺眼：<b>54 台登录并同步过，其中 47 台既没配引擎也没领额度</b> —— 我们让他们登了，却没顺手把额度给他们。</p></div>
+</div>
+<p class="hint"><b>额度是账号级的</b>：服务端以 user_id 为主键、一人一枚，退出登录清掉、再登录自动领回。所以「登录」这一步不只解锁 App 自己那几个面，<b>顺带把扩展那边的引擎也备好了</b> —— 扩展里登录同一个账号，三个槽自己长出来（那边登录 34 台、配好 30 台，本来就是这个形状）。</p>
+<div class="ask"><b>两条已裁定（2026-09-22）</b>① 登录从第 5 屏<b>提到第 2 屏</b>　② 登录之后<b>自动</b>领额度、不再问<br><br>②动的是额度发放规则 ⇒ 按 AGENTS.md 属领域设计改动，<b>要先出 docs PR 过评审</b>，代码不先走。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1560,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
