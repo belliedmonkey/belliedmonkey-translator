@@ -47,11 +47,12 @@
 | **iPhone · iPad · Mac**（App + Safari 扩展） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录；需要 iOS 16.4 / macOS 13.3 或更新 |
 | **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)，步骤见下 |
 | **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
+| **中国大陆** | 另一个版本：[**大肚猴翻译**](https://apps.apple.com/cn/app/id6789718038)，只带境内引擎，站点在 [belliedmonkey.com](https://belliedmonkey.com/) |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
 
-在用？说说你拿它做什么、想改什么 —— [来 Discord 说一声](https://belliedmonkey.cc/discord)，或者[开个帖](https://github.com/belliedmonkey/belliedmonkey-translator/discussions)，中英文都行。
+在用？说说你拿它做什么、想改什么 —— [来 Discord 说一声](https://belliedmonkey.cc/discord)，或者[开个帖](https://github.com/belliedmonkey/belliedmonkey-translator/discussions)，什么语言都行。
 
 <details>
 <summary><b>直接安装 ZIP（Chrome / Edge）</b></summary>
@@ -121,6 +122,7 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
 - **自带密钥** —— 任何 OpenAI / Anthropic 兼容端点，或不填密钥的免费 Google 通道
 - **不强制账号**；多设备同步可选；只有匿名用量事件，一个开关关掉
 - **Safari（iPhone、iPad、Mac）、Chrome、Firefox** —— 同一份代码，六个商店面
+  （Apple 的 iOS 与 macOS × 国际版与中国版，加上 Chrome 网上应用店与 Firefox 附加组件）
 - **免费、GPL-3.0**；登录后可领一份我们出的 0.2 美元免费额度
 - **文档翻译** —— 上传 PDF、Word 或图片（扫描页走你自己的多模态引擎），打开一页翻一页、双语对照；读过的句子可进复习（每页、每份都有上限）
 
@@ -135,8 +137,9 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
 **播客与音频双语字幕。** 同一个引擎，完全没有视频画面：叠加层锚定在视口底部，跟着音频时钟走。
 
 **任何 LLM，或者不用。** 传输层按请求**格式**而不是按厂商分派 —— Google、OpenAI 兼容的
-chat completions、OpenAI 兼容的 responses、Anthropic 兼容的 messages —— 所以任何说这几种
-形状之一的端点都能接，包括你自建的。你填**完整的接口地址**，我们就请求那个地址，一个字符
+chat completions、Anthropic 兼容的 messages —— 所以任何说这几种形状之一的端点都能接，
+包括你自建的。（还有第四种 OpenAI 兼容的 *responses*，代码里实现了但没有任何内置引擎在用，
+只有当你填的地址以 `/responses` 结尾时才会走到它。）你填**完整的接口地址**，我们就请求那个地址，一个字符
 都不加；而你写的路径同时也决定了用哪种请求形状，所以同一个主机上的两种接口，换个地址就能切。内置引擎清单在扩展的设置页里；本仓库里的唯一真源是
 [`build/providers.config.js`](build/providers.config.js)，这里**刻意不复述它** ——
 每多抄一份，就多一处会过时的地方。
@@ -173,7 +176,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 - **页面文本与排版** —— 每个站点专属的排版修复都必须带一个新的回归 fixture，从该站点最小的
   排版模式提炼而来，而且**这个 fixture 必须在修复之前是红的**，红色运行记录进 issue。
-  已有的 fixture 永远不会为了迁就新修复而被改动。目前 30 个，跑在真实的无头 Chrome 上。
+  已有的 fixture 永远不会为了迁就新修复而被改动。目前 42 个，跑在真实的无头 Chrome 上。
 
   一个实例，issue #59：维基百科上，浮动信息框里的译文变成了表格的一个新列，把表格撑宽近一倍，
   旁边的正文被压到约 115px。修法是通用的 —— 分段器里没有出现任何域名或选择器 ——
@@ -189,8 +192,9 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 ## 为什么要自带 key
 
 - **翻译路径上没有我们的服务器 —— 用自己的 key 时。** 这些请求从你的浏览器直接发往你选的服务商。
-  中间没有任何东西可以记录、存储或转卖 —— 因为中间根本没有东西。（可选的**免费额度**是唯一
-  一条会经过我们的路，见[隐私](#隐私)。）
+  中间没有任何东西可以记录、存储或转卖 —— 因为中间根本没有东西。（同步与匿名用量事件**确实**
+  会用到我们的服务器，两者都写在[隐私](#隐私)里，而且都看不到你翻译的内容。可选的**免费额度**
+  是唯一一条会让你的文本经过我们的路 —— 见[隐私](#隐私)。）
 - **key 只在本地。** 存在 `chrome.storage.local` 里，从不离开你的设备。
 - **成本你自己控制。** 用哪个引擎、哪个模型、花多少钱，全是你的选择。也有不需要 key 的免费
   引擎可以零配置试用，不过用真正的模型效果明显更好。
@@ -277,7 +281,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 所以这里把标准的 MV3 架构倒了过来：**所有服务商的 `fetch()` 都在 content script 里执行**
 （[`extension/content/translation-api.js`](extension/content/translation-api.js)），
 content script 直接从 `chrome.storage.local` 读设置，而不是去问 worker。
-[`extension/background.js`](extension/background.js) 只有 64 行，负责默认值、角标和清缓存 ——
+[`extension/background.js`](extension/background.js) 只有 179 行，负责默认值、角标和清缓存 ——
 它从不在关键路径上。
 
 ### 字幕是怎么拿到的
@@ -295,7 +299,7 @@ token 限制；播客则用页内的 WebVTT/SRT 或 feed 里的 `<podcast:transc
 
 ```bash
 npm test              # 纯逻辑测试套件，零依赖，Node ≥18
-npm run test:layout   # 29 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
+npm run test:layout   # 42 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
 ```
 
 任何改动 `extension/content/**` 或 `extension/styles/**` 的推送**必须**先跑
@@ -318,19 +322,34 @@ npm run test:layout   # 29 个排版 fixture，跑在真实无头 Chrome 上（N
 extension/
 ├── manifest.json           Manifest V3 —— Chrome / Safari / Firefox 通用
 ├── background.js           只管状态，从不翻译（原因见上）
-├── content/
+├── content/                37 个文件，值得知道的这些：
 │   ├── translation-core.js 平台无关引擎：字幕状态机、60 秒预译窗口、
 │   │                       句子合并、分页、i18n
 │   ├── translation-api.js  所有服务商 fetch()，在 content script 中执行
+│   ├── wire-format.js      地址解析的唯一一处
+│   ├── request-shape.js    请求体组装的唯一一处
 │   ├── dom-processor.js    DomSegmenter —— 只用标准 HTML 语义，零站点选择器
 │   ├── content-webpage.js  网页双语渲染
 │   ├── content-youtube.js  ├─ 字幕来源，每个一个适配器
 │   ├── content-podcast.js  │
 │   ├── content-twitter.js  │
 │   ├── site-twitter.js     └─ x.com 页面噪音清理
+│   ├── asr-source.js       页面没有字幕时的 AI 转写字幕
+│   ├── learn-*.js          采集、排程、题型（6 个文件）
+│   ├── *.gen.js            生成的注册表：providers、langs、stt、tts、palette
 │   └── content-main.js     入口：读设置、路由
-├── popup/ · options/       设置界面
-└── _locales/               11 种语言
+├── learn/                  31 个文件 —— 记忆层、同步、文档翻译、免费额度、
+│                           遥测、朗读（见 docs/learning-design.md）
+├── onboard/ · popup/ · options/   引导与设置界面
+├── styles/ · icons/ · vendor/
+└── _locales/               12 种语言
+```
+
+宿主 App 是并列的另一棵树：
+
+```
+app/                        iPhone · iPad · Mac：实时字幕、对话实时听译、
+                            快速翻译、系统翻译、文档翻译、复习
 ```
 
 ---

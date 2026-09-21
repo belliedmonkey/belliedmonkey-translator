@@ -74,7 +74,7 @@ jobs:
 
 # Not covered here, on purpose:
 #
-#   npm run test:layout  — the 29-fixture layout corpus. It drives a real headless
+#   npm run test:layout  — the 42-fixture layout corpus. It drives a real headless
 #   Chrome over raw CDP and loads the extension via Extensions.loadUnpacked, which
 #   is worth having in CI but is not wired up yet. Until it is, it stays a
 #   mandatory LOCAL gate before any push touching extension/content/** or
