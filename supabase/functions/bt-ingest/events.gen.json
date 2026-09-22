@@ -131,7 +131,12 @@
       "pages": "int"
     },
     "review_session": {
-      "graded": "int"
+      "graded": "int",
+      "result": [
+        "done",
+        "left"
+      ],
+      "left": "int"
     },
     "grant_claimed": {},
     "grant_exhausted": {},
@@ -147,9 +152,11 @@
       "action": [
         "shown",
         "setup",
-        "done"
+        "done",
+        "check"
       ]
     },
+    "setup_detected": {},
     "asr_entry": {
       "surface": [
         "popup",

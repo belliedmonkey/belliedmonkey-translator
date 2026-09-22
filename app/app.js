@@ -1221,6 +1221,8 @@
     const btn = e.currentTarget;
     btn.disabled = true;
     try {
+      // 离开复习面 = 这一轮结束（telemetry-design §3.7 A）。App 是长驻单页，没有 pagehide 可挂。
+      try { if (window.LearnReview && LearnReview.leave) LearnReview.leave(); } catch (_) {}
       $('review-view').hidden = true;
       $('signed-in').hidden = false;
       // Grades given in there changed the corpus, so the counts on the way out must
@@ -1245,6 +1247,8 @@
   let settingsFrom = 'signed-in';
   async function openSettings(anchorId) {
     settingsFrom = $('signed-in').hidden && !$('signed-out').hidden ? 'signed-out' : 'signed-in';
+    // 从复习页点「设置」也是离开复习面（telemetry-design §3.7 A）。
+    if (!$('review-view').hidden) { try { if (window.LearnReview && LearnReview.leave) LearnReview.leave(); } catch (_) {} }
     $('signed-in').hidden = true;
     $('signed-out').hidden = true;
     $('review-view').hidden = true;
@@ -1294,7 +1298,8 @@
     try { chrome.storage.local.set({ [EXT_DONE]: Date.now() }, () => {}); } catch (_) {}
     paintExtBanner(extState);
   });
-  $('ext-banner-check-link').addEventListener('click', (ev) => { ev.preventDefault(); extBannerTrack('setup'); openExternal(setupPageUrl()); });
+  // `check` 与主按钮的 `setup` 分开记（telemetry-design §3.7 B）：两处原来共用 setup，分不出人是从哪儿走的。
+  $('ext-banner-check-link').addEventListener('click', (ev) => { ev.preventDefault(); extBannerTrack('check'); openExternal(setupPageUrl()); });
   $('ob-setup').addEventListener('click', () => {
     openExternal(setupPageUrl());
     // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做

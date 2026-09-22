@@ -78,7 +78,8 @@ const EVENTS = {
   capture_first: {},
   // 文档翻译（2026-09-11，learning-design §9.7）：一份文档打开一次。只有格式与页数 —— 不带文件名、字数、页文本。
   doc_open: { kind: ['pdf', 'docx', 'txt', 'image'], pages: 'int' },
-  review_session: { graded: 'int' },
+  // result / left（2026-09-22，§3.7 A）：离开复习面也发；done 与 left 互斥、每轮一条。
+  review_session: { graded: 'int', result: ['done', 'left'], left: 'int' },
   // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
   // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
   // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
@@ -88,7 +89,9 @@ const EVENTS = {
   // 第六问（telemetry-design §1，2026-09-10）：我们的提示被看见了吗、有人点吗。
   // 只有一个枚举属性，永不带页面、文案或输入。
   rate_prompt: { action: ['shown', 'tap', 'dismiss'] },   // 译文末尾的评分行
-  ext_banner: { action: ['shown', 'setup', 'done'] },     // App 首页「扩展还没打开」横幅
+  ext_banner: { action: ['shown', 'setup', 'done', 'check'] },     // App 首页「扩展还没打开」横幅；check = 「打开检测页」那一行（§3.7 B）
+  // 扩展在自家域名上检测到自己（亮绿灯那一刻），每装机一次（§3.7 B）。
+  setup_detected: {},
   // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。
   // `app_home`（2026-09-16）= App 首页那两张模式卡。App 的听译/实时字幕**不经过**
   // asr-source.js，前三个值都是网页里的入口，一个都落不到它头上（telemetry-design §3.3）。
@@ -174,6 +177,10 @@ const SEAMS = {
   rate_prompt: [
     { host: 'ext', file: 'extension/content/content-webpage.js' },
     { host: 'app', none: '评分提示挂在网页译文末尾，App 没有这个表面' },
+  ],
+  setup_detected: [
+    { host: 'ext', file: 'extension/content/content-main.js' },
+    { host: 'app', none: '自家官网上的扩展标记只由扩展的内容脚本注入；App 不是浏览器' },
   ],
   ext_banner: [
     { host: 'app', file: 'app/app.js' },

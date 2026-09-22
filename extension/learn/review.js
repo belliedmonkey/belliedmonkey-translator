@@ -14,6 +14,22 @@
   let idx = 0;
   let sched = {};       // scheduler config, merged over production DEFAULTS
   let doneThisRun = 0;
+  // 「这一轮」的读数（telemetry-design §3.7 A，#386，2026-09-22 用户评审通过）。与 doneThisRun 分开：
+  // 那个数在 App 里随长驻页面跨轮累加，评分弹窗还在用它，不动。这里只管遥测 ——
+  // **露出过一张计划卡**就算开始一轮；清空（done）或离开（left）都算结束，结束即清零，每轮至多一条。
+  const sess = { open: false, graded: 0 };
+  function sessEnd(result) {
+    if (!sess.open) return;
+    const graded = sess.graded;
+    const left = result === 'left' ? deck.length : 0;
+    sess.open = false; sess.graded = 0;
+    if (typeof MTTelemetry === 'undefined') return;
+    try { MTTelemetry.track('review_session', { graded, result, left }); } catch (_) {}
+  }
+  // 离开复习面：扩展是关页 / 跳走（pagehide），App 是返回首页或从复习页进设置（app.js 调 leave()）。
+  // 练习模式不算 —— 那是另一条路，没有「清完」这件事。
+  function leave() { if (!practicing) sessEnd('left'); }
+  window.addEventListener('pagehide', leave);
   let practicing = false;   // §5.3 — free practice: same card flow, asymmetric rule
   let donePractice = 0;
   let currentMode = 'read'; // §5.2 — which exercise form the card on screen is using
@@ -857,6 +873,7 @@
     // dailyNew, the last systematic cross-device count divergence).
 
     doneThisRun++;
+    if (!practicing) sess.graded++;
 
     // §5.4 — a second stale skill re-renders the SAME card once more before the
     // deck moves on. Skipped after a fail: the card just lapsed and is coming back
@@ -1133,12 +1150,13 @@
       if (doneThisRun && typeof MTFeedback !== 'undefined') {
         try { MTFeedback.maybeRequestRating(doneThisRun); } catch (_) {}
       }
-      if (doneThisRun && (typeof MTTelemetry !== 'undefined')) {
-        try { MTTelemetry.track('review_session', { graded: doneThisRun }); } catch (_) {}
-      }
+      // 清空 = done。原来只在这里发、而且要 doneThisRun 非零 —— 中途离开从来没有记录（#386：
+      // 52 台存过语料、0 条）。现在离开也发（sessEnd('left')），两种结果互斥、每轮一条。
+      sessEnd('done');
       return;
     }
 
+    sess.open = true;       // 露出了一张计划卡：这一轮开始（已经开着就保持，graded 继续累加）
     show(sources);
   }
 
@@ -1238,7 +1256,7 @@
     }
   }
 
-  window.LearnReview = { start, reloadSettings };
+  window.LearnReview = { start, reloadSettings, leave };
 
   // ─── Boot ────────────────────────────────────────────────────────────────
 
