@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "Больше не показывать",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Расширение Safari",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "Раньше вы нажали «{done}», поэтому подсказка на главном экране скрыта. Если расширение ещё не включено, верните её здесь.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Снова показать подсказку «включить расширение»",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Восстановлено — вернитесь на главный экран, чтобы увидеть её.",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

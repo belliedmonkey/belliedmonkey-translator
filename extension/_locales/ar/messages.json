@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "عدم الإظهار مرة أخرى",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "امتداد Safari",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "ضغطت سابقًا على «{done}»، لذا أُخفي التلميح في الشاشة الرئيسية. إن لم يكن مفعّلًا بعد فأعِده من هنا.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "إظهار تلميح «تفعيل الامتداد» مرة أخرى",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "تمت الاستعادة — ارجع إلى الشاشة الرئيسية لتراه.",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

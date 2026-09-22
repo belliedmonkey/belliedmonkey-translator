@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "Don’t show again",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari extension",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "You tapped “{done}” earlier, so the tip on the home screen is hidden. If it isn’t actually on yet, bring the tip back here.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Show the “turn on the extension” tip again",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Restored — go back to the home screen to see it.",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }
