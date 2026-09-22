@@ -235,10 +235,11 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     // 四屏，**两个 flavor 同形**。登录 2026-09-02 移出引导：它曾经排在「翻一页」之前，
     // 也就是要人在看到第一句译文之前先填邮箱收验证码。现在登录的请求由官网交接块
     // 在翻译成功那一刻提出、由复习页那行「未登录」接住 —— 都在他看到价值之后。
-    const want = 'welcome → engine → capture → try';
+    // 2026-09-22：capture 屏砍掉（画布 #392）⇒ 三屏。
+    const want = 'welcome → engine → try';
     if(order!==want) fail(`屏序是 ${order}，期望 ${want}`);
     else pass(`屏序 ${want}`);
-    if(seen.length!==4) fail(`屏数 ${seen.length}，期望 4`); else pass('屏数 4 —— 两个 flavor 同形');
+    if(seen.length!==3) fail(`屏数 ${seen.length}，期望 3`); else pass('屏数 3 —— 两个 flavor 同形');
 
     // ★ 引导里**不许再出现登录**。加回来的那天这条会红，并且会指着这段注释问为什么。
     // 理由不是「登录不重要」，恰恰相反：它太重要，所以不能问在人还没看到价值的时候。
@@ -510,13 +511,17 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         + `不能让它一闪而过（当前标题「${keep.head}」）`);
     else pass('引擎屏填了 key 点「继续」：先提交、且停在原屏让结果看得见');
 
-    if(!seen.some(s=>s.capture)) fail('没有采集那一屏'); else pass('采集屏在');
+    // 2026-09-22：采集屏被砍掉了（画布 #392）。断言反过来 —— 它**不许回来**，
+    // 因为它教的是一个默认已开的开关，净作用是给用户一个关掉它的机会。
+    if(seen.some(s=>s.capture)) fail('采集屏又回来了 —— 它教的是一个默认已开的开关');
+    else pass('没有采集屏（开关与采集语言只在设置页）');
+
 
     // 离开引导时那一条 onboarding_done 必须带上 result 与 step（telemetry-design §3.6）。
     // **判据是队列里真的有那条、且属性是对的**，不是「代码里有 track 调用」——
     // 静态 seam 门禁证明得了后者，证明不了前者：客户端的 shape() 会把白名单外的属性
     // 静默丢掉，所以少生成一次 providers.gen.js，这两个属性就凭空消失而没人看得见。
-    const STEPS_OK=['welcome','engine','capture','try'];
+    const STEPS_OK=['welcome','engine','try'];
     const skipped=await evA(`(async()=>{
       // 两件必须先做，否则测到的是「不发」这件废事：
       //   ① allowAutomation —— spec() 在 navigator.webdriver 为真时返回 null（自动化不算

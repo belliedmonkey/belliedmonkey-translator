@@ -795,6 +795,22 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 `doc_open { kind: pdf|docx|txt|image, pages: int }` 一份文档打开一次；`translate_ok.kind` 加 `doc`。
 不带文件名、不带字数、不带页文本。
 
+## 扩展引导是三屏（2026-09-22，画布第 1 页「扩展 4 → 3 屏」）
+
+`welcome → engine → try`。**不许再有第四屏教「采集学习材料」那个开关。**
+
+- 那个开关**首装就是开的**（`background.js` 写 `learnEnabled = true`），而它当初那一屏的
+  第一句话就是「已经开着了……不想要可以在这里关掉」—— 于是那一屏的净作用是：**在用户
+  还没见过一张卡、还不知道复习是什么的时候，专门给他一个关掉它的机会**。
+- 采集开关与采集语言的**唯一**入口是设置页（`#learn-enabled` 与 SourcesView 的语言
+  chips）。引导页不再是第二份实现，也就不会再漂。
+- `engine` 那一屏（分流：免费额度 / 自己的 key）**一个字不动** —— 走到它的人几乎全都配好了
+  引擎（2026-09-21 读数：iPhone 20/20、Mac 19/18）。这条引导的问题从来不是它讲得对不对，
+  是走完率（iPhone 27% · Mac 31% · Chrome 17% · Firefox 8%）。
+- ⚠️ **砍掉第 3 屏是判断，不是数据**：我们仍然看不到人在第几屏掉队。
+  `onboarding_done.step`（telemetry-design §3.6）出货之后才会告诉我们，**到那时要回头核**
+  这一刀有没有用。
+
 ## extObSeen 是流程标记，不是配置标记
 
 `extObSeen` 只回答一句话：**这个人看过扩展的引导页没有。** 它与「配好了没有」正交，

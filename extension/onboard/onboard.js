@@ -74,7 +74,15 @@
   //
   // try 仍是**终止屏**：它唯一的按钮开一个新标签，人就走了，引导这个标签留在背后。
   // 所以它必须排最后，而且它的 CTA 同时是收尾键（finish 写 extObSeen）。
-  const OB = ['welcome', 'engine', 'capture', 'try'];
+  // 2026-09-22：砍掉原来的第 3 屏 `capture`（画布 #392 第 1 页「扩展 4 → 3 屏」）。
+  //
+  // 它教的是一个**默认已开**的开关（`background.js` 首装写 learnEnabled = true），
+  // 而它自己的文案第一句就是「已经开着了…不想要可以在这里关掉」—— 于是这一屏的净作用
+  // 是：在用户还没见过一张卡、还不知道复习是什么的时候，专门给他一个关掉它的机会。
+  // 开关与采集语言在设置页都在（`#learn-enabled` 与 SourcesView 的语言 chips），
+  // 要关的人找得到。⚠️ 这是**判断不是数据** —— 我们仍然看不到人在第几屏掉队，
+  // `onboarding_done.step` 出货之后才会告诉我们（telemetry-design §3.6）。
+  const OB = ['welcome', 'engine', 'try'];
   let at = 0;
   let settings = {};
   let learnRules = null;
@@ -112,7 +120,7 @@
     // 页面自报身份之后，断言问的是「try 屏怎么样」，不是「看起来像 try 的那屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((at + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-fork', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta', 'ob-capture']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-fork', 'ob-modes', 'ob-grant', 'ob-quick', 'ob-manual', 'ob-cta']) $(id).hidden = true;
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-skip').hidden = false;   // 只有 'try' 屏藏这两个，别的屏要放回来
     $('ob-next').textContent = at === OB.length - 1 ? t('extob_finish', '完成') : t('ob_next', '继续');
@@ -142,12 +150,6 @@
       // 该点哪个 —— 2026-09-02 靠一张截图才发现，而当时的门禁只数页脚那三个按钮，
       // 一键卡的按钮在 body 里，它看不见。
       $('ob-next').classList.add('secondary');
-    } else if (step === 'capture') {
-      $('ob-title').textContent = t('extob_capture_title', '读过的句子会自己变成复习卡');
-      $('ob-text').textContent = t('extob_capture_body',
-        '已经开着了。你真正读完的句子（快速滚过去的不算）会存成复习卡，只存在这台设备上；不想要可以在这里关掉。');
-      $('ob-capture').hidden = false;
-      paintCapture();
     } else if (step === 'try') {
       $('ob-title').textContent = t('extob_try_title', '现在翻一页看看');
       $('ob-text').textContent = t('extob_try_body',
@@ -453,41 +455,9 @@
   $('ob-mode-manual').addEventListener('click', () => { manualMode = true; paintModes(); });
 
   // ── 第 3 屏：真的采集开关 + 语言 chips ──────────────────────────────────────
-  function paintCapture() {
-    $('ob-learn').checked = settings.learnEnabled === true;
-    $('ob-capture-note').textContent = t('extob_capture_note',
-      '只收录你真正停下来读完的句子。随时可以在设置里关掉，已存的卡也能整站删除。');
-    renderChips();
-  }
-  function renderChips() {
-    const box = $('ob-langs');
-    if (!box || !window.SourcesView) return;
-    box.hidden = !$('ob-learn').checked;
-    if (box.hidden) return;
-    window.SourcesView.renderLangChips(box, {
-      registry: window.MT_LANGS || [],
-      langs: learnRules && learnRules.langs,
-      t,
-      // 必须把 promise 交回去：SourcesView 的 lock() 靠它决定 chip 何时重新可点，
-      // 丢掉它会重开「两次快点丢一个语言」那个竞态（options.js:1106-1109 的疤）。
-      onChange: (langs) => {
-        // 两处曾经都错：
-        //   · 成形 —— 原来是 Object.assign({}, learnRules, { langs })，v 与 updatedAt
-        //     都没写。缺 updatedAt 的记录在 §8.9 里是「远古」：永远输给任何远端，也
-        //     永远不会被推上去（sync.js 的 rulesDue 判据是 updatedAt > since）。
-        //   · 不重画 —— SourcesView 的 chip 只上报，不自己翻状态（渲染由宿主负责，
-        //     见 render() 那段注释）。设置页写完会 renderGovernance()，引导页什么都没做，
-        //     于是点了存进去了、界面一动不动 —— 用户看到的就是「选语言没有反应」。
-        learnRules = LearnRules.withUpdate(learnRules, { langs });
-        return storageSet({ learnRules }).then(() => renderChips());
-      },
-    });
-  }
-  $('ob-learn').addEventListener('change', async () => {
-    settings.learnEnabled = $('ob-learn').checked;
-    await storageSet({ learnEnabled: settings.learnEnabled });
-    renderChips();
-  });
+  // paintCapture / renderChips / #ob-learn 的监听随 capture 屏一起删（2026-09-22）。
+  // 采集开关与采集语言的**唯一**入口现在是设置页（`#learn-enabled` 与 SourcesView 的
+  // 语言 chips）—— 引导页不再是第二份实现，也就不会再漂。
 
   // ── 导航 ────────────────────────────────────────────────────────────────────
   $('ob-next').addEventListener('click', () => {
