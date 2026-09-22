@@ -1642,6 +1642,13 @@ Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的�
   - 为什么要提前：2026-09-21 回读线上 `engine_test`，失败码 `http` 34 条、`no_path` 9 条、
     **`bad_url` 0 条** —— 「只填了主机名」本来离线就能判，却因为四处入口绕开了产地而被
     当成 404。门禁在 `test/endpoint-shape.test.js`。
+- *(2026-09-22，#385，用户裁定:)* **没填 key 也离线就说，翻译与解析两槽与朗读 / 转写对齐。**
+  - 「测试连接」在发请求之前判一次：引擎在注册表里 `needsKey` 且 key 为空 ⇒ 具名 `no_key`
+    （「还没填 API Key」），**一个请求都不发**。原来这两槽照样发出去、回 401、被记成 `http`。
+  - **只对「地址由注册表给定」的平台生效**。自定义地址（`requiresEndpoint`：`custom_chat` /
+    `custom_msg`）注册表里也标着要 key，但接本地模型（Ollama 等）的人根本没有 key —— 对它们
+    **照旧真的试一次**，不能把一个能用的配置说成坏的。认不出的引擎也不拦。
+  - 判据只在 `EngineTest` 的两条传输里（同上一条「不许有第二份判定」），读注册表生成物，不另写引擎表。
 
 - **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
   engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no
