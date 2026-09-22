@@ -217,23 +217,30 @@
     el.hidden = !isDemoAddress($('email').value) && $('app-pw-form').hidden;
   }
 
-  let _autoClaimed = false;
+  // 一次会话只试一次 —— 存的是**那一次尝试本身**，晚来的调用者（引导的「就地试一句」）
+  // 等同一次，而不是看见「已经试过」就当作有了引擎。
+  let _autoClaimed = null;
   async function autoClaimGrant() {
-    if (_autoClaimed) return;                       // 一次会话只试一次
+    if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
+    return _autoClaimed;
+  }
+  async function autoClaimOnce() {
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
     if (typeof AppSettings === 'undefined' || !AppSettings.claimAndApply) return;
     // 「配好了没有」的判据只有一个出口（EngineState.needsSetup），不在这里另写一份。
     try {
       if (typeof EngineState !== 'undefined' && EngineState.needsSetup) {
-        const cur = await new Promise((r) => chrome.storage.local.get(AppSettings.KEYS, (v) => r(v || {})));
+        const cur = await readObSettings();
         if (!EngineState.needsSetup(cur)) return;   // 已经有引擎 —— 不碰
       }
     } catch (_) { return; }
-    _autoClaimed = true;
-    // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；回执留给设置页与引导
-    // 自己的那一屏（画布第 2 页）。额度写进槽这件事本身由 engine_set 记着。
+    // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；那一刻的回执就是引导下一屏
+    // 「就地试一句」本身（真的翻一句，比三行「通了」更像证据）。
     await AppSettings.claimAndApply({ overwrite: false, selfTest: false });
   }
+  const readObSettings = () => new Promise((r) => {
+    try { chrome.storage.local.get(AppSettings.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
+  });
 
   async function show(session) {
     currentSession = session;
@@ -258,6 +265,13 @@
     // **已经配好引擎的不做** —— overwrite 传 false，不碰用户自己的 key。
     // 静默失败：领不到额度不该挡住首页（grant_unavailable 等）。
     if (session) autoClaimGrant().catch(() => {});
+    // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
+    // Apple / Google / 邮箱三条路最后都到这儿，只写一处就三条都对。
+    try {
+      if (session && !$('onboard').hidden && OB[obAt] === 'signin' && obAt < OB.length - 1) {
+        obAt += 1; obPaint();
+      }
+    } catch (_) { /* 启动早期 OB 还没求值时不管 */ }
     // Signing out from inside settings or review must not leave that view on screen
     // over the sign-in form.
     if (!session) {
@@ -482,7 +496,7 @@
   // 它守的是「哪天 App 侧也关掉同步」，那时这一屏必须跟着消失，而不是留在那里。
   // 屏序（2026-09-22 重排，画布 #392 第 1 页「App 5 → 4 屏」）：
   //
-  //   welcome → signin → read → ext
+  //   welcome → signin → firstuse → ext
   //
   // ① **登录从最后一屏提到第 2 屏。** 它是转化最高、且能把后面全部自动化的那一步 ——
   //    登录 = 拿到账号级的免费额度 = 引擎就绪，顺带把扩展那边也备好（额度以 user_id
@@ -495,14 +509,23 @@
   //    （18 台点过「我已打开」的里 16 台点完再没有任何事件）。
   const OB = ['welcome']
     .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : [])
-    .concat(['read', 'ext']);
+    .concat(['firstuse', 'ext']);
   let obAt = 0;
 
   function obPaint() {
     if ($('ob-telemetry')) $('ob-telemetry').hidden = true;   // 只在最后一屏露出
     const step = OB[obAt];
+    // 页面自报当前是哪一屏（同扩展 onboard.js 的做法）。门禁原来按「点了几次」数屏：
+    // `for (i < 5) seen.push(...)` 再断言 seen.length === 5 —— 屏数变了它照样是 5，
+    // 最后一屏被采两遍而已，**结构上就红不了**。2026-09-22 登录屏挪位之后正是这样漏掉了
+    // 「登录屏点了只翻页、根本不登录」。自报之后门禁问的是「现在是哪一屏」。
+    try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt']) $(id).hidden = true;
+    // 主/次逐屏重设，不留状态（同扩展 onboard.js）。默认「继续」是这一屏的主行动；
+    // 有自己主行动的屏（「就地试一句」）在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
+    $('ob-next').classList.remove('secondary');
+    $('ob-skip').hidden = false;   // 只有登录屏藏它，别的屏要放回来
     $('ob-skip').textContent = t('ob_skip', '以后再设置');
     $('ob-next').hidden = false;   // 只有 'ext' 屏藏它，别的屏要放回来
     $('ob-next').textContent = obAt === OB.length - 1
@@ -539,14 +562,36 @@
       $('ob-next').hidden = true;
     // 'browser'（「还有两件事在浏览器里做」：填 Key + 打开采集）2026-09-22 删除。
     // 填 Key 是 83% 卡住的那一步，而登录领额度是它的零摩擦替代；采集默认就是开的。
-    } else if (step === 'read') {
-      $('ob-title').textContent = t('ob_read_title', '去读一篇');
-      $('ob-text').textContent = t('ob_read_body',
-        '设置完了就照常浏览、照常翻译。读过的句子会自己攒起来；想立刻收下某一句，长按它的译文。');
+    } else if (step === 'firstuse') {
+      // 「就地试一句」（2026-09-22，画布 #392 第 2 页）。原来这一屏是「去读一篇」—— 又一次把
+      // 人往浏览器那边推。现在素材内置、两个动作都在 App 里完成：第一次会话必须有产出，
+      // 而 176/247 台整个生命周期不到 5 分钟，没有第二次。**不给「先跳过」**（右上角全局的
+      // 「以后再设置」仍在，所以不是死路）。
+      $('ob-title').textContent = t('ob_try_title', '现在就试一句');
+      $('ob-text').textContent = t('ob_try_body', '不用自己找素材，这句就在这儿。翻翻看，或者听一遍。');
+      $('ob-try').hidden = false;
+      $('ob-next').classList.add('secondary');   // 这一屏的主行动是「翻这一句」
+      paintTry();
     } else {
-      $('ob-title').textContent = t('ob_signin_title', '最后一步：登录');
-      $('ob-text').textContent = t('app_signin_why',
-        '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
+      // 2026-09-22：这一屏从最后提到了第 2 屏，所以「最后一步」这四个字作废；而且它的主按钮
+      // 不能再是「继续」—— 原来能登录，是因为它是最后一屏、那个按钮其实是「结束引导、落到
+      // 首页登录卡上」。挪到中间之后若不改，这一屏就只是一张说明，**点了只翻页、根本不登录**。
+      // 文案按**这个构建有没有额度**分岔：中国版的额度已裁定但还没落地，现在对它说
+      // 「领一份免费额度」是假话。判据问 LearnGrant.enabled()，不问 flavor 名。
+      const hasGrant = typeof LearnGrant !== 'undefined' && LearnGrant.enabled();
+      $('ob-title').textContent = hasGrant
+        ? t('ob_signin_grant_title', '登录，顺手领一份免费额度')
+        : t('ob_signin_sync_title', '登录（可选）');
+      $('ob-text').textContent = hasGrant
+        ? t('ob_signin_grant_body', '额度由我们出，够先用一阵；也可以用你自己的 key。登录还能把卡片同步到你的其它设备。')
+        : t('ob_signin_sync_body', '登录用来把卡片同步到你的其它设备。翻译引擎可以在设置里填你自己的 key。');
+      $('ob-next').textContent = obSignInLabel();
+      $('ob-alt').hidden = false;
+      $('ob-alt').textContent = t('ob_signin_later', '先不登录');
+      // 这一屏只有自己的出口（登录 / 先不登录），不再挂全局的「以后再设置」：
+      // 两个意思相近的「不」并排，用户分不清哪个是「跳过这一屏」、哪个是「整条引导都不要」。
+      // 画布 #392 第 2 页的登录屏也只有这几个出口。
+      $('ob-skip').hidden = true;
       $('ob-kv').hidden = false;
       obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
       // 匿名用量事件说在前面（docs/telemetry-design.md §5）。中国版 App 同一份 bundle，
@@ -612,7 +657,110 @@
 
   let pendingEmail = '';
 
+  // 登录屏的主按钮：**代理首页那张卡上真的登录按钮**，不再写第二份登录。顺序与那张卡
+  // 一致 —— 一键的在前（Apple → Google），都不在（桥缺席、或这个构建没开那家）才退到邮箱；
+  // 邮箱是多步表单，放不进引导，所以它是唯一一条「结束引导、去首页那张卡」的路。
+  function obSignInProvider() {
+    for (const id of ['btn-apple', 'btn-google']) {
+      const b = $(id);
+      if (b && !b.hidden && !b.disabled) return b;
+    }
+    return null;
+  }
+  function obSignInLabel() {
+    const b = obSignInProvider();
+    if (b && b.id === 'btn-apple') return t('sync_with_apple', '用 Apple 登录');
+    if (b && b.id === 'btn-google') return t('sync_with_google', '用 Google 登录');
+    return t('ob_signin_email', '用邮箱登录');
+  }
+  function obStartSignIn() {
+    const b = obSignInProvider();
+    if (b) { b.click(); return; }   // 登录成功会回到 show(session)，那里让引导前进一屏
+    obFinish().then(() => { try { openEmailForms(); } catch (_) {} });
+  }
+  // ── 「就地试一句」────────────────────────────────────────────────────────────
+  //
+  // 素材内置（2026-09-22 裁定）。**目标语言是英文的人换一句非英文的** —— 拿英文去翻英文，
+  // 译文和原文几乎一样，看起来就像「没翻」（1.14.0 拍系统翻译截图时踩过：英译英）。
+  // 两个动作走的都是**功能真正用的那条传输**（TranslationAPI / LearnTTS），不另造请求：
+  // 一个用别的请求去试的「试一句」，试到的就不是用户之后会走的那条路。
+  const TRY_EN = 'Reading in a second language gets easier once the same words keep coming back.';
+  let tryText = TRY_EN, tryLang = 'en';
+  async function paintTry() {
+    $('ob-try-tr').textContent = t('ob_try_translate', '翻这一句');
+    $('ob-try-say').textContent = t('ob_try_listen', '听这一句');
+    const out = $('ob-try-out'); out.hidden = true; out.textContent = ''; out.className = '';
+    let target = '';
+    try { target = (await readObSettings()).targetLang || ''; } catch (_) {}
+    if (!target && typeof TranslationCore !== 'undefined') target = TranslationCore.DEFAULT_TARGET_LANG || '';
+    if (/^en(\b|-|_|$)/i.test(target)) {
+      tryText = t('ob_try_sample_alt', '在第二语言里读东西，同一个词见得多了，就不再需要查了。');
+      tryLang = 'zh-CN';
+    } else { tryText = TRY_EN; tryLang = 'en'; }
+    $('ob-try-src').textContent = tryText;
+  }
+  function tryOut(text, cls) {
+    const out = $('ob-try-out'); out.hidden = false; out.className = cls || ''; out.textContent = text;
+  }
+  // 没有引擎时说的那句话，按这个构建**有没有额度**分岔（中国版现在说「登录就有」是假话）。
+  const tryNoEngine = () => ((typeof LearnGrant !== 'undefined' && LearnGrant.enabled())
+    ? t('ob_try_noengine_grant', '还没有可用的翻译引擎。登录一下就会自动领一份免费额度；也可以在设置里填自己的 key。')
+    : t('ob_try_noengine_key', '还没有可用的翻译引擎 —— 在设置里填一把 key 就能用。'));
+
+  $('ob-try-tr').addEventListener('click', async () => {
+    const btn = $('ob-try-tr');
+    if (btn.disabled) return;                 // 全局原则：IO 在途，控件不可用
+    btn.disabled = true;
+    tryOut(t('ob_try_working', '正在翻译…'));
+    try {
+      if (currentSession) await autoClaimGrant();   // 刚登上的人：等那一次领取落地
+      const s = await readObSettings();
+      if (typeof EngineState !== 'undefined' && EngineState.needsSetup && EngineState.needsSetup(s)) {
+        tryOut(tryNoEngine(), 'bad'); return;
+      }
+      const target = s.targetLang || (typeof TranslationCore !== 'undefined' && TranslationCore.DEFAULT_TARGET_LANG) || 'zh-CN';
+      const out = await TranslationAPI.translate(tryText, target, s.provider, s.apiKey, s.apiBaseUrl, s.apiModel);
+      // isTranslated(input, output) —— **两个参数**。只传一个的话 output 是 undefined，任何
+      // 真实译文都被判成「没翻」、显示「端点通了但返回的内容无法解析」。门禁钉死「有引擎」
+      // 那个场景（桩一句译文）之后当场抓到的，之前那一版门禁只测到了「连不上外网」。
+      if (!out || (typeof TranslationCore !== 'undefined' && !TranslationCore.isTranslated(tryText, out))) {
+        const e = new Error('empty'); e.code = 'bad_output'; throw e;
+      }
+      tryOut(String(out).trim(), 'ok');
+    } catch (e) {
+      // 失败具名，而且与设置页同一句话（EngineTest.reason 是那张表的唯一出处）。
+      tryOut('✗ ' + ((typeof EngineTest !== 'undefined') ? EngineTest.reason(e, t) : String((e && e.message) || e)), 'bad');
+    } finally { btn.disabled = false; }
+  });
+
+  $('ob-try-say').addEventListener('click', async () => {
+    const btn = $('ob-try-say');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      if (currentSession) await autoClaimGrant();
+      const s = await readObSettings();
+      // **没有回落**：未配置就说未配置，不偷偷换成系统自带去出一个声（settings.js
+      // liveTtsConfigure 那条同一个理由）。
+      LearnTTS.configure(Object.assign({}, LearnTTS.config, {
+        engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
+        model: s.ttsModel || '', voice: s.ttsVoice || '',
+      }));
+      const r = await LearnTTS.speak(tryText, tryLang);
+      if (!r || !r.ok) { tryOut('✗ ' + LearnTTS.reason(r && r.reason, t), 'bad'); return; }
+      // 播放也算在途（同复习页 ▶）：按钮等这一句放完，但有上限 —— 有的宿主会吞掉 end 事件。
+      await Promise.race([(r.done || Promise.resolve()).catch(() => {}), new Promise((res) => setTimeout(res, 15000))]);
+    } catch (e) {
+      tryOut('✗ ' + String((e && e.message) || e), 'bad');
+    } finally { btn.disabled = false; }
+  });
+
+  $('ob-alt').addEventListener('click', () => {
+    if (OB[obAt] === 'signin' && obAt < OB.length - 1) { obAt += 1; obPaint(); }
+  });
+
   $('ob-next').addEventListener('click', () => {
+    if (OB[obAt] === 'signin') { obStartSignIn(); return; }
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
     // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
     // 引导收尾落到未登录首屏的说明卡上：一键登录在卡上，邮箱是卡上那行链接 ——

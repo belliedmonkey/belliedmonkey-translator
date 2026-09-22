@@ -38,7 +38,9 @@ const EVENTS = {
   onboarding_done: {
     surface: ['ext', 'app'],
     result: ['done', 'skipped'],
-    step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try'],
+    // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
+    // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
+    step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try', 'firstuse'],
   },
   engine_set: { provider: 'id' },
   // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」

@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "See them in review →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Sign in and get free credit"
+  },
+  "ob_signin_grant_body": {
+    "message": "The credit is on us and covers plenty to start; you can also use your own key. Signing in also syncs your cards to your other devices."
+  },
+  "ob_signin_sync_title": {
+    "message": "Sign in (optional)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Signing in syncs your cards to your other devices. For translation, add your own key in Settings."
+  },
+  "ob_signin_later": {
+    "message": "Not now"
+  },
+  "ob_signin_email": {
+    "message": "Sign in with email"
+  },
+  "ob_try_title": {
+    "message": "Try a sentence now"
+  },
+  "ob_try_body": {
+    "message": "No need to find anything — here’s one. Translate it, or listen to it."
+  },
+  "ob_try_translate": {
+    "message": "Translate this"
+  },
+  "ob_try_listen": {
+    "message": "Listen to this"
+  },
+  "ob_try_working": {
+    "message": "Translating…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "No translation engine yet. Sign in and free credit is added automatically — or add your own key in Settings."
+  },
+  "ob_try_noengine_key": {
+    "message": "No translation engine yet — add a key in Settings and you’re set."
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
   }
 }

@@ -44,7 +44,8 @@
         "signin",
         "engine",
         "capture",
-        "try"
+        "try",
+        "firstuse"
       ]
     },
     "engine_set": {

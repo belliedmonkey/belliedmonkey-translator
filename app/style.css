@@ -398,6 +398,18 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
 }
 #ob-kv { display: flex; flex-direction: column; gap: 10px; }
+/* 「就地试一句」。原句是一张卡，译文落在它下面 —— 与网页里「原文在上、译文在下」同一个
+   形状，让第一次见到的人不用学第二种读法。颜色全部走共享 token，不引入新色值。 */
+#ob-try { display: flex; flex-direction: column; gap: 10px; }
+#ob-try-src {
+  margin: 0; background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 12px 14px; line-height: 1.55;
+}
+.ob-try-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ob-try-acts button { flex: 1 1 8em; min-height: 44px; }
+#ob-try-out { margin: 0; line-height: 1.55; }
+#ob-try-out.ok { color: var(--sage-strong); font-weight: 500; }
+#ob-try-out.bad { color: var(--dim); }
 #ob-kv div {
   background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px;
 }
@@ -424,11 +436,15 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    该点哪个（2026-09-02 真机截图）。抽成一个类，谁是主行动谁套上。
    #ob-setup 的主/次由 obPaint 按平台切：iOS 上它是主行动，macOS 上主行动是
    #ob-prefs（直达 Safari 扩展设置），它退成次级。 */
-#ob-next, #ob-setup:not(.secondary) {
+/* 2026-09-22：#ob-next 也补上 :not(.secondary)。原来它没有 —— 于是「就地试一句」那一屏给它加
+   .secondary 什么都不发生，大橙色的是「继续」，真正的主行动「翻这一句」反而是白底：人一眼
+   看到的主行动是「跳过去」。「至多一个填色按钮」那条门禁照样绿，因为填色的确实只有一个，
+   只是填错了那个 —— 截图才看出来。#ob-try-tr 是那一屏的主行动，一起进这条规则。 */
+#ob-next:not(.secondary), #ob-setup:not(.secondary), #ob-try-tr {
   background: var(--accent); color: #fff; border: none; border-radius: 999px;
   padding: 13px 20px; min-height: 50px; font: inherit; font-size: 1.02rem; font-weight: 600;
 }
-#ob-next:hover, #ob-setup:not(.secondary):hover { background: var(--accent-hover); }
+#ob-next:not(.secondary):hover, #ob-setup:not(.secondary):hover, #ob-try-tr:hover { background: var(--accent-hover); }
 #ob-skip { min-height: 44px; }
 
 /* ── 设置页的「快速 | 详细」两档 ────────────────────────────────────────────

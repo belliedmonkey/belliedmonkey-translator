@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "Les voir en révision →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Connectez-vous et recevez un crédit gratuit"
+  },
+  "ob_signin_grant_body": {
+    "message": "Le crédit est offert et suffit largement pour commencer ; vous pouvez aussi utiliser votre propre clé. La connexion synchronise aussi vos cartes sur vos autres appareils."
+  },
+  "ob_signin_sync_title": {
+    "message": "Se connecter (facultatif)"
+  },
+  "ob_signin_sync_body": {
+    "message": "La connexion synchronise vos cartes sur vos autres appareils. Pour la traduction, ajoutez votre propre clé dans les Réglages."
+  },
+  "ob_signin_later": {
+    "message": "Pas maintenant"
+  },
+  "ob_signin_email": {
+    "message": "Se connecter par e-mail"
+  },
+  "ob_try_title": {
+    "message": "Essayez une phrase"
+  },
+  "ob_try_body": {
+    "message": "Pas besoin de chercher : en voici une. Traduisez-la, ou écoutez-la."
+  },
+  "ob_try_translate": {
+    "message": "Traduire cette phrase"
+  },
+  "ob_try_listen": {
+    "message": "Écouter cette phrase"
+  },
+  "ob_try_working": {
+    "message": "Traduction…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "Aucun moteur de traduction pour l’instant. Connectez-vous et un crédit gratuit est ajouté automatiquement — ou ajoutez votre clé dans les Réglages."
+  },
+  "ob_try_noengine_key": {
+    "message": "Aucun moteur de traduction pour l’instant — ajoutez une clé dans les Réglages et c’est prêt."
+  },
+  "ob_try_sample_alt": {
+    "message": "Quand on lit dans une deuxième langue, à force de croiser les mêmes mots, on n’a plus besoin de les chercher."
   }
 }
