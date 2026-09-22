@@ -88,6 +88,10 @@
       document.dispatchEvent(new CustomEvent('mt-extension-ready', {
         detail: { version: el.dataset.mtExtension },
       }));
+      // 「看没看见绿灯」（telemetry-design §3.7 B，#384，2026-09-22 用户评审通过：自家域名上凡检测到就发）。
+      // 每装机一次、无属性。只在这个 if 里 —— 与上面那个标记同一条安全边界，别的网站永远触发不了它。
+      // 中国版 MT_TELEMETRY 为 null，once 是空操作。
+      if (typeof MTTelemetry !== 'undefined') MTTelemetry.once('setup_detected');
     } catch (_) { /* 探测标记失败绝不能影响翻译本身 */ }
 
     // ── 第三方登录的回调（§8.4.1.1 第二条跨界裁定）──────────────────────────

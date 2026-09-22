@@ -91,12 +91,13 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
-| `review_session` | `graded` | a deck is finished | `review.js` `!deck.length` branch, same spot as the rating prompt |
+| `review_session` | `graded` · `result: done \| left` · `left`（int，离开时还剩几张） | 一轮结束：牌组清空（`done`）**或离开复习面**（`left`，露出过卡、没清空；`graded` 可以是 0）—— 互斥、每轮一条（2026-09-22，§3.7 A） | `review.js` `sessEnd()`：`!deck.length` 分支（done）· `pagehide` 与导出的 `leave()`（left；App 的返回键与复习页进设置两处调它） |
 | `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
 | `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
-| `ext_banner` | `action: shown \| setup \| done` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」（2026-09-10，§3.1） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个按钮的 listener |
+| `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出，§3.7 B） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与三个 listener |
+| `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B） | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `app/app.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
@@ -410,6 +411,51 @@ Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走
 **为什么值得现在提。** 2026-09-22 已裁定要动两个面的屏序（`learning-design` §0 当日行）。
 **先补这两条，再改交互** —— 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。
 这也是复习那条（`review_session` 至今 0）现在的处境。
+
+### 3.7 2026-09-22 amendment（**同日用户评审通过**）：复习与「去 Safari 再回来」这两段是黑的
+
+> 用户 2026-09-22 裁定两条都「先补可观测性」（#386、#384），同日评审：**不改隐私页**（隐私页只写
+> 匿名用量数据的类别，不逐条列事件）；`setup_detected` **自家域名上凡检测到就发**，不限检测页路径。
+> 已进 §3 的表、注册表、生成物与代码（同一个 PR）。以下是提案原文，B 第 3 条按裁定改了发送范围。
+
+#### A · 复习：`review_session` 只在「清空」时发，于是 0 分不清是「没人复习」还是「量不到」（#386）
+
+**读数（2026-09-21）**：52 台存过第一条语料，`review_session` **0 条**。根因叠了两层：
+一轮的门槛是「今天全部清完」——对刚存下第一批语料的新用户，每副牌 4 张新卡、当日新卡预算 15
+（`learn-scheduler.js`），**要一口气连评满 15 张才会发出第一条**；而**中途退出没有任何记录**
+（`review.js` 没有 pagehide，App 的返回只重算计数）。卡级进度是落库的，缺的只是读数。
+
+**提案**：不加事件，改 `review_session`：
+
+| | 现在 | 提案 |
+|---|---|---|
+| 属性 | `graded`（int） | `graded`（int）· **`result: done \| left`** · **`left`（int，离开时还剩几张）** |
+| 何时发 | 牌组清空（`!deck.length`） | 清空时发 `done`；**离开复习面时**（扩展 `pagehide`、App 返回键）若这一轮**已经露出过卡**且没清空，发 `left` —— `graded` 可以是 0（「打开了、一张没评就走」本身就是答案） |
+| 每会话 | 一条 | 仍至多一条（`done` 与 `left` 互斥） |
+
+回答的问题：没人来 / 来了没评 / 评了几张就走 / 离清完差多少 —— 这四种今天在表里都是同一个 0。
+下一步要不要降门槛（画布），等这张表出来再定。
+
+#### B · 「去 Safari 再回来」：App 把人送去检测页，而检测页那一侧一个数都没有（#384）
+
+**读数（2026-09-21，#384 第三条评论）**：247 台 App 装机里 176 台（71%）生命周期不到 5 分钟；
+**唯一还活着的窗口**是 66 台出现过「隔几分钟又回来」——正是去 Safari 弄一下再回来的形状。
+而 `ext_banner{setup}` 之后发生了什么，我们一个数都没有；`setup` 本身还混着两个来源（主按钮与
+「不确定？打开检测页看绿灯」共用一个 action）。
+
+**提案**：把这一段补成三节漏斗，**只新增一个事件**：
+
+1. **App 里点了哪个**：`ext_banner.action` 加一个值 `check`（「打开检测页」那一行），`setup` 只留给主按钮。加枚举值，不加事件。
+2. **到没到检测页**：**不新增采集**。`belliedmonkey.cc` 已有 Vercel Web Analytics（09-20 起），
+   `/setup` 的访问量就是这一节。只读汇总数、不与 `bt_events` join（原则 7）。
+3. **看没看见绿灯**：新事件 **`setup_detected`**，无属性，**每装机一次**（`once`）。发送点是
+   `content-main.js` 在自家域名上设 `data-mt-extension` 并派发 `mt-extension-ready` 的那一处
+   （**裁定：自家域名上凡检测到就发**，不限 `/setup` —— 从哪一页亮绿灯都说明扩展真的开起来了）。它是扩展侧的事件（`host = safari | chrome | firefox`），
+   回答「多少台 Safari 真的把扩展开起来、并且回到了我们给的那一页」。
+
+**边界**：`setup_detected` 只在我们自己的域名上发（那段代码本来就只在 `MT_SITES` 里跑，见它上面
+那条「不给任何网站造指纹面」的注释），不带页面地址、不带版本以外的任何东西；中国版不发（规则 4）。
+App 侧与扩展侧的 `install_id` 天然不同，**不拼接** —— 这三节只看各自的总数与比例。
 
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
