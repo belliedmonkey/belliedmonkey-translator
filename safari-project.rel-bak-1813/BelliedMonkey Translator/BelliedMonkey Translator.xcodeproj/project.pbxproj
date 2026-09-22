@@ -1,0 +1,1169 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04EBCD223053E093001197F1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD213053E093001197F1 /* AppDelegate.swift */; };
+		04EBCD243053E093001197F1 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD233053E093001197F1 /* SceneDelegate.swift */; };
+		04EBCD273053E093001197F1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD253053E093001197F1 /* LaunchScreen.storyboard */; };
+		04EBCD2A3053E093001197F1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD283053E093001197F1 /* Main.storyboard */; };
+		04EBCD333053E093001197F1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD323053E093001197F1 /* AppDelegate.swift */; };
+		04EBCD363053E093001197F1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD343053E093001197F1 /* Main.storyboard */; };
+		04EBCD3D3053E093001197F1 /* BelliedMonkey Translator Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04EBCD3C3053E093001197F1 /* BelliedMonkey Translator Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		04EBCD473053E093001197F1 /* BelliedMonkey Translator Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04EBCD463053E093001197F1 /* BelliedMonkey Translator Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		04EBCD4C3053E093001197F1 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD113053E091001197F1 /* Main.html */; };
+		04EBCD4D3053E093001197F1 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD113053E091001197F1 /* Main.html */; };
+		04EBCD4E3053E093001197F1 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD133053E091001197F1 /* Icon.png */; };
+		04EBCD4F3053E093001197F1 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD133053E091001197F1 /* Icon.png */; };
+		04EBCD503053E093001197F1 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD143053E091001197F1 /* Style.css */; };
+		04EBCD513053E093001197F1 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD143053E091001197F1 /* Style.css */; };
+		04EBCD523053E093001197F1 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD153053E091001197F1 /* Script.js */; };
+		04EBCD533053E093001197F1 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD153053E091001197F1 /* Script.js */; };
+		04EBCD543053E093001197F1 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD163053E091001197F1 /* ViewController.swift */; };
+		04EBCD553053E093001197F1 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD163053E091001197F1 /* ViewController.swift */; };
+		04EBCD563053E093001197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD173053E093001197F1 /* Assets.xcassets */; };
+		04EBCD573053E093001197F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD173053E093001197F1 /* Assets.xcassets */; };
+		04EBCD583053E093001197F1 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD193053E093001197F1 /* SafariWebExtensionHandler.swift */; };
+		04EBCD593053E093001197F1 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EBCD193053E093001197F1 /* SafariWebExtensionHandler.swift */; };
+		04EBCD763053E093001197F1 /* options in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6B3053E093001197F1 /* options */; };
+		04EBCD773053E093001197F1 /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6C3053E093001197F1 /* popup */; };
+		04EBCD783053E093001197F1 /* learn in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6D3053E093001197F1 /* learn */; };
+		04EBCD793053E093001197F1 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6E3053E093001197F1 /* background.js */; };
+		04EBCD7A3053E093001197F1 /* content in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6F3053E093001197F1 /* content */; };
+		04EBCD7B3053E093001197F1 /* onboard in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD703053E093001197F1 /* onboard */; };
+		04EBCD7C3053E093001197F1 /* styles in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD713053E093001197F1 /* styles */; };
+		04EBCD7D3053E093001197F1 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD723053E093001197F1 /* icons */; };
+		04EBCD7E3053E093001197F1 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD733053E093001197F1 /* manifest.json */; };
+		04EBCD7F3053E093001197F1 /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD743053E093001197F1 /* _locales */; };
+		04EBCD803053E093001197F1 /* vendor in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD753053E093001197F1 /* vendor */; };
+		04EBCD813053E093001197F1 /* options in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6B3053E093001197F1 /* options */; };
+		04EBCD823053E093001197F1 /* popup in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6C3053E093001197F1 /* popup */; };
+		04EBCD833053E093001197F1 /* learn in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6D3053E093001197F1 /* learn */; };
+		04EBCD843053E093001197F1 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6E3053E093001197F1 /* background.js */; };
+		04EBCD853053E093001197F1 /* content in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD6F3053E093001197F1 /* content */; };
+		04EBCD863053E093001197F1 /* onboard in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD703053E093001197F1 /* onboard */; };
+		04EBCD873053E093001197F1 /* styles in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD713053E093001197F1 /* styles */; };
+		04EBCD883053E093001197F1 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD723053E093001197F1 /* icons */; };
+		04EBCD893053E093001197F1 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD733053E093001197F1 /* manifest.json */; };
+		04EBCD8A3053E093001197F1 /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD743053E093001197F1 /* _locales */; };
+		04EBCD8B3053E093001197F1 /* vendor in Resources */ = {isa = PBXBuildFile; fileRef = 04EBCD753053E093001197F1 /* vendor */; };
+		MT10D06CA57E0000000011 /* LiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = MT10D06CA57E0000000010 /* LiveActivity.swift */; };
+		MT10D06CA57E0000000014 /* MTPodcastWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = MT10D06CA57E0000000002 /* MTPodcastWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		04EBCD3E3053E093001197F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 04EBCD0B3053E091001197F1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 04EBCD3B3053E093001197F1;
+			remoteInfo = "BelliedMonkey Translator Extension (iOS)";
+		};
+		04EBCD483053E093001197F1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 04EBCD0B3053E091001197F1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 04EBCD453053E093001197F1;
+			remoteInfo = "BelliedMonkey Translator Extension (macOS)";
+		};
+		MT10D06CA57E0000000013 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 04EBCD0B3053E091001197F1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = MT10D06CA57E0000000001;
+			remoteInfo = MTPodcastWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		04EBCD5F3053E093001197F1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				MT10D06CA57E0000000014 /* MTPodcastWidget.appex in Embed Foundation Extensions */,
+				04EBCD3D3053E093001197F1 /* BelliedMonkey Translator Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD663053E093001197F1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				04EBCD473053E093001197F1 /* BelliedMonkey Translator Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		04EBCD123053E091001197F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		04EBCD133053E091001197F1 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		04EBCD143053E091001197F1 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		04EBCD153053E091001197F1 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		04EBCD163053E091001197F1 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		04EBCD173053E093001197F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		04EBCD193053E093001197F1 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		04EBCD1E3053E093001197F1 /* BelliedMonkey Translator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BelliedMonkey Translator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04EBCD213053E093001197F1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		04EBCD233053E093001197F1 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		04EBCD263053E093001197F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		04EBCD293053E093001197F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		04EBCD2B3053E093001197F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04EBCD303053E093001197F1 /* BelliedMonkey Translator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BelliedMonkey Translator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04EBCD323053E093001197F1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		04EBCD353053E093001197F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		04EBCD373053E093001197F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04EBCD3C3053E093001197F1 /* BelliedMonkey Translator Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "BelliedMonkey Translator Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04EBCD413053E093001197F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04EBCD463053E093001197F1 /* BelliedMonkey Translator Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "BelliedMonkey Translator Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		04EBCD4B3053E093001197F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		04EBCD6B3053E093001197F1 /* options */ = {isa = PBXFileReference; lastKnownFileType = folder; name = options; path = ../../../dist/options; sourceTree = "<group>"; };
+		04EBCD6C3053E093001197F1 /* popup */ = {isa = PBXFileReference; lastKnownFileType = folder; name = popup; path = ../../../dist/popup; sourceTree = "<group>"; };
+		04EBCD6D3053E093001197F1 /* learn */ = {isa = PBXFileReference; lastKnownFileType = folder; name = learn; path = ../../../dist/learn; sourceTree = "<group>"; };
+		04EBCD6E3053E093001197F1 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../dist/background.js; sourceTree = "<group>"; };
+		04EBCD6F3053E093001197F1 /* content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = content; path = ../../../dist/content; sourceTree = "<group>"; };
+		04EBCD703053E093001197F1 /* onboard */ = {isa = PBXFileReference; lastKnownFileType = folder; name = onboard; path = ../../../dist/onboard; sourceTree = "<group>"; };
+		04EBCD713053E093001197F1 /* styles */ = {isa = PBXFileReference; lastKnownFileType = folder; name = styles; path = ../../../dist/styles; sourceTree = "<group>"; };
+		04EBCD723053E093001197F1 /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../dist/icons; sourceTree = "<group>"; };
+		04EBCD733053E093001197F1 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
+		04EBCD743053E093001197F1 /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = ../../../dist/_locales; sourceTree = "<group>"; };
+		04EBCD753053E093001197F1 /* vendor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = vendor; path = ../../../dist/vendor; sourceTree = "<group>"; };
+		MT10D06CA57E0000000010 /* LiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivity.swift; sourceTree = "<group>"; };
+		MT10D06CA57E0000000002 /* MTPodcastWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "MTPodcastWidget.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		04EBCD1B3053E093001197F1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD2D3053E093001197F1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD393053E093001197F1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD433053E093001197F1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		MT10D06CA57E0000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		04EBCD0A3053E091001197F1 = {
+			isa = PBXGroup;
+			children = (
+				MT10D06CA57E0000000003 /* iOS (Widget) */,
+				04EBCD0F3053E091001197F1 /* Shared (App) */,
+				04EBCD183053E093001197F1 /* Shared (Extension) */,
+				04EBCD203053E093001197F1 /* iOS (App) */,
+				04EBCD313053E093001197F1 /* macOS (App) */,
+				04EBCD403053E093001197F1 /* iOS (Extension) */,
+				04EBCD4A3053E093001197F1 /* macOS (Extension) */,
+				04EBCD1F3053E093001197F1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		04EBCD0F3053E091001197F1 /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD163053E091001197F1 /* ViewController.swift */,
+				04EBCD173053E093001197F1 /* Assets.xcassets */,
+				04EBCD103053E091001197F1 /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		04EBCD103053E091001197F1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD113053E091001197F1 /* Main.html */,
+				04EBCD133053E091001197F1 /* Icon.png */,
+				04EBCD143053E091001197F1 /* Style.css */,
+				04EBCD153053E091001197F1 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		04EBCD183053E093001197F1 /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD6A3053E093001197F1 /* Resources */,
+				04EBCD193053E093001197F1 /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		04EBCD1F3053E093001197F1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				MT10D06CA57E0000000002 /* MTPodcastWidget.appex */,
+				04EBCD1E3053E093001197F1 /* BelliedMonkey Translator.app */,
+				04EBCD303053E093001197F1 /* BelliedMonkey Translator.app */,
+				04EBCD3C3053E093001197F1 /* BelliedMonkey Translator Extension.appex */,
+				04EBCD463053E093001197F1 /* BelliedMonkey Translator Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		04EBCD203053E093001197F1 /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD213053E093001197F1 /* AppDelegate.swift */,
+				04EBCD233053E093001197F1 /* SceneDelegate.swift */,
+				04EBCD253053E093001197F1 /* LaunchScreen.storyboard */,
+				04EBCD283053E093001197F1 /* Main.storyboard */,
+				04EBCD2B3053E093001197F1 /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		04EBCD313053E093001197F1 /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD323053E093001197F1 /* AppDelegate.swift */,
+				04EBCD343053E093001197F1 /* Main.storyboard */,
+				04EBCD373053E093001197F1 /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		04EBCD403053E093001197F1 /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD413053E093001197F1 /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		04EBCD4A3053E093001197F1 /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD4B3053E093001197F1 /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		04EBCD6A3053E093001197F1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				04EBCD6B3053E093001197F1 /* options */,
+				04EBCD6C3053E093001197F1 /* popup */,
+				04EBCD6D3053E093001197F1 /* learn */,
+				04EBCD6E3053E093001197F1 /* background.js */,
+				04EBCD6F3053E093001197F1 /* content */,
+				04EBCD703053E093001197F1 /* onboard */,
+				04EBCD713053E093001197F1 /* styles */,
+				04EBCD723053E093001197F1 /* icons */,
+				04EBCD733053E093001197F1 /* manifest.json */,
+				04EBCD743053E093001197F1 /* _locales */,
+				04EBCD753053E093001197F1 /* vendor */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+		MT10D06CA57E0000000003 /* iOS (Widget) */ = {
+			isa = PBXGroup;
+			children = (
+				MT10D06CA57E0000000010 /* LiveActivity.swift */,
+			);
+			path = "iOS (Widget)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		04EBCD1D3053E093001197F1 /* BelliedMonkey Translator (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04EBCD603053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator (iOS)" */;
+			buildPhases = (
+				04EBCD1A3053E093001197F1 /* Sources */,
+				04EBCD1B3053E093001197F1 /* Frameworks */,
+				04EBCD1C3053E093001197F1 /* Resources */,
+				04EBCD5F3053E093001197F1 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				MT10D06CA57E0000000012 /* PBXTargetDependency */,
+				04EBCD3F3053E093001197F1 /* PBXTargetDependency */,
+			);
+			name = "BelliedMonkey Translator (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "BelliedMonkey Translator (iOS)";
+			productReference = 04EBCD1E3053E093001197F1 /* BelliedMonkey Translator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		04EBCD2F3053E093001197F1 /* BelliedMonkey Translator (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04EBCD673053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator (macOS)" */;
+			buildPhases = (
+				04EBCD2C3053E093001197F1 /* Sources */,
+				04EBCD2D3053E093001197F1 /* Frameworks */,
+				04EBCD2E3053E093001197F1 /* Resources */,
+				04EBCD663053E093001197F1 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				04EBCD493053E093001197F1 /* PBXTargetDependency */,
+			);
+			name = "BelliedMonkey Translator (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "BelliedMonkey Translator (macOS)";
+			productReference = 04EBCD303053E093001197F1 /* BelliedMonkey Translator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		04EBCD3B3053E093001197F1 /* BelliedMonkey Translator Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04EBCD5C3053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator Extension (iOS)" */;
+			buildPhases = (
+				04EBCD383053E093001197F1 /* Sources */,
+				04EBCD393053E093001197F1 /* Frameworks */,
+				04EBCD3A3053E093001197F1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "BelliedMonkey Translator Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "BelliedMonkey Translator Extension (iOS)";
+			productReference = 04EBCD3C3053E093001197F1 /* BelliedMonkey Translator Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		04EBCD453053E093001197F1 /* BelliedMonkey Translator Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 04EBCD633053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator Extension (macOS)" */;
+			buildPhases = (
+				04EBCD423053E093001197F1 /* Sources */,
+				04EBCD433053E093001197F1 /* Frameworks */,
+				04EBCD443053E093001197F1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "BelliedMonkey Translator Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "BelliedMonkey Translator Extension (macOS)";
+			productReference = 04EBCD463053E093001197F1 /* BelliedMonkey Translator Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		MT10D06CA57E0000000001 /* MTPodcastWidget */ = {
+			isa = PBXNativeTarget;
+			/* MT_WIDGET_TARGET — patched by scripts/sync-app-assets.js */
+			buildConfigurationList = MT10D06CA57E0000000007 /* Build configuration list for PBXNativeTarget "MTPodcastWidget" */;
+			buildPhases = (
+				MT10D06CA57E0000000004 /* Sources */,
+				MT10D06CA57E0000000005 /* Frameworks */,
+				MT10D06CA57E0000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MTPodcastWidget;
+			productName = MTPodcastWidget;
+			productReference = MT10D06CA57E0000000002 /* MTPodcastWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		04EBCD0B3053E091001197F1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					04EBCD1D3053E093001197F1 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					04EBCD2F3053E093001197F1 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					04EBCD3B3053E093001197F1 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					04EBCD453053E093001197F1 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = 04EBCD0E3053E091001197F1 /* Build configuration list for PBXProject "BelliedMonkey Translator" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 04EBCD0A3053E091001197F1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 04EBCD1F3053E093001197F1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				MT10D06CA57E0000000001 /* MTPodcastWidget */,
+				04EBCD1D3053E093001197F1 /* BelliedMonkey Translator (iOS) */,
+				04EBCD2F3053E093001197F1 /* BelliedMonkey Translator (macOS) */,
+				04EBCD3B3053E093001197F1 /* BelliedMonkey Translator Extension (iOS) */,
+				04EBCD453053E093001197F1 /* BelliedMonkey Translator Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		04EBCD1C3053E093001197F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD4E3053E093001197F1 /* Icon.png in Resources */,
+				04EBCD273053E093001197F1 /* LaunchScreen.storyboard in Resources */,
+				04EBCD4C3053E093001197F1 /* Main.html in Resources */,
+				04EBCD523053E093001197F1 /* Script.js in Resources */,
+				04EBCD563053E093001197F1 /* Assets.xcassets in Resources */,
+				04EBCD2A3053E093001197F1 /* Main.storyboard in Resources */,
+				04EBCD503053E093001197F1 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD2E3053E093001197F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD4F3053E093001197F1 /* Icon.png in Resources */,
+				04EBCD513053E093001197F1 /* Style.css in Resources */,
+				04EBCD363053E093001197F1 /* Main.storyboard in Resources */,
+				04EBCD533053E093001197F1 /* Script.js in Resources */,
+				04EBCD573053E093001197F1 /* Assets.xcassets in Resources */,
+				04EBCD4D3053E093001197F1 /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD3A3053E093001197F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD863053E093001197F1 /* onboard in Resources */,
+				04EBCD883053E093001197F1 /* icons in Resources */,
+				04EBCD873053E093001197F1 /* styles in Resources */,
+				04EBCD8B3053E093001197F1 /* vendor in Resources */,
+				04EBCD843053E093001197F1 /* background.js in Resources */,
+				04EBCD893053E093001197F1 /* manifest.json in Resources */,
+				04EBCD833053E093001197F1 /* learn in Resources */,
+				04EBCD813053E093001197F1 /* options in Resources */,
+				04EBCD823053E093001197F1 /* popup in Resources */,
+				04EBCD8A3053E093001197F1 /* _locales in Resources */,
+				04EBCD853053E093001197F1 /* content in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD443053E093001197F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD7B3053E093001197F1 /* onboard in Resources */,
+				04EBCD7D3053E093001197F1 /* icons in Resources */,
+				04EBCD7C3053E093001197F1 /* styles in Resources */,
+				04EBCD803053E093001197F1 /* vendor in Resources */,
+				04EBCD793053E093001197F1 /* background.js in Resources */,
+				04EBCD7E3053E093001197F1 /* manifest.json in Resources */,
+				04EBCD783053E093001197F1 /* learn in Resources */,
+				04EBCD763053E093001197F1 /* options in Resources */,
+				04EBCD773053E093001197F1 /* popup in Resources */,
+				04EBCD7F3053E093001197F1 /* _locales in Resources */,
+				04EBCD7A3053E093001197F1 /* content in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		MT10D06CA57E0000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		04EBCD1A3053E093001197F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD543053E093001197F1 /* ViewController.swift in Sources */,
+				04EBCD223053E093001197F1 /* AppDelegate.swift in Sources */,
+				04EBCD243053E093001197F1 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD2C3053E093001197F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD553053E093001197F1 /* ViewController.swift in Sources */,
+				04EBCD333053E093001197F1 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD383053E093001197F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD583053E093001197F1 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		04EBCD423053E093001197F1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04EBCD593053E093001197F1 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		MT10D06CA57E0000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				MT10D06CA57E0000000011 /* LiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		04EBCD3F3053E093001197F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 04EBCD3B3053E093001197F1 /* BelliedMonkey Translator Extension (iOS) */;
+			targetProxy = 04EBCD3E3053E093001197F1 /* PBXContainerItemProxy */;
+		};
+		04EBCD493053E093001197F1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 04EBCD453053E093001197F1 /* BelliedMonkey Translator Extension (macOS) */;
+			targetProxy = 04EBCD483053E093001197F1 /* PBXContainerItemProxy */;
+		};
+		MT10D06CA57E0000000012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = MT10D06CA57E0000000001 /* MTPodcastWidget */;
+			targetProxy = MT10D06CA57E0000000013 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		04EBCD113053E091001197F1 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04EBCD123053E091001197F1 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		04EBCD253053E093001197F1 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04EBCD263053E093001197F1 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		04EBCD283053E093001197F1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04EBCD293053E093001197F1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		04EBCD343053E093001197F1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				04EBCD353053E093001197F1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		04EBCD5A3053E093001197F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		04EBCD5B3053E093001197F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		04EBCD5D3053E093001197F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.extension;
+				PRODUCT_NAME = "BelliedMonkey Translator Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		04EBCD5E3053E093001197F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.extension;
+				PRODUCT_NAME = "BelliedMonkey Translator Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		04EBCD613053E093001197F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shared (App)/app.entitlements";
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator;
+				PRODUCT_NAME = "BelliedMonkey Translator";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		04EBCD623053E093001197F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shared (App)/app.entitlements";
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator;
+				PRODUCT_NAME = "BelliedMonkey Translator";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		04EBCD643053E093001197F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.extension;
+				PRODUCT_NAME = "BelliedMonkey Translator Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		04EBCD653053E093001197F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.extension;
+				PRODUCT_NAME = "BelliedMonkey Translator Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		04EBCD683053E093001197F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shared (App)/app.entitlements";
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator;
+				PRODUCT_NAME = "BelliedMonkey Translator";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		04EBCD693053E093001197F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shared (App)/app.entitlements";
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "大肚猴翻译";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.9.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator;
+				PRODUCT_NAME = "BelliedMonkey Translator";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		MT10D06CA57E0000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Widget)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "MTPodcastWidget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.MTPodcastWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		MT10D06CA57E0000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Widget)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "MTPodcastWidget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.9.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.belliedmonkeytranslator.MTPodcastWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		04EBCD0E3053E091001197F1 /* Build configuration list for PBXProject "BelliedMonkey Translator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04EBCD5A3053E093001197F1 /* Debug */,
+				04EBCD5B3053E093001197F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04EBCD5C3053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04EBCD5D3053E093001197F1 /* Debug */,
+				04EBCD5E3053E093001197F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04EBCD603053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04EBCD613053E093001197F1 /* Debug */,
+				04EBCD623053E093001197F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04EBCD633053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04EBCD643053E093001197F1 /* Debug */,
+				04EBCD653053E093001197F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		04EBCD673053E093001197F1 /* Build configuration list for PBXNativeTarget "BelliedMonkey Translator (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04EBCD683053E093001197F1 /* Debug */,
+				04EBCD693053E093001197F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		MT10D06CA57E0000000007 /* Build configuration list for PBXNativeTarget "MTPodcastWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				MT10D06CA57E0000000008 /* Debug */,
+				MT10D06CA57E0000000009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 04EBCD0B3053E091001197F1 /* Project object */;
+}
