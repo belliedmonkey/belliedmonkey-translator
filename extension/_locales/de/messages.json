@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "Nicht mehr anzeigen",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari-Erweiterung",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "Sie haben vorhin „{done}“ getippt, deshalb ist der Hinweis auf dem Startbildschirm ausgeblendet. Falls sie noch nicht aktiv ist, holen Sie ihn hier zurück.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Hinweis „Erweiterung aktivieren“ wieder anzeigen",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Wiederhergestellt – auf dem Startbildschirm ist er wieder zu sehen.",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

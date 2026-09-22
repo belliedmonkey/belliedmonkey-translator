@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "다시 보지 않기",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari 확장 프로그램",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "이전에 「{done}」를 눌러 홈 화면의 안내가 숨겨졌습니다. 아직 켜지 않았다면 여기서 다시 불러오세요.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "홈에 「확장 프로그램 켜기」 안내 다시 표시",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "복원했습니다. 홈으로 돌아가면 보입니다.",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

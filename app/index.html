@@ -872,6 +872,15 @@
       <p class="note" id="systrans-capture-hint"></p>
       </div>
 
+      <!-- 误点了「我已打开」能把首页横幅找回来（2026-09-22，画布 YEDD4VmT9Pv2htUpoWZ9ZB 第 2 页板 ⑤，用户点头）。
+           只在横幅被「我已打开」收起过时出现；点了就地说「已恢复」，这一组随即收起。显隐由 app.js paintExtRestore()。 -->
+      <div class="sgroup" id="g-extbanner" hidden>
+      <h3 id="extb-title"></h3>
+      <p class="note" id="extb-note"></p>
+      <button id="extb-restore" type="button" class="secondary"></button>
+      <p class="note" id="extb-done" role="status" aria-live="polite" hidden></p>
+      </div>
+
       <div class="sgroup" id="g-docs">
       <h3 id="docs-title"></h3>
       <div class="dep" id="dep-docs"></div>

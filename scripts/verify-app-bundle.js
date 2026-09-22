@@ -1104,6 +1104,31 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(!v7.card && !v7.onboard && s7.onboardSeen, '已经配好引擎还在提示「继续设置」：' + JSON.stringify({ v7, s7 }));
       // 反面：卡收起之后横幅要能回来（否则上面那条「让路」可能只是横幅整个坏了）。v6：✕ 之后、没引擎。
       need(v6.banner, '✕ 收起卡之后扩展横幅没回来 —— 「让路」那条断言可能是空转的');
+      // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
+      await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
+      await reopen();
+      const bview = `JSON.stringify({ banner: !document.getElementById('ext-banner').hidden, settings: !document.getElementById('app-settings').hidden,
+        group: !document.getElementById('g-extbanner').hidden, note: document.getElementById('extb-note').textContent,
+        btn: !document.getElementById('extb-restore').hidden, done: !document.getElementById('extb-done').hidden,
+        doneText: document.getElementById('extb-done').textContent, label: TranslationCore.t('app_ext_done', '我已打开') })`;
+      const r0 = await E(bview);
+      need(!r0.banner, '点过「我已打开」重开 App，横幅又出现了（前提不成立，下面几条会空转）：' + JSON.stringify(r0));
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear2').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
+      const r1 = await E(bview);
+      need(r1.settings && r1.group && r1.btn, '点过「我已打开」之后，设置里没有「Safari 扩展」那一组：' + JSON.stringify(r1));
+      need(!/\{done\}/.test(r1.note) && r1.note.includes(r1.label), '「Safari 扩展」那一组说明没把按钮原话填进去：' + JSON.stringify(r1));
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('extb-restore').click(); await new Promise((r) => setTimeout(r, 200)); return 1; })()`, awaitPromise: true }, sessionId);
+      const r2 = await E(bview), st2 = await E(`new Promise((r) => chrome.storage.local.get(['extBannerDoneAt', 'tm:extBannerDay'], (v) => r(JSON.stringify(v || {}))))`);
+      need(r2.done && r2.doneText && !r2.btn, '点了「重新显示」没有就地说已恢复：' + JSON.stringify(r2));
+      need(!('extBannerDoneAt' in st2) && !('tm:extBannerDay' in st2), '点了「重新显示」存储里的标记还在：' + JSON.stringify(st2));
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('settings-back').click(); await new Promise((r) => setTimeout(r, 300)); return 1; })()`, awaitPromise: true }, sessionId);
+      const r3 = await E(bview);
+      need(r3.banner, '在设置里恢复之后回到首页，横幅没有当场出现：' + JSON.stringify(r3));
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear2').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
+      const r4 = await E(bview);
+      need(!r4.group, '没点过「我已打开」（已恢复）时设置里还挂着那一组 —— 一个什么都不会发生的按钮');
+      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('settings-back').click()`, awaitPromise: true }, sessionId);
+
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: injR.identifier }, sessionId).catch(() => {});
       await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
     }

@@ -3636,5 +3636,21 @@
   "ob_resume_close": {
     "message": "不再提示",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari 扩展",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "你之前点过「{done}」，首页那张提示已经收起。如果其实还没打开，从这里把它找回来。",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "在首页重新显示「打开扩展」提示",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "已恢复 —— 回到首页就能看到那张提示。",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

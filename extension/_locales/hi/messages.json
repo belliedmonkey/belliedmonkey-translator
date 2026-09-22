@@ -3467,5 +3467,21 @@
   "ob_resume_close": {
     "message": "फिर न दिखाएँ",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari एक्सटेंशन",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "आपने पहले «{done}» दबाया था, इसलिए होम स्क्रीन की सलाह छिपी है। अगर अभी चालू नहीं है, तो उसे यहाँ से वापस लाएँ।",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "होम पर «एक्सटेंशन चालू करें» सलाह फिर दिखाएँ",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "वापस ले आए — होम स्क्रीन पर लौटकर देखें।",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

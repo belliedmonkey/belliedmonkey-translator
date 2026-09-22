@@ -3635,5 +3635,21 @@
   "ob_resume_close": {
     "message": "今後表示しない",
     "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari 機能拡張",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "以前「{done}」をタップしたので、ホームのヒントは非表示です。まだオンにしていない場合は、ここから戻せます。",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "ホームに「機能拡張をオンにする」ヒントを再表示",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "戻しました。ホームに戻ると表示されます。",
+    "description": "App settings: confirmation after restoring the banner"
   }
 }

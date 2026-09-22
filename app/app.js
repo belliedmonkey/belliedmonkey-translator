@@ -1324,6 +1324,7 @@
     $('review-view').hidden = true;
     $('app-settings').hidden = false;
     await AppSettings.paint(currentSession, say);
+    paintExtRestore();
     say('');
     if (!anchorId) return;
     const el = $(anchorId);
@@ -1359,6 +1360,33 @@
     await paintCounts();
     say('');
   }
+
+  // ── 设置 · ② 功能 ·「Safari 扩展」：误点了「我已打开」能把首页横幅找回来 ─────────────
+  //
+  // 画布 YEDD4VmT9Pv2htUpoWZ9ZB 第 2 页板 ⑤，用户 2026-09-22 点头（放「② 功能」、就地说「已恢复」）。
+  // 数据说延时提醒触达不到（18 台点过「我已打开」且没卡的里，隔天回来 0 台），所以不做「7 天后自动回来」，
+  // 只给一个手动入口。只在横幅确实被「我已打开」收起过时出现 —— 对没点过的人那是一个什么都不会发生的按钮。
+  // 不加读数：横幅回来后照常发 ext_banner{shown}。回首页时横幅由 closeSettings → paintCounts → paintExtBanner
+  // 重画（那条路本来就在），这里只负责把内存与存储里的标记一起清掉。
+  function paintExtRestore() {
+    const g = $('g-extbanner'); if (!g) return;
+    g.hidden = !extBannerDone;
+    $('extb-title').textContent = t('extb_title', 'Safari 扩展');
+    // {done} 由横幅按钮自己的文案填 —— 不在 12 份译文里各抄一遍：第一版抄了，4 门语言与按钮上的字对不上。
+    $('extb-note').textContent = t('extb_note', '你之前点过「{done}」，首页那张提示已经收起。如果其实还没打开，从这里把它找回来。')
+      .replace('{done}', t('app_ext_done', '我已打开'));
+    $('extb-restore').textContent = t('extb_restore', '在首页重新显示「打开扩展」提示');
+    $('extb-note').hidden = false; $('extb-restore').hidden = false; $('extb-done').hidden = true;
+  }
+  $('extb-restore').addEventListener('click', async () => {
+    extBannerDone = false;
+    extBannerShownDay = '';     // 也清当天已显示的计数：回首页立刻看得到，不用等到明天
+    try { await new Promise((r) => chrome.storage.local.remove([EXT_DONE, 'tm:extBannerDay'], r)); } catch (_) {}
+    $('extb-note').hidden = true; $('extb-restore').hidden = true;
+    const done = $('extb-done');
+    done.textContent = t('extb_done', '已恢复 —— 回到首页就能看到那张提示。');
+    done.hidden = false;
+  });
 
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
   $('ext-banner-setup').addEventListener('click', () => { extBannerTrack('setup'); openExternal(setupPageUrl()); });
