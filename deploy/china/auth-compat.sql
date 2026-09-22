@@ -43,7 +43,12 @@ begin
     create role service_role nologin noinherit bypassrls;
   end if;
   if not exists (select from pg_roles where rolname = 'authenticator') then
-    -- 密码由 .env 注入，不写在这里。
+    -- 密码由 .env 注入，不写在这里：它是**会话参数**，用 PGOPTIONS="-c mt.authenticator_password=…" 传，
+    -- 不是 psql -v 变量（psql 变量名不许带点，2026-09-22 照原 README 跑时当场报 invalid variable name）。
+    -- 没传进来时 current_setting(…, true) 是 NULL ⇒ 会**静默**建出一个没有密码的登录角色 —— 拦下。
+    if coalesce(current_setting('mt.authenticator_password', true), '') = '' then
+      raise exception 'mt.authenticator_password 没有传进来：用 PGOPTIONS="-c mt.authenticator_password=…" 调 psql';
+    end if;
     execute format('create role authenticator login noinherit password %L',
                    current_setting('mt.authenticator_password', true));
   end if;
@@ -52,6 +57,19 @@ $$;
 
 grant anon, authenticated, service_role to authenticator;
 grant usage on schema public to anon, authenticated, service_role;
+
+-- ── 表权限：Supabase 平台预置的那一层（2026-09-22 首次实跑时缺，同步全部 42501）───────
+--
+-- Supabase 给 anon / authenticated / service_role 预置了 public 下所有表的权限，**真正的门是 RLS**。
+-- supabase/schema.sql 依赖这个前提、自己不写 grant —— 于是自建库里登录成功、push / pull 一律
+-- `permission denied for table bt_chunks`。这里补出同样的一层，唯一的有意不同：**不给 TRUNCATE**
+-- （它不受 RLS 约束；Supabase 给了，接口不暴露，但没有理由在新库里再发一遍）。
+-- 默认权限对之后才建的表生效（schema.sql 在本文件之后跑）；下面那句 grant 覆盖已经存在的表。
+alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant usage, select on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+grant select, insert, update, delete on all tables in schema public to anon, authenticated, service_role;
+grant usage, select on all sequences in schema public to anon, authenticated, service_role;
 
 -- ── auth.uid() / auth.role() ────────────────────────────────────────────
 --

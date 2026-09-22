@@ -18,6 +18,13 @@
 	handle_path /auth/v1/* {
 		reverse_proxy auth:9999
 	}
+	# 验证码邮件模板（2026-09-22）。GoTrue 的 GOTRUE_MAILER_TEMPLATES_* 要的是**网址**，
+	# 不是文件路径 —— 填路径会静默退回默认模板（点链接登录），而 App 接不了链接。
+	# 模板原样取自东京项目（两份相同），见 deploy/china/otp.html。
+	handle /templates/* {
+		root * /srv
+		file_server
+	}
 	respond 404
 }
 
@@ -37,7 +44,7 @@
 	# 客户端调用点：auth.js:310。失败只降级为 partial 不抛，所以它不在
 	# 关键路径上 —— 但没有它，用户删号时云端数据会留着。
 	handle_path /functions/v1/* {
-		reverse_proxy fn:8080
+		reverse_proxy fn:8000
 	}
 
 	# CORS：扩展页与宿主 App 都是从别的 origin 发过来的。
