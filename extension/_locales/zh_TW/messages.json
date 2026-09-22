@@ -1727,10 +1727,10 @@
     "message": "開始設定"
   },
   "ob_welcome_title": {
-    "message": "讀你真正在讀的東西"
+    "message": "學習你真正在讀的東西"
   },
   "ob_welcome_body": {
-    "message": "翻譯發生在瀏覽器裡，複習發生在這個 App 裡。花兩分鐘把兩邊接上。"
+    "message": "劃詞翻譯、聽一段、看即時字幕 —— 這些在這個 App 裡就能用。網頁翻譯在瀏覽器那半邊。"
   },
   "ob_ios_1": {
     "message": "在 Safari 裡點網址列左邊的擴充功能圖示"

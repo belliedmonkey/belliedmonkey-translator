@@ -449,8 +449,22 @@
   // ⚠️ 中国版**App** 的 MT_BACKEND.enabled 仍是 true（backend.config.js 里明写的
   // 不对称：App Review Route A 需要密码登录），所以今天这个分支在出货产物里不触发。
   // 它守的是「哪天 App 侧也关掉同步」，那时这一屏必须跟着消失，而不是留在那里。
-  const OB = ['welcome', 'ext', 'browser', 'read']
-    .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : []);
+  // 屏序（2026-09-22 重排，画布 #392 第 1 页「App 5 → 4 屏」）：
+  //
+  //   welcome → signin → read → ext
+  //
+  // ① **登录从最后一屏提到第 2 屏。** 它是转化最高、且能把后面全部自动化的那一步 ——
+  //    登录 = 拿到账号级的免费额度 = 引擎就绪，顺带把扩展那边也备好（额度以 user_id
+  //    为主键，一人一枚）。读数：App 侧登录过 29%、**有引擎只有 13%**；54 台登录并
+  //    同步过的里 **47 台（87%）既没配引擎也没领额度**。放在最后 = 多数人在拿到引擎
+  //    之前就走了，而 **176/247 台整个生命周期不到 5 分钟**，没有第二次会话。
+  // ② **「还有两件事在浏览器里做」（填 Key）那一屏删掉** —— 那正是 83% 卡住的一步，
+  //    而它的零摩擦替代（登录领额度）此前被排在它后面，顺序是反的。
+  // ③ **扩展降到最后一屏** —— 它是唯一会把人送出 App 的动作，而送出去就不回来
+  //    （18 台点过「我已打开」的里 16 台点完再没有任何事件）。
+  const OB = ['welcome']
+    .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : [])
+    .concat(['read', 'ext']);
   let obAt = 0;
 
   function obPaint() {
@@ -464,9 +478,11 @@
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
 
     if (step === 'welcome') {
-      $('ob-title').textContent = t('ob_welcome_title', '读你真正在读的东西');
+      // 2026-09-22：不再一上来就讲分工。先说**这个 App 自己能做什么** —— 24% 的人
+      // 本来就会自己去找听译，而其中一多半手里没引擎。
+      $('ob-title').textContent = t('ob_welcome_title', '学习你真正在读的东西');
       $('ob-text').textContent = t('ob_welcome_body',
-        '翻译发生在浏览器里，复习发生在这个 App 里。花两分钟把两边接上。');
+        '划词翻译、听一段、看实时字幕 —— 这些在这个 App 里就能用。网页翻译在浏览器那半边。');
       $('ob-next').textContent = t('ob_start', '开始设置');
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
@@ -490,29 +506,8 @@
       // 推一屏，后面三屏（浏览器里的两件事 / 去读一篇 / 登录）不会因此失联。
       // 比原来严格更好：原来点「继续」是原地跳过，现在是先送到位。
       $('ob-next').hidden = true;
-    } else if (step === 'browser') {
-      $('ob-title').textContent = t('ob_browser_title', '还有两件事在浏览器里做');
-      $('ob-text').textContent = t('ob_browser_body',
-        '这两个开关在扩展自己的设置页里 —— App 改不了它们，两边的存储是分开的。');
-      $('ob-kv').hidden = false;
-      // 「可以先用免费通道」这句在中国版是假话 —— 那个 flavor 的注册表里
-      // 一个 needsKey:false 的引擎都没有（global 只有 google，而 google 是
-      // global-only）。按注册表实际内容判定，不写死、也不按 flavor 名判断：
-      // 单一注册表规则，且哪天注册表变了这里自动跟着变。
-      // 不再按「注册表里有没有免费条目」分支。2026-09-01 裁定：决策不为免费通道开特例，
-      // 第一优先级是一键配置 —— 说「没有 Key 也能先用」正是在劝人别配。
-      obKv([
-        [t('ob_kv_engine', '填一把翻译引擎的 Key'),
-          t('ob_kv_engine_note_required', '扩展设置 → 翻译引擎。这一步躲不掉：不填 Key 就翻不出任何东西。')],
-        [t('ob_kv_capture', '打开「采集学习材料」'), t('ob_kv_capture_note', '默认是关的。打开之后，你停下来读过的句子才会变成卡片。')],
-      ]);
-      // **这一屏不再给外链。** 上一屏（ext）已经有「在网页上完成设置」把人送去官网了；
-      // 这里再放一个「打开配置教程」是第二个竞争入口，而且它去的是另一页。同一条
-      // 裁定在扩展那边已经下过一次：没设置好就该去网站设置，不该再有别的按钮分散
-      // 注意力（2026-09-01 用户对着真机截图指出）。
-      // 这两件事 App 确实做不到 —— Key 跨过去就意味着它离开设备经我们的服务器
-      // （产品的核心承诺正好相反），采集开关跨过去也只在登录后生效。做不到就别假装，
-      // 但「说清楚」不等于「再给一个链接」。
+    // 'browser'（「还有两件事在浏览器里做」：填 Key + 打开采集）2026-09-22 删除。
+    // 填 Key 是 83% 卡住的那一步，而登录领额度是它的零摩擦替代；采集默认就是开的。
     } else if (step === 'read') {
       $('ob-title').textContent = t('ob_read_title', '去读一篇');
       $('ob-text').textContent = t('ob_read_body',
@@ -1043,7 +1038,10 @@
     openExternal(setupPageUrl());
     // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做
     // 的人）会被卡在这一屏，后面三屏只能靠「以后再设置」整个跳过。
-    if (OB[obAt] === 'ext' && obAt < OB.length - 1) { obAt += 1; obPaint(); }
+    // ext 现在是**最后一屏**（2026-09-22 重排），所以这个按钮兼作收尾键；
+    // 它以前排在中间，那时它兼作前进键。两种情形都不能把照做的人卡在原地。
+    if (OB[obAt] !== 'ext') return;
+    if (obAt < OB.length - 1) { obAt += 1; obPaint(); } else obFinish();
   });
   $('gear').addEventListener('click', openSettings);
   $('gear2').addEventListener('click', openSettings);

@@ -1726,10 +1726,10 @@
     "message": "Commencer"
   },
   "ob_welcome_title": {
-    "message": "Lisez ce que vous lisez vraiment"
+    "message": "Apprenez ce que vous lisez vraiment"
   },
   "ob_welcome_body": {
-    "message": "La traduction se fait dans le navigateur, la révision dans cette app. Deux minutes pour relier les deux."
+    "message": "Traduire un passage, écouter un extrait, afficher des sous-titres en direct — tout se fait dans l’app. La traduction des pages web se passe côté navigateur."
   },
   "ob_ios_1": {
     "message": "Dans Safari, touchez l’icône des extensions à gauche de la barre d’adresse"
