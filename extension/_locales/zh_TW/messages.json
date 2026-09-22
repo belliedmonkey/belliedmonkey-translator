@@ -3608,5 +3608,17 @@
   },
   "ob_try_sample_alt": {
     "message": "在第二語言裡讀東西，同一個詞見得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "我單獨同意：登入後，我的帳號資訊（電子郵件或 Apple 帳號識別碼）與學習卡片（讀過的句子、譯文、來源頁面的網址與標題）傳輸到位於日本東京的伺服器儲存，接收方為 Supabase Pte. Ltd.。",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "接收方、用途與如何撤回，見隱私權政策第 3 節",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "要登入，請先勾選上面這一條。不勾也能使用，只是卡片不會同步。",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

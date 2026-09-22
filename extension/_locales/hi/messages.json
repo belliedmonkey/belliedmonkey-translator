@@ -3439,5 +3439,17 @@
   },
   "ob_try_sample_alt": {
     "message": "दूसरी भाषा में पढ़ते हुए, वही शब्द बार-बार मिलने से उन्हें खोजने की ज़रूरत नहीं रह जाती।"
+  },
+  "xb_consent": {
+    "message": "मैं अलग से सहमति देता/देती हूँ: साइन इन करने के बाद मेरी खाता जानकारी (ईमेल या Apple खाता पहचानकर्ता) और अध्ययन कार्ड (पढ़े गए वाक्य, अनुवाद, स्रोत पेज के पते और शीर्षक) टोक्यो, जापान में स्थित सर्वरों पर भेजे और संग्रहीत किए जाते हैं; प्राप्तकर्ता Supabase Pte. Ltd. है।",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "प्राप्तकर्ता, उद्देश्य और सहमति वापस लेने का तरीका: गोपनीयता नीति, खंड 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "साइन इन करने के लिए पहले ऊपर वाला बॉक्स चुनें। इसके बिना भी ऐप चलता है, बस कार्ड सिंक नहीं होंगे।",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

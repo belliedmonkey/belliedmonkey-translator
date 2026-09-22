@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "Когда читаешь на втором языке, одни и те же слова встречаются так часто, что их больше не нужно искать."
+  },
+  "xb_consent": {
+    "message": "Я даю отдельное согласие: после входа данные моей учётной записи (e-mail или идентификатор Apple) и учебные карточки (прочитанные предложения, переводы, адреса и заголовки исходных страниц) передаются и хранятся на серверах в Токио (Япония); получатель — Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Получатель, цель и отзыв согласия: политика конфиденциальности, раздел 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Чтобы войти, сначала отметьте пункт выше. Без этого приложение работает, просто карточки не синхронизируются.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

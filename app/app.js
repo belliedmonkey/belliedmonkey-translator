@@ -521,7 +521,7 @@
     // 「登录屏点了只翻页、根本不登录」。自报之后门禁问的是「现在是哪一屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box']) $(id).hidden = true;
     // 主/次逐屏重设，不留状态（同扩展 onboard.js）。默认「继续」是这一屏的主行动；
     // 有自己主行动的屏（「就地试一句」）在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
     $('ob-next').classList.remove('secondary');
@@ -592,6 +592,7 @@
       // 两个意思相近的「不」并排，用户分不清哪个是「跳过这一屏」、哪个是「整条引导都不要」。
       // 画布 #392 第 2 页的登录屏也只有这几个出口。
       $('ob-skip').hidden = true;
+      $('ob-xb-box').hidden = !xbNeeded;
       $('ob-kv').hidden = false;
       obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
       // 匿名用量事件说在前面（docs/telemetry-design.md §5）。中国版 App 同一份 bundle，
@@ -657,6 +658,86 @@
 
   let pendingEmail = '';
 
+  // ── 出境单独同意（2026-09-22）─────────────────────────────────────────────
+  //
+  // 中国版 App 的账号与卡片存在东京（backend.config.js 顶层 url）。PIPL 第 39 条要求
+  // 向境外提供个人信息须告知接收方等事项、并取得**单独同意**；人数少只免于申报，
+  // 这一条不免（《促进和规范数据跨境流动规定》第 5 条第 4 项 与第 10 条）。
+  //
+  // 「单独」的意思是：不跟隐私政策捆在一起、不默认勾上、不同意也能用别的功能。所以：
+  //   · 框默认不勾；不勾时**四条登录路**（Apple · Google · 邮箱验证码 · 密码）全部拦下；
+  //   · 拦下时说清楚「不勾也能用，只是不同步」—— 登录本来就是可选的；
+  //   · 同意记一次就不再问（xbConsent），两个框（首页卡 / 引导登录屏）读写同一个键。
+  //
+  // 出不出现按**值**判，不按 flavor 名：后端地址在 *.supabase.co（东京）才需要。境内后端
+  // 就绪（china.ready=true，产物 url 换成境内域名）那天，这个框自己消失，不用再改这里。
+  const XB_KEY = 'xbConsent';
+  const xbNeeded = (() => {
+    try {
+      if (window.MT_FLAVOR !== 'china') return false;
+      if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) return false;
+      return /\.supabase\.co$/i.test(new URL(MT_BACKEND.url).hostname);
+    } catch (_) { return false; }
+  })();
+  let xbAgreed = false;
+  const XB_BOXES = [['xb-box', 'xb-check'], ['ob-xb-box', 'ob-xb-check']];
+  function xbPaint() {
+    for (const [box, chk] of XB_BOXES) {
+      const el = $(box); if (!el) continue;
+      // 引导里那一份只在登录屏露出，显隐归 obPaint 管；这里只管首页卡上那一份。
+      if (box === 'xb-box') el.hidden = !xbNeeded;
+      if (!xbNeeded) continue;
+      el.querySelector('.xb-text').textContent = t('xb_consent',
+        '我单独同意：登录后，我的账号信息（邮箱或 Apple 账号标识）与学习卡片（读过的句子、译文、来源页面的地址与标题）传输到位于日本东京的服务器存储，接收方为 Supabase Pte. Ltd.。');
+      el.querySelector('.xb-link').textContent = t('xb_consent_link', '接收方、用途与怎么撤回，见隐私政策第 3 节');
+      $(chk).checked = xbAgreed;
+      if (xbAgreed) { el.classList.remove('need'); el.querySelector('.xb-err').hidden = true; }
+    }
+  }
+  function xbSet(on) {
+    xbAgreed = !!on;
+    try {
+      if (on) chrome.storage.local.set({ [XB_KEY]: { v: 1, at: new Date().toISOString() } });
+      else chrome.storage.local.remove(XB_KEY);
+    } catch (_) {}
+    xbPaint();
+  }
+  // 放行 → true；拦下 → false，并在**离人最近的那个框**上说为什么。
+  function xbGate(boxId) {
+    if (!xbNeeded || xbAgreed) return true;
+    const el = $(boxId);
+    if (el) {
+      el.classList.add('need');
+      const err = el.querySelector('.xb-err');
+      err.textContent = t('xb_need', '要登录，先勾选上面这一条。不勾也能用，只是卡片不会同步。');
+      err.hidden = false;
+      try { $(boxId === 'ob-xb-box' ? 'ob-xb-check' : 'xb-check').focus(); } catch (_) {}
+    }
+    return false;
+  }
+  for (const [box, chk] of XB_BOXES) {
+    $(chk).addEventListener('change', (e) => xbSet(e.target.checked));
+    $(box).querySelector('.xb-link').addEventListener('click', (ev) => {
+      ev.preventDefault();
+      openExternal('https://belliedmonkey.com/privacy.html#sync');
+    });
+  }
+  // 拦在**捕获阶段**、挂在卡片上：四条路各自的监听器都在按钮/表单本身上，捕获阶段先到，
+  // stopImmediatePropagation 之后它们一个都收不到。新加一条登录路只要在这张卡里，就自动被拦。
+  $('signin-prompt').addEventListener('click', (e) => {
+    if (!e.target.closest('#btn-apple, #btn-google')) return;
+    if (!xbGate('xb-box')) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  $('signin-prompt').addEventListener('submit', (e) => {
+    if (!xbGate('xb-box')) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
+  if (xbNeeded) {
+    try {
+      chrome.storage.local.get([XB_KEY], (v) => { xbAgreed = !!(v && v[XB_KEY]); xbPaint(); });
+    } catch (_) {}
+  }
+  xbPaint();
+
   // 登录屏的主按钮：**代理首页那张卡上真的登录按钮**，不再写第二份登录。顺序与那张卡
   // 一致 —— 一键的在前（Apple → Google），都不在（桥缺席、或这个构建没开那家）才退到邮箱；
   // 邮箱是多步表单，放不进引导，所以它是唯一一条「结束引导、去首页那张卡」的路。
@@ -674,6 +755,7 @@
     return t('ob_signin_email', '用邮箱登录');
   }
   function obStartSignIn() {
+    if (!xbGate('ob-xb-box')) return;   // 出境单独同意（见 xbNeeded）
     const b = obSignInProvider();
     if (b) { b.click(); return; }   // 登录成功会回到 show(session)，那里让引导前进一屏
     obFinish().then(() => { try { openEmailForms(); } catch (_) {} });

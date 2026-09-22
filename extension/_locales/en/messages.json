@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "I separately consent: once I sign in, my account details (email or Apple account identifier) and study cards (sentences I read, their translations, source page addresses and titles) are transferred to and stored on servers in Tokyo, Japan, operated by Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Recipient, purpose and how to withdraw: Privacy Policy, section 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "To sign in, tick the box above first. You can use the app without it — your cards just won’t sync.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

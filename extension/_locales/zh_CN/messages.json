@@ -3608,5 +3608,17 @@
   },
   "ob_try_sample_alt": {
     "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "我单独同意：登录后，我的账号信息（邮箱或 Apple 账号标识）与学习卡片（读过的句子、译文、来源页面的地址与标题）传输到位于日本东京的服务器存储，接收方为 Supabase Pte. Ltd.。",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "接收方、用途与怎么撤回，见隐私政策第 3 节",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "要登录，先勾选上面这一条。不勾也能用，只是卡片不会同步。",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

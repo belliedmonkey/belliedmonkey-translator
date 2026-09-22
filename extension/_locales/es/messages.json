@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "Al leer en un segundo idioma, de tanto encontrarte las mismas palabras, dejas de necesitar buscarlas."
+  },
+  "xb_consent": {
+    "message": "Doy mi consentimiento por separado: al iniciar sesión, los datos de mi cuenta (correo o identificador de Apple) y mis tarjetas de estudio (frases leídas, traducciones, direcciones y títulos de las páginas de origen) se transfieren y almacenan en servidores de Tokio (Japón), gestionados por Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Destinatario, finalidad y cómo retirarlo: política de privacidad, sección 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Para iniciar sesión, marca primero la casilla de arriba. Sin ella la app funciona; solo que tus tarjetas no se sincronizan.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

@@ -648,3 +648,16 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .hk-why { grid-column: 1 / -1; margin: 0; }
 .quick-more { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 .quick-more > summary { cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--accent-deep); padding: 6px 0; }
+
+/* 出境单独同意（中国版，2026-09-22；见 app.js xbNeeded）。框必须一眼看得出是个要勾的东西，
+   勾选区 ≥ 44px；被拦下时整块描边，不只是一行小红字。 */
+.xb-consent { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-md); }
+.xb-consent label { display: flex; align-items: flex-start; gap: 10px; min-height: 44px;
+  font-size: 0.85rem; line-height: 1.5; color: var(--fg); cursor: pointer; }
+.xb-consent input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent-deep); }
+.xb-consent .xb-link { align-self: flex-start; margin-left: 30px; font-size: 0.8rem;
+  color: var(--accent-deep); text-decoration: underline; padding: 6px 0; }
+.xb-consent .xb-err { margin: 0 0 0 30px; font-size: 0.8rem; color: var(--danger, #b3261e); }
+.xb-consent.need { border-color: var(--danger, #b3261e); }
+#ob-xb-box { margin-top: 12px; text-align: left; }

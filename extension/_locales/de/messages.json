@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "Wer in einer Fremdsprache liest, muss dieselben Wörter irgendwann nicht mehr nachschlagen, weil sie immer wieder auftauchen."
+  },
+  "xb_consent": {
+    "message": "Ich willige gesondert ein: Nach der Anmeldung werden meine Kontodaten (E-Mail oder Apple-Konto-Kennung) und Lernkarten (gelesene Sätze, Übersetzungen, Adressen und Titel der Quellseiten) auf Server in Tokio, Japan, übertragen und dort gespeichert; Empfänger ist Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Empfänger, Zweck und Widerruf: Datenschutzerklärung, Abschnitt 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Zum Anmelden zuerst das Kästchen oben ankreuzen. Ohne funktioniert die App auch – nur werden die Karten nicht synchronisiert.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

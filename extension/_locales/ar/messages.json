@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "حين تقرأ بلغة ثانية، تصادف الكلمات نفسها مرارًا حتى لا تعود بحاجة إلى البحث عنها."
+  },
+  "xb_consent": {
+    "message": "أوافق موافقة منفصلة: بعد تسجيل الدخول، تُنقل بيانات حسابي (البريد الإلكتروني أو معرّف حساب Apple) وبطاقات الدراسة (الجمل التي قرأتها وترجماتها وعناوين الصفحات المصدر وأسماؤها) وتُخزَّن على خوادم في طوكيو، اليابان، تديرها Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "الجهة المستلمة والغرض وطريقة السحب: سياسة الخصوصية، القسم 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "لتسجيل الدخول، حدّد المربع أعلاه أولًا. يعمل التطبيق بدونه، لكن بطاقاتك لن تُزامَن.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }
