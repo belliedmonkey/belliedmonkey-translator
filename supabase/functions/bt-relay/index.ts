@@ -78,7 +78,23 @@ async function sha256Hex(s: string) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 账本的两种走法。境内中继设 LEDGER_URL + LEDGER_KEY：只经 bt-grant-ledger 那个窄口查 / 扣额度，
+// **不持有 service_role**（那是整个库的最高权限，不出东京这个项目 —— 用户 2026-09-22 裁定）。
+// 东京这个部署不设它，照旧直连 RPC，行为不变。
+const LEDGER_URL = (Deno.env.get('LEDGER_URL') || '').replace(/\/+$/, '');
+const LEDGER_KEY = Deno.env.get('LEDGER_KEY') || '';
+const LEDGER_PATH: Record<string, string> = { bt_grant_check: '/check', bt_grant_charge: '/charge' };
+
 async function rpc(fn: string, args: unknown) {
+  if (LEDGER_URL) {
+    const r = await fetch(LEDGER_URL + LEDGER_PATH[fn], {
+      method: 'POST',
+      headers: { 'x-ledger-key': LEDGER_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    });
+    if (!r.ok) throw new Error(fn + ' ' + r.status);
+    return r.json();
+  }
   const r = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },

@@ -42,7 +42,7 @@ Node 18+ 自带 fetch / Request / Response / FormData，缺的只有那两个入
 实跑过：`scf_bootstrap` 起在 9000、真实百炼回译文、按 total_tokens 记账、换模型 403、预检放行 apikey。
 
 环境变量填在函数配置里（**不要**写进代码包），与 1B 的 `relay.env` 同一组：`SUPABASE_URL`、
-`SUPABASE_SERVICE_ROLE_KEY`、`UPSTREAM=dashscope`、`UPSTREAM_KEY`、`CLAIM_PROXY=1`、`GRANT_MODELS`、
+`LEDGER_URL`、`LEDGER_KEY`、`UPSTREAM=dashscope`、`UPSTREAM_KEY`、`CLAIM_PROXY=1`、`GRANT_MODELS`、
 `GRANT_PRICES`。超时设 60 秒（整页翻译的长请求）；开「函数 URL / 公网访问」拿到默认地址，
 这个地址就是下面的 `R` 和第 3 节的 `relayUrl`。
 
@@ -54,7 +54,8 @@ scp supabase/functions/bt-relay/index.ts relay:/opt/bt-relay/index.ts
 
 # /opt/bt-relay/relay.env（权限 600）
 SUPABASE_URL=https://cavezcufztzqsohpjmup.supabase.co    # 账本在东京
-SUPABASE_SERVICE_ROLE_KEY=<东京项目的 service_role key>
+LEDGER_URL=https://cavezcufztzqsohpjmup.supabase.co/functions/v1/bt-grant-ledger
+LEDGER_KEY=<与东京 supabase secret LEDGER_KEY 相同>     # **不放 service_role**，见下
 UPSTREAM=dashscope
 UPSTREAM_KEY=<百炼 key>
 CLAIM_PROXY=1
@@ -83,6 +84,19 @@ node -e "const L=require('./build/providers.config.js');console.log(L.find(p=>p.
 `tts` / `stt`，那两条路径会回具名的 503 `grant_misconfigured`（不是静默 500）。
 
 ---
+
+### 为什么中继不拿 service_role（2026-09-22 用户裁定）
+
+service_role 是东京那个库的最高权限。中继只需要「查额度、扣额度」两个动作，所以东京加了一个窄口
+`supabase/functions/bt-grant-ledger`：只认一把专用钥匙 `LEDGER_KEY`，只做 `/check` 与 `/charge`，
+单次记账 ≤ $0.05、hash 必须是 64 位 hex。这把钥匙泄露的最坏后果是「某个令牌被多记账、提前用完」，
+读不到任何内容、加不了额度、碰不到别的表。中继设了 `LEDGER_URL` 就走它，不再直连 RPC。
+
+东京那边设钥匙（值取 `.local/keys.md` 的 `ledger_key`，不回显）：
+
+```bash
+SUPABASE_ACCESS_TOKEN=… supabase secrets set --project-ref cavezcufztzqsohpjmup LEDGER_KEY=…
+```
 
 ## 2. 回读 —— 每一步都要看到结果，不是「命令没报错」
 
